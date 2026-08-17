@@ -1,0 +1,23 @@
+// Rag Idle — override de conf do char-server do ORÁCULO (M0).
+//
+// Montado em /rathena/conf/import/char_conf.txt. SUBSTITUI o
+// `rathena/tools/docker/asset/char_conf.txt` do upstream, e por isso repete as
+// duas linhas dele — o compose só monta um arquivo por caminho, e perder essas
+// duas quebraria a ligação login↔char.
+
+// --- do upstream (rathena/tools/docker/asset/char_conf.txt) ---
+// `login` é o nome do serviço no compose; `127.0.0.1` é o que o char ANUNCIA ao
+// cliente, e é alcançável porque a porta está publicada no host.
+login_ip: login
+char_ip: 127.0.0.1
+
+// --- nosso ---
+// O pincode (segunda senha) estava LIGADO por padrão e barra a seleção de
+// personagem: medido em 17/08/2026, o cliente recebe `HC_SECOND_PASSWD_LOGIN`,
+// abre a `PincodeWindow` e o roteiro do baseline para ali.
+//
+// Desligado porque o pincode não é parte da experiência que o M0 existe para
+// provar (login → mundo → combate → cidade) e porque ele é feature de conta, não
+// de jogo. Se um dia o Rag Idle quiser pincode, isto volta a `yes` e o roteiro
+// ganha um passo — o que NÃO pode é o oráculo travar num diálogo de conta.
+pincode_enabled: no

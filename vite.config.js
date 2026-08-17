@@ -30,14 +30,18 @@ const _proxy = {
 	}  
 };  
   
-if (isDocker) {  
-	_proxy['/remote-client'] = {  
-		target: remoteClientTarget,  
-		changeOrigin: true,  
-		secure: false,  
-		rewrite: path => path.replace(/^\/remote-client/, '')  
-	};  
-}  
+// Rag Idle / oráculo M0: este proxy era criado SÓ quando RO_PROXY_TARGET=docker,
+// embora o alvo de fora do Docker já estivesse calculado logo acima
+// (`remoteClientTarget` → 127.0.0.1:8000). Sem ele, rodando o vite no host,
+// `/remote-client/...` cai no servidor estático do próprio vite e devolve 404
+// para todo asset. Com ele, o cliente pede o caminho relativo de sempre e não
+// precisa de CORS nem de URL absoluta na config.
+_proxy['/remote-client'] = {
+	target: remoteClientTarget,
+	changeOrigin: true,
+	secure: false,
+	rewrite: path => path.replace(/^\/remote-client/, '')
+};
 
 export default defineConfig({
 	plugins: [uiCssHmrPlugin()],

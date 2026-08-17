@@ -35,7 +35,14 @@
 		"format": "prettier --write \"src/**/*.js\"",
 		"format:check": "prettier --check \"src/**/*.js\"",
 		"test": "vitest run",
-		"ci": "npm run lint && npm run format:check"
+		"ci": "npm run lint && npm run format:check",
+		"oraculo:up": "docker compose -f docker-compose.ragidle.yaml up -d",
+		"oraculo:down": "docker compose -f docker-compose.ragidle.yaml down",
+		"oraculo:logs": "docker compose -f docker-compose.ragidle.yaml logs -f --tail 40",
+		"oraculo:tabela": "node oraculo/gerar-tabela-de-opcodes.mjs",
+		"oraculo:config": "node -e \"require('fs').copyFileSync('oraculo/Config.local.js','applications/pwa/Config.local.js');console.log('Config.local.js instalado em applications/pwa/')\"",
+		"oraculo:gravar": "node oraculo/gravador-de-pacotes.js",
+		"oraculo:ler": "node oraculo/ler-captura.js"
 	},
 	"type": "module",
 	"engines": {

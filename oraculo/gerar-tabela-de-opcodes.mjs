@@ -1,0 +1,422 @@
+/**
+ * Gera `oraculo/opcodes.json` — as tabelas de opcode usadas pelo gravador para
+ * nomear e FATIAR os pacotes, e pelo leitor para imprimi-los.
+ *
+ * A tabela NÃO é escrita à mão: sai das tabelas do próprio cliente.
+ *
+ * DOIS SENTIDOS, DUAS TABELAS. O opcode sozinho não identifica um pacote — o
+ * mesmo número vale para pacotes diferentes em cada direção. Medido em
+ * 17/08/2026: `0x0064` é `CA_LOGIN` do cliente para o servidor, e tratá-lo como
+ * uma tabela só faz o gravador nomear pacote errado com cara de acerto.
+ *
+ * A classificação usa a convenção de nome do protocolo do RO, onde a família tem
+ * duas letras <origem><destino> e `C` é o cliente (`A` = login, `H` = char,
+ * `Z` = zone/map):
+ *
+ *   CA, CH, CZ  → SAÍDA   (cliente → servidor)
+ *   AC, HC, ZC  → ENTRADA (servidor → cliente)
+ *
+ * FONTES, e o que cada uma dá:
+ *
+ *   src/Network/PacketVersions.js   entradas `[PACKET.XX.NOME, 0xNNNN, tamanho,
+ *                                   ...offsets]` agrupadas por data de versão.
+ *                                   Opcode E tamanho. Resolve por "piso", igual
+ *                                   ao cliente (`PacketVerManager.js:27-38`):
+ *                                   vale a última data <= o PACKETVER em vigor.
+ *   src/Network/PacketStructure.js  `PACKET.XX.NOME.size = N` — tamanho TOTAL,
+ *                                   incluindo os 2 bytes do opcode (conferido
+ *                                   contra o rAthena em `HC.ACCEPT_DELETECHAR`
+ *                                   = 2 e `HC.REFUSE_ENTER` = 3). E, para os
+ *                                   pacotes de saída, o corpo do `build()`:
+ *                                   `pkt_buf.writeShort(0xNN)` dá o opcode e
+ *                                   `const pkt_len = 2 + 4 + …` dá o tamanho.
+ *   src/Network/PacketRegister.js   `0xNNNN: PACKET.XX.NOME` — o que o cliente
+ *                                   sabe RECEBER. Só nome.
+ *
+ * Uso:  node oraculo/gerar-tabela-de-opcodes.mjs [packetver]
+ */
+
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const AQUI = path.dirname(fileURLToPath(import.meta.url));
+const RAIZ = path.resolve(AQUI, '..');
+
+const PACKETVER = parseInt(process.argv[2] || '20211103', 10);
+
+const ler = (rel) => fs.readFileSync(path.join(RAIZ, rel), 'utf8');
+const versoesJs = ler('src/Network/PacketVersions.js');
+const estruturaJs = ler('src/Network/PacketStructure.js');
+const registerJs = ler('src/Network/PacketRegister.js');
+
+/**
+ * O opcode é único POR SERVIDOR, não por sentido — e foi isso que a primeira
+ * versão desta tabela errou. `0x0064` é `CA_LOGIN` no login-server e
+ * `CZ_REQ_OPEN_WRITE_MAIL` no map-server: numa tabela só, o segundo sobrescrevia
+ * o primeiro e o gravador nomeava o login de "abrir e-mail" com toda a
+ * confiança do mundo.
+ *
+ * A convenção de nome do protocolo dá o servidor E o sentido em duas letras
+ * <origem><destino>, com `C` = cliente, `A` = login, `H` = char, `Z` = zone/map.
+ */
+const SERVIDOR_POR_LETRA = { A: 'login', H: 'char', Z: 'map' };
+
+function classificar(familia) {
+  const m = /^([ACHZ])([ACHZ])$/.exec(familia);
+  if (!m) return null;
+  const [, origem, destino] = m;
+  if (origem === 'C' && SERVIDOR_POR_LETRA[destino]) {
+    return { servidor: SERVIDOR_POR_LETRA[destino], sentido: 'saida' };
+  }
+  if (destino === 'C' && SERVIDOR_POR_LETRA[origem]) {
+    return { servidor: SERVIDOR_POR_LETRA[origem], sentido: 'entrada' };
+  }
+  return null;
+}
+
+const tabelas = {
+  login: { entrada: new Map(), saida: new Map() },
+  char: { entrada: new Map(), saida: new Map() },
+  map: { entrada: new Map(), saida: new Map() },
+};
+const semSentido = new Set();
+
+function registrar(familia, nome, opcode, tamanho, desde, naoSobrescrever = false) {
+  const onde = classificar(familia);
+  if (!onde) {
+    semSentido.add(`${familia}_${nome}`);
+    return;
+  }
+  const alvo = tabelas[onde.servidor][onde.sentido];
+
+  /*
+   * PRECEDÊNCIA: o `PacketVersions` GANHA do corpo do `build()`.
+   *
+   * O `PacketVersions` já resolve a versão (é uma entrada por data, e nós
+   * aplicamos o piso). O `pkt_len` do `build()` é uma expressão literal que
+   * ignora os `if (PACKETVER.value >= N) pkt_len += 4` que vêm depois dela.
+   *
+   * Medido: `CZ_ENTER2` tem `pkt_len = 2+4+4+4+4+1` = 19 no corpo e `+= 4` num
+   * `if` logo abaixo, dando 23 para o nosso packetver — que é o que o
+   * `PacketVersions` declara e o que o fio mostra. Sem esta guarda, o passo do
+   * `build()` sobrescrevia 23 por 19 e o fatiamento do sentido de saída morria
+   * no primeiro pacote do mapa.
+   */
+  if (naoSobrescrever && alvo.has(opcode) && alvo.get(opcode).desde !== null) return;
+
+  alvo.set(opcode, { nome: `${familia}_${nome}`, tamanho, desde });
+}
+
+// --- 1. PacketVersions.js: opcode + tamanho, por data --------------------
+
+const CHAVE_DE_VERSAO = /^\s*(\d+)\s*:\s*\[\s*$/;
+const ENTRADA_DE_VERSAO = /^\s*\[\s*PACKET\.(\w+)\.(\w+)\s*,\s*(0x[0-9a-fA-F]+)\s*,\s*(-?\d+)/;
+
+let versaoAtual = null;
+let versoesLidas = 0;
+let versoesAplicadas = 0;
+
+for (const linha of versoesJs.split('\n')) {
+  const chave = CHAVE_DE_VERSAO.exec(linha);
+  if (chave) {
+    versaoAtual = parseInt(chave[1], 10);
+    versoesLidas++;
+    if (versaoAtual <= PACKETVER) versoesAplicadas++;
+    continue;
+  }
+  if (versaoAtual === null || versaoAtual > PACKETVER) continue;
+
+  const m = ENTRADA_DE_VERSAO.exec(linha);
+  if (!m) continue;
+  registrar(m[1], m[2], parseInt(m[3], 16), parseInt(m[4], 10), versaoAtual);
+}
+
+// --- 2. PacketStructure.js: tamanho por nome (`.size = N`) ---------------
+
+const TAMANHO_POR_NOME = /^\s*PACKET\.(\w+)\.(\w+)\.size\s*=\s*(-?\d+)\s*;/;
+const tamanhoPorNome = new Map();
+const nomesComMaisDeUmTamanho = new Set();
+
+for (const linha of estruturaJs.split('\n')) {
+  const m = TAMANHO_POR_NOME.exec(linha);
+  if (!m) continue;
+  const nome = `${m[1]}_${m[2]}`;
+  if (tamanhoPorNome.has(nome)) nomesComMaisDeUmTamanho.add(nome);
+  tamanhoPorNome.set(nome, parseInt(m[3], 10));
+}
+
+// --- 3. PacketStructure.js: os pacotes de SAÍDA, lidos do build() --------
+//
+// As famílias CA/CH/CZ quase não aparecem no PacketVersions — o opcode delas
+// está escrito dentro do `build()`, no primeiro `writeShort`. Foi este furo que
+// fez o gravador travar com "sem-tamanho" no primeiro pacote da sessão de
+// 17/08: `0x0064` (CA_LOGIN) não existia em tabela nenhuma.
+
+const CABECALHO_DE_BUILD = /^PACKET\.(\w+)\.(\w+)\.prototype\.build\s*=/;
+const PKT_LEN = /^\s*(?:const|let|var)\s+pkt_len\s*=\s*([0-9+\s*]+);/;
+const WRITE_SHORT = /writeShort\(\s*(0x[0-9a-fA-F]+)\s*\)/;
+
+let dentroDe = null;
+let lenDoBuild = null;
+let buildsLidos = 0;
+
+for (const linha of estruturaJs.split('\n')) {
+  const cab = CABECALHO_DE_BUILD.exec(linha);
+  if (cab) {
+    dentroDe = { familia: cab[1], nome: cab[2] };
+    lenDoBuild = null;
+    continue;
+  }
+  if (!dentroDe) continue;
+
+  const len = PKT_LEN.exec(linha);
+  if (len) {
+    // Só soma/multiplicação de literais. Qualquer variável no meio e o regex
+    // não casa — nesse caso o tamanho fica nulo em vez de inventado.
+    const expr = len[1].trim();
+    if (/^[0-9+\s*]+$/.test(expr)) {
+      // eslint-disable-next-line no-new-func
+      lenDoBuild = Function(`"use strict";return (${expr});`)();
+    }
+    continue;
+  }
+
+  const ws = WRITE_SHORT.exec(linha);
+  if (ws) {
+    const opcode = parseInt(ws[1], 16);
+    const nome = `${dentroDe.familia}_${dentroDe.nome}`;
+    // O `.size` declarado ganha do pkt_len quando existe (é o que o cliente usa
+    // para pacote de tamanho variável, com -1).
+    const tamanho = tamanhoPorNome.has(nome) ? tamanhoPorNome.get(nome) : (lenDoBuild ?? null);
+    registrar(dentroDe.familia, dentroDe.nome, opcode, tamanho, null, true);
+    buildsLidos++;
+    dentroDe = null; // só o PRIMEIRO writeShort do build é o opcode
+  }
+}
+
+// --- 3.5. rAthena: o tamanho declarado por QUEM ENVIA --------------------
+//
+// Sobram pacotes de entrada sem tamanho porque o cliente não declara `.size`
+// para todos — ele resolve alguns lendo até o fim do bloco. O gravador não tem
+// esse luxo: sem tamanho, não acha a fronteira seguinte e para de fatiar (foi o
+// que aconteceu no `ZC_SPRITE_CHANGE2`, pacote 41 da sessão de 17/08).
+//
+// A fonte certa para isso é o SERVIDOR, que é quem monta o pacote:
+// `rathena/src/map/clif_packetdb.hpp` tem 601 linhas `packet(0xNNNN, tamanho)`,
+// e lá `packet(0x01d7,11)` responde exatamente o que faltava.
+//
+// RESSALVA HONESTA: aquele arquivo é C com `#if PACKETVER >= ...`, e este leitor
+// NÃO passa pelo pré-processador — lê todas as linhas. Por isso é usado só como
+// RESERVA, onde a tabela do cliente não tem nada, e cada divergência entre
+// declarações do mesmo opcode fica registrada em `conflitosNoRathena`. Preencher
+// um vazio com o número do servidor é seguro; sobrescrever o número do cliente
+// com ele não seria.
+
+const CAMINHO_DO_PACKETDB = path.join(RAIZ, 'rathena/src/map/clif_packetdb.hpp');
+const PACOTE_DO_RATHENA = /^\s*packet\(\s*(0x[0-9a-fA-F]+)\s*,\s*(-?\d+)/;
+
+const tamanhoNoRathena = new Map();
+const conflitosNoRathena = [];
+let preenchidosPeloRathena = 0;
+
+if (fs.existsSync(CAMINHO_DO_PACKETDB)) {
+  for (const linha of fs.readFileSync(CAMINHO_DO_PACKETDB, 'utf8').split('\n')) {
+    const m = PACOTE_DO_RATHENA.exec(linha);
+    if (!m) continue;
+    const opcode = parseInt(m[1], 16);
+    const tamanho = parseInt(m[2], 10);
+    if (tamanhoNoRathena.has(opcode) && tamanhoNoRathena.get(opcode) !== tamanho) {
+      conflitosNoRathena.push({
+        opcode: '0x' + opcode.toString(16).padStart(4, '0'),
+        de: tamanhoNoRathena.get(opcode),
+        para: tamanho
+      });
+    }
+    tamanhoNoRathena.set(opcode, tamanho);
+  }
+}
+
+// O PREENCHIMENTO acontece no passo 5, depois do PacketRegister — a maioria dos
+// opcodes de entrada só ENTRA na tabela lá, e preencher antes não encontrava
+// ninguém para preencher (medido: "0 vazios preenchidos" na primeira tentativa).
+
+// --- 3.6. Exceções: tamanhos que o cliente declara por EXPRESSÃO ---------
+//
+// O extrator de `.size` casa `= <número>;`. Alguns pacotes declaram o tamanho
+// com um ternário dependente de versão, e para esses o regex não casa nada —
+// eles saem sem tamanho e o fatiador para neles.
+//
+// Em vez de complicar o extrator (avaliar expressão de outro arquivo é pedir
+// para errar em silêncio), a exceção é declarada aqui, à mão, COM a conta.
+// Cada entrada tem que dizer de onde saiu.
+
+const EXCECOES = [
+  {
+    opcode: 0x09a0,
+    servidor: 'char',
+    sentido: 'entrada',
+    tamanho: 6,
+    // `PacketStructure.js:11562`:
+    //   PACKETVER.value >= 20151001 && PACKETVER.value < 20180103 ? 10 : 6
+    // 20211103 cai no `: 6`. Confirmado por
+    // `packets2021_len_main.js` (length_list[0x09a0] = 6).
+    porque: 'PacketStructure.js:11562 (ternario por versao); 20211103 -> 6'
+  },
+  {
+    opcode: 0x0b6f,
+    servidor: 'char',
+    sentido: 'entrada',
+    tamanho: 177,
+    // O cliente declara `.size = 0` para este pacote (`PacketStructure.js:15235`
+    // e seguintes), porque resolve o comprimento pela tabela de tamanhos e não
+    // pela struct. O valor real vem de lá: `packets2021_len_main.js`,
+    // `length_list[0x0b6f] = 177` — que é 2 + os 175 do bloco de personagem
+    // deste packetver. Conferido chamando `init(20211103)` na própria tabela.
+    porque: 'packets2021_len_main.js init(20211103) -> length_list[0x0b6f] = 177'
+  },
+  {
+    opcode: 0x01d7,
+    servidor: 'map',
+    sentido: 'entrada',
+    tamanho: 15,
+    /*
+     * A RESERVA DO rATHENA MENTIU AQUI, e este é o caso que justifica a
+     * ressalva inteira sobre ela.
+     *
+     * `clif_packetdb.hpp:226` declara `packet(0x01d7,11)` — o tamanho de ANTES
+     * de 2018. A struct de verdade, em `packets_struct.hpp:2591-2603`, para
+     * `PACKETVER_RE_NUM >= 20180704` (o nosso caso), é
+     * `int16 + uint32 + uint8 + uint32 + uint32` = **15 bytes**.
+     *
+     * Os 4 bytes de diferença jogavam o fatiador para dentro do pacote
+     * seguinte: a captura do M0 parava no pacote 41, com 686 de 2.451 bytes
+     * consumidos, e TUDO o que vinha depois — inclusive o
+     * `ZC_NOTIFY_STANDENTRY11` que monta o avatar — ficava invisível.
+     * Passamos a achar que o oráculo não mandava aquilo.
+     */
+    porque: 'rathena/src/map/packets_struct.hpp:2591-2603 (RE >= 20180704) = 15; o clif_packetdb declara 11, que e pre-2018'
+  }
+];
+
+// A aplicação acontece no passo 5, junto com a reserva do rAthena: a maioria
+// destes opcodes só ENTRA na tabela no passo 4, e preencher antes não acharia
+// ninguém — o mesmo erro de ordem que a reserva já cometeu uma vez.
+
+// --- 4. PacketRegister.js: nome para o que entra e ficou sem tabela ------
+
+const REGISTRO = /^\s*(0x[0-9a-fA-F]+)\s*:\s*PACKET\.(\w+)\.(\w+)/;
+
+for (const linha of registerJs.split('\n')) {
+  const m = REGISTRO.exec(linha);
+  if (!m) continue;
+
+  const familia = m[2];
+  const onde = classificar(familia);
+  if (!onde) {
+    semSentido.add(`${familia}_${m[3]}`);
+    continue;
+  }
+
+  const opcode = parseInt(m[1], 16);
+  const alvo = tabelas[onde.servidor][onde.sentido];
+  if (alvo.has(opcode)) continue;
+
+  const nome = `${familia}_${m[3]}`;
+  alvo.set(opcode, { nome, tamanho: tamanhoPorNome.has(nome) ? tamanhoPorNome.get(nome) : null, desde: null });
+}
+
+// --- 5. Preenche os vazios com o tamanho declarado pelo rAthena ----------
+// Só onde FALTA, e só na ENTRADA: é o tamanho do que o servidor manda.
+
+for (const servidor of ['login', 'char', 'map']) {
+  for (const [opcode, dados] of tabelas[servidor].entrada) {
+    if (dados.tamanho !== null) continue;
+    if (!tamanhoNoRathena.has(opcode)) continue;
+    dados.tamanho = tamanhoNoRathena.get(opcode);
+    dados.fonteDoTamanho = 'rathena';
+    preenchidosPeloRathena++;
+  }
+}
+
+let preenchidosPorExcecao = 0;
+for (const e of EXCECOES) {
+  const atual = tabelas[e.servidor][e.sentido].get(e.opcode);
+  // Vale para tamanho ausente, para tamanho ZERO ("resolvo isto noutro lugar")
+  // e para tamanho vindo da RESERVA do rAthena — que é palpite bom, não
+  // verdade: a exceção é escrita à mão com a conta, então ela ganha.
+  if (atual && (atual.tamanho === null || atual.tamanho === 0 || atual.fonteDoTamanho === 'rathena')) {
+    atual.tamanho = e.tamanho;
+    atual.fonteDoTamanho = 'excecao';
+    atual.porque = e.porque;
+    preenchidosPorExcecao++;
+  }
+}
+
+// --- 6. Grava ------------------------------------------------------------
+
+function paraObjeto(mapa) {
+  const o = {};
+  for (const [opcode, dados] of [...mapa.entries()].sort((a, b) => a[0] - b[0])) {
+    o['0x' + opcode.toString(16).padStart(4, '0')] = dados;
+  }
+  return o;
+}
+
+const contarSemTamanho = (m) => [...m.values()].filter((v) => v.tamanho === null).length;
+
+const resumo = {};
+for (const servidor of Object.keys(tabelas)) {
+  resumo[servidor] = {
+    entrada: { total: tabelas[servidor].entrada.size, semTamanho: contarSemTamanho(tabelas[servidor].entrada) },
+    saida: { total: tabelas[servidor].saida.size, semTamanho: contarSemTamanho(tabelas[servidor].saida) },
+  };
+}
+
+const saidaJson = {
+  packetver: PACKETVER,
+  geradoPor: 'oraculo/gerar-tabela-de-opcodes.mjs',
+  fontes: ['src/Network/PacketVersions.js', 'src/Network/PacketStructure.js', 'src/Network/PacketRegister.js'],
+  resumo,
+  // Nomes com `.size` atribuído mais de uma vez (atribuição dependente de
+  // versão): vale a última do arquivo, que pode não ser a de runtime. Ficam
+  // declarados para serem os primeiros suspeitos quando um fatiamento sair torto.
+  nomesComMaisDeUmTamanho: [...nomesComMaisDeUmTamanho].sort(),
+  rathena: {
+    arquivo: 'rathena/src/map/clif_packetdb.hpp',
+    lido: fs.existsSync(CAMINHO_DO_PACKETDB),
+    declarados: tamanhoNoRathena.size,
+    preencheram: preenchidosPeloRathena,
+    // Mesmo opcode com tamanhos diferentes no arquivo (guardas de PACKETVER que
+    // este leitor não avalia). Primeiros suspeitos de fatiamento torto.
+    conflitos: conflitosNoRathena
+  },
+  // Famílias fora da convenção <origem><destino>: não classificadas.
+  semSentido: [...semSentido].sort(),
+  tabelas: {
+    login: { entrada: paraObjeto(tabelas.login.entrada), saida: paraObjeto(tabelas.login.saida) },
+    char: { entrada: paraObjeto(tabelas.char.entrada), saida: paraObjeto(tabelas.char.saida) },
+    map: { entrada: paraObjeto(tabelas.map.entrada), saida: paraObjeto(tabelas.map.saida) },
+  },
+};
+
+const destino = path.join(AQUI, 'opcodes.json');
+fs.writeFileSync(destino, JSON.stringify(saidaJson, null, '\t') + '\n');
+
+console.log(`packetver                 ${PACKETVER}`);
+console.log(`versoes no PacketVersions ${versoesLidas} (aplicadas: ${versoesAplicadas})`);
+console.log(`builds de saida lidos     ${buildsLidos}`);
+for (const s of ['login', 'char', 'map']) {
+  const r = resumo[s];
+  console.log(
+    `${s.padEnd(6)} entrada ${String(r.entrada.total).padStart(4)} (${r.entrada.semTamanho} s/tam) · ` +
+      `saida ${String(r.saida.total).padStart(4)} (${r.saida.semTamanho} s/tam)`,
+  );
+}
+console.log(
+  `rathena (reserva)         ${tamanhoNoRathena.size} declarados, ` +
+    `${preenchidosPeloRathena} vazios preenchidos, ${conflitosNoRathena.length} conflitos`
+);
+console.log(`excecoes a mao            ${preenchidosPorExcecao} de ${EXCECOES.length} aplicadas`);
+if (semSentido.size) console.log(`familias nao classificadas: ${[...semSentido].join(', ')}`);
+console.log(`gravado em                ${path.relative(RAIZ, destino)}`);

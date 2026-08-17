@@ -1,0 +1,161 @@
+# Rag Idle — rAthena de REFERÊNCIA (o oráculo do M0)
+#
+# Isto NÃO é o servidor do Rag Idle. É o rAthena original, rodando local, cuja
+# única função é: (a) provar que o cliente roBrowser funciona de ponta a ponta e
+# (b) servir de gabarito de pacotes byte a byte para os prompts M1–M4.
+#
+# Por que um compose nosso em vez do `docker-compose.AIO.yaml` do upstream:
+#
+#   1. PACKETVER. O AIO vem com 20250618, que é MAIOR do que o teto que este
+#      cliente conhece — `src/Network/PacketVersions.js` declara até 20211103.
+#      Servidor falando 2025 com cliente que só entende até 2021 é divergência
+#      silenciosa, exatamente o que o oráculo existe para impedir. Ver D-331.
+#   2. O AIO roda o cliente DENTRO de um container (vite em bind mount do
+#      Windows) e remapeia a rede com `wsproxy -r`. Aqui o cliente e o proxy
+#      rodam no HOST: as confs de `rathena/tools/docker/asset/` já anunciam
+#      `127.0.0.1` para char e map, e as portas abaixo estão publicadas — então
+#      o proxy alcança tudo em 127.0.0.1 sem remapeamento nenhum. Menos peça,
+#      menos armadilha, e o gravador de pacotes fica no host, sob nosso controle.
+#   3. O AIO sobe também `web` e o RemoteClient PHP. Nenhum dos dois é preciso
+#      para o baseline do M0.
+#
+# Subir:   docker compose -f docker-compose.ragidle.yaml up -d
+# Derrubar (preservando o banco):  docker compose -f docker-compose.ragidle.yaml down
+# Zerar o banco também:            ... down -v
+
+networks:
+    ro-network:
+        driver: bridge
+
+volumes:
+    rathenadb:
+        driver: local
+
+services:
+    db:
+        image: 'mariadb:noble'
+        container_name: 'ragidle-oraculo-db'
+        networks: [ro-network]
+        ports:
+            - '3306:3306'
+        volumes:
+            - 'rathenadb:/var/lib/mysql'
+            # O entrypoint do MariaDB roda todo .sql daqui na PRIMEIRA subida.
+            - './rathena/sql-files/:/docker-entrypoint-initdb.d'
+        environment:
+            MYSQL_ROOT_PASSWORD: ragnarok
+            MYSQL_DATABASE: ragnarok
+            MYSQL_USER: ragnarok
+            MYSQL_PASSWORD: ragnarok
+        healthcheck:
+            test: ['CMD-SHELL', "mariadb -h 127.0.0.1 -P 3306 -uroot -pragnarok -e 'SELECT 1;' >/dev/null 2>&1"]
+            interval: 10s
+            timeout: 10s
+            retries: 100
+
+    # Compila o rAthena uma vez e sai. login/char/map esperam ele TERMINAR.
+    builder:
+        image: 'rathena:local'
+        container_name: 'ragidle-oraculo-builder'
+        # Builder NOSSO, não o do upstream — ver o cabeçalho do script.
+        command: 'sh /builder-rathena.sh'
+        networks: [ro-network]
+        volumes:
+            - './rathena:/rathena'
+            - './oraculo/builder-rathena.sh:/builder-rathena.sh:ro'
+            - './rathena/tools/docker/asset/inter_conf.txt:/rathena/conf/import/inter_conf.txt'
+            - './oraculo/conf/char_conf.txt:/rathena/conf/import/char_conf.txt'
+            - './rathena/tools/docker/asset/map_conf.txt:/rathena/conf/import/map_conf.txt'
+            - './oraculo/conf/login_conf.txt:/rathena/conf/import/login_conf.txt'
+            - './rathena/tools/docker/asset/web_conf.txt:/rathena/conf/import/web_conf.txt'
+        init: true
+        tty: true
+        stdin_open: true
+        build:
+            context: ./oraculo
+            dockerfile: Dockerfile.rathena
+        depends_on:
+            db:
+                condition: service_healthy
+        environment:
+            # D-331 — 20211103 é o TETO do que este cliente entende
+            # (src/Network/PacketVersions.js:5923). Não subir sem trocar o
+            # cliente junto, e não descer sem motivo escrito.
+            BUILDER_CONFIGURE: '--enable-packetver=20211103'
+            # 12 CPUs nesta máquina; deixo 2 para o host.
+            MAKEFLAGS: '-j10'
+
+    login:
+        image: 'rathena:local'
+        container_name: 'ragidle-oraculo-login'
+        command: sh -c "chmod +x /rathena/login-server && /rathena/login-server"
+        networks: [ro-network]
+        ports:
+            - '6900:6900'
+        volumes:
+            - './rathena:/rathena'
+            - './rathena/tools/docker/asset/inter_conf.txt:/rathena/conf/import/inter_conf.txt'
+            - './oraculo/conf/char_conf.txt:/rathena/conf/import/char_conf.txt'
+            - './rathena/tools/docker/asset/map_conf.txt:/rathena/conf/import/map_conf.txt'
+            - './oraculo/conf/login_conf.txt:/rathena/conf/import/login_conf.txt'
+        init: true
+        tty: true
+        stdin_open: true
+        build:
+            context: ./oraculo
+            dockerfile: Dockerfile.rathena
+        depends_on:
+            db:
+                condition: service_healthy
+            builder:
+                condition: service_completed_successfully
+
+    char:
+        image: 'rathena:local'
+        container_name: 'ragidle-oraculo-char'
+        command: sh -c "chmod +x /rathena/char-server && /rathena/char-server"
+        networks: [ro-network]
+        ports:
+            - '6121:6121'
+        volumes:
+            - './rathena:/rathena'
+            - './rathena/tools/docker/asset/inter_conf.txt:/rathena/conf/import/inter_conf.txt'
+            - './oraculo/conf/char_conf.txt:/rathena/conf/import/char_conf.txt'
+            - './rathena/tools/docker/asset/map_conf.txt:/rathena/conf/import/map_conf.txt'
+            - './oraculo/conf/login_conf.txt:/rathena/conf/import/login_conf.txt'
+        init: true
+        tty: true
+        stdin_open: true
+        build:
+            context: ./oraculo
+            dockerfile: Dockerfile.rathena
+        depends_on:
+            db:
+                condition: service_healthy
+            login:
+                condition: service_started
+
+    map:
+        image: 'rathena:local'
+        container_name: 'ragidle-oraculo-map'
+        command: sh -c "chmod +x /rathena/map-server && /rathena/map-server"
+        networks: [ro-network]
+        ports:
+            - '5121:5121'
+        volumes:
+            - './rathena:/rathena'
+            - './rathena/tools/docker/asset/inter_conf.txt:/rathena/conf/import/inter_conf.txt'
+            - './oraculo/conf/char_conf.txt:/rathena/conf/import/char_conf.txt'
+            - './rathena/tools/docker/asset/map_conf.txt:/rathena/conf/import/map_conf.txt'
+            - './oraculo/conf/login_conf.txt:/rathena/conf/import/login_conf.txt'
+        init: true
+        tty: true
+        stdin_open: true
+        build:
+            context: ./oraculo
+            dockerfile: Dockerfile.rathena
+        depends_on:
+            db:
+                condition: service_healthy
+            char:
+                condition: service_started

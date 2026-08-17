@@ -966,5 +966,12 @@ export default {
 	0xae2: PACKET.ZC.UI_OPEN,
 	0x9cd: PACKET.ZC.MSG_COLOR,
 
+	// RAGIDLE: "Mapa de Caça" custom packet (see PacketStructure.js "RAGIDLE:"
+	// section). Only the server->client one needs registering here — CZ.*
+	// (client->server) packets are never dispatched by NetworkManager.receive()
+	// and are correspondingly absent from this file, e.g. PACKET.CZ.HBT/
+	// PACKET.CZ.REQUEST_QUIT are built+sent but never registered either.
+	0x0ff1: PACKET.ZC.RAGIDLE_CATALOGO,
+
 	0xb1a: PACKET.ZC.USESKILL_ACK3 // USE SKILL 3
 };

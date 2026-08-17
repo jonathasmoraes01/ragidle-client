@@ -1,0 +1,420 @@
+/**
+ * UI/Components/HuntMap/HuntMap.css
+ *
+ * Mapa de Caça — floating button + window.
+ *
+ * Layout notes (why the sizes below matter, not just cosmetics):
+ * - GUIComponent (UI/GUIComponent.js) makes ":host" the actual shadow HOST
+ *   element (see GUIComponent.js:87-119 / :131-203 _prepare()), and that is
+ *   the element GUIComponent#draggable() (GUIComponent.js:516-747) moves via
+ *   host.style.left/top, and the element GUIComponent#_fixPositionOverflow()
+ *   (GUIComponent.js:267-272) clamps to the viewport using host.offsetWidth/
+ *   offsetHeight. So ":host" is given the SAME width/height as ".hm-window"
+ *   below, so drag/clamp math is correct.
+ * - The floating button must stay visible/clickable at a fixed screen corner
+ *   no matter where the window has been dragged, and the window must NOT be
+ *   clickable (nor swallow clicks meant for the game world) while closed.
+ *   ":host" is therefore fully transparent to the mouse (pointer-events:none)
+ *   and only the two elements that should react to the mouse opt back in
+ *   with pointer-events:auto. This works together with
+ *   HuntMap.mouseMode = GUIComponent.MouseMode.CROSS (see HuntMap.js), the
+ *   same mode used by the other floating icons, e.g.
+ *   UI/Components/CashShopIcon/CashShopIcon.js:60.
+ */
+
+:host {
+	position: absolute;
+	width: 640px;
+	height: 460px;
+	pointer-events: none;
+}
+
+#HuntMap {
+	position: relative;
+	width: 100%;
+	height: 100%;
+	color: #e7e9ee;
+	font-size: 12px;
+}
+
+/* ─── Floating button (always visible on screen) ─────────── */
+
+#HuntMap .hm-button {
+	position: fixed;
+	top: 210px;
+	right: 20px;
+	width: 42px;
+	height: 42px;
+	border-radius: 50%;
+	border: 1px solid rgba(255, 255, 255, 0.25);
+	background: rgba(20, 20, 26, 0.85);
+	color: #ffffff;
+	font-size: 18px;
+	line-height: 1;
+	cursor: pointer;
+	pointer-events: auto;
+	z-index: 40;
+}
+
+#HuntMap .hm-button:hover {
+	background: rgba(40, 40, 50, 0.92);
+	border-color: rgba(255, 255, 255, 0.45);
+}
+
+/* ─── Window ───────────────────────────────────────────────── */
+
+#HuntMap .hm-window {
+	display: none;
+	position: absolute;
+	inset: 0;
+	pointer-events: auto;
+	flex-direction: column;
+	width: 640px;
+	height: 460px;
+	background: rgba(15, 17, 23, 0.94);
+	border: 1px solid rgba(255, 255, 255, 0.14);
+	border-radius: 6px;
+	box-shadow: 0 8px 26px rgba(0, 0, 0, 0.55);
+	overflow: hidden;
+}
+
+#HuntMap .hm-window.is-open {
+	display: flex;
+}
+
+#HuntMap .hm-titlebar {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: 8px 10px;
+	background: rgba(255, 255, 255, 0.06);
+	border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+	cursor: move;
+	flex: 0 0 auto;
+}
+
+#HuntMap .hm-title {
+	font-weight: bold;
+	letter-spacing: 0.02em;
+}
+
+#HuntMap .hm-close {
+	border: none;
+	background: transparent;
+	color: #e7e9ee;
+	font-size: 16px;
+	line-height: 1;
+	cursor: pointer;
+	padding: 0 4px;
+}
+
+#HuntMap .hm-close:hover {
+	color: #ff8080;
+}
+
+#HuntMap .hm-toolbar {
+	flex: 0 0 auto;
+	padding: 8px 10px;
+	border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+#HuntMap .hm-search {
+	box-sizing: border-box;
+	width: 100%;
+	padding: 6px 8px;
+	background: rgba(255, 255, 255, 0.06);
+	border: 1px solid rgba(255, 255, 255, 0.14);
+	border-radius: 4px;
+	color: #e7e9ee;
+	font-size: 12px;
+}
+
+#HuntMap .hm-search::placeholder {
+	color: #8a8f9c;
+}
+
+#HuntMap .hm-tabs {
+	flex: 0 0 auto;
+	display: flex;
+	flex-wrap: wrap;
+	gap: 4px;
+	padding: 6px 10px;
+	border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+#HuntMap .hm-tab {
+	border: 1px solid transparent;
+	background: rgba(255, 255, 255, 0.05);
+	color: #c7cbd6;
+	padding: 3px 10px;
+	border-radius: 12px;
+	font-size: 11px;
+	cursor: pointer;
+}
+
+#HuntMap .hm-tab:hover {
+	background: rgba(255, 255, 255, 0.1);
+}
+
+#HuntMap .hm-tab.is-active {
+	background: #3a6ea5;
+	border-color: #3a6ea5;
+	color: #ffffff;
+	font-weight: bold;
+}
+
+#HuntMap .hm-status {
+	flex: 0 0 auto;
+	min-height: 14px;
+	padding: 4px 10px 0 10px;
+	color: #e0b04d;
+	font-size: 11px;
+}
+
+#HuntMap .hm-content {
+	flex: 1 1 auto;
+	display: flex;
+	min-height: 0;
+}
+
+#HuntMap .hm-list {
+	flex: 0 0 46%;
+	overflow-y: auto;
+	padding: 8px;
+	border-right: 1px solid rgba(255, 255, 255, 0.08);
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+}
+
+#HuntMap .hm-list-empty,
+#HuntMap .hm-panel-empty {
+	margin-top: 16px;
+	text-align: center;
+	color: #9aa0ad;
+	font-size: 11px;
+}
+
+#HuntMap .hm-card {
+	display: block;
+	width: 100%;
+	box-sizing: border-box;
+	text-align: left;
+	background: rgba(255, 255, 255, 0.04);
+	border: 1px solid rgba(255, 255, 255, 0.09);
+	border-radius: 4px;
+	padding: 6px 8px;
+	color: #e7e9ee;
+	cursor: pointer;
+	font-size: 11px;
+}
+
+#HuntMap .hm-card:hover {
+	background: rgba(255, 255, 255, 0.08);
+}
+
+#HuntMap .hm-card.is-selected {
+	border-color: #3a6ea5;
+	background: rgba(58, 110, 165, 0.2);
+}
+
+#HuntMap .hm-card.badge-locked {
+	opacity: 0.55;
+}
+
+#HuntMap .hm-card-top {
+	display: flex;
+	justify-content: space-between;
+	align-items: baseline;
+	gap: 6px;
+}
+
+#HuntMap .hm-card-name {
+	font-weight: bold;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+#HuntMap .hm-card-id {
+	color: #9aa0ad;
+	font-size: 10px;
+	white-space: nowrap;
+}
+
+#HuntMap .hm-card-bottom {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	margin-top: 4px;
+}
+
+#HuntMap .hm-card-range {
+	color: #c7cbd6;
+}
+
+#HuntMap .hm-card-here {
+	margin-top: 4px;
+	color: #8fd17a;
+	font-weight: bold;
+	font-size: 10px;
+}
+
+#HuntMap .hm-badge {
+	font-size: 10px;
+	font-weight: bold;
+	padding: 2px 6px;
+	border-radius: 10px;
+	white-space: nowrap;
+}
+
+#HuntMap .hm-badge-locked {
+	background: #4a4a4a;
+	color: #d4d4d4;
+}
+
+#HuntMap .hm-badge-easy {
+	background: #2e7d32;
+	color: #ffffff;
+}
+
+#HuntMap .hm-badge-ideal {
+	background: #1e5fa8;
+	color: #ffffff;
+}
+
+#HuntMap .hm-badge-challenge {
+	background: #b3611c;
+	color: #ffffff;
+}
+
+#HuntMap .hm-panel {
+	flex: 1 1 auto;
+	overflow-y: auto;
+	padding: 10px;
+}
+
+#HuntMap .hm-panel-header {
+	margin-bottom: 8px;
+}
+
+#HuntMap .hm-panel-header h3 {
+	margin: 0 0 2px 0;
+	font-size: 13px;
+}
+
+#HuntMap .hm-panel-sub {
+	color: #9aa0ad;
+	font-size: 10px;
+}
+
+#HuntMap .hm-monster-list {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+}
+
+#HuntMap .hm-monster {
+	background: rgba(255, 255, 255, 0.04);
+	border: 1px solid rgba(255, 255, 255, 0.08);
+	border-radius: 4px;
+	padding: 6px 8px;
+}
+
+#HuntMap .hm-monster.is-mvp {
+	border-color: #c9a227;
+	background: rgba(201, 162, 39, 0.14);
+}
+
+#HuntMap .hm-monster-head {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+}
+
+#HuntMap .hm-monster-name {
+	font-weight: bold;
+	flex: 1 1 auto;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+#HuntMap .hm-monster-level {
+	color: #c7cbd6;
+	font-size: 10px;
+	white-space: nowrap;
+}
+
+#HuntMap .hm-mvp-badge {
+	background: #c9a227;
+	color: #221a00;
+	font-size: 9px;
+	font-weight: bold;
+	padding: 1px 5px;
+	border-radius: 8px;
+	white-space: nowrap;
+}
+
+#HuntMap .hm-monster-meta {
+	margin-top: 2px;
+	color: #9aa0ad;
+	font-size: 10px;
+}
+
+#HuntMap .hm-monster-drops {
+	margin-top: 3px;
+	color: #c7cbd6;
+	font-size: 10px;
+}
+
+#HuntMap .hm-panel-actions {
+	margin-top: 12px;
+}
+
+#HuntMap .hm-here-note {
+	color: #8fd17a;
+	font-weight: bold;
+	font-size: 11px;
+}
+
+#HuntMap .hm-btn-go,
+#HuntMap .hm-btn-city {
+	display: block;
+	width: 100%;
+	box-sizing: border-box;
+	margin-top: 8px;
+	padding: 8px;
+	border: none;
+	border-radius: 4px;
+	font-weight: bold;
+	font-size: 12px;
+	cursor: pointer;
+}
+
+#HuntMap .hm-btn-go {
+	background: #3a6ea5;
+	color: #ffffff;
+}
+
+#HuntMap .hm-btn-go:hover {
+	background: #4a82bd;
+}
+
+#HuntMap .hm-btn-go[disabled] {
+	background: #4a4a4a;
+	color: #9a9a9a;
+	cursor: not-allowed;
+}
+
+#HuntMap .hm-btn-city {
+	background: rgba(255, 255, 255, 0.1);
+	color: #e7e9ee;
+}
+
+#HuntMap .hm-btn-city:hover {
+	background: rgba(255, 255, 255, 0.16);
+}

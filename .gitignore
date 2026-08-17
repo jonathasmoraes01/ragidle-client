@@ -19,6 +19,13 @@ Config.local.js
 /data/*
 /save/*
 
+# Fonte do rAthena de REFERÊNCIA (o oráculo do M0), copiada para cá conforme o
+# DOCKER.md do upstream. Não versionamos: é código de terceiro, ~110 MB, e a
+# mesma regra que o Rag Idle já aplica às três raízes externas (D-266).
+# Os poucos arquivos que o fork versiona aqui (builder.sh, inter_conf.txt,
+# web_conf.txt) continuam rastreados — gitignore não afeta arquivo já rastreado.
+/rathena/*
+
 # IDE files
 .idea/
 .vscode/*

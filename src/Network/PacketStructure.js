@@ -15830,6 +15830,50 @@ PACKET.CZ.SELECTCART.prototype.build = function () {
 	return pkt_buf;
 };
 
+// RAGIDLE: custom packets for the "Mapa de Caça" menu-travel window
+// (UI/Components/HuntMap/HuntMap.js). Opcodes 0x0ff0-0x0ff2 are free in
+// this fork (checked against the whole PACKET.* range above and against
+// Network/PacketRegister.js — nothing else uses them). Framing for these
+// three IDs is declared in Network/Packets/packets2021_len_main.js
+// (0x0ff0=2, 0x0ff1=-1 variable, 0x0ff2=18), which is the length table that
+// governs PACKETVER 20211103 (selected by Network/PacketLength.js:71-98).
+
+// 0x0ff0 - RAGIDLE: CZ_RAGIDLE_PEDIR_CATALOGO (client -> server)
+// Fixed 2 bytes: opcode only. Sent when the HuntMap window is opened.
+PACKET.CZ.RAGIDLE_PEDIR_CATALOGO = function PACKET_CZ_RAGIDLE_PEDIR_CATALOGO() {};
+PACKET.CZ.RAGIDLE_PEDIR_CATALOGO.prototype.build = function () {
+	const pkt_len = 2;
+	const pkt_buf = new BinaryWriter(pkt_len);
+
+	pkt_buf.writeShort(0x0ff0);
+	return pkt_buf;
+};
+
+// 0x0ff1 - RAGIDLE: ZC_RAGIDLE_CATALOGO (server -> client)
+// Variable size: u16 opcode + u16 total length + JSON UTF-8 payload.
+// Same framing/parsing pattern as other variable ZC packets that read the
+// rest of the packet as a string, e.g. PACKET.ZC.WHISPER (readString(end -
+// fp.tell())) a few hundred lines above, or PACKET.ZC.BROADCAST.
+PACKET.ZC.RAGIDLE_CATALOGO = function PACKET_ZC_RAGIDLE_CATALOGO(fp, end) {
+	this.json = fp.readString(end - fp.tell());
+};
+PACKET.ZC.RAGIDLE_CATALOGO.size = -1;
+
+// 0x0ff2 - RAGIDLE: CZ_RAGIDLE_VIAJAR (client -> server)
+// Fixed 18 bytes: u16 opcode + 16-byte map name (writeString pads with \0
+// automatically, same as e.g. PACKET.CH.MAKE_CHAR's this.name field above).
+PACKET.CZ.RAGIDLE_VIAJAR = function PACKET_CZ_RAGIDLE_VIAJAR() {
+	this.mapName = '';
+};
+PACKET.CZ.RAGIDLE_VIAJAR.prototype.build = function () {
+	const pkt_len = 2 + 16;
+	const pkt_buf = new BinaryWriter(pkt_len);
+
+	pkt_buf.writeShort(0x0ff2);
+	pkt_buf.writeString(this.mapName, 16);
+	return pkt_buf;
+};
+
 /**
  * Export
  */

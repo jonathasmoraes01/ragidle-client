@@ -4855,6 +4855,18 @@ function init(packetver) {
 		length_list[0x0baf] = 6;
 	}
 
+	// RAGIDLE: custom "Mapa de Caça" packets (see Network/PacketStructure.js
+	// "RAGIDLE:" section). Opcodes 0x0ff0-0x0ff2 were free in this table
+	// (checked: no other length_list[] assignment above touches them) and
+	// this is the length table that governs PACKETVER 20211103 — the
+	// project's target version — per Network/PacketLength.js:71-98
+	// (init() picks packets2021_len_main.js for any packetver in [20210000,20220000)).
+	// Not gated behind a packetver check: this is a client-side extension,
+	// independent of the official rAthena packet version negotiation.
+	length_list[0x0ff0] = 2; // CZ_RAGIDLE_PEDIR_CATALOGO (opcode only)
+	length_list[0x0ff1] = -1; // ZC_RAGIDLE_CATALOGO (variable, JSON payload)
+	length_list[0x0ff2] = 18; // CZ_RAGIDLE_VIAJAR (opcode + 16-byte map name)
+
 	return length_list;
 }
 

@@ -89,6 +89,7 @@ import PlayerViewEquip from 'UI/Components/PlayerViewEquip/PlayerViewEquip.js';
 import JoystickUI from 'UI/Components/JoystickUI/JoystickUI.js';
 import CashShopIcon from 'UI/Components/CashShopIcon/CashShopIcon.js';
 import Achievement from 'UI/Components/Achievement/Achievement.js';
+import HuntMap from 'UI/Components/HuntMap/HuntMap.js'; // RAGIDLE: "Mapa de Caça"
 
 import MainEngine from './MapEngine/Main.js';
 import MapStateEngine from './MapEngine/MapState.js';
@@ -363,6 +364,7 @@ class MapEngine {
 			CaptchaAnswer.prepare();
 			CaptchaPreview.prepare();
 			Clan.prepare();
+			HuntMap.prepare(); // RAGIDLE: "Mapa de Caça"
 
 			if (Configs.get('enableMapName')) {
 				MapName.prepare();
@@ -738,6 +740,10 @@ function onMapChange(pkt) {
 		WinStats.getUI().append();
 
 		Quest.getUI().append();
+
+		// RAGIDLE: "Mapa de Caça" floating button — always visible on the map,
+		// same unconditional append() as ChatBox/Escape/etc above.
+		HuntMap.append();
 
 		if (Configs.get('enableCashShop')) {
 			CashShopIcon.append();

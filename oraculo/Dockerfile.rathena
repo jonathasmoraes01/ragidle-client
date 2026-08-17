@@ -1,0 +1,19 @@
+# Imagem de build/execução do rAthena de referência (o oráculo do M0).
+#
+# É o `rathena/tools/docker/Dockerfile` do upstream MENOS uma linha: o
+# `wget` do script `wait-for` do eficode. Dois motivos:
+#
+#   1. Não precisamos dele. O upstream usa `wait-for db:3306` para o servidor
+#      esperar o banco; o nosso `docker-compose.ragidle.yaml` faz isso com
+#      `healthcheck` + `depends_on: condition: service_healthy`, que é
+#      declarativo e não depende de baixar nada.
+#   2. Ele não builda nesta máquina — `raw.githubusercontent.com` não passa
+#      pelo proxy daqui (wget sai com exit 8). Um build que depende de rede
+#      externa a cada `--no-cache` é build que quebra sozinho um dia.
+#
+# Fora isso, mesmas dependências e mesmo `WORKDIR` do upstream, de propósito:
+# quem comparar os dois arquivos deve ver UMA diferença.
+FROM alpine:3.23
+WORKDIR /rathena
+RUN apk add --no-cache git cmake make gcc g++ gdb zlib-dev mariadb-dev ca-certificates linux-headers bash netcat-openbsd
+ENTRYPOINT [  ]

@@ -1,0 +1,606 @@
+{
+	"sessao": "servidor-m1",
+	"packetver": 20211103,
+	"gravadoPor": "oraculo/gravador-de-pacotes.js",
+	"conexoes": [
+		{
+			"n": 1,
+			"alvo": "127.0.0.1:6900",
+			"servidor": "login",
+			"etiqueta": "01-login",
+			"abertaEm": 17602,
+			"pacotes": {
+				"c2s": 1,
+				"s2c": 1
+			},
+			"bytes": {
+				"c2s": 55,
+				"s2c": 224
+			},
+			"travou": {
+				"c2s": false,
+				"s2c": false
+			},
+			"fechadaEm": 17623
+		},
+		{
+			"n": 2,
+			"alvo": "127.0.0.1:6121",
+			"servidor": "char",
+			"etiqueta": "02-char",
+			"abertaEm": 17613,
+			"pacotes": {
+				"c2s": 4,
+				"s2c": 6
+			},
+			"bytes": {
+				"c2s": 58,
+				"s2c": 426
+			},
+			"travou": {
+				"c2s": false,
+				"s2c": false
+			},
+			"fechadaEm": 24821
+		},
+		{
+			"n": 3,
+			"alvo": "127.0.0.1:5121",
+			"servidor": "map",
+			"etiqueta": "03-map",
+			"abertaEm": 24744,
+			"pacotes": {
+				"c2s": 6,
+				"s2c": 68
+			},
+			"bytes": {
+				"c2s": 40,
+				"s2c": 644
+			},
+			"travou": {
+				"c2s": false,
+				"s2c": false
+			},
+			"fechadaEm": 43836
+		},
+		{
+			"n": 4,
+			"alvo": "127.0.0.1:6900",
+			"servidor": "login",
+			"etiqueta": "04-login",
+			"abertaEm": 668219,
+			"pacotes": {
+				"c2s": 1,
+				"s2c": 1
+			},
+			"bytes": {
+				"c2s": 55,
+				"s2c": 224
+			},
+			"travou": {
+				"c2s": false,
+				"s2c": false
+			},
+			"fechadaEm": 668242
+		},
+		{
+			"n": 5,
+			"alvo": "127.0.0.1:6121",
+			"servidor": "char",
+			"etiqueta": "05-char",
+			"abertaEm": 668230,
+			"pacotes": {
+				"c2s": 6,
+				"s2c": 6
+			},
+			"bytes": {
+				"c2s": 70,
+				"s2c": 426
+			},
+			"travou": {
+				"c2s": false,
+				"s2c": false
+			},
+			"fechadaEm": 693760
+		},
+		{
+			"n": 6,
+			"alvo": "127.0.0.1:5121",
+			"servidor": "map",
+			"etiqueta": "06-map",
+			"abertaEm": 693725,
+			"pacotes": {
+				"c2s": 24,
+				"s2c": 72
+			},
+			"bytes": {
+				"c2s": 135,
+				"s2c": 680
+			},
+			"travou": {
+				"c2s": false,
+				"s2c": false
+			},
+			"fechadaEm": 745132
+		},
+		{
+			"n": 7,
+			"alvo": "127.0.0.1:6900",
+			"servidor": "login",
+			"etiqueta": "07-login",
+			"abertaEm": 5568836,
+			"pacotes": {
+				"c2s": 1,
+				"s2c": 1
+			},
+			"bytes": {
+				"c2s": 55,
+				"s2c": 224
+			},
+			"travou": {
+				"c2s": false,
+				"s2c": false
+			},
+			"fechadaEm": 5568854
+		},
+		{
+			"n": 8,
+			"alvo": "127.0.0.1:6121",
+			"servidor": "char",
+			"etiqueta": "08-char",
+			"abertaEm": 5568849,
+			"pacotes": {
+				"c2s": 3,
+				"s2c": 5
+			},
+			"bytes": {
+				"c2s": 22,
+				"s2c": 599
+			},
+			"travou": {
+				"c2s": false,
+				"s2c": false
+			},
+			"fechadaEm": 5570521
+		},
+		{
+			"n": 9,
+			"alvo": "127.0.0.1:5121",
+			"servidor": "map",
+			"etiqueta": "09-map",
+			"abertaEm": 5570473,
+			"pacotes": {
+				"c2s": 98,
+				"s2c": 79
+			},
+			"bytes": {
+				"c2s": 559,
+				"s2c": 1963
+			},
+			"travou": {
+				"c2s": false,
+				"s2c": false
+			},
+			"fechadaEm": 6181870
+		},
+		{
+			"n": 10,
+			"alvo": "127.0.0.1:6900",
+			"servidor": "login",
+			"etiqueta": "10-login",
+			"abertaEm": 6398183,
+			"pacotes": {
+				"c2s": 1,
+				"s2c": 1
+			},
+			"bytes": {
+				"c2s": 55,
+				"s2c": 224
+			},
+			"travou": {
+				"c2s": false,
+				"s2c": false
+			},
+			"fechadaEm": 6398196
+		},
+		{
+			"n": 11,
+			"alvo": "127.0.0.1:6121",
+			"servidor": "char",
+			"etiqueta": "11-char",
+			"abertaEm": 6398194,
+			"pacotes": {
+				"c2s": 3,
+				"s2c": 5
+			},
+			"bytes": {
+				"c2s": 22,
+				"s2c": 599
+			},
+			"travou": {
+				"c2s": false,
+				"s2c": false
+			},
+			"fechadaEm": 6399734
+		},
+		{
+			"n": 12,
+			"alvo": "127.0.0.1:5121",
+			"servidor": "map",
+			"etiqueta": "12-map",
+			"abertaEm": 6399705,
+			"pacotes": {
+				"c2s": 10,
+				"s2c": 79
+			},
+			"bytes": {
+				"c2s": 65,
+				"s2c": 1963
+			},
+			"travou": {
+				"c2s": false,
+				"s2c": false
+			},
+			"fechadaEm": 6450063
+		},
+		{
+			"n": 13,
+			"alvo": "127.0.0.1:6900",
+			"servidor": "login",
+			"etiqueta": "13-login",
+			"abertaEm": 10261183,
+			"pacotes": {
+				"c2s": 1,
+				"s2c": 1
+			},
+			"bytes": {
+				"c2s": 55,
+				"s2c": 224
+			},
+			"travou": {
+				"c2s": false,
+				"s2c": false
+			},
+			"fechadaEm": 10261212
+		},
+		{
+			"n": 14,
+			"alvo": "127.0.0.1:6121",
+			"servidor": "char",
+			"etiqueta": "14-char",
+			"abertaEm": 10261202,
+			"pacotes": {
+				"c2s": 4,
+				"s2c": 6
+			},
+			"bytes": {
+				"c2s": 58,
+				"s2c": 426
+			},
+			"travou": {
+				"c2s": false,
+				"s2c": false
+			},
+			"fechadaEm": 10268876
+		},
+		{
+			"n": 15,
+			"alvo": "127.0.0.1:5121",
+			"servidor": "map",
+			"etiqueta": "15-map",
+			"abertaEm": 10268800,
+			"pacotes": {
+				"c2s": 6,
+				"s2c": 69
+			},
+			"bytes": {
+				"c2s": 40,
+				"s2c": 685
+			},
+			"travou": {
+				"c2s": false,
+				"s2c": false
+			},
+			"fechadaEm": 10288227
+		},
+		{
+			"n": 16,
+			"alvo": "127.0.0.1:6900",
+			"servidor": "login",
+			"etiqueta": "16-login",
+			"abertaEm": 12043240,
+			"pacotes": {
+				"c2s": 1,
+				"s2c": 1
+			},
+			"bytes": {
+				"c2s": 55,
+				"s2c": 224
+			},
+			"travou": {
+				"c2s": false,
+				"s2c": false
+			},
+			"fechadaEm": 12043257
+		},
+		{
+			"n": 17,
+			"alvo": "127.0.0.1:6121",
+			"servidor": "char",
+			"etiqueta": "17-char",
+			"abertaEm": 12043253,
+			"pacotes": {
+				"c2s": 3,
+				"s2c": 5
+			},
+			"bytes": {
+				"c2s": 22,
+				"s2c": 599
+			},
+			"travou": {
+				"c2s": false,
+				"s2c": false
+			},
+			"fechadaEm": 12047273
+		},
+		{
+			"n": 18,
+			"alvo": "127.0.0.1:5121",
+			"servidor": "map",
+			"etiqueta": "18-map",
+			"abertaEm": 12047220,
+			"pacotes": {
+				"c2s": 2,
+				"s2c": 51
+			},
+			"bytes": {
+				"c2s": 29,
+				"s2c": 1705
+			},
+			"travou": {
+				"c2s": false,
+				"s2c": false
+			},
+			"fechadaEm": 12058075
+		},
+		{
+			"n": 19,
+			"alvo": "127.0.0.1:6900",
+			"servidor": "login",
+			"etiqueta": "19-login",
+			"abertaEm": 12063674,
+			"pacotes": {
+				"c2s": 1,
+				"s2c": 1
+			},
+			"bytes": {
+				"c2s": 55,
+				"s2c": 224
+			},
+			"travou": {
+				"c2s": false,
+				"s2c": false
+			},
+			"fechadaEm": 12063688
+		},
+		{
+			"n": 20,
+			"alvo": "127.0.0.1:6121",
+			"servidor": "char",
+			"etiqueta": "20-char",
+			"abertaEm": 12063686,
+			"pacotes": {
+				"c2s": 3,
+				"s2c": 5
+			},
+			"bytes": {
+				"c2s": 22,
+				"s2c": 599
+			},
+			"travou": {
+				"c2s": false,
+				"s2c": false
+			},
+			"fechadaEm": 12065606
+		},
+		{
+			"n": 21,
+			"alvo": "127.0.0.1:5121",
+			"servidor": "map",
+			"etiqueta": "21-map",
+			"abertaEm": 12065575,
+			"pacotes": {
+				"c2s": 55,
+				"s2c": 109
+			},
+			"bytes": {
+				"c2s": 322,
+				"s2c": 2197
+			},
+			"travou": {
+				"c2s": false,
+				"s2c": false
+			},
+			"fechadaEm": 12444927
+		},
+		{
+			"n": 22,
+			"alvo": "127.0.0.1:6900",
+			"servidor": "login",
+			"etiqueta": "22-login",
+			"abertaEm": 12471672,
+			"pacotes": {
+				"c2s": 1,
+				"s2c": 1
+			},
+			"bytes": {
+				"c2s": 55,
+				"s2c": 224
+			},
+			"travou": {
+				"c2s": false,
+				"s2c": false
+			},
+			"fechadaEm": 12471690
+		},
+		{
+			"n": 23,
+			"alvo": "127.0.0.1:6121",
+			"servidor": "char",
+			"etiqueta": "23-char",
+			"abertaEm": 12471684,
+			"pacotes": {
+				"c2s": 3,
+				"s2c": 5
+			},
+			"bytes": {
+				"c2s": 22,
+				"s2c": 599
+			},
+			"travou": {
+				"c2s": false,
+				"s2c": false
+			},
+			"fechadaEm": 12473640
+		},
+		{
+			"n": 24,
+			"alvo": "127.0.0.1:5121",
+			"servidor": "map",
+			"etiqueta": "24-map",
+			"abertaEm": 12473594,
+			"pacotes": {
+				"c2s": 37,
+				"s2c": 81
+			},
+			"bytes": {
+				"c2s": 216,
+				"s2c": 1975
+			},
+			"travou": {
+				"c2s": false,
+				"s2c": false
+			},
+			"fechadaEm": 12722115
+		},
+		{
+			"n": 25,
+			"alvo": "127.0.0.1:6900",
+			"servidor": "login",
+			"etiqueta": "25-login",
+			"abertaEm": 12798270,
+			"pacotes": {
+				"c2s": 1,
+				"s2c": 1
+			},
+			"bytes": {
+				"c2s": 55,
+				"s2c": 224
+			},
+			"travou": {
+				"c2s": false,
+				"s2c": false
+			},
+			"fechadaEm": 12798284
+		},
+		{
+			"n": 26,
+			"alvo": "127.0.0.1:6121",
+			"servidor": "char",
+			"etiqueta": "26-char",
+			"abertaEm": 12798282,
+			"pacotes": {
+				"c2s": 3,
+				"s2c": 5
+			},
+			"bytes": {
+				"c2s": 22,
+				"s2c": 599
+			},
+			"travou": {
+				"c2s": false,
+				"s2c": false
+			},
+			"fechadaEm": 12799513
+		},
+		{
+			"n": 27,
+			"alvo": "127.0.0.1:5121",
+			"servidor": "map",
+			"etiqueta": "27-map",
+			"abertaEm": 12799512,
+			"pacotes": {
+				"c2s": 137,
+				"s2c": 83
+			},
+			"bytes": {
+				"c2s": 802,
+				"s2c": 63137
+			},
+			"travou": {
+				"c2s": false,
+				"s2c": "sem-tamanho"
+			},
+			"fechadaEm": 13875622
+		},
+		{
+			"n": 28,
+			"alvo": "127.0.0.1:6900",
+			"servidor": "login",
+			"etiqueta": "28-login",
+			"abertaEm": 14544140,
+			"pacotes": {
+				"c2s": 1,
+				"s2c": 1
+			},
+			"bytes": {
+				"c2s": 55,
+				"s2c": 224
+			},
+			"travou": {
+				"c2s": false,
+				"s2c": false
+			},
+			"fechadaEm": 14544155
+		},
+		{
+			"n": 29,
+			"alvo": "127.0.0.1:6121",
+			"servidor": "char",
+			"etiqueta": "29-char",
+			"abertaEm": 14544151,
+			"pacotes": {
+				"c2s": 3,
+				"s2c": 5
+			},
+			"bytes": {
+				"c2s": 22,
+				"s2c": 599
+			},
+			"travou": {
+				"c2s": false,
+				"s2c": false
+			},
+			"fechadaEm": 14546259
+		},
+		{
+			"n": 30,
+			"alvo": "127.0.0.1:5121",
+			"servidor": "map",
+			"etiqueta": "30-map",
+			"abertaEm": 14546209,
+			"pacotes": {
+				"c2s": 1,
+				"s2c": 0
+			},
+			"bytes": {
+				"c2s": 23,
+				"s2c": 0
+			},
+			"travou": {
+				"c2s": false,
+				"s2c": false
+			}
+		}
+	]
+}

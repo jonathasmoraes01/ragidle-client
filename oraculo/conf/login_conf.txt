@@ -1,0 +1,17 @@
+// Rag Idle — override de conf do login-server do ORÁCULO (M0).
+//
+// Montado em /rathena/conf/import/login_conf.txt pelo
+// docker-compose.ragidle.yaml. Fica AQUI, versionado, em vez de editar a
+// árvore vendorizada do rAthena: `rathena/` é raiz externa ignorada, e um
+// ajuste que mora só lá não sobrevive a um `robocopy` novo.
+//
+// Único ajuste: criação de conta pelo próprio cliente, com o sufixo _M/_F do
+// protocolo original. É como o roteiro do baseline cria o personagem de teste,
+// sem script de banco e sem SQL na mão — o fluxo do jogo de verdade.
+new_account: yes
+
+// O padrão é 1 registro a cada 10 s. O roteiro do baseline cria uma conta só,
+// mas uma prova que roda em série (e re-roda depois de falhar) bate nesse teto
+// e recebe "já registrado recentemente", que parece erro de login.
+allowed_regs: 10
+time_allowed: 10

@@ -1,0 +1,67 @@
+{
+	"sessao": "baseline-m0",
+	"packetver": 20211103,
+	"gravadoPor": "oraculo/gravador-de-pacotes.js",
+	"conexoes": [
+		{
+			"n": 1,
+			"alvo": "127.0.0.1:6900",
+			"servidor": "login",
+			"etiqueta": "01-login",
+			"abertaEm": 819245,
+			"pacotes": {
+				"c2s": 1,
+				"s2c": 1
+			},
+			"bytes": {
+				"c2s": 55,
+				"s2c": 224
+			},
+			"travou": {
+				"c2s": false,
+				"s2c": false
+			},
+			"fechadaEm": 819287
+		},
+		{
+			"n": 2,
+			"alvo": "127.0.0.1:6121",
+			"servidor": "char",
+			"etiqueta": "02-char",
+			"abertaEm": 819264,
+			"pacotes": {
+				"c2s": 7,
+				"s2c": 2
+			},
+			"bytes": {
+				"c2s": 30,
+				"s2c": 1308
+			},
+			"travou": {
+				"c2s": false,
+				"s2c": "sem-tamanho"
+			},
+			"fechadaEm": 823057
+		},
+		{
+			"n": 3,
+			"alvo": "127.0.0.1:5121",
+			"servidor": "map",
+			"etiqueta": "03-map",
+			"abertaEm": 822986,
+			"pacotes": {
+				"c2s": 5,
+				"s2c": 40
+			},
+			"bytes": {
+				"c2s": 35,
+				"s2c": 2319
+			},
+			"travou": {
+				"c2s": false,
+				"s2c": "sem-tamanho"
+			},
+			"fechadaEm": 839343
+		}
+	]
+}
