@@ -4867,6 +4867,14 @@ function init(packetver) {
 	length_list[0x0ff1] = -1; // ZC_RAGIDLE_CATALOGO (variable, JSON payload)
 	length_list[0x0ff2] = 18; // CZ_RAGIDLE_VIAJAR (opcode + 16-byte map name)
 
+	// RAGIDLE: custom "Configuração idle" packets (see
+	// Network/PacketStructure.js "RAGIDLE:" section). Opcodes 0x0ff3-0x0ff5
+	// were free right after 0x0ff0-0x0ff2 above (checked: no other
+	// length_list[] assignment in this file touches them).
+	length_list[0x0ff3] = 2; // CZ_RAGIDLE_PEDIR_CONFIG (opcode only)
+	length_list[0x0ff4] = -1; // ZC_RAGIDLE_CONFIG (variable, JSON payload)
+	length_list[0x0ff5] = -1; // CZ_RAGIDLE_APLICAR_CONFIG (variable, JSON payload)
+
 	return length_list;
 }
 

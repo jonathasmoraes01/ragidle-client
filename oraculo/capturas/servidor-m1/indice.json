@@ -890,17 +890,78 @@
 			"etiqueta": "45-map",
 			"abertaEm": 26837600,
 			"pacotes": {
-				"c2s": 1,
-				"s2c": 58
+				"c2s": 323,
+				"s2c": 92
 			},
 			"bytes": {
-				"c2s": 23,
-				"s2c": 2563
+				"c2s": 1917,
+				"s2c": 580961
+			},
+			"travou": {
+				"c2s": false,
+				"s2c": "sem-tamanho"
+			},
+			"fechadaEm": 29483615
+		},
+		{
+			"n": 46,
+			"alvo": "127.0.0.1:6900",
+			"servidor": "login",
+			"etiqueta": "46-login",
+			"abertaEm": 30203297,
+			"pacotes": {
+				"c2s": 1,
+				"s2c": 1
+			},
+			"bytes": {
+				"c2s": 55,
+				"s2c": 224
 			},
 			"travou": {
 				"c2s": false,
 				"s2c": false
-			}
+			},
+			"fechadaEm": 30203316
+		},
+		{
+			"n": 47,
+			"alvo": "127.0.0.1:6121",
+			"servidor": "char",
+			"etiqueta": "47-char",
+			"abertaEm": 30203309,
+			"pacotes": {
+				"c2s": 4,
+				"s2c": 6
+			},
+			"bytes": {
+				"c2s": 58,
+				"s2c": 426
+			},
+			"travou": {
+				"c2s": false,
+				"s2c": false
+			},
+			"fechadaEm": 30210265
+		},
+		{
+			"n": 48,
+			"alvo": "127.0.0.1:5121",
+			"servidor": "map",
+			"etiqueta": "48-map",
+			"abertaEm": 30210225,
+			"pacotes": {
+				"c2s": 6,
+				"s2c": 69
+			},
+			"bytes": {
+				"c2s": 40,
+				"s2c": 685
+			},
+			"travou": {
+				"c2s": false,
+				"s2c": false
+			},
+			"fechadaEm": 30228592
 		}
 	]
 }

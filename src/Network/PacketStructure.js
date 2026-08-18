@@ -13,6 +13,7 @@ import BinaryWriter from 'Utils/BinaryWriter.js';
 import PACKETVER from './PacketVerManager.js';
 import Struct from 'Utils/Struct.js';
 import Configs from 'Core/Configs.js';
+import TextEncoding from 'Utils/CodepageManager.js';
 
 const NAME_LENGTH = 24; // Must be equal to same name var in mmo.h, -1 reads the rest of the packet
 const MAP_NAME_LENGTH = 11 + 1;
@@ -15871,6 +15872,63 @@ PACKET.CZ.RAGIDLE_VIAJAR.prototype.build = function () {
 
 	pkt_buf.writeShort(0x0ff2);
 	pkt_buf.writeString(this.mapName, 16);
+	return pkt_buf;
+};
+
+// RAGIDLE: custom packets for the "Configuração idle" window
+// (UI/Components/IdleConfig/IdleConfig.js). Opcodes 0x0ff3-0x0ff5 are free
+// in this fork, right after HuntMap's 0x0ff0-0x0ff2 above. Framing for
+// these opcodes is registered in Network/PacketRegister.js and
+// Network/Packets/packets2021_len_main.js, same pattern as 0x0ff0-0x0ff2.
+
+// 0x0ff3 - RAGIDLE: CZ_RAGIDLE_PEDIR_CONFIG (client -> server)
+// Fixed 2 bytes: opcode only. Sent when the IdleConfig window is opened.
+// Same shape as CZ_RAGIDLE_PEDIR_CATALOGO above.
+PACKET.CZ.RAGIDLE_PEDIR_CONFIG = function PACKET_CZ_RAGIDLE_PEDIR_CONFIG() {};
+PACKET.CZ.RAGIDLE_PEDIR_CONFIG.prototype.build = function () {
+	const pkt_len = 2;
+	const pkt_buf = new BinaryWriter(pkt_len);
+
+	pkt_buf.writeShort(0x0ff3);
+	return pkt_buf;
+};
+
+// 0x0ff4 - RAGIDLE: ZC_RAGIDLE_CONFIG (server -> client)
+// Variable size: u16 opcode + u16 total length + JSON UTF-8 payload.
+// Answers BOTH RAGIDLE_PEDIR_CONFIG and RAGIDLE_APLICAR_CONFIG (contract v1:
+// { v, aplicado?, problemas: [], config: {...}, contexto: {...} }). Same
+// parsing pattern as ZC_RAGIDLE_CATALOGO above.
+PACKET.ZC.RAGIDLE_CONFIG = function PACKET_ZC_RAGIDLE_CONFIG(fp, end) {
+	this.json = fp.readString(end - fp.tell());
+};
+PACKET.ZC.RAGIDLE_CONFIG.size = -1;
+
+// 0x0ff5 - RAGIDLE: CZ_RAGIDLE_APLICAR_CONFIG (client -> server)
+// Variable size: u16 opcode + u16 total length + JSON UTF-8 payload (just
+// the "config" object of the contract above; applied transactionally
+// server-side).
+//
+// pkt_len MUST count encoded UTF-8 BYTES, not JS string .length (unlike
+// e.g. CZ_REQUEST_CHAT/CZ_WHISPER above, whose `this.msg.length` is a
+// UTF-16-code-unit count and would under-allocate the buffer for text with
+// multi-byte characters) — the JSON payload here carries PT-BR labels with
+// accents. BinaryWriter#writeString (Utils/BinaryWriter.js:236-267) already
+// encodes correctly via TextEncoding.encode(str, 'utf-8')
+// (Utils/CodepageManager.js:57-72, backed by iconv-lite — a real UTF-8
+// codec, not a naive latin1/binary-string write), so no manual escaping of
+// non-ASCII JSON is needed; TextEncoding.encode() is called here only to
+// measure the exact byte length up front, before allocating the buffer.
+PACKET.CZ.RAGIDLE_APLICAR_CONFIG = function PACKET_CZ_RAGIDLE_APLICAR_CONFIG() {
+	this.json = '{}';
+};
+PACKET.CZ.RAGIDLE_APLICAR_CONFIG.prototype.build = function () {
+	const bytes = TextEncoding.encode(this.json, 'utf-8');
+	const pkt_len = 2 + 2 + bytes.length;
+	const pkt_buf = new BinaryWriter(pkt_len);
+
+	pkt_buf.writeShort(0x0ff5);
+	pkt_buf.writeUShort(pkt_len);
+	pkt_buf.writeString(this.json);
 	return pkt_buf;
 };
 

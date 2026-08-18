@@ -90,6 +90,7 @@ import JoystickUI from 'UI/Components/JoystickUI/JoystickUI.js';
 import CashShopIcon from 'UI/Components/CashShopIcon/CashShopIcon.js';
 import Achievement from 'UI/Components/Achievement/Achievement.js';
 import HuntMap from 'UI/Components/HuntMap/HuntMap.js'; // RAGIDLE: "Mapa de Caça"
+import IdleConfig from 'UI/Components/IdleConfig/IdleConfig.js'; // RAGIDLE: "Configuração idle"
 
 import MainEngine from './MapEngine/Main.js';
 import MapStateEngine from './MapEngine/MapState.js';
@@ -365,6 +366,7 @@ class MapEngine {
 			CaptchaPreview.prepare();
 			Clan.prepare();
 			HuntMap.prepare(); // RAGIDLE: "Mapa de Caça"
+			IdleConfig.prepare(); // RAGIDLE: "Configuração idle"
 
 			if (Configs.get('enableMapName')) {
 				MapName.prepare();
@@ -744,6 +746,10 @@ function onMapChange(pkt) {
 		// RAGIDLE: "Mapa de Caça" floating button — always visible on the map,
 		// same unconditional append() as ChatBox/Escape/etc above.
 		HuntMap.append();
+
+		// RAGIDLE: "Configuração idle" floating button — same unconditional
+		// append() as HuntMap right above.
+		IdleConfig.append();
 
 		if (Configs.get('enableCashShop')) {
 			CashShopIcon.append();

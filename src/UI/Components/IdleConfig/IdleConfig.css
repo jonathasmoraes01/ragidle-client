@@ -1,0 +1,538 @@
+/**
+ * UI/Components/IdleConfig/IdleConfig.css
+ *
+ * "Configuração idle" — floating gear button + tabbed window. Same
+ * float/window/drag/pointer-events split as HuntMap.css (see
+ * UI/Components/HuntMap/HuntMap.css:1-30 for the full rationale); the short
+ * version, repeated here because it drives every size below:
+ * - GUIComponent makes ":host" the real shadow HOST element that
+ *   #draggable()/#_fixPositionOverflow() move and clamp (UI/GUIComponent.js
+ *   :140-203 _prepare(), :516-747 draggable(), :267-272
+ *   _fixPositionOverflow()), so ":host" gets the SAME width/height as
+ *   ".ic-window" below.
+ * - ":host" stays pointer-events:none so the closed window never blocks
+ *   scene clicks; only the button and the open window opt back in with
+ *   pointer-events:auto. Paired with IdleConfig.mouseMode =
+ *   GUIComponent.MouseMode.CROSS in IdleConfig.js (GUIComponent.js:66-70).
+ */
+
+:host {
+	position: absolute;
+	width: 620px;
+	height: 540px;
+	pointer-events: none;
+}
+
+#IdleConfig {
+	position: relative;
+	width: 100%;
+	height: 100%;
+	color: #e7e9ee;
+	font-size: 12px;
+}
+
+/* ─── Floating button ─────────────────────────────────────── */
+/* Sits right next to HuntMap's button (HuntMap.css:42-57: top:210px;
+ * right:20px; 42x42). Placed at the same top, one button-width + gap to
+ * the left, so the two icons read as a pair. */
+
+#IdleConfig .ic-button {
+	position: fixed;
+	top: 210px;
+	right: 72px;
+	width: 42px;
+	height: 42px;
+	border-radius: 50%;
+	border: 1px solid rgba(255, 255, 255, 0.25);
+	background: rgba(20, 20, 26, 0.85);
+	color: #ffffff;
+	font-size: 18px;
+	line-height: 1;
+	cursor: pointer;
+	pointer-events: auto;
+	z-index: 40;
+}
+
+#IdleConfig .ic-button:hover {
+	background: rgba(40, 40, 50, 0.92);
+	border-color: rgba(255, 255, 255, 0.45);
+}
+
+/* ─── Window ───────────────────────────────────────────────── */
+
+#IdleConfig .ic-window {
+	display: none;
+	position: absolute;
+	inset: 0;
+	pointer-events: auto;
+	flex-direction: column;
+	width: 620px;
+	height: 540px;
+	background: rgba(15, 17, 23, 0.94);
+	border: 1px solid rgba(255, 255, 255, 0.14);
+	border-radius: 6px;
+	box-shadow: 0 8px 26px rgba(0, 0, 0, 0.55);
+	overflow: hidden;
+}
+
+#IdleConfig .ic-window.is-open {
+	display: flex;
+}
+
+#IdleConfig .ic-titlebar {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: 8px 10px;
+	background: rgba(255, 255, 255, 0.06);
+	border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+	cursor: move;
+	flex: 0 0 auto;
+}
+
+#IdleConfig .ic-title {
+	font-weight: bold;
+	letter-spacing: 0.02em;
+}
+
+#IdleConfig .ic-close {
+	border: none;
+	background: transparent;
+	color: #e7e9ee;
+	font-size: 16px;
+	line-height: 1;
+	cursor: pointer;
+	padding: 0 4px;
+}
+
+#IdleConfig .ic-close:hover {
+	color: #ff8080;
+}
+
+/* ─── Tabs ─────────────────────────────────────────────────── */
+
+#IdleConfig .ic-tabs {
+	flex: 0 0 auto;
+	display: flex;
+	gap: 4px;
+	padding: 6px 10px;
+	border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+#IdleConfig .ic-tab {
+	border: 1px solid transparent;
+	background: rgba(255, 255, 255, 0.05);
+	color: #c7cbd6;
+	padding: 4px 12px;
+	border-radius: 12px;
+	font-size: 11px;
+	cursor: pointer;
+}
+
+#IdleConfig .ic-tab:hover {
+	background: rgba(255, 255, 255, 0.1);
+}
+
+#IdleConfig .ic-tab.is-active {
+	background: #3a6ea5;
+	border-color: #3a6ea5;
+	color: #ffffff;
+	font-weight: bold;
+}
+
+#IdleConfig .ic-status {
+	flex: 0 0 auto;
+	min-height: 14px;
+	padding: 4px 10px 0 10px;
+	color: #e0b04d;
+	font-size: 11px;
+}
+
+/* ─── Body (scrollable tab content) ───────────────────────── */
+
+#IdleConfig .ic-body {
+	flex: 1 1 auto;
+	overflow-y: auto;
+	padding: 12px;
+}
+
+#IdleConfig .ic-empty {
+	margin-top: 16px;
+	text-align: center;
+	color: #9aa0ad;
+	font-size: 11px;
+}
+
+#IdleConfig .ic-section {
+	margin-bottom: 16px;
+}
+
+#IdleConfig .ic-section h3 {
+	margin: 0 0 6px 0;
+	font-size: 12px;
+}
+
+#IdleConfig .ic-subtitle {
+	margin: 10px 0 4px 0;
+	font-weight: bold;
+	font-size: 11px;
+	color: #c7cbd6;
+}
+
+#IdleConfig .ic-note {
+	color: #9aa0ad;
+	font-size: 10px;
+	margin: 4px 0 8px 0;
+}
+
+#IdleConfig .ic-note-warn {
+	color: #e0b04d;
+}
+
+#IdleConfig .ic-subsection {
+	padding-left: 4px;
+	border-left: 2px solid rgba(255, 255, 255, 0.08);
+	margin-top: 6px;
+}
+
+#IdleConfig .ic-subsection.ic-subsection-disabled {
+	opacity: 0.5;
+}
+
+/* ─── Switch (toggle) ──────────────────────────────────────── */
+
+#IdleConfig .ic-switch-row {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	cursor: pointer;
+}
+
+#IdleConfig .ic-switch {
+	position: relative;
+	display: inline-block;
+	width: 36px;
+	height: 20px;
+	flex: 0 0 auto;
+}
+
+#IdleConfig .ic-switch input {
+	position: absolute;
+	inset: 0;
+	opacity: 0;
+	margin: 0;
+	cursor: pointer;
+	z-index: 1;
+}
+
+#IdleConfig .ic-switch-track {
+	position: absolute;
+	inset: 0;
+	background: rgba(255, 255, 255, 0.18);
+	border-radius: 10px;
+	transition: background 0.15s;
+}
+
+#IdleConfig .ic-switch-track::before {
+	content: '';
+	position: absolute;
+	width: 16px;
+	height: 16px;
+	left: 2px;
+	top: 2px;
+	background: #cfd3dc;
+	border-radius: 50%;
+	transition:
+		transform 0.15s,
+		background 0.15s;
+}
+
+#IdleConfig .ic-switch input:checked + .ic-switch-track {
+	background: #3a6ea5;
+}
+
+#IdleConfig .ic-switch input:checked + .ic-switch-track::before {
+	transform: translateX(16px);
+	background: #ffffff;
+}
+
+#IdleConfig .ic-switch input:disabled + .ic-switch-track {
+	opacity: 0.5;
+	cursor: not-allowed;
+}
+
+#IdleConfig .ic-switch-text {
+	display: flex;
+	flex-direction: column;
+	gap: 1px;
+}
+
+#IdleConfig .ic-switch-label {
+	font-size: 12px;
+}
+
+#IdleConfig .ic-switch-sub {
+	font-size: 10px;
+	color: #9aa0ad;
+}
+
+/* ─── Checkbox rows ────────────────────────────────────────── */
+
+#IdleConfig .ic-checkbox-row {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	font-size: 11px;
+	margin: 4px 0;
+	cursor: pointer;
+}
+
+#IdleConfig .ic-checkbox-row input[type='checkbox'] {
+	accent-color: #3a6ea5;
+	cursor: pointer;
+}
+
+#IdleConfig .ic-checkbox-row input:disabled {
+	cursor: not-allowed;
+}
+
+#IdleConfig .ic-checkbox-locked {
+	cursor: help;
+}
+
+/* ─── Sliders ──────────────────────────────────────────────── */
+
+#IdleConfig .ic-slider {
+	width: 100%;
+	accent-color: #3a6ea5;
+	margin: 2px 0 8px 0;
+	cursor: pointer;
+}
+
+#IdleConfig .ic-slider:disabled {
+	cursor: not-allowed;
+	opacity: 0.5;
+}
+
+#IdleConfig .ic-inline-value {
+	color: #6fb3ff;
+	font-weight: bold;
+}
+
+/* ─── Field rows (label + select) ─────────────────────────── */
+
+#IdleConfig .ic-field-row {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px;
+	font-size: 11px;
+	margin: 6px 0;
+}
+
+#IdleConfig .ic-select {
+	box-sizing: border-box;
+	width: 100%;
+	padding: 5px 6px;
+	background: rgba(255, 255, 255, 0.06);
+	border: 1px solid rgba(255, 255, 255, 0.14);
+	border-radius: 4px;
+	color: #e7e9ee;
+	font-size: 11px;
+	margin: 4px 0 8px 0;
+}
+
+#IdleConfig .ic-select:disabled {
+	opacity: 0.5;
+	cursor: not-allowed;
+}
+
+/* ─── Alvos tab ────────────────────────────────────────────── */
+
+#IdleConfig .ic-alvos-head h3 {
+	margin: 0 0 2px 0;
+	font-size: 13px;
+}
+
+#IdleConfig .ic-alvos-sub {
+	color: #9aa0ad;
+	font-size: 10px;
+	margin-bottom: 8px;
+}
+
+#IdleConfig .ic-alvos-actions {
+	display: flex;
+	gap: 6px;
+	margin-bottom: 10px;
+}
+
+#IdleConfig .ic-btn-secondary {
+	background: rgba(255, 255, 255, 0.08);
+	border: 1px solid rgba(255, 255, 255, 0.16);
+	color: #e7e9ee;
+	padding: 4px 10px;
+	border-radius: 4px;
+	font-size: 11px;
+	cursor: pointer;
+}
+
+#IdleConfig .ic-btn-secondary:hover {
+	background: rgba(255, 255, 255, 0.14);
+}
+
+#IdleConfig .ic-mob-list {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+}
+
+#IdleConfig .ic-mob-row {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 4px 6px;
+	border-radius: 4px;
+	font-size: 11px;
+	cursor: pointer;
+}
+
+#IdleConfig .ic-mob-row:hover {
+	background: rgba(255, 255, 255, 0.05);
+}
+
+#IdleConfig .ic-mob-row input[type='checkbox'] {
+	accent-color: #3a6ea5;
+	cursor: pointer;
+}
+
+/* ─── Skills tab ───────────────────────────────────────────── */
+
+#IdleConfig .ic-rot-list {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	margin-bottom: 6px;
+}
+
+#IdleConfig .ic-rot-row {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	background: rgba(255, 255, 255, 0.04);
+	border: 1px solid rgba(255, 255, 255, 0.08);
+	border-radius: 4px;
+	padding: 5px 8px;
+}
+
+#IdleConfig .ic-rot-name {
+	font-weight: bold;
+	flex: 1 1 auto;
+}
+
+#IdleConfig .ic-rot-level {
+	color: #9aa0ad;
+	font-size: 10px;
+}
+
+#IdleConfig .ic-rot-actions {
+	display: flex;
+	gap: 2px;
+}
+
+#IdleConfig .ic-icon-btn {
+	background: rgba(255, 255, 255, 0.08);
+	border: 1px solid rgba(255, 255, 255, 0.14);
+	color: #e7e9ee;
+	width: 22px;
+	height: 22px;
+	border-radius: 3px;
+	font-size: 11px;
+	line-height: 1;
+	cursor: pointer;
+}
+
+#IdleConfig .ic-icon-btn:hover:not(:disabled) {
+	background: rgba(255, 255, 255, 0.16);
+}
+
+#IdleConfig .ic-icon-btn:disabled {
+	opacity: 0.35;
+	cursor: not-allowed;
+}
+
+#IdleConfig .ic-add-skill {
+	box-sizing: border-box;
+	width: 100%;
+	padding: 5px 6px;
+	background: rgba(255, 255, 255, 0.06);
+	border: 1px dashed rgba(255, 255, 255, 0.24);
+	border-radius: 4px;
+	color: #e7e9ee;
+	font-size: 11px;
+}
+
+#IdleConfig .ic-passiva-row {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px;
+	padding: 4px 6px;
+	font-size: 11px;
+}
+
+#IdleConfig .ic-badge {
+	background: #2e5c3a;
+	color: #b6ecc4;
+	font-size: 9px;
+	font-weight: bold;
+	padding: 2px 6px;
+	border-radius: 8px;
+	white-space: nowrap;
+}
+
+/* ─── Footer ───────────────────────────────────────────────── */
+
+#IdleConfig .ic-footer {
+	flex: 0 0 auto;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 10px;
+	padding: 8px 10px;
+	border-top: 1px solid rgba(255, 255, 255, 0.1);
+	background: rgba(255, 255, 255, 0.03);
+}
+
+#IdleConfig .ic-problemas {
+	flex: 1 1 auto;
+	min-width: 0;
+}
+
+#IdleConfig .ic-problemas-list {
+	margin: 0;
+	padding-left: 16px;
+	color: #ff8f8f;
+	font-size: 10px;
+}
+
+#IdleConfig .ic-apply {
+	flex: 0 0 auto;
+	background: #3a6ea5;
+	color: #ffffff;
+	border: none;
+	border-radius: 4px;
+	padding: 8px 18px;
+	font-weight: bold;
+	font-size: 12px;
+	cursor: pointer;
+}
+
+#IdleConfig .ic-apply:hover:not(:disabled) {
+	background: #4a82bd;
+}
+
+#IdleConfig .ic-apply:disabled {
+	background: #4a4a4a;
+	color: #9a9a9a;
+	cursor: not-allowed;
+}

@@ -973,5 +973,10 @@ export default {
 	// PACKET.CZ.REQUEST_QUIT are built+sent but never registered either.
 	0x0ff1: PACKET.ZC.RAGIDLE_CATALOGO,
 
+	// RAGIDLE: "Configuração idle" custom packet (see PacketStructure.js
+	// "RAGIDLE:" section, opcodes 0x0ff3-0x0ff5). Same reasoning as
+	// 0x0ff1 above — only the server->client one is registered here.
+	0x0ff4: PACKET.ZC.RAGIDLE_CONFIG,
+
 	0xb1a: PACKET.ZC.USESKILL_ACK3 // USE SKILL 3
 };
