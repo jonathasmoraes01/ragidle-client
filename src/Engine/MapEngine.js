@@ -351,7 +351,7 @@ class MapEngine {
 				BankEngine.init();
 			}
 
-			// RAGIDLE: the unattended-session return report (0x0ff6) — always
+			// RAGIDLE: the unattended-session return report (0x0ffc) — always
 			// on; the packet only ever arrives when the server has one to tell.
 			RagidleRelatorioEngine.init();
 

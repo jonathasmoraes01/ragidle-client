@@ -1,7 +1,7 @@
 /**
  * Engine/MapEngine/RagidleRelatorio.js
  *
- * RAGIDLE: the unattended-session return report (0x0ff6, server D-275/D-276).
+ * RAGIDLE: the unattended-session return report (0x0ffc, server D-275/D-276).
  * When the player reconnects after the character kept farming with the client
  * closed, the server sends a one-shot JSON summary right after the map lot.
  * This engine prints it into the ChatBox — the humble, always-visible UI —
