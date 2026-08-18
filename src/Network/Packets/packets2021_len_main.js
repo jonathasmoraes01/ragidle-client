@@ -4882,6 +4882,10 @@ function init(packetver) {
 	length_list[0x0ff6] = 2; // CZ_RAGIDLE_PEDIR_ADMIN (opcode only)
 	length_list[0x0ff7] = -1; // ZC_RAGIDLE_ADMIN (variable, JSON payload)
 	length_list[0x0ff8] = -1; // CZ_RAGIDLE_APLICAR_ADMIN (variable, JSON payload)
+	// RAGIDLE: the unattended-session return report (server D-275/D-276).
+	// Moved twice: born 0x0ff3 (collided with CZ_RAGIDLE_PEDIR_CONFIG), then
+	// 0x0ff6 (collided with the admin panel above, which shipped first).
+	length_list[0x0ff9] = -1; // ZC_RAGIDLE_RELATORIO_OFFLINE (variable, JSON payload)
 
 	// RAGIDLE: custom "Skills de {classe}" packets (see
 	// Network/PacketStructure.js "RAGIDLE:" section). Opcodes 0x0ff9-0x0ffb

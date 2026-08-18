@@ -123,6 +123,7 @@ import ClanEngine from './MapEngine/Clan.js';
 import CashShopEngine from './MapEngine/CashShop.js';
 import BankEngine from './MapEngine/Bank.js';
 import AchievementEngine from './MapEngine/Achievement.js';
+import RagidleRelatorioEngine from './MapEngine/RagidleRelatorio.js';
 
 /**
  * @type {string} mapname
@@ -349,6 +350,10 @@ class MapEngine {
 			if (Configs.get('enableBank')) {
 				BankEngine.init();
 			}
+
+			// RAGIDLE: the unattended-session return report (0x0ff6) — always
+			// on; the packet only ever arrives when the server has one to tell.
+			RagidleRelatorioEngine.init();
 
 			// Prepare UI
 			Escape.prepare();

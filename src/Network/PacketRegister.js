@@ -982,6 +982,10 @@ export default {
 	// "RAGIDLE:" section, opcodes 0x0ff6-0x0ff8). Same reasoning as 0x0ff1/
 	// 0x0ff4 above — only the server->client one is registered here.
 	0x0ff7: PACKET.ZC.RAGIDLE_ADMIN,
+	// RAGIDLE: unattended-session return report (server D-275/D-276). Moved
+	// 0x0ff6 -> 0x0ff9: the admin panel (D-338) was published first and took
+	// 0x0ff6-0x0ff8 while this one was still unpushed.
+	0x0ff9: PACKET.ZC.RAGIDLE_RELATORIO_OFFLINE,
 
 	// RAGIDLE: "Skills de {classe}" custom packet (see PacketStructure.js
 	// "RAGIDLE:" section, opcodes 0x0ff9-0x0ffb). Same reasoning as 0x0ff1/

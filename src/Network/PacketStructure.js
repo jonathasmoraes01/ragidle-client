@@ -15984,6 +15984,20 @@ PACKET.CZ.RAGIDLE_APLICAR_ADMIN.prototype.build = function () {
 	pkt_buf.writeString(this.json);
 	return pkt_buf;
 };
+// 0x0ff9 - RAGIDLE: ZC_RAGIDLE_RELATORIO_OFFLINE (server -> client)
+// Variable size: u16 opcode + u16 total length + JSON UTF-8 payload — same
+// parsing pattern as ZC_RAGIDLE_CONFIG above. The unattended-session return
+// report (server D-275/D-276): sent once, right after the map lot, when the
+// player reconnects after farming with the client closed. Handled by
+// Engine/MapEngine/RagidleRelatorio.js (prints into the ChatBox).
+// History that matters: this packet moved TWICE. Born 0x0ff3, it collided
+// with CZ_RAGIDLE_PEDIR_CONFIG; moved to 0x0ff6, it collided with the admin
+// panel (D-338) which was pushed first. A RAGIDLE slot is only yours after
+// it is pushed on BOTH ends.
+PACKET.ZC.RAGIDLE_RELATORIO_OFFLINE = function PACKET_ZC_RAGIDLE_RELATORIO_OFFLINE(fp, end) {
+	this.json = fp.readString(end - fp.tell());
+};
+PACKET.ZC.RAGIDLE_RELATORIO_OFFLINE.size = -1;
 
 // RAGIDLE: custom packets for the "Skills de {classe}" window
 // (UI/Components/IdleSkills/IdleSkills.js). Opcodes 0x0ff9-0x0ffb are free
