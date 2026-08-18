@@ -43,6 +43,16 @@ _proxy['/remote-client'] = {
 	rewrite: path => path.replace(/^\/remote-client/, '')
 };
 
+// Rag Idle: o EMBLEMA de guilda (D-350) e HTTP na porta 8888 do servidor de
+// jogo -- e o cliente servido por http chama /emblem/* na PROPRIA ORIGEM
+// (Guild.js so usa o webserverAddress em file://). Sem este proxy, o upload
+// pela janela da guilda devolve 404 do proprio vite.
+_proxy['/emblem'] = {
+	target: 'http://127.0.0.1:8888',
+	changeOrigin: true,
+	secure: false
+};
+
 export default defineConfig({
 	plugins: [uiCssHmrPlugin()],
 	root: './',
