@@ -15932,6 +15932,59 @@ PACKET.CZ.RAGIDLE_APLICAR_CONFIG.prototype.build = function () {
 	return pkt_buf;
 };
 
+// RAGIDLE: custom packets for the "Painel de admin" window
+// (UI/Components/AdminPanel/AdminPanel.js). Opcodes 0x0ff6-0x0ff8 are free
+// right after IdleConfig's 0x0ff3-0x0ff5 above (checked against the whole
+// PACKET.* range in this file and against Network/PacketRegister.js —
+// nothing else uses them). Framing for these three IDs is declared in
+// Network/Packets/packets2021_len_main.js, same pattern as 0x0ff0-0x0ff5.
+// The server only ever answers these two for the owner's account (AID
+// 2000000, see AdminPanel.js) — silence for anyone else, enforced entirely
+// server-side; the client only decides whether to SHOW the button/window.
+
+// 0x0ff6 - RAGIDLE: CZ_RAGIDLE_PEDIR_ADMIN (client -> server)
+// Fixed 2 bytes: opcode only. Sent when the AdminPanel window is opened.
+// Same shape as CZ_RAGIDLE_PEDIR_CONFIG above.
+PACKET.CZ.RAGIDLE_PEDIR_ADMIN = function PACKET_CZ_RAGIDLE_PEDIR_ADMIN() {};
+PACKET.CZ.RAGIDLE_PEDIR_ADMIN.prototype.build = function () {
+	const pkt_len = 2;
+	const pkt_buf = new BinaryWriter(pkt_len);
+
+	pkt_buf.writeShort(0x0ff6);
+	return pkt_buf;
+};
+
+// 0x0ff7 - RAGIDLE: ZC_RAGIDLE_ADMIN (server -> client)
+// Variable size: u16 opcode + u16 total length + JSON UTF-8 payload.
+// Answers BOTH RAGIDLE_PEDIR_ADMIN and RAGIDLE_APLICAR_ADMIN (contract v1:
+// { v, aplicado?, problemas: [], personagem: {...}, classes: [...],
+// limites: {...} }). Same parsing pattern as ZC_RAGIDLE_CONFIG above.
+PACKET.ZC.RAGIDLE_ADMIN = function PACKET_ZC_RAGIDLE_ADMIN(fp, end) {
+	this.json = fp.readString(end - fp.tell());
+};
+PACKET.ZC.RAGIDLE_ADMIN.size = -1;
+
+// 0x0ff8 - RAGIDLE: CZ_RAGIDLE_APLICAR_ADMIN (client -> server)
+// Variable size: u16 opcode + u16 total length + JSON UTF-8 payload (a
+// PARTIAL object per the contract — only the fields the player changed,
+// plus "v"); applied transactionally server-side. Same
+// byte-length-not-JS-length build as CZ_RAGIDLE_APLICAR_CONFIG above (the
+// JSON payload can carry a PT-BR class name once "classes" round-trips
+// through it, so measuring UTF-8 bytes up front matters here too).
+PACKET.CZ.RAGIDLE_APLICAR_ADMIN = function PACKET_CZ_RAGIDLE_APLICAR_ADMIN() {
+	this.json = '{}';
+};
+PACKET.CZ.RAGIDLE_APLICAR_ADMIN.prototype.build = function () {
+	const bytes = TextEncoding.encode(this.json, 'utf-8');
+	const pkt_len = 2 + 2 + bytes.length;
+	const pkt_buf = new BinaryWriter(pkt_len);
+
+	pkt_buf.writeShort(0x0ff8);
+	pkt_buf.writeUShort(pkt_len);
+	pkt_buf.writeString(this.json);
+	return pkt_buf;
+};
+
 /**
  * Export
  */

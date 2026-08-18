@@ -1,0 +1,231 @@
+/**
+ * UI/Components/AdminPanel/AdminPanel.css
+ *
+ * "Painel de admin" — floating button + window. Same float/window/drag/
+ * pointer-events split as HuntMap.css and IdleConfig.css (see
+ * UI/Components/HuntMap/HuntMap.css:1-30 for the full rationale); repeated
+ * here because it drives every size below:
+ * - GUIComponent makes ":host" the real shadow HOST element that
+ *   #draggable()/#_fixPositionOverflow() move and clamp (UI/GUIComponent.js
+ *   :140-203 _prepare(), :516-747 draggable(), :267-272
+ *   _fixPositionOverflow()), so ":host" gets the SAME width/height as
+ *   ".ap-window" below.
+ * - ":host" stays pointer-events:none so the closed window never blocks
+ *   scene clicks; only the button and the open window opt back in with
+ *   pointer-events:auto. Paired with AdminPanel.mouseMode =
+ *   GUIComponent.MouseMode.CROSS in AdminPanel.js.
+ */
+
+:host {
+	position: absolute;
+	width: 380px;
+	height: 520px;
+	pointer-events: none;
+}
+
+#AdminPanel {
+	position: relative;
+	width: 100%;
+	height: 100%;
+	color: #e7e9ee;
+	font-size: 12px;
+}
+
+/* ─── Floating button ─────────────────────────────────────── */
+/* Sits right next to IdleConfig's button (IdleConfig.css:39-54: top:210px;
+ * right:72px; 42x42), which itself sits next to HuntMap's (HuntMap.css:
+ * 42-57: top:210px; right:20px). Same top, one more button-width + gap to
+ * the left, so all three icons read as a row. */
+
+#AdminPanel .ap-button {
+	position: fixed;
+	top: 210px;
+	right: 124px;
+	width: 42px;
+	height: 42px;
+	border-radius: 50%;
+	border: 1px solid rgba(255, 255, 255, 0.25);
+	background: rgba(20, 20, 26, 0.85);
+	color: #ffffff;
+	font-size: 18px;
+	line-height: 1;
+	cursor: pointer;
+	pointer-events: auto;
+	z-index: 40;
+}
+
+#AdminPanel .ap-button:hover {
+	background: rgba(40, 40, 50, 0.92);
+	border-color: rgba(255, 255, 255, 0.45);
+}
+
+/* ─── Window ───────────────────────────────────────────────── */
+
+#AdminPanel .ap-window {
+	display: none;
+	position: absolute;
+	inset: 0;
+	pointer-events: auto;
+	flex-direction: column;
+	width: 380px;
+	height: 520px;
+	background: rgba(15, 17, 23, 0.94);
+	border: 1px solid rgba(255, 255, 255, 0.14);
+	border-radius: 6px;
+	box-shadow: 0 8px 26px rgba(0, 0, 0, 0.55);
+	overflow: hidden;
+}
+
+#AdminPanel .ap-window.is-open {
+	display: flex;
+}
+
+#AdminPanel .ap-titlebar {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: 8px 10px;
+	background: rgba(255, 255, 255, 0.06);
+	border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+	cursor: move;
+	flex: 0 0 auto;
+}
+
+#AdminPanel .ap-title {
+	font-weight: bold;
+	letter-spacing: 0.02em;
+}
+
+#AdminPanel .ap-close {
+	border: none;
+	background: transparent;
+	color: #e7e9ee;
+	font-size: 16px;
+	line-height: 1;
+	cursor: pointer;
+	padding: 0 4px;
+}
+
+#AdminPanel .ap-close:hover {
+	color: #ff8080;
+}
+
+#AdminPanel .ap-status {
+	flex: 0 0 auto;
+	min-height: 14px;
+	padding: 4px 10px 0 10px;
+	color: #e0b04d;
+	font-size: 11px;
+}
+
+/* ─── Body (scrollable, single column) ────────────────────── */
+
+#AdminPanel .ap-body {
+	flex: 1 1 auto;
+	overflow-y: auto;
+	padding: 12px;
+}
+
+#AdminPanel .ap-empty {
+	margin-top: 16px;
+	text-align: center;
+	color: #9aa0ad;
+	font-size: 11px;
+}
+
+#AdminPanel .ap-section {
+	margin-bottom: 16px;
+}
+
+#AdminPanel .ap-section h3 {
+	margin: 0 0 8px 0;
+	font-size: 12px;
+	color: #c7cbd6;
+}
+
+#AdminPanel .ap-field-row {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	margin: 0 0 10px 0;
+}
+
+#AdminPanel .ap-field-row label {
+	font-size: 11px;
+	color: #9aa0ad;
+}
+
+#AdminPanel .ap-input,
+#AdminPanel .ap-select {
+	box-sizing: border-box;
+	width: 100%;
+	padding: 6px 8px;
+	background: rgba(255, 255, 255, 0.06);
+	border: 1px solid rgba(255, 255, 255, 0.14);
+	border-radius: 4px;
+	color: #e7e9ee;
+	font-size: 12px;
+}
+
+#AdminPanel .ap-input:focus,
+#AdminPanel .ap-select:focus {
+	outline: none;
+	border-color: #3a6ea5;
+}
+
+#AdminPanel .ap-input.ap-readonly {
+	opacity: 0.65;
+	cursor: not-allowed;
+}
+
+#AdminPanel .ap-hint {
+	font-size: 10px;
+	color: #6f7580;
+	margin-top: 2px;
+}
+
+/* ─── Footer ───────────────────────────────────────────────── */
+
+#AdminPanel .ap-footer {
+	flex: 0 0 auto;
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+	padding: 8px 10px;
+	border-top: 1px solid rgba(255, 255, 255, 0.1);
+	background: rgba(255, 255, 255, 0.03);
+}
+
+#AdminPanel .ap-nota {
+	color: #9aa0ad;
+	font-size: 10px;
+}
+
+#AdminPanel .ap-problemas-list {
+	margin: 0;
+	padding-left: 16px;
+	color: #ff8f8f;
+	font-size: 10px;
+}
+
+#AdminPanel .ap-apply {
+	align-self: flex-end;
+	background: #3a6ea5;
+	color: #ffffff;
+	border: none;
+	border-radius: 4px;
+	padding: 8px 18px;
+	font-weight: bold;
+	font-size: 12px;
+	cursor: pointer;
+}
+
+#AdminPanel .ap-apply:hover:not(:disabled) {
+	background: #4a82bd;
+}
+
+#AdminPanel .ap-apply:disabled {
+	background: #4a4a4a;
+	color: #9a9a9a;
+	cursor: not-allowed;
+}

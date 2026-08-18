@@ -978,5 +978,10 @@ export default {
 	// 0x0ff1 above — only the server->client one is registered here.
 	0x0ff4: PACKET.ZC.RAGIDLE_CONFIG,
 
+	// RAGIDLE: "Painel de admin" custom packet (see PacketStructure.js
+	// "RAGIDLE:" section, opcodes 0x0ff6-0x0ff8). Same reasoning as 0x0ff1/
+	// 0x0ff4 above — only the server->client one is registered here.
+	0x0ff7: PACKET.ZC.RAGIDLE_ADMIN,
+
 	0xb1a: PACKET.ZC.USESKILL_ACK3 // USE SKILL 3
 };

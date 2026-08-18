@@ -16,6 +16,7 @@ import BGM from 'Audio/BGM.js';
 import Events from 'Core/Events.js';
 import Session from 'Engine/SessionStorage.js';
 import Network from 'Network/NetworkManager.js';
+import BackgroundTicker from 'Network/BackgroundTicker.js';
 import PACKETVER from 'Network/PacketVerManager.js';
 import PACKET from 'Network/PacketStructure.js';
 import Renderer from 'Renderer/Renderer.js';
@@ -91,6 +92,7 @@ import CashShopIcon from 'UI/Components/CashShopIcon/CashShopIcon.js';
 import Achievement from 'UI/Components/Achievement/Achievement.js';
 import HuntMap from 'UI/Components/HuntMap/HuntMap.js'; // RAGIDLE: "Mapa de Caça"
 import IdleConfig from 'UI/Components/IdleConfig/IdleConfig.js'; // RAGIDLE: "Configuração idle"
+import AdminPanel from 'UI/Components/AdminPanel/AdminPanel.js'; // RAGIDLE: "Painel de admin"
 
 import MainEngine from './MapEngine/Main.js';
 import MapStateEngine from './MapEngine/MapState.js';
@@ -217,7 +219,12 @@ class MapEngine {
 					ping = new PACKET.CZ.REQUEST_TIME();
 				}
 				const startTick = Date.now();
-				Network.setPing(() => {
+
+				// Shared by Network.setPing's own setInterval AND BackgroundTicker
+				// below, so there is exactly one place that builds/sends the
+				// keepalive. Duplicate calls in the same ~second are harmless:
+				// the server only reads a timestamp off the packet.
+				const sendKeepAlive = () => {
 					if (is_sec_hbt) {
 						Network.sendPacket(hbt);
 					}
@@ -231,7 +238,16 @@ class MapEngine {
 					SP.returned = false;
 
 					Network.sendPacket(ping);
-				});
+				};
+
+				Network.setPing(sendKeepAlive);
+
+				// Background tabs throttle setInterval to ~once/min and rAF to
+				// ~0fps, starving the setPing above. BackgroundTicker runs the
+				// same keepalive from a Web Worker (not throttled by visibility)
+				// and also fires it immediately when the tab regains focus, so
+				// the map-server's own resync-on-gap logic kicks in promptly.
+				BackgroundTicker.start(sendKeepAlive);
 
 				Session.Playing = true;
 			},
@@ -367,6 +383,7 @@ class MapEngine {
 			Clan.prepare();
 			HuntMap.prepare(); // RAGIDLE: "Mapa de Caça"
 			IdleConfig.prepare(); // RAGIDLE: "Configuração idle"
+			AdminPanel.prepare(); // RAGIDLE: "Painel de admin"
 
 			if (Configs.get('enableMapName')) {
 				MapName.prepare();
@@ -751,6 +768,13 @@ function onMapChange(pkt) {
 		// append() as HuntMap right above.
 		IdleConfig.append();
 
+		// RAGIDLE: "Painel de admin" floating button — same unconditional
+		// append() as HuntMap/IdleConfig right above; AdminPanel.onAppend()
+		// (UI/Components/AdminPanel/AdminPanel.js) hides the whole component
+		// again for every account except the owner's (Session.AID ===
+		// 2000000).
+		AdminPanel.append();
+
 		if (Configs.get('enableCashShop')) {
 			CashShopIcon.append();
 		}
@@ -870,6 +894,7 @@ function onExitSuccess() {
 	Session.Achievement = null;
 	Mouse.intersect = false;
 	UIManager.removeComponents();
+	BackgroundTicker.stop();
 	Network.close();
 	Renderer.stop();
 	MapRenderer.free();
