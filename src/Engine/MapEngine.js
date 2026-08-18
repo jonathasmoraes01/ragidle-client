@@ -355,6 +355,13 @@ class MapEngine {
 			// on; the packet only ever arrives when the server has one to tell.
 			RagidleRelatorioEngine.init();
 
+			// RAGIDLE (dev only): expose internals so the server repo's probes
+			// (Playwright, e.g. sonda-m15-avatar) can inspect entity state from
+			// the outside. Gated on `development` — never ships in a real build.
+			if (Configs.get('development')) {
+				window.__ragidleDebug = { Session: Session, EntityManager: EntityManager, Camera: Camera };
+			}
+
 			// Prepare UI
 			Escape.prepare();
 			PvPTimer.prepare();

@@ -1,4 +1,4 @@
-{"tipo":"conexao","n":13,"alvo":"127.0.0.1:6900","servidor":"login","etiqueta":"13-login","ms":10261183}
-{"ms":10261196,"dir":"c2s","opcode":"0x0064","nome":"CA_LOGIN","tamanho":55,"deslocamento":0}
-{"ms":10261197,"dir":"s2c","opcode":"0x0ac4","nome":"AC_ACCEPT_LOGIN3","tamanho":224,"deslocamento":0}
-{"tipo":"fim","ms":10261212,"n":13,"alvo":"127.0.0.1:6900","servidor":"login","etiqueta":"13-login","abertaEm":10261183,"pacotes":{"c2s":1,"s2c":1},"bytes":{"c2s":55,"s2c":224},"travou":{"c2s":false,"s2c":false},"fechadaEm":10261212}
+{"tipo":"conexao","n":13,"alvo":"127.0.0.1:6900","servidor":"login","etiqueta":"13-login","ms":654018}
+{"ms":654034,"dir":"c2s","opcode":"0x0064","nome":"CA_LOGIN","tamanho":55,"deslocamento":0}
+{"ms":654036,"dir":"s2c","opcode":"0x0ac4","nome":"AC_ACCEPT_LOGIN3","tamanho":224,"deslocamento":0}
+{"tipo":"fim","ms":654048,"n":13,"alvo":"127.0.0.1:6900","servidor":"login","etiqueta":"13-login","abertaEm":654018,"pacotes":{"c2s":1,"s2c":1},"bytes":{"c2s":55,"s2c":224},"travou":{"c2s":false,"s2c":false},"fechadaEm":654048}
