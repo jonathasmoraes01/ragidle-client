@@ -33,6 +33,24 @@ class UIVersionManager {
 			}
 		}
 
+		// Rag Idle: OVERRIDE por config (uiVersions). O seletor decide so pelo
+		// packetver, mas a arte da versao nova pode NAO existir no GRF em uso:
+		// o ROLatam daqui nao tem os bitmaps da WinLoginV2 (bt_start_normal,
+		// bg_login.tga...), e a tela vinha invisivel com so o hover aparecendo.
+		// 'default' forca a versao classica; um numero escolhe a chave exata.
+		const _override = (Configs.get('uiVersions') || {})[publicName];
+		if (_override === 'default') {
+			_UIAliases[publicName] = SelectedUI.name;
+			console.log('[UIVersion] ' + publicName + ' (config): ', SelectedUI.name);
+			return SelectedUI;
+		}
+		if (_override && versionInfo.common && versionInfo.common[_override]) {
+			SelectedUI = versionInfo.common[_override];
+			_UIAliases[publicName] = SelectedUI.name;
+			console.log('[UIVersion] ' + publicName + ' (config): ', SelectedUI.name);
+			return SelectedUI;
+		}
+
 		// Common UI
 		getUIbyGameMode(versionInfo.common);
 

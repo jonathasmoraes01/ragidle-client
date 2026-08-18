@@ -16,6 +16,11 @@
  */
 window.ROConfigLocal = {
 	remoteClient: '/remote-client/',
+	// A arte da WinLoginV2 nao existe no GRF ROLatam desta maquina
+	// (bt_start_normal, bg_login.tga...): sem isto a tela de login vem
+	// invisivel, com so o hover aparecendo. 'default' = a V1 classica,
+	// que o GRF tem inteira (61 arquivos em login_interface).
+	uiVersions: { WinLogin: 'default' },
 	skipIntro: true,
 	servers: [
 		{

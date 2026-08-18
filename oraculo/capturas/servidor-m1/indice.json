@@ -302,6 +302,65 @@
 				"s2c": false
 			},
 			"fechadaEm": 682589
+		},
+		{
+			"n": 16,
+			"alvo": "127.0.0.1:6900",
+			"servidor": "login",
+			"etiqueta": "16-login",
+			"abertaEm": 46832981,
+			"pacotes": {
+				"c2s": 1,
+				"s2c": 1
+			},
+			"bytes": {
+				"c2s": 55,
+				"s2c": 224
+			},
+			"travou": {
+				"c2s": false,
+				"s2c": false
+			},
+			"fechadaEm": 46832998
+		},
+		{
+			"n": 17,
+			"alvo": "127.0.0.1:6121",
+			"servidor": "char",
+			"etiqueta": "17-char",
+			"abertaEm": 46832995,
+			"pacotes": {
+				"c2s": 6,
+				"s2c": 6
+			},
+			"bytes": {
+				"c2s": 70,
+				"s2c": 426
+			},
+			"travou": {
+				"c2s": false,
+				"s2c": false
+			},
+			"fechadaEm": 46856970
+		},
+		{
+			"n": 18,
+			"alvo": "127.0.0.1:5121",
+			"servidor": "map",
+			"etiqueta": "18-map",
+			"abertaEm": 46856921,
+			"pacotes": {
+				"c2s": 1,
+				"s2c": 0
+			},
+			"bytes": {
+				"c2s": 23,
+				"s2c": 0
+			},
+			"travou": {
+				"c2s": false,
+				"s2c": false
+			}
 		}
 	]
 }
