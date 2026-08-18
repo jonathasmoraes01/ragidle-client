@@ -209,6 +209,7 @@ AdminPanel.init = function init() {
 	root.querySelector('.ap-button').addEventListener('click', onClickButton);
 	root.querySelector('.ap-close').addEventListener('click', onClickClose);
 	root.querySelector('.ap-apply').addEventListener('click', onClickApply);
+	root.querySelector('.ap-heal').addEventListener('click', onClickHeal);
 
 	// GUIComponent#draggable() (GUIComponent.js:516-747) moves ":host" via
 	// left/top, using the titlebar as the drag handle — same call shape as
@@ -296,6 +297,23 @@ function onClickClose(e) {
 function onClickApply(e) {
 	e.stopImmediatePropagation();
 	applyAdmin();
+}
+
+/**
+ * RAGIDLE: 'Curar' (D-354). Manda o MESMO 0x0ff8 com { curar: true }: o
+ * contrato ja e um patch parcial, entao curar nao precisou de pacote novo.
+ * O servidor enche HP/SP pelos tetos atuais e ressuscita quem morreu. Sem
+ * isto, a unica forma de encher a barra era editar um campo qualquer so
+ * para disparar a cura de brinde do 'Aplicar'.
+ */
+function onClickHeal(e) {
+	e.stopImmediatePropagation();
+	setStatus('Curando...');
+	AdminPanel.problemas = [];
+	renderProblemas();
+	const pkt = new PACKET.CZ.RAGIDLE_APLICAR_ADMIN();
+	pkt.json = JSON.stringify({ v: 1, curar: true });
+	Network.sendPacket(pkt);
 }
 
 function clearPedirTimeout() {

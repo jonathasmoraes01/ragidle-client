@@ -1,4 +1,4 @@
-{"tipo":"conexao","n":22,"alvo":"127.0.0.1:6900","servidor":"login","etiqueta":"22-login","ms":12471672}
-{"ms":12471675,"dir":"c2s","opcode":"0x0064","nome":"CA_LOGIN","tamanho":55,"deslocamento":0}
-{"ms":12471676,"dir":"s2c","opcode":"0x0ac4","nome":"AC_ACCEPT_LOGIN3","tamanho":224,"deslocamento":0}
-{"tipo":"fim","ms":12471690,"n":22,"alvo":"127.0.0.1:6900","servidor":"login","etiqueta":"22-login","abertaEm":12471672,"pacotes":{"c2s":1,"s2c":1},"bytes":{"c2s":55,"s2c":224},"travou":{"c2s":false,"s2c":false},"fechadaEm":12471690}
+{"tipo":"conexao","n":22,"alvo":"127.0.0.1:6900","servidor":"login","etiqueta":"22-login","ms":48096204}
+{"ms":48096205,"dir":"c2s","opcode":"0x0064","nome":"CA_LOGIN","tamanho":55,"deslocamento":0}
+{"ms":48096207,"dir":"s2c","opcode":"0x0ac4","nome":"AC_ACCEPT_LOGIN3","tamanho":224,"deslocamento":0}
+{"tipo":"fim","ms":48096217,"n":22,"alvo":"127.0.0.1:6900","servidor":"login","etiqueta":"22-login","abertaEm":48096204,"pacotes":{"c2s":1,"s2c":1},"bytes":{"c2s":55,"s2c":224},"travou":{"c2s":false,"s2c":false},"fechadaEm":48096217}

@@ -350,17 +350,438 @@
 			"etiqueta": "18-map",
 			"abertaEm": 46856921,
 			"pacotes": {
-				"c2s": 1,
-				"s2c": 0
+				"c2s": 143,
+				"s2c": 147
 			},
 			"bytes": {
-				"c2s": 23,
-				"s2c": 0
+				"c2s": 829,
+				"s2c": 90227
+			},
+			"travou": {
+				"c2s": false,
+				"s2c": "sem-tamanho"
+			},
+			"fechadaEm": 47115143
+		},
+		{
+			"n": 19,
+			"alvo": "127.0.0.1:6900",
+			"servidor": "login",
+			"etiqueta": "19-login",
+			"abertaEm": 47125151,
+			"pacotes": {
+				"c2s": 1,
+				"s2c": 1
+			},
+			"bytes": {
+				"c2s": 55,
+				"s2c": 224
 			},
 			"travou": {
 				"c2s": false,
 				"s2c": false
-			}
+			},
+			"fechadaEm": 47125176
+		},
+		{
+			"n": 20,
+			"alvo": "127.0.0.1:6121",
+			"servidor": "char",
+			"etiqueta": "20-char",
+			"abertaEm": 47125173,
+			"pacotes": {
+				"c2s": 3,
+				"s2c": 5
+			},
+			"bytes": {
+				"c2s": 22,
+				"s2c": 599
+			},
+			"travou": {
+				"c2s": false,
+				"s2c": false
+			},
+			"fechadaEm": 47126027
+		},
+		{
+			"n": 21,
+			"alvo": "127.0.0.1:5121",
+			"servidor": "map",
+			"etiqueta": "21-map",
+			"abertaEm": 47125989,
+			"pacotes": {
+				"c2s": 223,
+				"s2c": 3412
+			},
+			"bytes": {
+				"c2s": 1295,
+				"s2c": 381111
+			},
+			"travou": {
+				"c2s": false,
+				"s2c": false
+			},
+			"fechadaEm": 47712057
+		},
+		{
+			"n": 22,
+			"alvo": "127.0.0.1:6900",
+			"servidor": "login",
+			"etiqueta": "22-login",
+			"abertaEm": 48096204,
+			"pacotes": {
+				"c2s": 1,
+				"s2c": 1
+			},
+			"bytes": {
+				"c2s": 55,
+				"s2c": 224
+			},
+			"travou": {
+				"c2s": false,
+				"s2c": false
+			},
+			"fechadaEm": 48096217
+		},
+		{
+			"n": 23,
+			"alvo": "127.0.0.1:6121",
+			"servidor": "char",
+			"etiqueta": "23-char",
+			"abertaEm": 48096215,
+			"pacotes": {
+				"c2s": 3,
+				"s2c": 5
+			},
+			"bytes": {
+				"c2s": 22,
+				"s2c": 599
+			},
+			"travou": {
+				"c2s": false,
+				"s2c": false
+			},
+			"fechadaEm": 48096672
+		},
+		{
+			"n": 24,
+			"alvo": "127.0.0.1:5121",
+			"servidor": "map",
+			"etiqueta": "24-map",
+			"abertaEm": 48096670,
+			"pacotes": {
+				"c2s": 189,
+				"s2c": 197
+			},
+			"bytes": {
+				"c2s": 1523,
+				"s2c": 454451
+			},
+			"travou": {
+				"c2s": false,
+				"s2c": "sem-tamanho"
+			},
+			"fechadaEm": 48500650
+		},
+		{
+			"n": 25,
+			"alvo": "127.0.0.1:6900",
+			"servidor": "login",
+			"etiqueta": "25-login",
+			"abertaEm": 48648796,
+			"pacotes": {
+				"c2s": 1,
+				"s2c": 1
+			},
+			"bytes": {
+				"c2s": 55,
+				"s2c": 224
+			},
+			"travou": {
+				"c2s": false,
+				"s2c": false
+			},
+			"fechadaEm": 48648816
+		},
+		{
+			"n": 26,
+			"alvo": "127.0.0.1:6121",
+			"servidor": "char",
+			"etiqueta": "26-char",
+			"abertaEm": 48648814,
+			"pacotes": {
+				"c2s": 3,
+				"s2c": 5
+			},
+			"bytes": {
+				"c2s": 22,
+				"s2c": 599
+			},
+			"travou": {
+				"c2s": false,
+				"s2c": false
+			},
+			"fechadaEm": 48649135
+		},
+		{
+			"n": 27,
+			"alvo": "127.0.0.1:5121",
+			"servidor": "map",
+			"etiqueta": "27-map",
+			"abertaEm": 48649134,
+			"pacotes": {
+				"c2s": 142,
+				"s2c": 83
+			},
+			"bytes": {
+				"c2s": 1120,
+				"s2c": 299874
+			},
+			"travou": {
+				"c2s": false,
+				"s2c": "sem-tamanho"
+			},
+			"fechadaEm": 48894724
+		},
+		{
+			"n": 28,
+			"alvo": "127.0.0.1:6900",
+			"servidor": "login",
+			"etiqueta": "28-login",
+			"abertaEm": 48898428,
+			"pacotes": {
+				"c2s": 1,
+				"s2c": 1
+			},
+			"bytes": {
+				"c2s": 55,
+				"s2c": 224
+			},
+			"travou": {
+				"c2s": false,
+				"s2c": false
+			},
+			"fechadaEm": 48898451
+		},
+		{
+			"n": 29,
+			"alvo": "127.0.0.1:6121",
+			"servidor": "char",
+			"etiqueta": "29-char",
+			"abertaEm": 48898447,
+			"pacotes": {
+				"c2s": 3,
+				"s2c": 5
+			},
+			"bytes": {
+				"c2s": 22,
+				"s2c": 599
+			},
+			"travou": {
+				"c2s": false,
+				"s2c": false
+			},
+			"fechadaEm": 48898889
+		},
+		{
+			"n": 30,
+			"alvo": "127.0.0.1:5121",
+			"servidor": "map",
+			"etiqueta": "30-map",
+			"abertaEm": 48898874,
+			"pacotes": {
+				"c2s": 23,
+				"s2c": 83
+			},
+			"bytes": {
+				"c2s": 164,
+				"s2c": 22867
+			},
+			"travou": {
+				"c2s": false,
+				"s2c": "sem-tamanho"
+			},
+			"fechadaEm": 48925336
+		},
+		{
+			"n": 31,
+			"alvo": "127.0.0.1:6900",
+			"servidor": "login",
+			"etiqueta": "31-login",
+			"abertaEm": 48928458,
+			"pacotes": {
+				"c2s": 1,
+				"s2c": 1
+			},
+			"bytes": {
+				"c2s": 55,
+				"s2c": 224
+			},
+			"travou": {
+				"c2s": false,
+				"s2c": false
+			},
+			"fechadaEm": 48928474
+		},
+		{
+			"n": 32,
+			"alvo": "127.0.0.1:6121",
+			"servidor": "char",
+			"etiqueta": "32-char",
+			"abertaEm": 48928472,
+			"pacotes": {
+				"c2s": 3,
+				"s2c": 5
+			},
+			"bytes": {
+				"c2s": 22,
+				"s2c": 599
+			},
+			"travou": {
+				"c2s": false,
+				"s2c": false
+			},
+			"fechadaEm": 48928743
+		},
+		{
+			"n": 33,
+			"alvo": "127.0.0.1:5121",
+			"servidor": "map",
+			"etiqueta": "33-map",
+			"abertaEm": 48928742,
+			"pacotes": {
+				"c2s": 115,
+				"s2c": 83
+			},
+			"bytes": {
+				"c2s": 732,
+				"s2c": 231444
+			},
+			"travou": {
+				"c2s": false,
+				"s2c": "sem-tamanho"
+			},
+			"fechadaEm": 49072956
+		},
+		{
+			"n": 34,
+			"alvo": "127.0.0.1:6900",
+			"servidor": "login",
+			"etiqueta": "34-login",
+			"abertaEm": 49075744,
+			"pacotes": {
+				"c2s": 1,
+				"s2c": 1
+			},
+			"bytes": {
+				"c2s": 55,
+				"s2c": 224
+			},
+			"travou": {
+				"c2s": false,
+				"s2c": false
+			},
+			"fechadaEm": 49075762
+		},
+		{
+			"n": 35,
+			"alvo": "127.0.0.1:6121",
+			"servidor": "char",
+			"etiqueta": "35-char",
+			"abertaEm": 49075760,
+			"pacotes": {
+				"c2s": 3,
+				"s2c": 5
+			},
+			"bytes": {
+				"c2s": 22,
+				"s2c": 599
+			},
+			"travou": {
+				"c2s": false,
+				"s2c": false
+			},
+			"fechadaEm": 49076229
+		},
+		{
+			"n": 36,
+			"alvo": "127.0.0.1:5121",
+			"servidor": "map",
+			"etiqueta": "36-map",
+			"abertaEm": 49076227,
+			"pacotes": {
+				"c2s": 107,
+				"s2c": 84
+			},
+			"bytes": {
+				"c2s": 645,
+				"s2c": 367122
+			},
+			"travou": {
+				"c2s": false,
+				"s2c": "sem-tamanho"
+			},
+			"fechadaEm": 49514887
+		},
+		{
+			"n": 37,
+			"alvo": "127.0.0.1:6900",
+			"servidor": "login",
+			"etiqueta": "37-login",
+			"abertaEm": 49605420,
+			"pacotes": {
+				"c2s": 1,
+				"s2c": 1
+			},
+			"bytes": {
+				"c2s": 55,
+				"s2c": 224
+			},
+			"travou": {
+				"c2s": false,
+				"s2c": false
+			},
+			"fechadaEm": 49605437
+		},
+		{
+			"n": 38,
+			"alvo": "127.0.0.1:6121",
+			"servidor": "char",
+			"etiqueta": "38-char",
+			"abertaEm": 49605434,
+			"pacotes": {
+				"c2s": 3,
+				"s2c": 5
+			},
+			"bytes": {
+				"c2s": 22,
+				"s2c": 599
+			},
+			"travou": {
+				"c2s": false,
+				"s2c": false
+			},
+			"fechadaEm": 49605782
+		},
+		{
+			"n": 39,
+			"alvo": "127.0.0.1:5121",
+			"servidor": "map",
+			"etiqueta": "39-map",
+			"abertaEm": 49605781,
+			"pacotes": {
+				"c2s": 47,
+				"s2c": 290
+			},
+			"bytes": {
+				"c2s": 284,
+				"s2c": 494830
+			},
+			"travou": {
+				"c2s": false,
+				"s2c": "sem-tamanho"
+			},
+			"fechadaEm": 49799933
 		}
 	]
 }

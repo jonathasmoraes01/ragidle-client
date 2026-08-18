@@ -208,6 +208,28 @@
 	font-size: 10px;
 }
 
+/* RAGIDLE: a linha de acoes (D-354) — 'Curar' ao lado de 'Aplicar'. O
+   rodape e flex-column, entao sem este wrapper os dois empilhariam. */
+#AdminPanel .ap-acoes {
+	display: flex;
+	justify-content: flex-end;
+	gap: 8px;
+}
+
+#AdminPanel .ap-heal {
+	background: #3a8f5a;
+	color: #ffffff;
+	border: none;
+	border-radius: 4px;
+	padding: 8px 18px;
+	font-weight: bold;
+	font-size: 12px;
+	cursor: pointer;
+}
+
+#AdminPanel .ap-heal:hover {
+	background: #46a86a;
+}
 #AdminPanel .ap-apply {
 	align-self: flex-end;
 	background: #3a6ea5;
