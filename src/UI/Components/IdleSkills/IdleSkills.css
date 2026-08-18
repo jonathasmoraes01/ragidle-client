@@ -1,0 +1,465 @@
+/**
+ * UI/Components/IdleSkills/IdleSkills.css
+ *
+ * "Skills de {classe}" — floating button + window. Same float/window/drag/
+ * pointer-events split as the other RAGIDLE windows (see
+ * UI/Components/HuntMap/HuntMap.css:1-30 for the full rationale, repeated
+ * here because it drives every size below):
+ * - GUIComponent makes ":host" the real shadow HOST element that
+ *   #draggable()/#_fixPositionOverflow() move and clamp (UI/GUIComponent.js
+ *   :140-203 _prepare(), :516-747 draggable(), :267-272
+ *   _fixPositionOverflow()), so ":host" gets the SAME width/height as
+ *   ".is-window" below.
+ * - ":host" stays pointer-events:none so the closed window never blocks
+ *   scene clicks; only the button and the open window opt back in with
+ *   pointer-events:auto. Paired with IdleSkills.mouseMode =
+ *   GUIComponent.MouseMode.CROSS in IdleSkills.js.
+ *
+ * Visual tone is deliberately different from the other 3 RAGIDLE windows
+ * (which are dark): the task asked this one window to follow the light
+ * "Skills de Aprendiz" reference print (light background, white cards, blue
+ * #3b6ea5 highlights) while keeping the exact same shadow-DOM/class
+ * structure pattern as its siblings.
+ */
+
+:host {
+	position: absolute;
+	width: 640px;
+	height: 560px;
+	pointer-events: none;
+}
+
+#IdleSkills {
+	position: relative;
+	width: 100%;
+	height: 100%;
+	color: #24304a;
+	font-size: 12px;
+}
+
+/* ─── Floating button ─────────────────────────────────────── */
+/* Sits right next to AdminPanel's button (AdminPanel.css:40-55: top:210px;
+ * right:124px; 42x42), which sits next to IdleConfig's (right:72px) and
+ * HuntMap's (right:20px). Same top, one more button-width + gap to the
+ * left (52px step, same as the other three), so all four icons read as a
+ * row. Kept visually dark/matching the sibling buttons on purpose — only
+ * the WINDOW below follows the light reference print. */
+
+#IdleSkills .is-button {
+	position: fixed;
+	top: 210px;
+	right: 176px;
+	width: 42px;
+	height: 42px;
+	border-radius: 50%;
+	border: 1px solid rgba(255, 255, 255, 0.25);
+	background: rgba(20, 20, 26, 0.85);
+	color: #ffffff;
+	font-size: 18px;
+	line-height: 1;
+	cursor: pointer;
+	pointer-events: auto;
+	z-index: 40;
+}
+
+#IdleSkills .is-button:hover {
+	background: rgba(40, 40, 50, 0.92);
+	border-color: rgba(255, 255, 255, 0.45);
+}
+
+/* ─── Window ───────────────────────────────────────────────── */
+
+#IdleSkills .is-window {
+	display: none;
+	position: absolute;
+	inset: 0;
+	pointer-events: auto;
+	flex-direction: column;
+	width: 640px;
+	height: 560px;
+	background: #f4f6fb;
+	border: 1px solid #c7d0e0;
+	border-radius: 6px;
+	box-shadow: 0 8px 26px rgba(0, 0, 0, 0.35);
+	overflow: hidden;
+}
+
+#IdleSkills .is-window.is-open {
+	display: flex;
+}
+
+#IdleSkills .is-titlebar {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: 8px 10px;
+	background: #e6ebf5;
+	border-bottom: 1px solid #c7d0e0;
+	cursor: move;
+	flex: 0 0 auto;
+}
+
+#IdleSkills .is-title {
+	font-weight: bold;
+	letter-spacing: 0.02em;
+	color: #1c2540;
+}
+
+#IdleSkills .is-close {
+	border: none;
+	background: transparent;
+	color: #33405c;
+	font-size: 16px;
+	line-height: 1;
+	cursor: pointer;
+	padding: 0 4px;
+}
+
+#IdleSkills .is-close:hover {
+	color: #c23a3a;
+}
+
+#IdleSkills .is-status {
+	flex: 0 0 auto;
+	min-height: 14px;
+	padding: 4px 10px 0 10px;
+	color: #a06a12;
+	font-size: 11px;
+}
+
+/* ─── Content: 2 columns ───────────────────────────────────── */
+
+#IdleSkills .is-content {
+	flex: 1 1 auto;
+	display: flex;
+	min-height: 0;
+	background: #f4f6fb;
+}
+
+#IdleSkills .is-list {
+	flex: 0 0 230px;
+	overflow-y: auto;
+	padding: 8px;
+	border-right: 1px solid #dde3ee;
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+}
+
+#IdleSkills .is-detail {
+	flex: 1 1 auto;
+	overflow-y: auto;
+	padding: 14px;
+	background: #ffffff;
+}
+
+#IdleSkills .is-empty {
+	margin-top: 16px;
+	text-align: center;
+	color: #8b93a5;
+	font-size: 11px;
+}
+
+/* ─── Skill cards (left list) ─────────────────────────────── */
+
+#IdleSkills .is-card {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	width: 100%;
+	box-sizing: border-box;
+	text-align: left;
+	background: #ffffff;
+	border: 1px solid #d7deea;
+	border-radius: 6px;
+	padding: 6px 8px;
+	color: #24304a;
+	cursor: pointer;
+}
+
+#IdleSkills .is-card:hover {
+	background: #f7f9fd;
+}
+
+#IdleSkills .is-card.is-selected {
+	border-color: #3b6ea5;
+	box-shadow: 0 0 0 1px #3b6ea5 inset;
+	background: #eaf1fa;
+}
+
+#IdleSkills .is-card-icon {
+	flex: 0 0 auto;
+	width: 28px;
+	height: 28px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	background: #dbe4f2;
+	color: #3b6ea5;
+	font-weight: bold;
+	font-size: 10px;
+	border-radius: 4px;
+}
+
+#IdleSkills .is-card-info {
+	flex: 1 1 auto;
+	min-width: 0;
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+}
+
+#IdleSkills .is-card-name {
+	font-weight: bold;
+	font-size: 11px;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+#IdleSkills .is-card-meta {
+	display: flex;
+	gap: 4px;
+}
+
+#IdleSkills .is-card-level {
+	flex: 0 0 auto;
+	color: #6f7891;
+	font-size: 10px;
+	white-space: nowrap;
+}
+
+/* ─── Badges (shared between list + detail) ───────────────── */
+
+#IdleSkills .is-badge {
+	font-size: 9px;
+	font-weight: bold;
+	padding: 2px 6px;
+	border-radius: 8px;
+	white-space: nowrap;
+}
+
+#IdleSkills .is-badge-passiva {
+	background: #dbe9df;
+	color: #2e7d42;
+}
+
+#IdleSkills .is-badge-ativa {
+	background: #dbe4f5;
+	color: #2255a4;
+}
+
+#IdleSkills .is-badge-gray {
+	background: #e2e5ea;
+	color: #5b6472;
+	cursor: help;
+}
+
+/* ─── Detail panel ─────────────────────────────────────────── */
+
+#IdleSkills .is-detail-header {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+}
+
+#IdleSkills .is-detail-title-row {
+	display: flex;
+	align-items: baseline;
+	justify-content: space-between;
+	gap: 8px;
+}
+
+#IdleSkills .is-detail-name {
+	font-size: 15px;
+	font-weight: bold;
+	color: #1c2540;
+}
+
+#IdleSkills .is-pill {
+	flex: 0 0 auto;
+	background: #3b6ea5;
+	color: #ffffff;
+	font-size: 11px;
+	font-weight: bold;
+	padding: 3px 10px;
+	border-radius: 10px;
+	white-space: nowrap;
+}
+
+#IdleSkills .is-detail-badges {
+	display: flex;
+	gap: 6px;
+}
+
+#IdleSkills .is-detail-maxline {
+	margin: 10px 0 4px 0;
+	font-size: 11px;
+	color: #5b6472;
+}
+
+#IdleSkills .is-detail-resumo {
+	margin: 4px 0 10px 0;
+	font-size: 12px;
+	line-height: 1.4;
+	color: #33405c;
+}
+
+#IdleSkills .is-detail-section h4 {
+	margin: 12px 0 6px 0;
+	font-size: 12px;
+	color: #1c2540;
+}
+
+#IdleSkills .is-mecanica-box {
+	max-height: 150px;
+	overflow-y: auto;
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	border: 1px solid #dde3ee;
+	border-radius: 6px;
+	background: #f9fafc;
+	padding: 4px 6px;
+}
+
+#IdleSkills .is-mecanica-row {
+	display: flex;
+	gap: 8px;
+	font-size: 11px;
+	padding: 4px 2px;
+	border-bottom: 1px solid #eef1f7;
+}
+
+#IdleSkills .is-mecanica-row:last-child {
+	border-bottom: none;
+}
+
+#IdleSkills .is-mecanica-nivel {
+	flex: 0 0 56px;
+	font-weight: bold;
+	color: #3b6ea5;
+}
+
+#IdleSkills .is-mecanica-texto {
+	flex: 1 1 auto;
+	color: #33405c;
+}
+
+#IdleSkills .is-mecanica-empty {
+	padding: 8px;
+	text-align: center;
+	color: #8b93a5;
+	font-size: 11px;
+}
+
+/* ─── Progress pips ────────────────────────────────────────── */
+
+#IdleSkills .is-pips {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 4px;
+	margin: 12px 0;
+}
+
+#IdleSkills .is-pip {
+	width: 18px;
+	height: 6px;
+	border-radius: 3px;
+	background: #dde3ee;
+}
+
+#IdleSkills .is-pip.is-pip-filled {
+	background: #3b6ea5;
+}
+
+/* ─── Detail footer (learn action) ────────────────────────── */
+
+#IdleSkills .is-detail-footer {
+	margin-top: 14px;
+	padding-top: 12px;
+	border-top: 1px solid #dde3ee;
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+}
+
+#IdleSkills .is-detail-next {
+	font-size: 12px;
+	color: #33405c;
+}
+
+#IdleSkills .is-detail-custo {
+	font-size: 11px;
+	color: #5b6472;
+}
+
+#IdleSkills .is-detail-max {
+	font-size: 12px;
+	font-weight: bold;
+	color: #5b6472;
+}
+
+#IdleSkills .is-btn-aprender {
+	align-self: flex-start;
+	margin-top: 8px;
+	background: #3b6ea5;
+	color: #ffffff;
+	border: none;
+	border-radius: 5px;
+	padding: 8px 16px;
+	font-weight: bold;
+	font-size: 12px;
+	cursor: pointer;
+}
+
+#IdleSkills .is-btn-aprender:hover:not(:disabled) {
+	background: #4a82bd;
+}
+
+#IdleSkills .is-btn-aprender:disabled {
+	background: #c7cdd8;
+	color: #8b93a5;
+	cursor: not-allowed;
+}
+
+/* ─── Window footer (counts / points) ─────────────────────── */
+
+#IdleSkills .is-footer {
+	flex: 0 0 auto;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 10px;
+	padding: 8px 10px;
+	border-top: 1px solid #dde3ee;
+	background: #eef1f8;
+}
+
+#IdleSkills .is-footer-left {
+	flex: 0 0 auto;
+	font-size: 11px;
+	color: #33405c;
+}
+
+#IdleSkills .is-problemas {
+	flex: 1 1 auto;
+	min-width: 0;
+	color: #c23a3a;
+	font-size: 10px;
+	text-align: center;
+}
+
+#IdleSkills .is-footer-right {
+	flex: 0 0 auto;
+}
+
+#IdleSkills .is-pontos-pill {
+	background: #3b6ea5;
+	color: #ffffff;
+	font-size: 11px;
+	font-weight: bold;
+	padding: 4px 10px;
+	border-radius: 10px;
+	white-space: nowrap;
+}

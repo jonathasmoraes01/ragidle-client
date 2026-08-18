@@ -4883,6 +4883,14 @@ function init(packetver) {
 	length_list[0x0ff7] = -1; // ZC_RAGIDLE_ADMIN (variable, JSON payload)
 	length_list[0x0ff8] = -1; // CZ_RAGIDLE_APLICAR_ADMIN (variable, JSON payload)
 
+	// RAGIDLE: custom "Skills de {classe}" packets (see
+	// Network/PacketStructure.js "RAGIDLE:" section). Opcodes 0x0ff9-0x0ffb
+	// were free right after 0x0ff6-0x0ff8 above (checked: no other
+	// length_list[] assignment in this file touches them).
+	length_list[0x0ff9] = 2; // CZ_RAGIDLE_PEDIR_SKILLS (opcode only)
+	length_list[0x0ffa] = -1; // ZC_RAGIDLE_SKILLS (variable, JSON payload)
+	length_list[0x0ffb] = -1; // CZ_RAGIDLE_APRENDER (variable, JSON payload)
+
 	return length_list;
 }
 

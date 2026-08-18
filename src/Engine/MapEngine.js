@@ -93,6 +93,7 @@ import Achievement from 'UI/Components/Achievement/Achievement.js';
 import HuntMap from 'UI/Components/HuntMap/HuntMap.js'; // RAGIDLE: "Mapa de Caça"
 import IdleConfig from 'UI/Components/IdleConfig/IdleConfig.js'; // RAGIDLE: "Configuração idle"
 import AdminPanel from 'UI/Components/AdminPanel/AdminPanel.js'; // RAGIDLE: "Painel de admin"
+import IdleSkills from 'UI/Components/IdleSkills/IdleSkills.js'; // RAGIDLE: "Skills de {classe}"
 
 import MainEngine from './MapEngine/Main.js';
 import MapStateEngine from './MapEngine/MapState.js';
@@ -384,6 +385,7 @@ class MapEngine {
 			HuntMap.prepare(); // RAGIDLE: "Mapa de Caça"
 			IdleConfig.prepare(); // RAGIDLE: "Configuração idle"
 			AdminPanel.prepare(); // RAGIDLE: "Painel de admin"
+			IdleSkills.prepare(); // RAGIDLE: "Skills de {classe}"
 
 			if (Configs.get('enableMapName')) {
 				MapName.prepare();
@@ -774,6 +776,10 @@ function onMapChange(pkt) {
 		// again for every account except the owner's (Session.AID ===
 		// 2000000).
 		AdminPanel.append();
+
+		// RAGIDLE: "Skills de {classe}" floating button — same unconditional
+		// append() as HuntMap/IdleConfig/AdminPanel right above.
+		IdleSkills.append();
 
 		if (Configs.get('enableCashShop')) {
 			CashShopIcon.append();

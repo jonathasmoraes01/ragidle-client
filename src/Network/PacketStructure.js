@@ -15985,6 +15985,57 @@ PACKET.CZ.RAGIDLE_APLICAR_ADMIN.prototype.build = function () {
 	return pkt_buf;
 };
 
+// RAGIDLE: custom packets for the "Skills de {classe}" window
+// (UI/Components/IdleSkills/IdleSkills.js). Opcodes 0x0ff9-0x0ffb are free
+// right after AdminPanel's 0x0ff6-0x0ff8 above (checked against the whole
+// PACKET.* range in this file and against Network/PacketRegister.js —
+// nothing else uses them). Framing for these three IDs is declared in
+// Network/Packets/packets2021_len_main.js, same pattern as 0x0ff0-0x0ff8.
+
+// 0x0ff9 - RAGIDLE: CZ_RAGIDLE_PEDIR_SKILLS (client -> server)
+// Fixed 2 bytes: opcode only. Sent when the IdleSkills window is opened.
+// Same shape as CZ_RAGIDLE_PEDIR_CONFIG/CZ_RAGIDLE_PEDIR_ADMIN above.
+PACKET.CZ.RAGIDLE_PEDIR_SKILLS = function PACKET_CZ_RAGIDLE_PEDIR_SKILLS() {};
+PACKET.CZ.RAGIDLE_PEDIR_SKILLS.prototype.build = function () {
+	const pkt_len = 2;
+	const pkt_buf = new BinaryWriter(pkt_len);
+
+	pkt_buf.writeShort(0x0ff9);
+	return pkt_buf;
+};
+
+// 0x0ffa - RAGIDLE: ZC_RAGIDLE_SKILLS (server -> client)
+// Variable size: u16 opcode + u16 total length + JSON UTF-8 payload.
+// Answers BOTH RAGIDLE_PEDIR_SKILLS and RAGIDLE_APRENDER (contract v1:
+// { v, aplicado?, problemas: [], classe: {...}, pontos, skills: [...] }).
+// Same parsing pattern as ZC_RAGIDLE_CONFIG/ZC_RAGIDLE_ADMIN above.
+PACKET.ZC.RAGIDLE_SKILLS = function PACKET_ZC_RAGIDLE_SKILLS(fp, end) {
+	this.json = fp.readString(end - fp.tell());
+};
+PACKET.ZC.RAGIDLE_SKILLS.size = -1;
+
+// 0x0ffb - RAGIDLE: CZ_RAGIDLE_APRENDER (client -> server)
+// Variable size: u16 opcode + u16 total length + JSON UTF-8 payload
+// ({"skillId": "NV_BASIC"} per the contract — the single skill to learn one
+// more level of, applied transactionally server-side). Same
+// byte-length-not-JS-length build as CZ_RAGIDLE_APLICAR_CONFIG/
+// CZ_RAGIDLE_APLICAR_ADMIN above (skillId is plain ASCII today, but the
+// JSON envelope is measured in real UTF-8 bytes on principle/consistency
+// with those two, in case a future field carries PT-BR text).
+PACKET.CZ.RAGIDLE_APRENDER = function PACKET_CZ_RAGIDLE_APRENDER() {
+	this.json = '{}';
+};
+PACKET.CZ.RAGIDLE_APRENDER.prototype.build = function () {
+	const bytes = TextEncoding.encode(this.json, 'utf-8');
+	const pkt_len = 2 + 2 + bytes.length;
+	const pkt_buf = new BinaryWriter(pkt_len);
+
+	pkt_buf.writeShort(0x0ffb);
+	pkt_buf.writeUShort(pkt_len);
+	pkt_buf.writeString(this.json);
+	return pkt_buf;
+};
+
 /**
  * Export
  */
