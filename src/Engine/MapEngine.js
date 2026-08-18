@@ -781,6 +781,9 @@ function onMapChange(pkt) {
 		// RAGIDLE: "Configuração idle" floating button — same unconditional
 		// append() as HuntMap right above.
 		IdleConfig.append();
+		// RAGIDLE: pergunta se este mapa e cidade (D-355) para desabilitar o
+		// botao quando nao ha caca. A resposta cai no mesmo handler do pedir.
+		IdleConfig.sondarMapa();
 
 		// RAGIDLE: "Painel de admin" floating button — same unconditional
 		// append() as HuntMap/IdleConfig right above; AdminPanel.onAppend()

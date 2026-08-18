@@ -265,6 +265,33 @@ function onClickApply(e) {
  * CZ_RAGIDLE_PEDIR_CONFIG — opcode 0x0ff3, fixed 2 bytes (opcode only), same
  * shape as HuntMap's requestCatalog() (HuntMap.js:265-268).
  */
+/**
+ * RAGIDLE: em CIDADE nao ha caca (D-246), entao o botao flutuante fica
+ * desabilitado e o hover explica por que (D-355, pedido do dono). O sinal
+ * vem do servidor no campo contexto.ehCidade: mapa sem populacao de mobs.
+ * Contrato antigo sem o campo cai em false e nada muda.
+ */
+function aplicarEstadoDeCidade() {
+	const ehCidade = !!(IdleConfig.contexto && IdleConfig.contexto.ehCidade);
+	const btn = _root().querySelector('.ic-button');
+	if (!btn) {
+		return;
+	}
+	btn.disabled = ehCidade;
+	btn.classList.toggle('ic-button-cidade', ehCidade);
+	btn.title = ehCidade ? 'Voce esta na cidade!' : 'Configuracao idle';
+	if (ehCidade) {
+		closeWindow();
+	}
+}
+
+/**
+ * RAGIDLE: pergunta o contexto SEM abrir a janela, so para saber se este
+ * mapa e cidade e ajustar o botao. Chamado ao entrar no mapa.
+ */
+IdleConfig.sondarMapa = function sondarMapa() {
+	Network.sendPacket(new PACKET.CZ.RAGIDLE_PEDIR_CONFIG());
+};
 function requestConfig() {
 	setStatus(IdleConfig.serverConfig ? 'Atualizando configuração...' : 'Carregando configuração...');
 	Network.sendPacket(new PACKET.CZ.RAGIDLE_PEDIR_CONFIG());
@@ -327,6 +354,7 @@ function onConfigReceived(pkt) {
 	const rejected = isApplyResponse && Array.isArray(data.problemas) && data.problemas.length > 0;
 
 	IdleConfig.contexto = data.contexto;
+	aplicarEstadoDeCidade();
 	IdleConfig.problemas = rejected ? data.problemas : [];
 
 	if (!rejected) {

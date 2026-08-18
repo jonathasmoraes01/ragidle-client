@@ -36,6 +36,13 @@
  * right:20px; 42x42). Placed at the same top, one button-width + gap to
  * the left, so the two icons read as a pair. */
 
+/* RAGIDLE: em cidade nao ha caca (D-355) - o botao apaga e o title explica. */
+#IdleConfig .ic-button:disabled,
+#IdleConfig .ic-button-cidade {
+	opacity: 0.4;
+	cursor: not-allowed;
+	filter: grayscale(1);
+}
 #IdleConfig .ic-button {
 	position: fixed;
 	top: 210px;
