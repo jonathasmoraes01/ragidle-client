@@ -1062,6 +1062,65 @@
 				"s2c": "sem-tamanho"
 			},
 			"fechadaEm": 51086124
+		},
+		{
+			"n": 54,
+			"alvo": "127.0.0.1:6900",
+			"servidor": "login",
+			"etiqueta": "54-login",
+			"abertaEm": 51762313,
+			"pacotes": {
+				"c2s": 1,
+				"s2c": 1
+			},
+			"bytes": {
+				"c2s": 55,
+				"s2c": 224
+			},
+			"travou": {
+				"c2s": false,
+				"s2c": false
+			},
+			"fechadaEm": 51762327
+		},
+		{
+			"n": 55,
+			"alvo": "127.0.0.1:6121",
+			"servidor": "char",
+			"etiqueta": "55-char",
+			"abertaEm": 51762324,
+			"pacotes": {
+				"c2s": 3,
+				"s2c": 5
+			},
+			"bytes": {
+				"c2s": 22,
+				"s2c": 599
+			},
+			"travou": {
+				"c2s": false,
+				"s2c": false
+			},
+			"fechadaEm": 51762990
+		},
+		{
+			"n": 56,
+			"alvo": "127.0.0.1:5121",
+			"servidor": "map",
+			"etiqueta": "56-map",
+			"abertaEm": 51762955,
+			"pacotes": {
+				"c2s": 1,
+				"s2c": 0
+			},
+			"bytes": {
+				"c2s": 23,
+				"s2c": 0
+			},
+			"travou": {
+				"c2s": false,
+				"s2c": false
+			}
 		}
 	]
 }
