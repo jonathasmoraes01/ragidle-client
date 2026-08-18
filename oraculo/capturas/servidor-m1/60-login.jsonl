@@ -1,0 +1,4 @@
+{"tipo":"conexao","n":60,"alvo":"127.0.0.1:6900","servidor":"login","etiqueta":"60-login","ms":52697986}
+{"ms":52697996,"dir":"c2s","opcode":"0x0064","nome":"CA_LOGIN","tamanho":55,"deslocamento":0}
+{"ms":52697997,"dir":"s2c","opcode":"0x0ac4","nome":"AC_ACCEPT_LOGIN3","tamanho":224,"deslocamento":0}
+{"tipo":"fim","ms":52698138,"n":60,"alvo":"127.0.0.1:6900","servidor":"login","etiqueta":"60-login","abertaEm":52697986,"pacotes":{"c2s":1,"s2c":1},"bytes":{"c2s":55,"s2c":224},"travou":{"c2s":false,"s2c":false},"fechadaEm":52698138}
