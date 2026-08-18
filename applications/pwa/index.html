@@ -161,6 +161,15 @@
 						callback(status, xhr.response);
 					}
 				};
+				// Rag Idle: sem onerror, uma falha de REDE aqui (offline, bloqueio)
+				// nunca dispara onload e o jogo fica em LOADING para sempre.
+				xhr.onerror = function () {
+					callback('network', null);
+				};
+				xhr.timeout = 4000;
+				xhr.ontimeout = function () {
+					callback('timeout', null);
+				};
 				xhr.send();
 			};
 
