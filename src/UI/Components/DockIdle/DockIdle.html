@@ -1,0 +1,56 @@
+<div id="DockIdle">
+	<div class="dk-bar">
+		<button type="button" class="dk-item" data-action="status" title="Personagem">
+			<span class="dk-icon-wrap"><!--RI_ICONE:personagem--></span>
+			<span class="dk-label">Personagem</span>
+		</button>
+
+		<button type="button" class="dk-item" data-action="skills" title="Skills">
+			<span class="dk-icon-wrap">
+				<!--RI_ICONE:skills-->
+				<!-- Ponto de "ponto de skill disponivel" — escondido por padrao,
+				     ligado/desligado por syncSkillDot() em DockIdle.js. -->
+				<span class="ri-dot" style="display: none"></span>
+			</span>
+			<span class="dk-label">Skills</span>
+		</button>
+
+		<button type="button" class="dk-item" data-action="inventory" title="Inventário">
+			<span class="dk-icon-wrap"><!--RI_ICONE:inventario--></span>
+			<span class="dk-label">Inventário</span>
+		</button>
+
+		<button type="button" class="dk-item" data-action="equip" title="Equipamento">
+			<span class="dk-icon-wrap"><!--RI_ICONE:equipamento--></span>
+			<span class="dk-label">Equipamento</span>
+		</button>
+
+		<button type="button" class="dk-item dk-item--hunt" data-action="huntmap" title="Mapa de Caça">
+			<!-- Filigrana do design system (19/08/2026): linha que esvai +
+			     losango + traco curto, nessa ordem indo em direcao a pilula.
+			     SUBSTITUI as 4 barrinhas por lado da rodada anterior, que
+			     liam como equalizador ao lado da arte pixelada real do RO.
+			     A direita e a MESMA marcacao espelhada por CSS (scaleX(-1)
+			     em ".dk-filigrana--dir"), nao um bloco duplicado. -->
+			<span class="dk-filigrana dk-filigrana--esq" aria-hidden="true">
+				<span class="dk-fili-linha"></span><span class="dk-fili-losango"></span><span class="dk-fili-traco"></span>
+			</span>
+			<span class="dk-filigrana dk-filigrana--dir" aria-hidden="true">
+				<span class="dk-fili-linha"></span><span class="dk-fili-losango"></span><span class="dk-fili-traco"></span>
+			</span>
+			<img class="dk-poring" src="/ragidle/mobs/1002.png" alt="" onerror="this.style.display='none'" />
+			<span class="dk-icon-wrap dk-icon-wrap--hunt"><!--RI_ICONE:caca--></span>
+			<span class="dk-label dk-label--hunt">Caça</span>
+		</button>
+
+		<button type="button" class="dk-item" data-action="idleconfig" title="Config idle">
+			<span class="dk-icon-wrap"><!--RI_ICONE:config--></span>
+			<span class="dk-label">Config</span>
+		</button>
+
+		<button type="button" class="dk-item" data-action="menu" title="Menu">
+			<span class="dk-icon-wrap"><!--RI_ICONE:menu--></span>
+			<span class="dk-label">Menu</span>
+		</button>
+	</div>
+</div>

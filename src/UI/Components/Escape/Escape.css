@@ -1,48 +1,85 @@
+/**
+ * UI/Components/Escape/Escape.css
+ *
+ * "Select Option" — menu nativo do ESC / botao "Menu" do dock. Reestilizado
+ * para o design system "Ragnarok Classico Premium" (gauntlet visual
+ * 18/08/2026, ver redesign/extracao-da-referencia.md secoes 2 e 3): cartao
+ * claro com filete dourado (".ri-window"), header em gradiente azul-claro
+ * com asas (".ri-header"/".ri-title") e os 8 botoes empilhados como
+ * ".ri-btn" — tokens/classes vindos de UI/Common.css.
+ *
+ * ANTES cada botao era um <button> vazio pintado por tres BMPs (esc_0Na/b/c
+ * = normal/hover/down) que DESENHAVAM O ROTULO dentro do pixel (client
+ * localizado pt-BR). Decodificados com `tools/grf/index.ts` +
+ * `tools/ui/bmp.ts` (mesmo par usado por .tmp-scratch/bmp2png.ts) antes de
+ * remover os "data-background/data-hover/data-down" — a informacao (o texto
+ * de cada botao) foi resgatada como texto real do elemento, nao perdida:
+ *   esc_01 "Selecionar Personagem" · esc_02 "Continuar a Jogar" ·
+ *   esc_03 "Fechar Jogo" · esc_04 "Voltar para Ponto de Retorno" ·
+ *   esc_05 "Ressuscitar" · esc_06 "Configuracoes de Video" ·
+ *   esc_07 "Configuracoes de Audio" · esc_08 "Configuracoes de Atalho".
+ * "titlebar_fix.bmp" era so uma barra gradiente sem texto (o titulo real
+ * vem do msgstringtable via data-text="1483") e "sys_base_off/on.bmp" era
+ * um icone 11x11 puramente decorativo — nenhum dos dois carregava
+ * informacao, so a familia esc_0N carregava.
+ *
+ * IDs/data-attrs/listeners do Escape.js continuam intactos (".node",
+ * ".resurection", ".savepoint", ".charselect", ".graphics", ".sound",
+ * ".hotkey", ".exit", ".cancel" seguem sendo os mesmos seletores) — so a
+ * CAMADA VISUAL mudou.
+ */
+
 :host {
-	width: 280px;
+	width: 300px;
 	height: auto;
 	top: 200px;
 	left: 200px;
 }
 
 #Escape {
-	width: 280px;
+	width: 300px;
 	height: auto;
-	border-radius: 5px;
-	background-color: white;
-	background-repeat: no-repeat;
 }
 
+#Escape .top {
+	position: relative;
+	height: 34px;
+}
+
+/* Pequeno ornamento no canto esquerdo do header (era o icone 11x11
+   "sys_base_off/on.bmp" — decorativo, sem informacao, ver comentario
+   acima). Mantido como elemento (o Escape.js grava um listener de
+   mousedown nele para nao iniciar o arrasto da janela ao clicar aqui),
+   so troca o BMP por um respiro dourado discreto. */
 #Escape .top .node {
-	width: 11px;
-	height: 11px;
+	width: 8px;
+	height: 8px;
 	position: absolute;
-	top: 3px;
-	left: 4px;
+	top: 50%;
+	left: 10px;
+	transform: translateY(-50%);
 	border: none;
-	background-color: transparent;
-	background-repeat: no-repeat;
+	border-radius: 50%;
+	background: radial-gradient(circle at 35% 30%, var(--gold-300), var(--gold-500));
+	box-shadow: var(--rim-gold);
+	cursor: move;
+	padding: 0;
 }
 
 #Escape .top .title {
-	position: absolute;
-	top: 2px;
-	left: 18px;
-	text-shadow: 1px 1px white;
-	white-space: nowrap;
+	font-size: 13px;
 }
 
 #Escape .container {
-	width: 220px;
-	height: auto;
-	padding: 20px 30px 6px 30px;
+	width: 100%;
+	box-sizing: border-box;
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+	padding: 14px 16px 16px;
 }
 
 #Escape .container button {
-	width: 221px;
-	height: 20px;
-	margin-top: 3px;
-	border: none;
-	background-color: transparent;
-	background-repeat: no-repeat;
+	width: 100%;
+	box-sizing: border-box;
 }

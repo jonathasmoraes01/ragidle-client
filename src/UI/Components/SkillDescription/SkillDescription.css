@@ -5,16 +5,23 @@
 
 #SkillDescription {
 	position: absolute;
-	border-radius: 5px;
+	/* cartao premium (builder tooltip, 18/08/2026): mesma linguagem do
+	   ItemInfo -- moldura dourada fina, raio de janela, sombra suave. So
+	   cor/borda/sombra/fonte mudam aqui; padding e a largura do .content
+	   (que fixa a caixa) ficam intocados. */
+	border-radius: var(--radius-window);
 	padding: 1px;
-	border: 1px solid #c5c5c5;
-	line-height: 18px;
+	border: 1px solid var(--gold-500);
+	box-shadow: var(--shadow-float);
+	line-height: 1.5;
 	letter-spacing: 0px;
+	font-family: var(--font-ui);
 }
 #SkillDescription .content {
-	padding: 5px;
-	border-radius: 5px;
-	background-color: white;
+	padding: 8px 10px;
+	border-radius: var(--radius-panel);
+	background-color: var(--surface-card);
+	color: var(--text-body);
 	width: 278px;
 }
 #SkillDescription .close {

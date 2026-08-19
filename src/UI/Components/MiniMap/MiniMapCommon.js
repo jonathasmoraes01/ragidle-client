@@ -217,6 +217,15 @@ export function createMiniMap({
 	MiniMap.setMap = function setMap(mapname) {
 		_map.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw==';
 
+		// Premium chrome: nome do mapa atual no header do card (dado que o
+		// cliente ja tem via DB.getMapName, sem servidor). So existe na
+		// versao V2 (".mm-mapname"); a V1 nao tem esse elemento, entao o
+		// querySelector abaixo fica null e nada acontece.
+		const mapNameEl = this.getRoot().querySelector('.mm-mapname');
+		if (mapNameEl) {
+			mapNameEl.textContent = DB.getMapName(mapname, '');
+		}
+
 		_towninfo = DB.getTownInfo(mapname.replace(/\..*/, ''));
 
 		let path = DB.INTERFACE_PATH.replace('data/texture/', '') + 'map/' + mapname.replace(/\..*/, '.bmp');

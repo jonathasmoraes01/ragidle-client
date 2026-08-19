@@ -1,6 +1,8 @@
 <div id="Storage">
 	<div class="titlebar">
-		<ui-image src="basic_interface/titlebar_mid.bmp"></ui-image>
+		<!-- titlebar_mid.bmp removida (builder armazem, 18/08/2026): mesmo arquivo
+		     ja decodificado pelo InventoryV3/EquipmentV3 -- degrade azul repetido,
+		     sem informacao pintada. Vira gradiente do design system em CSS. -->
 		<div class="left">
 			<span class="text"><ui-text msg="169">Storage</ui-text></span>
 		</div>
@@ -26,11 +28,19 @@
 						<button class="etc"></button>
 					</td>
 					<td class="container">
-						<div class="content" data-background="basic_interface/itemwin_mid.bmp"></div>
+						<!-- itemwin_mid.bmp removida (builder armazem, 18/08/2026): mesmo
+						     borrao radial azulado ja decodificado no InventoryV3 -- sem
+						     linha de grade pintada, sem rotulo. Vira trelica sutil de
+						     linhas em CSS, casada com o passo de 32px do proprio
+						     resizeHeight()/onScroll() do StorageCommon.js. -->
+						<div class="content ri-scroll"></div>
 					</td>
 				</tr>
 			</tbody>
-			<tfoot class="footer" data-background="basic_interface/btnbar_mid3.bmp">
+			<!-- btnbar_mid3.bmp removida (builder armazem, 18/08/2026): mesma familia
+			     decorativa do btnbar_mid2.bmp (ja decodificado) -- listras horizontais
+			     cinza/branco sem texto. Vira gradiente + filete dourado em CSS. -->
+			<tfoot class="footer">
 				<tr>
 					<td colspan="3" class="filter-buttons">
 						<button

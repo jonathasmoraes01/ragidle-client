@@ -1,6 +1,45 @@
+/**
+ * UI/Components/ShortCut/ShortCut.css
+ *
+ * Barra de atalhos (hotkeys) nativa do topo-centro, redesenhada para o
+ * design system "Ragnarok Classico Premium" (gauntlet 18/08/2026, ver
+ * redesign/extracao-da-referencia.md secoes 2, 3 e 7). Usa as vars/classes
+ * .ri-* de src/UI/Common.css (injetado no Shadow DOM de todo componente).
+ *
+ * TEXTURA (armadilha da regra 1 do briefing): o HTML original tinha
+ * data-background="basic_interface/shortitem_bg.bmp" no proprio #ShortCut.
+ * GUIComponent.processDataAttrs le esse atributo e escreve
+ * node.style.backgroundImage INLINE (ver UI/GUIComponent.js:964-1012) -
+ * isso vence qualquer "background" declarado aqui em CSS, entao antes
+ * nenhuma cor de fundo deste arquivo aparecia. O bitmap (280x34, ver print
+ * tirado com Get-Item + System.Drawing) era literalmente uma grade branca
+ * crua com setinhas cinza em cada celula - a "planilha branca" do briefing.
+ * Removi o atributo data-background do #ShortCut em ShortCut.html; sem ele
+ * o JS nunca seta o inline style e o "background" deste arquivo passa a
+ * valer. Os botoes .close/.resize continuam com data-background proprio
+ * (icones pequenos de chrome) - so ganharam respaldo circular claro por
+ * cima via background-color/box-shadow, propriedades que o JS NUNCA toca
+ * (ele so escreve background-image).
+ *
+ * CONTRATO DE JS PRESERVADO (ShortCut.js): a altura por linha e 34px fixo
+ * (5 margin-top + 23 height + 6 margin-bottom), usada em onAppend/onResize/
+ * onShortCut(EXTEND) pra calcular altura do host e quantas linhas mostrar.
+ * .container ganhou box-sizing:border-box + border de 1px: com border-box
+ * o TAMANHO EXTERNO (24x23, margens 5/5/6) fica IDENTICO, a borda entra
+ * DENTRO do box em vez de somar. Nao mexi em width/height/margin de
+ * .row/.container/.icon/.img/.amount/.cooldown-overlay - sao os que o
+ * drag-drop (coordenadas de .container) e o cooldown radial (24x24) usam.
+ */
+
 :host {
 	width: 280px;
-	top: 0px;
+	/* "top" aqui e so o valor de PRIMEIRA PINTURA (nao tem efeito pratico):
+	   ShortCut.onAppend() sempre escreve host.style.top a partir de
+	   _preferences.y (inline vence CSS) — ver o comentario grande no
+	   default dela em ShortCut.js pro raciocinio completo da sobreposicao
+	   medida com a capsula de zeny do TopBarIdle. Mantido igual ao default
+	   novo (54) so pra CSS e JS nunca discordarem por acidente. */
+	top: 54px;
 	left: 480px;
 	overflow: hidden;
 }
@@ -10,13 +49,19 @@
 	width: 280px;
 	height: 100%;
 	background-repeat: repeat-y;
+	font-family: var(--font-ui);
+	background: var(--surface-glass);
+	box-shadow: var(--rim-gold);
+	border-radius: var(--radius-window);
 }
 #ShortCut .close {
 	position: absolute;
 	top: 2px;
 	right: 2px;
 	border: none;
-	background-color: transparent;
+	background-color: var(--surface-card-hover);
+	border-radius: 50%;
+	box-shadow: var(--shadow-card);
 	width: 11px;
 	height: 11px;
 }
@@ -25,7 +70,8 @@
 	bottom: 1px;
 	right: 1px;
 	border: none;
-	background-color: transparent;
+	background-color: var(--surface-card);
+	border-radius: var(--radius-card);
 	width: 13px;
 	height: 13px;
 }
@@ -35,20 +81,42 @@
 }
 #ShortCut .row .container {
 	float: left;
+	box-sizing: border-box;
 	width: 24px;
 	height: 23px;
 	margin-top: 5px;
 	margin-left: 5px;
 	margin-bottom: 6px;
+	border-radius: var(--radius-panel);
+	border: 1px solid var(--border-hairline);
+	background-color: var(--surface-inset);
+	transition:
+		border-color var(--dur-fast) var(--ease-out),
+		background-color var(--dur-fast) var(--ease-out),
+		box-shadow var(--dur-fast) var(--ease-out);
 }
+/* slot vazio, hover: convite discreto ao inves do verde cru original */
 #ShortCut .row .container:hover {
-	background-color: #b5ffb5;
+	border-color: var(--accent);
+	background-color: rgba(58, 110, 165, 0.14);
+}
+/* slot ocupado: card premium mais presente que o vazio */
+#ShortCut .row .container:has(.icon) {
+	border-color: var(--border-hairline);
+	background-color: var(--surface-card);
+	box-shadow: var(--shadow-card);
+}
+#ShortCut .row .container:has(.icon):hover {
+	border-color: var(--accent);
+	box-shadow: var(--glow-accent);
 }
 #ShortCut .row .index {
 	float: left;
 	position: relative;
 	top: 13px;
 	left: 5px;
+	font: var(--type-label);
+	color: var(--text-muted);
 }
 #ShortCut .row .clear {
 }
@@ -69,9 +137,10 @@
 	position: absolute;
 	top: 0px;
 	left: 0px;
-	background-color: rgba(0, 0, 0, 0.6);
-	text-shadow: 1px 1px black;
-	color: white;
+	background-color: var(--surface-dark-glass);
+	backdrop-filter: var(--blur-glass);
+	text-shadow: 0 1px 2px rgba(18, 41, 74, 0.85);
+	color: var(--white);
 	padding: 5px;
 	white-space: nowrap;
 }
@@ -85,7 +154,7 @@
 	position: absolute;
 	right: 1px;
 	top: 20px;
-	text-shadow: 1px 1px 0px white;
+	text-shadow: 0 1px 2px rgba(18, 41, 74, 0.85);
 	text-align: right;
 	font-weight: bold;
 }
@@ -93,15 +162,18 @@
 .shortcut-tooltip {
 	display: none;
 	position: fixed;
-	background-color: rgba(0, 0, 0, 0.8);
-	text-shadow: 1px 1px black;
-	color: white;
-	padding: 2px 6px;
+	background-color: var(--text-title);
+	text-shadow: none;
+	color: var(--white);
+	padding: 3px 8px;
 	white-space: nowrap;
 	z-index: 10000;
-	border-radius: 2px;
+	border-radius: var(--radius-card);
 	pointer-events: none;
-	line-height: 1.2;
+	line-height: 1.3;
+	font-family: var(--font-ui);
+	font-size: var(--fs-info);
+	box-shadow: var(--shadow-float);
 }
 .shortcut-tooltip.show {
 	display: block;
@@ -114,7 +186,7 @@
 	width: 24px;
 	height: 24px;
 	pointer-events: none;
-	border-radius: 2px;
+	border-radius: var(--radius-card);
 	z-index: 999;
-	background: conic-gradient(rgba(0, 0, 0, 0.75) 0deg, transparent 0deg);
+	background: conic-gradient(rgba(18, 41, 74, 0.75) 0deg, transparent 0deg);
 }

@@ -4895,6 +4895,20 @@ function init(packetver) {
 	length_list[0x0ffa] = -1; // ZC_RAGIDLE_SKILLS (variable, JSON payload)
 	length_list[0x0ffb] = -1; // CZ_RAGIDLE_APRENDER (variable, JSON payload)
 
+	// RAGIDLE: custom "Você morreu" / "Status" packets (see
+	// Network/PacketStructure.js "RAGIDLE:" section). Opcode 0x0ffc is
+	// deliberately left free/unused; 0x0ffd-0x0fff were free right after
+	// 0x0ff9-0x0ffb above (checked: no other length_list[] assignment in
+	// this file touches them).
+	length_list[0x0ffd] = 2; // CZ_RAGIDLE_RENASCER (opcode only)
+	length_list[0x0ffe] = 2; // CZ_RAGIDLE_DISTRIBUIR (opcode only)
+	length_list[0x0fff] = 2; // CZ_RAGIDLE_PEDIR_FICHA (opcode only)
+
+	// RAGIDLE: "Status" server->client answer (see Network/PacketStructure.js
+	// "RAGIDLE:" section). Deliberately outside the 0x0ffX cluster above
+	// (checked: 0x0fef is otherwise unused in this file).
+	length_list[0x0fef] = -1; // ZC_RAGIDLE_FICHA (variable, JSON payload)
+
 	return length_list;
 }
 

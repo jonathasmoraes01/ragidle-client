@@ -992,5 +992,12 @@ export default {
 	// 0x0ff4/0x0ff7 above — only the server->client one is registered here.
 	0x0ffa: PACKET.ZC.RAGIDLE_SKILLS,
 
+	// RAGIDLE: "Status" custom packet (see PacketStructure.js "RAGIDLE:"
+	// section). Deliberately outside the 0x0ffX cluster used by the other
+	// RAGIDLE opcodes above — same reasoning as 0x0ff1/0x0ff4/0x0ff7/0x0ffa:
+	// only the server->client one (ZC_RAGIDLE_FICHA) is registered here;
+	// CZ_RAGIDLE_PEDIR_FICHA (0x0fff) is client->server only.
+	0x0fef: PACKET.ZC.RAGIDLE_FICHA,
+
 	0xb1a: PACKET.ZC.USESKILL_ACK3 // USE SKILL 3
 };

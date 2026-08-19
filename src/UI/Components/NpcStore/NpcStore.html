@@ -1,7 +1,10 @@
 <div id="NpcStore">
+	<!-- titlebar_mid.bmp removida em TODAS as 4 sub-janelas (builder npc,
+	     18/08/2026): decodificado em 12x17 -- e o MESMO degrade azul repetido
+	     ja visto no EquipmentV3/InventoryV3/Storage, sem informacao pintada.
+	     Vira gradiente do design system em CSS (.NpcStore .titlebar). -->
 	<div class="InputWindow">
 		<div class="titlebar">
-			<ui-image src="basic_interface/titlebar_mid.bmp"></ui-image>
 			<div class="text">
 				<span class="WinSell"><ui-text msg="185">Available Items for selling</ui-text></span>
 				<span class="WinBuy"><ui-text msg="186">Shop Items</ui-text></span>
@@ -14,11 +17,17 @@
 			</div>
 		</div>
 		<div class="container">
-			<ui-image src="basic_interface/itemwin_left.bmp"></ui-image>
-			<div class="content"></div>
+			<!-- itemwin_left.bmp removida (builder npc, 18/08/2026): decodificado em
+			     20x8 -- faixa cinza-clara lisa, sem rotulo, mesma familia decorativa
+			     do itemwin_mid.bmp (ja decodificado no InventoryV3/Storage). Vira
+			     box-shadow inset (respiro claro), mesma receita do StorageV3. -->
+			<div class="content ri-scroll"></div>
 		</div>
 		<div class="footer">
-			<ui-image src="basic_interface/btnbar_mid2.bmp"></ui-image>
+			<!-- btnbar_mid2.bmp removida (builder npc, 18/08/2026): decodificada em
+			     21x29 -- listras horizontais cinza/branco sem texto, mesmo arquivo
+			     ja removido no EquipmentV3/InventoryV3/Storage. Vira gradiente claro
+			     + filete dourado no topo em CSS. -->
 			<div class="cashuser WinCash">
 				[<span class="buyer"></span>]'s Points: <span class="cashpoints"></span>
 				<span class="unity">Point(s)</span>
@@ -34,20 +43,19 @@
 
 	<div class="OutputWindow">
 		<div class="titlebar">
-			<ui-image src="basic_interface/titlebar_mid.bmp"></ui-image>
 			<div class="text">
 				<span class="WinSell WinBuyingStore"><ui-text msg="168">Selling Items</ui-text></span>
 				<span class="WinBuy WinVendingStore"><ui-text msg="166">Buying Items</ui-text></span>
 			</div>
 		</div>
 		<div class="container">
-			<ui-image src="basic_interface/itemwin_left.bmp"></ui-image>
-			<div class="content">
-				<ui-image src="basic_interface/itemwin_mid.bmp"></ui-image>
+			<div class="content ri-scroll">
+				<!-- itemwin_mid.bmp removida (builder npc, 18/08/2026): decodificado em
+				     32x32 -- borrao radial azulado sem info, mesmo arquivo ja
+				     decodificado no InventoryV3/Storage. Vira card branco liso em CSS. -->
 			</div>
 		</div>
 		<div class="footer">
-			<ui-image src="basic_interface/btnbar_mid2.bmp"></ui-image>
 			<div class="total">Total : <span class="result"></span> <span class="unity">Zeny</span></div>
 			<div class="totalP WinCash">Total : <span class="resultP"></span> <span class="unity">Point</span></div>
 			<ui-button
@@ -74,7 +82,6 @@
 
 	<div class="AvailableItemsWindow">
 		<div class="titlebar">
-			<ui-image src="basic_interface/titlebar_mid.bmp"></ui-image>
 			<div class="text">
 				<span class="WinBuyingStore">
 					<ui-text msg="1733">Available Items</ui-text>
@@ -82,32 +89,23 @@
 			</div>
 		</div>
 		<div class="container">
-			<ui-image src="basic_interface/itemwin_left.bmp"></ui-image>
-			<div class="content contentAvailable">
-				<ui-image src="basic_interface/itemwin_mid.bmp"></ui-image>
-			</div>
+			<div class="content contentAvailable ri-scroll"></div>
 		</div>
 		<div class="footer">
-			<ui-image src="basic_interface/btnbar_mid2.bmp"></ui-image>
 			<ui-button class="resize" bg="btn_resize.bmp"></ui-button>
 		</div>
 	</div>
 
 	<div class="PurchaseResult">
 		<div class="titlebar">
-			<ui-image src="basic_interface/titlebar_mid.bmp"></ui-image>
 			<div class="text">
 				<span class="WinBuy"><ui-text msg="2530"></ui-text></span>
 			</div>
 		</div>
 		<div class="container">
-			<ui-image src="basic_interface/itemwin_left.bmp"></ui-image>
-			<div class="content">
-				<ui-image src="basic_interface/itemwin_mid.bmp"></ui-image>
-			</div>
+			<div class="content ri-scroll"></div>
 		</div>
 		<div class="footer">
-			<ui-image src="basic_interface/btnbar_mid2.bmp"></ui-image>
 			<div class="total">Total : <span class="result"></span> <span class="unity">Zeny</span></div>
 			<ui-button class="btn ok" bg="btn_ok.bmp" hover="btn_ok_a.bmp" down="btn_ok_b.bmp"></ui-button>
 			<ui-button class="resize" bg="btn_resize.bmp"></ui-button>

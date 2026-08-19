@@ -11,30 +11,50 @@
 	left: 0px;
 	width: 100%;
 	height: 100%;
+	font-family: var(--font-ui);
 }
+
+/* titlebar_mid.bmp removida no HTML (ver comentario la, decodificado 12x17 --
+   degrade azul repetido sem info). NpcStore tem 4 sub-janelas soltas
+   (InputWindow/OutputWindow/AvailableItemsWindow/PurchaseResult), cada uma
+   com seu proprio titlebar -- por isso NAO ganhou as asas douradas do
+   .ri-title (repetir ornamento 4x na mesma tela ficaria carregado, contra a
+   regra "ornamentos sao discretos" do briefing); so o filete + gradiente.
+   A familia do texto do titulo ainda vira serifa (--font-display) -- e o
+   titulo desta janela, so sem as asas. */
 #NpcStore .titlebar {
+	position: relative;
 	width: 100%;
-	height: 17px;
-	background-color: white;
-	background-repeat: repeat-x;
-	border-radius: 3px 3px 0px 0px;
-	text-shadow: 1px 1px white;
-	font-size: 11px;
-	font-weight: bold;
+	height: 19px;
+	background: var(--titlebar-fill);
+	border: 1px solid var(--border-gold);
+	border-bottom: none;
+	border-radius: var(--radius-window) var(--radius-window) 0px 0px;
+	box-sizing: border-box;
 }
 #NpcStore .titlebar .text {
 	position: relative;
-	top: 2px;
+	top: 3px;
 	left: 15px;
 	white-space: nowrap;
+	color: var(--text-title);
+	font-family: var(--font-display);
+	font-size: 11px;
+	font-weight: 700;
 }
 #NpcStore .footer {
 	width: 100%;
 	height: 27px;
-	background-repeat: repeat-x;
-	background-color: transparent;
+	/* btnbar_mid2.bmp removida no HTML (ver comentario la, decodificado 21x29
+	   -- listras cinza/branco sem texto). Vira gradiente claro + filete
+	   dourado, mesmo tratamento do rodape do EquipmentV3/Storage. */
+	background: var(--surface-titlebar);
+	border: 1px solid var(--border-gold);
+	border-top: 1px solid var(--gold-300);
 	position: relative;
-	border-radius: 0px 0px 3px 3px;
+	border-radius: 0px 0px var(--radius-window) var(--radius-window);
+	box-sizing: border-box;
+	color: var(--text-body);
 }
 #NpcStore .resize {
 	position: absolute;
@@ -47,6 +67,10 @@
 	width: 42px;
 	height: 20px;
 	margin: 0;
+	filter: drop-shadow(var(--shadow-card));
+}
+#NpcStore .btn:hover {
+	filter: drop-shadow(0 0 4px var(--gold-500));
 }
 #NpcStore .selectall {
 	display: inline-block;
@@ -63,14 +87,21 @@
 	padding-left: 20px;
 }
 
+/* itemwin_left.bmp removida no HTML (ver comentario la, decodificado 20x8 --
+   faixa lisa sem rotulo). Vira card claro com filete dourado nas laterais,
+   igual ao .ri-window (borda toda em volta, ja que aqui cada sub-janela E a
+   "janela" -- diferente do InputWindow/OutputWindow do resto do app que fica
+   dentro de um .ri-window pai). */
 #NpcStore .container {
 	padding-left: 16px;
-	border-right: 1px solid #ccc;
-	background: white;
-	background-repeat: repeat-y;
+	border-left: 1px solid var(--border-gold);
+	border-right: 1px solid var(--border-gold);
+	background: var(--surface-card-hover);
 	padding-right: 2px;
 	padding-top: 5px;
 	padding-bottom: 5px;
+	box-sizing: border-box;
+	box-shadow: inset 16px 0px 0px 2px var(--white);
 }
 #NpcStore .content {
 	overflow-y: auto;
@@ -79,18 +110,35 @@
 	height: 100%;
 	min-height: 65px;
 	background-color: transparent;
-	background-repeat: repeat-y;
 	background-attachment: local;
+}
+/* itemwin_mid.bmp removida no HTML (ver comentario la, decodificado 32x32 --
+   borrao radial azulado sem info). Vira trelica sutil casada com o passo de
+   28px+padding-top 4px = 32px que o proprio addItem()/CSS ja usa por linha
+   (mesma receita do StorageV3). */
+#NpcStore .content:not(.contentAvailable) {
+	background-image: linear-gradient(to bottom, var(--border-hairline) 1px, transparent 1px);
+	background-size: 100% 32px;
 }
 #NpcStore .content.contentAvailable {
 	background-repeat: repeat;
 	overflow-y: unset;
 }
+
+/* linha de item = card premium (briefing: "icone com aro, nome, preco em
+   destaque dourado"). So pintura -- a caixa continua height:28px/padding-top:4px
+   e os filhos continuam absolutos nas MESMAS coordenadas (icone/nome/preco),
+   entao addItem() e a resposta ao wheel/drag do JS nao mudam de matematica. */
 #NpcStore .content .item {
 	display: block;
 	position: relative;
 	height: 28px;
 	padding-top: 4px;
+	border-radius: var(--radius-panel);
+	transition: background var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out);
+}
+#NpcStore .content .item:hover {
+	background: var(--surface-card-hover);
 }
 
 #NpcStore .content .item.expanded-barter {
@@ -98,7 +146,8 @@
 }
 
 #NpcStore .content .item.selected {
-	background-color: #346ae180;
+	background: linear-gradient(180deg, rgba(58, 110, 165, 0.22), rgba(36, 92, 158, 0.22));
+	box-shadow: inset 0 0 0 1px var(--accent);
 }
 #NpcStore .content .item.itemAvailable {
 	display: block;
@@ -110,8 +159,11 @@
 }
 #NpcStore .content .item.itemAvailable.selected {
 	background-color: transparent;
+	box-shadow: none;
 }
 
+/* aro discreto no icone do item (arte do cliente 100% intocada -- so um
+   contorno por cima, igual ao slot do EquipmentV3/StorageV3) */
 #NpcStore .content .item .icon {
 	position: absolute;
 	top: 6px;
@@ -119,8 +171,11 @@
 	width: 24px;
 	height: 24px;
 	border: none;
-	background-color: transparent;
+	background-color: var(--surface-card-hover);
 	background-repeat: no-repeat;
+	border-radius: var(--radius-card);
+	box-shadow: inset 0 0 0 1px var(--border-hairline);
+	box-sizing: border-box;
 }
 #NpcStore .content .item .amount {
 	position: absolute;
@@ -128,7 +183,10 @@
 	top: 18px;
 	left: 18px;
 	text-align: left;
-	text-shadow: -1px -1px white;
+	text-shadow: none;
+	color: var(--text-title);
+	font-size: 10px;
+	font-weight: 700;
 }
 #NpcStore .content .item .amountBuying {
 	position: absolute;
@@ -136,8 +194,9 @@
 	top: 13px;
 	left: 160px;
 	text-align: left;
-	text-shadow: -1px -1px white;
-	color: red;
+	text-shadow: none;
+	color: var(--red-600);
+	font-weight: 700;
 }
 #NpcStore .content .item .name {
 	position: absolute;
@@ -145,19 +204,28 @@
 	left: 32px;
 	width: 115px;
 	white-space: nowrap;
+	color: var(--text-body);
 }
+#NpcStore .content .item:hover .name {
+	color: var(--blue-600);
+}
+/* preco em destaque dourado (briefing) */
 #NpcStore .content .item .price {
 	position: absolute;
 	top: 13px;
 	right: 16px;
 	white-space: nowrap;
 	text-align: right;
+	color: var(--gold-700);
+	font-weight: 700;
 }
 #NpcStore .content .item .unity {
 	position: absolute;
 	top: 13px;
 	right: 2px;
 	width: 10px;
+	color: var(--gold-700);
+	font-weight: 700;
 }
 
 #NpcStore .footer .total,
@@ -172,6 +240,12 @@
 	padding-left: 10px;
 	padding-top: 8px;
 }
+/* rodape com zeny em destaque (briefing: "rodape com zeny/peso") */
+#NpcStore .footer .total .result,
+#NpcStore .footer .totalP .resultP {
+	color: var(--gold-700);
+	font-weight: 700;
+}
 #NpcStore .InputWindow,
 #NpcStore .OutputWindow,
 #NpcStore .AvailableItemsWindow,
@@ -180,6 +254,8 @@
 	position: absolute;
 	z-index: 50;
 	pointer-events: auto;
+	border-radius: var(--radius-window);
+	box-shadow: var(--shadow-float);
 }
 #NpcStore .btn.buy,
 #NpcStore .btn.sell {
@@ -203,12 +279,14 @@
 	display: none;
 	top: -17px;
 	left: 0px;
-	background-color: rgba(0, 0, 0, 0.6);
-	text-shadow: 1px 1px black;
+	background: var(--text-title);
+	text-shadow: none;
 	color: white;
-	padding: 5px;
+	padding: 5px 8px;
 	white-space: nowrap;
 	font-size: 0.6rem;
+	border-radius: var(--radius-card);
+	box-shadow: var(--shadow-float);
 }
 #NpcStore .content .item:hover .nameOverlay {
 	display: table;
@@ -224,8 +302,11 @@
 	width: 24px;
 	height: 24px;
 	border: none;
-	background-color: transparent;
+	background-color: var(--surface-card-hover);
 	background-repeat: no-repeat;
+	border-radius: var(--radius-card);
+	box-shadow: inset 0 0 0 1px var(--border-hairline);
+	box-sizing: border-box;
 }
 #NpcStore .content .item .currency_amount {
 	position: absolute;
@@ -233,19 +314,23 @@
 	top: 18px;
 	right: 13px;
 	text-align: left;
-	text-shadow: -1px -1px white;
+	text-shadow: none;
+	color: var(--text-title);
+	font-weight: 700;
 }
 #NpcStore .content .item .currency_nameOverlay {
 	position: relative;
 	display: none;
 	top: -17px;
 	left: 0px;
-	background-color: rgba(0, 0, 0, 0.6);
-	text-shadow: 1px 1px black;
+	background: var(--text-title);
+	text-shadow: none;
 	color: white;
-	padding: 5px;
+	padding: 5px 8px;
 	white-space: nowrap;
 	font-size: 0.6rem;
+	border-radius: var(--radius-card);
+	box-shadow: var(--shadow-float);
 }
 #NpcStore .content .item:hover .currency_nameOverlay {
 	display: table;
@@ -269,6 +354,10 @@
 	height: 27px;
 	width: 30px;
 	position: relative;
+	background: var(--white);
+	border-radius: var(--radius-card);
+	box-shadow: inset 0 0 0 1px var(--border-hairline);
+	box-sizing: border-box;
 }
 #NpcStore .expanded_currency_icon {
 	height: 24px;
@@ -282,7 +371,9 @@
 	top: -10px;
 	left: 15px;
 	text-align: left;
-	text-shadow: -1px -1px white;
+	text-shadow: none;
+	color: var(--text-title);
+	font-weight: 700;
 }
 #NpcStore .expanded_currency_refinelvl {
 	position: relative;
@@ -292,7 +383,7 @@
 	text-align: left;
 	color: white;
 	font-weight: 850;
-	-webkit-text-stroke: 1px red;
+	-webkit-text-stroke: 1px var(--red-600);
 }
 #NpcStore .expanded_price {
 	position: relative;
@@ -301,6 +392,8 @@
 	white-space: nowrap;
 	text-align: right;
 	width: 80px;
+	color: var(--gold-700);
+	font-weight: 700;
 }
 #NpcStore .content .item .expanded_currency_nameOverlay {
 	position: relative;
@@ -308,17 +401,19 @@
 	opacity: 0;
 	top: -17px;
 	left: 0px;
-	background-color: rgba(0, 0, 0, 0.6);
-	text-shadow: 1px 1px black;
+	background: var(--text-title);
+	text-shadow: none;
 	color: white;
-	padding: 5px;
+	padding: 5px 8px;
 	white-space: nowrap;
 	font-size: 0.6rem;
+	border-radius: var(--radius-card);
 	transition:
-		opacity 0.2s ease-in-out,
-		visibility 0.2s ease-in-out;
+		opacity var(--dur-base) var(--ease-in-out),
+		visibility var(--dur-base) var(--ease-in-out);
 	pointer-events: none;
 	z-index: 10;
+	box-shadow: var(--shadow-float);
 }
 #NpcStore .content .item:hover .expanded_currency_nameOverlay {
 	visibility: visible;

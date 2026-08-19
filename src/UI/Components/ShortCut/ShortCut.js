@@ -65,7 +65,22 @@ const _preferences = Preferences.get(
 	'ShortCut',
 	{
 		x: 480,
-		y: 0,
+		/*
+		 * Builder de polimento (18/08/2026), responsividade 1366x768: media
+		 * com Playwright (getBoundingClientRect, ver ShortCut.css) mostrou
+		 * esta barra (y:0-34, x:480-760 no default) sobrepondo a capsula de
+		 * zeny do TopBarIdle (".tb-pill", y:14-50, x:651-715 nesse mesmo
+		 * teste) — as duas ficam perto do centro da tela. So o DEFAULT de
+		 * "y" mudou (54 = abaixo da capsula + 4px de respiro); quem ja
+		 * arrastou a barra e salvou preferencia PRÓPRIA continua com ela —
+		 * Preferences.get() (Core/Preferences.js:38-66) so aplica este
+		 * default a instalacao nova/preferencia nunca salva, e sobrescreve
+		 * com o valor salvo quando existe. ShortCut.css ":host{top}"
+		 * repete o mesmo numero (o JS sempre escreve style.top inline em
+		 * onAppend, entao a CSS sozinha nunca teria efeito — manter os
+		 * dois iguais so evita os dois discordarem por acidente depois).
+		 */
+		y: 54,
 		size: 1,
 		magnet_top: true,
 		magnet_bottom: false,

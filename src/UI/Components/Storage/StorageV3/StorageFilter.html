@@ -1,6 +1,7 @@
 <div id="StorageFilter">
 	<div class="titlebar">
-		<ui-image src="basic_interface/titlebar_mid.bmp"></ui-image>
+		<!-- titlebar_mid.bmp removida (builder armazem, 18/08/2026): mesmo arquivo
+		     ja decodificado -- degrade azul repetido, sem informacao pintada. -->
 		<div class="left">
 			<span class="text">Item Filter</span>
 		</div>
@@ -16,10 +17,15 @@
 	<div class="overlay"></div>
 
 	<div class="panel">
-		<div class="content" data-background="basic_interface/itemwin_mid.bmp"></div>
+		<!-- itemwin_mid.bmp removida (builder armazem, 18/08/2026): mesmo borrao
+		     radial ja decodificado -- vira trelica sutil de linhas em CSS. -->
+		<div class="content ri-scroll"></div>
 	</div>
 
-	<div class="footer" data-background="basic_interface/btnbar_mid2.bmp">
+	<!-- btnbar_mid2.bmp removida (builder armazem, 18/08/2026): ja decodificada
+	     no InventoryV3 -- listras horizontais sem texto. Vira gradiente + filete
+	     dourado em CSS. -->
+	<div class="footer">
 		<button class="extend" data-background="btn_resize.bmp"></button>
 	</div>
 </div>

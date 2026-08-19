@@ -4,20 +4,36 @@
 }
 
 /* ── Root ────────────────────────────────────────────────── */
+/* realinhado ao design system OFICIAL (19/08/2026): a receita mudou de
+   "borda dourada externa" pra "hairline AZUL por fora + aro DOURADO por
+   dentro" (--window-frame / --rim-gold, ver design-system-oficial.md). A
+   espessura da borda continua 1px -- so a COR trocou -- entao a conta do
+   InventoryCommon.js onResize()/Resize() (offsets 23+16+16-30, /32) nao
+   muda: nenhum pixel novo de moldura entrou. O aro dourado e o
+   --shadow-window ficam no box-shadow (nao ocupam caixa). Raio 8px =
+   --radius-window (era 6, valor de --radius-panel por engano). */
 #InventoryV3 {
 	position: relative;
 	height: 194px;
 	display: flex;
 	flex-direction: column;
+	border: 1px solid var(--border-window);
+	border-radius: var(--radius-window);
+	box-shadow: var(--shadow-window), var(--rim-gold);
 }
 
 /* ── Titlebar ─────────────────────────────────────────────── */
+/* titlebar_mid.bmp removida: e o MESMO arquivo que o EquipmentV3 ja tinha
+   decodificado e descartado (degrade azul repetido, 12x17, sem informacao
+   pintada -- conferido de novo aqui pixel a pixel, ver relatorio do
+   builder) -- vira gradiente claro do design system. */
 #InventoryV3 .titlebar {
+	position: relative;
 	width: 100%;
 	height: 17px;
-	background-color: white;
-	background-repeat: repeat-x;
-	border-radius: 3px 3px 0px 0px;
+	background: var(--titlebar-fill);
+	border-bottom: var(--titlebar-rule);
+	border-radius: calc(var(--radius-window) - 1px) calc(var(--radius-window) - 1px) 0px 0px;
 }
 
 #InventoryV3 .titlebar .base {
@@ -30,15 +46,35 @@
 }
 
 #InventoryV3 .titlebar .text {
-	text-shadow: 1px 1px white;
-	vertical-align: -2px;
+	/* titulo central ornamentado: sai do fluxo (absolute) pra ficar
+	   centralizado na barra mesmo aninhado dentro de .left junto do botao
+	   base -- so pintura, mesma tecnica do EquipmentV3.text */
+	position: absolute;
+	left: 50%;
+	top: 50%;
+	transform: translate(-50%, -50%);
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	width: auto;
+	height: auto;
 	white-space: nowrap;
-	/* chrome bug */
-	display: inline-block;
-	width: 32px;
-	height: 13px;
+	text-shadow: none;
+	color: var(--text-title);
 	font-size: 11px;
 	font-weight: bold;
+}
+
+#InventoryV3 .titlebar .text::before,
+#InventoryV3 .titlebar .text::after {
+	content: '';
+	width: 14px;
+	height: 6px;
+	background: var(--ri-asa) no-repeat center / contain;
+}
+
+#InventoryV3 .titlebar .text::after {
+	transform: scaleX(-1);
 }
 
 #InventoryV3 .titlebar .left {
@@ -57,7 +93,7 @@
 
 /* ── Panel / layout ───────────────────────────────────────── */
 #InventoryV3 .panel {
-	border-radius: 0px 0px 3px 3px;
+	border-radius: 0px 0px 5px 5px;
 	padding: 0px;
 	display: flex;
 	flex-direction: column;
@@ -73,20 +109,24 @@
 }
 
 /* ── Tabs ─────────────────────────────────────────────────── */
+/* btnbar_mid2.bmp removida (21x29: so faixas horizontais cinza/branco
+   repetidas, sem rotulo pintado -- o texto das abas ja vem do span com
+   data-text via JS) -- vira degrade claro do header */
 #InventoryV3 .tabs {
 	width: 23px;
 	display: flex;
 	flex-direction: column;
-	background-repeat: round;
-	background-size: auto 10px;
+	background: var(--titlebar-fill);
 }
 
 #InventoryV3 .tabs button {
 	width: 20px;
 	font-size: 11px;
 	flex: 1;
-	border: 1px solid #ccc;
-	background-color: white;
+	border: 1px solid var(--border-hairline);
+	background-color: var(--paper-1);
+	color: var(--text-muted);
+	font-weight: 600;
 	display: block;
 	text-align: center;
 	position: relative;
@@ -105,11 +145,16 @@
 }
 
 #InventoryV3 .tab:last-child {
-	background-color: #cedeff;
+	background: linear-gradient(180deg, var(--gold-200) 0%, var(--gold-300) 100%);
+	color: var(--gold-700);
 }
 
 #InventoryV3 .tab.selected {
 	z-index: 25;
+	/* aba troca por PREENCHIMENTO (nunca espessura de borda), regra do DS */
+	background: var(--tab-active-fill);
+	border-color: var(--blue-600);
+	color: var(--text-on-accent);
 	-webkit-transform-origin-x: left;
 	transform: scale(1.1, 1) translateX(-2px);
 }
@@ -118,13 +163,13 @@
 #InventoryV3 .container {
 	flex: 1;
 	padding-left: 14px;
-	border-right: 1px solid #ccc;
+	border-right: 1px solid var(--border-hairline);
 	background-clip: padding-box;
-	box-shadow: inset 40px 0px 0px 2px #ffffff;
+	box-shadow: inset 40px 0px 0px 2px var(--white);
 	position: relative;
-	border-left: 1px solid #ccc;
-	border-bottom: 1px solid #ccc;
-	background-color: white;
+	border-left: 1px solid var(--border-hairline);
+	border-bottom: 1px solid var(--border-hairline);
+	background-color: var(--paper-1);
 	overflow: hidden;
 	white-space: nowrap;
 }
@@ -147,13 +192,23 @@
 	display: none;
 }
 
+/* itemwin_mid.bmp removida (32x32: um unico borrao radial azulado por
+   ladrilho, decodificado e conferido pixel a pixel -- SEM linha de grade
+   pintada, SEM rotulo; e so sombreado decorativo) -- vira trelica sutil em
+   CSS alinhada ao MESMO ladrilho de 32px da grade (background-size, nunca
+   grid-template-columns/grid-auto-rows, que continuam intocados), pra dar o
+   efeito de "slot quadrado" pedido no briefing mesmo nas celulas vazias
+   (que nao tem elemento -- so o .item ocupado e que o JS insere). */
 #InventoryV3 .content {
 	width: 100%;
 	display: grid;
 	grid-template-columns: repeat(auto-fill, 32px);
 	grid-auto-rows: 32px;
 	min-height: 100%;
-	background-color: white;
+	background-color: var(--paper-1);
+	background-image: linear-gradient(to right, var(--border-hairline) 1px, transparent 1px),
+		linear-gradient(to bottom, var(--border-hairline) 1px, transparent 1px);
+	background-size: 32px 32px;
 	background-repeat: repeat;
 	background-origin: border-box;
 	background-clip: border-box;
@@ -163,12 +218,29 @@
 }
 
 /* ── Items ────────────────────────────────────────────────── */
+/* Slot ocupado = tratamento n.2 do design system, "ladrilho quadrado":
+   raio 4px (--radius-card), aro dourado, fundo linear-gradient(180deg,
+   #fff,#e6eef8) -- receita citada literalmente no design system, #e6eef8
+   nao tem token proprio (fica entre --sky-50 e --sky-100). Raridade so na
+   borda: este fork nao tem dado de raridade por item ainda, entao o aro
+   fica no dourado padrao do tratamento (nao e logica nova, so nao ha token
+   de raridade pra variar). Aro por box-shadow (nao muda a caixa 32x32 que
+   o grid/onResize contam). */
 #InventoryV3 .content .item {
 	display: block;
 	width: 32px;
 	height: 32px;
 	margin: 0;
 	position: relative;
+	border-radius: var(--radius-card);
+	background: linear-gradient(180deg, var(--white) 0%, #e6eef8 100%);
+	box-shadow: inset 0 0 0 1px var(--border-gold);
+}
+
+/* Hover: so clareia (regra do DS -- "Hover clareia 6%"), aro continua dourado */
+#InventoryV3 .content .item:hover {
+	background: linear-gradient(180deg, var(--white) 0%, var(--sky-50) 100%);
+	box-shadow: inset 0 0 0 1px var(--gold-500);
 }
 
 #InventoryV3 .content .item .icon {
@@ -188,6 +260,8 @@
 	top: 15px;
 	right: 0px;
 	text-align: right;
+	color: var(--text-title);
+	font-weight: 700;
 	text-shadow: -1px -1px white;
 	z-index: 10;
 }
@@ -255,11 +329,13 @@
 }
 
 /* ── Footer ───────────────────────────────────────────────── */
+/* btnbar_mid2.bmp removida aqui tambem (mesmo arquivo dos tabs) -- vira
+   degrade claro + filete dourado no topo, rodape limpo pedido no briefing */
 #InventoryV3 .footer {
 	width: 100%;
 	height: 17px;
-	background-repeat: repeat-x;
-	background-color: transparent;
+	background: var(--titlebar-fill);
+	border-top: 1px solid var(--gold-300);
 	position: relative;
 	flex-shrink: 0;
 }
@@ -356,11 +432,13 @@
 #InventoryV3 span.ncnt {
 	left: 12px;
 	position: relative;
+	color: var(--text-body);
 }
 
 #InventoryV3 span.mcnt {
 	position: relative;
 	left: 10px;
+	color: var(--text-body);
 }
 
 /* ── Tooltip names on hover ───────────────────────────────── */

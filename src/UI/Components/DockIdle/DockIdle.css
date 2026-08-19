@@ -1,0 +1,288 @@
+/**
+ * UI/Components/DockIdle/DockIdle.css
+ *
+ * "Barra inferior" — dock fixo na base da tela.
+ *
+ * Contrato de pointer-events (mesmo padrao de MobileUI.css e do
+ * ":host{pointer-events:none}" usado pelos botoes flutuantes RAGIDLE,
+ * ver HuntMap.css:1-45): a faixa inteira e ":host" ficam com
+ * pointer-events:none, e SO ".dk-item" (os botoes) volta a aceitar clique
+ * com pointer-events:auto. pointer-events e propriedade herdada — ela
+ * atravessa o limite do Shadow DOM normalmente, entao o "none" do :host
+ * cai sobre a barra e as labels tambem, e cada botao precisa reabrir sozinho.
+ * Isso e o que garante que clicar no MAPA atraves da area vazia da faixa
+ * (fora dos botoes) continua funcionando — nenhum "buraco" e recortado,
+ * o fundo translucido e so pintura, nunca captura o clique.
+ *
+ * Spec EXATA (complemento 19/08/2026 — o dono leu o showcase oficial
+ * ui_kits/game_hud/BottomBar.jsx e extraiu numeros/cores/tokens reais):
+ * substitui o tratamento ".ri-disc" (circulo) usado numa rodada anterior —
+ * a barra de baixo NAO usa disco pros itens normais, so o item central
+ * ("Caça") vira uma PILULA (".ri-window"-like, mas achatada). pointer-
+ * events, z-index e os toggles reais (DockIdle.js) sao os MESMOS de sempre,
+ * nada disso mudou.
+ */
+
+:host {
+	width: 100%;
+	height: auto;
+	bottom: 0;
+	left: 0;
+	top: auto;
+	pointer-events: none;
+}
+
+#DockIdle {
+	position: relative;
+	width: 100%;
+	font-family: var(--font-ui, var(--ri-fonte));
+}
+
+/* ─── A faixa: 82px, vidro azulado, aro dourado por cima ──────────────── */
+
+.dk-bar {
+	position: relative;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 10px;
+	width: 100%;
+	height: 82px;
+	padding: 0 18px;
+	box-sizing: border-box;
+	background: linear-gradient(180deg, rgba(233, 241, 250, 0.72) 0%, rgba(206, 223, 243, 0.9) 100%);
+	backdrop-filter: var(--blur-glass-strong, blur(18px));
+	-webkit-backdrop-filter: var(--blur-glass-strong, blur(18px));
+	border-top: 1px solid var(--border-gold);
+	box-shadow: 0 -6px 20px rgba(12, 34, 64, 0.22);
+}
+
+/* ─── Item comum (Personagem/Skills/Inventario/Equipamento/Config/Menu) ──
+   Sem disco: glifo solto + label, alvo de toque >= 44px (--hit-touch). O
+   "gap:10" da faixa acima ja cobre o espacamento DENTRO de cada grupo; o
+   respiro maior (26px) entre cada grupo e o item central vem da margin do
+   proprio ".dk-item--hunt" abaixo, nao de um gap especial aqui. */
+
+.dk-item {
+	appearance: none;
+	flex: 0 0 auto;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	gap: 4px;
+	min-width: var(--hit-touch, 44px);
+	min-height: var(--hit-touch, 44px);
+	padding: 4px 6px;
+	border: none;
+	background: transparent;
+	cursor: pointer;
+	pointer-events: auto;
+}
+
+/* Glifo: 20px, cor --ink-500 em repouso — o "disco" de uma rodada anterior
+   saiu; o que resta e so um alvo pra ancorar o ".ri-dot" (position:relative)
+   e servir de moldura pro destaque ".is-active" (fundo translucido + raio,
+   ver abaixo). */
+.dk-icon-wrap {
+	position: relative;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 36px;
+	height: 36px;
+	color: var(--ink-500);
+	transition: color var(--dur-fast) var(--ease-out);
+}
+
+.dk-icon-wrap svg {
+	display: block;
+	width: 20px;
+	height: 20px;
+}
+
+/* Hover: SO a cor do glifo muda (spec exata do showcase — nada de lift nem
+   glow aqui, isso e reservado pro item central "featured"). */
+.dk-item:hover .dk-icon-wrap {
+	color: var(--blue-600);
+}
+
+/* Ativo: fundo translucido raso atras do glifo (nao mais um disco cheio nem
+   um preto — o defeito fotografado pelo dono ja tinha sido resolvido no
+   pivo pro vocabulario ".ri-disc"; agora e a spec exata do showcase:
+   rgba(255,255,255,.5) + --radius-panel). O JS (DockIdle.js
+   updateActiveState) so alterna ".is-active" no BOTAO — mesma tecnica de
+   sempre, sem logica nova. */
+.dk-item.is-active .dk-icon-wrap {
+	background: rgba(255, 255, 255, 0.5);
+	border-radius: var(--radius-panel);
+	color: var(--blue-600);
+}
+
+/* Ponto de notificacao — variante COMPACTA da spec exata do showcase (7px,
+   vermelho solido, aro branco de 1px) por cima do glifo. Diferente do
+   ".ri-dot" generico de Common.css (8px, gradiente) usado em TopMenuIdle —
+   essa troca fica so aqui dentro (Shadow DOM proprio do DockIdle, nunca
+   vaza pra outro componente). Visibilidade controlada via JS
+   (DockIdle.js syncSkillDot()), nao por CSS. */
+.dk-icon-wrap .ri-dot {
+	top: 0;
+	right: 0;
+	width: 7px;
+	height: 7px;
+	background: #c9302c;
+	border: 1px solid var(--white);
+	box-shadow: none;
+}
+
+.dk-label {
+	font: var(--type-label, 600 11px / 1.2 var(--font-ui));
+	font-size: var(--fs-desc, 10px);
+	color: var(--ink-500);
+	white-space: nowrap;
+}
+
+.dk-item.is-active .dk-label {
+	color: var(--blue-700);
+}
+
+/* ─── Item central "Caça": tratamento "featured" do DS — PILULA, nao
+   circulo. Filigrana (ver ".dk-filigrana" abaixo) resolve de vez a mancha
+   fotografada pelo dono sobre o label "Equipamento": ela cabe inteira
+   dentro do respiro de 26px pro vizinho, nunca precisa invadir o item ao
+   lado (a rodada anterior tinha "asas" de 4 barrinhas que liam como
+   equalizador — trocadas pelo ornamento oficial do design system). ──────── */
+
+.dk-item--hunt {
+	/* Coluna (icone sobre o label), nao linha: com "padding:8px 30px" o
+	   respiro horizontal generoso ja garante a leitura de "pilula larga"
+	   mesmo com o conteudo empilhado — e empilhado e o que mantem o Poring
+	   (posicionado pelo centro horizontal do PILL) alinhado em cima do
+	   ICONE, nao boiando sobre o label ao lado. */
+	position: relative;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	gap: 3px;
+	/* 36px de respiro ate os grupos vizinhos (10px vem do "gap" da ".dk-bar",
+	   26px desta margin). Subiu de 16 para 26 porque a filigrana mora NESTE
+	   vao — ver a conta no bloco ".dk-filigrana". */
+	margin: 0 26px;
+	padding: 8px 30px;
+	background: linear-gradient(180deg, #f7fbff 0%, #dbe8f8 48%, #bcd2ee 100%);
+	border: 2px solid var(--gold-400);
+	border-radius: var(--radius-pill, 999px);
+	box-shadow: var(--shadow-float), var(--rim-light);
+	min-width: 0;
+	transition: box-shadow var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-out);
+}
+
+.dk-item--hunt:hover {
+	box-shadow: var(--shadow-float), var(--rim-light), var(--glow-gold);
+	transform: translateY(-1px);
+}
+
+.dk-item--hunt .dk-icon-wrap {
+	width: 20px;
+	height: 20px;
+	color: var(--blue-600);
+}
+
+.dk-item--hunt.is-active .dk-icon-wrap {
+	background: none;
+	color: var(--blue-700);
+}
+
+/* Rotulo em SERIFA — o unico lugar do dock que usa a face display, mesma
+   ideia de ".ri-title" (Common.css): da o ar "classico premium" so no item
+   que merece destaque. */
+.dk-label--hunt {
+	font: var(--type-window-title, 400 15px / 1.1 var(--font-display));
+	font-size: var(--fs-section, 13px);
+	color: var(--blue-700);
+	text-shadow: 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+
+/* Filigrana (ornamento OFICIAL do design system, ver
+   redesign/design-system-oficial.md — mesma familia do ".ri-divisor" de
+   Common.css, "linha com losango dourado central"). SUBSTITUI as antigas
+   "asas" de 4 barrinhas — aquilo lia como equalizador de audio, nao asa, e
+   piorou de aparencia depois que o icone vizinho virou arte pixelada real
+   do RO (ver historico do dono). Por lado: uma linha que esvai + um losango
+   + um traco curto, nessa ordem indo em direcao a pilula (o traco fica
+   colado nela). O lado direito e a MESMA marcacao, so espelhada por CSS
+   (scaleX(-1) em ".dk-filigrana--dir"), igual a tecnica anterior.
+
+   LARGURA: 26px, e o numero saiu de MEDIR, nao de escolher. A primeira
+   versao usava os 46px do ornamento do design system e SOBREPUNHA o item
+   vizinho em 22px de cada lado (getBoundingClientRect: folga -22) — o
+   mesmo defeito das asas antigas, que o dono fotografou como uma mancha
+   sobre o rotulo "Equipamento". A conta: o espaco util e a margin do
+   ".dk-item--hunt" (26px) + o gap da ".dk-bar" (10px) = 36px; a filigrana
+   consome a propria largura + 4px de margin, entao 26+4=30 deixa 6px de
+   folga. Quem mexer em UMA das tres medidas RE-MEDE as outras duas. */
+.dk-filigrana {
+	position: absolute;
+	top: 50%;
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	width: 26px;
+	pointer-events: none;
+	z-index: 0;
+}
+
+.dk-filigrana--esq {
+	right: 100%;
+	margin-right: 4px;
+	transform: translateY(-50%);
+}
+
+.dk-filigrana--dir {
+	left: 100%;
+	margin-left: 4px;
+	transform: translateY(-50%) scaleX(-1);
+}
+
+/* Linha que esvai (some no extremo solto, ganha corpo perto da pilula). */
+.dk-fili-linha {
+	flex: 1 1 auto;
+	height: 1px;
+	background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--gold-500) 85%, transparent));
+}
+
+/* Losango — o "no" da filigrana, com halo claro por fora (rim fino). */
+.dk-fili-losango {
+	flex: 0 0 auto;
+	width: 4px;
+	height: 4px;
+	transform: rotate(45deg);
+	background: color-mix(in srgb, var(--gold-500) 85%, transparent);
+	box-shadow: 0 0 0 1px color-mix(in srgb, var(--white) 70%, transparent);
+}
+
+/* Traco curto, colado na pilula. */
+.dk-fili-traco {
+	flex: 0 0 auto;
+	width: 7px;
+	height: 1px;
+	background: color-mix(in srgb, var(--gold-500) 85%, transparent);
+}
+
+/* Poring sentado em cima da pilula — arte de sprite do cliente (RO), o
+   dono confirmou que fica (real, nao "SVG desenhado a mao"). "top" ajustado
+   pro tamanho novo da pilula (~54px de altura) sem estourar por cima dela.
+   Se o PNG faltar, o onerror inline no HTML esconde a tag e sobra so a
+   pilula com wings — dock continua legivel. */
+.dk-poring {
+	position: absolute;
+	top: -24px;
+	left: 50%;
+	transform: translateX(-50%);
+	width: 30px;
+	height: auto;
+	image-rendering: pixelated;
+	filter: drop-shadow(0 2px 3px rgba(31, 54, 92, 0.35));
+	pointer-events: none;
+	z-index: 2;
+}

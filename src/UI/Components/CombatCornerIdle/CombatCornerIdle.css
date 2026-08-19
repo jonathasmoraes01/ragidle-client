@@ -1,0 +1,215 @@
+/**
+ * UI/Components/CombatCornerIdle/CombatCornerIdle.css
+ *
+ * "Combate" (canto inferior direito) do design system "Ragnarok Classico
+ * Premium". Dois botoes circulares acima do dock (ver DockIdle.css, faixa
+ * inferior com min-height 64px + border-top de 2px - bottom:90px aqui deixa
+ * respiro visivel entre os dois). Usa as vars --ri-* e as classes .ri-*
+ * de src/UI/Common.css (injetado no Shadow DOM de todo componente).
+ *
+ * Glifos + tratamento (pivo do "Ragnarok Idle Design System" oficial,
+ * 19/08/2026): os icones Auto/Mochila agora sao glifos Lucide (stroke 2,
+ * sem preenchimento, ver UI/ri-icones.js) dentro do tratamento "ORBE DE
+ * VIDRO" (".ri-glass", Common.css) — o UNICO dos 3 tratamentos oficiais
+ * reservado pro canto de combate. Os medalhoes de rotacao de skills
+ * (".cc-medalhao-ring") continuam com arte oficial do GRF (imagem, nao
+ * glifo) — so o ARO/vidro ao redor dela tambem virou ".ri-glass", pra toda
+ * moldura redonda deste componente falar a mesma lingua.
+ *
+ * Contrato de pointer-events (mesmo padrao de DockIdle.css): ":host" fica
+ * pointer-events:none e cada ".cc-btn" reabre com pointer-events:auto -
+ * clicar no mapa atraves da area vazia do canto continua funcionando.
+ */
+
+:host {
+	top: auto;
+	left: auto;
+	right: 24px;
+	bottom: 90px;
+	width: auto;
+	height: auto;
+	pointer-events: none;
+}
+
+#CombatCornerIdle {
+	position: relative;
+	font-family: var(--ri-fonte);
+}
+
+.cc-corner {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 14px;
+}
+
+.cc-btn {
+	appearance: none;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 4px;
+	padding: 0;
+	border: none;
+	background: transparent;
+	cursor: pointer;
+	pointer-events: auto;
+}
+
+.cc-btn:active .cc-ring {
+	transform: var(--press-shift);
+}
+
+/* Tamanho do orbe — cor/borda/sombra/transicao vem de ".ri-glass"
+   (Common.css). */
+.cc-ring {
+	width: 52px;
+	height: 52px;
+}
+
+.cc-btn:hover .cc-ring {
+	box-shadow: var(--shadow-float), inset 0 2px 6px rgba(255, 255, 255, 0.35), var(--glow-gold);
+	transform: translateY(-1px);
+}
+
+.cc-label {
+	font-size: 10px;
+	font-weight: var(--fw-bold, 700);
+	color: var(--white);
+	text-shadow: 0 1px 2px rgba(8, 22, 40, 0.85);
+	white-space: nowrap;
+}
+
+/* "Auto" ligado: orbe vira azul-dourado aceso — mesma linguagem visual de
+   ".is-active" nos outros componentes RAGIDLE. CombatCornerIdle.js so
+   alterna ".is-on" no BOTAO (".cc-btn--auto"), entao a receita mora aqui via
+   combinator descendente, com os MESMOS tokens de ".ri-glass.is-on"
+   (Common.css, que nunca dispara sozinho porque o orbe em si nunca recebe a
+   classe). Estado real vem de IdleConfig.editConfig.cacaAutomatica - ver
+   CombatCornerIdle.js. */
+.cc-btn--auto.is-on .cc-ring {
+	border-color: var(--gold-500);
+	box-shadow: var(--glow-gold), inset 0 2px 6px rgba(255, 255, 255, 0.4);
+	color: var(--blue-700);
+}
+
+.cc-btn--auto.is-on .cc-label {
+	color: var(--gold-200);
+	text-shadow: 0 0 6px rgba(224, 176, 77, 0.85), 0 1px 2px rgba(8, 22, 40, 0.85);
+}
+
+/* ============================================================================
+   Arco de rotacao de skills (rodada 2 do gauntlet, 18/08/2026, ver secao 4.7
+   do briefing). Ate 3 medalhoes de ~40px acima dos botoes Auto/Mochila,
+   populados pelo JS a partir de IdleConfig.editConfig.rotacao (mesmo campo
+   que a aba Skills da Config idle edita - so leitura aqui, ver
+   CombatCornerIdle.js). Sem rotacao configurada o container fica vazio -
+   ":empty" colapsa ele por completo, sem sobrar gap/respiro fantasma no
+   ".cc-corner" acima dos dois botoes de sempre.
+   ========================================================================== */
+.cc-rotacao:empty {
+	display: none;
+}
+
+.cc-rotacao {
+	display: flex;
+	align-items: flex-end;
+	gap: 8px;
+}
+
+.cc-medalhao {
+	appearance: none;
+	position: relative;
+	width: 40px;
+	height: 40px;
+	padding: 0;
+	border: none;
+	background: transparent;
+	cursor: pointer;
+	pointer-events: auto;
+	transition: transform 100ms ease;
+}
+
+.cc-medalhao:active {
+	transform: translateY(1px);
+}
+
+/* Curva do arco: o medalhao do meio fica mais alto que os dois das pontas -
+   funciona com 1, 2 ou 3 medalhoes (a curva so fica mais visivel com 3). */
+.cc-medalhao:nth-child(1) {
+	transform: translateY(6px);
+}
+.cc-medalhao:nth-child(2) {
+	transform: translateY(0);
+}
+.cc-medalhao:nth-child(3) {
+	transform: translateY(6px);
+}
+.cc-medalhao:nth-child(1):active {
+	transform: translateY(7px);
+}
+.cc-medalhao:nth-child(2):active {
+	transform: translateY(1px);
+}
+.cc-medalhao:nth-child(3):active {
+	transform: translateY(7px);
+}
+
+/* Tamanho/recorte — cor/borda/sombra vem de ".ri-glass" (Common.css); aqui
+   so o que e proprio deste uso (100% do botao pai, e "overflow:hidden" pra
+   recortar a arte de skill do GRF, que e retangular, dentro do orbe
+   redondo). */
+.cc-medalhao-ring {
+	width: 100%;
+	height: 100%;
+	overflow: hidden;
+}
+
+.cc-medalhao:hover .cc-medalhao-ring {
+	box-shadow: var(--shadow-float), inset 0 2px 6px rgba(255, 255, 255, 0.35), var(--glow-gold);
+}
+
+/* Icone oficial da skill (arte pixelada do cliente RO, ver
+   /ragidle/skills/<id>.png) - "pixelated" preserva o traco, mesmo criterio
+   usado no icone de mob da aba Alvos da Config idle. */
+.cc-medalhao-icone {
+	width: 26px;
+	height: 26px;
+	object-fit: contain;
+	image-rendering: pixelated;
+}
+
+/* Fallback de duas letras quando o PNG da skill nao existe em disco - o
+   onerror inline no <img> (ver CombatCornerIdle.js) troca pra este span. */
+.cc-medalhao-fallback {
+	display: none;
+	align-items: center;
+	justify-content: center;
+	width: 100%;
+	height: 100%;
+	font-size: 11px;
+	font-weight: 700;
+	color: var(--blue-600);
+}
+
+/* Numerozinho de prioridade (1/2/3) no canto do medalhao - mesma paleta
+   dourada do ".ri-btn--ouro" de Common.css. */
+.cc-medalhao-prioridade {
+	position: absolute;
+	bottom: -2px;
+	right: -2px;
+	min-width: 15px;
+	height: 15px;
+	padding: 0 2px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	border-radius: 50%;
+	background: linear-gradient(180deg, var(--gold-300) 0%, var(--gold-500) 100%);
+	border: 1px solid var(--gold-700);
+	color: #4a3812;
+	font-size: 9px;
+	font-weight: 700;
+	line-height: 1;
+	box-shadow: var(--shadow-card);
+}

@@ -6,6 +6,16 @@
 #EquipmentV3 {
 	position: relative;
 	width: 280px;
+	/* realinhado ao design system OFICIAL (19/08/2026): hairline AZUL por
+	   fora + aro DOURADO por dentro (--window-frame/--rim-gold), no lugar da
+	   borda dourada externa de 18/08. Espessura da borda continua 1px --
+	   so a cor trocou -- entao nao mexe em nenhuma medida. Raio 8px =
+	   --radius-window (era 6, valor de --radius-panel por engano). Sem
+	   overflow:hidden aqui de proposito -- a .overlay (tooltip de nome
+	   do item, position:absolute) pode extrapolar a caixa e seria cortada. */
+	border: 1px solid var(--border-window);
+	border-radius: var(--radius-window);
+	box-shadow: var(--shadow-window), var(--rim-gold);
 }
 
 #EquipmentV3 .clear {
@@ -13,11 +23,14 @@
 }
 
 #EquipmentV3 .titlebar {
+	position: relative;
 	width: 280px;
 	height: 17px;
-	background-color: white;
-	background-repeat: repeat-x;
-	border-radius: 3px 3px 0px 0px;
+	/* textura titlebar_mid.bmp removida (era so um degrade azul repetido,
+	   sem informacao pintada) -- vira gradiente claro do design system */
+	background: var(--titlebar-fill);
+	border-bottom: var(--titlebar-rule);
+	border-radius: calc(var(--radius-window) - 1px) calc(var(--radius-window) - 1px) 0px 0px;
 }
 #EquipmentV3 .titlebar .base {
 	width: 11px;
@@ -28,15 +41,33 @@
 	vertical-align: middle;
 }
 #EquipmentV3 .titlebar .text {
-	text-shadow: 1px 1px white;
-	vertical-align: -2px;
+	/* titulo central ornamentado: some do fluxo (posicao absoluta) para
+	   ficar centralizado na barra mesmo estando aninhado dentro de .left
+	   junto do botao base -- nao mexe na hierarquia/logica, so a pintura */
+	position: absolute;
+	left: 50%;
+	top: 50%;
+	transform: translate(-50%, -50%);
+	display: inline-flex;
+	align-items: center;
+	gap: 5px;
+	width: auto;
+	height: auto;
 	white-space: nowrap;
-	/* chrome bug */
-	display: inline-block;
-	width: 32px;
-	height: 13px;
+	text-shadow: none;
+	color: var(--text-title);
 	font-size: 11px;
 	font-weight: bold;
+}
+#EquipmentV3 .titlebar .text::before,
+#EquipmentV3 .titlebar .text::after {
+	content: '';
+	width: 18px;
+	height: 7px;
+	background: var(--ri-asa) no-repeat center / contain;
+}
+#EquipmentV3 .titlebar .text::after {
+	transform: scaleX(-1);
 }
 
 #EquipmentV3 .titlebar .left {
@@ -54,7 +85,7 @@
 #EquipmentV3 .tab-manager {
 	position: relative;
 	width: inherit;
-	background-color: white;
+	background-color: var(--sky-50);
 	height: 15px;
 	display: flex;
 }
@@ -62,8 +93,8 @@
 #EquipmentV3 .tab a {
 	width: 60px;
 	height: 100%;
-	color: #42454a;
-	border: 1px solid #c9c3ba;
+	color: var(--text-muted);
+	border: 1px solid var(--border-hairline);
 	border-bottom: none;
 	text-decoration: none;
 	display: inline-block;
@@ -72,12 +103,12 @@
 	text-align: center;
 }
 #EquipmentV3 .tab a.selected {
-	color: #000;
+	color: var(--text-title);
 	font-weight: bold;
-	border-bottom: 1px solid white;
+	border-bottom: 1px solid var(--paper-1);
 	position: relative;
 	z-index: 100;
-	background-color: white;
+	background-color: var(--paper-1);
 }
 #EquipmentV3 .tab a.selected:after {
 	content: '';
@@ -90,8 +121,8 @@
 }
 
 #EquipmentV3 .panel {
-	background-color: white;
-	border-top: 1px solid gray;
+	background-color: var(--paper-1);
+	border-top: 1px solid var(--gold-300);
 	height: 150px;
 }
 #EquipmentV3 .equipmentV0 .panel {
@@ -155,6 +186,28 @@
 	overflow: hidden;
 	text-shadow: 1px 1px white;
 }
+/* Slot ocupado = tratamento n.2 do design system, "ladrilho quadrado": raio
+   4px (--radius-card), aro dourado, fundo linear-gradient(180deg,#fff,
+   #e6eef8) -- mesma receita do InventoryV3/Storage. O bitmap
+   equipwin_bg.bmp/equipwin_special.bmp por baixo pinta o rotulo PT-BR do
+   slot ("cabeca", "mao dir" etc) direto no pixel -- NAO da pra trocar esse
+   fundo sem perder aquele texto (ver nota no topo do arquivo). Por isso o
+   aro/fundo do card fica so no .item (o retangulo dinamico que o JS injeta
+   quando equipa, que ja cobre o rotulo pintado com o nome real do item) --
+   box-shadow em vez de border pra nao mexer na caixa/geometria. */
+#EquipmentV3 .item {
+	border-radius: var(--radius-card);
+	background: linear-gradient(180deg, var(--white) 0%, #e6eef8 100%);
+	box-shadow: inset 0 0 0 1px var(--border-gold);
+}
+/* slot vazio = bem discreto: so um contorno fino em hairline azul, sem
+   preencher, pra nao tampar o rotulo/oval que o bitmap pinta por baixo --
+   nao leva o tratamento de ladrilho completo, so o item ocupado leva */
+#EquipmentV3 .col1:empty,
+#EquipmentV3 .col3:empty {
+	border-radius: var(--radius-card);
+	box-shadow: inset 0 0 0 1px var(--border-hairline);
+}
 
 #EquipmentV3 .col3 .item button,
 #EquipmentV3 .col3 .item span {
@@ -181,6 +234,14 @@
 
 #EquipmentV3 .ammo_container {
 	position: relative;
+	/* palco claro da boneca: so um lavado branco translucido + moldura fina
+	   por cima da faixa hachurada do bitmap (nao apaga o bitmap, so clareia
+	   e emoldura -- a boneca em si, canvas, continua render intocado) */
+	border-radius: var(--radius-card);
+	background: var(--surface-card);
+	box-shadow:
+		inset 0 0 0 1px var(--border-gold),
+		var(--shadow-inset);
 }
 #EquipmentV3 .ammo {
 	position: absolute;
@@ -217,8 +278,12 @@
 
 #EquipmentV3 .footer {
 	height: 20px;
-	border-bottom: 1px solid #c0c0c0;
-	background-position: 0px -130px;
+	/* textura equipwin_bg2.bmp removida: so a faixa 0/-130px (20px inferior
+	   da imagem, tarja listrada cinza lisa sem texto) aparecia aqui via
+	   background-position -- virou gradiente claro + filete dourado */
+	background: var(--titlebar-fill);
+	border-top: 1px solid var(--gold-300);
+	border-bottom: 1px solid var(--border-hairline);
 	position: relative;
 	top: -3px;
 }
@@ -293,8 +358,8 @@
 	overflow-y: auto;
 	overflow-x: hidden;
 	padding: 8px 8px;
-	border: 1px solid #c0c0c0;
-	background-color: #f8f8f8;
+	border: 1px solid var(--border-hairline);
+	background-color: var(--paper-1);
 }
 
 #EquipmentV3 .title-option {
@@ -305,13 +370,16 @@
 	border: 1px solid transparent;
 	white-space: nowrap;
 	width: 100%;
+	border-radius: var(--radius-card);
 }
 
+/* selecionado = borda de acento + 12% de tinta de acento, regra do DS */
 #EquipmentV3 .title-option.selected {
-	background-color: #e0e0e0;
+	background-color: rgba(58, 110, 165, 0.12);
+	color: var(--blue-600);
 	font-weight: bold;
 }
 
 #EquipmentV3 .title-option:hover {
-	background-color: #e0e0e0;
+	background-color: var(--surface-card-hover);
 }

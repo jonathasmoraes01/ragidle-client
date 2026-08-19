@@ -507,44 +507,44 @@ function renderBody() {
 		.join('');
 
 	bodyEl.innerHTML = `
-		<div class="ap-section">
+		<div class="ap-section ri-card">
 			<h3>Personagem</h3>
 			<div class="ap-field-row">
 				<label>Nome</label>
-				<input type="text" class="ap-input ap-readonly" value="${escapeHtml(nomePersonagem)}" readonly />
+				<input type="text" class="ap-input ap-readonly ri-input" value="${escapeHtml(nomePersonagem)}" readonly />
 			</div>
 			<div class="ap-field-row">
 				<label>Classe</label>
-				<select class="ap-select" data-field="classe">${classOptions}</select>
+				<select class="ap-select ri-input" data-field="classe">${classOptions}</select>
 			</div>
 			<div class="ap-field-row">
 				<label>Zeny</label>
-				<input type="number" class="ap-input" data-field="zeny" min="0" value="${draft.zeny}" />
+				<input type="number" class="ap-input ri-input" data-field="zeny" min="0" value="${draft.zeny}" />
 			</div>
 		</div>
-		<div class="ap-section">
+		<div class="ap-section ri-card">
 			<h3>Níveis</h3>
 			<div class="ap-field-row">
 				<label>Nível base</label>
-				<input type="number" class="ap-input" data-field="nivel" min="${nivelRange[0]}" max="${nivelRange[1]}" value="${draft.nivel}" />
+				<input type="number" class="ap-input ri-input" data-field="nivel" min="${nivelRange[0]}" max="${nivelRange[1]}" value="${draft.nivel}" />
 				<span class="ap-hint">${nivelRange[0]}–${nivelRange[1]}</span>
 			</div>
 			<div class="ap-field-row">
 				<label>Nível de classe</label>
-				<input type="number" class="ap-input" data-field="nivelDeJob" min="${nivelDeJobRange[0]}" max="${nivelDeJobRange[1]}" value="${draft.nivelDeJob}" />
+				<input type="number" class="ap-input ri-input" data-field="nivelDeJob" min="${nivelDeJobRange[0]}" max="${nivelDeJobRange[1]}" value="${draft.nivelDeJob}" />
 				<span class="ap-hint">${nivelDeJobRange[0]}–${nivelDeJobRange[1]}</span>
 			</div>
 		</div>
-		<div class="ap-section">
+		<div class="ap-section ri-card">
 			<h3>Pontos</h3>
 			<div class="ap-field-row">
 				<label>Pontos de atributo</label>
-				<input type="number" class="ap-input" data-field="pontosDeAtributo" min="${pontosRange[0]}" max="${pontosRange[1]}" value="${draft.pontosDeAtributo}" />
+				<input type="number" class="ap-input ri-input" data-field="pontosDeAtributo" min="${pontosRange[0]}" max="${pontosRange[1]}" value="${draft.pontosDeAtributo}" />
 				<span class="ap-hint">${pontosRange[0]}–${pontosRange[1]}</span>
 			</div>
 			<div class="ap-field-row">
 				<label>Pontos de skill</label>
-				<input type="number" class="ap-input" data-field="pontosDeSkill" min="${pontosRange[0]}" max="${pontosRange[1]}" value="${draft.pontosDeSkill}" />
+				<input type="number" class="ap-input ri-input" data-field="pontosDeSkill" min="${pontosRange[0]}" max="${pontosRange[1]}" value="${draft.pontosDeSkill}" />
 				<span class="ap-hint">${pontosRange[0]}–${pontosRange[1]}</span>
 			</div>
 		</div>`;

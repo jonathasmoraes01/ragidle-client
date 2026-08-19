@@ -1,0 +1,60 @@
+/**
+ * UI/Components/TopBarIdle/TopBarIdle.css
+ *
+ * "Top bar" (centro) do design system "Ragnarok Classico Premium". Usa as
+ * vars --ri-* e as classes .ri-* de src/UI/Common.css (injetado no Shadow
+ * DOM de todo componente).
+ *
+ * Medalhao (pivo do "Ragnarok Idle Design System" oficial, 19/08/2026): o
+ * glifo "zeny" (UI/ri-icones.js, Lucide-style) mora dentro do MESMO
+ * tratamento ".ri-disc" (Common.css) usado por DockIdle/TopMenuIdle/
+ * BasicInfoIdle — vidro claro, aro dourado, glifo azul. So o TAMANHO
+ * (26px) fica por-componente.
+ *
+ * Contrato de pointer-events (mesmo padrao de DockIdle.css): ":host" fica
+ * pointer-events:none e a capsula (".tb-pill") reabre com pointer-events:
+ * auto. A capsula nao tem controle clicavel (so exibe zeny), entao esse
+ * "auto" nunca captura clique de verdade - e so o contrato padrao mantido
+ * igual em todo componente flutuante deste gauntlet.
+ */
+
+:host {
+	top: 14px;
+	left: 50%;
+	right: auto;
+	bottom: auto;
+	width: auto;
+	height: auto;
+	transform: translateX(-50%);
+	pointer-events: none;
+}
+
+#TopBarIdle {
+	position: relative;
+	font-family: var(--ri-fonte);
+}
+
+.tb-pill {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	padding: 4px 16px 4px 4px;
+	background: var(--surface-window, linear-gradient(180deg, #ffffff 0%, #f3f8ff 100%));
+	border: 1px solid var(--border-gold);
+	border-radius: var(--radius-pill, 999px);
+	box-shadow: var(--shadow-float), var(--rim-light);
+	pointer-events: auto;
+}
+
+/* Tamanho do disco — cor/borda/sombra vem de ".ri-disc" (Common.css). */
+.tb-medalha {
+	width: 26px;
+	height: 26px;
+}
+
+.tb-valor {
+	font: var(--type-numeric, 700 13px / 1 var(--font-numeric));
+	color: var(--text-title, var(--ri-titulo));
+	letter-spacing: 0.2px;
+	white-space: nowrap;
+}

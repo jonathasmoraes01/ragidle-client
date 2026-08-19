@@ -1,19 +1,37 @@
 <div id="IdleSkills">
 	<button type="button" class="is-button" title="Skills">📖</button>
 
-	<div class="is-window">
-		<div class="is-titlebar">
-			<span class="is-title">Skills</span>
-			<button type="button" class="is-close" title="Fechar">&times;</button>
+	<div class="is-window ri-window">
+		<div class="is-titlebar ri-header">
+			<span class="is-title ri-title">Skills</span>
+			<button type="button" class="is-close ri-close" title="Fechar">&times;</button>
 		</div>
 
 		<div class="is-status"></div>
 
 		<div class="is-content">
-			<div class="is-list">
+			<div class="is-catrail">
+				<button type="button" class="is-cat-tab is-active" data-cat="todas" title="Todas as skills">
+					<span class="is-cat-icon">&#9733;</span>
+					<span class="is-cat-label">Todas</span>
+				</button>
+				<button type="button" class="is-cat-tab" data-cat="ativa" title="Skills ativas">
+					<span class="is-cat-icon">&#9876;</span>
+					<span class="is-cat-label">Ativas</span>
+				</button>
+				<button type="button" class="is-cat-tab" data-cat="passiva" title="Skills passivas">
+					<span class="is-cat-icon">&#128737;</span>
+					<span class="is-cat-label">Passivas</span>
+				</button>
+				<button type="button" class="is-cat-tab" data-cat="suporte" title="Skills de suporte">
+					<span class="is-cat-icon">&#10024;</span>
+					<span class="is-cat-label">Suporte</span>
+				</button>
+			</div>
+			<div class="is-list ri-scroll">
 				<div class="is-empty">Abra a janela de skills para carregar.</div>
 			</div>
-			<div class="is-detail">
+			<div class="is-detail ri-card ri-scroll">
 				<div class="is-empty">Selecione uma skill.</div>
 			</div>
 		</div>

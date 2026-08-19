@@ -5,27 +5,54 @@
 	left: 150px;
 }
 
+/* realinhado ao design system OFICIAL (19/08/2026): hairline AZUL por fora
+   + aro DOURADO por dentro (--window-frame/--rim-gold), no lugar da borda
+   dourada externa de 18/08. Espessura da borda continua 1px -- so a cor
+   trocou -- entao nao mexe no contrato de resizeHeight()/onResize() no
+   StorageFilter.js (offsets 17+19, /32). Raio 8px = --radius-window (era 6,
+   valor de --radius-panel por engano). */
 #StorageFilter {
 	position: absolute;
 	width: 220px;
+	border: 1px solid var(--border-window);
+	border-radius: var(--radius-window);
+	box-shadow: var(--shadow-window), var(--rim-gold);
 }
+/* titlebar_mid.bmp removida no HTML -- vira gradiente do design system */
 #StorageFilter .titlebar {
+	position: relative;
 	width: 100%;
 	height: 17px;
-	background-color: white;
-	background-repeat: repeat-x;
-	border-radius: 3px 3px 0px 0px;
+	background: var(--titlebar-fill);
+	border-bottom: var(--titlebar-rule);
+	border-radius: calc(var(--radius-window) - 1px) calc(var(--radius-window) - 1px) 0px 0px;
 }
+/* titulo central ornamentado, mesma tecnica do InventoryV3/EquipmentV3 --
+   StorageFilter TEM botao fechar no titlebar (.right .base.close), entao o
+   titulo sai do fluxo (absolute) pra centralizar mesmo com o botao ao lado */
 #StorageFilter .titlebar .text {
-	text-shadow: 1px 1px white;
-	vertical-align: -2px;
+	position: absolute;
+	left: 50%;
+	top: 50%;
+	transform: translate(-50%, -50%);
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
 	white-space: nowrap;
-	display: inline-block;
-	width: 32px;
-	height: 13px;
-	margin-left: 15px;
+	text-shadow: none;
+	color: var(--text-title);
 	font-size: 11px;
 	font-weight: bold;
+}
+#StorageFilter .titlebar .text::before,
+#StorageFilter .titlebar .text::after {
+	content: '';
+	width: 14px;
+	height: 6px;
+	background: var(--ri-asa) no-repeat center / contain;
+}
+#StorageFilter .titlebar .text::after {
+	transform: scaleX(-1);
 }
 #StorageFilter .titlebar .left {
 	margin-left: 3px;
@@ -38,6 +65,9 @@
 #StorageFilter .titlebar .clear {
 	clear: both;
 }
+/* sys_close_off/on.bmp: icone pequeno real, mesmo tratamento do
+   InventoryV3/EquipmentV3 -- nao forcei o .ri-close circular do Common.css
+   em cima do bitmap legado, so mantive o tamanho/transparencia originais */
 #StorageFilter .titlebar .base {
 	width: 11px;
 	height: 11px;
@@ -48,28 +78,42 @@
 }
 
 #StorageFilter .panel {
-	border: 1px solid #ccc;
+	border: 1px solid var(--border-hairline);
 	border-bottom: none;
-	background: white;
+	background: var(--paper-1);
 	padding-left: 16px;
 }
 
+/* itemwin_mid.bmp removida no HTML -- mesma trelica de linhas horizontais
+   do #Storage .content (lista de coluna unica, passo real de 32px) */
 #StorageFilter .content {
 	overflow-y: auto;
 	overflow-x: hidden;
 	width: 100%;
 	min-height: 128px;
-	background-color: transparent;
-	background-repeat: repeat-y;
-	background-attachment: local;
+	background-color: var(--paper-1);
+	background-image: linear-gradient(to bottom, var(--border-hairline) 1px, transparent 1px);
+	background-size: 100% 32px;
+	background-position: 0px 0px;
+	background-repeat: repeat;
 }
 
+/* Slot ocupado = tratamento n.2 do design system, "ladrilho quadrado",
+   mesma receita do #Storage .content (raio 4px, aro dourado, fundo
+   linear-gradient(180deg,#fff,#e6eef8)). */
 #StorageFilter .content .item {
 	display: block;
 	width: 24px;
 	height: 28px;
 	margin: 4px 0px 0px 4px;
 	position: relative;
+	border-radius: var(--radius-card);
+	background: linear-gradient(180deg, var(--white) 0%, #e6eef8 100%);
+	box-shadow: inset 0 0 0 1px var(--border-gold);
+}
+#StorageFilter .content .item:hover {
+	background: linear-gradient(180deg, var(--white) 0%, var(--sky-50) 100%);
+	box-shadow: inset 0 0 0 1px var(--gold-500);
 }
 #StorageFilter .content .item .icon {
 	width: 24px;
@@ -97,6 +141,8 @@
 	bottom: 9px;
 	right: 0px;
 	text-align: right;
+	color: var(--text-title);
+	font-weight: 700;
 	text-shadow: -1px -1px white;
 }
 #StorageFilter .content .name {
@@ -104,16 +150,22 @@
 	top: 7px;
 	left: 30px;
 	width: 160px;
+	color: var(--text-body);
+	font-family: var(--font-ui);
+}
+#StorageFilter .content .item:hover .name {
+	color: var(--blue-600);
 }
 
+/* btnbar_mid2.bmp removida no HTML -- vira gradiente claro + filete dourado
+   no topo, mesmo tratamento do rodape do InventoryV3/EquipmentV3/#Storage */
 #StorageFilter .footer {
 	width: 100%;
 	height: 19px;
-	background-repeat: repeat-x;
-	background-color: transparent;
+	background: var(--titlebar-fill);
 	position: relative;
-	border: 1px solid #ccc;
-	border-top: none;
+	border: 1px solid var(--border-hairline);
+	border-top: 1px solid var(--gold-300);
 	box-sizing: border-box;
 }
 

@@ -1,0 +1,432 @@
+/**
+ * UI/Components/BasicInfoIdle/BasicInfoIdle.css
+ *
+ * "Personagem" — HUD do painel do personagem, redesenhado para o design
+ * system "Ragnarok Classico Premium" (gauntlet 18/08/2026, ver
+ * redesign/extracao-da-referencia.md secao 4.1). Usa as classes/vars .ri-*
+ * de src/UI/Common.css (injetado dentro do Shadow DOM de todo componente) —
+ * so cor/borda/sombra/fonte vem daqui, nenhuma classe .ri-* muda dimensao.
+ *
+ * Contrato de JS preservado (BasicInfoIdle.js): .bi-bar-fill / .bi-exp-fill
+ * continuam recebendo style.width em % via JS; .bi-bar-text, .bi-bar-pct,
+ * .bi-name, .bi-class, .bi-blvl-value, .bi-jlvl-value, .bi-weight, .bi-zeny,
+ * .bi-avatar-initial continuam recebendo textContent; .bi-btn[data-action]
+ * continua sendo o seletor dos listeners de clique; .bi-btn-admin continua
+ * sendo o seletor de visibilidade do botao de admin. Nada disso mudou de
+ * nome nem de estrutura de classes — so o visual ao redor.
+ *
+ * Retrato do personagem (rodada 2 do gauntlet, ver relatorio do builder):
+ * foi INVESTIGADO e considerado INVIAVEL naquela rodada pelo motivo abaixo
+ * — RESOLVIDO na rodada 3 (ver .bi-avatar-frame mais abaixo e
+ * scripts/retratos-de-classe.ts): rag-idle-master/scripts/miniaturas.ts ja
+ * extrai frame parado de .spr do GRF (mobs/minimapas/skills), mas so isso
+ * NAO chegava a um retrato de personagem porque a cabeca do RO e escolhida
+ * por "head style id" + sexo, NAO por classe/job. O que destravou foi o
+ * dono ter coletado os ICONES OFICIAIS DE CLASSE do cliente
+ * (icon_job_<jobid>.bmp, ilustracao por job, nao sprite de head) — o
+ * mesmo job id que Session.Entity.job ja carrega, entao nao precisou de
+ * fluxo de dados novo (nem entity.sex nem head style). O avatar mostra o
+ * PNG convertido quando existe e cai pra inicial dourada (fallback,
+ * contrato preservado) quando nao.
+ *
+ * Sizing note: igual ao componente original, ":host" fica com largura fixa
+ * e ALTURA AUTO (o corpo tem numero variavel de linhas) — BasicInfoIdle.js
+ * mede a caixa real com getBoundingClientRect()/offsetWidth/offsetHeight
+ * (mesma tecnica de UI/Components/BasicInfo/BasicInfoCommon.js:236-240), e
+ * isso ja funciona com altura auto porque o navegador sempre reporta o
+ * tamanho RENDERIZADO, fixo ou nao — a regra do briefing (":host tem que
+ * ficar sincronizado") e sobre nao MENTIR o tamanho, nao sobre precisar de
+ * um numero fixo.
+ */
+
+:host {
+	position: absolute;
+	width: 246px;
+}
+
+#BasicInfoIdle {
+	font-family: var(--ri-fonte);
+	font-size: 12px;
+	color: var(--ri-texto);
+}
+
+.bi-window {
+	overflow: hidden;
+}
+
+/* ─── Header ("Personagem", asas douradas discretas) ──────── */
+
+.bi-header {
+	padding: 0 10px;
+	cursor: move;
+}
+
+.bi-header-title {
+	font-size: 12px;
+}
+
+/* Header compacto: as asas padrao do design system (44px) sao largas
+   demais para os ~246px desta janela — encolhidas so aqui, mantendo o
+   mesmo SVG/gradiente dourado (nada de dimensao do :host mudando). */
+.bi-header-title::before,
+.bi-header-title::after {
+	width: 26px;
+	height: 10px;
+}
+
+/* ─── Body ─────────────────────────────────────────────────── */
+
+.bi-body {
+	padding: 12px 14px 14px 14px;
+}
+
+.bi-top {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	margin-bottom: 10px;
+}
+
+/*
+ * Retrato do personagem — rodada 3 do gauntlet RESOLVEU a inviabilidade
+ * registrada no cabecalho deste arquivo: o dono coletou os icones OFICIAIS
+ * de classe do cliente (icon_job_<jobid>.bmp, nao um sprite de head), e
+ * scripts/retratos-de-classe.ts converte pra PNG (ver .bi-avatar-img mais
+ * abaixo). A inicial dourada (.bi-avatar-initial) continua existindo como
+ * FALLBACK — moldura circular dourada ornamentada: anel conico dourado +
+ * filete branco por fora, disco AZUL PROFUNDO por dentro com a inicial em
+ * dourado (rodada 2 do gauntlet pediu "inicial dourada sobre azul profundo,
+ * aro dourado mais rico" — trocado do disco claro/inicial azul da rodada 1).
+ * Os dois puxadores (::before/::after) sao so gemas douradas decorativas no
+ * topo/base do aro, feitas em CSS puro (sem novo asset).
+ */
+.bi-avatar-frame {
+	position: relative;
+	flex: 0 0 auto;
+	width: 46px;
+	height: 46px;
+	border-radius: 50%;
+	padding: 3px;
+	background: conic-gradient(
+		from 0deg,
+		var(--ri-dourado-claro),
+		var(--ri-dourado) 25%,
+		var(--ri-dourado-claro) 50%,
+		var(--ri-dourado) 75%,
+		var(--ri-dourado-claro)
+	);
+	box-shadow: 0 0 0 1px var(--ri-dourado), 0 3px 8px rgba(31, 54, 92, 0.32);
+}
+
+.bi-avatar-frame::before,
+.bi-avatar-frame::after {
+	content: '';
+	position: absolute;
+	left: 50%;
+	width: 5px;
+	height: 5px;
+	transform: translateX(-50%) rotate(45deg);
+	background: var(--ri-dourado-claro);
+	border: 1px solid var(--ri-dourado);
+	box-shadow: 0 0 3px rgba(201, 163, 83, 0.7);
+}
+
+.bi-avatar-frame::before {
+	top: -3px;
+}
+
+.bi-avatar-frame::after {
+	bottom: -3px;
+}
+
+.bi-avatar {
+	position: relative;
+	width: 100%;
+	height: 100%;
+	border-radius: 50%;
+	background: radial-gradient(circle at 35% 30%, #2c4a73, #142441 78%);
+	border: 1.5px solid #ffffff;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	overflow: hidden;
+}
+
+/*
+ * Retrato real de classe (D-337-ish, rodada 3 do gauntlet): o dono coletou
+ * icon_job_<jobid>.bmp do cliente oficial (76 arquivos, conversao em
+ * scripts/retratos-de-classe.ts) -- resolve o que a rodada 2 (ver historico
+ * logo acima do .bi-avatar-frame) tinha marcado como inviavel. object-fit:
+ * contain porque a propria arte ja e um "distintivo" com moldura/losango
+ * (nao um retrato que preenche o quadro) -- cover cortaria os cantos.
+ * Sem image-rendering:pixelated: e um icone pequeno ANTI-ALIASED (BMP
+ * 24bpp gerado pela ferramenta oficial), nao pixel art de tile -- ver
+ * regra 4 do CLAUDE.md ("pixelated so se a arte for pixel art pequena").
+ * Comeca escondido (opacity:0); BasicInfoIdle.js adiciona ".is-loaded" so
+ * depois do <img>.onload confirmar que o PNG do job existe -- a inicial
+ * dourada (.bi-avatar-initial) continua por baixo como fallback, contrato
+ * preservado.
+ */
+.bi-avatar-img {
+	position: absolute;
+	inset: 0;
+	width: 100%;
+	height: 100%;
+	object-fit: contain;
+	opacity: 0;
+	transition: opacity 0.2s ease;
+}
+
+.bi-avatar-img.is-loaded {
+	opacity: 1;
+}
+
+.bi-avatar-initial {
+	position: relative;
+	font-size: 17px;
+	font-weight: 700;
+	color: var(--ri-dourado-claro);
+	text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+.bi-identity {
+	min-width: 0;
+	flex: 1 1 auto;
+}
+
+.bi-name {
+	font-size: 14px;
+	font-weight: 700;
+	color: var(--ri-titulo);
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.bi-class {
+	font-size: 11px;
+	font-weight: 600;
+	color: var(--ri-texto-2);
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+/* ─── Base Lv. / Classe Lv. (mini-barras douradas) ────────── */
+
+.bi-levels {
+	margin-bottom: 10px;
+}
+
+.bi-level-row {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	margin-bottom: 4px;
+}
+
+.bi-level-label {
+	flex: 0 0 auto;
+	font-size: 11px;
+	color: var(--ri-texto);
+	white-space: nowrap;
+}
+
+.bi-level-label b {
+	color: var(--ri-titulo);
+}
+
+/* Mini .ri-bar--exp: trilho JA nasce com cara de dourado (fundo com leve
+   tinta de ouro + borda dourada), pra nao sumir contra o fundo quando o
+   preenchimento esta em 0% (personagem recem-criado) — pedido da rodada 2. */
+.bi-exp-track {
+	flex: 1 1 auto;
+	height: 6px;
+	border-radius: 999px;
+	background: linear-gradient(180deg, #f4e9cd, #ecdbac);
+	border: 1px solid var(--ri-dourado);
+	overflow: hidden;
+	box-shadow: inset 0 1px 2px rgba(137, 108, 34, 0.28);
+}
+
+.bi-exp-fill {
+	height: 100%;
+	width: 0%;
+	border-radius: 999px;
+	background: linear-gradient(180deg, var(--ri-exp), var(--ri-exp-2));
+	transition: width 0.35s ease;
+}
+
+/* ─── HP/SP bars: trilho com borda fina, texto centrado dentro,
+   percentual a direita (briefing 4.1) ─────────────────────── */
+
+.bi-bar {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	margin-bottom: 6px;
+}
+
+.bi-bar-icon {
+	flex: 0 0 12px;
+	width: 12px;
+	height: 12px;
+	display: block;
+}
+
+.bi-bar-track {
+	position: relative;
+	flex: 1 1 auto;
+	height: 17px;
+	border-radius: 999px;
+	background: #dfe7f2;
+	border: 1px solid #b9c8de;
+	overflow: hidden;
+	box-shadow: inset 0 1px 2px rgba(31, 54, 92, 0.18);
+}
+
+.bi-bar-fill {
+	position: absolute;
+	inset: 0;
+	width: 0%;
+	border-radius: 999px;
+	transition: width 0.35s ease;
+}
+
+.bi-bar-hp .bi-bar-fill {
+	background: linear-gradient(180deg, var(--ri-hp-2), var(--ri-hp));
+}
+
+.bi-bar-sp .bi-bar-fill {
+	background: linear-gradient(180deg, var(--ri-sp-2), var(--ri-sp));
+}
+
+.bi-bar-text {
+	position: relative;
+	display: block;
+	text-align: center;
+	line-height: 17px;
+	font-size: 10px;
+	font-weight: 700;
+	color: #ffffff;
+	text-shadow: 0 1px 2px rgba(0, 0, 0, 0.45);
+}
+
+.bi-bar-pct {
+	flex: 0 0 44px;
+	width: 44px;
+	text-align: right;
+	font-size: 10px;
+	font-weight: 700;
+	color: var(--ri-texto-2);
+}
+
+/*
+ * Divisor ornamentado (losango dourado central) — implementacao PROPRIA
+ * (nao ".ri-divisor"): duas semi-linhas em flex com flex:1 cada, e a gema
+ * e um ELEMENTO real ("bi-divisor-gem") no meio, nao um pseudo-elemento
+ * posicionado por left:50%. A rodada 2 do gauntlet apontou o losango
+ * "flutuando desalinhado" com a tecnica antiga (position:absolute +
+ * left:50% sobre um bloco de largura variavel); flex centraliza por
+ * matematica (as duas linhas crescem igual), entao nao ha como desalinhar.
+ */
+.bi-divisor {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	margin: 8px 0 6px 0;
+}
+
+.bi-divisor::before,
+.bi-divisor::after {
+	content: '';
+	flex: 1 1 auto;
+	height: 1px;
+	background: linear-gradient(90deg, transparent, rgba(201, 163, 83, 0.55));
+}
+
+.bi-divisor::after {
+	background: linear-gradient(90deg, rgba(201, 163, 83, 0.55), transparent);
+}
+
+.bi-divisor-gem {
+	flex: 0 0 auto;
+	width: 5px;
+	height: 5px;
+	transform: rotate(45deg);
+	background: var(--ri-dourado-claro);
+	border: 1px solid var(--ri-dourado);
+}
+
+/* ─── Peso / Zeny ──────────────────────────────────────────── */
+
+.bi-stats-line {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px;
+	font-size: 11px;
+	color: var(--ri-texto-2);
+	margin-bottom: 2px;
+}
+
+.bi-weight,
+.bi-zeny {
+	font-weight: 700;
+	color: var(--ri-texto);
+}
+
+.bi-stats-text--zeny .bi-zeny {
+	color: var(--ri-dourado);
+}
+
+/*
+ * Grade de mini-botoes quadrados premium — UMA FILEIRA colada sob Peso/Zeny
+ * (briefing 4.1: "fileira de ~7 mini-botoes quadrados"). A rodada 1 usava
+ * grid 4x2 com botoes de 40px — o juiz apontou que virava "grade de botoes-
+ * fantasma gigantes" tomando metade da altura do painel. Flex numa linha so,
+ * botoes fixos em 27px, encolhe o painel em ~80px de altura como pedido.
+ * Com 7 filhos (dono) ou 6 (admin oculto pelo JS via display:none), o
+ * justify-content:center mantem a fileira sempre centralizada.
+ */
+.bi-grid {
+	display: flex;
+	justify-content: center;
+	gap: 6px;
+	margin-top: 8px;
+}
+
+/*
+ * Grid icons: os 7 botoes SAO discos (pivo do "Ragnarok Idle Design System"
+ * oficial, 19/08/2026 — mesmo tratamento ".ri-disc" de DockIdle/TopMenuIdle/
+ * TopBarIdle, ver Common.css). Glifos Lucide (UI/ri-icones.js), currentColor,
+ * sem preenchimento — nada de emoji nem SVG desenhado a mao. So o TAMANHO
+ * (27px, pra caber numa fileira de 6-7 sob Peso/Zeny sem inchar o painel) e
+ * o "appearance:none" de reset de <button> ficam por-componente aqui.
+ */
+.bi-btn {
+	appearance: none;
+	flex: 0 0 auto;
+	width: 27px;
+	height: 27px;
+	padding: 0;
+	cursor: pointer;
+}
+
+.bi-btn:hover:not(:disabled) {
+	box-shadow: var(--shadow-float), var(--rim-light), var(--glow-gold);
+	transform: translateY(-1px);
+}
+
+.bi-btn:active:not(:disabled) {
+	transform: var(--press-shift);
+}
+
+/* Desabilitado ("Em breve" — Equipamento/Inventario ainda nao tem janela
+   propria neste painel): DS pede DESSATURAR, nunca opacidade lisa sobre a
+   cor original. */
+.bi-btn:disabled {
+	filter: grayscale(1);
+	opacity: 0.55;
+	cursor: not-allowed;
+}

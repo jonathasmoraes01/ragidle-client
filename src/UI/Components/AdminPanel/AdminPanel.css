@@ -14,6 +14,15 @@
  *   scene clicks; only the button and the open window opt back in with
  *   pointer-events:auto. Paired with AdminPanel.mouseMode =
  *   GUIComponent.MouseMode.CROSS in AdminPanel.js.
+ *
+ * v3: design system "Ragnarok Classico Premium" retrofit (gauntlet visual
+ * 18/08/2026, ver redesign/extracao-da-referencia.md secoes 2 e 3) — troca
+ * o tema claro v2 (proprio, #f4f6fb/#3b6ea5) pelos tokens/classes --ri-* /
+ * .ri-* de UI/Common.css (.ri-window/.ri-header/.ri-title/.ri-close/
+ * .ri-card/.ri-btn/.ri-input/.ri-scroll — ver AdminPanel.html e o
+ * ".ap-section ri-card"/".ap-input ri-input" em AdminPanel.js#renderBody).
+ * Pura camada visual — nenhum fluxo, id, data-attr ou listener mudou (o
+ * dono e a unica conta que ve esta janela, gate em AdminPanel.js).
  */
 
 :host {
@@ -27,15 +36,16 @@
 	position: relative;
 	width: 100%;
 	height: 100%;
-	color: #e7e9ee;
 	font-size: 12px;
 }
 
 /* ─── Floating button ─────────────────────────────────────── */
-/* Sits right next to IdleConfig's button (IdleConfig.css:39-54: top:210px;
+/* Sits right next to IdleConfig's button (IdleConfig.css: top:210px;
  * right:72px; 42x42), which itself sits next to HuntMap's (HuntMap.css:
- * 42-57: top:210px; right:20px). Same top, one more button-width + gap to
- * the left, so all three icons read as a row. */
+ * top:210px; right:20px). Same top, one more button-width + gap to the
+ * left, so all three icons read as a row. Kept visually dark/matching the
+ * sibling buttons on purpose (same choice as IdleSkills.css/IdleConfig.css)
+ * — only the WINDOW below follows the light reference. */
 
 #AdminPanel .ap-button {
 	position: fixed;
@@ -45,8 +55,13 @@
 	height: 42px;
 	border-radius: 50%;
 	border: 1px solid rgba(255, 255, 255, 0.25);
-	background: rgba(20, 20, 26, 0.85);
-	color: #ffffff;
+	/* Escuro/opaco de proposito (nao o disco branco->azul do .ri-disc): fica
+	   ao lado dos botoes flutuantes de HuntMap/IdleConfig/IdleSkills, que
+	   sao dark circles fora do escopo desta rodada — trocar so este quebraria
+	   a fileira. Mesma tinta azul-ink dos tokens de sombra (nunca preto
+	   puro), so em opacidade alta pra continuar um disco solido. */
+	background: rgba(18, 41, 74, 0.85);
+	color: var(--white);
 	font-size: 18px;
 	line-height: 1;
 	cursor: pointer;
@@ -55,11 +70,13 @@
 }
 
 #AdminPanel .ap-button:hover {
-	background: rgba(40, 40, 50, 0.92);
+	background: rgba(30, 70, 119, 0.92);
 	border-color: rgba(255, 255, 255, 0.45);
 }
 
 /* ─── Window ───────────────────────────────────────────────── */
+/* ".ri-window" (Common.css) ja da fundo/borda dourada/raio/sombra — so o
+   tamanho, o display toggle e o pointer-events ficam aqui. */
 
 #AdminPanel .ap-window {
 	display: none;
@@ -69,11 +86,6 @@
 	flex-direction: column;
 	width: 380px;
 	height: 520px;
-	background: rgba(15, 17, 23, 0.94);
-	border: 1px solid rgba(255, 255, 255, 0.14);
-	border-radius: 6px;
-	box-shadow: 0 8px 26px rgba(0, 0, 0, 0.55);
-	overflow: hidden;
 }
 
 #AdminPanel .ap-window.is-open {
@@ -81,40 +93,22 @@
 }
 
 #AdminPanel .ap-titlebar {
-	display: flex;
-	align-items: center;
-	justify-content: space-between;
-	padding: 8px 10px;
-	background: rgba(255, 255, 255, 0.06);
-	border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-	cursor: move;
 	flex: 0 0 auto;
 }
 
 #AdminPanel .ap-title {
-	font-weight: bold;
-	letter-spacing: 0.02em;
+	font-size: 13px;
 }
 
 #AdminPanel .ap-close {
-	border: none;
-	background: transparent;
-	color: #e7e9ee;
-	font-size: 16px;
-	line-height: 1;
 	cursor: pointer;
-	padding: 0 4px;
-}
-
-#AdminPanel .ap-close:hover {
-	color: #ff8080;
 }
 
 #AdminPanel .ap-status {
 	flex: 0 0 auto;
 	min-height: 14px;
-	padding: 4px 10px 0 10px;
-	color: #e0b04d;
+	padding: 4px 12px 0 12px;
+	color: var(--gold-700);
 	font-size: 11px;
 }
 
@@ -123,24 +117,33 @@
 #AdminPanel .ap-body {
 	flex: 1 1 auto;
 	overflow-y: auto;
-	padding: 12px;
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+	padding: 12px 14px;
 }
 
 #AdminPanel .ap-empty {
 	margin-top: 16px;
 	text-align: center;
-	color: #9aa0ad;
+	color: var(--text-muted);
 	font-size: 11px;
 }
 
+/* ".ri-card" (Common.css) ja da fundo/borda/raio do card — so o padding
+   interno e o titulo "<h3>" (gerado por AdminPanel.js#renderBody) ficam
+   aqui. */
 #AdminPanel .ap-section {
-	margin-bottom: 16px;
+	padding: 10px 12px;
 }
 
 #AdminPanel .ap-section h3 {
 	margin: 0 0 8px 0;
+	padding-bottom: 6px;
 	font-size: 12px;
-	color: #c7cbd6;
+	font-weight: 700;
+	color: var(--text-title);
+	border-bottom: 1px solid var(--border-hairline);
 }
 
 #AdminPanel .ap-field-row {
@@ -150,37 +153,36 @@
 	margin: 0 0 10px 0;
 }
 
-#AdminPanel .ap-field-row label {
-	font-size: 11px;
-	color: #9aa0ad;
+#AdminPanel .ap-field-row:last-child {
+	margin-bottom: 0;
 }
 
+#AdminPanel .ap-field-row label {
+	font-size: 11px;
+	color: var(--text-muted);
+}
+
+/* ".ri-input" (Common.css) ja da fundo/borda/raio/foco — so a largura
+   total e o estado somente-leitura ficam aqui. */
 #AdminPanel .ap-input,
 #AdminPanel .ap-select {
 	box-sizing: border-box;
 	width: 100%;
-	padding: 6px 8px;
-	background: rgba(255, 255, 255, 0.06);
-	border: 1px solid rgba(255, 255, 255, 0.14);
-	border-radius: 4px;
-	color: #e7e9ee;
-	font-size: 12px;
-}
-
-#AdminPanel .ap-input:focus,
-#AdminPanel .ap-select:focus {
-	outline: none;
-	border-color: #3a6ea5;
 }
 
 #AdminPanel .ap-input.ap-readonly {
-	opacity: 0.65;
+	/* Mesma formula de "desabilitado" do design system (dessaturar, nao
+	   trocar por cinza chapado) — campo somente-leitura e um bloqueio, nao
+	   um estado de erro. */
+	filter: grayscale(1);
+	opacity: 0.55;
 	cursor: not-allowed;
+	background: var(--surface-inset);
 }
 
 #AdminPanel .ap-hint {
 	font-size: 10px;
-	color: #6f7580;
+	color: var(--text-muted);
 	margin-top: 2px;
 }
 
@@ -191,20 +193,20 @@
 	display: flex;
 	flex-direction: column;
 	gap: 6px;
-	padding: 8px 10px;
-	border-top: 1px solid rgba(255, 255, 255, 0.1);
-	background: rgba(255, 255, 255, 0.03);
+	padding: 10px 14px 12px;
+	border-top: 1px solid var(--border-hairline);
+	background: var(--surface-titlebar);
 }
 
 #AdminPanel .ap-nota {
-	color: #9aa0ad;
+	color: var(--text-muted);
 	font-size: 10px;
 }
 
 #AdminPanel .ap-problemas-list {
 	margin: 0;
 	padding-left: 16px;
-	color: #ff8f8f;
+	color: var(--red-600);
 	font-size: 10px;
 }
 
@@ -217,37 +219,24 @@
 }
 
 #AdminPanel .ap-heal {
-	background: #3a8f5a;
-	color: #ffffff;
+	/* Botao de acao funcional distinto (cura) — nao existe token de
+	   "verde de acao" no design system oficial, so usa a semantica
+	   --green-600 (a mesma familia de --exp-fill) em vez de um hex
+	   inventado; o hover so realca via filter (sem 2o verde literal). */
+	background: var(--green-600);
+	color: var(--white);
 	border: none;
-	border-radius: 4px;
-	padding: 8px 18px;
+	border-radius: var(--radius-card);
+	padding: var(--pad-button);
 	font-weight: bold;
 	font-size: 12px;
 	cursor: pointer;
+	transition: filter var(--dur-fast) var(--ease-out);
 }
 
 #AdminPanel .ap-heal:hover {
-	background: #46a86a;
+	filter: brightness(1.15);
 }
 #AdminPanel .ap-apply {
 	align-self: flex-end;
-	background: #3a6ea5;
-	color: #ffffff;
-	border: none;
-	border-radius: 4px;
-	padding: 8px 18px;
-	font-weight: bold;
-	font-size: 12px;
-	cursor: pointer;
-}
-
-#AdminPanel .ap-apply:hover:not(:disabled) {
-	background: #4a82bd;
-}
-
-#AdminPanel .ap-apply:disabled {
-	background: #4a4a4a;
-	color: #9a9a9a;
-	cursor: not-allowed;
 }

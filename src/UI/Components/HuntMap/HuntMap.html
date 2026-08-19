@@ -1,23 +1,44 @@
 <div id="HuntMap">
 	<button type="button" class="hm-button" title="Mapa de Caça">🗺</button>
 
-	<div class="hm-window">
-		<div class="hm-titlebar">
-			<span class="hm-title">Mapa de Caça</span>
-			<button type="button" class="hm-close" title="Fechar">&times;</button>
+	<div class="hm-window ri-window">
+		<div class="hm-titlebar ri-header">
+			<span class="hm-title ri-title">Mapa de Caça</span>
+			<button type="button" class="hm-close ri-close" title="Fechar">&times;</button>
 		</div>
 
 		<div class="hm-toolbar">
-			<input type="text" class="hm-search" placeholder="Buscar mapa..." />
+			<input type="text" class="hm-search ri-input" placeholder="Buscar mapa, monstro ou drop..." />
+			<div class="hm-filters-wrap">
+				<button type="button" class="hm-filters-btn ri-btn ri-btn--sec">Filtros</button>
+				<div class="hm-filters-popover ri-card">
+					<label class="hm-filters-option">
+						<input type="checkbox" class="hm-filter-ideal" />
+						<span>Só ideais para mim</span>
+					</label>
+				</div>
+			</div>
 		</div>
 
 		<div class="hm-tabs"></div>
 
+		<div class="hm-subbar">
+			<span class="hm-count"></span>
+			<div class="hm-sort-wrap">
+				<label for="hm-sort-select">Ordenar por</label>
+				<select id="hm-sort-select" class="hm-sort">
+					<option value="nivel-recomendado">Para meu nível</option>
+					<option value="nivel">Nível</option>
+					<option value="nome">Nome</option>
+				</select>
+			</div>
+		</div>
+
 		<div class="hm-status"></div>
 
 		<div class="hm-content">
-			<div class="hm-list"></div>
-			<div class="hm-panel">
+			<div class="hm-list ri-scroll"></div>
+			<div class="hm-panel ri-scroll">
 				<div class="hm-panel-empty">Abra o mapa de caça para carregar o catálogo.</div>
 			</div>
 		</div>

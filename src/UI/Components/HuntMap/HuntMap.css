@@ -3,6 +3,28 @@
  *
  * Mapa de Caça — floating button + window.
  *
+ * v2: light theme retrofit to match the reference "Mapa de Caça" print
+ * (Midgard Idle gauntlet) — same tone as IdleSkills.css's light window
+ * (#f4f6fb background, white cards, #3b6ea5 blue, 10-12px corners, soft
+ * shadows), replacing this window's original dark theme wholesale. Only
+ * the SKIN changed; every mechanism below (drag/clamp math, pointer-events
+ * split, opcodes) is unchanged from the header comment history.
+ *
+ * v3 (gauntlet 18/08/2026, "Ragnarok Classico Premium"): reskin onto the
+ * shared design system defined at the end of UI/Common.css (tokens --ri-*
+ * and classes .ri-window/.ri-header/.ri-title/.ri-close/.ri-card/.ri-btn/
+ * .ri-tab/.ri-badge/.ri-input/.ri-scroll), per
+ * redesign/extracao-da-referencia.md secao 5.4 ("Mapa de Caca"). Common.css
+ * e replicado dentro deste Shadow DOM pelo GUIComponent, entao essas
+ * classes/tokens ja estao disponiveis aqui sem import. Onde o markup ganhou
+ * uma classe ri-*, as regras abaixo NAO redeclaram cor/borda/sombra/fonte
+ * daquele elemento (deixam a classe compartilhada vencer) — so ficam regras
+ * de LAYOUT (posicao, tamanho, flex/grid) que sao proprias desta janela.
+ * Onde nao ha classe ri-* equivalente (card de mapa, stack de mobs, grade
+ * de chips, painel de detalhe), a cor/borda/raio foi trocada para usar os
+ * mesmos tokens --ri-* em vez dos hex fixos antigos, pra ficar no mesmo
+ * tom sem duplicar a composicao inteira.
+ *
  * Layout notes (why the sizes below matter, not just cosmetics):
  * - GUIComponent (UI/GUIComponent.js) makes ":host" the actual shadow HOST
  *   element (see GUIComponent.js:87-119 / :131-203 _prepare()), and that is
@@ -20,12 +42,33 @@
  *   HuntMap.mouseMode = GUIComponent.MouseMode.CROSS (see HuntMap.js), the
  *   same mode used by the other floating icons, e.g.
  *   UI/Components/CashShopIcon/CashShopIcon.js:60.
+ *
+ * v4: realinhamento ao design system OFICIAL (redesign/design-system-oficial.md,
+ * 19/08/2026), que substituiu o briefing de 18/08 usado na v3 acima. Common.css
+ * ja tinha sido pivotado pelo lider antes desta passada — as aliases --ri-*
+ * ja apontavam pros tokens oficiais, entao moldura/titulo/abas ja vinham
+ * corretas por heranca de .ri-window/.ri-header/.ri-title/.ri-tab. Esta
+ * passada trocou toda referencia --ri-* por nome oficial (--blue-500,
+ * --text-body, --border-hairline etc — "codigo novo usa o nome oficial") e
+ * tokenizou o que ainda era hex/rgba/px literal: sombras viraram --shadow-card/
+ * --shadow-float, os washes claros viraram --sky-50/--sky-100/--paper-1/
+ * --paper-2, badges "easy"/"challenge" ganharam --type-badge, e os DOIS
+ * estados que o design system crava pra card de lista: SELECIONADO agora e
+ * borda --accent + 12% de tinta de acento via color-mix() (sem glow azul
+ * antigo), e BLOQUEADO agora dessatura o CARD INTEIRO (opacity 0.55 +
+ * filter: grayscale(1)), nao so a thumbnail como na v3. O botao flutuante
+ * (.hm-button) ficou de fora de proposito — mesma familia escura dos outros
+ * botoes flutuantes do jogo, fora do escopo desta tarefa. Tamanho da janela
+ * (900x620) tambem ficou de fora: o design system crava 640x460, mas essa
+ * medida veio do componente antigo (extracao-da-referencia.md) e nao cabe a
+ * grade de 2 colunas + minimapa que este componente usa — divergencia
+ * deliberada, registrada no relatorio desta tarefa.
  */
 
 :host {
 	position: absolute;
-	width: 640px;
-	height: 460px;
+	width: 900px;
+	height: 620px;
 	pointer-events: none;
 }
 
@@ -33,11 +76,13 @@
 	position: relative;
 	width: 100%;
 	height: 100%;
-	color: #e7e9ee;
-	font-size: 12px;
+	color: var(--text-body);
+	font-size: var(--fs-info);
 }
 
 /* ─── Floating button (always visible on screen) ─────────── */
+/* Unchanged position/mechanics — same dark round icon as every RAGIDLE
+ * floating button, only the WINDOW below follows the light reference. */
 
 #HuntMap .hm-button {
 	position: fixed;
@@ -62,6 +107,9 @@
 }
 
 /* ─── Window ───────────────────────────────────────────────── */
+/* .ri-window (Common.css) supplies background gradient, dourado border,
+ * radius, shadow, font-family and text color — this block only keeps the
+ * layout/mechanics that are specific to this floating window. */
 
 #HuntMap .hm-window {
 	display: none;
@@ -69,12 +117,8 @@
 	inset: 0;
 	pointer-events: auto;
 	flex-direction: column;
-	width: 640px;
-	height: 460px;
-	background: rgba(15, 17, 23, 0.94);
-	border: 1px solid rgba(255, 255, 255, 0.14);
-	border-radius: 6px;
-	box-shadow: 0 8px 26px rgba(0, 0, 0, 0.55);
+	width: 900px;
+	height: 620px;
 	overflow: hidden;
 }
 
@@ -82,94 +126,183 @@
 	display: flex;
 }
 
+/* Builder de polimento (18/08/2026), responsividade 1366x768: 620px de
+   janela + a barra ~78px do DockIdle nao cabem nos 768px do piso (medido
+   com Playwright: janela centralizada ia ate y:696, dock comecava em
+   y:690 — 6px de sobreposicao real, a ultima fileira de mapas ficava
+   atras do fundo turvo do dock). So o RETANGULO encolhe aqui, dentro do
+   media query — o WINDOW_HEIGHT em HuntMap.js continua 620 de proposito
+   (ver o comentario grande la): a centralizacao calcula "top" pra uma
+   caixa de 620, e a caixa real de 590 renderiza mais curta que isso, entao
+   sobra folga embaixo em vez de faltar. ".hm-list" (flex:1 1 60%,
+   overflow-y:auto) absorve a diferenca mostrando menos linhas antes de
+   rolar — toolbar/abas/subbarra (flex:0 0 auto) nao mudam de tamanho. Em
+   telas altas (1600x900, 1920x1080) esta regra nao entra e a janela
+   continua com os 620px de sempre. */
+@media (max-height: 800px) {
+	#HuntMap .hm-window {
+		height: 590px;
+	}
+	:host {
+		height: 590px;
+	}
+}
+
+/* .ri-header (Common.css) supplies the gradient, centered title, dourado
+ * bottom border and move cursor; .ri-title supplies the wing ornaments via
+ * ::before/::after. This block only pins it to the top of the column. */
+
 #HuntMap .hm-titlebar {
-	display: flex;
-	align-items: center;
-	justify-content: space-between;
-	padding: 8px 10px;
-	background: rgba(255, 255, 255, 0.06);
-	border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-	cursor: move;
+	position: relative;
 	flex: 0 0 auto;
 }
 
-#HuntMap .hm-title {
-	font-weight: bold;
-	letter-spacing: 0.02em;
-}
+/* .ri-close (Common.css) supplies the circular dourado button fully
+ * (it is position:absolute, so it does not need to opt out of the header's
+ * centered flex layout). */
 
-#HuntMap .hm-close {
-	border: none;
-	background: transparent;
-	color: #e7e9ee;
-	font-size: 16px;
-	line-height: 1;
-	cursor: pointer;
-	padding: 0 4px;
-}
-
-#HuntMap .hm-close:hover {
-	color: #ff8080;
-}
+/* ─── Toolbar: search + filters ───────────────────────────── */
 
 #HuntMap .hm-toolbar {
 	flex: 0 0 auto;
-	padding: 8px 10px;
-	border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 10px 12px;
+	border-bottom: 1px solid var(--border-hairline);
 }
 
+/* .ri-input (Common.css) supplies the field's look; here it only needs to
+ * grow to fill the toolbar row. */
 #HuntMap .hm-search {
 	box-sizing: border-box;
-	width: 100%;
-	padding: 6px 8px;
-	background: rgba(255, 255, 255, 0.06);
-	border: 1px solid rgba(255, 255, 255, 0.14);
-	border-radius: 4px;
-	color: #e7e9ee;
-	font-size: 12px;
+	flex: 1 1 auto;
 }
 
-#HuntMap .hm-search::placeholder {
-	color: #8a8f9c;
+#HuntMap .hm-filters-wrap {
+	position: relative;
+	flex: 0 0 auto;
 }
+
+/* .ri-btn / .ri-btn--sec (Common.css) supply the button's look; the
+ * "popover open" state below is specific to this component. */
+#HuntMap .hm-filters-wrap.is-open .hm-filters-btn {
+	border-color: var(--blue-500);
+	color: var(--blue-600);
+}
+
+#HuntMap .hm-filters-popover {
+	display: none;
+	position: absolute;
+	top: calc(100% + 6px);
+	right: 0;
+	z-index: 10;
+	min-width: 190px;
+	padding: 10px 12px;
+	box-shadow: var(--shadow-float);
+}
+
+#HuntMap .hm-filters-wrap.is-open .hm-filters-popover {
+	display: block;
+}
+
+#HuntMap .hm-filters-option {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	font-size: var(--fs-info);
+	color: var(--text-body);
+	cursor: pointer;
+}
+
+#HuntMap .hm-filters-option input[type='checkbox'] {
+	accent-color: var(--blue-500);
+	cursor: pointer;
+}
+
+/* ─── Region tabs (with real counts) ──────────────────────── */
+/* .ri-tab (Common.css) supplies the pill look + the blue "is-active" fill;
+ * this block only lays the row out. */
 
 #HuntMap .hm-tabs {
 	flex: 0 0 auto;
 	display: flex;
 	flex-wrap: wrap;
-	gap: 4px;
-	padding: 6px 10px;
-	border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+	gap: 6px;
+	padding: 8px 12px;
+	border-bottom: 1px solid var(--border-hairline);
 }
 
 #HuntMap .hm-tab {
-	border: 1px solid transparent;
-	background: rgba(255, 255, 255, 0.05);
-	color: #c7cbd6;
-	padding: 3px 10px;
-	border-radius: 12px;
-	font-size: 11px;
+	display: inline-flex;
+	align-items: center;
+	gap: 5px;
+}
+
+#HuntMap .hm-tab-count {
+	font-size: var(--fs-desc);
+	opacity: 0.75;
+}
+
+#HuntMap .hm-tab.is-active .hm-tab-count {
+	opacity: 0.9;
+}
+
+/* ─── Sub-bar: result count + sort ────────────────────────── */
+
+#HuntMap .hm-subbar {
+	flex: 0 0 auto;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 10px;
+	padding: 8px 12px;
+	border-bottom: 1px solid var(--border-hairline);
+	background: var(--sky-50);
+}
+
+#HuntMap .hm-count {
+	font-size: var(--fs-label);
+	color: var(--text-muted);
+}
+
+#HuntMap .hm-sort-wrap {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+}
+
+#HuntMap .hm-sort-wrap label {
+	font-size: var(--fs-label);
+	color: var(--text-muted);
+}
+
+#HuntMap .hm-sort {
+	box-sizing: border-box;
+	padding: 5px 8px;
+	background: var(--white);
+	border: 1px solid var(--border-hairline);
+	border-radius: var(--radius-panel);
+	color: var(--text-body);
+	font-family: var(--font-ui);
+	font-size: var(--fs-label);
 	cursor: pointer;
 }
 
-#HuntMap .hm-tab:hover {
-	background: rgba(255, 255, 255, 0.1);
-}
-
-#HuntMap .hm-tab.is-active {
-	background: #3a6ea5;
-	border-color: #3a6ea5;
-	color: #ffffff;
-	font-weight: bold;
+#HuntMap .hm-sort:focus {
+	outline: none;
+	border-color: var(--blue-500);
 }
 
 #HuntMap .hm-status {
 	flex: 0 0 auto;
 	min-height: 14px;
-	padding: 4px 10px 0 10px;
-	color: #e0b04d;
-	font-size: 11px;
+	padding: 4px 12px 0 12px;
+	color: var(--amber-600);
+	font-size: var(--fs-label);
 }
+
+/* ─── Content: card grid (left) + destination panel (right) ─ */
 
 #HuntMap .hm-content {
 	flex: 1 1 auto;
@@ -178,207 +311,443 @@
 }
 
 #HuntMap .hm-list {
-	flex: 0 0 46%;
+	flex: 1 1 60%;
 	overflow-y: auto;
-	padding: 8px;
-	border-right: 1px solid rgba(255, 255, 255, 0.08);
-	display: flex;
-	flex-direction: column;
-	gap: 6px;
+	padding: 12px;
+	display: grid;
+	grid-template-columns: repeat(2, 1fr);
+	gap: 10px;
+	align-content: start;
 }
 
 #HuntMap .hm-list-empty,
 #HuntMap .hm-panel-empty {
+	grid-column: 1 / -1;
 	margin-top: 16px;
 	text-align: center;
-	color: #9aa0ad;
-	font-size: 11px;
+	color: var(--text-muted);
+	font-size: var(--fs-label);
 }
 
+/* ─── Map cards ────────────────────────────────────────────── */
+/* No generic .ri-card here on purpose: this card needs its own hover-lift
+ * transform and a dessaturated "locked" state that .ri-card does not
+ * define, so it stays bespoke — mas com os tokens oficiais (--surface-card,
+ * --surface-card-hover, --border-hairline, --radius-card) e os dois estados
+ * do design system OFICIAL (19/08/2026): selecionado = borda de acento +
+ * 12% de tinta de acento (color-mix, sem hex inventado); bloqueado = 55% de
+ * opacidade + grayscale(1) no CARD INTEIRO (mesma receita de ".ri-btn:disabled"
+ * em Common.css), nao so na thumbnail como na v3. */
+
 #HuntMap .hm-card {
-	display: block;
+	display: flex;
+	flex-direction: column;
 	width: 100%;
 	box-sizing: border-box;
 	text-align: left;
-	background: rgba(255, 255, 255, 0.04);
-	border: 1px solid rgba(255, 255, 255, 0.09);
-	border-radius: 4px;
-	padding: 6px 8px;
-	color: #e7e9ee;
+	background: var(--surface-card);
+	border: 1px solid var(--border-hairline);
+	border-radius: var(--radius-card);
+	padding: 8px;
+	color: var(--text-body);
+	font-family: var(--font-ui);
 	cursor: pointer;
-	font-size: 11px;
+	font-size: var(--fs-label);
+	box-shadow: var(--shadow-card);
+	transition:
+		box-shadow var(--dur-fast),
+		border-color var(--dur-fast),
+		background var(--dur-fast),
+		transform var(--dur-fast);
 }
 
 #HuntMap .hm-card:hover {
-	background: rgba(255, 255, 255, 0.08);
+	background: var(--surface-card-hover);
+	border-color: var(--blue-500);
+	box-shadow: var(--shadow-float);
+	transform: translateY(-2px);
 }
 
 #HuntMap .hm-card.is-selected {
-	border-color: #3a6ea5;
-	background: rgba(58, 110, 165, 0.2);
+	border-color: var(--accent);
+	background: color-mix(in srgb, var(--accent) 12%, var(--surface-card));
 }
 
+/* Card bloqueado: 55% de opacidade + dessaturado por INTEIRO, igual a
+ * qualquer outro elemento desabilitado do design system. Sem lift/hover
+ * proprio — ele ainda pode ser selecionado pra ver o painel, so nao "Caçar
+ * Aqui" (o botao correspondente nem entra no markup, ver HuntMap.js). */
 #HuntMap .hm-card.badge-locked {
 	opacity: 0.55;
+	filter: grayscale(1);
+}
+
+#HuntMap .hm-card.badge-locked:hover {
+	background: var(--surface-card);
+	transform: none;
+	box-shadow: var(--shadow-card);
+}
+
+#HuntMap .hm-card-thumb {
+	width: 100%;
+	height: 84px;
+	border-radius: var(--radius-card);
+	overflow: hidden;
+	background: var(--sky-50);
+	border: 1px solid var(--border-hairline);
+	flex: 0 0 auto;
+	margin-bottom: 8px;
+}
+
+/* object-fit:cover no <img> dentro do container com raio (acima) — a
+ * thumbnail sempre preenche o quadro, sem tarja/faixa morta. */
+#HuntMap .hm-card-thumb img {
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+	display: block;
+	image-rendering: pixelated;
+}
+
+#HuntMap .hm-card-body {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
 }
 
 #HuntMap .hm-card-top {
 	display: flex;
 	justify-content: space-between;
-	align-items: baseline;
+	align-items: flex-start;
 	gap: 6px;
 }
 
 #HuntMap .hm-card-name {
 	font-weight: bold;
+	font-size: var(--fs-info);
+	color: var(--text-title);
 	overflow: hidden;
 	text-overflow: ellipsis;
 	white-space: nowrap;
-}
-
-#HuntMap .hm-card-id {
-	color: #9aa0ad;
-	font-size: 10px;
-	white-space: nowrap;
-}
-
-#HuntMap .hm-card-bottom {
-	display: flex;
-	justify-content: space-between;
-	align-items: center;
-	margin-top: 4px;
 }
 
 #HuntMap .hm-card-range {
-	color: #c7cbd6;
+	color: var(--text-muted);
+	font-size: var(--fs-desc);
 }
 
 #HuntMap .hm-card-here {
-	margin-top: 4px;
-	color: #8fd17a;
+	color: var(--green-600);
 	font-weight: bold;
-	font-size: 10px;
+	font-size: var(--fs-desc);
 }
 
-#HuntMap .hm-badge {
-	font-size: 10px;
-	font-weight: bold;
-	padding: 2px 6px;
-	border-radius: 10px;
-	white-space: nowrap;
+/* Botao azul de acao NO PROPRIO CARD ("Cacar Aqui") — .ri-btn (Common.css)
+ * ja da o gradiente/hover; aqui so o encaixe largo no rodape do card, e o
+ * stopImmediatePropagation() do handler (onClickTravel, reaproveitado do
+ * botao "Trocar para X" do painel) impede que o clique tambem selecione o
+ * card por baixo. */
+#HuntMap .hm-card-go {
+	display: block;
+	width: 100%;
+	box-sizing: border-box;
+	margin-top: 6px;
+	padding: 6px 10px;
+	font-size: var(--fs-label);
 }
 
-#HuntMap .hm-badge-locked {
-	background: #4a4a4a;
-	color: #d4d4d4;
-}
-
-#HuntMap .hm-badge-easy {
-	background: #2e7d32;
-	color: #ffffff;
-}
-
-#HuntMap .hm-badge-ideal {
-	background: #1e5fa8;
-	color: #ffffff;
-}
-
-#HuntMap .hm-badge-challenge {
-	background: #b3611c;
-	color: #ffffff;
-}
-
-#HuntMap .hm-panel {
-	flex: 1 1 auto;
-	overflow-y: auto;
-	padding: 10px;
-}
-
-#HuntMap .hm-panel-header {
-	margin-bottom: 8px;
-}
-
-#HuntMap .hm-panel-header h3 {
-	margin: 0 0 2px 0;
-	font-size: 13px;
-}
-
-#HuntMap .hm-panel-sub {
-	color: #9aa0ad;
-	font-size: 10px;
-}
-
-#HuntMap .hm-monster-list {
-	list-style: none;
-	margin: 0;
-	padding: 0;
-	display: flex;
-	flex-direction: column;
-	gap: 6px;
-}
-
-#HuntMap .hm-monster {
-	background: rgba(255, 255, 255, 0.04);
-	border: 1px solid rgba(255, 255, 255, 0.08);
-	border-radius: 4px;
-	padding: 6px 8px;
-}
-
-#HuntMap .hm-monster.is-mvp {
-	border-color: #c9a227;
-	background: rgba(201, 162, 39, 0.14);
-}
-
-#HuntMap .hm-monster-head {
+#HuntMap .hm-card-mobs {
 	display: flex;
 	align-items: center;
 	gap: 6px;
+	margin-top: 2px;
 }
 
-#HuntMap .hm-monster-name {
+#HuntMap .hm-mob-stack {
+	display: flex;
+	align-items: center;
+}
+
+/* "Medalhoes circulares" (secao 5.4 da referencia): avatar redondo com aro
+ * branco + filete dourado claro, sobrepostos em leque. */
+#HuntMap .hm-mob-avatar {
+	width: 20px;
+	height: 20px;
+	border-radius: 50%;
+	background: var(--sky-50);
+	border: 2px solid var(--white);
+	box-shadow: 0 0 0 1px var(--gold-300);
+	object-fit: cover;
+	image-rendering: pixelated;
+	margin-left: -8px;
+}
+
+#HuntMap .hm-mob-avatar:first-child {
+	margin-left: 0;
+}
+
+#HuntMap .hm-card-mob-count {
+	color: var(--blue-600);
 	font-weight: bold;
+	font-size: var(--fs-desc);
+	white-space: nowrap;
+}
+
+/* ─── Badges ───────────────────────────────────────────────── */
+/* "ideal" and "locked" delegate cor/fonte a .ri-badge--verde / .ri-badge--cinza
+ * (Common.css) — ja usam --green-600 e --ink-500 (via --text-muted), exatamente
+ * o que o design system oficial pede pra badge de mapa. "easy" e "challenge"
+ * nao tem variante compartilhada, entao ficam bespoke, tokenizadas na mesma
+ * familia (azul claro / ouro claro). --type-badge no seletor base cobre
+ * fonte/peso/tamanho dos quatro. */
+
+#HuntMap .hm-badge {
+	flex: 0 0 auto;
+	font: var(--type-badge);
+	padding: 3px 8px;
+	border-radius: var(--radius-pill);
+	white-space: nowrap;
+}
+
+#HuntMap .hm-badge-easy {
+	background: var(--sky-100);
+	color: var(--blue-600);
+	border: 1px solid var(--sky-200);
+}
+
+#HuntMap .hm-badge-challenge {
+	background: var(--gold-200);
+	color: var(--gold-700);
+	border: 1px solid var(--gold-300);
+}
+
+/* ─── Right panel: destination detail ─────────────────────── */
+
+#HuntMap .hm-panel {
+	flex: 0 0 300px;
+	overflow-y: auto;
+	padding: 14px;
+	background: var(--white);
+	border-left: 1px solid var(--border-hairline);
+}
+
+#HuntMap .hm-panel-label {
+	font-size: var(--fs-desc);
+	font-weight: bold;
+	letter-spacing: 0.04em;
+	text-transform: uppercase;
+	color: var(--text-muted);
+}
+
+#HuntMap .hm-panel-title {
+	margin: 2px 0 10px 0;
+	font-size: var(--fs-numeric-lg);
+	font-weight: bold;
+	color: var(--text-title);
+}
+
+#HuntMap .hm-panel-stat {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	background: var(--paper-2);
+	border: 1px solid var(--border-hairline);
+	border-radius: var(--radius-card);
+	padding: 8px 10px;
+	margin-bottom: 12px;
+}
+
+#HuntMap .hm-panel-stat-label {
+	font-size: var(--fs-label);
+	color: var(--text-muted);
+}
+
+#HuntMap .hm-panel-stat-value {
+	font-size: var(--fs-section);
+	font-weight: bold;
+	color: var(--blue-600);
+}
+
+#HuntMap .hm-panel-section-title {
+	font-size: var(--fs-info);
+	font-weight: bold;
+	color: var(--text-title);
+	margin: 4px 0 8px 0;
+}
+
+/* ─── Monster chips (2-column grid) ───────────────────────── */
+
+#HuntMap .hm-chip-grid {
+	display: grid;
+	grid-template-columns: repeat(2, 1fr);
+	gap: 6px;
+	margin-bottom: 14px;
+}
+
+#HuntMap .hm-chip {
+	position: relative;
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	box-sizing: border-box;
+	width: 100%;
+	background: var(--sky-50);
+	border: 1px solid var(--border-hairline);
+	border-radius: var(--radius-card);
+	padding: 6px 8px;
+	color: var(--text-body);
+	font-family: var(--font-ui);
+	font-size: var(--fs-desc);
+	cursor: pointer;
+	text-align: left;
+	transition:
+		border-color var(--dur-fast),
+		background var(--dur-fast);
+}
+
+#HuntMap .hm-chip:hover {
+	background: var(--surface-card-hover);
+}
+
+#HuntMap .hm-chip.is-selected {
+	border-color: var(--blue-500);
+	background: var(--sky-100);
+	box-shadow: 0 0 0 1px var(--blue-500) inset;
+}
+
+#HuntMap .hm-chip.is-mvp {
+	border-color: var(--gold-500);
+}
+
+#HuntMap .hm-chip-avatar {
+	flex: 0 0 auto;
+	width: 20px;
+	height: 20px;
+	border-radius: 50%;
+	overflow: hidden;
+	background: var(--sky-50);
+	border: 1px solid var(--border-hairline);
+}
+
+#HuntMap .hm-chip-avatar img {
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+	display: block;
+	image-rendering: pixelated;
+}
+
+#HuntMap .hm-chip-name {
 	flex: 1 1 auto;
 	overflow: hidden;
 	text-overflow: ellipsis;
 	white-space: nowrap;
+	font-weight: bold;
 }
 
-#HuntMap .hm-monster-level {
-	color: #c7cbd6;
-	font-size: 10px;
-	white-space: nowrap;
+#HuntMap .hm-chip-mvp {
+	flex: 0 0 auto;
+	background: var(--gold-500);
+	color: var(--gold-700);
+	font-size: var(--fs-badge);
+	font-weight: bold;
+	padding: 1px 5px;
+	border-radius: var(--radius-pill);
+}
+
+/* ─── Selected mob detail ─────────────────────────────────── */
+
+#HuntMap .hm-mob-detail {
+	background: var(--paper-1);
+	border: 1px solid var(--border-hairline);
+	border-radius: var(--radius-card);
+	padding: 10px 12px;
+	margin-bottom: 14px;
+}
+
+#HuntMap .hm-mob-detail-name {
+	font-size: var(--fs-section);
+	font-weight: bold;
+	color: var(--text-title);
+	margin-bottom: 6px;
 }
 
 #HuntMap .hm-mvp-badge {
-	background: #c9a227;
-	color: #221a00;
-	font-size: 9px;
+	display: inline-block;
+	background: var(--gold-500);
+	color: var(--gold-700);
+	font-size: var(--fs-badge);
 	font-weight: bold;
-	padding: 1px 5px;
-	border-radius: 8px;
-	white-space: nowrap;
+	padding: 1px 6px;
+	border-radius: var(--radius-pill);
+	vertical-align: middle;
+	margin-left: 2px;
 }
 
-#HuntMap .hm-monster-meta {
-	margin-top: 2px;
-	color: #9aa0ad;
-	font-size: 10px;
+#HuntMap .hm-mob-detail-row {
+	display: flex;
+	justify-content: space-between;
+	font-size: var(--fs-label);
+	color: var(--text-body);
+	padding: 3px 0;
+	border-bottom: var(--divider);
 }
 
-#HuntMap .hm-monster-drops {
-	margin-top: 3px;
-	color: #c7cbd6;
-	font-size: 10px;
+#HuntMap .hm-mob-detail-row:last-of-type {
+	border-bottom: none;
 }
+
+#HuntMap .hm-mob-detail-row span:first-child {
+	color: var(--text-muted);
+}
+
+#HuntMap .hm-mob-detail-row span:last-child {
+	font-weight: bold;
+}
+
+#HuntMap .hm-drops-title {
+	margin-top: 8px;
+	font-size: var(--fs-label);
+	font-weight: bold;
+	color: var(--text-title);
+}
+
+#HuntMap .hm-drops-list {
+	list-style: none;
+	margin: 4px 0 0 0;
+	padding: 0;
+}
+
+#HuntMap .hm-drops-list li {
+	display: flex;
+	justify-content: space-between;
+	font-size: var(--fs-desc);
+	color: var(--text-body);
+	padding: 2px 0;
+}
+
+#HuntMap .hm-drops-empty {
+	margin-top: 4px;
+	font-size: var(--fs-desc);
+	color: var(--text-muted);
+}
+
+/* ─── Panel actions ────────────────────────────────────────── */
+/* .ri-btn / .ri-btn--sec (Common.css) supply color/gradient/hover/disabled;
+ * this block only stretches them to full width (the reference's "botao
+ * azul largo arredondado") and restores the bigger 10px padding that suits
+ * a full-width action button. */
 
 #HuntMap .hm-panel-actions {
-	margin-top: 12px;
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
 }
 
 #HuntMap .hm-here-note {
-	color: #8fd17a;
+	color: var(--green-600);
 	font-weight: bold;
-	font-size: 11px;
+	font-size: var(--fs-label);
 }
 
 #HuntMap .hm-btn-go,
@@ -386,35 +755,13 @@
 	display: block;
 	width: 100%;
 	box-sizing: border-box;
-	margin-top: 8px;
-	padding: 8px;
-	border: none;
-	border-radius: 4px;
-	font-weight: bold;
-	font-size: 12px;
-	cursor: pointer;
+	padding: 10px;
 }
 
-#HuntMap .hm-btn-go {
-	background: #3a6ea5;
-	color: #ffffff;
-}
-
-#HuntMap .hm-btn-go:hover {
-	background: #4a82bd;
-}
-
-#HuntMap .hm-btn-go[disabled] {
-	background: #4a4a4a;
-	color: #9a9a9a;
-	cursor: not-allowed;
-}
-
-#HuntMap .hm-btn-city {
-	background: rgba(255, 255, 255, 0.1);
-	color: #e7e9ee;
-}
-
-#HuntMap .hm-btn-city:hover {
-	background: rgba(255, 255, 255, 0.16);
-}
+/* ─── Scrollbar: .ri-scroll opt-out (GUIComponent._setupScrollbars) ──
+ * ".hm-list" and ".hm-panel" carry the shared ".ri-scroll" class (see
+ * HuntMap.html) — GUIComponent now skips injecting the legacy roBrowser
+ * bitmap scrollbar (thick arrows) on any element marked with it, so these
+ * two just keep their native overflow-y:auto scrollbar, themed thin/light
+ * by ".ri-scroll"'s ::-webkit-scrollbar rules in Common.css. Nothing to
+ * override here. */

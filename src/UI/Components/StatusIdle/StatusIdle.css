@@ -1,0 +1,498 @@
+/**
+ * UI/Components/StatusIdle/StatusIdle.css
+ *
+ * "Status" — ficha premium do personagem (gauntlet visual "Ragnarok
+ * Classico Premium", ver redesign/extracao-da-referencia.md secoes 2, 3 e
+ * 5.1): card "Personagem" (avatar, nome, classe, Base/Job Lv., Guild, Zeny,
+ * Peso) no topo, card "Atributos" (STR/AGI/VIT/INT/DEX/LUK + custo do
+ * proximo ponto + botao "+") e card de estatisticas derivadas (ATK/MATK/
+ * HIT/CRI/DEF/MDEF/FLEE/ASPD em duas colunas), rodape com "Pontos de
+ * Atributo: N" + botao azul "Distribuir Automatico". Usa os tokens/classes
+ * --ri-*/.ri-* injetados globalmente via UI/Common.css (.ri-window/
+ * .ri-header/.ri-title/.ri-close/.ri-card/.ri-btn/.ri-scroll) — nao
+ * reinventa cor/borda/sombra aqui, so o layout especifico da janela.
+ *
+ * Esta janela NAO tem botao flutuante proprio (abre pelo grid de icones do
+ * BasicInfoIdle), mas segue o MESMO mecanismo de mostrar/esconder que as
+ * outras janelas custom (HuntMap/IdleConfig/AdminPanel/IdleSkills):
+ * ":host" mantem largura/altura FIXAS e e transparente ao mouse
+ * (pointer-events:none) exceto pela ".st-window", que fica display:none
+ * ate ganhar ".is-open" — ver o header do HuntMap.css para o *porque*
+ * (GUIComponent#draggable()/_fixPositionOverflow() movem/limitam via
+ * host.style.left/top e host.offsetWidth/offsetHeight, entao ":host"
+ * precisa carregar o tamanho real da janela; e um host que so muda a
+ * visibilidade INTERNA, nunca o proprio display, mantem a matematica de
+ * posicao baseada em getBoundingClientRect() valida mesmo fechado).
+ * StatusIdle.mouseMode = GUIComponent.MouseMode.CROSS (StatusIdle.js)
+ * combina com isso, igual ao HuntMap.js:89.
+ *
+ * PIVO 19/08/2026: o dono forneceu o "Ragnarok Idle Design System" oficial
+ * (redesign/design-system-oficial.md), que substitui a paleta viva
+ * (#3e7be8, borda dourada por fora, raio 12px) construida em 18/08. Regra
+ * de ouro do documento: nenhuma cor/sombra/raio/duracao literal em
+ * componente, so token. Este arquivo foi realinhado: toda cor/sombra/raio/
+ * duracao abaixo usa var(--token-oficial); onde nao havia token exato o
+ * comentario ao lado diz qual foi escolhido e por que. Dimensao (largura,
+ * altura, padding, gap) NAO muda aqui — e isso que :host/GUIComponent medem.
+ */
+
+:host {
+	position: absolute;
+	width: 344px;
+	height: 688px;
+	pointer-events: none;
+}
+
+#StatusIdle {
+	position: relative;
+	width: 100%;
+	height: 100%;
+}
+
+.st-window {
+	display: none;
+	position: absolute;
+	inset: 0;
+	pointer-events: auto;
+	flex-direction: column;
+	/*
+	 * Cicatriz D-341 (rodada 3 do gauntlet): largura/altura EXPLICITAS aqui,
+	 * sincronizadas com ":host" acima e com WINDOW_WIDTH/WINDOW_HEIGHT em
+	 * StatusIdle.js — mesmo padrao de TODA janela irma (HuntMap.css's
+	 * ".hm-window", IdleConfig.css's ".ic-window", AdminPanel.css's
+	 * ".ap-window", IdleSkills.css's ".is-window" — todas fixam um px
+	 * literal de largura E altura no elemento interno, nao so "inset: 0").
+	 *
+	 * Por que "inset: 0" sozinho nao basta: o containing block deste box
+	 * para posicionamento absoluto e "#StatusIdle" (a div ".ui-component-
+	 * root" que GUIComponent.js:177-179 embrulha nosso HTML nao tem CSS
+	 * nenhum, entao ela e "#StatusIdle" ficam com height:auto).
+	 * "#StatusIdle" nao contribui altura de fluxo normal (seu unico filho e
+	 * este elemento, que ja e position:absolute), entao "inset: 0" nao tem
+	 * caixa definida pra resolver "height: auto" contra — o Chromium
+	 * colapsa pra 0, exatamente o bug medido na rodada anterior.
+	 *
+	 * Com largura/altura explicitas o box nao precisa "resolver a altura"
+	 * a partir de top+bottom: top/left:0 (do "inset: 0") so ancora a
+	 * origem no canto do padding-box de "#StatusIdle" — que E bem definido
+	 * mesmo com altura 0 — e o box renderiza no tamanho real dali, sem
+	 * depender da altura colapsada de nenhum ancestral.
+	 */
+	width: 344px;
+	height: 688px;
+}
+
+.st-window.is-open {
+	display: flex;
+}
+
+.st-titlebar {
+	flex: 0 0 auto;
+}
+
+/* Sem regra local de fonte aqui de proposito: ".st-title" e ".ri-title" tem a
+   MESMA especificidade (uma classe), e como o CSS do componente carrega
+   DEPOIS de Common.css no Shadow DOM, uma "font-size: 13px" aqui venceria o
+   "font: var(--type-window-title)" (serifa Marcellus 15px) so nessa
+   propriedade — exatamente a redefinicao por especificidade que a tarefa
+   pede pra remover. O titulo agora e 100% governado por ".ri-title". */
+
+.st-close {
+	cursor: pointer;
+}
+
+.st-body {
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+	padding: 12px 14px;
+	flex: 1 1 auto;
+	overflow-y: auto;
+}
+
+/* ─── Card comum (titulo + corpo) ──────────────────────────── */
+
+.st-card-title {
+	padding: 6px 12px;
+	/* Titulo de secao dentro do card ("Personagem"/"Atributos"/"Estatisticas")
+	   -- e o papel composto --type-section (13px, bold, Figtree). */
+	font: var(--type-section);
+	color: var(--text-title);
+	border-bottom: var(--divider);
+	/* Sem token composto pra essa faixa clara especifica; aproximada com os
+	   dois degraus mais claros da escala neutra (--paper-1/--sky-50), que sao
+	   os mesmos usados no rodape (.st-footer) mais abaixo. */
+	background: linear-gradient(180deg, var(--paper-1) 0%, var(--sky-50) 100%);
+	border-radius: var(--radius-card) var(--radius-card) 0 0;
+}
+
+/* ─── Card "Personagem": avatar, nome, classe, niveis, guild, zeny, peso ─── */
+
+.st-char-top {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	padding: 8px 12px 6px;
+}
+
+/* Moldura circular dourada ornamentada (mesma receita do avatar do
+   BasicInfoIdle.css: anel conico dourado por baixo, disco claro por cima
+   com filete branco de 1.5px). */
+.st-avatar-frame {
+	flex: 0 0 auto;
+	width: 44px;
+	height: 44px;
+	border-radius: 50%;
+	padding: 3px;
+	background: conic-gradient(
+		from 0deg,
+		var(--gold-300),
+		var(--gold-500) 25%,
+		var(--gold-300) 50%,
+		var(--gold-500) 75%,
+		var(--gold-300)
+	);
+	/* Aro solido em --gold-500 + elevacao azul. Nao ha token de sombra pra
+	   "0 3px 8px" exato; --shadow-float e o mais proximo em espirito (mesma
+	   familia azul, so mais suave que a drop shadow original). */
+	box-shadow: 0 0 0 1px var(--gold-500), var(--shadow-float);
+}
+
+.st-avatar {
+	position: relative;
+	width: 100%;
+	height: 100%;
+	border-radius: 50%;
+	/* Sem par exato de token pra este degrade de 2 pontas; --sky-50/--sky-200
+	   sao os vizinhos mais proximos na escala neutra-azul. */
+	background: linear-gradient(160deg, var(--sky-50), var(--sky-200));
+	border: 1.5px solid var(--white);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	overflow: hidden;
+}
+
+/* Mesmo retrato de classe do BasicInfoIdle (ver a nota la, scripts/
+   retratos-de-classe.ts) -- mesma tecnica de fallback via ".is-loaded". */
+.st-avatar-img {
+	position: absolute;
+	inset: 0;
+	width: 100%;
+	height: 100%;
+	object-fit: contain;
+	opacity: 0;
+	/* 0.2s nao bate exato com nenhum --dur-*; --dur-base (220ms) e o vizinho
+	   mais proximo (150ms ficaria 50ms mais longe). */
+	transition: opacity var(--dur-base) var(--ease-out);
+}
+
+.st-avatar-img.is-loaded {
+	opacity: 1;
+}
+
+.st-avatar-initial {
+	position: relative;
+	font-size: 16px;
+	font-weight: 700;
+	color: var(--blue-600);
+}
+
+.st-char-identity {
+	min-width: 0;
+	flex: 1 1 auto;
+}
+
+.st-char-name {
+	/* Nome do personagem: maior/mais peso que qualquer papel composto do
+	   design system (o mais proximo, --type-hero, e serifa de 28px — grande
+	   demais pra uma linha de identidade). Mantem tamanho/peso locais,
+	   so a cor vira token. */
+	font-size: 14px;
+	font-weight: 700;
+	color: var(--text-title);
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.st-char-class {
+	/* Rotulo secundario (classe do personagem) -- --type-label. */
+	font: var(--type-label);
+	color: var(--text-muted);
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.st-char-rows {
+	display: flex;
+	flex-direction: column;
+	gap: 1px;
+	padding: 0 0 4px;
+}
+
+.st-char-pair {
+	display: flex;
+}
+
+.st-char-pair > .st-char-stat {
+	flex: 1 1 50%;
+}
+
+.st-char-stat {
+	display: flex;
+	align-items: baseline;
+	justify-content: space-between;
+	gap: 8px;
+	padding: 4px 12px;
+	border-top: var(--divider);
+}
+
+.st-char-label {
+	font: var(--type-label);
+	color: var(--text-muted);
+}
+
+.st-char-value {
+	/* Valor alinhado (Base Lv./Job Lv./Zeny/Peso) -- --type-numeric bate
+	   exato: 12px/bold/Figtree, a mesma receita que ja estava aqui. */
+	font: var(--type-numeric);
+	color: var(--text-body);
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+/* ─── Card "Atributos": STR/AGI/VIT/INT/DEX/LUK ──────────────── */
+/* Linha = rotulo a esquerda (cresce, empurra o resto pra direita) + grupo
+   compacto (valor/custo/botao) colado no canto direito — antes o "custo"
+   ficava numa faixa flex:1 propria e sobrava vazio entre o valor e ele. */
+
+.st-stat-row {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: 6px 12px;
+	border-bottom: var(--divider);
+}
+
+.st-stat-row:last-child {
+	border-bottom: none;
+}
+
+/* Zebra sutil pra quebrar a "barra branca larga" das linhas. --surface-inset
+   e a tinta azul quase-imperceptivel do design system pra esse tipo de
+   realce (o mesmo token que os campos "well" usam). */
+.st-stat-row:nth-child(even) {
+	background: var(--surface-inset);
+}
+
+.st-stat-label {
+	/* STR/AGI/VIT/... nao tem papel composto exato (--type-label e 11px
+	   semibold; este rotulo e 12px bold, mais forte de proposito por ser a
+	   sigla do atributo) -- mantem tamanho/peso, so a cor vira token. */
+	font-weight: 700;
+	color: var(--text-body);
+	font-size: 12px;
+}
+
+.st-stat-right {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	flex: 0 0 auto;
+}
+
+.st-stat-value {
+	min-width: 20px;
+	text-align: right;
+	/* --type-numeric e 12px; este valor era 13px -- 1px de diferenca,
+	   aceitavel pra usar o papel de numero alinhado do design system. */
+	font: var(--type-numeric);
+	color: var(--text-body);
+}
+
+.st-stat-cost {
+	min-width: 20px;
+	text-align: right;
+	/* Idem: --type-numeric e 12px, este era 11px. */
+	font: var(--type-numeric);
+	color: var(--text-body);
+}
+
+.st-stat-cost::before {
+	content: 'custo ';
+	font-weight: var(--fw-regular);
+	color: var(--text-muted);
+}
+
+/* Botao "+": mini .ri-btn circular — azul gradiente quando habilitado (fiel
+   ao token de botao primario do design system), cinza morto so quando
+   :disabled (custo > pontos disponiveis ou atributo no cap). */
+.st-stat-up {
+	flex: 0 0 auto;
+	width: 20px;
+	height: 20px;
+	border-radius: 50%;
+	border: 1px solid var(--blue-600);
+	background: linear-gradient(180deg, var(--blue-500) 0%, var(--blue-600) 100%);
+	color: var(--text-on-accent);
+	font-size: 12px;
+	font-weight: 700;
+	line-height: 1;
+	cursor: pointer;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	/* Sem token composto pra um "lift" azul colorido deste tamanho; --rim-light
+	   (realce branco) + --shadow-card (a sombra azul mais discreta da escala)
+	   sao os vizinhos mais proximos. */
+	box-shadow: var(--rim-light), var(--shadow-card);
+	transition: filter var(--dur-fast) var(--ease-out);
+}
+
+/* "Hover clareia 6%" (design system, secao Estados). */
+.st-stat-up:hover:not(:disabled) {
+	filter: brightness(1.06);
+}
+
+.st-stat-up:active:not(:disabled) {
+	transform: var(--press-shift);
+	/* Sombra sempre azul, nunca preta -- --shadow-inset e o token oficial de
+	   afundamento por pressao. */
+	box-shadow: var(--shadow-inset);
+}
+
+/* Desabilitado = dessaturar, nunca cinza chapado (design system, secao
+   Estados) -- mesma receita de ".ri-btn:disabled" em Common.css: mantem o
+   gradiente azul normal e so aplica grayscale + opacidade por cima. */
+.st-stat-up:disabled {
+	filter: grayscale(1);
+	opacity: 0.55;
+	cursor: not-allowed;
+	box-shadow: none;
+}
+
+/* ─── Card de estatisticas derivadas: duas colunas ───────────── */
+
+.st-info-grid {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	grid-template-rows: repeat(4, auto);
+	grid-auto-flow: column;
+	padding: 2px 0;
+}
+
+.st-info-row {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px;
+	padding: 5px 12px;
+}
+
+.st-info-label {
+	font: var(--type-label);
+	color: var(--text-muted);
+}
+
+.st-info-value {
+	/* ATK/MATK/HIT/... -- exatamente a receita de --type-numeric (12px bold). */
+	font: var(--type-numeric);
+	color: var(--text-body);
+}
+
+/* ─── Rodape: pontos + Distribuir Automatico ─────────────────── */
+
+.st-footer {
+	flex: 0 0 auto;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 8px;
+	padding: 10px 14px 12px;
+	border-top: var(--divider);
+	/* Mesma aproximacao do ".st-card-title" acima (sem token composto pra
+	   essa faixa clara): --sky-50 -> --sky-100. */
+	background: linear-gradient(180deg, var(--sky-50) 0%, var(--sky-100) 100%);
+}
+
+.st-points-row {
+	/* Linha "Pontos de Atributo: N" -- mesma receita 12px/bold de
+	   --type-numeric, so que com a cor de titulo (nao de corpo). */
+	font: var(--type-numeric);
+	color: var(--text-title);
+}
+
+.st-points {
+	color: var(--blue-600);
+}
+
+.st-auto {
+	width: 100%;
+	box-sizing: border-box;
+}
+
+/* Builder de polimento (18/08/2026), responsividade 1366x768: 688px de
+   janela + a barra ~78px do DockIdle nao cabem nos 768px do piso (medido
+   com Playwright: janela centralizada ia ate y:730, dock comecava em
+   y:690 — 40px de sobreposicao real, o rodape "Distribuir Automatico"
+   tapava os rotulos do dock por baixo). So o RETANGULO encolhe aqui —
+   WINDOW_HEIGHT em StatusIdle.js continua 688 de proposito (mesmo
+   raciocinio do comentario grande no default de ShortCut.js): a
+   centralizacao calcula "top" pra uma caixa de 688 (fica em y:40 em
+   768px de tela), e a caixa real de 620 renderiza mais curta que isso —
+   sobra folga embaixo (y:40-660, dock em y:690) em vez de faltar.
+   Em telas altas (1600x900, 1920x1080) esta regra nao entra e a janela
+   continua com os 688px de sempre.
+
+   ESTE BLOCO TEM QUE FICAR NO FIM DO ARQUIVO: cada seletor aqui (".st-
+   body", ".st-card-title" etc.) repete um seletor de MESMA especificidade
+   ja declarado sem media query acima — em empate de especificidade quem
+   vence e a ORDEM NO ARQUIVO, nao a posicao do "@media". Colar este bloco
+   logo apos ".st-window.is-open" (tentativa anterior, corrigida na mesma
+   rodada) deixava as regras sem media query DE BAIXO vencerem sempre,
+   fazendo o media query inteiro nao fazer NADA na pratica — conferido com
+   Playwright (scrollHeight/clientHeight identicos antes e depois). */
+@media (max-height: 800px) {
+	:host {
+		height: 620px;
+	}
+	.st-window {
+		height: 620px;
+	}
+
+	/*
+	 * So encolher a caixa (acima) NAO bastou: medido com Playwright, o
+	 * conteudo natural do ".st-body" (scrollHeight 571px) sobrava do
+	 * espaco disponivel dentro da caixa de 620 (clientHeight 508px) — a
+	 * rolagem escondia HIT/CRI/FLEE/ASPD no meio do card "Estatisticas"
+	 * sem indicacao clara de que dava pra rolar. Por isso os paddings/
+	 * gaps encolhem TAMBEM — a meta e caber tudo sem cortar nem depender
+	 * de rolagem.
+	 */
+	.st-body {
+		gap: 6px;
+		padding: 8px 14px;
+	}
+	.st-card-title {
+		padding: 4px 12px;
+	}
+	.st-char-top {
+		padding: 6px 12px 4px;
+	}
+	.st-char-stat {
+		padding: 3px 12px;
+	}
+	.st-stat-row {
+		padding: 4px 12px;
+	}
+	.st-info-row {
+		padding: 3px 12px;
+	}
+	.st-footer {
+		gap: 6px;
+		padding: 6px 14px 8px;
+	}
+}

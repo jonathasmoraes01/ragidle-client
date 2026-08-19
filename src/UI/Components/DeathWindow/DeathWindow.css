@@ -1,0 +1,105 @@
+/**
+ * UI/Components/DeathWindow/DeathWindow.css
+ *
+ * Full-screen death overlay: dark scrim background (morte e solene, fica
+ * como estava) + um cartao central agora no design system "Ragnarok
+ * Classico Premium" (gauntlet visual 18/08/2026, ver
+ * redesign/extracao-da-referencia.md secoes 2 e 3) — usa os tokens/classes
+ * --ri-* / .ri-* injetados globalmente via UI/Common.css (.ri-window/
+ * .ri-header/.ri-title/.ri-btn), mesma familia visual de StatusIdle.css e
+ * HuntMap.css. So a CAMADA VISUAL mudou aqui: ".dw-overlay"/".dw-btn" (os
+ * dois seletores que DeathWindow.js consulta) continuam intactos, e o gate
+ * de dados validos (_dadosValidosVistos) no JS nao foi tocado.
+ *
+ * Same "transparent host, real content only inside an .is-open inner
+ * element" shape as HuntMap/StatusIdle (see HuntMap.css's header comment
+ * for the full reasoning): ":host" spans the whole viewport but is
+ * pointer-events:none, so it never blocks the 3D scene while the player is
+ * alive; only ".dw-overlay.is-open" (shown by DeathWindow.js while
+ * Session.Entity.life.hp <= 0) re-enables pointer-events and actually
+ * darkens/blocks the screen — which is exactly the point while dead.
+ * DeathWindow.mouseMode = GUIComponent.MouseMode.CROSS (DeathWindow.js)
+ * matches this, same as HuntMap.js:89.
+ */
+
+:host {
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 100vw;
+	height: 100vh;
+	pointer-events: none;
+}
+
+#DeathWindow {
+	position: relative;
+	width: 100%;
+	height: 100%;
+	font-family: var(--font-ui);
+}
+
+.dw-overlay {
+	display: none;
+	position: absolute;
+	inset: 0;
+	/*
+	 * Explicit width/height alongside "inset: 0" — same fix, same reason,
+	 * as StatusIdle.css's ".st-window" (see that file's comment for the
+	 * full mechanism): "#DeathWindow"'s only child is THIS element, which
+	 * is itself position:absolute (out of flow), so "#DeathWindow" never
+	 * gets a definite content height for "inset: 0" to resolve against —
+	 * it collapses to 0 without an explicit size given directly here.
+	 */
+	width: 100vw;
+	height: 100vh;
+	align-items: center;
+	justify-content: center;
+	/* Scrim de fundo do MODAL de morte (nao e "proteger texto sobre o
+	   mundo" -- e um backdrop de foco por tras do cartao central, como
+	   qualquer modal). Mesma tinta azul-tinta que os tokens de sombra usam
+	   (nunca preto puro). */
+	background: rgba(18, 41, 74, 0.35);
+	pointer-events: none;
+}
+
+.dw-overlay.is-open {
+	display: flex;
+	pointer-events: auto;
+}
+
+/* Cartao premium: ".ri-window" ja da fundo/borda dourada/sombra/raio (ver
+   Common.css); so o tamanho e o layout de coluna sao daqui. */
+.dw-card {
+	width: 300px;
+	box-sizing: border-box;
+	display: flex;
+	flex-direction: column;
+	text-align: center;
+}
+
+.dw-titlebar {
+	/* ".ri-header" ja centraliza e poe as asas — so a altura fica menor que
+	   o padrao das janelas com botao fechar, porque esta nao tem um. */
+	height: 40px;
+}
+
+.dw-title {
+	font-size: 15px;
+}
+
+.dw-body {
+	padding: 20px 24px 24px;
+}
+
+.dw-text {
+	margin: 0 0 18px 0;
+	font-size: 12px;
+	color: var(--text-muted);
+	line-height: 1.5;
+}
+
+.dw-btn {
+	display: block;
+	width: 100%;
+	box-sizing: border-box;
+}

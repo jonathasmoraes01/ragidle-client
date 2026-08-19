@@ -94,6 +94,13 @@ import HuntMap from 'UI/Components/HuntMap/HuntMap.js'; // RAGIDLE: "Mapa de Ca�
 import IdleConfig from 'UI/Components/IdleConfig/IdleConfig.js'; // RAGIDLE: "Configuração idle"
 import AdminPanel from 'UI/Components/AdminPanel/AdminPanel.js'; // RAGIDLE: "Painel de admin"
 import IdleSkills from 'UI/Components/IdleSkills/IdleSkills.js'; // RAGIDLE: "Skills de {classe}"
+import BasicInfoIdle from 'UI/Components/BasicInfoIdle/BasicInfoIdle.js'; // RAGIDLE: "Informações básicas"
+import StatusIdle from 'UI/Components/StatusIdle/StatusIdle.js'; // RAGIDLE: "Status"
+import DockIdle from 'UI/Components/DockIdle/DockIdle.js'; // RAGIDLE: "Barra inferior"
+import TopBarIdle from 'UI/Components/TopBarIdle/TopBarIdle.js'; // RAGIDLE: "Capsula de zeny (topo)"
+import CombatCornerIdle from 'UI/Components/CombatCornerIdle/CombatCornerIdle.js'; // RAGIDLE: "Canto de combate (Auto/Mochila)"
+import DeathWindow from 'UI/Components/DeathWindow/DeathWindow.js'; // RAGIDLE: "Você morreu"
+import TopMenuIdle from 'UI/Components/TopMenuIdle/TopMenuIdle.js'; // RAGIDLE: "Menu superior direito (constelação)"
 
 import MainEngine from './MapEngine/Main.js';
 import MapStateEngine from './MapEngine/MapState.js';
@@ -398,6 +405,13 @@ class MapEngine {
 			IdleConfig.prepare(); // RAGIDLE: "Configuração idle"
 			AdminPanel.prepare(); // RAGIDLE: "Painel de admin"
 			IdleSkills.prepare(); // RAGIDLE: "Skills de {classe}"
+			BasicInfoIdle.prepare(); // RAGIDLE: "Informações básicas"
+			StatusIdle.prepare(); // RAGIDLE: "Status"
+			DockIdle.prepare(); // RAGIDLE: "Barra inferior" — depois de HuntMap/IdleConfig/IdleSkills (precisa da shadow DOM deles pronta pra esconder os botoes redundantes)
+			TopBarIdle.prepare(); // RAGIDLE: "Capsula de zeny (topo)"
+			CombatCornerIdle.prepare(); // RAGIDLE: "Canto de combate (Auto/Mochila)" — usa IdleConfig.editConfig/IdleConfig.pedirConfig()/IdleConfig.aplicarConfig() (aliases publicos, ver fim de IdleConfig.js), por isso fica depois de IdleConfig.prepare() acima
+			DeathWindow.prepare(); // RAGIDLE: "Você morreu"
+			TopMenuIdle.prepare(); // RAGIDLE: "Menu superior direito (constelação)" — chama IdleSkills.toggle()/IdleConfig.toggle() (RAGIDLE, ja preparados acima) e Guild.toggle()/PartyFriends.toggle() (nativos, ja preparados bem antes deste bloco); a shadow DOM de todos precisa existir antes do proprio prepare() de TopMenuIdle so por padrao do arquivo, nao por uso direto do DOM deles
 
 			if (Configs.get('enableMapName')) {
 				MapName.prepare();
@@ -795,6 +809,56 @@ function onMapChange(pkt) {
 		// RAGIDLE: "Skills de {classe}" floating button — same unconditional
 		// append() as HuntMap/IdleConfig/AdminPanel right above.
 		IdleSkills.append();
+
+		// RAGIDLE: "Informações básicas" — always-visible HUD replacing the
+		// native BasicInfo window visually (BasicInfoIdle.onAppend() hides
+		// BasicInfo.getUI()._host; see BasicInfoIdle.js file header). Must be
+		// appended AFTER BasicInfo.getUI().append() above so there's a native
+		// window instance to hide.
+		BasicInfoIdle.append();
+
+		// RAGIDLE: "Status" — window only, no floating button of its own
+		// (opened from BasicInfoIdle's icon grid). Gets its data from its own
+		// server packet (ZC_RAGIDLE_FICHA, see StatusIdle.js file header), not
+		// from the native WinStats window, so append order relative to
+		// WinStats doesn't matter.
+		StatusIdle.append();
+
+		// RAGIDLE: "Barra inferior" — dock fixo na base da tela, atalhos pras
+		// janelas RAGIDLE/nativas que ja existem (DockIdle.js). needFocus=false
+		// (ver DockIdle.js) entao a ordem de append aqui nao afeta z-index; fica
+		// depois de HuntMap/IdleConfig/IdleSkills so por clareza de leitura, ja
+		// que DockIdle.onAppend() esconde os 3 botoes flutuantes redundantes
+		// deles (o prepare(), la em cima, e quem garante que a shadow DOM
+		// desses tres ja existe nesse ponto).
+		DockIdle.append();
+
+		// RAGIDLE: "Capsula de zeny (topo)" — HUD sempre visivel, mesma fonte
+		// de dado que BasicInfoIdle usa pra zeny (Session.zeny), mesmo
+		// polling de 250ms (TopBarIdle.js). needFocus=false — ordem de
+		// append aqui nao afeta z-index.
+		TopBarIdle.append();
+
+		// RAGIDLE: "Canto de combate (Auto/Mochila)" — acima do dock. "Auto"
+		// le/grava cacaAutomatica pelo MESMO caminho que a janela Config
+		// idle usa (IdleConfig.editConfig + IdleConfig.aplicarConfig(),
+		// aliases publicos no fim de IdleConfig.js); "Mochila" chama
+		// Inventory.getUI().toggle() (mesmo metodo que DockIdle.append()
+		// acima ja usa pro item "Inventario").
+		CombatCornerIdle.append();
+
+		// RAGIDLE: "Você morreu" — full-screen overlay, hidden until
+		// Session.Entity.life.hp reaches 0 (see DeathWindow.js).
+		DeathWindow.append();
+
+		// RAGIDLE: "Menu superior direito (constelação)" — duas fileiras de
+		// botoes circulares abaixo do minimapa (TopMenuIdle.js/.css).
+		// Funcionais chamam IdleSkills.toggle()/IdleConfig.toggle()
+		// (RAGIDLE) e Guild.toggle()/PartyFriends.toggle() (nativos, metodo
+		// publico ja existente nos dois, nenhum alias novo precisou ser
+		// criado). needFocus=false — ordem de append aqui nao afeta
+		// z-index.
+		TopMenuIdle.append();
 
 		if (Configs.get('enableCashShop')) {
 			CashShopIcon.append();

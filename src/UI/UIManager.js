@@ -77,6 +77,34 @@ function _createOverlay() {
 	}
 })();
 
+/*
+ * As faces do design system (Marcellus para titulo, Figtree para UI) entram
+ * UMA vez por documento, aqui — e nao por @import dentro do Common.css, que
+ * seria refeito dentro de cada Shadow DOM. O jogo roda num iframe, entao o
+ * documento certo e este, o mesmo que recebe o CSS comum acima.
+ *
+ * Sem rede o <link> falha calado e a pilha de reserva (Arial/Liberation Sans)
+ * assume: nenhuma tela quebra, so perde o acabamento tipografico. Por isso as
+ * familias em Common.css declaram reserva, e nada aqui e bloqueante.
+ */
+(function injectDesignSystemFonts() {
+	if (document.querySelector('link[data-ri-fontes]')) {
+		return;
+	}
+	const preconnect = document.createElement('link');
+	preconnect.rel = 'preconnect';
+	preconnect.href = 'https://fonts.gstatic.com';
+	preconnect.crossOrigin = 'anonymous';
+	document.head.appendChild(preconnect);
+
+	const link = document.createElement('link');
+	link.setAttribute('data-ri-fontes', '');
+	link.rel = 'stylesheet';
+	link.href =
+		'https://fonts.googleapis.com/css2?family=Marcellus&family=Figtree:wght@400;500;600;700;800&display=swap';
+	document.head.appendChild(link);
+})();
+
 // Overlay CSS must live in the global <style> tag because overlay divs
 // are appended to document.body (light DOM), not inside any Shadow DOM.
 (function injectOverlayCSS() {

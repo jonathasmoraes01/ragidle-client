@@ -5,15 +5,27 @@
 	left: 100px;
 }
 
+/* menu de escolhas do NPC (builder npc, 18/08/2026): mesmo tratamento do
+   NpcBox -- nunca teve BMP de fundo (cor solida #fff + borda #c1c6c2), vira
+   cartao claro com filete dourado. :host width/height intocados (NpcMenu.js
+   so posiciona top/left; a navegacao por teclado usa scrollIntoView, que
+   funciona igual em qualquer altura de linha). */
 #NpcMenu {
 	position: absolute;
-	border-radius: 5px;
+	border-radius: var(--radius-window);
 	width: 276px;
 	height: 116px;
-	background-color: white;
+	background: var(--window-fill);
+	border: var(--window-frame);
+	box-shadow: var(--window-shadow), var(--rim-light);
 	padding: 2px;
+	font-family: var(--font-ui);
+	box-sizing: border-box;
 }
 
+/* Titulo desta janela (menu de escolhas do NPC): serifa Marcellus, como
+   qualquer titulo de janela do sistema (--font-display) -- so a familia
+   muda, tamanho/peso ficam compactos pra caber no card 276x116. */
 #NpcMenu .title {
 	white-space: nowrap;
 	overflow: hidden;
@@ -21,15 +33,21 @@
 	width: 260px;
 	padding-left: 3px;
 	padding-top: 3px;
+	color: var(--text-title);
+	font-family: var(--font-display);
+	font-weight: 700;
+	font-size: 11px;
 }
 
 #NpcMenu .container {
-	border-radius: 5px;
-	border: 1px solid #c1c6c2;
+	border-radius: var(--radius-panel);
+	border: 1px solid var(--border-hairline);
 	width: 269px;
 	height: 109px;
 	padding-left: 5px;
 	padding-top: 5px;
+	box-sizing: border-box;
+	background: var(--surface-card-hover);
 }
 
 #NpcMenu .middle {
@@ -37,13 +55,16 @@
 	overflow-y: scroll;
 }
 
+/* lista de opcoes: linhas-card claras (briefing: "opcoes como linhas-card com
+   hover azul"). Altura/step da linha ficam os mesmos (17px + padding-top 3px)
+   -- so ganhou raio e uma margem lateral pra parecer card, nao textao corrido */
 #NpcMenu .content {
 	white-space: pre-wrap;
-	background-color: #f9f9f9;
-	width: 260px;
+	background: transparent;
+	width: 258px;
 	height: 80px;
-	padding-left: 3px;
-	margin-top: 5px;
+	padding-left: 0px;
+	margin-top: 4px;
 }
 
 #NpcMenu .content div {
@@ -51,11 +72,24 @@
 	height: 17px;
 	display: block;
 	padding-top: 3px;
-	padding-left: 5px;
+	padding-left: 8px;
+	margin: 1px 2px;
+	border-radius: var(--radius-panel);
+	color: var(--text-body);
+	cursor: pointer;
+	transition: background var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out);
+}
+
+#NpcMenu .content div:hover {
+	background: var(--surface-card-hover);
+	color: var(--blue-600);
 }
 
 #NpcMenu .content div.selected {
-	background-color: #cde0ff;
+	background: var(--tab-active-fill);
+	color: var(--white);
+	font-weight: 600;
+	box-shadow: var(--rim-light);
 }
 
 #NpcMenu .btn {
@@ -63,6 +97,10 @@
 	width: 42px;
 	height: 20px;
 	bottom: 5px;
+	filter: drop-shadow(var(--shadow-card));
+}
+#NpcMenu .btn:hover {
+	filter: drop-shadow(0 0 4px var(--gold-500));
 }
 
 #NpcMenu .cancel {

@@ -5,10 +5,18 @@
 	left: 100px;
 }
 
+/* realinhado ao design system OFICIAL (19/08/2026): hairline AZUL por fora
+   + aro DOURADO por dentro (--window-frame/--rim-gold), no lugar da borda
+   dourada externa de 18/08. Espessura da borda continua 1px -- so a cor
+   trocou -- entao nao mexe no contrato de resizeHeight()/onResize() do
+   StorageCommon.js (offsets 31+19-30, /32). Raio 8px = --radius-window
+   (era 6, valor de --radius-panel por engano). */
 #Storage {
 	position: absolute;
 	width: 280px;
-	border-radius: 3px;
+	border: 1px solid var(--border-window);
+	border-radius: var(--radius-window);
+	box-shadow: var(--shadow-window), var(--rim-gold);
 }
 #Storage table {
 	border-spacing: 0px;
@@ -16,24 +24,43 @@
 	width: 100%;
 }
 
+/* titlebar_mid.bmp removida no HTML (ver comentario la) -- vira gradiente
+   claro do design system */
 #Storage .titlebar {
+	position: relative;
 	width: 100%;
 	height: 17px;
-	background-color: white;
-	background-repeat: repeat-x;
-	border-radius: 3px 3px 0px 0px;
+	background: var(--titlebar-fill);
+	border-bottom: var(--titlebar-rule);
+	border-radius: calc(var(--radius-window) - 1px) calc(var(--radius-window) - 1px) 0px 0px;
 }
+/* titulo central ornamentado: sai do fluxo (absolute) pra ficar centralizado
+   na barra mesmo aninhado dentro de .left -- so pintura, mesma tecnica do
+   InventoryV3/EquipmentV3. Storage nao tem botoes no titlebar (o fechar mora
+   no footer, ver .footer .close), entao centralizar aqui e seguro. */
 #Storage .titlebar .text {
-	text-shadow: 1px 1px white;
-	vertical-align: -2px;
+	position: absolute;
+	left: 50%;
+	top: 50%;
+	transform: translate(-50%, -50%);
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
 	white-space: nowrap;
-	/* chrome bug */
-	display: inline-block;
-	width: 32px;
-	height: 13px;
-	margin-left: 15px;
+	text-shadow: none;
+	color: var(--text-title);
 	font-size: 11px;
 	font-weight: bold;
+}
+#Storage .titlebar .text::before,
+#Storage .titlebar .text::after {
+	content: '';
+	width: 14px;
+	height: 6px;
+	background: var(--ri-asa) no-repeat center / contain;
+}
+#Storage .titlebar .text::after {
+	transform: scaleX(-1);
 }
 
 #Storage .titlebar .left {
@@ -44,11 +71,16 @@
 	clear: both;
 }
 
+/* .tabs mantem o data-background/data-preload no HTML -- tab_itm_ex_0X.bmp
+   pinta os 7 rotulos PT-BR empilhados (Item/Kafra/Armad./Mao/Munic./Carta/
+   Etc.) com o realce da aba ativa, trocado via JS (StorageCommon.js) por
+   aba. Isso e conteudo real, nao decoracao -- so a moldura ao redor troca de
+   cor (ver nota no InventoryV3 sobre EquipmentV3 pro mesmo padrao). */
 #Storage .tabs {
-	border-left: 1px solid #ccc;
+	border-left: 1px solid var(--border-hairline);
 	width: 50px;
 	background-repeat: no-repeat;
-	background-color: white;
+	background-color: var(--paper-1);
 	vertical-align: top;
 	background-position: -1px 0px;
 }
@@ -65,27 +97,50 @@
 
 #Storage .container {
 	padding-left: 16px;
-	border-right: 1px solid #ccc;
-	background: white;
+	border-right: 1px solid var(--border-hairline);
+	background: var(--paper-1);
 	width: 100%;
+	/* respiro branco por baixo da borda da faixa de abas -- mesma receita do
+	   InventoryV3 (box-shadow inset em vez de mais um elemento) */
+	box-shadow: inset 16px 0px 0px 2px var(--white);
+	box-sizing: border-box;
 }
+/* itemwin_mid.bmp removida no HTML (ver comentario la). Storage lista os
+   itens em COLUNA UNICA (icone+qtd+nome), diferente da grade quadrada do
+   Inventory -- entao a trelica vira so linhas horizontais, casadas com o
+   passo real de 32px por linha (item 28px + margem-topo 4px) que o
+   resizeHeight()/onScroll() do StorageCommon.js ja usa pra medir/rolar. Nao
+   mexi em overflow/height -- so pintura. */
 #Storage .content {
 	overflow-y: scroll;
 	overflow-x: hidden;
 	width: 100%;
 	height: 100%;
 	min-height: 240px;
-	background-color: transparent;
-	background-repeat: repeat-y;
-	background-attachment: local;
+	background-color: var(--paper-1);
+	background-image: linear-gradient(to bottom, var(--border-hairline) 1px, transparent 1px);
+	background-size: 100% 32px;
+	background-position: 0px 0px;
+	background-repeat: repeat;
 }
 
+/* Slot ocupado = tratamento n.2 do design system, "ladrilho quadrado": raio
+   4px (--radius-card, ja era 4 aqui), aro dourado, fundo linear-gradient
+   (180deg,#fff,#e6eef8) -- mesma receita do InventoryV3/EquipmentV3. Aro
+   por box-shadow (nao muda a caixa 24x28 que o layout de lista conta). */
 #Storage .content .item {
 	display: block;
 	width: 24px;
 	height: 28px;
 	margin: 4px 0px 0px 4px;
 	position: relative;
+	border-radius: var(--radius-card);
+	background: linear-gradient(180deg, var(--white) 0%, #e6eef8 100%);
+	box-shadow: inset 0 0 0 1px var(--border-gold);
+}
+#Storage .content .item:hover {
+	background: linear-gradient(180deg, var(--white) 0%, var(--sky-50) 100%);
+	box-shadow: inset 0 0 0 1px var(--gold-500);
 }
 #Storage .content .item .icon {
 	width: 24px;
@@ -113,6 +168,8 @@
 	bottom: 9px;
 	right: 0px;
 	text-align: right;
+	color: var(--text-title);
+	font-weight: 700;
 	text-shadow: -1px -1px white;
 }
 #Storage .content .name {
@@ -120,14 +177,24 @@
 	top: 7px;
 	left: 30px;
 	width: 190px;
+	color: var(--text-body);
+	font-family: var(--font-ui);
+}
+#Storage .content .item:hover .name {
+	color: var(--blue-600);
 }
 
 #Storage .footer {
 	width: 100%;
 	height: 55px;
-	background-color: transparent;
+	/* btnbar_mid3.bmp removida no HTML (ver comentario la) -- vira gradiente
+	   claro + filete dourado no topo, mesmo tratamento do rodape do
+	   InventoryV3/EquipmentV3 */
+	background: var(--titlebar-fill);
+	border-top: 1px solid var(--gold-300);
 	position: relative;
-	border-right: 1px solid #ccc;
+	border-right: 1px solid var(--border-hairline);
+	box-sizing: border-box;
 }
 #Storage .footer .extend {
 	position: absolute;
@@ -161,21 +228,34 @@
 	height: 28px;
 }
 
+/* icones (Use/Kafra/Armor/Arms/Ammo/Card/Etc) continuam vindo do
+   data-background/data-down/data-active no HTML -- e a arte real do
+   cliente. Aqui so troca a moldura do botao (borda/fundo/estado ativo). */
 #Storage .footer .filter-buttons button {
 	width: 23px;
 	height: 23px;
-	border: 1px solid #cfcfcf;
-	background-color: #eee;
+	border: 1px solid var(--border-hairline);
+	background-color: var(--white);
 	background-repeat: no-repeat;
 	background-position: center center;
 	padding: 0;
-	border-radius: 2px;
+	border-radius: var(--radius-card);
 	margin: 2px 1px 0px;
 	cursor: pointer;
 }
 
 #Storage .footer .filter-buttons button:hover {
-	background-color: #f5f5f5;
+	background-color: var(--surface-card-hover);
+	border-color: var(--accent);
+}
+
+/* JS (StorageCommon.js onFilterWindowOpen) alterna .active no botao quando a
+   janela de filtro daquela aba esta aberta -- selecionado = borda de acento
+   + 12% de tinta de acento, regra do DS */
+#Storage .footer .filter-buttons button.active {
+	border-color: var(--blue-600);
+	box-shadow: inset 0 0 0 1px var(--accent);
+	background-color: rgba(58, 110, 165, 0.12);
 }
 
 #Storage .footer .item_num_display {
@@ -202,9 +282,16 @@
 #Storage .footer .divider,
 #Storage .footer .limit {
 	font-size: 12px;
+	color: var(--text-body);
+	font-family: var(--font-ui);
 }
 
-/* Search */
+/* Search -- bt_search_normal/over/press.bmp nao foram encontrados nos ativos
+   extraidos localmente (nem em basic_interface/, nem na raiz do
+   INTERFACE_PATH) -- provavelmente ainda empacotados no data.grf. Deixei o
+   ui-button (bg/hover/down) intocado; so a moldura ao redor (input) ganhou
+   o acabamento do design system, pra nao arriscar quebrar o icone se ele
+   resolver em runtime. */
 #Storage .footer .search-container {
 	display: flex;
 	align-items: center;
@@ -212,17 +299,23 @@
 }
 
 #Storage .footer .search-input {
-	border: 1px solid #ccc;
+	border: 1px solid var(--border-hairline);
 	border-radius: 5px;
 	padding: 2px;
 	width: 130px;
 	height: 14px;
+	background-color: var(--white);
+	color: var(--text-body);
+	font-family: var(--font-ui);
+}
+#Storage .footer .search-input:focus {
+	border-color: var(--accent);
 }
 
 #Storage .footer .search-button {
 	width: 23px;
 	height: 18px;
-	background-color: #eee;
+	background-color: var(--white);
 	background-repeat: no-repeat;
 	background-position: center center;
 	border: none;
@@ -235,9 +328,11 @@
 	width: 70px;
 	vertical-align: super;
 	border-radius: 3px;
+	border: 1px solid var(--border-hairline);
+	color: var(--text-body);
+	font-family: var(--font-ui);
 }
 
-/* add blue border to options */
 #Storage .footer .storage-order-by option {
-	border: 1px solid blue;
+	border: 1px solid var(--border-hairline);
 }

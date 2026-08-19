@@ -43,7 +43,12 @@ body {
 	   @font-face in DBManager). When it isn't served it resolves to Arial — the official client's
 	   window UI font for intl/america servicetype (Ragexe draws window text with CreateFontA on the
 	   Gulim/Arial face table). Liberation Sans / Arimo provide Arial metrics on Linux. */
-	font-family: 'SCDream', Arial, 'Liberation Sans', Arimo, sans-serif;
+	/* 'Figtree' entrou na frente por decisao do design system (19/08/2026); o
+	   resto da pilha e a original do fork, e continua valendo quando a face
+	   nao carrega. O 'font-size-adjust' abaixo normaliza a altura-x de
+	   QUALQUER face resolvida para a do Arial, entao trocar a familia nao
+	   remede o texto — foi o que tornou esta troca segura. */
+	font-family: 'Figtree', 'SCDream', Arial, 'Liberation Sans', Arimo, sans-serif;
 	/* Normalize any resolved font's x-height to Arial's (sxHeight 1062 / unitsPerEm 2048 = 0.5186),
 	   so text keeps Arial's apparent size on every OS/font. It's inherited and crosses Shadow DOM
 	   hosts, so it also rescales elements that use a non-Arial face; those opt out with
@@ -167,4 +172,754 @@ ui-button {
 /* Hide native cursor inside Shadow DOM when custom cursor is active */
 :host-context(.custom-cursor) * {
 	cursor: none !important;
+}
+
+/* ============================================================================
+   RAGIDLE — design system "Ragnarok Classico Premium" (gauntlet 18/08/2026).
+   Este bloco e ADITIVO: nada acima muda. Common.css e replicado dentro de cada
+   Shadow DOM pelo GUIComponent, entao os tokens e as classes .ri-* alcancam
+   todo componente sem furar o isolamento. A barra visual e a imagem de
+   conceito do dono (ver rag-idle-master/../redesign/extracao-da-referencia.md).
+   Regra de ouro: estas classes so mudam COR/BORDA/SOMBRA/FONTE por padrao —
+   quem mudar DIMENSAO de um componente confere o JS que mede o DOM
+   (:host sincronizado, barScale, offsets de resize).
+   ========================================================================== */
+
+:root,
+:host {
+	/* ------------------------------------------------------------------
+	   TOKENS OFICIAIS — portados do "Ragnarok Idle Design System" que o
+	   dono forneceu em 19/08/2026 (claude.ai/design). Os valores marcados
+	   (repo) o proprio design system tirou deste fork; os demais sao a
+	   decisao dele. ESTA E A FONTE DA VERDADE: quem mudar cor, fonte,
+	   raio ou sombra muda AQUI, e nao no componente.
+	   ------------------------------------------------------------------ */
+
+	/* Neutros — papel e vidro */
+	--white: #ffffff;
+	--paper-1: #fbfdff;
+	--paper-2: #f4f8fd;
+	--sky-50: #eff5fc;
+	--sky-100: #dce8f6;
+	--sky-200: #c3d8ee;
+	--sky-300: #9ebee0;
+
+	/* Azuis */
+	--blue-400: #6d9bcb;
+	--blue-500: #3a6ea5;
+	--blue-600: #245c9e;
+	--blue-700: #1e4677;
+	--blue-900: #12294a;
+	--ink-500: #6b7893;
+	--ink-700: #2d3a55;
+	--ink-900: #15154a;
+
+	/* Ouro — detalhe premium, NUNCA superficie */
+	--gold-200: #f6e9c4;
+	--gold-300: #f0d89b;
+	--gold-400: #e0b04d;
+	--gold-500: #c9a227;
+	--gold-700: #8a6a18;
+
+	/* Semanticas */
+	--green-300: #8fd17a;
+	--green-600: #2e7d32;
+	--red-300: #ff8080;
+	--red-600: #b13b3b;
+	--amber-600: #b3611c;
+
+	/* Barras de recurso */
+	--hp-fill: linear-gradient(180deg, #ef7c72 0%, #d8443c 48%, #a92b26 100%);
+	--sp-fill: linear-gradient(180deg, #7fb2f0 0%, #2e6fd1 48%, #1c4b98 100%);
+	--exp-fill: linear-gradient(180deg, #d6ee8f 0%, #7fc24a 50%, #4f8f2a 100%);
+	--weight-fill: linear-gradient(180deg, #d8e3f2 0%, #9ebee0 100%);
+	--bar-track: #22304a;
+	--zeny: #d8a72a;
+
+	/* Aliases semanticos — use estes nos componentes */
+	--text-title: var(--blue-900);
+	--text-body: var(--ink-700);
+	--text-muted: var(--ink-500);
+	--text-on-accent: var(--white);
+	--text-link: var(--blue-600);
+	--text-link-hover: var(--blue-500);
+
+	--surface-window: linear-gradient(180deg, rgba(255, 255, 255, 0.96) 0%, rgba(239, 245, 252, 0.94) 100%);
+	--surface-titlebar: linear-gradient(180deg, #f7fbff 0%, #dfe8f6 55%, #cddcef 100%);
+	--surface-card: rgba(255, 255, 255, 0.66);
+	--surface-card-hover: rgba(255, 255, 255, 0.88);
+	--surface-inset: rgba(24, 48, 82, 0.06);
+	--surface-glass: rgba(244, 248, 253, 0.72);
+	--surface-dark-glass: rgba(18, 41, 74, 0.58);
+
+	--accent: var(--blue-500);
+	--accent-strong: var(--blue-600);
+	--accent-gold: var(--gold-400);
+
+	--border-window: rgba(36, 92, 158, 0.34);
+	--border-hairline: rgba(36, 92, 158, 0.16);
+	--border-gold: rgba(201, 162, 39, 0.62);
+	--border-inset: rgba(18, 41, 74, 0.14);
+
+	/* Elevacao — sombra AZUL, nunca preta */
+	--shadow-window: 0 10px 28px rgba(12, 34, 64, 0.28), 0 2px 6px rgba(12, 34, 64, 0.16);
+	--shadow-float: 0 6px 18px rgba(12, 34, 64, 0.22);
+	--shadow-card: 0 1px 2px rgba(12, 34, 64, 0.1);
+	--shadow-inset: inset 0 1px 2px rgba(12, 34, 64, 0.18);
+	--rim-light: inset 0 1px 0 rgba(255, 255, 255, 0.95);
+	--rim-gold: inset 0 0 0 1px rgba(240, 216, 155, 0.75);
+	--rim-dark: inset 0 -1px 0 rgba(12, 34, 64, 0.12);
+	--glow-accent: 0 0 0 2px rgba(58, 110, 165, 0.28), 0 0 14px rgba(110, 170, 240, 0.55);
+	--glow-gold: 0 0 0 1px rgba(201, 162, 39, 0.6), 0 0 16px rgba(224, 176, 77, 0.45);
+	--blur-glass: blur(10px);
+	--blur-glass-strong: blur(18px);
+
+	/* Superficies compostas */
+	--window-frame: 1px solid var(--border-window);
+	--window-fill: var(--surface-window);
+	--window-shadow: var(--shadow-window), var(--rim-gold);
+	--titlebar-fill: var(--surface-titlebar);
+	--titlebar-rule: 1px solid var(--border-gold);
+	--tab-idle-fill: rgba(255, 255, 255, 0.55);
+	--tab-idle-text: var(--ink-500);
+	--tab-active-fill: linear-gradient(180deg, #4b81b8 0%, #245c9e 100%);
+	--tab-active-text: var(--white);
+	--well-fill: var(--surface-inset);
+	--well-shadow: var(--shadow-inset);
+	--divider: 1px solid var(--border-hairline);
+	--ornament-gold: linear-gradient(90deg, rgba(201, 162, 39, 0) 0%, rgba(201, 162, 39, 0.75) 50%, rgba(201, 162, 39, 0) 100%);
+
+	/* Tipografia — display com serifa so em titulo; UI em Figtree.
+	   O <link> das faces vive no index.html do cliente (uma vez por
+	   documento); aqui ficam so as familias, com pilha de reserva que
+	   sustenta a leitura se a rede faltar. */
+	--font-display: 'Marcellus', 'Palatino Linotype', Georgia, serif;
+	--font-ui: 'Figtree', Arial, 'Liberation Sans', Arimo, sans-serif;
+	--font-numeric: 'Figtree', Arial, sans-serif;
+	--font-mono: 'JetBrains Mono', ui-monospace, monospace;
+
+	--fs-window-title: 15px;
+	--fs-section: 13px;
+	--fs-label: 11px;
+	--fs-info: 12px;
+	--fs-desc: 10px;
+	--fs-numeric-lg: 16px;
+	--fs-numeric: 12px;
+	--fs-badge: 9px;
+	--fs-hero: 28px;
+	--lh-tight: 1.1;
+	--lh-ui: 1.2;
+	--lh-read: 1.45;
+	--fw-regular: 400;
+	--fw-medium: 500;
+	--fw-semibold: 600;
+	--fw-bold: 700;
+	--fw-black: 800;
+	--ls-title: 0.02em;
+	--ls-caps: 0.08em;
+
+	--type-window-title: var(--fw-regular) var(--fs-window-title) / var(--lh-tight) var(--font-display);
+	--type-section: var(--fw-bold) var(--fs-section) / var(--lh-ui) var(--font-ui);
+	--type-label: var(--fw-semibold) var(--fs-label) / var(--lh-ui) var(--font-ui);
+	--type-info: var(--fw-medium) var(--fs-info) / var(--lh-ui) var(--font-ui);
+	--type-desc: var(--fw-regular) var(--fs-desc) / var(--lh-read) var(--font-ui);
+	--type-badge: var(--fw-bold) var(--fs-badge) / 1 var(--font-ui);
+	--type-numeric: var(--fw-bold) var(--fs-numeric) / 1 var(--font-numeric);
+	--type-hero: var(--fw-regular) var(--fs-hero) / var(--lh-tight) var(--font-display);
+
+	/* Espacamento e raios — numeros literais do cliente, nao arredondados */
+	--sp-1: 2px;
+	--sp-2: 4px;
+	--sp-3: 6px;
+	--sp-4: 8px;
+	--sp-5: 10px;
+	--sp-6: 12px;
+	--sp-7: 16px;
+	--sp-8: 20px;
+	--sp-9: 26px;
+	--pad-titlebar: 8px 10px;
+	--pad-window: 12px;
+	--pad-card: 6px 8px;
+	--pad-tab: 4px 12px;
+	--pad-button: 8px 18px;
+	--radius-window: 8px;
+	--radius-panel: 6px;
+	--radius-card: 4px;
+	--radius-pill: 999px;
+	--radius-bar: 3px;
+	--hit-touch: 44px;
+
+	/* Movimento — curto, sem salto */
+	--dur-instant: 90ms;
+	--dur-fast: 150ms;
+	--dur-base: 220ms;
+	--dur-slow: 380ms;
+	--ease-out: cubic-bezier(0.22, 0.61, 0.36, 1);
+	--ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+	--press-shift: translateY(1px);
+
+	/* Valores que o design system leu DESTE fork e devolveu como token — os
+	   "(repo)" do tokens/colors.css dele. Ficam com o nome que ele deu para
+	   o codigo novo poder cita-los. */
+	--is-window-bg: #f4f6fb;
+	--is-window-border: #c7d0e0;
+	--is-titlebar-bg: #e6ebf5;
+	--is-title-ink: #1c2540;
+	--is-accent: #3b6ea5;
+	--is-card-border: #d7deea;
+	--is-card-hover: #f7f9fd;
+	--is-card-selected: #eaf1fa;
+	--is-icon-bg: #dbe4f2;
+	--is-rule: #dde3ee;
+	--is-muted: #6f7891;
+	--is-muted-2: #5b6472;
+	--is-muted-3: #8b93a5;
+	--is-footer-bg: #eef1f8;
+	--is-warn: #a06a12;
+	--is-close-hover: #c23a3a;
+	--badge-ativa-bg: #dbe4f5;
+	--badge-ativa-ink: #2255a4;
+	--badge-passiva-bg: #dbe9df;
+	--badge-passiva-ink: #2e7d42;
+	--pip-empty: #dde3ee;
+	--pip-filled: #3b6ea5;
+	--green-900: #2e5c3a;
+	--exp-fill-flat: #4262a5;
+	--exp-track: #ffffff;
+	--exp-border: #afafaf;
+	--ls-none: 0;
+	--pulse-cooldown: 1.6s;
+
+	/* Medidas que o design system cravou a partir dos componentes reais.
+	   CUIDADO: mudar uma destas nao basta — o JS que mede o DOM (:host,
+	   WINDOW_HEIGHT, offsets de resize) tem de andar junto. */
+	--w-huntmap: 640px;
+	--h-huntmap: 460px;
+	--w-idleconfig: 620px;
+	--h-idleconfig: 540px;
+	--w-idleskills: 640px;
+	--h-idleskills: 560px;
+	--w-skill-list: 230px;
+	--pad-detail: 14px;
+	--w-basicinfo: 280px;
+	--w-statwin: 280px;
+	--h-stat-row: 16px;
+	--sz-stat-up: 11px;
+	--sz-skill-icon: 28px;
+	--pip-w: 18px;
+	--pip-h: 6px;
+	--lh-chat: 14px;
+	--w-basicinfo-v5: 220px;
+	--h-basicinfo-v5: 150px;
+	--w-hpbar: 135px;
+	--h-hpbar: 9px;
+	--h-expbar: 4px;
+	--sz-quickbtn: 32px;
+	--w-quest: 350px;
+	--h-quest-item: 42px;
+	--sz-quest-icon: 24px;
+	--sz-minimap-ctl: 12px;
+
+	/* ------------------------------------------------------------------
+	   CAMADA DE COMPATIBILIDADE. Os componentes construidos em 18/08 usam
+	   os nomes --ri-*; em vez de reescrever 15 arquivos, eles APONTAM para
+	   o token oficial. Nome novo em codigo novo; --ri-* fica ate a ultima
+	   referencia sair.
+	   ------------------------------------------------------------------ */
+	--ri-janela-bg: var(--surface-window);
+	--ri-janela-borda: var(--border-window);
+	--ri-janela-raio: var(--radius-window);
+	--ri-janela-sombra: var(--shadow-window);
+	--ri-header-bg: var(--surface-titlebar);
+	--ri-card-bg: var(--surface-card);
+	--ri-card-borda: var(--border-hairline);
+	--ri-card-raio: var(--radius-card);
+	--ri-azul: var(--blue-500);
+	--ri-azul-escuro: var(--blue-600);
+	--ri-dourado: var(--gold-500);
+	--ri-dourado-claro: var(--gold-300);
+	--ri-hp: #d8443c;
+	--ri-hp-2: #ef7c72;
+	--ri-sp: #2e6fd1;
+	--ri-sp-2: #7fb2f0;
+	--ri-exp: #7fc24a;
+	--ri-exp-2: #4f8f2a;
+	--ri-verde: var(--green-600);
+	--ri-texto: var(--text-body);
+	--ri-texto-2: var(--text-muted);
+	--ri-titulo: var(--text-title);
+	--ri-fonte: var(--font-ui);
+	/* ornamento de asa dourada (par do header; o direito espelha com scaleX) */
+	--ri-asa: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 44 16'%3E%3Cg fill='none' stroke='%23c9a353' stroke-width='1.4' stroke-linecap='round'%3E%3Cpath d='M42 8 C34 2, 24 1, 14 4 C8 6, 4 8, 2 8'/%3E%3Cpath d='M42 8 C35 6, 26 6, 18 8'/%3E%3Cpath d='M42 8 C36 11, 28 12, 20 11'/%3E%3C/g%3E%3Ccircle cx='42' cy='8' r='2' fill='%23e9cc8f' stroke='%23c9a353' stroke-width='1'/%3E%3C/svg%3E");
+}
+
+/* A janela padrao: moldura dourada fina, respiro claro interno, sombra suave */
+.ri-window {
+	/* Receita do design system: hairline AZUL por fora, aro DOURADO por
+	   dentro (rim-gold vem no --window-shadow), 8px de raio e vidro para o
+	   mundo aparecer atras. O ouro nunca e superficie, so aro. */
+	background: var(--window-fill);
+	border: var(--window-frame);
+	border-radius: var(--radius-window);
+	box-shadow: var(--window-shadow), var(--rim-light);
+	backdrop-filter: var(--blur-glass);
+	color: var(--text-body);
+	font-family: var(--font-ui);
+	overflow: hidden;
+}
+
+/* Header: gradiente azul-claro, titulo central, asas nas laterais do titulo */
+.ri-header {
+	position: relative;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	height: 34px;
+	padding: var(--pad-titlebar);
+	box-sizing: border-box;
+	background: var(--titlebar-fill);
+	border-bottom: var(--titlebar-rule);
+	cursor: move;
+}
+.ri-title {
+	/* Titulo na face DISPLAY com serifa (Marcellus) — e o unico lugar do
+	   sistema que usa serifa, e e o que da o ar de "classico". */
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	font: var(--type-window-title);
+	color: var(--text-title);
+	letter-spacing: var(--ls-title);
+}
+.ri-title::before,
+.ri-title::after {
+	content: '';
+	width: 44px;
+	height: 16px;
+	background: var(--ri-asa) no-repeat center / contain;
+}
+.ri-title::after {
+	transform: scaleX(-1);
+}
+
+/* Botao X refinado: circulo claro com aro dourado */
+.ri-close {
+	position: absolute;
+	right: 8px;
+	top: 50%;
+	transform: translateY(-50%);
+	width: 20px;
+	height: 20px;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	border-radius: 50%;
+	border: 1px solid var(--border-gold);
+	background: linear-gradient(180deg, var(--white), var(--gold-200));
+	color: var(--gold-700);
+	font-size: var(--fs-label);
+	font-weight: var(--fw-bold);
+	line-height: 1;
+	cursor: pointer;
+	transition: background var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out);
+}
+.ri-close:hover {
+	background: linear-gradient(180deg, var(--gold-200), var(--gold-300));
+	box-shadow: var(--glow-gold);
+}
+
+/* Card interno */
+.ri-card {
+	background: var(--surface-card);
+	border: 1px solid var(--border-hairline);
+	border-radius: var(--radius-card);
+	box-shadow: var(--shadow-card);
+}
+
+/* Botao primario azul e secundario claro */
+.ri-btn {
+	appearance: none;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 6px;
+	padding: var(--pad-button);
+	border-radius: var(--radius-panel);
+	border: 1px solid var(--blue-600);
+	background: var(--tab-active-fill);
+	color: var(--text-on-accent);
+	font-family: var(--font-ui);
+	font-size: var(--fs-info);
+	font-weight: var(--fw-semibold);
+	cursor: pointer;
+	box-shadow: var(--rim-light), var(--shadow-card);
+	/* microinteracao (builder de polimento, 18/08/2026): so background/transform,
+	   igual ao ".dk-item"/".cc-btn" do dock/canto de combate — sem isso o hover
+	   e o :active de baixo trocavam de estado instantaneamente. */
+	transition: background var(--dur-fast) var(--ease-out), transform var(--dur-instant) var(--ease-out);
+}
+.ri-btn:hover {
+	/* "Hover clareia 6%" e a regra literal do design system — clarear por
+	   filtro vale para QUALQUER variante (primaria, secundaria, ouro) sem
+	   inventar um segundo gradiente por variante. */
+	filter: brightness(1.06);
+}
+.ri-btn:active {
+	transform: var(--press-shift);
+	box-shadow: var(--shadow-inset);
+}
+.ri-btn:disabled,
+.ri-btn.is-disabled {
+	/* O design system pede DESSATURAR, nao trocar por cinza chapado — e o
+	   mesmo padrao que o cliente ja usa no botao de cacar dentro da cidade. */
+	filter: grayscale(1);
+	opacity: 0.55;
+	cursor: default;
+	box-shadow: none;
+	transform: none;
+}
+.ri-btn--sec {
+	background: var(--surface-card-hover);
+	border-color: var(--border-hairline);
+	color: var(--text-link);
+	box-shadow: var(--shadow-card);
+}
+.ri-btn--sec:hover {
+	background: var(--white);
+	border-color: var(--accent);
+	filter: none;
+}
+.ri-btn--ouro {
+	background: linear-gradient(180deg, var(--gold-300) 0%, var(--gold-500) 100%);
+	border-color: var(--gold-700);
+	color: #4a3812;
+	text-shadow: 0 1px 0 rgba(255, 255, 255, 0.4);
+}
+
+/* Abas pill (Config/HuntMap) */
+.ri-tab {
+	appearance: none;
+	padding: var(--pad-tab);
+	border-radius: var(--radius-pill);
+	border: 1px solid var(--border-hairline);
+	background: var(--tab-idle-fill);
+	color: var(--tab-idle-text);
+	font: var(--type-label);
+	cursor: pointer;
+	/* microinteracao (builder de polimento, 18/08/2026): border-color/color/
+	   background sao "cor" para efeito de transicao — trocar de aba ou passar
+	   o mouse nao pulava mais de estado em estado. */
+	transition: background var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out),
+		color var(--dur-fast) var(--ease-out);
+}
+.ri-tab:hover {
+	background: var(--surface-card-hover);
+	color: var(--text-link);
+}
+.ri-tab.is-active {
+	/* O design system troca a aba por PREENCHIMENTO, nunca por espessura de
+	   borda — por isso o hover acima tambem so mexe em fundo/cor. */
+	background: var(--tab-active-fill);
+	border-color: var(--blue-600);
+	color: var(--tab-active-text);
+	box-shadow: var(--rim-light), var(--shadow-card);
+}
+
+/* Barra de medidor (HP/SP/EXP): trilho + preenchimento por classe de cor.
+   So COR aqui — largura/altura ficam no componente (o JS pode medir). */
+.ri-bar {
+	position: relative;
+	background: var(--well-fill);
+	border: 1px solid var(--border-hairline);
+	border-radius: var(--radius-pill);
+	overflow: hidden;
+	box-shadow: var(--well-shadow);
+}
+.ri-bar > .fill {
+	height: 100%;
+	border-radius: var(--radius-pill);
+	/* 220ms e a duracao que o design system reserva para PREENCHIMENTO de
+	   barra (--dur-base); 150ms e para troca de estado. */
+	transition: width var(--dur-base) var(--ease-out);
+}
+.ri-bar--hp > .fill {
+	background: var(--hp-fill);
+}
+.ri-bar--sp > .fill {
+	background: var(--sp-fill);
+}
+.ri-bar--exp > .fill {
+	/* No design system a EXP e VERDE (o vermelho e so vida, o azul so SP) —
+	   era dourada aqui e competia com os aros de ouro do chrome. */
+	background: var(--exp-fill);
+}
+.ri-bar > .rotulo {
+	position: absolute;
+	inset: 0;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	font: var(--type-badge);
+	color: var(--white);
+	/* Texto sobre barra colorida: sombra no GLIFO, que e o que o design
+	   system permite para proteger leitura (nunca uma faixa por tras). */
+	text-shadow: 0 1px 2px rgba(12, 34, 64, 0.55);
+	pointer-events: none;
+}
+
+/* Badges e notificacao */
+.ri-badge {
+	display: inline-flex;
+	align-items: center;
+	padding: var(--sp-1) var(--sp-4);
+	border-radius: var(--radius-pill);
+	font: var(--type-badge);
+}
+.ri-badge--verde {
+	background: var(--badge-passiva-bg);
+	color: var(--badge-passiva-ink);
+	border: 1px solid var(--green-300);
+}
+.ri-badge--azul {
+	background: var(--badge-ativa-bg);
+	color: var(--badge-ativa-ink);
+	border: 1px solid var(--sky-200);
+}
+.ri-badge--cinza {
+	background: var(--surface-inset);
+	color: var(--text-muted);
+	border: 1px solid var(--border-hairline);
+}
+.ri-badge--ouro {
+	background: var(--gold-200);
+	color: var(--gold-700);
+	border: 1px solid var(--gold-300);
+}
+/* CONSERTADO em 19/08/2026 (pivo do design system): o ponto de notificacao
+   pendurava PRA FORA do circulo (top/right negativos). O DS oficial pede o
+   ponto DENTRO do disco, canto superior direito, com gradiente vermelho
+   proprio (nao o --ri-hp da barra de vida) e aro branco de 1px. */
+.ri-dot {
+	position: absolute;
+	top: 2px;
+	right: 2px;
+	width: 8px;
+	height: 8px;
+	border-radius: 50%;
+	background: linear-gradient(160deg, #ff7a6e 0%, #c9302c 100%);
+	border: 1px solid var(--white);
+	box-shadow: var(--shadow-card);
+}
+
+/* ============================================================================
+   Tratamentos oficiais do "Ragnarok Idle Design System" (19/08/2026) pros
+   glifos Lucide de UI/ri-icones.js. Regra do DS: "No emoji, and no
+   hand-drawn SVG illustration anywhere in this system" — o premio nao vem
+   do glifo (2px de stroke, sem preenchimento, currentColor), vem do
+   TRATAMENTO em volta dele. Sao SO DOIS usados neste fork por enquanto (o
+   terceiro, "ladrilho quadrado" pra item/skill/equipamento em grade, nao
+   tem nenhum consumidor real ainda — nao construido pra nao sobrar CSS
+   morto sem prova visual).
+   Cada componente define SO o tamanho (width/height) no proprio seletor —
+   cor/borda/sombra/estado moram aqui, uma fonte so pros 5 lugares que usam.
+   ========================================================================== */
+
+/* ─── Disco redondo — menu/dock/constelacao (DockIdle/TopMenuIdle/
+   BasicInfoIdle/TopBarIdle). Vidro claro, aro dourado translucido, glifo
+   azul — brilho dourado + lift no hover, disco azul-dourado quando ativo,
+   dessaturado quando desabilitado ("em breve"). */
+.ri-disc {
+	position: relative;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	flex: 0 0 auto;
+	border-radius: 50%;
+	background: linear-gradient(180deg, rgba(255, 255, 255, 0.96) 0%, rgba(220, 232, 246, 0.9) 100%);
+	border: 1px solid var(--border-gold);
+	box-shadow: var(--shadow-float), var(--rim-light);
+	color: var(--blue-600);
+	transition:
+		box-shadow var(--dur-fast) var(--ease-out),
+		transform var(--dur-fast) var(--ease-out),
+		background var(--dur-fast) var(--ease-out),
+		border-color var(--dur-fast) var(--ease-out);
+}
+
+/* O <svg> injetado (ri-icones.js) nao carrega width/height proprio — 45% do
+   diametro do disco e a proporcao do DS, cada componente so fixa o diametro
+   do proprio ".xx-icon-wrap"/".ri-disc". */
+.ri-disc svg {
+	display: block;
+	width: 45%;
+	height: 45%;
+}
+
+.ri-disc.is-active {
+	background: linear-gradient(180deg, var(--blue-500) 0%, var(--blue-600) 100%);
+	border-color: var(--gold-500);
+	color: var(--gold-200);
+	box-shadow: var(--glow-gold), var(--rim-light);
+}
+
+/* "Em breve"/desabilitado: DESSATURAR, nunca cinza chapado nem pontinho
+   dourado (isso valia pro tratamento antigo, descartado no pivo de
+   19/08/2026) — mesmo padrao que ".ri-btn:disabled" ja usa acima. */
+.ri-disc.is-disabled {
+	filter: grayscale(1);
+	opacity: 0.55;
+}
+
+/* ─── Orbe de vidro — canto de combate (CombatCornerIdle). Vidro com brilho
+   radial no canto superior-esquerdo (34%/28%), aro branco translucido de
+   2px, sombra externa azul + brilho interno. */
+.ri-glass {
+	position: relative;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	flex: 0 0 auto;
+	border-radius: 50%;
+	background: radial-gradient(circle at 34% 28%, rgba(255, 255, 255, 0.92) 0%, rgba(200, 225, 250, 0.55) 55%, rgba(150, 190, 230, 0.32) 100%);
+	border: 2px solid rgba(255, 255, 255, 0.7);
+	box-shadow: var(--shadow-float), inset 0 2px 6px rgba(255, 255, 255, 0.35);
+	color: var(--blue-600);
+	transition:
+		box-shadow var(--dur-fast) var(--ease-out),
+		transform var(--dur-fast) var(--ease-out);
+}
+
+.ri-glass svg {
+	display: block;
+	width: 45%;
+	height: 45%;
+}
+
+.ri-glass.is-on {
+	border-color: var(--gold-500);
+	box-shadow: var(--glow-gold), inset 0 2px 6px rgba(255, 255, 255, 0.4);
+	color: var(--blue-700);
+}
+
+/* ─── Ladrilho quadrado — o 3o (e ultimo) tratamento de icone do design
+   system: item, drop, equipamento e linha de skill. A RARIDADE mora so na
+   BORDA; o miolo continua sendo a arte do cliente. Cada componente fixa o
+   tamanho; aqui fica a pele. */
+.ri-tile {
+	position: relative;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	flex: 0 0 auto;
+	border-radius: var(--radius-card);
+	background: linear-gradient(180deg, var(--white) 0%, #e6eef8 100%);
+	border: 1px solid var(--border-gold);
+	box-shadow: var(--rim-light), var(--shadow-card);
+	color: var(--blue-600);
+	transition: box-shadow var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out);
+}
+.ri-tile.is-empty {
+	/* Slot vazio quase nao existe: sem aro dourado, sem sombra. */
+	background: var(--surface-inset);
+	border-color: var(--border-hairline);
+	box-shadow: none;
+}
+.ri-tile.is-uncommon {
+	border-color: var(--green-600);
+}
+.ri-tile.is-rare {
+	border-color: var(--blue-500);
+}
+.ri-tile.is-unique {
+	border-color: var(--gold-500);
+	box-shadow: var(--glow-gold), var(--rim-light);
+}
+.ri-tile:hover {
+	border-color: var(--accent);
+	box-shadow: var(--glow-accent), var(--rim-light);
+}
+
+/* Input de busca/texto */
+.ri-input {
+	padding: var(--sp-3) var(--sp-5);
+	border-radius: var(--radius-panel);
+	border: 1px solid var(--border-hairline);
+	background: var(--white);
+	color: var(--text-body);
+	font: var(--type-info);
+	/* Campo de busca e "poco" no design system: afundado, nao elevado. */
+	box-shadow: var(--well-shadow);
+}
+.ri-input:focus {
+	border-color: var(--accent);
+	box-shadow: var(--glow-accent);
+}
+.ri-input::placeholder {
+	color: var(--text-muted);
+}
+
+/* Divisor ornamentado (linha com losango dourado central) */
+.ri-divisor {
+	position: relative;
+	height: 1px;
+	/* O design system tem token proprio para esta regua: --ornament-gold. */
+	background: var(--ornament-gold);
+	margin: var(--sp-4) 0;
+}
+.ri-divisor::after {
+	content: '';
+	position: absolute;
+	left: 50%;
+	top: 50%;
+	width: 5px;
+	height: 5px;
+	transform: translate(-50%, -50%) rotate(45deg);
+	background: var(--gold-300);
+	border: 1px solid var(--gold-500);
+}
+
+/* Scrollbar discreta nos componentes premium */
+.ri-scroll::-webkit-scrollbar {
+	width: var(--sp-4);
+}
+.ri-scroll::-webkit-scrollbar-track {
+	background: var(--sky-50);
+	border-radius: var(--radius-panel);
+}
+.ri-scroll::-webkit-scrollbar-thumb {
+	background: var(--sky-300);
+	border-radius: var(--radius-panel);
+	border: 2px solid var(--sky-50);
+}
+.ri-scroll::-webkit-scrollbar-thumb:hover {
+	background: var(--accent);
+}
+
+/* ============================================================================
+   Microinteracao: abertura suave das janelas RagIdle (builder de polimento,
+   18/08/2026). As 4 janelas modais (StatusIdle/HuntMap/IdleSkills/IdleConfig)
+   tem o HOST inserido no DOM UMA VEZ so (MapEngine.js chama .append() no
+   carregamento do mapa) — abrir/fechar so alterna a classe ".is-open" no
+   elemento ".xx-window" (display:none -> flex; ver o cabecalho de
+   StatusIdle.css/HuntMap.css sobre por que o host fica fixo, nunca
+   removido/reinserido). Por isso a animacao mora aqui, casada com
+   ".is-open", e nao com insercao no DOM: toda transicao display:none ->
+   display:flex reinicia uma CSS animation sozinha, sem listener novo.
+   Dock/TopBar/CombatCorner NAO carregam ".ri-window" (sao barras/capsulas
+   fixas, nunca "abrem"), entao ficam de fora por construcao. */
+@media (prefers-reduced-motion: no-preference) {
+	.ri-window.is-open {
+		animation: ri-janela-abrir 140ms ease-out;
+	}
+}
+
+@keyframes ri-janela-abrir {
+	from {
+		opacity: 0;
+		transform: scale(0.98);
+	}
+	to {
+		opacity: 1;
+		transform: scale(1);
+	}
 }

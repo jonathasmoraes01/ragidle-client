@@ -1,14 +1,55 @@
+/*
+ * v-premium: adocao do design system "Ragnarok Classico Premium" (ver
+ * redesign/extracao-da-referencia.md, secoes 2/3/4.6). ChatBox e um
+ * componente NATIVO do roBrowser (nao RagIdle): o chrome antigo era ou
+ * texturas BMP escuras aplicadas via data-background/Client.loadFile
+ * (style inline, ve GUIComponent.js processDataAttrs) ou CSS puro
+ * (rgba preto/branco, como as abas e o corpo abaixo).
+ *
+ * O que era CSS foi repintado direto pelos seletores abaixo. O que era
+ * textura inline teve dois caminhos, escolhidos por elemento:
+ *  - .input (data-background="dialog_bg.bmp"): o atributo foi REMOVIDO no
+ *    .html — a barra de digitacao virou um cartao de vidro escuro puro em CSS.
+ *  - os icones pequenos que ainda carregam bmp (.chat-function/.filter/
+ *    .size/.list): nao da pra vencer o backgroundImage inline por classe,
+ *    entao entra uma capsula de vidro escuro por baixo (regra 2 do design
+ *    system oficial) — os bmps ja sao claros, sobram legiveis sem filtro.
+ *
+ * Nenhuma classe/id que o JS usa (on, active, fix, data-tab, data-content,
+ * data-scrollbar-skin) foi renomeada ou removida — so cor/borda/raio/
+ * opacidade/tipografia (regra 1) e a cadeia de larguras px (595/600/592/
+ * calc(100% - 140px)) continua intocada.
+ *
+ * PIVO 19/08/2026 (design system oficial): o chat e "o elemento mais
+ * transparente da tela, de proposito" e manda VIDRO ESCURO
+ * (--surface-dark-glass) pro que fica sobre o mundo, com o texto protegido
+ * por sombra no glifo — nunca um scrim de largura total. O corpo/rodape de
+ * digitacao eram um painel CLARO quase opaco (decisao do gauntlet de
+ * 18/08), o que forcava um contorno escuro artificial nas 4 direcoes só pra
+ * as cores neon do getColorForType() (verde/amarelo/ciano puros, ver
+ * ChatBox.js) nao sumirem contra o azul claro. Essas cores SAO desenhadas
+ * pra fundo escuro (e' a paleta classica do RO); testado nos dois (print
+ * sobre o chao de pedra de Prontera, ver relatorio) o vidro escuro venceu:
+ * as cores voltam a ficar 100% legiveis SEM contorno artificial, e o chat
+ * finalmente lê como "vidro sobre o mundo" em vez de "prancheta colada
+ * na tela". As abas continuam pills (nao mudam de familia).
+ */
 :host {
 	position: absolute;
+	transform: translateY(-76px);
 }
 
 #chatbox {
 	position: relative;
 	left: 5px;
 	width: 595px;
+	font-family: var(--font-ui);
 }
 
-/** Tabs **/
+/** Tabs (pills de vidro claro; a aba ativa ganha o gradiente azul do design
+    system — os tokens --tab-idle-fill/--tab-active-fill sao os MESMOS que
+    .ri-tab usa em Common.css, entao a aba do chat e a aba de Config/HuntMap
+    sao a mesma peca visual). **/
 #chatbox .header {
 	margin-left: 3px;
 	height: 17px;
@@ -17,58 +58,124 @@
 }
 
 #chatbox .header .tab {
-	width: 75px;
-	color: white;
+	/* 75px -> 84px: nao faz parte da cadeia de larguras da regra 1 (essa e
+	   so #chatbox/.input/.wrapper/.battlemode) — folga extra pro rotulo
+	   PT sobreposto abaixo (::before) nao esbarrar na borda do pill. */
+	width: 84px;
+	color: var(--text-muted);
 	text-align: center;
 }
 
 #chatbox .header input {
 	border: none;
 	background-color: transparent;
-	color: white;
-	width: 75px;
+	color: inherit;
+	width: 84px;
 	height: 15px;
 	text-align: center;
+	font-family: var(--font-ui);
+	font: var(--type-label);
+}
+
+/* Rotulo das 2 abas padrao em PT (rodada 2, achado 3): o texto real vem
+   de DB.getMessage(1291/1292), uma tabela de mensagens carregada em
+   runtime (data/msgstringtable.csv, ve DBManager.js) — NAO e' markup nem
+   logica desta pasta, entao nao mexe la (regra 3). O que da pra fazer sem
+   tocar em JS/dados: esconder o texto ingles (color:transparent) e
+   sobrepor o rotulo em PT com ::before, so quando o value= (atributo
+   HTML, gravado uma vez na criacao da aba em ChatBox.js addNewTab) ainda
+   bate com o texto default em ingles. :focus-within desliga a mascara
+   (mostra o texto real de novo) enquanto o campo esta sendo editado, pra
+   nao esconder o que o jogador esta digitando ao renomear a aba.
+   Limitacao conhecida: como o atributo HTML nunca e' reescrito no rename
+   (ChatBox.js so atualiza a property .value, nao setAttribute), se o
+   jogador renomear uma dessas 2 abas e clicar fora, o rotulo volta a
+   mostrar "Normal"/"Batalha" por cima do novo nome — nao da pra evitar
+   isso sem tocar na logica do JS. */
+#chatbox .header .tab div:has(> input[value="Regular Message"]),
+#chatbox .header .tab div:has(> input[value="Battle Message"]) {
+	position: relative;
+}
+#chatbox .header .tab div:has(> input[value="Regular Message"]) input,
+#chatbox .header .tab div:has(> input[value="Battle Message"]) input {
+	color: transparent;
+}
+#chatbox .header .tab div:has(> input[value="Regular Message"]):focus-within input,
+#chatbox .header .tab div:has(> input[value="Battle Message"]):focus-within input {
+	color: inherit;
+}
+#chatbox .header .tab div:has(> input[value="Regular Message"])::before,
+#chatbox .header .tab div:has(> input[value="Battle Message"])::before {
+	position: absolute;
+	inset: 0;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	pointer-events: none;
+	color: inherit;
+	font-family: var(--font-ui);
+	font: var(--type-label);
+}
+#chatbox .header .tab div:has(> input[value="Regular Message"]):focus-within::before,
+#chatbox .header .tab div:has(> input[value="Battle Message"]):focus-within::before {
+	content: none;
+}
+#chatbox .header .tab div:has(> input[value="Regular Message"])::before {
+	content: 'Normal';
+}
+#chatbox .header .tab div:has(> input[value="Battle Message"])::before {
+	content: 'Batalha';
 }
 
 #chatbox .header .tab div {
 	padding-top: 2px;
-	border-radius: 2px 2px 0px 0px;
-	background: rgba(0, 0, 0, 0.75);
-	border: 1px solid #959595;
-	border-bottom: 1px solid white;
+	border-radius: var(--radius-pill);
+	background: var(--surface-glass);
+	border: 1px solid var(--border-hairline);
+	color: var(--text-muted);
+	box-shadow: var(--shadow-card);
 }
 
 #chatbox .header .tab div.on {
-	background: rgba(0, 0, 0, 0.5);
-	border: 1px solid white;
-	border-bottom: none;
-	border-right: none;
+	background: var(--tab-active-fill);
+	border: 1px solid var(--blue-600);
+	color: var(--tab-active-text);
 	height: 18px;
+	box-shadow: var(--rim-light), var(--shadow-card);
 }
 
 #chatbox .header .options {
-	border-bottom: 1px solid white;
+	border-bottom: 1px solid var(--border-hairline);
 	height: 18px;
 	margin-right: 4px;
 }
 
-/** Content **/
+/** Content: vidro ESCURO translucido (decisao do design system 19/08 — ver
+    cabecalho do arquivo). As cores de mensagem (getColorForType em
+    ChatBox.js) sao a paleta neon classica do RO, desenhada pra fundo
+    escuro: contra --surface-dark-glass elas voltam a ficar legiveis por
+    conta propria, sem contorno artificial — so uma sombra leve no glifo
+    (regra 2) pra proteger contra o mundo que aparece atras do vidro. **/
 #chatbox .body {
-	background: rgba(0, 0, 0, 0.5);
-	border-left: 1px solid white;
-	border-right: 1px solid white;
-	border-radius: 0px 3px 0px 0px;
-	padding: 0px 5px 5px 5px;
+	background: var(--surface-dark-glass);
+	backdrop-filter: var(--blur-glass);
+	border: 1px solid var(--border-window);
+	border-radius: var(--radius-panel);
+	padding: 4px 6px 5px 6px;
 	margin-left: 3px;
 	margin-right: -2px;
 	max-width: 100%;
+	box-shadow: var(--shadow-float), var(--rim-light);
 }
 #chatbox .contentwrapper {
 	height: 42px;
 }
 #chatbox .content {
-	text-shadow: 1px 1px 0px black;
+	/* protecao de glifo (regra 2 do design system): sombra leve, NUNCA um
+	   scrim de largura total — o vidro escuro do .body ja e a "capsula"
+	   que protege o texto contra o mundo atras. As cores de cada linha
+	   continuam 100% do JS (msg div.style.color inline, intocado). */
+	text-shadow: 0 1px 2px rgba(18, 41, 74, 0.85);
 	height: 100%;
 	overflow-y: auto;
 	line-height: 14px;
@@ -87,6 +194,34 @@
 	cursor: pointer;
 }
 
+/* Scrollbar fina no padrao .ri-scroll (Common.css): o JS injeta um
+   <style> DEPOIS deste (ve ChatBox.js ~L224-247, as setas azuis
+   dialscr_up/down.bmp), entao com a MESMA especificidade ele venceria por
+   ordem de insercao — !important garante que o padrao premium fique por
+   cima sem tocar o JS (regra 5 do briefing). */
+#chatbox .content::-webkit-scrollbar {
+	width: 8px !important;
+	height: 8px !important;
+}
+#chatbox .content::-webkit-scrollbar-button {
+	display: none !important;
+}
+#chatbox .content::-webkit-scrollbar-track-piece:vertical,
+#chatbox .content::-webkit-scrollbar-track {
+	background: rgba(18, 41, 74, 0.35) !important;
+	border: none !important;
+	border-radius: var(--radius-card);
+}
+#chatbox .content::-webkit-scrollbar-thumb:vertical,
+#chatbox .content::-webkit-scrollbar-thumb {
+	background: var(--blue-400) !important;
+	border-radius: var(--radius-card);
+	border-width: 0 !important;
+}
+#chatbox .content::-webkit-scrollbar-thumb:hover {
+	background: var(--gold-400) !important;
+}
+
 #chatbox .event_add_cursor {
 	height: 14px;
 	cursor: ns-resize;
@@ -96,21 +231,29 @@
 	width: 592px;
 	height: 25px;
 	position: relative;
-	border-left: 1px solid white;
-	border-right: 1px solid white;
-	border-top: 1px solid grey;
-	background-color: rgba(0, 0, 0, 0.5);
+	border: 1px solid var(--border-window);
+	background: var(--surface-dark-glass);
+	backdrop-filter: var(--blur-glass);
 	margin-left: 3px;
+	border-radius: var(--radius-panel);
 	display: none;
 	max-width: 100%;
+	box-shadow: var(--shadow-card), var(--rim-light);
 }
 
-/** Input **/
+/** Input: era textura BMP inline (dialog_bg.bmp), removida no .html —
+    agora e um cartao de vidro escuro, coerente com o resto do widget e com
+    o texto branco classico do input de chat do RO. **/
 #chatbox .input {
 	width: 600px;
 	height: 25px;
 	position: relative;
 	max-width: 100%;
+	background: var(--surface-dark-glass);
+	backdrop-filter: var(--blur-glass);
+	border: 1px solid var(--border-window);
+	border-radius: var(--radius-pill);
+	box-shadow: var(--shadow-card), var(--rim-light);
 }
 
 #chatbox .input.fix {
@@ -123,12 +266,17 @@
 	height: 18px;
 	background-color: transparent;
 	border: none;
+	color: var(--white);
+	font-family: var(--font-ui);
+	text-shadow: 0 1px 2px rgba(18, 41, 74, 0.85);
 }
 
 #chatbox .input .username {
-	left: 4px;
+	left: 8px;
 	width: 90px;
 	padding-left: 5px;
+	color: var(--gold-300);
+	font: var(--type-label);
 }
 
 #chatbox .input .list {
@@ -140,6 +288,9 @@
 	left: 97px;
 	background-repeat: no-repeat;
 	padding: 0;
+	/* bmp claro (feito pra fundo escuro) — sem filtro, o vidro escuro do
+	   .input ja da o contraste. */
+	opacity: 0.85;
 }
 #chatbox .input .wrapper {
 	display: flex;
@@ -162,7 +313,14 @@
 	max-width: 100%;
 	vertical-align: middle;
 	display: inline-block;
+	color: var(--white);
+	font-family: var(--font-ui);
+	text-shadow: 0 1px 2px rgba(18, 41, 74, 0.85);
 }
+/* Cores de canal (party/guild/clan) NAO tem token no design system oficial
+   — sao identidade semantica do canal de chat classico do RO (roxo/verde-
+   agua/laranja), nao cor de superficie ou decoracao. Ficam literais de
+   proposito, e ja funcionam bem sobre o vidro escuro. */
 #chatbox .input .message.party {
 	color: #840084;
 }
@@ -182,6 +340,9 @@
 	right: 13px;
 	top: 8px;
 	background-color: transparent;
+	/* mesmo bmp claro dos demais icones do widget — sem filtro no vidro
+	   escuro (regra 2). */
+	opacity: 0.85;
 }
 
 #chatbox .input .size {
@@ -190,6 +351,9 @@
 
 #chatbox .battlemode .bmtoggle {
 	height: 100%;
+	color: var(--white);
+	font-family: var(--font-ui);
+	text-shadow: 0 1px 2px rgba(18, 41, 74, 0.85);
 }
 #chatbox .chat-function {
 	position: absolute;
@@ -198,12 +362,23 @@
 	/* Expand the "no-walk" header zone around buttons (but don't move them visually). */
 	padding: 6px;
 	margin: -6px;
+	/* capsula de vidro escuro (regra 2 do design system): estes icones
+	   ficam sobre o MUNDO, sem nenhum cartao atras — vidro escuro +
+	   blur e a protecao oficial, no lugar do veu/filtro escuro de antes. */
+	background: var(--surface-dark-glass);
+	backdrop-filter: var(--blur-glass);
+	border-radius: var(--radius-pill);
 }
 #chatbox .chat-function button {
 	background-size: auto;
 	border: 0;
 	background-repeat: no-repeat;
 	background-color: transparent;
+	/* bmps claros, feitos pra fundo escuro — sem inverter/escurecer. */
+	opacity: 0.85;
+}
+#chatbox .chat-function button:hover {
+	opacity: 1;
 }
 #chatbox .chat-function .chatmode {
 	width: 15px;

@@ -181,6 +181,16 @@ ChatBox.init = function init() {
 	ChatBox.updateHeight();
 	ChatBox.applyFontScale();
 
+	// (tentativa investigada e descartada aqui: dar um "restY" mais alto pra
+	// _preferences.y=Infinity nao funciona — GUIComponent._fixPositionOverflow()
+	// roda logo depois de init() dentro de _prepare() e chama
+	// UI/ClampToViewport.js, que quando magnet.BOTTOM e true SEMPRE forca
+	// `el.style.top = HEIGHT - height` (flush, sem margem nenhuma),
+	// sobrescrevendo qualquer top que a gente calcule aqui. magnet.BOTTOM
+	// vem true por padrao (_preferences.magnet_bottom) e ClampToViewport e
+	// compartilhado por toda a UI (nao da pra mudar so pro ChatBox sem
+	// mexer fora da pasta). A folga do dock foi resolvida em CSS em vez
+	// disso — ve ":host { transform }" em ChatBox.css.)
 	this._host.style.top = `${Math.min(Math.max(0, _preferences.y - (this._host.offsetHeight || 0)), Renderer.height - (this._host.offsetHeight || 0))}px`;
 	this._host.style.left = `${Math.min(Math.max(0, _preferences.x), Renderer.width - (this._host.offsetWidth || 0))}px`;
 

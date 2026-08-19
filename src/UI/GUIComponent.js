@@ -890,6 +890,15 @@ class GUIComponent {
 				for (const node of candidates) {
 					if (node.nodeType !== 1) continue;
 
+					// Design system premium (gauntlet 18/08/2026, UI/Common.css): um
+					// elemento marcado com a classe .ri-scroll pede a barra FINA nativa
+					// do tema (trilho/thumb via ::-webkit-scrollbar em Common.css), nao
+					// a barra legada do roBrowser com setas grossas montada abaixo. Opt-in
+					// por classe, entao nenhuma janela existente muda de comportamento.
+					if (node.classList && node.classList.contains('ri-scroll')) {
+						continue;
+					}
+
 					if (node._roScrollbarApplied) {
 						_ScrollBar?.applyDOMScrollbar(node);
 						continue;

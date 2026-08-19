@@ -100,6 +100,19 @@ IdleSkills.serverData = null;
 IdleSkills.selectedSkillId = null;
 
 /**
+ * @var {string} category rail filter (rodada 2 do gauntlet, 18/08/2026):
+ *      'todas' | 'ativa' | 'passiva' | 'suporte'. Pure client-side view
+ *      filter over the already-loaded IdleSkills.serverData.skills — no
+ *      packet, no server round-trip. 'ativa'/'passiva' match skill.categoria
+ *      (the same field that already feeds the list/detail badge); 'suporte'
+ *      has no matching categoria in today's data contract (only 'ativa' |
+ *      'passiva' exist, see combat/skills.ts PorteDeHabilidade), so it
+ *      renders the tab for visual parity with the reference but is
+ *      honestly empty until the contract grows a third category.
+ */
+IdleSkills.categoriaFiltro = 'todas';
+
+/**
  * @var {string[]} problems from the last rejected "aprender" (contract's
  *      non-empty "problemas"). Purely transient here (cleared automatically
  *      after PROBLEMAS_TIMEOUT_MS, see showProblemas below) since — unlike
@@ -276,6 +289,7 @@ IdleSkills.init = function init() {
 
 	root.querySelector('.is-button').addEventListener('click', onClickButton);
 	root.querySelector('.is-close').addEventListener('click', onClickClose);
+	root.querySelectorAll('.is-cat-tab').forEach(btn => btn.addEventListener('click', onClickCategoria));
 
 	// GUIComponent#draggable() (GUIComponent.js:516-747) moves ":host" via
 	// left/top, using the titlebar as the drag handle — same call shape as
@@ -492,6 +506,28 @@ function renderTitle() {
 }
 
 /**
+ * Client-side-only filter over the already-loaded skill list (rodada 2, see
+ * IdleSkills.categoriaFiltro above). Never touches serverData/network.
+ */
+function filtrarPorCategoria(skills) {
+	const f = IdleSkills.categoriaFiltro;
+	if (!f || f === 'todas') {
+		return skills;
+	}
+	return skills.filter(s => s.categoria === f);
+}
+
+function onClickCategoria(e) {
+	e.stopImmediatePropagation();
+	const btn = e.currentTarget;
+	IdleSkills.categoriaFiltro = btn.dataset.cat || 'todas';
+	_root()
+		.querySelectorAll('.is-cat-tab')
+		.forEach(b => b.classList.toggle('is-active', b === btn));
+	renderList();
+}
+
+/**
  * Left-hand card list.
  */
 function renderList() {
@@ -504,7 +540,13 @@ function renderList() {
 		return;
 	}
 
-	listEl.innerHTML = data.skills.map(renderCard).join('');
+	const visiveis = filtrarPorCategoria(data.skills);
+	if (!visiveis.length) {
+		listEl.innerHTML = '<div class="is-empty">Nenhuma skill nesta categoria.</div>';
+		return;
+	}
+
+	listEl.innerHTML = visiveis.map(renderCard).join('');
 	listEl.querySelectorAll('[data-skill-card]').forEach(card => card.addEventListener('click', onClickCard));
 }
 
@@ -513,15 +555,18 @@ function renderCard(skill) {
 	const categoriaLabel = skill.categoria === 'passiva' ? 'Passiva' : 'Ativa';
 
 	return `
-		<button type="button" class="is-card${isSelected ? ' is-selected' : ''}" data-skill-card="${escapeHtml(skill.skillId)}">
-			<span class="is-card-icon">${escapeHtml(skillInitials(skill.skillId))}</span>
+		<button type="button" class="is-card ri-card${isSelected ? ' is-selected' : ''}" data-skill-card="${escapeHtml(skill.skillId)}">
+			<span class="is-card-icon">
+				<img src="/ragidle/skills/${encodeURIComponent(skill.skillId)}.png" alt="" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" />
+				<span class="is-card-icon-fallback">${escapeHtml(skillInitials(skill.skillId))}</span>
+			</span>
 			<span class="is-card-info">
 				<span class="is-card-name">${escapeHtml(skill.nome)}</span>
 				<span class="is-card-meta">
-					<span class="is-badge is-badge-${skill.categoria === 'passiva' ? 'passiva' : 'ativa'}">${categoriaLabel}</span>
+					<span class="is-badge ri-badge ${skill.categoria === 'passiva' ? 'ri-badge--verde' : 'ri-badge--azul'}">${categoriaLabel}</span>
 				</span>
 			</span>
-			<span class="is-card-level">${skill.aprendido}/${skill.nivelMaximo}</span>
+			<span class="is-card-level">Nv. ${skill.aprendido}/${skill.nivelMaximo}</span>
 		</button>`;
 }
 
@@ -574,36 +619,46 @@ function renderDetail() {
 	const atMax = skill.aprendido >= skill.nivelMaximo;
 	const proximo = skill.aprendido + 1;
 	const disabled = !skill.podeAprender || atMax;
-	const title = skill.motivo ? escapeHtml(skill.motivo) : atMax ? 'Nível máximo' : '';
-	const btnLabel = atMax ? 'Nível máximo' : `Aprender Nv. ${proximo}`;
+	const title = skill.motivo ? escapeHtml(skill.motivo) : atMax ? 'Nível máximo alcançado' : '';
+	// atMax: reference print shows a disabled "Dominada" button instead of
+	// the normal "Aprender Nv. X" one (spec: "em vez do botão Aprender,
+	// texto 'Nível máximo alcançado' + botão desabilitado 'Dominada'").
+	const btnLabel = atMax ? 'Dominada' : `Aprender Nv. ${proximo}`;
 
 	const footerHtml = atMax
-		? '<div class="is-detail-max">Nível máximo atingido.</div>'
+		? '<div class="is-detail-max">Nível máximo alcançado</div>'
 		: `
 			<div class="is-detail-next">Próximo nível <strong>Nv. ${proximo}</strong></div>
 			<div class="is-detail-custo">Custo: ${skill.custo} ponto de skill</div>`;
 
 	detailEl.innerHTML = `
 		<div class="is-detail-header">
-			<div class="is-detail-title-row">
-				<span class="is-detail-name">${escapeHtml(skill.nome)}</span>
-				<span class="is-pill">Nv. ${skill.aprendido}/${skill.nivelMaximo}</span>
-			</div>
-			<div class="is-detail-badges">
-				<span class="is-badge is-badge-${skill.categoria === 'passiva' ? 'passiva' : 'ativa'}">${categoriaLabel}</span>
-				${!skill.portada ? '<span class="is-badge is-badge-gray" title="Skill pode ser aprendida, mas ainda não tem efeito em combate.">sem efeito em combate ainda</span>' : ''}
+			<span class="is-detail-icon">
+				<img src="/ragidle/skills/${encodeURIComponent(skill.skillId)}.png" alt="" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" />
+				<span class="is-detail-icon-fallback">${escapeHtml(skillInitials(skill.skillId))}</span>
+			</span>
+			<div class="is-detail-header-text">
+				<div class="is-detail-title-row">
+					<span class="is-detail-name">${escapeHtml(skill.nome)}</span>
+					<span class="is-pill">Nv. ${skill.aprendido}/${skill.nivelMaximo}</span>
+				</div>
+				<div class="is-pips">${pipsHtml}</div>
+				<div class="is-detail-badges">
+					<span class="is-badge ri-badge ${skill.categoria === 'passiva' ? 'ri-badge--verde' : 'ri-badge--azul'}">${categoriaLabel}</span>
+					${!skill.portada ? '<span class="is-badge ri-badge ri-badge--cinza" title="Skill pode ser aprendida, mas ainda não tem efeito em combate.">sem efeito em combate ainda</span>' : ''}
+				</div>
 			</div>
 		</div>
 		<div class="is-detail-maxline">Nível máximo : ${skill.nivelMaximo}</div>
 		${resumo ? `<div class="is-detail-resumo">${escapeHtml(resumo)}</div>` : ''}
+		<div class="ri-divisor"></div>
 		<div class="is-detail-section">
 			<h4>Mecânica por nível</h4>
-			<div class="is-mecanica-box">${mecanicaHtml}</div>
+			<div class="is-mecanica-box ri-card ri-scroll">${mecanicaHtml}</div>
 		</div>
-		<div class="is-pips">${pipsHtml}</div>
 		<div class="is-detail-footer">
 			${footerHtml}
-			<button type="button" class="is-btn-aprender" data-skill-aprender="${escapeHtml(skill.skillId)}" ${disabled ? 'disabled' : ''} title="${title}">${btnLabel}</button>
+			<button type="button" class="is-btn-aprender ri-btn" data-skill-aprender="${escapeHtml(skill.skillId)}" ${disabled ? 'disabled' : ''} title="${title}">${btnLabel}</button>
 		</div>`;
 
 	const btn = detailEl.querySelector('[data-skill-aprender]');
@@ -638,7 +693,10 @@ function renderFooter() {
 	} else {
 		const disponiveis = data.skills.filter(s => s.podeAprender).length;
 		leftEl.textContent = pluralizeDisponiveis(disponiveis);
-		rightEl.innerHTML = `<span class="is-pontos-pill">Pontos disponíveis ${data.pontos}</span>`;
+		// "ri-badge--ouro" (Common.css, pivo do design system em 19/08/2026) e a
+		// variante dourada pronta que faltava aqui -- ".is-pontos-pill" ficou so
+		// com o delta de tamanho (ver IdleSkills.css).
+		rightEl.innerHTML = `<span class="is-pontos-pill ri-badge ri-badge--ouro">Pontos disponíveis: ${data.pontos}</span>`;
 	}
 
 	problemasEl.textContent = IdleSkills.problemas && IdleSkills.problemas.length ? IdleSkills.problemas.join(' · ') : '';

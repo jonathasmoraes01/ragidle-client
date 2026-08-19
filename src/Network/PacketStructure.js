@@ -16050,6 +16050,72 @@ PACKET.CZ.RAGIDLE_APRENDER.prototype.build = function () {
 	return pkt_buf;
 };
 
+// RAGIDLE: custom "Você morreu" / "Status" packets (see
+// UI/Components/DeathWindow/DeathWindow.js and
+// UI/Components/StatusIdle/StatusIdle.js). Opcode 0x0ffc is deliberately
+// left free/unused (task spec explicitly assigns only 0x0ffd/0x0ffe/0x0fff
+// here, right after IdleSkills' 0x0ff9-0x0ffb above — checked: no other
+// PACKET.*/length_list[] assignment in this file or in
+// Network/Packets/packets2021_len_main.js touches 0x0ffc-0x0fff).
+
+// 0x0ffd - RAGIDLE: CZ_RAGIDLE_RENASCER (client -> server)
+// Fixed 2 bytes: opcode only. Sent when the player clicks "Voltar para a
+// cidade" on the death overlay. Same shape as CZ_RAGIDLE_PEDIR_CATALOGO
+// above. The server is expected to fully heal + teleport and answer with
+// the standard mapmove packet (no dedicated ZC_RAGIDLE_* answer needed).
+PACKET.CZ.RAGIDLE_RENASCER = function PACKET_CZ_RAGIDLE_RENASCER() {};
+PACKET.CZ.RAGIDLE_RENASCER.prototype.build = function () {
+	const pkt_len = 2;
+	const pkt_buf = new BinaryWriter(pkt_len);
+
+	pkt_buf.writeShort(0x0ffd);
+	return pkt_buf;
+};
+
+// 0x0ffe - RAGIDLE: CZ_RAGIDLE_DISTRIBUIR (client -> server)
+// Fixed 2 bytes: opcode only. Sent when the player clicks "Distribuir
+// Automático" in the Status window. Same shape as
+// CZ_RAGIDLE_PEDIR_CATALOGO above. The server applies its own per-class
+// weights and answers through the normal CZ_STATUS_CHANGE_ACK/
+// ZC_PAR_CHANGE stream (no dedicated ZC_RAGIDLE_* answer needed).
+PACKET.CZ.RAGIDLE_DISTRIBUIR = function PACKET_CZ_RAGIDLE_DISTRIBUIR() {};
+PACKET.CZ.RAGIDLE_DISTRIBUIR.prototype.build = function () {
+	const pkt_len = 2;
+	const pkt_buf = new BinaryWriter(pkt_len);
+
+	pkt_buf.writeShort(0x0ffe);
+	return pkt_buf;
+};
+
+// 0x0fff - RAGIDLE: CZ_RAGIDLE_PEDIR_FICHA (client -> server)
+// Fixed 2 bytes: opcode only. Sent when the StatusIdle window is opened.
+// Same shape as CZ_RAGIDLE_PEDIR_CATALOGO above.
+PACKET.CZ.RAGIDLE_PEDIR_FICHA = function PACKET_CZ_RAGIDLE_PEDIR_FICHA() {};
+PACKET.CZ.RAGIDLE_PEDIR_FICHA.prototype.build = function () {
+	const pkt_len = 2;
+	const pkt_buf = new BinaryWriter(pkt_len);
+
+	pkt_buf.writeShort(0x0fff);
+	return pkt_buf;
+};
+
+// 0x0fef - RAGIDLE: ZC_RAGIDLE_FICHA (server -> client)
+// Variable size: u16 opcode + u16 total length + JSON UTF-8 payload.
+// Answers CZ_RAGIDLE_PEDIR_FICHA, and is ALSO pushed unprompted by the
+// server right after a stat point is spent (CZ_STATUS_CHANGE, 0xbb) or
+// after CZ_RAGIDLE_DISTRIBUIR (0x0ffe) is applied — see
+// UI/Components/StatusIdle/StatusIdle.js for the contract shape ({ v,
+// atributos: { forca/agilidade/vitalidade/inteligencia/destreza/sorte:
+// {valor,custo} }, pontos, derivados: {atk,matk,def,mdef,hit,flee,crit,
+// aspd}, nivel, nivelDeJob }). Same parsing pattern as ZC_RAGIDLE_CATALOGO
+// above — deliberately NOT in the same 0x0ffX cluster as the other RAGIDLE
+// opcodes (chosen/reserved by the server team outside that range), so it's
+// registered on its own here.
+PACKET.ZC.RAGIDLE_FICHA = function PACKET_ZC_RAGIDLE_FICHA(fp, end) {
+	this.json = fp.readString(end - fp.tell());
+};
+PACKET.ZC.RAGIDLE_FICHA.size = -1;
+
 /**
  * Export
  */

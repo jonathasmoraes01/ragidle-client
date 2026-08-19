@@ -1,0 +1,213 @@
+/**
+ * UI/Components/TopMenuIdle/TopMenuIdle.css
+ *
+ * "Menu superior direito" (constelacao de atalhos) do design system
+ * "Ragnarok Classico Premium". Duas fileiras de botoes circulares ABAIXO do
+ * minimapa (MiniMapV2.css: top 16px, right 16px, largura 136px, card
+ * completo com header+corpo+rodape mede pertinho de 180px de altura) - por
+ * isso o :host abaixo comeca em top:208px, com respiro. NUNCA mexer nesse
+ * numero sem reconferir contra o minimapa de verdade (a prova fotografica
+ * confere isso).
+ *
+ * Sem card/painel envolvendo a grade de proposito: os botoes flutuam soltos
+ * sobre a cena, mesmo contrato visual de CombatCornerIdle.css (botoes
+ * circulares soltos no canto inferior direito, sem fundo).
+ *
+ * Glifos + tratamento (pivo do "Ragnarok Idle Design System" oficial,
+ * 19/08/2026 — SUBSTITUI a rodada anterior, que usava SVG preenchido com
+ * gradiente + acento dourado desenhado a mao; o DS e explicito: "No emoji,
+ * and no hand-drawn SVG illustration anywhere in this system"): os icones
+ * agora sao glifos Lucide (stroke 2, sem preenchimento, ver UI/ri-icones.js)
+ * e o premio visual vem do TRATAMENTO ".ri-disc" (Common.css) — vidro claro,
+ * aro dourado, glifo azul, brilho dourado + lift no hover, disco
+ * azul-dourado quando ativo, dessaturado quando "em breve". A bolinha
+ * dourada decorativa ".tm-gema" que existia antes (par do glifo hand-drawn)
+ * FOI REMOVIDA — o DS nao preve nenhum ornamento por-item, so o disco e o
+ * ponto real de notificacao (".ri-dot").
+ *
+ * Contrato de pointer-events (mesmo padrao de DockIdle.css/
+ * CombatCornerIdle.css): ":host" fica pointer-events:none e cada ".tm-item"
+ * reabre com pointer-events:auto - clicar no mapa atraves da area vazia da
+ * constelacao continua funcionando.
+ */
+
+/*
+ * POSICAO — AO LADO do minimapa, nao embaixo (pedido do dono, 19/08/2026).
+ * Antes era "top:208px; right:16px", que empurrava a constelacao para baixo
+ * do minimapa; o conceito poe as duas coisas na MESMA faixa do topo, com os
+ * icones a esquerda e o minimapa encostado no canto.
+ *
+ * Os numeros sairam de MEDIR o minimapa em jogo (getBoundingClientRect), nao
+ * de chutar: ele ocupa 136x184 com 16px de margem no canto. Logo, para a
+ * constelacao encostar do lado dele com 12px de respiro:
+ *     right = 16 (margem do minimapa) + 136 (largura dele) + 12 (respiro)
+ * e "top" igual ao dele (16px), para os dois alinharem em cima.
+ * Quem mudar a largura do minimapa RE-MEDE isto.
+ */
+:host {
+	top: 16px;
+	left: auto;
+	right: 164px;
+	bottom: auto;
+	width: auto;
+	height: auto;
+	pointer-events: none;
+}
+
+#TopMenuIdle {
+	position: relative;
+	font-family: var(--font-ui, var(--ri-fonte));
+}
+
+/* ─── A grade: 6 colunas, os 11 itens quebram em duas fileiras (6 + 5) ── */
+
+.tm-grid {
+	display: grid;
+	grid-template-columns: repeat(6, 48px);
+	/* 10px (era 6px): a capsula de "Recompensas" (nome fixo, 11 letras, DS
+	   proibe abreviar) e mais larga que a coluna de 48px e a vizinha
+	   "Eventos" tambem e centrada na propria coluna — sem esse respiro
+	   extra as duas capsulas se sobrepunham (medido: ~11px de sobreposicao
+	   real em 1920x1080, nao so um recorte de screenshot). Ver tambem a
+	   fonte menor (--fs-badge) so nesse item, logo abaixo. */
+	column-gap: 18px;
+	row-gap: 8px;
+}
+
+.tm-item {
+	appearance: none;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: flex-start;
+	gap: 3px;
+	padding: 3px 2px;
+	border: none;
+	border-radius: 10px;
+	background: transparent;
+	cursor: pointer;
+	pointer-events: auto;
+}
+
+/* Tamanho do disco — cor/borda/sombra/estado vem de ".ri-disc" (Common.css),
+   compartilhado com DockIdle/BasicInfoIdle/TopBarIdle. */
+.tm-icon-wrap {
+	width: 42px;
+	height: 42px;
+}
+
+.tm-item:hover .tm-icon-wrap {
+	box-shadow: var(--shadow-float), var(--rim-light), var(--glow-gold);
+	transform: translateY(-1px);
+}
+
+.tm-item:active .tm-icon-wrap {
+	transform: var(--press-shift);
+}
+
+/* Label: FORA do disco, sobre o mundo. CONSERTADO em 19/08/2026 (2 defeitos
+   fotografados pelo dono na cena real 1920x1080, Prontera):
+   1) texto branco + text-shadow SOME sobre telhado bege / cupula dourada —
+      o DS preve exatamente esse caso: "Protection for text over the world
+      is a shadow on the glyph, or a dark-glass capsule — never a
+      full-width scrim." Virou capsula de vidro escuro
+      (--surface-dark-glass + --blur-glass), largura SO do conteudo (nao a
+      coluna inteira do grid) — funciona sobre qualquer mapa, claro ou
+      escuro, porque o proprio fundo da capsula já garante contraste antes
+      mesmo do texto branco entrar.
+   2) a correcao anterior ("ate 2 linhas, word-break:break-word") quebrava
+      "Recompensas" NO MEIO DA PALAVRA ("Recomp"/"ensas") — pior que a
+      ellipsis que resolveu. "Recompensas" e uma palavra so (nome de janela
+      fixo pelo DS, nunca abreviado): ou cabe numa linha, ou nao quebra.
+      white-space:nowrap + largura de conteudo (nao mais um max-width fixo
+      de 48-56px que forcava a quebra) resolve pra ela e pra qualquer nome
+      futuro sem nunca mais fatiar uma palavra ao meio — a capsula so fica
+      mais larga que a coluna do grid quando precisa (grid nao recorta
+      overflow visual por padrao). */
+.tm-label {
+	display: inline-block;
+	width: max-content;
+	max-width: none;
+	white-space: nowrap;
+	word-break: normal;
+	overflow-wrap: normal;
+	background: var(--surface-dark-glass);
+	backdrop-filter: var(--blur-glass);
+	-webkit-backdrop-filter: var(--blur-glass);
+	border-radius: var(--radius-pill, 999px);
+	padding: 1px 6px;
+	font-size: var(--fs-desc, 10px);
+	font-weight: var(--fw-semibold, 600);
+	line-height: 1.3;
+	color: var(--white);
+	text-shadow: 0 1px 2px rgba(8, 22, 40, 0.85);
+	text-align: center;
+}
+
+/* ─── Estado ativo (janela aberta): disco vira azul-dourado (DS) —
+   CONSERTADO (defeito fotografado pelo dono — o circulo ficava PRETO no
+   tratamento antigo). Antes precisava de um filter() pra recolorir o SVG
+   preenchido; o glifo Lucide usa "currentColor", entao "color" already
+   basta — muito mais simples. */
+.tm-item.is-active .tm-icon-wrap {
+	background: linear-gradient(180deg, var(--blue-500) 0%, var(--blue-600) 100%);
+	border-color: var(--gold-500);
+	color: var(--gold-200);
+	box-shadow: var(--glow-gold), var(--rim-light);
+}
+
+.tm-item.is-active .tm-label {
+	font-weight: var(--fw-bold, 700);
+	text-shadow: 0 0 6px rgba(224, 176, 77, 0.85), 0 1px 2px rgba(8, 22, 40, 0.85);
+}
+
+/* "Recompensas": nome de janela fixo (DS proibe abreviar), 11 letras — o
+   mais longo da grade. Mesmo com o column-gap maior acima, a capsula em
+   --fs-desc (10px) ainda encostava na de "Eventos" ao lado — --fs-badge
+   (9px, so pra ESTE item) fecha a conta sem abreviar nada e sem mudar o
+   tamanho de mais ninguem na grade. */
+[data-action='recompensas'] .tm-label {
+	font-size: var(--fs-badge, 9px);
+}
+
+/* ─── "Em breve": funcao ainda nao existe no jogo. DS: DESSATURAR
+   (grayscale), nunca cinza chapado — mesma linguagem de ".ri-btn:disabled"
+   (Common.css). Sem hover de acao: nenhuma mudanca de sombra/lift ao passar
+   o mouse, so o cursor continua "pointer" porque o clique ainda reage (o
+   toast abaixo). */
+.tm-item--em-breve .tm-icon-wrap {
+	filter: grayscale(1);
+	opacity: 0.55;
+}
+
+.tm-item--em-breve:hover .tm-icon-wrap {
+	box-shadow: var(--shadow-float), var(--rim-light);
+	transform: none;
+}
+
+/* ─── Toast "Em breve": elemento proprio do componente (nunca pacote nem
+   janela), centralizado sob a grade, aparece/some via classe ".is-visible"
+   controlada por TopMenuIdle.js (setTimeout de ~1.5s). ─────────────────── */
+
+.tm-toast {
+	position: absolute;
+	top: calc(100% + 6px);
+	right: 0;
+	padding: 5px 12px;
+	border-radius: var(--radius-pill, 999px);
+	background: var(--surface-dark-glass, #2e3f5c);
+	color: var(--white);
+	font-size: 11px;
+	font-weight: var(--fw-bold, 700);
+	white-space: nowrap;
+	box-shadow: var(--shadow-float);
+	opacity: 0;
+	transform: translateY(-4px);
+	pointer-events: none;
+	transition: opacity var(--dur-fast, 160ms) var(--ease-out), transform var(--dur-fast, 160ms) var(--ease-out);
+}
+
+.tm-toast.is-visible {
+	opacity: 1;
+	transform: translateY(0);
+}

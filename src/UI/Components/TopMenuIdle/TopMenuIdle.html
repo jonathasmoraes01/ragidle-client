@@ -1,0 +1,76 @@
+<div id="TopMenuIdle">
+	<div class="tm-grid">
+		<!-- ─── Funcionais: cada um chama o MESMO metodo publico que ja abre a
+		     janela em outro lugar do fork (ver cabecalho de TopMenuIdle.js) ── -->
+
+		<button type="button" class="tm-item" data-action="skills" title="Skills">
+			<span class="tm-icon-wrap ri-disc">
+				<!--RI_ICONE:skills-->
+				<!-- Ponto de "ponto de skill disponivel" — mesma fonte de dado que
+				     DockIdle.js:syncSkillDot() (SkillList.getUI() .skpoints_count),
+				     ligado/desligado por TopMenuIdle.js. -->
+				<span class="ri-dot" style="display: none"></span>
+			</span>
+			<span class="tm-label">Skills</span>
+		</button>
+
+		<button type="button" class="tm-item" data-action="guild" title="Guilda">
+			<span class="tm-icon-wrap ri-disc"><!--RI_ICONE:guilda--></span>
+			<span class="tm-label">Guilda</span>
+		</button>
+
+		<button type="button" class="tm-item" data-action="group" title="Grupo">
+			<span class="tm-icon-wrap ri-disc"><!--RI_ICONE:grupo--></span>
+			<span class="tm-label">Grupo</span>
+		</button>
+
+		<button type="button" class="tm-item" data-action="config" title="Config">
+			<span class="tm-icon-wrap ri-disc"><!--RI_ICONE:config--></span>
+			<span class="tm-label">Config</span>
+		</button>
+
+		<!-- ─── Em breve: a funcao NAO existe no jogo hoje (ver cabecalho de
+		     TopMenuIdle.js). Visual honesto - DS pede DESSATURAR (grayscale),
+		     nunca cinza chapado nem ornamento proprio - nenhum pacote sai,
+		     nenhuma janela falsa abre. ──────────────────────────────────────── -->
+
+		<button type="button" class="tm-item tm-item--em-breve" data-action="loja" data-em-breve="1" title="Em breve">
+			<span class="tm-icon-wrap ri-disc"><!--RI_ICONE:loja--></span>
+			<span class="tm-label">Loja</span>
+		</button>
+
+		<button type="button" class="tm-item tm-item--em-breve" data-action="roshop" data-em-breve="1" title="Em breve">
+			<span class="tm-icon-wrap ri-disc"><!--RI_ICONE:roshop--></span>
+			<span class="tm-label">RO Shop</span>
+		</button>
+
+		<button type="button" class="tm-item tm-item--em-breve" data-action="troca" data-em-breve="1" title="Em breve">
+			<span class="tm-icon-wrap ri-disc"><!--RI_ICONE:troca--></span>
+			<span class="tm-label">Troca</span>
+		</button>
+
+		<button type="button" class="tm-item tm-item--em-breve" data-action="leilao" data-em-breve="1" title="Em breve">
+			<span class="tm-icon-wrap ri-disc"><!--RI_ICONE:leilao--></span>
+			<span class="tm-label">Leilão</span>
+		</button>
+
+		<button type="button" class="tm-item tm-item--em-breve" data-action="recompensas" data-em-breve="1" title="Em breve">
+			<span class="tm-icon-wrap ri-disc"><!--RI_ICONE:recompensas--></span>
+			<span class="tm-label">Recompensas</span>
+		</button>
+
+		<button type="button" class="tm-item tm-item--em-breve" data-action="eventos" data-em-breve="1" title="Em breve">
+			<span class="tm-icon-wrap ri-disc"><!--RI_ICONE:eventos--></span>
+			<span class="tm-label">Eventos</span>
+		</button>
+
+		<button type="button" class="tm-item tm-item--em-breve" data-action="passe" data-em-breve="1" title="Em breve">
+			<span class="tm-icon-wrap ri-disc"><!--RI_ICONE:passe--></span>
+			<span class="tm-label">Passe</span>
+		</button>
+	</div>
+
+	<!-- Toast "Em breve" - elemento proprio do componente, nunca um pacote nem
+	     janela; some sozinho (ver TopMenuIdle.js showToast()). -->
+	<div class="tm-toast" aria-live="polite"></div>
+</div>
