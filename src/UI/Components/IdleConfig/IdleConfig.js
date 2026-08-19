@@ -266,10 +266,13 @@ function onClickApply(e) {
  * shape as HuntMap's requestCatalog() (HuntMap.js:265-268).
  */
 /**
- * RAGIDLE: em CIDADE nao ha caca (D-246), entao o botao flutuante fica
- * desabilitado e o hover explica por que (D-355, pedido do dono). O sinal
- * vem do servidor no campo contexto.ehCidade: mapa sem populacao de mobs.
- * Contrato antigo sem o campo cai em false e nada muda.
+ * RAGIDLE: em CIDADE nao ha caca (D-246) e o botao AVISA isso (D-355). Mas
+ * a cidade NAO tranca a janela (D-359, ordem do dono em 18/08 a noite):
+ * a versao anterior desabilitava o botao E fechava a janela na resposta do
+ * servidor, e o efeito medido foi o dono em Prontera sem conseguir ALTERAR
+ * a rotacao de skills — a config e exatamente o que se ajusta NA cidade,
+ * antes de viajar. Fica o aviso (classe + hover + nota no rodape), sai a
+ * trava. O sinal vem de contexto.ehCidade (mapa sem populacao de mobs).
  */
 function aplicarEstadoDeCidade() {
 	const ehCidade = !!(IdleConfig.contexto && IdleConfig.contexto.ehCidade);
@@ -277,12 +280,11 @@ function aplicarEstadoDeCidade() {
 	if (!btn) {
 		return;
 	}
-	btn.disabled = ehCidade;
+	btn.disabled = false;
 	btn.classList.toggle('ic-button-cidade', ehCidade);
-	btn.title = ehCidade ? 'Voce esta na cidade!' : 'Configuracao idle';
-	if (ehCidade) {
-		closeWindow();
-	}
+	btn.title = ehCidade
+		? 'Voce esta na cidade — de para editar a configuracao; a caca comeca quando viajar.'
+		: 'Configuracao idle';
 }
 
 /**
@@ -363,7 +365,11 @@ function onConfigReceived(pkt) {
 		IdleConfig.serverConfig = data.config;
 		IdleConfig.editConfig = cloneConfig(data.config);
 		IdleConfig.dirty = false;
-		setStatus(isApplyResponse ? 'Aplicado.' : '');
+		// Em cidade o aviso mora AQUI (D-359): a janela edita normalmente e o
+		// rodape lembra que a caca so comeca fora da cidade.
+		setStatus(isApplyResponse
+			? 'Aplicado.'
+			: (data.contexto.ehCidade ? 'Voce esta na cidade — a caca comeca quando voce viajar.' : ''));
 	} else {
 		// Transactional refusal (contract: "NÃO-vazio = recusado
 		// transacionalmente (nada mudou)"). Deliberately do NOT touch
@@ -486,6 +492,17 @@ function bindGenericControls(bodyEl) {
 		});
 	});
 
+	// D-342: 'Usar ataque básico' mapeia um booleano de UI para o ENUM
+	// modoDeAtaque — por isso não cabe no data-bool genérico.
+	bodyEl.querySelectorAll('[data-modo-basico]').forEach(el => {
+		el.addEventListener('change', () => {
+			// D-361: o rótulo virou "Desabilitar ataques básicos" — MARCADO
+			// agora significa 'apenas-skills' (o inverso de antes).
+			IdleConfig.editConfig.modoDeAtaque = el.checked ? 'apenas-skills' : 'skills-e-basico';
+			markDirty();
+		});
+	});
+
 	bodyEl.querySelectorAll('[data-select]').forEach(el => {
 		el.addEventListener('change', () => {
 			const value = el.dataset.selectNumber ? Number(el.value) : el.value;
@@ -542,8 +559,14 @@ function onSliderSettled(path) {
 function renderGeral() {
 	const cfg = IdleConfig.editConfig;
 
+	// Rodada 2 (gauntlet): as duas opcoes viviam em cards separados com um
+	// vazio vertical enorme abaixo. Agrupadas num so card (com .ri-divisor
+	// entre elas) e com um segundo card de orientacao, o corpo ganha
+	// hierarquia e respiro constante em vez de terminar no vazio — sem
+	// mudar nenhum data-bool nem o contrato com bindGenericControls().
 	return `
 		<div class="ic-section">
+			<h3>Automação</h3>
 			<label class="ic-switch-row">
 				<span class="ic-switch">
 					<input type="checkbox" data-bool="cacaAutomatica" ${cfg.cacaAutomatica ? 'checked' : ''} />
@@ -554,12 +577,19 @@ function renderGeral() {
 					<span class="ic-switch-sub">O personagem caça sozinho no mapa.</span>
 				</span>
 			</label>
-		</div>
-		<div class="ic-section">
+			<div class="ri-divisor"></div>
 			<label class="ic-checkbox-row">
 				<input type="checkbox" data-bool="coletarItens" ${cfg.coletarItens ? 'checked' : ''} />
 				<span>Coletar itens automaticamente</span>
 			</label>
+		</div>
+		<div class="ic-section ic-section-tip">
+			<h3>Próximos passos</h3>
+			<ul class="ic-tip-list">
+				<li>Escolha os alvos na aba <strong>Alvos</strong> — só monstros marcados são caçados.</li>
+				<li>Monte a ordem de golpes na aba <strong>Skills</strong>.</li>
+				<li>Configure quando descansar e usar poções na aba <strong>Recuperação</strong>.</li>
+			</ul>
 		</div>`;
 }
 
@@ -580,6 +610,7 @@ function renderAlvos() {
 					m => `
 			<label class="ic-mob-row">
 				<input type="checkbox" data-mob-toggle="${m.mobId}" ${disabledSet.has(m.mobId) ? '' : 'checked'} />
+				<span class="ic-mob-icon"><img src="/ragidle/mobs/${m.mobId}.png" alt="" onerror="this.style.display='none'" /></span>
 				<span>${escapeHtml(m.nome)}</span>
 			</label>`
 				)
@@ -648,6 +679,20 @@ function bindAlvosExtra(bodyEl) {
 /**
  * ─── Tab: Skills ────────────────────────────────────────────
  */
+
+/**
+ * O nome de EXIBIÇÃO de uma skill (D-359, queixa do dono: a aba mostrava
+ * "MG_COLDBOLT"). O servidor manda `nome` (o PT do cliente instalado, o
+ * mesmo da janela de skills) em skillsAtivas/skillsPassivas; contrato
+ * antigo sem o campo cai no id técnico, o comportamento de antes.
+ */
+function nomeDaSkill(skillId) {
+	const ctx = IdleConfig.contexto || {};
+	const todas = [].concat(ctx.skillsAtivas || [], ctx.skillsPassivas || []);
+	const achada = todas.find(s => s.skillId === skillId);
+	return (achada && achada.nome) || skillId;
+}
+
 function renderSkills() {
 	const cfg = IdleConfig.editConfig;
 	const ctx = IdleConfig.contexto;
@@ -664,8 +709,9 @@ function renderSkills() {
 					.map(
 						(r, i) => `
 			<div class="ic-rot-row">
-				<span class="ic-rot-name">${escapeHtml(r.skillId)}</span>
-				<span class="ic-rot-level">Nv ${r.nivelDeUso}</span>
+				<span class="ic-rot-num">${i + 1}</span>
+				<span class="ic-rot-name" title="${escapeHtml(r.skillId)}">${escapeHtml(nomeDaSkill(r.skillId))}</span>
+				<span class="ic-rot-level ri-badge ri-badge--azul">Nv ${r.nivelDeUso}</span>
 				<span class="ic-rot-actions">
 					<button type="button" class="ic-icon-btn" data-rot-action="up" data-rot-index="${i}" ${i === 0 ? 'disabled' : ''} title="Mover para cima">↑</button>
 					<button type="button" class="ic-icon-btn" data-rot-action="down" data-rot-index="${i}" ${i === rotacao.length - 1 ? 'disabled' : ''} title="Mover para baixo">↓</button>
@@ -687,9 +733,9 @@ function renderSkills() {
 		} else {
 			addHtml = `
 				<select class="ic-add-skill" data-action="skill-add">
-					<option value="">+ Adicionar skill</option>
+					<option value="">+ Adicionar Skill</option>
 					${available
-						.map(s => `<option value="${escapeHtml(s.skillId)}">${escapeHtml(s.skillId)} (Nv ${s.aprendido})</option>`)
+						.map(s => `<option value="${escapeHtml(s.skillId)}">${escapeHtml(s.nome || s.skillId)} (Nv ${s.aprendido})</option>`)
 						.join('')}
 				</select>`;
 		}
@@ -702,8 +748,8 @@ function renderSkills() {
 				.map(
 					s => `
 			<div class="ic-passiva-row">
-				<span>${escapeHtml(s.skillId)} (Nv ${s.aprendido})</span>
-				<span class="ic-badge">ativa automaticamente</span>
+				<span title="${escapeHtml(s.skillId)}">${escapeHtml(s.nome || s.skillId)} (Nv ${s.aprendido})</span>
+				<span class="ic-badge ri-badge ri-badge--verde">ativa automaticamente</span>
 			</div>`
 				)
 				.join('')
@@ -716,15 +762,97 @@ function renderSkills() {
 			${rotationHtml}
 		</div>
 		<div class="ic-section">
-			<label class="ic-checkbox-row ic-checkbox-locked" title="Suprimir o ataque básico depende do motor de combate (contrato congelado) — em breve.">
-				<input type="checkbox" checked disabled />
-				<span>Usar ataque básico</span>
+			<label class="ic-checkbox-row">
+				<!-- D-361 (19/08): o rótulo virou a AÇÃO que o dono pediu
+				     ("desabilitar ataques básicos"). Marcado = 'apenas-skills'. -->
+				<input type="checkbox" data-modo-basico ${cfg.modoDeAtaque === 'apenas-skills' ? 'checked' : ''} />
+				<span>Desabilitar ataques básicos</span>
 			</label>
-			<div class="ic-note">O personagem ataca normalmente quando nenhuma skill da lista está disponível.</div>
+			<div class="ic-note">Marcado: só skills — conjura à distância e espera o SP voltar, sem socar. Desmarcado: ataca normalmente quando nenhuma skill está disponível.</div>
 		</div>
+		${renderBuffsDeSkill()}
 		<div class="ic-section">
 			<h3>Passivas</h3>
+			<div class="ic-note">Valem sozinhas, só de estarem aprendidas — não entram em rotação nenhuma (Recuperação de SP/HP, maestrias, Habilidades Básicas).</div>
 			${passivasHtml}
+		</div>`;
+}
+
+/**
+ * A ROTAÇÃO DE BUFFS (D-361): as passivas ATIVÁVEIS que o autômato mantém
+ * de pé sozinho — até 3, renovadas quando o efeito expira. A lista de
+ * candidatas vem do servidor em `contexto.skillsDeBuff` (as que o motor
+ * executa como buff próprio); contrato antigo sem o campo simplesmente não
+ * desenha a seção.
+ */
+function renderBuffsDeSkill() {
+	const cfg = IdleConfig.editConfig;
+	const todas = (IdleConfig.contexto && IdleConfig.contexto.skillsDeBuff) || [];
+	// D-363: só o MANTÍVEL entra na rotação. Curar/Desintoxicar aparecem
+	// como suporte, para o jogador saber que existem, mas não se "mantêm".
+	const disponiveis = todas.filter(s => s.mantivel !== false);
+	const suporte = todas.filter(s => s.mantivel === false);
+	const notaDeSuporte = suporte.length
+		? `<div class="ic-note">Suporte pontual (não se mantém de pé): ${suporte
+				.map(s => escapeHtml(s.nome || s.skillId))
+				.join(', ')}.</div>`
+		: '';
+	if (!disponiveis.length) {
+		return `
+		<div class="ic-section">
+			<h3>Buffs automáticos</h3>
+			<div class="ic-note">Nenhuma skill mantível aprendida. Têm: Espadachim (Vigor), Arqueiro (Concentração), Noviço (Angelus, Bênção, Agilidade, Pneuma) e Mago (Barreira Mágica).</div>
+			${notaDeSuporte}
+		</div>`;
+	}
+
+	const lista = cfg.rotacaoDeBuffs || (cfg.rotacaoDeBuffs = []);
+	const minutos = ms => (ms >= 60000 ? `${Math.round(ms / 60000)} min` : `${Math.round(ms / 1000)} s`);
+	const nomeDe = id => {
+		const achada = disponiveis.find(s => s.skillId === id);
+		return (achada && (achada.nome || achada.skillId)) || id;
+	};
+
+	const linhas = lista.length
+		? lista
+				.map((b, i) => {
+					const info = disponiveis.find(s => s.skillId === b.skillId);
+					return `
+			<div class="ic-rot-row">
+				<span class="ic-rot-num">${i + 1}</span>
+				<span class="ic-rot-name" title="${escapeHtml(b.skillId)}">${escapeHtml(nomeDe(b.skillId))}</span>
+				<span class="ic-rot-level ri-badge ri-badge--azul">Nv ${b.nivelDeUso}</span>
+				${info ? `<span class="ic-rot-level ri-badge">${minutos(info.duracaoMs)}</span>` : ''}
+				<span class="ic-rot-actions">
+					<button type="button" class="ic-icon-btn" data-buff-action="remove" data-buff-index="${i}" title="Remover">✕</button>
+				</span>
+			</div>`;
+				})
+				.join('')
+		: '<div class="ic-empty">Nenhum buff automático configurado.</div>';
+
+	const usados = new Set(lista.map(b => b.skillId));
+	const livres = disponiveis.filter(s => !usados.has(s.skillId));
+	let addHtml = '';
+	if (lista.length >= 3) {
+		addHtml = '<div class="ic-note">Limite de 3 buffs atingido.</div>';
+	} else if (livres.length) {
+		addHtml = `
+			<select class="ic-add-skill" data-action="buff-add">
+				<option value="">+ Adicionar buff</option>
+				${livres
+					.map(s => `<option value="${escapeHtml(s.skillId)}">${escapeHtml(s.nome || s.skillId)} (Nv ${s.aprendido} · ${minutos(s.duracaoMs)} · ${s.custoSp} SP)</option>`)
+					.join('')}
+			</select>`;
+	}
+
+	return `
+		<div class="ic-section">
+			<h3>Buffs automáticos</h3>
+			<div class="ic-note">O personagem mantém estes buffs de pé sozinho e os renova assim que o efeito expira. Até 3.</div>
+			<div class="ic-rot-list">${linhas}</div>
+			${addHtml}
+			${notaDeSuporte}
 		</div>`;
 }
 
@@ -758,6 +886,39 @@ function bindSkillsExtra(bodyEl) {
 			const skill = (IdleConfig.contexto.skillsAtivas || []).find(s => s.skillId === skillId);
 			if (skill && cfg.rotacao.length < 3) {
 				cfg.rotacao.push({ skillId: skill.skillId, nivelDeUso: skill.aprendido });
+				markDirty();
+				renderBody();
+			}
+		});
+	}
+
+	// A rotação de BUFFS (D-361): mesma mecânica da de ataque, teto 3.
+	bodyEl.querySelectorAll('[data-buff-action]').forEach(btn => {
+		btn.addEventListener('click', () => {
+			const idx = Number(btn.dataset.buffIndex);
+			const lista = IdleConfig.editConfig.rotacaoDeBuffs || [];
+			if (btn.dataset.buffAction === 'remove') {
+				lista.splice(idx, 1);
+			}
+			markDirty();
+			renderBody();
+		});
+	});
+
+	const addBuff = bodyEl.querySelector('[data-action="buff-add"]');
+	if (addBuff) {
+		addBuff.addEventListener('change', () => {
+			const skillId = addBuff.value;
+			if (!skillId) {
+				return;
+			}
+			const cfg = IdleConfig.editConfig;
+			if (!cfg.rotacaoDeBuffs) {
+				cfg.rotacaoDeBuffs = [];
+			}
+			const buff = (IdleConfig.contexto.skillsDeBuff || []).find(s => s.skillId === skillId);
+			if (buff && cfg.rotacaoDeBuffs.length < 3) {
+				cfg.rotacaoDeBuffs.push({ skillId: buff.skillId, nivelDeUso: buff.aprendido });
 				markDirty();
 				renderBody();
 			}
@@ -879,7 +1040,9 @@ function renderItens() {
 					<span class="ic-switch-sub">O personagem usa consumíveis de buff sozinho, quando disponíveis.</span>
 				</span>
 			</label>
-			${!enabled ? '<div class="ic-note ic-note-warn">Nenhum consumível de buff existe no jogo ainda — o interruptor guarda sua escolha para quando existir.</div>' : ''}
+			${enabled
+				? '<div class="ic-note">Servidos hoje (D-360): as poções de ASPD — Concentração (645) e Despertar (656, nível 40+), à venda no Tool Dealer. O bônus entra na próxima luta e dura 30 min; o autômato só bebe de novo quando expira.</div>'
+				: '<div class="ic-note ic-note-warn">Nenhum consumível de buff existe no jogo ainda — o interruptor guarda sua escolha para quando existir.</div>'}
 		</div>
 		<div class="ic-section">
 			<div class="ic-note">A seleção e a ordem individual de itens ainda não estão disponíveis.</div>
@@ -887,6 +1050,47 @@ function renderItens() {
 }
 
 Network.hookPacket(PACKET.ZC.RAGIDLE_CONFIG, onConfigReceived);
+
+/**
+ * Aliases publicos minimos (gauntlet 18/08/2026, ver
+ * UI/Components/CombatCornerIdle/CombatCornerIdle.js) pra outro componente
+ * RAGIDLE que so precisa ler/gravar um campo pontual do config (ex.: o
+ * botao "Auto" do canto de combate, pra cacaAutomatica) sem duplicar o
+ * pedido/envio do pacote. Apontam pras MESMAS funcoes internas que a
+ * propria janela usa pra pedir a config ao abrir (IdleConfig.toggle()
+ * acima) e pra enviar quando o jogador clica "Aplicar" (onClickApply()
+ * acima) - nenhuma logica nova, so tornar exportavel o que ja existia.
+ */
+IdleConfig.pedirConfig = requestConfig;
+IdleConfig.aplicarConfig = applyConfig;
+
+/**
+ * Abre a janela (reusando IdleConfig.toggle() - mesmo metodo que o botao
+ * de engrenagem usa) ja na aba pedida, usando o MESMO mecanismo de troca
+ * de aba que onClickTab() usa internamente (activeTab + renderTabs() +
+ * renderBody()) - literalmente as mesmas 3 linhas, so exportadas (gauntlet
+ * 18/08/2026, ver UI/Components/CombatCornerIdle/CombatCornerIdle.js, que
+ * chama isto pro medalhao de rotacao de skills abrir direto na aba
+ * "skills"). Se a janela ja estava aberta, so troca a aba (sem fechar) e
+ * traz pra frente; se estava fechada, abre (toggle() dispara o
+ * requestConfig() de sempre) e ja pinta a aba pedida com o que estiver em
+ * cache - quando a resposta do servidor chegar, onConfigReceived() vai
+ * re-renderizar do mesmo jeito, sem duplicar estado.
+ */
+IdleConfig.abrirNaAba = function abrirNaAba(tab) {
+	const root = _root();
+	const win = root.querySelector('.ic-window');
+	const jaAberta = win.classList.contains('is-open');
+
+	if (!jaAberta) {
+		IdleConfig.toggle();
+	}
+	IdleConfig.focus();
+
+	IdleConfig.activeTab = tab;
+	renderTabs();
+	renderBody();
+};
 
 /**
  * Create component and export it
