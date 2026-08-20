@@ -1,0 +1,99 @@
+<div id="CorreioIdle">
+	<!-- ".co-window" e o retangulo INTEIRO; ".co-frame" e quem carrega
+	     ".ri-window" (fundo/aro/sombra/overflow:hidden). Mesma divisao de
+	     camadas de MochilaIdle.html, pelo mesmo motivo: quem liga/desliga
+	     "is-open" e o retangulo de fora, pro host continuar sendo um box
+	     mensuravel mesmo com a janela fechada. -->
+	<div class="co-window">
+		<div class="co-frame ri-window">
+			<div class="co-topo">
+				<div class="co-header-esq ri-header">
+					<span class="co-titulo-esq ri-title">Correio</span>
+				</div>
+				<div class="co-header-dir ri-header">
+					<span class="co-titulo-dir ri-title">Mensagem</span>
+					<button type="button" class="co-close ri-close" title="Fechar">&times;</button>
+				</div>
+			</div>
+
+			<div class="co-corpo">
+				<!-- ─── Esquerda: a LISTA. As linhas sao montadas por
+				     sincronizarLista() a partir de Rodex.list, que e o que o
+				     servidor mandou no 0x0ac2 -- nunca conteudo escrito aqui. -->
+				<div class="co-painel-esq">
+					<div class="co-lista-host ri-scroll">
+						<ul class="co-lista"></ul>
+
+						<!-- ESTADO VAZIO, em TRES textos (ver desenharPainelVazio()
+						     em CorreioIdle.js): esperando a resposta, caixa vazia de
+						     verdade, ou servidor mudo. O texto abaixo e o PRIMEIRO dos
+						     tres de proposito -- "voce nao tem mensagens" e uma
+						     AFIRMACAO sobre o servidor, e nao pode ser o estado inicial
+						     de um pedido que ainda nem saiu. -->
+						<div class="co-vazio">
+							<span class="co-vazio-titulo">Carregando…</span>
+							<span class="co-vazio-texto">Pedindo a caixa ao servidor.</span>
+						</div>
+					</div>
+
+					<div class="co-rodape">
+						<span class="co-contagem">—</span>
+						<button type="button" class="co-atualizar ri-btn ri-btn--sec" data-acao="atualizar">Atualizar</button>
+					</div>
+				</div>
+
+				<!-- ─── Direita: o CONTEUDO de uma mensagem. Tudo aqui e lido do
+				     host escondido da ReadRodex nativa, que continua recebendo o
+				     0x09eb normalmente (ver CorreioIdle.js). -->
+				<div class="co-painel-dir">
+					<div class="co-detalhe-vazio">
+						<span>Selecione uma mensagem à esquerda.</span>
+					</div>
+
+					<div class="co-detalhe" hidden>
+						<div class="co-msg-cabeca">
+							<span class="co-msg-titulo"></span>
+							<span class="co-msg-remetente"></span>
+						</div>
+
+						<div class="co-msg-corpo ri-scroll"></div>
+
+						<!-- ANEXOS: so aparecem quando o pacote de leitura trouxe
+						     zeny > 0 ou pelo menos um item. Nenhum placeholder --
+						     mensagem sem anexo nao desenha bloco nenhum. -->
+						<div class="co-anexos" hidden>
+							<span class="co-anexos-rotulo">Anexos</span>
+							<div class="co-anexo-zeny" hidden>
+								<span class="co-anexo-zeny-valor"></span>
+								<span class="co-anexo-zeny-unidade">zeny</span>
+							</div>
+							<div class="co-anexo-itens"></div>
+						</div>
+
+						<div class="co-acoes">
+							<button type="button" class="co-btn-zeny ri-btn ri-btn--ouro" data-acao="zeny" hidden>Coletar zeny</button>
+							<button type="button" class="co-btn-itens ri-btn ri-btn--ouro" data-acao="itens" hidden>Coletar itens</button>
+							<button type="button" class="co-btn-apagar ri-btn ri-btn--sec" data-acao="apagar">Apagar</button>
+						</div>
+
+						<!-- Confirmacao INLINE de apagar. Nao usa a caixa de
+						     prompt nativa (UIManager.showPromptBox, que e o que a
+						     ReadRodex nativa chama) por um motivo so: ela e uma
+						     janela de outra pele, e abriria por cima desta. Duas
+						     etapas, no mesmo desenho. -->
+						<div class="co-confirma" hidden>
+							<span class="co-confirma-texto">Apagar esta mensagem?</span>
+							<button type="button" class="co-confirma-sim ri-btn" data-acao="apagar-sim">Apagar</button>
+							<button type="button" class="co-confirma-nao ri-btn ri-btn--sec" data-acao="apagar-nao">Cancelar</button>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<!-- Aviso honesto de recusa do servidor (anexo por retirar segura a
+		     exclusao, caixa.ts:197-202; peso insuficiente recusa o item). Comeca
+		     escondido -- ver mostrarAviso() em CorreioIdle.js. -->
+		<div class="co-aviso" hidden></div>
+	</div>
+</div>

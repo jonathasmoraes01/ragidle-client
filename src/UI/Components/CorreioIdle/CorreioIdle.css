@@ -1,0 +1,438 @@
+/**
+ * UI/Components/CorreioIdle/CorreioIdle.css
+ *
+ * "Correio" -- a janela da CAIXA DO SISTEMA (servidor: rag-idle-master/
+ * servidor/caixa.ts, D-366) no design system oficial. Substitui visualmente as
+ * tres janelas nativas do RODEX (Rodex/ReadRodex/RodexIcon), escondidas de
+ * forma REVERSIVEL em CorreioIdle.js -- mesma tecnica de MochilaIdle.
+ *
+ * Duas metades da MESMA janela, mesmo esqueleto de MochilaIdle.css: esquerda
+ * "Correio" (lista de mensagens + rodape com a contagem), direita "Mensagem"
+ * (titulo/remetente/corpo + anexos + acoes).
+ *
+ * Medidas: nenhum token oficial cravou esta janela (a lista de medidas do
+ * design system em Common.css nao a inclui, como tambem nao inclui Mochila).
+ * Os numeros abaixo sao novos, escolhidos pelo conteudo real, e ficam
+ * documentados aqui em vez de virar token porque nao ha segundo consumidor.
+ * Quem mudar UM deles confere os DOIS lugares (":host"/".co-window" aqui e
+ * WINDOW_WIDTH/WINDOW_HEIGHT em CorreioIdle.js) -- e a cicatriz D-341, a
+ * mesma anotada em StatusIdle.css e MochilaIdle.css.
+ *
+ * Cor, raio, sombra, fonte e espacamento saem SO de token/receita --ri-(algo)
+ * de Common.css. Nenhum literal novo de cor nesta folha.
+ */
+
+:host {
+	position: absolute;
+	width: 560px;
+	height: 360px;
+	/* Mesmo contrato dos outros flutuantes RAGIDLE: o host nao intercepta
+	   clique no mundo; so o miolo da janela reabre pointer-events. */
+	pointer-events: none;
+}
+
+#CorreioIdle {
+	position: relative;
+	width: 100%;
+	height: 100%;
+}
+
+.co-window {
+	display: none;
+	position: absolute;
+	inset: 0;
+	width: 560px;
+	height: 360px;
+	pointer-events: auto;
+}
+
+.co-window.is-open {
+	display: block;
+}
+
+/* O atributo "hidden" tem de vencer qualquer display de layout declarado
+   abaixo (flex/grid ganham de [hidden] por especificidade de origem). */
+[hidden] {
+	display: none !important;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+	/* Reusa o @keyframes "ri-janela-abrir" de Common.css, aplicado em quem
+	   carrega ".ri-window" de verdade (".co-frame"). */
+	.co-window.is-open .co-frame {
+		animation: ri-janela-abrir 140ms ease-out;
+	}
+}
+
+/* ─── Moldura ──────────────────────────────────────────────────────────── */
+
+.co-frame {
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 560px;
+	height: 360px;
+	display: flex;
+	flex-direction: column;
+}
+
+.co-topo {
+	flex: 0 0 auto;
+	display: flex;
+	width: 100%;
+}
+
+.co-header-esq {
+	width: 224px;
+	flex: 0 0 auto;
+	border-right: var(--divider);
+}
+
+.co-header-dir {
+	width: 336px;
+	flex: 0 0 auto;
+}
+
+.co-corpo {
+	flex: 1 1 auto;
+	display: flex;
+	min-height: 0;
+}
+
+/* ─── Esquerda: lista ──────────────────────────────────────────────────── */
+
+.co-painel-esq {
+	width: 224px;
+	flex: 0 0 auto;
+	box-sizing: border-box;
+	display: flex;
+	flex-direction: column;
+	min-height: 0;
+	border-right: var(--divider);
+	/* Mesmo "palco claro" do painel esquerdo da Mochila -- os dois degraus
+	   mais claros da escala neutra-azul do design system. */
+	background: radial-gradient(ellipse 140% 90% at 50% 20%, var(--sky-50) 0%, var(--paper-1) 75%);
+}
+
+.co-lista-host {
+	flex: 1 1 auto;
+	min-height: 0;
+	overflow-y: auto;
+	padding: var(--sp-3);
+	box-sizing: border-box;
+}
+
+.co-lista {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+	display: flex;
+	flex-direction: column;
+	gap: var(--sp-2);
+}
+
+.co-item {
+	display: flex;
+	align-items: center;
+	gap: var(--sp-4);
+	padding: var(--pad-card);
+	border-radius: var(--radius-card);
+	border: 1px solid var(--border-hairline);
+	background: var(--surface-card);
+	box-shadow: var(--shadow-card);
+	cursor: pointer;
+	text-align: left;
+	transition: background var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out);
+}
+
+.co-item:hover {
+	background: var(--surface-card-hover);
+	border-color: var(--accent);
+}
+
+.co-item.is-selecionada {
+	background: var(--is-card-selected);
+	border-color: var(--accent-strong);
+	box-shadow: var(--rim-light), var(--shadow-card);
+}
+
+/* O envelope e ARTE do cliente (ro/rodexsystem, convertida por
+   rag-idle-master/scripts/icones-de-menu.ts): fechado = por ler, aberto =
+   lida. A regra 4 do projeto manda: o que INFORMA continua sendo o PNG do
+   cliente; a moldura em volta e que e CSS. */
+.co-item-envelope {
+	flex: 0 0 auto;
+	width: 20px;
+	height: 20px;
+	display: block;
+}
+
+.co-item-texto {
+	flex: 1 1 auto;
+	min-width: 0;
+	display: flex;
+	flex-direction: column;
+	gap: 1px;
+}
+
+.co-item-titulo {
+	font: var(--type-label);
+	color: var(--text-body);
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+/* Nao lida = titulo com mais peso. E o unico realce alem do envelope: o
+   design system nao tem "linha destacada" de lista, e inventar uma tarja
+   colorida aqui seria cor nova. */
+.co-item.is-nao-lida .co-item-titulo {
+	font-weight: var(--fw-bold);
+	color: var(--text-title);
+}
+
+.co-item-remetente {
+	font: var(--type-desc);
+	color: var(--text-muted);
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.co-vazio {
+	height: 100%;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	gap: var(--sp-2);
+	padding: 0 var(--sp-5);
+	text-align: center;
+}
+
+.co-vazio-titulo {
+	font: var(--type-section);
+	color: var(--text-muted);
+}
+
+.co-vazio-texto {
+	font: var(--type-desc);
+	color: var(--text-muted);
+}
+
+.co-rodape {
+	flex: 0 0 auto;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--sp-4);
+	padding: var(--sp-3) var(--sp-4);
+	border-top: var(--divider);
+	background: var(--surface-glass);
+}
+
+.co-contagem {
+	font: var(--type-label);
+	color: var(--text-muted);
+}
+
+.co-atualizar {
+	/* --pad-button (8px 18px) e do botao grande; o do rodape e uma acao
+	   secundaria e cabe num aperto menor, sem mudar nenhum outro traco. */
+	padding: var(--sp-2) var(--sp-5);
+}
+
+/* ─── Direita: conteudo ────────────────────────────────────────────────── */
+
+.co-painel-dir {
+	width: 336px;
+	flex: 0 0 auto;
+	box-sizing: border-box;
+	display: flex;
+	flex-direction: column;
+	min-height: 0;
+	padding: var(--sp-5);
+	gap: var(--sp-4);
+}
+
+.co-detalhe-vazio {
+	flex: 1 1 auto;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	font: var(--type-info);
+	color: var(--text-muted);
+	text-align: center;
+}
+
+.co-detalhe {
+	flex: 1 1 auto;
+	display: flex;
+	flex-direction: column;
+	min-height: 0;
+	gap: var(--sp-4);
+}
+
+.co-msg-cabeca {
+	flex: 0 0 auto;
+	display: flex;
+	flex-direction: column;
+	gap: var(--sp-1);
+	padding-bottom: var(--sp-3);
+	border-bottom: var(--divider);
+}
+
+.co-msg-titulo {
+	font: var(--type-section);
+	color: var(--text-title);
+}
+
+.co-msg-remetente {
+	font: var(--type-desc);
+	color: var(--text-muted);
+}
+
+.co-msg-corpo {
+	flex: 1 1 auto;
+	min-height: 0;
+	overflow-y: auto;
+	padding: var(--sp-4);
+	border-radius: var(--radius-panel);
+	background: var(--well-fill);
+	box-shadow: var(--well-shadow);
+	/* Corpo de mensagem e TEXTO PARA LER, nao legenda: --type-desc (10px) e o
+	   degrau de rodape/descricao curta. --type-info (12px) com a entrelinha de
+	   leitura e o par certo, e foi o que a foto da primeira rodada mostrou
+	   faltando. */
+	font: var(--type-info);
+	line-height: var(--lh-read);
+	color: var(--text-body);
+	white-space: pre-wrap;
+	overflow-wrap: anywhere;
+}
+
+.co-anexos {
+	flex: 0 0 auto;
+	display: flex;
+	align-items: center;
+	flex-wrap: wrap;
+	gap: var(--sp-4);
+	padding: var(--sp-3) var(--sp-4);
+	border-radius: var(--radius-panel);
+	border: 1px solid var(--border-gold);
+	background: var(--surface-card);
+}
+
+.co-anexos-rotulo {
+	font: var(--type-label);
+	color: var(--text-muted);
+	letter-spacing: var(--ls-caps);
+	text-transform: uppercase;
+}
+
+.co-anexo-zeny {
+	display: inline-flex;
+	align-items: baseline;
+	gap: var(--sp-1);
+}
+
+.co-anexo-zeny-valor {
+	font: var(--type-numeric);
+	font-size: var(--fs-numeric-lg);
+	color: var(--zeny);
+}
+
+.co-anexo-zeny-unidade {
+	font: var(--type-desc);
+	color: var(--text-muted);
+}
+
+.co-anexo-itens {
+	display: inline-flex;
+	align-items: center;
+	gap: var(--sp-2);
+}
+
+/* Ladrilho de item: a pele vem de ".ri-tile" (Common.css); aqui so o
+   tamanho, que e a regra que a receita deixa pro componente. */
+.co-anexo-item {
+	width: 30px;
+	height: 30px;
+}
+
+.co-anexo-item-icone {
+	width: 24px;
+	height: 24px;
+	/* Ampliacao NAO acontece aqui (icone de item do cliente e 24x24 e e
+	   mostrado a 24), entao nada de "pixelated" -- ver a nota de ri-icones.js
+	   sobre reducao/ampliacao. */
+	display: block;
+	background-repeat: no-repeat;
+	background-position: center;
+}
+
+.co-anexo-item-qtd {
+	position: absolute;
+	right: 1px;
+	bottom: 0;
+	font: var(--type-badge);
+	color: var(--text-title);
+	text-shadow: 0 1px 0 var(--white);
+}
+
+.co-acoes {
+	flex: 0 0 auto;
+	display: flex;
+	align-items: center;
+	justify-content: flex-end;
+	/* QUEBRA porque a fileira pode ter TRES botoes (zeny + itens + apagar) num
+	   painel de 336px: sem isto o "Apagar" saia pela borda direita da janela,
+	   medido na foto da primeira rodada da prova. */
+	flex-wrap: wrap;
+	gap: var(--sp-3);
+}
+
+.co-acoes .ri-btn {
+	padding: var(--sp-3) var(--sp-5);
+}
+
+.co-confirma {
+	flex: 0 0 auto;
+	display: flex;
+	align-items: center;
+	justify-content: flex-end;
+	gap: var(--sp-3);
+	padding: var(--sp-3) var(--sp-4);
+	border-radius: var(--radius-panel);
+	border: 1px solid var(--border-hairline);
+	background: var(--surface-glass);
+}
+
+.co-confirma-texto {
+	flex: 1 1 auto;
+	font: var(--type-label);
+	color: var(--text-body);
+}
+
+.co-confirma .ri-btn {
+	padding: var(--sp-2) var(--sp-5);
+}
+
+/* ─── Aviso de recusa ─────────────────────────────────────────────────── */
+
+.co-aviso {
+	position: absolute;
+	left: var(--sp-5);
+	right: var(--sp-5);
+	bottom: var(--sp-5);
+	padding: var(--sp-3) var(--sp-5);
+	border-radius: var(--radius-panel);
+	background: var(--surface-dark-glass);
+	backdrop-filter: var(--blur-glass);
+	-webkit-backdrop-filter: var(--blur-glass);
+	color: var(--white);
+	font: var(--type-label);
+	text-align: center;
+	box-shadow: var(--shadow-float);
+	pointer-events: none;
+}

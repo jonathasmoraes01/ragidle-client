@@ -10,19 +10,23 @@
  * DOIS NIVEIS (gauntlet item 2, 19/08/2026 -- referencia de LAYOUT: print do
  * Ragnarok Origin que o dono anexou, "topo enxuto + menu lateral/inferior
  * que abre e fecha"; a PELE nunca mudou, continua so o design system):
- *   - ".tm-top" (NIVEL 1): 5 essenciais de gameplay -- Personagem,
- *     Inventario, Equipamento, Skills, Caca. SEMPRE visivel.
+ *   - ".tm-top" (NIVEL 1): 4 essenciais de gameplay -- Personagem, Mochila,
+ *     Skills, Caca. SEMPRE visivel.
  *   - ".tm-secondary" (NIVEL 2, id "tm-secondary"): 5 secundarios
  *     funcionais (Config, Guilda, Grupo, Menu, Admin) + os 7 "em breve".
  *     Abre/fecha pelo ".tm-toggle", que mora no NIVEL 1 e por isso nunca
  *     some -- ver onClickToggle()/applyCollapsedState() mais abaixo pro
  *     mecanismo (reaproveita o recolher/expandir de D-343, so que agora
  *     comanda so o nivel 2, nunca a constelacao inteira).
- * O CORTE (10 funcionais divididos 5+5, mais os 7 "em breve" no nivel 2) foi
+ * O CORTE (9 funcionais divididos 4+5, mais os 7 "em breve" no nivel 2) foi
  * aplicado pelo criterio que o dono deixou explicito no briefing do item 2:
  * nivel 1 = o que se usa toda hora jogando; nivel 2 = o resto. Nenhum
- * destino sumiu -- os mesmos 10 metodos publicos de antes continuam
+ * destino sumiu -- os mesmos metodos publicos de antes continuam
  * alcancaveis, so a casa de 5 deles mudou.
+ *
+ * O nivel 1 tinha 5 itens ate 20/08/2026 (gauntlet item 5): "Inventario" e
+ * "Equipamento" eram DOIS icones para UM destino so, e viraram um -- ver o
+ * comentario da "Mochila" no bloco de fiacao logo abaixo.
  *
  * FIACAO REAL (autorizada pelo dono a incluir "em breve" ao lado dos
  * funcionais - ver briefing do gauntlet 18/08/2026):
@@ -53,11 +57,19 @@
  *   - Personagem  -> StatusIdle.toggle()     (StatusIdle.js) - janela de
  *                 status/atributos do fork, mesmo shape de HuntMap/
  *                 IdleConfig/IdleSkills/AdminPanel.
- *   - Inventario  -> MochilaIdle.toggle()    (MochilaIdle.js:429) - janela
- *   - Equipamento -> MochilaIdle.toggle()    unificada (19/08/2026 juntou as
- *                 duas nativas numa so); os dois itens da constelacao
- *                 chamam o MESMO metodo de proposito -- duplicacao aceita,
- *                 o jogador reconhece os dois nomes do jogo classico.
+ *   - Mochila     -> MochilaIdle.toggle()    (MochilaIdle.js:429) - a janela
+ *                 unificada (19/08/2026 juntou Inventory e Equipment nativas
+ *                 numa so: boneca a esquerda, grade de itens a direita).
+ *                 UM ICONE SO desde 20/08/2026 (gauntlet item 5): antes
+ *                 havia "Inventario" e "Equipamento" lado a lado chamando
+ *                 este MESMO metodo, e a medicao no jogo rodando confirmou
+ *                 que nenhum dos dois levava a lugar proprio -- era
+ *                 duplicata visivel pro jogador. Ficou o do inventario
+ *                 (superconjunto: "tudo o que eu carrego", contra o
+ *                 peitoral que so falava do vestido), com o rotulo
+ *                 "Mochila" pra casar com o titulo da janela. A chave
+ *                 "inventory" continua sendo o data-action -- e o que o
+ *                 gate de clique ja mira.
  *   - Caca        -> HuntMap.toggle()        (HuntMap.js:287) - MESMA janela
  *                 que "#HuntButtonIdle" (botao sob o minimapa, so em
  *                 cidade) ja abre; redundancia DECLARADA e pedida pelo dono.
@@ -80,7 +92,7 @@
  *
  * ORDEM (pedido do dono, mantida na divisao em niveis de 19/08/2026): dentro
  * de cada nivel, TODOS os funcionais primeiro -- nivel 1 e so funcional
- * (Personagem, Inventario, Equipamento, Skills, Caca); nivel 2 poe Guilda,
+ * (Personagem, Mochila, Skills, Caca); nivel 2 poe Guilda,
  * Grupo, Config, Menu, Admin primeiro e "em breve" por ultimo -- nunca
  * misturado, pra nao fazer o jogador procurar o que funciona no meio do que
  * ainda nao existe.
@@ -90,7 +102,7 @@
  * isso fechar a janela pelo "X" dela deixava o aro aceso para sempre.
  * Continua sem listener novo em janela nativa: e leitura de DOM no tique que
  * o componente ja tinha. Detecao de "esta aberta":
- *   - Skills/Config/Personagem/Inventario/Equipamento/Caca/Admin: janelas
+ *   - Skills/Config/Personagem/Mochila/Caca/Admin: janelas
  *     RAGIDLE marcam ".xx-window.is-open" (mesmo formato de HuntMap/
  *     IdleConfig/IdleSkills/StatusIdle/MochilaIdle/AdminPanel, ver
  *     DockIdle.js:isRagIdleWindowOpen()).
@@ -125,6 +137,7 @@ import SkillList from 'UI/Components/SkillList/SkillList.js';
 import StatusIdle from 'UI/Components/StatusIdle/StatusIdle.js';
 import MochilaIdle from 'UI/Components/MochilaIdle/MochilaIdle.js';
 import HuntMap from 'UI/Components/HuntMap/HuntMap.js';
+import CorreioIdle from 'UI/Components/CorreioIdle/CorreioIdle.js';
 import AdminPanel from 'UI/Components/AdminPanel/AdminPanel.js';
 import Escape from 'UI/Components/Escape/Escape.js';
 import KEYS from 'Controls/KeyEventHandler.js';
@@ -254,6 +267,7 @@ TopMenuIdle.onAppend = function onAppend() {
 
 	syncAllActiveStates();
 	syncSkillDot();
+	syncCorreioDot();
 	startPolling();
 };
 
@@ -306,13 +320,13 @@ function onClickAction(e) {
 			StatusIdle.toggle();
 			break;
 		/*
-		 * Inventario e Equipamento apontam para a MESMA janela: a MochilaIdle
-		 * (19/08/2026) juntou as duas nativas numa so -- os dois itens da
-		 * constelacao continuam separados de proposito (duplicacao aceita,
-		 * ver cabecalho do arquivo).
+		 * "Mochila" -- UM icone so desde 20/08/2026 (gauntlet item 5). A chave
+		 * continua "inventory" (nao "mochila") porque ela ja e o alvo do gate
+		 * de clique e de scripts de foto: trocar o nome nao mudaria nada de
+		 * comportamento e quebraria seletor de fora. O antigo "case 'equip'"
+		 * saiu junto com o segundo icone.
 		 */
 		case 'inventory':
-		case 'equip':
 			MochilaIdle.toggle();
 			break;
 		case 'skills':
@@ -323,6 +337,13 @@ function onClickAction(e) {
 			   minimapa, so em cidade) -- os dois abrem a MESMA janela,
 			   pedido do dono. */
 			HuntMap.toggle();
+			break;
+		case 'correio':
+			/* "Correio" (gauntlet item 3, 20/08/2026) -- a caixa do SISTEMA
+			   (servidor: caixa.ts, D-366). CorreioIdle.toggle() tambem PEDE
+			   a caixa ao abrir (0x09e6): a lista so existe no cliente depois
+			   que o servidor a manda. */
+			CorreioIdle.toggle();
 			break;
 		case 'guild':
 			Guild.toggle();
@@ -447,12 +468,13 @@ function isActionOpen(action) {
 		case 'status':
 			return isRagIdleWindowOpen(StatusIdle, '.st-window');
 		case 'inventory':
-		case 'equip':
 			return isRagIdleWindowOpen(MochilaIdle, '.mo-window');
 		case 'skills':
 			return isRagIdleWindowOpen(IdleSkills, '.is-window');
 		case 'huntmap':
 			return isRagIdleWindowOpen(HuntMap, '.hm-window');
+		case 'correio':
+			return isRagIdleWindowOpen(CorreioIdle, '.co-window');
 		case 'config':
 			return isRagIdleWindowOpen(IdleConfig, '.ic-window');
 		case 'admin':
@@ -498,6 +520,7 @@ function isHostVisible(component) {
  */
 function pollEstado() {
 	syncSkillDot();
+	syncCorreioDot();
 	syncAllActiveStates();
 }
 
@@ -530,6 +553,44 @@ function syncSkillDot() {
 	const points = countEl ? parseInt(countEl.textContent, 10) || 0 : 0;
 
 	dot.style.display = points > 0 ? '' : 'none';
+}
+
+/**
+ * Ponto de "ha mensagem por ler" no icone de Correio.
+ *
+ * A fonte e CorreioIdle.temNaoLidas() -- que conta o "Isread" da lista que o
+ * SERVIDOR mandou (0x0ac2) e, enquanto essa lista nunca chegou nesta sessao,
+ * cai no proprio ZC_RODEX_ICON (o motor nativo apenda/remove o RodexIcon com
+ * ele). Nenhuma das duas e adivinhada, e nenhuma exige fisgar pacote --
+ * hookPacket SOBRESCREVE (NetworkManager.js:200-210) e trocaria o handler
+ * nativo do correio em silencio.
+ *
+ * Mesma receita ".ri-dot" do ponto de skill acima, de proposito: o design
+ * system tem UM indicador de notificacao, e este e ele.
+ */
+function syncCorreioDot() {
+	const root = _root();
+	const dot = root.querySelector('.tm-item[data-action="correio"] .ri-dot');
+	if (!dot) {
+		return;
+	}
+
+	const temNaoLidas = CorreioIdle.temNaoLidas();
+	dot.style.display = temNaoLidas ? '' : 'none';
+
+	// O numero exato so existe quando a lista ja chegou; sem ela o servidor so
+	// disse QUE ha, nao QUANTAS. O titulo diz a verdade nos dois casos.
+	const btn = dot.closest('.tm-item');
+	if (btn) {
+		const quantas = CorreioIdle.quantasNaoLidas();
+		if (!temNaoLidas) {
+			btn.title = 'Correio';
+		} else if (quantas == null) {
+			btn.title = 'Correio — você tem mensagens por ler';
+		} else {
+			btn.title = `Correio — ${quantas} por ler`;
+		}
+	}
 }
 
 /**

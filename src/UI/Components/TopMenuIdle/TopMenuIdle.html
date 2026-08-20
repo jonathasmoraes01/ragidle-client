@@ -1,7 +1,8 @@
 <div id="TopMenuIdle">
-	<!-- ─── NIVEL 1 — TOPO ENXUTO: so os 5 essenciais de gameplay (pedido do
-	     dono, gauntlet item 2, 19/08/2026). SEMPRE visivel, nunca some -- e o
-	     que sobra na tela quando o menu retratil esta fechado (ver
+	<!-- ─── NIVEL 1 — TOPO ENXUTO: so os 4 essenciais de gameplay (pedido do
+	     dono, gauntlet item 2, 19/08/2026; eram 5 ate o item 5 de 20/08/2026
+	     fundir Inventario+Equipamento num icone so). SEMPRE visivel, nunca
+	     some -- e o que sobra na tela quando o menu retratil esta fechado (ver
 	     TopMenuIdle.js/.css pra o que acontece nesse estado). O botao de
 	     abrir/fechar o nivel 2 mora no FIM desta fileira, de proposito: ele
 	     tambem nunca some, senao o jogador se tranca fora do resto. -->
@@ -11,18 +12,22 @@
 			<span class="tm-label">Personagem</span>
 		</button>
 
-		<button type="button" class="tm-item" data-action="inventory" title="Inventário">
+		<!-- Mochila (gauntlet item 5, 20/08/2026): UM icone so. Antes existiam
+		     dois aqui, "Inventario" e "Equipamento", e a prova no jogo rodando
+		     mediu os dois abrindo a MESMA janela unificada (MochilaIdle) --
+		     duplicata visivel pro jogador, sem nenhum destino proprio atras
+		     dela. O que ficou e o do INVENTARIO (arte ro_menu_icon/item_1, o
+		     bau): ele representa "tudo o que eu carrego", que e o superconjunto
+		     -- o peitoral do "equipamento" so falava da metade vestida. O
+		     ROTULO virou "Mochila" pra casar com o nome da janela que abre (o
+		     cabecalho direito dela diz "Mochila", MochilaIdle.html:14).
+		     O "data-action" continua "inventory" de proposito: e a chave que o
+		     switch de TopMenuIdle.js e o alvo do gate
+		     (rag-idle-master/scripts/prova-clique-nao-vaza.ts) ja usam, e
+		     renomear so trocaria o nome do mesmo destino. -->
+		<button type="button" class="tm-item" data-action="inventory" title="Mochila">
 			<span class="tm-icon-wrap ri-disc"><!--RI_ICONE:inventario--></span>
-			<span class="tm-label">Inventário</span>
-		</button>
-
-		<!-- Inventario e Equipamento apontam pra MESMA janela (MochilaIdle
-		     juntou as duas nativas numa so, 19/08/2026) -- duplicacao
-		     deliberada, o jogador reconhece os dois nomes separados do jogo
-		     classico e os dois tem que continuar levando a algum lugar. -->
-		<button type="button" class="tm-item" data-action="equip" title="Equipamento">
-			<span class="tm-icon-wrap ri-disc"><!--RI_ICONE:equipamento--></span>
-			<span class="tm-label">Equipamento</span>
+			<span class="tm-label">Mochila</span>
 		</button>
 
 		<button type="button" class="tm-item" data-action="skills" title="Skills">
@@ -42,6 +47,31 @@
 		<button type="button" class="tm-item" data-action="huntmap" title="Mapa de Caça">
 			<span class="tm-icon-wrap ri-disc"><!--RI_ICONE:caca--></span>
 			<span class="tm-label">Caça</span>
+		</button>
+
+		<!-- Correio (gauntlet item 3, 20/08/2026): a caixa do SISTEMA
+		     (rag-idle-master/servidor/caixa.ts, D-366) -- recompensa de
+		     conquista e de missao chegam por aqui. Mora no NIVEL 1, e nao no 2,
+		     por causa do INDICADOR: o nivel 2 pode ser fechado pelo jogador, e
+		     um aviso de "voce tem mensagem" que some quando ele recolhe o menu
+		     nao e um aviso. Esta e a unica razao -- pelo criterio de "uso a
+		     toda hora" ele seria secundario. Mover pro nivel 2 e mover UM
+		     bloco de HTML, se o dono preferir.
+		     A fileira e "display:flex" com "justify-content:flex-end" (ver
+		     TopMenuIdle.css): somar um item ALARGA o grupo pela esquerda e a
+		     alca continua colada no minimapa -- o alinhamento que o item 5
+		     consertou nao reabre. -->
+		<button type="button" class="tm-item" data-action="correio" title="Correio">
+			<span class="tm-icon-wrap ri-disc">
+				<!--RI_ICONE:correio-->
+				<!-- Ponto de "ha mensagem por ler" — receita ".ri-dot" do design
+				     system, a MESMA que o ponto de skill acima usa. A fonte do
+				     dado e CorreioIdle.temNaoLidas(), que conta o "Isread" da
+				     lista do servidor e, enquanto ela nao chegou, cai no proprio
+				     ZC_RODEX_ICON. -->
+				<span class="ri-dot" style="display: none"></span>
+			</span>
+			<span class="tm-label">Correio</span>
 		</button>
 
 		<!-- Abre/fecha o NIVEL 2 (menu retratil, ver ".tm-secondary" abaixo).

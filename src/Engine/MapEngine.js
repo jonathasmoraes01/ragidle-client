@@ -63,6 +63,9 @@ import LaphineSys from 'UI/Components/LaphineSys/LaphineSys.js';
 import LaphineUpg from 'UI/Components/LaphineUpg/LaphineUpg.js';
 import Rodex from 'UI/Components/Rodex/Rodex.js';
 import RodexIcon from 'UI/Components/Rodex/RodexIcon.js';
+// RAGIDLE: so pelo __ragidleDebug da prova do Correio (ver mais abaixo) — o
+// motor ja usa a ReadRodex por dentro de Engine/MapEngine/Rodex.js.
+import ReadRodex from 'UI/Components/Rodex/ReadRodex.js';
 import Roulette from 'UI/Components/Roulette/Roulette.js';
 import PCGoldTimer from 'UI/Components/PCGoldTimer/PCGoldTimer.js';
 import Refine from 'UI/Components/Refine/Refine.js';
@@ -98,7 +101,12 @@ import BasicInfoIdle from 'UI/Components/BasicInfoIdle/BasicInfoIdle.js'; // RAG
 import StatusIdle from 'UI/Components/StatusIdle/StatusIdle.js'; // RAGIDLE: "Status"
 import MochilaIdle from 'UI/Components/MochilaIdle/MochilaIdle.js'; // RAGIDLE: "Mochila" (inventario + equipamento numa janela so)
 import DockIdle from 'UI/Components/DockIdle/DockIdle.js'; // RAGIDLE: "Barra de acoes" (rotacao de skills + Auto — pivo 19/08/2026, ver DockIdle.js; ANTES era a barra de atalhos de janela "Barra inferior")
-import TopBarIdle from 'UI/Components/TopBarIdle/TopBarIdle.js'; // RAGIDLE: "Capsula de zeny (topo)"
+// RAGIDLE: a "Capsula de zeny (topo)" (UI/Components/TopBarIdle) foi APAGADA
+// em 20/08/2026, a pedido do dono: o contador de moedas mudou para o canto
+// superior esquerdo, dentro do painel do personagem (a faixa ".bi-moeda" de
+// UI/Components/BasicInfoIdle). Nenhuma fonte de dado mudou de lugar junto —
+// os dois liam o MESMO Session.zeny, entao o que sumiu foi a segunda leitura,
+// nao o dado.
 // CombatCornerIdle ("Canto de combate", Auto/Mochila/arco de rotacao) foi
 // APOSENTADO no mesmo pivo acima: a Barra de acoes (DockIdle) herdou o Auto
 // e o arco de rotacao, e a Mochila ja e alcancavel pela grade do painel do
@@ -108,6 +116,7 @@ import TopBarIdle from 'UI/Components/TopBarIdle/TopBarIdle.js'; // RAGIDLE: "Ca
 // voltar.
 import DeathWindow from 'UI/Components/DeathWindow/DeathWindow.js'; // RAGIDLE: "Você morreu"
 import TopMenuIdle from 'UI/Components/TopMenuIdle/TopMenuIdle.js'; // RAGIDLE: "Menu superior direito (constelação)"
+import CorreioIdle from 'UI/Components/CorreioIdle/CorreioIdle.js'; // RAGIDLE: "Correio" (a caixa do sistema, D-366)
 import HuntButtonIdle from 'UI/Components/HuntButtonIdle/HuntButtonIdle.js'; // RAGIDLE: "Botão de caça contextual (abaixo do minimapa)"
 
 import MainEngine from './MapEngine/Main.js';
@@ -393,7 +402,18 @@ class MapEngine {
 					// IdleConfig.editConfig.rotacao (sem NPC/servidor de
 					// verdade) e ler/gravar cacaAutomatica pelo mesmo objeto
 					// que a janela Config idle e o botao Auto ja usam.
-					IdleConfig: IdleConfig
+					IdleConfig: IdleConfig,
+					// RAGIDLE: acrescentado 20/08/2026 pra prova Playwright do
+					// Correio (gauntlet item 3) -- inspecionar o estado REAL do
+					// correio (Rodex.list veio do servidor; RodexIcon apendado
+					// = 0x09e7 com "mostrar 1") sem fisgar pacote nenhum, e
+					// alimentar a ReadRodex nativa pelo MESMO caminho do 0x09eb
+					// pra fotografar a tela de ANEXO -- que hoje nenhuma fonte
+					// do servidor consegue produzir (ver o relatorio da tarefa).
+					Rodex: Rodex,
+					ReadRodex: ReadRodex,
+					RodexIcon: RodexIcon,
+					CorreioIdle: CorreioIdle
 				};
 			}
 
@@ -437,8 +457,8 @@ class MapEngine {
 			StatusIdle.prepare(); // RAGIDLE: "Status"
 			MochilaIdle.prepare(); // RAGIDLE: "Mochila" — depois de Inventory.getUI()/Equipment.getUI() (linhas acima, secao "Prepare UI"): precisa dos dois _host nativos ja existentes pra esconde-los em MochilaIdle.onAppend()
 			DockIdle.prepare(); // RAGIDLE: "Barra de acoes" — depois de HuntMap/IdleConfig/IdleSkills (precisa da shadow DOM deles pronta pra esconder os botoes redundantes) e depois de IdleConfig.prepare() (usa IdleConfig.editConfig/IdleConfig.pedirConfig()/IdleConfig.aplicarConfig(), aliases publicos no fim de IdleConfig.js — herdados do extinto CombatCornerIdle.prepare())
-			TopBarIdle.prepare(); // RAGIDLE: "Capsula de zeny (topo)"
 			DeathWindow.prepare(); // RAGIDLE: "Você morreu"
+			CorreioIdle.prepare(); // RAGIDLE: "Correio" — DEPOIS de Rodex.prepare()/RodexIcon.prepare() (linhas acima): CorreioIdle.onAppend() esconde os _host nativos de Rodex/ReadRodex/RodexIcon, e os tres precisam ja existir. O ReadRodex e a excecao: ele so ganha _host quando o motor o apenda no primeiro 0x09eb, e por isso CorreioIdle tambem reconfere no tique
 			TopMenuIdle.prepare(); // RAGIDLE: "Menu superior direito (constelação)" — chama IdleSkills.toggle()/IdleConfig.toggle() (RAGIDLE, ja preparados acima) e Guild.toggle()/PartyFriends.toggle() (nativos, ja preparados bem antes deste bloco); a shadow DOM de todos precisa existir antes do proprio prepare() de TopMenuIdle so por padrao do arquivo, nao por uso direto do DOM deles
 			HuntButtonIdle.prepare(); // RAGIDLE: "Botão de caça contextual" — le IdleConfig.contexto.ehCidade e chama HuntMap.toggle()/HuntMap.travelToCity(); tambem esconde AdminPanel.getRoot() ".ap-button", por isso fica depois de IdleConfig.prepare()/HuntMap.prepare()/AdminPanel.prepare() acima (precisa da shadow DOM dos tres ja pronta)
 
@@ -874,15 +894,18 @@ function onMapChange(pkt) {
 		// nesse ponto).
 		DockIdle.append();
 
-		// RAGIDLE: "Capsula de zeny (topo)" — HUD sempre visivel, mesma fonte
-		// de dado que BasicInfoIdle usa pra zeny (Session.zeny), mesmo
-		// polling de 250ms (TopBarIdle.js). needFocus=false — ordem de
-		// append aqui nao afeta z-index.
-		TopBarIdle.append();
-
 		// RAGIDLE: "Você morreu" — full-screen overlay, hidden until
 		// Session.Entity.life.hp reaches 0 (see DeathWindow.js).
 		DeathWindow.append();
+
+		// RAGIDLE: "Correio" — a caixa do sistema (servidor: caixa.ts, D-366)
+		// no design system oficial. Esconde os TRES nativos do RODEX
+		// (Rodex/ReadRodex/RodexIcon) de forma reversivel em
+		// CorreioIdle.onAppend(), entao precisa vir DEPOIS de Rodex.prepare()/
+		// RodexIcon.prepare() (secao "Prepare UI" acima) — e antes de
+		// TopMenuIdle.append(), que le CorreioIdle.temNaoLidas() no proprio
+		// onAppend() para acender o ponto de nao-lida do icone de Correio.
+		CorreioIdle.append();
 
 		// RAGIDLE: "Menu superior direito (constelação)" — duas fileiras de
 		// botoes circulares abaixo do minimapa (TopMenuIdle.js/.css).

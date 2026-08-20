@@ -383,7 +383,7 @@
 	border: 1px solid var(--ri-dourado);
 }
 
-/* ─── Peso / Zeny ──────────────────────────────────────────── */
+/* ─── Peso ─────────────────────────────────────────────────── */
 
 .bi-stats-line {
 	display: flex;
@@ -395,19 +395,73 @@
 	margin-bottom: 2px;
 }
 
-.bi-weight,
-.bi-zeny {
+.bi-weight {
 	font-weight: 700;
 	color: var(--ri-texto);
 }
 
-.bi-stats-text--zeny .bi-zeny {
-	color: var(--ri-dourado);
+/* ─── Carteira (20/08/2026) ────────────────────────────────────
+ * O contador de moedas veio do topo ao centro (o componente solto
+ * TopBarIdle, apagado nesta rodada) para dentro desta janela. Duas coisas
+ * decidiram o lugar exato, e as duas sao estruturais, nao gosto:
+ *
+ * 1) ARRASTE. A janela e arrastavel pela barra de titulo. Uma capsula solta
+ *    "encostada" ao lado teria host proprio e ficaria para tras no primeiro
+ *    arraste -- pior que a situacao anterior, em que ela ao menos tinha um
+ *    lugar fixo e coerente. Dentro do mesmo ".bi-window" ela acompanha por
+ *    construcao, sem uma linha de sincronizacao de posicao.
+ *
+ * 2) MODO COMPACTO. Este bloco e IRMAO de ".bi-body" (ver .html), e a regra
+ *    do compacto la embaixo so esconde FILHOS de ".bi-body.is-compact" --
+ *    entao a carteira sobrevive aos dois estados. Isso preserva o contrato
+ *    que a capsula solta tinha: o numero nunca podia ser escondido. O que o
+ *    compacto faz aqui e so encolher (ver o bloco do compacto adiante).
+ *
+ * Visual: faixa de rodape com o mesmo gradiente da barra de titulo
+ * (--titlebar-fill) e um filete dourado por cima, para a janela fechar com
+ * o mesmo par de bordas com que abre. O valor usa --zeny (o token de cor de
+ * moeda do design system) na face numerica --type-numeric.
+ */
+.bi-moeda {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 5px 12px;
+	background: var(--titlebar-fill);
+	border-top: var(--titlebar-rule);
+}
+
+/* Tamanho do disco — cor/borda/sombra vem de ".ri-disc" (Common.css). */
+.bi-moeda-medalha {
+	width: 22px;
+	height: 22px;
+}
+
+.bi-moeda-rotulo {
+	flex: 1 1 auto;
+	font: var(--type-label);
+	color: var(--text-muted, var(--ri-texto-2));
+}
+
+/* Numero maior que o rotulo de proposito: o contador e o motivo desta faixa
+   existir, e ele era o elemento de maior peso visual na capsula do topo. Os
+   15px foram medidos contra a largura util da faixa (244px menos medalhao,
+   respiros e rotulo) -- cabem 13 digitos, mais do que o zeny do jogo alcanca. */
+.bi-moeda .bi-zeny {
+	font: var(--type-numeric);
+	font-size: 15px;
+	color: var(--zeny, var(--ri-dourado));
+	letter-spacing: 0.2px;
+	white-space: nowrap;
 }
 
 /* ─── Modo compacto (19/08/2026, botao no cabecalho -- ver ".bi-minimize"
  * mais acima): SO HP, SP, XP e os dois niveis ficam de pe -- retrato, nome,
- * classe, peso e zeny somem. A grade de botoes de navegacao que costumava
+ * classe e peso somem. O ZENY nao some mais (20/08/2026): ele saiu do corpo
+ * e virou a faixa de carteira irma de ".bi-body" (ver ".bi-moeda"), porque
+ * o contador de moedas que veio do topo ao centro nunca teve como ser
+ * escondido -- some-lo aqui seria perder o contador, nao recolhe-lo. A
+ * grade de botoes de navegacao que costumava
  * somer aqui tambem (".bi-grid") foi RETIRADA do painel inteiro nesta mesma
  * rodada, entao nem precisa mais de regra propria pro compacto. Contrato de
  * JS preservado (ver cabecalho do arquivo): os mesmos seletores continuam
@@ -467,4 +521,25 @@
 	flex-basis: 36px;
 	width: 36px;
 	font-size: 9px;
+}
+
+/* A carteira nao some no compacto -- ela ENCOLHE junto com o resto, pelo
+   mesmo pedido literal ("bem pequena e minimalista"). O seletor sai do
+   IRMAO ".bi-body.is-compact" porque ".bi-moeda" esta fora dele. */
+.bi-body.is-compact ~ .bi-moeda {
+	padding: 3px 10px;
+	gap: 6px;
+}
+
+.bi-body.is-compact ~ .bi-moeda .bi-moeda-medalha {
+	width: 16px;
+	height: 16px;
+}
+
+.bi-body.is-compact ~ .bi-moeda .bi-moeda-rotulo {
+	font-size: 10px;
+}
+
+.bi-body.is-compact ~ .bi-moeda .bi-zeny {
+	font-size: 12px;
 }

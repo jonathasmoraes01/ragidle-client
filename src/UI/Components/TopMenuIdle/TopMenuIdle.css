@@ -7,10 +7,12 @@
  * lateral/inferior que abre e fecha"; a PELE continua sendo so o design
  * system oficial, nunca a arte do Origin):
  *
- *   NIVEL 1 ".tm-top"       — 5 essenciais de gameplay (Personagem,
- *                             Inventario, Equipamento, Skills, Caca) + o
- *                             botao de abrir/fechar o nivel 2. SEMPRE
- *                             visivel, nunca some.
+ *   NIVEL 1 ".tm-top"       — 4 essenciais de gameplay (Personagem, Mochila,
+ *                             Skills, Caca) + o botao de abrir/fechar o
+ *                             nivel 2. SEMPRE visivel, nunca some. Eram 5
+ *                             ate 20/08/2026, quando "Inventario" e
+ *                             "Equipamento" — dois icones para a MESMA
+ *                             janela — viraram um so ("Mochila").
  *   NIVEL 2 ".tm-secondary" — 12 secundarios (Config, Guilda, Grupo, Menu,
  *                             Admin + os 7 "em breve"). Abre/fecha pelo
  *                             botao do nivel 1. FECHADO = "minimizar a UI":
@@ -22,7 +24,7 @@
  * Posicao do host inalterada (ao lado do minimapa, nao embaixo — ver secao
  * POSICAO abaixo, medida contra #MiniMapV2 com getBoundingClientRect). Os
  * dois niveis empilham em COLUNA dentro do mesmo host: nivel 1 cresce so em
- * LARGURA (uma fileira de 5+1), nivel 2 cresce em ALTURA logo abaixo dele
+ * LARGURA (uma fileira de 4+1), nivel 2 cresce em ALTURA logo abaixo dele
  * (grade de 6 colunas, 12 itens = 2 fileiras). Como o nivel 2 fica na MESMA
  * faixa horizontal do host (right:164, a ESQUERDA do minimapa — nunca na
  * coluna dele nem na do #HuntButtonIdle, que ocupa right:16 abaixo do
@@ -74,14 +76,31 @@
 	font-family: var(--font-ui, var(--ri-fonte));
 }
 
-/* ─── NIVEL 1 — topo enxuto: fileira unica, 5 essenciais + o botao de
+/* ─── NIVEL 1 — topo enxuto: fileira unica, 4 essenciais + o botao de
    abrir/fechar o nivel 2 no fim dela (align-items:flex-start alinha os
    topos dos discos com o topo do botao, e por sua vez com o topo do
-   minimapa — os tres em "top:16px"). Nunca quebra linha (5 itens cabem
-   folgado ate em 1366px de largura). ────────────────────────────────── */
+   minimapa — os tres em "top:16px"). Nunca quebra linha (4 itens cabem
+   folgado ate em 1366px de largura).
+
+   Por que tirar um item daqui NAO abre buraco: esta fileira e "display:flex"
+   com "gap", nao grade de colunas fixas — os que sobram encostam de volta e
+   o host encolhe pela direita (o ":host" e ancorado em "right", entao o
+   grupo continua colado no minimapa). Quem tem coluna fixa e so o nivel 2
+   (".tm-secondary", grade de 6), e la nada mudou. ───────────────────── */
+/* "justify-content:flex-end" e o conserto do buraco que a saida do 5o item
+   abriria (gauntlet item 5, 20/08/2026). Esta fileira e filha de um flex em
+   COLUNA, entao ela estica ate a largura do bloco — e essa largura passou a
+   ser ditada pela grade do nivel 2 (378px) assim que a fileira encolheu.
+   Alinhada a esquerda, o botao de abrir/fechar terminava 53px ANTES da borda
+   direita da grade de baixo: a alca saia da quina onde sempre morou e ficava
+   um vao entre ela e o minimapa. Ancorando a direita, a alca fica no MESMO
+   pixel de antes da remocao e as duas fileiras dividem a mesma borda direita
+   — que e a borda que importa, porque o host inteiro e ancorado por "right".
+   Medido com getBoundingClientRect em 1920x1080, foto em depois.png. */
 .tm-top {
 	display: flex;
 	align-items: flex-start;
+	justify-content: flex-end;
 	gap: 18px;
 }
 

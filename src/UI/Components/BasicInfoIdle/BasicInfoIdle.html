@@ -68,7 +68,6 @@
 
 			<div class="bi-stats-line">
 				<span class="bi-stats-text">Peso <span class="bi-weight">0 / 0</span></span>
-				<span class="bi-stats-text bi-stats-text--zeny">Zeny <span class="bi-zeny">0</span></span>
 			</div>
 			<!-- A grade de icones (Status/Equipamento/Inventario/Skills/Caca/
 			     Config/Menu/Admin) foi removida em 19/08/2026 (pedido do dono):
@@ -76,6 +75,27 @@
 			     clicavel. Os mesmos destinos foram reproduzidos na constelacao
 			     de UI/Components/TopMenuIdle/TopMenuIdle.html -- unico lugar
 			     com icones clicaveis agora. -->
+		</div>
+
+		<!-- Carteira (20/08/2026, pedido do dono com print): o contador de
+		     moedas MUDOU DE CASA -- era uma capsula solta no topo ao centro
+		     (UI/Components/TopBarIdle, apagado nesta mesma rodada) e agora
+		     mora aqui, no canto superior esquerdo junto do painel de vida.
+		     Fica IRMAO de ".bi-body", nao filho dele, e essa e a razao de
+		     ser: a regra do modo compacto so esconde filhos de
+		     ".bi-body.is-compact" (ver BasicInfoIdle.css), entao o contador
+		     continua de pe nos DOIS estados -- e antes ele nunca podia ser
+		     escondido, porque flutuava sozinho na tela. Estar dentro do
+		     mesmo host tambem resolve o arraste de graca: a barra de titulo
+		     move a janela inteira, e a carteira vai junto por construcao. O
+		     medalhao continua sendo o glifo "zeny" de UI/ri-icones.js (o que
+		     INFORMA e arte/icone; o que DELIMITA e CSS). ".bi-zeny" e o
+		     MESMO seletor de antes -- o JS nao mudou de contrato, so o lugar
+		     onde o numero aparece. -->
+		<div class="bi-moeda">
+			<span class="bi-moeda-medalha ri-disc"><!--RI_ICONE:zeny--></span>
+			<span class="bi-moeda-rotulo">Zeny</span>
+			<span class="bi-zeny">0</span>
 		</div>
 	</div>
 </div>

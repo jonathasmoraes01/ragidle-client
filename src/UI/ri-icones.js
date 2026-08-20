@@ -155,6 +155,18 @@ const RiIcones = {
 		svg('<circle cx="9" cy="8" r="3"/><path d="M2 21c0-3.9 3.1-6 7-6s7 2.1 7 6"/><circle cx="17.2" cy="8.6" r="2.4"/><path d="M15.6 15.2c2.7.4 4.6 2.2 4.6 5.8"/>')
 	),
 
+	// ── Correio — arte REAL, mas NAO de ro_menu_icon: o candidato de la
+	// (mail_1.bmp) foi convertido e OLHADO, e tem a palavra "RODEX" pintada em
+	// pixel dentro do glifo -- a MESMA reprovacao de guild_1 ("G") e bank_1
+	// ("Z"), porque o design system exige glifo puro, sem texto. O envelope
+	// limpo veio do rodexsystem (icon_status_mail_received.bmp, 24x24), que e
+	// a arte que a propria lista de correio nativa usa por linha
+	// (Rodex.js:174). Reserva Lucide "Mail" se o PNG faltar. ──────────────
+	correio: artReal(
+		'correio',
+		svg('<rect x="2.5" y="5" width="19" height="14" rx="2"/><path d="m3 6.5 9 6.5 9-6.5"/>')
+	),
+
 	// ── Loja — (idioma Lucide, "Store"). ────────────────────────────────────
 	loja: svg(
 		'<path d="M3 9 4 4h16l1 5"/><path d="M4 9v10a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1V9"/><path d="M3 9h18"/><path d="M9 20v-5a3 3 0 0 1 6 0v5"/>'

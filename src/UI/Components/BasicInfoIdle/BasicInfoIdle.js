@@ -54,6 +54,17 @@
  * the ONLY place with clickable icons. This file no longer imports any of
  * those sibling windows; it only reads native player state to display it.
  *
+ * Carteira (20/08/2026, pedido do dono com print): o contador de moedas que
+ * flutuava no topo AO CENTRO (UI/Components/TopBarIdle, apagado nesta
+ * rodada) passou a morar nesta janela, como faixa de rodape. Nada da LOGICA
+ * mudou: a fonte continua sendo Session.zeny (o mesmo getter que a capsula
+ * lia, Engine/SessionStorage.js:41-50), a cadencia continua sendo o mesmo
+ * polling de 250ms deste arquivo, e o seletor de destino continua sendo
+ * ".bi-zeny" -- o que mudou foi so ONDE esse span vive no .html (antes na
+ * linha "Peso / Zeny" do corpo, agora na faixa ".bi-moeda"). Como o
+ * componente solto sumiu, sumiu tambem o segundo temporizador de 250ms que
+ * lia exatamente o mesmo estado.
+ *
  * @author RagIdle
  */
 
@@ -64,6 +75,7 @@ import UIManager from 'UI/UIManager.js';
 import GUIComponent from 'UI/GUIComponent.js';
 import MonsterTable from 'DB/Monsters/MonsterTable.js';
 import BasicInfo from 'UI/Components/BasicInfo/BasicInfo.js';
+import RiIcones from 'UI/ri-icones.js';
 import htmlText from './BasicInfoIdle.html?raw';
 import cssText from './BasicInfoIdle.css?raw';
 
@@ -115,11 +127,13 @@ const JOB_PT = {
 const BasicInfoIdle = new GUIComponent('BasicInfoIdle', cssText);
 
 /**
- * Sem marcador "<!--RI_ICONE:chave-->" neste .html desde 19/08/2026 (a
- * grade de icones foi retirada, ver cabecalho do arquivo) -- so devolve o
- * html puro, nenhuma troca de glifo precisa acontecer aqui mais.
+ * Troca o marcador "<!--RI_ICONE:chave-->" do .html pela string SVG do
+ * modulo de iconografia (UI/ri-icones.js) -- mesmo padrao de DockIdle.js. A
+ * substituicao tinha sumido daqui em 19/08/2026 (quando a grade de icones
+ * saiu) e VOLTOU em 20/08/2026 com a faixa de carteira, que traz o medalhao
+ * "zeny" herdado da capsula do topo.
  */
-BasicInfoIdle.render = () => htmlText;
+BasicInfoIdle.render = () => htmlText.replace(/<!--RI_ICONE:(\w+)-->/g, (_, chave) => RiIcones[chave] || '');
 
 /**
  * @var {Preferences} window position — defaults to the top-left corner
