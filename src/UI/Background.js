@@ -119,23 +119,55 @@ _barLayer.appendChild(_barTrack);
 	const style = document.createElement('style');
 	style.setAttribute('data-ragidle-loadbar', '');
 	style.textContent = `
+		/*
+		 * ASSINATURA, nao objeto de UI.
+		 *
+		 * A versao anterior era uma pilula: chapa (--surface-dark-glass), borda
+		 * dourada e raio de pilula. Com moldura fechada ela lia como BOTAO
+		 * clicavel no meio de uma ilustracao -- e em 1920x1080 sobre a arte do
+		 * dragao o nome do jogo aparecia TRES vezes (o logotipo pintado na arte,
+		 * o selo do canto inferior direito e a pilula).
+		 *
+		 * A pilula nao pode simplesmente SAIR: em 2560x1080 o 'cover' corta o
+		 * logotipo pintado e o "IDLE" desaparece da tela. Quem garante o nome
+		 * inteiro nas proporcoes extremas e este texto. Entao ficou o texto e
+		 * saiu a moldura.
+		 *
+		 * O veu e uma elipse do MESMO token da chapa antiga, que morre em 70% --
+		 * e 70,7% e onde a borda da caixa cruza a elipse de canto-mais-longe
+		 * (1/raiz de 2). Por isso o degrade chega a zero ANTES do limite da
+		 * caixa: fundo de elemento e recortado pela caixa, e qualquer alfa
+		 * sobrando na borda desenharia de volta o retangulo que esta regra
+		 * tirou. O padding largo existe pra isso, nao por respiro.
+		 *
+		 * Pelo mesmo motivo o backdrop-filter SAIU: ele borra a area da caixa e
+		 * so dela, entao devolve uma aresta retangular nitida por mais suave que
+		 * o degrade seja.
+		 *
+		 * O pior caso de contraste e a luz de catedral de loading-acolita (quase
+		 * branco atras): --gold-200 sobre o veu a 0,58 da ~3,9:1, acima do 3:1
+		 * que texto grande pede, e a sombra do texto e a margem.
+		 */
 		.rag-loadbar-name {
 			position: absolute;
 			left: 50%;
-			bottom: calc(25% + 18px);
+			bottom: 25%;
 			transform: translateX(-50%);
 			white-space: nowrap;
 			font: var(--type-hero);
 			font-size: clamp(30px, 2.4vw, 46px);
 			letter-spacing: var(--ls-title);
-			color: var(--gold-300);
-			background: var(--surface-dark-glass);
-			backdrop-filter: var(--blur-glass);
-			-webkit-backdrop-filter: var(--blur-glass);
-			border: 1px solid var(--border-gold);
-			border-radius: var(--radius-pill);
-			padding: clamp(6px, 0.6vw, 10px) clamp(24px, 2.4vw, 40px);
-			text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
+			color: var(--gold-200);
+			padding: clamp(18px, 1.6vw, 30px) clamp(60px, 6vw, 120px);
+			background: radial-gradient(
+				ellipse at center,
+				var(--surface-dark-glass) 0%,
+				var(--surface-dark-glass) 50%,
+				transparent 70%
+			);
+			text-shadow:
+				0 1px 2px rgba(9, 21, 38, 0.9),
+				0 0 18px rgba(9, 21, 38, 0.75);
 		}
 		.rag-loadbar-track {
 			position: absolute;
@@ -175,6 +207,102 @@ _barLayer.appendChild(_barTrack);
 })();
 
 /**
+ * ------------------------------------------------------------------
+ * O vazamento da HUD por cima da tela de carregamento
+ *
+ * O sintoma que abriu o caso: no canto superior esquerdo de TODA tela de
+ * carregamento lia-se "<nome> / Lv.1 / Novice / Lv.1 / Exp. 0% / HP. 40 / 40 |
+ * SP. 11 / 11" em texto miudo, ilegivel sobre arte clara. E o modo `small` da
+ * janela NATIVA de informacao basica (o `_host` de UI/Components/BasicInfo, id
+ * `BasicInfoV0`..`BasicInfoV5` conforme o PACKETVER; aqui, `BasicInfoV4`).
+ *
+ * Por que ela esta ali: `MapRenderer.setMap()` chama
+ * `UIManager.removeComponents()` ANTES de `Background.setLoading()`, mas o
+ * `append()` de um GUIComponent e ASSINCRONO -- espera as chapas .bmp do GRF.
+ * `Engine/MapEngine.js:onMapChange` pede a janela algumas linhas antes de
+ * chamar `setMap`, entao ela chega ao DOM DEPOIS da limpeza, sobrevive a ela
+ * e fica orfa sobre a arte. Nao e defeito da arte nova: e anterior a ela.
+ *
+ * NAO E UM ELEMENTO SO -- e uma CLASSE de defeito, e por isso a varredura e
+ * por lista e nao por id unico. Os outros dois orfaos sao botoes que
+ * `document.body.appendChild` deixa soltos e que nenhum removeComponents()
+ * alcanca, porque nao pertencem a arvore de componente nenhum:
+ *
+ *   - `lvlup_job`  (`UI/Components/SkillList/SkillListCommon.js`), 43x43 no
+ *     canto inferior direito -- o glifo "up" que aparecia em todos os prints.
+ *   - `lvlup_base` (`UI/Components/Equipment/EquipmentCommon.js`), 4x4 no
+ *     canto superior esquerdo. Invisivel na pratica, mas deixar UM dos dois
+ *     de fora e deixar a classe do defeito viva.
+ *
+ * Por que `visibility` e nao `display`: os tres ja tem DONO do `display`.
+ * UI/Components/BasicInfoIdle (`hideNativeBasicInfo`) poe a janela em `none`
+ * assim que a HUD entra, e UI/Components/DockIdle (`hideNativeLevelUpButton`)
+ * faz o mesmo com o `lvlup_job`, em polling. Se escondessemos por `display`,
+ * devolver o valor anterior passaria por cima do deles e os dois voltariam a
+ * aparecer DENTRO do jogo. `visibility` e um eixo que ninguem mais toca:
+ * devolver '' deixa o `display: none` deles de pe.
+ *
+ * E por que esconder em vez de remover: sao pecas vivas -- MapEngine e
+ * MapEngine/Main.js escrevem na janela (`BasicInfo.getUI().update(...)`),
+ * BasicInfoIdle LE os campos dela, e SkillList/Equipment continuam donos dos
+ * botoes. Some-los do DOM quebraria os quatro.
+ * ------------------------------------------------------------------
+ */
+
+/**
+ * Os orfaos que sobrevivem ao UIManager.removeComponents(). `BasicInfoV\d+`
+ * de proposito, e nao `BasicInfo.*`: `BasicInfoIdle` e a HUD legitima e nao
+ * pode entrar nesta lista.
+ */
+const ORFAOS_QUE_VAZAM = /^(BasicInfoV\d+|lvlup_job|lvlup_base)$/;
+
+/** @var {Array<{el: HTMLElement, visibilidade: string}>} o que escondemos, e o valor a devolver */
+let _escondidosNoCarregamento = [];
+
+/** @var {MutationObserver|null} vigia de quem chega ATRASADO ao DOM */
+let _vigiaDoVazamento = null;
+
+function esconderSeVazar(no) {
+	if (!no || no.nodeType !== 1 || !ORFAOS_QUE_VAZAM.test(no.id)) {
+		return;
+	}
+	if (_escondidosNoCarregamento.some(g => g.el === no)) {
+		return;
+	}
+	_escondidosNoCarregamento.push({ el: no, visibilidade: no.style.visibility });
+	no.style.visibility = 'hidden';
+}
+
+function esconderVazamentoDaHud() {
+	if (_vigiaDoVazamento) {
+		return;
+	}
+	Array.prototype.forEach.call(document.body.children, esconderSeVazar);
+
+	// A varredura acima nao basta: o append() e assincrono (ver o bloco acima),
+	// entao a janela costuma chegar DEPOIS, com a arte ja na tela. Sem o vigia,
+	// ela aparece de qualquer jeito -- que e o que acontecia.
+	_vigiaDoVazamento = new MutationObserver(registros => {
+		for (let i = 0; i < registros.length; ++i) {
+			Array.prototype.forEach.call(registros[i].addedNodes, esconderSeVazar);
+		}
+	});
+	_vigiaDoVazamento.observe(document.body, { childList: true });
+}
+
+function devolverVazamentoDaHud() {
+	if (_vigiaDoVazamento) {
+		_vigiaDoVazamento.disconnect();
+		_vigiaDoVazamento = null;
+	}
+	for (let i = 0; i < _escondidosNoCarregamento.length; ++i) {
+		const g = _escondidosNoCarregamento[i];
+		g.el.style.visibility = g.visibilidade;
+	}
+	_escondidosNoCarregamento = [];
+}
+
+/**
  * Background loading progress
  * @var {number} percent
  */
@@ -200,6 +328,38 @@ function render() {
 let _loading = [];
 
 /**
+ * ------------------------------------------------------------------
+ * As telas de carregamento do Rag Idle
+ *
+ * Por que fora do GRF: as dez telas originais do RO (loading01..10.jpg) moram
+ * DENTRO de data.grf, e o GRF e o pacote de arte do dono -- ele e regravado por
+ * fora do repositorio e nao versiona nada nosso. Publicando em
+ * public/ragidle/loading/ o vite serve por HTTP direto (mesmo padrao ja usado
+ * por /ragidle/classes, /ragidle/skills, /ragidle/item), a arte nova fica
+ * versionada junto do codigo e o carregador do GRF nem e acionado.
+ *
+ * O segundo motivo e a armadilha de CP949: caminho de GRF e minusculizado pelo
+ * carregador, e 0xC0 vira 0xE0 nos nomes coreanos -- caminho ASCII servido pelo
+ * vite nao passa por essa normalizacao (ver o desvio por '/' em setImage).
+ *
+ * Nome ASCII curto e sem espaco de proposito: o nome de origem tinha data,
+ * espaco e reticencia Unicode, que viram %XX numa URL.
+ * ------------------------------------------------------------------
+ */
+const TELAS_DE_CARREGAMENTO = [
+	'/ragidle/loading/loading-acolita.jpeg',
+	'/ragidle/loading/loading-arqueiro.jpeg',
+	'/ragidle/loading/loading-dragao.jpeg',
+	'/ragidle/loading/loading-espadachim.jpeg',
+	'/ragidle/loading/loading-fogueira.jpeg',
+	'/ragidle/loading/loading-gatuno.jpeg',
+	'/ragidle/loading/loading-maga.jpeg',
+	'/ragidle/loading/loading-mercador.jpeg',
+	'/ragidle/loading/loading-mirante.jpeg',
+	'/ragidle/loading/loading-sacerdotisa.jpeg'
+];
+
+/**
  * Background Namespace
  */
 class Background {
@@ -209,24 +369,32 @@ class Background {
 	 * @param {Array} loading - Array of loading filenames stored in clientinfo.xml
 	 */
 	static init(loading) {
-		let i;
-
 		_progress = 0;
 		_canvas.style.zIndex = '1';
 		_barLayer.style.zIndex = '1';
 
 		render();
 
-		if (loading) {
-			_loading = loading;
-			return;
-		}
+		// O sorteio SO pode cair na arte do dono. O parametro `loading` (a lista do
+		// clientinfo.xml do roBrowser) e ignorado de proposito: nenhum chamador do
+		// Rag Idle passa lista hoje, e honra-lo seria uma porta silenciosa de volta
+		// para as loading01..10.jpg do GRF -- exatamente o que esta entrega tirou de
+		// circulacao. Para devolver o comportamento upstream basta um
+		// `if (loading) { _loading = loading; return; }` aqui.
+		void loading;
+		_loading = TELAS_DE_CARREGAMENTO;
+	}
 
-		// Generate default loadings
-		_loading.length = 10;
-		for (i = 1; i <= 10; ++i) {
-			_loading[i - 1] = `loading${i < 10 ? '0' + i : i}.jpg`;
-		}
+	/**
+	 * A lista VIVA de onde setLoading() sorteia.
+	 *
+	 * Existe para a prova poder auditar o conjunto sortavel sem depender de
+	 * sorte: recarregar N vezes so mostra o que caiu, nunca o que PODE cair.
+	 *
+	 * @returns {Array<string>} copia, para ninguem alterar o sorteio por fora
+	 */
+	static getLoadingList() {
+		return _loading.slice();
 	}
 
 	/**
@@ -258,7 +426,32 @@ class Background {
 		_container.style.backgroundImage = 'none';
 		render();
 
-		if (Array.isArray(filename)) {
+		// Desvio para arte servida pelo proprio vite (public/, ver
+		// TELAS_DE_CARREGAMENTO): comeca com '/', logo NAO e caminho de GRF e nao
+		// pode passar por Client.loadFile -- o carregador minusculiza o caminho, e
+		// so o GRF conhece DB.INTERFACE_PATH. Aqui tambem mora o "cover": as telas
+		// novas sao 1376x768 (1.792:1) e nao 4:3 como as do RO, entao o
+		// backgroundSize '100% 100%' de baixo as esmagaria em 1280x1024 e as
+		// esticaria em 2560x1080. 'cover' + 'center' preenche sem deformar,
+		// sacrificando borda em vez de proporcao.
+		if (typeof filename === 'string' && filename.charAt(0) === '/') {
+			const pronta = () => {
+				Object.assign(_container.style, {
+					backgroundImage: `url(${filename})`,
+					backgroundSize: 'cover',
+					backgroundPosition: 'center center',
+					backgroundRepeat: 'no-repeat'
+				});
+				if (exist && callback) callback();
+			};
+
+			// Espera o decode antes de avisar: sem isso a barra de progresso aparece
+			// por cima do container ainda preto no primeiro carregamento.
+			const img = new Image();
+			img.onload = pronta;
+			img.onerror = pronta;
+			img.src = filename;
+		} else if (Array.isArray(filename)) {
 			let loadedCount = 0;
 			const total = filename.length;
 			const divs = [];
@@ -305,7 +498,12 @@ class Background {
 				url => {
 					Object.assign(_container.style, {
 						backgroundImage: `url(${url})`,
-						backgroundSize: '100% 100%'
+						// Os tres explicitos porque o desvio de cover acima grudou
+						// 'cover'/'center' no MESMO elemento: sem repor, a tela de login
+						// herdaria o enquadramento da ultima tela de carregamento.
+						backgroundSize: '100% 100%',
+						backgroundPosition: '0% 0%',
+						backgroundRepeat: 'no-repeat'
 					});
 					if (exist && callback) callback();
 				},
@@ -369,9 +567,19 @@ class Background {
 	 * @param {function} callback once the loading is display (optional)
 	 */
 	static setLoading(callback) {
-		const index = Math.floor(Math.random() * _loading.length);
+		const lista = _loading.length ? _loading : TELAS_DE_CARREGAMENTO;
+		const index = Math.floor(Math.random() * lista.length);
 
-		Background.setImage(_loading[index] || 'loading01.jpg', () => {
+		// Antes de pintar: a janela nativa de informacao basica e os dois botoes
+		// de "subiu de nivel" sobrevivem ao UIManager.removeComponents() por
+		// nao pertencerem a arvore de componente nenhum quando ele roda (ver o
+		// bloco "O vazamento da HUD" no topo). Background.remove() devolve.
+		esconderVazamentoDaHud();
+
+		// A reserva era 'loading01.jpg' -- arte do GRF. Ela precisava sair: com
+		// setLoading() chamado antes de init() (MapRenderer nao garante a ordem), a
+		// lista vazia caia na tela antiga e uma das dez velhas voltava a aparecer.
+		Background.setImage(lista[index], () => {
 			_canvas.style.zIndex = '999';
 			_barLayer.style.zIndex = '999';
 			Background.setPercent(0.0);
@@ -391,6 +599,7 @@ class Background {
 		const exist = !!_container.parentNode;
 
 		if (!exist) {
+			devolverVazamentoDaHud();
 			if (callback) {
 				callback();
 			}
@@ -398,6 +607,10 @@ class Background {
 		}
 
 		transition(() => {
+			// Devolve DENTRO da transicao, junto com a arte saindo: devolver no
+			// topo de remove() traria o texto de volta por cima da arte durante
+			// os ~500 ms do fade.
+			devolverVazamentoDaHud();
 			_progress = -1;
 			_container.style.zIndex = '0';
 			_canvas.style.zIndex = '0';
