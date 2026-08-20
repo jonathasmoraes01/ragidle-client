@@ -60,6 +60,23 @@
  * this window's own polling loop will simply see hp > 0 and hide itself
  * anyway.
  *
+ * ── A CAMADA, e o segundo dialogo (gauntlet 19/08/2026) ───────────────
+ * O dono fotografou a morte "mal posicionada e atras da UI". Medido no jogo
+ * rodando, eram DUAS coisas, e nenhuma era o cartao daqui (que ja nasce
+ * centralizado pelo flex de ".dw-overlay"):
+ *
+ *   1. este overlay disputava a MESMA faixa de z-index das janelas comuns
+ *      (50..88, medido) e so ficava na frente enquanto ninguem mais pedisse
+ *      foco — ver o bloco da camada em DeathWindow.css e `needFocus` abaixo;
+ *   2. o menu ESC nativo abria um SEGUNDO dialogo de morte, a 75% da altura
+ *      e sem pedir foco (z-index 52, medido), aparecendo por baixo deste
+ *      cartao. Isso morreu na ORIGEM, por dois cadeados (nada de limpeza
+ *      periodica, que fazia o menu piscar na mao do jogador): o handler de
+ *      ZC_NOTIFY_VANISH (Engine/MapEngine/Entity.js) nao abre o menu de
+ *      morte e fecha uma vez o que estivesse aberto, e Escape.onKeyDown nao
+ *      abre menu nenhum enquanto `aMorteEstaNaTela()` — a morte aqui e
+ *      escolha forcada de uma opcao so.
+ *
  * @author RagIdle
  */
 
@@ -90,6 +107,65 @@ DeathWindow.render = () => htmlText;
  * and only while actually shown.
  */
 DeathWindow.mouseMode = GUIComponent.MouseMode.CROSS;
+
+/**
+ * FORA do sistema de foco (19/08/2026, gauntlet item 2).
+ *
+ * `focus()` existe pra decidir QUEM fica na frente entre janelas que o
+ * jogador empilha (GUIComponent.js:333-372) — e a morte nao disputa isso:
+ * ela mora acima de todas, cravada em `:host` com "!important"
+ * (DeathWindow.css, ver o comentario da camada la). Com `needFocus = false`
+ * duas coisas melhoram: nenhuma outra janela consegue nos ultrapassar
+ * pedindo foco, e abrir a morte para de RENUMERAR o z-index das janelas do
+ * jogador (o `focus()` reindexa todas as outras como efeito colateral).
+ * Mesmo contrato dos componentes de HUD (DockIdle.js:90, TopMenuIdle.js:107,
+ * HuntButtonIdle.js:78), so que pelo motivo oposto: eles ficam sempre
+ * ATRAS, esta fica sempre NA FRENTE.
+ */
+DeathWindow.needFocus = false;
+
+/**
+ * "Esta janela e a dona da morte?" — quem pergunta e o handler de
+ * `ZC_NOTIFY_VANISH` (Engine/MapEngine/Entity.js), para NAO abrir tambem o
+ * menu ESC em modo morte e por um segundo dialogo na tela (o defeito do
+ * print do dono, 19/08/2026; o porque completo esta la, na chamada).
+ *
+ * A resposta e "estou pendurada no documento", e nao uma flag propria: e o
+ * MapEngine quem faz `DeathWindow.append()` ao entrar no mapa e `remove()`
+ * ao sair, entao estar no DOM e exatamente "o jogo esta no ar e a morte e
+ * minha". Em qualquer outro contexto (viewer, telas de login) o componente
+ * nao esta appendado e o comportamento nativo continua de pe.
+ *
+ * @returns {boolean}
+ */
+DeathWindow.ehADonaDaMorte = function ehADonaDaMorte() {
+	return !!(this._host && this._host.parentNode);
+};
+
+/**
+ * "A morte esta na tela AGORA?" — quem pergunta e o ESC
+ * (UI/Components/Escape/Escape.js), que com a morte no ar nao abre menu
+ * nenhum: o motivo completo esta la, na guarda.
+ *
+ * Nao basta olhar `_visible`. O overlay so abre no proximo giro do laco de
+ * 250 ms, entao existe uma fresta depois do golpe em que o personagem JA
+ * esta morto e o cartao ainda nao subiu — um ESC apertado ali abriria um
+ * menu que o cartao cobriria em seguida, exatamente o desenho quebrado que
+ * queremos matar. Por isso a fresta e fechada lendo a MESMA fonte de
+ * verdade do laco (ver syncFromNativeState), e nao uma copia dela.
+ *
+ * @returns {boolean}
+ */
+DeathWindow.aMorteEstaNaTela = function aMorteEstaNaTela() {
+	if (!DeathWindow.ehADonaDaMorte()) {
+		return false;
+	}
+	if (_visible) {
+		return true;
+	}
+	const life = Session.Entity && Session.Entity.life;
+	return !!(life && _dadosValidosVistos && life.hp <= 0);
+};
 
 /**
  * @var {boolean} whether the overlay is currently shown — mirrors the
@@ -194,7 +270,9 @@ function showOverlay() {
 	if (overlay) {
 		overlay.classList.add('is-open');
 	}
-	DeathWindow.focus();
+	// Nada de focus() aqui: a camada e cravada no CSS (DeathWindow.css) e
+	// "needFocus = false" (ver acima) — pedir foco nao subiria nada e ainda
+	// renumeraria as janelas do jogador.
 }
 
 function hideOverlay() {

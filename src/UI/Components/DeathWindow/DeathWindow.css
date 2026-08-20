@@ -29,6 +29,31 @@
 	width: 100vw;
 	height: 100vh;
 	pointer-events: none;
+
+	/*
+	 * A CAMADA DA MORTE — e por que ela e "!important" (19/08/2026).
+	 *
+	 * O z-index de todo componente e INLINE no host: o GUIComponent nasce
+	 * com "style.zIndex = 50" (GUIComponent.js:159) e cada focus() reescreve
+	 * esse inline pra empilhar quem foi clicado por ultimo
+	 * (GUIComponent.js:333-372). Regra de folha de estilo NORMAL perde do
+	 * inline; regra "!important" de autor GANHA dele. Entao esta linha e a
+	 * unica forma de a morte sentar acima da faixa de foco de um jeito que o
+	 * proprio sistema de foco nao consiga desfazer depois — que era o
+	 * defeito: a morte so ficava por cima enquanto ninguem mais pedisse foco.
+	 *
+	 * O numero NAO e chute; e MEDIDO com getComputedStyle no jogo rodando
+	 * (1600x900, personagem morto de verdade em prt_fild08):
+	 *   - faixa de foco dos componentes: 50 (HUD que nao pede foco) a 88
+	 *     (a janela clicada por ultimo);
+	 *   - o overlay de popup nativo do UIManager: 99 (UIManager.js:130);
+	 *   - o maior z-index solto do fork: 1000 (Enchant.js:585).
+	 * 2000000 fica ordens de grandeza acima dos tres e ainda longe do teto do
+	 * navegador (2147483647), entao ninguem "soma 1" e passa na frente:
+	 * placeOnTop() (GUIComponent.js:390) soma 1 sobre o INLINE dos outros,
+	 * que continua na casa dos 50-90.
+	 */
+	z-index: 2000000 !important;
 }
 
 #DeathWindow {

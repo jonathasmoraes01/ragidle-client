@@ -41,6 +41,7 @@ import BasicInfo from 'UI/Components/BasicInfo/BasicInfo.js';
 import ChatBox from 'UI/Components/ChatBox/ChatBox.js';
 import ChatRoom from 'UI/Components/ChatRoom/ChatRoom.js';
 import Escape from 'UI/Components/Escape/Escape.js';
+import DeathWindow from 'UI/Components/DeathWindow/DeathWindow.js';
 import HomunInformations from 'UI/Components/HomunInformations/HomunInformations.js';
 import MercenaryInformations from 'UI/Components/MercenaryInformations/MercenaryInformations.js';
 import Inventory from 'UI/Components/Inventory/Inventory.js';
@@ -363,7 +364,43 @@ function onEntityVanish(pkt) {
 
 	// Show escape menu
 	if (pkt.GID === Session.Entity.GID && pkt.type === 1) {
-		Escape.showDeathMenu(haveSiegfriedItem());
+		/*
+		 * RAGIDLE (19/08/2026): quem desenha a morte neste fork e a
+		 * DeathWindow — cartao centralizado, no design system, com o
+		 * "Voltar para a cidade" (CZ_RAGIDLE_RENASCER). Abrir TAMBEM o menu
+		 * ESC em modo morte punha um SEGUNDO dialogo na tela, a 75% da altura
+		 * (Escape.js:36-37, nao centralizado) e sem pedir foco, entao no
+		 * z-index em que ele estivesse — atras de qualquer janela aberta e
+		 * atras do overlay da morte. Era o defeito do print do dono.
+		 *
+		 * A supressao mora AQUI, na ORIGEM, e nao numa limpeza depois. Uma
+		 * versao anterior fechava o menu a cada volta do laco de 250 ms da
+		 * DeathWindow, e isso PISCAVA: o jogador apertava ESC e o menu sumia
+		 * sozinho.
+		 *
+		 * Deixar o ESC abrir o menu NORMAL durante a morte tambem nao serve:
+		 * ele nasce a 75% da altura, fica sob o scrim (medido: o clique em
+		 * "Continuar a Jogar" nao chega) e o print reproduz o mesmo defeito.
+		 * Enquanto a morte estiver na tela, o ESC nao abre nada — a guarda
+		 * do teclado esta em Escape.onKeyDown, com o mesmo cadeado.
+		 *
+		 * Quando a DeathWindow nao esta na tela (qualquer contexto que nao
+		 * seja o mapa do jogo), o comportamento nativo fica de pe.
+		 */
+		if (DeathWindow.ehADonaDaMorte()) {
+			/*
+			 * O outro caminho para o menu aparecer sob o cartao: o jogador
+			 * ja estava com o ESC ABERTO quando o golpe veio. Fecha-se UMA
+			 * vez, aqui, no proprio pacote da morte (nao e limpeza
+			 * periodica: dali em diante o ESC nem abre, ver a guarda em
+			 * Escape.onKeyDown). `resetMenu` e a peca do proprio Escape para
+			 * voltar ao menu normal, a mesma que o cliente ja chama ao
+			 * ressuscitar (linha ~494), e e idempotente.
+			 */
+			Escape.resetMenu();
+		} else {
+			Escape.showDeathMenu(haveSiegfriedItem());
+		}
 	}
 }
 

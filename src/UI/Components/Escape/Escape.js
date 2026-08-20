@@ -15,6 +15,7 @@ import GUIComponent from 'UI/GUIComponent.js';
 import SoundOption from 'UI/Components/SoundOption/SoundOption.js';
 import GraphicsOption from 'UI/Components/GraphicsOption/GraphicsOption.js';
 import ShortCutOption from 'UI/Components/ShortCutOption/ShortCutOption.js';
+import DeathWindow from 'UI/Components/DeathWindow/DeathWindow.js';
 import htmlText from './Escape.html?raw';
 import cssText from './Escape.css?raw';
 
@@ -107,6 +108,23 @@ Escape.onRemove = function onRemove() {
  */
 Escape.onKeyDown = function onKeyDown(event) {
 	if (event.which === KEYS.ESCAPE || event.key === 'Escape') {
+		/*
+		 * RAGIDLE (19/08/2026): com a morte na tela, o ESC nao abre menu
+		 * nenhum. A morte deste fork e uma escolha forcada de UMA opcao —
+		 * "Voltar para a cidade" — e a DeathWindow cobre a tela com um scrim
+		 * que come clique. Este menu, aberto por baixo dela, seria uma
+		 * janela desalinhada aparecendo sob o cartao (o defeito que o dono
+		 * fotografou) e ainda por cima INERTE: visivel, clicavel em lugar
+		 * nenhum. Quem quiser Fechar Jogo / Selecionar Personagem aperta o
+		 * botao e usa o ESC em Prontera, a um clique daqui.
+		 *
+		 * Mesmo cadeado do handler de ZC_NOTIFY_VANISH
+		 * (Engine/MapEngine/Entity.js), so que no caminho do teclado.
+		 */
+		if (DeathWindow.aMorteEstaNaTela()) {
+			return;
+		}
+
 		if (this._host.style.display === 'none') {
 			this._host.style.display = '';
 			this.focus();
