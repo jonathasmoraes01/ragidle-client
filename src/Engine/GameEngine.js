@@ -48,6 +48,50 @@ let _previous_server = undefined;
 let _thread_ready = false;
 
 /**
+ * Mostra um erro NOSSO -- nunca a tela de selecao de GRF, nunca alert() cru --
+ * quando os arquivos do jogo nao podem ser carregados. Fecha o preloader
+ * primeiro: ele fica por cima de tudo (z-index maior que o popup de erro) e
+ * esconderia a caixa se continuasse na tela.
+ *
+ * @param {string} message - texto em portugues, sem jargao de roBrowser
+ */
+function showResourceLoadError(message) {
+	roInitSpinner.remove();
+	UIManager.showErrorBox(message);
+}
+
+/**
+ * Confere se o servidor de recursos remoto responde antes de seguir o boot.
+ * Resolve true para qualquer resposta HTTP, mesmo 404 (o servidor esta de
+ * pe, so nao serve aquele caminho) -- e false so quando a rede falha de
+ * verdade: fora do ar, DNS, CORS bloqueando, ou timeout. Sem essa checagem
+ * um remoteClient inalcancavel so ia falhar arquivo por arquivo, em
+ * silencio, mais adiante no boot -- sem NENHUMA mensagem para o jogador.
+ *
+ * @param {string} remoteClient - URL configurada em Configs.get('remoteClient')
+ * @param {function} callback - recebe (boolean) ok
+ */
+function probeRemoteClient(remoteClient, callback) {
+	let base = remoteClient;
+	if (base.substr(-1) !== '/') {
+		base += '/';
+	}
+
+	const controller = new AbortController();
+	const timeoutId = setTimeout(() => controller.abort(), 8000);
+
+	fetch(base, { method: 'GET', cache: 'no-store', signal: controller.signal })
+		.then(() => {
+			clearTimeout(timeoutId);
+			callback(true);
+		})
+		.catch(() => {
+			clearTimeout(timeoutId);
+			callback(false);
+		});
+}
+
+/**
  * Load files.
  */
 function loadFiles(callback) {
@@ -56,12 +100,34 @@ function loadFiles(callback) {
 	// Start Intro, wait the user to add files
 	q.add(() => {
 		Client.onFilesLoaded = count => {
-			if (!Configs.get('remoteClient') && !count && !window.electronAPI?.isElectron) {
-				alert('No client to initialize roBrowser');
-				Intro.remove();
-				Intro.append();
+			const remoteClient = Configs.get('remoteClient');
+			const isElectronApp = !!window.electronAPI?.isElectron;
+
+			// Sem GRF local, sem servidor remoto configurado e fora do Electron:
+			// nao ha como carregar o jogo. Mostra ERRO NOSSO (era Intro.append()
+			// + alert() cru antes desta correcao).
+			if (!remoteClient && !count && !isElectronApp) {
+				showResourceLoadError(
+					'Não foi possível carregar os arquivos do jogo. Verifique sua conexão com a internet e recarregue a página. Se o problema continuar, contate o suporte.'
+				);
 				return;
 			}
+
+			// Ha servidor remoto configurado mas nenhum GRF local: confirma que
+			// ele responde ANTES de seguir o boot.
+			if (remoteClient && !count && !isElectronApp) {
+				probeRemoteClient(remoteClient, ok => {
+					if (!ok) {
+						showResourceLoadError(
+							'Não foi possível conectar ao servidor de recursos do jogo. Verifique sua conexão com a internet e tente novamente em instantes.'
+						);
+						return;
+					}
+					q._next();
+				});
+				return;
+			}
+
 			q._next();
 		};
 

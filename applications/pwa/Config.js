@@ -8,8 +8,16 @@
  * Example Config.local.js:
  *   window.ROConfigLocal = {
  *       servers: [{ display: 'My Server', address: '192.168.1.1', ... }],
- *       skipIntro: true
+ *       skipIntro: false
  *   };
+ *
+ * Ragnarok Classic Idle: `skipIntro` defaults to true HERE, not only in the
+ * gitignored Config.local.js, because this file is the one every checkout
+ * and deployment actually ships with. The GRF-selection Intro screen is a
+ * roBrowser diagnostic/dev tool, never something a player should see; the
+ * safe behavior has to be the one that ships by default, not one that
+ * depends on a local file nobody is forced to create. To bring Intro back
+ * for diagnostics, set `skipIntro: false` in Config.local.js.
  */
 window.ROConfigBase = {
 	type: 'FRAME',
@@ -35,7 +43,7 @@ window.ROConfigBase = {
 	],
 	packetDump: false,
 	skipServerList: true,
-	skipIntro: false,
+	skipIntro: true,
 	aura: {},
 	autoLogin: [],
 	BGMFileExtension: ['mp3'],

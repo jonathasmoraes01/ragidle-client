@@ -10,6 +10,42 @@
 	width: 280px;
 	height: 120px;
 	z-index: 999;
+	/*
+	 * Reserva visual do design system (tokens de Common.css, injetados em
+	 * todo Shadow DOM -- ver redesign/design-system-oficial.md). O bitmap
+	 * do GRF (win_msgbox.bmp, via data-background) pinta por cima quando
+	 * carrega, porque background-image e background-color sao propriedades
+	 * separadas.
+	 *
+	 * Cicatriz (19/08/2026): a primeira versao disto usava
+	 * "background-color: var(--window-fill, ...)". --window-fill e um
+	 * GRADIENTE (feito pra a propriedade "background", nao "background-color"
+	 * -- olhe ".ri-window" em Common.css). Um gradiente e invalido como valor
+	 * de background-color, e quando isso acontece o CSS NAO cai no valor de
+	 * reserva do var() -- a propriedade inteira vira "invalid at computed-
+	 * value time" e volta pro initial value (transparent). A caixa ficava
+	 * invisivel com o token disponivel e a reserva escrita, so por causa do
+	 * tipo errado de propriedade. Confirmado por computed style ao vivo
+	 * (getComputedStyle no cenario de servidor de recursos fora do ar):
+	 * border-color e color liam o token certo, background-color lia
+	 * "rgba(0, 0, 0, 0)". Por isso aqui embaixo e "background" (shorthand),
+	 * nao "background-color" -- e cada var() carrega o valor LITERAL do
+	 * token de hoje como reserva, pro caso de o token de verdade um dia
+	 * sumir (essa caixa e a ultima linha de defesa: tem que se pintar mesmo
+	 * sem o Common.css inteiro).
+	 */
+	background: var(--window-fill, linear-gradient(180deg, rgba(255, 255, 255, 0.96) 0%, rgba(239, 245, 252, 0.94) 100%));
+	border: var(--window-frame, 1px solid rgba(36, 92, 158, 0.34));
+	border-radius: var(--radius-panel, 6px);
+	/* --window-shadow (nao --shadow-window sozinho) e o composto que traz o
+	   aro dourado por dentro junto com a sombra por fora -- e a mesma receita
+	   de ".ri-window". */
+	box-shadow: var(
+		--window-shadow,
+		0 10px 28px rgba(12, 34, 64, 0.28),
+		0 2px 6px rgba(12, 34, 64, 0.16),
+		inset 0 0 0 1px rgba(240, 216, 155, 0.75)
+	);
 }
 
 #win_popup .container {
@@ -22,6 +58,11 @@
 
 #win_popup .text {
 	padding: 5px 10px 0px 10px;
+	/* Fundo agora e claro (--window-fill), entao o texto tem de ser ESCURO
+	   pra ler -- --text-body/--ink-700 e a tinta escura do design system,
+	   feita pra sentar em cima desse mesmo fundo claro. */
+	color: var(--text-body, #2d3a55);
+	font-family: var(--font-ui, 'Figtree', Arial, 'Liberation Sans', Arimo, sans-serif);
 }
 
 #win_popup .buttonscontainer {
@@ -38,11 +79,24 @@
 }
 
 #win_popup .btn {
-	border: 0;
+	border: 1px solid var(--border-window, rgba(36, 92, 158, 0.34));
 	width: 42px;
 	height: 20px;
 	bottom: 4px;
 	margin-left: 3px;
+	border-radius: var(--radius-panel, 6px);
 	background-repeat: no-repeat;
-	background-color: transparent;
+	background-color: var(--surface-card, rgba(255, 255, 255, 0.66));
+	/* O bitmap (btn_ok.bmp) ja tem o rotulo desenhado; o texto DOM (colocado
+	   so pela caixa de erro de boot, via _createButton(..., 'OK') em
+	   UIManager.js) e o que garante que o botao diga o que faz quando esse
+	   bitmap nao existe -- exatamente o caso do servidor de recursos fora
+	   do ar. Fonte pequena pro botao de 42x20 nao estourar. */
+	color: var(--text-body, #2d3a55);
+	font-family: var(--font-ui, 'Figtree', Arial, 'Liberation Sans', Arimo, sans-serif);
+	font-size: 11px;
+	font-weight: var(--fw-semibold, 600);
+	line-height: 1;
+	padding: 0;
+	cursor: pointer;
 }

@@ -30,15 +30,23 @@ function _popupPosition() {
  * Create a button with data-attributes for parseHTML to process
  * @param {string} name - button name (ex: 'ok', 'cancel')
  * @param {function} onClick - click callback (fires once)
- * @param {function} parseHTML - reference to GUIComponent.processDataAttrs
+ * @param {string} [label] - optional visible text. O bitmap do GRF (btn_ok.bmp
+ *   etc.) ja tem o rotulo desenhado, entao os chamadores normais NAO passam
+ *   isso -- passar teria um rotulo duplicado (bitmap + texto) quando o
+ *   bitmap carrega. So usado pela caixa de erro de boot (showErrorBox), que
+ *   tem de funcionar ANTES de qualquer asset do GRF existir: sem rotulo,
+ *   vira um retangulo mudo sem dizer o que faz.
  * @returns {HTMLButtonElement}
  */
-function _createButton(name, onClick) {
+function _createButton(name, onClick, label) {
 	const btn = document.createElement('button');
 	btn.className = 'btn';
 	btn.dataset.background = `btn_${name}.bmp`;
 	btn.dataset.hover = `btn_${name}_a.bmp`;
 	btn.dataset.down = `btn_${name}_b.bmp`;
+	if (label) {
+		btn.textContent = label;
+	}
 
 	let clicked = false;
 	btn.addEventListener('click', () => {
@@ -230,11 +238,15 @@ class UIManager {
 			Object.assign(this._host.style, _popupPosition());
 
 			root.querySelector('.btns').appendChild(
-				_createButton('ok', () => {
-					overlay.remove();
-					WinError.remove();
-					import('Engine/GameEngine.js').then(m => m.default.reload());
-				})
+				_createButton(
+					'ok',
+					() => {
+						overlay.remove();
+						WinError.remove();
+						import('Engine/GameEngine.js').then(m => m.default.reload());
+					},
+					'OK'
+				)
 			);
 		};
 
