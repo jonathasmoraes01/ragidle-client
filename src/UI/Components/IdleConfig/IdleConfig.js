@@ -681,6 +681,37 @@ function bindAlvosExtra(bodyEl) {
  */
 
 /**
+ * Os TRES selos de passiva (D-399/D-405).
+ *
+ * Antes, TODA passiva recebia "ativa automaticamente" — e para duas das tres
+ * razoes isso era FALSO: o Teleporte nao faz nada em combate, e o que o motor
+ * recusa nao faz nada em lugar nenhum. Dizer o contrario e pior que nao dizer.
+ *
+ * Quem decide e o SERVIDOR: ele manda `motivo` em `skillsPassivas` desde
+ * D-399. A janela nao recalcula nada — recalcular daria uma segunda copia da
+ * regra, e a copia da janela e a que ninguem lembra de atualizar.
+ *
+ * As cores sao as do design system (`ri-badge--*`), e nao um conjunto proprio.
+ */
+const SELO_DE_PASSIVA = {
+	'passiva-que-vale': {
+		classe: 'ri-badge--verde',
+		texto: 'ativa automaticamente',
+		ajuda: 'Ela vale sozinha, so de estar aprendida — muda numero na ficha.',
+	},
+	'sem-efeito-de-combate': {
+		classe: 'ri-badge--cinza',
+		texto: 'sem efeito em combate',
+		ajuda: 'O motor executa, mas o efeito e fora da luta (deslocamento, carga, pre-requisito).',
+	},
+	'nao-portada': {
+		classe: 'ri-badge--ouro',
+		texto: 'nao implementada',
+		ajuda: 'O motor de combate ainda nao executa esta habilidade.',
+	},
+};
+
+/**
  * O nome de EXIBIÇÃO de uma skill (D-359, queixa do dono: a aba mostrava
  * "MG_COLDBOLT"). O servidor manda `nome` (o PT do cliente instalado, o
  * mesmo da janela de skills) em skillsAtivas/skillsPassivas; contrato
@@ -702,7 +733,11 @@ function renderSkills() {
 
 	let rotationHtml;
 	if (!ativas.length) {
-		rotationHtml = '<div class="ic-empty">Nenhuma skill ativa configurada.</div>';
+		// NAO e "nenhuma configurada": e nenhuma DISPONIVEL. As duas frases eram
+		// a mesma string, e a primeira mandava o jogador procurar uma
+		// configuracao que ele nao tem como fazer.
+		rotationHtml =
+			'<div class="ic-empty">Este personagem ainda não aprendeu nenhuma skill de ataque que o motor execute.</div>';
 	} else {
 		const rows = rotacao.length
 			? rotacao
@@ -720,7 +755,7 @@ function renderSkills() {
 			</div>`
 					)
 					.join('')
-			: '<div class="ic-empty">Nenhuma skill ativa configurada.</div>';
+			: '<div class="ic-empty">Nenhuma skill na rotação — o personagem só usará o ataque básico.</div>';
 
 		const used = new Set(rotacao.map(r => r.skillId));
 		const available = ativas.filter(s => !used.has(s.skillId));
@@ -729,7 +764,9 @@ function renderSkills() {
 		if (rotacao.length >= 3) {
 			addHtml = '<div class="ic-note">Limite de 3 skills atingido.</div>';
 		} else if (!available.length) {
-			addHtml = '';
+			// Sumir sem dizer nada e uma afirmacao tambem — a de que nao ha mais
+			// nada. Aqui ha: e que TUDO ja esta na lista.
+			addHtml = '<div class="ic-note">Todas as skills de ataque disponíveis já estão na rotação.</div>';
 		} else {
 			addHtml = `
 				<select class="ic-add-skill" data-action="skill-add">
@@ -749,7 +786,7 @@ function renderSkills() {
 					s => `
 			<div class="ic-passiva-row">
 				<span title="${escapeHtml(s.skillId)}">${escapeHtml(s.nome || s.skillId)} (Nv ${s.aprendido})</span>
-				<span class="ic-badge ri-badge ri-badge--verde">ativa automaticamente</span>
+				<span class="ic-badge ri-badge ${(SELO_DE_PASSIVA[s.motivo] || SELO_DE_PASSIVA['passiva-que-vale']).classe}" title="${escapeHtml(s.motivo === 'nao-portada' && s.explicacao ? s.explicacao : (SELO_DE_PASSIVA[s.motivo] || SELO_DE_PASSIVA['passiva-que-vale']).ajuda)}">${(SELO_DE_PASSIVA[s.motivo] || SELO_DE_PASSIVA['passiva-que-vale']).texto}</span>
 			</div>`
 				)
 				.join('')
@@ -765,10 +802,12 @@ function renderSkills() {
 			<label class="ic-checkbox-row">
 				<!-- D-361 (19/08): o rótulo virou a AÇÃO que o dono pediu
 				     ("desabilitar ataques básicos"). Marcado = 'apenas-skills'. -->
-				<input type="checkbox" data-modo-basico ${cfg.modoDeAtaque === 'apenas-skills' ? 'checked' : ''} />
+				<input type="checkbox" data-modo-basico ${cfg.modoDeAtaque === 'apenas-skills' ? 'checked' : ''} ${!(ctx.capacidades && ctx.capacidades.suprimirAtaqueBasico) || (cfg.modoDeAtaque !== 'apenas-skills' && !rotacao.length) ? 'disabled' : ''} />
 				<span>Desabilitar ataques básicos</span>
 			</label>
 			<div class="ic-note">Marcado: só skills — conjura à distância e espera o SP voltar, sem socar. Desmarcado: ataca normalmente quando nenhuma skill está disponível.</div>
+			${!(ctx.capacidades && ctx.capacidades.suprimirAtaqueBasico) ? '<div class="ic-note ic-note-warn">Este servidor não sabe lutar sem o ataque básico.</div>' : ''}
+			${(ctx.capacidades && ctx.capacidades.suprimirAtaqueBasico) && cfg.modoDeAtaque !== 'apenas-skills' && !rotacao.length ? '<div class="ic-note ic-note-warn">Adicione ao menos uma skill à rotação para poder desligar o ataque básico — sem ela o personagem ficaria sem nenhum ataque, e o servidor recusa.</div>' : ''}
 		</div>
 		${renderBuffsDeSkill()}
 		<div class="ic-section">

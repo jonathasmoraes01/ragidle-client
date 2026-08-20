@@ -4892,6 +4892,7 @@ function init(packetver) {
 	// were free right after 0x0ff6-0x0ff8 above (checked: no other
 	// length_list[] assignment in this file touches them).
 	length_list[0x0ff9] = 2; // CZ_RAGIDLE_PEDIR_SKILLS (opcode only)
+	length_list[0x0fee] = -1; // ZC_RAGIDLE_MUDANCA_DE_CLASSE (variable, JSON payload)
 	length_list[0x0ffa] = -1; // ZC_RAGIDLE_SKILLS (variable, JSON payload)
 	length_list[0x0ffb] = -1; // CZ_RAGIDLE_APRENDER (variable, JSON payload)
 

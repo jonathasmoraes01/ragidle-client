@@ -580,6 +580,38 @@ function onClickCard(e) {
 /**
  * Right-hand detail panel for the selected skill.
  */
+/**
+ * O selo de efeito de combate — TRES estados, e não dois (D-407).
+ *
+ * Ele lia só `skill.portada`, e por isso as habilidades que o motor executa
+ * mas que não mudam nada na luta apareciam LIMPAS: o jogador gastava ponto
+ * numa delas achando que estava comprando poder. Medido no servidor em
+ * 20/08/2026: as 58 de `SEM_EFEITO_DE_COMBATE` estão TODAS dentro de
+ * `HABILIDADES_PORTADAS` (58 de 58), então o booleano de porte nunca as pegava.
+ *
+ * São dois eixos independentes, e ambos precisam ser ditos:
+ *
+ * - `portada: false`  → o motor não sabe executar. Nada acontece.
+ * - `semEfeitoDeCombate: true` → o motor executa, mas o efeito é fora de
+ *   combate (Teleporte, capacidade de carga, pré-requisito de árvore).
+ *
+ * Sem nenhum dos dois, o silêncio é o selo: a habilidade funciona.
+ *
+ * As CLASSES são as do design system (`ri-badge`), e não as antigas
+ * `is-badge-gray`: o merge de 20/08 juntou os dois lados, e cada um trouxe a
+ * metade que era dele.
+ */
+function seloDeEfeito(skill) {
+	if (!skill.portada) {
+		return '<span class="is-badge ri-badge ri-badge--cinza" title="O motor de combate ainda não executa esta habilidade — aprendê-la não muda nada na luta.">sem efeito em combate ainda</span>';
+	}
+	if (skill.semEfeitoDeCombate) {
+		return '<span class="is-badge ri-badge ri-badge--cinza" title="O motor executa esta habilidade, mas o efeito dela é fora do combate (deslocamento, capacidade de carga, pré-requisito da árvore).">efeito fora de combate</span>';
+	}
+	return '';
+}
+
+
 function renderDetail() {
 	const root = _root();
 	const detailEl = root.querySelector('.is-detail');
@@ -645,7 +677,7 @@ function renderDetail() {
 				<div class="is-pips">${pipsHtml}</div>
 				<div class="is-detail-badges">
 					<span class="is-badge ri-badge ${skill.categoria === 'passiva' ? 'ri-badge--verde' : 'ri-badge--azul'}">${categoriaLabel}</span>
-					${!skill.portada ? '<span class="is-badge ri-badge ri-badge--cinza" title="Skill pode ser aprendida, mas ainda não tem efeito em combate.">sem efeito em combate ainda</span>' : ''}
+					${seloDeEfeito(skill)}
 				</div>
 			</div>
 		</div>
