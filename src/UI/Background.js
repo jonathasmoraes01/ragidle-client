@@ -360,6 +360,14 @@ const TELAS_DE_CARREGAMENTO = [
 ];
 
 /**
+ * O fundo da tela de LOGIN. Mesma origem e mesmas razoes das telas acima
+ * (servida pelo vite, nome ASCII, desvio por '/' em setImage). Uma so, e nao
+ * uma lista: a tela de login nao sorteia -- ela e a primeira impressao do jogo
+ * e precisa ser a mesma toda vez.
+ */
+const FUNDO_DE_LOGIN = '/ragidle/login/login-aventureiros.jpeg';
+
+/**
  * Background Namespace
  */
 class Background {
@@ -527,9 +535,29 @@ class Background {
 	}
 
 	/**
-	 * Helper method to return the right login background filename(s) based on packet version.
+	 * O fundo da tela de login do Rag Idle.
+	 *
+	 * Arte do dono, servida pelo vite como as telas de carregamento (ver
+	 * TELAS_DE_CARREGAMENTO): comeca com '/', entao setImage a pinta pelo desvio
+	 * que ja aplica cover + center -- ela e 1376x768 e seria esmagada pelo
+	 * '100% 100%' do ramo do GRF.
+	 *
+	 * Por que ela ganha de TODOS os PACKETVER e nao so do nosso: o escalonamento
+	 * abaixo existe para escolher a arte da Gravity conforme a versao do cliente,
+	 * e nao ha versao em que a arte deles deva vencer a nossa. O escalonamento
+	 * fica de pe logo abaixo, intacto -- para voltar ao fundo original basta
+	 * apagar este return, sem reescrever nada.
 	 */
 	static getLoginBackgroundName() {
+		return FUNDO_DE_LOGIN;
+	}
+
+	/**
+	 * O escalonamento ORIGINAL do roBrowser, preservado. Nao e chamado por
+	 * ninguem enquanto FUNDO_DE_LOGIN existir; e a fonte para quem quiser a arte
+	 * da Gravity de volta, e a prova de que nao apagamos nada do fork.
+	 */
+	static getLoginBackgroundNameDoRoBrowser() {
 		if (PACKETVER.value >= 20221207) {
 			return 't_login.jpg';
 		}
