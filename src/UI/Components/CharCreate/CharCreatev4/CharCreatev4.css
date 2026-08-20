@@ -1,262 +1,330 @@
 /**
  * UI/Components/CharCreate/CharCreatev4/CharCreatev4.css
  *
- * Tela de criacao de personagem (D-GAUNTLET item 6b, 19/08/2026): pele
- * RAGIDLE por cima do MESMO layout absoluto (raca, genero, retrato,
- * cabelo, cor, nome). Nenhuma posicao/tamanho de elemento funcional mudou
- * aqui -- so pintura (cor/borda/sombra/fonte via token, ver UI/Common.css)
- * -- e nenhum seletor que a automacao usa mudou (#char_name, .make
- * continuam identicos).
+ * Tela de criacao de personagem. Esta e a variante VIVA: o PACKETVER esta
+ * pinado em 20211103 (D-331) e o seletor de CharCreate.js escolhe a chave
+ * 20180124, ou seja CharCreatev4 -- as v0/v2/v3 nao carregam.
  *
- * O QUE SAIU: so o fundo geral, make_character_ver2/bg_makebg.bmp, que
- * decodificado em 19/08/2026 (leitura direta do data.grf) e puramente
- * decorativo -- gradiente pastel + formas (avatar-placeholder, "x",
- * contorno de dois campos, trilho de scroll), SEM nenhuma palavra pintada.
- * Os botoes cancel, make e return (bt_close, bt_make, todos .bmp) e as
- * setas de girar (bt_leftturn, bt_rightturn, tambem .bmp) tambem saem --
- * decodificados e confirmados sem texto (pilula em branco e seta pura).
- * NADA disso troca
- * logica: so o HTML perdeu os atributos bg/hover/down desses botoes (o
- * componente <ui-button> so pinta bitmap se esses atributos existirem).
+ * REFORMA DE 19/08/2026 (item 1 do gauntlet, queixa do dono: "mal
+ * posicionada e mal encaixada"). O que estava errado, MEDIDO com Playwright
+ * na janela de 794x422 antes de tocar em nada:
  *
- * O QUE FICOU (de proposito, sem tocar em JS nenhum): os cartoes de
- * raca (.human_label/.doram_label), o par de genero (bt_male/female_on/
- * off.bmp), a moldura de cada miniatura de cabelo (bt_hairstyle_normal.bmp)
- * e as amostras de cor de cabelo (color0N_off.bmp) continuam bitmap do
- * cliente, trocados via CharCreateCommon.js. Dois motivos: (1) o cartao de
- * raca tem CONTEUDO real pintado (a legenda "JOB" + a fileira de icones de
- * classe daquela raca -- perder isso seria perder informacao de verdade,
- * nao so estilo); (2) as amostras de cor SAO a propria cor selecionavel
- * (arte real do cliente, o design system manda preservar). So ganharam
- * moldura/vizinhanca em CSS aqui, o bitmap de dentro continua o mesmo.
+ *  - A janela nao tinha CABECALHO. O titulo flutuava solto sobre o corpo em
+ *    (45,15) e o "x" ficava em y=-1 -- ou seja, 1px acima da borda de cima,
+ *    cortado pelo "overflow:hidden" que a receita ".ri-window" traz. As
+ *    vizinhas desta mesma campanha (CharSelectV4) ja usam
+ *    ".ri-window > .ri-header > .ri-title + .ri-close"; esta destoava.
+ *  - Os dois botoes de baixo VAZAVAM PRA FORA. ".ri-btn" traz
+ *    "padding: var(--pad-button)" (8px 18px), que inflou "Back"/"Create" de
+ *    152x27 pra 190x45; ancorados em "bottom:4px" + "top:-20px" eles caiam
+ *    em y=379..424 numa caixa de 422 de altura. O "Back" ainda invadia o
+ *    cartao do Doram (que termina em y=381).
+ *  - O par de setas de girar NAO era par: ".rot_left" saia em y=184 e
+ *    ".rot_right" em y=209, 25px de desnivel, porque as duas eram
+ *    "position:relative" empilhadas no fluxo -- cada uma deslocava a
+ *    seguinte.
+ *  - O campo de nome ficava em x=376..516 dentro de uma coluna que vai de
+ *    396 a 596: 55px fora do centro da propria coluna, SEM rotulo, e
+ *    cruzando a borda direita do cartao do Doram (que vai ate x=391).
+ *  - A grade de cabelo escapava do container. O HTML diz
+ *    'class="hair_styles"' e o CSS mirava ".hair-styles" (hifen contra
+ *    sublinhado): a regra NUNCA casou, o container ficou com altura 0, e as
+ *    grades ".hair-style" (position:absolute) passaram a se ancorar em
+ *    "#hair_setting", caindo em cima do rotulo "Hair Style".
+ *  - A caixa do cartao de raca era 370x170 e o bitmap
+ *    (img_human_on.bmp / img_doram_on.bmp, medido: 364x166) nao a preenchia
+ *    -- sobrava uma tira nao pintada de 6x4 na direita e embaixo.
+ *  - O meio da janela era um vazio grande: entre o par de genero e o
+ *    modelo, e de novo entre o modelo e o campo de nome.
+ *
+ * O CONSERTO e de LAYOUT, nao de logica: coluna de flex em vez da sopa de
+ * "position:absolute" com deslocamento relativo encadeado. NENHUM seletor
+ * que o JS ou a automacao usam mudou -- "#char_name", ".make", ".return",
+ * ".cancel", ".race", ".human_label", ".doram_label", "#male_container",
+ * "#style .rot_left", ".hstyle_button", ".hcolor_button", ".style<N>",
+ * ".cstyle0<N>" e "#<raca>_<genero>" continuam identicos, e o
+ * CharCreateCommon.js nao foi tocado.
+ *
+ * MEDIDA DA JANELA: 768x456. CUIDADO (cicatriz do projeto): este numero
+ * vive em DOIS lugares -- aqui, no ":host", e em CharCreatev4.js, nos
+ * campos hostWidth/hostHeight que a centralizacao usa. Mudar um sem o
+ * outro faz a janela abrir deslocada, que foi exatamente o defeito de
+ * 576x342 contra 794x422 corrigido em 18/08. Mudou? Mude os dois e prove
+ * com Playwright.
+ *
+ * ORCAMENTO INTERNO (por que os numeros sao estes):
+ *   largura 768 = 12 de respiro + 364 (racas) + 16 + 168 (estilo) + 16 +
+ *                 180 (cabelo) + 12 de respiro
+ *   altura  456 = 34 (cabecalho) + 376 (corpo) + 46 (rodape)
+ *   corpo   376 = 12 + 352 de conteudo + 12
+ *   racas   352 = 166 + 20 + 166   (166 e a altura NATIVA do bitmap)
+ *
+ * O QUE CONTINUA SENDO ARTE DO CLIENTE (regra 4 do projeto -- o que
+ * INFORMA e PNG, o que DELIMITA e CSS): o cartao de cada raca
+ * (img_human/doram_on/off.bmp, que carrega a legenda "JOB" e a fileira de
+ * icones de classe), o par de genero (bt_male/female_on/off.bmp, com os
+ * glifos de Marte e Venus), a moldura de cada miniatura de cabelo
+ * (bt_hairstyle_normal/select.bmp), as proprias miniaturas
+ * (img_hairstyle<NN>.bmp) e as amostras de cor (color0N_off/on.bmp), que
+ * SAO a cor selecionavel. Nenhum desses bitmaps e trocado por CSS aqui --
+ * o CSS so poe moldura, estado e vizinhanca em volta deles.
  */
 
+/* ------------------------------------------------------------------ *
+ * A caixa
+ * ------------------------------------------------------------------ */
+
 :host {
-	width: 794px;
-	height: 422px;
+	width: 768px;
+	height: 456px;
+	/* Responsividade (o dono pediu explicitamente): numa tela baixa ou
+	   estreita a janela ENCOLHE em vez de vazar. O clamp do motor
+	   (UI/ClampToViewport.js, chamado depois do onAppend e a cada resize)
+	   so empurra pro canto -- ele nao sabe encolher, e uma janela de 456
+	   de altura empurrada pro canto numa viewport de 400 continua com o
+	   rodape fora da tela. O corpo rola (ver ".cc-body"). */
+	max-width: calc(100vw - 16px);
+	max-height: calc(100vh - 16px);
 }
 
 #charcreate_v4 {
 	position: absolute;
-	width: 794px;
-	height: 422px;
+	inset: 0;
+	display: flex;
+	flex-direction: column;
+	box-sizing: border-box;
 }
 
+#charcreate_v4 *,
+#charcreate_v4 *::before,
+#charcreate_v4 *::after {
+	box-sizing: border-box;
+}
+
+/* ------------------------------------------------------------------ *
+ * Cabecalho: a receita da familia (ver CharSelectV4, mesma campanha)
+ * ------------------------------------------------------------------ */
+
+#charcreate_v4 .cc-header {
+	flex: 0 0 auto;
+}
+
+/* O titulo vem do msgstring do cliente por CharCreateCommon.js
+   (DB.getMessage), entao aqui so cabe a pintura -- centralizado, com as
+   asas douradas no tamanho padrao do sistema (44x16). A versao anterior
+   encolhia as asas pra 28x12 porque o titulo estava colado a esquerda
+   disputando espaco com o "x"; dentro do cabecalho isso nao acontece
+   mais, e o padrao volta. */
 #charcreate_v4 .title {
-	position: absolute;
-	left: 45px;
-	top: 15px;
-	height: 20px;
-	width: 260px;
-	justify-content: flex-start;
-}
-/* .ri-title normalmente centraliza (menu flutuante); aqui o titulo comeca
-   colado a esquerda, entao as asas ficam menores que o padrao (44x16) pra
-   nao brigar de espaco com o "x" no canto oposto. */
-#charcreate_v4 .title::before,
-#charcreate_v4 .title::after {
-	width: 28px;
-	height: 12px;
+	max-width: calc(100% - 60px);
+	/* O "overflow:hidden" abaixo existe para um titulo longo nao empurrar o
+	   "x" para fora; mas ele corta nos DOIS eixos (pedir hidden num eixo faz
+	   o outro virar auto, nao visible). Com o titulo em portugues isso passou
+	   a doer: "Criação de Personagem" tem cedilha e til, e a tinta mede 19px
+	   -- em --lh-tight (1.1 de 15px = 16.5) a caixa da 17 e os acentos eram
+	   raspados. O ingles "Character Creation" nao tem sinal nenhum abaixo ou
+	   acima da linha e por isso nunca mostrou o defeito. 1.4 de 15px = 21px,
+	   folga de sobra, e o cabecalho tem 34 de altura para acomodar. */
+	line-height: 1.4;
+	overflow: hidden;
+	white-space: nowrap;
 }
 
-#charcreate_v4 .human::before,
-#charcreate_v4 .doram::before,
-#charcreate_v4 .human::after,
-#charcreate_v4 .doram::after {
-	content: '';
-	display: table;
+#charcreate_v4 .cc-close {
+	/* ".ri-close" ja da o circulo de 20x20 com aro dourado e o ancora em
+	   "right:8px; top:50%". A versao anterior perdia isso: a regra ".btn"
+	   (42x20, position:absolute) vinha depois e por cima, e o "x" acabava
+	   com o dobro da largura e fora da area visivel. Sem ".btn" no HTML,
+	   nao ha mais o que desfazer. */
+	font-family: var(--font-ui);
 }
-#charcreate_v4 .human::after,
-#charcreate_v4 .doram::after {
-	clear: both;
+
+/* ------------------------------------------------------------------ *
+ * Corpo: tres colunas
+ * ------------------------------------------------------------------ */
+
+#charcreate_v4 .cc-body {
+	flex: 1 1 auto;
+	min-height: 0;
+	display: flex;
+	flex-direction: row;
+	align-items: stretch;
+	gap: var(--sp-7);
+	padding: var(--pad-window);
+	/* Quando o ":host" encolhe abaixo do tamanho de projeto, o conteudo
+	   nao some: rola. E o unico jeito honesto de continuar alcancavel numa
+	   viewport menor que a janela. */
+	overflow: auto;
 }
+
+#charcreate_v4 .cc-col {
+	display: flex;
+	flex-direction: column;
+	min-height: 0;
+}
+
+/* ------------------------------------------------------------------ *
+ * Coluna 1: as duas racas
+ * ------------------------------------------------------------------ */
+
+#charcreate_v4 .cc-col--racas {
+	flex: 0 0 364px;
+	gap: var(--sp-8);
+}
+
 #charcreate_v4 .race {
 	display: none;
 }
 
-/** Human Race **/
-#charcreate_v4 .human_label {
-	position: absolute;
-	width: 370px;
-	height: 170px;
-	top: 35px;
-	left: 20px;
-	outline: none;
-	background-repeat: no-repeat;
-	border-radius: var(--radius-panel);
-	box-shadow: inset 0 0 0 1px var(--border-hairline);
-	transition: box-shadow var(--dur-fast) var(--ease-out);
-}
-#charcreate_v4 .human_label:hover {
-	box-shadow: inset 0 0 0 1px var(--accent);
-	cursor: pointer;
-}
-/* Selecionado = borda de acento + tinta de acento, regra do design system
-   -- so um aro por cima do bitmap (que ja troca img_human_on/off.bmp
-   sozinho via JS), nao mexe no conteudo pintado. */
-#charcreate_v4 #human_race:checked ~ .human_label {
-	box-shadow: inset 0 0 0 2px var(--gold-500), var(--glow-gold);
-}
-#charcreate_v4 .human_title {
-	position: absolute;
-	color: var(--text-title);
-	font: var(--type-section);
-	top: 22px;
-	left: 45px;
-	height: 20px;
-	width: 90px;
-}
-#charcreate_v4 .human_desc {
+/* Quem e item de flex e o INVOLUCRO (".human"/".doram"), nao o label --
+   o label e filho dele, junto do radio escondido. */
+#charcreate_v4 .human,
+#charcreate_v4 .doram {
 	position: relative;
-	top: 22px;
-	left: 110px;
-	height: 60px;
-	width: 220px;
-	font: var(--type-desc);
-	color: var(--text-body);
-}
-/** Human Chargen **/
-#charcreate_v4 .human .chargen canvas {
-	position: absolute;
-	top: 40px;
-	left: 25px;
+	flex: 0 0 166px;
 }
 
-/** Doram Race **/
+#charcreate_v4 .human_label,
 #charcreate_v4 .doram_label {
-	position: absolute;
-	width: 370px;
-	height: 170px;
-	top: 210px;
-	left: 20px;
+	/* 364x166 e o tamanho NATIVO de img_human_on.bmp / img_doram_on.bmp,
+	   medido em 19/08/2026 lendo o dataURI que o CharCreateCommon.js
+	   injeta. A caixa antiga era 370x170 e deixava uma tira nao pintada. */
+	position: relative;
+	display: block;
+	width: 364px;
+	height: 166px;
 	outline: none;
 	background-repeat: no-repeat;
 	border-radius: var(--radius-panel);
 	box-shadow: inset 0 0 0 1px var(--border-hairline);
 	transition: box-shadow var(--dur-fast) var(--ease-out);
-}
-#charcreate_v4 .doram_label:hover {
-	box-shadow: inset 0 0 0 1px var(--accent);
 	cursor: pointer;
 }
+#charcreate_v4 .human_label:hover,
+#charcreate_v4 .doram_label:hover {
+	box-shadow: inset 0 0 0 1px var(--accent);
+}
+/* Selecionado = aro de acento por cima do bitmap (que ja troca
+   img_<raca>_on/off.bmp sozinho, no JS). O conteudo pintado nao muda. */
+#charcreate_v4 #human_race:checked ~ .human_label,
 #charcreate_v4 #doram_race:checked ~ .doram_label {
 	box-shadow: inset 0 0 0 2px var(--gold-500), var(--glow-gold);
 }
+
+/* Os tres filhos ficam ancorados no cartao, nas MESMAS coordenadas de
+   antes -- o bitmap era pintado a partir de (0,0) da caixa antiga, entao
+   encolher a caixa pro tamanho da arte nao move nada. */
+#charcreate_v4 .human_title,
 #charcreate_v4 .doram_title {
 	position: absolute;
-	color: var(--text-title);
-	font: var(--type-section);
 	top: 22px;
 	left: 45px;
-	height: 20px;
 	width: 90px;
+	height: 20px;
+	color: var(--text-title);
+	font: var(--type-section);
 }
+#charcreate_v4 .human_desc,
 #charcreate_v4 .doram_desc {
-	position: relative;
+	position: absolute;
 	top: 22px;
 	left: 110px;
-	height: 60px;
 	width: 220px;
+	height: 60px;
 	font: var(--type-desc);
 	color: var(--text-body);
 }
-/** Doram Chargen **/
-#charcreate_v4 .doram .chargen_doram canvas {
+#charcreate_v4 .chargen canvas,
+#charcreate_v4 .chargen_doram canvas {
 	position: absolute;
 	top: 40px;
 	left: 25px;
 }
 
-/* Style */
-#charcreate_v4 #style {
-	position: relative;
-	left: 395px;
-	top: 30px;
-	width: 200px;
-	height: 270px;
+/* ------------------------------------------------------------------ *
+ * Coluna 2: genero, modelo e nome
+ * ------------------------------------------------------------------ */
+
+#charcreate_v4 .cc-col--estilo {
+	flex: 0 0 168px;
+	gap: var(--sp-6);
 }
+
 #charcreate_v4 .gender_button {
 	display: none;
 }
 
-#charcreate_v4 #style .gender {
-	position: absolute;
-	top: 25px;
-	left: 40px;
-	height: 26px;
-	width: 130px;
-}
-#charcreate_v4 #male_container {
-	position: relative;
+/* O par de genero e UM pilulao cortado ao meio em dois bitmaps
+   (bt_male_*.bmp tem 63px de largura, bt_female_*.bmp tem 62 -- medidos).
+   Encostar um no outro com -1px reproduz a emenda que a arte espera; a
+   versao anterior chegava la por "left:61px; top:-25px", que so funciona
+   enquanto ninguem mexe na ordem dos elementos. */
+#charcreate_v4 .gender {
+	flex: 0 0 auto;
+	display: flex;
+	justify-content: center;
 	height: 25px;
-	width: 62px;
-	white-space: nowrap;
-	border-radius: var(--radius-card);
 }
+#charcreate_v4 #male_container,
 #charcreate_v4 #female_container {
 	position: relative;
-	left: 61px;
-	top: -25px;
 	height: 25px;
-	width: 62px;
-	white-space: nowrap;
+	background-repeat: no-repeat;
 	border-radius: var(--radius-card);
 }
-#charcreate_v4 #style .male_button {
-	position: absolute;
-	height: 25px;
+#charcreate_v4 #male_container {
+	width: 63px;
+}
+#charcreate_v4 #female_container {
 	width: 62px;
+	margin-left: -1px;
+}
+#charcreate_v4 .male_button,
+#charcreate_v4 .female_button {
+	position: absolute;
+	inset: 0;
 	cursor: pointer;
 	border-radius: var(--radius-card);
 }
-#charcreate_v4 #style .female_button {
-	position: absolute;
-	height: 25px;
-	width: 62px;
-	cursor: pointer;
-	border-radius: var(--radius-card);
-}
-/* Selecionado = aro de acento por cima do bitmap (bt_male/female_on/
-   off.bmp ja troca sozinho o icone Marte/Venus via JS). O input e o
-   label sao IRMAOS dentro de #male_container/#female_container -- o aro
-   vai no label (~ irmao geral), nao no container (que e PAI do input,
-   sem seletor de pai em CSS puro). */
+/* O input e o label sao IRMAOS dentro do container -- o aro vai no label
+   (irmao geral "~"), nao no container, que e PAI do input e CSS puro nao
+   tem seletor de pai. */
 #charcreate_v4 #male:checked ~ .male_button,
 #charcreate_v4 #female:checked ~ .female_button {
 	box-shadow: inset 0 0 0 2px var(--gold-500);
 }
 
-/** Style Model **/
-#charcreate_v4 .model {
+/* O palco do modelo: um poco que ocupa o vazio que sobrava no meio da
+   janela, com as duas setas como PAR de verdade -- ancoradas nas bordas
+   opostas e centradas na mesma altura. */
+#charcreate_v4 .cc-palco {
 	position: relative;
-	top: 115px;
-	left: 55px;
-	width: 100px;
+	flex: 1 1 auto;
+	min-height: 150px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	background: var(--surface-inset);
+	border-radius: var(--radius-panel);
+	box-shadow: inset 0 0 0 1px var(--border-hairline);
+}
+#charcreate_v4 .model {
+	width: 65px;
+	height: 110px;
 }
 #charcreate_v4 .model canvas {
-	position: relative;
-	top: -5px;
-	left: 17px;
+	display: block;
 }
 
-/** Buttons **/
-#charcreate_v4 #style .rot_left {
-	position: relative;
-	top: 40px;
-	left: 30px;
-	height: 23px;
-	width: 22px;
-}
-#charcreate_v4 #style .rot_right {
-	position: relative;
-	top: 40px;
-	left: 130px;
-	height: 23px;
-	width: 22px;
-}
-/* Girar retrato: era seta bitmap (bt_leftturn/bt_rightturn, confirmado sem
-   texto) -- vira botao circular claro com glifo tipografico "‹"/"›". */
+/* Girar retrato: era seta bitmap (bt_leftturn/bt_rightturn, decodificadas
+   em 19/08 e confirmadas sem texto) -- vira botao circular claro com
+   glifo tipografico. */
 #charcreate_v4 .cc-rot {
+	position: absolute;
+	top: 50%;
+	transform: translateY(-50%);
+	width: 24px;
+	height: 24px;
 	display: flex;
 	align-items: center;
 	justify-content: center;
@@ -265,6 +333,7 @@
 	border: 1px solid var(--border-hairline);
 	box-shadow: var(--rim-light), var(--shadow-card);
 	color: var(--blue-600);
+	font-family: var(--font-ui);
 	font-size: 14px;
 	line-height: 1;
 	cursor: pointer;
@@ -274,181 +343,170 @@
 	background: var(--white);
 	border-color: var(--accent);
 }
+#charcreate_v4 .rot_left {
+	left: var(--sp-4);
+}
+#charcreate_v4 .rot_right {
+	right: var(--sp-4);
+}
 
-/** Char Name **/
+/* O campo de nome era o pior encaixe da tela: solto, sem rotulo e 55px
+   fora do centro da propria coluna. Agora ele tem legenda e ocupa a
+   largura da coluna. */
+#charcreate_v4 .cc-campo {
+	flex: 0 0 auto;
+	display: flex;
+	flex-direction: column;
+	gap: var(--sp-2);
+}
+#charcreate_v4 .cc-rotulo {
+	font: var(--type-label);
+	color: var(--text-muted);
+}
 #charcreate_v4 #char_name {
-	position: relative;
-	height: 22px;
-	width: 140px;
-	top: 115px;
-	left: -20px;
-	box-sizing: border-box;
-	border-radius: var(--radius-panel);
-	border: 1px solid var(--border-hairline);
-	background: var(--white);
-	color: var(--text-body);
-	font: var(--type-info);
-	padding: 0 var(--sp-3);
-	box-shadow: var(--well-shadow);
-}
-#charcreate_v4 #char_name:focus {
-	border-color: var(--accent);
-	box-shadow: var(--glow-accent);
+	width: 100%;
+	height: 30px;
 }
 
-/** Hair Settings **/
-#charcreate_v4 #hair_setting {
-	position: absolute;
-	top: 35px;
-	left: 600px;
-	height: 380px;
-	width: 185px;
+/* ------------------------------------------------------------------ *
+ * Coluna 3: cabelo
+ * ------------------------------------------------------------------ */
+
+#charcreate_v4 .cc-col--cabelo {
+	flex: 0 0 180px;
+	padding: var(--sp-5);
+	background: var(--surface-inset);
+	border-radius: var(--radius-panel);
+	box-shadow: inset 0 0 0 1px var(--border-hairline);
 }
 
 #charcreate_v4 .hair_style_title,
 #charcreate_v4 .hair_color_title {
+	flex: 0 0 auto;
 	font: var(--type-section);
 	color: var(--text-title);
 }
+#charcreate_v4 .hair_color_title {
+	margin-top: var(--sp-5);
+}
 
-#charcreate_v4 .hair_style_title {
-	position: relative;
-	height: 15px;
-	width: 90px;
-	top: 10px;
-	left: 10px;
+/* ATENCAO ao nome: o HTML diz "hair_styles" com SUBLINHADO. A regra
+   anterior mirava ".hair-styles" com hifen e nunca casou -- foi assim que
+   a grade acabou ancorada em "#hair_setting" e por cima do rotulo. */
+#charcreate_v4 .hair_styles {
+	flex: 1 1 auto;
+	min-height: 0;
+	margin-top: var(--sp-3);
+	overflow-y: auto;
+}
+
+/* So a grade da raca+genero em uso aparece; quem alterna e o
+   updateHstyleList(), escrevendo display inline no elemento. */
+#charcreate_v4 .hair-style {
+	display: none;
 }
 
 #charcreate_v4 .hairstyle_row {
-	position: relative;
 	display: flex;
-	top: 10px;
-	left: 10px;
+	gap: 2px;
+}
+#charcreate_v4 .hairstyle_row + .hairstyle_row {
+	margin-top: 2px;
 }
 #charcreate_v4 .styleCol {
+	/* 36x37 e o tamanho nativo de bt_hairstyle_normal.bmp, que o JS pinta
+	   aqui como fundo -- a moldura. A miniatura do cabelo vem no fundo do
+	   label de dentro, posta pelo <ui-image>. */
 	position: relative;
 	width: 36px;
 	height: 37px;
-	white-space: nowrap;
+	flex: 0 0 36px;
+	background-repeat: no-repeat;
+	border-radius: var(--radius-card);
 }
-
+/* Celula VAZIA da grade. O humano tem 23 estilos e o doram 6, mas o
+   updateRace() pinta a moldura em ".style1".."style24" sem saber quais
+   existem: as celulas sobrando viravam quadrados com moldura, com cara de
+   estilo quebrado (da pra ver o branco na 24a casa do print de antes).
+   O "!important" e necessario porque o JS escreve style inline. */
+#charcreate_v4 .styleCol:empty {
+	background-image: none !important;
+	box-shadow: none;
+}
 #charcreate_v4 .hstyle {
 	display: none;
 }
 #charcreate_v4 .hstyle_button {
 	position: absolute;
-	width: 36px;
-	height: 37px;
+	inset: 0;
 	background-repeat: no-repeat;
 	background-color: transparent;
 	border-radius: var(--radius-card);
 	cursor: pointer;
 }
-/* Selecionado = aro de acento sobre a moldura bt_hairstyle_normal.bmp
-   (decorativa, sem texto -- ver nota no topo do arquivo). */
+/* Selecionado = aro de acento sobre a moldura do cliente. */
 #charcreate_v4 .hstyle:checked + .hstyle_button {
 	box-shadow: inset 0 0 0 2px var(--gold-500), var(--glow-gold);
 }
-#charcreate_v4 .hair-styles {
-	position: relative;
-	width: 100px;
-	height: 100px;
-}
-#charcreate_v4 .hair-style {
-	position: absolute;
-	height: 225px;
-	top: 12px;
-	left: -2px;
-	display: none;
-}
-
-#charcreate_v4 .hair_color_title {
-	position: relative;
-	height: 20px;
-	width: 90px;
-	top: 230px;
-	left: 10px;
-}
 
 #charcreate_v4 .hair_colors {
-	position: absolute;
-	top: 265px;
-	left: 15px;
+	flex: 0 0 auto;
+	margin-top: var(--sp-3);
 }
 #charcreate_v4 .haircolor_row {
-	position: relative;
 	display: flex;
+	gap: 2px;
+}
+#charcreate_v4 .haircolor_row + .haircolor_row {
+	margin-top: 2px;
 }
 #charcreate_v4 .colorCol {
 	position: relative;
 	width: 22px;
 	height: 22px;
-	white-space: nowrap;
-	margin: 2px 2px;
+	flex: 0 0 22px;
+	background-repeat: no-repeat;
 }
 #charcreate_v4 .hcolor {
 	display: none;
 }
 #charcreate_v4 .hcolor_button {
 	position: absolute;
-	width: 22px;
-	height: 22px;
+	inset: 0;
 	border-radius: 50%;
 	box-shadow: inset 0 0 0 1px var(--border-hairline);
 	cursor: pointer;
 }
-/* Selecionado = aro de acento sobre a propria amostra de cor (arte real do
-   cliente, color0N_off.bmp -- ver nota no topo do arquivo). */
+/* Selecionado = aro de acento sobre a propria amostra de cor, que e arte
+   real do cliente (color0N_off/on.bmp) e o design system manda preservar. */
 #charcreate_v4 .hcolor:checked + .hcolor_button {
 	box-shadow: inset 0 0 0 2px var(--gold-500), var(--glow-gold);
 }
 
-#charcreate_v4 .btns {
-	position: absolute;
-	bottom: 4px;
-	width: 100%;
-	height: 20px;
-}
-#charcreate_v4 .btn {
-	position: absolute;
-	width: 42px;
-	height: 20px;
-}
-#charcreate_v4 .make {
-	right: 25px;
-	top: -20px;
-	height: 27px;
-	width: 152px;
-}
-#charcreate_v4 .cancel {
-	/* .ri-close (Common.css) ja da o circulo com aro dourado de 20x20 -- so
-	   ".btn" (logo abaixo, mesma especificidade, carregado DEPOIS) reafirma
-	   42x20 por cima. Redeclarar aqui, com mais peso (id do host + duas
-	   classes), garante o tamanho pequeno do X refinado. "right" mudou de
-	   -15px pra 8px (19/08/2026): a versao antiga vazava 15px pra FORA da
-	   caixa de proposito, inofensivo antes porque "#charcreate_v4" nunca
-	   cortava overflow -- a classe ".ri-window" nova corta (preciso pro
-	   tooltip de outras janelas), e esse X ficou invisivel, cortado pela
-	   borda. Um valor positivo mantem o X DENTRO. */
-	width: 20px;
-	height: 20px;
-	right: 8px;
-	top: -389px;
-}
-#charcreate_v4 .return {
-	width: 152px;
-	height: 27px;
-	top: -20px;
-	left: 25px;
-}
+/* ------------------------------------------------------------------ *
+ * Rodape
+ * ------------------------------------------------------------------ */
 
-#charcreate_v4 .btns ui-button {
+#charcreate_v4 .btns {
+	flex: 0 0 auto;
 	display: flex;
 	align-items: center;
-	justify-content: center;
+	justify-content: space-between;
+	gap: var(--sp-4);
+	padding: 0 var(--pad-window) var(--pad-window);
 }
-#charcreate_v4 .btns ui-button.make,
-#charcreate_v4 .btns ui-button.return {
+/* Altura CRAVADA. ".ri-btn" traz "padding: var(--pad-button)" (8px 18px),
+   e foi ele que inflou estes dois de 152x27 pra 190x45 e os empurrou pra
+   fora da borda de baixo na versao anterior -- em fluxo, com altura fixa,
+   o rodape passa a caber por construcao. */
+#charcreate_v4 .btns .make,
+#charcreate_v4 .btns .return {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	min-width: 140px;
+	height: 34px;
+	padding: 0 var(--sp-7);
 	font: var(--type-info);
 	font-weight: var(--fw-semibold);
 }

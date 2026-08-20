@@ -136,18 +136,20 @@
 				<div class="dex"></div>
 				<div class="luk"></div>
 			</span>
-			<ui-button class="btn delete ri-btn ri-btn--sec">
-				<ui-text msg="3339"></ui-text>
-			</ui-button>
-			<ui-button class="btn canceldelete ri-btn ri-btn--sec">
-				<ui-text msg="3340"></ui-text>
-			</ui-button>
-			<ui-button class="btn finaldelete ri-btn ri-btn--ouro">
-				<ui-text msg="3342"></ui-text>
-			</ui-button>
-			<ui-button class="btn ok ri-btn">
-				<ui-text msg="3341"></ui-text>
-			</ui-button>
+			<!-- Rotulos em PORTUGUES (20/08/2026). Eram <ui-text msg="NNNN">, que
+			     le a msgstring do cliente e devolve INGLES ("Delete", "Cancel
+			     Deletion", "Start Game") -- o resto desta janela ja estava em
+			     portugues ("Selecionar Personagem", Mapa/Classe/Nivel/EXP), e
+			     metade da tela em cada idioma era pior do que qualquer um dos
+			     dois. O <ui-text> nao serve de fallback aqui: ele SOBRESCREVE o
+			     conteudo sempre que DB.getMessage devolve algo, entao o jeito de
+			     fixar o texto e nao usar o elemento. Ficam os mesmos seletores
+			     (.delete/.canceldelete/.finaldelete/.ok) que o
+			     CharSelectCommon.js e a automacao usam. -->
+			<ui-button class="btn delete ri-btn ri-btn--sec">Excluir</ui-button>
+			<ui-button class="btn canceldelete ri-btn ri-btn--sec">Cancelar</ui-button>
+			<ui-button class="btn finaldelete ri-btn ri-btn--ouro">Excluir</ui-button>
+			<ui-button class="btn ok ri-btn">Entrar</ui-button>
 			<!-- Pages infos: markup mantido pelo contrato de versoes irmas
 			     (V1/V2/V3 pagined usam), mas o layout em grade (V4) nunca
 			     escreve nele -- CharSelectCommon.js so atualiza ".pageinfo"

@@ -1,50 +1,61 @@
 <div id="charcreate_v4" class="ri-window">
-	<div class="title ri-title"></div>
-	<div>
-		<div class="human">
-			<input type="radio" name="race" id="human_race" checked class="race" />
-			<label for="human_race" class="human_label">
-				<div class="human_title"></div>
-				<div class="human_desc"></div>
-				<div class="chargen">
-					<canvas id="human" width="65" height="110" style="pointer-events: none"></canvas>
-				</div>
-			</label>
-		</div>
-
-		<div class="doram">
-			<input type="radio" name="race" id="doram_race" class="race" />
-			<label for="doram_race" class="doram_label">
-				<div class="doram_title"></div>
-				<div class="doram_desc"></div>
-				<div class="chargen_doram">
-					<canvas id="doram" width="65" height="110" style="pointer-events: none"></canvas>
-				</div>
-			</label>
-		</div>
-	</div>
-	<div id="style">
-		<div class="gender">
-			<div id="male_container" data-background="make_character_ver2/bt_male_on.bmp">
-				<input type="radio" name="gender" id="male" checked class="gender_button" />
-				<label for="male" class="male_button"> </label>
-			</div>
-			<div id="female_container" data-background="make_character_ver2/bt_female_off.bmp">
-				<input type="radio" name="gender" id="female" class="gender_button" />
-				<label for="female" class="female_button"> </label>
-			</div>
-		</div>
-		<div class="model">
-			<canvas id="style_model" width="65" height="110" style="pointer-events: none"></canvas>
-		</div>
-		<ui-button class="rot_left cc-rot" title="Girar para a esquerda">&#8249;</ui-button>
-		<ui-button class="rot_right cc-rot" title="Girar para a direita">&#8250;</ui-button>
-		<input type="text" id="char_name" maxlength="24" />
+	<div class="cc-header ri-header">
+		<span class="title ri-title"></span>
+		<ui-button class="cancel cc-close ri-close" title="Fechar">&times;</ui-button>
 	</div>
 
-	<div id="hair_setting">
-		<div class="hair_style_title"></div>
-		<div class="hair_styles">
+	<div class="cc-body">
+		<div class="cc-col cc-col--racas">
+			<div class="human">
+				<input type="radio" name="race" id="human_race" checked class="race" />
+				<label for="human_race" class="human_label">
+					<div class="human_title"></div>
+					<div class="human_desc"></div>
+					<div class="chargen">
+						<canvas id="human" width="65" height="110" style="pointer-events: none"></canvas>
+					</div>
+				</label>
+			</div>
+
+			<div class="doram">
+				<input type="radio" name="race" id="doram_race" class="race" />
+				<label for="doram_race" class="doram_label">
+					<div class="doram_title"></div>
+					<div class="doram_desc"></div>
+					<div class="chargen_doram">
+						<canvas id="doram" width="65" height="110" style="pointer-events: none"></canvas>
+					</div>
+				</label>
+			</div>
+		</div>
+
+		<div id="style" class="cc-col cc-col--estilo">
+			<div class="gender">
+				<div id="male_container" data-background="make_character_ver2/bt_male_on.bmp">
+					<input type="radio" name="gender" id="male" checked class="gender_button" />
+					<label for="male" class="male_button"> </label>
+				</div>
+				<div id="female_container" data-background="make_character_ver2/bt_female_off.bmp">
+					<input type="radio" name="gender" id="female" class="gender_button" />
+					<label for="female" class="female_button"> </label>
+				</div>
+			</div>
+			<div class="cc-palco">
+				<ui-button class="rot_left cc-rot" title="Girar para a esquerda">&#8249;</ui-button>
+				<div class="model">
+					<canvas id="style_model" width="65" height="110" style="pointer-events: none"></canvas>
+				</div>
+				<ui-button class="rot_right cc-rot" title="Girar para a direita">&#8250;</ui-button>
+			</div>
+			<div class="cc-campo">
+				<label class="cc-rotulo" for="char_name">Nome do personagem</label>
+				<input type="text" id="char_name" class="ri-input" maxlength="24" />
+			</div>
+		</div>
+
+		<div id="hair_setting" class="cc-col cc-col--cabelo">
+			<div class="hair_style_title"></div>
+			<div class="hair_styles ri-scroll">
 			<div id="human_male" class="hair-style">
 				<div class="hairstyle_row">
 					<div class="styleCol style1">
@@ -531,11 +542,11 @@
 				</div>
 			</div>
 		</div>
+		</div>
 	</div>
 
-	<div class="btns">
-		<ui-button class="btn cancel ri-close" title="Fechar">&times;</ui-button>
-		<ui-button class="btn make ri-btn"></ui-button>
-		<ui-button class="btn return ri-btn ri-btn--sec"></ui-button>
+	<div class="btns cc-footer">
+		<ui-button class="return ri-btn ri-btn--sec"></ui-button>
+		<ui-button class="make ri-btn"></ui-button>
 	</div>
 </div>
