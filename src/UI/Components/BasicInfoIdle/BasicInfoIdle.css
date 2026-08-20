@@ -10,10 +10,11 @@
  * Contrato de JS preservado (BasicInfoIdle.js): .bi-bar-fill / .bi-exp-fill
  * continuam recebendo style.width em % via JS; .bi-bar-text, .bi-bar-pct,
  * .bi-name, .bi-class, .bi-blvl-value, .bi-jlvl-value, .bi-weight, .bi-zeny,
- * .bi-avatar-initial continuam recebendo textContent; .bi-btn[data-action]
- * continua sendo o seletor dos listeners de clique; .bi-btn-admin continua
- * sendo o seletor de visibilidade do botao de admin. Nada disso mudou de
- * nome nem de estrutura de classes — so o visual ao redor.
+ * .bi-avatar-initial continuam recebendo textContent. A grade de icones
+ * (.bi-grid/.bi-btn) e a barra "Recolher" de baixo (.bi-toggle) foram
+ * RETIRADAS em 19/08/2026 (pedido do dono) -- o painel virou so informacao,
+ * e o unico controle que sobrou e o botao de minimizar no cabecalho
+ * (.bi-minimize, ver secao propria mais abaixo).
  *
  * Retrato do personagem (rodada 2 do gauntlet, ver relatorio do builder):
  * foi INVESTIGADO e considerado INVIAVEL naquela rodada pelo motivo abaixo
@@ -72,6 +73,30 @@
 .bi-header-title::after {
 	width: 26px;
 	height: 10px;
+}
+
+/*
+ * Botao de minimizar (19/08/2026, pedido do dono) — substitui a barra
+ * "Recolher" que ficava embaixo da janela. Reusa POR COMPLETO o tratamento
+ * visual de ".ri-close" (Common.css): circulo claro 20x20, aro dourado,
+ * hover dourado, absolute right:8px/top:50% dentro de ".ri-header" — o
+ * MESMO padrao que StatusIdle/HuntMap/IdleConfig/IdleSkills/AdminPanel ja
+ * usam para o botao de fechar, so que aqui o clique recolhe/expande em vez
+ * de fechar (a janela nao tem "fechar", so minimizar). O ".ri-title" fica
+ * centralizado por "justify-content:center" no pai flex e o botao e
+ * position:absolute -- os dois nunca disputam layout, so espaco visual (
+ * conferido com getBoundingClientRect(), ver prova fotografica).
+ *
+ * O caractere "&minus;" (um traco reto) e o MESMO glifo do botao real de
+ * minimizar do Windows, e fica IGUAL nos dois estados (expandido/compacto)
+ * -- so title/aria-label mudam via JS (ver applyCompactState()). Fica
+ * DENTRO de ".bi-header", que nunca some (mesma garantia de sempre-visivel
+ * que a barra de baixo dava antes, so que agora e o proprio cabecalho quem
+ * da essa garantia).
+ */
+.bi-minimize {
+	font-size: 15px;
+	line-height: 1;
 }
 
 /* ─── Body ─────────────────────────────────────────────────── */
@@ -380,53 +405,66 @@
 	color: var(--ri-dourado);
 }
 
-/*
- * Grade de mini-botoes quadrados premium — UMA FILEIRA colada sob Peso/Zeny
- * (briefing 4.1: "fileira de ~7 mini-botoes quadrados"). A rodada 1 usava
- * grid 4x2 com botoes de 40px — o juiz apontou que virava "grade de botoes-
- * fantasma gigantes" tomando metade da altura do painel. Flex numa linha so,
- * botoes fixos em 27px, encolhe o painel em ~80px de altura como pedido.
- * Com 7 filhos (dono) ou 6 (admin oculto pelo JS via display:none), o
- * justify-content:center mantem a fileira sempre centralizada.
+/* ─── Modo compacto (19/08/2026, botao no cabecalho -- ver ".bi-minimize"
+ * mais acima): SO HP, SP, XP e os dois niveis ficam de pe -- retrato, nome,
+ * classe, peso e zeny somem. A grade de botoes de navegacao que costumava
+ * somer aqui tambem (".bi-grid") foi RETIRADA do painel inteiro nesta mesma
+ * rodada, entao nem precisa mais de regra propria pro compacto. Contrato de
+ * JS preservado (ver cabecalho do arquivo): os mesmos seletores continuam
+ * recebendo os mesmos dados, so a VISIBILIDADE muda aqui -- nenhum
+ * texto/width para de ser escrito nesses elementos quando escondidos.
  */
-.bi-grid {
-	display: flex;
-	justify-content: center;
+.bi-body.is-compact .bi-top,
+.bi-body.is-compact .bi-divisor,
+.bi-body.is-compact .bi-stats-line {
+	display: none;
+}
+
+/* Barras "bem pequenas e minimalista" (pedido literal) -- so no compacto,
+   o expandido continua exatamente como e hoje. */
+.bi-body.is-compact {
+	padding: 10px 12px 10px 12px;
+}
+
+.bi-body.is-compact .bi-levels {
+	margin-bottom: 6px;
+}
+
+.bi-body.is-compact .bi-level-row {
+	margin-bottom: 3px;
 	gap: 6px;
-	margin-top: 8px;
 }
 
-/*
- * Grid icons: os 7 botoes SAO discos (pivo do "Ragnarok Idle Design System"
- * oficial, 19/08/2026 — mesmo tratamento ".ri-disc" de DockIdle/TopMenuIdle/
- * TopBarIdle, ver Common.css). Glifos Lucide (UI/ri-icones.js), currentColor,
- * sem preenchimento — nada de emoji nem SVG desenhado a mao. So o TAMANHO
- * (27px, pra caber numa fileira de 6-7 sob Peso/Zeny sem inchar o painel) e
- * o "appearance:none" de reset de <button> ficam por-componente aqui.
- */
-.bi-btn {
-	appearance: none;
-	flex: 0 0 auto;
-	width: 27px;
-	height: 27px;
-	padding: 0;
-	cursor: pointer;
+.bi-body.is-compact .bi-level-label {
+	font-size: 10px;
 }
 
-.bi-btn:hover:not(:disabled) {
-	box-shadow: var(--shadow-float), var(--rim-light), var(--glow-gold);
-	transform: translateY(-1px);
+.bi-body.is-compact .bi-exp-track {
+	height: 4px;
 }
 
-.bi-btn:active:not(:disabled) {
-	transform: var(--press-shift);
+.bi-body.is-compact .bi-bar {
+	gap: 4px;
+	margin-bottom: 4px;
 }
 
-/* Desabilitado ("Em breve" — Equipamento/Inventario ainda nao tem janela
-   propria neste painel): DS pede DESSATURAR, nunca opacidade lisa sobre a
-   cor original. */
-.bi-btn:disabled {
-	filter: grayscale(1);
-	opacity: 0.55;
-	cursor: not-allowed;
+.bi-body.is-compact .bi-bar-icon {
+	flex-basis: 10px;
+	width: 10px;
+	height: 10px;
+}
+
+.bi-body.is-compact .bi-bar-track {
+	height: 12px;
+}
+
+.bi-body.is-compact .bi-bar-text {
+	line-height: 12px;
+	font-size: 9px;
+}
+
+.bi-body.is-compact .bi-bar-pct {
+	flex-basis: 36px;
+	width: 36px;
+	font-size: 9px;
 }

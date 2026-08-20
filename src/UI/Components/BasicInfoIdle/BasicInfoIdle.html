@@ -2,6 +2,19 @@
 	<div class="bi-window ri-window">
 		<div class="bi-header ri-header">
 			<span class="bi-header-title ri-title">Personagem</span>
+			<!-- Botao de minimizar (19/08/2026, pedido do dono): substitui a
+			     barra "Recolher" que ficava embaixo da janela -- agora mora na
+			     barra de titulo, no estilo Windows (traco horizontal, circulo
+			     discreto, mesmo tratamento visual de ".ri-close"). Fica DENTRO
+			     de ".bi-header", que nunca some -- nos dois estados (expandido
+			     e compacto) o cabecalho continua de pe, entao o botao continua
+			     sempre visivel e clicavel (era essa a garantia que a barra de
+			     baixo dava antes; a barra de titulo da a mesma garantia agora).
+			     O texto do botao e o titulo/aria-label mudam via JS conforme o
+			     estado (ver applyCompactState() em BasicInfoIdle.js); o glifo
+			     (traco) fica o mesmo nos dois estados, igual ao botao real de
+			     minimizar do Windows. -->
+			<button type="button" class="bi-minimize ri-close" data-action="minimize" title="Recolher painel" aria-label="Recolher painel para modo compacto" aria-expanded="true">&minus;</button>
 		</div>
 
 		<div class="bi-body">
@@ -57,30 +70,12 @@
 				<span class="bi-stats-text">Peso <span class="bi-weight">0 / 0</span></span>
 				<span class="bi-stats-text bi-stats-text--zeny">Zeny <span class="bi-zeny">0</span></span>
 			</div>
-
-			<div class="bi-grid">
-				<button type="button" class="bi-btn ri-disc" data-action="status" title="Status">
-					<!--RI_ICONE:grafico-->
-				</button>
-				<button type="button" class="bi-btn ri-disc" data-action="equip" disabled title="Em breve">
-					<!--RI_ICONE:equipamento-->
-				</button>
-				<button type="button" class="bi-btn ri-disc" data-action="inventory" disabled title="Em breve">
-					<!--RI_ICONE:inventario-->
-				</button>
-				<button type="button" class="bi-btn ri-disc" data-action="skills" title="Skills">
-					<!--RI_ICONE:skills-->
-				</button>
-				<button type="button" class="bi-btn ri-disc" data-action="huntmap" title="Mapa de Caça">
-					<!--RI_ICONE:caca-->
-				</button>
-				<button type="button" class="bi-btn ri-disc" data-action="idleconfig" title="Config idle">
-					<!--RI_ICONE:config-->
-				</button>
-				<button type="button" class="bi-btn bi-btn-admin ri-disc" data-action="admin" title="Admin">
-					<!--RI_ICONE:admin-->
-				</button>
-			</div>
+			<!-- A grade de icones (Status/Equipamento/Inventario/Skills/Caca/
+			     Config/Menu/Admin) foi removida em 19/08/2026 (pedido do dono):
+			     o painel do personagem passa a ser SO informacao, nenhum icone
+			     clicavel. Os mesmos destinos foram reproduzidos na constelacao
+			     de UI/Components/TopMenuIdle/TopMenuIdle.html -- unico lugar
+			     com icones clicaveis agora. -->
 		</div>
 	</div>
 </div>

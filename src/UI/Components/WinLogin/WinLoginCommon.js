@@ -7,7 +7,6 @@
  */
 
 import DB from 'DB/DBManager.js';
-import Client from 'Core/Client.js';
 import Configs from 'Core/Configs.js';
 import Preferences from 'Core/Preferences.js';
 import KEYS from 'Controls/KeyEventHandler.js';
@@ -27,8 +26,19 @@ export function createWinLogin({ name, htmlText, cssText }) {
 	let _buttonSave;
 
 	Component.init = function init() {
-		this.draggable();
-
+		// SEM this.draggable() de proposito (19/08/2026): GUIComponent#
+		// _fixPositionOverflow() so roda pra componente draggable, e ela le
+		// Renderer.width/height (UI/ClampToViewport.js) -- que ainda estao no
+		// default "0" aqui, porque o WinLogin aparece ANTES do Renderer.init()
+		// (a cena 3D so comeca depois do login). Com WIDTH=HEIGHT=0 o clamp
+		// achava que a janela sempre estourava a viewport e reescrevia
+		// left/top pra "0px" -- prendia a janela no canto superior esquerdo
+		// TODA vez, mascarado ate agora porque a V2 antiga nao tinha fundo/
+		// botao visivel (bitmap ausente no GRF) pra alguem notar a posicao
+		// errada. A pele nao arruma o bug do outro lado (Renderer/
+		// ClampToViewport sao codigo de motor, fora do escopo desta tela) --
+		// so evita disparar esse caminho aqui, perdendo so o arrastar (que
+		// esta janela nunca precisou).
 		const root = this.getRoot();
 		// Save element references
 		_inputUsername = root.querySelector('.user');
@@ -90,12 +100,12 @@ export function createWinLogin({ name, htmlText, cssText }) {
 		_inputUsername.value = _preferences.saveID ? _preferences.ID : '';
 		_inputPassword.value = '';
 
-		Client.loadFile(
-			`${DB.INTERFACE_PATH}login_interface/chk_save${_preferences.saveID ? 'on' : 'off'}.bmp`,
-			url => {
-				_buttonSave.style.backgroundImage = 'url(' + url + ')';
-			}
-		);
+		// Pele RAGIDLE (19/08/2026): o checkbox "manter conectado" era um
+		// bitmap do cliente (chk_saveon/off.bmp) que a ROLatam GRF deste fork
+		// tem, mas pintava a palavra "manter" direto no pixel. Virou marcacao
+		// de classe + texto de verdade em WinLoginV2.html/css -- o ESTADO
+		// (_preferences.saveID) continua exatamente o mesmo.
+		_buttonSave.classList.toggle('is-checked', _preferences.saveID);
 
 		if (_preferences.ID.length) {
 			_inputPassword.focus();
@@ -132,12 +142,7 @@ export function createWinLogin({ name, htmlText, cssText }) {
 
 	function toggleSaveButton() {
 		_preferences.saveID = !_preferences.saveID;
-		Client.loadFile(
-			`${DB.INTERFACE_PATH}login_interface/chk_save${_preferences.saveID ? 'on' : 'off'}.bmp`,
-			url => {
-				_buttonSave.style.backgroundImage = 'url(' + url + ')';
-			}
-		);
+		_buttonSave.classList.toggle('is-checked', _preferences.saveID);
 	}
 
 	function exit() {

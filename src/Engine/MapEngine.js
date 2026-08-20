@@ -96,11 +96,19 @@ import AdminPanel from 'UI/Components/AdminPanel/AdminPanel.js'; // RAGIDLE: "Pa
 import IdleSkills from 'UI/Components/IdleSkills/IdleSkills.js'; // RAGIDLE: "Skills de {classe}"
 import BasicInfoIdle from 'UI/Components/BasicInfoIdle/BasicInfoIdle.js'; // RAGIDLE: "Informações básicas"
 import StatusIdle from 'UI/Components/StatusIdle/StatusIdle.js'; // RAGIDLE: "Status"
-import DockIdle from 'UI/Components/DockIdle/DockIdle.js'; // RAGIDLE: "Barra inferior"
+import MochilaIdle from 'UI/Components/MochilaIdle/MochilaIdle.js'; // RAGIDLE: "Mochila" (inventario + equipamento numa janela so)
+import DockIdle from 'UI/Components/DockIdle/DockIdle.js'; // RAGIDLE: "Barra de acoes" (rotacao de skills + Auto — pivo 19/08/2026, ver DockIdle.js; ANTES era a barra de atalhos de janela "Barra inferior")
 import TopBarIdle from 'UI/Components/TopBarIdle/TopBarIdle.js'; // RAGIDLE: "Capsula de zeny (topo)"
-import CombatCornerIdle from 'UI/Components/CombatCornerIdle/CombatCornerIdle.js'; // RAGIDLE: "Canto de combate (Auto/Mochila)"
+// CombatCornerIdle ("Canto de combate", Auto/Mochila/arco de rotacao) foi
+// APOSENTADO no mesmo pivo acima: a Barra de acoes (DockIdle) herdou o Auto
+// e o arco de rotacao, e a Mochila ja e alcancavel pela grade do painel do
+// personagem — o componente inteiro deixou de ser importado/registrado
+// (nada pra esconder: nunca entra no DOM). Arquivo continua em
+// UI/Components/CombatCornerIdle/ sem nenhuma alteracao, caso precise
+// voltar.
 import DeathWindow from 'UI/Components/DeathWindow/DeathWindow.js'; // RAGIDLE: "Você morreu"
 import TopMenuIdle from 'UI/Components/TopMenuIdle/TopMenuIdle.js'; // RAGIDLE: "Menu superior direito (constelação)"
+import HuntButtonIdle from 'UI/Components/HuntButtonIdle/HuntButtonIdle.js'; // RAGIDLE: "Botão de caça contextual (abaixo do minimapa)"
 
 import MainEngine from './MapEngine/Main.js';
 import MapStateEngine from './MapEngine/MapState.js';
@@ -366,7 +374,27 @@ class MapEngine {
 			// (Playwright, e.g. sonda-m15-avatar) can inspect entity state from
 			// the outside. Gated on `development` — never ships in a real build.
 			if (Configs.get('development')) {
-				window.__ragidleDebug = { Session: Session, EntityManager: EntityManager, Camera: Camera };
+				window.__ragidleDebug = {
+					Session: Session,
+					EntityManager: EntityManager,
+					Camera: Camera,
+					// RAGIDLE: acrescentado 19/08/2026 pra prova Playwright da
+					// MochilaIdle (janela unica de inventario + equipamento) —
+					// injetar itens sinteticos e vestir uma peca pelo caminho
+					// REAL (Inventory.getUI().setItems([...]),
+					// Equipment.getUI().equip(...)) sem precisar de um NPC/
+					// servidor de verdade so pra fotografar a janela.
+					Inventory: Inventory,
+					Equipment: Equipment,
+					DB: DB,
+					MochilaIdle: MochilaIdle,
+					// RAGIDLE: acrescentado 19/08/2026 pra prova Playwright da
+					// Barra de acoes (DockIdle.js) -- forcar
+					// IdleConfig.editConfig.rotacao (sem NPC/servidor de
+					// verdade) e ler/gravar cacaAutomatica pelo mesmo objeto
+					// que a janela Config idle e o botao Auto ja usam.
+					IdleConfig: IdleConfig
+				};
 			}
 
 			// Prepare UI
@@ -407,11 +435,12 @@ class MapEngine {
 			IdleSkills.prepare(); // RAGIDLE: "Skills de {classe}"
 			BasicInfoIdle.prepare(); // RAGIDLE: "Informações básicas"
 			StatusIdle.prepare(); // RAGIDLE: "Status"
-			DockIdle.prepare(); // RAGIDLE: "Barra inferior" — depois de HuntMap/IdleConfig/IdleSkills (precisa da shadow DOM deles pronta pra esconder os botoes redundantes)
+			MochilaIdle.prepare(); // RAGIDLE: "Mochila" — depois de Inventory.getUI()/Equipment.getUI() (linhas acima, secao "Prepare UI"): precisa dos dois _host nativos ja existentes pra esconde-los em MochilaIdle.onAppend()
+			DockIdle.prepare(); // RAGIDLE: "Barra de acoes" — depois de HuntMap/IdleConfig/IdleSkills (precisa da shadow DOM deles pronta pra esconder os botoes redundantes) e depois de IdleConfig.prepare() (usa IdleConfig.editConfig/IdleConfig.pedirConfig()/IdleConfig.aplicarConfig(), aliases publicos no fim de IdleConfig.js — herdados do extinto CombatCornerIdle.prepare())
 			TopBarIdle.prepare(); // RAGIDLE: "Capsula de zeny (topo)"
-			CombatCornerIdle.prepare(); // RAGIDLE: "Canto de combate (Auto/Mochila)" — usa IdleConfig.editConfig/IdleConfig.pedirConfig()/IdleConfig.aplicarConfig() (aliases publicos, ver fim de IdleConfig.js), por isso fica depois de IdleConfig.prepare() acima
 			DeathWindow.prepare(); // RAGIDLE: "Você morreu"
 			TopMenuIdle.prepare(); // RAGIDLE: "Menu superior direito (constelação)" — chama IdleSkills.toggle()/IdleConfig.toggle() (RAGIDLE, ja preparados acima) e Guild.toggle()/PartyFriends.toggle() (nativos, ja preparados bem antes deste bloco); a shadow DOM de todos precisa existir antes do proprio prepare() de TopMenuIdle so por padrao do arquivo, nao por uso direto do DOM deles
+			HuntButtonIdle.prepare(); // RAGIDLE: "Botão de caça contextual" — le IdleConfig.contexto.ehCidade e chama HuntMap.toggle()/HuntMap.travelToCity(); tambem esconde AdminPanel.getRoot() ".ap-button", por isso fica depois de IdleConfig.prepare()/HuntMap.prepare()/AdminPanel.prepare() acima (precisa da shadow DOM dos tres ja pronta)
 
 			if (Configs.get('enableMapName')) {
 				MapName.prepare();
@@ -824,13 +853,25 @@ function onMapChange(pkt) {
 		// WinStats doesn't matter.
 		StatusIdle.append();
 
-		// RAGIDLE: "Barra inferior" — dock fixo na base da tela, atalhos pras
-		// janelas RAGIDLE/nativas que ja existem (DockIdle.js). needFocus=false
-		// (ver DockIdle.js) entao a ordem de append aqui nao afeta z-index; fica
-		// depois de HuntMap/IdleConfig/IdleSkills so por clareza de leitura, ja
-		// que DockIdle.onAppend() esconde os 3 botoes flutuantes redundantes
-		// deles (o prepare(), la em cima, e quem garante que a shadow DOM
-		// desses tres ja existe nesse ponto).
+		// RAGIDLE: "Mochila" — janela unica de inventario + equipamento
+		// (MochilaIdle.js). Precisa vir DEPOIS de Inventory.getUI().append()/
+		// Equipment.getUI().append() acima (linhas 759/764): e so ali que os
+		// dois _host nativos entram no DOM, e MochilaIdle.onAppend() precisa
+		// deles existindo pra esconder (display:none reversivel, mesma
+		// tecnica de BasicInfoIdle.js pra BasicInfo).
+		MochilaIdle.append();
+
+		// RAGIDLE: "Barra de acoes" — faixa fixa na base da tela (DockIdle.js,
+		// pivo 19/08/2026). Mostra a rotacao de skills configurada
+		// (IdleConfig.editConfig.rotacao) e o botao "Auto" (herdado do
+		// extinto CombatCornerIdle — mesmo caminho de estado,
+		// IdleConfig.editConfig.cacaAutomatica + aliases publicos no fim de
+		// IdleConfig.js). needFocus=false (ver DockIdle.js) entao a ordem de
+		// append aqui nao afeta z-index; fica depois de HuntMap/IdleConfig/
+		// IdleSkills so por clareza de leitura, ja que DockIdle.onAppend()
+		// esconde os 3 botoes flutuantes redundantes deles (o prepare(), la
+		// em cima, e quem garante que a shadow DOM desses tres ja existe
+		// nesse ponto).
 		DockIdle.append();
 
 		// RAGIDLE: "Capsula de zeny (topo)" — HUD sempre visivel, mesma fonte
@@ -838,14 +879,6 @@ function onMapChange(pkt) {
 		// polling de 250ms (TopBarIdle.js). needFocus=false — ordem de
 		// append aqui nao afeta z-index.
 		TopBarIdle.append();
-
-		// RAGIDLE: "Canto de combate (Auto/Mochila)" — acima do dock. "Auto"
-		// le/grava cacaAutomatica pelo MESMO caminho que a janela Config
-		// idle usa (IdleConfig.editConfig + IdleConfig.aplicarConfig(),
-		// aliases publicos no fim de IdleConfig.js); "Mochila" chama
-		// Inventory.getUI().toggle() (mesmo metodo que DockIdle.append()
-		// acima ja usa pro item "Inventario").
-		CombatCornerIdle.append();
 
 		// RAGIDLE: "Você morreu" — full-screen overlay, hidden until
 		// Session.Entity.life.hp reaches 0 (see DeathWindow.js).
@@ -859,6 +892,14 @@ function onMapChange(pkt) {
 		// criado). needFocus=false — ordem de append aqui nao afeta
 		// z-index.
 		TopMenuIdle.append();
+
+		// RAGIDLE: "Botão de caça contextual" — fixo logo abaixo do minimapa
+		// (HuntButtonIdle.js/.css); precisa vir DEPOIS de IdleConfig.append()/
+		// IdleConfig.sondarMapa() e de HuntMap.append()/AdminPanel.append()
+		// acima, so por clareza de leitura (a leitura de IdleConfig.contexto e
+		// o esconderijo de AdminPanel ".ap-button" nao dependem de ORDEM de
+		// append, so da shadow DOM ja existir — garantida no prepare()).
+		HuntButtonIdle.append();
 
 		if (Configs.get('enableCashShop')) {
 			CashShopIcon.append();

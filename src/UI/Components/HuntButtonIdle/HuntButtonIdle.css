@@ -1,0 +1,34 @@
+/**
+ * UI/Components/HuntButtonIdle/HuntButtonIdle.css
+ *
+ * Botao de caca contextual — fixo logo ABAIXO do minimapa (#MiniMapV2:
+ * MiniMapV2.css:32-36 diz ":host { top:16px; right:16px; width:136px; }").
+ * A constelacao (TopMenuIdle) mudou de "abaixo" pra "ao lado" do minimapa em
+ * 19/08/2026 (ver TopMenuIdle.css:34-46), deixando o espaco logo abaixo dele
+ * livre — e e exatamente onde o botao preto do AdminPanel (".ap-button",
+ * position:fixed, top:210px) ainda mora hoje (ver AdminPanel.css:50-56).
+ * Este componente ESCONDE aquele botao (ver HuntButtonIdle.js) e ocupa o
+ * mesmo respiro.
+ *
+ * Numeros medidos com getBoundingClientRect contra #MiniMapV2 em jogo (nao
+ * chutados — ver a prova fotografica do gauntlet): margem 16px, card
+ * 136x184. Top = 16 (margem) + 184 (altura do card) + 8 (respiro) = 208.
+ * Largura igual a do minimapa (136px), mesmo alinhamento a direita (16px).
+ */
+:host {
+	top: 208px;
+	right: 16px;
+	width: 136px;
+	pointer-events: none;
+}
+
+#HuntButtonIdle {
+	pointer-events: none;
+}
+
+.hb-btn {
+	display: block;
+	width: 100%;
+	pointer-events: auto;
+	text-align: center;
+}

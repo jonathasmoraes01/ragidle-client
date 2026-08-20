@@ -77,9 +77,54 @@ class MapControl {
 }
 
 /**
+ * O evento nasceu DENTRO da interface?
+ *
+ * Por que isto existe (19/08/2026): os dois ouvintes de clique do mundo estao
+ * pendurados no WINDOW (ver init() acima), e nao no canvas — entao clicar num
+ * botao de menu, arrastar uma barra de titulo ou digitar no chat tambem
+ * disparava o clique do mundo, e o personagem andava. A guarda que existia,
+ * "Mouse.intersect", so e desligada pelos componentes em MouseMode.STOP (via
+ * mouseenter/mouseleave); os flutuantes da HUD usam CROSS, que por desenho
+ * deixa o clique atravessar — dai o vazamento.
+ *
+ * "composedPath()" atravessa Shadow DOM, entao um clique num botao dentro do
+ * shadow root de um componente devolve o caminho ate o HOST dele, que o
+ * GUIComponent marca com "data-gui-component" (GUIComponent.js, _prepare).
+ * Tambem cobre o veu dos popups nativos (".win_popup_overlay"), que vive no
+ * light DOM e nao e um GUIComponent.
+ *
+ * Deliberadamente NAO usa "event.target !== Renderer.canvas": qualquer veu
+ * transparente por cima do canvas passaria a bloquear o mundo inteiro. Esta
+ * guarda e aditiva — so recusa o que comprovadamente nasceu na UI.
+ */
+function ehCliqueDaUI(event) {
+	if (!event || typeof event.composedPath !== 'function') {
+		return false;
+	}
+	const caminho = event.composedPath();
+	for (let i = 0; i < caminho.length; i++) {
+		const no = caminho[i];
+		if (!no || no.nodeType !== 1) {
+			continue;
+		}
+		if (no.dataset && no.dataset.guiComponent !== undefined) {
+			return true;
+		}
+		if (no.classList && no.classList.contains('win_popup_overlay')) {
+			return true;
+		}
+	}
+	return false;
+}
+
+/**
  * What to do when clicking on the map ?
  */
 function onMouseDown(event) {
+	if (ehCliqueDaUI(event)) {
+		return;
+	}
+
 	const action = (event && event.which) || 1;
 
 	// Skill target selection handles the click itself (right click just cancels it)
@@ -194,6 +239,12 @@ function onMouseDown(event) {
  * What to do when stop clicking on the map ?
  */
 function onMouseUp(event) {
+	/* Mesma guarda do onMouseDown: soltar o botao sobre a UI (fim de um
+	   arrasto de janela, por exemplo) tambem chegava aqui. */
+	if (ehCliqueDaUI(event)) {
+		return;
+	}
+
 	let entity, ET;
 	const action = (event && event.which) || 1;
 

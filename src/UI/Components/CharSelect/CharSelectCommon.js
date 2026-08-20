@@ -145,20 +145,13 @@ export function createCharSelect(config) {
 				_ctx.push(canvas.getContext('2d'));
 			});
 
-			// Load charinfo panel background
-			Client.loadFile(`${DB.INTERFACE_PATH}select_character_ver3/img_info.bmp`, dataURI => {
-				root.querySelector('.charinfo').style.backgroundImage = `url(${dataURI})`;
-			});
-
-			// Load default slot backgrounds
-			for (let i = 0; i < 15; i++) {
-				const slotCanvas = root.querySelector(`#slot${i}`);
-				if (slotCanvas) {
-					Client.loadFile(`${DB.INTERFACE_PATH}select_character_ver3/img_slot2_normal.bmp`, dataURI => {
-						slotCanvas.style.backgroundImage = `url(${dataURI})`;
-					});
-				}
-			}
+			// Pele RAGIDLE (19/08/2026): o painel ".charinfo" e os quadros de
+			// slot eram bitmap do cliente (img_info.bmp / img_slot2_normal.bmp)
+			// -- ver o comentario grande no topo de CharSelectV4.css pro porque
+			// (nenhum dos dois pintava rotulo de campo, so a logomarca de OUTRO
+			// servidor e uma moldura decorativa). CSS puro assume o visual
+			// agora; os slots comecam todos vazios (".is-empty" via
+			// updateCharSlot, chamado logo abaixo em onAppend).
 
 			return;
 		}
@@ -1239,12 +1232,14 @@ export function createCharSelect(config) {
 		shouldRunBackgroundChange = false;
 
 		if (entity) {
-			Client.loadFile(`${DB.INTERFACE_PATH}select_character_ver3/img_slot_normal.bmp`, dataURI => {
-				const prevSlot = root.querySelector(`#slot${prevIndex}`);
-				if (prevSlot) {
-					prevSlot.style.backgroundImage = `url(${dataURI})`;
-				}
-			});
+			// Pele RAGIDLE: tira o brilho de "selecionado" do slot anterior
+			// (era troca de bitmap, select_character_ver3/img_slot_normal.bmp
+			// -- agora e so a classe ".is-selected" que o CSS estiliza).
+			const prevCanvas = root.querySelector(`#slot${prevIndex}`);
+			const prevSlot = prevCanvas ? prevCanvas.closest('.char_canvas') : null;
+			if (prevSlot) {
+				prevSlot.classList.remove('is-selected');
+			}
 		}
 
 		const slotIndex = (_index = index > _maxSlots ? _maxSlots : index < 0 ? 0 : index);
@@ -1305,17 +1300,16 @@ export function createCharSelect(config) {
 
 	function changeBackgroundEverySecond() {
 		const root = Component.getRoot();
-		const backgroundchange = root.querySelector(`#slot${_curindex}`);
+		const canvas = root.querySelector(`#slot${_curindex}`);
+		const backgroundchange = canvas ? canvas.closest('.char_canvas') : null;
 		if (backgroundchange && shouldRunBackgroundChange === true) {
-			Client.loadFile(`${DB.INTERFACE_PATH}select_character_ver3/img_slot_select${img}.bmp`, dataURI => {
-				backgroundchange.style.backgroundImage = `url(${dataURI})`;
-				backgroundchange.style.width = '157px';
-				backgroundchange.style.height = '197px';
-				backgroundchange.style.backgroundSize = 'contain';
-				backgroundchange.style.backgroundRepeat = 'no-repeat';
-			});
-
-			// Increment the slot index and wrap around if needed
+			// Pele RAGIDLE: era uma varredura de 8 quadros de bitmap
+			// (select_character_ver3/img_slot_select0..7.bmp, trocado a cada
+			// 250ms) -- o design system pede "sem animacao em laco, so
+			// cooldown", entao virou so uma classe CSS com brilho estatico
+			// (".is-selected" em CharSelectV4.css). "img" continua incrementando
+			// so pra nao mudar a cadencia do _bgInterval por nada.
+			backgroundchange.classList.add('is-selected');
 			img = (img + 1) % 8;
 		}
 	}
@@ -1341,11 +1335,14 @@ export function createCharSelect(config) {
 				if (jobIcons[i]) {
 					jobIcons[i].style.backgroundImage = '';
 				}
+				// Pele RAGIDLE: era troca de bitmap (img_slot2_normal.bmp, o
+				// quadro com o "+" pintado) -- agora e a classe ".is-empty",
+				// que o CSS desenha (moldura discreta + "+" tipografico).
 				const slotCanvas = root.querySelector(`#slot${i}`);
-				if (slotCanvas) {
-					Client.loadFile(`${DB.INTERFACE_PATH}select_character_ver3/img_slot2_normal.bmp`, dataURI => {
-						slotCanvas.style.backgroundImage = `url(${dataURI})`;
-					});
+				const canvasWrap = slotCanvas ? slotCanvas.closest('.char_canvas') : null;
+				if (canvasWrap) {
+					canvasWrap.classList.add('is-empty');
+					canvasWrap.classList.remove('is-filled', 'is-selected');
 				}
 				const countdown = root.querySelector(`.timedelete.slot${i}`);
 				if (countdown) {
@@ -1354,11 +1351,13 @@ export function createCharSelect(config) {
 					countdown.style.display = 'none';
 				}
 			} else {
+				// Pele RAGIDLE: era troca de bitmap (img_slot_normal.bmp, a
+				// moldura "ocupada") -- agora e a classe ".is-filled".
 				const slotCanvas = root.querySelector(`#slot${i}`);
-				if (slotCanvas) {
-					Client.loadFile(`${DB.INTERFACE_PATH}select_character_ver3/img_slot_normal.bmp`, dataURI => {
-						slotCanvas.style.backgroundImage = `url(${dataURI})`;
-					});
+				const canvasWrap = slotCanvas ? slotCanvas.closest('.char_canvas') : null;
+				if (canvasWrap) {
+					canvasWrap.classList.add('is-filled');
+					canvasWrap.classList.remove('is-empty');
 				}
 
 				if (jobIcons[i]) {

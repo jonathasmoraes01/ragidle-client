@@ -1,53 +1,80 @@
+/**
+ * UI/Components/PartyFriends/PartyFriendsV1/PartyFriendsV1.css
+ *
+ * Gauntlet 6A (19/08/2026): a janela Grupo/Amigos (versao renewal, a ATIVA
+ * pelo PACKETVER 20211103 -- ver PartyFriends.js/UIVersionManager.js) ainda
+ * no estilo antigo do roBrowser. Realinhada ao "Ragnarok Idle Design System"
+ * oficial com o MESMO metodo das janelas irmas (StatusIdle/IdleSkills):
+ * classes .ri-* somadas as classes funcionais que PartyFriendsCommon.js
+ * consulta -- NENHUMA classe usada em querySelector/classList foi removida
+ * ou renomeada. Atencao especial: PartyFriendsCommon.js:onChangeTab() faz
+ * root.querySelectorAll('.friend')/('.party') e alterna .style.display em
+ * TODOS eles de uma vez (titulo, conteudo, botoes de navegacao, rodape) --
+ * por isso as classes ".friend"/".party" continuam exatamente nos MESMOS
+ * elementos do HTML original, so a pele mudou.
+ *
+ * BMP removidos (decodificados em scripts/tmp-decode-bmp.ts, PNG olhado
+ * antes de tirar):
+ *  - titlebar_mid.bmp, sys_base_off/on, sys_close_off/on, mesbtn_mid.bmp,
+ *    btnbar_mid.bmp: chrome puro (tarja/gradiente), SEM rotulo pintado.
+ *    Virou gradiente CSS com os tokens do header/rodape.
+ *  - mesbtn_01/02/04/05/06/07/08/09/010/partymaster_01.bmp: pictogramas
+ *    (envelope, balao de chat, lupa, lixeira, cadeado aberto/fechado, duas
+ *    pessoas com seta, interrogacao) -- SEM texto pintado, so o icone. Regra
+ *    4 do CLAUDE.md ("o que informa continua sendo PNG do cliente"): o
+ *    glifo em si FICOU (mesmo mecanismo bg/hover/down de troca de sprite no
+ *    :hover/:active, sem tocar OS), so a caixa ao redor virou CSS.
+ *  - radiobtn_on/off.bmp, btn_resize.bmp: substituidos por um ponto/grip
+ *    desenhado em CSS (span.dot / ::after) -- eram glifos genericos demais
+ *    pra valer a pena preservar como bitmap dentro do padrao novo.
+ *  - renewalparty/bg_partymember.bmp (moldura do contador "Cap X/Y"): NAO
+ *    pode ser decodificado offline (fica so no GRF, servido em runtime por
+ *    "npm run oraculo:assets" -- nao existe no Cliente-side-ragnarok local
+ *    extraido). Tratado como moldura pura por precaucao: o texto real
+ *    ("0/12") ja e HTML desde sempre (".inner-count"), e a atribuicao
+ *    "countBox.style.backgroundImage = url(...)" em PartyFriendsCommon.js
+ *    foi comentada (ver o proprio arquivo) para o CSS novo (pill com aro
+ *    dourado) nao ser vencido pelo style inline do bitmap antigo.
+ */
+
 :host {
 	position: absolute;
 }
 
-#PartyFriends .titlebar {
-	width: 100%;
-	height: 17px;
-	background-color: white;
-	background-repeat: repeat-x;
-	border-radius: 3px 3px 0px 0px;
+#PartyFriends {
+	color: var(--text-body);
+	font-family: var(--font-ui);
 }
 
-#PartyFriends .titlebar .base {
-	width: 11px;
-	height: 11px;
-	border: none;
-	background-color: transparent;
-	background-repeat: no-repeat;
-	vertical-align: middle;
+#PartyFriends .ri-header {
+	height: 30px;
+	padding: 0 var(--sp-3);
+}
+
+#PartyFriends .ri-title {
+	font-size: 13px;
+	gap: 0;
+}
+#PartyFriends .ri-title::before,
+#PartyFriends .ri-title::after {
+	width: 24px;
+	height: 12px;
 }
 
 #PartyFriends .titlebar .party,
 #PartyFriends .titlebar .friend {
-	text-shadow: 1px 1px white;
-	vertical-align: -2px;
 	white-space: nowrap;
-	/* chrome bug */
-	display: inline-block;
-	width: 32px;
-	height: 13px;
 }
 
-#PartyFriends .titlebar .left {
-	margin-left: 3px;
-	float: left;
-}
-
-#PartyFriends .titlebar .right {
-	float: right;
-	margin-right: 3px;
-}
-
-#PartyFriends .titlebar .clear {
-	clear: both;
+#PartyFriends .titlebar .partyname {
+	color: var(--text-muted);
+	font-weight: var(--fw-regular);
 }
 
 #PartyFriends .content {
 	height: 120px;
 	width: 240px;
-	background-color: white;
+	background: var(--window-fill);
 	overflow-x: hidden;
 	overflow-y: auto;
 }
@@ -58,19 +85,19 @@
 
 /* Friend list */
 #PartyFriends .node {
-	padding: 1px 1px 1px 18px;
+	padding: 4px 4px 4px 18px;
 	background-repeat: no-repeat;
 	background-color: transparent;
 	cursor: pointer;
 }
 
 #PartyFriends .content .friend .node .name {
-	color: #102550;
+	color: var(--text-link);
 	white-space: nowrap;
 }
 
 #PartyFriends .content .friend .node .selection {
-	background-color: #739cef;
+	background: var(--surface-card-hover);
 }
 
 #PartyFriends .content .party,
@@ -80,14 +107,14 @@
 
 #PartyFriends .content .party .node {
 	white-space: nowrap;
-	color: #007b7b;
+	color: var(--text-body);
 	position: relative;
 	height: 30px;
 }
 
 #PartyFriends .content .party .node.leader {
-	font-weight: bold;
-	color: #08317b;
+	font-weight: var(--fw-bold);
+	color: var(--blue-700);
 }
 
 #PartyFriends .content .party .node.online .life,
@@ -112,27 +139,32 @@
 	position: absolute;
 	top: 19px;
 	left: 86px;
-	color: black;
-	font-weight: normal;
+	color: var(--text-body);
+	font-weight: var(--fw-regular);
 	font-size: 10px;
 }
 
 #PartyFriends .content .party.info-v2 {
-	padding: 0;
+	padding: var(--sp-2);
+	display: flex;
+	flex-direction: column;
+	gap: var(--sp-2);
 }
 
 #PartyFriends .content .party.info-v2 .node {
 	height: 38px;
-	padding: 3px 5px;
+	padding: 3px 8px;
 	position: relative;
-	background: #ffffff;
+	background: var(--surface-card);
+	border: 1px solid var(--border-hairline);
+	border-radius: var(--radius-card);
 	display: flex;
 	align-items: center;
 	box-sizing: border-box;
 }
 
 #PartyFriends .content .party.info-v2 .node.detached {
-	background: #deefff;
+	background: var(--surface-inset);
 }
 
 #PartyFriends .content .party.info-v2 .node .row1,
@@ -151,7 +183,7 @@
 	position: static !important;
 	display: inline-block !important;
 	float: none !important;
-	font-weight: bold;
+	font-weight: var(--fw-bold);
 }
 
 #PartyFriends .content .party.info-v2 .node .job-icon-container {
@@ -160,8 +192,9 @@
 	height: 24px;
 	min-width: 24px;
 	margin-right: 8px;
-	background: #f8f8f8;
-	border: 1px solid #ccc;
+	background: var(--surface-inset);
+	border: 1px solid var(--border-hairline);
+	border-radius: var(--radius-bar);
 	display: flex;
 	/* Centering children */
 	justify-content: center;
@@ -177,6 +210,7 @@
 	top: 0;
 	left: 0;
 	z-index: 5;
+	image-rendering: pixelated;
 }
 
 #PartyFriends .content .party.info-v2 .node .job-icon-container .job-icon-frame {
@@ -210,7 +244,8 @@
 }
 
 #PartyFriends .content .party.info-v2 .node:hover {
-	background: #739cef;
+	background: var(--surface-card-hover);
+	border-color: var(--blue-600);
 }
 
 #PartyFriends .content .party.info-v2 .node .info-container {
@@ -236,15 +271,15 @@
 
 #PartyFriends .content .party.info-v2 .node .level {
 	font-size: 11px;
-	color: #e37522;
-	font-weight: bold;
+	color: var(--gold-700);
+	font-weight: var(--fw-bold);
 	margin-right: 5px;
 	white-space: nowrap;
 }
 
 #PartyFriends .content .party.info-v2 .node .name {
-	font-weight: normal;
-	color: #333;
+	font-weight: var(--fw-regular);
+	color: var(--text-body);
 	margin-right: 5px;
 	white-space: nowrap;
 	overflow: hidden;
@@ -254,7 +289,7 @@
 
 #PartyFriends .content .party.info-v2 .node .map {
 	font-size: 10px;
-	color: #777;
+	color: var(--text-muted);
 	white-space: nowrap;
 	overflow: hidden;
 	text-overflow: ellipsis;
@@ -265,9 +300,9 @@
 	min-width: 75px;
 	width: 75px;
 	height: 5px;
-	/* Thinner */
-	background: #333;
-	border: 1px solid #111;
+	background: var(--bar-track);
+	border: 1px solid var(--border-hairline);
+	border-radius: var(--radius-bar);
 	overflow: hidden;
 	margin-right: 5px;
 	position: relative !important;
@@ -279,11 +314,12 @@
 	height: 5px !important;
 	width: 75px !important;
 	position: static !important;
+	background: var(--hp-fill);
 }
 
 #PartyFriends .content .party.info-v2 .node .hp {
 	font-size: 10px;
-	color: #666;
+	color: var(--text-muted);
 	display: inline-block !important;
 	vertical-align: middle;
 	margin-right: 5px;
@@ -305,57 +341,51 @@
 	right: 13px;
 	bottom: 1px;
 	height: 19px;
-	width: 156px;
 	display: flex;
 	align-items: center;
 	justify-content: flex-end;
+	gap: 6px;
 	pointer-events: none;
 	z-index: 100;
 }
 
 #PartyFriends .footer .member-count-container .footer-label {
-	color: #333;
-	font-size: 10px;
+	color: var(--text-muted);
+	font: var(--type-label);
 	white-space: nowrap;
-	margin-right: 10px;
 }
 
 #PartyFriends .footer .member-count-container .count-box {
 	position: relative;
-	width: 48px;
+	min-width: 44px;
 	height: 19px;
-	display: block !important;
-	background-repeat: no-repeat;
-	background-position: center;
+	padding: 0 8px;
+	box-sizing: border-box;
+	display: flex !important;
+	align-items: center;
+	justify-content: center;
+	background: var(--surface-inset);
+	border: 1px solid var(--border-gold);
+	border-radius: var(--radius-pill);
 }
 
 #PartyFriends .footer .member-count-container .count-box .inner-count {
-	position: absolute !important;
-	left: 0 !important;
-	top: 0 !important;
-	width: 44px !important;
-	/* Centered in the gold box part */
-	height: 19px !important;
-	line-height: 20px !important;
-	text-align: center !important;
-	color: #ffffff !important;
-	/* Pure White */
-	font-weight: bold !important;
-	font-size: 10px !important;
-	margin: 0 !important;
-	padding: 0 !important;
-	display: block !important;
+	color: var(--text-title);
+	font-weight: var(--fw-bold);
+	font-size: 10px;
 }
 
 #PartyFriends .content .node .selection {
-	background-color: #739cef;
+	background: var(--surface-card-hover);
 }
 
 #PartyFriends .navigation {
 	width: 100%;
-	height: 20px;
-	background-repeat: repeat-x;
-	background-color: transparent;
+	height: 26px;
+	background: var(--titlebar-fill);
+	border-bottom: var(--titlebar-rule);
+	box-sizing: border-box;
+	padding: 0 4px;
 }
 
 #PartyFriends .navigation button,
@@ -365,21 +395,30 @@
 	background: none;
 	width: 26px;
 	height: 20px;
+	margin-top: 3px;
+	border-radius: var(--radius-bar);
 	position: relative;
+	transition: background var(--dur-fast) var(--ease-out);
+}
+#PartyFriends .navigation button:hover,
+#PartyFriends .navigation ui-button:hover {
+	background: var(--surface-card-hover);
 }
 
 #PartyFriends .navigation button .overlay,
 #PartyFriends .navigation ui-button .overlay {
 	position: absolute;
 	display: none;
-	top: -20px;
+	left: 50%;
+	transform: translateX(-50%);
+	top: -22px;
 	white-space: nowrap;
 	z-index: 900;
-	height: 13px;
-	padding: 5px;
-	background: rgba(0, 0, 0, 0.7);
-	color: white;
-	text-shadow: 1px 1px black;
+	font: var(--type-label);
+	padding: 4px 8px;
+	background: var(--surface-dark-glass);
+	border-radius: var(--radius-bar);
+	color: var(--white);
 }
 
 #PartyFriends .navigation button:hover .overlay,
@@ -388,36 +427,72 @@
 }
 
 #PartyFriends .footer {
-	border-radius: 0px 0px 3px 3px;
 	width: 100%;
-	height: 21px;
-	background-repeat: repeat-x;
-	background-color: transparent;
+	height: 24px;
+	background: var(--surface-inset);
+	border-top: var(--divider);
+	box-sizing: border-box;
 	position: relative;
 }
 
 #PartyFriends .footer .party,
 #PartyFriends .footer .friend {
-	padding-left: 5px;
-	padding-top: 3px;
+	padding-left: 6px;
+	padding-top: 4px;
 }
 
 #PartyFriends .footer .switchtab {
-	height: 15px;
+	height: 17px;
 	border: none;
-	background-repeat: no-repeat;
-	background-color: transparent;
-	background-position: 0px 0px;
-	padding-left: 15px;
+	background: none;
+	color: var(--text-muted);
+	font: var(--type-label);
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	padding: 0 6px 0 0;
+	cursor: pointer;
+}
+
+#PartyFriends .footer .switchtab .dot {
+	width: 8px;
+	height: 8px;
+	border-radius: 50%;
+	border: 1px solid var(--border-hairline);
+	background: var(--surface-card);
+	display: inline-block;
+}
+
+#PartyFriends .footer .switchtab.on {
+	color: var(--text-title);
+	font-weight: var(--fw-semibold);
+}
+#PartyFriends .footer .switchtab.on .dot {
+	background: var(--blue-600);
+	border-color: var(--blue-600);
+	box-shadow: var(--glow-accent);
 }
 
 #PartyFriends .footer .resize {
 	position: absolute;
-	right: 0px;
-	bottom: 1px;
-	width: 13px;
-	height: 13px;
+	right: 2px;
+	bottom: 2px;
+	width: 12px;
+	height: 12px;
 	border: none;
-	background-repeat: no-repeat;
-	background-color: transparent;
+	background: none;
+	cursor: nwse-resize;
+}
+#PartyFriends .footer .resize::after {
+	content: '';
+	position: absolute;
+	inset: 0;
+	background: linear-gradient(
+		135deg,
+		transparent 0 40%,
+		var(--border-hairline) 40% 46%,
+		transparent 46% 60%,
+		var(--border-hairline) 60% 66%,
+		transparent 66% 100%
+	);
 }

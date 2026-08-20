@@ -150,6 +150,14 @@ HuntMap.sortKey = 'nivel-recomendado';
 HuntMap.selectedMobId = null;
 
 /**
+ * @var {boolean} RAGIDLE: true when a catalog fetch was kicked off by
+ * HuntMap.travelToCity() (see below) instead of the window opening — once
+ * the catalog arrives, onCatalogReceived travels straight to the city and
+ * leaves the window closed, instead of the usual render.
+ */
+let _pendingAutoTravel = false;
+
+/**
  * @var {Preferences} window position (x/y are null until the player moves it)
  */
 const _preferences = Preferences.get(
@@ -370,6 +378,16 @@ function onCatalogReceived(pkt) {
 	}
 
 	HuntMap.catalog = data;
+
+	// RAGIDLE: HuntMap.travelToCity() asked for this catalog just to learn
+	// catalog.cidade.mapa, not to open the window — finish that trip now and
+	// skip the normal render (the window stays closed the whole time).
+	if (_pendingAutoTravel) {
+		_pendingAutoTravel = false;
+		sendTravel(data.cidade && data.cidade.mapa);
+		return;
+	}
+
 	if (!HuntMap.selectedMapa || !data.mapas.some(m => m.mapa === HuntMap.selectedMapa)) {
 		HuntMap.selectedMapa = data.mapaAtual;
 	}
@@ -681,12 +699,12 @@ function onClickChip(e) {
 
 /**
  * "Ir para [mapa]" / "Voltar para [cidade]" — both send the same custom
- * packet, only the target map name changes.
+ * packet, only the target map name changes. Shared by onClickTravel (the
+ * panel/card buttons below) AND HuntMap.travelToCity (RAGIDLE, the
+ * "Retornar para Prontera" contextual button — see HuntButtonIdle.js).
  * CZ_RAGIDLE_VIAJAR — opcode 0x0ff2, fixed 18 bytes (opcode + 16-byte name).
  */
-function onClickTravel(e) {
-	e.stopImmediatePropagation();
-	const mapName = e.currentTarget.dataset.mapa;
+function sendTravel(mapName) {
 	if (!mapName) {
 		return;
 	}
@@ -699,6 +717,34 @@ function onClickTravel(e) {
 	// the map on its own, so just close our window.
 	closeWindow();
 }
+
+function onClickTravel(e) {
+	e.stopImmediatePropagation();
+	sendTravel(e.currentTarget.dataset.mapa);
+}
+
+/**
+ * RAGIDLE: usado pelo botao de caca contextual (UI/Components/HuntButtonIdle
+ * /HuntButtonIdle.js) para viajar direto de volta pra cidade SEM abrir esta
+ * janela. Manda o MESMO pacote CZ_RAGIDLE_VIAJAR que o botao "Retornar ao
+ * ponto salvo" do painel ja manda (sendTravel acima) — nenhum pacote novo,
+ * so um segundo gatilho pro mesmo handler.
+ *
+ * Se o catalogo ja foi carregado nesta sessao (a janela foi aberta ao menos
+ * uma vez), catalog.cidade.mapa ja e conhecido e a viagem sai na hora. Caso
+ * contrario (jogador nunca abriu o Mapa de Caça), pede o catalogo — o MESMO
+ * CZ_RAGIDLE_PEDIR_CATALOGO de sempre (requestCatalog) — e viaja assim que a
+ * resposta chegar (ver o _pendingAutoTravel dentro de onCatalogReceived),
+ * sem em nenhum momento abrir a janela.
+ */
+HuntMap.travelToCity = function travelToCity() {
+	if (HuntMap.catalog && HuntMap.catalog.cidade) {
+		sendTravel(HuntMap.catalog.cidade.mapa);
+		return;
+	}
+	_pendingAutoTravel = true;
+	requestCatalog();
+};
 
 Network.hookPacket(PACKET.ZC.RAGIDLE_CATALOGO, onCatalogReceived);
 

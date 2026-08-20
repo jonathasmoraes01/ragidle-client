@@ -145,3 +145,34 @@
 	width: 231px;
 	float: right;
 }
+
+/* Nova aba / Remover aba (julgamento do dono, 19/08/2026 rodada 2): as duas
+   acoes reais que sobraram da capsula eliminada do ChatBox (ver ChatBox.css)
+   migraram pra ca. Estilo PLANO, do mesmo idioma nativo do resto deste
+   dialogo (nao ganhou o passe do design system ainda -- fora do escopo
+   deste item, que e so o ChatBox) -- nao mistura reskin parcial. */
+#ChatBoxSettings .cbs-tabactions {
+	clear: both;
+	display: flex;
+	gap: 6px;
+	width: 231px;
+	float: right;
+	margin-top: 6px;
+	padding-top: 5px;
+	border-top: 1px solid #cfcfcf;
+}
+#ChatBoxSettings .cbs-tabactions button {
+	flex: 1 1 auto;
+	height: 20px;
+	font-size: 11px;
+	border: 1px solid #999;
+	border-radius: 2px;
+	background: #f5f5f5;
+	cursor: pointer;
+}
+#ChatBoxSettings .cbs-tabactions button:hover {
+	background: #e5e5e5;
+}
+#ChatBoxSettings .cbs-tabactions button:active {
+	background: #d8d8d8;
+}

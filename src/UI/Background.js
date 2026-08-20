@@ -43,6 +43,13 @@ Object.assign(_container.style, {
 
 /**
  * @var {HTMLCanvasElement} Background canvas element
+ *
+ * A barra de progresso NAO desenha mais aqui (era rgb(0,255,255) / rgb(140,140,140) /
+ * rgb(66,99,165) / rgb(255,255,0), cores cravadas de 2002). O canvas nao tem mais
+ * nenhum desenho proprio; fica so como camada de compatibilidade para o z-index
+ * que o resto do arquivo ja gerenciava (Renderer/MapRenderer esperam poder
+ * empilhar sobre ela). A barra virou DOM (ver _barLayer abaixo) para poder usar
+ * os tokens do design system (Common.css/:root) em vez de replicar valores.
  */
 const _canvas = document.createElement('canvas');
 Object.assign(_canvas.style, { position: 'absolute', top: '0', left: '0', zIndex: '2' });
@@ -51,6 +58,121 @@ Object.assign(_canvas.style, { position: 'absolute', top: '0', left: '0', zIndex
  * @var {CanvasRenderingContext2D} Background context
  */
 const _ctx = _canvas.getContext('2d');
+
+/**
+ * ------------------------------------------------------------------
+ * Barra de progresso em DOM (nao em canvas)
+ *
+ * Por que DOM em vez de canvas: os tokens do design system (--blue-500,
+ * --gold-500, --font-display etc.) sao custom properties CSS. Num canvas
+ * eles teriam que ser lidos com getComputedStyle e replicados a mao em
+ * fillStyle/font a cada frame -- e o texto customizado (Marcellus) exige
+ * medir a fonte carregada via FontFace API antes de desenhar, ou o primeiro
+ * frame cai no fallback. Em DOM, a barra e so HTML/CSS: pega os tokens
+ * direto de --root (Common.css e injetado global pelo UIManager, ver
+ * UI/UIManager.js:injectCommonCSS), reflow e' automatico no resize, e a
+ * fonte troca sozinha quando carrega (sem novo desenho). O canvas continua
+ * existindo so pelo z-index (ver nota acima) -- nao teve motivo pra apagar
+ * o elemento e arriscar quebrar quem espera por ele.
+ * ------------------------------------------------------------------
+ */
+
+/** @var {HTMLDivElement} camada da barra + nome do jogo, irma do _canvas */
+const _barLayer = document.createElement('div');
+Object.assign(_barLayer.style, {
+	position: 'absolute',
+	top: '0',
+	left: '0',
+	zIndex: '1',
+	display: 'none',
+	pointerEvents: 'none'
+});
+
+const _barName = document.createElement('div');
+_barName.className = 'rag-loadbar-name';
+_barName.textContent = 'Ragnarok Classic Idle';
+
+const _barTrack = document.createElement('div');
+_barTrack.className = 'rag-loadbar-track';
+
+const _barFill = document.createElement('div');
+_barFill.className = 'rag-loadbar-fill';
+
+const _barPct = document.createElement('div');
+_barPct.className = 'rag-loadbar-pct';
+_barPct.textContent = '0%';
+
+_barTrack.appendChild(_barFill);
+_barTrack.appendChild(_barPct);
+_barLayer.appendChild(_barName);
+_barLayer.appendChild(_barTrack);
+
+/**
+ * Injeta o CSS da barra uma vez por documento (mesmo padrao de
+ * UIManager.js:injectCommonCSS). Usa os tokens de Common.css, que ja
+ * chegam em :root porque o UIManager injeta Common.css globalmente.
+ */
+(function injectLoadbarCSS() {
+	if (document.querySelector('style[data-ragidle-loadbar]')) {
+		return;
+	}
+	const style = document.createElement('style');
+	style.setAttribute('data-ragidle-loadbar', '');
+	style.textContent = `
+		.rag-loadbar-name {
+			position: absolute;
+			left: 50%;
+			bottom: calc(25% + 18px);
+			transform: translateX(-50%);
+			white-space: nowrap;
+			font: var(--type-hero);
+			font-size: clamp(30px, 2.4vw, 46px);
+			letter-spacing: var(--ls-title);
+			color: var(--gold-300);
+			background: var(--surface-dark-glass);
+			backdrop-filter: var(--blur-glass);
+			-webkit-backdrop-filter: var(--blur-glass);
+			border: 1px solid var(--border-gold);
+			border-radius: var(--radius-pill);
+			padding: clamp(6px, 0.6vw, 10px) clamp(24px, 2.4vw, 40px);
+			text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
+		}
+		.rag-loadbar-track {
+			position: absolute;
+			left: 50%;
+			top: 75%;
+			transform: translateX(-50%);
+			width: clamp(320px, 30vw, 640px);
+			height: 16px;
+			background: var(--bar-track);
+			border: 1px solid var(--border-gold);
+			border-radius: var(--radius-bar);
+			box-shadow: var(--shadow-inset), var(--rim-gold);
+			overflow: hidden;
+		}
+		.rag-loadbar-fill {
+			height: 100%;
+			width: 0%;
+			background: linear-gradient(180deg, var(--blue-400) 0%, var(--blue-500) 45%, var(--blue-600) 100%);
+			box-shadow: var(--rim-light);
+			border-radius: var(--radius-bar);
+			transition: width var(--dur-base) var(--ease-out);
+		}
+		.rag-loadbar-pct {
+			position: absolute;
+			inset: 0;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			font: var(--type-numeric);
+			font-size: 11px;
+			letter-spacing: var(--ls-caps);
+			color: var(--white);
+			text-shadow: 0 1px 2px rgba(0, 0, 0, 0.65);
+		}
+	`;
+	document.head.appendChild(style);
+})();
 
 /**
  * Background loading progress
@@ -71,6 +193,8 @@ function render() {
 
 	if (_progress > -1) {
 		Background.setPercent(_progress);
+	} else {
+		_barLayer.style.display = 'none';
 	}
 }
 let _loading = [];
@@ -89,6 +213,7 @@ class Background {
 
 		_progress = 0;
 		_canvas.style.zIndex = '1';
+		_barLayer.style.zIndex = '1';
 
 		render();
 
@@ -112,6 +237,7 @@ class Background {
 		_canvas.height = height;
 		Object.assign(_overlay.style, { width: width + 'px', height: height + 'px' });
 		Object.assign(_container.style, { width: width + 'px', height: height + 'px' });
+		Object.assign(_barLayer.style, { width: width + 'px', height: height + 'px' });
 
 		_ctx.clearRect(0, 0, width, height);
 
@@ -194,6 +320,7 @@ class Background {
 			transition(() => {
 				document.body.appendChild(_container);
 				document.body.appendChild(_canvas);
+				document.body.appendChild(_barLayer);
 				if (callback) {
 					callback();
 				}
@@ -246,6 +373,7 @@ class Background {
 
 		Background.setImage(_loading[index] || 'loading01.jpg', () => {
 			_canvas.style.zIndex = '999';
+			_barLayer.style.zIndex = '999';
 			Background.setPercent(0.0);
 
 			if (callback) {
@@ -270,10 +398,14 @@ class Background {
 		}
 
 		transition(() => {
+			_progress = -1;
 			_container.style.zIndex = '0';
 			_canvas.style.zIndex = '0';
+			_barLayer.style.zIndex = '0';
+			_barLayer.style.display = 'none';
 			if (_container.parentNode) _container.parentNode.removeChild(_container);
 			if (_canvas.parentNode) _canvas.parentNode.removeChild(_canvas);
+			if (_barLayer.parentNode) _barLayer.parentNode.removeChild(_barLayer);
 			_container.innerHTML = '';
 			_container.style.backgroundImage = 'none';
 
@@ -286,31 +418,18 @@ class Background {
 	/**
 	 * Adding progress bar to background
 	 *
+	 * Antes desenhava num <canvas> com cores cravadas (ciano/cinza/amarelo, ver
+	 * historico do arquivo); agora e' DOM (_barLayer), estilizado por
+	 * injectLoadbarCSS() acima com os tokens do design system.
+	 *
 	 * @param {number} percent
 	 */
 	static setPercent(percent) {
 		_progress = Math.min(Math.floor(percent), 100);
 
-		const width = 240;
-		const height = 15;
-		const x = Math.floor((_canvas.width - width) * 0.5);
-		const y = Math.floor(_canvas.height * 0.75);
-
-		// Draw Rectangle border
-		_ctx.fillStyle = 'rgb(0,255,255)';
-		_ctx.fillRect(x, y, width, height);
-
-		// Draw Rectangle "empty"
-		_ctx.fillStyle = 'rgb(140,140,140)';
-		_ctx.fillRect(x + 1, y + 1, width - 2, height - 2);
-
-		// Draw progressbar
-		_ctx.fillStyle = 'rgb(66,99,165)';
-		_ctx.fillRect(x + 2, y + 2, Math.floor(percent * (width - 4) * 0.01), height - 4);
-
-		// Draw percent
-		_ctx.fillStyle = 'rgb(255,255,0)';
-		_ctx.fillText(percent + '%', Math.floor((_canvas.width - _ctx.measureText(percent + '%').width) * 0.5), y + 11);
+		_barLayer.style.display = 'block';
+		_barFill.style.width = _progress + '%';
+		_barPct.textContent = _progress + '%';
 	}
 }
 

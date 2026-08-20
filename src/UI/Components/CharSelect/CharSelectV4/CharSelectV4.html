@@ -1,14 +1,12 @@
 <div id="CharSelectV4">
-	<div class="char_select_container">
-		<!--Cancel Button-->
-		<ui-button
-			class="btn cancel"
-			bg="select_character_ver3/bt_close2_normal.bmp"
-			hover="select_character_ver3/bt_close2_over.bmp"
-			down="select_character_ver3/bt_close2_press.bmp"
-		></ui-button>
+	<div class="char_select_container ri-window">
+		<div class="cs-header ri-header">
+			<span class="cs-title ri-title">Selecionar Personagem</span>
+			<ui-button class="btn cancel cs-close ri-close" title="Sair">&times;</ui-button>
+		</div>
+		<div class="cs-body">
 		<!-- BOX -->
-		<div class="char_list">
+		<div class="char_list ri-scroll">
 			<div class="char_canvas">
 				<canvas id="slot0" width="157" height="195"></canvas>
 				<div class="name"></div>
@@ -116,53 +114,47 @@
 		</div>
 
 		<!-- Characters infos -->
-		<div class="charinfo">
+		<div class="charinfo ri-card">
+			<div class="map"></div>
 			<div class="job"></div>
 			<div class="lvl"></div>
 			<div class="exp"></div>
 			<div class="hp"></div>
 			<div class="sp"></div>
-			<div class="map"></div>
-			<div class="str"></div>
-			<div class="agi"></div>
-			<div class="vit"></div>
-			<div class="int"></div>
-			<div class="dex"></div>
-			<div class="luk"></div>
-			<ui-button
-				class="btn delete"
-				bg="select_character_ver3/bt_info_normal.bmp"
-				hover="select_character_ver3/bt_info_over.bmp"
-				down="select_character_ver3/bt_info_press.bmp"
-			>
+			<!-- "span", nao "div", de proposito: moveCursorToGrid() (V4) tem um
+			     ramo que faz "charinfo.querySelectorAll('div').forEach(div =>
+			     div.textContent = '')" quando o slot esta vazio -- um DIV
+			     agrupador aqui seria pego por esse seletor generico e teria
+			     seus filhos apagados (textContent limpa a subarvore inteira).
+			     Um span com display:grid no CSS agrupa do mesmo jeito sem
+			     entrar nesse seletor. -->
+			<span class="cs-attrs">
+				<div class="str"></div>
+				<div class="agi"></div>
+				<div class="vit"></div>
+				<div class="int"></div>
+				<div class="dex"></div>
+				<div class="luk"></div>
+			</span>
+			<ui-button class="btn delete ri-btn ri-btn--sec">
 				<ui-text msg="3339"></ui-text>
 			</ui-button>
-			<ui-button
-				class="btn canceldelete"
-				bg="select_character_ver3/bt_info_normal.bmp"
-				hover="select_character_ver3/bt_info_over.bmp"
-				down="select_character_ver3/bt_info_press.bmp"
-			>
+			<ui-button class="btn canceldelete ri-btn ri-btn--sec">
 				<ui-text msg="3340"></ui-text>
 			</ui-button>
-			<ui-button
-				class="btn finaldelete"
-				bg="select_character_ver3/bt_info_normal.bmp"
-				hover="select_character_ver3/bt_info_over.bmp"
-				down="select_character_ver3/bt_info_press.bmp"
-			>
+			<ui-button class="btn finaldelete ri-btn ri-btn--ouro">
 				<ui-text msg="3342"></ui-text>
 			</ui-button>
-			<ui-button
-				class="btn ok"
-				bg="select_character_ver3/bt_gamestart_off.bmp"
-				hover="select_character_ver3/bt_gamestart_over.bmp"
-				down="select_character_ver3/bt_gamestart_press.bmp"
-			>
+			<ui-button class="btn ok ri-btn">
 				<ui-text msg="3341"></ui-text>
 			</ui-button>
-			<!-- Pages infos -->
+			<!-- Pages infos: markup mantido pelo contrato de versoes irmas
+			     (V1/V2/V3 pagined usam), mas o layout em grade (V4) nunca
+			     escreve nele -- CharSelectCommon.js so atualiza ".pageinfo"
+			     no ramo "!gridLayout". Escondido pra nao mostrar "1 / 9"
+			     estatico e errado (15 slots reais, nao 9). -->
 			<div class="pageinfo"><span class="current">1</span> / <span class="count">9</span></div>
+		</div>
 		</div>
 	</div>
 </div>

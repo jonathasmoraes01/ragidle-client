@@ -1,48 +1,58 @@
 /**
  * UI/Components/TopMenuIdle/TopMenuIdle.css
  *
- * "Menu superior direito" (constelacao de atalhos) do design system
- * "Ragnarok Classico Premium". Duas fileiras de botoes circulares ABAIXO do
- * minimapa (MiniMapV2.css: top 16px, right 16px, largura 136px, card
- * completo com header+corpo+rodape mede pertinho de 180px de altura) - por
- * isso o :host abaixo comeca em top:208px, com respiro. NUNCA mexer nesse
- * numero sem reconferir contra o minimapa de verdade (a prova fotografica
- * confere isso).
+ * "Constelacao de atalhos" do design system "Ragnarok Classico Premium",
+ * reorganizada em DOIS NIVEIS (gauntlet item 2, 19/08/2026 — referencia de
+ * LAYOUT: print do Ragnarok Origin que o dono anexou, "topo enxuto + menu
+ * lateral/inferior que abre e fecha"; a PELE continua sendo so o design
+ * system oficial, nunca a arte do Origin):
  *
- * Sem card/painel envolvendo a grade de proposito: os botoes flutuam soltos
- * sobre a cena, mesmo contrato visual de CombatCornerIdle.css (botoes
- * circulares soltos no canto inferior direito, sem fundo).
+ *   NIVEL 1 ".tm-top"       — 5 essenciais de gameplay (Personagem,
+ *                             Inventario, Equipamento, Skills, Caca) + o
+ *                             botao de abrir/fechar o nivel 2. SEMPRE
+ *                             visivel, nunca some.
+ *   NIVEL 2 ".tm-secondary" — 12 secundarios (Config, Guilda, Grupo, Menu,
+ *                             Admin + os 7 "em breve"). Abre/fecha pelo
+ *                             botao do nivel 1. FECHADO = "minimizar a UI":
+ *                             e o unico bloco que some (ver ".is-collapsed"
+ *                             mais abaixo) — o nivel 1 inteiro e o botao de
+ *                             abrir continuam de pe, senao o jogador se
+ *                             tranca fora dos 5 essenciais.
  *
- * Glifos + tratamento (pivo do "Ragnarok Idle Design System" oficial,
- * 19/08/2026 — SUBSTITUI a rodada anterior, que usava SVG preenchido com
- * gradiente + acento dourado desenhado a mao; o DS e explicito: "No emoji,
- * and no hand-drawn SVG illustration anywhere in this system"): os icones
- * agora sao glifos Lucide (stroke 2, sem preenchimento, ver UI/ri-icones.js)
- * e o premio visual vem do TRATAMENTO ".ri-disc" (Common.css) — vidro claro,
- * aro dourado, glifo azul, brilho dourado + lift no hover, disco
- * azul-dourado quando ativo, dessaturado quando "em breve". A bolinha
- * dourada decorativa ".tm-gema" que existia antes (par do glifo hand-drawn)
- * FOI REMOVIDA — o DS nao preve nenhum ornamento por-item, so o disco e o
- * ponto real de notificacao (".ri-dot").
+ * Posicao do host inalterada (ao lado do minimapa, nao embaixo — ver secao
+ * POSICAO abaixo, medida contra #MiniMapV2 com getBoundingClientRect). Os
+ * dois niveis empilham em COLUNA dentro do mesmo host: nivel 1 cresce so em
+ * LARGURA (uma fileira de 5+1), nivel 2 cresce em ALTURA logo abaixo dele
+ * (grade de 6 colunas, 12 itens = 2 fileiras). Como o nivel 2 fica na MESMA
+ * faixa horizontal do host (right:164, a ESQUERDA do minimapa — nunca na
+ * coluna dele nem na do #HuntButtonIdle, que ocupa right:16 abaixo do
+ * minimapa), abrir/fechar nunca colide com nenhum dos dois. Tambem nao
+ * chega perto do #DockIdle (faixa da base, bottom:0) — sobra folga de
+ * centenas de pixels ate em 1366x768 (prova fotografica confere os tres).
+ *
+ * Sem card/painel envolvendo os discos de proposito: os botoes flutuam
+ * soltos sobre a cena, mesmo contrato visual de CombatCornerIdle.css.
+ *
+ * Glifos + tratamento (design system oficial): glifos Lucide (stroke 2, sem
+ * preenchimento, ver UI/ri-icones.js), premio visual vem do tratamento
+ * ".ri-disc" (Common.css) — vidro claro, aro dourado, glifo azul, brilho
+ * dourado + lift no hover, disco azul-dourado quando ativo, dessaturado
+ * quando "em breve".
  *
  * Contrato de pointer-events (mesmo padrao de DockIdle.css/
  * CombatCornerIdle.css): ":host" fica pointer-events:none e cada ".tm-item"
- * reabre com pointer-events:auto - clicar no mapa atraves da area vazia da
- * constelacao continua funcionando.
+ * /".tm-toggle" reabre com pointer-events:auto - clicar no mapa atraves da
+ * area vazia continua funcionando. O host ja herda a marca de "isto e UI"
+ * de GUIComponent.js (dataset.guiComponent no host) — nenhum elemento novo
+ * precisou de protecao propria contra o vazamento de clique do item 1.
  */
 
 /*
- * POSICAO — AO LADO do minimapa, nao embaixo (pedido do dono, 19/08/2026).
- * Antes era "top:208px; right:16px", que empurrava a constelacao para baixo
- * do minimapa; o conceito poe as duas coisas na MESMA faixa do topo, com os
- * icones a esquerda e o minimapa encostado no canto.
- *
- * Os numeros sairam de MEDIR o minimapa em jogo (getBoundingClientRect), nao
- * de chutar: ele ocupa 136x184 com 16px de margem no canto. Logo, para a
- * constelacao encostar do lado dele com 12px de respiro:
+ * POSICAO — AO LADO do minimapa, nao embaixo. Numeros de MiniMapV2.css
+ * medidos com getBoundingClientRect: card 136x184, margem 16px no canto.
  *     right = 16 (margem do minimapa) + 136 (largura dele) + 12 (respiro)
- * e "top" igual ao dele (16px), para os dois alinharem em cima.
- * Quem mudar a largura do minimapa RE-MEDE isto.
+ * "top" igual ao dele (16px), pros dois alinharem em cima. Quem mudar a
+ * largura do minimapa RE-MEDE isto.
  */
 :host {
 	top: 16px;
@@ -54,24 +64,25 @@
 	pointer-events: none;
 }
 
+/* Coluna: nivel 1 em cima, nivel 2 logo abaixo, mesmo respiro vertical
+   (8px) que ja existia entre grade e toggle antes da divisao em niveis. */
 #TopMenuIdle {
 	position: relative;
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
 	font-family: var(--font-ui, var(--ri-fonte));
 }
 
-/* ─── A grade: 6 colunas, os 11 itens quebram em duas fileiras (6 + 5) ── */
-
-.tm-grid {
-	display: grid;
-	grid-template-columns: repeat(6, 48px);
-	/* 10px (era 6px): a capsula de "Recompensas" (nome fixo, 11 letras, DS
-	   proibe abreviar) e mais larga que a coluna de 48px e a vizinha
-	   "Eventos" tambem e centrada na propria coluna — sem esse respiro
-	   extra as duas capsulas se sobrepunham (medido: ~11px de sobreposicao
-	   real em 1920x1080, nao so um recorte de screenshot). Ver tambem a
-	   fonte menor (--fs-badge) so nesse item, logo abaixo. */
-	column-gap: 18px;
-	row-gap: 8px;
+/* ─── NIVEL 1 — topo enxuto: fileira unica, 5 essenciais + o botao de
+   abrir/fechar o nivel 2 no fim dela (align-items:flex-start alinha os
+   topos dos discos com o topo do botao, e por sua vez com o topo do
+   minimapa — os tres em "top:16px"). Nunca quebra linha (5 itens cabem
+   folgado ate em 1366px de largura). ────────────────────────────────── */
+.tm-top {
+	display: flex;
+	align-items: flex-start;
+	gap: 18px;
 }
 
 .tm-item {
@@ -105,25 +116,10 @@
 	transform: var(--press-shift);
 }
 
-/* Label: FORA do disco, sobre o mundo. CONSERTADO em 19/08/2026 (2 defeitos
-   fotografados pelo dono na cena real 1920x1080, Prontera):
-   1) texto branco + text-shadow SOME sobre telhado bege / cupula dourada —
-      o DS preve exatamente esse caso: "Protection for text over the world
-      is a shadow on the glyph, or a dark-glass capsule — never a
-      full-width scrim." Virou capsula de vidro escuro
-      (--surface-dark-glass + --blur-glass), largura SO do conteudo (nao a
-      coluna inteira do grid) — funciona sobre qualquer mapa, claro ou
-      escuro, porque o proprio fundo da capsula já garante contraste antes
-      mesmo do texto branco entrar.
-   2) a correcao anterior ("ate 2 linhas, word-break:break-word") quebrava
-      "Recompensas" NO MEIO DA PALAVRA ("Recomp"/"ensas") — pior que a
-      ellipsis que resolveu. "Recompensas" e uma palavra so (nome de janela
-      fixo pelo DS, nunca abreviado): ou cabe numa linha, ou nao quebra.
-      white-space:nowrap + largura de conteudo (nao mais um max-width fixo
-      de 48-56px que forcava a quebra) resolve pra ela e pra qualquer nome
-      futuro sem nunca mais fatiar uma palavra ao meio — a capsula so fica
-      mais larga que a coluna do grid quando precisa (grid nao recorta
-      overflow visual por padrao). */
+/* Label: FORA do disco, sobre o mundo. Capsula de vidro escuro (nunca scrim
+   de largura total) — funciona sobre qualquer mapa, claro ou escuro.
+   white-space:nowrap + largura de conteudo: nomes de janela sao fixos pelo
+   DS (nunca abreviados) e nao podem quebrar no meio da palavra. */
 .tm-label {
 	display: inline-block;
 	width: max-content;
@@ -144,11 +140,8 @@
 	text-align: center;
 }
 
-/* ─── Estado ativo (janela aberta): disco vira azul-dourado (DS) —
-   CONSERTADO (defeito fotografado pelo dono — o circulo ficava PRETO no
-   tratamento antigo). Antes precisava de um filter() pra recolorir o SVG
-   preenchido; o glifo Lucide usa "currentColor", entao "color" already
-   basta — muito mais simples. */
+/* ─── Estado ativo (janela aberta): disco vira azul-dourado (DS). Glifo
+   Lucide usa "currentColor", entao "color" ja basta pra recolorir. */
 .tm-item.is-active .tm-icon-wrap {
 	background: linear-gradient(180deg, var(--blue-500) 0%, var(--blue-600) 100%);
 	border-color: var(--gold-500);
@@ -161,20 +154,28 @@
 	text-shadow: 0 0 6px rgba(224, 176, 77, 0.85), 0 1px 2px rgba(8, 22, 40, 0.85);
 }
 
+/* ─── NIVEL 2 — menu retratil: grade de 6 colunas, 12 itens (2 fileiras de
+   6). Largura propria (nao precisa bater pixel-a-pixel com a fileira do
+   nivel 1 — os dois flutuam soltos sobre a cena, sem card compartilhado). */
+.tm-secondary {
+	display: grid;
+	grid-template-columns: repeat(6, 48px);
+	column-gap: 18px;
+	row-gap: 8px;
+	position: relative;
+}
+
 /* "Recompensas": nome de janela fixo (DS proibe abreviar), 11 letras — o
-   mais longo da grade. Mesmo com o column-gap maior acima, a capsula em
-   --fs-desc (10px) ainda encostava na de "Eventos" ao lado — --fs-badge
-   (9px, so pra ESTE item) fecha a conta sem abreviar nada e sem mudar o
-   tamanho de mais ninguem na grade. */
+   mais longo do nivel 2. --fs-badge (9px, so pra ESTE item) evita que a
+   capsula encoste na de "Eventos" ao lado sem abreviar nada. */
 [data-action='recompensas'] .tm-label {
 	font-size: var(--fs-badge, 9px);
 }
 
 /* ─── "Em breve": funcao ainda nao existe no jogo. DS: DESSATURAR
-   (grayscale), nunca cinza chapado — mesma linguagem de ".ri-btn:disabled"
-   (Common.css). Sem hover de acao: nenhuma mudanca de sombra/lift ao passar
-   o mouse, so o cursor continua "pointer" porque o clique ainda reage (o
-   toast abaixo). */
+   (grayscale), nunca cinza chapado. Sem hover de acao: nenhuma mudanca de
+   sombra/lift ao passar o mouse, so o cursor continua "pointer" porque o
+   clique ainda reage (o toast abaixo). */
 .tm-item--em-breve .tm-icon-wrap {
 	filter: grayscale(1);
 	opacity: 0.55;
@@ -185,10 +186,8 @@
 	transform: none;
 }
 
-/* ─── Toast "Em breve": elemento proprio do componente (nunca pacote nem
-   janela), centralizado sob a grade, aparece/some via classe ".is-visible"
-   controlada por TopMenuIdle.js (setTimeout de ~1.5s). ─────────────────── */
-
+/* ─── Toast "Em breve": ancorado no NIVEL 2 (todo item que dispara o toast
+   mora ali — ver TopMenuIdle.html), centralizado sob a grade dele. */
 .tm-toast {
 	position: absolute;
 	top: calc(100% + 6px);
@@ -210,4 +209,68 @@
 .tm-toast.is-visible {
 	opacity: 1;
 	transform: translateY(0);
+}
+
+/* ─── Botao de abrir/fechar o nivel 2 (herdou o mecanismo do antigo
+   recolher/expandir de D-343, so que agora comanda ".tm-secondary" em vez
+   da constelacao inteira). Ultimo item da fileira do nivel 1 — nunca some,
+   e o unico jeito de reabrir o menu retratil. */
+.tm-toggle {
+	flex: 0 0 auto;
+	appearance: none;
+	display: block;
+	margin: 0;
+	padding: 0;
+	border: none;
+	background: transparent;
+	cursor: pointer;
+	pointer-events: auto;
+}
+
+.tm-toggle-wrap {
+	width: 26px;
+	height: 26px;
+}
+
+/* Seta: glifo "ChevronDown" (aponta pra baixo em repouso). Menu ABERTO
+   (padrao) = seta apontando pra CIMA (rotate 180deg — "clique aqui pra
+   recolher o que esta aberto abaixo"); FECHADO = seta no repouso, apontando
+   pra baixo ("clique aqui pra abrir o que esta escondido abaixo"). */
+.tm-toggle-wrap svg {
+	transform: rotate(180deg);
+}
+
+.tm-toggle.is-collapsed .tm-toggle-wrap svg {
+	transform: rotate(0deg);
+}
+
+.tm-toggle:hover .tm-toggle-wrap {
+	box-shadow: var(--shadow-float), var(--rim-light), var(--glow-gold);
+}
+
+/* Fechado: o NIVEL 2 inteiro SOME (nao so fica transparente por cima do
+   mundo) -- pointer-events:none evita que ".tm-item" (que reabre pointer-
+   events:auto individualmente) continue clicavel por baixo do nada. O
+   nivel 1 acima nunca entra nesta classe -- fica de pe sempre. */
+.tm-secondary.is-collapsed {
+	opacity: 0;
+	pointer-events: none;
+}
+
+.tm-secondary.is-collapsed .tm-item {
+	pointer-events: none;
+}
+
+/* Transicao curta (150ms, --dur-fast/--ease-out) SO quando o usuario nao
+   pediu menos movimento -- por padrao (reduced-motion) a troca e instantanea
+   (nenhuma "transition" declarada), e so ganha suavidade dentro deste media
+   query. */
+@media (prefers-reduced-motion: no-preference) {
+	.tm-secondary {
+		transition: opacity var(--dur-fast) var(--ease-out);
+	}
+
+	.tm-toggle-wrap svg {
+		transition: transform var(--dur-fast) var(--ease-out);
+	}
 }

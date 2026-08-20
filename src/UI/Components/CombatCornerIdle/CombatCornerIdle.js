@@ -7,8 +7,12 @@
  *   - "Auto"    -> toggle de cacaAutomatica, MESMO caminho de estado que a
  *                  janela Config idle usa (IdleConfig.editConfig +
  *                  IdleConfig.aplicarConfig(), ver IdleConfig.js).
- *   - "Mochila" -> Inventory.getUI().toggle() (mesmo metodo que DockIdle.js
- *                  ja usa pro item "Inventario", DockIdle.js:166).
+ *   - "Mochila" -> MochilaIdle.toggle() (janela unica de inventario +
+ *                  equipamento, gauntlet 19/08/2026 -- ANTES chamava
+ *                  Inventory.getUI().toggle() direto, mesmo metodo que
+ *                  DockIdle.js usava pro item "Inventario"; trocado junto
+ *                  pra nao reabrir a janela nativa que MochilaIdle.js agora
+ *                  esconde de forma reversivel).
  * Regra dura do briefing: nada de botao de "Ataque" nem slots de skill - o
  * jogo de hoje nao tem acao manual de ataque por botao, entao nao existe
  * atalho equivalente pra criar aqui.
@@ -87,7 +91,7 @@
 import UIManager from 'UI/UIManager.js';
 import GUIComponent from 'UI/GUIComponent.js';
 import IdleConfig from 'UI/Components/IdleConfig/IdleConfig.js';
-import Inventory from 'UI/Components/Inventory/Inventory.js';
+import MochilaIdle from 'UI/Components/MochilaIdle/MochilaIdle.js';
 import RiIcones from 'UI/ri-icones.js';
 import htmlText from './CombatCornerIdle.html?raw';
 import cssText from './CombatCornerIdle.css?raw';
@@ -313,7 +317,7 @@ function onClickAuto(e) {
 
 function onClickBag(e) {
 	e.stopImmediatePropagation();
-	Inventory.getUI().toggle();
+	MochilaIdle.toggle();
 }
 
 /**

@@ -218,6 +218,63 @@ const RiIcones = {
 
 	// ── Mais — Lucide "Plus" (uso generico). ─────────────────────────────────
 	mais: svg('<path d="M12 5v14M5 12h14"/>'),
+
+	// ── Seta — Lucide "ChevronDown" (idioma Lucide, path oficial). Botao de
+	// recolher/expandir da HUD (TopMenuIdle/BasicInfoIdle) -- a DIRECAO muda
+	// por rotacao em CSS no proprio componente (var(--dur-fast)), nunca um
+	// segundo glifo pra cada sentido. ───────────────────────────────────────
+	seta: svg('<path d="M6 9l6 6 6-6"/>'),
+
+	// ── Glifos-fantasma de slot vazio (MochilaIdle, 19/08/2026) — a peca
+	// central do alvo "Origin" (redesign/extracao-inventario-origin.md secao
+	// 2): um slot de equipamento VAZIO mostra a SILUETA do que falta ali, nao
+	// um buraco cinza. Idioma Lucide puro (svg(), currentColor, stroke 2) de
+	// PROPOSITO — nao artReal(): a silueta precisa herdar a cor fantasma via
+	// CSS "color" (".mo-slot.is-empty" em MochilaIdle.css), e um PNG raster
+	// nao recolore por CSS. "slotArmadura"/"slotEscudo" reusam o MESMO path
+	// data das reservas Lucide de "equipamento"/"guilda" acima (mesmo
+	// vocabulario visual, sem inventar dois desenhos pro mesmo conceito). ────
+	// Chapeu (HEAD_TOP) -- copa + ABA que ultrapassa a copa dos dois lados
+	// (a aba e o que distingue "chapeu" de "sino": um sino afunila pro alto
+	// sem essa faixa saliente) + uma faixa/fita na base da copa, o segundo
+	// sinal classico de chapeu. Verificado com foto real (gauntlet
+	// 19/08/2026): a v1 (so copa + linha de base do mesmo tamanho) lia como
+	// sino de mao a 22px -- corrigido aqui.
+	slotChapeu: svg(
+		'<path d="M3 16.5h18"/><path d="M7 16c0-5.2 2.1-9.5 5-9.5s5 4.3 5 9.5"/><path d="M8.2 14h7.6"/>'
+	),
+	// Oculos (HEAD_MID, RO: cobre os olhos -- Sunglasses/Glasses) -- duas
+	// lentes ligadas por ponte, com hastes curtas indo pra fora. Diferente do
+	// glifo de acessorio (que e um anel/gema), pra nao repetir leitura com
+	// "duas coisas redondas ligadas".
+	slotOculos: svg(
+		'<circle cx="7.2" cy="12" r="3.1"/><circle cx="16.8" cy="12" r="3.1"/><path d="M10.3 12h3.4M3.6 11 1.8 10.2M20.4 11l1.8-.8"/>'
+	),
+	// Boca (HEAD_BOTTOM, RO: cobre nariz/boca -- Bandana/Mascara). Curva de
+	// sorriso + linha do labio inferior, leitura de "boca" mesmo em 22px.
+	slotBoca: svg('<path d="M4.5 12.5c2.6 3 12.4 3 15 0"/><path d="M7.5 13c1.8 1.3 7.2 1.3 9 0"/>'),
+	slotArmadura: svg(
+		'<path d="M8 3 4 6l2 3 2-1v11a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V8l2 1 2-3-4-3-2 2h-2z"/>'
+	),
+	slotArma: svg('<path d="M19 3 21 5 8 18l-3 3-2-2 3-3L19 3z"/><path d="M13 8l3 3"/>'),
+	slotEscudo: svg('<path d="M12 2 20 5v6c0 5-3.4 8.6-8 10-4.6-1.4-8-5-8-10V5z"/>'),
+	// Capa (GARMENT) -- silhueta de manto: ombro reto e largo, cintura
+	// estreita, barra alargada embaixo (a "ampulheta" e o que le como pano
+	// que flutua, nao como roupa colada ao corpo) + broche no colarinho.
+	// Verificado com foto real (gauntlet 19/08/2026): a v1 (trapezio unico
+	// afunilando de cima a baixo) lia como frasco/pino de boliche -- a
+	// cintura estreita no meio e a correcao.
+	slotCapa: svg('<path d="M6 5h12l-4 5 4 10H6l4-10z"/><circle cx="12" cy="5" r="1.1"/>'),
+	// Sapato/bota (SHOES) -- perna reta + pe angular com bico e salto sem
+	// nenhuma curva (so linhas retas, pra nao arredondar pra "frasco" de
+	// novo, mesmo erro do slotCapa v1 -- ver nota acima e a foto real que
+	// pegou os dois).
+	slotSapato: svg('<path d="M9 3h6v8h5l1 3-1 2H5v-3h4z"/>'),
+	// Acessorio (ACCESSORY1/2) -- anel (aro) com uma GEMA facetada em cima
+	// (duas linhas formando o corte, nao uma curva unica) -- a curva unica
+	// da v1 lia como gota d'agua (a "silueta generica" que o briefing
+	// reprovou), a faceta reta e o que distingue "joia" de "gota".
+	slotAcessorio: svg('<circle cx="12" cy="15" r="5"/><path d="M9 7h6l-3-4z"/><path d="M9 7 12 10 15 7"/>'),
 };
 
 export default RiIcones;

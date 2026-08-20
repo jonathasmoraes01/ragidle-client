@@ -33,6 +33,57 @@
  * as cores voltam a ficar 100% legiveis SEM contorno artificial, e o chat
  * finalmente lê como "vidro sobre o mundo" em vez de "prancheta colada
  * na tela". As abas continuam pills (nao mudam de familia).
+ *
+ * GAUNTLET 19/08/2026 (item 5 de 6, layout+comportamento do print 2 do
+ * dono — NUNCA os assets dele): quatro pecas novas, todas ADITIVAS, nada
+ * do que ja existia foi renomeado/removido:
+ *  1. Seta de recolher/expandir (".cb-collapse", canto superior direito) —
+ *     mecanismo PROPRIO e independente do ciclo de alturas de F10/.size
+ *     (updateHeight()/_heightIndex em ChatBox.js), que continua intocado.
+ *  2. Engrenagem de opcoes (".cb-gear", canto inferior direito) — o MESMO
+ *     botao que era ".chat-function .battleopt" (mesma classe "battleopt",
+ *     mesmo handler ChatBox.toggleChatBattleOption()), so mudou de casa e
+ *     de glifo (bmp -> SVG "config" de UI/ri-icones.js).
+ *  3. Etiqueta de canal (".cb-tag", pilula ".ri-badge" reusada de Common.css)
+ *     no inicio de cada linha — deriva ROTULO+VARIANTE do mesmo "colorType"
+ *     que getColorForType() ja le (getTagInfoForType(), ChatBox.js; variante
+ *     cinza/ouro explicada na RODADA 2 abaixo).
+ *  4. Nome de quem fala (".cb-name") e numeros (".cb-num") destacados
+ *     DENTRO da mensagem — envolve o texto que o JS ja decidiu em spans
+ *     (highlightMessage(), mesma tecnica da substituicao de <ITEMLINK> que
+ *     ja existia), nunca reescreve o texto nem decide uma cor nova.
+ * Nenhuma das quatro toca em cor por canal ou fluxo de mensagem (regra 3 do
+ * cabecalho de ChatBox.js) — so ENVOLVEM/reposicionam o que ja existia.
+ *
+ * RODADA 2 do julgamento (mesmo dia): a capsula ".chat-function" (5 bmps no
+ * canto superior direito) foi ELIMINADA por completo — o print do dono so
+ * tem UMA seta ali. Avaliado icone por icone (nenhum foi apagado sem
+ * verificar se tinha funcao real — dois nao tinham NENHUMA, grep no
+ * repo inteiro confirma zero listener em qualquer arquivo):
+ *  - "chatmode" (teclado, alterna chat<->modo-batalha): funcao REAL e
+ *    frequente -- mudou de casa pra dentro de ".input" (".cb-chatmode",
+ *    ao lado de ".filter"/".size"), a barra que ela proprio abre/fecha. A
+ *    volta (modo-batalha -> chat) ja tinha controle proprio, ".bmtoggle" em
+ *    ".battlemode", entao nao precisou de casa nova.
+ *  - "battleopt2"/"wndminib" ("+"/"-", nova/remover aba): funcao REAL mas
+ *    ocasional (configuracao, nao uso a cada mensagem) -- mudaram pro
+ *    PAINEL que a engrenagem abre (ChatBoxSettings.html/.js), pedido
+ *    explicito do julgamento pra "funcao real sobrando" migrar pra la.
+ *  - "stickfucn"/"lockdragwnd" (bmps "stickoff"/"lock_dragwnd"): SEM
+ *    NENHUM addEventListener em lugar nenhum do repo (confirmado por busca
+ *    completa) — vestigio do vendor roBrowser original, nunca ligado neste
+ *    fork. Removidos de vez, nao "movidos": nao ha funcao pra preservar.
+ * "battleopt" (engrenagem) ja tinha saido dali na rodada 1 (item 2 desta
+ * lista, acima). Nada do que sobrou foi apagado — cada um tem endereco novo
+ * documentado no proprio ChatBox.html/.js/ChatBoxSettings.html/.js.
+ *
+ * RODADA 2, segunda correcao: a etiqueta de canal (item 3 da lista acima)
+ * agora aparece em TODA linha, inclusive fala publica comum ("Normal"/
+ * "Global") — antes so aparecia fora da fala comum, o que lia como acaso.
+ * Pra nao virar ruido repetido numa tela cheia de mensagens (a maioria e
+ * fala comum), so essa categoria ganhou o tom NEUTRO ".ri-badge--cinza";
+ * o resto (Sistema/Erro/Guilda/Grupo/...) continua no dourado cheio — ver
+ * getTagInfoForType() em ChatBox.js pro raciocinio completo.
  */
 :host {
 	position: absolute;
@@ -44,6 +95,144 @@
 	left: 5px;
 	width: 595px;
 	font-family: var(--font-ui);
+}
+
+/* ─── Recolher/expandir (gauntlet 19/08/2026, layout do print 2 do dono:
+   seta no canto superior direito) ───────────────────────────────────────
+   Capsula de vidro escuro igual a ".chat-function" (regra 2 do design
+   system), so MAIOR (20px) porque e o controle mais importante do canto —
+   alvo de toque generoso, ao contrario dos icones bmp pequenos ao lado. O
+   glifo (seta, UI/ri-icones.js) gira 180deg conforme ".is-recolhido" —
+   mesmo idioma de TopMenuIdle.css ".tm-toggle-wrap svg". */
+#chatbox .cb-collapse {
+	position: absolute;
+	top: -4px;
+	right: -4px;
+	width: 20px;
+	height: 20px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 0;
+	border: 1px solid var(--border-hairline);
+	border-radius: var(--radius-pill);
+	background: var(--surface-dark-glass);
+	backdrop-filter: var(--blur-glass);
+	box-shadow: var(--shadow-card), var(--rim-light);
+	color: var(--white);
+	cursor: pointer;
+	z-index: 3;
+}
+
+#chatbox .cb-collapse:hover {
+	color: var(--gold-300);
+	box-shadow: var(--shadow-card), var(--rim-light), var(--glow-gold);
+}
+
+#chatbox .cb-collapse-glyph {
+	width: 11px;
+	height: 11px;
+	display: block;
+	transform: rotate(180deg);
+}
+
+#chatbox .cb-collapse-glyph svg {
+	width: 100%;
+	height: 100%;
+}
+
+/* Repouso (padrao, "on") = seta pra CIMA — mesma leitura de TopMenuIdle.css
+   ".tm-toggle-wrap svg": aponta pro que vai retrair ("clique aqui pra
+   recolher o que esta aberto abaixo"). Recolhido = seta pra BAIXO, apontando
+   pro que reaparece ao clicar ("clique aqui pra expandir"). */
+#chatbox .cb-collapse.is-recolhido .cb-collapse-glyph {
+	transform: rotate(0deg);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+	#chatbox .cb-collapse-glyph {
+		transition: transform var(--dur-fast) var(--ease-out);
+	}
+}
+
+/* Painel recolhido: so cabecalho (abas) + os dois botoes de canto ficam de
+   pe — mensagens, digitacao e modo-batalha somem (a fileira de icones
+   utilitarios que morava solta no topo foi ELIMINADA na rodada 2, ver
+   cabecalho do arquivo — nao ha mais nada pra esconder ali). !important
+   porque updateHeight() (ChatBox.js, acionado por F10/.size/Enter) escreve
+   estilo INLINE nesses MESMOS elementos em varios fluxos — sem !important,
+   o inline sempre venceria e "recolher" pareceria quebrado dependendo do
+   que o jogador tivesse usado por ultimo (mesmo motivo do !important na
+   scrollbar mais abaixo, contra o <style> que o JS injeta). */
+#chatbox.is-recolhido .body,
+#chatbox.is-recolhido .input,
+#chatbox.is-recolhido .battlemode {
+	display: none !important;
+}
+
+/* Achado na prova fotografica (19/08/2026): ".cb-gear" fica ancorado no
+   proprio "#chatbox", e recolhido a caixa dele encolhe pra so a altura do
+   cabecalho — "bottom:2px" passava a colidir com ".cb-collapse" (que fica
+   em "top"), os dois brigando pelo mesmo canto. Recolhido, a engrenagem
+   sobe pro MESMO topo, ao lado esquerdo da seta — os dois botoes de canto
+   continuam vivos e clicaveis, so lado a lado em vez de topo/base. */
+#chatbox.is-recolhido .cb-gear {
+	top: -4px;
+	right: 26px;
+	bottom: auto;
+}
+
+/* ─── Opcoes do chat (engrenagem, canto inferior direito — gauntlet
+   19/08/2026, layout do print 2). Mesmo botao/handler que era
+   ".chat-function .battleopt" (ver ChatBox.html/.js) — so casa e glifo
+   mudaram, nenhuma logica nova. "background-image:none" apaga o bmp nativo
+   que o "data-background" carregava antes (o atributo foi removido no
+   .html, mas a regra fica aqui como documentacao do porque o botao nao usa
+   mais textura).
+   "right:37px", nao 2px: medido ao vivo (getBoundingClientRect, gauntlet
+   19/08 rodada 2) -- ".cb-gear" fica FORA de ".input"/".battlemode" (pra
+   continuar visivel nos dois estados, ver comentario do JS), mas ".input"
+   e 5px mais largo que "#chatbox" (cadeia da regra 1) e tem 3 icones
+   nativos proprios grudados no canto (".cb-chatmode"/".filter"/".size",
+   x 565-600) — com "right:2px" a engrenagem (20px) cobria ".filter" e
+   ".size" quase inteiros. 37px poe a borda direita da engrenagem em ~563,
+   logo a esquerda do trio, sem tapar nenhum dos quatro controles. */
+#chatbox .cb-gear {
+	position: absolute;
+	right: 37px;
+	bottom: 2px;
+	width: 20px;
+	height: 20px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 0;
+	border: 1px solid var(--border-hairline);
+	border-radius: var(--radius-pill);
+	background: var(--surface-dark-glass);
+	background-image: none;
+	backdrop-filter: var(--blur-glass);
+	box-shadow: var(--shadow-card), var(--rim-light);
+	color: var(--white);
+	cursor: pointer;
+	opacity: 1;
+	z-index: 3;
+}
+
+#chatbox .cb-gear:hover {
+	color: var(--gold-300);
+	box-shadow: var(--shadow-card), var(--rim-light), var(--glow-gold);
+}
+
+#chatbox .cb-gear-glyph {
+	width: 12px;
+	height: 12px;
+	display: block;
+}
+
+#chatbox .cb-gear-glyph svg {
+	width: 100%;
+	height: 100%;
 }
 
 /** Tabs (pills de vidro claro; a aba ativa ganha o gradiente azul do design
@@ -194,6 +383,39 @@
 	cursor: pointer;
 }
 
+/* ─── Etiqueta de canal, nome de quem fala e numeros em destaque dentro da
+   mensagem (gauntlet 19/08/2026, layout do print 2 do dono: "System"/
+   "World" como pilula solida separada do texto). Cor/conteudo da mensagem
+   continuam 100% do JS (msg.colorType/msg.text, ChatBox.js) — estas classes
+   so ENVOLVEM o que o JS ja decidiu, nunca reimplementam a logica de cor
+   nem o fluxo de mensagem (regra 3 do cabecalho deste arquivo). A pilula
+   reusa ".ri-badge"/".ri-badge--ouro" (Common.css, injetado em todo Shadow
+   DOM) — nenhum hex novo, so o token de badge que o proprio design system
+   ja usa noutros componentes. */
+#chatbox .content .cb-tag {
+	display: inline-flex;
+	margin-right: 5px;
+	vertical-align: 1px;
+	font-size: 9px;
+	line-height: 1.5;
+	padding: 0 6px;
+}
+
+/* Nome de quem fala: mesmo tom (--gold-300) que ".input .username" ja usa
+   NESTE componente pro campo "pra quem" — vocabulario de cor coerente
+   dentro do proprio chat, sem inventar um token novo. */
+#chatbox .content .cb-name {
+	color: var(--gold-300);
+	font-weight: 700;
+}
+
+/* Numeros (zeny, quantidade, nivel): tom vizinho (--gold-400), pra separar
+   visualmente de ".cb-name" sem sair da familia dourada do widget. */
+#chatbox .content .cb-num {
+	color: var(--gold-400);
+	font-weight: 700;
+}
+
 /* Scrollbar fina no padrao .ri-scroll (Common.css): o JS injeta um
    <style> DEPOIS deste (ve ChatBox.js ~L224-247, as setas azuis
    dialscr_up/down.bmp), entao com a MESMA especificidade ele venceria por
@@ -292,13 +514,20 @@
 	   .input ja da o contraste. */
 	opacity: 0.85;
 }
+/* 140px -> 148px (gauntlet 19/08/2026, rodada 2 do julgamento): a reserva a
+   direita da faixa de digitacao ganhou um 3o icone (".cb-chatmode", ver
+   abaixo) -- essa MESMA constante ja embutia os 2 icones antigos
+   (108 esquerda + 32 direita = 140), so o "32" precisou crescer pra caber o
+   novo. Mudanca LOCAL e coerente: nao e a cadeia de larguras acopladas da
+   regra 1 (#chatbox 595 / .input 600 / .battlemode 592) -- essas tres
+   continuam intocadas, so a reserva INTERNA de ".input" mudou. */
 #chatbox .input .wrapper {
 	display: flex;
 	align-items: center;
 	margin-left: 108px;
 	height: 100%;
 	overflow: hidden;
-	width: calc(100% - 140px);
+	width: calc(100% - 148px);
 }
 
 #chatbox .input .message {
@@ -331,6 +560,12 @@
 	color: #ffa631;
 }
 
+/* ".cb-chatmode" somado ao grupo em 19/08/2026, rodada 2 do julgamento:
+   era ".chat-function .chatmode" (icone de teclado no canto superior
+   direito, capsula eliminada) -- mudou pra dentro da propria barra que
+   controla (chat <-> modo batalha), ao lado de ".filter"/".size" que ja
+   moravam aqui. MESMO tratamento visual (bmp claro, sem filtro, regra 2). */
+#chatbox .input .cb-chatmode,
 #chatbox .input .filter,
 #chatbox .input .size {
 	width: 11px;
@@ -340,13 +575,24 @@
 	right: 13px;
 	top: 8px;
 	background-color: transparent;
-	/* mesmo bmp claro dos demais icones do widget — sem filtro no vidro
-	   escuro (regra 2). */
 	opacity: 0.85;
 }
 
+#chatbox .input .cb-chatmode:hover,
+#chatbox .input .filter:hover,
+#chatbox .input .size:hover {
+	opacity: 1;
+}
+
+/* Da direita pra esquerda: .size (1) / .filter (13, ja e o "right" default
+   do grupo acima) / .cb-chatmode (25) -- cada uma 11px de largura, 1px de
+   folga entre elas. */
 #chatbox .input .size {
 	right: 1px;
+}
+
+#chatbox .input .cb-chatmode {
+	right: 25px;
 }
 
 #chatbox .battlemode .bmtoggle {
@@ -354,57 +600,4 @@
 	color: var(--white);
 	font-family: var(--font-ui);
 	text-shadow: 0 1px 2px rgba(18, 41, 74, 0.85);
-}
-#chatbox .chat-function {
-	position: absolute;
-	right: 0px;
-	top: 0px;
-	/* Expand the "no-walk" header zone around buttons (but don't move them visually). */
-	padding: 6px;
-	margin: -6px;
-	/* capsula de vidro escuro (regra 2 do design system): estes icones
-	   ficam sobre o MUNDO, sem nenhum cartao atras — vidro escuro +
-	   blur e a protecao oficial, no lugar do veu/filtro escuro de antes. */
-	background: var(--surface-dark-glass);
-	backdrop-filter: var(--blur-glass);
-	border-radius: var(--radius-pill);
-}
-#chatbox .chat-function button {
-	background-size: auto;
-	border: 0;
-	background-repeat: no-repeat;
-	background-color: transparent;
-	/* bmps claros, feitos pra fundo escuro — sem inverter/escurecer. */
-	opacity: 0.85;
-}
-#chatbox .chat-function button:hover {
-	opacity: 1;
-}
-#chatbox .chat-function .chatmode {
-	width: 15px;
-	height: 9px;
-}
-#chatbox .chat-function .battleopt {
-	width: 10px;
-	height: 10px;
-	background-size: cover;
-}
-#chatbox .chat-function .stickfucn {
-	width: 14px;
-	height: 10px;
-	background-size: cover;
-}
-#chatbox .chat-function .battleopt2 {
-	width: 9px;
-	height: 9px;
-	background-size: cover;
-}
-#chatbox .chat-function .wndminib {
-	width: 9px;
-	height: 9px;
-	background-size: cover;
-}
-#chatbox .chat-function .lockdragwnd {
-	width: 15px;
-	height: 10px;
 }

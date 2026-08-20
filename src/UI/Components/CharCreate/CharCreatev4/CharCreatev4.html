@@ -1,6 +1,5 @@
-<div id="charcreate_v4">
-	<ui-image src="make_character_ver2/bg_makebg.bmp"></ui-image>
-	<div class="title"></div>
+<div id="charcreate_v4" class="ri-window">
+	<div class="title ri-title"></div>
 	<div>
 		<div class="human">
 			<input type="radio" name="race" id="human_race" checked class="race" />
@@ -38,18 +37,8 @@
 		<div class="model">
 			<canvas id="style_model" width="65" height="110" style="pointer-events: none"></canvas>
 		</div>
-		<ui-button
-			class="rot_left"
-			bg="make_character_ver2/bt_leftturn_normal.bmp"
-			hover="make_character_ver2/bt_leftturn_over.bmp"
-			down="make_character_ver2/bt_leftturn_press.bmp"
-		></ui-button>
-		<ui-button
-			class="rot_right"
-			bg="make_character_ver2/bt_rightturn_normal.bmp"
-			hover="make_character_ver2/bt_rightturn_over.bmp"
-			down="make_character_ver2/bt_rightturn_press.bmp"
-		></ui-button>
+		<ui-button class="rot_left cc-rot" title="Girar para a esquerda">&#8249;</ui-button>
+		<ui-button class="rot_right cc-rot" title="Girar para a direita">&#8250;</ui-button>
 		<input type="text" id="char_name" maxlength="24" />
 	</div>
 
@@ -545,23 +534,8 @@
 	</div>
 
 	<div class="btns">
-		<ui-button
-			class="btn cancel"
-			bg="make_character_ver2/bt_close_normal.bmp"
-			hover="make_character_ver2/bt_close_over.bmp"
-			down="make_character_ver2/bt_close_press.bmp"
-		></ui-button>
-		<ui-button
-			class="btn make"
-			bg="make_character_ver2/bt_make_normal.bmp"
-			hover="make_character_ver2/bt_make_over.bmp"
-			down="make_character_ver2/bt_make_press.bmp"
-		></ui-button>
-		<ui-button
-			class="btn return"
-			bg="make_character_ver2/bt_make_normal.bmp"
-			hover="make_character_ver2/bt_make_over.bmp"
-			down="make_character_ver2/bt_make_press.bmp"
-		></ui-button>
+		<ui-button class="btn cancel ri-close" title="Fechar">&times;</ui-button>
+		<ui-button class="btn make ri-btn"></ui-button>
+		<ui-button class="btn return ri-btn ri-btn--sec"></ui-button>
 	</div>
 </div>

@@ -1,3 +1,21 @@
+/**
+ * UI/Components/GuildCompanion/GuildCompanion.css
+ *
+ * Gauntlet 6A (19/08/2026): prompt de "sem guilda -> criar guilda" (o que o
+ * personagem sem guild ve ao abrir a janela de Guilda). Realinhado ao
+ * design system oficial com o mesmo metodo das janelas irmas: classes .ri-*
+ * somadas as classes funcionais que GuildCompanion.js consulta (.btn_create,
+ * .btn_close, .btn_x, .btn_x2, .btn_ok, .btn_cancel, .guildname, .name_title,
+ * .name_label, .win.namebox/.visible, .win.companion/.hidden) -- nenhuma
+ * removida ou renomeada.
+ *
+ * BMP removido: titlebar_mid.bmp + sys_close_off/on -- decodificados
+ * (scripts/tmp-decode-bmp.ts), sem rotulo pintado, so gradiente/glifo "x".
+ * Os dois textos hardcoded em GuildCompanion.js (titulo/rotulo do modo
+ * "dissolver guilda") foram traduzidos para PT-BR no mesmo commit desta
+ * pele -- so o LITERAL da string, nenhum fluxo/condicao mudou.
+ */
+
 :host {
 	top: 160px;
 	left: 260px;
@@ -6,18 +24,18 @@
 
 #GuildCompanion {
 	position: relative;
-	font-family: Arial, sans-serif;
+	font-family: var(--font-ui);
 	font-size: 12px;
 	white-space: nowrap;
+	color: var(--text-body);
 }
 
 #GuildCompanion .win {
 	display: inline-block;
 	vertical-align: top;
-	background-color: white;
-	border: 1px solid #a5a5a5;
-	border-radius: 3px;
-	margin-right: 6px;
+	margin-right: var(--sp-3);
+	width: 260px;
+	white-space: normal;
 }
 
 #GuildCompanion .win.namebox {
@@ -31,65 +49,43 @@
 	display: none;
 }
 
-#GuildCompanion .titlebar {
-	height: 17px;
-	line-height: 17px;
-	background-color: white;
-	background-repeat: repeat-x;
-	border-radius: 3px 3px 0 0;
-	font-size: 11px;
-	font-weight: bold;
-	padding-left: 6px;
-}
-#GuildCompanion .titlebar .title {
-	vertical-align: middle;
-}
-#GuildCompanion .titlebar .base {
-	width: 11px;
-	height: 11px;
-	border: none;
-	background-color: transparent;
-	background-repeat: no-repeat;
-	vertical-align: middle;
-}
-#GuildCompanion .titlebar .right {
-	float: right;
-	margin-right: 3px;
-}
-#GuildCompanion .titlebar .clear {
-	clear: both;
+#GuildCompanion .ri-title {
+	font-size: 13px;
 }
 
 #GuildCompanion .body {
-	padding: 10px 12px 8px 12px;
+	padding: var(--sp-4);
+	background: var(--window-fill);
 }
 
 #GuildCompanion .companion .msg {
-	margin-bottom: 12px;
+	margin-bottom: var(--sp-4);
+	font: var(--type-desc);
+	color: var(--text-body);
+	text-align: center;
 }
 
 #GuildCompanion .namebox .label {
-	margin-bottom: 4px;
+	margin-bottom: var(--sp-2);
+	font: var(--type-label);
+	color: var(--text-muted);
 }
 #GuildCompanion .namebox input {
-	border: 1px solid #c1c6c2;
-	background-color: #efefef;
-	width: 150px;
-	height: 16px;
-	margin-bottom: 12px;
+	width: 100%;
+	box-sizing: border-box;
+	margin-bottom: var(--sp-4);
 }
 
 #GuildCompanion .btns {
 	text-align: center;
+	display: flex;
+	gap: var(--sp-2);
+	justify-content: center;
 }
 #GuildCompanion .namebox .btns {
-	text-align: right;
+	justify-content: flex-end;
 }
 
 #GuildCompanion .btn {
-	font-family: Arial, sans-serif;
-	font-size: 11px;
-	padding: 2px 10px;
-	margin: 0 3px;
-	cursor: pointer;
+	font-family: var(--font-ui);
 }

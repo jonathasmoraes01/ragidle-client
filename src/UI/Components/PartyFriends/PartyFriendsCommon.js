@@ -314,13 +314,12 @@ export function createPartyFriends(config) {
 		this._host.style.top = `${Math.min(Math.max(0, _preferences.y), Renderer.height - (this._host.offsetHeight || 0))}px`;
 		this._host.style.left = `${Math.min(Math.max(0, _preferences.x), Renderer.width - (this._host.offsetWidth || 0))}px`;
 
-		if (renewalParty) {
-			// Load footer background
-			Client.loadFile(DB.INTERFACE_PATH + 'renewalparty/bg_partymember.bmp', function (url) {
-				const countBox = root.querySelector('.count-box');
-				if (countBox) countBox.style.backgroundImage = `url(${url})`;
-			});
-		}
+		// Gauntlet 6A (19/08/2026): a moldura do contador "Cap X/Y" era este
+		// bitmap (renewalparty/bg_partymember.bmp) aplicado por style inline --
+		// vencia qualquer CSS de classe. Trocado pela pill com aro dourado de
+		// PartyFriendsV1.css (".count-box", a versao ATIVA pelo packetver); o
+		// texto real (".inner-count") ja era HTML antes e continua sendo. Nao
+		// carrega mais este bitmap de proposito.
 
 		if (!_preferences.show) {
 			this._host.style.display = 'none';

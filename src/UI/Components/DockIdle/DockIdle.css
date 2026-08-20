@@ -1,26 +1,57 @@
 /**
  * UI/Components/DockIdle/DockIdle.css
  *
- * "Barra inferior" — dock fixo na base da tela.
+ * "Barra de acoes" — pivo de 19/08/2026 (ver cabecalho de DockIdle.js): a
+ * antiga barra de atalhos de janela (Personagem/Skills/Inventario/
+ * Equipamento/Caca/Config/Menu) foi SUBSTITUIDA por uma barra que mostra a
+ * ROTACAO DE SKILLS do modo idle (3 orbes numerados, referencia visual
+ * do dono: Ragnarok Origin, circulos de skill centralizados na base da tela)
+ * e herda o botao "Auto" que morava em CombatCornerIdle.css (agora
+ * aposentado, ver MapEngine.js). Continua sendo a MESMA faixa fixa na base
+ * da tela — vidro azulado, aro dourado por cima — so o CONTEUDO mudou.
  *
- * Contrato de pointer-events (mesmo padrao de MobileUI.css e do
- * ":host{pointer-events:none}" usado pelos botoes flutuantes RAGIDLE,
- * ver HuntMap.css:1-45): a faixa inteira e ":host" ficam com
- * pointer-events:none, e SO ".dk-item" (os botoes) volta a aceitar clique
- * com pointer-events:auto. pointer-events e propriedade herdada — ela
- * atravessa o limite do Shadow DOM normalmente, entao o "none" do :host
- * cai sobre a barra e as labels tambem, e cada botao precisa reabrir sozinho.
- * Isso e o que garante que clicar no MAPA atraves da area vazia da faixa
- * (fora dos botoes) continua funcionando — nenhum "buraco" e recortado,
- * o fundo translucido e so pintura, nunca captura o clique.
+ * SEGUNDO PIVO, mesmo dia (ajuste pedido pelo dono sobre a entrega acima,
+ * com o print do Ragnarok Origin como referencia de ORGANIZACAO — nunca de
+ * arte): tres mudancas.
+ *   1. Os 3 slots da rotacao (o teto — ver IdleConfig.js:729/887,
+ *      "rotacao.length >= 3") agora SEMPRE aparecem, preenchidos ou vazios
+ *      (".dk-slot.is-empty") — o antigo ":empty{display:none}" que colapsava
+ *      a barra inteira sem rotacao configurada SAIU (ver DockIdle.js).
+ *   2. ".dk-delimitador": filete dourado vertical que esvai nas pontas,
+ *      mesma familia visual do token "--ornament-gold" (Common.css) — que so
+ *      vem pronto na horizontal, entao aqui a gradiente e composta com o
+ *      MESMO token de cor (--gold-500) via color-mix(), nunca hex literal
+ *      (mesma tecnica que HuntMap.css ja usa pro card selecionado).
+ *   3. O Auto SAIU da ponta direita da TELA (grid "1fr auto 1fr", terceira
+ *      coluna) e entrou no MESMO agrupamento flex da barra de skills
+ *      (".dk-grupo": delimitador . slots . delimitador . Auto), centralizado
+ *      como um bloco so — igual ao print. O caminho de dado (
+ *      IdleConfig.editConfig.cacaAutomatica) nao mudou, so a posicao visual.
  *
- * Spec EXATA (complemento 19/08/2026 — o dono leu o showcase oficial
- * ui_kits/game_hud/BottomBar.jsx e extraiu numeros/cores/tokens reais):
- * substitui o tratamento ".ri-disc" (circulo) usado numa rodada anterior —
- * a barra de baixo NAO usa disco pros itens normais, so o item central
- * ("Caça") vira uma PILULA (".ri-window"-like, mas achatada). pointer-
- * events, z-index e os toggles reais (DockIdle.js) sao os MESMOS de sempre,
- * nada disso mudou.
+ * pointer-events: mesmo contrato de sempre (":host" pointer-events:none,
+ * cada botao/orbe reabre com pointer-events:auto) — clicar no mapa atraves
+ * da area vazia da faixa continua funcionando. ".dk-delimitador" e
+ * decorativo e nao define pointer-events proprio: herda "none" do ancestral,
+ * igual a area vazia do resto da barra.
+ *
+ * TERCEIRO PIVO (item 4 do gauntlet, 19/08/2026 — pedido do dono: mostrar o
+ * consumivel selecionado, com icone e quantidade restante, ao lado da barra
+ * de skills): ".dk-consumiveis" entrou no MESMO agrupamento flex da barra
+ * (".dk-grupo": delimitador . rotacao . delimitador . CONSUMIVEIS .
+ * delimitador . Auto) — bloco proprio, separado da rotacao de skills por um
+ * delimitador dourado a mais, porque sao dados de config DIFERENTES
+ * (IdleConfig.editConfig.pocaoDeHp/pocaoDeSp, nao .rotacao) e o print do
+ * Ragnarok Origin mostra os consumiveis como um grupo visualmente distinto
+ * da fileira de skills, colado do mesmo lado. Os slots reusam AO PE DA LETRA
+ * as classes de orbe/anel/rotulo da rotacao de skills (".dk-slot",
+ * ".dk-slot-ring-wrap", ".dk-slot-ring", ".dk-slot-icone", ".dk-slot-nome",
+ * ".dk-slot.is-empty") — mesmo tratamento "orbe de vidro com miolo opaco +
+ * aro", mesmo vazio "quase fantasma" — troca so o CONTEUDO (ver
+ * DockIdle.js:syncConsumiveis()). Unica peca nova: ".dk-slot-qtd" (badge de
+ * quantidade, canto do orbe) — deliberadamente AZUL (nao dourado) pra nao se
+ * confundir com o numerozinho de prioridade da skill (".dk-slot-prioridade",
+ * dourado); os dois nunca aparecem juntos no mesmo orbe, mas dividem a
+ * mesma linguagem visual entao precisam ser discerniveis a olho.
  */
 
 :host {
@@ -38,251 +69,365 @@
 	font-family: var(--font-ui, var(--ri-fonte));
 }
 
-/* ─── A faixa: 82px, vidro azulado, aro dourado por cima ──────────────── */
+/* ─── SEM FAIXA (pedido do dono, 19/08/2026): a barra de vidro azulado saiu
+   por completo — nada de fundo, desfoque, aro nem sombra. Sobram os orbes
+   FLUTUANDO sobre o cenario, como a barra de skills da referencia (Ragnarok
+   Origin). O elemento continua existindo so como GRADE de posicionamento;
+   ele nao pinta nada.
+
+   Consequencia que precisou de conserto junto: sem o fundo claro por tras,
+   os rotulos (que eram tinta escura com sombra branca, feitos para a faixa)
+   sumiriam sobre chao claro. Eles passaram a usar a CAPSULA DE VIDRO ESCURO
+   — a mesma saida que o design system prescreve para texto sobre o mundo, ja
+   usada nos rotulos da constelacao — e nunca uma faixa de largura total. */
 
 .dk-bar {
 	position: relative;
 	display: flex;
 	align-items: center;
 	justify-content: center;
-	gap: 10px;
 	width: 100%;
-	height: 82px;
-	padding: 0 18px;
+	min-height: 96px;
+	padding: 10px 22px;
 	box-sizing: border-box;
-	background: linear-gradient(180deg, rgba(233, 241, 250, 0.72) 0%, rgba(206, 223, 243, 0.9) 100%);
-	backdrop-filter: var(--blur-glass-strong, blur(18px));
-	-webkit-backdrop-filter: var(--blur-glass-strong, blur(18px));
-	border-top: 1px solid var(--border-gold);
-	box-shadow: 0 -6px 20px rgba(12, 34, 64, 0.22);
+	background: none;
+	border: none;
+	box-shadow: none;
+	pointer-events: none;
 }
 
-/* ─── Item comum (Personagem/Skills/Inventario/Equipamento/Config/Menu) ──
-   Sem disco: glifo solto + label, alvo de toque >= 44px (--hit-touch). O
-   "gap:10" da faixa acima ja cobre o espacamento DENTRO de cada grupo; o
-   respiro maior (26px) entre cada grupo e o item central vem da margin do
-   proprio ".dk-item--hunt" abaixo, nao de um gap especial aqui. */
+/* ─── O agrupamento unico: delimitador . slots . delimitador . Auto, tudo
+   colado e centralizado como um bloco so (pedido do dono, print do Ragnarok
+   Origin — o layout, nunca a arte). ─────────────────────────────────── */
 
-.dk-item {
+.dk-grupo {
+	display: flex;
+	align-items: center;
+	gap: 22px;
+}
+
+/* ─── Rotacao de skills: SEMPRE 3 orbes de vidro (o teto da rotacao — ver
+   IdleConfig.js:729/887). Preenchido ou vazio, o slot continua visivel —
+   DockIdle.js sempre desenha os 3, entao ".dk-rotacao" nunca fica ":empty"
+   de proposito (nada de slot fantasma sumindo). ──────────────────────── */
+
+.dk-rotacao {
+	display: flex;
+	align-items: flex-end;
+	justify-content: center;
+	gap: 20px;
+}
+
+/* ─── Delimitadores nas duas pontas do agrupamento (pedido do dono, print do
+   Ragnarok Origin): filete dourado vertical que esvai nas duas extremidades
+   — mesma familia do token "--ornament-gold" (Common.css), que so vem pronto
+   na horizontal (linear-gradient(90deg, transparente . dourado .
+   transparente)). Aqui a MESMA forma e composta na vertical com o proprio
+   token de cor (--gold-500) via color-mix(), pra nao inventar hex no
+   componente (regra de ouro do design system). ─────────────────────────── */
+
+.dk-delimitador {
+	flex: 0 0 auto;
+	align-self: center;
+	width: 2px;
+	height: 60px;
+	background: linear-gradient(
+		180deg,
+		transparent 0%,
+		color-mix(in srgb, var(--gold-500) 80%, transparent) 50%,
+		transparent 100%
+	);
+}
+
+.dk-slot {
 	appearance: none;
+	position: relative;
 	flex: 0 0 auto;
 	display: flex;
 	flex-direction: column;
 	align-items: center;
-	justify-content: center;
 	gap: 4px;
-	min-width: var(--hit-touch, 44px);
-	min-height: var(--hit-touch, 44px);
-	padding: 4px 6px;
+	width: 64px;
+	/* Reserva a MESMA altura do slot preenchido (56px de orbe + 4px de gap +
+	   ~16px de rotulo) mesmo quando o slot vazio nao desenha rotulo nenhum
+	   (ver ".dk-slot.is-empty" abaixo) — sem isto, ".dk-rotacao"
+	   (align-items:flex-end) alinharia os vazios mais pra baixo que os
+	   preenchidos, porque a caixa deles seria mais baixa. Com min-height
+	   igual + conteudo comecando do topo (flex-start, o padrao daqui), o
+	   ORBE fica na mesma linha em qualquer mistura de vazio/preenchido. */
+	min-height: 78px;
+	padding: 0;
+	border: none;
+	background: transparent;
+	cursor: pointer;
+	pointer-events: auto;
+	transition: transform var(--dur-fast, 150ms) var(--ease-out, ease);
+}
+
+.dk-slot:hover {
+	transform: translateY(-2px);
+}
+
+.dk-slot:active {
+	transform: var(--press-shift, translateY(1px));
+}
+
+/* Curva sutil do arco (referencia Ragnarok Origin): as pontas descem um
+   pouco em relacao ao meio — mesma tecnica/mesmos numeros que o arco de
+   medalhoes aposentado usava (CombatCornerIdle.css), so espelhada (aqui o
+   "meio" e visualmente mais alto, e nao mais baixo, porque os orbes agora
+   ficam ACIMA do rotulo "Auto" ao lado, entao subir o par de fora e o que
+   le como arco em vez de degrau). Com 1 ou 2 slots o efeito e sutil, mas
+   nunca quebra o layout — sao so translateY em cima do flex normal. */
+.dk-slot:nth-child(1) {
+	transform: translateY(4px);
+}
+.dk-slot:nth-child(3) {
+	transform: translateY(4px);
+}
+.dk-slot:nth-child(1):hover,
+.dk-slot:nth-child(3):hover {
+	transform: translateY(2px);
+}
+
+/* ─── Consumiveis (HP/SP): bloco proprio, MESMOS orbes da rotacao de skills
+   (ver comentario de topo do arquivo). So 2 slots aqui — sem a curva de arco
+   pensada pra 3 (o ":nth-child(1)/(3)" acima e relativo ao PAI, entao sem
+   este reset o 1o slot deste grupo herdaria o mesmo desnivel da skill, o que
+   nao faz sentido pra um par HP/SP lado a lado). ──────────────────────── */
+
+.dk-consumiveis {
+	display: flex;
+	align-items: flex-end;
+	justify-content: center;
+	gap: 20px;
+}
+
+.dk-consumiveis .dk-slot:nth-child(1),
+.dk-consumiveis .dk-slot:nth-child(3) {
+	transform: none;
+}
+
+.dk-consumiveis .dk-slot:hover {
+	transform: translateY(-2px);
+}
+
+/* Badge de quantidade restante — mesma posicao/forma do numerozinho de
+   prioridade (".dk-slot-prioridade" acima), paleta AZUL (nao dourada) pra
+   nunca se confundir com prioridade de skill; fonte numerica do design
+   system ("--type-numeric", Common.css). */
+.dk-slot-qtd {
+	position: absolute;
+	bottom: -2px;
+	right: -2px;
+	min-width: 17px;
+	height: 17px;
+	padding: 0 3px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	border-radius: 50%;
+	background: linear-gradient(180deg, var(--blue-500) 0%, var(--blue-600) 100%);
+	border: 1px solid var(--blue-700);
+	color: var(--white);
+	font: var(--type-numeric, 700 10px / 1 var(--font-ui));
+	font-size: 10px;
+	box-shadow: var(--shadow-card);
+}
+
+/* Involucro do orbe: fixa o tamanho (56px) e fica "position:relative" pra
+   ancorar o numerozinho de prioridade (".dk-slot-prioridade" abaixo) do
+   LADO DE FORA do recorte redondo — se o numero morasse dentro do proprio
+   ".dk-slot-ring" (que precisa de "overflow:hidden" pra recortar a arte
+   retangular da skill dentro do circulo), ele seria cortado junto. Mesma
+   separacao ring/badge que os medalhoes aposentados de CombatCornerIdle.css
+   usavam (la sem involucro extra porque o botao inteiro tinha o tamanho do
+   orbe; aqui precisa do involucro porque o nome da skill mora embaixo). */
+.dk-slot-ring-wrap {
+	position: relative;
+	width: 56px;
+	height: 56px;
+}
+
+/* Tamanho do orbe — cor/borda/sombra/estado vem de ".ri-glass" (Common.css,
+   o MESMO tratamento "orbe de vidro" que o Auto e o antigo CombatCornerIdle
+   ja usavam). 100% do involucro acima + recorte redondo pra arte
+   retangular da skill nao vazar do circulo. */
+.dk-slot-ring {
+	width: 100%;
+	height: 100%;
+	overflow: hidden;
+	/* Sem a faixa por tras (19/08/2026), o orbe passou a flutuar direto sobre
+	   o cenario — e o vidro de ".ri-glass", pensado para viver sobre a barra
+	   clara, quase sumia no chao de pedra de Prontera. Reforco local: miolo
+	   mais opaco e um anel escuro externo que separa o orbe de QUALQUER fundo,
+	   claro ou escuro. So aqui; ".ri-glass" em Common.css nao muda. */
+	background: radial-gradient(circle at 34% 28%, rgba(255, 255, 255, 0.98) 0%, rgba(226, 238, 252, 0.94) 55%, rgba(198, 220, 245, 0.9) 100%);
+	box-shadow: 0 0 0 1px rgba(12, 34, 64, 0.35), var(--shadow-float), inset 0 2px 6px rgba(255, 255, 255, 0.5);
+}
+
+.dk-slot:hover .dk-slot-ring {
+	box-shadow: var(--shadow-float), inset 0 2px 6px rgba(255, 255, 255, 0.35), var(--glow-gold);
+}
+
+/* Icone oficial da skill (arte pixelada do cliente RO,
+   /ragidle/skills/<id>.png) — "pixelated" preserva o traco, mesmo criterio
+   ja usado pelos medalhoes de CombatCornerIdle. */
+.dk-slot-icone {
+	width: 34px;
+	height: 34px;
+	object-fit: contain;
+	image-rendering: pixelated;
+}
+
+/* Fallback de duas letras quando o PNG da skill nao existe em disco (onerror
+   inline no <img>, ver DockIdle.js). */
+.dk-slot-fallback {
+	display: none;
+	align-items: center;
+	justify-content: center;
+	width: 100%;
+	height: 100%;
+	font-size: 14px;
+	font-weight: 700;
+	color: var(--blue-600);
+}
+
+/* Numerozinho de prioridade (1/2/3) — mesma paleta dourada de sempre.
+   Filho de ".dk-slot-ring-wrap" (position:relative, ver acima), IRMAO de
+   ".dk-slot-ring" — fica ancorado no canto do ORBE (56px) sem ser cortado
+   pelo "overflow:hidden" do proprio orbe. */
+.dk-slot-prioridade {
+	position: absolute;
+	bottom: -2px;
+	right: -2px;
+	min-width: 17px;
+	height: 17px;
+	padding: 0 3px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	border-radius: 50%;
+	background: linear-gradient(180deg, var(--gold-300) 0%, var(--gold-500) 100%);
+	border: 1px solid var(--gold-700);
+	color: #4a3812;
+	font-size: 10px;
+	font-weight: 700;
+	line-height: 1;
+	box-shadow: var(--shadow-card);
+}
+
+/* Nome curto da skill — SE couber (ellipsis, nunca quebra linha nem estoura
+   a largura do proprio orbe). */
+.dk-slot-nome {
+	max-width: 100%;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	/* Capsula de vidro escuro: sem a faixa por tras, o rotulo tem de carregar
+	   o proprio contraste, ou some no chao claro de Prontera. */
+	padding: 1px 7px;
+	border-radius: var(--radius-pill, 999px);
+	background: var(--surface-dark-glass);
+	backdrop-filter: var(--blur-glass);
+	-webkit-backdrop-filter: var(--blur-glass);
+	font: var(--type-label, 600 11px / 1.2 var(--font-ui));
+	font-size: var(--fs-desc, 10px);
+	color: var(--white);
+	text-shadow: 0 1px 2px rgba(8, 22, 40, 0.85);
+}
+
+/* ─── Slot vazio (pedido do dono, 19/08/2026, AJUSTADO apos julgamento: a
+   primeira versao usava "--surface-dark-glass" no miolo — o MESMO vidro
+   escuro opaco da capsula de rotulo — e o resultado lia como disco cinza
+   fechado, "botao desabilitado", o OPOSTO do pedido). "Orbe discreto sem
+   icone": mesma IDEIA do precedente ".ri-tile.is-empty" (Common.css: "vazio
+   quase nao existe", sem aro dourado nem sombra), adaptada de ladrilho pra
+   orbe, SEM copiar a classe (".ri-tile" e o tratamento quadrado, este e o
+   redondo) — miolo CLARO (mesma familia do orbe preenchido, token
+   "--surface-glass", nunca o vidro escuro) com opacidade baixa via
+   color-mix(), aro fino de 1px sem sombra elevada. Le como "espaco
+   reservado" (quase fantasma), nao como botao desligado. Nenhum icone,
+   nenhuma letra de fallback, nenhum numero de prioridade, NENHUM ROTULO
+   (DockIdle.js nem desenha ".dk-slot-nome" pro slot vazio — a ausencia de
+   icone ja comunica; ver ".dk-slot" acima pro min-height que evita
+   desalinhar o orbe quando o rotulo nao existe). */
+
+.dk-slot.is-empty .dk-slot-ring {
+	background: color-mix(in srgb, var(--surface-glass) 50%, transparent);
+	/* Desfoque (nao o vidro escuro) e o que ainda da contraste proprio sobre
+	   qualquer cenario, sem escurecer o miolo. */
+	backdrop-filter: var(--blur-glass);
+	-webkit-backdrop-filter: var(--blur-glass);
+	box-shadow: 0 0 0 1px color-mix(in srgb, var(--white) 55%, transparent);
+}
+
+.dk-slot.is-empty:hover .dk-slot-ring {
+	box-shadow: 0 0 0 1px color-mix(in srgb, var(--white) 70%, transparent), var(--glow-gold);
+}
+
+/* ─── Auto: orbe de vidro colado no MESMO agrupamento da barra de skills
+   (pedido do dono, 19/08/2026 — antes ficava sozinho na ponta direita da
+   TELA, grid "1fr auto 1fr"; ver historico deste arquivo), mesma receita que
+   o canto de combate aposentado usava (CombatCornerIdle.css) — herdada aqui
+   ao pe da letra (mesmas classes/estados, ".is-on" pintado por DockIdle.js
+   a partir de IdleConfig.editConfig.cacaAutomatica). ───────────────────── */
+
+.dk-auto {
+	appearance: none;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 4px;
+	padding: 0;
 	border: none;
 	background: transparent;
 	cursor: pointer;
 	pointer-events: auto;
 }
 
-/* Glifo: 20px, cor --ink-500 em repouso — o "disco" de uma rodada anterior
-   saiu; o que resta e so um alvo pra ancorar o ".ri-dot" (position:relative)
-   e servir de moldura pro destaque ".is-active" (fundo translucido + raio,
-   ver abaixo). */
-.dk-icon-wrap {
-	position: relative;
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	width: 36px;
-	height: 36px;
-	color: var(--ink-500);
-	transition: color var(--dur-fast) var(--ease-out);
+.dk-auto:active .dk-auto-ring {
+	transform: var(--press-shift);
 }
 
-.dk-icon-wrap svg {
-	display: block;
-	width: 20px;
-	height: 20px;
+.dk-auto-ring {
+	width: 58px;
+	height: 58px;
+	/* Mesmo reforco do orbe de skill, pelo mesmo motivo (ver ".dk-slot-ring"). */
+	background: radial-gradient(circle at 34% 28%, rgba(255, 255, 255, 0.98) 0%, rgba(226, 238, 252, 0.94) 55%, rgba(198, 220, 245, 0.9) 100%);
+	box-shadow: 0 0 0 1px rgba(12, 34, 64, 0.35), var(--shadow-float), inset 0 2px 6px rgba(255, 255, 255, 0.5);
 }
 
-/* Hover: SO a cor do glifo muda (spec exata do showcase — nada de lift nem
-   glow aqui, isso e reservado pro item central "featured"). */
-.dk-item:hover .dk-icon-wrap {
-	color: var(--blue-600);
-}
-
-/* Ativo: fundo translucido raso atras do glifo (nao mais um disco cheio nem
-   um preto — o defeito fotografado pelo dono ja tinha sido resolvido no
-   pivo pro vocabulario ".ri-disc"; agora e a spec exata do showcase:
-   rgba(255,255,255,.5) + --radius-panel). O JS (DockIdle.js
-   updateActiveState) so alterna ".is-active" no BOTAO — mesma tecnica de
-   sempre, sem logica nova. */
-.dk-item.is-active .dk-icon-wrap {
-	background: rgba(255, 255, 255, 0.5);
-	border-radius: var(--radius-panel);
-	color: var(--blue-600);
-}
-
-/* Ponto de notificacao — variante COMPACTA da spec exata do showcase (7px,
-   vermelho solido, aro branco de 1px) por cima do glifo. Diferente do
-   ".ri-dot" generico de Common.css (8px, gradiente) usado em TopMenuIdle —
-   essa troca fica so aqui dentro (Shadow DOM proprio do DockIdle, nunca
-   vaza pra outro componente). Visibilidade controlada via JS
-   (DockIdle.js syncSkillDot()), nao por CSS. */
-.dk-icon-wrap .ri-dot {
-	top: 0;
-	right: 0;
-	width: 7px;
-	height: 7px;
-	background: #c9302c;
-	border: 1px solid var(--white);
-	box-shadow: none;
-}
-
-.dk-label {
-	font: var(--type-label, 600 11px / 1.2 var(--font-ui));
-	font-size: var(--fs-desc, 10px);
-	color: var(--ink-500);
-	white-space: nowrap;
-}
-
-.dk-item.is-active .dk-label {
-	color: var(--blue-700);
-}
-
-/* ─── Item central "Caça": tratamento "featured" do DS — PILULA, nao
-   circulo. Filigrana (ver ".dk-filigrana" abaixo) resolve de vez a mancha
-   fotografada pelo dono sobre o label "Equipamento": ela cabe inteira
-   dentro do respiro de 26px pro vizinho, nunca precisa invadir o item ao
-   lado (a rodada anterior tinha "asas" de 4 barrinhas que liam como
-   equalizador — trocadas pelo ornamento oficial do design system). ──────── */
-
-.dk-item--hunt {
-	/* Coluna (icone sobre o label), nao linha: com "padding:8px 30px" o
-	   respiro horizontal generoso ja garante a leitura de "pilula larga"
-	   mesmo com o conteudo empilhado — e empilhado e o que mantem o Poring
-	   (posicionado pelo centro horizontal do PILL) alinhado em cima do
-	   ICONE, nao boiando sobre o label ao lado. */
-	position: relative;
-	flex-direction: column;
-	align-items: center;
-	justify-content: center;
-	gap: 3px;
-	/* 36px de respiro ate os grupos vizinhos (10px vem do "gap" da ".dk-bar",
-	   26px desta margin). Subiu de 16 para 26 porque a filigrana mora NESTE
-	   vao — ver a conta no bloco ".dk-filigrana". */
-	margin: 0 26px;
-	padding: 8px 30px;
-	background: linear-gradient(180deg, #f7fbff 0%, #dbe8f8 48%, #bcd2ee 100%);
-	border: 2px solid var(--gold-400);
-	border-radius: var(--radius-pill, 999px);
-	box-shadow: var(--shadow-float), var(--rim-light);
-	min-width: 0;
-	transition: box-shadow var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-out);
-}
-
-.dk-item--hunt:hover {
-	box-shadow: var(--shadow-float), var(--rim-light), var(--glow-gold);
+.dk-auto:hover .dk-auto-ring {
+	box-shadow: var(--shadow-float), inset 0 2px 6px rgba(255, 255, 255, 0.35), var(--glow-gold);
 	transform: translateY(-1px);
 }
 
-.dk-item--hunt .dk-icon-wrap {
-	width: 20px;
-	height: 20px;
-	color: var(--blue-600);
+.dk-auto-label {
+	/* Mesma capsula de vidro escuro do rotulo de skill — pelo mesmo motivo:
+	   sem faixa por tras, o texto precisa do proprio contraste. */
+	padding: 1px 8px;
+	border-radius: var(--radius-pill, 999px);
+	background: var(--surface-dark-glass);
+	backdrop-filter: var(--blur-glass);
+	-webkit-backdrop-filter: var(--blur-glass);
+	font-size: 11px;
+	font-weight: var(--fw-bold, 700);
+	color: var(--white);
+	text-shadow: 0 1px 2px rgba(8, 22, 40, 0.85);
+	white-space: nowrap;
 }
 
-.dk-item--hunt.is-active .dk-icon-wrap {
-	background: none;
+/* "Auto" ligado: orbe vira azul-dourado aceso — MESMOS tokens que
+   ".cc-btn--auto.is-on" usava em CombatCornerIdle.css (o estado real
+   continua vindo de IdleConfig.editConfig.cacaAutomatica, ver DockIdle.js). */
+.dk-auto.is-on .dk-auto-ring {
+	border-color: var(--gold-500);
+	box-shadow: var(--glow-gold), inset 0 2px 6px rgba(255, 255, 255, 0.4);
 	color: var(--blue-700);
 }
 
-/* Rotulo em SERIFA — o unico lugar do dock que usa a face display, mesma
-   ideia de ".ri-title" (Common.css): da o ar "classico premium" so no item
-   que merece destaque. */
-.dk-label--hunt {
-	font: var(--type-window-title, 400 15px / 1.1 var(--font-display));
-	font-size: var(--fs-section, 13px);
-	color: var(--blue-700);
-	text-shadow: 0 1px 0 rgba(255, 255, 255, 0.9);
-}
-
-/* Filigrana (ornamento OFICIAL do design system, ver
-   redesign/design-system-oficial.md — mesma familia do ".ri-divisor" de
-   Common.css, "linha com losango dourado central"). SUBSTITUI as antigas
-   "asas" de 4 barrinhas — aquilo lia como equalizador de audio, nao asa, e
-   piorou de aparencia depois que o icone vizinho virou arte pixelada real
-   do RO (ver historico do dono). Por lado: uma linha que esvai + um losango
-   + um traco curto, nessa ordem indo em direcao a pilula (o traco fica
-   colado nela). O lado direito e a MESMA marcacao, so espelhada por CSS
-   (scaleX(-1) em ".dk-filigrana--dir"), igual a tecnica anterior.
-
-   LARGURA: 26px, e o numero saiu de MEDIR, nao de escolher. A primeira
-   versao usava os 46px do ornamento do design system e SOBREPUNHA o item
-   vizinho em 22px de cada lado (getBoundingClientRect: folga -22) — o
-   mesmo defeito das asas antigas, que o dono fotografou como uma mancha
-   sobre o rotulo "Equipamento". A conta: o espaco util e a margin do
-   ".dk-item--hunt" (26px) + o gap da ".dk-bar" (10px) = 36px; a filigrana
-   consome a propria largura + 4px de margin, entao 26+4=30 deixa 6px de
-   folga. Quem mexer em UMA das tres medidas RE-MEDE as outras duas. */
-.dk-filigrana {
-	position: absolute;
-	top: 50%;
-	display: inline-flex;
-	align-items: center;
-	gap: 4px;
-	width: 26px;
-	pointer-events: none;
-	z-index: 0;
-}
-
-.dk-filigrana--esq {
-	right: 100%;
-	margin-right: 4px;
-	transform: translateY(-50%);
-}
-
-.dk-filigrana--dir {
-	left: 100%;
-	margin-left: 4px;
-	transform: translateY(-50%) scaleX(-1);
-}
-
-/* Linha que esvai (some no extremo solto, ganha corpo perto da pilula). */
-.dk-fili-linha {
-	flex: 1 1 auto;
-	height: 1px;
-	background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--gold-500) 85%, transparent));
-}
-
-/* Losango — o "no" da filigrana, com halo claro por fora (rim fino). */
-.dk-fili-losango {
-	flex: 0 0 auto;
-	width: 4px;
-	height: 4px;
-	transform: rotate(45deg);
-	background: color-mix(in srgb, var(--gold-500) 85%, transparent);
-	box-shadow: 0 0 0 1px color-mix(in srgb, var(--white) 70%, transparent);
-}
-
-/* Traco curto, colado na pilula. */
-.dk-fili-traco {
-	flex: 0 0 auto;
-	width: 7px;
-	height: 1px;
-	background: color-mix(in srgb, var(--gold-500) 85%, transparent);
-}
-
-/* Poring sentado em cima da pilula — arte de sprite do cliente (RO), o
-   dono confirmou que fica (real, nao "SVG desenhado a mao"). "top" ajustado
-   pro tamanho novo da pilula (~54px de altura) sem estourar por cima dela.
-   Se o PNG faltar, o onerror inline no HTML esconde a tag e sobra so a
-   pilula com wings — dock continua legivel. */
-.dk-poring {
-	position: absolute;
-	top: -24px;
-	left: 50%;
-	transform: translateX(-50%);
-	width: 30px;
-	height: auto;
-	image-rendering: pixelated;
-	filter: drop-shadow(0 2px 3px rgba(31, 54, 92, 0.35));
-	pointer-events: none;
-	z-index: 2;
+.dk-auto.is-on .dk-auto-label {
+	color: var(--gold-500);
+	text-shadow: 0 0 6px rgba(224, 176, 77, 0.5);
 }

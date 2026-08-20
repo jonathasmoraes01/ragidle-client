@@ -28,6 +28,7 @@ import Commands from 'Controls/ProcessCommand.js';
 import ChatBoxSettings from 'UI/Components/ChatBoxSettings/ChatBoxSettings.js';
 import Configs from 'Core/Configs.js';
 import EntityManager from 'Renderer/EntityManager.js';
+import RiIcones from 'UI/ri-icones.js';
 
 /**
  * @var {number} max message in the chatbox
@@ -87,6 +88,16 @@ const _preferences = Preferences.get(
 );
 
 /**
+ * Estado recolhido/expandido do painel inteiro (gauntlet 19/08/2026, layout
+ * do print 2 do dono -- seta no canto superior direito). Chave PROPRIA,
+ * separada de "_preferences" acima: aquela ja controla o ciclo de alturas de
+ * F10/.size (updateHeight()/_heightIndex), e este e um mecanismo NOVO e
+ * independente -- mesmo padrao de TopMenuIdle.js (preferencia dedicada por
+ * controle, nunca reaproveitar um booleano de outro significado).
+ */
+const _prefsRecolhido = Preferences.get('ChatBoxRecolhido', { recolhido: false }, 1.0);
+
+/**
  * Create Basic Info component
  */
 const ChatBox = new GUIComponent('ChatBox', cssText);
@@ -99,9 +110,12 @@ function _root() {
 }
 
 /**
- * Render HTML
+ * Render HTML — troca cada marcador "<!--RI_ICONE:chave-->" pela string SVG
+ * do modulo de iconografia (UI/ri-icones.js), mesmo padrao de
+ * TopMenuIdle.js/BasicInfoIdle.js (gauntlet 19/08/2026: seta de
+ * recolher/expandir + engrenagem de opcoes, ver ChatBox.html).
  */
-ChatBox.render = () => htmlText;
+ChatBox.render = () => htmlText.replace(/<!--RI_ICONE:(\w+)-->/g, (_, chave) => RiIcones[chave] || '');
 
 /**
  * Has input fields, protect key events
@@ -204,7 +218,14 @@ ChatBox.init = function init() {
 
 	// Keep chat log area click-through for walking; only block over interactive UI parts.
 	// For GUIComponent, set up manual mouse intersection blocking on interactive elements.
-	const interactiveSelector = '.input, .chat-function, .battlemode, .event_add_cursor';
+	// .cb-collapse/.cb-gear somados em 19/08/2026 (gauntlet, layout do print
+	// 2): sao os dois botoes do canto superior/inferior direito, e precisam
+	// da MESMA guarda de nao vazar clique pro mapa que o resto da UI
+	// interativa ja tem. ".chat-function" SAIU da lista na rodada 2 do
+	// julgamento (a capsula inteira foi eliminada -- ver ChatBox.css/.html);
+	// ".cb-chatmode" nao precisa de entrada propria, ja mora dentro de
+	// ".input", que continua na lista.
+	const interactiveSelector = '.input, .battlemode, .event_add_cursor, .cb-collapse, .cb-gear';
 	const interactiveEls = root.querySelectorAll(interactiveSelector);
 	interactiveEls.forEach(el => {
 		let _intersect;
@@ -548,7 +569,7 @@ ChatBox.init = function init() {
 		chatboxEl.addEventListener('contextmenu', event => {
 			const target = event.target;
 			if (target.closest('.body, .contentwrapper, .content')) {
-				if (target.closest('a, .item-link, .event_add_cursor, .chat-function, td.tab')) {
+				if (target.closest('a, .item-link, .event_add_cursor, td.tab')) {
 					return;
 				}
 
@@ -586,15 +607,23 @@ ChatBox.init = function init() {
 		});
 	}
 
-	const battleopt2 = root.querySelector('.chat-function .battleopt2');
-	if (battleopt2) {
-		battleopt2.addEventListener('click', () => {
-			if (ChatBox.tabCount <= 5) {
-				ChatBox.addNewTab();
-				ChatBox.onAppend();
-			}
+	// Recolher/expandir o painel inteiro (gauntlet 19/08/2026, layout do
+	// print 2 do dono).
+	const collapseBtn = root.querySelector('.cb-collapse');
+	if (collapseBtn) {
+		collapseBtn.addEventListener('click', onClickCollapse);
+		collapseBtn.addEventListener('mousedown', event => {
+			event.stopImmediatePropagation();
+			event.preventDefault();
 		});
 	}
+
+	// "Nova aba"/"Remover aba" (era ".chat-function .battleopt2"/".wndminib",
+	// os icones "+"/"-" da capsula do topo) mudaram de casa no julgamento do
+	// dono (rodada 2): moraram pro PAINEL que a engrenagem abre --
+	// ChatBoxSettings.js chama ChatBox.addNewTab()/removeTab() por
+	// UIManager.getComponent('ChatBox') (evita import circular, ChatBox.js
+	// ja importa ChatBoxSettings.js). Ver ChatBoxSettings.html/.js.
 
 	// Tab click handler (delegated)
 	if (chatboxEl) {
@@ -609,26 +638,34 @@ ChatBox.init = function init() {
 		});
 	}
 
-	const wndminib = root.querySelector('.chat-function .wndminib');
-	if (wndminib) {
-		wndminib.addEventListener('click', () => {
-			if (ChatBox.tabCount > 1) {
-				ChatBox.removeTab();
-			}
-		});
-	}
-
-	const chatmodeBtn = root.querySelector('.chat-function .chatmode');
+	// Selector novo (era ".chat-function .chatmode", icone de teclado no
+	// canto superior direito): mudou pra dentro da propria ".input" que ela
+	// abre/fecha (julgamento do dono, rodada 2 -- "topo limpo, so a seta").
+	// A volta (battlemode -> chat) ja tinha lugar certo, ".bmtoggle" acima,
+	// nao precisou de casa nova.
+	const chatmodeBtn = root.querySelector('.cb-chatmode');
 	if (chatmodeBtn) {
 		chatmodeBtn.addEventListener('click', () => {
 			ChatBox.toggleChat();
 		});
+		chatmodeBtn.addEventListener('mousedown', event => {
+			event.stopImmediatePropagation();
+			event.preventDefault();
+		});
 	}
 
-	const battleoptBtn = root.querySelector('.chat-function .battleopt');
+	// Selector sem ".chat-function " (gauntlet 19/08/2026): o botao de
+	// opcoes saiu daquela capsula pra virar a engrenagem do canto inferior
+	// direito (ver ChatBox.html) -- mesma classe ".battleopt", mesmo
+	// handler, so casa nova.
+	const battleoptBtn = root.querySelector('.battleopt');
 	if (battleoptBtn) {
 		battleoptBtn.addEventListener('click', () => {
 			ChatBox.toggleChatBattleOption();
+		});
+		battleoptBtn.addEventListener('mousedown', event => {
+			event.stopImmediatePropagation();
+			event.preventDefault();
 		});
 	}
 
@@ -873,6 +910,11 @@ ChatBox.switchTab = function switchTab(tabID) {
  */
 ChatBox.onAppend = function OnAppend() {
 	const root = _root();
+
+	// Restaura o recolhido/expandido salvo (gauntlet 19/08/2026) ANTES do
+	// resto -- mesma ordem de BasicInfoIdle.js:onAppend().
+	applyRecolhidoState();
+
 	const inputEl = root.querySelector('.input');
 	if (inputEl) inputEl.style.display = 'none';
 
@@ -1177,7 +1219,7 @@ ChatBox.submit = function Submit() {
 		}
 		const chatmode = isChatOn ? 'on' : 'off';
 		Client.loadFile(`${DB.INTERFACE_PATH}basic_interface/chatmode_${chatmode}.bmp`, data => {
-			const chatmodeBtn = root.querySelector('.chat-function .chatmode');
+			const chatmodeBtn = root.querySelector('.cb-chatmode');
 			if (chatmodeBtn) chatmodeBtn.style.backgroundImage = `url(${data})`;
 		});
 
@@ -1301,10 +1343,23 @@ function flushMessageBuffer() {
 			const color = msg.color || getColorForType(msg.colorType);
 			const div = document.createElement('div');
 			div.style.color = color;
+
+			// Etiqueta de canal (pilula, gauntlet 19/08/2026 -- layout do
+			// print 2: "System"/"World" em TODA linha, ver julgamento rodada
+			// 2). So um NOME visivel pro mesmo "colorType" que
+			// getColorForType() ja le -- ver getTagInfoForType() abaixo.
+			// SEMPRE presente agora (antes so aparecia fora da fala comum
+			// do jogador, o que o julgamento apontou como inconsistente).
+			const tag = getTagInfoForType(msg.colorType);
+			const tagHtml = `<span class="ri-badge ri-badge--${tag.variant} cb-tag">${tag.label}</span>`;
+
 			if (!msg.override) {
-				div.textContent = msg.text;
+				div.innerHTML = tagHtml + highlightMessage(msg.text, msg.colorType);
 			} else {
-				div.innerHTML = msg.text;
+				// Override ja e HTML pronto (ITEMLINK, link de historico,
+				// nickname-link) -- so a etiqueta de canal e somada por
+				// cima, o resto NAO e reprocessado por highlightMessage().
+				div.innerHTML = tagHtml + msg.text;
 			}
 			fragment.appendChild(div);
 		});
@@ -1349,6 +1404,83 @@ function getColorForType(colorType) {
 		return '#F4D293';
 	}
 	return 'white';
+}
+
+/**
+ * Rotulo + variante da etiqueta de canal (pilula no inicio da linha,
+ * gauntlet 19/08/2026 -- layout do print 2 do dono: "System"/"World" como
+ * pilula SOLIDA, separada do texto). Le o MESMO "colorType" que
+ * getColorForType() ja le -- nao decide nada novo, so da um NOME visivel pro
+ * que o bitmask ja representa (regra 3 do cabecalho de ChatBox.css:
+ * envolver/estilizar, nunca reimplementar a logica de cor).
+ *
+ * JULGAMENTO rodada 2 (19/08/2026): a v1 so etiquetava o que NAO era fala
+ * comum (SELF ficava sem pilula) -- apontado como inconsistente ("parece
+ * por acaso"), porque a referencia mostra etiqueta em TODA linha. Duas
+ * saidas possiveis: (a) toda linha com a MESMA pilula cheia, ou (b) toda
+ * linha com pilula, mas a fala comum ("Normal"/"Global", que domina uma
+ * tela cheia de mensagens) num tom NEUTRO/CINZA -- so as linhas que
+ * realmente pedem atencao (sistema, erro, guilda, grupo, sussurro...)
+ * ficam no dourado cheio. Ficou com (b): legibilidade e sinalizacao
+ * andam juntas quando a cor "grita" so o que e raro; se TODA linha
+ * gritasse dourado igual, a pilula deixa de ajudar a escanear a tela e
+ * vira ruido repetido. "cinza"/"ouro" aqui sao os MESMOS dois modificadores
+ * de ".ri-badge" que Common.css ja define (nenhuma cor nova).
+ */
+function getTagInfoForType(colorType) {
+	if (colorType & ChatBox.TYPE.ERROR) return { label: 'Erro', variant: 'ouro' };
+	if (colorType & ChatBox.TYPE.ADMIN) return { label: 'Admin', variant: 'ouro' };
+	if (colorType & ChatBox.TYPE.MAIL) return { label: 'Correio', variant: 'ouro' };
+	if (colorType & ChatBox.TYPE.CLAN) return { label: 'Clã', variant: 'ouro' };
+	if (colorType & ChatBox.TYPE.GUILD) return { label: 'Guilda', variant: 'ouro' };
+	if (colorType & ChatBox.TYPE.PARTY) return { label: 'Grupo', variant: 'ouro' };
+	if (colorType & ChatBox.TYPE.PRIVATE) return { label: 'Sussurro', variant: 'ouro' };
+	if (colorType & ChatBox.TYPE.ANNOUNCE) return { label: 'Anúncio', variant: 'ouro' };
+	if (colorType & ChatBox.TYPE.INFO) return { label: 'Sistema', variant: 'ouro' };
+	if (colorType & ChatBox.TYPE.BLUE) return { label: 'Aviso', variant: 'ouro' };
+	if (colorType & ChatBox.TYPE.PUBLIC && !(colorType & ChatBox.TYPE.SELF)) {
+		return { label: 'Global', variant: 'cinza' };
+	}
+	// Fala publica do proprio jogador (SELF) e qualquer combinacao nao
+	// mapeada acima (getColorForType() tambem cai no mesmo "sem categoria
+	// especial" -> branco) -- tratada como o "canal padrao" da conversa.
+	return { label: 'Normal', variant: 'cinza' };
+}
+
+/**
+ * Escapa o texto CRU (mensagem de outro jogador, nunca confiavel) antes de
+ * highlightMessage() envolver pedacos dela em spans -- sem isto, texto
+ * digitado por outro jogador contendo "<"/">" viraria HTML de verdade ao
+ * trocar textContent por innerHTML abaixo.
+ */
+function escapeChatHtml(text) {
+	return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+/**
+ * Envolve (NUNCA decide) dois pedacos da mensagem em spans, puro realce
+ * visual sobre texto que o JS ja decidiu -- mesma tecnica da substituicao de
+ * "<ITEMLINK>" em ChatBox.addText(), so aplicada aqui em cima do texto ja
+ * escapado:
+ *  - o prefixo "Nome : " que o proprio rAthena ja manda PRONTO dentro de
+ *    pkt.msg pra fala publica/grupo/guilda/sussurro (ver
+ *    Engine/MapEngine/Entity.js:981, Group.js:391, Guild.js:521,
+ *    PrivateMessage.js) -- so nas categorias de "alguem falou" (colorType),
+ *    nunca em mensagem de sistema/erro que por acaso tenha um ":" no meio.
+ *  - numeros (zeny, quantidade, nivel) em qualquer mensagem.
+ * So roda em mensagens SEM override; override ja e HTML pronto (item-link,
+ * link de historico) e nao e re-processado aqui.
+ */
+function highlightMessage(rawText, colorType) {
+	const escaped = escapeChatHtml(rawText);
+
+	const isSpeech = !!(
+		colorType &
+		(ChatBox.TYPE.PUBLIC | ChatBox.TYPE.PARTY | ChatBox.TYPE.GUILD | ChatBox.TYPE.PRIVATE | ChatBox.TYPE.CLAN)
+	);
+	const withName = isSpeech ? escaped.replace(/^(\s*[^\n:]{1,24}?)\s:\s/, '<span class="cb-name">$1</span> : ') : escaped;
+
+	return withName.replace(/\b\d+(?:[.,]\d+)*\b/g, match => `<span class="cb-num">${match}</span>`);
 }
 
 function shouldScrollDownBeforeAdd(container, height) {
@@ -1624,6 +1756,47 @@ function onChangeTargetMessage(type) {
 
 		ChatBox.sendTo = type;
 	};
+}
+
+/**
+ * Clique na seta de recolher/expandir (canto superior direito, gauntlet
+ * 19/08/2026 -- layout do print 2 do dono). So chrome: alterna e salva a
+ * preferencia PROPRIA (ver _prefsRecolhido no topo do arquivo); nunca mexe
+ * no mecanismo de altura de F10/.size (updateHeight()/_heightIndex), que
+ * continua intocado e funcionando do jeito que sempre funcionou.
+ */
+function onClickCollapse(e) {
+	e.stopImmediatePropagation();
+	_prefsRecolhido.recolhido = !_prefsRecolhido.recolhido;
+	_prefsRecolhido.save();
+	applyRecolhidoState();
+}
+
+/**
+ * Reflete "_prefsRecolhido.recolhido" no DOM: "#chatbox.is-recolhido"
+ * esconde corpo/digitacao/modo-batalha via CSS !important (ver ChatBox.css
+ * -- precisa vencer o estilo INLINE que updateHeight()/F10/.size/Enter
+ * escrevem nesses mesmos elementos). Cabecalho (abas) e os dois botoes de
+ * canto continuam de pe, mesma garantia de "controle sempre alcancavel" que
+ * BasicInfoIdle.js/TopMenuIdle.js usam pros proprios botoes de recolher.
+ * Chamado no onAppend() (restaura o que foi salvo) e a cada clique.
+ */
+function applyRecolhidoState() {
+	const root = _root();
+	const chatboxEl = root.querySelector('#chatbox');
+	const collapseBtn = root.querySelector('.cb-collapse');
+	if (!chatboxEl || !collapseBtn) {
+		return;
+	}
+
+	const recolhido = !!_prefsRecolhido.recolhido;
+	chatboxEl.classList.toggle('is-recolhido', recolhido);
+	collapseBtn.classList.toggle('is-recolhido', recolhido);
+	collapseBtn.setAttribute('aria-expanded', String(!recolhido));
+
+	const label = recolhido ? 'Expandir chat' : 'Recolher chat';
+	collapseBtn.title = label;
+	collapseBtn.setAttribute('aria-label', label);
 }
 
 function setChatFontScale(scale) {

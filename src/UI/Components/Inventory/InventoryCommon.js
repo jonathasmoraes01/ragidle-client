@@ -45,6 +45,7 @@ import EnchantGrade from 'UI/Components/EnchantGrade/EnchantGrade.js';
 import EnchantUI from 'UI/Components/Enchant/Enchant.js';
 import Mail from 'UI/Components/Mail/Mail.js';
 import WriteRodex from 'UI/Components/Rodex/WriteRodex.js';
+import { itemIconUrl, preferirArtePublicada } from 'Utils/ItemArt.js';
 
 function _sanitizeHtml(str) {
 	const whitelist = ['font', 'i', 'b'];
@@ -758,18 +759,24 @@ export function createInventory(config) {
 					'</div>'
 			);
 
-			Client.loadFile(
-				DB.INTERFACE_PATH +
-					'item/' +
-					(item.IsIdentified ? it.identifiedResourceName : it.unidentifiedResourceName) +
-					'.bmp',
-				data => {
-					const icon = root.querySelector(`.item[data-index="${item.index}"] .icon`);
-					if (icon) {
-						icon.style.backgroundImage = `url(${data})`;
-					}
+			const aplicarIcone = data => {
+				const icon = root.querySelector(`.item[data-index="${item.index}"] .icon`);
+				if (icon) {
+					icon.style.backgroundImage = `url(${data})`;
 				}
-			);
+			};
+
+			// Prefere a arte publicada pelo pipeline (Utils/ItemArt.js); cai no
+			// caminho antigo do GRF quando o item ainda nao foi convertido.
+			preferirArtePublicada(itemIconUrl(item.ITID), aplicarIcone, () => {
+				Client.loadFile(
+					DB.INTERFACE_PATH +
+						'item/' +
+						(item.IsIdentified ? it.identifiedResourceName : it.unidentifiedResourceName) +
+						'.bmp',
+					aplicarIcone
+				);
+			});
 
 			if (Component.isNewItem(item.index)) {
 				Client.loadFile(DB.INTERFACE_PATH + 'basic_interface/new_item.bmp', data => {

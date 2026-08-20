@@ -1,0 +1,570 @@
+/**
+ * UI/Components/MochilaIdle/MochilaIdle.css
+ *
+ * "Mochila" -- janela UNICA de inventario + equipamento (gauntlet 19/08/2026,
+ * ver redesign/extracao-inventario-origin.md e redesign/design-system-
+ * oficial.md). Substitui visualmente as duas janelas nativas separadas
+ * (Inventory/Equipment, escondidas de forma reversivel em MochilaIdle.js) por
+ * DUAS metades de uma MESMA janela: esquerda "Personagem" (boneca + slots de
+ * equipamento em duas colunas), direita "Mochila" (grade de itens + abas de
+ * categoria presas fora da borda direita + rodape de peso).
+ *
+ * Estrutura de camadas (ver MochilaIdle.html): ".mo-window" e o retangulo
+ * INTEIRO (moldura + orelhas), sempre do tamanho de ":host" -- e nele que
+ * "is-open" liga/desliga display, mesmo mecanismo de TODA janela RAGIDLE
+ * irma (StatusIdle.css/HuntMap.css: ":host" fixa largura/altura, so o miolo
+ * troca display:none -> flex, pra GUIComponent#draggable()/
+ * _fixPositionOverflow() continuarem medindo um box valido mesmo fechado).
+ * ".mo-frame" e quem carrega ".ri-window" (fundo/aro/sombra/backdrop-filter/
+ * overflow:hidden) -- as ABAS (".mo-abas") ficam FORA dele de proposito: se
+ * elas morassem dentro do frame, o "overflow:hidden" do proprio ".ri-window"
+ * cortava a orelha que precisa furar a borda direita (secao 3 do briefing:
+ * "coluna de abas presa FORA da borda direita, como orelhas").
+ *
+ * Medidas: nenhum token oficial cravou esta janela ainda (a lista de medidas
+ * do design system para --w-huntmap/--w-idleconfig/etc nao inclui Mochila) --
+ * os numeros abaixo sao NOVOS, escolhidos por este builder a partir do
+ * conteudo real (2 colunas de 5 slots + grade de 5 colunas), e documentados
+ * aqui em vez de token porque nao existe consumidor duplicado que justifique
+ * promove-los a Common.css ainda. Quem mudar UM destes numeros confere os 3
+ * (:host, MochilaIdle.js WINDOW_WIDTH/HEIGHT e o proprio CSS) --- mesma
+ * cicatriz D-341 documentada em StatusIdle.css.
+ *
+ * RODADA 2 (19/08/2026, redesign/extracao-inventario-origin.md): altura
+ * 434 -> 344. A grade agora desenha um numero FIXO de celulas (ver
+ * ".mo-grade"/GRADE_CAPACIDADE em MochilaIdle.js) em vez de so as ocupadas,
+ * entao a janela nao precisa mais de altura extra pra disfarcar a area
+ * branca que sobrava embaixo de uma lista curta -- a proporcao virou "duas
+ * colunas" (578x344, mais larga que alta) em vez de "duas colunas com ar".
+ */
+
+:host {
+	position: absolute;
+	width: 578px;
+	height: 344px;
+	pointer-events: none;
+}
+
+#MochilaIdle {
+	position: relative;
+	width: 100%;
+	height: 100%;
+}
+
+.mo-window {
+	display: none;
+	position: absolute;
+	inset: 0;
+	width: 578px;
+	height: 344px;
+	pointer-events: auto;
+}
+
+.mo-window.is-open {
+	display: block;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+	/* Reusa o @keyframes "ri-janela-abrir" ja definido em Common.css (mesma
+	   abertura suave das outras 4 janelas RAGIDLE) -- nao precisa redeclarar
+	   o keyframe, so aplicar no elemento certo (".mo-frame", que e quem
+	   carrega ".ri-window" de verdade; ".mo-window" em si nao tem essa
+	   classe, ver cabecalho do arquivo). */
+	.mo-window.is-open .mo-frame {
+		animation: ri-janela-abrir 140ms ease-out;
+	}
+}
+
+/* ─── Moldura (topo + corpo) -- 520x344, clipada/arredondada ────────────── */
+
+.mo-frame {
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 520px;
+	height: 344px;
+	display: flex;
+	flex-direction: column;
+}
+
+.mo-topo {
+	flex: 0 0 auto;
+	display: flex;
+	width: 100%;
+}
+
+.mo-header-esq {
+	width: 220px;
+	flex: 0 0 auto;
+	border-right: var(--divider);
+}
+
+.mo-header-dir {
+	width: 300px;
+	flex: 0 0 auto;
+}
+
+.mo-corpo {
+	flex: 1 1 auto;
+	display: flex;
+	min-height: 0;
+}
+
+/* ─── Painel esquerdo: "Personagem" -- boneca + 2 colunas de slots ──────── */
+
+.mo-painel-esq {
+	width: 220px;
+	flex: 0 0 auto;
+	box-sizing: border-box;
+	display: flex;
+	/* RODADA 2: "align-items:stretch" (default -- ver nota abaixo) no lugar
+	   de "center", e "justify-content:center" no lugar de "space-between".
+	   Antes, "space-between" jogava toda a largura sobrando pros DOIS espacos
+	   ENTRE coluna/boneco (empurrando os slots pra longe do personagem, o
+	   oposto do alvo Origin); "center" com o "gap" fixo abaixo mantem coluna
+	   e boneco colados, so o CONJUNTO centralizado no painel (lacuna 2 do
+	   briefing: "aproxime os slots do personagem"). */
+	justify-content: center;
+	gap: 6px;
+	padding: 14px 10px;
+	border-right: var(--divider);
+	/* "palco claro" do Origin (secao 2: fundo branco-azulado com leve
+	   gradiente) -- sem token composto exato, --sky-50/--paper-1 sao os dois
+	   degraus mais claros da escala neutra-azul, mesmos usados pelo
+	   card-title de StatusIdle.css. */
+	background: radial-gradient(ellipse 140% 90% at 50% 28%, var(--sky-50) 0%, var(--paper-1) 75%);
+}
+
+.mo-coluna {
+	/* "align-items" nao setado no pai = stretch (default): a coluna passa a
+	   ocupar a altura INTEIRA de ".mo-painel-esq" (que ja e a altura cheia
+	   de ".mo-corpo", flex row default tambem estica os itens). Com isso
+	   "justify-content:space-evenly" abaixo espalha os 5 slots por essa
+	   altura toda em vez de empacotar tudo no meio com folga acima/abaixo --
+	   a segunda metade da lacuna 2 ("reduza o vazio"). */
+	flex: 0 0 auto;
+	display: flex;
+	flex-direction: column;
+	justify-content: space-evenly;
+	gap: 6px;
+}
+
+/* ─── Ladrilhos de slot de equipamento (ver ".ri-tile" em Common.css: raio
+   4px, aro dourado, "is-empty" ja desliga aro/sombra -- a receita de
+   "ladrilho quadrado" oficial do design system, reusada aqui sem reinventar
+   nada). 42x42: ligeiramente menor que a grade da mochila (46x46) pra caber
+   2 colunas + a boneca em 220px. ─────────────────────────────────────────── */
+
+.mo-slot {
+	width: 42px;
+	height: 42px;
+	cursor: default;
+}
+
+/* Retorno visual "pode soltar aqui" durante o arrastar da grade -- SO no
+   slot cujo bitmask casa com o item (onPainelEsqDragOver em MochilaIdle.js).
+   Nada nos incompativeis: a ausencia da classe ja e o "nada" (secao 1 do
+   pedido). Aro de acento + o mesmo brilho dourado que hover/selecao ja usam
+   em outro lugar do sistema -- nenhum token novo. */
+.mo-slot.is-drop-alvo {
+	box-shadow: 0 0 0 2px var(--blue-500), var(--glow-gold);
+}
+
+/* Glifo-fantasma (silueta do que falta ali) -- o ponto central do alvo
+   Origin: slot vazio NAO e buraco cinza, e a peca que caberia ali, em tinta
+   fraca. Cor = --text-muted a 45% (nao ha token de "fantasma", --text-muted
+   ja e a tinta mais apagada da escala semantica; a opacidade extra e o que
+   entrega o efeito "silueta", nao um token novo). */
+.mo-slot.is-empty .mo-slot-glifo {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 100%;
+	height: 100%;
+	color: var(--text-muted);
+	opacity: 0.45;
+}
+
+.mo-slot.is-empty .mo-slot-glifo svg {
+	width: 22px;
+	height: 22px;
+}
+
+/* Slot ocupado: icone do item preenchendo o ladrilho. Arrastavel (tirar
+   arrastando pra grade, RODADA 4) -- cursor de "pega e arrasta". */
+.mo-slot.is-ocupado {
+	padding: 3px;
+	box-sizing: border-box;
+	cursor: grab;
+}
+
+.mo-slot-icone {
+	width: 100%;
+	height: 100%;
+	object-fit: contain;
+	display: block;
+	pointer-events: none;
+}
+
+/* "x" pequeno no canto superior direito = tirar (secao 2 do briefing, o
+   mesmo gesto do Origin). Mesma receita do ".ri-close" (circulo claro, aro
+   dourado), so menor -- ".ri-close" e 20px, largo demais pra um ladrilho de
+   42px. */
+.mo-slot-remover {
+	position: absolute;
+	top: -5px;
+	right: -5px;
+	width: 15px;
+	height: 15px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	border-radius: 50%;
+	border: 1px solid var(--border-gold);
+	background: linear-gradient(180deg, var(--white), var(--gold-200));
+	color: var(--gold-700);
+	font-size: 10px;
+	font-weight: var(--fw-bold);
+	line-height: 1;
+	cursor: pointer;
+	box-shadow: var(--shadow-card);
+}
+
+.mo-slot-remover:hover {
+	background: linear-gradient(180deg, var(--gold-200), var(--gold-300));
+	box-shadow: var(--glow-gold);
+}
+
+/* Selo de refino ("+7"), lido do proprio nome ja formatado pelo DB.getItemName
+   nativo (ver MochilaIdle.js) -- canto inferior esquerdo, numero pequeno sem
+   poluir a celula (secao 6.3 do briefing: "a quantidade e o refino aparecem
+   sem poluir a celula?"). */
+.mo-slot-refino {
+	position: absolute;
+	bottom: -3px;
+	left: -3px;
+	padding: 0 3px;
+	border-radius: var(--radius-card);
+	background: var(--surface-glass);
+	border: 1px solid var(--border-hairline);
+	font: var(--type-badge);
+	color: var(--blue-700);
+}
+
+/* ─── Boneca central: render AO VIVO do personagem (canvas + SpriteRenderer,
+   RODADA 3 -- 19/08/2026). Pedido literal do dono: "deve ficar o personagem
+   real da pessoa, com os efeitos, com as skins, com o que ela estiver
+   equipada". Receita copiada dos DOIS lugares que o motor ja usa pra isso
+   (canvas 55x125 + SpriteRenderer.bind2DContext(ctx, 30, 130), mesmos
+   numeros) -- ver renderBoneco() em MochilaIdle.js:
+     - src/UI/Components/Equipment/EquipmentCommon.js:765-808
+     - src/UI/Components/PlayerViewEquip/PlayerViewEquipCommon.js:502-557
+   NAO reaproveita o canvas da Equipment nativa (nunca pintado enquanto ela
+   fica escondida -- Renderer.render(renderCharacter) so liga quando ela fica
+   visivel). O palco deixou de ser um circulo de retrato (88x88) pra virar
+   uma moldura retangular alta o bastante pro corpo inteiro caber. ────────── */
+
+.mo-boneco {
+	flex: 0 0 auto;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	/* Assim como ".mo-coluna" acima, agora estica pra altura cheia do
+	   painel (herda "align-items:stretch" do pai) -- "justify-content:
+	   center" no proprio eixo (coluna) mantem o retrato centralizado
+	   verticalmente em vez de colar no topo. */
+	justify-content: center;
+	gap: 8px;
+}
+
+.mo-boneco-palco {
+	position: relative;
+	width: 96px;
+	height: 158px;
+	border-radius: var(--radius-panel);
+	padding: 4px;
+	box-sizing: border-box;
+	/* flex centraliza a letra-fallback E o canvas (o canvas fica no tamanho
+	   NATIVO do buffer, 55x125 -- nao esticado por CSS, pra nao borrar o
+	   sprite pixel-art) sem precisar de inset/calc nenhum. */
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	/* Mesmo anel conico dourado do avatar de StatusIdle.css, so maior aqui
+	   (peca central, nao coadjuvante). */
+	background: conic-gradient(
+		from 0deg,
+		var(--gold-300),
+		var(--gold-500) 25%,
+		var(--gold-300) 50%,
+		var(--gold-500) 75%,
+		var(--gold-300)
+	);
+	box-shadow: 0 0 0 1px var(--gold-500), var(--shadow-float);
+}
+
+.mo-boneco-palco::before {
+	content: '';
+	position: absolute;
+	inset: 4px;
+	border-radius: calc(var(--radius-panel) - 2px);
+	background: linear-gradient(160deg, var(--sky-50), var(--sky-200));
+	border: 1.5px solid var(--white);
+}
+
+.mo-avatar-canvas {
+	/* z-index explicito -- MESMA razao do antigo ".mo-avatar-img" (nota
+	   historica: "position:relative" sozinho nao basta pra ordem de pintura,
+	   so "static" conta como "nao posicionado" de verdade; sem z-index
+	   explicito a letra-fallback, que vem depois no DOM, ficaria por cima).
+	   Centralizado por posicao absoluta + transform (nao por width/height
+	   em %, que esticaria o buffer de pixels do canvas e borraria o sprite). */
+	position: absolute;
+	z-index: 1;
+	left: 50%;
+	top: 50%;
+	transform: translate(-50%, -50%);
+	image-rendering: pixelated;
+}
+
+.mo-avatar-fallback {
+	/* position:relative (fluxo normal) de proposito -- ver o comentario em
+	   ".mo-boneco-palco" acima. Fica atras do canvas (z-index:0 implicito);
+	   so aparece enquanto Session.Entity ainda nao tem job valido (canvas
+	   comeca transparente). */
+	position: relative;
+	font-size: 28px;
+	font-weight: var(--fw-bold);
+	color: var(--blue-600);
+}
+
+.mo-boneco-nome {
+	font: var(--type-label);
+	color: var(--text-body);
+	max-width: 96px;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+/* ─── Painel direito: "Mochila" -- grade + rodape de peso ───────────────── */
+
+.mo-painel-dir {
+	width: 300px;
+	flex: 0 0 auto;
+	box-sizing: border-box;
+	display: flex;
+	flex-direction: column;
+	min-height: 0;
+}
+
+.mo-grade-host {
+	flex: 1 1 auto;
+	min-height: 0;
+	overflow-y: auto;
+	padding: 10px 13px;
+	box-sizing: border-box;
+}
+
+.mo-grade {
+	display: grid;
+	grid-template-columns: repeat(5, 46px);
+	gap: 6px;
+	justify-content: center;
+}
+
+.mo-item {
+	position: relative;
+	width: 46px;
+	height: 46px;
+	padding: 3px;
+	box-sizing: border-box;
+	cursor: pointer;
+}
+
+/* Celula ocupada e arrastavel (equipar arrastando ate um slot, RODADA 4) --
+   cursor de "pega e arrasta" so onde ha algo pra pegar. */
+.mo-item:not(.is-empty) {
+	cursor: grab;
+}
+
+.mo-item-icone {
+	width: 100%;
+	height: 100%;
+	object-fit: contain;
+	display: block;
+	pointer-events: none;
+}
+
+/* Quantidade no canto inferior esquerdo, numero escuro sobre chip claro
+   (secao 3 do briefing: "no Origin ele e escuro, encorpado... legivel de
+   relance" -- RODADA 2 trocou ".ri-badge"/--type-badge (9px, pensado pra selo
+   pequeno) por --type-numeric (12px bold, a familia numerica do design
+   system) e um chip quase opaco (0.92, nao mais --surface-glass translucido)
+   pra garantir contraste sobre icone claro OU escuro. Design system probe
+   scrim de largura total; uma capsula pequena de vidro e o equivalente
+   permitido (secao "O que NAO fazer": "use capsula de vidro escuro ou sombra
+   no glifo" -- aqui o fundo embaixo e claro, entao a capsula e clara, nao
+   escura). */
+.mo-item-qtd {
+	position: absolute;
+	bottom: 1px;
+	left: 1px;
+	padding: 0 4px;
+	border-radius: var(--radius-card);
+	background: rgba(255, 255, 255, 0.92);
+	border: 1px solid var(--border-hairline);
+	box-shadow: var(--shadow-card);
+	font: var(--type-numeric);
+	color: var(--text-title);
+	pointer-events: none;
+}
+
+.mo-rodape {
+	flex: 0 0 auto;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	height: 36px;
+	padding: 0 14px;
+	box-sizing: border-box;
+	border-top: var(--divider);
+	background: linear-gradient(180deg, var(--sky-50) 0%, var(--sky-100) 100%);
+}
+
+.mo-peso-rotulo {
+	font: var(--type-label);
+	color: var(--text-muted);
+}
+
+.mo-peso-valor {
+	font: var(--type-numeric);
+	color: var(--text-body);
+}
+
+/* Peso perto/acima do limite -- mesma cor semantica de alerta que o resto do
+   sistema usa (--amber-600 aviso, --red-600 critico), ligada por JS quando a
+   fracao passa de 80%/100% (ver MochilaIdle.js syncRodape()). */
+.mo-peso-valor.is-aviso {
+	color: var(--amber-600);
+}
+
+.mo-peso-valor.is-critico {
+	color: var(--red-600);
+}
+
+/* ─── Abas de categoria: orelhas presas fora da borda direita ───────────── */
+
+.mo-abas {
+	position: absolute;
+	/* Encostadas na moldura: comecam 4px DENTRO dela, para a orelha nascer da
+	   janela em vez de flutuar ao lado. O "-4" e o que some por baixo. */
+	top: 54px;
+	left: 516px;
+	width: 74px;
+	display: flex;
+	flex-direction: column;
+	/* Quase encostadas: no alvo as orelhas formam uma PILHA presa na janela,
+	   nao tres botoes soltos. 3px separa sem desmontar o conjunto. */
+	gap: 3px;
+	/* Fora do ".mo-frame" (ver cabecalho do arquivo) -- nada aqui e cortado
+	   pelo overflow:hidden do frame. */
+}
+
+/*
+ * A ORELHA. O dono reprovou a versao anterior ("bem feios"): eram retangulos
+ * chapados, quase invisiveis sobre o mundo (fundo a 55% sem vidro), sem aro
+ * dourado e com o rotulo espremido em 58px. Agora seguem o vocabulario do
+ * design system: vidro claro com desfoque para ler sobre qualquer mapa, aro
+ * dourado fino (o marcador premium do sistema), canto arredondado so do lado
+ * de FORA, e profundidade por sombra azul.
+ */
+.mo-aba {
+	appearance: none;
+	position: relative;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	min-height: 44px;
+	padding: 7px 8px 7px 14px;
+	text-align: center;
+	border: 1px solid var(--border-gold);
+	border-left: none;
+	/* So o lado de fora arredonda: o lado de dentro encosta na janela. */
+	border-radius: 0 var(--radius-window) var(--radius-window) 0;
+	/* Vidro AZULADO, nao cinza: puxando a tinta do ceu do sistema, a orelha
+	   inativa fica da mesma familia da janela em vez de parecer um botao
+	   desbotado (foi a segunda queixa do dono nesta peca). */
+	background: linear-gradient(180deg, rgba(255, 255, 255, 0.86) 0%, var(--sky-100) 100%);
+	backdrop-filter: var(--blur-glass);
+	color: var(--text-link);
+	font: var(--type-label);
+	line-height: 1.15;
+	cursor: pointer;
+	box-shadow: var(--rim-light), var(--shadow-card);
+	transition: background var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out),
+		box-shadow var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-out);
+}
+
+.mo-aba:hover {
+	background: var(--surface-card-hover);
+	box-shadow: var(--rim-light), var(--shadow-float);
+	transform: translateX(2px);
+}
+
+/*
+ * A aba ATIVA avanca sobre a janela e se FUNDE com ela: desliza para a
+ * esquerda o suficiente para cobrir a moldura, e o pseudo-elemento tapa a
+ * emenda do lado esquerdo com a mesma tinta do preenchimento — sem isso a
+ * orelha ativa continuava parecendo um bloco solto encostado. Preenchimento
+ * cheio marca a selecao (regra do design system: aba troca por FUNDO, nunca
+ * por espessura de borda).
+ */
+.mo-aba.is-active {
+	background: var(--tab-active-fill);
+	border-color: var(--gold-500);
+	color: var(--tab-active-text);
+	box-shadow: var(--rim-light), var(--shadow-float), var(--glow-gold);
+	transform: translateX(-14px);
+	z-index: 1;
+}
+
+.mo-aba.is-active::before {
+	content: '';
+	position: absolute;
+	top: -1px;
+	bottom: -1px;
+	left: -6px;
+	width: 8px;
+	background: var(--blue-600);
+}
+
+/* ─── Aviso de recusa do servidor (RODADA 4, ver mostrarAviso() em
+   MochilaIdle.js) -- fase 1, peca com refino ou carta nao troca nem tira.
+   Capsula de vidro ESCURO no topo da janela: o design system PROIBE scrim
+   de largura total pra proteger texto, a capsula pequena e o equivalente
+   permitido (secao "O que NAO fazer"). Sobre o frame inteiro (nao so um dos
+   dois paineis), pra ler bem tanto numa recusa de equipar quanto de tirar. */
+.mo-aviso {
+	position: absolute;
+	top: 8px;
+	left: 50%;
+	transform: translateX(-50%);
+	max-width: 460px;
+	padding: var(--sp-3) var(--sp-6);
+	box-sizing: border-box;
+	border-radius: var(--radius-pill);
+	background: var(--surface-dark-glass);
+	backdrop-filter: var(--blur-glass);
+	border: 1px solid var(--border-gold);
+	box-shadow: var(--shadow-float);
+	font: var(--type-desc);
+	color: var(--white);
+	text-align: center;
+	z-index: 5;
+	pointer-events: none;
+}
+
+.mo-aviso[hidden] {
+	display: none;
+}

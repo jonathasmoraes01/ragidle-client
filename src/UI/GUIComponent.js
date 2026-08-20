@@ -158,6 +158,18 @@ class GUIComponent {
 		this._host.id = this.name;
 		this._host.style.zIndex = '50';
 		this._host.style.position = 'absolute';
+		/*
+		 * Marca de "isto e UI" (19/08/2026). O ouvinte de clique do MUNDO mora
+		 * no WINDOW (Controls/MapControl.js:74), nao no canvas — entao TODO
+		 * clique, inclusive dentro de uma janela ou botao, chega la. A unica
+		 * guarda era a flag global "Mouse.intersect", ligada por mouseenter/
+		 * mouseleave e SO no modo STOP: os componentes flutuantes usam CROSS
+		 * (que por definicao deixa a cena receber o clique), e por isso clicar
+		 * num botao fazia o personagem andar. Com esta marca, o MapControl
+		 * consegue perguntar "este evento nasceu dentro da UI?" olhando o
+		 * composedPath(), que atravessa Shadow DOM — ver ehCliqueDaUI() la.
+		 */
+		this._host.dataset.guiComponent = this.name;
 
 		// Attach Shadow DOM (open for devtools inspection)
 		this._shadow = this._host.attachShadow({ mode: 'open' });

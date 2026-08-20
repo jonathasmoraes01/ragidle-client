@@ -1,85 +1,139 @@
+/**
+ * UI/Components/WinLogin/WinLoginV2/WinLoginV2.css
+ *
+ * Tela de login (D-GAUNTLET item 6b, 19/08/2026): redesenhada no padrao
+ * RAGIDLE (.ri-window/.ri-header/.ri-title/.ri-close/.ri-btn/.ri-input, ver
+ * UI/Common.css) no lugar do bitmap antigo do cliente.
+ *
+ * POR QUE nao ficou nenhum bitmap aqui: o GRF deste fork (ROLatam) nao tem
+ * os arquivos que este layout pedia -- login_interface/bg_login.tga e todos
+ * os botoes bt_join e bt_start (normal/over/press, todos .bmp) estao
+ * ausentes, confirmado por leitura direta do data.grf em 19/08/2026. Antes
+ * disso a janela renderizava praticamente invisivel: sem fundo, sem botao
+ * nenhum, so o texto solto "Replay"/"Sign Up" flutuando sobre a arte de
+ * fundo -- o clique funcionava (o elemento existe no DOM) mas ninguem
+ * enxergava onde clicar. So o checkbox "lembrar" tinha bitmap de verdade
+ * (chk_saveon/off.bmp) e ele pintava a palavra "manter" direto no pixel --
+ * por isso ela virou texto de verdade aqui ("Manter conectado").
+ *
+ * Host cobre o VIEWPORT INTEIRO e centraliza a janela por flexbox, mesma
+ * receita de CharSelectV4/CharCreatev4 -- e NAO a receita antiga desta
+ * tela, que tinha o host do tamanho exato da janela posicionado por
+ * top/left percentual. Motivo (achado por Playwright, 19/08/2026):
+ * UIManager.fixResizeOverflow roda o clamp de viewport pra todo componente
+ * registrado, nao so os arrastaveis, toda vez que o Renderer redimensiona
+ * -- inclusive numa passada bem cedo, com a largura/altura do Renderer
+ * ainda em zero (o WinLogin aparece ANTES da cena 3D iniciar, unico
+ * componente nesse caso). Um host do tamanho da janela com left/top
+ * percentual apanhava desse clamp e ficava preso no canto superior
+ * esquerdo -- mascarado ate agora porque a janela nao tinha fundo/botao
+ * visivel pra alguem notar a posicao errada. Um host do tamanho do
+ * viewport nunca excede esse clamp, e quem centraliza a janela de verdade
+ * e o flex do wrapper interno.
+ */
+
 :host {
-	top: 60%;
-	left: calc(50% - 140px);
-	width: 301px;
-	height: 132px;
+	position: absolute;
+	inset: 0;
+	width: 100%;
+	height: 100%;
 }
 
 #WinLogin {
 	position: absolute;
-	width: 301px;
-	height: 132px;
-}
-#WinLogin .win_login {
-	width: 100%;
-	height: 100%;
-}
-#WinLogin .win_login input {
-	position: absolute;
-	left: 17px;
-	height: 18px;
-	width: 127px;
-	border: none;
-	background-color: transparent;
-	padding-left: 2px;
-	outline: none;
-	text-align: center;
-}
-#WinLogin .win_login input.user {
-	top: 39px;
-}
-#WinLogin .win_login input.pass {
-	top: 61px;
-}
-#WinLogin .win_login .save {
-	position: absolute;
-	top: 85px;
-	left: 57px;
-	display: block;
-	width: 38px;
-	height: 10px;
-	border: none;
-	background-color: transparent;
-	background-repeat: no-repeat;
-}
-#WinLogin .win_login .btn {
-	position: absolute;
-	border: 0;
-	background-color: transparent;
-}
-#WinLogin .win_login .btn.connect {
-	width: 84px;
-	height: 84px;
-	right: 25px;
-	bottom: 15px;
-}
-#WinLogin .win_login .btn.signup {
-	width: 84px;
-	height: 21px;
-	right: 120px;
-	bottom: 10px;
-}
-#WinLogin .btn.replay {
-	width: 84px;
-	height: 21px;
-	right: 210px;
-	bottom: 10px;
-}
-#WinLogin .win_login .btn.exit {
-	width: 24px;
-	height: 23px;
-	right: 7px;
-	bottom: 96px;
+	inset: 0;
+	display: flex;
+	align-items: center;
+	justify-content: center;
 }
 
-/* Override browser autofill styles */
-#WinLogin .win_login input:-webkit-autofill,
-#WinLogin .win_login input:-webkit-autofill:hover,
-#WinLogin .win_login input:-webkit-autofill:focus,
-#WinLogin .win_login input:-webkit-autofill:active,
-#WinLogin .win_login input:-internal-autofill-selected,
-#WinLogin .win_login input:-internal-autofill-previewed {
-	-webkit-background-clip: text;
-	transition: background-color 5000sease-in-out 0s;
-	box-shadow: inset 0 0 20px 20px #ffffff00;
+.wl-window {
+	width: 340px;
+	display: flex;
+	flex-direction: column;
+}
+
+.wl-body {
+	display: flex;
+	flex-direction: column;
+	gap: var(--sp-6);
+	padding: var(--pad-window) var(--sp-8);
+}
+
+.wl-field {
+	display: flex;
+	flex-direction: column;
+	gap: var(--sp-2);
+}
+
+.wl-label {
+	font: var(--type-label);
+	color: var(--text-muted);
+}
+
+.wl-field .ri-input {
+	width: 100%;
+	box-sizing: border-box;
+	height: 32px;
+}
+
+/* Checkbox "Manter conectado", substitui chk_saveon/off.bmp -- a unica arte
+   deste conjunto que pintava texto no pixel (a palavra "manter"). */
+.wl-save {
+	appearance: none;
+	border: none;
+	background: transparent;
+	cursor: pointer;
+	display: inline-flex;
+	align-items: center;
+	gap: var(--sp-3);
+	padding: 0;
+	color: var(--text-body);
+	font: var(--type-info);
+	align-self: flex-start;
+}
+.wl-save-box {
+	position: relative;
+	flex: 0 0 auto;
+	width: 16px;
+	height: 16px;
+	border-radius: 3px;
+	border: 1px solid var(--border-hairline);
+	background: var(--white);
+	box-shadow: var(--well-shadow);
+	transition: background var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out);
+}
+.wl-save.is-checked .wl-save-box {
+	background: linear-gradient(180deg, var(--blue-500) 0%, var(--blue-600) 100%);
+	border-color: var(--blue-600);
+	box-shadow: var(--rim-light), var(--shadow-card);
+}
+.wl-save-box::after {
+	content: '';
+	position: absolute;
+	left: 4px;
+	top: 1px;
+	width: 5px;
+	height: 8px;
+	border-right: 2px solid var(--white);
+	border-bottom: 2px solid var(--white);
+	transform: rotate(45deg);
+	opacity: 0;
+	transition: opacity var(--dur-fast) var(--ease-out);
+}
+.wl-save.is-checked .wl-save-box::after {
+	opacity: 1;
+}
+
+.connect {
+	width: 100%;
+	box-sizing: border-box;
+}
+
+.wl-links {
+	display: flex;
+	gap: var(--sp-4);
+}
+.wl-links .ri-btn {
+	flex: 1 1 50%;
 }

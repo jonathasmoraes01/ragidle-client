@@ -96,15 +96,15 @@ function open(mode) {
 	if (mode === 'disband') {
 		companion.classList.add('hidden');
 		nameWin.classList.add('visible');
-		root.querySelector('.name_title').textContent = 'Disband the Guild';
-		root.querySelector('.name_label').textContent = 'Enter Guild Name';
+		root.querySelector('.name_title').textContent = 'Dissolver a Guilda';
+		root.querySelector('.name_label').textContent = 'Digite o Nome da Guilda';
 		input.value = '';
 		input.focus();
 	} else {
 		companion.classList.remove('hidden');
 		nameWin.classList.remove('visible');
-		root.querySelector('.name_title').textContent = 'Create Guild';
-		root.querySelector('.name_label').textContent = 'Guild Name';
+		root.querySelector('.name_title').textContent = 'Criar Guilda';
+		root.querySelector('.name_label').textContent = 'Nome da Guilda';
 		input.value = '';
 	}
 

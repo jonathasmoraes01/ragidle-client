@@ -1,0 +1,54 @@
+<div id="MochilaIdle">
+	<!-- ".mo-window" e o retangulo INTEIRO (moldura + abas que furam a borda);
+	     ".mo-frame" e que carrega ".ri-window" (fundo/aro/sombra/overflow:
+	     hidden) -- as abas ficam FORA dele de proposito, senao o overflow:
+	     hidden do frame cortava a "orelha" que devia furar a borda direita
+	     (ver MochilaIdle.css, secao ".mo-abas"). -->
+	<div class="mo-window">
+		<div class="mo-frame ri-window">
+			<div class="mo-topo">
+				<div class="mo-header-esq ri-header">
+					<span class="mo-titulo-esq ri-title">Personagem</span>
+				</div>
+				<div class="mo-header-dir ri-header">
+					<span class="mo-titulo-dir ri-title">Mochila</span>
+					<button type="button" class="mo-close ri-close" title="Fechar">&times;</button>
+				</div>
+			</div>
+
+			<div class="mo-corpo">
+				<div class="mo-painel-esq">
+					<div class="mo-coluna mo-coluna-esq"></div>
+					<div class="mo-boneco">
+						<div class="mo-boneco-palco">
+							<span class="mo-avatar-fallback">?</span>
+							<canvas class="mo-avatar-canvas" width="55" height="125"></canvas>
+						</div>
+						<span class="mo-boneco-nome">—</span>
+					</div>
+					<div class="mo-coluna mo-coluna-dir"></div>
+				</div>
+
+				<div class="mo-painel-dir">
+					<div class="mo-grade-host ri-scroll">
+						<div class="mo-grade"></div>
+					</div>
+					<div class="mo-rodape">
+						<span class="mo-peso-rotulo">Peso</span>
+						<span class="mo-peso-valor">0 / 0</span>
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<!-- Abas de categoria em coluna, presas FORA da borda direita do
+		     frame, como orelhas (redesign/extracao-inventario-origin.md
+		     secao 3) -- montadas por renderAbas() em MochilaIdle.js. -->
+		<div class="mo-abas"></div>
+
+		<!-- Aviso de recusa do servidor (peca com refino/carta nao troca nem
+		     tira, fase 1) -- ver mostrarAviso() em MochilaIdle.js. Comeca
+		     escondido, so aparece quando um pedido e recusado. -->
+		<div class="mo-aviso" hidden></div>
+	</div>
+</div>

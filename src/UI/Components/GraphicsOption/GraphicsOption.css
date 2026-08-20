@@ -1,3 +1,22 @@
+/**
+ * UI/Components/GraphicsOption/GraphicsOption.css
+ *
+ * Gauntlet 6A (19/08/2026): janela do menu ESC ainda no estilo antigo do
+ * roBrowser (chapa branca, aba cinza, titulo sem token). Realinhada ao
+ * "Ragnarok Idle Design System" oficial (redesign/design-system-oficial.md)
+ * com o MESMO metodo do IdleConfig/StatusIdle: classes .ri-* somadas as
+ * classes funcionais que GraphicsOption.js ja consulta (.base -- removido,
+ * era um botao decorativo sem efeito visual, so engolia mousedown; .close;
+ * .tab-button/.tab-content com .selected, que o JS continua alternando) --
+ * NENHUMA classe usada em querySelector foi removida ou renomeada.
+ *
+ * BMP removido: so titlebar_mid.bmp (tarja gradiente sem texto) e
+ * sys_base_off/sys_close_off (glifos "-"/"x", sem texto) -- decodificados e
+ * conferidos (scripts/tmp-decode-bmp.ts) antes de tirar: nenhum tinha rotulo
+ * pintado. O corpo (tabela de opcoes, checkboxes, ranges, selects) e HTML
+ * nativo desde sempre -- so a cor/raio/sombra troca de literal pra token.
+ */
+
 :host {
 	top: 100px;
 	left: 100px;
@@ -8,74 +27,46 @@
 #GraphicsOption {
 	width: auto;
 	height: auto;
-	background: white;
-	border-radius: 2px;
+	max-width: 360px;
+	color: var(--text-body);
+	font-family: var(--font-ui);
 }
 
-#GraphicsOption .titlebar {
-	width: 100%;
-	height: 17px;
-	background-color: white;
-	background-repeat: repeat-x;
-	border-radius: 3px 3px 0px 0px;
-}
-#GraphicsOption .titlebar .base {
-	width: 11px;
-	height: 11px;
-	border: none;
-	background-color: transparent;
-	background-repeat: no-repeat;
-	vertical-align: middle;
-}
-#GraphicsOption .titlebar .text {
-	text-shadow: 1px 1px white;
-	vertical-align: -2px;
-	white-space: nowrap;
-	/* chrome bug */
-	display: inline-block;
-	white-space: nowrap;
-	height: 13px;
+#GraphicsOption .ri-title {
+	font-size: 13px;
 }
 
-#GraphicsOption .titlebar .left {
-	margin-left: 3px;
-	float: left;
-}
-#GraphicsOption .titlebar .right {
-	float: right;
-	margin-right: 3px;
-}
-#GraphicsOption .titlebar .clear {
-	clear: both;
+#GraphicsOption .tabs-container {
+	background: var(--titlebar-fill);
+	padding: 0 var(--sp-3);
+	border-bottom: var(--titlebar-rule);
 }
 
-#GraphicsOption .panel {
-	padding-left: 5px;
-	padding-right: 5px;
+#GraphicsOption .tabs {
+	display: flex;
+	gap: var(--sp-2);
+	padding: var(--sp-2) 0;
 }
 
 #GraphicsOption .tab-button {
-	width: 80px;
-	height: 100%;
-	color: #42454a;
-	border: 1px solid #c9c3ba;
-	border-bottom: none;
-	text-decoration: none;
-	display: inline-block;
-	vertical-align: bottom;
-	border-radius: 3px 3px 0 0;
-	text-align: center;
-	background: #f0f0f0;
-	cursor: pointer;
+	border: none;
 }
 
+/* GraphicsOption.js alterna ".selected" (nome herdado do roBrowser), nao
+   ".is-active" -- em vez de mexer no JS, o CSS reage ao MESMO nome que ele
+   ja usa, com a receita identica a ".ri-tab.is-active" em Common.css. */
 #GraphicsOption .tab-button.selected {
-	color: #000;
-	font-weight: bold;
-	border-bottom: 1px solid white;
-	position: relative;
-	z-index: 100;
-	background-color: white;
+	background: var(--tab-active-fill);
+	border-color: var(--blue-600);
+	color: var(--tab-active-text);
+	box-shadow: var(--rim-light), var(--shadow-card);
+}
+
+#GraphicsOption .panel {
+	padding: var(--sp-3) var(--sp-4);
+	background: var(--window-fill);
+	max-height: 360px;
+	overflow-y: auto;
 }
 
 #GraphicsOption .tab-content {
@@ -86,19 +77,61 @@
 	display: block;
 }
 
-#GraphicsOption .content {
-	display: none;
+#GraphicsOption table {
+	width: 100%;
+	border-collapse: collapse;
 }
 
-#GraphicsOption .content.selected {
-	display: block;
+#GraphicsOption table tr {
+	border-bottom: var(--divider);
+}
+
+#GraphicsOption table tr:last-child {
+	border-bottom: none;
+}
+
+#GraphicsOption table td {
+	padding: var(--sp-2) 0;
+	font: var(--type-label);
+	color: var(--text-muted);
+	vertical-align: middle;
+}
+
+#GraphicsOption table td:first-child {
+	width: 40%;
+	color: var(--text-body);
+	font-weight: var(--fw-semibold);
+}
+
+#GraphicsOption select {
+	font-family: var(--font-ui);
+	font-size: var(--fs-info);
+	color: var(--text-body);
+	background: var(--surface-inset);
+	border: 1px solid var(--border-hairline);
+	border-radius: var(--radius-bar);
+	padding: 3px 6px;
+}
+
+#GraphicsOption label {
+	font: var(--type-label);
+	color: var(--text-muted);
+}
+
+#GraphicsOption input[type='checkbox'] {
+	accent-color: var(--blue-600);
+	vertical-align: middle;
+}
+
+#GraphicsOption input[type='range'] {
+	accent-color: var(--blue-600);
+}
+
+#GraphicsOption .reset-section {
+	margin-top: var(--sp-3);
+	text-align: center;
 }
 
 #GraphicsOption .reset-button {
-	background: #8b0000;
-	border: 1px solid #a52a2a;
-	color: white;
-	padding: 4px 8px;
-	cursor: pointer;
-	margin: 10px;
+	width: 100%;
 }

@@ -6,14 +6,20 @@
 			</tr>
 		</tbody>
 	</table>
-	<div class="chat-function">
-		<button class="cfunc chatmode" data-background="basic_interface/chatmode_on.bmp"></button>
-		<button class="cfunc battleopt" data-background="basic_interface/battle_option2_a.bmp"></button>
-		<button class="cfunc stickfucn" data-background="basic_interface/stickoff.bmp"></button>
-		<button class="cfunc battleopt2" data-background="basic_interface/battle_option_a.bmp"></button>
-		<button class="cfunc wndminib" data-background="basic_interface/wnd_mini_b.bmp"></button>
-		<button class="cfunc lockdragwnd" data-background="basic_interface/lock_dragwnd.bmp"></button>
-	</div>
+	<!-- Recolher/expandir o painel (gauntlet 19/08/2026, layout do print 2 do
+	     dono): canto superior direito, SOZINHA -- julgamento do dono
+	     (rodada 2) cobrou "so uma seta ali, topo limpo": a capsula antiga de
+	     5 bmps (".chat-function") foi consolidada, ver o para-onde-foi de
+	     cada icone no cabecalho de ChatBox.css. Glifo "seta" de
+	     UI/ri-icones.js, gira 180 graus por CSS conforme o estado (ver
+	     ".cb-collapse" em ChatBox.css e onClickCollapse()/
+	     applyRecolhidoState() em ChatBox.js) -- mesmo idioma visual de
+	     TopMenuIdle ".tm-toggle". So chrome novo: nao decide cor nem fluxo
+	     de mensagem, nem troca nada do mecanismo de altura de F10/.size
+	     (updateHeight()), que continua intocado. -->
+	<button type="button" class="cb-collapse" data-action="collapse" title="Recolher chat" aria-label="Recolher chat" aria-expanded="true">
+		<span class="cb-collapse-glyph"><!--RI_ICONE:seta--></span>
+	</button>
 	<div class="body">
 		<div class="event_add_cursor draggable"></div>
 		<div class="contentwrapper"></div>
@@ -29,6 +35,20 @@
 			down="basic_interface/dialog_btn2.bmp"
 		></ui-button>
 		<div class="wrapper"><div contenteditable="true" class="message input-chatbox"></div></div>
+		<!-- Alternar modo batalha (julgamento do dono, rodada 2): era
+		     ".chat-function .chatmode" (icone de teclado, canto superior
+		     direito) -- mudou de CASA pra dentro da propria barra que ela
+		     controla (a volta ja tinha lugar certo: ".battlemode .bmtoggle"
+		     ja alterna de volta pro chat, ver ChatBox.js). MESMO handler
+		     (ChatBox.toggleChat()) e MESMA troca de bmp on/off
+		     (ChatBox.submit(), o icone pisca conforme o estado) -- so
+		     selector novo, nenhuma logica nova. -->
+		<button
+			class="cb-chatmode"
+			data-background="basic_interface/chatmode_on.bmp"
+			title="Alternar para modo batalha"
+			aria-label="Alternar para modo batalha"
+		></button>
 		<button
 			class="filter"
 			data-background="basic_interface/sys_base_off.bmp"
@@ -40,4 +60,17 @@
 			data-down="basic_interface/sys_base_off.bmp"
 		></button>
 	</div>
+	<!-- Opcoes do chat (engrenagem, canto inferior direito -- gauntlet
+	     19/08/2026, layout do print 2). E o MESMO botao/handler que era
+	     ".chat-function .battleopt" (ChatBox.toggleChatBattleOption(), abre
+	     ChatBoxSettings) -- so mudou de CASA (a capsula do canto superior
+	     foi eliminada inteira na rodada 2, ver ChatBox.css) e de GLIFO (bmp
+	     -> SVG do design system, "config" de UI/ri-icones.js). Selector
+	     atualizado em ChatBox.js (era ".chat-function .battleopt", agora
+	     ".battleopt"); nenhuma logica nova. As duas acoes que sobraram da
+	     capsula antiga (nova aba / remover aba) moraram pra dentro do
+	     PAINEL que este botao abre -- ver ChatBoxSettings.html/.js. -->
+	<button type="button" class="battleopt cb-gear" title="Opcoes do chat" aria-label="Opcoes do chat">
+		<span class="cb-gear-glyph"><!--RI_ICONE:config--></span>
+	</button>
 </div>

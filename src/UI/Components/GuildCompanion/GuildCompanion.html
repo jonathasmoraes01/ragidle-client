@@ -1,44 +1,28 @@
 <div id="GuildCompanion">
-	<div class="win companion">
-		<div class="titlebar">
-			<ui-image src="basic_interface/titlebar_mid.bmp"></ui-image>
-			<span class="title">Guild Companion</span>
-			<div class="right">
-				<ui-button
-					class="base btn_x"
-					bg="basic_interface/sys_close_off.bmp"
-					hover="basic_interface/sys_close_on.bmp"
-				></ui-button>
-			</div>
-			<div class="clear"></div>
+	<div class="win companion ri-window">
+		<div class="titlebar ri-header">
+			<span class="ri-title title">Guilda</span>
+			<button class="base btn_x ri-close" title="Fechar">&times;</button>
 		</div>
 		<div class="body">
-			<div class="msg">Join a guild or start your own!</div>
+			<div class="msg">Entre numa guilda ou funde a sua!</div>
 			<div class="btns">
-				<button class="btn btn_create" type="button">create guild</button>
-				<button class="btn btn_close" type="button">OK</button>
+				<button class="btn btn_create ri-btn" type="button">criar guilda</button>
+				<button class="btn btn_close ri-btn ri-btn--sec" type="button">OK</button>
 			</div>
 		</div>
 	</div>
-	<div class="win namebox">
-		<div class="titlebar">
-			<ui-image src="basic_interface/titlebar_mid.bmp"></ui-image>
-			<span class="title name_title">Create Guild</span>
-			<div class="right">
-				<ui-button
-					class="base btn_x2"
-					bg="basic_interface/sys_close_off.bmp"
-					hover="basic_interface/sys_close_on.bmp"
-				></ui-button>
-			</div>
-			<div class="clear"></div>
+	<div class="win namebox ri-window">
+		<div class="titlebar ri-header">
+			<span class="ri-title title name_title">Criar Guilda</span>
+			<button class="base btn_x2 ri-close" title="Fechar">&times;</button>
 		</div>
 		<div class="body">
-			<div class="label name_label">Guild Name</div>
-			<input type="text" class="guildname" maxlength="23" />
+			<div class="label name_label">Nome da Guilda</div>
+			<input type="text" class="guildname ri-input" maxlength="23" />
 			<div class="btns">
-				<button class="btn btn_ok" type="button">OK</button>
-				<button class="btn btn_cancel" type="button">cancel</button>
+				<button class="btn btn_ok ri-btn" type="button">OK</button>
+				<button class="btn btn_cancel ri-btn ri-btn--sec" type="button">cancelar</button>
 			</div>
 		</div>
 	</div>

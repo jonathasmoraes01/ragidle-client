@@ -1,8 +1,8 @@
 {
-	"name": "roBrowser Progressive Web App",
-	"short_name": "roBrowser",
+	"name": "Ragnarok Classic Idle",
+	"short_name": "Ragnarok Idle",
 	"start_url": "./",
-	"description": "roBrowser Progressive Web App.",
+	"description": "Ragnarok Classic Idle Progressive Web App.",
 	"display": "fullscreen",
 	"theme_color": "#4169e1",
 	"background_color": "#000000",
@@ -21,7 +21,7 @@
 			"type": "image/png",
 			"purpose": "any",
 			"form_factor": "wide",
-			"description": "roBrowser Progressive Web App."
+			"description": "Ragnarok Classic Idle Progressive Web App."
 		},
 		{
 			"src": "./screenshotnarrow.png",
@@ -29,7 +29,7 @@
 			"type": "image/png",
 			"purpose": "any",
 			"form_factor": "narrow",
-			"description": "roBrowser Progressive Web App."
+			"description": "Ragnarok Classic Idle Progressive Web App."
 		}
 	],
 	"protocol_handlers": [

@@ -33,6 +33,7 @@ import PACKET from 'Network/PacketStructure.js';
 import Entity from 'Renderer/Entity/Entity.js';
 import Equipment from 'UI/Components/Equipment/Equipment.js';
 import Inventory from 'UI/Components/Inventory/Inventory.js';
+import { itemCollectionUrl, preferirArtePublicada } from 'Utils/ItemArt.js';
 
 /**
  * Create Component
@@ -187,18 +188,24 @@ ItemInfo.setItem = function setItem(item) {
 	const optionContainer = root.querySelector('.option-container');
 
 	this.item = it;
-	Client.loadFile(
-		DB.INTERFACE_PATH +
-			'collection/' +
-			(item.IsIdentified ? it.identifiedResourceName : it.unidentifiedResourceName) +
-			'.bmp',
-		data => {
-			const collection = root.querySelector('.collection');
-			if (collection) {
-				collection.style.backgroundImage = `url(${data})`;
-			}
+	const aplicarIlustracao = data => {
+		const collection = root.querySelector('.collection');
+		if (collection) {
+			collection.style.backgroundImage = `url(${data})`;
 		}
-	);
+	};
+
+	// Prefere a arte publicada pelo pipeline (Utils/ItemArt.js); cai no
+	// caminho antigo do GRF quando o item ainda nao foi convertido.
+	preferirArtePublicada(itemCollectionUrl(item.ITID), aplicarIlustracao, () => {
+		Client.loadFile(
+			DB.INTERFACE_PATH +
+				'collection/' +
+				(item.IsIdentified ? it.identifiedResourceName : it.unidentifiedResourceName) +
+				'.bmp',
+			aplicarIlustracao
+		);
+	});
 
 	const itemName = DB.getItemName(item, { showItemOptions: false });
 

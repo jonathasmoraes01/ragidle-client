@@ -1,92 +1,193 @@
+/**
+ * UI/Components/Guild/Guild.css
+ *
+ * Gauntlet 6A (19/08/2026): a janela de Guilda ainda no estilo antigo do
+ * roBrowser (chapa branca, abas cinza, ficha de info por POSICIONAMENTO
+ * ABSOLUTO em pixel fixo -- heranca do cliente nativo de resolucao fixa).
+ * Realinhada ao "Ragnarok Idle Design System" oficial com o mesmo metodo das
+ * janelas irmas: header/abas/cards/scroll pelos tokens, e a ficha de
+ * INFORMACAO trocou de absoluto-pixel por CARDS em grid -- SEM tocar em
+ * nenhuma classe que Guild.js consulta (a lista inteira foi levantada antes
+ * de editar: .close, .tabs button[data-flag]/.info/.members/.positions/
+ * .skills/.history/.notice, .content.<aba>, .MemberView/.PositionView/
+ * .ExpelView, .name/.level/.master/.members/.numMember/.maxMember/.online/
+ * .avglevel/.territory/.exp/.tax/.value, .tendency canvas, .emblem_container,
+ * .emblem_edit input, .ally_list/.hostile_list, .skill_list table,
+ * .levelupcontainer, .level .current/.max/.currentUp/.currentDown, .spcost,
+ * .skpoints_count, .subject, .notice, .footer .btn_ok/.btn_disband).
+ *
+ * ARMADILHA achada e EVITADA: Guild.js:onChangeTab() le
+ * "this.className.replace(/active/g,'')" pra montar o seletor
+ * ".content.<isso>" -- SE eu somasse uma classe extra (tipo "ri-tab") nos
+ * botoes de aba, o seletor gerado virava ".content.info ri-tab" (invalido) e
+ * a troca de aba quebrava. Por isso NENHUM botao de aba ganhou classe nova
+ * aqui -- o visual pill do design system vem do seletor
+ * "#Guild .tabs button"/"button.active" puro, sem precisar da classe .ri-tab
+ * no HTML.
+ *
+ * BMP removidos (decodificados com scripts/tmp-decode-bmp.ts antes de
+ * tirar):
+ *  - titlebar_mid.bmp, sys_close_off/on, btnbar_mid2.bmp (rodape e rodape do
+ *    footer de skills): chrome puro, sem rotulo. Virou gradiente CSS.
+ *  - btn_ok.bmp, btn_apply.bmp, btn_reset.bmp, btn_edit.bmp: MESMA FAMILIA
+ *    de btn_close.bmp, que decodificou com o texto "Fechar" pintado --
+ *    por analogia direta (mesmo padrao 58x20, mesma fonte) tratados como
+ *    rotulo em pixel tambem, e recriados como botao com TEXTO real (OK /
+ *    Aplicar / Redefinir / Editar). btn_apply/btn_reset nao tinham handler
+ *    de clique no Guild.js (funcionalidade nunca implementada nesta fase) --
+ *    a troca e so de pele, nao muda o (nenhum) comportamento existente.
+ *  - skill_up_a/b/c.bmp: o template ".btn.levelup" (clonado por
+ *    addSkill()/Guild.js:862) tinha o rotulo "Lv Up" pintado no pixel --
+ *    confirmado no MESMO decode do gauntlet. Virou botao com texto real
+ *    "Subir"; o template so e clonado via JS (nunca fica visivel na forma
+ *    estatica do HTML), entao a troca de <ui-button bg=...> por <button>
+ *    nao muda nada que o clone dependa (classe "levelup" continua igual).
+ *  - basic_interface/grp_online.bmp (icone ao lado do contador de
+ *    "Guildsmen"): decodificado e tinha "ON" pintado em verde -- recriado
+ *    como bolinha CSS + texto real "on-line:" (".online-badge"/
+ *    ".online-dot"). Era estatico no HTML (nao clonado por linha dinamica),
+ *    seguro de trocar direto.
+ *  - checkbox_0/1.bmp (convite/punir na aba Posicoes): NAO tocados --
+ *    Guild.js:163 faz "e.target.closest('ui-button')" pra achar esse
+ *    elemento no clique; virar <button> quebraria o closest(). Ficam como
+ *    <ui-button>, so a caixa da tabela ao redor ganhou token.
+ *
+ * RODADA 2 do gauntlet (19/08, julgamento do dono sobre o print real):
+ *  1) As 6 abas vinham CORTADAS ("Guildsm...", "Expel ...") -- janela de
+ *     400px + "text-overflow:ellipsis" nos botoes. Resolvido em tres
+ *     frentes (nao so uma): rotulo CURTO em PT-BR (Geral/Membros/Cargos/
+ *     Skills/Expulsos/Aviso), ellipsis/nowrap removidos dos botoes (o texto
+ *     nunca mais corta), janela alargada de 400 pra 480px, e "flex-wrap" de
+ *     seguranca na ".tabs" -- se algum rotulo futuro nao couber, ele desce
+ *     pra segunda fileira em vez de cortar.
+ *  2) Todo o CONTEUDO da aba Info/Membros/Cargos/Historico/Aviso estava em
+ *     ingles ("Guild Name", "Tax Point", "Tendency"...) -- vinha de
+ *     "<ui-text msg=N>Fallback em ingles</ui-text>" (UI/Elements/UIText.js),
+ *     que troca o texto pelo que "DB.getMessage(msgId)" devolver da tabela
+ *     de mensagens do SERVIDOR -- fora do nosso controle de voz do produto.
+ *     Trocado por texto PT-BR fixo direto no HTML (mesmo padrao que
+ *     StatusIdle/IdleSkills ja usam) -- nao depende mais do servidor pra
+ *     mostrar a voz certa, e nenhuma dessas classes e lida por Guild.js
+ *     (conferido antes: so os ".value"/".online" ao lado sao escritos por
+ *     JS, o rotulo em si e estatico).
+ *  3) Print real revelou dois problemas de cabimento que a bateria de
+ *     "sem guilda" da rodada 1 nunca chegou a mostrar: a janela de 350px de
+ *     altura era baixa demais pro card "Geral" (8 linhas) + card
+ *     "Tendencia" caberem sem cortar (a janela cresceu pra 540px), e o
+ *     grafico de alinhamento (R/W/V/F) tinha os 4 rotulos em ABSOLUTO
+ *     relativo ao CARD inteiro -- o "R" ficava encavalado em cima do
+ *     proprio canvas. Um wrapper novo ".tendency-chart" (90x90, ELE mesmo
+ *     "position:relative") resolve: os rotulos ancoram nas bordas do
+ *     wrapper (bottom/top/left/right:100%), nunca mais dependem de quanto
+ *     texto o titulo ocupa em cima.
+ */
+
 :host {
-	top: 100px;
+	top: 60px;
 	left: 100px;
-	width: 400px;
-	height: 317px;
+	width: 480px;
+	height: 540px;
 }
 
 #Guild {
 	position: absolute;
+	width: 480px;
+	height: 540px;
+	display: flex;
+	flex-direction: column;
+	color: var(--text-body);
+	font-family: var(--font-ui);
 }
 
-#Guild .titlebar {
-	width: 100%;
-	height: 17px;
-	background-color: white;
-	background-repeat: repeat-x;
-	border-radius: 3px 3px 0px 0px;
-	font-size: 11px;
-	font-weight: bold;
+#Guild .ri-header {
+	height: 30px;
+	flex: 0 0 auto;
 }
-#Guild .titlebar .base {
-	width: 11px;
-	height: 11px;
-	border: none;
-	background-color: transparent;
-	background-repeat: no-repeat;
-	vertical-align: middle;
+#Guild .ri-title {
+	font-size: 13px;
 }
-#Guild .titlebar .right {
-	float: right;
-	margin-right: 3px;
+
+/* ─── Abas: pill visual SEM classe nova no HTML (ver nota da armadilha
+   acima) -- o token e aplicado direto no par tag+classe funcional.
+   Rodada 2 do gauntlet (19/08): o rotulo de 6 abas em ingles ("Guildsmen
+   Info" etc.) vinha CORTADO por "text-overflow:ellipsis" + janela de
+   400px -- o dono via "Guildsm...", ilegivel. Resolvido em TRES frentes:
+   (1) rotulo curto em PT-BR (Geral/Membros/Cargos/Skills/Expulsos/Aviso,
+   ver Guild.html), (2) truncamento removido -- o botao cresce pro texto
+   inteiro, nunca corta, (3) janela alargada pra 480px (era 400) E
+   "flex-wrap" de seguranca -- se um rotulo futuro nao couber numa linha
+   so, ele quebra pra segunda fileira em vez de cortar ou vazar. ─── */
+#Guild .tabs {
+	flex: 0 0 auto;
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--sp-1);
+	padding: var(--sp-2) var(--sp-2) var(--sp-1);
+	background: var(--titlebar-fill);
 }
-#Guild .titlebar .clear {
-	clear: both;
+#Guild .tabs button {
+	appearance: none;
+	width: auto;
+	height: auto;
+	margin: 0;
+	padding: 4px 10px;
+	white-space: nowrap;
+	background: var(--tab-idle-fill);
+	color: var(--tab-idle-text);
+	border: 1px solid var(--border-hairline);
+	border-radius: var(--radius-pill);
+	font: var(--type-label);
+	cursor: pointer;
+	transition: background var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out),
+		color var(--dur-fast) var(--ease-out);
+}
+#Guild .tabs button:hover {
+	background: var(--surface-card-hover);
+	color: var(--text-link);
+}
+#Guild .tabs button.active {
+	background: var(--tab-active-fill);
+	border-color: var(--blue-600);
+	color: var(--tab-active-text);
+	box-shadow: var(--rim-light), var(--shadow-card);
 }
 
 #Guild .panel {
-	background-color: white;
-	padding-right: 2px;
+	background: var(--window-fill);
+	flex: 1 1 auto;
+	min-height: 0;
+	display: flex;
 }
 #Guild .content {
 	position: relative;
 	box-sizing: border-box;
 	overflow-y: auto;
-	padding: 2px;
-	border-top: 1px solid #c6c6c6;
-	height: 250px;
+	padding: var(--sp-3);
+	width: 100%;
+	min-height: 0;
+	display: none;
+}
+#Guild .content.info {
+	display: block;
 }
 
-#Guild .tabs {
-	height: 23px;
-	background-color: #b5b6b5;
-	white-space: nowrap;
-}
-#Guild .tabs button.active {
-	background-color: #fff;
-}
-#Guild .tabs button {
-	width: 64px;
-	height: 23px;
-	margin-left: 1px;
-	margin-right: 1px;
-	margin-top: 1px;
-	padding: 0;
-	overflow: hidden;
-	text-overflow: ellipsis;
-	white-space: nowrap;
-	background-color: #cecece;
-	border: 0px;
-	padding: 3px;
-}
 #Guild .footer {
+	flex: 0 0 auto;
 	width: 100%;
-	height: 27px;
-	background-repeat: repeat-x;
-	background-color: transparent;
-	position: relative;
-	border-radius: 0px 0px 3px 3px;
+	box-sizing: border-box;
+	padding: var(--sp-2) var(--sp-3);
+	display: flex;
+	justify-content: flex-end;
+	gap: var(--sp-2);
+	background: linear-gradient(180deg, var(--sky-50) 0%, var(--sky-100) 100%);
+	border-top: var(--divider);
 }
 #Guild .footer .btn_ok {
 	display: none;
-	position: absolute;
-	bottom: 4px;
-	right: 4px;
-	width: 42px;
-	height: 20px;
-	background-repeat: no-repeat;
-	background-color: transparent;
-	border: none;
+}
+#Guild .footer .btn_disband {
+	display: none;
+	margin-right: auto;
 }
 
 #Guild .content.members,
@@ -98,372 +199,350 @@
 }
 
 /*
- * Guild Info CSS
+ * Guild Info: ficha em CARDS (era tudo position:absolute em pixel fixo).
  */
-#Guild .content.info .exp,
-#Guild .content.info .emblem,
-#Guild .content.info .tax,
-#Guild .content.info .ally,
-#Guild .content.info .ally_list,
-#Guild .content.info .hostile,
-#Guild .content.info .hostile_list {
-	position: absolute;
-	left: 201px;
+#Guild .info-grid {
+	display: flex;
+	gap: var(--sp-3);
+}
+#Guild .info-col {
+	flex: 1 1 50%;
+	min-width: 0;
+	display: flex;
+	flex-direction: column;
+	gap: var(--sp-3);
 }
 
-#Guild .content.info .name {
-	position: absolute;
-	left: 9px;
-	top: 13px;
+#Guild .info-card > div {
+	display: flex;
+	align-items: baseline;
+	justify-content: space-between;
+	gap: var(--sp-2);
+	padding: var(--sp-2) var(--sp-3);
+	border-bottom: var(--divider);
 }
-#Guild .content.info .level {
-	position: absolute;
-	left: 9px;
-	top: 28px;
+#Guild .info-card > div:last-child {
+	border-bottom: none;
 }
-#Guild .content.info .master {
-	position: absolute;
-	left: 9px;
-	top: 45px;
+#Guild .info-card .label {
+	font: var(--type-label);
+	color: var(--text-muted);
+	white-space: nowrap;
 }
-#Guild .content.info .members {
-	position: absolute;
-	left: 9px;
-	top: 61px;
-}
-#Guild .content.info .avglevel {
-	position: absolute;
-	left: 9px;
-	top: 77px;
-}
-#Guild .content.info .territory {
-	position: absolute;
-	left: 9px;
-	top: 93px;
-}
-#Guild .content.info .tendency {
-	position: absolute;
-	left: 9px;
-	top: 114px;
-}
-#Guild .content.info .tendency .title {
-	position: absolute;
-	top: 0px;
-	left: 0px;
-}
-#Guild .content.info .tendency .righteous {
-	position: absolute;
-	left: 50px;
-	top: 16px;
-	text-align: center;
-}
-#Guild .content.info .tendency .wiked {
-	position: absolute;
-	left: 50px;
-	top: 120px;
-	text-align: center;
-}
-#Guild .content.info .tendency .vulgar {
-	position: absolute;
-	left: 0px;
-	top: 68px;
-}
-#Guild .content.info .tendency .famed {
-	position: absolute;
-	left: 102px;
-	top: 68px;
-}
-#Guild .content.info .tendency canvas {
-	position: absolute;
-	top: 30px;
-	left: 10px;
-}
-
-#Guild .content.info .members ui-button {
-	margin-left: 5px;
-	vertical-align: -4px;
-	border: none;
-	width: 15px;
-	height: 15px;
-	background-repeat: no-repeat;
-	background-color: transparent;
-}
-
-#Guild .content.info .exp {
-	position: absolute;
-	left: 201px;
-	top: 13px;
-}
-#Guild .content.info .emblem {
-	position: absolute;
-	left: 201px;
-	top: 37px;
-}
-#Guild .content.info .tax {
-	position: absolute;
-	left: 201px;
-	top: 61px;
-}
-#Guild .content.info .ally {
-	position: absolute;
-	left: 201px;
-	top: 103px;
-}
-#Guild .content.info .ally_list {
-	position: absolute;
-	left: 201px;
-	top: 118px;
-	white-space: pre;
-	width: 168px;
-	height: 48px;
-	background: #cecece;
-}
-#Guild .content.info .hostile {
-	position: absolute;
-	left: 201px;
-	top: 177px;
-}
-#Guild .content.info .hostile_list {
-	position: absolute;
-	left: 201px;
-	top: 193px;
-	white-space: pre;
-	width: 168px;
-	height: 48px;
-	background: #cecece;
-}
-
-#Guild .content.info .ally_list div,
-#Guild .content.info .hostile_list div {
-	padding: 2px;
-}
-#Guild .content.info .ally_list div.active,
-#Guild .content.info .hostile_list div.active {
-	background-color: #739eef;
-	padding: 2px;
-}
-
-#Guild .content.info .emblem_container {
-	width: 24px;
-	height: 24px;
-	position: absolute;
-	top: 29px;
-	left: 300px;
-	background-color: #709ce7;
-	background-repeat: no-repeat;
-}
-#Guild .content.info .emblem_edit {
-	position: absolute;
-	top: 30px;
-	left: 330px;
-	width: 42px;
-	height: 20px;
-	border: none;
-	background-color: transparent;
-	background-repeat: no-repeat;
+#Guild .info-card .value {
+	font: var(--type-numeric);
+	color: var(--text-body);
+	text-align: right;
 	overflow: hidden;
+	text-overflow: ellipsis;
 }
-#Guild .content.info .emblem_edit input {
+
+#Guild .info-card .members {
+	flex-wrap: wrap;
+}
+#Guild .online-badge {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	font: var(--type-label);
+	color: var(--text-muted);
+	width: 100%;
+	justify-content: flex-end;
+}
+#Guild .online-dot {
+	width: 7px;
+	height: 7px;
+	border-radius: 50%;
+	background: var(--exp-fill);
+	box-shadow: var(--glow-accent);
+	display: inline-block;
+}
+#Guild .online {
+	font-weight: var(--fw-bold);
+	color: var(--text-title);
+}
+
+/* Tendencia (grafico de alinhamento).
+   RODADA 2 (19/08): a rodada 1 posicionava R/W/V/F em ABSOLUTO relativo ao
+   CARD inteiro (".tendency"), com offsets pensados pra um card maior --
+   sobrava pouco espaco entre o titulo e o topo do canvas, e o "R" ficava
+   ENCAVALADO em cima do proprio grafico (visto no print real do dono). Uma
+   ".tendency-chart" nova (90x90 + respiro de 22px por lado pros rotulos, ela
+   mesma o "position:relative") resolve isso de vez: os 4 rotulos agora
+   ancoram nas BORDAS DESSE WRAPPER, nao do card, e nunca mais dependem de
+   quanto texto o titulo ocupa em cima. */
+#Guild .tendency {
+	padding: var(--sp-3);
+	text-align: center;
+}
+#Guild .tendency .title {
+	display: flex;
+	justify-content: space-between;
+	font: var(--type-label);
+	color: var(--text-muted);
+	margin-bottom: var(--sp-2);
+}
+#Guild .tendency .title .value {
+	font: var(--type-numeric);
+	color: var(--text-body);
+}
+#Guild .tendency-chart {
+	position: relative;
+	width: 90px;
+	height: 90px;
+	margin: 22px auto;
+}
+#Guild .tendency-chart canvas {
+	display: block;
+	width: 90px;
+	height: 90px;
+}
+#Guild .tendency .righteous,
+#Guild .tendency .wiked,
+#Guild .tendency .vulgar,
+#Guild .tendency .famed {
+	position: absolute;
+	font: var(--type-label);
+	color: var(--text-muted);
+	font-weight: var(--fw-bold);
+}
+#Guild .tendency .righteous {
+	bottom: 100%;
+	left: 50%;
+	transform: translateX(-50%);
+	margin-bottom: 4px;
+}
+#Guild .tendency .wiked {
+	top: 100%;
+	left: 50%;
+	transform: translateX(-50%);
+	margin-top: 4px;
+}
+#Guild .tendency .vulgar {
+	top: 50%;
+	right: 100%;
+	transform: translateY(-50%);
+	margin-right: 6px;
+}
+#Guild .tendency .famed {
+	top: 50%;
+	left: 100%;
+	transform: translateY(-50%);
+	margin-left: 6px;
+}
+
+/* Emblema */
+#Guild .emblem-card {
+	padding: var(--sp-3);
+	text-align: center;
+}
+#Guild .emblem {
+	font: var(--type-label);
+	color: var(--text-muted);
+	margin-bottom: var(--sp-2);
+}
+#Guild .emblem_container {
+	width: 32px;
+	height: 32px;
+	margin: 0 auto var(--sp-2);
+	background-color: var(--surface-inset);
+	background-repeat: no-repeat;
+	background-position: center;
+	border: 1px solid var(--border-hairline);
+	border-radius: var(--radius-bar);
+	image-rendering: pixelated;
+}
+#Guild .emblem_edit {
+	position: relative;
+	overflow: hidden;
+	width: 100%;
+}
+#Guild .emblem_edit input {
+	position: absolute;
+	inset: 0;
 	opacity: 0;
+	cursor: pointer;
+}
+
+/* Alianca / Antagonista */
+#Guild .ally,
+#Guild .hostile {
+	font: var(--type-label);
+	color: var(--text-muted);
+	margin-bottom: var(--sp-2);
+}
+#Guild .ally_list,
+#Guild .hostile_list {
+	white-space: pre;
+	min-height: 40px;
+	background: var(--surface-inset);
+	border: 1px solid var(--border-hairline);
+	border-radius: var(--radius-bar);
+	font: var(--type-info);
+}
+#Guild .ally_list div,
+#Guild .hostile_list div {
+	padding: var(--sp-1) var(--sp-2);
+}
+#Guild .ally_list div.active,
+#Guild .hostile_list div.active {
+	background: var(--tab-active-fill);
+	color: var(--tab-active-text);
 }
 
 /*
- * Guild Members
+ * Guild Members / History: tabelas com zebra e token.
  */
-#Guild .content.members table {
+#Guild table {
 	border-spacing: 0;
 	border-collapse: collapse;
+	width: 100%;
 }
-#Guild .content.members tbody tr {
-	border-left: 1px solid #c2c2c2;
-	border-right: 1px solid #c2c2c2;
-}
-#Guild .content.members td {
-	border-bottom: 1px solid #c2c2c2;
-}
-#Guild .content.members tr.active td {
-	background-color: #739eef !important;
-}
-#Guild .content.members th {
-	border: 1px solid #c2c2c2;
+#Guild .content.members th,
+#Guild .content.history th {
+	background: var(--titlebar-fill);
+	font: var(--type-label);
+	color: var(--text-muted);
+	font-weight: var(--fw-semibold);
+	text-align: left;
+	padding: var(--sp-2);
+	border-bottom: 1px solid var(--border-hairline);
 }
 #Guild .content.members td,
-#Guild .content.members th {
+#Guild .content.history td {
 	text-align: left;
-	font-weight: normal;
-	padding-left: 2px;
-	height: 35px;
+	font: var(--type-info);
+	color: var(--text-body);
+	padding: 4px var(--sp-2);
+	height: 30px;
 	overflow: hidden;
 	text-overflow: ellipsis;
 	white-space: nowrap;
+	border-bottom: var(--divider);
+}
+#Guild .content.members tr.active td {
+	background: var(--tab-active-fill) !important;
+	color: var(--tab-active-text);
 }
 #Guild .content.members tr.online td {
-	background-color: #efe;
+	background: rgba(122, 184, 106, 0.14);
 }
 #Guild .content.members tr canvas {
 	display: inline;
+	vertical-align: -11px;
+	image-rendering: pixelated;
 }
 #Guild .content.members .name {
-	width: 85px;
-	max-width: 85px;
-	text-overflow: ellipsis;
-	overflow: hidden;
-}
-#Guild .content.members .name canvas {
-	vertical-align: -11px;
-}
-#Guild .content.members .position {
-	width: 70px;
-	max-width: 70px;
-	text-overflow: ellipsis;
-	overflow: hidden;
+	width: 30%;
 }
 #Guild .content.members .position select {
-	width: 65px;
-	max-width: 65px;
-	text-overflow: ellipsis;
-	overflow: hidden;
-}
-#Guild .content.members .job {
-	width: 43px;
-	max-width: 43px;
-	text-overflow: ellipsis;
-	overflow: hidden;
-}
-#Guild .content.members .level {
-	width: 30px;
-}
-#Guild .content.members .note {
-	width: 41px;
-}
-#Guild .content.members .devotion {
-	width: 42px;
-}
-#Guild .content.members .tax {
-	width: 63px;
-	max-width: 63px;
-	text-overflow: ellipsis;
-	overflow: hidden;
+	width: 90%;
 }
 
 /*
  * Guild Positions
  */
-#Guild .content.positions table {
-	border-spacing: 0;
-	border-collapse: collapse;
-}
-#Guild .content.positions tr.active {
-	border: none;
-}
 #Guild .content.positions tr.active td {
-	background-color: #739eef;
+	background: var(--tab-active-fill);
 }
 #Guild .content.positions th,
 #Guild .content.positions td {
-	height: 20px;
-	font-weight: normal;
+	height: 24px;
+	font-weight: var(--fw-regular);
+	font: var(--type-info);
 	text-align: left;
-	padding: 2px 2px 0px 3px;
-	border: 1px solid #c2c2c2;
+	padding: 4px var(--sp-2);
+	border-bottom: var(--divider);
 }
-#Guild .content.positions .id {
-	width: 57px;
-}
-#Guild .content.positions .title {
-	width: 158px;
-	padding: 0px;
-}
-#Guild .content.positions .invite {
-	width: 68px;
-}
-#Guild .content.positions .punish {
-	width: 68px;
-}
-#Guild .content.positions .tax {
-	width: 68px;
-	padding: 0;
+#Guild .content.positions th {
+	background: var(--titlebar-fill);
+	color: var(--text-muted);
+	font-weight: var(--fw-semibold);
 }
 #Guild .content.positions input {
 	border: none;
-	background-color: white;
+	background: transparent;
+	color: var(--text-body);
+	font-family: var(--font-ui);
 	padding: 0;
 	height: 18px;
 }
 #Guild .content.positions .title input {
-	padding-left: 2px;
-	width: 140px;
-	margin-left: 4px;
+	width: 90%;
 }
 #Guild .content.positions .tax input {
-	width: 28px;
-	padding-left: 2px;
-	margin-left: 3px;
+	width: 30px;
 }
 #Guild .content.positions ui-button {
 	border: none;
-	width: 10px;
-	height: 10px;
+	width: 14px;
+	height: 14px;
 	background-repeat: no-repeat;
 	background-color: transparent;
+	vertical-align: middle;
 }
 
 /*
  * Guild Skills
+ *
+ * ".content.skills" herda "position:relative" do ".content" generico acima.
+ * Guild.js:onChangeTab() forca "style.display = 'block'" na aba ativa
+ * (inline, nunca 'flex') -- por isso o rodape fixo (pontos/aplicar/
+ * redefinir) usa POSICIONAMENTO ABSOLUTO dentro da aba em vez de
+ * flex-column, que o inline apagaria. ".content.skills" mesmo assim chega
+ * esticado em altura, porque quem decide o tamanho de um item flex e o PAI
+ * (".panel", que segue display:flex — nunca tocado por JS), nao o proprio
+ * display do item.
  */
 #Guild .content.skills {
+	padding: 0;
 	overflow-y: hidden;
 }
 #Guild .content.skills .skill_list {
+	position: absolute;
+	inset: 0 0 40px 0;
+	padding: var(--sp-3);
 	overflow-y: auto;
-	padding: 5px;
-	border-top: 1px solid #c6c6c6;
-	width: 394px;
-	height: 215px;
+	box-sizing: border-box;
 }
 #Guild .content.skills .skill_list table {
 	border: none;
-	border-spacing: 0px;
-	padding-top: 5px;
+	border-spacing: 0;
 	width: 100%;
+}
+#Guild .content.skills .skill_list tr {
+	border-bottom: var(--divider);
 }
 #Guild .content.skills .skill_list td,
 #Guild .content.skills .skill_list .name {
-	padding: 0px;
+	padding: var(--sp-2) 0;
 }
-
-#Guild .content.skills .levelup {
-	border: 0;
-	width: 24px;
-	height: 24px;
-	padding: 0;
-	background-repeat: no-repeat;
-	background-color: transparent;
+#Guild .content.skills .skill_list .icon img {
+	image-rendering: pixelated;
+	border: 1px solid var(--border-hairline);
+	border-radius: var(--radius-bar);
+}
+#Guild .content.skills .levelupcontainer {
+	padding: 0 var(--sp-2);
+}
+#Guild .content.skills .btn.levelup {
+	padding: 3px 10px;
+	font-size: 11px;
 }
 #Guild .content.skills td.type {
 	vertical-align: bottom;
 }
-
-#Guild .content.skills .skill_list .icon {
-	padding-left: 15px;
-}
-#Guild .content.skills .skill_list .levelupcontainer {
-	padding-left: 5px;
-	padding-right: 5px;
-	width: 24px;
-}
 #Guild .content.skills .skill_list div.name {
-	line-height: 12px;
+	line-height: 14px;
 	white-space: nowrap;
-	padding-left: 5px;
-	white-space: nowrap;
-	width: 120px;
-	padding-top: 4px;
-	height: 28px;
+	font: var(--type-info);
+	color: var(--text-body);
+	font-weight: var(--fw-semibold);
 }
 #Guild .content.skills .disabled .icon,
 #Guild .content.skills .disabled .name {
-	opacity: 0.5;
+	filter: grayscale(1);
+	opacity: 0.55;
 }
 #Guild .content.skills .disabled .consume,
 #Guild .content.skills .disabled .level {
@@ -471,117 +550,75 @@
 }
 #Guild .content.skills .currentDown,
 #Guild .content.skills .currentUp {
-	width: 11px;
-	height: 11px;
+	width: 12px;
+	height: 12px;
 	border: none;
 	background-color: transparent;
 	background-repeat: no-repeat;
 	vertical-align: middle;
 }
-
-#Guild .content.skills .selected.disabled .selectable {
-	background-color: #b5b5b5;
+#Guild .content.skills .level {
+	font: var(--type-label);
+	color: var(--text-muted);
 }
-#Guild .content.skills .selected.passive .selectable {
-	background-color: #73d5ee;
-}
-#Guild .content.skills .selected.active .selectable {
-	background-color: #739cee;
+#Guild .content.skills .consume {
+	font: var(--type-label);
+	color: var(--text-muted);
 }
 
 #Guild .content.skills .footer {
-	width: 100%;
-	height: 27px;
-	background-repeat: repeat-x;
-	background-color: transparent;
-	position: relative;
+	position: absolute;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	height: 40px;
+	box-sizing: border-box;
+	display: flex;
+	justify-content: flex-end;
+	align-items: center;
+	gap: var(--sp-2);
+	padding: 0 var(--sp-3);
+	background: var(--titlebar-fill);
+	border-top: var(--titlebar-rule);
 }
 #Guild .content.skills .footer .text {
-	padding-top: 7px;
-	margin-left: 10px;
+	font: var(--type-numeric);
+	color: var(--text-title);
+	margin-right: auto;
 }
-
-#Guild .footer .btn_disband {
-	display: none;
-	position: absolute;
-	bottom: 4px;
-	right: 4px;
-	padding: 2px 10px;
-	font-family: Arial, sans-serif;
-	font-size: 11px;
-	cursor: pointer;
-}
-
 #Guild .content.skills .footer .btn {
-	position: absolute;
-	top: 5px;
-	border: 0;
-	width: 42px;
-	height: 20px;
-	background-repeat: no-repeat;
-	background-color: transparent;
-	display: none;
-}
-#Guild .content.skills .footer .apply {
-	right: 70px;
-}
-#Guild .content.skills .footer .reset {
-	right: 20px;
+	display: inline-flex;
 }
 
 /*
  * Guild History
  */
-#Guild .content.history table {
-	border-spacing: 0;
-	border-collapse: collapse;
-}
-#Guild .content.history th,
-#Guild .content.history td {
-	font-weight: normal;
-	text-align: left;
-	padding: 5px 5px 0px 5px;
-	border: 1px solid #c2c2c2;
-}
 #Guild .content.history .name {
 	width: 90px;
 }
-#Guild .content.history .reason {
-	width: 275px;
-}
 
 /*
- * Guild Notice
+ * Guild Notice (bloco, nao flex -- ver nota da aba Skills acima: o inline
+ * "display:block" de onChangeTab() venceria qualquer flex aqui).
  */
-#Guild .notice .subjectTitle {
-	position: absolute;
-	top: 13px;
-	left: 9px;
+#Guild .notice .subjectTitle,
+#Guild .notice .noticeTitle {
+	font: var(--type-label);
+	color: var(--text-muted);
+	margin-top: var(--sp-2);
 }
 #Guild .notice .subject {
-	position: absolute;
-	top: 11px;
-	left: 50px;
-	padding-left: 5px;
-	height: 14px;
-	border: none;
-	width: 333px;
-	background-color: #eee;
+	display: block;
+	width: 100%;
+	box-sizing: border-box;
+	margin-top: var(--sp-1);
 }
-#Guild .notice .noticeTitle {
-	position: absolute;
-	top: 36px;
-	left: 9px;
-}
-#Guild .notice .notice {
-	position: absolute;
-	top: 52px;
-	left: 9px;
-	padding-left: 5px;
-	margin: 0px;
-	width: 372px;
-	height: 168px;
-	background-color: #eee;
-	border: none;
+#Guild .notice textarea.notice {
+	display: block;
+	width: 100%;
+	box-sizing: border-box;
+	min-height: 130px;
+	margin-top: var(--sp-1);
 	resize: none;
+	font-family: var(--font-ui);
 }

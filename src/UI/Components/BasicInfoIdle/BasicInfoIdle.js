@@ -46,17 +46,13 @@
  * freshly prepared instance later in the session. The native BasicInfo.js
  * file itself is never modified.
  *
- * Sibling windows are toggled through the exact same public method their
- * own floating buttons use — no new API added to any of them:
- *   - HuntMap.toggle()    UI/Components/HuntMap/HuntMap.js:228 (button at :246-249)
- *   - IdleConfig.toggle() UI/Components/IdleConfig/IdleConfig.js:223
- *   - IdleSkills.toggle() UI/Components/IdleSkills/IdleSkills.js:324
- *   - AdminPanel.toggle() UI/Components/AdminPanel/AdminPanel.js:267
- *   - StatusIdle.toggle() UI/Components/StatusIdle/StatusIdle.js (this fork's
- *     new "Status" window, same shape as the four above)
- * Admin gating mirrors AdminPanel.js:65/185-187 exactly (Session.AID ===
- * 2000000 — the button is hidden client-side only; the server independently
- * enforces the real restriction).
+ * Icon grid retired (19/08/2026, task ask from the owner): this panel used
+ * to also open the sibling RAGIDLE windows (Status/Equipamento/Inventario/
+ * Skills/Caca/Config/Menu/Admin) through a row of icon buttons at the
+ * bottom. That grid — and the admin-owner gating that guarded its Admin
+ * button — moved to UI/Components/TopMenuIdle/TopMenuIdle.js, which is now
+ * the ONLY place with clickable icons. This file no longer imports any of
+ * those sibling windows; it only reads native player state to display it.
  *
  * @author RagIdle
  */
@@ -68,21 +64,8 @@ import UIManager from 'UI/UIManager.js';
 import GUIComponent from 'UI/GUIComponent.js';
 import MonsterTable from 'DB/Monsters/MonsterTable.js';
 import BasicInfo from 'UI/Components/BasicInfo/BasicInfo.js';
-import HuntMap from 'UI/Components/HuntMap/HuntMap.js';
-import IdleConfig from 'UI/Components/IdleConfig/IdleConfig.js';
-import IdleSkills from 'UI/Components/IdleSkills/IdleSkills.js';
-import AdminPanel from 'UI/Components/AdminPanel/AdminPanel.js';
-import StatusIdle from 'UI/Components/StatusIdle/StatusIdle.js';
-import RiIcones from 'UI/ri-icones.js';
 import htmlText from './BasicInfoIdle.html?raw';
 import cssText from './BasicInfoIdle.css?raw';
-
-/**
- * Same owner-account constant as AdminPanel.js:65 — kept as its own local
- * copy (task instructions: don't touch AdminPanel.js) rather than exported
- * from there.
- */
-const OWNER_AID = 2000000;
 
 /**
  * Light polling interval for native state that has no packet hook slot free
@@ -132,10 +115,11 @@ const JOB_PT = {
 const BasicInfoIdle = new GUIComponent('BasicInfoIdle', cssText);
 
 /**
- * Troca cada marcador "<!--RI_ICONE:chave-->" do .html pela string SVG do
- * modulo de iconografia (UI/ri-icones.js) — mesmo padrao de DockIdle.js.
+ * Sem marcador "<!--RI_ICONE:chave-->" neste .html desde 19/08/2026 (a
+ * grade de icones foi retirada, ver cabecalho do arquivo) -- so devolve o
+ * html puro, nenhuma troca de glifo precisa acontecer aqui mais.
  */
-BasicInfoIdle.render = () => htmlText.replace(/<!--RI_ICONE:(\w+)-->/g, (_, chave) => RiIcones[chave] || '');
+BasicInfoIdle.render = () => htmlText;
 
 /**
  * @var {Preferences} window position — defaults to the top-left corner
@@ -145,7 +129,14 @@ const _preferences = Preferences.get(
 	'BasicInfoIdle',
 	{
 		x: 12,
-		y: 12
+		y: 12,
+		// D-343: modo compacto (recolhido) do painel -- mesma chave/objeto
+		// da posicao, so um campo novo. Nao precisa de bump de versao:
+		// Preferences.get() so copia as chaves que EXISTEM no localStorage
+		// salvo por cima do default, entao quem ja tinha "x"/"y" salvos de
+		// antes desta mudanca simplesmente cai no default "compact: false"
+		// (ver Core/Preferences.js:38-59).
+		compact: false
 	},
 	1.0
 );
@@ -162,10 +153,6 @@ function _root() {
 	return BasicInfoIdle._shadow || BasicInfoIdle._host;
 }
 
-function isOwnerAccount() {
-	return Session.AID === OWNER_AID;
-}
-
 /**
  * One-time setup (runs once, during GUIComponent#prepare()).
  */
@@ -174,27 +161,28 @@ BasicInfoIdle.init = function init() {
 
 	this.draggable(root.querySelector('.bi-header'));
 
-	root.querySelectorAll('.bi-btn[data-action]').forEach(btn => {
-		btn.addEventListener('click', onClickAction);
-	});
+	const minimizeBtn = root.querySelector('.bi-minimize');
+	if (minimizeBtn) {
+		minimizeBtn.addEventListener('click', onClickMinimize);
+	}
 };
 
 /**
  * Restore saved position (measured with the real rendered size, same
  * technique as BasicInfoCommon.js:236-240, since — unlike HuntMap — this
  * window's height isn't a fixed constant), hide the native BasicInfo
- * window, apply admin-button visibility and start the polling loop.
+ * window and start the polling loop.
  */
 BasicInfoIdle.onAppend = function onAppend() {
+	// Aplica o modo compacto salvo ANTES de medir o host -- a altura real
+	// renderizada (usada logo abaixo pro clamp de posicao) precisa ja
+	// refletir o tamanho compacto quando for o caso, senao a janela abre
+	// clampada pro tamanho ERRADO (ver contrato ":host"/JS no cabecalho).
+	applyCompactState();
+
 	const hostRect = this._host.getBoundingClientRect();
 	this._host.style.top = Math.min(Math.max(0, _preferences.y), Renderer.height - hostRect.height) + 'px';
 	this._host.style.left = Math.min(Math.max(0, _preferences.x), Renderer.width - hostRect.width) + 'px';
-
-	const root = _root();
-	const adminBtn = root.querySelector('.bi-btn-admin');
-	if (adminBtn) {
-		adminBtn.style.display = isOwnerAccount() ? '' : 'none';
-	}
 
 	hideNativeBasicInfo();
 	syncFromNativeState();
@@ -214,6 +202,67 @@ function savePosition() {
 	_preferences.x = parseInt(BasicInfoIdle._host.style.left, 10) || 0;
 	_preferences.y = parseInt(BasicInfoIdle._host.style.top, 10) || 0;
 	_preferences.save();
+}
+
+/**
+ * Clique no botao de minimizar (19/08/2026 -- antes era a barra "Recolher"
+ * embaixo da janela, D-343; agora mora no cabecalho, estilo Windows): alterna
+ * e SALVA a preferencia (mesmo objeto/chave da posicao, ver _preferences
+ * acima), aplica na hora e re-clampa a posicao -- expandir de volta pode
+ * fazer o painel crescer pra baixo do que cabe na tela se ele estava perto
+ * da borda enquanto compacto.
+ */
+function onClickMinimize(e) {
+	e.stopImmediatePropagation();
+	_preferences.compact = !_preferences.compact;
+	_preferences.save();
+	applyCompactState();
+	clampPositionToViewport();
+}
+
+/**
+ * Reflete "_preferences.compact" no DOM: ".bi-body.is-compact" esconde tudo
+ * que nao e HP/SP/XP/niveis (ver BasicInfoIdle.css). O glifo do botao de
+ * minimizar fica o MESMO nos dois estados (traco horizontal, igual ao botao
+ * real de minimizar do Windows -- ele nao muda de desenho quando a janela ja
+ * esta minimizada); so titulo/aria-label mudam, pra continuar dizendo o que
+ * o clique faz agora ("restaurar" quando ja esta compacto). Chamado no
+ * onAppend() (restaura o que foi salvo, antes de medir o host) e a cada
+ * clique.
+ */
+function applyCompactState() {
+	const root = _root();
+	const body = root.querySelector('.bi-body');
+	const minimizeBtn = root.querySelector('.bi-minimize');
+	if (!body || !minimizeBtn) {
+		return;
+	}
+
+	const compact = !!_preferences.compact;
+	body.classList.toggle('is-compact', compact);
+	minimizeBtn.classList.toggle('is-compact', compact);
+	minimizeBtn.setAttribute('aria-expanded', String(!compact));
+
+	const title = compact ? 'Restaurar painel' : 'Recolher painel';
+	minimizeBtn.title = title;
+	minimizeBtn.setAttribute('aria-label', compact ? 'Restaurar painel para o modo completo' : 'Recolher painel para modo compacto');
+}
+
+/**
+ * Re-mede o host DEPOIS de uma mudanca de tamanho em tempo real (alternar
+ * compacto) e clampa top/left pra caixa continuar inteira dentro da tela --
+ * mesma conta de onAppend(), so que a partir da posicao ATUAL (ja em tela)
+ * em vez de "_preferences.x/y" (que so vale pro primeiro append).
+ */
+function clampPositionToViewport() {
+	const host = BasicInfoIdle._host;
+	const rect = host.getBoundingClientRect();
+	const maxTop = Math.max(0, Renderer.height - rect.height);
+	const maxLeft = Math.max(0, Renderer.width - rect.width);
+	const curTop = parseInt(host.style.top, 10) || 0;
+	const curLeft = parseInt(host.style.left, 10) || 0;
+	host.style.top = Math.min(Math.max(0, curTop), maxTop) + 'px';
+	host.style.left = Math.min(Math.max(0, curLeft), maxLeft) + 'px';
 }
 
 /**
@@ -370,36 +419,6 @@ function syncFromNativeState() {
 	setText(root, '.bi-weight', `${weight} / ${weightMax}`);
 
 	setText(root, '.bi-zeny', formatZeny(Session.zeny));
-}
-
-/**
- * Dispatch an icon-button click to the matching sibling window's own
- * toggle() (see file header for the exact method/line cited per sibling).
- */
-function onClickAction(e) {
-	e.stopImmediatePropagation();
-	const action = e.currentTarget.dataset.action;
-
-	switch (action) {
-		case 'status':
-			StatusIdle.toggle();
-			break;
-		case 'skills':
-			IdleSkills.toggle();
-			break;
-		case 'huntmap':
-			HuntMap.toggle();
-			break;
-		case 'idleconfig':
-			IdleConfig.toggle();
-			break;
-		case 'admin':
-			if (isOwnerAccount()) {
-				AdminPanel.toggle();
-			}
-			break;
-		// 'equip' / 'inventory': disabled buttons, "em breve" — no handler.
-	}
 }
 
 /**

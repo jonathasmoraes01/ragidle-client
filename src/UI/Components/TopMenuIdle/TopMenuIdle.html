@@ -1,7 +1,29 @@
 <div id="TopMenuIdle">
-	<div class="tm-grid">
-		<!-- ─── Funcionais: cada um chama o MESMO metodo publico que ja abre a
-		     janela em outro lugar do fork (ver cabecalho de TopMenuIdle.js) ── -->
+	<!-- ─── NIVEL 1 — TOPO ENXUTO: so os 5 essenciais de gameplay (pedido do
+	     dono, gauntlet item 2, 19/08/2026). SEMPRE visivel, nunca some -- e o
+	     que sobra na tela quando o menu retratil esta fechado (ver
+	     TopMenuIdle.js/.css pra o que acontece nesse estado). O botao de
+	     abrir/fechar o nivel 2 mora no FIM desta fileira, de proposito: ele
+	     tambem nunca some, senao o jogador se tranca fora do resto. -->
+	<div class="tm-top">
+		<button type="button" class="tm-item" data-action="status" title="Personagem">
+			<span class="tm-icon-wrap ri-disc"><!--RI_ICONE:personagem--></span>
+			<span class="tm-label">Personagem</span>
+		</button>
+
+		<button type="button" class="tm-item" data-action="inventory" title="Inventário">
+			<span class="tm-icon-wrap ri-disc"><!--RI_ICONE:inventario--></span>
+			<span class="tm-label">Inventário</span>
+		</button>
+
+		<!-- Inventario e Equipamento apontam pra MESMA janela (MochilaIdle
+		     juntou as duas nativas numa so, 19/08/2026) -- duplicacao
+		     deliberada, o jogador reconhece os dois nomes separados do jogo
+		     classico e os dois tem que continuar levando a algum lugar. -->
+		<button type="button" class="tm-item" data-action="equip" title="Equipamento">
+			<span class="tm-icon-wrap ri-disc"><!--RI_ICONE:equipamento--></span>
+			<span class="tm-label">Equipamento</span>
+		</button>
 
 		<button type="button" class="tm-item" data-action="skills" title="Skills">
 			<span class="tm-icon-wrap ri-disc">
@@ -14,6 +36,35 @@
 			<span class="tm-label">Skills</span>
 		</button>
 
+		<!-- Caca (huntmap): duplicacao DECLARADA com o botao sob o minimapa
+		     (#HuntButtonIdle, so aparece em cidade) -- pedido do dono, os dois
+		     abrem a MESMA janela Mapa de Caca (HuntMap.toggle()). -->
+		<button type="button" class="tm-item" data-action="huntmap" title="Mapa de Caça">
+			<span class="tm-icon-wrap ri-disc"><!--RI_ICONE:caca--></span>
+			<span class="tm-label">Caça</span>
+		</button>
+
+		<!-- Abre/fecha o NIVEL 2 (menu retratil, ver ".tm-secondary" abaixo).
+		     Fica FORA da grade retratil de proposito -- nunca some, e o unico
+		     jeito de voltar quando o menu esta fechado. Direcao da seta muda
+		     por rotacao em CSS, estado persiste via Preferences (mesma chave
+		     "TopMenuIdle" de antes -- o SIGNIFICADO do booleano mudou de
+		     "constelacao inteira recolhida" pra "menu retratil fechado", mas o
+		     formato dos dados e identico, entao a preferencia salva de sessoes
+		     anteriores continua lendo certo). -->
+		<button type="button" class="tm-toggle" title="Fechar menu" aria-label="Fechar menu" aria-expanded="true" aria-controls="tm-secondary">
+			<span class="tm-toggle-wrap ri-disc"><!--RI_ICONE:seta--></span>
+		</button>
+	</div>
+
+	<!-- ─── NIVEL 2 — MENU RETRATIL: secundarios (pedido do dono). Abre/fecha
+	     pelo ".tm-toggle" acima. FECHADO = "minimizar a UI": este bloco
+	     inteiro (12 itens: Config/Guilda/Grupo/Menu/Admin + os 7 "em breve")
+	     some da tela e para de aceitar clique -- e SO ele, o nivel 1 acima
+	     continua de pe (ver TopMenuIdle.css ".tm-secondary.is-collapsed").
+	     Cada item chama o MESMO metodo publico que ja abre a janela em outro
+	     lugar do fork (ver cabecalho de TopMenuIdle.js pra fiacao exata). ── -->
+	<div class="tm-secondary" id="tm-secondary">
 		<button type="button" class="tm-item" data-action="guild" title="Guilda">
 			<span class="tm-icon-wrap ri-disc"><!--RI_ICONE:guilda--></span>
 			<span class="tm-label">Guilda</span>
@@ -29,10 +80,25 @@
 			<span class="tm-label">Config</span>
 		</button>
 
+		<!-- Menu (ESC): mesma funcao que a tecla ESC nativa ja dispara (ver
+		     TopMenuIdle.js). -->
+		<button type="button" class="tm-item" data-action="menu" title="Menu">
+			<span class="tm-icon-wrap ri-disc"><!--RI_ICONE:menu--></span>
+			<span class="tm-label">Menu</span>
+		</button>
+
+		<!-- Admin: so aparece pra conta dona (isOwnerAccount() em
+		     TopMenuIdle.js, mesmo criterio de AdminPanel.js:65) -- escondido
+		     via display:none pelo JS pra qualquer outra conta. -->
+		<button type="button" class="tm-item tm-item-admin" data-action="admin" title="Admin">
+			<span class="tm-icon-wrap ri-disc"><!--RI_ICONE:admin--></span>
+			<span class="tm-label">Admin</span>
+		</button>
+
 		<!-- ─── Em breve: a funcao NAO existe no jogo hoje (ver cabecalho de
 		     TopMenuIdle.js). Visual honesto - DS pede DESSATURAR (grayscale),
 		     nunca cinza chapado nem ornamento proprio - nenhum pacote sai,
-		     nenhuma janela falsa abre. ──────────────────────────────────────── -->
+		     nenhuma janela falsa abre. ──────────────────────────────────── -->
 
 		<button type="button" class="tm-item tm-item--em-breve" data-action="loja" data-em-breve="1" title="Em breve">
 			<span class="tm-icon-wrap ri-disc"><!--RI_ICONE:loja--></span>
@@ -68,9 +134,12 @@
 			<span class="tm-icon-wrap ri-disc"><!--RI_ICONE:passe--></span>
 			<span class="tm-label">Passe</span>
 		</button>
-	</div>
 
-	<!-- Toast "Em breve" - elemento proprio do componente, nunca um pacote nem
-	     janela; some sozinho (ver TopMenuIdle.js showToast()). -->
-	<div class="tm-toast" aria-live="polite"></div>
+		<!-- Toast "Em breve" - elemento proprio do componente, nunca um pacote
+		     nem janela; some sozinho (ver TopMenuIdle.js showToast()). Mora
+		     DENTRO do nivel 2 de proposito: todo item que pode disparar o
+		     toast vive aqui, entao escondendo o nivel 2 (opacity 0) o toast
+		     some junto sem precisar de regra propria. -->
+		<div class="tm-toast" aria-live="polite"></div>
+	</div>
 </div>

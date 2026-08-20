@@ -78,6 +78,33 @@ ChatBoxSettings.init = function init() {
 		});
 	}
 
+	// Nova aba / Remover aba (julgamento do dono, 19/08/2026 rodada 2 --
+	// migraram pra ca dos icones "+"/"-" que moravam soltos no canto
+	// superior direito do ChatBox, ver ChatBox.css). UIManager.getComponent()
+	// em vez de "import ChatBox" no topo do arquivo: ChatBox.js JA importa
+	// ChatBoxSettings.js, um import de volta criaria dependencia circular
+	// -- mesmo padrao de lookup tardio que ChatBox.js usa pra ItemInfo.
+	const addTabBtn = root.querySelector('.cbs-addtab');
+	if (addTabBtn) {
+		addTabBtn.addEventListener('click', () => {
+			const ChatBox = UIManager.getComponent('ChatBox');
+			if (ChatBox && ChatBox.tabCount <= 5) {
+				ChatBox.addNewTab();
+				ChatBox.onAppend();
+			}
+		});
+	}
+
+	const removeTabBtn = root.querySelector('.cbs-removetab');
+	if (removeTabBtn) {
+		removeTabBtn.addEventListener('click', () => {
+			const ChatBox = UIManager.getComponent('ChatBox');
+			if (ChatBox && ChatBox.tabCount > 1) {
+				ChatBox.removeTab();
+			}
+		});
+	}
+
 	this.draggable('.titlebar');
 };
 
