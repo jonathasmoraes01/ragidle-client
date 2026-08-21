@@ -52,6 +52,7 @@ import Network from 'Network/NetworkManager.js';
 import PACKET from 'Network/PacketStructure.js';
 import UIManager from 'UI/UIManager.js';
 import GUIComponent from 'UI/GUIComponent.js';
+import buildResumo from './resumoDaDescricao.js';
 import htmlText from './IdleSkills.html?raw';
 import cssText from './IdleSkills.css?raw';
 
@@ -261,23 +262,6 @@ function buildMecanicaRows(skill) {
 		rows.push({ nivel: lvl, texto: texto || '—' });
 	}
 	return rows;
-}
-
-/**
- * First line of `descricao`, used as the summary paragraph, but only when
- * it is NOT itself a "[Nv X]:" per-level line (spec: "Primeira linha da
- * descricao (se começar sem "[Nv") como texto de resumo").
- */
-function buildResumo(skill) {
-	const descricao = skill.descricao || [];
-	if (!descricao.length) {
-		return null;
-	}
-	const first = String(descricao[0] || '').trim();
-	if (/^\[Nv/i.test(first)) {
-		return null;
-	}
-	return first;
 }
 
 /**
