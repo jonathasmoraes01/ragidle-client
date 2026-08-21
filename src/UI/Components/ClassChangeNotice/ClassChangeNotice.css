@@ -62,6 +62,19 @@
 
 .ccn-body {
 	padding: 9px;
+	/*
+	 * O teto e a rolagem sao de D-418, e a razao e concreta: ate ali o aviso
+	 * so descia com **um ou dois** destinos (o 2o grau tem dois ramos no maximo,
+	 * e so o Mago os tem). Com o 1o grau servido, o Aprendiz no teto recebe
+	 * **seis** botoes de uma vez — cada um com duas linhas.
+	 *
+	 * Sem teto isso passa de 350px e, num navegador baixo, o ultimo botao sai
+	 * pela borda de baixo da tela: o jogador veria cinco caminhos e nao saberia
+	 * que ha um sexto. `calc` conta a partir do `top: 96px` do :host mais uma
+	 * folga, entao ele se ajusta sozinho se a janela encolher.
+	 */
+	max-height: calc(100vh - 140px);
+	overflow-y: auto;
 }
 
 .ccn-linha {
