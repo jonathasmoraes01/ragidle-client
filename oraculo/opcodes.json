@@ -4,7 +4,8 @@
 	"fontes": [
 		"src/Network/PacketVersions.js",
 		"src/Network/PacketStructure.js",
-		"src/Network/PacketRegister.js"
+		"src/Network/PacketRegister.js",
+		"src/Network/Packets/packets2021_len_main.js"
 	],
 	"resumo": {
 		"login": {
@@ -14,7 +15,7 @@
 			},
 			"saida": {
 				"total": 19,
-				"semTamanho": 2
+				"semTamanho": 1
 			}
 		},
 		"char": {
@@ -24,253 +25,1754 @@
 			},
 			"saida": {
 				"total": 23,
-				"semTamanho": 1
+				"semTamanho": 0
 			}
 		},
 		"map": {
 			"entrada": {
-				"total": 706,
-				"semTamanho": 16
+				"total": 713,
+				"semTamanho": 0
 			},
 			"saida": {
-				"total": 499,
-				"semTamanho": 55
+				"total": 510,
+				"semTamanho": 0
 			}
 		}
+	},
+	"comprimentosDoCliente": {
+		"arquivo": "src/Network/Packets/packets2021_len_main.js",
+		"declarados": 1603,
+		"preencheram": 86,
+		"divergencias": [
+			{
+				"opcode": "0x0276",
+				"nome": "AC_ACCEPT_LOGIN2",
+				"servidor": "login",
+				"sentido": "entrada",
+				"struct": 51,
+				"cliente": -1
+			},
+			{
+				"opcode": "0x0823",
+				"nome": "AC_OTP_AUTH_ACK",
+				"servidor": "login",
+				"sentido": "entrada",
+				"struct": 6,
+				"cliente": -1
+			},
+			{
+				"opcode": "0x0075",
+				"nome": "ZC_NOTIFY_INITCHAR",
+				"servidor": "map",
+				"sentido": "entrada",
+				"struct": 11,
+				"cliente": -1
+			},
+			{
+				"opcode": "0x007c",
+				"nome": "ZC_NOTIFY_STANDENTRY_NPC",
+				"servidor": "map",
+				"sentido": "entrada",
+				"struct": 42,
+				"cliente": 44
+			},
+			{
+				"opcode": "0x0096",
+				"nome": "ZC_UNK1",
+				"servidor": "map",
+				"sentido": "entrada",
+				"struct": 4,
+				"cliente": -1
+			},
+			{
+				"opcode": "0x00a0",
+				"nome": "ZC_ITEM_PICKUP_ACK",
+				"servidor": "map",
+				"sentido": "entrada",
+				"struct": 23,
+				"cliente": 33
+			},
+			{
+				"opcode": "0x00e9",
+				"nome": "ZC_ADD_EXCHANGE_ITEM",
+				"servidor": "map",
+				"sentido": "entrada",
+				"struct": 19,
+				"cliente": 29
+			},
+			{
+				"opcode": "0x00f4",
+				"nome": "ZC_ADD_ITEM_TO_STORE",
+				"servidor": "map",
+				"sentido": "entrada",
+				"struct": 21,
+				"cliente": 31
+			},
+			{
+				"opcode": "0x010a",
+				"nome": "ZC_MVP_GETTING_ITEM",
+				"servidor": "map",
+				"sentido": "entrada",
+				"struct": 4,
+				"cliente": 6
+			},
+			{
+				"opcode": "0x0124",
+				"nome": "ZC_ADD_ITEM_TO_CART",
+				"servidor": "map",
+				"sentido": "entrada",
+				"struct": 21,
+				"cliente": 31
+			},
+			{
+				"opcode": "0x018f",
+				"nome": "ZC_ACK_REQMAKINGITEM",
+				"servidor": "map",
+				"sentido": "entrada",
+				"struct": 6,
+				"cliente": 8
+			},
+			{
+				"opcode": "0x0191",
+				"nome": "ZC_TALKBOX_CHATCONTENTS",
+				"servidor": "map",
+				"sentido": "entrada",
+				"struct": 86,
+				"cliente": 27
+			},
+			{
+				"opcode": "0x01a3",
+				"nome": "ZC_FEED_PET",
+				"servidor": "map",
+				"sentido": "entrada",
+				"struct": 5,
+				"cliente": 7
+			},
+			{
+				"opcode": "0x01c4",
+				"nome": "ZC_ADD_ITEM_TO_STORE2",
+				"servidor": "map",
+				"sentido": "entrada",
+				"struct": 22,
+				"cliente": 32
+			},
+			{
+				"opcode": "0x01c5",
+				"nome": "ZC_ADD_ITEM_TO_CART2",
+				"servidor": "map",
+				"sentido": "entrada",
+				"struct": 22,
+				"cliente": 32
+			},
+			{
+				"opcode": "0x01d8",
+				"nome": "ZC_NOTIFY_STANDENTRY2",
+				"servidor": "map",
+				"sentido": "entrada",
+				"struct": 54,
+				"cliente": 58
+			},
+			{
+				"opcode": "0x01d9",
+				"nome": "ZC_NOTIFY_NEWENTRY2",
+				"servidor": "map",
+				"sentido": "entrada",
+				"struct": 53,
+				"cliente": 57
+			},
+			{
+				"opcode": "0x01da",
+				"nome": "ZC_NOTIFY_MOVEENTRY2",
+				"servidor": "map",
+				"sentido": "entrada",
+				"struct": 60,
+				"cliente": 64
+			},
+			{
+				"opcode": "0x0206",
+				"nome": "ZC_FRIENDS_STATE",
+				"servidor": "map",
+				"sentido": "entrada",
+				"struct": 11,
+				"cliente": 35
+			},
+			{
+				"opcode": "0x0223",
+				"nome": "ZC_ACK_WEAPONREFINE",
+				"servidor": "map",
+				"sentido": "entrada",
+				"struct": 8,
+				"cliente": 10
+			},
+			{
+				"opcode": "0x022a",
+				"nome": "ZC_NOTIFY_STANDENTRY3",
+				"servidor": "map",
+				"sentido": "entrada",
+				"struct": 58,
+				"cliente": 62
+			},
+			{
+				"opcode": "0x022b",
+				"nome": "ZC_NOTIFY_NEWENTRY3",
+				"servidor": "map",
+				"sentido": "entrada",
+				"struct": 57,
+				"cliente": 61
+			},
+			{
+				"opcode": "0x022c",
+				"nome": "ZC_NOTIFY_MOVEENTRY3",
+				"servidor": "map",
+				"sentido": "entrada",
+				"struct": 64,
+				"cliente": 69
+			},
+			{
+				"opcode": "0x022e",
+				"nome": "ZC_PROPERTY_HOMUN",
+				"servidor": "map",
+				"sentido": "entrada",
+				"struct": 71,
+				"cliente": 73
+			},
+			{
+				"opcode": "0x022f",
+				"nome": "ZC_FEED_MER",
+				"servidor": "map",
+				"sentido": "entrada",
+				"struct": 5,
+				"cliente": 7
+			},
+			{
+				"opcode": "0x0298",
+				"nome": "ZC_CASH_TIME_COUNTER",
+				"servidor": "map",
+				"sentido": "entrada",
+				"struct": 8,
+				"cliente": 10
+			},
+			{
+				"opcode": "0x0299",
+				"nome": "ZC_CASH_ITEM_DELETE",
+				"servidor": "map",
+				"sentido": "entrada",
+				"struct": 6,
+				"cliente": 8
+			},
+			{
+				"opcode": "0x029a",
+				"nome": "ZC_ITEM_PICKUP_ACK2",
+				"servidor": "map",
+				"sentido": "entrada",
+				"struct": 27,
+				"cliente": 37
+			},
+			{
+				"opcode": "0x02b8",
+				"nome": "ZC_ITEM_PICKUP_PARTY",
+				"servidor": "map",
+				"sentido": "entrada",
+				"struct": 22,
+				"cliente": 32
+			},
+			{
+				"opcode": "0x02d4",
+				"nome": "ZC_ITEM_PICKUP_ACK3",
+				"servidor": "map",
+				"sentido": "entrada",
+				"struct": 29,
+				"cliente": 39
+			},
+			{
+				"opcode": "0x02ec",
+				"nome": "ZC_NOTIFY_MOVEENTRY4",
+				"servidor": "map",
+				"sentido": "entrada",
+				"struct": 67,
+				"cliente": 71
+			},
+			{
+				"opcode": "0x02ed",
+				"nome": "ZC_NOTIFY_NEWENTRY4",
+				"servidor": "map",
+				"sentido": "entrada",
+				"struct": 59,
+				"cliente": 63
+			},
+			{
+				"opcode": "0x02ee",
+				"nome": "ZC_NOTIFY_STANDENTRY4",
+				"servidor": "map",
+				"sentido": "entrada",
+				"struct": 60,
+				"cliente": 64
+			},
+			{
+				"opcode": "0x080f",
+				"nome": "ZC_ADD_EXCHANGE_ITEM2",
+				"servidor": "map",
+				"sentido": "entrada",
+				"struct": 20,
+				"cliente": 30
+			},
+			{
+				"opcode": "0x081b",
+				"nome": "ZC_UPDATE_ITEM_FROM_BUYING_STORE",
+				"servidor": "map",
+				"sentido": "entrada",
+				"struct": 10,
+				"cliente": 12
+			},
+			{
+				"opcode": "0x0824",
+				"nome": "ZC_FAILED_TRADE_BUYING_STORE_TO_SELLER",
+				"servidor": "map",
+				"sentido": "entrada",
+				"struct": 6,
+				"cliente": 8
+			},
+			{
+				"opcode": "0x0990",
+				"nome": "ZC_ITEM_PICKUP_ACK5",
+				"servidor": "map",
+				"sentido": "entrada",
+				"struct": 31,
+				"cliente": 41
+			},
+			{
+				"opcode": "0x09f7",
+				"nome": "ZC_PROPERTY_HOMUN2",
+				"servidor": "map",
+				"sentido": "entrada",
+				"struct": 75,
+				"cliente": 77
+			},
+			{
+				"opcode": "0x0a09",
+				"nome": "ZC_ADD_EXCHANGE_ITEM3",
+				"servidor": "map",
+				"sentido": "entrada",
+				"struct": 45,
+				"cliente": 55
+			},
+			{
+				"opcode": "0x0a0c",
+				"nome": "ZC_ITEM_PICKUP_ACK6",
+				"servidor": "map",
+				"sentido": "entrada",
+				"struct": 56,
+				"cliente": 66
+			},
+			{
+				"opcode": "0x0a1a",
+				"nome": "ZC_ACK_OPEN_ROULETTE",
+				"servidor": "map",
+				"sentido": "entrada",
+				"struct": 23,
+				"cliente": 25
+			},
+			{
+				"opcode": "0x0a20",
+				"nome": "ZC_ACK_GENERATE_ROULETTE",
+				"servidor": "map",
+				"sentido": "entrada",
+				"struct": 21,
+				"cliente": 23
+			},
+			{
+				"opcode": "0x0a22",
+				"nome": "ZC_RECV_ROULETTE_ITEM",
+				"servidor": "map",
+				"sentido": "entrada",
+				"struct": 5,
+				"cliente": 7
+			},
+			{
+				"opcode": "0x0b5e",
+				"nome": "ZC_GRADE_ENCHANT_BROADCAST_RESULT",
+				"servidor": "map",
+				"sentido": "entrada",
+				"struct": -1,
+				"cliente": 33
+			},
+			{
+				"opcode": "0x0ba5",
+				"nome": "ZC_HO_PAR_CHANGE2",
+				"servidor": "map",
+				"sentido": "entrada",
+				"struct": 10,
+				"cliente": 12
+			},
+			{
+				"opcode": "0x08c0",
+				"nome": "ZC_ACK_SE_CASH_ITEM_LIST2",
+				"servidor": "map",
+				"sentido": "entrada",
+				"struct": 8,
+				"cliente": -1
+			},
+			{
+				"opcode": "0x0b1a",
+				"nome": "ZC_USESKILL_ACK3",
+				"servidor": "map",
+				"sentido": "entrada",
+				"struct": 32,
+				"cliente": 29
+			},
+			{
+				"opcode": "0x007e",
+				"nome": "CZ_USE_SKILL_TOGROUNDMoreInfo",
+				"servidor": "map",
+				"sentido": "saida",
+				"struct": 105,
+				"cliente": 46
+			},
+			{
+				"opcode": "0x01fd",
+				"nome": "CZ_REQ_ITEMREPAIR",
+				"servidor": "map",
+				"sentido": "saida",
+				"struct": 15,
+				"cliente": 25
+			},
+			{
+				"opcode": "0x083c",
+				"nome": "CZ_SSILIST_ITEM_CLICK",
+				"servidor": "map",
+				"sentido": "saida",
+				"struct": 12,
+				"cliente": 14
+			},
+			{
+				"opcode": "0x0367",
+				"nome": "CZ_REQ_CLOSE_BUYING_STORE",
+				"servidor": "map",
+				"sentido": "saida",
+				"struct": 2,
+				"cliente": 31
+			},
+			{
+				"opcode": "0x0885",
+				"nome": "CZ_ITEMLISTWIN_RES",
+				"servidor": "map",
+				"sentido": "saida",
+				"struct": -1,
+				"cliente": 2
+			},
+			{
+				"opcode": "0x0893",
+				"nome": "CZ_USE_SKILL",
+				"servidor": "map",
+				"sentido": "saida",
+				"struct": 10,
+				"cliente": 2
+			},
+			{
+				"opcode": "0x0897",
+				"nome": "CZ_ENTER",
+				"servidor": "map",
+				"sentido": "saida",
+				"struct": 19,
+				"cliente": 2
+			},
+			{
+				"opcode": "0x08ad",
+				"nome": "CZ_REQNAME_BYGID",
+				"servidor": "map",
+				"sentido": "saida",
+				"struct": 6,
+				"cliente": 2
+			},
+			{
+				"opcode": "0x088a",
+				"nome": "CZ_ITEMLISTWIN_RES",
+				"servidor": "map",
+				"sentido": "saida",
+				"struct": -1,
+				"cliente": 2
+			},
+			{
+				"opcode": "0x0898",
+				"nome": "CZ_REQ_TRADE_BUYING_STORE",
+				"servidor": "map",
+				"sentido": "saida",
+				"struct": -1,
+				"cliente": 2
+			},
+			{
+				"opcode": "0x0281",
+				"nome": "CZ_ITEMLISTWIN_RES",
+				"servidor": "map",
+				"sentido": "saida",
+				"struct": -1,
+				"cliente": 4
+			},
+			{
+				"opcode": "0x088d",
+				"nome": "CZ_MOVE_ITEM_FROM_STORE_TO_BODY",
+				"servidor": "map",
+				"sentido": "saida",
+				"struct": 8,
+				"cliente": 2
+			},
+			{
+				"opcode": "0x08aa",
+				"nome": "CZ_ADD_FRIENDS",
+				"servidor": "map",
+				"sentido": "saida",
+				"struct": 26,
+				"cliente": 2
+			},
+			{
+				"opcode": "0x08a5",
+				"nome": "CZ_REQ_OPEN_BUYING_STORE",
+				"servidor": "map",
+				"sentido": "saida",
+				"struct": -1,
+				"cliente": 2
+			},
+			{
+				"opcode": "0x089b",
+				"nome": "CZ_SSILIST_ITEM_CLICK",
+				"servidor": "map",
+				"sentido": "saida",
+				"struct": 12,
+				"cliente": 2
+			},
+			{
+				"opcode": "0x08a1",
+				"nome": "CZ_SSILIST_ITEM_CLICK",
+				"servidor": "map",
+				"sentido": "saida",
+				"struct": 12,
+				"cliente": 2
+			},
+			{
+				"opcode": "0x089e",
+				"nome": "CZ_REQUEST_MOVE",
+				"servidor": "map",
+				"sentido": "saida",
+				"struct": 5,
+				"cliente": 2
+			},
+			{
+				"opcode": "0x08ab",
+				"nome": "CZ_CHANGE_DIRECTION",
+				"servidor": "map",
+				"sentido": "saida",
+				"struct": 5,
+				"cliente": 2
+			},
+			{
+				"opcode": "0x088b",
+				"nome": "CZ_MOVE_ITEM_FROM_BODY_TO_STORE",
+				"servidor": "map",
+				"sentido": "saida",
+				"struct": 8,
+				"cliente": 2
+			},
+			{
+				"opcode": "0x08a2",
+				"nome": "CZ_PARTY_JOIN_REQ",
+				"servidor": "map",
+				"sentido": "saida",
+				"struct": 26,
+				"cliente": 2
+			},
+			{
+				"opcode": "0x086a",
+				"nome": "CZ_PARTY_BOOKING_REQ_REGISTER",
+				"servidor": "map",
+				"sentido": "saida",
+				"struct": 18,
+				"cliente": 2
+			},
+			{
+				"opcode": "0x0887",
+				"nome": "CZ_REQNAME_BYGID",
+				"servidor": "map",
+				"sentido": "saida",
+				"struct": 6,
+				"cliente": 2
+			},
+			{
+				"opcode": "0x0890",
+				"nome": "CZ_MOVE_ITEM_FROM_STORE_TO_BODY",
+				"servidor": "map",
+				"sentido": "saida",
+				"struct": 8,
+				"cliente": 2
+			},
+			{
+				"opcode": "0x0865",
+				"nome": "CZ_REQ_OPEN_BUYING_STORE",
+				"servidor": "map",
+				"sentido": "saida",
+				"struct": -1,
+				"cliente": 2
+			},
+			{
+				"opcode": "0x093b",
+				"nome": "CZ_USE_SKILL",
+				"servidor": "map",
+				"sentido": "saida",
+				"struct": 10,
+				"cliente": 2
+			},
+			{
+				"opcode": "0x0963",
+				"nome": "CZ_REQUEST_ACT",
+				"servidor": "map",
+				"sentido": "saida",
+				"struct": 7,
+				"cliente": 2
+			},
+			{
+				"opcode": "0x096a",
+				"nome": "CZ_REQUEST_ACT",
+				"servidor": "map",
+				"sentido": "saida",
+				"struct": 7,
+				"cliente": 2
+			},
+			{
+				"opcode": "0x0863",
+				"nome": "CZ_REQUEST_MOVE",
+				"servidor": "map",
+				"sentido": "saida",
+				"struct": 5,
+				"cliente": 2
+			},
+			{
+				"opcode": "0x0861",
+				"nome": "CZ_REQ_TRADE_BUYING_STORE",
+				"servidor": "map",
+				"sentido": "saida",
+				"struct": -1,
+				"cliente": 2
+			},
+			{
+				"opcode": "0x0889",
+				"nome": "CZ_MOVE_ITEM_FROM_STORE_TO_BODY",
+				"servidor": "map",
+				"sentido": "saida",
+				"struct": 8,
+				"cliente": 2
+			},
+			{
+				"opcode": "0x0870",
+				"nome": "CZ_ITEMLISTWIN_RES",
+				"servidor": "map",
+				"sentido": "saida",
+				"struct": -1,
+				"cliente": 2
+			},
+			{
+				"opcode": "0x0926",
+				"nome": "CZ_ITEM_PICKUP",
+				"servidor": "map",
+				"sentido": "saida",
+				"struct": 6,
+				"cliente": 2
+			},
+			{
+				"opcode": "0x0884",
+				"nome": "CZ_ITEMLISTWIN_RES",
+				"servidor": "map",
+				"sentido": "saida",
+				"struct": -1,
+				"cliente": 2
+			},
+			{
+				"opcode": "0x089c",
+				"nome": "CZ_COMMAND_MER",
+				"servidor": "map",
+				"sentido": "saida",
+				"struct": 5,
+				"cliente": 2
+			},
+			{
+				"opcode": "0x0961",
+				"nome": "CZ_COMMAND_MER",
+				"servidor": "map",
+				"sentido": "saida",
+				"struct": 5,
+				"cliente": 2
+			},
+			{
+				"opcode": "0x091c",
+				"nome": "CZ_SSILIST_ITEM_CLICK",
+				"servidor": "map",
+				"sentido": "saida",
+				"struct": 12,
+				"cliente": 2
+			},
+			{
+				"opcode": "0x094b",
+				"nome": "CZ_USE_SKILL",
+				"servidor": "map",
+				"sentido": "saida",
+				"struct": 10,
+				"cliente": 2
+			},
+			{
+				"opcode": "0x0945",
+				"nome": "CZ_ITEMLISTWIN_RES",
+				"servidor": "map",
+				"sentido": "saida",
+				"struct": -1,
+				"cliente": 2
+			},
+			{
+				"opcode": "0x0886",
+				"nome": "CZ_ADD_FRIENDS",
+				"servidor": "map",
+				"sentido": "saida",
+				"struct": 26,
+				"cliente": 2
+			},
+			{
+				"opcode": "0x0871",
+				"nome": "CZ_ITEM_THROW",
+				"servidor": "map",
+				"sentido": "saida",
+				"struct": 6,
+				"cliente": 2
+			},
+			{
+				"opcode": "0x0938",
+				"nome": "CZ_USE_SKILL",
+				"servidor": "map",
+				"sentido": "saida",
+				"struct": 10,
+				"cliente": 2
+			},
+			{
+				"opcode": "0x0891",
+				"nome": "CZ_ITEM_PICKUP",
+				"servidor": "map",
+				"sentido": "saida",
+				"struct": 6,
+				"cliente": 2
+			},
+			{
+				"opcode": "0x086c",
+				"nome": "CZ_REQUEST_TIME",
+				"servidor": "map",
+				"sentido": "saida",
+				"struct": 6,
+				"cliente": 2
+			},
+			{
+				"opcode": "0x08a8",
+				"nome": "CZ_MOVE_ITEM_FROM_STORE_TO_BODY",
+				"servidor": "map",
+				"sentido": "saida",
+				"struct": 8,
+				"cliente": 2
+			},
+			{
+				"opcode": "0x085a",
+				"nome": "CZ_SSILIST_ITEM_CLICK",
+				"servidor": "map",
+				"sentido": "saida",
+				"struct": 12,
+				"cliente": 2
+			},
+			{
+				"opcode": "0x0862",
+				"nome": "CZ_REQ_CLICK_TO_BUYING_STORE",
+				"servidor": "map",
+				"sentido": "saida",
+				"struct": 6,
+				"cliente": 2
+			},
+			{
+				"opcode": "0x089f",
+				"nome": "CZ_REQNAME_BYGID",
+				"servidor": "map",
+				"sentido": "saida",
+				"struct": 6,
+				"cliente": 2
+			},
+			{
+				"opcode": "0x08a0",
+				"nome": "CZ_MOVE_ITEM_FROM_BODY_TO_STORE",
+				"servidor": "map",
+				"sentido": "saida",
+				"struct": 8,
+				"cliente": 2
+			},
+			{
+				"opcode": "0x0953",
+				"nome": "CZ_MOVE_ITEM_FROM_STORE_TO_BODY",
+				"servidor": "map",
+				"sentido": "saida",
+				"struct": 8,
+				"cliente": 2
+			},
+			{
+				"opcode": "0x0960",
+				"nome": "CZ_SEARCH_STORE_INFO",
+				"servidor": "map",
+				"sentido": "saida",
+				"struct": -1,
+				"cliente": 2
+			},
+			{
+				"opcode": "0x0879",
+				"nome": "CZ_MOVE_ITEM_FROM_BODY_TO_STORE",
+				"servidor": "map",
+				"sentido": "saida",
+				"struct": 8,
+				"cliente": 2
+			},
+			{
+				"opcode": "0x0940",
+				"nome": "CZ_REQUEST_TIME",
+				"servidor": "map",
+				"sentido": "saida",
+				"struct": 6,
+				"cliente": 2
+			},
+			{
+				"opcode": "0x0881",
+				"nome": "CZ_PARTY_BOOKING_REQ_REGISTER",
+				"servidor": "map",
+				"sentido": "saida",
+				"struct": 18,
+				"cliente": 2
+			},
+			{
+				"opcode": "0x0933",
+				"nome": "CZ_REQUEST_ACT",
+				"servidor": "map",
+				"sentido": "saida",
+				"struct": 7,
+				"cliente": 2
+			},
+			{
+				"opcode": "0x08ac",
+				"nome": "CZ_ITEMLISTWIN_RES",
+				"servidor": "map",
+				"sentido": "saida",
+				"struct": -1,
+				"cliente": 2
+			},
+			{
+				"opcode": "0x0874",
+				"nome": "CZ_REQUEST_TIME",
+				"servidor": "map",
+				"sentido": "saida",
+				"struct": 6,
+				"cliente": 2
+			},
+			{
+				"opcode": "0x0959",
+				"nome": "CZ_MOVE_ITEM_FROM_BODY_TO_STORE",
+				"servidor": "map",
+				"sentido": "saida",
+				"struct": 8,
+				"cliente": 2
+			},
+			{
+				"opcode": "0x094c",
+				"nome": "CZ_SEARCH_STORE_INFO",
+				"servidor": "map",
+				"sentido": "saida",
+				"struct": -1,
+				"cliente": 2
+			},
+			{
+				"opcode": "0x092e",
+				"nome": "CZ_CHANGE_DIRECTION",
+				"servidor": "map",
+				"sentido": "saida",
+				"struct": 5,
+				"cliente": 2
+			},
+			{
+				"opcode": "0x094e",
+				"nome": "CZ_ITEM_PICKUP",
+				"servidor": "map",
+				"sentido": "saida",
+				"struct": 6,
+				"cliente": 2
+			},
+			{
+				"opcode": "0x0922",
+				"nome": "CZ_REQUEST_MOVE",
+				"servidor": "map",
+				"sentido": "saida",
+				"struct": 5,
+				"cliente": 2
+			},
+			{
+				"opcode": "0x085d",
+				"nome": "CZ_SSILIST_ITEM_CLICK",
+				"servidor": "map",
+				"sentido": "saida",
+				"struct": 12,
+				"cliente": 2
+			},
+			{
+				"opcode": "0x0868",
+				"nome": "CZ_MOVE_ITEM_FROM_BODY_TO_STORE",
+				"servidor": "map",
+				"sentido": "saida",
+				"struct": 8,
+				"cliente": 2
+			},
+			{
+				"opcode": "0x0888",
+				"nome": "CZ_ENTER",
+				"servidor": "map",
+				"sentido": "saida",
+				"struct": 19,
+				"cliente": 2
+			},
+			{
+				"opcode": "0x086d",
+				"nome": "CZ_SSILIST_ITEM_CLICK",
+				"servidor": "map",
+				"sentido": "saida",
+				"struct": 12,
+				"cliente": 2
+			},
+			{
+				"opcode": "0x086f",
+				"nome": "CZ_REQ_OPEN_BUYING_STORE",
+				"servidor": "map",
+				"sentido": "saida",
+				"struct": -1,
+				"cliente": 2
+			},
+			{
+				"opcode": "0x093f",
+				"nome": "CZ_USE_SKILL_TOGROUND",
+				"servidor": "map",
+				"sentido": "saida",
+				"struct": 10,
+				"cliente": 2
+			},
+			{
+				"opcode": "0x0947",
+				"nome": "CZ_REQUEST_MOVE",
+				"servidor": "map",
+				"sentido": "saida",
+				"struct": 5,
+				"cliente": 2
+			},
+			{
+				"opcode": "0x092d",
+				"nome": "CZ_PARTY_BOOKING_REQ_REGISTER",
+				"servidor": "map",
+				"sentido": "saida",
+				"struct": 18,
+				"cliente": 2
+			},
+			{
+				"opcode": "0x093e",
+				"nome": "CZ_REQUEST_ACT",
+				"servidor": "map",
+				"sentido": "saida",
+				"struct": 7,
+				"cliente": 2
+			},
+			{
+				"opcode": "0x0943",
+				"nome": "CZ_PARTY_BOOKING_REQ_REGISTER",
+				"servidor": "map",
+				"sentido": "saida",
+				"struct": 18,
+				"cliente": 2
+			},
+			{
+				"opcode": "0x0944",
+				"nome": "CZ_COMMAND_MER",
+				"servidor": "map",
+				"sentido": "saida",
+				"struct": 5,
+				"cliente": 2
+			},
+			{
+				"opcode": "0x0962",
+				"nome": "CZ_COMMAND_MER",
+				"servidor": "map",
+				"sentido": "saida",
+				"struct": 5,
+				"cliente": 2
+			},
+			{
+				"opcode": "0x086e",
+				"nome": "CZ_PARTY_BOOKING_REQ_REGISTER",
+				"servidor": "map",
+				"sentido": "saida",
+				"struct": 18,
+				"cliente": 2
+			},
+			{
+				"opcode": "0x087e",
+				"nome": "CZ_MOVE_ITEM_FROM_STORE_TO_BODY",
+				"servidor": "map",
+				"sentido": "saida",
+				"struct": 8,
+				"cliente": 2
+			},
+			{
+				"opcode": "0x08a3",
+				"nome": "CZ_ENTER",
+				"servidor": "map",
+				"sentido": "saida",
+				"struct": 19,
+				"cliente": 2
+			},
+			{
+				"opcode": "0x0925",
+				"nome": "CZ_SSILIST_ITEM_CLICK",
+				"servidor": "map",
+				"sentido": "saida",
+				"struct": 12,
+				"cliente": 2
+			},
+			{
+				"opcode": "0x0950",
+				"nome": "CZ_ACK_STORE_PASSWORD",
+				"servidor": "map",
+				"sentido": "saida",
+				"struct": 36,
+				"cliente": 2
+			},
+			{
+				"opcode": "0x0952",
+				"nome": "CZ_CHANGE_DIRECTION",
+				"servidor": "map",
+				"sentido": "saida",
+				"struct": 5,
+				"cliente": 2
+			},
+			{
+				"opcode": "0x095c",
+				"nome": "CZ_REQNAME_BYGID",
+				"servidor": "map",
+				"sentido": "saida",
+				"struct": 6,
+				"cliente": 2
+			},
+			{
+				"opcode": "0x095e",
+				"nome": "CZ_SSILIST_ITEM_CLICK",
+				"servidor": "map",
+				"sentido": "saida",
+				"struct": 12,
+				"cliente": 2
+			},
+			{
+				"opcode": "0x095b",
+				"nome": "CZ_COMMAND_MER",
+				"servidor": "map",
+				"sentido": "saida",
+				"struct": 5,
+				"cliente": 2
+			},
+			{
+				"opcode": "0x0869",
+				"nome": "CZ_PARTY_BOOKING_REQ_REGISTER",
+				"servidor": "map",
+				"sentido": "saida",
+				"struct": 18,
+				"cliente": 2
+			},
+			{
+				"opcode": "0x0876",
+				"nome": "CZ_COMMAND_MER",
+				"servidor": "map",
+				"sentido": "saida",
+				"struct": 5,
+				"cliente": 2
+			},
+			{
+				"opcode": "0x0877",
+				"nome": "CZ_REQUEST_MOVE",
+				"servidor": "map",
+				"sentido": "saida",
+				"struct": 5,
+				"cliente": 2
+			},
+			{
+				"opcode": "0x0892",
+				"nome": "CZ_ITEM_PICKUP",
+				"servidor": "map",
+				"sentido": "saida",
+				"struct": 6,
+				"cliente": 2
+			},
+			{
+				"opcode": "0x0895",
+				"nome": "CZ_ITEMLISTWIN_RES",
+				"servidor": "map",
+				"sentido": "saida",
+				"struct": -1,
+				"cliente": 2
+			},
+			{
+				"opcode": "0x0917",
+				"nome": "CZ_USE_SKILL_TOGROUND",
+				"servidor": "map",
+				"sentido": "saida",
+				"struct": 10,
+				"cliente": 2
+			},
+			{
+				"opcode": "0x0918",
+				"nome": "CZ_PARTY_BOOKING_REQ_REGISTER",
+				"servidor": "map",
+				"sentido": "saida",
+				"struct": 18,
+				"cliente": 2
+			},
+			{
+				"opcode": "0x0919",
+				"nome": "CZ_ADD_FRIENDS",
+				"servidor": "map",
+				"sentido": "saida",
+				"struct": 26,
+				"cliente": 2
+			},
+			{
+				"opcode": "0x0937",
+				"nome": "CZ_REQ_TRADE_BUYING_STORE",
+				"servidor": "map",
+				"sentido": "saida",
+				"struct": -1,
+				"cliente": 2
+			},
+			{
+				"opcode": "0x0941",
+				"nome": "CZ_REQNAME",
+				"servidor": "map",
+				"sentido": "saida",
+				"struct": 6,
+				"cliente": 2
+			},
+			{
+				"opcode": "0x0951",
+				"nome": "CZ_COMMAND_MER",
+				"servidor": "map",
+				"sentido": "saida",
+				"struct": 5,
+				"cliente": 2
+			},
+			{
+				"opcode": "0x0956",
+				"nome": "CZ_CHANGE_DIRECTION",
+				"servidor": "map",
+				"sentido": "saida",
+				"struct": 5,
+				"cliente": 2
+			},
+			{
+				"opcode": "0x0957",
+				"nome": "CZ_REQNAME_BYGID",
+				"servidor": "map",
+				"sentido": "saida",
+				"struct": 6,
+				"cliente": 2
+			},
+			{
+				"opcode": "0x0958",
+				"nome": "CZ_CHANGE_DIRECTION",
+				"servidor": "map",
+				"sentido": "saida",
+				"struct": 5,
+				"cliente": 2
+			},
+			{
+				"opcode": "0x0964",
+				"nome": "CZ_SSILIST_ITEM_CLICK",
+				"servidor": "map",
+				"sentido": "saida",
+				"struct": 12,
+				"cliente": 2
+			},
+			{
+				"opcode": "0x0883",
+				"nome": "CZ_REQ_TRADE_BUYING_STORE",
+				"servidor": "map",
+				"sentido": "saida",
+				"struct": -1,
+				"cliente": 2
+			},
+			{
+				"opcode": "0x093a",
+				"nome": "CZ_PARTY_JOIN_REQ",
+				"servidor": "map",
+				"sentido": "saida",
+				"struct": 26,
+				"cliente": 2
+			},
+			{
+				"opcode": "0x0864",
+				"nome": "CZ_SEARCH_STORE_INFO",
+				"servidor": "map",
+				"sentido": "saida",
+				"struct": -1,
+				"cliente": 2
+			},
+			{
+				"opcode": "0x0930",
+				"nome": "CZ_ITEMLISTWIN_RES",
+				"servidor": "map",
+				"sentido": "saida",
+				"struct": -1,
+				"cliente": 2
+			},
+			{
+				"opcode": "0x0932",
+				"nome": "CZ_ITEM_PICKUP",
+				"servidor": "map",
+				"sentido": "saida",
+				"struct": 6,
+				"cliente": 2
+			},
+			{
+				"opcode": "0x0942",
+				"nome": "CZ_COMMAND_MER",
+				"servidor": "map",
+				"sentido": "saida",
+				"struct": 5,
+				"cliente": 2
+			},
+			{
+				"opcode": "0x088c",
+				"nome": "CZ_SEARCH_STORE_INFO",
+				"servidor": "map",
+				"sentido": "saida",
+				"struct": -1,
+				"cliente": 2
+			},
+			{
+				"opcode": "0x0894",
+				"nome": "CZ_ENTER",
+				"servidor": "map",
+				"sentido": "saida",
+				"struct": 19,
+				"cliente": 2
+			},
+			{
+				"opcode": "0x0921",
+				"nome": "CZ_REQNAME_BYGID",
+				"servidor": "map",
+				"sentido": "saida",
+				"struct": 6,
+				"cliente": 2
+			},
+			{
+				"opcode": "0x094d",
+				"nome": "CZ_USE_SKILL_TOGROUND",
+				"servidor": "map",
+				"sentido": "saida",
+				"struct": 10,
+				"cliente": 2
+			},
+			{
+				"opcode": "0x0873",
+				"nome": "CZ_REQNAME",
+				"servidor": "map",
+				"sentido": "saida",
+				"struct": 6,
+				"cliente": 2
+			},
+			{
+				"opcode": "0x0880",
+				"nome": "CZ_ITEMLISTWIN_RES",
+				"servidor": "map",
+				"sentido": "saida",
+				"struct": -1,
+				"cliente": 2
+			},
+			{
+				"opcode": "0x086b",
+				"nome": "CZ_SEARCH_STORE_INFO",
+				"servidor": "map",
+				"sentido": "saida",
+				"struct": -1,
+				"cliente": 2
+			},
+			{
+				"opcode": "0x0882",
+				"nome": "CZ_USE_SKILL",
+				"servidor": "map",
+				"sentido": "saida",
+				"struct": 10,
+				"cliente": 2
+			},
+			{
+				"opcode": "0x091d",
+				"nome": "CZ_REQUEST_ACT",
+				"servidor": "map",
+				"sentido": "saida",
+				"struct": 7,
+				"cliente": 2
+			},
+			{
+				"opcode": "0x091e",
+				"nome": "CZ_MOVE_ITEM_FROM_STORE_TO_BODY",
+				"servidor": "map",
+				"sentido": "saida",
+				"struct": 8,
+				"cliente": 2
+			},
+			{
+				"opcode": "0x092f",
+				"nome": "CZ_PARTY_BOOKING_REQ_REGISTER",
+				"servidor": "map",
+				"sentido": "saida",
+				"struct": 18,
+				"cliente": 2
+			},
+			{
+				"opcode": "0x0967",
+				"nome": "CZ_USE_SKILL_TOGROUND",
+				"servidor": "map",
+				"sentido": "saida",
+				"struct": 10,
+				"cliente": 2
+			},
+			{
+				"opcode": "0x08a4",
+				"nome": "CZ_MOVE_ITEM_FROM_STORE_TO_BODY",
+				"servidor": "map",
+				"sentido": "saida",
+				"struct": 8,
+				"cliente": 2
+			},
+			{
+				"opcode": "0x0878",
+				"nome": "CZ_CHANGE_DIRECTION",
+				"servidor": "map",
+				"sentido": "saida",
+				"struct": 5,
+				"cliente": 2
+			},
+			{
+				"opcode": "0x087d",
+				"nome": "CZ_REQUEST_MOVE",
+				"servidor": "map",
+				"sentido": "saida",
+				"struct": 5,
+				"cliente": 2
+			},
+			{
+				"opcode": "0x0896",
+				"nome": "CZ_SSILIST_ITEM_CLICK",
+				"servidor": "map",
+				"sentido": "saida",
+				"struct": 12,
+				"cliente": 2
+			},
+			{
+				"opcode": "0x091a",
+				"nome": "CZ_CHANGE_DIRECTION",
+				"servidor": "map",
+				"sentido": "saida",
+				"struct": 5,
+				"cliente": 2
+			},
+			{
+				"opcode": "0x0955",
+				"nome": "CZ_MOVE_ITEM_FROM_BODY_TO_STORE",
+				"servidor": "map",
+				"sentido": "saida",
+				"struct": 8,
+				"cliente": 2
+			},
+			{
+				"opcode": "0x087c",
+				"nome": "CZ_ITEMLISTWIN_RES",
+				"servidor": "map",
+				"sentido": "saida",
+				"struct": -1,
+				"cliente": 2
+			},
+			{
+				"opcode": "0x0946",
+				"nome": "CZ_ITEMLISTWIN_RES",
+				"servidor": "map",
+				"sentido": "saida",
+				"struct": -1,
+				"cliente": 2
+			},
+			{
+				"opcode": "0x0875",
+				"nome": "CZ_MOVE_ITEM_FROM_STORE_TO_BODY",
+				"servidor": "map",
+				"sentido": "saida",
+				"struct": 8,
+				"cliente": 2
+			},
+			{
+				"opcode": "0x089a",
+				"nome": "CZ_MOVE_ITEM_FROM_STORE_TO_BODY",
+				"servidor": "map",
+				"sentido": "saida",
+				"struct": 8,
+				"cliente": 2
+			},
+			{
+				"opcode": "0x091f",
+				"nome": "CZ_CHANGE_DIRECTION",
+				"servidor": "map",
+				"sentido": "saida",
+				"struct": 5,
+				"cliente": 2
+			},
+			{
+				"opcode": "0x0927",
+				"nome": "CZ_PARTY_BOOKING_REQ_REGISTER",
+				"servidor": "map",
+				"sentido": "saida",
+				"struct": 18,
+				"cliente": 2
+			},
+			{
+				"opcode": "0x0968",
+				"nome": "CZ_REQ_OPEN_BUYING_STORE",
+				"servidor": "map",
+				"sentido": "saida",
+				"struct": -1,
+				"cliente": 2
+			},
+			{
+				"opcode": "0x0966",
+				"nome": "CZ_ENTER",
+				"servidor": "map",
+				"sentido": "saida",
+				"struct": 19,
+				"cliente": 2
+			},
+			{
+				"opcode": "0x0867",
+				"nome": "CZ_SEARCH_STORE_INFO",
+				"servidor": "map",
+				"sentido": "saida",
+				"struct": -1,
+				"cliente": 2
+			},
+			{
+				"opcode": "0x0948",
+				"nome": "CZ_PARTY_JOIN_REQ",
+				"servidor": "map",
+				"sentido": "saida",
+				"struct": 26,
+				"cliente": 2
+			},
+			{
+				"opcode": "0x094f",
+				"nome": "CZ_PARTY_BOOKING_REQ_REGISTER",
+				"servidor": "map",
+				"sentido": "saida",
+				"struct": 18,
+				"cliente": 2
+			},
+			{
+				"opcode": "0x087b",
+				"nome": "CZ_REQ_CLICK_TO_BUYING_STORE",
+				"servidor": "map",
+				"sentido": "saida",
+				"struct": 6,
+				"cliente": 2
+			},
+			{
+				"opcode": "0x0928",
+				"nome": "CZ_ITEMLISTWIN_RES",
+				"servidor": "map",
+				"sentido": "saida",
+				"struct": -1,
+				"cliente": 2
+			},
+			{
+				"opcode": "0x092c",
+				"nome": "CZ_COMMAND_MER",
+				"servidor": "map",
+				"sentido": "saida",
+				"struct": 5,
+				"cliente": 2
+			},
+			{
+				"opcode": "0x0954",
+				"nome": "CZ_ITEM_PICKUP",
+				"servidor": "map",
+				"sentido": "saida",
+				"struct": 6,
+				"cliente": 2
+			},
+			{
+				"opcode": "0x0969",
+				"nome": "CZ_REQUEST_ACT",
+				"servidor": "map",
+				"sentido": "saida",
+				"struct": 7,
+				"cliente": 2
+			},
+			{
+				"opcode": "0x085e",
+				"nome": "CZ_REQ_OPEN_BUYING_STORE",
+				"servidor": "map",
+				"sentido": "saida",
+				"struct": -1,
+				"cliente": 2
+			},
+			{
+				"opcode": "0x088f",
+				"nome": "CZ_REQNAME_BYGID",
+				"servidor": "map",
+				"sentido": "saida",
+				"struct": 6,
+				"cliente": 2
+			},
+			{
+				"opcode": "0x091b",
+				"nome": "CZ_ITEM_PICKUP",
+				"servidor": "map",
+				"sentido": "saida",
+				"struct": 6,
+				"cliente": 2
+			},
+			{
+				"opcode": "0x0924",
+				"nome": "CZ_USE_SKILL_TOGROUND",
+				"servidor": "map",
+				"sentido": "saida",
+				"struct": 10,
+				"cliente": 2
+			},
+			{
+				"opcode": "0x0939",
+				"nome": "CZ_ACK_STORE_PASSWORD",
+				"servidor": "map",
+				"sentido": "saida",
+				"struct": 36,
+				"cliente": 2
+			},
+			{
+				"opcode": "0x0949",
+				"nome": "CZ_ENTER",
+				"servidor": "map",
+				"sentido": "saida",
+				"struct": 19,
+				"cliente": 2
+			},
+			{
+				"opcode": "0x095f",
+				"nome": "CZ_ITEM_THROW",
+				"servidor": "map",
+				"sentido": "saida",
+				"struct": 6,
+				"cliente": 2
+			},
+			{
+				"opcode": "0x0923",
+				"nome": "CZ_MOVE_ITEM_FROM_BODY_TO_STORE",
+				"servidor": "map",
+				"sentido": "saida",
+				"struct": 8,
+				"cliente": 2
+			},
+			{
+				"opcode": "0x087a",
+				"nome": "CZ_PARTY_JOIN_REQ",
+				"servidor": "map",
+				"sentido": "saida",
+				"struct": 26,
+				"cliente": 2
+			},
+			{
+				"opcode": "0x087f",
+				"nome": "CZ_ACK_STORE_PASSWORD",
+				"servidor": "map",
+				"sentido": "saida",
+				"struct": 36,
+				"cliente": 2
+			},
+			{
+				"opcode": "0x0920",
+				"nome": "CZ_MOVE_ITEM_FROM_BODY_TO_STORE",
+				"servidor": "map",
+				"sentido": "saida",
+				"struct": 8,
+				"cliente": 2
+			},
+			{
+				"opcode": "0x0934",
+				"nome": "CZ_ACK_STORE_PASSWORD",
+				"servidor": "map",
+				"sentido": "saida",
+				"struct": 36,
+				"cliente": 2
+			},
+			{
+				"opcode": "0x095a",
+				"nome": "CZ_ITEMLISTWIN_RES",
+				"servidor": "map",
+				"sentido": "saida",
+				"struct": -1,
+				"cliente": 2
+			},
+			{
+				"opcode": "0x0860",
+				"nome": "CZ_ENTER",
+				"servidor": "map",
+				"sentido": "saida",
+				"struct": 19,
+				"cliente": 2
+			},
+			{
+				"opcode": "0x085c",
+				"nome": "CZ_USE_SKILL",
+				"servidor": "map",
+				"sentido": "saida",
+				"struct": 10,
+				"cliente": 2
+			},
+			{
+				"opcode": "0x0872",
+				"nome": "CZ_PARTY_BOOKING_REQ_REGISTER",
+				"servidor": "map",
+				"sentido": "saida",
+				"struct": 18,
+				"cliente": 2
+			},
+			{
+				"opcode": "0x093c",
+				"nome": "CZ_REQNAME",
+				"servidor": "map",
+				"sentido": "saida",
+				"struct": 6,
+				"cliente": 2
+			},
+			{
+				"opcode": "0x085f",
+				"nome": "CZ_ACK_STORE_PASSWORD",
+				"servidor": "map",
+				"sentido": "saida",
+				"struct": 36,
+				"cliente": 2
+			},
+			{
+				"opcode": "0x092a",
+				"nome": "CZ_ITEM_PICKUP",
+				"servidor": "map",
+				"sentido": "saida",
+				"struct": 6,
+				"cliente": 2
+			},
+			{
+				"opcode": "0x085b",
+				"nome": "CZ_REQNAME",
+				"servidor": "map",
+				"sentido": "saida",
+				"struct": 6,
+				"cliente": 2
+			},
+			{
+				"opcode": "0x0866",
+				"nome": "CZ_REQ_OPEN_BUYING_STORE",
+				"servidor": "map",
+				"sentido": "saida",
+				"struct": -1,
+				"cliente": 2
+			},
+			{
+				"opcode": "0x089d",
+				"nome": "CZ_REQUEST_TIME",
+				"servidor": "map",
+				"sentido": "saida",
+				"struct": 6,
+				"cliente": 2
+			},
+			{
+				"opcode": "0x0965",
+				"nome": "CZ_ITEM_THROW",
+				"servidor": "map",
+				"sentido": "saida",
+				"struct": 6,
+				"cliente": 2
+			},
+			{
+				"opcode": "0x095d",
+				"nome": "CZ_USE_SKILL_TOGROUND",
+				"servidor": "map",
+				"sentido": "saida",
+				"struct": 10,
+				"cliente": 2
+			},
+			{
+				"opcode": "0x0935",
+				"nome": "CZ_ITEM_PICKUP",
+				"servidor": "map",
+				"sentido": "saida",
+				"struct": 6,
+				"cliente": 2
+			},
+			{
+				"opcode": "0x092b",
+				"nome": "CZ_SEARCH_STORE_INFO",
+				"servidor": "map",
+				"sentido": "saida",
+				"struct": -1,
+				"cliente": 2
+			},
+			{
+				"opcode": "0x0af4",
+				"nome": "CZ_USE_SKILL_TOGROUND3",
+				"servidor": "map",
+				"sentido": "saida",
+				"struct": 12,
+				"cliente": 11
+			},
+			{
+				"opcode": "0x01ae",
+				"nome": "CZ_REQ_MAKINGARROW",
+				"servidor": "map",
+				"sentido": "saida",
+				"struct": 4,
+				"cliente": 6
+			},
+			{
+				"opcode": "0x0445",
+				"nome": "CZ_SIMPLE_BUY_CASH_POINT_ITEM",
+				"servidor": "map",
+				"sentido": "saida",
+				"struct": 6,
+				"cliente": 12
+			},
+			{
+				"opcode": "0x07f0",
+				"nome": "CZ_REQ_BATTLE_STATE_MONITOR",
+				"servidor": "map",
+				"sentido": "saida",
+				"struct": 8,
+				"cliente": 6
+			},
+			{
+				"opcode": "0x0064",
+				"nome": "CZ_REQ_OPEN_WRITE_MAIL",
+				"servidor": "map",
+				"sentido": "saida",
+				"struct": 26,
+				"cliente": 55
+			}
+		]
 	},
 	"nomesComMaisDeUmTamanho": [],
 	"rathena": {
 		"arquivo": "rathena/src/map/clif_packetdb.hpp",
-		"lido": true,
-		"declarados": 551,
-		"preencheram": 5,
-		"conflitos": [
-			{
-				"opcode": "0x0084",
-				"de": 2,
-				"para": -1
-			},
-			{
-				"opcode": "0x0084",
-				"de": -1,
-				"para": 2
-			},
-			{
-				"opcode": "0x0066",
-				"de": 6,
-				"para": 3
-			},
-			{
-				"opcode": "0x0070",
-				"de": 6,
-				"para": 3
-			},
-			{
-				"opcode": "0x022e",
-				"de": 69,
-				"para": 71
-			},
-			{
-				"opcode": "0x0216",
-				"de": 6,
-				"para": 2
-			},
-			{
-				"opcode": "0x0216",
-				"de": 2,
-				"para": 6
-			},
-			{
-				"opcode": "0x0216",
-				"de": 6,
-				"para": -1
-			},
-			{
-				"opcode": "0x0216",
-				"de": -1,
-				"para": 6
-			},
-			{
-				"opcode": "0x0245",
-				"de": 7,
-				"para": 3
-			},
-			{
-				"opcode": "0x0251",
-				"de": 2,
-				"para": 4
-			},
-			{
-				"opcode": "0x0240",
-				"de": 8,
-				"para": -1
-			},
-			{
-				"opcode": "0x0256",
-				"de": -1,
-				"para": 5
-			},
-			{
-				"opcode": "0x020e",
-				"de": 24,
-				"para": 32
-			},
-			{
-				"opcode": "0x007a",
-				"de": 58,
-				"para": 6
-			},
-			{
-				"opcode": "0x0251",
-				"de": 4,
-				"para": 32
-			},
-			{
-				"opcode": "0x007a",
-				"de": 6,
-				"para": 58
-			},
-			{
-				"opcode": "0x0271",
-				"de": 38,
-				"para": 40
-			},
-			{
-				"opcode": "0x006d",
-				"de": 108,
-				"para": 110
-			},
-			{
-				"opcode": "0x023e",
-				"de": 4,
-				"para": 8
-			},
-			{
-				"opcode": "0x02a3",
-				"de": 18,
-				"para": -1
-			},
-			{
-				"opcode": "0x02a4",
-				"de": 2,
-				"para": -1
-			},
-			{
-				"opcode": "0x0289",
-				"de": 8,
-				"para": 12
-			},
-			{
-				"opcode": "0x02cb",
-				"de": 20,
-				"para": 65
-			},
-			{
-				"opcode": "0x02cd",
-				"de": 26,
-				"para": 71
-			},
-			{
-				"opcode": "0x007c",
-				"de": 41,
-				"para": 42
-			},
-			{
-				"opcode": "0x022c",
-				"de": 64,
-				"para": 65
-			},
-			{
-				"opcode": "0x029b",
-				"de": 72,
-				"para": 80
-			},
-			{
-				"opcode": "0x02bf",
-				"de": 10,
-				"para": -1
-			},
-			{
-				"opcode": "0x02c0",
-				"de": 2,
-				"para": -1
-			},
-			{
-				"opcode": "0x043f",
-				"de": 8,
-				"para": 25
-			},
-			{
-				"opcode": "0x02a6",
-				"de": 22,
-				"para": -1
-			},
-			{
-				"opcode": "0x02a7",
-				"de": 22,
-				"para": -1
-			},
-			{
-				"opcode": "0x007c",
-				"de": 42,
-				"para": 44
-			},
-			{
-				"opcode": "0x02e2",
-				"de": 14,
-				"para": 20
-			},
-			{
-				"opcode": "0x02e3",
-				"de": 25,
-				"para": 22
-			},
-			{
-				"opcode": "0x02e4",
-				"de": 8,
-				"para": 11
-			},
-			{
-				"opcode": "0x02e5",
-				"de": 8,
-				"para": 9
-			},
-			{
-				"opcode": "0x043f",
-				"de": 25,
-				"para": 8
-			},
-			{
-				"opcode": "0x006d",
-				"de": 110,
-				"para": 114
-			},
-			{
-				"opcode": "0x043f",
-				"de": 8,
-				"para": 25
-			},
-			{
-				"opcode": "0x07d9",
-				"de": 254,
-				"para": 268
-			},
-			{
-				"opcode": "0x07e7",
-				"de": 5,
-				"para": 32
-			},
-			{
-				"opcode": "0x006d",
-				"de": 114,
-				"para": 149
-			},
-			{
-				"opcode": "0x0a98",
-				"de": 12,
-				"para": 10
-			}
-		]
+		"lido": false,
+		"declarados": 0,
+		"preencheram": 0,
+		"conflitos": []
 	},
 	"semSentido": [
 		"AHC_GAME_GUARD",
@@ -538,8 +2040,9 @@
 				},
 				"0x0825": {
 					"nome": "CA_SSO_LOGIN_REQ",
-					"tamanho": null,
-					"desde": null
+					"tamanho": -1,
+					"desde": null,
+					"fonteDoTamanho": "cliente"
 				},
 				"0x825a": {
 					"nome": "CA_SSO_LOGIN_REQa",
@@ -562,8 +2065,9 @@
 				},
 				"0x006d": {
 					"nome": "HC_ACCEPT_MAKECHAR_NEO_UNION",
-					"tamanho": 0,
-					"desde": null
+					"tamanho": 157,
+					"desde": null,
+					"fonteDoTamanho": "cliente"
 				},
 				"0x006e": {
 					"nome": "HC_REFUSE_MAKECHAR",
@@ -743,8 +2247,9 @@
 				},
 				"0x07e5": {
 					"nome": "CH_ENTER_CHECKBOT",
-					"tamanho": null,
-					"desde": null
+					"tamanho": 4,
+					"desde": null,
+					"fonteDoTamanho": "cliente"
 				},
 				"0x07e7": {
 					"nome": "CH_CHECKBOT",
@@ -967,14 +2472,15 @@
 				},
 				"0x009d": {
 					"nome": "ZC_ITEM_ENTRY",
-					"tamanho": null,
-					"desde": null
+					"tamanho": 19,
+					"desde": null,
+					"fonteDoTamanho": "cliente"
 				},
 				"0x009e": {
 					"nome": "ZC_ITEM_FALL_ENTRY",
-					"tamanho": 17,
+					"tamanho": 19,
 					"desde": null,
-					"fonteDoTamanho": "rathena"
+					"fonteDoTamanho": "cliente"
 				},
 				"0x00a0": {
 					"nome": "ZC_ITEM_PICKUP_ACK",
@@ -1013,8 +2519,9 @@
 				},
 				"0x00aa": {
 					"nome": "ZC_REQ_WEAR_EQUIP_ACK",
-					"tamanho": 0,
-					"desde": null
+					"tamanho": 9,
+					"desde": null,
+					"fonteDoTamanho": "cliente"
 				},
 				"0x00ac": {
 					"nome": "ZC_REQ_TAKEOFF_EQUIP_ACK",
@@ -1323,8 +2830,9 @@
 				},
 				"0x0110": {
 					"nome": "ZC_ACK_TOUSESKILL",
-					"tamanho": null,
-					"desde": null
+					"tamanho": 14,
+					"desde": null,
+					"fonteDoTamanho": "cliente"
 				},
 				"0x0111": {
 					"nome": "ZC_ADD_SKILL",
@@ -1878,8 +3386,9 @@
 				},
 				"0x01c8": {
 					"nome": "ZC_USE_ITEM_ACK2",
-					"tamanho": null,
-					"desde": null
+					"tamanho": 15,
+					"desde": null,
+					"fonteDoTamanho": "cliente"
 				},
 				"0x01c9": {
 					"nome": "ZC_SKILL_ENTRY2",
@@ -3055,9 +4564,9 @@
 				},
 				"0x084b": {
 					"nome": "ZC_ITEM_FALL_ENTRY2",
-					"tamanho": 19,
+					"tamanho": 21,
 					"desde": null,
-					"fonteDoTamanho": "rathena"
+					"fonteDoTamanho": "cliente"
 				},
 				"0x0856": {
 					"nome": "ZC_NOTIFY_MOVEENTRY6",
@@ -3471,8 +4980,9 @@
 				},
 				"0x0999": {
 					"nome": "ZC_ACK_WEAR_EQUIP_V5",
-					"tamanho": 0,
-					"desde": null
+					"tamanho": 11,
+					"desde": null,
+					"fonteDoTamanho": "cliente"
 				},
 				"0x099a": {
 					"nome": "ZC_ACK_TAKEOFF_EQUIP_V5",
@@ -3651,8 +5161,9 @@
 				},
 				"0x0a05": {
 					"nome": "ZC_ACK_ADD_ITEM_RODEX",
-					"tamanho": null,
-					"desde": null
+					"tamanho": 63,
+					"desde": null,
+					"fonteDoTamanho": "cliente"
 				},
 				"0x0a07": {
 					"nome": "ZC_ACK_REMOVE_RODEX_ITEM",
@@ -3666,13 +5177,15 @@
 				},
 				"0x0a0a": {
 					"nome": "ZC_ADD_ITEM_TO_STORE3",
-					"tamanho": null,
-					"desde": null
+					"tamanho": 57,
+					"desde": null,
+					"fonteDoTamanho": "cliente"
 				},
 				"0x0a0b": {
 					"nome": "ZC_ADD_ITEM_TO_CART3",
-					"tamanho": null,
-					"desde": null
+					"tamanho": 57,
+					"desde": null,
+					"fonteDoTamanho": "cliente"
 				},
 				"0x0a0c": {
 					"nome": "ZC_ITEM_PICKUP_ACK6",
@@ -3796,8 +5309,9 @@
 				},
 				"0x0a37": {
 					"nome": "ZC_ITEM_PICKUP_ACK7",
-					"tamanho": null,
-					"desde": null
+					"tamanho": 69,
+					"desde": null,
+					"fonteDoTamanho": "cliente"
 				},
 				"0x0a3b": {
 					"nome": "ZC_HAT_EFFECT",
@@ -3821,8 +5335,9 @@
 				},
 				"0x0a4e": {
 					"nome": "ZC_RANDOM_COMBINE_ITEM_UI_OPEN",
-					"tamanho": null,
-					"desde": null
+					"tamanho": 6,
+					"desde": null,
+					"fonteDoTamanho": "cliente"
 				},
 				"0x0a50": {
 					"nome": "ZC_ACK_RANDOM_COMBINE_ITEM",
@@ -3891,13 +5406,15 @@
 				},
 				"0x0a84": {
 					"nome": "ZC_GUILD_INFO3",
-					"tamanho": null,
-					"desde": null
+					"tamanho": 94,
+					"desde": null,
+					"fonteDoTamanho": "cliente"
 				},
 				"0x0a89": {
 					"nome": "ZC_STORE_ASSISTANT_ENTRY",
-					"tamanho": null,
-					"desde": null
+					"tamanho": 61,
+					"desde": null,
+					"fonteDoTamanho": "cliente"
 				},
 				"0x0a8a": {
 					"nome": "ZC_STORE_ASSISTANT_DISAPPEAR",
@@ -3911,14 +5428,15 @@
 				},
 				"0x0a96": {
 					"nome": "ZC_ADD_EXCHANGE_ITEM4",
-					"tamanho": null,
-					"desde": null
+					"tamanho": 61,
+					"desde": null,
+					"fonteDoTamanho": "cliente"
 				},
 				"0x0a98": {
 					"nome": "ZC_REQ_WEAR_SWITCHEQUIP_ADD_RESULT",
 					"tamanho": 10,
 					"desde": null,
-					"fonteDoTamanho": "rathena"
+					"fonteDoTamanho": "cliente"
 				},
 				"0x0a9a": {
 					"nome": "ZC_REQ_WEAR_SWITCHEQUIP_REMOVE_RESULT",
@@ -3962,8 +5480,9 @@
 				},
 				"0x0ab4": {
 					"nome": "ZC_RANDOM_UPGRADE_ITEM_UI_OPEN",
-					"tamanho": null,
-					"desde": null
+					"tamanho": 6,
+					"desde": null,
+					"fonteDoTamanho": "cliente"
 				},
 				"0x0ab7": {
 					"nome": "ZC_ACK_RANDOM_UPGRADE_ITEM",
@@ -4002,8 +5521,9 @@
 				},
 				"0x0ada": {
 					"nome": "ZC_BROADCAST_ITEMREFINING_RESULT",
-					"tamanho": null,
-					"desde": null
+					"tamanho": 32,
+					"desde": null,
+					"fonteDoTamanho": "cliente"
 				},
 				"0x0adc": {
 					"nome": "ZC_CONFIG_NOTIFY4",
@@ -4012,9 +5532,9 @@
 				},
 				"0x0add": {
 					"nome": "ZC_ITEM_FALL_ENTRY3",
-					"tamanho": 22,
+					"tamanho": 24,
 					"desde": null,
-					"fonteDoTamanho": "rathena"
+					"fonteDoTamanho": "cliente"
 				},
 				"0x0ade": {
 					"nome": "ZC_RECOVER_PENALTY_OVERWEIGHT",
@@ -4073,8 +5593,9 @@
 				},
 				"0x0b05": {
 					"nome": "ZC_STORE_ASSISTANT_ENTRY_V2",
-					"tamanho": null,
-					"desde": null
+					"tamanho": 63,
+					"desde": null,
+					"fonteDoTamanho": "cliente"
 				},
 				"0x0b08": {
 					"nome": "ZC_SPLIT_SEND_ITEMLIST_SET",
@@ -4188,8 +5709,9 @@
 				},
 				"0x0b3f": {
 					"nome": "ZC_ACK_ADD_ITEM_RODEX2",
-					"tamanho": null,
-					"desde": null
+					"tamanho": 64,
+					"desde": null,
+					"fonteDoTamanho": "cliente"
 				},
 				"0x0b40": {
 					"nome": "ZC_PC_PURCHASE_MYITEMLIST2",
@@ -4208,8 +5730,9 @@
 				},
 				"0x0b43": {
 					"nome": "ZC_CHANGE_ITEM_OPTION",
-					"tamanho": null,
-					"desde": null
+					"tamanho": 48,
+					"desde": null,
+					"fonteDoTamanho": "cliente"
 				},
 				"0x0b44": {
 					"nome": "ZC_ADD_ITEM_TO_STORE4",
@@ -4345,6 +5868,41 @@
 					"nome": "ZC_EMOTION_FAIL",
 					"tamanho": 10,
 					"desde": null
+				},
+				"0x0fee": {
+					"nome": "ZC_RAGIDLE_MUDANCA_DE_CLASSE",
+					"tamanho": -1,
+					"desde": null
+				},
+				"0x0fef": {
+					"nome": "ZC_RAGIDLE_FICHA",
+					"tamanho": -1,
+					"desde": null
+				},
+				"0x0ff1": {
+					"nome": "ZC_RAGIDLE_CATALOGO",
+					"tamanho": -1,
+					"desde": null
+				},
+				"0x0ff4": {
+					"nome": "ZC_RAGIDLE_CONFIG",
+					"tamanho": -1,
+					"desde": null
+				},
+				"0x0ff7": {
+					"nome": "ZC_RAGIDLE_ADMIN",
+					"tamanho": -1,
+					"desde": null
+				},
+				"0x0ffa": {
+					"nome": "ZC_RAGIDLE_SKILLS",
+					"tamanho": -1,
+					"desde": null
+				},
+				"0x0ffc": {
+					"nome": "ZC_RAGIDLE_RELATORIO_OFFLINE",
+					"tamanho": -1,
+					"desde": null
 				}
 			},
 			"saida": {
@@ -4400,13 +5958,15 @@
 				},
 				"0x0096": {
 					"nome": "CZ_WHISPER",
-					"tamanho": null,
-					"desde": null
+					"tamanho": -1,
+					"desde": null,
+					"fonteDoTamanho": "cliente"
 				},
 				"0x0099": {
 					"nome": "CZ_BROADCAST",
-					"tamanho": null,
-					"desde": null
+					"tamanho": -1,
+					"desde": null,
+					"fonteDoTamanho": "cliente"
 				},
 				"0x009b": {
 					"nome": "CZ_ENTER",
@@ -4475,13 +6035,15 @@
 				},
 				"0x00c8": {
 					"nome": "CZ_PC_PURCHASE_ITEMLIST",
-					"tamanho": null,
-					"desde": null
+					"tamanho": -1,
+					"desde": null,
+					"fonteDoTamanho": "cliente"
 				},
 				"0x00c9": {
 					"nome": "CZ_PC_SELL_ITEMLIST",
-					"tamanho": null,
-					"desde": null
+					"tamanho": -1,
+					"desde": null,
+					"fonteDoTamanho": "cliente"
 				},
 				"0x00cc": {
 					"nome": "CZ_DISCONNECT_CHARACTER",
@@ -4510,8 +6072,9 @@
 				},
 				"0x00d5": {
 					"nome": "CZ_CREATE_CHATROOM",
-					"tamanho": null,
-					"desde": null
+					"tamanho": -1,
+					"desde": null,
+					"fonteDoTamanho": "cliente"
 				},
 				"0x00d9": {
 					"nome": "CZ_REQ_ENTER_ROOM",
@@ -4520,8 +6083,9 @@
 				},
 				"0x00de": {
 					"nome": "CZ_CHANGE_CHATROOM",
-					"tamanho": null,
-					"desde": null
+					"tamanho": -1,
+					"desde": null,
+					"fonteDoTamanho": "cliente"
 				},
 				"0x00e0": {
 					"nome": "CZ_REQ_ROLE_CHANGE",
@@ -4610,8 +6174,9 @@
 				},
 				"0x0108": {
 					"nome": "CZ_REQUEST_CHAT_PARTY",
-					"tamanho": null,
-					"desde": null
+					"tamanho": -1,
+					"desde": null,
+					"fonteDoTamanho": "cliente"
 				},
 				"0x0112": {
 					"nome": "CZ_UPGRADE_SKILLLEVEL",
@@ -4675,8 +6240,9 @@
 				},
 				"0x012f": {
 					"nome": "CZ_REQ_OPENSTORE",
-					"tamanho": null,
-					"desde": null
+					"tamanho": -1,
+					"desde": null,
+					"fonteDoTamanho": "cliente"
 				},
 				"0x0130": {
 					"nome": "CZ_REQ_BUY_FROMMC",
@@ -4685,8 +6251,9 @@
 				},
 				"0x0134": {
 					"nome": "CZ_PC_PURCHASE_ITEMLIST_FROMMC",
-					"tamanho": null,
-					"desde": null
+					"tamanho": -1,
+					"desde": null,
+					"fonteDoTamanho": "cliente"
 				},
 				"0x0138": {
 					"nome": "CZ_PKMODE_CHANGE",
@@ -4730,13 +6297,15 @@
 				},
 				"0x0153": {
 					"nome": "CZ_REGISTER_GUILD_EMBLEM_IMG",
-					"tamanho": null,
-					"desde": null
+					"tamanho": -1,
+					"desde": null,
+					"fonteDoTamanho": "cliente"
 				},
 				"0x0155": {
 					"nome": "CZ_REQ_CHANGE_MEMBERPOS",
-					"tamanho": null,
-					"desde": null
+					"tamanho": -1,
+					"desde": null,
+					"fonteDoTamanho": "cliente"
 				},
 				"0x0157": {
 					"nome": "CZ_REQ_OPEN_MEMBER_INFO",
@@ -4760,8 +6329,9 @@
 				},
 				"0x0161": {
 					"nome": "CZ_REG_CHANGE_GUILD_POSITIONINFO",
-					"tamanho": null,
-					"desde": null
+					"tamanho": -1,
+					"desde": null,
+					"fonteDoTamanho": "cliente"
 				},
 				"0x0165": {
 					"nome": "CZ_REQ_MAKE_GUILD",
@@ -4815,8 +6385,9 @@
 				},
 				"0x017e": {
 					"nome": "CZ_GUILD_CHAT",
-					"tamanho": null,
-					"desde": null
+					"tamanho": -1,
+					"desde": null,
+					"fonteDoTamanho": "cliente"
 				},
 				"0x0180": {
 					"nome": "CZ_REQ_HOSTILE_GUILD",
@@ -4840,8 +6411,9 @@
 				},
 				"0x018e": {
 					"nome": "CZ_REQMAKINGITEM",
-					"tamanho": null,
-					"desde": null
+					"tamanho": 18,
+					"desde": null,
+					"fonteDoTamanho": "cliente"
 				},
 				"0x0190": {
 					"nome": "CZ_REQUEST_ACT",
@@ -4865,8 +6437,9 @@
 				},
 				"0x019c": {
 					"nome": "CZ_LOCALBROADCAST",
-					"tamanho": null,
-					"desde": null
+					"tamanho": -1,
+					"desde": null,
+					"fonteDoTamanho": "cliente"
 				},
 				"0x019d": {
 					"nome": "CZ_CHANGE_EFFECTSTATE",
@@ -4915,8 +6488,9 @@
 				},
 				"0x01b2": {
 					"nome": "CZ_REQ_OPENSTORE2",
-					"tamanho": null,
-					"desde": null
+					"tamanho": -1,
+					"desde": null,
+					"fonteDoTamanho": "cliente"
 				},
 				"0x01b7": {
 					"nome": "CZ_GUILD_ZENY",
@@ -4965,8 +6539,9 @@
 				},
 				"0x01d5": {
 					"nome": "CZ_INPUT_EDITDLGSTR",
-					"tamanho": null,
-					"desde": null
+					"tamanho": -1,
+					"desde": null,
+					"fonteDoTamanho": "cliente"
 				},
 				"0x01df": {
 					"nome": "CZ_REQ_ACCOUNTNAME",
@@ -5145,8 +6720,9 @@
 				},
 				"0x0248": {
 					"nome": "CZ_MAIL_SEND",
-					"tamanho": null,
-					"desde": null
+					"tamanho": -1,
+					"desde": null,
+					"fonteDoTamanho": "cliente"
 				},
 				"0x024b": {
 					"nome": "CZ_AUCTION_CREATE",
@@ -5185,8 +6761,9 @@
 				},
 				"0x025b": {
 					"nome": "CZ_REQ_MAKINGITEM",
-					"tamanho": null,
-					"desde": null
+					"tamanho": 8,
+					"desde": null,
+					"fonteDoTamanho": "cliente"
 				},
 				"0x025c": {
 					"nome": "CZ_AUCTION_REQ_MY_INFO",
@@ -5290,8 +6867,9 @@
 				},
 				"0x02db": {
 					"nome": "CZ_BATTLEFIELD_CHAT",
-					"tamanho": null,
-					"desde": null
+					"tamanho": -1,
+					"desde": null,
+					"fonteDoTamanho": "cliente"
 				},
 				"0x02e6": {
 					"nome": "CZ_BOT_CHECK",
@@ -5480,8 +7058,9 @@
 				},
 				"0x0801": {
 					"nome": "CZ_PC_PURCHASE_ITEMLIST_FROMMC2",
-					"tamanho": null,
-					"desde": null
+					"tamanho": -1,
+					"desde": null,
+					"fonteDoTamanho": "cliente"
 				},
 				"0x0802": {
 					"nome": "CZ_PARTY_BOOKING_REQ_REGISTER",
@@ -5555,23 +7134,27 @@
 				},
 				"0x0844": {
 					"nome": "CZ_SE_CASHSHOP_OPEN1",
-					"tamanho": null,
-					"desde": null
+					"tamanho": 2,
+					"desde": null,
+					"fonteDoTamanho": "cliente"
 				},
 				"0x0846": {
 					"nome": "CZ_REQ_SE_CASH_TAB_CODE",
-					"tamanho": null,
-					"desde": null
+					"tamanho": 4,
+					"desde": null,
+					"fonteDoTamanho": "cliente"
 				},
 				"0x0848": {
 					"nome": "CZ_SE_PC_BUY_CASHITEM_LIST",
-					"tamanho": null,
-					"desde": null
+					"tamanho": -1,
+					"desde": null,
+					"fonteDoTamanho": "cliente"
 				},
 				"0x084a": {
 					"nome": "CZ_CASH_SHOP_CLOSE",
-					"tamanho": null,
-					"desde": null
+					"tamanho": 2,
+					"desde": null,
+					"fonteDoTamanho": "cliente"
 				},
 				"0x085a": {
 					"nome": "CZ_SSILIST_ITEM_CLICK",
@@ -5995,8 +7578,9 @@
 				},
 				"0x08c9": {
 					"nome": "CZ_PC_CASH_POINT_ITEMLIST",
-					"tamanho": null,
-					"desde": null
+					"tamanho": 2,
+					"desde": null,
+					"fonteDoTamanho": "cliente"
 				},
 				"0x08e5": {
 					"nome": "CZ_PARTY_BOOKING_REQ_REGISTER",
@@ -6455,8 +8039,9 @@
 				},
 				"0x098d": {
 					"nome": "CZ_CLAN_CHAT",
-					"tamanho": null,
-					"desde": null
+					"tamanho": -1,
+					"desde": null,
+					"fonteDoTamanho": "cliente"
 				},
 				"0x0998": {
 					"nome": "CZ_REQ_WEAR_EQUIP",
@@ -6495,8 +8080,9 @@
 				},
 				"0x09d6": {
 					"nome": "CZ_NPC_MARKET_PURCHASE",
-					"tamanho": null,
-					"desde": null
+					"tamanho": -1,
+					"desde": null,
+					"fonteDoTamanho": "cliente"
 				},
 				"0x09d8": {
 					"nome": "CZ_NPC_MARKET_CLOSE",
@@ -6520,8 +8106,9 @@
 				},
 				"0x09ec": {
 					"nome": "CZ_REQ_SEND_RODEX",
-					"tamanho": null,
-					"desde": null
+					"tamanho": -1,
+					"desde": null,
+					"fonteDoTamanho": "cliente"
 				},
 				"0x09ee": {
 					"nome": "CZ_REQ_NEXT_RODEX",
@@ -6550,8 +8137,9 @@
 				},
 				"0x09fb": {
 					"nome": "CZ_PET_EVOLUTION",
-					"tamanho": null,
-					"desde": null
+					"tamanho": -1,
+					"desde": null,
+					"fonteDoTamanho": "cliente"
 				},
 				"0x0a03": {
 					"nome": "CZ_REQ_CANCEL_WRITE_RODEX",
@@ -6620,8 +8208,9 @@
 				},
 				"0x0a4f": {
 					"nome": "CZ_REQ_RANDOM_COMBINE_ITEM",
-					"tamanho": null,
-					"desde": null
+					"tamanho": -1,
+					"desde": null,
+					"fonteDoTamanho": "cliente"
 				},
 				"0x0a52": {
 					"nome": "CZ_REQ_UPLOAD_MACRO_DETECTOR",
@@ -6650,8 +8239,9 @@
 				},
 				"0x0a68": {
 					"nome": "CZ_UI_OPEN",
-					"tamanho": null,
-					"desde": null
+					"tamanho": 3,
+					"desde": null,
+					"fonteDoTamanho": "cliente"
 				},
 				"0x0a69": {
 					"nome": "CZ_REQ_PREVIEW_MACRO_DETECTOR",
@@ -6665,8 +8255,9 @@
 				},
 				"0x0a6e": {
 					"nome": "CZ_REQ_SEND_RODEX2",
-					"tamanho": null,
-					"desde": null
+					"tamanho": -1,
+					"desde": null,
+					"fonteDoTamanho": "cliente"
 				},
 				"0x0a70": {
 					"nome": "CZ_RANDOM_COMBINE_ITEM_UI_CLOSE",
@@ -6675,33 +8266,39 @@
 				},
 				"0x0a97": {
 					"nome": "CZ_REQ_WEAR_SWITCHEQUIP_ADD",
-					"tamanho": null,
-					"desde": null
+					"tamanho": 8,
+					"desde": null,
+					"fonteDoTamanho": "cliente"
 				},
 				"0x0a99": {
 					"nome": "CZ_REQ_WEAR_SWITCHEQUIP_REMOVE",
-					"tamanho": null,
-					"desde": null
+					"tamanho": 4,
+					"desde": null,
+					"fonteDoTamanho": "cliente"
 				},
 				"0x0a9c": {
 					"nome": "CZ_REQ_FULLSWITCH",
-					"tamanho": null,
-					"desde": null
+					"tamanho": 2,
+					"desde": null,
+					"fonteDoTamanho": "cliente"
 				},
 				"0x0aa1": {
 					"nome": "CZ_REFINING_SELECT_ITEM",
-					"tamanho": null,
-					"desde": null
+					"tamanho": 4,
+					"desde": null,
+					"fonteDoTamanho": "cliente"
 				},
 				"0x0aa3": {
 					"nome": "CZ_REQ_REFINING",
-					"tamanho": null,
-					"desde": null
+					"tamanho": 9,
+					"desde": null,
+					"fonteDoTamanho": "cliente"
 				},
 				"0x0aa4": {
 					"nome": "CZ_CLOSE_REFINING_UI",
-					"tamanho": null,
-					"desde": null
+					"tamanho": 2,
+					"desde": null,
+					"fonteDoTamanho": "cliente"
 				},
 				"0x0ab5": {
 					"nome": "CZ_RANDOM_UPGRADE_ITEM_UI_CLOSE",
@@ -6710,8 +8307,9 @@
 				},
 				"0x0ab6": {
 					"nome": "CZ_REQ_RANDOM_UPGRADE_ITEM",
-					"tamanho": null,
-					"desde": null
+					"tamanho": 8,
+					"desde": null,
+					"fonteDoTamanho": "cliente"
 				},
 				"0x0ac0": {
 					"nome": "CZ_OPEN_ALL_RODEX",
@@ -6725,8 +8323,9 @@
 				},
 				"0x0aef": {
 					"nome": "CZ_REQ_CHECK_ATTENDANCE",
-					"tamanho": null,
-					"desde": null
+					"tamanho": 2,
+					"desde": null,
+					"fonteDoTamanho": "cliente"
 				},
 				"0x0af4": {
 					"nome": "CZ_USE_SKILL_TOGROUND3",
@@ -6735,33 +8334,39 @@
 				},
 				"0x0b0f": {
 					"nome": "CZ_NPC_BARTER_MARKET_PURCHASE",
-					"tamanho": null,
-					"desde": null
+					"tamanho": -1,
+					"desde": null,
+					"fonteDoTamanho": "cliente"
 				},
 				"0x0b12": {
 					"nome": "CZ_NPC_BARTER_MARKET_CLOSE",
-					"tamanho": null,
-					"desde": null
+					"tamanho": 2,
+					"desde": null,
+					"fonteDoTamanho": "cliente"
 				},
 				"0x0b14": {
 					"nome": "CZ_REQ_OPEN_MSGBOX_EXTEND_BODYITEM_SIZE",
-					"tamanho": null,
-					"desde": null
+					"tamanho": 2,
+					"desde": null,
+					"fonteDoTamanho": "cliente"
 				},
 				"0x0b16": {
 					"nome": "CZ_REQ_EXTEND_BODYITEM_SIZE",
-					"tamanho": null,
-					"desde": null
+					"tamanho": 2,
+					"desde": null,
+					"fonteDoTamanho": "cliente"
 				},
 				"0x0b19": {
 					"nome": "CZ_CLOSE_MSGBOX_EXTEND_BODYITEM_SIZE",
-					"tamanho": null,
-					"desde": null
+					"tamanho": 2,
+					"desde": null,
+					"fonteDoTamanho": "cliente"
 				},
 				"0x0b1c": {
 					"nome": "CZ_PING_LIVE",
-					"tamanho": null,
-					"desde": null
+					"tamanho": 2,
+					"desde": null,
+					"fonteDoTamanho": "cliente"
 				},
 				"0x0b21": {
 					"nome": "CZ_SHORTCUT_KEY_CHANGE2",
@@ -6770,13 +8375,15 @@
 				},
 				"0x0b24": {
 					"nome": "CZ_STATUS_CHANGE",
-					"tamanho": null,
-					"desde": null
+					"tamanho": 6,
+					"desde": null,
+					"fonteDoTamanho": "cliente"
 				},
 				"0x0b57": {
 					"nome": "CZ_NPC_EXPANDED_BARTER_MARKET_PURCHASE",
-					"tamanho": null,
-					"desde": null
+					"tamanho": -1,
+					"desde": null,
+					"fonteDoTamanho": "cliente"
 				},
 				"0x0b58": {
 					"nome": "CZ_NPC_EXPANDED_BARTER_MARKET_CLOSE",
@@ -6800,8 +8407,9 @@
 				},
 				"0x0b6d": {
 					"nome": "CZ_SE_CASHSHOP_OPEN2",
-					"tamanho": null,
-					"desde": null
+					"tamanho": 6,
+					"desde": null,
+					"fonteDoTamanho": "cliente"
 				},
 				"0x0b90": {
 					"nome": "CZ_CLOSE_REFORM_UI",
@@ -6820,27 +8428,90 @@
 				},
 				"0x0b9b": {
 					"nome": "CZ_REQUEST_RANDOM_ENCHANT",
-					"tamanho": null,
-					"desde": null
+					"tamanho": 12,
+					"desde": null,
+					"fonteDoTamanho": "cliente"
 				},
 				"0x0b9c": {
 					"nome": "CZ_REQUEST_PERFECT_ENCHANT",
-					"tamanho": null,
-					"desde": null
+					"tamanho": 16,
+					"desde": null,
+					"fonteDoTamanho": "cliente"
 				},
 				"0x0b9d": {
 					"nome": "CZ_REQUEST_UPGRADE_ENCHANT",
-					"tamanho": null,
-					"desde": null
+					"tamanho": 14,
+					"desde": null,
+					"fonteDoTamanho": "cliente"
 				},
 				"0x0b9e": {
 					"nome": "CZ_REQUEST_RESET_ENCHANT",
-					"tamanho": null,
-					"desde": null
+					"tamanho": 12,
+					"desde": null,
+					"fonteDoTamanho": "cliente"
 				},
 				"0x0ba0": {
 					"nome": "CZ_CLOSE_UI_ENCHANT",
-					"tamanho": null,
+					"tamanho": 2,
+					"desde": null,
+					"fonteDoTamanho": "cliente"
+				},
+				"0x0ff0": {
+					"nome": "CZ_RAGIDLE_PEDIR_CATALOGO",
+					"tamanho": 2,
+					"desde": null
+				},
+				"0x0ff2": {
+					"nome": "CZ_RAGIDLE_VIAJAR",
+					"tamanho": 18,
+					"desde": null
+				},
+				"0x0ff3": {
+					"nome": "CZ_RAGIDLE_PEDIR_CONFIG",
+					"tamanho": 2,
+					"desde": null
+				},
+				"0x0ff5": {
+					"nome": "CZ_RAGIDLE_APLICAR_CONFIG",
+					"tamanho": -1,
+					"desde": null,
+					"fonteDoTamanho": "cliente"
+				},
+				"0x0ff6": {
+					"nome": "CZ_RAGIDLE_PEDIR_ADMIN",
+					"tamanho": 2,
+					"desde": null
+				},
+				"0x0ff8": {
+					"nome": "CZ_RAGIDLE_APLICAR_ADMIN",
+					"tamanho": -1,
+					"desde": null,
+					"fonteDoTamanho": "cliente"
+				},
+				"0x0ff9": {
+					"nome": "CZ_RAGIDLE_PEDIR_SKILLS",
+					"tamanho": 2,
+					"desde": null
+				},
+				"0x0ffb": {
+					"nome": "CZ_RAGIDLE_APRENDER",
+					"tamanho": -1,
+					"desde": null,
+					"fonteDoTamanho": "cliente"
+				},
+				"0x0ffd": {
+					"nome": "CZ_RAGIDLE_RENASCER",
+					"tamanho": 2,
+					"desde": null
+				},
+				"0x0ffe": {
+					"nome": "CZ_RAGIDLE_DISTRIBUIR",
+					"tamanho": 2,
+					"desde": null
+				},
+				"0x0fff": {
+					"nome": "CZ_RAGIDLE_PEDIR_FICHA",
+					"tamanho": 2,
 					"desde": null
 				}
 			}

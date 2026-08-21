@@ -38,7 +38,7 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const AQUI = path.dirname(fileURLToPath(import.meta.url));
 const RAIZ = path.resolve(AQUI, '..');
@@ -339,13 +339,117 @@ for (const servidor of ['login', 'char', 'map']) {
   }
 }
 
+/*
+ * --- 5.5. A TABELA DE COMPRIMENTO DO PROPRIO CLIENTE ---------------------
+ *
+ * ISTO NAO EXISTIA, E A AUSENCIA CUSTOU UMA RODADA INTEIRA DE AUDITORIA.
+ *
+ * Os passos acima derivam o tamanho da STRUCT (`PacketStructure.js`). Pacote de
+ * comprimento VARIAVEL nao tem struct de tamanho fixo, entao ele saia daqui com
+ * `tamanho: null` — e `null` faz o gravador declarar `travado = true` e
+ * ABANDONAR o sentido inteiro daquela conexao. Sem barulho.
+ *
+ * O estrago medido (varredura de habilidades, rodada 3, achado 7): a tabela
+ * congelada em 17/08 nao conhecia a faixa RAGIDLE, o gravador parava no PRIMEIRO
+ * pacote NOSSO, e **87% dos bytes servidor->cliente nunca entraram no `.jsonl`**.
+ * Foi desse arquivo truncado que saiu o censo "ZERO `ZC_USESKILL_ACK2`, ZERO
+ * EFST" citado em `docs/varredura-habilidades-21-08-2026-B.md` — um instrumento
+ * quebrado virando evidencia de AUSENCIA, que e o pior modo de falha que uma
+ * medicao tem.
+ *
+ * A fonte certa e a que o proprio cliente usa em runtime: `PacketLength.js`
+ * escolhe UM `packets<ANO>_len_main.js` pelo packetver e chama `init()`. Aqui
+ * fazemos a mesma escolha, com a mesma lista de anos — e e por isso que a faixa
+ * RAGIDLE entra sozinha: ela ja esta declarada la (`length_list[0x0ffa] = -1`).
+ *
+ * SO PREENCHE O QUE FALTA, nunca sobrescreve. A struct e mais confiavel quando
+ * existe — a excecao do `0x01d7` abaixo e a prova de que a outra fonte pode
+ * mentir. E divergencia entre as duas fica REGISTRADA em vez de escolhida em
+ * silencio.
+ */
+
+const ANOS_DO_CLIENTE = [
+  2025, 2024, 2023, 2022, 2021, 2020, 2019, 2018, 2017, 2016, 2015, 2014, 2013, 2012, 2011, 2010,
+  2009, 2008, 2007, 2006, 2005, 2004, 2003,
+];
+const anoDoPacketver = ANOS_DO_CLIENTE.find((a) => PACKETVER >= a * 10000) ?? 2003;
+const arquivoDeComprimentos = `src/Network/Packets/packets${anoDoPacketver}_len_main.js`;
+
+let comprimentosDoCliente = [];
+let preenchidosPeloCliente = 0;
+const divergenciasDeComprimento = [];
+try {
+  // `pathToFileURL`, e nao string: no Windows um caminho absoluto (`c:\...`)
+  // chega ao carregador ESM como se `c:` fosse um esquema de URL.
+  const modulo = await import(pathToFileURL(path.join(RAIZ, arquivoDeComprimentos)).href);
+  const init = (modulo.default ?? modulo).init;
+  comprimentosDoCliente = typeof init === 'function' ? init(PACKETVER) : [];
+} catch (erro) {
+  // Falhar ALTO: sem esta tabela o gravador volta a ficar surdo, e a captura
+  // seguinte pareceria so "vazia". O erro diz o que fazer.
+  throw new Error(
+    `nao consegui ler ${arquivoDeComprimentos} (a tabela de comprimento do cliente). ` +
+      `Sem ela todo pacote de tamanho VARIAVEL sai sem tamanho e o gravador abandona ` +
+      `a conexao em silencio. Causa: ${erro instanceof Error ? erro.message : String(erro)}`,
+  );
+}
+
+for (const servidor of ['login', 'char', 'map']) {
+  for (const sentido of ['entrada', 'saida']) {
+    for (const [opcode, dados] of tabelas[servidor][sentido]) {
+      const doCliente = comprimentosDoCliente[opcode];
+      if (doCliente === undefined) continue;
+      /*
+       * `null` E `0`, e o zero e o mais perigoso dos dois.
+       *
+       * O cliente escreve `.size = 0` para o pacote cujo comprimento ele resolve
+       * por ESTA tabela e nao pela struct (`HC_ACCEPT_MAKECHAR`,
+       * `ZC_REQ_WEAR_EQUIP_ACK`). Zero nao e "desconhecido": o gravador tem uma
+       * guarda dedicada a ele (`gravador-de-pacotes.js`, "TAMANHO ZERO NAO E
+       * TAMANHO") porque `subarray(0)` dentro de um `while` nao consome nada e
+       * empilha o mesmo pacote ate a memoria acabar.
+       *
+       * Preencher o zero daqui e tirar o alcapao da frente em vez de continuar
+       * caindo nele com elegancia — a fonte e a MESMA que o cliente consulta
+       * quando ve zero.
+       */
+      if (dados.tamanho === null || dados.tamanho === 0) {
+        dados.tamanho = doCliente;
+        dados.fonteDoTamanho = 'cliente';
+        preenchidosPeloCliente++;
+      } else if (dados.tamanho !== doCliente) {
+        divergenciasDeComprimento.push({
+          opcode: '0x' + opcode.toString(16).padStart(4, '0'),
+          nome: dados.nome,
+          servidor,
+          sentido,
+          struct: dados.tamanho,
+          cliente: doCliente,
+        });
+      }
+    }
+  }
+}
+
 let preenchidosPorExcecao = 0;
 for (const e of EXCECOES) {
   const atual = tabelas[e.servidor][e.sentido].get(e.opcode);
-  // Vale para tamanho ausente, para tamanho ZERO ("resolvo isto noutro lugar")
-  // e para tamanho vindo da RESERVA do rAthena — que é palpite bom, não
-  // verdade: a exceção é escrita à mão com a conta, então ela ganha.
-  if (atual && (atual.tamanho === null || atual.tamanho === 0 || atual.fonteDoTamanho === 'rathena')) {
+  // Vale para tamanho ausente, para tamanho ZERO ("resolvo isto noutro lugar"),
+  // para tamanho vindo da RESERVA do rAthena e para o da TABELA DO CLIENTE —
+  // as duas sao palpite bom, nao verdade: a excecao e escrita a mao com a
+  // conta, entao ela ganha.
+  //
+  // `'cliente'` entrou aqui depois de o passo 5.5 nascer e ROUBAR duas das tres
+  // excecoes ("1 de 3 aplicadas"): ele preenche antes, e sem esta clausula a
+  // excecao encontrava o campo ja ocupado e desistia calada. E a excecao do
+  // `0x01d7` existe exatamente porque a outra fonte mente.
+  if (
+    atual &&
+    (atual.tamanho === null ||
+      atual.tamanho === 0 ||
+      atual.fonteDoTamanho === 'rathena' ||
+      atual.fonteDoTamanho === 'cliente')
+  ) {
     atual.tamanho = e.tamanho;
     atual.fonteDoTamanho = 'excecao';
     atual.porque = e.porque;
@@ -376,8 +480,24 @@ for (const servidor of Object.keys(tabelas)) {
 const saidaJson = {
   packetver: PACKETVER,
   geradoPor: 'oraculo/gerar-tabela-de-opcodes.mjs',
-  fontes: ['src/Network/PacketVersions.js', 'src/Network/PacketStructure.js', 'src/Network/PacketRegister.js'],
+  fontes: [
+    'src/Network/PacketVersions.js',
+    'src/Network/PacketStructure.js',
+    'src/Network/PacketRegister.js',
+    arquivoDeComprimentos,
+  ],
   resumo,
+  // A tabela de comprimento do PROPRIO cliente (a mesma que `PacketLength.js`
+  // usa em runtime). Ela e quem traz os pacotes de tamanho VARIAVEL (-1) —
+  // inclusive a faixa RAGIDLE. Sem ela o gravador abandona a conexao calado.
+  comprimentosDoCliente: {
+    arquivo: arquivoDeComprimentos,
+    declarados: comprimentosDoCliente.filter((x) => x !== undefined).length,
+    preencheram: preenchidosPeloCliente,
+    // Struct e tabela discordando. A struct GANHA (ver a excecao do 0x01d7),
+    // mas a divergencia fica escrita: e o primeiro suspeito de fatiamento torto.
+    divergencias: divergenciasDeComprimento,
+  },
   // Nomes com `.size` atribuído mais de uma vez (atribuição dependente de
   // versão): vale a última do arquivo, que pode não ser a de runtime. Ficam
   // declarados para serem os primeiros suspeitos quando um fatiamento sair torto.
@@ -416,6 +536,11 @@ for (const s of ['login', 'char', 'map']) {
 console.log(
   `rathena (reserva)         ${tamanhoNoRathena.size} declarados, ` +
     `${preenchidosPeloRathena} vazios preenchidos, ${conflitosNoRathena.length} conflitos`
+);
+console.log(
+  `tabela do cliente         ${arquivoDeComprimentos} — ` +
+    `${comprimentosDoCliente.filter((x) => x !== undefined).length} declarados, ` +
+    `${preenchidosPeloCliente} vazios preenchidos, ${divergenciasDeComprimento.length} divergencias`,
 );
 console.log(`excecoes a mao            ${preenchidosPorExcecao} de ${EXCECOES.length} aplicadas`);
 if (semSentido.size) console.log(`familias nao classificadas: ${[...semSentido].join(', ')}`);

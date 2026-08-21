@@ -15,11 +15,20 @@
  *   node oraculo/ler-captura.js baseline-m0 --tudo   todos os pacotes, em ordem
  *   node oraculo/ler-captura.js baseline-m0 --hex    idem, com os bytes
  *   node oraculo/ler-captura.js baseline-m0 --so ZC_ACCEPT_ENTER2 --hex
+ *   node oraculo/ler-captura.js servidor-m1 --refatiar   ignora o .jsonl e
+ *                                                        refatia o .bin com a
+ *                                                        tabela de HOJE
+ *
+ * `--refatiar` existe porque captura VELHA foi gravada com tabela velha: o
+ * `.jsonl` guarda so o que o gravador conseguiu ler naquele dia, e o `.bin`
+ * guarda o que passou no fio. Quando a cobertura sai abaixo de 100%, e por
+ * `--refatiar` que se recupera a sessao — sem regravar nada.
  */
 
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { Fatiador, carregarTabela } from './fatiador.js';
 
 const AQUI = path.dirname(fileURLToPath(import.meta.url));
 const CAPTURAS = path.join(AQUI, 'capturas');
@@ -28,6 +37,8 @@ const argv = process.argv.slice(2);
 const sessao = argv.find((a) => !a.startsWith('-'));
 const tudo = argv.includes('--tudo');
 const comHex = argv.includes('--hex');
+const refatiar = argv.includes('--refatiar');
+const TABELA = refatiar ? carregarTabela() : null;
 const filtro = argv[argv.indexOf('--so') + 1];
 const soFiltrado = argv.includes('--so') && filtro && !filtro.startsWith('-');
 
@@ -39,10 +50,19 @@ if (!fs.existsSync(CAPTURAS)) {
 if (!sessao) {
 	console.log('sessoes gravadas:');
 	for (const nome of fs.readdirSync(CAPTURAS)) {
-		const indice = path.join(CAPTURAS, nome, 'indice.json');
-		if (!fs.existsSync(indice)) continue;
-		const i = JSON.parse(fs.readFileSync(indice, 'utf8'));
-		console.log(`  ${nome}  (${i.conexoes.length} conexoes, packetver ${i.packetver})`);
+		const pastaDela = path.join(CAPTURAS, nome);
+		if (!fs.statSync(pastaDela).isDirectory()) continue;
+		const jsonls = fs.readdirSync(pastaDela).filter((f) => f.endsWith('.jsonl'));
+		if (jsonls.length === 0) continue;
+		const indice = path.join(pastaDela, 'indice.json');
+		const i = fs.existsSync(indice) ? JSON.parse(fs.readFileSync(indice, 'utf8')) : null;
+		const noIndice = i?.conexoes?.length ?? 0;
+		console.log(
+			`  ${nome}  (${jsonls.length} conexoes, packetver ${i?.packetver ?? '?'})` +
+				(noIndice && noIndice !== jsonls.length
+					? `  [o indice.json so lista ${noIndice} — ele e reescrito a cada corrida]`
+					: '')
+		);
 	}
 	process.exit(0);
 }
@@ -53,29 +73,133 @@ if (!fs.existsSync(pasta)) {
 	process.exit(1);
 }
 
-const indice = JSON.parse(fs.readFileSync(path.join(pasta, 'indice.json'), 'utf8'));
+const arquivoDeIndice = path.join(pasta, 'indice.json');
+const indice = fs.existsSync(arquivoDeIndice)
+	? JSON.parse(fs.readFileSync(arquivoDeIndice, 'utf8'))
+	: { packetver: '?', conexoes: [] };
 
-console.log(`sessao ${sessao} · packetver ${indice.packetver} · ${indice.conexoes.length} conexao(oes)\n`);
+/*
+ * A PASTA E A FONTE, E NAO O `indice.json`.
+ *
+ * O gravador reescreve `indice.json` a cada corrida, so com as conexoes DAQUELA
+ * corrida, e reaproveita a numeracao das etiquetas. Percorrer `indice.conexoes`
+ * — como este leitor fazia — apagava toda sessao anterior da mesma pasta, SEM
+ * um aviso: em `capturas/servidor-m1` eram **36 dos 125 `.jsonl` invisiveis**, e
+ * neles estava a MAIORIA dos pacotes gravados.
+ *
+ * O `.jsonl` se descreve sozinho — a primeira linha e
+ * `{"tipo":"conexao","n":..,"alvo":..,"servidor":..,"etiqueta":..}` —, entao o
+ * indice nunca foi necessario para ler: ele so acrescenta `travou`, que a
+ * varredura abaixo redescobre do proprio arquivo.
+ */
+const metaDoIndice = new Map((indice.conexoes ?? []).map((c) => [c.etiqueta, c]));
+const conexoes = [];
+
+for (const arquivo of fs.readdirSync(pasta).filter((f) => f.endsWith('.jsonl')).sort()) {
+	const etiqueta = arquivo.slice(0, -'.jsonl'.length);
+	const linhas = fs.readFileSync(path.join(pasta, arquivo), 'utf8').split('\n');
+	const abertura = linhas.find((l) => l.trim() && JSON.parse(l).tipo === 'conexao');
+	const cabecalho = abertura ? JSON.parse(abertura) : {};
+	const doIndice = metaDoIndice.get(etiqueta);
+
+	/*
+	 * `travou` sai do PROPRIO arquivo, e nao do indice: a linha de pacote com
+	 * `incompleto` e a marca que o gravador deixou no instante em que desistiu.
+	 * Quem tem a marca e o arquivo; o indice pode nem existir.
+	 */
+	const travou = { c2s: false, s2c: false };
+	for (const linha of linhas) {
+		if (!linha.trim()) continue;
+		const o = JSON.parse(linha);
+		if (o.incompleto && o.dir) travou[o.dir] = o.incompleto;
+	}
+
+	conexoes.push({
+		etiqueta,
+		alvo: cabecalho.alvo ?? doIndice?.alvo ?? '?',
+		servidor: cabecalho.servidor ?? doIndice?.servidor ?? null,
+		pacotes: doIndice?.pacotes ?? { c2s: 0, s2c: 0 },
+		bytes: doIndice?.bytes ?? { c2s: 0, s2c: 0 },
+		travou,
+		foraDoIndice: doIndice === undefined,
+	});
+}
+
+const foraDoIndice = conexoes.filter((c) => c.foraDoIndice).length;
+console.log(
+	`sessao ${sessao} · packetver ${indice.packetver} · ${conexoes.length} conexao(oes)` +
+		(foraDoIndice ? ` (${foraDoIndice} delas AUSENTES do indice.json — lidas da pasta)` : '') +
+		'\n'
+);
 
 /** Todos os pacotes de todas as conexões, na ordem em que passaram no fio. */
 const pacotes = [];
 const bytes = new Map();
 
-for (const conexao of indice.conexoes) {
+for (const conexao of conexoes) {
 	const jsonl = path.join(pasta, `${conexao.etiqueta}.jsonl`);
-	if (!fs.existsSync(jsonl)) continue;
 
 	for (const dir of ['c2s', 's2c']) {
 		const bin = path.join(pasta, `${conexao.etiqueta}.${dir}.bin`);
-		if (fs.existsSync(bin)) bytes.set(`${conexao.etiqueta}.${dir}`, fs.readFileSync(bin));
+		if (fs.existsSync(bin)) {
+			const cru = fs.readFileSync(bin);
+			bytes.set(`${conexao.etiqueta}.${dir}`, cru);
+			// O `.bin` e a verdade sobre quantos bytes passaram — o indice pode
+			// nao ter a conexao, e e dele que sai a fracao FATIADA abaixo.
+			conexao.bytes[dir] = cru.length;
+		}
+	}
+
+	let contados = { c2s: 0, s2c: 0 };
+
+	if (refatiar && conexao.servidor) {
+		/*
+		 * REFATIAR: o `.jsonl` e o que o gravador CONSEGUIU ler naquele dia; o
+		 * `.bin` e o que passou no fio. Quando a tabela de opcode estava velha o
+		 * primeiro trunca e o segundo nao — foi assim que 125 sessoes viraram
+		 * "evidencia de ausencia" sem nunca terem sido lidas por inteiro.
+		 *
+		 * Refatiar le o `.bin` com a tabela de HOJE. E o mesmo `Fatiador` do
+		 * gravador, importado e nao copiado: um segundo fatiador divergiria em
+		 * silencio, e o sintoma seria de novo um pacote que "nao apareceu".
+		 */
+		for (const dir of ['c2s', 's2c']) {
+			const cru = bytes.get(`${conexao.etiqueta}.${dir}`);
+			if (!cru) continue;
+			const fatiador = new Fatiador(TABELA, conexao.servidor, dir);
+			let deslocamento = 0;
+			for (const p of fatiador.receber(cru)) {
+				pacotes.push({
+					ms: 0,
+					dir,
+					opcode: '0x' + p.opcode.toString(16).padStart(4, '0'),
+					nome: p.nome,
+					tamanho: p.tamanho,
+					deslocamento,
+					...(p.incompleto ? { incompleto: p.incompleto } : {}),
+					etiqueta: conexao.etiqueta,
+					servidor: conexao.servidor,
+					refatiado: true,
+				});
+				if (p.incompleto) conexao.travou[dir] = p.incompleto;
+				else {
+					contados[dir]++;
+					deslocamento += p.tamanho;
+				}
+			}
+		}
+		conexao.pacotes = contados;
+		continue;
 	}
 
 	for (const linha of fs.readFileSync(jsonl, 'utf8').split('\n')) {
 		if (!linha.trim()) continue;
 		const o = JSON.parse(linha);
 		if (o.tipo) continue; // linhas de abertura/fim da conexão
+		if (!o.incompleto && o.dir) contados[o.dir]++;
 		pacotes.push({ ...o, etiqueta: conexao.etiqueta, servidor: conexao.servidor });
 	}
+	conexao.pacotes = contados;
 }
 
 pacotes.sort((a, b) => a.ms - b.ms);
@@ -83,7 +207,7 @@ pacotes.sort((a, b) => a.ms - b.ms);
 // --- resumo ---------------------------------------------------------------
 
 console.log('CONEXOES');
-for (const c of indice.conexoes) {
+for (const c of conexoes) {
 	const travou = Object.entries(c.travou ?? {})
 		.filter(([, v]) => v)
 		.map(([d, v]) => `${d}:${v}`)
@@ -94,6 +218,40 @@ for (const c of indice.conexoes) {
 			`s2c ${String(c.pacotes.s2c).padStart(4)}p/${String(c.bytes.s2c).padStart(6)}B` +
 			(travou ? `  [FATIAMENTO PAROU: ${travou}]` : '')
 	);
+}
+
+/*
+ * A COBERTURA VEM ANTES DO CENSO, E ELA E A METADE QUE FALTAVA.
+ *
+ * Este bloco existe por causa de um erro caro: o censo abaixo foi lido como
+ * prova de AUSENCIA — "zero `ZC_USESKILL_ACK2`, zero EFST em 125 sessoes"
+ * (`docs/varredura-habilidades-21-08-2026-B.md`) — quando o que havia era um
+ * fatiador que tinha PARADO. A tabela de opcode estava congelada e nao conhecia
+ * a faixa RAGIDLE, entao o gravador desistia no primeiro pacote NOSSO: **87% dos
+ * bytes servidor->cliente nunca viraram linha de `.jsonl`**.
+ *
+ * O aviso por conexao ja existia e nao bastou — ele fica ACIMA da lista, e quem
+ * conta ocorrencia le a lista. Zero so significa "nao aconteceu" quando a
+ * cobertura e 100%; abaixo disso significa "nao foi fatiado", que e outra coisa.
+ */
+const somar = (f) => conexoes.reduce((t, c) => t + f(c), 0);
+const bytesTotais = somar((c) => (c.bytes.c2s ?? 0) + (c.bytes.s2c ?? 0));
+const bytesFatiados = pacotes.reduce((t, p) => t + (p.incompleto ? 0 : (p.tamanho ?? 0)), 0);
+const cobertura = bytesTotais > 0 ? (bytesFatiados / bytesTotais) * 100 : 100;
+const travadas = conexoes.filter((c) => c.travou.c2s || c.travou.s2c).length;
+
+console.log('\nCOBERTURA DO FATIAMENTO');
+console.log(
+	`  ${bytesFatiados} de ${bytesTotais} bytes (${cobertura.toFixed(1)}%) · ` +
+		`${travadas} de ${conexoes.length} conexao(oes) com fatiamento PARADO`
+);
+if (cobertura < 99.9 || travadas > 0) {
+	console.log('');
+	console.log('  !! O CENSO ABAIXO ESTA INCOMPLETO — NAO O USE COMO PROVA DE AUSENCIA. !!');
+	console.log('  Contagem ZERO aqui nao quer dizer "nao aconteceu": quer dizer "nao foi');
+	console.log('  fatiado". Regenere a tabela antes de concluir qualquer coisa:');
+	console.log('      node oraculo/gerar-tabela-de-opcodes.mjs');
+	console.log('  e refaca a captura. O `.bin` guarda os bytes crus e continua completo.');
 }
 
 console.log('\nPACOTES POR NOME');
@@ -128,7 +286,7 @@ if (semNome.length) {
  *
  * Por isso o leitor aponta o dedo em vez de deixar o mistério.
  */
-for (const conexao of indice.conexoes) {
+for (const conexao of conexoes) {
 	const parou = Object.entries(conexao.travou ?? {}).filter(([, v]) => v);
 	if (!parou.length) continue;
 
