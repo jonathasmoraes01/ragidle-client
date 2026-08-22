@@ -373,6 +373,39 @@ const EXCECOES = [
      * Era a ultima travada s2c das capturas (baseline-m0/03-map).
      */
     porque: 'packets2021_len_main.js length_list[0x08e2] = 27; espelhado em servidor/protocolo/tamanhos-do-cliente.ts:948'
+  },
+  {
+    opcode: 0x0af4,
+    servidor: 'map',
+    sentido: 'saida',
+    nome: 'CZ_USE_SKILL_TOGROUND3',
+    tamanho: 11,
+    /*
+     * O `PacketVersions` DESTE CLIENTE diz 12, e o proprio cliente envia 11.
+     *
+     * Esta e a segunda vez que o `PacketVersions` mente (a primeira foi o
+     * `0x01d7`, acima), e desta vez a contradicao esta DENTRO do mesmo
+     * repositorio. Tres fontes contra uma:
+     *
+     *   `PacketStructure.js:14077-14087` — o `build()`, que e o que vai ao fio:
+     *       `new BinaryWriter(11)` e 2+2+2+2+2+1 = 11 bytes escritos.
+     *   `packets2021_len_main.js:4297` — `length_list[0x0af4] = 11`, a tabela de
+     *       runtime, que a regra de `docs/mapa-de-pacotes.md` declara AUTORIDADE
+     *       de tamanho deste projeto.
+     *   `clif_packetdb.hpp:1901` — `parseable_packet(0x0AF4,11,…)`, o emulador.
+     *
+     *   `PacketVersions.js:5903` — `[…, 0x0af4, 12, 2,4,6,8,10]`. Os offsets
+     *       sao os mesmos das outras tres; so o total diverge.
+     *
+     * A precedencia geral do gerador (`PacketVersions` ganha do `build()`) esta
+     * CERTA e continua — ela existe por causa do `CZ_ENTER2`, cujo `pkt_len`
+     * literal ignora um `+= 4` logo abaixo. Aqui o `build()` nao tem `if`
+     * nenhum: o 11 esta cravado no construtor do buffer.
+     *
+     * Achado por `servidor/protocolo/oraculo-conhece-o-que-recebemos.test.ts`,
+     * na primeira corrida dele.
+     */
+    porque: 'PacketStructure.js:14077-14087 (new BinaryWriter(11)) + packets2021_len_main.js:4297 (=11) + clif_packetdb.hpp:1901 (=11); o PacketVersions.js:5903 diz 12 e e o unico'
   }
 ];
 
@@ -555,6 +588,7 @@ for (const servidor of ['login', 'char', 'map']) {
 }
 
 let preenchidosPorExcecao = 0;
+let sobrescritosPorExcecao = 0;
 for (const e of EXCECOES) {
   const atual = tabelas[e.servidor][e.sentido].get(e.opcode);
 
@@ -589,13 +623,23 @@ for (const e of EXCECOES) {
   // excecoes ("1 de 3 aplicadas"): ele preenche antes, e sem esta clausula a
   // excecao encontrava o campo ja ocupado e desistia calada. E a excecao do
   // `0x01d7` existe exatamente porque a outra fonte mente.
-  if (
-    atual &&
-    (atual.tamanho === null ||
-      atual.tamanho === 0 ||
-      atual.fonteDoTamanho === 'rathena' ||
-      atual.fonteDoTamanho === 'cliente')
-  ) {
+  /*
+   * A EXCEÇÃO GANHA DE TODA FONTE AUTOMÁTICA, inclusive do `PacketVersions`
+   * (D-487). O comentário acima já dizia *"a exceção é escrita à mão com a
+   * conta, então ela ganha"* — e a condição não implementava isso: um valor
+   * vindo do `PacketVersions` (que tem `desde` preenchido e nenhum
+   * `fonteDoTamanho`) não casava em nenhuma das quatro cláusulas, e a exceção
+   * desistia calada.
+   *
+   * Não é hipótese: `0x0af4` diverge exatamente assim, e o `PacketVersions` é a
+   * fonte errada nas duas vezes em que este arquivo precisou de exceção.
+   *
+   * O que protege contra abuso é o formulário, não a condição: toda entrada de
+   * `EXCECOES` carrega `porque`, com `arquivo:linha` das fontes que a
+   * sustentam, e ele viaja para o `opcodes.json`.
+   */
+  if (atual) {
+    if (atual.tamanho !== e.tamanho) sobrescritosPorExcecao++;
     atual.tamanho = e.tamanho;
     atual.fonteDoTamanho = 'excecao';
     atual.porque = e.porque;
@@ -690,6 +734,6 @@ console.log(
     `${comprimentosDoCliente.filter((x) => x !== undefined).length} declarados, ` +
     `${preenchidosPeloCliente} vazios preenchidos, ${divergenciasDeComprimento.length} divergencias`,
 );
-console.log(`excecoes a mao            ${preenchidosPorExcecao} de ${EXCECOES.length} aplicadas`);
+console.log(`excecoes a mao            ${preenchidosPorExcecao} de ${EXCECOES.length} aplicadas (${sobrescritosPorExcecao} sobrescreveram fonte automatica)`);
 if (semSentido.size) console.log(`familias nao classificadas: ${[...semSentido].join(', ')}`);
 console.log(`gravado em                ${path.relative(RAIZ, destino)}`);
