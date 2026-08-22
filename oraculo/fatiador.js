@@ -144,7 +144,30 @@ export class Fatiador {
 
 			if (this.resto.length < tamanho) break; // chega no próximo pedaço
 
-			pacotes.push({ opcode, nome: info.nome, tamanho, fonteDoTamanho: info.fonteDoTamanho });
+			/*
+			 * O CORPO SAI DAQUI, E NÃO DE UM SEGUNDO ENQUADRAMENTO (D-485).
+			 *
+			 * Até 22/08/2026 este método devolvia só `{opcode, nome, tamanho}` e
+			 * consumia os bytes. Quem quisesse LER um campo tinha de reescrever o
+			 * enquadramento inteiro por fora — cabeçalho variável, tamanho zero,
+			 * os 4 bytes crus do char-server, tudo de novo.
+			 *
+			 * Esse é o defeito mais frequente deste projeto ("duas rotas, e a
+			 * segunda escrita à mão"), e aqui ele tinha consequência específica: a
+			 * segunda rota não conheceria os três alçapões comentados acima, então
+			 * ela travaria ou — pior — leria silenciosamente o campo errado.
+			 *
+			 * `Buffer.from` e não `subarray`: o `resto` é reatribuído a cada
+			 * pedaço, e uma VISTA guardada por quem chamou apontaria para um
+			 * buffer que o próximo `concat` deixa para trás.
+			 */
+			pacotes.push({
+				opcode,
+				nome: info.nome,
+				tamanho,
+				fonteDoTamanho: info.fonteDoTamanho,
+				corpo: Buffer.from(this.resto.subarray(0, tamanho)),
+			});
 			this.resto = this.resto.subarray(tamanho);
 		}
 
