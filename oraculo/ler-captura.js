@@ -166,6 +166,27 @@ for (const conexao of conexoes) {
 		for (const dir of ['c2s', 's2c']) {
 			const cru = bytes.get(`${conexao.etiqueta}.${dir}`);
 			if (!cru) continue;
+
+			/*
+			 * O `travou` DO DIA DA GRAVACAO E APAGADO ANTES DE REFATIAR (D-489).
+			 *
+			 * Ele foi lido do `.jsonl`, que e o que o gravador conseguiu ler NAQUELE
+			 * dia; refatiar responde a mesma pergunta com a tabela de HOJE. O laco
+			 * abaixo so LIGA a marca, nunca a desliga — entao a marca velha
+			 * sobrevivia ao refatiamento e a saida se contradizia na mesma linha:
+			 *
+			 *   18-map … s2c 454p/90227B  [FATIAMENTO PAROU: s2c:sem-tamanho]
+			 *
+			 * 454 pacotes de 90.227 bytes E "o fatiamento parou". Medido em
+			 * 22/08/2026: **19 conexoes** marcadas assim, e ZERO delas trava com a
+			 * tabela de hoje. Pior do que um aviso ausente: um aviso que contradiz
+			 * o numero ao lado dele ensina a ignorar os dois.
+			 *
+			 * Apagar antes e o unico jeito honesto — a marca tem de descrever a
+			 * corrida que a produziu.
+			 */
+			conexao.travou[dir] = false;
+
 			const fatiador = new Fatiador(TABELA, conexao.servidor, dir);
 			let deslocamento = 0;
 			for (const p of fatiador.receber(cru)) {
