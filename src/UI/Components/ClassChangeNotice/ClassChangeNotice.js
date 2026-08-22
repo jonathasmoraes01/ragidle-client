@@ -35,8 +35,27 @@ const ClassChangeNotice = new GUIComponent('ClassChangeNotice', htmlText, cssTex
 /** Os destinos que o servidor mandou por último. */
 ClassChangeNotice.destinos = [];
 
+/**
+ * A RAIZ VEM DO FRAMEWORK, E NÃO DE UMA SEGUNDA ROTA (D-492).
+ *
+ * Isto era `ClassChangeNotice.ui[0] || ClassChangeNotice.ui` — uma reimplementação
+ * à mão do que `GUIComponent.getRoot()` já faz. E ela estava ERRADA: o
+ * componente usa **Shadow DOM**, e `getRoot()` devolve `this._shadow ||
+ * this._host` (`GUIComponent.js:131-133`). O `ui[0]` do proxy entrega o HOST, que
+ * não tem filho nenhum em light-DOM — então todo `querySelector` daqui devolvia
+ * `null`.
+ *
+ * O estrago não era cosmético. `init()` fazia
+ * `root.querySelector('.ccn-close').addEventListener(...)` sem guarda, e essa
+ * exceção subia por `GUIComponent._prepare` até **`MapEngine.init`**
+ * (`MapEngine.js:437`), que morria no meio: o mundo 3D nunca era montado. O
+ * sintoma que chegava era **tela 100% preta e clique que não anda** — quatro
+ * passos vermelhos em `prove:servidor-m1` que pareciam problema de renderização.
+ *
+ * Um aviso de classe derrubando o motor de mapa inteiro.
+ */
 function _root() {
-	return ClassChangeNotice.ui[0] || ClassChangeNotice.ui;
+	return ClassChangeNotice.getRoot();
 }
 
 function escapeHtml(texto) {
@@ -47,8 +66,25 @@ function escapeHtml(texto) {
 }
 
 ClassChangeNotice.init = function init() {
+	/*
+	 * A GUARDA EXISTE PORQUE ESTE `init` RODA DENTRO DE `MapEngine.init` (D-492).
+	 *
+	 * `render()`, dez linhas abaixo, sempre guardou `root` e os filhos; este não
+	 * guardava nada — a mesma pergunta respondida de dois jeitos no mesmo
+	 * arquivo. E a assimetria custou o jogo inteiro: `GUIComponent.prepare` não
+	 * engole exceção (é `try/finally`, e ela sobe), então um `querySelector` nulo
+	 * aqui abortava `MapEngine.init` e o mundo nunca era desenhado.
+	 *
+	 * Um aviso de classe é COSMÉTICO. Ele pode não aparecer; o que ele não pode é
+	 * derrubar o motor de mapa. Por isso a guarda é aqui, e não só no `_root()`
+	 * corrigido acima: o conserto de cima tira a causa de hoje, este tira a
+	 * classe inteira de falha.
+	 */
 	const root = _root();
-	root.querySelector('.ccn-close').addEventListener('click', () => esconder());
+	const fechar = root && root.querySelector('.ccn-close');
+	if (fechar) {
+		fechar.addEventListener('click', () => esconder());
+	}
 	render();
 };
 
