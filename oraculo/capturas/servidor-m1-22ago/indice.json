@@ -1,0 +1,67 @@
+{
+	"sessao": "servidor-m1-22ago",
+	"packetver": 20211103,
+	"gravadoPor": "oraculo/gravador-de-pacotes.js",
+	"conexoes": [
+		{
+			"n": 1,
+			"alvo": "127.0.0.1:6900",
+			"servidor": "login",
+			"etiqueta": "01-login",
+			"abertaEm": 28002,
+			"pacotes": {
+				"c2s": 1,
+				"s2c": 1
+			},
+			"bytes": {
+				"c2s": 55,
+				"s2c": 224
+			},
+			"travou": {
+				"c2s": false,
+				"s2c": false
+			},
+			"fechadaEm": 28020
+		},
+		{
+			"n": 2,
+			"alvo": "127.0.0.1:6121",
+			"servidor": "char",
+			"etiqueta": "02-char",
+			"abertaEm": 28014,
+			"pacotes": {
+				"c2s": 4,
+				"s2c": 6
+			},
+			"bytes": {
+				"c2s": 58,
+				"s2c": 426
+			},
+			"travou": {
+				"c2s": false,
+				"s2c": false
+			},
+			"fechadaEm": 35477
+		},
+		{
+			"n": 3,
+			"alvo": "127.0.0.1:5121",
+			"servidor": "map",
+			"etiqueta": "03-map",
+			"abertaEm": 35433,
+			"pacotes": {
+				"c2s": 5,
+				"s2c": 83
+			},
+			"bytes": {
+				"c2s": 47,
+				"s2c": 780
+			},
+			"travou": {
+				"c2s": false,
+				"s2c": false
+			},
+			"fechadaEm": 57578
+		}
+	]
+}
