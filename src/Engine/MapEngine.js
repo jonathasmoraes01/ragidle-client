@@ -32,7 +32,12 @@ import UIManager from 'UI/UIManager.js';
 import EffectManager from 'Renderer/EffectManager.js';
 import Escape from 'UI/Components/Escape/Escape.js';
 import ChatBox from 'UI/Components/ChatBox/ChatBox.js';
-import ChatBoxSettings from 'UI/Components/ChatBoxSettings/ChatBoxSettings.js';
+// ChatBoxSettings saiu em 20/08/2026: era o painel de filtros POR ABA das
+// abas dinamicas do chat, que morreram com os tres canais fixos (Global /
+// Trade / Farm — ver o cabecalho de UI/Components/ChatBox/ChatBox.js). Sem
+// filtro por aba para configurar, o painel so poderia mentir sobre o que
+// controla, e ainda daria ao jogador um jeito de furar a regra de o log
+// automatico da caca nunca cair na conversa.
 import StatusConst from 'DB/Status/StatusState.js';
 import CheckAttendance from 'UI/Components/CheckAttendance/CheckAttendance.js';
 import WinStats from 'UI/Components/WinStats/WinStats.js';
@@ -435,7 +440,6 @@ class MapEngine {
 			PartyFriends.getUI().prepare();
 			StatusIcons.prepare();
 			ChatBox.prepare();
-			ChatBoxSettings.prepare();
 			Guild.prepare();
 			WorldMap.prepare();
 			SkillListMH.homunculus.prepare();
@@ -802,7 +806,6 @@ function onMapChange(pkt) {
 			MapName.append();
 		}
 		ChatBox.append();
-		ChatBoxSettings.append();
 		BasicInfo.getUI().append();
 		Escape.append();
 		Inventory.getUI().append();

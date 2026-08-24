@@ -6,11 +6,42 @@
  * This file is part of ROBrowser, (http://www.robrowser.com/).
  *
  * @author Vincent Thibault
+ *
+ * ─────────────────────────────────────────────────────────────────────────
+ * RAG IDLE, 20/08/2026 — o chat virou TRES CANAIS FIXOS: Global, Trade, Farm.
+ *
+ * O que mudou de mecanismo (e por que):
+ *
+ * 1. As abas DINAMICAS do roBrowser sairam. Elas eram criadas, renomeadas e
+ *    apagadas pelo jogador, e cada uma guardava a propria lista de filtros,
+ *    editavel na engrenagem (ChatBoxSettings). Com esse desenho, a regra dura
+ *    desta frente — "nenhuma mensagem automatica do Farm aparece em Global ou
+ *    Trade" — dependia de o jogador nao desmarcar uma caixa. Nao era garantia.
+ *    Agora o canal sai de CANAL_DO_FILTRO abaixo: uma tabela FILTRO -> CANAL
+ *    em que cada filtro pertence a exatamente UM canal. O roteamento e
+ *    estrutural, nao configuravel, e nao depende do TEXTO da mensagem (que
+ *    muda com traducao).
+ *
+ * 2. O ciclo de alturas de F10/".size" (updateHeight/_heightIndex) e o
+ *    redimensionar por arrasto sairam: o painel tem UMA altura, definida em
+ *    CSS pelo gabarito (~12% da tela), mais o estado recolhido. F10 passou a
+ *    alternar recolhido/expandido, que e o unico eixo de tamanho que sobrou.
+ *
+ * 3. O painel nao e mais arrastavel. Ele mora no canto inferior esquerdo
+ *    (gabarito, secao 4) e cede espaco a barra de habilidades e ao canto
+ *    inferior direito. Nao chamar draggable() tambem desliga o clamp de
+ *    viewport do GUIComponent (ver o cabecalho de ChatBox.css).
+ *
+ * 4. A engrenagem (ChatBoxSettings) saiu junto com as abas dinamicas: sem
+ *    filtro por aba para configurar, o painel so poderia mentir sobre o que
+ *    controla.
+ *
+ * O que NAO mudou: as cores por tipo de mensagem (getColorForType), o fluxo
+ * de envio (onRequestTalk/submit), o modo batalha, os comandos "/", o
+ * historico de mensagem e de nick, e o link de item.
  */
 
 import DB from 'DB/DBManager.js';
-import Renderer from 'Renderer/Renderer.js';
-import Client from 'Core/Client.js';
 import Events from 'Core/Events.js';
 import Preferences from 'Core/Preferences.js';
 import KEYS from 'Controls/KeyEventHandler.js';
@@ -25,7 +56,6 @@ import ContextMenu from 'UI/Components/ContextMenu/ContextMenu.js';
 import htmlText from './ChatBox.html?raw';
 import cssText from './ChatBox.css?raw';
 import Commands from 'Controls/ProcessCommand.js';
-import ChatBoxSettings from 'UI/Components/ChatBoxSettings/ChatBoxSettings.js';
 import Configs from 'Core/Configs.js';
 import EntityManager from 'Renderer/EntityManager.js';
 import RiIcones from 'UI/ri-icones.js';
@@ -35,7 +65,6 @@ import RiIcones from 'UI/ri-icones.js';
  */
 const MAX_MSG = 400;
 const MAX_LENGTH = 100;
-const MAGIC_NUMBER = 3 * 14;
 
 /**
  * @var {History} message cached in history
@@ -48,52 +77,34 @@ const _historyMessage = new History();
 const _historyNickName = new History(true);
 
 /**
- * @var {number} Chatbox position's index
- */
-let _heightIndex = 2;
-
-/**
  * Buffer para acumular mensagens antes de adicionar ao DOM.
  * @private
- * @type {ChatMessage[]}
  */
 let _messageBuffer = [];
 
 /**
  * Flag que indica se um requestAnimationFrame foi agendado para processar o buffer.
  * @private
- * @type {boolean}
  */
 let _rafScheduled = false;
 
 /**
- * @var {Preferences} structure
+ * Preferencias do chat. Versao 2.0: as chaves de posicao/altura/abas
+ * (x, y, height, magnet_*, tabs, tabOption) morreram com os tres canais
+ * fixos e com o painel ancorado no canto — um save antigo nao pode
+ * ressuscitar aba nenhuma.
  */
 const _preferences = Preferences.get(
 	'ChatBox',
 	{
-		x: 0,
-		y: Infinity,
-		height: 2,
 		fontScale: 1.0,
-		magnet_top: false,
-		magnet_bottom: true,
-		magnet_left: true,
-		magnet_right: false,
-		tabs: [],
-		tabOption: [],
-		activeTab: 0
+		canalAtivo: 'global'
 	},
-	1.0
+	2.0
 );
 
 /**
- * Estado recolhido/expandido do painel inteiro (gauntlet 19/08/2026, layout
- * do print 2 do dono -- seta no canto superior direito). Chave PROPRIA,
- * separada de "_preferences" acima: aquela ja controla o ciclo de alturas de
- * F10/.size (updateHeight()/_heightIndex), e este e um mecanismo NOVO e
- * independente -- mesmo padrao de TopMenuIdle.js (preferencia dedicada por
- * controle, nunca reaproveitar um booleano de outro significado).
+ * Estado recolhido/expandido do painel. Chave PROPRIA, como em TopMenuIdle.js.
  */
 const _prefsRecolhido = Preferences.get('ChatBoxRecolhido', { recolhido: false }, 1.0);
 
@@ -112,8 +123,7 @@ function _root() {
 /**
  * Render HTML — troca cada marcador "<!--RI_ICONE:chave-->" pela string SVG
  * do modulo de iconografia (UI/ri-icones.js), mesmo padrao de
- * TopMenuIdle.js/BasicInfoIdle.js (gauntlet 19/08/2026: seta de
- * recolher/expandir + engrenagem de opcoes, ver ChatBox.html).
+ * TopMenuIdle.js/BasicInfoIdle.js.
  */
 ChatBox.render = () => htmlText.replace(/<!--RI_ICONE:(\w+)-->/g, (_, chave) => RiIcones[chave] || '');
 
@@ -140,6 +150,16 @@ ChatBox.TYPE = {
 	CLAN: 1 << 11
 };
 
+/**
+ * Os filtros 0..21 sao os do roBrowser/rAthena e NAO podem mudar de numero:
+ * cada "ChatBox.addText(..., FILTER.X)" espalhado por Engine/ e UI/ os cita.
+ *
+ * Os de 22 em diante sao do Rag Idle. Eles existem para o log automatico do
+ * idle ter uma ORIGEM propria em vez de dividir "FILTER.ITEM" com as
+ * mensagens de acao do jogador (equipar, usar, nao conseguir pegar) — sem
+ * eles, separar "caiu um item da caca" de "voce nao pode equipar isso" so
+ * daria por texto, que quebra com traducao.
+ */
 ChatBox.FILTER = {
 	PUBLIC_LOG: 0,
 	PUBLIC_CHAT: 1,
@@ -162,27 +182,72 @@ ChatBox.FILTER = {
 	PARTY_EXP: 18,
 	QUEST: 19,
 	BATTLEFIELD: 20,
-	CLAN: 21
+	CLAN: 21,
+	// Rag Idle — log automatico da caca
+	FARM_ITEM: 22,
+	FARM_EXP: 23,
+	FARM_ZENY: 24,
+	FARM_NIVEL: 25,
+	FARM_LOG: 26,
+	// Rag Idle — canal de comercio (SEM FONTE no servidor de mapa de hoje)
+	TRADE: 27
 };
 
 /**
- * @var {number} target message ?
+ * Os tres canais, na ordem em que aparecem.
+ */
+const CANAIS = ['global', 'trade', 'farm'];
+
+/**
+ * FILTRO -> CANAL. Esta tabela E a regra dura: cada filtro pertence a
+ * exatamente um canal, entao uma mensagem nunca pode aparecer em dois
+ * lugares nem cair no canal errado por configuracao do jogador.
+ *
+ * Criterio do que e "farm": tudo que o personagem produz SOZINHO enquanto
+ * caca — dano trocado, experiencia, nivel, item do chao, zeny do abate — mais
+ * o relatorio da sessao desassistida. Fica de fora o que e resposta a uma
+ * acao do jogador (equipar, usar item, falhar em pegar do chao): isso e
+ * conversa do sistema com o jogador e continua no Global, junto com a fala.
+ *
+ * O que nao estiver nesta tabela cai em "global" (ver canalDaMensagem).
+ */
+const CANAL_DO_FILTRO = {
+	[ChatBox.FILTER.PARTY_ITEM]: 'farm',
+	[ChatBox.FILTER.BATTLE]: 'farm',
+	[ChatBox.FILTER.PARTY_BATTLE]: 'farm',
+	[ChatBox.FILTER.EXP]: 'farm',
+	[ChatBox.FILTER.PARTY_EXP]: 'farm',
+	[ChatBox.FILTER.FARM_ITEM]: 'farm',
+	[ChatBox.FILTER.FARM_EXP]: 'farm',
+	[ChatBox.FILTER.FARM_ZENY]: 'farm',
+	[ChatBox.FILTER.FARM_NIVEL]: 'farm',
+	[ChatBox.FILTER.FARM_LOG]: 'farm',
+	[ChatBox.FILTER.TRADE]: 'trade'
+};
+
+function canalDaMensagem(filterType) {
+	return CANAL_DO_FILTRO[filterType] || 'global';
+}
+
+/**
+ * Where to send the message
  */
 ChatBox.sendTo = ChatBox.TYPE.PUBLIC;
 
 /**
- * Storage to cache the private messages
+ * Private Messages
  */
 ChatBox.PrivateMessageStorage = {
 	nick: '',
 	msg: ''
 };
 
-ChatBox.lastTabID = -1;
-ChatBox.tabCount = 0;
-ChatBox.activeTab = 0;
-
-ChatBox.tabs = [];
+/**
+ * Canal em foco. Continua se chamando "activeTab" porque e API publica do
+ * componente (ProcessCommand/savechat leem daqui); o valor agora e o id do
+ * canal ('global' | 'trade' | 'farm'), nao mais um numero de aba.
+ */
+ChatBox.activeTab = 'global';
 
 /**
  * Initialize UI
@@ -191,41 +256,20 @@ ChatBox.init = function init() {
 	const root = _root();
 
 	if (!ContextMenu.__loaded) ContextMenu.prepare();
-	_heightIndex = _preferences.height - 1;
-	ChatBox.updateHeight();
 	ChatBox.applyFontScale();
 
-	// (tentativa investigada e descartada aqui: dar um "restY" mais alto pra
-	// _preferences.y=Infinity nao funciona — GUIComponent._fixPositionOverflow()
-	// roda logo depois de init() dentro de _prepare() e chama
-	// UI/ClampToViewport.js, que quando magnet.BOTTOM e true SEMPRE forca
-	// `el.style.top = HEIGHT - height` (flush, sem margem nenhuma),
-	// sobrescrevendo qualquer top que a gente calcule aqui. magnet.BOTTOM
-	// vem true por padrao (_preferences.magnet_bottom) e ClampToViewport e
-	// compartilhado por toda a UI (nao da pra mudar so pro ChatBox sem
-	// mexer fora da pasta). A folga do dock foi resolvida em CSS em vez
-	// disso — ve ":host { transform }" em ChatBox.css.)
-	this._host.style.top = `${Math.min(Math.max(0, _preferences.y - (this._host.offsetHeight || 0)), Renderer.height - (this._host.offsetHeight || 0))}px`;
-	this._host.style.left = `${Math.min(Math.max(0, _preferences.x), Renderer.width - (this._host.offsetWidth || 0))}px`;
+	// Nem draggable() nem magnet: o painel mora no canto (ver ChatBox.css).
+	this.magnet.TOP = false;
+	this.magnet.BOTTOM = false;
+	this.magnet.LEFT = false;
+	this.magnet.RIGHT = false;
 
-	this.magnet.TOP = _preferences.magnet_top;
-	this.magnet.BOTTOM = _preferences.magnet_bottom;
-	this.magnet.LEFT = _preferences.magnet_left;
-	this.magnet.RIGHT = _preferences.magnet_right;
-
-	this.draggable('.input');
-	this.draggable('.battlemode');
-
-	// Keep chat log area click-through for walking; only block over interactive UI parts.
-	// For GUIComponent, set up manual mouse intersection blocking on interactive elements.
-	// .cb-collapse/.cb-gear somados em 19/08/2026 (gauntlet, layout do print
-	// 2): sao os dois botoes do canto superior/inferior direito, e precisam
-	// da MESMA guarda de nao vazar clique pro mapa que o resto da UI
-	// interativa ja tem. ".chat-function" SAIU da lista na rodada 2 do
-	// julgamento (a capsula inteira foi eliminada -- ver ChatBox.css/.html);
-	// ".cb-chatmode" nao precisa de entrada propria, ja mora dentro de
-	// ".input", que continua na lista.
-	const interactiveSelector = '.input, .battlemode, .event_add_cursor, .cb-collapse, .cb-gear';
+	// A HUD usa MouseMode.CROSS (o clique atravessa por desenho), entao cada
+	// pedaco que precisa se comportar como UI desliga o hover do mundo na
+	// mao. ".body" entrou na lista porque o log deixou de ser transparente:
+	// virou um painel solido, e passar o mouse por cima nao pode mais mirar
+	// monstro atras dele.
+	const interactiveSelector = '.cb-abas, .body, .input, .battlemode, .cb-collapse';
 	const interactiveEls = root.querySelectorAll(interactiveSelector);
 	interactiveEls.forEach(el => {
 		let _intersect;
@@ -252,40 +296,19 @@ ChatBox.init = function init() {
 		});
 	});
 
-	// Setting chatbox scrollbar (inject into shadow style)
-	Client.loadFiles(
-		[DB.INTERFACE_PATH + 'basic_interface/dialscr_down.bmp', DB.INTERFACE_PATH + 'basic_interface/dialscr_up.bmp'],
-		(down, up) => {
-			const scrollbarCSS = [
-				'#chatbox .content::-webkit-scrollbar { width: 10px; height: 10px;}',
-				'#chatbox .content::-webkit-scrollbar-button:vertical:start:increment,',
-				'#chatbox .content::-webkit-scrollbar-button:vertical:end:decrement { display: none;}',
-				'#chatbox .content::-webkit-scrollbar-corner:vertical { display:none;}',
-				'#chatbox .content::-webkit-scrollbar-resizer:vertical { display:none;}',
-				'#chatbox .content::-webkit-scrollbar-button:start:decrement,',
-				'#chatbox .content::-webkit-scrollbar-button:end:increment { display: block; border:none;}',
-				`#chatbox .content::-webkit-scrollbar-button:vertical:increment { background: url(${down}) no-repeat; height:10px;}`,
-				`#chatbox .content::-webkit-scrollbar-button:vertical:decrement { background: url(${up}) no-repeat; height:10px;}`,
-				'#chatbox .content::-webkit-scrollbar-track-piece:vertical { background:black; border:none;}',
-				'#chatbox .content::-webkit-scrollbar-thumb:vertical { background:grey; -webkit-border-image:none; border-color:transparent;border-width: 0px 0; }'
-			].join('\n');
-
-			const style = document.createElement('style');
-			style.textContent = scrollbarCSS;
-			if (ChatBox._shadow) {
-				ChatBox._shadow.appendChild(style);
-			}
-		}
-	);
-
 	// Input selection
-	const usernameInput = root.querySelector('.input input');
+	const usernameInput = root.querySelector('.input .username');
 	if (usernameInput) {
 		usernameInput.addEventListener('mousedown', function (event) {
 			this.select();
 			event.stopImmediatePropagation();
 			event.preventDefault();
 		});
+
+		// Nome no campo => a fala VIRA sussurro (regra de ChatBox.submit). A
+		// etiqueta de destino acompanha, para a barra nunca dizer "Global"
+		// enquanto a proxima linha vai sair como sussurro.
+		usernameInput.addEventListener('input', definirEtiquetaDeDestino);
 	}
 
 	const inputChatbox = root.querySelector('.input-chatbox');
@@ -407,59 +430,9 @@ ChatBox.init = function init() {
 		input.addEventListener('dragover', stopPropagation);
 	});
 
-	// Button change name (tab inputs)
-	root.querySelectorAll('.header input').forEach(input => {
-		input.addEventListener('dblclick', function () {
-			this.type = 'text';
-			this.select();
-		});
-		input.addEventListener('blur', function () {
-			this.type = 'button';
-		});
-	});
-
-	// Private message selection
-	const listBtn = root.querySelector('.input .list');
-	if (listBtn) {
-		listBtn.addEventListener('click', function () {
-			const names = _historyNickName.list;
-			const count = names.length;
-
-			if (!count) {
-				ChatBox.addText(DB.getMessage(192), ChatBox.TYPE.ERROR, ChatBox.FILTER.PUBLIC_LOG);
-				return;
-			}
-
-			ContextMenu.remove();
-			ContextMenu.append();
-
-			for (let i = 0; i < count; ++i) {
-				ContextMenu.addElement(names[i], onPrivateMessageUserSelection(names[i]));
-			}
-
-			ContextMenu.addElement('', onPrivateMessageUserSelection(''));
-
-			const pos = this.getBoundingClientRect();
-			const ui = ContextMenu.ui.find('.menu');
-			ui.css({
-				top: pos.top - ui.height() - 5,
-				left: pos.left - ui.width() - 5
-			});
-		});
-		listBtn.addEventListener('mousedown', event => {
-			event.stopImmediatePropagation();
-			event.preventDefault();
-		});
-	}
-
-	const draggableEl = root.querySelector('.draggable');
-	if (draggableEl) {
-		draggableEl.addEventListener('mousedown', event => {
-			event.stopPropagation();
-		});
-	}
-
-	// Send message to...
+	// Send message to... (publico / grupo / guilda / cla). O servidor de mapa
+	// tem chat de grupo (D-279) e de guilda (D-282), entao os quatro destinos
+	// deste menu continuam com fio de verdade.
 	const filterBtn = root.querySelector('.input .filter');
 	if (filterBtn) {
 		filterBtn.addEventListener('click', function () {
@@ -485,71 +458,15 @@ ChatBox.init = function init() {
 		});
 	}
 
-	// Change size
-	const sizeBtn = root.querySelector('.input .size');
-	if (sizeBtn) {
-		sizeBtn.addEventListener('click', event => {
-			ChatBox.updateHeight(true);
-			event.stopImmediatePropagation();
-			event.preventDefault();
-		});
-	}
-
-	// Scroll feature should block at each line
+	// Rolagem em bloco de linha. O ouvinte de roda do mundo mora no CANVAS
+	// (Controls/MapControl.js:70, "Renderer.canvas.addEventListener('wheel')"),
+	// nao no window — entao a roda dentro do chat nunca chega ao mapa. O
+	// preventDefault aqui e contra o scroll da PAGINA.
 	root.querySelectorAll('.content').forEach(el => {
 		el.addEventListener('wheel', onScroll);
 	});
 
-	// Tabs should behave like "UI" (no entity hover / map cursor changes)
-	(function initTabHoverBlock() {
-		let _tabIntersect;
-		let _tabEnter = 0;
-
-		root.querySelector('#chatbox').addEventListener(
-			'mouseenter',
-			event => {
-				if (event.target.closest('table.header tr td.tab')) {
-					if (_tabEnter === 0) {
-						_tabIntersect = Mouse.intersect;
-						_tabEnter++;
-						if (_tabIntersect) {
-							Mouse.intersect = false;
-							Cursor.setType(Cursor.ACTION.DEFAULT);
-							EntityManager.setOverEntity(null);
-						}
-					}
-				}
-			},
-			true
-		);
-
-		root.querySelector('#chatbox').addEventListener(
-			'mouseleave',
-			event => {
-				if (event.target.closest('table.header tr td.tab')) {
-					if (_tabEnter > 0) {
-						_tabEnter--;
-						if (_tabEnter === 0 && _tabIntersect) {
-							Mouse.intersect = true;
-							EntityManager.setOverEntity(null);
-						}
-					}
-				}
-			},
-			true
-		);
-
-		// Prevent walking when clicking tabs
-		root.querySelector('#chatbox').addEventListener(
-			'mousedown',
-			event => {
-				if (event.target.closest('table.header tr td.tab')) {
-					event.stopPropagation();
-				}
-			},
-			true
-		);
-	})();
+	const chatboxEl = root.querySelector('#chatbox');
 
 	// Prevent map right-click (camera rotate) when using chat right-click features
 	const chatBody = root.querySelector('.body');
@@ -561,15 +478,26 @@ ChatBox.init = function init() {
 			event.preventDefault();
 			event.stopPropagation();
 		});
+
+		// Recolhido, o corpo inteiro expande (gabarito: "clicar expande").
+		chatBody.addEventListener('click', event => {
+			if (!_prefsRecolhido.recolhido) {
+				return;
+			}
+			if (event.target.closest('a, .item-link')) {
+				return;
+			}
+			event.stopImmediatePropagation();
+			definirRecolhido(false);
+		});
 	}
 
 	// Chat font scale context menu (right click)
-	const chatboxEl = root.querySelector('#chatbox');
 	if (chatboxEl) {
 		chatboxEl.addEventListener('contextmenu', event => {
 			const target = event.target;
 			if (target.closest('.body, .contentwrapper, .content')) {
-				if (target.closest('a, .item-link, .event_add_cursor, td.tab')) {
+				if (target.closest('a, .item-link')) {
 					return;
 				}
 
@@ -586,14 +514,22 @@ ChatBox.init = function init() {
 				ContextMenu.addElement('Chat font x1.4', setChatFontScale(1.4));
 			}
 		});
-	}
 
-	// Clicking interactive elements in chat should not trigger map movement
-	if (chatboxEl) {
+		// Clicking interactive elements in chat should not trigger map movement
 		chatboxEl.addEventListener('mousedown', event => {
-			if (event.target.closest('.content a, .content .item-link')) {
+			if (event.target.closest('.tab, .cb-collapse, .content a, .content .item-link')) {
 				event.stopPropagation();
 			}
+		});
+
+		// Troca de canal (delegado nas tres abas fixas)
+		chatboxEl.addEventListener('click', event => {
+			const aba = event.target.closest('.tab');
+			if (!aba) {
+				return;
+			}
+			event.stopImmediatePropagation();
+			ChatBox.switchTab(aba.dataset.canal);
 		});
 	}
 
@@ -602,121 +538,28 @@ ChatBox.init = function init() {
 		bmtoggle.addEventListener('click', () => {
 			const inputEl = root.querySelector('.input');
 			const bmEl = root.querySelector('.battlemode');
-			if (inputEl) inputEl.style.display = inputEl.style.display === 'none' ? 'block' : 'none';
-			if (bmEl) bmEl.style.display = bmEl.style.display === 'none' ? 'block' : 'none';
+			if (inputEl) inputEl.style.display = inputEl.style.display === 'none' ? 'flex' : 'none';
+			if (bmEl) bmEl.style.display = bmEl.style.display === 'none' ? 'flex' : 'none';
 		});
 	}
 
-	// Recolher/expandir o painel inteiro (gauntlet 19/08/2026, layout do
-	// print 2 do dono).
 	const collapseBtn = root.querySelector('.cb-collapse');
 	if (collapseBtn) {
-		collapseBtn.addEventListener('click', onClickCollapse);
+		collapseBtn.addEventListener('click', event => {
+			event.stopImmediatePropagation();
+			definirRecolhido(!_prefsRecolhido.recolhido);
+		});
 		collapseBtn.addEventListener('mousedown', event => {
 			event.stopImmediatePropagation();
 			event.preventDefault();
 		});
 	}
 
-	// "Nova aba"/"Remover aba" (era ".chat-function .battleopt2"/".wndminib",
-	// os icones "+"/"-" da capsula do topo) mudaram de casa no julgamento do
-	// dono (rodada 2): moraram pro PAINEL que a engrenagem abre --
-	// ChatBoxSettings.js chama ChatBox.addNewTab()/removeTab() por
-	// UIManager.getComponent('ChatBox') (evita import circular, ChatBox.js
-	// ja importa ChatBoxSettings.js). Ver ChatBoxSettings.html/.js.
+	// Restaura o canal em foco (a preferencia so aceita canal que existe).
+	ChatBox.switchTab(CANAIS.includes(_preferences.canalAtivo) ? _preferences.canalAtivo : 'global');
 
-	// Tab click handler (delegated)
-	if (chatboxEl) {
-		chatboxEl.addEventListener('click', event => {
-			const tab = event.target.closest('table.header tr td.tab');
-			if (tab) {
-				event.stopImmediatePropagation();
-				if (ChatBox.activeTab != tab.dataset.tab) {
-					ChatBox.switchTab(tab.dataset.tab);
-				}
-			}
-		});
-	}
-
-	// Selector novo (era ".chat-function .chatmode", icone de teclado no
-	// canto superior direito): mudou pra dentro da propria ".input" que ela
-	// abre/fecha (julgamento do dono, rodada 2 -- "topo limpo, so a seta").
-	// A volta (battlemode -> chat) ja tinha lugar certo, ".bmtoggle" acima,
-	// nao precisou de casa nova.
-	const chatmodeBtn = root.querySelector('.cb-chatmode');
-	if (chatmodeBtn) {
-		chatmodeBtn.addEventListener('click', () => {
-			ChatBox.toggleChat();
-		});
-		chatmodeBtn.addEventListener('mousedown', event => {
-			event.stopImmediatePropagation();
-			event.preventDefault();
-		});
-	}
-
-	// Selector sem ".chat-function " (gauntlet 19/08/2026): o botao de
-	// opcoes saiu daquela capsula pra virar a engrenagem do canto inferior
-	// direito (ver ChatBox.html) -- mesma classe ".battleopt", mesmo
-	// handler, so casa nova.
-	const battleoptBtn = root.querySelector('.battleopt');
-	if (battleoptBtn) {
-		battleoptBtn.addEventListener('click', () => {
-			ChatBox.toggleChatBattleOption();
-		});
-		battleoptBtn.addEventListener('mousedown', event => {
-			event.stopImmediatePropagation();
-			event.preventDefault();
-		});
-	}
-
-	// Init settings window as well
-	ChatBoxSettings.append();
-
-	if (_preferences.tabs.length > 0 && _preferences.tabs.length == _preferences.tabOption.length) {
-		// Load saved tabs
-		for (let i = 0; i < _preferences.tabs.length; i++) {
-			if (_preferences.tabs[i]) {
-				const tabName = _preferences.tabs[i].name;
-				const tabSettings = _preferences.tabOption[i];
-				ChatBox.addNewTab(tabName, tabSettings);
-			}
-		}
-
-		// switch to active tab
-		if (_preferences.activeTab !== undefined && ChatBox.tabs[_preferences.activeTab]) {
-			ChatBox.switchTab(_preferences.activeTab);
-		}
-	} else {
-		// Create default tabs
-		const firstTab = ChatBox.addNewTab(DB.getMessage(1291), [
-			ChatBox.FILTER.PUBLIC_LOG,
-			ChatBox.FILTER.PUBLIC_CHAT,
-			ChatBox.FILTER.WHISPER,
-			ChatBox.FILTER.PARTY,
-			ChatBox.FILTER.GUILD,
-			ChatBox.FILTER.ITEM,
-			ChatBox.FILTER.EQUIP,
-			ChatBox.FILTER.STATUS,
-			ChatBox.FILTER.PARTY_ITEM,
-			ChatBox.FILTER.PARTY_STATUS,
-			ChatBox.FILTER.SKILL_FAIL,
-			ChatBox.FILTER.PARTY_SETUP,
-			ChatBox.FILTER.EQUIP_DAMAGE,
-			ChatBox.FILTER.WOE,
-			ChatBox.FILTER.PARTY_SEARCH,
-			ChatBox.FILTER.QUEST,
-			ChatBox.FILTER.BATTLEFIELD,
-			ChatBox.FILTER.CLAN
-		]); // Public Log
-
-		ChatBox.addNewTab(DB.getMessage(1292)); // Battle Log
-
-		// switch to first
-		ChatBox.switchTab(firstTab);
-	}
-
-	// dialog box size
-	makeResizableDiv();
+	// A barra de digitacao nasce dizendo para onde a fala vai.
+	definirEtiquetaDeDestino();
 
 	Commands.add(
 		'savechat',
@@ -755,154 +598,54 @@ ChatBox.clean = function Clean() {
 
 	const nickBox = root.querySelector('.input .username');
 	if (nickBox) nickBox.value = '';
+	definirEtiquetaDeDestino();
 
 	_historyMessage.clear();
 	_historyNickName.clear();
 };
 
-ChatBox.toggleChatBattleOption = function toggleChatBattleOption() {
+/**
+ * Troca o canal em foco. Marca a aba, mostra o log dela, apaga o ponto de
+ * nao-lido e liga/desliga a digitacao (Farm e somente leitura, ver a classe
+ * "canal-farm" em ChatBox.css).
+ */
+ChatBox.switchTab = function switchTab(canal) {
 	const root = _root();
-	const onInput = root.querySelector('.header tr td div.on input');
-	const tabName = onInput ? onInput.value : '';
-	ChatBoxSettings.toggle();
-	ChatBoxSettings.updateTab(this.activeTab, tabName);
-};
-
-ChatBox.removeTab = function removeTab() {
-	const root = _root();
-	const tabEl = root.querySelector(`table.header tr td.tab[data-tab="${this.activeTab}"]`);
-	if (tabEl) tabEl.remove();
-
-	const contentEl = root.querySelector(`.body .content[data-content="${this.activeTab}"]`);
-	if (contentEl) contentEl.remove();
-
-	const _elem = root.querySelectorAll('table.header tr td.tab');
-	const lastElem = _elem[_elem.length - 1];
-
-	delete ChatBoxSettings.tabOption[this.activeTab];
-	delete this.tabs[this.activeTab];
-	this.tabCount--;
-
-	ChatBox.switchTab(lastElem.dataset.tab);
-
-	const onInput = root.querySelector('.header tr td div.on input');
-	const tabName = onInput ? onInput.value : '';
-	ChatBoxSettings.updateTab(this.activeTab, tabName);
-};
-
-ChatBox.addNewTab = function addNewTab(name, settings) {
-	const root = _root();
-
-	if (!name) {
-		name = 'New Tab';
-	}
-	if (!settings) {
-		settings = [
-			ChatBox.FILTER.PUBLIC_LOG,
-			ChatBox.FILTER.PUBLIC_CHAT,
-			ChatBox.FILTER.WHISPER,
-			ChatBox.FILTER.PARTY,
-			ChatBox.FILTER.GUILD,
-			ChatBox.FILTER.ITEM,
-			ChatBox.FILTER.EQUIP,
-			ChatBox.FILTER.STATUS,
-			ChatBox.FILTER.PARTY_ITEM,
-			ChatBox.FILTER.PARTY_STATUS,
-			ChatBox.FILTER.SKILL_FAIL,
-			ChatBox.FILTER.PARTY_SETUP,
-			ChatBox.FILTER.EQUIP_DAMAGE,
-			ChatBox.FILTER.WOE,
-			ChatBox.FILTER.PARTY_SEARCH,
-			ChatBox.FILTER.BATTLE,
-			ChatBox.FILTER.PARTY_BATTLE,
-			ChatBox.FILTER.EXP,
-			ChatBox.FILTER.PARTY_EXP,
-			ChatBox.FILTER.QUEST,
-			ChatBox.FILTER.BATTLEFIELD,
-			ChatBox.FILTER.CLAN
-		];
+	if (!CANAIS.includes(canal)) {
+		return;
 	}
 
-	const tabName = name;
-	const tabID = ++this.lastTabID;
+	this.activeTab = canal;
+	_preferences.canalAtivo = canal;
+	_preferences.save();
 
-	const tab = {};
-	tab.id = tabID;
-	tab.name = tabName;
+	root.querySelectorAll('.tab').forEach(aba => {
+		const ativo = aba.dataset.canal === canal;
+		aba.setAttribute('aria-selected', String(ativo));
+		const pill = aba.querySelector('.cb-aba');
+		if (pill) {
+			pill.classList.toggle('is-active', ativo);
+			if (ativo) {
+				pill.classList.remove('tem-nova');
+			}
+		}
+	});
 
-	// Remove current active state
-	root.querySelectorAll('table.header tr td.tab div').forEach(el => el.classList.remove('on'));
-	root.querySelectorAll('.body .content').forEach(el => el.classList.remove('active'));
+	root.querySelectorAll('.content').forEach(el => {
+		el.classList.toggle('active', el.dataset.content === canal);
+	});
 
-	// Add new elements as active
-	const opttab = root.querySelector('table.header tr .opttab');
-	if (opttab) {
-		opttab.insertAdjacentHTML(
-			'beforebegin',
-			`
-			<td class="tab" data-tab="${tabID}">
-				<div class="on">
-					<input type="text" value="${tabName}"/>
-				</div>
-			</td>
-		`
-		);
+	const chatboxEl = root.querySelector('#chatbox');
+	if (chatboxEl) {
+		chatboxEl.classList.toggle('canal-farm', canal === 'farm');
+		// Trade: a barra fica, o campo sai (ver ".cb-inerte" em ChatBox.css).
+		chatboxEl.classList.toggle('canal-trade', canal === 'trade');
 	}
 
-	const newTabInput = root.querySelector(`table.header tr td.tab[data-tab="${tabID}"] div input`);
-	if (newTabInput) {
-		newTabInput.addEventListener('change', function () {
-			ChatBox.tabs[tabID].name = this.value;
-		});
-	}
-
-	const contentWrapper = root.querySelector('.body .contentwrapper');
-	if (contentWrapper) {
-		contentWrapper.insertAdjacentHTML(
-			'beforeend',
-			`<div class="content active" data-content="${tabID}" data-scrollbar-skin="chatbox"></div>`
-		);
-	}
-
-	// Bind scroll handler on new content
-	const newContent = root.querySelector(`.body .content[data-content="${tabID}"]`);
-	if (newContent) {
-		newContent.addEventListener('wheel', onScroll);
-	}
-
-	ChatBoxSettings.tabOption[tabID] = settings;
-
-	this.tabs[tabID] = tab;
-	this.activeTab = tabID;
-
-	this.tabCount++;
-
-	ChatBoxSettings.updateTab(this.activeTab, tabName);
-
-	return tabID;
-};
-
-ChatBox.switchTab = function switchTab(tabID) {
-	const root = _root();
-
-	root.querySelectorAll('table.header tr td.tab div').forEach(el => el.classList.remove('on'));
-	root.querySelectorAll('.body .content').forEach(el => el.classList.remove('active'));
-
-	this.activeTab = tabID;
-
-	const tabDiv = root.querySelector(`table.header tr td.tab[data-tab="${this.activeTab}"] div`);
-	if (tabDiv) tabDiv.classList.add('on');
-
-	const contentDiv = root.querySelector(`.body .content[data-content="${this.activeTab}"]`);
+	const contentDiv = root.querySelector(`.content[data-content="${canal}"]`);
 	if (contentDiv) {
-		contentDiv.classList.add('active');
 		contentDiv.scrollTop = contentDiv.scrollHeight;
 	}
-
-	const onInput = root.querySelector('.header tr td div.on input');
-	const tabName = onInput ? onInput.value : '';
-
-	ChatBoxSettings.updateTab(this.activeTab, tabName);
 };
 
 /**
@@ -911,15 +654,13 @@ ChatBox.switchTab = function switchTab(tabID) {
 ChatBox.onAppend = function OnAppend() {
 	const root = _root();
 
-	// Restaura o recolhido/expandido salvo (gauntlet 19/08/2026) ANTES do
-	// resto -- mesma ordem de BasicInfoIdle.js:onAppend().
-	applyRecolhidoState();
+	aplicarRecolhido();
 
 	const inputEl = root.querySelector('.input');
 	if (inputEl) inputEl.style.display = 'none';
 
 	const bmEl = root.querySelector('.battlemode');
-	if (bmEl) bmEl.style.display = 'block';
+	if (bmEl) bmEl.style.display = 'flex';
 
 	const content = root.querySelector('.content.active');
 	if (content) content.scrollTop = content.scrollHeight;
@@ -929,22 +670,8 @@ ChatBox.onAppend = function OnAppend() {
  * Stop custom scroll
  */
 ChatBox.onRemove = function OnRemove() {
-	_preferences.y = (parseInt(this._host.style.top, 10) || 0) + (this._host.offsetHeight || 0);
-	_preferences.x = parseInt(this._host.style.left, 10) || 0;
-	_preferences.height = _heightIndex;
-	_preferences.magnet_top = this.magnet.TOP;
-	_preferences.magnet_bottom = this.magnet.BOTTOM;
-	_preferences.magnet_left = this.magnet.LEFT;
-	_preferences.magnet_right = this.magnet.RIGHT;
-
-	_preferences.tabs = this.tabs;
-	_preferences.tabOption = ChatBoxSettings.tabOption;
-	_preferences.activeTab = this.activeTab;
-
+	_preferences.canalAtivo = this.activeTab;
 	_preferences.save();
-
-	this.lastTabID = -1;
-	this.activeTab = 0;
 };
 
 /**
@@ -975,13 +702,6 @@ ChatBox.onKeyDown = function OnKeyDown(event) {
 	const root = _root();
 	const messageBox = root.querySelector('.input-chatbox');
 	const nickBox = root.querySelector('.input .username');
-
-	const onInput = root.querySelector('.header tr td div.on input');
-	if (onInput) {
-		onInput.addEventListener('keyup', function () {
-			ChatBoxSettings.updateTab(ChatBox.activeTab, this.value);
-		});
-	}
 
 	const activeElement = KEYS.getDeepActiveElement();
 	const isChatInputFocused = activeElement === messageBox || activeElement === nickBox;
@@ -1128,13 +848,11 @@ ChatBox.onKeyDown = function OnKeyDown(event) {
 			}
 			return true;
 
-		// Update chat height
+		// F10 era o ciclo de 6 alturas do chat nativo. Com uma altura so
+		// (gabarito) o unico eixo que sobrou e recolher/expandir, e a tecla
+		// ficou nele em vez de virar tecla morta.
 		case KEYS.F10:
-			this.updateHeight(false);
-			{
-				const activeContent = root.querySelector(`.content[data-content="${this.activeTab}"]`);
-				if (activeContent) activeContent.scrollTop = activeContent.scrollHeight;
-			}
+			definirRecolhido(!_prefsRecolhido.recolhido);
 			break;
 
 		// Send message
@@ -1153,9 +871,21 @@ ChatBox.onKeyDown = function OnKeyDown(event) {
 				return false;
 			}
 
+			// Farm e somente leitura, e Trade nao tem canal no servidor: em
+			// nenhum dos dois o Enter abre digitacao. No Trade isso e a mesma
+			// decisao do ".cb-inerte" (ChatBox.html) — sem esta guarda, digitar
+			// no Trade sairia como fala PUBLICA e a linha apareceria no Global.
+			if (this.activeTab === 'farm' || this.activeTab === 'trade') {
+				event.stopImmediatePropagation();
+				return false;
+			}
+			if (_prefsRecolhido.recolhido) {
+				definirRecolhido(false);
+			}
+
 			const input = root.querySelector('.input');
 			if (input && input.style.display === 'none') {
-				input.style.display = 'block';
+				input.style.display = 'flex';
 				const bmEl = root.querySelector('.battlemode');
 				if (bmEl) bmEl.style.display = 'none';
 			}
@@ -1205,23 +935,16 @@ ChatBox.submit = function Submit() {
 	const user = $user ? $user.value : '';
 	const text = extractChatMessage($text);
 	const trimmedText = text.replace(/\u00A0/g, ' ').trim();
-	let isChatOn = false;
 
 	// Battle mode
 	if (!trimmedText.length) {
 		const bmEl = root.querySelector('.battlemode');
-		if (inputEl) inputEl.style.display = inputEl.style.display === 'none' ? 'block' : 'none';
-		if (bmEl) bmEl.style.display = bmEl.style.display === 'none' ? 'block' : 'none';
+		if (inputEl) inputEl.style.display = inputEl.style.display === 'none' ? 'flex' : 'none';
+		if (bmEl) bmEl.style.display = bmEl.style.display === 'none' ? 'flex' : 'none';
 
 		if (inputEl && inputEl.style.display !== 'none') {
-			isChatOn = true;
 			$text.focus();
 		}
-		const chatmode = isChatOn ? 'on' : 'off';
-		Client.loadFile(`${DB.INTERFACE_PATH}basic_interface/chatmode_${chatmode}.bmp`, data => {
-			const chatmodeBtn = root.querySelector('.cb-chatmode');
-			if (chatmodeBtn) chatmodeBtn.style.backgroundImage = `url(${data})`;
-		});
 
 		return;
 	}
@@ -1303,7 +1026,11 @@ ChatBox.addText = function addText(text, colorType, filterType, color, override)
 };
 
 /**
- * Process all messages in the buffer at once
+ * Process all messages in the buffer at once.
+ *
+ * Cada mensagem vai para UM canal so, decidido por canalDaMensagem() a partir
+ * do filtro que a origem declarou. Nao ha caminho por onde a mesma linha
+ * aparecer em dois canais.
  */
 function flushMessageBuffer() {
 	if (_messageBuffer.length === 0) {
@@ -1314,51 +1041,36 @@ function flushMessageBuffer() {
 	const messages = _messageBuffer.slice();
 	_messageBuffer = [];
 
-	const messagesByTab = {};
+	const porCanal = {};
 
 	messages.forEach(msg => {
-		ChatBox.tabs.forEach((tab, TabNum) => {
-			const chatTabOption = ChatBoxSettings.tabOption[TabNum];
-
-			if (!chatTabOption || !chatTabOption.includes(msg.filterType)) {
-				return;
-			}
-
-			if (!messagesByTab[TabNum]) {
-				messagesByTab[TabNum] = [];
-			}
-
-			messagesByTab[TabNum].push(msg);
-		});
+		const canal = canalDaMensagem(msg.filterType);
+		if (!porCanal[canal]) {
+			porCanal[canal] = [];
+		}
+		porCanal[canal].push(msg);
 	});
 
-	Object.keys(messagesByTab).forEach(TabNum => {
-		const content = root.querySelector(`.content[data-content="${TabNum}"]`);
+	Object.keys(porCanal).forEach(canal => {
+		const content = root.querySelector(`.content[data-content="${canal}"]`);
 		if (!content) return;
 
 		const fragment = document.createDocumentFragment();
 		const wasAtBottom = shouldScrollDownBeforeAdd(content, content.offsetHeight);
 
-		messagesByTab[TabNum].forEach(msg => {
+		porCanal[canal].forEach(msg => {
 			const color = msg.color || getColorForType(msg.colorType);
 			const div = document.createElement('div');
 			div.style.color = color;
 
-			// Etiqueta de canal (pilula, gauntlet 19/08/2026 -- layout do
-			// print 2: "System"/"World" em TODA linha, ver julgamento rodada
-			// 2). So um NOME visivel pro mesmo "colorType" que
-			// getColorForType() ja le -- ver getTagInfoForType() abaixo.
-			// SEMPRE presente agora (antes so aparecia fora da fala comum
-			// do jogador, o que o julgamento apontou como inconsistente).
-			const tag = getTagInfoForType(msg.colorType);
-			const tagHtml = `<span class="ri-badge ri-badge--${tag.variant} cb-tag">${tag.label}</span>`;
+			const tag = etiquetaDaLinha(msg.colorType, msg.filterType);
+			const tagHtml = `<span class="ri-badge ri-badge--${tag.variante} cb-tag">${tag.rotulo}</span>`;
 
 			if (!msg.override) {
 				div.innerHTML = tagHtml + highlightMessage(msg.text, msg.colorType);
 			} else {
 				// Override ja e HTML pronto (ITEMLINK, link de historico,
-				// nickname-link) -- so a etiqueta de canal e somada por
-				// cima, o resto NAO e reprocessado por highlightMessage().
+				// nickname-link) -- so a etiqueta de canal e somada por cima.
 				div.innerHTML = tagHtml + msg.text;
 			}
 			fragment.appendChild(div);
@@ -1380,7 +1092,25 @@ function flushMessageBuffer() {
 		if (wasAtBottom) {
 			content.scrollTop = content.scrollHeight;
 		}
+
+		marcarNaoLido(canal);
 	});
+}
+
+/**
+ * Ponto de nao-lido na aba do canal que recebeu mensagem, quando ele nao e o
+ * canal em foco. Usa ".ri-dot" do design system (Common.css), nunca um
+ * indicador proprio.
+ */
+function marcarNaoLido(canal) {
+	if (canal === ChatBox.activeTab) {
+		return;
+	}
+	const root = _root();
+	const pill = root.querySelector(`.tab[data-canal="${canal}"] .cb-aba`);
+	if (pill) {
+		pill.classList.add('tem-nova');
+	}
 }
 
 function getColorForType(colorType) {
@@ -1401,75 +1131,68 @@ function getColorForType(colorType) {
 	} else if (colorType & ChatBox.TYPE.ADMIN) {
 		return '#FFFF00';
 	} else if (colorType & ChatBox.TYPE.MAIL) {
-		return '#F4D293';
+		return '#FFFFFF';
 	}
-	return 'white';
+
+	return '#FFFFFF';
 }
 
 /**
- * Rotulo + variante da etiqueta de canal (pilula no inicio da linha,
- * gauntlet 19/08/2026 -- layout do print 2 do dono: "System"/"World" como
- * pilula SOLIDA, separada do texto). Le o MESMO "colorType" que
- * getColorForType() ja le -- nao decide nada novo, so da um NOME visivel pro
- * que o bitmask ja representa (regra 3 do cabecalho de ChatBox.css:
- * envolver/estilizar, nunca reimplementar a logica de cor).
- *
- * JULGAMENTO rodada 2 (19/08/2026): a v1 so etiquetava o que NAO era fala
- * comum (SELF ficava sem pilula) -- apontado como inconsistente ("parece
- * por acaso"), porque a referencia mostra etiqueta em TODA linha. Duas
- * saidas possiveis: (a) toda linha com a MESMA pilula cheia, ou (b) toda
- * linha com pilula, mas a fala comum ("Normal"/"Global", que domina uma
- * tela cheia de mensagens) num tom NEUTRO/CINZA -- so as linhas que
- * realmente pedem atencao (sistema, erro, guilda, grupo, sussurro...)
- * ficam no dourado cheio. Ficou com (b): legibilidade e sinalizacao
- * andam juntas quando a cor "grita" so o que e raro; se TODA linha
- * gritasse dourado igual, a pilula deixa de ajudar a escanear a tela e
- * vira ruido repetido. "cinza"/"ouro" aqui sao os MESMOS dois modificadores
- * de ".ri-badge" que Common.css ja define (nenhuma cor nova).
+ * Etiqueta de canal no inicio da linha (gabarito, secao 4). Dentro do Farm o
+ * rotulo vem do FILTRO — que e o que distingue item, experiencia, zeny e
+ * nivel — e no resto vem do tipo de cor, como sempre veio. So um NOME visivel
+ * para o que o JS ja decidiu; nao inventa cor nem muda o fluxo.
  */
-function getTagInfoForType(colorType) {
-	if (colorType & ChatBox.TYPE.ERROR) return { label: 'Erro', variant: 'ouro' };
-	if (colorType & ChatBox.TYPE.ADMIN) return { label: 'Admin', variant: 'ouro' };
-	if (colorType & ChatBox.TYPE.MAIL) return { label: 'Correio', variant: 'ouro' };
-	if (colorType & ChatBox.TYPE.CLAN) return { label: 'Clã', variant: 'ouro' };
-	if (colorType & ChatBox.TYPE.GUILD) return { label: 'Guilda', variant: 'ouro' };
-	if (colorType & ChatBox.TYPE.PARTY) return { label: 'Grupo', variant: 'ouro' };
-	if (colorType & ChatBox.TYPE.PRIVATE) return { label: 'Sussurro', variant: 'ouro' };
-	if (colorType & ChatBox.TYPE.ANNOUNCE) return { label: 'Anúncio', variant: 'ouro' };
-	if (colorType & ChatBox.TYPE.INFO) return { label: 'Sistema', variant: 'ouro' };
-	if (colorType & ChatBox.TYPE.BLUE) return { label: 'Aviso', variant: 'ouro' };
-	if (colorType & ChatBox.TYPE.PUBLIC && !(colorType & ChatBox.TYPE.SELF)) {
-		return { label: 'Global', variant: 'cinza' };
+function etiquetaDaLinha(colorType, filterType) {
+	switch (filterType) {
+		case ChatBox.FILTER.FARM_ITEM:
+		case ChatBox.FILTER.PARTY_ITEM:
+			return { rotulo: 'Item', variante: 'ouro' };
+		case ChatBox.FILTER.FARM_EXP:
+		case ChatBox.FILTER.EXP:
+		case ChatBox.FILTER.PARTY_EXP:
+			return { rotulo: 'Exp', variante: 'ouro' };
+		case ChatBox.FILTER.FARM_ZENY:
+			return { rotulo: 'Zeny', variante: 'ouro' };
+		case ChatBox.FILTER.FARM_NIVEL:
+			return { rotulo: 'Nível', variante: 'ouro' };
+		case ChatBox.FILTER.FARM_LOG:
+			return { rotulo: 'Caça', variante: 'ouro' };
+		case ChatBox.FILTER.BATTLE:
+		case ChatBox.FILTER.PARTY_BATTLE:
+			return { rotulo: 'Combate', variante: 'cinza' };
+		case ChatBox.FILTER.TRADE:
+			return { rotulo: 'Trade', variante: 'ouro' };
+		default:
+			break;
 	}
-	// Fala publica do proprio jogador (SELF) e qualquer combinacao nao
-	// mapeada acima (getColorForType() tambem cai no mesmo "sem categoria
-	// especial" -> branco) -- tratada como o "canal padrao" da conversa.
-	return { label: 'Normal', variant: 'cinza' };
+
+	if (colorType & ChatBox.TYPE.ERROR) return { rotulo: 'Erro', variante: 'ouro' };
+	if (colorType & ChatBox.TYPE.ADMIN) return { rotulo: 'Admin', variante: 'ouro' };
+	if (colorType & ChatBox.TYPE.MAIL) return { rotulo: 'Correio', variante: 'ouro' };
+	if (colorType & ChatBox.TYPE.CLAN) return { rotulo: 'Clã', variante: 'ouro' };
+	if (colorType & ChatBox.TYPE.GUILD) return { rotulo: 'Guilda', variante: 'ouro' };
+	if (colorType & ChatBox.TYPE.PARTY) return { rotulo: 'Grupo', variante: 'ouro' };
+	if (colorType & ChatBox.TYPE.PRIVATE) return { rotulo: 'Sussurro', variante: 'ouro' };
+	if (colorType & ChatBox.TYPE.ANNOUNCE) return { rotulo: 'Anúncio', variante: 'ouro' };
+	if (colorType & ChatBox.TYPE.INFO) return { rotulo: 'Sistema', variante: 'ouro' };
+	if (colorType & ChatBox.TYPE.BLUE) return { rotulo: 'Aviso', variante: 'ouro' };
+
+	return { rotulo: 'Global', variante: 'cinza' };
 }
 
 /**
  * Escapa o texto CRU (mensagem de outro jogador, nunca confiavel) antes de
- * highlightMessage() envolver pedacos dela em spans -- sem isto, texto
- * digitado por outro jogador contendo "<"/">" viraria HTML de verdade ao
- * trocar textContent por innerHTML abaixo.
+ * highlightMessage() envolver pedacos dela em spans.
  */
 function escapeChatHtml(text) {
 	return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
 /**
- * Envolve (NUNCA decide) dois pedacos da mensagem em spans, puro realce
- * visual sobre texto que o JS ja decidiu -- mesma tecnica da substituicao de
- * "<ITEMLINK>" em ChatBox.addText(), so aplicada aqui em cima do texto ja
- * escapado:
- *  - o prefixo "Nome : " que o proprio rAthena ja manda PRONTO dentro de
- *    pkt.msg pra fala publica/grupo/guilda/sussurro (ver
- *    Engine/MapEngine/Entity.js:981, Group.js:391, Guild.js:521,
- *    PrivateMessage.js) -- so nas categorias de "alguem falou" (colorType),
- *    nunca em mensagem de sistema/erro que por acaso tenha um ":" no meio.
+ * Envolve (NUNCA decide) dois pedacos da mensagem em spans:
+ *  - o prefixo "Nome : " que o proprio rAthena manda PRONTO dentro de pkt.msg
  *  - numeros (zeny, quantidade, nivel) em qualquer mensagem.
- * So roda em mensagens SEM override; override ja e HTML pronto (item-link,
- * link de historico) e nao e re-processado aqui.
  */
 function highlightMessage(rawText, colorType) {
 	const escaped = escapeChatHtml(rawText);
@@ -1478,7 +1201,9 @@ function highlightMessage(rawText, colorType) {
 		colorType &
 		(ChatBox.TYPE.PUBLIC | ChatBox.TYPE.PARTY | ChatBox.TYPE.GUILD | ChatBox.TYPE.PRIVATE | ChatBox.TYPE.CLAN)
 	);
-	const withName = isSpeech ? escaped.replace(/^(\s*[^\n:]{1,24}?)\s:\s/, '<span class="cb-name">$1</span> : ') : escaped;
+	const withName = isSpeech
+		? escaped.replace(/^(\s*[^\n:]{1,24}?)\s:\s/, '<span class="cb-name">$1</span> : ')
+		: escaped;
 
 	return withName.replace(/\b\d+(?:[.,]\d+)*\b/g, match => `<span class="cb-num">${match}</span>`);
 }
@@ -1492,79 +1217,6 @@ function shouldScrollDownBeforeAdd(container, height) {
 	}
 
 	return false;
-}
-
-/**
- * Change chatbox's height
- */
-ChatBox.updateHeight = function changeHeight(AlwaysVisible) {
-	const root = _root();
-	const HeightList = [0, 0, MAGIC_NUMBER, MAGIC_NUMBER * 2, MAGIC_NUMBER * 3, MAGIC_NUMBER * 4, MAGIC_NUMBER * 5];
-	const content = root.querySelector('.contentwrapper');
-	const bottomBefore = getChatBottomAnchorPx(root, this.__lastBottomY);
-
-	_heightIndex = (_heightIndex + 1) % HeightList.length;
-
-	if (_heightIndex === 0 && AlwaysVisible) {
-		_heightIndex = 1;
-	}
-
-	if (content) content.style.height = `${HeightList[_heightIndex]}px`;
-
-	const header = root.querySelector('.header');
-	const body = root.querySelector('.body');
-	const inputEl = root.querySelector('.input');
-
-	switch (_heightIndex) {
-		case 0:
-			this.__lastBottomY = bottomBefore;
-			this._host.style.display = 'none';
-			break;
-
-		case 1:
-			this._host.style.display = 'block';
-			if (header) header.style.display = 'none';
-			if (body) body.style.display = 'none';
-			if (inputEl) inputEl.classList.add('fix');
-			break;
-
-		default:
-			if (inputEl) inputEl.classList.remove('fix');
-			if (header) header.style.display = '';
-			if (body) body.style.display = '';
-			break;
-	}
-
-	if (_heightIndex !== 0 && isFinite(bottomBefore)) {
-		const bottomAfter = getChatBottomAnchorPx(root, bottomBefore);
-		if (isFinite(bottomAfter)) {
-			let top = parseInt(this._host.style.top, 10);
-			top = isFinite(top) ? top : 0;
-			this._host.style.top = `${top + (bottomBefore - bottomAfter)}px`;
-			this.__lastBottomY = bottomBefore;
-		}
-	}
-
-	const active = root.querySelector(`.content[data-content="${this.activeTab}"]`);
-	if (active) {
-		active.scrollTop = active.scrollHeight;
-	}
-};
-
-function getChatBottomAnchorPx(root, fallback) {
-	const inputEl = root.querySelector('.input');
-	if (inputEl && inputEl.style.display !== 'none') {
-		const rect = inputEl.getBoundingClientRect();
-		return rect.bottom;
-	}
-
-	const bmEl = root.querySelector('.battlemode');
-	if (bmEl && bmEl.style.display !== 'none') {
-		const rect = bmEl.getBoundingClientRect();
-		return rect.bottom;
-	}
-
-	return fallback;
 }
 
 /**
@@ -1656,6 +1308,7 @@ ChatBox.saveCurrentTabChat = function saveCurrentTabChat() {
 	const date = `${localISOTime} (GMT ${timezone > 0 ? '-' : '+'}${Math.abs(timezone).toString()})`;
 
 	const contentEl = root.querySelector(`.content[data-content="${ChatBox.activeTab}"]`);
+	const nome = ChatBox.activeTab;
 
 	data =
 		'<html><head><title>Chat History</title><style> body { background-color: DarkSlateGray; } </style></head><body>';
@@ -1665,7 +1318,7 @@ ChatBox.saveCurrentTabChat = function saveCurrentTabChat() {
 	const url = window.URL.createObjectURL(new Blob([data], { type: 'text/plain' }));
 
 	ChatBox.addText(
-		`Chat History [${ChatBox.tabs[ChatBox.activeTab].name}] ${date} can be saved by <a style="color:#F88" download="ChatHistory [${ChatBox.tabs[ChatBox.activeTab].name}] (${date.replace('/', '-')}).html" href="${url}" target="_blank">clicking here</a>.`,
+		`Chat History [${nome}] ${date} can be saved by <a style="color:#F88" download="ChatHistory [${nome}] (${date.replace('/', '-')}).html" href="${url}" target="_blank">clicking here</a>.`,
 		ChatBox.TYPE.PUBLIC,
 		ChatBox.FILTER.PUBLIC_LOG,
 		null,
@@ -1724,17 +1377,6 @@ function stopPropagation(event) {
 }
 
 /**
- * Change private message nick name
- */
-function onPrivateMessageUserSelection(name) {
-	return function onPrivateMessageUserSelectionClosure() {
-		const root = _root();
-		const nickBox = root.querySelector('.input .username');
-		if (nickBox) nickBox.value = name;
-	};
-}
-
-/**
  * Change target of global chat (party, guild)
  */
 function onChangeTargetMessage(type) {
@@ -1755,33 +1397,66 @@ function onChangeTargetMessage(type) {
 		}
 
 		ChatBox.sendTo = type;
+		definirEtiquetaDeDestino();
 	};
 }
 
 /**
- * Clique na seta de recolher/expandir (canto superior direito, gauntlet
- * 19/08/2026 -- layout do print 2 do dono). So chrome: alterna e salva a
- * preferencia PROPRIA (ver _prefsRecolhido no topo do arquivo); nunca mexe
- * no mecanismo de altura de F10/.size (updateHeight()/_heightIndex), que
- * continua intocado e funcionando do jeito que sempre funcionou.
+ * Etiqueta de DESTINO da barra de digitacao (20/08/2026, rodada 2).
+ *
+ * O problema que ela resolve: a barra do Global se anunciava como SUSSURRO. O
+ * unico rotulo visivel era o placeholder "Sussurrar para" do campo de nick, e
+ * o destino de verdade (publico / grupo / guilda / cla) vivia escondido atras
+ * do botao ".filter" — um seletor que, sem rotulo, parecia um quarto canal
+ * dentro de um chat que o dono definiu como exatamente TRES.
+ *
+ * Aqui nada de mecanismo muda: "ChatBox.sendTo" continua sendo a unica verdade
+ * sobre para onde a fala vai, e "onRequestTalk" continua lendo dela. Esta
+ * funcao so DIZ, em cima da barra, o que o estado ja e — inclusive a regra que
+ * ChatBox.submit() aplica em silencio: se ha nome no campo de sussurro, a
+ * mensagem sai como sussurro, aconteca o que acontecer com o ".filter".
  */
-function onClickCollapse(e) {
-	e.stopImmediatePropagation();
-	_prefsRecolhido.recolhido = !_prefsRecolhido.recolhido;
-	_prefsRecolhido.save();
-	applyRecolhidoState();
+function definirEtiquetaDeDestino() {
+	const root = _root();
+	const etiqueta = root.querySelector('.input .cb-destino');
+	if (!etiqueta) {
+		return;
+	}
+
+	const nick = root.querySelector('.input .username');
+	if (nick && nick.value && nick.value.trim().length) {
+		etiqueta.textContent = 'Sussurro';
+		etiqueta.dataset.destino = 'sussurro';
+		return;
+	}
+
+	let rotulo = 'Global';
+	let chave = 'publico';
+	if (ChatBox.sendTo & ChatBox.TYPE.PARTY) {
+		rotulo = 'Grupo';
+		chave = 'grupo';
+	} else if (ChatBox.sendTo & ChatBox.TYPE.GUILD) {
+		rotulo = 'Guilda';
+		chave = 'guilda';
+	} else if (ChatBox.sendTo & ChatBox.TYPE.CLAN) {
+		rotulo = 'Clã';
+		chave = 'cla';
+	}
+
+	etiqueta.textContent = rotulo;
+	etiqueta.dataset.destino = chave;
 }
 
 /**
- * Reflete "_prefsRecolhido.recolhido" no DOM: "#chatbox.is-recolhido"
- * esconde corpo/digitacao/modo-batalha via CSS !important (ver ChatBox.css
- * -- precisa vencer o estilo INLINE que updateHeight()/F10/.size/Enter
- * escrevem nesses mesmos elementos). Cabecalho (abas) e os dois botoes de
- * canto continuam de pe, mesma garantia de "controle sempre alcancavel" que
- * BasicInfoIdle.js/TopMenuIdle.js usam pros proprios botoes de recolher.
- * Chamado no onAppend() (restaura o que foi salvo) e a cada clique.
+ * Recolher/expandir: grava a preferencia e reflete no DOM.
  */
-function applyRecolhidoState() {
+function definirRecolhido(recolhido) {
+	_prefsRecolhido.recolhido = !!recolhido;
+	_prefsRecolhido.save();
+	aplicarRecolhido();
+}
+
+function aplicarRecolhido() {
 	const root = _root();
 	const chatboxEl = root.querySelector('#chatbox');
 	const collapseBtn = root.querySelector('.cb-collapse');
@@ -1797,6 +1472,11 @@ function applyRecolhidoState() {
 	const label = recolhido ? 'Expandir chat' : 'Recolher chat';
 	collapseBtn.title = label;
 	collapseBtn.setAttribute('aria-label', label);
+
+	const content = root.querySelector('.content.active');
+	if (content) {
+		content.scrollTop = content.scrollHeight;
+	}
 }
 
 function setChatFontScale(scale) {
@@ -1865,7 +1545,6 @@ ChatBox.applyFontScale = function applyFontScale() {
 
 	// Chat input
 	root.querySelectorAll('.input input, .input .message').forEach(el => {
-		el.style.fontFamily = 'Arial';
 		el.style.fontSize = `${fontSize}px`;
 	});
 
@@ -1874,51 +1553,6 @@ ChatBox.applyFontScale = function applyFontScale() {
 		message.style.lineHeight = `${inputLineHeight}px`;
 	}
 };
-
-function makeResizableDiv() {
-	const root = _root();
-	const resizer = root.querySelector('.event_add_cursor');
-	if (!resizer) {
-		return;
-	}
-
-	let originalHeight = 0;
-	let originalAnchorY = 0;
-	let originalMouseY = 0;
-
-	const fixHeight = height => Math.floor(height / MAGIC_NUMBER) * MAGIC_NUMBER;
-
-	const resize = e => {
-		let height = fixHeight(originalHeight - (e.pageY - originalMouseY));
-		height = Math.max(MAGIC_NUMBER, Math.min(MAGIC_NUMBER * 5, height));
-
-		ChatBox._host.style.top = `${originalAnchorY - height}px`;
-		const contentWrapper = root.querySelector('.contentwrapper');
-		if (contentWrapper) contentWrapper.style.height = `${height}px`;
-		_heightIndex = Math.max(2, Math.min(6, height / MAGIC_NUMBER + 1));
-
-		const active = root.querySelector(`.content[data-content="${ChatBox.activeTab}"]`);
-		if (active) {
-			active.scrollTop = active.scrollHeight;
-		}
-	};
-
-	const stopResize = () => {
-		window.removeEventListener('mousemove', resize);
-		window.removeEventListener('mouseup', stopResize);
-	};
-
-	resizer.addEventListener('mousedown', e => {
-		e.preventDefault();
-		const contentWrapper = root.querySelector('.contentwrapper');
-		originalHeight = contentWrapper ? contentWrapper.offsetHeight : 0;
-		originalAnchorY = (parseInt(ChatBox._host.style.top, 10) || 0) + originalHeight;
-		originalMouseY = e.pageY;
-
-		window.addEventListener('mousemove', resize);
-		window.addEventListener('mouseup', stopResize);
-	});
-}
 
 // CLICKABLE ITEM → OPEN ITEMINFO (handle inside shadow)
 ChatBox._setupItemLinkHandler = function _setupItemLinkHandler() {

@@ -82,11 +82,25 @@ function onItemPickAnswer(pkt) {
 
 	const getTextItem = DB.getItemName(pkt, { showItemOptions: false });
 
-	ChatBox.addText(
-		DB.getMessage(153).replace('%s', getTextItem).replace('%d', pkt.count),
-		ChatBox.TYPE.BLUE,
-		ChatBox.FILTER.ITEM
-	);
+	// FARM_ITEM, nao ITEM (20/08/2026): esta e a linha do item que CAIU e foi
+	// recolhido, que e log automatico da caca e mora no canal Farm. O caminho
+	// de FALHA logo acima continua em FILTER.ITEM, que e' conversa do sistema
+	// com o jogador e fica no Global. A separacao e por ORIGEM (dois pontos
+	// diferentes do mesmo handler), nunca por texto.
+	//
+	// TEXTO EM PORTUGUES escrito aqui (20/08/2026), no lugar de
+	// DB.getMessage(153) — que rendia "You got Jellopy (1)." A msgstringtable
+	// e o dado do cliente OFICIAL (ingles) servido pelo remote-client; nao ha
+	// versao pt-BR dela e traduzi-la seria mexer em dado do cliente, nao em
+	// codigo nosso. DB.getMessage(153) nao tem NENHUM outro consumidor no
+	// cliente (conferido com grep em src/: era so este uso), entao a troca nao
+	// muda nenhuma outra tela.
+	//
+	// O nome do item continua vindo de DB.getItemName (nome proprio do RO fica
+	// no original: "Jellopy"), e a quantidade usa o mesmo "xN" do relatorio da
+	// sessao desassistida (RagidleRelatorio.js), para o jogador ler a mesma
+	// forma ao vivo e no resumo.
+	ChatBox.addText(`Você pegou ${getTextItem} x${pkt.count}.`, ChatBox.TYPE.BLUE, ChatBox.FILTER.FARM_ITEM);
 
 	Inventory.getUI().addItem(pkt);
 }

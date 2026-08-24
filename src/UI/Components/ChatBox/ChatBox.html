@@ -1,76 +1,113 @@
+<!--
+	Chat de TRES canais fixos (20/08/2026): Global, Trade e Farm.
+
+	Por que canais FIXOS e nao as abas dinamicas do roBrowser: as abas nativas
+	eram criadas/renomeadas/apagadas pelo jogador e cada uma carregava a
+	PROPRIA lista de filtros, editavel no painel da engrenagem
+	(ChatBoxSettings). Com isso, a garantia "log automatico do idle nunca cai
+	na conversa" dependia de o jogador nao mexer numa caixa de selecao — nao
+	era garantia nenhuma. Aqui o canal de cada mensagem sai do FILTRO que a
+	origem ja declara (CANAL_DO_FILTRO em ChatBox.js), e o jogador nao tem como
+	afrouxar isso.
+
+	Consequencia declarada: a engrenagem de opcoes (".cb-gear") SAIU junto com
+	as abas dinamicas — sem filtro por aba para configurar, o painel so podia
+	mentir. O "+ Nova aba"/"- Remover aba" que moravam la morreram pelo mesmo
+	motivo.
+
+	O que ficou de pe do componente nativo, sem mudanca de mecanismo:
+	 - ".input" com ".username" (sussurro) e ".input-chatbox" (contenteditable)
+	 - ".battlemode"/".bmtoggle" (modo batalha, Enter com texto vazio alterna)
+	 - ".filter" (para quem falar: publico / grupo / guilda / cla)
+	 - ".content[data-content]" (o JS continua achando o log pelo atributo)
+-->
 <div id="chatbox">
-	<table class="header" cellpadding="0" cellspacing="0" border="0" width="100%">
-		<tbody>
-			<tr>
-				<td class="opttab"><div class="options"></div></td>
-			</tr>
-		</tbody>
-	</table>
-	<!-- Recolher/expandir o painel (gauntlet 19/08/2026, layout do print 2 do
-	     dono): canto superior direito, SOZINHA -- julgamento do dono
-	     (rodada 2) cobrou "so uma seta ali, topo limpo": a capsula antiga de
-	     5 bmps (".chat-function") foi consolidada, ver o para-onde-foi de
-	     cada icone no cabecalho de ChatBox.css. Glifo "seta" de
-	     UI/ri-icones.js, gira 180 graus por CSS conforme o estado (ver
-	     ".cb-collapse" em ChatBox.css e onClickCollapse()/
-	     applyRecolhidoState() em ChatBox.js) -- mesmo idioma visual de
-	     TopMenuIdle ".tm-toggle". So chrome novo: nao decide cor nem fluxo
-	     de mensagem, nem troca nada do mecanismo de altura de F10/.size
-	     (updateHeight()), que continua intocado. -->
-	<button type="button" class="cb-collapse" data-action="collapse" title="Recolher chat" aria-label="Recolher chat" aria-expanded="true">
-		<span class="cb-collapse-glyph"><!--RI_ICONE:seta--></span>
-	</button>
-	<div class="body">
-		<div class="event_add_cursor draggable"></div>
-		<div class="contentwrapper"></div>
+	<div class="cb-abas" role="tablist" aria-label="Canais do chat">
+		<button type="button" class="tab" data-canal="global" role="tab" aria-selected="true" title="Global">
+			<div class="cb-aba is-active">
+				<span class="cb-aba-rotulo">Global</span>
+				<span class="ri-dot cb-aba-dot" aria-hidden="true"></span>
+			</div>
+		</button>
+		<button type="button" class="tab" data-canal="trade" role="tab" aria-selected="false" title="Trade">
+			<div class="cb-aba">
+				<span class="cb-aba-rotulo">Trade</span>
+				<span class="ri-dot cb-aba-dot" aria-hidden="true"></span>
+			</div>
+		</button>
+		<button type="button" class="tab" data-canal="farm" role="tab" aria-selected="false" title="Farm">
+			<div class="cb-aba">
+				<span class="cb-aba-rotulo">Farm</span>
+				<span class="ri-dot cb-aba-dot" aria-hidden="true"></span>
+			</div>
+		</button>
 	</div>
 
-	<div class="battlemode"><button class="bmtoggle">...</button></div>
-	<div class="input">
-		<input type="text" class="username" />
-		<ui-button
-			class="list"
-			bg="basic_interface/dialog_btn0.bmp"
-			hover="basic_interface/dialog_btn1.bmp"
-			down="basic_interface/dialog_btn2.bmp"
-		></ui-button>
-		<div class="wrapper"><div contenteditable="true" class="message input-chatbox"></div></div>
-		<!-- Alternar modo batalha (julgamento do dono, rodada 2): era
-		     ".chat-function .chatmode" (icone de teclado, canto superior
-		     direito) -- mudou de CASA pra dentro da propria barra que ela
-		     controla (a volta ja tinha lugar certo: ".battlemode .bmtoggle"
-		     ja alterna de volta pro chat, ver ChatBox.js). MESMO handler
-		     (ChatBox.toggleChat()) e MESMA troca de bmp on/off
-		     (ChatBox.submit(), o icone pisca conforme o estado) -- so
-		     selector novo, nenhuma logica nova. -->
-		<button
-			class="cb-chatmode"
-			data-background="basic_interface/chatmode_on.bmp"
-			title="Alternar para modo batalha"
-			aria-label="Alternar para modo batalha"
-		></button>
-		<button
-			class="filter"
-			data-background="basic_interface/sys_base_off.bmp"
-			data-down="basic_interface/sys_base_off.bmp"
-		></button>
-		<button
-			class="size"
-			data-background="basic_interface/sys_base_off.bmp"
-			data-down="basic_interface/sys_base_off.bmp"
-		></button>
-	</div>
-	<!-- Opcoes do chat (engrenagem, canto inferior direito -- gauntlet
-	     19/08/2026, layout do print 2). E o MESMO botao/handler que era
-	     ".chat-function .battleopt" (ChatBox.toggleChatBattleOption(), abre
-	     ChatBoxSettings) -- so mudou de CASA (a capsula do canto superior
-	     foi eliminada inteira na rodada 2, ver ChatBox.css) e de GLIFO (bmp
-	     -> SVG do design system, "config" de UI/ri-icones.js). Selector
-	     atualizado em ChatBox.js (era ".chat-function .battleopt", agora
-	     ".battleopt"); nenhuma logica nova. As duas acoes que sobraram da
-	     capsula antiga (nova aba / remover aba) moraram pra dentro do
-	     PAINEL que este botao abre -- ver ChatBoxSettings.html/.js. -->
-	<button type="button" class="battleopt cb-gear" title="Opcoes do chat" aria-label="Opcoes do chat">
-		<span class="cb-gear-glyph"><!--RI_ICONE:config--></span>
+	<!-- Recolher/expandir: canto superior direito do painel, como no gabarito
+	     (redesign/referencia-hud-origin.md, secao 4). Glifo "seta" de
+	     UI/ri-icones.js, gira 180 graus por CSS conforme o estado. -->
+	<button
+		type="button"
+		class="cb-collapse"
+		data-action="collapse"
+		title="Recolher chat"
+		aria-label="Recolher chat"
+		aria-expanded="true"
+	>
+		<span class="cb-collapse-glyph"><!--RI_ICONE:seta--></span>
 	</button>
+
+	<div class="body">
+		<div class="contentwrapper">
+			<!-- ".ri-scroll" NAO e decoracao: GUIComponent.js:900-923 varre o
+			     Shadow DOM e monta a barra de rolagem LEGADA do roBrowser (um
+			     <div class="ro-custom-scrollbar"> INSERIDO dentro do elemento,
+			     mais "overflow-y:hidden" inline) em tudo que tenha overflow
+			     auto, a nao ser que o elemento carregue esta classe. Com o
+			     wrapper dentro, ".content" nunca ficava vazio e o estado
+			     vazio honesto (":empty" em ChatBox.css) nao aparecia — foi
+			     assim que ele saiu invisivel na primeira prova fotografica
+			     desta frente. -->
+			<div class="content ri-scroll active" data-content="global"></div>
+			<div class="content ri-scroll" data-content="trade"></div>
+			<div class="content ri-scroll" data-content="farm"></div>
+		</div>
+	</div>
+
+	<div class="battlemode"><button type="button" class="bmtoggle">Modo batalha — Enter para digitar</button></div>
+
+	<div class="input">
+		<!-- A barra de digitacao so existe no GLOBAL (o Farm e somente leitura e
+		     o Trade nao tem canal no servidor), e mesmo assim ela nao dizia isso:
+		     o unico rotulo visivel era o placeholder "Sussurrar para", e o
+		     destino real da fala (publico / grupo / guilda / cla) morava
+		     escondido atras do botao ".filter". Quem olhava lia "sussurro" numa
+		     barra que, por padrao, fala em PUBLICO no canal Global.
+
+		     Esta etiqueta e o destino, dito em voz alta: ela nasce "Global",
+		     acompanha o que o ".filter" escolher (Grupo / Guilda / Cla) e vira
+		     "Sussurro" enquanto houver nome no campo de sussurro — que e a regra
+		     que o proprio ChatBox.submit() aplica. O seletor deixou de ser um
+		     quarto canal escondido e virou o ESTADO visivel de um canal so. -->
+		<span class="ri-badge ri-badge--cinza cb-destino" data-destino="publico">Global</span>
+		<input type="text" class="username" placeholder="Sussurrar para" />
+		<div class="wrapper"><div contenteditable="true" class="message input-chatbox"></div></div>
+		<button type="button" class="filter" title="Trocar o destino da fala" aria-label="Trocar o destino da fala">
+			<span class="cb-glifo"><!--RI_ICONE:menu--></span>
+		</button>
+		<!-- Trade tem a barra de digitacao que o desenho pede, mas ela e INERTE
+		     e diz por que: o servidor de mapa nao tem canal de comercio (o chat
+		     dele e local do mapa, servidor/mapa/servidor-mapa.ts:5359-5379).
+		     Deixar o campo ativo faria a mensagem sair como fala publica comum e
+		     aparecer no Global — o jogador teria falado num canal que nao
+		     existe e a linha cairia noutro. Melhor dizer a verdade.
+
+		     E a verdade tem de estar VISIVEL NO REPOUSO (20/08/2026, rodada 2).
+		     Antes, o Trade em repouso mostrava a barra de MODO BATALHA — "Enter
+		     para digitar" —, um convite a digitar num canal onde ninguem pode
+		     falar, e esta explicacao media 0x0px ate o jogador apertar Enter.
+		     Agora o Trade nao mostra o modo batalha: mostra ISTO (ver
+		     ".canal-trade" em ChatBox.css). -->
+		<div class="cb-inerte">Canal de comércio ainda não existe no servidor.</div>
+	</div>
 </div>

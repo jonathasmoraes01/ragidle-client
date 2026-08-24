@@ -1,113 +1,168 @@
 /*
- * v-premium: adocao do design system "Ragnarok Classico Premium" (ver
- * redesign/extracao-da-referencia.md, secoes 2/3/4.6). ChatBox e um
- * componente NATIVO do roBrowser (nao RagIdle): o chrome antigo era ou
- * texturas BMP escuras aplicadas via data-background/Client.loadFile
- * (style inline, ve GUIComponent.js processDataAttrs) ou CSS puro
- * (rgba preto/branco, como as abas e o corpo abaixo).
+ * UI/Components/ChatBox/ChatBox.css
  *
- * O que era CSS foi repintado direto pelos seletores abaixo. O que era
- * textura inline teve dois caminhos, escolhidos por elemento:
- *  - .input (data-background="dialog_bg.bmp"): o atributo foi REMOVIDO no
- *    .html — a barra de digitacao virou um cartao de vidro escuro puro em CSS.
- *  - os icones pequenos que ainda carregam bmp (.chat-function/.filter/
- *    .size/.list): nao da pra vencer o backgroundImage inline por classe,
- *    entao entra uma capsula de vidro escuro por baixo (regra 2 do design
- *    system oficial) — os bmps ja sao claros, sobram legiveis sem filtro.
+ * Chat de tres canais fixos (20/08/2026) — Global, Trade, Farm.
  *
- * Nenhuma classe/id que o JS usa (on, active, fix, data-tab, data-content,
- * data-scrollbar-skin) foi renomeada ou removida — so cor/borda/raio/
- * opacidade/tipografia (regra 1) e a cadeia de larguras px (595/600/592/
- * calc(100% - 140px)) continua intocada.
+ * ORGANIZACAO (gabarito: redesign/referencia-hud-origin.md, secao 4): painel
+ * retangular escuro semitransparente, encostado no canto INFERIOR ESQUERDO,
+ * largura em torno de um quarto da tela, altura em torno de 12% — bem abaixo
+ * do teto de 30% que o dono autorizou. Cinco linhas de texto pequeno, etiqueta
+ * de canal colorida no inicio de cada linha, seta de recolher no canto
+ * superior direito. Ele CEDE espaco aos vizinhos: nao encosta na barra de
+ * habilidades (centro inferior, DockIdle) nem no canto inferior direito, que
+ * e a porta do Menu.
  *
- * PIVO 19/08/2026 (design system oficial): o chat e "o elemento mais
- * transparente da tela, de proposito" e manda VIDRO ESCURO
- * (--surface-dark-glass) pro que fica sobre o mundo, com o texto protegido
- * por sombra no glifo — nunca um scrim de largura total. O corpo/rodape de
- * digitacao eram um painel CLARO quase opaco (decisao do gauntlet de
- * 18/08), o que forcava um contorno escuro artificial nas 4 direcoes só pra
- * as cores neon do getColorForType() (verde/amarelo/ciano puros, ver
- * ChatBox.js) nao sumirem contra o azul claro. Essas cores SAO desenhadas
- * pra fundo escuro (e' a paleta classica do RO); testado nos dois (print
- * sobre o chao de pedra de Prontera, ver relatorio) o vidro escuro venceu:
- * as cores voltam a ficar 100% legiveis SEM contorno artificial, e o chat
- * finalmente lê como "vidro sobre o mundo" em vez de "prancheta colada
- * na tela". As abas continuam pills (nao mudam de familia).
+ * ACABAMENTO (nunca o Origin): design system oficial, tokens de
+ * UI/Common.css, que o GUIComponent replica dentro de todo Shadow DOM. Vidro
+ * escuro (--surface-dark-glass) porque o chat fica SOBRE o mundo, e as cores
+ * de mensagem do roBrowser (getColorForType em ChatBox.js) sao a paleta neon
+ * classica do RO, desenhada para fundo escuro. O texto e protegido por sombra
+ * no glifo, nunca por scrim de largura total.
  *
- * GAUNTLET 19/08/2026 (item 5 de 6, layout+comportamento do print 2 do
- * dono — NUNCA os assets dele): quatro pecas novas, todas ADITIVAS, nada
- * do que ja existia foi renomeado/removido:
- *  1. Seta de recolher/expandir (".cb-collapse", canto superior direito) —
- *     mecanismo PROPRIO e independente do ciclo de alturas de F10/.size
- *     (updateHeight()/_heightIndex em ChatBox.js), que continua intocado.
- *  2. Engrenagem de opcoes (".cb-gear", canto inferior direito) — o MESMO
- *     botao que era ".chat-function .battleopt" (mesma classe "battleopt",
- *     mesmo handler ChatBox.toggleChatBattleOption()), so mudou de casa e
- *     de glifo (bmp -> SVG "config" de UI/ri-icones.js).
- *  3. Etiqueta de canal (".cb-tag", pilula ".ri-badge" reusada de Common.css)
- *     no inicio de cada linha — deriva ROTULO+VARIANTE do mesmo "colorType"
- *     que getColorForType() ja le (getTagInfoForType(), ChatBox.js; variante
- *     cinza/ouro explicada na RODADA 2 abaixo).
- *  4. Nome de quem fala (".cb-name") e numeros (".cb-num") destacados
- *     DENTRO da mensagem — envolve o texto que o JS ja decidiu em spans
- *     (highlightMessage(), mesma tecnica da substituicao de <ITEMLINK> que
- *     ja existia), nunca reescreve o texto nem decide uma cor nova.
- * Nenhuma das quatro toca em cor por canal ou fluxo de mensagem (regra 3 do
- * cabecalho de ChatBox.js) — so ENVOLVEM/reposicionam o que ja existia.
- *
- * RODADA 2 do julgamento (mesmo dia): a capsula ".chat-function" (5 bmps no
- * canto superior direito) foi ELIMINADA por completo — o print do dono so
- * tem UMA seta ali. Avaliado icone por icone (nenhum foi apagado sem
- * verificar se tinha funcao real — dois nao tinham NENHUMA, grep no
- * repo inteiro confirma zero listener em qualquer arquivo):
- *  - "chatmode" (teclado, alterna chat<->modo-batalha): funcao REAL e
- *    frequente -- mudou de casa pra dentro de ".input" (".cb-chatmode",
- *    ao lado de ".filter"/".size"), a barra que ela proprio abre/fecha. A
- *    volta (modo-batalha -> chat) ja tinha controle proprio, ".bmtoggle" em
- *    ".battlemode", entao nao precisou de casa nova.
- *  - "battleopt2"/"wndminib" ("+"/"-", nova/remover aba): funcao REAL mas
- *    ocasional (configuracao, nao uso a cada mensagem) -- mudaram pro
- *    PAINEL que a engrenagem abre (ChatBoxSettings.html/.js), pedido
- *    explicito do julgamento pra "funcao real sobrando" migrar pra la.
- *  - "stickfucn"/"lockdragwnd" (bmps "stickoff"/"lock_dragwnd"): SEM
- *    NENHUM addEventListener em lugar nenhum do repo (confirmado por busca
- *    completa) — vestigio do vendor roBrowser original, nunca ligado neste
- *    fork. Removidos de vez, nao "movidos": nao ha funcao pra preservar.
- * "battleopt" (engrenagem) ja tinha saido dali na rodada 1 (item 2 desta
- * lista, acima). Nada do que sobrou foi apagado — cada um tem endereco novo
- * documentado no proprio ChatBox.html/.js/ChatBoxSettings.html/.js.
- *
- * RODADA 2, segunda correcao: a etiqueta de canal (item 3 da lista acima)
- * agora aparece em TODA linha, inclusive fala publica comum ("Normal"/
- * "Global") — antes so aparecia fora da fala comum, o que lia como acaso.
- * Pra nao virar ruido repetido numa tela cheia de mensagens (a maioria e
- * fala comum), so essa categoria ganhou o tom NEUTRO ".ri-badge--cinza";
- * o resto (Sistema/Erro/Guilda/Grupo/...) continua no dourado cheio — ver
- * getTagInfoForType() em ChatBox.js pro raciocinio completo.
+ * POSICIONAMENTO — por que ":host" e uma camada de tela inteira e nao a caixa
+ * do chat: GUIComponent so aplica o clamp de viewport (ClampToViewport, que
+ * com magnet.BOTTOM forca "top = HEIGHT - height") em componente DRAGGABLE
+ * (GUIComponent.js:279-284, "if (!this._isDraggable) return"). Este chat nao
+ * chama mais draggable() — ele mora no canto, como o gabarito manda — entao o
+ * clamp nem roda. A camada e transparente ao mouse (pointer-events:none) e so
+ * "#chatbox" volta a receber ponteiro; mesmo contrato do DockIdle.css. Isso
+ * tambem mantem "ehCliqueDaUI" (Controls/MapControl.js) correto: o host so
+ * entra no composedPath quando o clique nasceu de verdade dentro do painel.
  */
+
 :host {
 	position: absolute;
-	transform: translateY(-76px);
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 100%;
+	pointer-events: none;
 }
 
+/* 25vw / min 300 / max 480: "em torno de um quarto da tela" do gabarito, com
+   piso para o texto continuar legivel em tela pequena e teto para nao invadir
+   a barra de habilidades centralizada (DockIdle).
+
+   "bottom: 16px" — encostado no canto, como o gabarito manda. Ele nao disputa
+   com a barra de habilidades porque a barra e CENTRALIZADA (DockIdle.css
+   ".dk-bar" e largura total mas so pinta o grupo do meio, e o host dela e
+   pointer-events:none): medido em 1920 o chat termina em x=496 e o grupo de
+   orbes comeca em x~700; em 1280 termina em x=336 contra x~390. */
 #chatbox {
-	position: relative;
-	left: 5px;
-	width: 595px;
+	position: absolute;
+	left: 16px;
+	bottom: 16px;
+	width: clamp(300px, 25vw, 480px);
+	pointer-events: auto;
 	font-family: var(--font-ui);
+
+	/* CONTRASTE (20/08/2026, rodada 2) — DUAS camadas do MESMO token, e nao
+	   uma cor nova.
+
+	   O vidro de "--surface-dark-glass" e rgba(18,41,74,0.58). Sobre o mundo
+	   ESCURO isso sobra (o texto media 8,4:1), mas sobre o calcamento CLARO de
+	   Prontera o painel compunha (105,115,131) e o texto de 11-12px caia para
+	   3,0:1 no ciano e 4,51:1 no amarelo — abaixo do piso de 4,5:1 que este
+	   tamanho exige. O culpado nao era a cor do texto (ela e a paleta neon
+	   classica do RO, decidida pelo JS em getColorForType), era a transparencia
+	   do painel.
+
+	   A alavanca aqui e OPACIDADE: pinta-se o mesmo token duas vezes (cor de
+	   fundo + uma camada de imagem por cima). Alfa efetivo 1-(0,42)^2 = 0,82 —
+	   ainda mais translucido que as JANELAS do design system (94-96%), entao o
+	   mundo continua aparecendo atras do chat. Nenhum hex novo entrou. */
+	--cb-vidro-cor: var(--surface-dark-glass);
+	--cb-vidro-camada: linear-gradient(var(--surface-dark-glass), var(--surface-dark-glass));
 }
 
-/* ─── Recolher/expandir (gauntlet 19/08/2026, layout do print 2 do dono:
-   seta no canto superior direito) ───────────────────────────────────────
-   Capsula de vidro escuro igual a ".chat-function" (regra 2 do design
-   system), so MAIOR (20px) porque e o controle mais importante do canto —
-   alvo de toque generoso, ao contrario dos icones bmp pequenos ao lado. O
-   glifo (seta, UI/ri-icones.js) gira 180deg conforme ".is-recolhido" —
-   mesmo idioma de TopMenuIdle.css ".tm-toggle-wrap svg". */
+/* ─── Abas dos tres canais ──────────────────────────────────────────────
+   Pill do design system (mesma familia de .ri-tab em Common.css). O <button>
+   e so o alvo de clique; quem pinta e o <div> interno — assim o seletor
+   "#chatbox .tab div" (usado pelo portao prova-clique-nao-vaza.ts) continua
+   apontando para dentro da area clicavel. */
+#chatbox .cb-abas {
+	display: flex;
+	gap: var(--sp-2);
+	align-items: flex-end;
+	padding: 0 0 var(--sp-2) var(--sp-1);
+	margin-right: 26px;
+}
+
+#chatbox .tab {
+	appearance: none;
+	padding: 0;
+	border: none;
+	background: none;
+	cursor: pointer;
+}
+
+#chatbox .cb-aba {
+	position: relative;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	min-width: 66px;
+	height: 20px;
+	padding: 0 var(--sp-4);
+	border-radius: var(--radius-pill);
+	border: 1px solid var(--border-hairline);
+	background-color: var(--cb-vidro-cor);
+	background-image: var(--cb-vidro-camada);
+	backdrop-filter: var(--blur-glass);
+	box-shadow: var(--shadow-card);
+	color: var(--text-on-accent);
+	font: var(--type-label);
+	opacity: 0.72;
+}
+
+#chatbox .tab:hover .cb-aba {
+	opacity: 1;
+}
+
+/* O design system troca aba por PREENCHIMENTO, nunca por espessura de borda. */
+#chatbox .cb-aba.is-active {
+	background: var(--tab-active-fill);
+	border-color: var(--blue-600);
+	color: var(--tab-active-text);
+	box-shadow: var(--rim-light), var(--shadow-card);
+	opacity: 1;
+}
+
+/* Ponto de nao-lido: ".ri-dot" do design system (Common.css) — vermelho com
+   aro branco, DENTRO do canto superior direito da pilula. Nenhum indicador
+   novo foi inventado.
+
+   CONSERTADO em 20/08/2026 (rodada 2): o comentario dizia "DENTRO" e o codigo
+   fazia o contrario — "top:-2px; right:-2px" pendurava o disco PARA FORA da
+   pilula. E exatamente a regressao que o Common.css ja tinha consertado no
+   ".ri-dot" em 19/08 (top:2px / right:2px), e que este arquivo desfazia por
+   cima. A correcao e APAGAR a sobrescrita: sem ela, o ".ri-dot" do design
+   system manda, e o ponto fica dentro do canto, como nos discos do menu.
+   A pilula tem 20px de altura e o disco 10px com o aro: em top:2px ele ocupa
+   de 2px a 12px, folgado dentro da caixa. */
+#chatbox .cb-aba-dot {
+	display: none;
+}
+
+#chatbox .cb-aba.tem-nova .cb-aba-dot {
+	display: block;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+	#chatbox .cb-aba {
+		transition:
+			background var(--dur-fast) var(--ease-out),
+			border-color var(--dur-fast) var(--ease-out),
+			color var(--dur-fast) var(--ease-out),
+			opacity var(--dur-fast) var(--ease-out);
+	}
+}
+
+/* ─── Seta de recolher/expandir (canto superior direito, gabarito secao 4) ── */
 #chatbox .cb-collapse {
 	position: absolute;
-	top: -4px;
-	right: -4px;
+	top: 0;
+	right: 0;
 	width: 20px;
 	height: 20px;
 	display: flex;
@@ -116,9 +171,10 @@
 	padding: 0;
 	border: 1px solid var(--border-hairline);
 	border-radius: var(--radius-pill);
-	background: var(--surface-dark-glass);
+	background-color: var(--cb-vidro-cor);
+	background-image: var(--cb-vidro-camada);
 	backdrop-filter: var(--blur-glass);
-	box-shadow: var(--shadow-card), var(--rim-light);
+	box-shadow: var(--shadow-card);
 	color: var(--white);
 	cursor: pointer;
 	z-index: 3;
@@ -126,7 +182,7 @@
 
 #chatbox .cb-collapse:hover {
 	color: var(--gold-300);
-	box-shadow: var(--shadow-card), var(--rim-light), var(--glow-gold);
+	box-shadow: var(--shadow-card), var(--glow-gold);
 }
 
 #chatbox .cb-collapse-glyph {
@@ -141,10 +197,9 @@
 	height: 100%;
 }
 
-/* Repouso (padrao, "on") = seta pra CIMA — mesma leitura de TopMenuIdle.css
-   ".tm-toggle-wrap svg": aponta pro que vai retrair ("clique aqui pra
-   recolher o que esta aberto abaixo"). Recolhido = seta pra BAIXO, apontando
-   pro que reaparece ao clicar ("clique aqui pra expandir"). */
+/* Repouso = seta para CIMA (aponta para o que vai retrair); recolhido = seta
+   para BAIXO (aponta para o que reaparece). Mesmo idioma de TopMenuIdle.css
+   ".tm-toggle-wrap svg". */
 #chatbox .cb-collapse.is-recolhido .cb-collapse-glyph {
 	transform: rotate(0deg);
 }
@@ -155,224 +210,56 @@
 	}
 }
 
-/* Painel recolhido: so cabecalho (abas) + os dois botoes de canto ficam de
-   pe — mensagens, digitacao e modo-batalha somem (a fileira de icones
-   utilitarios que morava solta no topo foi ELIMINADA na rodada 2, ver
-   cabecalho do arquivo — nao ha mais nada pra esconder ali). !important
-   porque updateHeight() (ChatBox.js, acionado por F10/.size/Enter) escreve
-   estilo INLINE nesses MESMOS elementos em varios fluxos — sem !important,
-   o inline sempre venceria e "recolher" pareceria quebrado dependendo do
-   que o jogador tivesse usado por ultimo (mesmo motivo do !important na
-   scrollbar mais abaixo, contra o <style> que o JS injeta). */
-#chatbox.is-recolhido .body,
-#chatbox.is-recolhido .input,
-#chatbox.is-recolhido .battlemode {
-	display: none !important;
-}
-
-/* Achado na prova fotografica (19/08/2026): ".cb-gear" fica ancorado no
-   proprio "#chatbox", e recolhido a caixa dele encolhe pra so a altura do
-   cabecalho — "bottom:2px" passava a colidir com ".cb-collapse" (que fica
-   em "top"), os dois brigando pelo mesmo canto. Recolhido, a engrenagem
-   sobe pro MESMO topo, ao lado esquerdo da seta — os dois botoes de canto
-   continuam vivos e clicaveis, so lado a lado em vez de topo/base. */
-#chatbox.is-recolhido .cb-gear {
-	top: -4px;
-	right: 26px;
-	bottom: auto;
-}
-
-/* ─── Opcoes do chat (engrenagem, canto inferior direito — gauntlet
-   19/08/2026, layout do print 2). Mesmo botao/handler que era
-   ".chat-function .battleopt" (ver ChatBox.html/.js) — so casa e glifo
-   mudaram, nenhuma logica nova. "background-image:none" apaga o bmp nativo
-   que o "data-background" carregava antes (o atributo foi removido no
-   .html, mas a regra fica aqui como documentacao do porque o botao nao usa
-   mais textura).
-   "right:37px", nao 2px: medido ao vivo (getBoundingClientRect, gauntlet
-   19/08 rodada 2) -- ".cb-gear" fica FORA de ".input"/".battlemode" (pra
-   continuar visivel nos dois estados, ver comentario do JS), mas ".input"
-   e 5px mais largo que "#chatbox" (cadeia da regra 1) e tem 3 icones
-   nativos proprios grudados no canto (".cb-chatmode"/".filter"/".size",
-   x 565-600) — com "right:2px" a engrenagem (20px) cobria ".filter" e
-   ".size" quase inteiros. 37px poe a borda direita da engrenagem em ~563,
-   logo a esquerda do trio, sem tapar nenhum dos quatro controles. */
-#chatbox .cb-gear {
-	position: absolute;
-	right: 37px;
-	bottom: 2px;
-	width: 20px;
-	height: 20px;
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	padding: 0;
-	border: 1px solid var(--border-hairline);
-	border-radius: var(--radius-pill);
-	background: var(--surface-dark-glass);
-	background-image: none;
-	backdrop-filter: var(--blur-glass);
-	box-shadow: var(--shadow-card), var(--rim-light);
-	color: var(--white);
-	cursor: pointer;
-	opacity: 1;
-	z-index: 3;
-}
-
-#chatbox .cb-gear:hover {
-	color: var(--gold-300);
-	box-shadow: var(--shadow-card), var(--rim-light), var(--glow-gold);
-}
-
-#chatbox .cb-gear-glyph {
-	width: 12px;
-	height: 12px;
-	display: block;
-}
-
-#chatbox .cb-gear-glyph svg {
-	width: 100%;
-	height: 100%;
-}
-
-/** Tabs (pills de vidro claro; a aba ativa ganha o gradiente azul do design
-    system — os tokens --tab-idle-fill/--tab-active-fill sao os MESMOS que
-    .ri-tab usa em Common.css, entao a aba do chat e a aba de Config/HuntMap
-    sao a mesma peca visual). **/
-#chatbox .header {
-	margin-left: 3px;
-	height: 17px;
-
-	max-width: 100%;
-}
-
-#chatbox .header .tab {
-	/* 75px -> 84px: nao faz parte da cadeia de larguras da regra 1 (essa e
-	   so #chatbox/.input/.wrapper/.battlemode) — folga extra pro rotulo
-	   PT sobreposto abaixo (::before) nao esbarrar na borda do pill. */
-	width: 84px;
-	color: var(--text-muted);
-	text-align: center;
-}
-
-#chatbox .header input {
-	border: none;
-	background-color: transparent;
-	color: inherit;
-	width: 84px;
-	height: 15px;
-	text-align: center;
-	font-family: var(--font-ui);
-	font: var(--type-label);
-}
-
-/* Rotulo das 2 abas padrao em PT (rodada 2, achado 3): o texto real vem
-   de DB.getMessage(1291/1292), uma tabela de mensagens carregada em
-   runtime (data/msgstringtable.csv, ve DBManager.js) — NAO e' markup nem
-   logica desta pasta, entao nao mexe la (regra 3). O que da pra fazer sem
-   tocar em JS/dados: esconder o texto ingles (color:transparent) e
-   sobrepor o rotulo em PT com ::before, so quando o value= (atributo
-   HTML, gravado uma vez na criacao da aba em ChatBox.js addNewTab) ainda
-   bate com o texto default em ingles. :focus-within desliga a mascara
-   (mostra o texto real de novo) enquanto o campo esta sendo editado, pra
-   nao esconder o que o jogador esta digitando ao renomear a aba.
-   Limitacao conhecida: como o atributo HTML nunca e' reescrito no rename
-   (ChatBox.js so atualiza a property .value, nao setAttribute), se o
-   jogador renomear uma dessas 2 abas e clicar fora, o rotulo volta a
-   mostrar "Normal"/"Batalha" por cima do novo nome — nao da pra evitar
-   isso sem tocar na logica do JS. */
-#chatbox .header .tab div:has(> input[value="Regular Message"]),
-#chatbox .header .tab div:has(> input[value="Battle Message"]) {
-	position: relative;
-}
-#chatbox .header .tab div:has(> input[value="Regular Message"]) input,
-#chatbox .header .tab div:has(> input[value="Battle Message"]) input {
-	color: transparent;
-}
-#chatbox .header .tab div:has(> input[value="Regular Message"]):focus-within input,
-#chatbox .header .tab div:has(> input[value="Battle Message"]):focus-within input {
-	color: inherit;
-}
-#chatbox .header .tab div:has(> input[value="Regular Message"])::before,
-#chatbox .header .tab div:has(> input[value="Battle Message"])::before {
-	position: absolute;
-	inset: 0;
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	pointer-events: none;
-	color: inherit;
-	font-family: var(--font-ui);
-	font: var(--type-label);
-}
-#chatbox .header .tab div:has(> input[value="Regular Message"]):focus-within::before,
-#chatbox .header .tab div:has(> input[value="Battle Message"]):focus-within::before {
-	content: none;
-}
-#chatbox .header .tab div:has(> input[value="Regular Message"])::before {
-	content: 'Normal';
-}
-#chatbox .header .tab div:has(> input[value="Battle Message"])::before {
-	content: 'Batalha';
-}
-
-#chatbox .header .tab div {
-	padding-top: 2px;
-	border-radius: var(--radius-pill);
-	background: var(--surface-glass);
-	border: 1px solid var(--border-hairline);
-	color: var(--text-muted);
-	box-shadow: var(--shadow-card);
-}
-
-#chatbox .header .tab div.on {
-	background: var(--tab-active-fill);
-	border: 1px solid var(--blue-600);
-	color: var(--tab-active-text);
-	height: 18px;
-	box-shadow: var(--rim-light), var(--shadow-card);
-}
-
-#chatbox .header .options {
-	border-bottom: 1px solid var(--border-hairline);
-	height: 18px;
-	margin-right: 4px;
-}
-
-/** Content: vidro ESCURO translucido (decisao do design system 19/08 — ver
-    cabecalho do arquivo). As cores de mensagem (getColorForType em
-    ChatBox.js) sao a paleta neon classica do RO, desenhada pra fundo
-    escuro: contra --surface-dark-glass elas voltam a ficar legiveis por
-    conta propria, sem contorno artificial — so uma sombra leve no glifo
-    (regra 2) pra proteger contra o mundo que aparece atras do vidro. **/
+/* ─── Corpo (o log) ──────────────────────────────────────────────────────
+   Altura em vh para a fracao do gabarito valer em telas diferentes, com piso
+   e teto para nao virar tira nem parede: em 1080 sao ~72px (cinco linhas de
+   14px), o painel inteiro fica em ~13% da tela. */
 #chatbox .body {
-	background: var(--surface-dark-glass);
+	position: relative;
+	background-color: var(--cb-vidro-cor);
+	background-image: var(--cb-vidro-camada);
 	backdrop-filter: var(--blur-glass);
 	border: 1px solid var(--border-window);
 	border-radius: var(--radius-panel);
-	padding: 4px 6px 5px 6px;
-	margin-left: 3px;
-	margin-right: -2px;
-	max-width: 100%;
-	box-shadow: var(--shadow-float), var(--rim-light);
+	padding: var(--sp-3) var(--sp-4);
+	box-shadow: var(--shadow-float);
 }
+
 #chatbox .contentwrapper {
-	height: 42px;
+	height: clamp(56px, 6.6vh, 72px);
 }
+
 #chatbox .content {
-	/* protecao de glifo (regra 2 do design system): sombra leve, NUNCA um
-	   scrim de largura total — o vidro escuro do .body ja e a "capsula"
-	   que protege o texto contra o mundo atras. As cores de cada linha
-	   continuam 100% do JS (msg div.style.color inline, intocado). */
 	text-shadow: 0 1px 2px rgba(18, 41, 74, 0.85);
 	height: 100%;
 	overflow-y: auto;
+	overflow-x: hidden;
 	line-height: 14px;
 	display: none;
+	overflow-wrap: anywhere;
 }
+
 #chatbox .content.active {
 	display: block;
 }
+
+/* Estado vazio HONESTO: nada de mensagem de exemplo. ":empty" e verdade sobre
+   o DOM — o canal so mostra isto enquanto nenhuma mensagem REAL chegou. O
+   canal Trade fica assim o tempo todo hoje: o servidor de mapa nao tem canal
+   de comercio (ver o relatorio desta frente). */
+#chatbox .content.active:empty {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+#chatbox .content.active:empty::before {
+	content: 'Nenhuma mensagem';
+	color: var(--white);
+	opacity: 0.5;
+	font: var(--type-info);
+}
+
 #chatbox .content a {
 	color: inherit;
 	text-decoration: underline;
@@ -383,221 +270,314 @@
 	cursor: pointer;
 }
 
-/* ─── Etiqueta de canal, nome de quem fala e numeros em destaque dentro da
-   mensagem (gauntlet 19/08/2026, layout do print 2 do dono: "System"/
-   "World" como pilula solida separada do texto). Cor/conteudo da mensagem
-   continuam 100% do JS (msg.colorType/msg.text, ChatBox.js) — estas classes
-   so ENVOLVEM o que o JS ja decidiu, nunca reimplementam a logica de cor
-   nem o fluxo de mensagem (regra 3 do cabecalho deste arquivo). A pilula
-   reusa ".ri-badge"/".ri-badge--ouro" (Common.css, injetado em todo Shadow
-   DOM) — nenhum hex novo, so o token de badge que o proprio design system
-   ja usa noutros componentes. */
+/* ─── Hierarquia de cor dentro da linha (gabarito secao 4: "cada linha comeca
+   com uma etiqueta de canal colorida e o nome de quem falou em cor distinta
+   do corpo"). A pilula reusa ".ri-badge" de Common.css; a COR e o TEXTO da
+   mensagem continuam 100% decididos pelo JS (getColorForType / msg.text) —
+   estas classes so envolvem o que ja foi decidido. */
+/* "line-height: 1.2" e "vertical-align: baseline" nao sao gosto: a etiqueta e
+   inline-flex e entra na CAIXA DE LINHA da mensagem. Com 1.5 e um deslocamento
+   de 1px ela media 14,5px dentro de uma linha de 14px e ESTICAVA cada linha —
+   ai o modo recolhido (altura fixa de 3 linhas) mostrava duas linhas e meia,
+   com a de cima cortada ao meio. Medido no print. */
 #chatbox .content .cb-tag {
 	display: inline-flex;
+	align-items: center;
 	margin-right: 5px;
-	vertical-align: 1px;
+	vertical-align: baseline;
 	font-size: 9px;
-	line-height: 1.5;
-	padding: 0 6px;
+	line-height: 1.2;
+	padding: 0 5px;
 }
 
-/* Nome de quem fala: mesmo tom (--gold-300) que ".input .username" ja usa
-   NESTE componente pro campo "pra quem" — vocabulario de cor coerente
-   dentro do proprio chat, sem inventar um token novo. */
+/* A variante neutra do design system (".ri-badge--cinza") foi desenhada para
+   fundo CLARO — sobre o vidro escuro do chat ela sumia. Aqui ela vira vidro
+   claro translucido com o texto na cor do proprio painel, mantendo o contrato
+   do design system (neutro para a fala comum e para o log de combate, dourado
+   para o resto) sem inventar hex novo. Vale tambem para a etiqueta de destino
+   da barra de digitacao (".cb-destino"), que e a mesma pilula em outro lugar. */
+#chatbox .content .cb-tag.ri-badge--cinza,
+#chatbox .input .cb-destino.ri-badge--cinza {
+	background: rgba(255, 255, 255, 0.16);
+	border-color: rgba(255, 255, 255, 0.28);
+	color: var(--white);
+}
+
 #chatbox .content .cb-name {
 	color: var(--gold-300);
 	font-weight: 700;
 }
 
-/* Numeros (zeny, quantidade, nivel): tom vizinho (--gold-400), pra separar
-   visualmente de ".cb-name" sem sair da familia dourada do widget. */
 #chatbox .content .cb-num {
 	color: var(--gold-400);
 	font-weight: 700;
 }
 
-/* Scrollbar fina no padrao .ri-scroll (Common.css): o JS injeta um
-   <style> DEPOIS deste (ve ChatBox.js ~L224-247, as setas azuis
-   dialscr_up/down.bmp), entao com a MESMA especificidade ele venceria por
-   ordem de insercao — !important garante que o padrao premium fique por
-   cima sem tocar o JS (regra 5 do briefing). */
+/* Scrollbar fina no padrao do design system. */
 #chatbox .content::-webkit-scrollbar {
-	width: 8px !important;
-	height: 8px !important;
+	width: 6px;
+	height: 6px;
 }
 #chatbox .content::-webkit-scrollbar-button {
-	display: none !important;
+	display: none;
 }
-#chatbox .content::-webkit-scrollbar-track-piece:vertical,
 #chatbox .content::-webkit-scrollbar-track {
-	background: rgba(18, 41, 74, 0.35) !important;
-	border: none !important;
+	background: rgba(18, 41, 74, 0.35);
+	border: none;
 	border-radius: var(--radius-card);
 }
-#chatbox .content::-webkit-scrollbar-thumb:vertical,
 #chatbox .content::-webkit-scrollbar-thumb {
-	background: var(--blue-400) !important;
+	background: var(--blue-400);
 	border-radius: var(--radius-card);
-	border-width: 0 !important;
+	border-width: 0;
 }
 #chatbox .content::-webkit-scrollbar-thumb:hover {
-	background: var(--gold-400) !important;
+	background: var(--gold-400);
 }
 
-#chatbox .event_add_cursor {
-	height: 14px;
-	cursor: ns-resize;
-}
-
-#chatbox .battlemode {
-	width: 592px;
-	height: 25px;
-	position: relative;
-	border: 1px solid var(--border-window);
-	background: var(--surface-dark-glass);
-	backdrop-filter: var(--blur-glass);
-	margin-left: 3px;
-	border-radius: var(--radius-panel);
-	display: none;
-	max-width: 100%;
-	box-shadow: var(--shadow-card), var(--rim-light);
-}
-
-/** Input: era textura BMP inline (dialog_bg.bmp), removida no .html —
-    agora e um cartao de vidro escuro, coerente com o resto do widget e com
-    o texto branco classico do input de chat do RO. **/
+/* ─── Digitacao ─────────────────────────────────────────────────────────── */
 #chatbox .input {
-	width: 600px;
-	height: 25px;
 	position: relative;
-	max-width: 100%;
-	background: var(--surface-dark-glass);
+	display: flex;
+	align-items: center;
+	gap: var(--sp-2);
+	height: 26px;
+	margin-top: var(--sp-2);
+	padding: 0 var(--sp-2) 0 var(--sp-3);
+	background-color: var(--cb-vidro-cor);
+	background-image: var(--cb-vidro-camada);
 	backdrop-filter: var(--blur-glass);
 	border: 1px solid var(--border-window);
 	border-radius: var(--radius-pill);
-	box-shadow: var(--shadow-card), var(--rim-light);
+	box-shadow: var(--shadow-card);
+	box-sizing: border-box;
 }
 
-#chatbox .input.fix {
-	margin-top: 29px;
-}
-
-#chatbox .input input {
-	position: absolute;
-	top: 3px;
-	height: 18px;
-	background-color: transparent;
-	border: none;
-	color: var(--white);
-	font-family: var(--font-ui);
-	text-shadow: 0 1px 2px rgba(18, 41, 74, 0.85);
+/* Etiqueta de DESTINO da fala (item 2 da rodada 2). Mesma pilula das etiquetas
+   de canal do log, para o jogador reconhecer o idioma: pilula = canal. Ela
+   ocupa o primeiro lugar da barra justamente porque era ali que o placeholder
+   "Sussurrar para" reinava sozinho e fazia a barra do Global parecer sussurro.
+   O JS a mantem em dia (definirEtiquetaDeDestino, em ChatBox.js). */
+#chatbox .input .cb-destino {
+	flex: 0 0 auto;
+	display: inline-flex;
+	align-items: center;
+	margin-right: var(--sp-2);
+	font-size: 9px;
+	line-height: 1.2;
+	padding: 0 5px;
+	white-space: nowrap;
 }
 
 #chatbox .input .username {
-	left: 8px;
-	width: 90px;
-	padding-left: 5px;
+	flex: 0 1 84px;
+	min-width: 0;
+	height: 18px;
+	background-color: transparent;
+	border: none;
+	border-right: 1px solid var(--border-hairline);
 	color: var(--gold-300);
 	font: var(--type-label);
+	font-family: var(--font-ui);
+	outline: none;
+	text-shadow: 0 1px 2px rgba(18, 41, 74, 0.85);
 }
 
-#chatbox .input .list {
-	width: 8px;
-	height: 18px;
-	border: none;
-	position: absolute;
-	top: 3px;
-	left: 97px;
-	background-repeat: no-repeat;
-	padding: 0;
-	/* bmp claro (feito pra fundo escuro) — sem filtro, o vidro escuro do
-	   .input ja da o contraste. */
-	opacity: 0.85;
+#chatbox .input .username::placeholder {
+	color: var(--gold-300);
+	opacity: 0.45;
 }
-/* 140px -> 148px (gauntlet 19/08/2026, rodada 2 do julgamento): a reserva a
-   direita da faixa de digitacao ganhou um 3o icone (".cb-chatmode", ver
-   abaixo) -- essa MESMA constante ja embutia os 2 icones antigos
-   (108 esquerda + 32 direita = 140), so o "32" precisou crescer pra caber o
-   novo. Mudanca LOCAL e coerente: nao e a cadeia de larguras acopladas da
-   regra 1 (#chatbox 595 / .input 600 / .battlemode 592) -- essas tres
-   continuam intocadas, so a reserva INTERNA de ".input" mudou. */
+
 #chatbox .input .wrapper {
 	display: flex;
 	align-items: center;
-	margin-left: 108px;
+	flex: 1 1 auto;
+	min-width: 0;
 	height: 100%;
 	overflow: hidden;
-	width: calc(100% - 148px);
 }
 
 #chatbox .input .message {
 	width: 100%;
-	padding-left: 5px;
-
 	line-height: 18px;
 	outline: none;
 	white-space: nowrap;
-	overflow-x: hidden;
-	overflow-y: hidden;
-	max-width: 100%;
-	vertical-align: middle;
-	display: inline-block;
+	overflow: hidden;
 	color: var(--white);
 	font-family: var(--font-ui);
 	text-shadow: 0 1px 2px rgba(18, 41, 74, 0.85);
 }
-/* Cores de canal (party/guild/clan) NAO tem token no design system oficial
-   — sao identidade semantica do canal de chat classico do RO (roxo/verde-
-   agua/laranja), nao cor de superficie ou decoracao. Ficam literais de
-   proposito, e ja funcionam bem sobre o vidro escuro. */
+
+/* Cores de canal (grupo/guilda/cla) nao tem token no design system oficial —
+   sao identidade semantica do chat classico do RO, nao cor de superficie.
+   Ficam literais de proposito, e funcionam bem sobre o vidro escuro. */
 #chatbox .input .message.party {
-	color: #840084;
+	color: #ffb0ff;
 }
 #chatbox .input .message.guild {
-	color: #008484;
+	color: #7fe3e3;
 }
 #chatbox .input .message.clan {
 	color: #ffa631;
 }
 
-/* ".cb-chatmode" somado ao grupo em 19/08/2026, rodada 2 do julgamento:
-   era ".chat-function .chatmode" (icone de teclado no canto superior
-   direito, capsula eliminada) -- mudou pra dentro da propria barra que
-   controla (chat <-> modo batalha), ao lado de ".filter"/".size" que ja
-   moravam aqui. MESMO tratamento visual (bmp claro, sem filtro, regra 2). */
-#chatbox .input .cb-chatmode,
-#chatbox .input .filter,
-#chatbox .input .size {
-	width: 11px;
-	height: 11px;
-	border: none;
-	position: absolute;
-	right: 13px;
-	top: 8px;
-	background-color: transparent;
-	opacity: 0.85;
+#chatbox .input .filter {
+	flex: 0 0 auto;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 20px;
+	height: 20px;
+	padding: 0;
+	border: 1px solid var(--border-hairline);
+	border-radius: var(--radius-pill);
+	background: transparent;
+	color: var(--white);
+	opacity: 0.7;
+	cursor: pointer;
 }
 
-#chatbox .input .cb-chatmode:hover,
-#chatbox .input .filter:hover,
-#chatbox .input .size:hover {
+#chatbox .input .filter:hover {
 	opacity: 1;
+	color: var(--gold-300);
 }
 
-/* Da direita pra esquerda: .size (1) / .filter (13, ja e o "right" default
-   do grupo acima) / .cb-chatmode (25) -- cada uma 11px de largura, 1px de
-   folga entre elas. */
-#chatbox .input .size {
-	right: 1px;
+#chatbox .input .cb-glifo {
+	width: 12px;
+	height: 12px;
+	display: block;
 }
 
-#chatbox .input .cb-chatmode {
-	right: 25px;
+#chatbox .input .cb-glifo svg {
+	width: 100%;
+	height: 100%;
+}
+
+/* ─── Trade: a barra de digitacao existe (o desenho pede) mas esta INERTE, e
+   diz por que. Ver o comentario em ChatBox.html e o relatorio desta frente. */
+#chatbox .input .cb-inerte {
+	display: none;
+	flex: 1 1 auto;
+	min-width: 0;
+	color: var(--white);
+	opacity: 0.78;
+	font: var(--type-info);
+	font-family: var(--font-ui);
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	text-shadow: 0 1px 2px rgba(18, 41, 74, 0.85);
+}
+
+#chatbox.canal-trade .input .cb-destino,
+#chatbox.canal-trade .input .username,
+#chatbox.canal-trade .input .wrapper,
+#chatbox.canal-trade .input .filter {
+	display: none;
+}
+
+#chatbox.canal-trade .input .cb-inerte {
+	display: block;
+}
+
+/* ─── Trade em REPOUSO diz a verdade (20/08/2026, rodada 2) ──────────────
+   O Trade nascer vazio e conhecido e esta certo — o servidor de mapa nao tem
+   canal de comercio. Esconder o PORQUE atras de uma tecla, nao: em repouso o
+   canal mostrava a barra de MODO BATALHA ("Enter para digitar"), que convida a
+   digitar onde ninguem pode falar, e a frase honesta so ganhava caixa depois
+   do Enter (media 0x0px antes disso).
+
+   Agora o Trade troca as duas: some o modo batalha, fica a barra INERTE com a
+   explicacao. "!important" pelo mesmo motivo do Farm — o JS nativo escreve
+   "display" INLINE nesses dois elementos (ChatBox.submit(), o Enter de
+   onKeyDown, onAppend), e sem isto o inline venceria e o repouso do Trade
+   dependeria do que o jogador fez por ultimo no Global. O Enter continua
+   barrado no Trade por ChatBox.onKeyDown, entao nenhum fluxo pode trocar o
+   inline enquanto este canal esta em foco. */
+#chatbox.canal-trade .battlemode {
+	display: none !important;
+}
+
+#chatbox.canal-trade .input {
+	display: flex !important;
+}
+
+/* Modo batalha: mesma casca da barra de digitacao que ele substitui. */
+#chatbox .battlemode {
+	display: none;
+	align-items: center;
+	justify-content: center;
+	height: 26px;
+	margin-top: var(--sp-2);
+	background-color: var(--cb-vidro-cor);
+	background-image: var(--cb-vidro-camada);
+	backdrop-filter: var(--blur-glass);
+	border: 1px solid var(--border-window);
+	border-radius: var(--radius-pill);
+	box-shadow: var(--shadow-card);
+	box-sizing: border-box;
 }
 
 #chatbox .battlemode .bmtoggle {
+	width: 100%;
 	height: 100%;
+	border: none;
+	background: none;
 	color: var(--white);
+	font: var(--type-label);
 	font-family: var(--font-ui);
 	text-shadow: 0 1px 2px rgba(18, 41, 74, 0.85);
+	cursor: pointer;
+	opacity: 0.75;
+}
+
+#chatbox .battlemode .bmtoggle:hover {
+	opacity: 1;
+}
+
+/* ─── Farm e SOMENTE LEITURA ────────────────────────────────────────────
+   Sem campo de digitacao e sem modo batalha. "!important" porque o JS nativo
+   escreve "display" INLINE nesses dois elementos em varios fluxos
+   (ChatBox.submit(), onKeyDown do Enter, onAppend) — sem isto, o inline
+   venceria e o Farm ganharia um campo de digitacao dependendo do que o
+   jogador tivesse feito por ultimo. */
+#chatbox.canal-farm .input,
+#chatbox.canal-farm .battlemode {
+	display: none !important;
+}
+
+/* O painel e ancorado embaixo: se o Farm apenas perdesse a barra de digitacao,
+   o painel inteiro encolheria e as abas PULARIAM 30px para baixo a cada troca
+   de canal. O log cresce exatamente o que a barra deixou (26px de altura +
+   4px de margem), entao a altura total nao muda e o Farm ainda ganha duas
+   linhas a mais — que e o canal que mais precisa delas. */
+#chatbox.canal-farm .contentwrapper {
+	height: calc(clamp(56px, 6.6vh, 72px) + 30px);
+}
+
+/* ─── Recolhido: so as ultimas linhas sobre o vidro, como o gabarito pede.
+   Abas, digitacao e modo batalha somem; a seta continua alcancavel. Mesmo
+   motivo de "!important" da regra acima. */
+#chatbox.is-recolhido .cb-abas,
+#chatbox.is-recolhido .input,
+#chatbox.is-recolhido .battlemode {
+	display: none !important;
+}
+
+#chatbox.is-recolhido .contentwrapper {
+	height: 42px;
+}
+
+/* Recolhido, o painel encolhe ate a altura do corpo e a seta perderia a
+   ancora do cabecalho — ela desce para o canto superior direito do proprio
+   corpo, que agora e o topo do painel. */
+#chatbox.is-recolhido .cb-collapse {
+	top: -6px;
+	right: -6px;
+}
+
+/* Recolhido o corpo inteiro vira o alvo de expandir (o gabarito diz "clicar
+   expande", nao "clicar exatamente na seta"). */
+#chatbox.is-recolhido .body {
+	cursor: pointer;
 }

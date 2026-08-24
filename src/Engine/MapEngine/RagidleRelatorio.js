@@ -40,13 +40,7 @@ function onRelatorio(pkt) {
 	const linhas = [];
 	linhas.push('[Enquanto você esteve fora]');
 	linhas.push(
-		'Abates: ' +
-			(data.abates | 0) +
-			' · Exp: +' +
-			(data.baseExp | 0) +
-			' base, +' +
-			(data.jobExp | 0) +
-			' classe'
+		'Abates: ' + (data.abates | 0) + ' · Exp: +' + (data.baseExp | 0) + ' base, +' + (data.jobExp | 0) + ' classe'
 	);
 	if ((data.niveisBase | 0) > 0 || (data.niveisJob | 0) > 0) {
 		linhas.push('Níveis: +' + (data.niveisBase | 0) + ' base, +' + (data.niveisJob | 0) + ' de classe');
@@ -58,7 +52,10 @@ function onRelatorio(pkt) {
 		linhas.push('A sessão desassistida atingiu o limite e o personagem parou de caçar.');
 	}
 
-	linhas.forEach(l => ChatBox.addText(l, ChatBox.TYPE.BLUE, ChatBox.FILTER.PUBLIC_LOG));
+	// FARM_LOG, nao PUBLIC_LOG (20/08/2026): o relatorio da sessao
+	// desassistida e o resumo da CACA — abates, exp, niveis e itens. Ele
+	// pertence ao canal Farm, junto com o log ao vivo da mesma coisa.
+	linhas.forEach(l => ChatBox.addText(l, ChatBox.TYPE.BLUE, ChatBox.FILTER.FARM_LOG));
 }
 
 export default RagidleRelatorioEngine;

@@ -533,6 +533,39 @@ function onEntityResurect(pkt) {
 }
 
 /**
+ * Linha de dano do log de caca, em portugues (20/08/2026).
+ *
+ * POR QUE a string nasce aqui e nao vem mais de DB.getMessage(1605..1608):
+ * essa tabela e a `data/msgstringtable.csv` do cliente OFICIAL, servida pelo
+ * remote-client — ela e o texto do KRO em INGLES e nao ha versao pt-BR dela
+ * neste projeto. Como a HUD inteira fala portugues, o log ficava com a
+ * etiqueta traduzida ("Combate") e a frase ao lado em ingles, dentro da MESMA
+ * linha. Traduzir a tabela nao e opcao (ela e dado do cliente, nao codigo
+ * nosso), entao o texto passa a ser escrito no PONTO DE EMISSAO.
+ *
+ * As quatro mensagens trocadas (1605/1606/1607/1608) NAO tem outro consumidor
+ * no cliente: conferido com `grep getMessage(160[5-8]` em src/ — os seis usos
+ * sao os deste arquivo, todos no bloco de dano logo abaixo.
+ *
+ * E de quebra o texto passa a dizer QUEM BATEU EM QUEM. A tabela oficial
+ * rendia "[Poring] inflicted '3' damage." tanto para golpe dado quanto para
+ * golpe levado (a diferenca estava so em qual NOME entrava no %s), e quem le
+ * de relance depois de uma sessao idle nao tinha como saber a direcao. Aqui o
+ * codigo ja sabe quem e a origem e quem e o alvo do pacote; a frase so diz.
+ *
+ * Nada de logica muda: continua sendo uma linha por pacote de dano, com o
+ * mesmo filtro e o mesmo tipo de cor.
+ *
+ * @param {string} quemAtaca - nome de quem desferiu o golpe
+ * @param {string} quemApanha - nome de quem recebeu
+ * @param {number} dano - dano do pacote
+ * @return {string} linha pronta
+ */
+function linhaDeDano(quemAtaca, quemApanha, dano) {
+	return `${quemAtaca} causou ${dano} de dano em ${quemApanha}.`;
+}
+
+/**
  * Perform Entity Action
  *
  * @param {object} pkt - PACKET.ZC.NOTIFY_ACT
@@ -892,14 +925,14 @@ function onEntityAction(pkt) {
 		if (srcEntity.GID === Session.Entity.GID) {
 			// I deal damage
 			ChatBox.addText(
-				DB.getMessage(1607).replace('%s', dstEntity.display.name).replace('%d', pkt.damage),
+				linhaDeDano('Você', dstEntity.display.name, pkt.damage),
 				ChatBox.TYPE.INFO,
 				ChatBox.FILTER.BATTLE
 			);
 		} else if (dstEntity.GID === Session.Entity.GID) {
 			// I receive damage
 			ChatBox.addText(
-				DB.getMessage(1605).replace('%s', srcEntity.display.name).replace('%d', pkt.damage),
+				linhaDeDano(srcEntity.display.name, 'você', pkt.damage),
 				ChatBox.TYPE.INFO,
 				ChatBox.FILTER.BATTLE
 			);
@@ -911,10 +944,7 @@ function onEntityAction(pkt) {
 		) {
 			// My buddy deals damage
 			ChatBox.addText(
-				DB.getMessage(1608)
-					.replace('%s', srcEntity.display.name)
-					.replace('%s', dstEntity.display.name)
-					.replace('%d', pkt.damage),
+				linhaDeDano(srcEntity.display.name, dstEntity.display.name, pkt.damage),
 				ChatBox.TYPE.INFO,
 				ChatBox.FILTER.BATTLE
 			);
@@ -926,30 +956,21 @@ function onEntityAction(pkt) {
 		) {
 			// My buddy receives damage
 			ChatBox.addText(
-				DB.getMessage(1606)
-					.replace('%s', dstEntity.display.name)
-					.replace('%s', srcEntity.display.name)
-					.replace('%d', pkt.damage),
+				linhaDeDano(srcEntity.display.name, dstEntity.display.name, pkt.damage),
 				ChatBox.TYPE.INFO,
 				ChatBox.FILTER.BATTLE
 			);
 		} else if (PartyFriends.isGroupMember(srcEntity.display.name)) {
 			// Party member deals damage
 			ChatBox.addText(
-				DB.getMessage(1608)
-					.replace('%s', srcEntity.display.name)
-					.replace('%s', dstEntity.display.name)
-					.replace('%d', pkt.damage),
+				linhaDeDano(srcEntity.display.name, dstEntity.display.name, pkt.damage),
 				ChatBox.TYPE.INFO,
 				ChatBox.FILTER.PARTY_BATTLE
 			);
 		} else if (PartyFriends.isGroupMember(dstEntity.display.name)) {
 			// Party member receives damage
 			ChatBox.addText(
-				DB.getMessage(1606)
-					.replace('%s', dstEntity.display.name)
-					.replace('%s', srcEntity.display.name)
-					.replace('%d', pkt.damage),
+				linhaDeDano(srcEntity.display.name, dstEntity.display.name, pkt.damage),
 				ChatBox.TYPE.INFO,
 				ChatBox.FILTER.PARTY_BATTLE
 			);
@@ -1414,7 +1435,21 @@ function onEntityUseSkill(pkt) {
 
 		// Steal Coin zeny
 		if (pkt.SKID === SkillId.RG_STEALCOIN) {
-			ChatBox.addText('You got ' + pkt.level + ' zeny.', ChatBox.TYPE.BLUE, ChatBox.FILTER.ITEM);
+			// FARM_ZENY (20/08/2026): moeda ganha no combate — canal Farm.
+			//
+			// Texto em portugues (20/08/2026). Aqui a string JA era do fork
+			// (ingles escrito a mao, nao veio de msgstringtable), entao nao ha
+			// consumidor nenhum para quebrar. "Zeny" fica no original: e nome
+			// proprio do RO.
+			//
+			// NAO EXERCITADA nesta rodada: esta linha so nasce de RG_STEALCOIN
+			// (Roubar Moeda, do Gatuno) e o personagem da prova e Espadachim.
+			// Ela esta escrita, e nao foi vista rodar.
+			ChatBox.addText(
+				`Você roubou ${Number(pkt.level || 0).toLocaleString('pt-BR')} Zeny.`,
+				ChatBox.TYPE.BLUE,
+				ChatBox.FILTER.FARM_ZENY
+			);
 		}
 
 		if (pkt.SKID === SkillId.GC_ROLLINGCUTTER) {
@@ -2564,24 +2599,40 @@ function onBladeStopPacket(pkt) {
  */
 
 function onNotifyExp(pkt) {
+	// FARM_EXP, nao EXP (20/08/2026): experiencia ganha e log automatico da
+	// caca e mora no canal Farm. O servidor de mapa manda este pacote
+	// (0x07f6) a cada abate, em servidor/mapa/servidor-mapa.ts:1569-1573.
+	//
+	// TEXTO EM PORTUGUES escrito aqui, e nao mais vindo de DB.getMessage(1613)
+	// e (1614): a msgstringtable e o dado do cliente oficial (ingles) e nao ha
+	// versao pt-BR dela. O que ela rendia era "150' EXP" e "40' Job EXP" — com
+	// o apostrofo orfao do "%d'" da tabela, que parecia defeito de renderizacao
+	// dentro de uma HUD em portugues. As duas mensagens NAO tem outro consumidor
+	// no cliente (conferido com grep em src/: sao estes dois usos).
+	const ganho = Number(pkt.amount || 0).toLocaleString('pt-BR');
 	switch (pkt.expType) {
 		case 0:
 			if (pkt.varID === 1) {
-				ChatBox.addText(DB.getMessage(1613).replace('%d', pkt.amount), ChatBox.TYPE.INFO, ChatBox.FILTER.EXP);
+				ChatBox.addText(`Você ganhou ${ganho} de EXP base.`, ChatBox.TYPE.INFO, ChatBox.FILTER.FARM_EXP);
 			} else if (pkt.varID === 2) {
-				ChatBox.addText(DB.getMessage(1614).replace('%d', pkt.amount), ChatBox.TYPE.INFO, ChatBox.FILTER.EXP);
+				ChatBox.addText(`Você ganhou ${ganho} de EXP de classe.`, ChatBox.TYPE.INFO, ChatBox.FILTER.FARM_EXP);
 			}
 			break;
 		case 1:
 			if (pkt.varID === 1) {
 				ChatBox.addText(
-					'Experience gained from Quest, Base:' + pkt.amount,
+					`Missão concluída: você ganhou ${ganho} de EXP base.`,
 					null,
-					ChatBox.FILTER.EXP,
+					ChatBox.FILTER.FARM_EXP,
 					'#A442DC'
 				);
 			} else if (pkt.varID === 2) {
-				ChatBox.addText('Experience gained from Quest, Job:' + pkt.amount, null, ChatBox.FILTER.EXP, '#A442DC');
+				ChatBox.addText(
+					`Missão concluída: você ganhou ${ganho} de EXP de classe.`,
+					null,
+					ChatBox.FILTER.FARM_EXP,
+					'#A442DC'
+				);
 			}
 			break;
 	}
@@ -2628,8 +2679,15 @@ function onEntityMvpReward(pkt) {
  */
 function onEntityMvpRewardItemMessage(pkt) {
 	const item = DB.getItemInfo(pkt.ITID);
-	ChatBox.addText(DB.getMessage(143), ChatBox.TYPE.BLUE, ChatBox.FILTER.ITEM);
-	ChatBox.addText(item.identifiedDisplayName, ChatBox.TYPE.BLUE, ChatBox.FILTER.ITEM);
+	// FARM_ITEM (20/08/2026): premio de MVP e item que caiu da caca.
+	//
+	// TEXTO NOSSO no lugar de DB.getMessage(143) (20/08/2026): a tabela do
+	// cliente e inglesa, e a linha seguinte — o NOME do item — ja vinha solta,
+	// sem dizer o que era. Agora as duas linhas dizem a mesma coisa em
+	// portugues, e o nome do item continua vindo do banco (nome proprio do RO
+	// fica no original). DB.getMessage(143) nao tem outro consumidor no cliente.
+	ChatBox.addText('Você foi o MVP deste encontro.', ChatBox.TYPE.BLUE, ChatBox.FILTER.FARM_ITEM);
+	ChatBox.addText(`Prêmio de MVP: ${item.identifiedDisplayName}.`, ChatBox.TYPE.BLUE, ChatBox.FILTER.FARM_ITEM);
 }
 
 /**
