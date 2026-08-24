@@ -94,6 +94,7 @@ import JoystickUI from 'UI/Components/JoystickUI/JoystickUI.js';
 import CashShopIcon from 'UI/Components/CashShopIcon/CashShopIcon.js';
 import Achievement from 'UI/Components/Achievement/Achievement.js';
 import HuntMap from 'UI/Components/HuntMap/HuntMap.js'; // RAGIDLE: "Mapa de Caça"
+import ClassChangeNotice from 'UI/Components/ClassChangeNotice/ClassChangeNotice.js'; // RAGIDLE: aviso de evolução de classe
 import IdleConfig from 'UI/Components/IdleConfig/IdleConfig.js'; // RAGIDLE: "Configuração idle"
 import AdminPanel from 'UI/Components/AdminPanel/AdminPanel.js'; // RAGIDLE: "Painel de admin"
 import IdleSkills from 'UI/Components/IdleSkills/IdleSkills.js'; // RAGIDLE: "Skills de {classe}"
@@ -453,6 +454,7 @@ class MapEngine {
 			IdleConfig.prepare(); // RAGIDLE: "Configuração idle"
 			AdminPanel.prepare(); // RAGIDLE: "Painel de admin"
 			IdleSkills.prepare(); // RAGIDLE: "Skills de {classe}"
+			ClassChangeNotice.prepare(); // RAGIDLE: aviso de evolução de classe (D-410)
 			BasicInfoIdle.prepare(); // RAGIDLE: "Informações básicas"
 			StatusIdle.prepare(); // RAGIDLE: "Status"
 			MochilaIdle.prepare(); // RAGIDLE: "Mochila" — depois de Inventory.getUI()/Equipment.getUI() (linhas acima, secao "Prepare UI"): precisa dos dois _host nativos ja existentes pra esconde-los em MochilaIdle.onAppend()
@@ -844,6 +846,11 @@ function onMapChange(pkt) {
 		// RAGIDLE: "Configuração idle" floating button — same unconditional
 		// append() as HuntMap right above.
 		IdleConfig.append();
+
+		// RAGIDLE (D-410): o aviso de evolução de classe. Ele nasce ESCONDIDO —
+		// quem o mostra é o servidor, mandando ZC_RAGIDLE_MUDANCA_DE_CLASSE com
+		// pelo menos um destino. Anexar sempre é o mesmo padrão do HuntMap.
+		ClassChangeNotice.append();
 		// RAGIDLE: pergunta se este mapa e cidade (D-355) para desabilitar o
 		// botao quando nao ha caca. A resposta cai no mesmo handler do pedir.
 		IdleConfig.sondarMapa();

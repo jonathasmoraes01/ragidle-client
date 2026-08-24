@@ -1,0 +1,112 @@
+/**
+ * O aviso de evolução de classe (D-410).
+ *
+ * Ele é um TOAST, e não uma janela: não tem barra de título, não arrasta e não
+ * guarda posição. A razão é o que ele é — uma notificação que aparece sozinha
+ * e some quando o jogador age. Uma janela arrastável convidaria a deixá-la
+ * aberta, e um aviso permanente deixa de ser aviso.
+ */
+
+:host {
+	position: absolute;
+	right: 16px;
+	top: 96px;
+	z-index: 60;
+	font-family: Arial, Helvetica, sans-serif;
+}
+
+.ccn-toast {
+	width: 268px;
+	background: linear-gradient(180deg, #2b2f3a 0%, #1d2029 100%);
+	border: 1px solid #4a5266;
+	border-radius: 6px;
+	box-shadow: 0 6px 18px rgba(0, 0, 0, 0.55);
+	color: #e8ebf2;
+	overflow: hidden;
+}
+
+.ccn-toast[data-hidden='true'] {
+	display: none;
+}
+
+.ccn-head {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: 7px 9px;
+	background: rgba(255, 255, 255, 0.05);
+	border-bottom: 1px solid #3a4152;
+}
+
+.ccn-badge {
+	font-size: 11px;
+	font-weight: bold;
+	letter-spacing: 0.3px;
+	color: #ffd97a;
+	text-transform: uppercase;
+}
+
+.ccn-close {
+	background: none;
+	border: none;
+	color: #97a0b5;
+	cursor: pointer;
+	font-size: 12px;
+	line-height: 1;
+	padding: 2px 4px;
+}
+
+.ccn-close:hover {
+	color: #e8ebf2;
+}
+
+.ccn-body {
+	padding: 9px;
+	/*
+	 * O teto e a rolagem sao de D-418, e a razao e concreta: ate ali o aviso
+	 * so descia com **um ou dois** destinos (o 2o grau tem dois ramos no maximo,
+	 * e so o Mago os tem). Com o 1o grau servido, o Aprendiz no teto recebe
+	 * **seis** botoes de uma vez — cada um com duas linhas.
+	 *
+	 * Sem teto isso passa de 350px e, num navegador baixo, o ultimo botao sai
+	 * pela borda de baixo da tela: o jogador veria cinco caminhos e nao saberia
+	 * que ha um sexto. `calc` conta a partir do `top: 96px` do :host mais uma
+	 * folga, entao ele se ajusta sozinho se a janela encolher.
+	 */
+	max-height: calc(100vh - 140px);
+	overflow-y: auto;
+}
+
+.ccn-linha {
+	font-size: 12px;
+	color: #c9d0e0;
+	margin-bottom: 8px;
+	line-height: 1.4;
+}
+
+.ccn-btn {
+	display: block;
+	width: 100%;
+	margin-top: 5px;
+	padding: 7px 8px;
+	background: linear-gradient(180deg, #3c65b8 0%, #2b4a8c 100%);
+	border: 1px solid #5b82d6;
+	border-radius: 4px;
+	color: #fff;
+	cursor: pointer;
+	font-size: 12px;
+	font-weight: bold;
+	text-align: left;
+}
+
+.ccn-btn:hover {
+	background: linear-gradient(180deg, #4a76cd 0%, #33569e 100%);
+}
+
+.ccn-onde {
+	display: block;
+	font-weight: normal;
+	font-size: 11px;
+	color: #bcc8e0;
+	margin-top: 2px;
+}

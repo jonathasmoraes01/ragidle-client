@@ -38,7 +38,7 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const AQUI = path.dirname(fileURLToPath(import.meta.url));
 const RAIZ = path.resolve(AQUI, '..');
@@ -213,14 +213,48 @@ for (const linha of estruturaJs.split('\n')) {
 // um vazio com o número do servidor é seguro; sobrescrever o número do cliente
 // com ele não seria.
 
-const CAMINHO_DO_PACKETDB = path.join(RAIZ, 'rathena/src/map/clif_packetdb.hpp');
-const PACOTE_DO_RATHENA = /^\s*packet\(\s*(0x[0-9a-fA-F]+)\s*,\s*(-?\d+)/;
+/*
+ * ONDE O rATHENA MORA — e as DUAS razões de a reserva ter ficado morta (D-487).
+ *
+ * 1. **O caminho apontava para dentro deste repositório** (`rathena/src/map/…`),
+ *    e o emulador mora no repositório do jogo, ao lado. O arquivo nunca existiu
+ *    aqui, o `existsSync` pulava, e a reserva contribuía **zero** — em silêncio,
+ *    porque pular não é erro.
+ *
+ * 2. **A regex era `^\s*packet\(`**, e o rAthena declara com DUAS formas:
+ *    `packet(0xNNNN, N)` (609 linhas) e `parseable_packet(0xNNNN, N, handler…)`
+ *    (**767** linhas). `parseable_packet` é exatamente como ele declara o que o
+ *    CLIENTE ENVIA — ou seja, a reserva ignorava mais da metade das
+ *    declarações, e justo a metade do sentido c2s.
+ *
+ * Efeito medido antes do conserto, sobre as 125 sessões gravadas: o s2c fatiava
+ * **100,0%** dos bytes e o c2s **18,9%** — 12 conexões travadas em três opcodes
+ * (`0x00bb` map, `0x0187` e `0x0360` char). Quatro quintos do que o cliente
+ * mandou eram invisíveis, e qualquer contagem de "o cliente nunca enviou X"
+ * saía de um fatiador que tinha parado no começo.
+ *
+ * `RAG_EMULADOR` é a mesma variável que o repositório do jogo usa
+ * (`tools/caminhos.ts`, D-266); o padrão é o caminho relativo de sempre.
+ */
+const RAIZ_DO_EMULADOR =
+	process.env.RAG_EMULADOR ?? path.resolve(RAIZ, '..', 'Rag Idle 2.0', 'Emulador-Serverside Ravena');
+const CAMINHO_DO_PACKETDB = path.join(RAIZ_DO_EMULADOR, 'src/map/clif_packetdb.hpp');
+const PACOTE_DO_RATHENA = /^\s*(?:parseable_)?packet\(\s*(0x[0-9a-fA-F]+)\s*,\s*(-?\d+)/;
 
 const tamanhoNoRathena = new Map();
 const conflitosNoRathena = [];
 let preenchidosPeloRathena = 0;
 
-if (fs.existsSync(CAMINHO_DO_PACKETDB)) {
+if (!fs.existsSync(CAMINHO_DO_PACKETDB)) {
+	// AVISO ALTO, e não silêncio: a reserva morta não quebra nada visivelmente —
+	// ela só deixa o fatiador parar mais cedo, e o sintoma chega como "o pacote
+	// não apareceu". Foi assim que ela ficou morta sem ninguém notar.
+	console.warn(
+		`[oraculo] AVISO: a reserva do rAthena NAO foi lida — ${CAMINHO_DO_PACKETDB} nao existe.\n` +
+			'          A tabela sai so com o que o cliente declara, e o sentido c2s fica\n' +
+			'          incompleto. Aponte RAG_EMULADOR para a raiz do emulador.'
+	);
+} else {
   for (const linha of fs.readFileSync(CAMINHO_DO_PACKETDB, 'utf8').split('\n')) {
     const m = PACOTE_DO_RATHENA.exec(linha);
     if (!m) continue;
@@ -296,6 +330,82 @@ const EXCECOES = [
      * Passamos a achar que o oráculo não mandava aquilo.
      */
     porque: 'rathena/src/map/packets_struct.hpp:2591-2603 (RE >= 20180704) = 15; o clif_packetdb declara 11, que e pre-2018'
+  },
+  {
+    opcode: 0x0187,
+    servidor: 'char',
+    sentido: 'saida',
+    nome: 'CH_PING',
+    tamanho: 6,
+    /*
+     * O KEEPALIVE DO CLIENTE NA TELA DE PERSONAGENS, a cada 10 s.
+     *
+     * Ele nao entra por nenhuma das rotas automaticas: o rAthena o declara com
+     * `packet(0x0187,6)` e nao com `parseable_packet`, entao o passo 5.2 nao o
+     * alcanca; e a convencao de nome do cliente o classifica como `HC_PING`
+     * (host->client), que o poe na ENTRADA — quando o trafego real e o
+     * contrario. As duas fontes automaticas erram o sentido pelo mesmo motivo:
+     * o nome mente sobre a direcao.
+     *
+     * O servidor do jogo ja o declara certo, com o mesmo tamanho:
+     * `servidor/protocolo/pacotes-char.ts:287-294` (`CH_PING`, opcode 0x0187,
+     * `sentido: 'entra'`, `campo.u32('contaId')`), citando
+     * `packets2021_len_main.js (0x0187 = 6)`.
+     *
+     * Sem esta entrada, TRES conexoes de char das capturas travavam o
+     * fatiamento c2s no primeiro keepalive.
+     */
+    porque: 'packets2021_len_main.js (0x0187 = 6); o rathena o declara com packet() e o cliente o classifica como HC_ (entrada), mas o trafego e c2s — ver servidor/protocolo/pacotes-char.ts:287-294'
+  },
+  {
+    opcode: 0x08e2,
+    servidor: 'map',
+    sentido: 'entrada',
+    nome: 'ZC_NAVIGATION_ACTIVE',
+    tamanho: 27,
+    /*
+     * Nao esta no `PacketVersions` nem no `PacketRegister` do cliente, e o
+     * `clif_packetdb.hpp` do emulador nao o declara — mas a TABELA DE
+     * COMPRIMENTO do cliente, que e a autoridade de tamanho deste projeto, tem
+     * `length_list[0x08e2] = 27`. O repositorio do jogo ja o carrega assim:
+     * `servidor/protocolo/tamanhos-do-cliente.ts:948` -> `[0x08e2, 27]`.
+     *
+     * Era a ultima travada s2c das capturas (baseline-m0/03-map).
+     */
+    porque: 'packets2021_len_main.js length_list[0x08e2] = 27; espelhado em servidor/protocolo/tamanhos-do-cliente.ts:948'
+  },
+  {
+    opcode: 0x0af4,
+    servidor: 'map',
+    sentido: 'saida',
+    nome: 'CZ_USE_SKILL_TOGROUND3',
+    tamanho: 11,
+    /*
+     * O `PacketVersions` DESTE CLIENTE diz 12, e o proprio cliente envia 11.
+     *
+     * Esta e a segunda vez que o `PacketVersions` mente (a primeira foi o
+     * `0x01d7`, acima), e desta vez a contradicao esta DENTRO do mesmo
+     * repositorio. Tres fontes contra uma:
+     *
+     *   `PacketStructure.js:14077-14087` — o `build()`, que e o que vai ao fio:
+     *       `new BinaryWriter(11)` e 2+2+2+2+2+1 = 11 bytes escritos.
+     *   `packets2021_len_main.js:4297` — `length_list[0x0af4] = 11`, a tabela de
+     *       runtime, que a regra de `docs/mapa-de-pacotes.md` declara AUTORIDADE
+     *       de tamanho deste projeto.
+     *   `clif_packetdb.hpp:1901` — `parseable_packet(0x0AF4,11,…)`, o emulador.
+     *
+     *   `PacketVersions.js:5903` — `[…, 0x0af4, 12, 2,4,6,8,10]`. Os offsets
+     *       sao os mesmos das outras tres; so o total diverge.
+     *
+     * A precedencia geral do gerador (`PacketVersions` ganha do `build()`) esta
+     * CERTA e continua — ela existe por causa do `CZ_ENTER2`, cujo `pkt_len`
+     * literal ignora um `+= 4` logo abaixo. Aqui o `build()` nao tem `if`
+     * nenhum: o 11 esta cravado no construtor do buffer.
+     *
+     * Achado por `servidor/protocolo/oraculo-conhece-o-que-recebemos.test.ts`,
+     * na primeira corrida dele.
+     */
+    porque: 'PacketStructure.js:14077-14087 (new BinaryWriter(11)) + packets2021_len_main.js:4297 (=11) + clif_packetdb.hpp:1901 (=11); o PacketVersions.js:5903 diz 12 e e o unico'
   }
 ];
 
@@ -339,13 +449,197 @@ for (const servidor of ['login', 'char', 'map']) {
   }
 }
 
+/*
+ * --- 5.2. O SENTIDO c2s: ADICIONAR, e não só preencher (D-487) ------------
+ *
+ * O passo acima só toca entradas que JÁ EXISTEM na tabela. Os três opcodes que
+ * travavam o fatiamento c2s não existiam nela de jeito nenhum — `0x00bb` (map),
+ * `0x0187` e `0x0360` (char) saíam `undefined` no `saida` dos três servidores.
+ * Preencher tamanho nunca ia alcançá-los.
+ *
+ * `parseable_packet(0xNNNN, tamanho, handler, …)` é, na definição do rAthena, o
+ * que o servidor LÊ DO CLIENTE — exatamente o `saida` do gravador. São 767
+ * linhas, contra 609 de `packet(…)`, e nenhuma delas entrava aqui.
+ *
+ * **Por que ADICIONAR em vez de preencher é seguro aqui, e não seria na
+ * entrada:** uma entrada ausente no `saida` faz o fatiador TRAVAR e abandonar a
+ * conexão inteira. Qualquer tamanho declarado, mesmo o de outro servidor, é
+ * melhor do que isso — e um tamanho errado não passa despercebido: ele desalinha
+ * o fatiamento e a cobertura despenca, que é justamente o que esta medição
+ * mostra. O risco real é o inverso: **sobrescrever** o que o cliente declara,
+ * e isso continua proibido (`if (alvo.has(opcode)) continue`).
+ *
+ * Vale nos TRÊS servidores porque o keepalive do mapa VAZA para o socket de
+ * char durante a seleção de personagem — não é hipótese, é D-340, medido
+ * jogando em 18/08, e é literalmente o `0x0360` desta lista.
+ */
+const PARSEABLE_DO_RATHENA = /^\s*parseable_packet\(\s*(0x[0-9a-fA-F]+)\s*,\s*(-?\d+)\s*,\s*(\w+)/;
+let adicionadosNoC2s = 0;
+
+if (fs.existsSync(CAMINHO_DO_PACKETDB)) {
+  const doCliente = new Map();
+  for (const linha of fs.readFileSync(CAMINHO_DO_PACKETDB, 'utf8').split('\n')) {
+    const m = PARSEABLE_DO_RATHENA.exec(linha);
+    if (!m) continue;
+    // A ÚLTIMA declaração vence, como no arquivo: as guardas de PACKETVER que
+    // este leitor não avalia põem a mais recente por último.
+    doCliente.set(parseInt(m[1], 16), { tamanho: parseInt(m[2], 10), handler: m[3] });
+  }
+  for (const servidor of ['login', 'char', 'map']) {
+    const alvo = tabelas[servidor].saida;
+    for (const [opcode, { tamanho, handler }] of doCliente) {
+      if (alvo.has(opcode)) continue;
+      alvo.set(opcode, { nome: handler, tamanho, desde: null, fonteDoTamanho: 'rathena (parseable)' });
+      adicionadosNoC2s++;
+    }
+  }
+}
+
+/*
+ * --- 5.5. A TABELA DE COMPRIMENTO DO PROPRIO CLIENTE ---------------------
+ *
+ * ISTO NAO EXISTIA, E A AUSENCIA CUSTOU UMA RODADA INTEIRA DE AUDITORIA.
+ *
+ * Os passos acima derivam o tamanho da STRUCT (`PacketStructure.js`). Pacote de
+ * comprimento VARIAVEL nao tem struct de tamanho fixo, entao ele saia daqui com
+ * `tamanho: null` — e `null` faz o gravador declarar `travado = true` e
+ * ABANDONAR o sentido inteiro daquela conexao. Sem barulho.
+ *
+ * O estrago medido (varredura de habilidades, rodada 3, achado 7): a tabela
+ * congelada em 17/08 nao conhecia a faixa RAGIDLE, o gravador parava no PRIMEIRO
+ * pacote NOSSO, e **87% dos bytes servidor->cliente nunca entraram no `.jsonl`**.
+ * Foi desse arquivo truncado que saiu o censo "ZERO `ZC_USESKILL_ACK2`, ZERO
+ * EFST" citado em `docs/varredura-habilidades-21-08-2026-B.md` — um instrumento
+ * quebrado virando evidencia de AUSENCIA, que e o pior modo de falha que uma
+ * medicao tem.
+ *
+ * A fonte certa e a que o proprio cliente usa em runtime: `PacketLength.js`
+ * escolhe UM `packets<ANO>_len_main.js` pelo packetver e chama `init()`. Aqui
+ * fazemos a mesma escolha, com a mesma lista de anos — e e por isso que a faixa
+ * RAGIDLE entra sozinha: ela ja esta declarada la (`length_list[0x0ffa] = -1`).
+ *
+ * SO PREENCHE O QUE FALTA, nunca sobrescreve. A struct e mais confiavel quando
+ * existe — a excecao do `0x01d7` abaixo e a prova de que a outra fonte pode
+ * mentir. E divergencia entre as duas fica REGISTRADA em vez de escolhida em
+ * silencio.
+ */
+
+const ANOS_DO_CLIENTE = [
+  2025, 2024, 2023, 2022, 2021, 2020, 2019, 2018, 2017, 2016, 2015, 2014, 2013, 2012, 2011, 2010,
+  2009, 2008, 2007, 2006, 2005, 2004, 2003,
+];
+const anoDoPacketver = ANOS_DO_CLIENTE.find((a) => PACKETVER >= a * 10000) ?? 2003;
+const arquivoDeComprimentos = `src/Network/Packets/packets${anoDoPacketver}_len_main.js`;
+
+let comprimentosDoCliente = [];
+let preenchidosPeloCliente = 0;
+const divergenciasDeComprimento = [];
+try {
+  // `pathToFileURL`, e nao string: no Windows um caminho absoluto (`c:\...`)
+  // chega ao carregador ESM como se `c:` fosse um esquema de URL.
+  const modulo = await import(pathToFileURL(path.join(RAIZ, arquivoDeComprimentos)).href);
+  const init = (modulo.default ?? modulo).init;
+  comprimentosDoCliente = typeof init === 'function' ? init(PACKETVER) : [];
+} catch (erro) {
+  // Falhar ALTO: sem esta tabela o gravador volta a ficar surdo, e a captura
+  // seguinte pareceria so "vazia". O erro diz o que fazer.
+  throw new Error(
+    `nao consegui ler ${arquivoDeComprimentos} (a tabela de comprimento do cliente). ` +
+      `Sem ela todo pacote de tamanho VARIAVEL sai sem tamanho e o gravador abandona ` +
+      `a conexao em silencio. Causa: ${erro instanceof Error ? erro.message : String(erro)}`,
+  );
+}
+
+for (const servidor of ['login', 'char', 'map']) {
+  for (const sentido of ['entrada', 'saida']) {
+    for (const [opcode, dados] of tabelas[servidor][sentido]) {
+      const doCliente = comprimentosDoCliente[opcode];
+      if (doCliente === undefined) continue;
+      /*
+       * `null` E `0`, e o zero e o mais perigoso dos dois.
+       *
+       * O cliente escreve `.size = 0` para o pacote cujo comprimento ele resolve
+       * por ESTA tabela e nao pela struct (`HC_ACCEPT_MAKECHAR`,
+       * `ZC_REQ_WEAR_EQUIP_ACK`). Zero nao e "desconhecido": o gravador tem uma
+       * guarda dedicada a ele (`gravador-de-pacotes.js`, "TAMANHO ZERO NAO E
+       * TAMANHO") porque `subarray(0)` dentro de um `while` nao consome nada e
+       * empilha o mesmo pacote ate a memoria acabar.
+       *
+       * Preencher o zero daqui e tirar o alcapao da frente em vez de continuar
+       * caindo nele com elegancia — a fonte e a MESMA que o cliente consulta
+       * quando ve zero.
+       */
+      if (dados.tamanho === null || dados.tamanho === 0) {
+        dados.tamanho = doCliente;
+        dados.fonteDoTamanho = 'cliente';
+        preenchidosPeloCliente++;
+      } else if (dados.tamanho !== doCliente) {
+        divergenciasDeComprimento.push({
+          opcode: '0x' + opcode.toString(16).padStart(4, '0'),
+          nome: dados.nome,
+          servidor,
+          sentido,
+          struct: dados.tamanho,
+          cliente: doCliente,
+        });
+      }
+    }
+  }
+}
+
 let preenchidosPorExcecao = 0;
+let sobrescritosPorExcecao = 0;
 for (const e of EXCECOES) {
   const atual = tabelas[e.servidor][e.sentido].get(e.opcode);
-  // Vale para tamanho ausente, para tamanho ZERO ("resolvo isto noutro lugar")
-  // e para tamanho vindo da RESERVA do rAthena — que é palpite bom, não
-  // verdade: a exceção é escrita à mão com a conta, então ela ganha.
-  if (atual && (atual.tamanho === null || atual.tamanho === 0 || atual.fonteDoTamanho === 'rathena')) {
+
+  /*
+   * A EXCEÇÃO TAMBÉM CRIA, e não só preenche (D-487).
+   *
+   * Até 22/08/2026 ela desistia calada quando o opcode não existia na tabela
+   * daquele sentido — e "não existe" é justamente o caso mais grave, porque o
+   * fatiador TRAVA e abandona a conexão inteira, em vez de errar um campo.
+   *
+   * Toda exceção que cria precisa de `nome`: sem ele o pacote entraria na
+   * tabela como `undefined` e o censo o contaria por opcode cru.
+   */
+  if (!atual) {
+    if (!e.nome) continue;
+    tabelas[e.servidor][e.sentido].set(e.opcode, {
+      nome: e.nome,
+      tamanho: e.tamanho,
+      desde: null,
+      fonteDoTamanho: 'excecao',
+      porque: e.porque
+    });
+    preenchidosPorExcecao++;
+    continue;
+  }
+  // Vale para tamanho ausente, para tamanho ZERO ("resolvo isto noutro lugar"),
+  // para tamanho vindo da RESERVA do rAthena e para o da TABELA DO CLIENTE —
+  // as duas sao palpite bom, nao verdade: a excecao e escrita a mao com a
+  // conta, entao ela ganha.
+  //
+  // `'cliente'` entrou aqui depois de o passo 5.5 nascer e ROUBAR duas das tres
+  // excecoes ("1 de 3 aplicadas"): ele preenche antes, e sem esta clausula a
+  // excecao encontrava o campo ja ocupado e desistia calada. E a excecao do
+  // `0x01d7` existe exatamente porque a outra fonte mente.
+  /*
+   * A EXCEÇÃO GANHA DE TODA FONTE AUTOMÁTICA, inclusive do `PacketVersions`
+   * (D-487). O comentário acima já dizia *"a exceção é escrita à mão com a
+   * conta, então ela ganha"* — e a condição não implementava isso: um valor
+   * vindo do `PacketVersions` (que tem `desde` preenchido e nenhum
+   * `fonteDoTamanho`) não casava em nenhuma das quatro cláusulas, e a exceção
+   * desistia calada.
+   *
+   * Não é hipótese: `0x0af4` diverge exatamente assim, e o `PacketVersions` é a
+   * fonte errada nas duas vezes em que este arquivo precisou de exceção.
+   *
+   * O que protege contra abuso é o formulário, não a condição: toda entrada de
+   * `EXCECOES` carrega `porque`, com `arquivo:linha` das fontes que a
+   * sustentam, e ele viaja para o `opcodes.json`.
+   */
+  if (atual) {
+    if (atual.tamanho !== e.tamanho) sobrescritosPorExcecao++;
     atual.tamanho = e.tamanho;
     atual.fonteDoTamanho = 'excecao';
     atual.porque = e.porque;
@@ -376,8 +670,24 @@ for (const servidor of Object.keys(tabelas)) {
 const saidaJson = {
   packetver: PACKETVER,
   geradoPor: 'oraculo/gerar-tabela-de-opcodes.mjs',
-  fontes: ['src/Network/PacketVersions.js', 'src/Network/PacketStructure.js', 'src/Network/PacketRegister.js'],
+  fontes: [
+    'src/Network/PacketVersions.js',
+    'src/Network/PacketStructure.js',
+    'src/Network/PacketRegister.js',
+    arquivoDeComprimentos,
+  ],
   resumo,
+  // A tabela de comprimento do PROPRIO cliente (a mesma que `PacketLength.js`
+  // usa em runtime). Ela e quem traz os pacotes de tamanho VARIAVEL (-1) —
+  // inclusive a faixa RAGIDLE. Sem ela o gravador abandona a conexao calado.
+  comprimentosDoCliente: {
+    arquivo: arquivoDeComprimentos,
+    declarados: comprimentosDoCliente.filter((x) => x !== undefined).length,
+    preencheram: preenchidosPeloCliente,
+    // Struct e tabela discordando. A struct GANHA (ver a excecao do 0x01d7),
+    // mas a divergencia fica escrita: e o primeiro suspeito de fatiamento torto.
+    divergencias: divergenciasDeComprimento,
+  },
   // Nomes com `.size` atribuído mais de uma vez (atribuição dependente de
   // versão): vale a última do arquivo, que pode não ser a de runtime. Ficam
   // declarados para serem os primeiros suspeitos quando um fatiamento sair torto.
@@ -387,6 +697,8 @@ const saidaJson = {
     lido: fs.existsSync(CAMINHO_DO_PACKETDB),
     declarados: tamanhoNoRathena.size,
     preencheram: preenchidosPeloRathena,
+    // Quantas entradas o `parseable_packet` ADICIONOU ao sentido c2s (D-487).
+    adicionadosNoC2s,
     // Mesmo opcode com tamanhos diferentes no arquivo (guardas de PACKETVER que
     // este leitor não avalia). Primeiros suspeitos de fatiamento torto.
     conflitos: conflitosNoRathena
@@ -414,9 +726,14 @@ for (const s of ['login', 'char', 'map']) {
   );
 }
 console.log(
-  `rathena (reserva)         ${tamanhoNoRathena.size} declarados, ` +
+  `rathena (reserva)         ${tamanhoNoRathena.size} declarados, ${adicionadosNoC2s} adicionados no c2s, ` +
     `${preenchidosPeloRathena} vazios preenchidos, ${conflitosNoRathena.length} conflitos`
 );
-console.log(`excecoes a mao            ${preenchidosPorExcecao} de ${EXCECOES.length} aplicadas`);
+console.log(
+  `tabela do cliente         ${arquivoDeComprimentos} — ` +
+    `${comprimentosDoCliente.filter((x) => x !== undefined).length} declarados, ` +
+    `${preenchidosPeloCliente} vazios preenchidos, ${divergenciasDeComprimento.length} divergencias`,
+);
+console.log(`excecoes a mao            ${preenchidosPorExcecao} de ${EXCECOES.length} aplicadas (${sobrescritosPorExcecao} sobrescreveram fonte automatica)`);
 if (semSentido.size) console.log(`familias nao classificadas: ${[...semSentido].join(', ')}`);
 console.log(`gravado em                ${path.relative(RAIZ, destino)}`);

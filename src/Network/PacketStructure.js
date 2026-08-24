@@ -16028,6 +16028,16 @@ PACKET.ZC.RAGIDLE_SKILLS = function PACKET_ZC_RAGIDLE_SKILLS(fp, end) {
 };
 PACKET.ZC.RAGIDLE_SKILLS.size = -1;
 
+// 0x0fee - RAGIDLE: ZC_RAGIDLE_MUDANCA_DE_CLASSE (server -> client)
+// Variable size: u16 opcode + u16 total length + JSON UTF-8 payload.
+// Contrato v1: { v, destinos: [{ classe, nomePt, mestre, mapa, x, y }] }.
+// `destinos` VAZIO tambem e mensagem: quer dizer "feche o aviso". O servidor
+// so manda quando o CONJUNTO muda, nunca a cada tique.
+PACKET.ZC.RAGIDLE_MUDANCA_DE_CLASSE = function PACKET_ZC_RAGIDLE_MUDANCA_DE_CLASSE(fp, end) {
+	this.json = fp.readString(end - fp.tell());
+};
+PACKET.ZC.RAGIDLE_MUDANCA_DE_CLASSE.size = -1;
+
 // 0x0ffb - RAGIDLE: CZ_RAGIDLE_APRENDER (client -> server)
 // Variable size: u16 opcode + u16 total length + JSON UTF-8 payload
 // ({"skillId": "NV_BASIC"} per the contract — the single skill to learn one
