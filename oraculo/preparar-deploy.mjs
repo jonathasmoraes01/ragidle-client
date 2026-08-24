@@ -22,13 +22,34 @@
  *   publicado tentaria o servidor de outra pessoa.
  * - `applications/deploy/index.html` -> a porta de entrada da v0. O
  *   `index.html` do build e um menu que abre os visualizadores em popup, e o
- *   testador nao tem o que fazer com ele; alem disso e ali que esta escrito
- *   como se CADASTRAR (o sufixo `_M`/`_F`, D-539), que nao esta em lugar
- *   nenhum da tela de login.
+ *   testador nao tem o que fazer com ele; alem disso e ali que esta o
+ *   FORMULARIO de cadastro (D-542), que nao existe na tela de login.
+ * - `applications/deploy/vercel.json` -> os cabecalhos de cache. Sem ele o
+ *   `Config.local.js` deixa de ser `no-cache`, e o testador fica com endereco
+ *   de tunel velho em cache justamente quando ele muda.
  *
- * Os dois sao copiados DEPOIS do build de proposito: o build limpa o `dist`.
+ * Os tres sao copiados DEPOIS do build de proposito: o build limpa o `dist`.
+ *
+ * ---------------------------------------------------------------------------
+ * O PROJETO DO VERCEL NAO PODE FICAR CONECTADO AO GIT (24/08/2026, D-543)
+ * ---------------------------------------------------------------------------
+ * O `rag-idle-v0` nasceu conectado ao `jonathasmoraes01/ragidle-client`, e cada
+ * push para `master` disparava um build automatico na Vercel. Esse build roda
+ * na RAIZ do repositorio, nao aqui — sobe vazio e TOMA O ALIAS DE PRODUCAO. A
+ * v0 caiu duas vezes em 24/08 por isso, e as duas vezes o sintoma foi
+ * `404: NOT_FOUND` na URL publica, minutos depois de um deploy manual que
+ * tinha sido provado 7/7.
+ *
+ * E nao ha configuracao de build que conserte, porque o pacote publicado
+ * depende de `applications/deploy/Config.local.js`, que e IGNORADO PELO GIT de
+ * proposito (as URLs de tunel gratuito mudam a cada reinicio do `cloudflared`).
+ * Um build a partir do repositorio nunca teria esse arquivo.
+ *
+ * O projeto foi DESCONECTADO (`vercel git disconnect`). Se alguem reconectar,
+ * a v0 volta a cair no push seguinte.
  *
  * Uso:  node oraculo/preparar-deploy.mjs
+ *       npx vercel deploy dist/Web --prod     (o `.vercel` mora em dist/Web)
  */
 
 import { execFileSync } from 'node:child_process';
