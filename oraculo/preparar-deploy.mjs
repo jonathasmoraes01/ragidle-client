@@ -56,8 +56,7 @@ const OBRIGATORIOS = ['Online.js', 'ThreadEventHandler.js', 'PathFindingWorker.j
 console.log('1/4  build do cliente (leva alguns minutos)...');
 execFileSync('node', ['./applications/tools/builder-web.mjs'], { cwd: RAIZ, stdio: 'inherit' });
 
-console.log('
-2/4  tirando os visualizadores...');
+console.log('\n2/4  tirando os visualizadores...');
 for (const arquivo of VISUALIZADORES) {
 	const caminho = join(DIST, arquivo);
 	if (existsSync(caminho)) {
@@ -66,15 +65,15 @@ for (const arquivo of VISUALIZADORES) {
 	}
 }
 
-console.log('
-3/4  copiando a configuracao e a porta de entrada da v0...');
+console.log('\n3/4  copiando a configuracao e a porta de entrada da v0...');
 copyFileSync(join(FONTES, 'Config.local.js'), join(DIST, 'Config.local.js'));
 copyFileSync(join(FONTES, 'index.html'), join(DIST, 'index.html'));
+copyFileSync(join(FONTES, 'vercel.json'), join(DIST, 'vercel.json'));
 console.log('     Config.local.js  (enderecos dos tuneis)');
 console.log('     index.html       (como se cadastrar)');
+console.log('     vercel.json      (cabecalhos de cache)');
 
-console.log('
-4/4  conferindo...');
+console.log('\n4/4  conferindo...');
 const faltando = OBRIGATORIOS.filter((a) => !existsSync(join(DIST, a)));
 if (faltando.length > 0) {
 	console.error(`
@@ -84,8 +83,7 @@ DEPLOY INCOMPLETO — faltam: ${faltando.join(', ')}`);
 // A configuracao ainda aponta para o roBrowser publico? Entao a copia falhou.
 const config = (await import('node:fs')).readFileSync(join(DIST, 'Config.local.js'), 'utf8');
 if (!config.includes('socketProxy')) {
-	console.error('
-Config.local.js sem `socketProxy` — o cliente nao saberia com quem falar.');
+	console.error('\nConfig.local.js sem `socketProxy` — o cliente nao saberia com quem falar.');
 	process.exit(1);
 }
 
