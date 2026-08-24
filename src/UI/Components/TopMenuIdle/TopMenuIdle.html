@@ -1,28 +1,24 @@
 <div id="TopMenuIdle">
-	<!-- ─── NIVEL 1 — TOPO ENXUTO: so os 4 essenciais de gameplay (pedido do
-	     dono, gauntlet item 2, 19/08/2026; eram 5 ate o item 5 de 20/08/2026
-	     fundir Inventario+Equipamento num icone so). SEMPRE visivel, nunca
-	     some -- e o que sobra na tela quando o menu retratil esta fechado (ver
-	     TopMenuIdle.js/.css pra o que acontece nesse estado). O botao de
-	     abrir/fechar o nivel 2 mora no FIM desta fileira, de proposito: ele
-	     tambem nunca some, senao o jogador se tranca fora do resto. -->
+	<!-- ═══ PARTE 1 — CLUSTER SUPERIOR DIREITO: fileira unica de CINCO
+	     essenciais (Personagem, Mochila, Skills, Caca, Correio) + a alca de
+	     recolher no fim dela. Reorganizacao de 20/08/2026 (frente "menu em
+	     duas partes", gabarito redesign/referencia-hud-origin.md secao 1: "o
+	     superior e uma fileira, nao uma grade de tres linhas").
+	     Ate esta rodada existia um NIVEL 2 logo abaixo desta fileira -- uma
+	     grade de 6 colunas com 12 icones. Ela saiu inteira daqui e virou o
+	     leque do canto inferior direito (".tm-menu" mais abaixo); nenhum
+	     destino se perdeu, so mudou de casa (a tabela dos 17 esta em
+	     redesign/progresso-hud.md e o mapeamento item a item esta no
+	     cabecalho de TopMenuIdle.js). -->
 	<div class="tm-top">
 		<button type="button" class="tm-item" data-action="status" title="Personagem">
 			<span class="tm-icon-wrap ri-disc"><!--RI_ICONE:personagem--></span>
 			<span class="tm-label">Personagem</span>
 		</button>
 
-		<!-- Mochila (gauntlet item 5, 20/08/2026): UM icone so. Antes existiam
-		     dois aqui, "Inventario" e "Equipamento", e a prova no jogo rodando
-		     mediu os dois abrindo a MESMA janela unificada (MochilaIdle) --
-		     duplicata visivel pro jogador, sem nenhum destino proprio atras
-		     dela. O que ficou e o do INVENTARIO (arte ro_menu_icon/item_1, o
-		     bau): ele representa "tudo o que eu carrego", que e o superconjunto
-		     -- o peitoral do "equipamento" so falava da metade vestida. O
-		     ROTULO virou "Mochila" pra casar com o nome da janela que abre (o
-		     cabecalho direito dela diz "Mochila", MochilaIdle.html:14).
-		     O "data-action" continua "inventory" de proposito: e a chave que o
-		     switch de TopMenuIdle.js e o alvo do gate
+		<!-- Mochila: UM icone so desde 20/08/2026. O "data-action" continua
+		     "inventory" de proposito: e a chave que o switch de
+		     TopMenuIdle.js e o alvo do gate
 		     (rag-idle-master/scripts/prova-clique-nao-vaza.ts) ja usam, e
 		     renomear so trocaria o nome do mesmo destino. -->
 		<button type="button" class="tm-item" data-action="inventory" title="Mochila">
@@ -49,18 +45,14 @@
 			<span class="tm-label">Caça</span>
 		</button>
 
-		<!-- Correio (gauntlet item 3, 20/08/2026): a caixa do SISTEMA
-		     (rag-idle-master/servidor/caixa.ts, D-366) -- recompensa de
-		     conquista e de missao chegam por aqui. Mora no NIVEL 1, e nao no 2,
-		     por causa do INDICADOR: o nivel 2 pode ser fechado pelo jogador, e
-		     um aviso de "voce tem mensagem" que some quando ele recolhe o menu
-		     nao e um aviso. Esta e a unica razao -- pelo criterio de "uso a
-		     toda hora" ele seria secundario. Mover pro nivel 2 e mover UM
-		     bloco de HTML, se o dono preferir.
-		     A fileira e "display:flex" com "justify-content:flex-end" (ver
-		     TopMenuIdle.css): somar um item ALARGA o grupo pela esquerda e a
-		     alca continua colada no minimapa -- o alinhamento que o item 5
-		     consertou nao reabre. -->
+		<!-- Correio: a caixa do SISTEMA (rag-idle-master/servidor/caixa.ts,
+		     D-366). Mora no cluster de cima, e nao no leque, por causa do
+		     INDICADOR: o leque vive FECHADO, e um aviso de "voce tem
+		     mensagem" que so aparece depois de abrir uma gaveta nao e um
+		     aviso. Quando o jogador recolhe o cluster pela alca, o ponto
+		     migra para a propria alca (ver ".tm-toggle .ri-dot" abaixo e
+		     syncToggleDot() em TopMenuIdle.js) -- e a unica forma de o
+		     indicador nunca ter um estado onde ele some. -->
 		<button type="button" class="tm-item" data-action="correio" title="Correio">
 			<span class="tm-icon-wrap ri-disc">
 				<!--RI_ICONE:correio-->
@@ -74,102 +66,191 @@
 			<span class="tm-label">Correio</span>
 		</button>
 
-		<!-- Abre/fecha o NIVEL 2 (menu retratil, ver ".tm-secondary" abaixo).
-		     Fica FORA da grade retratil de proposito -- nunca some, e o unico
-		     jeito de voltar quando o menu esta fechado. Direcao da seta muda
-		     por rotacao em CSS, estado persiste via Preferences (mesma chave
-		     "TopMenuIdle" de antes -- o SIGNIFICADO do booleano mudou de
-		     "constelacao inteira recolhida" pra "menu retratil fechado", mas o
-		     formato dos dados e identico, entao a preferencia salva de sessoes
-		     anteriores continua lendo certo). -->
-		<button type="button" class="tm-toggle" title="Fechar menu" aria-label="Fechar menu" aria-expanded="true" aria-controls="tm-secondary">
-			<span class="tm-toggle-wrap ri-disc"><!--RI_ICONE:seta--></span>
+		<!-- IDLE (21/08/2026, pedido do dono): o antigo "Configuracoes" saiu do
+		     leque e subiu para o cluster, com o nome que descreve o que ele abre.
+		     A janela e a MESMA (IdleConfig) e o "data-action" continua "config"
+		     DE PROPOSITO: e a chave que o portao prova-clique-nao-vaza.ts e os
+		     roteiros de foto ja miram, e renomea-la trocaria o nome do mesmo
+		     destino em varios arquivos sem ganho nenhum.
+		
+		     Por que ele merece o cluster e nao a gaveta: e o painel que se mexe
+		     ENTRE uma sessao idle e outra (coleta, lista negra, pocao), nao um
+		     destino ocasional como Loja ou Leilao. E o leque fica com 10 itens,
+		     que e a divisao 5+5 que o dono desenhou. -->
+		<button type="button" class="tm-item" data-action="config" title="Idle">
+			<span class="tm-icon-wrap ri-disc"><!--RI_ICONE:config--></span>
+			<span class="tm-label">Idle</span>
+		</button>
+
+		<!-- Alca de recolher o CLUSTER (os 5 acima). Fica FORA do que ela
+		     esconde, de proposito: nunca some, senao o jogador se tranca fora
+		     dos essenciais. Recolhido, e o unico pixel que sobra deste canto.
+		     O ".ri-dot" aqui e o do Correio/Skills EMPRESTADO: com o cluster
+		     recolhido, o aviso passa a morar na alca (ver syncToggleDot()). -->
+		<button type="button" class="tm-toggle" title="Recolher menu" aria-label="Recolher menu" aria-expanded="true" aria-controls="tm-top">
+			<span class="tm-toggle-wrap ri-disc">
+				<!--RI_ICONE:seta-->
+				<span class="ri-dot" style="display: none"></span>
+			</span>
 		</button>
 	</div>
 
-	<!-- ─── NIVEL 2 — MENU RETRATIL: secundarios (pedido do dono). Abre/fecha
-	     pelo ".tm-toggle" acima. FECHADO = "minimizar a UI": este bloco
-	     inteiro (12 itens: Config/Guilda/Grupo/Menu/Admin + os 7 "em breve")
-	     some da tela e para de aceitar clique -- e SO ele, o nivel 1 acima
-	     continua de pe (ver TopMenuIdle.css ".tm-secondary.is-collapsed").
-	     Cada item chama o MESMO metodo publico que ja abre a janela em outro
-	     lugar do fork (ver cabecalho de TopMenuIdle.js pra fiacao exata). ── -->
-	<div class="tm-secondary" id="tm-secondary">
-		<button type="button" class="tm-item" data-action="guild" title="Guilda">
-			<span class="tm-icon-wrap ri-disc"><!--RI_ICONE:guilda--></span>
-			<span class="tm-label">Guilda</span>
-		</button>
+	<!-- ═══ PARTE 2 — CANTO INFERIOR DIREITO: uma PORTA, nao um segundo
+	     cluster (gabarito secao 2: "fechado, existe so o botao"). Um botao
+	     "Menu"; clicando, o leque abre EM PE a partir dele; clicando de novo,
+	     o leque some inteiro do DOM renderizado (display:none — ver
+	     TopMenuIdle.js:aplicarEstadoDoLeque()) e sobra so o botao.
 
-		<button type="button" class="tm-item" data-action="group" title="Grupo">
-			<span class="tm-icon-wrap ri-disc"><!--RI_ICONE:grupo--></span>
-			<span class="tm-label">Grupo</span>
-		</button>
+	     RODADA 2 (20/08/2026) — a forma MUDOU por pedido do dono, e a secao 3
+	     do gabarito foi reescrita com ela: eram onze discos numa fileira
+	     horizontal SEM rotulo, e sobre o calcamento claro de Prontera aquilo
+	     lia como ruido. Agora sao DUAS COLUNAS em pe, com a carga dividida ao
+	     meio, uma LINHA DOURADA vertical entre elas e um ornamento premium no
+	     topo dessa linha. Em pe sobra largura, entao o ROTULO VOLTOU,
+	     permanente e igual ao do cluster de cima — que era o defeito de
+	     fundo.
 
-		<button type="button" class="tm-item" data-action="config" title="Config">
-			<span class="tm-icon-wrap ri-disc"><!--RI_ICONE:config--></span>
-			<span class="tm-label">Config</span>
-		</button>
+	     ORDEM: funcionais primeiro (Configuracoes, Guilda, Grupo, Admin) e
+	     "em breve" por ultimo, nunca misturado. A leitura e a natural do
+	     portugues: desce a coluna da ESQUERDA e depois desce a da DIREITA.
+	     Quem POE cada item na sua coluna e o JS (distribuirColunas()), nao
+	     este HTML: o item de Admin so existe para a conta dona, e com ele
+	     escondido sobram 10 — que e o "5 de um lado e 5 do outro" do pedido.
+	     O que este arquivo declara e a ORDEM canonica (coluna A e depois
+	     coluna B, de cima para baixo); o corte entre as duas e recalculado a
+	     cada aparicao. -->
+	<div class="tm-menu">
+		<div class="tm-fan" id="tm-fan" role="group" aria-label="Mais opções">
+			<!-- O VEU (pedido do dono, 20/08/2026): "um gradiente preto saindo
+			     da barra e indo ate as bordas com um efeito bem leve e suave de
+			     escurecimento". E o CHAO do leque: sem ele os discos dependem do
+			     que a cena tem atras, e o calcamento branco de Prontera briga
+			     com eles.
+			     Vem PRIMEIRO no HTML de proposito: assim ele pinta por baixo de
+			     todos os discos sem precisar de z-index negativo (que sairia do
+			     contexto de empilhamento do componente).
+			     E ele NAO amplia area clicavel nenhuma: e "position:absolute"
+			     (fora do fluxo da grade, entao nao mede nada) e
+			     "pointer-events:none" (herdado do ".tm-fan" e repetido no CSS
+			     por seguranca). Camada invisivel que cobre o mundo e a familia
+			     de defeito que o gate de clique existe pra pegar -- ver o
+			     cabecalho do CSS. -->
+			<div class="tm-veu" aria-hidden="true"></div>
 
-		<!-- Menu (ESC): mesma funcao que a tecla ESC nativa ja dispara (ver
-		     TopMenuIdle.js). -->
-		<button type="button" class="tm-item" data-action="menu" title="Menu">
-			<span class="tm-icon-wrap ri-disc"><!--RI_ICONE:menu--></span>
+			<div class="tm-col tm-col--a">
+				<!-- "Configuracoes" (20/08/2026) = a FUSAO dos dois icones que
+				     existiam ate ontem, "Config" e "Menu". Os dois eram gaveta de
+				     ajuste e o jogador tinha de adivinhar qual era qual. O clique
+				     abre a "Configuracao idle" (IdleConfig), que e a janela que o
+				     rotulo nomeia e a que se usa jogando. A janela de sistema do
+				     ESC (audio/video/atalho/trocar personagem/fechar jogo)
+				     continua na tecla ESC, nativa e intocada -- esta e a perda
+				     declarada da fusao, registrada na resposta como pendencia
+				     [DONO]. -->
+				<button type="button" class="tm-item" data-action="guild" title="Guilda">
+					<span class="tm-icon-wrap ri-disc"><!--RI_ICONE:guilda--></span>
+					<span class="tm-label">Guilda</span>
+				</button>
+
+				<button type="button" class="tm-item" data-action="group" title="Grupo">
+					<span class="tm-icon-wrap ri-disc"><!--RI_ICONE:grupo--></span>
+					<span class="tm-label">Grupo</span>
+				</button>
+
+				<!-- Admin: so aparece pra conta dona (isOwnerAccount() em
+				     TopMenuIdle.js, mesmo criterio de AdminPanel.js:65) -- escondido
+				     via display:none pelo JS pra qualquer outra conta. Escondido ele
+				     nao abre buraco nenhum: distribuirColunas() conta so os
+				     VISIVEIS pra achar o meio, e por isso as duas colunas continuam
+				     empatadas em 5 e 5 pra quem nao e o dono. -->
+				<button type="button" class="tm-item tm-item-admin" data-action="admin" title="Admin">
+					<span class="tm-icon-wrap ri-disc"><!--RI_ICONE:admin--></span>
+					<span class="tm-label">Admin</span>
+				</button>
+
+				<!-- ─── Em breve: a funcao NAO existe no jogo hoje (ver cabecalho de
+				     TopMenuIdle.js). Visual honesto - o DS pede DESSATURAR, e na
+				     rodada 2 a dessaturacao encolheu para o MIOLO: o disco e o aro
+				     dourado ficam em opacidade cheia (senao o botao inteiro
+				     desaparecia no calcamento branco de Prontera) e so o glifo fica
+				     cinza. Nenhum pacote sai, nenhuma janela falsa abre.
+				     NAO usam o atributo "disabled" nativo de proposito: um botao
+				     "disabled" nao dispara clique nenhum e o jogador ficaria sem
+				     resposta ao tocar nele. Aqui o clique cai no toast "Em breve"
+				     (onClickAction() sai antes do switch) e o estado e declarado
+				     em tres lugares: o cinza do glifo, o "title" e o "aria-disabled"
+				     (que e o que o leitor de tela anuncia). O rotulo continua
+				     dizendo o NOME da funcao, nunca "Em breve". ─────────────── -->
+
+				<button type="button" class="tm-item tm-item--em-breve" data-action="loja" data-em-breve="1" title="Loja — em breve" aria-disabled="true">
+					<span class="tm-icon-wrap ri-disc"><!--RI_ICONE:loja--></span>
+					<span class="tm-label">Loja</span>
+				</button>
+
+				<button type="button" class="tm-item tm-item--em-breve" data-action="roshop" data-em-breve="1" title="RO Shop — em breve" aria-disabled="true">
+					<span class="tm-icon-wrap ri-disc"><!--RI_ICONE:roshop--></span>
+					<span class="tm-label">RO Shop</span>
+				</button>
+			</div>
+
+			<!-- O DELIMITADOR entre as duas colunas (pedido do dono: "separando
+			     eles deve ter uma linha dourada igual a que separa as skills, e
+			     no topo dessa linha deve ter um detalhe com visual premium").
+			     E decoracao pura: "aria-hidden" pro leitor de tela nao anunciar
+			     um elemento sem nome no meio da lista de botoes. A receita da
+			     linha vem de DockIdle.css (".dk-delimitador", a mesma que
+			     separa os grupos da barra de habilidades) e o ornamento e a
+			     mesma familia das barras de titulo das nossas janelas: o par de
+			     asas douradas (--ri-asa) espelhado, com o losango do
+			     ".ri-divisor" no meio. Ver o CSS pra conta de cada peca. -->
+			<div class="tm-sep" aria-hidden="true">
+				<span class="tm-sep-ornamento"><span class="tm-sep-joia"></span></span>
+				<span class="tm-sep-linha"></span>
+			</div>
+
+			<div class="tm-col tm-col--b">
+				<button type="button" class="tm-item tm-item--em-breve" data-action="troca" data-em-breve="1" title="Troca — em breve" aria-disabled="true">
+					<span class="tm-icon-wrap ri-disc"><!--RI_ICONE:troca--></span>
+					<span class="tm-label">Troca</span>
+				</button>
+
+				<button type="button" class="tm-item tm-item--em-breve" data-action="leilao" data-em-breve="1" title="Leilão — em breve" aria-disabled="true">
+					<span class="tm-icon-wrap ri-disc"><!--RI_ICONE:leilao--></span>
+					<span class="tm-label">Leilão</span>
+				</button>
+
+				<button type="button" class="tm-item tm-item--em-breve" data-action="recompensas" data-em-breve="1" title="Recompensas — em breve" aria-disabled="true">
+					<span class="tm-icon-wrap ri-disc"><!--RI_ICONE:recompensas--></span>
+					<span class="tm-label">Recompensas</span>
+				</button>
+
+				<button type="button" class="tm-item tm-item--em-breve" data-action="eventos" data-em-breve="1" title="Eventos — em breve" aria-disabled="true">
+					<span class="tm-icon-wrap ri-disc"><!--RI_ICONE:eventos--></span>
+					<span class="tm-label">Eventos</span>
+				</button>
+
+				<button type="button" class="tm-item tm-item--em-breve" data-action="passe" data-em-breve="1" title="Passe — em breve" aria-disabled="true">
+					<span class="tm-icon-wrap ri-disc"><!--RI_ICONE:passe--></span>
+					<span class="tm-label">Passe</span>
+				</button>
+			</div>
+
+			<!-- Toast "Em breve": mora DENTRO do leque desde a rodada 2, e nao
+			     mais solto no canto. Os sete "em breve" so existem aqui dentro,
+			     entao o toast so pode aparecer com o leque aberto -- e ancorado
+			     no leque ele nasce logo acima do ornamento, no meio do campo de
+			     visao de quem acabou de clicar, em vez de encostado na quina da
+			     tela por baixo da segunda coluna. Ele nunca e pacote nem janela
+			     e some sozinho (ver showToast() em TopMenuIdle.js). -->
+			<div class="tm-toast" aria-live="polite"></div>
+		</div>
+
+		<!-- O botao Menu. Disco maior que os do leque (52 contra 42): ele e a
+		     porta, nao um item. Rotulo SEMPRE visivel — e agora os do leque
+		     tambem tem o seu, permanente (ver ".tm-fan .tm-label" no CSS). -->
+		<button type="button" class="tm-fab" title="Menu" aria-label="Menu" aria-expanded="false" aria-controls="tm-fan">
+			<span class="tm-fab-wrap ri-disc"><!--RI_ICONE:menu--></span>
 			<span class="tm-label">Menu</span>
 		</button>
-
-		<!-- Admin: so aparece pra conta dona (isOwnerAccount() em
-		     TopMenuIdle.js, mesmo criterio de AdminPanel.js:65) -- escondido
-		     via display:none pelo JS pra qualquer outra conta. -->
-		<button type="button" class="tm-item tm-item-admin" data-action="admin" title="Admin">
-			<span class="tm-icon-wrap ri-disc"><!--RI_ICONE:admin--></span>
-			<span class="tm-label">Admin</span>
-		</button>
-
-		<!-- ─── Em breve: a funcao NAO existe no jogo hoje (ver cabecalho de
-		     TopMenuIdle.js). Visual honesto - DS pede DESSATURAR (grayscale),
-		     nunca cinza chapado nem ornamento proprio - nenhum pacote sai,
-		     nenhuma janela falsa abre. ──────────────────────────────────── -->
-
-		<button type="button" class="tm-item tm-item--em-breve" data-action="loja" data-em-breve="1" title="Em breve">
-			<span class="tm-icon-wrap ri-disc"><!--RI_ICONE:loja--></span>
-			<span class="tm-label">Loja</span>
-		</button>
-
-		<button type="button" class="tm-item tm-item--em-breve" data-action="roshop" data-em-breve="1" title="Em breve">
-			<span class="tm-icon-wrap ri-disc"><!--RI_ICONE:roshop--></span>
-			<span class="tm-label">RO Shop</span>
-		</button>
-
-		<button type="button" class="tm-item tm-item--em-breve" data-action="troca" data-em-breve="1" title="Em breve">
-			<span class="tm-icon-wrap ri-disc"><!--RI_ICONE:troca--></span>
-			<span class="tm-label">Troca</span>
-		</button>
-
-		<button type="button" class="tm-item tm-item--em-breve" data-action="leilao" data-em-breve="1" title="Em breve">
-			<span class="tm-icon-wrap ri-disc"><!--RI_ICONE:leilao--></span>
-			<span class="tm-label">Leilão</span>
-		</button>
-
-		<button type="button" class="tm-item tm-item--em-breve" data-action="recompensas" data-em-breve="1" title="Em breve">
-			<span class="tm-icon-wrap ri-disc"><!--RI_ICONE:recompensas--></span>
-			<span class="tm-label">Recompensas</span>
-		</button>
-
-		<button type="button" class="tm-item tm-item--em-breve" data-action="eventos" data-em-breve="1" title="Em breve">
-			<span class="tm-icon-wrap ri-disc"><!--RI_ICONE:eventos--></span>
-			<span class="tm-label">Eventos</span>
-		</button>
-
-		<button type="button" class="tm-item tm-item--em-breve" data-action="passe" data-em-breve="1" title="Em breve">
-			<span class="tm-icon-wrap ri-disc"><!--RI_ICONE:passe--></span>
-			<span class="tm-label">Passe</span>
-		</button>
-
-		<!-- Toast "Em breve" - elemento proprio do componente, nunca um pacote
-		     nem janela; some sozinho (ver TopMenuIdle.js showToast()). Mora
-		     DENTRO do nivel 2 de proposito: todo item que pode disparar o
-		     toast vive aqui, entao escondendo o nivel 2 (opacity 0) o toast
-		     some junto sem precisar de regra propria. -->
-		<div class="tm-toast" aria-live="polite"></div>
 	</div>
 </div>

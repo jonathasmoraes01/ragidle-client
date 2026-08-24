@@ -1,60 +1,74 @@
 /**
  * UI/Components/TopMenuIdle/TopMenuIdle.css
  *
- * "Constelacao de atalhos" do design system "Ragnarok Classico Premium",
- * reorganizada em DOIS NIVEIS (gauntlet item 2, 19/08/2026 — referencia de
- * LAYOUT: print do Ragnarok Origin que o dono anexou, "topo enxuto + menu
- * lateral/inferior que abre e fecha"; a PELE continua sendo so o design
- * system oficial, nunca a arte do Origin):
+ * O MENU DA HUD, em DUAS PARTES (20/08/2026 — frente "menu em duas partes";
+ * gabarito de organizacao: redesign/referencia-hud-origin.md; gabarito de
+ * acabamento: o design system oficial, redesign/design-system-oficial.md, e
+ * as janelas que o projeto ja refez. O Origin manda na POSICAO e no
+ * COMPORTAMENTO; a pele nunca sai daqui):
  *
- *   NIVEL 1 ".tm-top"       — 4 essenciais de gameplay (Personagem, Mochila,
- *                             Skills, Caca) + o botao de abrir/fechar o
- *                             nivel 2. SEMPRE visivel, nunca some. Eram 5
- *                             ate 20/08/2026, quando "Inventario" e
- *                             "Equipamento" — dois icones para a MESMA
- *                             janela — viraram um so ("Mochila").
- *   NIVEL 2 ".tm-secondary" — 12 secundarios (Config, Guilda, Grupo, Menu,
- *                             Admin + os 7 "em breve"). Abre/fecha pelo
- *                             botao do nivel 1. FECHADO = "minimizar a UI":
- *                             e o unico bloco que some (ver ".is-collapsed"
- *                             mais abaixo) — o nivel 1 inteiro e o botao de
- *                             abrir continuam de pe, senao o jogador se
- *                             tranca fora dos 5 essenciais.
+ *   ".tm-top"  — CLUSTER SUPERIOR DIREITO. Fileira de CINCO essenciais
+ *                (Personagem, Mochila, Skills, Caca, Correio) + a alca de
+ *                recolher no fim. Sem chapa de painel: os discos flutuam
+ *                direto sobre a cena (gabarito secao 1).
+ *   ".tm-menu" — CANTO INFERIOR DIREITO. UM botao "Menu" (".tm-fab") e um
+ *                LEQUE EM PE (".tm-fan"): duas colunas de discos, uma linha
+ *                dourada entre elas e um ornamento no topo da linha.
+ *                Fechado, o leque nao existe na tela (display:none): sobra so
+ *                o botao (gabarito secao 2, "o inferior direito e uma
+ *                porta").
  *
- * Posicao do host inalterada (ao lado do minimapa, nao embaixo — ver secao
- * POSICAO abaixo, medida contra #MiniMapV2 com getBoundingClientRect). Os
- * dois niveis empilham em COLUNA dentro do mesmo host: nivel 1 cresce so em
- * LARGURA (uma fileira de 4+1), nivel 2 cresce em ALTURA logo abaixo dele
- * (grade de 6 colunas, 12 itens = 2 fileiras). Como o nivel 2 fica na MESMA
- * faixa horizontal do host (right:164, a ESQUERDA do minimapa — nunca na
- * coluna dele nem na do #HuntButtonIdle, que ocupa right:16 abaixo do
- * minimapa), abrir/fechar nunca colide com nenhum dos dois. Tambem nao
- * chega perto do #DockIdle (faixa da base, bottom:0) — sobra folga de
- * centenas de pixels ate em 1366x768 (prova fotografica confere os tres).
+ * RODADA 2 (20/08/2026): o leque era uma FILEIRA HORIZONTAL de onze discos
+ * translucidos sem rotulo e reprovou — sobre o calcamento branco de Prontera
+ * aquilo lia como ruido, e era inconsistente com o proprio cluster de cima,
+ * que usa disco solido com rotulo. O dono redefiniu a forma ("fica 5 de 1
+ * lado e 5 do outro, separando eles uma linha dourada igual a que separa as
+ * skills, e no topo dessa linha um detalhe com visual premium") e a secao 3
+ * do gabarito foi reescrita com ela. Em pe sobra largura: o ROTULO voltou,
+ * permanente, e o disco voltou a ser o mesmo do cluster de cima.
  *
- * Sem card/painel envolvendo os discos de proposito: os botoes flutuam
- * soltos sobre a cena, mesmo contrato visual de CombatCornerIdle.css.
+ * Ate 19/08/2026 as duas partes eram uma coisa so: uma fileira em cima e uma
+ * grade de 6 colunas colada logo abaixo dela, no mesmo canto. Os 12 icones da
+ * grade desceram inteiros para o leque; nenhum destino sumiu (tabela em
+ * redesign/progresso-hud.md).
  *
- * Glifos + tratamento (design system oficial): glifos Lucide (stroke 2, sem
- * preenchimento, ver UI/ri-icones.js), premio visual vem do tratamento
- * ".ri-disc" (Common.css) — vidro claro, aro dourado, glifo azul, brilho
- * dourado + lift no hover, disco azul-dourado quando ativo, dessaturado
- * quando "em breve".
+ * Glifos + tratamento (design system oficial): glifos Lucide / arte real do
+ * GRF (UI/ri-icones.js), premio visual do tratamento ".ri-disc" (Common.css)
+ * — vidro claro, aro dourado, glifo azul, brilho dourado + lift no hover,
+ * disco azul-dourado quando ativo, dessaturado quando "em breve". Nenhuma
+ * cor, raio, sombra ou duracao literal mora neste arquivo: tudo e token.
  *
  * Contrato de pointer-events (mesmo padrao de DockIdle.css/
- * CombatCornerIdle.css): ":host" fica pointer-events:none e cada ".tm-item"
- * /".tm-toggle" reabre com pointer-events:auto - clicar no mapa atraves da
- * area vazia continua funcionando. O host ja herda a marca de "isto e UI"
- * de GUIComponent.js (dataset.guiComponent no host) — nenhum elemento novo
- * precisou de protecao propria contra o vazamento de clique do item 1.
+ * CombatCornerIdle.css): ":host" fica pointer-events:none e so ".tm-item" /
+ * ".tm-toggle" / ".tm-fab" reabrem com pointer-events:auto — clicar no mapa
+ * atraves da area vazia continua funcionando. O host ja herda a marca de
+ * "isto e UI" de GUIComponent.js (dataset.guiComponent no host).
+ *
+ * POR QUE O ESCONDIDO USA "display:none" E NAO "opacity:0": elemento com
+ * opacity 0 continua tendo CAIXA. Um clique que caia em cima dele nao chega
+ * ao chao (ou chega, se ele tiver pointer-events:none — e ai o jogador anda
+ * ao clicar num botao invisivel). Os dois casos sao mentira. Com display:none
+ * o pixel volta a ser mundo, sem ambiguidade — e o gate
+ * (rag-idle-master/scripts/prova-clique-nao-vaza.ts) clica pela CAIXA do
+ * elemento, entao caixa fantasma la vira reprovacao por motivo errado.
  */
 
 /*
- * POSICAO — AO LADO do minimapa, nao embaixo. Numeros de MiniMapV2.css
- * medidos com getBoundingClientRect: card 136x184, margem 16px no canto.
+ * POSICAO DO HOST — inalterada: AO LADO do minimapa, nao embaixo. Numeros de
+ * MiniMapV2.css medidos com getBoundingClientRect: card 136x184, margem 16px
+ * no canto.
  *     right = 16 (margem do minimapa) + 136 (largura dele) + 12 (respiro)
  * "top" igual ao dele (16px), pros dois alinharem em cima. Quem mudar a
  * largura do minimapa RE-MEDE isto.
+ *
+ * O host continua PEQUENO (do tamanho da fileira de cima) mesmo agora que o
+ * componente desenha nos DOIS cantos: quem vai ao canto de baixo e o
+ * ".tm-menu", com "position:fixed" — ele se ancora na viewport, nao no host.
+ * Foi a escolha deliberada contra "esticar o host para a tela inteira": um
+ * host de tela cheia poe uma camada invisivel sobre o mundo inteiro, e este
+ * projeto ja pagou caro por clique de UI vazando (o gate existe por causa
+ * disso). Precedente de "position:fixed" dentro de Shadow DOM neste fork:
+ * IdleConfig.css (".ic-button").
  */
 :host {
 	top: 16px;
@@ -66,37 +80,16 @@
 	pointer-events: none;
 }
 
-/* Coluna: nivel 1 em cima, nivel 2 logo abaixo, mesmo respiro vertical
-   (8px) que ja existia entre grade e toggle antes da divisao em niveis. */
 #TopMenuIdle {
 	position: relative;
-	display: flex;
-	flex-direction: column;
-	gap: 8px;
 	font-family: var(--font-ui, var(--ri-fonte));
 }
 
-/* ─── NIVEL 1 — topo enxuto: fileira unica, 4 essenciais + o botao de
-   abrir/fechar o nivel 2 no fim dela (align-items:flex-start alinha os
-   topos dos discos com o topo do botao, e por sua vez com o topo do
-   minimapa — os tres em "top:16px"). Nunca quebra linha (4 itens cabem
-   folgado ate em 1366px de largura).
-
-   Por que tirar um item daqui NAO abre buraco: esta fileira e "display:flex"
-   com "gap", nao grade de colunas fixas — os que sobram encostam de volta e
-   o host encolhe pela direita (o ":host" e ancorado em "right", entao o
-   grupo continua colado no minimapa). Quem tem coluna fixa e so o nivel 2
-   (".tm-secondary", grade de 6), e la nada mudou. ───────────────────── */
-/* "justify-content:flex-end" e o conserto do buraco que a saida do 5o item
-   abriria (gauntlet item 5, 20/08/2026). Esta fileira e filha de um flex em
-   COLUNA, entao ela estica ate a largura do bloco — e essa largura passou a
-   ser ditada pela grade do nivel 2 (378px) assim que a fileira encolheu.
-   Alinhada a esquerda, o botao de abrir/fechar terminava 53px ANTES da borda
-   direita da grade de baixo: a alca saia da quina onde sempre morou e ficava
-   um vao entre ela e o minimapa. Ancorando a direita, a alca fica no MESMO
-   pixel de antes da remocao e as duas fileiras dividem a mesma borda direita
-   — que e a borda que importa, porque o host inteiro e ancorado por "right".
-   Medido com getBoundingClientRect em 1920x1080, foto em depois.png. */
+/* ═══ PARTE 1 — CLUSTER SUPERIOR DIREITO ═════════════════════════════════
+   Fileira unica: 5 essenciais + a alca. "align-items:flex-start" alinha o
+   topo dos discos com o topo do botao e, por sua vez, com o topo do minimapa
+   (os tres em "top:16px"). Nunca quebra linha — 5 itens cabem folgado ate em
+   1280px de largura (medido: a fileira inteira da 395px). */
 .tm-top {
 	display: flex;
 	align-items: flex-start;
@@ -173,71 +166,13 @@
 	text-shadow: 0 0 6px rgba(224, 176, 77, 0.85), 0 1px 2px rgba(8, 22, 40, 0.85);
 }
 
-/* ─── NIVEL 2 — menu retratil: grade de 6 colunas, 12 itens (2 fileiras de
-   6). Largura propria (nao precisa bater pixel-a-pixel com a fileira do
-   nivel 1 — os dois flutuam soltos sobre a cena, sem card compartilhado). */
-.tm-secondary {
-	display: grid;
-	grid-template-columns: repeat(6, 48px);
-	column-gap: 18px;
-	row-gap: 8px;
-	position: relative;
-}
-
-/* "Recompensas": nome de janela fixo (DS proibe abreviar), 11 letras — o
-   mais longo do nivel 2. --fs-badge (9px, so pra ESTE item) evita que a
-   capsula encoste na de "Eventos" ao lado sem abreviar nada. */
-[data-action='recompensas'] .tm-label {
-	font-size: var(--fs-badge, 9px);
-}
-
-/* ─── "Em breve": funcao ainda nao existe no jogo. DS: DESSATURAR
-   (grayscale), nunca cinza chapado. Sem hover de acao: nenhuma mudanca de
-   sombra/lift ao passar o mouse, so o cursor continua "pointer" porque o
-   clique ainda reage (o toast abaixo). */
-.tm-item--em-breve .tm-icon-wrap {
-	filter: grayscale(1);
-	opacity: 0.55;
-}
-
-.tm-item--em-breve:hover .tm-icon-wrap {
-	box-shadow: var(--shadow-float), var(--rim-light);
-	transform: none;
-}
-
-/* ─── Toast "Em breve": ancorado no NIVEL 2 (todo item que dispara o toast
-   mora ali — ver TopMenuIdle.html), centralizado sob a grade dele. */
-.tm-toast {
-	position: absolute;
-	top: calc(100% + 6px);
-	right: 0;
-	padding: 5px 12px;
-	border-radius: var(--radius-pill, 999px);
-	background: var(--surface-dark-glass, #2e3f5c);
-	color: var(--white);
-	font-size: 11px;
-	font-weight: var(--fw-bold, 700);
-	white-space: nowrap;
-	box-shadow: var(--shadow-float);
-	opacity: 0;
-	transform: translateY(-4px);
-	pointer-events: none;
-	transition: opacity var(--dur-fast, 160ms) var(--ease-out), transform var(--dur-fast, 160ms) var(--ease-out);
-}
-
-.tm-toast.is-visible {
-	opacity: 1;
-	transform: translateY(0);
-}
-
-/* ─── Botao de abrir/fechar o nivel 2 (herdou o mecanismo do antigo
-   recolher/expandir de D-343, so que agora comanda ".tm-secondary" em vez
-   da constelacao inteira). Ultimo item da fileira do nivel 1 — nunca some,
-   e o unico jeito de reabrir o menu retratil. */
+/* ─── Alca de recolher o cluster. Ultimo item da fileira — nunca some, e o
+   unico jeito de trazer os 5 de volta. */
 .tm-toggle {
 	flex: 0 0 auto;
 	appearance: none;
 	display: block;
+	position: relative;
 	margin: 0;
 	padding: 0;
 	border: none;
@@ -251,10 +186,10 @@
 	height: 26px;
 }
 
-/* Seta: glifo "ChevronDown" (aponta pra baixo em repouso). Menu ABERTO
+/* Seta: glifo "ChevronDown" (aponta pra baixo em repouso). Cluster ABERTO
    (padrao) = seta apontando pra CIMA (rotate 180deg — "clique aqui pra
-   recolher o que esta aberto abaixo"); FECHADO = seta no repouso, apontando
-   pra baixo ("clique aqui pra abrir o que esta escondido abaixo"). */
+   recolher o que esta aberto"); RECOLHIDO = seta no repouso, apontando pra
+   baixo ("clique aqui pra trazer de volta"). */
 .tm-toggle-wrap svg {
 	transform: rotate(180deg);
 }
@@ -267,26 +202,430 @@
 	box-shadow: var(--shadow-float), var(--rim-light), var(--glow-gold);
 }
 
-/* Fechado: o NIVEL 2 inteiro SOME (nao so fica transparente por cima do
-   mundo) -- pointer-events:none evita que ".tm-item" (que reabre pointer-
-   events:auto individualmente) continue clicavel por baixo do nada. O
-   nivel 1 acima nunca entra nesta classe -- fica de pe sempre. */
-.tm-secondary.is-collapsed {
+/* Recolhido: os 5 SOMEM de verdade (ver a nota sobre display:none no
+   cabecalho). A alca fica. */
+.tm-top.is-collapsed .tm-item {
+	display: none;
+}
+
+/* ═══ PARTE 2 — CANTO INFERIOR DIREITO: a porta ═══════════════════════════
+   ONDE ELE SENTA, e por que aqui (medido no jogo rodando, 1920x1080,
+   getBoundingClientRect):
+     - barra de habilidades (#DockIdle .dk-grupo): x 681..1239, y 990..1070.
+       Ela e CENTRALIZADA e tem largura de CONTEUDO (558px), que nao muda com
+       a resolucao.
+     - chat (#chatbox): x 5..600, y 888..1004 — canto oposto, sem contato.
+   O botao mora em right:16 / bottom:16, ou seja na MESMA faixa de altura da
+   barra de habilidades e a 681px de distancia dela (gabarito secao 4: "os
+   tres convivem na mesma faixa de altura sem se tocar"). */
+.tm-menu {
+	position: fixed;
+	right: 16px;
+	bottom: 16px;
+	display: flex;
+	/* COLUNA, e nao linha (21/08/2026, pedido do dono): o leque abre PARA CIMA
+	   do botao, nao ao lado dele. Como o ".tm-fan" vem ANTES do ".tm-fab" no
+	   HTML, so inverter o eixo ja o poe em cima -- nao ha "column-reverse"
+	   aqui, entao a ordem de leitura do DOM continua sendo a ordem visual, e o
+	   leitor de tela le a lista e depois a porta, como se ve.
+	
+	   O "align-items: flex-end" logo abaixo passa a alinhar as duas caixas
+	   pela DIREITA: o leque tem 198px e o botao 52px, entao eles dividem a
+	   borda direita e o leque cresce para a esquerda a partir dela. Centralizar
+	   jogaria metade do leque para fora da tela. */
+	flex-direction: column;
+	align-items: flex-end;
+	gap: 10px;
+	/* nao intercepta clique na area vazia; so os botoes reabrem */
+	pointer-events: none;
+}
+
+/* ─── O botao Menu. Disco de 52 contra os 42 do leque: ele e a PORTA, nao um
+   item da lista. Rotulo sempre visivel — e o unico elemento permanente deste
+   canto. Largura cravada pra aritmetica do leque abaixo fechar. */
+.tm-fab {
+	appearance: none;
+	flex: 0 0 auto;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 3px;
+	width: 52px;
+	margin: 0;
+	padding: 0;
+	border: none;
+	background: transparent;
+	cursor: pointer;
+	pointer-events: auto;
+}
+
+.tm-fab-wrap {
+	width: 52px;
+	height: 52px;
+}
+
+.tm-fab:hover .tm-fab-wrap {
+	box-shadow: var(--shadow-float), var(--rim-light), var(--glow-gold);
+	transform: translateY(-1px);
+}
+
+.tm-fab:active .tm-fab-wrap {
+	transform: var(--press-shift);
+}
+
+/* Leque aberto: o botao acende igual a um item com janela aberta (mesma
+   receita de ".tm-item.is-active") — o jogador ve de onde aquilo saiu. */
+.tm-fab.is-open .tm-fab-wrap {
+	background: linear-gradient(180deg, var(--blue-500) 0%, var(--blue-600) 100%);
+	border-color: var(--gold-500);
+	color: var(--gold-200);
+	box-shadow: var(--glow-gold), var(--rim-light);
+}
+
+.tm-fab.is-open .tm-label {
+	font-weight: var(--fw-bold, 700);
+	text-shadow: 0 0 6px rgba(224, 176, 77, 0.85), 0 1px 2px rgba(8, 22, 40, 0.85);
+}
+
+/* ─── O LEQUE, EM PE ─────────────────────────────────────────────────────
+   Grade de TRES colunas: [coluna A] [delimitador] [coluna B]. As duas
+   colunas sao "1fr" e por isso saem com a MESMA largura — a do rotulo mais
+   largo ("Configuracoes"). Sem isso a linha dourada nao ficaria no meio.
+
+   As colunas enchem DE BAIXO PRA CIMA ("justify-content:flex-end", ver
+   ".tm-col"): a base do leque encosta na altura do botao Menu, que e de onde
+   ele saiu, e o excedente cresce pro lado do ceu — nunca por cima da barra
+   de habilidades nem pra fora da tela.
+
+   margin-bottom: 5px = metade da diferenca entre o disco do Menu (52) e o do
+   leque (42). E o que poe o CENTRO do disco da ultima linha no mesmo eixo do
+   centro do disco do Menu. Quem mudar um dos dois diametros refaz esta
+   conta.
+
+   ONDE ELE CABE (as medidas dos vizinhos foram colhidas no jogo rodando,
+   com getBoundingClientRect):
+     largura   = 2 x 84 (coluna) + 2 x 12 (respiro) + 2 (linha) = 194px
+     direita   = 100vw - 16 (margem) - 52 (botao Menu) - 10 (gap)
+     esquerda  = a direita, menos a largura
+   Em 1920 isso poe o leque em x 1648..1842, e a barra de habilidades
+   (#DockIdle .dk-grupo, largura de CONTEUDO — 558px, nao muda com a
+   resolucao) acaba em 1239: 409px de folga. Em 1280 o leque vai pra
+   x 1008..1202 e a barra acaba em 919: 89px de folga. O chat mora no canto
+   OPOSTO (left:16, largura clamp(300px, 25vw, 480px)). Os tres convivem na
+   mesma faixa de altura sem se tocar, que e o que o gabarito pede.
+
+   ALTURA: 6 linhas de 60px (42 de disco + 3 de respiro + 15 de capsula de
+   rotulo) com 10px entre elas = 410px, mais 16 de "padding-top" (a faixa do
+   ornamento). A base fica a 39px do pe da tela (16 da margem + 5 do
+   alinhamento + 18 do bloco de rotulo do botao Menu), entao o topo para em
+   ~465 — bem abaixo do minimapa, que acaba em 200.
+
+   O "padding-top" existe pra dar ao ornamento uma faixa SO DELE, acima da
+   primeira linha de discos. Enfiado entre as colunas ele teria de caber nos
+   12px de respiro, e a primeira versao (43px de largura) saiu tao apertada
+   que nao se lia — na faixa de cima ele pode ter o tamanho que a peca pede
+   sem chegar perto de disco nenhum. */
+.tm-fan {
+	display: none;
+	position: relative;
+	grid-template-columns: 1fr auto 1fr;
+	align-items: stretch;
+	column-gap: 12px;
+	padding-top: 16px;
+	margin-bottom: 5px;
+	pointer-events: none;
+}
+
+/* ─── O VEU — "um gradiente preto saindo da barra e indo ate as bordas com um
+   efeito bem leve e suave de escurecimento" (pedido do dono). E o chao do
+   leque: com ele os discos param de depender do que a cena tem atras, que e
+   a causa da reprovacao da rodada 1 sobre o calcamento branco de Prontera.
+
+   FORMA — e ela e literal ao pedido: um gradiente HORIZONTAL que sai da
+   barra (o meio, onde mora a linha dourada) e vai morrendo ate as duas
+   bordas, recortado por uma MASCARA vertical que o dissolve em cima e
+   embaixo. Ou seja: escuro ao longo de toda a barra, zero em todas as
+   bordas, sem uma aresta em lugar nenhum.
+   As paradas de 33% e 67% sao onde ficam as duas fileiras de discos (a ~48px
+   do eixo, numa caixa de 290) e as de 16% e 84% pegam a borda de FORA das
+   duas colunas: e ali que o escurecimento precisa ter corpo, e nao no meio,
+   que ja tem a linha.
+
+   DUAS TENTATIVAS ERRADAS ficam registradas porque as duas parecem certas no
+   codigo e so o print reprova. (1) Uma elipse pequena morria antes de
+   chegar aos discos — ganho de contraste de 0,2, invisivel. (2) Uma elipse
+   "100% 92%" tem RAIO de 100% da largura, ou seja o dobro da caixa: o
+   gradiente era cortado pela borda ainda em ~30% de opacidade e desenhava um
+   RETANGULO de aresta dura sobre o calcamento. Em radial-gradient o raio nao
+   e a largura; aqui o problema sumiu junto com a elipse.
+
+   COR: nao e preto literal, e o "--surface-dark-glass" do design system
+   (azul-marinho escuro) diluido com color-mix. O DS proibe sombra preta e
+   preto predominante; nesta opacidade o efeito e o mesmo escurecimento que o
+   dono pediu, e a familia de cor e a MESMA das capsulas de rotulo que ja
+   flutuam por cima — que e o que faz o conjunto parecer uma peca so.
+
+   O QUE ELE NAO FAZ: nao aumenta area clicavel. "position:absolute" o tira
+   do fluxo da grade (nao mede nada) e "pointer-events:none" garante que o
+   clique atravessa pro chao. Esticar caixa invisivel sobre o mundo e a
+   familia de defeito que o gate (prova-clique-nao-vaza.ts) existe pra pegar,
+   e o controle NEGATIVO dele (clicar no chao TEM de andar) e quem prova que
+   este veu nao a recriou. */
+.tm-veu {
+	position: absolute;
+	/* Transborda pra que a dissolvida ACABE fora dos discos: 32px em cima
+	   (onde mora o ornamento), 26px embaixo e 46px nos lados. Com a mascara
+	   subindo em 30px, a primeira fileira de discos ja esta em area de veu
+	   cheio -- na versao anterior ela caia no meio da rampa e era a linha com
+	   menos contraste de todas.
+	   Os 46px laterais sao a correcao da segunda auditoria: com 26 o veu
+	   morria em x~1860 e a borda de fora da coluna da direita ficava sem
+	   chao. Numa caixa de 290 (198 do leque + 2x46) as colunas vao ate 68% do
+	   raio, e as paradas abaixo foram refeitas pra que 68% ainda tenha
+	   escurecimento de verdade. */
+	top: -32px;
+	right: -46px;
+	bottom: -26px;
+	left: -46px;
+	background: linear-gradient(
+		90deg,
+		transparent 0%,
+		color-mix(in srgb, var(--surface-dark-glass) 40%, transparent) 16%,
+		color-mix(in srgb, var(--surface-dark-glass) 70%, transparent) 33%,
+		color-mix(in srgb, var(--surface-dark-glass) 88%, transparent) 50%,
+		color-mix(in srgb, var(--surface-dark-glass) 70%, transparent) 67%,
+		color-mix(in srgb, var(--surface-dark-glass) 40%, transparent) 84%,
+		transparent 100%
+	);
+	/* O "#000" da mascara nao e cor: mascara le so o CANAL ALFA, e preto ali
+	   quer dizer "opaco". Nao ha token para isso e nao deveria haver. */
+	-webkit-mask-image: linear-gradient(180deg, transparent 0, #000 30px, #000 calc(100% - 30px), transparent 100%);
+	mask-image: linear-gradient(180deg, transparent 0, #000 30px, #000 calc(100% - 30px), transparent 100%);
 	opacity: 0;
 	pointer-events: none;
 }
 
-.tm-secondary.is-collapsed .tm-item {
+/* Some junto com o leque: fechado, o canto volta a ser so o botao Menu. */
+.tm-fan.is-open .tm-veu {
+	opacity: 1;
+}
+
+/* Cada coluna: pilha vertical ancorada na BASE. "align-items:center" poe o
+   disco no meio da largura da coluna, que e ditada pelo rotulo mais largo. */
+.tm-col {
+	display: flex;
+	flex-direction: column;
+	justify-content: flex-end;
+	align-items: center;
+	row-gap: 10px;
+}
+
+/* "Montado" e o passo intermediario que existe SO pra animacao poder rodar:
+   o JS poe esta classe, forca um reflow e so entao poe ".is-open", senao o
+   navegador nao anima a saida de display:none. Ao fechar, ela e retirada
+   depois que a transicao termina — e ai o leque some do layout de verdade.
+   Ver aplicarEstadoDoLeque() em TopMenuIdle.js. */
+.tm-fan.is-mounted {
+	display: grid;
+}
+
+/* Item do leque: a MESMA peca do cluster de cima (disco solido de 42, rotulo
+   permanente na capsula de vidro escuro). "width:100%" faz ele ocupar a
+   coluna inteira, entao a area de clique e a largura toda — nao so o disco. */
+.tm-fan .tm-item {
+	position: relative;
+	width: 100%;
+	opacity: 0;
+	transform: translateY(8px) scale(0.9);
+	/* enquanto nao esta aberto de fato (montado, mas ainda animando, ou
+	   fechando) nenhum clique pega: nada de acertar um item que esta indo
+	   embora. */
 	pointer-events: none;
 }
 
-/* Transicao curta (150ms, --dur-fast/--ease-out) SO quando o usuario nao
-   pediu menos movimento -- por padrao (reduced-motion) a troca e instantanea
-   (nenhuma "transition" declarada), e so ganha suavidade dentro deste media
-   query. */
+.tm-fan.is-open .tm-item {
+	opacity: 1;
+	transform: none;
+	pointer-events: auto;
+}
+
+/* ─── O DELIMITADOR entre as colunas ─────────────────────────────────────
+   E a coluna "auto" da grade e mede 2px CRAVADOS: as duas pecas de dentro
+   sao absolutas, entao o ornamento (que e bem mais largo que a linha) NAO
+   entra na conta da largura — se entrasse, ele afastaria as colunas em 43px
+   e a grade inteira mudaria de tamanho por causa de um enfeite.
+   A altura vem de graca do "align-items:stretch" da grade: o delimitador
+   ocupa da base ate o topo da coluna mais alta.
+   Some e volta junto com o leque. */
+.tm-sep {
+	position: relative;
+	width: 2px;
+	opacity: 0;
+	pointer-events: none;
+}
+
+.tm-fan.is-open .tm-sep {
+	opacity: 1;
+}
+
+/* A LINHA: mesma receita do ".dk-delimitador" de DockIdle.css — o filete que
+   separa os grupos da barra de habilidades. Mesma largura de 2px e a mesma
+   cor composta com color-mix() sobre o token (--gold-500), nunca hex
+   literal.
+   A UNICA diferenca: la a linha esvai nas DUAS pontas, porque as duas sao
+   livres. Aqui o topo e COROADO pelo ornamento, e um esvaziamento ali
+   abriria um buraco entre a joia e a linha — entao so a ponta livre (a de
+   baixo) esvai. */
+.tm-sep-linha {
+	position: absolute;
+	top: 0;
+	bottom: 0;
+	left: 0;
+	width: 2px;
+	/* O brilho dourado do DS engrossa a linha oticamente sem engrossa-la de
+	   verdade: 2px de filete continuam sendo 2px (a receita do DockIdle), e o
+	   halo e o que a faz existir sobre fundo claro. */
+	box-shadow: var(--glow-gold);
+	background: linear-gradient(
+		180deg,
+		color-mix(in srgb, var(--gold-500) 80%, transparent) 0%,
+		color-mix(in srgb, var(--gold-500) 80%, transparent) 45%,
+		transparent 100%
+	);
+}
+
+/* O ORNAMENTO no topo da linha — "um detalhe com visual premium", pedido do
+   dono. Nada de forma nova: e a MESMA construcao da barra de titulo das
+   nossas janelas (".ri-title" em Common.css) — o par de asas douradas
+   (--ri-asa) com a segunda espelhada por scaleX, e no meio, no lugar onde a
+   janela poe o titulo, o losango do ".ri-divisor" (mesma medida, mesma cor,
+   mesma borda) com o brilho dourado do DS.
+   ONDE ELE MORA: na faixa de "padding-top" do leque, ACIMA da primeira linha
+   de discos ("bottom:100%" o poe fora do topo do delimitador). A primeira
+   versao tentou espreme-lo entre as colunas, nos 12px de respiro, e com 43px
+   de largura ele saiu tao pequeno que sumiu no calcamento — o print provou.
+   Na faixa de cima ele nao disputa espaco com disco nenhum, e por isso pode
+   ter os 62px que a peca pede pra se ler. */
+.tm-sep-ornamento {
+	position: absolute;
+	bottom: 100%;
+	left: 50%;
+	transform: translateX(-50%);
+	margin-bottom: 3px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 4px;
+	width: 62px;
+	height: 13px;
+}
+
+.tm-sep-ornamento::before,
+.tm-sep-ornamento::after {
+	content: '';
+	flex: 0 0 auto;
+	width: 24px;
+	height: 11px;
+	background: var(--ri-asa) no-repeat center / contain;
+}
+
+.tm-sep-ornamento::after {
+	transform: scaleX(-1);
+}
+
+.tm-sep-joia {
+	flex: 0 0 auto;
+	width: 6px;
+	height: 6px;
+	transform: rotate(45deg);
+	background: var(--gold-300);
+	border: 1px solid var(--gold-500);
+	box-shadow: var(--glow-gold);
+}
+
+/* ─── "Em breve": a funcao ainda nao existe no jogo, e o botao tem de dizer
+   isso sem sumir.
+   O DS manda DESSATURAR (grayscale + 55%) o que esta desabilitado, e ate a
+   rodada 1 isso valia pro DISCO INTEIRO — o que apagava tambem o aro dourado
+   e a sombra, as duas coisas que separam o botao do mundo. Sobre o
+   calcamento branco de Prontera o resultado era um fantasma. Agora a
+   dessaturacao vale so pro MIOLO (o glifo): o aro, o vidro e a sombra ficam
+   em opacidade cheia, com o mesmo peso dos itens vivos, e o cinza do glifo
+   continua dizendo "ainda nao".
+   Sem hover de acao: nenhuma mudanca de sombra nem lift ao passar o mouse —
+   o rotulo ja e permanente, e o clique responde com o toast. */
+.tm-item--em-breve .tm-icon-wrap svg {
+	filter: grayscale(1);
+	opacity: 0.55;
+}
+
+.tm-item--em-breve:hover .tm-icon-wrap {
+	box-shadow: var(--shadow-float), var(--rim-light);
+	transform: none;
+}
+
+/* ─── Toast "Em breve": ancorado no LEQUE (e nao mais na viewport), logo
+   acima do ornamento. Os sete "em breve" so existem dentro do leque, entao
+   o toast so pode aparecer com ele aberto — e ancorado aqui ele nasce no
+   meio do campo de visao de quem clicou, em vez de encostado na quina da
+   tela por baixo da segunda coluna. */
+.tm-toast {
+	position: absolute;
+	left: 50%;
+	bottom: calc(100% + 8px);
+	padding: 5px 12px;
+	border-radius: var(--radius-pill, 999px);
+	background: var(--surface-dark-glass);
+	backdrop-filter: var(--blur-glass);
+	-webkit-backdrop-filter: var(--blur-glass);
+	color: var(--white);
+	font-size: 11px;
+	font-weight: var(--fw-bold, 700);
+	white-space: nowrap;
+	box-shadow: var(--shadow-float);
+	opacity: 0;
+	/* o translateX(-50%) e o que centraliza no "left:50%" — ele tem de estar
+	   nos DOIS estados, senao o toast pula pro lado ao aparecer. */
+	transform: translate(-50%, 4px);
+	pointer-events: none;
+}
+
+.tm-toast.is-visible {
+	opacity: 1;
+	transform: translate(-50%, 0);
+}
+
+/* ─── MOVIMENTO — tudo o que se move mora aqui dentro, e so aqui.
+   Sem "prefers-reduced-motion: no-preference" nenhuma regra de transicao
+   existe: o leque aparece e some na hora, o toast idem, a seta vira sem
+   girar. Nao e "animacao mais rapida", e animacao NENHUMA — que e o que a
+   preferencia pede.
+
+   O escalonamento (--i, posto pelo JS sobre os itens VISIVEIS, ver
+   escalonarLeque()) e o que da a sensacao de leque: cada disco entra 26ms
+   depois do anterior, na ORDEM DE LEITURA (desce a coluna da esquerda,
+   depois a da direita). Ao FECHAR o delay volta a zero de proposito — abrir
+   e um gesto, fechar e sair do caminho. */
 @media (prefers-reduced-motion: no-preference) {
-	.tm-secondary {
+	.tm-fan .tm-item {
+		transition:
+			opacity var(--dur-fast) var(--ease-out),
+			transform var(--dur-fast) var(--ease-out);
+	}
+
+	.tm-fan.is-open .tm-item {
+		transition-delay: calc(var(--i, 0) * 26ms);
+	}
+
+	.tm-sep,
+	.tm-veu {
 		transition: opacity var(--dur-fast) var(--ease-out);
+	}
+
+	.tm-toast {
+		transition:
+			opacity var(--dur-fast) var(--ease-out),
+			transform var(--dur-fast) var(--ease-out);
 	}
 
 	.tm-toggle-wrap svg {

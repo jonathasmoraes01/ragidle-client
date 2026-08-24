@@ -1,126 +1,138 @@
 /**
  * UI/Components/TopMenuIdle/TopMenuIdle.js
  *
- * "Menu superior direito" (constelacao de atalhos) do design system
- * "Ragnarok Classico Premium" (gauntlet 18/08/2026, ver
- * redesign/extracao-da-referencia.md secao 4.3). Botoes circulares no canto
- * superior direito, AO LADO do minimapa (ver TopMenuIdle.css pro numero
- * exato de respiro).
+ * O MENU DA HUD, em DUAS PARTES (20/08/2026 — frente "menu em duas partes").
+ * Gabarito de ORGANIZACAO: redesign/referencia-hud-origin.md (a leitura da
+ * captura do Ragnarok Origin que o dono forneceu). Gabarito de ACABAMENTO: o
+ * design system oficial e as janelas que este projeto ja refez — o
+ * acabamento NUNCA imita o Origin.
  *
- * DOIS NIVEIS (gauntlet item 2, 19/08/2026 -- referencia de LAYOUT: print do
- * Ragnarok Origin que o dono anexou, "topo enxuto + menu lateral/inferior
- * que abre e fecha"; a PELE nunca mudou, continua so o design system):
- *   - ".tm-top" (NIVEL 1): 4 essenciais de gameplay -- Personagem, Mochila,
- *     Skills, Caca. SEMPRE visivel.
- *   - ".tm-secondary" (NIVEL 2, id "tm-secondary"): 5 secundarios
- *     funcionais (Config, Guilda, Grupo, Menu, Admin) + os 7 "em breve".
- *     Abre/fecha pelo ".tm-toggle", que mora no NIVEL 1 e por isso nunca
- *     some -- ver onClickToggle()/applyCollapsedState() mais abaixo pro
- *     mecanismo (reaproveita o recolher/expandir de D-343, so que agora
- *     comanda so o nivel 2, nunca a constelacao inteira).
- * O CORTE (9 funcionais divididos 4+5, mais os 7 "em breve" no nivel 2) foi
- * aplicado pelo criterio que o dono deixou explicito no briefing do item 2:
- * nivel 1 = o que se usa toda hora jogando; nivel 2 = o resto. Nenhum
- * destino sumiu -- os mesmos metodos publicos de antes continuam
- * alcancaveis, so a casa de 5 deles mudou.
+ *   ".tm-top"  — CLUSTER SUPERIOR DIREITO: fileira de CINCO essenciais
+ *                (Personagem, Mochila, Skills, Caca, Correio) + a alca de
+ *                recolher. E o que se usa toda hora jogando.
+ *   ".tm-menu" — CANTO INFERIOR DIREITO: UM botao "Menu" (".tm-fab") que
+ *                abre/fecha o LEQUE (".tm-fan") com os 11 secundarios.
+ *                Fechado, o leque nao existe na tela — sobra so o botao.
  *
- * O nivel 1 tinha 5 itens ate 20/08/2026 (gauntlet item 5): "Inventario" e
- * "Equipamento" eram DOIS icones para UM destino so, e viraram um -- ver o
- * comentario da "Mochila" no bloco de fiacao logo abaixo.
+ * ─── RODADA 2 (20/08/2026): O LEQUE FICOU EM PE ─────────────────────────
+ * Ele era uma FILEIRA HORIZONTAL de onze discos translucidos sem rotulo, e
+ * reprovou: sobre o calcamento branco de Prontera aquilo lia como ruido, e
+ * era inconsistente com o cluster de cima (mesmo componente, disco solido e
+ * rotulado). O dono redefiniu a forma — duas colunas em pe, carga dividida
+ * ao meio, uma linha dourada entre elas com um ornamento premium no topo — e
+ * a secao 3 do gabarito foi reescrita com o pedido. Em pe sobra largura, e
+ * por isso o ROTULO voltou, permanente, igual ao dos cinco de cima; a
+ * aritmetica que o condenava na rodada 1 (11 rotulados = ~869px contra 587
+ * de espaco util) so valia para UMA fileira horizontal.
+ * Quem divide as colunas e distribuirColunas(), no JS, e nao o HTML: sem o
+ * item de Admin (que so existe para a conta dona) sao 10 itens, e o corte
+ * tem de virar 5/5 sozinho.
  *
- * FIACAO REAL (autorizada pelo dono a incluir "em breve" ao lado dos
- * funcionais - ver briefing do gauntlet 18/08/2026):
- *   - Skills -> IdleSkills.toggle()          (IdleSkills.js, mesmo metodo
- *               que DockIdle.js:229 ja usa)
- *   - Config -> IdleConfig.toggle()          (IdleConfig.js, mesmo metodo
- *               que DockIdle.js:235 ja usa)
- *   - Guilda -> Guild.toggle()               (Guild.js:404-418) - metodo
- *               PUBLICO nativo, ja exportado, nenhum alias precisou ser
- *               criado. ATENCAO ao comportamento nativo: se o jogador nao
- *               tem guilda (!Session.hasGuild), Guild.toggle() NAO abre a
- *               janela de guilda - chama Guild.promptCreateGuild() (a MESMA
- *               coisa que o atalho de teclado nativo faz, Guild.js:420-423,
- *               onKeyDown ESC tambem chama this.toggle()). Aceito de
- *               proposito: e o unico caminho de entrada nativo que existe,
- *               entao "abre" aqui quer dizer "dispara a MESMA acao que o
- *               jogo ja dispara" - nao existe atalho equivalente que force
- *               a janela de guilda com personagem sem guilda.
- *   - Grupo  -> PartyFriends.toggle()        (PartyFriends.js:47-52) -
- *               proxy PUBLICO do controller de versao (V0/V1) que ja existia,
- *               delega pra PartyFriendsCommon.js:132-138 (_toggleWindow),
- *               MESMO metodo que o atalho nativo de Party/Friends usa.
- *               Nenhum alias novo precisou ser criado.
+ * O QUE MUDOU nesta rodada, e por que: ate ontem os 17 icones moravam TODOS
+ * no canto superior direito — uma fileira de 5 e, colada abaixo dela, uma
+ * grade de 6 colunas com 12. O gabarito (secao 1) diz que o superior e "uma
+ * fileira, nao uma grade de tres linhas", e (secao 2) que o inferior direito
+ * e "uma porta", nao um segundo cluster. Entao a grade inteira desceu para o
+ * leque. A pele nao mudou em nada.
  *
- * NOVOS EM 19/08/2026 (pedido do dono: BasicInfoIdle perdeu a propria grade
- * de icones nesta rodada, os destinos abaixo migraram pra ca -- mesmos
- * metodos/criterios que BasicInfoIdle.js usava, so a casa mudou):
- *   - Personagem  -> StatusIdle.toggle()     (StatusIdle.js) - janela de
- *                 status/atributos do fork, mesmo shape de HuntMap/
- *                 IdleConfig/IdleSkills/AdminPanel.
- *   - Mochila     -> MochilaIdle.toggle()    (MochilaIdle.js:429) - a janela
- *                 unificada (19/08/2026 juntou Inventory e Equipment nativas
- *                 numa so: boneca a esquerda, grade de itens a direita).
- *                 UM ICONE SO desde 20/08/2026 (gauntlet item 5): antes
- *                 havia "Inventario" e "Equipamento" lado a lado chamando
- *                 este MESMO metodo, e a medicao no jogo rodando confirmou
- *                 que nenhum dos dois levava a lugar proprio -- era
- *                 duplicata visivel pro jogador. Ficou o do inventario
- *                 (superconjunto: "tudo o que eu carrego", contra o
- *                 peitoral que so falava do vestido), com o rotulo
- *                 "Mochila" pra casar com o titulo da janela. A chave
- *                 "inventory" continua sendo o data-action -- e o que o
- *                 gate de clique ja mira.
- *   - Caca        -> HuntMap.toggle()        (HuntMap.js:287) - MESMA janela
- *                 que "#HuntButtonIdle" (botao sob o minimapa, so em
- *                 cidade) ja abre; redundancia DECLARADA e pedida pelo dono.
- *   - Menu        -> Escape.onKeyDown({which: KEYS.ESCAPE})  (Escape.js) -
- *                 dispara a MESMA funcao que a tecla ESC nativa ja dispara,
- *                 sem duplicar logica de mostrar/esconder menu nenhuma.
+ * ─── ONDE FOI PARAR CADA UM DOS 17 (nenhum sumiu sem destino) ────────────
+ *   CLUSTER (6): Personagem, Mochila, Skills, Caca, Correio, Idle.
+ *   LEQUE (10):  Guilda, Grupo, Admin, Loja, RO Shop, Troca, Leilao,
+ *                Recompensas, Eventos, Passe.
+ *   17 = 6 + 10 + 1, e o "1" e a FUSAO: "Config" e "Menu" eram dois icones
+ *   de gaveta de ajuste e viraram um so (ver o bloco da fusao mais abaixo).
+ *
+ *   MUDOU EM 21/08/2026, a pedido do dono: o item fundido saiu do leque,
+ *   subiu para o cluster e passou a se chamar "Idle" -- o nome do que ele
+ *   abre. Ele e o painel que se mexe ENTRE uma sessao idle e outra (coleta,
+ *   lista negra, pocao), nao um destino ocasional como Loja ou Leilao. O
+ *   "data-action" continua "config" DE PROPOSITO: e a chave que o portao
+ *   prova-clique-nao-vaza.ts ja mira, e renomear so trocaria o nome do mesmo
+ *   destino em varios arquivos. Com isso o leque fica em 10 itens -- a
+ *   divisao 5+5 que o dono desenhou.
+ *
+ * ─── FIACAO REAL (cada item chama o MESMO metodo publico que ja abre a
+ * janela em outro lugar do fork — nenhum alias novo foi criado) ──────────
+ *   - Personagem  -> StatusIdle.toggle()     (StatusIdle.js)
+ *   - Mochila     -> MochilaIdle.toggle()    (MochilaIdle.js:429) — a janela
+ *                 unificada (inventario + equipamento). A chave continua
+ *                 "inventory": e o alvo que o gate de clique e os scripts de
+ *                 foto ja miram.
+ *   - Skills      -> IdleSkills.toggle()     (IdleSkills.js, mesmo metodo
+ *                 que DockIdle.js:229 usa)
+ *   - Caca        -> HuntMap.toggle()        (HuntMap.js:287) — MESMA janela
+ *                 que "#HuntButtonIdle" abre; redundancia DECLARADA e pedida
+ *                 pelo dono.
+ *   - Correio     -> CorreioIdle.toggle()    — a caixa do SISTEMA
+ *                 (rag-idle-master/servidor/caixa.ts, D-366). O toggle
+ *                 tambem PEDE a caixa ao abrir (0x09e6).
+ *   - Configuracoes -> IdleConfig.toggle()   (IdleConfig.js, mesmo metodo
+ *                 que DockIdle.js:235 usava)
+ *   - Guilda      -> Guild.toggle()          (Guild.js:404-418) — metodo
+ *                 PUBLICO nativo. ATENCAO ao comportamento nativo: sem
+ *                 guilda (!Session.hasGuild), Guild.toggle() NAO abre a
+ *                 janela — chama Guild.promptCreateGuild(), exatamente como
+ *                 o atalho de teclado nativo faz (Guild.js:420-423). Aceito
+ *                 de proposito: e o unico caminho de entrada que existe.
+ *   - Grupo       -> PartyFriends.toggle()   (PartyFriends.js:47-52) — proxy
+ *                 PUBLICO do controller de versao (V0/V1), que delega pra
+ *                 PartyFriendsCommon.js:132-138.
  *   - Admin       -> AdminPanel.toggle()     (AdminPanel.js:268), com a
  *                 MESMA trava de conta dona que AdminPanel.js:65/186 usa
- *                 (Session.AID === 2000000, ver isOwnerAccount() abaixo) -
- *                 escondido client-side via display:none pra quem nao e a
- *                 conta dona; o servidor aplica a restricao de verdade.
+ *                 (Session.AID === 2000000, ver isOwnerAccount()) — o item
+ *                 e escondido client-side pra quem nao e a conta dona; o
+ *                 servidor aplica a restricao de verdade.
  *
- * EM BREVE (funcao ainda nao existe no jogo - Loja, RO Shop, Troca, Leilao,
- * Recompensas, Eventos, Passe): visual premium, estado desabilitado
- * honesto (~55% opacidade, sem hover de acao - ver TopMenuIdle.css). Ao
- * clicar, mostra o toast proprio do componente (".tm-toast", ver
- * showToast() abaixo) e some sozinho em ~1.5s. NENHUM pacote sai do
- * cliente, NENHUMA janela falsa abre - a lista inteira e so o atributo
- * "data-em-breve" no HTML, lido no clique.
+ * ─── A FUSAO "Config" + "Menu" -> "Configuracoes" (pedido do dono) ───────
+ * Eram dois discos vizinhos, os dois com cara de ajuste, e o jogador tinha
+ * de adivinhar qual era qual: "Config" abria a Configuracao idle
+ * (IdleConfig) e "Menu" disparava a tecla ESC (Escape.js), que e a janela de
+ * SISTEMA do cliente — audio, video, atalho, trocar personagem, fechar jogo.
+ * O icone fundido abre a Configuracao idle: e a janela que o rotulo nomeia e
+ * a que se usa jogando.
+ * O QUE ISSO CUSTA, dito na cara: a janela de sistema perdeu a porta de
+ * mouse e ficou so na TECLA ESC — que continua nativa e intocada (nenhum
+ * arquivo de Escape.js foi tocado nesta rodada). Isso esta declarado como
+ * pendencia [DONO] no relatorio da frente; se ele quiser a porta de mouse de
+ * volta, o lugar barato e uma linha dentro da propria Configuracao idle.
  *
- * ORDEM (pedido do dono, mantida na divisao em niveis de 19/08/2026): dentro
- * de cada nivel, TODOS os funcionais primeiro -- nivel 1 e so funcional
- * (Personagem, Mochila, Skills, Caca); nivel 2 poe Guilda,
- * Grupo, Config, Menu, Admin primeiro e "em breve" por ultimo -- nunca
- * misturado, pra nao fazer o jogador procurar o que funciona no meio do que
- * ainda nao existe.
+ * ─── EM BREVE (Loja, RO Shop, Troca, Leilao, Recompensas, Eventos, Passe):
+ * a funcao ainda nao existe no jogo. Visual honesto (o DS manda dessaturar;
+ * desde a rodada 2 a dessaturacao vale so pro MIOLO, e o aro dourado fica em
+ * opacidade cheia — ver o CSS), "aria-disabled" pro leitor de tela, e o
+ * clique responde com o toast proprio do componente (".tm-toast", ver
+ * showToast()) — NENHUM pacote sai do cliente, NENHUMA janela falsa abre. A
+ * lista inteira e o atributo "data-em-breve" no HTML, lido no clique.
  *
- * Estado ativo (aro azul, ".is-active"): DERIVADO da janela estar aberta, a
- * cada tique do polling (19/08/2026) — antes era lembrado do clique, e por
- * isso fechar a janela pelo "X" dela deixava o aro aceso para sempre.
- * Continua sem listener novo em janela nativa: e leitura de DOM no tique que
- * o componente ja tinha. Detecao de "esta aberta":
- *   - Skills/Config/Personagem/Mochila/Caca/Admin: janelas
- *     RAGIDLE marcam ".xx-window.is-open" (mesmo formato de HuntMap/
- *     IdleConfig/IdleSkills/StatusIdle/MochilaIdle/AdminPanel, ver
+ * ─── ORDEM: dentro de cada parte, TODOS os funcionais primeiro. O cluster e
+ * so funcional; o leque poe Guilda, Grupo, Admin e so depois
+ * os "em breve" — nunca misturado, pra nao fazer o jogador procurar o que
+ * funciona no meio do que ainda nao existe. Em duas colunas, a ordem de
+ * leitura e a natural do portugues: desce a coluna da ESQUERDA inteira e so
+ * entao desce a da DIREITA.
+ *
+ * ─── ESTADO ATIVO (aro azul-dourado, ".is-active"): DERIVADO da janela
+ * estar aberta, a cada tique do polling — nunca lembrado do clique. Antes de
+ * 19/08/2026 era lembrado, e por isso fechar a janela pelo "X" dela deixava
+ * o aro aceso para sempre. Detecao de "esta aberta":
+ *   - janelas RAGIDLE marcam ".xx-window.is-open" (mesmo formato de
+ *     HuntMap/IdleConfig/IdleSkills/StatusIdle/MochilaIdle/AdminPanel, ver
  *     DockIdle.js:isRagIdleWindowOpen()).
  *   - Guilda/Grupo: janelas nativas escondem via display:none no proprio
- *     HOST (Guild.js usa this.ui.show()/.hide(), que e um proxy jQuery-like
- *     sobre _host - ver GUIComponent.js:1322; PartyFriendsCommon.js:120-138
- *     idem, ora via Component.ui, ora via Component._host.style.display
- *     direto dependendo da versao). MESMO helper isHostVisible() de
- *     DockIdle.js cobre os dois casos porque os dois caminhos terminam em
- *     "_host.style.display !== 'none'".
- *   - Menu: nao tem estado de "aberta" persistente pra derivar (ESC e uma
- *     acao instantanea, nao uma janela que fica de pe) -- nunca acende.
+ *     HOST (Guild.js usa this.ui.show()/.hide(), proxy jQuery-like sobre
+ *     _host, GUIComponent.js:1322; PartyFriendsCommon.js:120-138 idem).
+ *     MESMO helper isHostVisible() de DockIdle.js.
  *
- * z-index / needFocus=false / pointer-events: mesmo contrato de
- * DockIdle.js/CombatCornerIdle.js - a constelacao nunca precisa vir pra
- * frente (fica presa no z-index inicial 50, GUIComponent.js:159) e nunca
- * intercepta clique no mapa fora dos proprios botoes (":host"
- * pointer-events:none, cada ".tm-item" reabre com pointer-events:auto).
+ * ─── z-index / needFocus=false / pointer-events: mesmo contrato de
+ * DockIdle.js/CombatCornerIdle.js — este componente nunca e uma janela,
+ * entao nunca precisa vir pra frente (fica preso no z-index inicial 50,
+ * GUIComponent.js:159) e nunca intercepta clique no mapa fora dos proprios
+ * botoes (":host" pointer-events:none, cada botao reabre com auto).
+ * O host continua PEQUENO (o tamanho da fileira de cima): quem desce pro
+ * canto inferior e o ".tm-menu", com position:fixed na viewport. Foi
+ * deliberado nao esticar o host pra tela toda — camada invisivel sobre o
+ * mundo inteiro e exatamente a familia de defeito que o gate de clique
+ * (rag-idle-master/scripts/prova-clique-nao-vaza.ts) existe pra pegar.
  *
  * @author RagIdle
  */
@@ -139,25 +151,18 @@ import MochilaIdle from 'UI/Components/MochilaIdle/MochilaIdle.js';
 import HuntMap from 'UI/Components/HuntMap/HuntMap.js';
 import CorreioIdle from 'UI/Components/CorreioIdle/CorreioIdle.js';
 import AdminPanel from 'UI/Components/AdminPanel/AdminPanel.js';
-import Escape from 'UI/Components/Escape/Escape.js';
-import KEYS from 'Controls/KeyEventHandler.js';
 import RiIcones from 'UI/ri-icones.js';
 import htmlText from './TopMenuIdle.html?raw';
 import cssText from './TopMenuIdle.css?raw';
 
 /**
  * Mesma constante de conta dona que AdminPanel.js:65 -- copia local (nao
- * exportada de la, mesma escolha que BasicInfoIdle.js fazia antes de perder
- * o botao de admin nesta rodada) porque o criterio precisa ser reproduzido
- * aqui, e o instrucional pede pra nao tocar em AdminPanel.js.
+ * exportada de la, e o instrucional pede pra nao tocar em AdminPanel.js).
  */
 const OWNER_AID = 2000000;
 
 /**
- * Mesmo intervalo de polling leve que DockIdle.js/BasicInfoIdle.js
- * (POLL_INTERVAL_MS = 250) - usado so pro ponto de skill disponivel (ver
- * syncSkillDot()), nunca pra estado ativo (esse e so-no-clique, ver
- * cabecalho do arquivo).
+ * Mesmo intervalo de polling leve que DockIdle.js/BasicInfoIdle.js.
  */
 const POLL_INTERVAL_MS = 250;
 
@@ -165,6 +170,14 @@ const POLL_INTERVAL_MS = 250;
  * Quanto tempo o toast "Em breve" fica visivel antes de sumir sozinho.
  */
 const TOAST_DURATION_MS = 1500;
+
+/**
+ * Quanto o leque leva pra sumir depois de fechar: a transicao de saida
+ * (--dur-fast, 160ms no DS) mais uma folga. Passado esse tempo o ".tm-fan"
+ * volta a display:none e some do layout. Com "prefers-reduced-motion" nao ha
+ * transicao nenhuma e este numero vira zero (ver aplicarEstadoDoLeque()).
+ */
+const LEQUE_SAIDA_MS = 220;
 
 /**
  * Create Component
@@ -184,28 +197,38 @@ TopMenuIdle.render = () => htmlText.replace(/<!--RI_ICONE:(\w+)-->/g, (_, chave)
 TopMenuIdle.mouseMode = GUIComponent.MouseMode.CROSS;
 
 /**
- * Fora do sistema de foco/z-index (mesmo motivo de DockIdle.js) - a
- * constelacao nunca e uma janela, entao nunca precisa vir pra frente.
+ * Fora do sistema de foco/z-index (mesmo motivo de DockIdle.js).
  */
 TopMenuIdle.needFocus = false;
 
 /**
- * @var {Preferences} estado aberto/fechado do NIVEL 2 (menu retratil).
- * Chave e formato IDENTICOS ao "recolher/expandir a constelacao inteira" de
- * D-343 -- so o SIGNIFICADO do booleano mudou (agora e so o nivel 2, nunca
- * o nivel 1) -- entao uma preferencia salva de sessao anterior continua
- * lendo certo, sem precisar bump de versao nem migracao. Mesmo padrao de
- * Preferences.get() que BasicInfoIdle.js:144 ja usa pra posicao de janela.
- * Chave propria ("TopMenuIdle") -- nao concorre com nenhum outro componente
- * no localStorage.
+ * @var {Preferences} estado recolhido/expandido do CLUSTER de cima.
+ *
+ * Versao 2.0 (a chave existe desde D-343 na 1.0): o SIGNIFICADO do booleano
+ * mudou duas vezes — era "constelacao inteira recolhida", virou "nivel 2
+ * fechado" e agora e "cluster de 5 recolhido". Como o valor salvo de uma
+ * sessao antiga descreveria outra coisa (um jogador que fechou o nivel 2
+ * ontem acharia os 5 essenciais sumidos hoje), a versao SOBE e o
+ * Preferences descarta o valor antigo. O leque NAO entra aqui de proposito:
+ * ele e uma porta, e porta comeca fechada toda sessao (gabarito secao 2).
  */
 const _preferences = Preferences.get(
 	'TopMenuIdle',
 	{
 		collapsed: false
 	},
-	1.0
+	2.0
 );
+
+/**
+ * @var {boolean} leque aberto? Estado de sessao, nao persistido — ver acima.
+ */
+let _lequeAberto = false;
+
+/**
+ * @var {number|null} setTimeout que desmonta o leque no fim da animacao.
+ */
+let _lequeTimer = null;
 
 /**
  * @var {number|null} setInterval handle do polling do ponto de skill.
@@ -222,6 +245,15 @@ let _toastTimer = null;
  */
 function _root() {
 	return TopMenuIdle._shadow || TopMenuIdle._host;
+}
+
+/**
+ * O usuario pediu menos movimento? Lido na hora (e nao guardado) porque a
+ * preferencia do sistema pode mudar com o jogo aberto. E o CSS que decide o
+ * visual; aqui isto so serve pra nao ESPERAR uma animacao que nao vai rodar.
+ */
+function movimentoReduzido() {
+	return !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
 }
 
 /**
@@ -245,39 +277,57 @@ TopMenuIdle.init = function init() {
 	if (toggle) {
 		toggle.addEventListener('click', onClickToggle);
 	}
+
+	const fab = root.querySelector('.tm-fab');
+	if (fab) {
+		fab.addEventListener('click', onClickFab);
+	}
 };
 
 /**
- * Sincroniza o destaque de todo item assim que a constelacao aparece
- * (cobre o caso de o jogador ja ter aberto uma janela por outro caminho
- * antes dela existir), aplica o estado recolhido/expandido salvo e liga o
- * polling leve do ponto de skill.
+ * Sincroniza tudo assim que o menu aparece (cobre o caso de o jogador ja ter
+ * aberto uma janela por outro caminho antes dele existir), aplica o estado
+ * recolhido salvo, deixa o leque fechado e liga o polling leve.
  */
 TopMenuIdle.onAppend = function onAppend() {
 	applyCollapsedState();
 
-	// Admin (19/08/2026): mesma trava de conta dona que BasicInfoIdle.js
-	// aplicava antes de perder o proprio botao -- so quem e a conta dona ve
-	// o item; qualquer outra conta nunca ve nem consegue clicar.
+	// Admin: mesma trava de conta dona de sempre -- so quem e a conta dona ve
+	// o item; qualquer outra conta nunca ve nem consegue clicar. Precisa vir
+	// ANTES de distribuirColunas() e de escalonarLeque(), que contam so os
+	// itens visiveis.
 	const root = _root();
 	const adminBtn = root.querySelector('.tm-item-admin');
 	if (adminBtn) {
 		adminBtn.style.display = isOwnerAccount() ? '' : 'none';
 	}
 
+	distribuirColunas();
+
+	_lequeAberto = false;
+	aplicarEstadoDoLeque(true);
+
 	syncAllActiveStates();
 	syncSkillDot();
 	syncCorreioDot();
+	syncToggleDot();
 	startPolling();
+	ligarFechamentoExterno();
 };
 
 /**
- * Desliga o polling e qualquer toast pendente quando o componente sai de
- * cena (troca de mapa) - mesmo cuidado de DockIdle.js.
+ * Desliga o polling, os ouvintes globais de fechar a gaveta e qualquer
+ * temporizador pendente quando o componente sai de cena (troca de mapa) -
+ * mesmo cuidado de DockIdle.js.
  */
 TopMenuIdle.onRemove = function onRemove() {
 	stopPolling();
+	desligarFechamentoExterno();
 	clearToastTimer();
+	if (_lequeTimer != null) {
+		clearTimeout(_lequeTimer);
+		_lequeTimer = null;
+	}
 };
 
 function startPolling() {
@@ -303,6 +353,11 @@ function clearToastTimer() {
  * Despacha o clique de um item: "em breve" so mostra o toast (nenhum
  * pacote, nenhuma janela); os funcionais chamam o MESMO metodo publico
  * que ja abre a janela em outro lugar do fork (ver cabecalho do arquivo).
+ *
+ * TODO data-action daqui tem "case" abaixo, e todo "case" abre algo de
+ * verdade. Isto e regra do projeto, nao zelo: ja houve botao com
+ * "data-action" e "title" sem nenhum "case" no switch, e a Mochila quase
+ * ficou inalcancavel. Quem somar um item soma o case junto — e clica nele.
  */
 function onClickAction(e) {
 	e.stopImmediatePropagation();
@@ -310,6 +365,9 @@ function onClickAction(e) {
 
 	if (btn.dataset.emBreve) {
 		showToast();
+		// Nao fecha o leque: nada abriu, entao nao ha nada de que sair da
+		// frente -- e o jogador costuma clicar em mais de um "em breve"
+		// seguido, olhando o que vem por ai.
 		return;
 	}
 
@@ -319,13 +377,6 @@ function onClickAction(e) {
 		case 'status':
 			StatusIdle.toggle();
 			break;
-		/*
-		 * "Mochila" -- UM icone so desde 20/08/2026 (gauntlet item 5). A chave
-		 * continua "inventory" (nao "mochila") porque ela ja e o alvo do gate
-		 * de clique e de scripts de foto: trocar o nome nao mudaria nada de
-		 * comportamento e quebraria seletor de fora. O antigo "case 'equip'"
-		 * saiu junto com o segundo icone.
-		 */
 		case 'inventory':
 			MochilaIdle.toggle();
 			break;
@@ -339,26 +390,19 @@ function onClickAction(e) {
 			HuntMap.toggle();
 			break;
 		case 'correio':
-			/* "Correio" (gauntlet item 3, 20/08/2026) -- a caixa do SISTEMA
-			   (servidor: caixa.ts, D-366). CorreioIdle.toggle() tambem PEDE
-			   a caixa ao abrir (0x09e6): a lista so existe no cliente depois
-			   que o servidor a manda. */
+			/* CorreioIdle.toggle() tambem PEDE a caixa ao abrir (0x09e6): a
+			   lista so existe no cliente depois que o servidor a manda. */
 			CorreioIdle.toggle();
+			break;
+		case 'config':
+			/* "Configuracoes" = a fusao de Config + Menu (ver cabecalho). */
+			IdleConfig.toggle();
 			break;
 		case 'guild':
 			Guild.toggle();
 			break;
 		case 'group':
 			PartyFriends.toggle();
-			break;
-		case 'config':
-			IdleConfig.toggle();
-			break;
-		case 'menu':
-			/* Mesma funcao que a tecla ESC nativa dispara (Escape.js), sem
-			   duplicar a logica de mostrar/esconder -- BasicInfoIdle.js
-			   fazia assim antes de perder o proprio botao de Menu. */
-			Escape.onKeyDown({ which: KEYS.ESCAPE });
 			break;
 		case 'admin':
 			if (!isOwnerAccount()) {
@@ -370,53 +414,283 @@ function onClickAction(e) {
 			return;
 	}
 
+	// Escolheu no leque? O leque sai da frente. Ele e uma gaveta: abriu,
+	// escolheu, fechou -- e a janela que acabou de abrir e que precisa da
+	// tela agora. So vale pro leque; o cluster de cima nunca se fecha
+	// sozinho.
+	if (_lequeAberto && btn.closest('.tm-fan')) {
+		fecharLeque();
+	}
+
 	updateActiveState(btn, action);
 }
 
 /**
- * Clique no botao de abrir/fechar o NIVEL 2 (herdou o mecanismo do
- * recolher/expandir de D-343): alterna e SALVA a preferencia
- * (Preferences.get/.save(), mesmo padrao de BasicInfoIdle.js:savePosition()),
- * aplica o estado na hora -- nao espera o tique de 250ms, mesmo cuidado de
- * updateActiveState() acima. Ao FECHAR, tambem apaga qualquer toast "Em
- * breve" pendente (ver clearToastTimer() abaixo) -- o toast mora dentro do
- * nivel 2, entao ele ja some visualmente com o opacity:0 do pai, mas o
- * timer que o esconderia sozinho nao precisa continuar rodando escondido.
+ * Clique na alca: recolhe/traz de volta os CINCO do cluster de cima e SALVA
+ * a preferencia (mesmo padrao de BasicInfoIdle.js:savePosition()). Aplica na
+ * hora, sem esperar o tique de 250ms.
  */
 function onClickToggle(e) {
 	e.stopImmediatePropagation();
 	_preferences.collapsed = !_preferences.collapsed;
 	_preferences.save();
 	applyCollapsedState();
-
-	if (_preferences.collapsed) {
-		hideToastNow();
-	}
+	syncToggleDot();
 }
 
 /**
- * Reflete "_preferences.collapsed" no DOM: o NIVEL 2 inteiro some
- * (".tm-secondary.is-collapsed", ver CSS) e o botao gira pra apontar pro
- * lado contrario. O NIVEL 1 (".tm-top") nunca e tocado aqui -- fica de pe
- * sempre, mesmo fechado. Chamado no onAppend() (restaura o que foi salvo) e
- * a cada clique.
+ * Reflete "_preferences.collapsed" no DOM: os 5 itens do cluster somem
+ * (display:none, ver CSS) e a alca gira pra apontar pro lado contrario. A
+ * alca NUNCA e escondida aqui -- ela e o unico caminho de volta.
  */
 function applyCollapsedState() {
 	const root = _root();
-	const secondary = root.querySelector('.tm-secondary');
+	const top = root.querySelector('.tm-top');
 	const toggle = root.querySelector('.tm-toggle');
-	if (!secondary || !toggle) {
+	if (!top || !toggle) {
 		return;
 	}
 
 	const collapsed = !!_preferences.collapsed;
-	secondary.classList.toggle('is-collapsed', collapsed);
+	top.classList.toggle('is-collapsed', collapsed);
 	toggle.classList.toggle('is-collapsed', collapsed);
 	toggle.setAttribute('aria-expanded', String(!collapsed));
 
-	const label = collapsed ? 'Abrir menu' : 'Fechar menu';
+	const label = collapsed ? 'Abrir menu' : 'Recolher menu';
 	toggle.title = label;
 	toggle.setAttribute('aria-label', label);
+}
+
+/**
+ * ─── FECHAR A GAVETA POR CLIQUE FORA E POR ESC ───────────────────────────
+ *
+ * O leque e uma GAVETA: o gabarito diz que o expandido "aparece e some", e um
+ * bloco de 198x454 plantado sobre a cena enquanto o jogador anda nao e "some".
+ * Ate a rodada 2 so o proprio botao Menu fechava, e isso era pouco.
+ *
+ * POR QUE UM OUVINTE GLOBAL AQUI NAO REPETE O BUG DE VAZAMENTO DE CLIQUE (o
+ * conserto de 19/08, que ate deixou um gate proprio): aquele defeito era a UI
+ * deixando o evento CHEGAR AO MUNDO por um caminho errado — direcao UI -> jogo.
+ * Este ouvinte anda na direcao oposta: ele so OBSERVA. Nao chama
+ * preventDefault, nao chama stopPropagation, nao chama
+ * stopImmediatePropagation e nao reencaminha nada. O evento segue exatamente
+ * o mesmo caminho que seguiria se este codigo nao existisse — e por isso o
+ * clique no chao continua ANDANDO com o personagem enquanto a gaveta se
+ * fecha. As duas coisas na mesma medicao, e e assim que a prova confere.
+ *
+ * "composedPath()" e nao "event.target": alvo de evento que nasce dentro de
+ * Shadow DOM chega RETARGETADO (vira o host), entao "target" nao sabe dizer
+ * se o clique caiu num item do leque ou no disco de outro componente. O
+ * caminho composto atravessa as fronteiras de sombra e e a mesma tecnica que
+ * a guarda central do projeto usa.
+ *
+ * "pointerdown" na fase de CAPTURA: captura e a primeira fase a rodar, entao
+ * nenhum outro ouvinte consegue esconder o evento de nos parando a
+ * propagacao antes. E "pointerdown" (e nao "click") cobre mouse e toque com
+ * um ouvinte so, e fecha no comeco do gesto — que e quando o jogador ja
+ * decidiu.
+ *
+ * ESC: fecha a gaveta e mais nada. O ESC nativo (Escape.js, a janela de
+ * sistema) NAO e consumido de proposito — alem da regra de nao consumir, e
+ * ele que carrega a regra de "morto nao abre menu nenhum"; se este ouvinte
+ * comesse a tecla, essa regra passaria a depender daqui.
+ */
+function ligarFechamentoExterno() {
+	desligarFechamentoExterno();
+	window.addEventListener('pointerdown', onPointerDownGlobal, true);
+	window.addEventListener('keydown', onKeyDownGlobal, true);
+}
+
+function desligarFechamentoExterno() {
+	window.removeEventListener('pointerdown', onPointerDownGlobal, true);
+	window.removeEventListener('keydown', onKeyDownGlobal, true);
+}
+
+/**
+ * O clique caiu DENTRO do canto do menu (o botao Menu ou o leque)? Se caiu,
+ * quem decide o que acontece e o proprio botao; se caiu fora, a gaveta sai da
+ * frente.
+ */
+function onPointerDownGlobal(e) {
+	if (!_lequeAberto) {
+		return;
+	}
+
+	// Sem composedPath nao da pra saber se o clique caiu dentro do proprio
+	// menu, e fechar no escuro faria o botao Menu se auto-cancelar (fecha no
+	// pointerdown, reabre no click). Na duvida, nao fecha: o botao continua
+	// sendo o caminho garantido.
+	if (typeof e.composedPath !== 'function') {
+		return;
+	}
+
+	const caminho = e.composedPath();
+	for (let i = 0; i < caminho.length; i++) {
+		const no = caminho[i];
+		// Window/Document/ShadowRoot nao tem classList: so elemento interessa.
+		if (no && no.classList && no.classList.contains('tm-menu')) {
+			return;
+		}
+	}
+
+	fecharLeque();
+}
+
+function onKeyDownGlobal(e) {
+	if (!_lequeAberto) {
+		return;
+	}
+	if (e.key === 'Escape' || e.key === 'Esc') {
+		fecharLeque();
+	}
+}
+
+/**
+ * Clique no botao Menu: abre ou fecha o leque.
+ */
+function onClickFab(e) {
+	e.stopImmediatePropagation();
+	if (_lequeAberto) {
+		fecharLeque();
+	} else {
+		abrirLeque();
+	}
+}
+
+function abrirLeque() {
+	_lequeAberto = true;
+	aplicarEstadoDoLeque(false);
+}
+
+function fecharLeque() {
+	_lequeAberto = false;
+	aplicarEstadoDoLeque(false);
+	// O toast mora fora do leque, mas se ele estiver de pe quando a gaveta
+	// fecha, some junto: ele so faz sentido no contexto do que foi clicado.
+	hideToastNow();
+}
+
+/**
+ * Poe o leque no estado de "_lequeAberto".
+ *
+ * A dancinha das duas classes existe por uma limitacao real do navegador:
+ * nada anima saindo de "display:none". Entao ABRIR e (1) montar
+ * (".is-mounted" -> display:flex), (2) forcar um reflow lendo offsetWidth,
+ * (3) so entao ligar ".is-open", que e o que a transicao persegue. FECHAR e
+ * o contrario: tira ".is-open", espera a transicao e so ai desmonta.
+ *
+ * Desmontar de verdade importa: enquanto o leque fica montado ele tem CAIXA
+ * na tela, e caixa invisivel sobre o mundo e a familia de defeito que o gate
+ * de clique existe pra pegar (ver o cabecalho do CSS).
+ *
+ * @param {boolean} imediato pula a animacao (usado no onAppend, quando o
+ *        leque nasce fechado e nao ha nada a animar).
+ */
+function aplicarEstadoDoLeque(imediato) {
+	const root = _root();
+	const fan = root.querySelector('.tm-fan');
+	const fab = root.querySelector('.tm-fab');
+	if (!fan || !fab) {
+		return;
+	}
+
+	if (_lequeTimer != null) {
+		clearTimeout(_lequeTimer);
+		_lequeTimer = null;
+	}
+
+	fab.classList.toggle('is-open', _lequeAberto);
+	fab.setAttribute('aria-expanded', String(_lequeAberto));
+	fab.title = _lequeAberto ? 'Fechar menu' : 'Menu';
+	fab.setAttribute('aria-label', fab.title);
+
+	if (_lequeAberto) {
+		escalonarLeque(fan);
+		fan.classList.add('is-mounted');
+		// Leitura que forca o reflow -- sem ela o navegador junta "montar" e
+		// "abrir" no mesmo quadro e a transicao nao acontece.
+		void fan.offsetWidth;
+		fan.classList.add('is-open');
+		return;
+	}
+
+	fan.classList.remove('is-open');
+
+	const espera = imediato || movimentoReduzido() ? 0 : LEQUE_SAIDA_MS;
+	if (espera === 0) {
+		fan.classList.remove('is-mounted');
+		return;
+	}
+	_lequeTimer = setTimeout(() => {
+		fan.classList.remove('is-mounted');
+		_lequeTimer = null;
+	}, espera);
+}
+
+/**
+ * Reparte os itens do leque nas DUAS COLUNAS, com a carga dividida ao meio.
+ *
+ * Por que isto e JS e nao HTML fixo: o item de Admin so existe para a conta
+ * dona (ver onAppend()). Com ele sao 11 itens, sem ele sao 10 — e "10 vira 5
+ * e 5" e literalmente o que o dono pediu. Um corte cravado no HTML acertaria
+ * um dos dois casos e erraria o outro, deixando 6/4 para todo jogador que
+ * nao e o dono.
+ *
+ * A COLUNA DA ESQUERDA E QUE LEVA O ITEM A MAIS quando o total e impar
+ * (Math.ceil). Ela e a primeira da ordem de leitura, e coluna que comeca a
+ * leitura nunca deve ser a mais curta: uma primeira coluna curta seguida de
+ * uma longa se le como erro de montagem, enquanto o contrario se le como uma
+ * lista que acabou. E a mesma regra de balanceamento de colunas de texto.
+ *
+ * O item ESCONDIDO (Admin, fora da conta dona) continua no DOM e vai junto
+ * com os vizinhos, mas NAO conta para achar o meio -- senao a coluna da
+ * esquerda ficaria com um buraco invisivel de um item.
+ *
+ * A ORDEM CANONICA e a ordem do documento (coluna A e depois a B), e ela
+ * sobrevive a cada passagem: cada item e reinserido nessa mesma ordem, entao
+ * chamar isto duas vezes da o mesmo resultado.
+ */
+function distribuirColunas() {
+	const root = _root();
+	const fan = root.querySelector('.tm-fan');
+	const colA = root.querySelector('.tm-col--a');
+	const colB = root.querySelector('.tm-col--b');
+	if (!fan || !colA || !colB) {
+		return;
+	}
+
+	const itens = Array.prototype.slice.call(fan.querySelectorAll('.tm-item'));
+	const visiveis = itens.filter(item => item.style.display !== 'none').length;
+	const naEsquerda = Math.ceil(visiveis / 2);
+
+	let contados = 0;
+	itens.forEach(item => {
+		const destino = contados < naEsquerda ? colA : colB;
+		destino.appendChild(item);
+		if (item.style.display !== 'none') {
+			contados++;
+		}
+	});
+}
+
+/**
+ * Numera os itens VISIVEIS do leque em "--i", que o CSS usa como atraso de
+ * entrada (26ms x indice). E o que faz o leque entrar na ordem de leitura em
+ * vez de piscar como um bloco.
+ *
+ * Conta so os visiveis de proposito: o item de Admin some pra quem nao e a
+ * conta dona, e um indice "furado" deixaria um buraco de 26ms no meio da
+ * animacao de todo mundo que nao e o dono.
+ */
+function escalonarLeque(fan) {
+	let i = 0;
+	fan.querySelectorAll('.tm-item').forEach(item => {
+		if (item.style.display === 'none') {
+			return;
+		}
+		item.style.setProperty('--i', String(i));
+		i++;
+	});
 }
 
 /**
@@ -441,9 +715,7 @@ function showToast() {
 }
 
 /**
- * Apaga o toast "Em breve" na hora (sem esperar o TOAST_DURATION_MS) --
- * chamado ao fechar o NIVEL 2 (ver onClickToggle() acima), pra nao deixar o
- * setTimeout rodando escondido atras de um pai com opacity:0.
+ * Apaga o toast "Em breve" na hora, sem esperar o TOAST_DURATION_MS.
  */
 function hideToastNow() {
 	clearToastTimer();
@@ -455,7 +727,7 @@ function hideToastNow() {
 }
 
 /**
- * Aplica o aro azul no botao recem-clicado, para a resposta ser IMEDIATA
+ * Aplica o aro no botao recem-clicado, para a resposta ser IMEDIATA
  * (esperar o tique de 250ms deixaria um atraso perceptivel). Quem mantem o
  * estado honesto dali em diante e pollEstado()/syncAllActiveStates().
  */
@@ -484,15 +756,14 @@ function isActionOpen(action) {
 		case 'group':
 			return isHostVisible(PartyFriends.getUI());
 		default:
-			// "menu" (ESC nao tem janela propria com estado persistente) e
 			// os itens "em breve" caem aqui -- nunca acendem.
 			return false;
 	}
 }
 
 /**
- * Janelas RAGIDLE (IdleSkills/IdleConfig) marcam "is-open" na classe do
- * elemento ".xx-window" - mesmo formato de DockIdle.js:isRagIdleWindowOpen().
+ * Janelas RAGIDLE marcam "is-open" na classe do elemento ".xx-window" -
+ * mesmo formato de DockIdle.js:isRagIdleWindowOpen().
  */
 function isRagIdleWindowOpen(component, selector) {
 	const root = component.getRoot();
@@ -502,25 +773,19 @@ function isRagIdleWindowOpen(component, selector) {
 
 /**
  * Janelas nativas (Guild/PartyFriends) escondem via display:none no proprio
- * HOST - mesmo helper de DockIdle.js:isHostVisible(), reutilizado aqui
- * porque o contrato e identico (ver cabecalho do arquivo).
+ * HOST - mesmo helper de DockIdle.js:isHostVisible().
  */
 function isHostVisible(component) {
 	return !!(component && component._host && component._host.style.display !== 'none');
 }
 
 /**
- * O tique do polling: ponto de skill + destaque dos itens.
- *
- * O destaque entrou aqui em 19/08/2026. Antes ele so era aplicado no CLIQUE
- * e quando a constelacao aparecia — entao fechar a janela pelo "X" dela (ou
- * pelo ESC, ou pelo dock) deixava o item aceso para sempre, mentindo sobre
- * uma janela ja fechada. E o defeito que o dono relatou. O estado agora e
- * DERIVADO da janela de verdade a cada tique, nunca lembrado do clique.
+ * O tique do polling: pontos de notificacao + destaque dos itens.
  */
 function pollEstado() {
 	syncSkillDot();
 	syncCorreioDot();
+	syncToggleDot();
 	syncAllActiveStates();
 }
 
@@ -560,10 +825,9 @@ function syncSkillDot() {
  *
  * A fonte e CorreioIdle.temNaoLidas() -- que conta o "Isread" da lista que o
  * SERVIDOR mandou (0x0ac2) e, enquanto essa lista nunca chegou nesta sessao,
- * cai no proprio ZC_RODEX_ICON (o motor nativo apenda/remove o RodexIcon com
- * ele). Nenhuma das duas e adivinhada, e nenhuma exige fisgar pacote --
- * hookPacket SOBRESCREVE (NetworkManager.js:200-210) e trocaria o handler
- * nativo do correio em silencio.
+ * cai no proprio ZC_RODEX_ICON. Nenhuma das duas e adivinhada, e nenhuma
+ * exige fisgar pacote -- hookPacket SOBRESCREVE (NetworkManager.js:200-210)
+ * e trocaria o handler nativo do correio em silencio.
  *
  * Mesma receita ".ri-dot" do ponto de skill acima, de proposito: o design
  * system tem UM indicador de notificacao, e este e ele.
@@ -591,6 +855,42 @@ function syncCorreioDot() {
 			btn.title = `Correio — ${quantas} por ler`;
 		}
 	}
+}
+
+/**
+ * O aviso na ALCA -- e a razao de o Correio nao ter regredido ao ganhar um
+ * botao que o esconde.
+ *
+ * Quando o jogador recolhe o cluster, os 5 discos somem e com eles sumiriam
+ * os dois pontos de notificacao (correio por ler, ponto de skill a gastar).
+ * Um aviso que some porque o jogador arrumou a tela nao e um aviso. Entao,
+ * recolhido, o ponto migra pra alca -- que nunca some. Expandido, a alca nao
+ * mostra ponto nenhum: quem avisa sao os proprios discos, e dois pontos
+ * dizendo a mesma coisa a 20px um do outro so sujam.
+ */
+function syncToggleDot() {
+	const root = _root();
+	const dot = root.querySelector('.tm-toggle .ri-dot');
+	if (!dot) {
+		return;
+	}
+
+	if (!_preferences.collapsed) {
+		dot.style.display = 'none';
+		return;
+	}
+
+	// Le o estado JA CALCULADO dos pontos dos itens, em vez de refazer as
+	// duas consultas: assim os tres nunca podem discordar entre si.
+	const pontos = root.querySelectorAll('.tm-top .tm-item .ri-dot');
+	let algum = false;
+	pontos.forEach(p => {
+		if (p.style.display !== 'none') {
+			algum = true;
+		}
+	});
+
+	dot.style.display = algum ? '' : 'none';
 }
 
 /**
