@@ -30,7 +30,33 @@ if (redirectStr) {
 	});
 }
 
+/*
+ * A LISTA DE DESTINOS PERMITIDOS (D-540).
+ *
+ * Esta ponte conecta a QUALQUER `host:porta` que o cliente pedir na URL do
+ * WebSocket — o que é conveniente numa máquina de desenvolvimento e é um
+ * PROXY TCP ABERTO no instante em que ela fica exposta na internet: qualquer
+ * pessoa com a URL poderia alcançar serviços da rede onde ela roda.
+ *
+ * Como a v0 pública põe esta ponte atrás de um túnel, a lista deixou de ser
+ * opcional. O padrão são as três portas do próprio jogo em `127.0.0.1`;
+ * `WSPROXY_ALVOS` (separados por vírgula) substitui a lista quando for
+ * preciso outra coisa, e `WSPROXY_ABERTO=1` volta ao comportamento antigo —
+ * com aviso alto, porque quem liga isso precisa saber o que está ligando.
+ */
+const ALVOS_PADRAO = ['127.0.0.1:6900', '127.0.0.1:6121', '127.0.0.1:5121'];
+const aberto = process.env.WSPROXY_ABERTO === '1';
+const alvosPermitidos = new Set(
+	(process.env.WSPROXY_ALVOS ?? ALVOS_PADRAO.join(',')).split(',').map(t => t.trim()).filter(Boolean)
+);
+
 console.log(`[wsProxy] Listening on port ${port}`);
+if (aberto) {
+	console.log('[wsProxy] ATENCAO: WSPROXY_ABERTO=1 — a ponte aceita QUALQUER destino.');
+	console.log('[wsProxy] Nao exponha esta ponte na internet assim.');
+} else {
+	console.log('[wsProxy] destinos permitidos:', [...alvosPermitidos].join(', '));
+}
 if (Object.keys(redirects).length > 0) {
 	console.log('[wsProxy] Configured redirects:', redirects);
 }
@@ -58,6 +84,15 @@ wss.on('connection', (ws, req) => {
 
 	const [host, portStr] = parts;
 	const targetPort = parseInt(portStr, 10);
+
+	// A tranca de D-540: destino fora da lista é recusado ANTES de qualquer
+	// socket ser aberto. O log diz o que foi pedido — quem administra precisa
+	// ver a tentativa; quem tentou não recebe nada além do fechamento.
+	if (!aberto && !alvosPermitidos.has(`${host}:${targetPort}`)) {
+		console.log(`[wsProxy] RECUSADO destino fora da lista: ${host}:${targetPort} (de ${from})`);
+		ws.close();
+		return;
+	}
 
 	const tcp = net.connect(targetPort, host, () => {
 		console.log(`[wsProxy] Connected to target ${host}:${targetPort}`);
