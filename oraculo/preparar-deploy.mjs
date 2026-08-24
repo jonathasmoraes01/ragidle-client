@@ -53,13 +53,14 @@
  */
 
 import { execFileSync } from 'node:child_process';
-import { copyFileSync, existsSync, rmSync, statSync } from 'node:fs';
+import { copyFileSync, cpSync, existsSync, readdirSync, rmSync, statSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join, resolve } from 'node:path';
 
 const RAIZ = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const DIST = join(RAIZ, 'dist', 'Web');
 const FONTES = join(RAIZ, 'applications', 'deploy');
+const PUBLICO = join(RAIZ, 'public');
 
 /** Os visualizadores: ferramenta de dev, fora do pacote publico. */
 const VISUALIZADORES = [
@@ -74,10 +75,10 @@ const VISUALIZADORES = [
 /** O que o JOGO precisa para funcionar — se faltar, o deploy sai quebrado. */
 const OBRIGATORIOS = ['Online.js', 'ThreadEventHandler.js', 'PathFindingWorker.js', 'api.html', 'api.js'];
 
-console.log('1/4  build do cliente (leva alguns minutos)...');
+console.log('1/5  build do cliente (leva alguns minutos)...');
 execFileSync('node', ['./applications/tools/builder-web.mjs'], { cwd: RAIZ, stdio: 'inherit' });
 
-console.log('\n2/4  tirando os visualizadores...');
+console.log('\n2/5  tirando os visualizadores...');
 for (const arquivo of VISUALIZADORES) {
 	const caminho = join(DIST, arquivo);
 	if (existsSync(caminho)) {
@@ -86,7 +87,35 @@ for (const arquivo of VISUALIZADORES) {
 	}
 }
 
-console.log('\n3/4  copiando a configuracao e a porta de entrada da v0...');
+/*
+ * A ARTE DA INTERFACE (`public/ragidle`), e por que ela precisa de um passo.
+ *
+ * Sao ~30 MB de arte NOSSA — icones do dock, minimapas do teleporte, retratos
+ * de mob e de classe, icones de item e de skill, telas de carregamento. No
+ * localhost quem serve isso e o vite, direto de `public/`, no caminho
+ * `/ragidle/...`; o codigo (e o CSS) pede sempre por esse caminho ABSOLUTO.
+ *
+ * O `builder-web.mjs` desliga `copyPublicDir` de proposito — sem isso os 30 MB
+ * seriam copiados uma vez para CADA um dos sete aplicativos. So que ninguem os
+ * copiava no fim, e o `dist/Web` saia sem a pasta.
+ *
+ * O resultado em producao: todo `<img src="/ragidle/...">` dava 404, e o
+ * `onerror="this.style.display=none"` que o proprio codigo poe ESCONDIA a
+ * falha. O jogo carregava, entrava no mapa e jogava — sem icone nenhum e com o
+ * teleporte mostrando cartoes sem miniatura de mapa. Queixa do dono em 24/08.
+ *
+ * A licao: `onerror` que esconde transforma asset faltando em "a tela ficou
+ * meio vazia", que ninguem reporta como erro — e a prova de tela passava,
+ * porque ela media o mapa carregado e nao a interface vestida.
+ */
+console.log('\n' + '3/5  copiando a arte da interface (public/ragidle)...');
+cpSync(PUBLICO, DIST, { recursive: true });
+for (const pasta of readdirSync(join(DIST, 'ragidle'))) {
+	const quantos = readdirSync(join(DIST, 'ragidle', pasta)).length;
+	console.log(`     ${pasta.padEnd(12)} ${String(quantos).padStart(5)} arquivo(s)`);
+}
+
+console.log('\n' + '4/5  copiando a configuracao e a porta de entrada da v0...');
 copyFileSync(join(FONTES, 'Config.local.js'), join(DIST, 'Config.local.js'));
 copyFileSync(join(FONTES, 'index.html'), join(DIST, 'index.html'));
 copyFileSync(join(FONTES, 'vercel.json'), join(DIST, 'vercel.json'));
@@ -94,7 +123,7 @@ console.log('     Config.local.js  (enderecos dos tuneis)');
 console.log('     index.html       (como se cadastrar)');
 console.log('     vercel.json      (cabecalhos de cache)');
 
-console.log('\n4/4  conferindo...');
+console.log('\n5/5  conferindo...');
 const faltando = OBRIGATORIOS.filter((a) => !existsSync(join(DIST, a)));
 if (faltando.length > 0) {
 	console.error(`
@@ -105,6 +134,32 @@ DEPLOY INCOMPLETO — faltam: ${faltando.join(', ')}`);
 const config = (await import('node:fs')).readFileSync(join(DIST, 'Config.local.js'), 'utf8');
 if (!config.includes('socketProxy')) {
 	console.error('\nConfig.local.js sem `socketProxy` — o cliente nao saberia com quem falar.');
+	process.exit(1);
+}
+
+/*
+ * A arte chegou? Conferido por AMOSTRA de cada pasta, e nao pela existencia da
+ * pasta: um `ragidle/` vazio passaria por uma checagem de pasta e reproduziria
+ * exatamente o defeito de 24/08.
+ */
+const PASTAS_DE_ARTE = [
+	'classes',
+	'collection',
+	'dock-icons',
+	'item',
+	'loading',
+	'login',
+	'minimapas',
+	'mobs',
+	'skills',
+];
+const semArte = PASTAS_DE_ARTE.filter((pasta) => {
+	const caminho = join(DIST, 'ragidle', pasta);
+	return !existsSync(caminho) || readdirSync(caminho).length === 0;
+});
+if (semArte.length > 0) {
+	console.error(`\nARTE FALTANDO em ragidle/: ${semArte.join(', ')}`);
+	console.error('Em producao isso vira icone sumido — e o `onerror` do codigo esconde.');
 	process.exit(1);
 }
 
