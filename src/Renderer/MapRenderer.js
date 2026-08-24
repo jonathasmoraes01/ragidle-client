@@ -20,6 +20,8 @@ import MemoryManager from 'Core/MemoryManager.js';
 import Mouse from 'Controls/MouseEventHandler.js';
 import Renderer from 'Renderer/Renderer.js';
 import Camera from 'Renderer/Camera.js';
+
+import { nevoaNoZoom } from 'Renderer/nevoaNoZoom.js';
 import EntityManager from 'Renderer/EntityManager.js';
 import GridSelector from 'Renderer/Map/GridSelector.js';
 import Ground from 'Renderer/Map/Ground.js';
@@ -113,6 +115,14 @@ class MapRenderer {
 		exist: true,
 		far: 30,
 		near: 180,
+		/**
+		 * D-538: os valores COMO A TABELA OS ESCREVEU, antes de a distancia
+		 * da camera entrar na conta. `near`/`far` acima sao os DERIVADOS, e
+		 * mudam a cada quadro — sem guardar a base, escalar viraria
+		 * composicao e a nevoa fugiria para o infinito em poucos segundos.
+		 */
+		baseNear: 180,
+		baseFar: 30,
 		factor: 1.0,
 		color: new Float32Array([1, 1, 1])
 	};
@@ -227,11 +237,30 @@ class MapRenderer {
 	 * @param {number} tick - game tick
 	 * @param {object} gl context
 	 */
+	/**
+	 * A nevoa deste quadro (D-538). A regra mora em `Renderer/nevoaNoZoom.js`,
+	 * com a medicao que a motivou; aqui so a aplicamos ao estado do renderer.
+	 *
+	 * Roda por QUADRO, e sempre a partir de `baseNear`/`baseFar`: escalar em
+	 * cima do valor ja escalado seria composicao, e a nevoa fugiria para o
+	 * infinito em poucos segundos de zoom.
+	 */
+	static ajustarNevoaAoZoom() {
+		const fog = MapRenderer.fog;
+		if (!fog.exist) {
+			return;
+		}
+		const ajustada = nevoaNoZoom({ near: fog.baseNear, far: fog.baseFar }, Camera.zoom);
+		fog.near = ajustada.near;
+		fog.far = ajustada.far;
+	}
+
 	static onRender(tick, gl) {
 		PostProcess.prepare(gl);
 
 		const fog = MapRenderer.fog;
 		fog.use = MapPreferences.fog;
+		MapRenderer.ajustarNevoaAoZoom();
 		const light = MapRenderer.light;
 
 		let x, y;
@@ -491,8 +520,10 @@ function onMapComplete(success, error) {
 	// Apply fog to map
 	this.fog.exist = !!(mapInfo && mapInfo.fog);
 	if (this.fog.exist) {
-		this.fog.near = mapInfo.fog.near * 240;
-		this.fog.far = mapInfo.fog.far * 240;
+		this.fog.baseNear = mapInfo.fog.near * 240;
+		this.fog.baseFar = mapInfo.fog.far * 240;
+		this.fog.near = this.fog.baseNear;
+		this.fog.far = this.fog.baseFar;
 		this.fog.factor = mapInfo.fog.factor;
 		this.fog.color.set(mapInfo.fog.color);
 	}
