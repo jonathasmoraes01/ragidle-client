@@ -1810,7 +1810,12 @@ function onEntityCastSkill(pkt) {
 			const EF_Init_Par = {
 				effectId: EffectConst.EF_GROUNDSAMPLE,
 				skillId: pkt.SKID,
-				position: [pkt.xPos, pkt.yPos, Altitude.getCellHeight(pkt.yPos, pkt.yPos)],
+				// D-543: era `getCellHeight(pkt.yPos, pkt.yPos)` — a altura vinha da
+				// celula (y,y) em vez de (x,y). Num mapa PLANO os dois dao o mesmo
+				// numero e nada aparece; num mapa com relevo o marcador de conjuracao
+				// no chao flutua ou afunda, com erro proporcional ao desnivel entre
+				// as duas celulas. Todo o resto do arquivo ja usava (xPos, yPos).
+				position: [pkt.xPos, pkt.yPos, Altitude.getCellHeight(pkt.xPos, pkt.yPos)],
 				duration: pkt.delayTime,
 				otherAID: srcEntity.GID
 			};

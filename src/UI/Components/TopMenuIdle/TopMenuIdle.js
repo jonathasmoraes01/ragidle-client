@@ -683,13 +683,28 @@ function distribuirColunas() {
  * animacao de todo mundo que nao e o dono.
  */
 function escalonarLeque(fan) {
-	let i = 0;
-	fan.querySelectorAll('.tm-item').forEach(item => {
-		if (item.style.display === 'none') {
-			return;
-		}
-		item.style.setProperty('--i', String(i));
-		i++;
+	/*
+	 * A onda sobe DE BAIXO PARA CIMA (24/08/2026, pedido do dono: "ao abrir o
+	 * botao deve fazer um efeito subindo os botoes").
+	 *
+	 * Antes o "--i" seguia a ORDEM DE LEITURA -- descia a coluna da esquerda
+	 * inteira e depois a da direita. Com o leque em pe isso briga com o gesto:
+	 * o disco do TOPO entrava primeiro e o de baixo por ultimo, o que le como
+	 * algo CAINDO do alto, e nao brotando do botao. Agora as duas colunas sao
+	 * indexadas a partir da BASE, entao os discos vizinhos do botao entram
+	 * juntos e a onda sobe pelas duas ao mesmo tempo -- que e o que o olho
+	 * espera de uma gaveta que se abre para cima.
+	 *
+	 * Item escondido (o Admin, fora da conta dona) NAO consome indice: com ele
+	 * na conta sobraria um degrau vazio na onda.
+	 */
+	fan.querySelectorAll('.tm-col').forEach(coluna => {
+		const visiveis = [...coluna.querySelectorAll('.tm-item')].filter(
+			item => item.style.display !== 'none'
+		);
+		visiveis.forEach((item, ordem) => {
+			item.style.setProperty('--i', String(visiveis.length - 1 - ordem));
+		});
 	});
 }
 
