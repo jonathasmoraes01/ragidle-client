@@ -195,6 +195,40 @@ function onStatusParameterUpdateAnswer(pkt) {
 }
 
 /**
+ * NIVEL e MOEDA no canal Farm (20/08/2026).
+ *
+ * Nenhum dos dois tem pacote de "voce ganhou": o servidor manda o VALOR NOVO
+ * em ZC_PAR_CHANGE (servidor/mapa/servidor-mapa.ts:1565-1595, o mesmo trecho
+ * que concede a exp do abate). Entao a linha do log nasce da DIFERENCA entre
+ * dois valores que o servidor mandou de verdade — nunca de um numero
+ * inventado — e o primeiro valor de cada personagem so e GUARDADO: ele e o
+ * retrato do login, nao um ganho.
+ *
+ * A tabela e por GID justamente por isso: trocar de personagem sem recarregar
+ * a pagina compararia o zeny de um com o do outro e anunciaria um ganho que
+ * nunca aconteceu.
+ */
+let _donoDoProgresso = null;
+let _ultimoValor = { nivel: null, nivelDeJob: null, zeny: null };
+
+function progressoDaCaca(chave, valor, montarLinha, filtro) {
+	const gid = Session.Entity ? Session.Entity.GID : null;
+	if (_donoDoProgresso !== gid) {
+		_donoDoProgresso = gid;
+		_ultimoValor = { nivel: null, nivelDeJob: null, zeny: null };
+	}
+
+	const anterior = _ultimoValor[chave];
+	_ultimoValor[chave] = valor;
+
+	if (anterior === null || !(valor > anterior)) {
+		return;
+	}
+
+	ChatBox.addText(montarLinha(valor, valor - anterior), ChatBox.TYPE.BLUE, filtro);
+}
+
+/**
  * Modify main players parameters
  * Generic function
  */
@@ -331,6 +365,7 @@ function onParameterChange(pkt) {
 			break;
 
 		case StatusProperty.CLEVEL:
+			progressoDaCaca('nivel', amount, nivel => `Nv. ${nivel} alcançado.`, ChatBox.FILTER.FARM_NIVEL);
 			Session.Entity.clevel = amount;
 			// load aura on levelup
 			Session.Entity.aura.load(EffectManager);
@@ -385,6 +420,15 @@ function onParameterChange(pkt) {
 			break;
 
 		case StatusProperty.MONEY:
+			// A linha diz o que o dado garante ("Zeny +N"), e nao "N zeny do
+			// abate": o servidor manda o mesmo ZC_PAR_CHANGE para vender numa
+			// loja e para o zeny do mob_db, e o pacote nao diz de onde veio.
+			progressoDaCaca(
+				'zeny',
+				amount,
+				(_valor, ganho) => `Zeny +${ganho.toLocaleString('pt-BR')}`,
+				ChatBox.FILTER.FARM_ZENY
+			);
 			BasicInfo.getUI().update('zeny', amount);
 			break;
 
@@ -494,6 +538,17 @@ function onParameterChange(pkt) {
 			break;
 
 		case StatusProperty.JOBLEVEL:
+			progressoDaCaca('nivelDeJob', amount, nivel => `Classe Nv. ${nivel} alcançado.`, ChatBox.FILTER.FARM_NIVEL);
+			// D-537: o nivel de classe TEM de voltar para a entidade, como o
+			// de base faz em CLEVEL (:369) e o peso em WEIGHT (:450). O
+			// roBrowser de origem nunca precisou disto — a janela nativa
+			// guarda o proprio `jlvl` e nao consulta a entidade —, mas a HUD
+			// idle (`BasicInfoIdle`, `StatusIdle`) le `entity.joblevel` a
+			// cada tique do laco de polling. Sem esta linha o unico lugar do
+			// jogo que escrevia `Session.Entity.joblevel` era o char-select
+			// (`CharEngine.js:793`): "Classe Lv." congelava no valor do login
+			// e so mudava quando o jogador atualizava a pagina.
+			Session.Entity.joblevel = amount;
 			BasicInfo.getUI().update('jlvl', amount);
 			SkillList.getUI().onLevelUp();
 			break;
