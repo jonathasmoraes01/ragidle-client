@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Rag Idle</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.png">
+<meta name="theme-color" content="#12100e">
+<style>
+	:root{
+		--tinta:#f2ede3; --tinta-fraca:#a89e8d; --chao:#12100e; --chao-alto:#1c1916;
+		--campo:#0c0a08; --borda:#332d26; --borda-viva:#5c5045;
+		--ouro:#d8a53c; --ouro-forte:#f0bd50; --erro:#e2725b; --bom:#7fb069;
+	}
+	*{box-sizing:border-box}
+	body{
+		margin:0; min-height:100vh; background:var(--chao); color:var(--tinta);
+		font:16px/1.6 "Segoe UI",system-ui,sans-serif;
+		display:flex; align-items:center; justify-content:center; padding:32px 20px;
+	}
+	main{width:100%; max-width:26rem}
+	h1{
+		margin:0 0 .15em; font-size:clamp(2.2rem,7vw,3rem); font-weight:800;
+		letter-spacing:-.02em;
+	}
+	h1 span{color:var(--ouro)}
+	.selo{
+		display:inline-block; margin-bottom:1.6rem; padding:.2em .7em;
+		border:1px solid var(--borda); border-radius:99px;
+		font-size:.75rem; letter-spacing:.12em; text-transform:uppercase; color:var(--tinta-fraca);
+	}
+
+	section{
+		background:var(--chao-alto); border:1px solid var(--borda);
+		border-radius:10px; padding:1.3rem; margin-bottom:1rem;
+	}
+	h2{margin:0 0 1rem; font-size:.78rem; letter-spacing:.12em; text-transform:uppercase; color:var(--tinta-fraca)}
+
+	label{display:block; margin-bottom:.9rem}
+	.rotulo{display:block; margin-bottom:.3rem; font-size:.88rem; color:var(--tinta-fraca)}
+	input[type=text],input[type=password]{
+		display:block; width:100%; padding:.6em .7em;
+		background:var(--campo); color:var(--tinta);
+		border:1px solid var(--borda); border-radius:6px;
+		font:inherit;
+	}
+	input:focus{outline:2px solid var(--ouro); outline-offset:1px; border-color:var(--borda-viva)}
+	.dica{display:block; margin-top:.25rem; font-size:.78rem; color:var(--tinta-fraca)}
+
+	fieldset{border:0; padding:0; margin:0 0 1.1rem}
+	legend{padding:0; margin-bottom:.3rem; font-size:.88rem; color:var(--tinta-fraca)}
+	.sexos{display:flex; gap:.5rem}
+	.sexos label{
+		flex:1; margin:0; padding:.5em; text-align:center; cursor:pointer;
+		background:var(--campo); border:1px solid var(--borda); border-radius:6px;
+		font-size:.92rem;
+	}
+	.sexos input{position:absolute; opacity:0; width:0; height:0}
+	.sexos input:checked + span{color:var(--ouro-forte); font-weight:600}
+	.sexos label:has(input:checked){border-color:var(--ouro); background:#1a1509}
+	.sexos label:has(input:focus-visible){outline:2px solid var(--ouro); outline-offset:1px}
+
+	button,.entrar{
+		display:block; width:100%; padding:.85em; border:0; border-radius:8px;
+		font:inherit; font-weight:700; font-size:1rem; text-align:center;
+		text-decoration:none; cursor:pointer;
+	}
+	.principal{background:var(--ouro); color:#1a1509}
+	.principal:hover:not(:disabled),.principal:focus-visible{background:var(--ouro-forte)}
+	.principal:disabled{opacity:.45; cursor:not-allowed}
+	.secundario{background:transparent; color:var(--tinta); border:1px solid var(--borda-viva)}
+	.secundario:hover{border-color:var(--tinta-fraca)}
+	:focus-visible{outline:2px solid var(--ouro); outline-offset:2px}
+
+	.aviso{
+		margin:0 0 1rem; padding:.7em .85em; border-radius:6px;
+		border:1px solid var(--borda); background:var(--campo); font-size:.9rem;
+	}
+	.aviso[data-tom=erro]{border-color:var(--erro); color:#f0a08e}
+	.aviso[data-tom=bom]{border-color:var(--bom); color:#a9d494}
+	.aviso[hidden]{display:none}
+
+	.entrada{text-align:center}
+	.entrada p{margin:0 0 1rem; color:var(--tinta-fraca); font-size:.92rem}
+	.entrada strong{color:var(--tinta)}
+
+	details{margin-top:.4rem; font-size:.88rem; color:var(--tinta-fraca)}
+	summary{cursor:pointer}
+	details p{margin:.5rem 0 0}
+	code{
+		background:var(--campo); border:1px solid var(--borda); border-radius:4px;
+		padding:.1em .35em; font-family:ui-monospace,Consolas,monospace; color:var(--ouro-forte);
+	}
+	footer{margin-top:1.4rem; color:var(--tinta-fraca); font-size:.85rem; text-align:center}
+</style>
+</head>
+<body>
+<main>
+	<h1>Rag <span>Idle</span></h1>
+	<p class="selo">v0 &middot; teste fechado</p>
+
+	<!-- O estado do servidor, decidido por /saude antes de o jogador digitar -->
+	<p class="aviso" id="estado" hidden></p>
+
+	<!-- ETAPA 1: criar conta -->
+	<section id="cartao-cadastro">
+		<h2>Criar conta</h2>
+		<form id="form" novalidate>
+			<label>
+				<span class="rotulo">Nome de usuario</span>
+				<input type="text" id="usuario" name="usuario" autocomplete="username"
+				       maxlength="23" spellcheck="false" autocapitalize="off" required>
+				<span class="dica">4 a 23 caracteres: letras, numeros e _</span>
+			</label>
+
+			<label>
+				<span class="rotulo">Senha</span>
+				<input type="password" id="senha" name="senha" autocomplete="new-password"
+				       maxlength="23" required>
+				<span class="dica">4 a 23 caracteres</span>
+			</label>
+
+			<label>
+				<span class="rotulo">Repita a senha</span>
+				<input type="password" id="senha2" name="senha2" autocomplete="new-password"
+				       maxlength="23" required>
+			</label>
+
+			<fieldset>
+				<legend>Personagem</legend>
+				<div class="sexos">
+					<label><input type="radio" name="sexo" value="1" checked><span>Masculino</span></label>
+					<label><input type="radio" name="sexo" value="0"><span>Feminino</span></label>
+				</div>
+			</fieldset>
+
+			<p class="aviso" id="recado" hidden></p>
+
+			<button type="submit" class="principal" id="enviar">Criar conta</button>
+		</form>
+
+		<details>
+			<summary>Ja tenho conta</summary>
+			<p>Clique em <strong>Entrar no jogo</strong> ali embaixo e use o seu usuario e senha
+			na tela de login.</p>
+		</details>
+	</section>
+
+	<!-- ETAPA 2: entrar. Aparece sozinha depois do cadastro, e sempre existe abaixo. -->
+	<section class="entrada" id="cartao-entrada">
+		<h2>Entrar</h2>
+		<p id="recado-entrada">Ja tem conta? Entre com o seu usuario e senha.</p>
+		<a class="entrar principal" href="api.html?app=ONLINE" id="botao-entrar">Entrar no jogo</a>
+	</section>
+
+	<footer>Precisa de teclado e mouse. Melhor no Chrome ou no Edge.</footer>
+</main>
+
+<!--
+	Os enderecos moram no Config.local.js, junto com os do jogo: as URLs de
+	tunel gratuito mudam a cada reinicio do cloudflared, e ter DOIS lugares
+	para atualizar garante que um dia so um deles seja atualizado.
+-->
+<script src="Config.local.js"></script>
+<script>
+(function () {
+	'use strict';
+
+	var CONFIG = window.ROConfigLocal || {};
+	var BALCAO = CONFIG.cadastroUrl || '';
+
+	var form = document.getElementById('form');
+	var enviar = document.getElementById('enviar');
+	var recado = document.getElementById('recado');
+	var estado = document.getElementById('estado');
+	var cartaoCadastro = document.getElementById('cartao-cadastro');
+	var recadoEntrada = document.getElementById('recado-entrada');
+
+	function mostrar(elemento, texto, tom) {
+		elemento.textContent = texto;
+		elemento.dataset.tom = tom || '';
+		elemento.hidden = false;
+	}
+	function esconder(elemento) {
+		elemento.hidden = true;
+	}
+
+	/*
+	 * As MESMAS regras do servidor (servidor/contas.ts), conferidas aqui para
+	 * o jogador saber do erro antes de esperar a viagem de ida e volta. O
+	 * servidor confere de novo — esta copia e conforto, nunca a guarda: quem
+	 * mandar POST na mao passa direto por ela e esbarra em contas.ts.
+	 */
+	var NOME_VALIDO = /^[A-Za-z0-9_]{4,23}$/;
+
+	function conferir(usuario, senha, senha2) {
+		if (!NOME_VALIDO.test(usuario)) {
+			return 'O nome de usuario precisa ter de 4 a 23 caracteres, so letras, numeros e _.';
+		}
+		if (senha.length < 4 || senha.length > 23) {
+			return 'A senha precisa ter de 4 a 23 caracteres.';
+		}
+		if (senha !== senha2) {
+			return 'As duas senhas nao sao iguais.';
+		}
+		return null;
+	}
+
+	/*
+	 * Pergunta ao balcao se ele esta de pe ANTES de o jogador digitar.
+	 *
+	 * Sem isto, servidor desligado e cadastro recusado chegam como o mesmo
+	 * silencio, e o jogador culpa a propria internet.
+	 */
+	function conferirSaude() {
+		if (!BALCAO) {
+			mostrar(estado, 'Esta pagina foi publicada sem o endereco do cadastro. Avise o dono do servidor.', 'erro');
+			enviar.disabled = true;
+			return;
+		}
+		fetch(BALCAO + '/saude', { cache: 'no-store' })
+			.then(function (r) { return r.ok ? r.json() : Promise.reject(new Error(String(r.status))); })
+			.then(function () { esconder(estado); })
+			.catch(function () {
+				mostrar(estado, 'O servidor da v0 esta fora do ar agora. Ele roda na maquina do dono e so responde enquanto ela esta ligada.', 'erro');
+				enviar.disabled = true;
+			});
+	}
+
+	form.addEventListener('submit', function (evento) {
+		evento.preventDefault();
+		esconder(recado);
+
+		var usuario = document.getElementById('usuario').value.trim();
+		var senha = document.getElementById('senha').value;
+		var senha2 = document.getElementById('senha2').value;
+		var sexo = Number(form.querySelector('input[name=sexo]:checked').value);
+
+		var problema = conferir(usuario, senha, senha2);
+		if (problema) {
+			mostrar(recado, problema, 'erro');
+			return;
+		}
+
+		enviar.disabled = true;
+		enviar.textContent = 'Criando...';
+
+		fetch(BALCAO + '/cadastrar', {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({ usuario: usuario, senha: senha, sexo: sexo })
+		})
+			.then(function (r) { return r.json().then(function (j) { return { ok: r.ok, json: j }; }); })
+			.then(function (resposta) {
+				if (!resposta.ok || !resposta.json.ok) {
+					mostrar(recado, resposta.json.erro || 'Nao foi possivel criar a conta.', 'erro');
+					enviar.disabled = false;
+					enviar.textContent = 'Criar conta';
+					return;
+				}
+				/*
+				 * Deu certo: a etapa de cadastro SOME e a de entrar assume.
+				 * Deixar o formulario preenchido na tela convida a clicar de
+				 * novo, e a segunda tentativa seria recusada por nome em uso —
+				 * uma mensagem de erro logo depois de um sucesso.
+				 */
+				cartaoCadastro.hidden = true;
+				recadoEntrada.innerHTML =
+					'Conta criada. Entre com o usuario <strong>' +
+					resposta.json.usuario.replace(/[<>&]/g, '') +
+					'</strong> e a senha que voce escolheu.';
+				document.getElementById('botao-entrar').focus();
+			})
+			.catch(function () {
+				mostrar(recado, 'Nao foi possivel falar com o servidor. Ele pode estar fora do ar.', 'erro');
+				enviar.disabled = false;
+				enviar.textContent = 'Criar conta';
+			});
+	});
+
+	conferirSaude();
+})();
+</script>
+</body>
+</html>
