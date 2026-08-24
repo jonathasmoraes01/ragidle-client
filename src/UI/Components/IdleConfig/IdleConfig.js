@@ -35,6 +35,7 @@ import Network from 'Network/NetworkManager.js';
 import PACKET from 'Network/PacketStructure.js';
 import UIManager from 'UI/UIManager.js';
 import GUIComponent from 'UI/GUIComponent.js';
+import { pocoesDoEixo, escolherPocaoPadrao } from './escolhaDePocao.js';
 import htmlText from './IdleConfig.html?raw';
 import cssText from './IdleConfig.css?raw';
 
@@ -487,6 +488,19 @@ function bindGenericControls(bodyEl) {
 	bodyEl.querySelectorAll('[data-bool]').forEach(el => {
 		el.addEventListener('change', () => {
 			setPath(IdleConfig.editConfig, el.dataset.bool, el.checked);
+			// D-536: ligar a poção automática tem que ESCOLHER a poção. O
+			// `<select>` já mostrava a primeira da lista, mas o itemId no
+			// payload continuava 0 e o servidor recusava com "o item 0 nao e
+			// um consumivel de cura do jogo".
+			if (el.checked && (el.dataset.bool === 'pocaoDeHp.ligado' || el.dataset.bool === 'pocaoDeSp.ligado')) {
+				const campo = el.dataset.bool.split('.')[0];
+				const pocao = IdleConfig.editConfig[campo];
+				const disponiveis = pocoesDoEixo(
+					IdleConfig.contexto && IdleConfig.contexto.consumiveisDeCura,
+					campo === 'pocaoDeSp' ? 'curaSp' : 'curaHp'
+				);
+				pocao.itemId = escolherPocaoPadrao(disponiveis, pocao.itemId);
+			}
 			markDirty();
 			renderBody();
 		});
@@ -1033,29 +1047,38 @@ function renderRecuperacao() {
 }
 
 function renderPocao(fieldName, pocao, itens, enabled, label) {
-	const options = (itens || [])
+	const campoDoEixo = fieldName === 'pocaoDeSp' ? 'curaSp' : 'curaHp';
+	const disponiveis = pocoesDoEixo(itens, campoDoEixo);
+	const temPocao = disponiveis.length > 0;
+	// O interruptor só liga se houver o que beber — e a escolha mostrada é a
+	// mesma que vai no payload (escolherPocaoPadrao roda no toggle).
+	const ligavel = enabled && temPocao;
+	const selecionado = escolherPocaoPadrao(disponiveis, pocao.itemId);
+
+	const options = disponiveis
 		.map(
 			it =>
-				`<option value="${it.itemId}" ${pocao.itemId === it.itemId ? 'selected' : ''}>${escapeHtml(it.nome)} — ${it.estoque} em estoque</option>`
+				`<option value="${it.itemId}" ${selecionado === it.itemId ? 'selected' : ''}>${escapeHtml(it.nome)} — ${it.estoque} em estoque</option>`
 		)
 		.join('');
 
 	return `
-		<div class="ic-subsection${enabled ? '' : ' ic-subsection-disabled'}">
+		<div class="ic-subsection${ligavel ? '' : ' ic-subsection-disabled'}">
 			<label class="ic-switch-row">
 				<span class="ic-switch">
-					<input type="checkbox" data-bool="${fieldName}.ligado" ${pocao.ligado ? 'checked' : ''} ${enabled ? '' : 'disabled'} />
+					<input type="checkbox" data-bool="${fieldName}.ligado" ${pocao.ligado ? 'checked' : ''} ${ligavel ? '' : 'disabled'} />
 					<span class="ic-switch-track"></span>
 				</span>
 				<span class="ic-switch-text"><span class="ic-switch-label">Recuperação automática de ${label}</span></span>
 			</label>
-			<select class="ic-select" data-select="${fieldName}.itemId" data-select-number="1" ${enabled && pocao.ligado ? '' : 'disabled'}>
+			<select class="ic-select" data-select="${fieldName}.itemId" data-select-number="1" ${ligavel && pocao.ligado ? '' : 'disabled'}>
 				${options}
 			</select>
+			${!temPocao && enabled ? `<div class="ic-note ic-note-warn">Nenhum consumível que restaure ${label} está disponível.</div>` : ''}
 			<div class="ic-field-row">
 				<span>Usar com <span class="ic-inline-value" data-range-display="${fieldName}.usarCom">${pocao.usarCom}%</span> ou menos de ${label}</span>
 			</div>
-			<input type="range" class="ic-slider" min="1" max="99" step="1" value="${pocao.usarCom}" data-range="${fieldName}.usarCom" ${enabled && pocao.ligado ? '' : 'disabled'} />
+			<input type="range" class="ic-slider" min="1" max="99" step="1" value="${pocao.usarCom}" data-range="${fieldName}.usarCom" ${ligavel && pocao.ligado ? '' : 'disabled'} />
 		</div>`;
 }
 
