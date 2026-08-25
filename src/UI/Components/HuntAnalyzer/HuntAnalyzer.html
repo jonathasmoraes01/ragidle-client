@@ -1,0 +1,89 @@
+<div id="HuntAnalyzer">
+	<!-- ".ha-window" e o retangulo INTEIRO; ".ha-frame" carrega ".ri-window"
+	     (fundo/aro/sombra). Mesma divisao de camadas de CorreioIdle.html e
+	     MochilaIdle.html, pelo mesmo motivo: quem liga/desliga "is-open" e o
+	     retangulo de fora, pro host continuar mensuravel com a janela fechada. -->
+	<div class="ha-window">
+		<div class="ha-frame ri-window">
+			<div class="ha-header ri-header">
+				<span class="ha-titulo ri-title">Hunt Analyzer</span>
+				<button type="button" class="ha-close ri-close" title="Fechar">&times;</button>
+			</div>
+
+			<div class="ha-corpo ri-scroll">
+				<!-- ─── A FAIXA DE SESSAO. "Medindo ha" e o denominador de tudo
+				     que aparece abaixo; deixa-lo visivel e o que permite ao
+				     jogador desconfiar de um ritmo colhido em 12 segundos. -->
+				<div class="ha-sessao">
+					<span class="ha-sessao-texto">Medindo há <b class="ha-decorrido">—</b></span>
+					<span class="ha-ocioso" hidden></span>
+					<button type="button" class="ha-zerar ri-btn ri-btn--sec" data-acao="zerar">Zerar</button>
+				</div>
+
+				<!-- ─── EXPERIENCIA ────────────────────────────────────────
+				     Os dois trilhos vem de ZC_NOTIFY_EXP (varID 1 e 2), que o
+				     servidor manda a cada abate. Sao somas de valores reais. -->
+				<section class="ha-bloco">
+					<h3 class="ha-bloco-titulo">Experiência</h3>
+					<div class="ha-cartoes">
+						<div class="ha-cartao">
+							<span class="ha-cartao-rotulo">Base / hora</span>
+							<span class="ha-cartao-valor ha-exp-base-hora">—</span>
+							<span class="ha-cartao-nota">Total: <b class="ha-exp-base">0</b></span>
+						</div>
+						<div class="ha-cartao">
+							<span class="ha-cartao-rotulo">Classe / hora</span>
+							<span class="ha-cartao-valor ha-exp-classe-hora">—</span>
+							<span class="ha-cartao-nota">Total: <b class="ha-exp-classe">0</b></span>
+						</div>
+					</div>
+
+					<!-- A projecao so aparece quando ha ritmo medido E o cliente
+					     sabe quanto falta (BasicInfo.base_exp_next). Sem uma das
+					     duas ela mostra "--", nunca um numero de consolo. -->
+					<div class="ha-projecoes">
+						<div class="ha-projecao">
+							<span class="ha-projecao-rotulo">Próximo nível</span>
+							<span class="ha-projecao-valor ha-falta-base">—</span>
+						</div>
+						<div class="ha-projecao">
+							<span class="ha-projecao-rotulo">Próximo nível de classe</span>
+							<span class="ha-projecao-valor ha-falta-classe">—</span>
+						</div>
+					</div>
+				</section>
+
+				<!-- ─── ABATES E RANKING ───────────────────────────────────
+				     Contados no VANISH/DEAD de entidade TYPE_MOB. A ressalva
+				     (conta o que morre A VISTA) esta no cabecalho de
+				     registroDaCaca.js -- hoje a caca e solo, D-246. -->
+				<section class="ha-bloco">
+					<h3 class="ha-bloco-titulo">
+						Abates
+						<span class="ha-bloco-resumo"><b class="ha-abates">0</b> · <b class="ha-abates-hora">—</b>/h</span>
+					</h3>
+					<ul class="ha-ranking"></ul>
+					<div class="ha-vazio ha-ranking-vazio">Nenhum abate registrado ainda.</div>
+				</section>
+
+				<!-- ─── ITENS ──────────────────────────────────────────────
+				     A taxa e GLOBAL (por 100 abates) de proposito: o pacote do
+				     item que cai nao diz de qual mob veio, entao taxa por
+				     monstro seria palpite com cara de medida. -->
+				<section class="ha-bloco">
+					<h3 class="ha-bloco-titulo">
+						Itens
+						<span class="ha-bloco-resumo"><b class="ha-itens-total">0</b> · <b class="ha-itens-taxa">—</b> por 100 abates</span>
+					</h3>
+					<ul class="ha-itens"></ul>
+					<div class="ha-vazio ha-itens-vazio">Nenhum item apanhado ainda.</div>
+				</section>
+
+				<p class="ha-rodape-nota">
+					Zeny não entra: o servidor usa o mesmo pacote para o zeny do
+					monstro e para uma venda em loja, então não dá para separar.
+				</p>
+			</div>
+		</div>
+	</div>
+</div>

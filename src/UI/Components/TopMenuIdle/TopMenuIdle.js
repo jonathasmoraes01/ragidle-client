@@ -150,6 +150,7 @@ import StatusIdle from 'UI/Components/StatusIdle/StatusIdle.js';
 import MochilaIdle from 'UI/Components/MochilaIdle/MochilaIdle.js';
 import HuntMap from 'UI/Components/HuntMap/HuntMap.js';
 import CorreioIdle from 'UI/Components/CorreioIdle/CorreioIdle.js';
+import HuntAnalyzer from 'UI/Components/HuntAnalyzer/HuntAnalyzer.js';
 import AdminPanel from 'UI/Components/AdminPanel/AdminPanel.js';
 import RiIcones from 'UI/ri-icones.js';
 import htmlText from './TopMenuIdle.html?raw';
@@ -397,6 +398,12 @@ function onClickAction(e) {
 		case 'config':
 			/* "Configuracoes" = a fusao de Config + Menu (ver cabecalho). */
 			IdleConfig.toggle();
+			break;
+		case 'analyzer':
+			/* A janela nao pede nada ao servidor ao abrir: o registro ja vem
+			   sendo alimentado desde o primeiro abate da sessao, esteja ela
+			   aberta ou fechada. Abrir e so passar a desenhar. */
+			HuntAnalyzer.toggle();
 			break;
 		case 'guild':
 			Guild.toggle();
@@ -749,6 +756,8 @@ function isActionOpen(action) {
 			return isRagIdleWindowOpen(CorreioIdle, '.co-window');
 		case 'config':
 			return isRagIdleWindowOpen(IdleConfig, '.ic-window');
+		case 'analyzer':
+			return isRagIdleWindowOpen(HuntAnalyzer, '.ha-window');
 		case 'admin':
 			return isRagIdleWindowOpen(AdminPanel, '.ap-window');
 		case 'guild':

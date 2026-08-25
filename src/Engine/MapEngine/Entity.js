@@ -39,6 +39,13 @@ import LockOnTarget from 'Renderer/Effects/LockOnTarget.js';
 import MagicRing from 'Renderer/Effects/MagicRing.js';
 import BasicInfo from 'UI/Components/BasicInfo/BasicInfo.js';
 import ChatBox from 'UI/Components/ChatBox/ChatBox.js';
+/*
+ * O Hunt Analyzer NAO fisga pacote: `Network.hookPacket()` guarda UM callback
+ * por pacote (Network/NetworkManager.js:210), entao fisgar VANISH ou
+ * NOTIFY_EXP aqui apagaria em silencio os handlers deste arquivo -- e com
+ * eles o feed do canal Farm. Quem ja recebe e que avisa o registro.
+ */
+import { registrarAbate, registrarExp } from 'UI/Components/HuntAnalyzer/registroDaCaca.js';
 import ChatRoom from 'UI/Components/ChatRoom/ChatRoom.js';
 import Escape from 'UI/Components/Escape/Escape.js';
 import DeathWindow from 'UI/Components/DeathWindow/DeathWindow.js';
@@ -354,6 +361,26 @@ function onEntityVanish(pkt) {
 					entity.aura.remove(EffectManager);
 				}
 				if (pkt.type === Entity.VT.DEAD) {
+					/*
+					 * O ABATE do Hunt Analyzer. Aqui, e nao em ZC_NOTIFY_EXP,
+					 * porque so aqui existe IDENTIDADE: `entity.job` -> o nome
+					 * pela tabela do proprio cliente.
+					 *
+					 * Ressalva declarada: isto conta o mob que morre A VISTA, e
+					 * nao "o mob que EU matei". Hoje as duas coisas coincidem
+					 * porque a caca e solo (D-246); num mapa compartilhado a
+					 * contagem incluiria a morte alheia. A troca esta escrita no
+					 * cabecalho de registroDaCaca.js.
+					 *
+					 * "Unknown" e o que getMonsterName devolve quando o job nao
+					 * esta na tabela; vira vazio para cair no balde explicito do
+					 * registro, em portugues, em vez de virar uma linha
+					 * "Unknown" no ranking.
+					 */
+					if (entity.objecttype === Entity.TYPE_MOB && Session.Entity) {
+						const nome = DB.getMonsterName(entity.job);
+						registrarAbate(Session.Entity.GID, nome === 'Unknown' ? '' : nome);
+					}
 					EntityManager.removeLife(pkt.GID);
 				}
 		}
@@ -2612,6 +2639,17 @@ function onNotifyExp(pkt) {
 	const ganho = Number(pkt.amount || 0).toLocaleString('pt-BR');
 	switch (pkt.expType) {
 		case 0:
+			/*
+			 * A EXP do Hunt Analyzer. `expType === 0` e o abate -- o `case 1`
+			 * abaixo e MISSAO, e missao nao e caca: somar as duas inflaria o
+			 * "exp/hora do spot" com um ganho que nao se repete.
+			 *
+			 * `pkt.amount`, e nao `ganho`: `ganho` ja passou por
+			 * toLocaleString e e a STRING "1.234" -- somar isso daria NaN.
+			 */
+			if (Session.Entity && (pkt.varID === 1 || pkt.varID === 2)) {
+				registrarExp(Session.Entity.GID, pkt.varID === 1 ? 'base' : 'classe', pkt.amount);
+			}
 			if (pkt.varID === 1) {
 				ChatBox.addText(`Você ganhou ${ganho} de EXP base.`, ChatBox.TYPE.INFO, ChatBox.FILTER.FARM_EXP);
 			} else if (pkt.varID === 2) {

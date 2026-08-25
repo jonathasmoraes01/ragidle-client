@@ -1,0 +1,267 @@
+/**
+ * UI/Components/HuntAnalyzer/HuntAnalyzer.css
+ *
+ * "Hunt Analyzer" -- a leitura da cacada EM CURSO, no design system oficial.
+ * Uma coluna so, tres blocos (experiencia, abates, itens) e uma faixa de
+ * sessao no topo. Nao substitui janela nativa nenhuma: e tela nova, entao nao
+ * ha host escondido aqui (ao contrario de Mochila/Correio).
+ *
+ * Medidas: nenhum token oficial cravou esta janela -- a lista de medidas do
+ * design system em Common.css nao a inclui, como tambem nao inclui Mochila
+ * nem Correio. Os numeros abaixo sao novos e escolhidos pelo conteudo real.
+ * Quem mudar UM confere os DOIS lugares (":host"/".ha-window" aqui e
+ * WINDOW_WIDTH/WINDOW_HEIGHT em HuntAnalyzer.js) -- cicatriz D-341, a mesma
+ * anotada em StatusIdle.css, MochilaIdle.css e CorreioIdle.css.
+ *
+ * Cor, raio, sombra, fonte e espacamento saem SO de token/receita --ri-(algo)
+ * de Common.css. Nenhum literal novo de cor nesta folha.
+ */
+
+:host {
+	position: absolute;
+	width: 420px;
+	height: 480px;
+	/* Mesmo contrato dos outros flutuantes RAGIDLE: o host nao intercepta
+	   clique no mundo; so o miolo da janela reabre pointer-events. */
+	pointer-events: none;
+}
+
+#HuntAnalyzer {
+	position: relative;
+	width: 100%;
+	height: 100%;
+}
+
+.ha-window {
+	display: none;
+	position: absolute;
+	inset: 0;
+	width: 420px;
+	height: 480px;
+	pointer-events: auto;
+}
+
+.ha-window.is-open {
+	display: block;
+}
+
+/* O atributo "hidden" tem de vencer qualquer display de layout declarado
+   abaixo (flex/grid ganham de [hidden] por especificidade de origem). */
+[hidden] {
+	display: none !important;
+}
+
+.ha-frame {
+	display: flex;
+	flex-direction: column;
+	width: 100%;
+	height: 100%;
+}
+
+.ha-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	flex: 0 0 auto;
+	cursor: move;
+}
+
+.ha-corpo {
+	flex: 1 1 auto;
+	display: flex;
+	flex-direction: column;
+	gap: var(--sp-3);
+	padding: var(--sp-3);
+	overflow-y: auto;
+}
+
+/* ─── Faixa de sessao ─────────────────────────────────────────────────── */
+
+.ha-sessao {
+	display: flex;
+	align-items: center;
+	gap: var(--sp-2);
+	padding-bottom: var(--sp-2);
+	border-bottom: var(--border-hairline);
+	font: var(--type-info);
+	color: var(--text-muted);
+}
+
+.ha-sessao-texto b {
+	color: var(--text-body);
+	font-weight: var(--fw-bold);
+}
+
+/* Empurra o "Zerar" para a direita sem um espacador vazio no HTML. */
+.ha-zerar {
+	margin-left: auto;
+}
+
+.ha-ocioso {
+	font: var(--type-badge);
+	color: var(--text-muted);
+}
+
+/* ─── Blocos ──────────────────────────────────────────────────────────── */
+
+.ha-bloco {
+	display: flex;
+	flex-direction: column;
+	gap: var(--sp-2);
+}
+
+.ha-bloco-titulo {
+	display: flex;
+	align-items: baseline;
+	justify-content: space-between;
+	gap: var(--sp-2);
+	margin: 0;
+	font: var(--type-section);
+	letter-spacing: var(--ls-caps);
+	color: var(--text-title);
+}
+
+.ha-bloco-resumo {
+	font: var(--type-info);
+	color: var(--text-muted);
+}
+
+.ha-bloco-resumo b {
+	font: var(--type-numeric);
+	color: var(--text-body);
+}
+
+/* ─── Cartoes de experiencia ──────────────────────────────────────────── */
+
+.ha-cartoes {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: var(--sp-2);
+}
+
+.ha-cartao {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	padding: var(--pad-card);
+	background: var(--surface-card);
+	border-radius: var(--radius-card);
+	box-shadow: var(--shadow-card);
+}
+
+.ha-cartao-rotulo {
+	font: var(--type-label);
+	letter-spacing: var(--ls-caps);
+	color: var(--text-muted);
+}
+
+/*
+ * O PAR, e nao `font: var(--fs-numeric-lg)`: esse token e um TAMANHO ("16px"),
+ * e o shorthand `font` exige familia -- com so o tamanho a declaracao inteira
+ * e invalida e o navegador a descarta em silencio, deixando o numero no
+ * tamanho herdado. Mesmo par de CorreioIdle.css:340-341.
+ */
+.ha-cartao-valor {
+	font: var(--type-numeric);
+	font-size: var(--fs-numeric-lg);
+	font-weight: var(--fw-bold);
+	color: var(--accent-strong);
+}
+
+.ha-cartao-nota {
+	font: var(--type-badge);
+	color: var(--text-muted);
+}
+
+.ha-cartao-nota b {
+	color: var(--text-body);
+}
+
+/* ─── Projecoes ───────────────────────────────────────────────────────── */
+
+.ha-projecoes {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	padding: var(--pad-card);
+	background: var(--well-fill);
+	border-radius: var(--radius-panel);
+	box-shadow: var(--well-shadow);
+}
+
+.ha-projecao {
+	display: flex;
+	align-items: baseline;
+	justify-content: space-between;
+	gap: var(--sp-2);
+	font: var(--type-info);
+	color: var(--text-muted);
+}
+
+.ha-projecao-valor {
+	font: var(--type-numeric);
+	color: var(--text-body);
+}
+
+/* ─── Listas (ranking e itens) ────────────────────────────────────────── */
+
+.ha-ranking,
+.ha-itens {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.ha-linha {
+	display: grid;
+	/* nome | contagem | participacao -- as duas colunas da direita sao fixas
+	   para os numeros alinharem entre linhas de nomes de larguras diferentes. */
+	grid-template-columns: 1fr auto 48px;
+	align-items: center;
+	gap: var(--sp-2);
+	padding: 4px var(--sp-2);
+	background: var(--surface-card);
+	border-radius: var(--radius-card);
+	font: var(--type-info);
+	color: var(--text-body);
+}
+
+.ha-linha:hover {
+	background: var(--surface-card-hover);
+}
+
+.ha-linha-nome {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.ha-linha-valor {
+	font: var(--type-numeric);
+	font-weight: var(--fw-bold);
+}
+
+.ha-linha-parte {
+	text-align: right;
+	font: var(--type-badge);
+	color: var(--text-muted);
+}
+
+.ha-vazio {
+	padding: var(--sp-2);
+	font: var(--type-info);
+	color: var(--text-muted);
+	text-align: center;
+}
+
+.ha-rodape-nota {
+	margin: 0;
+	padding-top: var(--sp-2);
+	border-top: var(--border-hairline);
+	font: var(--type-badge);
+	line-height: var(--lh-read);
+	color: var(--text-muted);
+}

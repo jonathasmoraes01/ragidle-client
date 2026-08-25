@@ -82,6 +82,20 @@
 			<span class="tm-label">Idle</span>
 		</button>
 
+		<!-- HUNT ANALYZER: a leitura da cacada em curso (exp/hora, abates/hora,
+		     ranking de monstro, itens e taxa). Cluster e nao leque pelo mesmo
+		     criterio que subiu o Idle: e painel que se consulta DURANTE a
+		     sessao para decidir se o spot presta, nao um destino ocasional.
+		     Fica ao lado do "Idle" de proposito -- os dois respondem a mesma
+		     pergunta, um configura a caca e o outro mede o resultado.
+
+		     Icone "grafico": ja existia em ri-icones.js e nao tinha consumidor.
+		     Nenhum icone novo entrou por causa desta janela. -->
+		<button type="button" class="tm-item" data-action="analyzer" title="Hunt Analyzer">
+			<span class="tm-icon-wrap ri-disc"><!--RI_ICONE:grafico--></span>
+			<span class="tm-label">Análise</span>
+		</button>
+
 		<!-- Alca de recolher o CLUSTER (os 5 acima). Fica FORA do que ela
 		     esconde, de proposito: nunca some, senao o jogador se tranca fora
 		     dos essenciais. Recolhido, e o unico pixel que sobra deste canto.

@@ -123,6 +123,7 @@ import DockIdle from 'UI/Components/DockIdle/DockIdle.js'; // RAGIDLE: "Barra de
 import DeathWindow from 'UI/Components/DeathWindow/DeathWindow.js'; // RAGIDLE: "Você morreu"
 import TopMenuIdle from 'UI/Components/TopMenuIdle/TopMenuIdle.js'; // RAGIDLE: "Menu superior direito (constelação)"
 import CorreioIdle from 'UI/Components/CorreioIdle/CorreioIdle.js'; // RAGIDLE: "Correio" (a caixa do sistema, D-366)
+import HuntAnalyzer from 'UI/Components/HuntAnalyzer/HuntAnalyzer.js'; // RAGIDLE: "Hunt Analyzer" (a leitura da cacada em curso)
 import HuntButtonIdle from 'UI/Components/HuntButtonIdle/HuntButtonIdle.js'; // RAGIDLE: "Botão de caça contextual (abaixo do minimapa)"
 
 import MainEngine from './MapEngine/Main.js';
@@ -465,6 +466,7 @@ class MapEngine {
 			DockIdle.prepare(); // RAGIDLE: "Barra de acoes" — depois de HuntMap/IdleConfig/IdleSkills (precisa da shadow DOM deles pronta pra esconder os botoes redundantes) e depois de IdleConfig.prepare() (usa IdleConfig.editConfig/IdleConfig.pedirConfig()/IdleConfig.aplicarConfig(), aliases publicos no fim de IdleConfig.js — herdados do extinto CombatCornerIdle.prepare())
 			DeathWindow.prepare(); // RAGIDLE: "Você morreu"
 			CorreioIdle.prepare(); // RAGIDLE: "Correio" — DEPOIS de Rodex.prepare()/RodexIcon.prepare() (linhas acima): CorreioIdle.onAppend() esconde os _host nativos de Rodex/ReadRodex/RodexIcon, e os tres precisam ja existir. O ReadRodex e a excecao: ele so ganha _host quando o motor o apenda no primeiro 0x09eb, e por isso CorreioIdle tambem reconfere no tique
+			HuntAnalyzer.prepare(); // RAGIDLE: "Hunt Analyzer" — ANTES de TopMenuIdle.prepare(): o menu le isRagIdleWindowOpen(HuntAnalyzer, '.ha-window') no proprio tique de estado, e isso exige a shadow DOM ja pronta. Nao esconde nativo nenhum (e tela nova), entao nao depende de mais ninguem
 			TopMenuIdle.prepare(); // RAGIDLE: "Menu superior direito (constelação)" — chama IdleSkills.toggle()/IdleConfig.toggle() (RAGIDLE, ja preparados acima) e Guild.toggle()/PartyFriends.toggle() (nativos, ja preparados bem antes deste bloco); a shadow DOM de todos precisa existir antes do proprio prepare() de TopMenuIdle so por padrao do arquivo, nao por uso direto do DOM deles
 			HuntButtonIdle.prepare(); // RAGIDLE: "Botão de caça contextual" — le IdleConfig.contexto.ehCidade e chama HuntMap.toggle()/HuntMap.travelToCity(); tambem esconde AdminPanel.getRoot() ".ap-button", por isso fica depois de IdleConfig.prepare()/HuntMap.prepare()/AdminPanel.prepare() acima (precisa da shadow DOM dos tres ja pronta)
 
@@ -916,6 +918,14 @@ function onMapChange(pkt) {
 		// TopMenuIdle.append(), que le CorreioIdle.temNaoLidas() no proprio
 		// onAppend() para acender o ponto de nao-lida do icone de Correio.
 		CorreioIdle.append();
+
+		// RAGIDLE: "Hunt Analyzer" — a leitura da cacada em curso (exp/hora,
+		// abates/hora, ranking, itens). Vem ANTES de TopMenuIdle.append()
+		// porque o menu consulta o estado de abertura dela para acender o aro
+		// do botao. Ela nasce FECHADA: o registro que a alimenta
+		// (registroDaCaca.js) acumula desde o primeiro abate, esteja a janela
+		// aberta ou nao, entao nao ha nada a perder mantendo-a escondida.
+		HuntAnalyzer.append();
 
 		// RAGIDLE: "Menu superior direito (constelação)" — duas fileiras de
 		// botoes circulares abaixo do minimapa (TopMenuIdle.js/.css).

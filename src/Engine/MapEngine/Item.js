@@ -19,6 +19,9 @@ import Altitude from 'Renderer/Map/Altitude.js';
 import Session from 'Engine/SessionStorage.js';
 import ChatBox from 'UI/Components/ChatBox/ChatBox.js';
 import ItemObtain from 'UI/Components/ItemObtain/ItemObtain.js';
+/* Ver a nota em Engine/MapEngine/Entity.js: o registro e alimentado por quem
+   ja recebe o pacote, nunca por um hook que sobrescreveria este handler. */
+import { registrarItem } from 'UI/Components/HuntAnalyzer/registroDaCaca.js';
 import ItemSelection from 'UI/Components/ItemSelection/ItemSelection.js';
 import Inventory from 'UI/Components/Inventory/Inventory.js';
 import CartItems from 'UI/Components/CartItems/CartItems.js';
@@ -101,6 +104,16 @@ function onItemPickAnswer(pkt) {
 	// sessao desassistida (RagidleRelatorio.js), para o jogador ler a mesma
 	// forma ao vivo e no resumo.
 	ChatBox.addText(`Você pegou ${getTextItem} x${pkt.count}.`, ChatBox.TYPE.BLUE, ChatBox.FILTER.FARM_ITEM);
+
+	/*
+	 * O ITEM do Hunt Analyzer -- no MESMO ponto da linha de FARM_ITEM, e nao
+	 * no caminho de falha logo acima: a separacao aqui e por ORIGEM, e este e
+	 * o ponto do item que CAIU e foi recolhido. Mesmo nome que o chat mostra,
+	 * pela mesma DB.getItemName, para a janela e o log nao divergirem.
+	 */
+	if (Session.Entity) {
+		registrarItem(Session.Entity.GID, getTextItem, pkt.count);
+	}
 
 	Inventory.getUI().addItem(pkt);
 }
