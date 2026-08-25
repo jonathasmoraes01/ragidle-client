@@ -36,7 +36,9 @@
  * leque. A pele nao mudou em nada.
  *
  * ─── ONDE FOI PARAR CADA UM DOS 17 (nenhum sumiu sem destino) ────────────
- *   CLUSTER (6): Personagem, Mochila, Skills, Caca, Correio, Idle.
+ *   CLUSTER (7): Personagem, Mochila, Skills, Caca, Correio, MISSOES
+ *                (entrou em 24/08/2026, D-551 — nao e um dos 17: e janela
+ *                nova), Idle.
  *   LEQUE (10):  Guilda, Grupo, Admin, Loja, RO Shop, Troca, Leilao,
  *                Recompensas, Eventos, Passe.
  *   17 = 6 + 10 + 1, e o "1" e a FUSAO: "Config" e "Menu" eram dois icones
@@ -150,6 +152,7 @@ import StatusIdle from 'UI/Components/StatusIdle/StatusIdle.js';
 import MochilaIdle from 'UI/Components/MochilaIdle/MochilaIdle.js';
 import HuntMap from 'UI/Components/HuntMap/HuntMap.js';
 import CorreioIdle from 'UI/Components/CorreioIdle/CorreioIdle.js';
+import MissoesIdle from 'UI/Components/MissoesIdle/MissoesIdle.js';
 import AdminPanel from 'UI/Components/AdminPanel/AdminPanel.js';
 import RiIcones from 'UI/ri-icones.js';
 import htmlText from './TopMenuIdle.html?raw';
@@ -393,6 +396,11 @@ function onClickAction(e) {
 			/* CorreioIdle.toggle() tambem PEDE a caixa ao abrir (0x09e6): a
 			   lista so existe no cliente depois que o servidor a manda. */
 			CorreioIdle.toggle();
+			break;
+		case 'missoes':
+			/* MissoesIdle.toggle() tambem PEDE o estado ao abrir (0x0fec):
+			   quem decide bloqueada/disponivel/concluida e o servidor. */
+			MissoesIdle.toggle();
 			break;
 		case 'config':
 			/* "Configuracoes" = a fusao de Config + Menu (ver cabecalho). */

@@ -4910,6 +4910,13 @@ function init(packetver) {
 	// (checked: 0x0fef is otherwise unused in this file).
 	length_list[0x0fef] = -1; // ZC_RAGIDLE_FICHA (variable, JSON payload)
 
+	// RAGIDLE: "Missões" packets (D-551) — os PRIMEIROS da faixa reservada
+	// reservada de D-527, que termina em 0x0fed e e ocupada de cima para baixo (a original 0x0fee-0x0fff
+	// fechou 18/18; ver docs/mapa-de-pacotes.md no repo do servidor). Checked:
+	// no other length_list[] assignment in this file touches 0x0fec/0x0fed.
+	length_list[0x0fec] = 2; // CZ_RAGIDLE_PEDIR_MISSOES (opcode only)
+	length_list[0x0fed] = -1; // ZC_RAGIDLE_MISSOES (variable, JSON payload)
+
 	return length_list;
 }
 

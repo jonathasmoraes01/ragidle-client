@@ -167,6 +167,15 @@ const RiIcones = {
 		svg('<rect x="2.5" y="5" width="19" height="14" rx="2"/><path d="m3 6.5 9 6.5 9-6.5"/>')
 	),
 
+	// ── Missões — (idioma Lucide, "ListChecks": lista com marcas de feito).
+	// Sem candidato em ro_menu_icon: o conceito "missão/quest" do cliente
+	// (quest_1.bmp) tem ponto de exclamação PINTADO no glifo, a mesma
+	// reprovação de guilda="G"/zeny="Z" (o DS proíbe texto/símbolo tipográfico
+	// dentro do glifo) — fica 100% Lucide. ──────────────────────────────────
+	missoes: svg(
+		'<path d="m3 6.5 1.8 1.8L8.3 4.8"/><path d="m3 16.5 1.8 1.8 3.5-3.5"/><path d="M13 6h8"/><path d="M13 12h8"/><path d="M13 18h8"/>'
+	),
+
 	// ── Loja — (idioma Lucide, "Store"). ────────────────────────────────────
 	loja: svg(
 		'<path d="M3 9 4 4h16l1 5"/><path d="M4 9v10a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1V9"/><path d="M3 9h18"/><path d="M9 20v-5a3 3 0 0 1 6 0v5"/>'
