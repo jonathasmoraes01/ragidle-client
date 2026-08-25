@@ -229,6 +229,13 @@
 	color: var(--text-body);
 }
 
+/* A lista de ITENS nao tem a coluna de participacao (pedido do dono,
+   25/08/2026): comparar Jellopy com Carta em % nao responde pergunta
+   nenhuma. Sem a terceira coluna, a quantidade encosta na direita. */
+.ha-linha--sem-parte {
+	grid-template-columns: 1fr auto;
+}
+
 .ha-linha:hover {
 	background: var(--surface-card-hover);
 }

@@ -105,14 +105,6 @@ function numero(valor) {
 	return Math.round(valor).toLocaleString('pt-BR');
 }
 
-/** Uma casa decimal, para a taxa por 100 abates nao virar "0". */
-function decimal(valor) {
-	if (valor === null || valor === undefined || !isFinite(valor)) {
-		return TRACO;
-	}
-	return valor.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
-}
-
 /**
  * Duracao legivel. Duas casas de grandeza no maximo ("1h 12min", "12min 5s"),
  * porque a terceira nao muda decisao nenhuma.
@@ -145,13 +137,37 @@ function texto(root, seletor, valor) {
 }
 
 /**
+ * A projecao de nivel: QUANTO falta, e quanto tempo isso da no ritmo medido.
+ *
+ * Os dois numeros respondem coisas diferentes e por isso aparecem juntos
+ * (pedido do dono, 25/08/2026): o tempo depende do ritmo e muda a cada onda,
+ * a exp que falta e um fato do personagem e nao se mexe com a sorte do spot.
+ *
+ * Sem saber o quanto falta nao ha o que dizer -- travessao. Sabendo o quanto
+ * falta mas ainda sem ritmo, o numero aparece e o tempo fica em travessao
+ * DENTRO do parenteses: "511 (--)" e mais honesto que esconder os 511.
+ */
+function projecao(restante, porHoraDaExp) {
+	const falta = Number(restante) || 0;
+	if (falta <= 0) {
+		return TRACO;
+	}
+	return `${numero(falta)} (${duracao(estimarMsAteONivel(falta, porHoraDaExp))})`;
+}
+
+/**
  * Reconstroi uma lista SO quando o conteudo mudou.
  *
  * A assinatura inclui o valor, e nao so os nomes: sem isso a lista congelaria
  * no primeiro desenho e os numeros parariam de subir com o ranking estavel --
  * que e o caso comum, e portanto o que passaria despercebido.
+ *
+ * `mostrarParte` liga a coluna de participacao (%). Ela vale no RANKING, onde
+ * "metade dos abates foi Poring" e uma leitura util, e NAO nos itens, onde o
+ * dono pediu so a quantidade -- ali a porcentagem compara Jellopy com Carta e
+ * nao responde pergunta nenhuma.
  */
-function desenharLista(root, seletorLista, seletorVazio, linhas, sigAnterior) {
+function desenharLista(root, seletorLista, seletorVazio, linhas, sigAnterior, mostrarParte) {
 	const sig = linhas.map(l => `${l.nome}:${l.valor}`).join('|');
 	const lista = root.querySelector(seletorLista);
 	const vazio = root.querySelector(seletorVazio);
@@ -168,7 +184,7 @@ function desenharLista(root, seletorLista, seletorVazio, linhas, sigAnterior) {
 
 	for (const linha of linhas) {
 		const li = document.createElement('li');
-		li.className = 'ha-linha';
+		li.className = mostrarParte ? 'ha-linha' : 'ha-linha ha-linha--sem-parte';
 
 		const nome = document.createElement('span');
 		nome.className = 'ha-linha-nome';
@@ -180,11 +196,15 @@ function desenharLista(root, seletorLista, seletorVazio, linhas, sigAnterior) {
 		valor.className = 'ha-linha-valor';
 		valor.textContent = numero(linha.valor);
 
-		const parte = document.createElement('span');
-		parte.className = 'ha-linha-parte';
-		parte.textContent = total > 0 ? `${Math.round((linha.valor * 100) / total)}%` : TRACO;
+		li.append(nome, valor);
 
-		li.append(nome, valor, parte);
+		if (mostrarParte) {
+			const parte = document.createElement('span');
+			parte.className = 'ha-linha-parte';
+			parte.textContent = total > 0 ? `${Math.round((linha.valor * 100) / total)}%` : TRACO;
+			li.appendChild(parte);
+		}
+
 		lista.appendChild(li);
 	}
 
@@ -221,27 +241,28 @@ function tique() {
 	const restanteBase = nativa ? (nativa.base_exp_next || 0) - (nativa.base_exp || 0) : 0;
 	const restanteClasse = nativa ? (nativa.job_exp_next || 0) - (nativa.job_exp || 0) : 0;
 
-	texto(root, '.ha-falta-base', duracao(estimarMsAteONivel(restanteBase, r.expBasePorHora)));
-	texto(root, '.ha-falta-classe', duracao(estimarMsAteONivel(restanteClasse, r.expClassePorHora)));
+	texto(root, '.ha-falta-base', projecao(restanteBase, r.expBasePorHora));
+	texto(root, '.ha-falta-classe', projecao(restanteClasse, r.expClassePorHora));
 
 	texto(root, '.ha-abates', numero(r.abatesTotal));
 	texto(root, '.ha-abates-hora', numero(r.abatesPorHora));
 	texto(root, '.ha-itens-total', numero(r.itensTotal));
-	texto(root, '.ha-itens-taxa', decimal(r.itensPor100Abates));
 
 	_sigRanking = desenharLista(
 		root,
 		'.ha-ranking',
 		'.ha-ranking-vazio',
 		r.ranking.map(m => ({ nome: m.nome, valor: m.abates })),
-		_sigRanking
+		_sigRanking,
+		true
 	);
 	_sigItens = desenharLista(
 		root,
 		'.ha-itens',
 		'.ha-itens-vazio',
 		r.itens.map(i => ({ nome: i.nome, valor: i.quantidade })),
-		_sigItens
+		_sigItens,
+		false
 	);
 }
 

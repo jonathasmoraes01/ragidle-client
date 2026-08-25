@@ -1391,8 +1391,35 @@ export function createCharSelect(config) {
 	 */
 	function renderGrid() {
 		Camera.direction = 4;
-		const idx = Math.floor(_index / _maxSlots) * _maxSlots;
 		const count = _ctx.length;
+
+		/*
+		 * A PAGINA E O QUE ESTA NA TELA, E NAO O QUE A CONTA TEM (25/08/2026).
+		 *
+		 * Queixa do dono: clicar numa vaga VAZIA fazia a sprite do personagem
+		 * sumir; clicar de volta na vaga certa e ela reaparecia.
+		 *
+		 * O offset era `Math.floor(_index / _maxSlots) * _maxSlots`, e os dois
+		 * numeros nao sao o mesmo: `_maxSlots` vem do servidor (para nos,
+		 * `TOTAL_DE_SLOTS = 9`, servidor/char/servidor-char.ts:41) e o grid
+		 * do V4 desenha QUINZE canvas. Com um personagem na vaga 8, clicar na
+		 * vaga 9 dava `idx = 9`, e o laco abaixo passava a desenhar
+		 * `_entitySlots[9..23]` nos quinze canvas -- a vaga 8 nao entrava em
+		 * nenhum deles, e o `clearRect` acima deixava o quadro em branco. O
+		 * rotulo com o nome ficava, porque ele e DOM e nao canvas: era essa a
+		 * metade que continuava aparecendo.
+		 *
+		 * Paginar por `count` mantem o desenho coerente com o que existe na
+		 * tela, seja qual for a contagem que o servidor mande. No grid os dois
+		 * so coincidiriam se a conta tivesse exatamente quinze vagas.
+		 *
+		 * O que isto NAO resolve: as vagas 9..14 continuam clicaveis mesmo com
+		 * a conta em 9 slots. Elas ficam vazias e o clique so nao seleciona
+		 * nada -- inofensivo, mas e uma divergencia entre o que o servidor
+		 * declara e o que o grid desenha, e o dono decide se o certo e o
+		 * servidor subir para 15 ou o grid esconder as seis.
+		 */
+		const idx = Math.floor(_index / count) * count;
 
 		for (let i = 0; i < count; ++i) {
 			_ctx[i].clearRect(0, 0, _ctx[i].canvas.width, _ctx[i].canvas.height);

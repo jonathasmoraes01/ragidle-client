@@ -14,6 +14,7 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import {
 	MS_MINIMOS_PARA_RITMO,
+	ehDropDeCaca,
 	estimarMsAteONivel,
 	ler,
 	registrarAbate,
@@ -199,6 +200,46 @@ describe('a troca de personagem', () => {
 	it('ler com o GID errado devolve vazio, e não o registro alheio', () => {
 		registrarAbate(EU, 'Poring', T0);
 		expect(ler(OUTRO, T_MEDIDO).abatesTotal).toBe(0);
+	});
+});
+
+describe('o que conta como drop da caçada', () => {
+	/*
+	 * ESTE BLOCO NASCEU DE UM DEFEITO NA TELA (25/08/2026).
+	 *
+	 * A janela listava "Poção Vermelha 200" e "Poção Azul 200" — o KIT INICIAL,
+	 * que chega pelo correio. `ZC_ITEM_PICKUP_ACK` não é "o item que caiu": é a
+	 * resposta a qualquer item entrando no inventário, e das cinco rotas que o
+	 * servidor usa para mandá-lo, quatro não são caça (correio, loja, carrinho,
+	 * armazém) — e as quatro acontecem na CIDADE.
+	 */
+	it('na cidade NÃO conta — é correio, loja, carrinho ou armazém', () => {
+		expect(ehDropDeCaca({ ehCidade: true })).toBe(false);
+	});
+
+	it('em mapa de caça conta', () => {
+		expect(ehDropDeCaca({ ehCidade: false })).toBe(true);
+	});
+
+	/*
+	 * A DIREÇÃO DO ERRO É ESCOLHIDA, e estes três casos são o que a fixa.
+	 *
+	 * `contexto` chega por resposta do servidor e pode faltar ou atrasar um
+	 * instante ao trocar de mapa. Se a dúvida virasse "não conta", esse instante
+	 * DESCARTARIA drop de verdade — e some sem deixar rastro na tela. Contar a
+	 * mais o jogador vê e reclama; descartar ninguém descobre.
+	 */
+	it('na DÚVIDA conta, em vez de descartar em silêncio', () => {
+		expect(ehDropDeCaca(null), 'contexto ainda não chegou').toBe(true);
+		expect(ehDropDeCaca(undefined), 'contexto ausente').toBe(true);
+		expect(ehDropDeCaca({}), 'contexto sem o campo').toBe(true);
+	});
+
+	it('só o booleano TRUE bloqueia — nada de valor parecido com verdadeiro', () => {
+		// Um `ehCidade: 'sim'` vindo de um contrato mudado não pode calar o
+		// registro por acidente: a comparação é estrita, e a dúvida conta.
+		expect(ehDropDeCaca({ ehCidade: 'sim' })).toBe(true);
+		expect(ehDropDeCaca({ ehCidade: 1 })).toBe(true);
 	});
 });
 

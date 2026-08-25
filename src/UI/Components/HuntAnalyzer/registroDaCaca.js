@@ -81,26 +81,47 @@ let _itens = new Map();
  * "este spot presta?".
  */
 function marcar(gid, agora) {
-  if (_dono !== gid) {
-    zerar();
-    _dono = gid;
-  }
-  if (_inicio === null) {
-    _inicio = agora;
-  }
-  _ultimo = agora;
+	if (_dono !== gid) {
+		zerar();
+		_dono = gid;
+	}
+	if (_inicio === null) {
+		_inicio = agora;
+	}
+	_ultimo = agora;
+}
+
+/**
+ * Este item entrando no inventario conta como DROP DA CACA?
+ *
+ * `ZC_ITEM_PICKUP_ACK` nao e "o item que caiu": e a resposta a qualquer item
+ * entrando no inventario. No nosso servidor ele sai de cinco lugares, e so um
+ * e caca -- os outros quatro sao correio, loja, carrinho e armazem (a lista
+ * com `arquivo:linha` esta em Engine/MapEngine/Item.js, em onItemPickAnswer).
+ * O pacote nao carrega a origem, entao o discriminador e do JOGO: as quatro
+ * rotas que nao sao drop acontecem na cidade, e na cidade nao ha caca (D-246).
+ *
+ * A CONDICAO E "SEI QUE E CIDADE", NAO "NAO SEI SE E CACA". `contexto` chega
+ * por resposta do servidor e pode faltar ou atrasar; com a condicao invertida
+ * esse instante descartaria drop de verdade, em silencio. Contar a mais
+ * aparece na tela; descartar nao aparece em lugar nenhum.
+ *
+ * @param {{ehCidade?: boolean}|null|undefined} contexto IdleConfig.contexto
+ */
+export function ehDropDeCaca(contexto) {
+	return !(contexto && contexto.ehCidade === true);
 }
 
 /** Zera o registro inteiro. O botao "Zerar" da janela chama isto. */
 export function zerar() {
-  _dono = null;
-  _inicio = null;
-  _ultimo = null;
-  _abatesPorMonstro = new Map();
-  _abatesTotal = 0;
-  _expBase = 0;
-  _expClasse = 0;
-  _itens = new Map();
+	_dono = null;
+	_inicio = null;
+	_ultimo = null;
+	_abatesPorMonstro = new Map();
+	_abatesTotal = 0;
+	_expBase = 0;
+	_expClasse = 0;
+	_itens = new Map();
 }
 
 /**
@@ -108,10 +129,10 @@ export function zerar() {
  * `DB.getMonsterName`); nome vazio cai num balde explicito em vez de sumir.
  */
 export function registrarAbate(gid, nome, agora = Date.now()) {
-  marcar(gid, agora);
-  const chave = nome || 'Nao identificado';
-  _abatesPorMonstro.set(chave, (_abatesPorMonstro.get(chave) || 0) + 1);
-  _abatesTotal += 1;
+	marcar(gid, agora);
+	const chave = nome || 'Nao identificado';
+	_abatesPorMonstro.set(chave, (_abatesPorMonstro.get(chave) || 0) + 1);
+	_abatesTotal += 1;
 }
 
 /**
@@ -121,34 +142,34 @@ export function registrarAbate(gid, nome, agora = Date.now()) {
  * ele iniciar a janela de medida faria o ritmo nascer diluido.
  */
 export function registrarExp(gid, tipo, valor, agora = Date.now()) {
-  const ganho = Number(valor) || 0;
-  if (ganho <= 0) {
-    return;
-  }
-  marcar(gid, agora);
-  if (tipo === 'base') {
-    _expBase += ganho;
-  } else if (tipo === 'classe') {
-    _expClasse += ganho;
-  }
+	const ganho = Number(valor) || 0;
+	if (ganho <= 0) {
+		return;
+	}
+	marcar(gid, agora);
+	if (tipo === 'base') {
+		_expBase += ganho;
+	} else if (tipo === 'classe') {
+		_expClasse += ganho;
+	}
 }
 
 /** Um item que caiu e foi apanhado. */
 export function registrarItem(gid, nome, quantidade, agora = Date.now()) {
-  const qtd = Number(quantidade) || 0;
-  if (qtd <= 0 || !nome) {
-    return;
-  }
-  marcar(gid, agora);
-  _itens.set(nome, (_itens.get(nome) || 0) + qtd);
+	const qtd = Number(quantidade) || 0;
+	if (qtd <= 0 || !nome) {
+		return;
+	}
+	marcar(gid, agora);
+	_itens.set(nome, (_itens.get(nome) || 0) + qtd);
 }
 
 /** `total` por hora, ou `null` enquanto a janela medida for curta demais. */
 function porHora(total, decorridoMs) {
-  if (decorridoMs < MS_MINIMOS_PARA_RITMO) {
-    return null;
-  }
-  return (total * MS_POR_HORA) / decorridoMs;
+	if (decorridoMs < MS_MINIMOS_PARA_RITMO) {
+		return null;
+	}
+	return (total * MS_POR_HORA) / decorridoMs;
 }
 
 /**
@@ -159,14 +180,14 @@ function porHora(total, decorridoMs) {
  * ainda nao sabe o teto (`restante` nao-positivo). Quem desenha escreve "--".
  */
 export function estimarMsAteONivel(restante, expPorHora) {
-  if (expPorHora === null || expPorHora <= 0) {
-    return null;
-  }
-  const falta = Number(restante) || 0;
-  if (falta <= 0) {
-    return null;
-  }
-  return (falta / expPorHora) * MS_POR_HORA;
+	if (expPorHora === null || expPorHora <= 0) {
+		return null;
+	}
+	const falta = Number(restante) || 0;
+	if (falta <= 0) {
+		return null;
+	}
+	return (falta / expPorHora) * MS_POR_HORA;
 }
 
 /**
@@ -174,66 +195,67 @@ export function estimarMsAteONivel(restante, expPorHora) {
  * nao haver um segundo contador que possa divergir do primeiro.
  */
 export function ler(gid, agora = Date.now()) {
-  if (_dono !== gid || _inicio === null) {
-    return vazio();
-  }
+	if (_dono !== gid || _inicio === null) {
+		return vazio();
+	}
 
-  const decorridoMs = Math.max(0, agora - _inicio);
+	const decorridoMs = Math.max(0, agora - _inicio);
 
-  const ranking = [..._abatesPorMonstro.entries()]
-    .map(([nome, abates]) => ({ nome, abates }))
-    .sort((a, b) => b.abates - a.abates || a.nome.localeCompare(b.nome, 'pt-BR'));
+	const ranking = [..._abatesPorMonstro.entries()]
+		.map(([nome, abates]) => ({ nome, abates }))
+		.sort((a, b) => b.abates - a.abates || a.nome.localeCompare(b.nome, 'pt-BR'));
 
-  const itens = [..._itens.entries()]
-    .map(([nome, quantidade]) => ({ nome, quantidade }))
-    .sort((a, b) => b.quantidade - a.quantidade || a.nome.localeCompare(b.nome, 'pt-BR'));
+	const itens = [..._itens.entries()]
+		.map(([nome, quantidade]) => ({ nome, quantidade }))
+		.sort((a, b) => b.quantidade - a.quantidade || a.nome.localeCompare(b.nome, 'pt-BR'));
 
-  const itensTotal = itens.reduce((soma, i) => soma + i.quantidade, 0);
+	const itensTotal = itens.reduce((soma, i) => soma + i.quantidade, 0);
 
-  return {
-    decorridoMs,
-    ociosoMs: _ultimo === null ? 0 : Math.max(0, agora - _ultimo),
-    abatesTotal: _abatesTotal,
-    abatesPorHora: porHora(_abatesTotal, decorridoMs),
-    expBase: _expBase,
-    expClasse: _expClasse,
-    expBasePorHora: porHora(_expBase, decorridoMs),
-    expClassePorHora: porHora(_expClasse, decorridoMs),
-    ranking,
-    itens,
-    itensTotal,
-    /*
-     * Por 100 abates, e nao por abate: com taxa de carta em 1% (D-215) o
-     * numero por abate seria 0,01 e a tela mostraria "0,0" o tempo todo.
-     * `null` sem abate nenhum -- dividir por zero nao vira "0%".
-     */
-    itensPor100Abates: _abatesTotal === 0 ? null : (itensTotal * 100) / _abatesTotal,
-  };
+	return {
+		decorridoMs,
+		ociosoMs: _ultimo === null ? 0 : Math.max(0, agora - _ultimo),
+		abatesTotal: _abatesTotal,
+		abatesPorHora: porHora(_abatesTotal, decorridoMs),
+		expBase: _expBase,
+		expClasse: _expClasse,
+		expBasePorHora: porHora(_expBase, decorridoMs),
+		expClassePorHora: porHora(_expClasse, decorridoMs),
+		ranking,
+		itens,
+		itensTotal,
+		/*
+		 * Por 100 abates, e nao por abate: com taxa de carta em 1% (D-215) o
+		 * numero por abate seria 0,01 e a tela mostraria "0,0" o tempo todo.
+		 * `null` sem abate nenhum -- dividir por zero nao vira "0%".
+		 */
+		itensPor100Abates: _abatesTotal === 0 ? null : (itensTotal * 100) / _abatesTotal
+	};
 }
 
 function vazio() {
-  return {
-    decorridoMs: 0,
-    ociosoMs: 0,
-    abatesTotal: 0,
-    abatesPorHora: null,
-    expBase: 0,
-    expClasse: 0,
-    expBasePorHora: null,
-    expClassePorHora: null,
-    ranking: [],
-    itens: [],
-    itensTotal: 0,
-    itensPor100Abates: null,
-  };
+	return {
+		decorridoMs: 0,
+		ociosoMs: 0,
+		abatesTotal: 0,
+		abatesPorHora: null,
+		expBase: 0,
+		expClasse: 0,
+		expBasePorHora: null,
+		expClassePorHora: null,
+		ranking: [],
+		itens: [],
+		itensTotal: 0,
+		itensPor100Abates: null
+	};
 }
 
 export default {
-  MS_MINIMOS_PARA_RITMO,
-  zerar,
-  registrarAbate,
-  registrarExp,
-  registrarItem,
-  estimarMsAteONivel,
-  ler,
+	MS_MINIMOS_PARA_RITMO,
+	ehDropDeCaca,
+	zerar,
+	registrarAbate,
+	registrarExp,
+	registrarItem,
+	estimarMsAteONivel,
+	ler
 };

@@ -60,28 +60,36 @@
 				<section class="ha-bloco">
 					<h3 class="ha-bloco-titulo">
 						Abates
-						<span class="ha-bloco-resumo"><b class="ha-abates">0</b> · <b class="ha-abates-hora">—</b>/h</span>
+						<span class="ha-bloco-resumo"
+							><b class="ha-abates">0</b> · <b class="ha-abates-hora">—</b>/h</span
+						>
 					</h3>
 					<ul class="ha-ranking"></ul>
 					<div class="ha-vazio ha-ranking-vazio">Nenhum abate registrado ainda.</div>
 				</section>
 
 				<!-- ─── ITENS ──────────────────────────────────────────────
-				     A taxa e GLOBAL (por 100 abates) de proposito: o pacote do
-				     item que cai nao diz de qual mob veio, entao taxa por
-				     monstro seria palpite com cara de medida. -->
+				     So o TOTAL e a lista: a taxa "por 100 abates" saiu a pedido
+				     do dono (25/08/2026) e a coluna de % tambem -- aqui a
+				     porcentagem compararia Jellopy com Carta, o que nao responde
+				     pergunta nenhuma. A % continua no RANKING de abates, onde
+				     "metade foi Poring" e leitura util.
+
+				     Contam so os itens de DROP: `ZC_ITEM_PICKUP_ACK` responde a
+				     qualquer item entrando no inventario (correio, loja,
+				     carrinho, armazem), e o filtro esta em `ehDropDeCaca`. -->
 				<section class="ha-bloco">
 					<h3 class="ha-bloco-titulo">
 						Itens
-						<span class="ha-bloco-resumo"><b class="ha-itens-total">0</b> · <b class="ha-itens-taxa">—</b> por 100 abates</span>
+						<span class="ha-bloco-resumo"><b class="ha-itens-total">0</b></span>
 					</h3>
 					<ul class="ha-itens"></ul>
 					<div class="ha-vazio ha-itens-vazio">Nenhum item apanhado ainda.</div>
 				</section>
 
 				<p class="ha-rodape-nota">
-					Zeny não entra: o servidor usa o mesmo pacote para o zeny do
-					monstro e para uma venda em loja, então não dá para separar.
+					Zeny não entra: o servidor usa o mesmo pacote para o zeny do monstro e para uma venda em loja, então
+					não dá para separar.
 				</p>
 			</div>
 		</div>

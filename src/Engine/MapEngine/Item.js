@@ -21,7 +21,10 @@ import ChatBox from 'UI/Components/ChatBox/ChatBox.js';
 import ItemObtain from 'UI/Components/ItemObtain/ItemObtain.js';
 /* Ver a nota em Engine/MapEngine/Entity.js: o registro e alimentado por quem
    ja recebe o pacote, nunca por um hook que sobrescreveria este handler. */
-import { registrarItem } from 'UI/Components/HuntAnalyzer/registroDaCaca.js';
+import { ehDropDeCaca, registrarItem } from 'UI/Components/HuntAnalyzer/registroDaCaca.js';
+/* So pelo `contexto.ehCidade` -- ver a nota em onItemPickAnswer. Sem ciclo:
+   IdleConfig nao importa nada de Engine/, e MapEngine.js:103 ja o importa. */
+import IdleConfig from 'UI/Components/IdleConfig/IdleConfig.js';
 import ItemSelection from 'UI/Components/ItemSelection/ItemSelection.js';
 import Inventory from 'UI/Components/Inventory/Inventory.js';
 import CartItems from 'UI/Components/CartItems/CartItems.js';
@@ -106,12 +109,39 @@ function onItemPickAnswer(pkt) {
 	ChatBox.addText(`Você pegou ${getTextItem} x${pkt.count}.`, ChatBox.TYPE.BLUE, ChatBox.FILTER.FARM_ITEM);
 
 	/*
-	 * O ITEM do Hunt Analyzer -- no MESMO ponto da linha de FARM_ITEM, e nao
-	 * no caminho de falha logo acima: a separacao aqui e por ORIGEM, e este e
-	 * o ponto do item que CAIU e foi recolhido. Mesmo nome que o chat mostra,
-	 * pela mesma DB.getItemName, para a janela e o log nao divergirem.
+	 * O ITEM do Hunt Analyzer, E POR QUE ELE PRECISA DE UM FILTRO (25/08/2026).
+	 *
+	 * Queixa do dono: a janela listava Pocao Vermelha x200 e Pocao Azul x200 --
+	 * o KIT INICIAL, que chega pelo correio, e nao drop nenhum.
+	 *
+	 * `ZC_ITEM_PICKUP_ACK` NAO e "o item que caiu": e a resposta a QUALQUER
+	 * item entrando no inventario. No nosso servidor ele sai de CINCO lugares
+	 * (servidor/mapa/servidor-mapa.ts), e so o primeiro e caca:
+	 *
+	 *    2294  entregarDrops() ....... o drop do abate   <- o unico
+	 *    8252  anexo do CORREIO ...... o kit inicial
+	 *   10680  compra em LOJA
+	 *   11308  retirada do CARRINHO
+	 *   11410  retirada do ARMAZEM
+	 *
+	 * O pacote nao carrega a origem, e o servidor nao manda nada junto que a
+	 * revele -- entao o discriminador tem de ser do jogo, nao do protocolo: as
+	 * QUATRO rotas que nao sao drop acontecem na CIDADE, e na cidade nao ha
+	 * caca (D-246, e por isso `ehCidade` existe: mapa sem populacao de mob,
+	 * servidor-mapa.ts:6864). O sinal e o mesmo que HuntButtonIdle ja le.
+	 *
+	 * O TESTE E "SEI QUE E CIDADE", E NAO "NAO SEI SE E CACA" -- de proposito.
+	 * `contexto` chega por resposta do servidor (IdleConfig.sondarMapa(), ao
+	 * entrar no mapa) e pode estar ausente ou atrasado por um instante. Com a
+	 * condicao invertida, esse instante DESCARTARIA drop de verdade, em
+	 * silencio, e ninguem descobriria. Errar contando a mais aparece na tela;
+	 * errar descartando nao aparece em lugar nenhum.
+	 *
+	 * O QUE ESTE FILTRO NAO PEGA: recolher anexo do correio ESTANDO num mapa
+	 * de caca. Fechar isso exige o servidor dizer a origem -- pacote novo, que
+	 * hoje custa um slot da reserva `0x0fce..0x0feb`.
 	 */
-	if (Session.Entity) {
+	if (Session.Entity && ehDropDeCaca(IdleConfig.contexto)) {
 		registrarItem(Session.Entity.GID, getTextItem, pkt.count);
 	}
 
