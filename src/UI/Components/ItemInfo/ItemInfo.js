@@ -250,20 +250,16 @@ ItemInfo.setItem = function setItem(item) {
 		}
 	}
 
-	/* Grade System */
+	/*
+	 * Grade System (D-603): o `collection_bg_gN.bmp` deixou de ser a moldura —
+	 * a unica informacao que ele carregava era o GRAU do encantamento (a cor
+	 * do canto), e ela agora desce como `data-grade` para o CSS pintar o aro
+	 * dourado. A moldura em si e do design system (D-326: moldura e CSS).
+	 */
 	const container = root.querySelector('.container');
-	if (item.enchantgrade) {
-		Client.loadFile(DB.INTERFACE_PATH + 'basic_interface/collection_bg_g' + item.enchantgrade + '.bmp', data => {
-			if (container) {
-				container.style.backgroundImage = `url(${data})`;
-			}
-		});
-	} else {
-		Client.loadFile(DB.INTERFACE_PATH + 'basic_interface/collection_bg.bmp', data => {
-			if (container) {
-				container.style.backgroundImage = `url(${data})`;
-			}
-		});
+	if (container) {
+		container.style.backgroundImage = '';
+		container.dataset.grade = String(item.enchantgrade || 0);
 	}
 
 	const descInner = root.querySelector('.description-inner');

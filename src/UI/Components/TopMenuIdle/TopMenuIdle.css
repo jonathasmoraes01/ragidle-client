@@ -229,12 +229,23 @@
 	   aqui, entao a ordem de leitura do DOM continua sendo a ordem visual, e o
 	   leitor de tela le a lista e depois a porta, como se ve.
 	
-	   O "align-items: flex-end" logo abaixo passa a alinhar as duas caixas
-	   pela DIREITA: o leque tem 198px e o botao 52px, entao eles dividem a
-	   borda direita e o leque cresce para a esquerda a partir dela. Centralizar
-	   jogaria metade do leque para fora da tela. */
+	   As duas caixas dividem a mesma coluna: o leque (198px) e o botao (52px).
+	   O alinhamento entre elas mudou em 24/08 -- ver o bloco do "align-items"
+	   logo abaixo. */
 	flex-direction: column;
-	align-items: flex-end;
+	/* CENTRALIZADO (24/08/2026, pedido do dono): o botao deixa de se alinhar
+	   pela direita e passa a ficar no MEIO das duas colunas, sob a linha
+	   dourada.
+	
+	   O "min-width" abaixo e o que impede o PULO. O leque nasce em
+	   "display:none" -- decisao que fica, porque caixa invisivel sobre o mundo
+	   e a familia de defeito que o gate de clique existe pra pegar. Sem largura
+	   propria, o container encolheria para os 52px do botao com a gaveta
+	   fechada e o botao saltaria ~73px para a direita a cada fechamento.
+	   Fixando o piso na largura natural do leque, o botao ocupa a MESMA posicao
+	   aberto ou fechado, e o leque continua sem caixa quando fechado. */
+	align-items: center;
+	min-width: 198px;
 	gap: 10px;
 	/* nao intercepta clique na area vazia; so os botoes reabrem */
 	pointer-events: none;
@@ -436,7 +447,11 @@
 	position: relative;
 	width: 100%;
 	opacity: 0;
-	transform: translateY(8px) scale(0.9);
+	/* 22px, e nao os 8px de antes (24/08/2026): a 8 o disco praticamente
+	   aparecia no lugar e o gesto nao se lia. 22 e um pouco mais que metade do
+	   disco (42px), entao o olho pega o movimento sem que o item chegue a
+	   invadir a linha de baixo enquanto sobe. */
+	transform: translateY(22px) scale(0.9);
 	/* enquanto nao esta aberto de fato (montado, mas ainda animando, ou
 	   fechando) nenhum clique pega: nada de acertar um item que esta indo
 	   embora. */
@@ -614,7 +629,19 @@
 	}
 
 	.tm-fan.is-open .tm-item {
-		transition-delay: calc(var(--i, 0) * 26ms);
+		/* 45ms, e nao os 26ms de antes (24/08/2026). O NUMERO precisou subir
+		   porque a FORMA mudou: com o leque horizontal de 11 numa fileira so, o
+		   maior "--i" era 10 e a onda durava ~260ms. Em duas colunas de 5 o maior
+		   "--i" caiu para 4, e o mesmo 26ms encolhia a onda inteira para ~104ms —
+		   medido: a 60ms o disco de baixo ja tinha chegado (y=1) e o de cima ainda
+		   nem saira (y=22), e a 110ms estava tudo parado. O gesto acontecia rapido
+		   demais para ser lido.
+		
+		   45ms x 4 devolve a onda para a mesma casa de duracao de quando ela foi
+		   calibrada. Constante que descreve DISTANCIA ENTRE PASSOS nao sobrevive a
+		   uma mudanca no NUMERO DE PASSOS -- e o mesmo motivo pelo qual a onda
+		   passou a subir da base (ver escalonarLeque no JS). */
+		transition-delay: calc(var(--i, 0) * 45ms);
 	}
 
 	.tm-sep,

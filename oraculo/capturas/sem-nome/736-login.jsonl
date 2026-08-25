@@ -1,0 +1,4 @@
+{"tipo":"conexao","n":736,"alvo":"127.0.0.1:6900","servidor":"login","etiqueta":"736-login","ms":44580015}
+{"ms":44580018,"dir":"c2s","opcode":"0x0064","nome":"CA_LOGIN","tamanho":55,"deslocamento":0}
+{"ms":44580018,"dir":"s2c","opcode":"0x0ac4","nome":"AC_ACCEPT_LOGIN3","tamanho":224,"deslocamento":0}
+{"tipo":"fim","ms":44580033,"n":736,"alvo":"127.0.0.1:6900","servidor":"login","etiqueta":"736-login","abertaEm":44580015,"pacotes":{"c2s":1,"s2c":1},"bytes":{"c2s":55,"s2c":224},"travou":{"c2s":false,"s2c":false},"fechadaEm":44580033}

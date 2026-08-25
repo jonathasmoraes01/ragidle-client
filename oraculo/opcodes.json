@@ -12410,6 +12410,11 @@
 					"tamanho": 10,
 					"desde": null
 				},
+				"0x0fed": {
+					"nome": "ZC_RAGIDLE_MISSOES",
+					"tamanho": -1,
+					"desde": null
+				},
 				"0x0fee": {
 					"nome": "ZC_RAGIDLE_MUDANCA_DE_CLASSE",
 					"tamanho": -1,
@@ -15157,6 +15162,16 @@
 				"0x0ff2": {
 					"nome": "CZ_RAGIDLE_VIAJAR",
 					"tamanho": 18,
+					"desde": null
+				},
+				"0x0feb": {
+					"nome": "CZ_RAGIDLE_MISSAO_ACAO",
+					"tamanho": -1,
+					"desde": null
+				},
+				"0x0fec": {
+					"nome": "CZ_RAGIDLE_PEDIR_MISSOES",
+					"tamanho": 2,
 					"desde": null
 				},
 				"0x0ff3": {

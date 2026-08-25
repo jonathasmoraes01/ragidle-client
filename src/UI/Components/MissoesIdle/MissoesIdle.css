@@ -1,0 +1,192 @@
+/**
+ * UI/Components/MissoesIdle/MissoesIdle.css
+ *
+ * "Missões" — janela com abas Principais/Opcionais (D-551). Mesmo
+ * float/window/drag/pointer-events split de IdleConfig.css (ver o cabeçalho
+ * de lá para o racional completo): ":host" é o elemento que draggable() move,
+ * fica pointer-events:none para a janela fechada nunca engolir clique de
+ * cena, e só a janela aberta opta de volta com pointer-events:auto (par do
+ * mouseMode = CROSS no JS).
+ *
+ * A moldura inteira vem do design system oficial (.ri-window/.ri-header/
+ * .ri-title/.ri-close/.ri-tab/.ri-btn/.ri-badge--*, UI/Common.css, injetado
+ * em todo Shadow DOM). Esta folha só mantém o que é ESPECÍFICO: layout,
+ * os cards de missão e a grade de classes.
+ */
+
+:host {
+	position: absolute;
+	width: 560px;
+	height: 520px;
+	pointer-events: none;
+}
+
+#MissoesIdle {
+	position: relative;
+	width: 100%;
+	height: 100%;
+	color: var(--text-body);
+	font-size: var(--fs-info);
+	-webkit-font-smoothing: antialiased;
+	text-rendering: optimizeLegibility;
+}
+
+/* ─── Janela ───────────────────────────────────────────────── */
+
+#MissoesIdle .mi-window {
+	display: none;
+	position: absolute;
+	inset: 0;
+	pointer-events: auto;
+	flex-direction: column;
+	width: 560px;
+	height: 520px;
+}
+
+#MissoesIdle .mi-window.is-open {
+	display: flex;
+}
+
+#MissoesIdle .mi-titlebar {
+	flex: 0 0 auto;
+}
+
+#MissoesIdle .mi-tabs {
+	flex: 0 0 auto;
+	display: flex;
+	gap: 6px;
+	padding: 8px 10px;
+	border-bottom: 1px solid var(--border-hairline);
+}
+
+#MissoesIdle .mi-body {
+	flex: 1 1 auto;
+	overflow-y: auto;
+	padding: 12px;
+	background: transparent;
+}
+
+#MissoesIdle .mi-empty {
+	margin-top: 16px;
+	text-align: center;
+	color: var(--text-muted);
+}
+
+/* ─── Card de missão ───────────────────────────────────────── */
+
+#MissoesIdle .mi-card {
+	margin-bottom: 12px;
+	background: var(--surface-card);
+	border: 1px solid var(--border-hairline);
+	border-radius: var(--radius-card);
+	box-shadow: var(--shadow-card);
+	padding: 10px 12px;
+}
+
+#MissoesIdle .mi-card-topo {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px;
+	margin-bottom: 4px;
+}
+
+#MissoesIdle .mi-card-titulo {
+	font-size: var(--fs-info);
+	font-weight: 700;
+}
+
+#MissoesIdle .mi-desc {
+	color: var(--text-muted);
+	font-size: var(--fs-desc);
+	margin: 0 0 8px 0;
+}
+
+/* O requisito da missão bloqueada — a frase vem PRONTA do servidor. */
+#MissoesIdle .mi-requisito {
+	color: var(--amber-600);
+	font-size: var(--fs-desc);
+	margin: 0 0 8px 0;
+}
+
+#MissoesIdle .mi-objetivo {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px;
+	font-size: var(--fs-desc);
+	padding: 4px 0;
+}
+
+#MissoesIdle .mi-objetivo-conta {
+	font-weight: 700;
+	color: var(--text-body);
+}
+
+#MissoesIdle .mi-recompensas {
+	color: var(--text-muted);
+	font-size: var(--fs-desc);
+	margin: 4px 0 0 0;
+}
+
+/* ─── Grade de classes (missão de troca) ───────────────────── */
+
+#MissoesIdle .mi-classes {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 8px;
+	margin-top: 8px;
+}
+
+#MissoesIdle .mi-classe {
+	background: var(--surface-inset);
+	border: 1px solid var(--border-hairline);
+	border-radius: var(--radius-card);
+	padding: 8px 10px;
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+}
+
+#MissoesIdle .mi-classe-nome {
+	font-weight: 700;
+}
+
+#MissoesIdle .mi-classe-cidade {
+	color: var(--text-muted);
+	font-size: var(--fs-desc);
+}
+
+#MissoesIdle .mi-classe-resumo {
+	font-size: var(--fs-desc);
+	flex: 1 1 auto;
+}
+
+#MissoesIdle .mi-classe .mi-ir {
+	align-self: flex-start;
+	margin-top: 2px;
+}
+
+/* Bloqueada: a grade informa, mas não convida — sem botão, meia luz. */
+#MissoesIdle .mi-card[data-estado='bloqueada'] .mi-classe {
+	opacity: 0.55;
+}
+
+/* ─── O executor (D-601): rodapé de ação e badges do card ────── */
+
+#MissoesIdle .mi-card-rodape {
+	display: flex;
+	justify-content: flex-end;
+	margin-top: 8px;
+}
+
+#MissoesIdle .mi-card-badges {
+	display: flex;
+	gap: 4px;
+	align-items: center;
+}
+
+#MissoesIdle .mi-fila-aviso {
+	color: var(--text-muted);
+	font-size: var(--fs-desc);
+}

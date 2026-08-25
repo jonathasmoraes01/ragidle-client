@@ -36,7 +36,9 @@
  * leque. A pele nao mudou em nada.
  *
  * ─── ONDE FOI PARAR CADA UM DOS 17 (nenhum sumiu sem destino) ────────────
- *   CLUSTER (6): Personagem, Mochila, Skills, Caca, Correio, Idle.
+ *   CLUSTER (7): Personagem, Mochila, Skills, Caca, Correio, MISSOES
+ *                (entrou em 24/08/2026, D-551 — nao e um dos 17: e janela
+ *                nova), Idle.
  *   LEQUE (10):  Guilda, Grupo, Admin, Loja, RO Shop, Troca, Leilao,
  *                Recompensas, Eventos, Passe.
  *   17 = 6 + 10 + 1, e o "1" e a FUSAO: "Config" e "Menu" eram dois icones
@@ -151,6 +153,7 @@ import MochilaIdle from 'UI/Components/MochilaIdle/MochilaIdle.js';
 import HuntMap from 'UI/Components/HuntMap/HuntMap.js';
 import CorreioIdle from 'UI/Components/CorreioIdle/CorreioIdle.js';
 import HuntAnalyzer from 'UI/Components/HuntAnalyzer/HuntAnalyzer.js';
+import MissoesIdle from 'UI/Components/MissoesIdle/MissoesIdle.js';
 import AdminPanel from 'UI/Components/AdminPanel/AdminPanel.js';
 import RiIcones from 'UI/ri-icones.js';
 import htmlText from './TopMenuIdle.html?raw';
@@ -394,6 +397,11 @@ function onClickAction(e) {
 			/* CorreioIdle.toggle() tambem PEDE a caixa ao abrir (0x09e6): a
 			   lista so existe no cliente depois que o servidor a manda. */
 			CorreioIdle.toggle();
+			break;
+		case 'missoes':
+			/* MissoesIdle.toggle() tambem PEDE o estado ao abrir (0x0fec):
+			   quem decide bloqueada/disponivel/concluida e o servidor. */
+			MissoesIdle.toggle();
 			break;
 		case 'config':
 			/* "Configuracoes" = a fusao de Config + Menu (ver cabecalho). */
@@ -690,13 +698,28 @@ function distribuirColunas() {
  * animacao de todo mundo que nao e o dono.
  */
 function escalonarLeque(fan) {
-	let i = 0;
-	fan.querySelectorAll('.tm-item').forEach(item => {
-		if (item.style.display === 'none') {
-			return;
-		}
-		item.style.setProperty('--i', String(i));
-		i++;
+	/*
+	 * A onda sobe DE BAIXO PARA CIMA (24/08/2026, pedido do dono: "ao abrir o
+	 * botao deve fazer um efeito subindo os botoes").
+	 *
+	 * Antes o "--i" seguia a ORDEM DE LEITURA -- descia a coluna da esquerda
+	 * inteira e depois a da direita. Com o leque em pe isso briga com o gesto:
+	 * o disco do TOPO entrava primeiro e o de baixo por ultimo, o que le como
+	 * algo CAINDO do alto, e nao brotando do botao. Agora as duas colunas sao
+	 * indexadas a partir da BASE, entao os discos vizinhos do botao entram
+	 * juntos e a onda sobe pelas duas ao mesmo tempo -- que e o que o olho
+	 * espera de uma gaveta que se abre para cima.
+	 *
+	 * Item escondido (o Admin, fora da conta dona) NAO consome indice: com ele
+	 * na conta sobraria um degrau vazio na onda.
+	 */
+	fan.querySelectorAll('.tm-col').forEach(coluna => {
+		const visiveis = [...coluna.querySelectorAll('.tm-item')].filter(
+			item => item.style.display !== 'none'
+		);
+		visiveis.forEach((item, ordem) => {
+			item.style.setProperty('--i', String(visiveis.length - 1 - ordem));
+		});
 	});
 }
 
@@ -754,6 +777,16 @@ function isActionOpen(action) {
 			return isRagIdleWindowOpen(HuntMap, '.hm-window');
 		case 'correio':
 			return isRagIdleWindowOpen(CorreioIdle, '.co-window');
+		/*
+		 * MISSOES (D-551) estava no switch de ABRIR e faltava neste, o de
+		 * ESTADO -- achado ao mesclar, em 25/08/2026. Sem o caso, o botao caia
+		 * no `default` e NUNCA acendia o aro, mesmo com a janela aberta: o
+		 * unico item funcional do cluster sem realimentacao visual. A janela
+		 * marca `.mi-window.is-open` no padrao RAGIDLE de sempre
+		 * (MissoesIdle.js:146-153), entao a linha e identica as vizinhas.
+		 */
+		case 'missoes':
+			return isRagIdleWindowOpen(MissoesIdle, '.mi-window');
 		case 'config':
 			return isRagIdleWindowOpen(IdleConfig, '.ic-window');
 		case 'analyzer':

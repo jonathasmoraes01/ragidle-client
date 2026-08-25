@@ -1,0 +1,4 @@
+{"tipo":"conexao","n":1497,"alvo":"127.0.0.1:6900","servidor":"login","etiqueta":"1497-login","ms":113695529}
+{"ms":113695534,"dir":"c2s","opcode":"0x0064","nome":"CA_LOGIN","tamanho":55,"deslocamento":0}
+{"ms":113695535,"dir":"s2c","opcode":"0x0ac4","nome":"AC_ACCEPT_LOGIN3","tamanho":224,"deslocamento":0}
+{"tipo":"fim","ms":113695543,"n":1497,"alvo":"127.0.0.1:6900","servidor":"login","etiqueta":"1497-login","abertaEm":113695529,"pacotes":{"c2s":1,"s2c":1},"bytes":{"c2s":55,"s2c":224},"travou":{"c2s":false,"s2c":false},"fechadaEm":113695543}

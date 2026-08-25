@@ -16038,6 +16038,54 @@ PACKET.ZC.RAGIDLE_MUDANCA_DE_CLASSE = function PACKET_ZC_RAGIDLE_MUDANCA_DE_CLAS
 };
 PACKET.ZC.RAGIDLE_MUDANCA_DE_CLASSE.size = -1;
 
+// RAGIDLE: custom packets for the "Missões" window
+// (UI/Components/MissoesIdle/MissoesIdle.js). A faixa original 0x0fee-0x0fff
+// FECHOU (18/18, D-527); estes dois são os PRIMEIROS da faixa reservada
+// reservada de D-527, que termina em 0x0fed (docs/mapa-de-pacotes.md no repo do servidor), ocupada de
+// cima para baixo para o bloco RAGIDLE continuar contíguo.
+
+// 0x0fec - RAGIDLE: CZ_RAGIDLE_PEDIR_MISSOES (client -> server)
+// Fixed 2 bytes: opcode only. Sent when the MissoesIdle window is opened.
+// Same shape as CZ_RAGIDLE_PEDIR_CONFIG above.
+PACKET.CZ.RAGIDLE_PEDIR_MISSOES = function PACKET_CZ_RAGIDLE_PEDIR_MISSOES() {};
+PACKET.CZ.RAGIDLE_PEDIR_MISSOES.prototype.build = function () {
+	const pkt_len = 2;
+	const pkt_buf = new BinaryWriter(pkt_len);
+
+	pkt_buf.writeShort(0x0fec);
+	return pkt_buf;
+};
+
+// 0x0fed - RAGIDLE: ZC_RAGIDLE_MISSOES (server -> client)
+// Variable size: u16 opcode + u16 total length + JSON UTF-8 payload.
+// Contrato v1 (D-551): { v, missoes: [{ id, tipo, titulo, descricao, estado,
+// requisito, objetivos: [{id, descricao, progresso, alvo}], recompensas,
+// classes: [{classe, nomePt, cidade, resumo, mestre, mapa, x, y}] | null }] }.
+// Quem decide `estado` é o SERVIDOR; a janela só desenha (mesmo desenho do
+// aviso de classe acima). Chega respondendo ao pedido E empurrado quando o
+// estado muda (level up, troca de classe).
+PACKET.ZC.RAGIDLE_MISSOES = function PACKET_ZC_RAGIDLE_MISSOES(fp, end) {
+	this.json = fp.readString(end - fp.tell());
+};
+PACKET.ZC.RAGIDLE_MISSOES.size = -1;
+
+// 0x0feb - RAGIDLE: CZ_RAGIDLE_MISSAO_ACAO (client -> server)
+// Variable size: u16 opcode + u16 total length + JSON UTF-8 payload
+// ({"acao": "iniciar"|"pausar"|"retomar", "id": "..."} — D-601). Mesmo
+// byte-length-em-UTF-8 real de CZ_RAGIDLE_APLICAR_CONFIG acima.
+PACKET.CZ.RAGIDLE_MISSAO_ACAO = function PACKET_CZ_RAGIDLE_MISSAO_ACAO() {
+	this.json = '{}';
+};
+PACKET.CZ.RAGIDLE_MISSAO_ACAO.prototype.build = function () {
+	const bytes = TextEncoding.encode(this.json, 'utf-8');
+	const pkt_len = 2 + 2 + bytes.length;
+	const pkt_buf = new BinaryWriter(pkt_len);
+	pkt_buf.writeShort(0x0feb);
+	pkt_buf.writeUShort(pkt_len);
+	pkt_buf.writeString(this.json);
+	return pkt_buf;
+};
+
 // 0x0ffb - RAGIDLE: CZ_RAGIDLE_APRENDER (client -> server)
 // Variable size: u16 opcode + u16 total length + JSON UTF-8 payload
 // ({"skillId": "NV_BASIC"} per the contract — the single skill to learn one

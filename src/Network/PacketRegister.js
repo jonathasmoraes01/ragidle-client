@@ -1000,5 +1000,11 @@ export default {
 	// CZ_RAGIDLE_PEDIR_FICHA (0x0fff) is client->server only.
 	0x0fef: PACKET.ZC.RAGIDLE_FICHA,
 
+	// RAGIDLE: "Missões" custom packet (D-551; see PacketStructure.js
+	// "RAGIDLE:" section, opcodes 0x0fec-0x0fed — primeiros da faixa reservada
+	// reservada de D-527, que termina em 0x0fed). Same reasoning as the others above — only the
+	// server->client one is registered here.
+	0x0fed: PACKET.ZC.RAGIDLE_MISSOES,
+
 	0xb1a: PACKET.ZC.USESKILL_ACK3 // USE SKILL 3
 };

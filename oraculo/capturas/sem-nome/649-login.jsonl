@@ -1,0 +1,4 @@
+{"tipo":"conexao","n":649,"alvo":"127.0.0.1:6900","servidor":"login","etiqueta":"649-login","ms":31738268}
+{"ms":31738285,"dir":"c2s","opcode":"0x0064","nome":"CA_LOGIN","tamanho":55,"deslocamento":0}
+{"ms":31738286,"dir":"s2c","opcode":"0x0ac4","nome":"AC_ACCEPT_LOGIN3","tamanho":224,"deslocamento":0}
+{"tipo":"fim","ms":31738292,"n":649,"alvo":"127.0.0.1:6900","servidor":"login","etiqueta":"649-login","abertaEm":31738268,"pacotes":{"c2s":1,"s2c":1},"bytes":{"c2s":55,"s2c":224},"travou":{"c2s":false,"s2c":false},"fechadaEm":31738292}

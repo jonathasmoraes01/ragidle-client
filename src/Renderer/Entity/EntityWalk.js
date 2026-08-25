@@ -337,7 +337,56 @@ function walkTo(from_x, from_y, to_x, to_y, range, moveStartTime) {
 	this.resetRoute(hadRoute);
 
 	const path = this.walk.path;
-	const total = PathFinding.search(from_x | 0, from_y | 0, to_x | 0, to_y | 0, range || 0, path);
+	let total = PathFinding.search(from_x | 0, from_y | 0, to_x | 0, to_y | 0, range || 0, path);
+
+	// REDE DE SEGURANÇA (D-607): quando o A* janelado devolve 0, cair para a
+	// linha reta em vez de congelar a perna inteira.
+	//
+	// POR QUÊ: o `search` herda do rAthena uma janela hash de 1024 posições
+	// (`src/Utils/PathFinding.js:44`, calc_index = (x + y*32) & 1023). Duas
+	// células com Δx + 32·Δy ≡ 0 (mod 1024) colidem, a colisão vira erro
+	// (`PathFinding.js:168`) e UM erro aborta a busca inteira
+	// (`PathFinding.js:400`). Medido com este módulo sobre os .gat reais:
+	// perna de 32 passos falha em 34%–54% das vezes; perna de até 11 passos
+	// não falhou UMA vez em 188.795 tentativas nos 32 mapas de caça. Era isso
+	// que congelava o personagem na tela enquanto o servidor seguia caçando:
+	// `total` 0 caía no `if (total)` abaixo e o walkTo saía calado — sem andar,
+	// sem reposicionar, sem trocar a ação.
+	//
+	// O servidor já emite pernas de no máximo 10 passos (D-607), então este
+	// ramo praticamente não dispara mais — ele é a rede para o dia em que o
+	// teto for violado. A reta é aceitável porque origem e destino vêm do
+	// próprio pacote (o servidor já validou os dois); só o MIOLO do trajeto é
+	// aproximado, e a próxima perna ou o ZC_STOPMOVE re-ancoram a posição. No
+	// pior caso o sprite corta uma faixa não-andável por alguns segundos —
+	// contra ficar parado a perna inteira, que era o comportamento de antes.
+	//
+	// O mecanismo é o MESMO que o fork já usa para o falcão/wug
+	// (`walkToNonWalkableGround`, neste arquivo, logo acima): a linha reta
+	// célula a célula de `src/Utils/PathFinding.js:450`.
+	if (!total) {
+		// Observabilidade: se o teto de 10 passos do servidor um dia for
+		// violado, é ESTE aviso que conta a história — não o remova.
+		console.warn(
+			'[EntityWalk] PathFinding.search devolveu 0 (colisão da janela hash de 1024 — ver PathFinding.js:44/:168/:400); ' +
+				'caindo para a linha reta de (' + (from_x | 0) + ',' + (from_y | 0) + ') até (' + (to_x | 0) + ',' + (to_y | 0) + ').'
+		);
+
+		const straight = PathFinding.searchLongIgnoreCellType(
+			from_x | 0,
+			from_y | 0,
+			to_x | 0,
+			to_y | 0,
+			range || 0,
+			path
+		);
+
+		if (straight.success) {
+			// +1: pathLength conta os passos, o path guarda também a célula de
+			// origem — mesmo ajuste de walkToNonWalkableGround.
+			total = straight.pathLength + 1;
+		}
+	}
 
 	this.walk.index = 1 * 2; // skip first index
 	this.walk.total = total * 2;

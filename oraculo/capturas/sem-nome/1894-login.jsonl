@@ -1,0 +1,4 @@
+{"tipo":"conexao","n":1894,"alvo":"127.0.0.1:6900","servidor":"login","etiqueta":"1894-login","ms":130054547}
+{"ms":130054549,"dir":"c2s","opcode":"0x0064","nome":"CA_LOGIN","tamanho":55,"deslocamento":0}
+{"ms":130054549,"dir":"s2c","opcode":"0x0ac4","nome":"AC_ACCEPT_LOGIN3","tamanho":224,"deslocamento":0}
+{"tipo":"fim","ms":130054570,"n":1894,"alvo":"127.0.0.1:6900","servidor":"login","etiqueta":"1894-login","abertaEm":130054547,"pacotes":{"c2s":1,"s2c":1},"bytes":{"c2s":55,"s2c":224},"travou":{"c2s":false,"s2c":false},"fechadaEm":130054570}

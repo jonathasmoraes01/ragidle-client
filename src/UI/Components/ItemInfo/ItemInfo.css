@@ -1,3 +1,22 @@
+/**
+ * ItemInfo — a janela de descrição de item, no design system oficial (D-603).
+ *
+ * A MOLDURA é CSS e o CONTEÚDO é arte (D-326): o ícone do item continua
+ * vindo do bitmap de collection (pintado pelo JS), mas o `collection_bg.bmp`
+ * — que era a moldura INTEIRA da janela, com marca d'água "Collections"
+ * vazando atrás do título — saiu. O grau de encantamento, que era a única
+ * informação daquele bitmap (as variantes `_gN`), agora chega por
+ * `data-grade` no container e vira o aro da janela (ver o bloco de grades no
+ * fim).
+ *
+ * GEOMETRIA É CONTRATO com o ItemInfo.js e não pode mudar sozinha:
+ *   - `resize()` faz `description.height = containerHeight - 45` — os 45px
+ *     são o título (28) + o respiro até a descrição (7 + 10 de padding);
+ *   - o mínimo 140 / máximo 448 do container moram lá;
+ *   - `.collection` 75×100 é o tamanho da arte de collection do cliente.
+ * Quem mexer numa dessas alturas mexe nos dois arquivos.
+ */
+
 :host {
 	top: 0px;
 	left: 0px;
@@ -5,122 +24,138 @@
 
 .ItemInfo {
 	position: relative;
-	width: 280px;
-	background-repeat: no-repeat;
-	background-color: transparent;
-}
-.ItemInfo .container {
-	height: 140px;
-	position: relative;
-	/* cartao premium (builder tooltip, 18/08/2026): moldura dourada fina +
-	   respiro branco interno + sombra suave, no lugar do bisel cinza antigo.
-	   O collection_bg(.bmp/_gN.bmp) continua sendo pintado pelo JS (setItem)
-	   por baixo -- e ele quem carrega a cor do canto por grade de encantamento,
-	   entao o bitmap fica (nao ha como remover so pelo CSS/HTML sem apagar
-	   essa informacao); aqui so a moldura ao redor virou premium. */
-	box-shadow: var(--rim-light), var(--shadow-float);
-	border: 1px solid var(--gold-500);
-	background-repeat: no-repeat;
-	background-color: var(--white);
-	border-radius: var(--radius-window);
+	width: 296px;
+	background: transparent;
 	font-family: var(--font-ui);
 }
-.ItemInfo .event_view {
-	position: absolute;
+
+/* ---------------------------------------------------------------- moldura */
+
+.ItemInfo .container {
+	position: relative;
+	height: 140px;
+	box-sizing: border-box;
+	background: var(--surface-window, linear-gradient(180deg, rgba(255, 255, 255, 0.96) 0%, rgba(239, 245, 252, 0.94) 100%));
+	border: 1px solid var(--border-window, rgba(36, 92, 158, 0.34));
+	border-radius: var(--radius-window);
+	box-shadow: var(--rim-light), var(--shadow-float);
+	overflow: hidden;
 }
-.ItemInfo .event_view .view {
+
+/* ------------------------------------------------------------------ título */
+
+.ItemInfo .title {
 	position: absolute;
-	width: 42px;
-	height: 20px;
-	background-repeat: no-repeat;
-	background-color: transparent;
-	border: none;
-	top: 6px;
-	left: 6px;
+	top: 0;
+	left: 0;
+	right: 0;
+	height: 28px;
+	box-sizing: border-box;
+	padding: 7px 30px 0 12px;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	font-size: 12px;
+	font-weight: 700;
+	letter-spacing: 0.2px;
+	color: var(--text-title);
+	text-shadow: 0 1px 0 rgba(255, 255, 255, 0.9);
+	background: var(--surface-titlebar, linear-gradient(180deg, #f7fbff 0%, #dfe8f6 55%, #cddcef 100%));
+	border-bottom: 1px solid var(--border-hairline);
+	cursor: move;
 }
+.ItemInfo .title.damaged {
+	color: var(--red-600, #b13b3b);
+}
+
+.ItemInfo .close {
+	position: absolute;
+	top: 5px;
+	right: 5px;
+	width: 18px;
+	height: 18px;
+	display: block;
+	border: 1px solid var(--border-hairline);
+	border-radius: var(--radius-pill, 999px);
+	background: rgba(255, 255, 255, 0.7) !important;
+	background-image: none !important;
+	color: var(--is-muted-2);
+	font-size: 11px;
+	line-height: 1;
+	cursor: pointer;
+	z-index: 2;
+}
+.ItemInfo .close::after {
+	content: '✕';
+}
+.ItemInfo .close:hover {
+	color: var(--white);
+	background: var(--is-close-hover, #c23a3a) !important;
+	border-color: var(--is-close-hover, #c23a3a);
+}
+
+/* ------------------------------------------------------------------- ícone */
+
 .ItemInfo .collection {
 	position: absolute;
-	top: 11px;
+	top: 35px;
 	left: 10px;
 	width: 75px;
 	height: 100px;
 	background-repeat: no-repeat;
-	background-color: transparent;
-	/* icone em slot com aro (builder tooltip, 18/08/2026): so um contorno
-	   fino por cima do icone do item, igual ao aro do EquipmentV3 -- nao mexe
-	   em posicao/tamanho, o bitmap do item continua vindo do JS */
+	background-position: center;
+	background-color: var(--is-icon-bg, #dbe4f2);
 	border-radius: var(--radius-card);
-	box-shadow: inset 0 0 0 1px var(--border-hairline);
+	box-shadow:
+		inset 0 0 0 1px var(--border-hairline),
+		inset 0 -14px 18px rgba(24, 48, 82, 0.06);
 }
-.ItemInfo .title {
-	position: absolute;
-	top: 3px;
-	left: 86px;
-	width: 185px;
-	height: 14px;
-	padding-left: 4px;
-	padding-top: 6px;
-	text-shadow: none;
-	white-space: nowrap;
-	overflow: hidden;
-	font-size: 12px;
-	font-weight: bold;
-	color: var(--text-title);
-	font-family: var(--font-ui);
-	/* o collection_bg.bmp (pintado pelo JS por baixo) tem uma marca d'agua
-	   "Collections" nesse canto -- um respiro branco solido atras do titulo
-	   evita o texto do bitmap vazando por tras do nome do item */
-	background-color: var(--surface-card-hover);
-}
-.ItemInfo .close {
-	position: absolute;
-	top: 3px;
-	right: 3px;
-	width: 11px;
-	height: 11px;
-	display: block;
-	background-repeat: no-repeat;
-	background-color: transparent;
-	border: none;
-}
+
+/* --------------------------------------------------------------- descrição */
+
 .ItemInfo .description {
 	position: absolute;
 	top: 35px;
-	left: 100px;
-	line-height: 1.5;
-	width: 170px;
-	height: 75px;
+	left: 96px;
+	right: 8px;
+	height: 95px;
+	padding-right: 4px;
 	overflow-y: auto;
+	line-height: 1.5;
+	font-size: 11.5px;
 	color: var(--text-body);
-	font-family: var(--font-ui);
 }
 .ItemInfo .description .description-inner {
-	width: 150px;
 	white-space: pre-wrap;
+	padding: 2px 2px 6px 2px;
 }
-.ItemInfo .extend {
-	position: absolute;
-	right: 4px;
-	bottom: 3px;
-	width: 13px;
-	height: 13px;
-	border: none;
-	background-repeat: no-repeat;
-	background-color: transparent;
+
+/* ------------------------------------------------- opções e lista de cartas */
+
+.ItemInfo .option-container {
+	margin-top: 4px;
+}
+.ItemInfo .optionlist .border {
+	box-sizing: border-box;
+	margin-top: 3px;
+	padding: 4px 8px;
+	font-size: 11px;
+	color: var(--badge-ativa-ink, #2255a4);
+	background: var(--badge-ativa-bg, #dbe4f5);
+	border: 1px solid var(--border-hairline);
+	border-radius: var(--radius-card);
 }
 
 .ItemInfo .cardlist {
-	/* separador leve entre a descricao e a lista de cards -- cartao branco
-	   com filete claro, igual ao .ri-card do design system */
-	border-radius: var(--radius-window);
-	background: var(--surface-card);
+	margin-top: 4px;
 	padding: 2px;
-	margin-top: 3px;
+	background: var(--surface-card);
+	border-radius: var(--radius-window);
+	box-shadow: var(--shadow-float);
 }
 .ItemInfo .cardlist .border {
+	padding: 3px 5px 1px 5px;
 	border: 1px solid var(--border-hairline);
-	padding-top: 2px;
-	padding-left: 5px;
 	border-radius: var(--radius-window);
 }
 .ItemInfo .cardlist .item {
@@ -144,7 +179,6 @@
 	background: var(--text-title);
 	color: var(--white);
 	text-shadow: none;
-	font-family: var(--font-ui);
 	font-size: 11px;
 	box-shadow: var(--shadow-float);
 }
@@ -152,66 +186,33 @@
 	display: block;
 }
 
-.ItemInfo .book_open {
-	margin-top: 6px;
-	margin-left: 7px;
-}
-.ItemInfo .book_read {
+/* ------------------------------------------------------- botões auxiliares */
+
+.ItemInfo .event_view {
 	position: absolute;
-	margin-top: 7px;
+	z-index: 2;
+}
+.ItemInfo .event_view .view {
+	position: absolute;
+	width: 42px;
+	height: 20px;
+	background-repeat: no-repeat;
+	background-color: transparent;
+	border: none;
+	top: 32px;
+	left: 6px;
+}
+.ItemInfo .preview-action .btn_mounting {
+	position: absolute;
+	z-index: 2;
+	border: 0;
+	width: 80px;
+	height: 20px;
+	background-repeat: no-repeat;
+	background-color: transparent;
 }
 
-.ItemInfo .overlay_open {
-	pointer-events: none;
-	position: absolute;
-	white-space: nowrap;
-	z-index: 900;
-	height: 13px;
-	border-radius: var(--radius-card);
-	background: var(--text-title);
-	color: var(--white);
-	text-shadow: none;
-	font-family: var(--font-ui);
-	box-shadow: var(--shadow-float);
-	top: -7px;
-	left: 7px;
-	text-align: center;
-	padding: 3px 6px 1px 6px;
-	display: none;
-}
-.ItemInfo .overlay_read {
-	pointer-events: none;
-	position: absolute;
-	white-space: nowrap;
-	z-index: 900;
-	height: 13px;
-	border-radius: var(--radius-card);
-	background: var(--text-title);
-	color: var(--white);
-	text-shadow: none;
-	font-family: var(--font-ui);
-	box-shadow: var(--shadow-float);
-	top: -7px;
-	left: 27px;
-	text-align: center;
-	padding: 3px 6px 1px 6px;
-	display: none;
-}
-
-.ItemInfo .optionlist {
-	border-radius: var(--radius-window);
-	background: var(--surface-card);
-	padding: 2px;
-	margin-top: 3px;
-}
-.ItemInfo .optionlist .border {
-	border: 1px solid var(--border-hairline);
-	padding-top: 2px;
-	padding-left: 5px;
-	border-radius: var(--radius-window);
-	color: var(--text-body);
-	font-family: var(--font-ui);
-}
+/* A optionlist também mostra ITENS com tooltip (o mesmo desenho da cardlist). */
 .ItemInfo .optionlist .item {
 	position: relative;
 	display: inline-block;
@@ -233,7 +234,6 @@
 	background: var(--text-title);
 	color: var(--white);
 	text-shadow: none;
-	font-family: var(--font-ui);
 	font-size: 11px;
 	box-shadow: var(--shadow-float);
 }
@@ -241,42 +241,98 @@
 	display: block;
 }
 
-.ItemInfo .title.damaged {
-	text-shadow: 0 1px 0 var(--red-600);
-}
-
-.ItemInfo .preview-action {
-	padding-top: 115px;
-	padding-left: 9px;
-}
-
+/* O link "mover" do tooltip de movimentação. */
 .moveinfo-label {
 	color: var(--blue-600);
 	display: block;
 	text-decoration: underline;
 	font-family: var(--font-ui);
 }
+.ItemInfo .book_open {
+	margin-top: 6px;
+	margin-left: 7px;
+}
+.ItemInfo .book_read {
+	position: absolute;
+	margin-top: 7px;
+}
+.ItemInfo .overlay_open,
+.ItemInfo .overlay_read {
+	pointer-events: none;
+	position: absolute;
+	white-space: nowrap;
+	z-index: 900;
+	height: 13px;
+	border-radius: var(--radius-card);
+	background: var(--text-title);
+	color: var(--white);
+	text-shadow: none;
+	box-shadow: var(--shadow-float);
+	text-align: center;
+	padding: 3px 6px 1px 6px;
+	display: none;
+}
+.ItemInfo .overlay_open {
+	top: -7px;
+	left: 7px;
+}
+.ItemInfo .overlay_read {
+	top: -7px;
+	left: 27px;
+}
+
+.ItemInfo .extend {
+	position: absolute;
+	right: 3px;
+	bottom: 2px;
+	width: 14px;
+	height: 14px;
+	border: none;
+	background: transparent !important;
+	background-image: none !important;
+	color: var(--is-muted-3, #8b93a5);
+	font-size: 10px;
+	line-height: 1;
+	cursor: ns-resize;
+	z-index: 2;
+}
+.ItemInfo .extend::after {
+	content: '⇲';
+}
+
+/* -------------------------------------------------- grau de encantamento */
+/*
+ * O que o `collection_bg_gN.bmp` dizia com a cor do canto, a moldura diz com
+ * o ARO: dourado crescente por grau. Ouro é detalhe, nunca superfície — a
+ * regra do próprio design system.
+ */
+.ItemInfo .container[data-grade='1'] {
+	border-color: var(--gold-300, #f0d89b);
+}
+.ItemInfo .container[data-grade='2'] {
+	border-color: var(--gold-400, #e0b04d);
+}
+.ItemInfo .container[data-grade='3'] {
+	border-color: var(--gold-500, #c9a227);
+	box-shadow: 0 0 0 1px var(--gold-300, #f0d89b), var(--shadow-float);
+}
+.ItemInfo .container[data-grade='4'] {
+	border-color: var(--gold-500, #c9a227);
+	box-shadow:
+		0 0 0 1px var(--gold-400, #e0b04d),
+		0 0 10px rgba(201, 162, 39, 0.35),
+		var(--shadow-float);
+}
 
 #moveinfo-tooltip {
 	position: absolute;
 	display: none;
-	pointer-events: none;
-	z-index: 9999;
-	background: var(--text-title);
-	border: none;
-	padding: 6px 10px;
-	color: var(--white);
-	white-space: nowrap;
-	border-radius: var(--radius-window);
+	z-index: 999;
+	padding: 4px 8px;
 	font-family: var(--font-ui);
-	line-height: 1.5;
+	font-size: 11px;
+	color: var(--white);
+	background: var(--text-title);
+	border-radius: var(--radius-card);
 	box-shadow: var(--shadow-float);
-}
-
-.ItemInfo .btn_mounting {
-	border: 0;
-	width: 80px;
-	height: 20px;
-	background-repeat: no-repeat;
-	background-color: transparent;
 }
