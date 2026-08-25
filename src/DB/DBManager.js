@@ -23,6 +23,7 @@ import MonsterNameTable from './Monsters/MonsterNameTable.js';
 import PetIllustration from './Pets/PetIllustration.js';
 import PetAction from './Pets/PetAction.js';
 import ItemTable from './Items/ItemTable.js';
+import { completarFicha, unknownItem } from './Items/FichaDoItem.js';
 import HatTable from './Items/HatTable.js';
 import ShieldTable from './Items/ShieldTable.js';
 import WeaponTable from './Items/WeaponTable.js';
@@ -227,17 +228,6 @@ const CashShopBannerTable = [];
  * @const {Object} Ez2streffect Table
  */
 const Ez2streffect = {};
-
-const unknownItem = {
-	unidentifiedDisplayName: 'Unknown Item',
-	unidentifiedResourceName: '\xbb\xe7\xb0\xfa',
-	unidentifiedDescriptionName: ['...'],
-	identifiedDisplayName: 'Unknown Item',
-	identifiedResourceName: '\xbb\xe7\xb0\xfa',
-	identifiedDescriptionName: ['...'],
-	slotCount: 0,
-	ClassNum: 0
-};
 
 /**
  * @const {Array} User charpage init
@@ -2298,7 +2288,14 @@ class DB {
 			item._decoded = true;
 		}
 
-		return item;
+		/*
+		 * O ESTUBE (25/08/2026): o `||` acima faz a queda de braco no OBJETO,
+		 * e `ItemTable.js` nasce com milhares de `{ ClassNum: 0 }` — truthy e
+		 * sem nome nenhum. Era assim que o 4545 (Novice Poring Card, drop do
+		 * Little Poring em prt_fild08) chegava a tela como a string
+		 * "undefined", sem icone e sem descricao. Ver `FichaDoItem.js`.
+		 */
+		return completarFicha(itemid, item);
 	}
 
 	/**
