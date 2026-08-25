@@ -299,10 +299,48 @@ ActionInformations[Cursor.ACTION.NOWALK] = { drawX: 13, drawY: 25, startX: 14, s
  * Change the cursor for the button click event
  */
 function bindMouseEvents() {
+	/*
+	 * O CURSOR E O TOPO, E O NUMERO E O MAXIMO DO NAVEGADOR (25/08/2026).
+	 *
+	 * Queixa do dono, jogando: morreu, foi clicar em "Voltar para a cidade" e
+	 * o ponteiro SUMIU ao entrar na janela. Nao e a janela da morte: e que
+	 * `.custom-cursor * { cursor: none !important }` (a linha acima, replicada
+	 * em Common.css:173-175 dentro de cada Shadow DOM) apaga o ponteiro do
+	 * sistema em TODA a arvore, e o substituto desenhado aqui vinha em 9999 --
+	 * abaixo de sete camadas do fork, medidas no literal:
+	 *
+	 *   Renderer.js:198 .............. 10000
+	 *   ShortCut.css:170 ............. 10000
+	 *   JoystickSelectionUI.css:5 .... 10000
+	 *   PartyFriendsCommon.js:1303 ... 10000
+	 *   PartyFriendsCommon.js:1563 ... 20000
+	 *   PartyMemberExternal.js:288 ... 20000
+	 *   PreLoader.js:13 .............. 99999
+	 *   DeathWindow.css:56 ....... 2.000.000
+	 *
+	 * Sobre qualquer uma delas o jogador ficava sem ponteiro NENHUM -- o do
+	 * sistema apagado, o desenhado por baixo. A morte so era a mais visivel
+	 * porque e modal e obrigatoria de clicar.
+	 *
+	 * O censo de z-index no cabecalho de DeathWindow.css (linhas 44-52) e
+	 * correto no que lista e nao lista ESTA div: ele mediu a faixa de foco
+	 * (50-88), o popup do UIManager (99) e o maior solto (1000), e escolheu
+	 * 2000000 para ficar acima dos tres. O cursor nunca entrou na conta.
+	 *
+	 * Por que o MAXIMO (2147483647) e nao "2000001": qualquer numero escolhido
+	 * para vencer a camada mais alta de hoje volta a perder na proxima camada
+	 * que alguem criar, e o sintoma (ponteiro sumido) nao parece defeito de
+	 * z-index para quem o encontra. No teto ninguem passa na frente. Subir nao
+	 * custa nada porque esta div e `pointer-events: none`: ela nunca rouba
+	 * clique de quem esta embaixo, so desenha.
+	 *
+	 * `tests/ui/cursorAcimaDeTudo.test.js` e o despertador disto: ele varre o
+	 * fork atras de z-index maior ou igual e reprova.
+	 */
 	const cursorCSS = `
 		.custom-cursor * { cursor: none!important; }
 		.custom-cursor .cursor { display: block; }
-		.cursor { pointer-events: none; z-index: 9999; position: fixed; width: 50px; height: 50px; overflow: hidden; display: none; }
+		.cursor { pointer-events: none; z-index: 2147483647; position: fixed; width: 50px; height: 50px; overflow: hidden; display: none; }
 		.cursor__sprite { position: absolute; top: 0; left: 0; }
 	`;
 	const styleEl = document.createElement('style');

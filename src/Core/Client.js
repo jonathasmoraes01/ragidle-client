@@ -177,7 +177,11 @@ function savingFiles(files) {
 	if (files.length) {
 		// Progressbar
 		progressbar.style.position = 'fixed';
-		progressbar.style.zIndex = '2147483647';
+		// Dois abaixo do teto (25/08/2026): 2147483647 e o z-index da div
+		// `.cursor` (CursorManager.js), e empate e decidido por ordem no DOM.
+		// Durante o salvamento o ponteiro tambem precisa aparecer, e esta
+		// barra tem 4px no topo -- nada aqui depende do valor exato.
+		progressbar.style.zIndex = '2147483645';
 		progressbar.style.top = '0px';
 		progressbar.style.left = '0px';
 		progressbar.style.backgroundColor = 'rgb(180,0,0)';
@@ -197,7 +201,8 @@ function savingFiles(files) {
 		info.style.left = '20px';
 		info.style.top = '0px';
 		info.style.whiteSpace = 'nowrap';
-		info.style.zIndex = '2147483646';
+		// Um abaixo da barra acima, para a ordem entre as duas nao mudar.
+		info.style.zIndex = '2147483644';
 		info.style.height = '12px';
 		info.style.padding = '5px';
 		info.style.background = 'linear-gradient( rgb(180,0,0), rgb(136,0,0) 30%)';
