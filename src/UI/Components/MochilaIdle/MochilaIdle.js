@@ -121,6 +121,7 @@ import EquipLocation from 'DB/Items/EquipmentLocation.js';
 import UIManager from 'UI/UIManager.js';
 import GUIComponent from 'UI/GUIComponent.js';
 import Inventory from 'UI/Components/Inventory/Inventory.js';
+import { posicaoDaDica } from './posicaoDaDica.js';
 import Equipment from 'UI/Components/Equipment/Equipment.js';
 import ItemInfo from 'UI/Components/ItemInfo/ItemInfo.js';
 import ContextMenu from 'UI/Components/ContextMenu/ContextMenu.js';
@@ -288,7 +289,26 @@ MochilaIdle.init = function init() {
 	painelEsq.addEventListener('dragstart', onSlotDragStart);
 	painelEsq.addEventListener('dragend', onSlotDragEnd);
 
+	/*
+	 * A DICA DE HOVER (pedido do dono, 25/08/2026): passar o mouse num item
+	 * mostra o NOME.
+	 *
+	 * Delegada nos dois containers pelo mesmo motivo dos listeners acima — as
+	 * celulas e os slots sao reconstruidos, os containers nao — e por um
+	 * segundo, que e o motivo de a dica ser custom em vez do `title` nativo:
+	 * `syncGrade` apaga a grade inteira sempre que a mochila muda, e num idle
+	 * a mochila muda a cada drop. O tooltip do navegador precisa de ~1 s de
+	 * mouse parado SOBRE O MESMO ELEMENTO, e o elemento sob o cursor era
+	 * trocado antes disso — durante uma cacada ele praticamente nunca
+	 * aparecia. (Nos slots de equipamento, que quase nunca sao reconstruidos,
+	 * ele aparecia — e essa e a assimetria que o dono viu.)
+	 */
+	painelEsq.addEventListener('mouseover', onHoverEntra);
+	painelEsq.addEventListener('mouseout', onHoverSai);
+
 	const grade = root.querySelector('.mo-grade');
+	grade.addEventListener('mouseover', onHoverEntra);
+	grade.addEventListener('mouseout', onHoverSai);
 	grade.addEventListener('dblclick', onDblClickItem);
 	grade.addEventListener('contextmenu', onContextMenuItem);
 	// Arrastar um item da grade (fonte, contrato global _OBJ_DRAG_).
@@ -583,6 +603,9 @@ function syncEquipSlots() {
 	}
 	_lastSlotsSig = sig;
 
+	// Mesma razao da grade: os ladrilhos abaixo sao recriados.
+	esconderDica();
+
 	const root = _root();
 	const colEsq = root.querySelector('.mo-coluna-esq');
 	const colDir = root.querySelector('.mo-coluna-dir');
@@ -606,14 +629,14 @@ function syncEquipSlots() {
 			const iconUrl = extractUrl(btn && btn.style.backgroundImage);
 			const refino = nome.match(/^\+(\d+)\s/);
 
-			tile.title = nome || slot.label;
+			tile.dataset.dica = nome || slot.label;
 			tile.innerHTML =
 				`<img class="mo-slot-icone" alt="" src="${iconUrl || ''}" />` +
 				(refino ? `<span class="mo-slot-refino">+${refino[1]}</span>` : '') +
-				`<button type="button" class="mo-slot-remover" data-index="${itemDiv.getAttribute('data-index')}" title="Tirar">&times;</button>`;
+				`<button type="button" class="mo-slot-remover" data-index="${itemDiv.getAttribute('data-index')}" data-dica="Tirar">&times;</button>`;
 		} else {
 			tile.classList.add('is-empty');
-			tile.title = slot.label + ' (vazio)';
+			tile.dataset.dica = slot.label + ' (vazio)';
 			tile.innerHTML = `<span class="mo-slot-glifo">${RiIcones[slot.glifo] || ''}</span>`;
 		}
 
@@ -692,6 +715,11 @@ function syncGrade() {
 	}
 	_lastGradeSig = sig;
 
+	// A celula sob o cursor esta prestes a deixar de existir: a dica ancorada
+	// nela sai junto. O `mouseover` da celula NOVA a traz de volta no mesmo
+	// quadro, sem o jogador mexer o mouse.
+	esconderDica();
+
 	const grade = root.querySelector('.mo-grade');
 	grade.innerHTML = '';
 
@@ -711,11 +739,12 @@ function syncGrade() {
 		}
 
 		const it = DB.getItemInfo(item.ITID);
-		const nome = DB.getItemName(item);
 
 		cell.className = 'ri-tile mo-item';
 		cell.dataset.index = String(item.index);
-		cell.title = nome;
+		// SEM `title` aqui de proposito (25/08/2026): o nome vem pela dica de
+		// hover, e manter os dois faria o tooltip do navegador aparecer por
+		// cima da dica um segundo depois, dizendo a mesma coisa duas vezes.
 		// Arrastavel (equipar arrastando ate um slot) -- contrato global
 		// _OBJ_DRAG_, ver onGradeDragStart.
 		cell.draggable = true;
@@ -1039,6 +1068,91 @@ function limparRealceSlots() {
  *      lugar. Se nao mudou, avisa de forma honesta (pode ser carta, nivel
  *      ou classe -- nao so refino).
  */
+/**
+ * A DICA DE HOVER: o nome do que esta sob o cursor.
+ *
+ * O TEXTO nao e inventado aqui em nenhum dos dois casos. Na grade ele sai de
+ * `DB.getItemName(item)`, o mesmo que o chat usa ao pegar um item; nos slots
+ * de equipamento sai do `.itemName` que a Equipment nativa ja renderiza
+ * (a MESMA leitura que `syncEquipSlots` faz para o rotulo), com o rotulo do
+ * slot como sobra quando ele esta vazio.
+ */
+function textoDaDica(el) {
+	if (el.classList.contains('mo-item')) {
+		if (el.classList.contains('is-empty')) {
+			return '';
+		}
+		const item = Inventory.getUI().getItemByIndex(parseInt(el.dataset.index, 10));
+		return item ? DB.getItemName(item) : '';
+	}
+	if (el.classList.contains('mo-slot') || el.classList.contains('mo-slot-remover')) {
+		// O `data-dica` cobre os tres casos do painel esquerdo: slot ocupado
+		// (o nome da peca), slot vazio (o rotulo) e o botao de tirar.
+		return el.dataset.dica || '';
+	}
+	return '';
+}
+
+function onHoverEntra(e) {
+	const el = e.target.closest('.mo-slot-remover, .mo-item, .mo-slot');
+	if (!el) {
+		return;
+	}
+	const texto = textoDaDica(el);
+	if (!texto) {
+		esconderDica();
+		return;
+	}
+	mostrarDica(el, texto);
+}
+
+function onHoverSai(e) {
+	const el = e.target.closest('.mo-slot-remover, .mo-item, .mo-slot');
+	if (!el) {
+		return;
+	}
+	// `relatedTarget` dentro da MESMA celula (o icone, o contador, o botao
+	// de tirar) nao e saida: sem esta guarda a dica pisca ao atravessar os
+	// filhos, que e o defeito classico do hover delegado.
+	const indo = e.relatedTarget;
+	if (indo && el.contains(indo)) {
+		return;
+	}
+	esconderDica();
+}
+
+/**
+ * Mostra a dica ancorada na celula. A CONTA da posicao mora em
+ * `posicaoDaDica.js`, separada para poder ser medida sem DOM.
+ */
+function mostrarDica(alvoEl, texto) {
+	const root = _root();
+	const dica = root.querySelector('.mo-dica');
+	const janela = root.querySelector('.mo-window');
+	if (!dica || !janela) {
+		return;
+	}
+	dica.textContent = texto;
+	// Visivel ANTES de medir: `hidden` e `display:none`, e um elemento
+	// escondido mede 0x0 — a dica nasceria no canto e so acertaria a posicao
+	// no hover seguinte.
+	dica.hidden = false;
+	const pos = posicaoDaDica(
+		alvoEl.getBoundingClientRect(),
+		dica.getBoundingClientRect(),
+		janela.getBoundingClientRect()
+	);
+	dica.style.left = pos.left + 'px';
+	dica.style.top = pos.top + 'px';
+}
+
+function esconderDica() {
+	const dica = _root().querySelector('.mo-dica');
+	if (dica) {
+		dica.hidden = true;
+	}
+}
+
 function mostrarAviso(msg) {
 	const root = _root();
 	const el = root.querySelector('.mo-aviso');
