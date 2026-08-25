@@ -110,7 +110,7 @@ MissoesTrackerIdle.init = function init() {
 				mandarAcao(acao, null);
 			} else if (acao === 'abrir-janela') {
 				// A Troca de Classe não roda pelo executor: o clique abre a
-				// janela de missões, onde a grade de classes mora (D-606).
+				// janela de missões, onde a grade de classes mora (D-609).
 				MissoesIdle.toggle();
 			}
 		});
@@ -206,7 +206,7 @@ function render(missoes, execucao) {
 	/* A lista de 1-clique: disponíveis executáveis primeiro, depois a fila. */
 	const naFila = new Set((execucao && execucao.fila) || []);
 	/*
-	 * A TROCA DE CLASSE entra no TOPO quando abre (D-606, pedido do dono:
+	 * A TROCA DE CLASSE entra no TOPO quando abre (D-609, pedido do dono:
 	 * "ao chegar no nível de classe 10 a missão deve aparecer na janela de
 	 * quests"). Ela não roda pelo executor (executavel=false), então a linha
 	 * dela não é um Iniciar: é a porta da janela, onde a grade de classes
