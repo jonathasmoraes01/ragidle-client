@@ -69,11 +69,22 @@ SkillAction[SK.SM_BASH] =
 	SkillAction[SK.KN_BOWLINGBASH] =
 	SkillAction[SK.BS_HAMMERFALL] =
 	SkillAction[SK.AC_CHARGEARROW] =
+	// D-700: a acao do golpe de arco muda por CLASSE (Arqueiro: arco = ATTACK2;
+	// Cacador/Sniper: arco = ATTACK3 — WeaponAction.js). Hardcoded em ATTACK3 o
+	// Arqueiro tocava o quadro de adaga ("soco"). ACTION.ATTACK deixa setAction
+	// resolver pela arma equipada (getWeaponAction), como o AC_SHOWER ja faz.
+	SkillAction[SK.AC_DOUBLE] =
+	SkillAction[SK.HT_PHANTASMIC] =
+	SkillAction[SK.ASC_BREAKER] =
 	SkillAction[SK.RG_BACKSTAP] =
 	SkillAction[SK.RG_RAID] =
 	SkillAction[SK.RG_INTIMIDATE] =
 	SkillAction[SK.CR_SHIELDCHARGE] =
 	SkillAction[SK.CR_HOLYCROSS] =
+	// D-700: o resto do combo do Monge ja estava aqui — so o ABRIDOR faltava, e
+	// o motor emite MO_TRIPLEATTACK como golpe de skill (ZC_NOTIFY_SKILL2, rotacao
+	// do Monge em game/sessao-planos.ts); sem entrada ele caia no DEFAULT (reza).
+	SkillAction[SK.MO_TRIPLEATTACK] =
 	SkillAction[SK.MO_CHAINCOMBO] =
 	SkillAction[SK.MO_COMBOFINISH] =
 	SkillAction[SK.BA_MUSICALSTRIKE] =
@@ -216,10 +227,7 @@ SkillAction[SK.TF_POISON] =
 		};
 
 //ATTACK3 - Ranged attack with visible weapon
-SkillAction[SK.AC_DOUBLE] =
-	SkillAction[SK.ASC_BREAKER] =
-	SkillAction[SK.HT_PHANTASMIC] =
-	SkillAction[SK.SN_SHARPSHOOTING] =
+SkillAction[SK.SN_SHARPSHOOTING] =
 	SkillAction[SK.RA_ARROWSTORM] =
 	SkillAction[SK.RA_AIMEDBOLT] =
 	SkillAction[SK.SC_TRIANGLESHOT] =

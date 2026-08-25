@@ -108,6 +108,10 @@ MissoesTrackerIdle.init = function init() {
 				mandarAcao('iniciar', btn.dataset.id);
 			} else if (acao === 'pausar' || acao === 'retomar') {
 				mandarAcao(acao, null);
+			} else if (acao === 'abrir-janela') {
+				// A Troca de Classe não roda pelo executor: o clique abre a
+				// janela de missões, onde a grade de classes mora (D-606).
+				MissoesIdle.toggle();
 			}
 		});
 	}
@@ -201,6 +205,26 @@ function render(missoes, execucao) {
 
 	/* A lista de 1-clique: disponíveis executáveis primeiro, depois a fila. */
 	const naFila = new Set((execucao && execucao.fila) || []);
+	/*
+	 * A TROCA DE CLASSE entra no TOPO quando abre (D-606, pedido do dono:
+	 * "ao chegar no nível de classe 10 a missão deve aparecer na janela de
+	 * quests"). Ela não roda pelo executor (executavel=false), então a linha
+	 * dela não é um Iniciar: é a porta da janela, onde a grade de classes
+	 * mora. `m.classes` só viaja na missão de troca — é a marca dela.
+	 */
+	const trocasAbertas = missoes.filter(
+		m => m.classes && m.classes.length && m.estado === 'disponivel'
+	);
+	const linhasDeTroca = trocasAbertas.map(
+		m => `
+			<li>
+				<button type="button" class="mt-item mt-item--troca" data-acao="abrir-janela">
+					<span class="mt-item-seta">⚔</span>
+					<span class="mt-item-nome">${escapeHtml(m.titulo)}</span>
+					<span class="mt-item-nivel">escolher!</span>
+				</button>
+			</li>`
+	);
 	const clicaveis = missoes
 		.filter(m => m.executavel && (m.estado === 'disponivel' || naFila.has(m.id)))
 		.sort((a, b) => (naFila.has(b.id) ? 1 : 0) - (naFila.has(a.id) ? 1 : 0));
@@ -216,7 +240,7 @@ function render(missoes, execucao) {
 			</li>`;
 	});
 	lista.innerHTML =
-		linhas.join('') ||
+		linhasDeTroca.join('') + linhas.join('') ||
 		(execucao && execucao.ativaId
 			? ''
 			: '<li class="mt-vazio">Nenhuma missão disponível agora — suba de nível!</li>');

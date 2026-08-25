@@ -193,3 +193,15 @@
 	text-align: center;
 	padding: 4px 0;
 }
+
+/* A Troca de Classe no topo (D-606): ouro e detalhe, nunca superficie —
+   a regra do design system; a linha e a PORTA da janela, nao um Iniciar. */
+.mt-item--troca {
+	border: 1px solid var(--ouro, #c9a227);
+	border-radius: 6px;
+}
+
+.mt-item--troca .mt-item-seta,
+.mt-item--troca .mt-item-nivel {
+	color: var(--ouro, #c9a227);
+}
