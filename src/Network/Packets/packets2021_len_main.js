@@ -4916,6 +4916,7 @@ function init(packetver) {
 	// no other length_list[] assignment in this file touches 0x0fec/0x0fed.
 	length_list[0x0fec] = 2; // CZ_RAGIDLE_PEDIR_MISSOES (opcode only)
 	length_list[0x0fed] = -1; // ZC_RAGIDLE_MISSOES (variable, JSON payload)
+	length_list[0x0feb] = -1; // CZ_RAGIDLE_MISSAO_ACAO (variable, JSON payload, D-601)
 
 	return length_list;
 }

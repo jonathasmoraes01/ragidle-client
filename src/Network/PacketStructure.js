@@ -16069,6 +16069,23 @@ PACKET.ZC.RAGIDLE_MISSOES = function PACKET_ZC_RAGIDLE_MISSOES(fp, end) {
 };
 PACKET.ZC.RAGIDLE_MISSOES.size = -1;
 
+// 0x0feb - RAGIDLE: CZ_RAGIDLE_MISSAO_ACAO (client -> server)
+// Variable size: u16 opcode + u16 total length + JSON UTF-8 payload
+// ({"acao": "iniciar"|"pausar"|"retomar", "id": "..."} — D-601). Mesmo
+// byte-length-em-UTF-8 real de CZ_RAGIDLE_APLICAR_CONFIG acima.
+PACKET.CZ.RAGIDLE_MISSAO_ACAO = function PACKET_CZ_RAGIDLE_MISSAO_ACAO() {
+	this.json = '{}';
+};
+PACKET.CZ.RAGIDLE_MISSAO_ACAO.prototype.build = function () {
+	const bytes = TextEncoding.encode(this.json, 'utf-8');
+	const pkt_len = 2 + 2 + bytes.length;
+	const pkt_buf = new BinaryWriter(pkt_len);
+	pkt_buf.writeShort(0x0feb);
+	pkt_buf.writeUShort(pkt_len);
+	pkt_buf.writeString(this.json);
+	return pkt_buf;
+};
+
 // 0x0ffb - RAGIDLE: CZ_RAGIDLE_APRENDER (client -> server)
 // Variable size: u16 opcode + u16 total length + JSON UTF-8 payload
 // ({"skillId": "NV_BASIC"} per the contract — the single skill to learn one

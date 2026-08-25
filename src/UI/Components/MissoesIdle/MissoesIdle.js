@@ -52,6 +52,10 @@ MissoesIdle.mouseMode = GUIComponent.MouseMode.CROSS;
 /** As missões que o servidor mandou por último ({v:1, missoes:[...]}). */
 MissoesIdle.missoes = [];
 
+/** O retrato do EXECUTOR (D-601): {ativaId, tituloAtiva, passo, fila, pausada}.
+ * O tracker (MissoesTrackerIdle) LÊ daqui — uma fonte só, um hook só. */
+MissoesIdle.execucao = null;
+
 /** Aba ativa: 'principais' | 'opcionais'. */
 MissoesIdle.activeTab = 'principais';
 
@@ -213,10 +217,43 @@ function render() {
 			closeWindow();
 		});
 	});
+
+	// O 1-CLIQUE do executor (D-601): Iniciar/Pausar/Retomar mandam a ação e
+	// o SERVIDOR decide — recusa educada chega pelo feed, nunca um alert.
+	body.querySelectorAll('[data-executar]').forEach(btn => {
+		btn.addEventListener('click', e => {
+			e.stopImmediatePropagation();
+			const pkt = new PACKET.CZ.RAGIDLE_MISSAO_ACAO();
+			const acao = btn.dataset.executar;
+			pkt.json = JSON.stringify(
+				acao === 'iniciar' ? { acao, id: btn.dataset.id } : { acao }
+			);
+			Network.sendPacket(pkt);
+		});
+	});
 }
 
 function cardDeMissao(m) {
 	const badge = BADGES[m.estado] || BADGES.bloqueada;
+	const execucao = MissoesIdle.execucao || {};
+
+	// O botão do executor (D-601): um clique, nenhuma pergunta.
+	let botao = '';
+	if (m.executavel) {
+		if (execucao.ativaId === m.id) {
+			botao = `<button type="button" class="ri-btn ri-btn--sec mi-executar" data-executar="pausar">Pausar</button>`;
+		} else if (m.naFila) {
+			botao = `<span class="mi-fila-aviso">Na fila…</span>`;
+		} else if (m.estado === 'disponivel' || (m.estado === 'concluida' && m.repetivel && !m.cooldownS)) {
+			botao = `<button type="button" class="ri-btn ri-btn--ouro mi-executar" data-executar="iniciar" data-id="${escapeHtml(m.id)}">Iniciar</button>`;
+		} else if (m.cooldownS > 0) {
+			botao = `<span class="mi-fila-aviso">Recarrega em ${Math.ceil(m.cooldownS / 60)} min</span>`;
+		}
+	}
+	const rodape = botao ? `<div class="mi-card-rodape">${botao}</div>` : '';
+	const dificuldade = m.dificuldade
+		? `<span class="ri-badge ri-badge--cinza mi-dif" title="Dificuldade">${escapeHtml(m.dificuldade)}</span>`
+		: '';
 
 	const objetivos = (m.objetivos || [])
 		.map(
@@ -262,13 +299,14 @@ function cardDeMissao(m) {
 		<div class="mi-card" data-missao="${escapeHtml(m.id)}" data-estado="${escapeHtml(m.estado)}">
 			<div class="mi-card-topo">
 				<span class="mi-card-titulo">${escapeHtml(m.titulo)}</span>
-				<span class="ri-badge ${badge.classe}">${badge.rotulo}</span>
+				<span class="mi-card-badges">${dificuldade}<span class="ri-badge ${badge.classe}">${badge.rotulo}</span></span>
 			</div>
 			<p class="mi-desc">${escapeHtml(m.descricao)}</p>
 			${m.estado === 'bloqueada' && m.requisito ? `<p class="mi-requisito">${escapeHtml(m.requisito)}</p>` : ''}
 			${objetivos}
 			${recompensas}
 			${classes}
+			${rodape}
 		</div>`;
 }
 
@@ -289,6 +327,7 @@ function onMissoesRecebidas(pkt) {
 		return;
 	}
 	MissoesIdle.missoes = Array.isArray(dados.missoes) ? dados.missoes : [];
+	MissoesIdle.execucao = dados.execucao && typeof dados.execucao === 'object' ? dados.execucao : null;
 	render();
 }
 

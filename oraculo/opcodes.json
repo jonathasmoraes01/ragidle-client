@@ -15164,6 +15164,11 @@
 					"tamanho": 18,
 					"desde": null
 				},
+				"0x0feb": {
+					"nome": "CZ_RAGIDLE_MISSAO_ACAO",
+					"tamanho": -1,
+					"desde": null
+				},
 				"0x0fec": {
 					"nome": "CZ_RAGIDLE_PEDIR_MISSOES",
 					"tamanho": 2,

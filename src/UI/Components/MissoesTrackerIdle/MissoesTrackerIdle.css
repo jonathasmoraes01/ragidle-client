@@ -1,0 +1,195 @@
+/**
+ * UI/Components/MissoesTrackerIdle/MissoesTrackerIdle.css
+ *
+ * O TRACKER DE MISSÕES (D-601) — o painel sempre-visível ancorado ABAIXO das
+ * informações do personagem, como no Ragnarok Origin (pedido do dono,
+ * 25/08/2026). Um clique numa missão e o executor faz TUDO; o passo atual
+ * aparece aqui com progresso.
+ *
+ * A POSIÇÃO não é CSS fixo de propósito: o BasicInfoIdle é arrastável e muda
+ * de altura ao compactar — quem ancora é o syncPosition() do JS, medindo o
+ * host dele por getBoundingClientRect() a cada 250ms (o mesmo idioma de
+ * polling do CorreioIdle). Aqui só moram a pele e o pointer-events split:
+ * :host atravessa clique; só o painel opta de volta.
+ *
+ * A pele inteira vem do design system oficial (.ri-* via Common.css,
+ * injetado em todo Shadow DOM); esta folha guarda o layout compacto e as
+ * linhas de lista (o padrão de linha clicável do CorreioIdle).
+ */
+
+:host {
+	position: absolute;
+	width: 246px; /* a MESMA largura do BasicInfoIdle — leem como uma coluna */
+	pointer-events: none;
+}
+
+#MissoesTrackerIdle {
+	position: relative;
+	width: 100%;
+	color: var(--text-body);
+	font-size: var(--fs-info);
+	-webkit-font-smoothing: antialiased;
+}
+
+.mt-painel {
+	pointer-events: auto;
+	background: var(--surface-card);
+	border: 1px solid var(--border-hairline);
+	border-radius: var(--radius-panel);
+	box-shadow: var(--shadow-card);
+	overflow: hidden;
+}
+
+.mt-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: 6px 10px;
+	background: var(--surface-inset);
+	border-bottom: 1px solid var(--border-hairline);
+}
+
+.mt-titulo {
+	font-weight: 700;
+	font-size: var(--fs-info);
+	color: var(--text-body);
+}
+
+.mt-recolher {
+	border: none;
+	background: transparent;
+	color: var(--text-muted);
+	cursor: pointer;
+	font-size: 14px;
+	line-height: 1;
+	padding: 0 4px;
+}
+
+.mt-corpo {
+	padding: 8px;
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+}
+
+.mt-painel.is-recolhido .mt-corpo {
+	display: none;
+}
+
+/* ─── A missão ATIVA (o que está acontecendo AGORA) ─────────── */
+
+.mt-ativa {
+	border: 1px solid var(--accent);
+	border-radius: var(--radius-card);
+	background: var(--surface-inset);
+	padding: 8px;
+}
+
+.mt-ativa[data-vazia='true'] {
+	display: none;
+}
+
+.mt-ativa-titulo {
+	font-weight: 700;
+	margin-bottom: 2px;
+}
+
+.mt-ativa-passo {
+	color: var(--text-muted);
+	font-size: var(--fs-desc);
+	margin-bottom: 6px;
+}
+
+/* Mini-barra dourada — a mesma receita da barra de EXP do painel. */
+.mt-barra {
+	height: 6px;
+	border-radius: 999px;
+	background: var(--well-fill, rgba(0, 0, 0, 0.12));
+	overflow: hidden;
+	margin-bottom: 6px;
+}
+
+.mt-barra-fill {
+	height: 100%;
+	border-radius: 999px;
+	background: var(--gold-500);
+	transition: width 300ms ease-out;
+}
+
+.mt-ativa-acoes {
+	display: flex;
+	gap: 6px;
+	align-items: center;
+	justify-content: space-between;
+}
+
+.mt-eta {
+	color: var(--text-muted);
+	font-size: var(--fs-desc);
+}
+
+.mt-btn-mini {
+	font-size: var(--fs-desc);
+	padding: 2px 10px;
+}
+
+/* ─── A lista de missões clicáveis (1 clique = Iniciar) ─────── */
+
+.mt-lista {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+}
+
+.mt-item {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 6px 8px;
+	border-radius: var(--radius-card);
+	border: 1px solid var(--border-hairline);
+	background: var(--surface-card);
+	cursor: pointer;
+	text-align: left;
+	width: 100%;
+	transition:
+		background var(--dur-fast),
+		border-color var(--dur-fast);
+}
+
+.mt-item:hover {
+	background: var(--surface-card-hover);
+	border-color: var(--accent);
+}
+
+.mt-item-seta {
+	color: var(--gold-500);
+	font-weight: 700;
+}
+
+.mt-item-nome {
+	flex: 1 1 auto;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.mt-item-nivel {
+	color: var(--text-muted);
+	font-size: var(--fs-desc);
+}
+
+.mt-item[data-fila='true'] {
+	opacity: 0.75;
+	cursor: default;
+}
+
+.mt-vazio {
+	color: var(--text-muted);
+	font-size: var(--fs-desc);
+	text-align: center;
+	padding: 4px 0;
+}

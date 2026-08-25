@@ -171,3 +171,22 @@
 #MissoesIdle .mi-card[data-estado='bloqueada'] .mi-classe {
 	opacity: 0.55;
 }
+
+/* ─── O executor (D-601): rodapé de ação e badges do card ────── */
+
+#MissoesIdle .mi-card-rodape {
+	display: flex;
+	justify-content: flex-end;
+	margin-top: 8px;
+}
+
+#MissoesIdle .mi-card-badges {
+	display: flex;
+	gap: 4px;
+	align-items: center;
+}
+
+#MissoesIdle .mi-fila-aviso {
+	color: var(--text-muted);
+	font-size: var(--fs-desc);
+}
