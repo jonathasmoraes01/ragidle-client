@@ -1,0 +1,2 @@
+{"tipo":"conexao","n":1133,"alvo":"127.0.0.1:6900","servidor":"login","etiqueta":"1133-login","ms":94828360}
+{"tipo":"fim","ms":94828361,"n":1133,"alvo":"127.0.0.1:6900","servidor":"login","etiqueta":"1133-login","abertaEm":94828360,"pacotes":{"c2s":0,"s2c":0},"bytes":{"c2s":0,"s2c":0},"travou":{"c2s":false,"s2c":false},"fechadaEm":94828361}

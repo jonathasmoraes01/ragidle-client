@@ -1,0 +1,4 @@
+{"tipo":"conexao","n":2115,"alvo":"127.0.0.1:6900","servidor":"login","etiqueta":"2115-login","ms":165805170}
+{"ms":165805174,"dir":"c2s","opcode":"0x0064","nome":"CA_LOGIN","tamanho":55,"deslocamento":0}
+{"ms":165805174,"dir":"s2c","opcode":"0x0ac4","nome":"AC_ACCEPT_LOGIN3","tamanho":224,"deslocamento":0}
+{"tipo":"fim","ms":165805183,"n":2115,"alvo":"127.0.0.1:6900","servidor":"login","etiqueta":"2115-login","abertaEm":165805170,"pacotes":{"c2s":1,"s2c":1},"bytes":{"c2s":55,"s2c":224},"travou":{"c2s":false,"s2c":false},"fechadaEm":165805183}

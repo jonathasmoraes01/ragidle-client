@@ -1,0 +1,4 @@
+{"tipo":"conexao","n":811,"alvo":"127.0.0.1:6900","servidor":"login","etiqueta":"811-login","ms":47172913}
+{"ms":47172924,"dir":"c2s","opcode":"0x0064","nome":"CA_LOGIN","tamanho":55,"deslocamento":0}
+{"ms":47172925,"dir":"s2c","opcode":"0x0ac4","nome":"AC_ACCEPT_LOGIN3","tamanho":224,"deslocamento":0}
+{"tipo":"fim","ms":47172935,"n":811,"alvo":"127.0.0.1:6900","servidor":"login","etiqueta":"811-login","abertaEm":47172913,"pacotes":{"c2s":1,"s2c":1},"bytes":{"c2s":55,"s2c":224},"travou":{"c2s":false,"s2c":false},"fechadaEm":47172935}

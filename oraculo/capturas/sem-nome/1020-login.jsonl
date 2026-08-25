@@ -1,0 +1,4 @@
+{"tipo":"conexao","n":1020,"alvo":"127.0.0.1:6900","servidor":"login","etiqueta":"1020-login","ms":88543406}
+{"ms":88543412,"dir":"c2s","opcode":"0x0064","nome":"CA_LOGIN","tamanho":55,"deslocamento":0}
+{"ms":88543413,"dir":"s2c","opcode":"0x0ac4","nome":"AC_ACCEPT_LOGIN3","tamanho":224,"deslocamento":0}
+{"tipo":"fim","ms":88543422,"n":1020,"alvo":"127.0.0.1:6900","servidor":"login","etiqueta":"1020-login","abertaEm":88543406,"pacotes":{"c2s":1,"s2c":1},"bytes":{"c2s":55,"s2c":224},"travou":{"c2s":false,"s2c":false},"fechadaEm":88543422}

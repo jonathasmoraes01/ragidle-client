@@ -1,0 +1,2 @@
+{"tipo":"conexao","n":1160,"alvo":"127.0.0.1:6900","servidor":"login","etiqueta":"1160-login","ms":95396116}
+{"tipo":"fim","ms":95396117,"n":1160,"alvo":"127.0.0.1:6900","servidor":"login","etiqueta":"1160-login","abertaEm":95396116,"pacotes":{"c2s":0,"s2c":0},"bytes":{"c2s":0,"s2c":0},"travou":{"c2s":false,"s2c":false},"fechadaEm":95396117}

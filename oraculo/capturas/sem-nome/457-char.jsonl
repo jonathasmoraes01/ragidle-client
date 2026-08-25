@@ -1,0 +1,12 @@
+{"tipo":"conexao","n":457,"alvo":"127.0.0.1:6121","servidor":"char","etiqueta":"457-char","ms":26477756}
+{"ms":26477763,"dir":"c2s","opcode":"0x0065","nome":"CH_ENTER","tamanho":17,"deslocamento":0}
+{"ms":26477763,"dir":"s2c","opcode":"0x082d","nome":"HC_ACCEPT_ENTER_NEO_UNION_HEADER","tamanho":29,"deslocamento":4}
+{"ms":26477763,"dir":"s2c","opcode":"0x006b","nome":"HC_ACCEPT_ENTER_NEO_UNION","tamanho":27,"deslocamento":33}
+{"ms":26477763,"dir":"s2c","opcode":"0x09a0","nome":"HC_CHARLIST_NOTIFY","tamanho":6,"deslocamento":60,"fonteDoTamanho":"excecao"}
+{"ms":26477769,"dir":"c2s","opcode":"0x09a1","nome":"CH_CHARLIST_REQ","tamanho":2,"deslocamento":17}
+{"ms":26477769,"dir":"s2c","opcode":"0x006b","nome":"HC_ACCEPT_ENTER_NEO_UNION","tamanho":27,"deslocamento":66}
+{"ms":26480904,"dir":"c2s","opcode":"0x0a39","nome":"CH_MAKE_CHAR3","tamanho":36,"deslocamento":19}
+{"ms":26480905,"dir":"s2c","opcode":"0x0b6f","nome":"HC_ACCEPT_MAKECHAR","tamanho":177,"deslocamento":93,"fonteDoTamanho":"excecao"}
+{"ms":26482986,"dir":"c2s","opcode":"0x0066","nome":"CH_SELECT_CHAR","tamanho":3,"deslocamento":55}
+{"ms":26482987,"dir":"s2c","opcode":"0x0ac5","nome":"HC_NOTIFY_ZONESVR2","tamanho":156,"deslocamento":270}
+{"tipo":"fim","ms":26483422,"n":457,"alvo":"127.0.0.1:6121","servidor":"char","etiqueta":"457-char","abertaEm":26477756,"pacotes":{"c2s":4,"s2c":6},"bytes":{"c2s":58,"s2c":426},"travou":{"c2s":false,"s2c":false},"fechadaEm":26483422}

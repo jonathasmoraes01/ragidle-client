@@ -1,0 +1,4 @@
+{"tipo":"conexao","n":1548,"alvo":"127.0.0.1:6900","servidor":"login","etiqueta":"1548-login","ms":117681404}
+{"ms":117681418,"dir":"c2s","opcode":"0x0064","nome":"CA_LOGIN","tamanho":55,"deslocamento":0}
+{"ms":117681419,"dir":"s2c","opcode":"0x0ac4","nome":"AC_ACCEPT_LOGIN3","tamanho":224,"deslocamento":0}
+{"tipo":"fim","ms":117681449,"n":1548,"alvo":"127.0.0.1:6900","servidor":"login","etiqueta":"1548-login","abertaEm":117681404,"pacotes":{"c2s":1,"s2c":1},"bytes":{"c2s":55,"s2c":224},"travou":{"c2s":false,"s2c":false},"fechadaEm":117681449}
