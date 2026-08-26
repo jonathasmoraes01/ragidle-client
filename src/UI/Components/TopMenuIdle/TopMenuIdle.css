@@ -90,11 +90,63 @@
    topo dos discos com o topo do botao e, por sua vez, com o topo do minimapa
    (os tres em "top:16px"). Nunca quebra linha — 5 itens cabem folgado ate em
    1280px de largura (medido: a fileira inteira da 395px). */
+/* ─── O CLUSTER, em DUAS FILEIRAS (26/08/2026, pedido do dono) ───────────
+   Ele nasceu com 5 itens numa fileira so. Outras frentes somaram Missoes,
+   Idle e Analise, e a 8 a fileira passou a atravessar meia tela -- que e o
+   oposto do que o gabarito pede para o canto superior direito.
+
+   GRADE, e nao "flex-wrap": a quebra por wrap depende da LARGURA de cada
+   item, e a largura aqui e o rotulo ("Recompensas" contra "Idle"). Com wrap,
+   duas fileiras sairiam desiguais e o corte mudaria de lugar a cada rotulo
+   novo. Na grade o corte e por CONTAGEM, e as duas fileiras ficam parelhas.
+
+   Quantas colunas e conta do JS (--tm-colunas, ver distribuirFileiras): a
+   metade dos itens VISIVEIS, arredondada para cima. Cravar "4" aqui daria
+   certo hoje e erraria no proximo botao que alguem somar -- foi exatamente
+   assim que esta regra envelheceu tres vezes.
+
+   A ALCA fica na sua propria coluna, a ultima, ocupando as DUAS fileiras: ela
+   recolhe o cluster inteiro, entao pertence ao conjunto e nao a uma das
+   metades. Como a posicao dela e explicita, o preenchimento automatico pula
+   aquelas duas celulas sozinho. */
 .tm-top {
-	display: flex;
-	align-items: flex-start;
-	justify-content: flex-end;
-	gap: 18px;
+	display: grid;
+	grid-template-columns: repeat(var(--tm-colunas, 4), auto) min-content;
+	align-items: start;
+	justify-content: end;
+	gap: 10px 18px;
+}
+
+.tm-top .tm-toggle {
+	grid-column: -2 / -1;
+	/* "span 2", e NAO "1 / -1". O `-1` conta a ultima linha da grade EXPLICITA,
+	   e aqui so as COLUNAS sao declaradas -- as fileiras sao implicitas. Entao
+	   `1 / -1` resolvia para uma fileira so, e a alca ficava colada na de cima
+	   (medido: centro dela em y=50 contra 89 do cluster) enquanto o computado
+	   dizia "1 / -1" e o `align-self: center` dizia "center" -- tudo aparentando
+	   estar certo. `span 2` nao depende de linha nomeada e atravessa implicita. */
+	grid-row: 1 / span 2;
+	align-self: center;
+}
+
+/* Recolhido nao ha item nenhum, e as colunas vazias deixariam o vao das
+   lacunas sobrando a direita do minimapa. Uma coluna so, e a alca dentro
+   dela. */
+.tm-top.is-collapsed {
+	grid-template-columns: min-content;
+	/* A alca fica ONDE ESTAVA. "min-height" segura a altura que o cluster tinha
+	   aberto (medida pelo JS em --tm-altura) e "align-content: center" poe a
+	   unica fileira restante no meio dela. Sem os dois, a grade encolhia para os
+	   28px da alca e ela subia ~60px ao minimizar.
+	   A caixa reservada NAO captura clique: o host e "pointer-events:none" e so
+	   os botoes reacendem — a mesma razao pela qual o leque pode ter veu. */
+	min-height: var(--tm-altura, 0px);
+	align-content: center;
+}
+
+.tm-top.is-collapsed .tm-toggle {
+	grid-column: 1;
+	grid-row: 1;
 }
 
 .tm-item {

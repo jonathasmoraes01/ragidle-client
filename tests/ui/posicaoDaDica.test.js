@@ -19,8 +19,10 @@
 import { describe, expect, it } from 'vitest';
 import { DICA_FOLGA, posicaoDaDica } from 'UI/Components/MochilaIdle/posicaoDaDica.js';
 
-/** A janela real: 578x344, largada em 100,50 na tela. */
-const JANELA = { left: 100, top: 50, width: 578, height: 344 };
+/** A janela real: 578x396 desde a fileira de fantasia (26/08/2026; era
+ *  578x344), largada em 100,50 na tela. A conta nao le a altura, entao os
+ *  casos valem igual. */
+const JANELA = { left: 100, top: 50, width: 578, height: 396 };
 /** Uma dica de tamanho plausivel para "Poção Vermelha". */
 const DICA = { width: 120, height: 22 };
 

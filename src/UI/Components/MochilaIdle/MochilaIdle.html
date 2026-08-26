@@ -18,15 +18,32 @@
 
 			<div class="mo-corpo">
 				<div class="mo-painel-esq">
-					<div class="mo-coluna mo-coluna-esq"></div>
-					<div class="mo-boneco">
-						<div class="mo-boneco-palco">
-							<span class="mo-avatar-fallback">?</span>
-							<canvas class="mo-avatar-canvas" width="55" height="125"></canvas>
+					<!-- ".mo-vestes" e a fileira original (colunas + boneca);
+					     virou filho porque o painel ganhou uma SEGUNDA fileira
+					     embaixo (a fantasia) e passou a ser coluna -- os
+					     listeners delegados de MochilaIdle.js continuam no
+					     painel, cobrindo as duas fileiras de graca. -->
+					<div class="mo-vestes">
+						<div class="mo-coluna mo-coluna-esq"></div>
+						<div class="mo-boneco">
+							<div class="mo-boneco-palco">
+								<span class="mo-avatar-fallback">?</span>
+								<canvas class="mo-avatar-canvas" width="55" height="125"></canvas>
+							</div>
+							<span class="mo-boneco-nome">—</span>
 						</div>
-						<span class="mo-boneco-nome">—</span>
+						<div class="mo-coluna mo-coluna-dir"></div>
 					</div>
-					<div class="mo-coluna mo-coluna-dir"></div>
+
+					<!-- Fantasia (costume): os 4 slots so-visuais, SEMPRE a
+					     vista (nao numa aba) -- ver a decisao em
+					     MochilaIdle.css, secao ".mo-fantasia". Slots montados
+					     por syncEquipSlots() a partir de FANTASIA_SLOTS
+					     (slotsDeFantasia.js). -->
+					<div class="mo-fantasia">
+						<span class="mo-fantasia-rotulo">Fantasia</span>
+						<div class="mo-fantasia-slots"></div>
+					</div>
 				</div>
 
 				<div class="mo-painel-dir">

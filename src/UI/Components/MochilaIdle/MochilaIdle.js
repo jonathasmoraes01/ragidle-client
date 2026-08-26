@@ -105,6 +105,24 @@
  *     existem no jogo (servidor manda favorito sempre 0; nao ha cap de
  *     slots) -- nao viraram botao morto, ver secao 5 do briefing.
  *
+ * ── FANTASIA (26/08/2026) -- os slots de costume ─────────────────────────
+ * Pedido do dono: "ja coloque a opcao de costume no nosso inventario
+ * tambem, tanto para equipar como na mochila". O que entrou:
+ *   - fileira ".mo-fantasia" com os 4 slots de costume (lista, mascara e a
+ *     armadilha do robe em slotsDeFantasia.js), SEMPRE a vista embaixo da
+ *     boneca -- a decisao "fileira, nao aba" esta em MochilaIdle.css;
+ *   - os ladrilhos sao os MESMOS ".mo-slot" das colunas, dentro do mesmo
+ *     ".mo-painel-esq": equipar por arrasto, "x", menu de contexto e tirar
+ *     por arrasto valem pra fantasia pelos handlers delegados ja existentes
+ *     (o bitmask de data-location faz o resto);
+ *   - na grade, item de costume ganha selo de brilho + " — Fantasia" na
+ *     dica (eDeFantasia sobre a mascara de vestir do proprio item);
+ *   - equipar/tirar NAO precisou de caminho novo: useItem() nativo ja chama
+ *     onEquipItem(index, item.location) pra ARMOR, o servidor veste pela
+ *     mascara do item, e o ACK (Engine/MapEngine/Item.js:238-291) ja
+ *     escreve a celula de costume do host escondido E a aparencia da
+ *     entidade (costume por cima do normal) -- a boneca herda de graca.
+ *
  * @author RagIdle
  */
 
@@ -122,6 +140,7 @@ import UIManager from 'UI/UIManager.js';
 import GUIComponent from 'UI/GUIComponent.js';
 import Inventory from 'UI/Components/Inventory/Inventory.js';
 import { posicaoDaDica } from './posicaoDaDica.js';
+import { FANTASIA_SLOTS, eDeFantasia } from './slotsDeFantasia.js';
 import Equipment from 'UI/Components/Equipment/Equipment.js';
 import ItemInfo from 'UI/Components/ItemInfo/ItemInfo.js';
 import ContextMenu from 'UI/Components/ContextMenu/ContextMenu.js';
@@ -136,19 +155,24 @@ import cssText from './MochilaIdle.css?raw';
  * renderiza um numero FIXO de celulas (GRADE_CAPACIDADE abaixo) em vez de so
  * as ocupadas, entao o "ar" que sobrava embaixo da lista curta virou grade de
  * verdade; a janela nao precisa mais da altura extra pra disfarcar isso.
+ * FANTASIA (26/08/2026): 344 -> 396 -- a fileira de slots de costume entrou
+ * embaixo da boneca; a conta inteira da altura nova esta no cabecalho de
+ * MochilaIdle.css.
  */
 const WINDOW_WIDTH = 578;
-const WINDOW_HEIGHT = 344;
+const WINDOW_HEIGHT = 396;
 
 /**
  * Reticulo SEMPRE visivel da grade (secao 1 do briefing: "a grade e um
  * reticulo sempre visivel de 5 colunas... o total pode vir do que faz
- * sentido pra area visivel, com rolagem quando passar disso"). 5x5 = 25
- * celulas cabem em ".mo-grade-host" sem cortar a ultima fileira (334px de
- * altura de miolo, ver MochilaIdle.css); alem disso, ".ri-scroll" rola.
+ * sentido pra area visivel, com rolagem quando passar disso"). 5x6 = 30
+ * celulas fecham EXATO em ".mo-grade-host" sem cortar a ultima fileira
+ * (306px de miolo = 6x46 + 5x6, ver a conta da altura em MochilaIdle.css --
+ * eram 5 linhas ate a janela crescer pra fileira de fantasia); alem disso,
+ * ".ri-scroll" rola.
  */
 const GRADE_COLS = 5;
-const GRADE_LINHAS_VISIVEIS = 5;
+const GRADE_LINHAS_VISIVEIS = 6;
 const GRADE_CAPACIDADE = GRADE_COLS * GRADE_LINHAS_VISIVEIS;
 
 /**
@@ -158,10 +182,12 @@ const POLL_INTERVAL_MS = 250;
 
 /**
  * Os 10 slots de equipamento REAIS deste jogo (DB/Items/EquipmentLocation.js)
- * -- AMMO, COSTUME_* e SHADOW_* ficam de fora (sao a aba "Fantasia"/visual da
- * Equipment nativa, fora do escopo desta janela). Coluna esquerda/direita e a
- * MESMA divisao que a Equipment nativa ja usa (col1/col3, ver
- * EquipmentV4.html) -- nao inventada, so espelhada.
+ * -- AMMO e SHADOW_* ficam de fora (municao nao tem janela aqui e shadow gear
+ * nao existe neste jogo). Os COSTUME_* SAIRAM desta lista de exclusao em
+ * 26/08/2026 (pedido do dono): eles moram em FANTASIA_SLOTS
+ * (slotsDeFantasia.js) e desenham na fileira ".mo-fantasia-slots", abaixo da
+ * boneca. Coluna esquerda/direita e a MESMA divisao que a Equipment nativa ja
+ * usa (col1/col3, ver EquipmentV4.html) -- nao inventada, so espelhada.
  */
 const EQUIP_SLOTS = [
 	{ location: EquipLocation.HEAD_TOP, cls: 'head_top', label: 'Chapéu', glifo: 'slotChapeu', col: 'esq' },
@@ -533,10 +559,15 @@ const renderBoneco = (function renderBonecoClosure() {
 			bodypalette: entity.bodypalette
 		});
 
-		// Slots normais (a boneca nao tem aba fantasia -- isso e escopo da
-		// Equipment nativa, ver cabecalho do arquivo). Arma/escudo NAO entram
-		// aqui -- ver o comentario grande acima desta closure (investigado,
-		// motor nao desenha a camada de arma nem no mundo real hoje).
+		// Os campos visuais da entidade REAL -- e desde 26/08/2026 eles ja
+		// INCLUEM a fantasia de graca: Engine/MapEngine/Item.js:246-283
+		// escreve accessory/accessory2/accessory3/robe com o viewid de
+		// costume por cima do equipamento normal ("costume override regular
+		// equips") a cada vestir/tirar, entao copiar os mesmos campos poe a
+		// asa/chapeu de fantasia na boneca sem uma linha nova. Arma/escudo
+		// NAO entram aqui -- ver o comentario grande acima desta closure
+		// (investigado, motor nao desenha a camada de arma nem no mundo real
+		// hoje).
 		_character.accessory = entity.accessory;
 		_character.accessory2 = entity.accessory2;
 		_character.accessory3 = entity.accessory3;
@@ -582,8 +613,17 @@ function syncBoneco() {
 /**
  * Le o que esta vestido direto do DOM ja renderizado do host nativo Equipment
  * (escondido, mas vivo -- ver cabecalho do arquivo) e redesenha as duas
- * colunas de slots. So reconstroi quando a assinatura (indice de cada item
- * equipado, slot a slot) muda -- ver _lastSlotsSig.
+ * colunas de slots MAIS a fileira de fantasia. So reconstroi quando a
+ * assinatura (indice de cada item equipado, slot a slot) muda -- ver
+ * _lastSlotsSig.
+ *
+ * FANTASIA (26/08/2026): as celulas de costume moram na tabela #costume do
+ * host nativo (EquipmentV3.html:73-100) -- ela e outra ABA la, mas as abas
+ * daquela janela so trocam display, o DOM inteiro existe sempre; e
+ * Equipment.equip() escreve pela location (getSelectorFromLocation), sem
+ * olhar aba ativa. Entao a MESMA leitura por classe funciona -- inclusive a
+ * celula do robe, que la se chama '.shadow_garment' (a armadilha inteira
+ * esta em slotsDeFantasia.js).
  */
 function syncEquipSlots() {
 	const equipRoot = Equipment.getUI().getRoot();
@@ -591,7 +631,7 @@ function syncEquipSlots() {
 		return;
 	}
 
-	const estados = EQUIP_SLOTS.map(slot => {
+	const estados = [...EQUIP_SLOTS, ...FANTASIA_SLOTS].map(slot => {
 		const cell = equipRoot.querySelector('.' + slot.cls);
 		const itemDiv = cell ? cell.querySelector('.item') : null;
 		return { slot, itemDiv };
@@ -609,8 +649,10 @@ function syncEquipSlots() {
 	const root = _root();
 	const colEsq = root.querySelector('.mo-coluna-esq');
 	const colDir = root.querySelector('.mo-coluna-dir');
+	const linhaFantasia = root.querySelector('.mo-fantasia-slots');
 	colEsq.innerHTML = '';
 	colDir.innerHTML = '';
+	linhaFantasia.innerHTML = '';
 
 	estados.forEach(({ slot, itemDiv }) => {
 		const tile = document.createElement('div');
@@ -640,7 +682,12 @@ function syncEquipSlots() {
 			tile.innerHTML = `<span class="mo-slot-glifo">${RiIcones[slot.glifo] || ''}</span>`;
 		}
 
-		(slot.col === 'esq' ? colEsq : colDir).appendChild(tile);
+		// Slot sem "col" e da fileira de fantasia (FANTASIA_SLOTS) -- os
+		// ladrilhos sao IDENTICOS e ficam dentro de ".mo-painel-esq", entao
+		// todos os gestos delegados la (equipar por arrasto, "x", menu de
+		// contexto, tirar por arrasto) valem pra fantasia sem uma linha nova.
+		const destino = slot.col === 'esq' ? colEsq : slot.col === 'dir' ? colDir : linhaFantasia;
+		destino.appendChild(tile);
 	});
 }
 
@@ -749,9 +796,23 @@ function syncGrade() {
 		// _OBJ_DRAG_, ver onGradeDragStart.
 		cell.draggable = true;
 
+		// FANTASIA (26/08/2026): item de costume ganha o selo de brilho no
+		// canto -- um chapeu de fantasia usa o MESMO icone do chapeu comum, e
+		// sem selo o jogador equipa e nao entende por que o atributo nao veio
+		// (a peca e so-visual). O criterio e a mascara de vestir do proprio
+		// item (eDeFantasia, slotsDeFantasia.js), o mesmo dado que decide em
+		// qual slot ela cai -- nada inventado.
+		const locationDoItem = 'location' in item ? item.location : item.WearState;
+		const eFantasia = eDeFantasia(locationDoItem);
+		if (eFantasia) {
+			cell.classList.add('is-fantasia');
+		}
+
 		const count = item.count || 1;
 		cell.innerHTML =
-			'<img class="mo-item-icone" alt="" />' + (count > 1 ? `<span class="mo-item-qtd">${count}</span>` : '');
+			'<img class="mo-item-icone" alt="" />' +
+			(count > 1 ? `<span class="mo-item-qtd">${count}</span>` : '') +
+			(eFantasia ? `<span class="mo-item-fantasia" aria-hidden="true">${RiIcones.fantasia || ''}</span>` : '');
 
 		const img = cell.querySelector('.mo-item-icone');
 		setItemIcon(img, item, it);
@@ -1083,7 +1144,15 @@ function textoDaDica(el) {
 			return '';
 		}
 		const item = Inventory.getUI().getItemByIndex(parseInt(el.dataset.index, 10));
-		return item ? DB.getItemName(item) : '';
+		if (!item) {
+			return '';
+		}
+		// A palavra por extenso ao lado do selo (26/08/2026): o selo diz "e
+		// especial", a dica diz O QUE e -- criterio identico ao da celula
+		// (eDeFantasia sobre a mascara de vestir do item).
+		const nome = DB.getItemName(item);
+		const location = 'location' in item ? item.location : item.WearState;
+		return eDeFantasia(location) ? nome + ' — Fantasia' : nome;
 	}
 	if (el.classList.contains('mo-slot') || el.classList.contains('mo-slot-remover')) {
 		// O `data-dica` cobre os tres casos do painel esquerdo: slot ocupado

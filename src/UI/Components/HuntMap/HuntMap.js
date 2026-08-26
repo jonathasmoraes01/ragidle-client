@@ -137,9 +137,9 @@ HuntMap.searchTerm = '';
 HuntMap.filterIdealOnly = false;
 
 /**
- * @var {string} left-list sort key: 'nivel-recomendado' | 'nivel' | 'nome'
+ * @var {string} left-list sort key: 'nivel' | 'nivel-recomendado' | 'nome'
  */
-HuntMap.sortKey = 'nivel-recomendado';
+HuntMap.sortKey = 'nivel';
 
 /**
  * @var {number|string|null} mobId selected in the right-hand "Monstros
@@ -471,7 +471,7 @@ function mapaMatchesSearch(mapa, term) {
 function sortMapas(mapas, sortKey, nivel) {
 	const arr = mapas.slice();
 	if (sortKey === 'nivel') {
-		arr.sort((a, b) => a.nivelMinimo - b.nivelMinimo);
+		arr.sort((a, b) => (a.nivelMinimo - b.nivelMinimo) || (a.nivelMedio - b.nivelMedio) || a.rotulo.localeCompare(b.rotulo, 'pt-BR'));
 	} else if (sortKey === 'nome') {
 		arr.sort((a, b) => a.rotulo.localeCompare(b.rotulo, 'pt-BR'));
 	} else {

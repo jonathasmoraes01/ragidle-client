@@ -147,7 +147,7 @@ import IdleSkills from 'UI/Components/IdleSkills/IdleSkills.js';
 import IdleConfig from 'UI/Components/IdleConfig/IdleConfig.js';
 import Guild from 'UI/Components/Guild/Guild.js';
 import PartyFriends from 'UI/Components/PartyFriends/PartyFriends.js';
-import LFGIdle from 'UI/Components/LFGIdle/LFGIdle.js'; // RAGIDLE: Procurar Grupo (D-618)
+import LFGIdle from 'UI/Components/LFGIdle/LFGIdle.js'; // RAGIDLE: Procurar Grupo (D-634)
 import SkillList from 'UI/Components/SkillList/SkillList.js';
 import StatusIdle from 'UI/Components/StatusIdle/StatusIdle.js';
 import MochilaIdle from 'UI/Components/MochilaIdle/MochilaIdle.js';
@@ -308,6 +308,7 @@ TopMenuIdle.onAppend = function onAppend() {
 	}
 
 	distribuirColunas();
+	distribuirFileiras();
 
 	_lequeAberto = false;
 	aplicarEstadoDoLeque(true);
@@ -420,7 +421,7 @@ function onClickAction(e) {
 		case 'group':
 			PartyFriends.toggle();
 			break;
-		// O LFG e uma janela SEPARADA da de party (D-618): a nativa mostra
+		// O LFG e uma janela SEPARADA da de party (D-634): a nativa mostra
 		// quem ja esta no grupo, esta procura grupo para entrar.
 		case 'lfg':
 			LFGIdle.toggle();
@@ -473,6 +474,27 @@ function applyCollapsedState() {
 	}
 
 	const collapsed = !!_preferences.collapsed;
+
+	/*
+	 * GUARDA A ALTURA ABERTA antes de recolher (26/08/2026, pedido do dono: a
+	 * alca "esta subindo" quando minimiza).
+	 *
+	 * Recolhido, as duas fileiras somem e a grade encolhe para os 28px da alca —
+	 * entao ela saltava de y=89 para y=30, quase 60px para cima. O glifo sempre
+	 * esteve centrado DENTRO do disco (medido: deslocamento 0 nos dois estados);
+	 * quem se mexia era o disco inteiro.
+	 *
+	 * A altura e MEDIDA e nao cravada porque o numero de itens muda — este
+	 * cluster ja foi de 5 a 8 em tres frentes. Guardar so quando ABERTO e o que
+	 * importa: no estado recolhido a medida seria a da propria alca, e a cada
+	 * ciclo de recolher/abrir o valor encolheria mais um pouco.
+	 */
+	if (!collapsed) {
+		const altura = Math.round(top.getBoundingClientRect().height);
+		if (altura > 0) {
+			top.style.setProperty('--tm-altura', `${altura}px`);
+		}
+	}
 	top.classList.toggle('is-collapsed', collapsed);
 	toggle.classList.toggle('is-collapsed', collapsed);
 	toggle.setAttribute('aria-expanded', String(!collapsed));
@@ -671,6 +693,35 @@ function aplicarEstadoDoLeque(imediato) {
  * sobrevive a cada passagem: cada item e reinserido nessa mesma ordem, entao
  * chamar isto duas vezes da o mesmo resultado.
  */
+/**
+ * Quantas COLUNAS o cluster de cima tem — ou seja, onde ele quebra em duas
+ * fileiras (26/08/2026, pedido do dono: "esta ficando muito grande essa
+ * fileira, divida ela em 2").
+ *
+ * A conta e a metade dos itens VISIVEIS, arredondada para cima, e ela mora no
+ * JS pelo mesmo motivo que a divisao das colunas do leque: o numero de itens
+ * MUDA. Este cluster ja foi de 5 para 6, para 7 e para 8 em tres frentes
+ * diferentes, e um "4" cravado no CSS acertaria hoje e erraria no proximo
+ * botao que alguem somar.
+ *
+ * Item escondido nao entra na conta: se entrasse, uma fileira nasceria com
+ * buraco. O piso e 1 porque zero coluna nao existe em grade.
+ */
+function distribuirFileiras() {
+	const root = _root();
+	if (!root) {
+		return;
+	}
+	const topo = root.querySelector('.tm-top');
+	if (!topo) {
+		return;
+	}
+	const visiveis = [...topo.querySelectorAll('.tm-item')].filter(
+		item => item.style.display !== 'none'
+	);
+	topo.style.setProperty('--tm-colunas', String(Math.max(1, Math.ceil(visiveis.length / 2))));
+}
+
 function distribuirColunas() {
 	const root = _root();
 	const fan = root.querySelector('.tm-fan');
@@ -803,8 +854,21 @@ function isActionOpen(action) {
 			return isHostVisible(Guild);
 		case 'group':
 			return isHostVisible(PartyFriends.getUI());
+		/*
+		 * LFG (D-634): ele e janela RAGIDLE, e NAO nativa -- entao le
+		 * ".lfg-window.is-open", como as vizinhas de cima.
+		 *
+		 * Ele nasceu com `isHostVisible`, copiado dos dois casos ACIMA
+		 * (guild/group), e isso o deixava aceso o jogo inteiro: `GUIComponent`
+		 * nunca escreve `display:none` no `_host` por conta propria, entao
+		 * `_host.style.display !== 'none'` e sempre verdadeiro e o aro nunca
+		 * apagava. E o MESMO defeito que o comentario de `missoes` acima
+		 * registra, pelo avesso: la o caso faltava e nunca ACENDIA; aqui o
+		 * caso existia com o helper errado e nunca APAGAVA. A licao e a
+		 * mesma -- o helper se escolhe pela janela, nao pelo vizinho de linha.
+		 */
 		case 'lfg':
-			return isHostVisible(LFGIdle);
+			return isRagIdleWindowOpen(LFGIdle, '.lfg-window');
 		default:
 			// os itens "em breve" caem aqui -- nunca acendem.
 			return false;

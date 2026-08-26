@@ -10,6 +10,27 @@
 			<button type="button" class="lfg-tab ri-tab" data-tab="criar">Criar grupo</button>
 		</div>
 
+		<!--
+			A barra do MEU grupo. So existe quando o servidor manda "meu" (nao
+			null) no ZC_RAGIDLE_LFG_LISTA, e so na aba "Grupos abertos" -- na
+			aba "Criar" o jogador nem esta olhando o grupo dele. Um botao
+			substitui o outro conforme "meu.souLider": quem lidera "Desfaz",
+			quem nao lidera "Sai". So "Desfazer" pede confirmacao de dois
+			passos (tira TODO MUNDO do mapa de caca); "Sair" afeta so quem
+			clicou, entao manda na hora -- pedir "tem certeza?" pros dois
+			igualaria coisas de peso diferente.
+		-->
+		<div class="lfg-lider-barra" hidden>
+			<span class="lfg-lider-texto"></span>
+			<button type="button" class="ri-btn ri-btn--sec lfg-sair-btn" hidden>Sair do grupo</button>
+			<button type="button" class="ri-btn ri-btn--sec lfg-desfazer-btn" hidden>Desfazer grupo</button>
+			<div class="lfg-desfazer-confirma" hidden>
+				<span>Tem certeza? Todo mundo volta para a cidade.</span>
+				<button type="button" class="ri-btn ri-btn--sec lfg-desfazer-sim">Sim, desfazer</button>
+				<button type="button" class="ri-btn lfg-desfazer-cancelar">Cancelar</button>
+			</div>
+		</div>
+
 		<div class="lfg-aviso" hidden></div>
 
 		<div class="lfg-body ri-scroll">

@@ -36,12 +36,32 @@
  * entao a janela nao precisa mais de altura extra pra disfarcar a area
  * branca que sobrava embaixo de uma lista curta -- a proporcao virou "duas
  * colunas" (578x344, mais larga que alta) em vez de "duas colunas com ar".
+ *
+ * FANTASIA (26/08/2026, pedido do dono: "ja coloque a opcao de costume no
+ * nosso inventario tambem"): altura 344 -> 396. O painel esquerdo ganhou uma
+ * FILEIRA de 4 slots de costume embaixo da boneca (".mo-fantasia") e virou
+ * coluna (".mo-vestes" e a fileira original). A conta da altura nova:
+ *   - esquerda: as colunas de 5 slots precisam de 234px (5x42 + 4 gaps) e a
+ *     fileira de fantasia de ~70 (divisor + rotulo + 42 do ladrilho); 344
+ *     deixava 282 uteis (344 - 34 do topo - 28 de padding) -- espremia os
+ *     slots ate o gap sumir, exatamente o que a missao mandou NAO fazer;
+ *   - direita: 396 fecha EXATO em 6 fileiras de grade (396 - 34 topo - 36
+ *     rodape - 20 padding = 306 = 6x46 + 5x6), mesma regra de fileira cheia
+ *     que ja valia com 5 (ver GRADE_LINHAS_VISIVEIS em MochilaIdle.js, que
+ *     subiu junto: reticulo que nao preenche a area visivel le como area
+ *     branca, a cicatriz da RODADA 2 acima).
+ * Por que fileira sempre a vista e nao uma aba "Fantasia" (como a Equipment
+ * nativa faz em #general/#costume): esta janela EXISTE para fundir janelas
+ * separadas numa vista so (cabecalho do arquivo), e o gesto central dela e
+ * ARRASTAR da grade ate o slot -- com aba, o alvo do arrasto estaria
+ * escondido atras de um clique no meio do gesto. 4 slots cabem numa fileira
+ * de 186px (4x42 + 3 gaps) dentro dos 220 do painel; nao ha o que esconder.
  */
 
 :host {
 	position: absolute;
 	width: 578px;
-	height: 344px;
+	height: 396px;
 	pointer-events: none;
 }
 
@@ -56,7 +76,7 @@
 	position: absolute;
 	inset: 0;
 	width: 578px;
-	height: 344px;
+	height: 396px;
 	pointer-events: auto;
 }
 
@@ -75,14 +95,14 @@
 	}
 }
 
-/* ─── Moldura (topo + corpo) -- 520x344, clipada/arredondada ────────────── */
+/* ─── Moldura (topo + corpo) -- 520x396, clipada/arredondada ────────────── */
 
 .mo-frame {
 	position: absolute;
 	top: 0;
 	left: 0;
 	width: 520px;
-	height: 344px;
+	height: 396px;
 	display: flex;
 	flex-direction: column;
 }
@@ -117,15 +137,13 @@
 	flex: 0 0 auto;
 	box-sizing: border-box;
 	display: flex;
-	/* RODADA 2: "align-items:stretch" (default -- ver nota abaixo) no lugar
-	   de "center", e "justify-content:center" no lugar de "space-between".
-	   Antes, "space-between" jogava toda a largura sobrando pros DOIS espacos
-	   ENTRE coluna/boneco (empurrando os slots pra longe do personagem, o
-	   oposto do alvo Origin); "center" com o "gap" fixo abaixo mantem coluna
-	   e boneco colados, so o CONJUNTO centralizado no painel (lacuna 2 do
-	   briefing: "aproxime os slots do personagem"). */
-	justify-content: center;
-	gap: 6px;
+	/* FANTASIA (26/08/2026): o painel virou COLUNA de duas fileiras --
+	   ".mo-vestes" (a fileira original: colunas de slots + boneca) em cima e
+	   ".mo-fantasia" (os 4 slots de costume) embaixo. O comportamento de
+	   fileira que morava aqui (justify-content:center + gap 6) desceu para
+	   ".mo-vestes", ipsis litteris -- ver a nota historica la. */
+	flex-direction: column;
+	gap: 8px;
 	padding: 14px 10px;
 	border-right: var(--divider);
 	/* "palco claro" do Origin (secao 2: fundo branco-azulado com leve
@@ -135,10 +153,28 @@
 	background: radial-gradient(ellipse 140% 90% at 50% 28%, var(--sky-50) 0%, var(--paper-1) 75%);
 }
 
+.mo-vestes {
+	/* A fileira original do painel (era o proprio ".mo-painel-esq" ate a
+	   fileira de fantasia existir). RODADA 2: "align-items:stretch" (default
+	   -- ver nota em ".mo-coluna") no lugar de "center", e "justify-content:
+	   center" no lugar de "space-between". Antes, "space-between" jogava toda
+	   a largura sobrando pros DOIS espacos ENTRE coluna/boneco (empurrando os
+	   slots pra longe do personagem, o oposto do alvo Origin); "center" com o
+	   "gap" fixo abaixo mantem coluna e boneco colados, so o CONJUNTO
+	   centralizado no painel (lacuna 2 do briefing: "aproxime os slots do
+	   personagem"). O "flex:1" e novo: as colunas continuam esticando pela
+	   altura que SOBRA depois da fileira de fantasia. */
+	flex: 1 1 auto;
+	min-height: 0;
+	display: flex;
+	justify-content: center;
+	gap: 6px;
+}
+
 .mo-coluna {
 	/* "align-items" nao setado no pai = stretch (default): a coluna passa a
-	   ocupar a altura INTEIRA de ".mo-painel-esq" (que ja e a altura cheia
-	   de ".mo-corpo", flex row default tambem estica os itens). Com isso
+	   ocupar a altura INTEIRA de ".mo-vestes" (que flexa pra altura que
+	   sobra do painel, flex row default tambem estica os itens). Com isso
 	   "justify-content:space-evenly" abaixo espalha os 5 slots por essa
 	   altura toda em vez de empacotar tudo no meio com folga acima/abaixo --
 	   a segunda metade da lacuna 2 ("reduza o vazio"). */
@@ -146,6 +182,36 @@
 	display: flex;
 	flex-direction: column;
 	justify-content: space-evenly;
+	gap: 6px;
+}
+
+/* ─── Fantasia (costume) -- a fileira de 4 slots so-visuais ──────────────
+   A decisao de ser FILEIRA sempre a vista (e nao a aba #costume da
+   Equipment nativa) esta no cabecalho do arquivo. O divisor + rotulo e o
+   que separa "equipamento que da atributo" de "aparencia": sem eles, dois
+   slots de chapeu visiveis ao mesmo tempo leriam como defeito. Rotulo na
+   MESMA receita do rodape de peso (".mo-peso-rotulo": --type-label +
+   --text-muted) -- rotulo de grupo pequeno ja tem vocabulario na janela,
+   nao inventa outro. */
+
+.mo-fantasia {
+	flex: 0 0 auto;
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	padding-top: 8px;
+	border-top: var(--divider);
+}
+
+.mo-fantasia-rotulo {
+	font: var(--type-label);
+	color: var(--text-muted);
+	text-align: center;
+}
+
+.mo-fantasia-slots {
+	display: flex;
+	justify-content: center;
 	gap: 6px;
 }
 
@@ -418,6 +484,38 @@
 	font: var(--type-numeric);
 	color: var(--text-title);
 	pointer-events: none;
+}
+
+/* Selo de FANTASIA na celula da grade (26/08/2026): um item de costume tem
+   de ser reconhecivel ANTES de equipar -- um chapeu de fantasia e um chapeu
+   comum usam o mesmo icone de item, e sem o selo o jogador equipa "um
+   chapeu" e nao entende por que o atributo nao mudou. Capsula pequena no
+   canto SUPERIOR direito (o inferior esquerdo e da quantidade/refino) com o
+   glifo de brilho, na tinta dourada que ja e o marcador premium do sistema
+   (mesma receita de circulo claro + aro dourado do ".mo-slot-remover", so
+   que inerte). NAO reusa ".ri-tile.is-uncommon/is-rare/is-unique": aquilo e
+   vocabulario de RARIDADE, e raridade continua sem dado real nesta janela
+   (ver cabecalho de MochilaIdle.js) -- fantasia e outra pergunta. */
+.mo-item-fantasia {
+	position: absolute;
+	top: -4px;
+	right: -4px;
+	width: 15px;
+	height: 15px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	border-radius: 50%;
+	border: 1px solid var(--border-gold);
+	background: linear-gradient(180deg, var(--white), var(--gold-200));
+	color: var(--gold-700);
+	box-shadow: var(--shadow-card);
+	pointer-events: none;
+}
+
+.mo-item-fantasia svg {
+	width: 9px;
+	height: 9px;
 }
 
 .mo-rodape {

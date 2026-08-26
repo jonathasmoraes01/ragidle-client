@@ -6,16 +6,24 @@
  * aqui e so o que e desta janela — a grade do card e a largura da coluna.
  */
 
+/*
+ * A POSICAO nao mora mais aqui, e o motivo esta no JS (LFGIdle.js, o bloco de
+ * WINDOW_WIDTH/HEIGHT). Esta folha cravava `top: 90px` e `margin-left: -280px`,
+ * uma posicao cega ao tamanho da tela: com 520 de altura, a borda de baixo
+ * cai em 610px e o botao "Entrar" saia da area visivel em qualquer janela de
+ * navegador menor que isso. Quem centraliza agora e o `init()`, pela tela
+ * REAL, e quem guarda a escolha do jogador e o `onRemove()` — o mesmo
+ * arranjo do MissoesIdle.css, que nao declara top/left por essa razao.
+ */
 :host {
-	top: 90px;
-	left: 50%;
-	margin-left: -280px;
+	position: absolute;
 	width: 560px;
 	height: 520px;
 	pointer-events: none;
 }
 
 #LFGIdle {
+	position: relative;
 	width: 100%;
 	height: 100%;
 	pointer-events: none;
@@ -39,6 +47,63 @@
 	display: flex;
 	gap: var(--espaco-2, 8px);
 	padding: var(--espaco-3, 12px) var(--espaco-4, 16px) 0;
+}
+
+/*
+ * A barra do MEU grupo (D-6xx: "Desfazer grupo"/"Sair do grupo"). Ela e
+ * escondida via atributo `hidden`, entao o "display" so entra com
+ * ":not([hidden])" -- declarar "display:flex" direto no seletor de sempre
+ * venceria o "display:none" que o UA da ao `[hidden]" por especificidade
+ * (classe+id > atributo), e a barra nunca sumiria.
+ */
+#LFGIdle .lfg-lider-barra:not([hidden]) {
+	display: flex;
+}
+#LFGIdle .lfg-lider-barra {
+	align-items: center;
+	flex-wrap: wrap;
+	gap: var(--espaco-2, 8px);
+	padding: var(--espaco-2, 8px) var(--espaco-4, 16px) 0;
+}
+
+/*
+ * OS BOTOES DA BARRA precisam do MESMO cuidado, e faltava — achado OLHANDO o
+ * print (regra 5), nao contando elemento.
+ *
+ * O JS faz `btnSair.hidden = souLider` e `btnDesfazer.hidden = !souLider`,
+ * entao so um deveria aparecer. Os DOIS apareciam: `.ri-btn` do `Common.css`
+ * declara `display: inline-flex`, e uma classe vence o `display:none` que o
+ * navegador da ao `[hidden]`. O atributo estava certo, o botao continuava na
+ * tela — "atributo presente nao e funcionalidade presente", a mesma familia de
+ * defeito que a HUD ja pagou.
+ *
+ * O seletor abaixo tem id + duas classes + atributo, entao ganha de `.ri-btn`
+ * sem precisar de `!important`.
+ */
+#LFGIdle .lfg-lider-barra .ri-btn[hidden] {
+	display: none;
+}
+
+#LFGIdle .lfg-lider-texto {
+	font-size: 0.9em;
+	opacity: 0.85;
+	margin-right: auto;
+}
+
+/* A pergunta de confirmar "Desfazer" -- mesma cor de perigo do resto do
+   arquivo (a janela nao inventa uma segunda). Mesmo truque de especificidade
+   do ".lfg-lider-barra" acima. */
+#LFGIdle .lfg-desfazer-confirma:not([hidden]) {
+	display: flex;
+}
+#LFGIdle .lfg-desfazer-confirma {
+	align-items: center;
+	flex-wrap: wrap;
+	gap: var(--espaco-2, 8px);
+	width: 100%;
+	margin-top: var(--espaco-1, 4px);
+	font-size: 0.85em;
+	color: var(--cor-perigo, #b4443a);
 }
 
 #LFGIdle .lfg-body {
@@ -88,9 +153,22 @@
 	opacity: 0.85;
 }
 
+/*
+ * Coluna de acao do card: era UM botao so ("Entrar"). Agora pode ter um
+ * segundo, "Voltar para Hunt" (pedido do dono, literal: "embaixo do botao
+ * Entrar"), entao vira coluna flex em vez de deixar os dois brigarem lado a
+ * lado (".ri-btn" e inline-flex por padrao). Nao precisa do truque de
+ * `[hidden]` que a barra do lider precisou (ver ".lfg-lider-barra .ri-btn"
+ * acima): o botao de voltar so entra no HTML quando faz sentido — e omitido
+ * do template, nunca escondido por CSS.
+ */
 #LFGIdle .lfg-card-acao {
 	grid-column: 2;
 	grid-row: 1 / span 2;
+	display: flex;
+	flex-direction: column;
+	align-items: stretch;
+	gap: var(--espaco-1, 4px);
 }
 
 /*

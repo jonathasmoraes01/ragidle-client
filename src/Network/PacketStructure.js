@@ -16070,7 +16070,7 @@ PACKET.ZC.RAGIDLE_MISSOES = function PACKET_ZC_RAGIDLE_MISSOES(fp, end) {
 PACKET.ZC.RAGIDLE_MISSOES.size = -1;
 
 // ---------------------------------------------------------------------------
-// O MENU LFG (Looking For Group) — D-618, 25/08/2026.
+// O MENU LFG (Looking For Group) — D-634, 25/08/2026.
 //
 // Tres opcodes da faixa RAGIDLE reservada em D-527. Eles NAO substituem os
 // pacotes de party do rAthena: criar, convidar, aceitar, sair, expulsar e
@@ -16103,7 +16103,7 @@ PACKET.CZ.RAGIDLE_LFG_ACAO.prototype.build = function () {
 
 // 0x0fe9 - RAGIDLE: ZC_RAGIDLE_LFG_LISTA (server -> client)
 // Variable size: u16 opcode + u16 total length + JSON UTF-8 payload.
-// Contrato v1 (D-618): { v, grupos: [{ grupoId, nome, mapa, rotuloDoMapa,
+// Contrato v1 (D-634): { v, grupos: [{ grupoId, nome, mapa, rotuloDoMapa,
 // lider, membros, vagas, faixa: {minimo, maximo}, podeEntrar, motivo }] }.
 // `podeEntrar` e `motivo` sao decididos pelo SERVIDOR, por jogador — a janela
 // so desenha. A UI NUNCA reimplementa a regra de faixa: ela reflete.
@@ -16114,7 +16114,7 @@ PACKET.ZC.RAGIDLE_LFG_LISTA.size = -1;
 
 // 0x0fe8 - RAGIDLE: ZC_RAGIDLE_LFG_RESULTADO (server -> client)
 // Variable size: u16 opcode + u16 total length + JSON UTF-8 payload.
-// Contrato v1 (D-618): { ok: boolean, acao: string, motivo: string | null }.
+// Contrato v1 (D-634): { ok: boolean, acao: string, motivo: string | null }.
 // Pacote PROPRIO em vez de um campo dentro da lista: a recusa responde a
 // `criar`/`entrar` e a lista responde a `listar`. Fundir faria a janela
 // adivinhar, pelo conteudo, qual pergunta o servidor esta respondendo.

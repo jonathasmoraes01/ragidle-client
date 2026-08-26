@@ -296,6 +296,15 @@ const RiIcones = {
 	// da v1 lia como gota d'agua (a "silueta generica" que o briefing
 	// reprovou), a faceta reta e o que distingue "joia" de "gota".
 	slotAcessorio: svg('<circle cx="12" cy="15" r="5"/><path d="M9 7h6l-3-4z"/><path d="M9 7 12 10 15 7"/>'),
+
+	// Fantasia/costume (MochilaIdle, 26/08/2026) -- estrela de brilho de 4
+	// pontas (idioma Lucide: e a forma central do "sparkles" oficial,
+	// SEM os dois acentos pequenos de proposito -- o selo da grade mostra
+	// isto a 9px, e a 9px os acentos viram ruido). "Sparkles" aqui NAO
+	// conflita com a nota do cabecalho sobre o showcase: la ele foi trocado
+	// como icone do slot central do DOCK (que virou "Caça"), nao proibido
+	// como conceito -- e "brilho" e exatamente o conceito de peca so-visual.
+	fantasia: svg('<path d="M12 3l1.9 7.1L21 12l-7.1 1.9L12 21l-1.9-7.1L3 12l7.1-1.9z"/>'),
 };
 
 export default RiIcones;
