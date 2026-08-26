@@ -1,0 +1,117 @@
+/*
+ * A janela de Procurar Grupo (LFG) — D-618.
+ *
+ * Ela nao inventa cor, medida nem fonte: tudo vem dos tokens `.ri-*` do
+ * `Common.css`, que o GUIComponent injeta em TODO shadow root. O que mora
+ * aqui e so o que e desta janela — a grade do card e a largura da coluna.
+ */
+
+:host {
+	top: 90px;
+	left: 50%;
+	margin-left: -280px;
+	width: 560px;
+	height: 520px;
+	pointer-events: none;
+}
+
+#LFGIdle {
+	width: 100%;
+	height: 100%;
+	pointer-events: none;
+}
+
+#LFGIdle .lfg-window {
+	display: none;
+	position: absolute;
+	inset: 0;
+	pointer-events: auto;
+	flex-direction: column;
+	width: 560px;
+	height: 520px;
+}
+
+#LFGIdle .lfg-window.is-open {
+	display: flex;
+}
+
+#LFGIdle .lfg-tabs {
+	display: flex;
+	gap: var(--espaco-2, 8px);
+	padding: var(--espaco-3, 12px) var(--espaco-4, 16px) 0;
+}
+
+#LFGIdle .lfg-body {
+	flex: 1;
+	overflow-y: auto;
+	padding: var(--espaco-3, 12px) var(--espaco-4, 16px) var(--espaco-4, 16px);
+	display: flex;
+	flex-direction: column;
+	gap: var(--espaco-2, 8px);
+}
+
+#LFGIdle .lfg-empty {
+	opacity: 0.7;
+	text-align: center;
+	padding: var(--espaco-6, 24px) 0;
+}
+
+/* O aviso e a RECUSA DO SERVIDOR por extenso — nunca texto nosso. */
+#LFGIdle .lfg-aviso {
+	margin: var(--espaco-3, 12px) var(--espaco-4, 16px) 0;
+	padding: var(--espaco-2, 8px) var(--espaco-3, 12px);
+	border-radius: var(--raio-2, 6px);
+	background: color-mix(in srgb, var(--cor-perigo, #b4443a) 18%, transparent);
+	border: 1px solid color-mix(in srgb, var(--cor-perigo, #b4443a) 45%, transparent);
+	font-size: 0.9em;
+}
+
+#LFGIdle .lfg-card {
+	display: grid;
+	grid-template-columns: 1fr auto;
+	gap: var(--espaco-1, 4px) var(--espaco-3, 12px);
+	align-items: center;
+	padding: var(--espaco-3, 12px);
+}
+
+#LFGIdle .lfg-card-mapa {
+	font-family: var(--font-display, serif);
+	font-size: 1.05em;
+}
+
+#LFGIdle .lfg-card-meta {
+	grid-column: 1;
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--espaco-2, 8px);
+	font-size: 0.85em;
+	opacity: 0.85;
+}
+
+#LFGIdle .lfg-card-acao {
+	grid-column: 2;
+	grid-row: 1 / span 2;
+}
+
+/*
+ * O MOTIVO da recusa fica VISIVEL ao lado do botao desabilitado, e nao num
+ * `title`: tooltip exige descobrir que ha algo para descobrir. O enunciado
+ * pede "o motivo visivel", e e isto.
+ */
+#LFGIdle .lfg-card-motivo {
+	grid-column: 1 / -1;
+	font-size: 0.82em;
+	color: var(--cor-perigo, #b4443a);
+}
+
+#LFGIdle .lfg-criar-mapa {
+	display: grid;
+	grid-template-columns: 1fr auto;
+	gap: var(--espaco-3, 12px);
+	align-items: center;
+	padding: var(--espaco-2, 8px) var(--espaco-3, 12px);
+}
+
+#LFGIdle .lfg-criar-mapa.is-bloqueado {
+	opacity: 0.55;
+}

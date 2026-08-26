@@ -101,6 +101,7 @@ import Achievement from 'UI/Components/Achievement/Achievement.js';
 import HuntMap from 'UI/Components/HuntMap/HuntMap.js'; // RAGIDLE: "Mapa de Caça"
 import ClassChangeNotice from 'UI/Components/ClassChangeNotice/ClassChangeNotice.js'; // RAGIDLE: aviso de evolução de classe
 import MissoesIdle from 'UI/Components/MissoesIdle/MissoesIdle.js'; // RAGIDLE: janela de Missões (D-551)
+import LFGIdle from 'UI/Components/LFGIdle/LFGIdle.js'; // RAGIDLE: janela de Procurar Grupo (D-618)
 import MissoesTrackerIdle from 'UI/Components/MissoesTrackerIdle/MissoesTrackerIdle.js'; // RAGIDLE: tracker estilo Origin (D-601)
 import IdleConfig from 'UI/Components/IdleConfig/IdleConfig.js'; // RAGIDLE: "Configuração idle"
 import AdminPanel from 'UI/Components/AdminPanel/AdminPanel.js'; // RAGIDLE: "Painel de admin"
@@ -432,7 +433,8 @@ class MapEngine {
 					PACKET: PACKET,
 					// RAGIDLE (25/08): o roteiro de fotos do executor le o estado
 					// da janela de missoes para saber quando a ativa concluiu.
-					MissoesIdle: MissoesIdle
+					MissoesIdle: MissoesIdle,
+					LFGIdle: LFGIdle
 				};
 			}
 
@@ -473,6 +475,7 @@ class MapEngine {
 			IdleSkills.prepare(); // RAGIDLE: "Skills de {classe}"
 			ClassChangeNotice.prepare(); // RAGIDLE: aviso de evolução de classe (D-410)
 			MissoesIdle.prepare(); // RAGIDLE: janela de Missões (D-551) — sem dependência de ordem: só escuta 0x0fed
+		LFGIdle.prepare(); // RAGIDLE: janela de Procurar Grupo (D-618) — idem: só escuta 0x0fe9/0x0fe8
 
 			BasicInfoIdle.prepare(); // RAGIDLE: "Informações básicas"
 			StatusIdle.prepare(); // RAGIDLE: "Status"
@@ -871,6 +874,7 @@ function onMapChange(pkt) {
 		// pelo menos um destino. Anexar sempre é o mesmo padrão do HuntMap.
 		ClassChangeNotice.append();
 		MissoesIdle.append(); // RAGIDLE: janela de Missões (D-551)
+		LFGIdle.append(); // RAGIDLE: janela de Procurar Grupo (D-618)
 		// RAGIDLE: o tracker ancora ABAIXO do BasicInfoIdle por medição — vem
 		// DEPOIS dele no append para o primeiro syncPosition já achar o host.
 		MissoesTrackerIdle.append();

@@ -147,6 +147,7 @@ import IdleSkills from 'UI/Components/IdleSkills/IdleSkills.js';
 import IdleConfig from 'UI/Components/IdleConfig/IdleConfig.js';
 import Guild from 'UI/Components/Guild/Guild.js';
 import PartyFriends from 'UI/Components/PartyFriends/PartyFriends.js';
+import LFGIdle from 'UI/Components/LFGIdle/LFGIdle.js'; // RAGIDLE: Procurar Grupo (D-618)
 import SkillList from 'UI/Components/SkillList/SkillList.js';
 import StatusIdle from 'UI/Components/StatusIdle/StatusIdle.js';
 import MochilaIdle from 'UI/Components/MochilaIdle/MochilaIdle.js';
@@ -418,6 +419,11 @@ function onClickAction(e) {
 			break;
 		case 'group':
 			PartyFriends.toggle();
+			break;
+		// O LFG e uma janela SEPARADA da de party (D-618): a nativa mostra
+		// quem ja esta no grupo, esta procura grupo para entrar.
+		case 'lfg':
+			LFGIdle.toggle();
 			break;
 		case 'admin':
 			if (!isOwnerAccount()) {
@@ -797,6 +803,8 @@ function isActionOpen(action) {
 			return isHostVisible(Guild);
 		case 'group':
 			return isHostVisible(PartyFriends.getUI());
+		case 'lfg':
+			return isHostVisible(LFGIdle);
 		default:
 			// os itens "em breve" caem aqui -- nunca acendem.
 			return false;
