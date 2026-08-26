@@ -561,7 +561,7 @@ function renderCard(mapa) {
 	return `
 		<div class="hm-card badge-${badge.cls}${isCurrent ? ' is-current' : ''}${isSelected ? ' is-selected' : ''}" data-mapa="${escapeHtml(mapa.mapa)}" role="button" tabindex="0">
 			<div class="hm-card-thumb">
-				<img src="/ragidle/minimapas/${escapeHtml(mapa.mapa)}.png" alt="" onerror="this.style.display='none'" />
+				<img src="/ragidle/minimapas/${escapeHtml(mapa.mapa)}.webp" alt="" onerror="this.style.display='none'" />
 			</div>
 			<div class="hm-card-body">
 				<div class="hm-card-top">
