@@ -4917,6 +4917,10 @@ function init(packetver) {
 	length_list[0x0fec] = 2; // CZ_RAGIDLE_PEDIR_MISSOES (opcode only)
 	length_list[0x0fed] = -1; // ZC_RAGIDLE_MISSOES (variable, JSON payload)
 	length_list[0x0feb] = -1; // CZ_RAGIDLE_MISSAO_ACAO (variable, JSON payload, D-601)
+	// O MENU LFG (D-618): os tres seguem descendo na faixa reservada de D-527.
+	length_list[0x0fea] = -1; // CZ_RAGIDLE_LFG_ACAO (variable, JSON payload)
+	length_list[0x0fe9] = -1; // ZC_RAGIDLE_LFG_LISTA (variable, JSON payload)
+	length_list[0x0fe8] = -1; // ZC_RAGIDLE_LFG_RESULTADO (variable, JSON payload)
 
 	return length_list;
 }

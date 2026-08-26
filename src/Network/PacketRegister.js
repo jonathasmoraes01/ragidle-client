@@ -1005,6 +1005,10 @@ export default {
 	// reservada de D-527, que termina em 0x0fed). Same reasoning as the others above — only the
 	// server->client one is registered here.
 	0x0fed: PACKET.ZC.RAGIDLE_MISSOES,
+	// LFG (D-618): so os ZC entram aqui — o CZ 0x0fea e escrito pelo cliente,
+	// nao lido. Ver PacketStructure.js para o contrato JSON de cada um.
+	0x0fe9: PACKET.ZC.RAGIDLE_LFG_LISTA,
+	0x0fe8: PACKET.ZC.RAGIDLE_LFG_RESULTADO,
 
 	0xb1a: PACKET.ZC.USESKILL_ACK3 // USE SKILL 3
 };

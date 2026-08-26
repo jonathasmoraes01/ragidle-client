@@ -16069,6 +16069,60 @@ PACKET.ZC.RAGIDLE_MISSOES = function PACKET_ZC_RAGIDLE_MISSOES(fp, end) {
 };
 PACKET.ZC.RAGIDLE_MISSOES.size = -1;
 
+// ---------------------------------------------------------------------------
+// O MENU LFG (Looking For Group) — D-618, 25/08/2026.
+//
+// Tres opcodes da faixa RAGIDLE reservada em D-527. Eles NAO substituem os
+// pacotes de party do rAthena: criar, convidar, aceitar, sair, expulsar e
+// trocar lider continuam nos 0x00f9/0x01e8/0x02c4/0x0100/0x0103/0x07da, que
+// este cliente ja fala. Estes tres carregam so a LISTA DE ANUNCIOS, que nao
+// cabe em nenhum pacote existente — o Party Booking nativo (0x0802..0x080b)
+// foi avaliado e recusado porque o CZ de BUSCA nem sequer esta registrado no
+// PACKETVER 20211103 (PacketVersions.js:5923-5953), e porque o MapID dele e
+// indice numerico enquanto o servidor usa nome de mapa em texto.
+// ---------------------------------------------------------------------------
+
+// 0x0fea - RAGIDLE: CZ_RAGIDLE_LFG_ACAO (client -> server)
+// Variable size: u16 opcode + u16 total length + JSON UTF-8 payload.
+// { acao: 'listar' | 'criar' | 'entrar' | 'sair', mapa?, grupoId? }
+// Um CZ com VERBO em vez de quatro opcodes — mesmo padrao do
+// CZ_RAGIDLE_MISSAO_ACAO, e economiza 3 slots de uma faixa que ja ficou cheia
+// uma vez.
+PACKET.CZ.RAGIDLE_LFG_ACAO = function PACKET_CZ_RAGIDLE_LFG_ACAO() {
+	this.json = '{}';
+};
+PACKET.CZ.RAGIDLE_LFG_ACAO.prototype.build = function () {
+	const bytes = TextEncoding.encode(this.json, 'utf-8');
+	const pkt_len = 2 + 2 + bytes.length;
+	const pkt_buf = new BinaryWriter(pkt_len);
+	pkt_buf.writeShort(0x0fea);
+	pkt_buf.writeUShort(pkt_len);
+	pkt_buf.writeString(this.json);
+	return pkt_buf;
+};
+
+// 0x0fe9 - RAGIDLE: ZC_RAGIDLE_LFG_LISTA (server -> client)
+// Variable size: u16 opcode + u16 total length + JSON UTF-8 payload.
+// Contrato v1 (D-618): { v, grupos: [{ grupoId, nome, mapa, rotuloDoMapa,
+// lider, membros, vagas, faixa: {minimo, maximo}, podeEntrar, motivo }] }.
+// `podeEntrar` e `motivo` sao decididos pelo SERVIDOR, por jogador — a janela
+// so desenha. A UI NUNCA reimplementa a regra de faixa: ela reflete.
+PACKET.ZC.RAGIDLE_LFG_LISTA = function PACKET_ZC_RAGIDLE_LFG_LISTA(fp, end) {
+	this.json = fp.readString(end - fp.tell());
+};
+PACKET.ZC.RAGIDLE_LFG_LISTA.size = -1;
+
+// 0x0fe8 - RAGIDLE: ZC_RAGIDLE_LFG_RESULTADO (server -> client)
+// Variable size: u16 opcode + u16 total length + JSON UTF-8 payload.
+// Contrato v1 (D-618): { ok: boolean, acao: string, motivo: string | null }.
+// Pacote PROPRIO em vez de um campo dentro da lista: a recusa responde a
+// `criar`/`entrar` e a lista responde a `listar`. Fundir faria a janela
+// adivinhar, pelo conteudo, qual pergunta o servidor esta respondendo.
+PACKET.ZC.RAGIDLE_LFG_RESULTADO = function PACKET_ZC_RAGIDLE_LFG_RESULTADO(fp, end) {
+	this.json = fp.readString(end - fp.tell());
+};
+PACKET.ZC.RAGIDLE_LFG_RESULTADO.size = -1;
+
 // 0x0feb - RAGIDLE: CZ_RAGIDLE_MISSAO_ACAO (client -> server)
 // Variable size: u16 opcode + u16 total length + JSON UTF-8 payload
 // ({"acao": "iniciar"|"pausar"|"retomar", "id": "..."} — D-601). Mesmo
