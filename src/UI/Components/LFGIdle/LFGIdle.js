@@ -1,5 +1,5 @@
 /**
- * A JANELA DE PROCURAR GRUPO (LFG) — D-618.
+ * A JANELA DE PROCURAR GRUPO (LFG) — D-634.
  *
  * Ela lista os grupos abertos (mapa, líder, vagas e faixa de nível), deixa
  * criar um grupo escolhendo o mapa, e entrar num aberto.
@@ -22,8 +22,6 @@
  */
 
 import Network from 'Network/NetworkManager.js';
-import Session from 'Engine/SessionStorage.js';
-import HuntMap from 'UI/Components/HuntMap/HuntMap.js';
 import PACKET from 'Network/PacketStructure.js';
 import UIManager from 'UI/UIManager.js';
 import GUIComponent from 'UI/GUIComponent.js';
@@ -40,11 +38,8 @@ LFGIdle.mouseMode = GUIComponent.MouseMode.CROSS;
 /** Os anúncios do último `ZC_RAGIDLE_LFG_LISTA`. */
 LFGIdle.grupos = [];
 
-/** O catálogo de caça, para a aba "Criar" — vem do `ZC_RAGIDLE_CATALOGO`. */
+/** Os mapas da aba "Criar" — vêm no `ZC_RAGIDLE_LFG_LISTA`, prontos. */
 LFGIdle.mapas = [];
-
-/** O nível do próprio jogador, para a aba "Criar" refletir o bloqueio. */
-LFGIdle.meuNivel = 1;
 
 /** Aba ativa: 'grupos' | 'criar'. */
 LFGIdle.abaAtiva = 'grupos';
@@ -117,24 +112,33 @@ function cardDeGrupo(g) {
 /**
  * A aba CRIAR: um mapa por linha, com a faixa e o bloqueio já visíveis.
  *
- * O bloqueio aqui NÃO é uma segunda implementação da regra: ele desenha a
- * mesma faixa que o catálogo já serve. Quem decide continua sendo o servidor
- * — o `criar` responde `ZC_RAGIDLE_LFG_RESULTADO` com o motivo, e ele aparece
- * no aviso. Se um dia os dois discordarem, o servidor vence e o jogador lê a
- * frase dele.
+ * Tudo aqui vem PRONTO do servidor, dentro do próprio `ZC_RAGIDLE_LFG_LISTA`:
+ * a faixa sai de `faixaDoMapa` e o `podeCriar`/`motivo` de `podeEntrar`, as
+ * mesmas funções puras que o resto do jogo usa.
+ *
+ * A versão anterior lia o catálogo do `HuntMap` e calculava
+ * `maximo = min(minimo + 15, 99)` por conta própria. Isso tinha DOIS defeitos,
+ * e o jogador encontrou o primeiro: quem abrisse o LFG antes da janela de
+ * caça via "Nenhum mapa de caça disponível", porque o catálogo do HuntMap
+ * ainda não existia na sessão. O segundo era pior e silencioso — era uma
+ * SEGUNDA IMPLEMENTAÇÃO da regra de faixa, exatamente o que o cabeçalho
+ * deste arquivo promete não fazer.
  */
 function linhaDeMapa(m) {
-	const minimo = m.nivelQueAbre;
-	const maximo = Math.min(minimo + 15, 99);
-	const bloqueado = LFGIdle.meuNivel < minimo || LFGIdle.meuNivel > maximo;
+	const faixa = m.faixa || {};
+	const bloqueado = !m.podeCriar;
+	const motivo = bloqueado && m.motivo
+		? '<div class="lfg-card-motivo">' + escapeHtml(m.motivo) + '</div>'
+		: '';
 	return (
 		'<div class="lfg-criar-mapa ri-card' + (bloqueado ? ' is-bloqueado' : '') + '">' +
 		'<div>' +
 		'<div class="lfg-card-mapa">' + escapeHtml(m.rotulo) + '</div>' +
 		'<div class="lfg-card-meta">' +
-		'<span class="ri-badge ri-badge--azul">Nível ' + escapeHtml(minimo) +
-		'–' + escapeHtml(maximo) + '</span>' +
+		'<span class="ri-badge ri-badge--azul">Nível ' + escapeHtml(faixa.minimo) +
+		'–' + escapeHtml(faixa.maximo) + '</span>' +
 		'</div>' +
+		motivo +
 		'</div>' +
 		'<button type="button" class="ri-btn ri-btn--ouro lfg-criar" data-mapa="' +
 		escapeHtml(m.mapa) + '"' + (bloqueado ? ' disabled' : '') + '>Criar aqui</button>' +
@@ -207,18 +211,11 @@ LFGIdle.abrir = function abrir() {
 		return;
 	}
 	/*
-	 * O catálogo e o nível são LIDOS de quem já os tem, e não pedidos de novo.
-	 *
-	 * `Network.hookPacket` guarda UM handler por opcode, em todo o cliente: um
-	 * segundo hook em `ZC_RAGIDLE_CATALOGO` SUBSTITUIRIA o do HuntMap e
-	 * quebraria a janela de caça, sem erro nenhum aparecer. Ler o estado que o
-	 * outro componente publica é o padrão que as janelas RagIdle já usam
-	 * justamente por isso.
+	 * Nada é lido de outra janela aqui: os grupos E os mapas chegam no mesmo
+	 * `ZC_RAGIDLE_LFG_LISTA` que o `listar` abaixo pede. Ler o catálogo do
+	 * HuntMap era o que fazia a aba "Criar" nascer vazia para quem abrisse
+	 * esta janela primeiro.
 	 */
-	const catalogo = HuntMap.catalog;
-	LFGIdle.mapas = catalogo && Array.isArray(catalogo.mapas) ? catalogo.mapas : [];
-	LFGIdle.meuNivel = (Session.Entity && Session.Entity.clevel) || 1;
-
 	win.classList.add('is-open');
 	mostrarAviso('');
 	mandar({ acao: 'listar' });
@@ -257,6 +254,8 @@ Network.hookPacket(PACKET.ZC.RAGIDLE_LFG_LISTA, function (pkt) {
 		return;
 	}
 	LFGIdle.grupos = dados && Array.isArray(dados.grupos) ? dados.grupos : [];
+	// Os mapas vêm no MESMO pacote (o conserto do "Nenhum mapa disponível").
+	LFGIdle.mapas = dados && Array.isArray(dados.mapas) ? dados.mapas : LFGIdle.mapas;
 	desenhar();
 });
 
