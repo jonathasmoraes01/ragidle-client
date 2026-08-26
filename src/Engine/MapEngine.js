@@ -1037,7 +1037,21 @@ function cleanGameUI() {
  * Ask the server to disconnect
  */
 function onExitRequest() {
-	const pkt = new PACKET.CZ.REQUEST_QUIT();
+	/*
+	 * RAGIDLE (25/08/2026): o pacote virou o 0x018a (CZ_REQ_DISCONNECT), que
+	 * e o que o servidor daqui responde — com a MESMA tranca de logout do
+	 * "Selecionar Personagem" (clif_parse_QuitGame, clif.cpp:11448-11462).
+	 * O 0x0082 (REQUEST_QUIT) que saia daqui e pre-2004: ninguem respondia,
+	 * e o timer abaixo fechava o jogo na marra 1 s depois — inclusive em
+	 * combate, furando a tranca inteira.
+	 *
+	 * O timer FICA, como rede de seguranca para servidor morto: com o
+	 * servidor vivo a resposta chega em milissegundos, e tanto o "pode"
+	 * (onDisconnectAnswer result 0) quanto o "espere" (result 1, que agora
+	 * LIMPA o timer) chegam antes dele.
+	 */
+	const pkt = new PACKET.CZ.REQ_DISCONNECT();
+	pkt.type = 0;
 	Network.sendPacket(pkt);
 
 	// Wait a second, if no answer from the server, then close it.
@@ -1053,6 +1067,12 @@ function onExitRequest() {
  * @param {object} pkt - PACKET.ZC.REFUSE_QUIT
  */
 function onExitFail(pkt) {
+	// Mesma razao do result 1 em onDisconnectAnswer: recusa e resposta, e o
+	// timer de "sem resposta" nao pode fechar o jogo por cima dela.
+	if (_exitTimer !== null) {
+		Events.clearTimeout(_exitTimer);
+		_exitTimer = null;
+	}
 	ChatBox.addText(DB.getMessage(502), ChatBox.TYPE.ERROR, ChatBox.FILTER.PUBLIC_LOG);
 }
 
@@ -1149,6 +1169,17 @@ function onDisconnectAnswer(pkt) {
 			break;
 
 		case 1:
+			/*
+			 * RAGIDLE (25/08/2026): a recusa LIMPA o timer de "sem resposta".
+			 * Sem isto a tranca do servidor era teatro: o "espere 10 s"
+			 * aparecia no chat e 1 s depois o timer de onExitRequest fechava o
+			 * jogo do mesmo jeito. Recusa E resposta — o timer so existe para
+			 * o servidor que nao respondeu nada.
+			 */
+			if (_exitTimer !== null) {
+				Events.clearTimeout(_exitTimer);
+				_exitTimer = null;
+			}
 			// Have to wait 10 sec
 			ChatBox.addText(DB.getMessage(502), ChatBox.TYPE.ERROR, ChatBox.FILTER.PUBLIC_LOG);
 			break;
