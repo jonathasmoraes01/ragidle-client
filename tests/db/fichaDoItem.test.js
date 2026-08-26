@@ -20,12 +20,18 @@ import { describe, expect, it } from 'vitest';
 import { completarFicha, unknownItem } from 'DB/Items/FichaDoItem.js';
 
 describe('completarFicha', () => {
-	it('o caso do dono: o estube de ClassNum vira nome legivel COM o id', () => {
-		// O id no nome nao e enfeite: "Unknown Item" nao permite reportar nada,
-		// e foi preciso cruzar duas tabelas para descobrir que era o 4545.
-		const ficha = completarFicha(4545, { ClassNum: 0 });
-		expect(ficha.identifiedDisplayName).toBe('Item desconhecido (4545)');
-		expect(ficha.unidentifiedDisplayName).toBe('Item desconhecido (4545)');
+	it('o estube SEM nome local vira nome legivel COM o id', () => {
+		/*
+		 * ESTE CASO USAVA O 4545 e mudou de cobaia no MESMO DIA: o dono
+		 * decidiu ("pode abrir frente para nomea-los") e o 4545 agora tem
+		 * nome de verdade pela tabela local (ver nomesLocais.test.js). O
+		 * comportamento que ele guarda — id no nome, porque "Unknown Item"
+		 * nao permite reportar nada — continua valendo para todo id FORA da
+		 * tabela, entao a cobaia virou um id que nao esta nela.
+		 */
+		const ficha = completarFicha(999123, { ClassNum: 0 });
+		expect(ficha.identifiedDisplayName).toBe('Item desconhecido (999123)');
+		expect(ficha.unidentifiedDisplayName).toBe('Item desconhecido (999123)');
 	});
 
 	it('o estube ganha ICONE e DESCRICAO, e nao so o nome', () => {
@@ -58,12 +64,13 @@ describe('completarFicha', () => {
 	it('o que ja existe NAO e sobrescrito pelo remendo', () => {
 		// Meia ficha e o caso real de uma tabela do GRF que carregou e outra
 		// que nao: o que chegou tem de sobreviver.
-		const meia = { identifiedDisplayName: 'Novice Poring Card', slotCount: 3 };
+		const meia = { identifiedDisplayName: 'Nome Que O GRF Trouxe', slotCount: 3 };
 		const ficha = completarFicha(4545, meia);
-		expect(ficha.identifiedDisplayName).toBe('Novice Poring Card');
+		expect(ficha.identifiedDisplayName).toBe('Nome Que O GRF Trouxe');
 		expect(ficha.slotCount).toBe(3);
-		// e o lado que faltava ganha o remendo
-		expect(ficha.unidentifiedDisplayName).toBe('Item desconhecido (4545)');
+		// e o lado que faltava ganha o remendo — que para o 4545 e o nome
+		// LOCAL (a frente dos 22), nao mais o generico com id.
+		expect(ficha.unidentifiedDisplayName).toBe('Novice Poring Card');
 	});
 
 	it('os campos que o remendo nao nomeia sobrevivem inteiros', () => {
@@ -79,9 +86,15 @@ describe('completarFicha', () => {
 		expect(ficha._decoded).toBe(true);
 	});
 
-	it('ficha ausente cai no unknownItem de sempre — os 21 ids fora do ItemTable', () => {
-		expect(completarFicha(25729, undefined)).toBe(unknownItem);
-		expect(completarFicha(25729, null)).toBe(unknownItem);
+	it('ficha ausente cai no unknownItem de sempre — quando o id NAO tem nome local', () => {
+		/*
+		 * A cobaia era o 25729 (Shadowdecon) e mudou junto com a frente dos
+		 * 22: agora ele sai BATIZADO pelo caminho !ficha (nomesLocais.test.js
+		 * cobre). A identidade `toBe(unknownItem)` — sem copia — continua
+		 * valendo para id sem nome local, que e o caso de todo item futuro.
+		 */
+		expect(completarFicha(999123, undefined)).toBe(unknownItem);
+		expect(completarFicha(999123, null)).toBe(unknownItem);
 	});
 
 	it('o remendo NAO e gravado de volta na ficha de origem', () => {

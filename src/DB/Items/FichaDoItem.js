@@ -39,6 +39,8 @@
  * "Item desconhecido (4545)" diz exatamente o que procurar no item_db.
  */
 
+import { NOMES_LOCAIS } from './nomesLocais.js';
+
 /** A ficha de quem nao esta na tabela. `\xbb\xe7\xb0\xfa` e o sprite de sobra do cliente. */
 export const unknownItem = {
 	unidentifiedDisplayName: 'Unknown Item',
@@ -60,13 +62,28 @@ export const unknownItem = {
  */
 export function completarFicha(itemid, ficha) {
 	if (!ficha) {
+		/*
+		 * Ausente da tabela inteira: se o id tem nome local (a frente dos 22,
+		 * ver nomesLocais.js), a ficha de sobra sai BATIZADA — sem isso o
+		 * item que nem estube tem apareceria como "Unknown Item" mesmo com o
+		 * nome a um import de distancia.
+		 */
+		const nomeLocal = NOMES_LOCAIS[itemid];
+		if (nomeLocal !== undefined) {
+			return { ...unknownItem, identifiedDisplayName: nomeLocal, unidentifiedDisplayName: nomeLocal };
+		}
 		return unknownItem;
 	}
 	// O caminho quente: ficha completa volta como veio, sem copia.
 	if (ficha.identifiedDisplayName !== undefined && ficha.unidentifiedDisplayName !== undefined) {
 		return ficha;
 	}
-	const nome = 'Item desconhecido (' + itemid + ')';
+	/*
+	 * O nome local vence o generico, e SO o generico: uma ficha que ja trouxe
+	 * `identifiedDisplayName` (o GRF carregou, ou carregara) nunca chega a
+	 * esta linha com o campo preenchido — o `??` abaixo preserva o que veio.
+	 */
+	const nome = NOMES_LOCAIS[itemid] ?? 'Item desconhecido (' + itemid + ')';
 	return {
 		...ficha,
 		identifiedDisplayName: ficha.identifiedDisplayName ?? nome,
