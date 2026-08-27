@@ -61,7 +61,22 @@ if (Object.keys(redirects).length > 0) {
 	console.log('[wsProxy] Configured redirects:', redirects);
 }
 
-const wss = new WebSocketServer({ port });
+/**
+ * O TETO DE FRAME (27/08/2026, auditoria).
+ *
+ * O padrao do `ws` e **100 MiB por mensagem**, e esta ponte fica atras de um
+ * tunel publico. Um cliente pode abrir a conexao e mandar um unico frame de
+ * 100 MiB, que o processo monta INTEIRO em memoria antes de o `on('message')`
+ * sequer rodar — nada aqui teria como recusar depois.
+ *
+ * O maior pacote do protocolo do RO nao chega perto disso: os variaveis
+ * declaram o comprimento em 2 bytes, entao o teto natural e 64 KiB. 256 KiB
+ * deixa folga de 4x para qualquer coisa que o cliente mande em rajada, e ainda
+ * assim e 400x menor que o padrao.
+ */
+const TETO_DE_FRAME = 256 * 1024;
+
+const wss = new WebSocketServer({ port, maxPayload: TETO_DE_FRAME });
 
 wss.on('connection', (ws, req) => {
 	const from = req.socket.remoteAddress;
@@ -100,15 +115,51 @@ wss.on('connection', (ws, req) => {
 
 	tcp.setNoDelay(true);
 
+	/*
+	 * BACKPRESSURE NAS DUAS DIRECOES (27/08/2026, auditoria).
+	 *
+	 * Os dois repasses eram `write`/`send` incondicionais. Cada lado tem um
+	 * jeito de encher:
+	 *
+	 * - **servidor -> cliente**: um cliente entra no mapa pelo tunel e para de
+	 *   ler o proprio socket (aba minimizada com rede ruim, ou de proposito). O
+	 *   servidor continua empurrando posicao e entidades a cada tique, e
+	 *   `ws.send` enfileira em `bufferedAmount` — memoria do processo da ponte,
+	 *   sem teto.
+	 * - **cliente -> servidor**: `tcp.write` devolve `false` quando o buffer do
+	 *   socket encheu, e ninguem olhava.
+	 *
+	 * O idioma do Node para isso e `pause()`/`resume()`: parar de LER a origem
+	 * enquanto o destino nao vaza. Assim a pressao volta para quem a criou, em
+	 * vez de virar memoria aqui.
+	 */
 	ws.on('message', message => {
-		if (tcp.writable) {
-			tcp.write(message);
+		if (!tcp.writable) return;
+		// `write` devolve false quando o buffer encheu: para de ler o WS ate o
+		// socket TCP drenar.
+		if (!tcp.write(message)) {
+			ws.pause();
+			tcp.once('drain', () => ws.resume());
 		}
 	});
 
 	tcp.on('data', data => {
-		if (ws.readyState === ws.OPEN) {
-			ws.send(data);
+		if (ws.readyState !== ws.OPEN) return;
+		ws.send(data);
+		/*
+		 * `ws.send` nao tem valor de retorno util; o sinal e `bufferedAmount`.
+		 * Passou do teto, para de ler o TCP e so volta quando drenar — o
+		 * `setTimeout` e a unica forma, porque o `ws` nao emite evento de
+		 * drenagem por conexao.
+		 */
+		if (ws.bufferedAmount > TETO_DE_FRAME) {
+			tcp.pause();
+			const esperarDrenar = () => {
+				if (ws.readyState !== ws.OPEN) return; // caiu: nao ha o que retomar
+				if (ws.bufferedAmount > TETO_DE_FRAME) setTimeout(esperarDrenar, 50);
+				else tcp.resume();
+			};
+			setTimeout(esperarDrenar, 50);
 		}
 	});
 
