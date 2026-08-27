@@ -20,15 +20,19 @@
  *   `Config.js` gerado pelo build traz os padroes do roBrowser publico
  *   (`connect.robrowser.com`, `grf.robrowser.com`); sem esta copia o cliente
  *   publicado tentaria o servidor de outra pessoa.
- * - `applications/deploy/index.html` -> a porta de entrada da v0. O
- *   `index.html` do build e um menu que abre os visualizadores em popup, e o
- *   testador nao tem o que fazer com ele; alem disso e ali que esta o
- *   FORMULARIO de cadastro (D-542), que nao existe na tela de login.
+ * - `applications/deploy/index.html` -> a porta de entrada do JOGO, hoje em
+ *   `/jogo/`. O `index.html` do build e um menu que abre os visualizadores em
+ *   popup, e o testador nao tem o que fazer com ele; alem disso e ali que
+ *   esta o FORMULARIO de cadastro (D-542), que nao existe na tela de login.
  * - `applications/deploy/vercel.json` -> os cabecalhos de cache. Sem ele o
  *   `Config.local.js` deixa de ser `no-cache`, e o testador fica com endereco
  *   de tunel velho em cache justamente quando ele muda.
+ * - `../rag-idle-site` (repo IRMAO, `marcoslourencoads-svg/rag-idle-site`) ->
+ *   a RAIZ do pacote. Desde 26/08 a v0 abre no site de entrada, com "Jogar" e
+ *   "Cadastrar" apontando para `/jogo/`; o antigo `index.html` do jogo mudou
+ *   de lugar por isso (item acima).
  *
- * Os tres sao copiados DEPOIS do build de proposito: o build limpa o `dist`.
+ * Os quatro sao copiados DEPOIS do build de proposito: o build limpa o `dist`.
  *
  * ---------------------------------------------------------------------------
  * O PROJETO DO VERCEL NAO PODE FICAR CONECTADO AO GIT (24/08/2026, D-543)
@@ -53,7 +57,7 @@
  */
 
 import { execFileSync } from 'node:child_process';
-import { copyFileSync, cpSync, existsSync, readdirSync, rmSync, statSync } from 'node:fs';
+import { copyFileSync, cpSync, existsSync, mkdirSync, readdirSync, rmSync, statSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join, resolve } from 'node:path';
 
@@ -61,6 +65,7 @@ const RAIZ = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const DIST = join(RAIZ, 'dist', 'Web');
 const FONTES = join(RAIZ, 'applications', 'deploy');
 const PUBLICO = join(RAIZ, 'public');
+const SITE = resolve(RAIZ, '..', 'rag-idle-site');
 
 /** Os visualizadores: ferramenta de dev, fora do pacote publico. */
 const VISUALIZADORES = [
@@ -75,10 +80,10 @@ const VISUALIZADORES = [
 /** O que o JOGO precisa para funcionar — se faltar, o deploy sai quebrado. */
 const OBRIGATORIOS = ['Online.js', 'ThreadEventHandler.js', 'PathFindingWorker.js', 'api.html', 'api.js'];
 
-console.log('1/5  build do cliente (leva alguns minutos)...');
+console.log('1/6  build do cliente (leva alguns minutos)...');
 execFileSync('node', ['./applications/tools/builder-web.mjs'], { cwd: RAIZ, stdio: 'inherit' });
 
-console.log('\n2/5  tirando os visualizadores...');
+console.log('\n2/6  tirando os visualizadores...');
 for (const arquivo of VISUALIZADORES) {
 	const caminho = join(DIST, arquivo);
 	if (existsSync(caminho)) {
@@ -108,23 +113,55 @@ for (const arquivo of VISUALIZADORES) {
  * meio vazia", que ninguem reporta como erro — e a prova de tela passava,
  * porque ela media o mapa carregado e nao a interface vestida.
  */
-console.log('\n' + '3/5  copiando a arte da interface (public/ragidle)...');
+console.log('\n' + '3/6  copiando a arte da interface (public/ragidle)...');
 cpSync(PUBLICO, DIST, { recursive: true });
 for (const pasta of readdirSync(join(DIST, 'ragidle'))) {
 	const quantos = readdirSync(join(DIST, 'ragidle', pasta)).length;
 	console.log(`     ${pasta.padEnd(12)} ${String(quantos).padStart(5)} arquivo(s)`);
 }
 
-console.log('\n' + '4/5  copiando a configuracao e a porta de entrada da v0...');
+console.log('\n' + '4/6  copiando a configuracao e a porta de entrada do jogo (/jogo)...');
+const DIST_JOGO = join(DIST, 'jogo');
+mkdirSync(DIST_JOGO, { recursive: true });
 copyFileSync(join(FONTES, 'Config.local.js'), join(DIST, 'Config.local.js'));
-copyFileSync(join(FONTES, 'index.html'), join(DIST, 'index.html'));
+copyFileSync(join(FONTES, 'index.html'), join(DIST_JOGO, 'index.html'));
 copyFileSync(join(FONTES, 'vercel.json'), join(DIST, 'vercel.json'));
 console.log('     Config.local.js  (enderecos dos tuneis)');
-console.log('     index.html       (como se cadastrar)');
+console.log('     jogo/index.html  (como se cadastrar)');
 console.log('     vercel.json      (cabecalhos de cache)');
 
-console.log('\n5/5  conferindo...');
-const faltando = OBRIGATORIOS.filter((a) => !existsSync(join(DIST, a)));
+/*
+ * O SITE DE ENTRADA (`../rag-idle-site`, repo irmao) VIRA A RAIZ.
+ *
+ * So os arquivos que o navegador serve: `index.html`, `css/`, `js/`,
+ * `assets/`. Ficam de fora `.git`, `README.md`, `DESIGN-SYSTEM.md` e
+ * `design-system.html` — sao documentacao interna (a segunda cita, com
+ * todas as letras, o que no conteudo publico era placeholder), e o
+ * `vercel.json` proprio do site, ja fundido no de `applications/deploy`.
+ */
+console.log('\n' + '5/6  copiando o site de entrada (../rag-idle-site)...');
+if (!existsSync(SITE)) {
+	console.error(`\nSITE NAO ENCONTRADO em ${SITE}`);
+	console.error('Clone github.com/marcoslourencoads-svg/rag-idle-site como pasta irma de ragidle-client.');
+	process.exit(1);
+}
+copyFileSync(join(SITE, 'index.html'), join(DIST, 'index.html'));
+for (const pasta of ['css', 'js', 'assets']) {
+	/*
+	 * LIMPA antes de copiar: `cpSync` recursivo so SOBREPOE, nunca remove.
+	 * Um arquivo apagado do lado do site (ex.: `js/auth.js` em 26/08) ficava
+	 * PARA TRAS de um deploy para o outro, porque o `dist/Web` de uma corrida
+	 * anterior nunca era limpo aqui — so o build dos 7 aplicativos limpa o
+	 * que e dele.
+	 */
+	rmSync(join(DIST, pasta), { recursive: true, force: true });
+	cpSync(join(SITE, pasta), join(DIST, pasta), { recursive: true });
+	console.log(`     ${pasta}/`);
+}
+console.log('     index.html       (a home)');
+
+console.log('\n6/6  conferindo...');
+const faltando = [...OBRIGATORIOS, 'jogo/index.html'].filter((a) => !existsSync(join(DIST, a)));
 if (faltando.length > 0) {
 	console.error(`
 DEPLOY INCOMPLETO — faltam: ${faltando.join(', ')}`);
@@ -164,7 +201,7 @@ if (semArte.length > 0) {
 }
 
 let bytes = 0;
-for (const a of [...OBRIGATORIOS, 'Config.js', 'Config.local.js', 'index.html']) {
+for (const a of [...OBRIGATORIOS, 'Config.js', 'Config.local.js', 'index.html', 'jogo/index.html']) {
 	bytes += statSync(join(DIST, a)).size;
 }
 console.log(`     ok — ${(bytes / 1024 / 1024).toFixed(1)} MB nos arquivos principais`);

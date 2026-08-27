@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Rag Idle</title>
-<link rel="manifest" href="manifest.webmanifest">
-<link rel="icon" href="icon.png">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" href="/icon.png">
 <meta name="theme-color" content="#12100e">
 <style>
 	:root{
@@ -97,6 +97,7 @@
 </head>
 <body>
 <main>
+	<a href="/" style="color:var(--tinta-fraca);font-size:.85rem;text-decoration:none">&larr; início</a>
 	<h1>Rag <span>Idle</span></h1>
 	<p class="selo">v0 &middot; teste fechado</p>
 
@@ -151,7 +152,7 @@
 	<section class="entrada" id="cartao-entrada">
 		<h2>Entrar</h2>
 		<p id="recado-entrada">Ja tem conta? Entre com o seu usuario e senha.</p>
-		<a class="entrar principal" href="api.html?app=ONLINE" id="botao-entrar">Entrar no jogo</a>
+		<a class="entrar principal" href="/api.html?app=ONLINE" id="botao-entrar">Entrar no jogo</a>
 	</section>
 
 	<footer>Precisa de teclado e mouse. Melhor no Chrome ou no Edge.</footer>
@@ -162,7 +163,7 @@
 	tunel gratuito mudam a cada reinicio do cloudflared, e ter DOIS lugares
 	para atualizar garante que um dia so um deles seja atualizado.
 -->
-<script src="Config.local.js"></script>
+<script src="/Config.local.js"></script>
 <script>
 (function () {
 	'use strict';
