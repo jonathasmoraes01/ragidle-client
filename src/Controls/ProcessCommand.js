@@ -879,7 +879,7 @@ if (Configs.get('development')) {
 					effectId: EffectConst.EF_SNOW,
 					ownerAID: ownerAID
 				});
-				this.addText('Snow started.', this.TYPE.INFO, this.FILTER.PUBLIC_LOG);
+				this.addText('Comecou a nevar.', this.TYPE.INFO, this.FILTER.PUBLIC_LOG);
 				return;
 			}
 
@@ -888,7 +888,7 @@ if (Configs.get('development')) {
 					effectId: EffectConst.EF_RAIN,
 					ownerAID: ownerAID
 				});
-				this.addText('Rain started.', this.TYPE.INFO, this.FILTER.PUBLIC_LOG);
+				this.addText('Comecou a chover.', this.TYPE.INFO, this.FILTER.PUBLIC_LOG);
 				return;
 			}
 
@@ -897,7 +897,7 @@ if (Configs.get('development')) {
 					effectId: EffectConst.EF_SAKURA,
 					ownerAID: ownerAID
 				});
-				this.addText('Cherry tree leaves have begun to fall.', this.TYPE.INFO, this.FILTER.PUBLIC_LOG);
+				this.addText('Petalas de cerejeira comecam a cair.', this.TYPE.INFO, this.FILTER.PUBLIC_LOG);
 				return;
 			}
 
@@ -906,7 +906,7 @@ if (Configs.get('development')) {
 					effectId: EffectConst.EF_MAPLE,
 					ownerAID: ownerAID
 				});
-				this.addText('Fallen leaves fall.', this.TYPE.INFO, this.FILTER.PUBLIC_LOG);
+				this.addText('Folhas secas caem.', this.TYPE.INFO, this.FILTER.PUBLIC_LOG);
 				return;
 			}
 
@@ -915,7 +915,7 @@ if (Configs.get('development')) {
 					effectId: EffectConst.EF_POKJUK,
 					ownerAID: ownerAID
 				});
-				this.addText('Fireworks are launched.', this.TYPE.INFO, this.FILTER.PUBLIC_LOG);
+				this.addText('Fogos de artificio sobem.', this.TYPE.INFO, this.FILTER.PUBLIC_LOG);
 				return;
 			}
 
@@ -924,7 +924,7 @@ if (Configs.get('development')) {
 					effectId: EffectConst.EF_CLOUD,
 					ownerAID: ownerAID
 				});
-				this.addText('Clouds appear.', this.TYPE.INFO, this.FILTER.PUBLIC_LOG);
+				this.addText('Nuvens aparecem.', this.TYPE.INFO, this.FILTER.PUBLIC_LOG);
 				return;
 			}
 
@@ -933,7 +933,7 @@ if (Configs.get('development')) {
 					effectId: EffectConst.EF_CLOUD2,
 					ownerAID: ownerAID
 				});
-				this.addText('Alternative clouds appear.', this.TYPE.INFO, this.FILTER.PUBLIC_LOG);
+				this.addText('Outras nuvens aparecem.', this.TYPE.INFO, this.FILTER.PUBLIC_LOG);
 				return;
 			}
 
@@ -944,7 +944,7 @@ if (Configs.get('development')) {
 				PokJukWeatherEffect.stop(ownerAID, Renderer.tick);
 				CloudWeatherEffect.stop(ownerAID, Renderer.tick);
 
-				this.addText('Weather stopping.', this.TYPE.INFO, this.FILTER.PUBLIC_LOG);
+				this.addText('O tempo esta firmando.', this.TYPE.INFO, this.FILTER.PUBLIC_LOG);
 				return;
 			}
 

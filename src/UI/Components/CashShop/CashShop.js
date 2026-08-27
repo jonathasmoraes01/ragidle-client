@@ -477,7 +477,7 @@ CashShop.setSuccessCashShopUpdate = function setSuccessCashShopUpdate(res) {
 			case 4:
 				//overweight limit
 				UIManager.showMessageBox("You are over you're weight limit!", 'ok');
-				ChatBox.addText('You are over youre weight limit!', ChatBox.TYPE.ERROR, ChatBox.FILTER.PUBLIC_LOG);
+				ChatBox.addText('Voce esta acima do limite de peso!', ChatBox.TYPE.ERROR, ChatBox.FILTER.PUBLIC_LOG);
 				break;
 
 			default:
@@ -776,14 +776,14 @@ function onClickActionCounterButtonCart(target) {
 	if (!itemCart) return;
 
 	if (itemCart.amount >= 99 && counter === 'up') {
-		UIManager.showMessageBox('Max Quantity 99!', 'ok');
-		ChatBox.addText('Max Quantity 99!', ChatBox.TYPE.ERROR, ChatBox.FILTER.PUBLIC_LOG);
+		UIManager.showMessageBox('Quantidade maxima: 99!', 'ok');
+		ChatBox.addText('Quantidade maxima: 99!', ChatBox.TYPE.ERROR, ChatBox.FILTER.PUBLIC_LOG);
 		return;
 	}
 
 	if (itemCart.amount <= 1 && counter === 'down') {
-		UIManager.showMessageBox('Minimum Quantity 1!', 'ok');
-		ChatBox.addText('Minimum Quantity 1!', ChatBox.TYPE.ERROR, ChatBox.FILTER.PUBLIC_LOG);
+		UIManager.showMessageBox('Quantidade minima: 1!', 'ok');
+		ChatBox.addText('Quantidade minima: 1!', ChatBox.TYPE.ERROR, ChatBox.FILTER.PUBLIC_LOG);
 		return;
 	}
 
@@ -884,8 +884,8 @@ function addItemToCart(itemId, amount = 1) {
 	}
 
 	if (item.amount >= 99) {
-		UIManager.showMessageBox('Max Quantity 99!', 'ok');
-		ChatBox.addText('Max Quantity 99!', ChatBox.TYPE.ERROR, ChatBox.FILTER.PUBLIC_LOG);
+		UIManager.showMessageBox('Quantidade maxima: 99!', 'ok');
+		ChatBox.addText('Quantidade maxima: 99!', ChatBox.TYPE.ERROR, ChatBox.FILTER.PUBLIC_LOG);
 		return;
 	}
 

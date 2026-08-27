@@ -79,7 +79,11 @@ describe('o cursor desenhado', () => {
 		expect(zDoCursor()).toBe(2147483647);
 	});
 
-	it('esta ACIMA de todo z-index do fork', () => {
+	// 30 s e nao os 5 padrao (27/08/2026): esta varredura le ~900 arquivos e
+	// REPROVOU DUAS VEZES por timeout com a maquina carregada (pos-pull de
+	// 26/08 e a rodada de 27/08, sempre com stack+suite juntos) — verde nas
+	// re-corridas isoladas. Timeout de varredura nao e criterio de correcao.
+	it('esta ACIMA de todo z-index do fork', { timeout: 30_000 }, () => {
 		const teto = zDoCursor();
 		const todos = [];
 

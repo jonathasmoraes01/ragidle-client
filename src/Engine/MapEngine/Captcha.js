@@ -95,7 +95,7 @@ function onAckApply(pkt) {
 			ChatBox.addText(DB.getMessage(2879), ChatBox.TYPE.ERROR, ChatBox.FILTER.PUBLIC_LOG);
 			break;
 		default:
-			ChatBox.addText('Unknown status: ' + pkt.status, ChatBox.TYPE.ERROR, ChatBox.FILTER.PUBLIC_LOG);
+			ChatBox.addText('Status desconhecido: ' + pkt.status, ChatBox.TYPE.ERROR, ChatBox.FILTER.PUBLIC_LOG);
 			break;
 	}
 }

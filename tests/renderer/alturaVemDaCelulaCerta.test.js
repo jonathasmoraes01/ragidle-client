@@ -59,7 +59,11 @@ function chamadasDe(rel) {
 }
 
 describe('nenhuma chamada a getCellHeight le a mesma coordenada duas vezes', () => {
-	it('varre todo o src/', () => {
+	// 30 s e nao os 5 padrao (27/08/2026): esta varredura le ~900 arquivos e
+	// REPROVOU DUAS VEZES por timeout com a maquina carregada (pos-pull de
+	// 26/08 e a rodada de 27/08, sempre com stack+suite juntos) — verde nas
+	// re-corridas isoladas. Timeout de varredura nao e criterio de correcao.
+	it('varre todo o src/', { timeout: 30_000 }, () => {
 		const suspeitas = [];
 		for (const rel of arquivosJs()) {
 			for (const c of chamadasDe(rel)) {

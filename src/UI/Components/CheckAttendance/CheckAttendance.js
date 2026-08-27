@@ -88,7 +88,7 @@ CheckAttendance.onAppend = function onAppend() {
 		CheckAttendance.updateUI();
 		this.focus();
 	} else {
-		ChatBox.addText('Currently there is no attendance check event.', ChatBox.TYPE.ERROR | ChatBox.TYPE.SELF);
+		ChatBox.addText('Nao ha evento de presenca no momento.', ChatBox.TYPE.ERROR | ChatBox.TYPE.SELF);
 	}
 };
 

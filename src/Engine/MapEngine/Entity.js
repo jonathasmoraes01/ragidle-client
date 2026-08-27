@@ -2698,7 +2698,7 @@ function onMarkMvp(pkt) {
 			}*/
 	}
 	if (pkt.infoType == 0) {
-		ChatBox.addText('Boss monster not found.', ChatBox.TYPE.ERROR, ChatBox.FILTER.PUBLIC_LOG);
+		ChatBox.addText('Chefe nao encontrado neste mapa.', ChatBox.TYPE.ERROR, ChatBox.FILTER.PUBLIC_LOG);
 	}
 }
 

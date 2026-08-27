@@ -128,7 +128,7 @@ class FriendEngine {
 			}
 		}
 
-		ChatBox.addText('[ To Friends ] : ' + pkt.msg, ChatBox.TYPE.PRIVATE, ChatBox.FILTER.WHISPER);
+		ChatBox.addText('[ Para amigos ] : ' + pkt.msg, ChatBox.TYPE.PRIVATE, ChatBox.FILTER.WHISPER);
 	}
 }
 /**
