@@ -574,6 +574,30 @@ for (const servidor of ['login', 'char', 'map']) {
         dados.fonteDoTamanho = 'cliente';
         preenchidosPeloCliente++;
       } else if (dados.tamanho !== doCliente) {
+        /*
+         * NA DIVERGENCIA, O CLIENTE VENCE (27/08/2026, auditoria).
+         *
+         * Ate aqui a divergencia era apenas REGISTRADA e o valor do rAthena
+         * ficava na tabela. Isso inverte a autoridade: **o gravador fatia o
+         * trafego que o CLIENTE enquadra**, e quem decide onde um pacote acaba
+         * naquele fluxo e `PacketLength.getPacketLength`
+         * (`src/Network/NetworkManager.js:266`), que le exatamente
+         * `comprimentosDoCliente`. O tamanho da struct do emulador descreve o
+         * que o emulador MANDARIA — outra pergunta.
+         *
+         * O caso que custou: `0x0add` (ZC_ITEM_FALL_ENTRY3, o item caindo no
+         * chao) ficou com **22** do rAthena contra **24** do cliente. Dois
+         * bytes a menos por item que cai, e o fatiador nao erra so aquele
+         * pacote: ele perde o alinhamento e **abandona a sessao inteira dali
+         * em diante**. Como todo mob dropa, isso acontecia no primeiro abate —
+         * e as 125 sessoes gravadas sao a unica evidencia EXECUTADA que este
+         * projeto tem.
+         *
+         * A divergencia continua sendo REGISTRADA (o array abaixo alimenta o
+         * relatorio): saber que os dois discordam vale, e escolher o lado certo
+         * tambem. As EXCECOES manuais rodam depois daqui e continuam vencendo
+         * as duas — e o lugar certo para uma decisao caso a caso.
+         */
         divergenciasDeComprimento.push({
           opcode: '0x' + opcode.toString(16).padStart(4, '0'),
           nome: dados.nome,
@@ -582,6 +606,8 @@ for (const servidor of ['login', 'char', 'map']) {
           struct: dados.tamanho,
           cliente: doCliente,
         });
+        dados.tamanho = doCliente;
+        dados.fonteDoTamanho = 'cliente (venceu a struct do rathena)';
       }
     }
   }
