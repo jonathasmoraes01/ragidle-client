@@ -34,6 +34,7 @@ import Preferences from 'Core/Preferences.js';
 import Network from 'Network/NetworkManager.js';
 import PACKET from 'Network/PacketStructure.js';
 import UIManager from 'UI/UIManager.js';
+import ChatBox from 'UI/Components/ChatBox/ChatBox.js';
 import GUIComponent from 'UI/GUIComponent.js';
 import { pocoesDoEixo, escolherPocaoPadrao } from './escolhaDePocao.js';
 import htmlText from './IdleConfig.html?raw';
@@ -306,17 +307,54 @@ function requestConfig() {
  * (just the "config" object, per contract). See Network/PacketStructure.js
  * "RAGIDLE:" section for how the packet's byte length is computed.
  */
-function applyConfig() {
-	if (!IdleConfig.editConfig) {
-		return;
-	}
+function enviarConfig(config) {
 	setStatus('Aplicando...');
 	IdleConfig.problemas = [];
 	renderProblemas();
 
 	const pkt = new PACKET.CZ.RAGIDLE_APLICAR_CONFIG();
-	pkt.json = JSON.stringify(IdleConfig.editConfig);
+	pkt.json = JSON.stringify(config);
 	Network.sendPacket(pkt);
+}
+
+function applyConfig() {
+	if (!IdleConfig.editConfig) {
+		return;
+	}
+	enviarConfig(IdleConfig.editConfig);
+}
+
+/**
+ * O BOTAO "Auto" DA BARRA DE ACOES — e ele manda SO o campo dele.
+ *
+ * Antes, `DockIdle.onClickAuto` invertia `IdleConfig.editConfig.cacaAutomatica`
+ * e chamava `aplicarConfig()`, que serializa o RASCUNHO INTEIRO da janela de
+ * Config. O rascunho sobrevive ao fechar da janela (`closeWindow` so tira a
+ * classe `.is-open`), entao um clique num botao da barra de acoes enviava
+ * edicoes que o jogador nunca apertou "Aplicar" para enviar.
+ *
+ * Pior: se qualquer uma delas fosse invalida, o servidor recusa
+ * TRANSACIONALMENTE — nada muda, nem o `cacaAutomatica` que o jogador acabou
+ * de pedir. O caso medido: marcar "Desabilitar ataques basicos" e depois
+ * remover a unica skill da rotacao deixa `{modoDeAtaque:'apenas-skills',
+ * rotacao:[]}`, que o servidor recusa. O botao Auto entao nunca funciona, e a
+ * causa esta numa janela fechada.
+ *
+ * O pedido sai do `serverConfig` — o ultimo estado que o servidor ACEITOU —,
+ * com um campo trocado. E `editConfig` nao e tocado: o rascunho do jogador e
+ * dele.
+ */
+function alternarCacaAutomatica() {
+	if (!IdleConfig.serverConfig) {
+		// Config ainda nao chegou: nao ha estado conhecido para inverter.
+		requestConfig();
+		return;
+	}
+	enviarConfig(
+		Object.assign(cloneConfig(IdleConfig.serverConfig), {
+			cacaAutomatica: !IdleConfig.serverConfig.cacaAutomatica
+		})
+	);
 }
 
 function setStatus(text) {
@@ -378,6 +416,26 @@ function onConfigReceived(pkt) {
 		// they can see what they tried and fix it; IdleConfig.dirty is left
 		// as-is so "Aplicar" stays enabled for a retry.
 		setStatus('');
+
+		/*
+		 * COM A JANELA FECHADA, A RECUSA ERA MUDA (27/08/2026, auditoria).
+		 *
+		 * `renderProblemas()` escreve dentro da janela de Config. Se ela nao
+		 * estiver aberta — e o caso do botao "Auto" da barra de acoes — o texto
+		 * vai para um DOM que ninguem ve, e o jogador fica com um botao que
+		 * simplesmente nao faz nada, sem uma palavra na tela.
+		 *
+		 * "Nao aconteceu nada" e o sintoma mais caro de diagnosticar deste
+		 * projeto. Aqui ele custava uma linha.
+		 */
+		const janela = _root().querySelector('.ic-window');
+		if (!janela || !janela.classList.contains('is-open')) {
+			ChatBox.addText(
+				'Config idle recusada: ' + IdleConfig.problemas.join('; '),
+				ChatBox.TYPE.ERROR,
+				ChatBox.FILTER.PUBLIC_LOG
+			);
+		}
 	}
 
 	renderTabs();
@@ -1125,6 +1183,7 @@ Network.hookPacket(PACKET.ZC.RAGIDLE_CONFIG, onConfigReceived);
  */
 IdleConfig.pedirConfig = requestConfig;
 IdleConfig.aplicarConfig = applyConfig;
+IdleConfig.alternarCacaAutomatica = alternarCacaAutomatica;
 
 /**
  * Abre a janela (reusando IdleConfig.toggle() - mesmo metodo que o botao

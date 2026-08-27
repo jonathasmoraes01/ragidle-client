@@ -287,9 +287,21 @@ function hideButton(component, selector) {
 }
 
 /**
- * Releh IdleConfig.editConfig.cacaAutomatica (nunca um bool local) e aplica/
- * remove ".is-on" no botao Auto. Copiado ao pe da letra do extinto
- * CombatCornerIdle.js:syncAutoState().
+ * Releh IdleConfig.serverConfig.cacaAutomatica (nunca um bool local, e nunca o
+ * RASCUNHO) e aplica/remove ".is-on" no botao Auto.
+ *
+ * A fonte mudou de `editConfig` para `serverConfig` em 27/08/2026 (auditoria).
+ * `editConfig` e o rascunho da janela de Config, e ele acende o botao por conta
+ * propria: o jogador marca a caixa "Caca automatica" na janela, NAO aperta
+ * "Aplicar", fecha a janela — e o botao da barra de acoes fica aceso com o
+ * servidor desligado.
+ *
+ * O mesmo vale no caminho da recusa: quando o servidor recusa
+ * transacionalmente, `onConfigReceived` DE PROPOSITO nao toca em `editConfig`
+ * (o rascunho do jogador fica na tela para ele consertar), entao um botao que
+ * le o rascunho continua aceso anunciando algo que nao aconteceu.
+ *
+ * O botao e um indicador de ESTADO DO SERVIDOR. So `serverConfig` sabe disso.
  */
 function syncAutoState() {
 	const root = _root();
@@ -297,23 +309,25 @@ function syncAutoState() {
 	if (!btn) {
 		return;
 	}
-	const ligado = !!(IdleConfig.editConfig && IdleConfig.editConfig.cacaAutomatica);
+	const ligado = !!(IdleConfig.serverConfig && IdleConfig.serverConfig.cacaAutomatica);
 	btn.classList.toggle('is-on', ligado);
 }
 
+/**
+ * O clique pede a TROCA e espera a resposta — nao antecipa o resultado.
+ *
+ * A versao anterior invertia `editConfig.cacaAutomatica`, mandava o rascunho
+ * INTEIRO da janela de Config e ja repintava o botao. Tres coisas erradas de
+ * uma vez: enviava edicoes que o jogador nunca aplicou, podia ser recusada por
+ * causa delas, e acendia mesmo assim.
+ *
+ * `alternarCacaAutomatica` monta o pedido a partir do estado ACEITO pelo
+ * servidor. O botao repinta quando a resposta chega, no `syncAutoState` do
+ * ciclo seguinte — que e a unica hora em que ele sabe alguma coisa.
+ */
 function onClickAuto(e) {
 	e.stopImmediatePropagation();
-
-	if (!IdleConfig.editConfig) {
-		// Config ainda nao chegou do servidor - so garante que o pedido saiu
-		// e espera o proximo poll refletir quando a resposta aparecer.
-		IdleConfig.pedirConfig();
-		return;
-	}
-
-	IdleConfig.editConfig.cacaAutomatica = !IdleConfig.editConfig.cacaAutomatica;
-	IdleConfig.aplicarConfig();
-	syncAutoState();
+	IdleConfig.alternarCacaAutomatica();
 }
 
 /**
