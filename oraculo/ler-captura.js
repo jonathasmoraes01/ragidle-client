@@ -116,6 +116,17 @@ for (const arquivo of fs.readdirSync(pasta).filter((f) => f.endsWith('.jsonl')).
 
 	conexoes.push({
 		etiqueta,
+		/*
+		 * O CARIMBO DA CORRIDA (27/08/2026, auditoria).
+		 *
+		 * `ms` e relativo ao inicio do PROCESSO que gravou, entao ele reinicia em
+		 * zero a cada corrida. Ordenar a linha do tempo so por `ms` numa pasta com
+		 * duas corridas produzia uma sequencia que nunca existiu.
+		 *
+		 * Captura antiga nao tem o campo; ali o `0` mantem o comportamento de
+		 * sempre, que e o unico honesto — sem o carimbo nao ha como separar.
+		 */
+		corridaEm: cabecalho.corridaEm ?? doIndice?.corridaEm ?? 0,
 		alvo: cabecalho.alvo ?? doIndice?.alvo ?? '?',
 		servidor: cabecalho.servidor ?? doIndice?.servidor ?? null,
 		pacotes: doIndice?.pacotes ?? { c2s: 0, s2c: 0 },
@@ -218,12 +229,32 @@ for (const conexao of conexoes) {
 		const o = JSON.parse(linha);
 		if (o.tipo) continue; // linhas de abertura/fim da conexão
 		if (!o.incompleto && o.dir) contados[o.dir]++;
-		pacotes.push({ ...o, etiqueta: conexao.etiqueta, servidor: conexao.servidor });
+		pacotes.push({
+			...o,
+			etiqueta: conexao.etiqueta,
+			servidor: conexao.servidor,
+			corridaEm: conexao.corridaEm
+		});
 	}
 	conexao.pacotes = contados;
 }
 
-pacotes.sort((a, b) => a.ms - b.ms);
+/*
+ * A CORRIDA VEM ANTES DO `ms` (27/08/2026, auditoria).
+ *
+ * Duas corridas na mesma pasta tem cada uma o seu zero. Ordenar so por `ms`
+ * intercalava as duas — e o resultado nao parecia quebrado, parecia uma
+ * sessao. Evidencia que parece coerente e pior que evidencia faltando.
+ */
+pacotes.sort((a, b) => (a.corridaEm ?? 0) - (b.corridaEm ?? 0) || a.ms - b.ms);
+
+const corridas = new Set(pacotes.map((p) => p.corridaEm ?? 0));
+if (corridas.size > 1) {
+	console.log(
+		`ATENCAO: esta pasta tem ${corridas.size} CORRIDAS diferentes. A linha do tempo abaixo ` +
+			'as mostra em sequencia, nunca intercaladas.' + '\n'
+	);
+}
 
 // --- resumo ---------------------------------------------------------------
 
