@@ -419,6 +419,20 @@ function intersect() {
 	const x = Mouse.screen.x;
 	const y = Mouse.screen.y;
 
+	/*
+	 * RAGIDLE (27/08/2026): quando o cursor cobre VOCE e OUTRA entidade, a
+	 * outra vence — voce mesmo so volta quando esta sozinho no pixel.
+	 *
+	 * O caso que criou isto e o do dono, testando a troca a dois: os dois
+	 * personagens nascem NA MESMA CELULA de Prontera (bounding rects
+	 * identicos, medido: x1=1250 y1=350 x2=1310 y2=458 nos dois), e o picking
+	 * devolvia sempre o proprio jogador — que TODO consumidor ignora (o menu
+	 * de contexto exige `entity !== Session.Entity`, MapControl.js:293). O
+	 * clique direito no colega "nao funcionava" exatamente para quem estava
+	 * perto o bastante para negociar.
+	 */
+	let proprio = null;
+
 	// Culling for picking
 	const doCulling = GraphicsSettings.performanceMode;
 	let playerX, playerY, viewAreaSq;
@@ -448,12 +462,16 @@ function intersect() {
 				y > entity.boundingRect.y1 &&
 				y < entity.boundingRect.y2
 			) {
+				if (entity === Session.Entity) {
+					proprio = entity;
+					continue;
+				}
 				return entity;
 			}
 		}
 	}
 
-	return null;
+	return proprio;
 }
 
 /**

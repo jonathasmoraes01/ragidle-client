@@ -38,6 +38,16 @@ function _popupPosition() {
  *   vira um retangulo mudo sem dizer o que faz.
  * @returns {HTMLButtonElement}
  */
+/**
+ * O rotulo PT-BR do botao de caixa, a partir do NOME DE TEXTURA que os
+ * chamadores ja passam ('ok'/'cancel' sao os unicos em uso — conferido com
+ * grep em 27/08/2026). Nome fora do mapa volta como esta: rotulo estranho e
+ * melhor que botao mudo.
+ */
+function _rotuloDeBotao(name) {
+	return { ok: 'OK', cancel: 'Cancelar', yes: 'Sim', no: 'Nao' }[name] || name;
+}
+
 function _createButton(name, onClick, label) {
 	const btn = document.createElement('button');
 	btn.className = 'btn';
@@ -334,18 +344,29 @@ class UIManager {
 
 			const btnsContainer = root.querySelector('.btns');
 
+			/*
+			 * RAGIDLE (27/08/2026): o ROTULO em texto entra SEMPRE, e em
+			 * portugues. `_createButton` ja aceitava o terceiro argumento (e o
+			 * proprio comentario dele avisa: "sem rotulo, vira um retangulo
+			 * mudo") — so que esta caixa nunca o passava, confiando no bitmap
+			 * `btn_ok.bmp`/`btn_cancel.bmp`... que NAO existe no GRF LATAM
+			 * deste projeto. Medido com a troca a dois em 27/08: o convite
+			 * "(Analista) requests a deal" chegava com DOIS retangulos mudos —
+			 * aceitar era adivinhar. O CSS do WinPopup ja esperava o texto
+			 * DOM (WinPopup.css:90-93).
+			 */
 			btnsContainer.appendChild(
 				_createButton(btn_yes, () => {
 					WinPrompt.remove();
 					if (onYes) onYes();
-				})
+				}, _rotuloDeBotao(btn_yes))
 			);
 
 			btnsContainer.appendChild(
 				_createButton(btn_no, () => {
 					WinPrompt.remove();
 					if (onNo) onNo();
-				})
+				}, _rotuloDeBotao(btn_no))
 			);
 		};
 
