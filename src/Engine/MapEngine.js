@@ -127,6 +127,7 @@ import DeathWindow from 'UI/Components/DeathWindow/DeathWindow.js'; // RAGIDLE: 
 import TopMenuIdle from 'UI/Components/TopMenuIdle/TopMenuIdle.js'; // RAGIDLE: "Menu superior direito (constelação)"
 import CorreioIdle from 'UI/Components/CorreioIdle/CorreioIdle.js'; // RAGIDLE: "Correio" (a caixa do sistema, D-366)
 import HuntAnalyzer from 'UI/Components/HuntAnalyzer/HuntAnalyzer.js'; // RAGIDLE: "Hunt Analyzer" (a leitura da cacada em curso)
+import { religarAtalhosParaUiNova, religarAtalhoDoBasicInfo } from 'UI/atalhos-da-ui-nova.js'; // RAGIDLE: Alt+A/E/S/Q/U/V -> janelas novas
 import HuntButtonIdle from 'UI/Components/HuntButtonIdle/HuntButtonIdle.js'; // RAGIDLE: "Botão de caça contextual (abaixo do minimapa)"
 
 import MainEngine from './MapEngine/Main.js';
@@ -430,6 +431,11 @@ class MapEngine {
 					// sprite no canvas: o jogador nasce longe do Mestre e a
 					// caca de cliques as cegas nao e um roteiro, e loteria.
 					Network: Network,
+					// RAGIDLE: acrescentado 27/08/2026 pra sonda dos ATALHOS —
+					// inspecionar qual onShortCut esta instalado em cada
+					// componente nativo (UIManager.getComponent(nome)) sem
+					// depender de teclado sintetico acertar o roteamento.
+					UIManager: UIManager,
 					PACKET: PACKET,
 					// RAGIDLE (25/08): o roteiro de fotos do executor le o estado
 					// da janela de missoes para saber quando a ativa concluiu.
@@ -486,6 +492,7 @@ class MapEngine {
 			HuntAnalyzer.prepare(); // RAGIDLE: "Hunt Analyzer" — ANTES de TopMenuIdle.prepare(): o menu le isRagIdleWindowOpen(HuntAnalyzer, '.ha-window') no proprio tique de estado, e isso exige a shadow DOM ja pronta. Nao esconde nativo nenhum (e tela nova), entao nao depende de mais ninguem
 			TopMenuIdle.prepare(); // RAGIDLE: "Menu superior direito (constelação)" — chama IdleSkills.toggle()/IdleConfig.toggle() (RAGIDLE, ja preparados acima) e Guild.toggle()/PartyFriends.toggle() (nativos, ja preparados bem antes deste bloco); a shadow DOM de todos precisa existir antes do proprio prepare() de TopMenuIdle so por padrao do arquivo, nao por uso direto do DOM deles
 			HuntButtonIdle.prepare(); // RAGIDLE: "Botão de caça contextual" — le IdleConfig.contexto.ehCidade e chama HuntMap.toggle()/HuntMap.travelToCity(); tambem esconde AdminPanel.getRoot() ".ap-button", por isso fica depois de IdleConfig.prepare()/HuntMap.prepare()/AdminPanel.prepare() acima (precisa da shadow DOM dos tres ja pronta)
+			religarAtalhosParaUiNova(); // RAGIDLE (27/08/2026): Alt+A/E/S/Q/U/V abrem as janelas NOVAS — depois de TODO prepare(), porque getComponent lanca para quem ainda nao existe. Ver o porque da delegacao (Preferences persistida) em UI/atalhos-da-ui-nova.js
 
 			if (Configs.get('enableMapName')) {
 				MapName.prepare();
@@ -718,6 +725,11 @@ function onConnectionAccepted(pkt) {
 	if (PACKETVER.value >= 20200520) {
 		BasicInfo.selectUIVersionWithJob(DB.getJobClass(Session.Entity.job));
 		BasicInfo.getUI().prepare();
+		// RAGIDLE (27/08/2026): a selecao POR CLASSE acabou de TROCAR o
+		// componente e o alias — o religamento do boot morreu com o objeto
+		// antigo (medido pela sonda: Alt+V voltava ao onShortCut nativo).
+		// Religa de novo sobre o componente que valera daqui em diante.
+		religarAtalhoDoBasicInfo();
 	}
 
 	BasicInfo.getUI().update('blvl', Session.Entity.clevel);

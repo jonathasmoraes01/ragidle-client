@@ -228,11 +228,21 @@ function savePosition() {
  */
 function onClickMinimize(e) {
 	e.stopImmediatePropagation();
+	BasicInfoIdle.alternarCompacto();
+}
+
+/**
+ * Alterna o modo compacto por fora do clique — a porta do ATALHO Alt+V
+ * (27/08/2026): o `EXTEND` do BasicInfo nativo era exatamente este gesto
+ * (expandir/recolher o painel), entao o atalho da UI nova cai aqui. Mesmo
+ * caminho do botao: salva a preferencia, aplica e re-clampa.
+ */
+BasicInfoIdle.alternarCompacto = function alternarCompacto() {
 	_preferences.compact = !_preferences.compact;
 	_preferences.save();
 	applyCompactState();
 	clampPositionToViewport();
-}
+};
 
 /**
  * Reflete "_preferences.compact" no DOM: ".bi-body.is-compact" esconde tudo
