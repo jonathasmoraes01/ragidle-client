@@ -428,14 +428,43 @@ function renderFicha() {
 	setText(root, '.st-matk', derivados.matk || 0);
 	setText(root, '.st-hit', derivados.hit || 0);
 	setText(root, '.st-cri', derivados.crit || 0);
-	setText(root, '.st-def', derivados.def || 0);
-	setText(root, '.st-mdef', derivados.mdef || 0);
+	/*
+	 * AS DUAS METADES, COMO O CLIENTE NATIVO MOSTRA (27/08/2026, auditoria).
+	 *
+	 * O emulador manda DEF e MDEF em dois campos: no renewal o `leftside` e o
+	 * derivado de STATUS e o `rightside` e o de EQUIPAMENTO (`pc.hpp:1241-1244`).
+	 * A ficha RAGIDLE so trazia a metade de equipamento, e para o MDEF isso
+	 * significava ZERO em quase todo personagem — MDEF de jogador nasce so de
+	 * `bonus bMdef`, e nao ha `MagicDefense` no item_db de equipamento.
+	 *
+	 * Medido no corpus antes do conserto: 276 de 276 fichas com `mdef === 0`.
+	 * O jogador com INT lia MDEF 0 na janela.
+	 *
+	 * O formato "status + equipamento" e o do cliente nativo. Quando o servidor
+	 * for antigo e nao mandar a metade de status, cai no numero de antes.
+	 */
+	setText(root, '.st-def', somaDasMetades(derivados.defDeStatus, derivados.def));
+	setText(root, '.st-mdef', somaDasMetades(derivados.mdefDeStatus, derivados.mdef));
 	setText(root, '.st-flee', derivados.flee || 0);
 	setText(root, '.st-aspd', derivados.aspd || 0);
 	setText(root, '.st-points', pontos);
 	// Guild/name/class/level/zeny/peso aren't part of the ficha contract —
 	// those live in the "Personagem" card, synced separately by
 	// syncCharacterInfo() (see file header).
+}
+
+/**
+ * "12 + 3", como o cliente nativo escreve as duas metades de DEF/MDEF.
+ *
+ * Com so uma delas conhecida, mostra so ela — e o que o servidor antigo manda.
+ */
+function somaDasMetades(deStatus, deEquipamento) {
+	const a = Number(deStatus) || 0;
+	const b = Number(deEquipamento) || 0;
+	if (deStatus === undefined) {
+		return b;
+	}
+	return b > 0 ? a + ' + ' + b : String(a);
 }
 
 function setText(root, selector, text) {
