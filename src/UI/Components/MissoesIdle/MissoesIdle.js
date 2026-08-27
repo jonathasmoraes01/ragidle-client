@@ -98,6 +98,17 @@ const BADGES = {
 	concluida: { classe: 'ri-badge--verde', rotulo: 'Concluída' }
 };
 
+/**
+ * ESQUECE O PERSONAGEM ANTERIOR — ver a nota gemea em IdleConfig.js
+ * (27/08/2026, auditoria C). `cleanGameUI()` nao limpava nenhum componente
+ * RAGIDLE, e a troca de personagem nao recarrega a pagina.
+ */
+MissoesIdle.limparEstadoDoPersonagem = function limparEstadoDoPersonagem() {
+	MissoesIdle.missoes = [];
+	MissoesIdle.execucao = null;
+	MissoesIdle.activeTab = 'principais';
+};
+
 MissoesIdle.init = function init() {
 	const root = _root();
 	// Guardas nos querySelector, pelo motivo registrado em

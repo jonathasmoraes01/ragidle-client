@@ -168,11 +168,27 @@ function ehCidadeAtual() {
  * ehCidade), so tocando o DOM quando o valor muda (ver _lastEhCidade acima).
  */
 function syncLabel() {
-	if (!IdleConfig.contexto) {
-		// Ainda sem resposta do servidor pra esta troca de mapa (sondada em
-		// IdleConfig.sondarMapa(), chamada em Engine/MapEngine.js a cada
-		// onMapChange) — mantem o rotulo atual (o HTML ja nasce com "Caçar",
-		// ver HuntButtonIdle.html) em vez de piscar algo no meio termo.
+	if (!IdleConfig.contexto || IdleConfig.contextoObsoleto) {
+		/*
+		 * Ainda sem resposta do servidor pra esta troca de mapa (sondada em
+		 * IdleConfig.sondarMapa(), chamada em Engine/MapEngine.js a cada
+		 * onMapChange) — mantem o rotulo atual (o HTML ja nasce com "Caçar",
+		 * ver HuntButtonIdle.html) em vez de piscar algo no meio termo.
+		 *
+		 * A METADE `contextoObsoleto` E DE 27/08/2026 (auditoria C). A guarda
+		 * testava so a AUSENCIA de contexto, e `IdleConfig.contexto` so e
+		 * `null` no boot do modulo: depois da primeira resposta da sessao ela
+		 * nunca mais era verdadeira. O problema real e contexto OBSOLETO.
+		 *
+		 * O sintoma: depois de TODA viagem o botao mostrava o rotulo do mapa
+		 * anterior — "Retornar para Prontera" ja em Prontera, "Caçar" ja no
+		 * mapa de caca — ate a resposta chegar. E como `syncLabel` so toca o
+		 * DOM quando o valor MUDA (`_lastEhCidade`), o rotulo errado ficava
+		 * gravado como se fosse o certo.
+		 *
+		 * Uma guarda que descreve a intencao certa e testa a condicao errada e
+		 * pior que nenhuma: ela faz o caso parecer coberto.
+		 */
 		return;
 	}
 

@@ -1047,6 +1047,29 @@ function cleanGameUI() {
 			component[method]();
 		}
 	}
+
+	/*
+	 * OS COMPONENTES RAGIDLE TAMBEM ESQUECEM (27/08/2026, auditoria C).
+	 *
+	 * A lista acima tem OITO componentes, todos nativos, e nenhum RAGIDLE.
+	 * Voltar ao menu de personagem NAO recarrega a pagina — `onRestartAnswer`
+	 * chama `cleanGameUI()` e `onRestart()`, sem `GameEngine.reload()` (o reload
+	 * so acontece no SAIR) —, entao todo estado de MODULO atravessa a troca.
+	 *
+	 * O estrago mais direto: `DockIdle.onAppend` faz `if (!IdleConfig.editConfig)
+	 * IdleConfig.pedirConfig();`. Com a config do personagem A na mao, a
+	 * condicao e falsa, o pedido nao sai por ali, e a barra de acoes desenha a
+	 * configuracao de A enquanto o servidor esta logado como B. Um clique no
+	 * "Auto" nessa janela mandaria a config de A.
+	 *
+	 * Nao entram na lista acima porque nao ha um `clean` uniforme neles: cada
+	 * modulo sabe qual e o SEU estado, e a limpeza mora la.
+	 */
+	for (const modulo of [IdleConfig, MissoesIdle, HuntMap]) {
+		if (typeof modulo.limparEstadoDoPersonagem === 'function') {
+			modulo.limparEstadoDoPersonagem();
+		}
+	}
 }
 
 /**

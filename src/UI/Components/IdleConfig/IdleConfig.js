@@ -82,6 +82,24 @@ IdleConfig.editConfig = null;
 IdleConfig.contexto = null;
 
 /**
+ * O contexto que esta na mao descreve o mapa ANTERIOR? (27/08/2026, auditoria C)
+ *
+ * `contexto` so e `null` no boot do modulo e nunca mais volta a ser — a unica
+ * outra escrita e a da resposta do servidor. Entao toda guarda escrita como
+ * `if (!IdleConfig.contexto) return` funciona UMA vez por sessao e depois vira
+ * decoracao, enquanto o problema real e contexto OBSOLETO, e nao ausente.
+ *
+ * Na troca de mapa, `IdleConfig.sondarMapa()` e `HuntButtonIdle.append()` saem
+ * no MESMO bloco sincrono (Engine/MapEngine.js): a resposta nao pode ter
+ * chegado, e quem ler `contexto` ali le o mapa de onde o jogador saiu.
+ *
+ * Esta marca e ADITIVA de proposito: `contexto` tem consumidores em seis
+ * arquivos (drop de caca, registro da caca, dock, pocao...), e anula-lo para
+ * fazer a guarda funcionar mudaria o comportamento de todos eles.
+ */
+IdleConfig.contextoObsoleto = false;
+
+/**
  * @var {string} active tab: 'geral' | 'alvos' | 'skills' | 'recuperacao' | 'itens'
  */
 IdleConfig.activeTab = 'geral';
@@ -294,6 +312,9 @@ function aplicarEstadoDeCidade() {
  * mapa e cidade e ajustar o botao. Chamado ao entrar no mapa.
  */
 IdleConfig.sondarMapa = function sondarMapa() {
+	// A sondagem so acontece na TROCA DE MAPA, entao o contexto na mao passa a
+	// descrever o mapa anterior a partir daqui — ate a resposta chegar.
+	IdleConfig.contextoObsoleto = true;
 	Network.sendPacket(new PACKET.CZ.RAGIDLE_PEDIR_CONFIG());
 };
 function requestConfig() {
@@ -395,6 +416,7 @@ function onConfigReceived(pkt) {
 	const rejected = isApplyResponse && Array.isArray(data.problemas) && data.problemas.length > 0;
 
 	IdleConfig.contexto = data.contexto;
+	IdleConfig.contextoObsoleto = false;
 	aplicarEstadoDeCidade();
 	IdleConfig.problemas = rejected ? data.problemas : [];
 
@@ -1183,6 +1205,33 @@ Network.hookPacket(PACKET.ZC.RAGIDLE_CONFIG, onConfigReceived);
  */
 IdleConfig.pedirConfig = requestConfig;
 IdleConfig.aplicarConfig = applyConfig;
+
+/**
+ * ESQUECE O PERSONAGEM ANTERIOR (27/08/2026, auditoria C).
+ *
+ * `cleanGameUI()` (Engine/MapEngine.js) percorre uma lista de OITO componentes
+ * nativos e nenhum RAGIDLE. Voltar ao menu de personagem NAO recarrega a
+ * pagina (`onRestartAnswer` chama `cleanGameUI()` + `onRestart()`, sem
+ * `GameEngine.reload()`), entao todo estado de MODULO atravessa a troca.
+ *
+ * O estrago mais direto: `DockIdle.onAppend` faz
+ * `if (!IdleConfig.editConfig) IdleConfig.pedirConfig();` — com o `editConfig`
+ * do personagem A na mao, a condicao e falsa e o pedido nao sai por ali. Ate a
+ * sondagem de mapa responder, a barra de acoes desenha a configuracao do
+ * personagem ANTERIOR, e um clique no "Auto" nessa janela mandaria a config
+ * de A para o servidor logado como B.
+ *
+ * Cada modulo sabe qual e o seu estado; por isso a limpeza mora aqui, e nao
+ * numa lista no motor.
+ */
+IdleConfig.limparEstadoDoPersonagem = function limparEstadoDoPersonagem() {
+	IdleConfig.serverConfig = null;
+	IdleConfig.editConfig = null;
+	IdleConfig.contexto = null;
+	IdleConfig.contextoObsoleto = false;
+	IdleConfig.dirty = false;
+	IdleConfig.problemas = [];
+};
 IdleConfig.alternarCacaAutomatica = alternarCacaAutomatica;
 
 /**

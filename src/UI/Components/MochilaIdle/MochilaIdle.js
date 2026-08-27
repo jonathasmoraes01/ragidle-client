@@ -401,14 +401,45 @@ MochilaIdle.onAppend = function onAppend() {
 	hideNativeHosts();
 	syncAll();
 	startPolling();
+
+	/*
+	 * A BONECA PRECISA SER REARMADA (27/08/2026, auditoria C).
+	 *
+	 * `Renderer.render(renderBoneco)` so era chamado no `toggle()`. Mas o laco
+	 * e derrubado em TODA troca de mapa, por duas vias: `MapRenderer.setMap`
+	 * faz `Renderer.stop()` SEM argumento — que zera a lista inteira de
+	 * callbacks — e logo depois `UIManager.removeComponents()`, que dispara o
+	 * `onRemove` daqui.
+	 *
+	 * Como o `onAppend` nao rearmava, a janela voltava aberta e a boneca ficava
+	 * PARADA — em toda viagem, em toda morte, em toda troca de personagem. O
+	 * unico jeito de trazer de volta era fechar e reabrir a Mochila.
+	 *
+	 * O `.is-open` sobrevive a troca porque a shadow DOM e reaproveitada
+	 * (`GUIComponent.prepare` e guardado por `__loaded`), entao a janela
+	 * REALMENTE volta aberta — e e por isso que a condicao abaixo basta.
+	 */
+	// `isOpen()` ja existe neste arquivo: escrever um segundo teste de janela
+	// aberta seria a segunda rota, que e o defeito mais repetido do projeto.
+	if (isOpen()) {
+		Renderer.render(renderBoneco);
+	}
 };
 
 MochilaIdle.onRemove = function onRemove() {
 	stopPolling();
 	savePosition();
-	// Defensivo: se o componente for removido com a janela ainda "is-open"
-	// (nao deveria acontecer no fluxo normal, so toggle() liga/desliga), a
-	// boneca nao pode continuar rodando sem canvas nenhum vivo.
+	/*
+	 * O comentario que estava aqui dizia que ser removido com a janela aberta
+	 * "nao deveria acontecer no fluxo normal, so toggle() liga/desliga".
+	 * ISSO CADUCOU: `MapRenderer.setMap` chama `UIManager.removeComponents()`
+	 * em TODA troca de mapa, com a janela aberta ou nao. O caso chamado de
+	 * "defensivo" E o fluxo normal — e foi essa frase que escondeu, por
+	 * quanto tempo ninguem sabe, a boneca parada depois de cada viagem.
+	 *
+	 * Parar aqui continua certo. O que faltava era o par: rearmar no
+	 * `onAppend`, logo acima.
+	 */
 	Renderer.stop(renderBoneco);
 };
 

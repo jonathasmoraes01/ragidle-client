@@ -28,6 +28,7 @@ import Preferences from 'Core/Preferences.js';
 import Network from 'Network/NetworkManager.js';
 import PACKET from 'Network/PacketStructure.js';
 import UIManager from 'UI/UIManager.js';
+import ChatBox from 'UI/Components/ChatBox/ChatBox.js';
 import GUIComponent from 'UI/GUIComponent.js';
 import htmlText from './HuntMap.html?raw';
 import cssText from './HuntMap.css?raw';
@@ -156,6 +157,21 @@ HuntMap.selectedMobId = null;
  * leaves the window closed, instead of the usual render.
  */
 let _pendingAutoTravel = false;
+
+/**
+ * ESQUECE O PERSONAGEM ANTERIOR — ver a nota gemea em IdleConfig.js
+ * (27/08/2026, auditoria C).
+ *
+ * Aqui o catalogo depende do NIVEL (o filtro "ideal para mim"), entao o de A
+ * mostrado para B nao e so estranho: e errado. E `_pendingAutoTravel` armada
+ * atravessando a troca teleportaria o personagem novo.
+ */
+HuntMap.limparEstadoDoPersonagem = function limparEstadoDoPersonagem() {
+	HuntMap.catalog = null;
+	HuntMap.selectedMapa = null;
+	HuntMap.selectedMobId = null;
+	_pendingAutoTravel = false;
+};
 
 /**
  * @var {Preferences} window position (x/y are null until the player moves it)
@@ -357,23 +373,63 @@ function setStatus(text) {
 }
 
 /**
+ * Avisa NO CHAT quando a janela esta fechada (27/08/2026, auditoria C).
+ *
+ * `setStatus` escreve dentro da janela do Mapa de Caca. Quando o pedido veio
+ * do botao contextual — que e o caminho do `travelToCity` — a janela esta
+ * fechada, e a mensagem ia para um DOM que ninguem ve: o jogador clicava
+ * "Retornar para Prontera", nao viajava, e nada aparecia na tela.
+ *
+ * Com a janela ABERTA nao se repete: ela ja mostra o status.
+ */
+function avisarSeAJanelaEstaFechada(texto) {
+	const janela = _root().querySelector('.hm-window');
+	if (janela && janela.classList.contains('is-open')) {
+		return;
+	}
+	ChatBox.addText(texto, ChatBox.TYPE.ERROR, ChatBox.FILTER.PUBLIC_LOG);
+}
+
+/**
  * ZC_RAGIDLE_CATALOGO — opcode 0x0ff1, variable size, JSON UTF-8 payload
  * (see PACKET.ZC.RAGIDLE_CATALOGO in Network/PacketStructure.js, which
  * decodes the remainder of the packet into pkt.json).
  */
 function onCatalogReceived(pkt) {
+	/*
+	 * A VIAGEM PENDENTE MORRE COM A RESPOSTA RUIM (27/08/2026, auditoria C).
+	 *
+	 * `travelToCity()` arma `_pendingAutoTravel` e pede o catalogo so para
+	 * descobrir `catalog.cidade.mapa` — a janela fica fechada o tempo todo. Os
+	 * dois `return` antecipados abaixo ficavam ANTES do consumo da flag, entao
+	 * uma resposta ilegivel a deixava armada PARA SEMPRE (ela e de modulo e nao
+	 * e zerada no `onRemove`).
+	 *
+	 * O estrago aparecia muito depois e sem relacao com a causa: o jogador abre
+	 * a janela "Mapa de Caca" pela primeira vez, o catalogo bom chega, a flag
+	 * ainda e `true` — e ele e TELEPORTADO para a cidade e a janela fecha na
+	 * cara dele, sem ter pedido nada.
+	 *
+	 * Desarmar aqui, antes de qualquer `return`, e o conserto inteiro: a viagem
+	 * que a resposta ruim nao pode cumprir nao fica pendurada esperando outra.
+	 */
+	const viagemPendente = _pendingAutoTravel;
+	_pendingAutoTravel = false;
+
 	let data;
 	try {
 		data = JSON.parse(pkt.json);
 	} catch (e) {
 		console.error('[HuntMap] Falha ao interpretar o catálogo recebido:', e, pkt.json);
 		setStatus('Catálogo incompatível.');
+		avisarSeAJanelaEstaFechada('Catálogo de mapas incompatível — a viagem não saiu.');
 		return;
 	}
 
 	if (!data || data.v !== 1) {
 		console.error('[HuntMap] Catálogo com contrato incompatível (v=' + (data && data.v) + ').', data);
 		setStatus('Catálogo incompatível.');
+		avisarSeAJanelaEstaFechada('Catálogo de mapas incompatível — a viagem não saiu.');
 		return;
 	}
 
@@ -382,8 +438,7 @@ function onCatalogReceived(pkt) {
 	// RAGIDLE: HuntMap.travelToCity() asked for this catalog just to learn
 	// catalog.cidade.mapa, not to open the window — finish that trip now and
 	// skip the normal render (the window stays closed the whole time).
-	if (_pendingAutoTravel) {
-		_pendingAutoTravel = false;
+	if (viagemPendente) {
 		sendTravel(data.cidade && data.cidade.mapa);
 		return;
 	}
