@@ -4233,10 +4233,32 @@ PACKET.CZ.SE_PC_BUY_CASHITEM_LIST.prototype.build = function () {
 
 //0x0849
 PACKET.ZC.SE_PC_BUY_CASHITEM_RESULT = function PACKET_ZC_SE_PC_BUY_CASHITEM_RESULT(fp, end) {
-	this.kafraPoints = fp.readUShort();
-	this.itemId = fp.readShort();
-	this.result = fp.readShort();
-	this.cashPoints = fp.readUShort();
+	/*
+	 * AS LARGURAS ESTAVAM ERRADAS (27/08/2026), e a ORDEM tambem.
+	 *
+	 * A struct da fonte para este PACKETVER:
+	 *
+	 *   // packets_struct.hpp:4139-4146
+	 *   struct PACKET_ZC_SE_PC_BUY_CASHITEM_RESULT {
+	 *       int16  packetType;
+	 *       uint32 itemId;      // unused
+	 *       uint16 result;
+	 *       uint32 cashPoints;
+	 *       uint32 kafraPoints;
+	 *   }
+	 *
+	 * 2+4+2+4+4 = 16, que e o `.size` declarado logo abaixo e o que a tabela de
+	 * comprimentos usa para enquadrar. O leitor lia u16/i16/i16/u16 — OITO
+	 * bytes, na ordem trocada.
+	 *
+	 * O pacote chegava inteiro (quem enquadra e o `.size`), e os campos saiam
+	 * embaralhados: `result` recebia metade do `itemId`, e a janela decidia se
+	 * a compra deu certo com um numero que nao era o resultado.
+	 */
+	this.itemId = fp.readULong();
+	this.result = fp.readUShort();
+	this.cashPoints = fp.readULong();
+	this.kafraPoints = fp.readULong();
 };
 PACKET.ZC.SE_PC_BUY_CASHITEM_RESULT.size = 16;
 
