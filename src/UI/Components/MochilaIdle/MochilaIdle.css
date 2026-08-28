@@ -685,13 +685,33 @@
 	box-shadow: var(--shadow-float);
 	font: var(--type-desc);
 	color: var(--white);
-	text-align: center;
-	white-space: nowrap;
+	/* A dica ganhou CORPO em 28/08/2026 (nome + descricao do item), e com ele
+	   as quebras de linha: `nowrap` + `center` era o desenho de uma dica de UMA
+	   linha. `pre-line` respeita os \n e junta os espacos; a esquerda le melhor
+	   em bloco. */
+	text-align: left;
+	white-space: pre-line;
 	overflow: hidden;
 	text-overflow: ellipsis;
 	/* Acima do aviso (5) e de tudo dentro da janela; nunca rouba o mouse,
 	   senao o proprio hover que a criou piscaria em laco. */
 	z-index: 6;
+	pointer-events: none;
+}
+
+/* O contador da municao. Canto oposto ao do refino, para as duas marcas nunca
+   disputarem o mesmo pixel num ladrilho que tenha as duas. */
+.mo-slot-contador {
+	position: absolute;
+	right: 2px;
+	bottom: 2px;
+	padding: 0 3px;
+	border-radius: var(--radius-card, 3px);
+	background: var(--surface-dark-glass, rgba(0, 0, 0, 0.65));
+	font: var(--type-numeric);
+	font-size: 10px;
+	line-height: 13px;
+	color: var(--white, #fff);
 	pointer-events: none;
 }
 

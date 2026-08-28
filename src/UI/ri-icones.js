@@ -300,6 +300,10 @@ const RiIcones = {
 	// (duas linhas formando o corte, nao uma curva unica) -- a curva unica
 	// da v1 lia como gota d'agua (a "silueta generica" que o briefing
 	// reprovou), a faceta reta e o que distingue "joia" de "gota".
+	// ── Slot de municao — a flecha (28/08/2026). Ela e a unica peca que o
+	// jogador GASTA, e o ladrilho dela e o unico com contador. ────────────────
+	slotMunicao: svg('<path d="M4 20 20 4"/><path d="M15 4h5v5"/><path d="M4 20l1.5-4.5L9 14"/>'),
+
 	slotAcessorio: svg('<circle cx="12" cy="15" r="5"/><path d="M9 7h6l-3-4z"/><path d="M9 7 12 10 15 7"/>'),
 
 	// Fantasia/costume (MochilaIdle, 26/08/2026) -- estrela de brilho de 4

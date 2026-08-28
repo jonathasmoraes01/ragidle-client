@@ -181,9 +181,19 @@ const GRADE_CAPACIDADE = GRADE_COLS * GRADE_LINHAS_VISIVEIS;
 const POLL_INTERVAL_MS = 250;
 
 /**
- * Os 10 slots de equipamento REAIS deste jogo (DB/Items/EquipmentLocation.js)
- * -- AMMO e SHADOW_* ficam de fora (municao nao tem janela aqui e shadow gear
- * nao existe neste jogo). Os COSTUME_* SAIRAM desta lista de exclusao em
+ * Os 11 slots de equipamento REAIS deste jogo (DB/Items/EquipmentLocation.js)
+ * -- SHADOW_* fica de fora (shadow gear nao existe neste jogo).
+ *
+ * ── A MUNICAO ENTROU EM 28/08/2026 (queixa do dono) ──────────────────────
+ * O comentario que estava aqui dizia que "municao nao tem janela aqui", e era
+ * verdade: a flecha era o UNICO equipamento sem lugar nenhum na tela. O dono
+ * relatou exatamente isso -- *"nao vejo onde a flecha esta equipada, nao
+ * mostra a quantidade"*.
+ *
+ * Ela e o unico slot que mostra CONTADOR, e a razao e do jogo: as outras dez
+ * pecas sao unidades e a municao e uma pilha que ACABA. Um arqueiro sem flecha
+ * nao ataca (`semMunicaoParaAtacar`, combat/simulate.ts), entao "quantas
+ * restam" e informacao de combate, e nao enfeite. Os COSTUME_* SAIRAM desta lista de exclusao em
  * 26/08/2026 (pedido do dono): eles moram em FANTASIA_SLOTS
  * (slotsDeFantasia.js) e desenham na fileira ".mo-fantasia-slots", abaixo da
  * boneca. Coluna esquerda/direita e a MESMA divisao que a Equipment nativa ja
@@ -199,7 +209,8 @@ const EQUIP_SLOTS = [
 	{ location: EquipLocation.ARMOR, cls: 'armor', label: 'Armadura', glifo: 'slotArmadura', col: 'dir' },
 	{ location: EquipLocation.SHIELD, cls: 'shield', label: 'Escudo', glifo: 'slotEscudo', col: 'dir' },
 	{ location: EquipLocation.SHOES, cls: 'shoes', label: 'Sapato', glifo: 'slotSapato', col: 'dir' },
-	{ location: EquipLocation.ACCESSORY2, cls: 'accessory2', label: 'Acessório', glifo: 'slotAcessorio', col: 'dir' }
+	{ location: EquipLocation.ACCESSORY2, cls: 'accessory2', label: 'Acessório', glifo: 'slotAcessorio', col: 'dir' },
+	{ location: EquipLocation.AMMO, cls: 'ammo', label: 'Munição', glifo: 'slotMunicao', col: 'dir', comContador: true }
 ];
 
 /**
@@ -668,7 +679,24 @@ function syncEquipSlots() {
 		return { slot, itemDiv };
 	});
 
-	const sig = estados.map(e => (e.itemDiv ? e.itemDiv.getAttribute('data-index') : '')).join(',');
+	/*
+	 * A QUANTIDADE entra na assinatura (28/08/2026). Sem ela, gastar uma flecha
+	 * nao redesenhava o contador: o indice do slot nao muda quando a pilha
+	 * encolhe, e a comparacao dizia "nada mudou" ate a flecha ACABAR.
+	 */
+	const sig = estados
+		.map(e => {
+			if (!e.itemDiv) {
+				return '';
+			}
+			const idx = e.itemDiv.getAttribute('data-index');
+			if (!e.slot.comContador) {
+				return idx;
+			}
+			const doInv = Inventory.getUI().getItemByIndex(parseInt(idx, 10));
+			return idx + 'x' + String(doInv && doInv.count ? doInv.count : 0);
+		})
+		.join(',');
 	if (sig === _lastSlotsSig) {
 		return;
 	}
@@ -702,10 +730,20 @@ function syncEquipSlots() {
 			const iconUrl = extractUrl(btn && btn.style.backgroundImage);
 			const refino = nome.match(/^\+(\d+)\s/);
 
-			tile.dataset.dica = nome || slot.label;
+			tile.dataset.dica = dicaDoItemNoIndice(itemDiv.getAttribute('data-index')) || nome || slot.label;
+			/*
+			 * O CONTADOR so existe no slot de municao, e o numero sai do
+			 * INVENTARIO -- a celula da Equipment nativa nao carrega
+			 * quantidade, porque nenhum dos outros dez slots precisa dela.
+			 */
+			const doInventario = slot.comContador
+				? Inventory.getUI().getItemByIndex(parseInt(itemDiv.getAttribute('data-index'), 10))
+				: null;
+			const quantos = doInventario && doInventario.count ? doInventario.count : 0;
 			tile.innerHTML =
 				`<img class="mo-slot-icone" alt="" src="${iconUrl || ''}" />` +
 				(refino ? `<span class="mo-slot-refino">+${refino[1]}</span>` : '') +
+				(quantos > 0 ? `<span class="mo-slot-contador">${quantos}</span>` : '') +
 				`<button type="button" class="mo-slot-remover" data-index="${itemDiv.getAttribute('data-index')}" data-dica="Tirar">&times;</button>`;
 		} else {
 			tile.classList.add('is-empty');
@@ -1183,7 +1221,8 @@ function textoDaDica(el) {
 		// (eDeFantasia sobre a mascara de vestir do item).
 		const nome = DB.getItemName(item);
 		const location = 'location' in item ? item.location : item.WearState;
-		return eDeFantasia(location) ? nome + ' — Fantasia' : nome;
+		const titulo = eDeFantasia(location) ? nome + ' — Fantasia' : nome;
+		return comDescricao(titulo, item);
 	}
 	if (el.classList.contains('mo-slot') || el.classList.contains('mo-slot-remover')) {
 		// O `data-dica` cobre os tres casos do painel esquerdo: slot ocupado
@@ -1191,6 +1230,49 @@ function textoDaDica(el) {
 		return el.dataset.dica || '';
 	}
 	return '';
+}
+
+/**
+ * O NOME mais a DESCRIÇÃO do cliente (28/08/2026, queixa do dono: *"não
+ * visualiza detalhes do item ao passar mouse em cima"*).
+ *
+ * A dica mostrava só o nome. A descrição já existia — `DB.getItemInfo()` a
+ * carrega do `itemInfo` do cliente instalado, que é a MESMA fonte que a janela
+ * nativa usa. Faltava lê-la aqui.
+ *
+ * **Cortada em `MAX_LINHAS_DA_DICA`.** Algumas descrições do RO passam de trinta
+ * linhas, e uma dica mais alta que a janela deixa de ser dica.
+ */
+const MAX_LINHAS_DA_DICA = 14;
+
+function comDescricao(titulo, item) {
+	const id = item.ITID !== undefined ? item.ITID : item.nameid;
+	const info = id !== undefined ? DB.getItemInfo(id) : null;
+	const bruta = info && info.identifiedDescriptionName ? info.identifiedDescriptionName : '';
+	if (!bruta) {
+		return titulo;
+	}
+	// O DB junta as linhas com \n; as marcas de cor do cliente (^RRGGBB) não
+	// significam nada num tooltip de texto puro e viram lixo se ficarem.
+	const linhas = String(bruta)
+		.replace(/\^[0-9a-fA-F]{6}/g, '')
+		.split('\n')
+		.map(l => l.trim())
+		.filter(l => l.length > 0);
+	if (linhas.length === 0) {
+		return titulo;
+	}
+	const cortadas = linhas.slice(0, MAX_LINHAS_DA_DICA);
+	if (linhas.length > MAX_LINHAS_DA_DICA) {
+		cortadas.push('...');
+	}
+	return titulo + '\n' + cortadas.join('\n');
+}
+
+/** A dica de um item pelo índice do inventário — usada pelos slots vestidos. */
+function dicaDoItemNoIndice(indice) {
+	const item = Inventory.getUI().getItemByIndex(parseInt(indice, 10));
+	return item ? comDescricao(DB.getItemName(item), item) : '';
 }
 
 function onHoverEntra(e) {
