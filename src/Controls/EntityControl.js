@@ -136,7 +136,22 @@ class EntityControl {
 			Cursor.setType(Cursor.ACTION.ROTATE);
 		}
 
-		if (this !== this.constructor.Manager.getFocusEntity()) {
+		/*
+		 * RAGIDLE: o hover nao apaga o letreiro MARCADO COMO FIXO.
+		 *
+		 * Com "nomes sempre visiveis" ligado, sair de cima de um JOGADOR
+		 * apagaria justamente o que o dono pediu para ver — o nome sumiria ao
+		 * passar o mouse e tirar, que e pior que nunca ter aparecido.
+		 *
+		 * A marca mora no proprio `display` (quem a poe e
+		 * `Engine/MapEngine/NomesDosJogadores.js`) em vez de este arquivo
+		 * perguntar ao modulo. O motivo e CICLO: `Entity.js` importa este
+		 * controle, entao importar daqui um modulo que importa `Entity.js`
+		 * fecharia `Entity -> EntityControl -> Nomes -> Entity`. ESM aguenta,
+		 * mas e o tipo de fragilidade que quebra no dia em que alguem trocar de
+		 * empacotador — e a marca no display e mais simples de qualquer forma.
+		 */
+		if (this !== this.constructor.Manager.getFocusEntity() && !this.display.fixo) {
 			this.display.display = false;
 			this.display.remove();
 		}

@@ -32,6 +32,17 @@ const defaultGraphicsSettings = {
 	fpslimit: 60,
 
 	/**
+	 * Os NOMES dos jogadores sempre visiveis (28/08/2026, pedido do dono).
+	 *
+	 * O roBrowser so pede o nome no hover. Ligado, o cliente pede assim que o
+	 * jogador entra na vista e desenha nome + guilda direto, como a barra de HP.
+	 *
+	 * PADRAO LIGADO: e o comportamento do RO oficial, e o dono pediu o toggle
+	 * para DESATIVAR — ou seja, ativo e o estado esperado.
+	 */
+	showPlayerNames: true,
+
+	/**
 	 * Performance Mode
 	 */
 	performanceMode: false,

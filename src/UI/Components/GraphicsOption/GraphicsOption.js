@@ -13,6 +13,7 @@ import Configs from 'Core/Configs.js';
 import Context from 'Core/Context.js';
 import Preferences from 'Core/Preferences.js';
 import GraphicsSettings from 'Preferences/Graphics.js';
+import NomesDosJogadores from 'Engine/MapEngine/NomesDosJogadores.js'; // RAGIDLE
 import Renderer from 'Renderer/Renderer.js';
 import UIManager from 'UI/UIManager.js';
 import GUIComponent from 'UI/GUIComponent.js';
@@ -83,6 +84,7 @@ GraphicsOption.init = function init() {
 	};
 
 	bindChange('.details', onUpdateQualityDetails);
+	bindChange('.player-names', onTogglePlayerNames);
 	bindChange('.cursor-option', onToggleGameCursor);
 	bindChange('.screensize', onUpdateScreenSize);
 	bindChange('.fpslimit', onUpdateFPSLimit);
@@ -125,6 +127,9 @@ GraphicsOption.onAppend = function onAppend() {
 
 	root.querySelector('.details').value = GraphicsSettings.quality;
 	root.querySelector('.screensize').value = GraphicsSettings.screensize;
+	// `!== false` e o mesmo criterio de `NomesDosJogadores.ligado()`: preferencia
+	// gravada ANTES desta opcao existir nao tem o campo, e o padrao e LIGADO.
+	root.querySelector('.player-names').checked = GraphicsSettings.showPlayerNames !== false;
 	root.querySelector('.cursor-option').checked = GraphicsSettings.cursor;
 	root.querySelector('.fpslimit').value = GraphicsSettings.fpslimit;
 	root.querySelector('.fps').checked = FPS._host ? FPS._host.style.display !== 'none' : false;
@@ -176,6 +181,20 @@ function onUpdateQualityDetails() {
 /**
  * Toggle game cursor
  */
+/**
+ * RAGIDLE: liga/desliga o nome e a guilda dos jogadores sempre visiveis
+ * (28/08/2026, pedido do dono).
+ *
+ * A reaplicacao em todo mundo NAO e enfeite: sem ela a opcao so valeria para
+ * quem entrasse na vista DEPOIS, e o jogador que acabou de clicar veria a tela
+ * nao mudar — o que se le como opcao quebrada.
+ */
+function onTogglePlayerNames() {
+	GraphicsSettings.showPlayerNames = !!this.checked;
+	GraphicsSettings.save();
+	NomesDosJogadores.reaplicarEmTodos();
+}
+
 function onToggleGameCursor() {
 	GraphicsSettings.cursor = !!this.checked;
 	GraphicsSettings.save();

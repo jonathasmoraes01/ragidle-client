@@ -31,6 +31,7 @@ import PACKET from 'Network/PacketStructure.js';
 import Altitude from 'Renderer/Map/Altitude.js';
 import Renderer from 'Renderer/Renderer.js';
 import EntityManager from 'Renderer/EntityManager.js';
+import NomesDosJogadores from './NomesDosJogadores.js'; // RAGIDLE: nome/guilda sempre visiveis
 import Entity from 'Renderer/Entity/Entity.js';
 import EffectManager from 'Renderer/EffectManager.js';
 import Damage from 'Renderer/Effects/Damage.js';
@@ -123,6 +124,8 @@ function onEntitySpam(pkt) {
 	} else {
 		entity = new Entity();
 		entity.set(pkt);
+		// RAGIDLE: o letreiro do JOGADOR acende ao nascer, sem esperar o mouse.
+		NomesDosJogadores.aplicar(entity);
 		if (pkt.job == 45) {
 			const EF_Init_Par = {
 				ownerAID: entity.GID,
@@ -1074,11 +1077,34 @@ function onEntityTalkColor(pkt) {
 function onEntityIdentity(pkt) {
 	const entity = EntityManager.get(pkt.AID);
 	if (entity) {
-		if (entity.display.name) {
-			entity.display.fakename = pkt.CName;
-		} else {
-			entity.display.name = pkt.CName;
-		}
+		/*
+		 * RAGIDLE (28/08/2026): o nome vai para `name`, e nao para `fakename`.
+		 *
+		 * O que estava aqui era:
+		 *
+		 *     if (entity.display.name) { entity.display.fakename = pkt.CName; }
+		 *     else                     { entity.display.name     = pkt.CName; }
+		 *
+		 * No roBrowser original isso e o mecanismo de DISFARCE: o nome do spawn
+		 * fica em `name` e o do `REQNAME` vira `fakename`. Neste fork ele vira
+		 * um defeito sistemico, e por dois motivos somados:
+		 *
+		 * 1. o pacote de spawn do nosso servidor JA TRAZ o nome, entao
+		 *    `display.name` esta SEMPRE preenchido quando a resposta chega — o
+		 *    `else` nunca roda para jogador; e
+		 * 2. `EntityDisplay.js` desenha `fakename` COM PRIORIDADE sobre `name`,
+		 *    e `fakename` nao e limpo em lugar nenhum do cliente.
+		 *
+		 * Resultado: todo jogador terminava com o nome no slot de disfarce. Ao
+		 * trocar de personagem a entidade e reusada, `set()` atualiza `name` e
+		 * nao `fakename`, e a tela ficava com o nome do personagem ANTERIOR —
+		 * a queixa "na minha HUD mostra PikaSeca e no chat mostra Jhowz".
+		 *
+		 * O disfarce de verdade deste servidor e o `@fakename`, que vem por
+		 * outro caminho; este aqui e so a resposta de "qual e o nome deste GID".
+		 */
+		entity.display.name = pkt.CName;
+		entity.display.fakename = '';
 
 		if (PACKETVER.value >= 20170208 && pkt.TitleID > 0) {
 			const titleText = DB.getTitleString(pkt.TitleID);
@@ -1122,6 +1148,14 @@ function onEntityIdentity(pkt) {
 		if (EntityManager.getOverEntity() === entity) {
 			entity.display.add();
 		}
+		/*
+		 * RAGIDLE: e o letreiro fica aceso mesmo SEM o mouse em cima.
+		 *
+		 * Aqui, e nao so no spawn, porque este e o instante em que a GUILDA
+		 * chega — ela nao viaja no pacote de entidade. Acender so no spawn
+		 * mostraria o nome sem a guilda ate alguem apontar.
+		 */
+		NomesDosJogadores.aplicar(entity);
 	}
 }
 
