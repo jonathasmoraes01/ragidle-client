@@ -36,8 +36,18 @@ window.ROConfigBase = {
 			renewal: false,
 			worldMapSettings: { episode: 12 },
 			packetKeys: false,
-			socketProxy: 'wss://connect.robrowser.com',
-			adminList: [2000000]
+			socketProxy: 'wss://connect.robrowser.com'
+			// A LISTA DE ADMINISTRADORES SAIU DAQUI (28/08/2026).
+			//
+			// Ela era `adminList: [2000000]` — o equivalente do bloco <aid><admin>
+			// do clientinfo.xml oficial, que decide quem o cliente desenha com o
+			// sprite de GM e o nome amarelo.
+			//
+			// Estatica nao serve mais: no nosso servidor qualquer conta vira
+			// administradora por comando, e uma lista cravada aqui so mudaria com
+			// redeploy — dois conceitos de administrador discordando. Hoje quem
+			// manda a lista e o SERVIDOR, no pacote 0x0fd0 (ZC_RAGIDLE_ADMINS),
+			// logo no comeco do lote do mapa.
 		}
 		// ADD PUBLIC TEST SERVERS HERE WITH _M _F REGISTRATION
 	],

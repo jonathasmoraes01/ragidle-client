@@ -1145,6 +1145,56 @@ function updateEntityStyle(entity) {
 	);
 }
 
+/**
+ * RAGIDLE: a lista de administradores, mandada pelo SERVIDOR (28/08/2026).
+ *
+ * O visual de GM deste cliente ja saia de `Session.AdminList` — o sprite
+ * `\uc6b4\uc601\uc790` (Renderer/Entity/EntityView.js, via `DB.getAdminPath`) e o nome
+ * amarelo (`STYLE.ADMIN`, em `updateEntityStyle` logo acima). O que mudou e de
+ * ONDE a lista vem: era o bloco <aid><admin> do clientinfo.xml, estatico, e
+ * agora e o servidor, que e quem sabe quem foi promovido por `#mudarstaff`.
+ *
+ * REAPLICAR NAS ENTIDADES JA NA TELA e o que faz este handler valer alguma
+ * coisa. `Entity.set()` calcula `isAdmin` UMA vez, no instante em que a
+ * entidade nasce (Renderer/Entity/Entity.js) — entao promover alguem sem
+ * reaplicar deixaria o promovido de roupa comum ate o proximo relogin de cada
+ * espectador. O servidor manda a lista antes das entidades no lote do mapa,
+ * mas quem chega no meio de uma promocao depende DAQUI.
+ *
+ * `entity.job = entity._job` nao e truque: `job` e uma propriedade com setter
+ * (`UpdateBody`, EntityView.js), e reatribui-la e como se pede ao cliente que
+ * remonte o corpo — que e onde `isAdmin` escolhe entre o sprite de GM e o da
+ * classe.
+ */
+function onAdminList(pkt) {
+	let dados;
+	try {
+		dados = JSON.parse(pkt.json);
+	} catch (e) {
+		console.warn('[RAGIDLE] lista de admins ilegivel:', e);
+		return;
+	}
+
+	const nova = Array.isArray(dados && dados.admins) ? dados.admins : [];
+	const antiga = Session.AdminList || [];
+	Session.AdminList = nova;
+
+	// So mexe em quem MUDOU de lado: remontar o corpo de todo mundo a cada
+	// lista custaria um reload de sprite por entidade, e a lista chega tambem
+	// em toda entrada de jogador no mapa.
+	const mudou = id => nova.indexOf(id) > -1 !== antiga.indexOf(id) > -1;
+
+	EntityManager.forEach(entity => {
+		if (!mudou(entity.GID)) {
+			return true;
+		}
+		entity.isAdmin = nova.indexOf(entity.GID) > -1;
+		entity.job = entity._job;
+		updateEntityStyle(entity);
+		return true;
+	});
+}
+
 function onTitleChangeAck(pkt) {
 	if (pkt.result === 0) {
 		const comp = Equipment.getUI();
@@ -3001,5 +3051,6 @@ export default function EntityEngine() {
 	Network.hookPacket(PACKET.ZC.MVP, onEntityMvpReward);
 	Network.hookPacket(PACKET.ZC.MVP_GETTING_ITEM, onEntityMvpRewardItemMessage);
 	Network.hookPacket(PACKET.ZC.ACK_CHANGE_TITLE, onTitleChangeAck);
+	Network.hookPacket(PACKET.ZC.RAGIDLE_ADMINS, onAdminList);
 	Network.hookPacket(PACKET.ZC.HAT_EFFECT, onHatEffects);
 }

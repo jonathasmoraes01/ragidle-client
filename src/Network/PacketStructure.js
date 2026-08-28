@@ -16102,6 +16102,27 @@ PACKET.CZ.RAGIDLE_PEDIR_MISSOES.prototype.build = function () {
 // Quem decide `estado` é o SERVIDOR; a janela só desenha (mesmo desenho do
 // aviso de classe acima). Chega respondendo ao pedido E empurrado quando o
 // estado muda (level up, troca de classe).
+// 0x0fd0 - RAGIDLE: ZC_RAGIDLE_ADMINS (server -> client)
+// Variavel, corpo JSON: {"v":1,"admins":[2000000, ...]}
+//
+// POR QUE ELE EXISTE (28/08/2026): o visual de GM deste cliente sai de
+// `Session.AdminList` (Engine/LoginEngine.js:139) — o sprite `\uc6b4\uc601\uc790` em
+// Renderer/Entity/EntityView.js e o nome amarelo (STYLE.ADMIN) em
+// Engine/MapEngine/Entity.js. No cliente oficial essa lista e ESTATICA, vinda
+// do bloco <aid><admin> do clientinfo.xml, e o roBrowser copiou o desenho.
+//
+// Estatico deixou de servir: no nosso servidor qualquer conta vira
+// administradora por comando (`#mudarstaff Fulano 99`), e uma lista cravada no
+// config so mudaria com redeploy — dois conceitos de administrador
+// discordando, o do servidor (que manda nos comandos) e o do cliente (que
+// manda no visual). O servidor passou a ser a fonte.
+//
+// O CONSUMIDOR JA EXISTIA INTEIRO. So faltava quem o alimentasse.
+PACKET.ZC.RAGIDLE_ADMINS = function PACKET_ZC_RAGIDLE_ADMINS(fp, end) {
+	this.json = fp.readString(end - fp.tell());
+};
+PACKET.ZC.RAGIDLE_ADMINS.size = -1;
+
 PACKET.ZC.RAGIDLE_MISSOES = function PACKET_ZC_RAGIDLE_MISSOES(fp, end) {
 	this.json = fp.readString(end - fp.tell());
 };
