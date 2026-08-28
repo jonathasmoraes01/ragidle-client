@@ -22,6 +22,9 @@
 	 - ".content[data-content]" (o JS continua achando o log pelo atributo)
 -->
 <div id="chatbox">
+	<!-- A alca de redimensionar (28/08/2026). Fica na borda de CIMA porque o
+	     painel e ancorado embaixo: crescer move a borda superior. -->
+	<div class="cb-alca" title="Arraste para mudar a altura do chat"></div>
 	<div class="cb-abas" role="tablist" aria-label="Canais do chat">
 		<button type="button" class="tab" data-canal="global" role="tab" aria-selected="true" title="Global">
 			<div class="cb-aba is-active">

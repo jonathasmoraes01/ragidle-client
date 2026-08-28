@@ -109,6 +109,86 @@ const _preferences = Preferences.get(
 const _prefsRecolhido = Preferences.get('ChatBoxRecolhido', { recolhido: false }, 1.0);
 
 /**
+ * A ALTURA do log, em pixels — arrastavel pela alca (28/08/2026).
+ *
+ * Chave PROPRIA, como o recolhido: a de `ChatBox` esta na versao 2.0 e subir a
+ * versao dela para caber um campo novo APAGARIA o canal ativo de todo mundo
+ * (`Preferences.get` descarta o save inteiro quando a versao nao bate).
+ *
+ * `null` significa "nunca arrastei" — e ai vale o padrao do CSS, que e o
+ * gabarito antigo. Guardar um numero de largada congelaria a altura de quem
+ * nunca pediu nada, e ainda por cima em pixels, num painel cujo padrao e
+ * relativo a viewport (`6.6vh`).
+ */
+const _prefsAltura = Preferences.get('ChatBoxAltura', { altura: null }, 1.0);
+
+/** Os limites do arrasto. O piso e ~duas linhas; o teto, metade da tela. */
+const ALTURA_MINIMA = 48;
+const alturaMaxima = () => Math.max(ALTURA_MINIMA, Math.round(window.innerHeight * 0.5));
+
+/** Escreve a altura no elemento. `null` devolve o padrao do CSS. */
+function aplicarAltura(root) {
+	const painel = root.querySelector('#chatbox') || root.host || root;
+	if (!painel || !painel.style) return;
+	if (_prefsAltura.altura === null) {
+		painel.style.removeProperty('--cb-altura');
+		return;
+	}
+	painel.style.setProperty('--cb-altura', `${_prefsAltura.altura}px`);
+}
+
+/**
+ * Liga a alca de redimensionar.
+ *
+ * O arrasto e por `pointer*` e nao `mouse*`: o `setPointerCapture` mantem os
+ * eventos vindo mesmo quando o cursor sai do elemento fino de 8px, que e o caso
+ * comum de quem arrasta rapido. Com `mousemove` no documento daria para fazer
+ * igual, mas seria preciso lembrar de tirar o listener — e listener esquecido e
+ * o vazamento que este fork ja consertou em outros lugares.
+ */
+function ligarAlcaDeAltura(root) {
+	const alca = root.querySelector('.cb-alca');
+	const painel = root.querySelector('#chatbox');
+	const corpo = root.querySelector('.contentwrapper');
+	if (!alca || !painel || !corpo || alca.dataset.ligada === '1') return;
+	alca.dataset.ligada = '1';
+
+	let alturaInicial = 0;
+	let yInicial = 0;
+
+	alca.addEventListener('pointerdown', event => {
+		event.preventDefault();
+		alturaInicial = corpo.getBoundingClientRect().height;
+		yInicial = event.clientY;
+		painel.classList.add('cb-redimensionando');
+		alca.setPointerCapture(event.pointerId);
+	});
+
+	alca.addEventListener('pointermove', event => {
+		if (!alca.hasPointerCapture(event.pointerId)) return;
+		// Para CIMA cresce: o painel e ancorado embaixo, entao subir a borda
+		// superior aumenta o log. Dai o sinal invertido.
+		const bruto = alturaInicial + (yInicial - event.clientY);
+		const altura = Math.max(ALTURA_MINIMA, Math.min(alturaMaxima(), Math.round(bruto)));
+		_prefsAltura.altura = altura;
+		aplicarAltura(root);
+	});
+
+	const soltar = event => {
+		if (!alca.hasPointerCapture(event.pointerId)) return;
+		alca.releasePointerCapture(event.pointerId);
+		painel.classList.remove('cb-redimensionando');
+		// Grava SO no soltar, e nao a cada pixel do arrasto: `save()` escreve no
+		// armazenamento, e um `pointermove` dispara dezenas de vezes por segundo.
+		_prefsAltura.save();
+		const ativo = root.querySelector('.content.active');
+		if (ativo) ativo.scrollTop = ativo.scrollHeight;
+	};
+	alca.addEventListener('pointerup', soltar);
+	alca.addEventListener('pointercancel', soltar);
+}
+
+/**
  * Create Basic Info component
  */
 const ChatBox = new GUIComponent('ChatBox', cssText);
@@ -655,6 +735,11 @@ ChatBox.onAppend = function OnAppend() {
 	const root = _root();
 
 	aplicarRecolhido();
+	// A altura arrastada ATRAVESSA a sessao: restaurada aqui, antes de o log
+	// rolar para o fim logo abaixo — assim o `scrollHeight` ja e o da altura
+	// certa e a primeira tela nao aparece rolada pela metade.
+	aplicarAltura(root);
+	ligarAlcaDeAltura(root);
 
 	const inputEl = root.querySelector('.input');
 	if (inputEl) inputEl.style.display = 'none';
