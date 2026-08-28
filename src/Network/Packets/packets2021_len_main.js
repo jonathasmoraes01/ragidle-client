@@ -4905,6 +4905,7 @@ function init(packetver) {
 	// que o servidor vigia em servidor/protocolo/faixa-ragidle.test.ts — a
 	// faixa em uso (0x0fee-0x0fff) esta cheia, 18 de 18.
 	length_list[0x0fce] = 6; // ZC_RAGIDLE_SALDO_DE_CASH (u16 opcode + u32 saldo)
+	length_list[0x0fcf] = -1; // CZ_RAGIDLE_PRIORIZAR (variavel, JSON)
 
 	length_list[0x0ffd] = 2; // CZ_RAGIDLE_RENASCER (opcode only)
 	length_list[0x0ffe] = 2; // CZ_RAGIDLE_DISTRIBUIR (opcode only)

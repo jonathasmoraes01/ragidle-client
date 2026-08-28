@@ -6,8 +6,8 @@
  * card up top (avatar, name, class, Base/Job Lv., Guild, Zeny, Peso), an
  * "Atributos" card (STR/AGI/VIT/INT/DEX/LUK with a per-stat "+" button and
  * next-point cost), a derived-stats card (ATK/MATK/HIT/CRI/DEF/MDEF/FLEE/
- * ASPD in two columns), and a footer with "Pontos de Atributo" + a
- * full-width "Distribuir Automático" button.
+ * ASPD in two columns), and a footer with "Pontos de Atributo" — o botao
+ * "Distribuir Automatico" que ficava ao lado saiu em 28/08/2026.
  *
  * ── Round 2 gauntlet fix: the "Personagem" card ─────────────────────────
  * The judge's round-2 note: this window read like a bare stat TABLE, not a
@@ -97,9 +97,9 @@
  * statButtonMap), so onClickStatUp reads it straight off the DOM instead
  * of keeping a second id table in JS.
  *
- * "Distribuir Automático" (unchanged) — CZ_RAGIDLE_DISTRIBUIR, opcode
- * 0x0ffe, fixed 2 bytes, opcode only. See Network/PacketStructure.js
- * "RAGIDLE:" section.
+ * O botao "Distribuir Automatico" (CZ_RAGIDLE_DISTRIBUIR, 0x0ffe) SAIU em
+ * 28/08/2026, a pedido do dono — ver a nota no rodape do .html. O pacote e o
+ * handler do servidor continuam vivos; quem saiu foi a porta.
  *
  * @author RagIdle
  */
@@ -210,7 +210,6 @@ StatusIdle.init = function init() {
 	this.draggable(root.querySelector('.st-titlebar'));
 
 	root.querySelector('.st-close').addEventListener('click', onClickClose);
-	root.querySelector('.st-auto').addEventListener('click', onClickAuto);
 	root.querySelectorAll('.st-stat-up').forEach(btn => {
 		btn.addEventListener('click', onClickStatUp);
 	});
@@ -492,14 +491,17 @@ function onClickStatUp(e) {
 	Network.sendPacket(pkt);
 }
 
-/**
- * "Distribuir Automático" — CZ_RAGIDLE_DISTRIBUIR, opcode 0x0ffe, fixed 2
- * bytes (opcode only). See Network/PacketStructure.js "RAGIDLE:" section.
+/*
+ * O "Distribuir Automatico" SAIU da janela em 28/08/2026, a pedido do dono, e
+ * com ele o `onClickAuto` que morava aqui.
+ *
+ * Ele mandava `CZ_RAGIDLE_DISTRIBUIR` (0x0ffe) e o servidor gastava TODOS os
+ * pontos de uma vez pelo plano da classe. Um clique sem querer nao tinha volta:
+ * o unico caminho e o `@resetstat`, que e de administrador.
+ *
+ * **O pacote e o handler do servidor continuam vivos** — o que saiu foi a
+ * PORTA, nao a peca. Religar e devolver o botao ao HTML e o ouvinte aqui.
  */
-function onClickAuto(e) {
-	e.stopImmediatePropagation();
-	Network.sendPacket(new PACKET.CZ.RAGIDLE_DISTRIBUIR());
-}
 
 Network.hookPacket(PACKET.ZC.RAGIDLE_FICHA, onFichaReceived);
 

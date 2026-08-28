@@ -561,7 +561,23 @@
 
 /* .ri-btn (Common.css) da o gradiente azul/estado desabilitado; aqui so o
  * alinhamento dentro do rodape do detalhe. */
-#IdleSkills .is-btn-aprender {
+#IdleSkills /* O botao da rotacao divide a linha com o de Aprender. "Dentro" ganha o tom de
+   destaque para o estado ser legivel sem ler o texto. */
+.is-btn-rotacao {
+	margin-right: 8px;
+}
+
+.is-btn-rotacao--dentro {
+	border-color: var(--ri-dourado, currentColor);
+	color: var(--ri-dourado, currentColor);
+}
+
+/* O selo do cartao e curto de proposito: ele divide a linha com "Ativa". */
+.is-badge-rotacao {
+	margin-left: 4px;
+}
+
+.is-btn-aprender {
 	align-self: flex-start;
 	margin-top: 8px;
 }

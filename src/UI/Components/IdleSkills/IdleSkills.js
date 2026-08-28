@@ -379,6 +379,26 @@ function sendAprender(skillId) {
 	Network.sendPacket(pkt);
 }
 
+/**
+ * Liga ou desliga a skill na ROTACAO de ataque (28/08/2026, pedido do dono:
+ * *"quero que seja possivel clicar na lista e selecionar a habilidade, para
+ * que o player nao precise sempre ficar indo no menu idle"*).
+ *
+ * `ligar` vai EXPLICITO, e nao como um alterna calculado no servidor: esta
+ * janela sabe o estado que desenhou, e um alterna com dois cliques rapidos
+ * numa rede lenta faria o jogador ligar o que queria desligar.
+ *
+ * A resposta e o mesmo ZC_RAGIDLE_SKILLS de sempre — a janela inteira volta
+ * com `naRotacao` atualizado, entao nao ha estado local para sincronizar.
+ */
+function sendPriorizar(skillId, ligar) {
+	setStatus(ligar ? 'Pondo na rotacao...' : 'Tirando da rotacao...');
+
+	const pkt = new PACKET.CZ.RAGIDLE_PRIORIZAR();
+	pkt.json = JSON.stringify({ skillId, ligar });
+	Network.sendPacket(pkt);
+}
+
 function setStatus(text) {
 	const root = _root();
 	const el = root.querySelector('.is-status');
@@ -548,6 +568,14 @@ function renderCard(skill) {
 				<span class="is-card-name">${escapeHtml(skill.nome)}</span>
 				<span class="is-card-meta">
 					<span class="is-badge ri-badge ${skill.categoria === 'passiva' ? 'ri-badge--verde' : 'ri-badge--azul'}">${categoriaLabel}</span>
+					${
+						// A POSICAO na rotacao, e nao um "ligado": a ordem da lista E a
+						// ordem de prioridade, e e a unica informacao que estar nela
+						// carrega alem do fato de estar.
+						skill.naRotacao
+							? `<span class="is-badge ri-badge ri-badge--ouro is-badge-rotacao" title="Rotacao de ataque: sai em ${skill.naRotacao}o lugar">Rotacao ${skill.naRotacao}</span>`
+							: ''
+					}
 				</span>
 			</span>
 			<span class="is-card-level">Nv. ${skill.aprendido}/${skill.nivelMaximo}</span>
@@ -641,6 +669,22 @@ function renderDetail() {
 	// texto 'Nível máximo alcançado' + botão desabilitado 'Dominada'").
 	const btnLabel = atMax ? 'Dominada' : `Aprender Nv. ${proximo}`;
 
+	/*
+	 * A ROTACAO DE ATAQUE (28/08/2026). Tres estados, e os tres dizem algo:
+	 * dentro (o botao TIRA), fora e pode (o botao POE), fora e nao pode (o
+	 * botao morre com o motivo do servidor no title).
+	 */
+	const naRotacao = typeof skill.naRotacao === 'number';
+	const podeRotacionar = naRotacao || !skill.motivoDaRotacao;
+	const rotacaoHtml = `
+			<button type="button" class="is-btn-rotacao ri-btn${naRotacao ? ' is-btn-rotacao--dentro' : ''}"
+				data-skill-rotacao="${escapeHtml(skill.skillId)}"
+				data-skill-ligar="${naRotacao ? '0' : '1'}"
+				${podeRotacionar ? '' : 'disabled'}
+				title="${escapeHtml(skill.motivoDaRotacao || (naRotacao ? 'Tirar da rotacao de ataque' : 'Por na rotacao de ataque'))}">${
+					naRotacao ? `Na rotacao (${skill.naRotacao})` : 'Por na rotacao'
+				}</button>`;
+
 	const footerHtml = atMax
 		? '<div class="is-detail-max">Nível máximo alcançado</div>'
 		: `
@@ -674,6 +718,7 @@ function renderDetail() {
 		</div>
 		<div class="is-detail-footer">
 			${footerHtml}
+			${rotacaoHtml}
 			<button type="button" class="is-btn-aprender ri-btn" data-skill-aprender="${escapeHtml(skill.skillId)}" ${disabled ? 'disabled' : ''} title="${title}">${btnLabel}</button>
 		</div>`;
 
@@ -681,6 +726,24 @@ function renderDetail() {
 	if (btn) {
 		btn.addEventListener('click', onClickAprender);
 	}
+	const btnRot = detailEl.querySelector('[data-skill-rotacao]');
+	if (btnRot) {
+		btnRot.addEventListener('click', onClickRotacao);
+	}
+}
+
+/**
+ * O botao da ROTACAO. `motivoDaRotacao` vem do servidor e diz por que ela nao
+ * entra — botao morto sem explicacao manda o jogador procurar defeito onde ha
+ * regra, que e o mesmo argumento do `motivo` do aprendizado.
+ */
+function onClickRotacao(e) {
+	e.stopImmediatePropagation();
+	const skillId = e.currentTarget.dataset.skillRotacao;
+	if (!skillId) {
+		return;
+	}
+	sendPriorizar(skillId, e.currentTarget.dataset.skillLigar === '1');
 }
 
 function onClickAprender(e) {

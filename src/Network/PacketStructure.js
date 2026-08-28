@@ -16178,6 +16178,29 @@ PACKET.CZ.RAGIDLE_MISSAO_ACAO.prototype.build = function () {
 	return pkt_buf;
 };
 
+// 0x0fcf - RAGIDLE: CZ_RAGIDLE_PRIORIZAR (client -> server)
+// Variable size: u16 opcode + u16 total length + JSON UTF-8 payload
+// ({"skillId": "AL_HEAL", "ligar": true}).
+//
+// O clique na lista de habilidades liga/desliga a skill na rotacao de ataque,
+// sem passar pela janela de config idle. `ligar` e EXPLICITO e nao um alterna:
+// o cliente sabe o estado que desenhou, e um alterna com dois cliques rapidos
+// numa rede lenta faria o jogador ligar o que queria desligar.
+//
+// A resposta e o ZC_RAGIDLE_SKILLS de sempre, com `aplicado` e `problemas`.
+PACKET.CZ.RAGIDLE_PRIORIZAR = function PACKET_CZ_RAGIDLE_PRIORIZAR() {
+	this.json = '{}';
+};
+PACKET.CZ.RAGIDLE_PRIORIZAR.prototype.build = function () {
+	const bytes = TextEncoding.encode(this.json, 'utf-8');
+	const pkt_len = 2 + 2 + bytes.length;
+	const pkt_buf = new BinaryWriter(pkt_len);
+	pkt_buf.writeShort(0x0fcf);
+	pkt_buf.writeUShort(pkt_len);
+	pkt_buf.writeString(this.json);
+	return pkt_buf;
+};
+
 // 0x0ffb - RAGIDLE: CZ_RAGIDLE_APRENDER (client -> server)
 // Variable size: u16 opcode + u16 total length + JSON UTF-8 payload
 // ({"skillId": "NV_BASIC"} per the contract — the single skill to learn one

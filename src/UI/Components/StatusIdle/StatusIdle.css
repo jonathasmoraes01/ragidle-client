@@ -429,10 +429,9 @@
 	color: var(--blue-600);
 }
 
-.st-auto {
-	width: 100%;
-	box-sizing: border-box;
-}
+/* `.st-auto` saiu com o botao "Distribuir Automatico" (28/08/2026). A regra
+   fica REGISTRADA aqui e nao no arquivo: deixar seletor morto no CSS e o tipo
+   de sujeira que a proxima pessoa nao consegue distinguir de "esqueceram". */
 
 /* Builder de polimento (18/08/2026), responsividade 1366x768: 688px de
    janela + a barra ~78px do DockIdle nao cabem nos 768px do piso (medido
