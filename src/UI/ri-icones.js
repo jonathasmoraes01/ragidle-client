@@ -226,6 +226,11 @@ const RiIcones = {
 	// acima -- o design system pede glifo puro. ──────────────────────────────
 	zeny: svg('<circle cx="9" cy="9" r="6"/><circle cx="15" cy="15" r="6"/><path d="M9 6.5v5M15 12.5v5"/>'),
 
+	// ── Cash — Lucide "Gem": a moeda PAGA do jogo, e ela precisa ser
+	// distinguivel do zeny a um relance, porque as duas ficam lado a lado na
+	// mesma faixa. Duas moedas parecidas na mesma linha seriam pior que uma. ──
+	cash: svg('<path d="M6 3h12l4 6-10 12L2 9z"/><path d="M11 3 8 9l4 12 4-12-3-6"/><path d="M2 9h20"/>'),
+
 	// ── Grafico — Lucide "BarChart3" (botao status compacto da HUD). ────────
 	grafico: svg('<path d="M3 3v18h18"/><path d="M7 16v-4M12 16V8M17 16v-7"/>'),
 

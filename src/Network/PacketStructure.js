@@ -16060,6 +16060,22 @@ PACKET.ZC.RAGIDLE_MUDANCA_DE_CLASSE = function PACKET_ZC_RAGIDLE_MUDANCA_DE_CLAS
 };
 PACKET.ZC.RAGIDLE_MUDANCA_DE_CLASSE.size = -1;
 
+// 0x0fce - RAGIDLE: ZC_RAGIDLE_SALDO_DE_CASH (server -> client)
+// Fixed 6 bytes: u16 opcode + u32 saldo.
+//
+// Sai da RESERVA de D-527 (a faixa em uso, 0x0fee-0x0fff, esta cheia: 18 de
+// 18). O servidor vigia a reserva em servidor/protocolo/faixa-ragidle.test.ts,
+// e foi esse teste que pegou a primeira escrita, que abria uma faixa nova.
+//
+// POR QUE ELE EXISTE: ate 28/08/2026 o saldo de cash so aparecia DENTRO da
+// janela da loja. O rAthena nao tem pacote de "este e o seu saldo" fora do
+// fluxo dela (`pc_getcash` avisa por `clif_displaymessage`, texto), entao isto
+// e extensao nossa. O servidor manda na entrada do mapa e a cada mudanca.
+PACKET.ZC.RAGIDLE_SALDO_DE_CASH = function PACKET_ZC_RAGIDLE_SALDO_DE_CASH(fp) {
+	this.saldo = fp.readULong();
+};
+PACKET.ZC.RAGIDLE_SALDO_DE_CASH.size = 6;
+
 // RAGIDLE: custom packets for the "Missões" window
 // (UI/Components/MissoesIdle/MissoesIdle.js). A faixa original 0x0fee-0x0fff
 // FECHOU (18/18, D-527); estes dois são os PRIMEIROS da faixa reservada

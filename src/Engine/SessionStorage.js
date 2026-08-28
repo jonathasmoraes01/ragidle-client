@@ -52,6 +52,19 @@ export default {
 		}
 	},
 
+	/**
+	 * Saldo de CASH da conta (28/08/2026).
+	 *
+	 * Campo simples, e nao acessor sobre a entidade como o `zeny`: o cash e
+	 * por CONTA (`#CASHPOINTS`, pc.cpp:2370) e nao pertence ao personagem —
+	 * pendura-lo em `Session.Entity` faria o numero sumir na troca de boneco.
+	 *
+	 * Quem o preenche e o `ZC_RAGIDLE_SALDO_DE_CASH` (0x0f00), enganchado em
+	 * UI/Components/BasicInfoIdle. Ate 28/08 nao existia campo nenhum: o saldo
+	 * so aparecia dentro da janela da loja, e o HUD nao tinha de onde ler.
+	 */
+	cash: 0,
+
 	petId: 0,
 	pet: {},
 

@@ -159,6 +159,7 @@ import CashShopEngine from './MapEngine/CashShop.js';
 import BankEngine from './MapEngine/Bank.js';
 import AchievementEngine from './MapEngine/Achievement.js';
 import RagidleRelatorioEngine from './MapEngine/RagidleRelatorio.js';
+import RagidleCashEngine from './MapEngine/RagidleCash.js';
 
 /**
  * @type {string} mapname
@@ -389,6 +390,7 @@ class MapEngine {
 			// RAGIDLE: the unattended-session return report (0x0ffc) — always
 			// on; the packet only ever arrives when the server has one to tell.
 			RagidleRelatorioEngine.init();
+			RagidleCashEngine.init();
 
 			// RAGIDLE (dev only): expose internals so the server repo's probes
 			// (Playwright, e.g. sonda-m15-avatar) can inspect entity state from

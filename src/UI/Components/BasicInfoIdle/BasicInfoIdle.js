@@ -443,6 +443,9 @@ function syncFromNativeState() {
 	setText(root, '.bi-weight', `${weight} / ${weightMax}`);
 
 	setText(root, '.bi-zeny', formatZeny(Session.zeny));
+	// O cash usa o MESMO formatador do zeny: e o mesmo tipo de numero para o
+	// jogador, e dois formatos na mesma faixa so criariam duvida.
+	setText(root, '.bi-cash', formatZeny(Session.cash));
 }
 
 /**

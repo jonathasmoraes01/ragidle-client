@@ -455,6 +455,23 @@
 	white-space: nowrap;
 }
 
+/* A faixa do cash repete a do zeny em tudo menos na COR do numero: e o mesmo
+   contador, de outra moeda. A borda de cima sai (as duas faixas sao coladas e
+   duas reguas seguidas viram um degrau), e o numero herda o tom do destaque
+   para nao competir com o dourado do zeny ao lado. */
+.bi-moeda-cash {
+	border-top: none;
+	padding-top: 0;
+}
+
+.bi-moeda .bi-cash {
+	font: var(--type-numeric);
+	font-size: 15px;
+	color: var(--ri-ciano, var(--ri-texto-1));
+	letter-spacing: 0.2px;
+	white-space: nowrap;
+}
+
 /* ─── Modo compacto (19/08/2026, botao no cabecalho -- ver ".bi-minimize"
  * mais acima): SO HP, SP, XP e os dois niveis ficam de pe -- retrato, nome,
  * classe e peso somem. O ZENY nao some mais (20/08/2026): ele saiu do corpo

@@ -990,6 +990,7 @@ export default {
 	// RAGIDLE: "Skills de {classe}" custom packet (see PacketStructure.js
 	// "RAGIDLE:" section, opcodes 0x0ff9-0x0ffb). Same reasoning as 0x0ff1/
 	// 0x0ff4/0x0ff7 above — only the server->client one is registered here.
+	0x0fce: PACKET.ZC.RAGIDLE_SALDO_DE_CASH,
 	0x0fee: PACKET.ZC.RAGIDLE_MUDANCA_DE_CLASSE,
 	0x0ffa: PACKET.ZC.RAGIDLE_SKILLS,
 
