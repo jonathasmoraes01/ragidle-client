@@ -16123,6 +16123,31 @@ PACKET.ZC.RAGIDLE_ADMINS = function PACKET_ZC_RAGIDLE_ADMINS(fp, end) {
 };
 PACKET.ZC.RAGIDLE_ADMINS.size = -1;
 
+// 0x0fd1 - RAGIDLE: ZC_RAGIDLE_CONFIRMAR (server -> client)
+// Variavel, corpo JSON: {"v":1,"id":<n>,"texto":"..."}
+//
+// A janela de confirmacao de um `#` destrutivo (Engine/MapEngine/
+// RagidleConfirmar.js). Quem decide QUE comando pergunta e o servidor; o
+// cliente so mostra e devolve sim/nao. O `id` amarra a resposta a pergunta.
+PACKET.ZC.RAGIDLE_CONFIRMAR = function PACKET_ZC_RAGIDLE_CONFIRMAR(fp, end) {
+	this.json = fp.readString(end - fp.tell());
+};
+PACKET.ZC.RAGIDLE_CONFIRMAR.size = -1;
+
+// 0x0fd2 - RAGIDLE: CZ_RAGIDLE_CONFIRMAR (client -> server)
+// Fixo, 7 bytes: u16 opcode + u32 id + u8 resposta (1 = sim, 0 = nao).
+PACKET.CZ.RAGIDLE_CONFIRMAR = function PACKET_CZ_RAGIDLE_CONFIRMAR() {
+	this.id = 0;
+	this.resposta = 0;
+};
+PACKET.CZ.RAGIDLE_CONFIRMAR.prototype.build = function build() {
+	const pkt = new BinaryWriter(7);
+	pkt.writeShort(0x0fd2);
+	pkt.writeULong(this.id);
+	pkt.writeUChar(this.resposta);
+	return pkt;
+};
+
 PACKET.ZC.RAGIDLE_MISSOES = function PACKET_ZC_RAGIDLE_MISSOES(fp, end) {
 	this.json = fp.readString(end - fp.tell());
 };

@@ -992,6 +992,7 @@ export default {
 	// 0x0ff4/0x0ff7 above — only the server->client one is registered here.
 	0x0fce: PACKET.ZC.RAGIDLE_SALDO_DE_CASH,
 	0x0fd0: PACKET.ZC.RAGIDLE_ADMINS,
+	0x0fd1: PACKET.ZC.RAGIDLE_CONFIRMAR,
 	0x0fee: PACKET.ZC.RAGIDLE_MUDANCA_DE_CLASSE,
 	0x0ffa: PACKET.ZC.RAGIDLE_SKILLS,
 

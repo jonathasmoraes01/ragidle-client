@@ -4907,6 +4907,8 @@ function init(packetver) {
 	length_list[0x0fce] = 6; // ZC_RAGIDLE_SALDO_DE_CASH (u16 opcode + u32 saldo)
 	length_list[0x0fcf] = -1; // CZ_RAGIDLE_PRIORIZAR (variavel, JSON)
 	length_list[0x0fd0] = -1; // ZC_RAGIDLE_ADMINS (variavel, JSON)
+	length_list[0x0fd1] = -1; // ZC_RAGIDLE_CONFIRMAR (variavel, JSON)
+	length_list[0x0fd2] = 7; // CZ_RAGIDLE_CONFIRMAR (u16 opcode + u32 id + u8 resposta)
 
 	length_list[0x0ffd] = 2; // CZ_RAGIDLE_RENASCER (opcode only)
 	length_list[0x0ffe] = 2; // CZ_RAGIDLE_DISTRIBUIR (opcode only)

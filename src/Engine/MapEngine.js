@@ -160,6 +160,7 @@ import BankEngine from './MapEngine/Bank.js';
 import AchievementEngine from './MapEngine/Achievement.js';
 import RagidleRelatorioEngine from './MapEngine/RagidleRelatorio.js';
 import RagidleCashEngine from './MapEngine/RagidleCash.js';
+import RagidleConfirmarEngine from './MapEngine/RagidleConfirmar.js'; // RAGIDLE: janela de confirmacao do `#` destrutivo
 
 /**
  * @type {string} mapname
@@ -391,6 +392,7 @@ class MapEngine {
 			// on; the packet only ever arrives when the server has one to tell.
 			RagidleRelatorioEngine.init();
 			RagidleCashEngine.init();
+			RagidleConfirmarEngine.init();
 
 			// RAGIDLE (dev only): expose internals so the server repo's probes
 			// (Playwright, e.g. sonda-m15-avatar) can inspect entity state from

@@ -15458,6 +15458,12 @@
           "tamanho": -1,
           "desde": null,
           "fonteDoTamanho": "cliente"
+        },
+        "0x0fd2": {
+          "nome": "CZ_RAGIDLE_CONFIRMAR",
+          "tamanho": 7,
+          "desde": null,
+          "fonteDoTamanho": "cliente"
         }
       }
     }
