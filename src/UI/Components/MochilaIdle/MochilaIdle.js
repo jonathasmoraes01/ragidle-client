@@ -1445,6 +1445,31 @@ function syncRodape() {
 }
 
 /**
+ * A TROCA DE PERSONAGEM ESQUECE A MOCHILA (28/08/2026).
+ *
+ * Voltar ao menu de personagem NAO recarrega a pagina: `onRestartAnswer` chama
+ * `cleanGameUI()` e `onRestart()`, sem `GameEngine.reload()` (o reload so
+ * acontece no SAIR). Todo estado de MODULO atravessa a troca — e este arquivo
+ * guarda as assinaturas da grade e dos slots, e a aba aberta.
+ *
+ * As assinaturas seguram o redesenho de proposito (reconstruir os <img> a cada
+ * tique daria flicker), e e justamente isso que faz a mochila do anterior
+ * ficar na tela. `_dragUnequipIndex` e um arrasto pela metade, que nao pode
+ * atravessar para outro personagem.
+ *
+ * Chamada por `cleanGameUI()` em Engine/MapEngine.js, junto com os outros
+ * componentes RAGIDLE. Quem somar estado de personagem aqui soma a linha
+ * correspondente ABAIXO, e o portao `limpeza-da-troca-de-personagem.test.ts`
+ * (no repo do servidor) reprova se esquecer.
+ */
+MochilaIdle.limparEstadoDoPersonagem = function limparEstadoDoPersonagem() {
+	_abaAtiva = null;
+	_lastGradeSig = null;
+	_lastSlotsSig = null;
+	_dragUnequipIndex = null;
+};
+
+/**
  * Create component and export it
  */
 export default UIManager.addComponent(MochilaIdle);

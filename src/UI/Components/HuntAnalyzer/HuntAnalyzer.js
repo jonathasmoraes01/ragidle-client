@@ -349,4 +349,25 @@ HuntAnalyzer.toggle = function toggle() {
 	}
 };
 
+/**
+ * A TROCA DE PERSONAGEM ESQUECE A LEITURA DA CACADA (28/08/2026).
+ *
+ * Voltar ao menu de personagem NAO recarrega a pagina: `onRestartAnswer` chama
+ * `cleanGameUI()` e `onRestart()`, sem `GameEngine.reload()` (o reload so
+ * acontece no SAIR). Todo estado de MODULO atravessa a troca — e este arquivo
+ * guarda as assinaturas do ranking e dos itens.
+ *
+ * O relatorio de caca e por personagem. Com a assinatura velha, o painel segue
+ * mostrando o que o anterior matou e juntou.
+ *
+ * Chamada por `cleanGameUI()` em Engine/MapEngine.js, junto com os outros
+ * componentes RAGIDLE. Quem somar estado de personagem aqui soma a linha
+ * correspondente ABAIXO, e o portao `limpeza-da-troca-de-personagem.test.ts`
+ * (no repo do servidor) reprova se esquecer.
+ */
+HuntAnalyzer.limparEstadoDoPersonagem = function limparEstadoDoPersonagem() {
+	_sigRanking = null;
+	_sigItens = null;
+};
+
 export default HuntAnalyzer;

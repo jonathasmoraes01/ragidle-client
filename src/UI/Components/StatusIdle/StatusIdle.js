@@ -506,6 +506,27 @@ function onClickStatUp(e) {
 Network.hookPacket(PACKET.ZC.RAGIDLE_FICHA, onFichaReceived);
 
 /**
+ * A TROCA DE PERSONAGEM ESQUECE a FICHA (28/08/2026).
+ *
+ * Voltar ao menu de personagem NAO recarrega a pagina: `onRestartAnswer` chama
+ * `cleanGameUI()` e `onRestart()`, sem `GameEngine.reload()` (o reload so
+ * acontece no SAIR). Todo estado de MODULO atravessa a troca — e este arquivo
+ * guarda a ficha inteira do personagem.
+ *
+ * `ficha` e o retrato de atributos, nivel e bonus. Ela e a coisa mais visivel
+ * da queixa que trouxe isto aqui: a janela de Status abrindo com os numeros
+ * do personagem anterior.
+ *
+ * Chamada por `cleanGameUI()` em Engine/MapEngine.js, junto com os outros
+ * componentes RAGIDLE. Quem somar estado de personagem aqui soma a linha
+ * correspondente ABAIXO, e o portao `limpeza-da-troca-de-personagem.test.ts`
+ * (no repo do servidor) reprova se esquecer.
+ */
+StatusIdle.limparEstadoDoPersonagem = function limparEstadoDoPersonagem() {
+	StatusIdle.ficha = null;
+};
+
+/**
  * Create component and export it
  */
 export default UIManager.addComponent(StatusIdle);

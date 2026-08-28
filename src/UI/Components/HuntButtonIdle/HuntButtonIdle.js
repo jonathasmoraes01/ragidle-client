@@ -224,6 +224,27 @@ function onClickButton(e) {
 }
 
 /**
+ * A TROCA DE PERSONAGEM ESQUECE O BOTAO DE CACA (28/08/2026).
+ *
+ * Voltar ao menu de personagem NAO recarrega a pagina: `onRestartAnswer` chama
+ * `cleanGameUI()` e `onRestart()`, sem `GameEngine.reload()` (o reload so
+ * acontece no SAIR). Todo estado de MODULO atravessa a troca — e este arquivo
+ * guarda o ultimo contexto de mapa que ele leu.
+ *
+ * O botao muda de cara conforme o personagem esteja em cidade ou em campo. Dois
+ * personagens podem estar em lugares diferentes, e `_lastEhCidade` segura o
+ * redesenho enquanto nao mudar.
+ *
+ * Chamada por `cleanGameUI()` em Engine/MapEngine.js, junto com os outros
+ * componentes RAGIDLE. Quem somar estado de personagem aqui soma a linha
+ * correspondente ABAIXO, e o portao `limpeza-da-troca-de-personagem.test.ts`
+ * (no repo do servidor) reprova se esquecer.
+ */
+HuntButtonIdle.limparEstadoDoPersonagem = function limparEstadoDoPersonagem() {
+	_lastEhCidade = null;
+};
+
+/**
  * Create component and export it
  */
 export default UIManager.addComponent(HuntButtonIdle);

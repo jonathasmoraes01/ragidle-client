@@ -1067,7 +1067,39 @@ function cleanGameUI() {
 	 * Nao entram na lista acima porque nao ha um `clean` uniforme neles: cada
 	 * modulo sabe qual e o SEU estado, e a limpeza mora la.
 	 */
-	for (const modulo of [IdleConfig, MissoesIdle, HuntMap]) {
+	/*
+	 * DE TRES PARA DOZE (28/08/2026, queixa do Jhow: *"quando troca de
+	 * personagem esta ficando com as informacoes do personagem anterior"*).
+	 *
+	 * A lista nasceu com tres em 27/08 e nove componentes RAGIDLE com estado de
+	 * personagem ficaram de fora — inclusive os DOIS mais visiveis: a janela de
+	 * Status (`StatusIdle.ficha`) e a de habilidades (`IdleSkills.serverData`),
+	 * que sao literalmente "as informacoes do personagem" da queixa.
+	 *
+	 * O modo de falha e sempre o mesmo, e nao e o dado em si: sao os caches de
+	 * "o que eu ja desenhei" (`_sig*`, `_last*`). Enquanto a assinatura nao
+	 * muda, o componente NAO redesenha — entao a assinatura do personagem
+	 * anterior segura a tela dele no lugar.
+	 *
+	 * Uma lista escrita a mao que precisa crescer junto com uma pasta e uma
+	 * divida esperando acontecer, e ela aconteceu em um dia. O portao
+	 * `limpeza-da-troca-de-personagem.test.ts` (repo do servidor) le esta lista
+	 * e a pasta de componentes, e reprova quando as duas divergem.
+	 */
+	for (const modulo of [
+		IdleConfig,
+		MissoesIdle,
+		HuntMap,
+		IdleSkills,
+		StatusIdle,
+		LFGIdle,
+		DockIdle,
+		CorreioIdle,
+		HuntAnalyzer,
+		HuntButtonIdle,
+		MissoesTrackerIdle,
+		MochilaIdle
+	]) {
 		if (typeof modulo.limparEstadoDoPersonagem === 'function') {
 			modulo.limparEstadoDoPersonagem();
 		}

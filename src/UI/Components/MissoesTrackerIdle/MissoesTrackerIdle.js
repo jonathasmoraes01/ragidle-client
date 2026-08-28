@@ -246,4 +246,24 @@ function render(missoes, execucao) {
 			: '<li class="mt-vazio">Nenhuma missão disponível agora — suba de nível!</li>');
 }
 
+/**
+ * A TROCA DE PERSONAGEM ESQUECE O TRACKER DE MISSOES (28/08/2026).
+ *
+ * Voltar ao menu de personagem NAO recarrega a pagina: `onRestartAnswer` chama
+ * `cleanGameUI()` e `onRestart()`, sem `GameEngine.reload()` (o reload so
+ * acontece no SAIR). Todo estado de MODULO atravessa a troca — e este arquivo
+ * guarda a assinatura das missoes desenhadas.
+ *
+ * `_recolhido` NAO entra: recolher o tracker e preferencia de quem joga, e nao
+ * dado de personagem — zera-la seria reabrir uma janela que a pessoa fechou.
+ *
+ * Chamada por `cleanGameUI()` em Engine/MapEngine.js, junto com os outros
+ * componentes RAGIDLE. Quem somar estado de personagem aqui soma a linha
+ * correspondente ABAIXO, e o portao `limpeza-da-troca-de-personagem.test.ts`
+ * (no repo do servidor) reprova se esquecer.
+ */
+MissoesTrackerIdle.limparEstadoDoPersonagem = function limparEstadoDoPersonagem() {
+	_assinatura = '';
+};
+
 export default UIManager.addComponent(MissoesTrackerIdle);

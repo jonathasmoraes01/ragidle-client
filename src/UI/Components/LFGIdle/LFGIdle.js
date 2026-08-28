@@ -472,4 +472,25 @@ Network.hookPacket(PACKET.ZC.RAGIDLE_LFG_RESULTADO, function (pkt) {
 	}
 });
 
+/**
+ * A TROCA DE PERSONAGEM ESQUECE O MEU PEDIDO de grupo (28/08/2026).
+ *
+ * Voltar ao menu de personagem NAO recarrega a pagina: `onRestartAnswer` chama
+ * `cleanGameUI()` e `onRestart()`, sem `GameEngine.reload()` (o reload so
+ * acontece no SAIR). Todo estado de MODULO atravessa a troca — e este arquivo
+ * guarda o pedido de grupo DESTE personagem.
+ *
+ * `grupos` e `mapas` sao do mundo e se renovam sozinhos no proximo pacote;
+ * `meu` e do personagem, e mostrado como "voce esta procurando grupo" —
+ * herda-lo diria ao novo personagem que ele tem um pedido que nao e dele.
+ *
+ * Chamada por `cleanGameUI()` em Engine/MapEngine.js, junto com os outros
+ * componentes RAGIDLE. Quem somar estado de personagem aqui soma a linha
+ * correspondente ABAIXO, e o portao `limpeza-da-troca-de-personagem.test.ts`
+ * (no repo do servidor) reprova se esquecer.
+ */
+LFGIdle.limparEstadoDoPersonagem = function limparEstadoDoPersonagem() {
+	LFGIdle.meu = null;
+};
+
 export default UIManager.addComponent(LFGIdle);

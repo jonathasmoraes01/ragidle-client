@@ -784,6 +784,29 @@ function renderFooter() {
 Network.hookPacket(PACKET.ZC.RAGIDLE_SKILLS, onSkillsReceived);
 
 /**
+ * A TROCA DE PERSONAGEM ESQUECE a JANELA DE HABILIDADES (28/08/2026).
+ *
+ * Voltar ao menu de personagem NAO recarrega a pagina: `onRestartAnswer` chama
+ * `cleanGameUI()` e `onRestart()`, sem `GameEngine.reload()` (o reload so
+ * acontece no SAIR). Todo estado de MODULO atravessa a troca — e este arquivo
+ * guarda a arvore inteira do personagem.
+ *
+ * Sem isto a janela abre com as habilidades de QUEM SAIU: `serverData` e o
+ * payload cru da janela, e ele so e substituido quando o pacote do novo
+ * personagem chega — ate la, o que esta na tela e do anterior.
+ *
+ * Chamada por `cleanGameUI()` em Engine/MapEngine.js, junto com os outros
+ * componentes RAGIDLE. Quem somar estado de personagem aqui soma a linha
+ * correspondente ABAIXO, e o portao `limpeza-da-troca-de-personagem.test.ts`
+ * (no repo do servidor) reprova se esquecer.
+ */
+IdleSkills.limparEstadoDoPersonagem = function limparEstadoDoPersonagem() {
+	IdleSkills.serverData = null;
+	IdleSkills.selectedSkillId = null;
+	IdleSkills.problemas = [];
+};
+
+/**
  * Create component and export it
  */
 export default UIManager.addComponent(IdleSkills);

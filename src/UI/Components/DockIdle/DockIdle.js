@@ -603,6 +603,28 @@ function onClickConsumo(e) {
 }
 
 /**
+ * A TROCA DE PERSONAGEM ESQUECE A BARRA DE ACOES (28/08/2026).
+ *
+ * Voltar ao menu de personagem NAO recarrega a pagina: `onRestartAnswer` chama
+ * `cleanGameUI()` e `onRestart()`, sem `GameEngine.reload()` (o reload so
+ * acontece no SAIR). Todo estado de MODULO atravessa a troca — e este arquivo
+ * guarda as assinaturas do que ela ja desenhou.
+ *
+ * Sao caches de "o que eu ja pintei": enquanto a assinatura nao muda, a barra
+ * NAO redesenha. Com a assinatura do personagem anterior na mao, a rotacao e
+ * os consumiveis dele ficam na tela — e um clique ali agiria sobre o novo.
+ *
+ * Chamada por `cleanGameUI()` em Engine/MapEngine.js, junto com os outros
+ * componentes RAGIDLE. Quem somar estado de personagem aqui soma a linha
+ * correspondente ABAIXO, e o portao `limpeza-da-troca-de-personagem.test.ts`
+ * (no repo do servidor) reprova se esquecer.
+ */
+DockIdle.limparEstadoDoPersonagem = function limparEstadoDoPersonagem() {
+	_lastRotacaoJson = null;
+	_lastConsumoJson = null;
+};
+
+/**
  * Create component and export it
  */
 export default UIManager.addComponent(DockIdle);

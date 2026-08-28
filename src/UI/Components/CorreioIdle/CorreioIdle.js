@@ -890,6 +890,32 @@ function sincronizarRodape() {
 }
 
 /**
+ * A TROCA DE PERSONAGEM ESQUECE O CORREIO (28/08/2026).
+ *
+ * Voltar ao menu de personagem NAO recarrega a pagina: `onRestartAnswer` chama
+ * `cleanGameUI()` e `onRestart()`, sem `GameEngine.reload()` (o reload so
+ * acontece no SAIR). Todo estado de MODULO atravessa a troca — e este arquivo
+ * guarda a lista, a carta aberta e as assinaturas de desenho.
+ *
+ * `_selecionada` e a carta ABERTA do personagem anterior, e as assinaturas
+ * seguram o redesenho enquanto nao mudarem. `_listaVirgem` e a marca de "ainda
+ * nao pedi": sem zerar, o novo personagem nunca pede a propria caixa.
+ *
+ * Chamada por `cleanGameUI()` em Engine/MapEngine.js, junto com os outros
+ * componentes RAGIDLE. Quem somar estado de personagem aqui soma a linha
+ * correspondente ABAIXO, e o portao `limpeza-da-troca-de-personagem.test.ts`
+ * (no repo do servidor) reprova se esquecer.
+ */
+CorreioIdle.limparEstadoDoPersonagem = function limparEstadoDoPersonagem() {
+	_selecionada = null;
+	_sigLista = null;
+	_sigDetalhe = null;
+	_listaVirgem = null;
+	_pedidoEm = 0;
+	_repedidoAutoEm = 0;
+};
+
+/**
  * Create component and export it
  */
 export default UIManager.addComponent(CorreioIdle);
