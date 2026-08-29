@@ -334,13 +334,23 @@ function semanalHtml() {
 	const semanal = (estado && estado.semanal) || { dias: [], cashbackTotal: 0 };
 	const cash = (estado && estado.cash) || 0;
 
-	const resumo =
-		passe
-			? passe.dias +
-				' dias · ' +
-				semanal.cashbackTotal +
-				' cash de volta, um pouco por dia, no seu correio.'
-			: '';
+	/*
+	 * A PORCENTAGEM E DERIVADA, e nao escrita a mao.
+	 *
+	 * O dono ja disse que o preco pode mudar ("100 cash, podendo ser modificado
+	 * no futuro"). Um "20%" cravado aqui viraria mentira no dia em que o preco
+	 * ou a tabela mudassem — e mentira em vitrine de produto pago e a pior
+	 * classe de numero envelhecido que este projeto persegue.
+	 *
+	 * O servidor manda `cashbackTotal` (a soma da tabela) e o preco; a conta
+	 * sai dos dois, entao ela acompanha sozinha.
+	 */
+	const pct = passe && passe.cash > 0
+		? Math.round((semanal.cashbackTotal / passe.cash) * 100)
+		: 0;
+	const resumo = passe
+		? passe.dias + ' dias · ' + pct + '% de cashback no final dos ' + passe.dias + ' dias'
+		: '';
 
 	const dias = (semanal.dias || [])
 		.map(d => {
@@ -366,7 +376,7 @@ function semanalHtml() {
 				'</span>' +
 				'<span class="pi-dia-cash">+' +
 				escapeHtml(d.cash) +
-				'</span>' +
+				' cash</span>' +
 				'<span class="pi-dia-item">' +
 				itens +
 				'</span>' +
