@@ -16083,32 +16083,41 @@ PACKET.ZC.RAGIDLE_SALDO_DE_CASH.size = 6;
 // cima para baixo para o bloco RAGIDLE continuar contíguo.
 
 // ===========================================================================
-// A JANELA DO PASSE (D-813) — 0x0fe4..0x0fe6
+// A JANELA DO PASSE (D-813) — 0x0fe5..0x0fe7
 // ===========================================================================
 // O mesmo trio de config (0x0ff3/4/5) e admin (0x0ff6/7/8): pedir, receber,
 // comprar.
 //
 // A VAGA foi escolhida por eliminacao e reservada nos DOIS repositorios antes
 // de qualquer lado usar (docs/mapa-de-pacotes.md do servidor). O bloco RAGIDLE
-// cresce PARA BAIXO desde 0x0fff; 0x0fdf..0x0fe6 estava livre, e estes tres
-// sao o topo do vao para o bloco seguir contiguo.
+// cresce PARA BAIXO desde 0x0fff; 0x0fd3..0x0fe7 estava livre, e estes tres
+// sao o TOPO do vao para o bloco seguir contiguo.
+//
+// Eles NASCERAM em 0x0fe4/5/6 e foram deslocados no mesmo dia: quem escolheu
+// leu o topo do vao errado e deixou 0x0fe7 orfao entre o trio e o bloco de
+// cima. Um buraco de um slot nao quebra nada hoje — quebra o invariante que
+// faz esta faixa ser administravel.
+//
+// Quem pegou foi um portao do lado do SERVIDOR
+// (servidor/protocolo/faixa-ragidle.test.ts); este repositorio nao tem portao
+// proprio de faixa, e e por isso que a reserva se declara nos dois lados.
 //
 // A licao que obrigou a reserva: o relatorio offline (0x0ffc) mudou de opcode
 // TRES vezes num unico dia, porque cada frente reservava no seu repositorio e
 // publicava depois.
 
-// 0x0fe4 - RAGIDLE: CZ_RAGIDLE_PEDIR_PASSE (client -> server)
+// 0x0fe5 - RAGIDLE: CZ_RAGIDLE_PEDIR_PASSE (client -> server)
 // Fixed 2 bytes: opcode only. Sent when the PasseIdle window is opened.
 PACKET.CZ.RAGIDLE_PEDIR_PASSE = function PACKET_CZ_RAGIDLE_PEDIR_PASSE() {};
 PACKET.CZ.RAGIDLE_PEDIR_PASSE.prototype.build = function () {
 	const pkt_len = 2;
 	const pkt_buf = new BinaryWriter(pkt_len);
 
-	pkt_buf.writeShort(0x0fe4);
+	pkt_buf.writeShort(0x0fe5);
 	return pkt_buf;
 };
 
-// 0x0fe5 - RAGIDLE: ZC_RAGIDLE_PASSE (server -> client)
+// 0x0fe6 - RAGIDLE: ZC_RAGIDLE_PASSE (server -> client)
 // Variable size: u16 opcode + u16 total length + JSON UTF-8 payload.
 // Contrato v1: { v, cash, hoje, passes: [{ tipo, cash, dias, ativo, expiraEm,
 // diasRestantes, diaDoCiclo, entregues }], semanal: { cashbackTotal,
@@ -16124,10 +16133,10 @@ PACKET.ZC.RAGIDLE_PASSE = function PACKET_ZC_RAGIDLE_PASSE(fp, end) {
 };
 PACKET.ZC.RAGIDLE_PASSE.size = -1;
 
-// 0x0fe6 - RAGIDLE: CZ_RAGIDLE_COMPRAR_PASSE (client -> server)
+// 0x0fe7 - RAGIDLE: CZ_RAGIDLE_COMPRAR_PASSE (client -> server)
 // Variable size: u16 opcode + u16 total length + JSON UTF-8 { tipo }.
 // O servidor NAO confia no tipo: payload malformado e tipo fora do catalogo
-// caem na mesma recusa, que volta no campo `comprou` do 0x0fe5.
+// caem na mesma recusa, que volta no campo `comprou` do 0x0fe6.
 PACKET.CZ.RAGIDLE_COMPRAR_PASSE = function PACKET_CZ_RAGIDLE_COMPRAR_PASSE(tipo) {
 	this.tipo = tipo;
 };
@@ -16136,7 +16145,7 @@ PACKET.CZ.RAGIDLE_COMPRAR_PASSE.prototype.build = function () {
 	const pkt_len = 4 + body.length;
 	const pkt_buf = new BinaryWriter(pkt_len);
 
-	pkt_buf.writeShort(0x0fe6);
+	pkt_buf.writeShort(0x0fe7);
 	pkt_buf.writeShort(pkt_len);
 	for (let i = 0; i < body.length; ++i) {
 		pkt_buf.writeUChar(body[i]);

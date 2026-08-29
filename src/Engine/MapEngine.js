@@ -1104,7 +1104,8 @@ function cleanGameUI() {
 		HuntAnalyzer,
 		HuntButtonIdle,
 		MissoesTrackerIdle,
-		MochilaIdle
+		MochilaIdle,
+		PasseIdle
 	]) {
 		if (typeof modulo.limparEstadoDoPersonagem === 'function') {
 			modulo.limparEstadoDoPersonagem();
