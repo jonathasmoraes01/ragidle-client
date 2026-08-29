@@ -28,6 +28,17 @@
  * item de Admin (que so existe para a conta dona) sao 10 itens, e o corte
  * tem de virar 5/5 sozinho.
  *
+ * O "10 itens / 5+5" ACIMA E DE 20/08/2026, e o leque ANDOU desde entao.
+ * Contado no HTML em 29/08/2026: sao 11 botoes, 10 deles visiveis para quem
+ * nao e o dono. O LFG entrou em D-634 e o Codex em D-851; entre um e outro a
+ * frase acima ficou dizendo 10 com o literal em 9, que e o modo de falha de
+ * sempre — numero escrito a mao num comentario nao acompanha a pasta.
+ *
+ * Nada quebra com isso: distribuirColunas() conta os VISIVEIS e parte no meio
+ * (Math.ceil), entao da 5/5 para o jogador comum e 6/5 para a conta dona. O
+ * "5+5" do pedido original fica registrado como o que era — ele explica o
+ * desenho, e nao mede a pasta de hoje.
+ *
  * O QUE MUDOU nesta rodada, e por que: ate ontem os 17 icones moravam TODOS
  * no canto superior direito — uma fileira de 5 e, colada abaixo dela, uma
  * grade de 6 colunas com 12. O gabarito (secao 1) diz que o superior e "uma
@@ -156,6 +167,7 @@ import CorreioIdle from 'UI/Components/CorreioIdle/CorreioIdle.js';
 import HuntAnalyzer from 'UI/Components/HuntAnalyzer/HuntAnalyzer.js';
 import MissoesIdle from 'UI/Components/MissoesIdle/MissoesIdle.js';
 import PasseIdle from 'UI/Components/PasseIdle/PasseIdle.js';
+import CodexIdle from 'UI/Components/CodexIdle/CodexIdle.js'; // RAGIDLE: Codex (D-851)
 import AdminPanel from 'UI/Components/AdminPanel/AdminPanel.js';
 import RiIcones from 'UI/ri-icones.js';
 import htmlText from './TopMenuIdle.html?raw';
@@ -433,9 +445,22 @@ function onClickAction(e) {
 			}
 			AdminPanel.toggle();
 			break;
+		/* O CODEX (D-851). Ele PEDE o retrato ao abrir
+		   ({acao:'pedir'} em 0x0fe4): pontos, teto e bonus sao do servidor —
+		   a janela nunca calcula saldo, so desenha o que chegou.
+		   ATENCAO: existe um SEGUNDO switch neste arquivo, o isActionOpen()
+		   la embaixo. Este aqui ABRE; o de la acende o aro. Ja houve dois
+		   casos de so um dos dois ser editado (missoes e lfg) — os dois
+		   comentados no proprio isActionOpen(). */
+		case 'codex':
+			CodexIdle.toggle();
+			break;
 		/* O Passe saiu de "em breve" em D-813. Ele PEDE o estado ao abrir
-		   (0x0fe4): preco, vencimento e o que cada dia entrega sao do
-		   servidor — a janela so desenha. */
+		   (0x0fe5): preco, vencimento e o que cada dia entrega sao do
+		   servidor — a janela so desenha.
+		   O opcode aqui dizia 0x0fe4, que e o CZ do CODEX (D-851) — o
+		   comentario apontava o pacote da janela vizinha. O trio do Passe
+		   e 0x0fe5/0x0fe6/0x0fe7 (PacketStructure.js). */
 		case 'passe':
 			PasseIdle.toggle();
 			break;
@@ -876,6 +901,28 @@ function isActionOpen(action) {
 		 */
 		case 'lfg':
 			return isRagIdleWindowOpen(LFGIdle, '.lfg-window');
+		/*
+		 * CODEX (D-851): janela RAGIDLE, entao le '.cx-window.is-open' — e
+		 * nao isHostVisible, que e a armadilha que o comentario de `lfg`
+		 * acima registra (o `_host` de um GUIComponent nunca ganha
+		 * display:none sozinho, entao o aro nunca apagaria).
+		 */
+		case 'codex':
+			return isRagIdleWindowOpen(CodexIdle, '.cx-window');
+		/*
+		 * PASSE (D-813): a TERCEIRA vez do mesmo defeito, achado em 29/08/2026
+		 * ao somar o Codex. Ele tinha `case 'passe'` no switch de ABRIR e
+		 * nenhum aqui: caia no `default` e o aro nunca acendia, exatamente
+		 * como `missoes` e `lfg` antes dele — os dois comentados acima.
+		 *
+		 * Tres ocorrencias do mesmo esquecimento em dois meses dizem que dois
+		 * switches paralelos, ligados so pela disciplina de quem edita, sao a
+		 * forma errada. Quem for consertar isso de vez faz UMA tabela de
+		 * acao -> { abrir, seletor } e deriva os dois dela; enquanto ela nao
+		 * existe, item novo entra nos DOIS lugares.
+		 */
+		case 'passe':
+			return isRagIdleWindowOpen(PasseIdle, '.pi-window');
 		default:
 			// os itens "em breve" caem aqui -- nunca acendem.
 			return false;

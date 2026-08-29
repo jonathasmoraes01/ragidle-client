@@ -102,6 +102,7 @@ import HuntMap from 'UI/Components/HuntMap/HuntMap.js'; // RAGIDLE: "Mapa de Ca�
 import ClassChangeNotice from 'UI/Components/ClassChangeNotice/ClassChangeNotice.js'; // RAGIDLE: aviso de evolução de classe
 import MissoesIdle from 'UI/Components/MissoesIdle/MissoesIdle.js'; // RAGIDLE: janela de Missões (D-551)
 import PasseIdle from 'UI/Components/PasseIdle/PasseIdle.js'; // RAGIDLE: janela do Passe (D-813)
+import CodexIdle from 'UI/Components/CodexIdle/CodexIdle.js'; // RAGIDLE: janela do Codex (D-851)
 import LFGIdle from 'UI/Components/LFGIdle/LFGIdle.js'; // RAGIDLE: janela de Procurar Grupo (D-634)
 import MissoesTrackerIdle from 'UI/Components/MissoesTrackerIdle/MissoesTrackerIdle.js'; // RAGIDLE: tracker estilo Origin (D-601)
 import IdleConfig from 'UI/Components/IdleConfig/IdleConfig.js'; // RAGIDLE: "Configuração idle"
@@ -446,6 +447,7 @@ class MapEngine {
 					// da janela de missoes para saber quando a ativa concluiu.
 					MissoesIdle: MissoesIdle,
 					PasseIdle: PasseIdle,
+					CodexIdle: CodexIdle,
 					LFGIdle: LFGIdle
 				};
 			}
@@ -488,6 +490,7 @@ class MapEngine {
 			ClassChangeNotice.prepare(); // RAGIDLE: aviso de evolução de classe (D-410)
 			MissoesIdle.prepare(); // RAGIDLE: janela de Missões (D-551) — sem dependência de ordem: só escuta 0x0fed
 			PasseIdle.prepare(); // RAGIDLE: janela do Passe (D-813) — idem, só escuta 0x0fe5
+			CodexIdle.prepare(); // RAGIDLE: janela do Codex (D-851) — idem, só escuta 0x0fe3
 		LFGIdle.prepare(); // RAGIDLE: janela de Procurar Grupo (D-634) — idem: só escuta 0x0fe9/0x0fe8
 
 			BasicInfoIdle.prepare(); // RAGIDLE: "Informações básicas"
@@ -894,6 +897,7 @@ function onMapChange(pkt) {
 		ClassChangeNotice.append();
 		MissoesIdle.append(); // RAGIDLE: janela de Missões (D-551)
 		PasseIdle.append(); // RAGIDLE: janela do Passe (D-813)
+		CodexIdle.append(); // RAGIDLE: janela do Codex (D-851)
 		LFGIdle.append(); // RAGIDLE: janela de Procurar Grupo (D-634)
 		// RAGIDLE: o tracker ancora ABAIXO do BasicInfoIdle por medição — vem
 		// DEPOIS dele no append para o primeiro syncPosition já achar o host.
@@ -1105,7 +1109,8 @@ function cleanGameUI() {
 		HuntButtonIdle,
 		MissoesTrackerIdle,
 		MochilaIdle,
-		PasseIdle
+		PasseIdle,
+		CodexIdle
 	]) {
 		if (typeof modulo.limparEstadoDoPersonagem === 'function') {
 			modulo.limparEstadoDoPersonagem();

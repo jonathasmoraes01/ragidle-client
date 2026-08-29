@@ -176,6 +176,20 @@ const RiIcones = {
 		'<path d="m3 6.5 1.8 1.8L8.3 4.8"/><path d="m3 16.5 1.8 1.8 3.5-3.5"/><path d="M13 6h8"/><path d="M13 12h8"/><path d="M13 18h8"/>'
 	),
 
+	// ── Codex (D-851) — (idioma Lucide, "BookOpen": livro aberto). Sem
+	// candidato em ro_menu_icon: o conceito nao existe no cliente oficial (o
+	// Codex e mecanica NOSSA), entao fica 100% Lucide, como loja/roshop/troca.
+	//
+	// PARENTESCO DECLARADO com `skills`, que tambem e livro: aquele resolve
+	// para a ARTE REAL do cliente (um grimorio chibi com emblema, colorido) e
+	// so cai em pergaminho vetorial se o PNG faltar — as duas silhuetas nao se
+	// confundem na tela, e os dois botoes moram em lugares diferentes (cluster
+	// e leque). Se um dia o `skills` perder o PNG, o par fica ambiguo: e o
+	// ponto em que este glifo precisa mudar.
+	codex: svg(
+		'<path d="M12 7v14"/><path d="M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z"/>'
+	),
+
 	// ── Loja — (idioma Lucide, "Store"). ────────────────────────────────────
 	loja: svg(
 		'<path d="M3 9 4 4h16l1 5"/><path d="M4 9v10a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1V9"/><path d="M3 9h18"/><path d="M9 20v-5a3 3 0 0 1 6 0v5"/>'

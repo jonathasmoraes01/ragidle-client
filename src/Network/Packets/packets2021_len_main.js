@@ -4931,6 +4931,22 @@ function init(packetver) {
 	length_list[0x0fe9] = -1; // ZC_RAGIDLE_LFG_LISTA (variable, JSON payload)
 	length_list[0x0fe8] = -1; // ZC_RAGIDLE_LFG_RESULTADO (variable, JSON payload)
 
+	// O CODEX (D-851): os DOIS seguem descendo na faixa reservada de D-527,
+	// logo abaixo do LFG. Checado: nenhum outro length_list[] deste arquivo
+	// toca 0x0fe4/0x0fe3.
+	//
+	// SEM ESTAS DUAS LINHAS O FIO INTEIRO EMUDECE, e nao e exagero: o
+	// enquadramento do cliente le o tamanho POR OPCODE, e um opcode sem
+	// tamanho declarado para o fatiamento no meio do fluxo — tudo o que vem
+	// DEPOIS dele fica invisivel, sem erro nenhum no console. E o mesmo modo
+	// de falha do pacote de tamanho ZERO que travou o gravador no M1.
+	//
+	// O trio do Passe (0x0fe5..0x0fe7) NAO esta aqui, e isso e defeito
+	// conhecido, nao licenca: declarar em PacketStructure.js e PacketRegister.js
+	// e so DUAS das tres listas.
+	length_list[0x0fe4] = -1; // CZ_RAGIDLE_CODEX_ACAO (variable, JSON payload)
+	length_list[0x0fe3] = -1; // ZC_RAGIDLE_CODEX (variable, JSON payload)
+
 	return length_list;
 }
 

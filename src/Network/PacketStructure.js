@@ -16153,6 +16153,69 @@ PACKET.CZ.RAGIDLE_COMPRAR_PASSE.prototype.build = function () {
 	return pkt_buf;
 };
 
+// ===========================================================================
+// A JANELA DO CODEX (D-851) — 0x0fe4 / 0x0fe3
+// ===========================================================================
+// DOIS pacotes, e nao tres. O trio de config (0x0ff3/4/5), de admin
+// (0x0ff6/7/8) e do Passe (0x0fe5/6/7) gasta um opcode por VERBO; aqui os
+// dois verbos ('pedir' e 'gastar') cabem num CZ so, com o verbo no corpo —
+// o mesmo padrao de CZ_RAGIDLE_MISSAO_ACAO e CZ_RAGIDLE_LFG_ACAO. A faixa
+// reservada de D-527 ja fechou uma vez (18/18); um slot economizado aqui
+// e um slot que a proxima janela nao precisa ir procurar.
+//
+// Eles seguem DESCENDO a faixa, logo abaixo do Passe: 0x0fe5 e o CZ dele,
+// entao o Codex comeca em 0x0fe4 e o bloco RAGIDLE continua contiguo — sem
+// vao mudo entre um e outro, que e o invariante que faz a faixa ser
+// administravel.
+//
+// A RESERVA foi feita nos DOIS repositorios antes de qualquer lado usar, e
+// do lado do servidor ela tem portao (servidor/protocolo/faixa-ragidle.test.ts,
+// que lista 0x0fe4 e 0x0fe3). Este repositorio nao tem portao proprio de
+// faixa — e por isso que a reserva se declara dos dois lados.
+
+// 0x0fe4 - RAGIDLE: CZ_RAGIDLE_CODEX_ACAO (client -> server)
+// Variable size: u16 opcode + u16 total length + JSON UTF-8 payload.
+// { acao: 'pedir' } ou { acao: 'gastar', eixo: 'str'|'agi'|'vit'|'int'|
+// 'dex'|'luk'|'exp' }.
+//
+// O servidor NAO confia no eixo: `acao` fora dos dois verbos e `eixo` fora
+// dos sete caem na mesma recusa silenciosa, na BORDA (servidor-mapa.ts) e
+// antes da regra pura — um cliente adulterado mandando `eixo:'__proto__'`
+// e ignorado, nao derruba o handler.
+PACKET.CZ.RAGIDLE_CODEX_ACAO = function PACKET_CZ_RAGIDLE_CODEX_ACAO() {
+	this.json = '{}';
+};
+PACKET.CZ.RAGIDLE_CODEX_ACAO.prototype.build = function () {
+	const bytes = TextEncoding.encode(this.json, 'utf-8');
+	const pkt_len = 2 + 2 + bytes.length;
+	const pkt_buf = new BinaryWriter(pkt_len);
+	pkt_buf.writeShort(0x0fe4);
+	pkt_buf.writeUShort(pkt_len);
+	pkt_buf.writeString(this.json);
+	return pkt_buf;
+};
+
+// 0x0fe3 - RAGIDLE: ZC_RAGIDLE_CODEX (server -> client)
+// Variable size: u16 opcode + u16 total length + JSON UTF-8 payload.
+// Contrato v1 (D-851): { v, pontosDisponiveis, pontosGanhos, tetoPorEixo,
+// gastos: {str,agi,vit,int,dex,luk,exp}, bonusDeAtributo: {str..luk},
+// bonusDeExpEmPorcento, missoes: [{ id, monstro, mobId, abates, alvo,
+// cumprida }] }.
+//
+// UM pacote de resposta para os DOIS verbos, inclusive para um `gastar`
+// RECUSADO — que desce o retrato inalterado em vez de um pacote de erro.
+// Nao ha ZC de recusa de proposito: seria um segundo caminho a manter
+// dizendo o que o primeiro ja diz, e a janela ficaria escolhendo, pelo
+// conteudo, a qual pergunta o servidor esta respondendo.
+//
+// Por isso a janela NUNCA calcula saldo: quem decide quantos pontos
+// existem, quanto ja foi gasto e qual e o teto e o servidor — aqui so se
+// desenha o que chegou.
+PACKET.ZC.RAGIDLE_CODEX = function PACKET_ZC_RAGIDLE_CODEX(fp, end) {
+	this.json = fp.readString(end - fp.tell());
+};
+PACKET.ZC.RAGIDLE_CODEX.size = -1;
+
 // 0x0fec - RAGIDLE: CZ_RAGIDLE_PEDIR_MISSOES (client -> server)
 // Fixed 2 bytes: opcode only. Sent when the MissoesIdle window is opened.
 // Same shape as CZ_RAGIDLE_PEDIR_CONFIG above.

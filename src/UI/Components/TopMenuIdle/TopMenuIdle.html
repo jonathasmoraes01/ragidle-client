@@ -199,6 +199,27 @@
 					<span class="tm-label">Admin</span>
 				</button>
 
+				<!-- CODEX (29/08/2026, D-851): o bestiario que vira ponto de
+				     atributo. Matar N de uma especie cumpre uma missao, e cada
+				     missao cumprida vale 1 ponto para gastar num dos sete eixos.
+				
+				     LEQUE e nao cluster, pelo criterio que ja moveu o Idle e o
+				     Analyzer para cima: o cluster e para o que se consulta DURANTE
+				     a cacada, e o Codex e destino OCASIONAL — abre-se quando um
+				     ponto novo entrou, gasta-se, e fecha. Ele fica com os
+				     funcionais, ANTES do bloco "em breve", que e a ordem canonica
+				     declarada no cabecalho deste arquivo (quem POE cada item na
+				     sua coluna e distribuirColunas(), no JS).
+				
+				     O ICONE e Lucide "BookOpen" — "codex" e literalmente o livro,
+				     e o cliente oficial nao tem candidato em ro_menu_icon para uma
+				     mecanica que e NOSSA (ver a nota da chave em ri-icones.js,
+				     que declara o parentesco com o icone de skills). -->
+				<button type="button" class="tm-item" data-action="codex" title="Codex">
+					<span class="tm-icon-wrap ri-disc"><!--RI_ICONE:codex--></span>
+					<span class="tm-label">Codex</span>
+				</button>
+
 				<!-- ─── Em breve: a funcao NAO existe no jogo hoje (ver cabecalho de
 				     TopMenuIdle.js). Visual honesto - o DS pede DESSATURAR, e na
 				     rodada 2 a dessaturacao encolheu para o MIOLO: o disco e o aro

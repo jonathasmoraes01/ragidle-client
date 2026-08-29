@@ -1,0 +1,294 @@
+/**
+ * UI/Components/CodexIdle/CodexIdle.css
+ *
+ * "Codex" — a janela do bestiario que vira ponto de atributo (D-851). Mesmo
+ * float/window/drag/pointer-events split de PasseIdle.css, MissoesIdle.css e
+ * IdleConfig.css (ver o cabecalho de PasseIdle.css para o racional completo):
+ * ":host" e o elemento que draggable() move, fica pointer-events:none para a
+ * janela fechada nunca engolir clique de cena, e so a janela aberta opta de
+ * volta.
+ *
+ * ---------------------------------------------------------------------------
+ * O QUE ESTA FOLHA ACRESCENTA, E O QUE ELA NAO REFAZ
+ * ---------------------------------------------------------------------------
+ * A moldura inteira vem do design system (.ri-window/.ri-header/.ri-title/
+ * .ri-close/.ri-btn/.ri-badge--*/.ri-divisor/.ri-bar/.ri-scroll,
+ * UI/Common.css). Nada disso e redesenhado aqui — inclusive as cores, que
+ * saem todas de token.
+ *
+ * O que e especifico e mora aqui: o PLACAR do saldo, a linha de MISSAO (com a
+ * barra de progresso) e a linha de EIXO (com o botao "+").
+ *
+ * ---------------------------------------------------------------------------
+ * POR QUE O SALDO E O UNICO ELEMENTO DOURADO
+ * ---------------------------------------------------------------------------
+ * O ouro do sistema (--border-gold/--glow-gold/--gold-700) significa "isto
+ * vale dinheiro ou e raro". Aqui a moeda e o PONTO: e ele que o jogador
+ * junta, e e a unica escolha irreversivel da janela. Espalhar ouro pelas 7
+ * linhas de eixo faria o destaque nao destacar mais nada — o mesmo argumento
+ * que PasseIdle.css usa para deixar so a vitrine com aro dourado.
+ */
+
+:host {
+	position: absolute;
+	width: 520px;
+	height: 600px;
+	pointer-events: none;
+}
+
+#CodexIdle {
+	position: relative;
+	width: 100%;
+	height: 100%;
+	color: var(--text-body);
+	font: var(--type-info);
+	-webkit-font-smoothing: antialiased;
+	text-rendering: optimizeLegibility;
+}
+
+/* ─── Janela ───────────────────────────────────────────────── */
+
+#CodexIdle .cx-window {
+	display: none;
+	position: absolute;
+	inset: 0;
+	pointer-events: auto;
+	flex-direction: column;
+	width: 520px;
+	height: 600px;
+}
+
+#CodexIdle .cx-window.is-open {
+	display: flex;
+}
+
+#CodexIdle .cx-titlebar {
+	flex: 0 0 auto;
+}
+
+#CodexIdle .cx-saldo {
+	position: absolute;
+	left: var(--sp-4);
+	top: 50%;
+	transform: translateY(-50%);
+	display: inline-flex;
+	align-items: baseline;
+	gap: var(--sp-2);
+	padding: var(--sp-1) var(--sp-4);
+	border-radius: var(--radius-pill);
+	background: var(--surface-inset);
+	border: 1px solid var(--border-gold);
+	box-shadow: var(--rim-light);
+}
+
+#CodexIdle .cx-saldo-valor {
+	font: var(--type-numeric);
+	font-size: var(--fs-numeric-lg);
+	color: var(--gold-700);
+	font-variant-numeric: tabular-nums;
+}
+
+#CodexIdle .cx-saldo-unidade {
+	font: var(--type-badge);
+	color: var(--text-muted);
+	text-transform: uppercase;
+	letter-spacing: var(--ls-caps);
+}
+
+#CodexIdle .cx-body {
+	flex: 1 1 auto;
+	overflow-y: auto;
+	padding: var(--sp-6);
+	background: transparent;
+}
+
+#CodexIdle .cx-carregando {
+	margin-top: var(--sp-8);
+	text-align: center;
+	color: var(--text-muted);
+}
+
+/* ─── O placar ─────────────────────────────────────────────── */
+
+/* O cartao de topo: quantos pontos sobraram, e de quantos ganhos. Os DOIS
+   numeros juntos, porque "3 disponiveis" sozinho nao diz se o jogador esta
+   comecando ou ja gastou quase tudo. */
+#CodexIdle .cx-placar {
+	display: flex;
+	align-items: center;
+	gap: var(--sp-6);
+	padding: var(--sp-6) var(--sp-7);
+	border-radius: var(--radius-card);
+	background: var(--surface-card);
+	border: 1px solid var(--border-gold);
+	box-shadow: var(--rim-light), var(--shadow-card);
+}
+
+#CodexIdle .cx-placar-numero {
+	font: var(--type-hero);
+	color: var(--gold-700);
+	font-variant-numeric: tabular-nums;
+	line-height: 1;
+}
+
+#CodexIdle .cx-placar-texto {
+	font: var(--type-info);
+	color: var(--text-body);
+}
+
+#CodexIdle .cx-placar-sub {
+	margin-top: var(--sp-1);
+	font: var(--type-desc);
+	color: var(--text-muted);
+}
+
+/* ─── Secoes ───────────────────────────────────────────────── */
+
+#CodexIdle .cx-secao {
+	margin-top: var(--sp-7);
+}
+
+#CodexIdle .cx-secao-titulo {
+	font: var(--type-section);
+	color: var(--text-title);
+	margin-bottom: var(--sp-4);
+}
+
+#CodexIdle .cx-vazio {
+	font: var(--type-desc);
+	color: var(--text-muted);
+}
+
+/* ─── As missoes ───────────────────────────────────────────── */
+
+#CodexIdle .cx-missoes {
+	display: flex;
+	flex-direction: column;
+	gap: var(--sp-3);
+}
+
+#CodexIdle .cx-missao {
+	display: grid;
+	grid-template-columns: 1fr auto;
+	align-items: center;
+	gap: var(--sp-2) var(--sp-5);
+	padding: var(--sp-4) var(--sp-5);
+	border-radius: var(--radius-card);
+	background: var(--surface-card);
+	border: 1px solid var(--border-hairline);
+}
+
+/* Cumprida: ela ja rendeu o ponto, entao sai do caminho visualmente — mesmo
+   tratamento do dia entregue na trilha do PasseIdle. */
+#CodexIdle .cx-missao.is-cumprida {
+	background: var(--surface-inset);
+	opacity: 0.78;
+}
+
+#CodexIdle .cx-missao-nome {
+	font: var(--type-info);
+	color: var(--text-body);
+}
+
+#CodexIdle .cx-missao-progresso {
+	font: var(--type-numeric);
+	color: var(--text-muted);
+	font-variant-numeric: tabular-nums;
+	justify-self: end;
+}
+
+#CodexIdle .cx-missao.is-cumprida .cx-missao-progresso {
+	color: var(--green-600);
+}
+
+/* A barra ocupa a linha inteira, abaixo do nome e do contador. */
+#CodexIdle .cx-missao-barra {
+	grid-column: 1 / -1;
+	height: 6px;
+}
+
+/* ─── Os eixos ─────────────────────────────────────────────── */
+
+#CodexIdle .cx-eixos {
+	display: flex;
+	flex-direction: column;
+	gap: var(--sp-3);
+}
+
+#CodexIdle .cx-eixo {
+	display: flex;
+	align-items: center;
+	gap: var(--sp-5);
+	padding: var(--sp-4) var(--sp-5);
+	border-radius: var(--radius-card);
+	background: var(--surface-card);
+	border: 1px solid var(--border-hairline);
+}
+
+/* No teto: nada mais entra aqui. Ela nao some — some faria o jogador procurar
+   o eixo que "sumiu"; apagada ela diz "existe, e acabou". */
+#CodexIdle .cx-eixo.is-no-teto {
+	background: var(--surface-inset);
+	opacity: 0.78;
+}
+
+#CodexIdle .cx-eixo-sigla {
+	flex: 0 0 auto;
+	min-width: 34px;
+	font: var(--type-numeric);
+	font-size: var(--fs-numeric-lg);
+	color: var(--text-title);
+	text-transform: uppercase;
+	letter-spacing: var(--ls-caps);
+}
+
+#CodexIdle .cx-eixo-nome {
+	flex: 1 1 auto;
+	font: var(--type-desc);
+	color: var(--text-muted);
+}
+
+/* O BONUS e o numero que o jogador comprou — e o unico que ele acompanha
+   crescer, entao e o maior da linha. */
+#CodexIdle .cx-eixo-bonus {
+	flex: 0 0 auto;
+	min-width: 52px;
+	text-align: right;
+	font: var(--type-numeric);
+	font-size: var(--fs-numeric-lg);
+	color: var(--green-600);
+	font-variant-numeric: tabular-nums;
+}
+
+#CodexIdle .cx-eixo-bonus.is-zero {
+	color: var(--text-muted);
+}
+
+/* gasto/teto: a conta que diz quanto ainda cabe neste eixo. */
+#CodexIdle .cx-eixo-teto {
+	flex: 0 0 auto;
+	min-width: 46px;
+	text-align: right;
+	font: var(--type-badge);
+	color: var(--text-muted);
+	font-variant-numeric: tabular-nums;
+}
+
+#CodexIdle .cx-mais {
+	flex: 0 0 auto;
+	width: 28px;
+	height: 24px;
+	padding: 0;
+	font: var(--type-section);
+	line-height: 1;
+}
+
+/* Sem ponto, ou eixo no teto. Ele NAO some, pela mesma razao do botao de
+   compra do PasseIdle: apagado ele diz "existe, e falta alguma coisa"; sumido
+   faria o jogador procurar o que fazer. O servidor recusa de qualquer jeito —
+   isto e so para a janela nao mentir sobre o que aquele clique faria. */
+#CodexIdle .cx-mais[disabled] {
+	opacity: 0.45;
+	cursor: not-allowed;
+	filter: saturate(0.4);
+}
