@@ -1,0 +1,403 @@
+/**
+ * UI/Components/PasseIdle/PasseIdle.css
+ *
+ * "Passe" — a janela de compra do passe semanal e do VIP (D-813). Mesmo
+ * float/window/drag/pointer-events split de MissoesIdle.css e IdleConfig.css
+ * (ver o cabeçalho de lá para o racional completo): ":host" é o elemento que
+ * draggable() move, fica pointer-events:none para a janela fechada nunca
+ * engolir clique de cena, e só a janela aberta opta de volta.
+ *
+ * ---------------------------------------------------------------------------
+ * O QUE ESTA FOLHA ACRESCENTA, E O QUE ELA NÃO REFAZ
+ * ---------------------------------------------------------------------------
+ * A moldura inteira vem do design system (.ri-window/.ri-header/.ri-title/
+ * .ri-close/.ri-tab/.ri-btn/.ri-btn--ouro/.ri-badge--*/.ri-divisor/.ri-tile,
+ * UI/Common.css). Nada disso é redesenhado aqui — inclusive as cores, que
+ * saem todas de token.
+ *
+ * O que é específico e mora aqui: a VITRINE (o cartão de topo que carrega o
+ * preço), a TRILHA de sete dias, e a lista de bônus do VIP.
+ *
+ * ---------------------------------------------------------------------------
+ * POR QUE "PREMIUM" AQUI É OURO E RESPIRO, E NÃO EFEITO NOVO
+ * ---------------------------------------------------------------------------
+ * O design system já tem o vocabulário de destaque: `--rim-gold`,
+ * `--glow-gold`, `--ornament-gold`, `.ri-btn--ouro`, `.ri-badge--ouro` e a
+ * serifa de display (`--font-display`) que só título usa. Um produto pago se
+ * distingue usando ESSE vocabulário com mais espaço em volta — não inventando
+ * um segundo, que envelheceria sozinho no dia em que o sistema mudasse.
+ *
+ * A única animação é a do brilho que atravessa a vitrine, e ela respeita
+ * `prefers-reduced-motion`.
+ */
+
+:host {
+	position: absolute;
+	width: 520px;
+	height: 560px;
+	pointer-events: none;
+}
+
+#PasseIdle {
+	position: relative;
+	width: 100%;
+	height: 100%;
+	color: var(--text-body);
+	font: var(--type-info);
+	-webkit-font-smoothing: antialiased;
+	text-rendering: optimizeLegibility;
+}
+
+/* ─── Janela ───────────────────────────────────────────────── */
+
+#PasseIdle .pi-window {
+	display: none;
+	position: absolute;
+	inset: 0;
+	pointer-events: auto;
+	flex-direction: column;
+	width: 520px;
+	height: 560px;
+}
+
+#PasseIdle .pi-window.is-open {
+	display: flex;
+}
+
+#PasseIdle .pi-titlebar {
+	flex: 0 0 auto;
+}
+
+/*
+ * A CARTEIRA mora na barra de título, e não no rodapé: o saldo é a primeira
+ * coisa que o jogador confere antes de decidir, e no rodapé ele ficaria abaixo
+ * do botão que o consome.
+ *
+ * **Ela é ABSOLUTA à esquerda, espelhando o `.ri-close` à direita** — e isso
+ * é conserto de um erro visto no print. A primeira versão punha o cabeçalho em
+ * `display:flex` com `margin-left:auto`, o que fazia duas coisas erradas de
+ * uma vez: matava o `justify-content:center` do design system (o título saía
+ * do centro, ao contrário de TODA outra janela) e empurrava a carteira para
+ * baixo do botão X, que é absoluto — o saldo aparecia cortado, "250 CAS×".
+ *
+ * Absoluta à esquerda, ela não disputa espaço com nada: o título fica centrado
+ * como no resto do sistema, e os dois cantos do cabeçalho ficam simétricos.
+ */
+#PasseIdle .pi-carteira {
+	position: absolute;
+	left: var(--sp-4);
+	top: 50%;
+	transform: translateY(-50%);
+	display: inline-flex;
+	align-items: baseline;
+	gap: var(--sp-2);
+	padding: var(--sp-1) var(--sp-4);
+	border-radius: var(--radius-pill);
+	background: var(--surface-inset);
+	border: 1px solid var(--border-gold);
+	box-shadow: var(--rim-light);
+}
+
+#PasseIdle .pi-carteira-valor {
+	font: var(--type-numeric);
+	font-size: var(--fs-numeric-lg);
+	color: var(--gold-700);
+	font-variant-numeric: tabular-nums;
+}
+
+#PasseIdle .pi-carteira-unidade {
+	font: var(--type-badge);
+	color: var(--text-muted);
+	text-transform: uppercase;
+	letter-spacing: var(--ls-caps);
+}
+
+#PasseIdle .pi-tabs {
+	flex: 0 0 auto;
+	display: flex;
+	gap: var(--sp-3);
+	padding: var(--sp-4) var(--sp-5);
+	border-bottom: 1px solid var(--border-hairline);
+}
+
+#PasseIdle .pi-body {
+	flex: 1 1 auto;
+	overflow-y: auto;
+	padding: var(--sp-6);
+	background: transparent;
+}
+
+#PasseIdle .pi-carregando {
+	margin-top: var(--sp-8);
+	text-align: center;
+	color: var(--text-muted);
+}
+
+/* ─── A vitrine ────────────────────────────────────────────── */
+
+/* O cartão de topo: nome do produto, o que ele é numa linha, e o preço. Ele é
+   o único elemento com aro dourado permanente — o resto da janela é a paleta
+   normal, para o ouro continuar significando alguma coisa. */
+#PasseIdle .pi-vitrine {
+	position: relative;
+	overflow: hidden;
+	padding: var(--sp-7) var(--sp-7) var(--sp-6);
+	border-radius: var(--radius-card);
+	background: linear-gradient(160deg, var(--sky-50) 0%, var(--white) 45%, var(--gold-200) 160%);
+	border: 1px solid var(--border-gold);
+	box-shadow: var(--glow-gold), var(--rim-light), var(--shadow-card);
+}
+
+/* O brilho que atravessa uma vez ao abrir. Uma varredura só, sem laço: um
+   brilho perpétuo vira ruído na periferia da visão de quem está caçando. */
+#PasseIdle .pi-vitrine::after {
+	content: '';
+	position: absolute;
+	inset: 0;
+	background: linear-gradient(
+		100deg,
+		rgba(255, 255, 255, 0) 30%,
+		rgba(255, 255, 255, 0.55) 50%,
+		rgba(255, 255, 255, 0) 70%
+	);
+	transform: translateX(-100%);
+	animation: pi-brilho 900ms var(--ease-out) 120ms 1;
+	pointer-events: none;
+}
+
+@keyframes pi-brilho {
+	to {
+		transform: translateX(100%);
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	#PasseIdle .pi-vitrine::after {
+		animation: none;
+	}
+}
+
+#PasseIdle .pi-vitrine-topo {
+	display: flex;
+	align-items: flex-start;
+	gap: var(--sp-5);
+}
+
+#PasseIdle .pi-nome {
+	font: var(--type-hero);
+	color: var(--text-title);
+	letter-spacing: var(--ls-title);
+}
+
+#PasseIdle .pi-resumo {
+	margin-top: var(--sp-2);
+	font: var(--type-desc);
+	font-size: var(--fs-info);
+	color: var(--text-muted);
+	max-width: 300px;
+}
+
+#PasseIdle .pi-preco {
+	margin-left: auto;
+	text-align: right;
+	flex: 0 0 auto;
+}
+
+#PasseIdle .pi-preco-valor {
+	font: var(--type-hero);
+	color: var(--gold-700);
+	font-variant-numeric: tabular-nums;
+}
+
+#PasseIdle .pi-preco-unidade {
+	display: block;
+	margin-top: calc(var(--sp-1) * -1);
+	font: var(--type-badge);
+	color: var(--text-muted);
+	text-transform: uppercase;
+	letter-spacing: var(--ls-caps);
+}
+
+/* O estado de quem JÁ tem o passe: a vitrine troca o preço por "ativo até". */
+#PasseIdle .pi-vigencia {
+	display: flex;
+	align-items: center;
+	gap: var(--sp-4);
+	margin-top: var(--sp-5);
+}
+
+#PasseIdle .pi-vigencia-texto {
+	font: var(--type-label);
+	color: var(--text-body);
+}
+
+/* ─── A trilha de sete dias ────────────────────────────────── */
+
+#PasseIdle .pi-secao {
+	margin-top: var(--sp-7);
+}
+
+#PasseIdle .pi-secao-titulo {
+	font: var(--type-section);
+	color: var(--text-title);
+	margin-bottom: var(--sp-4);
+}
+
+#PasseIdle .pi-trilha {
+	display: grid;
+	grid-template-columns: repeat(7, 1fr);
+	gap: var(--sp-3);
+}
+
+#PasseIdle .pi-dia {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: var(--sp-2);
+	padding: var(--sp-4) var(--sp-2);
+	border-radius: var(--radius-card);
+	background: var(--surface-card);
+	border: 1px solid var(--border-hairline);
+	box-shadow: var(--shadow-card);
+	text-align: center;
+}
+
+/* Já entregue: o dia sai do caminho visualmente — ele não é mais uma promessa. */
+#PasseIdle .pi-dia.is-entregue {
+	background: var(--surface-inset);
+	border-color: var(--border-hairline);
+	box-shadow: none;
+	opacity: 0.72;
+}
+
+/* Hoje: o único com aro de acento, para o olho achar sem procurar. */
+#PasseIdle .pi-dia.is-hoje {
+	border-color: var(--accent);
+	box-shadow: var(--glow-accent), var(--rim-light);
+}
+
+/* O sétimo é o prêmio de terminar a semana — ouro, como o botão. */
+#PasseIdle .pi-dia.is-premio {
+	border-color: var(--gold-500);
+	background: linear-gradient(180deg, var(--white) 0%, var(--gold-200) 180%);
+}
+
+#PasseIdle .pi-dia-num {
+	font: var(--type-badge);
+	color: var(--text-muted);
+	text-transform: uppercase;
+	letter-spacing: var(--ls-caps);
+}
+
+#PasseIdle .pi-dia-cash {
+	font: var(--type-numeric);
+	color: var(--gold-700);
+	font-variant-numeric: tabular-nums;
+}
+
+#PasseIdle .pi-dia-item {
+	font: var(--type-desc);
+	color: var(--text-muted);
+	line-height: var(--lh-tight);
+}
+
+#PasseIdle .pi-dia-check {
+	font-size: var(--fs-label);
+	color: var(--green-600);
+	line-height: 1;
+}
+
+/* ─── Os bônus do VIP ──────────────────────────────────────── */
+
+#PasseIdle .pi-bonus {
+	display: flex;
+	flex-direction: column;
+	gap: var(--sp-3);
+}
+
+#PasseIdle .pi-bonus-linha {
+	display: flex;
+	align-items: center;
+	gap: var(--sp-5);
+	padding: var(--sp-4) var(--sp-5);
+	border-radius: var(--radius-card);
+	background: var(--surface-card);
+	border: 1px solid var(--border-hairline);
+}
+
+#PasseIdle .pi-bonus-valor {
+	flex: 0 0 auto;
+	min-width: 56px;
+	text-align: right;
+	font: var(--type-numeric);
+	font-size: var(--fs-numeric-lg);
+	color: var(--gold-700);
+	font-variant-numeric: tabular-nums;
+}
+
+#PasseIdle .pi-bonus-texto {
+	font: var(--type-info);
+	color: var(--text-body);
+}
+
+/* ─── O rodapé de compra ───────────────────────────────────── */
+
+#PasseIdle .pi-acao {
+	margin-top: var(--sp-7);
+	display: flex;
+	flex-direction: column;
+	align-items: stretch;
+	gap: var(--sp-3);
+}
+
+#PasseIdle .pi-comprar {
+	width: 100%;
+	padding: var(--sp-5);
+	font: var(--type-section);
+	letter-spacing: var(--ls-caps);
+	text-transform: uppercase;
+}
+
+/* Sem saldo: o botão continua legível, mas não convida. Escondê-lo faria o
+   jogador procurar o que fazer; apagá-lo diz que existe e falta cash. */
+#PasseIdle .pi-comprar[disabled] {
+	opacity: 0.5;
+	cursor: not-allowed;
+	filter: saturate(0.5);
+}
+
+#PasseIdle .pi-nota {
+	text-align: center;
+	font: var(--type-desc);
+	color: var(--text-muted);
+}
+
+/* ─── O aviso de compra ────────────────────────────────────── */
+
+#PasseIdle .pi-aviso {
+	position: absolute;
+	left: 50%;
+	bottom: var(--sp-7);
+	transform: translateX(-50%) translateY(6px);
+	max-width: 88%;
+	padding: var(--sp-4) var(--sp-6);
+	border-radius: var(--radius-pill);
+	background: var(--surface-dark-glass);
+	backdrop-filter: var(--blur-glass);
+	color: var(--white);
+	font: var(--type-label);
+	text-align: center;
+	box-shadow: var(--shadow-float);
+	opacity: 0;
+	pointer-events: none;
+	transition: opacity var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-out);
+}
+
+#PasseIdle .pi-aviso.is-visivel {
+	opacity: 1;
+	transform: translateX(-50%) translateY(0);
+}
+
+#PasseIdle .pi-aviso.is-erro {
+	background: linear-gradient(180deg, #a33 0%, #7d2626 100%);
+}

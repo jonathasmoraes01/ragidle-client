@@ -631,6 +631,35 @@
 	transform: none;
 }
 
+/* ─── O item em DESTAQUE (D-813) ────────────────────────────────────────
+   O Passe e o unico produto PAGO do leque. Entre seis vizinhos "em breve"
+   cinzas e doze de consulta, ele ficaria indistinguivel — e o botao que o
+   jogador precisa achar para gastar cash e justamente o que nao pode se
+   perder na grade.
+
+   O destaque usa o MESMO vocabulario da janela que ele abre: aro dourado
+   (--border-gold), brilho dourado no repouso (--glow-gold) e o rotulo em
+   dourado escuro. Nada de efeito novo — inventar um segundo vocabulario de
+   "premium" e o que faz um design system envelhecer.
+
+   Ele NAO pulsa: o leque fica aberto sobre a cena de caca, e uma animacao
+   perpetua na periferia da visao e ruido, nao destaque. */
+.tm-item--destaque .tm-icon-wrap {
+	border-color: var(--border-gold);
+	box-shadow: var(--glow-gold), var(--rim-light);
+	background: linear-gradient(180deg, var(--white) 0%, var(--gold-200) 160%);
+}
+
+.tm-item--destaque:hover .tm-icon-wrap {
+	border-color: var(--gold-500);
+	box-shadow: var(--glow-gold), var(--rim-light), var(--shadow-float);
+}
+
+.tm-item--destaque .tm-label {
+	color: var(--gold-700);
+	font-weight: var(--fw-bold);
+}
+
 /* ─── Toast "Em breve": ancorado no LEQUE (e nao mais na viewport), logo
    acima do ornamento. Os sete "em breve" so existem dentro do leque, entao
    o toast so pode aparecer com ele aberto — e ancorado aqui ele nasce no

@@ -155,6 +155,7 @@ import HuntMap from 'UI/Components/HuntMap/HuntMap.js';
 import CorreioIdle from 'UI/Components/CorreioIdle/CorreioIdle.js';
 import HuntAnalyzer from 'UI/Components/HuntAnalyzer/HuntAnalyzer.js';
 import MissoesIdle from 'UI/Components/MissoesIdle/MissoesIdle.js';
+import PasseIdle from 'UI/Components/PasseIdle/PasseIdle.js';
 import AdminPanel from 'UI/Components/AdminPanel/AdminPanel.js';
 import RiIcones from 'UI/ri-icones.js';
 import htmlText from './TopMenuIdle.html?raw';
@@ -431,6 +432,12 @@ function onClickAction(e) {
 				return;
 			}
 			AdminPanel.toggle();
+			break;
+		/* O Passe saiu de "em breve" em D-813. Ele PEDE o estado ao abrir
+		   (0x0fe4): preco, vencimento e o que cada dia entrega sao do
+		   servidor — a janela so desenha. */
+		case 'passe':
+			PasseIdle.toggle();
 			break;
 		default:
 			return;

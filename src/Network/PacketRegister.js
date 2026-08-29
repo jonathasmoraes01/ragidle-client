@@ -1007,6 +1007,7 @@ export default {
 	// "RAGIDLE:" section, opcodes 0x0fec-0x0fed — primeiros da faixa reservada
 	// reservada de D-527, que termina em 0x0fed). Same reasoning as the others above — only the
 	// server->client one is registered here.
+	0x0fe5: PACKET.ZC.RAGIDLE_PASSE, // RAGIDLE: a janela do Passe (D-813)
 	0x0fed: PACKET.ZC.RAGIDLE_MISSOES,
 	// LFG (D-634): so os ZC entram aqui — o CZ 0x0fea e escrito pelo cliente,
 	// nao lido. Ver PacketStructure.js para o contrato JSON de cada um.

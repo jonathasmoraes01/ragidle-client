@@ -16082,6 +16082,68 @@ PACKET.ZC.RAGIDLE_SALDO_DE_CASH.size = 6;
 // reservada de D-527, que termina em 0x0fed (docs/mapa-de-pacotes.md no repo do servidor), ocupada de
 // cima para baixo para o bloco RAGIDLE continuar contíguo.
 
+// ===========================================================================
+// A JANELA DO PASSE (D-813) — 0x0fe4..0x0fe6
+// ===========================================================================
+// O mesmo trio de config (0x0ff3/4/5) e admin (0x0ff6/7/8): pedir, receber,
+// comprar.
+//
+// A VAGA foi escolhida por eliminacao e reservada nos DOIS repositorios antes
+// de qualquer lado usar (docs/mapa-de-pacotes.md do servidor). O bloco RAGIDLE
+// cresce PARA BAIXO desde 0x0fff; 0x0fdf..0x0fe6 estava livre, e estes tres
+// sao o topo do vao para o bloco seguir contiguo.
+//
+// A licao que obrigou a reserva: o relatorio offline (0x0ffc) mudou de opcode
+// TRES vezes num unico dia, porque cada frente reservava no seu repositorio e
+// publicava depois.
+
+// 0x0fe4 - RAGIDLE: CZ_RAGIDLE_PEDIR_PASSE (client -> server)
+// Fixed 2 bytes: opcode only. Sent when the PasseIdle window is opened.
+PACKET.CZ.RAGIDLE_PEDIR_PASSE = function PACKET_CZ_RAGIDLE_PEDIR_PASSE() {};
+PACKET.CZ.RAGIDLE_PEDIR_PASSE.prototype.build = function () {
+	const pkt_len = 2;
+	const pkt_buf = new BinaryWriter(pkt_len);
+
+	pkt_buf.writeShort(0x0fe4);
+	return pkt_buf;
+};
+
+// 0x0fe5 - RAGIDLE: ZC_RAGIDLE_PASSE (server -> client)
+// Variable size: u16 opcode + u16 total length + JSON UTF-8 payload.
+// Contrato v1: { v, cash, hoje, passes: [{ tipo, cash, dias, ativo, expiraEm,
+// diasRestantes, diaDoCiclo, entregues }], semanal: { cashbackTotal,
+// dias: [{ dia, cash, itens: [{ nome, quantidade }] }] }, vip: { expBase,
+// expJob, dropEquipamento, dropCartaMvp, comandos }, comprou }.
+//
+// Os NOMES dos itens vem prontos do servidor, e nao os ids: quem sabe traduzir
+// "White_Potion" para "Poção Branca" e quem tem o item_db. Resolver aqui seria
+// a segunda rota do nome, e ela mostraria "item 504" no dia em que o pacote de
+// conteudo mudasse.
+PACKET.ZC.RAGIDLE_PASSE = function PACKET_ZC_RAGIDLE_PASSE(fp, end) {
+	this.json = fp.readString(end - fp.tell());
+};
+PACKET.ZC.RAGIDLE_PASSE.size = -1;
+
+// 0x0fe6 - RAGIDLE: CZ_RAGIDLE_COMPRAR_PASSE (client -> server)
+// Variable size: u16 opcode + u16 total length + JSON UTF-8 { tipo }.
+// O servidor NAO confia no tipo: payload malformado e tipo fora do catalogo
+// caem na mesma recusa, que volta no campo `comprou` do 0x0fe5.
+PACKET.CZ.RAGIDLE_COMPRAR_PASSE = function PACKET_CZ_RAGIDLE_COMPRAR_PASSE(tipo) {
+	this.tipo = tipo;
+};
+PACKET.CZ.RAGIDLE_COMPRAR_PASSE.prototype.build = function () {
+	const body = new TextEncoder().encode(JSON.stringify({ tipo: this.tipo }));
+	const pkt_len = 4 + body.length;
+	const pkt_buf = new BinaryWriter(pkt_len);
+
+	pkt_buf.writeShort(0x0fe6);
+	pkt_buf.writeShort(pkt_len);
+	for (let i = 0; i < body.length; ++i) {
+		pkt_buf.writeUChar(body[i]);
+	}
+	return pkt_buf;
+};
+
 // 0x0fec - RAGIDLE: CZ_RAGIDLE_PEDIR_MISSOES (client -> server)
 // Fixed 2 bytes: opcode only. Sent when the MissoesIdle window is opened.
 // Same shape as CZ_RAGIDLE_PEDIR_CONFIG above.
