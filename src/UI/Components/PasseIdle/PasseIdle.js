@@ -24,8 +24,15 @@
  * 4. **O botão não some quando falta cash.** Ele apaga e explica. Sumir faria
  *    o jogador procurar o que fazer; apagado ele diz "existe, e falta saldo".
  *
- * Entrada na HUD: o botão "Passe" do leque (TopMenuIdle), que chama
+ * Entrada na HUD: o botão "Recompensas" do leque (TopMenuIdle), que chama
  * PasseIdle.toggle().
+ *
+ * **O NOME DE TELA E "Recompensas" e o do CODIGO e "Passe", de propósito.**
+ * O dono renomeou o botão em 29/08/2026 e o "Recompensas" que existia em breve
+ * saiu — a janela daqui é o que ele prometia. O identificador continua
+ * nomeando o DOMÍNIO (o que a janela vende são passes: o semanal e o VIP), e
+ * os pacotes já nascem `CZ/ZC_RAGIDLE_*_PASSE`. Renomear a cadeia inteira
+ * seria churn nos dois repositórios para trocar uma palavra de tela.
  *
  * @author RagIdle
  */
@@ -349,7 +356,7 @@ function semanalHtml() {
 		? Math.round((semanal.cashbackTotal / passe.cash) * 100)
 		: 0;
 	const resumo = passe
-		? passe.dias + ' dias · ' + pct + '% de cashback no final dos ' + passe.dias + ' dias'
+		? passe.dias + ' dias · ' + pct + '% de cashback no final'
 		: '';
 
 	const dias = (semanal.dias || [])

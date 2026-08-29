@@ -250,24 +250,37 @@
 					<span class="tm-label">Leilão</span>
 				</button>
 
-				<button type="button" class="tm-item tm-item--em-breve" data-action="recompensas" data-em-breve="1" title="Recompensas — em breve" aria-disabled="true">
-					<span class="tm-icon-wrap ri-disc"><!--RI_ICONE:recompensas--></span>
-					<span class="tm-label">Recompensas</span>
-				</button>
-
 				<button type="button" class="tm-item tm-item--em-breve" data-action="eventos" data-em-breve="1" title="Eventos — em breve" aria-disabled="true">
 					<span class="tm-icon-wrap ri-disc"><!--RI_ICONE:eventos--></span>
 					<span class="tm-label">Eventos</span>
 				</button>
 
-				<!-- O Passe saiu de "em breve" em D-813, e ganhou destaque: ele e
-				     o unico produto PAGO do leque, e o aro dourado e o mesmo
-				     vocabulario que a janela usa (--border-gold/--glow-gold).
-				     Sem o destaque ele ficaria indistinguivel de um item de
-				     consulta, entre seis vizinhos cinzas. -->
-				<button type="button" class="tm-item tm-item--destaque" data-action="passe" title="Passe">
-					<span class="tm-icon-wrap ri-disc"><!--RI_ICONE:passe--></span>
-					<span class="tm-label">Passe</span>
+				<!-- RECOMPENSAS (D-813) — o unico produto PAGO do leque.
+				     
+				     ELE FUNDIU DOIS BOTOES. Nasceu como "Passe" e havia um
+				     "Recompensas" em breve logo acima; o dono renomeou o
+				     primeiro e o segundo saiu, porque a janela que este botao
+				     abre E o que aquele prometia. Sobraram seis "em breve".
+				     
+				     O ICONE veio do que saiu, e nao do que ficou: o de
+				     "recompensas" e ARTE REAL do cliente
+				     (ro_menu_icon/achievement_1.bmp, o trofeu) e o de "passe"
+				     era um bilhete vetorial. A regra 4 do projeto manda o que
+				     INFORMA vir da arte do cliente.
+				     
+				     O `data-action` continua "passe", e a divergencia com o
+				     rotulo e deliberada: ele nomeia o DOMINIO (o componente e
+				     PasseIdle, os pacotes sao CZ/ZC_RAGIDLE_*_PASSE), e
+				     "Recompensas" e o nome que o jogador ve. Renomear a cadeia
+				     inteira seria churn nos dois repositorios para trocar uma
+				     palavra de tela.
+				     
+				     O DESTAQUE dourado usa o mesmo vocabulario da janela que
+				     ele abre (--border-gold/--glow-gold). Sem ele, o unico
+				     botao que gasta cash ficaria indistinguivel dos vizinhos. -->
+				<button type="button" class="tm-item tm-item--destaque" data-action="passe" title="Recompensas">
+					<span class="tm-icon-wrap ri-disc"><!--RI_ICONE:recompensas--></span>
+					<span class="tm-label">Recompensas</span>
 				</button>
 			</div>
 
