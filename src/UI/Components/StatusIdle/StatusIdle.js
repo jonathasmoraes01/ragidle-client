@@ -70,17 +70,43 @@
  *     only opcode nobody else in this codebase hooks, so hooking it
  *     directly here is safe — no native handler to collide with.
  *
- * Contract (v1): { v:1, atributos: { forca/agilidade/vitalidade/
- * inteligencia/destreza/sorte: {valor, custo} }, pontos, derivados: {atk,
- * matk, def, mdef, hit, flee, crit, aspd}, nivel, nivelDeJob }. "custo" is
- * the cost of the *next* point (the gray number next to ▶); custo === 0
- * means the attribute is capped, so its ▶ is disabled. There is no "+x"
- * bonus split anymore (per the fix request) — derivados' numbers are
- * shown as plain single values ("ATK 62", "DEF 11"). `nivel`/`nivelDeJob`
- * are part of the contract but aren't read here — the "Personagem" card's
- * Base Lv./Job Lv. come straight from Session.Entity instead (see
- * syncCharacterInfo() below), same live field BasicInfoIdle.js shows
- * elsewhere on screen, so both stay trivially in sync with each other.
+ * ── Contrato v2: "base + bonus", como o RO oficial (29/08/2026) ─────────
+ * O v1 mandava, por atributo, so o valor CRU investido — um jogador com +10
+ * de AGI de equipamento lia "AGI 50" e mais nada, e ATK/MATK vinham como um
+ * numero so. A janela NATIVA (WinStats) ja fazia certo, lendo `str`/`str2`
+ * do ZC_COUPLESTATUS; perdemos isso ao troca-la por esta. O v2 devolve:
+ *
+ *   { v: 2,
+ *     atributos: { forca/agilidade/vitalidade/inteligencia/destreza/sorte: {
+ *       valor, custo,                                   // como no v1
+ *       base, codex, classe, passivas, equipamento, outros, bonus, total } },
+ *     pontos,
+ *     derivados: { atk, matk,
+ *       metades: { atk/matk/def/mdef: {esquerda, direita, total} },
+ *       def, defDeStatus, mdef, mdefDeStatus, hit, flee, crit, aspd },
+ *     nivel, nivelDeJob }
+ *
+ * O que cada campo quer dizer, porque a diferenca entre eles e a fonte de
+ * quase todo erro possivel nesta janela:
+ *   - `valor` e `custo` guardam o significado do v1: o investido, e o custo
+ *     do PROXIMO ponto (custo === 0 = atributo no cap, "+" desabilitado).
+ *     O botao "+" nao mudou uma linha por causa do v2.
+ *   - `total` e o que o MOTOR de fato usa, e `bonus = total - base`. E o
+ *     `base` — nao o `valor` — que a janela escreve como numero principal.
+ *   - as cinco parcelas (codex/classe/passivas/equipamento/outros) somam com
+ *     `base` para dar `total`, e sao o corpo do title de cada atributo.
+ *     `outros` normalmente e 0; quando NAO e, e uma fonte que o servidor nao
+ *     soube nomear — aparece como "Outros" e nunca e somada noutra parcela,
+ *     porque esconde-la transformaria um defeito do servidor em numero
+ *     plausivel na tela, que e o modo de falha caro deste projeto.
+ *   - `derivados.atk`/`matk` NAO sao a metade da direita: sao o total do
+ *     motor, que inclui variancia e bonus de atributo que o watk nao tem.
+ *     Somar `esquerda + direita` para exibir no lugar deles seria comparar
+ *     grandezas diferentes — ver renderMetades() abaixo.
+ *
+ * `nivel`/`nivelDeJob` continuam sem leitor aqui — o Base Lv./Job Lv. do
+ * card "Personagem" vem do Session.Entity (syncCharacterInfo() abaixo),
+ * mesmo campo vivo que o BasicInfoIdle.js mostra do outro lado da tela.
  *
  * The attribute rows' `data-stat` attributes (StatusIdle.html) use the
  * contract's own PT-BR keys (forca/agilidade/vitalidade/inteligencia/
@@ -132,6 +158,108 @@ const WINDOW_HEIGHT = 688;
 const ATTR_KEYS = ['forca', 'agilidade', 'vitalidade', 'inteligencia', 'destreza', 'sorte'];
 
 /**
+ * As cinco parcelas do bonus (contrato v2), na ORDEM EM QUE O CONTRATO AS
+ * declara — e nao na ordem de grandeza. Ordem estavel importa aqui: o title
+ * e relido a cada peca trocada, e uma lista que se reordena sozinha obriga o
+ * jogador a reler tudo para achar a linha que mudou.
+ *
+ * "outros" fecha a lista de proposito: e a fonte que o servidor NAO soube
+ * nomear, entao ela e a excecao, e excecao no fim le como excecao.
+ */
+/*
+ * A ORDEM E DE LEITURA, e nao a do contrato.
+ *
+ * O contrato lista as parcelas em ordem alfabetica de implementacao (codex,
+ * classe, passivas, equipamento, outros). Para quem LE o tooltip a ordem util
+ * e outra: do que o personagem sempre tem para o que ele conquistou, e
+ * `Outros` sempre por ultimo — ele so aparece quando o servidor nao soube
+ * nomear a fonte, e nesse caso ser a ultima linha e o que faz o jogador
+ * perceber que ela e a excecao.
+ *
+ * A ordem e ESTAVEL entre re-renders porque a tabela e estatica: ela nao
+ * depende do valor de nenhuma parcela.
+ */
+const PARCELAS_DO_BONUS = [
+	['classe', 'Classe'],
+	['equipamento', 'Equipamento'],
+	['passivas', 'Habilidade passiva'],
+	['codex', 'Codex'],
+	['outros', 'Outros']
+];
+
+/**
+ * As QUATRO derivadas que o RO escreve em duas metades, e o que cada lado
+ * significa no title.
+ *
+ * ── Por que os lados sao esses ──────────────────────────────────────────
+ * O emulador manda DUAS: no renewal o `leftside` e o derivado de STATUS e o
+ * `rightside` e o de EQUIPAMENTO (`pc.hpp:1241-1244`, dentro do `#ifdef
+ * RENEWAL`; no pre-renewal os lados de ATK e MATK TROCAM). Quem decide de que
+ * lado cada numero cai e o SERVIDOR, que ja entrega `esquerda`/`direita`
+ * prontos — esta tabela so desenha, e por isso nao ha `isRenewal` nenhum aqui.
+ *
+ * ── A cicatriz que criou a metade de status (27/08/2026, auditoria C) ────
+ * A ficha mandava so a metade de EQUIPAMENTO. Para o MDEF isso e devastador e
+ * mensuravel: MDEF de jogador nasce SO de `bonus bMdef` (nao ha campo
+ * `MagicDefense` no item_db de equipamento), entao a metade de equipamento e
+ * zero em quase todo personagem. Medido no corpus antes do conserto: **276 de
+ * 276** fichas com `derivados.mdef === 0`. O jogador abria a janela com INT e
+ * lia MDEF 0 — o numero de status estava calculado o tempo todo, so nao
+ * atravessava.
+ *
+ * `legado` e o par de campos soltos do v1 que ainda diz a mesma coisa para
+ * DEF/MDEF; ele e a rede quando um servidor v2 esquecer de mandar `metades`
+ * (ver lerMetades()). ATK/MATK NAO tem legado: `derivados.atk` e o total do
+ * motor, e nao a metade da direita — usa-lo ali imprimiria 123 no lugar de 55.
+ *
+ * `totalDoMotor` so existe onde o total DIVERGE da soma das duas metades, que
+ * e exatamente ATK e MATK. Em DEF/MDEF a soma na tela ja E o total, e repeti-la
+ * no title seria ruido.
+ */
+const METADES = [
+	{
+		chave: 'atk',
+		rotulo: 'ATK',
+		alvo: '.st-atk',
+		alvoDaDireita: '.st-atk2',
+		daEsquerda: 'de status',
+		daDireita: 'de arma e equipamento',
+		totalDoMotor: 'atk',
+		legado: null
+	},
+	{
+		chave: 'matk',
+		rotulo: 'MATK',
+		alvo: '.st-matk',
+		alvoDaDireita: '.st-matk2',
+		daEsquerda: 'de status',
+		daDireita: 'de equipamento',
+		totalDoMotor: 'matk',
+		legado: null
+	},
+	{
+		chave: 'def',
+		rotulo: 'DEF',
+		alvo: '.st-def',
+		alvoDaDireita: '.st-def2',
+		daEsquerda: 'de status',
+		daDireita: 'de equipamento',
+		totalDoMotor: null,
+		legado: { esquerda: 'defDeStatus', direita: 'def' }
+	},
+	{
+		chave: 'mdef',
+		rotulo: 'MDEF',
+		alvo: '.st-mdef',
+		alvoDaDireita: '.st-mdef2',
+		daEsquerda: 'de status',
+		daDireita: 'de equipamento',
+		totalDoMotor: null,
+		legado: { esquerda: 'mdefDeStatus', direita: 'mdef' }
+	}
+];
+
+/**
  * PT-BR label for the handful of common jobs, keyed off MonsterTable's
  * (English) name — own local copy of BasicInfoIdle.js's JOB_PT dictionary
  * (see this file's header for why it's not shared/imported).
@@ -180,7 +308,7 @@ StatusIdle.mouseMode = GUIComponent.MouseMode.CROSS;
 
 /**
  * @var {object|null} last "ficha" payload received from the server
- *      (contract v1, see file header).
+ *      (contrato v2, ver o cabecalho deste arquivo).
  */
 StatusIdle.ficha = null;
 
@@ -375,7 +503,10 @@ function onFichaReceived(pkt) {
 		return;
 	}
 
-	if (!data || data.v !== 1 || !data.atributos || !data.derivados) {
+	// v2 (29/08/2026): o "base + bonus". Recusa alto em vez de desenhar meia
+	// ficha — um v1 renderizado por este arquivo mostraria bonus zero em todo
+	// atributo, que e um numero plausivel e ERRADO, o pior dos dois mundos.
+	if (!data || data.v !== 2 || !data.atributos || !data.derivados) {
 		console.error('[StatusIdle] Ficha com contrato incompatível (v=' + (data && data.v) + ').', data);
 		return;
 	}
@@ -405,13 +536,12 @@ function renderFicha() {
 		if (!row) {
 			return;
 		}
-		const info = atributos[key] || { valor: 0, custo: 0 };
-		const valueEl = row.querySelector('.st-stat-value');
+		const info = atributos[key] || {};
 		const costEl = row.querySelector('.st-stat-cost');
 		const upBtn = row.querySelector('.st-stat-up');
-		if (valueEl) {
-			valueEl.textContent = info.valor || 0;
-		}
+
+		renderAtributo(row, key, info);
+
 		if (costEl) {
 			costEl.textContent = info.custo || 0;
 		}
@@ -423,27 +553,9 @@ function renderFicha() {
 	});
 
 	const derivados = ficha.derivados || {};
-	setText(root, '.st-atk', derivados.atk || 0);
-	setText(root, '.st-matk', derivados.matk || 0);
+	renderMetades(root, derivados);
 	setText(root, '.st-hit', derivados.hit || 0);
 	setText(root, '.st-cri', derivados.crit || 0);
-	/*
-	 * AS DUAS METADES, COMO O CLIENTE NATIVO MOSTRA (27/08/2026, auditoria).
-	 *
-	 * O emulador manda DEF e MDEF em dois campos: no renewal o `leftside` e o
-	 * derivado de STATUS e o `rightside` e o de EQUIPAMENTO (`pc.hpp:1241-1244`).
-	 * A ficha RAGIDLE so trazia a metade de equipamento, e para o MDEF isso
-	 * significava ZERO em quase todo personagem — MDEF de jogador nasce so de
-	 * `bonus bMdef`, e nao ha `MagicDefense` no item_db de equipamento.
-	 *
-	 * Medido no corpus antes do conserto: 276 de 276 fichas com `mdef === 0`.
-	 * O jogador com INT lia MDEF 0 na janela.
-	 *
-	 * O formato "status + equipamento" e o do cliente nativo. Quando o servidor
-	 * for antigo e nao mandar a metade de status, cai no numero de antes.
-	 */
-	setText(root, '.st-def', somaDasMetades(derivados.defDeStatus, derivados.def));
-	setText(root, '.st-mdef', somaDasMetades(derivados.mdefDeStatus, derivados.mdef));
 	setText(root, '.st-flee', derivados.flee || 0);
 	setText(root, '.st-aspd', derivados.aspd || 0);
 	setText(root, '.st-points', pontos);
@@ -453,17 +565,209 @@ function renderFicha() {
 }
 
 /**
- * "12 + 3", como o cliente nativo escreve as duas metades de DEF/MDEF.
+ * Um atributo: "50 + 10" na linha, e a quebra por fonte no title.
  *
- * Com so uma delas conhecida, mostra so ela — e o que o servidor antigo manda.
+ * O numero grande e o `base`, e nao o `valor`: os dois costumam coincidir, mas
+ * `valor` e "o que o jogador investiu" e `base` e "o de onde o bonus parte" —
+ * quando divergirem, e o `base` que faz `base + bonus === total` fechar na
+ * tela, e uma soma que nao fecha e o tipo de erro que o jogador reporta.
+ *
+ * `bonus` vem CALCULADO de `total - base`, mesmo o contrato ja trazendo o campo
+ * `bonus` pronto: e a unica forma de garantir que a conta escrita na tela bate
+ * com o `total` que o motor usa. Se os dois discordarem, o console diz — mas a
+ * tela continua aritmeticamente honesta.
  */
-function somaDasMetades(deStatus, deEquipamento) {
-	const a = Number(deStatus) || 0;
-	const b = Number(deEquipamento) || 0;
-	if (deStatus === undefined) {
-		return b;
+function renderAtributo(row, chave, info) {
+	const base = numeroDe(info.base, info.valor);
+	const total = numeroDe(info.total, base);
+	const bonus = total - base;
+
+	const declarado = numeroDe(info.bonus, bonus);
+	if (declarado !== bonus) {
+		console.warn(
+			`[StatusIdle] ${chave}: bonus declarado (${declarado}) != total - base (${total} - ${base} = ${bonus}). ` +
+			'A tela mostra a conta, nao o campo.'
+		);
 	}
-	return b > 0 ? a + ' + ' + b : String(a);
+
+	const valueEl = row.querySelector('.st-stat-value');
+	if (valueEl) {
+		valueEl.textContent = base;
+	}
+
+	const bonusEl = row.querySelector('.st-stat-bonus');
+	if (bonusEl) {
+		// String vazia quando o bonus e zero — nunca um "+ 0" pendurado. Mesma
+		// regra do cliente nativo (WinStatsCommon.js:346).
+		bonusEl.textContent = bonus === 0 ? '' : textoDaParcela(bonus);
+		tintaDaParcela(bonusEl, bonus);
+	}
+
+	const sigla = (row.querySelector('.st-stat-label') || {}).textContent || chave;
+	row.title = titleDoAtributo(sigla, base, bonus, info);
+}
+
+/**
+ * ATK/MATK/DEF/MDEF em duas metades ("30 + 55"), com o title explicando de onde
+ * vem cada lado. Ver a tabela METADES para o porque dos lados e do `legado`.
+ */
+function renderMetades(root, derivados) {
+	const metades = derivados.metades || {};
+
+	METADES.forEach(def => {
+		const par = lerMetades(metades[def.chave], derivados, def);
+
+		setText(root, def.alvo, par.esquerda);
+
+		const direitaEl = root.querySelector(def.alvoDaDireita);
+		if (direitaEl) {
+			// Ao contrario do bonus de atributo, a metade da direita e escrita
+			// mesmo valendo zero: ela e ESTRUTURAL (o RO sempre mostra os dois
+			// lados), e some so quando o servidor nao souber diz-la.
+			direitaEl.textContent = par.temDireita ? textoDaParcela(par.direita) : '';
+			tintaDaParcela(direitaEl, par.direita);
+		}
+
+		const row = root.querySelector(`.st-info-row[data-derivado="${def.chave}"]`);
+		if (row) {
+			row.title = titleDaMetade(def, par, derivados);
+		}
+	});
+}
+
+/**
+ * As duas metades de uma derivada, com a rede do `legado` (ver METADES).
+ *
+ * Sem `metades` E sem legado (ATK/MATK), sobra o total do motor sozinho do lado
+ * esquerdo — e o unico numero verdadeiro que existe nesse caso. O console diz o
+ * que faltou, porque o sintoma na tela ("ATK 123" sem a metade) e discreto
+ * demais para alguem notar que o servidor regrediu.
+ */
+function lerMetades(metade, derivados, def) {
+	if (metade && metade.esquerda !== undefined && metade.direita !== undefined) {
+		return {
+			esquerda: Number(metade.esquerda) || 0,
+			direita: Number(metade.direita) || 0,
+			temDireita: true
+		};
+	}
+
+	console.warn(`[StatusIdle] derivados.metades.${def.chave} ausente na ficha; caindo no formato antigo.`);
+
+	if (def.legado) {
+		return {
+			esquerda: Number(derivados[def.legado.esquerda]) || 0,
+			direita: Number(derivados[def.legado.direita]) || 0,
+			temDireita: true
+		};
+	}
+
+	return {
+		esquerda: Number(derivados[def.totalDoMotor]) || 0,
+		direita: 0,
+		temDireita: false
+	};
+}
+
+/**
+ * "STR 50 + 15" + uma linha por parcela DIFERENTE DE ZERO. Parcela zerada nao
+ * entra: a lista existe para responder "de onde vem o +15", e zero nao vem de
+ * lugar nenhum.
+ *
+ * Bonus negativo aparece com o sinal dele ("-3"), nunca forcado a "+": ha
+ * equipamento com malus de atributo, e um "+" mentiroso ali inverteria o
+ * sentido da unica linha que o jogador foi ler.
+ */
+function titleDoAtributo(sigla, base, bonus, info) {
+	const cabecalho = sigla + ' ' + base + (bonus === 0 ? '' : ' ' + textoDaParcela(bonus));
+
+	const parcelas = PARCELAS_DO_BONUS
+		.map(([campo, rotulo]) => ({ rotulo, valor: Number(info[campo]) || 0 }))
+		.filter(p => p.valor !== 0);
+
+	if (!parcelas.length) {
+		return cabecalho + '\nSem bonus de nenhuma fonte.';
+	}
+
+	const soma = parcelas.reduce((acc, p) => acc + p.valor, 0);
+	if (soma !== bonus) {
+		console.warn(
+			`[StatusIdle] ${sigla}: as parcelas somam ${soma} e o bonus e ${bonus}. ` +
+			'Falta uma fonte no lado do servidor (ela deveria chegar como "outros").'
+		);
+	}
+
+	// padEnd so alinha de verdade em fonte monoespacada, e o title nativo nao e
+	// uma. Fica assim mesmo: no pior caso o resultado e ragged, no melhor
+	// alinha — e a alternativa (uma janela de tooltip propria) seria inventar
+	// mecanismo onde o fork ja tem um.
+	const largura = Math.max(...parcelas.map(p => p.rotulo.length)) + 2;
+	return [cabecalho]
+		.concat(parcelas.map(p => '  ' + p.rotulo.padEnd(largura) + comSinal(p.valor)))
+		.join('\n');
+}
+
+/**
+ * "ATK 30 + 55" + o que e cada lado, e — so em ATK/MATK — o total do motor.
+ *
+ * A NOTA DO TOTAL E O PONTO DESTE TITLE: `derivados.atk` (123) nao e
+ * `esquerda + direita` (85). Sao grandezas diferentes — o total do motor inclui
+ * variancia e bonus de atributo que o ATK de arma nao tem —, e alguem que
+ * compare os dois numeros sem esta linha vai abrir um defeito que nao existe.
+ */
+function titleDaMetade(def, par, derivados) {
+	const cabecalho = def.rotulo + ' ' + par.esquerda + (par.temDireita ? ' ' + textoDaParcela(par.direita) : '');
+
+	const linhas = [cabecalho, '  ' + par.esquerda + '  ' + def.daEsquerda];
+	if (par.temDireita) {
+		linhas.push('  ' + par.direita + '  ' + def.daDireita);
+	}
+
+	if (def.totalDoMotor) {
+		const total = Number(derivados[def.totalDoMotor]) || 0;
+		linhas.push(`Total no motor: ${total} (inclui variancia e bonus de atributo, entao nao e a soma acima).`);
+	}
+
+	return linhas.join('\n');
+}
+
+/**
+ * "+ 10" / "- 3" — o que vai NA LINHA, ao lado do numero base.
+ *
+ * Mistura deliberada das duas receitas do cliente nativo: o espaco depois do
+ * sinal vem do `atak2`/`def2` (WinStatsCommon.js:302-312) e o "vazio quando e
+ * zero" vem do `str2` (:346), que escreve "+15" colado. O espaco venceu nos
+ * dois casos para "50 + 10" e "30 + 55" saírem com a mesma forma — sao a mesma
+ * pergunta na cabeca do jogador, e duas formas diferentes so dariam trabalho.
+ */
+function textoDaParcela(valor) {
+	return valor < 0 ? '- ' + -valor : '+ ' + valor;
+}
+
+/**
+ * "+10" / "-3" — o que vai DENTRO do title, onde a coluna e estreita e o espaco
+ * depois do sinal atrapalharia o alinhamento.
+ */
+function comSinal(valor) {
+	return (valor < 0 ? '-' : '+') + Math.abs(valor);
+}
+
+/**
+ * Verde/vermelho nao: azul de destaque e vermelho de penalidade (ver
+ * StatusIdle.css). A classe so entra quando o numero e negativo — pintar zero
+ * ou positivo de vermelho seria o mesmo erro que forcar "+" no negativo.
+ */
+function tintaDaParcela(el, valor) {
+	el.classList.toggle('st-bonus--negativo', valor < 0);
+}
+
+/**
+ * O primeiro dos dois que for numero de verdade. `|| 0` nao serve aqui: ele
+ * troca um zero LEGITIMO pelo fallback, e zero e valor comum em toda parcela
+ * deste contrato.
+ */
+function numeroDe(valor, alternativa) {
+	return Number.isFinite(Number(valor)) ? Number(valor) : (Number(alternativa) || 0);
 }
 
 function setText(root, selector, text) {

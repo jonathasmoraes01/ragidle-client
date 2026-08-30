@@ -275,6 +275,11 @@
 	justify-content: space-between;
 	padding: 6px 12px;
 	border-bottom: var(--divider);
+	/* A linha inteira carrega o title com a quebra do bonus por fonte (escrito
+	   em renderFicha()). "help" e o unico affordance que o title nativo tem —
+	   sem ele nada na tela diz que ha o que ler ali. O ":disabled"/pointer do
+	   botao "+" continua vencendo, por ser regra no proprio botao. */
+	cursor: help;
 }
 
 .st-stat-row:last-child {
@@ -304,6 +309,17 @@
 	flex: 0 0 auto;
 }
 
+/* Par "base + bonus" (contrato v2). Largura minima no GRUPO, e nao so no
+   numero base: o "+10" entra e sai conforme o equipamento do jogador, e sem
+   piso aqui a coluna "custo" andava para os lados a cada troca de peca. */
+.st-stat-total {
+	display: flex;
+	align-items: baseline;
+	justify-content: flex-end;
+	gap: 3px;
+	min-width: 52px;
+}
+
 .st-stat-value {
 	min-width: 20px;
 	text-align: right;
@@ -311,6 +327,27 @@
 	   aceitavel pra usar o papel de numero alinhado do design system. */
 	font: var(--type-numeric);
 	color: var(--text-body);
+}
+
+/*
+ * A PARCELA QUE NAO E BASE, EM OUTRA COR (29/08/2026).
+ *
+ * Vale para o bonus dos seis atributos e para a metade da direita de
+ * ATK/MATK/DEF/MDEF — as duas respondem a mesma pergunta do jogador ("o que
+ * disso e meu e o que vem do que estou vestindo?"), entao levam a mesma tinta.
+ * O RO oficial tambem separa os dois numeros por cor.
+ *
+ * --blue-600 e o azul de destaque que esta janela ja usa para numero que
+ * merece o olho (".st-points"); --red-600 e o token de penalidade, e o negativo
+ * EXISTE (equipamento com malus de atributo). Pintar os dois de azul faria uma
+ * penalidade parecer ganho.
+ */
+.st-bonus {
+	color: var(--blue-600);
+}
+
+.st-bonus--negativo {
+	color: var(--red-600);
 }
 
 .st-stat-cost {
@@ -395,6 +432,23 @@
 .st-info-label {
 	font: var(--type-label);
 	color: var(--text-muted);
+}
+
+/* So as quatro de duas metades tem title pra ler (ver o comentario no .html);
+   HIT/CRI/FLEE/ASPD continuam com o cursor comum, senao o "help" prometeria
+   um texto que nao existe naquelas linhas. */
+.st-info-row--metades {
+	cursor: help;
+}
+
+/* O respiro entre as duas metades vem do gap, e nao de um espaco no texto: os
+   dois <span> sao vizinhos COLADOS no .html (nao ha whitespace entre as tags),
+   e a metade da direita comeca no sinal — sem esta regra sai "30+ 55".
+   Mesmo 3px de ".st-stat-total", que resolve o mesmo problema no atributo. */
+.st-info-row--metades .st-info-value {
+	display: flex;
+	align-items: baseline;
+	gap: 3px;
 }
 
 .st-info-value {

@@ -33,12 +33,21 @@
 				</div>
 			</div>
 
+			<!-- ".st-stat-total" embrulha o par "base + bonus" (contrato v2) para os
+			     dois numeros andarem juntos com um respiro proprio, menor que o
+			     gap de 8px de ".st-stat-right" — sem ele o "+10" flutuaria a meio
+			     caminho do "custo" e leria como um terceiro campo.
+			     ".st-stat-bonus" nasce VAZIA: renderFicha() so a preenche quando o
+			     bonus e diferente de zero (mesma regra do cliente nativo,
+			     WinStatsCommon.js:346 — string vazia quando val === 0).
+			     O texto do title (a dobra por fonte) tambem e escrito por
+			     renderFicha(), na linha ".st-stat-row" inteira. -->
 			<div class="st-card ri-card">
 				<div class="st-card-title">Atributos</div>
 				<div class="st-stat-row" data-stat="forca">
 					<span class="st-stat-label">STR</span>
 					<span class="st-stat-right">
-						<span class="st-stat-value">1</span>
+						<span class="st-stat-total"><span class="st-stat-value">1</span><span class="st-stat-bonus st-bonus"></span></span>
 						<span class="st-stat-cost">2</span>
 						<button type="button" class="st-stat-up" data-status-id="13" title="Aumentar STR">+</button>
 					</span>
@@ -46,7 +55,7 @@
 				<div class="st-stat-row" data-stat="agilidade">
 					<span class="st-stat-label">AGI</span>
 					<span class="st-stat-right">
-						<span class="st-stat-value">1</span>
+						<span class="st-stat-total"><span class="st-stat-value">1</span><span class="st-stat-bonus st-bonus"></span></span>
 						<span class="st-stat-cost">2</span>
 						<button type="button" class="st-stat-up" data-status-id="14" title="Aumentar AGI">+</button>
 					</span>
@@ -54,7 +63,7 @@
 				<div class="st-stat-row" data-stat="vitalidade">
 					<span class="st-stat-label">VIT</span>
 					<span class="st-stat-right">
-						<span class="st-stat-value">1</span>
+						<span class="st-stat-total"><span class="st-stat-value">1</span><span class="st-stat-bonus st-bonus"></span></span>
 						<span class="st-stat-cost">2</span>
 						<button type="button" class="st-stat-up" data-status-id="15" title="Aumentar VIT">+</button>
 					</span>
@@ -62,7 +71,7 @@
 				<div class="st-stat-row" data-stat="inteligencia">
 					<span class="st-stat-label">INT</span>
 					<span class="st-stat-right">
-						<span class="st-stat-value">1</span>
+						<span class="st-stat-total"><span class="st-stat-value">1</span><span class="st-stat-bonus st-bonus"></span></span>
 						<span class="st-stat-cost">2</span>
 						<button type="button" class="st-stat-up" data-status-id="16" title="Aumentar INT">+</button>
 					</span>
@@ -70,7 +79,7 @@
 				<div class="st-stat-row" data-stat="destreza">
 					<span class="st-stat-label">DEX</span>
 					<span class="st-stat-right">
-						<span class="st-stat-value">1</span>
+						<span class="st-stat-total"><span class="st-stat-value">1</span><span class="st-stat-bonus st-bonus"></span></span>
 						<span class="st-stat-cost">2</span>
 						<button type="button" class="st-stat-up" data-status-id="17" title="Aumentar DEX">+</button>
 					</span>
@@ -78,22 +87,31 @@
 				<div class="st-stat-row" data-stat="sorte">
 					<span class="st-stat-label">LUK</span>
 					<span class="st-stat-right">
-						<span class="st-stat-value">1</span>
+						<span class="st-stat-total"><span class="st-stat-value">1</span><span class="st-stat-bonus st-bonus"></span></span>
 						<span class="st-stat-cost">2</span>
 						<button type="button" class="st-stat-up" data-status-id="18" title="Aumentar LUK">+</button>
 					</span>
 				</div>
 			</div>
 
+			<!-- ATK/MATK/DEF/MDEF sao as QUATRO que o RO escreve em duas metades
+			     ("30 + 55"), e por isso levam ".st-info-row--metades" +
+			     "data-derivado" — o segundo e a chave em `derivados.metades` e
+			     tambem o que renderFicha() usa para achar a linha e escrever o
+			     title. HIT/CRI/FLEE/ASPD nao tem metade nenhuma e ficam como
+			     estavam, com o valor direto em ".st-info-value".
+			     A metade da direita ("...2", nome herdado do atak2/def2/mdef2 do
+			     cliente nativo) e SEMPRE escrita, inclusive quando vale zero —
+			     ao contrario do bonus de atributo. Ver WinStatsCommon.js:302-312. -->
 			<div class="st-card ri-card">
 				<div class="st-card-title">Estatísticas</div>
 				<div class="st-info-grid">
-					<div class="st-info-row"><span class="st-info-label">ATK</span><span class="st-info-value st-atk">0</span></div>
-					<div class="st-info-row"><span class="st-info-label">MATK</span><span class="st-info-value st-matk">0</span></div>
+					<div class="st-info-row st-info-row--metades" data-derivado="atk"><span class="st-info-label">ATK</span><span class="st-info-value"><span class="st-atk">0</span><span class="st-atk2 st-bonus"></span></span></div>
+					<div class="st-info-row st-info-row--metades" data-derivado="matk"><span class="st-info-label">MATK</span><span class="st-info-value"><span class="st-matk">0</span><span class="st-matk2 st-bonus"></span></span></div>
 					<div class="st-info-row"><span class="st-info-label">HIT</span><span class="st-info-value st-hit">0</span></div>
 					<div class="st-info-row"><span class="st-info-label">CRI</span><span class="st-info-value st-cri">0</span></div>
-					<div class="st-info-row"><span class="st-info-label">DEF</span><span class="st-info-value st-def">0</span></div>
-					<div class="st-info-row"><span class="st-info-label">MDEF</span><span class="st-info-value st-mdef">0</span></div>
+					<div class="st-info-row st-info-row--metades" data-derivado="def"><span class="st-info-label">DEF</span><span class="st-info-value"><span class="st-def">0</span><span class="st-def2 st-bonus"></span></span></div>
+					<div class="st-info-row st-info-row--metades" data-derivado="mdef"><span class="st-info-label">MDEF</span><span class="st-info-value"><span class="st-mdef">0</span><span class="st-mdef2 st-bonus"></span></span></div>
 					<div class="st-info-row"><span class="st-info-label">FLEE</span><span class="st-info-value st-flee">0</span></div>
 					<div class="st-info-row"><span class="st-info-label">ASPD</span><span class="st-info-value st-aspd">0</span></div>
 				</div>
