@@ -55,6 +55,7 @@ import GUIComponent from 'UI/GUIComponent.js';
 import buildResumo from './resumoDaDescricao.js';
 import htmlText from './IdleSkills.html?raw';
 import cssText from './IdleSkills.css?raw';
+import { fecharEEsquecer } from '../limpezaDeJanelaIdle.js';
 
 /**
  * Keep in sync with the ":host" / ".is-window" size in IdleSkills.css —
@@ -804,6 +805,12 @@ IdleSkills.limparEstadoDoPersonagem = function limparEstadoDoPersonagem() {
 	IdleSkills.serverData = null;
 	IdleSkills.selectedSkillId = null;
 	IdleSkills.problemas = [];
+	/*
+	 * ZERAR O DADO NAO BASTA: `GUIComponent.remove()` so DESANEXA o host,
+	 * entao o shadow DOM (com `is-open` e o HTML do personagem anterior)
+	 * atravessa a troca. Ver `UI/Components/limpezaDeJanelaIdle.js`.
+	 */
+	fecharEEsquecer(_root(), '.is-window');
 };
 
 /**

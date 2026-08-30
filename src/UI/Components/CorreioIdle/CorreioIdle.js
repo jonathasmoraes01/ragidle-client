@@ -75,6 +75,7 @@ import ReadRodex from 'UI/Components/Rodex/ReadRodex.js';
 import RodexIcon from 'UI/Components/Rodex/RodexIcon.js';
 import htmlText from './CorreioIdle.html?raw';
 import cssText from './CorreioIdle.css?raw';
+import { fecharEEsquecer } from '../limpezaDeJanelaIdle.js';
 
 /**
  * Mantido em sincronia com ":host"/".co-window"/".co-frame" em
@@ -913,6 +914,12 @@ CorreioIdle.limparEstadoDoPersonagem = function limparEstadoDoPersonagem() {
 	_listaVirgem = null;
 	_pedidoEm = 0;
 	_repedidoAutoEm = 0;
+	/*
+	 * ZERAR O DADO NAO BASTA: `GUIComponent.remove()` so DESANEXA o host,
+	 * entao o shadow DOM (com `is-open` e o HTML do personagem anterior)
+	 * atravessa a troca. Ver `UI/Components/limpezaDeJanelaIdle.js`.
+	 */
+	fecharEEsquecer(_root(), '.co-window');
 };
 
 /**

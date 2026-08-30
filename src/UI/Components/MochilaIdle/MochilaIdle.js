@@ -147,6 +147,7 @@ import ContextMenu from 'UI/Components/ContextMenu/ContextMenu.js';
 import RiIcones from 'UI/ri-icones.js';
 import htmlText from './MochilaIdle.html?raw';
 import cssText from './MochilaIdle.css?raw';
+import { fecharEEsquecer } from '../limpezaDeJanelaIdle.js';
 
 /**
  * Mantido em sincronia com ":host"/".mo-window"/".mo-frame" em
@@ -1467,6 +1468,12 @@ MochilaIdle.limparEstadoDoPersonagem = function limparEstadoDoPersonagem() {
 	_lastGradeSig = null;
 	_lastSlotsSig = null;
 	_dragUnequipIndex = null;
+	/*
+	 * ZERAR O DADO NAO BASTA: `GUIComponent.remove()` so DESANEXA o host,
+	 * entao o shadow DOM (com `is-open` e o HTML do personagem anterior)
+	 * atravessa a troca. Ver `UI/Components/limpezaDeJanelaIdle.js`.
+	 */
+	fecharEEsquecer(_root(), '.mo-window');
 };
 
 /**

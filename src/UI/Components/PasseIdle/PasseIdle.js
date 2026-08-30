@@ -45,6 +45,7 @@ import UIManager from 'UI/UIManager.js';
 import GUIComponent from 'UI/GUIComponent.js';
 import htmlText from './PasseIdle.html?raw';
 import cssText from './PasseIdle.css?raw';
+import { fecharEEsquecer } from '../limpezaDeJanelaIdle.js';
 
 /** Manter em sincronia com o ":host"/".pi-window" do CSS (mesmo papel do
  * WINDOW_WIDTH/HEIGHT de MissoesIdle.js:41-42). */
@@ -126,6 +127,12 @@ function dataCurta(yyyymmdd) {
 PasseIdle.limparEstadoDoPersonagem = function limparEstadoDoPersonagem() {
 	PasseIdle.estado = null;
 	PasseIdle.activeTab = 'semanal';
+	/*
+	 * ZERAR O DADO NAO BASTA: `GUIComponent.remove()` so DESANEXA o host,
+	 * entao o shadow DOM (com `is-open` e o HTML do personagem anterior)
+	 * atravessa a troca. Ver `UI/Components/limpezaDeJanelaIdle.js`.
+	 */
+	fecharEEsquecer(_root(), '.pi-window');
 };
 
 PasseIdle.init = function init() {

@@ -49,6 +49,7 @@ import UIManager from 'UI/UIManager.js';
 import GUIComponent from 'UI/GUIComponent.js';
 import htmlText from './CodexIdle.html?raw';
 import cssText from './CodexIdle.css?raw';
+import { fecharEEsquecer } from '../limpezaDeJanelaIdle.js';
 
 /** Manter em sincronia com o ":host"/".cx-window" do CSS (mesmo papel do
  * WINDOW_WIDTH/HEIGHT de PasseIdle.js:51-52). */
@@ -151,24 +152,18 @@ function escapeHtml(value) {
  * O Codex e POR PERSONAGEM (D-851): mostrar o retrato de um no outro e
  * exatamente a confusao que aquela decisao existe para evitar.
  *
- * (Achado da auditoria de 29/08/2026. As outras doze janelas RAGIDLE tem a
- * MESMA forma — so zeram o dado — e nenhuma foi tocada aqui: e conserto de
- * outra rodada, e esta nota fica como o registro de que o padrao e conhecido.)
+ * (Achado da auditoria de 29/08/2026, FECHADO em 30/08. A nota que estava
+ * aqui dizia que as outras janelas tinham a mesma forma e que consertar era
+ * "de outra rodada" — e ela ficou um dia inteiro sendo pendencia vestida de
+ * nota historica. As nove foram consertadas, o miolo virou `fecharEEsquecer`,
+ * e ha portao cobrando a chamada.)
  */
 CodexIdle.limparEstadoDoPersonagem = function limparEstadoDoPersonagem() {
 	CodexIdle.estado = null;
-	const root = _root();
-	if (!root) return;
-	const win = root.querySelector('.cx-window');
-	if (win) {
-		win.classList.remove('is-open');
-	}
-	const corpo = root.querySelector('.cx-body');
-	if (corpo) {
-		// De volta ao estado de partida: quem abrir de novo ve "Carregando" ate
-		// o retrato do personagem NOVO chegar, e nunca o do anterior.
-		corpo.textContent = 'Carregando…';
-	}
+	// A peca compartilhada (auditoria de 30/08/2026). O miolo que estava aqui
+	// virou `fecharEEsquecer`, e as outras nove janelas — que a nota abaixo
+	// registrava como conhecidas e nao consertadas — passaram a chama-la.
+	fecharEEsquecer(_root(), '.cx-window', { corpo: '.cx-body', texto: 'Carregando…' });
 };
 
 CodexIdle.init = function init() {

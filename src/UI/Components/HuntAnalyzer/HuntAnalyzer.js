@@ -41,6 +41,7 @@ import BasicInfo from 'UI/Components/BasicInfo/BasicInfo.js';
 import { estimarMsAteONivel, ler, zerar } from './registroDaCaca.js';
 import htmlText from './HuntAnalyzer.html?raw';
 import cssText from './HuntAnalyzer.css?raw';
+import { fecharEEsquecer } from '../limpezaDeJanelaIdle.js';
 
 /*
  * Estes DOIS numeros repetem os de HuntAnalyzer.css (":host" e ".ha-window").
@@ -368,6 +369,12 @@ HuntAnalyzer.toggle = function toggle() {
 HuntAnalyzer.limparEstadoDoPersonagem = function limparEstadoDoPersonagem() {
 	_sigRanking = null;
 	_sigItens = null;
+	/*
+	 * ZERAR O DADO NAO BASTA: `GUIComponent.remove()` so DESANEXA o host,
+	 * entao o shadow DOM (com `is-open` e o HTML do personagem anterior)
+	 * atravessa a troca. Ver `UI/Components/limpezaDeJanelaIdle.js`.
+	 */
+	fecharEEsquecer(_root(), '.ha-window');
 };
 
 export default HuntAnalyzer;

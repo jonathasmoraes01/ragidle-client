@@ -397,7 +397,7 @@ let _lastRotacaoJson = null;
 const TOTAL_DE_SLOTS = 3;
 
 /**
- * Releh IdleConfig.editConfig.rotacao e redesenha os orbes so quando o
+ * Releh IdleConfig.serverConfig.rotacao e redesenha os orbes so quando o
  * array mudou desde o ultimo poll (aplicado pela propria janela Config, ou
  * por uma resposta do servidor que a rejeitou/confirmou). Pivo de
  * 19/08/2026 (pedido do dono): SEMPRE desenha TOTAL_DE_SLOTS orbes — os que
@@ -416,7 +416,7 @@ function syncRotacao() {
 		return;
 	}
 
-	const rotacao = (IdleConfig.editConfig && IdleConfig.editConfig.rotacao) || [];
+	const rotacao = (IdleConfig.serverConfig && IdleConfig.serverConfig.rotacao) || [];
 	const json = JSON.stringify(rotacao);
 	if (json === _lastRotacaoJson) {
 		return;
@@ -511,7 +511,7 @@ function nomeDoItem(itemId) {
 let _lastConsumoJson = null;
 
 /**
- * Releh IdleConfig.editConfig.pocaoDeHp/.pocaoDeSp + a quantidade atual no
+ * Releh IdleConfig.serverConfig.pocaoDeHp/.pocaoDeSp + a quantidade atual no
  * inventario, e redesenha os 2 orbes de consumivel so quando algo mudou (ver
  * cabecalho do arquivo pro campo/formato/decisao completos). Slot
  * "preenchido" exige ligado=true E itemId presente - ligado=false cai no
@@ -524,7 +524,7 @@ function syncConsumiveis() {
 		return;
 	}
 
-	const cfg = IdleConfig.editConfig;
+	const cfg = IdleConfig.serverConfig;
 	const estados = SLOTS_DE_CONSUMO.map(s => {
 		const pocao = cfg && cfg[s.campo];
 		const preenchido = !!(pocao && pocao.ligado && pocao.itemId);

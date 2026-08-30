@@ -32,6 +32,7 @@ import ChatBox from 'UI/Components/ChatBox/ChatBox.js';
 import GUIComponent from 'UI/GUIComponent.js';
 import htmlText from './HuntMap.html?raw';
 import cssText from './HuntMap.css?raw';
+import { fecharEEsquecer } from '../limpezaDeJanelaIdle.js';
 
 /**
  * Keep in sync with the ":host" / ".hm-window" size in HuntMap.css — used
@@ -171,6 +172,12 @@ HuntMap.limparEstadoDoPersonagem = function limparEstadoDoPersonagem() {
 	HuntMap.selectedMapa = null;
 	HuntMap.selectedMobId = null;
 	_pendingAutoTravel = false;
+	/*
+	 * ZERAR O DADO NAO BASTA: `GUIComponent.remove()` so DESANEXA o host,
+	 * entao o shadow DOM (com `is-open` e o HTML do personagem anterior)
+	 * atravessa a troca. Ver `UI/Components/limpezaDeJanelaIdle.js`.
+	 */
+	fecharEEsquecer(_root(), '.hm-window');
 };
 
 /**

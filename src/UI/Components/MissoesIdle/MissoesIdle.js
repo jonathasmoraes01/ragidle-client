@@ -35,6 +35,7 @@ import UIManager from 'UI/UIManager.js';
 import GUIComponent from 'UI/GUIComponent.js';
 import htmlText from './MissoesIdle.html?raw';
 import cssText from './MissoesIdle.css?raw';
+import { fecharEEsquecer } from '../limpezaDeJanelaIdle.js';
 
 /** Manter em sincronia com o ":host"/".mi-window" do CSS (mesmo papel do
  * WINDOW_WIDTH/HEIGHT de IdleConfig.js:47-48). */
@@ -107,6 +108,12 @@ MissoesIdle.limparEstadoDoPersonagem = function limparEstadoDoPersonagem() {
 	MissoesIdle.missoes = [];
 	MissoesIdle.execucao = null;
 	MissoesIdle.activeTab = 'principais';
+	/*
+	 * ZERAR O DADO NAO BASTA: `GUIComponent.remove()` so DESANEXA o host,
+	 * entao o shadow DOM (com `is-open` e o HTML do personagem anterior)
+	 * atravessa a troca. Ver `UI/Components/limpezaDeJanelaIdle.js`.
+	 */
+	fecharEEsquecer(_root(), '.mi-window');
 };
 
 MissoesIdle.init = function init() {

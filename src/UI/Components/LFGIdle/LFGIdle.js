@@ -30,6 +30,7 @@ import GUIComponent from 'UI/GUIComponent.js';
 import IdleConfig from 'UI/Components/IdleConfig/IdleConfig.js';
 import htmlText from './LFGIdle.html?raw';
 import cssText from './LFGIdle.css?raw';
+import { fecharEEsquecer } from '../limpezaDeJanelaIdle.js';
 
 /*
  * Manter em sincronia com o ":host"/".lfg-window" do CSS — mesmo papel do
@@ -491,6 +492,12 @@ Network.hookPacket(PACKET.ZC.RAGIDLE_LFG_RESULTADO, function (pkt) {
  */
 LFGIdle.limparEstadoDoPersonagem = function limparEstadoDoPersonagem() {
 	LFGIdle.meu = null;
+	/*
+	 * ZERAR O DADO NAO BASTA: `GUIComponent.remove()` so DESANEXA o host,
+	 * entao o shadow DOM (com `is-open` e o HTML do personagem anterior)
+	 * atravessa a troca. Ver `UI/Components/limpezaDeJanelaIdle.js`.
+	 */
+	fecharEEsquecer(raiz(), '.lfg-window');
 };
 
 export default UIManager.addComponent(LFGIdle);

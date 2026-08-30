@@ -39,6 +39,7 @@ import GUIComponent from 'UI/GUIComponent.js';
 import { pocoesDoEixo, escolherPocaoPadrao } from './escolhaDePocao.js';
 import htmlText from './IdleConfig.html?raw';
 import cssText from './IdleConfig.css?raw';
+import { fecharEEsquecer } from '../limpezaDeJanelaIdle.js';
 
 /**
  * Keep in sync with the ":host" / ".ic-window" size in IdleConfig.css —
@@ -1231,6 +1232,12 @@ IdleConfig.limparEstadoDoPersonagem = function limparEstadoDoPersonagem() {
 	IdleConfig.contextoObsoleto = false;
 	IdleConfig.dirty = false;
 	IdleConfig.problemas = [];
+	/*
+	 * ZERAR O DADO NAO BASTA: `GUIComponent.remove()` so DESANEXA o host,
+	 * entao o shadow DOM (com `is-open` e o HTML do personagem anterior)
+	 * atravessa a troca. Ver `UI/Components/limpezaDeJanelaIdle.js`.
+	 */
+	fecharEEsquecer(_root(), '.ic-window');
 };
 IdleConfig.alternarCacaAutomatica = alternarCacaAutomatica;
 

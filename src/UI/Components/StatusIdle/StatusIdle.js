@@ -141,6 +141,7 @@ import GUIComponent from 'UI/GUIComponent.js';
 import BasicInfo from 'UI/Components/BasicInfo/BasicInfo.js';
 import htmlText from './StatusIdle.html?raw';
 import cssText from './StatusIdle.css?raw';
+import { fecharEEsquecer } from '../limpezaDeJanelaIdle.js';
 
 /**
  * Keep in sync with the ":host"/".st-window" size in StatusIdle.css — same
@@ -947,14 +948,18 @@ StatusIdle.aoMudarStatus = function aoMudarStatus() {
 
 StatusIdle.limparEstadoDoPersonagem = function limparEstadoDoPersonagem() {
 	StatusIdle.ficha = null;
-	const root = _root();
-	if (!root) return;
-	const win = root.querySelector('.st-window');
-	if (win) {
-		win.classList.remove('is-open');
-	}
+	/*
+	 * A peca compartilhada, e nao o miolo a mao (auditoria de 30/08/2026).
+	 *
+	 * Esta janela ja fazia certo — ela e uma das duas que faziam. Passou a
+	 * chamar `fecharEEsquecer` mesmo assim para que o portao possa cobrar a
+	 * chamada de TODAS sem excecao: uma lista com duas dispensas e uma lista
+	 * que a proxima janela vai copiar pela metade errada.
+	 */
+	fecharEEsquecer(_root(), '.st-window');
 	// Volta ao estado inicial: a proxima abertura nao pode herdar o "pronta" do
-	// personagem anterior enquanto `ficha` e nula.
+	// personagem anterior enquanto `ficha` e nula. E proprio desta janela — o
+	// corpo dela e uma maquina de estados, e nao um `textContent`.
 	marcarEstado('carregando');
 };
 
