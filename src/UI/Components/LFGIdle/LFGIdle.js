@@ -498,6 +498,24 @@ LFGIdle.limparEstadoDoPersonagem = function limparEstadoDoPersonagem() {
 	 * atravessa a troca. Ver `UI/Components/limpezaDeJanelaIdle.js`.
 	 */
 	fecharEEsquecer(raiz(), '.lfg-window');
+	/*
+	 * A BARRA DO "MEU GRUPO" NAO E CONTROLADA POR `is-open` — ela tem
+	 * `hidden` proprio, e fechar a janela nao a apaga.
+	 *
+	 * Sem esta linha, o personagem B reabria a janela e lia "Voce lidera este
+	 * grupo" com o botao "Desfazer grupo" ao lado, ate a primeira resposta de
+	 * `listar` chegar. E os listeners de `.lfg-sair-btn` e `.lfg-desfazer-btn`
+	 * foram ligados uma unica vez em `init()`, sobre elementos que sobrevivem
+	 * a troca: um clique em "Sair" mandava `{acao:'sair'}` **em nome de B**,
+	 * sem confirmacao.
+	 *
+	 * `atualizarBarraDoGrupo` ja faz a coisa certa com `meu` nulo — ela esconde
+	 * a barra. O que faltava era chama-la; e o padrao "a peca existe e falta o
+	 * consumidor", visto de perto.
+	 */
+	if (raiz()) {
+		atualizarBarraDoGrupo();
+	}
 };
 
 export default UIManager.addComponent(LFGIdle);
