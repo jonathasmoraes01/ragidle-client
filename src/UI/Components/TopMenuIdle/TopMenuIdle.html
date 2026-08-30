@@ -299,7 +299,20 @@
 				     O DESTAQUE dourado usa o mesmo vocabulario da janela que
 				     ele abre (--border-gold/--glow-gold). Sem ele, o unico
 				     botao que gasta cash ficaria indistinguivel dos vizinhos. -->
-				<button type="button" class="tm-item tm-item--destaque" data-action="passe" title="Recompensas">
+				<!-- EM BREVE ate o servidor conhecer o 0x0fe5 (29/08/2026).
+
+				     Este botao DERRUBAVA A CONEXAO. Ele chama `PasseIdle.toggle()`,
+				     que manda `CZ_RAGIDLE_PEDIR_PASSE` (0x0fe5) — um opcode que o
+				     servidor nao declara e que nao esta na tabela de tamanhos dele.
+				     Sem tamanho nao ha como enquadrar, e o transporte encerra a
+				     conexao: o jogador caia do jogo com um clique de menu, sem nada
+				     na tela dizendo por que.
+
+				     A janela `PasseIdle` fica inteira e pronta; o que falta e o
+				     lado-servidor (0x0fe5..0x0fe7). Quem o implementar tira estas
+				     tres marcas e o botao volta a viver — o `case 'passe'` do
+				     `onClickAction` e o do `isActionOpen` continuam la, intactos. -->
+				<button type="button" class="tm-item tm-item--destaque tm-item--em-breve" data-action="passe" data-em-breve="1" aria-disabled="true" title="Recompensas — em breve">
 					<span class="tm-icon-wrap ri-disc"><!--RI_ICONE:recompensas--></span>
 					<span class="tm-label">Recompensas</span>
 				</button>
