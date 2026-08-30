@@ -509,12 +509,44 @@ function formatZeny(value) {
  *    ficha do Aprendiz;
  *  - `pronta`     — apagou o aviso, os numeros sao dados.
  */
+const CONTRATO_DA_FICHA = 2;
+
 const AVISO_DO_ESTADO = {
 	carregando: 'Esperando a ficha do servidor…',
 	quebrada: 'O servidor respondeu algo que esta janela nao entende. Feche e abra de novo.'
 };
 
-function marcarEstado(estado) {
+/*
+ * O DESALINHAMENTO DE VERSAO PRECISA DIZER O SEU NOME (incidente de 30/08/2026).
+ *
+ * O cliente e o servidor sao PUBLICADOS SEPARADAMENTE — o cliente vai para o
+ * Vercel por um build manual, o servidor roda noutra maquina — entao eles podem
+ * ficar em commits diferentes. Quando o contrato da ficha nao bate, esta janela
+ * RECUSA o payload (e certo: desenhar uma v1 com o leitor da v2 mostraria bonus
+ * ZERO em todo atributo, que e um numero plausivel e errado).
+ *
+ * O que estava errado era o SILENCIO. A recusa so escrevia no `console.error`, e
+ * o jogador ficava com o markup estatico do HTML — STR 1, custo 2, ATK 0,
+ * "Pontos de Atributo: 0" — que e indistinguivel de um personagem APAGADO. Foi
+ * exatamente assim que este defeito foi relatado: "o status zerou dos players".
+ *
+ * A frase abaixo nomeia as duas pontas. Da proxima vez o relato chega como
+ * "a janela diz que o servidor esta na v1 e o cliente na v2", que aponta para o
+ * deploy — e nao como perda de progresso, que manda todo mundo procurar no
+ * lugar errado.
+ */
+function avisoDeContrato(recebida) {
+	return (
+		'Esta janela e o servidor estao em versoes diferentes (servidor: ' +
+		String(recebida === undefined || recebida === null ? 'nao informada' : recebida) +
+		', esta janela: ' +
+		String(CONTRATO_DA_FICHA) +
+		'). Os seus atributos NAO foram perdidos — o que falta e atualizar o jogo. ' +
+		'Avise quem cuida do servidor.'
+	);
+}
+
+function marcarEstado(estado, mensagem) {
 	const root = _root();
 	const win = root && root.querySelector('.st-window');
 	if (!win) {
@@ -522,7 +554,7 @@ function marcarEstado(estado) {
 	}
 	win.classList.toggle('is-carregando', estado === 'carregando');
 	win.classList.toggle('is-quebrada', estado === 'quebrada');
-	setText(root, '.st-aviso-texto', AVISO_DO_ESTADO[estado] || '');
+	setText(root, '.st-aviso-texto', mensagem || AVISO_DO_ESTADO[estado] || '');
 }
 
 /**
@@ -556,9 +588,9 @@ function onFichaReceived(pkt) {
 	// v2 (29/08/2026): o "base + bonus". Recusa alto em vez de desenhar meia
 	// ficha — um v1 renderizado por este arquivo mostraria bonus zero em todo
 	// atributo, que e um numero plausivel e ERRADO, o pior dos dois mundos.
-	if (!data || data.v !== 2 || !data.atributos || !data.derivados) {
+	if (!data || data.v !== CONTRATO_DA_FICHA || !data.atributos || !data.derivados) {
 		console.error('[StatusIdle] Ficha com contrato incompatível (v=' + (data && data.v) + ').', data);
-		marcarEstado('quebrada');
+		marcarEstado('quebrada', avisoDeContrato(data && data.v));
 		return;
 	}
 
