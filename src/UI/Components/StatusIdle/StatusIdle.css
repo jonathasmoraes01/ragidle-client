@@ -101,6 +101,45 @@
 	cursor: pointer;
 }
 
+/* ─── O aviso de ficha ausente ───────────────────────
+
+   Ele nasce ESCONDIDO e so aparece com `.is-carregando` / `.is-quebrada` no
+   `.st-window` — quem decide e o JS (`marcarEstado`), num lugar so.
+
+   O `opacity` no corpo e a metade que importa: sem ele o aviso ficaria em cima
+   de numeros que continuam com cara de dado, e o jogador leria os dois como
+   verdadeiros ao mesmo tempo. `pointer-events: none` desliga junto o "+" de
+   atributo — clicar para gastar ponto com a ficha ausente mandaria o pacote
+   contra um estado que a janela nao conhece. */
+
+.st-aviso {
+	display: none;
+	padding: 8px 14px;
+	font-size: 11px;
+	line-height: 1.4;
+	text-align: center;
+	color: #f4c03e;
+	background: rgba(0, 0, 0, 0.28);
+	border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.st-window.is-carregando .st-aviso,
+.st-window.is-quebrada .st-aviso {
+	display: block;
+}
+
+.st-window.is-quebrada .st-aviso {
+	color: #ff8a7a;
+}
+
+.st-window.is-carregando .st-body,
+.st-window.is-quebrada .st-body,
+.st-window.is-carregando .st-footer,
+.st-window.is-quebrada .st-footer {
+	opacity: 0.35;
+	pointer-events: none;
+}
+
 .st-body {
 	display: flex;
 	flex-direction: column;

@@ -5,6 +5,26 @@
 			<button type="button" class="st-close ri-close" title="Fechar">&times;</button>
 		</div>
 
+		<!-- O AVISO DE FICHA AUSENTE (achado da auditoria de 30/08/2026).
+
+		     Ate esta data a janela abria com o markup ESTATICO desta pagina — STR 1,
+		     custo 2, ATK 0, peso 0/0 — e ficava assim se o retrato nao chegasse: se o
+		     JSON viesse quebrado, se o contrato viesse na v1, ou se o servidor
+		     simplesmente nao respondesse. Nada na tela distinguia "o servidor ainda
+		     nao falou" de "voce e um Aprendiz recem-criado", e os dois desenhos sao
+		     identicos.
+
+		     E o pior caso desde D-852: o que o jogador ve nao e so um numero, e uma
+		     ficha detalhada com tooltip de parcelas — uma explicacao confiante sobre
+		     um personagem que nao existe.
+
+		     Quem liga e desliga isto e a classe do `.st-window` (`is-carregando` /
+		     `is-quebrada`), e nao este elemento: o corpo inteiro esmaece junto, para
+		     que nenhum numero placeholder seja lido como dado. -->
+		<div class="st-aviso" role="status">
+			<span class="st-aviso-texto">Esperando a ficha do servidor…</span>
+		</div>
+
 		<div class="st-body ri-scroll">
 			<div class="st-card ri-card">
 				<div class="st-card-title">Personagem</div>

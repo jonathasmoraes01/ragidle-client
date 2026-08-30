@@ -71,6 +71,19 @@ const NOME_DO_EIXO = {
 	exp: 'Experiencia'
 };
 
+/**
+ * A frase de cada codigo de recusa que o servidor manda em `recusaPorEixo`.
+ *
+ * O CODIGO e do servidor (`RecusaDeGasto`); a FRASE e daqui. Um codigo novo
+ * que a janela nao conheca cai no titulo comum "Gastar 1 ponto em X" — o botao
+ * continua apagado, porque quem decide isso e `recusa !== null`, e nao esta
+ * tabela.
+ */
+const MOTIVO_DA_RECUSA = {
+	'eixo-no-teto': 'Este eixo ja esta no teto',
+	'sem-ponto': 'Voce nao tem ponto para gastar'
+};
+
 /** O unico eixo cujo bonus e uma PORCENTAGEM, e nao pontos de atributo. */
 const EIXO_DE_EXP = 'exp';
 
@@ -371,20 +384,44 @@ function bonusDoEixo(estado, eixo) {
 function eixosHtml(estado) {
 	const gastos = estado.gastos || {};
 	const teto = Number(estado.tetoPorEixo) || 0;
-	const disponiveis = Number(estado.pontosDisponiveis) || 0;
+	/*
+	 * O retrato ANTIGO nao tem `recusaPorEixo`, e a resposta certa e BLOQUEAR.
+	 *
+	 * Sem esta guarda, um servidor sem o campo daria `{}` e TODOS os botoes
+	 * apareceriam clicaveis. O servidor recusaria em silencio (item 2 do
+	 * cabecalho: nao ha pacote de erro), e o jogador clicaria num "+" que nunca
+	 * faz nada — o pior dos dois mundos, porque a janela estaria afirmando que
+	 * da, com confianca.
+	 *
+	 * Recusar tudo com a frase explicita e a postura do projeto: recusa
+	 * explicita em vez de aproximacao.
+	 */
+	const semVeredito = !estado.recusaPorEixo;
+	const recusas = estado.recusaPorEixo || {};
 
 	const linhas = Object.keys(gastos).map(eixo => {
 		const gasto = Number(gastos[eixo]) || 0;
-		const noTeto = gasto >= teto;
-		// As DUAS condicoes que o servidor cobra em `podeGastar`, na mesma
-		// ordem: eixo no teto e saldo zerado. Aqui elas so apagam o botao.
-		const bloqueado = noTeto || disponiveis <= 0;
+		/*
+		 * O VEREDITO E DO SERVIDOR (achado da auditoria de 30/08/2026).
+		 *
+		 * Aqui estavam as duas condicoes reescritas a mao — `gasto >= teto ||
+		 * disponiveis <= 0` — com um comentario declarando que estavam "na
+		 * mesma ordem" da regra de la. Era a segunda rota escrita a mao que o
+		 * item 4 do cabecalho deste arquivo proibe, acertando por coincidencia
+		 * enquanto teto e saldo forem as unicas condicoes que existem.
+		 *
+		 * Hoje o retrato traz `recusaPorEixo`, que E o retorno de
+		 * `motivoDaRecusa` — o mesmo que `gastarPonto` consulta. O que continua
+		 * local e so o ROTULO: traduzir codigo em frase e trabalho de janela.
+		 */
+		const recusa = recusas[eixo] || null;
+		const noTeto = recusa === 'eixo-no-teto';
+		const bloqueado = semVeredito || recusa !== null;
 		const bonus = bonusDoEixo(estado, eixo);
-		const titulo = noTeto
-			? 'Este eixo ja esta no teto'
-			: disponiveis <= 0
-				? 'Voce nao tem ponto para gastar'
-				: 'Gastar 1 ponto em ' + (NOME_DO_EIXO[eixo] || eixo);
+		const titulo = semVeredito
+			? 'Este servidor nao diz se o gasto e possivel — atualize o cliente'
+			: MOTIVO_DA_RECUSA[recusa] ||
+				'Gastar 1 ponto em ' + (NOME_DO_EIXO[eixo] || eixo);
 
 		return (
 			'<div class="cx-eixo' +

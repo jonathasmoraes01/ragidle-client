@@ -489,10 +489,51 @@ function formatZeny(value) {
 	return out;
 }
 
+/*
+ * O ESTADO DA JANELA, e o motivo de ele existir (auditoria de 30/08/2026).
+ *
+ * `renderFicha()` e um no-op enquanto `StatusIdle.ficha` for nula, e o
+ * comentario dela dizia que o placeholder ficar na tela era "o mesmo que
+ * qualquer outra janela RAGIDLE antes da primeira resposta". A comparacao nao
+ * se sustenta: as outras abrem VAZIAS, e esta abre com uma ficha completa e
+ * plausivel escrita no HTML — STR 1, custo 2, ATK 0, peso 0/0. Um Aprendiz
+ * recem-criado tem exatamente esses numeros.
+ *
+ * Sao TRES estados, e nao dois, porque as duas falhas pedem frases diferentes:
+ *
+ *  - `carregando` — a janela abriu e o retrato ainda nao chegou. Passa em
+ *    milissegundos no caso normal, e fica na tela quando o servidor nao
+ *    responde;
+ *  - `quebrada`   — chegou e nao serve (JSON invalido, ou contrato != v2). O
+ *    `console.error` ja existia e so o desenvolvedor via; o jogador via a
+ *    ficha do Aprendiz;
+ *  - `pronta`     — apagou o aviso, os numeros sao dados.
+ */
+const AVISO_DO_ESTADO = {
+	carregando: 'Esperando a ficha do servidor…',
+	quebrada: 'O servidor respondeu algo que esta janela nao entende. Feche e abra de novo.'
+};
+
+function marcarEstado(estado) {
+	const root = _root();
+	const win = root && root.querySelector('.st-window');
+	if (!win) {
+		return;
+	}
+	win.classList.toggle('is-carregando', estado === 'carregando');
+	win.classList.toggle('is-quebrada', estado === 'quebrada');
+	setText(root, '.st-aviso-texto', AVISO_DO_ESTADO[estado] || '');
+}
+
 /**
  * CZ_RAGIDLE_PEDIR_FICHA — opcode 0x0fff, fixed 2 bytes (opcode only).
  */
 function requestFicha() {
+	// A ficha em maos continua na tela enquanto a nova nao chega: pedir de novo
+	// (por `aoMudarStatus`) nao pode piscar um aviso sobre numeros validos.
+	if (!StatusIdle.ficha) {
+		marcarEstado('carregando');
+	}
 	Network.sendPacket(new PACKET.CZ.RAGIDLE_PEDIR_FICHA());
 }
 
@@ -508,6 +549,7 @@ function onFichaReceived(pkt) {
 		data = JSON.parse(pkt.json);
 	} catch (e) {
 		console.error('[StatusIdle] Falha ao interpretar a ficha recebida:', e, pkt.json);
+		marcarEstado('quebrada');
 		return;
 	}
 
@@ -516,18 +558,21 @@ function onFichaReceived(pkt) {
 	// atributo, que e um numero plausivel e ERRADO, o pior dos dois mundos.
 	if (!data || data.v !== 2 || !data.atributos || !data.derivados) {
 		console.error('[StatusIdle] Ficha com contrato incompatível (v=' + (data && data.v) + ').', data);
+		marcarEstado('quebrada');
 		return;
 	}
 
 	StatusIdle.ficha = data;
+	marcarEstado('pronta');
 	renderFicha();
 }
 
 /**
  * Render StatusIdle.ficha into the DOM (see file header for the contract
- * shape). No-op until the first ficha arrives — the static placeholder
- * markup in StatusIdle.html stays on screen until then, same as any other
- * RAGIDLE window before its first server answer.
+ * shape). No-op until the first ficha arrives — e o markup estatico do
+ * `StatusIdle.html` fica na tela ate la, ESMAECIDO e sob o aviso de
+ * `marcarEstado()`. Ate 30/08/2026 ele ficava com a aparencia de dado: ver o
+ * comentario de `AVISO_DO_ESTADO`.
  */
 function renderFicha() {
 	const root = _root();
@@ -876,6 +921,9 @@ StatusIdle.limparEstadoDoPersonagem = function limparEstadoDoPersonagem() {
 	if (win) {
 		win.classList.remove('is-open');
 	}
+	// Volta ao estado inicial: a proxima abertura nao pode herdar o "pronta" do
+	// personagem anterior enquanto `ficha` e nula.
+	marcarEstado('carregando');
 };
 
 /**
