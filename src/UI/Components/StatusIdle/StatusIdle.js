@@ -184,6 +184,10 @@ const PARCELAS_DO_BONUS = [
 	['equipamento', 'Equipamento'],
 	['passivas', 'Habilidade passiva'],
 	['codex', 'Codex'],
+	// O buff e a unica parcela TEMPORARIA: ela some quando o status expira. Fica
+	// depois das permanentes e antes de `Outros` para que a leitura de cima para
+	// baixo va do que o personagem sempre tem ao que ele tem agora (D-853).
+	['buff', 'Buff ativo'],
 	['outros', 'Outros']
 ];
 
