@@ -4941,9 +4941,19 @@ function init(packetver) {
 	// DEPOIS dele fica invisivel, sem erro nenhum no console. E o mesmo modo
 	// de falha do pacote de tamanho ZERO que travou o gravador no M1.
 	//
-	// O trio do Passe (0x0fe5..0x0fe7) NAO esta aqui, e isso e defeito
-	// conhecido, nao licenca: declarar em PacketStructure.js e PacketRegister.js
-	// e so DUAS das tres listas.
+	// O TRIO DO PASSE (D-813): ele ficou ausente daqui por um dia, e o efeito
+	// foi o pior possivel — um clique no menu ENCERRAVA A CONEXAO do jogador,
+	// sem nada na tela dizendo por que. A auditoria de 29/08 desligou o botao
+	// em vez de adivinhar o tamanho, e fez certo.
+	//
+	// A licao e a mesma do lado servidor, na mesma semana: declarar um pacote
+	// nao o registra. La sao DUAS listas (a de tamanhos e PACOTES_DE_MAPA);
+	// aqui sao TRES, e PacketStructure.js + PacketRegister.js sao so duas
+	// delas. A que falta e sempre a que fatia o fluxo.
+	length_list[0x0fe7] = -1; // CZ_RAGIDLE_COMPRAR_PASSE (variable, JSON payload)
+	length_list[0x0fe6] = -1; // ZC_RAGIDLE_PASSE (variable, JSON payload)
+	length_list[0x0fe5] = 2;  // CZ_RAGIDLE_PEDIR_PASSE (so o opcode)
+
 	length_list[0x0fe4] = -1; // CZ_RAGIDLE_CODEX_ACAO (variable, JSON payload)
 	length_list[0x0fe3] = -1; // ZC_RAGIDLE_CODEX (variable, JSON payload)
 

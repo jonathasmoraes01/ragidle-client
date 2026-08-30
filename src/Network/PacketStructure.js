@@ -16090,7 +16090,8 @@ PACKET.ZC.RAGIDLE_SALDO_DE_CASH.size = 6;
 //
 // A VAGA foi escolhida por eliminacao e reservada nos DOIS repositorios antes
 // de qualquer lado usar (docs/mapa-de-pacotes.md do servidor). O bloco RAGIDLE
-// cresce PARA BAIXO desde 0x0fff; 0x0fd3..0x0fe7 estava livre, e estes tres
+// cresce PARA BAIXO desde 0x0fff. Conte a faixa livre no portao do servidor
+// (USADOS_DA_RESERVA/RESERVADA em faixa-ragidle.test.ts), e nao aqui: o trio
 // sao o TOPO do vao para o bloco seguir contiguo.
 //
 // Eles NASCERAM em 0x0fe4/5/6 e foram deslocados no mesmo dia: quem escolheu

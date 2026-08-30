@@ -35,14 +35,14 @@
 			},
 			"saida": {
 				"total": 543,
-				"semTamanho": 1
+				"semTamanho": 0
 			}
 		}
 	},
 	"comprimentosDoCliente": {
 		"arquivo": "src/Network/Packets/packets2021_len_main.js",
-		"declarados": 1616,
-		"preencheram": 86,
+		"declarados": 1619,
+		"preencheram": 87,
 		"divergencias": [
 			{
 				"opcode": "0x0276",
@@ -15428,8 +15428,9 @@
 				},
 				"0x0fe7": {
 					"nome": "CZ_RAGIDLE_COMPRAR_PASSE",
-					"tamanho": null,
-					"desde": null
+					"tamanho": -1,
+					"desde": null,
+					"fonteDoTamanho": "cliente"
 				},
 				"0x0fea": {
 					"nome": "CZ_RAGIDLE_LFG_ACAO",
