@@ -830,8 +830,48 @@ Network.hookPacket(PACKET.ZC.RAGIDLE_FICHA, onFichaReceived);
  * correspondente ABAIXO, e o portao `limpeza-da-troca-de-personagem.test.ts`
  * (no repo do servidor) reprova se esquecer.
  */
+/*
+ * ZERAR A FICHA NAO BASTA — a janela tem de FECHAR na troca de personagem.
+ *
+ * Mesma causa do `CodexIdle`: `GUIComponent.remove()` so DESANEXA o host, o
+ * shadow DOM sobrevive e `prepare()` e guardado por `__loaded`. Zerando so
+ * `StatusIdle.ficha`, o `.st-window` volta ABERTO com os atributos, o ATK e o
+ * tooltip de parcelas do personagem ANTERIOR.
+ *
+ * Aqui isso e pior que no Codex: desde D-852 a janela mostra `base + bonus` com
+ * a origem de cada parcela, entao o que fica na tela nao e so um numero velho —
+ * e uma explicacao detalhada e confiante sobre o equipamento de outro
+ * personagem.
+ */
+/*
+ * UM STATUS ENTROU OU SAIU — se a janela estiver ABERTA, peca a ficha de novo.
+ *
+ * Chamado por `Engine/MapEngine/Entity.js`, de dentro do handler que ja trata
+ * `ZC_MSG_STATE_CHANGE` (o motivo de o aviso vir de la, e nao de um
+ * `hookPacket` proprio, esta comentado no ponto de chamada:
+ * `Network.hookPacket` SOBRESCREVE o handler do opcode).
+ *
+ * A guarda de janela aberta e o que torna isto barato: status muda bastante em
+ * luta, e pedir a ficha com a janela fechada seria trafego que ninguem desenha.
+ *
+ * Sem isto, a parcela `buff` e os derivados (ATK, HIT, FLEE...) ficavam na tela
+ * com o valor de um buff JA EXPIRADO ate o jogador fazer outra coisa.
+ */
+StatusIdle.aoMudarStatus = function aoMudarStatus() {
+	const root = _root();
+	const win = root && root.querySelector('.st-window');
+	if (!win || !win.classList.contains('is-open')) return;
+	requestFicha();
+};
+
 StatusIdle.limparEstadoDoPersonagem = function limparEstadoDoPersonagem() {
 	StatusIdle.ficha = null;
+	const root = _root();
+	if (!root) return;
+	const win = root.querySelector('.st-window');
+	if (win) {
+		win.classList.remove('is-open');
+	}
 };
 
 /**

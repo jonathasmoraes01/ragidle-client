@@ -125,8 +125,37 @@ function escapeHtml(value) {
  * Engine/MapEngine.js — declarar a funcao sem entrar na lista deixa um metodo
  * que ninguem chama, que ja aconteceu.
  */
+/*
+ * ZERAR O DADO NAO BASTA — a janela tem de FECHAR e ESQUECER o desenho.
+ *
+ * `GUIComponent.remove()` apenas DESANEXA o host: o shadow DOM inteiro
+ * sobrevive a troca de personagem, e `prepare()` e guardado por `__loaded`.
+ * Zerando so `CodexIdle.estado`, o `.cx-body` continua com o HTML do
+ * personagem ANTERIOR e o `.cx-window` continua com `is-open` — na volta ao
+ * mapa a janela reaparece aberta, mostrando o Codex de outro personagem ate a
+ * primeira resposta chegar.
+ *
+ * O Codex e POR PERSONAGEM (D-851): mostrar o retrato de um no outro e
+ * exatamente a confusao que aquela decisao existe para evitar.
+ *
+ * (Achado da auditoria de 29/08/2026. As outras doze janelas RAGIDLE tem a
+ * MESMA forma — so zeram o dado — e nenhuma foi tocada aqui: e conserto de
+ * outra rodada, e esta nota fica como o registro de que o padrao e conhecido.)
+ */
 CodexIdle.limparEstadoDoPersonagem = function limparEstadoDoPersonagem() {
 	CodexIdle.estado = null;
+	const root = _root();
+	if (!root) return;
+	const win = root.querySelector('.cx-window');
+	if (win) {
+		win.classList.remove('is-open');
+	}
+	const corpo = root.querySelector('.cx-body');
+	if (corpo) {
+		// De volta ao estado de partida: quem abrir de novo ve "Carregando" ate
+		// o retrato do personagem NOVO chegar, e nunca o do anterior.
+		corpo.textContent = 'Carregando…';
+	}
 };
 
 CodexIdle.init = function init() {

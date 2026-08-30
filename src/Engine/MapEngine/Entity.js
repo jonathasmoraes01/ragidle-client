@@ -55,6 +55,7 @@ import MercenaryInformations from 'UI/Components/MercenaryInformations/Mercenary
 import Inventory from 'UI/Components/Inventory/Inventory.js';
 import ShortCut from 'UI/Components/ShortCut/ShortCut.js';
 import StatusIcons from 'UI/Components/StatusIcons/StatusIcons.js';
+import StatusIdle from 'UI/Components/StatusIdle/StatusIdle.js'; // RAGIDLE: a ficha ouve mudanca de status (D-853)
 import MiniMap from 'UI/Components/MiniMap/MiniMap.js';
 import PartyFriends from 'UI/Components/PartyFriends/PartyFriends.js';
 import Equipment from 'UI/Components/Equipment/Equipment.js';
@@ -2502,6 +2503,26 @@ function onEntityStatusChange(pkt) {
 	// Modify icon
 	if (entity === Session.Entity) {
 		StatusIcons.update(pkt.index, pkt.state, pkt.RemainMS);
+		/*
+		 * A JANELA DE STATUS PRECISA SABER (29/08/2026, achado de auditoria).
+		 *
+		 * Desde D-853 a ficha traz uma parcela `buff` e os derivados saem dos
+		 * stats COM os status ativos. Mas o servidor so manda a ficha quando o
+		 * JOGADOR faz algo — nenhum dos cinco pontos de envio e inicio ou fim de
+		 * status. Com a janela aberta, `STR 50 + 10` e o tooltip "Buff ativo"
+		 * ficavam na tela depois de a Bencao expirar, e o ATK junto.
+		 *
+		 * O aviso mora AQUI, e nao num `hookPacket` proprio da janela, porque
+		 * `Network.hookPacket` SOBRESCREVE o handler do opcode
+		 * (`NetworkManager.js:209`) — engancha-lo de novo apagaria a linha de
+		 * cima e mataria os icones de status. Um handler por pacote; quem ja o
+		 * tem avisa os interessados.
+		 *
+		 * `StatusIdle` so pede de volta se a janela estiver ABERTA: status muda
+		 * bastante em luta, e um pedido por mudanca com a janela fechada seria
+		 * trafego que ninguem desenha.
+		 */
+		StatusIdle.aoMudarStatus();
 	}
 }
 
