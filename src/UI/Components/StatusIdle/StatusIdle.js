@@ -182,6 +182,10 @@ const ATTR_KEYS = ['forca', 'agilidade', 'vitalidade', 'inteligencia', 'destreza
 const PARCELAS_DO_BONUS = [
 	['classe', 'Classe'],
 	['equipamento', 'Equipamento'],
+	// O pet e parcela PROPRIA desde 30/08: o motor soma o script dele no mesmo
+	// lugar do equipamento, mas dizer "+3 de Equipamento" quando os 3 vem do
+	// Poring leal e falso, e o tooltip existe para nomear a origem.
+	['pet', 'Pet'],
 	['passivas', 'Habilidade passiva'],
 	['codex', 'Codex'],
 	// O buff e a unica parcela TEMPORARIA: ela some quando o status expira. Fica

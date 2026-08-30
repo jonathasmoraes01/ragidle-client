@@ -277,11 +277,19 @@ function onClickCorpo(e) {
 function placarHtml(estado) {
 	const disponiveis = Number(estado.pontosDisponiveis) || 0;
 	const ganhos = Number(estado.pontosGanhos) || 0;
-	// `pontosGanhos - pontosDisponiveis` e a UNICA conta desta janela, e ela
-	// nao inventa nada: e a soma de `gastos` que o servidor ja tem. Ela existe
-	// porque o retrato manda os dois extremos e nao o meio — se um dia o
-	// contrato ganhar `pontosGastos`, esta linha some.
-	const gastos = Math.max(0, ganhos - disponiveis);
+	/*
+	 * `pontosGastos` VEM DO SERVIDOR desde 30/08 — a janela nao deriva mais.
+	 *
+	 * O comentario aqui dizia que `ganhos - disponiveis` "nao inventa nada" e
+	 * prometia que a linha sumiria "se um dia o contrato ganhar pontosGastos".
+	 * A auditoria mostrou que a identidade e FALSA exatamente no ramo que o
+	 * piso-zero de `pontosDisponiveis` existe para cobrir: com o catalogo
+	 * encolhido, ganhos pode ser 0 com gastos 3, e o placar imprimia "0 de 0 ja
+	 * aplicados" ao lado de uma linha de STR com 3 pontos e +3 de bonus.
+	 *
+	 * O contrato ganhou o campo. A linha sumiu.
+	 */
+	const gastos = Number(estado.pontosGastos) || 0;
 
 	const texto = disponiveis === 1 ? 'ponto para gastar' : 'pontos para gastar';
 
