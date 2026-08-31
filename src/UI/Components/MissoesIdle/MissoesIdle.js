@@ -28,6 +28,7 @@
  */
 
 import Renderer from 'Renderer/Renderer.js';
+import { podeIniciarMissao } from './podeIniciarMissao.js'; // RAGIDLE: I16
 import Preferences from 'Core/Preferences.js';
 import Network from 'Network/NetworkManager.js';
 import PACKET from 'Network/PacketStructure.js';
@@ -262,7 +263,13 @@ function cardDeMissao(m) {
 			botao = `<button type="button" class="ri-btn ri-btn--sec mi-executar" data-executar="pausar">Pausar</button>`;
 		} else if (m.naFila) {
 			botao = `<span class="mi-fila-aviso">Na fila…</span>`;
-		} else if (m.estado === 'disponivel' || (m.estado === 'concluida' && m.repetivel && !m.cooldownS)) {
+		} else if (podeIniciarMissao(m, execucao)) {
+			/* A REGRA MORA EM `podeIniciarMissao.js` (I16, 31/08/2026).
+			   O teste que estava aqui — `estado === 'disponivel' || (concluida
+			   && repetivel && !cooldownS)` — esquecia `em-andamento`, que e o
+			   estado em que a MORTE deixa a missao (a ativa cai, o progresso
+			   fica). O rastreador tinha o mesmo esquecimento, escrito separado.
+			   Uma regra so, com teste que a executa. */
 			botao = `<button type="button" class="ri-btn ri-btn--ouro mi-executar" data-executar="iniciar" data-id="${escapeHtml(m.id)}">Iniciar</button>`;
 		} else if (m.cooldownS > 0) {
 			botao = `<span class="mi-fila-aviso">Recarrega em ${Math.ceil(m.cooldownS / 60)} min</span>`;

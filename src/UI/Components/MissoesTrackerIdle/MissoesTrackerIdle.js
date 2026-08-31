@@ -34,6 +34,7 @@ import UIManager from 'UI/UIManager.js';
 import GUIComponent from 'UI/GUIComponent.js';
 import BasicInfoIdle from 'UI/Components/BasicInfoIdle/BasicInfoIdle.js';
 import MissoesIdle from 'UI/Components/MissoesIdle/MissoesIdle.js';
+import { podeIniciarMissao } from 'UI/Components/MissoesIdle/podeIniciarMissao.js'; // RAGIDLE: I16
 import htmlText from './MissoesTrackerIdle.html?raw';
 import cssText from './MissoesTrackerIdle.css?raw';
 
@@ -252,8 +253,25 @@ function render(missoes, execucao) {
 				</button>
 			</li>`
 	);
+	/*
+	 * A REGRA DE "PODE INICIAR" MORA NUM LUGAR SO (I16, 31/08/2026).
+	 *
+	 * O filtro aqui era `m.executavel && m.estado === 'disponivel'`, e a janela
+	 * de missoes tinha o MESMO filtro escrito separado, com o MESMO erro: os
+	 * dois esqueciam `em-andamento`.
+	 *
+	 * E `em-andamento` sem execucao ativa e exatamente o estado em que a MORTE
+	 * deixa a missao — morrer cancela a ativa (D-609) mas o progresso de caca
+	 * sobrevive (D-615), e progresso que andou vira `em-andamento`. A missao
+	 * caia no vao entre os dois: fora dos clicaveis, e fora da execucao. O
+	 * jogador lia "Nenhuma missao disponivel agora — suba de nivel!" com a
+	 * missao dele parada no meio.
+	 *
+	 * A `naFila` continua entrando (ela aparece marcada "na fila"), e por isso
+	 * o `||` fica: a regra decide o BOTAO, e a fila e uma linha informativa.
+	 */
 	const clicaveis = missoes
-		.filter(m => m.executavel && (m.estado === 'disponivel' || naFila.has(m.id)))
+		.filter(m => podeIniciarMissao(m, execucao) || (m.executavel && naFila.has(m.id)))
 		.sort((a, b) => (naFila.has(b.id) ? 1 : 0) - (naFila.has(a.id) ? 1 : 0));
 	const linhas = clicaveis.slice(0, MAX_LINHAS).map(m => {
 		const fila = naFila.has(m.id);
