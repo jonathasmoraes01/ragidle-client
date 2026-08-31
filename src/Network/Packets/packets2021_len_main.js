@@ -4952,6 +4952,17 @@ function init(packetver) {
 	// delas. A que falta e sempre a que fatia o fluxo.
 	length_list[0x0fe7] = -1; // CZ_RAGIDLE_COMPRAR_PASSE (variable, JSON payload)
 	length_list[0x0fe6] = -1; // ZC_RAGIDLE_PASSE (variable, JSON payload)
+	// ZC_RAGIDLE_LOG (31/08/2026): a fala do sistema -> canal "Logs". Variavel,
+	// corpo `"<remetente> : <texto>\0"`.
+	//
+	// SEM ESTA LINHA O PACOTE CHEGA CORROMPIDO, e nao ausente: o parser nao sabe
+	// o tamanho, fatia byte a byte e o chat recebe UMA LINHA POR CARACTERE. Foi
+	// medido na tela — o canal mostrava "GlobalU", "Globald", "GlobalI"... com o
+	// handler, o opcode e o filtro todos certos.
+	//
+	// Sao QUATRO pontas para um opcode nosso, e o portao so vigiava tres:
+	// servidor, PacketStructure, PacketRegister e ESTA tabela.
+	length_list[0x0fe2] = -1; // ZC_RAGIDLE_LOG (variable, "<remetente> : <texto>")
 	length_list[0x0fe5] = 2;  // CZ_RAGIDLE_PEDIR_PASSE (so o opcode)
 
 	length_list[0x0fe4] = -1; // CZ_RAGIDLE_CODEX_ACAO (variable, JSON payload)

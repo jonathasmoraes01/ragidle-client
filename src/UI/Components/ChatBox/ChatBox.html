@@ -1,5 +1,14 @@
 <!--
-	Chat de TRES canais fixos (20/08/2026): Global, Trade e Farm.
+	Chat de QUATRO canais fixos: Global, Trade, Farm e Logs.
+
+	O "Logs" entrou em 31/08/2026 a pedido do dono, e mudou o significado do
+	Global: ele passou a ser SO fala de jogador e anuncio da staff. Tudo o que o
+	servidor diz — missoes, NPCs, respostas de comando — vai para o Logs, que e
+	SO LEITURA.
+
+	O roteamento continua estrutural: a fala do sistema chega por um opcode
+	PROPRIO (0x0fe2, ZC_RAGIDLE_LOG) em vez do 0x008e, que carregava tambem o eco
+	da fala do proprio jogador e por isso nao dava para separar sem ler o texto.
 
 	Por que canais FIXOS e nao as abas dinamicas do roBrowser: as abas nativas
 	eram criadas/renomeadas/apagadas pelo jogador e cada uma carregava a
@@ -44,6 +53,19 @@
 				<span class="ri-dot cb-aba-dot" aria-hidden="true"></span>
 			</div>
 		</button>
+		<!-- LOGS (31/08/2026, pedido do dono): tudo o que o SERVIDOR diz —
+		     missoes, NPCs, respostas de comando, avisos de loja. O Global fica
+		     so com fala de jogador e anuncio da staff.
+
+		     E SO LEITURA (CANAIS_SO_LEITURA em ChatBox.js): uma fala de jogador
+		     aqui seria indistinguivel de um log, que e o problema que este canal
+		     existe para resolver. O `title` avisa antes do clique. -->
+		<button type="button" class="tab" data-canal="logs" role="tab" aria-selected="false" title="Logs do servidor (so leitura)">
+			<div class="cb-aba">
+				<span class="cb-aba-rotulo">Logs</span>
+				<span class="ri-dot cb-aba-dot" aria-hidden="true"></span>
+			</div>
+		</button>
 	</div>
 
 	<!-- Recolher/expandir: canto superior direito do painel, como no gabarito
@@ -74,6 +96,11 @@
 			<div class="content ri-scroll active" data-content="global"></div>
 			<div class="content ri-scroll" data-content="trade"></div>
 			<div class="content ri-scroll" data-content="farm"></div>
+			<!-- LOGS (31/08/2026). O PAINEL, e nao so a aba: `switchTab` procura
+			     `.content[data-content=<canal>]`, e sem esta linha o clique na
+			     aba caia de volta no Global sem nada avisar — a aba acendia e o
+			     conteudo nao trocava. Aba e painel andam em par. -->
+			<div class="content ri-scroll" data-content="logs"></div>
 		</div>
 	</div>
 

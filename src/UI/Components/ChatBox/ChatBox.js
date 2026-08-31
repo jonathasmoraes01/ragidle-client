@@ -270,13 +270,35 @@ ChatBox.FILTER = {
 	FARM_NIVEL: 25,
 	FARM_LOG: 26,
 	// Rag Idle — canal de comercio (SEM FONTE no servidor de mapa de hoje)
-	TRADE: 27
+	TRADE: 27,
+	/*
+	 * Rag Idle — a FALA DO SISTEMA (31/08/2026, pedido do dono).
+	 *
+	 * Missoes, NPCs, respostas de comando, avisos de loja: tudo o que o
+	 * SERVIDOR diz e nao e jogador nem anuncio da staff. Chega pelo opcode
+	 * proprio 0x0fe2 (ZC_RAGIDLE_LOG), e nao pelo 0x008e — que carrega tambem
+	 * o eco da fala do proprio jogador e por isso nao dava para separar.
+	 */
+	SISTEMA: 28
 };
 
 /**
  * Os tres canais, na ordem em que aparecem.
  */
-const CANAIS = ['global', 'trade', 'farm'];
+const CANAIS = ['global', 'trade', 'farm', 'logs'];
+
+/*
+ * OS CANAIS EM QUE NAO SE DIGITA (31/08/2026, pedido do dono).
+ *
+ * *"Ninguem pode digitar nesse chat de 'Logs'."* Ele e um registro do que o
+ * servidor fez, e uma fala de jogador ali seria indistinguivel de um log — que
+ * e justamente o problema que este canal existe para resolver.
+ *
+ * Lista, e nao um `=== 'logs'` no meio do `submit`: no dia em que houver um
+ * segundo canal so-leitura, quem o criar acha esta linha em vez de descobrir a
+ * regra espalhada pelo arquivo.
+ */
+const CANAIS_SO_LEITURA = ['logs'];
 
 /**
  * FILTRO -> CANAL. Esta tabela E a regra dura: cada filtro pertence a
@@ -302,7 +324,8 @@ const CANAL_DO_FILTRO = {
 	[ChatBox.FILTER.FARM_ZENY]: 'farm',
 	[ChatBox.FILTER.FARM_NIVEL]: 'farm',
 	[ChatBox.FILTER.FARM_LOG]: 'farm',
-	[ChatBox.FILTER.TRADE]: 'trade'
+	[ChatBox.FILTER.TRADE]: 'trade',
+	[ChatBox.FILTER.SISTEMA]: 'logs'
 };
 
 function canalDaMensagem(filterType) {
@@ -1020,6 +1043,31 @@ ChatBox.submit = function Submit() {
 	const user = $user ? $user.value : '';
 	const text = extractChatMessage($text);
 	const trimmedText = text.replace(/\u00A0/g, ' ').trim();
+
+	/*
+	 * NO CANAL "Logs" NINGUEM DIGITA (31/08/2026, pedido do dono).
+	 *
+	 * A guarda fica AQUI, e nao no botao de enviar: o Enter chega por
+	 * `onKeyDown` e o clique por outro caminho, e os dois desaguam neste
+	 * `submit`. Barrar so um deixaria o outro passar, e a fala iria para o canal
+	 * errado sem nada avisar.
+	 *
+	 * Depois do `trimmedText`, e nao antes: com o campo VAZIO o Enter alterna o
+	 * modo batalha, e isso continua valendo no Logs \u2014 recolher o campo nao e
+	 * falar.
+	 *
+	 * O texto NAO e apagado: ele fica no campo, entao trocar para o Global e
+	 * apertar Enter manda o que ele escreveu. Limpar seria punir um engano com a
+	 * perda da frase.
+	 */
+	if (trimmedText.length && CANAIS_SO_LEITURA.includes(ChatBox.activeTab)) {
+		ChatBox.addText(
+			'O canal Logs e so leitura \u2014 escolha Global para falar.',
+			ChatBox.TYPE.ERROR,
+			ChatBox.FILTER.SISTEMA
+		);
+		return;
+	}
 
 	// Battle mode
 	if (!trimmedText.length) {

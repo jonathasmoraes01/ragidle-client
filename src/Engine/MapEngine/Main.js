@@ -659,6 +659,31 @@ function onParameterChange(pkt) {
 }
 
 /**
+ * A FALA DO SISTEMA -> canal "Logs" (31/08/2026, pedido do dono).
+ *
+ * *"Abra um novo canal no chat chamado 'Logs' (...) somente para armazenar
+ * todos os logs do servidor (...) o objetivo e fazer com que o 'Global' seja um
+ * canal para mensagens de players e anuncios da staff."*
+ *
+ * Ate aqui isto chegava por `ZC_NOTIFY_PLAYERCHAT` (0x008e) e caia em
+ * `onPlayerMessage` — o MESMO handler do eco da fala do proprio jogador, com o
+ * mesmo filtro. Por isso os dois iam para o Global e nao havia como separar
+ * sem ler o texto, que o `ChatBox.js` proibe.
+ *
+ * O opcode proprio resolve isso na estrutura: quem manda decide o canal.
+ *
+ * Nao mexe no balao de fala do personagem (`Session.Entity.dialog`), e essa e a
+ * diferenca visivel para o `onPlayerMessage`: um log de missao nao e algo que o
+ * personagem DISSE, e po-lo sobre a cabeca dele seria o servidor falando pela
+ * boca do jogador.
+ *
+ * @param {object} pkt - PACKET.ZC.RAGIDLE_LOG
+ */
+function onFalaDoSistema(pkt) {
+	ChatBox.addText(pkt.msg, ChatBox.TYPE.PUBLIC, ChatBox.FILTER.SISTEMA);
+}
+
+/**
  * Received announce from server
  *
  * @param {object} pkt - PACKET.ZC.BROADCAST
@@ -1070,6 +1095,7 @@ export default function MainEngine() {
 	Network.hookPacket(PACKET.ZC.BROADCAST2, onGlobalAnnounce);
 	Network.hookPacket(PACKET.ZC.USER_COUNT, onPlayerCountAnswer);
 	Network.hookPacket(PACKET.ZC.NOTIFY_PLAYERCHAT, onPlayerMessage);
+	Network.hookPacket(PACKET.ZC.RAGIDLE_LOG, onFalaDoSistema);
 	Network.hookPacket(PACKET.ZC.ATTACK_FAILURE_FOR_DISTANCE, onPlayerTooFarToAttack);
 	Network.hookPacket(PACKET.ZC.ACTION_FAILURE, onActionFailure);
 	Network.hookPacket(PACKET.ZC.MSG, onMessage);

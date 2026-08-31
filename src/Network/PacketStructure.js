@@ -16288,6 +16288,35 @@ PACKET.ZC.RAGIDLE_MISSOES = function PACKET_ZC_RAGIDLE_MISSOES(fp, end) {
 };
 PACKET.ZC.RAGIDLE_MISSOES.size = -1;
 
+// 0x0fe2 - RAGIDLE: ZC_RAGIDLE_LOG (server -> client) — 31/08/2026
+//
+// A FALA DO SISTEMA, e o canal dela e o "Logs".
+//
+// Pedido do dono: "abra um novo canal no chat chamado 'Logs' (...) somente para
+// armazenar todos os logs do servidor, como no caso desses anuncios, mensagens
+// de missoes/npcs (...) o objetivo e fazer com que o 'Global' seja um canal
+// para mensagens de players e anuncios da staff".
+//
+// POR QUE UM OPCODE PROPRIO, E NAO UMA REGRA NO ChatBox: ate aqui toda fala do
+// servidor saia por ZC_NOTIFY_PLAYERCHAT (0x008e) — o MESMO pacote que carrega
+// o eco da fala do proprio jogador. As duas chegavam indistinguiveis, com o
+// remetente embutido no TEXTO ("Missoes : ..."), e caiam no mesmo canal.
+// Separa-las no cliente exigiria ler o texto, e o ChatBox.js proibe isso com
+// todas as letras ("o roteamento e estrutural (...) e nao depende do TEXTO da
+// mensagem, que muda com traducao"). Uma tabela de prefixos quebraria no
+// primeiro NPC novo, em silencio.
+//
+// O corpo e o MESMO do 0x008e ("<remetente> : <texto>\0"): o cliente ja sabe
+// desenhar essa linha, e mudar a forma junto com o canal seria duas mudancas
+// onde uma basta.
+//
+// O slot sai do TOPO da reserva de D-527, seguindo a convencao de D-551 —
+// gastar de cima para baixo mantem o bloco RAGIDLE contiguo.
+PACKET.ZC.RAGIDLE_LOG = function PACKET_ZC_RAGIDLE_LOG(fp, end) {
+	this.msg = fp.readString(end - fp.tell());
+};
+PACKET.ZC.RAGIDLE_LOG.size = -1;
+
 // ---------------------------------------------------------------------------
 // O MENU LFG (Looking For Group) — D-634, 25/08/2026.
 //
