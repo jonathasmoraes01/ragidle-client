@@ -71,9 +71,15 @@
  * IdleConfig.css (".ic-button").
  */
 :host {
-	top: 16px;
+	/*
+	 * A GEOMETRIA VEM DOS TOKENS (I4, 31/08/2026). O `164px` que estava aqui
+	 * era 136 (largura do minimapa) + 16 (a margem dele) + 12 de respiro — tres
+	 * numeros de OUTRO componente somados a mao. Mexer na largura do minimapa
+	 * fazia este cluster montar em cima dele, e nada denunciava.
+	 */
+	top: var(--hud-td-topo, 16px);
 	left: auto;
-	right: 164px;
+	right: calc(var(--hud-td-direita, 16px) + var(--hud-td-largura, 136px) + 12px);
 	bottom: auto;
 	width: auto;
 	height: auto;

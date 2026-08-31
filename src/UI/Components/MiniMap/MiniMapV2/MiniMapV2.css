@@ -29,10 +29,16 @@
  * dentro do orcamento do briefing (~10-16px por lado de moldura).
  */
 
+/*
+ * A GEOMETRIA VEM DOS TOKENS (I4, 31/08/2026): `UI/Common.css` declara o topo,
+ * a largura e a altura deste bloco, e os ICONES DE STATUS se posicionam abaixo
+ * lendo os mesmos. Com numeros soltos dos dois lados, mexer aqui devolveria a
+ * sobreposicao que o dono relatou — em silencio.
+ */
 :host {
-	top: 16px;
-	right: 16px;
-	width: 136px;
+	top: var(--hud-td-topo, 16px);
+	right: var(--hud-td-direita, 16px);
+	width: var(--hud-td-largura, 136px);
 }
 
 #MiniMapV2 {

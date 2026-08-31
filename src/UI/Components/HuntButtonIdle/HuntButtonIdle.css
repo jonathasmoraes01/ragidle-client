@@ -15,15 +15,33 @@
  * 136x184. Top = 16 (margem) + 184 (altura do card) + 8 (respiro) = 208.
  * Largura igual a do minimapa (136px), mesmo alinhamento a direita (16px).
  */
+/*
+ * A GEOMETRIA VEM DOS TOKENS (I4, 31/08/2026). Os numeros deste cabecalho
+ * continuam valendo — eles sao a MEDICAO —, mas as somas a mao viraram
+ * `calc()` sobre `--hud-td-*` (UI/Common.css). Com tres numeros de OUTRO
+ * componente copiados para ca, mexer no minimapa deslocava este bloco em
+ * silencio; e foi assim que os icones de status acabaram POR CIMA do minimapa,
+ * que e a queixa que o dono abriu.
+ */
 :host {
-	top: 208px;
-	right: 16px;
-	width: 136px;
+	top: calc(
+		var(--hud-td-topo, 16px) + var(--hud-td-altura-do-minimapa, 184px) + 8px
+	);
+	right: var(--hud-td-direita, 16px);
+	width: var(--hud-td-largura, 136px);
 	pointer-events: none;
 }
 
 #HuntButtonIdle {
 	pointer-events: none;
+	/*
+	 * OS DOIS BOTOES EMPILHADOS (I3, 31/08/2026 — pedido do dono): "deixar os
+	 * 2 botoes fixos na tela. 'Caçar' e embaixo 'Retornar para Prontera'".
+	 * A ordem do `flex` e a do pedido, e nao a do HTML por acaso.
+	 */
+	display: flex;
+	flex-direction: column;
+	gap: var(--hud-td-gap-dos-botoes, 6px);
 }
 
 .hb-btn {
@@ -31,4 +49,17 @@
 	width: 100%;
 	pointer-events: auto;
 	text-align: center;
+}
+
+/*
+ * O BOTAO DESABILITADO CONTINUA OCUPANDO O LUGAR DELE.
+ *
+ * O dono pediu os dois FIXOS: escondê-lo na cidade devolveria o layout
+ * pulando, que e exatamente o que ele quis evitar. Apagado e clicavel-nao —
+ * e o `title` (em HuntButtonIdle.js) diz por que.
+ */
+.hb-btn:disabled {
+	opacity: 0.45;
+	cursor: default;
+	pointer-events: auto;
 }

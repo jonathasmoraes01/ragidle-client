@@ -104,8 +104,52 @@ function _root() {
  */
 HuntButtonIdle.init = function init() {
 	const root = _root();
-	root.querySelector('.hb-btn').addEventListener('click', onClickButton);
+	/*
+	 * DOIS BOTOES, DOIS OUVINTES (I3, 31/08/2026 — pedido do dono).
+	 *
+	 * Antes era UM botao que trocava de rotulo conforme o mapa. Agora cada
+	 * acao tem o proprio elemento e o proprio ouvinte: sem `if` no clique,
+	 * e sem um rotulo que muda debaixo do dedo de quem ja estava mirando.
+	 */
+	root.querySelector('.hb-cacar').addEventListener('click', onClickCacar);
+	root.querySelector('.hb-voltar').addEventListener('click', onClickVoltar);
 };
+
+/**
+ * PUBLICA A PROPRIA ALTURA, para quem vem abaixo se pendurar (I3/I4,
+ * 31/08/2026).
+ *
+ * ---------------------------------------------------------------------------
+ * POR QUE MEDIDO, E NAO UM NUMERO NO CSS
+ * ---------------------------------------------------------------------------
+ * Os icones de status ficam abaixo desta coluna, e a conta deles precisava da
+ * altura daqui. Eu a estimei DUAS vezes e errei as duas: primeiro 157px para o
+ * minimapa (esquecendo o rodape de coordenadas — o certo e 184), depois 34px
+ * por botao (e "Retornar para Prontera" quebra em DUAS linhas neste largura).
+ *
+ * Numero estimado erra e erra CALADO — a sobreposicao que o dono relatou nasceu
+ * exatamente assim, de somas a mao entre componentes que nao se conhecem.
+ *
+ * Medir aqui resolve de vez: a altura sai do `getBoundingClientRect` do host,
+ * entao ela acompanha mudanca de rotulo, de fonte, de tema e de idioma sem
+ * ninguem lembrar de nada.
+ *
+ * Roda em `onAppend` e a cada troca de mapa (o rotulo/estado muda e a caixa
+ * pode mudar de altura junto).
+ */
+function publicarAltura() {
+	const host = HuntButtonIdle._host;
+	if (!host) {
+		return;
+	}
+	const altura = Math.round(host.getBoundingClientRect().height);
+	// Zero = ainda nao desenhou (o layout nao rodou). Publicar zero faria os
+	// icones subirem para cima dos botoes por um quadro.
+	if (altura <= 0) {
+		return;
+	}
+	document.documentElement.style.setProperty('--hud-td-altura-dos-botoes', `${altura}px`);
+}
 
 /**
  * Esconde o botao preto do AdminPanel, sincroniza o rotulo com o mapa atual
@@ -115,6 +159,7 @@ HuntButtonIdle.init = function init() {
  */
 HuntButtonIdle.onAppend = function onAppend() {
 	hideAdminButton();
+	publicarAltura();
 	_lastEhCidade = null;
 	syncLabel();
 	startPolling();
@@ -199,28 +244,55 @@ function syncLabel() {
 	_lastEhCidade = ehCidade;
 
 	const root = _root();
-	const btn = root.querySelector('.hb-btn');
-	if (!btn) {
+	const cacar = root.querySelector('.hb-cacar');
+	const voltar = root.querySelector('.hb-voltar');
+	if (!cacar || !voltar) {
 		return;
 	}
-	const label = ehCidade ? LABEL_CACAR : LABEL_RETORNAR;
-	btn.textContent = label;
-	btn.title = label;
+	/*
+	 * OS DOIS FICAM SEMPRE NA TELA (I3, 31/08/2026 — pedido do dono):
+	 * "em vez do botao 'Caçar' virar 'Retornar para Prontera', deixar os 2
+	 * botoes fixos na tela".
+	 *
+	 * O que muda com o mapa e o ESTADO, e nao o rotulo. Na cidade nao ha para
+	 * onde retornar; no campo, "Caçar" continua util (a janela de mapas abre
+	 * de qualquer lugar), entao so o de VOLTAR e desabilitado.
+	 *
+	 * DESABILITAR em vez de ESCONDER, e a razao e o pedido: um botao que some
+	 * devolve o layout pulando, que e o que ele queria evitar ao pedir "fixos".
+	 * E o `title` diz POR QUE, senao o jogador fica clicando num botao apagado
+	 * sem entender.
+	 */
+	voltar.disabled = ehCidade;
+	voltar.title = ehCidade
+		? 'Voce ja esta na cidade'
+		: LABEL_RETORNAR;
+	cacar.title = LABEL_CACAR;
+	// A caixa pode ter mudado de altura (rotulo, quebra de linha): quem vem
+	// abaixo se pendura na medida, e nao num numero escrito no CSS.
+	publicarAltura();
 }
 
-function onClickButton(e) {
+function onClickCacar(e) {
 	e.stopImmediatePropagation();
+	// Nao ha um "mapa obvio" pra abrir direto — a propria janela Mapa de Caça
+	// ja lista tudo por regiao/nivel/nome. Mesmo metodo publico que o item
+	// "Caça" do DockIdle ja usa (DockIdle.js:266-268).
+	HuntMap.toggle();
+}
+
+function onClickVoltar(e) {
+	e.stopImmediatePropagation();
+	// Guarda de estado: o `disabled` do DOM ja impede o clique, mas um segundo
+	// gatilho (teclado, script) chegaria aqui — e viajar para a cidade estando
+	// nela e um pedido que o servidor recusa em silencio (D-388, "ja esta la").
 	if (ehCidadeAtual()) {
-		// Nao ha um "mapa obvio" pra abrir direto — a propria janela Mapa de
-		// Caça ja lista tudo por regiao/nivel/nome. Mesmo metodo publico que
-		// o item "Caça" do DockIdle ja usa (DockIdle.js:266-268).
-		HuntMap.toggle();
-	} else {
-		// Viaja de volta SEM abrir a janela — mesmo pacote CZ_RAGIDLE_VIAJAR
-		// que o botao "Retornar ao ponto salvo" do painel ja manda, so um
-		// segundo gatilho pro mesmo handler (ver HuntMap.js:travelToCity).
-		HuntMap.travelToCity();
+		return;
 	}
+	// Viaja de volta SEM abrir a janela — mesmo pacote CZ_RAGIDLE_VIAJAR que o
+	// botao "Retornar ao ponto salvo" do painel ja manda, so um segundo
+	// gatilho pro mesmo handler (ver HuntMap.js:travelToCity).
+	HuntMap.travelToCity();
 }
 
 /**

@@ -349,6 +349,50 @@ ui-button {
 	--radius-bar: 3px;
 	--hit-touch: 44px;
 
+	/* ─── O CANTO SUPERIOR DIREITO DA HUD (I4, 31/08/2026 — pedido do dono) ───
+
+	   "Atualmente os buffs ativos estao aparecendo em cima do mapa, precisa
+	   colocar eles mais para baixo na HUD."
+
+	   Ele estava certo, e o numero explica: o minimapa fica em `top:16` e mede
+	   ~157px (cabecalho 18 + regua 1 + recheio 8 + moldura 128 + borda 2),
+	   entao o rodape dele cai por volta de y=175. Os icones de status estavam
+	   cravados em `top:166` — nove pixels DENTRO do minimapa, e a primeira
+	   fileira de buffs sentava na borda dele.
+
+	   OS DOIS PASSAM A LER O MESMO TOKEN, e essa e a razao de ele existir em
+	   vez de um `top` novo: com dois numeros soltos, mexer na altura do
+	   minimapa um dia devolveria a sobreposicao — em silencio, e longe da
+	   causa. Custom property atravessa shadow DOM por heranca, entao cada
+	   componente le daqui sem se conhecerem.
+
+	   `--hud-td-*` = Hud, Topo Direito. */
+	--hud-td-topo: 16px;
+	--hud-td-direita: 16px;
+	--hud-td-largura: 136px;
+	/* MEDIDO com `getBoundingClientRect` contra `#MiniMapV2` em jogo, e nao
+	   somado a partir do CSS — a primeira versao deste token dizia 157 (a soma
+	   de cabecalho + moldura + recheio) e ESQUECIA o rodape de coordenadas e
+	   zoom. O numero certo esta registrado no cabecalho de HuntButtonIdle.css
+	   desde que aquele botao nasceu: o card e 136x184. */
+	--hud-td-altura-do-minimapa: 184px;
+	--hud-td-gap-dos-botoes: 6px;
+	/* A ALTURA DOS BOTOES E MEDIDA EM JOGO, e nao escrita aqui:
+	   `HuntButtonIdle.js` a publica com `getBoundingClientRect` em `onAppend` e
+	   a cada troca de mapa. O padrao abaixo so vale ate o primeiro desenho.
+
+	   A razao e cicatriz: eu estimei esta coluna DUAS vezes e errei as duas —
+	   157px para o minimapa (esquecendo o rodape; o certo e 184) e 34px por
+	   botao (e "Retornar para Prontera" quebra em duas linhas). Numero
+	   estimado erra CALADO, e a sobreposicao que o dono relatou nasceu assim. */
+	--hud-td-altura-dos-botoes: 80px;
+	/* O primeiro y LIVRE abaixo de TODA a coluna: minimapa + os DOIS botoes
+	   (I3) + respiro. E aqui que os icones de status se penduram. */
+	--hud-td-abaixo-da-coluna: calc(
+		var(--hud-td-topo) + var(--hud-td-altura-do-minimapa) + 8px +
+			var(--hud-td-altura-dos-botoes) + 12px
+	);
+
 	/* Movimento — curto, sem salto */
 	--dur-instant: 90ms;
 	--dur-fast: 150ms;

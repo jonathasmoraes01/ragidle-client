@@ -1,6 +1,25 @@
+/*
+ * OS BUFFS FICAM ABAIXO DO MINIMAPA (I4, 31/08/2026 — pedido do dono).
+ *
+ * "Atualmente os buffs ativos estao aparecendo em cima do mapa, precisa
+ * colocar eles mais para baixo na HUD."
+ *
+ * O `top: 166px` que estava aqui caia DENTRO do minimapa: ele comeca em 16 e
+ * o card mede 184 (medido com `getBoundingClientRect`, registrado no cabecalho
+ * de HuntButtonIdle.css), entao ele so termina em 200. A primeira fileira de
+ * icones sentava em cima dele.
+ *
+ * O token aponta para o fim de TODA a coluna do canto — minimapa mais os dois
+ * botoes de caca (I3) —, e o minimapa e os botoes leem os MESMOS tokens. Com
+ * numeros soltos em cada arquivo, mexer na altura de um devolveria a
+ * sobreposicao no outro, em silencio: foi assim que ela nasceu.
+ *
+ * O `right` acompanha o do minimapa pela mesma razao: alinhados, os icones
+ * leem como uma coluna so em vez de dois blocos deslocados por 4px.
+ */
 :host {
-	top: 166px;
-	right: 20px;
+	top: var(--hud-td-abaixo-da-coluna, 282px);
+	right: var(--hud-td-direita, 16px);
 	overflow: visible;
 }
 
