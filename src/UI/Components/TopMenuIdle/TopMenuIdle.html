@@ -239,7 +239,18 @@
 					<span class="tm-label">Loja</span>
 				</button>
 
-				<button type="button" class="tm-item tm-item--em-breve" data-action="roshop" data-em-breve="1" title="RO Shop — em breve" aria-disabled="true">
+				<!-- RO SHOP LIGADO (I5, 31/08/2026 — pedido do dono: "mudar o
+				     botao atual da loja de cash para o RO Shop").
+
+				     Ele ja existia aqui como "em breve", desabilitado, enquanto
+				     a loja de cash era um ICONE BMP SOLTO flutuando ao lado do
+				     minimapa (CashShopIcon, 43x45, sem rotulo). O pedido junta
+				     as duas pontas: o item rotulado do menu passa a ser a porta
+				     da loja, e o icone solto se aposenta.
+
+				     A janela e a MESMA de sempre — a `CashShop` nativa do
+				     roBrowser, que o icone solto ja abria. Nao ha janela nova. -->
+				<button type="button" class="tm-item" data-action="roshop" title="RO Shop">
 					<span class="tm-icon-wrap ri-disc"><!--RI_ICONE:roshop--></span>
 					<span class="tm-label">RO Shop</span>
 				</button>

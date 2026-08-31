@@ -169,6 +169,7 @@ import MissoesIdle from 'UI/Components/MissoesIdle/MissoesIdle.js';
 import PasseIdle from 'UI/Components/PasseIdle/PasseIdle.js';
 import CodexIdle from 'UI/Components/CodexIdle/CodexIdle.js'; // RAGIDLE: Codex (D-851)
 import AdminPanel from 'UI/Components/AdminPanel/AdminPanel.js';
+import CashShop from 'UI/Components/CashShop/CashShop.js'; // RAGIDLE: a loja de cash (I5)
 import RiIcones from 'UI/ri-icones.js';
 import htmlText from './TopMenuIdle.html?raw';
 import cssText from './TopMenuIdle.css?raw';
@@ -463,6 +464,16 @@ function onClickAction(e) {
 		   e 0x0fe5/0x0fe6/0x0fe7 (PacketStructure.js). */
 		case 'passe':
 			PasseIdle.toggle();
+			break;
+		/*
+		 * A LOJA DE CASH (I5, 31/08/2026 — pedido do dono).
+		 *
+		 * A janela e a `CashShop` NATIVA do roBrowser, a mesma que o
+		 * `CashShopIcon` solto abria — o pedido move a PORTA para o item
+		 * rotulado do menu, e nao troca a loja.
+		 */
+		case 'roshop':
+			CashShop.toggle();
 			break;
 		default:
 			return;

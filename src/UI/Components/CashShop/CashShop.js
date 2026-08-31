@@ -12,6 +12,7 @@ import DB from 'DB/DBManager.js';
 import Client from 'Core/Client.js';
 import Network from 'Network/NetworkManager.js';
 import PACKET from 'Network/PacketStructure.js';
+import PACKETVER from 'Network/PacketVerManager.js';
 import KEYS from 'Controls/KeyEventHandler.js';
 import InputBox from 'UI/Components/InputBox/InputBox.js';
 import ChatBox from 'UI/Components/ChatBox/ChatBox.js';
@@ -1109,4 +1110,39 @@ function stopPropagation(event) {
 	event.preventDefault();
 	return false;
 }
+/**
+ * ABRIR E FECHAR A LOJA (RAGIDLE, I5 — 31/08/2026).
+ *
+ * O gesto morava no `CashShopIcon`, o icone BMP solto que ficava ao lado do
+ * minimapa. O dono pediu para a porta da loja ser o item **RO Shop** do menu,
+ * e o icone se aposentou (`MapEngine.js`) — mas o gesto NAO podia ser copiado
+ * para o menu: "duas rotas, e a segunda escrita a mao" e o defeito mais comum
+ * deste projeto, e ele acerta no caso comum e diverge no dia em que a primeira
+ * mudar.
+ *
+ * Entao o gesto subiu para CA, e os dois chamadores passam pelo mesmo lugar.
+ *
+ * ABRIR E ASSINCRONO, e isso e do roBrowser, nao nosso: o cliente PEDE ao
+ * servidor (`SE_CASHSHOP_OPEN`) e a janela aparece quando a resposta chega. Um
+ * `append()` daqui desenharia a loja vazia.
+ */
+CashShop.toggle = function toggle() {
+	if (CashShop.ui.is(':visible')) {
+		Network.sendPacket(new PACKET.CZ.CASH_SHOP_CLOSE());
+		CashShop.remove();
+		return;
+	}
+
+	// O pacote de abertura MUDA com o PACKETVER (o `2` ganhou a aba). O nosso e
+	// pinado em 20211103, entao cai sempre no segundo ramo — o primeiro fica
+	// porque o fork tem de continuar servindo outros PACKETVER.
+	if (PACKETVER.value >= 20191224) {
+		const pkt = new PACKET.CZ.SE_CASHSHOP_OPEN2();
+		pkt.tab = 0;
+		Network.sendPacket(pkt);
+		return;
+	}
+	Network.sendPacket(new PACKET.CZ.SE_CASHSHOP_OPEN1());
+};
+
 export default UIManager.addComponent(CashShop);

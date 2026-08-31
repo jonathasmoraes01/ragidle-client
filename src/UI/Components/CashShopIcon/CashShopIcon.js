@@ -40,20 +40,10 @@ CashShopIcon.init = function init() {
  * Handle click on CashShop icon
  */
 function onClickCashShopIcon() {
-	if (CashShop.ui.is(':visible')) {
-		const pkt = new PACKET.CZ.CASH_SHOP_CLOSE();
-		Network.sendPacket(pkt);
-		CashShop.remove();
-	} else {
-		if (PACKETVER.value >= 20191224) {
-			const pkt = new PACKET.CZ.SE_CASHSHOP_OPEN2();
-			pkt.tab = 0;
-			Network.sendPacket(pkt);
-		} else {
-			const pkt = new PACKET.CZ.SE_CASHSHOP_OPEN1();
-			Network.sendPacket(pkt);
-		}
-	}
+	// A ROTA E UNICA (I5, 31/08/2026): o gesto mora no proprio `CashShop`, e o
+	// item "RO Shop" do menu chama o mesmo. Este icone esta aposentado da tela
+	// (`MapEngine.js`), e o componente fica para quem quiser religa-lo.
+	CashShop.toggle();
 }
 
 CashShopIcon.needFocus = false;

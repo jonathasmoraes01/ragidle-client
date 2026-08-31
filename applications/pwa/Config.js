@@ -65,7 +65,23 @@ window.ROConfigBase = {
 	disableConsole: false,
 	enableAchievements: false,
 	enableBank: false,
-	enableCashShop: false,
+	/*
+	 * A LOJA DE CASH TEM DE ESTAR LIGADA (RAGIDLE, I5 — 31/08/2026).
+	 *
+	 * Esta linha dizia `false`, e era o que fazia o item "RO Shop" do menu
+	 * clicar e NAO ACONTECER NADA — o sintoma zero de sempre. Ela guarda TRES
+	 * coisas em `MapEngine.js`, e nenhuma delas roda com `false`:
+	 *
+	 *   - `CashShopEngine()`, que registra os handlers dos pacotes da loja;
+	 *   - `CashShop.prepare()`, sem o qual `CashShop.ui` fica `null` (o erro era
+	 *     literalmente `Cannot read properties of null (reading 'is')`);
+	 *   - `CashShopIcon.prepare()`, do icone solto que se aposentou da tela.
+	 *
+	 * O servidor SEMPRE atendeu o pedido (`CZ_SE_CASHSHOP_OPEN2` ->
+	 * `ZC_SE_CASHSHOP_OPEN` + as abas, `servidor-mapa.ts:17147`). Quem nao
+	 * escutava era o cliente.
+	 */
+	enableCashShop: true,
 	enableCheckAttendance: false,
 	enableDmgSuffix: false,
 	enableHomunAutoFeed: false,

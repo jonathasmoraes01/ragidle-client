@@ -991,7 +991,20 @@ function onMapChange(pkt) {
 		HuntButtonIdle.append();
 
 		if (Configs.get('enableCashShop')) {
-			CashShopIcon.append();
+			/*
+			 * O ICONE SOLTO DA LOJA DE CASH SAIU DA TELA (I5, 31/08/2026 — pedido
+			 * do dono: "mudar o botao atual da loja de cash para o RO Shop").
+			 *
+			 * Ele era um BMP de 43x45 SEM ROTULO, flutuando ao lado do minimapa,
+			 * enquanto o menu ja trazia um item "RO Shop" desabilitado como "em
+			 * breve". O pedido junta as duas pontas: a porta virou o item rotulado
+			 * do menu (TopMenuIdle, `data-action="roshop"`), e ele se aposenta.
+			 *
+			 * O `prepare()` fica: o componente continua carregado e a janela que
+			 * ele abre e a MESMA (`CashShop` nativa). Se o dono quiser o icone de
+			 * volta, e esta linha — nao um componente para reescrever.
+			 */
+			// CashShopIcon.append();
 		}
 
 		if (Configs.get('enableCheckAttendance') && PACKETVER.value >= 20180307) {
