@@ -19,7 +19,11 @@
 
 :host {
 	position: absolute;
-	width: 246px; /* a MESMA largura do BasicInfoIdle — leem como uma coluna */
+	/* A MESMA largura do BasicInfoIdle — as duas leem como uma coluna, e por
+	   isso as duas usam o MESMO token (I1, 31/08/2026). Deixar `246px` cravado
+	   aqui faria a coluna desalinhar em tela estreita, com o rastreador mais
+	   largo que o painel logo acima dele. */
+	width: var(--hud-basic-largura, 246px);
 	pointer-events: none;
 }
 

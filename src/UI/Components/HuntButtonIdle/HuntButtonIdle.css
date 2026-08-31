@@ -63,3 +63,19 @@
 	cursor: default;
 	pointer-events: auto;
 }
+
+/* ─── I1+I2: no celular o botao cresce ate o minimo tatil (31/08/2026) ─────
+   Ele tinha 136x32 — largo o bastante, mas BAIXO demais: 32px esta abaixo
+   dos 44 que as diretrizes de toque pedem (WCAG 2.5.5 / Apple HIG), e o
+   dedo escorrega. A `prove:hud-responsiva` o nomeava por isso.
+
+   O que cresce e a ALTURA, e nao a fonte: dois botoes de 44px somam 88 +
+   gap, e o `HuntButtonIdle.js` PUBLICA a altura medida
+   (`--hud-td-altura-dos-botoes`), entao quem se pendura abaixo desta coluna
+   — os icones de status — desce junto sozinho. Cravar 44 aqui e deixar o
+   token em 80 poria os icones em cima dos botoes, calado. */
+@media (max-width: 599px) {
+	.hb-btn {
+		min-height: 44px;
+	}
+}

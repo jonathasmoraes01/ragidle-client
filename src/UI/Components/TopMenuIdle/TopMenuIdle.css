@@ -746,3 +746,112 @@
 		transition: transform var(--dur-fast) var(--ease-out);
 	}
 }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   I1+I2 — TELA ESTREITA (dono, 31/08/2026)
+
+   O CLUSTER DE 8 SAI DO CANTO SUPERIOR DIREITO E DESCE.
+
+   Ele tem ~331px de largura e mora ancorado a direita, a 164px da borda. O
+   painel de personagem mora a esquerda com 246px. Os dois se encontram
+   quando a tela tem menos de 753px, e a partir dai o cluster fica ATRAS do
+   painel: os oito alvos continuam desenhados, continuam com 76x68px, e
+   nenhum recebe o toque. Foi isso que o dono chamou de "o hud no celular
+   nao esta clicavel".
+
+   ESCONDER O CLUSTER NAO SERVE. O leque de baixo tem OUTROS itens (Guilda,
+   Grupo, Codex, RO Shop...), e o cluster tem os oito do dia a dia
+   (Personagem, Mochila, Skills, Caca, Correio, Missoes, Idle, Analise).
+   Some-lo tiraria oito funcoes do jogo em vez de reposiciona-las.
+
+   Entao ele DESCE, para debaixo do painel de personagem, encostado a
+   esquerda — que e onde ha espaco num celular (390x844 e estreito e alto).
+   O `--hud-basic-fundo` e publicado pelo proprio painel a cada tique
+   (`BasicInfoIdle.js`), porque a altura dele e `auto` e muda em tempo real.
+   Estimar aqui erraria calado, e este projeto ja pagou por isso duas vezes.
+
+   Estas regras ficam NO FIM do arquivo de proposito: em CSS de mesma
+   especificidade quem vence e a ORDEM, e a `:host` de cima viria depois se
+   este bloco estivesse junto dela. E a cicatriz de `StatusIdle.css:545`.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+@media (max-width: 759px) {
+	:host {
+		/* 12px de respiro abaixo do painel. O fallback de 340px e a caixa
+		   medida em 390x844 (321 de fundo + respiro) — ele so vale no quadro
+		   entre o append do menu e o primeiro tique do painel. */
+		/*
+		 * O FUNDO DA COLUNA, e nao o do painel de personagem.
+		 *
+		 * A primeira versao usava so `--hud-basic-fundo` e os oito discos
+		 * cairam em cima do rastreador de missoes — que mora logo abaixo do
+		 * painel e nao estava na conta. O `--hud-coluna-fundo` e publicado pelo
+		 * proprio rastreador (`MissoesTrackerIdle.js`), e quando ele nao esta na
+		 * tela ninguem o escreve: a cadeia de fallback desce sozinha para o
+		 * fundo do painel, e dai para o valor medido em 390x844.
+		 */
+		top: calc(var(--hud-coluna-fundo, var(--hud-basic-fundo, 328px)) + 12px);
+		right: auto;
+		left: 12px;
+	}
+}
+
+/* ─── Celular: os itens encolhem, mas nunca abaixo de 44px ────────────────
+   44 e o minimo de alvo tatil (WCAG 2.5.5 / Apple HIG), e a
+   `prove:hud-responsiva` reprova abaixo disso. O que cede e o ROTULO e o
+   respiro, nunca a area que o dedo acerta. */
+@media (max-width: 599px) {
+	.tm-item {
+		min-width: 46px;
+		padding-left: 2px;
+		padding-right: 2px;
+	}
+
+	.tm-label {
+		font-size: 9px;
+	}
+
+	/* A alca de colapso tinha 28x28 — abaixo do minimo tatil, e a prova a
+	   nomeava. Ela cresce sem mudar o desenho: o disco continua do mesmo
+	   tamanho, e o que aumenta e a AREA CLICAVEL em volta dele. */
+	.tm-toggle {
+		min-width: 44px;
+		min-height: 44px;
+	}
+}
+
+/* ─── Celular: o botao "Menu" SOBE para cima da doca (I1, 31/08/2026) ──────
+   Ele mora em `right:16 / bottom:16`, a MESMA faixa de altura da barra de
+   habilidades — e o comentario do `.tm-menu` la em cima chega a dizer que
+   os dois ficam "a 681px de distancia", que e um numero medido em 1920 e
+   escrito como se fosse propriedade do layout. Em 390px a distancia e
+   negativa: o botao fica em cima dos orbes.
+
+   Lado a lado nao ha arranjo possivel — 214px do botao + 292 do grupo da
+   doca (ja com os orbes no minimo tatil de 48) sao 506 numa tela de 390.
+   Entao eles empilham, e a doca recupera a largura inteira.
+
+   O leque continua abrindo PARA CIMA a partir daqui, que e o que ele sempre
+   fez: subir o botao nao muda a direcao, so o ponto de partida. */
+@media (max-width: 599px) {
+	.tm-menu {
+		bottom: var(--hud-acima-da-doca, 104px);
+	}
+}
+
+/* ─── Celular: o botao deixa de reservar a coluna do leque (I1, 31/08/2026) ──
+   O `.tm-menu` tem `min-width: 198px` para o leque nao dar um PULO ao abrir
+   (o motivo esta escrito la em cima, e continua valendo em tela larga). No
+   celular esses 198px sao metade da largura util, e eles caiam em cima da
+   barra do chat — o botao ficava sobre "Global | Trade | Farm".
+
+   Aqui o leque passa a se alinhar pela DIREITA e a coluna encolhe para o
+   proprio botao (52px), que cabe nos ~80px que sobram a direita do chat. O
+   pulo que o `min-width` evitava deixa de importar: com `flex-end` o botao
+   nao se move quando o leque abre — ele ja esta na borda. */
+@media (max-width: 599px) {
+	.tm-menu {
+		min-width: 0;
+		align-items: flex-end;
+	}
+}

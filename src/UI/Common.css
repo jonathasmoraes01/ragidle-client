@@ -393,6 +393,56 @@ ui-button {
 			var(--hud-td-altura-dos-botoes) + 12px
 	);
 
+	/* ═══ I1+I2: A HUD SE ADAPTA A RESOLUCAO (dono, 31/08/2026) ══════════
+	 *
+	 * Dois pedidos dele, que a medicao mostrou ser UM defeito:
+	 *   "Hud deve se auto adaptar a resolucao que a pessoa esta rodando"
+	 *   "O hud no celular nao esta clicavel"
+	 *
+	 * A HUD e ancorada nos cantos em pixels fixos, e o fork inteiro tinha NOVE
+	 * `@media` — oito de `prefers-reduced-motion` e uma de altura. Nenhuma de
+	 * largura. Entao ela nao encolhia: COLIDIA. Medido em 31/08:
+	 *
+	 *   | largura | o que acontece                                  |
+	 *   |---------|------------------------------------------------|
+	 *   |   840   | o botao "Menu" comeca a cobrir o "Auto" da doca |
+	 *   |   752   | o cluster do menu comeca a cobrir o personagem  |
+	 *   |   390   | 12 dos 18 alvos da HUD inalcancaveis            |
+	 *
+	 * "Nao esta clicavel no celular" NAO era sobre eventos de toque: os alvos
+	 * tem 76x68px, folgados para os 44 das diretrizes. Era a colisao, vista de
+	 * um celular — quatro alvos com o centro FORA da viewport (o "Personagem"
+	 * ficava em x = -67) e oito COBERTOS por outro painel.
+	 *
+	 * OS TOKENS MORAM AQUI, E ESSA E A UNICA RAZAO DE ELES EXISTIREM.
+	 * Cada peca da HUD e um shadow DOM, e `@media` escrito dentro de um deles
+	 * so alcanca aquele. Custom property ATRAVESSA a fronteira do shadow (ela
+	 * herda), e este arquivo e injetado no `document.head` por
+	 * `UIManager.injectCommonCSS`. Entao um `@media` daqui reposiciona a HUD
+	 * inteira, de um lugar so.
+	 *
+	 * O PONTO DE CORTE E MEDIDO, e nao um numero redondo da moda: 900 fica
+	 * acima da colisao do menu com a doca (840), e 600 e onde a doca precisa
+	 * encolher de verdade para caber ao lado do botao.
+	 *
+	 * Quem for mexer: `npm run prove:hud-responsiva` mede as cinco telas e diz
+	 * qual alvo saiu da tela ou ficou coberto. `@media` que existe no arquivo
+	 * nao prova nada — ver a cicatriz em `StatusIdle.css:545`, um bloco de
+	 * media query que nao fazia NADA porque a cascata o vencia pela ordem. */
+
+	/* A largura do painel de personagem. */
+	--hud-basic-largura: 246px;
+	/* O vao que a doca deixa a DIREITA para o botao "Menu" nao cair em cima
+	   dela. Zero em tela larga: la os dois nao se tocam, e reservar espaco
+	   sem precisar tiraria a doca do centro sem motivo. */
+	--hud-reserva-do-menu: 0px;
+	/* O respiro entre os blocos da doca, e o diametro dos orbes. Eles encolhem
+	   junto porque o grupo tem largura de CONTEUDO (558px em tela larga,
+	   medido) e precisa caber no que sobra ao lado do botao. */
+	--hud-doca-gap: 22px;
+	--hud-doca-orbe: 64px;
+	--hud-doca-consumivel: 56px;
+
 	/* Movimento — curto, sem salto */
 	--dur-instant: 90ms;
 	--dur-fast: 150ms;
@@ -965,5 +1015,94 @@ ui-button {
 	to {
 		opacity: 1;
 		transform: scale(1);
+	}
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   I1+I2 — AS FAIXAS DE RESOLUCAO (dono, 31/08/2026)
+
+   NO FIM DO ARQUIVO, E NAO JUNTO DOS TOKENS. A cicatriz esta escrita em
+   `StatusIdle.css:545`: um bloco `@media` colado logo depois da regra que
+   ele queria vencer nao fazia NADA na pratica, porque em CSS de mesma
+   especificidade quem vence e a ORDEM, e as regras sem media query vinham
+   depois. O arquivo dizia que era responsivo; a tela dizia que nao.
+
+   Cada faixa so REDEFINE token — nenhuma regra de layout mora aqui. Quem
+   desenha continua sendo o CSS de cada componente, lendo o token que
+   atravessou a fronteira do shadow DOM.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* ─── ABAIXO DE 900: o botao "Menu" comeca a alcançar a doca (medido: 840) ── */
+@media (max-width: 899px) {
+	:root,
+	:host {
+		/*
+		 * 214 = 198 + 16, e o `150` que estava aqui era conta errada.
+		 *
+		 * Eu tinha somado a metade da coluna do leque (198/2 = 99) mais o botao
+		 * e a margem, como se o que ocupasse espaco fosse o BOTAO. Nao e: o
+		 * `.tm-menu` inteiro reserva 198px mesmo com o leque fechado — e o
+		 * `min-width` que impede o leque de dar um pulo ao abrir —, e ele mora
+		 * a 16px da borda. A prova pegou: em 700x1000 sobrava uma faixa de
+		 * 23x72px em que o menu e o grupo da doca se cruzavam.
+		 *
+		 * Medir o que a caixa OCUPA, e nao o que ela DESENHA.
+		 */
+		--hud-reserva-do-menu: 214px;
+		--hud-doca-gap: 12px;
+		--hud-doca-orbe: 56px;
+		--hud-doca-consumivel: 48px;
+	}
+}
+
+/* ─── ABAIXO DE 760: o cluster do menu comeca a cobrir o personagem (752) ─── */
+@media (max-width: 759px) {
+	:root,
+	:host {
+		--hud-basic-largura: 210px;
+	}
+}
+
+/* ─── ABAIXO DE 600: celular. Aqui a doca tem de ENCOLHER para caber ─────────
+   Os orbes param em 48px, e nao menos: 44 e o minimo de alvo tatil das
+   diretrizes de toque (WCAG 2.5.5 / Apple HIG), e a prova cobra isso. Se um
+   dia nao couber com 48, o que muda e o ARRANJO — nunca o tamanho do alvo. */
+@media (max-width: 599px) {
+	:root,
+	:host {
+		--hud-basic-largura: 190px;
+		/*
+		 * ZERO, e nao um vao menor: no celular os dois NAO CABEM lado a lado, e
+		 * medir isso foi o que derrubou a primeira tentativa (que reservava
+		 * 88px). A conta e simples e nao tem saida:
+		 *
+		 *   - o `.tm-menu` reserva 198px de largura mesmo com o leque fechado
+		 *     (o `min-width` que impede o pulo ao abrir), mais 16 de margem;
+		 *   - o grupo da doca tem ~292px ja com os orbes no minimo tatil de 48.
+		 *
+		 *   214 + 292 = 506, e a tela tem 390.
+		 *
+		 * Entao eles EMPILHAM: o botao sobe para cima da doca (`.tm-menu`,
+		 * TopMenuIdle.css), e a doca fica com a largura inteira. Encolher mais
+		 * os orbes nao era opcao — 44px e o piso tatil, e e justamente o que o
+		 * dono chamou de "nao esta clicavel".
+		 */
+		--hud-reserva-do-menu: 0px;
+		--hud-doca-gap: 8px;
+		--hud-doca-orbe: 48px;
+		--hud-doca-consumivel: 48px;
+		/*
+		 * O PISO DO RODAPE: por onde passa quem nao pode pisar na doca.
+		 *
+		 * A doca tem `min-height: 96px` (DockIdle.css) e mora em `bottom: 0`,
+		 * entao 104 deixa 8px de respiro. Dois moradores usam isto — o botao
+		 * "Menu" e o CHAT —, e nao por coincidencia: os dois moram no rodape
+		 * em `bottom: 16`, que e DENTRO da faixa da doca.
+		 *
+		 * Em tela larga isso nunca doeu porque eles nao se cruzam em X: o chat
+		 * fica na esquerda e a doca no centro, longe. A colisao em Y sempre
+		 * existiu — e so aparece quando a tela encolhe e o X deixa de separar.
+		 */
+		--hud-acima-da-doca: 104px;
 	}
 }

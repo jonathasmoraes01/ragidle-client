@@ -631,3 +631,22 @@
 #chatbox.is-recolhido .body {
 	cursor: pointer;
 }
+
+/* ═══ I1: EM TELA ESTREITA O CHAT SOBE ACIMA DA DOCA (31/08/2026) ══════════
+   O chat mora em `left:16 / bottom:16`, e a doca ocupa os 96px de baixo em
+   `bottom: 0`. Os dois SEMPRE se cruzaram em Y — o que os separava era o X:
+   o chat na esquerda, o grupo da doca centralizado, longe um do outro.
+
+   Quando a tela encolhe, o X deixa de separar e eles se empilham. Foi um
+   defeito que a `prove:hud-responsiva` so revelou depois de eu tirar o botao
+   "Menu" de cima do chat: enquanto o menu estava la, ELE era o par que a
+   prova reportava, e a doca ficava escondida atras do achado maior.
+
+   Este bloco fica NO FIM do arquivo: em CSS de mesma especificidade quem
+   vence e a ORDEM, e o `#chatbox` de cima viria depois se estivesse junto.
+   ═══════════════════════════════════════════════════════════════════════ */
+@media (max-width: 899px) {
+	#chatbox {
+		bottom: var(--hud-acima-da-doca, 104px);
+	}
+}

@@ -149,6 +149,33 @@ function syncPosition() {
 	}
 	host.style.top = Math.round(rect.bottom + 8) + 'px';
 	host.style.left = Math.round(rect.left) + 'px';
+
+	/*
+	 * PUBLICA O FUNDO DA COLUNA ESQUERDA (I1, 31/08/2026).
+	 *
+	 * Em tela estreita o cluster do menu desce para debaixo desta coluna
+	 * (`TopMenuIdle.css`), e "a coluna" e o painel de personagem MAIS este
+	 * rastreador — que so as vezes existe, e cuja altura muda com o numero de
+	 * missoes na lista.
+	 *
+	 * Descer so ate o fundo do PAINEL foi a primeira tentativa, e a tela
+	 * mostrou o erro: os oito discos do menu cairam em cima do "Primeiros
+	 * Passos". A prova aprovou assim mesmo, porque ela media os alvos dos
+	 * quatro componentes que eu tinha listado e este nao estava entre eles —
+	 * regra 5 na forma exata: contar elemento nao prova que da para ver.
+	 *
+	 * O proprio fundo, e nao um `max()` com o do painel: este componente ja se
+	 * ancora ABAIXO do painel (a linha acima), entao o fundo dele e o fundo dos
+	 * dois. Quando ele nao esta na tela ninguem escreve a propriedade, e o
+	 * `TopMenuIdle` cai no `--hud-basic-fundo`, que o painel publica sempre.
+	 */
+	const meu = host.getBoundingClientRect();
+	if (meu.height > 0) {
+		host.ownerDocument.documentElement.style.setProperty(
+			'--hud-coluna-fundo',
+			`${Math.round(meu.bottom)}px`,
+		);
+	}
 }
 
 function renderSeMudou() {

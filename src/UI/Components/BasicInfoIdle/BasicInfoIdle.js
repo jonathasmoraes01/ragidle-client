@@ -200,6 +200,9 @@ BasicInfoIdle.onAppend = function onAppend() {
 
 	hideNativeBasicInfo();
 	syncFromNativeState();
+	// A caixa vai para a custom property assim que ela EXISTE — quem depende
+	// dela (o cluster do menu, em tela estreita) monta no mesmo quadro.
+	publicarCaixa();
 	startPolling();
 };
 
@@ -287,6 +290,33 @@ function clampPositionToViewport() {
 	const curLeft = parseInt(host.style.left, 10) || 0;
 	host.style.top = Math.min(Math.max(0, curTop), maxTop) + 'px';
 	host.style.left = Math.min(Math.max(0, curLeft), maxLeft) + 'px';
+	publicarCaixa();
+}
+
+/**
+ * PUBLICA A CAIXA MEDIDA deste painel numa custom property (I1, 31/08/2026).
+ *
+ * Em tela estreita o cluster do menu desce para DEBAIXO deste painel (ver
+ * `TopMenuIdle.css`), e para isso alguem precisa saber onde ele termina. A
+ * altura aqui e `auto` de proposito — o corpo tem numero variavel de linhas,
+ * e o "compacto" a muda em tempo real —, entao nao ha numero para cravar.
+ *
+ * ESTIMAR ERRA CALADO, e este projeto ja pagou por isso duas vezes na mesma
+ * semana: a coluna do minimapa foi estimada em 157px (era 184) e a dos botoes
+ * em 34 (era 84), e nos dois casos a sobreposicao que o dono relatou nasceu do
+ * palpite. Medir e publicar e o padrao que o `HuntButtonIdle` ja usa.
+ *
+ * `documentElement` do documento DESTE painel, e nao o da pagina de cima: o
+ * jogo roda num iframe, e escrever a propriedade no topo nao alcanca ninguem.
+ */
+function publicarCaixa() {
+	const host = BasicInfoIdle._host;
+	if (!host) return;
+	const r = host.getBoundingClientRect();
+	if (r.height < 1) return;
+	const raiz = host.ownerDocument.documentElement;
+	raiz.style.setProperty('--hud-basic-altura', `${Math.round(r.height)}px`);
+	raiz.style.setProperty('--hud-basic-fundo', `${Math.round(r.bottom)}px`);
 }
 
 /**
@@ -302,7 +332,17 @@ function hideNativeBasicInfo() {
 
 function startPolling() {
 	stopPolling();
-	_pollTimer = setInterval(syncFromNativeState, POLL_INTERVAL_MS);
+	/*
+	 * A CAIXA VAI JUNTO A CADA TIQUE. A altura deste painel muda em tempo real
+	 * — linhas que aparecem e somem, o modo compacto —, e uma propriedade
+	 * publicada uma vez so envelheceria calada: o cluster do menu montaria
+	 * sobre a altura de antes, e o sintoma seria sobreposicao intermitente,
+	 * que e pior que sobreposicao constante.
+	 */
+	_pollTimer = setInterval(() => {
+		syncFromNativeState();
+		publicarCaixa();
+	}, POLL_INTERVAL_MS);
 }
 
 function stopPolling() {

@@ -42,7 +42,13 @@
 
 :host {
 	position: absolute;
-	width: 246px;
+	/*
+	 * A largura vem do TOKEN (I1, 31/08/2026). Ela era `246px` cravado, e em
+	 * 390px de tela isso e 63% da largura — o painel cobria o cluster do menu
+	 * inteiro, e oito alvos deixavam de receber o toque. O token encolhe em
+	 * duas faixas (Common.css), e a altura continua `auto` como sempre.
+	 */
+	width: var(--hud-basic-largura, 246px);
 }
 
 #BasicInfoIdle {
