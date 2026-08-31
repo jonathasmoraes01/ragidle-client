@@ -328,8 +328,39 @@ const CANAL_DO_FILTRO = {
 	[ChatBox.FILTER.SISTEMA]: 'logs'
 };
 
-function canalDaMensagem(filterType) {
-	return CANAL_DO_FILTRO[filterType] || 'global';
+/*
+ * OS TIPOS QUE SAO LOG, VENHAM DE ONDE VIEREM (31/08/2026, pedido do dono).
+ *
+ * *"No canal de Logs, as mensagens de 'Erro' e 'Aviso' no chat global tambem
+ * devem ser disparadas la."*
+ *
+ * Estas nascem NO CLIENTE — "Faca [3] is put on.", "Faca is taken off." saem de
+ * `Engine/MapEngine/Equipment.js` com `FILTER.PUBLIC_CHAT`, o mesmo filtro da
+ * fala de jogador. O opcode nao ajuda aqui: nao ha pacote a separar, porque o
+ * servidor nem participa.
+ *
+ * O que as separa e o TIPO, e ele ja e estrutural: `ERROR` e `BLUE` (o "Aviso")
+ * sao rotulos do proprio `addText`, escolhidos por quem chama. Rotear por eles
+ * nao e ler texto — e ler a classificacao que a origem ja declarou, que e o
+ * mesmo criterio do filtro.
+ *
+ * `ANNOUNCE` fica de FORA: e o anuncio da staff, que o dono quer no Global.
+ */
+const TIPOS_DE_LOG = ChatBox.TYPE.ERROR | ChatBox.TYPE.BLUE;
+
+/**
+ * O canal de uma mensagem.
+ *
+ * A ORDEM importa: o FILTRO decide primeiro, e o tipo so e consultado quando o
+ * filtro nao tem canal proprio. Sem isso, um "pegou X" do farm (que usa
+ * `TYPE.BLUE`) sairia do canal Farm e cairia no Logs — o dono nao pediu isso, e
+ * o Farm perderia justamente o log que ele existe para juntar.
+ */
+function canalDaMensagem(filterType, colorType) {
+	const doFiltro = CANAL_DO_FILTRO[filterType];
+	if (doFiltro) return doFiltro;
+	if (typeof colorType === 'number' && (colorType & TIPOS_DE_LOG) !== 0) return 'logs';
+	return 'global';
 }
 
 /**
@@ -1177,7 +1208,15 @@ function flushMessageBuffer() {
 	const porCanal = {};
 
 	messages.forEach(msg => {
-		const canal = canalDaMensagem(msg.filterType);
+		/*
+		 * `colorType`, e nao `type`: e o nome do campo no buffer
+		 * (`_messageBuffer.push({ text, colorType, filterType, ... })`).
+		 *
+		 * Passar `msg.type` daria `undefined`, a guarda `typeof === 'number'`
+		 * cairia fora, e TUDO continuaria indo para o global — sem erro, sem
+		 * aviso, com o pedido do dono desfeito em silencio.
+		 */
+		const canal = canalDaMensagem(msg.filterType, msg.colorType);
 		if (!porCanal[canal]) {
 			porCanal[canal] = [];
 		}
