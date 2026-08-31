@@ -315,20 +315,36 @@ function acaoHtml(passe, cash) {
 	if (!passe) {
 		return '';
 	}
-	const podePagar = cash >= passe.cash;
+	/*
+	 * O VEREDITO DO BOTÃO VEM DO SERVIDOR (30/08/2026), e a janela só o desenha.
+	 *
+	 * Aqui havia `podePagar = cash >= passe.cash` — uma SEGUNDA conta da mesma
+	 * regra que o servidor já fazia. Ela acertava enquanto as duas
+	 * concordassem, e o dia em que discordassem o jogador veria a errada:
+	 * a janela é sempre a que perde, porque o servidor recusa depois do clique.
+	 *
+	 * O campo `recusa` chega no payload como `null` (pode comprar) ou o motivo.
+	 * É o mesmo desenho do Codex (D-851), e ele ganhou um segundo motivo com o
+	 * pedido do dono: `ainda-nao-vence` — a renovação só abre no último dia.
+	 */
+	const recusa = passe.recusa || null;
+	const podeComprar = recusa === null;
 	const rotulo = passe.ativo ? 'Renovar' : 'Comprar';
-	const nota = passe.ativo
-		? 'Renovar SOMA ' + escapeHtml(passe.dias) + ' dias ao que falta — você não perde o que já pagou.'
-		: podePagar
-			? 'O valor sai do seu saldo de cash na hora.'
-			: 'Faltam ' + escapeHtml(passe.cash - cash) + ' cash.';
+	const nota =
+		recusa === 'ainda-nao-vence'
+			? 'Seu passe ainda vale. A renovação abre no último dia — assim o cash não fica preso num benefício que você já tem.'
+			: recusa === 'saldo-insuficiente'
+				? 'Faltam ' + escapeHtml(passe.cash - cash) + ' cash.'
+				: passe.ativo
+					? 'Renovar SOMA ' + escapeHtml(passe.dias) + ' dias ao que falta — você não perde o que já pagou.'
+					: 'O valor sai do seu saldo de cash na hora.';
 
 	return (
 		'<div class="pi-acao">' +
 		'<button type="button" class="pi-comprar ri-btn ri-btn--ouro" data-tipo="' +
 		escapeHtml(passe.tipo) +
 		'"' +
-		(podePagar ? '' : ' disabled') +
+		(podeComprar ? '' : ' disabled') +
 		'>' +
 		escapeHtml(rotulo) +
 		' — ' +
