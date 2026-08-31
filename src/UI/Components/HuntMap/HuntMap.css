@@ -749,6 +749,62 @@
 	padding: 2px 0;
 }
 
+/* ─── I6: o alternador das duas visoes de drop (31/08/2026) ──────
+ *
+ * O dono pediu "ter as 2 opcoes", entao isto e um par de abas, e nao um
+ * interruptor: as duas ficam sempre visiveis, com a corrente marcada. Um
+ * toggle escondido faria a visao nova ser descoberta por acidente.
+ */
+#HuntMap .hm-visao {
+	display: flex;
+	gap: 4px;
+	margin-top: 10px;
+}
+
+#HuntMap .hm-visao-btn {
+	flex: 1;
+	padding: 4px 0;
+	font-size: var(--fs-desc);
+	color: var(--text-muted);
+	background: var(--surface-sunken, rgba(0, 0, 0, 0.04));
+	border: 1px solid var(--border-soft, rgba(0, 0, 0, 0.08));
+	border-radius: 4px;
+	cursor: pointer;
+}
+
+#HuntMap .hm-visao-btn:hover {
+	color: var(--text-body);
+}
+
+#HuntMap .hm-visao-btn.is-selected {
+	color: var(--text-title);
+	font-weight: bold;
+	background: var(--surface-raised, #fff);
+	border-color: var(--accent, #0a3da4);
+}
+
+/* A lista do mapa inteiro e mais longa que a de um mob (ate 44 itens no
+ * `gef_dun02`, medido). Sem o teto ela empurraria os botoes de viagem para
+ * fora do painel — e viajar e o motivo de a janela existir. */
+#HuntMap .hm-drops-list--mapa {
+	max-height: 260px;
+	overflow-y: auto;
+}
+
+/* "3 mobs": o aviso de que a chance ao lado e a MELHOR, e nao a unica. O
+ * `title` da linha nomeia cada monstro com a chance dele. */
+#HuntMap .hm-drop-origens {
+	margin-left: 6px;
+	font-size: 0.85em;
+	color: var(--text-muted);
+}
+
+#HuntMap .hm-drops-legenda {
+	margin-left: 6px;
+	font-weight: normal;
+	color: var(--text-muted);
+}
+
 #HuntMap .hm-drops-empty {
 	margin-top: 4px;
 	font-size: var(--fs-desc);

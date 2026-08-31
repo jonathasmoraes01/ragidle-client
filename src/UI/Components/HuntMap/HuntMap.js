@@ -30,6 +30,7 @@ import PACKET from 'Network/PacketStructure.js';
 import UIManager from 'UI/UIManager.js';
 import ChatBox from 'UI/Components/ChatBox/ChatBox.js';
 import GUIComponent from 'UI/GUIComponent.js';
+import { dropsDoMapa } from './dropsDoMapa.js'; // RAGIDLE: a visao agregada (I6)
 import htmlText from './HuntMap.html?raw';
 import cssText from './HuntMap.css?raw';
 import { fecharEEsquecer } from '../limpezaDeJanelaIdle.js';
@@ -149,6 +150,16 @@ HuntMap.sortKey = 'nivel';
  *      to null whenever the selected map changes so the panel falls back
  *      to the first monster of the new map (see onClickCard/renderPanel).
  */
+/**
+ * QUAL VISAO DE DROP o painel mostra (RAGIDLE, I6 — 31/08/2026).
+ *
+ * `'mob'` e a de sempre: escolhe um monstro no chip e ve o drop DELE.
+ * `'mapa'` e a nova: todo o drop do mapa numa lista so, deduplicado.
+ *
+ * O dono pediu "ter as 2 opcoes" com todas as letras, entao a visao por
+ * monstro continua sendo o padrao — quem abre a janela ve o que sempre viu.
+ */
+HuntMap.visaoDeDrop = 'mob';
 HuntMap.selectedMobId = null;
 
 /**
@@ -693,8 +704,22 @@ function renderPanel() {
 				.join('')
 		: '<div class="hm-panel-empty">Nenhum monstro conhecido.</div>';
 
+	/*
+	 * AS DUAS VISOES (RAGIDLE, I6 — 31/08/2026). O dono: "mostrar todo o drop do
+	 * mapa, em vez de separado por mobs (ter as 2 opcoes)". O "ter as 2" e
+	 * explicito, entao a de sempre continua e esta entra ao lado.
+	 */
+	const porMapa = HuntMap.visaoDeDrop === 'mapa';
+	const alternadorHtml = `
+		<div class="hm-visao" role="tablist">
+			<button type="button" class="hm-visao-btn${porMapa ? '' : ' is-selected'}" data-visao="mob" role="tab" aria-selected="${porMapa ? 'false' : 'true'}">Por monstro</button>
+			<button type="button" class="hm-visao-btn${porMapa ? ' is-selected' : ''}" data-visao="mapa" role="tab" aria-selected="${porMapa ? 'true' : 'false'}">Do mapa</button>
+		</div>`;
+
 	const selectedMonster = monstros.find(m => String(m.mobId) === String(HuntMap.selectedMobId));
-	const detailHtml = selectedMonster ? renderMobDetail(selectedMonster, mapa) : '';
+	const detailHtml = porMapa
+		? renderDropsDoMapa(mapa)
+		: (selectedMonster ? renderMobDetail(selectedMonster, mapa) : '');
 
 	let actionsHtml = '';
 	if (isCurrent) {
@@ -714,10 +739,12 @@ function renderPanel() {
 		</div>
 		<div class="hm-panel-section-title">Monstros presentes</div>
 		<div class="hm-chip-grid">${chipsHtml}</div>
+		${alternadorHtml}
 		${detailHtml}
 		<div class="hm-panel-actions">${actionsHtml}</div>`;
 
 	panelEl.querySelectorAll('[data-mob-id]').forEach(chip => chip.addEventListener('click', onClickChip));
+	panelEl.querySelectorAll('[data-visao]').forEach(b => b.addEventListener('click', onClickVisao));
 	const goBtn = panelEl.querySelector('.hm-btn-go');
 	if (goBtn) {
 		goBtn.addEventListener('click', onClickTravel);
@@ -751,6 +778,53 @@ function renderMobDetail(monster, mapa) {
 			<div class="hm-drops-title">Drops</div>
 			${dropsHtml}
 		</div>`;
+}
+
+/**
+ * TODO O DROP DO MAPA, numa lista so (RAGIDLE, I6 — 31/08/2026).
+ *
+ * A REGRA (deduplicar por `itemId`, escolher a MAIOR chance, ordenar de forma
+ * estavel) mora em `dropsDoMapa.js`, num modulo sem imports — e tem teste que a
+ * EXECUTA (`servidor/mapa/drops-do-mapa.test.ts`, 11 casos). Aqui so se desenha.
+ *
+ * A coluna da direita diz "melhor", e nao "chance": medido no catalogo de hoje,
+ * 25 dos 33 mapas tem item que cai de mais de um monstro, e a chance de um item
+ * "no mapa" nao existe no rAthena — ela e por monstro. Somar daria numero
+ * inventado. Quando ha mais de uma origem, a linha mostra de quantas, e o
+ * `title` nomeia cada monstro com a chance dele.
+ */
+function renderDropsDoMapa(mapa) {
+	const linhas = dropsDoMapa(mapa);
+	if (!linhas.length) {
+		return '<div class="hm-mob-detail"><div class="hm-drops-empty">Sem drops conhecidos neste mapa.</div></div>';
+	}
+
+	const itensHtml = linhas
+		.map(l => {
+			const varios = l.deQuantosMobs > 1;
+			const origem = l.monstros
+				.map(m => `${m.nome} ${formatChance(m.chance)}`)
+				.join(' · ');
+			return `
+			<li title="${escapeHtml(origem)}">
+				<span>${escapeHtml(l.nome)}${varios ? `<span class="hm-drop-origens">${l.deQuantosMobs} mobs</span>` : ''}</span>
+				<span>${formatChance(l.melhorChance)}</span>
+			</li>`;
+		})
+		.join('');
+
+	return `
+		<div class="hm-mob-detail">
+			<div class="hm-mob-detail-name">Todo o drop de ${escapeHtml(mapa.rotulo)}</div>
+			<div class="hm-drops-title">${linhas.length} ${linhas.length === 1 ? 'item' : 'itens'} <span class="hm-drops-legenda">melhor chance</span></div>
+			<ul class="hm-drops-list hm-drops-list--mapa">${itensHtml}</ul>
+		</div>`;
+}
+
+function onClickVisao(e) {
+	e.stopImmediatePropagation();
+	HuntMap.visaoDeDrop = e.currentTarget.dataset.visao;
+	renderPanel();
 }
 
 function onClickChip(e) {
