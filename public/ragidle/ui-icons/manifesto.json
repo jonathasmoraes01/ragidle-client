@@ -1,23 +1,68 @@
 {
+	"amigos": {
+		"largura": 128,
+		"altura": 82,
+		"aspecto": 1.56
+	},
 	"analise-de-caca": {
 		"largura": 119,
 		"altura": 128,
 		"aspecto": 0.93
+	},
+	"caca": {
+		"largura": 127,
+		"altura": 128,
+		"aspecto": 0.99
 	},
 	"codex": {
 		"largura": 128,
 		"altura": 80,
 		"aspecto": 1.61
 	},
+	"correio": {
+		"largura": 128,
+		"altura": 89,
+		"aspecto": 1.44
+	},
+	"eventos": {
+		"largura": 126,
+		"altura": 128,
+		"aspecto": 0.99
+	},
+	"grupo": {
+		"largura": 128,
+		"altura": 101,
+		"aspecto": 1.27
+	},
 	"guilda": {
 		"largura": 109,
 		"altura": 128,
 		"aspecto": 0.85
 	},
-	"correio": {
+	"idle": {
 		"largura": 128,
-		"altura": 89,
-		"aspecto": 1.44
+		"altura": 115,
+		"aspecto": 1.11
+	},
+	"inventario": {
+		"largura": 128,
+		"altura": 125,
+		"aspecto": 1.03
+	},
+	"leilao": {
+		"largura": 128,
+		"altura": 128,
+		"aspecto": 1
+	},
+	"loja": {
+		"largura": 126,
+		"altura": 128,
+		"aspecto": 0.98
+	},
+	"missoes": {
+		"largura": 105,
+		"altura": 128,
+		"aspecto": 0.82
 	},
 	"personagem": {
 		"largura": 104,
@@ -29,59 +74,19 @@
 		"altura": 113,
 		"aspecto": 1.14
 	},
-	"eventos": {
-		"largura": 126,
+	"ro-shop": {
+		"largura": 76,
 		"altura": 128,
-		"aspecto": 0.99
-	},
-	"amigos": {
-		"largura": 128,
-		"altura": 82,
-		"aspecto": 1.56
+		"aspecto": 0.59
 	},
 	"skills": {
 		"largura": 123,
 		"altura": 128,
 		"aspecto": 0.96
 	},
-	"grupo": {
-		"largura": 128,
-		"altura": 101,
-		"aspecto": 1.27
-	},
-	"caca": {
-		"largura": 127,
-		"altura": 128,
-		"aspecto": 0.99
-	},
-	"idle": {
-		"largura": 128,
-		"altura": 115,
-		"aspecto": 1.11
-	},
-	"missoes": {
-		"largura": 105,
-		"altura": 128,
-		"aspecto": 0.82
-	},
 	"trade": {
 		"largura": 128,
 		"altura": 115,
 		"aspecto": 1.12
-	},
-	"ro-shop": {
-		"largura": 76,
-		"altura": 128,
-		"aspecto": 0.59
-	},
-	"leilao": {
-		"largura": 128,
-		"altura": 128,
-		"aspecto": 1
-	},
-	"loja": {
-		"largura": 126,
-		"altura": 128,
-		"aspecto": 0.98
 	}
 }

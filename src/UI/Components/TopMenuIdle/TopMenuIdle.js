@@ -860,9 +860,16 @@ function hideToastNow() {
  * Aplica o aro no botao recem-clicado, para a resposta ser IMEDIATA
  * (esperar o tique de 250ms deixaria um atraso perceptivel). Quem mantem o
  * estado honesto dali em diante e pollEstado()/syncAllActiveStates().
+ *
+ * `aria-expanded` anda JUNTO com o aro (onda de icones, 01/09/2026): o glifo
+ * e decorativo (aria-hidden em ri-icones.js) e o rotulo diz O QUE o botao
+ * abre — faltava o leitor de tela saber SE esta aberto, que e exatamente a
+ * informacao que o glow da ao olho. Mesmo estado, dois sentidos.
  */
 function updateActiveState(btn, action) {
-	btn.classList.toggle('is-active', isActionOpen(action));
+	const aberta = isActionOpen(action);
+	btn.classList.toggle('is-active', aberta);
+	btn.setAttribute('aria-expanded', String(aberta));
 }
 
 function isActionOpen(action) {

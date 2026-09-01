@@ -56,11 +56,27 @@
  * do glifo), ou nao existe candidato nenhum pro conceito (loja, roshop,
  * troca, leilao, eventos, passe, menu, admin, grafico).
  *
+ * ATUALIZACAO 01/09/2026 (onda de icones, emenda [DONO-1] assinada) — o dono
+ * entregou um conjunto de 18 ilustracoes proprias para os botoes de
+ * NAVEGACAO, e a regra de iconografia foi emendada: ARTE ILUSTRADA nos
+ * discos de navegacao; traco Lucide continua em todo o resto (slots da
+ * boneca, setas, controles dentro de janela, zeny/cash). As chaves de
+ * navegacao agora chamam `arteUi(nome, <o mesmo glifo de antes>)`, que
+ * resolve para `public/ragidle/ui-icons/<nome>.webp` (gerados por
+ * vite/converter-ui-icons.mjs; de-para completo em docs/ui/mapa-icones.md).
+ * A cadeia de reserva continua a mesma: se o WebP faltar, o onerror troca
+ * pelo glifo vetorial embutido — o botao NUNCA fica vazio.
+ * `auto` segue com a arte do GRF (o conjunto novo nao cobre o conceito).
+ *
+ * Todo <svg> daqui sai com aria-hidden="true": o glifo e DECORATIVO por
+ * contrato — quem carrega nome acessivel e estado e o BOTAO em volta
+ * (title/aria-label/aria-expanded, ver TopMenuIdle.js), nunca o desenho.
+ *
  * @author RagIdle
  */
 
 const svg = (inner) =>
-	`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg">${inner}</svg>`;
+	`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">${inner}</svg>`;
 
 /**
  * Arte REAL do cliente (GRF, pasta ro_menu_icon -- ver
@@ -87,52 +103,70 @@ const svg = (inner) =>
  * outro PNG do cliente -- não é o caso de nenhum consumidor hoje.
  */
 const artReal = (chave, glifoDeReserva) =>
-	`<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><image href="/ragidle/dock-icons/${chave}.png" width="24" height="24" preserveAspectRatio="xMidYMid meet" onerror='this.closest("svg").outerHTML=${JSON.stringify(glifoDeReserva)}'/></svg>`;
+	`<svg viewBox="0 0 24 24" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"><image href="/ragidle/dock-icons/${chave}.png" width="24" height="24" preserveAspectRatio="xMidYMid meet" onerror='this.closest("svg").outerHTML=${JSON.stringify(glifoDeReserva)}'/></svg>`;
+
+/**
+ * Arte ILUSTRADA do dono (onda de icones 01/09/2026, emenda [DONO-1]) --
+ * `public/ragidle/ui-icons/<nome>.webp`, os 18 icones de navegacao gerados
+ * por vite/converter-ui-icons.mjs a partir dos originais 1024x1024 (recorte
+ * na caixa alfa, lado maior 128px; de-para em docs/ui/mapa-icones.md).
+ *
+ * Mesmo embrulho <svg><image> de artReal, e pelos mesmos motivos (o CSS
+ * dimensiona "svg", nao "img"). Duas diferencas de proposito:
+ *
+ * - class="ri-arte" no <svg>: a ilustracao ocupa 62% do disco em vez dos 45%
+ *   do traco Lucide (ver ".ri-disc svg.ri-arte" em Common.css) -- 45% foi
+ *   calibrado pra traco fino de 2px e afogaria a arte.
+ * - O WebP NAO e quadrado (o recorte preserva a proporcao de cada desenho,
+ *   0,59 a 1,61): preserveAspectRatio="xMidYMid meet" centraliza e encaixa
+ *   dentro da caixa quadrada sem esticar.
+ *
+ * A reserva e a mesma cadeia de artReal: WebP faltou -> glifo vetorial
+ * embutido no lugar, botao nunca fica vazio.
+ */
+const arteUi = (nome, glifoDeReserva) =>
+	`<svg viewBox="0 0 24 24" class="ri-arte" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"><image href="/ragidle/ui-icons/${nome}.webp" width="24" height="24" preserveAspectRatio="xMidYMid meet" onerror='this.closest("svg").outerHTML=${JSON.stringify(glifoDeReserva)}'/></svg>`;
 
 const RiIcones = {
-	// ── Personagem — arte REAL (ro_menu_icon/status_1.bmp, busto chibi) com
-	// reserva Lucide "User" (path oficial) se o PNG faltar. ─────────────────
-	personagem: artReal(
+	// ── Personagem — arte ILUSTRADA (retrato do aventureiro) com reserva
+	// Lucide "User" (path oficial) se o WebP faltar. ─────────────────────────
+	personagem: arteUi(
 		'personagem',
 		svg('<circle cx="12" cy="8" r="5"/><path d="M20 21a8 8 0 0 0-16 0"/>')
 	),
 
-	// ── Skills — arte REAL (ro_menu_icon/skill_1.bmp, livro com emblema) com
-	// reserva Lucide "ScrollText" (idioma Lucide — pergaminho com linhas de
+	// ── Skills — arte ILUSTRADA (grimorio sobre estrela arcana) com reserva
+	// Lucide "ScrollText" (idioma Lucide — pergaminho com linhas de
 	// texto e uma ponta enrolada, path exato nao lembrado de cor). ─────────
-	skills: artReal(
+	skills: arteUi(
 		'skills',
 		svg('<path d="M15.5 3H8a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V7.5z"/><path d="M14 3v4a1 1 0 0 0 1 1h4"/><path d="M9 13h6M9 17h4"/>')
 	),
 
-	// ── Inventario / Mochila — arte REAL (ro_menu_icon/item_1.bmp, bau) com
-	// reserva Lucide "Backpack" (idioma Lucide, path exato nao lembrado de
-	// cor, desenhado do zero no mesmo idioma). ──────────────────────────────
-	inventario: artReal(
+	// ── Inventario / Mochila — arte ILUSTRADA (a mochila de couro que o dono
+	// entregou avulsa em 01/09, [DONO-3]) com reserva Lucide "Backpack"
+	// (idioma Lucide, desenhado do zero no mesmo idioma). ────────────────────
+	inventario: arteUi(
 		'inventario',
 		svg('<path d="M6 20V10a6 6 0 0 1 12 0v10"/><path d="M6 20a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2"/><path d="M9 4.4a3 3 0 0 1 6 0"/><rect x="9" y="13" width="6" height="5" rx="1"/>')
 	),
 
-	// ── Equipamento — arte REAL (ro_menu_icon/equip_1.bmp, peitoral) com
-	// reserva Lucide "Shirt" (idioma Lucide — silhueta de camiseta, path
-	// exato nao lembrado de cor). ────────────────────────────────────────────
-	equipamento: artReal(
-		'equipamento',
-		svg('<path d="M8 3 4 6l2 3 2-1v11a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V8l2 1 2-3-4-3-2 2h-2z"/>')
-	),
-
-	// ── Caca — arte REAL (ro_menu_icon/map_1.bmp, pergaminho/mapa) com
-	// reserva Lucide "Map". ──────────────────────────────────────────────────
-	caca: artReal(
+	// ── Caca — arte ILUSTRADA (escudo com espadas cruzadas) com reserva
+	// Lucide "Map" (era o conceito do glifo antigo; a silhueta nova e outra
+	// mas a reserva so aparece por instantes de falha). ─────────────────────
+	caca: arteUi(
 		'caca',
 		svg('<path d="M9 3 3 6v15l6-3 6 3 6-3V3l-6 3-6-3z"/><path d="M9 3v15M15 6v15"/>')
 	),
 
-	// ── Config — arte REAL (ro_menu_icon/option_1.bmp, duas engrenagens) com
+	// ── Config (o botao "Idle" da HUD, abre IdleConfig) — arte ILUSTRADA
+	// (engrenagens; o dono cravou em [DONO-4]: a engrenagem e do IDLE) com
 	// reserva Lucide "Settings" (idioma Lucide, engrenagem simplificada pra
-	// continuar legivel em 12-15px). ─────────────────────────────────────────
-	config: artReal(
-		'config',
+	// continuar legivel em 12-15px). O ARQUIVO chama idle.webp — o nome da
+	// chave e anterior a decisao e os consumidores ja a citam; renomear chave
+	// e mexer em todo HTML por causa de um apelido. ──────────────────────────
+	config: arteUi(
+		'idle',
 		svg('<circle cx="12" cy="12" r="3"/><path d="M12 2.5v3M12 18.5v3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M2.5 12h3M18.5 12h3M4.9 19.1 7 17M17 7l2.1-2.1"/>')
 	),
 
@@ -145,14 +179,27 @@ const RiIcones = {
 	// 19/08/2026, GRF ro_menu_icon/guild_1.bmp -- estandarte com asas): tem a
 	// letra "G" pintada em pixel dentro do bmp, e o design system exige
 	// "glifo puro, sem texto" (redesign/design-system-oficial.md); ver
-	// scripts/icones-de-menu.ts pro resto da investigacao. ──────────────────
-	guilda: svg('<path d="M12 2 20 5v6c0 5-3.4 8.6-8 10-4.6-1.4-8-5-8-10V5z"/>'),
+	// scripts/icones-de-menu.ts pro resto da investigacao. A arte ILUSTRADA
+	// (01/09) resolve o impasse: o brasao proprio do escudo azul nao e letra.──
+	guilda: arteUi(
+		'guilda',
+		svg('<path d="M12 2 20 5v6c0 5-3.4 8.6-8 10-4.6-1.4-8-5-8-10V5z"/>')
+	),
 
-	// ── Grupo — arte REAL (ro_menu_icon/party_1.bmp, dupla chibi + "+") com
-	// reserva Lucide "Users". ────────────────────────────────────────────────
-	grupo: artReal(
+	// ── Grupo — arte ILUSTRADA (dupla chibi ARMADA — o par desarmado e o
+	// `amigos` abaixo) com reserva Lucide "Users". ───────────────────────────
+	grupo: arteUi(
 		'grupo',
 		svg('<circle cx="9" cy="8" r="3"/><path d="M2 21c0-3.9 3.1-6 7-6s7 2.1 7 6"/><circle cx="17.2" cy="8.6" r="2.4"/><path d="M15.6 15.2c2.7.4 4.6 2.2 4.6 5.8"/>')
+	),
+
+	// ── Amigos — chave NOVA da onda de 01/09 ([DONO-5]): ate entao o botao
+	// Amigos desenhava o MESMO icone do Grupo — dois rotulos, uma figura. A
+	// arte ilustrada tem o par DESARMADO para Amigos e o armado para Grupo.
+	// Reserva Lucide "Heart-Handshake" simplificado (idioma Lucide). ─────────
+	amigos: arteUi(
+		'amigos',
+		svg('<circle cx="8" cy="8.5" r="3"/><path d="M1.5 21c0-3.6 2.9-5.5 6.5-5.5"/><circle cx="16" cy="8.5" r="3"/><path d="M12.2 21c.6-3.3 3.2-5.5 6.3-5.5 1.4 0 2.7.4 3.7 1.1"/>')
 	),
 
 	// ── Correio — arte REAL, mas NAO de ro_menu_icon: o candidato de la
@@ -162,7 +209,10 @@ const RiIcones = {
 	// limpo veio do rodexsystem (icon_status_mail_received.bmp, 24x24), que e
 	// a arte que a propria lista de correio nativa usa por linha
 	// (Rodex.js:174). Reserva Lucide "Mail" se o PNG faltar. ──────────────
-	correio: artReal(
+	// A arte ILUSTRADA (01/09) e o envelope com selo de cera. O PNG do
+	// rodexsystem continua em dock-icons/ porque a LISTA do CorreioIdle usa
+	// os dois estados dele por linha (CorreioIdle.js) — aqui era so o botao.
+	correio: arteUi(
 		'correio',
 		svg('<rect x="2.5" y="5" width="19" height="14" rx="2"/><path d="m3 6.5 9 6.5 9-6.5"/>')
 	),
@@ -172,8 +222,11 @@ const RiIcones = {
 	// (quest_1.bmp) tem ponto de exclamação PINTADO no glifo, a mesma
 	// reprovação de guilda="G"/zeny="Z" (o DS proíbe texto/símbolo tipográfico
 	// dentro do glifo) — fica 100% Lucide. ──────────────────────────────────
-	missoes: svg(
-		'<path d="m3 6.5 1.8 1.8L8.3 4.8"/><path d="m3 16.5 1.8 1.8 3.5-3.5"/><path d="M13 6h8"/><path d="M13 12h8"/><path d="M13 18h8"/>'
+	// Desde 01/09 tem arte ILUSTRADA (prancheta com marcas de feito) — o
+	// ponto de exclamacao que reprovava o candidato do GRF nao existe nela.
+	missoes: arteUi(
+		'missoes',
+		svg('<path d="m3 6.5 1.8 1.8L8.3 4.8"/><path d="m3 16.5 1.8 1.8 3.5-3.5"/><path d="M13 6h8"/><path d="M13 12h8"/><path d="M13 18h8"/>')
 	),
 
 	// ── Codex (D-851) — (idioma Lucide, "BookOpen": livro aberto). Sem
@@ -186,41 +239,51 @@ const RiIcones = {
 	// confundem na tela, e os dois botoes moram em lugares diferentes (cluster
 	// e leque). Se um dia o `skills` perder o PNG, o par fica ambiguo: e o
 	// ponto em que este glifo precisa mudar.
-	codex: svg(
-		'<path d="M12 7v14"/><path d="M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z"/>'
+	codex: arteUi(
+		'codex',
+		svg('<path d="M12 7v14"/><path d="M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z"/>')
 	),
 
-	// ── Loja — (idioma Lucide, "Store"). ────────────────────────────────────
-	loja: svg(
-		'<path d="M3 9 4 4h16l1 5"/><path d="M4 9v10a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1V9"/><path d="M3 9h18"/><path d="M9 20v-5a3 3 0 0 1 6 0v5"/>'
+	// ── Loja — arte ILUSTRADA (barraca de madeira) com reserva Lucide
+	// "Store". ───────────────────────────────────────────────────────────────
+	loja: arteUi(
+		'loja',
+		svg('<path d="M3 9 4 4h16l1 5"/><path d="M4 9v10a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1V9"/><path d="M3 9h18"/><path d="M9 20v-5a3 3 0 0 1 6 0v5"/>')
 	),
 
-	// ── RO Shop — Lucide "Gem". ──────────────────────────────────────────────
-	roshop: svg(
-		'<path d="M6 3h12l3 6-9 12L3 9z"/><path d="M3 9h18M9 3l3 6 3-6M9 9l3 12 3-12"/>'
+	// ── RO Shop — arte ILUSTRADA (cristal iridescente) com reserva Lucide
+	// "Gem". ─────────────────────────────────────────────────────────────────
+	roshop: arteUi(
+		'ro-shop',
+		svg('<path d="M6 3h12l3 6-9 12L3 9z"/><path d="M3 9h18M9 3l3 6 3-6M9 9l3 12 3-12"/>')
 	),
 
-	// ── Troca — Lucide "Repeat". ─────────────────────────────────────────────
-	troca: svg(
-		'<path d="M17 2l4 4-4 4"/><path d="M3 6h18"/><path d="M7 22l-4-4 4-4"/><path d="M21 18H3"/>'
+	// ── Troca — arte ILUSTRADA (setas de mao dupla) com reserva Lucide
+	// "Repeat". O ARQUIVO chama trade.webp (nome que o dono deu a arte). ─────
+	troca: arteUi(
+		'trade',
+		svg('<path d="M17 2l4 4-4 4"/><path d="M3 6h18"/><path d="M7 22l-4-4 4-4"/><path d="M21 18H3"/>')
 	),
 
-	// ── Leilao — (idioma Lucide, "Gavel" nao existe no set classico que
-	// temos de cor, desenhado do zero no mesmo idioma). ─────────────────────
-	leilao: svg(
-		'<path d="M17.5 3.5l3 3-4.5 4.5-3-3z"/><path d="M13 8l-9 9"/><path d="M9 12l3 3"/><path d="M4 20h9"/>'
+	// ── Leilao — arte ILUSTRADA (martelo de leiloeiro) com reserva no idioma
+	// Lucide (desenhado do zero, "Gavel" nao lembrado de cor). ───────────────
+	leilao: arteUi(
+		'leilao',
+		svg('<path d="M17.5 3.5l3 3-4.5 4.5-3-3z"/><path d="M13 8l-9 9"/><path d="M9 12l3 3"/><path d="M4 20h9"/>')
 	),
 
-	// ── Recompensas — arte REAL (ro_menu_icon/achievement_1.bmp, trofeu) com
-	// reserva Lucide "Gift". ─────────────────────────────────────────────────
-	recompensas: artReal(
+	// ── Recompensas — arte ILUSTRADA (bau de tesouro com gemas) com reserva
+	// Lucide "Gift". ─────────────────────────────────────────────────────────
+	recompensas: arteUi(
 		'recompensas',
 		svg('<rect x="3" y="8" width="18" height="4" rx="1"/><path d="M12 8v13M5 12v7a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-7"/><path d="M12 8C9.5 3.5 5.5 4.5 5.5 7c0 1.5 2.5 1 6.5 1zM12 8c2.5-4.5 6.5-3.5 6.5-1 0 1.5-2.5 1-6.5 1z"/>')
 	),
 
-	// ── Eventos — Lucide "Calendar". ─────────────────────────────────────────
-	eventos: svg(
-		'<rect x="3" y="4.5" width="18" height="16" rx="2"/><path d="M16 2.5v4M8 2.5v4M3 10h18"/>'
+	// ── Eventos — arte ILUSTRADA (calendario) com reserva Lucide
+	// "Calendar". ────────────────────────────────────────────────────────────
+	eventos: arteUi(
+		'eventos',
+		svg('<rect x="3" y="4.5" width="18" height="16" rx="2"/><path d="M16 2.5v4M8 2.5v4M3 10h18"/>')
 	),
 
 	// ── Passe — Lucide "Ticket". ─────────────────────────────────────────────
@@ -245,8 +308,13 @@ const RiIcones = {
 	// mesma faixa. Duas moedas parecidas na mesma linha seriam pior que uma. ──
 	cash: svg('<path d="M6 3h12l4 6-10 12L2 9z"/><path d="M11 3 8 9l4 12 4-12-3-6"/><path d="M2 9h20"/>'),
 
-	// ── Grafico — Lucide "BarChart3" (botao status compacto da HUD). ────────
-	grafico: svg('<path d="M3 3v18h18"/><path d="M7 16v-4M12 16V8M17 16v-7"/>'),
+	// ── Grafico — arte ILUSTRADA (barras com seta subindo; o dono confirmou
+	// em [DONO-2]: esta chave e a Analise de Caca e mais nada) com reserva
+	// Lucide "BarChart3". O ARQUIVO chama analise-de-caca.webp. ──────────────
+	grafico: arteUi(
+		'analise-de-caca',
+		svg('<path d="M3 3v18h18"/><path d="M7 16v-4M12 16V8M17 16v-7"/>')
+	),
 
 	// ── Admin — (idioma Lucide, "Wrench"). ───────────────────────────────────
 	admin: svg(

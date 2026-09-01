@@ -364,6 +364,15 @@ ui-button {
 	--radius-bar: 3px;
 	--hit-touch: 44px;
 
+	/* Diametros de disco (.ri-disc) — as TRES variantes que a HUD usa, com
+	   nome proprio para o inventario da onda de icones (01/09/2026) em vez de
+	   quatro numeros soltos por componente. O orbe da doca ja tinha token
+	   (--hud-doca-orbe: 64px). O botao inteiro (disco + rotulo + respiro)
+	   continua sendo quem cumpre --hit-touch, nao o disco sozinho. */
+	--disc-menu: 42px; /* cluster e leque do TopMenuIdle */
+	--disc-fab: 52px; /* o botao Menu que abre o leque */
+	--disc-alca: 26px; /* alcas de recolher (cluster, chat) */
+
 	/* ─── O CANTO SUPERIOR DIREITO DA HUD (I4, 31/08/2026 — pedido do dono) ───
 
 	   "Atualmente os buffs ativos estao aparecendo em cima do mapa, precisa
@@ -465,6 +474,16 @@ ui-button {
 	--dur-slow: 380ms;
 	--ease-out: cubic-bezier(0.22, 0.61, 0.36, 1);
 	--ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+	/* O gemeo de aceleracao do --ease-out (espelho exato da curva: quem chega
+	   DESACELERA, quem sai ACELERA — diretriz de easing da onda de icones,
+	   01/09/2026). E para SAIDA: fechar janela, apagar glow. */
+	--ease-in: cubic-bezier(0.64, 0, 0.78, 0.39);
+	/* A coreografia de abrir/fechar janela — e o GLOW do botao que a abriu — le
+	   ESTES dois nomes, nunca --dur-* direto: a exigencia da onda e que a
+	   janela e o glow andem JUNTOS, e dois numeros soltos poderiam divergir em
+	   silencio. Fechar mais curto que abrir e deliberado (saida acelera). */
+	--dur-janela-abre: var(--dur-base);
+	--dur-janela-fecha: var(--dur-fast);
 	--press-shift: translateY(1px);
 
 	/* Valores que o design system leu DESTE fork e devolveu como token — os
@@ -580,6 +599,60 @@ ui-button {
 	color: var(--text-body);
 	font-family: var(--font-ui);
 	overflow: hidden;
+}
+
+/* ─── A animacao unica de abrir/fechar janela (onda de icones, 01/09/2026).
+
+   OPT-IN pela classe ".ri-anima" no MESMO elemento que carrega o padrao
+   "display:none → .is-open" (o .xx-window de cada janela idle). Nao mora em
+   ".ri-window" de proposito: janelas sem o padrao is-open (WinLoginV2, popups
+   nativos) ficariam com opacity 0 permanente.
+
+   Como funciona sem tocar no JS de nenhuma janela: o par
+   "transition-behavior: allow-discrete" + "@starting-style" anima a PROPRIA
+   troca de display — na entrada, o navegador parte do @starting-style; na
+   saida, o display:none so se consuma quando a transicao termina. Navegador
+   sem suporte (raro em 2026) ignora e a janela abre/fecha seca, que e
+   exatamente o comportamento de antes — degradacao, nao quebra.
+
+   A dupla de tokens (--dur-janela-abre/fecha + --ease-out/in) e a MESMA que
+   acende e apaga o glow do botao em ".ri-disc": janela e botao andam juntos
+   por construcao, nao por coincidencia de numeros.
+
+   Durante a saida a janela ainda esta pintada mas ja nao existe para o
+   jogador: pointer-events:none imediato, senao 150ms de vidro invisivel
+   engolindo o clique que fechou — a familia de defeito do gate de clique. */
+@media (prefers-reduced-motion: no-preference) {
+	.ri-anima {
+		opacity: 0;
+		transform: translateY(6px) scale(0.98);
+		transition:
+			opacity var(--dur-janela-fecha) var(--ease-in),
+			transform var(--dur-janela-fecha) var(--ease-in),
+			display var(--dur-janela-fecha) allow-discrete,
+			overlay var(--dur-janela-fecha) allow-discrete;
+	}
+
+	.ri-anima.is-open {
+		opacity: 1;
+		transform: none;
+		transition:
+			opacity var(--dur-janela-abre) var(--ease-out),
+			transform var(--dur-janela-abre) var(--ease-out),
+			display var(--dur-janela-abre) allow-discrete,
+			overlay var(--dur-janela-abre) allow-discrete;
+	}
+
+	@starting-style {
+		.ri-anima.is-open {
+			opacity: 0;
+			transform: translateY(6px) scale(0.98);
+		}
+	}
+}
+
+.ri-anima:not(.is-open) {
+	pointer-events: none;
 }
 
 /* Header: gradiente azul-claro, titulo central, asas nas laterais do titulo */
@@ -859,11 +932,16 @@ ui-button {
 	border: 1px solid var(--border-gold);
 	box-shadow: var(--shadow-float), var(--rim-light);
 	color: var(--blue-600);
+	/* SAIDA (perder hover, apagar o glow de ativo): a duracao de FECHAR
+	   janela, acelerando (--ease-in). O par de entrada mora na regra
+	   ".is-active" abaixo — e assim que o glow apaga JUNTO com a janela que
+	   fecha, em vez de cortar seco no tique do polling. */
 	transition:
-		box-shadow var(--dur-fast) var(--ease-out),
+		box-shadow var(--dur-janela-fecha) var(--ease-in),
 		transform var(--dur-fast) var(--ease-out),
-		background var(--dur-fast) var(--ease-out),
-		border-color var(--dur-fast) var(--ease-out);
+		background var(--dur-janela-fecha) var(--ease-in),
+		color var(--dur-janela-fecha) var(--ease-in),
+		border-color var(--dur-janela-fecha) var(--ease-in);
 }
 
 /* O <svg> injetado (ri-icones.js) nao carrega width/height proprio — 45% do
@@ -873,6 +951,30 @@ ui-button {
 	display: block;
 	width: 45%;
 	height: 45%;
+}
+
+/* Glifo de ARTE ILUSTRADA (emenda do DS, [DONO-1] 01/09/2026): os 45% acima
+   foram calibrados para traco Lucide de 2px; a ilustracao ja carrega massa,
+   sombra e recorte proprios e a 45% viraria um selo perdido no meio do disco.
+   Se o WebP faltar, o onerror de arteUi() troca o <svg> INTEIRO pelo glifo
+   Lucide de reserva — que nao carrega esta classe e volta sozinho aos 45%
+   certos para traco fino. */
+.ri-disc svg.ri-arte {
+	width: 62%;
+	height: 62%;
+}
+
+/* ENTRADA (acender o glow): a duracao de ABRIR janela, desacelerando — o
+   espelho da saida declarada na base. ".is-active .ri-disc" cobre quem marca
+   o estado no PAI (TopMenuIdle poe .is-active no botao, nao no disco). */
+.ri-disc.is-active,
+.is-active .ri-disc {
+	transition:
+		box-shadow var(--dur-janela-abre) var(--ease-out),
+		transform var(--dur-fast) var(--ease-out),
+		background var(--dur-janela-abre) var(--ease-out),
+		color var(--dur-janela-abre) var(--ease-out),
+		border-color var(--dur-janela-abre) var(--ease-out);
 }
 
 .ri-disc.is-active {

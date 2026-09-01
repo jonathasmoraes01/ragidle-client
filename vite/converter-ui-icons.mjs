@@ -25,7 +25,7 @@
  */
 
 import sharp from 'sharp';
-import { readdir, mkdir, writeFile } from 'node:fs/promises';
+import { readdir, mkdir, readFile, writeFile } from 'node:fs/promises';
 import { join, extname, basename } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -42,6 +42,8 @@ const DESTINO = join(RAIZ, 'public', 'ragidle', 'ui-icons');
  * fica óbvio e nenhuma referência precisa ser reescrita duas vezes.
  */
 const NOMES = new Map([
+	// entregue depois do lote (01/09, decisao [DONO-3]): a mochila que faltava
+	['backpack', 'inventario'],
 	['analysis_icon', 'analise-de-caca'],
 	['character_portrait', 'personagem'],
 	['codex_icon', 'codex'],
@@ -150,9 +152,22 @@ async function main() {
 	}
 
 	// Manifesto: o componente lê daqui em vez de cada tela adivinhar a proporção.
-	const manifesto = Object.fromEntries(
-		feitos.map((f) => [f.nome, { largura: Number(f.saidaTam.split('x')[0]), altura: Number(f.saidaTam.split('x')[1]), aspecto: f.aspecto }])
-	);
+	// FUNDE com o que já existe — um lote pode chegar depois (foi o caso do
+	// backpack) e não pode apagar as entradas dos outros.
+	let manifesto = {};
+	try {
+		manifesto = JSON.parse(await readFile(join(DESTINO, 'manifesto.json'), 'utf8'));
+	} catch {
+		/* primeira rodada: não existe ainda */
+	}
+	for (const f of feitos) {
+		manifesto[f.nome] = {
+			largura: Number(f.saidaTam.split('x')[0]),
+			altura: Number(f.saidaTam.split('x')[1]),
+			aspecto: f.aspecto,
+		};
+	}
+	manifesto = Object.fromEntries(Object.entries(manifesto).sort(([a], [b]) => a.localeCompare(b)));
 	await writeFile(join(DESTINO, 'manifesto.json'), JSON.stringify(manifesto, null, '\t') + '\n', 'utf8');
 
 	console.table(feitos);

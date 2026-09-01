@@ -45,7 +45,7 @@ O projeto não depende mais da pasta Downloads.
 
 | destino | o que é | peso |
 |---|---|---|
-| `public/ragidle/ui-icons/*.webp` | os 17 que o jogo carrega, recortados na caixa alfa, lado maior 128 px | **127 KB** no total |
+| `public/ragidle/ui-icons/*.webp` | os **18** que o jogo carrega (17 do lote + a mochila avulsa de 01/09), recortados na caixa alfa, lado maior 128 px | **135 KB** no total |
 | `public/ragidle/ui-icons/manifesto.json` | largura/altura/aspecto de cada um, para o componente não adivinhar proporção | 1 KB |
 | `arte-fonte/ui-icons/*.png` | os originais 1024², arquivados para reexportar | 5,2 MB |
 | `vite/converter-ui-icons.mjs` | o conversor, com o porquê de cada escolha no cabeçalho | — |
@@ -78,11 +78,11 @@ alcança todos os consumidores dela de uma vez.
 | `troca` | Lucide | `trade.webp` | [TopMenuIdle.html:276](../../src/UI/Components/TopMenuIdle/TopMenuIdle.html#L276) | ganha arte |
 | `leilao` | Lucide | `leilao.webp` | [TopMenuIdle.html:281](../../src/UI/Components/TopMenuIdle/TopMenuIdle.html#L281) | ganha arte |
 | `eventos` | Lucide | `eventos.webp` | [TopMenuIdle.html:286](../../src/UI/Components/TopMenuIdle/TopMenuIdle.html#L286) | ganha arte |
-| `grafico` | Lucide (barras) | `analise-de-caca.webp` | [TopMenuIdle.html:108](../../src/UI/Components/TopMenuIdle/TopMenuIdle.html#L108) | ver `[DONO-2]` |
-| `inventario` | `dock-icons/inventario.png` | **PENDENTE** | [TopMenuIdle.html:25](../../src/UI/Components/TopMenuIdle/TopMenuIdle.html#L25), [CombatCornerIdle.html:11](../../src/UI/Components/CombatCornerIdle/CombatCornerIdle.html#L11) | ver `[DONO-3]` |
-| `auto` | `dock-icons/auto.png` | **PENDENTE** | [DockIdle.html:16](../../src/UI/Components/DockIdle/DockIdle.html#L16), [CombatCornerIdle.html:6](../../src/UI/Components/CombatCornerIdle/CombatCornerIdle.html#L6) | ver `[DONO-4]` |
-| `config` | `dock-icons/config.png` (engrenagens) | **PENDENTE** | [TopMenuIdle.html:94](../../src/UI/Components/TopMenuIdle/TopMenuIdle.html#L94) | ver `[DONO-4]` |
-| `amigos` (chave nova) | hoje reusa `grupo` | `amigos.webp` | [TopMenuIdle.html:183](../../src/UI/Components/TopMenuIdle/TopMenuIdle.html#L183) | ver `[DONO-5]` |
+| `grafico` | Lucide (barras) | `analise-de-caca.webp` | [TopMenuIdle.html:108](../../src/UI/Components/TopMenuIdle/TopMenuIdle.html#L108) | ✅ `[DONO-2]` confirmou |
+| `inventario` | `dock-icons/inventario.png` | `inventario.webp` | [TopMenuIdle.html:25](../../src/UI/Components/TopMenuIdle/TopMenuIdle.html#L25), [CombatCornerIdle.html:11](../../src/UI/Components/CombatCornerIdle/CombatCornerIdle.html#L11) | ✅ mochila entregue em 01/09 (`[DONO-3]`) |
+| `auto` | `dock-icons/auto.png` | **fica o do GRF** | [DockIdle.html:16](../../src/UI/Components/DockIdle/DockIdle.html#L16), [CombatCornerIdle.html:6](../../src/UI/Components/CombatCornerIdle/CombatCornerIdle.html#L6) | conjunto novo não cobre o conceito |
+| `config` (botão "Idle") | `dock-icons/config.png` (engrenagens) | `idle.webp` | [TopMenuIdle.html:94](../../src/UI/Components/TopMenuIdle/TopMenuIdle.html#L94) | ✅ `[DONO-4]`: engrenagem é do Idle |
+| `amigos` (chave nova) | reusava `grupo` | `amigos.webp` | [TopMenuIdle.html:183](../../src/UI/Components/TopMenuIdle/TopMenuIdle.html#L183) | ✅ `[DONO-5]` confirmou |
 
 **Nota A — o correio resolve-se por código, não por asset.** Hoje existem dois
 PNGs (`correio` e `correioLido`) e o JS troca o `src` conforme houver carta não
@@ -119,7 +119,25 @@ Fase 2, viram remoção.
 - `config` (configurações) — `[DONO-4]`
 - `auto` (automação idle) — `[DONO-4]`
 
-## 5. Decisões que preciso de você
+## 5. Decisões — TODAS RESPONDIDAS em 01/09/2026, e executadas na Fase 2
+
+O texto original das cinco perguntas fica abaixo como registro. As respostas:
+
+- **`[DONO-1]`** "pode fazer o que achar melhor" → emenda formalizada: **arte
+  ilustrada nos discos de navegação; traço Lucide em todo o resto** (slots da
+  boneca, setas, `zeny`/`cash`, controles internos). Registrada no cabeçalho
+  de `ri-icones.js` e na seção 6 deste documento.
+- **`[DONO-2]`** "faça como achar melhor" → `grafico` = Análise de Caça,
+  aplicado.
+- **`[DONO-3]`** mochila entregue em anexo (1024², alfa OK) → convertida como
+  `inventario.webp`; original arquivado em `arte-fonte/ui-icons/inventario.png`.
+- **`[DONO-4]`** "coloque no idle" → a engrenagem foi para o botão **Idle**
+  (chave `config`, que abre a Configuração de Caça). `auto` continua com a
+  arte do GRF e Configurações continua no menu ESC, sem ícone novo.
+- **`[DONO-5]`** "isso mesmo" → chave `amigos` criada; o botão Amigos deixou
+  de repetir a figura do Grupo.
+
+### O texto original das perguntas (registro)
 
 **`[DONO-1]` — o design system proíbe o que estes ícones são.**
 O documento oficial diz, na seção de iconografia: *"O glifo é traço de 2px com
@@ -196,7 +214,32 @@ do dono). Na Fase 2 vou medir o contraste real e trazer opção — provavelment
 uma variante de disco mais escura para os glifos claros, ou uma sombra interna
 no glifo. Fica como decisão a apresentar **com medida**, não como palpite.
 
-## 7. O que NÃO foi tocado
+## 7. O que a Fase 2 executou (01/09/2026, na sequência das respostas)
 
-Nenhuma referência de código foi alterada. `dock-icons/` continua no lugar e o
-jogo continua carregando os ícones antigos. A troca é Fase 2.
+- `ri-icones.js` ganhou `arteUi(nome, reserva)` → `/ragidle/ui-icons/<nome>.webp`
+  com `class="ri-arte"` e a MESMA cadeia de reserva de `artReal` (WebP faltou →
+  glifo vetorial no lugar). **17 chaves** migradas + a chave nova `amigos`.
+- `.ri-disc svg.ri-arte { width/height: 62% }` em `Common.css` — a ilustração
+  ocupa 62% do disco (o 45% do DS continua valendo para traço Lucide, e a
+  reserva volta sozinha a ele porque o `onerror` troca o `<svg>` inteiro).
+- Glow sincronizado: o disco em repouso transiciona com
+  `--dur-janela-fecha`/`--ease-in` e o ativo com `--dur-janela-abre`/`--ease-out`
+  — os MESMOS tokens da animação de janela `.ri-anima` (aplicada às 12 janelas
+  idle). Medido quadro a quadro: abertura desacelera, fechamento acelera, e o
+  `display:none` só se consuma com opacidade 0.
+- Tokens novos: `--ease-in`, `--dur-janela-abre/fecha`,
+  `--disc-menu/fab/alca`.
+- `aria-expanded` acompanha o aro em `updateActiveState()`; todo `<svg>` de
+  `ri-icones.js` sai `aria-hidden="true"`.
+- Removidos: a chave `equipamento` (órfã) e 8 PNGs de `dock-icons/`
+  (personagem, skills, inventario, equipamento, caca, config, grupo,
+  recompensas). Ficaram `auto.png` (ainda em uso) e `correio*.png` (a lista
+  do CorreioIdle usa os dois estados por linha — vira badge na reforma da
+  janela, Fase 3). Atenção: `rag-idle-master/scripts/icones-de-menu.ts`
+  REGERA os 8 se rodar — o mapa `APROVADOS` dele ficou obsoleto de propósito
+  (fora do escopo do cliente); quem mexer nele depois, pode-o enxugar.
+- Pranchas antes/depois em `docs/ui/prints/fase-2/`.
+
+Pendência de design assumida: `skills` (traço laranja fino) e `ro-shop`
+(cristal claro) são os dois glifos mais fracos sobre o disco claro — ver a
+seção de contraste acima; opção medida vem na Fase 3 junto com a auditoria.
