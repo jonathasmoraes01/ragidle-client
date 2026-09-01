@@ -293,7 +293,7 @@ function cardDeMissao(m) {
 	const recompensas =
 		m.recompensas && m.recompensas.length
 			? `<p class="mi-recompensas">Recompensas: ${m.recompensas
-					.map(r => escapeHtml(r.item ? `${r.quantidade}x ${r.item}` : `${r.quantidade} ${r.tipo}`))
+					.map(r => escapeHtml(r.rotulo))
 					.join(', ')}</p>`
 			: '';
 

@@ -677,6 +677,18 @@ function renderGeral() {
 				<input type="checkbox" data-bool="coletarItens" ${cfg.coletarItens ? 'checked' : ''} />
 				<span>Coletar itens automaticamente</span>
 			</label>
+			<div class="ri-divisor"></div>
+			<!--
+				D-653 especificou este interruptor E ele nunca existiu: o servidor
+				tinha contrato, padrão, validação e DOIS consumidores, e a aba
+				Geral tinha só os dois de cima. Durante a missão o autômato ficava
+				preso à espécie-alvo sem o jogador ter como soltar. Portão:
+				`servidor/idle/controle-na-tela.test.ts`.
+			-->
+			<label class="ic-checkbox-row">
+				<input type="checkbox" data-bool="atacarTodosNaMissao" ${cfg.atacarTodosNaMissao ? 'checked' : ''} />
+				<span>Atacar todos os monstros durante missões</span>
+			</label>
 		</div>
 		<div class="ic-section ic-section-tip">
 			<h3>Próximos passos</h3>

@@ -94,28 +94,37 @@ const POLL_INTERVAL_MS = 250;
  * common 2nd jobs, same spirit as HuntMap's RACE_PT/ELEMENT_PT dictionaries,
  * HuntMap.js:45-72) — anything not listed here just falls back to
  * MonsterTable's English name instead of failing.
+ *
+ * A VERDADE E DO SERVIDOR, e nao deste dicionario (01/09/2026). Ate hoje ele
+ * divergia em cinco — Acolyte, Thief, Crusader, Rogue e Dancer —, e o jogador
+ * lia "Ladino" neste painel e "Skills de Gatuno" no titulo da janela ao lado.
+ * Os valores das classes JOGAVEIS espelham `nomePtDaClasse`
+ * (`servidor/classes.ts`), que usa os nomes do RO brasileiro. Ha portao:
+ * `servidor/classes-no-fork.test.ts` le este literal e reprova nomeando a
+ * classe que divergir. As classes fora de CLASSES_JOGAVEIS (Super Novice,
+ * Gunslinger, 3o grau) seguem livres — o servidor nao as joga.
  */
 const JOB_PT = {
 	Novice: 'Aprendiz',
 	Swordman: 'Espadachim',
 	Mage: 'Mago',
 	Archer: 'Arqueiro',
-	Acolyte: 'Acólito',
+	Acolyte: 'Noviço',
 	Merchant: 'Mercador',
-	Thief: 'Ladino',
+	Thief: 'Gatuno',
 	Knight: 'Cavaleiro',
 	Priest: 'Sacerdote',
 	Wizard: 'Bruxo',
 	Blacksmith: 'Ferreiro',
 	Hunter: 'Caçador',
 	Assassin: 'Assassino',
-	Crusader: 'Cruzado',
+	Crusader: 'Templário',
 	Monk: 'Monge',
 	Sage: 'Sábio',
-	Rogue: 'Vigarista',
+	Rogue: 'Arruaceiro',
 	Alchemist: 'Alquimista',
 	Bard: 'Bardo',
-	Dancer: 'Dançarina',
+	Dancer: 'Odalisca',
 	'Super Novice': 'Super Aprendiz',
 	Gunslinger: 'Atirador',
 	Ninja: 'Ninja'

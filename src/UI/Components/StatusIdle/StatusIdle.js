@@ -272,28 +272,37 @@ const METADES = [
  * PT-BR label for the handful of common jobs, keyed off MonsterTable's
  * (English) name — own local copy of BasicInfoIdle.js's JOB_PT dictionary
  * (see this file's header for why it's not shared/imported).
+ *
+ * A VERDADE E DO SERVIDOR, e nao deste dicionario (01/09/2026). Ate hoje ele
+ * divergia em cinco — Acolyte, Thief, Crusader, Rogue e Dancer —, e o jogador
+ * lia "Ladino" neste painel e "Skills de Gatuno" no titulo da janela ao lado.
+ * Os valores das classes JOGAVEIS espelham `nomePtDaClasse`
+ * (`servidor/classes.ts`), que usa os nomes do RO brasileiro. Ha portao:
+ * `servidor/classes-no-fork.test.ts` le este literal e reprova nomeando a
+ * classe que divergir. As classes fora de CLASSES_JOGAVEIS (Super Novice,
+ * Gunslinger, 3o grau) seguem livres — o servidor nao as joga.
  */
 const JOB_PT = {
 	Novice: 'Aprendiz',
 	Swordman: 'Espadachim',
 	Mage: 'Mago',
 	Archer: 'Arqueiro',
-	Acolyte: 'Acólito',
+	Acolyte: 'Noviço',
 	Merchant: 'Mercador',
-	Thief: 'Ladino',
+	Thief: 'Gatuno',
 	Knight: 'Cavaleiro',
 	Priest: 'Sacerdote',
 	Wizard: 'Bruxo',
 	Blacksmith: 'Ferreiro',
 	Hunter: 'Caçador',
 	Assassin: 'Assassino',
-	Crusader: 'Cruzado',
+	Crusader: 'Templário',
 	Monk: 'Monge',
 	Sage: 'Sábio',
-	Rogue: 'Vigarista',
+	Rogue: 'Arruaceiro',
 	Alchemist: 'Alquimista',
 	Bard: 'Bardo',
-	Dancer: 'Dançarina',
+	Dancer: 'Odalisca',
 	'Super Novice': 'Super Aprendiz',
 	Gunslinger: 'Atirador',
 	Ninja: 'Ninja'
