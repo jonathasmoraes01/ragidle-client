@@ -1,3 +1,8 @@
+/* Fase 3 (01/09/2026): a loja de cash saiu dos bitmaps (img_shop_bg e
+   familia) e entrou no design system — vidro claro, aro dourado, abas com
+   rotulo em texto, cartoes .ri-card e UMA acao primaria por painel. As
+   DIMENSOES estruturais (723x540, colunas 535/185) ficaram: o JS de arrasto,
+   magnet e paginacao mede o DOM (regra da casa). */
 :host {
 	position: absolute;
 	width: 723px;
@@ -9,74 +14,65 @@
 	flex-direction: column;
 	width: 723px;
 	height: 540px;
-	background: transparent;
-	border-radius: 3px;
-	font-weight: bold;
+	box-sizing: border-box;
+	background: var(--window-fill);
+	border: var(--window-frame);
+	border-radius: var(--radius-window);
+	box-shadow: var(--window-shadow), var(--rim-light);
+	backdrop-filter: var(--blur-glass);
+	color: var(--text-body);
+	font-family: var(--font-ui);
+	overflow: hidden;
 }
+
+/* ─── Barra de titulo (a receita .ri-header ja vem de Common.css; aqui so o
+   encaixe do layout esquerda/direita que o JS espera) ─────────────────── */
 
 #CashShop .titlebar {
-	width: 100%;
-	height: 17px;
-	background-color: white;
-	background-repeat: repeat-x;
-	border-radius: 3px 3px 0px 0px;
-}
-
-#CashShop .titlebar .base {
-	width: 11px;
-	height: 11px;
-	border: none;
-	background-color: transparent;
-	background-repeat: no-repeat;
-	vertical-align: middle;
-}
-
-#CashShop .titlebar .text {
-	text-shadow: 1px 1px white;
-	vertical-align: -2px;
-	white-space: nowrap;
-	/* chrome bug */
-	display: inline-block;
-	width: 32px;
-	height: 13px;
-	font-size: 11px;
-	font-weight: bold;
+	flex: 0 0 auto;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	cursor: move;
 }
 
 #CashShop .titlebar .left {
-	margin-left: 3px;
-	float: left;
+	flex: 1 1 auto;
+	text-align: center;
 }
 
 #CashShop .titlebar .right {
-	float: right;
-	margin-right: 3px;
-}
-
-#CashShop .titlebar .clear {
-	clear: both;
+	flex: 0 0 auto;
 }
 
 #CashShop .panel {
+	flex: 1 1 auto;
+	min-height: 0;
 	display: flex;
 	flex-direction: row;
-	width: 100%;
-	height: 523px;
-	gap: 2px;
+	gap: var(--sp-4);
+	padding: var(--sp-4);
+	box-sizing: border-box;
 }
+
+/* ─── Coluna do catalogo ───────────────────────────────────────────────── */
 
 #CashShop .panel-content {
 	display: flex;
 	flex-direction: column;
 	width: 535px;
+	min-width: 0;
 	height: 100%;
+	gap: var(--sp-3);
 }
 
 #CashShop .panel-content .panel-banner {
+	flex: 0 0 55px;
 	width: 100%;
-	height: 55px;
 	position: relative;
 	overflow: hidden;
+	border-radius: var(--radius-panel);
+	background: var(--surface-inset);
 }
 
 #CashShop .panel-content .panel-banner .banner-slides {
@@ -94,7 +90,7 @@
 	background-size: cover;
 	background-position: center;
 	opacity: 0;
-	transition: opacity 0.5s ease-in-out;
+	transition: opacity var(--dur-slow) var(--ease-in-out);
 	cursor: pointer;
 }
 
@@ -106,7 +102,7 @@
 #CashShop .panel-content .panel-banner .banner-dots {
 	position: absolute;
 	bottom: 5px;
-	right: 20px;
+	right: 12px;
 	display: flex;
 	gap: 5px;
 	z-index: 2;
@@ -115,9 +111,18 @@
 	margin: 0;
 }
 
+/* Os pontinhos do carrossel: CSS puro, sem btn_ad_*.bmp. */
 #CashShop .panel-content .panel-banner .banner-dots .banner-dot {
 	width: 8px;
 	height: 8px;
+	border-radius: 50%;
+	background: rgba(255, 255, 255, 0.55);
+	box-shadow: 0 0 0 1px var(--border-hairline);
+	transition: background var(--dur-fast) var(--ease-out);
+}
+
+#CashShop .panel-content .panel-banner .banner-dots .banner-dot.active {
+	background: var(--gold-400);
 }
 
 #CashShop .panel-content .panel-banner button {
@@ -125,32 +130,64 @@
 	height: 100%;
 	border: none;
 	background-color: transparent;
+	padding: 0;
+	cursor: pointer;
 }
+
+/* ─── Abas com rotulo em texto (eram bitmaps pintados) ─────────────────── */
 
 #CashShop .panel-content .panel-menu {
+	flex: 0 0 auto;
 	width: 100%;
-	height: 31.5px;
 	display: flex;
-	justify-content: center;
-	align-items: end;
-	gap: 2px;
+	align-items: center;
+	gap: var(--sp-1);
 	flex-direction: row;
+	overflow-x: auto;
+	padding-bottom: 2px;
 }
 
-#CashShop .panel-content .panel-menu button {
-	width: 56px;
-	height: 31px;
-	border: none;
-	background-color: transparent;
+#CashShop .panel-content .panel-menu .tab {
+	appearance: none;
+	flex: 0 0 auto;
+	padding: var(--pad-tab);
+	border: 1px solid var(--border-hairline);
+	border-radius: var(--radius-pill);
+	background: var(--tab-idle-fill);
+	color: var(--tab-idle-text);
+	font: var(--type-label);
+	font-family: var(--font-ui);
+	white-space: nowrap;
+	cursor: pointer;
+	transition:
+		background var(--dur-fast) var(--ease-out),
+		color var(--dur-fast) var(--ease-out),
+		border-color var(--dur-fast) var(--ease-out);
 }
+
+#CashShop .panel-content .panel-menu .tab:hover {
+	background: var(--surface-card-hover);
+}
+
+/* Aba ativa troca por PREENCHIMENTO, nunca por espessura (regra do DS). */
+#CashShop .panel-content .panel-menu .tab.active {
+	background: var(--tab-active-fill);
+	color: var(--tab-active-text);
+	border-color: var(--accent-strong);
+}
+
+/* ─── A grade de cartoes ───────────────────────────────────────────────── */
 
 #CashShop .panel-content .panel-items {
+	flex: 1 1 auto;
+	min-height: 0;
 	display: flex;
 	flex-direction: row;
 	flex-wrap: wrap;
 	align-content: flex-start;
+	gap: var(--sp-2);
 	width: 100%;
-	height: 380px;
+	overflow-y: auto;
 }
 
 #CashShop .panel-content .panel-items .item {
@@ -158,8 +195,19 @@
 	flex-direction: column;
 	width: 172px;
 	height: 126px;
-	margin-left: 4px;
-	margin-top: 2px;
+	box-sizing: border-box;
+	background: var(--surface-card);
+	border: 1px solid var(--border-gold);
+	border-radius: var(--radius-card);
+	box-shadow: var(--shadow-card), var(--rim-light);
+	transition:
+		background var(--dur-fast) var(--ease-out),
+		box-shadow var(--dur-fast) var(--ease-out);
+}
+
+#CashShop .panel-content .panel-items .item:hover {
+	background: var(--surface-card-hover);
+	box-shadow: var(--shadow-card), var(--rim-light), var(--glow-gold);
 }
 
 #CashShop .panel-content .panel-items .top-con,
@@ -169,11 +217,15 @@
 
 #CashShop .panel-content .panel-items .top-con {
 	text-align: center;
-	padding-top: 5px;
-	font-weight: bold;
-	padding-bottom: 5px;
-	color: #3a4aa4;
-	font-size: 10px;
+	padding: 5px 6px;
+	box-sizing: border-box;
+	font: var(--type-label);
+	font-family: var(--font-ui);
+	color: var(--text-title);
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	border-bottom: var(--divider);
 }
 
 #CashShop .panel-content .panel-items .item .amount {
@@ -186,17 +238,15 @@
 #CashShop .panel-content .panel-items .item-left-img {
 	width: 75px;
 	height: 98px;
-	background-size: cover;
+	background-size: contain;
+	background-repeat: no-repeat;
+	background-position: center;
 }
 
 #CashShop .panel-content .panel-items .item-right-desc {
 	float: right;
 	margin-right: 8px;
-	margin-top: 17px;
-}
-
-#CashShop .panel-content .panel-items .item-right-desc .item-desc-price {
-	color: #ffffff;
+	margin-top: 14px;
 }
 
 #CashShop .panel-content .panel-items .item .item-left-img {
@@ -205,19 +255,32 @@
 }
 
 #CashShop .panel-content .panel-items .item .lower-con .purchase-btn-container {
-	padding-top: 20px;
+	padding-top: 16px;
 }
 
+/* O "Adicionar" do cartao: pele de botao primario compacto. */
 #CashShop .panel-content .panel-items .item .lower-con .purchase-btn-container .add-to-cart {
+	appearance: none;
 	width: 81px;
 	height: 24px;
-	border: none;
+	border: 1px solid var(--accent-strong);
+	border-radius: var(--radius-card);
+	background: var(--tab-active-fill);
+	color: var(--text-on-accent);
+	font: var(--type-label);
+	font-family: var(--font-ui);
+	cursor: pointer;
+	transition:
+		box-shadow var(--dur-fast) var(--ease-out),
+		transform var(--dur-instant) var(--ease-out);
 }
 
-#CashShop .panel-content .panel-items .item .lower-con .purchase-btn-container .purchase-btn {
-	width: 81px;
-	height: 24px;
-	border: none;
+#CashShop .panel-content .panel-items .item .lower-con .purchase-btn-container .add-to-cart:hover {
+	box-shadow: var(--glow-accent);
+}
+
+#CashShop .panel-content .panel-items .item .lower-con .purchase-btn-container .add-to-cart:active {
+	transform: var(--press-shift);
 }
 
 #CashShop #panel-items .item-desc-price {
@@ -225,167 +288,169 @@
 	height: 17px;
 	margin-top: 7px;
 	text-align: right;
+	font: var(--type-numeric);
+	color: var(--text-title);
+	font-variant-numeric: tabular-nums;
 }
 
 #CashShop .item-desc-price span {
 	line-height: 18px;
-	margin-right: 5px;
+	margin-right: 2px;
 	text-align: right;
-	font-size: 10px;
+	font-size: var(--fs-info);
 }
 
-#CashShop .item-desc-price .icon-gold-coin {
-	margin-top: 2px;
-	margin-right: 3px;
-}
+/* ─── Paginacao (setas em texto, estado por classe) ────────────────────── */
 
 #CashShop .panel-content .panel-pagination {
+	flex: 0 0 26px;
 	width: 100%;
-	height: 26px;
 	display: flex;
 	justify-content: center;
 	align-items: center;
+	gap: var(--sp-2);
+	font: var(--type-numeric);
+	color: var(--text-muted);
+	font-variant-numeric: tabular-nums;
 }
 
 #CashShop .panel-content .panel-pagination button {
-	width: 18px;
-	height: 14px;
-	background-position: center center;
-	background-repeat: no-repeat;
-	background-color: transparent;
-	border: 0;
-	margin-top: 5px;
+	appearance: none;
+	width: 24px;
+	height: 24px;
+	border: 1px solid var(--border-hairline);
+	border-radius: var(--radius-card);
+	background: var(--surface-card);
+	color: var(--accent-strong);
+	font-size: 13px;
+	line-height: 1;
+	cursor: pointer;
+	transition: background var(--dur-fast) var(--ease-out);
+}
+
+#CashShop .panel-content .panel-pagination button:hover {
+	background: var(--surface-card-hover);
+}
+
+/* Sem pagina para onde ir: a receita de desabilitado do DS. */
+#CashShop .panel-content .panel-pagination button.esta-apagada {
+	filter: grayscale(1);
+	opacity: 0.55;
+	pointer-events: none;
 }
 
 #CashShop .panel-content .panel-pagination span {
-	width: 15px;
-	height: 14px;
 	text-align: center;
-	margin-top: 7px;
 }
 
+/* ─── Busca ────────────────────────────────────────────────────────────── */
+
 #CashShop .panel-content .panel-footer {
+	flex: 0 0 30px;
 	width: 100%;
-	height: 30px;
 	display: flex;
 	justify-content: center;
 	align-items: center;
+	gap: var(--sp-3);
 	flex-direction: row;
 }
 
 #CashShop .panel-content .panel-footer .cashshop-search {
-	border: none;
-	border-radius: 5px 0px 0px 5px;
 	width: 296px;
-	line-height: 14px;
-	margin-left: 2px;
+	height: 24px;
+	box-sizing: border-box;
 }
 
 #CashShop .panel-content .panel-footer .cashshop-search-btn {
-	border: 0px;
-	width: 54px;
-	height: 18px;
-	background-size: cover;
-	background-color: transparent;
+	padding: 3px 14px;
+	font-size: var(--fs-label);
+	cursor: pointer;
 }
+
+/* ─── O carrinho ───────────────────────────────────────────────────────── */
 
 #CashShop .panel-cart {
 	display: flex;
 	flex-direction: column;
 	width: 185px;
+	flex: 0 0 185px;
 	height: 100%;
+	background: var(--surface-glass);
+	border: 1px solid var(--border-hairline);
+	border-radius: var(--radius-panel);
+	box-sizing: border-box;
+	overflow: hidden;
 }
 
 #CashShop .panel-cart .panel-cart-header {
+	flex: 0 0 auto;
 	width: 100%;
-	height: 56px;
+	padding: var(--sp-3) var(--sp-4);
+	box-sizing: border-box;
+	background: var(--titlebar-fill);
+	border-bottom: var(--titlebar-rule);
 }
 
 #CashShop .panel-cart .panel-cart-header-title {
-	padding-left: 65px;
-	color: white;
-	text-shadow: 2px 2px black;
-	height: 24px;
-	padding-top: 5px;
+	font: var(--type-section);
+	font-family: var(--font-ui);
+	color: var(--text-title);
+	text-align: center;
+	padding-bottom: 2px;
 }
 
 #CashShop .panel-cart .panel-cart-charging-view {
 	display: flex;
 	align-items: center;
-	justify-content: center;
-	gap: 30px;
+	justify-content: space-between;
+	gap: var(--sp-3);
 }
 
 #CashShop .panel-cart .panel-cart-charging-view .view-cash-point {
-	width: 70px;
-	color: #fff;
-	font-weight: bold;
-	text-align: end;
+	color: var(--zeny);
+	font: var(--type-numeric);
+	font-variant-numeric: tabular-nums;
+	text-align: left;
 }
 
 #CashShop .panel-cart .panel-cart-charging-view .panel-cart-cash-points {
-	width: 76px;
-	color: #fff;
-	font-weight: bold;
 	text-align: end;
 }
 
 #CashShop .panel-cart .panel-cart-charging-view .panel-cart-charge-btn {
-	width: 64px;
-	height: 20px;
-	border: none;
+	padding: 2px 10px;
+	font-size: var(--fs-badge);
+	cursor: pointer;
 }
 
 #CashShop .panel-cart .panel-cart-body {
+	flex: 1 1 auto;
+	min-height: 0;
 	width: 100%;
-	height: 360px;
-	background-size: cover;
 }
 
-#CashShop .panel-cart .panel-cart-footer {
-	width: 100%;
-	height: 107px;
-}
-
-#CashShop .overlay {
-	position: absolute;
-	display: none;
-	white-space: nowrap;
-	z-index: 900;
-	height: 15px;
-	line-height: 15px;
-	border-radius: 3px;
-	padding: 4px;
-	background: rgba(0, 0, 0, 0.7);
-	color: white;
-	text-shadow: 1px 1px black;
-}
-
-#CashShop .overlay.grey {
-	color: #aaa;
-}
-
-#CashShop .view-cash-point-2 {
-	background: #ffffff;
-	border: 1px solid #4d4d4d;
-	border-radius: 0px 4px 4px 0px;
-
-	padding: 4px;
+#CashShop #cart-list {
+	height: 100%;
+	overflow-y: auto;
+	overflow-x: hidden;
 }
 
 #CashShop ul.items {
 	list-style: none;
-	list-style-type: none;
-	padding: 0px;
-	margin-top: 5px;
+	padding: 0 var(--sp-2);
+	margin: var(--sp-2) 0;
+	display: flex;
+	flex-direction: column;
+	gap: var(--sp-2);
 }
 
 #CashShop ul.items .item {
-	width: 172px;
-	height: 54px;
-	margin-left: 6px;
-	margin-bottom: 4px;
-	border-radius: 4px;
+	width: 100%;
+	min-height: 54px;
+	box-sizing: border-box;
+	border-radius: var(--radius-card);
+	background: var(--surface-card);
+	border: 1px solid var(--border-hairline);
 	position: relative;
 }
 
@@ -393,6 +458,8 @@
 	width: 100%;
 	height: 100%;
 	float: left;
+	padding: 2px;
+	box-sizing: border-box;
 }
 
 #CashShop .inner-item-dt .item-dt-img {
@@ -401,40 +468,24 @@
 	height: 50px;
 	background-size: contain;
 	background-repeat: no-repeat;
-}
-
-#CashShop .container-cart .container-cart-body {
-	height: 326px;
+	background-position: center;
 }
 
 #CashShop .inner-item-dt .item-dt-desc {
 	float: left;
 	width: 115px;
-	margin-top: 5px;
-	margin-left: 10px;
-	font-size: 8px;
-}
-
-#CashShop .container-cart-footer {
-	width: 169px;
-	margin-left: 10px;
-	background: #cfdfef;
-	border-radius: 4px;
-	height: 108px;
-}
-
-#CashShop .container-cart-footer .item-desc-price {
-	width: 100%;
-	color: #fff;
-	height: 17px;
-	background: #4c7ba6;
 	margin-top: 4px;
-	border-radius: 4px 4px 0px 0px;
-	box-shadow: inset 1px 1px 3px #1c1c1c;
-	-webkit-box-shadow: inset 1px 1px 3px #1c1c1c;
-	-moz-box-shadow: inset 1px 1px 3px #1c1c1c;
-	font-weight: bold;
-	line-height: 20px;
+	margin-left: 6px;
+	font-size: var(--fs-desc);
+}
+
+#CashShop .item-desc-top {
+	height: 20px;
+	color: var(--text-title);
+	font-weight: var(--fw-semibold);
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
 }
 
 #CashShop #cart-list .item-desc-price {
@@ -443,6 +494,8 @@
 	margin-top: 4px;
 	float: left;
 	text-align: center;
+	color: var(--text-body);
+	font-variant-numeric: tabular-nums;
 }
 
 #CashShop #cart-list .item-counter {
@@ -457,69 +510,78 @@
 #CashShop #cart-list .item-counter .item-cnt-up,
 #CashShop #cart-list .item-counter .item-cnt-down {
 	position: absolute;
-	width: 7px;
-	height: 7px;
 }
 
+#CashShop #cart-list .item-counter .item-cnt-up,
 #CashShop #cart-list .item-counter .item-cnt-down {
-	bottom: 1px;
+	appearance: none;
+	width: 12px;
+	height: 8px;
+	padding: 0;
+	border: none;
+	background: transparent;
+	color: var(--accent-strong);
+	font-size: 7px;
+	line-height: 1;
+	cursor: pointer;
 	right: 1px;
-	width: 10px;
-	background-color: transparent;
-	border: 0px;
 }
 
 #CashShop #cart-list .item-counter .item-cnt-up {
 	top: 0px;
-	right: 1px;
-	width: 10px;
-	background-color: transparent;
-	border: 0px;
+}
+
+#CashShop #cart-list .item-counter .item-cnt-down {
+	bottom: 1px;
 }
 
 #CashShop #cart-list .item-counter .item-cnt {
 	top: 3px;
 	left: 12px;
-	color: #6e6d6d;
+	color: var(--text-muted);
+	font-variant-numeric: tabular-nums;
+}
+
+/* O X de remover: botao de texto, mesma familia do .ri-close. */
+#CashShop #cart-list .items .item .delete-item {
+	appearance: none;
+	position: absolute;
+	width: 14px;
+	height: 14px;
+	top: 2px;
+	right: 3px;
+	padding: 0;
+	border: none;
+	border-radius: 50%;
+	background: transparent;
+	color: var(--text-muted);
+	font-size: 12px;
+	line-height: 1;
+	cursor: pointer;
+	transition: color var(--dur-fast) var(--ease-out);
+	z-index: 1;
+}
+
+#CashShop #cart-list .items .item .delete-item:hover {
+	color: var(--red-600);
+}
+
+/* ─── Rodape do carrinho ───────────────────────────────────────────────── */
+
+#CashShop .panel-cart .panel-cart-footer {
+	flex: 0 0 auto;
+	width: 100%;
+	border-top: var(--titlebar-rule);
+	background: var(--surface-glass);
+	padding-bottom: var(--sp-3);
 }
 
 #CashShop .panel-cart .panel-cart-footer > table {
-	font-size: 9px;
-	padding: 0px 14px;
+	font-size: var(--fs-desc);
+	padding: var(--sp-2) var(--sp-4) 0;
 	width: 100%;
 	border-spacing: 1px;
-}
-
-#CashShop #cart-list {
-	height: 350px;
-	overflow-y: auto;
-	overflow-x: hidden;
-	scrollbar-width: thin;
-}
-
-#CashShop #cart-list::-webkit-scrollbar {
-	width: 4px;
-}
-
-#CashShop #cart-list::-webkit-scrollbar-thumb {
-	background-color: rgba(0, 0, 0, 0.2);
-	border-radius: 4px;
-}
-
-#CashShop .panel-cart .panel-cart-footer .use-free-points {
-	border: none;
-	background: transparent;
-	-moz-appearance: textfield;
-	appearance: textfield;
-	text-align: right;
-	font-size: 9px;
-	max-width: 45px;
-}
-
-#CashShop .panel-cart .panel-cart-footer .use-free-points::-webkit-outer-spin-button,
-#CashShop .panel-cart .panel-cart-footer .use-free-points::-webkit-inner-spin-button {
-	-webkit-appearance: none;
-	margin: 0;
+	color: var(--text-muted);
 }
 
 #CashShop .panel-cart .panel-cart-footer > table tr {
@@ -534,40 +596,67 @@
 #CashShop .panel-cart .panel-cart-footer > table tr td.value {
 	width: 40%;
 	text-align: right;
+	color: var(--text-body);
+	font-variant-numeric: tabular-nums;
+}
+
+#CashShop .panel-cart .panel-cart-footer .use-free-points {
+	border: none;
+	border-bottom: 1px solid var(--border-hairline);
+	background: transparent;
+	appearance: textfield;
+	text-align: right;
+	font-size: var(--fs-desc);
+	color: var(--text-body);
+	max-width: 45px;
+}
+
+#CashShop .panel-cart .panel-cart-footer .use-free-points::-webkit-outer-spin-button,
+#CashShop .panel-cart .panel-cart-footer .use-free-points::-webkit-inner-spin-button {
+	-webkit-appearance: none;
+	margin: 0;
 }
 
 #CashShop .panel-cart .panel-cart-footer .cart-footer-action {
-	padding: 0px 10px;
-}
-
-#CashShop .panel-cart .panel-cart-footer .cart-footer-action button {
-	width: 154px;
-	height: 23px;
-	margin-left: 5px;
-	margin-top: 4px;
-	border: none;
-	background: transparent;
+	padding: 0 var(--sp-4);
 }
 
 #CashShop .panel-cart .panel-cart-footer .cart-footer-action .total-price {
 	width: 100%;
-	color: #fff;
-	height: 18px;
-	margin-top: 4px;
-	font-weight: bold;
-	line-height: 25px;
-	text-align: center;
-}
-
-#CashShop #cart-list .items .item .delete-item {
-	position: absolute;
-	width: 7px;
-	height: 7px;
-	top: 3px;
-	right: 4px;
-	background-size: cover;
-}
-
-#CashShop .item-desc-top {
+	color: var(--text-title);
 	height: 20px;
+	margin-top: 4px;
+	font: var(--type-numeric);
+	font-size: var(--fs-numeric-lg);
+	line-height: 20px;
+	text-align: center;
+	font-variant-numeric: tabular-nums;
+}
+
+#CashShop .panel-cart .panel-cart-footer .cart-footer-action button {
+	width: 100%;
+	margin-top: var(--sp-3);
+	cursor: pointer;
+}
+
+/* ─── Dica flutuante das abas ──────────────────────────────────────────── */
+
+#CashShop .overlay {
+	position: absolute;
+	display: none;
+	white-space: nowrap;
+	z-index: 900;
+	height: 15px;
+	line-height: 15px;
+	border-radius: var(--radius-card);
+	padding: 4px;
+	background: var(--surface-dark-glass);
+	backdrop-filter: var(--blur-glass);
+	color: var(--white);
+	text-shadow: 0 1px 2px rgba(8, 22, 40, 0.85);
+	font-size: var(--fs-label);
+}
+
+#CashShop .overlay.grey {
+	color: var(--text-muted);
 }

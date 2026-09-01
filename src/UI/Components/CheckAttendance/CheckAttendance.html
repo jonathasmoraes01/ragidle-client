@@ -1,35 +1,31 @@
+<!-- Fase 3 (01/09/2026): o presente diario saiu do painel-bitmap
+     (attendance_bg.bmp, 488x413 pintados) e virou janela do design system.
+     Ganchos que CheckAttendance.js consulta, todos preservados: .titlebar
+     (alca de arrasto) / .close-container-btn / .top-panel-period /
+     .total-days / .remaining-day-text / .days-list. A arte de NPC que morava
+     no bitmap nao tem equivalente proprio — saiu; o espaco virou a grade
+     completa de recompensas. -->
 <div id="CheckAttendance">
-	<div class="titlebar" data-background="check_attendance/attendance_bg.bmp">
-		<div class="top-panel">
-			<div class="top-panel-reward">
-				<div class="text">Check Reward</div>
-			</div>
-			<div class="top-panel-period"></div>
+	<div class="ca-janela ri-window">
+		<div class="titlebar ri-header">
+			<span class="ri-title">Presente diário</span>
 		</div>
-		<div class="left-panel">
+
+		<div class="ca-info">
+			<span class="top-panel-period"></span>
+			<span class="total-days"></span>
+		</div>
+
+		<div class="ca-corpo ri-scroll">
 			<ul class="days-list"></ul>
 		</div>
-		<div class="right-panel">
-			<div class="total-days"></div>
-			<div class="npc"></div>
-			<div class="remaining-days">
-				<div class="remaining-day">
-					<div class="remaining-day-text"></div>
-				</div>
-				<div class="remaining-text">
-					<div class="remaining-text-div">Day</div>
-				</div>
-			</div>
-		</div>
-		<div class="bottom-panel">
-			<div class="close-container">
-				<ui-button
-					class="close-container-btn"
-					bg="check_attendance/bt_ok_normal.bmp"
-					down="check_attendance/bt_ok_press.bmp"
-					>Close</ui-button
-				>
-			</div>
+
+		<div class="ca-rodape">
+			<span class="ca-restante">
+				Evento termina em <b class="remaining-day-text">?</b>
+				<span class="remaining-text-div">dias</span>
+			</span>
+			<button type="button" class="close-container-btn ri-btn">Fechar</button>
 		</div>
 	</div>
 </div>

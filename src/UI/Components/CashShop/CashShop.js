@@ -28,6 +28,9 @@ import cssText from './CashShop.css?raw';
 
 const CashShop = new GUIComponent('CashShop', cssText);
 
+/* Janela entra/sai com a animacao unica (Fase 3, 01/09/2026). */
+CashShop.riAnimaJanela = true;
+
 /**
  * Store cash shop items
  */
@@ -582,7 +585,9 @@ CashShop.renderCashShopItems = function renderCashShopItems(items) {
 		const it = DB.getItemInfo(item.itemId);
 		content.insertAdjacentHTML(
 			'beforeend',
-			`<div class="item" draggable="true" title="${it.identifiedDisplayName}" data-index="${item.itemId}" data-background="cashshop/img_shop_itembg.bmp">
+			/* Fase 3: o cartao deixou o bitmap (img_shop_itembg/btn_add) e se
+			   pinta pelo CSS com os tokens; classes intactas. */
+			`<div class="item" draggable="true" title="${it.identifiedDisplayName}" data-index="${item.itemId}">
 				<div class="top-con">
 					<span class="item-name">${it.identifiedDisplayName}</span>
 				</div>
@@ -590,10 +595,10 @@ CashShop.renderCashShopItems = function renderCashShopItems(items) {
 					<div class="item-left-img" data-background="${'collection/' + it.identifiedResourceName + '.bmp'}"></div>
 					<div class="item-right-desc">
 						<div class="item-desc-price">
-							<span>${item.price}</span>
+							<span>${item.price}</span> C
 						</div>
 						<div class="purchase-btn-container">
-							<button class="add-to-cart" data-itemid="${item.itemId}" tab-index="${i}" data-background="cashshop/btn_add_normal.bmp" data-down="cashshop/btn_add_press.bmp">Purchase</button>
+							<button class="add-to-cart" data-itemid="${item.itemId}" tab-index="${i}">Adicionar</button>
 						</div>
 					</div>
 				</div>
@@ -622,27 +627,24 @@ CashShop.initPagination = function initPagination(items) {
 	const changePage = root.querySelector('.panel-pagination span.pagi-changepage');
 	if (changePage) changePage.textContent = CashShop.totalPage > 0 ? 1 : 0;
 
-	const goNext = root.querySelector('.panel-pagination .go-next');
-	const goLast = root.querySelector('.panel-pagination .go-last');
-	const goPrev = root.querySelector('.panel-pagination .go-prev');
-	const goFirst = root.querySelector('.panel-pagination .go-first');
-
-	Client.loadFile(DB.INTERFACE_PATH + 'cashshop/bt_arrowR_' + arrowsR + '.bmp', function (data) {
-		if (goNext) goNext.style.backgroundImage = `url(${data})`;
-	});
-
-	Client.loadFile(DB.INTERFACE_PATH + 'cashshop/bt_arrowR2_' + arrowsR + '.bmp', function (data) {
-		if (goLast) goLast.style.backgroundImage = `url(${data})`;
-	});
-
-	Client.loadFile(DB.INTERFACE_PATH + 'cashshop/bt_arrowL_' + arrowsL + '.bmp', function (data) {
-		if (goPrev) goPrev.style.backgroundImage = `url(${data})`;
-	});
-
-	Client.loadFile(DB.INTERFACE_PATH + 'cashshop/bt_arrowL2_' + arrowsL + '.bmp', function (data) {
-		if (goFirst) goFirst.style.backgroundImage = `url(${data})`;
-	});
+	/* Fase 3: as setas deixaram os bitmaps (bt_arrow*) — o estado vira classe
+	   e o CSS dessatura, mesma receita de desabilitado do design system. */
+	setaDePaginacao(root, arrowsL, arrowsR);
 };
+
+/** Liga/desliga as quatro setas por classe, sem bitmap. */
+function setaDePaginacao(root, arrowsL, arrowsR) {
+	const esquerda = ['.go-prev', '.go-first'];
+	const direita = ['.go-next', '.go-last'];
+	esquerda.forEach(sel => {
+		const el = root.querySelector(`.panel-pagination ${sel}`);
+		if (el) el.classList.toggle('esta-apagada', arrowsL === 'off');
+	});
+	direita.forEach(sel => {
+		const el = root.querySelector(`.panel-pagination ${sel}`);
+		if (el) el.classList.toggle('esta-apagada', arrowsR === 'off');
+	});
+}
 
 CashShop.paginate = function paginate(items, start, end) {
 	return items.slice(start, end);
@@ -699,26 +701,7 @@ function onClickPagination(target) {
 	const arrowsL = CashShop.isFirstPage ? 'off' : 'on';
 	const arrowsR = CashShop.isLastPage ? 'off' : 'on';
 
-	const goNext = root.querySelector('.panel-pagination .go-next');
-	const goLast = root.querySelector('.panel-pagination .go-last');
-	const goPrev = root.querySelector('.panel-pagination .go-prev');
-	const goFirst = root.querySelector('.panel-pagination .go-first');
-
-	Client.loadFile(DB.INTERFACE_PATH + 'cashshop/bt_arrowR_' + arrowsR + '.bmp', function (data) {
-		if (goNext) goNext.style.backgroundImage = `url(${data})`;
-	});
-
-	Client.loadFile(DB.INTERFACE_PATH + 'cashshop/bt_arrowR2_' + arrowsR + '.bmp', function (data) {
-		if (goLast) goLast.style.backgroundImage = `url(${data})`;
-	});
-
-	Client.loadFile(DB.INTERFACE_PATH + 'cashshop/bt_arrowL_' + arrowsL + '.bmp', function (data) {
-		if (goPrev) goPrev.style.backgroundImage = `url(${data})`;
-	});
-
-	Client.loadFile(DB.INTERFACE_PATH + 'cashshop/bt_arrowL2_' + arrowsL + '.bmp', function (data) {
-		if (goFirst) goFirst.style.backgroundImage = `url(${data})`;
-	});
+	setaDePaginacao(root, arrowsL, arrowsR);
 
 	const changePage = root.querySelector('.panel-pagination span.pagi-changepage');
 	if (changePage) changePage.textContent = CashShop.currentPage;
@@ -757,7 +740,7 @@ function onClickSearch() {
 	}
 
 	if (newList.length === 0) {
-		UIManager.showMessageBox('No items found in auction search', 'ok');
+		UIManager.showMessageBox('Nenhum item encontrado na busca.', 'ok');
 		return;
 	}
 
@@ -777,14 +760,14 @@ function onClickActionCounterButtonCart(target) {
 	if (!itemCart) return;
 
 	if (itemCart.amount >= 99 && counter === 'up') {
-		UIManager.showMessageBox('Quantidade maxima: 99!', 'ok');
-		ChatBox.addText('Quantidade maxima: 99!', ChatBox.TYPE.ERROR, ChatBox.FILTER.PUBLIC_LOG);
+		UIManager.showMessageBox('Quantidade maxima: 99.', 'ok');
+		ChatBox.addText('Quantidade maxima: 99.', ChatBox.TYPE.ERROR, ChatBox.FILTER.PUBLIC_LOG);
 		return;
 	}
 
 	if (itemCart.amount <= 1 && counter === 'down') {
-		UIManager.showMessageBox('Quantidade minima: 1!', 'ok');
-		ChatBox.addText('Quantidade minima: 1!', ChatBox.TYPE.ERROR, ChatBox.FILTER.PUBLIC_LOG);
+		UIManager.showMessageBox('Quantidade minima: 1.', 'ok');
+		ChatBox.addText('Quantidade minima: 1.', ChatBox.TYPE.ERROR, ChatBox.FILTER.PUBLIC_LOG);
 		return;
 	}
 
@@ -880,13 +863,13 @@ function addItemToCart(itemId, amount = 1) {
 	}
 
 	if (CashShop.cartItem.length > 7 && typeof itemCart === 'undefined') {
-		UIManager.showMessageBox('8 Items can only be stored in cart!', 'ok');
+		UIManager.showMessageBox('O carrinho leva no maximo 8 itens.', 'ok');
 		return;
 	}
 
 	if (item.amount >= 99) {
-		UIManager.showMessageBox('Quantidade maxima: 99!', 'ok');
-		ChatBox.addText('Quantidade maxima: 99!', ChatBox.TYPE.ERROR, ChatBox.FILTER.PUBLIC_LOG);
+		UIManager.showMessageBox('Quantidade maxima: 99.', 'ok');
+		ChatBox.addText('Quantidade maxima: 99.', ChatBox.TYPE.ERROR, ChatBox.FILTER.PUBLIC_LOG);
 		return;
 	}
 
@@ -894,16 +877,17 @@ function addItemToCart(itemId, amount = 1) {
 		item.amount = amount;
 		item.tab = tab;
 		CashShop.cartItem.push(item);
-		const html = `<li class="item" data-index="${itemId}" data-background="cashshop/img_shop_itembg2.bmp">
+		/* Fase 3: linha do carrinho sem bitmap; o X de remover virou texto. */
+		const html = `<li class="item" data-index="${itemId}">
 			<div class="inner-item-dt">
-				<div class="delete-item" data-background="cashshop/btn_close.bmp"></div>
+				<button type="button" class="delete-item" title="Remover do carrinho">&times;</button>
 				<div class="item-dt-img"></div>
 				<div class="item-dt-desc">
 					<div class="item-desc-top">${it.identifiedDisplayName}</div>
 					<div class="item-counter">
 						<div class="item-cnt">${item.amount}</div>
-						<button class="counter-btn item-cnt-up" data-index="up"></button>
-						<button class="counter-btn item-cnt-down" data-index="down"></button>
+						<button class="counter-btn item-cnt-up" data-index="up" title="Mais um">&#9650;</button>
+						<button class="counter-btn item-cnt-down" data-index="down" title="Menos um">&#9660;</button>
 					</div>
 					<div class="item-desc-price">
 						<span>${item.price}</span> C
@@ -950,7 +934,7 @@ function onClickActionBuyItem() {
 	const itemlist = CashShop.cartItem;
 	CashShop.cartItemLen = itemlist.length;
 
-	UIManager.showPromptBox('Are you sure you want to buy this items?', 'ok', 'cancel', () => {
+	UIManager.showPromptBox('Comprar os itens do carrinho?', 'ok', 'cancel', () => {
 		if (CashShop.cartItem.length > 0) {
 			const pkt = new PACKET.CZ.SE_PC_BUY_CASHITEM_LIST();
 			const freePointsInput = root.querySelector('#use-free-points');
@@ -960,10 +944,10 @@ function onClickActionBuyItem() {
 				pkt.item_list = CashShop.cartItem;
 				Network.sendPacket(pkt);
 			} else {
-				UIManager.showMessageBox('You dont have enough Kafra Points!', 'ok');
+				UIManager.showMessageBox('Voce nao tem pontos suficientes.', 'ok');
 			}
 		} else {
-			UIManager.showMessageBox('No item in cart!', 'ok');
+			UIManager.showMessageBox('O carrinho esta vazio.', 'ok');
 		}
 	});
 }

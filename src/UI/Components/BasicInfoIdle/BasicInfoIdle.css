@@ -332,6 +332,17 @@
 	background: linear-gradient(180deg, var(--ri-sp-2), var(--ri-sp));
 }
 
+/* O glifo da barra (coracao/gota) le currentColor do HTML; a cor vem DAQUI,
+   dos mesmos tokens da barra — eram os 2 ultimos hex cravados em HTML da HUD
+   (Fase 3, 01/09/2026). */
+.bi-bar-hp {
+	color: var(--ri-hp);
+}
+
+.bi-bar-sp {
+	color: var(--ri-sp);
+}
+
 .bi-bar-text {
 	position: relative;
 	display: block;
@@ -339,7 +350,7 @@
 	line-height: 17px;
 	font-size: 10px;
 	font-weight: 700;
-	color: #ffffff;
+	color: var(--white, #ffffff);
 	text-shadow: 0 1px 2px rgba(0, 0, 0, 0.45);
 }
 

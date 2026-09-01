@@ -27,6 +27,9 @@ const CheckAttendance = new GUIComponent('CheckAttendance', cssText);
 
 CheckAttendance.render = () => htmlText;
 
+/* Janela entra/sai com a animacao unica (Fase 3, 01/09/2026). */
+CheckAttendance.riAnimaJanela = true;
+
 /**
  * @var {object} _checkAttendanceData
  */
@@ -65,7 +68,8 @@ CheckAttendance.init = function init() {
 	}
 
 	root.querySelector('.close-container-btn').addEventListener('click', () => {
-		CheckAttendance._host.style.display = 'none';
+		// via proxy: fecha COM a animacao unica (Fase 3)
+		CheckAttendance.ui.hide();
 	});
 
 	this.draggable(root.querySelector('.titlebar'));
@@ -99,10 +103,10 @@ CheckAttendance.onShortCut = function onShortCut(key) {
 	switch (key.cmd) {
 		case 'TOGGLE':
 			if (this._host.style.display === 'none') {
-				this._host.style.display = '';
+				this.ui.show();
 				this.focus();
 			} else {
-				this._host.style.display = 'none';
+				this.ui.hide();
 			}
 			break;
 	}
@@ -113,7 +117,7 @@ CheckAttendance.onShortCut = function onShortCut(key) {
  */
 CheckAttendance.toggle = function toggle() {
 	if (this._host.style.display !== 'none') {
-		this._host.style.display = 'none';
+		this.ui.hide();
 	} else {
 		const _pkt = new PACKET.CZ.UI_OPEN();
 		_pkt.UIType = 5;
@@ -141,7 +145,7 @@ CheckAttendance.updateUI = function updateUI() {
 		const regex = /(\d{4})(\d{2})(\d{2})/;
 		const start = regex.exec(_CheckAttendanceInfo.Config.StartDate);
 		const end = regex.exec(_CheckAttendanceInfo.Config.EndDate);
-		const period_string = `Event Period: From ${start[2]}/${start[3]} ~ Until ${end[2]}/${end[3]} (Month/Day) 24:00`;
+		const period_string = `Evento: ${start[3]}/${start[2]} até ${end[3]}/${end[2]} às 24:00`;
 		const periodEl = root.querySelector('.top-panel-period');
 		if (periodEl) {
 			periodEl.innerHTML = period_string;
@@ -153,8 +157,8 @@ CheckAttendance.updateUI = function updateUI() {
 			current_day = attendance_count + 1;
 			const total_days_string =
 				attendance_count >= 20 || already_requested
-					? `${attendance_count} Day attendance success`
-					: `Click the item to claim day ${current_day} reward`;
+					? `${attendance_count} ${attendance_count === 1 ? 'dia resgatado' : 'dias resgatados'}`
+					: `Clique no item para resgatar o dia ${current_day}`;
 
 			const end_date = new Date(`${end[1]}-${end[2]}-${end[3]}`);
 			const now_date = new Date();
@@ -176,21 +180,19 @@ CheckAttendance.updateUI = function updateUI() {
 		for (let i = 0; i < 20; i++) {
 			const item = DB.getItemInfo(_CheckAttendanceInfo.Rewards[i].item_id);
 			const day = i + 1;
-			const background =
-				!already_requested && day == current_day
-					? `data-background="check_attendance/bt_slot_a.bmp" data-down="check_attendance/bt_slot_press.bmp"`
-					: '';
+			/* Fase 3: os bitmaps do slot (bt_slot_a/press/complete/off) sairam —
+			   o dia de hoje e classe (event_add_cursor, o CSS acende) e o selo
+			   de resgatado e desenhado pelo CSS sobre .checked. So o ICONE DO
+			   ITEM continua vindo do cliente, que e arte de jogo legitima. */
 			const checked = day <= attendance_count ? 'checked' : 'checked-hidden';
-			const slot_off = already_requested ? attendance_count - 1 : attendance_count;
-			const slot_complete_string = day > slot_off ? 'bt_slot_complete' : 'bt_slot_off';
 			const item_slot =
-				`<li id="attendance_day_${i}" class="attendance-item" ${background}>` +
+				`<li id="attendance_day_${i}" class="attendance-item">` +
 				`<div class="item" data-background="${DB.INTERFACE_PATH}item/${item.identifiedResourceName}.bmp">` +
 				`<span class="item-quantity">${_CheckAttendanceInfo.Rewards[i].quantity}</span>` +
 				`<span class="name">${item.identifiedDisplayName}</span>` +
-				`<div class="${checked}" data-background="check_attendance/${slot_complete_string}.tga"></div>` +
+				`<div class="${checked}"></div>` +
 				'</div>' +
-				`<div class="day">${day} Day</div>` +
+				`<div class="day">Dia ${day}</div>` +
 				'</li>';
 			if (daysList) {
 				daysList.insertAdjacentHTML('beforeend', item_slot);
@@ -240,7 +242,7 @@ CheckAttendance.cleanUI = function cleanUI() {
  * Close the window
  */
 CheckAttendance.onClose = function onClose() {
-	CheckAttendance._host.style.display = 'none';
+	CheckAttendance.ui.hide(); // via proxy: fecha COM a animacao unica
 };
 
 /**
@@ -254,14 +256,15 @@ function onClickAttendance(e) {
 	if (checkedHidden) {
 		checkedHidden.className = 'checked';
 	}
+	/* Fase 3: o selo de resgatado e pintado pelo CSS (.completed) — o .tga
+	   bt_slot_complete saiu junto com o resto do bitmap. */
 	const completedDiv = document.createElement('div');
 	completedDiv.className = 'completed';
-	completedDiv.dataset.background = 'check_attendance/bt_slot_complete.tga';
 	el.appendChild(completedDiv);
-	GUIComponent.processDataAttrs(completedDiv);
+	el.classList.remove('event_add_cursor');
 
 	const current_day = parseInt(_checkAttendanceData / 10) + 1;
-	const total_days_string = `${current_day} Day attendance success`;
+	const total_days_string = `${current_day} ${current_day === 1 ? 'dia resgatado' : 'dias resgatados'}`;
 	const totalDaysEl = root.querySelector('.total-days');
 	if (totalDaysEl) {
 		totalDaysEl.innerHTML = total_days_string;
