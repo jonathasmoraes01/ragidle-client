@@ -600,6 +600,20 @@ function allMonstersOf(mapa) {
  * catalog carries drops per monster — drop name (spec: "filtra por nome de
  * mapa E nome de monstro E ... nome de drop").
  */
+/**
+ * O nome de um drop nas DUAS formas que `allMonstersOf` devolve (D-795).
+ *
+ * O INDICE v2 do catalogo manda `drops` como string[] (so nomes — a economia
+ * de bytes de D-788), e a FICHA manda objetos `{itemId, nome, chance}`. A
+ * busca lia `d.nome` sempre — com string, `undefined.toLowerCase()` LANCAVA
+ * dentro do `.filter` de `renderList`, e QUALQUER busca morria sem atualizar
+ * a lista (o reporte do dono: "testei buscar por drop e nao vai" — nem por
+ * mapa ia, porque o primeiro mapa sem match de nome ja explodia o filtro).
+ */
+function nomeDoDrop(d) {
+	return typeof d === 'string' ? d : (d && d.nome) || '';
+}
+
 function mapaMatchesSearch(mapa, term) {
 	if (!term) {
 		return true;
@@ -611,7 +625,7 @@ function mapaMatchesSearch(mapa, term) {
 		if (monster.nome.toLowerCase().includes(term)) {
 			return true;
 		}
-		return (monster.drops || []).some(d => d.nome.toLowerCase().includes(term));
+		return (monster.drops || []).some(d => nomeDoDrop(d).toLowerCase().includes(term));
 	});
 }
 
