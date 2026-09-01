@@ -1,45 +1,43 @@
 /**
  * UI/Components/IdleSkills/IdleSkills.css
  *
- * "Habilidades de {classe}" — botão flutuante + janela. Desde 31/08/2026
- * (D-799) o corpo é uma ÁRVORE: trilho de degraus, plano com fios em SVG e
- * nós posicionados, painel de detalhe recolhível.
+ * "Habilidades de {classe}" — a ÁRVORE (D-799) na TERCEIRA rodada de design
+ * (01/09/2026, D-902: "melhore a interface das skills, dá para deixar muito
+ * mais bonito"). O que esta rodada muda, e por quê:
  *
- * SEGUNDA RODADA DE DESIGN (31/08/2026, mesmo dia — o dono olhou a primeira e
- * pediu melhor). O que mudou, e o defeito de desenho que cada mudança paga:
+ * - A PRANCHETA: a grade pontilhada sobre azul chapado lia como quadro
+ *   branco de escritório. Virou céu de papel (--paper-1 → --sky-100) com
+ *   vinheta, uma grade hairline larga e a MARCA D'ÁGUA da classe (o retrato
+ *   real de /ragidle/classes/, a 7%) no canto — o jogador sabe de quem é a
+ *   árvore sem ler o título.
+ * - O NÓ: o ladrilho ganhou fundo em degradê radial (a arte de 24px ampliada
+ *   por 2 fica menos crua sobre um miolo com luz) e uma BARRA DE PROGRESSO
+ *   dentro do ladrilho (ouro = aprendido, tracejado = rascunho): o nível se
+ *   lê de longe, sem decifrar "3/10". As setas ◀▶ eram glifos de fonte
+ *   (viravam emoji em alguns sistemas); são chevrons Lucide de ri-icones.js.
+ * - OS FIOS dizem o NÍVEL EXIGIDO numa plaqueta no meio do caminho ("Nv. 3").
+ *   Era a única informação da árvore que só existia no painel de detalhe.
+ * - O TRILHO: numerais em serifa (Marcellus, a única serifa do sistema) com
+ *   o nome da classe embaixo; ativa em preenchimento azul (design system).
+ * - A BARRA superior virou CONTEXTO: retrato + classe + níveis à esquerda,
+ *   o interruptor "Descrições" como chave deslizante à direita.
+ * - O DETALHE virou dossiê: cabeçalho com o ladrilho grande sobre um halo,
+ *   nome em serifa, chips; a linha do nível (plaqueta + pips) num poço; a
+ *   mecânica por nível com a linha atual em ouro e a PRÓXIMA contornada em
+ *   acento (é o que o próximo ponto compra); o rodapé do detalhe fixo.
  *
- * - O plano ganhou GRADE PONTILHADA e a árvore fica CENTRADA: antes era um
- *   vazio azul com os nós encostados no canto — a foto do Aprendiz era um
- *   ícone perdido no deserto.
- * - O nó encorpou (ladrilho 56px, arte em 48 = 2× inteiro; nome em DUAS
- *   linhas): metade da árvore do Cavaleiro terminava em reticências.
- * - O `◀ n/m ▶` virou a PLAQUETA — uma cápsula segmentada, como na referência
- *   LATAM — em vez de três pedaços soltos.
- * - Os fios ganharam cotovelo arredondado, halo claro e 2,25px: o traço de
- *   1,6px em canto vivo lia como encanamento, não como rota.
- * - A seleção virou ARO no ladrilho + nome em acento: o sublinhado da rodada 1
- *   lia como hyperlink.
+ * O que NÃO mudou, de propósito: a geometria do nó (NO_L 92 / NO_A 108 /
+ * ANCORA_Y 28, em arvoreDeSkills.js — os fios são calculados de lá), os
+ * seletores que a prova usa (`.is-window`, `.is-grau-tab`, `.is-desc-check`,
+ * `[data-skill-mais]`), e o desenho RETO dos fios com ponta em <path> — a
+ * regra dos triângulos pretos (renderFios em IdleSkills.js) continua valendo.
  *
- * Mesma divisão de flutuante/janela/arrasto/ponteiro das outras janelas
- * RAGIDLE (ver UI/Components/HuntMap/HuntMap.css:1-30 para o racional inteiro):
- * - `GUIComponent` faz do ":host" o elemento HOST real, que `#draggable()` e
- *   `#_fixPositionOverflow()` movem e prendem — então ":host" recebe a MESMA
- *   largura/altura de ".is-window".
- * - ":host" fica `pointer-events: none` para a janela fechada nunca bloquear
- *   clique na cena; só o botão e a janela aberta voltam a `auto`.
+ * Mecânica compartilhada com as outras janelas RAGIDLE (ver HuntMap.css):
+ * ":host" tem o MESMO tamanho da ".is-window" (980×640, três lugares:
+ * aqui, WINDOW_* no JS e --w/h-idleskills no Common.css) e fica
+ * `pointer-events:none`; só o botão e a janela aberta voltam a `auto`.
  *
- * REGRA SEGUIDA AQUI (design system oficial, 19/08/2026): as classes `.ri-*`
- * de `UI/Common.css` só entram para COR/BORDA/SOMBRA/FONTE; toda DIMENSÃO fica
- * em seletor local "#IdleSkills …". Nenhuma cor/sombra/raio/duração literal:
- * só token — onde um rgba é derivado de token, o comentário ao lado diz de
- * qual.
- *
- * A JANELA é **980x640** (era 940x620 na rodada 1), e os três lugares que
- * dizem essa medida andam juntos: `:host`/`.is-window` aqui,
- * `WINDOW_WIDTH`/`WINDOW_HEIGHT` no IdleSkills.js, e
- * `--w-idleskills`/`--h-idleskills` no Common.css. A geometria do NÓ
- * (92/108/142/122) mora em arvoreDeSkills.js — os fios são calculados de lá, e
- * mexer num lado sem o outro os desalinha.
+ * Tokens: só nome oficial. Onde um tom deriva, é color-mix() de token.
  */
 
 :host {
@@ -54,13 +52,12 @@
 	width: 100%;
 	height: 100%;
 	color: var(--text-body);
-	font-size: 12px;
+	font: var(--type-info);
+	--is-rail: 76px;
+	--is-detail: 292px;
 }
 
-/* ─── Botão flutuante ─────────────────────────────────────── */
-/* Fica ao lado do botão do AdminPanel (top:210px; right:124px; 42x42), que
- * fica ao lado do IdleConfig (right:72px) e do HuntMap (right:20px). Mesmo
- * topo, mais um passo de 52px à esquerda, para os quatro lerem como fileira. */
+/* ─── Botão flutuante (o DockIdle o esconde em jogo; reserva) ────────── */
 
 #IdleSkills .is-button {
 	position: fixed;
@@ -68,26 +65,33 @@
 	right: 176px;
 	width: 42px;
 	height: 42px;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
 	border-radius: 50%;
-	border: 1px solid var(--gold-500);
-	background: var(--surface-dark-glass);
-	backdrop-filter: var(--blur-glass);
-	color: var(--gold-200);
-	font-size: 18px;
-	line-height: 1;
+	border: 1px solid var(--border-gold);
+	background: linear-gradient(180deg, var(--white) 0%, var(--sky-100) 100%);
+	color: var(--blue-600);
 	cursor: pointer;
 	pointer-events: auto;
 	z-index: 40;
-	transition: box-shadow var(--dur-fast) var(--ease-out), filter var(--dur-fast) var(--ease-out);
+	box-shadow: var(--shadow-float), var(--rim-light);
+	transition:
+		box-shadow var(--dur-fast) var(--ease-out),
+		transform var(--dur-fast) var(--ease-out);
 }
 
-/* "Hover clareia 6%" + brilho dourado (design system, seção Estados). */
+#IdleSkills .is-button svg {
+	width: 20px;
+	height: 20px;
+}
+
 #IdleSkills .is-button:hover {
-	filter: brightness(1.06);
-	box-shadow: var(--glow-gold);
+	box-shadow: var(--glow-gold), var(--rim-light);
+	transform: translateY(-1px);
 }
 
-/* ─── Janela ───────────────────────────────────────────────── */
+/* ─── Janela ─────────────────────────────────────────────────────────── */
 
 #IdleSkills .is-window {
 	display: none;
@@ -97,6 +101,10 @@
 	flex-direction: column;
 	width: 980px;
 	height: 640px;
+	/* border-box: a moldura de 1px entra nos 980×640 e a janela mede o que o
+	   :host e o JS supõem (mesma correção de D-901 no Mapa de Caça). */
+	box-sizing: border-box;
+	overflow: hidden;
 }
 
 #IdleSkills .is-window.is-open {
@@ -107,29 +115,85 @@
 	flex: 0 0 auto;
 }
 
-/* ─── Barra de ferramentas (estado + interruptor "Descrições") ─ */
+/* ─── Barra de contexto: retrato + classe | estado | chave "Descrições" ─ */
 
 #IdleSkills .is-toolbar {
 	flex: 0 0 auto;
 	display: flex;
 	align-items: center;
-	justify-content: space-between;
-	gap: 10px;
-	min-height: 18px;
-	padding: 5px 12px 0 12px;
+	gap: var(--sp-5);
+	min-height: 40px;
+	padding: var(--sp-3) var(--sp-6);
+	border-bottom: var(--divider);
+	background: var(--surface-glass);
+}
+
+#IdleSkills .is-classe {
+	flex: 0 0 auto;
+	display: inline-flex;
+	align-items: center;
+	gap: var(--sp-4);
+	min-width: 0;
+}
+
+#IdleSkills .is-classe:empty {
+	display: none;
+}
+
+#IdleSkills .is-classe-icone {
+	width: 30px;
+	height: 30px;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	border-radius: 50%;
+	background: linear-gradient(180deg, var(--white) 0%, var(--sky-100) 100%);
+	border: 1px solid var(--border-gold);
+	box-shadow: var(--rim-light), var(--shadow-card);
+	overflow: hidden;
+}
+
+#IdleSkills .is-classe-icone img {
+	width: 24px;
+	height: 24px;
+	object-fit: contain;
+	display: block;
+}
+
+#IdleSkills .is-classe-texto {
+	display: flex;
+	flex-direction: column;
+	line-height: var(--lh-tight);
+}
+
+#IdleSkills .is-classe-nome {
+	font: var(--type-section);
+	color: var(--text-title);
+}
+
+#IdleSkills .is-classe-nv {
+	font: var(--type-desc);
+	color: var(--text-muted);
 }
 
 #IdleSkills .is-status {
+	flex: 1 1 auto;
+	min-width: 0;
+	text-align: center;
 	font: var(--type-label);
-	color: var(--gold-500);
+	color: var(--amber-600);
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
 }
 
-/* O interruptor da referência LATAM ("Descrições"). Aqui ele recolhe o painel
- * de detalhe, que é onde as descrições desta janela moram. */
+/* A chave "Descrições": o <input> continua sendo o `.is-desc-check` que a
+   prova clica; a pele é a trilha + o botão deslizante. */
 #IdleSkills .is-desc-toggle {
+	flex: 0 0 auto;
 	display: inline-flex;
 	align-items: center;
-	gap: 5px;
+	gap: var(--sp-4);
 	font: var(--type-label);
 	color: var(--text-muted);
 	cursor: pointer;
@@ -137,36 +201,66 @@
 }
 
 #IdleSkills .is-desc-toggle:hover {
-	color: var(--text-link);
+	color: var(--text-title);
 }
 
 #IdleSkills .is-desc-check {
-	width: 12px;
-	height: 12px;
+	appearance: none;
+	position: relative;
+	width: 30px;
+	height: 16px;
 	margin: 0;
-	accent-color: var(--blue-500);
+	border-radius: var(--radius-pill);
+	background: var(--surface-inset);
+	border: 1px solid var(--border-hairline);
+	box-shadow: var(--shadow-inset);
 	cursor: pointer;
+	transition: background var(--dur-fast) var(--ease-out);
 }
 
-/* ─── Corpo: trilho / árvore / detalhe ────────────────────── */
+#IdleSkills .is-desc-check::after {
+	content: '';
+	position: absolute;
+	top: 1px;
+	left: 1px;
+	width: 12px;
+	height: 12px;
+	border-radius: 50%;
+	background: linear-gradient(180deg, var(--white) 0%, var(--sky-100) 100%);
+	border: 1px solid var(--border-gold);
+	box-sizing: border-box;
+	transition: transform var(--dur-fast) var(--ease-out);
+}
+
+#IdleSkills .is-desc-check:checked {
+	background: var(--tab-active-fill);
+	border-color: var(--blue-600);
+}
+
+#IdleSkills .is-desc-check:checked::after {
+	transform: translateX(14px);
+}
+
+/* ─── Corpo: trilho / árvore / detalhe ───────────────────────────────── */
 
 #IdleSkills .is-content {
 	flex: 1 1 auto;
 	display: flex;
 	min-height: 0;
-	gap: 8px;
-	padding: 8px;
-	box-sizing: border-box;
 }
 
-/* Trilho VERTICAL de degraus da carreira — a coluna "1a / 2a / 3a / Varia" da
- * referência. Preenchido pelo servidor (payload.graus), não por lista fixa. */
+/* ─── Trilho de degraus ──────────────────────────────────────────────── */
+
 #IdleSkills .is-grausrail {
-	flex: 0 0 68px;
+	flex: 0 0 var(--is-rail);
 	display: flex;
 	flex-direction: column;
-	gap: 6px;
+	gap: var(--sp-3);
+	padding: var(--sp-5) var(--sp-4);
+	box-sizing: border-box;
 	overflow-y: auto;
+	border-right: var(--divider);
+	background: var(--surface-glass);
 }
 
 #IdleSkills .is-grau-tab {
@@ -175,16 +269,17 @@
 	flex-direction: column;
 	align-items: center;
 	justify-content: center;
-	gap: 3px;
+	gap: 2px;
 	width: 100%;
 	box-sizing: border-box;
-	padding: 11px 2px;
+	padding: var(--sp-5) 2px;
 	background: var(--tab-idle-fill);
 	border: 1px solid var(--border-hairline);
 	border-radius: var(--radius-panel);
 	color: var(--text-muted);
 	font-family: var(--font-ui);
 	cursor: pointer;
+	box-shadow: var(--shadow-card);
 	transition:
 		background var(--dur-fast) var(--ease-out),
 		border-color var(--dur-fast) var(--ease-out),
@@ -198,25 +293,26 @@
 	color: var(--blue-600);
 }
 
-/* Aba troca por PREENCHIMENTO, nunca por espessura de borda (design system,
-   seção Estados). */
+/* Aba troca por PREENCHIMENTO, nunca por espessura de borda. */
 #IdleSkills .is-grau-tab.is-active {
 	background: var(--tab-active-fill);
 	border-color: var(--blue-600);
 	color: var(--tab-active-text);
-	box-shadow: var(--rim-light), var(--shadow-card);
+	box-shadow: var(--rim-light), var(--shadow-float);
 }
 
+/* O numeral em SERIFA — Marcellus é a única serifa do sistema, e o degrau é
+   o "título" da coluna. */
 #IdleSkills .is-grau-rotulo {
-	font-size: 16px;
-	font-weight: var(--fw-black);
+	font: var(--type-window-title);
+	font-size: 20px;
 	line-height: 1;
 	letter-spacing: var(--ls-title);
 }
 
 #IdleSkills .is-grau-nome {
-	/* 7.5px + espaco menor que --ls-caps: "ESPADACHIM" tem de caber nos 68px
-	   do trilho — em 8px com 0.08em ele truncava ("ESPADACHI…"). */
+	/* 7.5px + espaço menor que --ls-caps: "ESPADACHIM" tem de caber nos 60px
+	   úteis do trilho. */
 	font-size: 7.5px;
 	font-weight: var(--fw-semibold);
 	line-height: 1.1;
@@ -230,27 +326,41 @@
 	opacity: 0.85;
 }
 
-/* ─── O plano da árvore ───────────────────────────────────── */
-/* `.is-arvore` é a janelinha que rola; `.is-tela` é o plano, dimensionado pelo
- * JS. O `display:flex` + `margin:auto` na tela é o que CENTRALIZA uma árvore
- * menor que a janelinha (o Aprendiz tem um nó só) sem cortar as bordas de uma
- * maior — margem automática nunca fica negativa, então o plano grande encosta
- * no início e rola, que é o comportamento certo. */
+#IdleSkills .is-grau-tab.is-active .is-grau-nome {
+	opacity: 1;
+}
+
+/* ─── A prancheta ────────────────────────────────────────────────────── */
+/* `.is-arvore` é a janelinha que rola; `.is-tela` é o plano dimensionado
+ * pelo JS. `display:flex` + `margin:auto` na tela CENTRALIZA uma árvore menor
+ * que a janelinha (o Aprendiz tem um nó só) e deixa a maior rolar. */
 
 #IdleSkills .is-arvore {
+	position: relative;
 	flex: 1 1 auto;
 	min-width: 0;
 	display: flex;
 	overflow: auto;
-	padding: 6px;
-	/* A GRADE PONTILHADA — o chão de "prancheta" da árvore. O rgba dos pontos
-	   deriva do --blue-600 (36, 92, 158) em opacidade baixa; o degradê por
-	   baixo é o mesmo par --sky-50/--sky-100 dos poços desta janela. */
+	padding: var(--sp-6);
+	/* Céu de papel com vinheta e grade hairline larga (44px), e a MARCA
+	   D'ÁGUA da classe por baixo: `--is-marca` é o retrato real
+	   (/ragidle/classes/<id>.png), escrito inline pelo JS (renderTitle). O
+	   véu do céu por cima (92–94% de tinta) é o que a deixa quase invisível —
+	   um PNG não tem opacidade própria numa camada de background. Fundo de
+	   elemento rolável NÃO rola com o conteúdo (attachment `scroll` prende ao
+	   quadro), então a marca fica no canto da JANELINHA, não do plano. Os
+	   tons da grade derivam de --blue-600 por color-mix — nenhum hex aqui. */
 	background:
-		radial-gradient(circle, rgba(36, 92, 158, 0.09) 1px, transparent 1.4px) 0 0 / 22px 22px,
-		linear-gradient(180deg, var(--sky-50) 0%, var(--sky-100) 100%);
-	border: 1px solid var(--border-hairline);
-	border-radius: var(--radius-panel);
+		linear-gradient(color-mix(in srgb, var(--blue-600) 6%, transparent) 1px, transparent 1px) 0 0 / 44px 44px,
+		linear-gradient(90deg, color-mix(in srgb, var(--blue-600) 6%, transparent) 1px, transparent 1px) 0 0 / 44px 44px,
+		radial-gradient(
+			ellipse at 50% 35%,
+			color-mix(in srgb, var(--paper-1) 94%, transparent) 0%,
+			color-mix(in srgb, var(--sky-50) 93%, transparent) 55%,
+			color-mix(in srgb, var(--sky-100) 92%, transparent) 100%
+		),
+		var(--is-marca, none) no-repeat right 18px bottom 18px / 200px 200px,
+		var(--sky-100);
 	box-shadow: var(--well-shadow);
 }
 
@@ -260,8 +370,7 @@
 	margin: auto;
 }
 
-/* Os fios ficam POR BAIXO dos nós e não recebem clique — a seta ▶ de um nó
-   sobreposto ao fio precisa continuar sendo o alvo. */
+/* Fios POR BAIXO dos nós, sem clique. */
 #IdleSkills .is-fios {
 	position: absolute;
 	left: 0;
@@ -269,23 +378,21 @@
 	pointer-events: none;
 }
 
-/* O halo é o "papel" em volta do fio: sem ele, o traço serrilha visualmente
-   contra a grade pontilhada. --paper-1 é o branco-azulado do fundo.
-   `stroke-linejoin: round` é o que arredonda o cotovelo — o fio é RETO de
-   propósito (segmento curvo tracejado tessela errado em GPU e virava os
-   triângulos pretos da print do dono; ver renderFios em IdleSkills.js). */
+/* Halo claro em volta do fio: o "papel" que separa o traço da grade. RETO
+   com `stroke-linejoin: round` de propósito — ver renderFios (triângulos
+   pretos em GPU com curva tracejada). */
 #IdleSkills .is-fio-halo {
 	fill: none;
 	stroke: var(--paper-1);
-	stroke-width: 5.5;
+	stroke-width: 7;
 	stroke-linecap: round;
 	stroke-linejoin: round;
-	opacity: 0.85;
+	opacity: 0.9;
 }
 
 #IdleSkills .is-fio {
 	fill: none;
-	stroke-width: 2.25;
+	stroke-width: 2.5;
 	stroke-linecap: round;
 	stroke-linejoin: round;
 }
@@ -294,17 +401,13 @@
 	stroke: var(--green-600);
 }
 
-/* Requisito por cumprir: tracejado, na família do acento mas mais claro que o
-   fio cumprido — --blue-400 é o azul de apoio da paleta. O tracejado sobre
-   segmento RETO é seguro; foi a combinação com curva que quebrava. */
 #IdleSkills .is-fio--travado {
 	stroke: var(--blue-400);
 	stroke-dasharray: 5 4;
-	opacity: 0.6;
+	opacity: 0.65;
 }
 
-/* A ponta da seta é um triângulo DESENHADO (não um <marker>): marker com
-   orient="auto" é a outra construção com histórico de artefato em GPU. */
+/* A ponta é um triângulo DESENHADO (não <marker>). */
 #IdleSkills .is-ponta {
 	stroke: none;
 }
@@ -318,9 +421,32 @@
 	opacity: 0.75;
 }
 
-/* ─── O nó ─────────────────────────────────────────────────── */
-/* Largura/altura vêm de NO_L/NO_A em arvoreDeSkills.js — mexer numa sem a
-   outra desalinha os fios, que são calculados lá. */
+/* A PLAQUETA DO FIO: "Nv. 3" — o nível exigido, no meio do caminho. */
+#IdleSkills .is-fio-selo {
+	fill: var(--white);
+	stroke: var(--border-hairline);
+	stroke-width: 1;
+}
+
+#IdleSkills .is-fio-selo--ok {
+	stroke: color-mix(in srgb, var(--green-600) 45%, transparent);
+}
+
+#IdleSkills .is-fio-selo-texto {
+	font-family: var(--font-ui);
+	font-size: 8.5px;
+	font-weight: var(--fw-bold);
+	fill: var(--text-muted);
+	text-anchor: middle;
+	dominant-baseline: central;
+}
+
+#IdleSkills .is-fio-selo-texto--ok {
+	fill: var(--green-600);
+}
+
+/* ─── O nó ───────────────────────────────────────────────────────────── */
+/* Largura/altura vêm de NO_L/NO_A em arvoreDeSkills.js. */
 
 #IdleSkills .is-no {
 	position: absolute;
@@ -331,11 +457,9 @@
 	width: 92px;
 }
 
-/* Ladrilho quadrado — o tratamento de ícone que o design system reserva para
-   item, drop, equipamento e habilidade: aro dourado, raio 4px, o miolo
-   continua sendo a arte do cliente. `.ri-tile` (Common.css) dá a pele; aqui o
-   tamanho — e a ARTE fica em 48px (24×24 do cliente ampliado por 2, INTEIRO;
-   regra 4: ampliar por 2,33 borraria o pixel). */
+/* Ladrilho (`.ri-tile` dá a pele): 56px, arte em 48 (2× inteiro, regra 4).
+   O miolo ganha luz radial por baixo da arte — a arte de 24px ampliada fica
+   menos crua sobre um fundo com volume do que sobre branco chapado. */
 #IdleSkills .is-no-icone {
 	position: relative;
 	width: 56px;
@@ -346,6 +470,15 @@
 	justify-content: center;
 	overflow: hidden;
 	cursor: pointer;
+	background: radial-gradient(circle at 50% 38%, var(--white) 0%, var(--sky-50) 55%, var(--sky-200) 100%);
+	transition:
+		box-shadow var(--dur-fast) var(--ease-out),
+		border-color var(--dur-fast) var(--ease-out),
+		transform var(--dur-fast) var(--ease-out);
+}
+
+#IdleSkills .is-no-icone:hover {
+	transform: translateY(-1px);
 }
 
 #IdleSkills .is-no-icone img {
@@ -354,6 +487,8 @@
 	object-fit: contain;
 	display: block;
 	image-rendering: pixelated;
+	/* A arte sobe 2px para abrir espaço à barra de progresso no pé. */
+	transform: translateY(-2px);
 }
 
 #IdleSkills .is-no-fallback {
@@ -363,9 +498,37 @@
 	align-items: center;
 	justify-content: center;
 	color: var(--blue-600);
-	font-weight: var(--fw-bold);
-	font-size: 14px;
+	font: var(--type-section);
 	background: var(--sky-50);
+}
+
+/* A BARRA DE PROGRESSO dentro do ladrilho: segmentos por nível (até 10 cabem
+   nos 50px; acima disso vira barra contínua pelo JS). Ouro = aprendido,
+   tracejado = rascunho. */
+#IdleSkills .is-no-barra {
+	position: absolute;
+	left: 3px;
+	right: 3px;
+	bottom: 3px;
+	height: 4px;
+	display: flex;
+	gap: 1px;
+	pointer-events: none;
+}
+
+#IdleSkills .is-no-seg {
+	flex: 1 1 0;
+	background: color-mix(in srgb, var(--blue-600) 14%, transparent);
+	border-radius: 1px;
+}
+
+#IdleSkills .is-no-seg--feito {
+	background: linear-gradient(180deg, var(--gold-300) 0%, var(--gold-500) 100%);
+}
+
+#IdleSkills .is-no-seg--rascunho {
+	background: var(--gold-200);
+	box-shadow: inset 0 0 0 1px var(--gold-500);
 }
 
 /* Selo no canto do ladrilho (posição na rotação, requisito de outro degrau). */
@@ -375,19 +538,20 @@
 	display: inline-flex;
 	align-items: center;
 	justify-content: center;
-	min-width: 13px;
-	height: 13px;
-	padding: 0 2px;
+	min-width: 14px;
+	height: 14px;
+	padding: 0 3px;
 	border-radius: var(--radius-pill);
 	font: var(--type-badge);
 	line-height: 1;
+	box-shadow: var(--shadow-card);
 }
 
 #IdleSkills .is-no-selo--rotacao {
 	right: 2px;
 	background: linear-gradient(180deg, var(--gold-300) 0%, var(--gold-500) 100%);
 	border: 1px solid var(--gold-700);
-	color: #4a3812;
+	color: var(--gold-700);
 }
 
 #IdleSkills .is-no-selo--fora {
@@ -397,8 +561,7 @@
 	color: var(--text-muted);
 }
 
-/* O nome em ATÉ DUAS linhas: com uma, "Rapidez com Duas Mãos" virava
-   "Rapidez com Duas …" — e metade da árvore do Cavaleiro terminava assim. */
+/* Nome em ATÉ DUAS linhas. */
 #IdleSkills .is-no-nome {
 	max-width: 100%;
 	overflow: hidden;
@@ -411,12 +574,10 @@
 	max-height: 22px;
 	color: var(--text-title);
 	text-align: center;
-	text-shadow: 0 1px 0 rgba(255, 255, 255, 0.7); /* legibilidade sobre a grade */
+	text-shadow: 0 1px 0 var(--white);
 }
 
-/* ─── A plaqueta `◀ n/m ▶` ────────────────────────────────── */
-/* O elemento-assinatura da referência LATAM, como UMA cápsula segmentada:
-   fundo branco, divisórias hairline, setas que acendem quando podem. */
+/* ─── A plaqueta ◀ n/m ▶ ─────────────────────────────────────────────── */
 
 #IdleSkills .is-plaqueta {
 	display: inline-flex;
@@ -427,11 +588,11 @@
 	border-radius: var(--radius-pill);
 	box-shadow: var(--shadow-card);
 	overflow: hidden;
-	transition: border-color var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out);
+	transition:
+		border-color var(--dur-fast) var(--ease-out),
+		box-shadow var(--dur-fast) var(--ease-out);
 }
 
-/* Com pontos no rascunho a cápsula inteira carrega o aro dourado — é o "isto
-   aqui está por pagar" visível de longe. */
 #IdleSkills .is-plaqueta--rascunho {
 	border-color: var(--gold-500);
 	box-shadow: var(--rim-gold), var(--shadow-card);
@@ -447,14 +608,18 @@
 	border: none;
 	background: transparent;
 	color: var(--text-muted);
-	font-size: 8px;
-	line-height: 1;
 	cursor: pointer;
-	transition: background var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out);
+	transition:
+		background var(--dur-fast) var(--ease-out),
+		color var(--dur-fast) var(--ease-out);
 }
 
-/* A seta que PODE ser usada carrega a tinta de "ativa" (--badge-ativa-*) — é
-   como a referência acende as dela, e é o convite ao clique sem hover. */
+#IdleSkills .is-seta svg {
+	width: 11px;
+	height: 11px;
+}
+
+/* A seta que PODE ser usada carrega a tinta de "ativa". */
 #IdleSkills .is-seta:not(:disabled) {
 	background: var(--badge-ativa-bg);
 	color: var(--badge-ativa-ink);
@@ -486,19 +651,16 @@
 	font-size: 10px;
 	color: var(--text-body);
 	background: var(--paper-1);
+	font-variant-numeric: tabular-nums;
 }
 
-/* O que o rascunho somou vive em DOURADO ao lado do que já é do jogador. */
 #IdleSkills .is-no-nivel em {
 	font-style: normal;
 	color: var(--gold-700);
 }
 
-/* Estados do nó. São quatro, e nenhum é redundante:
-   PRONTA   — dá para subir agora (aro de acento + brilho)
-   RASCUNHO — tem ponto não aplicado (aro dourado)
-   DOMINADA — no teto (aro verde, sai do caminho)
-   TRANCADA — nível 0 e requisito faltando (dessaturada) */
+/* Estados do nó: PRONTA (aro de acento), RASCUNHO (aro dourado), DOMINADA
+   (aro verde), TRANCADA (dessaturada). */
 #IdleSkills .is-no--pronta .is-no-icone {
 	border-color: var(--accent);
 	box-shadow: var(--glow-accent), var(--rim-light);
@@ -511,7 +673,10 @@
 
 #IdleSkills .is-no--dominada .is-no-icone {
 	border-color: var(--green-600);
-	box-shadow: var(--rim-light), var(--shadow-card);
+	box-shadow:
+		0 0 0 1px color-mix(in srgb, var(--green-600) 35%, transparent),
+		var(--rim-light),
+		var(--shadow-card);
 }
 
 #IdleSkills .is-no--dominada .is-no-nivel {
@@ -532,11 +697,12 @@
 	opacity: 0.6;
 }
 
-/* Selecionado = aro de acento no ladrilho + nome em acento (o sublinhado da
-   rodada 1 lia como hyperlink). O brilho vence o do estado "pronta". */
+/* Selecionado = aro duplo de acento no ladrilho + nome em acento. */
 #IdleSkills .is-no--selecionada .is-no-icone {
 	border-color: var(--blue-600);
-	box-shadow: inset 0 0 0 2px var(--blue-500), var(--glow-accent);
+	box-shadow:
+		inset 0 0 0 2px var(--blue-500),
+		var(--glow-accent);
 }
 
 #IdleSkills .is-no--selecionada .is-no-nome {
@@ -544,50 +710,64 @@
 	font-weight: var(--fw-bold);
 }
 
-/* ─── Painel de detalhe ───────────────────────────────────── */
+/* ─── O dossiê (painel de detalhe) ───────────────────────────────────── */
 
 #IdleSkills .is-detail {
-	flex: 0 0 272px;
-	overflow-y: auto;
-	padding: var(--pad-detail);
-	box-sizing: border-box;
+	flex: 0 0 var(--is-detail);
+	display: flex;
+	flex-direction: column;
+	min-height: 0;
+	border-left: var(--divider);
+	background: var(--white);
 }
 
-/* O interruptor "Descrições" desligado recolhe a coluna inteira e devolve o
-   espaço para a árvore — que é o que o jogador quer quando desliga. */
 #IdleSkills .is-content.is-sem-detalhe .is-detail {
 	display: none;
 }
 
-#IdleSkills .is-empty {
-	margin-top: 16px;
-	text-align: center;
-	color: var(--text-muted);
-	font-size: 11px;
+#IdleSkills .is-detail-scroll {
+	flex: 1 1 auto;
+	min-height: 0;
+	overflow-y: auto;
+	padding: 0 0 var(--sp-6);
 }
 
-#IdleSkills .is-detail-header {
+#IdleSkills .is-empty {
+	margin-top: var(--sp-7);
+	padding: 0 var(--sp-6);
+	text-align: center;
+	color: var(--text-muted);
+	font: var(--type-label);
+}
+
+/* Cabeçalho: o ladrilho grande sobre um halo, nome em serifa, chips. */
+#IdleSkills .is-hero {
 	display: flex;
-	align-items: flex-start;
-	gap: 10px;
+	align-items: center;
+	gap: var(--sp-5);
+	padding: var(--sp-6) var(--sp-6) var(--sp-5);
+	background:
+		radial-gradient(circle at 44px 50%, color-mix(in srgb, var(--gold-400) 28%, transparent) 0%, transparent 60px),
+		linear-gradient(180deg, var(--paper-1) 0%, var(--white) 100%);
+	border-bottom: var(--titlebar-rule);
 }
 
 #IdleSkills .is-detail-icon {
 	position: relative;
 	flex: 0 0 auto;
-	width: 56px;
-	height: 56px;
+	width: 64px;
+	height: 64px;
 	display: flex;
 	align-items: center;
 	justify-content: center;
-	background: var(--sky-50);
+	background: radial-gradient(circle at 50% 38%, var(--white) 0%, var(--sky-50) 55%, var(--sky-200) 100%);
 	border: 1px solid var(--gold-500);
-	border-radius: var(--radius-card);
+	border-radius: var(--radius-panel);
 	overflow: hidden;
-	box-shadow: var(--rim-light), var(--shadow-card);
+	box-shadow: var(--glow-gold), var(--rim-light);
 }
 
-/* 48px = 2x inteiro, mesmo argumento do ladrilho do nó. */
+/* 48px = 2× inteiro, o mesmo argumento do ladrilho do nó. */
 #IdleSkills .is-detail-icon img {
 	width: 48px;
 	height: 48px;
@@ -603,8 +783,7 @@
 	align-items: center;
 	justify-content: center;
 	color: var(--blue-600);
-	font-weight: var(--fw-bold);
-	font-size: 14px;
+	font: var(--type-section);
 	background: var(--sky-50);
 }
 
@@ -613,160 +792,75 @@
 	min-width: 0;
 	display: flex;
 	flex-direction: column;
-	gap: 6px;
-}
-
-#IdleSkills .is-detail-title-row {
-	display: flex;
-	align-items: center;
-	justify-content: space-between;
-	gap: 8px;
+	gap: var(--sp-3);
 }
 
 #IdleSkills .is-detail-name {
-	font-size: 15px;
-	font-weight: var(--fw-bold);
+	font: var(--type-window-title);
+	font-size: 17px;
 	color: var(--text-title);
-}
-
-/* A cápsula "Nv. X/Y" da rodada 1 SAIU: dizia o mesmo número que a plaqueta
-   ao lado dela, e só a plaqueta age. */
-
-#IdleSkills .is-plaqueta--detalhe {
-	height: 21px;
-}
-
-#IdleSkills .is-plaqueta--detalhe .is-seta {
-	width: 21px;
-	font-size: 9px;
-}
-
-#IdleSkills .is-plaqueta--detalhe .is-no-nivel {
-	min-width: 42px;
-	font-size: 11px;
+	line-height: var(--lh-tight);
 }
 
 #IdleSkills .is-detail-badges {
 	display: flex;
 	flex-wrap: wrap;
-	gap: 6px;
+	gap: var(--sp-2);
 }
 
 #IdleSkills .is-badge {
 	white-space: nowrap;
 }
 
-#IdleSkills .is-detail-resumo {
-	/* Parágrafo de leitura: maior que --type-desc de propósito. */
-	margin: 10px 0 2px 0;
-	font-size: 12px;
-	line-height: var(--lh-read);
-	color: var(--text-body);
+/* A linha do NÍVEL: a plaqueta (que age) e os pips (que mostram), num poço. */
+#IdleSkills .is-nivel-linha {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--sp-4);
+	margin: var(--sp-5) var(--sp-6) 0;
+	padding: var(--sp-4) var(--sp-5);
+	border: 1px solid var(--border-hairline);
+	border-radius: var(--radius-panel);
+	background: var(--paper-2);
 }
 
-/* Cabeçalho de seção em VERSALETE discreto — título forte demais competia com
-   o nome da habilidade logo acima. */
-#IdleSkills .is-detail-section h4 {
-	margin: 12px 0 5px 0;
-	font: var(--type-label);
-	text-transform: uppercase;
+#IdleSkills .is-nivel-rotulo {
+	font: var(--type-badge);
 	letter-spacing: var(--ls-caps);
+	text-transform: uppercase;
 	color: var(--text-muted);
 }
 
-/* ─── Pré-requisitos ──────────────────────────────────────── */
-
-#IdleSkills .is-req-box {
-	padding: 6px 8px;
-	background: var(--paper-2);
-	display: flex;
-	flex-direction: column;
-	gap: 3px;
+#IdleSkills .is-plaqueta--detalhe {
+	height: 22px;
 }
 
-#IdleSkills .is-req {
-	display: flex;
-	align-items: baseline;
-	gap: 6px;
-	font-size: 11px;
-	color: var(--red-600);
+#IdleSkills .is-plaqueta--detalhe .is-seta {
+	width: 22px;
 }
 
-#IdleSkills .is-req--ok {
-	color: var(--green-600);
+#IdleSkills .is-plaqueta--detalhe .is-seta svg {
+	width: 12px;
+	height: 12px;
 }
 
-#IdleSkills .is-req-marca {
-	flex: 0 0 auto;
-	font-weight: var(--fw-bold);
-}
-
-#IdleSkills .is-req-livre {
-	font: var(--type-desc);
-	color: var(--text-muted);
-}
-
-/* ─── Mecânica por nível ──────────────────────────────────── */
-
-#IdleSkills .is-mecanica-box {
-	max-height: 160px;
-	overflow-y: auto;
-	display: flex;
-	flex-direction: column;
-	gap: 2px;
-	padding: 4px 8px;
-	background: var(--paper-2);
-}
-
-#IdleSkills .is-mecanica-row {
-	display: flex;
-	gap: 8px;
-	font-size: 11px;
-	padding: 4px 2px;
-	border-bottom: var(--divider);
-}
-
-#IdleSkills .is-mecanica-row:last-child {
-	border-bottom: none;
-}
-
-/* A linha do nível EM QUE O JOGADOR ESTÁ (contando o rascunho) fica acesa —
-   sem isso a tabela é um bloco de números sem "você está aqui". */
-#IdleSkills .is-mecanica-row--atual {
-	background: var(--sky-100);
-	border-radius: var(--radius-card);
-}
-
-#IdleSkills .is-mecanica-nivel {
-	flex: 0 0 46px;
-	font-weight: var(--fw-bold);
-	color: var(--blue-600);
-}
-
-#IdleSkills .is-mecanica-texto {
-	flex: 1 1 auto;
-	color: var(--text-body);
-}
-
-#IdleSkills .is-mecanica-empty {
-	padding: 8px;
-	text-align: center;
-	color: var(--text-muted);
+#IdleSkills .is-plaqueta--detalhe .is-no-nivel {
+	min-width: 44px;
 	font-size: 11px;
 }
 
-/* ─── Pips de progresso ───────────────────────────────────── */
-/* Preenchido = nível APRENDIDO (dourado); tracejado = nível do RASCUNHO,
-   que o jogador ainda não pagou. */
-
+/* Pips: preenchido = aprendido (ouro); tracejado = rascunho. */
 #IdleSkills .is-pips {
 	display: flex;
 	flex-wrap: wrap;
 	gap: 3px;
+	justify-content: flex-end;
+	max-width: 120px;
 }
 
 #IdleSkills .is-pip {
-	width: 12px;
+	width: 10px;
 	height: 6px;
 	border-radius: var(--radius-card);
 	background: var(--sky-100);
@@ -785,15 +879,155 @@
 	border-style: dashed;
 }
 
-/* ─── Rodapé do detalhe ───────────────────────────────────── */
+#IdleSkills .is-detail-resumo {
+	margin: var(--sp-5) var(--sp-6) 0;
+	font-size: 12px;
+	line-height: var(--lh-read);
+	color: var(--text-body);
+}
 
-#IdleSkills .is-detail-footer {
-	margin-top: 12px;
-	padding-top: 10px;
-	border-top: var(--divider);
+/* Cabeçalho de seção: título + régua hairline. */
+#IdleSkills .is-detail-section {
+	margin: var(--sp-6) var(--sp-6) 0;
+}
+
+#IdleSkills .is-detail-section h4 {
+	display: flex;
+	align-items: baseline;
+	justify-content: space-between;
+	margin: 0 0 var(--sp-3);
+	padding-bottom: var(--sp-2);
+	border-bottom: var(--divider);
+	font: var(--type-section);
+	color: var(--text-title);
+}
+
+#IdleSkills .is-detail-section h4 small {
+	font: var(--type-label);
+	color: var(--text-muted);
+}
+
+/* ─── Pré-requisitos: lista com marca em disco ───────────────────────── */
+
+#IdleSkills .is-req-box {
 	display: flex;
 	flex-direction: column;
-	gap: 6px;
+	gap: 3px;
+}
+
+#IdleSkills .is-req {
+	display: flex;
+	align-items: center;
+	gap: var(--sp-4);
+	padding: 5px var(--sp-4);
+	border-radius: var(--radius-card);
+	font: var(--type-info);
+	color: var(--red-600);
+	background: color-mix(in srgb, var(--red-600) 7%, var(--white));
+	border: 1px solid color-mix(in srgb, var(--red-600) 25%, transparent);
+}
+
+#IdleSkills .is-req--ok {
+	color: var(--green-600);
+	background: color-mix(in srgb, var(--green-600) 8%, var(--white));
+	border-color: color-mix(in srgb, var(--green-600) 28%, transparent);
+}
+
+#IdleSkills .is-req-marca {
+	flex: 0 0 auto;
+	width: 14px;
+	height: 14px;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	border-radius: 50%;
+	background: var(--white);
+	box-shadow: var(--shadow-card);
+}
+
+#IdleSkills .is-req-marca svg {
+	width: 10px;
+	height: 10px;
+}
+
+#IdleSkills .is-req-livre {
+	font: var(--type-desc);
+	color: var(--text-muted);
+	padding: 2px 0;
+}
+
+/* ─── Mecânica por nível ─────────────────────────────────────────────── */
+
+#IdleSkills .is-mecanica-box {
+	max-height: 168px;
+	overflow-y: auto;
+	display: flex;
+	flex-direction: column;
+	border: 1px solid var(--border-hairline);
+	border-radius: var(--radius-panel);
+	background: var(--paper-2);
+}
+
+#IdleSkills .is-mecanica-row {
+	display: flex;
+	align-items: baseline;
+	gap: var(--sp-4);
+	font: var(--type-info);
+	font-weight: var(--fw-regular);
+	padding: 5px var(--sp-4);
+	border-bottom: var(--divider);
+	border-left: 3px solid transparent;
+}
+
+#IdleSkills .is-mecanica-row:last-child {
+	border-bottom: none;
+}
+
+/* A linha do nível ATUAL (contando o rascunho) em ouro: "você está aqui". */
+#IdleSkills .is-mecanica-row--atual {
+	background: color-mix(in srgb, var(--gold-400) 18%, var(--white));
+	border-left-color: var(--gold-500);
+}
+
+/* A PRÓXIMA: o que o próximo ponto compra, contornada em acento. */
+#IdleSkills .is-mecanica-row--proxima {
+	border-left-color: var(--accent);
+	background: color-mix(in srgb, var(--accent) 8%, var(--white));
+}
+
+#IdleSkills .is-mecanica-nivel {
+	flex: 0 0 40px;
+	font: var(--type-numeric);
+	font-size: 11px;
+	color: var(--blue-600);
+}
+
+#IdleSkills .is-mecanica-texto {
+	flex: 1 1 auto;
+	color: var(--text-body);
+}
+
+#IdleSkills .is-mecanica-empty {
+	padding: var(--sp-4);
+	text-align: center;
+	color: var(--text-muted);
+	font: var(--type-label);
+}
+
+/* ─── Rodapé FIXO do dossiê ──────────────────────────────────────────── */
+
+#IdleSkills .is-detail-footer {
+	flex: 0 0 auto;
+	display: flex;
+	flex-direction: column;
+	gap: var(--sp-3);
+	padding: var(--sp-5) var(--sp-6);
+	border-top: var(--titlebar-rule);
+	background: var(--surface-glass);
+}
+
+#IdleSkills .is-detail-footer:empty {
+	display: none;
 }
 
 #IdleSkills .is-detail-next {
@@ -801,25 +1035,28 @@
 	color: var(--text-body);
 }
 
-/* O motivo da recusa, do MESMO juiz que apaga a seta ▶ — botão morto sem
-   explicação manda o jogador procurar defeito onde há regra. */
+#IdleSkills .is-detail-next strong {
+	color: var(--text-title);
+}
+
 #IdleSkills .is-detail-trava {
 	font: var(--type-desc);
 	color: var(--amber-600);
 }
 
 #IdleSkills .is-detail-max {
-	font: var(--type-numeric);
+	font: var(--type-label);
 	color: var(--green-600);
 }
 
 #IdleSkills .is-detail-acoes {
 	display: flex;
-	gap: 6px;
+	gap: var(--sp-3);
 }
 
 #IdleSkills .is-btn-rotacao {
-	padding: 5px 12px;
+	flex: 1 1 auto;
+	padding: 6px 12px;
 	font-size: 11px;
 }
 
@@ -828,33 +1065,30 @@
 	color: var(--gold-700);
 }
 
-/* ─── Rodapé da janela ────────────────────────────────────── */
+/* ─── Rodapé da janela ───────────────────────────────────────────────── */
 
 #IdleSkills .is-footer {
 	flex: 0 0 auto;
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
-	gap: 10px;
-	padding: 8px 12px;
-	border-top: 1px solid var(--border-gold);
-	background: linear-gradient(180deg, var(--sky-50) 0%, var(--sky-100) 100%);
+	gap: var(--sp-5);
+	padding: var(--sp-4) var(--sp-6);
+	border-top: var(--titlebar-rule);
+	background: var(--surface-glass);
 }
 
 #IdleSkills .is-footer-left {
 	flex: 0 0 auto;
-	font-size: 11px;
+	font: var(--type-label);
 	color: var(--text-muted);
 }
 
-/* Mensagem de recusa — --red-600 é o semântico oficial de texto de erro, e
-   não o vermelho específico de HP. */
 #IdleSkills .is-problemas {
 	flex: 1 1 auto;
 	min-width: 0;
 	color: var(--red-600);
-	font-size: 10px;
-	font-weight: var(--fw-semibold);
+	font: var(--type-label);
 	text-align: center;
 }
 
@@ -862,20 +1096,15 @@
 	flex: 0 0 auto;
 	display: flex;
 	align-items: center;
-	gap: 8px;
+	gap: var(--sp-4);
 }
 
-/* A variante dourada do badge já existe pronta (.ri-badge--ouro); aqui sobra
-   só o delta de tamanho que esta pill usa sobre o badge padrão. */
 #IdleSkills .is-pontos-pill {
 	font-size: 11px;
-	padding: 4px 12px;
+	padding: 5px 12px;
 	white-space: nowrap;
 }
 
-/* Quanto o rascunho já comprometeu, dentro da mesma pill. O margin-left
-   existe porque o espaço de texto antes do <em> some na foto (11px, pill
-   apertada) e o "9(−3..." lia como um número só. */
 #IdleSkills .is-pontos-pill em {
 	font-style: normal;
 	font-weight: var(--fw-bold);
@@ -885,12 +1114,11 @@
 
 #IdleSkills .is-btn-aplicar,
 #IdleSkills .is-btn-resetar {
-	padding: 5px 16px;
+	padding: 6px 18px;
 	font-size: 11px;
 }
 
-/* Com rascunho aberto o Aplicar ACENDE — é a única ação da janela com
-   consequência, e o olho tem de achá-la sem ler. */
+/* Com rascunho aberto o Aplicar ACENDE — é a única ação com consequência. */
 #IdleSkills .is-btn-aplicar.is-armado {
 	box-shadow: var(--glow-accent), var(--rim-light);
 }

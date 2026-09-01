@@ -1,5 +1,5 @@
 <div id="IdleSkills">
-	<button type="button" class="is-button" title="Habilidades">📖</button>
+	<button type="button" class="is-button" title="Habilidades" aria-label="Habilidades"><!--RI_ICONE:skills--></button>
 
 	<div class="is-window ri-window ri-anima">
 		<div class="is-titlebar ri-header">
@@ -8,12 +8,13 @@
 		</div>
 
 		<!--
-			Barra de ferramentas: o estado à esquerda ("Carregando…") e o
-			interruptor "Descrições" à direita — que é onde a referência do
-			Ragnarok LATAM o põe. Aqui ele recolhe/mostra o painel de detalhe,
-			que é onde as descrições desta janela moram.
+			Barra de CONTEXTO (D-902): o retrato + classe + níveis do personagem à
+			esquerda (preenchido pelo JS, renderTitle), o estado ("Carregando…") no
+			meio e a chave "Descrições" à direita — que recolhe/mostra o dossiê. O
+			<input> continua sendo `.is-desc-check`: é ele que a prova clica.
 		-->
 		<div class="is-toolbar">
+			<span class="is-classe"></span>
 			<span class="is-status"></span>
 			<label class="is-desc-toggle" title="Mostrar o painel de descrição da habilidade">
 				<input type="checkbox" class="is-desc-check" checked />
@@ -26,17 +27,24 @@
 			     (payload.graus): um Aprendiz tem uma aba, um Cavaleiro tem três. -->
 			<div class="is-grausrail"></div>
 
-			<!-- A ÁRVORE. `.is-tela` é o plano posicionado (nós em position:absolute
-			     + o SVG dos fios por baixo); `.is-arvore` é a janelinha que rola. -->
+			<!-- A PRANCHETA. A marca d'água da classe é camada de FUNDO de
+			     `.is-arvore` (var(--is-marca), escrita pelo JS); `.is-tela` é o plano
+			     posicionado (nós em position:absolute + o SVG dos fios por baixo);
+			     `.is-arvore` rola. -->
 			<div class="is-arvore ri-scroll">
 				<div class="is-tela">
 					<div class="is-empty">Abra a janela de habilidades para carregar.</div>
 				</div>
 			</div>
 
-			<div class="is-detail ri-card ri-scroll">
-				<div class="is-empty">Selecione uma habilidade.</div>
-			</div>
+			<!-- O DOSSIÊ: o corpo rola por dentro, o rodapé (próximo nível +
+			     rotação) fica fixo à vista. -->
+			<aside class="is-detail">
+				<div class="is-detail-scroll ri-scroll">
+					<div class="is-empty">Selecione uma habilidade.</div>
+				</div>
+				<div class="is-detail-footer"></div>
+			</aside>
 		</div>
 
 		<div class="is-footer">

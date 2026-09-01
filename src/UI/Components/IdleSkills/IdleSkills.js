@@ -69,6 +69,7 @@ import PACKET from 'Network/PacketStructure.js';
 import UIManager from 'UI/UIManager.js';
 import GUIComponent from 'UI/GUIComponent.js';
 import buildResumo from './resumoDaDescricao.js';
+import RiIcones from 'UI/ri-icones.js';
 import htmlText from './IdleSkills.html?raw';
 import cssText from './IdleSkills.css?raw';
 import { fecharEEsquecer } from '../limpezaDeJanelaIdle.js';
@@ -115,7 +116,12 @@ const PROBLEMAS_TIMEOUT_MS = 6000;
  */
 const IdleSkills = new GUIComponent('IdleSkills', cssText);
 
-IdleSkills.render = () => htmlText;
+/**
+ * Os glifos do chrome (chevrons da plaqueta, check dos requisitos, o icone do
+ * botao flutuante) entram pelo marcador "<!--RI_ICONE:chave-->" do .html e
+ * pelas chaves de ri-icones.js — UM arquivo para todo glifo, por regra.
+ */
+IdleSkills.render = () => htmlText.replace(/<!--RI_ICONE:(\w+)-->/g, (_, chave) => RiIcones[chave] || '');
 
 /**
  * O ícone flutuante não pode bloquear clique/hover na cena — mesma escolha do
@@ -217,7 +223,9 @@ function skillInitials(skillId) {
 	if (parts.length >= 2 && parts[0] && parts[1]) {
 		return (parts[0][0] + parts[1][0]).toUpperCase();
 	}
-	return String(skillId || '').slice(0, 2).toUpperCase();
+	return String(skillId || '')
+		.slice(0, 2)
+		.toUpperCase();
 }
 
 /** "N habilidade(s) disponível(is)" em PT-BR de verdade. */
@@ -558,8 +566,47 @@ function renderTitle() {
 		return;
 	}
 	const data = IdleSkills.serverData;
-	el.textContent =
-		data && data.classe ? 'Habilidades de ' + (data.classe.nomePt || data.classe.nome) : 'Habilidades';
+	el.textContent = data && data.classe ? 'Habilidades de ' + (data.classe.nomePt || data.classe.nome) : 'Habilidades';
+
+	/*
+	 * O CONTEXTO (D-902): retrato + classe + os dois niveis na barra, e o mesmo
+	 * retrato como MARCA D'AGUA da prancheta. O retrato e a arte real de
+	 * /ragidle/classes/<id>.png (76 classes publicadas); se faltar, o <img>
+	 * some calado e a marca fica vazia — a barra continua dizendo a classe.
+	 */
+	const chip = root.querySelector('.is-classe');
+	const prancheta = root.querySelector('.is-arvore');
+	if (!data || !data.classe) {
+		if (chip) {
+			chip.innerHTML = '';
+		}
+		if (prancheta) {
+			prancheta.style.removeProperty('--is-marca');
+		}
+		return;
+	}
+	const nome = data.classe.nomePt || data.classe.nome;
+	const retrato = '/ragidle/classes/' + encodeURIComponent(data.classe.id) + '.png';
+	if (chip) {
+		chip.innerHTML =
+			'<span class="is-classe-icone"><img src="' +
+			retrato +
+			'" alt="" onerror="this.style.display=\'none\'" /></span>' +
+			'<span class="is-classe-texto">' +
+			'<span class="is-classe-nome">' +
+			escapeHtml(nome) +
+			'</span>' +
+			'<span class="is-classe-nv">Base Nv. ' +
+			escapeHtml(data.nivelBase) +
+			' · Classe Nv. ' +
+			escapeHtml(data.nivelDeJob) +
+			'</span></span>';
+	}
+	if (prancheta) {
+		// Inline: url() em custom property resolve contra o documento, e o
+		// caminho e absoluto — o CSS da prancheta le var(--is-marca).
+		prancheta.style.setProperty('--is-marca', 'url("' + retrato + '")');
+	}
 }
 
 /* ------------------------------------------------------------------------ */
@@ -697,12 +744,7 @@ function renderFios(plano, contexto) {
 		if (fio.y1 === fio.y2) {
 			return 'M ' + fio.x1 + ' ' + fio.y1 + ' H ' + fim;
 		}
-		return (
-			'M ' + fio.x1 + ' ' + fio.y1 +
-			' H ' + fio.xm +
-			' V ' + fio.y2 +
-			' H ' + fim
-		);
+		return 'M ' + fio.x1 + ' ' + fio.y1 + ' H ' + fio.xm + ' V ' + fio.y2 + ' H ' + fim;
 	}
 
 	/** A ponta: triângulo apontando para a direita, encostado no nó. */
@@ -710,21 +752,60 @@ function renderFios(plano, contexto) {
 		const x = fio.x2;
 		const y = fio.y2;
 		return (
-			'<path d="M ' + (x - 7) + ' ' + (y - 4.5) +
-			' L ' + x + ' ' + y +
-			' L ' + (x - 7) + ' ' + (y + 4.5) +
+			'<path d="M ' +
+			(x - 7) +
+			' ' +
+			(y - 4.5) +
+			' L ' +
+			x +
+			' ' +
+			y +
+			' L ' +
+			(x - 7) +
+			' ' +
+			(y + 4.5) +
 			' Z" class="is-ponta ' +
 			(cumprido ? 'is-ponta--ok' : 'is-ponta--travado') +
 			'" />'
 		);
 	}
 
+	/**
+	 * A PLAQUETA DO FIO (D-902): "Nv. N", o nivel exigido, no meio do caminho.
+	 * Num fio com cotovelo ela senta no trecho VERTICAL (o vao entre colunas e
+	 * dela); num fio reto, no meio do trecho. Era a unica informacao da arvore
+	 * que so existia no painel de detalhe.
+	 */
+	function seloDoFio(fio, cumprido) {
+		const reto = fio.y1 === fio.y2;
+		const lx = reto ? (fio.x1 + fio.x2 - RECUO_DA_PONTA) / 2 : fio.xm;
+		const ly = reto ? fio.y1 : (fio.y1 + fio.y2) / 2;
+		const sufixo = cumprido ? ' is-fio-selo--ok' : '';
+		return (
+			'<rect class="is-fio-selo' +
+			sufixo +
+			'" x="' +
+			(lx - 14) +
+			'" y="' +
+			(ly - 7) +
+			'" width="28" height="14" rx="7" />' +
+			'<text class="is-fio-selo-texto' +
+			(cumprido ? ' is-fio-selo-texto--ok' : '') +
+			'" x="' +
+			lx +
+			'" y="' +
+			ly +
+			'">Nv. ' +
+			fio.nivel +
+			'</text>'
+		);
+	}
+
 	const caminhos = plano.fios
 		.map(fio => {
 			const cumprido =
-				(contexto.porId.has(fio.de)
-					? nivelEfetivo(contexto.porId.get(fio.de), contexto.rascunho)
-					: 0) >= fio.nivel;
+				(contexto.porId.has(fio.de) ? nivelEfetivo(contexto.porId.get(fio.de), contexto.rascunho) : 0) >=
+				fio.nivel;
 			const d = caminhoDoFio(fio);
 			/*
 			 * DUAS passadas por fio: um HALO claro por baixo e o traço por cima.
@@ -733,13 +814,16 @@ function renderFios(plano, contexto) {
 			 * volta do fio, o mesmo truque de todo mapa de metrô.
 			 */
 			return (
-				'<path d="' + d + '" class="is-fio-halo" />' +
+				'<path d="' +
+				d +
+				'" class="is-fio-halo" />' +
 				'<path d="' +
 				d +
 				'" class="is-fio' +
 				(cumprido ? ' is-fio--ok' : ' is-fio--travado') +
 				'" />' +
-				pontaDoFio(fio, cumprido)
+				pontaDoFio(fio, cumprido) +
+				seloDoFio(fio, cumprido)
 			);
 		})
 		.join('');
@@ -797,11 +881,21 @@ function renderNo(no, contexto) {
 
 	const selo = [];
 	if (typeof skill.naRotacao === 'number') {
-		selo.push('<span class="is-no-selo is-no-selo--rotacao" title="Rotação de ataque, ' + skill.naRotacao + 'º lugar">' + skill.naRotacao + '</span>');
+		selo.push(
+			'<span class="is-no-selo is-no-selo--rotacao" title="Rotação de ataque, ' +
+				skill.naRotacao +
+				'º lugar">' +
+				skill.naRotacao +
+				'</span>'
+		);
 	}
 	if (no.forasteiros.length) {
 		const texto = no.forasteiros.map(f => f.nome + ' Nv. ' + f.nivel).join(', ');
-		selo.push('<span class="is-no-selo is-no-selo--fora" title="Exige de outro degrau: ' + escapeHtml(texto) + '">↖</span>');
+		selo.push(
+			'<span class="is-no-selo is-no-selo--fora" title="Exige de outro degrau: ' +
+				escapeHtml(texto) +
+				'">↖</span>'
+		);
 	}
 
 	return (
@@ -825,6 +919,7 @@ function renderNo(no, contexto) {
 		'<span class="is-no-fallback">' +
 		escapeHtml(skillInitials(skill.skillId)) +
 		'</span>' +
+		barraDoNo(skill, extra) +
 		selo.join('') +
 		'</button>' +
 		'<span class="is-no-nome" title="' +
@@ -834,6 +929,40 @@ function renderNo(no, contexto) {
 		'</span>' +
 		plaqueta(skill, contexto) +
 		'</div>'
+	);
+}
+
+/**
+ * A BARRA DE PROGRESSO dentro do ladrilho (D-902): um segmento por nivel ate
+ * 10 (ouro = aprendido, tracejado = rascunho); acima disso, barra continua
+ * por percentual — 10 segmentos cabem nos 50px do ladrilho, 20 nao.
+ */
+function barraDoNo(skill, extra) {
+	const max = skill.nivelMaximo || 0;
+	if (!max) {
+		return '';
+	}
+	if (max <= 10) {
+		let segs = '';
+		for (let i = 1; i <= max; i++) {
+			const classe =
+				i <= skill.aprendido ? ' is-no-seg--feito' : i <= skill.aprendido + extra ? ' is-no-seg--rascunho' : '';
+			segs += '<span class="is-no-seg' + classe + '"></span>';
+		}
+		return '<span class="is-no-barra">' + segs + '</span>';
+	}
+	const feito = Math.round((skill.aprendido / max) * 100);
+	const rascunho = Math.round((extra / max) * 100);
+	return (
+		'<span class="is-no-barra">' +
+		'<span class="is-no-seg is-no-seg--feito" style="flex:0 0 ' +
+		feito +
+		'%"></span>' +
+		'<span class="is-no-seg is-no-seg--rascunho" style="flex:0 0 ' +
+		rascunho +
+		'%"></span>' +
+		'<span class="is-no-seg"></span>' +
+		'</span>'
 	);
 }
 
@@ -871,7 +1000,9 @@ function plaqueta(skill, contexto, modificador) {
 		(descer.ok ? '' : ' disabled') +
 		' title="' +
 		escapeHtml(descer.ok ? 'Tirar um ponto do rascunho' : descer.motivo) +
-		'">◀</button>' +
+		'">' +
+		RiIcones.chevronEsq +
+		'</button>' +
 		'<span class="is-no-nivel">' +
 		nivelHtml +
 		'</span>' +
@@ -881,7 +1012,9 @@ function plaqueta(skill, contexto, modificador) {
 		(subir.ok ? '' : ' disabled') +
 		' title="' +
 		escapeHtml(subir.ok ? 'Somar um ponto' : subir.motivo) +
-		'">▶</button>' +
+		'">' +
+		RiIcones.chevronDir +
+		'</button>' +
 		'</span>'
 	);
 }
@@ -1147,7 +1280,7 @@ function renderRequisitos(skill, contexto) {
 				'<div class="is-req' +
 				(linha.ok ? ' is-req--ok' : '') +
 				'"><span class="is-req-marca">' +
-				(linha.ok ? '✓' : '✗') +
+				(linha.ok ? RiIcones.confere : RiIcones.fechar) +
 				'</span>' +
 				escapeHtml(linha.texto) +
 				'</div>'
@@ -1157,32 +1290,43 @@ function renderRequisitos(skill, contexto) {
 
 function renderDetail() {
 	const root = _root();
-	const detailEl = root.querySelector('.is-detail');
+	const scrollEl = root.querySelector('.is-detail-scroll');
+	const footerEl = root.querySelector('.is-detail-footer');
 	const data = IdleSkills.serverData;
 
 	if (!data) {
-		detailEl.innerHTML = '<div class="is-empty">Abra a janela de habilidades para carregar.</div>';
+		scrollEl.innerHTML = '<div class="is-empty">Abra a janela de habilidades para carregar.</div>';
+		footerEl.innerHTML = '';
 		return;
 	}
 
 	const skill = data.skills.find(s => s.skillId === IdleSkills.selectedSkillId);
 	if (!skill) {
-		detailEl.innerHTML = '<div class="is-empty">Selecione uma habilidade.</div>';
+		scrollEl.innerHTML = '<div class="is-empty">Selecione uma habilidade.</div>';
+		footerEl.innerHTML = '';
 		return;
 	}
 
 	const contexto = contextoDoRascunho();
 	const extra = contexto.rascunho[skill.skillId] || 0;
 	const efetivo = skill.aprendido + extra;
+	const noTeto = efetivo >= skill.nivelMaximo;
 	const categoriaLabel = skill.categoria === 'passiva' ? 'Passiva' : 'Ativa';
 	const resumo = buildResumo(skill);
 	const mecanicaRows = buildMecanicaRows(skill);
+	/*
+	 * Duas linhas acesas, e as duas dizem algo (D-902): a do nivel ATUAL
+	 * (contando o rascunho) em ouro — "voce esta aqui" — e a PROXIMA
+	 * contornada em acento — e o que o proximo ponto compra, e e por isso
+	 * que o jogador abriu este painel.
+	 */
 	const mecanicaHtml = mecanicaRows
 		? mecanicaRows
 				.map(
 					linha =>
 						'<div class="is-mecanica-row' +
 						(linha.nivel === efetivo ? ' is-mecanica-row--atual' : '') +
+						(!noTeto && linha.nivel === efetivo + 1 ? ' is-mecanica-row--proxima' : '') +
 						'">' +
 						'<span class="is-mecanica-nivel">Nv. ' +
 						linha.nivel +
@@ -1223,7 +1367,6 @@ function renderDetail() {
 		'</button>';
 
 	const subir = avaliarSubir(skill, contexto);
-	const noTeto = efetivo >= skill.nivelMaximo;
 	const acaoHtml = noTeto
 		? '<div class="is-detail-max">Nível máximo alcançado</div>'
 		: '<div class="is-detail-next">Próximo nível <strong>Nv. ' +
@@ -1231,15 +1374,15 @@ function renderDetail() {
 			'</strong> · custo ' +
 			skill.custo +
 			' ponto</div>' +
-			(subir.ok
-				? ''
-				: '<div class="is-detail-trava">' + escapeHtml(subir.motivo) + '</div>');
+			(subir.ok ? '' : '<div class="is-detail-trava">' + escapeHtml(subir.motivo) + '</div>');
 	// A MESMA plaqueta do nó, maior: quem está lendo a mecânica por nível mexe
 	// no ponto dali, sem caçar o nó de volta na árvore.
 	const plaquetaHtml = plaqueta(skill, contexto, 'is-plaqueta--detalhe');
+	const nRequisitos =
+		(skill.nivelBaseMinimo > 0 ? 1 : 0) + (skill.nivelClasseMinimo > 0 ? 1 : 0) + skill.preRequisitos.length;
 
-	detailEl.innerHTML =
-		'<div class="is-detail-header">' +
+	scrollEl.innerHTML =
+		'<div class="is-hero">' +
 		'<span class="is-detail-icon">' +
 		'<img src="/ragidle/skills/' +
 		encodeURIComponent(skill.skillId) +
@@ -1248,20 +1391,9 @@ function renderDetail() {
 		escapeHtml(skillInitials(skill.skillId)) +
 		'</span></span>' +
 		'<div class="is-detail-header-text">' +
-		'<div class="is-detail-title-row">' +
-		'<span class="is-detail-name">' +
+		'<h3 class="is-detail-name">' +
 		escapeHtml(skill.nome) +
-		'</span>' +
-		/*
-		 * A plaqueta NO LUGAR da capsula "Nv. X/Y" da rodada 1: as duas diziam o
-		 * mesmo numero a tres centimetros uma da outra, e so uma delas FAZ algo.
-		 * Informacao que se repete no mesmo quadro e ruido — fica a que age.
-		 */
-		plaquetaHtml +
-		'</div>' +
-		'<div class="is-pips">' +
-		pipsHtml +
-		'</div>' +
+		'</h3>' +
 		'<div class="is-detail-badges">' +
 		'<span class="is-badge ri-badge ' +
 		(skill.categoria === 'passiva' ? 'ri-badge--verde' : 'ri-badge--azul') +
@@ -1270,29 +1402,42 @@ function renderDetail() {
 		'</span>' +
 		seloDeEfeito(skill) +
 		'</div></div></div>' +
+		'<div class="is-nivel-linha">' +
+		'<span class="is-nivel-rotulo">Nível</span>' +
+		plaquetaHtml +
+		'<div class="is-pips">' +
+		pipsHtml +
+		'</div></div>' +
 		(resumo ? '<div class="is-detail-resumo">' + escapeHtml(resumo) + '</div>' : '') +
-		'<div class="ri-divisor"></div>' +
-		'<div class="is-detail-section"><h4>Pré-requisitos</h4>' +
-		'<div class="is-req-box ri-card">' +
+		'<div class="is-detail-section"><h4>Pré-requisitos' +
+		(nRequisitos ? '<small>' + nRequisitos + '</small>' : '') +
+		'</h4>' +
+		'<div class="is-req-box">' +
 		renderRequisitos(skill, contexto) +
 		'</div></div>' +
-		'<div class="is-detail-section"><h4>Mecânica por nível</h4>' +
-		'<div class="is-mecanica-box ri-card ri-scroll">' +
+		'<div class="is-detail-section"><h4>Mecânica por nível<small>' +
+		skill.nivelMaximo +
+		' níveis</small></h4>' +
+		'<div class="is-mecanica-box ri-scroll">' +
 		mecanicaHtml +
-		'</div></div>' +
-		'<div class="is-detail-footer">' +
-		acaoHtml +
-		'<div class="is-detail-acoes">' +
-		rotacaoHtml +
 		'</div></div>';
 
-	const btnRot = detailEl.querySelector('[data-skill-rotacao]');
+	footerEl.innerHTML = acaoHtml + '<div class="is-detail-acoes">' + rotacaoHtml + '</div>';
+
+	const btnRot = footerEl.querySelector('[data-skill-rotacao]');
 	if (btnRot) {
 		btnRot.addEventListener('click', onClickRotacao);
 	}
 	// A plaqueta do cabeçalho usa os MESMOS data-* e o mesmo juiz do nó.
-	detailEl.querySelectorAll('[data-skill-mais]').forEach(b => b.addEventListener('click', onClickMais));
-	detailEl.querySelectorAll('[data-skill-menos]').forEach(b => b.addEventListener('click', onClickMenos));
+	scrollEl.querySelectorAll('[data-skill-mais]').forEach(b => b.addEventListener('click', onClickMais));
+	scrollEl.querySelectorAll('[data-skill-menos]').forEach(b => b.addEventListener('click', onClickMenos));
+
+	// A linha da mecanica que importa fica a vista sem o jogador rolar.
+	const alvo =
+		scrollEl.querySelector('.is-mecanica-row--proxima') || scrollEl.querySelector('.is-mecanica-row--atual');
+	if (alvo && alvo.scrollIntoView) {
+		alvo.scrollIntoView({ block: 'nearest' });
+	}
 }
 
 /**
@@ -1339,9 +1484,7 @@ function renderFooter() {
 		leftEl.textContent = pluralizeDisponiveis(disponiveis);
 
 		pillEl.innerHTML =
-			'Pontos de habilidade: ' +
-			livres +
-			(gastos ? ' <em>(−' + gastos + ' no rascunho)</em>' : '');
+			'Pontos de habilidade: ' + livres + (gastos ? ' <em>(−' + gastos + ' no rascunho)</em>' : '');
 
 		btnAplicar.disabled = gastos === 0;
 		btnResetar.disabled = gastos === 0;
