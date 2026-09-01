@@ -3,46 +3,19 @@
 		<div class="mm-header">
 			<span class="mm-mapname">—</span>
 		</div>
+		<!-- Pedido do dono (01/09/2026): o minimapa NAO e clicavel — mostra o
+		     mapa atual e pronto, sem botao nenhum. Sairam os 5 ui-button
+		     (object/viewon/mini e o zoom -/+); MiniMapCommon.js ganhou guarda
+		     de nulo para continuar servindo as versoes antigas que ainda os
+		     tem. O zoom fica no valor salvo da preferencia. -->
 		<div class="mm-body">
 			<div class="mm-canvas-frame">
 				<canvas width="128" height="128"></canvas>
 			</div>
-			<ui-button
-				class="object"
-				bg="minimap/i_object_1.bmp"
-				hover="minimap/i_object_2.bmp"
-				down="minimap/i_object_3.bmp"
-			></ui-button>
-			<ui-button
-				class="viewon"
-				bg="minimap/i_viewon_1.bmp"
-				hover="minimap/i_viewon_2.bmp"
-				down="minimap/i_viewon_3.bmp"
-			></ui-button>
-			<ui-button
-				class="mini"
-				bg="minimap/i_mini_1.bmp"
-				hover="minimap/i_mini_2.bmp"
-				down="minimap/i_mini_3.bmp"
-			></ui-button>
 		</div>
 		<div class="mm-footer">
 			<div class="coordinates">
 				<span class="coord x">0</span><span class="mm-coord-sep">,</span><span class="coord y">0</span>
-			</div>
-			<div class="mm-zoom">
-				<ui-button
-					class="minus"
-					bg="minimap/i_minus_1.bmp"
-					hover="minimap/i_minus_2.bmp"
-					down="minimap/i_minus_3.bmp"
-				></ui-button>
-				<ui-button
-					class="plus"
-					bg="minimap/i_plus_1.bmp"
-					hover="minimap/i_plus_2.bmp"
-					down="minimap/i_plus_3.bmp"
-				></ui-button>
 			</div>
 		</div>
 	</div>

@@ -168,16 +168,26 @@ export function createMiniMap({
 			_kafra.src = dataURI;
 		});
 
-		root.querySelector('.plus').addEventListener('mousedown', event => {
-			MiniMap.updateZoom(+1);
-			event.stopImmediatePropagation();
-			event.preventDefault();
-		});
-		root.querySelector('.minus').addEventListener('mousedown', event => {
-			MiniMap.updateZoom(-1);
-			event.stopImmediatePropagation();
-			event.preventDefault();
-		});
+		/* Guarda de nulo (01/09/2026): a V2 perdeu TODOS os botoes por pedido
+		   do dono ("o minimapa nao e clicavel"), mas este Common tambem serve
+		   as versoes antigas que ainda os tem — sem a guarda, o init da V2
+		   morreria aqui e o minimapa inteiro sumiria. */
+		const plusBtn = root.querySelector('.plus');
+		if (plusBtn) {
+			plusBtn.addEventListener('mousedown', event => {
+				MiniMap.updateZoom(+1);
+				event.stopImmediatePropagation();
+				event.preventDefault();
+			});
+		}
+		const minusBtn = root.querySelector('.minus');
+		if (minusBtn) {
+			minusBtn.addEventListener('mousedown', event => {
+				MiniMap.updateZoom(-1);
+				event.stopImmediatePropagation();
+				event.preventDefault();
+			});
+		}
 
 		if (townInfoToggle) {
 			const objectBtn = root.querySelector('.object');

@@ -8,21 +8,15 @@
  * so cor/borda/sombra/fonte vem daqui, o TAMANHO do mapa nao muda.
  *
  * Contrato de JS preservado (MiniMapCommon.js): "canvas" continua sendo o
- * <canvas width="128" height="128"> que recebe o _ctx 2D (nao mexemos no
- * desenho/marcadores/zoom); ".plus"/".minus" continuam sendo os listeners de
- * zoom; ".object" e ".viewon" continuam os toggles de town-info/world-map;
+ * <canvas width="128" height="128"> que recebe o _ctx 2D;
  * ".coordinates .coord.x" / ".coord.y" continuam recebendo textContent via
- * updateCoordinates(); ".mini" nao tem listener neste arquivo (era decorativo
- * na UI original do roBrowser) — mantido no DOM (querySelector-avel) mas
- * escondido via CSS, sem remover nada de logica.
+ * updateCoordinates().
  *
- * Textura via JS (armadilha do briefing regra 2): UIButton.js escreve
- * this.style.backgroundImage inline (bg/hover/down BMP) em cada <ui-button>.
- * Isso NAO toca background-color, border, border-radius, box-shadow,
- * padding, background-size/position/repeat nem width/height — entao os
- * "mini-botoes refinados" abaixo usam so essas propriedades pra virar chip
- * circular claro; o icone BMP em si (o desenho do + / -) continua vindo do
- * inline style, so a moldura ao redor e nossa.
+ * SEM BOTOES desde 01/09/2026 (pedido do dono: "o minimapa nao e clicavel,
+ * so o mapa atual"): os 5 <ui-button> (object/viewon/mini e o zoom -/+)
+ * sairam do HTML desta versao. MiniMapCommon.js tem guarda de nulo nos
+ * listeners — as versoes antigas, que ainda tem os botoes, continuam
+ * funcionando. O zoom permanece no valor salvo em Preferences.
  *
  * Sizing: card = 128px de mapa + 8px de respiro (4px cada lado) = 136px de
  * largura. Header fino (18px) + rodape (20px) somam ~38px de altura extra —
@@ -104,41 +98,15 @@
 	height: 128px;
 }
 
-.mm-body .object,
-.mm-body .viewon {
-	position: absolute;
-	top: 8px;
-	width: 14px;
-	height: 14px;
-	border-radius: var(--radius-card);
-	background-color: var(--surface-card-hover);
-	background-size: 9px 9px;
-	background-position: center;
-	background-repeat: no-repeat;
-	border: 1px solid var(--border-hairline);
-	box-shadow: var(--shadow-card);
+/* Os botoes (object/viewon/mini e o zoom) SAIRAM do HTML em 01/09/2026 —
+   pedido do dono: o minimapa nao e clicavel, mostra o mapa atual e pronto.
+   As regras deles sairam junto; o cursor vira o padrao do sistema para nem
+   parecer interativo. */
+#MiniMapV2 {
+	cursor: default;
 }
 
-.mm-body .object {
-	left: 8px;
-}
-
-.mm-body .viewon {
-	right: 8px;
-}
-
-.mm-body .object:hover,
-.mm-body .viewon:hover {
-	border-color: var(--accent);
-}
-
-/* Botao decorativo sem listener nesta versao — nao remover do DOM
-   (nao muda contrato), so escondido do card premium. */
-.mm-body .mini {
-	display: none;
-}
-
-/* ─── Rodape discreto: coordenadas + zoom em mini-botoes circulares ── */
+/* ─── Rodape discreto: so as coordenadas ───────────────────────────── */
 
 .mm-footer {
 	display: flex;
@@ -160,33 +128,6 @@
 .mm-coord-sep {
 	color: var(--text-muted);
 	opacity: 0.7;
-}
-
-.mm-zoom {
-	display: flex;
-	align-items: center;
-	gap: 4px;
-}
-
-.mm-zoom ui-button {
-	width: 15px;
-	height: 15px;
-	border-radius: 50%;
-	background-color: var(--white);
-	background-size: 8px 8px;
-	background-position: center;
-	background-repeat: no-repeat;
-	border: 1px solid var(--gold-500);
-	box-shadow: var(--shadow-card);
-}
-
-.mm-zoom ui-button:hover {
-	background-color: var(--gold-200);
-	box-shadow: var(--glow-gold);
-}
-
-.mm-zoom ui-button:active {
-	transform: translateY(1px);
 }
 
 #MiniMapV2 ui-button.cashshopIcon {
