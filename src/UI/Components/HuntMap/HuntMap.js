@@ -22,6 +22,17 @@
  * for receive-side framing in Network/PacketRegister.js and
  * Network/Packets/packets2021_len_main.js (see comments there).
  *
+ * D-901 (01/09/2026): o ATLAS. A janela deixou de ser a cópia do Midgard Idle
+ * (ver o cabeçalho de HuntMap.css para a composição nova: trilho de regiões,
+ * linhas com medidor de encaixe, dossiê com banner e ladrilhos de drop). O que
+ * NÃO mudou: os cinco pacotes acima, o contrato v2, a memória de aba/filtro, a
+ * viagem sem janela (`travelToCity`) e os seletores que provas externas usam
+ * (`.hm-window`, `.hm-close`, `.hm-card`, `.hm-card-thumb img`, `.hm-card-go`).
+ * O que ENTROU: clicar num drop abre a ficha do item (ItemInfo, a mesma janela
+ * que a Mochila e a loja de NPC abrem), e a busca diz por que trouxe cada mapa.
+ * As regras sem DOM (encaixe, medidor, motivo da busca, ordem, formato de
+ * chance) moram em `atlasDeCaca.js`, com teste que as executa.
+ *
  * Pattern followed here (module self-registers its own packet hook, no
  * separate Engine/MapEngine/*.js file): same as
  * UI/Components/Enchant/Enchant.js:1986 (`Network.hookPacket(...)` at
@@ -34,12 +45,24 @@
 
 import Renderer from 'Renderer/Renderer.js';
 import Preferences from 'Core/Preferences.js';
+import Client from 'Core/Client.js';
+import DB from 'DB/DBManager.js';
 import Network from 'Network/NetworkManager.js';
 import PACKET from 'Network/PacketStructure.js';
 import UIManager from 'UI/UIManager.js';
 import ChatBox from 'UI/Components/ChatBox/ChatBox.js';
+import ItemInfo from 'UI/Components/ItemInfo/ItemInfo.js';
 import GUIComponent from 'UI/GUIComponent.js';
+import RiIcones from 'UI/ri-icones.js';
 import { dropsDoMapa } from './dropsDoMapa.js'; // RAGIDLE: a visao agregada (I6)
+import {
+	encaixeDeNivel,
+	formatarChance,
+	medidorDeEncaixe,
+	motivoDaBusca,
+	ordenarMapas,
+	resumoDoMotivo
+} from './atlasDeCaca.js';
 import htmlText from './HuntMap.html?raw';
 import cssText from './HuntMap.css?raw';
 import { fecharEEsquecer } from '../limpezaDeJanelaIdle.js';
@@ -67,10 +90,15 @@ const WINDOW_WIDTH = 900;
 const WINDOW_HEIGHT = 620;
 
 /**
- * Cap on how many mob avatars are shown overlapped in a map card's
- * "avatar-stack" row (HuntMap.css .hm-mob-stack) — the "N monstros" count
- * text next to it always reflects the REAL total, this only bounds the
- * icons.
+ * Largura da janela ItemInfo (ItemInfo.css, `.ItemInfo { width: 320px }`) —
+ * usada só para escolher de que lado do atlas a ficha do item abre.
+ */
+const ITEM_INFO_WIDTH = 320;
+
+/**
+ * Cap on how many mob avatars are shown overlapped in a map row's
+ * "avatar-stack" (HuntMap.css .hm-mob-stack) — the "N monstros" count text
+ * next to it always reflects the REAL total, this only bounds the icons.
  */
 const MOB_STACK_MAX = 5;
 
@@ -120,7 +148,12 @@ const ELEMENT_PT = {
  */
 const HuntMap = new GUIComponent('HuntMap', cssText);
 
-HuntMap.render = () => htmlText;
+/**
+ * Os glifos do chrome (lupa, cadeado, seta, mapa vazio, X) entram pelo
+ * marcador "<!--RI_ICONE:chave-->" do .html — a mesma troca que o
+ * TopMenuIdle faz. O glifo vem de UM arquivo (ri-icones.js), por regra.
+ */
+HuntMap.render = () => htmlText.replace(/<!--RI_ICONE:(\w+)-->/g, (_, chave) => RiIcones[chave] || '');
 
 /**
  * Floating icon must not block scene clicks/hover — same choice as the
@@ -133,12 +166,12 @@ HuntMap.render = () => htmlText;
 HuntMap.mouseMode = GUIComponent.MouseMode.CROSS;
 
 /**
- * @var {object|null} last catalog received from the server (contract v1)
+ * @var {object|null} last catalog received from the server (contract v2)
  */
 HuntMap.catalog = null;
 
 /**
- * @var {string} currently selected map (right-hand monster panel)
+ * @var {string} currently selected map (right-hand dossier)
  */
 HuntMap.selectedMapa = null;
 
@@ -161,12 +194,13 @@ HuntMap.activeTab = ABA_PADRAO;
 
 /**
  * @var {string} current search term (matches map name, monster name AND
- *      drop name — see mapaMatchesSearch below)
+ *      drop name — see motivoDaBusca em atlasDeCaca.js)
  */
 HuntMap.searchTerm = '';
 
 /**
- * @var {boolean} "Filtros" popover's "só ideais para mim" checkbox
+ * @var {boolean} o controle "Para mim / Todos" da barra (era a caixinha "só
+ *      ideais para mim" do popover de filtros, até a v4).
  *
  * Lembrado junto com a aba (pedido do dono, 31/08/2026: "Sugestoes / Todos os
  * Mapas"): nesta janela o que faz as vezes de aba de verdade nao e a regiao, e
@@ -181,21 +215,22 @@ HuntMap.filterIdealOnly = false;
 HuntMap.sortKey = 'nivel';
 
 /**
- * @var {number|string|null} mobId selected in the right-hand "Monstros
- *      presentes" chip grid (drives the mob detail block below it). Reset
- *      to null whenever the selected map changes so the panel falls back
- *      to the first monster of the new map (see onClickCard/renderPanel).
- */
-/**
- * QUAL VISAO DE DROP o painel mostra (RAGIDLE, I6 — 31/08/2026).
+ * QUAL VISAO DE DROP o dossiê mostra (RAGIDLE, I6 — 31/08/2026).
  *
- * `'mob'` e a de sempre: escolhe um monstro no chip e ve o drop DELE.
- * `'mapa'` e a nova: todo o drop do mapa numa lista so, deduplicado.
+ * `'mob'` e a de sempre: escolhe um monstro na lista e ve o drop DELE.
+ * `'mapa'` e a outra: todo o drop do mapa numa grade so, deduplicado.
  *
  * O dono pediu "ter as 2 opcoes" com todas as letras, entao a visao por
  * monstro continua sendo o padrao — quem abre a janela ve o que sempre viu.
  */
 HuntMap.visaoDeDrop = 'mob';
+
+/**
+ * @var {number|string|null} mobId selected in the dossier's monster list
+ *      (drives the drop grid below it). Reset to null whenever the selected
+ *      map changes so the panel falls back to the first monster of the new
+ *      map (see onClickCard/renderPanel).
+ */
 HuntMap.selectedMobId = null;
 
 /**
@@ -276,35 +311,6 @@ function escapeHtml(value) {
 }
 
 /**
- * Drop chance comes in ten-thousandths (7000 = 70%, per the contract).
- * Presentation rule requested: no decimals normally, one decimal place
- * when the result is below 1%.
- */
-function formatChance(chance) {
-	const pct = (chance || 0) / 100;
-	const text = pct < 1 ? pct.toFixed(1) : String(Math.round(pct));
-	return text + '%';
-}
-
-/**
- * Difficulty badge relative to the player's level. Pure presentation rule
- * (as specced): not a server concept, computed client-side from the
- * catalog fields nivelQueAbre/nivelMinimo/nivelMaximo.
- */
-function computeBadge(nivel, mapa) {
-	if (nivel < mapa.nivelQueAbre) {
-		return { cls: 'locked', label: '🔒 Bloqueado' };
-	}
-	if (nivel > mapa.nivelMaximo) {
-		return { cls: 'easy', label: 'Fácil' };
-	}
-	if (nivel >= mapa.nivelMinimo) {
-		return { cls: 'ideal', label: 'Ideal para você' };
-	}
-	return { cls: 'challenge', label: 'Desafio' };
-}
-
-/**
  * One-time setup (runs once, during GUIComponent#prepare()).
  */
 HuntMap.init = function init() {
@@ -319,22 +325,15 @@ HuntMap.init = function init() {
 	root.querySelector('.hm-button').addEventListener('click', onClickButton);
 	root.querySelector('.hm-close').addEventListener('click', onClickClose);
 	root.querySelector('.hm-search').addEventListener('input', onSearchInput);
-	root.querySelector('.hm-filters-btn').addEventListener('click', onClickFiltersToggle);
-	root.querySelector('.hm-filter-ideal').addEventListener('change', onChangeFilterIdeal);
+	root.querySelector('.hm-search-clear').addEventListener('click', onClickSearchClear);
+	root.querySelectorAll('.hm-modo .hm-seg-btn').forEach(b => b.addEventListener('click', onClickModo));
 	root.querySelector('.hm-sort').addEventListener('change', onChangeSort);
-
-	// Capture-phase listener so it always runs before a card/chip/button's
-	// own bubble-phase handler (several of those call
-	// e.stopImmediatePropagation(), which would otherwise stop a bubble-phase
-	// listener up on ".hm-window" from ever seeing the click) — closes the
-	// filters popover on any click outside ".hm-filters-wrap".
-	root.querySelector('.hm-window').addEventListener('click', onWindowClickCapture, true);
 
 	this.draggable(root.querySelector('.hm-titlebar'));
 
-	// A caixinha nasce desmarcada no HTML: sem isto ela DIRIA "todos os mapas"
-	// enquanto a lista mostra so os ideais.
-	root.querySelector('.hm-filter-ideal').checked = HuntMap.filterIdealOnly;
+	// O controle "Para mim / Todos" nasce sem selecao no HTML: sem isto ele
+	// DIRIA "todos" enquanto a lista mostra so os ideais.
+	renderModo();
 
 	// Default centered position, may be overridden by saved preferences in onAppend()
 	this._host.style.top = Math.max(0, (Renderer.height - WINDOW_HEIGHT) / 2) + 'px';
@@ -403,31 +402,42 @@ function onClickClose(e) {
 
 function onSearchInput(e) {
 	HuntMap.searchTerm = e.target.value;
+	_root().querySelector('.hm-search-clear').hidden = !HuntMap.searchTerm;
 	renderList();
 }
 
-function onClickFiltersToggle(e) {
+function onClickSearchClear(e) {
 	e.stopImmediatePropagation();
-	_root().querySelector('.hm-filters-wrap').classList.toggle('is-open');
+	const campo = _root().querySelector('.hm-search');
+	campo.value = '';
+	HuntMap.searchTerm = '';
+	e.currentTarget.hidden = true;
+	renderList();
+	campo.focus();
 }
 
-function onChangeFilterIdeal(e) {
-	HuntMap.filterIdealOnly = e.target.checked;
+function onClickModo(e) {
+	e.stopImmediatePropagation();
+	HuntMap.filterIdealOnly = e.currentTarget.dataset.modo === 'ideais';
 	_preferences.soIdeais = HuntMap.filterIdealOnly;
 	_preferences.save();
+	renderModo();
 	renderList();
+}
+
+function renderModo() {
+	_root()
+		.querySelectorAll('.hm-modo .hm-seg-btn')
+		.forEach(b => {
+			const ativo = (b.dataset.modo === 'ideais') === HuntMap.filterIdealOnly;
+			b.classList.toggle('is-selected', ativo);
+			b.setAttribute('aria-selected', ativo ? 'true' : 'false');
+		});
 }
 
 function onChangeSort(e) {
 	HuntMap.sortKey = e.target.value;
 	renderList();
-}
-
-function onWindowClickCapture(e) {
-	const wrap = _root().querySelector('.hm-filters-wrap');
-	if (wrap && wrap.classList.contains('is-open') && !wrap.contains(e.target)) {
-		wrap.classList.remove('is-open');
-	}
 }
 
 /**
@@ -481,12 +491,39 @@ function onMonstrosReceived(pkt) {
 		console.error('[HuntMap] Ficha com contrato incompativel (v=' + (data && data.v) + ').', data);
 		return;
 	}
+	/*
+	 * O NOME QUE O JOGADOR LÊ (D-901). O servidor manda o nome do rAthena, em
+	 * inglês ("Tree Root"); a Mochila e a ficha do item mostram o do cliente
+	 * ("Raiz de Árvore", nomesLocais.js). Um ladrilho em inglês abrindo uma
+	 * ficha em português pareceria outro item. A tradução é feita UMA vez, na
+	 * chegada da ficha, e fica em `nomeLocal` ao lado do `nome` do servidor —
+	 * a busca aceita os dois (atlasDeCaca.motivoDaBusca).
+	 */
+	for (const m of (data.monstros || []).concat(data.mvp ? [data.mvp] : [])) {
+		for (const d of m.drops || []) {
+			d.nomeLocal = nomeLocalDoItem(d.itemId, d.nome);
+		}
+	}
 	HuntMap.fichas[data.mapa] = data;
 	// So re-desenha se o jogador ainda esta olhando este mapa: a ficha pode
 	// chegar depois de ele ter clicado em outro.
 	if (HuntMap.selectedMapa === data.mapa) {
 		renderPanel();
 	}
+}
+
+/**
+ * O nome local de um item pelo id, com o do servidor de reserva: a tabela do
+ * cliente devolve "Unknown Item" (ou nada) para id que o GRF não conhece, e
+ * nesse caso o nome do rAthena é a única verdade disponível.
+ */
+function nomeLocalDoItem(itemId, nomeDoServidor) {
+	const it = DB.getItemInfo(itemId);
+	const local = it && it.identifiedDisplayName;
+	if (!local || /^unknown item$/i.test(String(local).trim())) {
+		return nomeDoServidor;
+	}
+	return local;
 }
 
 function setStatus(text) {
@@ -571,6 +608,19 @@ function onCatalogReceived(pkt) {
 	if (!HuntMap.selectedMapa || !data.mapas.some(m => m.mapa === HuntMap.selectedMapa)) {
 		HuntMap.selectedMapa = data.mapaAtual;
 	}
+	/*
+	 * NA CIDADE, O DOSSIÊ NÃO PODE ABRIR VAZIO (D-901). O mapa atual (Prontera)
+	 * não é mapa de caça, então "selecionar o atual" deixava a coluna da
+	 * direita dizendo "Selecione um mapa" — e o jogador que abre a janela na
+	 * cidade é exatamente quem está escolhendo para onde ir. Pré-seleciona o
+	 * primeiro mapa IDEAL para o nível dele (na ordem de nível), ou o primeiro
+	 * do catálogo se não houver ideal. Custa um pedido de ficha, só.
+	 */
+	if (!data.mapas.some(m => m.mapa === HuntMap.selectedMapa)) {
+		const porNivel = ordenarMapas(data.mapas, 'nivel', data.nivel);
+		const ideal = porNivel.find(m => encaixeDeNivel(data.nivel, m).cls === 'ideal');
+		HuntMap.selectedMapa = (ideal || porNivel[0] || {}).mapa || null;
+	}
 	if (HuntMap.activeTab !== ABA_PADRAO && !data.regioes.includes(HuntMap.activeTab)) {
 		HuntMap.activeTab = ABA_PADRAO;
 	}
@@ -582,15 +632,18 @@ function onCatalogReceived(pkt) {
 }
 
 /**
- * Region tabs: "Todas" + every region that has at least one map, each with
- * a real count of maps in that region (spec: "Todas 21", "Prontera 2", ...).
- * Counts come from the FULL catalog (not filtered by search/sort) — a tab's
- * number is "how many maps are in this region", independent of what is
- * currently typed in the search box.
+ * O trilho de regiões: "Todas" + cada região com ao menos um mapa, com a
+ * contagem REAL de mapas dela. A contagem sai do catálogo INTEIRO (não do
+ * filtro/busca) — o número de uma região é "quantos mapas há nela",
+ * independente do que está digitado na busca.
+ *
+ * Embaixo, o card "Você está em": leva ao mapa atual (seleciona a linha e
+ * abre o dossiê dele). Não aparece na cidade — a cidade não é mapa de caça.
  */
 function renderTabs() {
 	const root = _root();
 	const tabsEl = root.querySelector('.hm-tabs');
+	const voceEl = root.querySelector('.hm-voce');
 	const catalog = HuntMap.catalog;
 	const allMapas = (catalog && catalog.mapas) || [];
 	const regions = [ABA_PADRAO].concat((catalog && catalog.regioes) || []);
@@ -598,11 +651,28 @@ function renderTabs() {
 	tabsEl.innerHTML = regions
 		.map(region => {
 			const count = region === ABA_PADRAO ? allMapas.length : allMapas.filter(m => m.regiao === region).length;
-			return `<button type="button" class="hm-tab ri-tab${region === HuntMap.activeTab ? ' is-active' : ''}" data-region="${escapeHtml(region)}">${escapeHtml(region)} <span class="hm-tab-count">${count}</span></button>`;
+			return `<button type="button" class="hm-tab${region === HuntMap.activeTab ? ' is-active' : ''}" data-region="${escapeHtml(region)}"><span class="hm-tab-name">${escapeHtml(region)}</span><span class="hm-tab-count">${count}</span></button>`;
 		})
 		.join('');
 
 	tabsEl.querySelectorAll('.hm-tab').forEach(btn => btn.addEventListener('click', onClickTab));
+
+	const atual = catalog && allMapas.find(m => m.mapa === catalog.mapaAtual);
+	if (!catalog) {
+		voceEl.innerHTML = '';
+	} else {
+		const onde = atual ? atual.rotulo : catalog.cidade && catalog.cidade.rotulo;
+		voceEl.innerHTML = `
+			<button type="button" class="hm-voce-card" data-mapa="${escapeHtml(atual ? atual.mapa : '')}"${atual ? '' : ' disabled'}>
+				<span class="hm-voce-label">Você está em</span>
+				<span class="hm-voce-map">${escapeHtml(onde || catalog.mapaAtual)}</span>
+				<span class="hm-voce-nivel">Nv. ${catalog.nivel}</span>
+			</button>`;
+		const card = voceEl.querySelector('.hm-voce-card');
+		if (atual) {
+			card.addEventListener('click', onClickVoce);
+		}
+	}
 }
 
 function onClickTab(e) {
@@ -614,9 +684,35 @@ function onClickTab(e) {
 }
 
 /**
+ * "Você está em X": seleciona o mapa atual e o traz à vista na lista — se a
+ * região ativa o esconde, volta para "Todas" (sem esquecer a aba lembrada:
+ * o jogador pediu para VER o mapa, não para trocar de região).
+ */
+function onClickVoce(e) {
+	e.stopImmediatePropagation();
+	const mapa = e.currentTarget.dataset.mapa;
+	if (!mapa) {
+		return;
+	}
+	HuntMap.selectedMapa = mapa;
+	HuntMap.selectedMobId = null;
+	const alvo = HuntMap.catalog.mapas.find(m => m.mapa === mapa);
+	if (alvo && HuntMap.activeTab !== ABA_PADRAO && alvo.regiao !== HuntMap.activeTab) {
+		HuntMap.activeTab = ABA_PADRAO;
+		renderTabs();
+	}
+	renderList();
+	renderPanel();
+	const linha = _root().querySelector(`.hm-card[data-mapa="${CSS.escape(mapa)}"]`);
+	if (linha && linha.scrollIntoView) {
+		linha.scrollIntoView({ block: 'nearest' });
+	}
+}
+
+/**
  * All monsters of a map as one flat list, common population first, MVP
  * last (if any) — used everywhere a map's "every monster" set is needed
- * (card avatar-stack, right-panel chip grid, search-by-monster/drop).
+ * (row avatar-stack, dossier list, search-by-monster/drop).
  */
 function allMonstersOf(mapa) {
 	/*
@@ -625,7 +721,7 @@ function allMonstersOf(mapa) {
 	 * As duas formas trazem `mobId` e `nome`, que e o que os chips e os
 	 * avatares desenham — entao a grade e a busca funcionam sem a ficha. O que
 	 * so a ficha tem e raca, elemento e a CHANCE de cada drop, e quem precisa
-	 * disso (`renderMobDetail`, `renderDropsDoMapa`) pergunta por `raca`.
+	 * disso (`renderMobDrops`, `renderDropsDoMapa`) pergunta por `raca`.
 	 */
 	const ficha = mapa && HuntMap.fichas[mapa.mapa];
 	const fonte = ficha || mapa;
@@ -633,48 +729,9 @@ function allMonstersOf(mapa) {
 }
 
 /**
- * Search box matches map name, map id, monster name AND — since the
- * catalog carries drops per monster — drop name (spec: "filtra por nome de
- * mapa E nome de monstro E ... nome de drop").
- */
-function mapaMatchesSearch(mapa, term) {
-	if (!term) {
-		return true;
-	}
-	if (mapa.rotulo.toLowerCase().includes(term) || mapa.mapa.toLowerCase().includes(term)) {
-		return true;
-	}
-	return allMonstersOf(mapa).some(monster => {
-		if (monster.nome.toLowerCase().includes(term)) {
-			return true;
-		}
-		return (monster.drops || []).some(d => d.nome.toLowerCase().includes(term));
-	});
-}
-
-/**
- * Left-list sort orders (spec: "Para meu nível" / "Nível" / "Nome").
- * "Para meu nível" ranks maps by how close their average population level
- * (nivelMedio) is to the player's current level — the same "how well does
- * this map fit me right now" idea the badges already convey, just used as
- * a sort key instead of a color.
- */
-function sortMapas(mapas, sortKey, nivel) {
-	const arr = mapas.slice();
-	if (sortKey === 'nivel') {
-		arr.sort((a, b) => (a.nivelMinimo - b.nivelMinimo) || (a.nivelMedio - b.nivelMedio) || a.rotulo.localeCompare(b.rotulo, 'pt-BR'));
-	} else if (sortKey === 'nome') {
-		arr.sort((a, b) => a.rotulo.localeCompare(b.rotulo, 'pt-BR'));
-	} else {
-		arr.sort((a, b) => Math.abs(a.nivelMedio - nivel) - Math.abs(b.nivelMedio - nivel));
-	}
-	return arr;
-}
-
-/**
- * Left-hand map card grid, filtered by active tab + search term + the
- * "Filtros" popover's "só ideais para mim" checkbox, then sorted by the
- * sub-bar's "Ordenar por" select.
+ * A lista de mapas, filtrada por região + busca + "Para mim", e ordenada
+ * pelo seletor "Ordem". Cada linha guarda o MOTIVO de a busca tê-la trazido
+ * (`atlasDeCaca.motivoDaBusca`), para dizer "↳ Jellopy (Poring)".
  */
 function renderList() {
 	const root = _root();
@@ -691,82 +748,117 @@ function renderList() {
 	}
 
 	const term = HuntMap.searchTerm.trim().toLowerCase();
+	const motivos = new Map();
 	let mapas = catalog.mapas.filter(mapa => {
 		if (HuntMap.activeTab !== ABA_PADRAO && mapa.regiao !== HuntMap.activeTab) {
 			return false;
 		}
-		if (!mapaMatchesSearch(mapa, term)) {
+		const motivo = motivoDaBusca(mapa, allMonstersOf(mapa), term);
+		if (!motivo) {
 			return false;
 		}
-		if (HuntMap.filterIdealOnly && computeBadge(catalog.nivel, mapa).cls !== 'ideal') {
+		if (HuntMap.filterIdealOnly && encaixeDeNivel(catalog.nivel, mapa).cls !== 'ideal') {
 			return false;
 		}
+		motivos.set(mapa.mapa, motivo);
 		return true;
 	});
-	mapas = sortMapas(mapas, HuntMap.sortKey, catalog.nivel);
+	mapas = ordenarMapas(mapas, HuntMap.sortKey, catalog.nivel);
 
 	if (countEl) {
-		countEl.textContent = mapas.length === 1 ? '1 mapa encontrado' : mapas.length + ' mapas encontrados';
+		const ideais = mapas.filter(m => encaixeDeNivel(catalog.nivel, m).cls === 'ideal').length;
+		const total = mapas.length === 1 ? '1 mapa' : `${mapas.length} mapas`;
+		countEl.innerHTML =
+			escapeHtml(total) +
+			(ideais && !HuntMap.filterIdealOnly
+				? ` · <span class="hm-count-ideal">${ideais} ${ideais === 1 ? 'ideal' : 'ideais'} para você</span>`
+				: '');
 	}
 
 	if (!mapas.length) {
-		listEl.innerHTML = '<div class="hm-list-empty">Nenhum mapa encontrado.</div>';
+		listEl.innerHTML = `<div class="hm-list-empty">${
+			HuntMap.filterIdealOnly && !term
+				? 'Nenhum mapa ideal para o seu nível nesta região. Veja em "Todos".'
+				: 'Nenhum mapa encontrado.'
+		}</div>`;
 		return;
 	}
 
-	listEl.innerHTML = mapas.map(renderCard).join('');
+	listEl.innerHTML = mapas.map(mapa => renderCard(mapa, motivos.get(mapa.mapa))).join('');
 	listEl.querySelectorAll('.hm-card').forEach(card => card.addEventListener('click', onClickCard));
-	// "Caçar Aqui" per card: same travel handler as the detail panel's
-	// "Trocar para X" (onClickTravel) — just a second trigger, no new logic.
+	// O botão de viajar da linha: same travel handler as the dossier's
+	// footer button (onClickTravel) — just a second trigger, no new logic.
 	listEl.querySelectorAll('.hm-card-go').forEach(btn => btn.addEventListener('click', onClickTravel));
 }
 
 /**
- * NOTE on the wrapper tag: this used to be a <button>, but it now contains
- * an inner ".hm-card-go" <button> ("Caçar Aqui") for available maps, and
- * HTML forbids nesting interactive controls inside a <button> (the parser
- * would silently close the outer button early and break the layout). The
- * wrapper is a <div role="button" tabindex="0"> instead — same click
- * listener (onClickCard), same data-mapa attribute, same classes/ids
- * everything else relies on, just a tag swap so the nested action button
- * is valid markup.
+ * O medidor de encaixe (linha e dossiê): trilho + faixa + marcador do nível.
  */
-function renderCard(mapa) {
+function renderMeter(mapa, nivel) {
+	const { marcador } = medidorDeEncaixe(nivel, mapa);
+	return `<span class="hm-meter-track"><span class="hm-meter-fill"></span><span class="hm-meter-you" style="left:${marcador}%" title="Seu nível: ${nivel}"></span></span>`;
+}
+
+function renderBadge(encaixe) {
+	const cadeado = encaixe.cls === 'locked' ? RiIcones.cadeado : '';
+	return `<span class="hm-badge">${cadeado}${escapeHtml(encaixe.curto)}</span>`;
+}
+
+function renderThumb(mapa) {
+	return `<span class="hm-thumb-vazio">${RiIcones.mapaVazio}</span><img src="/ragidle/minimapas/${escapeHtml(mapa.mapa)}.webp" alt="" onerror="this.style.display='none'" />`;
+}
+
+/**
+ * NOTE on the wrapper tag: the row contains an inner ".hm-card-go" <button>,
+ * and HTML forbids nesting interactive controls inside a <button> (the
+ * parser would silently close the outer button early and break the layout).
+ * The wrapper is a <div role="button" tabindex="0">.
+ */
+function renderCard(mapa, motivo) {
 	const catalog = HuntMap.catalog;
-	const badge = computeBadge(catalog.nivel, mapa);
+	const encaixe = encaixeDeNivel(catalog.nivel, mapa);
 	const isCurrent = mapa.mapa === catalog.mapaAtual;
 	const isSelected = mapa.mapa === HuntMap.selectedMapa;
 	const monstros = allMonstersOf(mapa);
 	const avatarsHtml = monstros
 		.slice(0, MOB_STACK_MAX)
-		.map(m => `<img class="hm-mob-avatar" src="/ragidle/mobs/${m.mobId}.png" alt="" onerror="this.style.display='none'" />`)
+		.map(
+			m =>
+				`<img class="hm-mob-avatar" src="/ragidle/mobs/${m.mobId}.png" alt="" onerror="this.style.display='none'" />`
+		)
 		.join('');
 
+	// Só pelo nome do mapa não precisa de explicação; por monstro/drop, sim.
+	const motivoTexto = motivo && !motivo.peloNome ? resumoDoMotivo(motivo) : '';
+
 	// Same trigger everywhere: only available (not current, not locked) maps
-	// get the button, mirroring the detail panel's own "Trocar para X" rule.
-	const goButtonHtml =
-		!isCurrent && badge.cls !== 'locked'
-			? `<button type="button" class="hm-card-go ri-btn" data-mapa="${escapeHtml(mapa.mapa)}">Caçar Aqui</button>`
-			: '';
+	// get the button, mirroring the dossier footer's own rule.
+	let caudaHtml = '';
+	if (isCurrent) {
+		caudaHtml = '<span class="hm-card-here">Aqui</span>';
+	} else if (encaixe.cls !== 'locked') {
+		caudaHtml = `<button type="button" class="hm-card-go" data-mapa="${escapeHtml(mapa.mapa)}" title="Viajar para ${escapeHtml(mapa.rotulo)}" aria-label="Viajar para ${escapeHtml(mapa.rotulo)}">${RiIcones.irPara}</button>`;
+	}
 
 	return `
-		<div class="hm-card badge-${badge.cls}${isCurrent ? ' is-current' : ''}${isSelected ? ' is-selected' : ''}" data-mapa="${escapeHtml(mapa.mapa)}" role="button" tabindex="0">
-			<div class="hm-card-thumb">
-				<img src="/ragidle/minimapas/${escapeHtml(mapa.mapa)}.webp" alt="" onerror="this.style.display='none'" />
-			</div>
+		<div class="hm-card fit-${encaixe.cls}${isCurrent ? ' is-current' : ''}${isSelected ? ' is-selected' : ''}" data-mapa="${escapeHtml(mapa.mapa)}" role="button" tabindex="0" aria-pressed="${isSelected ? 'true' : 'false'}">
+			<div class="hm-card-thumb">${renderThumb(mapa)}</div>
 			<div class="hm-card-body">
 				<div class="hm-card-top">
 					<span class="hm-card-name">${escapeHtml(mapa.rotulo)}</span>
-					<span class="hm-badge hm-badge-${badge.cls} ri-badge${badge.cls === 'ideal' ? ' ri-badge--verde' : badge.cls === 'locked' ? ' ri-badge--cinza' : ''}">${badge.label}</span>
+					${renderBadge(encaixe)}
 				</div>
-				<div class="hm-card-range">Rec. ${mapa.nivelMinimo}–${mapa.nivelMaximo}</div>
-				<div class="hm-card-mobs">
+				<div class="hm-meter">
+					${renderMeter(mapa, catalog.nivel)}
+					<span class="hm-meter-text">Nv. ${mapa.nivelMinimo}–${mapa.nivelMaximo}</span>
+				</div>
+				<div class="hm-card-foot">
 					<span class="hm-mob-stack">${avatarsHtml}</span>
 					<span class="hm-card-mob-count">${monstros.length} monstro${monstros.length === 1 ? '' : 's'}</span>
+					${motivoTexto ? `<span class="hm-card-hit" title="${escapeHtml(motivoTexto)}">${escapeHtml(motivoTexto)}</span>` : ''}
 				</div>
-				${isCurrent ? '<div class="hm-card-here">Você está aqui</div>' : ''}
-				${goButtonHtml}
 			</div>
+			${caudaHtml}
 		</div>`;
 }
 
@@ -779,47 +871,54 @@ function onClickCard(e) {
 }
 
 /**
- * Right-hand "Destino" panel for the selected map: recommended level,
- * "Monstros presentes" as a 2-column chip grid (click a chip to show that
- * monster's level/race/element/drops below), then the travel actions.
+ * O DOSSIÊ do mapa selecionado: banner, encaixe, monstros (clique num para
+ * ver o drop dele), as duas visões de drop, e o rodapé fixo com a viagem.
  */
 function renderPanel() {
 	const root = _root();
-	const panelEl = root.querySelector('.hm-panel');
+	const scrollEl = root.querySelector('.hm-panel-scroll');
+	const footerEl = root.querySelector('.hm-panel-footer');
 	const catalog = HuntMap.catalog;
 
 	if (!catalog) {
-		panelEl.innerHTML = '<div class="hm-panel-empty">Abra o mapa de caça para carregar o catálogo.</div>';
+		scrollEl.innerHTML = '<div class="hm-panel-empty">Abra o mapa de caça para carregar o catálogo.</div>';
+		footerEl.innerHTML = '';
 		return;
 	}
 
 	const mapa = catalog.mapas.find(m => m.mapa === HuntMap.selectedMapa);
 	if (!mapa) {
-		panelEl.innerHTML = '<div class="hm-panel-empty">Selecione um mapa para ver os monstros.</div>';
+		scrollEl.innerHTML = '<div class="hm-panel-empty">Selecione um mapa para ver os monstros.</div>';
+		footerEl.innerHTML = renderFooter(null);
+		bindFooter(footerEl);
 		return;
 	}
 
-	const badge = computeBadge(catalog.nivel, mapa);
-	const isCurrent = mapa.mapa === catalog.mapaAtual;
+	const encaixe = encaixeDeNivel(catalog.nivel, mapa);
 	const monstros = allMonstersOf(mapa);
 
 	if (!HuntMap.selectedMobId || !monstros.some(m => String(m.mobId) === String(HuntMap.selectedMobId))) {
 		HuntMap.selectedMobId = monstros.length ? monstros[0].mobId : null;
 	}
 
-	const chipsHtml = monstros.length
-		? monstros
-				.map(m => {
-					const isMvp = !!(mapa.mvp && m.mobId === mapa.mvp.mobId);
-					const isSelected = String(m.mobId) === String(HuntMap.selectedMobId);
-					return `
-				<button type="button" class="hm-chip${isSelected ? ' is-selected' : ''}${isMvp ? ' is-mvp' : ''}" data-mob-id="${m.mobId}">
-					<span class="hm-chip-avatar"><img src="/ragidle/mobs/${m.mobId}.png" alt="" onerror="this.style.display='none'" /></span>
-					<span class="hm-chip-name">${escapeHtml(m.nome)}</span>
-					${isMvp ? '<span class="hm-chip-mvp">MVP</span>' : ''}
-				</button>`;
-				})
-				.join('')
+	/*
+	 * O DETALHE PRECISA DA FICHA, e a lista de monstros nao (D-788).
+	 *
+	 * Raca, elemento e a CHANCE de cada drop sairam do catalogo — eram 84% do
+	 * payload e estouravam o teto do pacote. Eles vem por mapa, quando o
+	 * jogador seleciona um.
+	 *
+	 * Enquanto ela nao chega, o painel mostra os monstros (que so precisam de
+	 * id e nome, e vem do indice) e um aviso no lugar do detalhe. Nao ha estado
+	 * "vazio" mentindo: a janela nunca afirma "sem drops" por causa da espera.
+	 */
+	const ficha = HuntMap.fichas[mapa.mapa];
+	if (!ficha) {
+		pedirFicha(mapa.mapa);
+	}
+
+	const mobsHtml = monstros.length
+		? monstros.map(m => renderMobRow(m, mapa, ficha)).join('')
 		: '<div class="hm-panel-empty">Nenhum monstro conhecido.</div>';
 
 	/*
@@ -828,132 +927,232 @@ function renderPanel() {
 	 * explicito, entao a de sempre continua e esta entra ao lado.
 	 */
 	const porMapa = HuntMap.visaoDeDrop === 'mapa';
+	const selectedMonster = monstros.find(m => String(m.mobId) === String(HuntMap.selectedMobId));
+	const tituloDrops = porMapa
+		? 'Drops do mapa'
+		: selectedMonster
+			? `Drops de ${escapeHtml(selectedMonster.nome)}`
+			: 'Drops';
 	const alternadorHtml = `
-		<div class="hm-visao" role="tablist">
-			<button type="button" class="hm-visao-btn${porMapa ? '' : ' is-selected'}" data-visao="mob" role="tab" aria-selected="${porMapa ? 'false' : 'true'}">Por monstro</button>
-			<button type="button" class="hm-visao-btn${porMapa ? ' is-selected' : ''}" data-visao="mapa" role="tab" aria-selected="${porMapa ? 'true' : 'false'}">Do mapa</button>
+		<div class="hm-seg hm-visao" role="tablist" aria-label="Visão dos drops">
+			<button type="button" class="hm-seg-btn${porMapa ? '' : ' is-selected'}" data-visao="mob" role="tab" aria-selected="${porMapa ? 'false' : 'true'}">Do monstro</button>
+			<button type="button" class="hm-seg-btn${porMapa ? ' is-selected' : ''}" data-visao="mapa" role="tab" aria-selected="${porMapa ? 'true' : 'false'}">Do mapa</button>
 		</div>`;
 
-	/*
-	 * O DETALHE PRECISA DA FICHA, e os chips nao (D-788).
-	 *
-	 * Raca, elemento e a CHANCE de cada drop sairam do catalogo — eram 84% do
-	 * payload e estouravam o teto do pacote. Eles vem por mapa, quando o
-	 * jogador seleciona um.
-	 *
-	 * Enquanto ela nao chega, o painel mostra os chips (que so precisam de id e
-	 * nome, e vem do indice) e um aviso no lugar do detalhe. Nao ha estado
-	 * "vazio" mentindo: a janela nunca afirma "sem drops" por causa da espera.
-	 */
-	const ficha = HuntMap.fichas[mapa.mapa];
+	let dropsHtml;
 	if (!ficha) {
-		pedirFicha(mapa.mapa);
-	}
-	const selectedMonster = monstros.find(m => String(m.mobId) === String(HuntMap.selectedMobId));
-	const detailHtml = !ficha
-		? '<div class="hm-panel-empty">Carregando os monstros deste mapa...</div>'
-		: porMapa
-			? renderDropsDoMapa(ficha)
-			: (selectedMonster ? renderMobDetail(selectedMonster, ficha) : '');
-
-	let actionsHtml = '';
-	if (isCurrent) {
-		actionsHtml += '<div class="hm-here-note">Você já está neste mapa.</div>';
+		dropsHtml = '<div class="hm-drops-empty">Carregando os monstros deste mapa...</div>';
+	} else if (porMapa) {
+		dropsHtml = renderDropsDoMapa(ficha);
 	} else {
-		actionsHtml += `<button type="button" class="hm-btn-go ri-btn" data-mapa="${escapeHtml(mapa.mapa)}"${badge.cls === 'locked' ? ' disabled' : ''}>Trocar para ${escapeHtml(mapa.rotulo)}</button>`;
+		dropsHtml = selectedMonster ? renderMobDrops(selectedMonster, ficha) : '';
+	}
+
+	const { dentro } = medidorDeEncaixe(catalog.nivel, mapa);
+	const veredito = encaixe.cls === 'ideal' ? 'Ideal para você' : dentro ? 'Na faixa' : encaixe.rotulo;
+
+	scrollEl.innerHTML = `
+		<div class="hm-hero fit-${encaixe.cls}">
+			${renderThumb(mapa)}
+			<div class="hm-hero-cap">
+				<div class="hm-hero-text">
+					<div class="hm-hero-region">${escapeHtml(mapa.regiao)}</div>
+					<h3 class="hm-hero-title">${escapeHtml(mapa.rotulo)}</h3>
+				</div>
+				${renderBadge(encaixe)}
+			</div>
+		</div>
+		<div class="hm-fit fit-${encaixe.cls}">
+			<div class="hm-fit-you">
+				<span class="hm-fit-you-label">Você</span>
+				<span class="hm-fit-you-nivel">${catalog.nivel}</span>
+			</div>
+			<div class="hm-fit-body">
+				<div class="hm-meter">${renderMeter(mapa, catalog.nivel)}</div>
+				<div class="hm-fit-row">
+					<span class="hm-fit-verdict">${escapeHtml(veredito)}</span>
+					<span class="hm-fit-range">Mapa Nv. ${mapa.nivelMinimo}–${mapa.nivelMaximo}</span>
+				</div>
+			</div>
+		</div>
+		<div class="hm-section">
+			<span class="hm-section-title">Monstros</span>
+			<span class="hm-section-n">${monstros.length}${mapa.mvp ? ' · 1 MVP' : ''}</span>
+		</div>
+		<div class="hm-mobs">${mobsHtml}</div>
+		<div class="hm-drops-head">
+			<span class="hm-section-title">${tituloDrops}</span>
+			${alternadorHtml}
+		</div>
+		${dropsHtml}`;
+
+	footerEl.innerHTML = renderFooter(mapa, encaixe);
+
+	scrollEl.querySelectorAll('[data-mob-id]').forEach(chip => chip.addEventListener('click', onClickChip));
+	scrollEl.querySelectorAll('[data-visao]').forEach(b => b.addEventListener('click', onClickVisao));
+	scrollEl.querySelectorAll('.hm-drop[data-item-id]').forEach(b => b.addEventListener('click', onClickDrop));
+	scrollEl.querySelectorAll('.hm-drop-tile img[data-item-id]').forEach(img => setItemIcon(img, img.dataset.itemId));
+	bindFooter(footerEl);
+}
+
+/**
+ * O rodapé fixo: "Viajar para X" (ou o motivo de não poder) e "Retornar ao
+ * ponto salvo". Recebe `null` quando não há mapa selecionado.
+ */
+function renderFooter(mapa, encaixe) {
+	const catalog = HuntMap.catalog;
+	let html = '';
+	if (mapa) {
+		const isCurrent = mapa.mapa === catalog.mapaAtual;
+		if (isCurrent) {
+			html += '<div class="hm-here-note">Você já está neste mapa.</div>';
+		} else if (encaixe.cls === 'locked') {
+			html += `<button type="button" class="hm-btn-go ri-btn" data-mapa="${escapeHtml(mapa.mapa)}" disabled>${RiIcones.cadeado} Abre no Nv. ${mapa.nivelQueAbre}</button>`;
+		} else {
+			html += `<button type="button" class="hm-btn-go ri-btn" data-mapa="${escapeHtml(mapa.mapa)}">Viajar para ${escapeHtml(mapa.rotulo)}</button>`;
+		}
 	}
 	const atCity = catalog.mapaAtual === catalog.cidade.mapa;
-	actionsHtml += `<button type="button" class="hm-btn-city ri-btn ri-btn--sec" data-mapa="${escapeHtml(catalog.cidade.mapa)}"${atCity ? ' disabled' : ''}>Retornar ao ponto salvo</button>`;
+	html += `<button type="button" class="hm-btn-city ri-btn ri-btn--sec" data-mapa="${escapeHtml(catalog.cidade.mapa)}"${atCity ? ' disabled' : ''}>Retornar ao ponto salvo</button>`;
+	return html;
+}
 
-	panelEl.innerHTML = `
-		<div class="hm-panel-label">Destino</div>
-		<h3 class="hm-panel-title">${escapeHtml(mapa.rotulo)}</h3>
-		<div class="hm-panel-stat">
-			<span class="hm-panel-stat-label">Nível recomendado</span>
-			<span class="hm-panel-stat-value">${mapa.nivelMinimo}–${mapa.nivelMaximo}</span>
-		</div>
-		<div class="hm-panel-section-title">Monstros presentes</div>
-		<div class="hm-chip-grid">${chipsHtml}</div>
-		${alternadorHtml}
-		${detailHtml}
-		<div class="hm-panel-actions">${actionsHtml}</div>`;
-
-	panelEl.querySelectorAll('[data-mob-id]').forEach(chip => chip.addEventListener('click', onClickChip));
-	panelEl.querySelectorAll('[data-visao]').forEach(b => b.addEventListener('click', onClickVisao));
-	const goBtn = panelEl.querySelector('.hm-btn-go');
+function bindFooter(footerEl) {
+	const goBtn = footerEl.querySelector('.hm-btn-go');
 	if (goBtn) {
 		goBtn.addEventListener('click', onClickTravel);
 	}
-	const cityBtn = panelEl.querySelector('.hm-btn-city');
+	const cityBtn = footerEl.querySelector('.hm-btn-city');
 	if (cityBtn) {
 		cityBtn.addEventListener('click', onClickTravel);
 	}
 }
 
 /**
- * Detail block for the monster selected in the chip grid: level / race /
- * element (translated, same dictionaries as before) and its drop list with
- * chance percentages (contract already provides them, see formatChance).
+ * Uma linha de monstro no dossiê: avatar, nome (+MVP), e — quando a ficha já
+ * chegou — nível, raça e elemento. Sem a ficha, só a contagem de drops do
+ * índice, que já vem com o catálogo.
  */
-function renderMobDetail(monster, mapa) {
-	const raca = RACE_PT[monster.raca] || monster.raca;
-	const elemento = ELEMENT_PT[monster.elemento] || monster.elemento;
-	const isMvp = !!(mapa.mvp && monster.mobId === mapa.mvp.mobId);
-	const drops = monster.drops || [];
-	const dropsHtml = drops.length
-		? `<ul class="hm-drops-list">${drops.map(d => `<li><span>${escapeHtml(d.nome)}</span><span>${formatChance(d.chance)}</span></li>`).join('')}</ul>`
-		: '<div class="hm-drops-empty">Sem drops conhecidos.</div>';
-
+function renderMobRow(m, mapa, ficha) {
+	const isMvp = !!(mapa.mvp && m.mobId === mapa.mvp.mobId);
+	const isSelected = String(m.mobId) === String(HuntMap.selectedMobId);
+	const nDrops = (m.drops || []).length;
+	let meta;
+	if (ficha && m.raca) {
+		const raca = RACE_PT[m.raca] || m.raca;
+		const elemento = ELEMENT_PT[m.elemento] || m.elemento;
+		meta = `<b>Nv. ${m.nivel}</b> · ${escapeHtml(raca)} · ${escapeHtml(elemento)} ${m.nivelDoElemento}`;
+	} else {
+		meta = `${nDrops} drop${nDrops === 1 ? '' : 's'}`;
+	}
 	return `
-		<div class="hm-mob-detail">
-			<div class="hm-mob-detail-name">${escapeHtml(monster.nome)}${isMvp ? ' <span class="hm-mvp-badge">MVP</span>' : ''}</div>
-			<div class="hm-mob-detail-row"><span>Nível</span><span>${monster.nivel}</span></div>
-			<div class="hm-mob-detail-row"><span>Raça</span><span>${escapeHtml(raca)}</span></div>
-			<div class="hm-mob-detail-row"><span>Elemento</span><span>${escapeHtml(elemento)} ${monster.nivelDoElemento}</span></div>
-			<div class="hm-drops-title">Drops</div>
-			${dropsHtml}
-		</div>`;
+		<button type="button" class="hm-chip${isSelected ? ' is-selected' : ''}${isMvp ? ' is-mvp' : ''}" data-mob-id="${m.mobId}" aria-pressed="${isSelected ? 'true' : 'false'}">
+			<span class="hm-chip-avatar"><img src="/ragidle/mobs/${m.mobId}.png" alt="" onerror="this.style.display='none'" /></span>
+			<span class="hm-chip-text">
+				<span class="hm-chip-name">${escapeHtml(m.nome)}${isMvp ? '<span class="hm-chip-mvp">MVP</span>' : ''}</span>
+				<span class="hm-chip-meta">${meta}</span>
+			</span>
+			<span class="hm-chip-drops">${nDrops} ${nDrops === 1 ? 'drop' : 'drops'}</span>
+		</button>`;
 }
 
 /**
- * TODO O DROP DO MAPA, numa lista so (RAGIDLE, I6 — 31/08/2026).
+ * Um LADRILHO de drop: o ícone real do item (24x24 do cliente), o nome, a
+ * chance — e, na visão do mapa, de quantos monstros cai. É um botão: o
+ * clique abre a ficha do item (onClickDrop).
+ */
+function renderDropTile(itemId, nome, chanceTexto, extraHtml, title) {
+	const aberto = ItemInfo.uid === itemId;
+	return `
+		<button type="button" class="hm-drop${aberto ? ' is-open' : ''}" data-item-id="${itemId}" title="${escapeHtml(title || nome)}">
+			<span class="hm-drop-tile ri-tile"><img data-item-id="${itemId}" alt="" /></span>
+			<span class="hm-drop-name">${escapeHtml(nome)}</span>
+			<span class="hm-drop-chance">${chanceTexto}</span>
+			${extraHtml || ''}
+		</button>`;
+}
+
+/**
+ * Os drops do monstro selecionado, da maior chance para a menor (empate pelo
+ * nome, para a grade não dançar).
+ */
+function renderMobDrops(monster) {
+	const nomeDe = d => d.nomeLocal || d.nome;
+	const drops = (monster.drops || [])
+		.slice()
+		.sort((a, b) => b.chance - a.chance || nomeDe(a).localeCompare(nomeDe(b), 'pt-BR'));
+	if (!drops.length) {
+		return '<div class="hm-drops-empty">Sem drops conhecidos.</div>';
+	}
+	return `<div class="hm-drops">${drops
+		.map(d =>
+			renderDropTile(
+				d.itemId,
+				nomeDe(d),
+				formatarChance(d.chance),
+				'',
+				`${nomeDe(d)} — ${formatarChance(d.chance)}`
+			)
+		)
+		.join('')}</div>`;
+}
+
+/**
+ * TODO O DROP DO MAPA, numa grade so (RAGIDLE, I6 — 31/08/2026).
  *
  * A REGRA (deduplicar por `itemId`, escolher a MAIOR chance, ordenar de forma
  * estavel) mora em `dropsDoMapa.js`, num modulo sem imports — e tem teste que a
  * EXECUTA (`servidor/mapa/drops-do-mapa.test.ts`, 11 casos). Aqui so se desenha.
  *
- * A coluna da direita diz "melhor", e nao "chance": medido no catalogo de hoje,
- * 25 dos 33 mapas tem item que cai de mais de um monstro, e a chance de um item
- * "no mapa" nao existe no rAthena — ela e por monstro. Somar daria numero
- * inventado. Quando ha mais de uma origem, a linha mostra de quantas, e o
+ * A chance mostrada e a MELHOR, e nao "a chance": medido no catalogo, 25 dos
+ * 33 mapas tem item que cai de mais de um monstro, e a chance de um item "no
+ * mapa" nao existe no rAthena — ela e por monstro. Somar daria numero
+ * inventado. Quando ha mais de uma origem, o ladrilho diz de quantas, e o
  * `title` nomeia cada monstro com a chance dele.
  */
-function renderDropsDoMapa(mapa) {
-	const linhas = dropsDoMapa(mapa);
+function renderDropsDoMapa(ficha) {
+	const linhas = dropsDoMapa(ficha);
 	if (!linhas.length) {
-		return '<div class="hm-mob-detail"><div class="hm-drops-empty">Sem drops conhecidos neste mapa.</div></div>';
+		return '<div class="hm-drops-empty">Sem drops conhecidos neste mapa.</div>';
 	}
-
-	const itensHtml = linhas
+	const grade = linhas
 		.map(l => {
-			const varios = l.deQuantosMobs > 1;
-			const origem = l.monstros
-				.map(m => `${m.nome} ${formatChance(m.chance)}`)
-				.join(' · ');
-			return `
-			<li title="${escapeHtml(origem)}">
-				<span>${escapeHtml(l.nome)}${varios ? `<span class="hm-drop-origens">${l.deQuantosMobs} mobs</span>` : ''}</span>
-				<span>${formatChance(l.melhorChance)}</span>
-			</li>`;
+			// `dropsDoMapa` devolve o nome do servidor; o ladrilho mostra o local.
+			const nome = nomeLocalDoItem(l.itemId, l.nome);
+			const origem = l.monstros.map(m => `${m.nome} ${formatarChance(m.chance)}`).join(' · ');
+			const extra = l.deQuantosMobs > 1 ? `<span class="hm-drop-origens">${l.deQuantosMobs} mobs</span>` : '';
+			return renderDropTile(l.itemId, nome, formatarChance(l.melhorChance), extra, `${nome} — ${origem}`);
 		})
 		.join('');
-
 	return `
-		<div class="hm-mob-detail">
-			<div class="hm-mob-detail-name">Todo o drop de ${escapeHtml(mapa.rotulo)}</div>
-			<div class="hm-drops-title">${linhas.length} ${linhas.length === 1 ? 'item' : 'itens'} <span class="hm-drops-legenda">melhor chance</span></div>
-			<ul class="hm-drops-list hm-drops-list--mapa">${itensHtml}</ul>
-		</div>`;
+		<div class="hm-drops-legenda">${linhas.length} ${linhas.length === 1 ? 'item' : 'itens'} · a chance é a melhor entre os monstros</div>
+		<div class="hm-drops">${grade}</div>`;
+}
+
+/**
+ * Ícone do item: /ragidle/item/<id>.png (a arte publicada pelo pipeline) com
+ * reserva no bitmap do GRF — a mesma receita da Mochila e da loja de NPC V2.
+ */
+function setItemIcon(img, itemId) {
+	const it = DB.getItemInfo(itemId);
+	const resName = it && it.identifiedResourceName;
+	img.onerror = () => {
+		img.onerror = null;
+		if (!resName) {
+			img.style.display = 'none';
+			return;
+		}
+		Client.loadFile(
+			DB.INTERFACE_PATH + 'item/' + resName + '.bmp',
+			dataURI => {
+				img.src = dataURI;
+			},
+			() => {
+				img.style.display = 'none';
+			}
+		);
+	};
+	img.src = `/ragidle/item/${itemId}.png`;
 }
 
 function onClickVisao(e) {
@@ -969,9 +1168,77 @@ function onClickChip(e) {
 }
 
 /**
- * "Ir para [mapa]" / "Voltar para [cidade]" — both send the same custom
- * packet, only the target map name changes. Shared by onClickTravel (the
- * panel/card buttons below) AND HuntMap.travelToCity (RAGIDLE, the
+ * CLICAR NUM DROP ABRE A FICHA DO ITEM (D-901, pedido do dono: "quando eu
+ * clico em cima do item, ele abre o detalhamento do item").
+ *
+ * É a MESMA janela ItemInfo que a Mochila (MochilaIdle.js) e a loja de NPC
+ * (NpcStoreV2.js) abrem, com o mesmo alternar: clicar de novo no item aberto
+ * fecha a ficha. O objeto passado é o mínimo que `ItemInfo.setItem` precisa
+ * para um item que o jogador NÃO tem em mãos: id e "identificado" (a ficha
+ * de um drop é a do item limpo — sem runa, sem carta, sem refino).
+ *
+ * A posição: quando a ficha ainda não estava aberta, ela nasce COLADA ao
+ * atlas (à direita se couber, senão à esquerda), para não cobrir a grade que
+ * o jogador acabou de clicar. Se já estava aberta (trocou de item), fica
+ * onde o jogador a deixou.
+ */
+function onClickDrop(e) {
+	e.stopImmediatePropagation();
+	const itemId = parseInt(e.currentTarget.dataset.itemId, 10);
+	if (!itemId) {
+		return;
+	}
+	if (ItemInfo.uid === itemId) {
+		ItemInfo.remove();
+		ItemInfo.uid = -1;
+		marcarDropAberto();
+		return;
+	}
+	const estavaAberta = ItemInfo.uid !== -1 && ItemInfo.uid != null;
+	ItemInfo.append();
+	ItemInfo.uid = itemId;
+	ItemInfo.setItem({ ITID: itemId, IsIdentified: true });
+	if (!estavaAberta) {
+		encostarFichaDoItem();
+	}
+	marcarDropAberto();
+}
+
+/**
+ * Marca na grade o ladrilho cuja ficha está aberta (sem re-desenhar o
+ * dossiê inteiro — o clique não pode fazer a grade pular).
+ */
+function marcarDropAberto() {
+	_root()
+		.querySelectorAll('.hm-drop[data-item-id]')
+		.forEach(b => b.classList.toggle('is-open', String(ItemInfo.uid) === b.dataset.itemId));
+}
+
+function encostarFichaDoItem() {
+	const host = ItemInfo._host;
+	if (!host) {
+		return;
+	}
+	const esquerda = parseInt(HuntMap._host.style.left, 10) || 0;
+	const topo = parseInt(HuntMap._host.style.top, 10) || 0;
+	let x = esquerda + WINDOW_WIDTH + 8;
+	if (x + ITEM_INFO_WIDTH > Renderer.width) {
+		x = esquerda - ITEM_INFO_WIDTH - 8;
+	}
+	if (x < 0) {
+		// Sem folga de nenhum lado (tela de 1366 com o atlas centrado): por
+		// cima da LISTA, encostada no dossiê — a grade de drops que o jogador
+		// acabou de clicar continua inteira à vista. 318 = --hm-panel (CSS).
+		x = Math.max(0, esquerda + WINDOW_WIDTH - 318 - ITEM_INFO_WIDTH - 8);
+	}
+	host.style.left = x + 'px';
+	host.style.top = Math.max(0, topo + 40) + 'px';
+}
+
+/**
+ * "Viajar para [mapa]" / "Retornar ao ponto salvo" — both send the same
+ * custom packet, only the target map name changes. Shared by onClickTravel
+ * (the footer/row buttons) AND HuntMap.travelToCity (RAGIDLE, the
  * "Retornar para Prontera" contextual button — see HuntButtonIdle.js).
  * CZ_RAGIDLE_VIAJAR — opcode 0x0ff2, fixed 18 bytes (opcode + 16-byte name).
  */
@@ -991,6 +1258,9 @@ function sendTravel(mapName) {
 
 function onClickTravel(e) {
 	e.stopImmediatePropagation();
+	if (e.currentTarget.disabled) {
+		return;
+	}
 	sendTravel(e.currentTarget.dataset.mapa);
 }
 

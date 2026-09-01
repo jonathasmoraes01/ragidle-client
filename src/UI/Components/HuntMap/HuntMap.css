@@ -1,68 +1,48 @@
 /**
  * UI/Components/HuntMap/HuntMap.css
  *
- * Mapa de Caça — floating button + window.
+ * Mapa de Caça — o ATLAS (v5, redesenho de 01/09/2026, D-901).
  *
- * v2: light theme retrofit to match the reference "Mapa de Caça" print
- * (Midgard Idle gauntlet) — same tone as IdleSkills.css's light window
- * (#f4f6fb background, white cards, #3b6ea5 blue, 10-12px corners, soft
- * shadows), replacing this window's original dark theme wholesale. Only
- * the SKIN changed; every mechanism below (drag/clamp math, pointer-events
- * split, opcodes) is unchanged from the header comment history.
+ * Até a v4 esta janela era, por escolha, uma cópia do "Mapa de Caça" do
+ * Midgard Idle (abas horizontais de região, grade de 2 cards com miniatura em
+ * cima, painel "Destino" com chips 2x3 e lista de drops em duas colunas). O
+ * dono pediu que ela deixasse de parecer cópia e ficasse melhor. A v5 troca a
+ * COMPOSIÇÃO, não só a pele:
  *
- * v3 (gauntlet 18/08/2026, "Ragnarok Classico Premium"): reskin onto the
- * shared design system defined at the end of UI/Common.css (tokens --ri-*
- * and classes .ri-window/.ri-header/.ri-title/.ri-close/.ri-card/.ri-btn/
- * .ri-tab/.ri-badge/.ri-input/.ri-scroll), per
- * redesign/extracao-da-referencia.md secao 5.4 ("Mapa de Caca"). Common.css
- * e replicado dentro deste Shadow DOM pelo GUIComponent, entao essas
- * classes/tokens ja estao disponiveis aqui sem import. Onde o markup ganhou
- * uma classe ri-*, as regras abaixo NAO redeclaram cor/borda/sombra/fonte
- * daquele elemento (deixam a classe compartilhada vencer) — so ficam regras
- * de LAYOUT (posicao, tamanho, flex/grid) que sao proprias desta janela.
- * Onde nao ha classe ri-* equivalente (card de mapa, stack de mobs, grade
- * de chips, painel de detalhe), a cor/borda/raio foi trocada para usar os
- * mesmos tokens --ri-* em vez dos hex fixos antigos, pra ficar no mesmo
- * tom sem duplicar a composicao inteira.
+ *   - as regiões viraram um TRILHO vertical à esquerda (com contagem), e
+ *     embaixo dele um card "Você está em ..." que leva ao mapa atual;
+ *   - a lista virou LINHAS largas com a miniatura à esquerda e um MEDIDOR DE
+ *     ENCAIXE (a faixa do mapa no meio da régua, o marcador é o seu nível) no
+ *     lugar do texto "Rec. 1–26"; quando há busca, a linha diz QUEM a trouxe
+ *     ("Jellopy (Poring)");
+ *   - o painel da direita virou um DOSSIÊ: a miniatura como banner com o nome
+ *     em serifa por cima, o medidor grande, os monstros em lista (avatar,
+ *     nível, raça, elemento), e os drops em LADRILHOS (o tratamento de ícone
+ *     de item do design system) com o ícone real do item — e clicar num
+ *     ladrilho abre a ficha do item (ItemInfo);
+ *   - o botão de viajar mora num RODAPÉ fixo do dossiê, sempre à vista.
  *
- * Layout notes (why the sizes below matter, not just cosmetics):
- * - GUIComponent (UI/GUIComponent.js) makes ":host" the actual shadow HOST
- *   element (see GUIComponent.js:87-119 / :131-203 _prepare()), and that is
- *   the element GUIComponent#draggable() (GUIComponent.js:516-747) moves via
- *   host.style.left/top, and the element GUIComponent#_fixPositionOverflow()
- *   (GUIComponent.js:267-272) clamps to the viewport using host.offsetWidth/
- *   offsetHeight. So ":host" is given the SAME width/height as ".hm-window"
- *   below, so drag/clamp math is correct.
- * - The floating button must stay visible/clickable at a fixed screen corner
- *   no matter where the window has been dragged, and the window must NOT be
- *   clickable (nor swallow clicks meant for the game world) while closed.
- *   ":host" is therefore fully transparent to the mouse (pointer-events:none)
- *   and only the two elements that should react to the mouse opt back in
- *   with pointer-events:auto. This works together with
- *   HuntMap.mouseMode = GUIComponent.MouseMode.CROSS (see HuntMap.js), the
- *   same mode used by the other floating icons, e.g.
- *   UI/Components/CashShopIcon/CashShopIcon.js:60.
+ * Mecânica preservada da v4 (ver o histórico no cabeçalho antigo, resumido):
+ * - ":host" tem o MESMO tamanho da ".hm-window" (900x620; 590 em telas
+ *   baixas), porque é o host que o GUIComponent#draggable move e o
+ *   _fixPositionOverflow mede. WINDOW_WIDTH/HEIGHT em HuntMap.js andam
+ *   juntos com estes números.
+ * - ":host" é transparente ao mouse (pointer-events:none) e só o botão
+ *   flutuante e a janela aberta optam por receber clique — junto com
+ *   MouseMode.CROSS em HuntMap.js, é o que impede a janela fechada de engolir
+ *   clique do mundo.
+ * - ".ri-anima" (Common.css) faz a abertura/fechamento por transição de
+ *   display; fora de ".is-open" a janela não recebe ponteiro.
+ * - Seletores que provas EXTERNAS usam e por isso continuam existindo:
+ *   ".hm-window", ".hm-close", ".hm-card", ".hm-card-thumb img", ".hm-card-go"
+ *   (rag-idle-master/scripts/prova-hud-chat.ts, prove-v0-publicada.ts,
+ *   fotografar-janelas.ts).
  *
- * v4: realinhamento ao design system OFICIAL (redesign/design-system-oficial.md,
- * 19/08/2026), que substituiu o briefing de 18/08 usado na v3 acima. Common.css
- * ja tinha sido pivotado pelo lider antes desta passada — as aliases --ri-*
- * ja apontavam pros tokens oficiais, entao moldura/titulo/abas ja vinham
- * corretas por heranca de .ri-window/.ri-header/.ri-title/.ri-tab. Esta
- * passada trocou toda referencia --ri-* por nome oficial (--blue-500,
- * --text-body, --border-hairline etc — "codigo novo usa o nome oficial") e
- * tokenizou o que ainda era hex/rgba/px literal: sombras viraram --shadow-card/
- * --shadow-float, os washes claros viraram --sky-50/--sky-100/--paper-1/
- * --paper-2, badges "easy"/"challenge" ganharam --type-badge, e os DOIS
- * estados que o design system crava pra card de lista: SELECIONADO agora e
- * borda --accent + 12% de tinta de acento via color-mix() (sem glow azul
- * antigo), e BLOQUEADO agora dessatura o CARD INTEIRO (opacity 0.55 +
- * filter: grayscale(1)), nao so a thumbnail como na v3. O botao flutuante
- * (.hm-button) ficou de fora de proposito — mesma familia escura dos outros
- * botoes flutuantes do jogo, fora do escopo desta tarefa. Tamanho da janela
- * (900x620) tambem ficou de fora: o design system crava 640x460, mas essa
- * medida veio do componente antigo (extracao-da-referencia.md) e nao cabe a
- * grade de 2 colunas + minimapa que este componente usa — divergencia
- * deliberada, registrada no relatorio desta tarefa.
+ * Tokens: só nome oficial do design system (Common.css é replicado dentro
+ * deste Shadow DOM). Onde um tom novo era preciso, é color-mix() de token —
+ * nenhum hex nasce aqui. A cor de ENCAIXE (ideal/desafio/fácil/trancado) vive
+ * numa custom property local, --hm-fit, para a linha, o medidor e a badge
+ * lerem a mesma decisão.
  */
 
 :host {
@@ -77,12 +57,14 @@
 	width: 100%;
 	height: 100%;
 	color: var(--text-body);
-	font-size: var(--fs-info);
+	font: var(--type-info);
+	--hm-rail: 138px;
+	--hm-panel: 318px;
+	--hm-thumb-w: 96px;
+	--hm-thumb-h: 54px;
 }
 
-/* ─── Floating button (always visible on screen) ─────────── */
-/* Unchanged position/mechanics — same dark round icon as every RAGIDLE
- * floating button, only the WINDOW below follows the light reference. */
+/* ─── Botão flutuante (o DockIdle o esconde em jogo; fica como reserva) ── */
 
 #HuntMap .hm-button {
 	position: fixed;
@@ -90,26 +72,30 @@
 	right: 20px;
 	width: 42px;
 	height: 42px;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
 	border-radius: 50%;
-	border: 1px solid rgba(255, 255, 255, 0.25);
-	background: rgba(20, 20, 26, 0.85);
-	color: #ffffff;
-	font-size: 18px;
-	line-height: 1;
+	border: 1px solid var(--border-gold);
+	background: linear-gradient(180deg, var(--white) 0%, var(--sky-100) 100%);
+	color: var(--blue-600);
 	cursor: pointer;
 	pointer-events: auto;
 	z-index: 40;
+	box-shadow: var(--shadow-float), var(--rim-light);
+}
+
+#HuntMap .hm-button svg {
+	width: 20px;
+	height: 20px;
 }
 
 #HuntMap .hm-button:hover {
-	background: rgba(40, 40, 50, 0.92);
-	border-color: rgba(255, 255, 255, 0.45);
+	box-shadow: var(--glow-gold), var(--rim-light);
+	transform: translateY(-1px);
 }
 
-/* ─── Window ───────────────────────────────────────────────── */
-/* .ri-window (Common.css) supplies background gradient, dourado border,
- * radius, shadow, font-family and text color — this block only keeps the
- * layout/mechanics that are specific to this floating window. */
+/* ─── Janela ─────────────────────────────────────────────────────────── */
 
 #HuntMap .hm-window {
 	display: none;
@@ -119,6 +105,10 @@
 	flex-direction: column;
 	width: 900px;
 	height: 620px;
+	/* border-box: a moldura de 1px do .ri-window entra nos 900x620, e a janela
+	   mede EXATAMENTE o que o :host (e o WINDOW_WIDTH/HEIGHT do JS) supõe —
+	   até a v4 media 902x622 e os 2px vazavam do host (medido em 01/09). */
+	box-sizing: border-box;
 	overflow: hidden;
 }
 
@@ -126,19 +116,9 @@
 	display: flex;
 }
 
-/* Builder de polimento (18/08/2026), responsividade 1366x768: 620px de
-   janela + a barra ~78px do DockIdle nao cabem nos 768px do piso (medido
-   com Playwright: janela centralizada ia ate y:696, dock comecava em
-   y:690 — 6px de sobreposicao real, a ultima fileira de mapas ficava
-   atras do fundo turvo do dock). So o RETANGULO encolhe aqui, dentro do
-   media query — o WINDOW_HEIGHT em HuntMap.js continua 620 de proposito
-   (ver o comentario grande la): a centralizacao calcula "top" pra uma
-   caixa de 620, e a caixa real de 590 renderiza mais curta que isso, entao
-   sobra folga embaixo em vez de faltar. ".hm-list" (flex:1 1 60%,
-   overflow-y:auto) absorve a diferenca mostrando menos linhas antes de
-   rolar — toolbar/abas/subbarra (flex:0 0 auto) nao mudam de tamanho. Em
-   telas altas (1600x900, 1920x1080) esta regra nao entra e a janela
-   continua com os 620px de sempre. */
+/* Piso 1366x768: 620 + a doca (~78) não cabem; só o retângulo encolhe (o
+   WINDOW_HEIGHT do JS continua 620 — a conta de centralizar sobra folga em
+   vez de faltar; ver o comentário de WINDOW_HEIGHT em HuntMap.js). */
 @media (max-height: 800px) {
 	#HuntMap .hm-window {
 		height: 590px;
@@ -148,281 +128,430 @@
 	}
 }
 
-/* .ri-header (Common.css) supplies the gradient, centered title, dourado
- * bottom border and move cursor; .ri-title supplies the wing ornaments via
- * ::before/::after. This block only pins it to the top of the column. */
-
 #HuntMap .hm-titlebar {
 	position: relative;
 	flex: 0 0 auto;
 }
 
-/* .ri-close (Common.css) supplies the circular dourado button fully
- * (it is position:absolute, so it does not need to opt out of the header's
- * centered flex layout). */
-
-/* ─── Toolbar: search + filters ───────────────────────────── */
+/* ─── Barra de ferramentas: busca + modo + ordem ─────────────────────── */
 
 #HuntMap .hm-toolbar {
 	flex: 0 0 auto;
 	display: flex;
 	align-items: center;
-	gap: 8px;
-	padding: 10px 12px;
-	border-bottom: 1px solid var(--border-hairline);
+	gap: var(--sp-4);
+	padding: var(--sp-4) var(--sp-6);
+	border-bottom: var(--divider);
+	background: var(--surface-glass);
 }
 
-/* .ri-input (Common.css) supplies the field's look; here it only needs to
- * grow to fill the toolbar row. */
+#HuntMap .hm-search-wrap {
+	position: relative;
+	flex: 1 1 auto;
+	display: flex;
+	align-items: center;
+	min-width: 0;
+}
+
+#HuntMap .hm-search-icon {
+	position: absolute;
+	left: 9px;
+	top: 50%;
+	transform: translateY(-50%);
+	width: 14px;
+	height: 14px;
+	color: var(--text-muted);
+	pointer-events: none;
+}
+
+#HuntMap .hm-search-icon svg,
+#HuntMap .hm-search-clear svg {
+	width: 100%;
+	height: 100%;
+}
+
 #HuntMap .hm-search {
 	box-sizing: border-box;
-	flex: 1 1 auto;
+	width: 100%;
+	padding-left: 28px;
+	padding-right: 26px;
 }
 
-#HuntMap .hm-filters-wrap {
-	position: relative;
-	flex: 0 0 auto;
-}
-
-/* .ri-btn / .ri-btn--sec (Common.css) supply the button's look; the
- * "popover open" state below is specific to this component. */
-#HuntMap .hm-filters-wrap.is-open .hm-filters-btn {
-	border-color: var(--blue-500);
-	color: var(--blue-600);
-}
-
-#HuntMap .hm-filters-popover {
-	display: none;
+#HuntMap .hm-search-clear {
 	position: absolute;
-	top: calc(100% + 6px);
-	right: 0;
-	z-index: 10;
-	min-width: 190px;
-	padding: 10px 12px;
-	box-shadow: var(--shadow-float);
-}
-
-#HuntMap .hm-filters-wrap.is-open .hm-filters-popover {
-	display: block;
-}
-
-#HuntMap .hm-filters-option {
-	display: flex;
-	align-items: center;
-	gap: 8px;
-	font-size: var(--fs-info);
-	color: var(--text-body);
-	cursor: pointer;
-}
-
-#HuntMap .hm-filters-option input[type='checkbox'] {
-	accent-color: var(--blue-500);
-	cursor: pointer;
-}
-
-/* ─── Region tabs (with real counts) ──────────────────────── */
-/* .ri-tab (Common.css) supplies the pill look + the blue "is-active" fill;
- * this block only lays the row out. */
-
-#HuntMap .hm-tabs {
-	flex: 0 0 auto;
-	display: flex;
-	flex-wrap: wrap;
-	gap: 6px;
-	padding: 8px 12px;
-	border-bottom: 1px solid var(--border-hairline);
-}
-
-#HuntMap .hm-tab {
-	display: inline-flex;
-	align-items: center;
-	gap: 5px;
-}
-
-#HuntMap .hm-tab-count {
-	font-size: var(--fs-desc);
-	opacity: 0.75;
-}
-
-#HuntMap .hm-tab.is-active .hm-tab-count {
-	opacity: 0.9;
-}
-
-/* ─── Sub-bar: result count + sort ────────────────────────── */
-
-#HuntMap .hm-subbar {
-	flex: 0 0 auto;
-	display: flex;
-	align-items: center;
-	justify-content: space-between;
-	gap: 10px;
-	padding: 8px 12px;
-	border-bottom: 1px solid var(--border-hairline);
-	background: var(--sky-50);
-}
-
-#HuntMap .hm-count {
-	font-size: var(--fs-label);
+	right: 6px;
+	top: 50%;
+	transform: translateY(-50%);
+	width: 16px;
+	height: 16px;
+	padding: 2px;
+	box-sizing: border-box;
+	border: none;
+	border-radius: 50%;
+	background: var(--surface-inset);
 	color: var(--text-muted);
+	cursor: pointer;
+}
+
+#HuntMap .hm-search-clear:hover {
+	color: var(--text-title);
+	background: var(--sky-200);
+}
+
+/* Controle segmentado: dois botões colados num trilho afundado. Serve ao
+   "Para mim / Todos" da barra e ao "Do monstro / Do mapa" do dossiê. Aba
+   troca por PREENCHIMENTO (design system), nunca por espessura de borda. */
+#HuntMap .hm-seg {
+	flex: 0 0 auto;
+	display: inline-flex;
+	padding: 2px;
+	gap: 2px;
+	background: var(--surface-inset);
+	border: 1px solid var(--border-hairline);
+	border-radius: var(--radius-pill);
+	box-shadow: var(--shadow-inset);
+}
+
+#HuntMap .hm-seg-btn {
+	appearance: none;
+	border: none;
+	border-radius: var(--radius-pill);
+	padding: 4px 11px;
+	background: transparent;
+	color: var(--tab-idle-text);
+	font: var(--type-label);
+	cursor: pointer;
+	transition:
+		background var(--dur-fast) var(--ease-out),
+		color var(--dur-fast) var(--ease-out);
+}
+
+#HuntMap .hm-seg-btn:hover {
+	color: var(--text-title);
+}
+
+#HuntMap .hm-seg-btn.is-selected {
+	background: var(--tab-active-fill);
+	color: var(--tab-active-text);
+	box-shadow: var(--shadow-card);
 }
 
 #HuntMap .hm-sort-wrap {
+	flex: 0 0 auto;
 	display: flex;
 	align-items: center;
-	gap: 6px;
+	gap: var(--sp-3);
 }
 
 #HuntMap .hm-sort-wrap label {
-	font-size: var(--fs-label);
+	font: var(--type-label);
 	color: var(--text-muted);
 }
 
 #HuntMap .hm-sort {
 	box-sizing: border-box;
-	padding: 5px 8px;
+	padding: 4px 8px;
 	background: var(--white);
 	border: 1px solid var(--border-hairline);
 	border-radius: var(--radius-panel);
 	color: var(--text-body);
-	font-family: var(--font-ui);
-	font-size: var(--fs-label);
+	font: var(--type-label);
 	cursor: pointer;
 }
 
-#HuntMap .hm-sort:focus {
+#HuntMap .hm-sort:focus-visible {
 	outline: none;
-	border-color: var(--blue-500);
+	border-color: var(--accent);
+	box-shadow: var(--glow-accent);
 }
 
+/* Linha de status: só ocupa altura quando tem texto. */
 #HuntMap .hm-status {
 	flex: 0 0 auto;
-	min-height: 14px;
-	padding: 4px 12px 0 12px;
+	padding: 0 var(--sp-6);
 	color: var(--amber-600);
-	font-size: var(--fs-label);
+	font: var(--type-label);
 }
 
-/* ─── Content: card grid (left) + destination panel (right) ─ */
+#HuntMap .hm-status:not(:empty) {
+	padding-top: var(--sp-2);
+}
 
-#HuntMap .hm-content {
+/* ─── Corpo: trilho | lista | dossiê ─────────────────────────────────── */
+
+#HuntMap .hm-body {
 	flex: 1 1 auto;
 	display: flex;
 	min-height: 0;
 }
 
-#HuntMap .hm-list {
-	flex: 1 1 60%;
+/* ─── Trilho de regiões ──────────────────────────────────────────────── */
+
+#HuntMap .hm-rail {
+	flex: 0 0 var(--hm-rail);
+	display: flex;
+	flex-direction: column;
+	gap: var(--sp-2);
+	padding: var(--sp-5) var(--sp-4);
+	box-sizing: border-box;
 	overflow-y: auto;
-	padding: 12px;
-	display: grid;
-	grid-template-columns: repeat(2, 1fr);
-	gap: 10px;
-	align-content: start;
+	border-right: var(--divider);
+	background: var(--surface-glass);
+}
+
+#HuntMap .hm-rail-label,
+#HuntMap .hm-panel-label {
+	font: var(--type-badge);
+	font-size: var(--fs-desc);
+	letter-spacing: var(--ls-caps);
+	text-transform: uppercase;
+	color: var(--text-muted);
+	padding: 0 var(--sp-3);
+	margin-bottom: var(--sp-2);
+}
+
+#HuntMap .hm-tabs {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+}
+
+#HuntMap .hm-tab {
+	appearance: none;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--sp-3);
+	width: 100%;
+	box-sizing: border-box;
+	padding: 6px var(--sp-4);
+	border: 1px solid transparent;
+	border-radius: var(--radius-panel);
+	background: transparent;
+	color: var(--text-body);
+	font: var(--type-info);
+	text-align: left;
+	cursor: pointer;
+	transition:
+		background var(--dur-fast) var(--ease-out),
+		color var(--dur-fast) var(--ease-out);
+}
+
+#HuntMap .hm-tab-name {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+#HuntMap .hm-tab:hover {
+	background: var(--surface-card-hover);
+}
+
+#HuntMap .hm-tab-count {
+	flex: 0 0 auto;
+	min-width: 18px;
+	padding: 1px 6px;
+	border-radius: var(--radius-pill);
+	background: var(--surface-inset);
+	color: var(--text-muted);
+	font: var(--type-badge);
+	line-height: 14px;
+	text-align: center;
+}
+
+#HuntMap .hm-tab.is-active {
+	background: var(--tab-active-fill);
+	color: var(--tab-active-text);
+	box-shadow: var(--shadow-card);
+}
+
+#HuntMap .hm-tab.is-active .hm-tab-count {
+	background: color-mix(in srgb, var(--white) 22%, transparent);
+	color: var(--tab-active-text);
+}
+
+/* "Você está em": o card no pé do trilho que leva ao mapa atual. */
+#HuntMap .hm-voce {
+	margin-top: auto;
+	padding-top: var(--sp-5);
+}
+
+#HuntMap .hm-voce-card {
+	appearance: none;
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	width: 100%;
+	box-sizing: border-box;
+	padding: var(--sp-4);
+	border: 1px solid var(--border-gold);
+	border-radius: var(--radius-panel);
+	background: linear-gradient(180deg, var(--white) 0%, var(--gold-200) 100%);
+	color: var(--text-body);
+	font: var(--type-desc);
+	text-align: left;
+	cursor: pointer;
+	box-shadow: var(--rim-light), var(--shadow-card);
+}
+
+#HuntMap .hm-voce-card:hover {
+	box-shadow: var(--glow-gold), var(--rim-light);
+}
+
+#HuntMap .hm-voce-label {
+	font: var(--type-badge);
+	letter-spacing: var(--ls-caps);
+	text-transform: uppercase;
+	color: var(--gold-700);
+}
+
+#HuntMap .hm-voce-map {
+	font: var(--type-label);
+	color: var(--text-title);
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+#HuntMap .hm-voce-nivel {
+	color: var(--text-muted);
+}
+
+/* ─── Lista de mapas ─────────────────────────────────────────────────── */
+
+#HuntMap .hm-list-wrap {
+	flex: 1 1 auto;
+	display: flex;
+	flex-direction: column;
+	min-width: 0;
+	min-height: 0;
+}
+
+#HuntMap .hm-count {
+	flex: 0 0 auto;
+	padding: var(--sp-3) var(--sp-6) var(--sp-2);
+	font: var(--type-label);
+	color: var(--text-muted);
+}
+
+#HuntMap .hm-count-ideal {
+	color: var(--green-600);
+}
+
+#HuntMap .hm-list {
+	flex: 1 1 auto;
+	overflow-y: auto;
+	padding: 0 var(--sp-6) var(--sp-6);
+	display: flex;
+	flex-direction: column;
+	gap: var(--sp-3);
 }
 
 #HuntMap .hm-list-empty,
 #HuntMap .hm-panel-empty {
-	grid-column: 1 / -1;
-	margin-top: 16px;
+	margin-top: var(--sp-7);
 	text-align: center;
 	color: var(--text-muted);
-	font-size: var(--fs-label);
+	font: var(--type-label);
 }
 
-/* ─── Map cards ────────────────────────────────────────────── */
-/* No generic .ri-card here on purpose: this card needs its own hover-lift
- * transform and a dessaturated "locked" state that .ri-card does not
- * define, so it stays bespoke — mas com os tokens oficiais (--surface-card,
- * --surface-card-hover, --border-hairline, --radius-card) e os dois estados
- * do design system OFICIAL (19/08/2026): selecionado = borda de acento +
- * 12% de tinta de acento (color-mix, sem hex inventado); bloqueado = 55% de
- * opacidade + grayscale(1) no CARD INTEIRO (mesma receita de ".ri-btn:disabled"
- * em Common.css), nao so na thumbnail como na v3. */
+/* A cor de encaixe, uma vez por classe: a linha, o medidor, a badge e o
+   dossiê leem --hm-fit. */
+#HuntMap .fit-ideal {
+	--hm-fit: var(--green-600);
+}
+#HuntMap .fit-challenge {
+	--hm-fit: var(--gold-500);
+}
+#HuntMap .fit-easy {
+	--hm-fit: var(--blue-400);
+}
+#HuntMap .fit-locked {
+	--hm-fit: var(--ink-500);
+}
 
+/* A LINHA de mapa. Card bespoke (não .ri-card): precisa do filete de
+   encaixe à esquerda, do hover com lift e do estado trancado dessaturado. */
 #HuntMap .hm-card {
+	position: relative;
 	display: flex;
-	flex-direction: column;
+	align-items: center;
+	gap: var(--sp-5);
 	width: 100%;
 	box-sizing: border-box;
-	text-align: left;
+	padding: var(--sp-4) var(--sp-5) var(--sp-4) var(--sp-5);
 	background: var(--surface-card);
 	border: 1px solid var(--border-hairline);
-	border-radius: var(--radius-card);
-	padding: 8px;
+	border-left: 3px solid var(--hm-fit);
+	border-radius: var(--radius-panel);
 	color: var(--text-body);
-	font-family: var(--font-ui);
 	cursor: pointer;
-	font-size: var(--fs-label);
 	box-shadow: var(--shadow-card);
 	transition:
-		box-shadow var(--dur-fast),
-		border-color var(--dur-fast),
-		background var(--dur-fast),
-		transform var(--dur-fast);
+		box-shadow var(--dur-fast) var(--ease-out),
+		border-color var(--dur-fast) var(--ease-out),
+		background var(--dur-fast) var(--ease-out),
+		transform var(--dur-fast) var(--ease-out);
 }
 
 #HuntMap .hm-card:hover {
 	background: var(--surface-card-hover);
-	border-color: var(--blue-500);
 	box-shadow: var(--shadow-float);
-	transform: translateY(-2px);
+	transform: translateY(-1px);
 }
 
+#HuntMap .hm-card:focus-visible {
+	outline: none;
+	box-shadow: var(--glow-accent);
+}
+
+/* Selecionado = borda de acento + 12% de tinta (design system). */
 #HuntMap .hm-card.is-selected {
 	border-color: var(--accent);
+	border-left-color: var(--hm-fit);
 	background: color-mix(in srgb, var(--accent) 12%, var(--surface-card));
 }
 
-/* Card bloqueado: 55% de opacidade + dessaturado por INTEIRO, igual a
- * qualquer outro elemento desabilitado do design system. Sem lift/hover
- * proprio — ele ainda pode ser selecionado pra ver o painel, so nao "Caçar
- * Aqui" (o botao correspondente nem entra no markup, ver HuntMap.js). */
-#HuntMap .hm-card.badge-locked {
+/* Trancado: o card inteiro a 55% e sem cor (design system). Ainda dá para
+   selecionar e ler o dossiê; só não dá para viajar. */
+#HuntMap .hm-card.fit-locked {
 	opacity: 0.55;
 	filter: grayscale(1);
 }
 
-#HuntMap .hm-card.badge-locked:hover {
-	background: var(--surface-card);
+#HuntMap .hm-card.fit-locked:hover {
 	transform: none;
 	box-shadow: var(--shadow-card);
 }
 
 #HuntMap .hm-card-thumb {
 	position: relative;
-	width: 100%;
-	height: 84px;
+	flex: 0 0 auto;
+	width: var(--hm-thumb-w);
+	height: var(--hm-thumb-h);
 	border-radius: var(--radius-card);
 	overflow: hidden;
-	background: var(--sky-50);
+	background: var(--sky-100);
 	border: 1px solid var(--border-hairline);
-	flex: 0 0 auto;
-	margin-bottom: 8px;
+	box-shadow: var(--rim-light);
 }
 
-/* Placeholder neutro atrás do <img> — nunca ícone de imagem quebrada.
- * A miniatura (.webp em /ragidle/minimapas/, ver renderCard em HuntMap.js)
- * cobre este ::before quando carrega; se faltar, o onerror da <img> some
- * com ela (display:none) e este glifo fica visível por trás, sem precisar
- * de nenhum JS extra para desenhar um estado de erro. */
-#HuntMap .hm-card-thumb::before {
-	content: '🗺️';
+/* Reserva NEUTRA atrás da miniatura: o glifo de mapa (Lucide) fica visível
+   só quando o onerror da <img> a esconde — nunca ícone de imagem quebrada. */
+#HuntMap .hm-thumb-vazio {
 	position: absolute;
 	inset: 0;
 	display: flex;
 	align-items: center;
 	justify-content: center;
-	font-size: 22px;
-	opacity: 0.45;
+	color: var(--sky-300);
 }
 
-/* object-fit:cover no <img> dentro do container com raio (acima) — a
- * thumbnail sempre preenche o quadro, sem tarja/faixa morta. z-index acima
- * do placeholder ::before (que só aparece quando o onerror esconde a img).
- * Sem image-rendering:pixelated aqui (diferente de .hm-mob-avatar): a
- * miniatura agora é a arte fotográfica 640x360 do mapa, não mais o minimapa
- * pixel-art do GRF — pixelated deixaria o downscale para 84px de altura
- * serrilhado à toa. */
+#HuntMap .hm-thumb-vazio svg {
+	width: 22px;
+	height: 22px;
+}
+
 #HuntMap .hm-card-thumb img {
 	position: relative;
 	z-index: 1;
@@ -433,76 +562,122 @@
 }
 
 #HuntMap .hm-card-body {
+	flex: 1 1 auto;
+	min-width: 0;
 	display: flex;
 	flex-direction: column;
-	gap: 4px;
+	gap: 3px;
 }
 
 #HuntMap .hm-card-top {
 	display: flex;
-	justify-content: space-between;
-	align-items: flex-start;
-	gap: 6px;
+	align-items: center;
+	gap: var(--sp-3);
+	min-width: 0;
 }
 
 #HuntMap .hm-card-name {
-	font-weight: bold;
-	font-size: var(--fs-info);
+	flex: 1 1 auto;
+	min-width: 0;
+	font: var(--type-section);
 	color: var(--text-title);
 	overflow: hidden;
 	text-overflow: ellipsis;
 	white-space: nowrap;
 }
 
-#HuntMap .hm-card-range {
-	color: var(--text-muted);
-	font-size: var(--fs-desc);
+/* Badge de encaixe: pílula com a cor do encaixe a 14% de tinta. */
+#HuntMap .hm-badge {
+	flex: 0 0 auto;
+	display: inline-flex;
+	align-items: center;
+	gap: 3px;
+	font: var(--type-badge);
+	padding: 3px 7px;
+	border-radius: var(--radius-pill);
+	white-space: nowrap;
+	color: var(--hm-fit);
+	background: color-mix(in srgb, var(--hm-fit) 14%, var(--white));
+	border: 1px solid color-mix(in srgb, var(--hm-fit) 40%, transparent);
 }
 
-#HuntMap .hm-card-here {
-	color: var(--green-600);
-	font-weight: bold;
-	font-size: var(--fs-desc);
+#HuntMap .hm-badge svg {
+	width: 9px;
+	height: 9px;
 }
 
-/* Botao azul de acao NO PROPRIO CARD ("Cacar Aqui") — .ri-btn (Common.css)
- * ja da o gradiente/hover; aqui so o encaixe largo no rodape do card, e o
- * stopImmediatePropagation() do handler (onClickTravel, reaproveitado do
- * botao "Trocar para X" do painel) impede que o clique tambem selecione o
- * card por baixo. */
-#HuntMap .hm-card-go {
-	display: block;
-	width: 100%;
-	box-sizing: border-box;
-	margin-top: 6px;
-	padding: 6px 10px;
-	font-size: var(--fs-label);
-}
-
-#HuntMap .hm-card-mobs {
+/* O MEDIDOR de encaixe: trilho afundado, a faixa do mapa ocupa sempre o
+   meio (25..75%), o marcador é o nível do jogador. */
+#HuntMap .hm-meter {
 	display: flex;
 	align-items: center;
-	gap: 6px;
-	margin-top: 2px;
+	gap: var(--sp-4);
+}
+
+#HuntMap .hm-meter-track {
+	position: relative;
+	flex: 1 1 auto;
+	height: 6px;
+	border-radius: var(--radius-bar);
+	background: var(--surface-inset);
+	box-shadow: var(--shadow-inset);
+	overflow: visible;
+}
+
+#HuntMap .hm-meter-fill {
+	position: absolute;
+	top: 0;
+	bottom: 0;
+	left: 25%;
+	width: 50%;
+	border-radius: var(--radius-bar);
+	background: color-mix(in srgb, var(--hm-fit) 70%, var(--white));
+}
+
+#HuntMap .hm-meter-you {
+	position: absolute;
+	top: 50%;
+	width: 8px;
+	height: 8px;
+	transform: translate(-50%, -50%) rotate(45deg);
+	background: linear-gradient(180deg, var(--white), var(--gold-400));
+	border: 1px solid var(--gold-700);
+	box-shadow: var(--shadow-card);
+}
+
+#HuntMap .hm-meter-text {
+	flex: 0 0 auto;
+	font: var(--type-label);
+	color: var(--text-muted);
+	white-space: nowrap;
+	font-variant-numeric: tabular-nums;
+}
+
+#HuntMap .hm-card-foot {
+	display: flex;
+	align-items: center;
+	gap: var(--sp-3);
+	min-width: 0;
+	font: var(--type-desc);
+	color: var(--text-muted);
 }
 
 #HuntMap .hm-mob-stack {
 	display: flex;
 	align-items: center;
+	flex: 0 0 auto;
 }
 
-/* "Medalhoes circulares" (secao 5.4 da referencia): avatar redondo com aro
- * branco + filete dourado claro, sobrepostos em leque. */
+/* Medalhões: avatar redondo com aro branco + filete dourado, em leque. */
 #HuntMap .hm-mob-avatar {
-	width: 20px;
-	height: 20px;
+	width: 18px;
+	height: 18px;
 	border-radius: 50%;
 	background: var(--sky-50);
 	border: 2px solid var(--white);
 	box-shadow: 0 0 0 1px var(--gold-300);
 	object-fit: cover;
-	image-rendering: pixelated;
-	margin-left: -8px;
+	margin-left: -7px;
 }
 
 #HuntMap .hm-mob-avatar:first-child {
@@ -510,146 +685,298 @@
 }
 
 #HuntMap .hm-card-mob-count {
-	color: var(--blue-600);
-	font-weight: bold;
-	font-size: var(--fs-desc);
+	flex: 0 0 auto;
+	color: var(--text-link);
+	font: var(--type-label);
 	white-space: nowrap;
 }
 
-/* ─── Badges ───────────────────────────────────────────────── */
-/* "ideal" and "locked" delegate cor/fonte a .ri-badge--verde / .ri-badge--cinza
- * (Common.css) — ja usam --green-600 e --ink-500 (via --text-muted), exatamente
- * o que o design system oficial pede pra badge de mapa. "easy" e "challenge"
- * nao tem variante compartilhada, entao ficam bespoke, tokenizadas na mesma
- * familia (azul claro / ouro claro). --type-badge no seletor base cobre
- * fonte/peso/tamanho dos quatro. */
+/* "encontrado por": só aparece quando a busca trouxe o mapa por monstro
+   ou drop, e não pelo próprio nome. */
+#HuntMap .hm-card-hit {
+	flex: 1 1 auto;
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	color: var(--amber-600);
+}
 
-#HuntMap .hm-badge {
+#HuntMap .hm-card-hit::before {
+	content: '↳ ';
+	color: var(--text-muted);
+}
+
+/* Cauda da linha: o botão redondo de viajar OU a pílula "Aqui". */
+#HuntMap .hm-card-go {
+	appearance: none;
+	flex: 0 0 auto;
+	width: 30px;
+	height: 30px;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	border-radius: 50%;
+	border: 1px solid var(--border-gold);
+	background: linear-gradient(180deg, var(--white) 0%, var(--sky-100) 100%);
+	color: var(--blue-600);
+	cursor: pointer;
+	box-shadow: var(--rim-light), var(--shadow-card);
+	transition:
+		box-shadow var(--dur-fast) var(--ease-out),
+		transform var(--dur-fast) var(--ease-out);
+}
+
+#HuntMap .hm-card-go svg {
+	width: 15px;
+	height: 15px;
+}
+
+#HuntMap .hm-card-go:hover {
+	box-shadow: var(--glow-gold), var(--rim-light);
+	transform: translateY(-1px);
+}
+
+#HuntMap .hm-card-here {
 	flex: 0 0 auto;
 	font: var(--type-badge);
-	padding: 3px 8px;
+	letter-spacing: var(--ls-caps);
+	text-transform: uppercase;
+	color: var(--green-600);
+	padding: 4px 8px;
 	border-radius: var(--radius-pill);
+	background: color-mix(in srgb, var(--green-600) 12%, var(--white));
+	border: 1px solid color-mix(in srgb, var(--green-600) 40%, transparent);
+}
+
+/* ─── Dossiê (painel da direita) ─────────────────────────────────────── */
+
+#HuntMap .hm-panel {
+	flex: 0 0 var(--hm-panel);
+	display: flex;
+	flex-direction: column;
+	min-height: 0;
+	border-left: var(--divider);
+	background: var(--white);
+}
+
+#HuntMap .hm-panel-scroll {
+	flex: 1 1 auto;
+	min-height: 0;
+	overflow-y: auto;
+	padding: 0 0 var(--sp-6);
+}
+
+#HuntMap .hm-panel-scroll > .hm-panel-empty {
+	padding: 0 var(--sp-6);
+}
+
+/* Banner: a miniatura ao fundo, o nome em serifa numa cápsula de vidro
+   escuro por cima (design system: nada de scrim de largura total). */
+#HuntMap .hm-hero {
+	position: relative;
+	height: 104px;
+	background: var(--sky-100);
+	overflow: hidden;
+	border-bottom: var(--titlebar-rule);
+}
+
+#HuntMap .hm-hero img {
+	position: absolute;
+	inset: 0;
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+	display: block;
+}
+
+#HuntMap .hm-hero .hm-thumb-vazio svg {
+	width: 36px;
+	height: 36px;
+}
+
+#HuntMap .hm-hero-cap {
+	position: absolute;
+	left: var(--sp-5);
+	right: var(--sp-5);
+	bottom: var(--sp-5);
+	display: flex;
+	align-items: flex-end;
+	justify-content: space-between;
+	gap: var(--sp-4);
+}
+
+#HuntMap .hm-hero-text {
+	min-width: 0;
+	padding: var(--sp-3) var(--sp-5);
+	border-radius: var(--radius-panel);
+	background: var(--surface-dark-glass);
+	backdrop-filter: var(--blur-glass);
+	color: var(--white);
+	box-shadow: var(--shadow-card);
+}
+
+#HuntMap .hm-hero-region {
+	font: var(--type-badge);
+	letter-spacing: var(--ls-caps);
+	text-transform: uppercase;
+	color: var(--gold-300);
+}
+
+#HuntMap .hm-hero-title {
+	margin: 2px 0 0;
+	font: var(--type-window-title);
+	font-size: var(--fs-numeric-lg);
+	color: var(--white);
+	overflow: hidden;
+	text-overflow: ellipsis;
 	white-space: nowrap;
 }
 
-#HuntMap .hm-badge-easy {
-	background: var(--sky-100);
-	color: var(--blue-600);
-	border: 1px solid var(--sky-200);
+#HuntMap .hm-hero .hm-badge {
+	background: color-mix(in srgb, var(--hm-fit) 22%, var(--white));
 }
 
-#HuntMap .hm-badge-challenge {
-	background: var(--gold-200);
-	color: var(--gold-700);
-	border: 1px solid var(--gold-300);
+/* O encaixe em tamanho grande: seu nível contra a faixa do mapa. */
+#HuntMap .hm-fit {
+	display: flex;
+	align-items: center;
+	gap: var(--sp-5);
+	margin: var(--sp-5) var(--sp-6) 0;
+	padding: var(--sp-4) var(--sp-5);
+	border: 1px solid var(--border-hairline);
+	border-radius: var(--radius-panel);
+	background: var(--paper-2);
 }
 
-/* ─── Right panel: destination detail ─────────────────────── */
-
-#HuntMap .hm-panel {
-	flex: 0 0 300px;
-	overflow-y: auto;
-	padding: 14px;
-	background: var(--white);
-	border-left: 1px solid var(--border-hairline);
+#HuntMap .hm-fit-you {
+	flex: 0 0 auto;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	line-height: 1;
 }
 
-#HuntMap .hm-panel-label {
-	font-size: var(--fs-desc);
-	font-weight: bold;
-	letter-spacing: 0.04em;
+#HuntMap .hm-fit-you-label {
+	font: var(--type-badge);
+	letter-spacing: var(--ls-caps);
 	text-transform: uppercase;
 	color: var(--text-muted);
 }
 
-#HuntMap .hm-panel-title {
-	margin: 2px 0 10px 0;
+#HuntMap .hm-fit-you-nivel {
+	font: var(--type-numeric);
 	font-size: var(--fs-numeric-lg);
-	font-weight: bold;
 	color: var(--text-title);
 }
 
-#HuntMap .hm-panel-stat {
+#HuntMap .hm-fit-body {
+	flex: 1 1 auto;
+	min-width: 0;
 	display: flex;
-	align-items: center;
-	justify-content: space-between;
-	background: var(--paper-2);
-	border: 1px solid var(--border-hairline);
-	border-radius: var(--radius-card);
-	padding: 8px 10px;
-	margin-bottom: 12px;
+	flex-direction: column;
+	gap: 5px;
 }
 
-#HuntMap .hm-panel-stat-label {
-	font-size: var(--fs-label);
+#HuntMap .hm-fit-body .hm-meter-track {
+	height: 8px;
+}
+
+#HuntMap .hm-fit-body .hm-meter-you {
+	width: 10px;
+	height: 10px;
+}
+
+#HuntMap .hm-fit-row {
+	display: flex;
+	justify-content: space-between;
+	align-items: baseline;
+	gap: var(--sp-4);
+	font: var(--type-label);
+}
+
+#HuntMap .hm-fit-verdict {
+	color: var(--hm-fit);
+}
+
+#HuntMap .hm-fit-range {
+	color: var(--text-muted);
+	font-variant-numeric: tabular-nums;
+}
+
+/* Cabeçalho de seção: título + contagem, com a régua ornamentada embaixo. */
+#HuntMap .hm-section {
+	display: flex;
+	align-items: baseline;
+	justify-content: space-between;
+	gap: var(--sp-4);
+	margin: var(--sp-6) var(--sp-6) var(--sp-3);
+	padding-bottom: var(--sp-2);
+	border-bottom: var(--divider);
+}
+
+#HuntMap .hm-section-title {
+	font: var(--type-section);
+	color: var(--text-title);
+}
+
+#HuntMap .hm-section-n {
+	font: var(--type-label);
 	color: var(--text-muted);
 }
 
-#HuntMap .hm-panel-stat-value {
-	font-size: var(--fs-section);
-	font-weight: bold;
-	color: var(--blue-600);
-}
+/* ─── Monstros: lista com avatar, nível, raça e elemento ─────────────── */
 
-#HuntMap .hm-panel-section-title {
-	font-size: var(--fs-info);
-	font-weight: bold;
-	color: var(--text-title);
-	margin: 4px 0 8px 0;
-}
-
-/* ─── Monster chips (2-column grid) ───────────────────────── */
-
-#HuntMap .hm-chip-grid {
-	display: grid;
-	grid-template-columns: repeat(2, 1fr);
-	gap: 6px;
-	margin-bottom: 14px;
+#HuntMap .hm-mobs {
+	display: flex;
+	flex-direction: column;
+	gap: 3px;
+	padding: 0 var(--sp-6);
 }
 
 #HuntMap .hm-chip {
-	position: relative;
+	appearance: none;
 	display: flex;
 	align-items: center;
-	gap: 6px;
-	box-sizing: border-box;
+	gap: var(--sp-4);
 	width: 100%;
-	background: var(--sky-50);
-	border: 1px solid var(--border-hairline);
-	border-radius: var(--radius-card);
-	padding: 6px 8px;
+	box-sizing: border-box;
+	padding: 5px var(--sp-4);
+	border: 1px solid transparent;
+	border-radius: var(--radius-panel);
+	background: transparent;
 	color: var(--text-body);
-	font-family: var(--font-ui);
-	font-size: var(--fs-desc);
-	cursor: pointer;
+	font: var(--type-info);
 	text-align: left;
+	cursor: pointer;
 	transition:
-		border-color var(--dur-fast),
-		background var(--dur-fast);
+		background var(--dur-fast) var(--ease-out),
+		border-color var(--dur-fast) var(--ease-out);
 }
 
 #HuntMap .hm-chip:hover {
 	background: var(--surface-card-hover);
+	border-color: var(--border-hairline);
 }
 
 #HuntMap .hm-chip.is-selected {
-	border-color: var(--blue-500);
-	background: var(--sky-100);
-	box-shadow: 0 0 0 1px var(--blue-500) inset;
-}
-
-#HuntMap .hm-chip.is-mvp {
-	border-color: var(--gold-500);
+	border-color: var(--accent);
+	background: color-mix(in srgb, var(--accent) 12%, var(--white));
 }
 
 #HuntMap .hm-chip-avatar {
 	flex: 0 0 auto;
-	width: 20px;
-	height: 20px;
+	width: 30px;
+	height: 30px;
 	border-radius: 50%;
 	overflow: hidden;
-	background: var(--sky-50);
-	border: 1px solid var(--border-hairline);
+	background: linear-gradient(180deg, var(--white) 0%, var(--sky-100) 100%);
+	border: 1px solid var(--border-gold);
+	box-shadow: var(--rim-light);
+}
+
+#HuntMap .hm-chip.is-mvp .hm-chip-avatar {
+	box-shadow: var(--glow-gold), var(--rim-light);
 }
 
 #HuntMap .hm-chip-avatar img {
@@ -657,176 +984,180 @@
 	height: 100%;
 	object-fit: cover;
 	display: block;
-	image-rendering: pixelated;
+}
+
+#HuntMap .hm-chip-text {
+	flex: 1 1 auto;
+	min-width: 0;
+	display: flex;
+	flex-direction: column;
+	gap: 1px;
 }
 
 #HuntMap .hm-chip-name {
-	flex: 1 1 auto;
+	display: flex;
+	align-items: center;
+	gap: var(--sp-3);
+	font: var(--type-label);
+	font-size: var(--fs-info);
+	color: var(--text-title);
 	overflow: hidden;
 	text-overflow: ellipsis;
 	white-space: nowrap;
-	font-weight: bold;
 }
 
-#HuntMap .hm-chip-mvp {
-	flex: 0 0 auto;
-	background: var(--gold-500);
-	color: var(--gold-700);
-	font-size: var(--fs-badge);
-	font-weight: bold;
-	padding: 1px 5px;
-	border-radius: var(--radius-pill);
+#HuntMap .hm-chip-meta {
+	font: var(--type-desc);
+	color: var(--text-muted);
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
 }
 
-/* ─── Selected mob detail ─────────────────────────────────── */
-
-#HuntMap .hm-mob-detail {
-	background: var(--paper-1);
-	border: 1px solid var(--border-hairline);
-	border-radius: var(--radius-card);
-	padding: 10px 12px;
-	margin-bottom: 14px;
+#HuntMap .hm-chip-meta b {
+	font-weight: var(--fw-semibold);
+	color: var(--text-body);
 }
 
-#HuntMap .hm-mob-detail-name {
-	font-size: var(--fs-section);
-	font-weight: bold;
-	color: var(--text-title);
-	margin-bottom: 6px;
-}
-
+#HuntMap .hm-chip-mvp,
 #HuntMap .hm-mvp-badge {
-	display: inline-block;
-	background: var(--gold-500);
+	flex: 0 0 auto;
+	font: var(--type-badge);
+	letter-spacing: var(--ls-caps);
 	color: var(--gold-700);
-	font-size: var(--fs-badge);
-	font-weight: bold;
-	padding: 1px 6px;
+	background: linear-gradient(180deg, var(--gold-200), var(--gold-300));
+	border: 1px solid var(--border-gold);
+	padding: 2px 5px;
 	border-radius: var(--radius-pill);
-	vertical-align: middle;
-	margin-left: 2px;
 }
 
-#HuntMap .hm-mob-detail-row {
+#HuntMap .hm-chip-drops {
+	flex: 0 0 auto;
+	font: var(--type-badge);
+	color: var(--text-muted);
+	white-space: nowrap;
+}
+
+/* ─── Drops: as duas visões e a grade de ladrilhos ───────────────────── */
+
+#HuntMap .hm-drops-head {
 	display: flex;
+	align-items: center;
 	justify-content: space-between;
-	font-size: var(--fs-label);
-	color: var(--text-body);
-	padding: 3px 0;
-	border-bottom: var(--divider);
+	gap: var(--sp-4);
+	margin: var(--sp-6) var(--sp-6) var(--sp-3);
 }
 
-#HuntMap .hm-mob-detail-row:last-of-type {
-	border-bottom: none;
-}
-
-#HuntMap .hm-mob-detail-row span:first-child {
-	color: var(--text-muted);
-}
-
-#HuntMap .hm-mob-detail-row span:last-child {
-	font-weight: bold;
-}
-
-#HuntMap .hm-drops-title {
-	margin-top: 8px;
-	font-size: var(--fs-label);
-	font-weight: bold;
-	color: var(--text-title);
-}
-
-#HuntMap .hm-drops-list {
-	list-style: none;
-	margin: 4px 0 0 0;
-	padding: 0;
-}
-
-#HuntMap .hm-drops-list li {
-	display: flex;
-	justify-content: space-between;
+#HuntMap .hm-drops-head .hm-seg {
 	font-size: var(--fs-desc);
-	color: var(--text-body);
-	padding: 2px 0;
 }
 
-/* ─── I6: o alternador das duas visoes de drop (31/08/2026) ──────
- *
- * O dono pediu "ter as 2 opcoes", entao isto e um par de abas, e nao um
- * interruptor: as duas ficam sempre visiveis, com a corrente marcada. Um
- * toggle escondido faria a visao nova ser descoberta por acidente.
- */
-#HuntMap .hm-visao {
-	display: flex;
-	gap: 4px;
-	margin-top: 10px;
-}
-
-#HuntMap .hm-visao-btn {
-	flex: 1;
-	padding: 4px 0;
-	font-size: var(--fs-desc);
-	color: var(--text-muted);
-	background: var(--surface-sunken, rgba(0, 0, 0, 0.04));
-	border: 1px solid var(--border-soft, rgba(0, 0, 0, 0.08));
-	border-radius: 4px;
-	cursor: pointer;
-}
-
-#HuntMap .hm-visao-btn:hover {
-	color: var(--text-body);
-}
-
-#HuntMap .hm-visao-btn.is-selected {
-	color: var(--text-title);
-	font-weight: bold;
-	background: var(--surface-raised, #fff);
-	border-color: var(--accent, #0a3da4);
-}
-
-/* A lista do mapa inteiro e mais longa que a de um mob (ate 44 itens no
- * `gef_dun02`, medido). Sem o teto ela empurraria os botoes de viagem para
- * fora do painel — e viajar e o motivo de a janela existir. */
-#HuntMap .hm-drops-list--mapa {
-	max-height: 260px;
-	overflow-y: auto;
-}
-
-/* "3 mobs": o aviso de que a chance ao lado e a MELHOR, e nao a unica. O
- * `title` da linha nomeia cada monstro com a chance dele. */
-#HuntMap .hm-drop-origens {
-	margin-left: 6px;
-	font-size: 0.85em;
-	color: var(--text-muted);
+#HuntMap .hm-drops-head .hm-seg-btn {
+	padding: 3px 9px;
 }
 
 #HuntMap .hm-drops-legenda {
-	margin-left: 6px;
-	font-weight: normal;
+	padding: 0 var(--sp-6) var(--sp-3);
+	font: var(--type-desc);
+	color: var(--text-muted);
+}
+
+#HuntMap .hm-drops {
+	display: grid;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	gap: var(--sp-3);
+	padding: 0 var(--sp-6);
+}
+
+/* O ladrilho de item (design system: ".ri-tile", raro/único só na borda).
+   Cada drop é um BOTÃO — clicar abre a ficha do item (ItemInfo). */
+#HuntMap .hm-drop {
+	appearance: none;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 3px;
+	box-sizing: border-box;
+	padding: var(--sp-3) var(--sp-2);
+	border: 1px solid transparent;
+	border-radius: var(--radius-panel);
+	background: transparent;
+	color: var(--text-body);
+	font: var(--type-desc);
+	cursor: pointer;
+	text-align: center;
+	transition:
+		background var(--dur-fast) var(--ease-out),
+		border-color var(--dur-fast) var(--ease-out);
+}
+
+#HuntMap .hm-drop:hover {
+	background: var(--surface-card-hover);
+	border-color: var(--border-hairline);
+}
+
+#HuntMap .hm-drop.is-open {
+	border-color: var(--accent);
+	background: color-mix(in srgb, var(--accent) 12%, var(--white));
+}
+
+#HuntMap .hm-drop-tile {
+	width: 36px;
+	height: 36px;
+}
+
+/* A arte é 24x24 do cliente; dentro do ladrilho de 36 ela fica em tamanho
+   NATURAL (regra 4: ampliação só por inteiro — 1x aqui). */
+#HuntMap .hm-drop-tile img {
+	width: 24px;
+	height: 24px;
+	image-rendering: pixelated;
+	display: block;
+}
+
+#HuntMap .hm-drop-name {
+	width: 100%;
+	color: var(--text-body);
+	line-height: var(--lh-ui);
+	overflow: hidden;
+	display: -webkit-box;
+	-webkit-line-clamp: 2;
+	-webkit-box-orient: vertical;
+	word-break: break-word;
+}
+
+#HuntMap .hm-drop-chance {
+	font: var(--type-numeric);
+	font-size: var(--fs-label);
+	color: var(--text-link);
+	font-variant-numeric: tabular-nums;
+}
+
+#HuntMap .hm-drop-origens {
+	font: var(--type-badge);
 	color: var(--text-muted);
 }
 
 #HuntMap .hm-drops-empty {
-	margin-top: 4px;
-	font-size: var(--fs-desc);
+	padding: 0 var(--sp-6);
+	font: var(--type-desc);
 	color: var(--text-muted);
 }
 
-/* ─── Panel actions ────────────────────────────────────────── */
-/* .ri-btn / .ri-btn--sec (Common.css) supply color/gradient/hover/disabled;
- * this block only stretches them to full width (the reference's "botao
- * azul largo arredondado") and restores the bigger 10px padding that suits
- * a full-width action button. */
+/* ─── Rodapé fixo do dossiê: viajar ──────────────────────────────────── */
 
-#HuntMap .hm-panel-actions {
+#HuntMap .hm-panel-footer {
+	flex: 0 0 auto;
 	display: flex;
 	flex-direction: column;
-	gap: 8px;
+	gap: var(--sp-3);
+	padding: var(--sp-5) var(--sp-6);
+	border-top: var(--titlebar-rule);
+	background: var(--surface-glass);
 }
 
-#HuntMap .hm-here-note {
-	color: var(--green-600);
-	font-weight: bold;
-	font-size: var(--fs-label);
+#HuntMap .hm-panel-footer:empty {
+	display: none;
 }
 
 #HuntMap .hm-btn-go,
@@ -834,13 +1165,23 @@
 	display: block;
 	width: 100%;
 	box-sizing: border-box;
-	padding: 10px;
+	padding: 9px 10px;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
 }
 
-/* ─── Scrollbar: .ri-scroll opt-out (GUIComponent._setupScrollbars) ──
- * ".hm-list" and ".hm-panel" carry the shared ".ri-scroll" class (see
- * HuntMap.html) — GUIComponent now skips injecting the legacy roBrowser
- * bitmap scrollbar (thick arrows) on any element marked with it, so these
- * two just keep their native overflow-y:auto scrollbar, themed thin/light
- * by ".ri-scroll"'s ::-webkit-scrollbar rules in Common.css. Nothing to
- * override here. */
+#HuntMap .hm-here-note {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: var(--sp-3);
+	padding: 8px;
+	border-radius: var(--radius-panel);
+	color: var(--green-600);
+	font: var(--type-label);
+	background: color-mix(in srgb, var(--green-600) 10%, var(--white));
+	border: 1px solid color-mix(in srgb, var(--green-600) 35%, transparent);
+}
+
+/* ─── Barras de rolagem: ".ri-scroll" (Common.css) já cuida ──────────── */

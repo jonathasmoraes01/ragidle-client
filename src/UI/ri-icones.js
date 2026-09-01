@@ -396,6 +396,20 @@ const RiIcones = {
 	// como icone do slot central do DOCK (que virou "Caça"), nao proibido
 	// como conceito -- e "brilho" e exatamente o conceito de peca so-visual.
 	fantasia: svg('<path d="M12 3l1.9 7.1L21 12l-7.1 1.9L12 21l-1.9-7.1L3 12l7.1-1.9z"/>'),
+
+	// ── Mapa de Caça redesenhado (D-901, 01/09/2026). Quatro glifos Lucide
+	// (paths oficiais "search", "lock", "arrow-right", "map", "x") que a
+	// janela usa no chrome: a lupa da busca, o cadeado do mapa trancado, a
+	// seta do botao "viajar" de cada linha, o mapa vazio atras da miniatura
+	// que falta (era um emoji, proibido pelo design system) e o X que limpa
+	// a busca. ────────────────────────────────────────────────────────────
+	busca: svg('<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>'),
+	cadeado: svg('<rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>'),
+	irPara: svg('<path d="M5 12h14"/><path d="m12 5 7 7-7 7"/>'),
+	mapaVazio: svg(
+		'<path d="M14.106 5.553a2 2 0 0 0 1.788 0l3.659-1.83A1 1 0 0 1 21 4.619v12.764a1 1 0 0 1-.553.894l-4.553 2.277a2 2 0 0 1-1.788 0l-4.212-2.106a2 2 0 0 0-1.788 0l-3.659 1.83A1 1 0 0 1 3 19.381V6.618a1 1 0 0 1 .553-.894l4.553-2.277a2 2 0 0 1 1.788 0z"/><path d="M15 5.764v15"/><path d="M9 3.236v15"/>'
+	),
+	fechar: svg('<path d="M18 6 6 18"/><path d="m6 6 12 12"/>'),
 };
 
 export default RiIcones;

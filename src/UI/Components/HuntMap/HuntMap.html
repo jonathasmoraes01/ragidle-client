@@ -1,5 +1,5 @@
 <div id="HuntMap">
-	<button type="button" class="hm-button" title="Mapa de Caça">🗺</button>
+	<button type="button" class="hm-button" title="Mapa de Caça" aria-label="Mapa de Caça"><!--RI_ICONE:caca--></button>
 
 	<div class="hm-window ri-window ri-anima">
 		<div class="hm-titlebar ri-header">
@@ -8,24 +8,23 @@
 		</div>
 
 		<div class="hm-toolbar">
-			<input type="text" class="hm-search ri-input" placeholder="Buscar mapa, monstro ou drop..." />
-			<div class="hm-filters-wrap">
-				<button type="button" class="hm-filters-btn ri-btn ri-btn--sec">Filtros</button>
-				<div class="hm-filters-popover ri-card">
-					<label class="hm-filters-option">
-						<input type="checkbox" class="hm-filter-ideal" />
-						<span>Só ideais para mim</span>
-					</label>
-				</div>
+			<label class="hm-search-wrap">
+				<span class="hm-search-icon"><!--RI_ICONE:busca--></span>
+				<input
+					type="text"
+					class="hm-search ri-input"
+					placeholder="Mapa, monstro ou drop"
+					aria-label="Buscar mapa, monstro ou drop"
+					autocomplete="off"
+				/>
+				<button type="button" class="hm-search-clear" aria-label="Limpar busca" hidden><!--RI_ICONE:fechar--></button>
+			</label>
+			<div class="hm-seg hm-modo" role="tablist" aria-label="Quais mapas mostrar">
+				<button type="button" class="hm-seg-btn" data-modo="ideais" role="tab">Para mim</button>
+				<button type="button" class="hm-seg-btn" data-modo="todos" role="tab">Todos</button>
 			</div>
-		</div>
-
-		<div class="hm-tabs"></div>
-
-		<div class="hm-subbar">
-			<span class="hm-count"></span>
 			<div class="hm-sort-wrap">
-				<label for="hm-sort-select">Ordenar por</label>
+				<label for="hm-sort-select">Ordem</label>
 				<select id="hm-sort-select" class="hm-sort">
 					<option value="nivel">Nível</option>
 					<option value="nivel-recomendado">Para meu nível</option>
@@ -34,13 +33,26 @@
 			</div>
 		</div>
 
-		<div class="hm-status"></div>
+		<div class="hm-status" role="status"></div>
 
-		<div class="hm-content">
-			<div class="hm-list ri-scroll"></div>
-			<div class="hm-panel ri-scroll">
-				<div class="hm-panel-empty">Abra o mapa de caça para carregar o catálogo.</div>
-			</div>
+		<div class="hm-body">
+			<nav class="hm-rail ri-scroll" aria-label="Regiões">
+				<div class="hm-rail-label">Regiões</div>
+				<div class="hm-tabs"></div>
+				<div class="hm-voce"></div>
+			</nav>
+
+			<section class="hm-list-wrap">
+				<div class="hm-count"></div>
+				<div class="hm-list ri-scroll"></div>
+			</section>
+
+			<aside class="hm-panel">
+				<div class="hm-panel-scroll ri-scroll">
+					<div class="hm-panel-empty">Abra o mapa de caça para carregar o catálogo.</div>
+				</div>
+				<div class="hm-panel-footer"></div>
+			</aside>
 		</div>
 	</div>
 </div>
