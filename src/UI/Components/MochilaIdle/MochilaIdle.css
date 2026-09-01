@@ -233,7 +233,9 @@
    pedido). Aro de acento + o mesmo brilho dourado que hover/selecao ja usam
    em outro lugar do sistema -- nenhum token novo. */
 .mo-slot.is-drop-alvo {
-	box-shadow: 0 0 0 2px var(--blue-500), var(--glow-gold);
+	box-shadow:
+		0 0 0 2px var(--blue-500),
+		var(--glow-gold);
 }
 
 /* Glifo-fantasma (silueta do que falta ali) -- o ponto central do alvo
@@ -366,7 +368,9 @@
 		var(--gold-500) 75%,
 		var(--gold-300)
 	);
-	box-shadow: 0 0 0 1px var(--gold-500), var(--shadow-float);
+	box-shadow:
+		0 0 0 1px var(--gold-500),
+		var(--shadow-float);
 }
 
 .mo-boneco-palco::before {
@@ -600,8 +604,11 @@
 	line-height: 1.15;
 	cursor: pointer;
 	box-shadow: var(--rim-light), var(--shadow-card);
-	transition: background var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out),
-		box-shadow var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-out);
+	transition:
+		background var(--dur-fast) var(--ease-out),
+		color var(--dur-fast) var(--ease-out),
+		box-shadow var(--dur-fast) var(--ease-out),
+		transform var(--dur-fast) var(--ease-out);
 }
 
 .mo-aba:hover {
@@ -667,36 +674,88 @@
 	display: none;
 }
 
-/* ─── Dica de hover (pedido do dono, 25/08/2026) ──────────────────────────
+/* ─── Dica de hover (pedido do dono, 25/08/2026; REDESENHADA em 31/08/2026
+ * pro sistema de Runas) ─────────────────────────────────────────────────
  * Ela e CUSTOM e nao o `title` nativo, e a razao esta em MochilaIdle.js:
  * a grade e reconstruida inteira sempre que a mochila muda, e um item que
  * cai no meio da cacada apaga a celula sob o cursor — o que zera o atraso de
  * ~1 s do tooltip do navegador antes de ele chegar a aparecer. Esta e
- * instantanea e volta sozinha na reconstrucao. */
+ * instantanea e volta sozinha na reconstrucao.
+ *
+ * DEIXOU de ser texto puro (`textContent`) e virou HTML estruturado
+ * (cabecalho com arte + nome, corpo de ficha/paragrafo, capsula de Runas) --
+ * ver `mostrarDicaItem()`/`renderCorpoDaDescricao()` em MochilaIdle.js. E a
+ * janela CLARA do design system (fundo --window-fill, nao mais o vidro
+ * escuro que era a pele antiga) -- de proposito DIFERENTE do tooltip do
+ * concorrente, que e todo escuro; aqui so a capsula de Runas (".ri-runas*",
+ * UI/Common.css) fica escura, e e ela que protege os 4 tons vividos de
+ * raridade. */
 .mo-dica {
 	position: absolute;
-	max-width: 240px;
-	padding: var(--sp-2) var(--sp-4);
+	max-width: 300px;
+	padding: var(--sp-3) var(--sp-4);
 	box-sizing: border-box;
-	border-radius: var(--radius-card);
-	background: var(--surface-dark-glass);
+	border-radius: var(--radius-panel);
+	background: var(--window-fill);
 	backdrop-filter: var(--blur-glass);
 	border: 1px solid var(--border-gold);
 	box-shadow: var(--shadow-float);
-	font: var(--type-desc);
-	color: var(--white);
-	/* A dica ganhou CORPO em 28/08/2026 (nome + descricao do item), e com ele
-	   as quebras de linha: `nowrap` + `center` era o desenho de uma dica de UMA
-	   linha. `pre-line` respeita os \n e junta os espacos; a esquerda le melhor
-	   em bloco. */
+	font-family: var(--font-ui);
+	color: var(--text-body);
 	text-align: left;
-	white-space: pre-line;
-	overflow: hidden;
-	text-overflow: ellipsis;
 	/* Acima do aviso (5) e de tudo dentro da janela; nunca rouba o mouse,
 	   senao o proprio hover que a criou piscaria em laco. */
 	z-index: 6;
 	pointer-events: none;
+}
+
+/* Cabecalho: arte de colecao (moldura ".ri-tile", proporcao 3:4) + nome. A
+   dica dos tooltips so-de-rotulo (slot vazio, botao "Tirar") NUNCA monta
+   este cabecalho -- eles continuam so `dica.textContent`, sem estas
+   classes, ver `mostrarDicaTexto()`. */
+.mo-dica-cabecalho {
+	display: flex;
+	align-items: flex-start;
+	gap: var(--sp-3);
+}
+.mo-dica-arte {
+	width: 57px;
+	height: 76px;
+	flex: 0 0 auto;
+	overflow: hidden;
+}
+.mo-dica-arte-img {
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+}
+.mo-dica-nome {
+	font-family: var(--font-ui);
+	font-size: 14px;
+	font-weight: 700;
+	line-height: 1.3;
+	color: var(--text-title);
+}
+
+/* Corpo: SO as linhas de ficha ("Rotulo: valor") da descricao (pipeline de
+   `comDescricao` de antes: tira `^RRGGBB`, corta em MAX_LINHAS_DA_DICA). O
+   texto corrido e o "Indestrutivel..." SAIRAM da dica a pedido do dono
+   (31/08/2026) — as classes `-paragrafo`/`-destaque` morreram com eles; a
+   descricao completa continua na janela de Detalhes. */
+.mo-dica-corpo {
+	display: flex;
+	flex-direction: column;
+	gap: var(--sp-1);
+	margin-top: var(--sp-3);
+}
+.mo-dica-ficha {
+	font-family: var(--font-ui);
+	font-size: 12.5px;
+	line-height: 1.5;
+	color: var(--text-body);
+}
+.mo-dica-rotulo {
+	color: var(--text-muted);
 }
 
 /* O contador da municao. Canto oposto ao do refino, para as duas marcas nunca

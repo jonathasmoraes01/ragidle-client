@@ -46,6 +46,7 @@ import GUIComponent from 'UI/GUIComponent.js';
 import htmlText from './PasseIdle.html?raw';
 import cssText from './PasseIdle.css?raw';
 import { fecharEEsquecer } from '../limpezaDeJanelaIdle.js';
+import { abaLembrada, lembrarAba } from '../memoriaDeAba.js';
 
 /** Manter em sincronia com o ":host"/".pi-window" do CSS (mesmo papel do
  * WINDOW_WIDTH/HEIGHT de MissoesIdle.js:41-42). */
@@ -66,16 +67,27 @@ PasseIdle.mouseMode = GUIComponent.MouseMode.CROSS;
 /** O último estado que o servidor mandou ({v:1, cash, passes, semanal, vip}). */
 PasseIdle.estado = null;
 
-/** Aba ativa: 'semanal' | 'vip'. */
-PasseIdle.activeTab = 'semanal';
+/** As abas que existem, na ordem do HTML — a lista que valida o que veio do
+ * `localStorage` (ver memoriaDeAba.js). */
+const ABAS = ['semanal', 'vip'];
+
+/** A aba de fabrica, para quem nunca escolheu. */
+const ABA_PADRAO = 'semanal';
+
+/** Aba ativa: 'semanal' | 'vip'. Nasce no padrao e vira a LEMBRADA no init(),
+ * que e onde `_preferences` ja existe. */
+PasseIdle.activeTab = ABA_PADRAO;
 
 let _avisoTimer = null;
 
+/** Posicao da janela e a aba em que o jogador estava. Versao continua 1.0: ver
+ * a conta no cabecalho de memoriaDeAba.js. */
 const _preferences = Preferences.get(
 	'PasseIdle',
 	{
 		x: null,
-		y: null
+		y: null,
+		aba: null
 	},
 	1.0
 );
@@ -126,7 +138,12 @@ function dataCurta(yyyymmdd) {
  */
 PasseIdle.limparEstadoDoPersonagem = function limparEstadoDoPersonagem() {
 	PasseIdle.estado = null;
-	PasseIdle.activeTab = 'semanal';
+	/*
+	 * A ABA VOLTA PARA A LEMBRADA, e nao para 'semanal' (31/08/2026) — mesma
+	 * razao registrada na gemea de MissoesIdle.js: a aba e escolha da PESSOA,
+	 * nao dado do personagem, e um nome de aba nao carrega nada do anterior.
+	 */
+	PasseIdle.activeTab = abaLembrada(_preferences, ABA_PADRAO, ABAS);
 	/*
 	 * ZERAR O DADO NAO BASTA: `GUIComponent.remove()` so DESANEXA o host,
 	 * entao o shadow DOM (com `is-open` e o HTML do personagem anterior)
@@ -137,6 +154,8 @@ PasseIdle.limparEstadoDoPersonagem = function limparEstadoDoPersonagem() {
 
 PasseIdle.init = function init() {
 	const root = _root();
+	// A aba em que o jogador estava, antes do primeiro desenho.
+	PasseIdle.activeTab = abaLembrada(_preferences, ABA_PADRAO, ABAS);
 	// Guardas nos querySelector, pelo motivo registrado em
 	// ClassChangeNotice.js:68-88: este init roda dentro de MapEngine.init, e
 	// uma exceção aqui derruba o motor de mapa inteiro. A janela é cosmética;
@@ -220,6 +239,7 @@ function onClickTab(e) {
 		return;
 	}
 	PasseIdle.activeTab = tab;
+	lembrarAba(_preferences, PasseIdle.activeTab);
 	render();
 }
 

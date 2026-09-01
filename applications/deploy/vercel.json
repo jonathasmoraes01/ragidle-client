@@ -7,7 +7,7 @@
 	"headers": [
 		{
 			"source": "/(Online|ThreadEventHandler|PathFindingWorker|api).js",
-			"headers": [{ "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }]
+			"headers": [{ "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" }]
 		},
 		{
 			"source": "/(index.html|api.html|Config.js|Config.local.js|jogo/index.html)",

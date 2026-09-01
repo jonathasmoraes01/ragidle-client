@@ -37,6 +37,7 @@ import GUIComponent from 'UI/GUIComponent.js';
 import htmlText from './MissoesIdle.html?raw';
 import cssText from './MissoesIdle.css?raw';
 import { fecharEEsquecer } from '../limpezaDeJanelaIdle.js';
+import { abaLembrada, lembrarAba } from '../memoriaDeAba.js';
 
 /** Manter em sincronia com o ":host"/".mi-window" do CSS (mesmo papel do
  * WINDOW_WIDTH/HEIGHT de IdleConfig.js:47-48). */
@@ -58,14 +59,25 @@ MissoesIdle.missoes = [];
  * O tracker (MissoesTrackerIdle) LÊ daqui — uma fonte só, um hook só. */
 MissoesIdle.execucao = null;
 
-/** Aba ativa: 'principais' | 'opcionais'. */
-MissoesIdle.activeTab = 'principais';
+/** As abas que existem, na ordem do HTML — a lista que valida o que veio do
+ * `localStorage` (ver memoriaDeAba.js). */
+const ABAS = ['principais', 'opcionais'];
 
+/** A aba de fabrica, para quem nunca escolheu. */
+const ABA_PADRAO = 'principais';
+
+/** Aba ativa: 'principais' | 'opcionais'. Nasce no padrao e vira a LEMBRADA no
+ * init(), que e onde `_preferences` ja existe. */
+MissoesIdle.activeTab = ABA_PADRAO;
+
+/** Posicao da janela e a aba em que o jogador estava. Versao continua 1.0: ver
+ * a conta no cabecalho de memoriaDeAba.js. */
 const _preferences = Preferences.get(
 	'MissoesIdle',
 	{
 		x: null,
-		y: null
+		y: null,
+		aba: null
 	},
 	1.0
 );
@@ -108,7 +120,13 @@ const BADGES = {
 MissoesIdle.limparEstadoDoPersonagem = function limparEstadoDoPersonagem() {
 	MissoesIdle.missoes = [];
 	MissoesIdle.execucao = null;
-	MissoesIdle.activeTab = 'principais';
+	/*
+	 * A ABA VOLTA PARA A LEMBRADA, e nao para 'principais' (31/08/2026). Aba
+	 * nao e dado de personagem: e a escolha da PESSOA, e vale para todos os
+	 * personagens dela. O que esta linha precisa garantir e so que a aba nao
+	 * carregue nada do anterior — e um nome de aba nao carrega.
+	 */
+	MissoesIdle.activeTab = abaLembrada(_preferences, ABA_PADRAO, ABAS);
 	/*
 	 * ZERAR O DADO NAO BASTA: `GUIComponent.remove()` so DESANEXA o host,
 	 * entao o shadow DOM (com `is-open` e o HTML do personagem anterior)
@@ -119,6 +137,8 @@ MissoesIdle.limparEstadoDoPersonagem = function limparEstadoDoPersonagem() {
 
 MissoesIdle.init = function init() {
 	const root = _root();
+	// A aba em que o jogador estava, antes do render() la embaixo.
+	MissoesIdle.activeTab = abaLembrada(_preferences, ABA_PADRAO, ABAS);
 	// Guardas nos querySelector, pelo motivo registrado em
 	// ClassChangeNotice.js:68-88: este init roda dentro de MapEngine.init, e
 	// uma exceção aqui derruba o motor de mapa inteiro. Janela de missões é
@@ -192,6 +212,7 @@ function onClickClose(e) {
 function onClickTab(e) {
 	e.stopImmediatePropagation();
 	MissoesIdle.activeTab = e.currentTarget.dataset.tab;
+	lembrarAba(_preferences, MissoesIdle.activeTab);
 	render();
 }
 

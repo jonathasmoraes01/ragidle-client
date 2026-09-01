@@ -16,6 +16,7 @@ import ShortCutControls from 'Preferences/ShortCutControls.js';
 import BattleMode from 'Controls/BattleMode.js';
 import htmlText from './ShortCutOption.html?raw';
 import cssText from './ShortCutOption.css?raw';
+import { abaLembrada, lembrarAba } from '../memoriaDeAba.js'; // RAGIDLE
 import Controls from 'Preferences/Controls.js';
 
 const ShortCutOption = new GUIComponent('ShortCutOption', cssText);
@@ -26,16 +27,50 @@ let ShortCutsTemp = {};
 ShortCutOption.isCapturing = false;
 
 /**
- * @var {Preferences} structure
+ * @var {string[]} RAGIDLE: as quatro abas, na ordem do HTML — a lista que valida
+ *      o que veio do `localStorage`. Os nomes SAO as classes CSS que carregam o
+ *      painel de cada uma (`data-index`).
+ */
+const ABAS = ['t_skillbar', 't_ui', 't_macro', 't_gamepad'];
+
+/**
+ * @var {string} RAGIDLE: a aba de fabrica.
+ */
+const ABA_PADRAO = 't_skillbar';
+
+/**
+ * @var {Preferences} structure — posicao e, desde 31/08/2026, a ABA em que o
+ *      jogador estava (`aba`, ver UI/Components/memoriaDeAba.js).
  */
 const _preferences = Preferences.get(
 	'ShortCutOption',
 	{
 		x: 300,
-		y: 300
+		y: 300,
+		aba: null
 	},
 	1.0
 );
+
+/**
+ * RAGIDLE: acende uma aba e mostra o painel dela.
+ *
+ * A regra desta janela e diferente das outras: o botao E o conteudo compartilham
+ * a MESMA classe (`data-index` = `t_ui`, e ha um `.tabs button.t_ui` e um
+ * `.content.t_ui`), e `selectedtab` marca os dois de uma vez. Por isso a troca
+ * e "tira de todos, poe nos dessa classe" — nao "toggle por botao".
+ */
+function aplicarAba(root, nome) {
+	if (!root || !root.querySelector('.content.' + nome)) {
+		return;
+	}
+	root.querySelectorAll('.selectedtab').forEach(function (el) {
+		el.classList.remove('selectedtab');
+	});
+	root.querySelectorAll('.' + nome).forEach(function (el) {
+		el.classList.add('selectedtab');
+	});
+}
 
 /**
  * Render HTML
@@ -66,13 +101,8 @@ ShortCutOption.init = function () {
 	closebtn(close);
 	root.querySelectorAll('.tabs button').forEach(function (btn) {
 		btn.addEventListener('click', function () {
-			root.querySelectorAll('.selectedtab').forEach(function (el) {
-				el.classList.remove('selectedtab');
-			});
-			const tab = this.dataset.index;
-			root.querySelectorAll('.' + tab).forEach(function (el) {
-				el.classList.add('selectedtab');
-			});
+			aplicarAba(root, this.dataset.index);
+			lembrarAba(_preferences, this.dataset.index); // RAGIDLE
 		});
 	});
 
@@ -139,6 +169,10 @@ ShortCutOption.onAppend = function () {
 	this._host.style.left = _preferences.x + 'px';
 	this._host.style.top = _preferences.y + 'px';
 	this._host.style.zIndex = 100;
+
+	// RAGIDLE: a aba em que o jogador estava. O HTML nasce com "Barra de Skills"
+	// acesa, entao sem isto quem fechou em "Macros" reabria na primeira.
+	aplicarAba(this.getRoot(), abaLembrada(_preferences, ABA_PADRAO, ABAS));
 };
 
 /**

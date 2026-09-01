@@ -276,12 +276,22 @@
 						</label>
 						<label style="display: inline-block; width: 200px">
 							Culling Area:
+							<!--
+								max 20 -> 400 em 31/08/2026. O teto antigo vinha do
+								AREA_SIZE do rAthena (14), que era tambem o corte do
+								servidor; desde que o servidor passou a difundir o mapa
+								inteiro, um teto de 20 tornava a opcao incapaz de
+								mostrar o mapa — e, pior, a janela REESCREVE o valor ao
+								abrir (`.view-area').value = GraphicsSettings.viewArea),
+								entao abrir as opcoes grampeava o padrao novo de volta
+								para 20. 400 e o lado do maior mapa servido.
+							-->
 							<input
 								class="view-area"
 								type="range"
-								value="14.0"
+								value="400"
 								min="4.0"
-								max="20.0"
+								max="400"
 								step="1.0"
 								style="width: 90%; vertical-align: middle"
 							/>

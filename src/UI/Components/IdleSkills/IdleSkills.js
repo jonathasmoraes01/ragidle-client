@@ -1,47 +1,63 @@
 /**
  * UI/Components/IdleSkills/IdleSkills.js
  *
- * "Skills de {classe}" — custom RAGIDLE window. Replicates the layout of
- * the reference "Skills de Aprendiz" print from Midgard Idle: a 2-column
- * window (left = skill card list, right = detail panel of the selected
- * skill, with a "mecânica por nível" breakdown, progress pips and a
- * "learn next level" action), plus a footer bar with the count of
- * learnable skills and the player's available skill points.
+ * "Habilidades de {classe}" — janela RAGIDLE. Desde 31/08/2026 (D-792, pedido
+ * do dono) ela é uma **ÁRVORE DE HABILIDADES**, e não mais uma lista de cards.
  *
- * Protocol (custom extension, not part of stock rAthena/roBrowser):
- *   CZ_RAGIDLE_PEDIR_SKILLS  0x0ff9  (client -> server, fixed, opcode only)
- *   ZC_RAGIDLE_SKILLS        0x0ffa  (server -> client, variable, JSON;
- *                                      answers BOTH pedir and aprender)
- *   CZ_RAGIDLE_APRENDER      0x0ffb  (client -> server, variable, JSON —
- *                                      { skillId } of the skill to learn
- *                                      one more level of)
- * Declared in Network/PacketStructure.js (search "RAGIDLE:") and registered
- * for receive-side framing in Network/PacketRegister.js and
- * Network/Packets/packets2021_len_main.js (see comments there). Opcodes
- * 0x0ff9-0x0ffb sit right after AdminPanel's 0x0ff6-0x0ff8 in the same free
- * range of this fork's packet tables.
+ * ===========================================================================
+ * O QUE MUDOU, E POR QUÊ
+ * ===========================================================================
  *
- * Unlike IdleConfig/AdminPanel (which diff a local "draft" against a
- * "baseline" and only send the diff on an explicit "Aplicar"), this window
- * has no draft/dirty state at all: "aprender" is a single explicit action
- * (learn one more level of ONE skill) sent immediately on click, and per
- * the frozen contract the server's answer — to EITHER opcode — is always
- * the complete, current state (contrast with IdleConfig/AdminPanel, where a
- * rejected "aplicar" deliberately does NOT touch the local baseline/draft;
- * here there is no draft to protect, so the received state is adopted
- * unconditionally and "problemas" is purely a transient red message).
+ * A referência é a print do **Ragnarok LATAM** que o dono mandou: trilho de
+ * abas na vertical à esquerda (1ª, 2ª, 3ª, Variadas), grade de ícones com
+ * `◀ n/m ▶` embaixo de cada um, o interruptor "Descrições" no alto, e
+ * "Pontos de habilidade" + "Aplicar"/"Resetar" no rodapé. O pedido foi explícito
+ * em manter **o nosso UI Premium** — então nada do chrome do cliente oficial
+ * entrou: tudo aqui é token do design system (`UI/Common.css`, bloco RAGIDLE).
  *
- * Pattern followed here is IdleConfig (UI/Components/IdleConfig/IdleConfig.js,
- * read in full before writing this file) and AdminPanel
- * (UI/Components/AdminPanel/AdminPanel.js, also read in full): GUIComponent
- * base class, ES modules, shadow DOM, CSS/HTML via `?raw`, a floating
- * button that toggles the window, `Network.hookPacket(...)` self-registered
- * at module top-level, mounted in Engine/MapEngine.js next to
- * HuntMap/IdleConfig/AdminPanel (import + prepare() + append()).
- * IdleConfig.js's variable-length CZ build (u16 opcode + u16 length in
- * UTF-8 BYTES + JSON) is copied verbatim in PacketStructure.js for
- * CZ_RAGIDLE_APRENDER. Both files are cited by file:line throughout below
- * wherever a mechanism is reused.
+ * Três coisas que a lista antiga não fazia e a árvore faz:
+ *
+ * 1. **O DESENHO MOSTRA A DEPENDÊNCIA.** Coluna = profundidade na árvore de
+ *    pré-requisitos, e um fio ligado do pai ao filho. Era a informação que a
+ *    lista escondia: o jogador via "não pode aprender" e não via de onde vem.
+ * 2. **AS ABAS SÃO DEGRAUS DA CARREIRA**, e não categorias inventadas. Elas
+ *    vêm do servidor (`payload.graus`, ver `grau-da-habilidade.ts`): um
+ *    Aprendiz tem uma aba, um Cavaleiro tem três. As antigas
+ *    ("Ativas"/"Passivas"/"Suporte") tinham uma aba que era honestamente vazia.
+ * 3. **RASCUNHO com "Aplicar".** As setas mexem num rascunho LOCAL; o servidor
+ *    só é chamado no "Aplicar", que manda o lote inteiro num pacote só e o
+ *    aplica de forma atômica (ver o bloco do lote em `servidor-mapa.ts`). Antes
+ *    era um pacote por nível — e cada um deles devolve o payload inteiro da
+ *    janela.
+ *
+ * A geometria da árvore e o juiz do rascunho moram em `arvoreDeSkills.js`, que
+ * é puro e tem prova própria (`tests/ui/arvoreDeSkills.test.js`). Aqui fica o
+ * que só a pilha ao vivo julga: DOM, pacote e preferência.
+ *
+ * ===========================================================================
+ * PROTOCOLO (extensão nossa, não é rAthena/roBrowser de fábrica)
+ * ===========================================================================
+ *
+ *   CZ_RAGIDLE_PEDIR_SKILLS  0x0ff9  (cliente -> servidor, fixo, só o opcode)
+ *   ZC_RAGIDLE_SKILLS        0x0ffa  (servidor -> cliente, variável, JSON;
+ *                                     responde a TODOS os três de baixo)
+ *   CZ_RAGIDLE_APRENDER      0x0ffb  (cliente -> servidor, variável, JSON —
+ *                                     `{ skillId }` para um nível, ou
+ *                                     `{ lote: [{skillId, niveis}] }` para o
+ *                                     "Aplicar")
+ *   CZ_RAGIDLE_PRIORIZAR     (rotação de ataque, D-6xx)
+ *
+ * Declarados em `Network/PacketStructure.js` (busque "RAGIDLE:") e registrados
+ * para o enquadramento de recepção em `Network/PacketRegister.js` e
+ * `Network/Packets/packets2021_len_main.js`.
+ *
+ * **O contrato do JSON é `servidor/mapa/contrato-de-skills.ts`**, e ele está na
+ * versão **2** desde D-792 (a v1 não trazia `preRequisitos`, `grau`,
+ * `aceitaPeloMotor` nem os níveis do personagem). O `if` de versão logo abaixo
+ * RECUSA a v1 de propósito: um servidor velho responderia sem pré-requisito
+ * nenhum, e a janela desenharia uma árvore sem nenhuma ligação — plausível e
+ * errada, que é o pior resultado possível. `contrato-de-skills.test.ts` cobra
+ * que todo campo lido aqui exista lá.
  *
  * @author RagIdle
  */
@@ -56,21 +72,43 @@ import buildResumo from './resumoDaDescricao.js';
 import htmlText from './IdleSkills.html?raw';
 import cssText from './IdleSkills.css?raw';
 import { fecharEEsquecer } from '../limpezaDeJanelaIdle.js';
+import { abaLembrada, lembrarAba } from '../memoriaDeAba.js';
+import {
+	NO_L,
+	avaliarDescer,
+	avaliarSubir,
+	montarPlano,
+	nivelEfetivo,
+	ordemDoLote,
+	pontosNoRascunho
+} from './arvoreDeSkills.js';
 
 /**
- * Keep in sync with the ":host" / ".is-window" size in IdleSkills.css —
- * used to clamp the saved window position to the current viewport (same
- * role as IdleConfig's WINDOW_WIDTH/HEIGHT, IdleConfig.js:46-47).
+ * A versão do contrato que esta janela sabe ler.
+ *
+ * Espelha `VERSAO_DO_CONTRATO_DE_SKILLS` em
+ * `servidor/mapa/contrato-de-skills.ts` — e o teste de contrato daquele repo
+ * cobra que os dois números sejam o mesmo, porque ele é a única coisa que
+ * separa "árvore certa" de "árvore plausível e errada".
  */
-const WINDOW_WIDTH = 640;
-const WINDOW_HEIGHT = 560;
+const VERSAO_DO_CONTRATO = 2;
 
 /**
- * How long a rejected "aprender" (contract's non-empty "problemas") stays
- * visible in red on the footer bar before clearing (spec: "mostra em
- * vermelho na barra inferior por 5 s").
+ * Mantenha em sincronia com o ":host" / ".is-window" do IdleSkills.css e com
+ * `--w-idleskills`/`--h-idleskills` no Common.css — os três dizem a mesma
+ * medida, e é ela que `#draggable()` usa para prender a janela na tela.
+ *
+ * Cresceu de 640x560 para 980x640 com a árvore (940x620 na primeira rodada;
+ * a segunda encorpou o nó e as quatro colunas do Cavaleiro pediam o resto):
+ * a lista antiga cabia numa coluna de 190px, e o plano de uma 2ª classe não.
  */
-const PROBLEMAS_TIMEOUT_MS = 5000;
+const WINDOW_WIDTH = 980;
+const WINDOW_HEIGHT = 640;
+
+/**
+ * Quanto tempo uma recusa do servidor fica em vermelho no rodapé antes de sumir.
+ */
+const PROBLEMAS_TIMEOUT_MS = 6000;
 
 /**
  * Create Component
@@ -80,79 +118,78 @@ const IdleSkills = new GUIComponent('IdleSkills', cssText);
 IdleSkills.render = () => htmlText;
 
 /**
- * Floating icon must not block scene clicks/hover — same reasoning and same
- * choice as HuntMap (HuntMap.js:81-89), IdleConfig (IdleConfig.js:56-61) and
- * AdminPanel (AdminPanel.js:88-92).
+ * O ícone flutuante não pode bloquear clique/hover na cena — mesma escolha do
+ * HuntMap, do IdleConfig e do AdminPanel.
  */
 IdleSkills.mouseMode = GUIComponent.MouseMode.CROSS;
 
 /**
- * @var {object|null} last full contract payload confirmed by the server
- *      ({ v, aplicado?, problemas: [], classe, pontos, skills: [...] }).
- *      Always replaced wholesale by every non-malformed answer (see
- *      onSkillsReceived below) — there is no draft/baseline split here,
- *      unlike IdleConfig.serverConfig/editConfig (IdleConfig.js:64-74).
+ * @var {object|null} o último payload completo confirmado pelo servidor.
+ *      Sempre substituído por inteiro (o contrato garante que toda resposta é o
+ *      estado corrente completo).
  */
 IdleSkills.serverData = null;
 
-/**
- * @var {string|null} skillId of the card selected in the left list (drives
- *      the right-hand detail panel).
- */
+/** @var {string|null} a habilidade selecionada (dirige o painel de detalhe). */
 IdleSkills.selectedSkillId = null;
 
 /**
- * @var {string} category rail filter (rodada 2 do gauntlet, 18/08/2026):
- *      'todas' | 'ativa' | 'passiva' | 'suporte'. Pure client-side view
- *      filter over the already-loaded IdleSkills.serverData.skills — no
- *      packet, no server round-trip. 'ativa'/'passiva' match skill.categoria
- *      (the same field that already feeds the list/detail badge); 'suporte'
- *      has no matching categoria in today's data contract (only 'ativa' |
- *      'passiva' exist, see combat/skills.ts PorteDeHabilidade), so it
- *      renders the tab for visual parity with the reference but is
- *      honestly empty until the contract grows a third category.
+ * @var {Record<string, number>} O RASCUNHO: quantos níveis o jogador somou à
+ *      mão e ainda não aplicou, por skillId. Só o "Aplicar" o transforma em
+ *      pacote; "Resetar" o joga fora. Ele NÃO atravessa a resposta do servidor
+ *      quando o lote é aceito, e SOBREVIVE quando ele é recusado — nesse caso
+ *      nada mudou do outro lado, e jogar fora o plano do jogador por causa de
+ *      uma recusa seria punir duas vezes.
  */
-IdleSkills.categoriaFiltro = 'todas';
+IdleSkills.rascunho = {};
 
 /**
- * @var {string[]} problems from the last rejected "aprender" (contract's
- *      non-empty "problemas"). Purely transient here (cleared automatically
- *      after PROBLEMAS_TIMEOUT_MS, see showProblemas below) since — unlike
- *      IdleConfig.problemas/AdminPanel.problemas — nothing about the local
- *      state is being protected from a server round-trip that already
- *      landed and was fully adopted.
+ * @var {boolean} há um "Aplicar" no ar esperando resposta?
+ *
+ * Existe porque o `aplicado: true` do contrato NÃO diz qual gesto foi aplicado:
+ * pôr uma habilidade na rotação de ataque volta com o mesmo `true`. Sem esta
+ * marca, mexer na rotação com um rascunho aberto apagaria o rascunho.
  */
+IdleSkills._esperandoAplicar = false;
+
+/** @var {number} o degrau (grau) da aba acesa. */
+IdleSkills.grauAtivo = 0;
+
+/** @var {boolean} o painel de detalhe está aberto? (interruptor "Descrições") */
+IdleSkills.mostrarDescricoes = true;
+
+/** @var {string[]} recusas transitórias do servidor, para a mensagem vermelha. */
 IdleSkills.problemas = [];
 
-/**
- * @var {number|null} setTimeout handle clearing IdleSkills.problemas.
- */
+/** @var {number|null} handle do setTimeout que limpa `problemas`. */
 IdleSkills._problemasTimer = null;
 
 /**
- * @var {Preferences} window position (x/y are null until the player moves it)
+ * @var {Preferences} posição da janela (x/y `null` até o jogador mover), o
+ *      degrau em que ele estava (`aba`) e o interruptor de descrições.
+ *
+ * A versão continua 1.0 de propósito: subir apagaria a POSIÇÃO já ajustada só
+ * para ganhar campos que já funcionam sem isso (ver `memoriaDeAba.js`).
  */
 const _preferences = Preferences.get(
 	'IdleSkills',
 	{
 		x: null,
-		y: null
+		y: null,
+		aba: null,
+		descricoes: true
 	},
 	1.0
 );
 
-/**
- * Helper: query inside shadow root
- */
+/** Helper: query inside shadow root */
 function _root() {
 	return IdleSkills._shadow || IdleSkills._host;
 }
 
 /**
- * Escape user/server supplied text before injecting into innerHTML. Mirrors
- * IdleConfig's private helper (IdleConfig.js:125-140) — not exported there,
- * so re-declared here rather than imported (task instructions: don't alter
- * IdleConfig.js).
+ * Escapa texto vindo do servidor antes de entrar em `innerHTML`. Espelha o
+ * helper privado do IdleConfig (que não o exporta).
  */
 function escapeHtml(value) {
 	return String(value == null ? '' : value).replace(/[&<>"']/g, ch => {
@@ -172,9 +209,8 @@ function escapeHtml(value) {
 }
 
 /**
- * Two-letter placeholder icon from a skillId (e.g. "NV_BASIC" -> "NB",
- * "MG_FIREBOLT" -> "MF"). Falls back to the first 2 characters of the raw
- * id when there is no "_" to split on.
+ * Duas letras de reserva a partir do skillId ("NV_BASIC" -> "NB"), para quando
+ * o PNG do ícone não existe.
  */
 function skillInitials(skillId) {
 	const parts = String(skillId || '').split('_');
@@ -184,115 +220,117 @@ function skillInitials(skillId) {
 	return String(skillId || '').slice(0, 2).toUpperCase();
 }
 
-/**
- * "N skill(s) disponível(is)" (spec) rendered as proper PT-BR singular/
- * plural instead of literally printing the "(s)"/"(is)" placeholders.
- */
+/** "N habilidade(s) disponível(is)" em PT-BR de verdade. */
 function pluralizeDisponiveis(n) {
-	return n === 1 ? '1 skill disponível' : n + ' skills disponíveis';
+	return n === 1 ? '1 habilidade para subir' : n + ' habilidades para subir';
 }
 
 /**
- * Build the "SP {sp} · alcance {alcance} · conjuração {s} · recarga {s} ·
- * dano +{razaoAdicional}%" fallback line for a level that has no matching
- * "[Nv X]:" description text, omitting any zeroed/absent field (spec).
+ * O rótulo curto da aba de um degrau — "Var" para o Aprendiz, "1ª"/"2ª"/"3ª"
+ * para os degraus de classe. É o rótulo da referência LATAM; o nome da classe
+ * por extenso fica embaixo dele e no `title`.
  */
-function buildMecanicaLine(m) {
-	const parts = [];
-	if (m.sp) {
-		parts.push('SP ' + m.sp);
+function rotuloDoGrau(grau) {
+	if (grau <= 0) {
+		return 'Var';
 	}
-	if (m.alcance) {
-		parts.push('alcance ' + m.alcance);
+	return grau + 'ª';
+}
+
+/** TODAS as habilidades do payload, por skillId. Refeito a cada resposta. */
+function indicePorId() {
+	const porId = new Map();
+	const data = IdleSkills.serverData;
+	if (data) {
+		data.skills.forEach(s => porId.set(s.skillId, s));
 	}
-	if (m.conjuracaoMs) {
-		parts.push('conjuração ' + m.conjuracaoMs / 1000 + 's');
-	}
-	if (m.recargaMs) {
-		parts.push('recarga ' + m.recargaMs / 1000 + 's');
-	}
-	if (m.razaoAdicional) {
-		parts.push('dano +' + m.razaoAdicional + '%');
-	}
-	return parts.join(' · ');
+	return porId;
+}
+
+/** O contexto que `avaliarSubir`/`avaliarDescer` pedem. */
+function contextoDoRascunho() {
+	const data = IdleSkills.serverData;
+	return {
+		porId: indicePorId(),
+		rascunho: IdleSkills.rascunho,
+		pontos: data ? data.pontos : 0,
+		nivelBase: data ? data.nivelBase : 0,
+		nivelDeJob: data ? data.nivelDeJob : 0
+	};
 }
 
 /**
- * Build the "Mecânica por nível" rows for a skill: one row per level from 1
- * to nivelMaximo. A level's text comes from the "[Nv X]: ..." lines in
- * `descricao` when present (multiple matching lines for the same level are
- * joined with a space); otherwise it falls back to the numeric line built
- * from `mecanica` (buildMecanicaLine above); otherwise an em-dash.
+ * Os degraus do trilho: os que o servidor mandou, mais um "Outras" de
+ * emergência se alguma habilidade vier com grau que não está na lista.
  *
- * Returns null when BOTH `descricao` and `mecanica` are empty — the caller
- * then renders the single "Sem dados nesta build." fallback message
- * (spec), instead of nivelMaximo empty/dash rows.
+ * O "Outras" existe porque o modo de falha alternativo é MUDO: uma habilidade
+ * sem aba não cai em lugar nenhum e some da janela — o jogador vê uma árvore
+ * com um buraco e nada acusa. O servidor manda `grau: -1` quando não soube
+ * dizer (ver `contrato-de-skills.ts`), e é exatamente esse caso que cai aqui.
  */
-function buildMecanicaRows(skill) {
-	const descricao = skill.descricao || [];
-	const mecanica = skill.mecanica || [];
-
-	if (!descricao.length && !mecanica.length) {
-		return null;
+function degrausDoTrilho() {
+	const data = IdleSkills.serverData;
+	if (!data) {
+		return [];
 	}
-
-	const textByLevel = {};
-	descricao.forEach(line => {
-		const match = /^\[Nv\s*(\d+)\]:\s*(.*)$/i.exec(String(line || '').trim());
-		if (match) {
-			const lvl = Number(match[1]);
-			textByLevel[lvl] = textByLevel[lvl] ? textByLevel[lvl] + ' ' + match[2] : match[2];
-		}
-	});
-
-	const mecByLevel = {};
-	mecanica.forEach(m => {
-		if (m && typeof m.nivel === 'number') {
-			mecByLevel[m.nivel] = m;
-		}
-	});
-
-	const rows = [];
-	const max = skill.nivelMaximo || 0;
-	for (let lvl = 1; lvl <= max; lvl++) {
-		let texto = textByLevel[lvl];
-		if (!texto) {
-			const m = mecByLevel[lvl];
-			texto = m ? buildMecanicaLine(m) : '';
-		}
-		rows.push({ nivel: lvl, texto: texto || '—' });
+	const trilho = data.graus.map(g => ({
+		grau: g.grau,
+		rotulo: rotuloDoGrau(g.grau),
+		nome: g.nomePt
+	}));
+	const conhecidos = new Set(trilho.map(g => g.grau));
+	const orfas = data.skills.filter(s => !conhecidos.has(s.grau));
+	if (orfas.length) {
+		trilho.push({ grau: orfas[0].grau, rotulo: '?', nome: 'Outras' });
 	}
-	return rows;
+	return trilho;
+}
+
+/** As habilidades do degrau aceso, na ordem da árvore. */
+function skillsDoGrau() {
+	const data = IdleSkills.serverData;
+	if (!data) {
+		return [];
+	}
+	return data.skills.filter(s => s.grau === IdleSkills.grauAtivo);
 }
 
 /**
- * One-time setup (runs once, during GUIComponent#prepare(), GUIComponent.js
- * :140-151/:182-198 — init() is called at the end of _prepare()).
+ * Setup de uma vez só (roda dentro do `GUIComponent#prepare()`).
  */
 IdleSkills.init = function init() {
 	const root = _root();
 
+	/*
+	 * A aba lembrada vem como TEXTO (é assim que `memoriaDeAba.js` guarda tudo),
+	 * e aqui ela é um número. Sem lista de abas válidas: quantos degraus existem
+	 * depende da CARREIRA do personagem, e ela só se sabe quando o payload chega
+	 * — o `renderRail` conserta uma aba que não existe mais.
+	 */
+	IdleSkills.grauAtivo = parseInt(abaLembrada(_preferences, '0'), 10) || 0;
+	IdleSkills.mostrarDescricoes = _preferences.descricoes !== false;
+
 	root.querySelector('.is-button').addEventListener('click', onClickButton);
 	root.querySelector('.is-close').addEventListener('click', onClickClose);
-	root.querySelectorAll('.is-cat-tab').forEach(btn => btn.addEventListener('click', onClickCategoria));
+	root.querySelector('.is-btn-aplicar').addEventListener('click', onClickAplicar);
+	root.querySelector('.is-btn-resetar').addEventListener('click', onClickResetar);
 
-	// GUIComponent#draggable() (GUIComponent.js:516-747) moves ":host" via
-	// left/top, using the titlebar as the drag handle — same call shape as
-	// IdleConfig.js:180.
+	const check = root.querySelector('.is-desc-check');
+	check.checked = IdleSkills.mostrarDescricoes;
+	check.addEventListener('change', onToggleDescricoes);
+
+	// `#draggable()` move o ":host" por left/top usando a barra de título como
+	// pega — mesma chamada das outras janelas RAGIDLE.
 	this.draggable(root.querySelector('.is-titlebar'));
 
-	// Default centered position, may be overridden by saved preferences in
-	// onAppend() below (same approach as IdleConfig.js:182-190).
 	this._host.style.top = Math.max(0, (Renderer.height - WINDOW_HEIGHT) / 2) + 'px';
 	this._host.style.left = Math.max(0, (Renderer.width - WINDOW_WIDTH) / 2) + 'px';
 
+	sincronizarDescricoes();
 	renderAll();
 };
 
-/**
- * Restore saved window position once appended to the DOM (same as
- * IdleConfig.js:197-202).
- */
+/** Restaura a posição salva depois de anexado ao DOM. */
 IdleSkills.onAppend = function onAppend() {
 	if (_preferences.x != null && _preferences.y != null) {
 		this._host.style.top = Math.min(Math.max(0, _preferences.y), Renderer.height - WINDOW_HEIGHT) + 'px';
@@ -300,11 +338,6 @@ IdleSkills.onAppend = function onAppend() {
 	}
 };
 
-/**
- * Save window position when the component is removed (defensive — in
- * practice this floating icon stays appended for the whole map session,
- * same as IdleConfig.js:209-211).
- */
 IdleSkills.onRemove = function onRemove() {
 	savePosition();
 	clearProblemasTimeout();
@@ -316,10 +349,7 @@ function savePosition() {
 	_preferences.save();
 }
 
-/**
- * Show/hide the window (button stays visible either way). Same shape as
- * IdleConfig.toggle() (IdleConfig.js:223-233).
- */
+/** Mostra/esconde a janela (o botão flutuante fica visível dos dois jeitos). */
 IdleSkills.toggle = function toggle() {
 	const root = _root();
 	const win = root.querySelector('.is-window');
@@ -356,47 +386,48 @@ function clearProblemasTimeout() {
 }
 
 /**
- * Ask the server for the current skills state. Sent when the window opens.
- * CZ_RAGIDLE_PEDIR_SKILLS — opcode 0x0ff9, fixed 2 bytes (opcode only), same
- * shape as IdleConfig's requestConfig() (IdleConfig.js:268-271).
+ * Pede ao servidor o estado corrente. Mandado quando a janela abre.
+ * CZ_RAGIDLE_PEDIR_SKILLS — 0x0ff9, 2 bytes fixos (só o opcode).
  */
 function requestSkills() {
-	setStatus(IdleSkills.serverData ? 'Atualizando...' : 'Carregando...');
+	setStatus(IdleSkills.serverData ? 'Atualizando…' : 'Carregando…');
 	Network.sendPacket(new PACKET.CZ.RAGIDLE_PEDIR_SKILLS());
 }
 
 /**
- * Ask the server to learn one more level of `skillId`.
- * CZ_RAGIDLE_APRENDER — opcode 0x0ffb, variable, JSON UTF-8 payload
- * ({"skillId": "..."}). See Network/PacketStructure.js "RAGIDLE:" section
- * for how the packet's byte length is computed (same build as
- * CZ_RAGIDLE_APLICAR_CONFIG, IdleConfig.js:274-290).
+ * Manda o rascunho inteiro num pacote só — o "Aplicar" (D-792).
+ *
+ * O lote vai em ordem de dependência (`ordemDoLote`), porque o servidor aplica
+ * na ordem que receber e não reordena: reordenar seria ele adivinhando a
+ * intenção. Do outro lado ele simula o lote antes de gravar e recusa TUDO se
+ * qualquer passo falhar, então uma ordem errada daqui vira recusa, e nunca
+ * meia build comprada.
  */
-function sendAprender(skillId) {
-	setStatus('Aprendendo...');
+function sendAplicar() {
+	const lote = ordemDoLote(indicePorId(), IdleSkills.rascunho);
+	if (!lote.length) {
+		return;
+	}
+	setStatus('Aplicando…');
+	IdleSkills._esperandoAplicar = true;
 
 	const pkt = new PACKET.CZ.RAGIDLE_APRENDER();
-	pkt.json = JSON.stringify({ skillId });
+	pkt.json = JSON.stringify({ lote: lote });
 	Network.sendPacket(pkt);
 }
 
 /**
- * Liga ou desliga a skill na ROTACAO de ataque (28/08/2026, pedido do dono:
- * *"quero que seja possivel clicar na lista e selecionar a habilidade, para
- * que o player nao precise sempre ficar indo no menu idle"*).
+ * Liga ou desliga a habilidade na ROTAÇÃO de ataque.
  *
- * `ligar` vai EXPLICITO, e nao como um alterna calculado no servidor: esta
- * janela sabe o estado que desenhou, e um alterna com dois cliques rapidos
- * numa rede lenta faria o jogador ligar o que queria desligar.
- *
- * A resposta e o mesmo ZC_RAGIDLE_SKILLS de sempre — a janela inteira volta
- * com `naRotacao` atualizado, entao nao ha estado local para sincronizar.
+ * `ligar` vai EXPLÍCITO, e não como um alterna calculado no servidor: esta
+ * janela sabe o estado que desenhou, e um alterna com dois cliques rápidos numa
+ * rede lenta faria o jogador ligar o que queria desligar.
  */
 function sendPriorizar(skillId, ligar) {
-	setStatus(ligar ? 'Pondo na rotacao...' : 'Tirando da rotacao...');
+	setStatus(ligar ? 'Pondo na rotação…' : 'Tirando da rotação…');
 
 	const pkt = new PACKET.CZ.RAGIDLE_PRIORIZAR();
-	pkt.json = JSON.stringify({ skillId, ligar });
+	pkt.json = JSON.stringify({ skillId: skillId, ligar: ligar });
 	Network.sendPacket(pkt);
 }
 
@@ -408,15 +439,7 @@ function setStatus(text) {
 	}
 }
 
-/**
- * Show `problemas` in red on the footer for PROBLEMAS_TIMEOUT_MS, then
- * clear it back out. Spec: "se problemas, mostra em vermelho na barra
- * inferior por 5 s" — unlike IdleConfig.renderProblemas()/
- * AdminPanel.renderProblemas() (which just render whatever is in
- * .problemas and let the NEXT server answer clear it), this window's
- * contract always answers with the full current state, so nothing else
- * would ever clear a stale message without this timer.
- */
+/** Mostra `problemas` em vermelho no rodapé por PROBLEMAS_TIMEOUT_MS. */
 function showProblemas(list) {
 	clearProblemasTimeout();
 	IdleSkills.problemas = list;
@@ -429,50 +452,80 @@ function showProblemas(list) {
 }
 
 /**
- * ZC_RAGIDLE_SKILLS — opcode 0x0ffa, variable size, JSON UTF-8 payload (see
- * PACKET.ZC.RAGIDLE_SKILLS in Network/PacketStructure.js, which decodes the
- * remainder of the packet into pkt.json — same framing as
- * PACKET.ZC.RAGIDLE_CONFIG, IdleConfig.js:300-311).
+ * ZC_RAGIDLE_SKILLS — 0x0ffa, variável, JSON UTF-8.
  *
- * This single opcode answers both CZ_RAGIDLE_PEDIR_SKILLS and
- * CZ_RAGIDLE_APRENDER. The contract tells them apart with "aplicado":
- * present (true) only on an aprender response, absent on a pedir response
- * (same convention as ZC_RAGIDLE_CONFIG, IdleConfig.js:326) — but, unlike
- * that window, the server's answer is ALWAYS the complete state (per the
- * frozen contract), so it is always adopted here, whether or not
- * "problemas" came back non-empty.
+ * Este opcode responde aos TRÊS pedidos. O contrato os distingue por
+ * `aplicado`: presente (true) só na resposta a uma ação, ausente no anúncio
+ * comum. Mas ele NÃO diz QUAL ação — por isso o rascunho só é jogado fora
+ * quando `_esperandoAplicar` marca que o gesto no ar era o "Aplicar".
  */
 function onSkillsReceived(pkt) {
 	let data;
 	try {
 		data = JSON.parse(pkt.json);
 	} catch (e) {
-		console.error('[IdleSkills] Falha ao interpretar os dados de skills recebidos:', e, pkt.json);
+		console.error('[IdleSkills] Falha ao interpretar os dados de habilidades recebidos:', e, pkt.json);
 		setStatus('Dados incompatíveis.');
+		IdleSkills._esperandoAplicar = false;
 		return;
 	}
 
-	if (!data || data.v !== 1 || !data.classe || !Array.isArray(data.skills) || typeof data.pontos !== 'number') {
-		console.error('[IdleSkills] Dados de skills com contrato incompatível (v=' + (data && data.v) + ').', data);
-		setStatus('Dados incompatíveis.');
+	if (
+		!data ||
+		data.v !== VERSAO_DO_CONTRATO ||
+		!data.classe ||
+		!Array.isArray(data.skills) ||
+		!Array.isArray(data.graus) ||
+		typeof data.pontos !== 'number' ||
+		typeof data.nivelBase !== 'number' ||
+		typeof data.nivelDeJob !== 'number'
+	) {
+		/*
+		 * RECUSA ALTA, e não desenho parcial. Um servidor na v1 responde JSON
+		 * válido sem `preRequisitos` — a árvore sairia sem nenhuma ligação e o
+		 * rascunho aprovaria o que o "Aplicar" recusa. Ver o cabeçalho.
+		 */
+		console.error(
+			'[IdleSkills] Contrato incompatível: esperava v=' +
+				VERSAO_DO_CONTRATO +
+				', veio v=' +
+				(data && data.v) +
+				'.',
+			data
+		);
+		setStatus('Dados incompatíveis — servidor e cliente em versões diferentes.');
+		IdleSkills._esperandoAplicar = false;
 		return;
 	}
 
 	const isApplyResponse = Object.prototype.hasOwnProperty.call(data, 'aplicado');
 	const problemas = Array.isArray(data.problemas) ? data.problemas : [];
 
-	// Always adopt: the contract guarantees this payload IS the current
-	// complete state, whether it answers a "pedir" or an "aprender" — see
-	// file header for why this differs from IdleConfig/AdminPanel.
+	// O contrato garante que este payload É o estado corrente completo, responda
+	// ele a um "pedir" ou a uma ação. Adotado por inteiro, sempre.
 	IdleSkills.serverData = data;
 
-	// Keep the current selection if it still exists in the new list;
-	// otherwise fall back to the first skill (if any).
+	/*
+	 * O RASCUNHO só morre quando foi ELE que virou pacote e o pacote passou.
+	 * Recusa preserva: nada mudou do outro lado, e o jogador ainda quer o plano
+	 * dele para corrigir um passo.
+	 */
+	if (IdleSkills._esperandoAplicar && isApplyResponse && data.aplicado === true) {
+		IdleSkills.rascunho = {};
+	}
+	IdleSkills._esperandoAplicar = false;
+
+	// Mantém a seleção se ela ainda existe; senão cai na primeira do DEGRAU
+	// ABERTO — `data.skills[0]` é a primeira da árvore inteira, e ela costuma
+	// ser de outra aba (ver `trazerSelecaoParaODegrau`).
 	if (!IdleSkills.selectedSkillId || !data.skills.some(s => s.skillId === IdleSkills.selectedSkillId)) {
-		IdleSkills.selectedSkillId = data.skills.length ? data.skills[0].skillId : null;
+		IdleSkills.selectedSkillId = null;
+	}
+	if (IdleSkills.selectedSkillId === null && data.skills.length) {
+		IdleSkills.selectedSkillId = data.skills[0].skillId;
 	}
 
-	setStatus(isApplyResponse ? '' : '');
+	setStatus('');
 
 	if (problemas.length) {
 		showProblemas(problemas);
@@ -484,22 +537,20 @@ function onSkillsReceived(pkt) {
 	renderAll();
 }
 
-/**
- * Render the whole window (title, list, detail, footer) from
- * IdleSkills.serverData/selectedSkillId/problemas.
- */
+/** Redesenha a janela inteira a partir de serverData/rascunho/seleção. */
 function renderAll() {
 	renderTitle();
-	renderList();
+	// `renderRail` pode TROCAR o degrau ativo (a aba lembrada some quando o
+	// personagem é de outra carreira), então a seleção só pode ser ajustada
+	// depois dele — e antes da árvore e do detalhe, que a leem.
+	renderRail();
+	trazerSelecaoParaODegrau();
+	renderArvore();
 	renderDetail();
 	renderFooter();
 }
 
-/**
- * Window title: "Skills de {classe.nomePt}" (spec), falling back to the
- * generic "Skills" placeholder from IdleSkills.html before the first
- * answer arrives.
- */
+/** Título: "Habilidades de {classe.nomePt}". */
 function renderTitle() {
 	const root = _root();
 	const el = root.querySelector('.is-title');
@@ -507,112 +558,542 @@ function renderTitle() {
 		return;
 	}
 	const data = IdleSkills.serverData;
-	el.textContent = data && data.classe ? 'Skills de ' + (data.classe.nomePt || data.classe.nome) : 'Skills';
+	el.textContent =
+		data && data.classe ? 'Habilidades de ' + (data.classe.nomePt || data.classe.nome) : 'Habilidades';
 }
 
-/**
- * Client-side-only filter over the already-loaded skill list (rodada 2, see
- * IdleSkills.categoriaFiltro above). Never touches serverData/network.
- */
-function filtrarPorCategoria(skills) {
-	const f = IdleSkills.categoriaFiltro;
-	if (!f || f === 'todas') {
-		return skills;
-	}
-	return skills.filter(s => s.categoria === f);
-}
+/* ------------------------------------------------------------------------ */
+/* O trilho de degraus                                                       */
+/* ------------------------------------------------------------------------ */
 
-function onClickCategoria(e) {
-	e.stopImmediatePropagation();
-	const btn = e.currentTarget;
-	IdleSkills.categoriaFiltro = btn.dataset.cat || 'todas';
-	_root()
-		.querySelectorAll('.is-cat-tab')
-		.forEach(b => b.classList.toggle('is-active', b === btn));
-	renderList();
-}
-
-/**
- * Left-hand card list.
- */
-function renderList() {
+function renderRail() {
 	const root = _root();
-	const listEl = root.querySelector('.is-list');
+	const rail = root.querySelector('.is-grausrail');
+	const trilho = degrausDoTrilho();
+
+	if (!trilho.length) {
+		rail.innerHTML = '';
+		return;
+	}
+
+	/*
+	 * A ABA LEMBRADA PODE NÃO EXISTIR MAIS, e o caso é comum: o jogador vivia na
+	 * aba "2ª" com o Cavaleiro e entrou com um Aprendiz recém-criado. Sem este
+	 * conserto o trilho abriria sem nenhuma aba acesa e a árvore vazia — o mesmo
+	 * defeito que `abaLembrada` mata nas outras janelas, só que aqui a lista de
+	 * abas válidas só existe depois do payload.
+	 */
+	if (!trilho.some(g => g.grau === IdleSkills.grauAtivo)) {
+		IdleSkills.grauAtivo = trilho[trilho.length - 1].grau;
+	}
+
 	const data = IdleSkills.serverData;
+	rail.innerHTML = trilho
+		.map(degrau => {
+			const quantas = data.skills.filter(s => s.grau === degrau.grau).length;
+			const ativa = degrau.grau === IdleSkills.grauAtivo;
+			return (
+				'<button type="button" class="is-grau-tab' +
+				(ativa ? ' is-active' : '') +
+				'" data-tab="' +
+				escapeHtml(degrau.grau) +
+				'" title="' +
+				escapeHtml(degrau.nome + ' — ' + quantas + ' habilidades') +
+				'">' +
+				'<span class="is-grau-rotulo">' +
+				escapeHtml(degrau.rotulo) +
+				'</span>' +
+				'<span class="is-grau-nome">' +
+				escapeHtml(degrau.nome) +
+				'</span>' +
+				'</button>'
+			);
+		})
+		.join('');
 
-	if (!data || !data.skills.length) {
-		listEl.innerHTML = '<div class="is-empty">Nenhuma skill disponível para esta classe.</div>';
-		return;
-	}
-
-	const visiveis = filtrarPorCategoria(data.skills);
-	if (!visiveis.length) {
-		listEl.innerHTML = '<div class="is-empty">Nenhuma skill nesta categoria.</div>';
-		return;
-	}
-
-	listEl.innerHTML = visiveis.map(renderCard).join('');
-	listEl.querySelectorAll('[data-skill-card]').forEach(card => card.addEventListener('click', onClickCard));
+	rail.querySelectorAll('[data-tab]').forEach(btn => btn.addEventListener('click', onClickGrau));
 }
 
-function renderCard(skill) {
-	const isSelected = skill.skillId === IdleSkills.selectedSkillId;
-	const categoriaLabel = skill.categoria === 'passiva' ? 'Passiva' : 'Ativa';
-
-	return `
-		<button type="button" class="is-card ri-card${isSelected ? ' is-selected' : ''}" data-skill-card="${escapeHtml(skill.skillId)}">
-			<span class="is-card-icon">
-				<img src="/ragidle/skills/${encodeURIComponent(skill.skillId)}.png" alt="" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" />
-				<span class="is-card-icon-fallback">${escapeHtml(skillInitials(skill.skillId))}</span>
-			</span>
-			<span class="is-card-info">
-				<span class="is-card-name">${escapeHtml(skill.nome)}</span>
-				<span class="is-card-meta">
-					<span class="is-badge ri-badge ${skill.categoria === 'passiva' ? 'ri-badge--verde' : 'ri-badge--azul'}">${categoriaLabel}</span>
-					${
-						// A POSICAO na rotacao, e nao um "ligado": a ordem da lista E a
-						// ordem de prioridade, e e a unica informacao que estar nela
-						// carrega alem do fato de estar.
-						skill.naRotacao
-							? `<span class="is-badge ri-badge ri-badge--ouro is-badge-rotacao" title="Rotacao de ataque: sai em ${skill.naRotacao}o lugar">Rotacao ${skill.naRotacao}</span>`
-							: ''
-					}
-				</span>
-			</span>
-			<span class="is-card-level">Nv. ${skill.aprendido}/${skill.nivelMaximo}</span>
-		</button>`;
-}
-
-function onClickCard(e) {
+function onClickGrau(e) {
 	e.stopImmediatePropagation();
-	IdleSkills.selectedSkillId = e.currentTarget.dataset.skillCard;
-	renderList();
+	IdleSkills.grauAtivo = parseInt(e.currentTarget.dataset.tab, 10) || 0;
+	lembrarAba(_preferences, IdleSkills.grauAtivo);
+	trazerSelecaoParaODegrau();
+	renderRail();
+	renderArvore();
 	renderDetail();
 }
 
 /**
- * Right-hand detail panel for the selected skill.
- */
-/**
- * O selo de efeito de combate — TRES estados, e não dois (D-407).
+ * O PAINEL TEM DE DESCREVER O QUE ESTÁ NA TELA.
  *
- * Ele lia só `skill.portada`, e por isso as habilidades que o motor executa
- * mas que não mudam nada na luta apareciam LIMPAS: o jogador gastava ponto
- * numa delas achando que estava comprando poder. Medido no servidor em
- * 20/08/2026: as 58 de `SEM_EFEITO_DE_COMBATE` estão TODAS dentro de
- * `HABILIDADES_PORTADAS` (58 de 58), então o booleano de porte nunca as pegava.
+ * Visto no primeiro print da árvore: com a aba "1ª classe" aberta, o painel da
+ * direita continuava descrevendo o Contra-Ataque, que é uma habilidade da 2ª e
+ * não está desenhada em lugar nenhum daquela aba. Não há erro — a seleção é
+ * legítima, só que invisível —, e o jogador lê uma descrição que não casa com
+ * nenhum ícone à frente dele.
+ *
+ * Só mexe quando a seleção saiu de vista: quem clicou num nó continua com ele.
+ */
+function trazerSelecaoParaODegrau() {
+	const doGrau = skillsDoGrau();
+	if (!doGrau.length) {
+		return;
+	}
+	if (!doGrau.some(s => s.skillId === IdleSkills.selectedSkillId)) {
+		IdleSkills.selectedSkillId = doGrau[0].skillId;
+	}
+}
+
+/* ------------------------------------------------------------------------ */
+/* A árvore                                                                  */
+/* ------------------------------------------------------------------------ */
+
+/**
+ * Os fios, em SVG, POR BAIXO dos nós.
+ *
+ * Cotovelo em três segmentos (sai à direita do pai, desce/sobe no meio do vão,
+ * entra à esquerda do filho) em vez de reta: com reta, dois fios que saem do
+ * mesmo pai para linhas diferentes viram um leque, e num degrau com quatro
+ * filhos ninguém distingue qual chega onde.
+ *
+ * Verde = requisito cumprido (contando o rascunho); cinza tracejado = ainda não.
+ */
+function renderFios(plano, contexto) {
+	if (!plano.fios.length) {
+		return '';
+	}
+
+	/*
+	 * ======================================================================
+	 * OS TRIÂNGULOS PRETOS (31/08/2026, print do dono) — leia antes de
+	 * "melhorar" este desenho de volta.
+	 * ======================================================================
+	 *
+	 * A 2ª rodada de design desenhava o cotovelo com cantos em curva (`Q`) e a
+	 * ponta da seta com `<marker orient="auto">`. Na máquina do dono, a árvore
+	 * do Mago aparecia coberta por TRIÂNGULOS PRETOS gigantes — os fios mais
+	 * longos viravam polígonos preenchidos.
+	 *
+	 * Nas fotos daqui o defeito NUNCA apareceu, e o motivo é a regra 8 com
+	 * outra roupa: o Playwright headless desenha no SwiftShader (software), e o
+	 * dono joga na GPU DE VERDADE. Traço TRACEJADO sobre segmento CURVO e
+	 * marker rotacionado são justamente as duas construções de SVG com
+	 * histórico de tesselar errado em driver de GPU — o dash de curva vira
+	 * triângulo degenerado preenchido com a cor padrão, que é PRETO.
+	 *
+	 * O conserto é não depender delas:
+	 * - o cotovelo voltou a ser RETO (`M H V H`); o arredondado que o design
+	 *   pedia vem de `stroke-linejoin: round`, que dobra a junta sem criar
+	 *   segmento curvo;
+	 * - a ponta é um `<path>` triângulo desenhado AQUI, no lugar exato — todo
+	 *   fio termina entrando na horizontal, então nem rotação precisa;
+	 * - o traço para 5px antes do nó, para a ponta cobrir o fim da linha.
+	 */
+	const RECUO_DA_PONTA = 5;
+
+	function caminhoDoFio(fio) {
+		const fim = fio.x2 - RECUO_DA_PONTA;
+		if (fio.y1 === fio.y2) {
+			return 'M ' + fio.x1 + ' ' + fio.y1 + ' H ' + fim;
+		}
+		return (
+			'M ' + fio.x1 + ' ' + fio.y1 +
+			' H ' + fio.xm +
+			' V ' + fio.y2 +
+			' H ' + fim
+		);
+	}
+
+	/** A ponta: triângulo apontando para a direita, encostado no nó. */
+	function pontaDoFio(fio, cumprido) {
+		const x = fio.x2;
+		const y = fio.y2;
+		return (
+			'<path d="M ' + (x - 7) + ' ' + (y - 4.5) +
+			' L ' + x + ' ' + y +
+			' L ' + (x - 7) + ' ' + (y + 4.5) +
+			' Z" class="is-ponta ' +
+			(cumprido ? 'is-ponta--ok' : 'is-ponta--travado') +
+			'" />'
+		);
+	}
+
+	const caminhos = plano.fios
+		.map(fio => {
+			const cumprido =
+				(contexto.porId.has(fio.de)
+					? nivelEfetivo(contexto.porId.get(fio.de), contexto.rascunho)
+					: 0) >= fio.nivel;
+			const d = caminhoDoFio(fio);
+			/*
+			 * DUAS passadas por fio: um HALO claro por baixo e o traço por cima.
+			 * O fundo da árvore é grade pontilhada, e um traço de 2px
+			 * atravessando os pontos serrilha visualmente — o halo é o papel em
+			 * volta do fio, o mesmo truque de todo mapa de metrô.
+			 */
+			return (
+				'<path d="' + d + '" class="is-fio-halo" />' +
+				'<path d="' +
+				d +
+				'" class="is-fio' +
+				(cumprido ? ' is-fio--ok' : ' is-fio--travado') +
+				'" />' +
+				pontaDoFio(fio, cumprido)
+			);
+		})
+		.join('');
+
+	return (
+		'<svg class="is-fios" width="' +
+		plano.largura +
+		'" height="' +
+		plano.altura +
+		'" viewBox="0 0 ' +
+		plano.largura +
+		' ' +
+		plano.altura +
+		'">' +
+		caminhos +
+		'</svg>'
+	);
+}
+
+/**
+ * Um nó: ícone (com o ladrilho `.ri-tile` do design system), nome, e a linha de
+ * controle `◀ n/m ▶` da referência LATAM.
+ *
+ * O nível aparece como `5+2/10` quando há rascunho, com o `+2` em dourado — o
+ * jogador precisa distinguir num relance o que já é dele do que ele ainda vai
+ * pagar, e um `7/10` chapado esconderia isso.
+ */
+function renderNo(no, contexto) {
+	const skill = no.skill;
+	const selecionada = skill.skillId === IdleSkills.selectedSkillId;
+	const extra = contexto.rascunho[skill.skillId] || 0;
+	const efetivo = skill.aprendido + extra;
+	const subir = avaliarSubir(skill, contexto);
+
+	// Três estados visuais, e eles não são o mesmo: TRANCADA (falta requisito),
+	// DISPONÍVEL (dá para subir agora) e DOMINADA (no teto).
+	const noTeto = efetivo >= skill.nivelMaximo;
+	const trancada = efetivo === 0 && !subir.ok;
+
+	let classes = 'is-no';
+	if (selecionada) {
+		classes += ' is-no--selecionada';
+	}
+	if (trancada) {
+		classes += ' is-no--trancada';
+	}
+	if (noTeto) {
+		classes += ' is-no--dominada';
+	} else if (subir.ok) {
+		classes += ' is-no--pronta';
+	}
+	if (extra > 0) {
+		classes += ' is-no--rascunho';
+	}
+
+	const selo = [];
+	if (typeof skill.naRotacao === 'number') {
+		selo.push('<span class="is-no-selo is-no-selo--rotacao" title="Rotação de ataque, ' + skill.naRotacao + 'º lugar">' + skill.naRotacao + '</span>');
+	}
+	if (no.forasteiros.length) {
+		const texto = no.forasteiros.map(f => f.nome + ' Nv. ' + f.nivel).join(', ');
+		selo.push('<span class="is-no-selo is-no-selo--fora" title="Exige de outro degrau: ' + escapeHtml(texto) + '">↖</span>');
+	}
+
+	return (
+		'<div class="' +
+		classes +
+		'" style="left:' +
+		no.x +
+		'px; top:' +
+		no.y +
+		'px; width:' +
+		NO_L +
+		'px">' +
+		'<button type="button" class="is-no-icone ri-tile" data-skill-sel="' +
+		escapeHtml(skill.skillId) +
+		'" title="' +
+		escapeHtml(skill.nome) +
+		'">' +
+		'<img src="/ragidle/skills/' +
+		encodeURIComponent(skill.skillId) +
+		'.png" alt="" onerror="this.style.display=\'none\'; this.nextElementSibling.style.display=\'flex\';" />' +
+		'<span class="is-no-fallback">' +
+		escapeHtml(skillInitials(skill.skillId)) +
+		'</span>' +
+		selo.join('') +
+		'</button>' +
+		'<span class="is-no-nome" title="' +
+		escapeHtml(skill.nome) +
+		'">' +
+		escapeHtml(skill.nome) +
+		'</span>' +
+		plaqueta(skill, contexto) +
+		'</div>'
+	);
+}
+
+/**
+ * A PLAQUETA — o `◀ n/m ▶` da referência LATAM, como uma cápsula segmentada.
+ *
+ * É o elemento-assinatura da print, e a primeira rodada o desenhou como três
+ * pedaços soltos (dois botões e um texto flutuando). Aqui ele vira UM controle:
+ * cápsula branca com divisórias hairline, seta esquerda tira do rascunho, seta
+ * direita soma — e a seta que PODE ser usada carrega a tinta azul de "ativa"
+ * (--badge-ativa-*), que é como a referência acende as dela.
+ *
+ * Ela é compartilhada pelo NÓ e pelo cabeçalho do DETALHE (mesmos data-*, o
+ * mesmo juiz): quem prefere mexer olhando a mecânica por nível não precisa
+ * voltar para a árvore.
+ */
+function plaqueta(skill, contexto, modificador) {
+	const extra = contexto.rascunho[skill.skillId] || 0;
+	const subir = avaliarSubir(skill, contexto);
+	const descer = avaliarDescer(skill, contexto);
+	const efetivo = skill.aprendido + extra;
+
+	const nivelHtml = extra
+		? escapeHtml(skill.aprendido) + '<em>+' + escapeHtml(extra) + '</em>/' + escapeHtml(skill.nivelMaximo)
+		: escapeHtml(efetivo) + '/' + escapeHtml(skill.nivelMaximo);
+
+	return (
+		'<span class="is-plaqueta' +
+		(modificador ? ' ' + modificador : '') +
+		(extra > 0 ? ' is-plaqueta--rascunho' : '') +
+		'">' +
+		'<button type="button" class="is-seta is-seta--menos" data-skill-menos="' +
+		escapeHtml(skill.skillId) +
+		'"' +
+		(descer.ok ? '' : ' disabled') +
+		' title="' +
+		escapeHtml(descer.ok ? 'Tirar um ponto do rascunho' : descer.motivo) +
+		'">◀</button>' +
+		'<span class="is-no-nivel">' +
+		nivelHtml +
+		'</span>' +
+		'<button type="button" class="is-seta is-seta--mais" data-skill-mais="' +
+		escapeHtml(skill.skillId) +
+		'"' +
+		(subir.ok ? '' : ' disabled') +
+		' title="' +
+		escapeHtml(subir.ok ? 'Somar um ponto' : subir.motivo) +
+		'">▶</button>' +
+		'</span>'
+	);
+}
+
+function renderArvore() {
+	const root = _root();
+	const tela = root.querySelector('.is-tela');
+	const data = IdleSkills.serverData;
+
+	if (!data || !data.skills.length) {
+		tela.style.width = '';
+		tela.style.height = '';
+		tela.innerHTML = '<div class="is-empty">Nenhuma habilidade nesta classe.</div>';
+		return;
+	}
+
+	const doGrau = skillsDoGrau();
+	if (!doGrau.length) {
+		tela.style.width = '';
+		tela.style.height = '';
+		tela.innerHTML = '<div class="is-empty">Nenhuma habilidade neste degrau.</div>';
+		return;
+	}
+
+	const contexto = contextoDoRascunho();
+	const plano = montarPlano(doGrau, contexto.porId);
+
+	tela.style.width = plano.largura + 'px';
+	tela.style.height = plano.altura + 'px';
+	tela.innerHTML = renderFios(plano, contexto) + plano.nos.map(no => renderNo(no, contexto)).join('');
+
+	tela.querySelectorAll('[data-skill-sel]').forEach(b => b.addEventListener('click', onClickNo));
+	tela.querySelectorAll('[data-skill-mais]').forEach(b => b.addEventListener('click', onClickMais));
+	tela.querySelectorAll('[data-skill-menos]').forEach(b => b.addEventListener('click', onClickMenos));
+}
+
+function onClickNo(e) {
+	e.stopImmediatePropagation();
+	IdleSkills.selectedSkillId = e.currentTarget.dataset.skillSel;
+	renderArvore();
+	renderDetail();
+}
+
+/**
+ * A seta ▶ — o gesto do rascunho.
+ *
+ * Ela também SELECIONA a habilidade, e isso não é conveniência: o painel de
+ * detalhe é onde o jogador confere o que o ponto comprou (a mecânica do nível
+ * novo), e ter de clicar duas vezes no mesmo nó para ver isso seria a janela
+ * escondendo a consequência do próprio clique.
+ */
+function onClickMais(e) {
+	e.stopImmediatePropagation();
+	const skillId = e.currentTarget.dataset.skillMais;
+	const contexto = contextoDoRascunho();
+	const skill = contexto.porId.get(skillId);
+	if (!skill) {
+		return;
+	}
+	const veredito = avaliarSubir(skill, contexto);
+	if (!veredito.ok) {
+		showProblemas([skill.nome + ': ' + veredito.motivo]);
+		return;
+	}
+	IdleSkills.rascunho[skillId] = (IdleSkills.rascunho[skillId] || 0) + 1;
+	IdleSkills.selectedSkillId = skillId;
+	renderArvore();
+	renderDetail();
+	renderFooter();
+}
+
+function onClickMenos(e) {
+	e.stopImmediatePropagation();
+	const skillId = e.currentTarget.dataset.skillMenos;
+	const contexto = contextoDoRascunho();
+	const skill = contexto.porId.get(skillId);
+	if (!skill) {
+		return;
+	}
+	const veredito = avaliarDescer(skill, contexto);
+	if (!veredito.ok) {
+		showProblemas([skill.nome + ': ' + veredito.motivo]);
+		return;
+	}
+	const restante = (IdleSkills.rascunho[skillId] || 0) - 1;
+	if (restante > 0) {
+		IdleSkills.rascunho[skillId] = restante;
+	} else {
+		delete IdleSkills.rascunho[skillId];
+	}
+	IdleSkills.selectedSkillId = skillId;
+	renderArvore();
+	renderDetail();
+	renderFooter();
+}
+
+function onClickAplicar(e) {
+	e.stopImmediatePropagation();
+	sendAplicar();
+}
+
+function onClickResetar(e) {
+	e.stopImmediatePropagation();
+	/*
+	 * "Resetar" joga fora o RASCUNHO — não desaprende nada. O Ragnarok não
+	 * devolve ponto de habilidade, e um botão que parecesse fazer isso seria a
+	 * janela prometendo o que o servidor recusa. O `title` do botão diz isso.
+	 */
+	IdleSkills.rascunho = {};
+	renderArvore();
+	renderDetail();
+	renderFooter();
+}
+
+function onToggleDescricoes(e) {
+	IdleSkills.mostrarDescricoes = !!e.currentTarget.checked;
+	_preferences.descricoes = IdleSkills.mostrarDescricoes;
+	_preferences.save();
+	sincronizarDescricoes();
+}
+
+/** Recolhe/mostra o painel de detalhe (o interruptor "Descrições"). */
+function sincronizarDescricoes() {
+	const root = _root();
+	const janela = root.querySelector('.is-content');
+	if (janela) {
+		janela.classList.toggle('is-sem-detalhe', !IdleSkills.mostrarDescricoes);
+	}
+}
+
+/* ------------------------------------------------------------------------ */
+/* O painel de detalhe                                                       */
+/* ------------------------------------------------------------------------ */
+
+/**
+ * Monta a linha "SP x · alcance y · conjuração z s · recarga w s · dano +k%"
+ * de um nível, omitindo o que for zero/ausente.
+ */
+function buildMecanicaLine(m) {
+	const parts = [];
+	if (m.sp) {
+		parts.push('SP ' + m.sp);
+	}
+	if (m.alcance) {
+		parts.push('alcance ' + m.alcance);
+	}
+	if (m.conjuracaoMs) {
+		parts.push('conjuração ' + m.conjuracaoMs / 1000 + 's');
+	}
+	if (m.recargaMs) {
+		parts.push('recarga ' + m.recargaMs / 1000 + 's');
+	}
+	if (m.razaoAdicional) {
+		parts.push('dano +' + m.razaoAdicional + '%');
+	}
+	return parts.join(' · ');
+}
+
+/**
+ * As linhas de "Mecânica por nível": uma por nível, de 1 a `nivelMaximo`. O
+ * texto sai das linhas "[Nv X]: …" da descrição do cliente quando existem;
+ * senão, da linha numérica montada de `mecanica`; senão, travessão.
+ *
+ * `null` quando descrição E mecânica estão vazias — aí o chamador escreve "Sem
+ * dados nesta build" em vez de `nivelMaximo` linhas de travessão.
+ */
+function buildMecanicaRows(skill) {
+	const descricao = skill.descricao || [];
+	const mecanica = skill.mecanica || [];
+
+	if (!descricao.length && !mecanica.length) {
+		return null;
+	}
+
+	const textByLevel = {};
+	descricao.forEach(line => {
+		const achado = /^\[Nv\s*(\d+)\]:\s*(.*)$/i.exec(String(line || '').trim());
+		if (achado) {
+			const lvl = Number(achado[1]);
+			textByLevel[lvl] = textByLevel[lvl] ? textByLevel[lvl] + ' ' + achado[2] : achado[2];
+		}
+	});
+
+	const mecByLevel = {};
+	mecanica.forEach(m => {
+		if (m && typeof m.nivel === 'number') {
+			mecByLevel[m.nivel] = m;
+		}
+	});
+
+	const rows = [];
+	const max = skill.nivelMaximo || 0;
+	for (let lvl = 1; lvl <= max; lvl++) {
+		let texto = textByLevel[lvl];
+		if (!texto) {
+			const m = mecByLevel[lvl];
+			texto = m ? buildMecanicaLine(m) : '';
+		}
+		rows.push({ nivel: lvl, texto: texto || '—' });
+	}
+	return rows;
+}
+
+/**
+ * O selo de efeito de combate — TRÊS estados, e não dois (D-407).
  *
  * São dois eixos independentes, e ambos precisam ser ditos:
- *
- * - `portada: false`  → o motor não sabe executar. Nada acontece.
+ * - `portada: false` → o motor não sabe executar. Nada acontece.
  * - `semEfeitoDeCombate: true` → o motor executa, mas o efeito é fora de
  *   combate (Teleporte, capacidade de carga, pré-requisito de árvore).
  *
  * Sem nenhum dos dois, o silêncio é o selo: a habilidade funciona.
- *
- * As CLASSES são as do design system (`ri-badge`), e não as antigas
- * `is-badge-gray`: o merge de 20/08 juntou os dois lados, e cada um trouxe a
- * metade que era dele.
  */
 function seloDeEfeito(skill) {
 	if (!skill.portada) {
@@ -624,6 +1105,55 @@ function seloDeEfeito(skill) {
 	return '';
 }
 
+/**
+ * A lista de requisitos com veredito por linha (✓/✗).
+ *
+ * Ela é o que a lista antiga não tinha: `podeAprender: false` dizia QUE não
+ * podia, e a árvore mostra DE ONDE vem — mas só para o requisito que é
+ * habilidade. Nível base e nível de classe não têm nó no desenho, e sem esta
+ * lista continuariam invisíveis.
+ */
+function renderRequisitos(skill, contexto) {
+	const linhas = [];
+
+	if (skill.nivelBaseMinimo > 0) {
+		linhas.push({
+			ok: contexto.nivelBase >= skill.nivelBaseMinimo,
+			texto: 'Nível base ' + skill.nivelBaseMinimo
+		});
+	}
+	if (skill.nivelClasseMinimo > 0) {
+		linhas.push({
+			ok: contexto.nivelDeJob >= skill.nivelClasseMinimo,
+			texto: 'Nível de classe ' + skill.nivelClasseMinimo
+		});
+	}
+	skill.preRequisitos.forEach(requisito => {
+		const alvo = contexto.porId.get(requisito.skillId);
+		const tem = alvo ? nivelEfetivo(alvo, contexto.rascunho) : 0;
+		linhas.push({
+			ok: tem >= requisito.nivel,
+			texto: (alvo ? alvo.nome : requisito.skillId) + ' Nv. ' + requisito.nivel + ' (você: ' + tem + ')'
+		});
+	});
+
+	if (!linhas.length) {
+		return '<div class="is-req-livre">Sem pré-requisito — dá para começar por ela.</div>';
+	}
+
+	return linhas
+		.map(
+			linha =>
+				'<div class="is-req' +
+				(linha.ok ? ' is-req--ok' : '') +
+				'"><span class="is-req-marca">' +
+				(linha.ok ? '✓' : '✗') +
+				'</span>' +
+				escapeHtml(linha.texto) +
+				'</div>'
+		)
+		.join('');
+}
 
 function renderDetail() {
 	const root = _root();
@@ -631,112 +1161,144 @@ function renderDetail() {
 	const data = IdleSkills.serverData;
 
 	if (!data) {
-		detailEl.innerHTML = '<div class="is-empty">Abra a janela de skills para carregar.</div>';
+		detailEl.innerHTML = '<div class="is-empty">Abra a janela de habilidades para carregar.</div>';
 		return;
 	}
 
 	const skill = data.skills.find(s => s.skillId === IdleSkills.selectedSkillId);
 	if (!skill) {
-		detailEl.innerHTML = '<div class="is-empty">Selecione uma skill.</div>';
+		detailEl.innerHTML = '<div class="is-empty">Selecione uma habilidade.</div>';
 		return;
 	}
 
+	const contexto = contextoDoRascunho();
+	const extra = contexto.rascunho[skill.skillId] || 0;
+	const efetivo = skill.aprendido + extra;
 	const categoriaLabel = skill.categoria === 'passiva' ? 'Passiva' : 'Ativa';
 	const resumo = buildResumo(skill);
 	const mecanicaRows = buildMecanicaRows(skill);
 	const mecanicaHtml = mecanicaRows
 		? mecanicaRows
 				.map(
-					r => `
-			<div class="is-mecanica-row">
-				<span class="is-mecanica-nivel">Nv. ${r.nivel}</span>
-				<span class="is-mecanica-texto">${escapeHtml(r.texto)}</span>
-			</div>`
+					linha =>
+						'<div class="is-mecanica-row' +
+						(linha.nivel === efetivo ? ' is-mecanica-row--atual' : '') +
+						'">' +
+						'<span class="is-mecanica-nivel">Nv. ' +
+						linha.nivel +
+						'</span>' +
+						'<span class="is-mecanica-texto">' +
+						escapeHtml(linha.texto) +
+						'</span></div>'
 				)
 				.join('')
 		: '<div class="is-mecanica-empty">Sem dados nesta build.</div>';
 
 	let pipsHtml = '';
 	for (let i = 1; i <= skill.nivelMaximo; i++) {
-		pipsHtml += `<span class="is-pip${i <= skill.aprendido ? ' is-pip-filled' : ''}"></span>`;
+		const classe = i <= skill.aprendido ? ' is-pip-filled' : i <= efetivo ? ' is-pip-rascunho' : '';
+		pipsHtml += '<span class="is-pip' + classe + '"></span>';
 	}
 
-	const atMax = skill.aprendido >= skill.nivelMaximo;
-	const proximo = skill.aprendido + 1;
-	const disabled = !skill.podeAprender || atMax;
-	const title = skill.motivo ? escapeHtml(skill.motivo) : atMax ? 'Nível máximo alcançado' : '';
-	// atMax: reference print shows a disabled "Dominada" button instead of
-	// the normal "Aprender Nv. X" one (spec: "em vez do botão Aprender,
-	// texto 'Nível máximo alcançado' + botão desabilitado 'Dominada'").
-	const btnLabel = atMax ? 'Dominada' : `Aprender Nv. ${proximo}`;
-
 	/*
-	 * A ROTACAO DE ATAQUE (28/08/2026). Tres estados, e os tres dizem algo:
-	 * dentro (o botao TIRA), fora e pode (o botao POE), fora e nao pode (o
-	 * botao morre com o motivo do servidor no title).
+	 * A ROTAÇÃO DE ATAQUE. Três estados, e os três dizem algo: dentro (o botão
+	 * TIRA), fora e pode (o botão PÕE), fora e não pode (o botão morre com o
+	 * motivo do servidor no title).
 	 */
 	const naRotacao = typeof skill.naRotacao === 'number';
 	const podeRotacionar = naRotacao || !skill.motivoDaRotacao;
-	const rotacaoHtml = `
-			<button type="button" class="is-btn-rotacao ri-btn${naRotacao ? ' is-btn-rotacao--dentro' : ''}"
-				data-skill-rotacao="${escapeHtml(skill.skillId)}"
-				data-skill-ligar="${naRotacao ? '0' : '1'}"
-				${podeRotacionar ? '' : 'disabled'}
-				title="${escapeHtml(skill.motivoDaRotacao || (naRotacao ? 'Tirar da rotacao de ataque' : 'Por na rotacao de ataque'))}">${
-					naRotacao ? `Na rotacao (${skill.naRotacao})` : 'Por na rotacao'
-				}</button>`;
+	const rotacaoHtml =
+		'<button type="button" class="is-btn-rotacao ri-btn ri-btn--sec' +
+		(naRotacao ? ' is-btn-rotacao--dentro' : '') +
+		'" data-skill-rotacao="' +
+		escapeHtml(skill.skillId) +
+		'" data-skill-ligar="' +
+		(naRotacao ? '0' : '1') +
+		'"' +
+		(podeRotacionar ? '' : ' disabled') +
+		' title="' +
+		escapeHtml(skill.motivoDaRotacao || (naRotacao ? 'Tirar da rotação de ataque' : 'Pôr na rotação de ataque')) +
+		'">' +
+		(naRotacao ? 'Na rotação (' + skill.naRotacao + ')' : 'Pôr na rotação') +
+		'</button>';
 
-	const footerHtml = atMax
+	const subir = avaliarSubir(skill, contexto);
+	const noTeto = efetivo >= skill.nivelMaximo;
+	const acaoHtml = noTeto
 		? '<div class="is-detail-max">Nível máximo alcançado</div>'
-		: `
-			<div class="is-detail-next">Próximo nível <strong>Nv. ${proximo}</strong></div>
-			<div class="is-detail-custo">Custo: ${skill.custo} ponto de skill</div>`;
+		: '<div class="is-detail-next">Próximo nível <strong>Nv. ' +
+			(efetivo + 1) +
+			'</strong> · custo ' +
+			skill.custo +
+			' ponto</div>' +
+			(subir.ok
+				? ''
+				: '<div class="is-detail-trava">' + escapeHtml(subir.motivo) + '</div>');
+	// A MESMA plaqueta do nó, maior: quem está lendo a mecânica por nível mexe
+	// no ponto dali, sem caçar o nó de volta na árvore.
+	const plaquetaHtml = plaqueta(skill, contexto, 'is-plaqueta--detalhe');
 
-	detailEl.innerHTML = `
-		<div class="is-detail-header">
-			<span class="is-detail-icon">
-				<img src="/ragidle/skills/${encodeURIComponent(skill.skillId)}.png" alt="" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" />
-				<span class="is-detail-icon-fallback">${escapeHtml(skillInitials(skill.skillId))}</span>
-			</span>
-			<div class="is-detail-header-text">
-				<div class="is-detail-title-row">
-					<span class="is-detail-name">${escapeHtml(skill.nome)}</span>
-					<span class="is-pill">Nv. ${skill.aprendido}/${skill.nivelMaximo}</span>
-				</div>
-				<div class="is-pips">${pipsHtml}</div>
-				<div class="is-detail-badges">
-					<span class="is-badge ri-badge ${skill.categoria === 'passiva' ? 'ri-badge--verde' : 'ri-badge--azul'}">${categoriaLabel}</span>
-					${seloDeEfeito(skill)}
-				</div>
-			</div>
-		</div>
-		<div class="is-detail-maxline">Nível máximo : ${skill.nivelMaximo}</div>
-		${resumo ? `<div class="is-detail-resumo">${escapeHtml(resumo)}</div>` : ''}
-		<div class="ri-divisor"></div>
-		<div class="is-detail-section">
-			<h4>Mecânica por nível</h4>
-			<div class="is-mecanica-box ri-card ri-scroll">${mecanicaHtml}</div>
-		</div>
-		<div class="is-detail-footer">
-			${footerHtml}
-			${rotacaoHtml}
-			<button type="button" class="is-btn-aprender ri-btn" data-skill-aprender="${escapeHtml(skill.skillId)}" ${disabled ? 'disabled' : ''} title="${title}">${btnLabel}</button>
-		</div>`;
+	detailEl.innerHTML =
+		'<div class="is-detail-header">' +
+		'<span class="is-detail-icon">' +
+		'<img src="/ragidle/skills/' +
+		encodeURIComponent(skill.skillId) +
+		'.png" alt="" onerror="this.style.display=\'none\'; this.nextElementSibling.style.display=\'flex\';" />' +
+		'<span class="is-detail-icon-fallback">' +
+		escapeHtml(skillInitials(skill.skillId)) +
+		'</span></span>' +
+		'<div class="is-detail-header-text">' +
+		'<div class="is-detail-title-row">' +
+		'<span class="is-detail-name">' +
+		escapeHtml(skill.nome) +
+		'</span>' +
+		/*
+		 * A plaqueta NO LUGAR da capsula "Nv. X/Y" da rodada 1: as duas diziam o
+		 * mesmo numero a tres centimetros uma da outra, e so uma delas FAZ algo.
+		 * Informacao que se repete no mesmo quadro e ruido — fica a que age.
+		 */
+		plaquetaHtml +
+		'</div>' +
+		'<div class="is-pips">' +
+		pipsHtml +
+		'</div>' +
+		'<div class="is-detail-badges">' +
+		'<span class="is-badge ri-badge ' +
+		(skill.categoria === 'passiva' ? 'ri-badge--verde' : 'ri-badge--azul') +
+		'">' +
+		categoriaLabel +
+		'</span>' +
+		seloDeEfeito(skill) +
+		'</div></div></div>' +
+		(resumo ? '<div class="is-detail-resumo">' + escapeHtml(resumo) + '</div>' : '') +
+		'<div class="ri-divisor"></div>' +
+		'<div class="is-detail-section"><h4>Pré-requisitos</h4>' +
+		'<div class="is-req-box ri-card">' +
+		renderRequisitos(skill, contexto) +
+		'</div></div>' +
+		'<div class="is-detail-section"><h4>Mecânica por nível</h4>' +
+		'<div class="is-mecanica-box ri-card ri-scroll">' +
+		mecanicaHtml +
+		'</div></div>' +
+		'<div class="is-detail-footer">' +
+		acaoHtml +
+		'<div class="is-detail-acoes">' +
+		rotacaoHtml +
+		'</div></div>';
 
-	const btn = detailEl.querySelector('[data-skill-aprender]');
-	if (btn) {
-		btn.addEventListener('click', onClickAprender);
-	}
 	const btnRot = detailEl.querySelector('[data-skill-rotacao]');
 	if (btnRot) {
 		btnRot.addEventListener('click', onClickRotacao);
 	}
+	// A plaqueta do cabeçalho usa os MESMOS data-* e o mesmo juiz do nó.
+	detailEl.querySelectorAll('[data-skill-mais]').forEach(b => b.addEventListener('click', onClickMais));
+	detailEl.querySelectorAll('[data-skill-menos]').forEach(b => b.addEventListener('click', onClickMenos));
 }
 
 /**
- * O botao da ROTACAO. `motivoDaRotacao` vem do servidor e diz por que ela nao
- * entra — botao morto sem explicacao manda o jogador procurar defeito onde ha
- * regra, que e o mesmo argumento do `motivo` do aprendizado.
+ * O botão da ROTAÇÃO. `motivoDaRotacao` vem do servidor e diz por que ela não
+ * entra — botão morto sem explicação manda o jogador procurar defeito onde há
+ * regra, que é o mesmo argumento do `motivo` do aprendizado.
  */
 function onClickRotacao(e) {
 	e.stopImmediatePropagation();
@@ -747,70 +1309,81 @@ function onClickRotacao(e) {
 	sendPriorizar(skillId, e.currentTarget.dataset.skillLigar === '1');
 }
 
-function onClickAprender(e) {
-	e.stopImmediatePropagation();
-	const skillId = e.currentTarget.dataset.skillAprender;
-	if (!skillId) {
-		return;
-	}
-	sendAprender(skillId);
-}
+/* ------------------------------------------------------------------------ */
+/* O rodapé                                                                  */
+/* ------------------------------------------------------------------------ */
 
-/**
- * Bottom bar: left = count of learnable skills, right = available skill
- * points pill, center = transient rejection message (see showProblemas).
- */
 function renderFooter() {
 	const root = _root();
 	const leftEl = root.querySelector('.is-footer-left');
-	const rightEl = root.querySelector('.is-footer-right');
+	const pillEl = root.querySelector('.is-pontos-pill');
 	const problemasEl = root.querySelector('.is-problemas');
+	const btnAplicar = root.querySelector('.is-btn-aplicar');
+	const btnResetar = root.querySelector('.is-btn-resetar');
 
 	const data = IdleSkills.serverData;
 	if (!data) {
 		leftEl.textContent = '';
-		rightEl.innerHTML = '';
+		pillEl.textContent = 'Pontos de habilidade: 0';
+		btnAplicar.disabled = true;
+		btnResetar.disabled = true;
 	} else {
-		const disponiveis = data.skills.filter(s => s.podeAprender).length;
+		const contexto = contextoDoRascunho();
+		const gastos = pontosNoRascunho(IdleSkills.rascunho);
+		const livres = data.pontos - gastos;
+
+		// "Disponíveis" conta o RASCUNHO, e não o `podeAprender` do servidor: o
+		// número tem de responder "e agora, o que eu ainda consigo subir?", e
+		// depois de dois pontos no rascunho a resposta do servidor envelheceu.
+		const disponiveis = data.skills.filter(s => avaliarSubir(s, contexto).ok).length;
 		leftEl.textContent = pluralizeDisponiveis(disponiveis);
-		// "ri-badge--ouro" (Common.css, pivo do design system em 19/08/2026) e a
-		// variante dourada pronta que faltava aqui -- ".is-pontos-pill" ficou so
-		// com o delta de tamanho (ver IdleSkills.css).
-		rightEl.innerHTML = `<span class="is-pontos-pill ri-badge ri-badge--ouro">Pontos disponíveis: ${data.pontos}</span>`;
+
+		pillEl.innerHTML =
+			'Pontos de habilidade: ' +
+			livres +
+			(gastos ? ' <em>(−' + gastos + ' no rascunho)</em>' : '');
+
+		btnAplicar.disabled = gastos === 0;
+		btnResetar.disabled = gastos === 0;
+		// Com rascunho aberto o Aplicar ACENDE (brilho de acento): é a única
+		// ação da janela com consequência, e o olho tem de achá-la sem ler.
+		btnAplicar.classList.toggle('is-armado', gastos > 0);
+		btnAplicar.title = gastos ? 'Gastar ' + gastos + ' ponto(s) de habilidade' : 'Nada no rascunho';
+		btnResetar.title = 'Descarta o rascunho — não desaprende nada (o Ragnarok não devolve ponto)';
 	}
 
-	problemasEl.textContent = IdleSkills.problemas && IdleSkills.problemas.length ? IdleSkills.problemas.join(' · ') : '';
+	problemasEl.textContent =
+		IdleSkills.problemas && IdleSkills.problemas.length ? IdleSkills.problemas.join(' · ') : '';
 }
 
 Network.hookPacket(PACKET.ZC.RAGIDLE_SKILLS, onSkillsReceived);
 
 /**
- * A TROCA DE PERSONAGEM ESQUECE a JANELA DE HABILIDADES (28/08/2026).
+ * A TROCA DE PERSONAGEM ESQUECE a JANELA DE HABILIDADES.
  *
- * Voltar ao menu de personagem NAO recarrega a pagina: `onRestartAnswer` chama
- * `cleanGameUI()` e `onRestart()`, sem `GameEngine.reload()` (o reload so
- * acontece no SAIR). Todo estado de MODULO atravessa a troca — e este arquivo
- * guarda a arvore inteira do personagem.
- *
- * Sem isto a janela abre com as habilidades de QUEM SAIU: `serverData` e o
- * payload cru da janela, e ele so e substituido quando o pacote do novo
- * personagem chega — ate la, o que esta na tela e do anterior.
+ * Voltar ao menu de personagem NÃO recarrega a página: `onRestartAnswer` chama
+ * `cleanGameUI()` e `onRestart()`, sem `GameEngine.reload()` (o reload só
+ * acontece no SAIR). Todo estado de MÓDULO atravessa a troca — e este arquivo
+ * guarda a árvore inteira do personagem, mais um RASCUNHO de pontos que só faz
+ * sentido para quem o montou.
  *
  * Chamada por `cleanGameUI()` em Engine/MapEngine.js, junto com os outros
  * componentes RAGIDLE. Quem somar estado de personagem aqui soma a linha
- * correspondente ABAIXO, e o portao `limpeza-da-troca-de-personagem.test.ts`
+ * correspondente ABAIXO, e o portão `limpeza-da-troca-de-personagem.test.ts`
  * (no repo do servidor) reprova se esquecer.
  */
 IdleSkills.limparEstadoDoPersonagem = function limparEstadoDoPersonagem() {
 	IdleSkills.serverData = null;
 	IdleSkills.selectedSkillId = null;
 	IdleSkills.problemas = [];
+	IdleSkills.rascunho = {};
+	IdleSkills._esperandoAplicar = false;
 	/*
-	 * ZERAR O DADO NAO BASTA: `GUIComponent.remove()` so DESANEXA o host,
-	 * entao o shadow DOM (com `is-open` e o HTML do personagem anterior)
-	 * atravessa a troca. Ver `UI/Components/limpezaDeJanelaIdle.js`.
+	 * ZERAR O DADO NÃO BASTA: `GUIComponent.remove()` só DESANEXA o host, então
+	 * o shadow DOM (com `is-open` e o HTML do personagem anterior) atravessa a
+	 * troca. Ver `UI/Components/limpezaDeJanelaIdle.js`.
 	 */
-	fecharEEsquecer(_root(), '.is-window');
+	fecharEEsquecer(_root(), '.is-window', { corpo: '.is-tela', texto: 'Carregando…' });
 };
 
 /**

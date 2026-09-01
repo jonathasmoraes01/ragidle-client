@@ -31,6 +31,7 @@ import IdleConfig from 'UI/Components/IdleConfig/IdleConfig.js';
 import htmlText from './LFGIdle.html?raw';
 import cssText from './LFGIdle.css?raw';
 import { fecharEEsquecer } from '../limpezaDeJanelaIdle.js';
+import { abaLembrada, lembrarAba } from '../memoriaDeAba.js';
 
 /*
  * Manter em sincronia com o ":host"/".lfg-window" do CSS — mesmo papel do
@@ -49,12 +50,15 @@ const WINDOW_HEIGHT = 520;
 
 const LFGIdle = new GUIComponent('LFGIdle', cssText);
 
-/** A posicao que o jogador escolher atravessa a sessao, como na de Missoes. */
+/** A posicao que o jogador escolher atravessa a sessao, como na de Missoes — e
+ * a ABA junto com ela (`aba`, ver memoriaDeAba.js). Versao continua 1.0: subir
+ * apagaria a posicao ja salva para ganhar um campo que ja funciona sem isso. */
 const _preferences = Preferences.get(
 	'LFGIdle',
 	{
 		x: null,
-		y: null
+		y: null,
+		aba: null
 	},
 	1.0
 );
@@ -78,8 +82,33 @@ LFGIdle.mapas = [];
  */
 LFGIdle.meu = null;
 
-/** Aba ativa: 'grupos' | 'criar'. */
-LFGIdle.abaAtiva = 'grupos';
+/** As abas que existem, na ordem do HTML — a lista que valida o que veio do
+ * `localStorage` (ver memoriaDeAba.js). */
+const ABAS = ['grupos', 'criar'];
+
+/** A aba de fabrica, para quem nunca escolheu. */
+const ABA_PADRAO = 'grupos';
+
+/** Aba ativa: 'grupos' | 'criar'. Nasce no padrao e vira a LEMBRADA no init(). */
+LFGIdle.abaAtiva = ABA_PADRAO;
+
+/**
+ * Acende a aba ativa e apaga as outras.
+ *
+ * Existe como funcao propria porque agora tem DOIS chamadores: o clique e o
+ * init(), que precisa acender a aba lembrada — o HTML nasce com `is-active` na
+ * primeira, e sem isto o jogador que parou em "Criar grupo" veria o CORPO da
+ * aba certa com o BOTAO da errada aceso.
+ */
+function sincronizarAbas() {
+	const r = raiz();
+	if (!r) {
+		return;
+	}
+	r.querySelectorAll('.lfg-tab').forEach(function (x) {
+		x.classList.toggle('is-active', x.dataset.tab === LFGIdle.abaAtiva);
+	});
+}
 
 function raiz() {
 	return LFGIdle._shadow || LFGIdle._host;
@@ -297,15 +326,18 @@ LFGIdle.init = function init() {
 	abas.forEach(function (aba) {
 		aba.addEventListener('click', function () {
 			LFGIdle.abaAtiva = aba.dataset.tab;
-			abas.forEach(function (x) {
-				x.classList.remove('is-active');
-			});
-			aba.classList.add('is-active');
+			lembrarAba(_preferences, LFGIdle.abaAtiva);
+			sincronizarAbas();
 			mostrarAviso('');
 			atualizarBarraDoGrupo();
 			desenhar();
 		});
 	});
+
+	// A aba em que o jogador estava — depois de os listeners existirem, e antes
+	// do primeiro desenho la embaixo.
+	LFGIdle.abaAtiva = abaLembrada(_preferences, ABA_PADRAO, ABAS);
+	sincronizarAbas();
 
 	// A barra do MEU grupo: "Sair" manda na hora (afeta só quem clicou);
 	// "Desfazer" pede confirmação de dois passos ANTES de mandar, porque

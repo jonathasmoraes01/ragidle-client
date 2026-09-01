@@ -37,9 +37,16 @@
  *
  * O nome carrega o ID de proposito. "Unknown Item" nao permite reportar nada;
  * "Item desconhecido (4545)" diz exatamente o que procurar no item_db.
+ *
+ * ## E o ICONE, desde 31/08/2026
+ *
+ * A queixa do dono na Loja de Cosmeticos era a linha inteira: nome generico E
+ * maca no lugar do icone. O remendo agora tapa os dois buracos, e o segundo so
+ * onde ha PROVA de qual e o `.bmp` — a lista, a derivacao e as duas peneiras
+ * que ela passa estao no cabecalho de `ICONES_LOCAIS` (`nomesLocais.js`).
  */
 
-import { NOMES_LOCAIS } from './nomesLocais.js';
+import { ICONES_LOCAIS, NOMES_LOCAIS } from './nomesLocais.js';
 
 /** A ficha de quem nao esta na tabela. `\xbb\xe7\xb0\xfa` e o sprite de sobra do cliente. */
 export const unknownItem = {
@@ -70,7 +77,16 @@ export function completarFicha(itemid, ficha) {
 		 */
 		const nomeLocal = NOMES_LOCAIS[itemid];
 		if (nomeLocal !== undefined) {
-			return { ...unknownItem, identifiedDisplayName: nomeLocal, unidentifiedDisplayName: nomeLocal };
+			const ficheiroDoIcone = ICONES_LOCAIS[itemid];
+			return {
+				...unknownItem,
+				identifiedDisplayName: nomeLocal,
+				unidentifiedDisplayName: nomeLocal,
+				// So o lado IDENTIFICADO: ver o cabecalho de ICONES_LOCAIS —
+				// o icone nao-identificado de todo cosmetico e o capuz
+				// generico, e nao o do item.
+				...(ficheiroDoIcone !== undefined && { identifiedResourceName: ficheiroDoIcone })
+			};
 		}
 		return unknownItem;
 	}
@@ -84,11 +100,17 @@ export function completarFicha(itemid, ficha) {
 	 * esta linha com o campo preenchido — o `??` abaixo preserva o que veio.
 	 */
 	const nome = NOMES_LOCAIS[itemid] ?? 'Item desconhecido (' + itemid + ')';
+	/*
+	 * O icone local tambem so vale quando o GRF nao trouxe o dele: o `??`
+	 * abaixo preserva o que veio, e o 20512 e a prova viva disso — ele TEM
+	 * recurso na tabela do GRF e nao tem nome, entao chega aqui pela metade.
+	 */
+	const icone = ICONES_LOCAIS[itemid] ?? unknownItem.identifiedResourceName;
 	return {
 		...ficha,
 		identifiedDisplayName: ficha.identifiedDisplayName ?? nome,
 		unidentifiedDisplayName: ficha.unidentifiedDisplayName ?? nome,
-		identifiedResourceName: ficha.identifiedResourceName ?? unknownItem.identifiedResourceName,
+		identifiedResourceName: ficha.identifiedResourceName ?? icone,
 		unidentifiedResourceName: ficha.unidentifiedResourceName ?? unknownItem.unidentifiedResourceName,
 		// String e nao array: `getItemInfo` ja passou o bloco que junta as
 		// linhas quando esta funcao roda, entao devolver array aqui poria um

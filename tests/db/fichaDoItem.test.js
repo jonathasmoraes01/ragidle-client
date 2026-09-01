@@ -35,9 +35,16 @@ describe('completarFicha', () => {
 	});
 
 	it('o estube ganha ICONE e DESCRICAO, e nao so o nome', () => {
+		/*
+		 * A cobaia era o 4545 e mudou de novo (31/08/2026, Rodada 4c): ele
+		 * ganhou icone de carta (o generico, 이름없는카드 — ver
+		 * nomesLocais.test.js), entao nao serve mais pra provar "continua
+		 * maca". A cobaia virou o 28382 (Charm Grass Necklace), o UNICO dos 21
+		 * que ainda nao tem icone local nenhum.
+		 */
 		// Sem isto o caminho do sprite vira `.../undefined.bmp` e a caixa de
 		// descricao fica vazia — os outros dois tercos da queixa do dono.
-		const ficha = completarFicha(4545, { ClassNum: 0 });
+		const ficha = completarFicha(28382, { ClassNum: 0 });
 		expect(ficha.identifiedResourceName).toBe(unknownItem.identifiedResourceName);
 		expect(ficha.identifiedDescriptionName).toBe('...');
 		expect(ficha.slotCount).toBe(0);

@@ -228,6 +228,16 @@ ui-button {
 	--red-600: #b13b3b;
 	--amber-600: #b3611c;
 
+	/* Raridade de runa (bonus de equipamento vindo de item.Options[i].param,
+	   0..3) -- SOMENTE estes 4 tons carregam raridade no jogo inteiro. Sao
+	   vividos de proposito e por isso so sentam em vidro escuro
+	   (--surface-dark-glass, ver .ri-runas-capsula abaixo); direto no papel
+	   claro das janelas eles perderiam contraste. */
+	--rarity-comum: #888888;
+	--rarity-incomum: #11dd11;
+	--rarity-raro: #00ccff;
+	--rarity-lendario: #ffd700;
+
 	/* Barras de recurso */
 	--hp-fill: linear-gradient(180deg, #ef7c72 0%, #d8443c 48%, #a92b26 100%);
 	--sp-fill: linear-gradient(180deg, #7fb2f0 0%, #2e6fd1 48%, #1c4b98 100%);
@@ -287,7 +297,12 @@ ui-button {
 	--well-fill: var(--surface-inset);
 	--well-shadow: var(--shadow-inset);
 	--divider: 1px solid var(--border-hairline);
-	--ornament-gold: linear-gradient(90deg, rgba(201, 162, 39, 0) 0%, rgba(201, 162, 39, 0.75) 50%, rgba(201, 162, 39, 0) 100%);
+	--ornament-gold: linear-gradient(
+		90deg,
+		rgba(201, 162, 39, 0) 0%,
+		rgba(201, 162, 39, 0.75) 50%,
+		rgba(201, 162, 39, 0) 100%
+	);
 
 	/* Tipografia — display com serifa so em titulo; UI em Figtree.
 	   O <link> das faces vive no index.html do cliente (uma vez por
@@ -491,8 +506,13 @@ ui-button {
 	--h-huntmap: 460px;
 	--w-idleconfig: 620px;
 	--h-idleconfig: 540px;
-	--w-idleskills: 640px;
-	--h-idleskills: 560px;
+	/* Cresceu com a arvore de habilidades (D-792, 31/08/2026; 980x640 na 2a
+	   rodada de design do mesmo dia — o no encorpou e as 4 colunas do Cavaleiro
+	   pediram o resto): a lista antiga cabia numa coluna de 190px, o plano da
+	   arvore de uma 2a classe nao cabe. Anda junto com `:host`/`.is-window` no
+	   IdleSkills.css e com WINDOW_WIDTH/WINDOW_HEIGHT no IdleSkills.js. */
+	--w-idleskills: 980px;
+	--h-idleskills: 640px;
 	--w-skill-list: 230px;
 	--pad-detail: 14px;
 	--w-basicinfo: 280px;
@@ -615,7 +635,9 @@ ui-button {
 	font-weight: var(--fw-bold);
 	line-height: 1;
 	cursor: pointer;
-	transition: background var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out);
+	transition:
+		background var(--dur-fast) var(--ease-out),
+		box-shadow var(--dur-fast) var(--ease-out);
 }
 .ri-close:hover {
 	background: linear-gradient(180deg, var(--gold-200), var(--gold-300));
@@ -650,7 +672,9 @@ ui-button {
 	/* microinteracao (builder de polimento, 18/08/2026): so background/transform,
 	   igual ao ".dk-item"/".cc-btn" do dock/canto de combate — sem isso o hover
 	   e o :active de baixo trocavam de estado instantaneamente. */
-	transition: background var(--dur-fast) var(--ease-out), transform var(--dur-instant) var(--ease-out);
+	transition:
+		background var(--dur-fast) var(--ease-out),
+		transform var(--dur-instant) var(--ease-out);
 }
 .ri-btn:hover {
 	/* "Hover clareia 6%" e a regra literal do design system — clarear por
@@ -703,7 +727,9 @@ ui-button {
 	/* microinteracao (builder de polimento, 18/08/2026): border-color/color/
 	   background sao "cor" para efeito de transicao — trocar de aba ou passar
 	   o mouse nao pulava mais de estado em estado. */
-	transition: background var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out),
+	transition:
+		background var(--dur-fast) var(--ease-out),
+		border-color var(--dur-fast) var(--ease-out),
 		color var(--dur-fast) var(--ease-out);
 }
 .ri-tab:hover {
@@ -874,9 +900,16 @@ ui-button {
 	justify-content: center;
 	flex: 0 0 auto;
 	border-radius: 50%;
-	background: radial-gradient(circle at 34% 28%, rgba(255, 255, 255, 0.92) 0%, rgba(200, 225, 250, 0.55) 55%, rgba(150, 190, 230, 0.32) 100%);
+	background: radial-gradient(
+		circle at 34% 28%,
+		rgba(255, 255, 255, 0.92) 0%,
+		rgba(200, 225, 250, 0.55) 55%,
+		rgba(150, 190, 230, 0.32) 100%
+	);
 	border: 2px solid rgba(255, 255, 255, 0.7);
-	box-shadow: var(--shadow-float), inset 0 2px 6px rgba(255, 255, 255, 0.35);
+	box-shadow:
+		var(--shadow-float),
+		inset 0 2px 6px rgba(255, 255, 255, 0.35);
 	color: var(--blue-600);
 	transition:
 		box-shadow var(--dur-fast) var(--ease-out),
@@ -891,7 +924,9 @@ ui-button {
 
 .ri-glass.is-on {
 	border-color: var(--gold-500);
-	box-shadow: var(--glow-gold), inset 0 2px 6px rgba(255, 255, 255, 0.4);
+	box-shadow:
+		var(--glow-gold),
+		inset 0 2px 6px rgba(255, 255, 255, 0.4);
 	color: var(--blue-700);
 }
 
@@ -910,7 +945,9 @@ ui-button {
 	border: 1px solid var(--border-gold);
 	box-shadow: var(--rim-light), var(--shadow-card);
 	color: var(--blue-600);
-	transition: box-shadow var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out);
+	transition:
+		box-shadow var(--dur-fast) var(--ease-out),
+		border-color var(--dur-fast) var(--ease-out);
 }
 .ri-tile.is-empty {
 	/* Slot vazio quase nao existe: sem aro dourado, sem sombra. */
@@ -931,6 +968,83 @@ ui-button {
 .ri-tile:hover {
 	border-color: var(--accent);
 	box-shadow: var(--glow-accent), var(--rim-light);
+}
+
+/* ─── Runas — bonus de equipamento com raridade (item.Options[i], 31/08/2026).
+   Compartilhada entre a dica da Mochila (.mo-dica) e a janela de Detalhes
+   (ItemInfo): os dois montam o MESMO markup (Utils/ItemOptionsView.js), so a
+   pele muda por causa do Shadow DOM de cada componente -- aqui ela vive uma
+   vez so. Cada linha e losango (cor da raridade) + texto do bonus (claro,
+   sobre o vidro escuro) + rotulo da raridade a direita, na MESMA cor do
+   losango. Deliberadamente DIFERENTE do tooltip do concorrente (todo escuro,
+   raridade na FRENTE da linha) -- aqui a janela em volta e clara, so a
+   capsula das runas e escura, e a raridade fecha a linha. */
+.ri-runas {
+	margin-top: var(--sp-3);
+}
+.ri-runas-titulo {
+	font-family: var(--font-ui);
+	font-size: 11px;
+	font-weight: var(--fw-semibold);
+	letter-spacing: 0.04em;
+	color: var(--text-muted);
+	margin-bottom: var(--sp-1);
+}
+.ri-runas-capsula {
+	display: flex;
+	flex-direction: column;
+	gap: var(--sp-1);
+	padding: var(--sp-2) var(--sp-3);
+	border-radius: var(--radius-card);
+	background: var(--surface-dark-glass);
+}
+.ri-runa {
+	display: flex;
+	align-items: center;
+	gap: var(--sp-2);
+}
+.ri-runa-losango {
+	flex: 0 0 auto;
+	width: 7px;
+	height: 7px;
+	transform: rotate(45deg);
+}
+.ri-runa-texto {
+	flex: 1 1 auto;
+	font-family: var(--font-ui);
+	font-size: 12.5px;
+	line-height: 1.3;
+	color: var(--white);
+}
+.ri-runa-raridade {
+	flex: 0 0 auto;
+	font-family: var(--font-ui);
+	font-size: 10.5px;
+	font-weight: var(--fw-semibold);
+}
+.ri-runa.is-comum .ri-runa-losango {
+	background: var(--rarity-comum);
+}
+.ri-runa.is-comum .ri-runa-raridade {
+	color: var(--rarity-comum);
+}
+.ri-runa.is-incomum .ri-runa-losango {
+	background: var(--rarity-incomum);
+}
+.ri-runa.is-incomum .ri-runa-raridade {
+	color: var(--rarity-incomum);
+}
+.ri-runa.is-raro .ri-runa-losango {
+	background: var(--rarity-raro);
+}
+.ri-runa.is-raro .ri-runa-raridade {
+	color: var(--rarity-raro);
+}
+.ri-runa.is-lendario .ri-runa-losango {
+	background: var(--rarity-lendario);
+}
+.ri-runa.is-lendario .ri-runa-raridade {
+	color: var(--rarity-lendario);
 }
 
 /* Input de busca/texto */

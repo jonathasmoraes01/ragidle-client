@@ -40,6 +40,7 @@ import { pocoesDoEixo, escolherPocaoPadrao } from './escolhaDePocao.js';
 import htmlText from './IdleConfig.html?raw';
 import cssText from './IdleConfig.css?raw';
 import { fecharEEsquecer } from '../limpezaDeJanelaIdle.js';
+import { abaLembrada, lembrarAba } from '../memoriaDeAba.js';
 
 /**
  * Keep in sync with the ":host" / ".ic-window" size in IdleConfig.css —
@@ -101,9 +102,25 @@ IdleConfig.contexto = null;
 IdleConfig.contextoObsoleto = false;
 
 /**
- * @var {string} active tab: 'geral' | 'alvos' | 'skills' | 'recuperacao' | 'itens'
+ * @var {string[]} as abas que existem, na ordem em que o HTML as declara. E a
+ *      lista que valida a aba vinda do `localStorage` (ver memoriaDeAba.js):
+ *      quem tirar uma aba do HTML tira daqui, e o jogador que estava nela cai
+ *      no padrao em vez de abrir a janela sem aba nenhuma acesa.
  */
-IdleConfig.activeTab = 'geral';
+const ABAS = ['geral', 'alvos', 'skills', 'recuperacao', 'itens'];
+
+/**
+ * @var {string} a aba de fabrica — a que vale para quem nunca escolheu.
+ */
+const ABA_PADRAO = 'geral';
+
+/**
+ * @var {string} active tab: 'geral' | 'alvos' | 'skills' | 'recuperacao' | 'itens'
+ *
+ * Nasce no padrao e e trocada pela aba LEMBRADA no init() — a leitura mora la
+ * porque depende de `_preferences`, declarada mais abaixo neste arquivo.
+ */
+IdleConfig.activeTab = ABA_PADRAO;
 
 /**
  * @var {boolean} true when editConfig differs from serverConfig (drives the
@@ -119,13 +136,18 @@ IdleConfig.dirty = false;
 IdleConfig.problemas = [];
 
 /**
- * @var {Preferences} window position (x/y are null until the player moves it)
+ * @var {Preferences} posicao da janela (x/y sao null ate o jogador mover) E a
+ *      aba em que ele estava (`aba`, null ate ele trocar de aba a primeira
+ *      vez). A versao continua 1.0 DE PROPOSITO: somar chave nova aos padroes
+ *      nao exige subir versao, e subir apagaria a posicao ja salva — a conta
+ *      esta no cabecalho de memoriaDeAba.js.
  */
 const _preferences = Preferences.get(
 	'IdleConfig',
 	{
 		x: null,
-		y: null
+		y: null,
+		aba: null
 	},
 	1.0
 );
@@ -189,6 +211,11 @@ function setPath(obj, path, value) {
  */
 IdleConfig.init = function init() {
 	const root = _root();
+
+	// A aba em que o jogador estava da ultima vez, antes do primeiro desenho:
+	// renderTabs()/renderBody() la embaixo ja pintam a certa, sem piscar a
+	// "Geral" no caminho.
+	IdleConfig.activeTab = abaLembrada(_preferences, ABA_PADRAO, ABAS);
 
 	root.querySelector('.ic-button').addEventListener('click', onClickButton);
 	root.querySelector('.ic-close').addEventListener('click', onClickClose);
@@ -272,6 +299,7 @@ function onClickClose(e) {
 function onClickTab(e) {
 	e.stopImmediatePropagation();
 	IdleConfig.activeTab = e.currentTarget.dataset.tab;
+	lembrarAba(_preferences, IdleConfig.activeTab);
 	renderTabs();
 	renderBody();
 }
@@ -676,6 +704,17 @@ function renderGeral() {
 			<label class="ic-checkbox-row">
 				<input type="checkbox" data-bool="coletarItens" ${cfg.coletarItens ? 'checked' : ''} />
 				<span>Coletar itens automaticamente</span>
+			</label>
+			<div class="ri-divisor"></div>
+			<label class="ic-switch-row">
+				<span class="ic-switch">
+					<input type="checkbox" data-bool="atacarTodosNaMissao" ${cfg.atacarTodosNaMissao ? 'checked' : ''} />
+					<span class="ic-switch-track"></span>
+				</span>
+				<span class="ic-switch-text">
+					<span class="ic-switch-label">Atacar todos os mobs durante missão</span>
+					<span class="ic-switch-sub">Desligado, uma missão de caça foca só no alvo dela. Ligado, ataca qualquer monstro do mapa enquanto a missão roda.</span>
+				</span>
 			</label>
 		</div>
 		<div class="ic-section ic-section-tip">
@@ -1265,6 +1304,9 @@ IdleConfig.abrirNaAba = function abrirNaAba(tab) {
 	IdleConfig.focus();
 
 	IdleConfig.activeTab = tab;
+	// Entrar pela porta do medalhao conta como estar na aba: o jogador vai
+	// fechar a janela daqui, e "a ultima aba em que eu estava" e esta.
+	lembrarAba(_preferences, IdleConfig.activeTab);
 	renderTabs();
 	renderBody();
 };

@@ -1,45 +1,52 @@
 <div id="IdleSkills">
-	<button type="button" class="is-button" title="Skills">📖</button>
+	<button type="button" class="is-button" title="Habilidades">📖</button>
 
 	<div class="is-window ri-window">
 		<div class="is-titlebar ri-header">
-			<span class="is-title ri-title">Skills</span>
+			<span class="is-title ri-title">Habilidades</span>
 			<button type="button" class="is-close ri-close" title="Fechar">&times;</button>
 		</div>
 
-		<div class="is-status"></div>
+		<!--
+			Barra de ferramentas: o estado à esquerda ("Carregando…") e o
+			interruptor "Descrições" à direita — que é onde a referência do
+			Ragnarok LATAM o põe. Aqui ele recolhe/mostra o painel de detalhe,
+			que é onde as descrições desta janela moram.
+		-->
+		<div class="is-toolbar">
+			<span class="is-status"></span>
+			<label class="is-desc-toggle" title="Mostrar o painel de descrição da habilidade">
+				<input type="checkbox" class="is-desc-check" checked />
+				<span>Descrições</span>
+			</label>
+		</div>
 
 		<div class="is-content">
-			<div class="is-catrail">
-				<button type="button" class="is-cat-tab is-active" data-cat="todas" title="Todas as skills">
-					<span class="is-cat-icon">&#9733;</span>
-					<span class="is-cat-label">Todas</span>
-				</button>
-				<button type="button" class="is-cat-tab" data-cat="ativa" title="Skills ativas">
-					<span class="is-cat-icon">&#9876;</span>
-					<span class="is-cat-label">Ativas</span>
-				</button>
-				<button type="button" class="is-cat-tab" data-cat="passiva" title="Skills passivas">
-					<span class="is-cat-icon">&#128737;</span>
-					<span class="is-cat-label">Passivas</span>
-				</button>
-				<button type="button" class="is-cat-tab" data-cat="suporte" title="Skills de suporte">
-					<span class="is-cat-icon">&#10024;</span>
-					<span class="is-cat-label">Suporte</span>
-				</button>
+			<!-- Trilho de DEGRAUS da carreira. Preenchido pelo servidor
+			     (payload.graus): um Aprendiz tem uma aba, um Cavaleiro tem três. -->
+			<div class="is-grausrail"></div>
+
+			<!-- A ÁRVORE. `.is-tela` é o plano posicionado (nós em position:absolute
+			     + o SVG dos fios por baixo); `.is-arvore` é a janelinha que rola. -->
+			<div class="is-arvore ri-scroll">
+				<div class="is-tela">
+					<div class="is-empty">Abra a janela de habilidades para carregar.</div>
+				</div>
 			</div>
-			<div class="is-list ri-scroll">
-				<div class="is-empty">Abra a janela de skills para carregar.</div>
-			</div>
+
 			<div class="is-detail ri-card ri-scroll">
-				<div class="is-empty">Selecione uma skill.</div>
+				<div class="is-empty">Selecione uma habilidade.</div>
 			</div>
 		</div>
 
 		<div class="is-footer">
 			<div class="is-footer-left"></div>
 			<div class="is-problemas"></div>
-			<div class="is-footer-right"></div>
+			<div class="is-footer-right">
+				<span class="is-pontos-pill ri-badge ri-badge--ouro">Pontos de habilidade: 0</span>
+				<button type="button" class="is-btn-resetar ri-btn ri-btn--sec" disabled>Resetar</button>
+				<button type="button" class="is-btn-aplicar ri-btn" disabled>Aplicar</button>
+			</div>
 		</div>
 	</div>
 </div>

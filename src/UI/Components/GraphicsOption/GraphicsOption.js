@@ -19,6 +19,7 @@ import UIManager from 'UI/UIManager.js';
 import GUIComponent from 'UI/GUIComponent.js';
 import htmlText from './GraphicsOption.html?raw';
 import cssText from './GraphicsOption.css?raw';
+import { abaLembrada, lembrarAba } from '../memoriaDeAba.js'; // RAGIDLE
 
 import MemoryManager from 'Core/MemoryManager.js';
 import ChatBox from 'UI/Components/ChatBox/ChatBox.js';
@@ -29,16 +30,50 @@ import ChatBox from 'UI/Components/ChatBox/ChatBox.js';
 const GraphicsOption = new GUIComponent('GraphicsOption', cssText);
 
 /**
- * @var {Preferences} Graphics
+ * @var {string[]} RAGIDLE: as duas abas, na ordem do HTML — a lista que valida
+ *      o que veio do `localStorage`.
+ */
+const ABAS = ['basic', 'advanced'];
+
+/**
+ * @var {string} RAGIDLE: a aba de fabrica.
+ */
+const ABA_PADRAO = 'basic';
+
+/**
+ * @var {Preferences} Graphics — posicao e, desde 31/08/2026, a ABA em que o
+ *      jogador estava (`aba`, ver UI/Components/memoriaDeAba.js). A versao
+ *      continua 1.1: somar chave nova aos padroes nao exige subir versao, e
+ *      subir apagaria a posicao ja salva.
  */
 const _preferences = Preferences.get(
 	'GraphicsOption',
 	{
 		x: 300,
-		y: 300
+		y: 300,
+		aba: null
 	},
 	1.1
 );
+
+/**
+ * RAGIDLE: acende uma aba e mostra o painel dela. Saiu de dentro do
+ * `onTabSwitch` porque agora tem dois chamadores — o clique e o `onAppend`,
+ * que precisa reabrir na aba lembrada.
+ */
+function aplicarAba(root, nome) {
+	const alvo = root.querySelector('#' + nome);
+	if (!alvo) {
+		return;
+	}
+	root.querySelectorAll('.tab-button').forEach(b => {
+		b.classList.toggle('selected', b.dataset.tab === nome);
+	});
+	root.querySelectorAll('.tab-content').forEach(tc => {
+		tc.classList.remove('selected');
+	});
+	alvo.classList.add('selected');
+}
 
 /**
  * Render HTML
@@ -124,6 +159,10 @@ GraphicsOption.onAppend = function onAppend() {
 	this._host.style.left = `${_preferences.x}px`;
 
 	const root = this.getRoot();
+
+	// RAGIDLE: a aba em que o jogador estava. O HTML nasce com "basic" aceso,
+	// entao sem isto quem fechou em "Advanced" reabria em "Basic".
+	aplicarAba(root, abaLembrada(_preferences, ABA_PADRAO, ABAS));
 
 	root.querySelector('.details').value = GraphicsSettings.quality;
 	root.querySelector('.screensize').value = GraphicsSettings.screensize;
@@ -378,20 +417,10 @@ function onUpdateScreenSize() {
 }
 
 function onTabSwitch(event) {
-	const btn = event.currentTarget;
-	const tabName = btn.dataset.tab;
-	const root = GraphicsOption.getRoot();
+	const tabName = event.currentTarget.dataset.tab;
 
-	root.querySelectorAll('.tab-button').forEach(b => {
-		b.classList.remove('selected');
-	});
-	btn.classList.add('selected');
-
-	root.querySelectorAll('.tab-content').forEach(tc => {
-		tc.classList.remove('selected');
-	});
-	const targetTab = root.querySelector('#' + tabName);
-	if (targetTab) targetTab.classList.add('selected');
+	aplicarAba(GraphicsOption.getRoot(), tabName);
+	lembrarAba(_preferences, tabName); // RAGIDLE
 }
 
 function onResetToDefaults() {

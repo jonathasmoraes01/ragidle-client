@@ -27,6 +27,8 @@ import InputBox from 'UI/Components/InputBox/InputBox.js';
 import GuildCompanion from 'UI/Components/GuildCompanion/GuildCompanion.js';
 import SkillTargetSelection from 'UI/Components/SkillTargetSelection/SkillTargetSelection.js';
 import SkillDescription from 'UI/Components/SkillDescription/SkillDescription.js';
+import Preferences from 'Core/Preferences.js'; // RAGIDLE
+import { abaLembrada, lembrarAba } from '../memoriaDeAba.js'; // RAGIDLE
 import htmlText from './Guild.html?raw';
 import cssText from './Guild.css?raw';
 import WinStats from 'UI/Components/WinStats/WinStats.js';
@@ -66,6 +68,72 @@ let lArrow, rArrow;
 let _totalExp = 0;
 let _guildAccess = 0;
 let _checkbox_off, _checkbox_on;
+
+/**
+ * RAGIDLE (D-790, 31/08/2026): a aba em que o jogador estava.
+ *
+ * As abas daqui sao os `data-flag` (0 Geral .. 6 Aviso), guardados como texto.
+ * A janela ja lembrava a aba enquanto a pagina vivia — ela so ESCONDE em vez de
+ * desmontar, entao a classe `.active` atravessava fechar-e-reabrir. O que se
+ * perdia era o F5.
+ */
+const ABAS = ['0', '1', '2', '3', '4', '5', '6'];
+const ABA_PADRAO = '0';
+const _preferences = Preferences.get('Guild', { aba: null }, 1.0);
+
+/**
+ * RAGIDLE: a aba lembrada que ainda espera a MASCARA DE PERMISSAO.
+ *
+ * Esta janela e a unica cuja aba pode ser PROIBIDA: `onChangeTab` recusa
+ * qualquer aba que nao esteja em `_guildAccess`, e essa mascara so chega no
+ * pacote que `onRequestAccess()` pede — depois de a janela ja estar na tela.
+ * Restaurar so no `show()` daria sempre "Geral", porque a mascara ainda e 0.
+ *
+ * Entao o pedido fica PENDURADO: `show()` tenta, e se nao puder abre a Geral
+ * (que e exatamente o que a janela fazia antes) e deixa a marca; `setAccess`
+ * tenta de novo assim que a mascara chega. O pior caso e o comportamento de
+ * hoje, nunca uma janela sem aba acesa.
+ */
+let _abaPendente = null;
+
+/**
+ * RAGIDLE: verdadeiro enquanto o clique vem daqui, e nao do jogador.
+ *
+ * Sem esta marca, o clique de recuo na Geral apagaria o proprio pedido
+ * pendente — e a aba lembrada nunca abriria quando a permissao chegasse.
+ */
+let _restaurandoAba = false;
+
+/**
+ * RAGIDLE: abre a aba lembrada se ela ja for permitida; senao, garante que
+ * ALGUMA aba esteja acesa e deixa o pedido para quando a mascara chegar.
+ */
+function abrirAbaLembrada(root) {
+	if (!root || _abaPendente === null) {
+		return;
+	}
+
+	const flag = parseInt(_abaPendente, 10);
+	const btn = root.querySelector('.tabs button[data-flag="' + _abaPendente + '"]');
+
+	// A Geral (flag 0) nunca depende de permissao — e a mesma conta que o
+	// `onChangeTab` faz, escrita aqui para nao clicar num botao que ele vai
+	// recusar (um clique recusado nao acende aba nenhuma).
+	if (btn && (flag === 0 || _guildAccess & AccessTypeBit[flag])) {
+		_abaPendente = null;
+		btn.click();
+		return;
+	}
+
+	if (!root.querySelector('.tabs .active')) {
+		const infoBtn = root.querySelector('.tabs .info');
+		if (infoBtn) {
+			_restaurandoAba = true;
+			infoBtn.click();
+			_restaurandoAba = false;
+		}
+	}
+}
 
 /**
  * Helper: query inside shadow root
@@ -434,10 +502,11 @@ Guild.show = function show() {
 	const root = _root(this);
 
 	if (!root.querySelector('.tabs .active')) {
-		const infoBtn = root.querySelector('.tabs .info');
-		if (infoBtn) {
-			infoBtn.click();
-		}
+		// RAGIDLE: a aba em que o jogador estava. Se ela ainda nao for
+		// permitida, isto abre a Geral — que e o que a janela ja fazia — e
+		// deixa o pedido para o `setAccess` logo abaixo.
+		_abaPendente = abaLembrada(_preferences, ABA_PADRAO, ABAS);
+		abrirAbaLembrada(root);
 		Guild.onRequestAccess();
 	}
 
@@ -1182,6 +1251,9 @@ Guild.setExpelList = function setExpelList(list) {
 
 Guild.setAccess = function setAccess(access) {
 	_guildAccess = access;
+	// RAGIDLE: a mascara chega DEPOIS do show(); e aqui que a aba lembrada
+	// finalmente pode abrir.
+	abrirAbaLembrada(_root(Guild));
 };
 
 function onChangeTab(event) {
@@ -1210,6 +1282,13 @@ function onChangeTab(event) {
 	const btnOk = root.querySelector('.footer .btn_ok');
 	if (btnOk) {
 		btnOk.style.display = 'none';
+	}
+
+	// RAGIDLE: o jogador escolheu — grava, e cancela qualquer restauracao ainda
+	// pendurada (ele ja disse onde quer estar).
+	if (!_restaurandoAba) {
+		_abaPendente = null;
+		lembrarAba(_preferences, String(tab));
 	}
 
 	updateDisbandButton(root, targetClass);

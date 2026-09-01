@@ -145,9 +145,12 @@ import Equipment from 'UI/Components/Equipment/Equipment.js';
 import ItemInfo from 'UI/Components/ItemInfo/ItemInfo.js';
 import ContextMenu from 'UI/Components/ContextMenu/ContextMenu.js';
 import RiIcones from 'UI/ri-icones.js';
+import { carregarArteDeColecao } from 'Utils/ItemArt.js';
+import { escapeHTML, renderRunasHTML } from 'Utils/ItemOptionsView.js';
 import htmlText from './MochilaIdle.html?raw';
 import cssText from './MochilaIdle.css?raw';
 import { fecharEEsquecer } from '../limpezaDeJanelaIdle.js';
+import { abaLembrada, lembrarAba } from '../memoriaDeAba.js';
 
 /**
  * Mantido em sincronia com ":host"/".mo-window"/".mo-frame" em
@@ -228,13 +231,16 @@ MochilaIdle.mouseMode = GUIComponent.MouseMode.CROSS;
 
 /**
  * @var {Preferences} posicao da janela -- centralizada por padrao, igual
- * StatusIdle.js.
+ * StatusIdle.js -- e a ABA em que o jogador estava (`aba`, ver
+ * memoriaDeAba.js). Versao continua 1.0: somar chave nova aos padroes nao
+ * exige subir versao, e subir apagaria a posicao ja salva.
  */
 const _preferences = Preferences.get(
 	'MochilaIdle',
 	{
 		x: null,
-		y: null
+		y: null,
+		aba: null
 	},
 	1.0
 );
@@ -248,9 +254,31 @@ let _pollTimer = null;
  * @var {number} aba ativa (Inventory.getUI().TAB.*) -- estado PROPRIO desta
  * janela, nunca escrito na janela nativa (ela fica intocada, so escondida).
  * Comeca em USABLE, o mesmo padrao default da Inventory nativa
- * (InventoryCommon.js prefDefaults.tab).
+ * (InventoryCommon.js prefDefaults.tab), ou na aba LEMBRADA se o jogador ja
+ * escolheu uma (ver abaDePartida() logo abaixo).
  */
 let _abaAtiva = null;
+
+/**
+ * A aba com que esta janela deve nascer: a que o jogador deixou aberta, ou
+ * "Consumiveis".
+ *
+ * Aqui a aba e NUMERO (os `TAB.*` da Inventory nativa) e a memoria guarda
+ * texto, entao a volta passa por `parseInt`. A lista de validas e montada na
+ * hora a partir do proprio `TAB` -- escrever `['0','1','2']` aqui amarraria
+ * esta janela a valores que sao da Inventory, nao nossos.
+ *
+ * DOIS chamadores, e o segundo e um conserto: `limparEstadoDoPersonagem`
+ * zerava `_abaAtiva` para `null` e ninguem o repunha -- `init()` roda uma vez
+ * so por carregamento de pagina, e trocar de personagem nao recarrega a pagina.
+ * Depois da troca, `syncGrade()` filtrava a lista por `getItemTab(item) === null`
+ * e a mochila abria VAZIA, com nenhuma aba acesa, ate o jogador clicar numa.
+ */
+function abaDePartida() {
+	const TAB = Inventory.getUI().TAB;
+	const validas = [TAB.USABLE, TAB.EQUIP, TAB.ETC].map(String);
+	return parseInt(abaLembrada(_preferences, String(TAB.USABLE), validas), 10);
+}
 
 /**
  * @var {string|null} assinatura da ultima grade desenhada -- evita
@@ -356,7 +384,7 @@ MochilaIdle.init = function init() {
 	grade.addEventListener('dragover', onGradeDragOver);
 	grade.addEventListener('drop', onGradeDrop);
 
-	_abaAtiva = Inventory.getUI().TAB.USABLE;
+	_abaAtiva = abaDePartida();
 	renderAbas(root);
 
 	this._host.style.top = Math.max(0, (Renderer.height - WINDOW_HEIGHT) / 2) + 'px';
@@ -390,12 +418,19 @@ function onClickAba(e) {
 	}
 	e.stopImmediatePropagation();
 	_abaAtiva = parseInt(btn.dataset.tab, 10);
+	lembrarAba(_preferences, _abaAtiva);
 	_lastGradeSig = null; // forca redesenho imediato da grade na troca de aba
 	syncAbasAtivas(_root());
 	syncGrade();
 }
 
 function syncAbasAtivas(root) {
+	// Guarda: `limparEstadoDoPersonagem` tambem chama isto, e la o `_root()`
+	// pode nao existir -- uma excecao dentro do `cleanGameUI()` derrubaria a
+	// troca de personagem inteira.
+	if (!root) {
+		return;
+	}
 	root.querySelectorAll('.mo-aba').forEach(btn => {
 		btn.classList.toggle('is-active', parseInt(btn.dataset.tab, 10) === _abaAtiva);
 	});
@@ -826,7 +861,8 @@ function syncGrade() {
 	const root = _root();
 	const lista = Inventory.getUI().list.filter(item => getItemTab(item) === _abaAtiva);
 
-	const sig = _abaAtiva + '|' + lista.map(it => it.index + ':' + (it.count || 1) + ':' + (it.IsIdentified ? 1 : 0)).join(',');
+	const sig =
+		_abaAtiva + '|' + lista.map(it => it.index + ':' + (it.count || 1) + ':' + (it.IsIdentified ? 1 : 0)).join(',');
 	if (sig === _lastGradeSig) {
 		return;
 	}
@@ -1200,40 +1236,6 @@ function limparRealceSlots() {
  *      ou classe -- nao so refino).
  */
 /**
- * A DICA DE HOVER: o nome do que esta sob o cursor.
- *
- * O TEXTO nao e inventado aqui em nenhum dos dois casos. Na grade ele sai de
- * `DB.getItemName(item)`, o mesmo que o chat usa ao pegar um item; nos slots
- * de equipamento sai do `.itemName` que a Equipment nativa ja renderiza
- * (a MESMA leitura que `syncEquipSlots` faz para o rotulo), com o rotulo do
- * slot como sobra quando ele esta vazio.
- */
-function textoDaDica(el) {
-	if (el.classList.contains('mo-item')) {
-		if (el.classList.contains('is-empty')) {
-			return '';
-		}
-		const item = Inventory.getUI().getItemByIndex(parseInt(el.dataset.index, 10));
-		if (!item) {
-			return '';
-		}
-		// A palavra por extenso ao lado do selo (26/08/2026): o selo diz "e
-		// especial", a dica diz O QUE e -- criterio identico ao da celula
-		// (eDeFantasia sobre a mascara de vestir do item).
-		const nome = DB.getItemName(item);
-		const location = 'location' in item ? item.location : item.WearState;
-		const titulo = eDeFantasia(location) ? nome + ' — Fantasia' : nome;
-		return comDescricao(titulo, item);
-	}
-	if (el.classList.contains('mo-slot') || el.classList.contains('mo-slot-remover')) {
-		// O `data-dica` cobre os tres casos do painel esquerdo: slot ocupado
-		// (o nome da peca), slot vazio (o rotulo) e o botao de tirar.
-		return el.dataset.dica || '';
-	}
-	return '';
-}
-
-/**
  * O NOME mais a DESCRIÇÃO do cliente (28/08/2026, queixa do dono: *"não
  * visualiza detalhes do item ao passar mouse em cima"*).
  *
@@ -1246,47 +1248,123 @@ function textoDaDica(el) {
  */
 const MAX_LINHAS_DA_DICA = 14;
 
-function comDescricao(titulo, item) {
+/**
+ * As LINHAS da descrição, prontas pra dica: tira as marcas `^RRGGBB` (não
+ * significam nada fora do cliente nativo, viram lixo se ficarem) e corta em
+ * `MAX_LINHAS_DA_DICA`. Extraído de `comDescricao()` (31/08/2026, sistema de
+ * Runas) para virar HTML estruturado em vez de um texto único com `\n` —
+ * `renderCorpoDaDescricao()` abaixo é quem decide, LINHA a LINHA, o que
+ * entra (hoje: só ficha "Rótulo: valor").
+ */
+function descricaoLinhas(item) {
 	const id = item.ITID !== undefined ? item.ITID : item.nameid;
 	const info = id !== undefined ? DB.getItemInfo(id) : null;
 	const bruta = info && info.identifiedDescriptionName ? info.identifiedDescriptionName : '';
 	if (!bruta) {
-		return titulo;
+		return [];
 	}
-	// O DB junta as linhas com \n; as marcas de cor do cliente (^RRGGBB) não
-	// significam nada num tooltip de texto puro e viram lixo se ficarem.
 	const linhas = String(bruta)
 		.replace(/\^[0-9a-fA-F]{6}/g, '')
 		.split('\n')
 		.map(l => l.trim())
 		.filter(l => l.length > 0);
 	if (linhas.length === 0) {
-		return titulo;
+		return [];
 	}
 	const cortadas = linhas.slice(0, MAX_LINHAS_DA_DICA);
 	if (linhas.length > MAX_LINHAS_DA_DICA) {
 		cortadas.push('...');
 	}
-	return titulo + '\n' + cortadas.join('\n');
+	return cortadas;
 }
 
-/** A dica de um item pelo índice do inventário — usada pelos slots vestidos. */
+/** Linha de FICHA: "Rótulo curto: valor" — o mesmo formato ("Weight: 10",
+ * "Class: Weapon"...) que a descrição nativa do RO já usa; o rótulo tem até
+ * 28 caracteres para não confundir uma frase corrida com dois-pontos no meio
+ * (ex.: um lore de item) com uma ficha de verdade. */
+const RE_LINHA_FICHA = /^([^:]{1,28}):\s(.+)$/;
+
+/**
+ * O CORPO da dica rica: SÓ as linhas de ficha (rótulo mudo + valor). O texto
+ * corrido — o lore ("Um porrete robusto...") e o destaque ("Indestrutível em
+ * batalha.") — SAIU da dica a pedido do dono (31/08/2026, mesma noite da
+ * entrega): no hover ele era ruído entre o nome e os números; a descrição
+ * completa continua na janela de Detalhes, que é o lugar dela. Todo texto
+ * passa por `escapeHTML` (Utils/ItemOptionsView.js) antes do `innerHTML`.
+ */
+function renderCorpoDaDescricao(linhas) {
+	return linhas
+		.map(linha => {
+			const ficha = linha.match(RE_LINHA_FICHA);
+			if (!ficha) {
+				return '';
+			}
+			return (
+				'<div class="mo-dica-ficha">' +
+				`<span class="mo-dica-rotulo">${escapeHTML(ficha[1])}:</span> ` +
+				escapeHTML(ficha[2]) +
+				'</div>'
+			);
+		})
+		.join('');
+}
+
+/**
+ * A dica de TEXTO (reserva) de um item pelo índice do inventário — só
+ * usada como `data-dica` de segurança em `syncEquipSlots` (ver ali). O hover
+ * DE VERDADE num slot vestido usa `mostrarDicaItem()` (rico, com o item
+ * resolvido na hora); isto só entra se o índice não resolver mais no
+ * instante do hover (item trocado entre o desenho do slot e o mouse chegar).
+ */
 function dicaDoItemNoIndice(indice) {
 	const item = Inventory.getUI().getItemByIndex(parseInt(indice, 10));
-	return item ? comDescricao(DB.getItemName(item), item) : '';
+	if (!item) {
+		return '';
+	}
+	// O MESMO corte da dica rica (31/08/2026): so as linhas de ficha — o texto
+	// corrido saiu da dica a pedido do dono, e a reserva nao pode dizer mais
+	// que a titular.
+	const linhas = descricaoLinhas(item).filter(l => RE_LINHA_FICHA.test(l));
+	return linhas.length ? DB.getItemName(item) + '\n' + linhas.join('\n') : DB.getItemName(item);
 }
 
+/**
+ * A DICA DE HOVER: o que está sob o cursor.
+ *
+ * Dois formatos, nunca misturados na mesma dica:
+ *   - RICO (cabeçalho com arte + nome, corpo da descrição, Runas) para um
+ *     item de verdade — grade (`.mo-item`) ou slot VESTIDO
+ *     (`.mo-slot.is-ocupado`), os dois casos em que dá pra resolver o objeto
+ *     completo por `Inventory.getUI().getItemByIndex()`;
+ *   - TEXTO simples (`el.dataset.dica`) para os tooltips que são só rótulo:
+ *     slot vazio e o botão "Tirar" — não há item nenhum ali, só uma palavra.
+ */
 function onHoverEntra(e) {
 	const el = e.target.closest('.mo-slot-remover, .mo-item, .mo-slot');
 	if (!el) {
 		return;
 	}
-	const texto = textoDaDica(el);
+
+	if (el.classList.contains('mo-item') && !el.classList.contains('is-empty')) {
+		const item = Inventory.getUI().getItemByIndex(parseInt(el.dataset.index, 10));
+		if (item) {
+			mostrarDicaItem(el, item);
+			return;
+		}
+	} else if (el.classList.contains('mo-slot') && el.classList.contains('is-ocupado')) {
+		const item = Inventory.getUI().getItemByIndex(parseInt(el.dataset.index, 10));
+		if (item) {
+			mostrarDicaItem(el, item);
+			return;
+		}
+	}
+
+	const texto = el.dataset.dica || '';
 	if (!texto) {
 		esconderDica();
 		return;
 	}
-	mostrarDica(el, texto);
+	mostrarDicaTexto(el, texto);
 }
 
 function onHoverSai(e) {
@@ -1305,21 +1383,12 @@ function onHoverSai(e) {
 }
 
 /**
- * Mostra a dica ancorada na celula. A CONTA da posicao mora em
- * `posicaoDaDica.js`, separada para poder ser medida sem DOM.
+ * A CONTA de onde a dica nasce mora em `posicaoDaDica.js` (medida sem DOM,
+ * ver o arquivo); isto só aplica o resultado. Chamada duas vezes por dica
+ * rica — ao mostrar (rect da dica sem a arte) e de novo no `onload` da
+ * imagem (ver `mostrarDicaItem`), porque o rect pode mudar com ela.
  */
-function mostrarDica(alvoEl, texto) {
-	const root = _root();
-	const dica = root.querySelector('.mo-dica');
-	const janela = root.querySelector('.mo-window');
-	if (!dica || !janela) {
-		return;
-	}
-	dica.textContent = texto;
-	// Visivel ANTES de medir: `hidden` e `display:none`, e um elemento
-	// escondido mede 0x0 — a dica nasceria no canto e so acertaria a posicao
-	// no hover seguinte.
-	dica.hidden = false;
+function posicionarDica(alvoEl, dica, janela) {
 	const pos = posicaoDaDica(
 		alvoEl.getBoundingClientRect(),
 		dica.getBoundingClientRect(),
@@ -1327,6 +1396,96 @@ function mostrarDica(alvoEl, texto) {
 	);
 	dica.style.left = pos.left + 'px';
 	dica.style.top = pos.top + 'px';
+}
+
+/**
+ * Mostra a dica RICA — cabeçalho (arte de coleção + nome), corpo da
+ * descrição e a cápsula de Runas quando o item tem `Options` (bônus de
+ * equipamento com raridade, `Options[i].param`) — ver
+ * `Utils/ItemOptionsView.js`, o MESMO módulo que a janela de Detalhes
+ * (ItemInfo.js) usa, pro visual não divergir entre os dois.
+ *
+ * Todo texto vindo do item/DB passa por `escapeHTML` antes de entrar no
+ * `innerHTML` (nome, linhas da descrição e o texto de cada runa, dentro de
+ * `renderRunasHTML`) — nada aqui é `textContent` mais, então nada disso pode
+ * ir cru.
+ */
+function mostrarDicaItem(alvoEl, item) {
+	const root = _root();
+	const dica = root.querySelector('.mo-dica');
+	const janela = root.querySelector('.mo-window');
+	if (!dica || !janela) {
+		return;
+	}
+
+	const it = DB.getItemInfo(item.ITID);
+	const location = 'location' in item ? item.location : item.WearState;
+	// `showItemOptions:false` -- sem isto o nome ganha o sufixo generico
+	// "[N Option]" (DBManager.js#getItemName) duplicando a MESMA informacao
+	// que a capsula de Runas abaixo ja mostra, com raridade -- mesma decisao
+	// que ItemInfo.js ja toma pro titulo da janela de Detalhes.
+	const nome = DB.getItemName(item, { showItemOptions: false });
+	// A palavra por extenso ao lado do selo (26/08/2026): o selo diz "e
+	// especial", a dica diz O QUE e -- criterio identico ao da celula
+	// (eDeFantasia sobre a mascara de vestir do item).
+	const titulo = eDeFantasia(location) ? nome + ' — Fantasia' : nome;
+	// O corpo pode sair VAZIO mesmo com descricao (item so de lore, sem linha
+	// "Rotulo: valor") — testar o HTML, e nao `linhas.length`, evita um
+	// `.mo-dica-corpo` oco abrindo margem entre o nome e as Runas.
+	const corpo = renderCorpoDaDescricao(descricaoLinhas(item));
+
+	dica.innerHTML =
+		'<div class="mo-dica-cabecalho">' +
+		'<div class="ri-tile mo-dica-arte"><img class="mo-dica-arte-img" alt="" /></div>' +
+		`<div class="mo-dica-nome">${escapeHTML(titulo)}</div>` +
+		'</div>' +
+		(corpo ? `<div class="mo-dica-corpo">${corpo}</div>` : '') +
+		renderRunasHTML(item);
+
+	// Visivel ANTES de medir: `hidden` e `display:none`, e um elemento
+	// escondido mede 0x0 — a dica nasceria no canto e so acertaria a posicao
+	// no hover seguinte.
+	dica.hidden = false;
+	posicionarDica(alvoEl, dica, janela);
+
+	// A arte de colecao carrega ASSINCRONA (rede, ou o GRF via
+	// Client.loadFile) -- o tooltip ja aparece com a moldura vazia, e o
+	// `onload` reposiciona (o rect pode crescer com a imagem). Sem arte
+	// nenhuma publicada NEM no GRF, `aoFalhar` cai pro icone pequeno do
+	// item -- MESMO fallback que `setItemIcon` ja usa na grade.
+	const imgEl = dica.querySelector('.mo-dica-arte-img');
+	if (imgEl) {
+		imgEl.onload = () => {
+			if (!dica.hidden) {
+				posicionarDica(alvoEl, dica, janela);
+			}
+		};
+		carregarArteDeColecao(
+			item,
+			it,
+			url => {
+				imgEl.src = url;
+			},
+			() => setItemIcon(imgEl, item, it)
+		);
+	}
+}
+
+/**
+ * Mostra a dica de TEXTO simples (slot vazio, botão "Tirar") — sem
+ * cabeçalho nem Runas, só `dica.textContent`. Ver `mostrarDicaItem()` pro
+ * caso rico.
+ */
+function mostrarDicaTexto(alvoEl, texto) {
+	const root = _root();
+	const dica = root.querySelector('.mo-dica');
+	const janela = root.querySelector('.mo-window');
+	if (!dica || !janela) {
+		return;
+	}
+	dica.textContent = texto;
+	dica.hidden = false;
+	posicionarDica(alvoEl, dica, janela);
 }
 
 function esconderDica() {
@@ -1464,7 +1623,13 @@ function syncRodape() {
  * (no repo do servidor) reprova se esquecer.
  */
 MochilaIdle.limparEstadoDoPersonagem = function limparEstadoDoPersonagem() {
-	_abaAtiva = null;
+	/*
+	 * A ABA VOLTA PARA A DE PARTIDA, e nao para `null` (31/08/2026). Aba nao e
+	 * dado de personagem, e `null` nem sequer era o padrao -- era o buraco
+	 * descrito em abaDePartida(), que deixava a grade vazia depois da troca.
+	 */
+	_abaAtiva = abaDePartida();
+	syncAbasAtivas(_root());
 	_lastGradeSig = null;
 	_lastSlotsSig = null;
 	_dragUnequipIndex = null;

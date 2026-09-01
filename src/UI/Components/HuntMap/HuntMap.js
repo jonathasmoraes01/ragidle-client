@@ -34,6 +34,7 @@ import { dropsDoMapa } from './dropsDoMapa.js'; // RAGIDLE: a visao agregada (I6
 import htmlText from './HuntMap.html?raw';
 import cssText from './HuntMap.css?raw';
 import { fecharEEsquecer } from '../limpezaDeJanelaIdle.js';
+import { abaLembrada, lembrarAba } from '../memoriaDeAba.js';
 
 /**
  * Keep in sync with the ":host" / ".hm-window" size in HuntMap.css — used
@@ -124,9 +125,21 @@ HuntMap.catalog = null;
 HuntMap.selectedMapa = null;
 
 /**
- * @var {string} active region tab ("Todas" or one of catalog.regioes)
+ * @var {string} a aba de fabrica — a regiao "todas", que sempre existe porque e
+ *      nossa e nao do catalogo.
  */
-HuntMap.activeTab = 'Todas';
+const ABA_PADRAO = 'Todas';
+
+/**
+ * @var {string} active region tab ("Todas" or one of catalog.regioes)
+ *
+ * NAO ha lista de abas validas para passar a `abaLembrada`: as abas desta
+ * janela sao as REGIOES que o servidor manda, e escrever a lista aqui seria
+ * duplicar o catalogo. Quem confere e onCatalogReceived(), que ja devolvia a
+ * aba para "Todas" quando a regiao guardada nao existe no catalogo que chegou —
+ * a mesma guarda cobre agora a regiao vinda do `localStorage`.
+ */
+HuntMap.activeTab = ABA_PADRAO;
 
 /**
  * @var {string} current search term (matches map name, monster name AND
@@ -136,6 +149,11 @@ HuntMap.searchTerm = '';
 
 /**
  * @var {boolean} "Filtros" popover's "só ideais para mim" checkbox
+ *
+ * Lembrado junto com a aba (pedido do dono, 31/08/2026: "Sugestoes / Todos os
+ * Mapas"): nesta janela o que faz as vezes de aba de verdade nao e a regiao, e
+ * este interruptor — e quem caca sempre no que serve para o proprio nivel o
+ * religava a cada F5.
  */
 HuntMap.filterIdealOnly = false;
 
@@ -192,13 +210,19 @@ HuntMap.limparEstadoDoPersonagem = function limparEstadoDoPersonagem() {
 };
 
 /**
- * @var {Preferences} window position (x/y are null until the player moves it)
+ * @var {Preferences} posicao da janela (x/y null ate o jogador mover), a REGIAO
+ *      em que ele estava (`aba`) e o interruptor "so ideais para mim"
+ *      (`soIdeais`). Versao continua 1.0: somar chave nova aos padroes nao
+ *      exige subir versao, e subir apagaria a posicao ja salva — a conta esta
+ *      no cabecalho de memoriaDeAba.js.
  */
 const _preferences = Preferences.get(
 	'HuntMap',
 	{
 		x: null,
-		y: null
+		y: null,
+		aba: null,
+		soIdeais: null
 	},
 	1.0
 );
@@ -265,6 +289,12 @@ function computeBadge(nivel, mapa) {
 HuntMap.init = function init() {
 	const root = _root();
 
+	// A regiao e o filtro em que o jogador estava, antes do primeiro desenho.
+	// A regiao pode nao existir mais no catalogo — quem confere e
+	// onCatalogReceived(), quando o catalogo chegar.
+	HuntMap.activeTab = abaLembrada(_preferences, ABA_PADRAO);
+	HuntMap.filterIdealOnly = _preferences.soIdeais === true;
+
 	root.querySelector('.hm-button').addEventListener('click', onClickButton);
 	root.querySelector('.hm-close').addEventListener('click', onClickClose);
 	root.querySelector('.hm-search').addEventListener('input', onSearchInput);
@@ -280,6 +310,10 @@ HuntMap.init = function init() {
 	root.querySelector('.hm-window').addEventListener('click', onWindowClickCapture, true);
 
 	this.draggable(root.querySelector('.hm-titlebar'));
+
+	// A caixinha nasce desmarcada no HTML: sem isto ela DIRIA "todos os mapas"
+	// enquanto a lista mostra so os ideais.
+	root.querySelector('.hm-filter-ideal').checked = HuntMap.filterIdealOnly;
 
 	// Default centered position, may be overridden by saved preferences in onAppend()
 	this._host.style.top = Math.max(0, (Renderer.height - WINDOW_HEIGHT) / 2) + 'px';
@@ -358,6 +392,8 @@ function onClickFiltersToggle(e) {
 
 function onChangeFilterIdeal(e) {
 	HuntMap.filterIdealOnly = e.target.checked;
+	_preferences.soIdeais = HuntMap.filterIdealOnly;
+	_preferences.save();
 	renderList();
 }
 
@@ -464,8 +500,8 @@ function onCatalogReceived(pkt) {
 	if (!HuntMap.selectedMapa || !data.mapas.some(m => m.mapa === HuntMap.selectedMapa)) {
 		HuntMap.selectedMapa = data.mapaAtual;
 	}
-	if (HuntMap.activeTab !== 'Todas' && !data.regioes.includes(HuntMap.activeTab)) {
-		HuntMap.activeTab = 'Todas';
+	if (HuntMap.activeTab !== ABA_PADRAO && !data.regioes.includes(HuntMap.activeTab)) {
+		HuntMap.activeTab = ABA_PADRAO;
 	}
 
 	setStatus('');
@@ -486,11 +522,11 @@ function renderTabs() {
 	const tabsEl = root.querySelector('.hm-tabs');
 	const catalog = HuntMap.catalog;
 	const allMapas = (catalog && catalog.mapas) || [];
-	const regions = ['Todas'].concat((catalog && catalog.regioes) || []);
+	const regions = [ABA_PADRAO].concat((catalog && catalog.regioes) || []);
 
 	tabsEl.innerHTML = regions
 		.map(region => {
-			const count = region === 'Todas' ? allMapas.length : allMapas.filter(m => m.regiao === region).length;
+			const count = region === ABA_PADRAO ? allMapas.length : allMapas.filter(m => m.regiao === region).length;
 			return `<button type="button" class="hm-tab ri-tab${region === HuntMap.activeTab ? ' is-active' : ''}" data-region="${escapeHtml(region)}">${escapeHtml(region)} <span class="hm-tab-count">${count}</span></button>`;
 		})
 		.join('');
@@ -501,6 +537,7 @@ function renderTabs() {
 function onClickTab(e) {
 	e.stopImmediatePropagation();
 	HuntMap.activeTab = e.currentTarget.dataset.region;
+	lembrarAba(_preferences, HuntMap.activeTab);
 	renderTabs();
 	renderList();
 }
@@ -574,7 +611,7 @@ function renderList() {
 
 	const term = HuntMap.searchTerm.trim().toLowerCase();
 	let mapas = catalog.mapas.filter(mapa => {
-		if (HuntMap.activeTab !== 'Todas' && mapa.regiao !== HuntMap.activeTab) {
+		if (HuntMap.activeTab !== ABA_PADRAO && mapa.regiao !== HuntMap.activeTab) {
 			return false;
 		}
 		if (!mapaMatchesSearch(mapa, term)) {

@@ -185,7 +185,7 @@ function createHTML(includeManifest = false, buildArgs = {}, isAllBuild = false)
     <head>    
         <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>    
         <meta charset="UTF-8">    
-        <title>roBrowser [${pkg.version} - ${buildDate}]</title>    
+        <title>Ragnarok Classic Idle [${pkg.version} - ${buildDate}]</title>
         <link rel="icon" type="image/png" href="./icon.png">    
     
         <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">    
@@ -428,9 +428,11 @@ ${buttons}
                 }    
                 window.ROConfig = config;    
     
-				var script = document.createElement('script');    
-				script.type = 'module';    
-				script.src = 'Online.js';    
+				var script = document.createElement('script');
+				script.type = 'module';
+				// ?v=<build>: mesmo buster do api.html — nome de bundle fixo
+				// com cache do navegador serve a versao velha para sempre.
+				script.src = 'Online.js?v=${startTime}';
 				document.getElementsByTagName('body')[0].appendChild(script);  
             });    
         </script>    
@@ -517,7 +519,7 @@ function createApiHTML() {
 <html>    
     <head>    
         <meta charset="UTF-8">    
-        <title>roBrowserLegacy</title>    
+        <title>Ragnarok Classic Idle</title>
         <style>    
             html, body {    
                 margin: 0; padding: 0; border: 0;    
@@ -615,7 +617,12 @@ function createApiHTML() {
                 if (window.ROConfigLocal) { config = deepMerge(config, window.ROConfigLocal); }    
                 if (extraConfig) { config = deepMerge(config, extraConfig); }    
                 window.ROConfig = config;    
-                import('./' + scriptFile).then(function() {    
+                // ?v=<build> — o BUSTER DE CACHE. Os bundles tem nome fixo
+                // (Online.js), entao um navegador que guardou o arquivo antigo
+                // continuaria servindo ele; a query muda a URL e forca a busca.
+                // Isto resgata quem JA ficou preso: o api.html e no-cache e
+                // sempre rebaixa, entao o ?v novo chega mesmo a esses.
+                import('./' + scriptFile + '?v=${startTime}').then(function() {
                     var preloader = document.getElementById('ro-preloader');    
                     if (preloader) { preloader.remove(); }    
                 }).catch(function(err) { console.error('Failed to load app:', scriptFile, err); });    

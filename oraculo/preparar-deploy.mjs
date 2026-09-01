@@ -27,6 +27,26 @@
  * - `applications/deploy/vercel.json` -> os cabecalhos de cache. Sem ele o
  *   `Config.local.js` deixa de ser `no-cache`, e o testador fica com endereco
  *   de tunel velho em cache justamente quando ele muda.
+ *
+ *   **`Online.js` E COMPANHIA NAO PODEM SER `immutable` (30/08/2026).** Ate
+ *   hoje a regra deles era `max-age=31536000, immutable`, e os quatro tem NOME
+ *   FIXO entre builds (este pipeline escreve `Online.js`, sem hash de
+ *   conteudo). `immutable` manda o navegador nem REVALIDAR: o bundle velho
+ *   ficava servido por um ANO. O sintoma chegou como *"zerou os stats de todas
+ *   as contas"* — a janela de Status ficou no esqueleto do HTML (atributos 1,
+ *   derivados 0), porque o cliente v1 em cache nao sabe ler a ficha **v2** que
+ *   o servidor novo manda, e a guarda de versao dele recusa em silencio. Nada
+ *   tinha sido zerado: o save estava intacto.
+ *
+ *   O conserto e em DOIS niveis, e os dois sao necessarios:
+ *   1. o cabecalho virou `max-age=0, must-revalidate` (para nao repetir);
+ *   2. o `api.html` carrega `Online.js?v=<build>` (`builder-web.mjs`), porque
+ *      mudar o cabecalho **nao resgata quem ja tem a copia `immutable` presa** —
+ *      esse navegador nao pergunta. Trocar a URL e a unica coisa que alcanca
+ *      esses, e o `api.html` e `no-cache`, entao ele sempre rebaixa.
+ *
+ *   `immutable` so e seguro com nome versionado por conteudo. Se algum dia o
+ *   builder passar a emitir `Online.<hash>.js`, a regra antiga volta a valer.
  * - `../rag-idle-site` (repo IRMAO, `marcoslourencoads-svg/rag-idle-site`) ->
  *   a RAIZ do pacote. Desde 26/08 a v0 abre no site de entrada, com "Jogar" e
  *   "Cadastrar" apontando para `/jogo/`; o antigo `index.html` do jogo mudou

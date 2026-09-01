@@ -33,7 +33,8 @@ import PACKET from 'Network/PacketStructure.js';
 import Entity from 'Renderer/Entity/Entity.js';
 import Equipment from 'UI/Components/Equipment/Equipment.js';
 import Inventory from 'UI/Components/Inventory/Inventory.js';
-import { itemCollectionUrl, preferirArtePublicada } from 'Utils/ItemArt.js';
+import { carregarArteDeColecao } from 'Utils/ItemArt.js';
+import { renderRunasHTML } from 'Utils/ItemOptionsView.js';
 
 /**
  * Create Component
@@ -197,15 +198,7 @@ ItemInfo.setItem = function setItem(item) {
 
 	// Prefere a arte publicada pelo pipeline (Utils/ItemArt.js); cai no
 	// caminho antigo do GRF quando o item ainda nao foi convertido.
-	preferirArtePublicada(itemCollectionUrl(item.ITID), aplicarIlustracao, () => {
-		Client.loadFile(
-			DB.INTERFACE_PATH +
-				'collection/' +
-				(item.IsIdentified ? it.identifiedResourceName : it.unidentifiedResourceName) +
-				'.bmp',
-			aplicarIlustracao
-		);
-	});
+	carregarArteDeColecao(item, it, aplicarIlustracao);
 
 	const itemName = DB.getItemName(item, { showItemOptions: false });
 
@@ -220,34 +213,19 @@ ItemInfo.setItem = function setItem(item) {
 		title.textContent = itemName;
 	}
 
-	if (item.Options && item.IsIdentified) {
-		//Clear all option list
-		if (optionContainer) {
-			optionContainer.innerHTML = '';
-		}
-
-		//Loop to Show Options
-		for (let i = 1; i <= 5; i++) {
-			if (item.Options[i].index > 0) {
-				const randomOptionName = DB.getOptionName(item.Options[i].index);
-				const optionList =
-					'<div class="optionlist">' +
-					'<div class="border">' +
-					randomOptionName.replace('%d', item.Options[i].value).replace('%%', '%') +
-					'</div>' +
-					'</div>';
-				if (optionContainer) {
-					optionContainer.insertAdjacentHTML('beforeend', optionList);
-				}
-			}
-		}
-		if (optionContainer) {
-			optionContainer.style.display = 'block';
-		}
-	} else {
-		if (optionContainer) {
-			optionContainer.style.display = 'none';
-		}
+	/*
+	 * Runas (31/08/2026, sistema de raridade): o `.optionlist .border` de
+	 * badge azul claro saiu -- `renderRunasHTML` (Utils/ItemOptionsView.js)
+	 * monta a MESMA capsula de vidro escuro + losango + rotulo de raridade
+	 * que a dica de hover da Mochila usa (MochilaIdle.js), lendo
+	 * `Options[i].param` (0 Comum..3 Lendario) em vez de ignora-lo como o
+	 * badge antigo fazia.
+	 */
+	if (item.Options && item.IsIdentified && optionContainer) {
+		optionContainer.innerHTML = renderRunasHTML(item);
+		optionContainer.style.display = optionContainer.innerHTML ? 'block' : 'none';
+	} else if (optionContainer) {
+		optionContainer.style.display = 'none';
 	}
 
 	/*

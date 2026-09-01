@@ -15,6 +15,11 @@
  *   - o mínimo 140 / máximo 448 do container moram lá;
  *   - `.collection` 75×100 é o tamanho da arte de collection do cliente.
  * Quem mexer numa dessas alturas mexe nos dois arquivos.
+ *
+ * FONTE MAIOR + RUNAS (31/08/2026): largura 296 -> 320px para sobrar respiro
+ * pro título 14px/descrição 12.5px (eram 12/11.5) sem apertar a coluna de
+ * texto (96px de esquerda fixa pela arte de collection) — nenhum JS mede
+ * esta largura (só `resize()` mexe em ALTURA), então o número muda só aqui.
  */
 
 :host {
@@ -24,7 +29,7 @@
 
 .ItemInfo {
 	position: relative;
-	width: 296px;
+	width: 320px;
 	background: transparent;
 	font-family: var(--font-ui);
 }
@@ -35,7 +40,10 @@
 	position: relative;
 	height: 140px;
 	box-sizing: border-box;
-	background: var(--surface-window, linear-gradient(180deg, rgba(255, 255, 255, 0.96) 0%, rgba(239, 245, 252, 0.94) 100%));
+	background: var(
+		--surface-window,
+		linear-gradient(180deg, rgba(255, 255, 255, 0.96) 0%, rgba(239, 245, 252, 0.94) 100%)
+	);
 	border: 1px solid var(--border-window, rgba(36, 92, 158, 0.34));
 	border-radius: var(--radius-window);
 	box-shadow: var(--rim-light), var(--shadow-float);
@@ -55,7 +63,7 @@
 	white-space: nowrap;
 	overflow: hidden;
 	text-overflow: ellipsis;
-	font-size: 12px;
+	font-size: 14px;
 	font-weight: 700;
 	letter-spacing: 0.2px;
 	color: var(--text-title);
@@ -121,8 +129,8 @@
 	height: 95px;
 	padding-right: 4px;
 	overflow-y: auto;
-	line-height: 1.5;
-	font-size: 11.5px;
+	line-height: 1.55;
+	font-size: 12.5px;
 	color: var(--text-body);
 }
 .ItemInfo .description .description-inner {
@@ -132,18 +140,25 @@
 
 /* ------------------------------------------------- opções e lista de cartas */
 
+/* 31/08/2026: as runas usam ".ri-runas*" (UI/Common.css, compartilhado com
+   a dica da Mochila) -- ".optionlist .border" nao e mais gerado por
+   ItemInfo.js (era o badge azul claro sem raridade).
+   O cartao opaco em volta NAO e enfeite: ".ItemInfo" e transparente e so os
+   filhos tem fundo -- sem ele a capsula de vidro escuro compoe com o que
+   estiver ATRAS da janela (a prova de foto pegou a mochila vazando por
+   dentro dela). Mesma pele do ".cardlist" logo abaixo. */
 .ItemInfo .option-container {
 	margin-top: 4px;
-}
-.ItemInfo .optionlist .border {
-	box-sizing: border-box;
-	margin-top: 3px;
-	padding: 4px 8px;
-	font-size: 11px;
-	color: var(--badge-ativa-ink, #2255a4);
-	background: var(--badge-ativa-bg, #dbe4f5);
-	border: 1px solid var(--border-hairline);
-	border-radius: var(--radius-card);
+	padding: 2px 6px 6px 6px;
+	/* A MESMA pele do ".container" acima, e nao "--surface-card": o cartao e
+	   66% opaco e a mochila continuava aparecendo por dentro da capsula. */
+	background: var(
+		--surface-window,
+		linear-gradient(180deg, rgba(255, 255, 255, 0.96) 0%, rgba(239, 245, 252, 0.94) 100%)
+	);
+	border: 1px solid var(--border-window, rgba(36, 92, 158, 0.34));
+	border-radius: var(--radius-window);
+	box-shadow: var(--shadow-float);
 }
 
 .ItemInfo .cardlist {
@@ -314,7 +329,9 @@
 }
 .ItemInfo .container[data-grade='3'] {
 	border-color: var(--gold-500, #c9a227);
-	box-shadow: 0 0 0 1px var(--gold-300, #f0d89b), var(--shadow-float);
+	box-shadow:
+		0 0 0 1px var(--gold-300, #f0d89b),
+		var(--shadow-float);
 }
 .ItemInfo .container[data-grade='4'] {
 	border-color: var(--gold-500, #c9a227);
