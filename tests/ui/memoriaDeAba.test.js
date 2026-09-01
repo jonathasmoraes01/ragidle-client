@@ -1,5 +1,5 @@
 /**
- * A ABA EM QUE O JOGADOR ESTAVA (D-790, 31/08/2026).
+ * A ABA EM QUE O JOGADOR ESTAVA (D-797, 31/08/2026).
  *
  * "Configuração do Idle -> Usuário fechou em Alvos, volta para Alvos ao
  * reabri-la." O pedido parece pequeno e não é: cada janela nossa guardava a aba

@@ -679,6 +679,23 @@ function onSliderSettled(path) {
 /**
  * ─── Tab: Geral ─────────────────────────────────────────────
  */
+/*
+ * O terceiro interruptor: `atacarTodosNaMissao` (D-691, 01/09/2026).
+ *
+ * D-653 especificou este controle na secao "Onde mora" e ele NUNCA existiu: o
+ * servidor tinha contrato, padrao, validacao e DOIS consumidores, e esta aba
+ * tinha so os dois de cima. Durante a missao o automato ficava preso a
+ * especie-alvo sem o jogador ter como soltar.
+ *
+ * Portao: servidor/idle/controle-na-tela.test.ts — todo booleano do topo da
+ * config idle precisa de um `data-bool` nesta janela.
+ *
+ * A RAZAO MORA AQUI, e nao dentro do template. A primeira versao a escreveu
+ * como comentario de HTML dentro da string, com CRASE em volta do nome do
+ * teste — a crase fechou o template literal e o arquivo virou erro de
+ * sintaxe, o que derrubou o CLIENTE INTEIRO ("Failed to load roBrowser
+ * engine"). Comentario de JS, fora do template, nao tem como fazer isso.
+ */
 function renderGeral() {
 	const cfg = IdleConfig.editConfig;
 
@@ -712,7 +729,7 @@ function renderGeral() {
 					<span class="ic-switch-track"></span>
 				</span>
 				<span class="ic-switch-text">
-					<span class="ic-switch-label">Atacar todos os mobs durante missão</span>
+					<span class="ic-switch-label">Atacar todos os monstros durante missões</span>
 					<span class="ic-switch-sub">Desligado, uma missão de caça foca só no alvo dela. Ligado, ataca qualquer monstro do mapa enquanto a missão roda.</span>
 				</span>
 			</label>

@@ -95,7 +95,7 @@ export const NOMES_LOCAIS = {
 	400171: 'Costume Angel feather', // db/re/item_db_equip.yml:166992 (C_Angel_feather)
 
 	// --- Rodada 3: o cosmetico de CABECA que o dono pediu (31/08/2026) ---
-	// O primeiro item da loja que nao e manto. Ver D-789.
+	// O primeiro item da loja que nao e manto. Ver D-796.
 	420010: 'Costume Dark Master' // db/re/item_db_equip.yml:185600 (C_Cons_Of_Darkness)
 };
 
@@ -133,7 +133,7 @@ export const NOMES_LOCAIS = {
  * **20500, 20606 e 400171 ficam de fora**: o `.bmp` derivado nao existe no
  * GRF, e a maca continua sendo a resposta honesta para eles.
  *
- * ## O 420010 nao e derivado: ele foi DESENHADO (D-789, 31/08/2026)
+ * ## O 420010 nao e derivado: ele foi DESENHADO (D-796, 31/08/2026)
  *
  * O `C_Cons_Of_Darkness` entrou na loja por pedido do dono, e para ele a
  * derivacao nao serve — o GRF inteiro so tem 4 arquivos com esse nome, os 4
@@ -289,7 +289,7 @@ export const ICONES_LOCAIS = {
 
 	/*
 	 * O UNICO QUE NAO E DERIVADO: este `.bmp` NAO EXISTE no GRF — nos o
-	 * fizemos, do sprite do proprio item (D-789, 31/08/2026). Ele mora em
+	 * fizemos, do sprite do proprio item (D-796, 31/08/2026). Ele mora em
 	 * `cliente/icones-de-item/_Cons_Of_Darkness.bmp`, no repositorio do jogo, e
 	 * o servidor de assets o entrega quando o GRF nao tem (a terceira fonte de
 	 * `tools/oraculo/servidor-de-assets.ts`).

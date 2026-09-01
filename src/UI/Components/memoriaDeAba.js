@@ -2,7 +2,7 @@
  * A ABA EM QUE O JOGADOR ESTAVA — memoria de aba das janelas RAGIDLE.
  *
  * ===========================================================================
- * O DEFEITO QUE ESTA PECA EXISTE PARA MATAR (D-790, 31/08/2026)
+ * O DEFEITO QUE ESTA PECA EXISTE PARA MATAR (D-797, 31/08/2026)
  * ===========================================================================
  *
  * Toda janela nossa com abas guardava a aba ativa numa variavel de MODULO

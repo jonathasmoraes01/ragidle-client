@@ -1,7 +1,7 @@
 /**
  * UI/Components/IdleSkills/IdleSkills.js
  *
- * "Habilidades de {classe}" — janela RAGIDLE. Desde 31/08/2026 (D-792, pedido
+ * "Habilidades de {classe}" — janela RAGIDLE. Desde 31/08/2026 (D-799, pedido
  * do dono) ela é uma **ÁRVORE DE HABILIDADES**, e não mais uma lista de cards.
  *
  * ===========================================================================
@@ -52,7 +52,7 @@
  * `Network/Packets/packets2021_len_main.js`.
  *
  * **O contrato do JSON é `servidor/mapa/contrato-de-skills.ts`**, e ele está na
- * versão **2** desde D-792 (a v1 não trazia `preRequisitos`, `grau`,
+ * versão **2** desde D-799 (a v1 não trazia `preRequisitos`, `grau`,
  * `aceitaPeloMotor` nem os níveis do personagem). O `if` de versão logo abaixo
  * RECUSA a v1 de propósito: um servidor velho responderia sem pré-requisito
  * nenhum, e a janela desenharia uma árvore sem nenhuma ligação — plausível e
@@ -395,7 +395,7 @@ function requestSkills() {
 }
 
 /**
- * Manda o rascunho inteiro num pacote só — o "Aplicar" (D-792).
+ * Manda o rascunho inteiro num pacote só — o "Aplicar" (D-799).
  *
  * O lote vai em ordem de dependência (`ordemDoLote`), porque o servidor aplica
  * na ordem que receber e não reordena: reordenar seria ele adivinhando a

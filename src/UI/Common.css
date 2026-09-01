@@ -525,7 +525,7 @@ ui-button {
 	--h-huntmap: 460px;
 	--w-idleconfig: 620px;
 	--h-idleconfig: 540px;
-	/* Cresceu com a arvore de habilidades (D-792, 31/08/2026; 980x640 na 2a
+	/* Cresceu com a arvore de habilidades (D-799, 31/08/2026; 980x640 na 2a
 	   rodada de design do mesmo dia — o no encorpou e as 4 colunas do Cavaleiro
 	   pediram o resto): a lista antiga cabia numa coluna de 190px, o plano da
 	   arvore de uma 2a classe nao cabe. Anda junto com `:host`/`.is-window` no

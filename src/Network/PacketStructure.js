@@ -15897,6 +15897,36 @@ PACKET.CZ.RAGIDLE_VIAJAR.prototype.build = function () {
 	return pkt_buf;
 };
 
+// 0x0fe1 - RAGIDLE: CZ_RAGIDLE_PEDIR_MONSTROS (client -> server)
+// Fixed 18 bytes, same shape as CZ_RAGIDLE_VIAJAR above: u16 opcode + 16-byte
+// map name. Sent when the player selects a map in the HuntMap window.
+//
+// Why it exists (D-788): until v1 the catalogue carried every monster of every
+// map inline — race, element and the full drop list — which was 84.4% of the
+// payload. Three new maps pushed it to 65,639 bytes, 104 over the protocol's
+// u16 size field, and the server stopped sending the catalogue at all: the
+// travel window would not open. The catalogue is now an index (ids only) and
+// this pair fetches one map's fiche on demand.
+PACKET.CZ.RAGIDLE_PEDIR_MONSTROS = function PACKET_CZ_RAGIDLE_PEDIR_MONSTROS() {
+	this.mapName = '';
+};
+PACKET.CZ.RAGIDLE_PEDIR_MONSTROS.prototype.build = function () {
+	const pkt_len = 2 + 16;
+	const pkt_buf = new BinaryWriter(pkt_len);
+
+	pkt_buf.writeShort(0x0fe1);
+	pkt_buf.writeString(this.mapName, 16);
+	return pkt_buf;
+};
+
+// 0x0fe0 - RAGIDLE: ZC_RAGIDLE_MONSTROS (server -> client)
+// Variable size: u16 opcode + u16 total length + JSON UTF-8 payload. Same
+// parsing pattern as ZC_RAGIDLE_CATALOGO above.
+PACKET.ZC.RAGIDLE_MONSTROS = function PACKET_ZC_RAGIDLE_MONSTROS(fp, end) {
+	this.json = fp.readString(end - fp.tell());
+};
+PACKET.ZC.RAGIDLE_MONSTROS.size = -1;
+
 // RAGIDLE: custom packets for the "Configuração idle" window
 // (UI/Components/IdleConfig/IdleConfig.js). Opcodes 0x0ff3-0x0ff5 are free
 // in this fork, right after HuntMap's 0x0ff0-0x0ff2 above. Framing for

@@ -972,6 +972,7 @@ export default {
 	// and are correspondingly absent from this file, e.g. PACKET.CZ.HBT/
 	// PACKET.CZ.REQUEST_QUIT are built+sent but never registered either.
 	0x0ff1: PACKET.ZC.RAGIDLE_CATALOGO,
+	0x0fe0: PACKET.ZC.RAGIDLE_MONSTROS,
 
 	// RAGIDLE: "Configuração idle" custom packet (see PacketStructure.js
 	// "RAGIDLE:" section, opcodes 0x0ff3-0x0ff5). Same reasoning as

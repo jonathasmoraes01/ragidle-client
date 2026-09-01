@@ -1,5 +1,5 @@
 /**
- * "FECHOU EM ALVOS, VOLTA PARA ALVOS" — a prova de ponta a ponta (D-790).
+ * "FECHOU EM ALVOS, VOLTA PARA ALVOS" — a prova de ponta a ponta (D-797).
  *
  * `memoriaDeAba.test.js` mede as peças e o portão. Este mede o PEDIDO, com a
  * janela real: monta a `Configuração idle` com o HTML de verdade, clica na aba

@@ -9,6 +9,15 @@
  *   CZ_RAGIDLE_PEDIR_CATALOGO 0x0ff0  (client -> server, fixed, opcode only)
  *   ZC_RAGIDLE_CATALOGO       0x0ff1  (server -> client, variable, JSON payload)
  *   CZ_RAGIDLE_VIAJAR         0x0ff2  (client -> server, fixed 18 bytes)
+ *   CZ_RAGIDLE_PEDIR_MONSTROS 0x0fe1  (client -> server, fixed 18 bytes)
+ *   ZC_RAGIDLE_MONSTROS       0x0fe0  (server -> client, variable, JSON payload)
+ *
+ * D-788: the catalogue is an INDEX (mobId, name, drop NAMES — everything the
+ * grid and the search box need at once) and the per-map fiche (race, element,
+ * drop ids and chances) is fetched when a map is selected. Until v1 the fiche
+ * of every monster of every map travelled inline: 84.4% of the payload, and
+ * three new maps pushed it 104 bytes past the protocol's u16 size field. The
+ * server refused to send it and the window stopped opening.
  * Declared in Network/PacketStructure.js (search "RAGIDLE:") and registered
  * for receive-side framing in Network/PacketRegister.js and
  * Network/Packets/packets2021_len_main.js (see comments there).
@@ -64,6 +73,15 @@ const WINDOW_HEIGHT = 620;
  * icons.
  */
 const MOB_STACK_MAX = 5;
+
+/**
+ * A versao do contrato do catalogo, do servidor (`servidor/mapa/catalogo.ts`).
+ *
+ * 2 desde D-788: o catalogo virou INDICE e a ficha de cada mapa passou a vir
+ * por pedido. Um cliente que lesse `mapa.monstros[].raca` de um servidor v2
+ * acharia `undefined` — recusar pelo `v` e melhor que desenhar em branco.
+ */
+const CONTRATO_DO_CATALOGO = 2;
 
 /**
  * Race translation (PT-BR), fixed dictionary as requested.
@@ -189,13 +207,6 @@ HuntMap.selectedMobId = null;
 let _pendingAutoTravel = false;
 
 /**
- * As fatias de `mapas` do catalogo v2 que ja chegaram (o catalogo e paginado
- * desde 01/09/2026 — ver onCatalogReceived). Vive so entre a parte 1 e a
- * ultima do MESMO pedido; a parte 1 sempre zera.
- */
-let _catalogPartes = [];
-
-/**
  * ESQUECE O PERSONAGEM ANTERIOR — ver a nota gemea em IdleConfig.js
  * (27/08/2026, auditoria C).
  *
@@ -205,12 +216,12 @@ let _catalogPartes = [];
  */
 HuntMap.limparEstadoDoPersonagem = function limparEstadoDoPersonagem() {
 	HuntMap.catalog = null;
+	// A ficha e do CATALOGO daquele personagem: deixa-la atravessar mostraria
+	// os monstros de um mapa como o outro personagem os via (D-788).
+	HuntMap.fichas = {};
 	HuntMap.selectedMapa = null;
 	HuntMap.selectedMobId = null;
 	_pendingAutoTravel = false;
-	// Fatia orfa de um catalogo paginado do personagem anterior nao pode
-	// costurar com as partes do proximo pedido.
-	_catalogPartes = [];
 	/*
 	 * ZERAR O DADO NAO BASTA: `GUIComponent.remove()` so DESANEXA o host,
 	 * entao o shadow DOM (com `is-open` e o HTML do personagem anterior)
@@ -428,6 +439,56 @@ function requestCatalog() {
 	Network.sendPacket(new PACKET.CZ.RAGIDLE_PEDIR_CATALOGO());
 }
 
+/**
+ * A ficha de cada mapa, por mapa, uma vez por sessao de janela (D-788).
+ *
+ * `null` guardado = pedido EM VOO. Sem essa marca, cada `renderPanel` do mesmo
+ * mapa dispararia um pedido novo — e `renderPanel` roda a cada clique de chip,
+ * a cada troca de visao e a cada re-render da lista.
+ */
+HuntMap.fichas = {};
+
+/**
+ * CZ_RAGIDLE_PEDIR_MONSTROS — opcode 0x0fe1, 18 bytes (opcode + mapa em 16).
+ * Mesma forma de CZ_RAGIDLE_VIAJAR.
+ */
+function pedirFicha(mapName) {
+	if (!mapName || Object.prototype.hasOwnProperty.call(HuntMap.fichas, mapName)) {
+		return;
+	}
+	HuntMap.fichas[mapName] = null; // em voo
+	const pkt = new PACKET.CZ.RAGIDLE_PEDIR_MONSTROS();
+	pkt.mapName = mapName;
+	Network.sendPacket(pkt);
+}
+
+/**
+ * ZC_RAGIDLE_MONSTROS — a ficha de um mapa.
+ *
+ * O servidor responde com SILENCIO para mapa que nao e de caca (prontera), e
+ * isso e o desenho: a marca de "em voo" fica, o painel segue mostrando os
+ * chips do indice, e nao ha pedido repetido a cada render.
+ */
+function onMonstrosReceived(pkt) {
+	let data;
+	try {
+		data = JSON.parse(pkt.json);
+	} catch (e) {
+		console.error('[HuntMap] Falha ao interpretar a ficha de monstros:', e, pkt.json);
+		return;
+	}
+	if (!data || data.v !== CONTRATO_DO_CATALOGO || !data.mapa) {
+		console.error('[HuntMap] Ficha com contrato incompativel (v=' + (data && data.v) + ').', data);
+		return;
+	}
+	HuntMap.fichas[data.mapa] = data;
+	// So re-desenha se o jogador ainda esta olhando este mapa: a ficha pode
+	// chegar depois de ele ter clicado em outro.
+	if (HuntMap.selectedMapa === data.mapa) {
+		renderPanel();
+	}
+}
+
 function setStatus(text) {
 	const root = _root();
 	const el = root.querySelector('.hm-status');
@@ -490,34 +551,11 @@ function onCatalogReceived(pkt) {
 		return;
 	}
 
-	if (!data || data.v !== 2) {
-		console.error('[HuntMap] Catálogo com contrato incompatível (v=' + (data && data.v) + ', o cliente fala v2).', data);
+	if (!data || data.v !== CONTRATO_DO_CATALOGO) {
+		console.error('[HuntMap] Catálogo com contrato incompatível (v=' + (data && data.v) + ').', data);
 		setStatus('Catálogo incompatível.');
 		avisarSeAJanelaEstaFechada('Catálogo de mapas incompatível — a viagem não saiu.');
 		return;
-	}
-
-	/*
-	 * O CATALOGO v2 CHEGA EM PARTES (01/09/2026): com os mapas do vao 49-54 o
-	 * JSON inteiro estourou o teto u16 do pacote e o servidor DERRUBAVA a
-	 * conexao de quem clicava em Cacar. Cada parte repete o envelope e traz uma
-	 * fatia de `mapas`, na ordem; TCP preserva a sequencia, entao juntar e
-	 * concatenar. `parte === 1` zera o acumulador — um pedido novo nunca herda
-	 * fatias orfas de um pedido que nao terminou (troca de mapa no meio, por
-	 * exemplo). So a ultima parte segue para desenhar; a viagem pendente (que a
-	 * flag la em cima ja consumiu) e re-armada enquanto o resto nao chega.
-	 */
-	if (data.totalPartes > 1) {
-		if (data.parte === 1) {
-			_catalogPartes = [];
-		}
-		_catalogPartes.push(data.mapas);
-		if (data.parte < data.totalPartes) {
-			_pendingAutoTravel = viagemPendente;
-			return;
-		}
-		data.mapas = [].concat.apply([], _catalogPartes);
-		_catalogPartes = [];
 	}
 
 	HuntMap.catalog = data;
@@ -581,7 +619,17 @@ function onClickTab(e) {
  * (card avatar-stack, right-panel chip grid, search-by-monster/drop).
  */
 function allMonstersOf(mapa) {
-	return (mapa.monstros || []).concat(mapa.mvp ? [mapa.mvp] : []);
+	/*
+	 * A FICHA QUANDO HOUVER, o indice sempre (D-788).
+	 *
+	 * As duas formas trazem `mobId` e `nome`, que e o que os chips e os
+	 * avatares desenham — entao a grade e a busca funcionam sem a ficha. O que
+	 * so a ficha tem e raca, elemento e a CHANCE de cada drop, e quem precisa
+	 * disso (`renderMobDetail`, `renderDropsDoMapa`) pergunta por `raca`.
+	 */
+	const ficha = mapa && HuntMap.fichas[mapa.mapa];
+	const fonte = ficha || mapa;
+	return (fonte.monstros || []).concat(fonte.mvp ? [fonte.mvp] : []);
 }
 
 /**
@@ -786,10 +834,27 @@ function renderPanel() {
 			<button type="button" class="hm-visao-btn${porMapa ? ' is-selected' : ''}" data-visao="mapa" role="tab" aria-selected="${porMapa ? 'true' : 'false'}">Do mapa</button>
 		</div>`;
 
+	/*
+	 * O DETALHE PRECISA DA FICHA, e os chips nao (D-788).
+	 *
+	 * Raca, elemento e a CHANCE de cada drop sairam do catalogo — eram 84% do
+	 * payload e estouravam o teto do pacote. Eles vem por mapa, quando o
+	 * jogador seleciona um.
+	 *
+	 * Enquanto ela nao chega, o painel mostra os chips (que so precisam de id e
+	 * nome, e vem do indice) e um aviso no lugar do detalhe. Nao ha estado
+	 * "vazio" mentindo: a janela nunca afirma "sem drops" por causa da espera.
+	 */
+	const ficha = HuntMap.fichas[mapa.mapa];
+	if (!ficha) {
+		pedirFicha(mapa.mapa);
+	}
 	const selectedMonster = monstros.find(m => String(m.mobId) === String(HuntMap.selectedMobId));
-	const detailHtml = porMapa
-		? renderDropsDoMapa(mapa)
-		: (selectedMonster ? renderMobDetail(selectedMonster, mapa) : '');
+	const detailHtml = !ficha
+		? '<div class="hm-panel-empty">Carregando os monstros deste mapa...</div>'
+		: porMapa
+			? renderDropsDoMapa(ficha)
+			: (selectedMonster ? renderMobDetail(selectedMonster, ficha) : '');
 
 	let actionsHtml = '';
 	if (isCurrent) {
@@ -953,6 +1018,7 @@ HuntMap.travelToCity = function travelToCity() {
 };
 
 Network.hookPacket(PACKET.ZC.RAGIDLE_CATALOGO, onCatalogReceived);
+Network.hookPacket(PACKET.ZC.RAGIDLE_MONSTROS, onMonstrosReceived);
 
 /**
  * Create component and export it

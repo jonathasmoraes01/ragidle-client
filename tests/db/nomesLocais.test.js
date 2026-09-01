@@ -109,7 +109,7 @@ describe('a lista aponta so para item que o jogo conhece', () => {
 		 * cruzamento numa arvore que tenha o conteudo.
 		 *
 		 * 22 dos drops (25/08) + 14 da Loja de Cosmeticos (31/08) + o 420010,
-		 * o cosmetico de CABECA que o dono pediu no mesmo dia (D-789).
+		 * o cosmetico de CABECA que o dono pediu no mesmo dia (D-796).
 		 */
 		expect(Object.keys(NOMES_LOCAIS)).toHaveLength(37);
 	});
@@ -185,7 +185,7 @@ describe('o icone local (31/08/2026)', () => {
 		 * de deduzir da tabela.
 		 *
 		 * O 11o (420010) e de outra natureza: o `.bmp` nao existe no GRF, foi
-		 * FEITO do sprite do item (D-789). Ele nao sai da derivacao e nao entra
+		 * FEITO do sprite do item (D-796). Ele nao sai da derivacao e nao entra
 		 * naquela contagem.
 		 *
 		 * Os 5 da Rodada 4 (31/08/2026) tem `.bmp` no GRF sob o proprio
@@ -282,7 +282,7 @@ describe('o icone local (31/08/2026)', () => {
 	});
 });
 
-describe('o cosmetico de cabeca que o dono pediu (420010, D-789)', () => {
+describe('o cosmetico de cabeca que o dono pediu (420010, D-796)', () => {
 	/** O nome do `.bmp` que fizemos, em `cliente/icones-de-item/`. */
 	const ICONE_PROPRIO = '_Cons_Of_Darkness';
 

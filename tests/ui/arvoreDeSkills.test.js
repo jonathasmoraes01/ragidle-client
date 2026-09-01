@@ -1,5 +1,5 @@
 /**
- * A ÁRVORE DE HABILIDADES — a parte provável dela (D-792, 31/08/2026).
+ * A ÁRVORE DE HABILIDADES — a parte provável dela (D-799, 31/08/2026).
  *
  * `IdleSkills.js` é DOM, pacote e preferência: só a pilha ao vivo e a foto o
  * julgam. Mas duas coisas dentro dele são função pura, e são justamente as duas

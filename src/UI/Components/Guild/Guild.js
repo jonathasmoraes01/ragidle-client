@@ -74,7 +74,7 @@ let _guildAccess = 0;
 let _checkbox_off, _checkbox_on;
 
 /**
- * RAGIDLE (D-790, 31/08/2026): a aba em que o jogador estava.
+ * RAGIDLE (D-797, 31/08/2026): a aba em que o jogador estava.
  *
  * As abas daqui sao os `data-flag` (0 Geral .. 6 Aviso), guardados como texto.
  * A janela ja lembrava a aba enquanto a pagina vivia — ela so ESCONDE em vez de
