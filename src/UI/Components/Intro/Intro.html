@@ -19,7 +19,9 @@
 			<div class="about-content">
 				<div class="emblem small-emblem">
 					<div class="emblem-ring"></div>
-					<span class="emblem-icon">&#x2694;&#xFE0F;</span>
+					<!-- Fase 3: emoji e proibido pelo DS — espadas cruzadas em
+					     traco Lucide (mesmo idioma de ri-icones.js). -->
+					<span class="emblem-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 3l7 7M3 4l7 7"/><path d="M14.5 12.5L20 18l-2 2-5.5-5.5"/><path d="M20 3L4 19"/><path d="M15 8l1.5-1.5"/><path d="M4 20l2-2"/></svg></span>
 				</div>
 				<h1 class="about-title">Ragnarok Classic Idle</h1>
 				<h2 class="about-subtitle">Cliente idle construído sobre o roBrowser Legacy</h2>
@@ -66,7 +68,7 @@
 		<!-- Settings overlay -->
 		<div class="overlay settings" style="display: none">
 			<div class="settings-content">
-				<h1 class="settings-title">&#x2699; Configurações</h1>
+				<h1 class="settings-title">Configurações</h1>
 
 				<div class="section-header"><span>Janela</span></div>
 				<table class="screen">
@@ -177,7 +179,8 @@
 		<div class="msg"></div>
 		<input type="file" multiple="multiple" directory="" webkitDirectory="" />
 		<button class="btn_play">Começar Agora</button>
-		<button class="btn_settings">⚙</button>
+		<!-- Fase 3: a engrenagem-emoji virou traco Lucide (o DS proibe emoji). -->
+		<button class="btn_settings" title="Configurações" aria-label="Configurações"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2.5v3M12 18.5v3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M2.5 12h3M18.5 12h3M4.9 19.1 7 17M17 7l2.1-2.1"/></svg></button>
 		<canvas width="800" height="600"></canvas>
 	</div>
 </div>

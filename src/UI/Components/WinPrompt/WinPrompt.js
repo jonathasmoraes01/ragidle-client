@@ -9,13 +9,15 @@
  */
 
 import UIManager from 'UI/UIManager.js';
-import GUIComponent from 'UI/GUIComponent.js';
 import WinPopup from 'UI/Components/WinPopup.js';
 
 /**
  * Create Component
  */
 const WinPrompt = WinPopup.clone('WinPrompt');
+
+/* Dialogo entra/sai com a animacao unica (Fase 3, 01/09/2026). */
+WinPrompt.riAnimaJanela = true;
 
 /**
  * Initialize popup
@@ -49,13 +51,14 @@ WinPrompt.ask = function ask(text, btn_yes, btn_no, onYes, onNo) {
 	if (btnsEl) {
 		btnsEl.innerHTML = '';
 
+		/* Fase 3 (01/09/2026): os bitmaps btn_*.bmp sairam — mesmo padrao do
+		   _createButton de UIManager: pele .ri-btn, rotulo em texto PT. */
+		const rotulo = nome => ({ ok: 'OK', cancel: 'Cancelar', yes: 'Sim', no: 'Não' })[nome] || nome;
+
 		// Create YES button
 		const yesBtn = document.createElement('button');
-		yesBtn.className = 'btn';
-		yesBtn.dataset.background = 'btn_' + btn_yes + '.bmp';
-		yesBtn.dataset.hover = 'btn_' + btn_yes + '_a.bmp';
-		yesBtn.dataset.down = 'btn_' + btn_yes + '_b.bmp';
-		GUIComponent.processDataAttrs(yesBtn);
+		yesBtn.className = 'btn ri-btn';
+		yesBtn.textContent = rotulo(btn_yes);
 		yesBtn.addEventListener(
 			'click',
 			function () {
@@ -69,11 +72,8 @@ WinPrompt.ask = function ask(text, btn_yes, btn_no, onYes, onNo) {
 
 		// Create NO button
 		const noBtn = document.createElement('button');
-		noBtn.className = 'btn';
-		noBtn.dataset.background = 'btn_' + btn_no + '.bmp';
-		noBtn.dataset.hover = 'btn_' + btn_no + '_a.bmp';
-		noBtn.dataset.down = 'btn_' + btn_no + '_b.bmp';
-		GUIComponent.processDataAttrs(noBtn);
+		noBtn.className = 'btn ri-btn ri-btn--sec';
+		noBtn.textContent = rotulo(btn_no);
 		noBtn.addEventListener(
 			'click',
 			function () {

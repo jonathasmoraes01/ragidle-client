@@ -31,18 +31,24 @@
 	position: absolute;
 }
 
+/* Fase 3 (01/09/2026): a dica do buff virou a capsula de vidro escuro do
+   design system (a MESMA de .tm-label e das dicas do CheckAttendance) — o
+   preto meio-transparente com borda cinza era de antes do DS. A arte do
+   buff em si continua vindo do cliente (canvas), que e arte de jogo. */
 #StatusIcons .state .description {
 	display: none;
 	z-index: 51;
 	position: absolute;
 	right: 33px;
 	top: 0px;
-	padding: 0px 5px 0px 5px;
-	background-color: rgba(0, 0, 0, 0.5);
-	border: 1px solid #c6c6c6;
-	border-radius: 3px;
-	color: white;
-	text-shadow: 1px 1px black;
+	padding: 1px 6px;
+	background: var(--surface-dark-glass, rgba(18, 41, 74, 0.58));
+	backdrop-filter: var(--blur-glass, blur(10px));
+	border-radius: var(--radius-pill, 999px);
+	color: var(--white, #ffffff);
+	text-shadow: 0 1px 2px rgba(8, 22, 40, 0.85);
+	font: var(--type-label, 600 11px/1.4 Arial);
+	font-family: var(--font-ui, 'Figtree', Arial, sans-serif);
 	white-space: nowrap;
 	line-height: 16px;
 }
