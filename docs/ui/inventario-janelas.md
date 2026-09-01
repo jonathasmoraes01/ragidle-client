@@ -1,8 +1,40 @@
 # Inventário de janelas, telas e overlays
 
 > Fase 1 da onda de padronização visual (01/09/2026). **120 componentes** em
-> `src/UI/Components/`. Nada foi alterado — este documento é o mapa de onde a
-> Fase 3 vai passar.
+> `src/UI/Components/`. Este documento é o mapa de onde a Fase 3 passou.
+
+## ✅ FASE 3 EXECUTADA (01/09/2026, commits 82e7b061 · 5c212d14 · 7734dd6f · 89d70045)
+
+O dono decidiu: **todas** as janelas clássicas entram no padrão. Feito:
+
+- **A loja de NPC virou NpcStoreV2** (componente versionado; a V1 clássica é
+  reserva por config `uiVersions.NpcStore = 'default'`). Uma janela para os 8
+  tipos de comércio: lista com busca, degrau de quantidade por linha, total
+  vivo e freio de zeny. Provada em jogo com interação real
+  (`rag-idle-master/scripts/fotografar-loja-npc.ts`).
+- **Animação única de abrir/fechar** agora alcança janela NATIVA:
+  `Comp.riAnimaJanela = true` + proxy `ui.show()/hide()` e `append/remove`
+  de GUIComponent (opt-in; ContextMenu e SkillTargetSelection ficaram FORA
+  de propósito — popup de alta frequência e mira precisam ser instantâneos).
+- **Todo o P2/P3/P4 legado foi reformado** (~50 componentes, ver o commit
+  89d70045 para a lista completa): chrome de bitmap → `.ri-*`, cores →
+  tokens, rótulos de bitmap → texto PT-BR, dicas → cápsula de vidro escuro.
+  Arte de CONTEÚDO (slots de encaixe, silhuetas, animações de refino,
+  ícones) continua do cliente, decisão documentada janela a janela.
+- **Prova**: máquina `fotografar-janelas-legadas.ts` (antes/depois, mesmo
+  personagem) — nada que montava quebrou; Clan e Navigation passaram a
+  montar. Pranchas em [prints/fase-3/](prints/fase-3/).
+- Armadilha nova cicatrizada em 3 janelas (Enchant/EnchantGrade/Refine):
+  **altura 100% na raiz colapsa no container do Shadow DOM** e a janela some
+  inteira — pixel cravado igual ao `:host`, sempre.
+
+**Fica de fora, com motivo:** MobileUI/Joystick (aguarda `[DONO-8]`);
+Mail/Rodex nativos (inalcançáveis — candidatos a remoção); envelopes por
+linha do CorreioIdle (vira badge em passada própria); diagramas-bitmap de
+equipamento (projeto de arte próprio); contraste de `skills`/`ro-shop` no
+disco claro (opção medida à parte); P5 (ferramentas de dev, fora de escopo).
+
+---
 
 ## Leia isto antes do resto
 

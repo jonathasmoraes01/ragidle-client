@@ -92,6 +92,29 @@ que hoje empilha 11 botões juntos — é exatamente o anti-padrão citado.
 - **"Mudança de estado instantânea (0ms) é anti-padrão"** — vale para o estado
   pressionado do botão.
 
+## Fase 3 — a loja de NPC (NpcStoreV2)
+
+Consultada de novo para o redesenho do comércio. O banco da skill **não tem
+padrão de loja de jogo** (as buscas por stepper/carrinho voltaram genéricas;
+declarado como manda o contrato dela) — o que valeu foi:
+
+- **Input Labels / Input Types** (Forms, alta): o campo de quantidade tem
+  `aria-label` por item e `inputmode="numeric"`; a busca tem `aria-label`
+  visível de propósito.
+- **Target Size**: degrau de quantidade com alvos de 24px (o mínimo WCAG 2.2
+  AA para web), botões Máx e ± separados por gap.
+- **Feedback nunca mudo**: o freio de zeny pinta o total E a bolsa de
+  vermelho e trava o botão com `title` explicando — a regra "erro perto do
+  campo, explicando o quê e como".
+- Do **gabarito Origin** (`redesign/referencia-hud-origin.md`): copiou-se a
+  ORGANIZAÇÃO (uma lista, total sempre visível, uma ação primária, nada de
+  arrastar) e nenhum acabamento — forma 100% do nosso design system, como o
+  gabarito manda.
+
+As decisões de interação (lista + degrau em vez de arrastar; desconto
+riscado + verde; "Você tem X Zeny" no topo) são craft geral de comércio,
+declaradas aqui como fallback — não saíram de match do banco da skill.
+
 ## O que a skill NÃO decidiu
 
 A skill é catálogo de referência. **O design system oficial do dono continua
