@@ -274,10 +274,16 @@
 	cursor: default;
 }
 
+/* 56px e padding horizontal PROPRIO (o --sp-5 de .ri-input comia 20px dos
+   40 originais e sobravam 18px de conteudo — menos de 3 digitos, e "100"
+   saia cortado como "10(", visto na foto do dono em 01/09). Agora sobram
+   ~46px: cabe o teto de 9999 da loja infinita e os 5 digitos de uma pilha
+   cheia do inventario na venda. */
 .ns-qtd-in {
-	width: 40px;
+	width: 56px;
 	height: 24px;
 	box-sizing: border-box;
+	padding: 0 var(--sp-2);
 	text-align: center;
 	font: var(--type-numeric);
 	font-variant-numeric: tabular-nums;
