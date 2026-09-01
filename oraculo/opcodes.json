@@ -30,18 +30,18 @@
 		},
 		"map": {
 			"entrada": {
-				"total": 722,
+				"total": 724,
 				"semTamanho": 0
 			},
 			"saida": {
-				"total": 543,
+				"total": 544,
 				"semTamanho": 0
 			}
 		}
 	},
 	"comprimentosDoCliente": {
 		"arquivo": "src/Network/Packets/packets2021_len_main.js",
-		"declarados": 1619,
+		"declarados": 1622,
 		"preencheram": 87,
 		"divergencias": [
 			{
@@ -12472,6 +12472,16 @@
 					"tamanho": -1,
 					"desde": null
 				},
+				"0x0fe0": {
+					"nome": "ZC_RAGIDLE_MONSTROS",
+					"tamanho": -1,
+					"desde": null
+				},
+				"0x0fe2": {
+					"nome": "ZC_RAGIDLE_LOG",
+					"tamanho": -1,
+					"desde": null
+				},
 				"0x0fe3": {
 					"nome": "ZC_RAGIDLE_CODEX",
 					"tamanho": -1,
@@ -15414,6 +15424,11 @@
 					"tamanho": 7,
 					"desde": null,
 					"fonteDoTamanho": "cliente"
+				},
+				"0x0fe1": {
+					"nome": "CZ_RAGIDLE_PEDIR_MONSTROS",
+					"tamanho": 18,
+					"desde": null
 				},
 				"0x0fe4": {
 					"nome": "CZ_RAGIDLE_CODEX_ACAO",

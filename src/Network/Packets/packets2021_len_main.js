@@ -4865,6 +4865,8 @@ function init(packetver) {
 	// independent of the official rAthena packet version negotiation.
 	length_list[0x0ff0] = 2; // CZ_RAGIDLE_PEDIR_CATALOGO (opcode only)
 	length_list[0x0ff1] = -1; // ZC_RAGIDLE_CATALOGO (variable, JSON payload)
+	length_list[0x0fe0] = -1; // ZC_RAGIDLE_MONSTROS (variable, JSON payload)
+	length_list[0x0fe1] = 18; // CZ_RAGIDLE_PEDIR_MONSTROS (opcode + 16-byte map)
 	length_list[0x0ff2] = 18; // CZ_RAGIDLE_VIAJAR (opcode + 16-byte map name)
 
 	// RAGIDLE: custom "Configuração idle" packets (see
