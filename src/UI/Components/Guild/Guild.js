@@ -52,6 +52,10 @@ const AccessTypeBit = {
 const Guild = new GUIComponent('Guild', cssText);
 Guild.render = () => htmlText;
 
+/* Janela nativa entra na animacao unica de abrir/fechar (Fase 3,
+   01/09/2026) — o proxy show/hide de GUIComponent le esta bandeira. */
+Guild.riAnimaJanela = true;
+
 /**
  * View templates (stored as DOM nodes)
  */

@@ -1,3 +1,12 @@
+/* Fase 3 (01/09/2026): a caixinha de entrada (numero/preco/senha/nome de
+   loja) trocou o branco cru + cinza #efefef pela receita do design system —
+   mesmo vidro claro, hairline azul e aro dourado das janelas. O tamanho por
+   TIPO (number encolhe) continua, so que por largura da caixa; o input e o
+   botao agora se distribuem por flex em vez de pixel absoluto.
+
+   NAO ha barra de titulo de proposito: isto e um balao modal transitorio,
+   nao uma janela — o rotulo (.text) faz o papel de titulo quando o motor o
+   preenche, e some sem ocupar espaco quando vem vazio. */
 :host {
 	top: 0px;
 	left: 0px;
@@ -5,51 +14,56 @@
 }
 
 #inputbox {
-	position: relative;
 	width: 274px;
-	height: 44px;
-	border-radius: 5px;
-	background-color: white;
-	padding: 2px;
-}
-#inputbox .border {
-	border-radius: 5px;
-	border: 1px solid #c1c6c2;
-	width: 262px;
-	height: 37px;
-	padding-top: 5px;
-	padding-left: 10px;
-}
-#inputbox .text {
-	border-radius: 5px;
-	width: 270px;
-	height: 13px;
-	overflow: hidden;
-}
-#inputbox input {
-	border: 0;
-	background-color: #efefef;
-	width: 203px;
-	height: 16px;
-	margin-top: 3px;
-}
-#inputbox ui-button {
-	width: 42px;
-	height: 20px;
-	position: absolute;
-	bottom: 13px;
-	right: 10px;
+	background: var(--window-fill, #fbfdff);
+	border: var(--window-frame, 1px solid rgba(36, 92, 158, 0.34));
+	border-radius: var(--radius-panel, 6px);
+	box-shadow: var(--shadow-float, 0 6px 18px rgba(12, 34, 64, 0.22)), var(--rim-gold, inset 0 0 0 1px rgba(240, 216, 155, 0.75));
+	backdrop-filter: var(--blur-glass, blur(10px));
+	padding: var(--sp-4, 8px) var(--sp-5, 10px);
+	font-family: var(--font-ui, 'Figtree', Arial, sans-serif);
 }
 
 #inputbox.number {
-	width: 174px;
+	width: 190px;
 }
-#inputbox.number .border {
-	width: 162px;
+
+#inputbox .border {
+	display: flex;
+	flex-direction: column;
+	gap: var(--sp-3, 6px);
 }
-#inputbox.number .text {
-	width: 170px;
+
+#inputbox .text {
+	font: var(--type-label, 600 11px/1.2 Arial);
+	font-family: var(--font-ui, 'Figtree', Arial, sans-serif);
+	color: var(--text-title, #12294a);
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
 }
-#inputbox.number input {
-	width: 103px;
+
+#inputbox .text:empty {
+	display: none;
+}
+
+#inputbox .linha {
+	display: flex;
+	align-items: center;
+	gap: var(--sp-3, 6px);
+}
+
+/* .ri-input de Common.css da o grosso; aqui so o encaixe flex. */
+#inputbox input {
+	flex: 1;
+	min-width: 0;
+	height: 24px;
+}
+
+#inputbox .ok {
+	flex: 0 0 auto;
+	padding: 4px 14px;
+	font-size: var(--fs-info, 12px);
+	line-height: 1.2;
+	cursor: pointer;
 }

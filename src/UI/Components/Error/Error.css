@@ -1,43 +1,56 @@
+/* Fase 3 (01/09/2026): a tela de erro fatal saiu do salmao herdado do
+   roBrowser e entrou na paleta do projeto. Reserva literal em todo var():
+   esta tela pode aparecer ANTES de qualquer coisa carregar, e tem de se
+   pintar sozinha. Fundo azul-profundo (--blue-900) de proposito — e um
+   estado terminal, fora do jogo, e o contraste alto e o que importa. */
 body {
-	background-color: #d2afab;
+	background-color: var(--blue-900, #12294a);
 }
 
 #error {
-	color: white;
-	font-size: 14px;
-	background-repeat: no-repeat;
-	background-color: transparent;
-	background-position: 0px 90px;
-	padding-left: 230px;
-	width: 500px;
 	position: absolute;
-	top: 150px;
+	top: 120px;
 	left: 50%;
-	margin-left: -470px;
-}
-#error h1 {
-	font-size: 60px;
-	line-height: 40px;
-	text-shadow: 0px 0px 10px rgba(0, 0, 0, 0.3);
-}
-#error p {
-	width: 500px;
-	text-shadow: 0px 0px 10px rgba(0, 0, 0, 0.5);
-	font-size: 16px;
-	line-height: 24px;
-}
-#error h2 {
-	color: #745b59;
-	font-weight: normal;
+	transform: translateX(-50%);
+	width: min(560px, calc(100vw - 48px));
+	color: var(--paper-1, #fbfdff);
+	font-family: var(--font-ui, 'Figtree', Arial, 'Liberation Sans', Arimo, sans-serif);
 	font-size: 14px;
-	margin-top: 30px;
-	margin-bottom: 5px;
 }
+
+#error h1 {
+	font-family: var(--font-display, 'Marcellus', 'Palatino Linotype', Georgia, serif);
+	font-weight: 400;
+	font-size: 44px;
+	line-height: 1.1;
+	margin: 0 0 12px;
+	color: var(--gold-300, #f0d89b);
+}
+
+#error p {
+	max-width: 60ch;
+	font-size: 15px;
+	line-height: 1.5;
+	color: var(--sky-100, #dce8f6);
+}
+
+#error h2 {
+	color: var(--sky-300, #9ebee0);
+	font-weight: var(--fw-semibold, 600);
+	font-size: 12px;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+	margin-top: 28px;
+	margin-bottom: 6px;
+}
+
 #error .trace {
-	background-color: #a78582;
-	border-radius: 5px;
-	line-height: 18px;
-	padding-left: 10px;
-	padding-top: 5px;
-	padding-bottom: 2px;
+	background-color: rgba(0, 0, 0, 0.35);
+	border: 1px solid rgba(158, 190, 224, 0.25);
+	border-radius: var(--radius-panel, 6px);
+	font-family: var(--font-mono, ui-monospace, monospace);
+	font-size: 12px;
+	line-height: 1.5;
+	padding: 10px 12px;
+	overflow-x: auto;
 }

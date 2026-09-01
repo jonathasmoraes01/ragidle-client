@@ -1,7 +1,12 @@
+<!-- Fase 3 (01/09/2026): o btn_ok.bmp virou botao do design system e o
+     input veste .ri-input; o texto padrao saiu (o motor SEMPRE define o
+     rotulo em setType, e "Input number" em ingles vazava antes disso). -->
 <div id="inputbox">
 	<div class="border">
-		<div class="text">Input number</div>
-		<input type="text" value="" />
-		<ui-button bg="btn_ok.bmp" hover="btn_ok_b.bmp" down="btn_ok_a.bmp"></ui-button>
+		<div class="text"></div>
+		<div class="linha">
+			<input class="ri-input" type="text" value="" />
+			<button type="button" class="ok ri-btn">OK</button>
+		</div>
 	</div>
 </div>

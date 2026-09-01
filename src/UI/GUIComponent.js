@@ -241,6 +241,18 @@ class GUIComponent {
 
 		parent.appendChild(this._host);
 
+		/* Entrada animada para componente que opta (riAnimaJanela) e VEM E
+		   VAI por append/remove em vez de show/hide (NpcStore, InputBox,
+		   popups). Mesmo par de classes do proxy show(): base transparente,
+		   reflow, .ri-aberta acende com --dur-janela-abre. Com movimento
+		   reduzido o CSS zera a transicao sozinho — aqui nada a decidir. */
+		if (this.riAnimaJanela) {
+			clearTimeout(this.__riAnimaTimer);
+			this._host.classList.add('ri-anima-host');
+			void this._host.offsetWidth;
+			this._host.classList.add('ri-aberta');
+		}
+
 		// Bind keydown
 		if (this.onKeyDown) {
 			this._bindKeyDown();
@@ -309,8 +321,27 @@ class GUIComponent {
 				});
 			}
 
-			// Detach from DOM
-			this._host.remove();
+			/* Detach from DOM — com saida animada para quem opta
+			   (riAnimaJanela). So o DESANEXAR espera a transicao; toda a
+			   contabilidade (onRemove, teclas, x_remove, descongelar o mouse
+			   logo abaixo) ja aconteceu AGORA, entao para o jogo a janela nao
+			   existe mais — o que fica e um fantasma visual apagando, sem
+			   ponteiro (.ri-anima-host:not(.ri-aberta) tem pointer-events
+			   none). Reabrir no meio cancela: append() re-anexa o MESMO host
+			   (appendChild move) e o timer confere __active antes de remover. */
+			if (this.riAnimaJanela) {
+				const host = this._host;
+				host.classList.add('ri-anima-host');
+				host.classList.remove('ri-aberta');
+				clearTimeout(this.__riAnimaTimer);
+				this.__riAnimaTimer = setTimeout(() => {
+					if (!this.__active) {
+						host.remove();
+					}
+				}, 180);
+			} else {
+				this._host.remove();
+			}
 
 			// Freeze mode cleanup
 			if (this.mouseMode === MouseMode.FREEZE) {
@@ -1222,21 +1253,59 @@ class GUIComponent {
 				return host.matches(selector);
 			},
 
+			/* ─── Animacao de abrir/fechar para janela NATIVA (onda de icones,
+			   Fase 3, 01/09/2026). As janelas idle animam por CSS puro
+			   (".ri-anima" + is-open); as nativas mostram/escondem por AQUI
+			   (display do host), entao o unico lugar de anima-las e este.
+
+			   OPT-IN por `Comp.riAnimaJanela = true` no arquivo do componente —
+			   nunca automatico: show/hide tambem esconde overlay, tooltip e
+			   pedaco de HUD, e um fade indiscriminado viraria atraso fantasma
+			   em coisa que precisa sumir JA. Os tokens sao os MESMOS de
+			   ".ri-anima"/".ri-disc" (Common.css injeta no document.head, entao
+			   as classes .ri-anima-host alcancam o host): janela e glow andam
+			   juntos por construcao.
+
+			   O display:none do fechamento e adiado por um timer casado com
+			   --dur-janela-fecha (150ms) + folga. Timer, e nao transitionend:
+			   com prefers-reduced-motion a transicao nao dispara evento nenhum
+			   e a janela nunca fecharia — o CSS ja poe a transicao a zero
+			   nesse caso, e o timer so consuma o display. Reabrir no meio do
+			   fechamento cancela o timer (o clique rapido de abre-fecha-abre
+			   nao pode terminar com a janela invisivel). */
 			show() {
-				host.style.display = '';
-				component._fixPositionOverflow();
+				if (component.riAnimaJanela) {
+					clearTimeout(component.__riAnimaTimer);
+					host.classList.add('ri-anima-host');
+					host.style.display = '';
+					component._fixPositionOverflow();
+					// reflow: sem ele o navegador junta os dois estados no
+					// mesmo quadro e a transicao de entrada nao acontece
+					void host.offsetWidth;
+					host.classList.add('ri-aberta');
+				} else {
+					host.style.display = '';
+					component._fixPositionOverflow();
+				}
 				return proxy;
 			},
 			hide() {
-				host.style.display = 'none';
+				if (component.riAnimaJanela && host.style.display !== 'none') {
+					clearTimeout(component.__riAnimaTimer);
+					host.classList.remove('ri-aberta');
+					component.__riAnimaTimer = setTimeout(() => {
+						host.style.display = 'none';
+					}, 180);
+				} else {
+					host.style.display = 'none';
+				}
 				return proxy;
 			},
 			toggle() {
 				if (host.style.display === 'none') {
-					host.style.display = '';
-					component._fixPositionOverflow();
+					proxy.show();
 				} else {
-					host.style.display = 'none';
+					proxy.hide();
 				}
 				return proxy;
 			},

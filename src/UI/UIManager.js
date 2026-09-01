@@ -50,13 +50,14 @@ function _rotuloDeBotao(name) {
 
 function _createButton(name, onClick, label) {
 	const btn = document.createElement('button');
-	btn.className = 'btn';
-	btn.dataset.background = `btn_${name}.bmp`;
-	btn.dataset.hover = `btn_${name}_a.bmp`;
-	btn.dataset.down = `btn_${name}_b.bmp`;
-	if (label) {
-		btn.textContent = label;
-	}
+	/* Fase 3 (01/09/2026): o botao de caixa deixou de vestir bitmap do GRF
+	   (btn_ok.bmp e familia). O rotulo agora e SEMPRE texto — traduzido por
+	   _rotuloDeBotao — e a pele e a do design system: `.ri-btn` ja mora em
+	   todo Shadow DOM via Common.css. `ok` continua primario; qualquer outro
+	   nome (cancel/no) sai secundario, que e a hierarquia das nossas janelas.
+	   O terceiro argumento sobrevive para quem quiser um rotulo especifico. */
+	btn.className = name === 'ok' || name === 'yes' ? 'btn ri-btn' : 'btn ri-btn ri-btn--sec';
+	btn.textContent = label || _rotuloDeBotao(name);
 
 	let clicked = false;
 	btn.addEventListener('click', () => {
@@ -64,8 +65,6 @@ function _createButton(name, onClick, label) {
 		clicked = true;
 		onClick();
 	});
-
-	GUIComponent.processDataAttrs(btn);
 
 	return btn;
 }
@@ -238,6 +237,7 @@ class UIManager {
 	 */
 	static showErrorBox(text) {
 		const WinError = this.getComponent('WinPopup').clone('WinError');
+		WinError.riAnimaJanela = true; // entra/sai com a animacao unica (Fase 3)
 		// eslint-disable-next-line
 		let overlay;
 
@@ -287,6 +287,7 @@ class UIManager {
 	 */
 	static showMessageBox(text, btn_name, callback, keydown) {
 		const WinMSG = this.getComponent('WinPopup').clone('WinMSG');
+		WinMSG.riAnimaJanela = true; // entra/sai com a animacao unica (Fase 3)
 
 		WinMSG.init = function Init() {
 			this.draggable();
@@ -334,6 +335,7 @@ class UIManager {
 	 */
 	static showPromptBox(text, btn_yes, btn_no, onYes, onNo) {
 		const WinPrompt = this.getComponent('WinPopup').clone('WinPrompt');
+		WinPrompt.riAnimaJanela = true; // entra/sai com a animacao unica (Fase 3)
 
 		WinPrompt.init = function Init() {
 			this.draggable();

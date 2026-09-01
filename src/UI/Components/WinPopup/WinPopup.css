@@ -48,55 +48,57 @@
 	);
 }
 
+/* Fase 3 (01/09/2026): o miolo deixou o posicionamento absoluto pixel a
+   pixel (que servia ao bitmap de 280x120) e virou coluna flex DENTRO da
+   mesma caixa de 280x120 — o :host e o arrasto medem o host, entao a caixa
+   nao muda de tamanho, so o recheio passou a se distribuir sozinho. */
 #win_popup .container {
 	position: absolute;
-	height: 70px;
-	width: 270px;
-	top: 20px;
+	inset: 0 0 40px 0;
+	display: flex;
+	align-items: center;
 	overflow: auto;
 }
 
 #win_popup .text {
-	padding: 5px 10px 0px 10px;
+	width: 100%;
+	padding: 10px 14px;
 	/* Fundo agora e claro (--window-fill), entao o texto tem de ser ESCURO
 	   pra ler -- --text-body/--ink-700 e a tinta escura do design system,
 	   feita pra sentar em cima desse mesmo fundo claro. */
 	color: var(--text-body, #2d3a55);
+	font: var(--type-info, 500 12px/1.4 Arial);
 	font-family: var(--font-ui, 'Figtree', Arial, 'Liberation Sans', Arimo, sans-serif);
+	text-align: center;
+	overflow-wrap: break-word;
 }
 
 #win_popup .buttonscontainer {
 	position: absolute;
-	height: 25px;
-	width: 280px;
-	top: 95px;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	height: 40px;
+	border-top: var(--divider, 1px solid rgba(36, 92, 158, 0.16));
 }
 
 #win_popup .btns {
-	position: absolute;
-	bottom: 2px;
-	right: 3px;
+	height: 100%;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: var(--sp-4, 8px);
 }
 
+/* Os botoes vem de UIManager._createButton ja vestidos de `.ri-btn` (e
+   `--sec` para cancelar). Aqui so o ajuste de escala: a caixa tem 280x120 e
+   o padding cheio de .ri-btn (8px 18px) empurraria a fileira. Reserva
+   literal em cada var() porque esta caixa e a ultima linha de defesa e tem
+   de se desenhar mesmo sem o Common.css inteiro. */
 #win_popup .btn {
-	border: 1px solid var(--border-window, rgba(36, 92, 158, 0.34));
-	width: 42px;
-	height: 20px;
-	bottom: 4px;
-	margin-left: 3px;
-	border-radius: var(--radius-panel, 6px);
-	background-repeat: no-repeat;
-	background-color: var(--surface-card, rgba(255, 255, 255, 0.66));
-	/* O bitmap (btn_ok.bmp) ja tem o rotulo desenhado; o texto DOM (colocado
-	   so pela caixa de erro de boot, via _createButton(..., 'OK') em
-	   UIManager.js) e o que garante que o botao diga o que faz quando esse
-	   bitmap nao existe -- exatamente o caso do servidor de recursos fora
-	   do ar. Fonte pequena pro botao de 42x20 nao estourar. */
-	color: var(--text-body, #2d3a55);
-	font-family: var(--font-ui, 'Figtree', Arial, 'Liberation Sans', Arimo, sans-serif);
-	font-size: 11px;
-	font-weight: var(--fw-semibold, 600);
-	line-height: 1;
-	padding: 0;
+	min-width: 76px;
+	padding: 4px 14px;
+	font-size: var(--fs-info, 12px);
+	line-height: 1.2;
 	cursor: pointer;
 }

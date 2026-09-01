@@ -52,6 +52,10 @@ export function createPartyFriends(config) {
 	 */
 	const Component = new GUIComponent(componentName, cssText);
 
+	/* Janela nativa entra na animacao unica de abrir/fechar (Fase 3,
+	   01/09/2026) — o proxy show/hide de GUIComponent le esta bandeira. */
+	Component.riAnimaJanela = true;
+
 	/**
 	 * @var {number} index of selection
 	 */

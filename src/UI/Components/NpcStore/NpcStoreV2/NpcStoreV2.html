@@ -1,0 +1,45 @@
+<!-- A loja de NPC moderna (01/09/2026). UMA janela: lista com busca,
+     quantidade na propria linha, total vivo, um botao primario. A organizacao
+     vem do Ragnarok Origin (lista + total + acao unica, sem arrastar); a
+     forma e 100% do nosso design system.
+
+     Ganchos de DOM que o MOTOR cutuca por seletor e por isso nao podem mudar
+     de nome: .seller / .cashuser .buyer / .cashuser .cashpoints / .priceLimit
+     (Engine/MapEngine/Store.js). As linhas da lista nascem no JS. -->
+<div id="NpcStoreV2">
+	<div class="ns-window ri-window">
+		<div class="ns-header ri-header">
+			<span class="ns-title ri-title">Loja</span>
+			<button type="button" class="ns-fechar ri-close" title="Fechar">&times;</button>
+		</div>
+
+		<div class="ns-sub">
+			<span class="ns-vendedor" hidden>com <span class="seller"></span></span>
+			<span class="cashuser" hidden>
+				<span class="buyer"></span> &middot; <span class="cashpoints">0</span>
+				<span class="unity">Pontos</span>
+			</span>
+			<span class="priceLimit" hidden></span>
+			<span class="ns-bolsa" hidden>
+				Você tem <b class="ns-bolsa-valor">0</b> <span class="ns-bolsa-unidade">Zeny</span>
+			</span>
+		</div>
+
+		<div class="ns-busca">
+			<input class="ri-input" type="text" aria-label="Buscar item pelo nome" placeholder="Buscar item…" />
+		</div>
+
+		<div class="ns-lista ri-scroll" role="list"></div>
+		<div class="ns-vazio" hidden>Nenhum item encontrado.</div>
+
+		<div class="ns-rodape">
+			<div class="ns-resumo">
+				<div class="ns-itens-escolhidos">Nada escolhido</div>
+				<div class="ns-total" hidden>
+					Total&nbsp;<b class="ns-total-valor">0</b>&nbsp;<span class="ns-unidade">Zeny</span>
+				</div>
+			</div>
+			<button type="button" class="ns-agir ri-btn" disabled>Comprar</button>
+		</div>
+	</div>
+</div>

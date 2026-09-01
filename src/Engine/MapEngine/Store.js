@@ -18,11 +18,39 @@ import PACKET from 'Network/PacketStructure.js';
 import PACKETVER from 'Network/PacketVerManager.js';
 import EntityManager from 'Renderer/EntityManager.js';
 import Inventory from 'UI/Components/Inventory/Inventory.js';
-import NpcStore from 'UI/Components/NpcStore/NpcStore.js';
+import NpcStoreController from 'UI/Components/NpcStore/NpcStore.js';
 import Vending from 'UI/Components/Vending/Vending.js';
 import VendingReport from 'UI/Components/VendingReport/VendingReport.js';
 import VendingShop from 'UI/Components/VendingShop/VendingShop.js';
 import ChatBox from 'UI/Components/ChatBox/ChatBox.js';
+
+/**
+ * A loja virou componente VERSIONADO em 01/09/2026 (NpcStoreV2 moderna, V1
+ * classica como reserva — ver UI/Components/NpcStore/NpcStore.js). O
+ * controlador so responde por getUI(), e a escolha acontece no boot do mapa
+ * (MapEngine chama NpcStoreController.selectUIVersion()).
+ *
+ * Este shim deixa as ~50 chamadas deste arquivo continuarem dizendo
+ * "NpcStore.<coisa>" — cada acesso resolve a versao ELEITA na hora, metodo
+ * amarrado na instancia certa, e atribuicao (NpcStore.onSubmit = ...) cai na
+ * instancia tambem. Sem ele, cada handler abriria com o mesmo boilerplate de
+ * getUI(), e um "const NpcStore" congelado no import quebraria se a eleicao
+ * ainda nao tivesse acontecido.
+ */
+const NpcStore = new Proxy(
+	{},
+	{
+		get(_alvo, prop) {
+			const ui = NpcStoreController.getUI();
+			const valor = ui[prop];
+			return typeof valor === 'function' ? valor.bind(ui) : valor;
+		},
+		set(_alvo, prop, valor) {
+			NpcStoreController.getUI()[prop] = valor;
+			return true;
+		}
+	}
+);
 
 /**
  * Received items list to buy from cash npc

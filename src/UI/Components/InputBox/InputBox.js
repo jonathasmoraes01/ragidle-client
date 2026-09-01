@@ -34,6 +34,10 @@ InputBox.mouseMode = GUIComponent.MouseMode.FREEZE;
  */
 InputBox.captureKeyEvents = true;
 
+/* Balao modal entra/sai com a animacao unica (Fase 3, 01/09/2026) — o
+   append/remove de GUIComponent le esta bandeira. */
+InputBox.riAnimaJanela = true;
+
 /**
  * Initialize GUI
  */
@@ -44,7 +48,8 @@ InputBox.init = function init() {
 
 	const root = InputBox.getRoot();
 
-	const btn = root.querySelector('ui-button');
+	// Fase 3: o <ui-button> de bitmap virou <button class="ok ri-btn">.
+	const btn = root.querySelector('.ok');
 	if (btn) {
 		btn.addEventListener('click', () => validate());
 	}

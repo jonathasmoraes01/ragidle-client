@@ -655,6 +655,35 @@ ui-button {
 	pointer-events: none;
 }
 
+/* ─── O irmao do ".ri-anima" para janela NATIVA (Fase 3, 01/09/2026).
+
+   Janela nativa nao tem ".is-open": ela some pelo display do HOST, que o
+   proxy de GUIComponent controla. O proxy (show/hide) poe estas classes e
+   adia o display:none do fechamento; aqui mora so a pele da transicao, nos
+   MESMOS tokens do resto da coreografia.
+
+   SO OPACIDADE, sem transform, de proposito: _fixPositionOverflow() mede
+   getBoundingClientRect() na abertura, e um transform no host entraria na
+   medida e empurraria a janela alguns pixels — a familia de defeito
+   ":host e o JS que mede precisam andar juntos" que o design system ja
+   cicatrizou. Este seletor vive no document (Common.css e injetado no head
+   pelo UIManager), nao no Shadow DOM. */
+@media (prefers-reduced-motion: no-preference) {
+	.ri-anima-host {
+		opacity: 0;
+		transition: opacity var(--dur-janela-fecha) var(--ease-in);
+	}
+
+	.ri-anima-host.ri-aberta {
+		opacity: 1;
+		transition: opacity var(--dur-janela-abre) var(--ease-out);
+	}
+}
+
+.ri-anima-host:not(.ri-aberta) {
+	pointer-events: none;
+}
+
 /* Header: gradiente azul-claro, titulo central, asas nas laterais do titulo */
 .ri-header {
 	position: relative;

@@ -57,6 +57,7 @@ import ChatRoomCreate from 'UI/Components/ChatRoomCreate/ChatRoomCreate.js';
 import Emoticons from 'UI/Components/Emoticons/Emoticons.js';
 import FPS from 'UI/Components/FPS/FPS.js';
 import PartyFriends from 'UI/Components/PartyFriends/PartyFriends.js';
+import NpcStore from 'UI/Components/NpcStore/NpcStore.js';
 import Guild from 'UI/Components/Guild/Guild.js';
 import WorldMap from 'UI/Components/WorldMap/WorldMap.js';
 import SkillListMH from 'UI/Components/SkillListMH/SkillListMH.js';
@@ -309,6 +310,7 @@ class MapEngine {
 			Inventory.selectUIVersion();
 			Storage.selectUIVersion();
 			PartyFriends.selectUIVersion();
+			NpcStore.selectUIVersion(); // loja versionada (V2 moderna, 01/09/2026)
 		}
 
 		// Do not hook multiple time
