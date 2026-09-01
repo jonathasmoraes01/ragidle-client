@@ -1,94 +1,121 @@
+<!-- A FORJA (janela de Refino) — redesenho de 01/09/2026.
+
+     Queixa do dono, com print: *"Está totalmente disproporcional"*.
+
+     O DEFEITO ERA ESTRUTURAL, nao de alinhamento. Esta janela nunca foi HTML:
+     ela era UM bitmap de 262x301 (`bg_refining_*.bmp`) que desenha a moldura
+     INTEIRA — o painel claro de cima, os cinco sockets hexagonais, a bigorna,
+     e ate as plaquinhas dos botoes — com os elementos vivos posicionados em
+     pixel cravado por cima. Na Fase 3 a moldura virou `.ri-window` (261x350) e
+     o bitmap FICOU: sobrou um desenho de janela de 301px de altura dentro de
+     uma janela de vidro de 350, com rodape novo por cima da plaquinha
+     desenhada, hexagonais de 46x53 sem relacao com nada e o botao "de novo"
+     (bitmap 101x50 com texto solto em cima) lendo como uma SEGUNDA janela.
+     E a armadilha da casa em pessoa: nao trocar pela metade.
+
+     AGORA a janela e HTML de verdade, nos tokens, e o bitmap volta ao unico
+     papel em que ele e bom: ARTE. O `.image-container` virou `.rf-palco` — uma
+     FAIXA da cena (a fornalha e a bigorna, deslocamento medido abaixo), com o
+     item do jogador pousado em cima dela. Toda a sequencia de animacao
+     (espera -> pronto -> processo -> sucesso/falha) continua rodando ali,
+     intacta: o JS so troca `backgroundImage`, e a moldura ja nao depende dela.
+
+     O RECORTE, medido nos frames extraidos do GRF (todos 262x301, mesma
+     geometria de cena em TODAS as fases — espera, pronto, processo, sucesso e
+     falha):
+       y 0..108    painel claro com os 5 sockets   -> fora (agora sao .ri-tile)
+       y 124..162  sockets do material e da bencao -> DENTRO (viram .rf-chip)
+       y 182..222  o encaixe do item na bigorna    -> DENTRO (.item_to_refine)
+       y 245..295  plaquinhas dos botoes           -> fora (agora sao .ri-btn)
+     Dai `background-position: 0 -120px` com palco de 122px de altura: entra a
+     fornalha inteira com as duas fileiras de encaixe, e ficam de fora o painel
+     de cima e as plaquinhas. As pecas vivas sentam EXATAMENTE sobre os
+     encaixes desenhados, entao o desenho vira moldura delas em vez de ruido
+     atras delas. Os numeros foram medidos com grade sobre os quadros
+     extraidos do GRF, nao estimados — a primeira tentativa errou a fileira
+     inteira.
+-->
 <div id="Refine">
 	<div class="titlebar ri-header">
 		<div class="base"></div>
-		<span class="text ri-title"><ui-text msg="3241"></ui-text></span>
-		<button type="button" class="base close ri-close" title="Fechar">&times;</button>
+		<span class="text ri-title">Forja</span>
+		<button type="button" class="close ri-close" title="Fechar">&times;</button>
 	</div>
 	<div class="overlay"></div>
+
 	<div class="panel">
-		<div class="image-container">
-			<div class="success"></div>
-			<div class="materials">
-				<div class="mat_0 mat_overlay">
-					<ui-image src="refining_renewal/slot_select_blue0.bmp"></ui-image>
-					<div class="material_0"></div>
-				</div>
-				<div class="mat_1 mat_overlay">
-					<ui-image src="refining_renewal/slot_select_blue1.bmp"></ui-image>
-					<div class="material_1"></div>
-				</div>
-				<div class="mat_2 mat_overlay">
-					<ui-image src="refining_renewal/slot_select_blue2.bmp"></ui-image>
-					<div class="material_2"></div>
-				</div>
-				<div class="mat_3 mat_overlay">
-					<ui-image src="refining_renewal/slot_select_blue3.bmp"></ui-image>
-					<div class="material_3"></div>
-				</div>
-				<div class="bsb_overlay">
-					<ui-image src="refining_renewal/slot_select_red.bmp"></ui-image>
-					<div class="bsb"></div>
-				</div>
-				<div class="selected_materials">
-					<div class="selected_mat"></div>
-					<div class="bsb_selected"></div>
-				</div>
-			</div>
-			<div class="item_to_refine"></div>
-			<div class="item_to_refine_name"></div>
-			<div class="refine_button">
-				<div class="refine_disabled">
-					<ui-image src="refining_renewal/bt_refining_disable.bmp"></ui-image>
-				</div>
-				<ui-button
-					class="refine_enabled"
-					bg="refining_renewal/bt_refining_normal.bmp"
-					down="refining_renewal/bt_refining_press.bmp"
-				></ui-button>
-				<div class="refine_text"><ui-text msg="3241"></ui-text></div>
-				<div class="refine_zeny"></div>
-			</div>
-			<div class="back_button">
-				<ui-button
-					class="back_success"
-					bg="refining_renewal/bt_refining_return_success_normal.bmp"
-					down="refining_renewal/bt_refining_return_success_press.bmp"
-					><ui-text msg="2973"></ui-text
-				></ui-button>
-				<ui-button
-					class="back_fail"
-					bg="refining_renewal/bt_refining_return_fail_normal.bmp"
-					down="refining_renewal/bt_refining_return_fail_press.bmp"
-					><ui-text msg="2973"></ui-text
-				></ui-button>
-			</div>
-			<div class="refine_cont">
-				<ui-button
-					class="success_refine_cont_enabled"
-					bg="refining_renewal/bt_refining_again_success_normal.bmp"
-					down="refining_renewal/bt_refining_again_success_press.bmp"
-				></ui-button>
-				<div class="success_refine_cont_disabled">
-					<ui-image src="refining_renewal/bt_refining_again_success_disable.bmp"></ui-image>
-				</div>
-				<ui-button
-					class="fail_refine_cont_enabled"
-					bg="refining_renewal/bt_refining_again_fail_normal.bmp"
-					down="refining_renewal/bt_refining_again_fail_press.bmp"
-				></ui-button>
-				<div class="fail_refine_cont_disabled">
-					<ui-image src="refining_renewal/bt_refining_again_fail_disable.bmp"></ui-image>
-				</div>
-				<div class="refine_text_cont"><ui-text msg="3241"></ui-text></div>
-				<div class="chance_rate"></div>
-				<div class="refine_zeny_cont"></div>
-			</div>
+		<!-- O palco: a cena do GRF + o que entra no fogo. -->
+		<div class="image-container rf-palco">
+			<div class="selected_mat rf-chip" title="Material escolhido"></div>
+			<div class="bsb_selected rf-chip" title="Benção do Ferreiro"></div>
+			<div class="item_to_refine ri-tile"></div>
+			<div class="rf-dica">Arraste um equipamento da mochila</div>
 		</div>
-		<div class="footer">
-			<div class="some_notifs">
-				<span class="info_msg"></span>
-			</div>
+		<div class="item_to_refine_name"></div>
+
+		<!-- Chance: o numero e a barra andam juntos (pintarChance no JS). -->
+		<div class="rf-chance">
+			<div class="success"></div>
+			<div class="chance_bar ri-bar"><div class="fill"></div></div>
+			<div class="chance_rate"></div>
+		</div>
+
+		<div class="ri-divisor"></div>
+
+		<div class="rf-secao">Materiais</div>
+		<div class="materials">
+			<div class="mat_0 mat_overlay ri-tile"><div class="material_0"></div></div>
+			<div class="mat_1 mat_overlay ri-tile"><div class="material_1"></div></div>
+			<div class="mat_2 mat_overlay ri-tile"><div class="material_2"></div></div>
+			<div class="mat_3 mat_overlay ri-tile"><div class="material_3"></div></div>
+			<div class="rf-sep" aria-hidden="true"></div>
+			<div class="bsb_overlay ri-tile" title="Benção do Ferreiro"><div class="bsb"></div></div>
+		</div>
+
+		<div class="rf-custo">
+			<span class="rf-custo-rotulo">Custo</span>
+			<span class="rf-custo-valor">
+				<span class="refine_zeny"></span>
+				<span class="refine_zeny_cont"></span>
+				<span class="rf-custo-vazio">—</span>
+				<span class="rf-custo-unidade">Zeny</span>
+			</span>
+		</div>
+	</div>
+
+	<div class="footer">
+		<div class="some_notifs">
+			<span class="info_msg"></span>
+		</div>
+		<div class="rf-acoes">
 			<button type="button" class="cancel ri-btn ri-btn--sec">Cancelar</button>
+
+			<!-- Voltar: duas peles (sucesso/falha) que o JS acende uma de cada vez. -->
+			<div class="back_button">
+				<button type="button" class="back_success ri-btn ri-btn--sec">Voltar</button>
+				<button type="button" class="back_fail ri-btn ri-btn--sec">Voltar</button>
+			</div>
+
+			<!-- Refinar: o desligado fica embaixo, o ligado por cima (o JS so
+			     acende o de cima quando ha material escolhido). -->
+			<div class="refine_button">
+				<button type="button" class="refine_disabled ri-btn is-disabled" disabled>
+					<span class="refine_text">Refinar</span>
+				</button>
+				<button type="button" class="refine_enabled ri-btn">
+					<span class="refine_text">Refinar</span>
+				</button>
+			</div>
+
+			<!-- Refinar de novo: quatro peles (sucesso/falha x ligado/desligado),
+			     uma acesa por vez, com o rotulo por cima das quatro. -->
+			<div class="refine_cont">
+				<button type="button" class="success_refine_cont_enabled ri-btn"></button>
+				<button type="button" class="success_refine_cont_disabled ri-btn is-disabled" disabled></button>
+				<button type="button" class="fail_refine_cont_enabled ri-btn"></button>
+				<button type="button" class="fail_refine_cont_disabled ri-btn is-disabled" disabled></button>
+				<span class="refine_text_cont">Refinar de novo</span>
+			</div>
 		</div>
 	</div>
 </div>

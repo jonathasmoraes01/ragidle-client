@@ -496,6 +496,7 @@ window.ROConfigBase = {
     enableDmgSuffix: true,  
     enableHomunAutoFeed: true,  
     enableMapName: true,  
+    enableRefineUI: true,  
     enableRoulette: false,  
     FirstPersonCamera: false,  
     grfList: null,  

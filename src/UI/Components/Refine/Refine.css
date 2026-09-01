@@ -1,19 +1,35 @@
+/* A FORJA (janela de Refino) — redesenho de 01/09/2026.
+
+   O "disproporcional" do print tinha causa unica: TODA a medida desta janela
+   nascia do bitmap de 262x301 do GRF (ver o cabecalho de `Refine.html`), e o
+   bitmap ja nao era a moldura. Nada aqui e mais posicao absoluta de conteudo:
+   o corpo e uma COLUNA de blocos que se empilham, e os unicos `absolute` que
+   sobraram sao os que precisam mesmo empilhar peles no mesmo lugar (as duas
+   peles do "Refinar", as quatro do "Refinar de novo", as pecas sobre o palco)
+   e a dica flutuante.
+
+   PIXEL CRAVADO, nao porcentagem, no `:host` e no `#Refine`: a cadeia
+   percentual colapsa dentro do Shadow DOM e a janela SOME — a mesma cicatriz
+   de Enchant/EnchantGrade, e a armadilha que matou uma frota inteira em
+   01/09. A altura (414) e a soma MEDIDA dos blocos no arnes de foto, nao um
+   chute — a primeira conta, feita a mao, errou por 12px e o bloco de custo
+   entrava debaixo do rodape:
+   34 (cabecalho) + 13 + 124 (palco) + 26 (nome) + 41 (chance) + 21 (regua)
+   + 13 (secao) + 53 (materiais) + 28 (custo) + 13 + 46 (rodape).
+
+   A largura (292) sai do palco: 262 de arte + 2 de moldura + 2x13 de respiro
+   + 2x1 de borda da janela. A arte manda na largura porque ela e a unica peca
+   que nao pode ser esticada sem borrar. */
+
 :host {
-	width: 261px;
-	height: 350px;
+	width: 292px;
+	height: 414px;
 }
 
-/* Correcao do supervisor (foto da Fase 3): o corpo saiu TRANSPARENTE e o
-   rodape flutuou — o bitmap de fundo tinha ido embora sem uma pintura de
-   janela no lugar, e .panel absoluto em top:0 brigava com o header novo.
-   Agora: #Refine E a janela (pintura .ri-window por token) em coluna flex;
-   .panel vira o palco relativo dos filhos absolutos. */
 #Refine {
 	position: relative;
-	/* pixel cravado (nao 100%): a cadeia percentual colapsa no container do
-	   Shadow DOM — mesma correcao de Enchant/EnchantGrade. */
-	width: 261px;
-	height: 350px;
+	width: 292px;
+	height: 414px;
 	box-sizing: border-box;
 	display: flex;
 	flex-direction: column;
@@ -27,20 +43,558 @@
 	font-family: var(--font-ui);
 }
 
+/* ─── Cabecalho ─────────────────────────────────────────────────────────── */
+
 #Refine .titlebar {
 	flex: 0 0 auto;
 }
 
-/* Chrome vira design system (Fase 3, 01/09/2026): a barra de bitmap virou
-   .ri-header (Common.css), com .base sobrando so como alca invisivel que o
-   JS ainda escuta (mousedown para nao arrastar sob o titulo). */
-#Refine .titlebar .base {
+/* `.base` sobrou so como alca invisivel que o JS ainda escuta (mousedown para
+   nao arrastar duas vezes sob o titulo). Nao pinta nada.
+
+   `> div.base`, e nao `.base` (foto do dono, 01/09/2026): o botao de fechar
+   nascia com `class="base close ri-close"` e esta regra tem especificidade
+   MAIOR que `.ri-close` (id + duas classes contra uma classe). Ela ganhava o
+   `position/left/top/width/height` e cuspia o X para o canto SUPERIOR
+   ESQUERDO, esticado na altura do cabecalho. A classe saiu do botao no HTML e
+   o seletor passou a exigir DIV — duas defesas, porque so tirar a classe
+   deixaria a armadilha armada para o proximo que copiar a marcacao.
+   O mesmo par de conserto foi aplicado em ItemReform, LaphineSys e LaphineUpg,
+   que tinham a regra identica, palavra por palavra. */
+#Refine .titlebar > div.base {
 	position: absolute;
 	left: 0;
 	top: 0;
 	width: 20px;
 	height: 100%;
 }
+
+/* ─── Corpo ─────────────────────────────────────────────────────────────── */
+
+#Refine .panel {
+	position: relative;
+	flex: 1 1 auto;
+	min-height: 0;
+	box-sizing: border-box;
+	padding: 13px;
+	display: flex;
+	flex-direction: column;
+	overflow: hidden;
+}
+
+/* ─── O palco: a cena do GRF ────────────────────────────────────────────── */
+
+#Refine .rf-palco {
+	position: relative;
+	flex: 0 0 auto;
+	width: 262px;
+	height: 122px;
+	/* O deslocamento medido (ver Refine.html): recorta a faixa que vai dos
+	   sockets do material escolhido ate a bigorna, deixando de fora o painel de
+	   cima e as plaquinhas de botao. O JS so troca `background-image` — posicao
+	   e repeticao moram aqui e sobrevivem a troca de quadro. */
+	background-position: 0 -120px;
+	background-repeat: no-repeat;
+	background-color: #eef4fb;
+	border: 1px solid var(--border-window);
+	border-radius: var(--radius-panel);
+	box-shadow: var(--well-shadow);
+	overflow: hidden;
+}
+
+/* Aro interno: a arte do GRF sangra ate a borda e sem isto o recorte parecia
+   acidente. Tambem e o que separa a cena do vidro da janela. */
+#Refine .rf-palco::after {
+	content: '';
+	position: absolute;
+	inset: 0;
+	pointer-events: none;
+	border-radius: inherit;
+	box-shadow:
+		inset 0 0 0 1px rgba(255, 255, 255, 0.45),
+		inset 0 -14px 22px -12px rgba(12, 34, 64, 0.45);
+}
+
+/* O item do jogador, pousado no encaixe DESENHADO da bigorna.
+   MEDIDO POR PIXEL na arte (varredura de contorno, nao a olho — a leitura a
+   olho errou 20px na fileira de cima): o encaixe branco tem contorno em
+   x 107..154 e y 178..225, ou seja centro (130.5, 201) e lado ~47. Com a
+   faixa comecando em y=120, o centro cai em y=81 no palco: dai `top: 58` com
+   ladrilho de 46. O centro horizontal 130.5 e o meio do palco (262/2), entao
+   `left: 50%` acerta sozinho. */
+#Refine .item_to_refine {
+	position: absolute;
+	left: 50%;
+	top: 58px;
+	transform: translateX(-50%);
+	width: 46px;
+	height: 46px;
+	z-index: 2;
+	cursor: pointer;
+}
+
+/* Slot vazio: o convite mora no proprio ladrilho, tracejado. */
+#Refine .item_to_refine:empty {
+	background: rgba(255, 255, 255, 0.55);
+	border: 1px dashed var(--border-window);
+	box-shadow: none;
+}
+
+#Refine .item_to_refine .item {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 100%;
+	height: 100%;
+	cursor: grab;
+}
+
+#Refine .item_to_refine .icon {
+	width: 24px;
+	height: 24px;
+	background-repeat: no-repeat;
+	background-position: center;
+}
+
+#Refine .item_to_refine .grade {
+	position: absolute;
+	right: 1px;
+	top: 1px;
+	width: 12px;
+	height: 12px;
+	background-repeat: no-repeat;
+	pointer-events: none;
+	z-index: 3;
+}
+
+/* As duas pecas que entram no fogo, nos cantos do palco. Somem sozinhas quando
+   o JS as esvazia (`innerHTML` vazio) — `:empty` em vez de mais uma classe que
+   alguem esqueceria de tirar. */
+#Refine .rf-chip {
+	/* Centros MEDIDOS POR PIXEL na arte: os dois hexagonos desenhados (material
+	   escolhido e bencao) tem contorno em x 72..111 e x 152..191, ambos em
+	   y 122..166 — centros (91.5, 144) e (171.5, 144), 40x44 cada. Com a faixa
+	   comecando em 120, o centro cai em y=24 no palco. A peca senta DENTRO do
+	   hexagono em vez de num canto qualquer, e o desenho vira a moldura dela. */
+	position: absolute;
+	top: 6px;
+	width: 36px;
+	height: 36px;
+	z-index: 2;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	border-radius: var(--radius-card);
+	background: linear-gradient(180deg, var(--white) 0%, #e6eef8 100%);
+	border: 1px solid var(--border-gold);
+	box-shadow: var(--rim-light), var(--shadow-card);
+}
+
+#Refine .selected_mat {
+	left: 73px;
+}
+
+#Refine .bsb_selected {
+	left: 153px;
+	border-color: #e08a86;
+}
+
+#Refine .rf-chip:empty {
+	display: none;
+}
+
+#Refine .rf-chip .item {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 100%;
+	height: 100%;
+}
+
+#Refine .rf-chip .icon {
+	width: 24px;
+	height: 24px;
+	background-repeat: no-repeat;
+	background-position: center;
+}
+
+/* A dica so existe enquanto nao ha item. Veu escuro porque o texto cai sobre
+   arte clara — o veu E legibilidade aqui, nao decoracao. */
+#Refine .rf-dica {
+	position: absolute;
+	left: 50%;
+	top: 8px;
+	transform: translateX(-50%);
+	display: none;
+	white-space: nowrap;
+	padding: 3px 10px;
+	border-radius: var(--radius-pill);
+	background: var(--surface-dark-glass);
+	backdrop-filter: var(--blur-glass);
+	-webkit-backdrop-filter: var(--blur-glass);
+	color: var(--white);
+	font: var(--type-desc);
+	text-shadow: 0 1px 2px rgba(8, 22, 40, 0.85);
+	pointer-events: none;
+	z-index: 3;
+}
+
+#Refine .rf-palco:has(.item_to_refine:empty) .rf-dica {
+	display: block;
+}
+
+/* ─── Nome do item ──────────────────────────────────────────────────────── */
+
+#Refine .item_to_refine_name {
+	flex: 0 0 auto;
+	margin-top: 8px;
+	height: 18px;
+	text-align: center;
+	font: var(--type-section);
+	color: var(--text-title);
+	line-height: 18px;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+/* ─── Chance de sucesso ─────────────────────────────────────────────────── */
+
+#Refine .rf-chance {
+	flex: 0 0 auto;
+	margin-top: 10px;
+}
+
+#Refine .success {
+	height: 16px;
+	line-height: 16px;
+	text-align: center;
+	font: var(--type-label);
+	color: var(--text-muted);
+	letter-spacing: var(--ls-caps);
+	text-transform: uppercase;
+}
+
+/* O veredito depois do martelo. A cor faz o trabalho que a animacao do GRF
+   sozinha nao faz numa janela clara. */
+#Refine .success.deu-certo {
+	color: var(--green-600, #2e7d42);
+}
+
+#Refine .success.deu-errado {
+	color: var(--red-600);
+}
+
+/* O numero e o que o jogador procura: destacado dentro da propria linha. */
+#Refine .success .number {
+	font: var(--type-numeric);
+	font-size: var(--fs-numeric-lg);
+	color: var(--text-title);
+	letter-spacing: 0;
+	vertical-align: -1px;
+}
+
+#Refine .chance_bar {
+	margin-top: 5px;
+	height: 8px;
+}
+
+/* Cor por FAIXA, nao por gosto: verde da EXP quando a chance e alta, ouro no
+   meio, vermelho da vida quando esta baixa — os mesmos tres gradientes que a
+   HUD ja usa, para o jogador ler sem aprender nada novo. */
+#Refine .chance_bar > .fill {
+	width: 0%;
+	background: linear-gradient(180deg, #f0c869 0%, var(--zeny) 100%);
+}
+
+#Refine .chance_bar.esta-alta > .fill {
+	background: var(--exp-fill);
+}
+
+#Refine .chance_bar.esta-baixa > .fill {
+	background: var(--hp-fill);
+}
+
+/* A chance da PROXIMA tentativa: so aparece depois de um resultado (o JS
+   acende), e ocupa o lugar da barra, que sai junto. */
+#Refine .chance_rate {
+	display: none;
+	height: 13px;
+	line-height: 13px;
+	text-align: center;
+	font: var(--type-desc);
+	color: var(--text-muted);
+}
+
+/* ─── Materiais ─────────────────────────────────────────────────────────── */
+
+#Refine .ri-divisor {
+	flex: 0 0 auto;
+	margin: 10px 0;
+}
+
+#Refine .rf-secao {
+	flex: 0 0 auto;
+	height: 13px;
+	line-height: 13px;
+	font: var(--type-label);
+	color: var(--text-muted);
+	letter-spacing: var(--ls-caps);
+	text-transform: uppercase;
+}
+
+#Refine .materials {
+	flex: 0 0 auto;
+	margin-top: 7px;
+	height: 46px;
+	display: flex;
+	align-items: center;
+	gap: 6px;
+}
+
+#Refine .mat_overlay,
+#Refine .bsb_overlay {
+	position: relative;
+	width: 44px;
+	height: 44px;
+}
+
+/* A regua empurra a Bencao do Ferreiro para a direita: ela nao e "o quinto
+   material", e um consumivel opcional — no bitmap antigo isso era dito pelo
+   hexagono VERMELHO, e continua dito, agora pela separacao e pelo aro. */
+#Refine .rf-sep {
+	margin-left: auto;
+	width: 1px;
+	height: 28px;
+	background: var(--border-hairline);
+}
+
+#Refine .bsb_overlay {
+	border-color: #e08a86;
+}
+
+/* Slot sem material: quase nao existe (a regra do `.ri-tile.is-empty`). Mede
+   `.icon` e nao `.item` de proposito — o `onRemoveItem` esvazia o `.item` mas
+   deixa a casca no lugar. */
+#Refine .mat_overlay:not(:has(.icon)),
+#Refine .bsb_overlay:not(:has(.icon)),
+#Refine .mat_overlay:has(.item[style*='none']),
+#Refine .bsb_overlay:has(.item[style*='none']) {
+	background: var(--surface-inset);
+	border-color: var(--border-hairline);
+	box-shadow: none;
+}
+
+#Refine .materials .item {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	gap: 2px;
+	width: 100%;
+	height: 100%;
+}
+
+#Refine .materials .icon {
+	width: 24px;
+	height: 24px;
+	background-repeat: no-repeat;
+	background-position: center;
+	cursor: pointer;
+}
+
+#Refine .mat_count {
+	font: var(--type-badge);
+	color: var(--text-muted);
+	font-variant-numeric: tabular-nums;
+	pointer-events: none;
+}
+
+/* Escolhido: aro dourado e brilho — o mesmo tratamento de "unico" do sistema,
+   que e o unico lugar onde o ouro vira destaque de estado. */
+#Refine .mat_overlay.selected,
+#Refine .bsb_overlay.selected {
+	border-color: var(--gold-500);
+	box-shadow: var(--glow-gold), var(--rim-light);
+}
+
+/* ─── Custo ─────────────────────────────────────────────────────────────── */
+
+#Refine .rf-custo {
+	flex: 0 0 auto;
+	margin-top: 10px;
+	height: 18px;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	font: var(--type-info);
+	color: var(--text-muted);
+}
+
+/* Flex, e nao texto corrido: o JS acende `.refine_zeny_cont` com
+   `display: block`, e num container inline isso jogava o "Zeny" para a linha
+   seguinte. Como item de flex, o bloco continua ao lado. */
+#Refine .rf-custo-valor {
+	display: inline-flex;
+	align-items: baseline;
+	gap: 0;
+	font-variant-numeric: tabular-nums;
+}
+
+#Refine .refine_zeny,
+#Refine .refine_zeny_cont {
+	font: var(--type-numeric);
+	color: var(--zeny);
+}
+
+/* Um valor de cada vez: `.refine_zeny` responde pela montagem e
+   `.refine_zeny_cont` pela proxima tentativa; o traco cobre o vao em que
+   nenhum dos dois tem numero. `:empty` faz a escolha sozinho — sem isso, o
+   rodape mostrava "— 20.000" no estado de resultado. */
+#Refine .refine_zeny:empty,
+#Refine .refine_zeny_cont:empty {
+	display: none;
+}
+
+#Refine .rf-custo:has(.refine_zeny:not(:empty)) .rf-custo-vazio,
+#Refine .rf-custo:has(.refine_zeny_cont:not(:empty)) .rf-custo-vazio {
+	display: none;
+}
+
+#Refine .rf-custo:not(:has(.refine_zeny:not(:empty))):not(:has(.refine_zeny_cont:not(:empty))) .rf-custo-unidade {
+	display: none;
+}
+
+#Refine .rf-custo-vazio {
+	color: var(--text-muted);
+}
+
+#Refine .rf-custo-unidade {
+	margin-left: 3px;
+	font: var(--type-desc);
+	color: var(--text-muted);
+}
+
+/* ─── Rodape ────────────────────────────────────────────────────────────── */
+
+#Refine .footer {
+	flex: 0 0 46px;
+	box-sizing: border-box;
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 0 13px;
+	border-top: var(--divider);
+	background: var(--surface-glass);
+}
+
+#Refine .some_notifs {
+	flex: 1 1 auto;
+	min-width: 0;
+}
+
+#Refine .info_msg {
+	display: block;
+	font: var(--type-desc);
+	line-height: 1.2;
+	overflow: hidden;
+}
+
+#Refine .info_msg.red {
+	color: var(--red-600);
+}
+
+#Refine .info_msg.blue {
+	color: var(--text-link);
+}
+
+#Refine .rf-acoes {
+	flex: 0 0 auto;
+	margin-left: auto;
+	display: flex;
+	align-items: center;
+	gap: 6px;
+}
+
+/* Os tres grupos de botao dividem o mesmo canto e o JS acende UM por vez
+   (`display: block`), entao eles sao itens de flex que somem sem deixar vao.
+   As larguras somam 254 no estado mais cheio (Cancelar + Voltar + Refinar de
+   novo + 2 folgas), dentro dos 266 uteis do rodape. */
+#Refine .rf-acoes .ri-btn {
+	height: 28px;
+	padding: 0 8px;
+	font-size: var(--fs-desc);
+	/* `line-height` + `text-align` em vez de so `inline-flex`: o JS acende
+	   estes botoes com `style.display = 'block'`, e inline style vence a
+	   folha — sem isto o rotulo colava no topo assim que o botao aparecia. */
+	line-height: 26px;
+	text-align: center;
+	white-space: nowrap;
+}
+
+#Refine .cancel {
+	flex: 0 0 auto;
+	width: 62px;
+}
+
+#Refine .back_button,
+#Refine .refine_button,
+#Refine .refine_cont {
+	position: relative;
+	height: 28px;
+}
+
+#Refine .back_button {
+	width: 62px;
+}
+
+#Refine .refine_button {
+	width: 92px;
+}
+
+#Refine .refine_cont {
+	width: 118px;
+}
+
+/* As peles empilham no mesmo lugar; o JS acende a que vale. */
+#Refine .back_button > .ri-btn,
+#Refine .refine_button > .ri-btn,
+#Refine .refine_cont > .ri-btn {
+	position: absolute;
+	inset: 0;
+	width: 100%;
+}
+
+/* Centraliza por `line-height`, NAO por flex: o JS acende este rotulo com
+   `style.display = 'block'`, e um inline style de display sempre vence a
+   folha — com flex aqui o texto perdia o centro vertical na hora de aparecer.
+   A mesma razao vale para os botoes acima. */
+#Refine .refine_text_cont {
+	position: absolute;
+	inset: 0;
+	font: var(--type-label);
+	font-size: var(--fs-desc);
+	line-height: 28px;
+	text-align: center;
+	color: var(--white);
+	pointer-events: none;
+}
+
+/* Quando a pele acesa e a DESLIGADA o rotulo tem de acompanhar a
+   dessaturacao, senao ficava um texto branco vivo sobre um botao apagado. */
+#Refine .refine_cont:has(.success_refine_cont_disabled[style*='block']) .refine_text_cont,
+#Refine .refine_cont:has(.fail_refine_cont_disabled[style*='block']) .refine_text_cont {
+	color: rgba(255, 255, 255, 0.7);
+}
+
+/* `.refine_cont` recebe a classe `.item` do JS so para carregar o
+   `data-index` da dica — nao e um ladrilho de item, e nao deve herdar nada
+   de `.item`. */
+#Refine .refine_cont.item {
+	display: block;
+}
+
+/* ─── Dica flutuante (nome do item sob o cursor) ────────────────────────── */
 
 #Refine .overlay {
 	position: absolute;
@@ -55,389 +609,9 @@
 	color: var(--white);
 	font: var(--type-desc);
 	text-shadow: 0 1px 2px rgba(8, 22, 40, 0.85);
-}
-
-#Refine .panel {
-	position: relative;
-	flex: 1 1 auto;
-	min-height: 0;
-	width: 100%;
-	overflow: hidden;
-}
-
-#Refine .image-container {
-	position: absolute;
-	top: 1px;
-	bottom: 30px; /* deixa o rodape respirar em vez dos 301px cravados */
-	width: 262px;
-}
-
-#Refine .success {
-	position: absolute;
-	height: 20px;
-	width: 261px;
-	text-align: center;
-	font-weight: bold;
-	top: 12px;
-}
-
-#Refine .success .number {
-	color: var(--blue-600);
-}
-
-#Refine .item_to_refine {
-	position: absolute;
-	height: 45px;
-	width: 50px;
-	top: 185px;
-	left: 106px;
-}
-
-#Refine .item_to_refine .item .grade {
-	position: absolute;
-	width: 12px;
-	height: 12px;
-	background-color: transparent;
-	background-repeat: no-repeat;
-	pointer-events: none;
-	z-index: 2;
-	top: 12px;
-}
-
-#Refine .item_to_refine_name {
-	position: absolute;
-	height: 18px;
-	width: 261px;
-	text-align: center;
-	top: 225px;
-	align-content: center;
-	font-weight: bold;
-	color: var(--text-title);
-}
-
-#Refine .item {
-	position: relative;
-	float: left;
-	height: 24px;
-	width: 24px;
-	left: 13px;
-	top: 7px;
-}
-
-#Refine .item .icon {
-	position: absolute;
-	top: 0px;
-	width: 24px;
-	height: 24px;
-	border: none;
-	background-color: transparent;
-	background-repeat: no-repeat;
-	z-index: 2;
-}
-
-#Refine .footer {
-	position: absolute;
-	height: 30px;
-	width: 100%;
-	bottom: 0;
-	box-sizing: border-box;
-	border-top: var(--divider);
-	background: var(--surface-glass);
-}
-
-#Refine .some_notifs {
-	position: absolute;
-	height: 20px;
-	width: 180px;
-	left: 5px;
-	top: 4px;
-}
-
-#Refine .info_msg {
-	position: absolute;
-	height: 20px;
-	width: 170px;
-	left: 15px;
-	font-size: 0.8em;
-	align-content: center;
-}
-
-#Refine .info_msg.red {
-	color: var(--red-600);
-}
-
-#Refine .info_msg.blue {
-	color: var(--text-link);
-}
-
-#Refine .cancel {
-	position: absolute;
-	height: 21px;
-	width: 57px;
-	bottom: 4px;
-	right: 5px;
-	padding: 0;
-	font-size: var(--fs-desc);
-}
-
-#Refine .materials {
-	position: absolute;
-	height: 78px;
-	width: 100%;
-	top: 30px;
-}
-
-#Refine .mat_overlay,
-#Refine .bsb_overlay {
-	position: absolute;
-	height: 53px;
-	width: 46px;
-	background-size: 0px;
-}
-
-#Refine .mat_overlay.selected,
-#Refine .bsb_overlay.selected {
-	background-size: cover;
-}
-
-#Refine .mat_0 {
-	left: 10px;
-	top: 8px;
-}
-
-#Refine .mat_1 {
-	left: 59px;
-	top: 8px;
-}
-
-#Refine .mat_2 {
-	top: 8px;
-	left: 108px;
-}
-
-#Refine .mat_3 {
-	top: 8px;
-	left: 157px;
-}
-
-#Refine .bsb_overlay {
-	top: 8px;
-	left: 206px;
-}
-
-#Refine .material_0,
-#Refine .material_1,
-#Refine .material_2,
-#Refine .material_3 {
-	display: block;
-}
-
-#Refine .materials .item .icon {
-	position: absolute;
-	top: 7px;
-	left: -2px;
-	width: 24px;
-	height: 24px;
-	border: none;
-	background-color: transparent;
-	background-repeat: no-repeat;
-	z-index: 2;
-}
-
-#Refine .mat_count {
-	height: 20px;
-	position: absolute;
-	width: 50px;
-	top: 46px;
-	text-align: center;
-	left: -15px;
-}
-
-#Refine .selected_materials {
-	position: absolute;
-	height: 50px;
-	top: 83px;
-	width: 100%;
-}
-
-#Refine .selected_mat {
-	position: relative;
-	height: 30px;
-	width: 30px;
-	left: 68px;
-	top: 6px;
-}
-
-#Refine .bsb_selected {
-	position: absolute;
-	height: 30px;
-	width: 30px;
-	left: 149px;
-	top: 6px;
-}
-
-#Refine .refine_button {
-	position: absolute;
-	height: 45px;
-	width: 92px;
-	bottom: 9px;
-	left: 85px;
-}
-
-#Refine .refine_disabled {
-	position: absolute;
-	height: 48px;
-	width: 96px;
-	top: -2px;
-	left: -2px;
-}
-
-#Refine .refine_enabled {
-	position: absolute;
-	height: 48px;
-	width: 96px;
-	top: -2px;
-	left: -2px;
-	cursor: pointer;
-	background-color: transparent;
-	background-repeat: no-repeat;
-	border: 0;
-}
-
-#Refine .refine_text {
-	font-weight: bold;
-	position: relative;
-	height: 15px;
-	width: 92px;
-	text-align: center;
-	color: var(--text-title);
-	top: 5px;
 	pointer-events: none;
 }
 
-#Refine .refine_zeny {
-	position: relative;
-	height: 15px;
-	width: 65px;
-	top: 9px;
-	left: 20px;
-	color: var(--white);
-	text-align: right;
-	font-weight: bold;
-	pointer-events: none;
-}
-
-#Refine .back_button {
-	position: absolute;
-	height: 38px;
-	width: 101px;
-	bottom: 13px;
-	left: 19px;
-	text-align: center;
-	font-weight: bold;
-	align-content: center;
-	cursor: pointer;
-}
-
-#Refine .back_success,
-#Refine .back_fail {
-	position: relative;
-	height: 38px;
-	width: 101px;
-	top: 0px;
-	left: 0px;
-	text-align: center;
-	font-weight: bold;
-	align-content: center;
-	cursor: pointer;
-	background-color: transparent;
-	background-repeat: no-repeat;
-	border: 0;
-}
-
-#Refine .refine_cont {
-	position: absolute;
-	height: 50px;
-	width: 101px;
-	bottom: 1px;
-	right: 20px;
-	text-align: center;
-	font-weight: bold;
-	align-content: center;
-	cursor: pointer;
-	z-index: 5;
-}
-
-#Refine .refine_cont.item {
-	position: absolute !important;
-	float: none !important;
-	height: 50px !important;
-	width: 101px !important;
-	left: auto !important;
-	top: auto !important;
-	bottom: 1px !important;
-	right: 20px !important;
-	text-align: center;
-	font-weight: bold;
-	align-content: center;
-	cursor: pointer;
-	z-index: 5;
-}
-
-#Refine .success_refine_cont_enabled,
-#Refine .success_refine_cont_disabled,
-#Refine .fail_refine_cont_enabled,
-#Refine .fail_refine_cont_disabled {
-	position: absolute;
-	height: 50px;
-	width: 101px;
-	top: 0px;
-	left: 0px;
-	text-align: center;
-	font-weight: bold;
-	align-content: center;
-	cursor: pointer;
-}
-
-#Refine .success_refine_cont_enabled,
-#Refine .fail_refine_cont_enabled {
-	background-color: transparent;
-	background-repeat: no-repeat;
-	border: 0;
-}
-
-#Refine .refine_text_cont {
-	position: absolute;
-	height: 15px;
-	width: 100px;
-	text-align: center;
-	align-content: center;
-	pointer-events: none;
-	font-weight: bold;
-	bottom: 27px;
-	left: 0px;
-}
-
-#Refine .chance_rate {
-	position: absolute;
-	height: 15px;
-	width: 100px;
-	bottom: 14px;
-	left: 0px;
-	text-align: center;
-	align-content: center;
-	pointer-events: none;
-}
-
-#Refine .refine_zeny_cont {
-	position: absolute;
-	height: 15px;
-	width: 100px;
-	bottom: 0px;
-	left: 0px;
-	text-align: center;
-	align-content: center;
-	color: var(--white);
-	pointer-events: none;
-	font-weight: bold;
+#Refine .overlay.grey {
+	color: rgba(255, 255, 255, 0.62);
 }

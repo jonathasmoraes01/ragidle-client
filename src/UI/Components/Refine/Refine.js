@@ -176,6 +176,51 @@ function _root() {
 Refine.render = () => htmlText;
 
 /**
+ * PINTA A CHANCE — o numero e a barra, sempre juntos.
+ *
+ * No redesenho de 01/09/2026 a chance deixou de ser so um texto solto sobre a
+ * arte e ganhou medidor. Ela e escrita em quatro momentos diferentes (abrir,
+ * escolher material, tirar o item, voltar do resultado) e um deles esquecer a
+ * barra deixaria a janela mentindo — dai UMA funcao, e nao quatro trechos.
+ *
+ * `null` apaga o medidor: e o estado de RESULTADO, em que `.success` ja nao
+ * diz porcentagem nenhuma e sim "Refino concluido"/"O refino falhou".
+ *
+ * @param {number|null} valor - chance em porcento, ou null para esconder.
+ */
+function pintarChance(valor) {
+	const root = _root();
+	const barra = root.querySelector('.chance_bar');
+	const preenchimento = root.querySelector('.chance_bar .fill');
+
+	if (!barra || !preenchimento) {
+		return;
+	}
+
+	if (valor === null) {
+		barra.style.display = 'none';
+		return;
+	}
+
+	const pct = Math.max(0, Math.min(100, Number(valor) || 0));
+	barra.style.display = 'block';
+	preenchimento.style.width = `${pct}%`;
+	/* Faixa, nao gradiente continuo: o jogador precisa decidir "arrisco ou
+	   nao", e tres estados decidem melhor que cem tons. */
+	barra.classList.toggle('esta-alta', pct >= 80);
+	barra.classList.toggle('esta-baixa', pct > 0 && pct < 40);
+}
+
+/**
+ * Zeny com separador de milhar. O servidor manda o numero cru e a janela
+ * antiga o imprimia cru: "1000000" e ilegivel do lado de um botao.
+ */
+function zeny(valor) {
+	const numero = Number(valor);
+	return Number.isFinite(numero) ? numero.toLocaleString('pt-BR') : String(valor ?? '');
+}
+
+/**
  * Initialize UI
  */
 Refine.init = function init() {
@@ -203,14 +248,19 @@ Refine.init = function init() {
 
 	this.draggable('.titlebar');
 
-	// Update success div text
+	// Chance de sucesso: rotulo proprio em portugues, nao a msgstringtable.
+	//
+	// O `DB.getMessage(3724)` que morava aqui devolve o texto do cliente
+	// coreano/ingles — a mesma tabela que fazia esta janela se chamar "Try
+	// Again" no print do dono (msg 3241). As janelas da Fase 3 (Encantamento,
+	// Sintese) ja tinham trocado ui-text por texto nosso; esta ficou para tras.
 	const successdiv = root.querySelector('.success');
-	const initialValue = 0;
-	const successtext = DB.getMessage(3724);
-	initialsuccess = successtext.replace('%d%', `<span class="number">${initialValue}</span>`);
+	initialsuccess = 'Chance de sucesso <span class="number">0</span>%';
 	if (successdiv) {
 		successdiv.innerHTML = initialsuccess;
+		successdiv.style.display = 'block';
 	}
+	pintarChance(0);
 
 	// Item drop/drag on .item_to_refine
 	const itemToRefine = root.querySelector('.item_to_refine');
@@ -693,17 +743,18 @@ function onPopulateMaterials() {
 					if (numberEl) {
 						numberEl.textContent = material.chance;
 					}
+					pintarChance(material.chance);
 					const chanceRate = root.querySelector('.chance_rate');
 					if (chanceRate) {
-						chanceRate.textContent = DB.getMessage(3285).replace('%d%', material.chance);
+						chanceRate.textContent = `Próxima tentativa: ${material.chance}%`;
 					}
 					const refineZeny = root.querySelector('.refine_zeny');
 					if (refineZeny) {
-						refineZeny.textContent = material.zeny;
+						refineZeny.textContent = zeny(material.zeny);
 					}
 					const refineZenyCont = root.querySelector('.refine_zeny_cont');
 					if (refineZenyCont) {
-						refineZenyCont.textContent = material.zeny;
+						refineZenyCont.textContent = zeny(material.zeny);
 					}
 
 					// Store fresh chance/zeny for re-apply after the result animation
@@ -855,11 +906,11 @@ function selectMaterial(material, item) {
 
 	const chanceRate = root.querySelector('.chance_rate');
 	if (chanceRate) {
-		chanceRate.textContent = DB.getMessage(3285).replace('%d%', material.chance);
+		chanceRate.textContent = `Próxima tentativa: ${material.chance}%`;
 	}
 	const refineZenyCont = root.querySelector('.refine_zeny_cont');
 	if (refineZenyCont) {
-		refineZenyCont.textContent = material.zeny;
+		refineZenyCont.textContent = zeny(material.zeny);
 	}
 
 	if (refine_can_cont && !refine_new_mats && !refine_item_broken) {
@@ -886,31 +937,37 @@ function onItemOver(event) {
 		return;
 	}
 
-	const itemRect = this.getBoundingClientRect();
 	const overlay = root.querySelector('.overlay');
 	if (!overlay) {
 		return;
 	}
 
-	const parentContainer = this.closest('.materials') || this.closest('.refine_cont');
-	if (!parentContainer) {
-		return;
-	}
-	const containerRect = parentContainer.getBoundingClientRect();
-
-	let top, left;
-	if (parentContainer.classList.contains('materials')) {
-		top = itemRect.top - containerRect.top + 30;
-		left = itemRect.left - containerRect.left + this.offsetWidth - 39;
-	} else if (parentContainer.classList.contains('refine_cont')) {
-		top = itemRect.top - containerRect.top + 242;
-		left = itemRect.left - containerRect.left + this.offsetWidth + 41;
-	}
-
+	/* A DICA PASSOU A SE MEDIR SOZINHA (redesenho de 01/09/2026).
+	 *
+	 * Antes eram quatro deslocamentos cravados (+30/-39 para os materiais,
+	 * +242/+41 para o botao de repetir) somados a um container intermediario:
+	 * numeros que so faziam sentido dentro do bitmap de 262x301 e que, com a
+	 * janela remontada, jogavam o nome do item para fora dela.
+	 *
+	 * Agora ela se ancora na JANELA (que e o bloco posicionado da dica), fica
+	 * acima da peca sob o cursor, e e presa nas bordas — nao ha mais numero
+	 * para envelhecer quando o leiaute mudar de novo. */
 	overlay.style.display = 'block';
-	overlay.style.top = `${top}px`;
-	overlay.style.left = `${left}px`;
 	overlay.textContent = it.identifiedDisplayName;
+
+	const janela = Refine._host.getBoundingClientRect();
+	const peca = this.getBoundingClientRect();
+	const largura = overlay.offsetWidth;
+	const altura = overlay.offsetHeight;
+
+	const meio = peca.left - janela.left + peca.width / 2 - largura / 2;
+	const left = Math.max(4, Math.min(meio, janela.width - largura - 4));
+	/* Acima da peca; se nao couber, desce para baixo dela. */
+	const acima = peca.top - janela.top - altura - 4;
+	const top = acima >= 4 ? acima : peca.bottom - janela.top + 4;
+
+	overlay.style.left = `${left}px`;
+	overlay.style.top = `${top}px`;
 
 	if (it.IsIdentified) {
 		overlay.classList.remove('grey');
@@ -952,6 +1009,7 @@ function onRemoveItem(backtowait) {
 	if (successNumber) {
 		successNumber.textContent = '0';
 	}
+	pintarChance(0);
 	const refineZeny = root.querySelector('.refine_zeny');
 	if (refineZeny) {
 		refineZeny.innerHTML = '';
@@ -997,8 +1055,10 @@ function onRemoveItem(backtowait) {
 		const successEl = root.querySelector('.success');
 		if (successEl) {
 			successEl.innerHTML = initialsuccess;
+			successEl.classList.remove('deu-certo', 'deu-errado');
 			successEl.style.display = 'block';
 		}
+		pintarChance(0);
 
 		onHideContRefineButtons();
 		clearRefineStates();
@@ -1016,6 +1076,7 @@ function clearMaterials() {
 		successEl.innerHTML = '';
 		successEl.style.display = 'none';
 	}
+	pintarChance(null);
 	const refineZeny = root.querySelector('.refine_zeny');
 	if (refineZeny) {
 		refineZeny.innerHTML = '';
@@ -1285,9 +1346,12 @@ function onUpdateRefineUI(result) {
 			}
 			const successEl = root.querySelector('.success');
 			if (successEl) {
-				successEl.textContent = DB.getMessage(2971);
+				successEl.textContent = 'Refino concluído!';
+				successEl.classList.add('deu-certo');
+				successEl.classList.remove('deu-errado');
 				successEl.style.display = 'block';
 			}
+			pintarChance(null);
 			ChatBox.addText(DB.getMessage(498), ChatBox.TYPE.BLUE, ChatBox.FILTER.PUBLIC_LOG);
 			break;
 		}
@@ -1299,9 +1363,12 @@ function onUpdateRefineUI(result) {
 			}
 			const successEl = root.querySelector('.success');
 			if (successEl) {
-				successEl.textContent = DB.getMessage(2972);
+				successEl.textContent = 'O refino falhou';
+				successEl.classList.add('deu-errado');
+				successEl.classList.remove('deu-certo');
 				successEl.style.display = 'block';
 			}
+			pintarChance(null);
 			ChatBox.addText(DB.getMessage(499), ChatBox.TYPE.BLUE, ChatBox.FILTER.PUBLIC_LOG);
 			break;
 		}
@@ -1313,9 +1380,12 @@ function onUpdateRefineUI(result) {
 			}
 			const successEl = root.querySelector('.success');
 			if (successEl) {
-				successEl.textContent = DB.getMessage(2972);
+				successEl.textContent = 'Falhou e o refino caiu um nível';
+				successEl.classList.add('deu-errado');
+				successEl.classList.remove('deu-certo');
 				successEl.style.display = 'block';
 			}
+			pintarChance(null);
 			ChatBox.addText(DB.getMessage(1537), ChatBox.TYPE.BLUE, ChatBox.FILTER.PUBLIC_LOG);
 			break;
 		}
@@ -1434,6 +1504,11 @@ function onHideContRefineButtons() {
 	const refineZenyCont = root.querySelector('.refine_zeny_cont');
 	if (refineZenyCont) {
 		refineZenyCont.style.display = 'none';
+		/* Esvaziar, e nao so esconder: a linha de custo escolhe entre
+		   `.refine_zeny` (montagem) e `.refine_zeny_cont` (proxima tentativa)
+		   por `:empty`, e um valor velho aqui dentro fazia o traco de "sem
+		   custo" sumir na janela recem-aberta. */
+		refineZenyCont.textContent = '';
 	}
 }
 
@@ -1482,8 +1557,10 @@ function onCancelContRefine() {
 	const successEl = root.querySelector('.success');
 	if (successEl) {
 		successEl.innerHTML = initialsuccess;
+		successEl.classList.remove('deu-certo', 'deu-errado');
 		successEl.style.display = 'block';
 	}
+	pintarChance(0);
 }
 
 /**

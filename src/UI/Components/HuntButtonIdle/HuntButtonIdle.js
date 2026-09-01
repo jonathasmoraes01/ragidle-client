@@ -1,21 +1,24 @@
 /**
  * UI/Components/HuntButtonIdle/HuntButtonIdle.js
  *
- * "Botao de caca contextual" — pedido do dono, 19/08/2026: um unico botao
- * fixo logo ABAIXO do minimapa (ver HuntButtonIdle.css pro numero exato de
- * respiro, medido com getBoundingClientRect contra #MiniMapV2) que muda de
- * rotulo SOZINHO conforme o jogador troca de mapa:
- *   - Na cidade                    -> "Caçar"
- *   - Fora da cidade (mapa de caça) -> "Retornar para Prontera"
+ * "Botao de caca contextual" — pedido do dono, 19/08/2026: dois botoes fixos
+ * logo ABAIXO do minimapa (ver HuntButtonIdle.css pro numero exato de respiro,
+ * medido com getBoundingClientRect contra #MiniMapV2):
+ *   - "Caçar"                  -> abre a janela Mapa de Caça
+ *   - "Retornar para Prontera" -> viaja de volta pro ponto salvo
  *
- * Fonte de "estou na cidade": IdleConfig.contexto.ehCidade — o MESMO sinal
- * que o botao preto da Config idle ja usa pra se avisar (D-355,
- * IdleConfig.js:269-288, "O sinal vem de contexto.ehCidade (mapa sem
- * populacao de mobs)"). E pedido ao servidor a CADA troca de mapa por
- * IdleConfig.sondarMapa() (Engine/MapEngine.js, dentro de onMapChange, logo
- * apos IdleConfig.append()) — este arquivo NAO pede de novo, so LE o
- * resultado. Lido por polling de 250ms (mesma cadencia e mesma tecnica de
- * DockIdle.js/TopMenuIdle.js) porque IdleConfig nao expoe nenhum evento de
+ * OS DOIS FICAM SEMPRE VISIVEIS E SEMPRE ATIVOS. Nasceram como UM botao que
+ * trocava de rotulo com o mapa (19/08); viraram dois fixos em 31/08 (I3), com
+ * o de voltar DESABILITADO em cidade; e o `disabled` caiu em 01/09 — o sinal
+ * que o apagava (`contexto.ehCidade`) diz "estou em alguma cidade", nunca
+ * "estou NESTA", entao ele matava o botao em Payon, Geffen, Morocc e Izlude,
+ * onde a viagem de volta funciona. Ver a nota em `jaEstaNaCidadeDeDestino()`.
+ *
+ * O mapa de agora vem de IdleConfig.contexto.mapa, pedido ao servidor a CADA
+ * troca de mapa por IdleConfig.sondarMapa() (Engine/MapEngine.js, dentro de
+ * onMapChange, logo apos IdleConfig.append()) — este arquivo NAO pede de novo,
+ * so LE o resultado. Lido por polling de 250ms (mesma cadencia e mesma tecnica
+ * de DockIdle.js/TopMenuIdle.js) porque IdleConfig nao expoe nenhum evento de
  * "contexto mudou", so a propriedade publica.
  *
  * Acao de cada rotulo:
@@ -50,6 +53,7 @@ import GUIComponent from 'UI/GUIComponent.js';
 import HuntMap from 'UI/Components/HuntMap/HuntMap.js';
 import IdleConfig from 'UI/Components/IdleConfig/IdleConfig.js';
 import AdminPanel from 'UI/Components/AdminPanel/AdminPanel.js';
+import ChatBox from 'UI/Components/ChatBox/ChatBox.js';
 import htmlText from './HuntButtonIdle.html?raw';
 import cssText from './HuntButtonIdle.css?raw';
 
@@ -87,10 +91,10 @@ HuntButtonIdle.needFocus = false;
 let _pollTimer = null;
 
 /**
- * @var {boolean|null} ultimo valor de ehCidade aplicado ao rotulo — evita
- * reescrever o DOM a cada tique quando nada mudou.
+ * @var {boolean|null} ultimo valor de "ja estou na cidade de destino" aplicado
+ * ao `title` — evita reescrever o DOM a cada tique quando nada mudou.
  */
-let _lastEhCidade = null;
+let _ultimoEmCasa = null;
 
 /**
  * Helper: query dentro do shadow root
@@ -160,7 +164,7 @@ function publicarAltura() {
 HuntButtonIdle.onAppend = function onAppend() {
 	hideAdminButton();
 	publicarAltura();
-	_lastEhCidade = null;
+	_ultimoEmCasa = null;
 	syncLabel();
 	startPolling();
 };
@@ -204,13 +208,47 @@ function hideAdminButton() {
 	}
 }
 
-function ehCidadeAtual() {
-	return !!(IdleConfig.contexto && IdleConfig.contexto.ehCidade);
+/**
+ * "O jogador JA ESTA na cidade de destino?"
+ *
+ * ---------------------------------------------------------------------------
+ * POR QUE NAO E `contexto.ehCidade`
+ * ---------------------------------------------------------------------------
+ * `ehCidade` responde "este mapa tem populacao de mobs?" (servidor-mapa.ts:
+ * `ehCidade: ms.populacao === null`). Ele diz que voce esta EM ALGUMA cidade —
+ * nunca que voce esta NESTA, a do ponto salvo. Parado em Payon ou Geffen o
+ * sinal e `true` e a viagem de volta continua legitima: e por isso que o painel
+ * do Mapa de Caça sempre usou a comparacao de MAPA e nao este sinal
+ * (HuntMap.js, `const atCity = catalog.mapaAtual === catalog.cidade.mapa`).
+ *
+ * O destino sai de `HuntMap.catalog.cidade.mapa`; o mapa de agora sai de
+ * `IdleConfig.contexto.mapa`, que e re-sondado a CADA troca de mapa. Enquanto
+ * um dos dois for desconhecido (catalogo nunca pedido, contexto obsoleto) a
+ * resposta e `false`: na duvida a viagem sai, que e o lado seguro — o servidor
+ * recusa sozinho quem ja chegou (D-388).
+ */
+function jaEstaNaCidadeDeDestino() {
+	const cidade = HuntMap.catalog && HuntMap.catalog.cidade;
+	if (!cidade || !IdleConfig.contexto || IdleConfig.contextoObsoleto) {
+		return false;
+	}
+	return IdleConfig.contexto.mapa === cidade.mapa;
 }
 
 /**
- * Atualiza o rotulo do botao a partir do sinal REAL (IdleConfig.contexto.
- * ehCidade), so tocando o DOM quando o valor muda (ver _lastEhCidade acima).
+ * Rotulo da cidade de destino para a mensagem ("Prontera"), com o nome do mapa
+ * como ultimo recurso.
+ */
+function rotuloDaCidade() {
+	const cidade = HuntMap.catalog && HuntMap.catalog.cidade;
+	return (cidade && (cidade.rotulo || cidade.mapa)) || 'Prontera';
+}
+
+/**
+ * Atualiza o ESTADO do par de botoes a partir do sinal REAL (o mapa de agora,
+ * em IdleConfig.contexto.mapa), so tocando o DOM quando o valor muda (ver
+ * _ultimoEmCasa acima). Nenhum dos dois e desabilitado aqui: o que muda e o
+ * `title`.
  */
 function syncLabel() {
 	if (!IdleConfig.contexto || IdleConfig.contextoObsoleto) {
@@ -228,7 +266,7 @@ function syncLabel() {
 		 * O sintoma: depois de TODA viagem o botao mostrava o rotulo do mapa
 		 * anterior — "Retornar para Prontera" ja em Prontera, "Caçar" ja no
 		 * mapa de caca — ate a resposta chegar. E como `syncLabel` so toca o
-		 * DOM quando o valor MUDA (`_lastEhCidade`), o rotulo errado ficava
+		 * DOM quando o valor MUDA (`_ultimoEmCasa`), o texto errado ficava
 		 * gravado como se fosse o certo.
 		 *
 		 * Uma guarda que descreve a intencao certa e testa a condicao errada e
@@ -237,11 +275,11 @@ function syncLabel() {
 		return;
 	}
 
-	const ehCidade = ehCidadeAtual();
-	if (ehCidade === _lastEhCidade) {
+	const emCasa = jaEstaNaCidadeDeDestino();
+	if (emCasa === _ultimoEmCasa) {
 		return;
 	}
-	_lastEhCidade = ehCidade;
+	_ultimoEmCasa = emCasa;
 
 	const root = _root();
 	const cacar = root.querySelector('.hb-cacar');
@@ -250,22 +288,28 @@ function syncLabel() {
 		return;
 	}
 	/*
-	 * OS DOIS FICAM SEMPRE NA TELA (I3, 31/08/2026 — pedido do dono):
-	 * "em vez do botao 'Caçar' virar 'Retornar para Prontera', deixar os 2
-	 * botoes fixos na tela".
+	 * "RETORNAR PARA PRONTERA" FICA SEMPRE ATIVO (01/09/2026 — pedido do dono).
 	 *
-	 * O que muda com o mapa e o ESTADO, e nao o rotulo. Na cidade nao ha para
-	 * onde retornar; no campo, "Caçar" continua util (a janela de mapas abre
-	 * de qualquer lugar), entao so o de VOLTAR e desabilitado.
+	 * Ele nascia desabilitado em TODA cidade, porque o sinal usado era
+	 * `contexto.ehCidade`. Quem estivesse em Payon, Geffen, Morocc ou Izlude —
+	 * cidades tanto quanto Prontera — encontrava o botao de voltar apagado
+	 * justamente onde ele servia: a viagem de volta dali e valida, e o painel
+	 * do Mapa de Caça a oferecia normalmente na mesma hora. Um botao apagado
+	 * numa situacao em que a acao funciona nao protege ninguem, so esconde.
 	 *
-	 * DESABILITAR em vez de ESCONDER, e a razao e o pedido: um botao que some
-	 * devolve o layout pulando, que e o que ele queria evitar ao pedir "fixos".
-	 * E o `title` diz POR QUE, senao o jogador fica clicando num botao apagado
-	 * sem entender.
+	 * Agora ele nunca e desabilitado. O unico caso em que a viagem nao tem o
+	 * que fazer — voce JA esta na cidade do ponto salvo — deixou de ser um
+	 * botao morto e virou uma frase no chat (ver onClickVoltar), porque o
+	 * servidor recusa esse pedido EM SILENCIO (D-388) e clique sem resposta
+	 * nenhuma e o defeito que `avisarSeAJanelaEstaFechada` ja tinha consertado
+	 * do outro lado, em HuntMap.js.
+	 *
+	 * O `title` continua avisando ANTES do clique quando voce ja esta em casa —
+	 * dizer e diferente de impedir.
 	 */
-	voltar.disabled = ehCidade;
-	voltar.title = ehCidade
-		? 'Voce ja esta na cidade'
+	voltar.disabled = false;
+	voltar.title = emCasa
+		? `Você já está em ${rotuloDaCidade()}`
 		: LABEL_RETORNAR;
 	cacar.title = LABEL_CACAR;
 	// A caixa pode ter mudado de altura (rotulo, quebra de linha): quem vem
@@ -283,10 +327,22 @@ function onClickCacar(e) {
 
 function onClickVoltar(e) {
 	e.stopImmediatePropagation();
-	// Guarda de estado: o `disabled` do DOM ja impede o clique, mas um segundo
-	// gatilho (teclado, script) chegaria aqui — e viajar para a cidade estando
-	// nela e um pedido que o servidor recusa em silencio (D-388, "ja esta la").
-	if (ehCidadeAtual()) {
+	/*
+	 * O botao esta SEMPRE ativo, entao o clique de quem ja chegou tambem chega
+	 * aqui. Viajar para a cidade estando NELA e o unico pedido que o servidor
+	 * recusa em silencio (D-388, "ja esta la"): sem esta frase o jogador
+	 * clicaria, nao viajaria, e nada apareceria na tela.
+	 *
+	 * A janela do Mapa de Caça esta fechada neste caminho (e o botao da HUD),
+	 * por isso a mensagem vai pro chat — mesmo raciocinio de
+	 * `avisarSeAJanelaEstaFechada` em HuntMap.js.
+	 */
+	if (jaEstaNaCidadeDeDestino()) {
+		ChatBox.addText(
+			`Você já está em ${rotuloDaCidade()}.`,
+			ChatBox.TYPE.ERROR,
+			ChatBox.FILTER.PUBLIC_LOG
+		);
 		return;
 	}
 	// Viaja de volta SEM abrir a janela — mesmo pacote CZ_RAGIDLE_VIAJAR que o
@@ -303,9 +359,9 @@ function onClickVoltar(e) {
  * acontece no SAIR). Todo estado de MODULO atravessa a troca — e este arquivo
  * guarda o ultimo contexto de mapa que ele leu.
  *
- * O botao muda de cara conforme o personagem esteja em cidade ou em campo. Dois
- * personagens podem estar em lugares diferentes, e `_lastEhCidade` segura o
- * redesenho enquanto nao mudar.
+ * O aviso do botao muda conforme o personagem ja esteja ou nao na cidade do
+ * ponto salvo. Dois personagens podem estar em lugares diferentes, e
+ * `_ultimoEmCasa` segura o redesenho enquanto nao mudar.
  *
  * Chamada por `cleanGameUI()` em Engine/MapEngine.js, junto com os outros
  * componentes RAGIDLE. Quem somar estado de personagem aqui soma a linha
@@ -313,7 +369,7 @@ function onClickVoltar(e) {
  * (no repo do servidor) reprova se esquecer.
  */
 HuntButtonIdle.limparEstadoDoPersonagem = function limparEstadoDoPersonagem() {
-	_lastEhCidade = null;
+	_ultimoEmCasa = null;
 };
 
 /**

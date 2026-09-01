@@ -18,7 +18,15 @@
 	box-shadow: var(--window-shadow), var(--rim-light);
 	overflow: hidden;
 }
-#LaphineSys .titlebar .base {
+/* `> div.base`, e nao `.base` (foto do dono, 01/09/2026): o botao de fechar
+   nascia com `class="base close ri-close"` e esta regra tem especificidade
+   MAIOR que `.ri-close` (id + duas classes contra uma), entao ganhava o
+   `position/left/top/width/height` e cuspia o X para o canto SUPERIOR
+   ESQUERDO, esticado na altura do cabecalho. A classe saiu do botao no HTML e
+   o seletor passou a exigir DIV — duas defesas. O dono viu na Forja (Refine),
+   mas a regra era identica, palavra por palavra, nestas quatro janelas.
+   Portao: `tests/ui/forjaNoDesignSystem.test.js`. */
+#LaphineSys .titlebar > div.base {
 	position: absolute;
 	left: 0;
 	top: 0;

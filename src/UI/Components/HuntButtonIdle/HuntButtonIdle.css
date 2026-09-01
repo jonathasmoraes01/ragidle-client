@@ -52,11 +52,14 @@
 }
 
 /*
- * O BOTAO DESABILITADO CONTINUA OCUPANDO O LUGAR DELE.
+ * NENHUM DOS DOIS E DESABILITADO HOJE (01/09/2026 — pedido do dono: "o botao
+ * 'Retornar para Prontera' deve ficar sempre ativo"). "Caçar" nunca foi; o de
+ * voltar deixou de ser, e quem ja esta na cidade do ponto salvo recebe uma
+ * frase no chat em vez de um botao apagado (ver HuntButtonIdle.js).
  *
- * O dono pediu os dois FIXOS: escondê-lo na cidade devolveria o layout
- * pulando, que e exatamente o que ele quis evitar. Apagado e clicavel-nao —
- * e o `title` (em HuntButtonIdle.js) diz por que.
+ * A regra fica como REDE: se algum dia um estado desabilitado voltar, ele
+ * continua ocupando o lugar dele em vez de sumir — o dono pediu os dois FIXOS,
+ * e esconder um devolveria o layout pulando.
  */
 .hb-btn:disabled {
 	opacity: 0.45;

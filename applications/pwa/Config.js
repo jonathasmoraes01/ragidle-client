@@ -86,6 +86,29 @@ window.ROConfigBase = {
 	enableDmgSuffix: false,
 	enableHomunAutoFeed: false,
 	enableMapName: false,
+	/*
+	 * A JANELA DE REFINO (01/09/2026, queixa do dono: *"clico no Hollgrehenn e
+	 * nao acontece nada"*).
+	 *
+	 * Os dois lados do refino ja existiam e mesmo assim o clique era MUDO,
+	 * porque esta chave ausente (que e o mesmo que `false`) desliga tres coisas:
+	 *
+	 *   - `Refine.prepare()` (`src/Engine/MapEngine.js:539`), sem o qual a
+	 *     janela nao tem `ui` para aparecer;
+	 *   - `onOpenRefineUI` (`src/UI/Components/Refine/Refine.js:371`), que
+	 *     recebe o `ZC_OPEN_REFINING_UI` e RETORNA sem abrir nada — deixando so
+	 *     um `console.warn` que ninguem le enquanto joga;
+	 *   - o resultado do refino (`src/Engine/MapEngine/Item.js:421`).
+	 *
+	 * O servidor SEMPRE atendeu: `npc.tipo === 'refino'` -> `ZC_OPEN_REFINING_UI`
+	 * (`rag-idle-master/servidor/mapa/servidor-mapa.ts:21014`), e por isso as
+	 * provas de TCP (`prove:refino`, `prove-ferreiro-na-casa`) sao verdes com o
+	 * jogador vendo nada acontecer. Quem nao escutava era o cliente — a MESMA
+	 * forma do `enableCashShop` logo acima.
+	 *
+	 * A outra metade da guarda ja passava: `packetver` 20211103 >= 20161012.
+	 */
+	enableRefineUI: true,
 	FirstPersonCamera: false,
 	grfList: null,
 	hashFiles: [],

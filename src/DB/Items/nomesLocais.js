@@ -12,13 +12,27 @@
  * aparecem como "Item desconhecido (id)" — honesto, mas nao e um nome — ou
  * como "Unknown Item", quando nem estube existe no `ItemTable.js`.
  *
- * Sao DUAS rodadas de medicao, e a lista abaixo esta separada por elas:
+ * Sao TRES rodadas de medicao, e a lista abaixo esta separada por elas:
  *
  *  1. **os 22 que CAEM DE MOB** (25/08/2026): o cruzamento dos drops dos 112
  *     monstros do jogo contra a tabela do GRF;
  *  2. **os 14 da LOJA DE COSMETICOS** (31/08/2026): dos 22 itens que o NPC de
  *     Prontera vende (`npc/custom/ragidle/loja-de-cosmeticos.txt`), so 8 tem
  *     nome no GRF. O dono viu a vitrine com sete linhas e duas nomeadas.
+ *  3. **os 5 das LOJAS DE NPC** (01/09/2026): o dono, jogando, no Advanced
+ *     Potion Merchant — "esse npc esta sem itens", com as quatro linhas
+ *     dizendo "Unknown Item". Aqui a medicao veio ANTES do conserto e cobriu
+ *     a superficie inteira: as **75 lojas do catalogo do jogo**
+ *     (`assets-build/game/npcs-*.json`) cruzadas contra tudo que resolve nome
+ *     hoje. Sao **5 ids mudos em 8 lojas** — os 4 siropes (o mesmo NPC em
+ *     alberta_in, geffen_in, izlude_in, payon_in02 e prt_in) e o Combination
+ *     Kit do Chef Assistant (prontera e geffen). Ver D-900.
+ *
+ *     **O buraco e maior fora do catalogo, e ficou de fora de proposito**: nas
+ *     lojas que o servidor carrega mas o jogo nao serve (cash trader idRO,
+ *     Eden, itemmall, Lasagna) sao **258** ids mudos em 43 lojas. Nomear item
+ *     que ninguem alcanca e inventar trabalho — quando uma delas entrar no
+ *     catalogo, rode `.tmp-scratch/lojas-do-catalogo.ts` de novo.
  *
  * Cada nome abaixo e o campo `Name:` do item_db do rAthena, com a citacao ao
  * lado. NENHUM nome foi inventado nem traduzido: nome proprio de item fica no
@@ -96,7 +110,18 @@ export const NOMES_LOCAIS = {
 
 	// --- Rodada 3: o cosmetico de CABECA que o dono pediu (31/08/2026) ---
 	// O primeiro item da loja que nao e manto. Ver D-796.
-	420010: 'Costume Dark Master' // db/re/item_db_equip.yml:185600 (C_Cons_Of_Darkness)
+	420010: 'Costume Dark Master', // db/re/item_db_equip.yml:185600 (C_Cons_Of_Darkness)
+
+	// --- Rodada 5: as LOJAS DE NPC do catalogo (01/09/2026) ---
+	// O dono, jogando: "esse npc esta sem itens" — o Advanced Potion Merchant
+	// com quatro linhas "Unknown Item". Medido nas 75 lojas do catalogo do
+	// jogo (`.tmp-scratch/lojas-do-catalogo.ts`, no repositorio do jogo):
+	// **5 ids mudos em 8 lojas**, e sao estes. Ver D-900.
+	11621: 'Red Syrup', // db/re/item_db_usable.yml:4188 (High_RedPotion)
+	11622: 'Yellow Syrup', // db/re/item_db_usable.yml:4199 (High_YelloPotion)
+	11623: 'White Syrup', // db/re/item_db_usable.yml:4210 (High_WhitePotion)
+	11624: 'Blue Syrup', // db/re/item_db_usable.yml:4221 (High_BluePotion)
+	12849: 'Combination Kit' // db/re/item_db_usable.yml:14476 (Combination_Kit) — Chef Assistant
 };
 
 /**
@@ -298,5 +323,43 @@ export const ICONES_LOCAIS = {
 	 * arquivo em disco e achado por comparacao de caminho, e no Linux do
 	 * contêiner a caixa importa.
 	 */
-	420010: '_Cons_Of_Darkness'
+	420010: '_Cons_Of_Darkness',
+
+	/*
+	 * Rodada 5 (01/09/2026): os 4 SIROPES do Advanced Potion Merchant.
+	 *
+	 * Aqui a derivacao nao e por `View` nem por transliteracao: e a TRADUCAO
+	 * LITERAL do AegisName. `High_*Potion` em coreano e `상급포션` (sanggeup
+	 * posyeon, "posao de grau superior") + a cor, e o proprio NPC se chama
+	 * "Advanced Potion Merchant". Os quatro arquivos existem, um por cor, com
+	 * o hifen ASCII no meio.
+	 *
+	 * As duas peneiras de sempre passam, e a segunda passa da forma mais
+	 * forte possivel (`.tmp-scratch/provar-icone-siropes.ts`, no repositorio
+	 * do jogo):
+	 *
+	 *   1. o `.bmp` existe em `item\` E em `collection\`, conferido arquivo a
+	 *      arquivo pelos bytes CP949;
+	 *   2. **NENHUM id** da tabela de recurso do GRF (4.026 arquivos com dono
+	 *      declarado) aponta para qualquer um dos quatro — nao ha disputa de
+	 *      identidade nem icone de familia compartilhado. Cada sirope e dono
+	 *      unico do seu arquivo.
+	 *
+	 * O GRF nao tem a serie 시럽 ("syrup") — zero arquivos —, entao a grafia
+	 * kRO desta familia e mesmo a de "posao de grau superior".
+	 */
+	11621: '\xbb\xf3\xb1\xde\xc6\xf7\xbc\xc7-\xbb\xa1\xb0\xad', // Red Syrup / 상급포션-빨강
+	11622: '\xbb\xf3\xb1\xde\xc6\xf7\xbc\xc7-\xb3\xeb\xb6\xfb', // Yellow Syrup / 상급포션-노랑
+	11623: '\xbb\xf3\xb1\xde\xc6\xf7\xbc\xc7-\xc7\xcf\xbe\xe7', // White Syrup / 상급포션-하양
+	11624: '\xbb\xf3\xb1\xde\xc6\xf7\xbc\xc7-\xc6\xc4\xb6\xfb' // Blue Syrup / 상급포션-파랑
+
+	/*
+	 * O 12849 (Combination Kit) NAO ENTRA, e e o mesmo veredito do 28382
+	 * (Charm Grass Necklace) do paragrafo acima: nome sim, icone nao. O GRF
+	 * nao tem `조합`/`합성` (johap/hapseong, "combinacao"/"sintese") em icone
+	 * nenhum, e nao ha ASCII `combination`/`kit` que sirva — os 3 `키트` que
+	 * existem sao Repair/Poison/Reparo, itens outros
+	 * (`.tmp-scratch/buscar-12849.ts`). Ausencia real, nao peneira. A maca
+	 * continua sendo a resposta honesta para ele.
+	 */
 };

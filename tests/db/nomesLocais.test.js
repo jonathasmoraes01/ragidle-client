@@ -1,6 +1,7 @@
 /**
  * A TABELA DOS NOMES LOCAIS — 22 drops (25/08/2026) + 14 cosmeticos de loja
- * (31/08/2026), e os 10 icones derivados que vieram com a segunda rodada.
+ * (31/08/2026) + 5 de loja de NPC (01/09/2026), e os 35 icones que vieram
+ * com as rodadas 2 a 5.
  *
  * Ver o cabecalho de `src/DB/Items/nomesLocais.js` para o que ela e. O que
  * estes casos guardam sao as tres formas de ela apodrecer:
@@ -101,17 +102,18 @@ describe('a lista aponta so para item que o jogo conhece', () => {
 		).toEqual([]);
 	});
 
-	it('sao exatamente os 37 das tres rodadas — crescimento passa por aqui', () => {
+	it('sao exatamente os 42 das quatro rodadas — crescimento passa por aqui', () => {
 		/*
 		 * Nao e um pino por vaidade: um id somado sem passar pelo cruzamento
 		 * acima (na maquina sem a arvore irma, onde ele PULA) entraria cego.
-		 * Quem somar o 38o atualiza este numero no mesmo commit — e roda o
+		 * Quem somar o 43o atualiza este numero no mesmo commit — e roda o
 		 * cruzamento numa arvore que tenha o conteudo.
 		 *
 		 * 22 dos drops (25/08) + 14 da Loja de Cosmeticos (31/08) + o 420010,
-		 * o cosmetico de CABECA que o dono pediu no mesmo dia (D-796).
+		 * o cosmetico de CABECA que o dono pediu no mesmo dia (D-796) + os 5
+		 * das LOJAS DE NPC do catalogo (01/09, D-900).
 		 */
-		expect(Object.keys(NOMES_LOCAIS)).toHaveLength(37);
+		expect(Object.keys(NOMES_LOCAIS)).toHaveLength(42);
 	});
 });
 
@@ -176,7 +178,7 @@ describe('o icone local (31/08/2026)', () => {
 		expect(semNome, 'estes ids tem icone local e nenhum nome local').toEqual([]);
 	});
 
-	it('sao exatamente 31: 10 derivados de cosmetico + 1 DESENHADO + 5 ASCII + 10 CP949 (familia unica) + 5 CP949 (icone de familia)', () => {
+	it('sao exatamente 35: 10 derivados de cosmetico + 1 DESENHADO + 5 ASCII + 10 CP949 (familia unica) + 5 CP949 (icone de familia) + 4 siropes', () => {
 		/*
 		 * Os 10 derivados de cosmetico sao 10 e nao 13 porque `View` NAO e
 		 * chave unica (20500/20765 dividem o 1; 20606/20727 dividem o 5). Quem
@@ -200,8 +202,13 @@ describe('o icone local (31/08/2026)', () => {
 		 * FAMILIA — 4 Foxtail dividindo 여우의꼬리 (mesmo recurso, 4 ids
 		 * nossos + 51 outros) + o Novice Poring Card dividindo 이름없는카드
 		 * com o 4001 e mais 110 cartas do elenco.
+		 *
+		 * Os 4 da Rodada 5 (01/09/2026) sao os siropes do Advanced Potion
+		 * Merchant: 상급포션-<cor>, a traducao literal de `High_*Potion`, com
+		 * dono UNICO cada e nenhum id reivindicando o `.bmp` na tabela do GRF
+		 * (`.tmp-scratch/provar-icone-siropes.ts`, no repositorio do jogo).
 		 */
-		expect(Object.keys(ICONES_LOCAIS)).toHaveLength(31);
+		expect(Object.keys(ICONES_LOCAIS)).toHaveLength(35);
 	});
 
 	it('os 5 mob-drop com .bmp proprio no GRF, em ASCII (Rodada 4, 31/08/2026)', () => {
@@ -279,6 +286,61 @@ describe('o icone local (31/08/2026)', () => {
 		expect(ficha.identifiedDisplayName).toBe('Novice Poring Card');
 		expect(ficha.identifiedResourceName).toBe(CARTA_GENERICA);
 		expect(ficha.identifiedResourceName).not.toBe(unknownItem.identifiedResourceName);
+	});
+});
+
+describe('as LOJAS DE NPC do catalogo (Rodada 5, 01/09/2026 — D-900)', () => {
+	/** 상급포션 (sanggeup posyeon, "posao de grau superior") + a cor. */
+	const SANGGEUP_POSYEON = '\xbb\xf3\xb1\xde\xc6\xf7\xbc\xc7-';
+
+	it('a queixa do dono: os 4 do Advanced Potion Merchant saem nomeados e com icone', () => {
+		/*
+		 * O print era a loja com QUATRO linhas "Unknown Item" e a mesma maca
+		 * nas quatro — o dono leu como "esse npc esta sem itens", e nao como
+		 * "os nomes sumiram", porque uma vitrine sem nome nem icone nao parece
+		 * uma vitrine. Este caso guarda as DUAS metades.
+		 */
+		const casos = {
+			11621: 'Red Syrup',
+			11622: 'Yellow Syrup',
+			11623: 'White Syrup',
+			11624: 'Blue Syrup'
+		};
+		for (const [id, nome] of Object.entries(casos)) {
+			// Os 4 nao estao no ItemTable.js: caem no caminho `!ficha`, o que
+			// dava o "Unknown Item" cru (e nao o "Item desconhecido (id)").
+			const ficha = completarFicha(Number(id), null);
+			expect(ficha.identifiedDisplayName).toBe(nome);
+			expect(ficha.identifiedResourceName.startsWith(SANGGEUP_POSYEON), `${id} deveria comecar com 상급포션-`).toBe(true);
+			expect(ficha.identifiedResourceName).not.toBe(unknownItem.identifiedResourceName);
+		}
+	});
+
+	it('cada sirope tem o SEU arquivo — a cor nao pode colar quatro no mesmo icone', () => {
+		/*
+		 * O modo de falha barato desta rodada seria copiar a linha e esquecer
+		 * de trocar os bytes da cor: os quatro passariam no caso acima (todos
+		 * comecam com o prefixo) e a vitrine mostraria quatro frascos iguais —
+		 * exatamente o sintoma que estamos consertando, com outra arte.
+		 */
+		const recursos = [11621, 11622, 11623, 11624].map(id => ICONES_LOCAIS[id]);
+		expect(new Set(recursos).size).toBe(4);
+	});
+
+	it('12849 (Combination Kit) ganha NOME e continua com a maca — ausencia real de arte', () => {
+		// Mesmo veredito do 28382: o GRF nao tem 조합/합성 em icone nenhum, e
+		// os 3 키트 que existem sao outros itens. Nomear sem icone e o estado
+		// correto dele.
+		const ficha = completarFicha(12849, null);
+		expect(ficha.identifiedDisplayName).toBe('Combination Kit');
+		expect(ICONES_LOCAIS[12849]).toBeUndefined();
+		expect(ficha.identifiedResourceName).toBe(unknownItem.identifiedResourceName);
+	});
+
+	it('o lado NAO-IDENTIFICADO dos siropes nao recebe o icone — a loja vende identificado', () => {
+		// Mesma regra da Rodada 2: `ICONES_LOCAIS` so alimenta o lado
+		// identificado, e a loja marca `IsIdentified` em tudo que vende.
+		expect(completarFicha(11621, null).unidentifiedResourceName).toBe(unknownItem.unidentifiedResourceName);
 	});
 });
 
