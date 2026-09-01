@@ -41,7 +41,6 @@ import Network from 'Network/NetworkManager.js';
 import PACKET from 'Network/PacketStructure.js';
 import Renderer from 'Renderer/Renderer.js';
 import WinPopup from 'UI/Components/WinPopup/WinPopup.js';
-import GUIComponent from 'UI/GUIComponent.js';
 
 /** A janela aberta agora, se houver — so pode haver uma. */
 let _janela = null;
@@ -109,14 +108,13 @@ function onPerguntar(pkt) {
 		});
 
 		const btns = this._shadow.querySelector('.btns');
+		/* Fase 3: rotulo em texto + pele .ri-btn (os btn_*.bmp nao existem no
+		   GRF LATAM e viravam listra quebrada) — mesma receita de UIManager. */
 		const criarBotao = (nome, aoClicar) => {
 			const btn = document.createElement('button');
-			btn.className = 'btn';
-			btn.dataset.background = 'btn_' + nome + '.bmp';
-			btn.dataset.hover = 'btn_' + nome + '_a.bmp';
-			btn.dataset.down = 'btn_' + nome + '_b.bmp';
+			btn.className = nome === 'ok' ? 'btn ri-btn' : 'btn ri-btn ri-btn--sec';
+			btn.textContent = nome === 'ok' ? 'OK' : 'Cancelar';
 			btn.addEventListener('click', aoClicar, { once: true });
-			GUIComponent.processDataAttrs(btn);
 			return btn;
 		};
 

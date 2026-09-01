@@ -189,6 +189,13 @@ HuntMap.selectedMobId = null;
 let _pendingAutoTravel = false;
 
 /**
+ * As fatias de `mapas` do catalogo v2 que ja chegaram (o catalogo e paginado
+ * desde 01/09/2026 — ver onCatalogReceived). Vive so entre a parte 1 e a
+ * ultima do MESMO pedido; a parte 1 sempre zera.
+ */
+let _catalogPartes = [];
+
+/**
  * ESQUECE O PERSONAGEM ANTERIOR — ver a nota gemea em IdleConfig.js
  * (27/08/2026, auditoria C).
  *
@@ -201,6 +208,9 @@ HuntMap.limparEstadoDoPersonagem = function limparEstadoDoPersonagem() {
 	HuntMap.selectedMapa = null;
 	HuntMap.selectedMobId = null;
 	_pendingAutoTravel = false;
+	// Fatia orfa de um catalogo paginado do personagem anterior nao pode
+	// costurar com as partes do proximo pedido.
+	_catalogPartes = [];
 	/*
 	 * ZERAR O DADO NAO BASTA: `GUIComponent.remove()` so DESANEXA o host,
 	 * entao o shadow DOM (com `is-open` e o HTML do personagem anterior)
@@ -480,11 +490,34 @@ function onCatalogReceived(pkt) {
 		return;
 	}
 
-	if (!data || data.v !== 1) {
-		console.error('[HuntMap] Catálogo com contrato incompatível (v=' + (data && data.v) + ').', data);
+	if (!data || data.v !== 2) {
+		console.error('[HuntMap] Catálogo com contrato incompatível (v=' + (data && data.v) + ', o cliente fala v2).', data);
 		setStatus('Catálogo incompatível.');
 		avisarSeAJanelaEstaFechada('Catálogo de mapas incompatível — a viagem não saiu.');
 		return;
+	}
+
+	/*
+	 * O CATALOGO v2 CHEGA EM PARTES (01/09/2026): com os mapas do vao 49-54 o
+	 * JSON inteiro estourou o teto u16 do pacote e o servidor DERRUBAVA a
+	 * conexao de quem clicava em Cacar. Cada parte repete o envelope e traz uma
+	 * fatia de `mapas`, na ordem; TCP preserva a sequencia, entao juntar e
+	 * concatenar. `parte === 1` zera o acumulador — um pedido novo nunca herda
+	 * fatias orfas de um pedido que nao terminou (troca de mapa no meio, por
+	 * exemplo). So a ultima parte segue para desenhar; a viagem pendente (que a
+	 * flag la em cima ja consumiu) e re-armada enquanto o resto nao chega.
+	 */
+	if (data.totalPartes > 1) {
+		if (data.parte === 1) {
+			_catalogPartes = [];
+		}
+		_catalogPartes.push(data.mapas);
+		if (data.parte < data.totalPartes) {
+			_pendingAutoTravel = viagemPendente;
+			return;
+		}
+		data.mapas = [].concat.apply([], _catalogPartes);
+		_catalogPartes = [];
 	}
 
 	HuntMap.catalog = data;

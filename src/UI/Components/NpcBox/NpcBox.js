@@ -25,6 +25,9 @@ import InputBox from 'UI/Components/InputBox/InputBox.js';
  */
 const NpcBox = new GUIComponent('NpcBox', cssText);
 
+/* Dialogo entra/sai com a animacao unica (Fase 3, 01/09/2026). */
+NpcBox.riAnimaJanela = true;
+
 NpcBox.render = () => htmlText;
 
 /**

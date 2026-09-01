@@ -1,9 +1,15 @@
+<!-- Fase 3 (01/09/2026, foto do dono): os btn_close/btn_next.bmp nao existem
+     no GRF LATAM e o "fechar" saia como toco quebrado meio pra fora da
+     caixa. Agora sao botoes do design system com rotulo em texto, num rodape
+     proprio que os ENCAIXA dentro da janela. Classes .close/.next
+     preservadas — NpcBox.js as consulta e alterna display nelas. -->
 <div id="NpcBox">
 	<div class="border">
 		<div class="content ri-scroll"></div>
+		<div class="nb-ornamento" aria-hidden="true"></div>
 		<div class="btns">
-			<ui-button class="btn close" bg="btn_close.bmp" hover="btn_close_a.bmp" down="btn_close_b.bmp"></ui-button>
-			<ui-button class="btn next" bg="btn_next.bmp" hover="btn_next_a.bmp" down="btn_next_b.bmp"></ui-button>
+			<button type="button" class="btn next ri-btn">Continuar</button>
+			<button type="button" class="btn close ri-btn">Fechar</button>
 		</div>
 	</div>
 </div>

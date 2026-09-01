@@ -1,7 +1,10 @@
+/* 276x150 (era 116) e top 312 (era 285): o rodape de botoes de verdade pediu
+   altura, e a NpcBox acima cresceu para 200 — 285 faria as duas se tocarem.
+   NpcMenu.js so posiciona top/left, nunca mede o conteudo. */
 :host {
 	width: 276px;
-	height: 116px;
-	top: 285px;
+	height: 150px;
+	top: 312px;
 	left: 100px;
 }
 
@@ -14,7 +17,7 @@
 	position: absolute;
 	border-radius: var(--radius-window);
 	width: 276px;
-	height: 116px;
+	height: 150px;
 	background: var(--window-fill);
 	border: var(--window-frame);
 	box-shadow: var(--window-shadow), var(--rim-light);
@@ -40,19 +43,22 @@
 }
 
 #NpcMenu .container {
+	display: flex;
+	flex-direction: column;
 	border-radius: var(--radius-panel);
 	border: 1px solid var(--border-hairline);
 	width: 269px;
-	height: 109px;
-	padding-left: 5px;
-	padding-top: 5px;
+	height: 143px;
+	padding: 5px 5px 6px;
 	box-sizing: border-box;
 	background: var(--surface-card-hover);
 }
 
 #NpcMenu .middle {
+	flex: 1 1 auto;
+	min-height: 0;
 	overflow-x: hidden;
-	overflow-y: scroll;
+	overflow-y: auto;
 }
 
 /* lista de opcoes: linhas-card claras (briefing: "opcoes como linhas-card com
@@ -62,7 +68,8 @@
 	white-space: pre-wrap;
 	background: transparent;
 	width: 258px;
-	height: 80px;
+	/* altura livre: a lista rola dentro de .middle (flex), nao mais nos 80px
+	   cravados que escondiam a 5a opcao atras dos botoes absolutos */
 	padding-left: 0px;
 	margin-top: 4px;
 }
@@ -92,21 +99,21 @@
 	box-shadow: var(--rim-light);
 }
 
+/* Rodape de verdade (Fase 3): os botoes deixaram o posicionamento absoluto
+   sobre a lista e ganharam a propria fileira, dentro da caixa. */
+#NpcMenu .nm-acoes {
+	flex: 0 0 auto;
+	display: flex;
+	justify-content: flex-end;
+	gap: var(--sp-3);
+	padding-top: var(--sp-3);
+	border-top: var(--divider);
+	margin-top: var(--sp-2);
+}
+
 #NpcMenu .btn {
-	position: absolute;
-	width: 42px;
-	height: 20px;
-	bottom: 5px;
-	filter: drop-shadow(var(--shadow-card));
-}
-#NpcMenu .btn:hover {
-	filter: drop-shadow(0 0 4px var(--gold-500));
-}
-
-#NpcMenu .cancel {
-	right: 4px;
-}
-
-#NpcMenu .ok {
-	right: 50px;
+	padding: 3px 14px;
+	font-size: var(--fs-label);
+	line-height: 1.2;
+	cursor: pointer;
 }

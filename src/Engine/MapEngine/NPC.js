@@ -25,7 +25,6 @@ import NpcMenu from 'UI/Components/NpcMenu/NpcMenu.js';
 import WinPopup from 'UI/Components/WinPopup/WinPopup.js';
 import MiniMap from 'UI/Components/MiniMap/MiniMap.js';
 import ChatBox from 'UI/Components/ChatBox/ChatBox.js';
-import GUIComponent from 'UI/GUIComponent.js';
 
 /**
  * NPC write a message
@@ -164,11 +163,14 @@ function onInputAppear(pkt) {
  */
 function onDealSelection(pkt) {
 	const WinDeal = WinPopup.clone('WinDeal');
+	WinDeal.riAnimaJanela = true; // entra/sai com a animacao unica (Fase 3)
 	const NAID = pkt.NAID;
 
 	WinDeal.init = function Init() {
 		this.draggable();
-		this._shadow.querySelector('.text').textContent = DB.getMessage(92);
+		/* Texto proprio em PT, na voz do DS, em vez do msg 92 em ingles
+		   ("Please select a Deal Type.") — achado na foto do dono, 01/09. */
+		this._shadow.querySelector('.text').textContent = 'Comprar ou vender?';
 
 		Object.assign(this._host.style, {
 			top: Renderer.height / 1.5 + 'px',
@@ -178,19 +180,19 @@ function onDealSelection(pkt) {
 
 		const btns = this._shadow.querySelector('.btns');
 
-		const createBtn = (name, onClick) => {
+		/* Fase 3: os btn_buy/sell/cancel.bmp nao existem no GRF LATAM e o
+		   botao aparecia como listra quebrada (foto do dono). Rotulo em
+		   TEXTO + pele .ri-btn, mesma receita do _createButton de UIManager. */
+		const createBtn = (name, rotulo, onClick) => {
 			const btn = document.createElement('button');
-			btn.className = 'btn';
-			btn.dataset.background = 'btn_' + name + '.bmp';
-			btn.dataset.hover = 'btn_' + name + '_a.bmp';
-			btn.dataset.down = 'btn_' + name + '_b.bmp';
+			btn.className = name === 'buy' ? 'btn ri-btn' : 'btn ri-btn ri-btn--sec';
+			btn.textContent = rotulo;
 			btn.addEventListener('click', onClick, { once: true });
-			GUIComponent.processDataAttrs(btn);
 			return btn;
 		};
 
 		btns.appendChild(
-			createBtn('buy', function () {
+			createBtn('buy', 'Comprar', function () {
 				WinDeal.remove();
 				const _pkt = new PACKET.CZ.ACK_SELECT_DEALTYPE();
 				_pkt.type = 0;
@@ -200,7 +202,7 @@ function onDealSelection(pkt) {
 		);
 
 		btns.appendChild(
-			createBtn('sell', function () {
+			createBtn('sell', 'Vender', function () {
 				WinDeal.remove();
 				const _pkt = new PACKET.CZ.ACK_SELECT_DEALTYPE();
 				_pkt.type = 1;
@@ -210,7 +212,7 @@ function onDealSelection(pkt) {
 		);
 
 		btns.appendChild(
-			createBtn('cancel', function () {
+			createBtn('cancel', 'Cancelar', function () {
 				WinDeal.remove();
 			})
 		);
