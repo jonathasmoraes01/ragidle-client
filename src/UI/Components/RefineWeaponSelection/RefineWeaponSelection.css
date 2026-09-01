@@ -7,6 +7,12 @@
 #RefineWeaponSelection {
 	position: absolute;
 	width: 200px;
+	background: var(--window-fill);
+	border: var(--window-frame);
+	border-radius: var(--radius-window);
+	box-shadow: var(--window-shadow), var(--rim-light);
+	box-sizing: border-box;
+	overflow: hidden;
 }
 #RefineWeaponSelection .head {
 	position: absolute;
@@ -14,13 +20,8 @@
 	height: 22px;
 	top: 0px;
 	left: 0px;
-	background-repeat: repeat-x;
-	background-color: white;
 }
 #RefineWeaponSelection .head .text {
-	position: relative;
-	top: 2px;
-	left: 5px;
 	white-space: nowrap;
 }
 #RefineWeaponSelection .bottom {
@@ -34,21 +35,25 @@
 	position: absolute;
 	top: 22px;
 	left: 0px;
-	background-color: white;
 	width: 100%;
+	box-sizing: border-box;
+	padding: var(--sp-3);
 }
 #RefineWeaponSelection .list {
-	background-color: #f7f7f7;
+	background: var(--well-fill);
+	box-shadow: var(--well-shadow);
+	border-radius: var(--radius-card);
 	height: 130px;
 	overflow-y: auto;
-	margin-left: 10px;
-	margin-right: 10px;
+	box-sizing: border-box;
 }
 #RefineWeaponSelection .list .item {
 	display: block;
 	height: 28px;
 	margin: 4px 4px 4px 4px;
 	position: relative;
+	border-radius: var(--radius-card);
+	cursor: pointer;
 }
 #RefineWeaponSelection .list .item .icon {
 	width: 24px;
@@ -63,13 +68,17 @@
 	left: 30px;
 	width: 90px;
 	white-space: nowrap;
+	font: var(--type-info);
+	color: var(--text-body);
 }
 
-#RefineWeaponSelection ui-button.btn {
+#RefineWeaponSelection .btn {
 	position: absolute;
 	bottom: 4px;
 	width: 42px;
 	height: 20px;
+	padding: 0;
+	font-size: var(--fs-badge);
 }
 #RefineWeaponSelection .ok {
 	right: 50px;

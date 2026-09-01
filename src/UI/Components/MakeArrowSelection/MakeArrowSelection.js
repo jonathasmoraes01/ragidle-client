@@ -25,6 +25,9 @@ const MakeArrowSelection = new GUIComponent('MakeArrowSelection', cssText);
 
 MakeArrowSelection.render = () => htmlText;
 
+/* Janela entra/sai com a animacao unica (Fase 3, 01/09/2026). */
+MakeArrowSelection.riAnimaJanela = true;
+
 /**
  * Sanitize HTML, allowing only whitelisted tags (font, i, b)
  */
@@ -119,7 +122,7 @@ function addElement(url, index, name) {
 	const div = document.createElement('div');
 	div.className = 'item';
 	div.setAttribute('data-index', index);
-	div.innerHTML = '<div class="icon"></div>' + `<span class="name">${_sanitizeHtml(name)}</span>`;
+	div.innerHTML = '<div class="icon ri-tile"></div>' + `<span class="name">${_sanitizeHtml(name)}</span>`;
 	listEl.appendChild(div);
 
 	Client.loadFile(url, data => {
@@ -140,10 +143,14 @@ MakeArrowSelection.setIndex = function setIndex(id) {
 	const prev = root.querySelector(`div[data-index="${this.index}"]`);
 	if (prev) {
 		prev.style.backgroundColor = 'transparent';
+		prev.style.borderColor = 'transparent';
 	}
 	const next = root.querySelector(`div[data-index="${id}"]`);
 	if (next) {
-		next.style.backgroundColor = '#cde0ff';
+		/* Selecionado = borda de acento + tinta de acento (regra do DS), nunca
+		   so a cor de fundo sozinha. */
+		next.style.backgroundColor = 'color-mix(in srgb, var(--accent) 14%, var(--white))';
+		next.style.borderColor = 'var(--accent)';
 	}
 	this.index = id;
 };

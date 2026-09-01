@@ -1,3 +1,14 @@
+/* Fase 3 (01/09/2026): Banco no design system oficial. DIMENSOES nao mudam
+   -- 280x145, a mesma janela pequena de sempre -- entao o cabecalho e os
+   rotulos foram encolhidos pra caber, no mesmo espirito da BasicInfoIdle
+   (asas do titulo cortadas) e da ShortCutOption (altura do .ri-header
+   reduzida por componente). O campo de erro continua ABSOLUTO -- nao
+   empurra o resto do layout quando o servidor recusa um valor, igual ao
+   comportamento original -- porque a janela e fixa e nao pode crescer.
+   Selecionadores levam o prefixo "#Bank" (mesma receita do arquivo
+   original) para garantir especificidade sobre .ri-btn/.ri-header/etc,
+   independente da ordem de injecao do Common.css (armadilha conhecida
+   deste projeto: "#id .classe vence .ri-btn"). */
 :host {
 	width: 280px;
 	height: 145px;
@@ -8,224 +19,153 @@
 #Bank {
 	position: absolute;
 	width: 280px;
+	height: 145px;
 }
 
-#Bank .clear {
-	clear: both;
+#Bank .ba-janela {
+	width: 100%;
+	height: 100%;
+	box-sizing: border-box;
+	display: flex;
+	flex-direction: column;
 }
 
-#Bank .titlebar {
-	width: 280px;
-	height: 17px;
-	background-color: white;
-	background-repeat: repeat-x;
-	border-radius: 3px 3px 0px 0px;
+/* ─── Cabecalho ─────────────────────────────────────────────────────────
+   280px e estreito demais pras asas douradas padrao (44px cada lado) --
+   mesmo ajuste que a BasicInfoIdle ja fez (encolher as asas), aqui levado
+   ao limite de remove-las: nao sobra espaco nem para a versao encolhida. */
+#Bank .ba-janela .titlebar {
+	flex: 0 0 auto;
+	height: 20px;
+	padding: 0 6px;
+	cursor: move;
 }
-#Bank .titlebar .base {
-	width: 11px;
-	height: 11px;
-	border: none;
-	background-color: transparent;
-	background-repeat: no-repeat;
-	vertical-align: middle;
+#Bank .ba-janela .ri-title {
+	font-size: var(--fs-info);
 }
-#Bank .titlebar .text {
-	text-shadow: 1px 1px white;
-	vertical-align: -2px;
-	white-space: nowrap;
-	/* chrome bug */
-	display: inline-block;
-	width: 32px;
-	height: 13px;
-	font-size: 11px;
-	font-weight: bold;
+#Bank .ba-janela .ri-title::before,
+#Bank .ba-janela .ri-title::after {
+	content: none;
 }
-
-#Bank .titlebar .left {
-	margin-left: 3px;
-	float: left;
-}
-#Bank .titlebar .right {
-	float: right;
-	margin-right: 3px;
-}
-#Bank .titlebar .clear {
-	clear: both;
+#Bank .ba-janela .ri-close {
+	width: 16px;
+	height: 16px;
+	right: 4px;
 }
 
 #Bank .container {
-	display: inline-block;
-	width: 280px;
-	height: 130px;
-	border-spacing: 0;
-}
-
-#Bank .uppercontainer {
+	flex: 1 1 auto;
+	min-height: 0;
 	position: relative;
-	height: 53px;
+	display: flex;
+	flex-direction: column;
+	gap: var(--sp-2);
+	padding: var(--sp-2) var(--sp-3) var(--sp-3);
+	box-sizing: border-box;
+	overflow: hidden;
 }
 
-#Bank .inbanktitle {
-	height: 15px;
-	position: relative;
-	width: 50px;
-	left: 30px;
-	top: 10px;
+/* ─── Saldo (no banco / em maos) ───────────────────────────────────────── */
+#Bank .ba-saldo {
+	flex: 0 0 auto;
+	display: flex;
+	flex-direction: column;
+	gap: 1px;
+}
+#Bank .ba-linha {
+	display: flex;
+	align-items: baseline;
+	justify-content: space-between;
+	gap: var(--sp-3);
+}
+#Bank .ba-rotulo {
+	font: var(--type-label);
+	color: var(--text-muted);
+	white-space: nowrap;
+}
+#Bank .ba-valor {
+	font: var(--type-numeric);
+	/* Valor monetario: o token de zeny, nao a cor de texto comum. */
+	color: var(--zeny);
+	white-space: nowrap;
+	font-variant-numeric: tabular-nums;
 }
 
-#Bank .onhandtitle {
-	position: relative;
-	height: 15px;
-	width: 55px;
-	left: 28px;
+/* ─── Campo de valor + passo fino (+1 / -1) ───────────────────────────── */
+#Bank .ba-campo {
+	flex: 0 0 auto;
+	display: flex;
+	align-items: stretch;
+	gap: var(--sp-1);
 }
-
-#Bank .inbank.currency {
-	position: relative;
-	left: 80px;
-	top: -5px;
-	width: 100px;
-	text-align: right;
+#Bank .ba-campo .depo {
+	flex: 1 1 auto;
+	min-width: 0;
+	height: 18px;
+	padding: 0 var(--sp-3);
+	box-sizing: border-box;
 }
-
-#Bank .onhand.currency {
-	position: relative;
-	left: 80px;
-	top: -15px;
-	width: 100px;
-	text-align: right;
-}
-
-#Bank .midcontainer {
-	position: relative;
-	height: 58px;
-}
-
-#Bank input.depo.no-spinners {
-	position: relative;
-	left: 75px;
-	top: 20px;
-	width: 100px;
-	height: 10px;
-	background-color: #f7f7f7;
-	border-style: solid;
-	border: 1px;
-}
-
 #Bank .no-spinners::-webkit-inner-spin-button,
 #Bank .no-spinners::-webkit-outer-spin-button {
 	-webkit-appearance: none;
 	margin: 0;
 }
-
-#Bank .plus {
-	position: relative;
-	height: 10px;
+#Bank .ba-passo {
+	flex: 0 0 auto;
 	width: 18px;
-	border: 0px;
-	left: 70px;
-	top: 10px;
+	height: 18px;
+	padding: 0;
+	font: var(--type-label);
 }
-#Bank .minus {
-	position: relative;
-	height: 10px;
-	width: 18px;
-	border: 0px;
-	left: 49px;
-	top: 20px;
+#Bank .ba-passo .name {
+	line-height: 1;
 }
 
-#Bank .deposit {
-	position: relative;
+/* ─── Depositar / Sacar ─────────────────────────────────────────────────── */
+#Bank .ba-acoes {
+	flex: 0 0 auto;
+	display: flex;
+	gap: var(--sp-2);
+}
+#Bank .ba-acoes .buttons {
+	flex: 1 1 0;
 	height: 20px;
-	width: 42px;
-	border: 0px;
-	left: 60px;
-	top: 5px;
+	padding: 0 var(--sp-2);
+	font: var(--type-label);
 }
 
-#Bank .withdraw {
-	position: relative;
-	height: 20px;
-	width: 42px;
-	border: 0px;
-	left: 15px;
-	top: 30px;
-}
-
+/* Mensagem de erro: absoluta, nao empurra o resto (a janela e fixa). */
 #Bank .errorupdate {
 	position: absolute;
-	height: 15px;
-	width: 150px;
-	border: 0px;
-	left: 15px;
-	top: 42px;
+	left: var(--sp-3);
+	right: var(--sp-3);
+	bottom: 42px;
 	text-align: center;
-	color: red;
+	font: var(--type-desc);
+	color: var(--red-600);
+	pointer-events: none;
 }
 
-#Bank .lowercontainer {
-	position: relative;
-	height: 19px;
+/* ─── Atalhos de valor (Max. / +10M / +1M / +100mil) ──────────────────── */
+#Bank .ba-rapidos {
+	flex: 0 0 auto;
+	display: grid;
+	grid-template-columns: repeat(2, 1fr);
+	gap: 3px;
 }
-
-#Bank .max {
-	position: relative;
-	width: 46px;
+#Bank .ba-rapido {
 	height: 16px;
-	border: 0px;
-	left: 40px;
-	background-repeat: no-repeat;
-	background-color: transparent;
-}
-
-#Bank .tenmil {
-	position: relative;
-	width: 46px;
-	height: 16px;
-	border: 0px;
-	left: 40px;
-	background-repeat: no-repeat;
-	background-color: transparent;
-}
-
-#Bank .onemil {
-	position: relative;
-	width: 46px;
-	height: 16px;
-	border: 0px;
-	left: 40px;
-	background-repeat: no-repeat;
-	background-color: transparent;
-}
-
-#Bank .hundtsn {
-	position: relative;
-	width: 46px;
-	height: 16px;
-	border: 0px;
-	left: 40px;
-	background-repeat: no-repeat;
-	background-color: transparent;
-}
-
-#Bank .buttons .name {
-	position: absolute;
-	top: -20px;
-	left: 0px;
-	visibility: hidden;
-	opacity: 0;
-	z-index: 1;
-	background-color: rgba(0, 0, 0, 0.6);
-	text-shadow: 1px 1px black;
-	color: white;
-	padding: 5px;
+	padding: 0 var(--sp-1);
+	font: var(--type-badge);
 	white-space: nowrap;
-	font-size: 0.6rem;
-	pointer-events: none; /* This will make the span not clickable */
+	overflow: hidden;
+	text-overflow: ellipsis;
 }
 
-#Bank .buttons:hover .name {
-	visibility: visible;
-	opacity: 1;
+/* O rotulo (antes so um data-text/texto pintado no bitmap) agora e o
+   proprio conteudo visivel do botao -- em vez do "aparece so no hover"
+   que a versao antiga tinha (tooltip fantasma sobre um icone bitmap). */
+#Bank .buttons .name {
+	display: inline-block;
+	pointer-events: none;
 }

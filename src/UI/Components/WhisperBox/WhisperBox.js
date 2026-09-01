@@ -102,6 +102,10 @@ WhisperBox.show = function show(nickname, bHasMessage) {
 	instance.name = `WhisperBox:${nickname}`;
 	instance.needFocus = true;
 	instance.captureKeyEvents = true;
+	/* Janela entra/sai com a animacao unica (Fase 3, 01/09/2026). O flag vive
+	   na INSTANCIA (nao em WhisperBox.riAnimaJanela): clone() so copia
+	   mouseMode/needFocus por padrao, e cada sussurro e um clone novo. */
+	instance.riAnimaJanela = true;
 
 	instance.onKeyDown = function onKeyDown(event) {
 		if (InputBox._host && InputBox._host.style.display !== 'none' && InputBox.__active) {
@@ -182,7 +186,7 @@ WhisperBox.show = function show(nickname, bHasMessage) {
 		const isFriend = Friends && Friends.default.isFriend ? Friends.default.isFriend(nickname) : false;
 		const titleEl = root.querySelector('.title');
 		if (titleEl) {
-			titleEl.textContent = `With ${nickname}${isFriend ? ' (Friend)' : ''}`;
+			titleEl.textContent = `Com ${nickname}${isFriend ? ' (amigo)' : ''}`;
 		}
 	});
 

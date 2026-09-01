@@ -1,3 +1,17 @@
+/* Sussurro 1:1 (Fase 3, 01/09/2026). Usa o chrome do design system
+   (.ri-window/.ri-header/.ri-title/.ri-close, Common.css), mas com pele de
+   vidro ESCURO -- a MESMA familia do ChatBox irmao (ver o cabecalho de
+   ChatBox.css: "vidro escuro porque o chat fica SOBRE o mundo"). Esta caixa
+   flutua em cima do mundo 3D, arrastavel para qualquer canto da tela --
+   diferente de HuntMap/IdleConfig/NpcStoreV2, que sao menus modais no vidro
+   CLARO padrao. --surface-dark-glass ja e uma cor SOLIDA (rgba), entao
+   "background" aceita o token direto -- ao contrario de --window-fill
+   (gradiente), que so funciona em "background:", nunca em
+   "background-color:" sozinho (a armadilha ja documentada da frota).
+
+   :host e .whisper-container guardam o MESMO 280x156 de sempre --
+   initResizable() em WhisperBox.js mede _host.getBoundingClientRect() para
+   redimensionar arrastando, medida nova quebraria essa conta em silencio. */
 :host {
 	width: 280px;
 	height: 156px;
@@ -9,60 +23,89 @@
 	position: absolute;
 	width: 280px;
 	height: 156px;
-	border: 1px solid white;
-	border-radius: 5px;
-	background: rgba(0, 0, 0, 0.5);
+	box-sizing: border-box;
 	display: flex;
 	flex-direction: column;
 	overflow: hidden;
-	color: #ffffff;
 	min-width: 150px;
 	min-height: 100px;
+
+	background: var(--surface-dark-glass);
+	backdrop-filter: var(--blur-glass);
+	border: var(--window-frame);
+	border-radius: var(--radius-panel);
+	box-shadow: var(--shadow-float);
+	color: var(--white);
+	font-family: var(--font-ui);
 }
 
-.whisper-header {
-	background: rgba(255, 255, 255, 0.2);
-	height: 18px;
-	padding: 0 5px;
-	display: flex;
-	align-items: center;
+/* ─── Cabecalho: bem mais baixo que o padrao de janela cheia (a caixa
+   inteira e uma miniatura de 156px de altura) -- titulo a esquerda, X a
+   direita, como o roBrowser original, por isso troca o
+   "justify-content: center" que .ri-header usa nas janelas grandes.
+   Seletor prefixado com #WhisperBox (mesmo padrao do PartyFriends) para
+   vencer .ri-header por especificidade, nao por ordem de carga. */
+#WhisperBox .whisper-header {
+	height: 20px;
+	padding: 0 var(--sp-2) 0 var(--sp-4);
 	justify-content: space-between;
-	color: #ffffff;
-	font-size: 11px;
-	font-weight: bold;
-	cursor: move;
+	gap: var(--sp-2);
+	background: transparent;
+	border-bottom: var(--divider);
 }
 
-.whisper-header .close {
-	width: 11px;
-	height: 11px;
-	border: none;
-	background-color: transparent;
-	background-repeat: no-repeat;
-	vertical-align: middle;
+#WhisperBox .whisper-header .title {
+	/* So o TAMANHO muda -- a familia continua vindo de .ri-title
+	   (--type-window-title, Marcellus): a serifa e "o unico lugar do sistema
+	   que usa serifa" e essa regra vale mesmo nesta miniatura. */
+	flex: 1 1 auto;
+	min-width: 0;
+	font-size: 12px;
+	color: var(--white);
+	/* mesma constante de sombra que Common.css usa em ".ri-bar .rotulo" para
+	   texto sobre superficie colorida -- nao e valor novo, e o mesmo daqui. */
+	text-shadow: 0 1px 2px rgba(12, 34, 64, 0.55);
+	letter-spacing: var(--ls-title);
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+/* As "asas" douradas de .ri-title sao desenhadas para janela cheia (44px
+   cada lado) -- nesta miniatura de 280px elas comeriam o nome do jogador. */
+#WhisperBox .whisper-header .title::before,
+#WhisperBox .whisper-header .title::after {
+	content: none;
+}
+
+#WhisperBox .whisper-header .close {
+	position: static;
+	transform: none;
+	flex: 0 0 auto;
+	width: 16px;
+	height: 16px;
 }
 
 .whisper-body {
-	flex: 1;
-	padding: 0 2px 2px 5px;
+	flex: 1 1 auto;
+	min-height: 0;
+	padding: var(--sp-2) var(--sp-3) var(--sp-1);
 	overflow: hidden;
-	border-bottom: 1px solid white;
-}
-
-.whisper-body .contentwrapper {
-	height: 100%;
+	border-bottom: var(--divider);
 }
 
 .whisper-body .content {
 	height: 100%;
 	overflow-y: auto;
 	font-size: 12px;
-	text-shadow: 1px 1px 0px #000;
-	word-break: break-all;
 	line-height: 14px;
+	word-break: break-all;
+	color: var(--white);
+	text-shadow: 0 1px 2px rgba(12, 34, 64, 0.55);
 }
 
 .whisper-footer {
+	flex: 0 0 auto;
 	height: 25px;
 	position: relative;
 	display: flex;
@@ -73,8 +116,9 @@
 	display: flex;
 	align-items: center;
 	height: 23px;
-	width: calc(100% - 25px);
+	width: calc(100% - 20px);
 	overflow: hidden;
+	padding-left: var(--sp-2);
 }
 
 .whisper-footer .message {
@@ -85,9 +129,17 @@
 	white-space: nowrap;
 	overflow-x: hidden;
 	overflow-y: hidden;
-	color: #ffffff;
+	color: var(--white);
 	font-size: 12px;
 	display: inline-block;
+}
+
+/* Dica do campo vazio -- o roBrowser original nao tinha placeholder (era um
+   <div contenteditable>, nao um <input>); zero custo, so ajuda quem abre a
+   caixa e nao sabe o que fazer. */
+.whisper-footer .message:empty::before {
+	content: attr(data-placeholder);
+	color: color-mix(in srgb, var(--white) 55%, transparent);
 }
 
 .whisper-container img {
@@ -97,13 +149,27 @@
 	background: transparent !important;
 }
 
+/* Grip de redimensionar desenhado em CSS -- btn_resize.bmp saiu (mesmo
+   tratamento do PartyFriends: listras diagonais via gradiente, sem
+   bitmap). Cor translucida do proprio --white (color-mix), nao um hex novo. */
 .whisper-footer .resizer {
 	position: absolute;
-	right: 0px;
+	right: 2px;
 	bottom: 1px;
-	width: 13px;
-	height: 13px;
-	border: none;
-	background-repeat: no-repeat;
-	background-color: transparent;
+	width: 12px;
+	height: 12px;
+	cursor: nwse-resize;
+}
+.whisper-footer .resizer::after {
+	content: '';
+	position: absolute;
+	inset: 0;
+	background: linear-gradient(
+		135deg,
+		transparent 0 40%,
+		color-mix(in srgb, var(--white) 45%, transparent) 40% 46%,
+		transparent 46% 60%,
+		color-mix(in srgb, var(--white) 45%, transparent) 60% 66%,
+		transparent 66% 100%
+	);
 }

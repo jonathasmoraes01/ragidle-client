@@ -1,4 +1,7 @@
-/* Message Model */
+/* Message Model — Fase 3 (01/09/2026): pele do design system. O :host desta
+   janela NUNCA declarou altura (o JS nao mede/define _host.style.height em
+   nenhum lugar) -- so largura muda o layout, e ela continua 270px. Nenhum
+   numero de caixa foi alterado, so cor/borda/sombra/fonte. */
 :host {
 	width: 270px;
 	top: 100px;
@@ -8,31 +11,50 @@
 #MakeModelMessage {
 	position: absolute;
 	width: 270px;
+	background: var(--window-fill);
+	border: var(--window-frame);
+	border-radius: var(--radius-window);
+	box-shadow: var(--window-shadow), var(--rim-light);
+	color: var(--text-body);
+	font-family: var(--font-ui);
 }
 
 #MakeModelMessage .titlebar {
-	border-radius: 3px 3px 0px 0px;
-	height: 15px;
+	display: flex;
 	align-items: center;
-	padding: 1px;
+	gap: var(--sp-2);
+	border-radius: var(--radius-window) var(--radius-window) 0 0;
+	height: 15px;
+	box-sizing: border-box;
+	padding: 1px var(--sp-4);
+	background: var(--titlebar-fill);
+	border-bottom: var(--titlebar-rule);
+	cursor: move;
 }
 #MakeModelMessage .titlebar .base {
 	width: 11px;
 	height: 11px;
-	vertical-align: middle;
+	flex: 0 0 auto;
 }
+#MakeModelMessage .titlebar .text {
+	font-size: 11px;
+	font-weight: var(--fw-semibold);
+	color: var(--text-title);
+	white-space: nowrap;
+}
+
 #MakeModelMessage .container {
-	background: white;
 	width: 268px;
 	height: 114px;
-	border-radius: 0px 0px 3px 3px;
-	border: 1px solid #ccc;
+	border-radius: 0 0 var(--radius-window) var(--radius-window);
 	display: grid;
 }
 
 #MakeModelMessage .text_message {
 	height: 73px;
-	padding: 11px;
+	padding: var(--sp-6);
+	font: var(--type-info);
+	color: var(--text-body);
 }
 
 /** Buttons **/
@@ -42,19 +64,51 @@
 	width: 100%;
 	height: 28px;
 }
+/* Rotulo desenhado no bitmap (btn_ok.bmp/btn_cancel.bmp) virou texto em
+   PT-BR -- mesma receita do #MakeItemSelection ui-button.btn (janela irma
+   ja reformada). */
 #MakeModelMessage ui-button.btn {
 	position: absolute;
-	width: 42px;
+	width: 52px;
 	height: 20px;
+	box-sizing: border-box;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	appearance: none;
+	border-radius: var(--radius-card);
+	font-family: var(--font-ui);
+	font-size: var(--fs-badge);
+	font-weight: var(--fw-semibold);
+	line-height: 1;
+	cursor: pointer;
+	white-space: nowrap;
+	transition:
+		filter var(--dur-fast) var(--ease-out),
+		transform var(--dur-instant) var(--ease-out);
 }
-
-#MakeModelMessage .ok,
-#MakeModelMessage .make {
-	right: 50px;
+#MakeModelMessage ui-button.btn:hover {
+	filter: brightness(1.06);
+}
+#MakeModelMessage ui-button.btn:active {
+	transform: var(--press-shift);
+}
+#MakeModelMessage .ok {
+	right: 58px;
+	border: 1px solid var(--blue-600);
+	background: var(--tab-active-fill);
+	color: var(--text-on-accent);
+	box-shadow: var(--rim-light), var(--shadow-card);
 }
 #MakeModelMessage .cancel {
 	right: 4px;
+	border: 1px solid var(--border-hairline);
+	background: var(--surface-card-hover);
+	color: var(--text-link);
+	box-shadow: var(--shadow-card);
 }
-#MakeModelMessage .delete {
-	left: 4px;
+#MakeModelMessage .cancel:hover {
+	background: var(--white);
+	border-color: var(--accent);
+	filter: none;
 }

@@ -32,6 +32,9 @@ const autoFeedPercent = 30;
  */
 const HomunInformations = new GUIComponent('HomunInformations', cssText);
 
+/* Janela entra/sai com a animacao unica (Fase 3, 01/09/2026). */
+HomunInformations.riAnimaJanela = true;
+
 HomunInformations.render = () => htmlText;
 
 HomunInformations.captureKeyEvents = true;

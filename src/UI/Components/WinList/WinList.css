@@ -1,3 +1,7 @@
+/* Fase 3 (01/09/2026): lista de servidores (tela de login) no design system.
+   O :host mantem os 280x200 de sempre — WinList.init() calcula a posicao
+   inicial a partir desse retangulo (Renderer.height/width), entao a moldura
+   NAO muda de tamanho, so a pele por baixo. */
 :host {
 	width: 280px;
 	height: 200px;
@@ -9,58 +13,75 @@
 	position: absolute;
 	width: 280px;
 	height: 200px;
-}
-#serverlist .head {
-	position: absolute;
-	width: 280px;
-	height: 22px;
-	top: 0px;
-	left: 0px;
-}
-#serverlist .bottom {
-	position: relative;
-	width: 280px;
-	height: 120px;
-	top: 80px;
-	left: 0px;
+	box-sizing: border-box;
+	display: flex;
+	flex-direction: column;
 }
 
+#serverlist .head {
+	flex: 0 0 auto;
+	cursor: move;
+}
+
+/* Area rolavel da lista — height fixa por SOMA (armadilha ja conhecida:
+   percentual de altura morre em container intermediario do Shadow DOM), o
+   resto sobra pro flex. */
 #serverlist .content {
-	position: absolute;
-	width: 258px;
-	height: 145px;
-	top: 22px;
-	left: 0px;
-	padding-left: 10px;
-	padding-right: 10px;
-	background-color: white;
-	border-left: 1px solid #c7c7c7;
-	border-right: 1px solid #c7c7c7;
+	flex: 1 1 auto;
+	min-height: 0;
+	overflow-y: auto;
+	padding: var(--sp-3) var(--sp-4);
+	background: var(--white);
 }
+
 #serverlist .list {
-	background-color: #f7f7f7;
-	height: 145px;
-	width: 260px;
+	display: flex;
+	flex-direction: column;
+	gap: var(--sp-1);
 }
+
+/* Itens inseridos em runtime por setList() — a classe e o unico contrato que
+   WinList.js consulta, o miolo do CSS e livre. */
 #serverlist .menu_node {
-	width: 255px;
-	height: 15px;
 	display: block;
-	padding-top: 2px;
-	padding-left: 5px;
+	box-sizing: border-box;
+	padding: var(--sp-3) var(--sp-4);
+	border-radius: var(--radius-card);
+	border: 1px solid transparent;
+	font: var(--type-info);
+	color: var(--text-body);
+	cursor: pointer;
+	transition:
+		background var(--dur-fast) var(--ease-out),
+		border-color var(--dur-fast) var(--ease-out),
+		color var(--dur-fast) var(--ease-out);
+}
+
+#serverlist .menu_node:hover {
+	background: var(--surface-card-hover);
+}
+
+/* Selecionado: setIndex() agora alterna esta classe (JS trocou o
+   style.backgroundColor inline por classList — inline sempre venceria
+   qualquer regra daqui). Borda de acento + tinta, nunca so espessura. */
+#serverlist .menu_node.is-selected {
+	background: color-mix(in srgb, var(--accent) 12%, var(--white));
+	border-color: var(--accent);
+	color: var(--text-title);
+	font-weight: var(--fw-semibold);
+}
+
+#serverlist .bottom {
+	flex: 0 0 auto;
+	display: flex;
+	align-items: center;
+	justify-content: flex-end;
+	gap: var(--sp-4);
+	padding: var(--sp-4) var(--sp-6);
+	border-top: var(--titlebar-rule);
+	background: var(--surface-glass);
 }
 
 #serverlist .btn {
-	position: absolute;
-	bottom: 4px;
-	border: 0;
-	width: 42px;
-	height: 20px;
-	background-color: transparent;
-}
-#serverlist .ok {
-	right: 50px;
-}
-#serverlist .cancel {
-	right: 5px;
+	min-width: 64px;
 }

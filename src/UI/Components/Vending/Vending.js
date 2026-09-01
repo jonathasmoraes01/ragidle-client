@@ -32,6 +32,9 @@ const Vending = new GUIComponent('Vending', cssText);
 
 Vending.render = () => htmlText;
 
+/* Janela entra/sai com a animacao unica (Fase 3, 01/09/2026). */
+Vending.riAnimaJanela = true;
+
 Vending.isOpen = false;
 Vending.Type = {
 	VENDING_STORE: 0,
@@ -306,7 +309,7 @@ Vending.onRemove = function onRemove() {
 		el.innerHTML = '';
 	});
 
-	this._host.style.display = 'none';
+	this.ui.hide(); // via proxy: fecha COM a animacao unica (Fase 3)
 
 	Vending.isOpen = false;
 };
@@ -736,8 +739,7 @@ Vending.onVendingSkill = function onVendingSkill(pkt) {
 	const root = Vending.getRoot();
 	root.querySelector('.add_shop').style.height = `${32 * _slots}px`;
 	root.querySelector('.shopname').value = '';
-	this._host.style.display = '';
-	this._fixPositionOverflow();
+	this.ui.show(); // via proxy: abre COM a animacao unica (Fase 3)
 
 	Vending.isOpen = true;
 };
@@ -760,8 +762,7 @@ Vending.onBuyingSkill = function onBuyingSkill(pkt) {
 	const root = Vending.getRoot();
 	root.querySelector('.add_shop').style.height = `${32 * _slots}px`;
 	root.querySelector('.shopname').value = '';
-	this._host.style.display = '';
-	this._fixPositionOverflow();
+	this.ui.show(); // via proxy: abre COM a animacao unica (Fase 3)
 
 	Vending.isOpen = true;
 };

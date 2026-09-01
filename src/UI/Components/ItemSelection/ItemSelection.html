@@ -1,14 +1,21 @@
+<!-- Fase 3 (01/09/2026): janela pequena de selecionar item/skill de uma
+     lista, agora no design system. Ganchos que ItemSelection.js consulta,
+     todos preservados: .head (arrasto) / .head .text (titulo) / .list /
+     .ok / .cancel / #ItemSelection (clique delegado nos itens) /
+     div[data-index] .icon (ícone do GRF, carregado por Client.loadFile) /
+     div[data-index] .name. Os botões ok/cancel eram <ui-button bg="...">;
+     o JS os selecionava por "ui-button.ok"/"ui-button.cancel" e por isso o
+     seletor mudou junto no .js (classe preservada, só a TAG virou <button>
+     nativo — mesma troca da CashShop/CheckAttendance). -->
 <div id="ItemSelection">
-	<div class="head">
-		<ui-image src="basic_interface/titlebar_mid.bmp"></ui-image>
-		<span class="text"></span>
+	<div class="head ri-header">
+		<span class="text ri-title"></span>
 	</div>
 	<div class="bottom">
-		<ui-image src="login_interface/win_service.bmp"></ui-image>
-		<ui-button class="btn cancel" bg="btn_cancel.bmp" hover="btn_cancel_a.bmp" down="btn_cancel_b.bmp"></ui-button>
-		<ui-button class="btn ok" bg="btn_ok.bmp" hover="btn_ok_a.bmp" down="btn_ok_b.bmp"></ui-button>
+		<button type="button" class="btn cancel ri-btn ri-btn--sec">Cancelar</button>
+		<button type="button" class="btn ok ri-btn">Selecionar</button>
 	</div>
 	<div class="content">
-		<div class="list"></div>
+		<div class="list ri-scroll"></div>
 	</div>
 </div>

@@ -1,3 +1,8 @@
+/* Fase 3 (01/09/2026): janela de Info do Homúnculo no design system. As
+   DIMENSÕES (280x190) e o layout absoluto interno ficaram — reforma é pele,
+   não esqueleto. A janela inteira continua arrastável (HomunInformations.js
+   chama draggable('.content')): por isso o título vive numa faixa interna
+   (.hi-titulo), não em ".ri-header" no elemento que é o alvo do arraste. */
 :host {
 	width: 280px;
 	height: 190px;
@@ -9,107 +14,88 @@
 	position: absolute;
 	width: 280px;
 	height: 190px;
-	background-color: white;
-	border-radius: 5px;
+	box-sizing: border-box;
 }
 
 #HomunInformations .content {
-	width: 100%;
-	height: 17px;
-	background-color: white;
-	background-repeat: repeat-x;
-	border-radius: 3px 3px 0px 0px;
-}
-#HomunInformations .content .base {
-	width: 11px;
-	height: 11px;
-	border: none;
-	background-color: transparent;
-	background-repeat: no-repeat;
-	vertical-align: middle;
-}
-#HomunInformations .content .text {
-	text-shadow: 1px 1px white;
-	vertical-align: -2px;
-	white-space: nowrap;
-	/* chrome bug */
-	display: inline-block;
-	width: 50px;
-	height: 13px;
-	font-size: 11px;
-	font-weight: bold;
-}
-
-#HomunInformations .content .left {
-	margin-left: 3px;
-	float: left;
-}
-#HomunInformations .content .right {
-	float: right;
-	margin-right: 3px;
-}
-#HomunInformations .content .clear {
-	clear: both;
-}
-
-#HomunInformations .content {
-	background-repeat: no-repeat;
 	position: relative;
 	width: 100%;
 	height: 100%;
+	box-sizing: border-box;
+	cursor: move;
+}
+
+#HomunInformations .hi-titulo {
+	position: relative;
+	height: 20px;
+	padding: 0 var(--sp-6) 0 var(--sp-4);
+	box-sizing: border-box;
+	display: flex;
+	align-items: center;
+	background: var(--titlebar-fill);
+	border-bottom: var(--titlebar-rule);
+	border-radius: var(--radius-window) var(--radius-window) 0 0;
+}
+
+#HomunInformations .hi-titulo .text {
+	font-size: var(--fs-label);
 }
 
 #HomunInformations .title_name {
 	position: absolute;
 	top: 25px;
 	left: 100px;
+	font: var(--type-label);
+	color: var(--text-muted);
 }
 #HomunInformations .name {
 	position: absolute;
 	top: 25px;
 	left: 140px;
-	border: none;
-	background-color: #eee;
+	box-sizing: border-box;
+	border: 1px solid var(--border-hairline);
+	border-radius: var(--radius-card);
+	background-color: var(--white);
 	margin: 0px;
 	width: 85px;
-	color: black;
+	height: 16px;
+	padding: 0 var(--sp-2);
+	color: var(--text-body);
+	font: var(--type-label);
 }
 
 #HomunInformations .modify {
 	position: absolute;
 	top: 22px;
 	right: 5px;
-	border: 0;
 	width: 42px;
 	height: 20px;
-	background-repeat: no-repeat;
-	background-color: transparent;
+	padding: 0;
+	font-size: 8px;
 }
 #HomunInformations .skill {
 	position: absolute;
 	top: 45px;
 	right: 5px;
-	border: 0;
 	width: 42px;
 	height: 20px;
-	background-repeat: no-repeat;
-	background-color: transparent;
+	padding: 0;
+	font-size: 8px;
 }
 #HomunInformations .del {
 	position: absolute;
 	top: 45px;
 	right: 50px;
-	border: 0;
 	width: 42px;
 	height: 20px;
-	background-repeat: no-repeat;
-	background-color: transparent;
+	padding: 0;
+	font-size: 8px;
 }
 
 #HomunInformations .name.disabled {
-	color: black;
-	text-shadow: 1px 1px 0px #00ff00;
-	background-color: transparent;
+	color: var(--text-body);
+	text-shadow: 0 1px 0 rgba(143, 209, 122, 0.7);
+	background-color: var(--surface-inset);
 }
 #HomunInformations .modify.disabled {
 	display: none;
@@ -119,11 +105,15 @@
 	position: absolute;
 	top: 47px;
 	left: 100px;
+	font: var(--type-label);
+	color: var(--text-muted);
 }
 #HomunInformations .level {
 	position: absolute;
 	top: 47px;
 	left: 140px;
+	font: var(--type-label);
+	color: var(--text-title);
 }
 
 #HomunInformations .stats {
@@ -131,42 +121,17 @@
 	top: 20px;
 	width: 80px;
 	height: 160px;
+	font: var(--type-label);
+	color: var(--text-body);
+	font-variant-numeric: tabular-nums;
 }
-#HomunInformations .stats .atk {
-	margin-top: 4px;
-	height: 14px;
-	text-align: right;
-}
-#HomunInformations .stats .Matk {
-	margin-top: 4px;
-	height: 14px;
-	text-align: right;
-}
-#HomunInformations .stats .hit {
-	margin-top: 4px;
-	height: 14px;
-	text-align: right;
-}
-#HomunInformations .stats .critical {
-	margin-top: 4px;
-	height: 14px;
-	text-align: right;
-}
-#HomunInformations .stats .def {
-	margin-top: 4px;
-	height: 14px;
-	text-align: right;
-}
-#HomunInformations .stats .Mdef {
-	margin-top: 4px;
-	height: 14px;
-	text-align: right;
-}
-#HomunInformations .stats .flee {
-	margin-top: 4px;
-	height: 14px;
-	text-align: right;
-}
+#HomunInformations .stats .atk,
+#HomunInformations .stats .Matk,
+#HomunInformations .stats .hit,
+#HomunInformations .stats .critical,
+#HomunInformations .stats .def,
+#HomunInformations .stats .Mdef,
+#HomunInformations .stats .flee,
 #HomunInformations .stats .aspd {
 	margin-top: 4px;
 	height: 14px;
@@ -200,6 +165,8 @@
 	width: 80px;
 	position: absolute;
 	top: -2px;
+	font: var(--type-badge);
+	color: var(--text-body);
 }
 #HomunInformations .hp_perc {
 	position: absolute;
@@ -211,11 +178,15 @@
 	position: absolute;
 	top: 70px;
 	left: 220px;
+	font: var(--type-desc);
+	color: var(--text-muted);
 }
 #HomunInformations .sp2 {
 	position: absolute;
 	top: 85px;
 	left: 220px;
+	font: var(--type-desc);
+	color: var(--text-muted);
 }
 
 #HomunInformations .sp_bar {
@@ -234,6 +205,8 @@
 	width: 80px;
 	position: absolute;
 	top: -2px;
+	font: var(--type-badge);
+	color: var(--text-body);
 }
 #HomunInformations .sp_perc {
 	position: absolute;
@@ -247,6 +220,8 @@
 	left: 100px;
 	width: 100px;
 	height: 70px;
+	font: var(--type-label);
+	color: var(--text-muted);
 }
 
 #HomunInformations .block2 .title_exp {
@@ -256,6 +231,8 @@
 	width: 50px;
 	float: right;
 	text-align: right;
+	color: var(--text-body);
+	font-variant-numeric: tabular-nums;
 }
 #HomunInformations canvas.life.title_exp {
 	position: relative;
@@ -271,6 +248,8 @@
 	width: 50px;
 	float: right;
 	text-align: right;
+	color: var(--text-body);
+	font-variant-numeric: tabular-nums;
 }
 #HomunInformations canvas.life.title_hunger {
 	position: relative;
@@ -286,23 +265,28 @@
 	width: 50px;
 	float: right;
 	text-align: right;
+	color: var(--text-body);
 }
 
 #HomunInformations .feed {
 	position: absolute;
 	top: 155px;
 	right: 5px;
-	border: 0;
 	width: 65px;
 	height: 20px;
-	background-repeat: no-repeat;
-	background-color: transparent;
+	padding: 0;
+	font-size: var(--fs-badge);
 }
 #HomunInformations .feeding {
 	position: absolute;
 	top: 110px;
 	right: 0px;
 	width: 75px;
+	display: flex;
+	align-items: center;
+	gap: var(--sp-1);
+	font: var(--type-desc);
+	color: var(--text-muted);
 }
 #HomunInformations .feeding .homun_auto_feed {
 	width: 10px;

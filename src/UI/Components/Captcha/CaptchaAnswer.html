@@ -1,15 +1,12 @@
+<!-- Fase 3 (01/09/2026): a janela de resposta do captcha sai dos bitmaps
+     (titlebar_mid, sys_base_*, btn_ok*) e entra no design system. Ganchos
+     que CaptchaAnswer.js consulta, todos preservados: .titlebar (arrasto) /
+     .answer_input / .ok / .preview_box / .retry_count / .timer_text /
+     .timer_bar_fill / .error_text. O rotulo do botao, antes pintado no
+     bitmap btn_ok.bmp, agora e texto. -->
 <div id="CaptchaAnswer">
 	<div class="titlebar">
-		<ui-image src="basic_interface/titlebar_mid.bmp"></ui-image>
-		<div class="left">
-			<ui-button
-				class="base"
-				bg="basic_interface/sys_base_off.bmp"
-				hover="basic_interface/sys_base_on.bmp"
-			></ui-button>
-		</div>
-		<div class="right"></div>
-		<div class="clear"></div>
+		<span class="base" aria-hidden="true"></span>
 	</div>
 	<div class="container">
 		<div class="information">
@@ -30,8 +27,8 @@
 		</div>
 		<div class="preview_box"></div>
 		<div class="controls">
-			<input type="text" class="answer_input" placeholder="Captcha Answer" />
-			<ui-button class="btn ok" bg="btn_ok.bmp" hover="btn_ok_a.bmp" down="btn_ok_b.bmp"></ui-button>
+			<input type="text" class="answer_input" placeholder="Resposta do captcha" />
+			<button type="button" class="btn ok">Confirmar</button>
 		</div>
 	</div>
 </div>

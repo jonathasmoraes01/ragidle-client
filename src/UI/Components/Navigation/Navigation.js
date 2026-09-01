@@ -29,6 +29,9 @@ const Navigation = new GUIComponent('Navigation', cssText);
 
 Navigation.render = () => htmlText;
 
+/* Janela entra/sai com a animacao unica (Fase 3, 01/09/2026). */
+Navigation.riAnimaJanela = true;
+
 /**
  * Async image create helper
  */
@@ -488,7 +491,7 @@ Navigation.displaySearchResults = function displaySearchResults(results) {
 
 	// If no results, show a message
 	if (results.length === 0) {
-		resultsContainer.innerHTML = '<div class="no-results">No results found</div>';
+		resultsContainer.innerHTML = '<div class="no-results">Nenhum resultado encontrado</div>';
 		resultsContainer.style.display = '';
 		return;
 	}

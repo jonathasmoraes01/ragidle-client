@@ -1,22 +1,25 @@
+<!-- Fase 3 (01/09/2026): a tela de mapa-mundi sai dos bitmaps de barra
+     (titlebar_mid, checkbox_*, i_object_*, sys_close_*) e entra no design
+     system. Ganchos que WorldMap.js consulta, todos preservados: .titlebar
+     .base (arrasto) / #WorldMaps / .titlebar select / .showlvl / .togglemaps
+     / .close / .map .content / #map-tooltip .tooltip-img/.tooltip-mapname/
+     .tooltip-mapid. E TELA CHEIA (:host 100%x100%), entao NAO leva
+     .ri-window (moldura arredondada nao faz sentido encostada nas bordas do
+     viewport) — so a barra fina de 17px (a mesma que WorldMap.js usa como
+     C_TITLEBARHEIGHT para calcular o tamanho do mapa; NAO pode crescer)
+     troca de bitmap para tokens. Os rotulos que ainda eram bitmap (checkbox,
+     "mostrar tudo", fechar) viraram texto/glifo. -->
 <div id="WorldMap">
 	<div class="border">
-		<div class="titlebar" data-background="basic_interface/titlebar_mid.bmp">
+		<div class="titlebar">
 			<div class="left">
-				<select name="mapList" id="WorldMaps"></select>
+				<select name="mapList" id="WorldMaps" class="wm-select"></select>
 			</div>
 			<div class="right">
-				<button class="base showlvl" data-background="checkbox_0.bmp" data-preload="checkbox_1.bmp"></button>
+				<button type="button" class="base showlvl" title="Mostrar nível dos monstros" aria-label="Mostrar nível dos monstros"></button>
 				<span data-text="2209">Show Monsters</span>
-				<button
-					class="base togglemaps"
-					data-background="minimap/i_object_3.bmp"
-					data-hover="minimap/i_object_2.bmp"
-				></button>
-				<button
-					class="base close"
-					data-background="basic_interface/sys_close_off.bmp"
-					data-hover="basic_interface/sys_close_on.bmp"
-				></button>
+				<button type="button" class="base togglemaps" title="Mostrar todos os mapas">Mostrar tudo</button>
+				<button type="button" class="base close" title="Fechar">&times;</button>
 			</div>
 		</div>
 

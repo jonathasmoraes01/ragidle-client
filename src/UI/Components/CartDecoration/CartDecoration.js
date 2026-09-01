@@ -26,6 +26,9 @@ import cssText from './CartDecoration.css?raw';
  */
 const CartDecoration = new GUIComponent('CartDecoration', cssText);
 
+/* Janela entra/sai com a animacao unica (Fase 3, 01/09/2026). */
+CartDecoration.riAnimaJanela = true;
+
 /**
  * Render HTML
  */

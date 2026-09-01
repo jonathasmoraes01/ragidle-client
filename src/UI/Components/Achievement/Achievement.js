@@ -36,6 +36,12 @@ let MAJOR_CATEGORIES = [];
 class AchievementComponent extends GUIComponent {
 	constructor() {
 		super('Achievement', cssText);
+
+		/* Janela entra/sai com a animacao unica (Fase 3, 01/09/2026).
+		   RISCO: toggle() aqui embaixo troca _host.style.display direto em vez
+		   de usar o proxy show()/hide() — a entrada anima (toggle() chama
+		   this.append(), que dispara a classe), a SAIDA nao (fecha seco). */
+		this.riAnimaJanela = true;
 	}
 
 	render() {

@@ -1,27 +1,22 @@
-<div id="VendingModelMessage">
-	<div class="titlebar" data-background="basic_interface/titlebar_mid.bmp">
-		<div class="left">
-			<button
-				class="base"
-				data-background="basic_interface/sys_base_off.bmp"
-				data-hover="basic_interface/sys_base_on.bmp"
-			></button>
-			<!-- data-text does not exist -->
-			<span class="text">Message</span>
-		</div>
-		<div class="clear"></div>
+<!-- Fase 3 (01/09/2026): a caixa de aviso da banca (erro de vender/comprar,
+     preco invalido, sem zeny, nome vazio etc.) saiu do bitmap
+     (titlebar_mid.bmp, sys_base_off/on.bmp, btn_ok.bmp) para o design system.
+     Ganchos que VendingModelMessage.js consulta, todos preservados: .titlebar
+     (alca de arraste) / .message (span onde DB.getMessage(numMessage) escreve
+     o texto) / .ok (fecha a caixa). O selo decorativo "sys_base_off/on" saiu
+     junto com o bitmap -- nao tinha listener, era so ornamento sem
+     equivalente no design system (nenhum dos tres tratamentos de icone se
+     aplica a um selo de canto sem funcao). -->
+<div id="VendingModelMessage" class="ri-window">
+	<div class="titlebar ri-header">
+		<span class="text ri-title">Aviso</span>
 	</div>
 	<div class="container">
 		<div class="text_message">
 			<span class="text message"></span>
 		</div>
 		<div class="btns">
-			<button
-				class="btn ok"
-				data-background="btn_ok.bmp"
-				data-hover="btn_ok_a.bmp"
-				data-down="btn_ok_b.bmp"
-			></button>
+			<button type="button" class="btn ok ri-btn">Ok</button>
 		</div>
 	</div>
 </div>

@@ -25,6 +25,10 @@ import cssText from './Roulette.css?raw';
  */
 const Roulette = new GUIComponent('Roulette', cssText);
 
+/* Janela entra/sai com a animacao unica (Fase 3, 01/09/2026) — onOpen e
+   onClose passam pelo proxy ui.show()/hide() exatamente por isso. */
+Roulette.riAnimaJanela = true;
+
 /**
  * Render HTML
  */
@@ -202,7 +206,7 @@ Roulette.onOpen = function onOpen(pkt) {
 		_rouletteInfo.additionItemID = pkt.additionItemID || 0;
 	}
 
-	this._host.style.display = '';
+	this.ui.show(); // via proxy: abre COM a animacao unica (Fase 3)
 	this.updateUI();
 	this.focus();
 };
@@ -211,7 +215,7 @@ Roulette.onOpen = function onOpen(pkt) {
  * Close Roulette Window
  */
 Roulette.onClose = function onClose() {
-	Roulette._host.style.display = 'none';
+	Roulette.ui.hide(); // via proxy: fecha COM a animacao unica (Fase 3)
 
 	const pkt = new PACKET.CZ.REQ_CLOSE_ROULETTE();
 	Network.sendPacket(pkt);

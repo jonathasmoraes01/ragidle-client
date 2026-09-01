@@ -35,6 +35,9 @@ import Equipment from 'UI/Components/Equipment/Equipment.js';
  */
 const CartItems = new GUIComponent('CartItems', cssText);
 
+/* Janela entra/sai com a animacao unica (Fase 3, 01/09/2026). */
+CartItems.riAnimaJanela = true;
+
 CartItems.render = () => htmlText;
 
 /**

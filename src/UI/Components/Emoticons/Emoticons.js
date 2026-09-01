@@ -31,6 +31,9 @@ const Emoticons = new GUIComponent('Emoticons', cssText);
  */
 Emoticons.render = () => htmlText;
 
+/* Janela entra/sai com a animacao unica (Fase 3, 01/09/2026). */
+Emoticons.riAnimaJanela = true;
+
 /**
  * @var {number} page index
  */
@@ -127,7 +130,8 @@ Emoticons.init = function init() {
 		}
 	});
 	root.querySelector('.close').addEventListener('click', () => {
-		this._host.style.display = 'none';
+		// via proxy: fecha COM a animacao unica (Fase 3)
+		this.ui.hide();
 	});
 	root.querySelector('.prev').addEventListener('click', getMovePageHandler(-1));
 	root.querySelector('.next').addEventListener('click', getMovePageHandler(+1));
@@ -202,7 +206,7 @@ Emoticons.onShortCut = function onShortCut(key) {
 				this.ui.show();
 				this.focus();
 			} else {
-				this._host.style.display = 'none';
+				this.ui.hide();
 			}
 			break;
 	}

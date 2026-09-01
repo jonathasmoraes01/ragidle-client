@@ -1,9 +1,18 @@
-<div id="win_sense">
-	<div class="header">
-		<div class="titbar_left" data-background="basic_interface/titlebar_left.bmp"></div>
-		<div class="titbar_mid" data-background="basic_interface/titlebar_mid.bmp"></div>
-		<div class="titbar_right" data-background="basic_interface/titlebar_right.bmp"></div>
-		<div class="title"></div>
+<!-- Fase 4 (01/09/2026): janela "Sentir Inimigo" (skill Sense) no design
+     system. Ganchos que Sense.js consulta, todos preservados: .header (alca
+     de arrasto) / .header .title / .close / #canvas_model / os pares
+     #label_* + #value_* (name, size, level, type, hp, mdef, def, attr) /
+     #element_water #element_wind #element_shadow #element_earth
+     #element_poison #element_ghost #element_fire #element_holy
+     #element_undead. Estas 9 celulas recebem className INTEIRO via JS
+     (_setElementClass sobrescreve com '', 'element_good' ou 'element_bad'),
+     entao a pele delas mora em seletor de ID/tabela no CSS — uma classe
+     extra aqui seria apagada no primeiro pacote. Moldura de bitmap
+     (titlebar_*.bmp, btnbar_*.bmp) saiu; o botao que antes usava btn_ok.bmp
+     (rotulo pintado, funcionava como "fechar") virou texto "Fechar". -->
+<div id="win_sense" class="ri-window">
+	<div class="header ri-header">
+		<span class="title ri-title"></span>
 	</div>
 
 	<div class="content">
@@ -58,16 +67,8 @@
 	</div>
 
 	<div class="footer">
-		<div class="bg_left" data-background="basic_interface/btnbar_left2.bmp"></div>
-		<div class="bg_mid" data-background="basic_interface/btnbar_mid2.bmp"></div>
-		<div class="bg_right" data-background="basic_interface/btnbar_right2.bmp"></div>
 		<div class="btns">
-			<button
-				class="btn close"
-				data-background="btn_ok.bmp"
-				data-down="btn_ok_b.bmp"
-				data-hover="btn_ok_a.bmp"
-			></button>
+			<button type="button" class="btn close ri-btn">Fechar</button>
 		</div>
 	</div>
 </div>

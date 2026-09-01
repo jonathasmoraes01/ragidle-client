@@ -5,6 +5,15 @@
  * guarda posição. A razão é o que ele é — uma notificação que aparece sozinha
  * e some quando o jogador age. Uma janela arrastável convidaria a deixá-la
  * aberta, e um aviso permanente deixa de ser aviso.
+ *
+ * Pele do design system (Fase 3, 01/09/2026): INSTRUÇÃO ESPECÍFICA do dono —
+ * este toast é VIDRO ESCURO com aro dourado, não o papel claro do resto do
+ * sistema. Mesma receita de contraste que ".ri-runas-capsula" no Common.css
+ * (--surface-dark-glass + texto --white): é o único outro lugar do fork que
+ * já resolve "texto claro sobre vidro escuro". A visibilidade continua sendo
+ * o atributo `data-hidden` em ".ccn-toast" (o servidor decide, ver o .js) —
+ * não é o show()/hide() de GUIComponent, então "riAnimaJanela" não se aplica
+ * aqui; a mecânica de exibição não mudou, só a pele.
  */
 
 :host {
@@ -12,16 +21,17 @@
 	right: 16px;
 	top: 96px;
 	z-index: 60;
-	font-family: Arial, Helvetica, sans-serif;
+	font-family: var(--font-ui);
 }
 
 .ccn-toast {
 	width: 268px;
-	background: linear-gradient(180deg, #2b2f3a 0%, #1d2029 100%);
-	border: 1px solid #4a5266;
-	border-radius: 6px;
-	box-shadow: 0 6px 18px rgba(0, 0, 0, 0.55);
-	color: #e8ebf2;
+	background: var(--surface-dark-glass);
+	backdrop-filter: var(--blur-glass);
+	border: 1px solid var(--border-gold);
+	border-radius: var(--radius-panel);
+	box-shadow: var(--shadow-float), var(--glow-gold);
+	color: var(--white);
 	overflow: hidden;
 }
 
@@ -34,30 +44,30 @@
 	align-items: center;
 	justify-content: space-between;
 	padding: 7px 9px;
-	background: rgba(255, 255, 255, 0.05);
-	border-bottom: 1px solid #3a4152;
+	background: color-mix(in srgb, var(--white) 6%, transparent);
+	border-bottom: 1px solid var(--border-gold);
 }
 
 .ccn-badge {
-	font-size: 11px;
-	font-weight: bold;
-	letter-spacing: 0.3px;
-	color: #ffd97a;
+	font: var(--type-label);
+	letter-spacing: var(--ls-caps);
+	color: var(--gold-300);
 	text-transform: uppercase;
 }
 
 .ccn-close {
 	background: none;
 	border: none;
-	color: #97a0b5;
+	color: color-mix(in srgb, var(--white) 65%, transparent);
 	cursor: pointer;
-	font-size: 12px;
+	font-size: var(--fs-info);
 	line-height: 1;
 	padding: 2px 4px;
+	transition: color var(--dur-fast) var(--ease-out);
 }
 
 .ccn-close:hover {
-	color: #e8ebf2;
+	color: var(--white);
 }
 
 .ccn-body {
@@ -78,10 +88,10 @@
 }
 
 .ccn-linha {
-	font-size: 12px;
-	color: #c9d0e0;
-	margin-bottom: 8px;
-	line-height: 1.4;
+	font: var(--type-info);
+	color: var(--white);
+	margin-bottom: var(--sp-4);
+	line-height: var(--lh-read);
 }
 
 .ccn-btn {
@@ -89,24 +99,32 @@
 	width: 100%;
 	margin-top: 5px;
 	padding: 7px 8px;
-	background: linear-gradient(180deg, #3c65b8 0%, #2b4a8c 100%);
-	border: 1px solid #5b82d6;
-	border-radius: 4px;
-	color: #fff;
+	background: var(--tab-active-fill);
+	border: 1px solid var(--blue-400);
+	border-radius: var(--radius-card);
+	color: var(--white);
 	cursor: pointer;
-	font-size: 12px;
-	font-weight: bold;
+	font: var(--type-info);
+	font-weight: var(--fw-bold);
 	text-align: left;
+	box-shadow: var(--rim-light), var(--shadow-card);
+	transition:
+		filter var(--dur-fast) var(--ease-out),
+		transform var(--dur-instant) var(--ease-out);
 }
 
 .ccn-btn:hover {
-	background: linear-gradient(180deg, #4a76cd 0%, #33569e 100%);
+	filter: brightness(1.06);
+}
+
+.ccn-btn:active {
+	transform: var(--press-shift);
 }
 
 .ccn-onde {
 	display: block;
-	font-weight: normal;
-	font-size: 11px;
-	color: #bcc8e0;
+	font-weight: var(--fw-regular);
+	font-size: var(--fs-desc);
+	color: color-mix(in srgb, var(--white) 78%, transparent);
 	margin-top: 2px;
 }

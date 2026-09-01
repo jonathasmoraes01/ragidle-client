@@ -1,25 +1,30 @@
-<div id="HomunInformations">
-	<div class="content" data-background="basic_interface/homuninfo_bg.bmp">
-		<div class="left">
-			<span class="text">Homunculus Info</span>
+<!-- Fase 3 (01/09/2026): a janela de Info do Homúnculo saiu do bitmap de
+     fundo (homuninfo_bg.bmp) e dos botões pintados (btn_rewrite/btn_skill/
+     btn_del/btn_feed/sys_close_*) e entrou no design system. Ganchos que
+     HomunInformations.js consulta, todos preservados: .content (arraste +
+     contêiner) / .base / .close / .name / .modify / .level / .skill / .del /
+     .stats .atk/.Matk/.hit/.critical/.def/.Mdef/.flee/.aspd / .hp_bar* /
+     .hp_value/.hp_max_value/.hp_perc / .hp2 / .sp_bar* /
+     .sp_value/.sp_max_value/.sp_perc / .sp2 / .block2 .title_exp/.exp/
+     .title_hunger/.hunger/.title_intimacy/.intimacy / .feed / .feeding /
+     .homun_auto_feed. As barras de HP/SP (3 pedaços em bitmap gze*_left/mid/
+     right, coloridas pelo JS) e os canvas de EXP/fome continuam vindo do JS
+     — não são cor literal de CSS deste arquivo. -->
+<div id="HomunInformations" class="ri-window">
+	<div class="content">
+		<div class="hi-titulo">
+			<span class="text ri-title">Homúnculo</span>
+			<button type="button" class="base close ri-close" title="Fechar">&times;</button>
 		</div>
-		<div class="right">
-			<ui-button
-				class="base close"
-				bg="basic_interface/sys_close_off.bmp"
-				hover="basic_interface/sys_close_on.bmp"
-			></ui-button>
-		</div>
-		<div class="clear"></div>
 
-		<div class="title_name">Name</div>
+		<div class="title_name">Nome</div>
 		<input type="text" class="name" value="" />
-		<div class="title_level">Level</div>
+		<div class="title_level">Nível</div>
 		<div class="level"></div>
 
-		<ui-button class="modify" bg="btn_rewrite.bmp" hover="btn_rewrite_a.bmp" down="btn_rewrite_b.bmp"></ui-button>
-		<ui-button class="skill" bg="btn_skill.bmp" hover="btn_skill_a.bmp" down="btn_skill_b.bmp"></ui-button>
-		<ui-button class="del" bg="btn_del.bmp" hover="btn_del_a.bmp" down="btn_del_b.bmp"></ui-button>
+		<button type="button" class="modify ri-btn ri-btn--sec">Renomear</button>
+		<button type="button" class="skill ri-btn ri-btn--sec">Skills</button>
+		<button type="button" class="del ri-btn ri-btn--sec">Excluir</button>
 
 		<div class="stats">
 			<div class="atk"></div>
@@ -56,18 +61,18 @@
 			<canvas class="life title_exp" width="60" height="5"></canvas>
 
 			<div class="title_hunger">
-				Hunger
+				Fome
 				<div class="hunger"></div>
 			</div>
 			<canvas class="life title_hunger" width="60" height="5"></canvas>
 
 			<div class="title_intimacy">
-				Intimacy
+				Intimidade
 				<div class="intimacy"></div>
 			</div>
 		</div>
 
-		<ui-button class="feed" bg="btn_feed.bmp" hover="btn_feed_a.bmp" down="btn_feed_b.bmp"></ui-button>
+		<button type="button" class="feed ri-btn ri-btn--sec">Alimentar</button>
 		<div class="feeding">
 			<button class="homun_auto_feed" data-background="checkbox_0.bmp" data-preload="checkbox_1.bmp"></button>
 			<ui-text msg="2577">Auto Feeding</ui-text>

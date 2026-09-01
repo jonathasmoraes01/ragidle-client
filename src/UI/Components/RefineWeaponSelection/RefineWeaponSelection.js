@@ -21,6 +21,8 @@ import cssText from './RefineWeaponSelection.css?raw';
  * Create RefineWeaponSelection namespace
  */
 const RefineWeaponSelection = new GUIComponent('RefineWeaponSelection', cssText);
+/* Janela entra/sai com a animacao unica (Fase 3, 01/09/2026). */
+RefineWeaponSelection.riAnimaJanela = true;
 
 RefineWeaponSelection.render = () => htmlText;
 
@@ -50,11 +52,13 @@ RefineWeaponSelection.init = function init() {
 
 	this.draggable(root.querySelector('.head'));
 
-	// Click Events
-	root.querySelector('ui-button.ok').addEventListener('click', () => {
+	// Click Events (Fase 3, 01/09/2026: .ok/.cancel viraram <button> reais —
+	// o seletor deixou de exigir a tag <ui-button>, mas as classes que o
+	// resto do arquivo consulta continuam as mesmas)
+	root.querySelector('.ok').addEventListener('click', () => {
 		RefineWeaponSelection.selectIndex();
 	});
-	root.querySelector('ui-button.cancel').addEventListener('click', () => {
+	root.querySelector('.cancel').addEventListener('click', () => {
 		RefineWeaponSelection.index = -1;
 		RefineWeaponSelection.selectIndex();
 	});

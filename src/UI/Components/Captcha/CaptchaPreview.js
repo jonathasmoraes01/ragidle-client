@@ -21,6 +21,9 @@ import cssText from './CaptchaPreview.css?raw';
  */
 const CaptchaPreview = new GUIComponent('CaptchaPreview', cssText);
 
+/* Janela entra/sai com a animacao unica (Fase 3, 01/09/2026). */
+CaptchaPreview.riAnimaJanela = true;
+
 /**
  * Preferences
  */

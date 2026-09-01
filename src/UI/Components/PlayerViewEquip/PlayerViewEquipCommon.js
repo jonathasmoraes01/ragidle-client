@@ -124,36 +124,33 @@ function generateHTML(hasTabs, costumeRows, costumeTableBg) {
 
 	const costumeHTML = hasTabs ? generateCostumeTable(costumeRows, costumeTableBg) : '';
 
-	return `<div id="PlayerViewEquip" data-repload="basic_interface/item_invert.bmp">  
-	<div class="titlebar" data-background="basic_interface/titlebar_mid.bmp">  
-		<div class="left">  
-			<button  
-				class="base"  
-				data-background="basic_interface/sys_base_off.bmp"  
-				data-hover="basic_interface/sys_base_on.bmp"  
-			></button>  
-			<span class="PlayerName"></span>  
-		</div>  
-		<div class="right">  
-			<button  
-				class="base mini"  
-				data-background="basic_interface/sys_mini_off.bmp"  
-				data-hover="basic_interface/sys_mini_on.bmp"  
-			></button>  
-			<button  
-				class="base close"  
-				data-background="basic_interface/sys_close_off.bmp"  
-				data-hover="basic_interface/sys_close_on.bmp"  
-			></button>  
-		</div>  
-		<div class="clear"></div>  
-	</div>  
-	<div class="overlay"></div>  
-	${tabsHTML}  
-	<div class="panel">  
-		${generateGeneralTable()}  
-		${costumeHTML}  
-	</div>  
+	/* Fase 3 (01/09/2026): o chrome saiu do bitmap (titlebar_mid.bmp,
+	   sys_base/mini/close_*.bmp) e entrou no design system. O icone "base"
+	   sem funcao (so freava o arrasto, sem clique proprio) saiu -- nao ha
+	   tratamento do DS para um ornamento sem acao, e deixa-lo sem bitmap
+	   sobraria um botao vazio. Ganchos que Component.init consulta, todos
+	   preservados: .titlebar .base (mousedown) / .mini (recolher) /
+	   .close (fechar) / .PlayerName / .overlay / .panel / #vieweqtabs
+	   .vieweqtab a / #vieweqgeneral / #vieweqcostume / .vieweqcontent /
+	   .item. O diagrama de silhueta dos slots (equipwin_bg.bmp e familia)
+	   NAO foi tocado -- mesma decisao de SwitchEquip (arte de referencia do
+	   boneco fica fora do escopo). */
+	return `<div id="PlayerViewEquip" class="ri-window" data-repload="basic_interface/item_invert.bmp">
+	<div class="titlebar ri-header">
+		<div class="left">
+			<span class="PlayerName"></span>
+		</div>
+		<div class="right">
+			<button type="button" class="base mini" title="Recolher">&#8211;</button>
+			<button type="button" class="base close" title="Fechar">&times;</button>
+		</div>
+	</div>
+	<div class="overlay"></div>
+	${tabsHTML}
+	<div class="panel">
+		${generateGeneralTable()}
+		${costumeHTML}
+	</div>
 </div>`;
 }
 
@@ -203,6 +200,9 @@ function getSelectorFromLocation(location) {
  */
 export function createPlayerViewEquip({ name, cssText, hasTabs, costumeRows, costumeTableBg }) {
 	const Component = new GUIComponent(name, cssText);
+
+	/* Janela entra/sai com a animacao unica (Fase 3, 01/09/2026). */
+	Component.riAnimaJanela = true;
 
 	Component.render = () => generateHTML(hasTabs, costumeRows, costumeTableBg);
 

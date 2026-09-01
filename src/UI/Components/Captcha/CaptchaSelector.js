@@ -25,6 +25,9 @@ import cssText from './CaptchaSelector.css?raw';
  */
 const CaptchaSelector = new GUIComponent('CaptchaSelector', cssText);
 
+/* Janela entra/sai com a animacao unica (Fase 3, 01/09/2026). */
+CaptchaSelector.riAnimaJanela = true;
+
 /**
  * Preferences
  */
@@ -77,6 +80,10 @@ CaptchaSelector.init = function init() {
 	if (activeBtn) {
 		activeBtn.addEventListener('click', () => {
 			_active = !_active;
+			/* Fase 3: o botao agora avisa visualmente que o modo esta ligado
+			   (borda de acento + tinta, regra do design system) — antes o
+			   clique nao dava nenhum retorno na propria pele do botao. */
+			activeBtn.classList.toggle('is-on', _active);
 
 			if (_active) {
 				const checked = root.querySelector('input[name="target_type"]:checked');

@@ -26,6 +26,8 @@ import htmlText from './Enchant.html?raw';
 import cssText from './Enchant.css?raw';
 
 const Enchant = new GUIComponent('Enchant', cssText);
+/* Janela entra/sai com a animacao unica (Fase 3, 01/09/2026). */
+Enchant.riAnimaJanela = true;
 
 Enchant.render = () => htmlText;
 
@@ -953,7 +955,7 @@ function renderItemList() {
 	if (!EnchantState.group) {
 		const empty = document.createElement('div');
 		empty.className = 'item_list_empty';
-		empty.textContent = 'Enchant data missing.';
+		empty.textContent = 'Sem dados de encantamento.';
 		list.appendChild(empty);
 		return;
 	}
@@ -1060,7 +1062,7 @@ function renderSlots() {
 	if (!empty) {
 		empty = document.createElement('div');
 		empty.className = 'slot_empty';
-		empty.textContent = 'Select an item';
+		empty.textContent = 'Selecione um item';
 		list.appendChild(empty);
 	}
 	const hasItem = !!(EnchantState.item && EnchantState.group);
@@ -1366,7 +1368,7 @@ function refreshUI() {
 
 function validateItem(item) {
 	if (!EnchantState.group) {
-		return { ok: false, message: 'Enchant data missing for this group.' };
+		return { ok: false, message: 'Sem dados de encantamento para este grupo.' };
 	}
 	if (!item) {
 		return { ok: false, message: 'Invalid item.' };
@@ -1566,7 +1568,7 @@ function onRequestAction() {
 		return;
 	}
 	if (!EnchantState.group || !EnchantState.item) {
-		setStatus('Select an item first.', true);
+		setStatus('Selecione um item primeiro.', true);
 		return;
 	}
 	let pkt;
@@ -1956,7 +1958,7 @@ Enchant.onOpenEnchantUI = function onOpenEnchantUI(groupId) {
 	EnchantState.groupId = Number(groupId);
 	EnchantState.group = DB.getEnchantGroup(EnchantState.groupId);
 	if (!EnchantState.group) {
-		UIManager.showErrorBox('Enchant data missing for group ' + groupId + '.');
+		UIManager.showErrorBox('Sem dados de encantamento para o grupo ' + groupId + '.');
 	}
 	Enchant.append();
 	Enchant.ui.show();

@@ -1,7 +1,19 @@
+<!-- Fase 3 (01/09/2026): o chrome (titlebar transparente + botoes
+     btn_change2_*.bmp / btn_cancel*.bmp) saiu do bitmap e entrou no design
+     system. O diagrama de silhueta dos slots (equipwin_bg2_change.bmp /
+     equipwin_special_change.bmp) NAO foi tocado -- redesenhar o boneco de
+     equipamento fica fora do escopo desta reforma (armadilha "nao troque
+     pela metade": ou troca o visual inteiro, ou deixa como esta).
+     Ganchos que SwitchEquip.js consulta, todos preservados: .panel /
+     #swapgeneral / #swapcostume / .swapcontent / .item[data-index] button /
+     .item .itemName / .switchoverlay / #swap-button.onswap / .closeswap /
+     .disabled / .swap_* e .swap_shadow_*/.swap_costume_* (getSelectorFromLocation). -->
 <div id="SwitchEquip">
 	<div class="switchoverlay"></div>
-	<div class="panel">
-		<div class="titlebar" data-text="2986"></div>
+	<div class="panel ri-window">
+		<div class="titlebar ri-header">
+			<span class="ri-title" data-text="2986"></span>
+		</div>
 		<table class="swapcontent" id="swapgeneral" data-background="swap_equipment/equipwin_bg2_change.bmp">
 			<tr>
 				<td class="swap_head_top col1"></td>
@@ -60,19 +72,7 @@
 		</table>
 	</div>
 	<div class="footer" id="equipment_footer">
-		<button
-			id="swap-button"
-			class="onswap"
-			data-text="3111"
-			data-background="swap_equipment/btn_change2_normal.bmp"
-			data-hover="swap_equipment/btn_change2_over.bmp"
-			data-press="swap_equipment/btn_change2_press.bmp"
-		></button>
-		<button
-			class="closeswap"
-			data-background="btn_cancel.bmp"
-			data-hover="btn_cancel_a.bmp"
-			data-press="btn_cancel_b.bmp"
-		></button>
+		<button type="button" id="swap-button" class="onswap ri-btn">Trocar</button>
+		<button type="button" class="closeswap ri-btn ri-btn--sec">Fechar</button>
 	</div>
 </div>

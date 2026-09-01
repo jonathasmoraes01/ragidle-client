@@ -1,21 +1,11 @@
+<!-- Fase 3 (01/09/2026): a previa do captcha sai dos bitmaps (titlebar_mid,
+     sys_base_*, sys_close_*) e entra no design system. Ganchos que
+     CaptchaPreview.js consulta, todos preservados: .titlebar (arrasto) /
+     .close / .preview_box. -->
 <div id="CaptchaPreview">
 	<div class="titlebar">
-		<ui-image src="basic_interface/titlebar_mid.bmp"></ui-image>
-		<div class="left">
-			<ui-button
-				class="base"
-				bg="basic_interface/sys_base_off.bmp"
-				hover="basic_interface/sys_base_on.bmp"
-			></ui-button>
-		</div>
-		<div class="right">
-			<ui-button
-				class="base close"
-				bg="basic_interface/sys_close_off.bmp"
-				hover="basic_interface/sys_close_on.bmp"
-			></ui-button>
-		</div>
-		<div class="clear"></div>
+		<span class="base" aria-hidden="true"></span>
+		<button type="button" class="base close" title="Fechar">&times;</button>
 	</div>
 	<div class="container">
 		<div class="preview_box"></div>

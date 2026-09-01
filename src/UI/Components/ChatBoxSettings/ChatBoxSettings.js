@@ -6,10 +6,8 @@
  * This file is part of ROBrowser, (http://www.robrowser.com/).
  */
 
-import DB from 'DB/DBManager.js';
 import Preferences from 'Core/Preferences.js';
 import Renderer from 'Renderer/Renderer.js';
-import Client from 'Core/Client.js';
 import Mouse from 'Controls/MouseEventHandler.js';
 import UIManager from 'UI/UIManager.js';
 import GUIComponent from 'UI/GUIComponent.js';
@@ -20,6 +18,9 @@ import cssText from './ChatBoxSettings.css?raw';
  * Create Component
  */
 const ChatBoxSettings = new GUIComponent('ChatBoxSettings', cssText);
+
+/* Janela entra/sai com a animacao unica (Fase 3, 01/09/2026). */
+ChatBoxSettings.riAnimaJanela = true;
 
 /**
  * Render HTML
@@ -63,7 +64,8 @@ ChatBoxSettings.init = function init() {
 	const closeBtn = root.querySelector('.close');
 	if (closeBtn) {
 		closeBtn.addEventListener('click', () => {
-			this._host.style.display = 'none';
+			// via proxy: fecha COM a animacao unica (Fase 3)
+			this.ui.hide();
 		});
 	}
 
@@ -128,30 +130,25 @@ ChatBoxSettings.onKeyDown = function onKeyDown(event) {};
 
 /**
  * Handle option button click
+ *
+ * Fase 4 (01/09/2026): o indicador ligado/desligado era um bitmap
+ * (grp_online.bmp/grp_offline.bmp) trocado a mao a cada clique -- virou a
+ * classe ".on", pintada por CSS (ChatBoxSettings.css: .cbs-opt.on). Sem
+ * troca de imagem, o estado passa a morar SO na classe.
  */
 function onClickOption(btn) {
 	const dataId = parseInt(btn.getAttribute('data-id'), 10);
-	let isOn = btn.classList.contains('on');
-
-	if (isOn) {
-		btn.classList.remove('on');
-		isOn = false;
-	} else {
-		btn.classList.add('on');
-		isOn = true;
-	}
-
-	Client.loadFile(DB.INTERFACE_PATH + 'basic_interface/grp_' + (isOn ? 'online' : 'offline') + '.bmp', data => {
-		btn.style.backgroundImage = 'url(' + data + ')';
-	});
+	const isOn = btn.classList.toggle('on');
 
 	if (!isNaN(dataId)) {
 		const idsIndex = ChatBoxSettings.tabOption[ChatBoxSettings.activeTab].indexOf(dataId);
 
-		if (idsIndex > -1) {
+		if (isOn) {
+			if (idsIndex === -1) {
+				ChatBoxSettings.tabOption[ChatBoxSettings.activeTab].push(dataId);
+			}
+		} else if (idsIndex > -1) {
 			ChatBoxSettings.tabOption[ChatBoxSettings.activeTab].splice(idsIndex, 1);
-		} else {
-			ChatBoxSettings.tabOption[ChatBoxSettings.activeTab].push(dataId);
 		}
 	}
 }
@@ -204,21 +201,8 @@ ChatBoxSettings.updateTab = function updateTab(tabID, tabName) {
 	root.querySelector('.tabname').textContent = tabName;
 
 	buttons.forEach(btn => {
-		btn.classList.remove('on');
-		Client.loadFile(DB.INTERFACE_PATH + 'basic_interface/grp_offline.bmp', data => {
-			btn.style.backgroundImage = 'url(' + data + ')';
-		});
-	});
-
-	buttons.forEach(btn => {
 		const id = parseInt(btn.getAttribute('data-id'), 10);
-
-		if (optList && optList.includes(id)) {
-			Client.loadFile(DB.INTERFACE_PATH + 'basic_interface/grp_online.bmp', data => {
-				btn.style.backgroundImage = 'url(' + data + ')';
-			});
-			btn.classList.add('on');
-		}
+		btn.classList.toggle('on', Boolean(optList && optList.includes(id)));
 	});
 };
 

@@ -1,3 +1,15 @@
+/* Fase 4 (01/09/2026): "Criar Sala" no design system oficial. :host e o
+   proprio #ChatRoomCreate mantem os 280x120 de sempre -- regra da casa: o
+   JS de arrasto/posicionamento (ChatRoomCreate.js) mede este retangulo, e
+   :host + conteudo tem de andar juntos. So o MIOLO virou pele nova.
+
+   Cabecalho e rodape ENCOLHIDOS abaixo da receita padrao (.ri-header e
+   34px em Common.css) para caber 3 linhas de formulario no orcamento
+   vertical minusculo desta janela -- mesmo ajuste que ShortCutOption.css
+   ja fez para a propria janela pequena (override local, cor/raio/sombra
+   continuam vindo de token). O corpo tambem ganha overflow-y como rede de
+   seguranca: se o texto PT-BR (mais comprido que o ingles original) nao
+   couber num pixel a mais, ele rola em vez de vazar da janela. */
 :host {
 	width: 280px;
 	height: 120px;
@@ -10,110 +22,144 @@
 	width: 280px;
 	height: 120px;
 }
-#ChatRoomCreate table {
-	border-spacing: 0px 2px;
-	display: inline-block;
-}
 
-#ChatRoomCreate .titlebar {
+.crc-janela {
 	width: 100%;
-	height: 17px;
-	background-color: white;
-	background-repeat: repeat-x;
-	border-radius: 3px 3px 0px 0px;
-}
-#ChatRoomCreate .titlebar .base {
-	width: 11px;
-	height: 11px;
-	border: none;
-	background-color: transparent;
-	background-repeat: no-repeat;
-	vertical-align: middle;
-}
-#ChatRoomCreate .titlebar .text {
-	text-shadow: 1px 1px white;
-	vertical-align: -2px;
-	white-space: nowrap;
-	/* chrome bug */
-	display: inline-block;
-	height: 13px;
-	font-size: 11px;
-	font-weight: bold;
+	height: 100%;
+	box-sizing: border-box;
+	display: flex;
+	flex-direction: column;
+	font: var(--type-info);
+	color: var(--text-body);
 }
 
-#ChatRoomCreate .titlebar .left {
-	margin-left: 8px;
-	float: left;
-}
-#ChatRoomCreate .titlebar .right {
-	float: right;
-	margin-right: 3px;
-}
-#ChatRoomCreate .titlebar .clear {
-	clear: both;
-}
+/* ─── Cabecalho compacto ───────────────────────────────────────────────── */
 
-#ChatRoomCreate .panel {
-	background: white;
+.crc-janela .ri-header {
+	flex: 0 0 auto;
+	height: 22px;
+	padding: 0 var(--sp-5);
 }
-
-#ChatRoomCreate select {
-	height: 20px;
-	border: 1px solid #ccc;
+.crc-janela .ri-title {
+	font-size: 12px;
+	gap: var(--sp-2);
 }
-#ChatRoomCreate input {
-	height: 14px;
-	border: 1px solid #ccc;
-	background-color: #f5f5f5;
+.crc-janela .ri-title::before,
+.crc-janela .ri-title::after {
+	width: 20px;
+	height: 9px;
 }
-#ChatRoomCreate .container {
-	padding-left: 7px;
-	padding-top: 5px;
-	width: 266px;
-}
-#ChatRoomCreate .container .title {
+.crc-janela .ri-close {
+	width: 16px;
 	height: 16px;
-	width: 198px;
-	padding-left: 5px;
+	right: 4px;
+	font-size: 10px;
 }
-#ChatRoomCreate .container .limit,
-#ChatRoomCreate .container .password {
-	width: 58px;
-	padding-left: 5px;
+
+/* ─── Corpo: formulario compacto ───────────────────────────────────────── */
+
+.crc-corpo {
+	flex: 1 1 auto;
+	min-height: 0;
+	overflow-y: auto;
+	padding: var(--sp-3) var(--sp-5);
 }
-#ChatRoomCreate .container .type {
-	width: 110px;
+
+.crc-form {
+	display: flex;
+	flex-direction: column;
+	gap: var(--sp-2);
 }
-#ChatRoomCreate .head {
-	color: #0f4b8c;
-	text-shadow: 1px 1px 1px rgba(0, 0, 0, 0.3);
-	text-align: right;
-	width: 40px;
-	white-space: nowrap;
+
+.crc-linha {
+	display: flex;
+	align-items: center;
+	flex-wrap: wrap;
+	gap: var(--sp-4);
 }
-#ChatRoomCreate .mode {
-	white-space: nowrap;
+
+.crc-campo {
+	display: flex;
+	align-items: center;
+	gap: var(--sp-2);
+	cursor: default;
 }
-#ChatRoomCreate .mode span {
-	overflow: hidden;
-	display: inline-block;
+.crc-campo--titulo {
+	width: 100%;
+}
+.crc-campo--tipo {
+	flex: 1 1 auto;
+}
+.crc-campo--senha {
+	margin-left: auto;
+}
+
+.crc-rotulo {
+	flex: 0 0 auto;
+	font: var(--type-label);
+	color: var(--text-muted);
 	white-space: nowrap;
 }
 
-#ChatRoomCreate .footer {
-	height: 27px;
-	background-repeat: repeat-x;
-	background-color: transparent;
-	text-align: right;
-	padding-top: 5px;
-	padding-right: 3px;
-	border-bottom-left-radius: 8px;
-	border-bottom-right-radius: 8px;
+.crc-form .ri-input {
+	height: 18px;
+	box-sizing: border-box;
+	padding: 0 var(--sp-3);
+	font-size: 11px;
 }
-#ChatRoomCreate .footer button {
-	width: 42px;
-	height: 20px;
-	border: none;
-	background-repeat: no-repeat;
-	background-color: transparent;
+.crc-campo--titulo .ri-input {
+	flex: 1 1 auto;
+	min-width: 0;
+	width: 100%;
+}
+.limit.ri-input {
+	width: 46px;
+	padding: 0 var(--sp-2);
+}
+.type.ri-input {
+	width: 100%;
+	min-width: 90px;
+	padding: 0 var(--sp-2);
+}
+.password.ri-input {
+	width: 56px;
+}
+
+/* ─── Restricao: radios pill + senha na mesma linha (fiel ao original) ──── */
+
+.crc-restricao {
+	gap: var(--sp-3);
+}
+.crc-radio {
+	display: inline-flex;
+	align-items: center;
+	gap: 3px;
+	font: var(--type-label);
+	color: var(--text-body);
+	cursor: pointer;
+	white-space: nowrap;
+}
+.crc-radio input {
+	accent-color: var(--blue-500);
+	cursor: pointer;
+	margin: 0;
+}
+
+/* ─── Rodape ────────────────────────────────────────────────────────────── */
+
+.crc-rodape {
+	flex: 0 0 auto;
+	display: flex;
+	align-items: center;
+	justify-content: flex-end;
+	gap: var(--sp-3);
+	padding: var(--sp-2) var(--sp-4);
+	border-top: var(--titlebar-rule);
+	background: var(--surface-glass);
+}
+.crc-rodape .ri-btn {
+	height: 22px;
+	padding: 0 var(--sp-5);
+	font-size: 11px;
+	cursor: pointer;
 }

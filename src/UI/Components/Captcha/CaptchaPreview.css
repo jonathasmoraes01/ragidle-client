@@ -1,3 +1,5 @@
+/* Fase 3 (01/09/2026): previa do captcha no design system. :host 220x107,
+   igual sempre. */
 :host {
 	position: absolute;
 	width: 220px;
@@ -7,8 +9,12 @@
 #CaptchaPreview {
 	width: 100%;
 	height: 100%;
-	background-color: #ffffff;
-	border-radius: 3px;
+	box-sizing: border-box;
+	background: var(--window-fill);
+	border: var(--window-frame);
+	border-radius: var(--radius-window);
+	box-shadow: var(--window-shadow), var(--rim-light);
+	backdrop-filter: var(--blur-glass);
 }
 
 #CaptchaPreview .clear {
@@ -16,51 +22,68 @@
 }
 
 #CaptchaPreview .titlebar {
-	width: 220px;
+	width: 100%;
 	height: 17px;
-	background-color: white;
-	background-repeat: repeat-x;
-	border-radius: 3px 3px 0px 0px;
+	box-sizing: border-box;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: 0 var(--sp-3);
+	background: var(--titlebar-fill);
+	border-bottom: var(--titlebar-rule);
+	cursor: move;
 }
 
 #CaptchaPreview .titlebar .base {
-	width: 11px;
-	height: 11px;
-	background-color: transparent;
-	background-repeat: no-repeat;
-	vertical-align: middle;
-}
-
-#CaptchaPreview .titlebar .text {
-	text-shadow: 1px 1px white;
-	vertical-align: -2px;
-	white-space: nowrap;
 	display: inline-block;
-	width: 32px;
-	height: 13px;
-	font-size: 11px;
-	font-weight: bold;
+	width: 6px;
+	height: 6px;
+	border-radius: 50%;
+	background: var(--gold-400);
 }
 
-#CaptchaPreview .titlebar .left {
-	margin-left: 3px;
-	float: left;
+#CaptchaPreview .titlebar .close {
+	appearance: none;
+	width: 14px;
+	height: 14px;
+	padding: 0;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	border-radius: 50%;
+	border: 1px solid var(--border-gold);
+	background: linear-gradient(180deg, var(--white), var(--gold-200));
+	color: var(--gold-700);
+	font-size: 10px;
+	font-weight: var(--fw-bold);
+	line-height: 1;
+	cursor: pointer;
+	transition:
+		background var(--dur-fast) var(--ease-out),
+		box-shadow var(--dur-fast) var(--ease-out);
 }
 
-#CaptchaPreview .titlebar .right {
-	float: right;
-	margin-right: 3px;
+#CaptchaPreview .titlebar .close:hover {
+	background: linear-gradient(180deg, var(--gold-200), var(--gold-300));
+	box-shadow: var(--glow-gold);
 }
 
-#CaptchaPreview .titlebar .clear {
-	clear: both;
+#CaptchaPreview .container {
+	padding: var(--sp-3);
+	box-sizing: border-box;
 }
 
 #CaptchaPreview .preview_box {
-	width: 220px;
-	height: 90px;
-	background-color: transparent;
+	width: 100%;
+	height: 78px;
+	box-sizing: border-box;
+	background: var(--surface-inset);
+	border: 1px solid var(--border-hairline);
+	border-radius: var(--radius-card);
 	overflow: hidden;
+	display: flex;
+	align-items: center;
+	justify-content: center;
 }
 
 #CaptchaPreview .preview_box img {

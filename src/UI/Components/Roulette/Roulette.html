@@ -1,13 +1,13 @@
+<!-- Fase 3 (01/09/2026): a roleta saiu do skin escuro (roulletteBG.bmp,
+     cinzas cravados) e entrou no design system claro. Ganchos que
+     Roulette.js consulta, TODOS preservados: .titlebar (draggable) / .close
+     (fechar) / .btn-spin / .btn-info / .btn-close / .wheel-slots (slots
+     gerados em runtime) / .points-value / .result-item. -->
 <div id="Roulette">
-	<div class="body" data-background="basic_interface/roullette/roulletteBG.bmp">
-		<div class="titlebar">
-			<div class="left">
-				<span class="title">Roulette</span>
-			</div>
-			<div class="right">
-				<button class="base close">×</button>
-			</div>
-			<div class="clear"></div>
+	<div class="body ri-window">
+		<div class="titlebar ri-header">
+			<span class="title ri-title">Roleta</span>
+			<button type="button" class="base close ri-close" title="Fechar">&times;</button>
 		</div>
 
 		<div class="roulette-container">
@@ -21,32 +21,24 @@
 
 			<div class="roulette-info">
 				<div class="points-display">
-					<span class="label">Points:</span>
+					<span class="label">Pontos:</span>
 					<span class="points-value">0</span>
 				</div>
 
 				<div class="buttons-container">
-					<button
-						class="btn-spin"
-						data-background="basic_interface/roullette/StartRoullette_a.bmp"
-						data-hover="basic_interface/roullette/StartRoullette_b.bmp"
-					>
-						<span>Spin</span>
+					<button class="btn-spin ri-btn">
+						<span>Girar</span>
 					</button>
-					<button class="btn-info">
-						<span>Info</span>
+					<button class="btn-info ri-btn ri-btn--sec">
+						<span>Informações</span>
 					</button>
-					<button
-						class="btn-close"
-						data-background="basic_interface/roullette/GetWinPrize_a.bmp"
-						data-hover="basic_interface/roullette/GetWinPrize_b.bmp"
-					>
-						<span>Get Prize</span>
+					<button class="btn-close ri-btn ri-btn--ouro">
+						<span>Resgatar Prêmio</span>
 					</button>
 				</div>
 
 				<div class="result-display">
-					<span class="result-label">Result:</span>
+					<span class="result-label">Resultado:</span>
 					<div class="result-item"></div>
 				</div>
 			</div>

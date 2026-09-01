@@ -1,3 +1,5 @@
+/* Fase 3 (01/09/2026): seletor de alvos do captcha no design system. :host
+   210x310, igual sempre. */
 :host {
 	position: absolute;
 	width: 210px;
@@ -8,8 +10,17 @@
 #CaptchaSelector {
 	width: 100%;
 	height: 100%;
-	background-color: #ffffff;
+	box-sizing: border-box;
+	position: relative;
+	background: var(--window-fill);
+	border: var(--window-frame);
+	border-radius: var(--radius-window);
+	box-shadow: var(--window-shadow), var(--rim-light);
+	backdrop-filter: var(--blur-glass);
+	color: var(--text-body);
+	font-family: var(--font-ui);
 	font-size: 12px;
+	overflow: hidden;
 }
 
 #CaptchaSelector .clear {
@@ -17,112 +28,162 @@
 }
 
 #CaptchaSelector .titlebar {
-	width: 210px;
+	width: 100%;
 	height: 17px;
-	background-color: white;
-	background-repeat: repeat-x;
-	border-radius: 3px 3px 0px 0px;
+	box-sizing: border-box;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: 0 var(--sp-3);
+	background: var(--titlebar-fill);
+	border-bottom: var(--titlebar-rule);
+	cursor: move;
 }
 
 #CaptchaSelector .base {
-	width: 11px;
-	height: 11px;
-	background-color: transparent;
-	background-repeat: no-repeat;
-	vertical-align: middle;
-}
-
-#CaptchaSelector .titlebar .text {
-	text-shadow: 1px 1px white;
-	vertical-align: -2px;
-	white-space: nowrap;
 	display: inline-block;
-	width: 32px;
-	height: 13px;
-	font-size: 11px;
-	font-weight: bold;
+	width: 6px;
+	height: 6px;
+	border-radius: 50%;
+	background: var(--gold-400);
 }
 
-#CaptchaSelector .titlebar .left {
-	margin-left: 3px;
-	float: left;
+#CaptchaSelector .titlebar .close {
+	appearance: none;
+	width: 14px;
+	height: 14px;
+	padding: 0;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	border-radius: 50%;
+	border: 1px solid var(--border-gold);
+	background: linear-gradient(180deg, var(--white), var(--gold-200));
+	color: var(--gold-700);
+	font-size: 10px;
+	font-weight: var(--fw-bold);
+	line-height: 1;
+	cursor: pointer;
+	transition:
+		background var(--dur-fast) var(--ease-out),
+		box-shadow var(--dur-fast) var(--ease-out);
 }
 
-#CaptchaSelector .titlebar .right,
-#CaptchaSelector .character_info .close-character {
-	float: right;
-	margin-right: 3px;
-}
-
-#CaptchaSelector .titlebar .clear {
-	clear: both;
+#CaptchaSelector .titlebar .close:hover {
+	background: linear-gradient(180deg, var(--gold-200), var(--gold-300));
+	box-shadow: var(--glow-gold);
 }
 
 #CaptchaSelector .container {
-	height: 293px;
+	height: calc(100% - 17px);
+	box-sizing: border-box;
+	display: flex;
+	flex-direction: column;
 }
 
 #CaptchaSelector .options {
-	height: 22px;
+	flex: 0 0 auto;
+	height: 26px;
+	box-sizing: border-box;
 	display: flex;
 	align-items: center;
+	gap: var(--sp-1);
+	padding: 0 var(--sp-3);
+	font: var(--type-desc);
+	color: var(--text-body);
 }
 
 #CaptchaSelector .player_list {
-	height: 247px;
+	flex: 1 1 auto;
+	min-height: 0;
 	overflow-y: auto;
 	list-style: none;
-	margin: 0px 10px;
+	margin: var(--sp-2) var(--sp-4);
 	padding: 0;
+	display: flex;
+	flex-direction: column;
+	gap: var(--sp-1);
 }
 
 #CaptchaSelector .player_list li {
-	width: 190px;
+	width: 100%;
 	height: 24px;
-	margin: 2px 0;
-	background-color: #e5e5e5;
+	box-sizing: border-box;
+	margin: 0;
+	padding: 0 var(--sp-2);
+	background: var(--surface-card);
+	border: 1px solid var(--border-hairline);
+	border-radius: var(--radius-card);
 	display: flex;
 	align-items: center;
 	gap: 5px;
 }
 
 #CaptchaSelector .footer {
+	flex: 0 0 auto;
 	display: flex;
-	justify-content: end;
+	justify-content: flex-end;
 	align-items: center;
-	height: 24px;
+	height: 28px;
+	box-sizing: border-box;
+	padding: 0 var(--sp-4);
+	border-top: var(--titlebar-rule);
+	background: var(--surface-glass);
 }
 
 #CaptchaSelector .range_val {
 	appearance: none;
-	width: 20px;
-	border: 1px solid;
-	margin-left: 3px;
+	width: 26px;
+	height: 18px;
+	box-sizing: border-box;
+	border: 1px solid var(--border-hairline);
+	border-radius: var(--radius-card);
+	background: var(--white);
+	color: var(--text-body);
+	margin-left: var(--sp-2);
+	text-align: center;
 }
 
 #CaptchaSelector .range_val::-webkit-inner-spin-button,
 #CaptchaSelector .range_val::-webkit-outer-spin-button {
 	-webkit-appearance: none;
 	margin: 0;
-	border: 1px solid;
-	margin-left: 3px;
 }
 
-#CaptchaSelector .btn_active,
-#CaptchaSelector .footer .btn {
-	width: 42px;
+#CaptchaSelector .btn {
+	appearance: none;
 	height: 20px;
-	background-repeat: no-repeat;
-	background-color: transparent;
-	border: 0;
+	padding: 0 var(--sp-4);
+	border: 1px solid var(--blue-600);
+	border-radius: var(--radius-panel);
+	background: var(--tab-active-fill);
+	color: var(--text-on-accent);
+	font: var(--type-label);
+	cursor: pointer;
+	box-shadow: var(--rim-light), var(--shadow-card);
+	transition: filter var(--dur-fast) var(--ease-out);
+}
+
+#CaptchaSelector .btn:hover {
+	filter: brightness(1.06);
+}
+
+#CaptchaSelector .btn:active {
+	transform: var(--press-shift);
 }
 
 #CaptchaSelector .btn_active {
-	margin-left: 15px;
+	margin-left: var(--sp-4);
 }
 
-#CaptchaSelector .footer .btn {
-	margin-right: 10px;
+/* Selecionado = borda de acento + tinta (regra do DS), nunca so espessura —
+   CaptchaSelector.js alterna esta classe ao ligar/desligar o modo de
+   escolher alvo em jogo (Fase 3: antes o botao nao dava feedback nenhum). */
+#CaptchaSelector .btn_active.is-on {
+	background: linear-gradient(180deg, var(--gold-300) 0%, var(--gold-500) 100%);
+	border-color: var(--gold-700);
+	color: #4a3812;
+	text-shadow: 0 1px 0 rgba(255, 255, 255, 0.4);
 }
 
 #CaptchaSelector .character_info {
@@ -130,15 +191,45 @@
 	bottom: 0;
 	left: 0;
 	width: 200px;
-	height: 35px;
-	background-color: #ffffff;
-	border-radius: 3px;
+	box-sizing: border-box;
+	padding: var(--sp-2) var(--sp-4);
+	background: var(--surface-dark-glass);
+	backdrop-filter: var(--blur-glass);
+	border-radius: var(--radius-panel);
+	color: var(--white);
+	text-shadow: 0 1px 2px rgba(8, 22, 40, 0.85);
+	font: var(--type-desc);
 	display: none;
+}
+
+#CaptchaSelector .character_info .close-character {
+	appearance: none;
+	float: right;
+	width: 14px;
+	height: 14px;
+	padding: 0;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	border-radius: 50%;
+	border: 1px solid var(--border-gold);
+	background: linear-gradient(180deg, var(--white), var(--gold-200));
+	color: var(--gold-700);
+	font-size: 10px;
+	font-weight: var(--fw-bold);
+	line-height: 1;
+	cursor: pointer;
+}
+
+#CaptchaSelector .character-name {
+	color: var(--gold-300);
+	font-weight: var(--fw-semibold);
 }
 
 #CaptchaSelector li a {
 	text-decoration: underline;
-	color: black;
+	color: var(--text-link);
+	cursor: pointer;
 }
 
 #CaptchaSelector .player_list li .remove {

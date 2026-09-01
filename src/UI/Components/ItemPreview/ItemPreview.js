@@ -25,6 +25,9 @@ import Entity from 'Renderer/Entity/Entity.js';
  */
 const ItemPreview = new GUIComponent('ItemPreview', cssText);
 
+/* Janela entra/sai com a animacao unica (Fase 3, 01/09/2026). */
+ItemPreview.riAnimaJanela = true;
+
 /**
  * Render HTML
  */

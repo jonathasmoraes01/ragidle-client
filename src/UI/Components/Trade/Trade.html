@@ -1,26 +1,46 @@
-<div id="Trade">
-	<div class="titlebar">
-		<ui-image src="basic_interface/titlebar_mid.bmp"></ui-image>
-		Troca : <span class="title"></span>
+<!-- Fase 3 (01/09/2026): a janela de troca saiu do bitmap (basic_interface/
+     exchange_bg2.bmp, titlebar branca e os seis botoes GRF ok/trade/cancel)
+     e virou o design system. Ganchos que Trade.js consulta, todos
+     preservados: .titlebar (alca de arrasto, via Trade.draggable) /
+     .titlebar .title (nome do outro jogador) / .overlay (+ .overlay.grey) /
+     .box.send / .box.recv (com .box .item .icon / .amount / .amount .count /
+     .name dentro) / .zeny.send / .zeny.recv / a classe .disabled ligada em
+     tempo de execucao em .box e em .zeny.send / .btn.ok.enabled /
+     .btn.ok.disabled / .btn.trade.enabled / .btn.trade.disabled /
+     .btn.cancel. Os cinco <ui-button> de bitmap (ok/trade cada um com par
+     habilitado-desabilitado, mais cancelar) viraram <button> com rotulo em
+     texto; o rotulo era pintado no bitmap, agora e PT-BR direto no HTML. -->
+<div id="Trade" class="ri-window">
+	<div class="titlebar ri-header">
+		<span class="ri-title">Troca <span class="title"></span></span>
 	</div>
 	<div class="overlay"></div>
 	<div class="content">
-		<ui-image src="basic_interface/exchange_bg2.bmp"></ui-image>
-		<div class="box send" data-background="basic_interface/itemwin_mid.bmp"></div>
-		<div class="box recv" data-background="basic_interface/itemwin_mid.bmp"></div>
-
-		<input type="text" class="zeny send" value="0" />
-		<div class="zeny recv disabled">0</div>
-
-		<ui-button class="btn ok enabled" bg="btn_ok.bmp" hover="btn_ok_a.bmp" down="btn_ok_b.bmp"></ui-button>
-		<ui-button class="btn ok disabled" bg="btn_ok_dis.bmp"></ui-button>
-		<ui-button
-			class="btn trade enabled"
-			bg="btn_exchange.bmp"
-			hover="btn_exchange_a.bmp"
-			down="btn_exchange_b.bmp"
-		></ui-button>
-		<ui-button class="btn trade disabled" bg="btn_exchange_dis.bmp"></ui-button>
-		<ui-button class="btn cancel" bg="btn_cancel.bmp" hover="btn_cancel_a.bmp" down="btn_cancel_b.bmp"></ui-button>
+		<div class="trade-panels">
+			<section class="trade-col">
+				<header class="trade-col-label">Você oferece</header>
+				<div class="box send ri-scroll"></div>
+				<div class="zeny-row">
+					<span class="zeny-tag">Zeny</span>
+					<input type="text" class="zeny send ri-input" value="0" />
+				</div>
+			</section>
+			<div class="trade-divisor"></div>
+			<section class="trade-col">
+				<header class="trade-col-label">Você recebe</header>
+				<div class="box recv ri-scroll"></div>
+				<div class="zeny-row">
+					<span class="zeny-tag">Zeny</span>
+					<div class="zeny recv disabled">0</div>
+				</div>
+			</section>
+		</div>
+		<footer class="trade-actions">
+			<button type="button" class="btn ok enabled ri-btn">Confirmar</button>
+			<button type="button" class="btn ok disabled ri-btn" disabled>Confirmar</button>
+			<button type="button" class="btn trade enabled ri-btn ri-btn--ouro">Trocar</button>
+			<button type="button" class="btn trade disabled ri-btn" disabled>Trocar</button>
+			<button type="button" class="btn cancel ri-btn ri-btn--sec">Cancelar</button>
+		</footer>
 	</div>
 </div>

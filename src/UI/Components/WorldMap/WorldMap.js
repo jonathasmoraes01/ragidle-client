@@ -28,6 +28,9 @@ const WorldMap = new GUIComponent('WorldMap', cssText);
 
 WorldMap.render = () => htmlText;
 
+/* Janela entra/sai com a animacao unica (Fase 3, 01/09/2026). */
+WorldMap.riAnimaJanela = true;
+
 /**
  * @type {Preferences} window preferences
  */
@@ -564,10 +567,11 @@ WorldMap.onRemove = function onRemove() {
 WorldMap.toggle = function toggle() {
 	const isVisible = this._host.style.display !== 'none';
 	if (isVisible) {
-		this._host.style.display = 'none';
+		// via proxy: fecha COM a animacao unica (Fase 3)
+		this.ui.hide();
 		hideTooltip();
 	} else {
-		this._host.style.display = '';
+		this.ui.show();
 		selectMap();
 		this.focus();
 	}
@@ -641,6 +645,7 @@ WorldMap.updatePartyMembers = function updatePartyMembers(pkt) {
  */
 function onToggleMaps() {
 	const root = WorldMap.getRoot();
+	const btn = root.querySelector('.togglemaps');
 	if (WorldMap.showAllMaps) {
 		root.querySelectorAll('.worldmap .section').forEach(el => el.classList.remove('allmapvisible'));
 		WorldMap.showAllMaps = false;
@@ -648,6 +653,10 @@ function onToggleMaps() {
 		root.querySelectorAll('.worldmap .section').forEach(el => el.classList.add('allmapvisible'));
 		WorldMap.showAllMaps = true;
 	}
+	/* Fase 3: era troca de bitmap (i_object_2/3); agora e so a classe que a
+	   pilula .togglemaps le no CSS (preenchimento marca o estado, regra do
+	   design system). */
+	if (btn) btn.classList.toggle('is-active', WorldMap.showAllMaps);
 }
 
 /**
@@ -657,10 +666,10 @@ function onShowLVL() {
 	WorldMap.showLVLMode = !WorldMap.showLVLMode;
 	const root = WorldMap.getRoot();
 
-	Client.loadFile(DB.INTERFACE_PATH + 'checkbox_' + (WorldMap.showLVLMode ? '1' : '0') + '.bmp', function (data) {
-		const btn = root.querySelector('.showlvl');
-		if (btn) btn.style.backgroundImage = 'url(' + data + ')';
-	});
+	/* Fase 3: era Client.loadFile('checkbox_0/1.bmp') a cada clique; o
+	   quadradinho agora e pintado pelo CSS (.showlvl.is-on), sem bitmap. */
+	const btn = root.querySelector('.showlvl');
+	if (btn) btn.classList.toggle('is-on', WorldMap.showLVLMode);
 
 	const worldmapEl = root.querySelector('.worldmap');
 	if (worldmapEl) {
@@ -685,7 +694,7 @@ function stopPropagation(event) {
  * Closing window
  */
 function onClose() {
-	WorldMap._host.style.display = 'none';
+	WorldMap.ui.hide(); // via proxy: fecha COM a animacao unica (Fase 3)
 }
 
 WorldMap.mouseMode = GUIComponent.MouseMode.STOP;

@@ -1,17 +1,14 @@
+<!-- Fase 3 (01/09/2026): a moldura inteira saiu do bitmap unico
+     (enchantui/bg_enchantui.bmp) e virou .ri-window (tokens). O painel
+     interno (enchantui/bg_subpage.bmp), as abas e os slots continuam
+     bitmap do GRF -- sao arte de conteudo com posicoes de encaixe medidas
+     em pixel, nao moldura de janela; trocar so metade quebraria o encaixe
+     (armadilha da casa: nao trocar pela metade). -->
 <div id="Enchant">
-	<div class="container" data-background="enchantui/bg_enchantui.bmp">
-		<div class="titlebar">
-			<div class="left">
-				<span class="text">Enchant</span>
-			</div>
-			<div class="right">
-				<button
-					class="base close"
-					data-background="basic_interface/sys_close_off.bmp"
-					data-hover="basic_interface/sys_close_on.bmp"
-				></button>
-			</div>
-			<div class="clear"></div>
+	<div class="container ri-window">
+		<div class="titlebar ri-header">
+			<span class="text ri-title">Encantamento</span>
+			<button type="button" class="base close ri-close" title="Fechar">&times;</button>
 		</div>
 		<div class="overlay"></div>
 		<div class="panel">

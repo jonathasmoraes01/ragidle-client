@@ -1,59 +1,37 @@
+<!-- Fase 3 (01/09/2026): moldura saiu do bitmap unico (itemreform/bg_reform.bmp)
+     e virou .ri-window; slots de item (result/base/material) ganharam .ri-tile
+     (nao tinham moldura propria nenhuma antes). -->
 <div id="ItemReform">
-	<div class="container">
-		<ui-image src="itemreform/bg_reform.bmp"></ui-image>
-		<div class="titlebar">
-			<div class="left">
-				<ui-button
-					class="base"
-					bg="basic_interface/sys_base_off.bmp"
-					hover="basic_interface/sys_base_on.bmp"
-				></ui-button>
-				<span class="item_text"></span>
-			</div>
-			<div class="right">
-				<ui-button
-					class="base close"
-					bg="basic_interface/sys_close_off.bmp"
-					hover="basic_interface/sys_close_on.bmp"
-				></ui-button>
-			</div>
-			<div class="clear"></div>
+	<div class="container ri-window">
+		<div class="titlebar ri-header">
+			<div class="base"></div>
+			<span class="item_text ri-title"></span>
+			<button type="button" class="base close ri-close" title="Fechar">&times;</button>
 		</div>
 		<div class="overlay"></div>
 		<div class="panel">
 			<div class="left_panel">
 				<div class="result_info_container">
-					<div class="result_item"></div>
-					<div class="base_item"></div>
+					<div class="result_item ri-tile"></div>
+					<div class="base_item ri-tile"></div>
 					<div class="result_item_text"></div>
 					<div class="information_details"><ui-text msg="3854"></ui-text></div>
 					<div class="material_list"></div>
 				</div>
 			</div>
 			<div class="right_panel">
-				<div class="available_material_list"></div>
+				<div class="available_material_list ri-scroll"></div>
 			</div>
 		</div>
 		<div class="footer">
 			<div class="some_notifs">
 				<span class="info_msg"></span>
 			</div>
-			<ui-button
-				class="cancel"
-				bg="lapine/btn_cancel_out.bmp"
-				hover="lapine/btn_cancel_over.bmp"
-				down="lapine/btn_cancel_press.bmp"
-			></ui-button>
-			<ui-button
-				class="reform_enabled"
-				bg="tipbox/btn_close_normal.bmp"
-				hover="tipbox/btn_close_over.bmp"
-				down="tipbox/btn_close_press.bmp"
-				><ui-text msg="3847"></ui-text
-			></ui-button>
-			<ui-button class="reform_disabled" bg="equip_preview/btn_mounting_disable.bmp"
-				><ui-text msg="3847"></ui-text
-			></ui-button>
+			<button type="button" class="cancel ri-btn ri-btn--sec">Cancelar</button>
+			<button type="button" class="reform_enabled ri-btn"><ui-text msg="3847"></ui-text></button>
+			<button type="button" class="reform_disabled ri-btn is-disabled" disabled>
+				<ui-text msg="3847"></ui-text>
+			</button>
 		</div>
 	</div>
 </div>

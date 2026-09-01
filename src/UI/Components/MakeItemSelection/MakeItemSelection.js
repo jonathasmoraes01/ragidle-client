@@ -25,6 +25,9 @@ const MakeItemSelection = new GUIComponent('MakeItemSelection', cssText);
 
 MakeItemSelection.render = () => htmlText;
 
+/* Janela entra/sai com a animacao unica (Fase 3, 01/09/2026). */
+MakeItemSelection.riAnimaJanela = true;
+
 /**
  * Sanitize HTML, allowing only whitelisted tags (font, i, b)
  */
@@ -102,7 +105,7 @@ MakeItemSelection.setList = function setList(list) {
 	const root = MakeItemSelection.getRoot();
 	const listEl = root.querySelector('.list');
 	listEl.innerHTML = '';
-	listEl.style.backgroundColor = '#f7f7f7';
+	listEl.style.backgroundColor = 'var(--surface-inset)';
 
 	const materials = root.querySelector('.materials');
 	materials.style.display = 'none';
@@ -138,7 +141,7 @@ MakeItemSelection.setCookingList = function setCookingList(list, mkType) {
 	const root = MakeItemSelection.getRoot();
 	const listEl = root.querySelector('.list');
 	listEl.innerHTML = '';
-	listEl.style.backgroundColor = '#f7f7f7';
+	listEl.style.backgroundColor = 'var(--surface-inset)';
 
 	const materials = root.querySelector('.materials');
 	materials.style.display = 'none';
@@ -173,7 +176,7 @@ function addElement(url, index, name) {
 	const div = document.createElement('div');
 	div.className = 'item';
 	div.setAttribute('data-index', index);
-	div.innerHTML = '<div class="icon"></div>' + `<span class="name">${_sanitizeHtml(name)}</span>`;
+	div.innerHTML = '<div class="icon ri-tile"></div>' + `<span class="name">${_sanitizeHtml(name)}</span>`;
 	listEl.appendChild(div);
 
 	Client.loadFile(url, data => {
@@ -206,7 +209,7 @@ MakeItemSelection.advance = function advance() {
 	_okHandler = () => MakeItemSelection.selectIndex();
 	okBtn.addEventListener('click', _okHandler);
 
-	listEl.style.backgroundColor = '#ffffff';
+	listEl.style.backgroundColor = 'var(--surface-card)';
 	listEl.innerHTML = `<pre>${_sanitizeHtml(it.identifiedDisplayName)} - ${DB.getMessage(427)}\n${_sanitizeHtml(metal)}</pre>`;
 
 	root.querySelector('.materials').style.display = 'block';
@@ -315,7 +318,7 @@ MakeItemSelection.addItemSub = function AddItemSub(item) {
 	div.className = 'item';
 	div.setAttribute('data-index', item.index);
 	div.setAttribute('draggable', 'false');
-	div.innerHTML = '<div class="icon"></div>';
+	div.innerHTML = '<div class="icon ri-tile"></div>';
 	content.appendChild(div);
 
 	Client.loadFile(

@@ -1,23 +1,15 @@
-<div id="cartdecoration">
-	<div class="titlebar" data-background="basic_interface/titlebar_mid.bmp">
-		<div class="left">
-			<button
-				class="base"
-				data-background="basic_interface/sys_base_off.bmp"
-				data-hover="basic_interface/sys_base_on.bmp"
-			></button>
-			<span class="text">Cart Decoration</span>
-		</div>
-		<div class="right">
-			<button
-				class="base close"
-				data-background="basic_interface/sys_close_off.bmp"
-				data-hover="basic_interface/sys_close_on.bmp"
-			></button>
-		</div>
-		<div class="clear"></div>
+<!-- Fase 3 (01/09/2026): a janela de Decoração de Carrinho saiu dos bitmaps
+     de moldura (titlebar_mid.bmp, sys_close_*.bmp) e entrou no design
+     system. Ganchos que CartDecoration.js consulta, todos preservados:
+     .titlebar (arraste) / .titlebar .close / .cart[data-id] / .canvas. Os
+     carrinhos continuam desenhados pelo JS em <canvas> (arte real do
+     sprite). -->
+<div id="cartdecoration" class="ri-window">
+	<div class="titlebar ri-header">
+		<span class="text ri-title">Decoração do Carrinho</span>
+		<button type="button" class="base close ri-close" title="Fechar">&times;</button>
 	</div>
-	<div class="carts">
+	<div class="carts ri-scroll">
 		<div class="cart" data-id="10">
 			<canvas
 				id="deco_cart10"

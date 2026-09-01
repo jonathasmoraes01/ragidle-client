@@ -1,3 +1,8 @@
+/* Fase 3 (01/09/2026): relatorio de vendas no design system. :host mantem a
+   largura de sempre (400px); a altura continua livre — o proprio JS mede o
+   pedaco fixo de chrome (titulo + rodape) contra a altura da lista e soma,
+   entao trocar estas alturas por tokens do DS nao quebra o redimensionar
+   (ver VendingReport.js, onResizeDrag/mousedown do .extend). */
 :host {
 	top: 100px;
 	left: 100px;
@@ -6,165 +11,177 @@
 
 #VendingReport {
 	position: absolute;
+	width: 100%;
+	box-sizing: border-box;
+	display: flex;
+	flex-direction: column;
 }
 
 #VendingReport .titlebar {
-	width: 100%;
-	height: 17px;
-	background-color: white;
-	background-repeat: repeat-x;
-	border-radius: 3px 3px 0px 0px;
-}
-#VendingReport .titlebar .base {
-	width: 11px;
-	height: 11px;
-	border: none;
-	background-color: transparent;
-	background-repeat: no-repeat;
-	vertical-align: middle;
-}
-#VendingReport .titlebar .text {
-	text-shadow: 1px 1px white;
-	vertical-align: -2px;
-	white-space: nowrap;
-	/* chrome bug */
-	display: inline-block;
-	width: 32px;
-	height: 13px;
-	font-size: 11px;
-	font-weight: bold;
-}
-#VendingReport .titlebar .left {
-	margin-left: 3px;
-	float: left;
-}
-#VendingReport .titlebar .clear {
-	clear: both;
+	flex: 0 0 auto;
 }
 
+#VendingReport .panel {
+	flex: 0 0 auto;
+	padding: var(--sp-4);
+	box-sizing: border-box;
+}
+
+/* Poço da lista: afundado, como o campo de busca (.ri-input) do resto do
+   sistema — a lista em si (.content) rola dentro dele. */
 #VendingReport .container {
-	padding-left: 20px;
-	border-right: 1px solid #ccc;
-	background: white;
-	background-repeat: repeat-y;
-	padding-right: 2px;
-	padding-top: 5px;
-	padding-bottom: 5px;
+	border: 1px solid var(--border-hairline);
+	border-radius: var(--radius-panel);
+	background: var(--surface-inset);
+	box-shadow: var(--well-shadow);
+	box-sizing: border-box;
+	padding: var(--sp-3);
+	overflow: hidden;
 }
 
-#VendingReport .ff_bugfix {
-	position: relative;
-	width: 100%;
-	height: 100%;
-}
-#VendingReport .hide {
-	height: 100%;
-	width: 16px;
-	position: absolute;
-	top: 0px;
-	right: 0px;
-	background-color: white;
-}
 #VendingReport .content {
 	width: 100%;
-	height: 100%;
 	min-height: 100px;
-	background-color: transparent;
-	background-repeat: repeat-y;
 	overflow-y: auto;
+	box-sizing: border-box;
 }
+
+/* ─── Uma venda por linha ──────────────────────────────────────────────── */
 
 #VendingReport .content .item {
 	display: flex;
-	width: 100%;
-	height: 24px;
-	margin: 4px 4px 4px 4px;
-	position: relative;
-	float: left;
-	gap: 5px;
-}
-
-#VendingReport .info {
-	width: 100%;
-	display: flex;
 	align-items: center;
+	gap: var(--sp-3);
+	width: 100%;
+	box-sizing: border-box;
+	padding: var(--sp-2) var(--sp-3);
+	margin-bottom: var(--sp-2);
+	border-radius: var(--radius-card);
+	background: var(--surface-card);
+	border: 1px solid var(--border-hairline);
+	box-shadow: var(--shadow-card);
+	transition:
+		background var(--dur-fast) var(--ease-out),
+		border-color var(--dur-fast) var(--ease-out);
 }
-
-#VendingReport .info .count {
-	position: absolute;
-	top: 17px;
-	left: 17px;
+#VendingReport .content .item:last-child {
+	margin-bottom: 0;
 }
-
-#VendingReport .info .buyer {
-	width: 120px;
-}
-
-#VendingReport .info .zeny {
-	width: 35%;
-}
-
-#VendingReport .info .date {
-	width: 30%;
+#VendingReport .content .item:hover {
+	background: var(--surface-card-hover);
+	border-color: var(--accent);
 }
 
 #VendingReport .content .item .icon {
+	flex: 0 0 auto;
 	width: 24px;
 	height: 24px;
-	border: none;
-	background-color: transparent;
+	border-radius: var(--radius-card);
+	background: var(--surface-inset);
+	background-position: center;
 	background-repeat: no-repeat;
+	background-size: contain;
+	border: 1px solid var(--border-gold);
+	box-shadow: var(--rim-light);
 }
+
+#VendingReport .info {
+	flex: 1 1 auto;
+	display: flex;
+	align-items: center;
+	gap: var(--sp-3);
+	min-width: 0;
+}
+
+#VendingReport .info .count {
+	flex: 0 0 auto;
+	min-width: 22px;
+	text-align: center;
+	font: var(--type-numeric);
+	color: var(--text-title);
+	font-variant-numeric: tabular-nums;
+}
+
+#VendingReport .info .buyer {
+	flex: 1 1 90px;
+	min-width: 0;
+	font: var(--type-info);
+	color: var(--text-body);
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+#VendingReport .info .zeny {
+	flex: 0 0 auto;
+	font: var(--type-numeric);
+	color: var(--zeny);
+	white-space: nowrap;
+}
+
+#VendingReport .info .date {
+	flex: 0 0 auto;
+	font: var(--type-desc);
+	color: var(--text-muted);
+	white-space: nowrap;
+}
+
+/* ─── Dica com o nome do item (onItemOver/onItemOut) ──────────────────── */
+
 #VendingReport .overlay {
 	position: absolute;
 	display: none;
 	white-space: nowrap;
 	z-index: 900;
-	height: 13px;
-	padding: 5px;
-	background: rgba(0, 0, 0, 0.7);
-	color: white;
-	text-shadow: 1px 1px black;
+	padding: var(--sp-2) var(--sp-3);
+	border-radius: var(--radius-card);
+	background: var(--surface-dark-glass);
+	backdrop-filter: var(--blur-glass);
+	color: var(--white);
+	font: var(--type-info);
+	text-shadow: 0 1px 2px rgba(8, 22, 40, 0.85);
+	box-shadow: var(--shadow-float);
 }
 #VendingReport .overlay.grey {
-	color: #aaa;
-}
-#VendingReport .content .item .amount {
-	position: relative;
-	bottom: 9px;
-	right: 0px;
-	text-align: right;
-	text-shadow: -1px -1px white;
+	color: var(--sky-300);
 }
 
+/* ─── Rodape: so a alca de redimensionar mora aqui agora (o fechar subiu
+   para o titulo, junto do resto das janelas desta leva). ───────────────── */
+
 #VendingReport .footer {
-	width: 100%;
-	height: 27px;
-	background-repeat: repeat-x;
-	background-color: transparent;
+	flex: 0 0 auto;
+	height: 16px;
 	position: relative;
-	border-right: 1px solid #ccc;
+	border-top: var(--divider);
+	background: var(--surface-glass);
+	box-sizing: border-box;
 }
-#VendingReport .footer .right {
-	float: right;
-	margin-right: 15px;
-	margin-top: 4px;
-}
-#VendingReport .close {
-	width: 42px;
-	height: 20px;
-	border: none;
-	margin: 0;
-	background-color: transparent;
-	background-repeat: no-repeat;
-}
+
 #VendingReport .extend {
+	appearance: none;
 	position: absolute;
-	right: 1px;
-	bottom: 1px;
+	right: 2px;
+	bottom: 2px;
 	width: 13px;
 	height: 13px;
+	padding: 0;
 	border: none;
-	background-repeat: no-repeat;
-	background-color: transparent;
+	background: transparent;
+	cursor: nwse-resize;
+}
+#VendingReport .extend::before {
+	content: '';
+	position: absolute;
+	inset: 0;
+	background: linear-gradient(
+		135deg,
+		transparent 0 40%,
+		var(--border-gold) 40% 46%,
+		transparent 46% 60%,
+		var(--border-gold) 60% 66%,
+		transparent 66% 80%,
+		var(--border-gold) 80% 86%,
+		transparent 86%
+	);
 }

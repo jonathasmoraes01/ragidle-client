@@ -23,6 +23,9 @@ const WinList = new GUIComponent('WinList', cssText);
 
 WinList.render = () => htmlText;
 
+/* Janela entra/sai com a animacao unica (Fase 3, 01/09/2026). */
+WinList.riAnimaJanela = true;
+
 /**
  * Initialize UI
  */
@@ -93,10 +96,13 @@ WinList.setIndex = function setIndex(id) {
 	if (id > -1 && id < this.list.length) {
 		const nodes = this._listEl.querySelectorAll('.menu_node');
 		if (nodes[this.index]) {
-			nodes[this.index].style.backgroundColor = 'transparent';
+			/* Fase 3 (01/09/2026): era style.backgroundColor inline — trocado
+			   por classe para a pele vir do CSS/token (--accent), ja que um
+			   estilo em linha sempre venceria qualquer regra da folha. */
+			nodes[this.index].classList.remove('is-selected');
 		}
 		if (nodes[id]) {
-			nodes[id].style.backgroundColor = '#cde0ff';
+			nodes[id].classList.add('is-selected');
 		}
 		this.index = id;
 	}

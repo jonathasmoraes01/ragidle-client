@@ -1,3 +1,10 @@
+/* Pele do design system (Fase 3, 01/09/2026): toast claro (vidro claro, aro
+   dourado leve) — não é o vidro escuro de ClassChangeNotice, que teve
+   instrução própria do dono. `:host`/`#ItemObtain`/`.content` mantêm as
+   MESMAS dimensões e a MESMA estrutura: ItemObtain.js mede `el.offsetWidth`
+   em `onAppend`/`set()` para centralizar horizontalmente, e a altura de
+   25px do `.content` é o que dá a régua vertical do ícone (`vertical-align:
+   -6px`). Só a pele mudou. */
 :host {
 	top: 50px;
 	left: 0px;
@@ -7,21 +14,32 @@
 #ItemObtain {
 	position: relative;
 	width: auto;
-	border-radius: 5px;
-	background: white;
+	border-radius: var(--radius-panel);
+	background: var(--surface-glass);
+	backdrop-filter: var(--blur-glass);
+	border: 1px solid var(--border-gold);
+	box-shadow: var(--shadow-float), var(--rim-gold);
 	padding: 2px;
 	letter-spacing: 0px;
 	pointer-events: auto;
+	font-family: var(--font-ui);
 }
 #ItemObtain .content {
-	border: 1px solid #c1c6c2;
+	border: var(--divider);
 	height: 25px;
-	padding-left: 10px;
+	padding-left: var(--sp-5);
 	padding-right: 15px;
-	border-radius: 5px;
+	border-radius: var(--radius-card);
 	white-space: nowrap;
+	background: var(--surface-card);
+	color: var(--text-body);
+	font: var(--type-info);
 	line-height: 25px;
 }
 #ItemObtain img {
 	vertical-align: -6px;
+	border-radius: var(--radius-card);
+	border: 1px solid var(--border-gold);
+	background: var(--surface-card);
+	box-shadow: var(--rim-light);
 }

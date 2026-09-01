@@ -1,3 +1,7 @@
+/* Fase 3 (01/09/2026): janela de Reputação no design system. As DIMENSÕES
+   (665x450) e o layout interno (cartões/indicadores em posição absoluta,
+   grade de conteúdo) ficaram — reforma é pele, não esqueleto. Os cartões de
+   reputação continuam pintados pelo JS com bitmap real do cliente. */
 :host {
 	position: absolute;
 	top: 100px;
@@ -9,80 +13,51 @@
 #Reputation {
 	width: 100%;
 	height: 100%;
-	background-color: white;
-	border-radius: 5px;
+	box-sizing: border-box;
+	display: flex;
+	flex-direction: column;
 }
 
 #Reputation .titlebar {
-	width: 100%;
-	height: 17px;
-	background-color: white;
-	background-repeat: repeat-x;
-	border-radius: 3px 3px 0px 0px;
-}
-#Reputation .titlebar .base {
-	width: 11px;
-	height: 11px;
-	border: none;
-	background-color: transparent;
-	background-repeat: no-repeat;
-	vertical-align: middle;
-}
-#Reputation .titlebar .text {
-	text-shadow: 1px 1px white;
-	vertical-align: -2px;
-	white-space: nowrap;
-	/* chrome bug */
-	display: inline-block;
-	width: 50px;
-	height: 13px;
-	font-size: 11px;
-	font-weight: bold;
-}
-
-#Reputation .titlebar .left {
-	margin-left: 3px;
-	float: left;
-}
-#Reputation .titlebar .right {
-	float: right;
-	margin-right: 3px;
-}
-#Reputation .titlebar .clear {
-	clear: both;
+	flex: 0 0 auto;
+	cursor: move;
 }
 
 #Reputation .overall_container {
 	display: flex;
 	flex-direction: column;
 	position: relative;
-	width: 100%;
-	height: 100%;
+	flex: 1 1 auto;
+	min-height: 0;
+	box-sizing: border-box;
 }
 
 #Reputation .header {
+	flex: 0 0 auto;
 	display: flex;
-	gap: 6px;
+	align-items: center;
+	gap: var(--sp-4);
+	padding: var(--sp-4) var(--sp-6);
+	border-bottom: var(--divider);
 }
 
 #Reputation .select-wrapper {
 	position: relative;
 	display: inline-block;
-	margin-left: 10px;
-	margin-top: 5px;
 }
 
 #Reputation .rep_group_selector {
+	appearance: auto;
 	width: 140px;
-	padding-right: 36px;
-	height: 18px;
-	background-color: #eeeeef;
+	height: 24px;
+	box-sizing: border-box;
+	padding: 0 var(--sp-3);
 }
 
 #Reputation .select-arrow {
 	position: absolute;
-	top: 0px;
-	right: 0px;
+	top: 3px;
+	right: 3px;
 	width: 18px;
 	height: 18px;
 	border: none;
@@ -93,42 +68,38 @@
 }
 
 #Reputation .search_wrapper {
-	height: 18px;
-	width: 235px;
-	margin-top: 5px;
-	display: inline-block;
+	height: 24px;
+	display: inline-flex;
+	align-items: center;
+	gap: var(--sp-2);
 	position: relative;
 }
 
 #Reputation .rep_group_searchbar {
-	height: 14px;
-	width: 196px;
-	border: 1px solid black;
-	background-color: #eeeeef;
+	height: 24px;
+	width: 170px;
+	box-sizing: border-box;
 }
 
 #Reputation .search {
-	height: 18px;
-	width: 33px;
-	border: none;
-	position: absolute;
-	top: 0px;
-	right: 0px;
-	background-repeat: no-repeat;
-	background-color: transparent;
+	height: 24px;
+	padding: 0 var(--sp-4);
+	font-size: var(--fs-label);
+	cursor: pointer;
 }
 
 #Reputation .rep_group_total_points_wrapper {
-	width: 245px;
-	border: 1px solid black;
-	margin-top: 5px;
-	background-color: #eeeeef;
+	margin-left: auto;
+	padding: var(--sp-2) var(--sp-4);
+	box-sizing: border-box;
+	background: var(--surface-card);
+	border: 1px solid var(--border-hairline);
+	border-radius: var(--radius-card);
 	align-items: center;
 	display: flex;
-}
-
-#Reputation .rep_group_text {
-	width: 50px;
+	gap: var(--sp-2);
+	font: var(--type-label);
+	color: var(--text-muted);
 }
 
 #Reputation .rep_indicator {
@@ -138,20 +109,24 @@
 }
 
 #Reputation .rep_group_total_points_value {
-	margin-left: 5px;
-	margin-right: 5px;
-	width: 100%;
+	min-width: 40px;
 	text-align: right;
+	color: var(--text-title);
+	font-weight: var(--fw-semibold);
+	font-variant-numeric: tabular-nums;
 }
 
 #Reputation .content {
-	min-height: 350px;
+	flex: 1 1 auto;
+	min-height: 0;
 	display: flex;
 	justify-content: flex-start;
 	flex-wrap: wrap;
-	flex-basis: content;
 	align-content: flex-start;
+	gap: var(--sp-2) 0;
 	overflow-y: auto;
+	padding: var(--sp-3) var(--sp-4);
+	box-sizing: border-box;
 }
 
 #Reputation .rep_group_wrapper {
@@ -166,6 +141,8 @@
 #Reputation .rep_group_name {
 	margin-left: 5px;
 	margin-top: 5px;
+	font: var(--type-info);
+	color: var(--text-title);
 }
 
 #Reputation .rep_group_indicator_wrapper {
@@ -186,6 +163,7 @@
 	margin-top: 10px;
 	margin-left: 3px;
 	width: 97%;
+	border-radius: var(--radius-bar);
 }
 
 #Reputation .rep_id_points {
@@ -196,40 +174,55 @@
 	bottom: 0px;
 	right: 0px;
 	text-align: center;
+	font: var(--type-desc);
+	color: var(--text-muted);
+	font-variant-numeric: tabular-nums;
 }
 
 #Reputation .paginator {
+	flex: 0 0 auto;
 	display: flex;
 	align-items: center;
 	justify-content: flex-end;
-	gap: 8px;
+	gap: var(--sp-3);
 	height: 30px;
-	margin-right: 25px;
+	padding-right: var(--sp-6);
+	box-sizing: border-box;
+	font: var(--type-numeric);
+	color: var(--text-muted);
 }
 
-#Reputation .paginator ui-button {
-	width: 7px;
-	height: 11px;
-	border: none;
-	background-repeat: no-repeat;
-	background-color: transparent;
+#Reputation .paginator button {
+	appearance: none;
+	width: 22px;
+	height: 22px;
+	border: 1px solid var(--border-hairline);
+	border-radius: var(--radius-card);
+	background: var(--surface-card);
+	color: var(--accent-strong);
+	font-size: 14px;
+	line-height: 1;
+	cursor: pointer;
+	transition: background var(--dur-fast) var(--ease-out);
+}
+
+#Reputation .paginator button:hover {
+	background: var(--surface-card-hover);
 }
 
 #Reputation .footer {
-	height: 28px;
-	background-color: white;
-	background-repeat: repeat-x;
-	border-radius: 0px 0px 3px 3px;
+	flex: 0 0 auto;
+	height: 40px;
 	display: flex;
+	align-items: center;
 	justify-content: flex-end;
+	gap: var(--sp-3);
+	padding: 0 var(--sp-6);
+	box-sizing: border-box;
+	background: var(--surface-glass);
+	border-top: var(--titlebar-rule);
 }
 
 #Reputation .big_btn_close {
-	height: 20px;
-	width: 42px;
-	border: none;
-	margin-top: 5px;
-	margin-right: 10px;
-	background-repeat: no-repeat;
-	background-color: transparent;
+	cursor: pointer;
 }

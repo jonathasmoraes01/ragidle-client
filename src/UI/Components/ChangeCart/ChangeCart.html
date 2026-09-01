@@ -1,28 +1,14 @@
-<div id="changecart">
-	<div class="titlebar" data-background="basic_interface/titlebar_mid.bmp">
-		<div class="left">
-			<button
-				class="base"
-				data-background="basic_interface/sys_base_off.bmp"
-				data-hover="basic_interface/sys_base_on.bmp"
-			></button>
-			<span class="text" data-text="659">ChangeCart</span>
-		</div>
-		<div class="right">
-			<button
-				class="base mini"
-				data-background="basic_interface/sys_mini_off.bmp"
-				data-hover="basic_interface/sys_mini_on.bmp"
-			></button>
-			<button
-				class="base close"
-				data-background="basic_interface/sys_close_off.bmp"
-				data-hover="basic_interface/sys_close_on.bmp"
-			></button>
-		</div>
-		<div class="clear"></div>
+<!-- Fase 3 (01/09/2026): a janela de Trocar Carrinho saiu dos bitmaps de
+     moldura (titlebar_mid.bmp, sys_close_*.bmp) e entrou no design system.
+     Ganchos que ChangeCart.js consulta, todos preservados: .titlebar
+     (arraste) / .titlebar .close / .cart[data-id] / .canvas. Os carrinhos
+     continuam desenhados pelo JS em <canvas> (arte real do sprite). -->
+<div id="changecart" class="ri-window">
+	<div class="titlebar ri-header">
+		<span class="text ri-title" data-text="659">ChangeCart</span>
+		<button type="button" class="base close ri-close" title="Fechar">&times;</button>
 	</div>
-	<div class="carts">
+	<div class="carts ri-scroll">
 		<div class="cart" data-id="1">
 			<canvas id="cart1" class="canvas" width="75" height="80" style="pointer-events: none" data-id="1"></canvas>
 		</div>

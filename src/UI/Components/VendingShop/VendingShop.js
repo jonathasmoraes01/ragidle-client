@@ -32,6 +32,9 @@ import VendingReport from 'UI/Components/VendingReport/VendingReport.js';
  */
 const VendingShop = new GUIComponent('VendingShop', cssText);
 
+/* Janela entra/sai com a animacao unica (Fase 3, 01/09/2026). */
+VendingShop.riAnimaJanela = true;
+
 VendingShop.render = () => htmlText;
 
 /**

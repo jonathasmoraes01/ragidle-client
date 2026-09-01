@@ -24,6 +24,10 @@ import cssText from './SlotMachine.css?raw';
  */
 const SlotMachine = new GUIComponent('SlotMachine', cssText);
 
+/* Janela entra/sai com a animacao unica (Fase 3, 01/09/2026). So opacidade
+   (sem transform), entao nao interfere na animacao de sprite do canvas. */
+SlotMachine.riAnimaJanela = true;
+
 SlotMachine.render = () => htmlText;
 
 /**

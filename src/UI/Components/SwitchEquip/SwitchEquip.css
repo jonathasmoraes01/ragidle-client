@@ -1,3 +1,8 @@
+/* Fase 3 (01/09/2026): chrome no design system. :host, largura e altura
+   NAO mudaram (280x179) -- so cor/borda/sombra/fonte viraram token; o
+   diagrama de silhueta dos slots (equipwin_bg2_change.bmp/
+   equipwin_special_change.bmp) continua bitmap de proposito, ver comentario
+   no .html. */
 :host {
 	width: 280px;
 	height: 179px;
@@ -15,21 +20,40 @@
 	clear: both;
 }
 
+/* A moldura vira .ri-window (Common.css: fundo/aro azul/aro dourado/sombra/
+   raio 8px/overflow:hidden); aqui so o encaixe -- o bitmap do diagrama de
+   slots mora nos <table> filhos, por cima do fundo do design system. */
+#SwitchEquip .panel {
+	position: relative;
+	width: 280px;
+	height: 179px;
+	box-sizing: border-box;
+}
+
+/* A cor/fonte/borda inferior do titulo vem de .ri-header (Common.css); aqui
+   so o encaixe estreito que os 179px de janela permitem -- o header oficial
+   e 34px, aqui nao ha espaco (o diagrama comeca em top:20px). Sem
+   cursor:move: esta janela nao chama this.draggable(), entao nao arrasta. */
 #SwitchEquip .titlebar {
 	position: absolute;
 	top: 2px;
+	left: 0;
 	width: 280px;
 	height: 17px;
-	background-color: transparent;
-	border-radius: 3px 3px 0px 0px;
-	text-align: center;
+	padding: 0;
+	box-sizing: border-box;
+	cursor: default;
 	z-index: 99;
 }
 
-#SwitchEquip .panel {
-	background-color: white;
-	height: 179px;
+/* Asas do titulo reduzidas: as 44x16 padrao nao cabem numa barra de 17px de
+   altura e 280px de largura ao lado do texto. */
+#SwitchEquip .ri-title::before,
+#SwitchEquip .ri-title::after {
+	width: 18px;
+	height: 9px;
 }
+
 #SwitchEquip table.swapcontent {
 	position: absolute;
 	top: 0px;
@@ -68,6 +92,9 @@
 	min-width: 110px;
 }
 
+/* Dica flutuante com o nome do item: mesma capsula de vidro escuro que
+   CashShop/CorreioIdle usam (receita do design system), no lugar do
+   rgba(0,0,0,.7) literal de antes. */
 #SwitchEquip .switchoverlay {
 	position: absolute;
 	display: none;
@@ -75,9 +102,11 @@
 	z-index: 900;
 	height: 13px;
 	padding: 5px;
-	background: rgba(0, 0, 0, 0.7);
-	color: white;
-	text-shadow: 1px 1px black;
+	border-radius: var(--radius-card);
+	background: var(--surface-dark-glass);
+	backdrop-filter: var(--blur-glass);
+	color: var(--white);
+	text-shadow: 0 1px 2px rgba(8, 22, 40, 0.85);
 }
 
 #SwitchEquip .item button {
@@ -94,7 +123,8 @@
 	line-height: 12px;
 	word-break: break-all;
 	overflow: hidden;
-	text-shadow: 1px 1px white;
+	color: var(--text-body);
+	text-shadow: 0 1px 0 var(--white);
 }
 
 #SwitchEquip .col3 .item button,
@@ -162,25 +192,30 @@
 	height: 30px;
 }
 
+/* Os dois botoes do rodape saem do bitmap (btn_change2_*.bmp/btn_cancel*.bmp)
+   e viram .ri-btn/.ri-btn--sec; cor/borda vem de Common.css, aqui so o
+   encaixe (posicao/tamanho) que o rodape de 30px ja usava -- o padding
+   oficial do botao (8px 18px) nao cabe numa altura de 20px. */
 #SwitchEquip .footer button.closeswap {
 	position: absolute;
+	box-sizing: border-box;
 	width: 43px;
 	height: 20px;
-	border: none;
-	background-repeat: no-repeat;
 	right: 5px;
 	top: 5px;
+	padding: 0;
+	font-size: var(--fs-badge);
 }
 
 #SwitchEquip .footer button.onswap {
 	position: absolute;
+	box-sizing: border-box;
 	width: 120px;
 	height: 20px;
-	border: none;
-	background-repeat: no-repeat;
 	left: 80px;
 	top: 5px;
-	text-align: center;
+	padding: 0;
+	font-size: var(--fs-badge);
 }
 
 #SwitchEquip .disabled {

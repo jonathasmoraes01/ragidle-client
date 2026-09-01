@@ -1,14 +1,17 @@
+<!-- Fase 3 (01/09/2026): a janela de navegacao (NAVI) sai dos bitmaps
+     (titlebar_left/mid/right, txtbox_l/m/r, navisearch_*, sys_close_*) e
+     entra no design system. Ganchos que Navigation.js consulta, todos
+     preservados: .titlebar (arrasto) / .close / .search-type / .search-input
+     / .search-button / .services-toggle / .location-title / .map-display /
+     .map-name / .mouse-info .mouse-coordinates / .target-info
+     .target-coordinates / .search-results (criado em runtime). As tres
+     tiras decorativas do campo de busca (search-left/middle/right, so
+     moldura de bitmap) sairam — o input agora e uma pele so, receita
+     .ri-input. -->
 <div class="Navigation">
 	<div class="titlebar">
-		<div class="left" data-background="basic_interface/titlebar_left.bmp"></div>
-		<div class="center" data-background="basic_interface/titlebar_mid.bmp"></div>
-		<div class="right" data-background="basic_interface/titlebar_right.bmp"></div>
-		<div class="title">Navigation</div>
-		<ui-button
-			class="close"
-			bg="basic_interface/sys_close_off.bmp"
-			hover="basic_interface/sys_close_on.bmp"
-		></ui-button>
+		<span class="title">Navegação</span>
+		<button type="button" class="close" title="Fechar">&times;</button>
 	</div>
 	<div class="content">
 		<div class="search-container">
@@ -17,20 +20,12 @@
 				<option value="NPC">NPC</option>
 				<option value="MOB">MOB</option>
 			</select>
-			<div class="search-left" data-background="basic_interface/txtbox_l.bmp"></div>
-			<div class="search-middle" data-background="basic_interface/txtbox_m.bmp"></div>
-			<div class="search-right" data-background="basic_interface/txtbox_r.bmp"></div>
-			<input type="text" class="search-input" placeholder="Search..." />
-			<ui-button
-				class="search-button"
-				bg="navigation_interface/navisearch_a.bmp"
-				hover="navigation_interface/navisearch_b.bmp"
-				down="navigation_interface/navisearch_c.bmp"
-			></ui-button>
+			<input type="text" class="search-input" placeholder="Buscar…" />
+			<button type="button" class="search-button" title="Buscar">Buscar</button>
 		</div>
 		<div class="map-container">
 			<div class="services-toggle-container">
-				<label class="services-checkbox"> <input type="checkbox" class="services-toggle" /> Services </label>
+				<label class="services-checkbox"><input type="checkbox" class="services-toggle" /> Serviços</label>
 			</div>
 			<div class="location-title"></div>
 			<div class="map-display">
@@ -46,7 +41,7 @@
 				<span class="mouse-coordinates"></span>
 			</div>
 			<div class="target-info">
-				<span class="target-label">Target:</span>
+				<span class="target-label">Alvo:</span>
 				<span class="target-coordinates"></span>
 			</div>
 		</div>

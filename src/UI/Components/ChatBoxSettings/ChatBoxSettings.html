@@ -1,91 +1,71 @@
+<!-- Fase 4 (01/09/2026): configuracoes de registro do chat no design system
+     oficial. Ganchos que ChatBoxSettings.js consulta, todos preservados:
+     .titlebar (arrasto) / .close / .extend (alca de redimensionar) /
+     .content (altura ajustada por JS) / .listoption (delegacao de clique +
+     altura ajustada por JS) / button[data-id] dentro dela / .tabname /
+     .cbs-addtab / .cbs-removetab / #ChatBoxSettings (medido pelo resize()).
+
+     O botao .base (engrenagem decorativa, sem listener nenhum em
+     ChatBoxSettings.js) saiu -- chrome puro sem funcao. Os 22 botoes de
+     opcao trocaram o indicador ligado/desligado: era um bitmap
+     (grp_online/grp_offline.bmp) trocado a mao pelo JS a cada clique, virou
+     uma classe .on pintada por CSS (ver ChatBoxSettings.js -- a troca de
+     imagem saiu de onClickOption()/updateTab() junto, para nao ficar meio
+     bitmap meio token). -->
 <div id="ChatBoxSettings">
-	<div class="titlebar" data-background="basic_interface/titlebar_mid.bmp">
-		<div class="left">
-			<button
-				class="base"
-				data-background="basic_interface/sys_base_off.bmp"
-				data-hover="basic_interface/sys_base_on.bmp"
-			></button>
-			<span class="title"><span class="tabname"></span> message log settings</span>
+	<div class="cbs-janela ri-window">
+		<div class="titlebar ri-header">
+			<span class="ri-title">Registro da aba <span class="tabname"></span></span>
+			<button type="button" class="close ri-close" title="Fechar">&times;</button>
 		</div>
-		<div class="right">
-			<button
-				class="base close"
-				data-background="basic_interface/sys_close_off.bmp"
-				data-hover="basic_interface/sys_close_on.bmp"
-			></button>
-		</div>
-		<div class="clear"></div>
-	</div>
-	<div class="panel" data-background="basic_interface/chatwin1_mid.bmp">
-		<div class="content resize">
-			<div class="listoption">
-				<button data-id="0" data-background="basic_interface/grp_offline.bmp" data-text="1291">
-					Public Log
-				</button>
-				<button data-id="1" data-background="basic_interface/grp_offline.bmp" data-text="1277">
-					Public Chat
-				</button>
-				<button data-id="2" data-background="basic_interface/grp_offline.bmp" data-text="1278">Whisper</button>
-				<button data-id="3" data-background="basic_interface/grp_offline.bmp" data-text="1279">Party</button>
-				<button data-id="4" data-background="basic_interface/grp_offline.bmp" data-text="1280">Guild</button>
-				<button data-id="5" data-background="basic_interface/grp_offline.bmp" data-text="1281">Item</button>
-				<button data-id="6" data-background="basic_interface/grp_offline.bmp" data-text="1282">
-					Equipment on/off
-				</button>
-				<button data-id="7" data-background="basic_interface/grp_offline.bmp" data-text="1283">
-					Abnormal Status
-				</button>
-				<button data-id="8" data-background="basic_interface/grp_offline.bmp" data-text="1284">
-					Party Item
-				</button>
-				<button data-id="9" data-background="basic_interface/grp_offline.bmp" data-text="1285">
-					Party Status
-				</button>
-				<button data-id="10" data-background="basic_interface/grp_offline.bmp" data-text="1286">
-					Skill Fail
-				</button>
-				<button data-id="11" data-background="basic_interface/grp_offline.bmp" data-text="1287">
-					Party Setup
-				</button>
-				<button data-id="12" data-background="basic_interface/grp_offline.bmp" data-text="1288">
-					Equip Damage
-				</button>
-				<button data-id="13" data-background="basic_interface/grp_offline.bmp" data-text="1289">WOE</button>
-				<button data-id="14" data-background="basic_interface/grp_offline.bmp" data-text="1549">
-					Party Search
-				</button>
-				<button data-id="15" data-background="basic_interface/grp_offline.bmp" data-text="1618">Battle</button>
-				<button data-id="16" data-background="basic_interface/grp_offline.bmp" data-text="1619">
-					Party Battle
-				</button>
-				<button data-id="17" data-background="basic_interface/grp_offline.bmp" data-text="1620">EXP</button>
-				<button data-id="18" data-background="basic_interface/grp_offline.bmp" data-text="1621">
-					Party EXP
-				</button>
-				<button data-id="19" data-background="basic_interface/grp_offline.bmp" data-text="1622">Quest</button>
-				<button data-id="20" data-background="basic_interface/grp_offline.bmp" data-text="1623">
-					Battlefield
-				</button>
-				<button data-id="21" data-background="basic_interface/grp_offline.bmp" data-text="2365">Clan</button>
-				<!--<button data-id="22" data-background="basic_interface/grp_offline.bmp" data-text="">Call</button>-->
-			</div>
-			<div class="clear"></div>
-			<div class="footer-opt">All on</div>
-			<!-- Nova aba / Remover aba (julgamento do dono, 19/08/2026 rodada 2):
-			     eram os icones "+"/"-" soltos no canto superior direito do
-			     ChatBox (".chat-function .battleopt2"/".wndminib"), capsula
-			     eliminada -- pedido explicito de mover funcao real ocasional
-			     pro painel que a engrenagem do chat abre, que e este aqui.
-			     MESMOS metodos publicos que os icones antigos chamavam
-			     (ChatBox.addNewTab()/removeTab(), ver ChatBoxSettings.js),
-			     nenhuma logica nova -- so a casa mudou. -->
-			<div class="clear"></div>
-			<div class="cbs-tabactions">
-				<button type="button" class="cbs-addtab">+ Nova aba</button>
-				<button type="button" class="cbs-removetab">- Remover aba</button>
+
+		<p class="cbs-dica">Toque para ligar ou desligar cada aviso.</p>
+
+		<div class="panel cbs-corpo">
+			<div class="content resize cbs-content">
+				<div class="listoption cbs-lista ri-scroll">
+					<button type="button" class="cbs-opt" data-id="0" data-text="1291">Registro Público</button>
+					<button type="button" class="cbs-opt" data-id="1" data-text="1277">Chat Público</button>
+					<button type="button" class="cbs-opt" data-id="2" data-text="1278">Sussurro</button>
+					<button type="button" class="cbs-opt" data-id="3" data-text="1279">Grupo</button>
+					<button type="button" class="cbs-opt" data-id="4" data-text="1280">Guilda</button>
+					<button type="button" class="cbs-opt" data-id="5" data-text="1281">Item</button>
+					<button type="button" class="cbs-opt" data-id="6" data-text="1282">Equipar/Desequipar</button>
+					<button type="button" class="cbs-opt" data-id="7" data-text="1283">Status Alterado</button>
+					<button type="button" class="cbs-opt" data-id="8" data-text="1284">Item do Grupo</button>
+					<button type="button" class="cbs-opt" data-id="9" data-text="1285">Status do Grupo</button>
+					<button type="button" class="cbs-opt" data-id="10" data-text="1286">Falha de Skill</button>
+					<button type="button" class="cbs-opt" data-id="11" data-text="1287">Configuração do Grupo</button>
+					<button type="button" class="cbs-opt" data-id="12" data-text="1288">Dano no Equipamento</button>
+					<button type="button" class="cbs-opt" data-id="13" data-text="1289">WOE</button>
+					<button type="button" class="cbs-opt" data-id="14" data-text="1549">Busca de Grupo</button>
+					<button type="button" class="cbs-opt" data-id="15" data-text="1618">Batalha</button>
+					<button type="button" class="cbs-opt" data-id="16" data-text="1619">Batalha do Grupo</button>
+					<button type="button" class="cbs-opt" data-id="17" data-text="1620">EXP</button>
+					<button type="button" class="cbs-opt" data-id="18" data-text="1621">EXP do Grupo</button>
+					<button type="button" class="cbs-opt" data-id="19" data-text="1622">Missão</button>
+					<button type="button" class="cbs-opt" data-id="20" data-text="1623">Campo de Batalha</button>
+					<button type="button" class="cbs-opt" data-id="21" data-text="2365">Clã</button>
+					<!--<button data-id="22" data-text="">Chamada</button>-->
+				</div>
 			</div>
 		</div>
+
+		<!-- Nova aba / Remover aba (julgamento do dono, 19/08/2026 rodada 2): eram
+		     os icones "+"/"-" soltos no canto superior direito do ChatBox
+		     (".chat-function .battleopt2"/".wndminib"), capsula eliminada --
+		     pedido explicito de mover funcao real ocasional pro painel que a
+		     engrenagem do chat abre, que e este aqui. MESMOS metodos publicos que
+		     os icones antigos chamavam (ChatBox.addNewTab()/removeTab(), ver
+		     ChatBoxSettings.js), nenhuma logica nova -- so a casa e a pele
+		     mudaram. Fica FORA de ".content" de proposito: aquela caixa tem
+		     altura escrita por resize() a cada arrasto da alca (.extend), e uma
+		     linha de botao real nao pode arriscar ficar cortada por um calculo
+		     pensado so pra lista rolavel. -->
+		<div class="cbs-tabactions">
+			<button type="button" class="cbs-addtab ri-btn ri-btn--sec">+ Nova aba</button>
+			<button type="button" class="cbs-removetab ri-btn ri-btn--sec">- Remover aba</button>
+		</div>
 	</div>
-	<button class="extend"></button>
+	<button type="button" class="extend cbs-grip" title="Redimensionar" aria-label="Redimensionar"></button>
 </div>

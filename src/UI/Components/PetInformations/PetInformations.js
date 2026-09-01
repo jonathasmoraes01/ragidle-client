@@ -24,6 +24,9 @@ import PACKETVER from 'Network/PacketVerManager.js';
  */
 const PetInformations = new GUIComponent('PetInformations', cssText);
 
+/* Janela entra/sai com a animacao unica (Fase 3, 01/09/2026). */
+PetInformations.riAnimaJanela = true;
+
 PetInformations.render = () => htmlText;
 
 PetInformations.captureKeyEvents = true;

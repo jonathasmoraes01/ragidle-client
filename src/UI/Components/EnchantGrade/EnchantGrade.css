@@ -5,16 +5,24 @@
 }
 
 #EnchantGrade {
-	height: 100%;
-	width: 100%;
+	/* PIXEL CRAVADO, nao 100%: altura percentual morre no container
+	   intermediario do Shadow DOM e a janela sumia inteira em jogo (mesma
+	   correcao de Enchant/Refine, Fase 3). Numero identico ao :host. */
+	width: 400px;
+	height: 330px;
 	position: relative;
 }
 
 #EnchantGrade .container {
 	width: 100%;
 	height: 100%;
+	box-sizing: border-box;
 	overflow: hidden;
 	position: relative;
+	background: var(--window-fill);
+	border: var(--window-frame);
+	border-radius: var(--radius-window);
+	box-shadow: var(--window-shadow), var(--rim-light);
 }
 
 #EnchantGrade .left_panel {
@@ -43,20 +51,22 @@
 	margin-bottom: 5px;
 }
 
+/* Numero sobre a roleta bitmap: contorno com o tom escuro do sistema
+   (--ink-900) em vez de preto puro -- "sombra e' azul, nunca preta". */
 #EnchantGrade .probability {
 	height: 50px;
 	width: 60px;
 	align-content: end;
 	margin-top: 40px;
 	text-align: center;
-	color: white;
+	color: var(--white);
 	font-size: 30px;
 	font-weight: 600;
 	text-shadow:
-		-1px -1px 0 black,
-		1px -1px 0 black,
-		-1px 1px 0 black,
-		1px 1px 0 black;
+		-1px -1px 0 var(--ink-900),
+		1px -1px 0 var(--ink-900),
+		-1px 1px 0 var(--ink-900),
+		1px 1px 0 var(--ink-900);
 }
 
 #EnchantGrade .enchant_container {
@@ -118,30 +128,16 @@
 
 #EnchantGrade .container .right_panel .titlebar {
 	width: 100%;
-	height: 15px;
-	top: 18px;
-	left: 0px;
-	display: flex;
-	justify-content: flex-end;
-	align-items: center;
-	border: none;
 	position: relative;
 }
 
-#EnchantGrade .close_btn {
-	width: 13px;
-	height: 13px;
-	position: absolute;
-	top: 4px;
-	background: transparent;
-	background-repeat: no-repeat;
-	border: none;
-}
-
+/* Os "top" abaixo foram recalibrados em -19px: a .ri-header oficial (34px)
+   substituiu a barra antiga de 15px, e cada item da grade e' relativo a
+   sua propria posicao de fluxo (a diferenca acumula por irmao). */
 #EnchantGrade .notification_container {
 	position: relative;
 	height: 45px;
-	top: 33px;
+	top: 14px;
 	left: -2px;
 	font-size: 8.5px;
 	width: 95%;
@@ -151,7 +147,7 @@
 #EnchantGrade .materials_container {
 	position: relative;
 	height: 125px;
-	top: 37px;
+	top: 18px;
 	left: 16px;
 	width: 241px;
 	display: flex;
@@ -186,7 +182,7 @@
 #EnchantGrade .additional_materials {
 	position: relative;
 	height: 70px;
-	top: 40px;
+	top: 21px;
 	left: -1px;
 	display: flex;
 }
@@ -223,10 +219,11 @@
 #EnchantGrade .footer {
 	position: relative;
 	height: 30px;
-	top: 40px;
+	top: 21px;
 	left: -1px;
 	display: flex;
 	justify-content: flex-start;
+	align-items: center;
 	gap: 30px;
 }
 
@@ -250,20 +247,24 @@
 
 #EnchantGrade .big_close_btn {
 	height: 20px;
-	width: 44px;
-	border: none;
-	background-color: transparent;
-	background-repeat: no-repeat;
+	padding: 0 var(--sp-4);
+	font-size: var(--fs-badge);
+	cursor: pointer;
 }
 
 #EnchantGrade .enchant_tooltip {
 	position: absolute;
 	z-index: 9999;
 	pointer-events: none;
-	background: rgba(0, 0, 0, 0.85);
-	border: 1px solid #8c7b4a;
-	padding: 6px 8px;
-	color: #fff;
+	background: var(--surface-dark-glass);
+	backdrop-filter: var(--blur-glass);
+	-webkit-backdrop-filter: var(--blur-glass);
+	border: 1px solid var(--border-gold);
+	border-radius: var(--radius-card);
+	padding: var(--sp-3) var(--sp-4);
+	color: var(--white);
+	text-shadow: 0 1px 2px rgba(8, 22, 40, 0.85);
+	font: var(--type-desc);
 	white-space: nowrap;
 	display: none;
 }
@@ -285,7 +286,7 @@
 }
 
 #EnchantGrade .success .number {
-	color: #2963de;
+	color: var(--blue-600);
 }
 
 #EnchantGrade .item_to_EnchantGrade {
@@ -304,7 +305,7 @@
 	top: 225px;
 	align-content: center;
 	font-weight: bold;
-	color: #102142;
+	color: var(--text-title);
 }
 
 #EnchantGrade .item .icon {
@@ -481,7 +482,7 @@
 	height: 15px;
 	width: 92px;
 	text-align: center;
-	color: #101839;
+	color: var(--text-title);
 	top: 5px;
 	pointer-events: none;
 }

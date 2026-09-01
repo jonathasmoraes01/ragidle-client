@@ -3,48 +3,43 @@
 	height: 350px;
 }
 
+/* Correcao do supervisor (foto da Fase 3): o corpo saiu TRANSPARENTE e o
+   rodape flutuou — o bitmap de fundo tinha ido embora sem uma pintura de
+   janela no lugar, e .panel absoluto em top:0 brigava com o header novo.
+   Agora: #Refine E a janela (pintura .ri-window por token) em coluna flex;
+   .panel vira o palco relativo dos filhos absolutos. */
 #Refine {
 	position: relative;
-	height: 100%;
-	width: 100%;
+	/* pixel cravado (nao 100%): a cadeia percentual colapsa no container do
+	   Shadow DOM — mesma correcao de Enchant/EnchantGrade. */
+	width: 261px;
+	height: 350px;
+	box-sizing: border-box;
+	display: flex;
+	flex-direction: column;
+	background: var(--window-fill);
+	border: var(--window-frame);
+	border-radius: var(--radius-window);
+	box-shadow: var(--window-shadow), var(--rim-light);
+	backdrop-filter: var(--blur-glass);
+	overflow: hidden;
+	color: var(--text-body);
+	font-family: var(--font-ui);
 }
 
 #Refine .titlebar {
-	width: 100%;
-	height: 17px;
-	background-color: white;
-	background-repeat: repeat-x;
-	border-radius: 3px 3px 0px 0px;
-}
-#Refine .titlebar .base {
-	width: 11px;
-	height: 11px;
-	border: none;
-	background-color: transparent;
-	background-repeat: no-repeat;
-	vertical-align: middle;
-}
-#Refine .titlebar .text {
-	text-shadow: 1px 1px white;
-	vertical-align: -2px;
-	white-space: nowrap;
-	display: inline-block;
-	width: 32px;
-	height: 13px;
-	font-size: 11px;
-	font-weight: bold;
+	flex: 0 0 auto;
 }
 
-#Refine .titlebar .left {
-	margin-left: 3px;
-	float: left;
-}
-#Refine .titlebar .right {
-	float: right;
-	margin-right: 3px;
-}
-#Refine .titlebar .clear {
-	clear: both;
+/* Chrome vira design system (Fase 3, 01/09/2026): a barra de bitmap virou
+   .ri-header (Common.css), com .base sobrando so como alca invisivel que o
+   JS ainda escuta (mousedown para nao arrastar sob o titulo). */
+#Refine .titlebar .base {
+	position: absolute;
+	left: 0;
+	top: 0;
+	width: 20px;
+	height: 100%;
 }
 
 #Refine .overlay {
@@ -52,26 +47,28 @@
 	display: none;
 	white-space: nowrap;
 	z-index: 900;
-	height: 15px;
-	line-height: 15px;
-	border-radius: 3px;
-	padding: 4px;
-	background: rgba(0, 0, 0, 0.7);
-	color: white;
-	text-shadow: 1px 1px black;
+	border-radius: var(--radius-card);
+	padding: var(--sp-2) var(--sp-4);
+	background: var(--surface-dark-glass);
+	backdrop-filter: var(--blur-glass);
+	-webkit-backdrop-filter: var(--blur-glass);
+	color: var(--white);
+	font: var(--type-desc);
+	text-shadow: 0 1px 2px rgba(8, 22, 40, 0.85);
 }
 
 #Refine .panel {
+	position: relative;
+	flex: 1 1 auto;
+	min-height: 0;
 	width: 100%;
-	height: 100%;
 	overflow: hidden;
-	position: absolute;
 }
 
 #Refine .image-container {
 	position: absolute;
 	top: 1px;
-	height: 301px;
+	bottom: 30px; /* deixa o rodape respirar em vez dos 301px cravados */
 	width: 262px;
 }
 
@@ -85,7 +82,7 @@
 }
 
 #Refine .success .number {
-	color: #2963de;
+	color: var(--blue-600);
 }
 
 #Refine .item_to_refine {
@@ -115,7 +112,7 @@
 	top: 225px;
 	align-content: center;
 	font-weight: bold;
-	color: #102142;
+	color: var(--text-title);
 }
 
 #Refine .item {
@@ -141,8 +138,11 @@
 #Refine .footer {
 	position: absolute;
 	height: 30px;
-	width: 261px;
-	bottom: 18px;
+	width: 100%;
+	bottom: 0;
+	box-sizing: border-box;
+	border-top: var(--divider);
+	background: var(--surface-glass);
 }
 
 #Refine .some_notifs {
@@ -150,13 +150,6 @@
 	height: 20px;
 	width: 180px;
 	left: 5px;
-	top: 4px;
-}
-
-#Refine .notif {
-	position: absolute;
-	height: 13px;
-	width: 14px;
 	top: 4px;
 }
 
@@ -170,11 +163,11 @@
 }
 
 #Refine .info_msg.red {
-	color: red;
+	color: var(--red-600);
 }
 
 #Refine .info_msg.blue {
-	color: blue;
+	color: var(--text-link);
 }
 
 #Refine .cancel {
@@ -183,9 +176,8 @@
 	width: 57px;
 	bottom: 4px;
 	right: 5px;
-	background-color: transparent;
-	background-repeat: no-repeat;
-	border: 0;
+	padding: 0;
+	font-size: var(--fs-desc);
 }
 
 #Refine .materials {
@@ -318,7 +310,7 @@
 	height: 15px;
 	width: 92px;
 	text-align: center;
-	color: #101839;
+	color: var(--text-title);
 	top: 5px;
 	pointer-events: none;
 }
@@ -329,7 +321,7 @@
 	width: 65px;
 	top: 9px;
 	left: 20px;
-	color: white;
+	color: var(--white);
 	text-align: right;
 	font-weight: bold;
 	pointer-events: none;
@@ -445,7 +437,7 @@
 	left: 0px;
 	text-align: center;
 	align-content: center;
-	color: white;
+	color: var(--white);
 	pointer-events: none;
 	font-weight: bold;
 }

@@ -1,17 +1,19 @@
+<!-- Fase 3 (01/09/2026): selecao de fabricacao/culinaria saiu dos bitmaps
+     (titlebar_mid.bmp, win_service.bmp, itemwin_mid.bmp) e entrou no design
+     system. Selectors que MakeItemSelection.js consulta, todos preservados:
+     .head (arraste) / .head .text (titulo) / ui-button.cancel / ui-button.ok
+     / #MakeItemSelection (delegacao de mousedown/dblclick) / .list /
+     .materials (alvo de drop) / .select (item escolhido). -->
 <div id="MakeItemSelection">
-	<div class="head">
-		<ui-image src="basic_interface/titlebar_mid.bmp"></ui-image>
-		<span class="text"></span>
+	<div class="head ri-header">
+		<span class="text ri-title"></span>
 	</div>
 	<div class="bottom">
-		<ui-image src="login_interface/win_service.bmp"></ui-image>
-		<ui-button class="btn cancel" bg="btn_cancel.bmp" hover="btn_cancel_a.bmp" down="btn_cancel_b.bmp"></ui-button>
-		<ui-button class="btn ok" bg="btn_ok.bmp" hover="btn_ok_a.bmp" down="btn_ok_b.bmp"></ui-button>
+		<ui-button class="btn cancel">Cancelar</ui-button>
+		<ui-button class="btn ok">Confirmar</ui-button>
 	</div>
 	<div class="content">
-		<div class="list"></div>
-		<div class="materials">
-			<ui-image src="basic_interface/itemwin_mid.bmp"></ui-image>
-		</div>
+		<div class="list ri-scroll"></div>
+		<div class="materials"></div>
 	</div>
 </div>

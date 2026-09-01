@@ -1,3 +1,8 @@
+/* Fase 3 (01/09/2026): janela de Info do Pet no design system. As DIMENSÕES
+   (280x180) e as posições absolutas dos rótulos ficaram (reforma é pele, não
+   esqueleto). A ilustração do pet enche o corpo da janela via background-image
+   dinâmico (JS) — os textos por cima ganharam cápsula de vidro escuro (regra
+   do DS: nunca uma faixa inteira, uma cápsula por trecho de texto). */
 :host {
 	width: 280px;
 	height: 180px;
@@ -9,53 +14,45 @@
 	position: absolute;
 	width: 280px;
 	height: 180px;
-	background-color: white;
-	border-radius: 5px;
+	box-sizing: border-box;
+	display: flex;
+	flex-direction: column;
 }
 
 #PetInformations .titlebar {
-	width: 100%;
-	height: 17px;
-	background-color: white;
-	background-repeat: repeat-x;
-	border-radius: 3px 3px 0px 0px;
-}
-#PetInformations .titlebar .base {
-	width: 11px;
-	height: 11px;
-	border: none;
-	background-color: transparent;
-	background-repeat: no-repeat;
-	vertical-align: middle;
-}
-#PetInformations .titlebar .text {
-	text-shadow: 1px 1px white;
-	vertical-align: -2px;
-	white-space: nowrap;
-	display: inline-block;
-	width: 50px;
-	height: 13px;
-	font-size: 11px;
-	font-weight: bold;
-}
-
-#PetInformations .titlebar .left {
-	margin-left: 3px;
-	float: left;
-}
-#PetInformations .titlebar .right {
-	float: right;
-	margin-right: 3px;
-}
-#PetInformations .titlebar .clear {
-	clear: both;
+	flex: 0 0 auto;
+	cursor: move;
 }
 
 #PetInformations .content {
 	background-repeat: no-repeat;
+	background-size: cover;
+	background-position: center;
+	background-color: var(--surface-inset);
 	position: relative;
-	width: 100%;
-	height: 100%;
+	flex: 1 1 auto;
+	min-height: 0;
+	font: var(--type-info);
+}
+
+/* Cápsulas de vidro escuro atrás dos rótulos/valores — protege leitura sobre
+   a ilustração do pet sem usar faixa de largura total (proibido pelo DS). */
+#PetInformations .title_name,
+#PetInformations .title_level,
+#PetInformations .title_hunger,
+#PetInformations .title_intimacy,
+#PetInformations .title_accessory,
+#PetInformations .level,
+#PetInformations .hunger,
+#PetInformations .intimacy,
+#PetInformations .accessory {
+	background: var(--surface-dark-glass);
+	backdrop-filter: var(--blur-glass);
+	color: var(--white);
+	text-shadow: 0 1px 2px rgba(8, 22, 40, 0.85);
+	padding: 1px var(--sp-2);
+	border-radius: var(--radius-card);
+	font: var(--type-label);
 }
 
 #PetInformations .title_name {
@@ -67,29 +64,32 @@
 	position: absolute;
 	top: 5px;
 	left: 150px;
-	border: none;
-	background-color: #eee;
+	box-sizing: border-box;
+	border: 1px solid var(--border-hairline);
+	border-radius: var(--radius-card);
+	background-color: var(--white);
 	margin: 0px;
 	width: 70px;
-	color: black;
+	height: 16px;
+	padding: 0 var(--sp-2);
+	color: var(--text-body);
+	font: var(--type-label);
 }
 
 #PetInformations .modify {
 	position: absolute;
-	background-color: grey;
 	top: 5px;
 	right: 5px;
-	border: 0;
-	width: 42px;
+	width: 60px;
 	height: 20px;
-	background-repeat: no-repeat;
-	background-color: transparent;
+	padding: 0;
+	font-size: var(--fs-badge);
 }
 
 #PetInformations .name.disabled {
-	color: black;
-	text-shadow: 1px 1px 0px #00ff00;
-	background-color: transparent;
+	color: var(--text-body);
+	text-shadow: 0 1px 0 rgba(143, 209, 122, 0.7);
+	background-color: var(--surface-inset);
 }
 #PetInformations .modify.disabled {
 	display: none;
@@ -144,6 +144,14 @@
 	left: 100px;
 	display: flex;
 	align-items: center;
+	gap: var(--sp-2);
+	background: var(--surface-dark-glass);
+	backdrop-filter: var(--blur-glass);
+	color: var(--white);
+	text-shadow: 0 1px 2px rgba(8, 22, 40, 0.85);
+	padding: 1px var(--sp-2);
+	border-radius: var(--radius-card);
+	font: var(--type-label);
 }
 #PetInformations .feeding .pet_auto_feed {
 	width: 10px;
@@ -151,7 +159,6 @@
 	border: none;
 	background-color: transparent;
 	background-repeat: no-repeat;
-	margin-left: 5px;
 }
 
 #PetInformations .command {
@@ -159,4 +166,8 @@
 	top: 27px;
 	right: 5px;
 	width: 105px;
+	height: 20px;
+	box-sizing: border-box;
+	padding: 0 var(--sp-2);
+	font-size: var(--fs-label);
 }

@@ -1,149 +1,187 @@
+/* Sala de bate-papo (Fase 3, 01/09/2026). Chrome do design system
+   (.ri-window/.ri-header/.ri-title/.ri-close, Common.css) no vidro CLARO
+   padrao -- esta janela sempre teve fundo branco solido (diferente do
+   WhisperBox, que virou vidro escuro por flutuar sobre o mundo). :host fica
+   sem width/height fixo de proposito: resize() em ChatRoom.js escreve
+   #ChatRoom.style.width e cada .resize (.content/.messages/.members)
+   .style.height DIRETO via inline style a cada redimensionamento -- a
+   largura/altura daqui embaixo sao so o CHUTE INICIAL antes do primeiro
+   resize() rodar em onAppend(), o numero real vem sempre do JS. */
 :host {
-	width: 279px;
-	height: 200px;
-	top: 100px;
-	left: 100px;
+	position: absolute;
 }
 
 #ChatRoom {
-	position: absolute;
 	width: 279px;
-	border-radius: 5px;
-	background-color: white;
-	background-repeat: no-repeat;
+	box-sizing: border-box;
+	display: flex;
+	flex-direction: column;
+	font-family: var(--font-ui);
+	color: var(--text-body);
 }
 
-#ChatRoom table {
-	border-spacing: 0px;
-	display: inline-block;
-}
-
+/* ─── Cabecalho: titulo (nome da sala) + contagem + fechar, tudo numa
+   linha -- troca o "justify-content: center" que .ri-header usa nas
+   janelas grandes, porque aqui o titulo e dado pelo jogador (pode ser
+   longo) e precisa truncar, nao centralizar. */
 #ChatRoom .titlebar {
-	width: 100%;
-	height: 17px;
-	background-color: white;
-	background-repeat: repeat-x;
-	border-radius: 4px 4px 0px 0px;
-}
-#ChatRoom .titlebar .base {
-	width: 11px;
-	height: 11px;
-	border: none;
-	background-color: transparent;
-	background-repeat: no-repeat;
-	vertical-align: middle;
-}
-#ChatRoom .titlebar .text {
-	text-shadow: 1px 1px white;
-	vertical-align: -2px;
-	/* chrome bug */
-	display: inline-block;
-	height: 13px;
-	font-size: 11px;
-	font-weight: bold;
+	cursor: move;
+	justify-content: flex-start;
+	gap: var(--sp-2);
 }
 
-#ChatRoom .titlebar .left {
-	margin-left: 3px;
-	float: left;
-	padding-left: 5px;
-	padding-top: 2px;
-	text-shadow: 1px 1px 1px white;
+#ChatRoom .titlebar .title {
+	flex: 1 1 auto;
+	min-width: 0;
+	font-size: 13px;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
 }
-#ChatRoom .titlebar .right {
-	float: right;
-	margin-right: 3px;
+
+/* As "asas" douradas de .ri-title sao para janela cheia (44px cada lado);
+   numa sala de 279px de largura minima elas comeriam o nome da sala. */
+#ChatRoom .titlebar .title::before,
+#ChatRoom .titlebar .title::after {
+	width: 16px;
+	height: 12px;
 }
-#ChatRoom .titlebar .clear {
-	clear: both;
+
+#ChatRoom .titlebar .cr-contagem {
+	flex: 0 0 auto;
+	font: var(--type-label);
+	color: var(--text-muted);
+	font-variant-numeric: tabular-nums;
+}
+
+#ChatRoom .titlebar .close {
+	position: static;
+	transform: none;
+	flex: 0 0 auto;
 }
 
 #ChatRoom .panel {
-	background-color: white;
+	background: var(--surface-glass);
 }
+
 #ChatRoom .content {
+	display: flex;
 	height: 120px;
+	min-height: 0;
 }
+
+/* Mensagens: 70% da largura, coluna com a lista de membros (26%) do lado --
+   o mesmo recorte do roBrowser original, so a divisoria virou o token de
+   regua fina em vez de "1px solid #ccc". */
 #ChatRoom .content .messages {
+	flex: 0 0 70%;
 	width: 70%;
-	height: 120px;
-	float: left;
-	border-right: 1px solid #ccc;
+	box-sizing: border-box;
 	overflow-y: auto;
-	padding-top: 5px;
-	padding-left: 3px;
+	border-right: var(--divider);
+	padding: var(--sp-2) var(--sp-2) var(--sp-2) var(--sp-3);
+	font-size: 12px;
+	line-height: 1.35;
 }
+
+/* Cores semanticas em vez dos 3 hex do roBrowser: verde = voce falou (mesmo
+   verde de "ganho" do design system), azul = evento de entrada (info),
+   vermelho = evento de saida. */
 #ChatRoom .content .messages .self {
-	color: #315937;
+	color: var(--green-600);
 }
 #ChatRoom .content .messages .join {
-	color: #416d6c;
+	color: var(--blue-600);
 }
 #ChatRoom .content .messages .leave {
-	color: #481b22;
-}
-#ChatRoom .content .clear {
-	clear: both;
+	color: var(--red-600);
 }
 
 #ChatRoom .content .members {
+	flex: 0 0 26%;
 	width: 26%;
-	height: 120px;
-	float: left;
+	box-sizing: border-box;
 	overflow-y: auto;
 	overflow-x: hidden;
-	padding-top: 5px;
-	padding-left: 3px;
-}
-#ChatRoom .content .owner {
-	color: #36716d;
-}
-
-#ChatRoom .send {
-	height: 30px;
-	position: relative;
-	padding-left: 5px;
-}
-#ChatRoom .send input {
-	width: 100%;
-	height: 20px;
-	padding: 0px;
-	border: none;
-	border-top: 1px solid #ccc;
-}
-
-#ChatRoom .overlay {
-	position: absolute;
-	display: none;
-	white-space: nowrap;
-	z-index: 900;
-	height: 13px;
-	padding: 5px;
-	background: rgba(0, 0, 0, 0.7);
-	color: white;
-	text-shadow: 1px 1px black;
-}
-#ChatRoom .overlay.grey {
-	color: #aaa;
-}
-
-#ChatRoom .extend {
-	width: 13px;
-	height: 13px;
-	border: none;
-	background-repeat: no-repeat;
-	background-color: transparent;
-	position: absolute;
-	bottom: 0px;
-	right: 0px;
+	padding: var(--sp-2) var(--sp-2) var(--sp-2) var(--sp-3);
+	font-size: 12px;
 }
 
 #ChatRoom .content .members span.member {
 	cursor: pointer;
 }
 #ChatRoom .content .members span.member:hover {
+	color: var(--text-link);
 	text-decoration: underline;
 }
+/* Dono da sala: destaque de ouro em detalhe (nome), nunca superficie --
+   regra de ouro do design system. */
 #ChatRoom .content .members span.owner {
-	font-weight: bold;
+	font-weight: var(--fw-bold);
+	color: var(--gold-700);
+}
+
+/* ─── Rodape: campo de mensagem + grip de redimensionar ────────────────── */
+
+#ChatRoom .send {
+	position: relative;
+	display: flex;
+	align-items: center;
+	height: 30px;
+	padding: 0 var(--sp-6) 0 var(--sp-3);
+	border-top: var(--divider);
+	background: var(--surface-glass);
+}
+
+#ChatRoom .send .sendmsg {
+	flex: 1 1 auto;
+	height: 22px;
+	box-sizing: border-box;
+}
+
+/* Dica flutuante (item pairado, se algum dia for usada) -- capsula de vidro
+   escuro, a receita do design system para texto sobre o mundo/sobre outra
+   janela, nunca uma faixa solida. */
+#ChatRoom .overlay {
+	position: absolute;
+	display: none;
+	white-space: nowrap;
+	z-index: 900;
+	padding: var(--sp-2) var(--sp-3);
+	background: var(--surface-dark-glass);
+	backdrop-filter: var(--blur-glass);
+	border-radius: var(--radius-card);
+	color: var(--white);
+	text-shadow: 0 1px 2px rgba(12, 34, 64, 0.55);
+	font: var(--type-desc);
+}
+#ChatRoom .overlay.grey {
+	color: color-mix(in srgb, var(--white) 65%, transparent);
+}
+
+/* Grip de redimensionar desenhado em CSS -- btn_resize.bmp saiu (mesmo
+   tratamento do PartyFriends: listras diagonais via gradiente). */
+#ChatRoom .extend {
+	position: absolute;
+	right: 4px;
+	bottom: 4px;
+	width: 12px;
+	height: 12px;
+	border: none;
+	padding: 0;
+	background: none;
+	cursor: nwse-resize;
+}
+#ChatRoom .extend::after {
+	content: '';
+	position: absolute;
+	inset: 0;
+	background: linear-gradient(
+		135deg,
+		transparent 0 40%,
+		var(--border-hairline) 40% 46%,
+		transparent 46% 60%,
+		var(--border-hairline) 60% 66%,
+		transparent 66% 100%
+	);
 }

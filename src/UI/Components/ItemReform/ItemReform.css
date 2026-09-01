@@ -11,44 +11,19 @@
 	left: 0px;
 	height: 100%;
 	width: 100%;
-	background-repeat: no-repeat;
-	background-color: transparent;
-	border-radius: 10px;
-}
-#ItemReform .titlebar {
-	width: 100%;
-	height: 17px;
+	box-sizing: border-box;
+	background: var(--window-fill);
+	border: var(--window-frame);
+	border-radius: var(--radius-window);
+	box-shadow: var(--window-shadow), var(--rim-light);
+	overflow: hidden;
 }
 #ItemReform .titlebar .base {
-	width: 11px;
-	height: 11px;
-	border: none;
-	background-color: transparent;
-	background-repeat: no-repeat;
-	vertical-align: middle;
-}
-#ItemReform .titlebar .item_text {
-	text-shadow: 1px 1px white;
-	vertical-align: -2px;
-	white-space: nowrap;
-	/* chrome bug */
-	display: inline-block;
-	width: 32px;
-	height: 13px;
-	font-size: 11px;
-	font-weight: bold;
-}
-
-#ItemReform .titlebar .left {
-	margin-left: 3px;
-	float: left;
-}
-#ItemReform .titlebar .right {
-	float: right;
-	margin-right: 3px;
-}
-#ItemReform .titlebar .clear {
-	clear: both;
+	position: absolute;
+	left: 0;
+	top: 0;
+	width: 20px;
+	height: 100%;
 }
 
 #ItemReform .overlay {
@@ -56,25 +31,29 @@
 	display: none;
 	white-space: nowrap;
 	z-index: 900;
-	height: 15px;
-	line-height: 15px;
-	border-radius: 3px;
-	padding: 4px;
-	background: rgba(0, 0, 0, 0.7);
-	color: white;
-	text-shadow: 1px 1px black;
+	border-radius: var(--radius-card);
+	padding: var(--sp-2) var(--sp-4);
+	background: var(--surface-dark-glass);
+	backdrop-filter: var(--blur-glass);
+	-webkit-backdrop-filter: var(--blur-glass);
+	color: var(--white);
+	font: var(--type-desc);
+	text-shadow: 0 1px 2px rgba(8, 22, 40, 0.85);
 }
 
+/* Altura recalibrada em -17px: a .ri-header oficial (34px) substituiu a
+   barra antiga de 17px, e o rodape fica ancorado no fundo (bottom:0) --
+   sem este ajuste o painel passava por cima dele. */
 #ItemReform .panel {
 	width: 100%;
 	position: absolute;
-	height: 215px;
+	height: 198px;
 	display: flex;
 }
 
 #ItemReform .left_panel {
 	left: 0px;
-	height: 215px;
+	height: 198px;
 	width: 100%;
 }
 
@@ -86,7 +65,7 @@
 	flex-direction: column;
 	overflow: auto;
 	display: inline-flex;
-	height: 215px;
+	height: 198px;
 	width: 218px;
 	gap: 5px;
 }
@@ -165,6 +144,8 @@
 	left: 48px;
 	text-align: center;
 	text-decoration: underline;
+	color: var(--text-link);
+	font: var(--type-desc);
 }
 
 #ItemReform .material_list {
@@ -201,7 +182,7 @@
 }
 
 #ItemReform .red {
-	color: red;
+	color: var(--red-600);
 }
 
 #ItemReform .footer {
@@ -233,7 +214,7 @@
 	left: 15px;
 	font-size: 1em;
 	align-content: center;
-	color: red;
+	color: var(--red-600);
 }
 
 #ItemReform .cancel,
@@ -241,9 +222,8 @@
 #ItemReform .reform_disabled {
 	height: 20px;
 	width: 56px;
-	background-repeat: no-repeat;
-	background-color: transparent;
-	border: 0;
+	padding: 0;
+	font-size: var(--fs-badge);
 }
 
 #ItemReform .cancel {
@@ -257,13 +237,4 @@
 	position: absolute;
 	bottom: 4px;
 	right: 5px;
-	background-size: 56px 20px;
-	background-repeat: no-repeat;
-	text-align: center;
-	line-height: 20px;
-}
-
-#ItemReform .reform_disabled {
-	text-shadow: -1px -1px white;
-	color: gray;
 }

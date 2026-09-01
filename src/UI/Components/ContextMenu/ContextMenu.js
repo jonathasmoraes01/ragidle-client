@@ -19,8 +19,24 @@ const ContextMenu = new GUIComponent('ContextMenu', cssText);
 
 /**
  * Render HTML
+ *
+ * O markup nasce aqui (nao ha ContextMenu.html): o overlay de tela cheia que
+ * fecha no clique fora, mais o container ".menu" onde addElement()/
+ * nextGroup() penduram os itens dinamicamente. A classe "ri-card" (Fase 3,
+ * 01/09/2026) da a pele de design system ao container — fundo, borda, raio,
+ * sombra — sem mexer no que o JS consulta (".menu" continua o mesmo seletor).
  */
-ContextMenu.render = () => '<div id="ContextMenu"><div class="menu"></div></div>';
+ContextMenu.render = () => '<div id="ContextMenu"><div class="menu ri-card"></div></div>';
+
+/* NAO recebe riAnimaJanela: diferente das janelas (titulo + fechar, abrir/
+   fechar deliberado do jogador), este e um menu de clique-direito -- nasce e
+   morre em resposta imediata ao mouse, varias vezes por minuto, sem chrome
+   proprio (sem .ri-header/.ri-title). Um fade de framework aqui teria dois
+   efeitos ruins: o menu pareceria atrasado abrindo, e o overlay que fecha no
+   mousedown ficaria ~150ms "fantasma" ainda pintado (mesma familia de defeito
+   que o clique-vaza ja cicatrizou neste projeto). Instantaneo e o
+   comportamento certo para este tipo de popup -- decisao registrada aqui, nao
+   silenciosa. */
 
 /**
  * @var {boolean} focus this UI

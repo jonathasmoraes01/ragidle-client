@@ -11,44 +11,19 @@
 	left: 0px;
 	height: 100%;
 	width: 100%;
-	background-repeat: no-repeat;
-	background-color: transparent;
-	border-radius: 10px;
-}
-#LaphineUpg .titlebar {
-	width: 100%;
-	height: 17px;
+	box-sizing: border-box;
+	background: var(--window-fill);
+	border: var(--window-frame);
+	border-radius: var(--radius-window);
+	box-shadow: var(--window-shadow), var(--rim-light);
+	overflow: hidden;
 }
 #LaphineUpg .titlebar .base {
-	width: 11px;
-	height: 11px;
-	border: none;
-	background-color: transparent;
-	background-repeat: no-repeat;
-	vertical-align: middle;
-}
-#LaphineUpg .titlebar .item_text {
-	text-shadow: 1px 1px white;
-	vertical-align: -2px;
-	white-space: nowrap;
-	/* chrome bug */
-	display: inline-block;
-	width: 32px;
-	height: 13px;
-	font-size: 11px;
-	font-weight: bold;
-}
-
-#LaphineUpg .titlebar .left {
-	margin-left: 3px;
-	float: left;
-}
-#LaphineUpg .titlebar .right {
-	float: right;
-	margin-right: 3px;
-}
-#LaphineUpg .titlebar .clear {
-	clear: both;
+	position: absolute;
+	left: 0;
+	top: 0;
+	width: 20px;
+	height: 100%;
 }
 
 #LaphineUpg .overlay {
@@ -56,25 +31,28 @@
 	display: none;
 	white-space: nowrap;
 	z-index: 900;
-	height: 15px;
-	line-height: 15px;
-	border-radius: 3px;
-	padding: 4px;
-	background: rgba(0, 0, 0, 0.7);
-	color: white;
-	text-shadow: 1px 1px black;
+	border-radius: var(--radius-card);
+	padding: var(--sp-2) var(--sp-4);
+	background: var(--surface-dark-glass);
+	backdrop-filter: var(--blur-glass);
+	-webkit-backdrop-filter: var(--blur-glass);
+	color: var(--white);
+	font: var(--type-desc);
+	text-shadow: 0 1px 2px rgba(8, 22, 40, 0.85);
 }
 
+/* Altura recalibrada em -17px (a .ri-header oficial e' 34px, era 17px) --
+   sem "top" proprio, .panel cai na posicao estatica logo apos a .titlebar. */
 #LaphineUpg .panel {
 	width: 100%;
 	position: absolute;
-	height: 233px;
+	height: 216px;
 }
 
 #LaphineUpg .left_panel {
 	position: absolute;
 	left: 0px;
-	height: 205px;
+	height: 188px;
 	width: 225px;
 }
 
@@ -93,14 +71,14 @@
 	top: 9px;
 	text-align: center;
 	font-size: 0.9em;
-	color: #527bce;
+	color: var(--accent);
 }
 
 #LaphineUpg .mat_info_list {
 	position: relative;
 	height: 15px;
 	top: 8px;
-	color: #424a84;
+	color: var(--text-title);
 	text-align: center;
 	font-size: 0.9em;
 	width: 230px;
@@ -108,7 +86,7 @@
 
 #LaphineUpg .available_mat_list {
 	position: absolute;
-	height: 205px;
+	height: 188px;
 	width: 146px;
 	left: 245px;
 	overflow: auto;
@@ -130,12 +108,14 @@
 	background-repeat: no-repeat;
 }
 
+/* Indisponivel: receita oficial de "bloqueado" (grayscale + opacidade). */
 #LaphineUpg .available_mat_list .item.unselectable .icon {
-	filter: sepia(1) hue-rotate(300deg) saturate(2);
+	filter: grayscale(1);
+	opacity: 0.55;
 }
 
 #LaphineUpg .available_mat_list .item.unselectable .name {
-	color: gray;
+	color: var(--text-muted);
 }
 
 #LaphineUpg .available_mat_list .name {
@@ -146,14 +126,21 @@
 	width: 104px;
 	align-content: center;
 	height: 30px;
-	background-size: 0px;
+	border-radius: var(--radius-card);
+	padding: 0 var(--sp-2);
+	box-sizing: border-box;
+	color: var(--text-body);
 	white-space: nowrap;
 	overflow: hidden;
 	text-overflow: ellipsis;
+	transition: background var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out);
 }
 
+/* Selecionado = borda de acento + tinta de acento (regra de estado da
+   casa); antes era um "background-size:cover" sem imagem nenhuma. */
 #LaphineUpg .available_mat_list .name.selected {
-	background-size: cover;
+	background: color-mix(in srgb, var(--accent) 12%, var(--white));
+	box-shadow: inset 0 0 0 1px var(--accent);
 }
 
 #LaphineUpg .submit_button_enabled,
@@ -163,14 +150,16 @@
 	width: 24px;
 	top: 93px;
 	left: 213px;
-	background: no-repeat;
+	padding: 0;
+	font-size: 12px;
+	line-height: 1;
 }
 
 #LaphineUpg .scroll_hider {
 	position: absolute;
-	height: 204px;
+	height: 187px;
 	width: 8px;
-	background-color: #f7f7ff;
+	background-color: var(--paper-1);
 	right: 8px;
 	top: 1px;
 }
@@ -220,13 +209,6 @@
 	top: 4px;
 }
 
-#LaphineUpg .notif {
-	position: absolute;
-	height: 13px;
-	width: 14px;
-	top: 4px;
-}
-
 #LaphineUpg .info_msg {
 	position: absolute;
 	height: 20px;
@@ -234,7 +216,7 @@
 	left: 15px;
 	font-size: 1em;
 	align-content: center;
-	color: blue;
+	color: var(--text-link);
 }
 
 #LaphineUpg .cancel,
@@ -242,6 +224,8 @@
 #LaphineUpg .make_disabled {
 	height: 20px;
 	width: 56px;
+	padding: 0;
+	font-size: var(--fs-badge);
 }
 
 #LaphineUpg .cancel {

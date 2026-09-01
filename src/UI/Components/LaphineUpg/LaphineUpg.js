@@ -26,6 +26,8 @@ import PACKET from 'Network/PacketStructure.js';
  * Create Component
  */
 const LaphineUpg = new GUIComponent('LaphineUpg', cssText);
+/* Janela entra/sai com a animacao unica (Fase 3, 01/09/2026). */
+LaphineUpg.riAnimaJanela = true;
 
 /**
  * @var {object} LaphineUpgUIState

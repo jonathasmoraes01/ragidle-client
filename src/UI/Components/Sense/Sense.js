@@ -24,6 +24,9 @@ const Sense = new GUIComponent('Sense', cssText);
 
 Sense.render = () => htmlText;
 
+/* Janela entra/sai com a animacao unica (Fase 3, 01/09/2026). */
+Sense.riAnimaJanela = true;
+
 let Elements = [];
 let Sizes = [];
 let Races = [];

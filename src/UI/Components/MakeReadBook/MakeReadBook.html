@@ -1,6 +1,13 @@
+<!-- Fase 3 (01/09/2026): a moldura do livro saiu do bitmap
+     (basic_interface/titlebar_mid.bmp) e entrou no design system; o miolo
+     (paginas, cor por livro, marcador e setas em sprite .spr) continua sendo
+     arte real do GRF -- nao mexido. Selectors que MakeReadBook.js consulta,
+     todos preservados: .titlebar (arraste) / #titleBook / #pageBook / .panel
+     / .head / #highlighter / .bookmark / #next_previous / .previous / .next
+     / .body / #textBook / .footer. -->
 <div id="MakeReadBook">
-	<div class="titlebar" data-background="basic_interface/titlebar_mid.bmp">
-		<div class="title"><span class="text" id="titleBook"></span> <span class="text" id="pageBook">(1/3)</span></div>
+	<div class="titlebar ri-header">
+		<div class="title ri-title"><span class="text" id="titleBook"></span> <span class="text" id="pageBook">(1/3)</span></div>
 	</div>
 	<div class="panel">
 		<div class="head">

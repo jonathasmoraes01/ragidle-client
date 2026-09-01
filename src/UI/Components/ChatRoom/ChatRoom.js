@@ -39,6 +39,9 @@ const ChatRoom = new GUIComponent('ChatRoom', cssText);
  */
 ChatRoom.render = () => htmlText;
 
+/* Janela entra/sai com a animacao unica (Fase 3, 01/09/2026). */
+ChatRoom.riAnimaJanela = true;
+
 /**
  * @var {string} Chat Room title
  */

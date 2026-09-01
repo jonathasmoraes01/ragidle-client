@@ -41,6 +41,9 @@ const ConvertItems = new GUIComponent('ConvertItems', cssText);
 
 ConvertItems.render = () => htmlText;
 
+/* Janela entra/sai com a animacao unica (Fase 3, 01/09/2026). */
+ConvertItems.riAnimaJanela = true;
+
 /**
  * Sanitize HTML, allowing only whitelisted tags (font, i, b)
  */
@@ -138,7 +141,7 @@ ConvertItems.addItem = function addItem(item) {
 	div.setAttribute('data-index', item.index);
 	div.setAttribute('draggable', 'true');
 	div.innerHTML =
-		'<div class="icon"></div>' +
+		'<div class="icon ri-tile"></div>' +
 		'<div class="amount">' +
 		(item.count ? `<span class="count">${item.count}</span> ` : '') +
 		'</div>' +

@@ -21,6 +21,9 @@ const MakeModelMessage = new GUIComponent('MakeModelMessage', cssText);
 
 MakeModelMessage.render = () => htmlText;
 
+/* Janela entra/sai com a animacao unica (Fase 3, 01/09/2026). */
+MakeModelMessage.riAnimaJanela = true;
+
 /**
  * Initialize UI
  */

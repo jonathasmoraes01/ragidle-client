@@ -1,3 +1,14 @@
+/* Fase 3 (01/09/2026): ItemSelection no design system. Janela minúscula
+   (200px) — o miolo (.head/.content/.list) não forma uma caixa única com
+   altura própria (só ".bottom" está no fluxo normal; ".head" e ".content"
+   são absolutos, cicatriz do skin original), então NÃO existe um
+   "#ItemSelection { overflow:hidden/border-radius/box-shadow }" único como
+   nas janelas grandes — cada pedaço carrega sua própria pele, exatamente
+   como o arquivo original já fazia por pedaço. As "asas" douradas do título
+   (44px cada) não cabem aqui e saem (mesma solução que BasicInfoIdle.css já
+   documenta para janelas estreitas). DIMENSÕES intocadas: :host, larguras e
+   alturas são as mesmas de sempre — ItemSelection.js mede/posiciona pelo
+   :host em onAppend(). */
 :host {
 	width: 200px;
 	top: 0px;
@@ -14,14 +25,17 @@
 	height: 22px;
 	top: 0px;
 	left: 0px;
-	background-repeat: repeat-x;
-	background-color: white;
+	box-sizing: border-box;
+	padding: 0 var(--sp-4);
 }
 #ItemSelection .head .text {
-	position: relative;
-	top: 2px;
-	left: 5px;
+	font-size: 11px;
 	white-space: nowrap;
+}
+/* Sem as asas do design system: 44px cada não cabe em 200px de janela. */
+#ItemSelection .head .text::before,
+#ItemSelection .head .text::after {
+	content: none;
 }
 #ItemSelection .bottom {
 	position: relative;
@@ -34,21 +48,31 @@
 	position: absolute;
 	top: 22px;
 	left: 0px;
-	background-color: white;
 	width: 100%;
+	box-sizing: border-box;
+	background: var(--surface-glass);
 }
 #ItemSelection .list {
-	background-color: #f7f7f7;
+	background: var(--surface-inset);
 	height: 130px;
 	overflow-y: auto;
 	margin-left: 10px;
 	margin-right: 10px;
+	border-radius: var(--radius-card);
+	box-shadow: var(--well-shadow);
 }
 #ItemSelection .list .item {
 	display: block;
 	height: 28px;
 	margin: 4px 4px 4px 4px;
 	position: relative;
+	border-radius: var(--radius-card);
+	transition: background var(--dur-fast) var(--ease-out);
+}
+/* Selecionado = borda de acento + tinta, nunca só espessura (regra do DS). */
+#ItemSelection .list .item.is-selecionado {
+	background: color-mix(in srgb, var(--accent) 16%, transparent);
+	box-shadow: inset 0 0 0 1px var(--accent);
 }
 #ItemSelection .list .item .icon {
 	width: 24px;
@@ -56,6 +80,7 @@
 	border: none;
 	background-color: transparent;
 	background-repeat: no-repeat;
+	background-position: center;
 }
 #ItemSelection .list .item .name {
 	position: absolute;
@@ -63,17 +88,21 @@
 	left: 30px;
 	width: 90px;
 	white-space: nowrap;
+	font: var(--type-info);
+	color: var(--text-body);
 }
 
-#ItemSelection ui-button.btn {
+#ItemSelection .btn {
 	position: absolute;
 	bottom: 4px;
-	width: 42px;
+	width: 70px;
 	height: 20px;
+	padding: 0;
+	font-size: var(--fs-desc);
 }
 #ItemSelection .ok {
-	right: 50px;
+	right: 78px;
 }
 #ItemSelection .cancel {
-	right: 5px;
+	right: 4px;
 }

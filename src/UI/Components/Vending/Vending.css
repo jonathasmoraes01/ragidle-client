@@ -1,3 +1,12 @@
+/* Fase 3 (01/09/2026): a bancada de venda no design system. As duas mini-
+   janelas (InputWindow 280px / OutputWindow 400px) sao as mesmas larguras de
+   sempre -- so a pele mudou. A altura de cada uma continua IMPLICITA (soma de
+   titlebar + container + footer), porque Vending.js mede o .content pra
+   arrastar/reposicionar (onAppend/onRemove) -- nada aqui fixa uma altura que
+   pudesse brigar com essa medida. A grade de itens usa linhas de EXATAMENTE
+   32px (.content .item = 28px + padding-top 4px; .item-container = 32x32):
+   resize() calcula altura em multiplos de 32, entao esses dois numeros sao
+   INTOCAVEIS mesmo na reforma. */
 :host {
 	width: 100%;
 	height: 100%;
@@ -10,159 +19,72 @@
 	width: 100%;
 	height: 100%;
 }
+
+#vending .InputWindow {
+	width: 280px;
+	position: absolute;
+	z-index: 50;
+	display: flex;
+	flex-direction: column;
+}
+#vending .OutputWindow {
+	width: 400px;
+	position: absolute;
+	z-index: 50;
+	display: flex;
+	flex-direction: column;
+}
+
+/* ─── Titulo -- as duas mini-janelas sao estreitas demais para as asas e a
+   serifa no tamanho padrao (o pivo era pensado para janela de 480px+), entao
+   o encaixe encolhe as duas sem trocar a receita. ───────────────────────── */
 #vending .titlebar {
-	width: 100%;
-	height: 17px;
-	background-color: white;
-	background-repeat: repeat-x;
-	border-radius: 3px 3px 0px 0px;
-	text-shadow: 1px 1px white;
-	font-size: 11px;
-	font-weight: bold;
+	flex: 0 0 auto;
+	height: 30px;
+	padding: 0 var(--sp-4);
+	overflow: hidden;
 }
-#vending .titlebar .text {
-	position: relative;
-	top: 2px;
-	left: 15px;
+#vending .ri-title {
+	font-size: 12px;
+	gap: var(--sp-2);
+	max-width: 100%;
+}
+#vending .ri-title::before,
+#vending .ri-title::after {
+	width: 18px;
+	height: 12px;
+}
+/* Texto real (o rotulo troca por WinSell/WinBuy conforme o tipo de banca) --
+   ellipsis de seguranca: a string que vem do banco de mensagens pode ser mais
+   longa que o ingles de referencia. */
+#vending .titlebar .WinSell,
+#vending .titlebar .WinBuy {
+	display: inline-block;
+	max-width: 190px;
+	overflow: hidden;
+	text-overflow: ellipsis;
 	white-space: nowrap;
-}
-#vending .footer {
-	width: 100%;
-	height: 27px;
-	background-repeat: repeat-x;
-	background-color: transparent;
-	position: relative;
-	border-radius: 0px 0px 3px 3px;
-}
-#vending .resize {
-	position: absolute;
-	right: 1px;
-	bottom: 1px;
-	width: 13px;
-	height: 13px;
-	border: none;
-	background-repeat: no-repeat;
-	background-color: transparent;
-}
-#vending .btn {
-	width: 42px;
-	height: 20px;
-	border: none;
-	margin: 0;
-	background-color: transparent;
-	background-repeat: no-repeat;
-}
-#vending .selectall {
-	vertical-align: 2px;
-	width: 10px;
-	height: 10px;
-	border: none;
-	background-color: transparent;
-	background-repeat: no-repeat;
-}
-#vending .ask_quantity {
-	padding-top: 7px;
-	padding-left: 20px;
+	vertical-align: bottom;
 }
 
-#vending .nstore {
-	position: absolute;
-	top: 24px;
-	border: none;
-	padding-left: 2px;
-	outline: none;
+/* ─── Corpo do estoque disponivel (InputWindow) ─────────────────────────── */
+#vending .InputWindow .container {
+	flex: 1 1 auto;
+	min-height: 0;
+	padding: var(--sp-4);
+	box-sizing: border-box;
+	background: var(--surface-glass);
 }
-#vending .limit {
-	position: absolute;
-	top: 8px;
-	border: none;
-	padding-left: 5px;
-	outline: none;
-}
-#vending input.shopname {
-	position: absolute;
-	left: 55px;
-	width: 310px;
-	border: none;
-	background-color: #e9e9e9;
-	padding-left: 2px;
-	outline: none;
-}
-#vending input.shopname {
-	top: 22px;
-}
-#vending input.limitZeny {
-	top: 6px;
-}
-#vending input.limitZeny {
-	position: absolute;
-	left: 120px;
-	width: 100px;
-	border: none;
-	background-color: #e9e9e9;
-	padding-left: 2px;
-	outline: none;
-}
-
-#vending .content .item-container {
-	width: 32px;
-	height: 32px;
-	display: block;
-	float: left;
-	clear: both;
-}
-#vending .content .damaged {
-	background-color: red;
-	background-blend-mode: luminosity;
-}
-#vending .container {
-	padding-left: 16px;
-	border-right: 1px solid #ccc;
-	background: white;
-	background-repeat: repeat-y;
-	padding-right: 2px;
-	padding-top: 5px;
-	padding-bottom: 5px;
-}
-#vending .container .overlay {
-	position: absolute;
-	display: none;
-	white-space: nowrap;
-	z-index: 900;
-	height: 15px;
-	line-height: 15px;
-	border-radius: 3px;
-	padding: 4px;
-	background: rgba(0, 0, 0, 0.7);
-	color: white;
-	text-shadow: 1px 1px black;
-}
-#vending .content {
-	overflow-y: auto;
-	width: 100%;
-	height: 100%;
-	min-height: 65px;
-	background-color: transparent;
-	background-repeat: repeat-y;
-}
-#vending .content .add_shop {
-	margin-top: 10px;
-}
-#vending .content .item {
-	display: block;
-	position: relative;
-	height: 28px;
-	padding-top: 4px;
-}
-#vending .content .item.selected {
-	background-color: #346ae180;
-}
-
 #vending .content.available {
 	width: 100%;
 	height: 100%;
 	min-height: 65px;
-	background-color: transparent;
+	box-sizing: border-box;
+	background: var(--well-fill);
+	border-radius: var(--radius-panel);
+	box-shadow: var(--well-shadow);
+	padding: var(--sp-2);
+	overflow-y: auto;
 	background-repeat: repeat;
 }
 #vending .content.available .item {
@@ -174,7 +96,118 @@
 	padding-top: 4px;
 }
 #vending .content.available .item.selected {
+	background: transparent;
+	box-shadow: none;
+}
+
+#vending .InputWindow .footer {
+	flex: 0 0 auto;
+	height: 26px;
+	padding: 0 var(--sp-3);
+	box-sizing: border-box;
+	background: var(--surface-glass);
+	border-top: var(--divider);
+	border-radius: 0 0 var(--radius-window) var(--radius-window);
+	display: flex;
+	align-items: center;
+	justify-content: flex-end;
+}
+/* O botao de redimensionar era um bitmap (btn_resize.bmp); virou um triangulo
+   desenhado em CSS, mesma cor de acento dos outros indicadores de interacao. */
+#vending .InputWindow .footer .extend {
+	position: relative;
+	width: 16px;
+	height: 16px;
+	border: none;
 	background-color: transparent;
+	cursor: ns-resize;
+	padding: 0;
+}
+#vending .InputWindow .footer .extend::before {
+	content: '';
+	position: absolute;
+	right: 1px;
+	bottom: 1px;
+	width: 0;
+	height: 0;
+	border-style: solid;
+	border-width: 0 0 9px 9px;
+	border-color: transparent transparent var(--accent) transparent;
+	opacity: 0.55;
+	transition: opacity var(--dur-fast) var(--ease-out);
+}
+#vending .InputWindow .footer .extend:hover::before {
+	opacity: 1;
+}
+
+/* ─── Corpo da montagem da loja (OutputWindow) ──────────────────────────── */
+#vending .OutputWindow .container {
+	flex: 1 1 auto;
+	min-height: 0;
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: var(--sp-3);
+	padding: var(--sp-4) var(--sp-5);
+	box-sizing: border-box;
+	background: var(--surface-glass);
+}
+#vending .nstore {
+	flex: 0 0 auto;
+	font: var(--type-label);
+	color: var(--text-muted);
+}
+#vending input.shopname {
+	flex: 1 1 auto;
+	min-width: 0;
+	box-sizing: border-box;
+}
+#vending .content.add_shop {
+	flex: 1 1 100%;
+	width: 100%;
+	box-sizing: border-box;
+	background: var(--well-fill);
+	border-radius: var(--radius-panel);
+	box-shadow: var(--well-shadow);
+	padding: var(--sp-2);
+	margin-top: 0;
+}
+
+/* ─── Grade/lista de itens -- compartilhada pelas duas mini-janelas ─────── */
+#vending .content {
+	overflow-y: auto;
+	width: 100%;
+	height: 100%;
+	min-height: 65px;
+	background-color: transparent;
+	background-repeat: repeat-y;
+}
+#vending .content .item-container {
+	width: 32px;
+	height: 32px;
+	display: block;
+	float: left;
+	clear: both;
+}
+#vending .content .damaged {
+	background-color: var(--red-600);
+	background-blend-mode: luminosity;
+}
+#vending .content .item {
+	display: block;
+	position: relative;
+	height: 28px;
+	padding-top: 4px;
+	border-radius: var(--radius-card);
+	transition: filter var(--dur-fast) var(--ease-out);
+}
+#vending .content .item:hover {
+	filter: brightness(1.06);
+}
+/* Selecionado = borda de acento + tinta, nunca so espessura (regra do DS). */
+#vending .content .item.selected {
+	background: color-mix(in srgb, var(--accent) 22%, transparent);
+	box-shadow: inset 0 0 0 1px var(--accent);
 }
 
 #vending .content .item .icon {
@@ -183,17 +216,25 @@
 	left: 4px;
 	width: 24px;
 	height: 24px;
-	border: none;
-	background-color: transparent;
+	border-radius: var(--radius-card);
+	background-color: var(--surface-inset);
 	background-repeat: no-repeat;
+	background-position: center;
+	background-size: contain;
+	box-shadow: inset 0 0 0 1px var(--border-hairline);
 }
 #vending .content .item .amount {
 	position: absolute;
-	white-space: nowrap;
 	top: 18px;
 	left: 18px;
+	white-space: nowrap;
 	text-align: left;
-	text-shadow: -1px -1px white;
+	font: var(--type-badge);
+	color: var(--text-title);
+	background: var(--surface-card-hover);
+	border-radius: var(--radius-bar);
+	padding: 0 3px;
+	pointer-events: none;
 }
 #vending .content .item .amount_ {
 	position: absolute;
@@ -201,7 +242,8 @@
 	top: 13px;
 	left: 200px;
 	text-align: left;
-	text-shadow: -1px -1px white;
+	font: var(--type-desc);
+	color: var(--text-muted);
 }
 #vending .content .item .name {
 	position: absolute;
@@ -209,6 +251,10 @@
 	left: 32px;
 	width: 115px;
 	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	font: var(--type-info);
+	color: var(--text-body);
 }
 #vending .content .item .price {
 	position: absolute;
@@ -216,6 +262,8 @@
 	left: 260px;
 	white-space: nowrap;
 	text-align: right;
+	font: var(--type-numeric);
+	color: var(--zeny);
 }
 #vending .content .item .unity {
 	position: absolute;
@@ -224,64 +272,70 @@
 	width: 10px;
 }
 
-#vending .footer .total,
-#vending .footer .totalP,
-#vending .footer .cashuser {
-	padding-left: 10px;
-	padding-top: 8px;
-}
-#vending .footer .extend {
+/* ─── Dica flutuante ao passar o mouse num item do estoque ──────────────── */
+#vending .container .overlay {
 	position: absolute;
-	right: 0px;
-	bottom: 1px;
-	width: 13px;
-	height: 13px;
-	border: none;
-	background-repeat: no-repeat;
-	background-color: transparent;
+	display: none;
+	white-space: nowrap;
+	z-index: 900;
+	border-radius: var(--radius-card);
+	padding: 3px 8px;
+	background: var(--surface-dark-glass);
+	backdrop-filter: var(--blur-glass);
+	color: var(--white);
+	text-shadow: 0 1px 2px rgba(8, 22, 40, 0.85);
+	font: var(--type-desc);
 }
-#vending .InputWindow {
-	width: 280px;
-	position: absolute;
-	z-index: 50;
-}
-#vending .OutputWindow {
-	width: 400px;
-	position: absolute;
-	z-index: 50;
-}
-#vending .btn.buy,
-#vending .btn.sell {
-	position: absolute;
-	top: 4px;
-	right: 62px;
-}
-#vending .zeny {
-	position: absolute;
-	top: 8px;
-	left: 230px;
-}
-#vending .btn.cancel {
-	position: absolute;
-	top: 4px;
-	right: 15px;
+
+/* ─── Rodape com zeny/peso (so aparece na banca de COMPRA) ──────────────── */
+#vending .footer.WinBuy {
+	flex: 0 0 auto;
+	display: flex;
+	align-items: center;
+	gap: var(--sp-5);
+	padding: var(--sp-2) var(--sp-5);
+	box-sizing: border-box;
+	background: var(--surface-glass);
+	border-top: var(--divider);
 }
 #vending .zenyLabel,
-#vending .zenySpan,
-#vending .weightLabel,
-#vending .weightSpan {
-	position: absolute;
-	top: 10px;
-}
-#vending .zenyLabel {
-	left: 5px;
+#vending .weightLabel {
+	font: var(--type-label);
+	color: var(--text-muted);
 }
 #vending .zenySpan {
-	left: 40px;
-}
-#vending .weightLabel {
-	left: 215px;
+	font: var(--type-numeric);
+	color: var(--zeny);
+	font-variant-numeric: tabular-nums;
 }
 #vending .weightSpan {
-	left: 260px;
+	font: var(--type-numeric);
+	color: var(--text-body);
+	font-variant-numeric: tabular-nums;
+}
+
+/* ─── Rodape de confirmar/cancelar (+ limite de zeny na banca de compra) ── */
+#vending .OutputWindow .footer:last-of-type {
+	flex: 0 0 auto;
+	display: flex;
+	align-items: center;
+	gap: var(--sp-3);
+	padding: var(--sp-3) var(--sp-5);
+	box-sizing: border-box;
+	background: var(--surface-glass);
+	border-top: var(--divider);
+	border-radius: 0 0 var(--radius-window) var(--radius-window);
+}
+#vending .limit,
+#vending .zeny {
+	font: var(--type-label);
+	color: var(--text-muted);
+	white-space: nowrap;
+}
+#vending input.limitZeny {
+	width: 90px;
+	box-sizing: border-box;
+}
+#vending .OutputWindow .footer:last-of-type .btn.sell {
+	margin-left: auto;
 }

@@ -1,26 +1,23 @@
+<!-- Fase 3 (01/09/2026): a paleta de emotes saiu do titlebar bitmap
+     (titlebar_mid.bmp, sys_base_*, sys_close_*) e virou janela do design
+     system. Ganchos que Emoticons.js consulta, todos preservados: .titlebar
+     (alca de arrasto) / .close (fechar) / .content (grade de canvases) /
+     .prev .next .current .total (paginacao). O botao "base" decorativo do
+     canto esquerdo (sem funcao alem do bitmap, so tinha um guarda de
+     stopImmediatePropagation generico) saiu — o header agora e so titulo +
+     fechar, como o resto do design system; o loop que o procurava em
+     Emoticons.js so itera sobre o que existe, entao continua seguro. -->
 <div id="Emoticons">
-	<div class="titlebar" data-background="basic_interface/titlebar_mid.bmp">
-		<div class="left">
-			<button
-				class="base"
-				data-background="basic_interface/sys_base_off.bmp"
-				data-hover="basic_interface/sys_base_on.bmp"
-			></button>
-			<span class="text" data-text="542">Emotion icon List</span>
+	<div class="eo-janela ri-window">
+		<div class="titlebar ri-header">
+			<span class="ri-title">Emoticons</span>
+			<button class="close ri-close" title="Fechar">&times;</button>
 		</div>
-		<div class="right">
-			<button
-				class="base close"
-				data-background="basic_interface/sys_close_off.bmp"
-				data-hover="basic_interface/sys_close_on.bmp"
-			></button>
+		<div class="content"></div>
+		<div class="navigation">
+			<button class="prev">&lsaquo;</button>
+			<span class="current">1</span> / <span class="total">3</span>
+			<button class="next">&rsaquo;</button>
 		</div>
-		<div class="clear"></div>
-	</div>
-	<div class="content"></div>
-	<div class="navigation">
-		<button class="prev" data-text="1297"></button>
-		<span class="current">1</span> / <span class="total">3</span>
-		<button class="next" data-text="1298"></button>
 	</div>
 </div>

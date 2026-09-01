@@ -33,6 +33,9 @@ const MakeReadBook = new GUIComponent('MakeReadBook', cssText);
 
 MakeReadBook.render = () => htmlText;
 
+/* Janela entra/sai com a animacao unica (Fase 3, 01/09/2026). */
+MakeReadBook.riAnimaJanela = true;
+
 /**
  * @var {Preferences} structure
  */

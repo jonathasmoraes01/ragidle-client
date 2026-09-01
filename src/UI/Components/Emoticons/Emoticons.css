@@ -1,3 +1,5 @@
+/* Fase 3 (01/09/2026): paleta de emotes no design system. O :host mantem os
+   250x330 de sempre (o JS so posiciona por top/left, nao mede outra coisa). */
 :host {
 	width: 250px;
 	height: 330px;
@@ -11,75 +13,86 @@
 	height: 330px;
 }
 
-#Emoticons .titlebar {
+.eo-janela {
 	width: 100%;
-	height: 17px;
-	background-color: white;
-	background-repeat: repeat-x;
-	border-radius: 3px 3px 0px 0px;
-}
-#Emoticons .titlebar .base {
-	width: 11px;
-	height: 11px;
-	border: none;
-	background-color: transparent;
-	background-repeat: no-repeat;
-	vertical-align: middle;
-}
-#Emoticons .titlebar .text {
-	text-shadow: 1px 1px white;
-	vertical-align: -2px;
-	white-space: nowrap;
-	/* chrome bug */
-	display: inline-block;
-	width: 32px;
-	height: 13px;
-	font-size: 11px;
-	font-weight: bold;
+	height: 100%;
+	box-sizing: border-box;
+	display: flex;
+	flex-direction: column;
 }
 
-#Emoticons .titlebar .left {
-	margin-left: 3px;
-	float: left;
-}
-#Emoticons .titlebar .right {
-	float: right;
-	margin-right: 3px;
-}
-#Emoticons .titlebar .clear {
-	clear: both;
+.eo-janela .titlebar {
+	flex: 0 0 auto;
+	cursor: move;
 }
 
-#Emoticons .content {
-	height: 290px;
-	background-color: white;
-	padding-left: 10px;
+/* ─── Grade de emotes: os canvases (desenhados pelo JS a partir do .act/.spr
+   do cliente — a ARTE do emote continua bitmap, so a moldura ao redor virou
+   design system) preenchem em linhas, sem rolagem (30 por pagina cabem nos
+   290px originais). ────────────────────────────────────────────────────── */
+.content {
+	flex: 1 1 auto;
+	min-height: 0;
+	overflow: hidden;
+	display: flex;
+	flex-wrap: wrap;
+	align-content: flex-start;
+	gap: var(--sp-2);
+	padding: var(--sp-3);
 }
-#Emoticons .content canvas {
+
+.content canvas {
 	width: 40px;
 	height: 40px;
-	display: inline-block;
-	border-radius: 5px;
+	display: block;
+	border-radius: var(--radius-card);
 	border: 1px solid transparent;
-	margin: 2px;
+	cursor: pointer;
+	transition:
+		border-color var(--dur-fast) var(--ease-out),
+		box-shadow var(--dur-fast) var(--ease-out),
+		transform var(--dur-instant) var(--ease-out);
 }
-#Emoticons .content canvas:hover {
-	border: 1px solid #cfcfcf;
+.content canvas:hover {
+	border-color: var(--accent);
+	box-shadow: var(--glow-accent);
+}
+.content canvas:active {
+	transform: var(--press-shift);
 }
 
-#Emoticons .navigation {
-	text-align: center;
-	background-color: white;
-	border-radius: 0px 0px 3px 3px;
+/* ─── Paginacao ────────────────────────────────────────────────────────── */
+.navigation {
+	flex: 0 0 auto;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: var(--sp-3);
+	padding: var(--sp-2) var(--sp-4);
+	border-top: var(--titlebar-rule);
+	background: var(--surface-glass);
+	font: var(--type-label);
+	color: var(--text-muted);
+	font-variant-numeric: tabular-nums;
 }
-#Emoticons .navigation button {
+.navigation button {
+	appearance: none;
 	border: none;
 	background: none;
-	color: #e6b59c;
+	padding: 2px var(--sp-3);
+	border-radius: var(--radius-card);
+	color: var(--text-link);
+	font: var(--type-label);
+	line-height: 1;
+	cursor: pointer;
+	transition:
+		background var(--dur-fast) var(--ease-out),
+		color var(--dur-fast) var(--ease-out);
 }
-#Emoticons .navigation button:hover {
-	color: #ff9c9c;
+.navigation button:hover {
+	background: var(--surface-card-hover);
+	color: var(--text-link-hover);
 }
-#Emoticons .navigation button.disabled {
+.navigation button.disabled {
 	visibility: hidden;
 }

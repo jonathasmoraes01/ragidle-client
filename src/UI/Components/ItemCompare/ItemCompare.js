@@ -60,6 +60,9 @@ function _escapeHTML(text) {
  */
 const ItemCompare = new GUIComponent('ItemCompare', cssText);
 
+/* Janela entra/sai com a animacao unica (Fase 3, 01/09/2026). */
+ItemCompare.riAnimaJanela = true;
+
 ItemCompare.render = () => htmlText;
 
 /**
@@ -291,7 +294,10 @@ function addCard(cardList, itemId, index, slotCount) {
 
 	cardList.insertAdjacentHTML(
 		'beforeend',
-		`<div class="item" data-index="${index}"><div class="icon"></div>${name}</div>`
+		/* Fase 3: o ladrilho do ícone ganha a moldura padrão de item/carta do
+		   design system (".ri-tile", Common.css) -- a arte em si continua vindo
+		   do GRF, só a moldura ao redor mudou de dono. */
+		`<div class="item" data-index="${index}"><div class="icon ri-tile"></div>${name}</div>`
 	);
 
 	Client.loadFile(DB.INTERFACE_PATH + file, data => {
@@ -532,7 +538,9 @@ function validateFieldsExist(event) {
 	if (!event) {
 		const validExitElement =
 			'<div class="event_view">' +
-			'<button class="view" data-background="btn_view.bmp" data-down="btn_view_a.bmp" data-hover="btn_view_b.bmp"></button>' +
+			/* Fase 3: o botao "Ver" saiu do bitmap (btn_view*.bmp) e virou texto,
+			   pele ".ri-btn ri-btn--sec" (mesma troca da HTML estatica). */
+			'<button type="button" class="view ri-btn ri-btn--sec">Ver</button>' +
 			'<span class="overlay_open">' +
 			DB.getMessage(1294) +
 			'</span>' +
@@ -560,10 +568,7 @@ function validateFieldsExist(event) {
 	}
 
 	if (!event.querySelector('button')) {
-		event.insertAdjacentHTML(
-			'beforeend',
-			'<button class="view" data-background="btn_view.bmp" data-down="btn_view_a.bmp" data-hover="btn_view_b.bmp"></button>'
-		);
+		event.insertAdjacentHTML('beforeend', '<button type="button" class="view ri-btn ri-btn--sec">Ver</button>');
 	}
 
 	return true;

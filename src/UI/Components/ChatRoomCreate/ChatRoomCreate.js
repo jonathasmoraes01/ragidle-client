@@ -24,6 +24,9 @@ import InputBox from 'UI/Components/InputBox/InputBox.js';
  */
 const ChatRoomCreate = new GUIComponent('ChatRoomCreate', cssText);
 
+/* Janela entra/sai com a animacao unica (Fase 3, 01/09/2026). */
+ChatRoomCreate.riAnimaJanela = true;
+
 /**
  * Render HTML
  */
@@ -127,10 +130,10 @@ ChatRoomCreate.onRemove = function onRemove() {
  * Show the setup for room creation
  */
 ChatRoomCreate.show = function showSetup() {
-	this._host.style.display = '';
+	// via proxy: abre COM a animacao unica (Fase 3)
+	this.ui.show();
 	const root = this.getRoot();
 	root.querySelector('.title').focus();
-	this._fixPositionOverflow();
 
 	_preferences.show = true;
 };
@@ -139,7 +142,8 @@ ChatRoomCreate.show = function showSetup() {
  * Hide the setup ui
  */
 ChatRoomCreate.hide = function hideSetup() {
-	this._host.style.display = 'none';
+	// via proxy: fecha COM a animacao unica (Fase 3)
+	this.ui.hide();
 	const root = this.getRoot();
 	root.querySelector('.setup').reset();
 	ChatRoomCreate.editMode = false;
@@ -228,11 +232,10 @@ ChatRoomCreate.onShortCut = function onShortCut(key) {
 
 ChatRoomCreate.toggle = function toggle() {
 	if (this._host.style.display === 'none') {
-		this._host.style.display = '';
-		this._fixPositionOverflow();
+		this.ui.show();
 		this.focus();
 	} else {
-		this._host.style.display = 'none';
+		this.ui.hide();
 	}
 };
 

@@ -1,30 +1,26 @@
-<div id="VendingReport">
-	<div class="titlebar">
-		<ui-image src="basic_interface/titlebar_mid.bmp"></ui-image>
-		<div class="left">
-			<ui-text class="text reportname" msg="2559"></ui-text>
-		</div>
-		<div class="clear"></div>
+<!-- Fase 3 (01/09/2026): o relatorio de vendas saiu dos bitmaps do GRF
+     (titlebar_mid / itemwin_left / itemwin_mid / btnbar_mid2, btn_close /
+     btn_resize) e virou janela do design system. Ganchos que
+     VendingReport.js consulta, todos preservados: .titlebar (alca de
+     arrasto) / .btn.close (fechar) / .extend (redimensionar, mousedown) /
+     .container .content (rolagem por wheel/scroll, e onde os itens sao
+     inseridos) / .overlay (dica com o nome do item no hover/contextmenu) /
+     #VendingReport (raiz — usada para medir a posicao da dica). As linhas
+     de venda (.item .icon .info .count .buyer .zeny .date) sao montadas em
+     runtime pelo proprio JS (addItemSub); a pele delas mora no CSS aqui do
+     lado, sem tocar no template. -->
+<div id="VendingReport" class="ri-window">
+	<div class="titlebar ri-header">
+		<ui-text class="text reportname ri-title" msg="2559"></ui-text>
+		<button type="button" class="btn close ri-close" title="Fechar">&times;</button>
 	</div>
 	<div class="overlay"></div>
 	<div class="panel">
 		<div class="container">
-			<ui-image src="basic_interface/itemwin_left.bmp"></ui-image>
-			<div class="content">
-				<ui-image src="basic_interface/itemwin_mid.bmp"></ui-image>
-			</div>
+			<div class="content ri-scroll"></div>
 		</div>
-		<div class="footer">
-			<ui-image src="basic_interface/btnbar_mid2.bmp"></ui-image>
-			<div class="right">
-				<ui-button
-					class="btn close"
-					bg="btn_close.bmp"
-					hover="btn_close_a.bmp"
-					down="btn_close_b.bmp"
-				></ui-button>
-				<ui-button class="extend" bg="btn_resize.bmp"></ui-button>
-			</div>
-		</div>
+	</div>
+	<div class="footer">
+		<button type="button" class="extend" title="Redimensionar"></button>
 	</div>
 </div>

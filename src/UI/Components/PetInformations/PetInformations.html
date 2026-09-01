@@ -1,43 +1,36 @@
-<div id="PetInformations">
-	<div class="titlebar" data-background="basic_interface/titlebar_mid.bmp">
-		<div class="left">
-			<span class="text" data-text="584">Pet Info</span>
-		</div>
-		<div class="right">
-			<button
-				class="base close"
-				data-background="basic_interface/sys_close_off.bmp"
-				data-hover="basic_interface/sys_close_on.bmp"
-			></button>
-		</div>
-		<div class="clear"></div>
+<!-- Fase 3 (01/09/2026): a janela de Info do Pet saiu dos bitmaps de moldura
+     (titlebar_mid.bmp, sys_close_*.bmp, btn_edit*.bmp) e entrou no design
+     system. Ganchos que PetInformations.js consulta, todos preservados:
+     .titlebar (arraste) / .close / .content / .name / .modify / .level /
+     .hunger / .intimacy / .accessory / .feeding / .pet_auto_feed / .command.
+     A ilustração do pet continua sendo pintada pelo JS como
+     background-image de .content (arte real do GRF, não cor de CSS). -->
+<div id="PetInformations" class="ri-window">
+	<div class="titlebar ri-header">
+		<span class="text ri-title" data-text="584">Pet Info</span>
+		<button type="button" class="base close ri-close" title="Fechar">&times;</button>
 	</div>
 	<div class="content">
-		<div class="title_name">Name</div>
+		<div class="title_name">Nome</div>
 		<input type="text" class="name" value="" />
-		<div class="title_level">Level</div>
+		<div class="title_level">Nível</div>
 		<div class="level"></div>
-		<button
-			class="modify"
-			data-background="btn_edit.bmp"
-			data-hover="btn_edit_a.bmp"
-			data-down="btn_edit_b.bmp"
-		></button>
+		<button type="button" class="modify ri-btn ri-btn--sec">Editar</button>
 
-		<div class="title_hunger">Hunger</div>
+		<div class="title_hunger">Fome</div>
 		<div class="hunger"></div>
-		<div class="title_intimacy">Intimacy</div>
+		<div class="title_intimacy">Intimidade</div>
 		<div class="intimacy"></div>
 
-		<div class="title_accessory">Accessory</div>
-		<div class="accessory">Equipped</div>
+		<div class="title_accessory">Acessório</div>
+		<div class="accessory">Equipado</div>
 		<div class="feeding">
 			<span data-text="2577">Auto Feeding</span
 			><button class="pet_auto_feed" data-background="checkbox_0.bmp" data-preload="checkbox_1.bmp"></button>
 		</div>
 
-		<select class="command">
-			<option value="default">&lt; Command &gt;</option>
+		<select class="command ri-input">
+			<option value="default">&lt; Comando &gt;</option>
 			<option value="feed" data-text="592">Feed Pet</option>
 			<option value="action" data-text="593">Performance</option>
 			<option value="release" data-text="594">Return to Egg Shell</option>

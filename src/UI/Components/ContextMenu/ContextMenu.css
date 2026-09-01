@@ -1,3 +1,6 @@
+/* Fase 3 (01/09/2026): menu de clique-direito no design system. O overlay
+   (#ContextMenu) continua invisivel e cobrindo a tela inteira -- so existe
+   para pegar o mousedown que fecha o menu; nenhuma cor nele. */
 :host {
 	top: 0;
 	left: 0;
@@ -13,27 +16,41 @@
 	height: 100%;
 }
 
+/* .ri-card (Common.css, aplicada no proprio ContextMenu.js) ja da fundo,
+   borda, raio e sombra -- aqui so o que o cartao generico nao cobre:
+   posicionamento (o JS escreve top/left) e o respiro interno, mais um vidro
+   um pouco mais opaco/desfocado do que o card padrao, porque este flutua
+   direto sobre o mundo do jogo, nao dentro de uma janela. */
 #ContextMenu .menu {
 	position: absolute;
-	background-color: white;
-	border-radius: 5px;
-	padding: 2px;
+	padding: var(--sp-2);
+	backdrop-filter: var(--blur-glass);
 }
 
 #ContextMenu .menu hr {
-	background-color: #cecece;
+	background: var(--border-hairline);
 	height: 1px;
 	border: none;
-	margin: 2px;
+	margin: var(--sp-2) 0;
 }
 
+/* Cada item nasce como <div> sem classe (ContextMenu.js: addElement); o
+   seletor estrutural evita ter que tocar no JS so pra pendurar uma classe. */
 #ContextMenu .menu div {
-	color: black;
+	color: var(--text-body);
+	font: var(--type-info);
 	white-space: nowrap;
-	padding: 1px;
-	height: 14px;
+	padding: var(--sp-2) var(--sp-4);
+	border-radius: var(--radius-card);
+	cursor: pointer;
+	transition:
+		background var(--dur-fast) var(--ease-out),
+		color var(--dur-fast) var(--ease-out);
 }
 
 #ContextMenu .menu div:hover {
-	background-color: #739cef;
+	/* Preenchimento azul (o mesmo das abas ativas), nunca so espessura de
+	   borda -- a receita de estado do design system. */
+	background: var(--tab-active-fill);
+	color: var(--tab-active-text);
 }

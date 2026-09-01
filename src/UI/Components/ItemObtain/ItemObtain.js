@@ -24,6 +24,11 @@ const ItemObtain = new GUIComponent('ItemObtain', cssText);
 
 ItemObtain.render = () => htmlText;
 
+/* Toast entra/sai com a animacao unica (Fase 3, 01/09/2026). ItemObtain vive
+   por append()/remove() (nao show()/hide()) — o mesmo padrao que o proprio
+   GUIComponent.js cita como alvo de "riAnimaJanela" para popups. */
+ItemObtain.riAnimaJanela = true;
+
 /**
  * Mouse can cross this UI
  */

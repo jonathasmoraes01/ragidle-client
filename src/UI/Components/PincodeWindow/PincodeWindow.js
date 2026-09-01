@@ -26,6 +26,9 @@ const PincodeWindow = new GUIComponent('PincodeWindow', cssText);
  */
 PincodeWindow.render = () => htmlText;
 
+/* Janela entra/sai com a animacao unica (Fase 3, 01/09/2026). */
+PincodeWindow.riAnimaJanela = true;
+
 PincodeWindow.resetUI = function resetUI() {
 	PincodeWindow._resetstate = 0;
 	PincodeWindow._keypad = undefined;

@@ -1,3 +1,9 @@
+/* Fase 3 (01/09/2026): janela de Info do Mercenário no design system. As
+   DIMENSÕES (280x190) e o layout absoluto interno ficaram — reforma é pele,
+   não esqueleto. A janela inteira continua arrastável
+   (MercenaryInformations.js chama draggable('.content')): por isso o título
+   vive numa faixa interna (.mi-titulo), não em ".ri-header" no elemento que
+   é o alvo do arraste. */
 :host {
 	width: 280px;
 	height: 190px;
@@ -9,103 +15,86 @@
 	position: absolute;
 	width: 280px;
 	height: 190px;
-	font-size: 12px;
-	background-color: white;
-	border-radius: 5px;
+	box-sizing: border-box;
+	font: var(--type-info);
 }
 
 #MercenaryInformations .content {
-	width: 100%;
-	height: 17px;
-	background-color: white;
-	background-repeat: repeat-x;
-	border-radius: 3px 3px 0px 0px;
-}
-#MercenaryInformations .content .base {
-	width: 11px;
-	height: 11px;
-	border: none;
-	background-color: transparent;
-	background-repeat: no-repeat;
-	vertical-align: middle;
-}
-#MercenaryInformations .content .text {
-	text-shadow: 1px 1px white;
-	vertical-align: -2px;
-	white-space: nowrap;
-	/* chrome bug */
-	display: inline-block;
-	width: 50px;
-	height: 13px;
-	font-size: 11px;
-	font-weight: bold;
-}
-
-#MercenaryInformations .content .left {
-	margin-left: 3px;
-	float: left;
-}
-#MercenaryInformations .content .right {
-	float: right;
-	margin-right: 3px;
-}
-#MercenaryInformations .content .clear {
-	clear: both;
-}
-
-#MercenaryInformations .content {
-	background-repeat: no-repeat;
 	position: relative;
 	width: 100%;
 	height: 100%;
+	box-sizing: border-box;
+	cursor: move;
+}
+
+#MercenaryInformations .mi-titulo {
+	position: relative;
+	height: 20px;
+	padding: 0 var(--sp-6) 0 var(--sp-4);
+	box-sizing: border-box;
+	display: flex;
+	align-items: center;
+	background: var(--titlebar-fill);
+	border-bottom: var(--titlebar-rule);
+	border-radius: var(--radius-window) var(--radius-window) 0 0;
+}
+
+#MercenaryInformations .mi-titulo .text {
+	font-size: var(--fs-label);
 }
 
 #MercenaryInformations .title_name {
 	position: absolute;
 	top: 25px;
 	left: 100px;
+	font: var(--type-label);
+	color: var(--text-muted);
 }
 #MercenaryInformations .name {
 	position: absolute;
 	top: 25px;
 	left: 140px;
-	border: none;
-	background-color: #eee;
-	margin: 0px;
 	width: 85px;
-	color: black;
+	color: var(--text-title);
+	font: var(--type-label);
+	font-weight: var(--fw-semibold);
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
 }
 
 #MercenaryInformations .title_level {
 	position: absolute;
 	top: 47px;
 	left: 100px;
+	font: var(--type-label);
+	color: var(--text-muted);
 }
 #MercenaryInformations .level {
 	position: absolute;
 	top: 47px;
 	left: 140px;
+	font: var(--type-label);
+	color: var(--text-title);
 }
 
 #MercenaryInformations .skill {
 	position: absolute;
 	top: 45px;
 	right: 5px;
-	border: 0;
 	width: 42px;
 	height: 20px;
-	background-repeat: no-repeat;
-	background-color: transparent;
+	padding: 0;
+	font-size: 8px;
 }
 #MercenaryInformations .dismiss {
 	position: absolute;
 	top: 45px;
 	right: 50px;
-	border: 0;
 	width: 42px;
 	height: 20px;
-	background-repeat: no-repeat;
-	background-color: transparent;
+	padding: 0;
+	font-size: 8px;
 }
 
 #MercenaryInformations .stats {
@@ -113,42 +102,17 @@
 	top: 20px;
 	width: 80px;
 	height: 160px;
+	font: var(--type-label);
+	color: var(--text-body);
+	font-variant-numeric: tabular-nums;
 }
-#MercenaryInformations .stats .atk {
-	margin-top: 4px;
-	height: 14px;
-	text-align: right;
-}
-#MercenaryInformations .stats .Matk {
-	margin-top: 4px;
-	height: 14px;
-	text-align: right;
-}
-#MercenaryInformations .stats .hit {
-	margin-top: 4px;
-	height: 14px;
-	text-align: right;
-}
-#MercenaryInformations .stats .critical {
-	margin-top: 4px;
-	height: 14px;
-	text-align: right;
-}
-#MercenaryInformations .stats .def {
-	margin-top: 4px;
-	height: 14px;
-	text-align: right;
-}
-#MercenaryInformations .stats .Mdef {
-	margin-top: 4px;
-	height: 14px;
-	text-align: right;
-}
-#MercenaryInformations .stats .flee {
-	margin-top: 4px;
-	height: 14px;
-	text-align: right;
-}
+#MercenaryInformations .stats .atk,
+#MercenaryInformations .stats .Matk,
+#MercenaryInformations .stats .hit,
+#MercenaryInformations .stats .critical,
+#MercenaryInformations .stats .def,
+#MercenaryInformations .stats .Mdef,
+#MercenaryInformations .stats .flee,
 #MercenaryInformations .stats .aspd {
 	margin-top: 4px;
 	height: 14px;
@@ -182,6 +146,8 @@
 	width: 80px;
 	position: absolute;
 	top: -2px;
+	font: var(--type-badge);
+	color: var(--text-body);
 }
 #MercenaryInformations .hp_perc {
 	position: absolute;
@@ -193,11 +159,15 @@
 	position: absolute;
 	top: 70px;
 	left: 210px;
+	font: var(--type-desc);
+	color: var(--text-muted);
 }
 #MercenaryInformations .sp2 {
 	position: absolute;
 	top: 85px;
 	left: 210px;
+	font: var(--type-desc);
+	color: var(--text-muted);
 }
 
 #MercenaryInformations .sp_bar {
@@ -216,6 +186,8 @@
 	width: 80px;
 	position: absolute;
 	top: -2px;
+	font: var(--type-badge);
+	color: var(--text-body);
 }
 #MercenaryInformations .sp_perc {
 	position: absolute;
@@ -229,6 +201,8 @@
 	left: 100px;
 	width: 170px;
 	height: 70px;
+	font: var(--type-label);
+	color: var(--text-muted);
 }
 
 #MercenaryInformations .block2 .title_timeleft {
@@ -238,6 +212,8 @@
 	width: 50px;
 	float: right;
 	text-align: right;
+	color: var(--text-body);
+	font-variant-numeric: tabular-nums;
 }
 #MercenaryInformations canvas.life.title_timeleft {
 	position: relative;
@@ -253,6 +229,8 @@
 	width: 50px;
 	float: right;
 	text-align: right;
+	color: var(--text-body);
+	font-variant-numeric: tabular-nums;
 }
 #MercenaryInformations canvas.life.title_kills {
 	position: relative;
@@ -268,4 +246,6 @@
 	width: 50px;
 	float: right;
 	text-align: right;
+	color: var(--text-body);
+	font-variant-numeric: tabular-nums;
 }

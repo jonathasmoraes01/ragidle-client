@@ -30,6 +30,8 @@ import PACKET from 'Network/PacketStructure.js';
  * Create Component
  */
 const ItemReform = new GUIComponent('ItemReform', cssText);
+/* Janela entra/sai com a animacao unica (Fase 3, 01/09/2026). */
+ItemReform.riAnimaJanela = true;
 
 /**
  * Render HTML

@@ -1,21 +1,25 @@
+<!-- Fase 3 (01/09/2026): comparador de item no design system — sem barra de
+     título própria (arrasta pela do ItemInfo, ver ItemCompare.js). Ganchos
+     que ItemCompare.js consulta, todos preservados: .description-inner /
+     .extend / .view / .cardlist .border / .option-container / .collection /
+     .title / .description / .event_view / .book_open / .book_read /
+     .overlay_open / .overlay_read. O fundo pintado
+     (collection_comparison_bg.bmp) e o botão "Ver" (btn_view*.bmp) eram
+     bitmap; saem para o token de janela e um botão de texto. Ícone de
+     item/carta continua vindo do GRF (arte legítima, não é chrome). -->
 <div class="ItemCompare">
-	<div class="container" data-background="basic_interface/collection_comparison_bg.bmp">
+	<div class="container">
 		<div class="collection"></div>
 		<div class="event_view">
-			<button
-				class="view"
-				data-background="btn_view.bmp"
-				data-down="btn_view_a.bmp"
-				data-hover="btn_view_b.bmp"
-			></button>
-			<span class="overlay_open" data-text="1294">Read</span>
-			<span class="overlay_read" data-text="1295">Auto Read</span>
+			<button type="button" class="view ri-btn ri-btn--sec">Ver</button>
+			<span class="overlay_open" data-text="1294">Ler</span>
+			<span class="overlay_read" data-text="1295">Ler automaticamente</span>
 		</div>
 		<div class="title"></div>
-		<div class="description">
+		<div class="description ri-scroll">
 			<div class="description-inner"></div>
 		</div>
-		<button class="extend" data-background="basic_interface/btn_comparison_resize.bmp"></button>
+		<button type="button" class="extend" title="Redimensionar"></button>
 	</div>
 	<div class="option-container"></div>
 	<div class="cardlist">

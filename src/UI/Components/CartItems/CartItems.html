@@ -1,24 +1,28 @@
-<div id="cartitems">
-	<div class="titlebar" data-background="basic_interface/titlebar_mid.bmp">
+<!-- Fase 3 (01/09/2026): a grade do Carrinho saiu dos bitmaps de moldura
+     (titlebar_mid.bmp, sys_base/mini/close_*.bmp, itemwin_mid.bmp,
+     btnbar_mid2.bmp, btn_resize.bmp) e entrou no design system. Ganchos que
+     CartItems.js consulta, todos preservados: .titlebar (arraste) /
+     .titlebar .base (para-propagação — é o ÍCONE à ESQUERDA, o 1º .base do
+     DOM) / .titlebar .mini / .titlebar .close / .container .content /
+     .hide / .footer .extend / .ncnt / .mcnt / .nwt / .mwt / .overlay. Os
+     ícones dos itens continuam vindo do JS (arte real do GRF).
+
+     DIMENSÕES: esta janela é REDIMENSIONÁVEL pelo jogador (arraste em
+     .extend) — a largura/altura do :host, o padding-left:40px de .container
+     e os 13px de .hide entram direto na fórmula de CartItems.resize/
+     onResize. Por isso o cabeçalho aqui NÃO usa a altura padrão de 34px
+     (.ri-header): fica compacto, do tamanho de sempre (17px), só com pele
+     nova — reforma é pele, não esqueleto, e aqui o esqueleto é medido em
+     pixel pelo próprio JS de redimensionar. -->
+<div id="cartitems" class="ri-window">
+	<div class="titlebar">
 		<div class="left">
-			<button
-				class="base"
-				data-background="basic_interface/sys_base_off.bmp"
-				data-hover="basic_interface/sys_base_on.bmp"
-			></button>
-			<span class="text" data-text="222">CartItems</span>
+			<button type="button" class="base"></button>
+			<span class="text ri-title" data-text="222">CartItems</span>
 		</div>
 		<div class="right">
-			<button
-				class="base mini"
-				data-background="basic_interface/sys_mini_off.bmp"
-				data-hover="basic_interface/sys_mini_on.bmp"
-			></button>
-			<button
-				class="base close"
-				data-background="basic_interface/sys_close_off.bmp"
-				data-hover="basic_interface/sys_close_on.bmp"
-			></button>
+			<button type="button" class="base mini" title="Recolher">−</button>
+			<button type="button" class="base close" title="Fechar">&times;</button>
 		</div>
 		<div class="clear"></div>
 	</div>
@@ -29,15 +33,15 @@
 				<td class="container">
 					<div class="ff_bugfix">
 						<div class="hide"></div>
-						<div class="content" data-background="basic_interface/itemwin_mid.bmp"></div>
+						<div class="content"></div>
 					</div>
 				</td>
 			</tr>
 			<tr>
-				<td class="footer" data-background="basic_interface/btnbar_mid2.bmp">
-					<div class="cnt">Num:<span class="ncnt"></span>/<span class="mcnt"></span></div>
-					<div class="wt">Weight:<span class="nwt"></span>/<span class="mwt"></span></div>
-					<button class="extend" data-background="btn_resize.bmp"></button>
+				<td class="footer">
+					<div class="cnt">Qtd:<span class="ncnt"></span>/<span class="mcnt"></span></div>
+					<div class="wt">Peso:<span class="nwt"></span>/<span class="mwt"></span></div>
+					<button type="button" class="extend" title="Redimensionar">⇲</button>
 				</td>
 			</tr>
 		</table>

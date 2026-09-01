@@ -1,3 +1,11 @@
+/* Fase 3 (01/09/2026): a roleta era um skin escuro cravado (#2a2a2a e
+   familia) — o design system PROIBE preto predominante e sombra preta, entao
+   virou vidro claro/aro dourado como o resto da janela. O hub central e o
+   marcador ficam em tom mais denso de proposito (contraste para o giro), mas
+   sempre em token azul, nunca em cinza/preto cru. :host e a caixa dos
+   botoes mantem as MESMAS dimensoes de antes (o layout depende de
+   `calc(100% - 30px)` no container, por isso a titlebar foi TRAVADA em
+   30px mesmo a receita .ri-header padrao sendo 34px). */
 :host {
 	width: 600px;
 	height: 500px;
@@ -14,43 +22,21 @@
 	position: relative;
 	width: 100%;
 	height: 100%;
-	background-color: #2a2a2a;
-	border: 2px solid #5a5a5a;
-	border-radius: 10px;
+	box-sizing: border-box;
 }
 
 #Roulette .titlebar {
 	position: relative;
 	height: 30px;
-	background: linear-gradient(to bottom, #4a4a4a 0%, #2a2a2a 100%);
-	border-bottom: 1px solid #5a5a5a;
 	cursor: move;
-	padding: 5px 10px;
-}
-
-#Roulette .titlebar .left {
-	float: left;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 0 10px;
 }
 
 #Roulette .titlebar .title {
-	color: #fff;
-	font-size: 14px;
-	font-weight: bold;
-	line-height: 20px;
-}
-
-#Roulette .titlebar .right {
-	float: right;
-}
-
-#Roulette .titlebar .close {
-	width: 20px;
-	height: 20px;
-	border: 0;
-	background-repeat: no-repeat;
-	background-position: center;
-	background-color: transparent;
-	cursor: pointer;
+	font-size: 13px;
 }
 
 #Roulette .roulette-container {
@@ -58,6 +44,7 @@
 	width: 100%;
 	height: calc(100% - 30px);
 	padding: 20px;
+	box-sizing: border-box;
 	display: flex;
 	flex-direction: column;
 	align-items: center;
@@ -71,6 +58,8 @@
 	margin: 0 auto 20px;
 }
 
+/* Hub central: mesma linguagem do "disco redondo" da iconografia (gradiente
+   azul, aro dourado), so que maior. Sombra SEMPRE azul, nunca preta. */
 #Roulette .wheel-center {
 	position: absolute;
 	top: 50%;
@@ -79,9 +68,9 @@
 	width: 300px;
 	height: 300px;
 	border-radius: 50%;
-	background: radial-gradient(circle, #4a4a4a 0%, #2a2a2a 100%);
-	border: 3px solid #8a8a8a;
-	box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+	background: radial-gradient(circle, var(--blue-400) 0%, var(--blue-700) 100%);
+	border: 3px solid var(--border-gold);
+	box-shadow: var(--shadow-float);
 }
 
 #Roulette .wheel-slots {
@@ -107,14 +96,14 @@
 	display: flex;
 	align-items: center;
 	justify-content: center;
-	background-color: rgba(255, 255, 255, 0.1);
-	border: 1px solid #5a5a5a;
-	border-radius: 5px;
-	transition: background-color 0.3s;
+	background: var(--surface-card);
+	border: 1px solid var(--border-hairline);
+	border-radius: var(--radius-card);
+	transition: background var(--dur-fast) var(--ease-out);
 }
 
 #Roulette .wheel-slot:hover {
-	background-color: rgba(255, 255, 255, 0.2);
+	background: var(--surface-card-hover);
 }
 
 #Roulette .wheel-slot .item-icon {
@@ -125,6 +114,10 @@
 	background-repeat: no-repeat;
 }
 
+/* Ponteiro: marcador vermelho semantico (--red-600), sombra reaproveitando o
+   MESMO azul-tinta de --shadow-window/--shadow-float (12,34,64) — drop-shadow()
+   so aceita uma cor solta, nao o token composto, entao o valor e literal mas
+   e o mesmo RGB que ja e canonico no sistema (zero hex NOVO). */
 #Roulette .wheel-pointer {
 	position: absolute;
 	top: 10px;
@@ -134,9 +127,9 @@
 	height: 0;
 	border-left: 15px solid transparent;
 	border-right: 15px solid transparent;
-	border-top: 30px solid #ff0000;
+	border-top: 30px solid var(--red-600);
 	z-index: 10;
-	filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5));
+	filter: drop-shadow(0 2px 4px rgba(12, 34, 64, 0.45));
 }
 
 #Roulette .roulette-info {
@@ -147,7 +140,7 @@
 #Roulette .points-display {
 	margin-bottom: 15px;
 	font-size: 16px;
-	color: #fff;
+	color: var(--text-body);
 }
 
 #Roulette .points-display .label {
@@ -155,54 +148,41 @@
 	margin-right: 10px;
 }
 
+/* Pontos = mesma leitura de "saldo" que o cashpoint da loja. */
 #Roulette .points-display .points-value {
-	color: #ffd700;
+	color: var(--zeny);
+	font: var(--type-numeric);
 	font-size: 18px;
-	font-weight: bold;
 }
 
 #Roulette .buttons-container {
 	display: flex;
 	justify-content: center;
-	gap: 10px;
+	gap: var(--sp-4);
 	margin-bottom: 15px;
 }
 
-#Roulette .buttons-container button {
+/* .ri-btn ja cobre pele/hover/active/disabled — aqui so a caixa fixa que o
+   layout original reservava (80x30). */
+#Roulette .buttons-container .ri-btn {
 	min-width: 80px;
 	height: 30px;
-	border: 1px solid #5a5a5a;
-	background-color: #3a3a3a;
-	background-repeat: no-repeat;
-	background-position: center;
-	color: #fff;
-	border-radius: 5px;
-	transition: background-color 0.3s;
-}
-
-#Roulette .buttons-container button:hover {
-	background-color: #4a4a4a;
-}
-
-#Roulette .buttons-container button:active {
-	background-color: #2a2a2a;
-}
-
-#Roulette .buttons-container button:disabled {
-	opacity: 0.5;
+	padding: 0 12px;
 }
 
 #Roulette .result-display {
 	min-height: 60px;
 	padding: 10px;
-	background-color: rgba(0, 0, 0, 0.3);
-	border: 1px solid #5a5a5a;
-	border-radius: 5px;
+	box-sizing: border-box;
+	background: var(--well-fill);
+	border: 1px solid var(--border-hairline);
+	border-radius: var(--radius-panel);
+	box-shadow: var(--well-shadow);
 }
 
 #Roulette .result-display .result-label {
 	display: block;
-	color: #fff;
+	color: var(--text-body);
 	font-weight: bold;
 	margin-bottom: 5px;
 }
@@ -214,10 +194,6 @@
 	background-size: contain;
 	background-position: center;
 	background-repeat: no-repeat;
-}
-
-#Roulette .clear {
-	clear: both;
 }
 
 /* Animation classes */

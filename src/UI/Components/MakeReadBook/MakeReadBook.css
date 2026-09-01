@@ -5,26 +5,43 @@
 	left: 0px;
 }
 
+/* Fase 3 (01/09/2026): moldura do livro no design system. #MakeReadBook nao
+   tem filho fora do fluxo que extrapole a altura (diferente de
+   MakeItemSelection/MakeArrowSelection) -- :host ja crava 455px e .titlebar
+   (17) + .panel (415) cabem dentro, entao overflow:hidden aqui e seguro e
+   fecha os cantos arredondados. .panel/.footer continuam recebendo a cor DO
+   LIVRO por JS (MakeReadBook.js le o hex de dentro do proprio arquivo do
+   item) -- isso e dado de conteudo, nao literal nosso, e por isso fica
+   intocado. */
 #MakeReadBook {
 	position: absolute;
 	width: 555px;
+	background: var(--window-fill);
+	border: var(--window-frame);
+	border-radius: var(--radius-window);
+	box-shadow: var(--window-shadow), var(--rim-light);
+	backdrop-filter: var(--blur-glass);
+	color: var(--text-body);
+	font-family: var(--font-ui);
+	overflow: hidden;
 }
 
 #MakeReadBook .titlebar {
 	width: 100%;
 	height: 17px;
-	background-color: white;
-	background-repeat: repeat-x;
-	border-radius: 3px 3px 0px 0px;
+	box-sizing: border-box;
+	/* .ri-header padroniza 8px/10px de respiro, alto demais para 17px de
+	   barra -- encolhido so aqui para o titulo nao cortar. */
+	padding: 2px 8px;
 }
 #MakeReadBook .titlebar .text {
-	text-shadow: 1px 1px white;
-	vertical-align: -2px;
+	vertical-align: -1px;
 	white-space: nowrap;
 	display: inline-block;
 	height: 13px;
 	font-size: 11px;
-	font-weight: bold;
+	font-weight: var(--fw-semibold);
+	color: var(--text-title);
 }
 
 #MakeReadBook .titlebar .title {
@@ -37,6 +54,8 @@
 	margin-top: -25px;
 	width: 500px;
 	white-space: break-spaces;
+	color: var(--text-body);
+	font-family: var(--font-ui);
 }
 
 #MakeReadBook .panel {
@@ -58,6 +77,8 @@
 	border-radius: 0px 0px 0px 5px;
 	width: 535px;
 	height: 25px;
+	border-bottom: var(--divider);
+	box-sizing: border-box;
 }
 #MakeReadBook .footer {
 	flex: 1;
@@ -92,48 +113,37 @@
 	margin-right: -10px;
 }
 
-#MakeReadBook .bookmark {
-	pointer-events: none;
-	position: absolute;
-	white-space: nowrap;
-	z-index: 900;
-	height: 13px;
-	background: rgba(0, 0, 0, 0.5);
-	color: white;
-	text-shadow: black 1px 1px;
-	top: 8px;
-	left: 11px;
-	text-align: center;
-	padding: 3px 4px 1px 4px;
-	display: none;
-}
-#MakeReadBook .previous {
-	pointer-events: none;
-	position: absolute;
-	white-space: nowrap;
-	z-index: 900;
-	height: 13px;
-	background: rgba(0, 0, 0, 0.5);
-	color: white;
-	text-shadow: black 1px 1px;
-	top: 6px;
-	right: 12px;
-	text-align: center;
-	padding: 3px 4px 1px 4px;
-	display: none;
-}
+/* Dicas flutuantes (marcador / pagina anterior / proxima): capsula de vidro
+   escuro do design system, no lugar do preto chapado -- e o tratamento que
+   o proprio DS pede como alternativa a faixa larga ("O que NAO fazer"). */
+#MakeReadBook .bookmark,
+#MakeReadBook .previous,
 #MakeReadBook .next {
 	pointer-events: none;
 	position: absolute;
 	white-space: nowrap;
 	z-index: 900;
 	height: 13px;
-	background: rgba(0, 0, 0, 0.5);
-	color: white;
-	text-shadow: black 1px 1px;
-	top: 6px;
-	right: -10px;
+	background: var(--surface-dark-glass);
+	backdrop-filter: var(--blur-glass);
+	color: var(--white);
+	text-shadow: 0 1px 2px rgba(8, 22, 40, 0.85);
+	border-radius: var(--radius-card);
 	text-align: center;
 	padding: 3px 4px 1px 4px;
 	display: none;
+	font-family: var(--font-ui);
+	font-size: var(--fs-desc);
+}
+#MakeReadBook .bookmark {
+	top: 8px;
+	left: 11px;
+}
+#MakeReadBook .previous {
+	top: 6px;
+	right: 12px;
+}
+#MakeReadBook .next {
+	top: 6px;
+	right: -10px;
 }

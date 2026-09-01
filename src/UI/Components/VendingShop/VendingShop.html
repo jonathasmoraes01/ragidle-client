@@ -1,33 +1,31 @@
-<div id="vendingshop">
-	<div class="titlebar" data-background="basic_interface/titlebar_mid.bmp">
-		<div class="left">
-			<span class="text shopname"></span>
-		</div>
-		<div class="clear"></div>
+<!-- Fase 3 (01/09/2026): a loja do vendedor, vista pelo COMPRADOR, saiu do
+     bitmap (titlebar_mid/itemwin_mid/btnbar_mid2) e entrou no design
+     system. Ganchos que VendingShop.js consulta, TODOS preservados:
+     #vendingshop (resize() le/escreve style.width/height) / .titlebar
+     (this.draggable) / .text.shopname (titulo escrito em onAppend) /
+     .container .content (innerHTML, wheel, mouseover/out, dragstart/end,
+     contextmenu, dblclick) / .hide (liga/desliga por overflow) /
+     .item[data-index] / .item .icon / .item .amount .count / .overlay e
+     .overlay.grey (dica ao passar o mouse) / .panel (mostrado/escondido por
+     _onToggleReduction, hoje sem chamador — ver comentario no JS) /
+     .btn.close (fecha a loja). O X e o rotulo "Fechar" eram pintados no
+     bitmap do botao. -->
+<div id="vendingshop" class="ri-window">
+	<div class="titlebar ri-header">
+		<span class="ri-title"><span class="text shopname"></span></span>
 	</div>
 	<div class="overlay"></div>
 	<div class="panel">
-		<table>
-			<tr>
-				<td class="container">
-					<div class="ff_bugfix">
-						<div class="hide"></div>
-						<div class="content" data-background="basic_interface/itemwin_mid.bmp"></div>
-					</div>
-				</td>
-			</tr>
-			<tr>
-				<td class="footer" data-background="basic_interface/btnbar_mid2.bmp">
-					<div class="right">
-						<ui-button
-							class="btn close"
-							bg="btn_close.bmp"
-							hover="btn_close_a.bmp"
-							down="btn_close_b.bmp"
-						></ui-button>
-					</div>
-				</td>
-			</tr>
-		</table>
+		<div class="container">
+			<div class="ff_bugfix">
+				<div class="hide"></div>
+				<div class="content ri-scroll"></div>
+			</div>
+		</div>
+		<div class="footer">
+			<div class="right">
+				<button type="button" class="btn close ri-btn" title="Fechar">Fechar</button>
+			</div>
+		</div>
 	</div>
 </div>

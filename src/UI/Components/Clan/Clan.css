@@ -1,3 +1,7 @@
+/* Fase 3 (01/09/2026): janela do Clã no design system — vidro claro, aro
+   dourado, cabeçalho .ri-header, poços em vez de cinza chapado. As DIMENSÕES
+   (400x317) e o layout absoluto interno (posições da versão bitmap) ficaram:
+   é reforma de pele, não de esqueleto. */
 :host {
 	top: 150px;
 	left: 150px;
@@ -9,80 +13,54 @@
 	position: absolute;
 	width: 400px;
 	height: 317px;
+	box-sizing: border-box;
+	display: flex;
+	flex-direction: column;
 }
 
 #Clan .titlebar {
-	width: 100%;
-	height: 17px;
-	background-color: white;
-	background-repeat: repeat-x;
-	border-radius: 3px 3px 0px 0px;
+	flex: 0 0 auto;
+	cursor: move;
 }
 
-#Clan .titlebar .base {
-	width: 11px;
-	height: 11px;
-	border: none;
-	background-color: transparent;
-	background-repeat: no-repeat;
-	vertical-align: middle;
-}
-
-#Clan .titlebar .right {
-	float: right;
-	margin-right: 3px;
-}
-
-#Clan .titlebar .clear {
-	clear: both;
+#Clan .tabs {
+	flex: 0 0 auto;
+	display: flex;
+	align-items: center;
+	gap: var(--sp-2);
+	padding: var(--sp-2) var(--sp-4);
+	border-bottom: var(--divider);
+	background: var(--surface-glass);
+	white-space: nowrap;
 }
 
 #Clan .panel {
-	background-color: white;
-	padding-right: 2px;
+	flex: 1 1 auto;
+	min-height: 0;
+	display: flex;
+	flex-direction: column;
+	box-sizing: border-box;
 }
 
 #Clan .content {
 	position: relative;
 	box-sizing: border-box;
 	overflow-y: auto;
-	padding: 2px;
-	border-top: 1px solid #c6c6c6;
-	height: 250px;
-}
-
-#Clan .tabs {
-	height: 23px;
-	background-color: #b5b6b5;
-	white-space: nowrap;
-}
-
-#Clan .tabs button.active {
-	background-color: #fff;
-}
-
-#Clan .tabs button {
-	width: 64px;
-	height: 23px;
-	margin-left: 1px;
-	margin-right: 1px;
-	margin-top: 1px;
-	padding: 0;
-	overflow: hidden;
-	text-overflow: ellipsis;
-	white-space: nowrap;
-	background-color: #cecece;
-	border: 0px;
-	padding: 3px;
+	padding: var(--sp-1);
+	flex: 1 1 auto;
+	min-height: 0;
+	font: var(--type-info);
+	color: var(--text-body);
 }
 
 #Clan .footer {
+	flex: 0 0 auto;
 	width: 100%;
 	height: 27px;
-	background-repeat: repeat-x;
-	background-color: transparent;
 	position: relative;
-	border-radius: 0px 0px 3px 3px;
+	background: var(--surface-glass);
+	border-top: var(--titlebar-rule);
+	box-sizing: border-box;
 }
 
 #Clan .footer .btn_ok {
@@ -141,6 +119,11 @@
 	top: 77px;
 }
 
+#Clan .content.info .value {
+	color: var(--text-title);
+	font-weight: var(--fw-semibold);
+}
+
 #Clan .content.info .clan_illust {
 	position: absolute;
 	left: 9px;
@@ -148,6 +131,9 @@
 	width: 180px;
 	height: 134px;
 	background-repeat: no-repeat;
+	border: 1px solid var(--border-hairline);
+	border-radius: var(--radius-card);
+	background-color: var(--surface-inset);
 }
 
 #Clan .content.info .members ui-button {
@@ -164,12 +150,16 @@
 	position: absolute;
 	left: 201px;
 	top: 37px;
+	font: var(--type-label);
+	color: var(--text-muted);
 }
 
 #Clan .content.info .ally {
 	position: absolute;
 	left: 201px;
 	top: 99px;
+	font: var(--type-label);
+	color: var(--text-muted);
 }
 
 #Clan .content.info .ally_list {
@@ -179,13 +169,20 @@
 	white-space: pre;
 	width: 168px;
 	height: 48px;
-	background: #cecece;
+	box-sizing: border-box;
+	background: var(--well-fill);
+	border: 1px solid var(--border-hairline);
+	border-radius: var(--radius-card);
+	box-shadow: var(--well-shadow);
+	overflow-y: auto;
 }
 
 #Clan .content.info .hostile {
 	position: absolute;
 	left: 201px;
 	top: 173px;
+	font: var(--type-label);
+	color: var(--text-muted);
 }
 
 #Clan .content.info .hostile_list {
@@ -195,18 +192,27 @@
 	white-space: pre;
 	width: 168px;
 	height: 48px;
-	background: #cecece;
+	box-sizing: border-box;
+	background: var(--well-fill);
+	border: 1px solid var(--border-hairline);
+	border-radius: var(--radius-card);
+	box-shadow: var(--well-shadow);
+	overflow-y: auto;
 }
 
 #Clan .content.info .ally_list div,
 #Clan .content.info .hostile_list div {
-	padding: 2px;
+	padding: 2px var(--sp-2);
+	font: var(--type-desc);
+	color: var(--text-body);
 }
 
+/* Selecionado = borda de acento + tinta de acento (receita do DS, nunca só
+   espessura). */
 #Clan .content.info .ally_list div.active,
 #Clan .content.info .hostile_list div.active {
-	background-color: #739eef;
-	padding: 2px;
+	background-color: color-mix(in srgb, var(--accent) 12%, transparent);
+	color: var(--text-title);
 }
 
 #Clan .content.info .emblem_container {
@@ -215,8 +221,10 @@
 	position: absolute;
 	top: 29px;
 	left: 300px;
-	background-color: #709ce7;
+	background-color: var(--surface-inset);
 	background-repeat: no-repeat;
+	border: 1px solid var(--border-gold);
+	border-radius: var(--radius-card);
 }
 
 #Clan .content.info .emblem_edit {

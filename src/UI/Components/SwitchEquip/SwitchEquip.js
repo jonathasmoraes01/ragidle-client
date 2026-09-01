@@ -32,6 +32,9 @@ import Inventory from 'UI/Components/Inventory/Inventory.js';
  */
 const SwitchEquip = new GUIComponent('SwitchEquip', cssText);
 
+/* Janela entra/sai com a animacao unica (Fase 3, 01/09/2026). */
+SwitchEquip.riAnimaJanela = true;
+
 SwitchEquip.render = () => htmlText;
 
 /**
@@ -184,11 +187,14 @@ SwitchEquip.onShortCut = function onShurtCut(key) {
  */
 SwitchEquip.toggle = function toggle() {
 	if (this._host.style.display === 'none') {
-		this._host.style.display = '';
+		// this.ui.show() (em vez de setar style.display direto) e o que faz
+		// riAnimaJanela realmente animar -- o proxy de GUIComponent.ui e quem
+		// pendura as classes .ri-anima-host/.ri-aberta.
+		this.ui.show();
 		Renderer.render(swaprender);
 		this.focus();
 	} else {
-		this._host.style.display = 'none';
+		this.ui.hide();
 		Renderer.stop(swaprender);
 	}
 };
@@ -563,19 +569,13 @@ SwitchEquip.RequestSwitch = function () {
 	const button = root.querySelector('#swap-button');
 	if (!button) return;
 
+	// Fase 3 (01/09/2026): o botao saiu do bitmap (btn_change2_*.bmp) e virou
+	// .ri-btn -- o estado "trocando" agora e so :disabled, que a propria
+	// classe ja desenha (grayscale + opacidade), sem trocar imagem via JS.
 	button.disabled = true;
-	button.classList.add('disabled');
-
-	Client.loadFile(DB.INTERFACE_PATH + 'swap_equipment/btn_change2_disable.bmp', data => {
-		button.style.backgroundImage = `url(${data})`;
-	});
 
 	setTimeout(() => {
 		button.disabled = false;
-		button.classList.remove('disabled');
-		Client.loadFile(DB.INTERFACE_PATH + 'swap_equipment/btn_change2_normal.bmp', data => {
-			button.style.backgroundImage = `url(${data})`;
-		});
 	}, 10000);
 };
 

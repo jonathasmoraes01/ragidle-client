@@ -1,42 +1,24 @@
+<!-- Fase 3 (01/09/2026): materiais para fabricacao/culinaria saiu dos
+     bitmaps (titlebar_mid.bmp, chatwin1_mid.bmp, itemwin_mid.bmp,
+     btnbar_mid2.bmp, btn_exchange*/btn_cancel*.bmp) e entrou no design
+     system. A aba lateral decorativa (chatwin1_mid.bmp, sem uso no JS) saiu
+     junto. Rotulo que antes vinha desenhado no bitmap agora e texto.
+     Seletores que ConvertItems.js consulta, todos preservados:
+     #ConvertItems (drop/dragover) / .titlebar (arraste) / .text (titulo) /
+     .footer .extend (resize, bitmap intocado) / ui-button.trade /
+     ui-button.cancel / .container .content (lista) / .item (linha
+     dinamica) / .overlay (tooltip). -->
 <div id="ConvertItems">
 	<div class="titlebar">
-		<ui-image src="basic_interface/titlebar_mid.bmp"></ui-image>
-		<div class="left">
-			<ui-text class="text" msg="1569">Storage</ui-text>
-		</div>
-		<div class="clear"></div>
+		<ui-text class="text" msg="1569">Storage</ui-text>
 	</div>
 	<div class="overlay"></div>
-	<div class="panel">
-		<div class="body">
-			<div class="infor_nventory">
-				<div class="tabs" rowspan="2">
-					<ui-image src="basic_interface/chatwin1_mid.bmp"></ui-image>
-				</div>
-				<div class="container">
-					<div class="content">
-						<ui-image src="basic_interface/itemwin_mid.bmp"></ui-image>
-					</div>
-				</div>
-			</div>
-			<div>
-				<div class="footer">
-					<ui-image src="basic_interface/btnbar_mid2.bmp"></ui-image>
-					<ui-button
-						class="btn trade"
-						bg="btn_exchange.bmp"
-						hover="btn_exchange_a.bmp"
-						down="btn_exchange_b.bmp"
-					></ui-button>
-					<ui-button
-						class="btn cancel"
-						bg="btn_cancel.bmp"
-						hover="btn_cancel_a.bmp"
-						down="btn_cancel_b.bmp"
-					></ui-button>
-					<ui-button class="extend" bg="btn_resize.bmp"></ui-button>
-				</div>
-			</div>
-		</div>
+	<div class="container">
+		<div class="content ri-scroll"></div>
+	</div>
+	<div class="footer">
+		<ui-button class="btn trade">Trocar</ui-button>
+		<ui-button class="btn cancel">Cancelar</ui-button>
+		<ui-button class="extend" bg="btn_resize.bmp"></ui-button>
 	</div>
 </div>

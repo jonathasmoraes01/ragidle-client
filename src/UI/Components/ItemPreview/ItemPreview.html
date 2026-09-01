@@ -1,35 +1,21 @@
+<!-- Fase 3 (01/09/2026): pré-visualização de traje/chapéu no design system.
+     Ganchos que ItemPreview.js consulta, todos preservados: .titlebar
+     (arrasto) / .close / canvas / .rot_left / .rot_right / .reset. Os botões
+     eram <ui-button bg="...">; a bitmap saiu, a classe ficou — só a TAG virou
+     <button> nativo (mesma troca da CashShop/CheckAttendance). Girar usa
+     glifo de texto (‹ ›), sem depender de um ícone novo fora do inventário
+     Lucide já embutido. -->
 <div id="ItemPreview">
-	<div class="titlebar">
-		<ui-image src="basic_interface/titlebar_mid.bmp"></ui-image>
-		<ui-text class="title" msg="2960"></ui-text>
-		<ui-button
-			class="close"
-			bg="basic_interface/sys_close_off.bmp"
-			hover="basic_interface/sys_close_on.bmp"
-		></ui-button>
+	<div class="titlebar ri-header">
+		<ui-text class="title ri-title" msg="2960"></ui-text>
+		<button type="button" class="close ri-close" title="Fechar">&times;</button>
 	</div>
 	<div class="content">
 		<canvas width="55" height="145"></canvas>
 		<div class="controls">
-			<ui-button
-				class="rot_left"
-				bg="make_character/chr_arrow_rotate_l_out.bmp"
-				hover="make_character/chr_arrow_rotate_l_over.bmp"
-				down="make_character/chr_arrow_rotate_l_press.bmp"
-			></ui-button>
-			<ui-button
-				class="reset"
-				bg="equip_preview/btn_mounting_normal.bmp"
-				down="equip_preview/btn_mounting_press.bmp"
-				hover="equip_preview/btn_mounting_over.bmp"
-				><ui-text msg="2975"></ui-text
-			></ui-button>
-			<ui-button
-				class="rot_right"
-				bg="make_character/chr_arrow_rotate_r_out.bmp"
-				hover="make_character/chr_arrow_rotate_r_over.bmp"
-				down="make_character/chr_arrow_rotate_r_press.bmp"
-			></ui-button>
+			<button type="button" class="rot_left ri-btn ri-btn--sec" title="Girar para a esquerda">&#8249;</button>
+			<button type="button" class="reset ri-btn ri-btn--sec"><ui-text msg="2975"></ui-text></button>
+			<button type="button" class="rot_right ri-btn ri-btn--sec" title="Girar para a direita">&#8250;</button>
 		</div>
 	</div>
 </div>

@@ -33,6 +33,9 @@ const Bank = new GUIComponent('Bank', cssText);
  */
 Bank.render = () => htmlText;
 
+/* Janela entra/sai com a animacao unica (Fase 3, 01/09/2026). */
+Bank.riAnimaJanela = true;
+
 /**
  * Max Int
  */

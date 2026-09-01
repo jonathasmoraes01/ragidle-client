@@ -31,6 +31,11 @@ const SkillTargetSelection = new GUIComponent('SkillTargetSelection', cssText);
 
 SkillTargetSelection.render = () => htmlText;
 
+/* SEM riAnimaJanela, de proposito (decisao do supervisor na revisao da Fase
+   3): isto e mira de skill seguindo o cursor, nao janela — aparecer/sumir
+   precisa ser INSTANTANEO ou le como atraso de input, o mesmo criterio que
+   deixou o ContextMenu fora da animacao unica. */
+
 /**
  * Mouse can cross this UI
  */

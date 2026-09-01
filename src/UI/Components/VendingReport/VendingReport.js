@@ -24,6 +24,9 @@ import cssText from './VendingReport.css?raw';
  */
 const VendingReport = new GUIComponent('VendingReport', cssText);
 
+/* Janela entra/sai com a animacao unica (Fase 3, 01/09/2026). */
+VendingReport.riAnimaJanela = true;
+
 /**
  * Store bought items
  */
@@ -38,6 +41,7 @@ const VendingReportTable = {
 VendingReport._resizing = false;
 VendingReport._startY = 0;
 VendingReport._startHeight = 0;
+VendingReport._chromeHeight = 0;
 VendingReport._boundResizeDrag = null;
 VendingReport._boundResizeStop = null;
 
@@ -91,6 +95,13 @@ VendingReport.init = function Init() {
 			this._startY = e.clientY;
 			const content = root.querySelector('.container .content');
 			this._startHeight = content ? content.getBoundingClientRect().height : 0;
+			// Chrome fixo (titulo + poco + rodape) medido ao vivo em vez de
+			// cravado (31 + 19 era o bitmap antigo; o design system mudou a
+			// altura do titulo e do rodape, entao um numero fixo aqui
+			// destrava do tamanho real assim que o chrome mudar de novo).
+			this._chromeHeight = content
+				? this._host.getBoundingClientRect().height - this._startHeight
+				: 0;
 
 			this._boundResizeDrag = this.onResizeDrag.bind(this);
 			this._boundResizeStop = this.onResizeStop.bind(this);
@@ -185,7 +196,7 @@ VendingReport.onResizeDrag = function (e) {
 	if (content) {
 		content.style.height = `${newHeight}px`;
 	}
-	this._host.style.height = `${newHeight + 31 + 19}px`;
+	this._host.style.height = `${newHeight + (this._chromeHeight || 0)}px`;
 };
 
 /**

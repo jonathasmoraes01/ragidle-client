@@ -4,69 +4,73 @@
 	left: 100px;
 }
 
+/* Fase 3 (01/09/2026): pele do design system. As caixas continuam com o
+   MESMO numero de antes -- titlebar 17px, footer 27px, item 24x28 com
+   margem 4px -- porque `resizeHeight`/`onResize` fazem `31 + 19 + altura*32`
+   e `onScroll` avanca em blocos de 32px sem medir o DOM. Mudar estes
+   numeros aqui descasaria da conta em silencio (a mesma familia de
+   armadilha de ":host e o JS que mede precisam andar juntos"). So
+   cor/borda/sombra/fonte trocam. */
 #ItemListWindowSelection {
 	position: absolute;
 	width: 280px;
-}
-#ItemListWindowSelection .body {
-	border-spacing: 0px;
-	display: inline-block;
-	width: 100%;
+	background: var(--window-fill);
+	border: var(--window-frame);
+	border-radius: var(--radius-window);
+	box-shadow: var(--window-shadow), var(--rim-light);
+	color: var(--text-body);
+	font-family: var(--font-ui);
 }
 
 #ItemListWindowSelection .titlebar {
+	display: flex;
+	align-items: center;
 	width: 100%;
 	height: 17px;
-	background-color: white;
-	background-repeat: repeat-x;
-	border-radius: 3px 3px 0px 0px;
+	box-sizing: border-box;
+	padding-left: var(--sp-5);
+	background: var(--titlebar-fill);
+	border-bottom: var(--titlebar-rule);
+	border-radius: var(--radius-window) var(--radius-window) 0 0;
+	cursor: move;
 }
 #ItemListWindowSelection .titlebar .text {
-	text-shadow: 1px 1px white;
-	vertical-align: -2px;
+	font: var(--type-window-title);
+	font-size: 12px;
+	color: var(--text-title);
+	letter-spacing: var(--ls-title);
 	white-space: nowrap;
-	/* chrome bug */
-	display: inline-block;
-	width: 32px;
-	height: 13px;
-	margin-left: 15px;
-	font-size: 11px;
-	font-weight: bold;
 }
 
-#ItemListWindowSelection .titlebar .left {
-	margin-left: 3px;
-	float: left;
+/* Tooltip flutuante: capsula de vidro escuro (o tratamento que o design
+   system pede para texto sobre coisa que nao tem "mundo" atras) -- nunca
+   preto chapado. */
+#ItemListWindowSelection .overlay {
+	pointer-events: none;
+	position: absolute;
+	display: none;
+	white-space: nowrap;
+	z-index: 900;
+	padding: var(--sp-3) var(--sp-5);
+	border-radius: var(--radius-card);
+	background: var(--surface-dark-glass);
+	backdrop-filter: var(--blur-glass);
+	box-shadow: var(--shadow-float);
+	color: var(--white);
+	font: var(--type-info);
+	/* Sombra AZUL no glifo/texto, nunca preta -- mesma receita de
+	   ".ri-bar > .rotulo" em Common.css. */
+	text-shadow: 0 1px 2px rgba(12, 34, 64, 0.6);
 }
-#ItemListWindowSelection .titlebar .clear {
-	clear: both;
-}
-
-#ItemListWindowSelection .infor_nventory {
-	display: flex;
-}
-
-#ItemListWindowSelection .tabs {
-	border-left: 1px solid #ccc;
-	width: 25px;
-	background-color: white;
-	vertical-align: top;
-	background-position: -1px 0px;
-}
-#ItemListWindowSelection .tabs ui-button {
-	width: 20px;
-	height: 30px;
-	display: block;
-}
-#ItemListWindowSelection .tabs .item {
-	height: 25px;
+#ItemListWindowSelection .overlay.grey {
+	color: var(--sky-300);
 }
 
 #ItemListWindowSelection .container {
-	padding-left: 15px;
-	border-right: 1px solid #ccc;
-	background: white;
+	background: var(--surface-card);
 	width: 100%;
+	box-sizing: border-box;
+	padding: 0 var(--sp-5);
 }
 #ItemListWindowSelection .content {
 	overflow-y: scroll;
@@ -74,8 +78,9 @@
 	width: 100%;
 	height: 100%;
 	min-height: 262px;
-	background-color: transparent;
-	background-repeat: repeat-y;
+	background: var(--surface-inset);
+	border-radius: var(--radius-card);
+	box-sizing: border-box;
 }
 
 #ItemListWindowSelection .content .item {
@@ -84,51 +89,46 @@
 	height: 28px;
 	margin: 4px 0px 0px 4px;
 	position: relative;
+	border-radius: var(--radius-card);
+	transition: background var(--dur-fast) var(--ease-out);
+}
+#ItemListWindowSelection .content .item:hover {
+	background: var(--surface-card-hover);
 }
 #ItemListWindowSelection .content .item .icon {
 	width: 24px;
 	height: 24px;
-	border: none;
-	background-color: transparent;
+	box-sizing: border-box;
 	background-repeat: no-repeat;
-}
-#ItemListWindowSelection .overlay {
-	pointer-events: none;
-	position: absolute;
-	display: none;
-	white-space: nowrap;
-	z-index: 900;
-	height: 13px;
-	padding: 5px;
-	background: rgba(0, 0, 0, 0.7);
-	color: white;
-	text-shadow: 1px 1px black;
-}
-#ItemListWindowSelection .overlay.grey {
-	color: #aaa;
+	background-position: center;
 }
 #ItemListWindowSelection .content .item .amount {
 	position: relative;
 	bottom: 9px;
 	right: 0px;
 	text-align: right;
-	text-shadow: -1px -1px white;
+	font: var(--type-badge);
+	color: var(--text-body);
 }
 #ItemListWindowSelection .content .name {
 	position: absolute;
 	top: 7px;
 	left: 30px;
 	width: 190px;
+	font: var(--type-info);
+	color: var(--text-body);
+	white-space: nowrap;
 }
 
 #ItemListWindowSelection .footer {
-	border-radius: 0px 0px 3px 3px;
 	width: 100%;
 	height: 27px;
-	background-repeat: repeat-x;
-	background-color: transparent;
 	position: relative;
-	border-right: 1px solid #ccc;
+	box-sizing: border-box;
+	background: var(--surface-glass);
+	backdrop-filter: var(--blur-glass);
+	border-top: var(--titlebar-rule);
+	border-radius: 0 0 var(--radius-window) var(--radius-window);
 }
 #ItemListWindowSelection .footer .extend {
 	position: absolute;
@@ -138,19 +138,20 @@
 	height: 13px;
 	background-repeat: no-repeat;
 }
-#ItemListWindowSelection .footer .close {
-	position: absolute;
-	width: 42px;
-	height: 20px;
-	bottom: 4px;
-	right: 15px;
-	background-repeat: no-repeat;
-}
 
 #ItemListWindowSelection .ask_quantity {
 	padding-top: 7px;
-	padding-left: 20px;
+	padding-left: var(--sp-7);
 }
+#ItemListWindowSelection .ask_quantity ui-text {
+	font: var(--type-desc);
+	color: var(--text-muted);
+	vertical-align: 2px;
+}
+/* Checkbox por bitmap (checkbox_0/1.bmp): o proprio JS troca a imagem
+   conforme o estado em onToggleSelectAmount -- reformar so a pele sem
+   reescrever essa troca deixaria a caixa pela metade (armadilha #5 do
+   projeto). Fica como esta. */
 #ItemListWindowSelection .selectall {
 	vertical-align: 2px;
 	width: 10px;

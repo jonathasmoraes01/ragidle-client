@@ -1,3 +1,10 @@
+/* Fase 4 (01/09/2026): janela "Sentir Inimigo" (Sense) no design system
+   oficial. :host/#win_sense continuam 400x200 -- e o numero que Sense.js le
+   para posicionar o host (`(Renderer.height-120)/1.5-120`, `(Renderer.width-
+   280)/2`); quem mudar aqui confere o JS junto (regra da casa). Layout
+   interno (header 17px, content 155px, footer 29px, colunas do sprite/
+   tabelas) tambem ficou como estava -- so cor/borda/sombra/fonte trocaram
+   por token. Zero hex novo. */
 :host {
 	width: 400px;
 	height: 200px;
@@ -9,7 +16,19 @@
 	position: absolute;
 	width: 400px;
 	height: 200px;
+	box-sizing: border-box;
+	background: var(--window-fill);
+	border: var(--window-frame);
+	border-radius: var(--radius-window);
+	box-shadow: var(--window-shadow), var(--rim-light);
+	backdrop-filter: var(--blur-glass);
+	color: var(--text-body);
+	font-family: var(--font-ui);
+	overflow: hidden;
 }
+
+/* ─── Cabecalho (a receita .ri-header vem de Common.css; aqui so a altura
+   compacta de 17px que o resto da janela ja reserva) ───────────────────── */
 
 #win_sense .header {
 	position: absolute;
@@ -17,27 +36,22 @@
 	left: 0px;
 	height: 17px;
 	width: 100%;
-}
-#win_sense .header .titbar_left {
-	height: 100%;
-	width: 12px;
-	float: left;
-}
-#win_sense .header .titbar_mid {
-	height: 100%;
-	width: 376px;
-	float: left;
-	background-repeat: repeat-x;
-}
-#win_sense .header .titbar_right {
-	height: 100%;
-	width: 12px;
-	float: left;
+	box-sizing: border-box;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 0 8px;
+	background: var(--titlebar-fill);
+	border-bottom: var(--titlebar-rule);
+	cursor: move;
 }
 #win_sense .header .title {
-	position: absolute;
-	top: 2px;
-	left: 12px;
+	font: var(--type-window-title);
+	color: var(--text-title);
+	letter-spacing: var(--ls-title);
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
 }
 
 #win_sense .content {
@@ -46,7 +60,8 @@
 	left: 0px;
 	height: 155px;
 	width: 100%;
-	background-color: white;
+	box-sizing: border-box;
+	background: var(--window-fill);
 }
 
 #win_sense .sprite {
@@ -57,6 +72,8 @@
 	width: 120px;
 }
 
+/* ─── Ficha de status (nome, tamanho, nivel, tipo, hp, mdef, def, atributo) */
+
 #win_sense .stats {
 	position: absolute;
 	top: 5px;
@@ -66,7 +83,28 @@
 #win_sense .stats tr td {
 	padding: 0px;
 	height: 14px;
+	font: var(--type-desc);
+	color: var(--text-body);
 }
+/* Rotulo (#label_*) e valor (#value_*): o par de seletor por prefixo de ID
+   ganha do td generico acima por ter mais uma classe de especificidade. */
+#win_sense .stats tr td[id^='label_'] {
+	color: var(--text-muted);
+	font-weight: var(--fw-semibold);
+}
+#win_sense .stats tr td[id^='value_'] {
+	color: var(--text-title);
+}
+#win_sense .stats a {
+	color: var(--text-link);
+	text-decoration: none;
+}
+#win_sense .stats a:hover {
+	color: var(--text-link-hover);
+	text-decoration: underline;
+}
+
+/* ─── Grade de 3x3 de propriedades elementares ──────────────────────────── */
 
 #win_sense .elements {
 	position: absolute;
@@ -76,19 +114,35 @@
 	border-spacing: 9px 2px;
 }
 #win_sense .elements tr td {
-	border: 1px solid blue;
+	background: var(--surface-card);
+	border: 1px solid var(--border-hairline);
+	border-radius: var(--radius-card);
+	box-shadow: var(--shadow-card);
 	text-align: center;
 	width: 75px;
 	padding: 1px;
+	font: var(--type-desc);
+	color: var(--text-body);
+	box-sizing: border-box;
 }
 
-#win_sense .element_good {
-	color: darkgreen;
-	font-weight: bold;
+/* Estas duas classes sao as que Sense.js atribui via className (nunca
+   classList.add) -- por isso o seletor precisa ser MAIS especifico que a
+   regra generica ".elements tr td" acima, senao a cor perde por
+   especificidade mesmo vindo depois no arquivo (a armadilha #2 do projeto). */
+#win_sense .elements tr td.element_good {
+	color: var(--green-600);
+	font-weight: var(--fw-bold);
+	background: color-mix(in srgb, var(--green-600) 12%, var(--surface-card));
+	border-color: var(--green-300);
 }
-#win_sense .element_bad {
-	color: darkred;
+#win_sense .elements tr td.element_bad {
+	color: var(--red-600);
+	background: color-mix(in srgb, var(--red-600) 12%, var(--surface-card));
+	border-color: var(--red-300);
 }
+
+/* ─── Rodape: uma acao so, "Fechar" ─────────────────────────────────────── */
 
 #win_sense .footer {
 	position: absolute;
@@ -96,35 +150,18 @@
 	left: 0px;
 	height: 29px;
 	width: 100%;
+	box-sizing: border-box;
+	display: flex;
+	align-items: center;
+	justify-content: flex-end;
+	padding: 0 8px;
+	background: var(--surface-glass);
+	border-top: var(--titlebar-rule);
 }
-#win_sense .footer .bg_left {
-	height: 100%;
-	width: 21px;
-	float: left;
-}
-#win_sense .footer .bg_mid {
-	height: 100%;
-	width: 357px;
-	float: left;
-	background-repeat: repeat-x;
-}
-#win_sense .footer .bg_right {
-	height: 100%;
-	width: 21px;
-	float: left;
-}
-
 #win_sense .footer .btns {
-	position: absolute;
-	bottom: 2px;
-	right: 3px;
+	display: flex;
 }
 #win_sense .footer .btn {
-	border: 0;
-	width: 42px;
-	height: 20px;
-	bottom: 4px;
-	margin-left: 3px;
-	background-repeat: no-repeat;
-	background-color: transparent;
+	padding: 4px 16px;
+	font-size: var(--fs-label);
 }

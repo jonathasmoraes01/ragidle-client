@@ -32,6 +32,9 @@ const CART_LIMIT = 13;
  */
 const ChangeCart = new GUIComponent('ChangeCart', cssText);
 
+/* Janela entra/sai com a animacao unica (Fase 3, 01/09/2026). */
+ChangeCart.riAnimaJanela = true;
+
 /**
  * Render HTML
  */

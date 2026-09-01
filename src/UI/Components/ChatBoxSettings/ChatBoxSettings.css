@@ -1,3 +1,19 @@
+/* Fase 4 (01/09/2026): configuracoes de registro do chat no design system
+   oficial. :host e o proprio #ChatBoxSettings mantem os 255px de largura e
+   o "height: auto" de sempre -- ChatBoxSettings.js MEDE #ChatBoxSettings
+   (getBoundingClientRect / offsetHeight) depois de ajustar `.content` e
+   `.listoption` pela alca de arrastar (.extend), entao ninguem aqui pode
+   travar uma altura fixa sem quebrar aquele calculo (regra da casa: quem
+   mede e o JS de resize, e :host/conteudo tem de andar juntos).
+
+   ".content" ficou com UM filho so (".listoption", a lista rolavel) -- a
+   dica e a linha de Nova aba/Remover aba saíram dela e viraram irmãs no
+   fluxo normal de ".cbs-janela". No layout antigo (flutuantes com float
+   +clear) os tres dividiam a mesma caixa cuja altura o JS escreve em
+   degraus de 32px; nos passos mais baixos da alca (3 linhas = 96px) esse
+   numero mal cobre a lista sozinha, e a linha de botao real de Nova
+   aba/Remover aba correria risco de ficar cortada. Fora da caixa medida,
+   ela sempre aparece inteira. */
 :host {
 	width: 255px;
 	height: 232px;
@@ -11,168 +27,188 @@
 	height: auto;
 }
 
-#ChatBoxSettings table {
-	border-spacing: 0px;
-	display: inline-block;
-}
-
-#ChatBoxSettings .titlebar {
+.cbs-janela {
 	width: 100%;
-	height: 17px;
-	background-color: white;
-	background-repeat: repeat-x;
-	border-radius: 4px 4px 0px 0px;
+	box-sizing: border-box;
+	display: flex;
+	flex-direction: column;
+	font: var(--type-info);
+	color: var(--text-body);
 }
-#ChatBoxSettings .titlebar .base {
-	width: 11px;
-	height: 11px;
-	border: none;
-	background-color: transparent;
-	background-repeat: no-repeat;
-	vertical-align: middle;
+
+/* ─── Cabecalho ────────────────────────────────────────────────────────── */
+
+.cbs-janela .ri-header {
+	flex: 0 0 auto;
+	height: 28px;
+	padding: 0 var(--sp-4);
 }
-#ChatBoxSettings .titlebar .text {
-	text-shadow: 1px 1px white;
-	vertical-align: -2px;
-	display: inline-block;
-	height: 13px;
+.cbs-janela .ri-title {
+	font-size: 13px;
+	gap: var(--sp-2);
+	min-width: 0;
+	max-width: 100%;
+	overflow: hidden;
+}
+.cbs-janela .ri-title .tabname {
+	font-weight: var(--fw-semibold);
+}
+.cbs-janela .ri-title::before,
+.cbs-janela .ri-title::after {
+	flex: 0 0 auto;
+	width: 18px;
+	height: 8px;
+}
+.cbs-janela .ri-close {
+	width: 18px;
+	height: 18px;
+	right: 5px;
 	font-size: 11px;
-	font-weight: bold;
 }
 
-#ChatBoxSettings .titlebar .left {
-	margin-left: 3px;
-	float: left;
-}
-#ChatBoxSettings .titlebar .right {
-	float: right;
-	margin-right: 3px;
-}
-#ChatBoxSettings .titlebar .clear {
-	clear: both;
+/* ─── Dica ─────────────────────────────────────────────────────────────── */
+
+.cbs-dica {
+	flex: 0 0 auto;
+	margin: 0;
+	padding: var(--sp-3) var(--sp-4) 0;
+	font: var(--type-desc);
+	color: var(--text-muted);
 }
 
-#ChatBoxSettings .panel {
-	background-color: white;
+/* ─── Corpo: so a lista rolavel ────────────────────────────────────────── */
+
+.cbs-corpo {
+	flex: 0 0 auto;
 }
-#ChatBoxSettings .content {
+
+.cbs-content {
+	box-sizing: border-box;
+	padding: var(--sp-2) var(--sp-4);
+	/* A altura REAL desta caixa e escrita por ChatBoxSettings.js (resize()),
+	   em degraus de 32px por linha visivel -- o numero aqui e so o chute
+	   inicial antes do primeiro resize() rodar (onAppend chama resize() logo
+	   de cara). Overflow deliberadamente VISIVEL: e so um respiro em volta
+	   da lista (que rola sozinha, ver .cbs-lista), nao um teto que precise
+	   cortar nada. */
 	height: 197px;
 }
-#ChatBoxSettings .content .clear {
-	clear: both;
-}
 
-#ChatBoxSettings .content .members {
-	width: 26%;
-	height: 120px;
-	float: left;
-	overflow-y: auto;
-	overflow-x: hidden;
-	padding-top: 5px;
-	padding-left: 3px;
-}
-#ChatBoxSettings .content .owner {
-	color: #36716d;
-}
+/* ─── Lista de opcoes: 22 "checkboxes" de card ─────────────────────────── */
 
-#ChatBoxSettings .send {
-	height: 30px;
-	position: relative;
-	padding-left: 5px;
-}
-#ChatBoxSettings .send input {
-	width: 100%;
-	height: 20px;
-	padding: 0px;
-	border: none;
-	border-top: 1px solid #ccc;
-}
-
-#ChatBoxSettings .overlay {
-	position: absolute;
-	display: none;
-	white-space: nowrap;
-	z-index: 900;
-	height: 13px;
-	padding: 5px;
-	background: rgba(0, 0, 0, 0.7);
-	color: white;
-	text-shadow: 1px 1px black;
-}
-#ChatBoxSettings .overlay.grey {
-	color: #aaa;
-}
-
-#ChatBoxSettings .extend {
-	width: 13px;
-	height: 13px;
-	border: none;
-	background-repeat: no-repeat;
-	background-color: transparent;
-	position: absolute;
-	bottom: 0px;
-	right: 0px;
-}
-#ChatBoxSettings .listoption {
-	width: 231px;
-	float: right;
-	background: #ffffff;
+.cbs-lista {
+	/* flex:0 0 auto de proposito -- resize() (ChatBoxSettings.js) escreve a
+	   altura EXATA em style.height a cada arrasto da alca; flex-grow
+	   discutiria esse numero com o espaco sobrando do container. */
+	display: flex;
+	flex-direction: column;
+	gap: var(--sp-1);
+	/* A altura REAL tambem e escrita por resize() (height*32 - 31). */
 	height: 166px;
 	overflow-y: auto;
-	padding-left: 5px;
-	padding-bottom: 5px;
-	border-left: 1px solid #cfcfcf;
-	border-bottom: 1px solid #cfcfcf;
-}
-#ChatBoxSettings .listoption button {
-	width: 100%;
-	text-align: left;
-	background: #fff;
-	border: 0;
-	margin-bottom: 3px;
-	margin-top: 2px;
-	background-repeat: no-repeat;
-	padding-left: 19px;
-	height: 15px;
-	text-overflow: ellipsis;
-}
-#ChatBoxSettings .listoption button:hover {
-	border: 1px solid #000;
 }
 
-#ChatBoxSettings .footer-opt {
-	margin-top: 5px;
-	width: 231px;
-	float: right;
-}
-
-/* Nova aba / Remover aba (julgamento do dono, 19/08/2026 rodada 2): as duas
-   acoes reais que sobraram da capsula eliminada do ChatBox (ver ChatBox.css)
-   migraram pra ca. Estilo PLANO, do mesmo idioma nativo do resto deste
-   dialogo (nao ganhou o passe do design system ainda -- fora do escopo
-   deste item, que e so o ChatBox) -- nao mistura reskin parcial. */
-#ChatBoxSettings .cbs-tabactions {
-	clear: both;
+.cbs-opt {
+	appearance: none;
+	flex: 0 0 auto;
 	display: flex;
-	gap: 6px;
-	width: 231px;
-	float: right;
-	margin-top: 6px;
-	padding-top: 5px;
-	border-top: 1px solid #cfcfcf;
-}
-#ChatBoxSettings .cbs-tabactions button {
-	flex: 1 1 auto;
-	height: 20px;
-	font-size: 11px;
-	border: 1px solid #999;
-	border-radius: 2px;
-	background: #f5f5f5;
+	align-items: center;
+	gap: var(--sp-3);
+	width: 100%;
+	box-sizing: border-box;
+	text-align: left;
+	padding: var(--sp-2) var(--sp-3);
+	border: 1px solid var(--border-hairline);
+	border-radius: var(--radius-card);
+	background: var(--surface-card);
+	color: var(--text-body);
+	font: var(--type-desc);
 	cursor: pointer;
+	transition:
+		background var(--dur-fast) var(--ease-out),
+		border-color var(--dur-fast) var(--ease-out);
 }
-#ChatBoxSettings .cbs-tabactions button:hover {
-	background: #e5e5e5;
+.cbs-opt:hover {
+	background: var(--surface-card-hover);
 }
-#ChatBoxSettings .cbs-tabactions button:active {
-	background: #d8d8d8;
+.cbs-opt:active {
+	transform: var(--press-shift);
+}
+
+/* O "quadradinho" do checkbox e desenhado em CSS -- nao ha mais bitmap
+   (grp_online/grp_offline.bmp) por tras, ver ChatBoxSettings.js. */
+.cbs-opt::before {
+	content: '';
+	flex: 0 0 auto;
+	width: 12px;
+	height: 12px;
+	box-sizing: border-box;
+	border: 1px solid var(--border-window);
+	border-radius: var(--radius-bar);
+	background: var(--white);
+	transition:
+		background var(--dur-fast) var(--ease-out),
+		border-color var(--dur-fast) var(--ease-out);
+}
+
+/* Ligado = borda de acento + tinta de acento (receita de "selecionado" do
+   design system -- nunca so espessura de borda). */
+.cbs-opt.on {
+	border-color: var(--accent);
+	background: color-mix(in srgb, var(--accent) 10%, var(--white));
+	color: var(--text-title);
+	font-weight: var(--fw-semibold);
+}
+.cbs-opt.on::before {
+	background: var(--accent);
+	border-color: var(--accent-strong);
+	box-shadow: inset 0 0 0 2px var(--white);
+}
+
+/* ─── Nova aba / Remover aba ───────────────────────────────────────────── */
+
+.cbs-tabactions {
+	flex: 0 0 auto;
+	display: flex;
+	gap: var(--sp-3);
+	padding: var(--sp-3) var(--sp-4) var(--sp-4);
+	border-top: var(--divider);
+}
+.cbs-tabactions .ri-btn {
+	flex: 1 1 auto;
+	height: 24px;
+	padding: 0 var(--sp-3);
+	font-size: 11px;
+}
+
+/* ─── Alca de redimensionar ────────────────────────────────────────────── */
+
+.cbs-grip {
+	appearance: none;
+	position: absolute;
+	right: 2px;
+	bottom: 2px;
+	width: 13px;
+	height: 13px;
+	padding: 0;
+	border: none;
+	background: transparent;
+	cursor: nwse-resize;
+	/* Tres tracos diagonais em degrau -- o mesmo idioma de "grip" que
+	   qualquer SO desenha em CSS puro, sem ilustracao a mao. */
+	background-image: repeating-linear-gradient(
+		135deg,
+		var(--border-window) 0px,
+		var(--border-window) 1.5px,
+		transparent 1.5px,
+		transparent 4px
+	);
+	background-size: 9px 9px;
+	background-position: bottom right;
+	background-repeat: no-repeat;
+	opacity: 0.7;
+	transition: opacity var(--dur-fast) var(--ease-out);
+}
+.cbs-grip:hover {
+	opacity: 1;
 }

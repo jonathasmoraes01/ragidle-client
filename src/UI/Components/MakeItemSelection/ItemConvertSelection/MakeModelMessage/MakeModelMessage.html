@@ -1,28 +1,29 @@
+<!-- Fase 3 (01/09/2026): dialogo de confirmacao saiu dos bitmaps
+     (titlebar_mid.bmp, btn_ok*/btn_cancel*.bmp) e entrou no design system.
+     Rotulo que antes vinha desenhado no bitmap agora e texto. Seletores que
+     MakeModelMessage.js consulta, todos preservados: .titlebar (arraste) /
+     ui-button.ok / ui-button.cancel. O icone .base (sys_base_off/on.bmp) e
+     so hover declarativo do proprio <ui-button>, sem leitura de estado no
+     JS -- fica com o bitmap original (reformar so a metade nao ganharia
+     nada, armadilha #5 do projeto). "Message" era string em ingles cravada
+     no HTML (nao ui-text): virou "Mensagem" direto; o texto de baixo e
+     ui-text com msg="1584" e por isso fica como esta. -->
 <div id="MakeModelMessage">
 	<div class="titlebar">
-		<ui-image src="basic_interface/titlebar_mid.bmp"></ui-image>
-		<div class="left">
-			<ui-button
-				class="base"
-				bg="basic_interface/sys_base_off.bmp"
-				hover="basic_interface/sys_base_on.bmp"
-			></ui-button>
-			<span class="text">Message</span>
-		</div>
-		<div class="clear"></div>
+		<ui-button
+			class="base"
+			bg="basic_interface/sys_base_off.bmp"
+			hover="basic_interface/sys_base_on.bmp"
+		></ui-button>
+		<span class="text">Mensagem</span>
 	</div>
 	<div class="container">
 		<div class="text_message">
 			<ui-text class="text" msg="1584">Consumption items are used in the synthesis. Are you sure?</ui-text>
 		</div>
 		<div class="btns">
-			<ui-button class="btn ok" bg="btn_ok.bmp" hover="btn_ok_a.bmp" down="btn_ok_b.bmp"></ui-button>
-			<ui-button
-				class="btn cancel"
-				bg="btn_cancel.bmp"
-				hover="btn_cancel_a.bmp"
-				down="btn_cancel_b.bmp"
-			></ui-button>
+			<ui-button class="btn ok">Confirmar</ui-button>
+			<ui-button class="btn cancel">Cancelar</ui-button>
 		</div>
 	</div>
 </div>

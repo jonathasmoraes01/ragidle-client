@@ -1,3 +1,8 @@
+/* Fase 3 (01/09/2026): janela de PIN no design system. :host e as posicoes
+   absolutas do teclado numerico ficam EXATAMENTE como estavam —
+   PincodeWindow.js le offsetTop/offsetLeft de cada .btn.numN para embaralhar
+   o teclado (anti-keylogger) e escreve de volta via style.top/left; mudar um
+   pixel aqui muda a mecanica de seguranca, nao so o visual. */
 :host {
 	width: 540px;
 	height: 365px;
@@ -5,64 +10,86 @@
 	left: 50%;
 }
 
+/* Sem "height" explicito (a altura sempre foi a SOMA das 3 fatias —
+   titlebar 17 + panel 320 + footer 27 — e o JS nunca mede _host.offsetHeight
+   para posicionar, ver onAppend). Por isso a moldura usa box-shadow INSET em
+   vez de "border": border somaria 2px ao auto-height mesmo com
+   box-sizing:border-box (que so encolhe medida EXPLICITA, nao "auto") — um
+   detalhe que já mordeu outra janela deste fork. */
 #Pincodewindow {
 	position: absolute;
 	width: 540px;
+	background: var(--window-fill);
+	border-radius: var(--radius-window);
+	box-shadow: var(--window-shadow), var(--rim-light), inset 0 0 0 1px var(--border-window);
+	backdrop-filter: var(--blur-glass);
+	color: var(--text-body);
+	font-family: var(--font-ui);
+	overflow: hidden;
 }
 
 #Pincodewindow .clear {
 	clear: both;
 }
 
+/* ─── Barra de titulo (17px — nao cresce; o painel abaixo tem px cravados
+   pelo teclado, ganhar altura aqui empurraria os botoes para fora). ──────── */
+
 #Pincodewindow .titlebar {
 	width: 540px;
 	height: 17px;
-	background-color: white;
-	background-repeat: repeat-x;
-	border-radius: 3px 3px 0px 0px;
+	box-sizing: border-box;
+	background: var(--titlebar-fill);
+	border-bottom: var(--titlebar-rule);
+	cursor: move;
 }
 
 #Pincodewindow .titlebar .base {
-	width: 11px;
-	height: 11px;
-	border: none;
-	background-color: transparent;
-	background-repeat: no-repeat;
+	display: inline-block;
+	width: 6px;
+	height: 6px;
+	margin: 0 5px 0 2px;
+	border-radius: 50%;
+	background: var(--gold-400);
 	vertical-align: middle;
 }
 
 #Pincodewindow .titlebar .text {
-	text-shadow: 1px 1px white;
-	vertical-align: -2px;
+	font: var(--type-window-title);
+	font-size: 12px;
+	color: var(--text-title);
+	vertical-align: middle;
 	white-space: nowrap;
-	display: inline-block;
-	width: 32px;
-	height: 13px;
-	font-size: 11px;
-	font-weight: bold;
 }
 
 #Pincodewindow .titlebar .left {
-	margin-left: 3px;
+	margin-left: 8px;
 	float: left;
+	line-height: 17px;
 }
 
 #Pincodewindow .titlebar .clear {
 	clear: both;
 }
 
+/* ─── Painel (era 2ndpassword_bg.bmp) ────────────────────────────────────── */
+
 #Pincodewindow .panel {
-	background-color: white;
+	position: relative;
+	background: var(--surface-glass);
 	width: 540px;
 	height: 320px;
+	box-sizing: border-box;
 }
 
 #Pincodewindow .panel .txtlabel {
 	position: absolute;
-	text-shadow: 1px 1px white;
 	white-space: nowrap;
-	width: 32px;
+	width: auto;
+	min-width: 32px;
 	height: 13px;
+	font: var(--type-label);
+	color: var(--text-body);
 }
 
 #Pincodewindow .panel .txtlabel.text1 {
@@ -90,51 +117,133 @@
 	left: 412px;
 }
 
+/* ─── Campos de senha: poco do design system, receita .ri-input ─────────── */
+
+#Pincodewindow .panel .pass,
+#Pincodewindow .panel .newpass,
+#Pincodewindow .panel .checkpass {
+	position: absolute;
+	width: 100px;
+	height: 18px;
+	box-sizing: border-box;
+	border: 1px solid var(--border-hairline);
+	border-radius: var(--radius-card);
+	background: var(--white);
+	color: var(--text-body);
+	font: var(--type-info);
+	padding: 0 var(--sp-3);
+	box-shadow: var(--well-shadow);
+	transition: background var(--dur-fast) var(--ease-out);
+}
+
 #Pincodewindow .panel .pass {
 	top: 90px;
 	left: 412px;
-	position: absolute;
-	width: 100px;
 }
 
 #Pincodewindow .panel .newpass {
 	top: 130px;
 	left: 412px;
-	position: absolute;
-	width: 100px;
 }
 
 #Pincodewindow .panel .checkpass {
 	top: 170px;
 	left: 412px;
-	position: absolute;
-	width: 100px;
 }
 
+/* ─── Teclado numerico: MESMA GEOMETRIA de antes (60x60, top/left
+   cravados) — so a pele virou .ri-btn e o digito virou TEXTO em vez de
+   bitmap (1-a.bmp..0-a.bmp). ──────────────────────────────────────────────── */
+
 #Pincodewindow .panel .btn {
+	appearance: none;
 	width: 60px;
 	height: 60px;
-	border: 0;
+	box-sizing: border-box;
 	position: absolute;
-	background: none;
+	border: 1px solid var(--border-gold);
+	border-radius: var(--radius-panel);
+	background: linear-gradient(180deg, var(--white) 0%, var(--sky-100) 100%);
+	color: var(--blue-700);
+	font: var(--type-hero);
+	font-size: 22px;
+	cursor: pointer;
+	box-shadow: var(--rim-light), var(--shadow-card);
+	transition:
+		background var(--dur-fast) var(--ease-out),
+		box-shadow var(--dur-fast) var(--ease-out),
+		transform var(--dur-instant) var(--ease-out);
+}
+
+#Pincodewindow .panel .btn:hover {
+	background: linear-gradient(180deg, var(--sky-100) 0%, var(--sky-200) 100%);
+	box-shadow: var(--rim-light), var(--glow-gold);
+}
+
+#Pincodewindow .panel .btn:active {
+	transform: var(--press-shift);
+	box-shadow: var(--shadow-inset);
 }
 
 #Pincodewindow .panel .btn2 {
+	appearance: none;
 	width: 100px;
 	height: 20px;
-	border: 0;
+	box-sizing: border-box;
 	position: absolute;
-	background: none;
+	border: 1px solid var(--blue-600);
+	border-radius: var(--radius-panel);
+	background: var(--tab-active-fill);
+	color: var(--text-on-accent);
+	font: var(--type-label);
+	cursor: pointer;
+	box-shadow: var(--rim-light), var(--shadow-card);
+	transition: filter var(--dur-fast) var(--ease-out);
+}
+
+#Pincodewindow .panel .btn2:hover {
+	filter: brightness(1.06);
+}
+
+#Pincodewindow .panel .btn2:active {
+	transform: var(--press-shift);
+}
+
+#Pincodewindow .panel .btn2.cancel,
+#Pincodewindow .panel .btn2.unused {
+	background: var(--surface-card-hover);
+	border-color: var(--border-hairline);
+	color: var(--text-link);
+}
+
+#Pincodewindow .panel .btn:disabled,
+#Pincodewindow .panel .btn2:disabled {
+	filter: grayscale(1);
+	opacity: 0.55;
+	cursor: default;
+	box-shadow: none;
+	transform: none;
 }
 
 #Pincodewindow .panel .numReset {
+	appearance: none;
 	position: absolute;
 	width: 119px;
 	height: 60px;
 	top: 257px;
 	left: 280px;
-	border: 0;
-	background: none;
+	box-sizing: border-box;
+	border: 1px solid var(--border-hairline);
+	border-radius: var(--radius-panel);
+	background: var(--surface-card);
+	color: var(--text-link);
+	font: var(--type-label);
+	cursor: pointer;
+	transition: background var(--dur-fast) var(--ease-out);
+}
+
+#Pincodewindow .panel .numReset:hover {
+	background: var(--surface-card-hover);
 }
 
 #Pincodewindow .panel .btn.num1 {
@@ -220,7 +329,8 @@
 #Pincodewindow .footer {
 	width: 100%;
 	height: 27px;
-	background-repeat: repeat-x;
-	background-color: transparent;
+	box-sizing: border-box;
+	background: var(--surface-glass);
+	border-top: var(--titlebar-rule);
 	position: relative;
 }

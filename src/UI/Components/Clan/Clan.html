@@ -1,22 +1,21 @@
-<div id="Clan">
-	<div class="titlebar">
-		<ui-image src="basic_interface/titlebar_mid.bmp"></ui-image>
-		<div class="right">
-			<ui-button
-				class="base close"
-				bg="basic_interface/sys_close_off.bmp"
-				hover="basic_interface/sys_close_on.bmp"
-			></ui-button>
-		</div>
-		<div class="clear"></div>
+<!-- Fase 3 (01/09/2026): a janela do Clã saiu do bitmap (titlebar_mid.bmp,
+     sys_close_*.bmp, btnbar_mid2.bmp) e entrou no design system. Ganchos que
+     Clan.js consulta, todos preservados: .titlebar (arraste) / .close /
+     .content.info / .name .value / .level .value / .master .value /
+     .members .online / .members .maxMember / .territory .value /
+     .clan_illust / .emblem_container / .ally_list / .hostile_list. -->
+<div id="Clan" class="ri-window">
+	<div class="titlebar ri-header">
+		<span class="ri-title">Clã</span>
+		<button type="button" class="base close ri-close" title="Fechar">&times;</button>
 	</div>
 
 	<div class="tabs">
-		<button class="info active"><ui-text msg="2355">Clan Info</ui-text></button>
+		<button class="info active ri-tab is-active"><ui-text msg="2355">Clan Info</ui-text></button>
 	</div>
 
 	<div class="panel">
-		<div class="content info">
+		<div class="content info ri-scroll">
 			<div class="name"><ui-text msg="2357">Clan Name</ui-text> : <span class="value"></span></div>
 			<div class="level"><ui-text msg="2356">Clan level</ui-text> : <span class="value"></span></div>
 			<div class="master"><ui-text msg="2362">Master Name</ui-text> : <span class="value"></span></div>
@@ -38,7 +37,6 @@
 	</div>
 
 	<div class="footer">
-		<ui-image src="basic_interface/btnbar_mid2.bmp"></ui-image>
 		<ui-button class="btn_ok" bg="btn_ok.bmp" hover="btn_ok_a.bmp" down="btn_ok_b.bmp"></ui-button>
 	</div>
 </div>

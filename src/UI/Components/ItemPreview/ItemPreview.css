@@ -1,3 +1,9 @@
+/* Fase 3 (01/09/2026): ItemPreview no design system. Janela pequena e com
+   altura CRAVADA (:host/#ItemPreview 170x210) -- ao contrário de
+   ItemSelection, aqui dá pra fechar a caixa com overflow:hidden e cantos
+   arredondados de verdade, porque o conteúdo (canvas + controles) já cabe
+   dentro dos 210px originais. DIMENSÕES intocadas: ItemPreview.js posiciona
+   pelo :host em onAppend() e desenha no <canvas> com width/height fixos. */
 :host {
 	width: 170px;
 	height: 210px;
@@ -9,67 +15,73 @@
 	position: absolute;
 	width: 170px;
 	height: 210px;
-	background-color: white;
-	border-radius: 5px;
-	box-shadow:
-		white 0px 0px 0px 3px inset,
-		rgb(192, 192, 192) 0px 0px 0px 4px inset;
+	box-sizing: border-box;
+	background: var(--window-fill);
+	border: var(--window-frame);
+	border-radius: var(--radius-window);
+	box-shadow: var(--window-shadow), var(--rim-light);
+	overflow: hidden;
 }
 #ItemPreview .titlebar {
 	position: relative;
-	height: 17px;
-	background-repeat: repeat-x;
-	border-radius: 4px 4px 0 0;
+	height: 22px;
+	box-sizing: border-box;
+	padding: 0 var(--sp-4);
 }
 #ItemPreview .titlebar .title {
 	position: absolute;
-	left: 6px;
-	top: 2px;
-	text-shadow: 1px 1px 0px white;
+	left: 8px;
+	top: 50%;
+	transform: translateY(-50%);
 	white-space: nowrap;
-	max-width: 130px;
+	max-width: 118px;
 	overflow: hidden;
 	text-overflow: ellipsis;
 	font-size: 11px;
-	font-weight: bold;
+}
+/* Sem as asas do design system: 44px cada não cabe em 170px de janela. */
+#ItemPreview .titlebar .title::before,
+#ItemPreview .titlebar .title::after {
+	content: none;
 }
 #ItemPreview .titlebar .close {
-	position: absolute;
-	right: 3px;
-	top: 3px;
-	width: 11px;
-	height: 11px;
-	border: none;
-	background-repeat: no-repeat;
-	background-color: transparent;
+	right: 4px;
+	width: 16px;
+	height: 16px;
+	font-size: 10px;
 }
 #ItemPreview .content {
 	position: absolute;
-	top: 20px;
+	top: 22px;
 	left: 0;
 	right: 0;
 	bottom: 0;
 	text-align: center;
 }
-#ItemPreview .controls {
+#ItemPreview canvas {
 	margin-top: 6px;
 }
-#ItemPreview .controls ui-button {
-	border: none;
-	background-repeat: no-repeat;
-	background-color: transparent;
-	vertical-align: middle;
+#ItemPreview .controls {
+	margin-top: 8px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: var(--sp-2);
+}
+#ItemPreview .controls button {
+	padding: 0;
+	cursor: pointer;
 }
 #ItemPreview .controls .rot_left,
 #ItemPreview .controls .rot_right {
-	width: 20px;
-	height: 20px;
+	width: 22px;
+	height: 22px;
+	border-radius: var(--radius-pill);
+	font-size: 14px;
+	line-height: 1;
 }
 #ItemPreview .controls .reset {
-	border: 0;
-	width: 80px;
-	height: 20px;
-	background-repeat: no-repeat;
-	background-color: transparent;
-	margin: 0 2px;
+	width: 84px;
+	height: 22px;
+	font-size: var(--fs-desc);
 }

@@ -1,24 +1,31 @@
-<div id="ChatRoom">
-	<div class="titlebar" data-background="basic_interface/titlebar_mid.bmp">
-		<div class="left"><span class="title"></span> (<span class="count"></span>)</div>
-		<div class="right">
-			<button
-				class="base close"
-				data-background="basic_interface/sys_close_off.bmp"
-				data-hover="basic_interface/sys_close_on.bmp"
-			></button>
-		</div>
-		<div class="clear"></div>
+<!-- Sala de bate-papo (grupo/vendedor aberto pelo dono). Chrome do design
+     system (.ri-window/.ri-header/.ri-title/.ri-close, Common.css) no vidro
+     CLARO padrao -- diferente do WhisperBox (vidro escuro, flutua sobre o
+     mundo), esta janela sempre teve fundo branco solido, como um menu de
+     verdade (lista de membros + mensagens lado a lado).
+
+     Ganchos que ChatRoom.js consulta, todos preservados: .titlebar
+     (arrasto) / .titlebar .title / .titlebar .count / .close / .members /
+     .messages / .send input[name=message] (.sendmsg) / .extend
+     (redimensionar, mousedown) / #ChatRoom (o JS escreve style.width DIRETO
+     nele) / .resize (uma classe em 3 elementos -- .content/.messages/
+     .members -- que o JS ajusta a altura de todos juntos a cada
+     redimensionamento). btn_resize.bmp e titlebar_mid.bmp sairam: o grip
+     vira gradiente CSS (mesmo tratamento do PartyFriends). -->
+<div id="ChatRoom" class="ri-window">
+	<div class="titlebar ri-header">
+		<span class="title ri-title"></span>
+		<span class="cr-contagem">(<span class="count"></span>)</span>
+		<button type="button" class="close ri-close" title="Fechar">&times;</button>
 	</div>
 	<div class="panel">
 		<div class="content resize">
-			<div class="messages resize"></div>
-			<div class="members resize"></div>
-			<div class="clear"></div>
+			<div class="messages resize ri-scroll"></div>
+			<div class="members resize ri-scroll"></div>
 		</div>
 		<div class="send">
-			<input type="text" name="message" class="sendmsg" />
-			<button class="extend" data-background="btn_resize.bmp"></button>
+			<input type="text" name="message" class="sendmsg ri-input" placeholder="Digite uma mensagem..." />
+			<button type="button" class="extend" title="Redimensionar"></button>
 		</div>
 	</div>
 </div>

@@ -1,3 +1,10 @@
+/* Fase 3 (01/09/2026): mapa-mundi no design system. E tela cheia (:host
+   100%x100%, ancorada em 0,0) — nao e uma "janela" flutuante, entao nao leva
+   .ri-window (moldura arredondada colada na borda do viewport nao faz
+   sentido). A barra de 17px e a MESMA medida que resizeMap() usa
+   (C_TITLEBARHEIGHT em WorldMap.js) para calcular a altura util do mapa —
+   ela NAO pode crescer, so trocar de bitmap para tokens (regra da casa:
+   :host e o JS que mede andam juntos). */
 :host {
 	width: 100%;
 	height: 100%;
@@ -16,55 +23,148 @@
 	position: fixed;
 	top: 0;
 	left: 0;
-	background: black;
+	background: var(--ink-900);
 	height: 100%;
 	width: 100%;
+	font-family: var(--font-ui);
 }
 
 #WorldMap .hidden {
 	display: none;
 }
 
+/* ─── Barra superior (17px, medida por WorldMap.js — NAO mude) ─────────── */
+
 #WorldMap .titlebar {
 	height: 17px;
-	background-color: white;
-	background-repeat: repeat-x;
+	box-sizing: border-box;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: 0 var(--sp-3);
+	background: var(--titlebar-fill);
+	border-bottom: var(--titlebar-rule);
 }
 
-#WorldMap .titlebar .base {
-	width: 11px;
-	height: 11px;
-	border: none;
-	background-color: transparent;
-	background-repeat: no-repeat;
-	vertical-align: middle;
-}
-
-#WorldMap .titlebar .text {
-	text-shadow: 1px 1px white;
-	vertical-align: -2px;
-	white-space: nowrap;
-	/* chrome bug */
-	display: inline-block;
-	width: 60px;
-	height: 13px;
-	font-size: 11px;
-	font-weight: bold;
-}
-
-#WorldMap .titlebar .left {
-	margin-left: 3px;
-	float: left;
+#WorldMap .titlebar .left,
+#WorldMap .titlebar .right {
+	display: flex;
+	align-items: center;
+	gap: var(--sp-2);
 	height: 17px;
 }
 
-#WorldMap .titlebar .right {
-	float: right;
-	margin-right: 3px;
+#WorldMap .titlebar span[data-text] {
+	font: var(--type-label);
+	font-size: 10px;
+	color: var(--text-body);
+	white-space: nowrap;
 }
 
-#WorldMap .titlebar .clear {
-	clear: both;
+/* O select de mapas: poco compacto, mesma receita do .ri-input. */
+#WorldMap .wm-select {
+	height: 15px;
+	box-sizing: border-box;
+	border: 1px solid var(--border-hairline);
+	border-radius: var(--radius-card);
+	background: var(--white);
+	color: var(--text-body);
+	font: var(--type-label);
+	font-size: 10px;
+	padding: 0 2px;
+}
+
+/* Checkbox "mostrar nivel": quadrado, marca quando ativo — era bitmap
+   checkbox_0/1.bmp trocado por Client.loadFile a cada clique; agora e classe
+   pura (WorldMap.js/onShowLVL). */
+#WorldMap .showlvl {
+	appearance: none;
+	width: 12px;
+	height: 12px;
+	padding: 0;
+	box-sizing: border-box;
+	border: 1px solid var(--border-gold);
+	border-radius: 2px;
+	background: var(--surface-card);
+	color: transparent;
+	font-size: 9px;
+	line-height: 1;
+	cursor: pointer;
+	transition:
+		background var(--dur-fast) var(--ease-out),
+		border-color var(--dur-fast) var(--ease-out);
+}
+
+#WorldMap .showlvl:hover {
+	border-color: var(--accent);
+}
+
+#WorldMap .showlvl.is-on {
+	background: var(--tab-active-fill);
+	border-color: var(--gold-500);
+	color: var(--white);
+}
+
+#WorldMap .showlvl.is-on::after {
+	content: '\2713';
+}
+
+/* "Mostrar tudo": era icone i_object_2/3.bmp com hover; agora pilula de
+   texto na mesma familia do .ri-tab (preenchimento marca o estado ativo). */
+#WorldMap .togglemaps {
+	appearance: none;
+	height: 14px;
+	box-sizing: border-box;
+	padding: 0 var(--sp-3);
+	border: 1px solid var(--border-hairline);
+	border-radius: var(--radius-pill);
+	background: var(--tab-idle-fill);
+	color: var(--tab-idle-text);
+	font: var(--type-label);
+	font-size: 9px;
+	cursor: pointer;
+	transition:
+		background var(--dur-fast) var(--ease-out),
+		color var(--dur-fast) var(--ease-out);
+}
+
+#WorldMap .togglemaps:hover {
+	background: var(--surface-card-hover);
+}
+
+#WorldMap .togglemaps.is-active {
+	background: var(--tab-active-fill);
+	color: var(--tab-active-text);
+	border-color: var(--blue-600);
+}
+
+/* Fechar: era sys_close_off/on.bmp; agora glifo de texto, mesma familia do
+   .ri-close (aro dourado, disco claro) encolhida para caber nos 17px. */
+#WorldMap .close {
+	appearance: none;
+	width: 14px;
+	height: 14px;
+	box-sizing: border-box;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	padding: 0;
+	border-radius: 50%;
+	border: 1px solid var(--border-gold);
+	background: linear-gradient(180deg, var(--white), var(--gold-200));
+	color: var(--gold-700);
+	font-size: 10px;
+	font-weight: var(--fw-bold);
+	line-height: 1;
+	cursor: pointer;
+	transition:
+		background var(--dur-fast) var(--ease-out),
+		box-shadow var(--dur-fast) var(--ease-out);
+}
+
+#WorldMap .close:hover {
+	background: linear-gradient(180deg, var(--gold-200), var(--gold-300));
+	box-shadow: var(--glow-gold);
 }
 
 #WorldMap select {
@@ -101,30 +201,37 @@
 	position: absolute;
 	border: 0px;
 	border-radius: 4px;
-	background-color: rgba(0, 0, 0, 0);
+	background-color: transparent;
 	cursor: pointer;
 	overflow: visible;
 }
 
+/* As 4 cores de estado do mapa-mundi eram rgba() cruas; agora sao tons do
+   sistema misturados com transparencia (color-mix, sem hex novo). O hairline
+   claro que contorna a secao ativa/hover usa --white do token, nao #ddd. */
 #WorldMap .worldmap .section:hover,
 #WorldMap .worldmap .section.allmapvisible,
 #WorldMap .worldmap .section.currentmap,
 #WorldMap .worldmap .section.membersonmap {
-	border: 1px solid #dddddd7a;
+	border: 1px solid color-mix(in srgb, var(--white) 75%, transparent);
 }
 
 #WorldMap .worldmap .section:hover {
-	background-color: rgba(0, 128, 255, 0.5);
+	background-color: color-mix(in srgb, var(--accent) 50%, transparent);
 }
 
 #WorldMap .worldmap .section.membersonmap:not(.currentmap) {
-	background-color: rgba(128, 255, 0, 0.5);
+	background-color: color-mix(in srgb, var(--green-600) 45%, transparent);
 }
 
 #WorldMap .worldmap .section.currentmap {
-	background-color: rgba(255, 128, 0, 0.5);
+	background-color: color-mix(in srgb, var(--amber-600) 55%, transparent);
 }
 
+/* Rotulos ficam SOBRE a arte fotografica do mapa (cor arbitraria por baixo):
+   o contorno preto em 4 direcoes e a excecao permitida pelo design system
+   ("sombra no glifo" em vez de faixa solida) — precisa funcionar sobre
+   QUALQUER matiz do mapa por baixo, entao continua preto, nao azul. */
 #WorldMap .worldmap .section .mapname {
 	display: none;
 }
@@ -136,8 +243,9 @@
 	left: 50%;
 	transform: translate(-50%, 0);
 	height: 11px;
-	color: white;
-	font-weight: bold;
+	color: var(--white);
+	font-family: var(--font-ui);
+	font-weight: var(--fw-bold);
 	text-shadow:
 		-1px -1px 0 #000,
 		1px -1px 0 #000,
@@ -158,7 +266,8 @@
 	left: 50%;
 	transform: translate(-50%, 0);
 	height: 10px;
-	color: white;
+	color: var(--white);
+	font-family: var(--font-ui);
 	text-shadow:
 		-1px -1px 0 #000,
 		1px -1px 0 #000,
@@ -178,14 +287,6 @@
 	background-size: cover;
 }
 
-#WorldMap .showlvl {
-	width: 10px;
-	height: 12px;
-	border: none;
-	background-color: transparent;
-	background-repeat: no-repeat;
-}
-
 #WorldMap .worldmap .section .level-range-text {
 	display: none;
 	position: absolute;
@@ -196,8 +297,9 @@
 
 	width: 100%;
 	text-align: center;
-	font-weight: bold;
-	color: #ffffff;
+	font-weight: var(--fw-bold);
+	font-family: var(--font-ui);
+	color: var(--white);
 	text-shadow:
 		-1px -1px 0 #000,
 		1px -1px 0 #000,
@@ -220,8 +322,9 @@
 	left: 50%;
 	transform: translate(-50%, 0);
 	height: 11px;
-	color: white;
-	font-weight: bold;
+	color: var(--white);
+	font-family: var(--font-ui);
+	font-weight: var(--fw-bold);
 	text-shadow:
 		-1px -1px 0 #000,
 		1px -1px 0 #000,
@@ -238,8 +341,9 @@
 	left: 50%;
 	transform: translate(-50%, 0);
 	height: 11px;
-	color: white;
-	font-weight: bold;
+	color: var(--white);
+	font-family: var(--font-ui);
+	font-weight: var(--fw-bold);
 	text-shadow:
 		-1px -1px 0 #000,
 		1px -1px 0 #000,
@@ -256,8 +360,9 @@
 	left: 50%;
 	transform: translate(-50%, 0);
 	height: 11px;
-	color: white;
-	font-weight: bold;
+	color: var(--white);
+	font-family: var(--font-ui);
+	font-weight: var(--fw-bold);
 	text-shadow:
 		-1px -1px 0 #000,
 		1px -1px 0 #000,
@@ -268,62 +373,59 @@
 }
 
 #WorldMap .worldmap .section.is-dungeon {
-	background-color: rgba(255, 0, 0, 0.4) !important;
-	border: 1px solid rgba(255, 0, 0, 0.6) !important;
+	background-color: color-mix(in srgb, var(--red-600) 45%, transparent) !important;
+	border: 1px solid color-mix(in srgb, var(--red-600) 65%, transparent) !important;
 }
 
 #WorldMap .worldmap .section.is-dungeon-stacked {
 	background-color: transparent !important;
-	border: 1px solid rgba(255, 0, 0, 0.6) !important;
+	border: 1px solid color-mix(in srgb, var(--red-600) 65%, transparent) !important;
 	display: block !important;
 }
 
 #WorldMap .worldmap .connector-line {
 	position: absolute;
 	height: 1px;
-	background-color: rgba(255, 0, 0, 0.5);
+	background-color: color-mix(in srgb, var(--red-300) 70%, transparent);
 	pointer-events: none;
 }
+
+/* ─── Dica flutuante (era rgba(0,0,0,.85) chapado; agora vidro escuro) ──── */
 
 #WorldMap #map-tooltip {
 	position: fixed;
 	z-index: 100;
 	pointer-events: none;
 	padding: 5px;
-	background-color: rgba(0, 0, 0, 0.85);
-	border: 1px solid #666;
-	border-radius: 4px;
+	background: var(--surface-dark-glass);
+	backdrop-filter: var(--blur-glass);
+	border: 1px solid var(--border-hairline);
+	border-radius: var(--radius-card);
 }
 
 #WorldMap #map-tooltip .tooltip-img {
 	width: 150px;
 	height: 150px;
-	background-color: #111;
+	background-color: var(--ink-900);
 	background-size: cover;
 	background-position: center;
+	border-radius: var(--radius-bar);
 }
 
 #WorldMap #map-tooltip .tooltip-mapname {
-	color: gold;
-	font-weight: bold;
+	color: var(--gold-400);
+	font-family: var(--font-ui);
+	font-weight: var(--fw-bold);
 	text-align: center;
 	font-size: 12px;
 	padding: 3px 0 0;
-	text-shadow:
-		-1px -1px 0 #000,
-		1px -1px 0 #000,
-		-1px 1px 0 #000,
-		1px 1px 0 #000;
+	text-shadow: 0 1px 2px rgba(8, 22, 40, 0.85);
 }
 
 #WorldMap #map-tooltip .tooltip-mapid {
-	color: white;
+	color: var(--white);
 	text-align: center;
 	font-size: 11px;
 	padding: 2px 0;
-	text-shadow:
-		-1px -1px 0 #000,
-		1px -1px 0 #000,
-		-1px 1px 0 #000,
-		1px 1px 0 #000;
+	text-shadow: 0 1px 2px rgba(8, 22, 40, 0.85);
 }

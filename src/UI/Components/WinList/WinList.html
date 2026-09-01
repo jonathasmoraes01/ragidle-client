@@ -1,13 +1,20 @@
-<div id="serverlist">
-	<div class="head">
-		<ui-image src="login_interface/win_service.bmp"></ui-image>
+<!-- Fase 3 (01/09/2026): lista de servidores do fluxo de LOGIN saiu do chrome
+     bitmap (win_service.bmp, duas copias empilhadas) e virou design system.
+     Ganchos que WinList.js consulta, TODOS preservados: .list (onde setList()
+     injeta os itens) / .ok / .cancel (botoes, ouvidos por click) / .menu_node
+     (classe que cada item recebe em runtime, com data-id e os listeners de
+     mousedown+dblclick). GameEngine.js e LoginEngine.js so chamam a API
+     publica do componente (append/remove/setList/onIndexSelected/
+     onExitRequest) — nenhum dos dois toca neste HTML ou nestas classes. -->
+<div id="serverlist" class="ri-window">
+	<div class="head ri-header">
+		<span class="ri-title">Servidores</span>
+	</div>
+	<div class="content ri-scroll">
+		<div class="list"></div>
 	</div>
 	<div class="bottom">
-		<ui-image src="login_interface/win_service.bmp"></ui-image>
-		<ui-button class="btn cancel" bg="btn_cancel.bmp" hover="btn_cancel_a.bmp" down="btn_cancel_b.bmp"></ui-button>
-		<ui-button class="btn ok" bg="btn_ok.bmp" hover="btn_ok_a.bmp" down="btn_ok_b.bmp"></ui-button>
-	</div>
-	<div class="content">
-		<div class="list"></div>
+		<ui-button class="btn ok ri-btn">Conectar</ui-button>
+		<ui-button class="btn cancel ri-btn ri-btn--sec">Fechar</ui-button>
 	</div>
 </div>

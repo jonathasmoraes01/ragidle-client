@@ -8,10 +8,14 @@
 
 #Enchant {
 	position: relative;
-	width: 100%;
-	height: 100%;
+	/* PIXEL CRAVADO, nao 100%: altura percentual morre no container
+	   intermediario do Shadow DOM (o mesmo colapso que pegou NpcStoreV2 e
+	   Refine na Fase 3) — em jogo a janela sumia inteira. O numero e o MESMO
+	   do :host, regra da casa. */
+	width: 690px;
+	height: 470px;
 
-	color: #2d3a55;
+	color: var(--text-body);
 	box-sizing: border-box;
 	--enchant-scroll-up: none;
 	--enchant-scroll-down: none;
@@ -23,8 +27,12 @@
 	position: relative;
 	width: 100%;
 	height: 100%;
-	background-repeat: no-repeat;
-	background-size: contain;
+	box-sizing: border-box;
+	background: var(--window-fill);
+	border: var(--window-frame);
+	border-radius: var(--radius-window);
+	box-shadow: var(--window-shadow), var(--rim-light);
+	overflow: hidden;
 }
 
 #Enchant .titlebar {
@@ -32,44 +40,7 @@
 	top: 0;
 	left: 0;
 	width: 100%;
-	height: 17px;
-	background-image: none !important;
 	z-index: 5;
-}
-
-#Enchant .titlebar .base {
-	width: 11px;
-	height: 11px;
-	border: none;
-	background-color: transparent;
-	background-repeat: no-repeat;
-	vertical-align: middle;
-}
-
-#Enchant .titlebar .base.close {
-	width: 13px;
-	height: 13px;
-}
-
-#Enchant .titlebar .text {
-	display: none;
-	font-size: 11px;
-	font-weight: bold;
-}
-
-#Enchant .titlebar .left {
-	margin-left: 3px;
-	float: left;
-}
-
-#Enchant .titlebar .right {
-	position: absolute;
-	right: 6px;
-	top: 2px;
-}
-
-#Enchant .titlebar .clear {
-	clear: both;
 }
 
 #Enchant .overlay {
@@ -77,17 +48,18 @@
 	display: none;
 	white-space: nowrap;
 	z-index: 900;
-	height: 15px;
-	line-height: 15px;
-	border-radius: 3px;
-	padding: 4px;
-	background: rgba(0, 0, 0, 0.7);
-	color: #ffffff;
-	text-shadow: 1px 1px #000000;
+	border-radius: var(--radius-card);
+	padding: var(--sp-2) var(--sp-4);
+	background: var(--surface-dark-glass);
+	backdrop-filter: var(--blur-glass);
+	-webkit-backdrop-filter: var(--blur-glass);
+	color: var(--white);
+	font: var(--type-desc);
+	text-shadow: 0 1px 2px rgba(8, 22, 40, 0.85);
 }
 
 #Enchant .overlay.grey {
-	color: #aaaaaa;
+	color: var(--text-muted);
 }
 
 #Enchant .panel {
@@ -96,12 +68,15 @@
 	z-index: 1;
 }
 
+/* top recalibrado em +17px: a .ri-header oficial (34px, z-index 5) cobre
+   mais do painel (que e' inset:0 desde sempre) do que a barra antiga de
+   17px cobria -- sem isto a 1a linha da lista nascia debaixo do titulo. */
 #Enchant .left_panel {
 	position: absolute;
 	left: 0;
-	top: 10px;
+	top: 27px;
 	width: 220px;
-	height: 405px;
+	height: 388px;
 }
 
 #Enchant .item_list {
@@ -168,7 +143,7 @@
 #Enchant .item_list_empty {
 	padding: 10px;
 
-	color: #6b7893;
+	color: var(--text-muted);
 	text-align: center;
 }
 
@@ -229,15 +204,18 @@
 	white-space: nowrap;
 	overflow: hidden;
 	text-overflow: ellipsis;
-	color: #2d3a55;
+	color: var(--text-body);
 }
 
 #Enchant .main_panel {
 	position: absolute;
 	left: 220px;
-	top: 40px;
+	/* +17px (57 = 40+17): as abas moram em top:-23 DESTE painel e ficavam
+	   metade escondidas sob a .ri-header de 34px (a barra antiga tinha 17).
+	   Visto na foto da Fase 3; altura encolhe os mesmos 17. */
+	top: 57px;
 	width: 470px;
-	height: 377px;
+	height: 360px;
 }
 
 #Enchant .subpage {
@@ -271,11 +249,11 @@
 	padding: 0;
 	cursor: pointer;
 	font-weight: bold;
-	color: #aeaeae;
+	color: var(--text-muted);
 }
 
 #Enchant .action_tabs .tab.active {
-	color: #375d9d;
+	color: var(--accent-strong);
 }
 
 #Enchant .action_tabs .tab[data-action='reset'] {
@@ -349,7 +327,7 @@
 	align-items: center;
 	justify-content: center;
 
-	color: #6b7893;
+	color: var(--text-muted);
 	pointer-events: none;
 }
 
@@ -460,11 +438,11 @@
 	white-space: nowrap;
 	overflow: hidden;
 	text-overflow: ellipsis;
-	color: #2d3a55;
+	color: var(--text-body);
 }
 
 #Enchant .enchant_entry .entry_sub {
-	color: #6b7893;
+	color: var(--text-muted);
 	white-space: nowrap;
 	overflow: hidden;
 	text-overflow: ellipsis;
@@ -511,8 +489,8 @@
 	right: 6px;
 	bottom: 6px;
 
-	color: #2d3a55;
-	text-shadow: 1px 1px 0 #ffffff;
+	color: var(--text-body);
+	text-shadow: 1px 1px 0 var(--white);
 }
 
 #Enchant .tax_panel {
@@ -540,7 +518,7 @@
 	text-align: right;
 
 	font-weight: bold;
-	color: #2d3a55;
+	color: var(--text-body);
 }
 
 #Enchant .action_btn {
@@ -577,10 +555,10 @@
 
 #Enchant .caution,
 #Enchant .status {
-	color: #b13b3b;
+	color: var(--red-600);
 	line-height: 1.2;
 }
 
 #Enchant .status.error {
-	color: #b13b3b;
+	color: var(--red-600);
 }

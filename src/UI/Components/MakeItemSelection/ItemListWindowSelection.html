@@ -1,37 +1,27 @@
+<!-- Fase 3 (01/09/2026): armazenamento saiu dos bitmaps (titlebar_mid.bmp,
+     chatwin1_mid.bmp, itemwin_mid.bmp, btnbar_mid2.bmp) e entrou no design
+     system. A aba lateral decorativa (chatwin1_mid.bmp, sem uso no JS) saiu
+     junto. Seletores que ItemListWindowSelection.js consulta, todos
+     preservados: #ItemListWindowSelection (drop/dragover) / .titlebar
+     (arraste) / .text (titulo) / .footer .extend (arraste do resize, bitmap
+     intocado) / .event_selectall (em DOIS elementos: botao e texto) /
+     .selectall (troca o bmp do check, bitmap intocado -- e o proprio estado
+     que e desenhado por Client.loadFile em onToggleSelectAmount) /
+     .container .content (lista: scroll, altura via JS, hover/out/dragstart/
+     dragend/contextmenu) / .item (linha dinamica) / .overlay (tooltip). -->
 <div id="ItemListWindowSelection">
 	<div class="titlebar">
-		<ui-image src="basic_interface/titlebar_mid.bmp"></ui-image>
-		<div class="left">
-			<ui-text class="text" msg="1568">Storage</ui-text>
-		</div>
-		<div class="clear"></div>
+		<ui-text class="text" msg="1568">Storage</ui-text>
 	</div>
 	<div class="overlay"></div>
-	<div class="panel">
-		<div class="body">
-			<div class="infor_nventory">
-				<div class="tabs" rowspan="2">
-					<ui-image src="basic_interface/chatwin1_mid.bmp"></ui-image>
-				</div>
-				<div class="container">
-					<div class="content">
-						<ui-image src="basic_interface/itemwin_mid.bmp"></ui-image>
-					</div>
-				</div>
-			</div>
-			<div>
-				<div class="footer">
-					<ui-image src="basic_interface/btnbar_mid2.bmp"></ui-image>
-					<div class="ask_quantity">
-						<ui-button class="selectall event_selectall" bg="checkbox_0.bmp"></ui-button>
-						<ui-text class="event_selectall event_add_cursor" msg="295"
-							>Don't ask the Quantity of Items</ui-text
-						>
-					</div>
-
-					<ui-button class="extend" bg="btn_resize.bmp"></ui-button>
-				</div>
-			</div>
+	<div class="container">
+		<div class="content ri-scroll"></div>
+	</div>
+	<div class="footer">
+		<div class="ask_quantity">
+			<ui-button class="selectall event_selectall" bg="checkbox_0.bmp"></ui-button>
+			<ui-text class="event_selectall event_add_cursor" msg="295">Don't ask the Quantity of Items</ui-text>
 		</div>
+		<ui-button class="extend" bg="btn_resize.bmp"></ui-button>
 	</div>
 </div>

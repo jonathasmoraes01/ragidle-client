@@ -1,27 +1,24 @@
-<div id="Reputation">
-	<div class="titlebar">
-		<ui-image src="basic_interface/titlebar_mid.bmp"></ui-image>
-		<div class="left">
-			<ui-button
-				class="base"
-				bg="basic_interface/sys_base_off.bmp"
-				hover="basic_interface/sys_base_on.bmp"
-			></ui-button>
-			<ui-text class="text" msg="3827"></ui-text>
-		</div>
-		<div class="right">
-			<ui-button
-				class="base close"
-				bg="basic_interface/sys_close_off.bmp"
-				hover="basic_interface/sys_close_on.bmp"
-			></ui-button>
-		</div>
-		<div class="clear"></div>
+<!-- Fase 3 (01/09/2026): a janela de Reputação saiu dos bitmaps de moldura
+     (titlebar_mid.bmp, sys_base_*.bmp, sys_close_*.bmp, btnbar_mid2.bmp,
+     btn_close*.bmp, btn_search*.bmp, arrow_*.bmp) e entrou no design system.
+     Ganchos que Reputation.js consulta, todos preservados: .titlebar
+     (arraste) / .base (para-propagação de mousedown) / .close /
+     .big_btn_close / #repute_groups / .rep_group_searchbar / .search /
+     .rep_group_total_points_wrapper / .rep_indicator /
+     .rep_group_total_points_value / .content / .page_prev / .page_next /
+     .page_text. Os cartões de reputação (.rep_group_wrapper, os indicadores
+     de luz e a barra de progresso) continuam vindo de bitmap/gradiente
+     aplicados pelo PRÓPRIO JS (Client.loadFile + backgroundImage) — não são
+     cor literal de CSS deste arquivo, então ficaram como estavam. -->
+<div id="Reputation" class="ri-window">
+	<div class="titlebar ri-header">
+		<ui-text class="text ri-title" msg="3827"></ui-text>
+		<button type="button" class="base close ri-close" title="Fechar">&times;</button>
 	</div>
 	<div class="overall_container">
 		<div class="header">
 			<div class="select-wrapper">
-				<select id="repute_groups" class="rep_group_selector">
+				<select id="repute_groups" class="rep_group_selector ri-input">
 					<option value="all" data-text="3829"></option>
 				</select>
 				<ui-button
@@ -32,34 +29,23 @@
 				></ui-button>
 			</div>
 			<div class="search_wrapper">
-				<input class="rep_group_searchbar" type="text" />
-				<ui-button
-					class="search"
-					bg="reputation/btn_search.bmp"
-					hover="reputation/btn_search_over.bmp"
-					down="reputation/btn_search_press.bmp"
-				></ui-button>
+				<input class="rep_group_searchbar ri-input" type="text" placeholder="Buscar…" />
+				<button type="button" class="search ri-btn">Buscar</button>
 			</div>
 			<div class="rep_group_total_points_wrapper">
-				<div class="rep_group_text">GROUP:</div>
+				<div class="rep_group_text">GRUPO:</div>
 				<div class="rep_indicator"></div>
 				<div class="rep_group_total_points_value"></div>
 			</div>
 		</div>
-		<div class="content"></div>
+		<div class="content ri-scroll"></div>
 		<div class="paginator">
-			<ui-button class="page_prev" bg="reputation/arrow_prev.bmp"></ui-button>
+			<button type="button" class="page_prev" title="Página anterior">&lsaquo;</button>
 			<span class="page_text">1 / 1</span>
-			<ui-button class="page_next" bg="reputation/arrow_next.bmp"></ui-button>
+			<button type="button" class="page_next" title="Próxima página">&rsaquo;</button>
 		</div>
 		<div class="footer">
-			<ui-image src="basic_interface/btnbar_mid2.bmp"></ui-image>
-			<ui-button
-				class="big_btn_close"
-				bg="basic_interface/btn_close.bmp"
-				hover="basic_interface/btn_close_a.bmp"
-				down="basic_interface/btn_close_b.bmp"
-			></ui-button>
+			<button type="button" class="big_btn_close ri-btn">Fechar</button>
 		</div>
 	</div>
 </div>

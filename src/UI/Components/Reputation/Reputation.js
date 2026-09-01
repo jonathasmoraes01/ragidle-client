@@ -23,6 +23,9 @@ import cssText from './Reputation.css?raw';
  */
 const Reputation = new GUIComponent('Reputation', cssText);
 
+/* Janela entra/sai com a animacao unica (Fase 3, 01/09/2026). */
+Reputation.riAnimaJanela = true;
+
 /**
  * @var {Preferences} Window preferences
  */

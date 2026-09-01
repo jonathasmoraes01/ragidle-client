@@ -1,67 +1,64 @@
+<!-- Fase 4 (01/09/2026): "Criar Sala" no design system oficial. Ganchos que
+     ChatRoomCreate.js consulta, todos preservados: .titlebar (alca de
+     arrasto) / .close / .cancel / .ok / .setup (o <form>) / .title (o input
+     do titulo, usado para foco) / input[name=title|password] /
+     select[name=limit|type] / input[name=public]. Chrome de bitmap
+     (titlebar_mid.bmp, sys_close_*.bmp, btn_ok/btn_cancel*.bmp) saiu inteiro;
+     o miolo de tabela virou formulario com tokens. -->
 <div id="ChatRoomCreate">
-	<div class="titlebar" data-background="basic_interface/titlebar_mid.bmp">
-		<div class="left">
-			<span class="text" data-text="125">Make a Room</span>
+	<div class="crc-janela ri-window">
+		<div class="titlebar ri-header">
+			<span class="ri-title" data-text="125">Criar Sala</span>
+			<button type="button" class="close ri-close" title="Fechar">&times;</button>
 		</div>
-		<div class="right">
-			<button
-				class="base close"
-				data-background="basic_interface/sys_close_off.bmp"
-				data-hover="basic_interface/sys_close_on.bmp"
-			></button>
-		</div>
-		<div class="clear"></div>
-	</div>
-	<div class="panel">
-		<form class="setup">
-			<table class="container">
-				<tr>
-					<td class="head">Title :</td>
-					<td colspan="3">
-						<input class="title" type="text" name="title" value="" maxlength="32" />
-					</td>
-				</tr>
-				<tr>
-					<td class="head">Limit :</td>
-					<td>
-						<select name="limit" class="limit">
+
+		<div class="panel crc-corpo">
+			<form class="setup crc-form">
+				<label class="crc-campo crc-campo--titulo">
+					<span class="crc-rotulo">Título</span>
+					<input class="title ri-input" type="text" name="title" value="" maxlength="32" />
+				</label>
+
+				<div class="crc-linha">
+					<label class="crc-campo">
+						<span class="crc-rotulo">Limite</span>
+						<select name="limit" class="limit ri-input">
 							<option value="20">20</option>
 							<option value="12">12</option>
 							<option value="8">8</option>
 							<option value="4">4</option>
 							<option value="2">2</option>
 						</select>
-					</td>
-					<td class="head">Type :</td>
-					<td>
-						<select name="type" class="type">
-							<option value="1" data-text="130">Chat Room</option>
+					</label>
+					<label class="crc-campo crc-campo--tipo">
+						<span class="crc-rotulo">Tipo</span>
+						<select name="type" class="type ri-input">
+							<option value="1" data-text="130">Sala de bate-papo</option>
 						</select>
-					</td>
-				</tr>
-				<tr>
-					<td class="head">Restrict :</td>
-					<td class="mode" colspan="3">
-						<span
-							><input type="radio" name="public" value="1" checked="checked" /><span data-text="201"
-								>Púb.</span
-							></span
-						>
-						<span><input type="radio" name="public" value="0" /><span data-text="200">Priv.</span></span>
-						<span class="head">Sign :</span>
-						<input class="password" type="password" name="password" value="" maxlength="16" />
-					</td>
-				</tr>
-			</table>
-		</form>
-	</div>
-	<div class="footer" data-background="basic_interface/btnbar_mid2.bmp">
-		<button class="btn ok" data-background="btn_ok.bmp" data-hover="btn_ok_a.bmp" data-down="btn_ok_b.bmp"></button>
-		<button
-			class="btn cancel"
-			data-background="btn_cancel.bmp"
-			data-hover="btn_cancel_a.bmp"
-			data-down="btn_cancel_b.bmp"
-		></button>
+					</label>
+				</div>
+
+				<div class="crc-linha crc-restricao">
+					<span class="crc-rotulo">Restrição</span>
+					<label class="crc-radio">
+						<input type="radio" name="public" value="1" checked="checked" />
+						<span data-text="201">Púb.</span>
+					</label>
+					<label class="crc-radio">
+						<input type="radio" name="public" value="0" />
+						<span data-text="200">Priv.</span>
+					</label>
+					<label class="crc-campo crc-campo--senha">
+						<span class="crc-rotulo">Senha</span>
+						<input class="password ri-input" type="password" name="password" value="" maxlength="16" />
+					</label>
+				</div>
+			</form>
+		</div>
+
+		<div class="footer crc-rodape">
+			<button type="button" class="btn cancel ri-btn ri-btn--sec">Cancelar</button>
+			<button type="button" class="btn ok ri-btn">Criar</button>
+		</div>
 	</div>
 </div>

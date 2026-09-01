@@ -1,4 +1,8 @@
-/* Message Model */
+/* Fase 3 (01/09/2026): caixa de aviso da banca no design system. Largura
+   cravada em 270px (a mesma que VendingModelMessage.js usa pra centralizar
+   em init(), com base num quadrado de 200px de referencia) -- NAO MUDA. A
+   altura do corpo (114px) tambem fica: e o unico numero que a moldura
+   respeita, ninguem mede o host pelo JS aqui. */
 :host {
 	position: absolute;
 	top: 100px;
@@ -6,54 +10,65 @@
 	width: 270px;
 }
 
+#VendingModelMessage {
+	display: flex;
+	flex-direction: column;
+	width: 270px;
+	box-sizing: border-box;
+}
+
+/* A janela padrao (.ri-window) ja da vidro/moldura/sombra/raio; aqui so o
+   encaixe: titlebar mais baixa e asas menores, porque 270px e estreito
+   demais para o tratamento de 34px/44px pensado pra janela grande. */
 .titlebar {
-	border-radius: 3px 3px 0px 0px;
-	height: 15px;
-	align-items: center;
-	padding: 1px;
+	flex: 0 0 auto;
+	height: 24px;
+	padding: 0 var(--sp-3);
+	cursor: move;
 }
-.titlebar .base {
-	width: 11px;
-	height: 11px;
-	border: none;
-	background-color: transparent;
-	background-repeat: no-repeat;
-	vertical-align: middle;
+.titlebar .ri-title {
+	font-size: 12px;
+	gap: var(--sp-2);
 }
+.titlebar .ri-title::before,
+.titlebar .ri-title::after {
+	width: 16px;
+	height: 10px;
+}
+
 .container {
-	background: white;
-	width: 268px;
+	flex: 1 1 auto;
+	width: 100%;
 	height: 114px;
-	border-radius: 0px 0px 3px 3px;
-	border: 1px solid #ccc;
-	display: grid;
+	box-sizing: border-box;
+	display: flex;
+	flex-direction: column;
+	background: var(--surface-glass);
 }
 
 .text_message {
-	height: 73px;
-	padding: 11px;
+	flex: 1 1 auto;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: var(--sp-5) var(--sp-6);
+	text-align: center;
+	font: var(--type-info);
+	color: var(--text-body);
 }
 
-/** Buttons **/
+/** Botao **/
 .btns {
-	position: absolute;
-	bottom: -3px;
-	width: 100%;
-	height: 28px;
-}
-.btn {
-	position: absolute;
-	border: 0;
-	width: 42px;
-	height: 20px;
-	background-repeat: no-repeat;
-	background-color: transparent;
+	flex: 0 0 auto;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 0 var(--sp-4) var(--sp-4);
 }
 
-.ok,
-.make {
-	right: 6px;
-}
-.delete {
-	left: 4px;
+.btn {
+	min-width: 72px;
+	height: 24px;
+	padding: 0 var(--sp-5);
+	cursor: pointer;
 }

@@ -4,9 +4,23 @@
 	left: 0px;
 }
 
+/* Fase 3 (01/09/2026): pele do design system. SEM overflow:hidden de
+   proposito -- .bottom e .content sao position:absolute/relative e ja
+   extrapolam a altura "de fluxo" do proprio #MakeItemSelection (o unico
+   filho no fluxo normal e .bottom, deslocado por top:80 relative); a janela
+   sempre dependeu de overflow:visible para mostrar a lista e os botoes.
+   Clipar aqui cortaria a fileira de Confirmar/Cancelar em silencio -- a
+   mesma familia de armadilha de ":host e o JS que mede precisam andar
+   juntos", so que com overflow no lugar de dimensao. */
 #MakeItemSelection {
 	position: absolute;
 	width: 200px;
+	background: var(--window-fill);
+	border: var(--window-frame);
+	border-radius: var(--radius-window);
+	box-shadow: var(--window-shadow), var(--rim-light);
+	color: var(--text-body);
+	font-family: var(--font-ui);
 }
 #MakeItemSelection .head {
 	position: absolute;
@@ -14,13 +28,20 @@
 	height: 22px;
 	top: 0px;
 	left: 0px;
-	background-repeat: repeat-x;
-	background-color: white;
+	box-sizing: border-box;
+	border-radius: var(--radius-window) var(--radius-window) 0 0;
+}
+/* Asa dourada do .ri-title padrao (44px) e larga demais para 200px de
+   janela -- encolhida so aqui, mesma receita visual em escala menor. */
+#MakeItemSelection .head .ri-title::before,
+#MakeItemSelection .head .ri-title::after {
+	width: 20px;
+	height: 10px;
 }
 #MakeItemSelection .head .text {
 	position: relative;
-	top: 2px;
-	left: 5px;
+	top: 0px;
+	left: 0px;
 	white-space: nowrap;
 }
 #MakeItemSelection .bottom {
@@ -28,35 +49,51 @@
 	height: 120px;
 	top: 80px;
 	left: 0px;
+	background: var(--surface-glass);
+	backdrop-filter: var(--blur-glass);
+	border-top: var(--titlebar-rule);
+	box-sizing: border-box;
 }
 
 #MakeItemSelection .content {
 	position: absolute;
 	top: 22px;
 	left: 0px;
-	background-color: white;
+	background: var(--window-fill);
+	border-top: var(--divider);
 	width: 100%;
+	box-sizing: border-box;
 }
 #MakeItemSelection .list {
-	background-color: #f7f7f7;
+	background-color: var(--surface-inset);
 	height: 130px;
 	overflow-y: auto;
 	overflow-x: hidden;
 	margin-left: 10px;
 	margin-right: 10px;
+	border-radius: var(--radius-card);
 }
 #MakeItemSelection .list .item {
 	display: block;
 	height: 28px;
 	margin: 4px 4px 4px 4px;
 	position: relative;
+	box-sizing: border-box;
+	border: 1px solid transparent;
+	border-radius: var(--radius-card);
+	cursor: pointer;
+	transition:
+		background var(--dur-fast) var(--ease-out),
+		border-color var(--dur-fast) var(--ease-out);
+}
+#MakeItemSelection .list .item:hover {
+	background: var(--surface-card-hover);
 }
 #MakeItemSelection .list .item .icon {
 	width: 24px;
 	height: 24px;
-	border: none;
-	background-color: transparent;
 	background-repeat: no-repeat;
+	background-position: center;
 }
 #MakeItemSelection .list .item .name {
 	position: absolute;
@@ -64,13 +101,25 @@
 	left: 30px;
 	width: 90px;
 	white-space: nowrap;
+	font: var(--type-info);
+	color: var(--text-body);
+}
+#MakeItemSelection .list pre {
+	font: var(--type-info);
+	color: var(--text-body);
+	padding: var(--sp-4);
+	margin: 0;
+	white-space: pre-wrap;
 }
 
 #MakeItemSelection .materials {
 	position: absolute;
 	bottom: 0px;
 	left: 10px;
-	background-color: white;
+	background: var(--surface-card);
+	border: 1px solid var(--border-hairline);
+	border-radius: var(--radius-card);
+	box-shadow: var(--shadow-card);
 	width: 96px;
 	height: 28px;
 	display: none;
@@ -86,9 +135,8 @@
 #MakeItemSelection .materials .item .icon {
 	width: 24px;
 	height: 24px;
-	border: none;
-	background-color: transparent;
 	background-repeat: no-repeat;
+	background-position: center;
 }
 
 #MakeItemSelection .materials .item .name {
@@ -104,14 +152,57 @@
 	bottom: 4px;
 	width: 42px;
 	height: 20px;
+	box-sizing: border-box;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	appearance: none;
+	border-radius: var(--radius-card);
+	font-family: var(--font-ui);
+	font-size: var(--fs-badge);
+	font-weight: var(--fw-semibold);
+	line-height: 1;
+	cursor: pointer;
+	white-space: nowrap;
+	overflow: visible;
+	transition:
+		filter var(--dur-fast) var(--ease-out),
+		transform var(--dur-instant) var(--ease-out);
 }
-#MakeItemSelection .ok {
+#MakeItemSelection ui-button.btn:hover {
+	filter: brightness(1.06);
+}
+#MakeItemSelection ui-button.btn:active {
+	transform: var(--press-shift);
+}
+#MakeItemSelection ui-button.ok {
 	right: 50px;
+	border: 1px solid var(--blue-600);
+	background: var(--tab-active-fill);
+	color: var(--text-on-accent);
+	box-shadow: var(--rim-light), var(--shadow-card);
 }
-#MakeItemSelection .cancel {
+#MakeItemSelection ui-button.cancel {
 	right: 5px;
+	border: 1px solid var(--border-hairline);
+	background: var(--surface-card-hover);
+	color: var(--text-link);
+	box-shadow: var(--shadow-card);
+}
+#MakeItemSelection ui-button.cancel:hover {
+	background: var(--white);
+	border-color: var(--accent);
+	filter: none;
 }
 
-#MakeItemSelection .select {
-	background-color: rgb(205, 224, 255);
+/* Selecionado = borda de acento + tinta de acento (regra do DS), nunca so
+   espessura. Especificidade de proposito >= a do :hover acima (mesma conta
+   de classes) e a regra vem DEPOIS no arquivo -- item selecionado continua
+   tinto mesmo sob o mouse. */
+#MakeItemSelection .list .item.select {
+	background: color-mix(in srgb, var(--accent) 14%, var(--white));
+	border-color: var(--accent);
+}
+#MakeItemSelection .list .item.select:hover {
+	background: color-mix(in srgb, var(--accent) 20%, var(--white));
 }

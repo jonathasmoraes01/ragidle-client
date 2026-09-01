@@ -24,6 +24,9 @@ import cssText from './ItemSelection.css?raw';
  */
 const ItemSelection = new GUIComponent('ItemSelection', cssText);
 
+/* Janela entra/sai com a animacao unica (Fase 3, 01/09/2026). */
+ItemSelection.riAnimaJanela = true;
+
 ItemSelection.render = () => htmlText;
 
 /**
@@ -53,10 +56,10 @@ ItemSelection.init = function init() {
 	this.draggable(root.querySelector('.head'));
 
 	// Click Events
-	root.querySelector('ui-button.ok').addEventListener('click', () => {
+	root.querySelector('.ok').addEventListener('click', () => {
 		ItemSelection.selectIndex();
 	});
-	root.querySelector('ui-button.cancel').addEventListener('click', () => {
+	root.querySelector('.cancel').addEventListener('click', () => {
 		ItemSelection.index = -1;
 		ItemSelection.selectIndex();
 	});
@@ -136,7 +139,7 @@ function addElement(url, index, name) {
 	const div = document.createElement('div');
 	div.className = 'item';
 	div.setAttribute('data-index', index);
-	div.innerHTML = '<div class="icon"></div>' + `<span class="name">${_sanitizeHtml(name)}</span>`;
+	div.innerHTML = '<div class="icon ri-tile"></div>' + `<span class="name">${_sanitizeHtml(name)}</span>`;
 	listEl.appendChild(div);
 
 	Client.loadFile(url, data => {
@@ -156,11 +159,13 @@ ItemSelection.setIndex = function setIndex(id) {
 	const root = ItemSelection.getRoot();
 	const prev = root.querySelector(`div[data-index="${this.index}"]`);
 	if (prev) {
-		prev.style.backgroundColor = 'transparent';
+		prev.classList.remove('is-selecionado');
 	}
+	/* Selecionado = borda de acento + tinta (regra do design system), nunca
+	   mais cor hardcoded no JS -- ver ".is-selecionado" em ItemSelection.css. */
 	const next = root.querySelector(`div[data-index="${id}"]`);
 	if (next) {
-		next.style.backgroundColor = '#cde0ff';
+		next.classList.add('is-selecionado');
 	}
 	this.index = id;
 };

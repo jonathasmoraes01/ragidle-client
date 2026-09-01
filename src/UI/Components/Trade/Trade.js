@@ -25,6 +25,9 @@ import cssText from './Trade.css?raw';
  */
 const Trade = new GUIComponent('Trade', cssText);
 
+/* Janela entra/sai com a animacao unica (Fase 3, 01/09/2026). */
+Trade.riAnimaJanela = true;
+
 /**
  * HTML returned by render()
  */

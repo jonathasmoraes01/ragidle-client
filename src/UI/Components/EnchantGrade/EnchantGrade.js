@@ -29,6 +29,8 @@ import cssText from './EnchantGrade.css?raw';
  * Create Component
  */
 const EnchantGrade = new GUIComponent('EnchantGrade', cssText);
+/* Janela entra/sai com a animacao unica (Fase 3, 01/09/2026). */
+EnchantGrade.riAnimaJanela = true;
 
 /**
  * Helper: query inside shadow root

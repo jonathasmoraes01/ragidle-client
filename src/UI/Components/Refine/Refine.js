@@ -29,6 +29,8 @@ import cssText from './Refine.css?raw';
  * Create Component
  */
 const Refine = new GUIComponent('Refine', cssText);
+/* Janela entra/sai com a animacao unica (Fase 3, 01/09/2026). */
+Refine.riAnimaJanela = true;
 
 /**
  * Blacksmtith's Blessing ItemID

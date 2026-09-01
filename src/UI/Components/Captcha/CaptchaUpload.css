@@ -1,3 +1,5 @@
+/* Fase 3 (01/09/2026): upload do captcha no design system. :host 280x200,
+   igual sempre. */
 :host {
 	position: absolute;
 	width: 280px;
@@ -7,9 +9,16 @@
 #CaptchaUpload {
 	width: 100%;
 	height: 100%;
-	background-color: #ffffff;
+	box-sizing: border-box;
 	font-size: 12px;
-	border-radius: 3px;
+	background: var(--window-fill);
+	border: var(--window-frame);
+	border-radius: var(--radius-window);
+	box-shadow: var(--window-shadow), var(--rim-light);
+	backdrop-filter: var(--blur-glass);
+	color: var(--text-body);
+	font-family: var(--font-ui);
+	overflow: hidden;
 }
 
 #CaptchaUpload .clear {
@@ -17,94 +26,135 @@
 }
 
 #CaptchaUpload .titlebar {
-	width: 280px;
+	width: 100%;
 	height: 17px;
-	background-color: white;
-	background-repeat: repeat-x;
-	border-radius: 3px 3px 0px 0px;
+	box-sizing: border-box;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: 0 var(--sp-3);
+	background: var(--titlebar-fill);
+	border-bottom: var(--titlebar-rule);
+	cursor: move;
 }
 
 #CaptchaUpload .titlebar .base {
-	width: 11px;
-	height: 11px;
-	background-color: transparent;
-	background-repeat: no-repeat;
-	vertical-align: middle;
-}
-
-#CaptchaUpload .titlebar .text {
-	text-shadow: 1px 1px white;
-	vertical-align: -2px;
-	white-space: nowrap;
 	display: inline-block;
-	width: 32px;
-	height: 13px;
-	font-size: 11px;
-	font-weight: bold;
+	width: 6px;
+	height: 6px;
+	border-radius: 50%;
+	background: var(--gold-400);
 }
 
-#CaptchaUpload .titlebar .left {
-	margin-left: 3px;
-	float: left;
+#CaptchaUpload .titlebar .close {
+	appearance: none;
+	width: 14px;
+	height: 14px;
+	padding: 0;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	border-radius: 50%;
+	border: 1px solid var(--border-gold);
+	background: linear-gradient(180deg, var(--white), var(--gold-200));
+	color: var(--gold-700);
+	font-size: 10px;
+	font-weight: var(--fw-bold);
+	line-height: 1;
+	cursor: pointer;
+	transition:
+		background var(--dur-fast) var(--ease-out),
+		box-shadow var(--dur-fast) var(--ease-out);
 }
 
-#CaptchaUpload .titlebar .right {
-	float: right;
-	margin-right: 3px;
-}
-
-#CaptchaUpload .titlebar .clear {
-	clear: both;
+#CaptchaUpload .titlebar .close:hover {
+	background: linear-gradient(180deg, var(--gold-200), var(--gold-300));
+	box-shadow: var(--glow-gold);
 }
 
 #CaptchaUpload .container {
-	padding: 10px;
+	padding: var(--sp-6);
 	text-align: center;
+	box-sizing: border-box;
 }
 
 #CaptchaUpload .btn {
-	width: 42px;
-	height: 20px;
-	background-repeat: no-repeat;
-	background-color: transparent;
-	border: 0;
-	margin-left: 5px;
+	appearance: none;
+	min-width: 76px;
+	height: 22px;
+	padding: 0 var(--sp-4);
+	border: 1px solid var(--blue-600);
+	border-radius: var(--radius-panel);
+	background: var(--tab-active-fill);
+	color: var(--text-on-accent);
+	font: var(--type-label);
+	cursor: pointer;
+	margin-left: var(--sp-3);
+	box-shadow: var(--rim-light), var(--shadow-card);
+	transition: filter var(--dur-fast) var(--ease-out);
 }
 
-/* Custom File Input Styles */
+#CaptchaUpload .btn:hover {
+	filter: brightness(1.06);
+}
+
+#CaptchaUpload .btn:active {
+	transform: var(--press-shift);
+}
+
+/* ─── Escolher arquivo (era txtbox_btn_a/b/c.bmp) ───────────────────────── */
+
 #CaptchaUpload .custom_file_input {
-	margin-bottom: 10px;
+	margin-bottom: var(--sp-5);
 	display: flex;
 	justify-content: center;
 	align-items: center;
+	gap: var(--sp-2);
 }
 
 #CaptchaUpload .captcha_file_text {
 	width: 170px;
-	border: 1px solid #7f9db9;
-	background-color: #fff;
-	color: #000;
-	height: 14px;
+	height: 20px;
+	box-sizing: border-box;
+	border: 1px solid var(--border-hairline);
+	border-radius: var(--radius-card);
+	background: var(--white);
+	color: var(--text-body);
+	font: var(--type-desc);
+	padding: 0 var(--sp-3);
+	box-shadow: var(--well-shadow);
 }
 
 #CaptchaUpload .btn_browse {
-	width: 18px;
-	height: 18px;
+	appearance: none;
+	width: 22px;
+	height: 22px;
+	box-sizing: border-box;
+	padding: 0;
+	border: 1px solid var(--border-hairline);
+	border-radius: var(--radius-card);
+	background: var(--surface-card);
+	color: var(--accent-strong);
+	font: var(--type-label);
 	cursor: pointer;
-	background-color: transparent;
-	background-repeat: no-repeat;
+	transition: background var(--dur-fast) var(--ease-out);
+}
+
+#CaptchaUpload .btn_browse:hover {
+	background: var(--surface-card-hover);
 }
 
 #CaptchaUpload .btn_browse:active {
-	border-color: #696969 #fff #fff #696969;
+	transform: var(--press-shift);
 }
 
 #CaptchaUpload .preview_box {
 	width: 220px;
 	height: 90px;
-	border: 1px solid #999;
-	margin: 0 auto 10px auto;
-	background-color: transparent;
+	border: 1px solid var(--border-hairline);
+	border-radius: var(--radius-card);
+	margin: 0 auto var(--sp-5) auto;
+	background: var(--surface-inset);
 	display: flex;
 	align-items: center;
 	justify-content: center;
@@ -118,8 +168,22 @@
 
 #CaptchaUpload input[type='text'].answer_input {
 	width: 150px;
-	margin-right: 5px;
-	border: 1px solid #7f9db9;
+	height: 22px;
+	box-sizing: border-box;
+	margin-right: var(--sp-3);
+	border: 1px solid var(--border-hairline);
+	border-radius: var(--radius-card);
+	background: var(--white);
+	color: var(--text-body);
+	font: var(--type-info);
+	padding: 0 var(--sp-3);
+	box-shadow: var(--well-shadow);
+}
+
+#CaptchaUpload input[type='text'].answer_input:focus {
+	border-color: var(--accent);
+	box-shadow: var(--glow-accent);
+	outline: none;
 }
 
 #CaptchaUpload .controls {

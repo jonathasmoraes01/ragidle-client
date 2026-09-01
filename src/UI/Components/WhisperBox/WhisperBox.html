@@ -1,19 +1,30 @@
-<div id="WhisperBox" class="whisper-container">
-	<div class="whisper-header">
-		<span class="title">With weeeee (Friend) *^.^* [813-338]</span>
-		<ui-button
-			class="close"
-			bg="basic_interface/sys_close_off.bmp"
-			hover="basic_interface/sys_close_on.bmp"
-		></ui-button>
+<!-- Sussurro 1:1 (Fase 3, 01/09/2026): chrome do design system
+     (.ri-window/.ri-header/.ri-title/.ri-close, Common.css), com pele de
+     vidro ESCURO -- a MESMA familia do ChatBox irmao (bate-papo publico):
+     esta caixa flutua por CIMA do mundo 3D, arrastavel para qualquer canto
+     da tela, nao e um menu modal como HuntMap/IdleConfig. Ver o cabecalho
+     de WhisperBox.css para o raciocinio completo.
+
+     Ganchos que WhisperBox.js consulta, todos preservados: .whisper-header
+     / .whisper-footer (arrasto, initResizable) / .title / .close /
+     .content / .input-whisper / .resizer. btn_resize.bmp saiu: o grip vira
+     um gradiente CSS (mesmo tratamento ja usado no PartyFriends). -->
+<div id="WhisperBox" class="whisper-container ri-window">
+	<div class="whisper-header ri-header">
+		<span class="title ri-title">Sussurro</span>
+		<button type="button" class="close ri-close" title="Fechar">&times;</button>
 	</div>
 	<div class="whisper-body">
-		<div class="content"></div>
+		<div class="content ri-scroll"></div>
 	</div>
 	<div class="whisper-footer">
 		<div class="input-wrapper">
-			<div contenteditable="true" class="message input-whisper"></div>
+			<div
+				contenteditable="true"
+				class="message input-whisper"
+				data-placeholder="Escreva uma mensagem..."
+			></div>
 		</div>
-		<div class="resizer event_add_cursor" data-background="btn_resize.bmp"></div>
+		<div class="resizer event_add_cursor"></div>
 	</div>
 </div>
