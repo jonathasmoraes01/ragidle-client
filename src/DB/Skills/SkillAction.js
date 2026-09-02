@@ -74,6 +74,11 @@ SkillAction[SK.SM_BASH] =
 	// Arqueiro tocava o quadro de adaga ("soco"). ACTION.ATTACK deixa setAction
 	// resolver pela arma equipada (getWeaponAction), como o AC_SHOWER ja faz.
 	SkillAction[SK.AC_DOUBLE] =
+	// D-694: o BLITZ BEAT e a skill de ATAQUE do Cacador e caia no DEFAULT
+	// (pose de conjurar — o "soco" do reporte de 01/09). O gesto certo e o de
+	// ATAQUE resolvido pela arma (mesma razao do AC_DOUBLE acima), e o falcao
+	// que voa ate o alvo ja e tratado em onEntityUseSkillToAttack.
+	SkillAction[SK.HT_BLITZBEAT] =
 	SkillAction[SK.HT_PHANTASMIC] =
 	SkillAction[SK.ASC_BREAKER] =
 	SkillAction[SK.RG_BACKSTAP] =
