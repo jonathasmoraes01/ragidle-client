@@ -297,7 +297,7 @@ function syncRotacao() {
  */
 function onClickMedalhao(e) {
 	e.stopImmediatePropagation();
-	IdleConfig.abrirNaAba('skills');
+	IdleConfig.abrirNaAba('ataque');
 }
 
 function onClickAuto(e) {

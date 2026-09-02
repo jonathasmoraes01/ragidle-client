@@ -1,5 +1,5 @@
 <div id="IdleConfig">
-	<button type="button" class="ic-button" title="Configuração idle">⚙</button>
+	<button type="button" class="ic-button" title="Configuração idle" aria-label="Configuração idle"><!--RI_ICONE:config--></button>
 
 	<div class="ic-window ri-window ri-anima">
 		<div class="ic-titlebar ri-header">
@@ -7,22 +7,59 @@
 			<button type="button" class="ic-close ri-close" title="Fechar">&times;</button>
 		</div>
 
-		<div class="ic-tabs">
-			<button type="button" class="ic-tab ri-tab is-active" data-tab="geral">Geral</button>
-			<button type="button" class="ic-tab ri-tab" data-tab="alvos">Alvos</button>
-			<button type="button" class="ic-tab ri-tab" data-tab="skills">Skills</button>
-			<button type="button" class="ic-tab ri-tab" data-tab="recuperacao">Recuperação</button>
-			<button type="button" class="ic-tab ri-tab" data-tab="itens">Itens</button>
-		</div>
+		<div class="ic-master"></div>
 
-		<div class="ic-status"></div>
+		<div class="ic-status" role="status"></div>
 
-		<div class="ic-body ri-scroll">
-			<div class="ic-empty">Abra a configuração idle para carregar.</div>
+		<div class="ic-body">
+			<nav class="ic-rail ri-scroll" aria-label="Seções">
+				<div class="ic-rail-label">Seções</div>
+				<button type="button" class="ic-tab is-active" data-tab="caca">
+					<span class="ic-tab-icon"><!--RI_ICONE:alvo--></span>
+					<span class="ic-tab-text">
+						<span class="ic-tab-name">Caçada</span>
+						<span class="ic-tab-sum" data-resumo="caca"></span>
+					</span>
+				</button>
+				<button type="button" class="ic-tab" data-tab="ataque">
+					<span class="ic-tab-icon"><!--RI_ICONE:espadas--></span>
+					<span class="ic-tab-text">
+						<span class="ic-tab-name">Ataque</span>
+						<span class="ic-tab-sum" data-resumo="ataque"></span>
+					</span>
+				</button>
+				<button type="button" class="ic-tab" data-tab="suporte">
+					<span class="ic-tab-icon"><!--RI_ICONE:brilhos--></span>
+					<span class="ic-tab-text">
+						<span class="ic-tab-name">Suporte</span>
+						<span class="ic-tab-sum" data-resumo="suporte"></span>
+					</span>
+				</button>
+				<button type="button" class="ic-tab" data-tab="sobrevivencia">
+					<span class="ic-tab-icon"><!--RI_ICONE:coracao--></span>
+					<span class="ic-tab-text">
+						<span class="ic-tab-name">Sobrevivência</span>
+						<span class="ic-tab-sum" data-resumo="sobrevivencia"></span>
+					</span>
+				</button>
+				<button type="button" class="ic-tab" data-tab="consumiveis">
+					<span class="ic-tab-icon"><!--RI_ICONE:frasco--></span>
+					<span class="ic-tab-text">
+						<span class="ic-tab-name">Consumíveis</span>
+						<span class="ic-tab-sum" data-resumo="consumiveis"></span>
+					</span>
+				</button>
+				<div class="ic-rail-foot"></div>
+			</nav>
+
+			<section class="ic-pane ri-scroll">
+				<div class="ic-empty">Abra a configuração idle para carregar.</div>
+			</section>
 		</div>
 
 		<div class="ic-footer">
 			<div class="ic-problemas"></div>
+			<div class="ic-pendentes"></div>
 			<button type="button" class="ic-apply ri-btn" disabled>Aplicar</button>
 		</div>
 	</div>

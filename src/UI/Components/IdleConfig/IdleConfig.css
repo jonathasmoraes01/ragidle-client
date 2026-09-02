@@ -1,61 +1,43 @@
 /**
  * UI/Components/IdleConfig/IdleConfig.css
  *
- * "Configuração idle" — floating gear button + tabbed window. Same
- * float/window/drag/pointer-events split as HuntMap.css (see
- * UI/Components/HuntMap/HuntMap.css:1-30 for the full rationale); the short
- * version, repeated here because it drives every size below:
- * - GUIComponent makes ":host" the real shadow HOST element that
- *   #draggable()/#_fixPositionOverflow() move and clamp (UI/GUIComponent.js
- *   :140-203 _prepare(), :516-747 draggable(), :267-272
- *   _fixPositionOverflow()), so ":host" gets the SAME width/height as
- *   ".ic-window" below.
- * - ":host" stays pointer-events:none so the closed window never blocks
- *   scene clicks; only the button and the open window opt back in with
- *   pointer-events:auto. Paired with IdleConfig.mouseMode =
- *   GUIComponent.MouseMode.CROSS in IdleConfig.js (GUIComponent.js:66-70).
+ * Configuração idle — v6, o REDESENHO (D-903, 01/09/2026).
  *
- * v2: light theme retrofit (gauntlet skin pass) to match the other RAGIDLE
- * windows' reference prints — same tokens as IdleSkills.css's light window
- * (#f4f6fb background, white cards, #3b6ea5 blue, 10-12px corners, 150ms
- * transitions), replacing this window's original dark theme wholesale. Pure
- * skin + the Alvos tab's new per-mob icon (see IdleConfig.js renderAlvos())
- * — no other markup/behavior/contract changed.
+ * Até a v5 a composição era a do Midgard Idle (cinco abas horizontais, cards
+ * empilhados numa coluna só). A v6 troca a COMPOSIÇÃO, não só a pele:
+ *   - faixa do interruptor-mestre logo abaixo do título (Caça automática +
+ *     o mapa em que você está);
+ *   - trilho VERTICAL de seções à esquerda, cada uma com glifo, nome e um
+ *     resumo de uma linha do estado (a mesma família do trilho de regiões do
+ *     Mapa de Caça, D-901);
+ *   - painel à direita com cards; presas em GRADE de chips com avatar;
+ *     rotação e buffs em linhas com medalhão numerado; o segmentado
+ *     "Só eu / Grupo" (dois botões colados num trilho afundado, como o
+ *     "Para mim / Todos" do atlas);
+ *   - rodapé com "N alterações sem aplicar" ao lado do Aplicar.
  *
- * v3: adocao do design system premium "Ragnarok Classico Premium" (ver
- * redesign/extracao-da-referencia.md, secoes 2/3/5.3). As classes globais
- * .ri-* (UI/Common.css, injetadas em todo Shadow DOM) agora fornecem cor,
- * borda, sombra e fonte da moldura da janela — a janela ganha .ri-window no
- * elemento .ic-window, o cabecalho .ri-header/.ri-title/.ri-close, e cada
- * aba .ri-tab (a classe "is-active" que o JS ja alternava e a MESMA que o
- * design system usa para pintar a aba ativa de azul, entao nenhum listener
- * mudou). Esta folha so mantem o que e ESPECIFICO deste componente: layout
- * (flex/tamanho/posicao), os cards internos (ic-section), os controles
- * (switch/slider/select) e os elementos novos da lista de prioridade de
- * skills (medalhao numerado). Nenhum id/data-attr foi tocado — ver
- * IdleConfig.js pelas 3 strings de markup que ganharam classe nova
- * (ic-rot-num, ri-badge nos badges).
+ * Mecânica preservada (ver o histórico resumido):
+ * - ":host" tem o MESMO tamanho da ".ic-window" (760x580), porque é o host
+ *   que o GUIComponent#draggable move e o _fixPositionOverflow mede.
+ *   WINDOW_WIDTH/HEIGHT em IdleConfig.js e --w/--h-idleconfig em Common.css
+ *   andam juntos com estes números.
+ * - ":host" é transparente ao mouse (pointer-events:none) e só o botão
+ *   flutuante e a janela aberta optam por receber clique — junto com
+ *   MouseMode.CROSS em IdleConfig.js.
+ * - ".ri-anima" (Common.css) faz a abertura/fechamento por transição.
+ * - Seletores que provas e testes externos usam continuam existindo:
+ *   ".ic-window", ".ic-close", ".ic-button", ".ic-tab[data-tab]",
+ *   ".ic-apply", ".ic-status", ".ic-problemas".
  *
- * v4: realinhamento ao design system OFICIAL (redesign/design-system-oficial.md,
- * 19/08/2026), que substituiu o briefing de 18/08. Common.css ja tinha sido
- * pivotado pelo lider (--ri-azul e as demais aliases --ri-* ja apontam para
- * os tokens oficiais --blue-500 etc.), entao a moldura/titulo/abas ja vinham
- * corretos por heranca de .ri-window/.ri-header/.ri-title/.ri-tab. O que
- * faltava era o INTERIOR desta folha: toda cor, sombra, raio de canto e
- * duracao de transicao escritos como hex/rgba/px literal viraram tokens
- * oficiais (--surface-inset, --surface-card-hover, --shadow-card, --sky-*,
- * --gold-700, --amber-600, --fs-*, --dur-fast). O trilho do switch e do
- * slider passou a usar --well-fill/--well-shadow, e o botao (circulo) do
- * switch fica --tab-active-fill quando ligado, exatamente como o design
- * system pede. Botao flutuante (.ic-button) NAO entrou nesta passada de
- * proposito: ele segue a MESMA familia escura dos outros botoes flutuantes
- * do jogo (IdleSkills, CashShopIcon etc, fora do escopo desta tarefa) — so
- * as duracoes de transicao dele viraram --dur-fast, sem mudar cor. */
+ * Tokens: só nome oficial do design system (Common.css é replicado dentro
+ * deste Shadow DOM). Onde um tom novo era preciso, é color-mix() de token —
+ * nenhum hex nasce aqui.
+ */
 
 :host {
 	position: absolute;
-	width: 620px;
-	height: 540px;
+	width: 760px;
+	height: 580px;
 	pointer-events: none;
 }
 
@@ -64,60 +46,54 @@
 	width: 100%;
 	height: 100%;
 	color: var(--text-body);
-	font-size: var(--fs-info);
-	/* Rodada 2 do gauntlet: texto fino sobre o fundo claro em gradiente
-	   estava lendo com franja quente (subpixel AA assume fundo branco puro;
-	   sobre um fundo em gradiente azul ele produz uma franja avermelhada nas
-	   bordas da letra, especialmente em 10-11px). Suavizacao em escala de
-	   cinza elimina a franja de cor sem mudar nenhum valor de --ri-*. */
+	font: var(--type-info);
+	--ic-rail: 150px;
 	-webkit-font-smoothing: antialiased;
 	text-rendering: optimizeLegibility;
 }
 
-/* ─── Floating button ─────────────────────────────────────── */
-/* Sits right next to HuntMap's button (HuntMap.css:42-57: top:210px;
- * right:20px; 42x42). Placed at the same top, one button-width + gap to
- * the left, so the two icons read as a pair. Mantido escuro como os botoes
- * irmaos (mesma escolha de IdleSkills.css:40-46) — so o aro ganhou o
- * dourado do design system para anunciar a familia visual; a JANELA abaixo
- * e que carrega o tema por completo. */
+/* ─── Botão flutuante (o DockIdle o esconde em jogo; fica como reserva) ── */
 
-/* RAGIDLE: em cidade nao ha caca (D-355) - o botao apaga e o title explica. */
 #IdleConfig .ic-button:disabled,
 #IdleConfig .ic-button-cidade {
 	opacity: 0.4;
 	cursor: not-allowed;
 	filter: grayscale(1);
 }
+
 #IdleConfig .ic-button {
 	position: fixed;
 	top: 210px;
 	right: 72px;
 	width: 42px;
 	height: 42px;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
 	border-radius: 50%;
-	border: 1px solid var(--gold-500);
-	background: rgba(20, 20, 26, 0.85);
-	color: #ffffff;
-	font-size: 18px;
-	line-height: 1;
+	border: 1px solid var(--border-gold);
+	background: linear-gradient(180deg, var(--white) 0%, var(--sky-100) 100%);
+	color: var(--blue-600);
 	cursor: pointer;
 	pointer-events: auto;
 	z-index: 40;
+	box-shadow: var(--shadow-float), var(--rim-light);
 	transition:
-		background var(--dur-fast),
-		box-shadow var(--dur-fast);
+		box-shadow var(--dur-fast) var(--ease-out),
+		transform var(--dur-fast) var(--ease-out);
+}
+
+#IdleConfig .ic-button svg {
+	width: 20px;
+	height: 20px;
 }
 
 #IdleConfig .ic-button:hover {
-	background: rgba(40, 40, 50, 0.92);
-	box-shadow: 0 0 6px rgba(201, 163, 83, 0.6);
+	box-shadow: var(--glow-gold), var(--rim-light);
+	transform: translateY(-1px);
 }
 
-/* ─── Window ───────────────────────────────────────────────── */
-/* .ri-window (Common.css) da o fundo em gradiente, a borda dourada fina, o
- * respiro branco interno e a sombra suave — aqui so o que e estrutural
- * deste componente (posicao/tamanho/flex/scroll). */
+/* ─── Janela ─────────────────────────────────────────────────────── */
 
 #IdleConfig .ic-window {
 	display: none;
@@ -125,135 +101,354 @@
 	inset: 0;
 	pointer-events: auto;
 	flex-direction: column;
-	width: 620px;
-	height: 540px;
+	width: 760px;
+	height: 580px;
+	/* border-box: a moldura de 1px do .ri-window entra nos 760x580 e a janela
+	   mede EXATAMENTE o que o :host (e o WINDOW_WIDTH/HEIGHT do JS) supõe. */
+	box-sizing: border-box;
+	overflow: hidden;
 }
 
 #IdleConfig .ic-window.is-open {
 	display: flex;
 }
 
-/* .ri-header (Common.css) da o gradiente azul-claro, a altura, o
- * centro-titulo e o cursor de arrastar; so o flex:0 0 0 e especifico daqui. */
+/* Piso 1366x768: 580 centrados pela conta do JS terminam em y=674 e a doca
+   começa em y=668 (medido pela máquina de foto em 01/09). Só o retângulo
+   encolhe — o WINDOW_HEIGHT do JS continua 580, e a conta de centralizar
+   sobra folga em vez de faltar (a mesma receita do Mapa de Caça, D-901). */
+@media (max-height: 800px) {
+	#IdleConfig .ic-window {
+		height: 556px;
+	}
+	:host {
+		height: 556px;
+	}
+}
+
 #IdleConfig .ic-titlebar {
+	position: relative;
 	flex: 0 0 auto;
 }
 
-/* .ri-title ja desenha as asas douradas via ::before/::after; .ri-close ja
- * desenha o circulo dourado do X — nada especifico a acrescentar aqui. */
+/* ─── A faixa do interruptor-mestre ──────────────────────────────── */
 
-/* ─── Tabs ─────────────────────────────────────────────────── */
-/* A faixa em si e local (espacamento/borda inferior); cada botao usa
- * .ri-tab do design system, que ja pinta ".is-active" de azul — a MESMA
- * classe que onClickTab()/renderTabs() alternam em IdleConfig.js. */
-
-#IdleConfig .ic-tabs {
+#IdleConfig .ic-master {
 	flex: 0 0 auto;
 	display: flex;
-	gap: 6px;
-	padding: 8px 10px;
-	border-bottom: 1px solid var(--border-hairline);
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--sp-5);
+	padding: var(--sp-4) var(--sp-6);
+	border-bottom: var(--divider);
+	background: linear-gradient(90deg, var(--surface-glass) 0%, color-mix(in srgb, var(--gold-200) 45%, transparent) 100%);
 }
 
+#IdleConfig .ic-master:empty {
+	display: none;
+}
+
+#IdleConfig .ic-master-switch {
+	min-width: 0;
+}
+
+#IdleConfig .ic-master-label {
+	font: var(--type-section);
+	color: var(--text-title);
+}
+
+#IdleConfig .ic-master-sub {
+	font: var(--type-desc);
+	color: var(--text-muted);
+}
+
+#IdleConfig .ic-master-mapa {
+	flex: 0 0 auto;
+	display: flex;
+	flex-direction: column;
+	align-items: flex-end;
+	gap: 1px;
+	max-width: 260px;
+	padding: var(--sp-2) var(--sp-4);
+	border: 1px solid var(--border-gold);
+	border-radius: var(--radius-panel);
+	background: linear-gradient(180deg, var(--white) 0%, var(--gold-200) 100%);
+	box-shadow: var(--rim-light), var(--shadow-card);
+}
+
+#IdleConfig .ic-master-mapa-label {
+	font: var(--type-badge);
+	letter-spacing: var(--ls-caps);
+	text-transform: uppercase;
+	color: var(--gold-700);
+}
+
+#IdleConfig .ic-master-mapa-nome {
+	font: var(--type-label);
+	color: var(--text-title);
+	max-width: 100%;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+/* Linha de status: só ocupa altura quando tem texto. */
 #IdleConfig .ic-status {
 	flex: 0 0 auto;
-	min-height: 14px;
-	padding: 4px 10px 0 10px;
+	padding: 0 var(--sp-6);
 	color: var(--amber-600);
-	font-size: var(--fs-label);
+	font: var(--type-label);
 }
 
-/* ─── Body (scrollable tab content) ───────────────────────── */
-/* Fundo transparente: deixa o gradiente claro de .ri-window aparecer atras
- * dos cards, como pede a referencia ("corpo branco/azul muito claro"). */
+#IdleConfig .ic-status:not(:empty) {
+	padding-top: var(--sp-2);
+}
+
+/* ─── Corpo: trilho | painel ─────────────────────────────────────── */
 
 #IdleConfig .ic-body {
 	flex: 1 1 auto;
+	display: flex;
+	min-height: 0;
+}
+
+#IdleConfig .ic-rail {
+	flex: 0 0 var(--ic-rail);
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	padding: var(--sp-5) var(--sp-4);
+	box-sizing: border-box;
 	overflow-y: auto;
-	padding: 12px;
+	border-right: var(--divider);
+	background: var(--surface-glass);
+}
+
+#IdleConfig .ic-rail-label {
+	font: var(--type-badge);
+	font-size: var(--fs-desc);
+	letter-spacing: var(--ls-caps);
+	text-transform: uppercase;
+	color: var(--text-muted);
+	padding: 0 var(--sp-3);
+	margin-bottom: var(--sp-2);
+}
+
+#IdleConfig .ic-tab {
+	appearance: none;
+	display: flex;
+	align-items: center;
+	gap: var(--sp-3);
+	width: 100%;
+	box-sizing: border-box;
+	padding: 7px var(--sp-3);
+	border: 1px solid transparent;
+	border-radius: var(--radius-panel);
 	background: transparent;
+	color: var(--text-body);
+	font: var(--type-info);
+	text-align: left;
+	cursor: pointer;
+	transition:
+		background var(--dur-fast) var(--ease-out),
+		color var(--dur-fast) var(--ease-out);
+}
+
+#IdleConfig .ic-tab:hover {
+	background: var(--surface-card-hover);
+}
+
+#IdleConfig .ic-tab-icon {
+	flex: 0 0 auto;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 26px;
+	height: 26px;
+	border-radius: 50%;
+	background: var(--surface-inset);
+	color: var(--blue-600);
+	box-shadow: var(--well-shadow);
+}
+
+#IdleConfig .ic-tab-icon svg {
+	width: 14px;
+	height: 14px;
+}
+
+#IdleConfig .ic-tab-text {
+	display: flex;
+	flex-direction: column;
+	min-width: 0;
+	gap: 1px;
+}
+
+#IdleConfig .ic-tab-name {
+	font: var(--type-label);
+	color: var(--text-title);
+	white-space: nowrap;
+}
+
+#IdleConfig .ic-tab-sum {
+	font: var(--type-desc);
+	color: var(--text-muted);
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+#IdleConfig .ic-tab-sum:empty {
+	display: none;
+}
+
+#IdleConfig .ic-tab.is-active {
+	background: var(--tab-active-fill);
+	box-shadow: var(--shadow-card);
+}
+
+#IdleConfig .ic-tab.is-active .ic-tab-name,
+#IdleConfig .ic-tab.is-active .ic-tab-sum {
+	color: var(--tab-active-text);
+}
+
+#IdleConfig .ic-tab.is-active .ic-tab-sum {
+	opacity: 0.85;
+}
+
+#IdleConfig .ic-tab.is-active .ic-tab-icon {
+	background: color-mix(in srgb, var(--white) 22%, transparent);
+	color: var(--tab-active-text);
+	box-shadow: none;
+}
+
+#IdleConfig .ic-rail-foot {
+	margin-top: auto;
+}
+
+/* ─── Painel (a seção ativa) ─────────────────────────────────────── */
+
+#IdleConfig .ic-pane {
+	flex: 1 1 auto;
+	min-width: 0;
+	overflow-y: auto;
+	padding: var(--sp-5) var(--sp-6);
+	box-sizing: border-box;
 }
 
 #IdleConfig .ic-empty {
-	margin-top: 16px;
+	padding: var(--sp-5) var(--sp-3);
 	text-align: center;
 	color: var(--text-muted);
-	font-size: var(--fs-label);
+	font: var(--type-label);
 }
 
-#IdleConfig .ic-section {
-	margin-bottom: 12px;
+#IdleConfig .ic-card {
+	margin-bottom: var(--sp-5);
 	background: var(--surface-card);
 	border: 1px solid var(--border-hairline);
 	border-radius: var(--radius-card);
 	box-shadow: var(--shadow-card);
-	padding: 10px 12px;
+	padding: var(--sp-4) var(--sp-5);
 }
 
-#IdleConfig .ic-section h3 {
-	margin: 0 0 6px 0;
-	font-size: var(--fs-info);
-	font-weight: 700;
+#IdleConfig .ic-card:last-child {
+	margin-bottom: 0;
+}
+
+#IdleConfig .ic-card h3 {
+	margin: 0 0 var(--sp-2) 0;
+	font: var(--type-section);
 	color: var(--text-title);
 }
 
-#IdleConfig .ic-subtitle {
-	margin: 10px 0 4px 0;
-	font-weight: 700;
-	font-size: var(--fs-label);
-	/* Rotulo auxiliar (explica o que vem a seguir, nao e conteudo principal)
-	   — texto-2, igual a regra de qualquer outro auxiliar da janela. */
+#IdleConfig .ic-card-head {
+	display: flex;
+	align-items: center;
+	gap: var(--sp-3);
+	margin-bottom: var(--sp-2);
+}
+
+#IdleConfig .ic-card-head h3 {
+	margin: 0;
+	flex: 0 0 auto;
+}
+
+#IdleConfig .ic-card-meta {
+	flex: 1 1 auto;
+	min-width: 0;
+	font: var(--type-desc);
 	color: var(--text-muted);
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+#IdleConfig .ic-card-actions {
+	flex: 0 0 auto;
+	display: inline-flex;
+	gap: var(--sp-2);
+}
+
+#IdleConfig .ic-card--tip {
+	border-left: 3px solid var(--gold-500);
 }
 
 #IdleConfig .ic-note {
 	color: var(--text-muted);
-	font-size: var(--fs-desc);
-	margin: 4px 0 8px 0;
+	font: var(--type-desc);
+	margin: var(--sp-1) 0 var(--sp-3) 0;
 }
 
 #IdleConfig .ic-note-warn {
 	color: var(--amber-600);
 }
 
+#IdleConfig .ic-subtitle {
+	margin: 0 0 var(--sp-2) 0;
+	font: var(--type-badge);
+	letter-spacing: var(--ls-caps);
+	text-transform: uppercase;
+	color: var(--text-muted);
+}
+
 #IdleConfig .ic-subsection {
-	padding-left: 8px;
+	padding-left: var(--sp-4);
 	border-left: 2px solid var(--border-hairline);
-	margin-top: 6px;
+	margin-top: var(--sp-3);
 }
 
 #IdleConfig .ic-subsection.ic-subsection-disabled {
 	opacity: 0.5;
 }
 
-/* Card de orientacao (aba Geral, rodada 2) — mesmo card, com um filete
-   dourado a esquerda para se ler como "dica" e nao como outro controle. */
-#IdleConfig .ic-section-tip {
-	border-left: 3px solid var(--gold-500);
+/* Duas colunas (descanso: sentar | levantar; poções: HP | SP). */
+#IdleConfig .ic-duas {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: var(--sp-5);
 }
 
-#IdleConfig .ic-tip-list {
-	margin: 4px 0 0 0;
-	padding-left: 16px;
-	color: var(--text-muted);
-	font-size: var(--fs-label);
-	line-height: 1.6;
+#IdleConfig .ic-eixo {
+	min-width: 0;
 }
 
-#IdleConfig .ic-tip-list strong {
-	color: var(--text-title);
+#IdleConfig .ic-pocao {
+	padding: var(--sp-3) var(--sp-4);
+	border: 1px solid var(--border-hairline);
+	border-radius: var(--radius-card);
+	background: var(--surface-inset);
 }
 
-/* ─── Switch (toggle) ──────────────────────────────────────── */
-/* Design system oficial: trilho SEMPRE --well-fill/--well-shadow (superficie
- * recuada, nao muda de cor); quem indica ligado/desligado e o botao
- * (circulo), que vira --tab-active-fill quando marcado. */
+/* ─── Switch (toggle) ────────────────────────────────────────────── */
+/* Design system: trilho SEMPRE --well-fill/--well-shadow (superficie
+   recuada); quem indica ligado e o botao (circulo), --tab-active-fill. */
 
 #IdleConfig .ic-switch-row {
 	display: flex;
 	align-items: center;
-	gap: 10px;
+	gap: var(--sp-4);
 	cursor: pointer;
+	min-width: 0;
 }
 
 #IdleConfig .ic-switch {
@@ -262,6 +457,11 @@
 	width: 36px;
 	height: 20px;
 	flex: 0 0 auto;
+}
+
+#IdleConfig .ic-switch-lg {
+	width: 44px;
+	height: 24px;
 }
 
 #IdleConfig .ic-switch input {
@@ -274,8 +474,6 @@
 }
 
 #IdleConfig .ic-switch-track {
-	/* Trilho: sempre --well-fill/--well-shadow (superficie recuada), nunca
-	   muda de cor por ligado/desligado — quem muda e o botao abaixo. */
 	position: absolute;
 	inset: 0;
 	background: var(--well-fill);
@@ -286,7 +484,6 @@
 }
 
 #IdleConfig .ic-switch-track::before {
-	/* Botao (knob): branco desligado, --tab-active-fill ligado. */
 	content: '';
 	position: absolute;
 	width: 16px;
@@ -304,10 +501,23 @@
 		border-color var(--dur-fast);
 }
 
+#IdleConfig .ic-switch-lg .ic-switch-track::before {
+	width: 20px;
+	height: 20px;
+}
+
 #IdleConfig .ic-switch input:checked + .ic-switch-track::before {
 	transform: translateX(16px);
 	background: var(--tab-active-fill);
 	border-color: var(--blue-600);
+}
+
+#IdleConfig .ic-switch-lg input:checked + .ic-switch-track::before {
+	transform: translateX(20px);
+}
+
+#IdleConfig .ic-switch input:checked + .ic-switch-track {
+	background: color-mix(in srgb, var(--blue-500) 18%, var(--well-fill));
 }
 
 #IdleConfig .ic-switch input:disabled + .ic-switch-track {
@@ -319,49 +529,42 @@
 	display: flex;
 	flex-direction: column;
 	gap: 1px;
+	min-width: 0;
 }
 
 #IdleConfig .ic-switch-label {
-	font-size: var(--fs-info);
+	font: var(--type-info);
 	color: var(--text-body);
 }
 
 #IdleConfig .ic-switch-sub {
-	font-size: var(--fs-desc);
+	font: var(--type-desc);
 	color: var(--text-muted);
 }
 
-/* ─── Checkbox rows ────────────────────────────────────────── */
+/* ─── Checkbox rows ──────────────────────────────────────────────── */
 
 #IdleConfig .ic-checkbox-row {
 	display: flex;
 	align-items: center;
-	gap: 6px;
-	font-size: var(--fs-label);
-	margin: 4px 0;
+	gap: var(--sp-3);
+	font: var(--type-label);
+	margin: var(--sp-2) 0;
 	cursor: pointer;
-	/* Auxiliar (rotulo de uma opcao secundaria) — texto-2; o valor em
-	   destaque dentro dela (.ic-inline-value) continua azul-escuro. */
-	color: var(--text-muted);
+	color: var(--text-body);
 }
 
 #IdleConfig .ic-checkbox-row input[type='checkbox'] {
 	accent-color: var(--blue-500);
 	cursor: pointer;
+	margin: 0;
 }
 
 #IdleConfig .ic-checkbox-row input:disabled {
 	cursor: not-allowed;
 }
 
-#IdleConfig .ic-checkbox-locked {
-	cursor: help;
-}
-
-/* ─── Sliders ──────────────────────────────────────────────── */
-/* Trilho arredondado + cursor (knob) com aro azul, no lugar do accent-color
- * padrao do navegador — pedido explicito da referencia ("trilho arredondado
- * e knob com aro"). */
+/* ─── Sliders ────────────────────────────────────────────────────── */
 
 #IdleConfig .ic-slider {
 	appearance: none;
@@ -369,8 +572,17 @@
 	width: 100%;
 	height: 16px;
 	background: transparent;
-	margin: 4px 0 10px 0;
+	margin: var(--sp-1) 0 var(--sp-3) 0;
 	cursor: pointer;
+	--ic-thumb: var(--blue-500);
+}
+
+#IdleConfig .ic-slider--hp {
+	--ic-thumb: var(--ri-hp);
+}
+
+#IdleConfig .ic-slider--sp {
+	--ic-thumb: var(--ri-sp);
 }
 
 #IdleConfig .ic-slider::-webkit-slider-runnable-track {
@@ -388,7 +600,7 @@
 	margin-top: -6px;
 	border-radius: 50%;
 	background: var(--white);
-	border: 2px solid var(--blue-500);
+	border: 2px solid var(--ic-thumb);
 	box-shadow: var(--shadow-card);
 	cursor: pointer;
 }
@@ -406,7 +618,7 @@
 	height: 14px;
 	border-radius: 50%;
 	background: var(--white);
-	border: 2px solid var(--blue-500);
+	border: 2px solid var(--ic-thumb);
 	box-shadow: var(--shadow-card);
 	cursor: pointer;
 }
@@ -416,50 +628,43 @@
 	opacity: 0.55;
 }
 
-#IdleConfig .ic-slider:disabled::-webkit-slider-thumb {
-	border-color: var(--sky-300);
-}
-
-#IdleConfig .ic-slider:disabled::-moz-range-thumb {
-	border-color: var(--sky-300);
-}
-
 #IdleConfig .ic-inline-value {
 	color: var(--blue-600);
-	font-weight: 700;
+	font-weight: var(--fw-bold);
 }
 
-/* ─── Field rows (label + select) ─────────────────────────── */
+/* ─── Field rows (label + select) ────────────────────────────────── */
 
 #IdleConfig .ic-field-row {
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
-	gap: 8px;
-	font-size: var(--fs-label);
-	margin: 6px 0;
-	/* Auxiliar (rotulo de campo) — texto-2; o valor/percentual dentro
-	   (.ic-inline-value) e que carrega o destaque em azul-escuro. */
+	gap: var(--sp-3);
+	font: var(--type-label);
+	margin: var(--sp-2) 0;
 	color: var(--text-muted);
+}
+
+#IdleConfig .ic-field-row--seg {
+	margin-bottom: var(--sp-3);
 }
 
 #IdleConfig .ic-select {
 	box-sizing: border-box;
 	width: 100%;
-	padding: 6px 8px;
+	padding: 5px 8px;
 	background: var(--white);
 	border: 1px solid var(--border-hairline);
-	border-radius: var(--radius-card);
+	border-radius: var(--radius-panel);
 	color: var(--text-body);
-	font-size: var(--fs-label);
-	font-family: var(--font-ui);
-	margin: 4px 0 8px 0;
+	font: var(--type-label);
+	margin: var(--sp-1) 0 var(--sp-3) 0;
 	transition: border-color var(--dur-fast);
 }
 
 #IdleConfig .ic-select:focus {
 	outline: none;
-	border-color: var(--blue-500);
+	border-color: var(--accent);
 	box-shadow: var(--glow-accent);
 }
 
@@ -468,111 +673,191 @@
 	cursor: not-allowed;
 }
 
-/* ─── Alvos tab ────────────────────────────────────────────── */
+/* ─── Botões miúdos e de ícone ───────────────────────────────────── */
 
-#IdleConfig .ic-alvos-head h3 {
-	margin: 0 0 2px 0;
-	font-size: var(--fs-section);
-	font-weight: 700;
-	color: var(--text-title);
-}
-
-#IdleConfig .ic-alvos-sub {
-	color: var(--text-muted);
-	font-size: var(--fs-desc);
-	margin-bottom: 8px;
-}
-
-#IdleConfig .ic-alvos-actions {
-	display: flex;
-	gap: 6px;
-	margin-bottom: 10px;
-}
-
-#IdleConfig .ic-btn-secondary {
+#IdleConfig .ic-btn-mini {
+	appearance: none;
 	background: var(--white);
 	border: 1px solid var(--border-hairline);
-	color: var(--blue-600);
-	padding: 4px 12px;
-	border-radius: var(--radius-card);
-	font-size: var(--fs-label);
-	font-family: var(--font-ui);
-	font-weight: 600;
+	color: var(--text-link);
+	padding: 3px 10px;
+	border-radius: var(--radius-pill);
+	font: var(--type-badge);
 	cursor: pointer;
 	transition:
 		background var(--dur-fast),
 		border-color var(--dur-fast);
 }
 
-#IdleConfig .ic-btn-secondary:hover {
+#IdleConfig .ic-btn-mini:hover:not(:disabled) {
 	background: var(--surface-card-hover);
-	border-color: var(--blue-500);
+	border-color: var(--accent);
 }
 
-#IdleConfig .ic-mob-list {
-	display: flex;
-	flex-direction: column;
-	gap: 2px;
+#IdleConfig .ic-btn-mini:disabled {
+	opacity: 0.4;
+	cursor: not-allowed;
 }
 
-#IdleConfig .ic-mob-row {
+#IdleConfig .ic-icon-btn {
+	appearance: none;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	background: var(--white);
+	border: 1px solid var(--border-hairline);
+	color: var(--blue-600);
+	width: 22px;
+	height: 22px;
+	padding: 0;
+	border-radius: 50%;
+	cursor: pointer;
+	transition:
+		background var(--dur-fast),
+		border-color var(--dur-fast);
+}
+
+#IdleConfig .ic-icon-btn svg {
+	width: 12px;
+	height: 12px;
+}
+
+#IdleConfig .ic-icon-btn:hover:not(:disabled) {
+	background: var(--surface-card-hover);
+	border-color: var(--accent);
+}
+
+#IdleConfig .ic-icon-btn--remover:hover:not(:disabled) {
+	color: var(--red-600);
+	border-color: var(--red-300);
+}
+
+#IdleConfig .ic-icon-btn:disabled {
+	opacity: 0.3;
+	cursor: not-allowed;
+}
+
+/* ─── Presas: a grade de chips com avatar ────────────────────────── */
+
+#IdleConfig .ic-presas {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: var(--sp-2);
+	margin-top: var(--sp-2);
+}
+
+#IdleConfig .ic-presa {
+	position: relative;
 	display: flex;
 	align-items: center;
-	gap: 8px;
-	padding: 4px 6px;
-	border-radius: var(--radius-card);
-	font-size: var(--fs-label);
+	gap: var(--sp-3);
+	padding: 5px var(--sp-3);
+	border: 1px solid var(--border-hairline);
+	border-radius: var(--radius-panel);
+	background: linear-gradient(180deg, var(--white) 0%, var(--sky-50) 100%);
+	box-shadow: var(--shadow-card);
 	cursor: pointer;
-	color: var(--text-body);
-	transition: background var(--dur-fast);
+	min-width: 0;
+	transition:
+		border-color var(--dur-fast),
+		box-shadow var(--dur-fast),
+		opacity var(--dur-fast);
 }
 
-#IdleConfig .ic-mob-row:hover {
-	background: var(--surface-card-hover);
+#IdleConfig .ic-presa:hover {
+	border-color: var(--accent);
 }
 
-#IdleConfig .ic-mob-row input[type='checkbox'] {
-	accent-color: var(--blue-500);
-	cursor: pointer;
+#IdleConfig .ic-presa input {
+	position: absolute;
+	opacity: 0;
+	width: 0;
+	height: 0;
+	margin: 0;
 }
 
-#IdleConfig .ic-mob-icon {
+#IdleConfig .ic-presa-avatar {
 	flex: 0 0 auto;
-	width: 28px;
-	height: 28px;
+	width: 30px;
+	height: 30px;
 	border-radius: 50%;
 	overflow: hidden;
 	background: var(--surface-inset);
-	border: 1px solid var(--border-hairline);
+	border: 1px solid var(--border-gold);
+	box-shadow: var(--rim-light);
 }
 
-#IdleConfig .ic-mob-icon img {
+#IdleConfig .ic-presa-avatar img {
 	width: 100%;
 	height: 100%;
 	object-fit: cover;
 	display: block;
 }
 
-/* ─── Skills tab ───────────────────────────────────────────── */
-/* Linha de prioridade em card, com o numero de ordem em medalhao dourado —
- * pedido da referencia (secao 5.3: "numero em medalhao"). */
+#IdleConfig .ic-presa-nome {
+	flex: 1 1 auto;
+	min-width: 0;
+	font: var(--type-label);
+	color: var(--text-body);
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+#IdleConfig .ic-presa-check {
+	flex: 0 0 auto;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 18px;
+	height: 18px;
+	border-radius: 50%;
+	background: var(--tab-active-fill);
+	color: var(--tab-active-text);
+	border: 1px solid var(--blue-600);
+}
+
+#IdleConfig .ic-presa-check svg {
+	width: 11px;
+	height: 11px;
+}
+
+#IdleConfig .ic-presa.is-off {
+	opacity: 0.6;
+	background: var(--surface-inset);
+}
+
+#IdleConfig .ic-presa.is-off .ic-presa-avatar {
+	filter: grayscale(1);
+	border-color: var(--border-hairline);
+}
+
+#IdleConfig .ic-presa.is-off .ic-presa-check {
+	background: var(--white);
+	color: transparent;
+	border-color: var(--border-hairline);
+}
+
+/* ─── Rotação e buffs: linhas com medalhão ───────────────────────── */
 
 #IdleConfig .ic-rot-list {
 	display: flex;
 	flex-direction: column;
-	gap: 6px;
-	margin-bottom: 8px;
+	gap: var(--sp-2);
+	margin: var(--sp-2) 0;
 }
 
-#IdleConfig .ic-rot-row {
+#IdleConfig .ic-rot-row,
+#IdleConfig .ic-buff-row {
 	display: flex;
 	align-items: center;
-	gap: 8px;
+	gap: var(--sp-3);
 	background: var(--surface-inset);
 	border: 1px solid var(--border-hairline);
 	border-radius: var(--radius-card);
-	padding: 6px 10px;
+	padding: 6px var(--sp-4);
 	box-shadow: var(--shadow-card);
+	min-width: 0;
 }
 
 #IdleConfig .ic-rot-num {
@@ -586,62 +871,59 @@
 	background: linear-gradient(180deg, var(--gold-300) 0%, var(--gold-500) 100%);
 	border: 1px solid var(--gold-500);
 	color: var(--gold-700);
-	font-size: var(--fs-desc);
-	font-weight: 700;
+	font: var(--type-badge);
+	font-weight: var(--fw-bold);
 	text-shadow: 0 1px 0 rgba(255, 255, 255, 0.4);
 }
 
-#IdleConfig .ic-rot-name {
-	font-weight: 700;
+#IdleConfig .ic-rot-main {
 	flex: 1 1 auto;
-	color: var(--text-body);
-}
-
-#IdleConfig .ic-rot-level {
-	font-size: var(--fs-desc);
-}
-
-#IdleConfig .ic-rot-actions {
 	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	min-width: 0;
+}
+
+#IdleConfig .ic-rot-name {
+	font: var(--type-label);
+	font-weight: var(--fw-semibold);
+	color: var(--text-title);
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+#IdleConfig .ic-rot-tags {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--sp-1);
+}
+
+#IdleConfig .ic-badge-relogio {
 	gap: 3px;
 }
 
-#IdleConfig .ic-icon-btn {
-	background: var(--white);
-	border: 1px solid var(--border-hairline);
-	color: var(--blue-600);
-	width: 22px;
-	height: 22px;
-	border-radius: 50%;
-	font-size: var(--fs-label);
-	line-height: 1;
-	cursor: pointer;
-	transition:
-		background var(--dur-fast),
-		border-color var(--dur-fast);
+#IdleConfig .ic-badge-relogio svg {
+	width: 10px;
+	height: 10px;
 }
 
-#IdleConfig .ic-icon-btn:hover:not(:disabled) {
-	background: var(--surface-card-hover);
-	border-color: var(--blue-500);
-}
-
-#IdleConfig .ic-icon-btn:disabled {
-	opacity: 0.35;
-	cursor: not-allowed;
+#IdleConfig .ic-rot-actions {
+	flex: 0 0 auto;
+	display: flex;
+	gap: 3px;
 }
 
 #IdleConfig .ic-add-skill {
 	box-sizing: border-box;
 	width: 100%;
-	padding: 8px 10px;
+	padding: 7px 10px;
 	background: var(--surface-inset);
 	border: 1.5px dashed var(--sky-300);
 	border-radius: var(--radius-card);
 	color: var(--text-muted);
-	font-size: var(--fs-label);
-	font-family: var(--font-ui);
-	font-weight: 600;
+	font: var(--type-label);
+	font-weight: var(--fw-semibold);
 	text-align: center;
 	text-align-last: center;
 	cursor: pointer;
@@ -653,31 +935,139 @@
 
 #IdleConfig .ic-add-skill:hover {
 	background: var(--surface-card-hover);
-	border-color: var(--blue-500);
-	color: var(--blue-600);
+	border-color: var(--accent);
+	color: var(--text-link);
+}
+
+#IdleConfig .ic-passivas {
+	display: flex;
+	flex-direction: column;
 }
 
 #IdleConfig .ic-passiva-row {
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
-	gap: 8px;
-	padding: 4px 6px;
-	font-size: var(--fs-label);
+	gap: var(--sp-3);
+	padding: 4px 0;
+	font: var(--type-label);
 	color: var(--text-body);
+	border-bottom: 1px solid var(--border-hairline);
 }
 
-/* ─── Footer ───────────────────────────────────────────────── */
-/* O botao "Aplicar" ja carrega .ri-btn direto no markup estatico
- * (IdleConfig.html) — cobre normal/hover/disabled sozinho. */
+#IdleConfig .ic-passiva-row:last-child {
+	border-bottom: none;
+}
+
+#IdleConfig .ic-passiva-nv {
+	color: var(--text-muted);
+	font: var(--type-desc);
+}
+
+/* ─── O segmentado "Só eu / Grupo" ───────────────────────────────── */
+
+#IdleConfig .ic-seg {
+	flex: 0 0 auto;
+	display: inline-flex;
+	padding: 2px;
+	gap: 2px;
+	background: var(--surface-inset);
+	border: 1px solid var(--border-hairline);
+	border-radius: var(--radius-pill);
+	box-shadow: var(--shadow-inset);
+}
+
+#IdleConfig .ic-seg-btn {
+	appearance: none;
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	border: none;
+	border-radius: var(--radius-pill);
+	padding: 3px 9px;
+	background: transparent;
+	color: var(--tab-idle-text);
+	font: var(--type-badge);
+	cursor: pointer;
+	transition:
+		background var(--dur-fast) var(--ease-out),
+		color var(--dur-fast) var(--ease-out);
+}
+
+#IdleConfig .ic-seg-btn svg {
+	width: 11px;
+	height: 11px;
+}
+
+#IdleConfig .ic-seg-btn:hover:not(:disabled) {
+	color: var(--text-title);
+}
+
+#IdleConfig .ic-seg-btn.is-selected {
+	background: var(--tab-active-fill);
+	color: var(--tab-active-text);
+	box-shadow: var(--shadow-card);
+}
+
+#IdleConfig .ic-seg-btn:disabled {
+	opacity: 0.4;
+	cursor: not-allowed;
+}
+
+#IdleConfig .ic-so-eu {
+	flex: 0 0 auto;
+	font: var(--type-badge);
+	color: var(--text-muted);
+	padding: 3px 9px;
+	border: 1px dashed var(--border-hairline);
+	border-radius: var(--radius-pill);
+}
+
+/* ─── O banner do grupo (Suporte) ────────────────────────────────── */
+
+#IdleConfig .ic-grupo {
+	display: flex;
+	align-items: center;
+	gap: var(--sp-4);
+	margin-bottom: var(--sp-5);
+	padding: var(--sp-3) var(--sp-5);
+	border: 1px solid var(--border-hairline);
+	border-radius: var(--radius-card);
+	background: var(--surface-inset);
+	color: var(--text-muted);
+	font: var(--type-desc);
+}
+
+#IdleConfig .ic-grupo strong {
+	color: var(--text-title);
+	font-weight: var(--fw-semibold);
+}
+
+#IdleConfig .ic-grupo svg {
+	flex: 0 0 auto;
+	width: 22px;
+	height: 22px;
+	color: var(--text-muted);
+}
+
+#IdleConfig .ic-grupo.is-on {
+	border-color: var(--border-gold);
+	background: linear-gradient(180deg, var(--white) 0%, var(--gold-200) 100%);
+}
+
+#IdleConfig .ic-grupo.is-on svg {
+	color: var(--gold-700);
+}
+
+/* ─── Rodapé ─────────────────────────────────────────────────────── */
 
 #IdleConfig .ic-footer {
 	flex: 0 0 auto;
 	display: flex;
 	align-items: center;
-	justify-content: space-between;
-	gap: 10px;
-	padding: 8px 10px;
+	justify-content: flex-end;
+	gap: var(--sp-4);
+	padding: var(--sp-3) var(--sp-5);
 	border-top: 1px solid var(--border-hairline);
 	background: var(--surface-card-hover);
 }
@@ -691,5 +1081,15 @@
 	margin: 0;
 	padding-left: 16px;
 	color: var(--ri-hp);
-	font-size: var(--fs-desc);
+	font: var(--type-desc);
+}
+
+#IdleConfig .ic-pendentes {
+	flex: 0 0 auto;
+	font: var(--type-desc);
+	color: var(--amber-600);
+}
+
+#IdleConfig .ic-pendentes:empty {
+	display: none;
 }

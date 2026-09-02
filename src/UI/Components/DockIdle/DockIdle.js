@@ -466,7 +466,7 @@ function syncRotacao() {
  */
 function onClickSlot(e) {
 	e.stopImmediatePropagation();
-	IdleConfig.abrirNaAba('skills');
+	IdleConfig.abrirNaAba('ataque');
 }
 
 /**
@@ -599,7 +599,7 @@ function syncConsumiveis() {
  */
 function onClickConsumo(e) {
 	e.stopImmediatePropagation();
-	IdleConfig.abrirNaAba('recuperacao');
+	IdleConfig.abrirNaAba('sobrevivencia');
 }
 
 /**

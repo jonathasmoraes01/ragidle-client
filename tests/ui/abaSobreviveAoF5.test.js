@@ -54,51 +54,67 @@ describe('a Configuração idle abre na aba em que o jogador a fechou', () => {
 		vi.resetModules();
 	});
 
-	it('sem escolha nenhuma, abre em Geral', async () => {
+	it('sem escolha nenhuma, abre na Caçada', async () => {
 		const IdleConfig = await montarJanela();
-		expect(IdleConfig.activeTab).toBe('geral');
-		expect(abaAcesa(IdleConfig)).toBe('geral');
+		expect(IdleConfig.activeTab).toBe('caca');
+		expect(abaAcesa(IdleConfig)).toBe('caca');
 	});
 
-	it('clicar em Alvos grava a escolha', async () => {
+	it('clicar em Suporte grava a escolha', async () => {
 		const IdleConfig = await montarJanela();
-		IdleConfig._host.querySelector('.ic-tab[data-tab="alvos"]').click();
+		IdleConfig._host.querySelector('.ic-tab[data-tab="suporte"]').click();
 
-		expect(IdleConfig.activeTab).toBe('alvos');
-		expect(JSON.parse(localStorage.getItem('IdleConfig')).aba).toBe('alvos');
+		expect(IdleConfig.activeTab).toBe('suporte');
+		expect(JSON.parse(localStorage.getItem('IdleConfig')).aba).toBe('suporte');
 	});
 
-	it('depois do F5, volta em Alvos — estado E botão aceso', async () => {
+	it('depois do F5, volta em Suporte — estado E botão aceso', async () => {
 		const antes = await montarJanela();
-		antes._host.querySelector('.ic-tab[data-tab="alvos"]').click();
+		antes._host.querySelector('.ic-tab[data-tab="suporte"]').click();
 
 		// O F5: o módulo morre e é carregado de novo. O `localStorage` fica.
 		vi.resetModules();
 		const depois = await montarJanela();
 
-		expect(depois.activeTab, 'a janela esqueceu a aba').toBe('alvos');
-		expect(abaAcesa(depois), 'a aba certa está aberta com o botão errado aceso').toBe('alvos');
+		expect(depois.activeTab, 'a janela esqueceu a aba').toBe('suporte');
+		expect(abaAcesa(depois), 'a aba certa está aberta com o botão errado aceso').toBe('suporte');
 	});
 
 	it('abrir pelo medalhão de skills também conta como "eu estava lá"', async () => {
 		// `abrirNaAba` é a porta que o CombatCornerIdle usa. Quem entra por ela
 		// vai FECHAR a janela dali, e "a última aba em que eu estava" é essa.
 		const antes = await montarJanela();
-		antes.abrirNaAba('skills');
+		antes.abrirNaAba('ataque');
 
 		vi.resetModules();
 		const depois = await montarJanela();
 
-		expect(depois.activeTab).toBe('skills');
+		expect(depois.activeTab).toBe('ataque');
 	});
 
-	it('uma aba que não existe mais no HTML cai em Geral, e não em aba nenhuma', async () => {
+	it('o id ANTIGO de uma aba (gravado antes do redesenho, D-903) cai na seção que herdou o conteúdo', async () => {
+		// Quem fechou a janela em "Alvos" ontem abre hoje na Caçada, onde as
+		// presas moram agora — e não na aba padrão por "id desconhecido".
+		localStorage.setItem('IdleConfig', JSON.stringify({ x: null, y: null, aba: 'alvos', _version: 1.0 }));
+
+		const IdleConfig = await montarJanela();
+
+		expect(IdleConfig.activeTab).toBe('caca');
+		expect(abaAcesa(IdleConfig)).toBe('caca');
+
+		// E a porta antiga do dock ('skills') abre a seção de Ataque.
+		IdleConfig.abrirNaAba('skills');
+		expect(IdleConfig.activeTab).toBe('ataque');
+		expect(abaAcesa(IdleConfig)).toBe('ataque');
+	});
+
+	it('uma aba que não existe mais no HTML cai na Caçada, e não em aba nenhuma', async () => {
 		localStorage.setItem('IdleConfig', JSON.stringify({ x: null, y: null, aba: 'aposentada', _version: 1.0 }));
 
 		const IdleConfig = await montarJanela();
 
-		expect(IdleConfig.activeTab).toBe('geral');
-		expect(abaAcesa(IdleConfig), 'a janela abriu sem nenhuma aba acesa').toBe('geral');
+		expect(IdleConfig.activeTab).toBe('caca');
+		expect(abaAcesa(IdleConfig), 'a janela abriu sem nenhuma aba acesa').toBe('caca');
 	});
 
 	it('a posição salva por quem já jogava sobrevive à chegada da chave `aba`', async () => {
@@ -111,7 +127,7 @@ describe('a Configuração idle abre na aba em que o jogador a fechou', () => {
 
 		expect(IdleConfig._host.style.left).toBe('200px');
 		expect(IdleConfig._host.style.top).toBe('100px');
-		expect(IdleConfig.activeTab).toBe('geral');
+		expect(IdleConfig.activeTab).toBe('caca');
 	});
 });
 

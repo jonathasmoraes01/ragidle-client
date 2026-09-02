@@ -523,8 +523,12 @@ ui-button {
 	   WINDOW_HEIGHT, offsets de resize) tem de andar junto. */
 	--w-huntmap: 640px;
 	--h-huntmap: 460px;
-	--w-idleconfig: 620px;
-	--h-idleconfig: 540px;
+	/* Cresceu no redesenho da Configuracao idle (D-903, 01/09/2026): o trilho
+	   de secoes a esquerda (150px) pediu a largura, e a secao de Suporte
+	   (buffs com alvo + cura com limiar) a altura. Anda junto com `:host`/
+	   `.ic-window` no IdleConfig.css e WINDOW_WIDTH/HEIGHT no IdleConfig.js. */
+	--w-idleconfig: 760px;
+	--h-idleconfig: 580px;
 	/* Cresceu com a arvore de habilidades (D-799, 31/08/2026; 980x640 na 2a
 	   rodada de design do mesmo dia — o no encorpou e as 4 colunas do Cavaleiro
 	   pediram o resto): a lista antiga cabia numa coluna de 190px, o plano da

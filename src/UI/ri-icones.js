@@ -75,7 +75,7 @@
  * @author RagIdle
  */
 
-const svg = (inner) =>
+const svg = inner =>
 	`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">${inner}</svg>`;
 
 /**
@@ -130,17 +130,16 @@ const arteUi = (nome, glifoDeReserva) =>
 const RiIcones = {
 	// ── Personagem — arte ILUSTRADA (retrato do aventureiro) com reserva
 	// Lucide "User" (path oficial) se o WebP faltar. ─────────────────────────
-	personagem: arteUi(
-		'personagem',
-		svg('<circle cx="12" cy="8" r="5"/><path d="M20 21a8 8 0 0 0-16 0"/>')
-	),
+	personagem: arteUi('personagem', svg('<circle cx="12" cy="8" r="5"/><path d="M20 21a8 8 0 0 0-16 0"/>')),
 
 	// ── Skills — arte ILUSTRADA (grimorio sobre estrela arcana) com reserva
 	// Lucide "ScrollText" (idioma Lucide — pergaminho com linhas de
 	// texto e uma ponta enrolada, path exato nao lembrado de cor). ─────────
 	skills: arteUi(
 		'skills',
-		svg('<path d="M15.5 3H8a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V7.5z"/><path d="M14 3v4a1 1 0 0 0 1 1h4"/><path d="M9 13h6M9 17h4"/>')
+		svg(
+			'<path d="M15.5 3H8a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V7.5z"/><path d="M14 3v4a1 1 0 0 0 1 1h4"/><path d="M9 13h6M9 17h4"/>'
+		)
 	),
 
 	// ── Inventario / Mochila — arte ILUSTRADA (a mochila de couro que o dono
@@ -148,16 +147,15 @@ const RiIcones = {
 	// (idioma Lucide, desenhado do zero no mesmo idioma). ────────────────────
 	inventario: arteUi(
 		'inventario',
-		svg('<path d="M6 20V10a6 6 0 0 1 12 0v10"/><path d="M6 20a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2"/><path d="M9 4.4a3 3 0 0 1 6 0"/><rect x="9" y="13" width="6" height="5" rx="1"/>')
+		svg(
+			'<path d="M6 20V10a6 6 0 0 1 12 0v10"/><path d="M6 20a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2"/><path d="M9 4.4a3 3 0 0 1 6 0"/><rect x="9" y="13" width="6" height="5" rx="1"/>'
+		)
 	),
 
 	// ── Caca — arte ILUSTRADA (escudo com espadas cruzadas) com reserva
 	// Lucide "Map" (era o conceito do glifo antigo; a silhueta nova e outra
 	// mas a reserva so aparece por instantes de falha). ─────────────────────
-	caca: arteUi(
-		'caca',
-		svg('<path d="M9 3 3 6v15l6-3 6 3 6-3V3l-6 3-6-3z"/><path d="M9 3v15M15 6v15"/>')
-	),
+	caca: arteUi('caca', svg('<path d="M9 3 3 6v15l6-3 6 3 6-3V3l-6 3-6-3z"/><path d="M9 3v15M15 6v15"/>')),
 
 	// ── Config (o botao "Idle" da HUD, abre IdleConfig) — arte ILUSTRADA
 	// (engrenagens; o dono cravou em [DONO-4]: a engrenagem e do IDLE) com
@@ -167,7 +165,9 @@ const RiIcones = {
 	// e mexer em todo HTML por causa de um apelido. ──────────────────────────
 	config: arteUi(
 		'idle',
-		svg('<circle cx="12" cy="12" r="3"/><path d="M12 2.5v3M12 18.5v3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M2.5 12h3M18.5 12h3M4.9 19.1 7 17M17 7l2.1-2.1"/>')
+		svg(
+			'<circle cx="12" cy="12" r="3"/><path d="M12 2.5v3M12 18.5v3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M2.5 12h3M18.5 12h3M4.9 19.1 7 17M17 7l2.1-2.1"/>'
+		)
 	),
 
 	// ── Menu — Lucide "Menu". ────────────────────────────────────────────────
@@ -181,16 +181,15 @@ const RiIcones = {
 	// "glifo puro, sem texto" (redesign/design-system-oficial.md); ver
 	// scripts/icones-de-menu.ts pro resto da investigacao. A arte ILUSTRADA
 	// (01/09) resolve o impasse: o brasao proprio do escudo azul nao e letra.──
-	guilda: arteUi(
-		'guilda',
-		svg('<path d="M12 2 20 5v6c0 5-3.4 8.6-8 10-4.6-1.4-8-5-8-10V5z"/>')
-	),
+	guilda: arteUi('guilda', svg('<path d="M12 2 20 5v6c0 5-3.4 8.6-8 10-4.6-1.4-8-5-8-10V5z"/>')),
 
 	// ── Grupo — arte ILUSTRADA (dupla chibi ARMADA — o par desarmado e o
 	// `amigos` abaixo) com reserva Lucide "Users". ───────────────────────────
 	grupo: arteUi(
 		'grupo',
-		svg('<circle cx="9" cy="8" r="3"/><path d="M2 21c0-3.9 3.1-6 7-6s7 2.1 7 6"/><circle cx="17.2" cy="8.6" r="2.4"/><path d="M15.6 15.2c2.7.4 4.6 2.2 4.6 5.8"/>')
+		svg(
+			'<circle cx="9" cy="8" r="3"/><path d="M2 21c0-3.9 3.1-6 7-6s7 2.1 7 6"/><circle cx="17.2" cy="8.6" r="2.4"/><path d="M15.6 15.2c2.7.4 4.6 2.2 4.6 5.8"/>'
+		)
 	),
 
 	// ── Amigos — chave NOVA da onda de 01/09 ([DONO-5]): ate entao o botao
@@ -199,7 +198,9 @@ const RiIcones = {
 	// Reserva Lucide "Heart-Handshake" simplificado (idioma Lucide). ─────────
 	amigos: arteUi(
 		'amigos',
-		svg('<circle cx="8" cy="8.5" r="3"/><path d="M1.5 21c0-3.6 2.9-5.5 6.5-5.5"/><circle cx="16" cy="8.5" r="3"/><path d="M12.2 21c.6-3.3 3.2-5.5 6.3-5.5 1.4 0 2.7.4 3.7 1.1"/>')
+		svg(
+			'<circle cx="8" cy="8.5" r="3"/><path d="M1.5 21c0-3.6 2.9-5.5 6.5-5.5"/><circle cx="16" cy="8.5" r="3"/><path d="M12.2 21c.6-3.3 3.2-5.5 6.3-5.5 1.4 0 2.7.4 3.7 1.1"/>'
+		)
 	),
 
 	// ── Correio — arte REAL, mas NAO de ro_menu_icon: o candidato de la
@@ -226,7 +227,9 @@ const RiIcones = {
 	// ponto de exclamacao que reprovava o candidato do GRF nao existe nela.
 	missoes: arteUi(
 		'missoes',
-		svg('<path d="m3 6.5 1.8 1.8L8.3 4.8"/><path d="m3 16.5 1.8 1.8 3.5-3.5"/><path d="M13 6h8"/><path d="M13 12h8"/><path d="M13 18h8"/>')
+		svg(
+			'<path d="m3 6.5 1.8 1.8L8.3 4.8"/><path d="m3 16.5 1.8 1.8 3.5-3.5"/><path d="M13 6h8"/><path d="M13 12h8"/><path d="M13 18h8"/>'
+		)
 	),
 
 	// ── Codex (D-851) — (idioma Lucide, "BookOpen": livro aberto). Sem
@@ -241,22 +244,23 @@ const RiIcones = {
 	// ponto em que este glifo precisa mudar.
 	codex: arteUi(
 		'codex',
-		svg('<path d="M12 7v14"/><path d="M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z"/>')
+		svg(
+			'<path d="M12 7v14"/><path d="M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z"/>'
+		)
 	),
 
 	// ── Loja — arte ILUSTRADA (barraca de madeira) com reserva Lucide
 	// "Store". ───────────────────────────────────────────────────────────────
 	loja: arteUi(
 		'loja',
-		svg('<path d="M3 9 4 4h16l1 5"/><path d="M4 9v10a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1V9"/><path d="M3 9h18"/><path d="M9 20v-5a3 3 0 0 1 6 0v5"/>')
+		svg(
+			'<path d="M3 9 4 4h16l1 5"/><path d="M4 9v10a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1V9"/><path d="M3 9h18"/><path d="M9 20v-5a3 3 0 0 1 6 0v5"/>'
+		)
 	),
 
 	// ── RO Shop — arte ILUSTRADA (cristal iridescente) com reserva Lucide
 	// "Gem". ─────────────────────────────────────────────────────────────────
-	roshop: arteUi(
-		'ro-shop',
-		svg('<path d="M6 3h12l3 6-9 12L3 9z"/><path d="M3 9h18M9 3l3 6 3-6M9 9l3 12 3-12"/>')
-	),
+	roshop: arteUi('ro-shop', svg('<path d="M6 3h12l3 6-9 12L3 9z"/><path d="M3 9h18M9 3l3 6 3-6M9 9l3 12 3-12"/>')),
 
 	// ── Troca — arte ILUSTRADA (setas de mao dupla) com reserva Lucide
 	// "Repeat". O ARQUIVO chama trade.webp (nome que o dono deu a arte). ─────
@@ -276,7 +280,9 @@ const RiIcones = {
 	// Lucide "Gift". ─────────────────────────────────────────────────────────
 	recompensas: arteUi(
 		'recompensas',
-		svg('<rect x="3" y="8" width="18" height="4" rx="1"/><path d="M12 8v13M5 12v7a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-7"/><path d="M12 8C9.5 3.5 5.5 4.5 5.5 7c0 1.5 2.5 1 6.5 1zM12 8c2.5-4.5 6.5-3.5 6.5-1 0 1.5-2.5 1-6.5 1z"/>')
+		svg(
+			'<rect x="3" y="8" width="18" height="4" rx="1"/><path d="M12 8v13M5 12v7a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-7"/><path d="M12 8C9.5 3.5 5.5 4.5 5.5 7c0 1.5 2.5 1 6.5 1zM12 8c2.5-4.5 6.5-3.5 6.5-1 0 1.5-2.5 1-6.5 1z"/>'
+		)
 	),
 
 	// ── Eventos — arte ILUSTRADA (calendario) com reserva Lucide
@@ -311,15 +317,10 @@ const RiIcones = {
 	// ── Grafico — arte ILUSTRADA (barras com seta subindo; o dono confirmou
 	// em [DONO-2]: esta chave e a Analise de Caca e mais nada) com reserva
 	// Lucide "BarChart3". O ARQUIVO chama analise-de-caca.webp. ──────────────
-	grafico: arteUi(
-		'analise-de-caca',
-		svg('<path d="M3 3v18h18"/><path d="M7 16v-4M12 16V8M17 16v-7"/>')
-	),
+	grafico: arteUi('analise-de-caca', svg('<path d="M3 3v18h18"/><path d="M7 16v-4M12 16V8M17 16v-7"/>')),
 
 	// ── Admin — (idioma Lucide, "Wrench"). ───────────────────────────────────
-	admin: svg(
-		'<path d="M14.7 6.3a4 4 0 1 1-5.4 5.4L4 17l3 3 5.3-5.3a4 4 0 0 0 5.4-5.4l-3-3-3 3z"/>'
-	),
+	admin: svg('<path d="M14.7 6.3a4 4 0 1 1-5.4 5.4L4 17l3 3 5.3-5.3a4 4 0 0 0 5.4-5.4l-3-3-3 3z"/>'),
 
 	// ── Pin — Lucide "MapPin" (uso generico). ────────────────────────────────
 	pin: svg('<path d="M12 22s7-7.5 7-12a7 7 0 1 0-14 0c0 4.5 7 12 7 12z"/><circle cx="12" cy="10" r="2.5"/>'),
@@ -348,9 +349,7 @@ const RiIcones = {
 	// sinal classico de chapeu. Verificado com foto real (gauntlet
 	// 19/08/2026): a v1 (so copa + linha de base do mesmo tamanho) lia como
 	// sino de mao a 22px -- corrigido aqui.
-	slotChapeu: svg(
-		'<path d="M3 16.5h18"/><path d="M7 16c0-5.2 2.1-9.5 5-9.5s5 4.3 5 9.5"/><path d="M8.2 14h7.6"/>'
-	),
+	slotChapeu: svg('<path d="M3 16.5h18"/><path d="M7 16c0-5.2 2.1-9.5 5-9.5s5 4.3 5 9.5"/><path d="M8.2 14h7.6"/>'),
 	// Oculos (HEAD_MID, RO: cobre os olhos -- Sunglasses/Glasses) -- duas
 	// lentes ligadas por ponte, com hastes curtas indo pra fora. Diferente do
 	// glifo de acessorio (que e um anel/gema), pra nao repetir leitura com
@@ -361,9 +360,7 @@ const RiIcones = {
 	// Boca (HEAD_BOTTOM, RO: cobre nariz/boca -- Bandana/Mascara). Curva de
 	// sorriso + linha do labio inferior, leitura de "boca" mesmo em 22px.
 	slotBoca: svg('<path d="M4.5 12.5c2.6 3 12.4 3 15 0"/><path d="M7.5 13c1.8 1.3 7.2 1.3 9 0"/>'),
-	slotArmadura: svg(
-		'<path d="M8 3 4 6l2 3 2-1v11a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V8l2 1 2-3-4-3-2 2h-2z"/>'
-	),
+	slotArmadura: svg('<path d="M8 3 4 6l2 3 2-1v11a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V8l2 1 2-3-4-3-2 2h-2z"/>'),
 	slotArma: svg('<path d="M19 3 21 5 8 18l-3 3-2-2 3-3L19 3z"/><path d="M13 8l3 3"/>'),
 	slotEscudo: svg('<path d="M12 2 20 5v6c0 5-3.4 8.6-8 10-4.6-1.4-8-5-8-10V5z"/>'),
 	// Capa (GARMENT) -- silhueta de manto: ombro reto e largo, cintura
@@ -418,6 +415,36 @@ const RiIcones = {
 	chevronEsq: svg('<path d="m15 18-6-6 6-6"/>'),
 	chevronDir: svg('<path d="m9 18 6-6-6-6"/>'),
 	confere: svg('<path d="M20 6 9 17l-5-5"/>'),
+
+	// ── Configuração idle redesenhada (D-903, 01/09/2026). Os glifos do
+	// trilho de seções e dos controles: Lucide "crosshair" (Caçada),
+	// "swords" (Ataque), "sparkles" (Suporte — buffs), "heart-pulse"
+	// (Sobrevivência), "flask-conical" (Consumíveis), "users"/"user" (o
+	// segmentado Só eu / Grupo), "arrow-up"/"arrow-down" (reordenar a
+	// rotação) e "timer" (duração do buff). Traço 2px, sem preenchimento,
+	// como manda o design system. ───────────────────────────────────────────
+	alvo: svg(
+		'<circle cx="12" cy="12" r="10"/><path d="M22 12h-4"/><path d="M6 12H2"/><path d="M12 6V2"/><path d="M12 22v-4"/>'
+	),
+	espadas: svg(
+		'<path d="m14.5 17.5-11.5-11.5v-3h3l11.5 11.5"/><path d="m13 19 6-6"/><path d="m16 16 4 4"/><path d="m19 21 2-2"/><path d="m14.5 6.5 3.5-3.5h3v3l-3.5 3.5"/><path d="m5 14 4 4"/><path d="m7 17-3 3"/><path d="m3 19 2 2"/>'
+	),
+	brilhos: svg(
+		'<path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"/><path d="M20 3v4"/><path d="M22 5h-4"/>'
+	),
+	coracao: svg(
+		'<path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/><path d="M3.22 12H9.5l.5-1 2 4.5 2-7 1.5 3.5h5.27"/>'
+	),
+	frasco: svg(
+		'<path d="M10 2v7.527a2 2 0 0 1-.211.896L4.72 20.55a1 1 0 0 0 .9 1.45h12.76a1 1 0 0 0 .9-1.45l-5.069-10.127A2 2 0 0 1 14 9.527V2"/><path d="M8.5 2h7"/><path d="M7 16h10"/>'
+	),
+	usuarios: svg(
+		'<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>'
+	),
+	usuario: svg('<circle cx="12" cy="8" r="5"/><path d="M20 21a8 8 0 0 0-16 0"/>'),
+	setaCima: svg('<path d="m5 12 7-7 7 7"/><path d="M12 19V5"/>'),
+	setaBaixo: svg('<path d="M12 5v14"/><path d="m19 12-7 7-7-7"/>'),
+	relogio: svg('<circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>')
 };
 
 export default RiIcones;
