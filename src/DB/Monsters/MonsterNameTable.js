@@ -112,7 +112,11 @@ export default {
 	1104: 'Koko',
 	1105: 'Deniro',
 	1106: 'Lobo do Deserto',
-	1107: 'Filhote de Lobo do Deserto',
+	// Curto por imposicao do PROTOCOLO, e nao por gosto: o nome viaja em 24 bytes
+	// (NAME_LENGTH) nos pacotes de entidade e o servidor recusa o que nao cabe.
+	// A tabela do servidor (tools/gamedata/nomes-de-monstro-ptbr.ts) diz o mesmo,
+	// e ha teste que cobra as duas iguais.
+	1107: 'Bebê Lobo do Deserto',
 	1108: 'Deviace',
 	1109: 'Deviruchi',
 	1110: 'Dokebi',
