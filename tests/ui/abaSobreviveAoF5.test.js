@@ -92,7 +92,7 @@ describe('a Configuração idle abre na aba em que o jogador a fechou', () => {
 		expect(depois.activeTab).toBe('ataque');
 	});
 
-	it('o id ANTIGO de uma aba (gravado antes do redesenho, D-903) cai na seção que herdou o conteúdo', async () => {
+	it('o id ANTIGO de uma aba (gravado antes do redesenho, D-915) cai na seção que herdou o conteúdo', async () => {
 		// Quem fechou a janela em "Alvos" ontem abre hoje na Caçada, onde as
 		// presas moram agora — e não na aba padrão por "id desconhecido".
 		localStorage.setItem('IdleConfig', JSON.stringify({ x: null, y: null, aba: 'alvos', _version: 1.0 }));

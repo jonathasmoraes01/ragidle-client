@@ -523,7 +523,7 @@ ui-button {
 	   WINDOW_HEIGHT, offsets de resize) tem de andar junto. */
 	--w-huntmap: 640px;
 	--h-huntmap: 460px;
-	/* Cresceu no redesenho da Configuracao idle (D-903, 01/09/2026): o trilho
+	/* Cresceu no redesenho da Configuracao idle (D-915, 01/09/2026): o trilho
 	   de secoes a esquerda (150px) pediu a largura, e a secao de Suporte
 	   (buffs com alvo + cura com limiar) a altura. Anda junto com `:host`/
 	   `.ic-window` no IdleConfig.css e WINDOW_WIDTH/HEIGHT no IdleConfig.js. */

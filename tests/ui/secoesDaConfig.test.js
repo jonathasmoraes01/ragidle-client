@@ -1,5 +1,5 @@
 /**
- * As regras sem DOM da Configuração idle redesenhada (D-903): as seções, os
+ * As regras sem DOM da Configuração idle redesenhada (D-915): as seções, os
  * apelidos das abas antigas, os resumos do trilho, a contagem de alterações e
  * a cura que mora na rotação.
  */

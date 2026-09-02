@@ -1,7 +1,7 @@
 /**
  * UI/Components/IdleConfig/secoesDaConfig.js
  *
- * As regras SEM DOM da Configuração idle redesenhada (D-903, 01/09/2026):
+ * As regras SEM DOM da Configuração idle redesenhada (D-915, 01/09/2026):
  * as cinco seções do trilho, o resumo de uma linha que cada uma mostra
  * embaixo do nome, os apelidos das abas antigas, a contagem de alterações
  * pendentes e o encaixe da cura na rotação.
@@ -14,7 +14,7 @@
 /**
  * As seções, na ordem do trilho. `glifo` é a chave em `UI/ri-icones.js`.
  *
- * Os ids são NOVOS de propósito (D-903): a janela deixou de ser Geral / Alvos
+ * Os ids são NOVOS de propósito (D-915): a janela deixou de ser Geral / Alvos
  * / Skills / Recuperação / Itens — que era a ordem e o vocabulário do
  * Midgard Idle — e passou a se organizar pelo que o autômato FAZ: caça,
  * ataca, sustenta (a si e ao grupo), sobrevive, consome.

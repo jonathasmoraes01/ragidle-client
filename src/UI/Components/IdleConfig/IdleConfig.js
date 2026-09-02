@@ -4,7 +4,7 @@
  * "Configuração idle" — a janela em que o jogador ajusta o autômato.
  *
  * ---------------------------------------------------------------------------
- * v6 — o REDESENHO (D-903, 01/09/2026)
+ * v6 — o REDESENHO (D-915, 01/09/2026)
  * ---------------------------------------------------------------------------
  * Até a v5 esta janela era, por escolha (D-328: "a referência é a janela do
  * Midgard Idle"), uma cópia estrutural da deles: cinco abas horizontais com
@@ -794,7 +794,7 @@ function switchRow(path, checked, label, sub, disabled) {
 }
 
 /**
- * O controle SEGMENTADO "Só eu / Grupo" (D-903). `path` é o campo do rascunho;
+ * O controle SEGMENTADO "Só eu / Grupo" (D-915). `path` é o campo do rascunho;
  * `podeGrupo` desliga o lado "Grupo" quando o buff é só de quem conjura.
  */
 function segmentadoDeAlvo(path, atual, podeGrupo, titulo) {
@@ -1109,7 +1109,7 @@ function bindAtaqueExtra(pane) {
 /* ─── Seção: Suporte ─────────────────────────────────────────────── */
 
 /**
- * A secao NOVA (D-903): os buffs mantidos, cada um com o alvo ("So eu" /
+ * A secao NOVA (D-915): os buffs mantidos, cada um com o alvo ("So eu" /
  * "Grupo"), e a cura com limiar e alvo. Quem diz se um buff ALCANCA o grupo e
  * o servidor (`alcancaGrupo` em `skillsDeBuff`): Bencao e Agilidade sim,
  * Vigor e Concentracao nao — e para esses o segmentado nem aparece.

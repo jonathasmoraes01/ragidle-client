@@ -416,7 +416,7 @@ const RiIcones = {
 	chevronDir: svg('<path d="m9 18 6-6-6-6"/>'),
 	confere: svg('<path d="M20 6 9 17l-5-5"/>'),
 
-	// ── Configuração idle redesenhada (D-903, 01/09/2026). Os glifos do
+	// ── Configuração idle redesenhada (D-915, 01/09/2026). Os glifos do
 	// trilho de seções e dos controles: Lucide "crosshair" (Caçada),
 	// "swords" (Ataque), "sparkles" (Suporte — buffs), "heart-pulse"
 	// (Sobrevivência), "flask-conical" (Consumíveis), "users"/"user" (o
