@@ -114,7 +114,12 @@ ItemObtain.set = function set(item) {
 	if (content) {
 		content.innerHTML =
 			`<img src="data:image/gif;base64,R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw==" class="item-${item.ITID}" width="24" height="24" /> ` +
-			_sanitizeHtml(`${display} ${DB.getMessage(696).replace('%d', item.count || 1)}`);
+			// RAGIDLE (D-796): o jogo e pt-br por decisao do dono ("a troca de
+			// idioma nao sera hoje"). A msg 696 vinha do msgstringtable EN do
+			// GRF ("- %d obtained.") porque a versao PT nao existe no formato
+			// que o loader entende — o texto fixo segue o padrao dos demais
+			// componentes RAGIDLE ate a troca de idioma existir.
+			_sanitizeHtml(`${display} - ${item.count || 1} obtido(s).`);
 	}
 
 	const el = root.querySelector('#ItemObtain');

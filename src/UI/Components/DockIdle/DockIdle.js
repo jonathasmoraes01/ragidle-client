@@ -140,6 +140,7 @@ import IdleConfig from 'UI/Components/IdleConfig/IdleConfig.js';
 import IdleSkills from 'UI/Components/IdleSkills/IdleSkills.js';
 import Inventory from 'UI/Components/Inventory/Inventory.js';
 import DB from 'DB/DBManager.js';
+import SK from 'DB/Skills/SkillConst.js';
 import Client from 'Core/Client.js';
 import { itemIconUrl, preferirArtePublicada } from 'Utils/ItemArt.js';
 import RiIcones from 'UI/ri-icones.js';
@@ -375,6 +376,84 @@ function skillInitials(skillId) {
  * janela Config; sem contexto ainda carregado (ou skill nao encontrada)
  * cai no id tecnico, mesmo fallback de origem.
  */
+/**
+ * O TIMER DE COOLDOWN NOS ORBES (D-694, pedido do dono em 01/09/2026).
+ *
+ * O servidor manda `ZC_SKILL_POSTDELAY` (0x043d) quando a skill que saiu tem
+ * `Cooldown` no skill_db; o handler nativo (`Skill.js:onSetSkillDelay`) chama
+ * `DockIdle.onSkillDelay` e este mapa guarda ate quando cada uma dorme. Um
+ * relogio de 200 ms redesenha SO o overlay (nao o slot inteiro — o render dos
+ * slots e cacheado por `_lastRotacaoJson` e nao pode rodar por tick).
+ *
+ * O id chega NUMERICO e a rotacao guarda NOME: `SK` (SkillConst) e a mesma
+ * tabela nome->id do resto do cliente, invertida uma vez aqui.
+ */
+const _cooldownAte = {}; // skillId (nome) -> timestamp em que acorda
+let _relogioDeCooldown = null;
+let _nomePorIdNumerico = null;
+
+function nomeDoIdNumerico(skid) {
+	if (!_nomePorIdNumerico) {
+		_nomePorIdNumerico = {};
+		for (const nome in SK) {
+			_nomePorIdNumerico[SK[nome]] = nome;
+		}
+	}
+	return _nomePorIdNumerico[skid] || null;
+}
+
+DockIdle.onSkillDelay = function onSkillDelay(skid, delayMs) {
+	const nome = nomeDoIdNumerico(skid);
+	if (!nome || !(delayMs > 0)) {
+		return;
+	}
+	_cooldownAte[nome] = Date.now() + delayMs;
+	desenharCooldowns();
+	if (!_relogioDeCooldown) {
+		_relogioDeCooldown = setInterval(() => {
+			const vivos = desenharCooldowns();
+			if (vivos === 0) {
+				clearInterval(_relogioDeCooldown);
+				_relogioDeCooldown = null;
+			}
+		}, 200);
+	}
+};
+
+/** Redesenha os overlays; devolve quantos cooldowns seguem vivos. */
+function desenharCooldowns() {
+	const container = DockIdle.ui && DockIdle.ui.find('.dk-rotacao')[0];
+	if (!container) {
+		return 0;
+	}
+	const agora = Date.now();
+	let vivos = 0;
+	container.querySelectorAll('.dk-slot').forEach(btn => {
+		const nome = btn.getAttribute('data-skill');
+		const ate = nome ? _cooldownAte[nome] : undefined;
+		const restam = ate ? ate - agora : 0;
+		let overlay = btn.querySelector('.dk-slot-cd');
+		if (restam > 0) {
+			vivos++;
+			if (!overlay) {
+				overlay = document.createElement('span');
+				overlay.className = 'dk-slot-cd';
+				const wrap = btn.querySelector('.dk-slot-ring-wrap');
+				if (wrap) {
+					wrap.appendChild(overlay);
+				}
+			}
+			overlay.textContent = restam >= 10000 ? Math.ceil(restam / 1000) + 's' : (restam / 1000).toFixed(1);
+		} else if (overlay) {
+			overlay.remove();
+			if (nome && _cooldownAte[nome]) {
+				delete _cooldownAte[nome];
+			}
+		}
+	});
+	return vivos;
+}
+
 function nomeDaSkill(skillId) {
 	const ctx = IdleConfig.contexto || {};
 	const todas = [].concat(ctx.skillsAtivas || [], ctx.skillsPassivas || []);
@@ -443,7 +522,7 @@ function syncRotacao() {
 			}
 			const nome = nomeDaSkill(r.skillId);
 			return `
-			<button type="button" class="dk-slot" data-action="rotacao" title="${escapeHtml(nome)} - prioridade ${i + 1}">
+			<button type="button" class="dk-slot" data-action="rotacao" data-skill="${escapeHtml(r.skillId)}" title="${escapeHtml(nome)} - prioridade ${i + 1}">
 				<span class="dk-slot-ring-wrap">
 					<span class="dk-slot-ring ri-glass">
 						<img class="dk-slot-icone" src="/ragidle/skills/${encodeURIComponent(r.skillId)}.png" alt="" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" />

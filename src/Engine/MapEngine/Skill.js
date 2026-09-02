@@ -22,6 +22,7 @@ import PACKET from 'Network/PacketStructure.js';
 import EntityManager from 'Renderer/EntityManager.js';
 import EffectManager from 'Renderer/EffectManager.js';
 import Altitude from 'Renderer/Map/Altitude.js';
+import DockIdle from 'UI/Components/DockIdle/DockIdle.js';
 import ShortCut from 'UI/Components/ShortCut/ShortCut.js';
 import ChatBox from 'UI/Components/ChatBox/ChatBox.js';
 import SkillTargetSelection from 'UI/Components/SkillTargetSelection/SkillTargetSelection.js';
@@ -578,6 +579,11 @@ ShortCut.onChange = function onChange(index, isSkill, ID, count) {
 
 function onSetSkillDelay(pkt) {
 	ShortCut.setSkillDelay(pkt.SKID, pkt.DelayTM);
+	// D-694: os orbes da HUD idle tambem mostram a recarga — o Dock guarda o
+	// relogio dele e desenha a contagem (DockIdle.onSkillDelay).
+	if (DockIdle && DockIdle.onSkillDelay) {
+		DockIdle.onSkillDelay(pkt.SKID, pkt.DelayTM);
+	}
 }
 
 /**
