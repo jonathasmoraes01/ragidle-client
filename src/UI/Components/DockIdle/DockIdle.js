@@ -144,6 +144,7 @@ import SK from 'DB/Skills/SkillConst.js';
 import Client from 'Core/Client.js';
 import { itemIconUrl, preferirArtePublicada } from 'Utils/ItemArt.js';
 import RiIcones from 'UI/ri-icones.js';
+import { PASSO_DO_RELOGIO_MS, estadoDaRecarga } from './relogioDeRecarga.js';
 import htmlText from './DockIdle.html?raw';
 import cssText from './DockIdle.css?raw';
 
@@ -212,6 +213,10 @@ DockIdle.onAppend = function onAppend() {
 	}
 	syncAll();
 	startPolling();
+	// Uma recarga que chegou ANTES de a doca entrar em cena (o primeiro Magnum
+	// sai segundos depois de pisar no mapa, e a doca pode nao estar montada)
+	// fica registrada sem relogio; aqui ela ganha o relogio de volta.
+	garantirRelogioDeRecarga();
 };
 
 /**
@@ -377,19 +382,42 @@ function skillInitials(skillId) {
  * cai no id tecnico, mesmo fallback de origem.
  */
 /**
- * O TIMER DE COOLDOWN NOS ORBES (D-694, pedido do dono em 01/09/2026).
+ * O RELOGIO DE RECARGA NOS ORBES (D-916, 02/09/2026 — pedido do dono: *"nos
+ * botoes inferiores... faca uma especie de animacao de recarga de skills para
+ * as skills que estao em cooldown, tipo um relogio"*). Substitui o TIMER de
+ * D-694, que era so o numero sobre o anel escurecido.
  *
- * O servidor manda `ZC_SKILL_POSTDELAY` (0x043d) quando a skill que saiu tem
- * `Cooldown` no skill_db; o handler nativo (`Skill.js:onSetSkillDelay`) chama
- * `DockIdle.onSkillDelay` e este mapa guarda ate quando cada uma dorme. Um
- * relogio de 200 ms redesenha SO o overlay (nao o slot inteiro — o render dos
- * slots e cacheado por `_lastRotacaoJson` e nao pode rodar por tick).
+ * O DADO nao mudou: o servidor manda `ZC_SKILL_POSTDELAY` (0x043d) quando a
+ * skill que saiu tem `Cooldown` no skill_db; o handler nativo
+ * (`Skill.js:onSetSkillDelay`) chama `DockIdle.onSkillDelay`, e este mapa
+ * guarda ate quando cada uma dorme E quanto durou — a duracao e o que faz a
+ * FATIA existir (D-694 so guardava o `ate`, e com ele so da para escrever o
+ * numero, nao para desenhar quanto ja passou).
+ *
+ * O DESENHO (DockIdle.css, `.dk-slot-cd*`):
+ *  - uma sombra escura cobre a fatia que AINDA FALTA, em `conic-gradient`, e o
+ *    icone vai sendo revelado em sentido horario a partir do topo — o
+ *    "relogio" classico de barra de acoes;
+ *  - um arco dourado na borda do orbe cresce junto, na mesma direcao;
+ *  - o numero no centro (decimos abaixo de 10 s, segundos inteiros acima);
+ *  - quando acaba, o orbe da um PULSO dourado de meio segundo (`.is-pronta`)
+ *    — a skill voltou; sob `prefers-reduced-motion` o pulso nao roda.
+ *
+ * As CONTAS (fracao, rotulo, passo) moram em `relogioDeRecarga.js`, sem DOM,
+ * com teste de unidade. Um relogio de `PASSO_DO_RELOGIO_MS` redesenha SO os
+ * relogios (nao o slot inteiro — o render dos slots e cacheado por
+ * `_lastRotacaoJson` e nao pode rodar por tick) e se desliga sozinho quando
+ * nao ha recarga viva.
  *
  * O id chega NUMERICO e a rotacao guarda NOME: `SK` (SkillConst) e a mesma
  * tabela nome->id do resto do cliente, invertida uma vez aqui.
+ *
+ * `agora` e parametro (com `Date.now()` de padrao) nos dois pontos de entrada
+ * para a prova de foto (`fotografar-recarga-na-doca.ts`) fotografar o relogio
+ * em fracoes ESCOLHIDAS, em vez de correr atras de um Cooldown de 2 s.
  */
-const _cooldownAte = {}; // skillId (nome) -> timestamp em que acorda
-let _relogioDeCooldown = null;
+const _recargas = {}; // skillId (nome) -> { ate, duracao }
+let _relogioDeRecarga = null;
 let _nomePorIdNumerico = null;
 
 function nomeDoIdNumerico(skid) {
@@ -402,57 +430,125 @@ function nomeDoIdNumerico(skid) {
 	return _nomePorIdNumerico[skid] || null;
 }
 
-DockIdle.onSkillDelay = function onSkillDelay(skid, delayMs) {
+/**
+ * @param {number} skid id numerico da skill (o do pacote)
+ * @param {number} delayMs o `Cooldown`, em ms
+ * @param {number} [agora] SO A PROVA DE FOTO passa isto. Sem ele, o relogio
+ *   e o de parede (`Date.now()`) e um intervalo redesenha ate a recarga
+ *   vencer. COM ele, quem move o relogio e o chamador (`desenharRecargas(t)`)
+ *   e nenhum intervalo e armado — o de parede apagaria na hora um relogio
+ *   marcado num instante inventado, e a primeira versao da prova mediu
+ *   exatamente isso (a terceira foto vinha vazia por causa do tique de 80 ms
+ *   atrasado pelo render do mapa).
+ */
+DockIdle.onSkillDelay = function onSkillDelay(skid, delayMs, agora) {
 	const nome = nomeDoIdNumerico(skid);
 	if (!nome || !(delayMs > 0)) {
 		return;
 	}
-	_cooldownAte[nome] = Date.now() + delayMs;
-	desenharCooldowns();
-	if (!_relogioDeCooldown) {
-		_relogioDeCooldown = setInterval(() => {
-			const vivos = desenharCooldowns();
-			if (vivos === 0) {
-				clearInterval(_relogioDeCooldown);
-				_relogioDeCooldown = null;
-			}
-		}, 200);
+	const aoVivo = agora === undefined;
+	const instante = aoVivo ? Date.now() : agora;
+	_recargas[nome] = { ate: instante + delayMs, duracao: delayMs };
+	desenharRecargas(instante);
+	if (aoVivo) {
+		garantirRelogioDeRecarga();
 	}
 };
 
-/** Redesenha os overlays; devolve quantos cooldowns seguem vivos. */
-function desenharCooldowns() {
-	const container = DockIdle.ui && DockIdle.ui.find('.dk-rotacao')[0];
+/**
+ * Liga o relogio de parede se ha recarga registrada e ele nao esta rodando.
+ * Ele se desliga sozinho no passo em que nenhuma recarga sobra.
+ */
+function garantirRelogioDeRecarga() {
+	if (_relogioDeRecarga || Object.keys(_recargas).length === 0) {
+		return;
+	}
+	_relogioDeRecarga = setInterval(() => {
+		if (desenharRecargas(Date.now()) === 0) {
+			clearInterval(_relogioDeRecarga);
+			_relogioDeRecarga = null;
+		}
+	}, PASSO_DO_RELOGIO_MS);
+}
+
+/** As skills com recarga registrada agora (exposto para a prova de foto). */
+DockIdle.recargasVivas = function recargasVivas() {
+	return Object.keys(_recargas);
+};
+
+/** O relogio de um orbe: a fatia, o arco e o numero (ver DockIdle.css). */
+function montarRelogio() {
+	const relogio = document.createElement('span');
+	relogio.className = 'dk-slot-cd';
+	relogio.setAttribute('aria-hidden', 'true');
+	relogio.innerHTML = '<span class="dk-slot-cd-arco"></span><span class="dk-slot-cd-num"></span>';
+	return relogio;
+}
+
+/**
+ * O pulso de "voltou": a classe entra, a animacao roda uma vez e a classe sai
+ * no `animationend` — sem timer proprio, e sem depender de o CSS ter animacao
+ * (com `prefers-reduced-motion` nao ha `animationend`, e a classe sai no
+ * proximo relogio pelo `remove` abaixo, que e idempotente).
+ */
+function acenderPronta(btn) {
+	btn.classList.add('is-pronta');
+	btn.addEventListener('animationend', () => btn.classList.remove('is-pronta'), { once: true });
+}
+
+/**
+ * Redesenha os relogios em `agora`; devolve quantas recargas seguem vivas.
+ *
+ * Um slot que ACABOU de vencer (tinha relogio, nao tem mais tempo) ganha o
+ * pulso; um slot redesenhado pelo `syncRotacao` (innerHTML novo, sem relogio)
+ * so recebe o relogio de volta, sem pulso — nao ha "voltou" para anunciar.
+ */
+function desenharRecargas(agora = Date.now()) {
+	// PELO SHADOW ROOT, como `syncRotacao` — e nao por `DockIdle.ui.find`, que
+	// era o caminho de D-694: `ui` e o involucro do host, e `find` nao atravessa
+	// a fronteira do Shadow DOM. Medido na prova de foto (02/09/2026): a recarga
+	// ficava registrada e o relogio nunca nascia ("temContainer: false").
+	const raiz = _root();
+	const container = raiz && raiz.querySelector('.dk-rotacao');
 	if (!container) {
 		return 0;
 	}
-	const agora = Date.now();
-	let vivos = 0;
+	let vivas = 0;
 	container.querySelectorAll('.dk-slot').forEach(btn => {
 		const nome = btn.getAttribute('data-skill');
-		const ate = nome ? _cooldownAte[nome] : undefined;
-		const restam = ate ? ate - agora : 0;
-		let overlay = btn.querySelector('.dk-slot-cd');
-		if (restam > 0) {
-			vivos++;
-			if (!overlay) {
-				overlay = document.createElement('span');
-				overlay.className = 'dk-slot-cd';
+		const recarga = nome ? _recargas[nome] : undefined;
+		const estado = recarga ? estadoDaRecarga(recarga, agora) : null;
+		let relogio = btn.querySelector('.dk-slot-cd');
+		if (estado && estado.restante > 0) {
+			vivas++;
+			if (!relogio) {
 				const wrap = btn.querySelector('.dk-slot-ring-wrap');
-				if (wrap) {
-					wrap.appendChild(overlay);
+				if (!wrap) {
+					return;
 				}
+				relogio = montarRelogio();
+				wrap.appendChild(relogio);
 			}
-			overlay.textContent = restam >= 10000 ? Math.ceil(restam / 1000) + 's' : (restam / 1000).toFixed(1);
-		} else if (overlay) {
-			overlay.remove();
-			if (nome && _cooldownAte[nome]) {
-				delete _cooldownAte[nome];
-			}
+			relogio.style.setProperty('--cd-fracao', estado.fracao.toFixed(3));
+			relogio.querySelector('.dk-slot-cd-num').textContent = estado.rotulo;
+			btn.classList.add('is-recarregando');
+			btn.classList.remove('is-pronta');
+			return;
+		}
+		if (relogio) {
+			relogio.remove();
+			acenderPronta(btn);
+		}
+		btn.classList.remove('is-recarregando');
+		if (nome && _recargas[nome]) {
+			delete _recargas[nome];
 		}
 	});
-	return vivos;
+	return vivas;
 }
+
+/** Exposto para a prova de foto: desenha os relogios num instante escolhido. */
+DockIdle.desenharRecargas = desenharRecargas;
 
 function nomeDaSkill(skillId) {
 	const ctx = IdleConfig.contexto || {};

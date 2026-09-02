@@ -449,21 +449,106 @@
 	text-shadow: 0 0 6px rgba(224, 176, 77, 0.5);
 }
 
-/* O TIMER DE COOLDOWN no orbe (D-694): contagem sobre o icone enquanto a
-   skill dorme. Escurece o anel para o numero ler em qualquer icone; some
-   sozinho quando a recarga acaba (quem o remove e desenharCooldowns). */
+/* ─── O RELOGIO DE RECARGA no orbe (D-916, 02/09/2026 — substitui o timer
+   de D-694, que era so o numero sobre o anel escurecido). Tres pecas, todas
+   filhas de ".dk-slot-ring-wrap" (position:relative) e recortadas no circulo:
+
+   1. ".dk-slot-cd" — a SOMBRA da fatia que ainda falta. `conic-gradient` a
+      partir do topo: os primeiros (1 - fracao) de volta ficam transparentes
+      (o icone ja revelado) e o resto escuro. Quem escreve `--cd-fracao` e
+      DockIdle.js (desenharRecargas), a cada passo do relogio.
+   2. ".dk-slot-cd-arco" — o arco dourado na borda, com a MESMA conta, cortado
+      em anel por `mask` radial. E o ponteiro do relogio: cresce em sentido
+      horario ate fechar o circulo.
+   3. ".dk-slot-cd-num" — o numero do centro, na fonte numerica do design
+      system, dourado sobre a sombra (le em qualquer icone).
+
+   Nada aqui responde a mouse (pointer-events:none): o orbe continua abrindo
+   a Config idle no clique, com ou sem relogio. */
 .dk-slot-cd {
+	--cd-fracao: 1;
 	position: absolute;
 	inset: 0;
 	display: flex;
 	align-items: center;
 	justify-content: center;
-	background: rgba(10, 14, 24, 0.62);
 	border-radius: 50%;
-	color: #ffd76a;
-	font-weight: 700;
-	font-size: 13px;
-	text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+	overflow: hidden;
+	background: conic-gradient(
+		from 0deg,
+		transparent 0turn,
+		transparent calc((1 - var(--cd-fracao)) * 1turn),
+		rgba(10, 14, 24, 0.66) calc((1 - var(--cd-fracao)) * 1turn),
+		rgba(10, 14, 24, 0.66) 1turn
+	);
 	pointer-events: none;
 	z-index: 2;
+}
+
+.dk-slot-cd-arco {
+	position: absolute;
+	inset: 0;
+	border-radius: 50%;
+	background: conic-gradient(
+		from 0deg,
+		var(--gold-300) 0turn,
+		var(--gold-500) calc((1 - var(--cd-fracao)) * 1turn),
+		transparent calc((1 - var(--cd-fracao)) * 1turn),
+		transparent 1turn
+	);
+	/* So a coroa de 3px: o miolo e recortado pela mascara. */
+	-webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 3px));
+	mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 3px));
+	filter: drop-shadow(0 0 3px rgba(224, 176, 77, 0.55));
+}
+
+.dk-slot-cd-num {
+	position: relative;
+	font-family: var(--font-numeric, var(--font-ui));
+	font-size: 13px;
+	font-weight: 700;
+	font-variant-numeric: tabular-nums;
+	line-height: 1;
+	color: #ffd76a;
+	text-shadow: 0 1px 2px rgba(0, 0, 0, 0.85), 0 0 6px rgba(0, 0, 0, 0.6);
+}
+
+/* O numerozinho de prioridade fica POR CIMA do relogio: ele e irmao do anel
+   dentro de ".dk-slot-ring-wrap" (position:absolute, ver acima) e o relogio
+   entra depois dele no DOM com z-index 2 — sem isto a fatia escura o cobria
+   (medido na foto de 50%: o "1" sumia sob a sombra). */
+.dk-slot-ring-wrap > .dk-slot-prioridade {
+	z-index: 3;
+}
+
+/* Enquanto recarrega, o icone recua um pouco (dessaturado) — a fatia e o
+   arco ja dizem "espera"; o icone nao precisa competir. */
+.dk-slot.is-recarregando .dk-slot-icone,
+.dk-slot.is-recarregando .dk-slot-fallback {
+	filter: saturate(0.55);
+}
+
+/* O PULSO de "voltou": meio segundo de brilho dourado quando a recarga vence.
+   A classe entra por DockIdle.js e sai no `animationend`. Sob
+   `prefers-reduced-motion` nao ha animacao — e nao ha `animationend` —,
+   entao a classe fica inerte ate o proximo redesenho, que a remove. */
+@media (prefers-reduced-motion: no-preference) {
+	.dk-slot.is-pronta .dk-slot-ring {
+		animation: dk-pronta 480ms var(--ease-out, ease-out) 1;
+	}
+
+	@keyframes dk-pronta {
+		0% {
+			box-shadow: 0 0 0 1px rgba(12, 34, 64, 0.35), var(--shadow-float), inset 0 2px 6px rgba(255, 255, 255, 0.5);
+			transform: scale(1);
+		}
+		35% {
+			box-shadow: var(--glow-gold), 0 0 22px rgba(224, 176, 77, 0.7), inset 0 2px 6px rgba(255, 255, 255, 0.5);
+			transform: scale(1.1);
+		}
+		100% {
+			box-shadow: 0 0 0 1px rgba(12, 34, 64, 0.35), var(--shadow-float), inset 0 2px 6px rgba(255, 255, 255, 0.5);
+			transform: scale(1);
+		}
+	}
 }
