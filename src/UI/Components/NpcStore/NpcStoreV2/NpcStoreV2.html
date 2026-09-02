@@ -3,6 +3,13 @@
      vem do Ragnarok Origin (lista + total + acao unica, sem arrastar); a
      forma e 100% do nosso design system.
 
+     Desde 02/09/2026 (D-920/D-921, pedido do dono) a lista e DIVIDIDA POR
+     CATEGORIA (as abas nascem no JS, so as que tem item), tem controle de
+     ORDEM (raridade, quantidade, preco, nome) e o rodape mostra o PESO que a
+     compra acrescenta a mochila. O "Tudo no maximo" (D-922) age SO no que
+     esta a vista — a aba escolhida e a busca em vigor — e vira "Limpar"
+     quando ja esta tudo no teto.
+
      Ganchos de DOM que o MOTOR cutuca por seletor e por isso nao podem mudar
      de nome: .seller / .cashuser .buyer / .cashuser .cashpoints / .priceLimit
      (Engine/MapEngine/Store.js). As linhas da lista nascem no JS. -->
@@ -25,11 +32,20 @@
 			</span>
 		</div>
 
-		<div class="ns-busca">
-			<input class="ri-input" type="text" aria-label="Buscar item pelo nome" placeholder="Buscar item…" />
+		<div class="ns-ferramentas">
+			<input class="ns-busca ri-input" type="text" aria-label="Buscar item pelo nome" placeholder="Buscar item…" />
+			<label class="ns-ordem-rotulo">
+				<span class="ns-ordem-texto">Ordenar</span>
+				<select class="ns-ordem" aria-label="Ordenar a lista"></select>
+			</label>
 		</div>
 
-		<div class="ns-lista ri-scroll" role="list"></div>
+		<div class="ns-filtros">
+			<div class="ns-abas" role="tablist"></div>
+			<button type="button" class="ns-tudo ri-btn ri-btn--sec" disabled>Tudo no máx</button>
+		</div>
+
+		<div class="ns-lista ri-scroll"></div>
 		<div class="ns-vazio" hidden>Nenhum item encontrado.</div>
 
 		<div class="ns-rodape">
@@ -37,6 +53,9 @@
 				<div class="ns-itens-escolhidos">Nada escolhido</div>
 				<div class="ns-total" hidden>
 					Total&nbsp;<b class="ns-total-valor">0</b>&nbsp;<span class="ns-unidade">Zeny</span>
+				</div>
+				<div class="ns-peso" hidden>
+					Peso&nbsp;<b class="ns-peso-valor">0 / 0</b><span class="ns-peso-delta"></span>
 				</div>
 			</div>
 			<button type="button" class="ns-agir ri-btn" disabled>Comprar</button>
