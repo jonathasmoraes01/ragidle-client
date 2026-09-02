@@ -135,9 +135,27 @@ for (const arquivo of VISUALIZADORES) {
  */
 console.log('\n' + '3/6  copiando a arte da interface (public/ragidle)...');
 cpSync(PUBLICO, DIST, { recursive: true });
-for (const pasta of readdirSync(join(DIST, 'ragidle'))) {
-	const quantos = readdirSync(join(DIST, 'ragidle', pasta)).length;
-	console.log(`     ${pasta.padEnd(12)} ${String(quantos).padStart(5)} arquivo(s)`);
+/*
+ * O RELATORIO PRECISA ACEITAR ARQUIVO SOLTO, e nao so pasta.
+ *
+ * Ate 02/09 tudo em `public/ragidle` era pasta, e o laco fazia `readdirSync`
+ * em cada entrada. D-919 pos o primeiro arquivo na raiz
+ * (`fichas-de-item.json`, o peso e a raridade que a loja le) e o preparo
+ * MORREU com ENOTDIR — o `cpSync` acima ja tinha copiado tudo certo, entao o
+ * que quebrou foi so a contagem, mas quebrou o deploy inteiro junto.
+ *
+ * A licao e a de sempre com relatorio: ele nao pode ser mais exigente com a
+ * arvore do que o passo que ele descreve.
+ */
+for (const entrada of readdirSync(join(DIST, 'ragidle'), { withFileTypes: true })) {
+	const rotulo = entrada.name.padEnd(20);
+	if (entrada.isDirectory()) {
+		const quantos = readdirSync(join(DIST, 'ragidle', entrada.name)).length;
+		console.log(`     ${rotulo} ${String(quantos).padStart(5)} arquivo(s)`);
+	} else {
+		const kb = Math.round(statSync(join(DIST, 'ragidle', entrada.name)).size / 1024);
+		console.log(`     ${rotulo} ${String(kb).padStart(5)} KB`);
+	}
 }
 
 console.log('\n' + '4/6  copiando a configuracao e a porta de entrada do jogo (/jogo)...');
