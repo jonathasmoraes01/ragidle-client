@@ -188,7 +188,33 @@ const ROTULO_BADGE = {
 	compativel: 'Compatível',
 	'fora-da-faixa': 'Fora da faixa',
 	cheio: 'Cheio',
-	offline: 'Líder offline'
+	offline: 'Líder offline',
+	'ja-tem-grupo': 'Já tem grupo',
+	indisponivel: 'Indisponível'
+};
+
+/** O código de recusa do servidor (`recusa`) traduzido para o estado visual.
+ * `senha` NÃO aparece aqui de propósito: a vitrine deixou de trancar por senha
+ * (o grupo privado desce com `podeEntrar:true` e o cadeado), então uma recusa
+ * por senha só existe DEPOIS do clique, e ela vira mensagem ao lado do botão --
+ * nunca estado do card. */
+/** O texto do BOTÃO do rodapé por estado. Só os estados que impedem a entrada
+ * entram aqui; o resto cai no "Entrar no grupo" de quem chama. */
+const ROTULO_BOTAO = {
+	cheio: 'Grupo cheio',
+	offline: 'Líder offline',
+	'fora-da-faixa': 'Nível incompatível',
+	'ja-tem-grupo': 'Você já está em um grupo',
+	indisponivel: 'Grupo indisponível'
+};
+
+const RECUSA_PARA_ESTADO = {
+	'fora-da-faixa': 'fora-da-faixa',
+	cheio: 'cheio',
+	'lider-offline': 'offline',
+	'ja-tem-grupo': 'ja-tem-grupo',
+	sumiu: 'indisponivel',
+	privacidade: 'indisponivel'
 };
 
 function raiz() {
@@ -239,7 +265,17 @@ function estadoDoGrupo(g) {
 		return 'cheio';
 	}
 	if (!g.podeEntrar) {
-		return 'fora-da-faixa';
+		/*
+		 * O SERVIDOR DIZ O MOTIVO EM CÓDIGO (`recusa`, 03/09/2026) -- e antes
+		 * disto tudo o que não fosse cheio/offline virava "fora da faixa" no
+		 * catch-all abaixo. O dono viu o pior caso no jogo: nível 67 diante de
+		 * um grupo de faixa 58-88, com a badge dizendo "Fora da faixa" e o
+		 * botão "Nível incompatível" -- a recusa de verdade era outra.
+		 *
+		 * O `||` final mantém a janela funcionando contra um servidor um
+		 * deploy atrás, que ainda não manda o campo.
+		 */
+		return RECUSA_PARA_ESTADO[g.recusa] || 'fora-da-faixa';
 	}
 	return 'compativel';
 }
@@ -688,14 +724,15 @@ function renderFooter() {
 	const estado = estadoDoGrupo(g);
 	const botaoEntrar = footer.querySelector('.lfg-acao-entrar .lfg-entrar');
 	botaoEntrar.disabled = estado !== 'compativel';
-	botaoEntrar.textContent =
-		estado === 'cheio'
-			? 'Grupo cheio'
-			: estado === 'offline'
-				? 'Líder offline'
-				: estado === 'fora-da-faixa'
-					? 'Nível incompatível'
-					: 'Entrar no grupo';
+	/*
+	 * O RÓTULO SEGUE O ESTADO, e o estado segue o CÓDIGO que o servidor mandou
+	 * (`recusa`) -- ver `RECUSA_PARA_ESTADO`. A versão anterior tratava
+	 * "fora-da-faixa" como o fim da linha do ternário, então qualquer recusa
+	 * que não fosse cheio/offline saía como "Nível incompatível", inclusive
+	 * quando o nível estava certo. Um rótulo que mente sobre a tranca manda o
+	 * jogador consertar a coisa errada.
+	 */
+	botaoEntrar.textContent = ROTULO_BOTAO[estado] || 'Entrar no grupo';
 }
 
 function renderPanel() {
@@ -1110,10 +1147,10 @@ LFGIdle.limparEstadoDoPersonagem = function limparEstadoDoPersonagem() {
 	LFGIdle.estavaAberta = false;
 
 	// Nenhuma senha digitada pelo personagem anterior pode sobreviver na tela
-	// do próximo -- os nós de <input type="password"> são ESTÁTICOS (rodapé)
-	// ou persistem entre reaberturas (aba Criar), então limpar o dado sozinho
-	// não bastaria.
-	r.querySelectorAll('input[type="password"]').forEach(function (input) {
+	// do próximo -- os nós de senha (type=text mascarado por CSS, ver
+	// .ri-senha-mascarada) são ESTÁTICOS (rodapé) ou persistem entre
+	// reaberturas (aba Criar), então limpar o dado sozinho não bastaria.
+	r.querySelectorAll('.lfg-senha-input, .lfg-criar-senha-input').forEach(function (input) {
 		input.value = '';
 	});
 	// O nome digitado na aba Criar é um rascunho do personagem anterior --
