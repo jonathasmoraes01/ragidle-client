@@ -54,7 +54,41 @@ _proxy['/emblem'] = {
 };
 
 export default defineConfig({
-	plugins: [uiCssHmrPlugin()],
+	/**
+	 * A RAIZ REDIRECIONA PARA O JOGO (03/09/2026).
+	 *
+	 * O `npm run dev` do Rag Idle imprime a URL completa
+	 * (`/applications/pwa/index.html`), mas quem digita so `127.0.0.1:3000` — ou
+	 * deixa o navegador completar do historico — cai na RAIZ, e a raiz devolvia
+	 * **404**: este projeto nao tem `index.html` no topo, so
+	 * `applications/<app>/index.html`.
+	 *
+	 * Um 404 na raiz de um servidor de desenvolvimento e armadilha: ele parece
+	 * 'o jogo nao subiu' quando as quatro pecas estao no ar. O dono caiu nela em
+	 * 03/09/2026 e reportou 'abriu e nao funcionou' — com a pilha inteira de pe.
+	 *
+	 * O redirecionamento e 302 (temporario) de proposito: ele e conveniencia de
+	 * desenvolvimento, e nao rota do produto — cache permanente de 301 no
+	 * navegador do dono seria pior que o 404.
+	 */
+	plugins: [
+		uiCssHmrPlugin(),
+		{
+			name: 'ragidle-raiz-vai-para-o-jogo',
+			apply: 'serve',
+			configureServer(server) {
+				server.middlewares.use((req, res, next) => {
+					const url = req.url ?? '/';
+					if (url === '/' || url === '/index.html') {
+						res.writeHead(302, { Location: '/applications/pwa/index.html' });
+						res.end();
+						return;
+					}
+					next();
+				});
+			},
+		},
+	],
 	root: './',
 	base: './',
 	resolve: {
