@@ -29,12 +29,16 @@
 		<button type="button" class="btn num9">9</button>
 		<button type="button" class="btn num0">0</button>
 		<button type="button" class="numReset">Limpar</button>
+		<!-- PIN em type=text mascarado por CSS (.ri-senha-mascarada), NUNCA
+		     type=password: um type=password montado faz o Chrome oferecer a
+		     senha salva da CONTA aqui e em toda caixa de texto da pagina
+		     (ver o escudo em GUIComponent.js). -->
 		<span class="txtlabel pwd" data-text="1012">Pincodewindow</span>
-		<input class="pass" type="password" value="" />
+		<input class="pass ri-senha-mascarada" type="text" value="" />
 		<span class="txtlabel newpwd" data-text="1013">Pincodewindow</span>
-		<input class="newpass" type="password" value="" />
+		<input class="newpass ri-senha-mascarada" type="text" value="" />
 		<span class="txtlabel checkpwd" data-text="1014">Pincodewindow</span>
-		<input class="checkpass" type="password" value="" />
+		<input class="checkpass ri-senha-mascarada" type="text" value="" />
 		<button type="button" class="btn2 ok">Confirmar</button>
 		<button type="button" class="btn2 change">Alterar</button>
 		<button type="button" class="btn2 verify">Avançar</button>

@@ -68,6 +68,8 @@ import { pocoesDoEixo, escolherPocaoPadrao } from './escolhaDePocao.js';
 import {
 	ABAS_ACEITAS,
 	ABA_PADRAO,
+	TETO_DA_ORDEM,
+	TETO_DE_BUFFS,
 	abaCanonica,
 	alternarCura,
 	alvoDoBuff,
@@ -1006,7 +1008,7 @@ function renderAtaque() {
 		const livres = ativas.filter(s => !usados.has(s.skillId));
 
 		let adicionar;
-		if (rotacao.length >= 3) {
+		if (rotacao.length >= TETO_DA_ORDEM) {
 			adicionar = '<div class="ic-note">As três vagas estão ocupadas. Tire um golpe para pôr outro.</div>';
 		} else if (!livres.length) {
 			adicionar = '<div class="ic-note">Todos os golpes disponíveis já estão na ordem.</div>';
@@ -1047,7 +1049,7 @@ function renderAtaque() {
 		<div class="ic-card">
 			<div class="ic-card-head">
 				<h3>Ordem de golpes</h3>
-				<span class="ic-card-meta">${rotacao.length}/3 vagas</span>
+				<span class="ic-card-meta">${rotacao.length}/${TETO_DA_ORDEM} vagas</span>
 			</div>
 			<div class="ic-note">O personagem tenta o primeiro que puder usar e vai rodando a lista; sem nenhum, dá o golpe básico.</div>
 			${ordem}
@@ -1137,15 +1139,28 @@ function renderBuffsMantidos() {
 	// D-363: só o MANTÍVEL entra. Suporte pontual (Desintoxicar) só aparece na nota.
 	const disponiveis = todas.filter(s => s.mantivel !== false);
 	const pontuais = todas.filter(s => s.mantivel === false);
-	const notaPontual = pontuais.length
-		? `<div class="ic-note">Suporte pontual (não se mantém de pé): ${pontuais.map(s => escapeHtml(s.nome || s.skillId)).join(', ')}.</div>`
-		: '';
+	// D-917: o MOTIVO vem do servidor. Os conjuntos do Bardo e da Odalisca
+	// (Ode a Siegfried, Rufar dos Tambores, Banquete de Njord) são buffs de
+	// verdade, mas exigem o parceiro no GRUPO e a uma célula (D-1004). Sem o
+	// par no grupo o servidor os manda como não mantíveis, com este motivo;
+	// com o par, eles entram na lista como qualquer buff. Listar e dizer por
+	// quê é o que evita o jogador procurá-los na ordem de golpes.
+	const semParceiro = pontuais.filter(s => s.motivo === 'precisa-de-parceiro');
+	const outrosPontuais = pontuais.filter(s => s.motivo !== 'precisa-de-parceiro');
+	const nomesDe = lista => lista.map(s => escapeHtml(s.nome || s.skillId)).join(', ');
+	const notaPontual =
+		(semParceiro.length
+			? `<div class="ic-note ic-note--parceiro">Precisam de um parceiro Bardo ou Odalisca no seu grupo, ao seu lado na luta, que saiba a mesma habilidade: ${nomesDe(semParceiro)}.</div>`
+			: '') +
+		(outrosPontuais.length
+			? `<div class="ic-note">Suporte pontual (não se mantém de pé): ${nomesDe(outrosPontuais)}.</div>`
+			: '');
 
 	if (!disponiveis.length) {
 		return `
 		<div class="ic-card">
 			<h3>Buffs mantidos</h3>
-			<div class="ic-empty">Nenhum buff que dê para manter de pé. Têm: Espadachim (Vigor), Arqueiro (Concentração), Noviço (Bênção, Agilidade, Angelus, Pneuma), Mago (Barreira Mágica), Sacerdote (Kyrie, Magnificat, Glória)...</div>
+			<div class="ic-empty">Nenhum buff que dê para manter de pé. Têm: Espadachim (Vigor), Arqueiro (Concentração), Noviço (Bênção, Agilidade, Angelus, Pneuma), Mago (Barreira Mágica), Sacerdote (Kyrie, Magnificat, Glória, Santuário), Sábio (Vulcão, Dilúvio, Furacão), Bardo (as canções)...</div>
 			${notaPontual}
 		</div>`;
 	}
@@ -1186,8 +1201,8 @@ function renderBuffsMantidos() {
 	const usados = new Set(lista.map(b => b.skillId));
 	const livres = disponiveis.filter(s => !usados.has(s.skillId));
 	let adicionar = '';
-	if (lista.length >= 3) {
-		adicionar = '<div class="ic-note">As três vagas de buff estão ocupadas.</div>';
+	if (lista.length >= TETO_DE_BUFFS) {
+		adicionar = '<div class="ic-note">As seis vagas de buff estão ocupadas.</div>';
 	} else if (livres.length) {
 		adicionar = `
 			<select class="ic-add-skill" data-action="buff-add">
@@ -1205,7 +1220,7 @@ function renderBuffsMantidos() {
 		<div class="ic-card">
 			<div class="ic-card-head">
 				<h3>Buffs mantidos</h3>
-				<span class="ic-card-meta">${lista.length}/3 vagas</span>
+				<span class="ic-card-meta">${lista.length}/${TETO_DE_BUFFS} vagas</span>
 			</div>
 			<div class="ic-note">Conjurados antes do primeiro golpe e renovados assim que caem — em você e, no que estiver marcado "Grupo", em cada membro que ficar sem.</div>
 			<div class="ic-rot-list">${linhas}</div>
@@ -1231,7 +1246,7 @@ function renderCura() {
 	const naRotacao = curaNaRotacao(cfg, ctx);
 	const ligada = !!naRotacao;
 	const habilidade = naRotacao ? curas.find(c => c.skillId === naRotacao.skillId) || curas[0] : curas[0];
-	const semVaga = !ligada && (cfg.rotacao || []).length >= 3;
+	const semVaga = !ligada && (cfg.rotacao || []).length >= TETO_DA_ORDEM;
 	const alcanca = !!(habilidade && habilidade.alcancaGrupo);
 
 	return `
@@ -1294,7 +1309,7 @@ function bindSuporteExtra(pane) {
 				cfg.rotacaoDeBuffs = [];
 			}
 			const buff = (IdleConfig.contexto.skillsDeBuff || []).find(s => s.skillId === skillId);
-			if (buff && cfg.rotacaoDeBuffs.length < 3) {
+			if (buff && cfg.rotacaoDeBuffs.length < TETO_DE_BUFFS) {
 				// O alvo nasce EXPLÍCITO: grupo quando alcança (o padrão de P2),
 				// eu quando é só de quem conjura — assim o payload diz o que a
 				// tela mostra, sem depender do padrão do servidor.

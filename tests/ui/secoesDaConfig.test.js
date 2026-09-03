@@ -8,6 +8,8 @@ import {
 	ABAS_ACEITAS,
 	ABA_PADRAO,
 	SECOES,
+	TETO_DA_ORDEM,
+	TETO_DE_BUFFS,
 	abaCanonica,
 	alternarCura,
 	alvoDoBuff,
@@ -151,5 +153,19 @@ describe('miúdos', () => {
 		expect(duracaoCurta(120000)).toBe('2 min');
 		expect(duracaoCurta(10000)).toBe('10 s');
 		expect(duracaoCurta(0)).toBe('');
+	});
+});
+
+describe('os dois tetos (D-917)', () => {
+	it('a ordem de golpes fica em 3 (o que a doca desenha) e os buffs sobem para 6', () => {
+		expect(TETO_DA_ORDEM).toBe(3);
+		expect(TETO_DE_BUFFS).toBe(6);
+	});
+
+	it('a cura respeita o teto da ORDEM, e não o dos buffs', () => {
+		const cheia = { ...CFG, rotacao: Array.from({ length: TETO_DA_ORDEM }, (_, i) => ({ skillId: `G${i}`, nivelDeUso: 1 })) };
+		expect(alternarCura(cheia, CTX, true)).toBeNull();
+		const comVaga = { ...CFG, rotacao: cheia.rotacao.slice(0, TETO_DA_ORDEM - 1) };
+		expect(alternarCura(comVaga, CTX, true)).toHaveLength(TETO_DA_ORDEM);
 	});
 });

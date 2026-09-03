@@ -1201,6 +1201,18 @@ ui-button {
 	color: var(--text-muted);
 }
 
+/*
+ * Senha que NAO e a da conta (grupo, sala de chat, PIN): o campo e
+ * type="text" mascarado por CSS, nunca type="password". Um type=password
+ * montado em qualquer janela faz o Chrome tratar a pagina como formulario
+ * de login e oferecer a credencial salva em toda caixa de texto do jogo
+ * (ver o escudo em GUIComponent.js). Suportado em Chrome/Edge/Safari e
+ * Firefox 136+.
+ */
+.ri-senha-mascarada {
+	-webkit-text-security: disc;
+}
+
 /* Divisor ornamentado (linha com losango dourado central) */
 .ri-divisor {
 	position: relative;

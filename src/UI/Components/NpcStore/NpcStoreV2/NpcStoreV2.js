@@ -22,6 +22,27 @@
  *   ganho do jogador, a mesma semantica da EXP no DS) — no lugar do
  *   "1.000 -> 800" em texto corrido.
  *
+ * ## A rodada de 02/09/2026 (D-920/D-921) — as tres coisas que o dono pediu
+ *
+ * 1. **A lista e dividida por CATEGORIA**, e nao mais um rolo unico: abas por
+ *    familia de item (so as que tem item — ver `vitrine.js`) e, na aba
+ *    "Tudo", cada familia com seu titulo. A regra de agrupamento mora fora
+ *    deste arquivo, testada sem DOM.
+ * 2. **Ordem escolhida pelo jogador** — raridade, quantidade, preco ou nome.
+ *    O pedido era para a hora de VENDER ("saber o que nao vender por engano"),
+ *    e vale nas duas pontas. A ordem escolhida sobrevive ao fechar da janela
+ *    dentro da mesma sessao; a busca e a aba nao (elas sao do momento).
+ * 3. **O peso da compra no rodape**, com a mesma trava do servidor: quando
+ *    `peso atual + peso da compra` passa do teto, o botao para. Antes o
+ *    jogador so descobria no FAIL_WEIGHT, com a janela ja fechada.
+ *
+ * A RARIDADE e a peca que nao existia: o rAthena nao tem esse campo. Ela e
+ * derivada da CHANCE DE DROP (o dono escolheu, entre chance, preco e a
+ * raridade das runas) e chega pronta em `/ragidle/fichas-de-item.json` —
+ * `DB/Items/fichasDeItem.js` de um lado, `scripts/publicar-fichas-de-item.ts`
+ * no repositorio do jogo do outro. O PESO vem pelo mesmo caminho, e pelo
+ * mesmo motivo: o cliente nunca soube quanto pesa um item.
+ *
  * O CONTRATO com o motor (Engine/MapEngine/Store.js) e o mesmo da V1, metodo
  * a metodo — incluindo os ganchos de DOM que ele cutuca por seletor
  * (.seller, .cashuser .buyer, .cashuser .cashpoints, .priceLimit) — entao os
@@ -47,6 +68,24 @@ import GUIComponent from 'UI/GUIComponent.js';
 import ItemInfo from 'UI/Components/ItemInfo/ItemInfo.js';
 import InputBox from 'UI/Components/InputBox/InputBox.js';
 import Inventory from 'UI/Components/Inventory/Inventory.js';
+import { RARIDADE_LABEL } from 'Utils/ItemOptionsView.js';
+import {
+	CLASSE_DE_RARIDADE,
+	carregarFichasDeItem,
+	pesoDeItem,
+	raridadeDeItem,
+	tipoDeItem
+} from 'DB/Items/fichasDeItem.js';
+import {
+	CATEGORIA_TUDO,
+	ORDEM_PADRAO,
+	abasDaVitrine,
+	categoriaDoTipo,
+	indicesDaVista,
+	montarVista,
+	ordensDaVitrine,
+	tipoEfetivo
+} from './vitrine.js';
 import htmlText from './NpcStoreV2.html?raw';
 import cssText from './NpcStoreV2.css?raw';
 
@@ -84,8 +123,40 @@ const _input = [];
  */
 const _output = [];
 
+/**
+ * @let {Map<number, HTMLElement>} a linha de cada indice. Ela e CRIADA uma vez
+ * por vitrine e depois so MUDA DE LUGAR (`appendChild` move o no, nao o
+ * recria): reordenar sem destruir e o que preserva o valor digitado no campo
+ * de quantidade e o foco de quem esta usando o teclado.
+ */
+const _nos = new Map();
+
+/**
+ * @let {Array} a vitrine em forma de dado puro — o que `vitrine.js` consome.
+ */
+let _vitrine = [];
+
+/**
+ * @let {Array<number>} os indices que a vista MOSTRA agora, na ordem da tela.
+ * E o alcance do "Tudo no maximo" — ver `indicesDaVista` em `vitrine.js`.
+ */
+let _visiveis = [];
+
 let _type;
 let _closePacketSent = false;
+
+/** A vista atual: busca e aba sao do momento; a ordem sobrevive (ver o topo). */
+let _termo = '';
+let _categoria = CATEGORIA_TUDO;
+let _ordem = ORDEM_PADRAO;
+
+/**
+ * Cada `setList` abre uma geracao. A carga das fichas de item e assincrona e
+ * pode voltar DEPOIS de a loja ter fechado (ou de outra ter aberto): sem este
+ * carimbo, a resposta atrasada redesenharia a lista de uma vitrine que nao
+ * existe mais.
+ */
+let _geracao = 0;
 
 /** Rotulo do titulo e do botao por tipo. Voz do DS: verbo no botao. */
 const TEXTOS = {
@@ -107,8 +178,33 @@ function prettyZeny(val) {
 	return (Number(val) || 0).toLocaleString('pt-BR');
 }
 
+/**
+ * Peso em decigramas -> o numero que o jogo mostra. O `Weight` do item_db e o
+ * `Session.Entity.weight` do pacote andam em DECIMOS de unidade, e a divisao
+ * por 10 e a mesma de BasicInfoIdle/MochilaIdle — nao arredondar aqui faria a
+ * Red Potion pesar "70" numa tela e "7" na outra.
+ */
+function prettyPeso(decigramas) {
+	return (Number(decigramas) / 10).toLocaleString('pt-BR', { maximumFractionDigits: 1 });
+}
+
 function precoUnitario(item) {
 	return item.discountprice ?? item.overchargeprice ?? item.price ?? 0;
+}
+
+/**
+ * O peso de UMA unidade do item.
+ *
+ * O pacote de escambo ja traz `weight` do servidor (PacketStructure.js) — ele
+ * VENCE a tabela publicada, porque e o numero da sessao e nao o do build.
+ *
+ * @returns {number|null} null quando ninguem sabe (e ai a tela nao inventa)
+ */
+function pesoUnitario(item) {
+	if (typeof item.weight === 'number') {
+		return item.weight;
+	}
+	return pesoDeItem(item.ITID);
 }
 
 /**
@@ -126,7 +222,27 @@ NpcStore.init = function init() {
 
 	root.querySelector('.ns-fechar').addEventListener('click', () => this.remove());
 	root.querySelector('.ns-agir').addEventListener('click', () => this.submit());
-	root.querySelector('.ns-busca .ri-input').addEventListener('input', filtrar);
+
+	root.querySelector('.ns-busca').addEventListener('input', e => {
+		_termo = e.target.value;
+		desenharVista();
+	});
+
+	root.querySelector('.ns-ordem').addEventListener('change', e => {
+		_ordem = e.target.value;
+		desenharVista();
+	});
+
+	root.querySelector('.ns-abas').addEventListener('click', e => {
+		const aba = e.target.closest('.ns-aba');
+		if (!aba) {
+			return;
+		}
+		_categoria = aba.dataset.categoria;
+		desenharVista();
+	});
+
+	root.querySelector('.ns-tudo').addEventListener('click', () => encherOuLimparAVista());
 
 	/* Delegacao: as linhas nascem e morrem com setList, os ouvintes ficam na
 	   lista — um por evento, nao um por item. */
@@ -142,11 +258,21 @@ NpcStore.onAppend = function onAppend() {
 NpcStore.onRemove = function onRemove() {
 	_input.length = 0;
 	_output.length = 0;
+	_nos.clear();
+	_vitrine = [];
+	_visiveis = [];
 	_limiteZeny = -1;
+	_geracao++;
+
+	// A busca e a aba sao do momento e voltam ao zero; a ORDEM nao — quem
+	// vende pela raridade vende varias lojas seguidas, e reescolher a cada
+	// abertura seria o atrito que o pedido queria tirar.
+	_termo = '';
+	_categoria = CATEGORIA_TUDO;
 
 	const root = NpcStore.getRoot();
-	root.querySelector('.ns-lista').innerHTML = '';
-	root.querySelector('.ns-busca .ri-input').value = '';
+	root.querySelector('.ns-lista').replaceChildren();
+	root.querySelector('.ns-busca').value = '';
 
 	if (!_closePacketSent) {
 		NpcStore.StoreClosePacket(_type);
@@ -199,17 +325,22 @@ NpcStore.setType = function setType(type) {
  */
 NpcStore.setList = function setList(items) {
 	const root = NpcStore.getRoot();
-	const lista = root.querySelector('.ns-lista');
-	lista.innerHTML = '';
+	root.querySelector('.ns-lista').replaceChildren();
 	_input.length = 0;
 	_output.length = 0;
+	_nos.clear();
+	_vitrine = [];
+	_visiveis = [];
+
+	const geracao = ++_geracao;
 
 	const registrar = item => {
 		const escolhido = Object.assign({}, item);
 		escolhido.count = 0;
 		_input[item.index] = item;
 		_output[item.index] = escolhido;
-		lista.appendChild(montarLinha(item));
+		_nos.set(item.index, montarLinha(item));
+		_vitrine.push(fichaDaVitrine(item, _vitrine.length));
 	};
 
 	switch (_type) {
@@ -269,8 +400,27 @@ NpcStore.setList = function setList(items) {
 			break;
 	}
 
-	root.querySelector('.ns-vazio').hidden = lista.children.length > 0;
+	montarControles();
+	desenharVista();
 	atualizarResumo();
+
+	/*
+	 * Peso e raridade chegam de um arquivo publicado, e a PRIMEIRA loja da
+	 * sessao costuma abrir antes dele. Quando ele chega, a vitrine e refeita
+	 * — mas so se ainda for ESTA (ver `_geracao`).
+	 */
+	carregarFichasDeItem().then(temFichas => {
+		if (!temFichas || geracao !== _geracao) {
+			return;
+		}
+		for (const [index, no] of _nos) {
+			enfeitarLinha(no, _input[index]);
+		}
+		_vitrine = _vitrine.map((ficha, i) => fichaDaVitrine(_input[ficha.index], i));
+		montarControles();
+		desenharVista();
+		atualizarResumo();
+	});
 };
 
 NpcStore.setPriceLimit = function setPriceLimit(price) {
@@ -320,13 +470,27 @@ NpcStore.calculateCost = function calculateCost() {
 	return total;
 };
 
+/**
+ * O peso do que esta escolhido, em decigramas.
+ *
+ * Mesma assinatura da V1 (o motor e a propria janela chamam), mas devolvendo
+ * o peso de TODO tipo de loja, e nao so do escambo: a V1 so somava
+ * `item.total_weight`, um campo que unicamente o caminho de barter escrevia.
+ *
+ * @returns {number|null} null se algum item escolhido nao tem peso conhecido —
+ *          um total parcial seria pior que nenhum, porque a trava de peso
+ *          desta janela decide em cima dele.
+ */
 NpcStore.calculateWeight = function calculateWeight() {
 	let peso = 0;
 	for (let i = 0; i < _output.length; ++i) {
 		const o = _output[i];
 		if (o && o.count > 0) {
-			const info = DB.getItemInfo(o.ITID);
-			peso += (info && info.weight ? info.weight : 0) * o.count;
+			const unitario = pesoUnitario(o);
+			if (unitario === null) {
+				return null;
+			}
+			peso += unitario * o.count;
 		}
 	}
 	return peso;
@@ -412,8 +576,27 @@ function tetoDoItem(item) {
 	return 9999; // loja infinita: o limite pratico do protocolo por clique
 }
 
+/**
+ * O item em forma de DADO — o que `vitrine.js` filtra, agrupa e ordena. Nada
+ * de DOM aqui: e a fronteira entre a regra (testavel) e o desenho.
+ */
+function fichaDaVitrine(item, ordem) {
+	// `item.type` pode ser 0 (HEALING) — a queda para a tabela e por AUSENCIA,
+	// nunca por `||`; o porque esta em `tipoEfetivo`.
+	const tipo = tipoEfetivo(item.type, tipoDeItem(item.ITID));
+
+	return {
+		ordem,
+		index: item.index,
+		nome: DB.getItemName(item),
+		preco: precoUnitario(item),
+		quantidade: item.count,
+		raridade: raridadeDeItem(item.ITID),
+		categoria: categoriaDoTipo(tipo)
+	};
+}
+
 function montarLinha(item) {
-	const info = DB.getItemInfo(item.ITID);
 	const nome = DB.getItemName(item);
 	const teto = tetoDoItem(item);
 	const unitario = precoUnitario(item);
@@ -431,19 +614,6 @@ function montarLinha(item) {
 		linha.classList.add('esta-esgotado');
 	}
 
-	// Meta: o que ajuda a decidir, nada alem. Peso so quando o DB o conhece.
-	const meta = [];
-	if (info && info.weight) {
-		meta.push(`Peso ${info.weight / 10}`);
-	}
-	if (_type === NpcStore.Type.SELL) {
-		meta.push(`Você tem ${item.count}`);
-	} else if (_type === NpcStore.Type.BUYING_STORE) {
-		meta.push(`Você tem ${item.count} · quer ${item.maxCount}`);
-	} else if (isFinite(item.count)) {
-		meta.push(`Estoque ${item.count}`);
-	}
-
 	let precoHtml;
 	if (eEscambo()) {
 		precoHtml = `<div class="ns-preco-escambo">${custoDeEscambo(item)}</div>`;
@@ -459,7 +629,7 @@ function montarLinha(item) {
 		`<span class="ns-tile ri-tile" title="Detalhes do item"><img class="ns-icone" alt="" draggable="false"></span>` +
 		`<div class="ns-info">` +
 		`<div class="ns-nome"></div>` +
-		`<div class="ns-meta">${meta.join(' · ')}</div>` +
+		`<div class="ns-meta"></div>` +
 		`</div>` +
 		`<div class="ns-preco">${precoHtml}</div>` +
 		`<div class="ns-qtd">` +
@@ -472,8 +642,11 @@ function montarLinha(item) {
 	// textContent para o nome: item de jogador (vending) e texto hostil.
 	linha.querySelector('.ns-nome').textContent = nome;
 
+	enfeitarLinha(linha, item);
+
 	// Icone: /ragidle/item/<ITID>.png com reserva no bitmap do GRF — a mesma
 	// receita da Mochila (setItemIcon de MochilaIdle.js).
+	const info = DB.getItemInfo(item.ITID);
 	const img = linha.querySelector('.ns-icone');
 	const resName = item.IsIdentified !== false ? info.identifiedResourceName : info.unidentifiedResourceName;
 	img.onerror = () => {
@@ -485,6 +658,40 @@ function montarLinha(item) {
 	img.src = `/ragidle/item/${item.ITID}.png`;
 
 	return linha;
+}
+
+/**
+ * O que depende das FICHAS PUBLICADAS (peso e raridade), separado do resto da
+ * linha porque e refeito quando o arquivo chega — e porque a primeira loja da
+ * sessao desenha antes dele.
+ */
+function enfeitarLinha(linha, item) {
+	const raridade = raridadeDeItem(item.ITID);
+	const peso = pesoUnitario(item);
+
+	// A borda de raridade do ladrilho: a pele ja existia em Common.css (.ri-tile
+	// .is-uncommon/.is-rare/.is-unique) e nunca tinha tido consumidor.
+	const tile = linha.querySelector('.ns-tile');
+	tile.className = `ns-tile ri-tile ${CLASSE_DE_RARIDADE[raridade] || ''}`.trim();
+
+	// Meta: o que ajuda a decidir, nada alem.
+	const meta = [];
+	if (raridade > 0) {
+		meta.push(`<span class="ns-raridade r${raridade}">${RARIDADE_LABEL[raridade]}</span>`);
+	}
+	if (peso !== null) {
+		meta.push(`Peso ${prettyPeso(peso)}`);
+	}
+	if (_type === NpcStore.Type.SELL) {
+		meta.push(`Você tem ${item.count}`);
+	} else if (_type === NpcStore.Type.BUYING_STORE) {
+		meta.push(`Você tem ${item.count} · quer ${item.maxCount}`);
+	} else if (isFinite(item.count)) {
+		meta.push(`Estoque ${item.count}`);
+	}
+	// Os pedacos sao TODOS montados aqui (rotulo de raridade e numero); nenhum
+	// deles vem do servidor, entao o innerHTML nao abre porta nenhuma.
+	linha.querySelector('.ns-meta').innerHTML = meta.join(' · ');
 }
 
 /** O custo de uma linha de escambo, em itens (com icone de cada moeda). */
@@ -504,6 +711,153 @@ function custoDeEscambo(item) {
 			return `<span title="${String(nomeMoeda).replace(/"/g, '&quot;')}">${m.amount}× <img src="/ragidle/item/${m.ITID}.png" alt="${String(nomeMoeda).replace(/"/g, '&quot;')}"></span>`;
 		})
 		.join(' + ');
+}
+
+/* ─── As abas de categoria e o seletor de ordem ──────────────────────────── */
+
+/**
+ * Reconstroi os dois controles que dependem do CONTEUDO da vitrine: as abas
+ * (so as categorias presentes) e as ordens (so as que fazem diferenca aqui).
+ */
+function montarControles() {
+	const root = NpcStore.getRoot();
+
+	// Sem abas a barra fica VAZIA, e nao escondida: ela e o espacador que
+	// mantem o "Tudo no máx" colado na direita (`flex: 1 1 auto`). Com
+	// `hidden` o botao pularia para a esquerda numa vitrine de categoria unica.
+	const abas = abasDaVitrine(_vitrine);
+	const barra = root.querySelector('.ns-abas');
+	barra.innerHTML = abas
+		.map(
+			aba =>
+				`<button type="button" class="ns-aba ri-tab" role="tab" data-categoria="${aba.id}">` +
+				`${aba.rotulo}<span class="ns-aba-conta">${aba.quantidade}</span></button>`
+		)
+		.join('');
+
+	// A aba lembrada pode nao existir nesta loja (vender numa vitrine sem
+	// cartas, por exemplo): cair no "Tudo" e melhor que uma lista vazia.
+	if (!abas.some(aba => aba.id === _categoria)) {
+		_categoria = CATEGORIA_TUDO;
+	}
+
+	const ordens = ordensDaVitrine(_vitrine, !eEscambo());
+	const seletor = root.querySelector('.ns-ordem');
+	seletor.innerHTML = ordens.map(o => `<option value="${o.id}">${o.rotulo}</option>`).join('');
+
+	if (!ordens.some(o => o.id === _ordem)) {
+		_ordem = ORDEM_PADRAO;
+	}
+	seletor.value = _ordem;
+}
+
+/**
+ * Desenha a lista: filtra pela busca e pela aba, agrupa e ordena
+ * (`vitrine.js`), e MOVE as linhas ja existentes para o lugar novo.
+ */
+function desenharVista() {
+	const root = NpcStore.getRoot();
+	const lista = root.querySelector('.ns-lista');
+	const grupos = montarVista(_vitrine, { termo: _termo, categoria: _categoria, ordem: _ordem });
+	_visiveis = indicesDaVista(grupos);
+
+	// replaceChildren() DESLIGA as linhas sem destrui-las — quem as segura e o
+	// `_nos`. Um innerHTML aqui perderia o valor digitado em cada campo de
+	// quantidade a cada tecla da busca.
+	lista.replaceChildren();
+
+	// Titulo de grupo so quando ha mais de um: repetir "Cartas" em cima de uma
+	// lista que so tem cartas nao informa nada.
+	const comTitulo = grupos.length > 1;
+
+	for (const grupo of grupos) {
+		const secao = document.createElement('div');
+		secao.className = 'ns-grupo';
+
+		if (comTitulo) {
+			const titulo = document.createElement('div');
+			titulo.className = 'ns-grupo-titulo';
+			titulo.textContent = grupo.rotulo;
+			const conta = document.createElement('span');
+			conta.className = 'ns-grupo-conta';
+			conta.textContent = grupo.itens.length;
+			titulo.appendChild(conta);
+			secao.appendChild(titulo);
+		}
+
+		const itens = document.createElement('div');
+		itens.className = 'ns-grupo-itens';
+		itens.setAttribute('role', 'list');
+		for (const ficha of grupo.itens) {
+			const no = _nos.get(ficha.index);
+			if (no) {
+				itens.appendChild(no);
+			}
+		}
+		secao.appendChild(itens);
+		lista.appendChild(secao);
+	}
+
+	root.querySelector('.ns-vazio').hidden = grupos.length > 0;
+	root.querySelectorAll('.ns-aba').forEach(aba => {
+		aba.classList.toggle('is-active', aba.dataset.categoria === _categoria);
+	});
+	atualizarBotaoDeTudo();
+}
+
+/* ─── Tudo no maximo ─────────────────────────────────────────────────────── */
+
+/** Toda linha a vista ja esta no proprio teto? */
+function aVistaEstaCheia() {
+	if (_visiveis.length === 0) {
+		return false;
+	}
+	return _visiveis.every(index => {
+		const item = _input[index];
+		const escolhido = _output[index];
+		return item && escolhido && escolhido.count === tetoDoItem(item);
+	});
+}
+
+/**
+ * O botao de acao em massa (D-922, pedido do dono).
+ *
+ * Ele e um SO, e alterna — "Tudo no máx" enche, "Limpar" esvazia — porque um
+ * botao que so enche e uma armadilha: quem enchesse uma vitrine de 40 linhas
+ * sem querer teria 40 cliques de volta pela frente. A regra de virar e a do
+ * seletor-mestre de qualquer lista: cheio -> o clique desfaz.
+ */
+function atualizarBotaoDeTudo() {
+	const botao = NpcStore.getRoot().querySelector('.ns-tudo');
+	const cheia = aVistaEstaCheia();
+	const escopo = _categoria === CATEGORIA_TUDO && !_termo ? 'a lista' : 'o que está à vista';
+
+	botao.disabled = _visiveis.length === 0;
+	botao.textContent = cheia ? 'Limpar' : 'Tudo no máx';
+	botao.title = cheia
+		? `Zerar a quantidade de ${escopo}`
+		: `Pôr no máximo a quantidade de ${escopo} (${_visiveis.length} ${_visiveis.length === 1 ? 'item' : 'itens'})`;
+}
+
+/**
+ * Enche (ou esvazia) TODA a vista de uma vez.
+ *
+ * O alcance e `_visiveis`, e nao `_input`: com uma aba escolhida, so os itens
+ * dela — que e o que o dono pediu com todas as letras. A busca entra pelo
+ * mesmo motivo.
+ *
+ * O resumo e refeito UMA vez no fim, e nao por linha: numa vitrine de 40
+ * linhas seriam 40 recalculos de total, peso e freio para um clique so.
+ */
+function encherOuLimparAVista() {
+	const limpar = aVistaEstaCheia();
+	for (const index of _visiveis) {
+		const item = _input[index];
+		if (item) {
+			aplicarQuantidade(index, limpar ? 0 : tetoDoItem(item));
+		}
+	}
+	atualizarResumo();
 }
 
 /* ─── Interacao ──────────────────────────────────────────────────────────── */
@@ -555,7 +909,12 @@ function mudarQuantidade(index, delta) {
 	definirQuantidade(index, (_output[index] ? _output[index].count : 0) + delta);
 }
 
-function definirQuantidade(index, valor) {
+/**
+ * Escreve a quantidade de UMA linha, sem tocar no rodape. Separada de
+ * `definirQuantidade` para a acao em massa poder recalcular o resumo uma vez
+ * so no fim (ver `encherOuLimparAVista`).
+ */
+function aplicarQuantidade(index, valor) {
 	const item = _input[index];
 	const escolhido = _output[index];
 	if (!item || !escolhido) {
@@ -564,19 +923,22 @@ function definirQuantidade(index, valor) {
 
 	escolhido.count = Math.max(0, Math.min(tetoDoItem(item), valor | 0));
 
-	const root = NpcStore.getRoot();
-	const linha = root.querySelector(`.ns-item[data-index="${index}"]`);
+	const linha = _nos.get(index);
 	if (linha) {
 		linha.querySelector('.ns-qtd-in').value = String(escolhido.count);
 		linha.querySelector('.ns-menos').disabled = escolhido.count === 0;
 		linha.querySelector('.ns-mais').disabled = escolhido.count >= tetoDoItem(item);
 		linha.classList.toggle('esta-no-carrinho', escolhido.count > 0);
 	}
+}
+
+function definirQuantidade(index, valor) {
+	aplicarQuantidade(index, valor);
 	atualizarResumo();
 }
 
 /**
- * O rodape vivo: quantas linhas escolhidas, total, e o freio de zeny.
+ * O rodape vivo: quantas linhas escolhidas, total, peso e os dois freios.
  */
 function atualizarResumo() {
 	const root = NpcStore.getRoot();
@@ -611,26 +973,75 @@ function atualizarResumo() {
 	const bolsa = root.querySelector('.ns-bolsa');
 	bolsa.classList.toggle('esta-insuficiente', semSaldo && !eDeVenda());
 
+	/*
+	 * O zeny da faixa de cima era escrito SO em `setType`, e a janela nao
+	 * fecha depois de comprar: o freio ja lia `Session.zeny` vivo enquanto o
+	 * numero ao lado dele continuava o da abertura. Vender tres vezes seguidas
+	 * mostrava a bolsa parada e o total travando "sem motivo" — a contradicao
+	 * ficou obvia quando o peso entrou ao lado e se atualizava.
+	 */
+	if (!bolsa.hidden) {
+		root.querySelector('.ns-bolsa-valor').textContent = prettyZeny(Session.zeny);
+	}
+
+	const pesado = atualizarPeso();
+
 	const agir = root.querySelector('.ns-agir');
-	agir.disabled = linhas === 0 || semSaldo;
-	agir.title = semSaldo ? 'Zeny insuficiente para esse total' : '';
+	agir.disabled = linhas === 0 || semSaldo || pesado;
+	agir.title = semSaldo
+		? 'Zeny insuficiente para esse total'
+		: pesado
+			? 'Peso além do que você consegue carregar'
+			: '';
+
+	// O botao de massa vira "Limpar" assim que a vista fica cheia, e volta
+	// assim que uma linha sai do teto — inclusive pelo degrau da propria linha.
+	atualizarBotaoDeTudo();
 }
 
 /**
- * Busca por nome — só esconde/mostra linhas, o estado das quantidades fica.
+ * O peso no rodape: quanto voce carrega, quanto vai carregar, e o freio.
+ *
+ * A trava e a MESMA conta do servidor (`servidor-mapa.ts`, o FAIL_WEIGHT da
+ * compra): `peso do inventario + peso da compra > teto`. Ela vive aqui para o
+ * jogador ver o numero subir ANTES de apertar o botao — o servidor continua
+ * sendo a porta, esta e a placa.
+ *
+ * @returns {boolean} true quando a escolha estoura o teto (o botao trava)
  */
-function filtrar(e) {
-	const termo = e.target.value.trim().toLocaleLowerCase('pt-BR');
+function atualizarPeso() {
 	const root = NpcStore.getRoot();
-	let visiveis = 0;
-	root.querySelectorAll('.ns-item').forEach(linha => {
-		const bate = !termo || linha.querySelector('.ns-nome').textContent.toLocaleLowerCase('pt-BR').includes(termo);
-		linha.hidden = !bate;
-		if (bate) {
-			visiveis++;
-		}
-	});
-	root.querySelector('.ns-vazio').hidden = visiveis > 0;
+	const el = root.querySelector('.ns-peso');
+	const entidade = Session.Entity;
+	const teto = entidade ? entidade.max_weight : 0;
+	const daCompra = NpcStore.calculateWeight();
+
+	// Sem teto (ainda nao chegou do servidor) ou com item de peso desconhecido:
+	// a linha SOME. Meia informacao de peso e pior que nenhuma — ela viraria a
+	// trava do botao.
+	if (!teto || daCompra === null || eEscambo()) {
+		el.hidden = true;
+		return false;
+	}
+
+	const atual = entidade.weight || 0;
+	// Vender ALIVIA a mochila: o delta e negativo, e o teto nunca esta em jogo.
+	const delta = eDeVenda() ? -daCompra : daCompra;
+	const depois = Math.max(0, atual + delta);
+	const estoura = depois > teto;
+
+	el.hidden = false;
+	root.querySelector('.ns-peso-valor').textContent = `${prettyPeso(depois)} / ${prettyPeso(teto)}`;
+
+	const rotuloDelta = root.querySelector('.ns-peso-delta');
+	rotuloDelta.textContent = delta === 0 ? '' : ` (${delta > 0 ? '+' : '−'}${prettyPeso(Math.abs(delta))})`;
+
+	el.classList.toggle('esta-insuficiente', estoura);
+	// Aviso de 90%: e o degrau em que o rAthena ja para de regenerar HP/SP
+	// (Overweight 90%, StatusInfo.js) — nao e numero desta tela.
+	el.classList.toggle('esta-pesado', !estoura && depois >= teto * 0.9);
+
+	return estoura;
 }
 
 /**

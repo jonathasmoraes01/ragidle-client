@@ -30,6 +30,20 @@ export const SECOES = [
 export const ABA_PADRAO = 'caca';
 
 /**
+ * OS DOIS TETOS (D-917, 02/09/2026).
+ *
+ * A ORDEM DE GOLPES fica em 3: é o que a doca desenha (`DockIdle.js`,
+ * TOTAL_DE_SLOTS) e o que o rodízio do servidor gira. Os BUFFS MANTIDOS sobem
+ * para 6 — pedido do dono: o Sacerdote tem doze mantíveis e o Bardo cinco
+ * canções, e três vagas obrigavam a escolher entre Bênção, Kyrie e
+ * Magnificat. O servidor valida o MESMO número (`servidor/idle/config-idle.ts`,
+ * `TETO_DA_ROTACAO_DE_BUFFS`); divergir aqui faria a janela oferecer uma vaga
+ * que o Aplicar recusa.
+ */
+export const TETO_DA_ORDEM = 3;
+export const TETO_DE_BUFFS = 6;
+
+/**
  * As abas de ANTES, apontando para a seção que herdou o conteúdo delas. Quem
  * chama `abrirNaAba('skills')` (o medalhão do canto de combate, o slot do
  * dock) e quem tinha 'alvos' gravado no localStorage cai no lugar certo em
@@ -77,7 +91,7 @@ export function alternarCura(cfg, ctx, ligar) {
 		return rotacao.slice();
 	}
 	const cura = ((ctx && ctx.skillsDeCura) || [])[0];
-	if (!cura || rotacao.length >= 3) {
+	if (!cura || rotacao.length >= TETO_DA_ORDEM) {
 		return null;
 	}
 	return [{ skillId: cura.skillId, nivelDeUso: cura.aprendido }].concat(rotacao);
