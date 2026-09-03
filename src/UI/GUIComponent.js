@@ -69,6 +69,71 @@ const MouseMode = Object.freeze({
 	FREEZE: 2 // Block scene intersection while UI is alive
 });
 
+/*
+ * Escudo contra o gerenciador de senhas do navegador (03/09/2026).
+ *
+ * O Chrome IGNORA autocomplete="off" no gerenciador de senhas. Todo input
+ * fora de um <form> cai numa unica "forma sintetica" da pagina, e basta
+ * existir UM <input type="password"> montado (os nos ESTATICOS do rodape
+ * do LFG, por exemplo) para ele classificar a forma inteira como login e
+ * oferecer as credenciais salvas em QUALQUER caixa de texto do jogo — a
+ * busca do Atlas, o sussurro do chat, o nome do grupo.
+ *
+ * O conserto tem duas pontas:
+ *   1. Nenhum campo fora do login usa type="password" — mascara-se por
+ *      CSS (.ri-senha-mascarada em Common.css). Sem type=password no DOM,
+ *      o Chrome nao tem par usuario+senha para casar, e tambem nunca
+ *      oferece "salvar esta senha?" com a senha de grupo/sala por cima
+ *      da credencial da conta.
+ *   2. Todo campo de toda janela recebe os atributos abaixo, aqui no
+ *      tronco comum: "new-password" e o unico valor que segura o
+ *      preenchimento de senha salva num type=password que escape da
+ *      regra 1, e os data-* calam LastPass, 1Password e Bitwarden.
+ *
+ * Onde o preenchimento E desejado (usuario/senha do WinLogin), o template
+ * marca data-permitir-autofill e este escudo nao toca no campo.
+ */
+const _TIPOS_DE_INPUT_SEM_TEXTO = {
+	radio: true,
+	checkbox: true,
+	button: true,
+	submit: true,
+	reset: true,
+	file: true,
+	hidden: true,
+	image: true,
+	range: true,
+	color: true
+};
+
+function _blindarCampoContraAutofill(el) {
+	if (el.hasAttribute('data-permitir-autofill')) {
+		return;
+	}
+	if (el.tagName === 'INPUT') {
+		const tipo = (el.getAttribute('type') || 'text').toLowerCase();
+		if (_TIPOS_DE_INPUT_SEM_TEXTO[tipo]) {
+			return;
+		}
+		el.setAttribute('autocomplete', tipo === 'password' ? 'new-password' : 'off');
+	} else {
+		el.setAttribute('autocomplete', 'off');
+	}
+	el.setAttribute('data-lpignore', 'true');
+	el.setAttribute('data-1p-ignore', '');
+	el.setAttribute('data-bwignore', '');
+	el.setAttribute('data-form-type', 'other');
+}
+
+function _blindarArvoreContraAutofill(raiz) {
+	if (raiz.tagName === 'INPUT' || raiz.tagName === 'TEXTAREA') {
+		_blindarCampoContraAutofill(raiz);
+	}
+	if (raiz.querySelectorAll) {
+		raiz.querySelectorAll('input, textarea').forEach(_blindarCampoContraAutofill);
+	}
+}
+
 /**
  * CSS properties that are unitless (don't need 'px')
  */
@@ -107,6 +172,7 @@ class GUIComponent {
 		this.__preparing = false;
 		this.__active = false;
 		this.__scrollbarObserver = null;
+		this.__autofillObserver = null;
 		this.__mouseStopBlock = null;
 
 		this._keyHandler = null;
@@ -194,6 +260,22 @@ class GUIComponent {
 		if (this.render) {
 			this._container.innerHTML = this.render();
 		}
+
+		/* Escudo de autofill: nos campos do template agora, e num observador
+		   para os que os componentes criam depois (AdminPanel, NpcStoreV2,
+		   Trade...). O observador vive enquanto o componente viver — remove()
+		   so desanexa o host, o shadow continua o mesmo. */
+		_blindarArvoreContraAutofill(this._container);
+		this.__autofillObserver = new MutationObserver((mutacoes) => {
+			for (const m of mutacoes) {
+				for (const no of m.addedNodes) {
+					if (no.nodeType === 1) {
+						_blindarArvoreContraAutofill(no);
+					}
+				}
+			}
+		});
+		this.__autofillObserver.observe(this._container, { childList: true, subtree: true });
 
 		// Process legacy data-* attributes (background, hover, down, text, etc.)
 		this._processAllDataAttrs();

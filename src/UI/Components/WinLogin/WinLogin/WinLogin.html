@@ -1,8 +1,10 @@
 <div id="WinLogin">
 	<ui-image src="login_interface/win_login.bmp"></ui-image>
 	<!-- User Auth -->
-	<input class="user" type="text" value="" />
-	<input class="pass" type="password" value="" />
+	<!-- data-permitir-autofill: AQUI o preenchimento salvo e desejado;
+	     o escudo do GUIComponent nao toca nestes dois campos. -->
+	<input class="user" type="text" value="" autocomplete="username" data-permitir-autofill />
+	<input class="pass" type="password" value="" autocomplete="current-password" data-permitir-autofill />
 	<button
 		class="save"
 		type="button"

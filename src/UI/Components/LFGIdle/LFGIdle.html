@@ -63,10 +63,13 @@
 						<div class="lfg-form-senha-entrar" hidden>
 							<label class="lfg-campo-senha">
 								<span class="lfg-rotulo-senha">Senha do grupo</span>
+								<!-- type=text mascarado por CSS, NUNCA type=password: ver .ri-senha-mascarada -->
 								<input
-									type="password"
-									class="ri-input lfg-senha-input"
+									type="text"
+									class="ri-input ri-senha-mascarada lfg-senha-input"
 									autocomplete="off"
+									spellcheck="false"
+									autocapitalize="off"
 									maxlength="16"
 								/>
 							</label>
@@ -110,10 +113,13 @@
 							<div class="lfg-form-senha-privar" hidden>
 								<label class="lfg-campo-senha">
 									<span class="lfg-rotulo-senha">Defina a senha</span>
+									<!-- type=text mascarado por CSS, NUNCA type=password: ver .ri-senha-mascarada -->
 									<input
-										type="password"
-										class="ri-input lfg-senha-input"
+										type="text"
+										class="ri-input ri-senha-mascarada lfg-senha-input"
 										autocomplete="off"
+										spellcheck="false"
+										autocapitalize="off"
 										maxlength="16"
 									/>
 								</label>
@@ -167,10 +173,13 @@
 
 					<label class="lfg-criar-campo-senha" hidden>
 						<span class="lfg-rotulo-senha">Senha</span>
+						<!-- type=text mascarado por CSS, NUNCA type=password: ver .ri-senha-mascarada -->
 						<input
-							type="password"
-							class="ri-input lfg-criar-senha-input"
+							type="text"
+							class="ri-input ri-senha-mascarada lfg-criar-senha-input"
 							autocomplete="off"
+							spellcheck="false"
+							autocapitalize="off"
 							maxlength="16"
 						/>
 					</label>

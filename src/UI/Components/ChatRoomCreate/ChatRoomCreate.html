@@ -50,7 +50,19 @@
 					</label>
 					<label class="crc-campo crc-campo--senha">
 						<span class="crc-rotulo">Senha</span>
-						<input class="password ri-input" type="password" name="password" value="" maxlength="16" />
+						<!-- type=text mascarado por CSS, NUNCA type=password; e o name foge de
+						     "password" de proposito -- os dois sao sinais que fazem o Chrome
+						     oferecer a credencial salva da CONTA aqui (ver GUIComponent.js). -->
+						<input
+							class="password ri-input ri-senha-mascarada"
+							type="text"
+							name="senha-da-sala"
+							value=""
+							maxlength="16"
+							autocomplete="off"
+							spellcheck="false"
+							autocapitalize="off"
+						/>
 					</label>
 				</div>
 			</form>

@@ -164,7 +164,7 @@ ChatRoomCreate.prefill = function prefill(title, limit, type) {
 	const radio = root.querySelector('input[name=public][value="' + (type ?? 1) + '"]');
 	if (radio) radio.checked = true;
 
-	root.querySelector('input[name=password]').value = '';
+	root.querySelector('input[name=senha-da-sala]').value = '';
 };
 
 /**
@@ -248,7 +248,7 @@ function parseChatSetup() {
 	this.title = root.querySelector('input[name=title]').value;
 	this.limit = parseInt(root.querySelector('select[name=limit]').value, 10);
 	this.type = parseInt(root.querySelector('input[name=public]:checked').value, 10);
-	this.password = root.querySelector('input[name=password]').value;
+	this.password = root.querySelector('input[name=senha-da-sala]').value;
 
 	if (this.title.length < 1) {
 		const overlay = document.createElement('div');

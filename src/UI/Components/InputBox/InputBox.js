@@ -204,13 +204,20 @@ InputBox.setType = function setType(type, isPersistent, defaultVal, itemId = nul
 			}
 			break;
 
+		/* 'pass' e 'mail' mascaram por CSS em vez de type=password: um
+		   type=password montado faz o Chrome tratar a pagina como formulario
+		   de login e oferecer a credencial salva da conta em toda caixa de
+		   texto do jogo (ver o escudo em GUIComponent.js). A classe e
+		   removida no fim do switch para os demais tipos, porque o <input>
+		   e o MESMO no entre chamadas de setType(). */
 		case 'pass':
 			innerRoot.classList.remove('number');
 			if (textEl) {
 				textEl.textContent = '';
 			}
 			if (input) {
-				input.type = 'password';
+				input.type = 'text';
+				input.classList.add('ri-senha-mascarada');
 			}
 			break;
 
@@ -220,7 +227,8 @@ InputBox.setType = function setType(type, isPersistent, defaultVal, itemId = nul
 				textEl.textContent = DB.getMessage(300);
 			}
 			if (input) {
-				input.type = 'password';
+				input.type = 'text';
+				input.classList.add('ri-senha-mascarada');
 			}
 			break;
 
@@ -244,6 +252,10 @@ InputBox.setType = function setType(type, isPersistent, defaultVal, itemId = nul
 			}
 			defaultVal = defaultVal || 0;
 			break;
+	}
+
+	if (input && type !== 'pass' && type !== 'mail') {
+		input.classList.remove('ri-senha-mascarada');
 	}
 
 	if (typeof defaultVal !== 'undefined' && input) {

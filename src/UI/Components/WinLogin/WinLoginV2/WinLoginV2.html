@@ -8,11 +8,13 @@
 		<div class="wl-body">
 			<label class="wl-field">
 				<span class="wl-label">Usuário</span>
-				<input id="user" class="user ri-input" type="text" value="" autocomplete="username" />
+				<!-- data-permitir-autofill: AQUI o preenchimento salvo e desejado;
+				     o escudo do GUIComponent nao toca nestes dois campos. -->
+				<input id="user" class="user ri-input" type="text" value="" autocomplete="username" data-permitir-autofill />
 			</label>
 			<label class="wl-field">
 				<span class="wl-label">Senha</span>
-				<input id="pass" class="pass ri-input" type="password" value="" autocomplete="current-password" />
+				<input id="pass" class="pass ri-input" type="password" value="" autocomplete="current-password" data-permitir-autofill />
 			</label>
 
 			<button id="save" class="save wl-save" type="button">
