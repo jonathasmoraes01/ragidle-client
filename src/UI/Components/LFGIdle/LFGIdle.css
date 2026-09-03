@@ -1,24 +1,25 @@
-/*
- * A janela de Procurar Grupo (LFG) — D-618.
+/**
+ * UI/Components/LFGIdle/LFGIdle.css
  *
- * Ela nao inventa cor, medida nem fonte: tudo vem dos tokens `.ri-*` do
- * `Common.css`, que o GUIComponent injeta em TODO shadow root. O que mora
- * aqui e so o que e desta janela — a grade do card e a largura da coluna.
+ * Localizador de Grupos -- redesenho no vocabulario visual do Atlas de Caca
+ * (HuntMap.css, v5, D-901). Mesma receita: hairline azul por fora / aro
+ * dourado por dentro vem de ".ri-window" (Common.css, injetado em todo shadow
+ * root); o que mora aqui e so o que e DESTA janela -- o filete de encaixe do
+ * card (--lfg-fit, o --hm-fit de la), o medidor de faixa e o dossie com
+ * rodape fixo.
+ *
+ * ":host" tem o MESMO tamanho de ".lfg-window" (880x600; 560 em telas
+ * baixas) -- e o host que o GUIComponent#draggable move e o
+ * _fixPositionOverflow mede. WINDOW_WIDTH/HEIGHT em LFGIdle.js andam juntos
+ * com estes numeros. "#LFGIdle" mede 100% do host: o host e que e o pixel
+ * cravado, e 100% de uma caixa ja cravada nao colapsa (o colapso so acontece
+ * quando o PROPRIO host nasce em 100% de um pai sem altura definida).
  */
 
-/*
- * A POSICAO nao mora mais aqui, e o motivo esta no JS (LFGIdle.js, o bloco de
- * WINDOW_WIDTH/HEIGHT). Esta folha cravava `top: 90px` e `margin-left: -280px`,
- * uma posicao cega ao tamanho da tela: com 520 de altura, a borda de baixo
- * cai em 610px e o botao "Entrar" saia da area visivel em qualquer janela de
- * navegador menor que isso. Quem centraliza agora e o `init()`, pela tela
- * REAL, e quem guarda a escolha do jogador e o `onRemove()` — o mesmo
- * arranjo do MissoesIdle.css, que nao declara top/left por essa razao.
- */
 :host {
 	position: absolute;
-	width: 560px;
-	height: 520px;
+	width: 880px;
+	height: 600px;
 	pointer-events: none;
 }
 
@@ -26,7 +27,8 @@
 	position: relative;
 	width: 100%;
 	height: 100%;
-	pointer-events: none;
+	color: var(--text-body);
+	font: var(--type-info);
 }
 
 #LFGIdle .lfg-window {
@@ -35,161 +37,788 @@
 	inset: 0;
 	pointer-events: auto;
 	flex-direction: column;
-	width: 560px;
-	height: 520px;
+	width: 880px;
+	height: 600px;
+	box-sizing: border-box;
+	overflow: hidden;
 }
 
 #LFGIdle .lfg-window.is-open {
 	display: flex;
 }
 
+/* Piso de tela baixa: so o retangulo encolhe (o WINDOW_HEIGHT do JS continua
+   600 -- a conta de centralizar sobra folga em vez de faltar, mesmo
+   raciocinio do comentario de HuntMap.js em cima de WINDOW_HEIGHT).
+
+   PROVA (fotografar-lfg-idle.ts, 03/09/2026): este bloco tem de vir DEPOIS
+   das regras incondicionais de ":host"/".lfg-window" acima -- mesma
+   especificidade, e em empate quem vence e' a regra que aparece POR ULTIMO
+   no arquivo, media query ou nao. Com o bloco ANTES (como estava), a altura
+   de 560px nunca vencia a de 600px em NENHUM tamanho de tela: a variante de
+   tela baixa nunca desenhava, apesar do "matchMedia" dar `true`. Medido:
+   `window.matchMedia('(max-height:800px)').matches` == true e
+   `.lfg-window.offsetHeight` == 600 ao mesmo tempo, antes deste conserto. */
+@media (max-height: 800px) {
+	#LFGIdle .lfg-window {
+		height: 560px;
+	}
+	:host {
+		height: 560px;
+	}
+}
+
+#LFGIdle .lfg-titlebar {
+	flex: 0 0 auto;
+}
+
 #LFGIdle .lfg-tabs {
+	flex: 0 0 auto;
 	display: flex;
-	gap: var(--espaco-2, 8px);
-	padding: var(--espaco-3, 12px) var(--espaco-4, 16px) 0;
+	gap: var(--sp-3);
+	padding: var(--sp-4) var(--sp-6) 0;
+	border-bottom: var(--divider);
+	background: var(--surface-glass);
+}
+#LFGIdle .lfg-tabs .ri-tab {
+	margin-bottom: var(--sp-3);
 }
 
-/*
- * A barra do MEU grupo (D-6xx: "Desfazer grupo"/"Sair do grupo"). Ela e
- * escondida via atributo `hidden`, entao o "display" so entra com
- * ":not([hidden])" -- declarar "display:flex" direto no seletor de sempre
- * venceria o "display:none" que o UA da ao `[hidden]" por especificidade
- * (classe+id > atributo), e a barra nunca sumiria.
- */
-#LFGIdle .lfg-lider-barra:not([hidden]) {
-	display: flex;
-}
-#LFGIdle .lfg-lider-barra {
-	align-items: center;
-	flex-wrap: wrap;
-	gap: var(--espaco-2, 8px);
-	padding: var(--espaco-2, 8px) var(--espaco-4, 16px) 0;
-}
-
-/*
- * OS BOTOES DA BARRA precisam do MESMO cuidado, e faltava — achado OLHANDO o
- * print (regra 5), nao contando elemento.
- *
- * O JS faz `btnSair.hidden = souLider` e `btnDesfazer.hidden = !souLider`,
- * entao so um deveria aparecer. Os DOIS apareciam: `.ri-btn` do `Common.css`
- * declara `display: inline-flex`, e uma classe vence o `display:none` que o
- * navegador da ao `[hidden]`. O atributo estava certo, o botao continuava na
- * tela — "atributo presente nao e funcionalidade presente", a mesma familia de
- * defeito que a HUD ja pagou.
- *
- * O seletor abaixo tem id + duas classes + atributo, entao ganha de `.ri-btn`
- * sem precisar de `!important`.
- */
-#LFGIdle .lfg-lider-barra .ri-btn[hidden] {
-	display: none;
-}
-
-#LFGIdle .lfg-lider-texto {
-	font-size: 0.9em;
-	opacity: 0.85;
-	margin-right: auto;
-}
-
-/* A pergunta de confirmar "Desfazer" -- mesma cor de perigo do resto do
-   arquivo (a janela nao inventa uma segunda). Mesmo truque de especificidade
-   do ".lfg-lider-barra" acima. */
-#LFGIdle .lfg-desfazer-confirma:not([hidden]) {
-	display: flex;
-}
-#LFGIdle .lfg-desfazer-confirma {
-	align-items: center;
-	flex-wrap: wrap;
-	gap: var(--espaco-2, 8px);
-	width: 100%;
-	margin-top: var(--espaco-1, 4px);
-	font-size: 0.85em;
-	color: var(--cor-perigo, #b4443a);
-}
+/* ─── Corpo: duas vistas que se excluem, so uma visivel por vez ─────────── */
 
 #LFGIdle .lfg-body {
-	flex: 1;
-	overflow-y: auto;
-	padding: var(--espaco-3, 12px) var(--espaco-4, 16px) var(--espaco-4, 16px);
+	flex: 1 1 auto;
+	display: flex;
+	min-height: 0;
+}
+
+/* Propriedades que NAO envolvem "display" podem ficar fora do ":not([hidden])"
+   -- um elemento com display:none (de [hidden]) ignora flex/min-height do
+   mesmo jeito, entao declara-las aqui e inocuo. So "display" precisa do
+   guard, pela razao do comentario grande no .html (uma classe com "display"
+   proprio vence o "display:none" do atributo [hidden] por ORIGEM da regra,
+   nao por especificidade -- a mesma cicatriz que ".ri-btn[hidden]" ja pagou
+   nesta janela). */
+#LFGIdle .lfg-view {
+	flex: 1 1 auto;
+	min-height: 0;
+	box-sizing: border-box;
+}
+#LFGIdle .lfg-view-grupos:not([hidden]) {
+	display: flex;
+	flex-direction: row;
+	min-width: 0;
+}
+#LFGIdle .lfg-view-criar:not([hidden]) {
 	display: flex;
 	flex-direction: column;
-	gap: var(--espaco-2, 8px);
+	align-items: center;
+	overflow-y: auto;
 }
 
-#LFGIdle .lfg-empty {
-	opacity: 0.7;
+/* ─── Aba Grupos: lista à esquerda, dossiê à direita ─────────────────────── */
+
+#LFGIdle .lfg-list-wrap {
+	flex: 1 1 auto;
+	display: flex;
+	flex-direction: column;
+	min-width: 0;
+	min-height: 0;
+}
+
+#LFGIdle .lfg-list-head {
+	flex: 0 0 auto;
+	padding: var(--sp-4) var(--sp-6) var(--sp-2);
+	font: var(--type-label);
+	color: var(--text-muted);
+}
+#LFGIdle .lfg-list-head:empty {
+	padding: 0;
+}
+
+#LFGIdle .lfg-list {
+	flex: 1 1 auto;
+	overflow-y: auto;
+	padding: 0 var(--sp-6) var(--sp-6);
+	display: flex;
+	flex-direction: column;
+	gap: var(--sp-3);
+}
+
+#LFGIdle .lfg-empty,
+#LFGIdle .lfg-panel-empty {
+	margin-top: var(--sp-7);
 	text-align: center;
-	padding: var(--espaco-6, 24px) 0;
+	color: var(--text-muted);
+	font: var(--type-info);
 }
 
-/* O aviso e a RECUSA DO SERVIDOR por extenso — nunca texto nosso. */
-#LFGIdle .lfg-aviso {
-	margin: var(--espaco-3, 12px) var(--espaco-4, 16px) 0;
-	padding: var(--espaco-2, 8px) var(--espaco-3, 12px);
-	border-radius: var(--raio-2, 6px);
-	background: color-mix(in srgb, var(--cor-perigo, #b4443a) 18%, transparent);
-	border: 1px solid color-mix(in srgb, var(--cor-perigo, #b4443a) 45%, transparent);
-	font-size: 0.9em;
+/* A cor de encaixe, uma vez por classe -- o card, o hero e o "fit" do
+   dossiê leem --lfg-fit (mesma técnica de HuntMap.css, --hm-fit).
+
+   "meu-grupo" é dourado ESCURO/discreto (--gold-700) de proposito -- ele
+   NAO pode ler como o mesmo aviso de "fora-da-faixa" (--gold-500, mais
+   claro/saturado): sao dois estados de significado oposto (o seu, contra um
+   que voce nao pode entrar) e so diferenciar por tom precisava ficar
+   inequivoco a distancia. Achado pela sonda, 03/09/2026 -- ver o comentario
+   de `estadoDoGrupo` em LFGIdle.js. */
+#LFGIdle .fit-meu-grupo {
+	--lfg-fit: var(--gold-700);
 }
+#LFGIdle .fit-compativel {
+	--lfg-fit: var(--green-600);
+}
+#LFGIdle .fit-fora-da-faixa {
+	--lfg-fit: var(--gold-500);
+}
+#LFGIdle .fit-cheio {
+	--lfg-fit: var(--blue-400);
+}
+#LFGIdle .fit-offline {
+	--lfg-fit: var(--ink-500);
+}
+
+/* ─── O CARD (fechado) ────────────────────────────────────────────────── */
 
 #LFGIdle .lfg-card {
-	display: grid;
-	grid-template-columns: 1fr auto;
-	gap: var(--espaco-1, 4px) var(--espaco-3, 12px);
+	position: relative;
+	display: flex;
+	align-items: stretch;
+	gap: var(--sp-5);
+	width: 100%;
+	box-sizing: border-box;
+	padding: var(--sp-4) var(--sp-5);
+	background: var(--surface-card);
+	border: 1px solid var(--border-hairline);
+	border-left: 3px solid var(--lfg-fit);
+	border-radius: var(--radius-panel);
+	color: var(--text-body);
+	cursor: pointer;
+	box-shadow: var(--shadow-card);
+	transition:
+		box-shadow var(--dur-fast) var(--ease-out),
+		border-color var(--dur-fast) var(--ease-out),
+		background var(--dur-fast) var(--ease-out),
+		transform var(--dur-fast) var(--ease-out);
+}
+#LFGIdle .lfg-card:hover {
+	background: var(--surface-card-hover);
+	box-shadow: var(--shadow-float);
+	transform: translateY(-1px);
+}
+#LFGIdle .lfg-card:focus-visible {
+	outline: none;
+	box-shadow: var(--glow-accent);
+}
+#LFGIdle .lfg-card.is-selected {
+	border-color: var(--accent);
+	border-left-color: var(--lfg-fit);
+	background: color-mix(in srgb, var(--accent) 12%, var(--surface-card));
+}
+/* Cheio/offline: o grupo continua LEGÍVEL (o jogador pode querer olhar quem
+   está lá), só perde saturação -- mesmo tratamento do "fit-locked" do Atlas. */
+#LFGIdle .lfg-card.fit-cheio,
+#LFGIdle .lfg-card.fit-offline {
+	opacity: 0.6;
+	filter: grayscale(0.6);
+}
+#LFGIdle .lfg-card.fit-cheio:hover,
+#LFGIdle .lfg-card.fit-offline:hover {
+	transform: none;
+}
+
+#LFGIdle .lfg-card-thumb {
+	position: relative;
+	flex: 0 0 auto;
+	width: 84px;
+	height: 54px;
+	border-radius: var(--radius-card);
+	overflow: hidden;
+	background: var(--sky-100);
+	border: 1px solid var(--border-hairline);
+	box-shadow: var(--rim-light);
+}
+#LFGIdle .lfg-thumb-vazio {
+	position: absolute;
+	inset: 0;
+	display: flex;
 	align-items: center;
-	padding: var(--espaco-3, 12px);
+	justify-content: center;
+	color: var(--sky-300);
+}
+#LFGIdle .lfg-thumb-vazio svg {
+	width: 20px;
+	height: 20px;
+}
+#LFGIdle .lfg-card-thumb img,
+#LFGIdle .lfg-hero img {
+	position: relative;
+	z-index: 1;
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+	display: block;
+}
+
+#LFGIdle .lfg-card-body {
+	flex: 1 1 auto;
+	min-width: 0;
+	display: flex;
+	flex-direction: column;
+	gap: 3px;
+}
+
+#LFGIdle .lfg-card-top {
+	display: flex;
+	align-items: center;
+	gap: var(--sp-3);
+	min-width: 0;
+}
+
+/* Medalhão de classe (a mesma técnica de PartyFriendsCommon.js: bmp do
+   cliente carregado via Client.loadFile e aplicado como background-image). */
+#LFGIdle .lfg-card-classe,
+#LFGIdle .lfg-membro-classe {
+	flex: 0 0 auto;
+	border-radius: 50%;
+	background-color: var(--sky-50);
+	background-size: contain;
+	background-position: center;
+	background-repeat: no-repeat;
+	border: 1px solid var(--border-gold);
+	box-shadow: var(--rim-light);
+}
+#LFGIdle .lfg-card-classe {
+	width: 20px;
+	height: 20px;
+}
+#LFGIdle .lfg-membro-classe {
+	width: 22px;
+	height: 22px;
+}
+
+#LFGIdle .lfg-card-lider {
+	flex: 1 1 auto;
+	min-width: 0;
+	font: var(--type-section);
+	color: var(--text-title);
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+#LFGIdle .lfg-card-cadeado {
+	flex: 0 0 auto;
+	display: inline-flex;
+	color: var(--gold-700);
+}
+#LFGIdle .lfg-card-cadeado svg {
+	width: 13px;
+	height: 13px;
+}
+
+#LFGIdle .lfg-badge {
+	flex: 0 0 auto;
+	display: inline-flex;
+	align-items: center;
+	gap: 3px;
+	font: var(--type-badge);
+	padding: 3px 7px;
+	border-radius: var(--radius-pill);
+	white-space: nowrap;
+	color: var(--lfg-fit);
+	background: color-mix(in srgb, var(--lfg-fit) 14%, var(--white));
+	border: 1px solid color-mix(in srgb, var(--lfg-fit) 40%, transparent);
+}
+#LFGIdle .lfg-badge svg {
+	width: 9px;
+	height: 9px;
 }
 
 #LFGIdle .lfg-card-mapa {
-	font-family: var(--font-display, serif);
-	font-size: 1.05em;
+	font: var(--type-info);
+	color: var(--text-body);
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
 }
 
-#LFGIdle .lfg-card-meta {
-	grid-column: 1;
+/* O nome do grupo (o criador escolhe): linha discreta, abaixo do nome do
+   LÍDER -- que continua sendo o destaque do card fechado (pedido explícito). */
+#LFGIdle .lfg-card-nome {
+	font: var(--type-desc);
+	font-style: italic;
+	color: var(--text-muted);
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+#LFGIdle .lfg-card-membros {
+	font: var(--type-desc);
+	color: var(--text-muted);
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+#LFGIdle .lfg-card-foot {
+	margin-top: 2px;
 	display: flex;
-	flex-wrap: wrap;
-	gap: var(--espaco-2, 8px);
-	font-size: 0.85em;
-	opacity: 0.85;
+	align-items: center;
+	gap: var(--sp-4);
+	font: var(--type-label);
+	color: var(--text-muted);
+}
+#LFGIdle .lfg-card-vagas {
+	font-variant-numeric: tabular-nums;
 }
 
-/*
- * Coluna de acao do card: era UM botao so ("Entrar"). Agora pode ter um
- * segundo, "Voltar para Hunt" (pedido do dono, literal: "embaixo do botao
- * Entrar"), entao vira coluna flex em vez de deixar os dois brigarem lado a
- * lado (".ri-btn" e inline-flex por padrao). Nao precisa do truque de
- * `[hidden]` que a barra do lider precisou (ver ".lfg-lider-barra .ri-btn"
- * acima): o botao de voltar so entra no HTML quando faz sentido — e omitido
- * do template, nunca escondido por CSS.
- */
-#LFGIdle .lfg-card-acao {
-	grid-column: 2;
-	grid-row: 1 / span 2;
+/* ─── Dossiê (painel da direita) ─────────────────────────────────────── */
+
+#LFGIdle .lfg-panel {
+	flex: 0 0 320px;
 	display: flex;
 	flex-direction: column;
-	align-items: stretch;
-	gap: var(--espaco-1, 4px);
+	min-height: 0;
+	border-left: var(--divider);
+	background: var(--white);
 }
 
-/*
- * O MOTIVO da recusa fica VISIVEL ao lado do botao desabilitado, e nao num
- * `title`: tooltip exige descobrir que ha algo para descobrir. O enunciado
- * pede "o motivo visivel", e e isto.
- */
-#LFGIdle .lfg-card-motivo {
-	grid-column: 1 / -1;
-	font-size: 0.82em;
+#LFGIdle .lfg-panel-scroll {
+	flex: 1 1 auto;
+	min-height: 0;
+	overflow-y: auto;
+	padding: 0 0 var(--sp-6);
+}
+#LFGIdle .lfg-panel-scroll > .lfg-panel-empty {
+	padding: 0 var(--sp-6);
+}
+
+/* Banner: a miniatura ao fundo, o nome do grupo em serifa numa cápsula de
+   vidro escuro por cima -- a mesma composição do ".hm-hero". */
+#LFGIdle .lfg-hero {
+	position: relative;
+	height: 96px;
+	background: var(--sky-100);
+	overflow: hidden;
+	border-bottom: var(--titlebar-rule);
+}
+#LFGIdle .lfg-hero .lfg-thumb-vazio svg {
+	width: 32px;
+	height: 32px;
+}
+#LFGIdle .lfg-hero-cap {
+	/*
+	 * REVISÃO DO SÊNIOR (03/09): a legenda sumia sempre que a miniatura
+	 * carregava. Causa: ".lfg-card-thumb img, .lfg-hero img" (acima) tem
+	 * "z-index: 1" -- e um elemento posicionado com z-index POSITIVO cria seu
+	 * próprio nível de empilhamento e pinta por CIMA de qualquer irmão
+	 * posicionado com "z-index: auto" (a Camada 6 do Apêndice E do CSS 2.1),
+	 * não importa a ordem no DOM. Esta legenda é posicionada e nasce DEPOIS
+	 * da <img> no HTML, mas sem z-index próprio ela ficava na camada "auto" e
+	 * perdia pra <img> sempre que a imagem existia e pintava algo -- só não
+	 * perdia quando o "onerror" escondia a <img> (o caso do Deserto de
+	 * Morroc, que não tem thumb: a legenda "aparecia certo por acaso").
+	 * "z-index: 2" aqui garante que ela SEMPRE pinta por cima da miniatura.
+	 */
+	z-index: 2;
+	position: absolute;
+	left: var(--sp-5);
+	right: var(--sp-5);
+	bottom: var(--sp-5);
+	display: flex;
+	align-items: flex-end;
+	justify-content: space-between;
+	gap: var(--sp-4);
+}
+#LFGIdle .lfg-hero-text {
+	min-width: 0;
+	padding: var(--sp-3) var(--sp-5);
+	border-radius: var(--radius-panel);
+	background: var(--surface-dark-glass);
+	backdrop-filter: var(--blur-glass);
+	color: var(--white);
+	box-shadow: var(--shadow-card);
+}
+#LFGIdle .lfg-hero-mapa {
+	font: var(--type-badge);
+	letter-spacing: var(--ls-caps);
+	text-transform: uppercase;
+	color: var(--gold-300);
+}
+#LFGIdle .lfg-hero-title {
+	margin: 2px 0 0;
+	font: var(--type-window-title);
+	font-size: var(--fs-numeric-lg);
+	color: var(--white);
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+#LFGIdle .lfg-hero .lfg-badge {
+	background: color-mix(in srgb, var(--lfg-fit) 22%, var(--white));
+}
+
+/* O encaixe grande: seu nível contra a faixa do grupo -- mesmo "hm-fit". */
+#LFGIdle .lfg-fit {
+	display: flex;
+	align-items: center;
+	gap: var(--sp-5);
+	margin: var(--sp-5) var(--sp-6) 0;
+	padding: var(--sp-4) var(--sp-5);
+	border: 1px solid var(--border-hairline);
+	border-radius: var(--radius-panel);
+	background: var(--paper-2);
+}
+#LFGIdle .lfg-fit-you {
+	flex: 0 0 auto;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	line-height: 1;
+}
+#LFGIdle .lfg-fit-you-label {
+	font: var(--type-badge);
+	letter-spacing: var(--ls-caps);
+	text-transform: uppercase;
+	color: var(--text-muted);
+}
+#LFGIdle .lfg-fit-you-nivel {
+	font: var(--type-numeric);
+	font-size: var(--fs-numeric-lg);
+	color: var(--text-title);
+}
+#LFGIdle .lfg-fit-body {
+	flex: 1 1 auto;
+	min-width: 0;
+	display: flex;
+	flex-direction: column;
+	gap: 5px;
+}
+#LFGIdle .lfg-fit-row {
+	display: flex;
+	justify-content: space-between;
+	align-items: baseline;
+	gap: var(--sp-4);
+	font: var(--type-label);
+}
+#LFGIdle .lfg-fit-verdict {
+	color: var(--lfg-fit);
+}
+#LFGIdle .lfg-fit-range {
+	color: var(--text-muted);
+	font-variant-numeric: tabular-nums;
+}
+#LFGIdle .lfg-fit-range b {
+	font-weight: var(--fw-semibold);
+	color: var(--text-body);
+}
+
+/* O MEDIDOR: trilho afundado, a faixa ocupa sempre o meio (25..75%), o
+   losango é o SEU nível -- mesma geometria do ".hm-meter". */
+#LFGIdle .lfg-meter {
+	display: flex;
+	align-items: center;
+}
+#LFGIdle .lfg-meter-track {
+	position: relative;
+	flex: 1 1 auto;
+	height: 8px;
+	border-radius: var(--radius-bar);
+	background: var(--surface-inset);
+	box-shadow: var(--shadow-inset);
+	overflow: visible;
+}
+#LFGIdle .lfg-meter-fill {
+	position: absolute;
+	top: 0;
+	bottom: 0;
+	left: 25%;
+	width: 50%;
+	border-radius: var(--radius-bar);
+	background: color-mix(in srgb, var(--lfg-fit) 70%, var(--white));
+}
+#LFGIdle .lfg-meter-you {
+	position: absolute;
+	top: 50%;
+	width: 10px;
+	height: 10px;
+	transform: translate(-50%, -50%) rotate(45deg);
+	background: linear-gradient(180deg, var(--white), var(--gold-400));
+	border: 1px solid var(--gold-700);
+	box-shadow: var(--shadow-card);
+}
+
+/* Cabeçalho de seção -- "Membros N/M". */
+#LFGIdle .lfg-section {
+	display: flex;
+	align-items: baseline;
+	justify-content: space-between;
+	gap: var(--sp-4);
+	margin: var(--sp-6) var(--sp-6) var(--sp-3);
+	padding-bottom: var(--sp-2);
+	border-bottom: var(--divider);
+}
+#LFGIdle .lfg-section-title {
+	font: var(--type-section);
+	color: var(--text-title);
+}
+#LFGIdle .lfg-section-n {
+	font: var(--type-label);
+	color: var(--text-muted);
+	font-variant-numeric: tabular-nums;
+}
+
+#LFGIdle .lfg-membros {
+	display: flex;
+	flex-direction: column;
+	gap: 3px;
+	padding: 0 var(--sp-6);
+}
+#LFGIdle .lfg-membro {
+	display: flex;
+	align-items: center;
+	gap: var(--sp-4);
+	padding: 5px var(--sp-4);
+	border-radius: var(--radius-panel);
+}
+#LFGIdle .lfg-membro.is-lider {
+	background: color-mix(in srgb, var(--gold-300) 16%, transparent);
+}
+#LFGIdle .lfg-membro-nome {
+	flex: 1 1 auto;
+	min-width: 0;
+	font: var(--type-info);
+	color: var(--text-title);
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+#LFGIdle .lfg-membro-nivel {
+	flex: 0 0 auto;
+	font: var(--type-label);
+	color: var(--text-muted);
+	font-variant-numeric: tabular-nums;
+}
+#LFGIdle .lfg-membro-tag {
+	flex: 0 0 auto;
+	display: inline-flex;
+	align-items: center;
+	gap: 3px;
+}
+#LFGIdle .lfg-membro-coroa {
+	width: 12px;
+	height: 12px;
+	background-size: contain;
+	background-position: center;
+	background-repeat: no-repeat;
+}
+
+/* ─── Rodapé fixo do dossiê ───────────────────────────────────────────── */
+
+#LFGIdle .lfg-panel-footer {
+	flex: 0 0 auto;
+	display: flex;
+	flex-direction: column;
+	gap: var(--sp-3);
+	padding: var(--sp-5) var(--sp-6);
+	border-top: var(--titlebar-rule);
+	background: var(--surface-glass);
+}
+
+/* O motivo do servidor -- literal, perto do botão que o causou. Sem
+   "display" próprio: o bloco de texto simples já concorda com o
+   "display:none" que [hidden] dá por padrão, então não precisa do guard
+   ":not([hidden])" (a regra só é necessária quando HÁ um display autoral
+   para o elemento -- ver o comentário grande em ".lfg-view" acima). */
+#LFGIdle .lfg-panel-motivo {
+	padding: var(--sp-3) var(--sp-4);
+	border-radius: var(--radius-panel);
+	background: color-mix(in srgb, var(--amber-600) 14%, transparent);
+	border: 1px solid color-mix(in srgb, var(--amber-600) 40%, transparent);
+	color: var(--amber-600);
+	font: var(--type-label);
+}
+
+#LFGIdle .lfg-acao-entrar:not([hidden]),
+#LFGIdle .lfg-acao-membro:not([hidden]) {
+	display: flex;
+	gap: var(--sp-3);
+}
+#LFGIdle .lfg-form-botoes {
+	display: flex;
+	gap: var(--sp-3);
+}
+#LFGIdle .lfg-acao-entrar .ri-btn,
+#LFGIdle .lfg-acao-membro .ri-btn,
+#LFGIdle .lfg-form-botoes .ri-btn {
+	flex: 1 1 auto;
+}
+
+#LFGIdle .lfg-acao-lider:not([hidden]) {
+	display: flex;
+	flex-direction: column;
+	gap: var(--sp-3);
+}
+
+#LFGIdle .lfg-form-senha-entrar:not([hidden]),
+#LFGIdle .lfg-form-senha-privar:not([hidden]) {
+	display: flex;
+	flex-direction: column;
+	gap: var(--sp-3);
+}
+
+#LFGIdle .lfg-campo-senha {
+	display: flex;
+	flex-direction: column;
+	gap: 3px;
+}
+#LFGIdle .lfg-rotulo-senha,
+#LFGIdle .lfg-rotulo-campo {
+	font: var(--type-label);
+	color: var(--text-muted);
+}
+#LFGIdle .lfg-campo-senha .ri-input {
+	box-sizing: border-box;
+	width: 100%;
+}
+
+/* Segmentado Público/Privado -- mesmo trilho afundado do ".hm-seg". */
+#LFGIdle .lfg-priv-seg {
+	display: flex;
+	padding: 2px;
+	gap: 2px;
+	background: var(--surface-inset);
+	border: 1px solid var(--border-hairline);
+	border-radius: var(--radius-pill);
+	box-shadow: var(--shadow-inset);
+}
+#LFGIdle .lfg-priv-btn {
+	appearance: none;
+	flex: 1 1 0;
+	border: none;
+	border-radius: var(--radius-pill);
+	padding: 6px var(--sp-4);
+	background: transparent;
+	color: var(--tab-idle-text);
+	font: var(--type-label);
+	cursor: pointer;
+	transition:
+		background var(--dur-fast) var(--ease-out),
+		color var(--dur-fast) var(--ease-out);
+}
+#LFGIdle .lfg-priv-btn:hover {
+	color: var(--text-title);
+}
+#LFGIdle .lfg-priv-btn.is-selected {
+	background: var(--tab-active-fill);
+	color: var(--tab-active-text);
+	box-shadow: var(--shadow-card);
+}
+
+#LFGIdle .lfg-dissolver-confirma:not([hidden]) {
+	display: flex;
+	align-items: center;
+	flex-wrap: wrap;
+	gap: var(--sp-3);
+}
+#LFGIdle .lfg-dissolver-confirma {
+	font: var(--type-label);
 	color: var(--cor-perigo, #b4443a);
 }
+#LFGIdle .lfg-dissolver-confirma span {
+	flex: 1 1 100%;
+}
 
-#LFGIdle .lfg-criar-mapa {
-	display: grid;
-	grid-template-columns: 1fr auto;
-	gap: var(--espaco-3, 12px);
+/* ─── Aba Criar grupo ─────────────────────────────────────────────────── */
+
+/* POLIMENTO (revisão do sênior, 03/09): o formulário estava solto num vazio
+   branco -- agora mora dentro de um ".ri-card" (o cartão do design system,
+   já com fundo/borda/sombra de Common.css), centrado, com título. */
+#LFGIdle .lfg-criar-form {
+	width: 100%;
+	max-width: 420px;
+	margin: var(--sp-8) 0;
+	display: flex;
+	flex-direction: column;
+	gap: var(--sp-5);
+	padding: var(--sp-8) var(--sp-8) var(--sp-7);
+	box-sizing: border-box;
+}
+
+#LFGIdle .lfg-criar-titulo {
+	margin: 0;
+	font-family: var(--font-display);
+	font-size: var(--fs-window-title);
+	color: var(--text-title);
+	text-align: center;
+}
+
+#LFGIdle .lfg-criar-texto {
+	margin: 0;
+	font: var(--type-info);
+	color: var(--text-muted);
+	text-align: center;
+}
+
+/* Nome do grupo: campo novo, opcional, "acima dos radios" (pedido do dono). */
+#LFGIdle .lfg-campo-nome {
+	display: flex;
+	flex-direction: column;
+	gap: 3px;
+}
+#LFGIdle .lfg-campo-nome .ri-input {
+	box-sizing: border-box;
+	width: 100%;
+}
+
+#LFGIdle .lfg-criar-privacidade {
+	display: flex;
+	justify-content: center;
+	gap: var(--sp-6);
+}
+#LFGIdle .lfg-radio {
+	display: inline-flex;
 	align-items: center;
-	padding: var(--espaco-2, 8px) var(--espaco-3, 12px);
+	gap: var(--sp-2);
+	font: var(--type-info);
+	color: var(--text-body);
+	cursor: pointer;
+}
+#LFGIdle .lfg-radio input {
+	accent-color: var(--blue-500);
+	cursor: pointer;
+	margin: 0;
 }
 
-#LFGIdle .lfg-criar-mapa.is-bloqueado {
-	opacity: 0.55;
+/* Este campo É diretamente alternado por [hidden] (LFGIdle.js liga/desliga
+   "campoSenhaWrap.hidden"), então o "display" precisa do guard
+   ":not([hidden])" -- a mesma cicatriz do ".lfg-view"/".ri-btn[hidden]"
+   documentada no topo do arquivo: uma classe com "display" autoral vence o
+   "display:none" que o navegador dá a [hidden], não importa a especificidade. */
+#LFGIdle .lfg-criar-campo-senha:not([hidden]) {
+	display: flex;
+	flex-direction: column;
+	gap: 3px;
 }
+#LFGIdle .lfg-criar-campo-senha .ri-input {
+	box-sizing: border-box;
+	width: 100%;
+}
+
+#LFGIdle .lfg-criar-motivo {
+	padding: var(--sp-3) var(--sp-4);
+	border-radius: var(--radius-panel);
+	background: color-mix(in srgb, var(--amber-600) 14%, transparent);
+	border: 1px solid color-mix(in srgb, var(--amber-600) 40%, transparent);
+	color: var(--amber-600);
+	font: var(--type-label);
+}
+
+#LFGIdle .lfg-criar-form .lfg-criar {
+	width: 100%;
+	padding: 10px;
+}
+
+/* ─── Barras de rolagem: ".ri-scroll" (Common.css) já cuida ──────────── */

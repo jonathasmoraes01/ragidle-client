@@ -1,40 +1,185 @@
+<!--
+	Localizador de Grupos (LFG) -- redesenho no vocabulario visual do Atlas de
+	Caca (irmao de src/UI/Components/HuntMap/HuntMap.html/.css/.js): mesma
+	familia de moldura (.ri-window/.ri-anima), cards com filete de encaixe via
+	custom property (--lfg-fit, o --hm-fit de la), medidor de faixa com
+	losango marcando o SEU nivel, pilha/lista de membros com icone de classe,
+	e dossie lateral com hero + rodape FIXO de acao.
+
+	O RODAPE DO DOSSIE E ESTATICO DE PROPOSITO -- todo botao e todo
+	mini-formulario possivel ja nasce aqui, alternado por [hidden] em vez de
+	reconstruido por innerHTML (ver o comentario grande em cima de
+	".lfg-panel-footer" abaixo, e o mesmo raciocinio em LFGIdle.js). E o que
+	deixa o campo de senha sobreviver a um push de ZC_RAGIDLE_LFG_LISTA
+	chegando ENQUANTO o jogador digita -- o <input> nunca e destruido, so
+	escondido.
+
+	Ganchos ESTAVEIS que provas externas usam (preservar em qualquer redesenho
+	futuro): .lfg-window, .lfg-close, .lfg-card, .lfg-panel, .lfg-entrar,
+	.lfg-criar, .lfg-teleportar, .lfg-senha-input.
+-->
 <div id="LFGIdle">
 	<div class="lfg-window ri-window ri-anima">
 		<div class="lfg-titlebar ri-header">
-			<span class="lfg-title ri-title">Procurar Grupo</span>
+			<span class="lfg-title ri-title">Localizador de Grupos</span>
 			<button type="button" class="lfg-close ri-close" title="Fechar">&times;</button>
 		</div>
 
 		<div class="lfg-tabs">
-			<button type="button" class="lfg-tab ri-tab is-active" data-tab="grupos">Grupos abertos</button>
+			<button type="button" class="lfg-tab ri-tab is-active" data-tab="grupos">Grupos</button>
 			<button type="button" class="lfg-tab ri-tab" data-tab="criar">Criar grupo</button>
 		</div>
 
-		<!--
-			A barra do MEU grupo. So existe quando o servidor manda "meu" (nao
-			null) no ZC_RAGIDLE_LFG_LISTA, e so na aba "Grupos abertos" -- na
-			aba "Criar" o jogador nem esta olhando o grupo dele. Um botao
-			substitui o outro conforme "meu.souLider": quem lidera "Desfaz",
-			quem nao lidera "Sai". So "Desfazer" pede confirmacao de dois
-			passos (tira TODO MUNDO do mapa de caca); "Sair" afeta so quem
-			clicou, entao manda na hora -- pedir "tem certeza?" pros dois
-			igualaria coisas de peso diferente.
-		-->
-		<div class="lfg-lider-barra" hidden>
-			<span class="lfg-lider-texto"></span>
-			<button type="button" class="ri-btn ri-btn--sec lfg-sair-btn" hidden>Sair do grupo</button>
-			<button type="button" class="ri-btn ri-btn--sec lfg-desfazer-btn" hidden>Desfazer grupo</button>
-			<div class="lfg-desfazer-confirma" hidden>
-				<span>Tem certeza? Todo mundo volta para a cidade.</span>
-				<button type="button" class="ri-btn ri-btn--sec lfg-desfazer-sim">Sim, desfazer</button>
-				<button type="button" class="ri-btn lfg-desfazer-cancelar">Cancelar</button>
+		<div class="lfg-body">
+			<!--
+				Aba GRUPOS: lista + dossie. Alternada com a aba CRIAR por [hidden]
+				-- nunca "style.display" (a cicatriz de 26/08: uma classe com
+				"display" proprio VENCE o "display:none" que o navegador da ao
+				atributo [hidden], entao toda regra de "display" destas duas
+				vistas, no CSS, vem atras de ":not([hidden])").
+			-->
+			<div class="lfg-view lfg-view-grupos">
+				<section class="lfg-list-wrap">
+					<div class="lfg-list-head"></div>
+					<div class="lfg-list ri-scroll">
+						<div class="lfg-empty">Carregando grupos...</div>
+					</div>
+				</section>
+
+				<aside class="lfg-panel">
+					<div class="lfg-panel-scroll ri-scroll">
+						<div class="lfg-panel-empty">Selecione um grupo para ver os detalhes.</div>
+					</div>
+
+					<div class="lfg-panel-footer">
+						<!-- A recusa do SERVIDOR, por extenso, perto do botao que a causou. -->
+						<div class="lfg-panel-motivo" hidden></div>
+
+						<!-- Grupo de outra pessoa, sem senha (ou ja no passo de digitar). -->
+						<div class="lfg-acao-entrar" hidden>
+							<button type="button" class="ri-btn lfg-entrar">Entrar no grupo</button>
+						</div>
+
+						<div class="lfg-form-senha-entrar" hidden>
+							<label class="lfg-campo-senha">
+								<span class="lfg-rotulo-senha">Senha do grupo</span>
+								<input
+									type="password"
+									class="ri-input lfg-senha-input"
+									autocomplete="off"
+									maxlength="16"
+								/>
+							</label>
+							<div class="lfg-form-botoes">
+								<button type="button" class="ri-btn ri-btn--sec lfg-senha-cancelar">Cancelar</button>
+								<button type="button" class="ri-btn lfg-entrar lfg-senha-confirmar">Entrar</button>
+							</div>
+						</div>
+
+						<!-- Meu grupo, e eu NAO sou o lider. -->
+						<div class="lfg-acao-membro" hidden>
+							<button type="button" class="ri-btn ri-btn--sec lfg-teleportar">
+								Teleportar para o líder
+							</button>
+							<button type="button" class="ri-btn ri-btn--sec lfg-sair">Sair do grupo</button>
+						</div>
+
+						<!-- Meu grupo, e eu SOU o lider. -->
+						<div class="lfg-acao-lider" hidden>
+							<div class="lfg-priv-seg" role="tablist" aria-label="Privacidade do grupo">
+								<button
+									type="button"
+									class="lfg-priv-btn"
+									data-privado="0"
+									role="tab"
+									aria-selected="false"
+								>
+									Público
+								</button>
+								<button
+									type="button"
+									class="lfg-priv-btn"
+									data-privado="1"
+									role="tab"
+									aria-selected="false"
+								>
+									Privado
+								</button>
+							</div>
+
+							<div class="lfg-form-senha-privar" hidden>
+								<label class="lfg-campo-senha">
+									<span class="lfg-rotulo-senha">Defina a senha</span>
+									<input
+										type="password"
+										class="ri-input lfg-senha-input"
+										autocomplete="off"
+										maxlength="16"
+									/>
+								</label>
+								<div class="lfg-form-botoes">
+									<button type="button" class="ri-btn ri-btn--sec lfg-priv-cancelar">Cancelar</button>
+									<button type="button" class="ri-btn lfg-priv-confirmar">Privar grupo</button>
+								</div>
+							</div>
+
+							<button type="button" class="ri-btn ri-btn--sec lfg-dissolver">Dissolver grupo</button>
+							<!-- Dois passos, sem window.confirm (padrao ja existente nesta janela). -->
+							<div class="lfg-dissolver-confirma" hidden>
+								<span>Tem certeza? Todo mundo volta para a cidade.</span>
+								<button type="button" class="ri-btn ri-btn--sec lfg-dissolver-sim">
+									Sim, dissolver
+								</button>
+								<button type="button" class="ri-btn lfg-dissolver-cancelar">Cancelar</button>
+							</div>
+						</div>
+					</div>
+				</aside>
 			</div>
-		</div>
 
-		<div class="lfg-aviso" hidden></div>
+			<!-- Aba CRIAR: sem selecao de mapa -- o mapa acompanha o lider. -->
+			<div class="lfg-view lfg-view-criar" hidden>
+				<form class="lfg-criar-form ri-card">
+					<h3 class="lfg-criar-titulo">Criar Grupo</h3>
+					<p class="lfg-criar-texto">O grupo aparece no Localizador e o mapa acompanha o líder.</p>
 
-		<div class="lfg-body ri-scroll">
-			<div class="lfg-empty">Carregando grupos...</div>
+					<label class="lfg-campo-nome">
+						<span class="lfg-rotulo-campo">Nome do grupo</span>
+						<input
+							type="text"
+							class="ri-input lfg-nome-input"
+							autocomplete="off"
+							maxlength="23"
+							placeholder="Vazio usa o nome do seu personagem"
+						/>
+					</label>
+
+					<div class="lfg-criar-privacidade" role="radiogroup" aria-label="Privacidade do grupo">
+						<label class="lfg-radio">
+							<input type="radio" name="lfg-criar-privado" value="0" checked="checked" />
+							<span>Público</span>
+						</label>
+						<label class="lfg-radio">
+							<input type="radio" name="lfg-criar-privado" value="1" />
+							<span>Privado</span>
+						</label>
+					</div>
+
+					<label class="lfg-criar-campo-senha" hidden>
+						<span class="lfg-rotulo-senha">Senha</span>
+						<input
+							type="password"
+							class="ri-input lfg-criar-senha-input"
+							autocomplete="off"
+							maxlength="16"
+						/>
+					</label>
+
+					<div class="lfg-criar-motivo" hidden></div>
+
+					<button type="button" class="ri-btn lfg-criar">Criar grupo</button>
+				</form>
+			</div>
 		</div>
 	</div>
 </div>
