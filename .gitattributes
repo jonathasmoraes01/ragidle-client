@@ -58,3 +58,10 @@ package-lock.json	text eol=crlf -diff
 # intermediate and build files
 node_modules/*		binary
 dist/*				binary
+
+# GERADO pelo servidor (`npm run publicar:fichas-de-item`), e comparado BYTE A
+# BYTE por `scripts/publicar-fichas-de-item.test.ts` do outro repositorio.
+# O gerador escreve LF; sem esta linha o `text=auto` materializa CRLF no
+# checkout e a suite do servidor reprova dizendo "desatualizado" com o
+# conteudo IDENTICO — o que envia quem cai nela para o lugar errado.
+public/ragidle/fichas-de-item.json	text eol=lf
