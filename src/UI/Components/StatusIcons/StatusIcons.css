@@ -31,28 +31,62 @@
 	position: absolute;
 }
 
-/* Fase 3 (01/09/2026): a dica do buff virou a capsula de vidro escuro do
-   design system (a MESMA de .tm-label e das dicas do CheckAttendance) — o
-   preto meio-transparente com borda cinza era de antes do DS. A arte do
-   buff em si continua vindo do cliente (canvas), que e arte de jogo. */
+/*
+ * A DICA DO BUFF E UM BLOCO DE VARIAS LINHAS, e nao uma capsula (03/09/2026).
+ *
+ * `StatusIcons.js` monta a dica com UM `<div>` por linha (nome, tempo, e as
+ * linhas de efeito), e este CSS a vestia de capsula de uma linha so: raio de
+ * pilula, 1px de padding vertical e `nowrap`. Quatro linhas dentro de uma
+ * forma desenhada para uma so.
+ *
+ * O que muda, e o porque de cada um:
+ *
+ * - **o raio deixa de ser pilula**: 999px num bloco de quatro linhas desenha
+ *   duas metades de circulo gigantes nas pontas. `--radius-panel` (6px) e o
+ *   token que ja existe em `Common.css` para painel pequeno — os quatro sao
+ *   `window` 8px, `panel` 6px, `card` 4px e `pill` 999px, e a primeira versao
+ *   desta correcao inventou um quinto;
+ * - **o padding vertical sobe de 1px para 6px**: com quatro linhas, 1px cola
+ *   o texto na borda de cima e na de baixo;
+ * - **`normal` no lugar de `nowrap`, com teto de largura**: uma linha longa
+ *   passa a QUEBRAR em vez de esticar a caixa indefinidamente. O teto e
+ *   relativo a janela porque os icones vivem colados na direita — no celular,
+ *   um valor fixo sairia pela esquerda;
+ * - **`width: max-content`**: a caixa mede a linha mais larga, e nao o que
+ *   sobra do bloco-contexto (que e o icone de 32px).
+ *
+ * > **UMA HIPOTESE MINHA CAIU AQUI, e o registro fica.** Eu atribui o corte
+ * > que o dono viu a um colapso de largura: `right: 33px` dentro de um
+ * > contexto de 32px daria largura disponivel NEGATIVA, e com `nowrap` o
+ * > texto vazaria para fora do fundo. **Medido no DOM real, com as regras
+ * > antigas: caixa de 187px, maior linha de 175px, ZERO linhas vazando.** O
+ * > colapso nao acontecia. As quatro mudancas acima seguem valendo por
+ * > legibilidade — mas nenhuma delas e o conserto do corte, e escrever que
+ * > era teria deixado no codigo uma explicacao falsa com cara de medida.
+ *
+ * A capsula de vidro escuro do design system continua (o fundo, o blur e a
+ * sombra do texto): o que muda e a FORMA, que era de outro tipo de conteudo.
+ * A arte do buff em si continua vindo do cliente (canvas), que e arte de jogo.
+ */
 #StatusIcons .state .description {
 	display: none;
 	z-index: 51;
 	position: absolute;
 	right: 33px;
 	top: 0px;
-	padding: 1px 6px;
+	width: max-content;
+	max-width: min(320px, calc(100vw - 64px));
+	padding: 6px 10px;
 	background: var(--surface-dark-glass, rgba(18, 41, 74, 0.58));
 	backdrop-filter: var(--blur-glass, blur(10px));
-	border-radius: var(--radius-pill, 999px);
+	border-radius: var(--radius-panel, 6px);
 	color: var(--white, #ffffff);
 	text-shadow: 0 1px 2px rgba(8, 22, 40, 0.85);
 	font: var(--type-label, 600 11px/1.4 Arial);
 	font-family: var(--font-ui, 'Figtree', Arial, sans-serif);
-	white-space: nowrap;
-	line-height: 16px;
+	white-space: normal;
+	line-height: 1.35;
 }
-
 #StatusIcons .state:hover .description {
 	display: block;
 }
