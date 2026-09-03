@@ -9,6 +9,7 @@
  */
 
 import StatusTable from 'DB/Status/StatusInfo.js';
+import { emPortugues } from '../../../DB/Status/StatusInfoPtBr.js';
 import SC from 'DB/Status/StatusConst.js';
 import DB from 'DB/DBManager.js';
 import Texture from 'Utils/Texture.js';
@@ -275,7 +276,9 @@ function createElement(index) {
 
 		for (let i = 0; i < count; ++i) {
 			const line = document.createElement('div');
-			line.textContent = lines[i][0];
+			// A dica sai em PORTUGUES (03/09/2026). Frase sem traducao passa
+			// direto — ver `StatusInfoPtBr.js` para o porque do dicionario.
+			line.textContent = emPortugues(lines[i][0]);
 
 			// Custom color
 			if (lines[i][1]) {
@@ -363,11 +366,26 @@ function renderStatus(status, now) {
 		const seconds = tick % 60;
 		const minutes = (tick / 60) | 0;
 
+		/*
+		 * O TEMPO EM PORTUGUES, E O PLURAL CERTO (03/09/2026).
+		 *
+		 * O upstream escrevia `17 minute(s) 13 second(s)`: ingles, e com o `(s)`
+		 * que evita decidir o plural. Em portugues da para decidir — 1 minuto, 2
+		 * minutos —, e o `(s)` num HUD inteiro em portugues le como texto nao
+		 * traduzido, que e o que o dono reportou.
+		 *
+		 * `DB.getMessage(1807/1808)` vem do `msgstringtable` do cliente oficial:
+		 * quando ele existe, manda ele; o segundo argumento e so o fallback. Por
+		 * isso a traducao passa por `emPortugues` DEPOIS — assim ela cobre os dois
+		 * casos, a tabela e o fallback.
+		 */
+		const unidade = (n, chave, padrao) =>
+			`${n} ${emPortugues(DB.getMessage(chave, padrao))}${n === 1 ? '' : 's'}`;
 		status.time.textContent =
 			now >= end || end === Infinity
 				? ''
-				: (minutes ? `${minutes} ${DB.getMessage(1807, 'minute')} ` : '') +
-					`${seconds} ${DB.getMessage(1808, 'second')}`;
+				: (minutes ? `${unidade(minutes, 1807, 'minute')} ` : '') +
+					unidade(seconds, 1808, 'second');
 	}
 }
 
