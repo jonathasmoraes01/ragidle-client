@@ -110,14 +110,16 @@
 		<script type="text/javascript" src="Config.js"></script>
 		<script type="text/javascript">
 			// Load optional Config.local.js for overrides (fails silently if not present)
-			(function () {
+			window.ROConfigLocalReady = new Promise(function (resolve) {
 				var script = document.createElement('script');
 				script.src = 'Config.local.js';
+				script.onload = resolve;
 				script.onerror = function () {
 					console.log('Config.local.js not found, using defaults from Config.js');
+					resolve();
 				};
 				document.head.appendChild(script);
-			})();
+			});
 		</script>
 		<script type="text/javascript">
 			function deepMerge(target, source) {
@@ -177,7 +179,8 @@
 
 			window.addEventListener(
 				'load',
-				function () {
+				async function () {
+					await window.ROConfigLocalReady;
 					//Get latest GIT hash first then initialize
 					getJSON(
 						'https://api.github.com/repos/MrAntares/roBrowserLegacy/commits/master',

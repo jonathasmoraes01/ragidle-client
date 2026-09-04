@@ -397,14 +397,16 @@ ${buttons}
         <script src="Config.js"></script>    
         <script>    
             // Load optional Config.local.js for overrides (fails silently if not present)    
-            (function() {    
+            window.ROConfigLocalReady = new Promise(function(resolve) {
                 var script = document.createElement('script');    
                 script.src = 'Config.local.js';    
+                script.onload = resolve;
                 script.onerror = function() {    
                     console.log('Config.local.js not found, using defaults from Config.js');    
+                    resolve();
                 };    
                 document.head.appendChild(script);    
-            })();    
+            });
         </script>    
         <script>    
             function deepMerge(target, source) {    
@@ -420,7 +422,8 @@ ${buttons}
                 return target;    
             }    
     
-            window.addEventListener("load", (event) => {    
+            window.addEventListener("load", async (event) => {
+                await window.ROConfigLocalReady;
                 // Merge Config.js defaults with Config.local.js overrides    
                 var config = deepMerge({}, window.ROConfigBase || {});    
                 if (window.ROConfigLocal) {    
@@ -578,14 +581,16 @@ function createApiHTML() {
     
         <script src="Config.js"></script>    
         <script>    
-            (function() {    
+            window.ROConfigLocalReady = new Promise(function(resolve) {
                 var script = document.createElement('script');    
                 script.src = 'Config.local.js';    
+                script.onload = resolve;
                 script.onerror = function() {    
                     console.log('Config.local.js not found, using defaults from Config.js');    
+                    resolve();
                 };    
                 document.head.appendChild(script);    
-            })();    
+            });
         </script>    
         <script>    
             function deepMerge(target, source) {    
@@ -629,7 +634,8 @@ function createApiHTML() {
                 }).catch(function(err) { console.error('Failed to load app:', scriptFile, err); });    
             }    
     
-            window.addEventListener('load', function() {    
+            window.addEventListener('load', async function() {
+                await window.ROConfigLocalReady;
                 var params = new URLSearchParams(window.location.search);    
                 var appName = params.get('app');    
                 if (appName) {    
