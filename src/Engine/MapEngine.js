@@ -112,20 +112,15 @@ import IdleSkills from 'UI/Components/IdleSkills/IdleSkills.js'; // RAGIDLE: "Sk
 import BasicInfoIdle from 'UI/Components/BasicInfoIdle/BasicInfoIdle.js'; // RAGIDLE: "Informações básicas"
 import StatusIdle from 'UI/Components/StatusIdle/StatusIdle.js'; // RAGIDLE: "Status"
 import MochilaIdle from 'UI/Components/MochilaIdle/MochilaIdle.js'; // RAGIDLE: "Mochila" (inventario + equipamento numa janela so)
-import DockIdle from 'UI/Components/DockIdle/DockIdle.js'; // RAGIDLE: "Barra de acoes" (rotacao de skills + Auto — pivo 19/08/2026, ver DockIdle.js; ANTES era a barra de atalhos de janela "Barra inferior")
 // RAGIDLE: a "Capsula de zeny (topo)" (UI/Components/TopBarIdle) foi APAGADA
 // em 20/08/2026, a pedido do dono: o contador de moedas mudou para o canto
 // superior esquerdo, dentro do painel do personagem (a faixa ".bi-moeda" de
 // UI/Components/BasicInfoIdle). Nenhuma fonte de dado mudou de lugar junto —
 // os dois liam o MESMO Session.zeny, entao o que sumiu foi a segunda leitura,
 // nao o dado.
-// CombatCornerIdle ("Canto de combate", Auto/Mochila/arco de rotacao) foi
-// APOSENTADO no mesmo pivo acima: a Barra de acoes (DockIdle) herdou o Auto
-// e o arco de rotacao, e a Mochila ja e alcancavel pela grade do painel do
-// personagem — o componente inteiro deixou de ser importado/registrado
-// (nada pra esconder: nunca entra no DOM). Arquivo continua em
-// UI/Components/CombatCornerIdle/ sem nenhuma alteracao, caso precise
-// voltar.
+// CombatCornerIdle e DockIdle estao aposentados: a hotbar nativa ShortCut e a
+// unica barra de skills registrada. Os arquivos permanecem no historico do
+// fork, mas nenhum dos dois entra no DOM.
 import DeathWindow from 'UI/Components/DeathWindow/DeathWindow.js'; // RAGIDLE: "Você morreu"
 import TopMenuIdle from 'UI/Components/TopMenuIdle/TopMenuIdle.js'; // RAGIDLE: "Menu superior direito (constelação)"
 import CorreioIdle from 'UI/Components/CorreioIdle/CorreioIdle.js'; // RAGIDLE: "Correio" (a caixa do sistema, D-366)
@@ -416,11 +411,8 @@ class MapEngine {
 					Equipment: Equipment,
 					DB: DB,
 					MochilaIdle: MochilaIdle,
-					// RAGIDLE: acrescentado 19/08/2026 pra prova Playwright da
-					// Barra de acoes (DockIdle.js) -- forcar
-					// IdleConfig.editConfig.rotacao (sem NPC/servidor de
-					// verdade) e ler/gravar cacaAutomatica pelo mesmo objeto
-					// que a janela Config idle e o botao Auto ja usam.
+					// RAGIDLE: a sonda da Config idle continua usando o mesmo
+					// estado publico, independente da DockIdle aposentada.
 					IdleConfig: IdleConfig,
 					// RAGIDLE: acrescentado 20/08/2026 pra prova Playwright do
 					// Correio (gauntlet item 3) -- inspecionar o estado REAL do
@@ -493,12 +485,11 @@ class MapEngine {
 			MissoesIdle.prepare(); // RAGIDLE: janela de Missões (D-551) — sem dependência de ordem: só escuta 0x0fed
 			PasseIdle.prepare(); // RAGIDLE: janela do Passe (D-813) — idem, só escuta 0x0fe5
 			CodexIdle.prepare(); // RAGIDLE: janela do Codex (D-851) — idem, só escuta 0x0fe3
-		LFGIdle.prepare(); // RAGIDLE: janela de Procurar Grupo (D-634) — idem: só escuta 0x0fe9/0x0fe8
+			LFGIdle.prepare(); // RAGIDLE: janela de Procurar Grupo (D-634) — idem: só escuta 0x0fe9/0x0fe8
 
 			BasicInfoIdle.prepare(); // RAGIDLE: "Informações básicas"
 			StatusIdle.prepare(); // RAGIDLE: "Status"
 			MochilaIdle.prepare(); // RAGIDLE: "Mochila" — depois de Inventory.getUI()/Equipment.getUI() (linhas acima, secao "Prepare UI"): precisa dos dois _host nativos ja existentes pra esconde-los em MochilaIdle.onAppend()
-			DockIdle.prepare(); // RAGIDLE: "Barra de acoes" — depois de HuntMap/IdleConfig/IdleSkills (precisa da shadow DOM deles pronta pra esconder os botoes redundantes) e depois de IdleConfig.prepare() (usa IdleConfig.editConfig/IdleConfig.pedirConfig()/IdleConfig.aplicarConfig(), aliases publicos no fim de IdleConfig.js — herdados do extinto CombatCornerIdle.prepare())
 			DeathWindow.prepare(); // RAGIDLE: "Você morreu"
 			CorreioIdle.prepare(); // RAGIDLE: "Correio" — DEPOIS de Rodex.prepare()/RodexIcon.prepare() (linhas acima): CorreioIdle.onAppend() esconde os _host nativos de Rodex/ReadRodex/RodexIcon, e os tres precisam ja existir. O ReadRodex e a excecao: ele so ganha _host quando o motor o apenda no primeiro 0x09eb, e por isso CorreioIdle tambem reconfere no tique
 			HuntAnalyzer.prepare(); // RAGIDLE: "Hunt Analyzer" — ANTES de TopMenuIdle.prepare(): o menu le isRagIdleWindowOpen(HuntAnalyzer, '.ha-window') no proprio tique de estado, e isso exige a shadow DOM ja pronta. Nao esconde nativo nenhum (e tela nova), entao nao depende de mais ninguem
@@ -941,19 +932,6 @@ function onMapChange(pkt) {
 		// tecnica de BasicInfoIdle.js pra BasicInfo).
 		MochilaIdle.append();
 
-		// RAGIDLE: "Barra de acoes" — faixa fixa na base da tela (DockIdle.js,
-		// pivo 19/08/2026). Mostra a rotacao de skills configurada
-		// (IdleConfig.editConfig.rotacao) e o botao "Auto" (herdado do
-		// extinto CombatCornerIdle — mesmo caminho de estado,
-		// IdleConfig.editConfig.cacaAutomatica + aliases publicos no fim de
-		// IdleConfig.js). needFocus=false (ver DockIdle.js) entao a ordem de
-		// append aqui nao afeta z-index; fica depois de HuntMap/IdleConfig/
-		// IdleSkills so por clareza de leitura, ja que DockIdle.onAppend()
-		// esconde os 3 botoes flutuantes redundantes deles (o prepare(), la
-		// em cima, e quem garante que a shadow DOM desses tres ja existe
-		// nesse ponto).
-		DockIdle.append();
-
 		// RAGIDLE: "Você morreu" — full-screen overlay, hidden until
 		// Session.Entity.life.hp reaches 0 (see DeathWindow.js).
 		DeathWindow.append();
@@ -1077,20 +1055,8 @@ function cleanGameUI() {
 
 	/*
 	 * OS COMPONENTES RAGIDLE TAMBEM ESQUECEM (27/08/2026, auditoria C).
-	 *
-	 * A lista acima tem OITO componentes, todos nativos, e nenhum RAGIDLE.
-	 * Voltar ao menu de personagem NAO recarrega a pagina — `onRestartAnswer`
-	 * chama `cleanGameUI()` e `onRestart()`, sem `GameEngine.reload()` (o reload
-	 * so acontece no SAIR) —, entao todo estado de MODULO atravessa a troca.
-	 *
-	 * O estrago mais direto: `DockIdle.onAppend` faz `if (!IdleConfig.editConfig)
-	 * IdleConfig.pedirConfig();`. Com a config do personagem A na mao, a
-	 * condicao e falsa, o pedido nao sai por ali, e a barra de acoes desenha a
-	 * configuracao de A enquanto o servidor esta logado como B. Um clique no
-	 * "Auto" nessa janela mandaria a config de A.
-	 *
-	 * Nao entram na lista acima porque nao ha um `clean` uniforme neles: cada
-	 * modulo sabe qual e o SEU estado, e a limpeza mora la.
+	 * Voltar ao menu de personagem nao recarrega a pagina; cada modulo abaixo
+	 * limpa o proprio estado antes de a proxima ficha ser anexada.
 	 */
 	/*
 	 * DE TRES PARA DOZE (28/08/2026, queixa do Jhow: *"quando troca de
@@ -1118,7 +1084,6 @@ function cleanGameUI() {
 		IdleSkills,
 		StatusIdle,
 		LFGIdle,
-		DockIdle,
 		CorreioIdle,
 		HuntAnalyzer,
 		HuntButtonIdle,

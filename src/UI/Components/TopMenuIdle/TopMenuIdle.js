@@ -309,6 +309,7 @@ TopMenuIdle.init = function init() {
  * recolhido salvo, deixa o leque fechado e liga o polling leve.
  */
 TopMenuIdle.onAppend = function onAppend() {
+	hideReplacedControls();
 	applyCollapsedState();
 
 	// Admin: mesma trava de conta dona de sempre -- so quem e a conta dona ve
@@ -759,9 +760,7 @@ function distribuirFileiras() {
 	if (!topo) {
 		return;
 	}
-	const visiveis = [...topo.querySelectorAll('.tm-item')].filter(
-		item => item.style.display !== 'none'
-	);
+	const visiveis = [...topo.querySelectorAll('.tm-item')].filter(item => item.style.display !== 'none');
 	topo.style.setProperty('--tm-colunas', String(Math.max(1, Math.ceil(visiveis.length / 2))));
 }
 
@@ -814,9 +813,7 @@ function escalonarLeque(fan) {
 	 * na conta sobraria um degrau vazio na onda.
 	 */
 	fan.querySelectorAll('.tm-col').forEach(coluna => {
-		const visiveis = [...coluna.querySelectorAll('.tm-item')].filter(
-			item => item.style.display !== 'none'
-		);
+		const visiveis = [...coluna.querySelectorAll('.tm-item')].filter(item => item.style.display !== 'none');
 		visiveis.forEach((item, ordem) => {
 			item.style.setProperty('--i', String(visiveis.length - 1 - ordem));
 		});
@@ -969,10 +966,39 @@ function isHostVisible(component) {
  * O tique do polling: pontos de notificacao + destaque dos itens.
  */
 function pollEstado() {
+	hideReplacedControls();
 	syncSkillDot();
 	syncCorreioDot();
 	syncToggleDot();
 	syncAllActiveStates();
+}
+
+/**
+ * Mantem fora da HUD os acessos que o proprio TopMenuIdle substitui.
+ *
+ * Esta responsabilidade vivia no DockIdle. Agora que a barra de acoes foi
+ * aposentada em favor da hotbar nativa, o menu que contem Caca, Idle e Skills
+ * passa a ser o dono natural desse hide reversivel. O botao de evoluir job e
+ * criado tardiamente fora da Shadow DOM, por isso a verificacao acompanha o
+ * polling do menu.
+ */
+function hideReplacedControls() {
+	for (const [component, selector] of [
+		[HuntMap, '.hm-button'],
+		[IdleConfig, '.ic-button'],
+		[IdleSkills, '.is-button']
+	]) {
+		const root = component.getRoot();
+		const button = root && root.querySelector(selector);
+		if (button) {
+			button.style.display = 'none';
+		}
+	}
+
+	const jobLevelButton = document.getElementById('lvlup_job');
+	if (jobLevelButton) {
+		jobLevelButton.style.display = 'none';
+	}
 }
 
 /**

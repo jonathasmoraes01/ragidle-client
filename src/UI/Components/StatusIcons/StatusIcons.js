@@ -21,6 +21,7 @@ import ScreenEffectManager from 'Renderer/ScreenEffectManager.js';
 import Session from 'Engine/SessionStorage.js';
 import htmlText from './StatusIcons.html?raw';
 import cssText from './StatusIcons.css?raw';
+import { getStatusEnd, getStatusIconsPerColumn, getStatusLabel, isStatusActive } from './statusTiming.js';
 
 /**
  * Create component
@@ -68,6 +69,7 @@ const TKM_ICON_OVERRIDE = {
  * Start rendering icons
  */
 StatusIcons.onAppend = function onAppend() {
+	resetElementsPosition();
 	Renderer.render(rendering);
 };
 
@@ -99,13 +101,11 @@ StatusIcons.clean = function clean() {
  * @param {number} life time
  */
 StatusIcons.update = function update(index, state, life) {
-	// Not in DB, no icons...
-	if (!(index in StatusTable) || !StatusTable[index].icon) {
-		return;
-	}
+	const active = isStatusActive(state);
 
-	// Remove it
-	if (!state && (!life || life <= 0)) {
+	// Um `state` explicito em zero e autoritativo, mesmo quando uma variante
+	// de servidor conserva RemainMS no pacote de remocao.
+	if (!active) {
 		removeElementIndex(index);
 		resetElementsPosition();
 		return;
@@ -118,11 +118,15 @@ StatusIcons.update = function update(index, state, life) {
 
 	// Save tick for progressbar
 	_status[index].start = Renderer.tick;
-	_status[index].end = Renderer.tick + life;
+	_status[index].end = getStatusEnd(Renderer.tick, life);
 
-	// 9999 means Infinity in official client (lol)
-	if (life === 9999) {
-		_status[index].end = Infinity;
+	// O cliente desta instalacao roda com loadLua:false porque o conjunto de
+	// dados nao possui todos os LUBs. Um EFST legitimo sem entrada hardcoded
+	// ainda precisa existir na HUD; recebe fallback ate haver arte oficial.
+	if (!StatusTable[index] || !StatusTable[index].icon) {
+		addFallbackStatusIcon(index);
+		ScreenEffectManager.parseStatus(index);
+		return;
 	}
 
 	// Image already loaded.
@@ -148,6 +152,9 @@ StatusIcons.update = function update(index, state, life) {
 			return;
 		}
 	}
+	if (_status[index].loading) {
+		return;
+	}
 
 	loadStatusIcon(index);
 
@@ -159,13 +166,62 @@ function loadStatusIcon(index) {
 	const tkmVariant = (isTKM && TKM_ICON_OVERRIDE[index]) || null;
 	const iconName = tkmVariant || StatusTable[index].icon;
 	_status[index].tkmVariant = tkmVariant;
-	Client.loadFile(`data/texture/effect/${iconName}`, data => {
-		Texture.load(data, function () {
-			if (_status[index] && !_status[index].img) {
-				addResizedStatusIcon(this, index);
-			}
-		});
-	});
+	_status[index].loading = true;
+	Client.loadFile(
+		`data/texture/effect/${iconName}`,
+		data => {
+			Texture.load(data, function (success) {
+				if (_status[index] && !_status[index].img) {
+					_status[index].loading = false;
+					if (!success || !this) {
+						addFallbackStatusIcon(index);
+						return;
+					}
+					addResizedStatusIcon(this, index);
+				}
+			});
+		},
+		() => addFallbackStatusIcon(index)
+	);
+}
+
+/**
+ * Um arquivo ausente nao pode transformar silenciosamente um buff ativo em
+ * "nada". O fallback preserva o slot e o tooltip ate o GRF ser corrigido.
+ */
+function addFallbackStatusIcon(index) {
+	if (!_status[index] || _status[index].img) {
+		return;
+	}
+
+	const canvas = document.createElement('canvas');
+	canvas.width = 32;
+	canvas.height = 32;
+	const ctx = canvas.getContext('2d');
+	const gradient = ctx.createLinearGradient(0, 0, 0, 32);
+	gradient.addColorStop(0, '#4b81b8');
+	gradient.addColorStop(1, '#12315a');
+	ctx.fillStyle = gradient;
+	ctx.beginPath();
+	ctx.roundRect(1, 1, 30, 30, 6);
+	ctx.fill();
+	ctx.strokeStyle = '#e9cc8f';
+	ctx.stroke();
+	ctx.fillStyle = '#ffffff';
+	ctx.font = '700 10px Arial';
+	ctx.textAlign = 'center';
+	ctx.textBaseline = 'middle';
+	const initials = getStatusLabel(SC, index)
+		.split(' ')
+		.slice(0, 2)
+		.map(word => word.charAt(0))
+		.join('')
+		.toUpperCase();
+	ctx.fillText(initials || '?', 16, 16);
+
+	_status[index].loading = false;
+	_status[index].img = canvas;
+	addElement(_status[index].element);
 }
 
 function addResizedStatusIcon(img, index) {
@@ -197,6 +253,9 @@ function addResizedStatusIcon(img, index) {
 	const resizedImg = new Image();
 	resizedImg.src = canvas.toDataURL();
 	resizedImg.onload = () => {
+		if (!_status[index]) {
+			return;
+		}
 		_status[index].img = resizedImg;
 		addElement(_status[index].element);
 	};
@@ -211,19 +270,19 @@ function resetElementsPosition() {
 	const root = StatusIcons.getRoot();
 	const elements = root.querySelectorAll('.state');
 	const count = elements.length;
-	let x = 0;
-	let y = 0;
+	const perColumn = getIconsPerColumn();
 
-	for (let i = 0; i < count; ++i, y += 36) {
-		if (y > Renderer.height - 166) {
-			y = 0;
-			x += 45;
-		}
-
+	for (let i = 0; i < count; ++i) {
 		const element = elements[i];
-		element.style.top = `${y}px`;
-		element.style.right = `${x}px`;
+		element.style.top = `${(i % perColumn) * 36}px`;
+		element.style.right = `${Math.floor(i / perColumn) * 45}px`;
 	}
+}
+
+function getIconsPerColumn() {
+	const hostTop =
+		StatusIcons._host && StatusIcons._host.isConnected ? StatusIcons._host.getBoundingClientRect().top : 0;
+	return getStatusIconsPerColumn(Renderer.height, hostTop);
 }
 
 /**
@@ -266,12 +325,17 @@ function createElement(index) {
 	_status[index].element = state;
 	_status[index].ctx = canvas.getContext('2d');
 
-	// Add description
-	if (StatusTable[index].descript) {
+	// Add description. Sem os LUBs stateicon, o nome do EFST e melhor que um
+	// icone mudo: deixa o jogador e o diagnostico identificarem o buff ausente.
+	const descriptions =
+		StatusTable[index] && StatusTable[index].descript && StatusTable[index].descript.length
+			? StatusTable[index].descript
+			: [[getStatusLabel(SC, index)]];
+	if (descriptions.length) {
 		const info = document.createElement('div');
 		info.className = 'description';
 
-		const lines = StatusTable[index].descript;
+		const lines = descriptions;
 		const count = lines.length;
 
 		for (let i = 0; i < count; ++i) {
@@ -308,7 +372,7 @@ function createElement(index) {
 function addElement(element) {
 	const root = StatusIcons.getRoot();
 	const elements = root.querySelectorAll('.state');
-	const max = ((Renderer.height - 166) / 36) | 0;
+	const max = getIconsPerColumn();
 	const count = elements.length;
 	const x = ((count / max) | 0) * 45;
 	const y = (count % max) * 36;
@@ -379,13 +443,11 @@ function renderStatus(status, now) {
 		 * isso a traducao passa por `emPortugues` DEPOIS — assim ela cobre os dois
 		 * casos, a tabela e o fallback.
 		 */
-		const unidade = (n, chave, padrao) =>
-			`${n} ${emPortugues(DB.getMessage(chave, padrao))}${n === 1 ? '' : 's'}`;
+		const unidade = (n, chave, padrao) => `${n} ${emPortugues(DB.getMessage(chave, padrao))}${n === 1 ? '' : 's'}`;
 		status.time.textContent =
 			now >= end || end === Infinity
 				? ''
-				: (minutes ? `${unidade(minutes, 1807, 'minute')} ` : '') +
-					unidade(seconds, 1808, 'second');
+				: (minutes ? `${unidade(minutes, 1807, 'minute')} ` : '') + unidade(seconds, 1808, 'second');
 	}
 }
 
