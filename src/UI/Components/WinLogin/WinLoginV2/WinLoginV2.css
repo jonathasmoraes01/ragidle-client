@@ -1,84 +1,175 @@
-/**
- * UI/Components/WinLogin/WinLoginV2/WinLoginV2.css
- *
- * Tela de login (D-GAUNTLET item 6b, 19/08/2026): redesenhada no padrao
- * RAGIDLE (.ri-window/.ri-header/.ri-title/.ri-close/.ri-btn/.ri-input, ver
- * UI/Common.css) no lugar do bitmap antigo do cliente.
- *
- * POR QUE nao ficou nenhum bitmap aqui: o GRF deste fork (ROLatam) nao tem
- * os arquivos que este layout pedia -- login_interface/bg_login.tga e todos
- * os botoes bt_join e bt_start (normal/over/press, todos .bmp) estao
- * ausentes, confirmado por leitura direta do data.grf em 19/08/2026. Antes
- * disso a janela renderizava praticamente invisivel: sem fundo, sem botao
- * nenhum, so o texto solto "Replay"/"Sign Up" flutuando sobre a arte de
- * fundo -- o clique funcionava (o elemento existe no DOM) mas ninguem
- * enxergava onde clicar. So o checkbox "lembrar" tinha bitmap de verdade
- * (chk_saveon/off.bmp) e ele pintava a palavra "manter" direto no pixel --
- * por isso ela virou texto de verdade aqui ("Manter conectado").
- *
- * Host cobre o VIEWPORT INTEIRO e centraliza a janela por flexbox, mesma
- * receita de CharSelectV4/CharCreatev4 -- e NAO a receita antiga desta
- * tela, que tinha o host do tamanho exato da janela posicionado por
- * top/left percentual. Motivo (achado por Playwright, 19/08/2026):
- * UIManager.fixResizeOverflow roda o clamp de viewport pra todo componente
- * registrado, nao so os arrastaveis, toda vez que o Renderer redimensiona
- * -- inclusive numa passada bem cedo, com a largura/altura do Renderer
- * ainda em zero (o WinLogin aparece ANTES da cena 3D iniciar, unico
- * componente nesse caso). Um host do tamanho da janela com left/top
- * percentual apanhava desse clamp e ficava preso no canto superior
- * esquerdo -- mascarado ate agora porque a janela nao tinha fundo/botao
- * visivel pra alguem notar a posicao errada. Um host do tamanho do
- * viewport nunca excede esse clamp, e quem centraliza a janela de verdade
- * e o flex do wrapper interno.
- */
-
+/* Host de viewport preserva o contrato com o clamp do Renderer antes do login.
+ * Composição central em todas as telas. Materiais vêm de Common.css. */
 :host {
 	position: absolute;
 	inset: 0;
 	width: 100%;
 	height: 100%;
 }
-
 #WinLogin {
 	position: absolute;
 	inset: 0;
 	display: flex;
-	align-items: center;
-	justify-content: center;
+	box-sizing: border-box;
+	padding: var(--sp-9) var(--sp-8);
+	overflow-y: auto;
+	overscroll-behavior: contain;
+	/* Login precede o Renderer: a arte acompanha o host mesmo antes de resize(). */
+	background: url('/ragidle/login/login-aventureiros.jpeg') center / cover no-repeat;
 }
-
-.wl-window {
-	width: 340px;
+.wl-composition {
+	width: min(100%, 400px);
 	display: flex;
 	flex-direction: column;
+	align-items: center;
+	margin: auto;
+	flex-shrink: 0;
 }
-
+.wl-logo {
+	position: relative;
+	z-index: 1;
+	display: block;
+	width: clamp(300px, 44vh, 440px);
+	max-width: calc(100% + var(--sp-9));
+	height: auto;
+	object-fit: contain;
+	flex-shrink: 0;
+	margin-bottom: calc(-2 * var(--sp-9));
+	pointer-events: none;
+}
+.wl-window {
+	position: relative;
+	width: 100%;
+	box-sizing: border-box;
+	overflow: visible;
+	box-shadow: var(--window-shadow), var(--rim-light), var(--shadow-float);
+}
+.wl-window::before,
+.wl-window::after {
+	content: '';
+	position: absolute;
+	pointer-events: none;
+}
+.wl-window::before {
+	inset: var(--sp-3);
+	border: 1px solid var(--border-gold);
+	border-radius: var(--radius-card);
+}
+.wl-window::after {
+	width: var(--sp-6);
+	height: var(--sp-6);
+	bottom: calc(-1 * var(--sp-3));
+	left: calc(50% - var(--sp-3));
+	transform: rotate(45deg);
+	border: 1px solid var(--gold-500);
+	background: linear-gradient(135deg, var(--sky-200), var(--blue-600));
+	box-shadow: var(--rim-light);
+}
+.wl-corner {
+	position: absolute;
+	top: var(--sp-6);
+	width: var(--sp-8);
+	height: var(--sp-8);
+	border-top: 2px solid var(--gold-500);
+	pointer-events: none;
+}
+.wl-corner--left {
+	left: var(--sp-6);
+	border-left: 2px solid var(--gold-500);
+}
+.wl-corner--right {
+	right: var(--sp-6);
+	border-right: 2px solid var(--gold-500);
+}
+.wl-header {
+	position: relative;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	padding: calc(2 * var(--sp-8)) var(--sp-9) 0;
+	text-align: center;
+}
+.wl-eyebrow {
+	margin: 0 0 var(--sp-5);
+	font: var(--type-label);
+	letter-spacing: var(--ls-caps);
+	color: var(--gold-700);
+	text-transform: uppercase;
+}
+.wl-title {
+	margin: 0;
+	font: var(--type-hero);
+	color: var(--text-title);
+	letter-spacing: var(--ls-title);
+	text-wrap: balance;
+}
+.wl-close {
+	top: var(--sp-4);
+	right: var(--sp-4);
+	transform: none;
+	width: var(--hit-touch);
+	height: var(--hit-touch);
+	border: none;
+	background: transparent;
+	font-size: var(--fs-numeric-lg);
+}
+.wl-ornament {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: var(--sp-6);
+	width: 100%;
+	margin-top: var(--sp-7);
+}
+.wl-ornament::before,
+.wl-ornament::after {
+	content: '';
+	height: 1px;
+	flex: 1;
+	background: var(--ornament-gold);
+}
+.wl-ornament span {
+	width: var(--sp-3);
+	height: var(--sp-3);
+	transform: rotate(45deg);
+	border: 1px solid var(--gold-500);
+	background: var(--gold-200);
+}
 .wl-body {
 	display: flex;
 	flex-direction: column;
 	gap: var(--sp-6);
-	padding: var(--pad-window) var(--sp-8);
+	padding: var(--sp-7) calc(var(--sp-9) + var(--sp-6)) var(--sp-6);
 }
-
 .wl-field {
 	display: flex;
 	flex-direction: column;
-	gap: var(--sp-2);
+	gap: var(--sp-4);
 }
-
 .wl-label {
 	font: var(--type-label);
-	color: var(--text-muted);
+	font-size: var(--fs-section);
+	color: var(--text-body);
 }
-
 .wl-field .ri-input {
 	width: 100%;
 	box-sizing: border-box;
-	height: 32px;
+	height: var(--hit-touch);
+	padding-inline: var(--sp-6);
+	font-size: var(--fs-numeric-lg);
+	background: var(--surface-card);
+	border: 1px solid var(--border-window);
+	box-shadow: var(--well-shadow), var(--rim-light);
+	transition:
+		border-color var(--dur-fast) var(--ease-out),
+		background var(--dur-fast) var(--ease-out);
 }
-
-/* Checkbox "Manter conectado", substitui chk_saveon/off.bmp -- a unica arte
-   deste conjunto que pintava texto no pixel (a palavra "manter"). */
+.wl-field .ri-input:hover {
+	border-color: var(--blue-500);
+}
+.wl-field .ri-input:focus {
+	background: var(--paper-1);
+}
 .wl-save {
 	appearance: none;
 	border: none;
@@ -86,25 +177,26 @@
 	cursor: pointer;
 	display: inline-flex;
 	align-items: center;
-	gap: var(--sp-3);
+	gap: var(--sp-4);
 	padding: 0;
 	color: var(--text-body);
 	font: var(--type-info);
 	align-self: flex-start;
+	min-height: var(--hit-touch);
+	margin-block: calc(-1 * var(--sp-4));
 }
 .wl-save-box {
 	position: relative;
 	flex: 0 0 auto;
 	width: 16px;
 	height: 16px;
-	border-radius: 3px;
-	border: 1px solid var(--border-hairline);
+	border-radius: var(--radius-bar);
+	border: 1px solid var(--blue-500);
 	background: var(--white);
 	box-shadow: var(--well-shadow);
-	transition: background var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out);
 }
 .wl-save.is-checked .wl-save-box {
-	background: linear-gradient(180deg, var(--blue-500) 0%, var(--blue-600) 100%);
+	background: var(--tab-active-fill);
 	border-color: var(--blue-600);
 	box-shadow: var(--rim-light), var(--shadow-card);
 }
@@ -119,21 +211,99 @@
 	border-bottom: 2px solid var(--white);
 	transform: rotate(45deg);
 	opacity: 0;
-	transition: opacity var(--dur-fast) var(--ease-out);
 }
 .wl-save.is-checked .wl-save-box::after {
 	opacity: 1;
 }
-
 .connect {
+	position: relative;
 	width: 100%;
 	box-sizing: border-box;
+	min-height: 48px;
+	font-size: var(--fs-numeric-lg);
+	border: 1px solid var(--blue-700);
+	background: linear-gradient(180deg, var(--blue-500), var(--blue-600) 60%, var(--blue-700));
+	box-shadow: var(--rim-light), var(--shadow-float);
 }
-
+.connect::before {
+	content: '';
+	position: absolute;
+	inset: var(--sp-2);
+	border: 1px solid var(--border-gold);
+	border-radius: var(--radius-bar);
+	pointer-events: none;
+}
+.wl-arrow {
+	position: absolute;
+	right: var(--sp-8);
+	color: var(--gold-300);
+}
 .wl-links {
 	display: flex;
-	gap: var(--sp-4);
+	align-items: center;
+	justify-content: center;
+	flex-wrap: wrap;
+	gap: 0 var(--sp-4);
+	font: var(--type-info);
+	color: var(--text-body);
 }
-.wl-links .ri-btn {
-	flex: 1 1 50%;
+.wl-link {
+	appearance: none;
+	border: none;
+	background: transparent;
+	padding: 0 var(--sp-2);
+	min-height: var(--hit-touch);
+	font: var(--type-label);
+	font-size: var(--fs-section);
+	color: var(--text-link);
+	cursor: pointer;
+	text-underline-offset: var(--sp-2);
+	transition: color var(--dur-fast) var(--ease-out);
+}
+.wl-link:hover {
+	color: var(--text-title);
+	text-decoration: underline;
+}
+.wl-replay {
+	align-self: center;
+	font: var(--type-info);
+	margin-top: calc(-1 * var(--sp-6));
+}
+button:focus-visible,
+input:focus-visible {
+	outline: 2px solid var(--blue-600);
+	outline-offset: 3px;
+}
+@media (max-width: 440px) {
+	#WinLogin {
+		padding: var(--sp-7);
+	}
+	.wl-body {
+		padding-inline: var(--sp-9);
+	}
+	.wl-logo {
+		width: 300px;
+		max-width: 100%;
+	}
+	.wl-title {
+		font-size: calc(var(--fs-hero) - var(--sp-2));
+	}
+}
+@media (max-height: 700px) {
+	.wl-logo {
+		width: 280px;
+	}
+	.wl-body {
+		gap: var(--sp-6);
+	}
+	.wl-replay {
+		margin-top: calc(-1 * var(--sp-6));
+	}
+}
+@media (prefers-reduced-motion: reduce) {
+	*,
+	*::before,
+	*::after {
+		transition: none !important;
+	}
 }

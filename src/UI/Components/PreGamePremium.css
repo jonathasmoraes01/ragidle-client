@@ -1,0 +1,180 @@
+/* Mesma família visual do login. Usado apenas pelas telas de personagem V4. */
+:host {
+	position: absolute;
+	inset: 0;
+	width: 100%;
+	height: 100%;
+	min-width: 0;
+	min-height: 0;
+	max-width: none;
+	max-height: none;
+}
+.pg-screen {
+	position: absolute;
+	inset: 0;
+	display: flex;
+	padding: var(--sp-7);
+	box-sizing: border-box;
+	overflow: auto;
+	background: url('/ragidle/login/login-aventureiros.jpeg') center / cover no-repeat;
+}
+.pg-composition {
+	width: min(100%, 1100px);
+	margin: auto;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	min-width: 0;
+}
+.pg-logo {
+	width: 220px;
+	max-width: 70%;
+	height: auto;
+	display: block;
+	position: relative;
+	z-index: 1;
+	margin-bottom: calc(-1 * var(--sp-9));
+	pointer-events: none;
+	flex: none;
+}
+.pg-panel {
+	position: relative;
+	width: 100%;
+	box-sizing: border-box;
+	display: flex;
+	flex-direction: column;
+	max-height: calc(100dvh - 150px);
+	box-shadow: var(--window-shadow), var(--rim-light), var(--shadow-float);
+}
+.pg-panel::before {
+	content: '';
+	position: absolute;
+	inset: var(--sp-3);
+	border: 1px solid var(--border-gold);
+	border-radius: var(--radius-card);
+	pointer-events: none;
+	z-index: 1;
+}
+.pg-heading {
+	position: relative;
+	flex: none;
+	padding: var(--sp-9) var(--sp-9) var(--sp-7);
+	text-align: center;
+	background: transparent;
+	height: auto;
+	cursor: default;
+}
+.pg-eyebrow {
+	margin: 0 0 var(--sp-3);
+	color: var(--gold-700);
+	font: var(--type-label);
+	letter-spacing: var(--ls-caps);
+}
+.pg-title {
+	margin: 0;
+	font: var(--type-hero);
+	color: var(--text-title);
+	letter-spacing: var(--ls-title);
+}
+.pg-subtitle {
+	margin: var(--sp-4) 0 0;
+	font: var(--type-info);
+	color: var(--text-body);
+}
+.pg-heading::after {
+	content: '';
+	display: block;
+	height: 1px;
+	margin-top: var(--sp-7);
+	background: var(--ornament-gold);
+}
+.pg-close {
+	position: absolute;
+	top: var(--sp-4);
+	right: var(--sp-4);
+	transform: none;
+	width: var(--hit-touch);
+	height: var(--hit-touch);
+	border: none;
+	background: transparent;
+	color: var(--gold-700);
+	font-size: var(--fs-numeric-lg);
+	cursor: pointer;
+}
+.pg-section-title {
+	font: var(--type-section);
+	color: var(--text-title);
+	margin: 0 0 var(--sp-6);
+}
+.pg-primary {
+	position: relative;
+	min-height: 48px;
+	background: linear-gradient(180deg, var(--blue-500), var(--blue-600) 60%, var(--blue-700));
+	box-shadow: var(--rim-light), var(--shadow-float);
+}
+.pg-primary::after {
+	content: '';
+	position: absolute;
+	inset: var(--sp-2);
+	border: 1px solid var(--border-gold);
+	border-radius: var(--radius-bar);
+	pointer-events: none;
+}
+.pg-panel button:focus-visible,
+.pg-panel canvas:focus-visible,
+.pg-panel input:focus-visible {
+	outline: 2px solid var(--blue-600);
+	outline-offset: 3px;
+}
+@media (max-width: 600px) {
+	.pg-screen {
+		padding: var(--sp-4);
+	}
+	.pg-logo {
+		width: 170px;
+		margin-bottom: calc(-1 * var(--sp-8));
+	}
+	.pg-panel {
+		max-height: calc(100dvh - 115px);
+	}
+	.pg-heading {
+		padding: var(--sp-8) var(--sp-7) var(--sp-6);
+	}
+	.pg-title {
+		font-size: calc(var(--fs-hero) - var(--sp-2));
+	}
+}
+@media (min-width: 601px) and (max-height: 800px) {
+	.pg-logo {
+		width: 180px;
+		margin-bottom: calc(-1 * var(--sp-8));
+	}
+	.pg-panel {
+		max-height: calc(100dvh - 140px);
+	}
+	.pg-heading {
+		padding-top: var(--sp-8);
+		padding-bottom: var(--sp-6);
+	}
+	.pg-subtitle {
+		display: none;
+	}
+	.pg-heading::after {
+		margin-top: var(--sp-4);
+	}
+}
+@media (max-height: 500px) {
+	.pg-logo {
+		width: 120px;
+	}
+	.pg-panel {
+		max-height: calc(100dvh - 85px);
+	}
+}
+@media (prefers-reduced-motion: reduce) {
+	.pg-screen *,
+	.pg-screen *::before,
+	.pg-screen *::after {
+		transition: none !important;
+	}
+}

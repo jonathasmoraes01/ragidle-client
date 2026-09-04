@@ -131,6 +131,20 @@ export function createCharSelect(config) {
 				const slot = root.querySelector(`#slot${i}`);
 				if (slot) {
 					slot.addEventListener('mousedown', genericCanvasDown(i));
+					slot.tabIndex = 0;
+					slot.setAttribute('role', 'button');
+					slot.addEventListener('focus', () => moveCursorTo(i));
+					slot.addEventListener('keydown', event => {
+						if (event.key === ' ') {
+							event.preventDefault();
+							event.stopImmediatePropagation();
+							if (_slots[i]) {
+								connect();
+							} else {
+								create();
+							}
+						}
+					});
 				}
 			}
 
@@ -306,6 +320,9 @@ export function createCharSelect(config) {
 				break;
 
 			case KEYS.ENTER:
+				if (gridLayout && this._shadow.activeElement?.tagName === 'BUTTON') {
+					return true;
+				}
 				if (_slots[_index]) {
 					connect();
 				} else {
@@ -1328,6 +1345,10 @@ export function createCharSelect(config) {
 		const jobIcons = root.querySelectorAll('.job_icon');
 
 		for (let i = start; i < loopMax; ++i) {
+			root.querySelector(`#slot${i}`)?.setAttribute(
+				'aria-label',
+				_slots[i] ? `Selecionar ${_slots[i].name}` : `Criar personagem na vaga ${i + 1}`
+			);
 			if (charCanvases[i]) {
 				charCanvases[i].querySelector('.name').innerHTML = _slots[i] ? _slots[i].name : '';
 			}

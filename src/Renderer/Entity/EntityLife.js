@@ -11,6 +11,9 @@
 import glMatrix from 'Utils/gl-matrix.js';
 import DB from 'DB/DBManager.js';
 import EntityOverlay from 'Renderer/Entity/EntityOverlay.js';
+import Events from 'Core/Events.js';
+import Renderer from 'Renderer/Renderer.js';
+import VidaNoImpacto from 'Renderer/Entity/VidaNoImpacto.js';
 
 /**
  * Global methods
@@ -53,6 +56,12 @@ class Life {
 		this.entity = null;
 		this.hunger = -1;
 		this.hunger_max = -1;
+		this.vidaNoImpacto = new VidaNoImpacto(
+			() => Renderer.tick,
+			Events.setTimeout,
+			Events.clearTimeout,
+			() => this.update()
+		);
 	}
 
 	/**
@@ -67,7 +76,13 @@ class Life {
 	 * Clean Up Life
 	 */
 	clean() {
+		this.vidaNoImpacto.limpar();
 		this.remove();
+	}
+
+	registrarImpactos(instantes) {
+		this.vidaNoImpacto.receber(this.hp, this.hp_max);
+		this.vidaNoImpacto.registrar(instantes);
 	}
 
 	/**
@@ -87,7 +102,9 @@ class Life {
 		// Init variables
 		this.display = true;
 		const ctx = this.ctx;
-		const hp_per = this.hp / this.hp_max;
+		const hpVisivel =
+			this.entity.objecttype === Entity.TYPE_MOB ? this.vidaNoImpacto.receber(this.hp, this.hp_max) : this.hp;
+		const hp_per = hpVisivel / this.hp_max;
 		const sp = this.sp > -1 && this.sp_max > -1;
 		const sp_per = this.sp / this.sp_max;
 		const ap = this.ap > -1 && this.ap_max > -1;

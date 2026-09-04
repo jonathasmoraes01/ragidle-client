@@ -45,20 +45,13 @@ export function createWinLogin({ name, htmlText, cssText }) {
 		_inputPassword = root.querySelector('.pass');
 		_buttonSave = root.querySelector('.save');
 
-		// Input handlers — clear on mousedown
-		_inputUsername.addEventListener('mousedown', function (event) {
-			this.focus();
-			this.value = '';
-			event.stopImmediatePropagation();
-		});
-		_inputPassword.addEventListener('mousedown', function (event) {
-			this.focus();
-			this.value = '';
-			event.stopImmediatePropagation();
-		});
+		// Preserve typed credentials when positioning the caret or using autofill.
+		for (const input of [_inputUsername, _inputPassword]) {
+			input.addEventListener('mousedown', event => event.stopImmediatePropagation());
+		}
 
 		// Save button toggle
-		_buttonSave.addEventListener('mousedown', event => {
+		_buttonSave.addEventListener('click', event => {
 			toggleSaveButton();
 			event.stopImmediatePropagation();
 		});
@@ -106,6 +99,7 @@ export function createWinLogin({ name, htmlText, cssText }) {
 		// de classe + texto de verdade em WinLoginV2.html/css -- o ESTADO
 		// (_preferences.saveID) continua exatamente o mesmo.
 		_buttonSave.classList.toggle('is-checked', _preferences.saveID);
+		_buttonSave.setAttribute('aria-pressed', String(_preferences.saveID));
 
 		if (_preferences.ID.length) {
 			_inputPassword.focus();
@@ -121,6 +115,9 @@ export function createWinLogin({ name, htmlText, cssText }) {
 
 		switch (event.which) {
 			case KEYS.ENTER:
+				if (this._shadow.activeElement?.tagName === 'BUTTON') {
+					return true;
+				}
 				connect();
 				event.stopImmediatePropagation();
 				return false;
@@ -129,10 +126,13 @@ export function createWinLogin({ name, htmlText, cssText }) {
 				event.stopImmediatePropagation();
 				return false;
 			case KEYS.TAB: {
-				const activeEl = this._shadow.activeElement;
-				const target = activeEl === _inputUsername ? _inputPassword : _inputUsername;
+				const controls = [...this.getRoot().querySelectorAll('input:not([type="file"]), button')].filter(
+					el => !el.disabled && el.getClientRects().length
+				);
+				const index = controls.indexOf(this._shadow.activeElement);
+				const target = controls[(index + (event.shiftKey ? -1 : 1) + controls.length) % controls.length];
 				target.focus();
-				target.select();
+				event.preventDefault();
 				event.stopImmediatePropagation();
 				return false;
 			}
@@ -143,6 +143,7 @@ export function createWinLogin({ name, htmlText, cssText }) {
 	function toggleSaveButton() {
 		_preferences.saveID = !_preferences.saveID;
 		_buttonSave.classList.toggle('is-checked', _preferences.saveID);
+		_buttonSave.setAttribute('aria-pressed', String(_preferences.saveID));
 	}
 
 	function exit() {

@@ -1,142 +1,162 @@
-<div id="CharSelectV4">
-	<div class="char_select_container ri-window">
-		<div class="cs-header ri-header">
-			<span class="cs-title ri-title">Selecionar Personagem</span>
-			<ui-button class="btn cancel cs-close ri-close" title="Sair">&times;</ui-button>
-		</div>
-		<div class="cs-body">
-		<!-- BOX -->
-		<div class="char_list ri-scroll">
-			<div class="char_canvas">
-				<canvas id="slot0" width="157" height="195"></canvas>
-				<div class="name"></div>
-				<div class="job_icon"></div>
-				<div class="timedelete slot0 hidden"></div>
+<div id="CharSelectV4" class="pg-screen">
+	<div class="pg-composition">
+		<img
+			class="pg-logo"
+			src="/ragidle/login/logo-classic-idle.webp"
+			alt="Ragnarok Classic Idle"
+			width="1280"
+			height="855"
+			draggable="false"
+		/>
+		<div class="char_select_container ri-window pg-panel">
+			<div class="cs-header pg-heading">
+				<p class="pg-eyebrow">Seu legado em Midgard</p>
+				<h1 class="cs-title pg-title">Seus personagens</h1>
+				<p class="pg-subtitle">Escolha um personagem ou uma vaga para começar uma nova aventura.</p>
+				<button
+					type="button"
+					class="btn cancel cs-close pg-close"
+					aria-label="Voltar ao login"
+					title="Voltar ao login"
+				>
+					&times;
+				</button>
 			</div>
+			<div class="cs-body">
+				<!-- BOX -->
+				<div class="char_list ri-scroll">
+					<div class="char_canvas">
+						<canvas id="slot0" width="157" height="195"></canvas>
+						<div class="name"></div>
+						<div class="job_icon"></div>
+						<div class="timedelete slot0 hidden"></div>
+					</div>
 
-			<div class="char_canvas">
-				<canvas id="slot1" width="157" height="195"></canvas>
-				<div class="name"></div>
-				<div class="job_icon"></div>
-				<div class="timedelete slot1 hidden"></div>
-			</div>
+					<div class="char_canvas">
+						<canvas id="slot1" width="157" height="195"></canvas>
+						<div class="name"></div>
+						<div class="job_icon"></div>
+						<div class="timedelete slot1 hidden"></div>
+					</div>
 
-			<div class="char_canvas">
-				<canvas id="slot2" width="157" height="195"></canvas>
-				<div class="name"></div>
-				<div class="job_icon"></div>
-				<div class="timedelete slot2 hidden"></div>
-			</div>
+					<div class="char_canvas">
+						<canvas id="slot2" width="157" height="195"></canvas>
+						<div class="name"></div>
+						<div class="job_icon"></div>
+						<div class="timedelete slot2 hidden"></div>
+					</div>
 
-			<div class="char_canvas">
-				<canvas id="slot3" width="157" height="195"></canvas>
-				<div class="name"></div>
-				<div class="job_icon"></div>
-				<div class="timedelete slot3 hidden"></div>
-			</div>
+					<div class="char_canvas">
+						<canvas id="slot3" width="157" height="195"></canvas>
+						<div class="name"></div>
+						<div class="job_icon"></div>
+						<div class="timedelete slot3 hidden"></div>
+					</div>
 
-			<div class="char_canvas">
-				<canvas id="slot4" width="157" height="195"></canvas>
-				<div class="name"></div>
-				<div class="job_icon"></div>
-				<div class="timedelete slot4 hidden"></div>
-			</div>
+					<div class="char_canvas">
+						<canvas id="slot4" width="157" height="195"></canvas>
+						<div class="name"></div>
+						<div class="job_icon"></div>
+						<div class="timedelete slot4 hidden"></div>
+					</div>
 
-			<div class="char_canvas">
-				<canvas id="slot5" width="157" height="195"></canvas>
-				<div class="name"></div>
-				<div class="job_icon"></div>
-				<div class="timedelete slot5 hidden"></div>
-			</div>
+					<div class="char_canvas">
+						<canvas id="slot5" width="157" height="195"></canvas>
+						<div class="name"></div>
+						<div class="job_icon"></div>
+						<div class="timedelete slot5 hidden"></div>
+					</div>
 
-			<div class="char_canvas">
-				<canvas id="slot6" width="157" height="195"></canvas>
-				<div class="name"></div>
-				<div class="job_icon"></div>
-				<div class="timedelete slot6 hidden"></div>
-			</div>
+					<div class="char_canvas">
+						<canvas id="slot6" width="157" height="195"></canvas>
+						<div class="name"></div>
+						<div class="job_icon"></div>
+						<div class="timedelete slot6 hidden"></div>
+					</div>
 
-			<div class="char_canvas">
-				<canvas id="slot7" width="157" height="195"></canvas>
-				<div class="name"></div>
-				<div class="job_icon"></div>
-				<div class="timedelete slot7 hidden"></div>
-			</div>
+					<div class="char_canvas">
+						<canvas id="slot7" width="157" height="195"></canvas>
+						<div class="name"></div>
+						<div class="job_icon"></div>
+						<div class="timedelete slot7 hidden"></div>
+					</div>
 
-			<div class="char_canvas">
-				<canvas id="slot8" width="157" height="195"></canvas>
-				<div class="name"></div>
-				<div class="job_icon"></div>
-				<div class="timedelete slot8 hidden"></div>
-			</div>
+					<div class="char_canvas">
+						<canvas id="slot8" width="157" height="195"></canvas>
+						<div class="name"></div>
+						<div class="job_icon"></div>
+						<div class="timedelete slot8 hidden"></div>
+					</div>
 
-			<div class="char_canvas">
-				<canvas id="slot9" width="157" height="195"></canvas>
-				<div class="name"></div>
-				<div class="job_icon"></div>
-				<div class="timedelete slot9 hidden"></div>
-			</div>
+					<div class="char_canvas">
+						<canvas id="slot9" width="157" height="195"></canvas>
+						<div class="name"></div>
+						<div class="job_icon"></div>
+						<div class="timedelete slot9 hidden"></div>
+					</div>
 
-			<div class="char_canvas">
-				<canvas id="slot10" width="157" height="195"></canvas>
-				<div class="name"></div>
-				<div class="job_icon"></div>
-				<div class="timedelete slot10 hidden"></div>
-			</div>
+					<div class="char_canvas">
+						<canvas id="slot10" width="157" height="195"></canvas>
+						<div class="name"></div>
+						<div class="job_icon"></div>
+						<div class="timedelete slot10 hidden"></div>
+					</div>
 
-			<div class="char_canvas">
-				<canvas id="slot11" width="157" height="195"></canvas>
-				<div class="name"></div>
-				<div class="job_icon"></div>
-				<div class="timedelete slot11 hidden"></div>
-			</div>
+					<div class="char_canvas">
+						<canvas id="slot11" width="157" height="195"></canvas>
+						<div class="name"></div>
+						<div class="job_icon"></div>
+						<div class="timedelete slot11 hidden"></div>
+					</div>
 
-			<div class="char_canvas">
-				<canvas id="slot12" width="157" height="195"></canvas>
-				<div class="name"></div>
-				<div class="job_icon"></div>
-				<div class="timedelete slot12 hidden"></div>
-			</div>
+					<div class="char_canvas">
+						<canvas id="slot12" width="157" height="195"></canvas>
+						<div class="name"></div>
+						<div class="job_icon"></div>
+						<div class="timedelete slot12 hidden"></div>
+					</div>
 
-			<div class="char_canvas">
-				<canvas id="slot13" width="157" height="195"></canvas>
-				<div class="name"></div>
-				<div class="job_icon"></div>
-				<div class="timedelete slot13 hidden"></div>
-			</div>
+					<div class="char_canvas">
+						<canvas id="slot13" width="157" height="195"></canvas>
+						<div class="name"></div>
+						<div class="job_icon"></div>
+						<div class="timedelete slot13 hidden"></div>
+					</div>
 
-			<div class="char_canvas">
-				<canvas id="slot14" width="157" height="195"></canvas>
-				<div class="name"></div>
-				<div class="job_icon"></div>
-				<div class="timedelete slot14 hidden"></div>
-			</div>
-		</div>
+					<div class="char_canvas">
+						<canvas id="slot14" width="157" height="195"></canvas>
+						<div class="name"></div>
+						<div class="job_icon"></div>
+						<div class="timedelete slot14 hidden"></div>
+					</div>
+				</div>
 
-		<!-- Characters infos -->
-		<div class="charinfo ri-card">
-			<div class="map"></div>
-			<div class="job"></div>
-			<div class="lvl"></div>
-			<div class="exp"></div>
-			<div class="hp"></div>
-			<div class="sp"></div>
-			<!-- "span", nao "div", de proposito: moveCursorToGrid() (V4) tem um
+				<!-- Characters infos -->
+				<div class="charinfo ri-card">
+					<h2 class="pg-section-title">Ficha do personagem</h2>
+					<p class="cs-empty-hint">Selecione um personagem para ver sua ficha.</p>
+					<div class="map"></div>
+					<div class="job"></div>
+					<div class="lvl"></div>
+					<div class="exp"></div>
+					<div class="hp"></div>
+					<div class="sp"></div>
+					<!-- "span", nao "div", de proposito: moveCursorToGrid() (V4) tem um
 			     ramo que faz "charinfo.querySelectorAll('div').forEach(div =>
 			     div.textContent = '')" quando o slot esta vazio -- um DIV
 			     agrupador aqui seria pego por esse seletor generico e teria
 			     seus filhos apagados (textContent limpa a subarvore inteira).
 			     Um span com display:grid no CSS agrupa do mesmo jeito sem
 			     entrar nesse seletor. -->
-			<span class="cs-attrs">
-				<div class="str"></div>
-				<div class="agi"></div>
-				<div class="vit"></div>
-				<div class="int"></div>
-				<div class="dex"></div>
-				<div class="luk"></div>
-			</span>
-			<!-- Rotulos em PORTUGUES (20/08/2026). Eram <ui-text msg="NNNN">, que
+					<span class="cs-attrs">
+						<div class="str"></div>
+						<div class="agi"></div>
+						<div class="vit"></div>
+						<div class="int"></div>
+						<div class="dex"></div>
+						<div class="luk"></div>
+					</span>
+					<!-- Rotulos em PORTUGUES (20/08/2026). Eram <ui-text msg="NNNN">, que
 			     le a msgstring do cliente e devolve INGLES ("Delete", "Cancel
 			     Deletion", "Start Game") -- o resto desta janela ja estava em
 			     portugues ("Selecionar Personagem", Mapa/Classe/Nivel/EXP), e
@@ -146,17 +166,18 @@
 			     fixar o texto e nao usar o elemento. Ficam os mesmos seletores
 			     (.delete/.canceldelete/.finaldelete/.ok) que o
 			     CharSelectCommon.js e a automacao usam. -->
-			<ui-button class="btn delete ri-btn ri-btn--sec">Excluir</ui-button>
-			<ui-button class="btn canceldelete ri-btn ri-btn--sec">Cancelar</ui-button>
-			<ui-button class="btn finaldelete ri-btn ri-btn--ouro">Excluir</ui-button>
-			<ui-button class="btn ok ri-btn">Entrar</ui-button>
-			<!-- Pages infos: markup mantido pelo contrato de versoes irmas
+					<button type="button" class="btn delete ri-btn ri-btn--sec">Excluir personagem</button>
+					<button type="button" class="btn canceldelete ri-btn ri-btn--sec">Cancelar exclusão</button>
+					<button type="button" class="btn finaldelete ri-btn ri-btn--sec">Confirmar exclusão</button>
+					<button type="button" class="btn ok ri-btn pg-primary">Entrar em Midgard</button>
+					<!-- Pages infos: markup mantido pelo contrato de versoes irmas
 			     (V1/V2/V3 pagined usam), mas o layout em grade (V4) nunca
 			     escreve nele -- CharSelectCommon.js so atualiza ".pageinfo"
 			     no ramo "!gridLayout". Escondido pra nao mostrar "1 / 9"
 			     estatico e errado (15 slots reais, nao 9). -->
-			<div class="pageinfo"><span class="current">1</span> / <span class="count">9</span></div>
-		</div>
+					<div class="pageinfo"><span class="current">1</span> / <span class="count">9</span></div>
+				</div>
+			</div>
 		</div>
 	</div>
 </div>

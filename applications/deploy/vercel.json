@@ -4,26 +4,54 @@
 	"buildCommand": "",
 	"installCommand": "",
 	"outputDirectory": ".",
-	"headers": [
+	"routes": [
 		{
-			"source": "/(Online|ThreadEventHandler|PathFindingWorker|api).js",
-			"headers": [{ "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" }]
+			"src": "^/$",
+			"has": [
+				{
+					"type": "host",
+					"value": "play.roclassicidle.com.br"
+				}
+			],
+			"dest": "/api.html"
 		},
 		{
-			"source": "/(index.html|api.html|Config.js|Config.local.js|jogo/index.html)",
-			"headers": [{ "key": "Cache-Control", "value": "no-cache" }]
+			"src": "^/(Online|ThreadEventHandler|PathFindingWorker|api)\\.js$",
+			"headers": {
+				"Cache-Control": "public, max-age=0, must-revalidate"
+			},
+			"continue": true
 		},
 		{
-			"source": "/assets/(.*)",
-			"headers": [{ "key": "Cache-Control", "value": "public, max-age=3600" }]
+			"src": "^/(index\\.html|api\\.html|Config\\.js|Config\\.local\\.js)$",
+			"headers": {
+				"Cache-Control": "no-cache"
+			},
+			"continue": true
 		},
 		{
-			"source": "/css/(.*)",
-			"headers": [{ "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" }]
+			"src": "^/assets/(.*)$",
+			"headers": {
+				"Cache-Control": "public, max-age=3600"
+			},
+			"continue": true
 		},
 		{
-			"source": "/js/(.*)",
-			"headers": [{ "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" }]
+			"src": "^/css/(.*)$",
+			"headers": {
+				"Cache-Control": "public, max-age=0, must-revalidate"
+			},
+			"continue": true
+		},
+		{
+			"src": "^/js/(.*)$",
+			"headers": {
+				"Cache-Control": "public, max-age=0, must-revalidate"
+			},
+			"continue": true
+		},
+		{
+			"handle": "filesystem"
 		}
 	]
 }

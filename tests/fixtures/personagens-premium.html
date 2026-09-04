@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="pt-BR">
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Prévia de layout — personagens</title>
+<style>body{margin:0}nav{position:fixed;top:0;left:0;z-index:100;font:12px Arial;background:white;padding:6px}nav a{margin-right:12px}</style>
+<nav>Layout sem servidor/sprites · <a href="?tela=selecao">Seleção</a><a href="?tela=criacao">Criação</a></nav>
+<main id="preview"></main>
+<script type="module">
+import common from '/src/UI/Common.css?raw';
+import premium from '/src/UI/Components/PreGamePremium.css?raw';
+import selection from '/src/UI/Components/CharSelect/CharSelectV4/CharSelectV4.html?raw';
+import selectionCss from '/src/UI/Components/CharSelect/CharSelectV4/CharSelectV4.css?raw';
+import creation from '/src/UI/Components/CharCreate/CharCreatev4/CharCreatev4.html?raw';
+import creationCss from '/src/UI/Components/CharCreate/CharCreatev4/CharCreatev4.css?raw';
+const create = new URLSearchParams(location.search).get('tela') === 'criacao';
+const root = document.querySelector('#preview').attachShadow({mode: 'open'});
+root.innerHTML = `<style>${common}${premium}${create ? creationCss : selectionCss}</style>${create ? creation : selection}`;
+if (create) {
+ const labels = {'.title':'Criar personagem','.human_title':'Humano','.doram_title':'Doram','.human_desc':'Habitante de Midgard.','.doram_desc':'Originário de Far-star.','.hair_style_title':'Estilo de cabelo','.hair_color_title':'Cor do cabelo','.make':'Criar personagem','.return':'Voltar'};
+ for (const [selector, label] of Object.entries(labels)) root.querySelector(selector).textContent = label;
+ root.querySelector('#human_male').style.display = 'block';
+} else {
+ root.querySelectorAll('.char_canvas').forEach(slot => slot.classList.add('is-empty'));
+ for (const selector of ['.delete','.canceldelete','.finaldelete','.ok']) root.querySelector(selector).style.display = 'none';
+}
+</script>
+</html>

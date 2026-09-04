@@ -88,6 +88,7 @@ export function createCharCreate(config) {
 		cssText,
 		hostHeight = 342,
 		hostWidth = 576,
+		viewportLayout = false,
 		hasStats = false,
 		hasRace = false,
 		gridHairstyle = false,
@@ -177,7 +178,9 @@ export function createCharCreate(config) {
 			}
 		}
 
-		this.draggable();
+		if (!viewportLayout) {
+			this.draggable();
+		}
 
 		if (hasRace) {
 			// Update cursor
@@ -236,8 +239,8 @@ export function createCharCreate(config) {
 	 * Once add to HTML, start rendering
 	 */
 	Component.onAppend = function onAppend() {
-		this._host.style.top = `${(Renderer.height - hostHeight) / 2}px`;
-		this._host.style.left = `${(Renderer.width - hostWidth) / 2}px`;
+		this._host.style.top = viewportLayout ? '0px' : `${(Renderer.height - hostHeight) / 2}px`;
+		this._host.style.left = viewportLayout ? '0px' : `${(Renderer.width - hostWidth) / 2}px`;
 
 		if (hasRace) {
 			_human.render = true;
@@ -768,20 +771,35 @@ export function createCharCreate(config) {
 		_prevcolor = 0;
 		_curcolor = 0;
 
-		root.querySelector('.gender .male_button').addEventListener(
-			'mousedown',
-			updateCharacterGenericGrid('gender', 1)
-		);
-		root.querySelector('.gender .female_button').addEventListener(
-			'mousedown',
-			updateCharacterGenericGrid('gender', 0)
-		);
+		if (viewportLayout) {
+			root.addEventListener('change', event => {
+				const input = event.target;
+				if (input.matches('.gender_button')) {
+					updateCharacterGenericGrid('gender', input.id === 'male' ? 1 : 0)();
+				} else if (input.matches('.hstyle')) {
+					updateHStyle(input.nextElementSibling);
+				} else if (input.matches('.hcolor')) {
+					updateHColor(input.nextElementSibling);
+				}
+			});
+		}
+
+		if (!viewportLayout) {
+			root.querySelector('.gender .male_button').addEventListener(
+				'mousedown',
+				updateCharacterGenericGrid('gender', 1)
+			);
+			root.querySelector('.gender .female_button').addEventListener(
+				'mousedown',
+				updateCharacterGenericGrid('gender', 0)
+			);
+		}
 		root.querySelector('#style .rot_left').addEventListener(
-			'mousedown',
+			viewportLayout ? 'click' : 'mousedown',
 			updateCharacterGenericGrid('direction', 0)
 		);
 		root.querySelector('#style .rot_right').addEventListener(
-			'mousedown',
+			viewportLayout ? 'click' : 'mousedown',
 			updateCharacterGenericGrid('direction', 1)
 		);
 
@@ -791,6 +809,10 @@ export function createCharCreate(config) {
 
 		// Event delegation for hairstyle buttons
 		root.addEventListener('click', event => {
+			// A V4 usa change nativo, inclusive para setas do teclado e toque.
+			if (viewportLayout) {
+				return;
+			}
 			const hstyleBtn = event.target.closest('.hstyle_button');
 			if (hstyleBtn) {
 				updateHStyle(hstyleBtn);

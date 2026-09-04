@@ -119,6 +119,11 @@ const clanEmblems = {};
  */
 function onEntitySpam(pkt) {
 	let entity = EntityManager.get(pkt.GID);
+	// GID reutilizado: uma morte visual antiga nao pode matar o novo nascimento.
+	if (entity?.life.vidaNoImpacto.mortePendente) {
+		EntityManager.remove(pkt.GID);
+		entity = null;
+	}
 
 	if (entity) {
 		entity.set(pkt);
@@ -293,6 +298,15 @@ function onEntitySpam(pkt) {
  */
 function onEntityVanish(pkt) {
 	const entity = EntityManager.get(pkt.GID);
+	if (
+		entity?.objecttype === Entity.TYPE_MOB &&
+		pkt.type === Entity.VT.DEAD &&
+		entity.life.vidaNoImpacto.adiarMorte(() => {
+			if (EntityManager.get(pkt.GID) === entity) onEntityVanish(pkt);
+		})
+	) {
+		return;
+	}
 	if (entity) {
 		if (entity.objecttype === Entity.TYPE_PC && pkt.GID === Session.Entity.GID) {
 			//death animation only for myself
@@ -698,6 +712,20 @@ function onEntityAction(pkt) {
 			}
 
 			if (dstEntity) {
+				if (dstEntity.objecttype === Entity.TYPE_MOB && (pkt.damage > 0 || pkt.leftDamage > 0)) {
+					const primeiro = Renderer.tick + pkt.attackMT;
+					const multiplo = [8, 9, 13].includes(pkt.action);
+					const impactos = [];
+					if (pkt.damage > 0) {
+						const peso = multiplo && pkt.damage > 1 ? pkt.damage / 2 : pkt.damage;
+						if (!multiplo || pkt.damage > 1) impactos.push({ instante: primeiro, peso });
+						if (multiplo)
+							impactos.push({ instante: primeiro + C_MULTIHIT_DELAY * (pkt.leftDamage ? 0.5 : 1), peso });
+					}
+					if (pkt.leftDamage > 0)
+						impactos.push({ instante: primeiro + C_MULTIHIT_DELAY * 1.75, peso: pkt.leftDamage });
+					dstEntity.life.registrarImpactos(impactos);
+				}
 				// only if damage and do not have endure
 				// and damage isn't absorbed (healing)
 
@@ -1742,6 +1770,14 @@ function onEntityUseSkillToAttack(pkt) {
 		const target = pkt.damage ? dstEntity : srcEntity;
 
 		if (pkt.damage && target && !(srcEntity == dstEntity && pkt.action == SkillAction.SKILL)) {
+			if (dstEntity.objecttype === Entity.TYPE_MOB && pkt.damage > 0) {
+				dstEntity.life.registrarImpactos(
+					Array.from(
+						{ length: Math.max(1, pkt.count) },
+						(_, i) => Renderer.tick + pkt.attackMT + C_MULTIHIT_DELAY * i
+					)
+				);
+			}
 			// Will be hit actions
 			onEntityWillBeHitSub(pkt, dstEntity);
 

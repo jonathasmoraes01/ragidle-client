@@ -10,13 +10,13 @@
 
 import htmlText from './CharCreatev4.html?raw';
 import cssText from './CharCreatev4.css?raw';
-import Renderer from 'Renderer/Renderer.js';
+import premiumCss from '../../PreGamePremium.css?raw';
 import { createCharCreate } from '../CharCreateCommon.js';
 
 const Componente = createCharCreate({
 	name: 'CharCreatev4',
 	htmlText,
-	cssText,
+	cssText: premiumCss + cssText,
 	// Tem que bater com ":host"/"#charcreate_v4" em CharCreatev4.css. A
 	// centralizacao herdada de CharCreateCommon.js e literalmente
 	// "(Renderer.width - hostWidth) / 2", entao um numero fora de sincronia
@@ -24,8 +24,7 @@ const Componente = createCharCreate({
 	// 794x422 no CSS, 109px pra esquerda e 40px pra cima do centro real).
 	// 768x456 e a medida da reforma de 19/08/2026; o orcamento que explica
 	// os dois numeros esta no cabecalho do CSS.
-	hostHeight: 456,
-	hostWidth: 768,
+	viewportLayout: true,
 	hasRace: true,
 	gridHairstyle: true,
 	humanCanvasSelector: '#human',
@@ -67,16 +66,16 @@ const Componente = createCharCreate({
  * em botao, curto. "Doram" e nome proprio do RO e fica no original.
  */
 const ROTULOS = {
-	'.title': 'Criação de Personagem',
+	'.title': 'Criar personagem',
 	'.human_title': 'Humano',
 	'.human_desc':
 		'Raça representante de Midgard. Talentosa para resolver problemas, com potencial infinito e grande adaptabilidade.',
 	'.doram_title': 'Doram',
 	'.doram_desc': 'Raça representante do continente Far-star, de curiosidade natural e temperamento animado.',
-	'.hair_style_title': 'Estilo de Cabelo',
-	'.hair_color_title': 'Cor do Cabelo',
+	'.hair_style_title': 'Estilo de cabelo',
+	'.hair_color_title': 'Cor do cabelo',
 	'.return': 'Voltar',
-	'.make': 'Criar'
+	'.make': 'Criar personagem'
 };
 
 /**
@@ -104,6 +103,13 @@ Componente.onAppend = function onAppend() {
 	onAppendHerdado.call(this);
 
 	const raiz = this.getRoot();
+	for (const input of raiz.querySelectorAll('.hstyle, .hcolor')) {
+		const numero = parseInt(input.id, 10);
+		input.setAttribute(
+			'aria-label',
+			input.matches('.hstyle') ? `Estilo de cabelo ${numero}` : `Cor do cabelo ${numero + 1}`
+		);
+	}
 	for (const seletor of Object.keys(ROTULOS)) {
 		const alvo = raiz.querySelector(seletor);
 		if (alvo) {
@@ -111,12 +117,9 @@ Componente.onAppend = function onAppend() {
 		}
 	}
 
-	const caixa = this._host.getBoundingClientRect();
-	const largura = Renderer.width || window.innerWidth;
-	const altura = Renderer.height || window.innerHeight;
-
-	this._host.style.left = `${Math.max(0, Math.round((largura - caixa.width) / 2))}px`;
-	this._host.style.top = `${Math.max(0, Math.round((altura - caixa.height) / 2))}px`;
+	// Host de viewport: a composição interna centraliza e redimensiona via CSS.
+	this._host.style.left = '0px';
+	this._host.style.top = '0px';
 };
 
 export default Componente;

@@ -397,6 +397,15 @@ class Entity {
 					this.clevel = unit.level;
 					break;
 
+				// STANDENTRY/MOVEENTRY trazem a vida inicial. Ignora-la fazia a
+				// primeira barra nascer so no MONSTER_HP, ja depois do dano.
+				case 'hp':
+					this.life.hp = unit.hp;
+					break;
+				case 'maxhp':
+					this.life.hp_max = unit.maxhp;
+					break;
+
 				default:
 					if (Entity.prototype.hasOwnProperty(keys[i]) || Entity.prototype.hasOwnProperty(`_${keys[i]}`)) {
 						this[keys[i]] = unit[keys[i]];

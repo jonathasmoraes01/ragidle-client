@@ -1,34 +1,69 @@
 <div id="WinLogin" class="win_login">
-	<div class="wl-window ri-window">
-		<div class="wl-header ri-header">
-			<span class="wl-title ri-title">Ragnarok Classic Idle</span>
-			<button type="button" class="exit wl-close ri-close" title="Sair">&times;</button>
-		</div>
-
-		<div class="wl-body">
-			<label class="wl-field">
-				<span class="wl-label">Usuário</span>
-				<!-- data-permitir-autofill: AQUI o preenchimento salvo e desejado;
-				     o escudo do GUIComponent nao toca nestes dois campos. -->
-				<input id="user" class="user ri-input" type="text" value="" autocomplete="username" data-permitir-autofill />
-			</label>
-			<label class="wl-field">
-				<span class="wl-label">Senha</span>
-				<input id="pass" class="pass ri-input" type="password" value="" autocomplete="current-password" data-permitir-autofill />
-			</label>
-
-			<button id="save" class="save wl-save" type="button">
-				<span class="wl-save-box"></span>
-				<span class="wl-save-label">Manter conectado</span>
-			</button>
-
-			<button id="btn_connect" class="btn connect ri-btn" type="submit">Entrar</button>
-
-			<div class="wl-links">
-				<button class="btn replay ri-btn ri-btn--sec" type="button">Replay</button>
-				<button class="btn signup ri-btn ri-btn--sec" type="button">Cadastrar</button>
+	<div class="wl-composition">
+		<img
+			class="wl-logo"
+			src="/ragidle/login/logo-classic-idle.webp"
+			alt="Ragnarok Classic Idle"
+			width="1280"
+			height="855"
+			fetchpriority="high"
+			draggable="false"
+		/>
+		<section class="wl-window ri-window" aria-labelledby="wl-title">
+			<span class="wl-corner wl-corner--left" aria-hidden="true"></span>
+			<span class="wl-corner wl-corner--right" aria-hidden="true"></span>
+			<div class="wl-header">
+				<button type="button" class="exit wl-close ri-close" title="Sair" aria-label="Sair">&times;</button>
+				<p class="wl-eyebrow">Bem-vindo a Midgard</p>
+				<h1 id="wl-title" class="wl-title">Sua aventura continua</h1>
+				<div class="wl-ornament" aria-hidden="true"><span></span></div>
 			</div>
-			<input type="file" class="replay-upload" accept=".rrf" style="display: none" />
-		</div>
+
+			<div class="wl-body">
+				<label class="wl-field">
+					<span class="wl-label">Usuário</span>
+					<!-- data-permitir-autofill: AQUI o preenchimento salvo e desejado;
+				     o escudo do GUIComponent nao toca nestes dois campos. -->
+					<input
+						id="user"
+						name="username"
+						class="user ri-input"
+						type="text"
+						value=""
+						autocomplete="username"
+						autocapitalize="none"
+						spellcheck="false"
+						data-permitir-autofill
+					/>
+				</label>
+				<label class="wl-field">
+					<span class="wl-label">Senha</span>
+					<input
+						id="pass"
+						class="pass ri-input"
+						type="password"
+						value=""
+						autocomplete="current-password"
+						data-permitir-autofill
+					/>
+				</label>
+
+				<button id="save" class="save wl-save" type="button" aria-pressed="false">
+					<span class="wl-save-box" aria-hidden="true"></span>
+					<span class="wl-save-label">Lembrar usuário</span>
+				</button>
+
+				<button id="btn_connect" class="btn connect ri-btn" type="submit">
+					<span>Entrar em Midgard</span><span class="wl-arrow" aria-hidden="true">&rarr;</span>
+				</button>
+
+				<div class="wl-links">
+					<span>Primeira aventura?</span>
+					<button class="btn signup wl-link" type="button">Criar conta</button>
+				</div>
+				<button class="btn replay wl-link wl-replay" type="button">Assistir a um replay</button>
+				<input type="file" class="replay-upload" accept=".rrf" style="display: none" />
+			</div>
+		</section>
 	</div>
 </div>

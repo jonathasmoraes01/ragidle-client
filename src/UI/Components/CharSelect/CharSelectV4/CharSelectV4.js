@@ -10,12 +10,13 @@
 
 import htmlText from './CharSelectV4.html?raw';
 import cssText from './CharSelectV4.css?raw';
+import premiumCss from '../../PreGamePremium.css?raw';
 import { createCharSelect } from '../CharSelectCommon.js';
 
 export default createCharSelect({
 	name: 'CharSelectV4',
 	htmlText,
-	cssText,
+	cssText: premiumCss + cssText,
 	gridLayout: true,
 	deleteReservation: true,
 	defaultMaxSlots: 15
