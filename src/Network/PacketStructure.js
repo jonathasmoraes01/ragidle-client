@@ -6627,10 +6627,16 @@ PACKET.ZC.MAKABLEITEMLIST.size = -1;
 
 // 0x18f
 PACKET.ZC.ACK_REQMAKINGITEM = function PACKET_ZC_ACK_REQMAKINGITEM(fp, end) {
+	// O ITID alargou para 4 bytes no mesmo degrau de packetver em que
+	// MAKABLEITEMLIST (0x18d) e REQMAKINGITEM (0x18e) alargaram — os dois logo
+	// acima ja tratam `PACKETVER.value >= 20181121` e este ficou para tras.
+	// packets_struct.hpp:2547-2555 no emulador: type.W + result.W + itemId.L.
+	// Com o PACKETVER pinado deste projeto (20211103) o servidor manda 8 bytes,
+	// e ler 6 desalinharia TODO o fluxo depois deste pacote.
 	this.result = fp.readShort();
-	this.ITID = fp.readUShort();
+	this.ITID = PACKETVER.value >= 20181121 ? fp.readULong() : fp.readUShort();
 };
-PACKET.ZC.ACK_REQMAKINGITEM.size = 6;
+PACKET.ZC.ACK_REQMAKINGITEM.size = PACKETVER.value >= 20181121 ? 8 : 6;
 
 // 0x191
 PACKET.ZC.TALKBOX_CHATCONTENTS = function PACKET_ZC_TALKBOX_CHATCONTENTS(fp, end) {
