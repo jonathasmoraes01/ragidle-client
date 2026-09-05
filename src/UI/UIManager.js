@@ -13,6 +13,7 @@ import CommonCSS from 'UI/Common.css?raw';
 import UIVersionManager from 'UI/UIVersionManager.js';
 import KEYS from 'Controls/KeyEventHandler.js';
 import ClampToViewport from 'UI/ClampToViewport.js';
+import EscalaDaHud from 'UI/escalaDaHud.js'; // D-934: a HUD diminui junto com a janela
 
 /**
  * Centralize popup position
@@ -217,6 +218,17 @@ class UIManager {
 	 * @param {number} Game screen height
 	 */
 	static fixResizeOverflow(WIDTH, HEIGHT) {
+		/*
+		 * D-934: a HUD encolhe junto com a janela.
+		 *
+		 * Aqui, e nao so no `resize` do `escalaDaHud`, porque este e o ponto
+		 * por onde TODA mudanca de tamanho passa — inclusive as que nao vem de
+		 * um `resize` de janela (o `visualViewport` do teclado virtual, a
+		 * troca de mapa que recria hosts). `reaplicar` ignora o cache do
+		 * ultimo valor justamente porque um host NOVO precisa nascer com a
+		 * escala que ja vigora.
+		 */
+		EscalaDaHud.reaplicar();
 		const keys = Object.keys(this.components);
 		for (let i = 0; i < keys.length; ++i) {
 			const component = this.components[keys[i]];

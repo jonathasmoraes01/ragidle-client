@@ -82,3 +82,19 @@
 		min-height: 44px;
 	}
 }
+
+/* ─── D-929: o MESMO piso, agora tambem pelo eixo da ALTURA (05/09/2026) ───
+   A faixa acima cobre o celular EM PE (375..430px de largura). O celular
+   DEITADO tem 852, 915 ou 667px de largura — passa longe dos 599 — e nunca
+   disparava nada. Medido em 05/09/2026 com o jogo de pe: em 852x393 o
+   `hb-cacar` voltava a 136x32, o mesmo 32 que a faixa de largura conserta.
+
+   A tela deitada e onde 44px de altura mais doem (sobram ~390px de vertical
+   para a HUD inteira) e e exatamente por isso que nao se negocia: alvo
+   espremido abaixo do piso tatil e o que o dono chamou de "nao esta
+   clicavel". Quem tem de ceder e o que NAO e alvo. */
+@media (max-height: 439px) {
+	.hb-btn {
+		min-height: 44px;
+	}
+}

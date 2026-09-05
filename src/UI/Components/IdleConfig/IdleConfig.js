@@ -279,6 +279,112 @@ IdleConfig.init = function init() {
 /**
  * Restore saved window position once appended to the DOM.
  */
+/**
+ * ═══════════════════════════════════════════════════════════════════════
+ * O BOTÃO "INSTALAR" (D-933, 05/09/2026)
+ * ═══════════════════════════════════════════════════════════════════════
+ * Pedido do dono, palavra por palavra: *"Botão Instalar próprio dentro de
+ * Configurações: capture beforeinstallprompt e dispare a partir dele, sem
+ * banner intrusivo no meio do jogo."*
+ *
+ * ─── ONDE O EVENTO MORA, E POR QUE ISSO IMPORTA ─────────────────────────
+ * `beforeinstallprompt` é disparado na janela de TOPO, e este componente nem
+ * sempre roda nela: em desenvolvimento o jogo vive dentro de um `<iframe>`
+ * (`ROBrowser.TYPE.FRAME`) e em produção ele é embutido no mesmo documento.
+ * Por isso a ponte (`window.RagIdlePWA`, de `applications/pwa/registrar-sw.js`)
+ * é procurada aqui e no `parent` — sem isso o botão funcionaria em produção e
+ * ficaria mudo em desenvolvimento, que é o pior jeito de descobrir um defeito.
+ *
+ * ─── A LINHA NASCE ESCONDIDA ────────────────────────────────────────────
+ * Ela só aparece quando há algo a fazer: o navegador ofereceu a instalação,
+ * ou é um Safari de iPhone (onde não existe evento nenhum e a única coisa
+ * honesta é dar a instrução: Compartilhar > Adicionar à Tela de Início).
+ * Quem já jogou instalado não vê nada. Um botão que não faz nada é a versão
+ * permanente do banner intrusivo que o dono recusou.
+ */
+function pontePWA() {
+	try {
+		if (window.RagIdlePWA) return window.RagIdlePWA;
+		if (window.parent && window.parent !== window && window.parent.RagIdlePWA) {
+			return window.parent.RagIdlePWA;
+		}
+	} catch (erro) {
+		/* `parent` de outra origem lança ao ser lido. Não acontece aqui (a casca
+		   e o jogo são do mesmo domínio), mas ler `parent` sem `try` é a forma
+		   clássica de derrubar um componente inteiro num caso de borda. */
+	}
+	return null;
+}
+
+function sincronizarInstalar() {
+	const root = _root();
+	const linha = root && root.querySelector('.ic-instalar');
+	if (!linha) return;
+
+	const ponte = pontePWA();
+	const sub = linha.querySelector('.ic-instalar-sub');
+
+	if (!ponte || ponte.estaInstalado()) {
+		linha.hidden = true;
+		return;
+	}
+	if (ponte.promptDeInstalacao) {
+		linha.hidden = false;
+		linha.classList.remove('is-ios');
+		if (sub) sub.textContent = 'Fica na tela inicial e abre sem a barra do navegador.';
+		return;
+	}
+	if (ponte.ehIOS()) {
+		linha.hidden = false;
+		linha.classList.add('is-ios');
+		if (sub) sub.textContent = 'No iPhone: toque em Compartilhar e depois em "Adicionar à Tela de Início".';
+		return;
+	}
+	linha.hidden = true;
+}
+
+function ligarInstalar() {
+	const root = _root();
+	const botao = root && root.querySelector('.ic-instalar-btn');
+	if (botao && !botao.__ligado) {
+		botao.__ligado = true;
+		botao.addEventListener('click', (e) => {
+			e.stopImmediatePropagation();
+			const ponte = pontePWA();
+			if (!ponte) return;
+			Promise.resolve(ponte.instalar()).then((resultado) => {
+				const sub = _root().querySelector('.ic-instalar-sub');
+				if (sub) {
+					/* Diz o que aconteceu, inclusive quando não deu — recusar a
+					   instalação é uma escolha legítima e o jogo não vai insistir. */
+					sub.textContent =
+						resultado === 'instalado'
+							? 'Instalado. O ícone está na sua tela inicial.'
+							: resultado === 'recusado'
+								? 'Tudo bem — dá para instalar depois, por aqui mesmo.'
+								: 'A instalação não está disponível neste navegador.';
+				}
+				sincronizarInstalar();
+			});
+		});
+	}
+
+	/* A oferta do navegador pode chegar DEPOIS de a janela abrir — ela depende
+	   de heurística de engajamento. Por isso a linha também escuta. */
+	if (!ligarInstalar.__escutando) {
+		ligarInstalar.__escutando = true;
+		const alvo = (() => {
+			try {
+				return window.parent && window.parent !== window ? window.parent : window;
+			} catch (erro) {
+				return window;
+			}
+		})();
+		alvo.addEventListener('ragidle:pode-instalar', sincronizarInstalar);
+		alvo.addEventListener('ragidle:instalado', sincronizarInstalar);
+	}
+}
+
 IdleConfig.onAppend = function onAppend() {
 	if (_preferences.x != null && _preferences.y != null) {
 		this._host.style.top = Math.min(Math.max(0, _preferences.y), Renderer.height - WINDOW_HEIGHT) + 'px';
@@ -303,6 +409,8 @@ function savePosition() {
 /**
  * Show/hide the window (button stays visible either way).
  */
+/* A linha de instalar é resincronizada a cada abertura: o estado dela muda
+   por fora (o navegador oferece, o jogador instala noutra aba). */
 IdleConfig.toggle = function toggle() {
 	const root = _root();
 	const win = root.querySelector('.ic-window');
@@ -310,6 +418,8 @@ IdleConfig.toggle = function toggle() {
 		closeWindow();
 	} else {
 		win.classList.add('is-open');
+		ligarInstalar();
+		sincronizarInstalar();
 		IdleConfig.focus();
 		requestConfig();
 	}

@@ -436,3 +436,59 @@
 	box-shadow: var(--shadow-float);
 	pointer-events: none;
 }
+
+/* ─── Telha estreita (D-932, Lote 3) ─────────────────────────────────────
+ *
+ * O mecanismo de desktop: ".co-topo" e ".co-corpo" sao flex ROW (a direcao
+ * padrao de display:flex, nunca declarada -- por isso nao aparece acima)
+ * com filhos de LARGURA FIXA que somam os 560px do host inteiro. No
+ * cabecalho: ".co-header-esq" 224px (linha 85-90) + ".co-header-dir" 336px
+ * (linha 91-94). No corpo: ".co-painel-esq" 224px (linha 104-115) +
+ * ".co-painel-dir" 336px (linha 247-256). Numa tela de 393px so a metade
+ * esquerda cabe -- a direita inteira (medida pelo senior em x 225..561)
+ * fica fora do viewport, e junto dela ".co-close" (dentro de
+ * ".co-header-dir", medido em x 533..553 -- 140px fora do mundo). E o
+ * defeito mais grave dos tres: a janela abre e nao ha como fecha-la pelo
+ * dedo.
+ *
+ * Cabecalho ("Correio" | "Mensagem"): NAO empilha. Os dois titulos trocam
+ * a LARGURA FIXA por uma divisao FLUIDA (flex:1 1 0, 50/50) -- ".co-close"
+ * e tamanho fixo por receita global (nao mexido aqui) e sempre sobra
+ * dentro da metade direita, no canto superior, alcance imediato pra
+ * fechar. Empilhar o cabecalho enterraria o "X" depois de DOIS titulos
+ * (duas barras "Correio"/"Mensagem" uma sobre a outra) -- pior pro
+ * problema mais grave da lista.
+ *
+ * Corpo (lista | detalhe): empilha por ordem de leitura -- lista em cima
+ * (o que a caixa mostra ao abrir, ordem que ja e a do HTML), detalhe
+ * embaixo (so ocupa a tela depois de tocar numa mensagem). A rolagem da
+ * janela inteira ja e coberta pela regra global de D-932 (overflow-y:auto
+ * + max-height em ".ri-window", Common.css) -- nao precisa de scroll
+ * interno proprio aqui.
+ */
+@media (max-width: 599px) {
+	.co-header-esq,
+	.co-header-dir {
+		width: auto;
+		flex: 1 1 0;
+		min-width: 0;
+	}
+
+	.co-corpo {
+		flex-direction: column;
+	}
+
+	.co-painel-esq,
+	.co-painel-dir {
+		width: 100%;
+		max-width: 100%;
+		min-width: 0;
+	}
+
+	/* O divisor troca de direita->baixo: agora separa lista (em cima) de
+	   detalhe (embaixo), nao mais duas colunas lado a lado. */
+	.co-painel-esq {
+		border-right: none;
+		border-bottom: var(--divider);
+	}
+}

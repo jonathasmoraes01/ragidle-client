@@ -1,15 +1,46 @@
 {
+	"id": "/",
 	"name": "Ragnarok Classic Idle",
-	"short_name": "Ragnarok Idle",
+	"short_name": "Rag Idle",
+	"description": "O farm é automático, a caçada é sua. Um Ragnarok idle que roda no navegador, sem download e sem cliente.",
+	"lang": "pt-BR",
+	"dir": "ltr",
 	"start_url": "./",
-	"description": "Ragnarok Classic Idle Progressive Web App.",
+	"scope": "./",
 	"display": "fullscreen",
-	"theme_color": "#4169e1",
-	"background_color": "#000000",
+	"display_override": ["fullscreen", "standalone", "minimal-ui"],
+	"orientation": "portrait",
+	"theme_color": "#060810",
+	"background_color": "#060810",
+	"categories": ["games", "entertainment"],
 	"icons": [
 		{
+			"src": "./icon-192.png",
+			"sizes": "192x192",
+			"type": "image/png",
+			"purpose": "any"
+		},
+		{
+			"src": "./icon-512.png",
+			"sizes": "512x512",
+			"type": "image/png",
+			"purpose": "any"
+		},
+		{
+			"src": "./icon-maskable-192.png",
+			"sizes": "192x192",
+			"type": "image/png",
+			"purpose": "maskable"
+		},
+		{
+			"src": "./icon-maskable-512.png",
+			"sizes": "512x512",
+			"type": "image/png",
+			"purpose": "maskable"
+		},
+		{
 			"src": "./icon.png",
-			"sizes": "144x144",
+			"sizes": "450x450",
 			"type": "image/png",
 			"purpose": "any"
 		}
@@ -19,24 +50,15 @@
 			"src": "./screenshotwide.png",
 			"sizes": "1920x1080",
 			"type": "image/png",
-			"purpose": "any",
 			"form_factor": "wide",
-			"description": "Ragnarok Classic Idle Progressive Web App."
+			"label": "A caçada em andamento, no computador"
 		},
 		{
 			"src": "./screenshotnarrow.png",
-			"sizes": "390x844",
+			"sizes": "393x852",
 			"type": "image/png",
-			"purpose": "any",
 			"form_factor": "narrow",
-			"description": "Ragnarok Classic Idle Progressive Web App."
+			"label": "A mesma HUD, no celular"
 		}
-	],
-	"protocol_handlers": [
-		{
-			"protocol": "http",
-			"url": "./"
-		}
-	],
-	"display_override": ["window-controls-overlay"]
+	]
 }

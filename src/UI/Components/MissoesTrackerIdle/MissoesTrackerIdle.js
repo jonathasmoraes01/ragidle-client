@@ -37,6 +37,7 @@ import MissoesIdle from 'UI/Components/MissoesIdle/MissoesIdle.js';
 import { podeIniciarMissao } from 'UI/Components/MissoesIdle/podeIniciarMissao.js'; // RAGIDLE: I16
 import htmlText from './MissoesTrackerIdle.html?raw';
 import cssText from './MissoesTrackerIdle.css?raw';
+import { emUnidadesDaHud } from 'UI/escalaDaHud.js'; // D-934: geometria medida vira unidade da HUD
 
 /** Quantas missões clicáveis o painel lista (as demais ficam na janela). */
 const MAX_LINHAS = 5;
@@ -148,8 +149,53 @@ function syncPosition() {
 	if (!rect || rect.width === 0) {
 		return;
 	}
-	host.style.top = Math.round(rect.bottom + 8) + 'px';
-	host.style.left = Math.round(rect.left) + 'px';
+	/* D-934: `rect` vem em pixel de viewport (o zoom ja aplicado) e `style.top`
+	   e lido nas unidades do host (zoom por aplicar). Escrever de volta o numero
+	   lido NAO devolve o painel ao mesmo lugar — foi assim que ele foi parar
+	   58px por cima do painel de personagem em 800x500, medido. */
+	host.style.top = Math.round(emUnidadesDaHud(rect.bottom + 8)) + 'px';
+	host.style.left = Math.round(emUnidadesDaHud(rect.left)) + 'px';
+
+	/*
+	 * ELE CABE NO VAO, OU NAO APARECE (D-930, 05/09/2026).
+	 *
+	 * Em tela estreita o cluster de essenciais deixou de morar logo abaixo
+	 * desta coluna e passou a se ancorar na pilha do rodape (TopMenuIdle) —
+	 * ou seja, ele agora SOBE quando o rodape cresce, e o vao entre o painel
+	 * de personagem e ele deixou de ser generoso. Medido em 360x640: o painel
+	 * termina em 272, este rastreador comeca em 280 e o cluster comeca em
+	 * 295. Sao 15px de vao para um cabecalho de 30.
+	 *
+	 * TENTEI RESOLVER SO NO CSS e nao da: `max-height` com um piso deixa o
+	 * painel maior que o vao, e sem piso ele vira uma sobra de 2px de borda —
+	 * um risco na tela que nao informa nada. A decisao e binaria (cabe ou nao
+	 * cabe) e depende de dois numeros medidos em runtime, entao ela mora aqui,
+	 * no mesmo tique de 250ms que ja posiciona o componente.
+	 *
+	 * A guarda `topoDoCluster > meuTopo` e o que mantem o desktop intocado: la
+	 * o cluster mora no CANTO SUPERIOR direito, ACIMA deste painel, e a conta
+	 * de vao nao se aplica. Sem ela, o desktop esconderia o rastreador — que
+	 * e exatamente o defeito que este bloco existe para evitar.
+	 *
+	 * 34 = os 30px do cabecalho (`.mt-painel` recolhido) mais os 2+2 de borda.
+	 * Abaixo disso nao ha o que mostrar, e a informacao continua a um toque de
+	 * distancia no item "Missoes" do cluster.
+	 */
+	const topoDoCluster = parseFloat(
+		getComputedStyle(host.ownerDocument.documentElement).getPropertyValue('--hud-cluster-topo'),
+	);
+	const meuTopo = rect.bottom + 8;
+	if (Number.isFinite(topoDoCluster) && topoDoCluster > meuTopo) {
+		/* Os dois lados na MESMA unidade: `topoDoCluster` ja e publicado em
+		   unidade da HUD, entao `meuTopo` tambem precisa ser convertido. */
+		const vao = topoDoCluster - emUnidadesDaHud(meuTopo) - 8;
+		const cabe = vao >= 34;
+		host.style.display = cabe ? '' : 'none';
+		host.style.maxHeight = cabe ? Math.round(vao) + 'px' : '';
+	} else {
+		host.style.display = '';
+		host.style.maxHeight = '';
+	}
 
 	/*
 	 * PUBLICA O FUNDO DA COLUNA ESQUERDA (I1, 31/08/2026).
@@ -174,7 +220,7 @@ function syncPosition() {
 	if (meu.height > 0) {
 		host.ownerDocument.documentElement.style.setProperty(
 			'--hud-coluna-fundo',
-			`${Math.round(meu.bottom)}px`,
+			`${Math.round(emUnidadesDaHud(meu.bottom))}px`,
 		);
 	}
 }

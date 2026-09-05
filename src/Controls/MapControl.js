@@ -32,6 +32,7 @@ import PACKET from 'Network/PacketStructure.js';
 import Network from 'Network/NetworkManager.js';
 import Events from 'Core/Events.js';
 import CaptchaSelector from 'UI/Components/Captcha/CaptchaSelector.js';
+import { ehEventoDaUI } from 'Controls/ehEventoDaUI.js'; // D-932: o mesmo predicado que o toque usa
 import 'Controls/ScreenShot.js';
 
 /**
@@ -97,25 +98,14 @@ class MapControl {
  * transparente por cima do canvas passaria a bloquear o mundo inteiro. Esta
  * guarda e aditiva — so recusa o que comprovadamente nasceu na UI.
  */
-function ehCliqueDaUI(event) {
-	if (!event || typeof event.composedPath !== 'function') {
-		return false;
-	}
-	const caminho = event.composedPath();
-	for (let i = 0; i < caminho.length; i++) {
-		const no = caminho[i];
-		if (!no || no.nodeType !== 1) {
-			continue;
-		}
-		if (no.dataset && no.dataset.guiComponent !== undefined) {
-			return true;
-		}
-		if (no.classList && no.classList.contains('win_popup_overlay')) {
-			return true;
-		}
-	}
-	return false;
-}
+/*
+ * D-932: o corpo desta função virou `Controls/ehEventoDaUI.js`, porque o
+ * MESMO defeito existe no TOQUE (`Core/Mobile.js`) e duplicar o predicado
+ * deixaria os dois lados divergirem no dia em que alguém somasse um
+ * marcador novo de UI. O nome local fica como apelido para as duas chamadas
+ * abaixo continuarem lendo como sempre leram.
+ */
+const ehCliqueDaUI = ehEventoDaUI;
 
 /**
  * What to do when clicking on the map ?

@@ -40,10 +40,32 @@
  * (right:1..2), que agora nao se cruzam em x.
  */
 :host {
-	width: 368px;
+	/*
+	 * D-929 (05/09/2026, faixa de LARGURA): a barra tem de caber em 360px, e
+	 * ate aqui os 368px eram cravados — em 360 ela transbordava 8px de cada
+	 * lado. "min(368px, calc(100vw - 16px))" mantem os 368 medidos em
+	 * QUALQUER tela >= 384px de largura (1920 e 1366 inclusos: 100vw-16 da
+	 * 1904/1350, muito acima de 368 — o min() resolve sempre para 368, o
+	 * MESMO numero de antes) e encolhe com 8px de respiro de cada lado so
+	 * abaixo disso. Mesmo padrao ja usado em Error.css/StatusIcons.css deste
+	 * fork ("width: min(<medido>px, calc(100vw - Npx))").
+	 */
+	width: min(368px, calc(100vw - 16px));
 	top: auto;
 	bottom: 20px;
-	left: calc(50% - 184px);
+	/*
+	 * CENTRALIZACAO POR FORMULA — a MESMA metade usada na largura acima
+	 * (min(184px, 50vw - 8px)), entao largura e posicao nunca podem
+	 * divergir. Em >=384px de largura o min() cai em 184px e o computado
+	 * fica IDENTICO a "calc(50% - 184px)" de antes (0 diferenca em 1920 e
+	 * 1366). NAO uso "transform: translateX(-50%)" para centralizar: o
+	 * arrasto (ShortCut.js:220-221) escreve "style.left"/"style.top" em
+	 * pixel direto e nunca toca em "transform" — um transform de
+	 * centralizacao aqui continuaria aplicado por cima da posicao
+	 * arrastada e deslocaria a barra pela metade da propria largura toda
+	 * vez que o jogador a movesse.
+	 */
+	left: calc(50% - min(184px, calc(50vw - 8px)));
 	overflow: hidden;
 }
 
@@ -316,4 +338,174 @@
 	#ShortCut .reopen {
 		transition: none;
 	}
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   D-929 (05/09/2026) — CELULAR: alvo de toque + ancoragem acima da doca.
+   NO FIM DO ARQUIVO de proposito — a cicatriz esta em StatusIdle.css:545,
+   um bloco @media que nao vencia nada porque em CSS de mesma especificidade
+   quem decide e a ORDEM, e as regras sem media query vinham depois. Nada
+   abaixo destas linhas toca em "left/bottom/width" do host nem em
+   "width/height" de ".close"/".resize" — conferido.
+   ═══════════════════════════════════════════════════════════════════════ */
+@media (max-width: 599px) {
+	/*
+	 * A barra mora em "bottom: 20px" — DENTRO da faixa que a doca ocupa
+	 * (DockIdle, "min-height: 96px" em "bottom:0"). Em tela larga isso nunca
+	 * doeu porque a barra fica centralizada e a doca tambem, os dois se
+	 * sobrepondo de proposito (e a doca quem "perde" visualmente, atras da
+	 * barra). No celular a doca encolhe mas continua ali: sobe a barra para
+	 * ANCORAR ACIMA dela, no mesmo token que ja resolve esta mesma colisao
+	 * para o botao "Menu" e o chat (--hud-acima-da-doca, derivado da altura
+	 * real da doca em Common.css — acompanha sozinho quando a faixa de
+	 * ALTURA a encolher ainda mais, D-929).
+	 */
+	:host {
+		/*
+		 * D-930: acima da doca E acima do CHAT. Subir so a doca punha a
+		 * barra em cima do corpo do chat — medido em 393x852: 300x42px de
+		 * sobreposicao. O chat PUBLICA a propria altura em
+		 * `--hud-chat-altura` (ChatBox.js), porque ela e arrastavel,
+		 * encolhe quando ele esta recolhido e tem padrao relativo a
+		 * viewport — nao ha numero para copiar, so um para ler.
+		 *
+		 * O fallback e `0px`: se um dia o chat nao estiver na tela, a
+		 * barra volta a encostar na doca, que e o certo — e nao fica
+		 * flutuando num vao que ninguem ocupa.
+		 */
+		bottom: var(--hud-acima-da-doca, 104px);
+	}
+
+	/*
+	 * "X" (14x14) e pegador de redimensionar (15x15) sao os menores alvos da
+	 * HUD — bem abaixo dos 44px de toque (WCAG 2.5.5 / Apple HIG). O
+	 * "::before" com "inset" negativo AUMENTA A AREA DE CLIQUE sem tocar no
+	 * desenho: o pseudo-elemento e transparente (sem "background"/"border")
+	 * e um clique nele conta como clique no proprio botao, porque
+	 * ::before/::after nao existem como alvo de evento proprio — o alvo
+	 * relatado ao navegador e sempre o elemento que os gerou. Os dois
+	 * botoes ja tem "position: absolute" (ver o comentario deles acima
+	 * sobre precisar de "z-index" para ficar clicavel por cima de ".row"),
+	 * entao o pseudo-elemento posiciona relativo a eles mesmos.
+	 *
+	 * .close  : 14px -> falta (44-14)/2  = 15px de cada lado.
+	 * .resize : 15px -> falta (44-15)/2 = 14.5px de cada lado.
+	 */
+	#ShortCut .close::before {
+		content: '';
+		position: absolute;
+		inset: -15px;
+	}
+	#ShortCut .resize::before {
+		content: '';
+		position: absolute;
+		inset: -14.5px;
+	}
+}
+
+/* ─── D-929: a MESMA ancoragem, agora pelo eixo da ALTURA (05/09/2026) ─────
+   A faixa acima cobre o celular EM PE. O celular DEITADO tem 852, 915 ou
+   667px de largura — passa longe dos 599 — e continuava com a barra pousada
+   DENTRO da doca. Medido em 05/09/2026 com o jogo de pe: em 852x393 a barra
+   cruzava o corpo do chat (300x42px de sobreposicao) e o botao "Menu"
+   (52x42px).
+
+   O token e derivado da altura REAL da doca (Common.css), entao aqui ele ja
+   vale 70px — a doca deitada tem 62 — sem ninguem repetir o numero. */
+@media (max-height: 439px) {
+	:host {
+		/*
+		 * D-930: acima da doca E acima do CHAT. Subir so a doca punha a
+		 * barra em cima do corpo do chat — medido em 393x852: 300x42px de
+		 * sobreposicao. O chat PUBLICA a propria altura em
+		 * `--hud-chat-altura` (ChatBox.js), porque ela e arrastavel,
+		 * encolhe quando ele esta recolhido e tem padrao relativo a
+		 * viewport — nao ha numero para copiar, so um para ler.
+		 *
+		 * O fallback e `0px`: se um dia o chat nao estiver na tela, a
+		 * barra volta a encostar na doca, que e o certo — e nao fica
+		 * flutuando num vao que ninguem ocupa.
+		 */
+		bottom: var(--hud-acima-da-doca, 104px);
+	}
+
+	#ShortCut .close::before,
+	#ShortCut .resize::before {
+		content: '';
+		position: absolute;
+		inset: -15px;
+	}
+}
+
+/* ─── D-930: a barra sobe da doca ja em TABLET, e nao so no celular ────────
+   Medido em 768x1024: a barra (centrada, 368px de largura -> 200..568) roca a
+   coluna do botao "Menu" (`.tm-menu`, `min-width: 198px` em `right: 16` ->
+   554..768) por 14x42px. Os dois moram no rodape e so a largura os separava.
+
+   O corte e 899 — o MESMO em que a doca ja passa a reservar a coluna do menu
+   (`--hud-reserva-do-menu`, Common.css). Abaixo dele o rodape deixa de ter
+   largura sobrando para tres moradores lado a lado, e a barra passa a morar
+   um degrau acima. Em 1024 e para cima nada muda. */
+@media (max-width: 899px) {
+	:host {
+		bottom: var(--hud-acima-da-doca, 104px);
+	}
+}
+
+/* ─── D-930: em PAISAGEM a barra encosta a ESQUERDA, e nao no centro ───────
+   Medido em 667x375: centrada, ela vai de 150 a 518 e cruza a coluna do botao
+   "Menu" (453..651) por 65x42px. Encolher a barra ate escapar exigiria 239px
+   de largura — menos de dois tercos do desenho, e ela e a hotbar de skills.
+
+   Encostar a esquerda custa a simetria e nao custa nenhum slot: de 12 a 380,
+   longe dos 453 onde a coluna do menu comeca. Em paisagem a tela e larga e o
+   centro nao e sagrado; em retrato ele e, e por isso a regra vale so aqui. */
+@media (max-height: 439px) {
+	:host {
+		left: 12px;
+	}
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   D-938 (05/09/2026) — TOQUE: "pegar e por" (ver src/UI/toqueParaAtalho.js).
+   Enquanto ha algo na mao, os slots precisam avisar onde tocar e um rotulo
+   curto precisa dizer o que fazer. As DUAS regras abaixo so aparecem quando
+   o JS poe a classe "is-esperando-atalho" em "#ShortCut" (ShortCut.js,
+   "atualizarRotuloDeToque") — sem nada pendente elas ficam INERTES, entao o
+   desktop parado (sem toque, sem nada na mao) fica IDENTICO a antes.
+   ═══════════════════════════════════════════════════════════════════════ */
+#ShortCut.is-esperando-atalho .row .container {
+	border-color: var(--accent-strong);
+	box-shadow: var(--glow-accent);
+}
+
+/*
+ * O rotulo E FIXO, e nao absoluto dentro de "#ShortCut" — tanto ":host"
+ * quanto "#ShortCut" tem "overflow: hidden" (ver o comentario da TEXTURA no
+ * topo deste arquivo), entao qualquer coisa absoluta posicionada ACIMA da
+ * barra seria cortada. E o MESMO motivo pelo qual ".shortcut-tooltip" acima
+ * ja e "position: fixed" em vez de encostada no slot. A posicao (left/top)
+ * e calculada em JS a cada mudanca de pendente (ShortCut.js).
+ */
+.shortcut-toque-rotulo {
+	display: none;
+	position: fixed;
+	max-width: min(280px, calc(100vw - 24px));
+	background: rgba(12, 34, 64, 0.94);
+	border: 1px solid var(--border-gold);
+	color: var(--white);
+	text-align: center;
+	padding: var(--sp-3) var(--sp-5);
+	border-radius: var(--radius-panel);
+	font: var(--type-label);
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	pointer-events: none;
+	z-index: 10000;
+	box-shadow: var(--shadow-float);
+	backdrop-filter: var(--blur-glass);
+}
+.shortcut-toque-rotulo.show {
+	display: block;
 }

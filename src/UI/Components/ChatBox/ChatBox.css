@@ -650,3 +650,125 @@
 		bottom: var(--hud-acima-da-doca, 104px);
 	}
 }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   D-930 (05/09/2026) — O PONTO DE NAO-LIDO VIRA CONTADOR
+
+   Ele dizia so "tem coisa nova". Num jogo idle em que o chat nasce RECOLHIDO
+   no celular (mesma decisao, `ChatBox.js`), essa e a informacao menos util
+   que existe: "3" e "80 desde que voce entrou" pedem reacoes diferentes, e o
+   ponto respondia a mesma coisa para as duas.
+
+   Ele continua sendo o `.ri-dot` do design system — o que muda e ele passar a
+   CARREGAR o numero. Por isso as regras aqui so somam o que um ponto vazio
+   nao precisava (largura minima que cresce com o texto, altura de linha,
+   fonte) e mantem cor, borda e sombra do token original.
+
+   `min-width: 14px` com `padding` lateral: em 1 digito ele fica redondo
+   (14x14, praticamente o ponto de antes com um numero dentro) e so estica a
+   partir de dois. `border-radius: 999px` faz a capsula acompanhar sozinha.
+
+   O teto "99+" e do JS, e o motivo e desta folha: a aba tem `min-width: 66px`
+   (`.cb-aba`, acima) e quatro digitos empurrariam o rotulo do canal para
+   fora — trocar o nome do canal pelo tamanho da fila seria pior do que nao
+   contar.
+   ═══════════════════════════════════════════════════════════════════════ */
+#chatbox .cb-aba.tem-nova .cb-aba-dot {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: auto;
+	min-width: 14px;
+	height: 14px;
+	padding: 0 3px;
+	top: -3px;
+	right: -3px;
+	border-radius: 999px;
+	font-size: 9px;
+	font-weight: 700;
+	line-height: 1;
+	color: var(--white);
+	/* O numero e desenho, nao texto selecionavel: um toque longo no contador
+	   nao pode abrir a alca de selecao do celular por cima da aba. */
+	-webkit-user-select: none;
+	user-select: none;
+}
+
+/* ─── D-930: a MESMA subida, agora tambem pelo eixo da ALTURA ──────────────
+   O bloco de `max-width: 899px` acima tira o chat de cima da doca. O celular
+   DEITADO tem 915px de largura (Android) — ACIMA de 899 — e 412 de altura:
+   ele nao dispara aquela regra e o chat voltava a nascer dentro da doca.
+   Mesmo buraco de eixo unico que esta frente vem fechando arquivo a arquivo. */
+@media (max-height: 439px) {
+	#chatbox {
+		bottom: var(--hud-acima-da-doca, 104px);
+	}
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   D-930 — A PILHA DO RODAPE, DECLARADA (05/09/2026)
+
+   Quatro coisas querem a beira de baixo num celular: a doca, a barra de
+   atalhos nativa, o chat e o botao "Menu". Enquanto cada uma se ancorava por
+   conta propria — "acima da doca" — todas caiam na MESMA faixa e a medicao
+   virava um rodizio de sobreposicoes: consertar uma empurrava a colisao para
+   a vizinha. Foram tres rodadas de medicao ate ficar claro que o problema
+   nao era de nenhuma delas, e sim de nao existir uma PILHA.
+
+   Ela existe agora, e e esta, de baixo para cima:
+
+     doca ................. `bottom: 0`, altura `--hud-doca-altura`
+     barra de atalhos ..... `--hud-acima-da-doca` (doca + 8)
+     chat  |  botao Menu .. `--hud-acima-da-doca + 50`  (42 da fileira + 8)
+     cluster de essenciais  `... + --hud-chat-altura + 8`   (TopMenuIdle.css)
+
+   O chat e o botao "Menu" dividem a MESMA linha, e por isso o chat encolhe
+   aqui: com 300px cravados ele ia de x=16 a 316 num aparelho de 360, e o
+   botao (52px em `right:16`) ocupa de 292 a 344 — 24px de sobreposicao,
+   medidos. `100vw - 96` reserva os 16 de margem, os 52 do botao e mais 12 de
+   respiro entre os dois. Em 412px o `min()` ja devolve os 300 de sempre, e
+   dai para cima nada muda.
+
+   O 50 e o unico numero cravado da pilha, e ele e o unico estavel: a barra de
+   atalhos tem uma fileira de 42px (`ShortCut.css`, `.row { height: 42px }`,
+   pinada no teste `barraDeAtalhosNativa`), mais 8 de respiro.
+   ═══════════════════════════════════════════════════════════════════════ */
+@media (max-width: 899px), (max-height: 439px) {
+	#chatbox {
+		bottom: calc(var(--hud-acima-da-doca, 104px) + 50px);
+		width: min(300px, calc(100vw - 96px));
+	}
+}
+
+/* ─── D-930: em PAISAGEM o chat sai de baixo do painel e vai para o LADO ───
+   Medido em 852x393 e 915x412: o corpo do chat cruzava o painel de personagem
+   (242x46px e 242x27px). A causa e geometrica e nao tem conserto vertical — a
+   coluna da esquerda ja soma painel(263) + chat(56) + barra(42) + doca(62) =
+   423px numa tela de 393.
+
+   O que sobra em paisagem e o que falta em retrato: LARGURA. Em 852px, com o
+   painel ocupando os primeiros 259, ha 590px livres a direita dele. O chat
+   anda para la e o cruzamento acaba — sem esconder nada e sem encolher nada.
+
+   `--hud-basic-largura` e o mesmo token que dimensiona o painel, entao o chat
+   acompanha sozinho quando ele encolher. */
+@media (max-height: 439px) {
+	#chatbox {
+		left: calc(var(--hud-basic-largura, 246px) + 24px);
+	}
+}
+
+/* ─── D-930: em paisagem o chat tambem respeita a coluna do botao "Menu" ───
+   Medido em 667x375: com o chat a direita do painel (regra acima) ele ia de
+   270 a 570, e a coluna do menu (`.tm-menu`, `min-width: 198px` em
+   `right: 16`) comeca em 453 — 81x14px de cruzamento.
+
+   A conta desconta as tres parcelas que ja tem dono: a largura do painel, o
+   respiro de 24 e os 214px que a doca ja reserva para a coluna do menu
+   (`--hud-reserva-do-menu`, Common.css). Em 852 e 915 a subtracao ainda passa
+   dos 300px e o `min()` devolve o tamanho de sempre. */
+@media (max-height: 439px) {
+	#chatbox {
+		width: min(300px, calc(100vw - var(--hud-basic-largura, 246px) - 24px - 214px));
+	}
+}

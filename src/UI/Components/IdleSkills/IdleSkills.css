@@ -1131,3 +1131,82 @@
 #IdleSkills .is-btn-aplicar.is-armado {
 	box-shadow: var(--glow-accent), var(--rim-light);
 }
+
+/* ─── Telha estreita (D-932, Lote 3) ─────────────────────────────────────
+ *
+ * ".is-footer" e flex ROW com tres filhos (".is-footer-left" flex:0 0
+ * auto, ".is-problemas" flex:1 1 auto, ".is-footer-right" flex:0 0 auto —
+ * linhas 1090-1109). ".is-footer-right" tem largura NATURAL de 310px
+ * (pill de pontos + Resetar + Aplicar), e so cabe porque no desktop sobra
+ * espaco depois dos dois primeiros filhos. Numa tela de 393px o senior
+ * mediu ".is-footer-right" em x 151..461 -- 68px pra fora -- e o botao
+ * "Aplicar" (x 388..461) parcialmente cortado: e o botao que CONFIRMA a
+ * distribuicao de pontos, nao pode ficar inalcancavel.
+ *
+ * Em vez de encolher os botoes (vira alvo de aperto menor), a
+ * fileira QUEBRA em duas linhas: esquerda/status ficam na primeira,
+ * ".is-footer-right" desce pra linha de baixo com largura cheia — sozinha
+ * ela cabe folgada em 393px (310px de conteudo natural). Os botões
+ * "Aplicar"/"Resetar" ganham `min-height:44px`: a receita do rodape
+ * (padding 6px 18px, font-size 11px) media bem menos que 44px de altura
+ * — e ".is-btn-aplicar" é a ação que não pode ficar abaixo do alvo mínimo
+ * de aperto.
+ */
+@media (max-width: 599px) {
+	#IdleSkills .is-footer {
+		flex-wrap: wrap;
+		row-gap: var(--sp-3);
+	}
+
+	#IdleSkills .is-footer-right {
+		flex: 1 1 100%;
+		justify-content: flex-end;
+	}
+
+	#IdleSkills .is-btn-aplicar,
+	#IdleSkills .is-btn-resetar {
+		min-height: 44px;
+	}
+}
+
+/* ─── "Pôr na barra" — o lado do TOQUE (D-938) ──────────────────────────
+ *
+ * Pôr uma habilidade na barra de atalhos só tem um caminho hoje: o arrasto
+ * HTML5 do `onSkillDragStart` lá em cima. Arrasto HTML5 não existe no dedo —
+ * o navegador de celular nem gera `dragstart` a partir de um toque — então
+ * sem este botão o jogador de celular não tem NENHUM jeito de armar a barra.
+ *
+ * A regra dura da frente é "o desktop não muda de aparência": no mouse o
+ * arrasto já funciona, e este botão seria ruído novo no rodapé. Por isso ele
+ * fica ESCONDIDO por padrão e só some da tela pelo CSS abaixo — nunca por
+ * JavaScript. O elemento sempre existe no HTML (`renderDetail()` o desenha
+ * junto com "Pôr na rotação" sempre que a habilidade serve); é o
+ * `@media (pointer: coarse)` que decide se ele é visível, porque é o critério
+ * que sobrevive à janela trocando de aparelho em tempo real (DevTools,
+ * tablet com teclado) — um `matchMedia` lido uma vez no boot erraria nesse
+ * caso (mesmo argumento do bloco D-935 no Common.css).
+ */
+#IdleSkills .is-btn-atalho {
+	flex: 1 1 auto;
+	padding: 6px 12px;
+	font-size: 11px;
+	display: none;
+}
+
+/* Com a habilidade NA MÃO — acento, para casar com o "Aplicar" aceso
+   (`.is-btn-aplicar.is-armado`) e não com o dourado da rotação de ataque,
+   que é outro estado. */
+#IdleSkills .is-btn-atalho--armado {
+	border-color: var(--accent);
+	color: var(--accent);
+	box-shadow: var(--glow-accent), var(--rim-light);
+}
+
+@media (pointer: coarse) {
+	#IdleSkills .is-btn-atalho {
+		display: inline-flex;
+		/* Piso de alvo tátil da casa (D-935) — 44px mesmo a receita do rodapé
+		   (padding 6px 12px, font-size 11px) medindo bem menos que isso. */
+		min-height: var(--hit-touch, 44px);
+	}
+}

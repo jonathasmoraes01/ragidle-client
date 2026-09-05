@@ -364,14 +364,55 @@ ui-button {
 	--radius-bar: 3px;
 	--hit-touch: 44px;
 
+	/* ═══════════════════════════════════════════════════════════════════
+	   D-929 (05/09/2026) — O EIXO QUE FALTAVA: ALTURA.
+
+	   A rodada I1+I2 de 31/08 acertou o MECANISMO (token no Common.css, que
+	   atravessa shadow DOM, redefinido por `@media` no fim do arquivo) e
+	   cobriu um eixo so: LARGURA, em 899/759/599. Nao havia faixa de altura
+	   nenhuma na HUD.
+
+	   Por isso o celular DEITADO cai em todas as frestas. Medido em
+	   05/09/2026: em 852x393 (iPhone 15 deitado) a largura 852 esta ACIMA de
+	   759, entao o painel de personagem fica com os 246px de tela larga; e a
+	   altura de 393 nao dispara nada, porque nao havia o que disparar. O
+	   painel de personagem termina por volta de y=328 (medido em runtime e
+	   publicado em `--hud-basic-fundo`) e a doca ocupa os 96px de baixo:
+	   328 + 96 = 424, e a tela tem 393.
+
+	   `--ui-escala` e o unico botao continuo desta camada: 1 no desktop —
+	   entao TUDO o que le esse token calcula HOJE exatamente o numero de
+	   hoje, e o desktop nao muda um pixel — e menor so nas faixas de altura
+	   curta la no fim do arquivo. Quem le ele usa `max(<piso>, calc(...))`,
+	   nunca `calc()` cru: alvo tatil tem piso, e escala que atravessa o piso
+	   e a mesma coisa que "nao esta clicavel".
+	   ═══════════════════════════════════════════════════════════════════ */
+	--ui-escala: 1;
+
+	/* As bordas seguras do aparelho (entalhe, barra de gestos, cantos
+	   arredondados). Sao ZERO em qualquer tela sem entalhe — inclusive todo
+	   desktop —, entao podem entrar no calculo dos componentes desde ja, sem
+	   efeito nenhum, e passam a valer sozinhas quando a Fase 2 ligar o
+	   `viewport-fit=cover` no `<head>`. ELES SO VALEM NO DOCUMENTO DE CIMA:
+	   dentro de um iframe, `env(safe-area-inset-*)` resolve para zero. */
+	--safe-topo: env(safe-area-inset-top, 0px);
+	--safe-baixo: env(safe-area-inset-bottom, 0px);
+	--safe-esq: env(safe-area-inset-left, 0px);
+	--safe-dir: env(safe-area-inset-right, 0px);
+
 	/* Diametros de disco (.ri-disc) — as TRES variantes que a HUD usa, com
 	   nome proprio para o inventario da onda de icones (01/09/2026) em vez de
 	   quatro numeros soltos por componente. O orbe da doca ja tinha token
 	   (--hud-doca-orbe: 64px). O botao inteiro (disco + rotulo + respiro)
-	   continua sendo quem cumpre --hit-touch, nao o disco sozinho. */
-	--disc-menu: 42px; /* cluster e leque do TopMenuIdle */
-	--disc-fab: 52px; /* o botao Menu que abre o leque */
-	--disc-alca: 26px; /* alcas de recolher (cluster, chat) */
+	   continua sendo quem cumpre --hit-touch, nao o disco sozinho.
+
+	   D-929: passam a ler `--ui-escala`. Com ela em 1 (todo desktop) o
+	   `max()` devolve 42/52/26 — os MESMOS numeros de antes, e nao um numero
+	   parecido. Os pisos (34/44/24) sao o ponto em que o disco deixa de
+	   caber o icone dentro dele; abaixo disso o que muda e o ARRANJO. */
+	--disc-menu: max(34px, calc(42px * var(--ui-escala))); /* cluster e leque do TopMenuIdle */
+	--disc-fab: max(44px, calc(52px * var(--ui-escala))); /* o botao Menu que abre o leque */
+	--disc-alca: max(24px, calc(26px * var(--ui-escala))); /* alcas de recolher (cluster, chat) */
 
 	/* ─── O CANTO SUPERIOR DIREITO DA HUD (I4, 31/08/2026 — pedido do dono) ───
 
@@ -391,8 +432,42 @@ ui-button {
 	   componente le daqui sem se conhecerem.
 
 	   `--hud-td-*` = Hud, Topo Direito. */
-	--hud-td-topo: 16px;
-	--hud-td-direita: 16px;
+	/*
+	 * ═══════════════════════════════════════════════════════════════════
+	 * D-936 — AS BORDAS SEGURAS DO APARELHO ENTRAM NAS ANCORAS
+	 *
+	 * `viewport-fit=cover` entrou no `<head>` na mesma rodada, e as duas
+	 * coisas NAO podem andar separadas. Sozinho, ele estende a pagina para
+	 * baixo do entalhe, dos cantos arredondados e da barra de gestos — e a
+	 * HUD, que se ancora nos quatro cantos, passaria a correr por baixo dos
+	 * tres. Sem ele, os `env(safe-area-inset-*)` sao zero e isto aqui nao
+	 * faz nada.
+	 *
+	 * ── ESTAS TRES LINHAS MORAM AQUI, E NAO NO FIM DO ARQUIVO ─────────
+	 * A primeira versao delas foi acrescentada no FIM, num `:root` novo — e
+	 * a prova reprovou na hora: um `:root` depois das faixas de altura
+	 * VENCE as faixas, entao `--hud-td-topo` voltava a 16px onde a faixa o
+	 * tinha posto em 10 ou 6, e a coluna da direita descia 6-10px por cima
+	 * do cluster. Medido: 136x7px de sobreposicao em 360x640 e 202x6px em
+	 * 667x375.
+	 *
+	 * E a MESMA cicatriz que este arquivo documenta desde D-929 — em CSS de
+	 * mesma especificidade quem vence e a ORDEM —, cometida por quem tinha
+	 * acabado de escrever o aviso. Token de BASE se declara na base; faixa
+	 * so redefine.
+	 *
+	 * ── O QUE SOMA ONDE, E POR QUE SO ISTO ────────────────────────────
+	 * O que precisa recuar e o que encosta na BEIRA; o miolo da HUD nao
+	 * muda. O canto superior ESQUERDO (painel de personagem) fica de fora de
+	 * proposito: ele e posicionado em pixel pelo `GUIComponent`, e uma regra
+	 * daqui perderia para o estilo inline do arrasto no primeiro toque.
+	 *
+	 * As duas faixas de ALTURA tambem somam `--safe-topo` — as tres
+	 * declaracoes andam juntas, ou a de baixo apaga a borda segura.
+	 * ═══════════════════════════════════════════════════════════════════
+	 */
+	--hud-td-topo: calc(16px + var(--safe-topo, 0px));
+	--hud-td-direita: calc(16px + var(--safe-dir, 0px));
 	--hud-td-largura: 136px;
 	/* MEDIDO com `getBoundingClientRect` contra `#MiniMapV2` em jogo, e nao
 	   somado a partir do CSS — a primeira versao deste token dizia 157 (a soma
@@ -466,6 +541,19 @@ ui-button {
 	--hud-doca-gap: 22px;
 	--hud-doca-orbe: 64px;
 	--hud-doca-consumivel: 56px;
+
+	/* A ALTURA DA DOCA (D-929). Ela era o `min-height: 96px` cravado no
+	   `DockIdle.css`, e virou token porque DOIS outros moradores dependem
+	   dela para nao pisar na doca — o botao "Menu" e o chat — e porque ela e
+	   a primeira coisa que precisa encolher em tela deitada.
+
+	   `--hud-acima-da-doca` passa a ser DERIVADA em vez de um 104 cravado: 96
+	   + 8 de respiro da exatamente o 104 que a faixa de 599 usava, e agora
+	   ela acompanha a doca sozinha quando a altura encolhe. Um numero solto a
+	   menos e uma classe inteira de defeito a menos: mexer na altura da doca
+	   um dia e devolver a sobreposicao em silencio, longe da causa. */
+	--hud-doca-altura: 96px;
+	--hud-acima-da-doca: calc(var(--hud-doca-altura) + 8px + var(--safe-baixo, 0px));
 
 	/* Movimento — curto, sem salto */
 	--dur-instant: 90ms;
@@ -1363,7 +1451,426 @@ ui-button {
 		 * Em tela larga isso nunca doeu porque eles nao se cruzam em X: o chat
 		 * fica na esquerda e a doca no centro, longe. A colisao em Y sempre
 		 * existiu — e so aparece quando a tela encolhe e o X deixa de separar.
+		 *
+		 * D-929: o `--hud-acima-da-doca: 104px` que morava AQUI saiu, e nao
+		 * porque o numero mudou — 96 + 8 continua dando 104. Ele virou
+		 * DERIVADO de `--hud-doca-altura` la em cima, no bloco de tokens, para
+		 * acompanhar a doca quando a faixa de ALTURA a encolhe. Deixar a copia
+		 * aqui venceria a derivada pela ordem do arquivo e desligaria o eixo
+		 * novo em silencio — exatamente a cicatriz do `StatusIdle.css:545`,
+		 * so que ao contrario.
 		 */
-		--hud-acima-da-doca: 104px;
 	}
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   D-929 — AS FAIXAS DE ALTURA (05/09/2026)
+
+   O EIXO QUE FALTAVA. Ate aqui a HUD so olhava para a LARGURA (899/759/599,
+   logo acima), e por isso o celular DEITADO passava por todas as frestas:
+   852x393 tem 852 de largura — acima de 759, entao ele recebe o layout de
+   tela larga — e 393 de altura, que nao disparava nada.
+
+   OS CORTES SAO MEDIDOS, E NAO REDONDOS:
+
+   - **700** fica ABAIXO de todo notebook real (1366x768 e 1280x800 sao os dois
+     da matriz do dono, e os dois passam intactos: 768 e 800 > 699). Quem cai
+     aqui e tablet deitado pequeno (1024x600) e janela de navegador espremida
+     na vertical. E o mesmo corte que a tela de login ja usava
+     (`WinLoginV2.css:292`), de proposito: dois cortes diferentes para a mesma
+     pergunta seria uma armadilha.
+   - **440** fica ACIMA do celular deitado mais alto que existe na matriz
+     (Android 915x412) e ABAIXO de qualquer outra coisa. Entre 440 e 700 nao
+     ha aparelho nenhum: e uma faixa de janela redimensionada, nao de tela.
+
+   ELAS SO REDEFINEM TOKEN QUE AS FAIXAS DE LARGURA NAO TOCAM, e isso e
+   deliberado. Em CSS de mesma especificidade quem vence e a ORDEM, e estes
+   blocos vem DEPOIS dos de largura — entao um token escrito nos dois lugares
+   teria a versao de altura vencendo sempre, inclusive onde a largura ja tinha
+   encolhido MAIS. O caso concreto: em 360x640 (a resolucao minima suportada)
+   a faixa de 599 poe o orbe da doca em 48px, e uma faixa de altura que
+   tambem mexesse no orbe o devolveria para 56 — encolhendo a tela e
+   AUMENTANDO o alvo, que e o oposto do que se quer. Por isso orbe, gap,
+   consumivel, largura do painel e reserva do menu ficam de fora daqui.
+
+   Quem precisa encolher nos dois eixos le `--ui-escala` com `max(<piso>, ...)`
+   dentro do proprio componente.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* ─── ALTURA ABAIXO DE 700: notebook espremido, tablet deitado pequeno ─── */
+@media (max-height: 699px) {
+	:root,
+	:host {
+		--ui-escala: 0.88;
+		/* O respiro do topo direito cai de 16 para 10: com 600px de altura, os
+		   6px que sobram do topo valem mais no fim da coluna. */
+		--hud-td-topo: calc(10px + var(--safe-topo, 0px));
+		--hud-td-gap-dos-botoes: 4px;
+		/* 82 = 96 - 14. A doca continua com folga sobre o piso tatil de 44
+		   (o orbe nesta faixa e 56 ou 64, e o `min-height` so precisa
+		   embrulhar o orbe mais o rotulo). */
+		--hud-doca-altura: 82px;
+	}
+}
+
+/* ─── ALTURA ABAIXO DE 440: CELULAR DEITADO. Aqui o eixo vertical e o caro ── */
+@media (max-height: 439px) {
+	:root,
+	:host {
+		--ui-escala: 0.76;
+		/*
+		 * O MINIMAPA ENCOLHE AQUI (D-930), e este token e o que faz a coluna
+		 * inteira acompanhar: os botoes de caca leem este mesmo token para
+		 * saber onde comecar (HuntButtonIdle.css) e os icones de status leem a
+		 * soma. 92 = 84 do mapa + 8 de respiro do card, sem cabecalho e sem
+		 * rodape (MiniMapV2.css, fim do arquivo). Mudar um sem o outro devolve
+		 * a sobreposicao em silencio — foi assim que os icones de status
+		 * acabaram por cima do minimapa em 31/08.
+		 */
+		--hud-td-altura-do-minimapa: 92px;
+		--hud-td-topo: calc(6px + var(--safe-topo, 0px));
+		--hud-td-gap-dos-botoes: 4px;
+		/*
+		 * 62px, e nao menos: a doca precisa embrulhar um orbe de 48 (o piso
+		 * tatil desta faixa, posto pela faixa de largura de 599 quando ela
+		 * vale, ou pelos 56 da de 899) mais 7px de respiro em cima e embaixo.
+		 * Encolher a doca abaixo disso comeria o alvo, e alvo comido e
+		 * exatamente o que o dono chamou de "nao esta clicavel".
+		 *
+		 * A conta que esta faixa precisa fechar, em 852x393:
+		 *   painel de personagem  ~300 (com --ui-escala 0.76)
+		 * + doca                    62
+		 * =                        362, e a tela tem 393.
+		 */
+		--hud-doca-altura: 62px;
+	}
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   D-931 — O "X" DE TODA JANELA GANHA ALVO TÁTIL (05/09/2026)
+
+   Auditado no jogo de pé, em 1366x768: as DEZ janelas do jogo (Mochila,
+   Skills, Config, Caça, Códex, Correio, Missões, Passe, Análise e Personagem)
+   têm um `.ri-close` visível — o requisito do dono de "toda janela precisa de
+   um X visível, além do ESC" já estava cumprido. Todos os dez medem **20x20**,
+   e 20 é menos da metade dos 44 que o dedo pede.
+
+   Um seletor só resolve os dez, e é por isso que ele mora aqui: `.ri-close` é
+   do design system, injetado no `document.head` e replicado dentro de todo
+   Shadow DOM. Consertar janela a janela seria dez consertos e uma décima
+   primeira janela nascendo errada.
+
+   `::before` transparente com `inset` negativo, e NÃO `width/height`: o X é um
+   disco dourado de 20px desenhado sobre a barra de título, e crescer a caixa
+   de verdade o faria estourar o cabeçalho (32px de altura) e empurrar o
+   título. O pseudo-elemento aumenta só a ÁREA que recebe o toque — e um
+   clique nele conta como clique no botão, porque `::before` não existe como
+   alvo de evento próprio.
+
+   -12px de cada lado: 20 + 12 + 12 = 44, exatamente o piso.
+
+   Só em tela de toque. No desktop o mouse acerta 20px sem esforço, e uma área
+   invisível de 44px ali roubaria clique da faixa arrastável do cabeçalho —
+   que é como se move a janela.
+   ═══════════════════════════════════════════════════════════════════════ */
+@media (max-width: 599px), (max-height: 439px) {
+	.ri-close::before {
+		content: '';
+		position: absolute;
+		inset: -12px;
+	}
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   D-932 — EM TELA ESTREITA, JANELA VIRA PAINEL DE TELA CHEIA
+
+   Pedido do dono, palavra por palavra: *"Em tela estreita, janela arrastável
+   não serve: o MESMO componente muda de apresentação — janela no desktop,
+   painel de tela cheia / bottom sheet no celular. Um componente, dois modos,
+   nunca duas implementações."*
+
+   E não era só desconforto. MEDIDO em 393x852, com o jogo de pé e um toque de
+   verdade: o "X" da Mochila ficava em **x = 503 numa tela de 393px** — a
+   janela inteira mais larga que o aparelho, o botão de fechar desenhado FORA
+   do mundo. `elementFromPoint` no centro dele devolvia `null`.
+
+   A matriz da HUD não pegava isso porque ela mede os painéis SEMPRE VISÍVEIS,
+   e não as janelas: uma prova que incluísse janela fechada reportaria "não
+   está na tela" como defeito. Quem pegou foi a sonda de TOQUE, tentando
+   fechar o que tinha acabado de abrir.
+
+   ── AS DUAS METADES DA REGRA ─────────────────────────────────────────────
+
+   O HOST (`.ri-janela`, marcado pelo registro da pilha — `pilhaDeJanelas.js`)
+   vive no documento. O CORPO da janela vive dentro do Shadow DOM, e alcança
+   este mesmo arquivo porque o `GUIComponent` replica o `Common.css` dentro de
+   cada shadow. Uma regra em cada lado, no mesmo bloco, para as duas nunca
+   andarem separadas.
+
+   ── POR QUE `!important`, QUE ESTE ARQUIVO EVITA EM TODO O RESTO ─────────
+
+   Porque a concorrência aqui é ESTILO INLINE, e não outra regra: o
+   `GUIComponent` escreve `left`/`top` em pixel no host ao arrastar
+   (`draggable()`), e o `ClampToViewport` reescreve os dois no resize. Estilo
+   inline vence folha de estilo sempre — sem `!important` esta regra seria
+   escrita, lida e ignorada no instante em que o jogador encostasse na barra de
+   título. É o mesmo motivo pelo qual `--tm-colunas` teve de ir para o JS
+   (D-930): quando o inline é o adversário, a folha precisa de `!important` ou
+   de outro dono.
+
+   ── O QUE ROLA ──────────────────────────────────────────────────────────
+
+   A janela inteira rola, cabeçalho incluso, e não só o corpo. É menos
+   elegante que um cabeçalho fixo e é o único jeito que funciona para as ONZE
+   janelas com UMA regra: cada uma nomeia o corpo dela de um jeito
+   (`.mo-body`, `.is-body`, `.ic-corpo`...), e uma regra que dependesse desses
+   nomes deixaria de fora a próxima janela que alguém escrever. Cabeçalho fixo
+   é polimento; alcançar o botão de fechar é função.
+   ═══════════════════════════════════════════════════════════════════════ */
+@media (max-width: 599px) {
+	/* O HOST, no documento. */
+	.ri-janela {
+		position: fixed !important;
+		left: var(--safe-esq, 0px) !important;
+		right: var(--safe-dir, 0px) !important;
+		top: calc(var(--safe-topo, 0px) + 8px) !important;
+		bottom: auto !important;
+		width: auto !important;
+		max-width: none !important;
+		transform: none !important;
+		/*
+		 * O HOST NAO RECEBE TOQUE — so a janela dentro dele.
+		 *
+		 * Fixo em `left:0; right:0`, o host de uma janela FECHADA vira uma
+		 * faixa invisivel de largura inteira sobre a cena. Medido em 393x852:
+		 * onze hosts empilhados assim, alguns com 620px de altura.
+		 *
+		 * Hoje eles nao estorvam porque cada componente ja apaga o proprio
+		 * `pointer-events` ao fechar — mas isso e ACIDENTE de onze arquivos
+		 * concordarem, e dois deles (`PasseIdle` e `CodexIdle`) ja divergem
+		 * (ficam em `auto`, salvos so por terem altura zero). Aqui a regra
+		 * passa a ser explicita, e o que recebe o dedo e a janela.
+		 */
+		pointer-events: none !important;
+	}
+
+	/*
+	 * O CORPO, dentro do Shadow DOM.
+	 *
+	 * A lista é explícita e não um `[class*="-window"]`: três das onze janelas
+	 * não carregam `.ri-window` (`.mo-window`, `.co-window` e `.ha-window` têm
+	 * só `.ri-anima`), e um seletor por pedaço de nome pegaria também
+	 * `.mm-canvas-frame` e qualquer coisa futura que tenha "window" no meio.
+	 * Nomear custa uma linha e não erra.
+	 */
+	.ri-window,
+	.mo-window,
+	.co-window,
+	.ha-window {
+		position: static !important;
+		width: 100% !important;
+		min-width: 0 !important;
+		max-width: 100% !important;
+		height: auto !important;
+		/* A doca continua alcançável por baixo do painel: ela é a barra de
+		   ação do jogo, e cobri-la trocaria uma janela por outra. */
+		max-height: calc(
+			100dvh - var(--hud-doca-altura, 96px) - var(--safe-topo, 0px) - var(--safe-baixo, 0px) - 24px
+		) !important;
+		/*
+		 * `!important` tambem aqui, e por um adversario diferente do `left/top`:
+		 * `#HuntMap .hm-window` declara `overflow: hidden` com especificidade de
+		 * ID+classe, e ID vence classe independentemente da ordem no arquivo.
+		 * Sem isto, a janela do Mapa de Caca ficaria com o teto de altura desta
+		 * regra E sem rolagem — conteudo cortado, sem saida. Foi o proprio
+		 * junior que mexia naquele arquivo quem apontou o risco, lendo a
+		 * cascata; a medicao depois confirmou.
+		 */
+		overflow-y: auto !important;
+		overscroll-behavior: contain;
+		-webkit-overflow-scrolling: touch;
+		/* O par do `pointer-events: none` do host: quem recebe o dedo e ela. */
+		pointer-events: auto;
+	}
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   D-935 — O PISO TATIL SEGUE O PONTEIRO, E NAO O TAMANHO DA TELA
+           (05/09/2026)
+
+   Todas as regras de alvo de 44px desta frente nasceram presas a LARGURA
+   (`max-width: 599px`) ou a ALTURA (`max-height: 439px`), porque foi assim que
+   o celular apareceu na medicao. E isso deixou um buraco inteiro de fora:
+
+     **um tablet e DEDO numa tela LARGA.**
+
+   A prova canonica pegou no primeiro dia em que ela passou a declarar o
+   ponteiro de cada tela (D-934). Em 768x1024 e 1024x768, com `hasTouch`:
+
+     TopMenuIdle/.tm-toggle ....... 28x28
+     HuntButtonIdle/.hb-btn ....... 136x32
+     BasicInfoIdle/.bi-minimize ... 20x20
+
+   Tres alvos abaixo do piso, num aparelho que so se usa com o dedo — e
+   nenhuma das faixas de tamanho dispara la, porque 768 e 1024 estao acima de
+   599 e de 439.
+
+   `pointer: coarse` e o criterio que descreve o que a regra sempre quis dizer:
+   "quem aponta aqui e um dedo". Ele pega celular, tablet e qualquer coisa com
+   tela sensivel ao toque, e NAO pega o mouse — entao o desktop continua
+   intocado, com os alvos de 20px que o cursor acerta sem esforco.
+
+   ── POR QUE UM BLOCO SO, E AQUI ─────────────────────────────────────────
+   Editar as ~14 `@media` espalhadas seria mexer em regras que sao de LAYOUT
+   (posicao, empilhamento) e nao de alvo — e ligar layout de celular num tablet
+   de 1024px estragaria o que hoje esta certo. Este bloco toca so o que e
+   ALVO.
+
+   Ele mora no `Common.css` porque o `GUIComponent` replica este arquivo dentro
+   de todo Shadow DOM: um seletor aqui alcanca `.tm-toggle` dentro do
+   TopMenuIdle e `.bi-minimize` dentro do BasicInfoIdle sem que nenhum dos dois
+   precise saber. E a folha do componente e injetada DEPOIS desta, entao onde
+   os dois falarem da mesma propriedade quem vence e o componente — por isso as
+   regras daqui so agem onde a faixa de tamanho dele NAO esta ativa, que e
+   exatamente o caso do tablet.
+
+   ── A TECNICA E A MESMA DE SEMPRE ───────────────────────────────────────
+   `::before` transparente com `inset` negativo aumenta a AREA que recebe o
+   dedo sem inchar o DESENHO. Crescer a caixa de verdade empurraria o titulo da
+   janela, estouraria o cabecalho de 32px e mudaria a cara do jogo num aparelho
+   em que ela esta certa.
+   ═══════════════════════════════════════════════════════════════════════ */
+@media (pointer: coarse) {
+	/* O "X" de toda janela (20x20) e a alca de recolher o cluster (28x28). */
+	.ri-close::before,
+	.tm-toggle::before {
+		content: '';
+		position: absolute;
+		inset: -12px;
+	}
+
+	/* Os dois botoes de caca: 136x32, largos e BAIXOS. O que cresce e a
+	   altura — a largura ja passa folgada. */
+	.hb-btn {
+		min-height: var(--hit-touch, 44px);
+	}
+
+	/*
+	 * O minimizar do painel de personagem. Os quatro numeros sao assimetricos
+	 * e MEDIDOS: o botao mora a 7px do topo do cabecalho e a 8px da borda
+	 * direita da janela, e o `overflow: hidden` dela cortaria uma expansao
+	 * maior desses dois lados. Sobra crescer para baixo (17) e para a esquerda
+	 * (16), onde ha vao — o glifo do titulo termina 32px antes dele.
+	 */
+	.bi-minimize::before {
+		content: '';
+		position: absolute;
+		inset: -7px -8px -17px -16px;
+	}
+
+	/* O "+" de distribuir atributo (20x20) e os dois menores da barra de
+	   atalhos (14x14 e 15x15). */
+	.st-stat-up::before,
+	#ShortCut .close::before,
+	#ShortCut .resize::before {
+		content: '';
+		position: absolute;
+		inset: -12px;
+	}
+
+	/*
+	 * OS SLOTS DA BARRA — e a unica excecao MEDIDA aos 44px desta frente.
+	 *
+	 * Desde D-938 o slot deixou de ser so alvo de arrasto: ele e o SEGUNDO
+	 * toque de "pegar e por", e no celular e o unico jeito de montar a barra.
+	 *
+	 * 44px aqui e geometricamente impossivel, e a conta e curta: sao NOVE
+	 * slots por linha (`row = Math.floor(index / 9)` em ShortCut.js, e o
+	 * indice e o mesmo que vai no `CZ_SHORTCUT_KEY_CHANGE2` — mudar a
+	 * contagem mudaria o protocolo). 9 x 44 = 396px, e a barra tem
+	 * `min(368px, 100vw - 16px)`: na tela mais estreita da matriz (360px)
+	 * sobram 344. Alargar a barra ate 396 poria rolagem horizontal na pagina,
+	 * que ESTA MESMA prova reprova.
+	 *
+	 * Entao o que da para fazer e o que este bloco faz: acabar com o vao
+	 * MORTO entre os slots. O desenho continua 32x32 (mudar a arte do slot
+	 * mexeria no icone de 32px que mora dentro dele), e a AREA que recebe o
+	 * dedo passa a ser a celula inteira — 37x42, o passo real da grade
+	 * (32 + 5 de margem na horizontal; 5 + 32 + 5 na vertical). Sao ~35% mais
+	 * area por slot e, mais importante, nenhum ponto da linha que nao
+	 * pertenca a algum slot.
+	 */
+	#ShortCut .row .container {
+		position: relative;
+	}
+
+	#ShortCut .row .container::before {
+		content: '';
+		position: absolute;
+		inset: -5px -2.5px;
+	}
+}
+
+/* A doca encosta na beira de baixo: o recheio dela e que afasta o conteudo da
+   barra de gestos, sem mudar a altura declarada no token. */
+.dk-bar {
+	padding-bottom: var(--safe-baixo, 0px);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   D-936 — O QUE O DEDO NAO PODE FAZER NA PAGINA (05/09/2026)
+
+   Tres gestos do navegador de celular que atrapalham um jogo, e o que cada um
+   custa quando nao esta travado:
+
+   1. **PUXAR PARA RECARREGAR.** Um arrasto para baixo comecando perto do topo
+      recarrega a pagina. Num jogo que leva ~10s para abrir e que tem a cena
+      ocupando a tela inteira, isso e perda de sessao por gesto acidental —
+      e o gesto acidental e literalmente "arrastar o dedo para baixo", que e o
+      que se faz para rolar qualquer lista.
+
+   2. **A ROLAGEM QUE VAZA.** Rolar o fim de uma lista continua rolando o que
+      esta atras dela. Com a cena atras, o efeito e a tela inteira balancando.
+      `overscroll-behavior: none` corta os dois de uma vez: ele desliga o
+      encadeamento E o gesto de recarregar.
+
+   3. **DAR DOIS TOQUES PARA APROXIMAR.** Ja estava tratado — o `<head>` traz
+      `user-scalable=no` e este arquivo tem `touch-action: manipulation` desde
+      antes desta frente. Fica registrado aqui para a lista ficar completa e
+      ninguem "consertar" de novo.
+
+   `html` E `body` os dois: o comportamento de overscroll da PAGINA e lido do
+   elemento raiz, e alguns navegadores o leem do `body` quando o `html` nao
+   declara. Declarar nos dois e o que a especificacao recomenda para o caso de
+   propagacao.
+   ═══════════════════════════════════════════════════════════════════════ */
+html,
+body {
+	overscroll-behavior: none;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   D-937 — A VOLTA IMEDIATA (a bandeira de rollout)
+
+   Com `enableHudAdaptavel: false` no `Config.local.js`, o `escalaDaHud` poe
+   `ri-hud-classica` no `<html>` e nao aplica `zoom` nenhum; a `pilhaDeJanelas`
+   deixa de marcar as janelas com `.ri-janela`, e sem a marca a regra de painel
+   de tela cheia nao casa com nada.
+
+   Falta a terceira camada, que e CSS puro e nao passa por JS: as BORDAS
+   SEGURAS. Aqui elas voltam a zero — e o `!important` e necessario porque os
+   tokens sao declarados em `:root, :host` e esta regra precisa vencer a copia
+   que vive dentro de cada Shadow DOM.
+
+   Por que zerar em vez de simplesmente nao somar: `viewport-fit=cover` esta no
+   `<head>` do build, e nao ha como tira-lo sem republicar. Com a pagina ja
+   estendida por baixo do entalhe, a HUD sem recuo ficaria PIOR que antes — a
+   volta tem de desfazer o par inteiro, e do lado que ainda da para mexer.
+   ═══════════════════════════════════════════════════════════════════════ */
+html.ri-hud-classica,
+html.ri-hud-classica :host {
+	--safe-topo: 0px !important;
+	--safe-baixo: 0px !important;
+	--safe-esq: 0px !important;
+	--safe-dir: 0px !important;
 }

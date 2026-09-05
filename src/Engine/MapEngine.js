@@ -31,6 +31,7 @@ import KEYS from 'Controls/KeyEventHandler.js';
 import UIManager from 'UI/UIManager.js';
 import EffectManager from 'Renderer/EffectManager.js';
 import Escape from 'UI/Components/Escape/Escape.js';
+import PilhaDeJanelas from 'UI/pilhaDeJanelas.js'; // RAGIDLE: o dono do ESC e do voltar do Android (D-931)
 import ChatBox from 'UI/Components/ChatBox/ChatBox.js';
 // ChatBoxSettings saiu em 20/08/2026: era o painel de filtros POR ABA das
 // abas dinamicas do chat, que morreram com os tres canais fixos (Global /
@@ -160,6 +161,7 @@ import AchievementEngine from './MapEngine/Achievement.js';
 import RagidleRelatorioEngine from './MapEngine/RagidleRelatorio.js';
 import RagidleCashEngine from './MapEngine/RagidleCash.js';
 import RagidleConfirmarEngine from './MapEngine/RagidleConfirmar.js'; // RAGIDLE: janela de confirmacao do `#` destrutivo
+import EscalaDaHud from 'UI/escalaDaHud.js'; // RAGIDLE: a HUD diminui junto com a janela (D-934)
 
 /**
  * @type {string} mapname
@@ -972,6 +974,69 @@ function onMapChange(pkt) {
 		// o esconderijo de AdminPanel ".ap-button" nao dependem de ORDEM de
 		// append, so da shadow DOM ja existir — garantida no prepare()).
 		HuntButtonIdle.append();
+
+		/*
+		 * A PILHA DE JANELAS (D-931) — o dono do ESC e do voltar do Android.
+		 *
+		 * DEPOIS de todos os `append()` de propósito: o registro embrulha o
+		 * `toggle()` de cada janela, e embrulhar antes de a shadow DOM existir
+		 * pegaria uma função que ainda não fecha nada.
+		 *
+		 * O `seletor` é o elemento que ganha e perde `is-open` — as nove janelas
+		 * Idle têm a MESMA forma, e é ela que deixa a pilha se manter sem que
+		 * nenhuma delas precise saber que a pilha existe.
+		 *
+		 * QUEM CONVIVE E QUEM SUBSTITUI (a tabela que o dono pediu):
+		 *   - as nove Idle CONVIVEM entre si. São painéis independentes, e o
+		 *     jogador abre Mochila e Skills lado a lado de propósito;
+		 *   - a morte (`DeathWindow`) é DECISÃO: cobre tudo, e o ESC não a tira
+		 *     da tela — a única saída é o botão "Voltar para a cidade";
+		 *   - troca, venda, refino e loja de NPC são DECISÃO pela mesma razão:
+		 *     tem alguém do outro lado esperando resposta.
+		 */
+		for (const [nome, componente, seletor] of [
+			['personagem', StatusIdle, '.st-window'],
+			['mochila', MochilaIdle, '.mo-window'],
+			['skills', IdleSkills, '.is-window'],
+			['config', IdleConfig, '.ic-window'],
+			['caca', HuntMap, '.hm-window'],
+			['codex', CodexIdle, '.cx-window'],
+			['correio', CorreioIdle, '.co-window'],
+			['missoes', MissoesIdle, '.mi-window'],
+			['passe', PasseIdle, '.pi-window'],
+			['analise', HuntAnalyzer, '.ha-window'],
+		]) {
+			PilhaDeJanelas.registrar({ nome, componente, seletor });
+		}
+
+		/* O LFG não usa `toggle()`: ele tem `abrir()`/`fechar()` próprios, por
+		   causa da corrida de troca de mapa que já derrubou o `is-open` dele por
+		   baixo dos panos (ver o cabeçalho de LFGIdle.js). Então ele entra com o
+		   fechamento declarado, e não pelo embrulho. */
+		PilhaDeJanelas.registrar({
+			nome: 'lfg',
+			componente: LFGIdle,
+			seletor: '.lfg-window',
+			fechar: () => LFGIdle.fechar(),
+		});
+
+		/* A MORTE é decisão: o ESC não a fecha, e ela também não deixa o ESC
+		   vazar para as janelas de baixo. Isso já era verdade por dentro do
+		   `Escape.onKeyDown`; aqui a regra passa a ser do sistema, e não de um
+		   `if` escondido num componente. */
+		PilhaDeJanelas.registrar({
+			nome: 'morte',
+			componente: DeathWindow,
+			tipo: PilhaDeJanelas.TIPO.DECISAO,
+			estaAberta: () => DeathWindow.aMorteEstaNaTela(),
+			fechar: () => {},
+		});
+
+		PilhaDeJanelas.ligar();
+
+		/* D-934: e a escala da HUD, ligada DEPOIS do registro — ela varre os
+		   hosts e precisa que todos ja existam. */
+		EscalaDaHud.ligar();
 
 		if (Configs.get('enableCashShop')) {
 			/*

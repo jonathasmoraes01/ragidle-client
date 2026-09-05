@@ -9,6 +9,19 @@
 
 		<div class="ic-master"></div>
 
+		<!-- D-933: instalar o jogo. Nasce ESCONDIDO e so aparece quando ha o que
+		     fazer — no Chrome/Android quando o navegador oferece a instalacao, no
+		     Safari do iPhone com a instrucao (la nao existe evento nenhum). Quem
+		     ja instalou nao ve nada: o pedido do dono e explicito contra banner
+		     intrusivo, e um botao que nao faz nada e a versao permanente disso. -->
+		<div class="ic-instalar" hidden>
+			<div class="ic-instalar-texto">
+				<strong class="ic-instalar-titulo">Instalar o jogo</strong>
+				<span class="ic-instalar-sub"></span>
+			</div>
+			<button type="button" class="ic-instalar-btn ri-btn">Instalar</button>
+		</div>
+
 		<div class="ic-status" role="status"></div>
 
 		<div class="ic-body">

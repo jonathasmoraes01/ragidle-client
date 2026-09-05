@@ -173,6 +173,7 @@ import CashShop from 'UI/Components/CashShop/CashShop.js'; // RAGIDLE: a loja de
 import RiIcones from 'UI/ri-icones.js';
 import htmlText from './TopMenuIdle.html?raw';
 import cssText from './TopMenuIdle.css?raw';
+import { emUnidadesDaHud } from 'UI/escalaDaHud.js'; // D-934: geometria medida vira unidade da HUD
 
 /**
  * Mesma constante de conta dona que AdminPanel.js:65 -- copia local (nao
@@ -324,6 +325,10 @@ TopMenuIdle.onAppend = function onAppend() {
 
 	distribuirColunas();
 	distribuirFileiras();
+	/* Depois de distribuir as fileiras, porque e o numero de fileiras que
+	   decide a altura — e a altura decide o topo, que e o que se publica. */
+	publicarTopoDoCluster();
+	observarTopoDoCluster();
 
 	_lequeAberto = false;
 	aplicarEstadoDoLeque(true);
@@ -761,7 +766,85 @@ function distribuirFileiras() {
 		return;
 	}
 	const visiveis = [...topo.querySelectorAll('.tm-item')].filter(item => item.style.display !== 'none');
-	topo.style.setProperty('--tm-colunas', String(Math.max(1, Math.ceil(visiveis.length / 2))));
+	/*
+	 * D-930 — CELULAR DEITADO PEDE TRES COLUNAS, e a decisao tem de morar
+	 * AQUI e nao no CSS: esta linha escreve `--tm-colunas` como estilo INLINE,
+	 * e estilo inline vence folha de estilo. Uma regra `@media` no
+	 * `TopMenuIdle.css` seria escrita, lida e ignorada — o tipo de conserto
+	 * que parece feito e nao esta.
+	 *
+	 * Por que tres: com quatro colunas a fileira dupla mede ~271px e, ancorada
+	 * ao lado do minimapa num aparelho de 667px, a borda esquerda dela cai em
+	 * x=232 — DENTRO do painel de personagem, que vai ate 259 (medido). Com
+	 * tres colunas sao ~200px e os dois deixam de se tocar.
+	 *
+	 * O criterio de tela e o mesmo `max-height: 439px` das faixas do
+	 * `Common.css` (D-929), lido por `matchMedia` para o JS e o CSS nunca
+	 * discordarem sobre o que e "deitado".
+	 */
+	const deitado =
+		typeof window !== 'undefined' && window.matchMedia
+			? window.matchMedia('(max-height: 439px)').matches
+			: false;
+	const colunas = deitado ? 3 : Math.max(1, Math.ceil(visiveis.length / 2));
+	topo.style.setProperty('--tm-colunas', String(colunas));
+}
+
+/**
+ * O CLUSTER PUBLICA ONDE ELE COMECA (D-930, 05/09/2026).
+ *
+ * Em tela estreita ele deixou de morar logo abaixo do painel e passou a se
+ * ancorar na pilha do rodape (ver `TopMenuIdle.css`, fim do arquivo). Com
+ * isso ele passou a subir quando o rodape cresce — e quem mora ENTRE o painel
+ * e ele, o rastreador de missoes, nao tinha como saber onde parar. Medido em
+ * 360x640: 190x54px de sobreposicao entre os dois.
+ *
+ * Ele publica o proprio TOPO, em pixels da viewport, e o rastreador usa esse
+ * numero como teto (`MissoesTrackerIdle.css`). E o mesmo idioma do painel de
+ * personagem (`--hud-basic-fundo`) e do chat (`--hud-chat-altura`): geometria
+ * medida vira custom property no `documentElement`, que atravessa shadow DOM.
+ *
+ * A alternativa era o rastreador subtrair a altura do cluster com um numero
+ * proprio — e a altura dele muda com o numero de itens visiveis (o Admin so
+ * aparece para a conta dona) e com o numero de colunas. Copiar esse numero
+ * seria a armadilha que criou todos estes tokens.
+ */
+function publicarTopoDoCluster() {
+	const root = _root();
+	const topo = root && root.querySelector('.tm-top');
+	if (!topo || !topo.ownerDocument) {
+		return;
+	}
+	const caixa = topo.getBoundingClientRect();
+	if (caixa.height < 1) {
+		return;
+	}
+	/* D-934: unidade da HUD. Ver `emUnidadesDaHud`. */
+	topo.ownerDocument.documentElement.style.setProperty(
+		'--hud-cluster-topo',
+		`${Math.round(emUnidadesDaHud(caixa.top))}px`,
+	);
+}
+
+let _observadorDoCluster = null;
+function observarTopoDoCluster() {
+	if (_observadorDoCluster || typeof ResizeObserver === 'undefined') {
+		return;
+	}
+	const root = _root();
+	const topo = root && root.querySelector('.tm-top');
+	if (!topo) {
+		return;
+	}
+	/* O que muda a posicao do cluster e a caixa dele (recolher, mudar de
+	   fileiras) OU a viewport — e as duas passam por um resize do proprio
+	   elemento, porque ele e ancorado na borda. Um `setInterval` aqui seria
+	   trabalho constante para um evento raro. */
+	_observadorDoCluster = new ResizeObserver(() => publicarTopoDoCluster());
+	_observadorDoCluster.observe(topo);
+	if (typeof window !== 'undefined') {
+		window.addEventListener('resize', publicarTopoDoCluster);
+	}
 }
 
 function distribuirColunas() {
@@ -967,6 +1050,15 @@ function isHostVisible(component) {
  */
 function pollEstado() {
 	hideReplacedControls();
+	/*
+	 * D-930: o topo do cluster entra no tique que ja existia, e nao num timer
+	 * proprio. O `ResizeObserver` sozinho nao bastava: ele dispara quando a
+	 * CAIXA do cluster muda, e o que move o cluster e a PILHA embaixo dele —
+	 * o chat publica a altura dele um quadro depois do append, o cluster sobe
+	 * junto e ninguem avisava. Medido: 17px de sobreposicao com o rastreador
+	 * em 360x640, exatamente a diferenca de um quadro.
+	 */
+	publicarTopoDoCluster();
 	syncSkillDot();
 	syncCorreioDot();
 	syncToggleDot();

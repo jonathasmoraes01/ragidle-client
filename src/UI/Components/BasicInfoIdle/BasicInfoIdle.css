@@ -577,3 +577,247 @@
 .bi-body.is-compact ~ .bi-moeda .bi-zeny {
 	font-size: 12px;
 }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   D-929 (Lote 1, 05/09/2026) — ALTURA ABAIXO DE 440: CELULAR DEITADO.
+
+   ESTE BLOCO FICA NO FIM DO ARQUIVO (cicatriz StatusIdle.css:545 — @media
+   colado perto do seletor que quer vencer NAO VENCE NADA; quem decide
+   empate de especificidade e a ORDEM no arquivo, e este bloco vem por
+   ultimo de proposito).
+
+   O PROBLEMA MEDIDO PELO SENIOR: em 852x393 este painel termina por volta
+   de y=328 (--hud-basic-fundo, ver publicarCaixa() em BasicInfoIdle.js) e a
+   doca ocupa 62px de baixo -- 328+62=390 numa tela de 393px, so 3px de
+   folga. Qualquer texto a mais colide.
+
+   A SAIDA NAO E LIGAR O TOGGLE ".is-compact" (Preferences.compact, ligado
+   pelo clique em ".bi-minimize"/alternarCompacto()): aquele mecanismo
+   ESCONDE avatar/nome/classe por completo (".bi-body.is-compact .bi-top{
+   display:none}" abaixo), e o pedido aqui e ENCOLHER esses tres, nao
+   escondê-los -- sao a identidade do personagem. O que ESTE bloco REAPROVEITA
+   do ".is-compact" e a parte que ja tinha o numero certo pras BARRAS e pra
+   CARTEIRA (".bi-bar-track" 12px, ".bi-bar-pct" 36px, ".bi-exp-track" 4px,
+   ".bi-moeda" 3px/10px etc) -- copiados aqui como selecao PLANA (sem
+   ".is-compact" na frente) pra valerem INDEPENDENTE da preferencia salva: a
+   tela curta manda, nao o gosto do jogador salvo de uma sessao anterior.
+   Todas estas selecoes ficam com a MESMA especificidade (0,1,0) das regras
+   "normais" que elas substituem (".bi-levels", ".bi-bar-track" etc, sem
+   compact) -- como este bloco vem DEPOIS no arquivo, ele vence por ORDEM; e
+   onde ".is-compact" TAMBEM estiver ligado, a regra dele (0,2,0/0,3,0, mais
+   especifica) so confirma o MESMO numero, nunca diverge, porque foi copiado
+   de proposito -- os dois nunca competem de verdade.
+
+   Avatar/nome/classe/espacamentos SAO NOVOS aqui (o toggle nunca soube
+   encolhe-los, so escondia) -- leem "--ui-escala" (0.76 nesta faixa) com
+   max() pra nunca passarem de um piso de legibilidade, mesma tecnica que
+   "--disc-menu"/"--disc-fab" ja usam em Common.css.
+
+   A CONTA (estimada pelo modelo de caixa CSS -- este lote nao abriu
+   navegador; confirmar com Playwright antes de aceitar):
+
+     header (.ri-header, altura fixa)                    = 34
+     .bi-top (avatar ~41 com padding fixo de 3px, maior
+              que a identidade de nome+classe)  + margem   = 41 + 8  = 49
+     .bi-levels (2 linhas de 12+3 + margem externa 6)                = 36
+     .bi-bar HP (icone/trilho 12+2 de borda + margem 4)              = 18
+     .bi-bar SP                                                      = 18
+     .bi-divisor (margens encolhidas + miolo ~5)                     = 15
+     .bi-stats-line (peso, sem alteracao)                            = 15
+     padding do corpo (10 + 10)                                      = 20
+     borda de ".ri-window" (1px topo + 1px base)                     =  2
+     carteira: zeny(23) + cash(24)                                   = 47
+     ─────────────────────────────────────────────────────────────────
+     TOTAL                                                          ≈ 254
+
+   254 + 62 (doca) = 316, tela 393 → 77px de respiro, acima dos 30px pedidos
+   e abaixo do teto de 300px do briefing.
+
+   ─── A FAIXA SUBIU DE 439 PARA 699 (D-930, 05/09/2026) ──────────────────
+   Ela nasceu mirando o celular DEITADO. Medido depois, com sessao nova por
+   resolucao (o arnes anterior entrava em 1920 e so encolhia, e por isso nao
+   via isto): o celular EM PE e BAIXO — 360x640 e 375x667, que sao o Galaxy A
+   e o iPhone SE — tem o mesmo aperto vertical, e por outro motivo. Nele a
+   coluna da esquerda empilha painel + rastreador + o cluster de essenciais
+   (que a faixa de 759px de largura traz para debaixo do painel), e o rodape
+   ainda quer doca + chat + barra de atalhos. Com o painel em 321px de fundo,
+   o cluster caia exatamente em cima do chat: medido, 5 alvos cobertos em
+   360x640.
+
+   O corte de 699 e o mesmo que o `Common.css` ja usa para `--ui-escala`
+   (D-929) — nao e um quarto numero, e nenhum notebook o cruza (1366x768 e
+   1280x800 passam intactos). O que muda em 640/667 e so o painel ficar com
+   os ~254px desta receita em vez de 321, e sao esses 67px que abrem o vao
+   para o cluster. */
+@media (max-height: 699px) {
+	.bi-body {
+		/* Mesmo numero que ".is-compact" ja usa (nao inventado) -- ver
+		   ".bi-body.is-compact" abaixo. So o espacamento; nada aqui esconde
+		   secao nenhuma. */
+		padding: 10px 12px 10px 12px;
+	}
+
+	/* ─── Avatar + nome + classe: ENCOLHEM, nao somem (pedido explicito -- e
+	   a identidade do personagem). O piso de max() e pra nunca ficar
+	   ilegivel se um dia existir um --ui-escala menor que 0.76. */
+	.bi-top {
+		gap: max(6px, calc(10px * var(--ui-escala, 1)));
+		margin-bottom: max(6px, calc(10px * var(--ui-escala, 1)));
+	}
+
+	.bi-avatar-frame {
+		width: max(30px, calc(46px * var(--ui-escala, 1)));
+		height: max(30px, calc(46px * var(--ui-escala, 1)));
+	}
+
+	.bi-name {
+		font-size: max(10px, calc(14px * var(--ui-escala, 1)));
+	}
+
+	.bi-class {
+		font-size: max(9px, calc(11px * var(--ui-escala, 1)));
+	}
+
+	/* ─── Niveis/EXP: numeros REAPROVEITADOS de ".bi-body.is-compact
+	   .bi-levels" etc (mais abaixo neste arquivo) -- mesma receita, so sem
+	   depender do toggle. */
+	.bi-levels {
+		margin-bottom: 6px;
+	}
+
+	.bi-level-row {
+		margin-bottom: 3px;
+		gap: 6px;
+	}
+
+	.bi-level-label {
+		font-size: 10px;
+	}
+
+	.bi-exp-track {
+		height: 4px;
+	}
+
+	/* ─── HP/SP: mesmos numeros de ".bi-body.is-compact .bi-bar" etc (o
+	   ":546"/":555-556" que o briefing cita). */
+	.bi-bar {
+		gap: 4px;
+		margin-bottom: 4px;
+	}
+
+	.bi-bar-icon {
+		flex-basis: 10px;
+		width: 10px;
+		height: 10px;
+	}
+
+	.bi-bar-track {
+		height: 12px;
+	}
+
+	.bi-bar-text {
+		line-height: 12px;
+		font-size: 9px;
+	}
+
+	.bi-bar-pct {
+		flex-basis: 36px;
+		width: 36px;
+		font-size: 9px;
+	}
+
+	/* ─── Divisor: ninguem pediu escondê-lo (ele orienta a leitura entre
+	   vida e peso) -- so o RESPIRO ao redor encolhe, pelo mesmo --ui-escala. */
+	.bi-divisor {
+		margin: max(4px, calc(8px * var(--ui-escala, 1))) 0 max(4px, calc(6px * var(--ui-escala, 1))) 0;
+	}
+
+	/* ─── Carteira: mesmos numeros de ".bi-body.is-compact ~ .bi-moeda" etc
+	   (mais abaixo) -- de novo, so tirando a dependencia do toggle. */
+	.bi-moeda {
+		padding: 3px 10px;
+		gap: 6px;
+	}
+
+	.bi-moeda-medalha {
+		width: 16px;
+		height: 16px;
+	}
+
+	.bi-moeda-rotulo {
+		font-size: 10px;
+	}
+
+	.bi-moeda .bi-zeny {
+		font-size: 12px;
+	}
+}
+
+/* ─── Alvo de toque do botao de minimizar (D-929, Lote 1, 05/09/2026).
+
+   ".bi-minimize" mede 20x20 (herda ".ri-close" do Common.css) -- bem abaixo
+   do piso de 44px (WCAG 2.5.5 / "--hit-touch"). O DESENHO nao pode crescer
+   (pedido explicito), entao a saida e um "::before" invisivel que estica o
+   alvo CLICAVEL sem tocar no circulo visivel. Nao precisa de
+   "position:relative" novo -- ".ri-close" ja da "position:absolute" ao
+   proprio botao, que ja e base valida pro "::before" absoluto.
+
+   A conta NAO E SIMETRICA -- ".bi-window" tem "overflow:hidden" (topo do
+   arquivo), e o botao mora perto de DOIS limites dele:
+
+     TOPO: o botao fica centralizado nos 34px de ".bi-header" (topo do
+     circulo em y=7). Esticar os 12px "de manual" pra cima cortaria contra o
+     topo da JANELA em y=-5 -- 5px do alvo se perderiam pro "overflow:hidden".
+     Uso os 7px que existem de verdade (chega exatamente em y=0, sem cortar).
+
+     BASE: sobra corpo abaixo (nao ha limite ai) -- uso 17px (7+20+17=44),
+     que poe a borda de baixo em y=44, exatamente onde o padding-top do
+     corpo nesta MESMA faixa (10px, ver ".bi-body" acima) termina e o
+     primeiro conteudo comecaria -- toca a borda, nao invade.
+
+     ESQUERDA: o titulo ("Personagem", ~148px com as asas encolhidas de
+     ".bi-header-title::before/after") fica centralizado no cabecalho e
+     termina perto do botao nesta janela de 246px -- esticar os 12px cheios
+     arriscava cobrir a faixa arrastavel perto do texto (".bi-header" inteiro
+     e "cursor:move", nao so o texto). Uso 8px, mais conservador; sobra uma
+     faixa fina de cabecalho ainda arrastavel entre o titulo e o botao.
+
+     DIREITA: o botao ja fica a so 8px da borda direita da JANELA (246 -
+     8(right) - 20(botao) = 8). Esticar alem disso e cortado pelo mesmo
+     "overflow:hidden" -- uso os 8px inteiros, sem desperdicar.
+
+   Resultado: 36x44 (largura mais apertada que o ideal 44x44 -- fisicamente
+   nao ha 44px de sobra nos dois lados dentro de uma janela de 246px com
+   titulo centralizado; a ALTURA fecha os 44 inteiros, que e o eixo que esta
+   faixa de altura mais precisa). Vale em max-width:599px E max-height:439px
+   (o briefing pede os dois) -- nenhum numero usado aqui muda entre as duas
+   faixas (altura do cabecalho e tamanho do botao sao fixos), entao uma unica
+   regra cobre as duas condicoes. */
+/* ─── O 36x44 acima virou 44x44 DEPOIS DE MEDIR (05/09/2026) ──────────────
+   A conta acima parou nos 8px da esquerda porque estimava o titulo em
+   "~148px" e temia cobrir a faixa arrastavel. MEDIDO no jogo de pe, em
+   393x852, com um `Range` sobre o conteudo do titulo (e nao pela caixa dele,
+   que e larga e centralizada):
+
+     cabecalho .................. x = 13 .. 201  (188px)
+     glifo "Personagem" ......... x = 73 .. 141
+     asa decorativa ::after ..... termina em ~167
+     botao minimizar ............ x = 173 .. 193
+
+   Ou seja: entre o fim da asa e o botao ha 6px, e entre o fim do TEXTO e o
+   botao ha 32px. Esticar a area 16px para a esquerda (x = 157) cobre 10px da
+   asa — que e `::before`/`::after`, decoracao pura, continua PINTADA e nunca
+   foi alvo de nada — e nao encosta no texto.
+
+   O que se perde e faixa arrastavel: sobram 144px dos 188 (x = 13..157). O
+   que se ganha e o alvo tatil inteiro, nos dois eixos. Num painel que o dedo
+   arrasta raramente e minimiza de proposito, essa troca e obvia — e ela so
+   pode ser feita com o numero medido na mao, que era exatamente o que
+   faltava. */
+@media (max-width: 599px), (max-height: 439px) {
+	.bi-minimize::before {
+		content: '';
+		position: absolute;
+		inset: -7px -8px -17px -16px;
+	}
+}

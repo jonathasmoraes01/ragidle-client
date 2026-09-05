@@ -209,3 +209,108 @@
 .mt-item--troca .mt-item-nivel {
 	color: var(--ouro, #c9a227);
 }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   D-929 — O RASTREADOR CABE NO QUE SOBRA (05/09/2026)
+
+   Ele nao tem posicao propria: o `syncPosition()` do JS o cola logo abaixo do
+   `BasicInfoIdle`, medindo o host dele a cada 250ms. Em tela alta isso e
+   suficiente — abaixo do painel sempre houve espaco. Em tela DEITADA nao ha:
+   medido em 05/09/2026 com o jogo de pe, em 852x393 o painel de personagem
+   termina em y=328 e o rastreador ia de 329 a 405, ou seja **12px alem do
+   rodape**, com a doca ocupando os ultimos 62.
+
+   O conserto NAO e esconder: e dar a ele o tamanho do buraco em que ele mora.
+   As duas pontas do buraco ja sao publicadas por quem as conhece —
+   `--hud-basic-fundo` sai do `getBoundingClientRect` do proprio painel
+   (`BasicInfoIdle.js:328`) e `--hud-doca-altura` e a altura da doca
+   (`Common.css`, D-929). Repetir qualquer um dos dois aqui com um numero
+   proprio devolveria a sobreposicao no dia em que um deles mudasse, em
+   silencio e longe da causa — que e a cicatriz que criou os tokens.
+
+   `100dvh` e nao `100vh`: a barra de URL do Chrome/Safari de celular entra e
+   sai, e o `vh` cru mente justamente na tela em que este bloco vale.
+
+   O piso de 30px existe para o CABECALHO sobreviver quando a conta der quase
+   zero: um rastreador sem corpo ainda diz ao jogador que ele existe e onde
+   fica; um rastreador de altura zero some sem explicacao.
+   ═══════════════════════════════════════════════════════════════════════ */
+@media (max-height: 439px) {
+	.mt-painel {
+		max-height: max(
+			30px,
+			calc(100dvh - var(--hud-basic-fundo, 328px) - var(--hud-doca-altura, 96px) - 12px)
+		);
+		display: flex;
+		flex-direction: column;
+	}
+
+	/* O corpo e quem rola; o cabecalho fica fixo para o titulo e o botao de
+	   recolher nao sairem de vista junto com a lista. */
+	.mt-corpo {
+		overflow-y: auto;
+		min-height: 0;
+		-webkit-overflow-scrolling: touch;
+	}
+}
+
+/* ─── D-930: o teto do rastreador agora e o CLUSTER, e nao a doca ──────────
+   O bloco acima (D-929) o fez caber no vao entre o painel e a doca. Depois
+   disso o cluster de essenciais deixou de morar debaixo do painel e passou a
+   se ancorar na pilha do rodape (TopMenuIdle.css) — ou seja, ele passou a
+   ocupar justamente esse vao, subindo quando o rodape cresce.
+
+   Medido em 05/09/2026, com sessao nova por resolucao: 190x54px de
+   sobreposicao em 360x640 e 190x27px em 375x667.
+
+   `--hud-cluster-topo` e publicado pelo proprio cluster (TopMenuIdle.js), em
+   pixels da viewport. O fallback e `100dvh`: sem o cluster na tela, o teto
+   volta a ser o rodape, que e o comportamento do bloco anterior.
+
+   Esta faixa e a de 699 (a mesma de `--ui-escala`), e nao a de 439: o aperto
+   aqui e do celular EM PE e BAIXO — 360x640 e 375x667 —, onde a coluna da
+   esquerda empilha painel + rastreador + cluster. */
+@media (max-height: 699px) and (min-height: 440px) {
+	.mt-painel {
+		/* O TETO SAIU DAQUI e virou `syncPosition()` no JS (D-930): a decisao
+		   e binaria — cabe ou nao cabe — e depende de dois numeros medidos em
+		   runtime. `max-height` com piso deixava o painel maior que o vao; sem
+		   piso, virava uma sobra de 2px de borda. Aqui fica so a rolagem, que e
+		   o que impede o teto do JS de cortar conteudo sem saida. */
+		max-height: 100%;
+		display: flex;
+		flex-direction: column;
+	}
+
+	.mt-corpo {
+		overflow-y: auto;
+		min-height: 0;
+		-webkit-overflow-scrolling: touch;
+	}
+}
+
+/* ─── CELULAR DEITADO: o rastreador SAI DA TELA, e isto e uma escolha ─────
+   Medido em 852x393, 667x375 e 915x412: a coluna da esquerda ja esta cheia
+   com painel de personagem (263) + chat (56) + barra de atalhos (42) + doca
+   (62) = 423px numa tela de 393. Nao ha vao para o rastreador — qualquer
+   teto que se calcule para ele da menos que os 30px do cabecalho, e ele
+   passa a esbarrar em quem esta embaixo (medido: 16x22px contra a barra de
+   atalhos).
+
+   Entre os quatro moradores da coluna, o rastreador e o unico puramente
+   INFORMATIVO: o painel mostra vida e mana, o chat recebe, a barra e a doca
+   agem. Ele tambem e o unico com uma porta propria — o item "Missoes" do
+   cluster de essenciais abre a janela inteira, com mais informacao do que o
+   resumo caberia.
+
+   Esta faixa e a MAIS APERTADA da matriz e a orientacao NAO primaria (a
+   recomendacao ao dono e retrato). Esconder o resumo aqui e o preco medido;
+   esconder qualquer um dos outros tres seria tirar funcao.
+
+   `MissoesTrackerIdle.js` para de publicar `--hud-coluna-fundo` com a caixa
+   zerada — quem depende dele cai no fallback do painel, que e o certo. */
+@media (max-height: 439px) {
+	:host {
+		display: none;
+	}
+}

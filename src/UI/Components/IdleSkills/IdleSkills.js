@@ -75,6 +75,7 @@ import htmlText from './IdleSkills.html?raw';
 import cssText from './IdleSkills.css?raw';
 import { fecharEEsquecer } from '../limpezaDeJanelaIdle.js';
 import { abaLembrada, lembrarAba } from '../memoriaDeAba.js';
+import { pegar, pendente, assinar } from 'UI/toqueParaAtalho.js';
 import {
 	NO_L,
 	avaliarDescer,
@@ -340,6 +341,15 @@ IdleSkills.init = function init() {
 
 	this._host.style.top = Math.max(0, (Renderer.height - WINDOW_HEIGHT) / 2) + 'px';
 	this._host.style.left = Math.max(0, (Renderer.width - WINDOW_WIDTH) / 2) + 'px';
+
+	/*
+	 * D-938: o botão "Pôr na barra" reage a quem ESVAZIA a mão em outro canto
+	 * do cliente (a barra de atalhos com `entregar()`, o ESC com
+	 * `aoEscapar()`). `init()` roda uma vez só (comentário da função, acima),
+	 * então esta assinatura não precisa de `desassinar()` — o mesmo raciocínio
+	 * do `Network.hookPacket` no fim do arquivo, que também nunca desliga.
+	 */
+	assinar(atualizarBotaoAtalho);
 
 	sincronizarDescricoes();
 	renderAll();
@@ -1079,17 +1089,29 @@ function renderArvore() {
 	tela.querySelectorAll('[data-skill-menos]').forEach(b => b.addEventListener('click', onClickMenos));
 }
 
-function onSkillDragStart(e) {
-	const skillId = e.currentTarget.dataset.skillSel;
-	const skill = IdleSkills.serverData && IdleSkills.serverData.skills.find(item => item.skillId === skillId);
-	const numericId = NUMERIC_SKILL_ID_BY_NAME.get(skillId);
-
-	if (!skill || skill.aprendido < 1 || !Number.isInteger(numericId)) {
-		e.preventDefault();
-		return;
+/**
+ * A MESMA condição que decide se dá para arrastar decide se dá para "pegar"
+ * pelo toque (D-938): aprendida (`aprendido >= 1`) e com id numérico batido em
+ * `SkillInfo` — sem os dois o servidor não teria o que pôr numa barra.
+ *
+ * @returns {number|null} o id numérico, ou `null` se a habilidade não serve.
+ */
+function idNumericoParaAtalho(skill) {
+	if (!skill || skill.aprendido < 1) {
+		return null;
 	}
+	const numericId = NUMERIC_SKILL_ID_BY_NAME.get(skill.skillId);
+	return Number.isInteger(numericId) ? numericId : null;
+}
 
-	const payload = {
+/**
+ * O payload de "pegar" — o MESMO formato que `onSkillDragStart` escreve em
+ * `window._OBJ_DRAG_`. Usado pelo arrasto (mouse) e pelo botão "Pôr na barra"
+ * (toque, `onClickPorNaBarra`), para as duas portas nunca divergirem (ver
+ * `UI/toqueParaAtalho.js`, "um segundo formato aqui envelheceria em paralelo").
+ */
+function payloadDaHabilidade(skill, numericId) {
+	return {
 		type: 'skill',
 		from: 'IdleSkills',
 		data: {
@@ -1098,6 +1120,25 @@ function onSkillDragStart(e) {
 			selectedLevel: skill.aprendido
 		}
 	};
+}
+
+/** Está esta habilidade (pelo id numérico) na mão agora? */
+function naMaoEstaHabilidade(numericId) {
+	const p = pendente();
+	return !!(p && p.type === 'skill' && p.data && p.data.SKID === numericId);
+}
+
+function onSkillDragStart(e) {
+	const skillId = e.currentTarget.dataset.skillSel;
+	const skill = IdleSkills.serverData && IdleSkills.serverData.skills.find(item => item.skillId === skillId);
+	const numericId = idNumericoParaAtalho(skill);
+
+	if (numericId === null) {
+		e.preventDefault();
+		return;
+	}
+
+	const payload = payloadDaHabilidade(skill, numericId);
 	const serialized = JSON.stringify(payload);
 
 	window._OBJ_DRAG_ = payload;
@@ -1432,6 +1473,29 @@ function renderDetail() {
 		(naRotacao ? 'Na rotação (' + skill.naRotacao + ')' : 'Pôr na rotação') +
 		'</button>';
 
+	/*
+	 * O botão de TOQUE (D-938). Só existe se a habilidade serve para a barra
+	 * (mesma condição do arrasto), e SEMPRE vai para o HTML — quem decide se
+	 * ele aparece na TELA é o CSS (`@media (pointer: coarse)` em
+	 * `IdleSkills.css`), nunca um `matchMedia` lido aqui: a janela pode trocar
+	 * de aparelho (DevTools, tablet com teclado) sem recarregar a página, e um
+	 * JS que decide uma vez erraria nesse caso.
+	 */
+	const numericIdParaAtalho = idNumericoParaAtalho(skill);
+	const naMao = numericIdParaAtalho !== null && naMaoEstaHabilidade(numericIdParaAtalho);
+	const atalhoHtml =
+		numericIdParaAtalho !== null
+			? '<button type="button" class="is-btn-atalho ri-btn ri-btn--sec' +
+				(naMao ? ' is-btn-atalho--armado' : '') +
+				'" data-skill-atalho="' +
+				escapeHtml(skill.skillId) +
+				'" title="' +
+				(naMao ? 'Toque num espaço da barra para confirmar' : 'Pega a habilidade para pôr na barra de atalhos') +
+				'">' +
+				(naMao ? 'Toque num espaço' : 'Pôr na barra') +
+				'</button>'
+			: '';
+
 	const subir = avaliarSubir(skill, contexto);
 	const acaoHtml = noTeto
 		? '<div class="is-detail-max">Nível máximo alcançado</div>'
@@ -1488,11 +1552,15 @@ function renderDetail() {
 		mecanicaHtml +
 		'</div></div>';
 
-	footerEl.innerHTML = acaoHtml + '<div class="is-detail-acoes">' + rotacaoHtml + '</div>';
+	footerEl.innerHTML = acaoHtml + '<div class="is-detail-acoes">' + rotacaoHtml + atalhoHtml + '</div>';
 
 	const btnRot = footerEl.querySelector('[data-skill-rotacao]');
 	if (btnRot) {
 		btnRot.addEventListener('click', onClickRotacao);
+	}
+	const btnAtalho = footerEl.querySelector('[data-skill-atalho]');
+	if (btnAtalho) {
+		btnAtalho.addEventListener('click', onClickPorNaBarra);
 	}
 	// A plaqueta do cabeçalho usa os MESMOS data-* e o mesmo juiz do nó.
 	scrollEl.querySelectorAll('[data-skill-mais]').forEach(b => b.addEventListener('click', onClickMais));
@@ -1518,6 +1586,52 @@ function onClickRotacao(e) {
 		return;
 	}
 	sendPriorizar(skillId, e.currentTarget.dataset.skillLigar === '1');
+}
+
+/**
+ * O botão de TOQUE (D-938, lado do "pegar"): monta o MESMO payload que
+ * `onSkillDragStart` monta e chama `pegar()` de `UI/toqueParaAtalho.js`. Quem
+ * "põe" na barra é a BARRA DE ATALHOS (`ShortCut.js`) — este módulo só entrega
+ * o que ficou na mão, e nunca fala com o servidor por conta própria.
+ *
+ * Tocar de novo na MESMA habilidade não precisa de um `if` aqui: o próprio
+ * `pegar()` compara a chave do que já está na mão e desarma sozinho.
+ */
+function onClickPorNaBarra(e) {
+	e.stopImmediatePropagation();
+	const skillId = e.currentTarget.dataset.skillAtalho;
+	const skill = IdleSkills.serverData && IdleSkills.serverData.skills.find(item => item.skillId === skillId);
+	const numericId = idNumericoParaAtalho(skill);
+	if (numericId === null) {
+		return;
+	}
+	const payload = payloadDaHabilidade(skill, numericId);
+	payload.rotulo = skill.nome;
+	pegar(payload);
+}
+
+/**
+ * Reage a QUALQUER mudança da mão — inclusive vinda de fora desta janela (um
+ * item pego na mochila, a barra consumindo com `entregar()`, o ESC cancelando
+ * via `aoEscapar()`). Não chama `renderDetail()` inteiro de propósito: a
+ * habilidade selecionada pode não ter mudado, e refazer o innerHTML do
+ * dossiê reiniciaria a rolagem da caixa de mecânica à toa por causa de um
+ * gesto que aconteceu em outra janela.
+ *
+ * Não guarda nada em módulo: lê `pendente()` na hora e escreve só no botão que
+ * já está no DOM — por isso não entra em `limparEstadoDoPersonagem`.
+ */
+function atualizarBotaoAtalho() {
+	const root = _root();
+	const btn = root && root.querySelector('[data-skill-atalho]');
+	if (!btn) {
+		return;
+	}
+	const numericId = NUMERIC_SKILL_ID_BY_NAME.get(btn.dataset.skillAtalho);
+	const naMao = naMaoEstaHabilidade(numericId);
+	btn.classList.toggle('is-btn-atalho--armado', naMao);
+	btn.textContent = naMao ? 'Toque num espaço' : 'Pôr na barra';
+	btn.title = naMao ? 'Toque num espaço da barra para confirmar' : 'Pega a habilidade para pôr na barra de atalhos';
 }
 
 /* ------------------------------------------------------------------------ */

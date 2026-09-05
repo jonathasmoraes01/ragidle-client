@@ -81,6 +81,20 @@ window.ROConfigBase = {
 	 * `ZC_SE_CASHSHOP_OPEN` + as abas, `servidor-mapa.ts:17147`). Quem nao
 	 * escutava era o cliente.
 	 */
+	/*
+	 * D-937 — A BANDEIRA DE ROLLOUT DA HUD ADAPTAVEL.
+	 *
+	 * `true` e o estado normal. Pondo `false` no `Config.local.js` — que e
+	 * publicado como arquivo SEPARADO, com `Cache-Control: no-cache` —, o jogo
+	 * volta ao layout anterior **sem rebuild e sem esperar cache**.
+	 *
+	 * Ela desliga as tres camadas de 05/09 que mudam a APARENCIA: o `zoom` que
+	 * encolhe a HUD (D-934), a janela virando painel de tela cheia (D-932) e as
+	 * bordas seguras (D-936). NAO desliga as faixas de largura e altura
+	 * (D-929/D-930): elas so agem em tela pequena, onde o layout anterior
+	 * estava medidamente quebrado — desliga-las devolveria o defeito.
+	 */
+	enableHudAdaptavel: true,
 	enableCashShop: true,
 	enableCheckAttendance: false,
 	enableDmgSuffix: false,

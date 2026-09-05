@@ -78,6 +78,7 @@ import BasicInfo from 'UI/Components/BasicInfo/BasicInfo.js';
 import RiIcones from 'UI/ri-icones.js';
 import htmlText from './BasicInfoIdle.html?raw';
 import cssText from './BasicInfoIdle.css?raw';
+import { emUnidadesDaHud } from 'UI/escalaDaHud.js'; // D-934: geometria medida vira unidade da HUD
 
 /**
  * Light polling interval for native state that has no packet hook slot free
@@ -324,8 +325,10 @@ function publicarCaixa() {
 	const r = host.getBoundingClientRect();
 	if (r.height < 1) return;
 	const raiz = host.ownerDocument.documentElement;
-	raiz.style.setProperty('--hud-basic-altura', `${Math.round(r.height)}px`);
-	raiz.style.setProperty('--hud-basic-fundo', `${Math.round(r.bottom)}px`);
+	/* D-934: em unidade da HUD, e nao em pixel de viewport — quem le estes
+	   dois esta dentro de um host com `zoom`, e la o pixel vale menos. */
+	raiz.style.setProperty('--hud-basic-altura', `${Math.round(emUnidadesDaHud(r.height))}px`);
+	raiz.style.setProperty('--hud-basic-fundo', `${Math.round(emUnidadesDaHud(r.bottom))}px`);
 }
 
 /**

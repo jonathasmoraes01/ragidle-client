@@ -777,3 +777,189 @@
 .mo-dica[hidden] {
 	display: none;
 }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   LOTE 3 (05/09/2026) -- EM TELA ESTREITA, AS DUAS COLUNAS EMPILHAM
+
+   D-932 (Common.css) ja forca ".mo-window" a virar um painel de largura
+   total abaixo de 599px ("width:100%!important", "height:auto!important",
+   "overflow-y:auto" no proprio ".mo-window"). Medido pelo senior em
+   393x852: ".mo-window" passou a ocupar x=0..393, exatamente a tela. O
+   que aquela regra NAO alcanca e o MIOLO desta janela -- ".mo-frame" e as
+   duas metades do layout continuam em pixel fixo de mesa, porque nunca
+   dependeram do tamanho de ".mo-window" pra comecar.
+
+   ── O MECANISMO QUE PUNHA AS DUAS COLUNAS LADO A LADO (achado lendo o
+      arquivo, nao adivinhado) ──────────────────────────────────────────
+   Sao TRES pecas de layout independentes, nenhuma em porcentagem:
+     1. ".mo-frame" (secao "Moldura" acima): "position:absolute; width:
+        520px" -- largura fixa da moldura inteira, alheia ao "width:
+        100%!important" que o D-932 da a ".mo-window". Sao elementos
+        DIFERENTES: ".mo-window" e a caixa de fora (a que o D-932
+        enxerga), ".mo-frame" e um FILHO dela com o proprio tamanho, que
+        nenhuma regra de fora tocava ate aqui.
+     2. ".mo-topo" e ".mo-corpo" sao "display:flex" em fileira (row, o
+        default), cada um com dois filhos de largura fixa: ".mo-header-
+        esq"/".mo-painel-esq" a 220px e ".mo-header-dir"/".mo-painel-dir"
+        a 300px. 220 + 300 = 520, batendo com a largura fixa do frame.
+     3. ".mo-abas" (secao "Abas de categoria" acima): "position:absolute;
+        left:516px; width:74px" -- a orelha de categorias, pendurada por
+        PIXEL a partir do canto do frame (516 = 520 - 4, ver o comentario
+        original ali), nao a partir da borda de ".mo-window".
+   Nenhuma das tres enxerga o "width:100%!important" do D-932: ele so
+   alcanca ".mo-window". Por isso a Mochila abria do tamanho certo (393px)
+   por fora e continuava 520+74=594px de conteudo por dentro -- o "X"
+   nascia em x=493..513, fora do mundo, exatamente como a auditoria mediu.
+
+   ── A ESCOLHA DE EMPILHAMENTO ────────────────────────────────────────
+   Ordem MANTIDA igual ao HTML (".mo-painel-esq" ja vem antes de ".mo-
+   painel-dir" no DOM): Personagem (boneca + equipamento + fantasia) em
+   cima, Mochila (grade + peso) embaixo. Duas razoes:
+     - nao usa "order" pra reembaralhar visualmente sem mexer no DOM --
+       quem navega por Tab ou leitor de tela encontra a MESMA sequencia
+       que ve, sem descasar leitura de apresentacao;
+     - o painel esquerdo e curto e de altura fixa (boneca + 2 colunas de
+       5 slots + 1 fileira de fantasia, ~280px); a grade e a parte que
+       varia de tamanho (ate GRADE_CAPACIDADE celulas, MochilaIdle.js) e
+       ja tem scroll proprio (".mo-grade-host") -- faz mais sentido ela
+       herdar o espaco que sobra embaixo do retrato do que o contrario.
+   ".mo-abas" fica onde o HTML ja a poe: DEPOIS do frame inteiro, ou seja,
+   embaixo do rodape de peso. Nao reordenei com "order:-1" pra trazer as
+   abas pro topo -- ver "o que nao consegui" no relatorio desta entrega.
+   ═══════════════════════════════════════════════════════════════════════ */
+@media (max-width: 599px) {
+	/* ".mo-frame" solta "position:absolute; width:520px" e passa a ocupar
+	    100% do que ".mo-window" (D-932) ja deixou do tamanho da tela.
+	   "height:auto" no lugar do 396px fixo: quem passa a limitar a altura
+	   e o "max-height" + "overflow-y:auto" que o D-932 pos em ".mo-
+	   window", nao mais este frame -- um frame de altura fixa com
+	   conteudo empilhado (mais alto que 396px) cortaria a metade de baixo
+	   sem isso. */
+	.mo-frame {
+		position: static;
+		width: 100%;
+		height: auto;
+	}
+
+	/* Cabecalho: as duas metades ("Personagem"/"Mochila") empilham em vez
+	   de dividir 220+300=520px numa fileira so. */
+	.mo-topo {
+		flex-direction: column;
+	}
+
+	.mo-header-esq {
+		width: 100%;
+		/* O divisor era vertical (fileira lado a lado); vira horizontal
+		   pra continuar separando as duas metades, agora em cima/embaixo. */
+		border-right: none;
+		border-bottom: var(--divider);
+	}
+
+	.mo-header-dir {
+		width: 100%;
+	}
+	/* ".mo-close" (Common.css, D-931) e ".mo-titulo-dir" nao tem regra
+	   propria aqui de proposito: os dois nascem posicionados a partir de
+	   ".mo-header-dir" (o aro/canto e de ".ri-header"/".ri-close",
+	   Common.css -- fora da minha fronteira). Nenhum pixel fixo mora
+	   NELES, so no pai -- uma vez que ".mo-header-dir" volta a caber em
+	   100% da tela, o "X" que a auditoria media em x=493..513 volta pra
+	   dentro do mundo de graca. */
+
+	/* Corpo: os dois paineis empilham, mesma razao do topo. */
+	.mo-corpo {
+		flex-direction: column;
+	}
+
+	.mo-painel-esq {
+		width: 100%;
+		border-right: none;
+		border-bottom: var(--divider);
+	}
+
+	.mo-painel-dir {
+		width: 100%;
+	}
+	/* ".mo-vestes" (192px: 42 coluna + 6 gap + 96 boneco + 6 gap + 42
+	   coluna) e ".mo-fantasia-slots" (186px: 4x42 + 3x6) NAO mudam --
+	   cabem inteiros mesmo nos 360px mais estreitos (a auditoria nao
+	   reportou nenhum dos dois como transbordando), e "justify-content:
+	   center" ja os centraliza na largura nova do painel, bem maior que
+	   os 220px fixos de antes. Nao ha o que consertar dentro do painel
+	   esquerdo. */
+
+	/* Grade: sai do numero fixo de colunas (5x46px = 254px -- que ATE
+	   cabia nos 360/393px, a auditoria tambem nao reportou ".mo-grade"
+	   como transbordando) e vai para "auto-fill": cada ladrilho e um slot
+	   de item de verdade (imagem + arraste), entao o numero de colunas
+	   tem que nascer do espaco disponivel e nunca cortar meia celula --
+	   pedido explicito do briefing. O painel direito, ao virar 100% da
+	   tela (era 300px fixos), ganhou MAIS espaco do que os 254px fixos
+	   previam; 5 colunas fixas deixariam uma faixa vazia grande do lado
+	   direito em vez de aproveitar a largura nova (6 colunas cabem em
+	   360px, 7 em 393px, ambas linhas cheias). "justify-items:center"
+	   evita que um ladrilho de 46px fixo (".mo-item" acima) fique colado
+	   na esquerda de uma trilha "1fr" mais larga que ele -- sem isso a
+	   grade ficaria com um dente-de-serra visual (ladrilho + vao a
+	   direita) em vez de celulas centralizadas. */
+	.mo-grade {
+		grid-template-columns: repeat(auto-fill, minmax(46px, 1fr));
+		justify-items: center;
+	}
+
+	/* ─── Abas de categoria: a orelha vira fileira ──────────────────────
+	   Desktop: coluna de 3 botoes de 74px fixos, pendurados por
+	   "position:absolute; left:516px" fora da borda direita do frame (a
+	   "orelha", ver secao acima). Mobile: fileira horizontal de largura
+	   total, no fluxo normal -- a orelha nao faz sentido sem uma borda
+	   direita pra furar, e nesta largura o frame OCUPA a tela inteira,
+	   nao ha "fora" pra pendurar nada nela. */
+	.mo-abas {
+		position: static;
+		width: 100%;
+		flex-direction: row;
+		gap: 8px;
+		padding: 8px 10px;
+		box-sizing: border-box;
+		border-top: var(--divider);
+	}
+
+	/* Os 3 botoes (Consumiveis/Equipar/Diversos, renderAbas() em
+	   MochilaIdle.js) dividem a fileira em partes iguais -- "flex:1 1 0"
+	   ignora o tamanho do texto (o rotulo mais longo nao ganha fatia
+	   maior), "min-width:0" permite encolher abaixo do min-content em
+	   telas bem estreitas (o texto quebra em duas linhas dentro do
+	   "min-height:44px" que ja existe -- ver a regra base -- nunca
+	   estoura a celula). A moldura de "orelha" (borda so de um lado,
+	   canto arredondado so de um lado, deslize de hover/ativa) era toda
+	   desenhada pra um botao pendurado na borda -- numa fileira normal
+	   ela leria como um chanfro quebrado, entao volta a ser um botao
+	   inteiro dos quatro lados. */
+	.mo-aba {
+		flex: 1 1 0;
+		min-width: 0;
+		padding: 7px 6px;
+		border: 1px solid var(--border-gold);
+		border-radius: var(--radius-window);
+	}
+
+	.mo-aba:hover {
+		/* O deslize de 2px empurrava a orelha PRA DENTRO da janela, em
+		   direcao ao frame -- sem orelha, nao ha "dentro" pra deslizar. */
+		transform: none;
+	}
+
+	.mo-aba.is-active {
+		/* O deslize de -14px existia pra fundir a orelha ativa com a
+		   borda da janela (ver o comentario original da regra). Numa
+		   fileira sem borda pra fundir, o botao so pularia de lugar. */
+		transform: none;
+	}
+
+	.mo-aba.is-active::before {
+		/* A faixa azul que tapava a emenda da orelha com a janela --
+		   sem orelha, nao ha emenda pra tapar; deixar o pseudo-elemento
+		   vivo desenharia uma barra solta do lado do botao ativo. */
+		content: none;
+	}
+}

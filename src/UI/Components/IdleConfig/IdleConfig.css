@@ -1093,3 +1093,81 @@
 #IdleConfig .ic-pendentes:empty {
 	display: none;
 }
+
+/* ─── Telha estreita (D-932, Lote 3) ─────────────────────────────────────
+ *
+ * ".ic-card-head" e flex ROW (linha 364-369): h3 (titulo) e
+ * ".ic-card-actions" (linha 386-390) sao os dois flex:0 0 auto — NUNCA
+ * encolhem; so ".ic-card-meta" (linha 376-384) tem min-width:0 pra ceder
+ * espaco. Quando o titulo sozinho ja e comprido, a soma passa dos 393px
+ * mesmo com o meta encolhido a zero: o senior mediu ".ic-card-actions" em
+ * x 297..409 -- 16px pra fora.
+ *
+ * Em vez de encolher os botoes de acao (viram alvo de aperto menor), a
+ * fileira QUEBRA: titulo + meta ficam na primeira linha, as acoes descem
+ * pra uma linha propria, alinhadas a direita — ".ic-card-actions" e
+ * "pequeno" (112px), sozinho cabe folgado em 393px.
+ */
+@media (max-width: 599px) {
+	#IdleConfig .ic-card-head {
+		flex-wrap: wrap;
+	}
+
+	#IdleConfig .ic-card-actions {
+		flex: 1 1 100%;
+		justify-content: flex-end;
+	}
+}
+
+/* ─── D-933: a linha de INSTALAR ───────────────────────────────────────────
+   Ela mora nas Configuracoes, e nao num banner, porque o pedido do dono e
+   explicito: *"Botao Instalar proprio dentro de Configuracoes... sem banner
+   intrusivo no meio do jogo."* E ela nasce `hidden`: so aparece quando ha
+   algo a fazer (o navegador ofereceu a instalacao, ou e um iPhone e existe
+   uma instrucao a dar). Quem ja instalou nunca a ve. */
+#IdleConfig .ic-instalar {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	margin: 0 var(--sp-6) var(--sp-4);
+	padding: 10px 12px;
+	border: 1px solid var(--border-gold);
+	border-radius: var(--radius-panel);
+	background: var(--surface-inset);
+}
+
+#IdleConfig .ic-instalar[hidden] {
+	display: none;
+}
+
+#IdleConfig .ic-instalar-texto {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	flex: 1 1 auto;
+	min-width: 0;
+}
+
+#IdleConfig .ic-instalar-titulo {
+	font-size: var(--fs-body);
+	color: var(--text-body);
+}
+
+#IdleConfig .ic-instalar-sub {
+	font-size: var(--fs-info);
+	color: var(--text-muted);
+}
+
+/* 44px porque este botao existe sobretudo no celular — e la ele e a porta
+   de entrada do jogo instalado. */
+#IdleConfig .ic-instalar-btn {
+	flex: 0 0 auto;
+	min-height: var(--hit-touch, 44px);
+	padding: 0 16px;
+}
+
+/* No iPhone nao ha evento de instalacao: o texto vira a instrucao, e o botao
+   sai de cena em vez de mentir que funciona. */
+#IdleConfig .ic-instalar.is-ios .ic-instalar-btn {
+	display: none;
+}

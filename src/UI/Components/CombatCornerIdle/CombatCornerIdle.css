@@ -105,3 +105,16 @@
 		bottom: calc(var(--hud-acima-da-doca, 104px) + 74px);
 	}
 }
+
+/* ─── Celular DEITADO: MESMA protecao acima, so que por ALTURA (D-929,
+   Lote 1, 05/09/2026) ──────────────────────────────────────────────────
+   Em 852x393 a LARGURA (852) fica ACIMA de 599 -- a regra acima nao dispara
+   -- mas a ALTURA (393) fica abaixo de 439, e o "Menu" sobe do mesmo jeito
+   nesta faixa (--hud-doca-altura cai pra 62px em Common.css, entao
+   --hud-acima-da-doca, que e DERIVADO dele, cai pra 70px). MESMA conta da
+   regra de largura, so trocando o eixo do media -- nenhum numero novo. */
+@media (max-height: 439px) {
+	:host {
+		bottom: calc(var(--hud-acima-da-doca, 104px) + 74px);
+	}
+}

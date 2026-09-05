@@ -59,6 +59,7 @@ import Commands from 'Controls/ProcessCommand.js';
 import Configs from 'Core/Configs.js';
 import EntityManager from 'Renderer/EntityManager.js';
 import RiIcones from 'UI/ri-icones.js';
+import { emUnidadesDaHud } from 'UI/escalaDaHud.js'; // D-934: geometria medida vira unidade da HUD
 
 /**
  * @var {number} max message in the chatbox
@@ -106,7 +107,15 @@ const _preferences = Preferences.get(
 /**
  * Estado recolhido/expandido do painel. Chave PROPRIA, como em TopMenuIdle.js.
  */
-const _prefsRecolhido = Preferences.get('ChatBoxRecolhido', { recolhido: false }, 1.0);
+/*
+ * `escolhido` entrou em D-930 SEM subir a versao, e isso e proposital: subir a
+ * versao faz o `Preferences.get` descartar o save inteiro (o proprio arquivo
+ * avisa disso duas vezes), e aqui nao ha nada a descartar — um save antigo
+ * chega sem o campo, `escolhido` sai `undefined`, e "undefined" e exatamente o
+ * que significa "este jogador nunca decidiu". A informacao que faltava ja
+ * estava codificada na ausencia.
+ */
+const _prefsRecolhido = Preferences.get('ChatBoxRecolhido', { recolhido: false, escolhido: false }, 1.0);
 
 /**
  * A ALTURA do log, em pixels — arrastavel pela alca (28/08/2026).
@@ -135,6 +144,61 @@ function aplicarAltura(root) {
 		return;
 	}
 	painel.style.setProperty('--cb-altura', `${_prefsAltura.altura}px`);
+}
+
+/**
+ * O CHAT PUBLICA A PROPRIA ALTURA (D-930, 05/09/2026).
+ *
+ * Ele nao e o unico morador do rodape: a doca ocupa a faixa de baixo, o botao
+ * "Menu" e a barra de atalhos nativa querem o mesmo lugar, e em tela estreita
+ * os quatro deixam de se separar no eixo X. Quem precisa se pendurar ACIMA do
+ * chat nao tem como saber a altura dele — ela e arrastavel (D-707), muda com o
+ * recolhido e tem um padrao relativo a viewport.
+ *
+ * Entao ele publica, e quem precisa le. E o MESMO idioma que o painel de
+ * personagem ja usa (`--hud-basic-fundo`, BasicInfoIdle.js:328) e que o botao
+ * de caca usa (`--hud-td-altura-dos-botoes`): geometria medida vira custom
+ * property no `documentElement`, que atravessa shadow DOM por heranca.
+ *
+ * Copiar o numero do outro lado seria a armadilha que criou estes tokens: a
+ * altura mudaria e a sobreposicao voltaria em silencio, longe da causa.
+ */
+function publicarAlturaDoChat(root) {
+	const painel = (root || _root()).querySelector('#chatbox');
+	if (!painel || !painel.ownerDocument) return;
+	const altura = Math.round(painel.getBoundingClientRect().height);
+	/* D-934: unidade da HUD. Ver `emUnidadesDaHud`. */
+	painel.ownerDocument.documentElement.style.setProperty(
+		'--hud-chat-altura',
+		`${Math.round(emUnidadesDaHud(altura))}px`,
+	);
+}
+
+/**
+ * Observa a caixa do chat e republica a altura a cada mudanca real.
+ *
+ * `ResizeObserver` e nao polling: as tres coisas que mudam a altura — o
+ * arrasto da alca, o recolher e o resize da janela — todas passam por uma
+ * mudanca de caixa, e nenhuma delas e frequente. Um `setInterval` aqui seria
+ * trabalho constante para um evento raro.
+ */
+let _observadorDoChat = null;
+function observarAlturaDoChat(root) {
+	if (_observadorDoChat || typeof ResizeObserver === 'undefined') return;
+	const painel = root.querySelector('#chatbox');
+	if (!painel) return;
+	_observadorDoChat = new ResizeObserver(() => publicarAlturaDoChat(root));
+	_observadorDoChat.observe(painel);
+}
+
+/**
+ * A TELA E ESTREITA OU BAIXA? — o mesmo criterio das faixas do `Common.css`
+ * (D-929: 599px de largura, 439px de altura), lido aqui por `matchMedia` para
+ * o JS e o CSS nunca discordarem sobre o que e "celular".
+ */
+function ehTelaDeToque() {
+	if (typeof window === 'undefined' || !window.matchMedia) return false;
+	return window.matchMedia('(max-width: 599px), (max-height: 439px)').matches;
 }
 
 /**
@@ -760,7 +824,10 @@ ChatBox.switchTab = function switchTab(canal) {
 		if (pill) {
 			pill.classList.toggle('is-active', ativo);
 			if (ativo) {
-				pill.classList.remove('tem-nova');
+				/* D-930: zera o CONTADOR, e nao so a classe — senao a proxima
+				   mensagem continuaria de onde o numero velho parou. */
+				_naoLidos[aba.dataset.canal] = 0;
+				pintarNaoLido(aba.dataset.canal);
 			}
 		}
 	});
@@ -788,12 +855,34 @@ ChatBox.switchTab = function switchTab(canal) {
 ChatBox.onAppend = function OnAppend() {
 	const root = _root();
 
+	/*
+	 * D-930 — EM TELA DE TOQUE O CHAT NASCE RECOLHIDO, e so na PRIMEIRA vez.
+	 *
+	 * A conta que obriga: num celular em pe de 393x852, a doca ocupa 96px do
+	 * rodape, a barra de atalhos nativa pede 42 e o chat aberto pede ~126. Os
+	 * tres somam 264px — quase um terco da tela — e a prioridade declarada e a
+	 * CENA de caca. Recolhido, o chat vira a barra de abas e devolve ~86px.
+	 *
+	 * `escolhido` e o freio: no instante em que o jogador toca no botao de
+	 * recolher, `definirRecolhido` marca a escolha e este bloco cala a boca
+	 * para sempre. Um padrao que reaparece depois de o jogador ter decidido o
+	 * contrario nao e padrao, e teimosia — e e a queixa classica de quem joga
+	 * no celular e no computador com a mesma conta.
+	 */
+	if (!_prefsRecolhido.escolhido && ehTelaDeToque()) {
+		_prefsRecolhido.recolhido = true;
+	}
+
 	aplicarRecolhido();
 	// A altura arrastada ATRAVESSA a sessao: restaurada aqui, antes de o log
 	// rolar para o fim logo abaixo — assim o `scrollHeight` ja e o da altura
 	// certa e a primeira tela nao aparece rolada pela metade.
 	aplicarAltura(root);
 	ligarAlcaDeAltura(root);
+	/* A altura vai para o `documentElement` para quem se pendura acima do chat
+	   (a barra de atalhos) poder se posicionar sem copiar numero nenhum. */
+	publicarAlturaDoChat(root);
+	observarAlturaDoChat(root);
 
 	const inputEl = root.querySelector('.input');
 	if (inputEl) inputEl.style.display = 'none';
@@ -1270,19 +1359,45 @@ function flushMessageBuffer() {
 }
 
 /**
- * Ponto de nao-lido na aba do canal que recebeu mensagem, quando ele nao e o
- * canal em foco. Usa ".ri-dot" do design system (Common.css), nunca um
- * indicador proprio.
+ * Quantas mensagens novas cada canal acumulou desde a ultima vez que o jogador
+ * olhou para ele. Zerado ao entrar no canal (ver `switchTab`).
+ */
+const _naoLidos = Object.create(null);
+
+/**
+ * Nao-lido na aba do canal que recebeu mensagem, quando ele nao e o canal em
+ * foco. Usa ".ri-dot" do design system (Common.css), nunca um indicador
+ * proprio.
+ *
+ * D-930: o ponto virou CONTADOR. Ele dizia so "tem coisa nova", e num jogo
+ * idle em que o chat nasce recolhido no celular essa e a informacao menos
+ * util que existe — "3" e "80 desde que voce entrou" pedem reacoes
+ * diferentes. O ponto continua sendo o mesmo `.ri-dot` do design system; o
+ * que mudou e ele passar a carregar o numero.
+ *
+ * O teto e "99+", e nao o numero cru: a aba tem 66px de largura minima
+ * (`ChatBox.css`, `.cb-aba`), e um contador de quatro digitos empurraria o
+ * rotulo do canal para fora — trocaria uma informacao por outra.
  */
 function marcarNaoLido(canal) {
 	if (canal === ChatBox.activeTab) {
 		return;
 	}
+	_naoLidos[canal] = (_naoLidos[canal] || 0) + 1;
+	pintarNaoLido(canal);
+}
+
+/** Escreve o estado de nao-lido de UM canal na aba dele. */
+function pintarNaoLido(canal) {
 	const root = _root();
 	const pill = root.querySelector(`.tab[data-canal="${canal}"] .cb-aba`);
-	if (pill) {
-		pill.classList.add('tem-nova');
+	if (!pill) return;
+	const total = _naoLidos[canal] || 0;
+	const ponto = pill.querySelector('.cb-aba-dot');
+	if (ponto) {
+		ponto.textContent = total > 99 ? '99+' : total > 0 ? String(total) : '';
 	}
+	pill.classList.toggle('tem-nova', total > 0);
 }
 
 function getColorForType(colorType) {
@@ -1624,6 +1739,9 @@ function definirEtiquetaDeDestino() {
  */
 function definirRecolhido(recolhido) {
 	_prefsRecolhido.recolhido = !!recolhido;
+	/* D-930: a partir do primeiro clique no botao, a escolha e DO JOGADOR — e
+	   o padrao por tamanho de tela (ver `ChatBox.onAppend`) para de opinar. */
+	_prefsRecolhido.escolhido = true;
 	_prefsRecolhido.save();
 	aplicarRecolhido();
 }
