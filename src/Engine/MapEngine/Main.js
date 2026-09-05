@@ -26,6 +26,7 @@ import Altitude from 'Renderer/Map/Altitude.js';
 import ChatBox from 'UI/Components/ChatBox/ChatBox.js';
 import ChatRoom from 'UI/Components/ChatRoom/ChatRoom.js';
 import Announce from 'UI/Components/Announce/Announce.js';
+import AvisoDeAtualizacao from 'UI/Components/AvisoDeAtualizacao/AvisoDeAtualizacao.js';
 import Equipment from 'UI/Components/Equipment/Equipment.js';
 import ChangeCart from 'UI/Components/ChangeCart/ChangeCart.js';
 import PartyUI from 'UI/Components/PartyFriends/PartyFriends.js';
@@ -706,6 +707,18 @@ function onGlobalAnnounce(pkt) {
 		pkt.msg = pkt.msg.substr(4);
 	} else {
 		color = '#FFFF00';
+	}
+
+	// D-880: aviso de atualizacao do supervisor — caixa parada no MEIO da
+	// tela, sem botao, em vez da faixa que passa no topo. O marcador viaja
+	// no texto porque o ZC_BROADCAST nao tem campo proprio (o mesmo truque
+	// do prefixo 'blue' logo acima).
+	if (pkt.msg.startsWith('ri-aviso:')) {
+		const texto = pkt.msg.substr(9).trim();
+		ChatBox.addText(texto, ChatBox.TYPE.ANNOUNCE, ChatBox.FILTER.PUBLIC_CHAT, color);
+		AvisoDeAtualizacao.append();
+		AvisoDeAtualizacao.set(texto);
+		return;
 	}
 
 	ChatBox.addText(pkt.msg, ChatBox.TYPE.ANNOUNCE, ChatBox.FILTER.PUBLIC_CHAT, color);
