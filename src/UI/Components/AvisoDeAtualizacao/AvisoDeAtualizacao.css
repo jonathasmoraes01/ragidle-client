@@ -1,19 +1,58 @@
+/**
+ * A pele vem INTEIRA do design system oficial (tokens do Common.css,
+ * injetado em todo Shadow DOM): chapa de janela + aro dourado + ornamento,
+ * a mesma familia visual das janelas do jogo. Nenhum hex literal aqui de
+ * proposito — quem muda a paleta muda o token, e esta caixa acompanha.
+ */
+
 :host {
-	top: 50%;
+	top: 45%;
 	left: 50%;
 	transform: translate(-50%, -50%);
 	z-index: 1000;
+	pointer-events: none;
 }
 
 #AvisoDeAtualizacao {
-	background: #f8f8f8;
-	border: 1px solid #a8a8a8;
-	border-radius: 5px;
-	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
-	padding: 10px 18px;
-	font-family: Arial, sans-serif;
-	font-size: 12px;
-	color: #333;
+	min-width: 280px;
 	max-width: 420px;
+	background: var(--window-fill);
+	border: var(--window-frame);
+	border-radius: var(--radius-window);
+	box-shadow: var(--window-shadow);
+	overflow: hidden;
 	text-align: center;
+	animation: av-entrada 240ms ease-out;
+	-webkit-font-smoothing: antialiased;
+}
+
+/* O filete dourado do topo — o mesmo token dos delimitadores da HUD. */
+.av-ornamento {
+	height: 3px;
+	background: var(--ornament-gold);
+}
+
+.av-titulo {
+	padding: 9px 20px 2px;
+	font: var(--type-section);
+	color: var(--text-title);
+	letter-spacing: 0.5px;
+	text-transform: uppercase;
+}
+
+.av-texto {
+	padding: 3px 20px 12px;
+	font: var(--type-info);
+	color: var(--text-body);
+}
+
+@keyframes av-entrada {
+	from {
+		opacity: 0;
+		transform: translateY(-10px);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
 }

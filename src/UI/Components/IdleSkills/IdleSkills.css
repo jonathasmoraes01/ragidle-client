@@ -481,6 +481,15 @@
 	transform: translateY(-1px);
 }
 
+#IdleSkills .is-no-icone[draggable='true'] {
+	cursor: grab;
+}
+
+#IdleSkills .is-no-icone.is-dragging {
+	cursor: grabbing;
+	opacity: 0.68;
+}
+
 #IdleSkills .is-no-icone img {
 	width: 48px;
 	height: 48px;

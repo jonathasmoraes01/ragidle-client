@@ -64,6 +64,7 @@
 
 import Renderer from 'Renderer/Renderer.js';
 import Preferences from 'Core/Preferences.js';
+import SkillInfo from 'DB/Skills/SkillInfo.js';
 import Network from 'Network/NetworkManager.js';
 import PACKET from 'Network/PacketStructure.js';
 import UIManager from 'UI/UIManager.js';
@@ -93,6 +94,12 @@ import {
  * separa "árvore certa" de "árvore plausível e errada".
  */
 const VERSAO_DO_CONTRATO = 2;
+
+const NUMERIC_SKILL_ID_BY_NAME = new Map(
+	Object.entries(SkillInfo)
+		.filter(([, info]) => info && info.Name)
+		.map(([numericId, info]) => [info.Name, Number(numericId)])
+);
 
 /**
  * Mantenha em sincronia com o ":host" / ".is-window" do IdleSkills.css e com
@@ -910,8 +917,25 @@ function renderNo(no, contexto) {
 		'px">' +
 		'<button type="button" class="is-no-icone ri-tile" data-skill-sel="' +
 		escapeHtml(skill.skillId) +
+		'" draggable="' +
+		(skill.aprendido > 0 ? 'true' : 'false') +
 		'" title="' +
-		escapeHtml(skill.nome) +
+		/*
+		 * A RECUSA TEM DE DIZER O MOTIVO.
+		 *
+		 * Só habilidade aprendida vira atalho, e o `draggable="false"` acima
+		 * faz o navegador engolir o arraste SEM UM PIO. Medido na árvore do
+		 * Bardo do dono: 10 dos 18 nós daquela aba estão em 0/x, ou seja, mais
+		 * da metade da tela recusa em silêncio — e "peguei e não aconteceu
+		 * nada" é indistinguível de "a barra quebrou". A dica é o único canal
+		 * que este nó já tem; ela passa a dizer as duas metades da regra.
+		 */
+		escapeHtml(
+			skill.nome +
+				(skill.aprendido > 0
+					? ' — arraste para a barra de atalhos'
+					: ' — aprenda a habilidade para poder pô-la na barra de atalhos')
+		) +
 		'">' +
 		'<img src="/ragidle/skills/' +
 		encodeURIComponent(skill.skillId) +
@@ -1046,9 +1070,51 @@ function renderArvore() {
 	tela.style.height = plano.altura + 'px';
 	tela.innerHTML = renderFios(plano, contexto) + plano.nos.map(no => renderNo(no, contexto)).join('');
 
-	tela.querySelectorAll('[data-skill-sel]').forEach(b => b.addEventListener('click', onClickNo));
+	tela.querySelectorAll('[data-skill-sel]').forEach(b => {
+		b.addEventListener('click', onClickNo);
+		b.addEventListener('dragstart', onSkillDragStart);
+		b.addEventListener('dragend', onSkillDragEnd);
+	});
 	tela.querySelectorAll('[data-skill-mais]').forEach(b => b.addEventListener('click', onClickMais));
 	tela.querySelectorAll('[data-skill-menos]').forEach(b => b.addEventListener('click', onClickMenos));
+}
+
+function onSkillDragStart(e) {
+	const skillId = e.currentTarget.dataset.skillSel;
+	const skill = IdleSkills.serverData && IdleSkills.serverData.skills.find(item => item.skillId === skillId);
+	const numericId = NUMERIC_SKILL_ID_BY_NAME.get(skillId);
+
+	if (!skill || skill.aprendido < 1 || !Number.isInteger(numericId)) {
+		e.preventDefault();
+		return;
+	}
+
+	const payload = {
+		type: 'skill',
+		from: 'IdleSkills',
+		data: {
+			SKID: numericId,
+			level: skill.aprendido,
+			selectedLevel: skill.aprendido
+		}
+	};
+	const serialized = JSON.stringify(payload);
+
+	window._OBJ_DRAG_ = payload;
+	e.dataTransfer.effectAllowed = 'copy';
+	e.dataTransfer.setData('Text', serialized);
+
+	const dragImage = e.currentTarget.querySelector('img');
+	if (dragImage && dragImage.complete && dragImage.naturalWidth) {
+		e.dataTransfer.setDragImage(dragImage, 24, 24);
+	}
+
+	e.currentTarget.classList.add('is-dragging');
+}
+
+function onSkillDragEnd(e) {
+	delete window._OBJ_DRAG_;
+	e.currentTarget.classList.remove('is-dragging');
 }
 
 function onClickNo(e) {

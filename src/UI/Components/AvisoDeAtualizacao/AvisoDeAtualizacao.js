@@ -42,7 +42,7 @@ const _life = 25 * 1000;
 AvisoDeAtualizacao.render = () => htmlText;
 
 AvisoDeAtualizacao.init = function init() {
-	this.texto = this.getRoot().querySelector('.texto');
+	this.texto = this.getRoot().querySelector('.av-texto');
 };
 
 AvisoDeAtualizacao.onRemove = function onRemove() {

@@ -48,6 +48,10 @@ const _list = [];
  */
 let _rowCount = 0;
 
+const ROW_HEIGHT = 42;
+const COLLAPSED_HEIGHT = 42;
+const MAX_ROW_COUNT = 4;
+
 /**
  * @var {object} server load hotkeys
  */
@@ -64,30 +68,26 @@ const _activeAnimations = new Map();
 const _preferences = Preferences.get(
 	'ShortCut',
 	{
-		x: 480,
-		/*
-		 * Builder de polimento (18/08/2026), responsividade 1366x768: media
-		 * com Playwright (getBoundingClientRect, ver ShortCut.css) mostrou
-		 * esta barra (y:0-34, x:480-760 no default) sobrepondo a capsula de
-		 * zeny do TopBarIdle (".tb-pill", y:14-50, x:651-715 nesse mesmo
-		 * teste) — as duas ficam perto do centro da tela. So o DEFAULT de
-		 * "y" mudou (54 = abaixo da capsula + 4px de respiro); quem ja
-		 * arrastou a barra e salvou preferencia PRÓPRIA continua com ela —
-		 * Preferences.get() (Core/Preferences.js:38-66) so aplica este
-		 * default a instalacao nova/preferencia nunca salva, e sobrescreve
-		 * com o valor salvo quando existe. ShortCut.css ":host{top}"
-		 * repete o mesmo numero (o JS sempre escreve style.top inline em
-		 * onAppend, entao a CSS sozinha nunca teria efeito — manter os
-		 * dois iguais so evita os dois discordarem por acidente depois).
-		 */
-		y: 54,
 		size: 1,
-		magnet_top: true,
-		magnet_bottom: false,
-		magnet_left: false,
-		magnet_right: false
+		lastSize: 1,
+		x: null,
+		y: null
 	},
-	1.0
+	/*
+	 * VERSAO 1.1 — a 1.0 GUARDA A BARRA NO LUGAR ANTIGO.
+	 *
+	 * "Preferences.get" (Core/Preferences.js:41-58) so aplica o objeto de
+	 * default quando NAO existe valor salvo ou quando a versao mudou; havendo
+	 * valor da MESMA versao, ele copia chave a chave por cima do default. Quem
+	 * ja jogou tem "ShortCut" no localStorage com o x/y do desenho anterior
+	 * (480/54, topo-centro) — e "onAppend" trata x/y nao-nulos como "o jogador
+	 * escolheu este lugar". Sem virar a versao, a barra nova nasceria no lugar
+	 * VELHO para todo mundo que ja abriu o jogo alguma vez, e so quem nunca
+	 * abriu veria o centro inferior pedido. Virar para 1.1 descarta a
+	 * preferencia antiga uma unica vez; dai em diante o que o jogador arrastar
+	 * volta a mandar.
+	 */
+	1.1
 );
 
 /**
@@ -110,6 +110,15 @@ ShortCut.init = function init() {
 		closeBtn.addEventListener('click', onClose);
 	}
 
+	const reopenBtn = root.querySelector('.reopen');
+	if (reopenBtn) {
+		reopenBtn.addEventListener('mousedown', e => {
+			e.stopImmediatePropagation();
+			e.preventDefault();
+		});
+		reopenBtn.addEventListener('click', onReopen);
+	}
+
 	const container = root.querySelector('#ShortCut');
 
 	// Dropping to the shortcut
@@ -120,9 +129,18 @@ ShortCut.init = function init() {
 		}
 	});
 	container.addEventListener('dragover', e => {
-		if (e.target.closest('.container')) {
+		const target = e.target.closest('.container');
+		if (target) {
 			e.stopImmediatePropagation();
 			e.preventDefault();
+			e.dataTransfer.dropEffect = 'copy';
+			target.classList.add('is-drop-target');
+		}
+	});
+	container.addEventListener('dragleave', e => {
+		const target = e.target.closest('.container');
+		if (target && !target.contains(e.relatedTarget)) {
+			target.classList.remove('is-drop-target');
 		}
 	});
 
@@ -157,7 +175,25 @@ ShortCut.init = function init() {
 		}
 	});
 
-	this.draggable();
+	/*
+	 * ARRASTE DA BARRA — DEPOIS do "mousedown" delegado acima, e nao antes.
+	 *
+	 * O punho e o proprio "#ShortCut", o MESMO elemento onde mora aquele
+	 * ouvinte. Ouvintes do mesmo elemento disparam na ordem de registro, e o
+	 * "stopImmediatePropagation()" de la so cala os que vierem DEPOIS dele —
+	 * entao registrar o arraste primeiro fazia a barra inteira acompanhar o
+	 * mouse enquanto o jogador so queria mover um icone de um slot para outro.
+	 * Com o registro invertido, arrastar um slot OCUPADO nao move a barra;
+	 * linha e slot vazios continuam movendo, que e o pegador pedido.
+	 */
+	this.draggable(root.querySelector('#ShortCut'));
+
+	// A rede de seguranca do paragrafo de "persistirPosicao": o fim real do
+	// arraste e o "mouseup", nao o "transitionend" que o GUIComponent espera.
+	// Fica no documento porque um arraste rapido solta o botao FORA da barra.
+	const doc = this._host.ownerDocument;
+	doc.addEventListener('mouseup', persistirPosicao);
+	doc.addEventListener('touchend', persistirPosicao);
 
 	// Tooltip events
 	root.querySelectorAll('.container').forEach(el => {
@@ -175,21 +211,65 @@ ShortCut.init = function init() {
  * Append to body
  */
 ShortCut.onAppend = function onAppend() {
-	// Set height first so position clamping uses correct dimensions
-	this._host.style.height = `${34 * _preferences.size}px`;
-	const rect = this._host.getBoundingClientRect();
-	this._host.style.top = `${Math.min(Math.max(0, _preferences.y), Renderer.height - rect.height)}px`;
-	this._host.style.left = `${Math.min(Math.max(0, _preferences.x), Renderer.width - rect.width)}px`;
-	this.magnet.TOP = _preferences.magnet_top;
-	this.magnet.BOTTOM = _preferences.magnet_bottom;
-	this.magnet.LEFT = _preferences.magnet_left;
-	this.magnet.RIGHT = _preferences.magnet_right;
+	// A primeira abertura nasce no centro inferior. Depois que o jogador move,
+	// a posicao salva ganha da ancora CSS e volta limitada a viewport atual.
+	applyShortcutSize(_preferences.size);
+	if (_preferences.x != null && _preferences.y != null) {
+		const rect = this._host.getBoundingClientRect();
+		this._host.style.bottom = 'auto';
+		this._host.style.left = Math.min(Math.max(0, _preferences.x), Renderer.width - rect.width) + 'px';
+		this._host.style.top = Math.min(Math.max(0, _preferences.y), Renderer.height - rect.height) + 'px';
+	}
 
 	SkillWindow.getUI().onUpdateSkill = onUpdateSkill;
 
 	// Initialize tooltips for empty slots
 	updateEmptySlotTooltips();
 };
+
+/**
+ * Guarda a nova ancora somente depois de um arraste real.
+ *
+ * "onDragEnd" e chamado pelo GUIComponent NO "transitionend" da opacidade
+ * (GUIComponent.js:753-763), e isso sozinho NAO da conta: medido no jogo de
+ * pe, um arraste curto termina com a opacidade ja no valor final, o evento
+ * nunca dispara, e o "x/y" gravado ficou UMA ARRASTADA ATRASADA — o jogador
+ * move a barra, atualiza a pagina e ela volta para o lugar de antes. Por isso
+ * o mesmo gravador tambem pende do "mouseup" (ver ShortCut.init), que e o
+ * instante em que o arraste de fato acabou. Os dois chamam a funcao abaixo,
+ * que so escreve quando ha o que escrever.
+ */
+ShortCut.onDragEnd = function persistDragPosition() {
+	persistirPosicao();
+};
+
+/**
+ * Copia a posicao INLINE para a preferencia, se houver posicao inline.
+ *
+ * O guarda de "!left || !top" nao e zelo: a barra nasce ancorada pelo CSS
+ * ("bottom"), sem "style.left/top" nenhum, e "parseInt('') || 0" daria ZERO —
+ * ou seja, um F5 depois de qualquer chamada indevida grudaria a barra no
+ * canto superior esquerdo, que e justamente o estado que ninguem pediu.
+ */
+function persistirPosicao() {
+	const host = ShortCut._host;
+	if (!host) {
+		return;
+	}
+
+	const left = parseInt(host.style.left, 10);
+	const top = parseInt(host.style.top, 10);
+	if (!Number.isFinite(left) || !Number.isFinite(top)) {
+		return;
+	}
+	if (_preferences.x === left && _preferences.y === top) {
+		return;
+	}
+
+	_preferences.x = left;
+	_preferences.y = top;
+	_preferences.save();
+}
 
 /**
  * When removed, clean up
@@ -209,13 +289,9 @@ ShortCut.onRemove = function onRemove() {
 	_activeAnimations.clear();
 
 	// Save preferences
-	_preferences.y = parseInt(this._host.style.top, 10);
-	_preferences.x = parseInt(this._host.style.left, 10);
-	_preferences.size = Math.floor(parseInt(this._host.style.height, 10) / 34);
-	_preferences.magnet_top = this.magnet.TOP;
-	_preferences.magnet_bottom = this.magnet.BOTTOM;
-	_preferences.magnet_left = this.magnet.LEFT;
-	_preferences.magnet_right = this.magnet.RIGHT;
+	_preferences.size = this._host.classList.contains('is-collapsed')
+		? 0
+		: Math.floor(parseInt(this._host.style.height, 10) / ROW_HEIGHT);
 	_preferences.save();
 };
 
@@ -249,9 +325,8 @@ ShortCut.onShortCut = function onShortCut(key) {
 			break;
 
 		case 'EXTEND':
-			_preferences.size = (_preferences.size + 1) % (_rowCount + 1);
+			applyShortcutSize((_preferences.size + 1) % (getAvailableRowCount() + 1));
 			_preferences.save();
-			this._host.style.height = `${_preferences.size * 34}px`;
 			break;
 	}
 };
@@ -532,17 +607,18 @@ function onResize(event) {
 	let lastHeight = 0;
 
 	function resizing() {
-		let h = Math.floor((Mouse.screen.y - top) / 34 + 1);
+		let h = Math.floor((Mouse.screen.y - top) / ROW_HEIGHT + 1);
 
 		// Maximum and minimum window size
-		h = Math.min(Math.max(h, 1), _rowCount);
+		h = Math.min(Math.max(h, 1), getAvailableRowCount());
 
 		if (h === lastHeight) {
 			return;
 		}
 
-		host.style.height = `${h * 34}px`;
+		host.style.height = `${h * ROW_HEIGHT}px`;
 		_preferences.size = h;
+		_preferences.lastSize = h;
 		_preferences.save();
 		lastHeight = h;
 	}
@@ -784,9 +860,11 @@ function onDrop(event, target) {
 
 	event.stopImmediatePropagation();
 	event.preventDefault();
+	target.classList.remove('is-drop-target');
 
 	try {
-		data = JSON.parse(event.dataTransfer.getData('Text'));
+		const serialized = event.dataTransfer.getData('Text') || event.dataTransfer.getData('text/plain');
+		data = serialized ? JSON.parse(serialized) : window._OBJ_DRAG_;
 		element = data.data;
 	} catch (_e) {
 		return;
@@ -799,6 +877,7 @@ function onDrop(event, target) {
 
 	switch (data.from) {
 		case 'SkillList':
+		case 'IdleSkills':
 		case 'Guild':
 		case 'SkillListMH':
 			ShortCut.removeElement(
@@ -854,7 +933,9 @@ function onDragStart(event, icon) {
 		.style.backgroundImage.match(/\(([^)]+)/)[1]
 		.replace(/"/g, '');
 
-	event.dataTransfer.setDragImage(img, 12, 12);
+	// Metade do slot novo (32px, ver ShortCut.css) — com 12 o icone arrastado
+	// nascia deslocado do cursor depois que os slots cresceram.
+	event.dataTransfer.setDragImage(img, 16, 16);
 	event.dataTransfer.setData(
 		'Text',
 		JSON.stringify(
@@ -940,9 +1021,42 @@ function clickElement(index) {
  * Closing the window
  */
 function onClose() {
-	ShortCut._host.style.height = '0px';
-	_preferences.size = 0;
+	applyShortcutSize(0);
 	_preferences.save();
+}
+
+/**
+ * Reopens the bar from the persistent collapsed handle.
+ */
+function onReopen() {
+	applyShortcutSize(_preferences.lastSize || 1);
+	_preferences.save();
+}
+
+/**
+ * Applies expanded/collapsed state without ever making the component
+ * undiscoverable. The server may not have sent the shortcut list yet, so at
+ * least one row must remain available to F12 and to the reopen handle.
+ *
+ * @param {number} requestedSize number of visible rows, zero to collapse
+ */
+function applyShortcutSize(requestedSize) {
+	const availableRows = getAvailableRowCount();
+	const numericSize = Number.isFinite(requestedSize) ? requestedSize : 1;
+	const size = Math.min(Math.max(Math.floor(numericSize), 0), availableRows);
+	const collapsed = size === 0;
+
+	ShortCut._host.classList.toggle('is-collapsed', collapsed);
+	ShortCut._host.style.height = `${collapsed ? COLLAPSED_HEIGHT : size * ROW_HEIGHT}px`;
+	_preferences.size = size;
+
+	if (!collapsed) {
+		_preferences.lastSize = size;
+	}
+}
+
+function getAvailableRowCount() {
+	return _rowCount > 0 ? _rowCount : MAX_ROW_COUNT;
 }
 
 /**

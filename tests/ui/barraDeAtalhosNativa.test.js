@@ -3,6 +3,14 @@ import { describe, expect, it } from 'vitest';
 
 const mapEngine = fs.readFileSync('src/Engine/MapEngine.js', 'utf8');
 const skillEngine = fs.readFileSync('src/Engine/MapEngine/Skill.js', 'utf8');
+const shortcut = fs.readFileSync('src/UI/Components/ShortCut/ShortCut.js', 'utf8');
+const shortcutHtml = fs.readFileSync('src/UI/Components/ShortCut/ShortCut.html', 'utf8');
+const shortcutCss = fs.readFileSync('src/UI/Components/ShortCut/ShortCut.css', 'utf8');
+const idleSkills = fs.readFileSync('src/UI/Components/IdleSkills/IdleSkills.js', 'utf8');
+const idleSkillsCss = fs.readFileSync('src/UI/Components/IdleSkills/IdleSkills.css', 'utf8');
+const combatCorner = fs.readFileSync('src/UI/Components/CombatCornerIdle/CombatCornerIdle.js', 'utf8');
+const combatCornerHtml = fs.readFileSync('src/UI/Components/CombatCornerIdle/CombatCornerIdle.html', 'utf8');
+const combatCornerCss = fs.readFileSync('src/UI/Components/CombatCornerIdle/CombatCornerIdle.css', 'utf8');
 
 describe('barra de atalhos nativa como unica hotbar', () => {
 	it('continua preparando e anexando a ShortCut original', () => {
@@ -13,5 +21,68 @@ describe('barra de atalhos nativa como unica hotbar', () => {
 	it('nao registra nem alimenta a antiga DockIdle', () => {
 		expect(mapEngine).not.toMatch(/import DockIdle|DockIdle\.(prepare|append)\(\)/);
 		expect(skillEngine).not.toMatch(/import DockIdle|DockIdle\.onSkillDelay/);
+	});
+
+	it('mantem uma aba visivel para reabrir a barra depois de fecha-la', () => {
+		expect(shortcutHtml).toContain('class="reopen"');
+		expect(shortcutHtml).toContain('Abrir barra de atalhos');
+		expect(shortcut).toContain("reopenBtn.addEventListener('click', onReopen)");
+		expect(shortcut).toContain("classList.toggle('is-collapsed', collapsed)");
+		expect(shortcutCss).toContain(':host(.is-collapsed) #ShortCut .reopen');
+	});
+
+	it('permite que F12 reabra uma linha mesmo antes da lista do servidor', () => {
+		expect(shortcut).toContain('getAvailableRowCount() + 1');
+		expect(shortcut).toContain('_rowCount > 0 ? _rowCount : MAX_ROW_COUNT');
+		expect(shortcut).not.toContain("ShortCut._host.style.height = '0px'");
+	});
+
+	it('nasce maior no centro inferior e pode ser movida', () => {
+		expect(shortcut).toContain('const ROW_HEIGHT = 42');
+		expect(shortcut).toContain("this.draggable(root.querySelector('#ShortCut'))");
+		expect(shortcut).toContain('ShortCut.onDragEnd = function persistDragPosition()');
+		expect(shortcut).toContain('_preferences.x');
+		expect(shortcut).toContain('_preferences.y');
+		// A preferencia antiga (1.0) trazia x/y do desenho de topo-centro e
+		// venceria a ancora nova — ver o comentario do Preferences.get.
+		expect(shortcut).toMatch(/^\t1\.1$/m);
+		expect(shortcutCss).toContain('width: 368px');
+		expect(shortcutCss).toContain('bottom: 20px');
+		expect(shortcutCss).toContain('left: calc(50% - 184px)');
+		expect(shortcutCss).toContain('width: 32px');
+		expect(shortcutCss).toContain('background: var(--window-fill)');
+		expect(shortcutCss).toContain('border: var(--window-frame)');
+		expect(shortcutCss).not.toContain('background: var(--surface-dark-glass)');
+	});
+
+	it('restaura o ataque automatico sozinho no canto inferior direito', () => {
+		expect(mapEngine).toContain("import CombatCornerIdle from 'UI/Components/CombatCornerIdle/CombatCornerIdle.js'");
+		expect(mapEngine).toContain('CombatCornerIdle.prepare();');
+		expect(mapEngine).toContain('CombatCornerIdle.append();');
+		expect(combatCornerHtml).toContain('class="cc-btn cc-btn--auto"');
+		expect(combatCornerHtml).toContain('aria-pressed="false"');
+		expect(combatCornerHtml).not.toContain('cc-btn--bag');
+		expect(combatCornerHtml).not.toContain('cc-rotacao');
+		expect(combatCorner).toContain('IdleConfig.alternarCacaAutomatica()');
+		expect(combatCorner).toContain('IdleConfig.serverConfig');
+		expect(combatCornerCss).toContain('right: 24px');
+		expect(combatCornerCss).toContain('bottom: 90px');
+		// No celular o "Menu" sai de bottom:16 e sobe; este botao acompanha.
+		expect(combatCornerCss).toContain('bottom: calc(var(--hud-acima-da-doca, 104px) + 74px)');
+	});
+
+	it('aceita habilidades aprendidas arrastadas da arvore nova', () => {
+		expect(idleSkills).toContain("import SkillInfo from 'DB/Skills/SkillInfo.js'");
+		expect(idleSkills).toContain('draggable="');
+		expect(idleSkills).toContain("b.addEventListener('dragstart', onSkillDragStart)");
+		expect(idleSkills).toContain("from: 'IdleSkills'");
+		expect(shortcut).toContain("case 'IdleSkills':");
+		// O arraste da barra tem de ser registrado DEPOIS do "mousedown"
+		// delegado que cala o slot ocupado, senao mover um icone move a barra.
+		expect(shortcut.indexOf("this.draggable(root.querySelector('#ShortCut'))")).toBeGreaterThan(
+			shortcut.indexOf("if (e.target.closest('.icon'))")
+		);
+		expect(shortcutCss).toContain('.is-drop-target');
+		expect(idleSkillsCss).toContain(".is-no-icone[draggable='true']");
 	});
 });

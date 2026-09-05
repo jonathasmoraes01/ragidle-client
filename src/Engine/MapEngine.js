@@ -118,9 +118,10 @@ import MochilaIdle from 'UI/Components/MochilaIdle/MochilaIdle.js'; // RAGIDLE: 
 // UI/Components/BasicInfoIdle). Nenhuma fonte de dado mudou de lugar junto —
 // os dois liam o MESMO Session.zeny, entao o que sumiu foi a segunda leitura,
 // nao o dado.
-// CombatCornerIdle e DockIdle estao aposentados: a hotbar nativa ShortCut e a
-// unica barra de skills registrada. Os arquivos permanecem no historico do
-// fork, mas nenhum dos dois entra no DOM.
+// DockIdle segue aposentada: a hotbar nativa ShortCut e a unica barra de
+// skills. CombatCornerIdle voltou somente como o botao de ataque automatico
+// no canto inferior direito, sem segunda barra/rotacao.
+import CombatCornerIdle from 'UI/Components/CombatCornerIdle/CombatCornerIdle.js';
 import DeathWindow from 'UI/Components/DeathWindow/DeathWindow.js'; // RAGIDLE: "Você morreu"
 import TopMenuIdle from 'UI/Components/TopMenuIdle/TopMenuIdle.js'; // RAGIDLE: "Menu superior direito (constelação)"
 import CorreioIdle from 'UI/Components/CorreioIdle/CorreioIdle.js'; // RAGIDLE: "Correio" (a caixa do sistema, D-366)
@@ -481,6 +482,7 @@ class MapEngine {
 			IdleConfig.prepare(); // RAGIDLE: "Configuração idle"
 			AdminPanel.prepare(); // RAGIDLE: "Painel de admin"
 			IdleSkills.prepare(); // RAGIDLE: "Skills de {classe}"
+			CombatCornerIdle.prepare(); // RAGIDLE: botao de ataque automatico, canto inferior direito
 			ClassChangeNotice.prepare(); // RAGIDLE: aviso de evolução de classe (D-410)
 			MissoesIdle.prepare(); // RAGIDLE: janela de Missões (D-551) — sem dependência de ordem: só escuta 0x0fed
 			PasseIdle.prepare(); // RAGIDLE: janela do Passe (D-813) — idem, só escuta 0x0fe5
@@ -883,6 +885,7 @@ function onMapChange(pkt) {
 		// RAGIDLE: "Configuração idle" floating button — same unconditional
 		// append() as HuntMap right above.
 		IdleConfig.append();
+		CombatCornerIdle.append(); // RAGIDLE: controle persistente do ataque automatico
 
 		// RAGIDLE (D-410): o aviso de evolução de classe. Ele nasce ESCONDIDO —
 		// quem o mostra é o servidor, mandando ZC_RAGIDLE_MUDANCA_DE_CLASSE com
