@@ -1,143 +1,274 @@
 <!--
-	Chat de QUATRO canais fixos: Global, Trade, Farm e Logs.
+	O CHAT — reescrito em 05/09/2026 contra a spec do dono.
 
-	O "Logs" entrou em 31/08/2026 a pedido do dono, e mudou o significado do
-	Global: ele passou a ser SO fala de jogador e anuncio da staff. Tudo o que o
-	servidor diz — missoes, NPCs, respostas de comando — vai para o Logs, que e
-	SO LEITURA.
+	Antes eram QUATRO canais fixos (Global, Trade, Farm, Logs) num painel
+	ancorado, de altura arrastavel. A spec somou dois canais, o arrasto do
+	painel, a largura redimensionavel, o popover de configuracoes, o repouso e a
+	rolagem ancorada. O que NAO mudou de mecanismo esta listado no fim.
 
-	O roteamento continua estrutural: a fala do sistema chega por um opcode
-	PROPRIO (0x0fe2, ZC_RAGIDLE_LOG) em vez do 0x008e, que carregava tambem o eco
-	da fala do proprio jogador e por isso nao dava para separar sem ler o texto.
+	OS SEIS CANAIS, e de onde vem cada um:
+	  global  fala de jogador no mapa + anuncio da staff
+	  guilda  CZ_GUILD_CHAT / ZC_GUILD_CHAT — existe no servidor, com anti-flood
+	  party   CZ_REQUEST_CHAT_PARTY / ZC_NOTIFY_CHAT_PARTY (0x0109), idem
+	  trade   NAO existe no servidor de mapa; a barra fica INERTE e diz por que
+	  farm    o log automatico do idle (dano, exp, item, zeny, nivel)
+	  logs    o que o SERVIDOR diz — opcode proprio 0x0fe2, SO LEITURA
 
-	Por que canais FIXOS e nao as abas dinamicas do roBrowser: as abas nativas
-	eram criadas/renomeadas/apagadas pelo jogador e cada uma carregava a
-	PROPRIA lista de filtros, editavel no painel da engrenagem
-	(ChatBoxSettings). Com isso, a garantia "log automatico do idle nunca cai
-	na conversa" dependia de o jogador nao mexer numa caixa de selecao — nao
-	era garantia nenhuma. Aqui o canal de cada mensagem sai do FILTRO que a
-	origem ja declara (CANAL_DO_FILTRO em ChatBox.js), e o jogador nao tem como
-	afrouxar isso.
+	O roteamento continua ESTRUTURAL, nunca por texto: o canal de cada mensagem
+	sai do FILTRO que a origem declara (CANAL_DO_FILTRO) ou do TIPO
+	(TYPE.GUILD / TYPE.PARTY), e o jogador nao tem como afrouxar isso. Foi por
+	isso que as abas dinamicas do roBrowser e a engrenagem de filtros
+	(ChatBoxSettings) sairam em 20/08 — com elas, "log do idle nunca cai na
+	conversa" dependia de uma caixa de selecao que o jogador podia desmarcar.
 
-	Consequencia declarada: a engrenagem de opcoes (".cb-gear") SAIU junto com
-	as abas dinamicas — sem filtro por aba para configurar, o painel so podia
-	mentir. O "+ Nova aba"/"- Remover aba" que moravam la morreram pelo mesmo
-	motivo.
+	ABA E PAINEL ANDAM EM PAR. `switchTab` procura `.content[data-content=X]`;
+	uma aba sem painel acende e nao troca nada, calada. Ha portao contando os
+	dois conjuntos (`servidor/mapa/canal-de-logs.test.ts`) — e ele varre o
+	arquivo INTEIRO, comentario incluido, entao nao se escreve o atributo de
+	canal por extenso em prosa: um exemplo dentro de um comentario ja reprovou o
+	portao uma vez nesta frente.
 
 	O que ficou de pe do componente nativo, sem mudanca de mecanismo:
 	 - ".input" com ".username" (sussurro) e ".input-chatbox" (contenteditable)
-	 - ".battlemode"/".bmtoggle" (modo batalha, Enter com texto vazio alterna)
+	 - ".battlemode"/".bmtoggle" (Enter com texto vazio alterna)
 	 - ".filter" (para quem falar: publico / grupo / guilda / cla)
-	 - ".content[data-content]" (o JS continua achando o log pelo atributo)
+	 - ".content[data-content]" (o JS acha o log pelo atributo)
 -->
 <div id="chatbox">
-	<!-- A alca de redimensionar (28/08/2026). Fica na borda de CIMA porque o
-	     painel e ancorado embaixo: crescer move a borda superior. -->
-	<div class="cb-alca" title="Arraste para mudar a altura do chat"></div>
-	<div class="cb-abas" role="tablist" aria-label="Canais do chat">
-		<button type="button" class="tab" data-canal="global" role="tab" aria-selected="true" title="Global">
-			<div class="cb-aba is-active">
-				<span class="cb-aba-rotulo">Global</span>
-				<span class="ri-dot cb-aba-dot" aria-hidden="true"></span>
-			</div>
-		</button>
-		<button type="button" class="tab" data-canal="trade" role="tab" aria-selected="false" title="Trade">
-			<div class="cb-aba">
-				<span class="cb-aba-rotulo">Trade</span>
-				<span class="ri-dot cb-aba-dot" aria-hidden="true"></span>
-			</div>
-		</button>
-		<button type="button" class="tab" data-canal="farm" role="tab" aria-selected="false" title="Farm">
-			<div class="cb-aba">
-				<span class="cb-aba-rotulo">Farm</span>
-				<span class="ri-dot cb-aba-dot" aria-hidden="true"></span>
-			</div>
-		</button>
-		<!-- LOGS (31/08/2026, pedido do dono): tudo o que o SERVIDOR diz —
-		     missoes, NPCs, respostas de comando, avisos de loja. O Global fica
-		     so com fala de jogador e anuncio da staff.
+	<!-- AS TRES ALCAS DE REDIMENSIONAR (spec §3).
 
-		     E SO LEITURA (CANAIS_SO_LEITURA em ChatBox.js): uma fala de jogador
-		     aqui seria indistinguivel de um log, que e o problema que este canal
-		     existe para resolver. O `title` avisa antes do clique. -->
-		<button type="button" class="tab" data-canal="logs" role="tab" aria-selected="false" title="Logs do servidor (so leitura)">
-			<div class="cb-aba">
-				<span class="cb-aba-rotulo">Logs</span>
-				<span class="ri-dot cb-aba-dot" aria-hidden="true"></span>
-			</div>
-		</button>
+	     Elas pegam 6px PARA FORA da borda visivel: mirar 1px com o mouse e
+	     teste de pontaria, nao interface. A de cima so muda altura, a da
+	     direita so largura, a de canto muda as duas.
+
+	     A ORIGEM E O CANTO INFERIOR ESQUERDO, sempre: o painel cresce para cima
+	     e para a direita, e as bordas de baixo e da esquerda nao se movem um
+	     pixel durante o arrasto. O motivo esta na spec e e de jogo: o campo de
+	     digitacao tem de continuar no mesmo lugar, porque o jogador aperta
+	     Enter por reflexo, sem olhar. -->
+	<div class="cb-alca" title="Arraste para mudar a altura"></div>
+	<div class="cb-alca-direita" title="Arraste para mudar a largura"></div>
+	<div class="cb-alca-canto" title="Arraste para mudar altura e largura"></div>
+
+	<!-- A FAIXA DE ARRASTO (spec §7).
+
+	     SO ela move o painel. Arrastar sobre as abas ou sobre o texto nao move
+	     nada — e requisito explicito: o jogador precisa poder selecionar uma
+	     mensagem para copiar, e um painel que sai do lugar quando se tenta
+	     marcar texto e um painel que ninguem copia. -->
+	<div class="cb-arrasto" aria-hidden="true">
+		<span class="cb-grip"></span>
+		<span class="cb-grip"></span>
 	</div>
 
-	<!-- Recolher/expandir: canto superior direito do painel, como no gabarito
-	     (redesign/referencia-hud-origin.md, secao 4). Glifo "seta" de
-	     UI/ri-icones.js, gira 180 graus por CSS conforme o estado. -->
-	<button
-		type="button"
-		class="cb-collapse"
-		data-action="collapse"
-		title="Recolher chat"
-		aria-label="Recolher chat"
-		aria-expanded="true"
-	>
-		<span class="cb-collapse-glyph"><!--RI_ICONE:seta--></span>
-	</button>
+	<div class="cb-topo">
+		<div class="cb-abas" role="tablist" aria-label="Canais do chat">
+			<button type="button" class="tab" data-canal="global" role="tab" aria-selected="true" title="Global">
+				<div class="cb-aba is-active">
+					<span class="cb-aba-rotulo">Global</span>
+					<span class="cb-aba-badge" aria-hidden="true"></span>
+				</div>
+			</button>
+			<button type="button" class="tab" data-canal="guilda" role="tab" aria-selected="false" title="Guilda">
+				<div class="cb-aba">
+					<span class="cb-aba-rotulo">Guilda</span>
+					<span class="cb-aba-badge" aria-hidden="true"></span>
+				</div>
+			</button>
+			<button type="button" class="tab" data-canal="party" role="tab" aria-selected="false" title="Party">
+				<div class="cb-aba">
+					<span class="cb-aba-rotulo">Party</span>
+					<span class="cb-aba-badge" aria-hidden="true"></span>
+				</div>
+			</button>
+			<button type="button" class="tab" data-canal="trade" role="tab" aria-selected="false" title="Trade">
+				<div class="cb-aba">
+					<span class="cb-aba-rotulo">Trade</span>
+					<span class="cb-aba-badge" aria-hidden="true"></span>
+				</div>
+			</button>
+			<button type="button" class="tab" data-canal="farm" role="tab" aria-selected="false" title="Farm">
+				<div class="cb-aba">
+					<span class="cb-aba-rotulo">Farm</span>
+					<span class="cb-aba-badge" aria-hidden="true"></span>
+				</div>
+			</button>
+			<button type="button" class="tab" data-canal="logs" role="tab" aria-selected="false" title="Logs do servidor (só leitura)">
+				<div class="cb-aba">
+					<span class="cb-aba-rotulo">Logs</span>
+					<span class="cb-aba-badge" aria-hidden="true"></span>
+				</div>
+			</button>
+		</div>
+
+		<!-- A BARRA DE CONTROLES.
+
+		     Nenhum destes botoes carrega o atributo de CANAL — proposital: o
+		     portao extrai os nomes de canal e de painel do arquivo inteiro por
+		     expressao regular e exige que os dois conjuntos batam. Um botao
+		     marcado como canal inventaria um setimo canal sem painel. Por isso
+		     usam `data-action`. -->
+		<div class="cb-controles">
+			<!-- 1x / 2x / 4x: o chat cresce PARA CIMA em degraus e volta ao
+			     normal. O rotulo diz o degrau ATUAL; a acao vai no title.
+			     E TEXTO, e nao glifo, porque o design system nao tem icone de
+			     "maximizar" e desenhar um e proibido. A aritmetica mora em
+			     ./degrausDeAltura.js, fora deste componente, para poder ser
+			     EXECUTADA por teste. -->
+			<button
+				type="button"
+				class="cb-tamanho"
+				data-action="tamanho"
+				title="Tamanho do chat"
+				aria-label="Tamanho do chat: 1x. Clique para aumentar."
+			>1x</button>
+			<button
+				type="button"
+				class="cb-config"
+				data-action="config"
+				title="Configurações do chat"
+				aria-label="Configurações do chat"
+				aria-expanded="false"
+			>
+				<!-- Dois glifos: travado a engrenagem VIRA um cadeado fechado
+				     (spec §8), como lembrete de por que nada se move. O
+				     lembrete mora no lugar onde o jogador vai procurar a
+				     resposta — dentro do proprio menu que tem a chave. -->
+				<span class="cb-glifo cb-glifo-config"><!--RI_ICONE:config--></span>
+				<span class="cb-glifo cb-glifo-travado"><!--RI_ICONE:cadeado--></span>
+			</button>
+			<!-- Recolher: o chevron do canto direito das abas (spec §7).
+			     Recolhido sobra a barra de digitacao com o badge SOMADO de
+			     todos os canais — o jogador continua podendo falar sem reabrir.
+			     Ele continua sendo `.cb-collapse` de proposito: a prova
+			     `prova-clique-nao-vaza.ts` clica neste seletor duas vezes, para
+			     recolher e para devolver o chat inteiro. -->
+			<button
+				type="button"
+				class="cb-collapse"
+				data-action="collapse"
+				title="Recolher chat"
+				aria-label="Recolher chat"
+				aria-expanded="true"
+			>
+				<span class="cb-collapse-glyph"><!--RI_ICONE:seta--></span>
+				<!-- MINIMIZADO o glifo vira um BALAO DE CONVERSA. Um chevron
+				     solto no canto diz "ha algo dobrado aqui"; com o painel
+				     inteiro fora da tela, quem chega precisa saber O QUE o
+				     botao devolve. -->
+				<span class="cb-abrir-glyph"><!--RI_ICONE:conversa--></span>
+				<!-- O badge SOMADO de todos os canais, nos estados fechados:
+				     sem as abas na tela, ele e o unico aviso de que ha o que
+				     ler. -->
+				<span class="cb-collapse-badge" aria-hidden="true"></span>
+			</button>
+		</div>
+	</div>
+
+	<div class="cb-divisor"></div>
 
 	<div class="body">
 		<div class="contentwrapper">
-			<!-- ".ri-scroll" NAO e decoracao: GUIComponent.js:900-923 varre o
-			     Shadow DOM e monta a barra de rolagem LEGADA do roBrowser (um
-			     <div class="ro-custom-scrollbar"> INSERIDO dentro do elemento,
-			     mais "overflow-y:hidden" inline) em tudo que tenha overflow
-			     auto, a nao ser que o elemento carregue esta classe. Com o
-			     wrapper dentro, ".content" nunca ficava vazio e o estado
-			     vazio honesto (":empty" em ChatBox.css) nao aparecia — foi
-			     assim que ele saiu invisivel na primeira prova fotografica
-			     desta frente. -->
-			<div class="content ri-scroll active" data-content="global"></div>
-			<div class="content ri-scroll" data-content="trade"></div>
-			<div class="content ri-scroll" data-content="farm"></div>
-			<!-- LOGS (31/08/2026). O PAINEL, e nao so a aba: `switchTab` procura
-			     `.content[data-content=<canal>]`, e sem esta linha o clique na
-			     aba caia de volta no Global sem nada avisar — a aba acendia e o
-			     conteudo nao trocava. Aba e painel andam em par. -->
-			<div class="content ri-scroll" data-content="logs"></div>
+			<!-- ".ri-scroll" NAO e decoracao: o GUIComponent varre o Shadow DOM
+			     e monta a barra de rolagem LEGADA do roBrowser em tudo que
+			     tenha overflow auto, a nao ser que o elemento carregue esta
+			     classe. Com o wrapper dentro, ".content" nunca ficava vazio e o
+			     estado vazio honesto (":empty") nao aparecia — foi assim que
+			     ele saiu invisivel na primeira prova fotografica desta frente.
+
+			     `role="log"` + `aria-live="polite"` (spec §10): o leitor de tela
+			     anuncia mensagem nova sem interromper o que estiver lendo. -->
+			<div class="content ri-scroll active" data-content="global" role="log" aria-live="polite"></div>
+			<div class="content ri-scroll" data-content="guilda" role="log" aria-live="polite"></div>
+			<div class="content ri-scroll" data-content="party" role="log" aria-live="polite"></div>
+			<div class="content ri-scroll" data-content="trade" role="log" aria-live="polite"></div>
+			<div class="content ri-scroll" data-content="farm" role="log" aria-live="polite"></div>
+			<div class="content ri-scroll" data-content="logs" role="log" aria-live="polite"></div>
 		</div>
+
+		<!-- ROLAGEM ANCORADA (spec §7): quem rolou para cima nao perde o lugar
+		     quando chega mensagem nova. Este botao e o caminho de volta ao fim,
+		     e so aparece quando ha o que ler abaixo. -->
+		<button type="button" class="cb-novas" hidden>novas mensagens</button>
 	</div>
 
 	<div class="battlemode"><button type="button" class="bmtoggle">Modo batalha — Enter para digitar</button></div>
 
 	<div class="input">
-		<!-- A barra de digitacao so existe no GLOBAL (o Farm e somente leitura e
-		     o Trade nao tem canal no servidor), e mesmo assim ela nao dizia isso:
-		     o unico rotulo visivel era o placeholder "Sussurrar para", e o
-		     destino real da fala (publico / grupo / guilda / cla) morava
-		     escondido atras do botao ".filter". Quem olhava lia "sussurro" numa
-		     barra que, por padrao, fala em PUBLICO no canal Global.
-
-		     Esta etiqueta e o destino, dito em voz alta: ela nasce "Global",
-		     acompanha o que o ".filter" escolher (Grupo / Guilda / Cla) e vira
-		     "Sussurro" enquanto houver nome no campo de sussurro — que e a regra
-		     que o proprio ChatBox.submit() aplica. O seletor deixou de ser um
-		     quarto canal escondido e virou o ESTADO visivel de um canal so. -->
-		<span class="ri-badge ri-badge--cinza cb-destino" data-destino="publico">Global</span>
+		<!-- A etiqueta e o DESTINO da fala, dito em voz alta. Antes o unico
+		     rotulo visivel era o placeholder "Sussurrar para", e o destino real
+		     (publico / grupo / guilda / cla) morava escondido atras do botao
+		     ".filter" — quem olhava lia "sussurro" numa barra que fala em
+		     PUBLICO. Ela nasce "Global", acompanha o ".filter" e vira
+		     "Sussurro" enquanto houver nome no campo de sussurro. -->
+		<span class="ri-badge cb-destino" data-destino="publico">Global</span>
 		<input type="text" class="username" placeholder="Sussurrar para" />
 		<div class="wrapper"><div contenteditable="true" class="message input-chatbox"></div></div>
+		<!-- A dica do Tab SOME depois de 20 envios (spec §6): ela ensina, e
+		     quem ja aprendeu nao precisa de professor ocupando a barra. -->
+		<span class="cb-dica-tab" aria-hidden="true">Tab</span>
 		<button type="button" class="filter" title="Trocar o destino da fala" aria-label="Trocar o destino da fala">
 			<span class="cb-glifo"><!--RI_ICONE:menu--></span>
 		</button>
-		<!-- Trade tem a barra de digitacao que o desenho pede, mas ela e INERTE
-		     e diz por que: o servidor de mapa nao tem canal de comercio (o chat
-		     dele e local do mapa, servidor/mapa/servidor-mapa.ts:5359-5379).
-		     Deixar o campo ativo faria a mensagem sair como fala publica comum e
-		     aparecer no Global — o jogador teria falado num canal que nao
-		     existe e a linha cairia noutro. Melhor dizer a verdade.
-
-		     E a verdade tem de estar VISIVEL NO REPOUSO (20/08/2026, rodada 2).
-		     Antes, o Trade em repouso mostrava a barra de MODO BATALHA — "Enter
-		     para digitar" —, um convite a digitar num canal onde ninguem pode
-		     falar, e esta explicacao media 0x0px ate o jogador apertar Enter.
-		     Agora o Trade nao mostra o modo batalha: mostra ISTO (ver
-		     ".canal-trade" em ChatBox.css). -->
+		<button type="button" class="cb-enviar" title="Enviar" aria-label="Enviar mensagem">
+			<span class="cb-glifo"><!--RI_ICONE:enviar--></span>
+		</button>
+		<!-- Trade tem a barra que o desenho pede, mas ela e INERTE e diz por
+		     que: o servidor de mapa nao tem canal de comercio. Deixar o campo
+		     ativo faria a mensagem sair como fala publica e aparecer no Global —
+		     o jogador teria falado num canal que nao existe e a linha cairia
+		     noutro. E a verdade tem de estar VISIVEL NO REPOUSO: antes o Trade
+		     parado mostrava "Enter para digitar", um convite a digitar onde
+		     ninguem pode falar, e esta explicacao media 0x0px ate o Enter. -->
 		<div class="cb-inerte">Canal de comércio ainda não existe no servidor.</div>
+	</div>
+
+	<!-- O POPOVER DE CONFIGURACOES (spec §8), ancorado na engrenagem.
+
+	     "Travar" governa POSICAO E TAMANHO juntos, e a spec e explicita: com
+	     ele ligado a faixa de arrasto sai e as tres alcas desativam. Travar so
+	     um dos dois faria o cadeado prometer o que nao cumpre. -->
+	<div class="cb-popover" hidden role="dialog" aria-label="Configurações do chat">
+		<p class="cb-popover-titulo">Configurações do chat</p>
+
+		<!-- HUD MODERNA / HUD CLASSICA (pedido do dono).
+
+		     E uma ESCOLHA entre dois, e nao um interruptor: um switch
+		     "clássica: ligado/desligado" obriga o jogador a deduzir o que e o
+		     desligado. Dois botoes dizem os dois nomes.
+
+		     O que muda e SO a paleta — mesma HUD, mesmas abas, mesmo arrasto,
+		     mesmos tres estados. Ver o bloco ".is-classico" em ChatBox.css. -->
+		<div class="cb-tema" role="radiogroup" aria-label="Estilo da HUD do chat">
+			<button type="button" class="cb-tema-op is-ativo" data-tema="moderna" role="radio" aria-checked="true">Moderna</button>
+			<button type="button" class="cb-tema-op" data-tema="classica" role="radio" aria-checked="false">Clássica</button>
+		</div>
+
+		<div class="cb-popover-divisor"></div>
+
+		<button type="button" class="cb-opcao" data-opcao="travado" role="switch" aria-checked="false">
+			<span class="cb-opcao-glifo"><!--RI_ICONE:cadeado--></span>
+			<span class="cb-opcao-rotulo">Travar posição</span>
+			<span class="cb-switch" aria-hidden="true"></span>
+		</button>
+
+		<button type="button" class="cb-opcao" data-opcao="horario" role="switch" aria-checked="false">
+			<span class="cb-opcao-glifo"><!--RI_ICONE:relogio--></span>
+			<span class="cb-opcao-rotulo">Horário</span>
+			<span class="cb-switch" aria-hidden="true"></span>
+		</button>
+
+		<button type="button" class="cb-opcao" data-opcao="repouso" role="switch" aria-checked="true">
+			<span class="cb-opcao-glifo"><!--RI_ICONE:olhoFechado--></span>
+			<span class="cb-opcao-rotulo">Sumir parado</span>
+			<span class="cb-switch" aria-hidden="true"></span>
+		</button>
+
+		<div class="cb-popover-divisor"></div>
+
+		<button type="button" class="cb-opcao cb-restaurar" data-opcao="restaurar">
+			<span class="cb-opcao-glifo"><!--RI_ICONE:desfazer--></span>
+			<span class="cb-opcao-rotulo">Restaurar padrão</span>
+		</button>
 	</div>
 </div>
