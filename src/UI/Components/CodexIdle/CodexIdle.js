@@ -338,15 +338,39 @@ function missoesHtml(estado) {
 				const marca = m.cumprida
 					? '<span class="ri-badge ri-badge--verde">Cumprida</span>'
 					: '';
+				// O NOME é o `titulo` da entrada (D-1110). Ele deixou de ser o
+				// nome de um monstro: uma entrada pode pedir três espécies
+				// ("Família Orc"), e mostrar só a primeira mentiria sobre o que
+				// falta. As espécies vão na linha de baixo, que é onde cabem.
+				const especies = Array.isArray(m.alvos)
+					? m.alvos.map(a => escapeHtml(a.monstro)).join(' · ')
+					: '';
+				// O que a entrada paga ALÉM do ponto — vazio nas oito de D-851.
+				const premio = Array.isArray(m.recompensas)
+					? m.recompensas
+							.map(r =>
+								r.tipo === 'zeny'
+									? r.quantidade + ' zeny'
+									: r.tipo === 'expBase'
+										? r.quantidade + ' EXP de base'
+										: r.tipo === 'expClasse'
+											? r.quantidade + ' EXP de classe'
+											: ''
+							)
+							.filter(Boolean)
+							.join(' · ')
+					: '';
 				return (
 					'<div class="cx-missao' +
 					(m.cumprida ? ' is-cumprida' : '') +
 					'">' +
 					'<span class="cx-missao-nome">' +
-					escapeHtml(m.monstro) +
+					escapeHtml(m.titulo || m.monstro || '') +
 					' ' +
 					marca +
 					'</span>' +
+					(especies ? '<span class="cx-missao-especies">' + especies + '</span>' : '') +
+					(premio ? '<span class="cx-missao-premio">+1 ponto · ' + escapeHtml(premio) + '</span>' : '') +
 					'<span class="cx-missao-progresso">' +
 					escapeHtml(abates) +
 					' / ' +

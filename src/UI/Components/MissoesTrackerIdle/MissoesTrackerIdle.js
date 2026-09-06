@@ -215,8 +215,10 @@ function syncPosition() {
 	 * e exatamente o defeito que este bloco existe para evitar.
 	 *
 	 * 34 = os 30px do cabecalho (`.mt-painel` recolhido) mais os 2+2 de borda.
-	 * Abaixo disso nao ha o que mostrar, e a informacao continua a um toque de
-	 * distancia no item "Missoes" do cluster.
+	 * Abaixo disso nao ha o que mostrar, e a informacao continua a um toque do
+	 * botao "Menu" e outro no item "Missoes" do leque (D-944, 06/09/2026: o
+	 * Missoes trocou de casa com o Recompensas). Este rastreador e justamente o
+	 * que torna essa gaveta aceitavel -- o acompanhamento de toda hora e ele.
 	 */
 	const topoDoCluster = parseFloat(
 		getComputedStyle(host.ownerDocument.documentElement).getPropertyValue('--hud-cluster-topo'),

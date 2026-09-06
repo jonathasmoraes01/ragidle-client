@@ -201,6 +201,20 @@
 	color: var(--green-600);
 }
 
+/* As espécies da entrada (D-1110) e o prêmio que ela paga além do ponto.
+   As duas ocupam a linha inteira, entre o nome e a barra: elas são contexto,
+   e disputar a coluna do contador espremeria o número que o jogador procura. */
+#CodexIdle .cx-missao-especies,
+#CodexIdle .cx-missao-premio {
+	grid-column: 1 / -1;
+	font: var(--type-caption, var(--type-info));
+	color: var(--text-muted);
+}
+
+#CodexIdle .cx-missao-premio {
+	color: var(--amber-600);
+}
+
 /* A barra ocupa a linha inteira, abaixo do nome e do contador. */
 #CodexIdle .cx-missao-barra {
 	grid-column: 1 / -1;

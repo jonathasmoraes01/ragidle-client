@@ -21,8 +21,10 @@
  *    então o render é idempotente e a janela fechada só guarda o dado — o
  *    custo de desenhar só existe quando ela está aberta.
  *
- * Entrada na HUD: o botão "Missões" do cluster de essenciais
- * (TopMenuIdle.html/TopMenuIdle.js), que chama MissoesIdle.toggle().
+ * Entrada na HUD: o botão "Missões" do LEQUE do menu (TopMenuIdle.html/
+ * TopMenuIdle.js), que chama MissoesIdle.toggle(). Ele morou no cluster de
+ * essenciais de 24/08/2026 a 06/09/2026, quando o dono o trocou de casa com o
+ * "Recompensas" (D-944) — o botão desceu, a janela não mudou em nada.
  *
  * @author RagIdle
  */
@@ -332,9 +334,19 @@ function cardDeMissao(m) {
 						<span class="mi-classe-cidade">${escapeHtml(c.mestre)} · ${escapeHtml(c.cidade)}</span>
 						<span class="mi-classe-resumo">${escapeHtml(c.resumo)}</span>
 						${
-							m.estado === 'disponivel'
-								? `<button type="button" class="mi-ir ri-btn" data-mapa="${escapeHtml(c.mapa)}">Ir até o NPC</button>`
-								: ''
+							// A oferta atrás de uma PROVA (D-1104) continua na lista, com o
+							// nome da missão que falta — sumir é o defeito que o dono
+							// reportou em 30/08. Quem RECUSA a troca é o servidor
+							// (ofertaDoMestre); esconder o botão aqui é só não convidar
+							// para uma viagem que termina em recusa.
+							// "Conclua antes A <título>", sem dois-pontos: o título já traz
+							// um ("Prova de Vocação: Espadachim"), e a frase saía com dois
+							// na mesma linha. Olhado no print de fotografar-missoes-idle.
+							c.bloqueadaPor
+								? `<span class="mi-classe-bloqueio">Conclua antes a ${escapeHtml(c.bloqueadaPor)}</span>`
+								: m.estado === 'disponivel'
+									? `<button type="button" class="mi-ir ri-btn" data-mapa="${escapeHtml(c.mapa)}">Ir até o NPC</button>`
+									: ''
 						}
 					</div>`
 					)

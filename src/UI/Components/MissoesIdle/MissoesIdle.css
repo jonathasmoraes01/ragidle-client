@@ -167,6 +167,17 @@
 	margin-top: 2px;
 }
 
+/* A oferta atrás de uma Prova (D-1104): mesma cor do `.mi-requisito`, porque
+   é a mesma coisa — um requisito que falta, escrito pelo servidor. Ela ocupa
+   a linha do botão de propósito: a grade não pode encolher quando a oferta
+   está travada, ou os cartões saltam de altura quando a prova fecha. */
+#MissoesIdle .mi-classe-bloqueio {
+	color: var(--amber-600);
+	font-size: var(--fs-desc);
+	align-self: flex-start;
+	margin-top: 2px;
+}
+
 /* Bloqueada: a grade informa, mas não convida — sem botão, meia luz. */
 #MissoesIdle .mi-card[data-estado='bloqueada'] .mi-classe {
 	opacity: 0.55;
