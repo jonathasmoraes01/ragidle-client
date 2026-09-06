@@ -12,6 +12,7 @@ import Preferences from 'Core/Preferences.js';
 import KEYS from 'Controls/KeyEventHandler.js';
 import UIManager from 'UI/UIManager.js';
 import GUIComponent from 'UI/GUIComponent.js';
+import { montarOfertaNaEntrada, sincronizar as sincronizarOferta } from './ofertaNaEntrada.js';
 import 'UI/Elements/Elements.js';
 
 export function createWinLogin({ name, htmlText, cssText }) {
@@ -61,6 +62,14 @@ export function createWinLogin({ name, htmlText, cssText }) {
 		root.querySelector('.connect').addEventListener('click', connect);
 		root.querySelector('.exit').addEventListener('click', exit);
 
+		// A OFERTA DE INSTALACAO (D-945, 06/09/2026). A casca cala o banner do
+		// proprio navegador (`preventDefault` no `beforeinstallprompt`, D-933) e
+		// a unica oferta que sobrava morava DEPOIS do login, dentro das
+		// Configuracoes -- entao quem abria no celular e olhava a tela de entrada
+		// nunca soube que o jogo instala. A linha nasce escondida e so aparece
+		// quando ha o que fazer; a regra esta em UI/ofertaDeInstalacao.js.
+		montarOfertaNaEntrada(this);
+
 		// Replay Upload, only present on the UI versions supporting replays
 		const replayUpload = root.querySelector('.replay-upload');
 		const replayButton = root.querySelector('.replay');
@@ -106,6 +115,11 @@ export function createWinLogin({ name, htmlText, cssText }) {
 		} else {
 			_inputUsername.focus();
 		}
+
+		// O estado da oferta muda entre uma aparicao e outra da tela (o
+		// navegador pode ter oferecido a instalacao no meio do caminho, ou o
+		// jogador pode ter instalado e voltado).
+		sincronizarOferta(this.getRoot());
 
 		Component.placeOnTop();
 	};

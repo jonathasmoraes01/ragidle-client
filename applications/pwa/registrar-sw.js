@@ -55,6 +55,18 @@
 		if (document.getElementById('ri-aviso-versao')) {
 			return;
 		}
+		/* ─── A PELE VEM DO DESIGN SYSTEM, MAS COMO LITERAL ───────────────────
+		   Os valores abaixo são os tokens oficiais do Common.css (tema CLARO:
+		   chapa de janela + hairline azul + aro dourado + sombra azul, e os dois
+		   botões nas variantes .ri-btn/.ri-btn--sec). Aqui eles são escritos à
+		   mão, e não como `var(--token)`, pela mesma razão que o aviso é
+		   autônomo: ele roda na CASCA, e em desenvolvimento o jogo (e o
+		   Common.css que o UIManager injeta) vive num `<iframe>` — a casca não
+		   herda esses tokens. Literal aqui = mesma cara nos dois hospedeiros.
+		   Fonte da verdade continua sendo o Common.css; quem mudar a paleta lá
+		   atualiza estes espelhos. */
+		var FONTE_UI = "'Figtree',Arial,'Liberation Sans',Arimo,sans-serif";
+
 		var caixa = document.createElement('div');
 		caixa.id = 'ri-aviso-versao';
 		caixa.setAttribute('role', 'status');
@@ -71,32 +83,39 @@
 			'align-items:center',
 			'gap:12px',
 			'max-width:calc(100vw - 24px)',
-			'padding:10px 12px',
-			'border-radius:10px',
-			'border:1px solid rgba(232,184,75,0.45)',
-			'background:rgba(6,8,16,0.96)',
-			'color:#f4f8fd',
-			'font:600 13px/1.3 system-ui,Segoe UI,Arial,sans-serif',
-			'box-shadow:0 6px 24px rgba(0,0,0,0.45)',
+			'padding:10px 14px',
+			/* --radius-window / --border-window / --surface-window */
+			'border-radius:8px',
+			'border:1px solid rgba(36,92,158,0.34)',
+			'background:linear-gradient(180deg,rgba(255,255,255,0.97) 0%,rgba(239,245,252,0.95) 100%)',
+			/* --text-body */
+			'color:#2d3a55',
+			'font:600 13px/1.3 ' + FONTE_UI,
+			/* --shadow-window + --rim-gold (aro dourado interno, a assinatura
+			   das janelas da HUD) */
+			'box-shadow:0 10px 28px rgba(12,34,64,0.28),0 2px 6px rgba(12,34,64,0.16),inset 0 0 0 1px rgba(240,216,155,0.75)',
 		].join(';');
 
 		var texto = document.createElement('span');
 		texto.textContent = 'Nova versão do jogo disponível.';
-		texto.style.cssText = 'flex:1;min-width:0';
+		/* --text-title: o tom mais escuro, para a mensagem sobressair no claro. */
+		texto.style.cssText = 'flex:1;min-width:0;color:#12294a';
 
 		var recarregar = document.createElement('button');
 		recarregar.type = 'button';
 		recarregar.textContent = 'Recarregar';
-		/* 44px de altura: este botão nasce num celular tanto quanto num
+		/* .ri-btn primário (azul): --tab-active-fill, aro --blue-600, texto
+		   branco. 44px de altura: este botão nasce num celular tanto quanto num
 		   computador, e o piso tátil vale para ele igual. */
 		recarregar.style.cssText = [
 			'min-height:44px',
-			'padding:0 14px',
-			'border-radius:8px',
-			'border:1px solid rgba(232,184,75,0.6)',
-			'background:linear-gradient(180deg,#e0b04d,#c9a227)',
-			'color:#12294a',
-			'font:700 13px system-ui,Segoe UI,Arial,sans-serif',
+			'padding:0 16px',
+			'border-radius:6px',
+			'border:1px solid #245c9e',
+			'background:linear-gradient(180deg,#4b81b8 0%,#245c9e 100%)',
+			'color:#ffffff',
+			'font:600 13px ' + FONTE_UI,
+			'box-shadow:inset 0 1px 0 rgba(255,255,255,0.95),0 1px 2px rgba(12,34,64,0.10)',
 			'cursor:pointer',
 		].join(';');
 		recarregar.addEventListener('click', aoRecarregar);
@@ -105,14 +124,16 @@
 		depois.type = 'button';
 		depois.textContent = 'Depois';
 		depois.setAttribute('aria-label', 'Dispensar o aviso de nova versão');
+		/* .ri-btn--sec: chapa clara, hairline azul, texto --text-link. */
 		depois.style.cssText = [
 			'min-height:44px',
-			'padding:0 10px',
-			'border-radius:8px',
-			'border:1px solid rgba(255,255,255,0.18)',
-			'background:transparent',
-			'color:#c3d8ee',
-			'font:600 13px system-ui,Segoe UI,Arial,sans-serif',
+			'padding:0 12px',
+			'border-radius:6px',
+			'border:1px solid rgba(36,92,158,0.16)',
+			'background:rgba(255,255,255,0.88)',
+			'color:#245c9e',
+			'font:600 13px ' + FONTE_UI,
+			'box-shadow:0 1px 2px rgba(12,34,64,0.10)',
 			'cursor:pointer',
 		].join(';');
 		depois.addEventListener('click', function () {
