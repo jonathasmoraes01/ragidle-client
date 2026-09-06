@@ -82,6 +82,7 @@ import htmlText from './IdleConfig.html?raw';
 import cssText from './IdleConfig.css?raw';
 import { fecharEEsquecer } from '../limpezaDeJanelaIdle.js';
 import { abaLembrada, lembrarAba } from '../memoriaDeAba.js';
+import { escutarACasca, ofertaAtual, pontePWA, textoDoResultado } from 'UI/ofertaDeInstalacao.js';
 
 /**
  * Keep in sync with the ":host" / ".ic-window" size in IdleConfig.css and
@@ -292,55 +293,45 @@ IdleConfig.init = function init() {
  * sempre roda nela: em desenvolvimento o jogo vive dentro de um `<iframe>`
  * (`ROBrowser.TYPE.FRAME`) e em produção ele é embutido no mesmo documento.
  * Por isso a ponte (`window.RagIdlePWA`, de `applications/pwa/registrar-sw.js`)
- * é procurada aqui e no `parent` — sem isso o botão funcionaria em produção e
- * ficaria mudo em desenvolvimento, que é o pior jeito de descobrir um defeito.
+ * é procurada na janela E no `parent` — sem isso o botão funcionaria em
+ * produção e ficaria mudo em desenvolvimento, que é o pior jeito de descobrir
+ * um defeito. Essa busca mora em `UI/ofertaDeInstalacao.js` desde D-945,
+ * porque a tela de entrada precisa dela pelo mesmo motivo.
  *
  * ─── A LINHA NASCE ESCONDIDA ────────────────────────────────────────────
  * Ela só aparece quando há algo a fazer: o navegador ofereceu a instalação,
- * ou é um Safari de iPhone (onde não existe evento nenhum e a única coisa
- * honesta é dar a instrução: Compartilhar > Adicionar à Tela de Início).
- * Quem já jogou instalado não vê nada. Um botão que não faz nada é a versão
- * permanente do banner intrusivo que o dono recusou.
+ * ou existe um caminho manual honesto para contar (iPhone, navegador de
+ * dentro de um app, Android que ainda não ofereceu). Quem já jogou instalado
+ * não vê nada, e num computador sem oferta a linha não nasce — um botão que
+ * não faz nada é a versão permanente do banner intrusivo que o dono recusou.
  */
-function pontePWA() {
-	try {
-		if (window.RagIdlePWA) return window.RagIdlePWA;
-		if (window.parent && window.parent !== window && window.parent.RagIdlePWA) {
-			return window.parent.RagIdlePWA;
-		}
-	} catch (erro) {
-		/* `parent` de outra origem lança ao ser lido. Não acontece aqui (a casca
-		   e o jogo são do mesmo domínio), mas ler `parent` sem `try` é a forma
-		   clássica de derrubar um componente inteiro num caso de borda. */
-	}
-	return null;
-}
-
+/* A DECISAO E A MESMA DA TELA DE ENTRADA (D-945, 06/09/2026).
+ *
+ * Ate aqui esta funcao tinha regra propria, e ela escondia a linha sempre que
+ * nao havia evento e nao era iPhone. Esse "sempre que" engolia o caso mais
+ * comum do celular: o navegador de DENTRO de um app (Instagram, Facebook),
+ * onde `beforeinstallprompt` nunca dispara. O jogador nao via nem botao nem
+ * explicacao -- so o silencio, que ele le como "esse jogo nao instala".
+ *
+ * Agora as duas telas leem `UI/ofertaDeInstalacao.js`. Elas so DESENHAM
+ * diferente: aqui, num painel onde sobra espaco, a explicacao fica sempre a
+ * vista; na tela de entrada, onde o celular conta cada linha, ela abre no
+ * toque. */
 function sincronizarInstalar() {
 	const root = _root();
 	const linha = root && root.querySelector('.ic-instalar');
 	if (!linha) return;
 
-	const ponte = pontePWA();
-	const sub = linha.querySelector('.ic-instalar-sub');
+	const oferta = ofertaAtual();
+	linha.hidden = !oferta.mostrar;
+	if (!oferta.mostrar) return;
 
-	if (!ponte || ponte.estaInstalado()) {
-		linha.hidden = true;
-		return;
-	}
-	if (ponte.promptDeInstalacao) {
-		linha.hidden = false;
-		linha.classList.remove('is-ios');
-		if (sub) sub.textContent = 'Fica na tela inicial e abre sem a barra do navegador.';
-		return;
-	}
-	if (ponte.ehIOS()) {
-		linha.hidden = false;
-		linha.classList.add('is-ios');
-		if (sub) sub.textContent = 'No iPhone: toque em Compartilhar e depois em "Adicionar à Tela de Início".';
-		return;
-	}
-	linha.hidden = true;
+	/* No modo `instrucao` nao ha o que disparar, e o botao sai de cena em vez
+	   de mentir que funciona -- o texto e que carrega o caminho. */
+	linha.classList.toggle('is-instrucao', oferta.modo === 'instrucao');
+
+	const sub = linha.querySelector('.ic-instalar-sub');
+	if (sub) sub.textContent = oferta.dica;
 }
 
 function ligarInstalar() {
@@ -354,16 +345,9 @@ function ligarInstalar() {
 			if (!ponte) return;
 			Promise.resolve(ponte.instalar()).then((resultado) => {
 				const sub = _root().querySelector('.ic-instalar-sub');
-				if (sub) {
-					/* Diz o que aconteceu, inclusive quando não deu — recusar a
-					   instalação é uma escolha legítima e o jogo não vai insistir. */
-					sub.textContent =
-						resultado === 'instalado'
-							? 'Instalado. O ícone está na sua tela inicial.'
-							: resultado === 'recusado'
-								? 'Tudo bem — dá para instalar depois, por aqui mesmo.'
-								: 'A instalação não está disponível neste navegador.';
-				}
+				/* Diz o que aconteceu, inclusive quando não deu — recusar a
+				   instalação é uma escolha legítima e o jogo não vai insistir. */
+				if (sub) sub.textContent = textoDoResultado(resultado);
 				sincronizarInstalar();
 			});
 		});
@@ -372,16 +356,7 @@ function ligarInstalar() {
 	/* A oferta do navegador pode chegar DEPOIS de a janela abrir — ela depende
 	   de heurística de engajamento. Por isso a linha também escuta. */
 	if (!ligarInstalar.__escutando) {
-		ligarInstalar.__escutando = true;
-		const alvo = (() => {
-			try {
-				return window.parent && window.parent !== window ? window.parent : window;
-			} catch (erro) {
-				return window;
-			}
-		})();
-		alvo.addEventListener('ragidle:pode-instalar', sincronizarInstalar);
-		alvo.addEventListener('ragidle:instalado', sincronizarInstalar);
+		ligarInstalar.__escutando = escutarACasca(sincronizarInstalar);
 	}
 }
 

@@ -1166,8 +1166,9 @@
 	padding: 0 16px;
 }
 
-/* No iPhone nao ha evento de instalacao: o texto vira a instrucao, e o botao
-   sai de cena em vez de mentir que funciona. */
-#IdleConfig .ic-instalar.is-ios .ic-instalar-btn {
+/* Quando nao ha evento de instalacao para disparar (iPhone, navegador de
+   dentro de um app, Android que ainda nao ofereceu): o texto vira a instrucao,
+   e o botao sai de cena em vez de mentir que funciona. */
+#IdleConfig .ic-instalar.is-instrucao .ic-instalar-btn {
 	display: none;
 }
