@@ -1,4 +1,4 @@
-﻿/**
+/**
  * UI/Components/ChatBox/ChatBox.js
  *
  * ChatBox windows
@@ -80,6 +80,7 @@ import Configs from 'Core/Configs.js';
 import EntityManager from 'Renderer/EntityManager.js';
 import RiIcones from 'UI/ri-icones.js';
 import { emUnidadesDaHud } from 'UI/escalaDaHud.js'; // D-934: geometria medida vira unidade da HUD
+import { cabeNoLimite, markupDoLink, preparoParaLinkar } from './linkDeItemNoChat.js'; // D-946: linkar item no chat
 // O GID do personagem em foco — a preferencia do chat e POR PERSONAGEM
 // (spec §9), e nao por conta.
 import Session from 'Engine/SessionStorage.js';
@@ -2471,21 +2472,28 @@ function proximoEstado() {
 	return ESTADOS[(i < 0 ? 0 : i + 1) % ESTADOS.length];
 }
 
-function definirEstado(estado) {
+function definirEstado(estado, porEscolhaDoJogador = true) {
 	_recolhido.estado = ESTADOS.includes(estado) ? estado : 'aberto';
 	/* D-930: a partir do primeiro gesto no chevron, a escolha e DO JOGADOR — e
 	   o padrao por tamanho de tela (ver `ChatBox.onAppend`) para de opinar.
 	   Ele fica AQUI, e nao no `definirRecolhido`, porque o chevron cicla pelos
 	   tres estados por este caminho: marcar so no atalho de duas posicoes
-	   deixaria o jogador que minimiza no celular sem freio nenhum. */
-	_recolhido.escolhido = true;
+	   deixaria o jogador que minimiza no celular sem freio nenhum.
+
+	   D-946: e so do GESTO. Expandir o chat para caber um link de item e
+	   consequencia de outro gesto (o "Linkar no chat" da ficha do item), e
+	   marcar `escolhido` ali faria o chat do celular nascer ABERTO para sempre
+	   por causa de um clique que nunca foi sobre o tamanho do chat. */
+	if (porEscolhaDoJogador) {
+		_recolhido.escolhido = true;
+	}
 	gravarPreferencia('Recolhido', _recolhido);
 	aplicarRecolhido();
 }
 
 /** Mantido com o nome antigo: e API interna chamada de varios pontos. */
-function definirRecolhido(fechar) {
-	definirEstado(fechar ? 'recolhido' : 'aberto');
+function definirRecolhido(fechar, porEscolhaDoJogador = true) {
+	definirEstado(fechar ? 'recolhido' : 'aberto', porEscolhaDoJogador);
 }
 
 function aplicarRecolhido() {
@@ -2884,6 +2892,105 @@ document.addEventListener('click', event => {
 	ItemInfo.append();
 	ItemInfo.setItem(item);
 });
+
+/**
+ * LINKA UM ITEM NA BARRA DE DIGITACAO (D-946, 06/09/2026 — pedido do dono).
+ *
+ * A porta que faltava: o unico gesto que produzia link de item era SHIFT+clique
+ * na mochila, e no celular — onde o jogo mora — nao ha SHIFT. Agora a ficha do
+ * item tem o botao "Linkar no chat" (ItemInfo.js), e ele desagua aqui.
+ *
+ * O metodo mora no ChatBox, e nao na ficha, porque o que ele faz antes de
+ * escrever e ESTADO DO CHAT: expandir o painel fechado, sair de um canal que
+ * nao digita e abrir a barra que nasce escondida. Quem quiser linkar de outro
+ * lugar chama isto e herda as tres — as tres razoes estao em
+ * `linkDeItemNoChat.js`, que e a parte pura e testada da decisao.
+ *
+ * D-948 nao mudou nenhuma das tres, so o SUJEITO da primeira: "recolhido" era
+ * um booleano e virou um de tres estados, entao quem responde e `estaFechado()`
+ * — que e verdade tanto no recolhido quanto no minimizado, e nos dois o campo
+ * de digitacao esta fora de alcance do jeito que importa aqui.
+ *
+ * @param {object} item item do inventario (ou o ja decodificado de um link)
+ * @returns {boolean} `false` quando o link nao entrou, e o motivo ja foi dito
+ */
+ChatBox.inserirLinkDeItem = function inserirLinkDeItem(item) {
+	const root = _root();
+	if (!root || !item) {
+		return false;
+	}
+
+	const campo = root.querySelector('.input-chatbox');
+	if (!campo) {
+		return false;
+	}
+
+	const link = DB.createItemLink(item);
+	if (!link) {
+		return false;
+	}
+
+	/*
+	 * O TETO E COBRADO AQUI porque nao e cobrado em lugar nenhum: `MAX_LENGTH`
+	 * vigia o `input` e o `paste`, e escrita por codigo passa por fora dos
+	 * dois. Sem esta guarda o link entra, estoura os 100, e a barra trava para
+	 * digitar — o jogador fica com um link que nao consegue mais acompanhar de
+	 * texto nenhum, sem nada dizendo por que.
+	 */
+	if (!cabeNoLimite(extractChatMessage(campo), link, MAX_LENGTH)) {
+		ChatBox.addText(
+			'A linha de digitação está cheia — apague algo antes de linkar o item.',
+			ChatBox.TYPE.ERROR,
+			ChatBox.FILTER.SISTEMA
+		);
+		return false;
+	}
+
+	const barra = root.querySelector('.input');
+	const modoBatalha = root.querySelector('.battlemode');
+	const preparo = preparoParaLinkar({
+		recolhido: estaFechado(),
+		canal: ChatBox.activeTab,
+		barraVisivel: !!barra && barra.style.display !== 'none'
+	});
+
+	if (preparo.trocarPara) {
+		ChatBox.switchTab(preparo.trocarPara);
+	}
+	if (preparo.expandir) {
+		// `false` no segundo: isto nao e o jogador escolhendo o tamanho do chat.
+		definirRecolhido(false, false);
+	}
+	if (preparo.abrirBarra) {
+		if (barra) barra.style.display = 'flex';
+		if (modoBatalha) modoBatalha.style.display = 'none';
+	}
+
+	const nome = item.name || DB.getItemName(item);
+
+	/*
+	 * `insertAdjacentHTML` e nao `innerHTML +=`: reescrever o innerHTML inteiro
+	 * recria os `<span>` dos links que ja estavam la e joga fora a posicao do
+	 * cursor. E o espaco depois e NBSP de proposito — um espaco comum no fim de
+	 * um contenteditable colapsa, e `extractChatMessage` ja devolve NBSP como
+	 * espaco normal na hora de enviar.
+	 */
+	campo.insertAdjacentHTML('beforeend', markupDoLink(link, nome));
+	campo.appendChild(document.createTextNode('\u00A0'));
+
+	campo.focus();
+	// Cursor no fim, senao ele volta para antes do link que acabou de entrar.
+	const selection = window.getSelection();
+	if (selection) {
+		const range = document.createRange();
+		range.selectNodeContents(campo);
+		range.collapse(false);
+		selection.removeAllRanges();
+		selection.addRange(range);
+	}
+
+	return true;
+};
 
 ChatBox.insertText = function (text) {
 	const root = _root();

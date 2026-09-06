@@ -125,6 +125,8 @@ ItemInfo.onAppend = function onAppend() {
  */
 ItemInfo.onRemove = function onRemove() {
 	this.uid = -1;
+	// Junto com o uid: uma ficha fechada nao tem item para linkar (D-946).
+	this.itemDoLink = null;
 
 	// Cleanup moveInfo tooltip & cursor
 	ItemInfo.hideMoveInfoTooltip();
@@ -174,8 +176,66 @@ ItemInfo.init = function init() {
 		});
 	}
 
+	/*
+	 * LINKAR NO CHAT (D-946, 06/09/2026 — pedido do dono).
+	 *
+	 * Todo o encanamento ja existia: `DB.createItemLink` monta a etiqueta
+	 * `<ITEML>`, o servidor ecoa os bytes da fala sem tocar neles e
+	 * `ChatBox.addText` a devolve como `.item-link` clicavel, que reabre esta
+	 * mesma janela. O que nao existia era o GESTO no celular: o unico jeito de
+	 * produzir um link era SHIFT+clique na mochila.
+	 *
+	 * O que fazer com o chat (expandir, trocar de canal, abrir a barra
+	 * escondida) e do ChatBox e mora la — ver `ChatBox.inserirLinkDeItem`.
+	 *
+	 * `UIManager.getComponent`, e nao `import`: e a MESMA tecnica que o
+	 * ChatBox usa para abrir esta janela quando o link e clicado, e pelo mesmo
+	 * motivo — os dois se chamam, e um par de imports estaticos fecharia o
+	 * ciclo. Ele LANCA quando o componente nao existe (char select, viewer),
+	 * dai o try.
+	 */
+	const linkBtn = root.querySelector('.link-chat');
+	if (linkBtn) {
+		linkBtn.addEventListener('mousedown', e => {
+			e.stopImmediatePropagation();
+		});
+		linkBtn.addEventListener('click', e => {
+			e.stopImmediatePropagation();
+			const item = itemParaLink(this.itemDoLink);
+			if (!item) {
+				return;
+			}
+			let chat;
+			try {
+				chat = UIManager.getComponent('ChatBox');
+			} catch (_e) {
+				return;
+			}
+			chat.inserirLinkDeItem(item);
+		});
+	}
+
 	this.draggable('.title');
 };
+
+/**
+ * O item da ficha na forma que o LINK precisa (D-946).
+ *
+ * `location` e o unico campo que muda de nome conforme a origem da ficha —
+ * `location` no inventario, `WearState` na peca vestida, `WearLocation` na
+ * vitrine — e `DB.createItemLink` le so o primeiro. `getPreviewLocation` ja
+ * conhece os tres (o botao de previa depende da mesma pergunta), entao a
+ * normalizacao e uma copia rasa com esse campo resolvido.
+ *
+ * @param {object|null} item
+ * @returns {object|null}
+ */
+function itemParaLink(item) {
+	if (!item) {
+		return null;
+	}
+	return { ...item, location: getPreviewLocation(item) };
+}
 
 /**
  * Bind component
@@ -189,6 +249,13 @@ ItemInfo.setItem = function setItem(item) {
 	const optionContainer = root.querySelector('.option-container');
 
 	this.item = it;
+	/*
+	 * O EXEMPLAR, e nao a ficha do banco (D-946). `this.item` guarda o
+	 * `DB.getItemInfo(ITID)` — o item GENERICO, sem refino, sem carta e sem
+	 * runa. O link tem de levar o que esta na mao do jogador, entao o botao
+	 * "Linkar no chat" le daqui.
+	 */
+	this.itemDoLink = item;
 	const aplicarIlustracao = data => {
 		const collection = root.querySelector('.collection');
 		if (collection) {

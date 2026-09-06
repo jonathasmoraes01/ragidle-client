@@ -1346,20 +1346,21 @@ export function createInventory(config) {
 				return false;
 			}
 
+			/*
+			 * D-946: o SHIFT+clique passou a usar a MESMA porta do botao
+			 * "Linkar no chat" da ficha do item.
+			 *
+			 * O que estava aqui montava o `<span>` na mao e escrevia direto no
+			 * `.input-chatbox` — sem olhar se a barra de digitacao estava
+			 * visivel (ela nasce escondida, `ChatBox.onAppend`), se o painel
+			 * estava recolhido (o padrao do celular, D-930) ou em que canal o
+			 * jogador estava (tres dos quatro nao digitam). Nesses casos o link
+			 * entrava num campo que ninguem via, e o gesto parecia nao ter
+			 * feito nada. `ChatBox.inserirLinkDeItem` resolve as tres coisas
+			 * antes de escrever.
+			 */
 			item.name = DB.getItemName(item);
-			const link =
-				'<span data-item="' +
-				DB.createItemLink(item) +
-				'" class="item-link" style="color:#A9B95F;">&lt;' +
-				item.name +
-				'&gt;</span>';
-
-			const chatRoot = ChatBox._shadow || ChatBox._host || document;
-			const msgBox = chatRoot.querySelector('.input-chatbox');
-			if (msgBox) {
-				msgBox.innerHTML += link + ' ';
-				msgBox.focus();
-			}
+			ChatBox.inserirLinkDeItem(item);
 
 			event.stopImmediatePropagation();
 		}

@@ -201,6 +201,58 @@
 	display: block;
 }
 
+/* ------------------------------------------------- linkar no chat (D-946) */
+/*
+ * A porta do link de item no celular (ver o comentario no ItemInfo.html).
+ *
+ * OPACO, e nao translucido: e a mesma armadilha que o `.option-container` logo
+ * acima documenta — `.ItemInfo` e transparente e so os filhos tem fundo, entao
+ * um botao em `--surface-card` (66% branco) deixa a MOCHILA aparecer por
+ * dentro dele. Por isso ele veste a pele da barra de titulo, que e a unica
+ * superficie chapada da janela, em vez de `.ri-btn--sec` do Common.css.
+ */
+.ItemInfo .link-chat {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 100%;
+	margin-top: 4px;
+	padding: 7px 12px;
+	box-sizing: border-box;
+	background: var(--surface-titlebar, linear-gradient(180deg, #f7fbff 0%, #dfe8f6 55%, #cddcef 100%));
+	border: 1px solid var(--border-window, rgba(36, 92, 158, 0.34));
+	border-radius: var(--radius-window);
+	box-shadow: var(--rim-light), var(--shadow-float);
+	color: var(--text-title);
+	font-family: var(--font-ui);
+	font-size: 12.5px;
+	font-weight: 700;
+	letter-spacing: 0.2px;
+	text-shadow: 0 1px 0 rgba(255, 255, 255, 0.9);
+	cursor: pointer;
+	transition: transform var(--dur-instant) var(--ease-out);
+}
+.ItemInfo .link-chat:hover {
+	/* "Hover clareia 6%" — a regra literal do design system, a mesma do .ri-btn. */
+	filter: brightness(1.06);
+}
+.ItemInfo .link-chat:active {
+	transform: var(--press-shift);
+	box-shadow: var(--shadow-inset);
+}
+
+/*
+ * NO DEDO ELE CRESCE. O mesmo criterio do bloco `pointer: coarse` do
+ * Common.css: 44px e o piso tatil, e aqui da para crescer de verdade (o botao
+ * e o ULTIMO elemento da janela, nao empurra nada). O desktop fica com os
+ * ~31px que o mouse acerta sem esforco.
+ */
+@media (pointer: coarse) {
+	.ItemInfo .link-chat {
+		min-height: var(--hit-touch, 44px);
+	}
+}
+
 /* ------------------------------------------------------- botões auxiliares */
 
 .ItemInfo .event_view {

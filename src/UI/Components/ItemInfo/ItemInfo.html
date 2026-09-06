@@ -32,6 +32,23 @@
 	<div class="cardlist">
 		<div class="border"></div>
 	</div>
+	<!--
+		LINKAR NO CHAT (D-946, 06/09/2026 — pedido do dono).
+
+		O cliente ja sabia linkar item (`DB.createItemLink` + o `.item-link`
+		clicavel de `ChatBox.addText`), mas o unico gesto que produzia um link
+		era SHIFT+clique na mochila — e no celular, onde este jogo mora, nao ha
+		SHIFT. Este botao e a porta que faltava.
+
+		Ele fica FORA do `.container` e depois da lista de cartas de proposito:
+		nao e informacao da ficha, e uma ACAO sobre ela — mesma vizinhanca da
+		capsula de runas. Dentro do container ele disputaria com o
+		`resize()`, que manda na altura de tudo o que mora la (o contrato dos
+		45px esta no topo do ItemInfo.css).
+	-->
+	<button type="button" class="link-chat" title="Põe o item na barra de digitação do chat">
+		Linkar no chat
+	</button>
 </div>
 
 <div id="moveinfo-tooltip"></div>
