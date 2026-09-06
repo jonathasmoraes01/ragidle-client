@@ -27,8 +27,89 @@
 	display: block;
 }
 
+/*
+ * ═══ A CELULA DE BUFF (06/09/2026 — pedido do dono, com print) ═══════════
+ *
+ * "Hoje o nosso sistema de buffs fica solto ali na direita, eu gostaria que
+ * voce fizesse algo parecido com este da print."
+ *
+ * A print e a coluna do cliente oficial, e o que a define nao e o icone: e a
+ * CELULA. Moldura quadrada com bisel, o icone dentro, e colada embaixo a faixa
+ * escura com o tempo que falta. Aqui havia um `<canvas>` de 32px solto no meio
+ * do nada — sem moldura, sem faixa, sem tempo visivel (o tempo existia, mas so
+ * dentro da dica de hover, que no celular ninguem alcanca).
+ *
+ * A REGRA 4 DO PROJETO decide o que e CSS e o que e arte: a moldura, o bisel e
+ * a faixa delimitam, entao sao `gradient` + `box-shadow` inset; o icone
+ * INFORMA, entao continua sendo o TGA do GRF, em 32px inteiros e `pixelated`.
+ *
+ * AS MEDIDAS MORAM NO JS (`statusTiming.js`), e nao aqui, porque quem empilha
+ * as celulas e o JS: `resetElementsPosition` posiciona por `top`/`right`
+ * absoluto e transborda para uma segunda coluna a esquerda quando a tela
+ * acaba. Os numeros repetidos abaixo (38, 13) sao os de la, e mexer neles sem
+ * mexer nos de la desalinha a pilha em silencio — o mesmo modo de falha que o
+ * `top` fixo deste arquivo ja cometeu contra o minimapa.
+ */
 #StatusIcons .state {
 	position: absolute;
+	width: 38px;
+}
+
+#StatusIcons .state .moldura {
+	position: relative;
+	box-sizing: border-box;
+	width: 38px;
+	height: 38px;
+	padding: 2px;
+	border: 1px solid var(--border-window, rgba(36, 92, 158, 0.34));
+	border-radius: var(--radius-card, 4px) var(--radius-card, 4px) 0 0;
+	background: linear-gradient(180deg, #16345c 0%, #0b1c33 100%);
+	/* O bisel: a linha clara em cima e a sombra de assentamento embaixo. Sao
+	   as duas que fazem o quadrado parecer uma placa, e nao um retangulo. */
+	box-shadow:
+		inset 0 1px 0 rgba(120, 170, 230, 0.35),
+		0 1px 2px rgba(3, 10, 20, 0.6);
+}
+
+/*
+ * A FAIXA DO RELOGIO — encostada na moldura, e nao flutuando embaixo dela.
+ *
+ * `border-top: 0` e o raio so nas quinas de baixo sao o que fazem as duas
+ * lerem como UMA peca. Com borda inteira, a linha dupla no meio parte a celula
+ * em dois cartoes.
+ *
+ * `:empty` esconde a faixa em vez de a apagar: buff sem contagem (duracao
+ * infinita, que desce como 0/0 no fio) fica so com a moldura, como no cliente
+ * oficial — e a celula continua ocupando a mesma altura, entao a pilha nao se
+ * reorganiza quando um buff permanente entra no meio dela.
+ */
+#StatusIcons .state .relogio {
+	box-sizing: border-box;
+	height: 13px;
+	border: 1px solid var(--border-window, rgba(36, 92, 158, 0.34));
+	border-top: 0;
+	border-radius: 0 0 var(--radius-card, 4px) var(--radius-card, 4px);
+	background: linear-gradient(180deg, #0d1f38 0%, #05101f 100%);
+	color: var(--white, #ffffff);
+	font: 700 10px/11px var(--font-ui, 'Figtree', Arial, sans-serif);
+	font-variant-numeric: tabular-nums;
+	text-align: center;
+	text-shadow: 0 1px 1px rgba(3, 10, 20, 0.9);
+}
+
+#StatusIcons .state .relogio:empty {
+	visibility: hidden;
+}
+
+/*
+ * SEM FAIXA, A MOLDURA FECHA SOZINHA. Com a faixa escondida, as quinas de
+ * BAIXO do quadro ficavam retas contra o vazio — a celula lia como um cartao
+ * cortado ao meio. `:has` e o unico jeito de o pai reagir ao filho vazio sem
+ * o JS ter de carimbar uma classe; onde ele nao existir, o pior caso e a
+ * quina reta de antes, que e o estado que ja estava na tela.
+ */
+#StatusIcons .state:has(.relogio:empty) .moldura {
+	border-radius: var(--radius-card, 4px);
 }
 
 /*
@@ -67,12 +148,16 @@
  * A capsula de vidro escuro do design system continua (o fundo, o blur e a
  * sombra do texto): o que muda e a FORMA, que era de outro tipo de conteudo.
  * A arte do buff em si continua vindo do cliente (canvas), que e arte de jogo.
+ *
+ * O `right` virou `calc(100% + 3px)` em 06/09/2026: ele era 33px, tres a mais
+ * que o icone de 30 da epoca, e a celula agora mede 38 — um numero fixo aqui
+ * so ficaria certo ate a proxima vez que a celula mudasse de tamanho.
  */
 #StatusIcons .state .description {
 	display: none;
 	z-index: 51;
 	position: absolute;
-	right: 33px;
+	right: calc(100% + 3px);
 	top: 0px;
 	width: max-content;
 	max-width: min(320px, calc(100vw - 64px));
@@ -92,6 +177,9 @@
 }
 
 #StatusIcons .state canvas {
+	display: block;
 	width: 32px;
 	height: 32px;
+	/* Arte de 32px desenhada pixel a pixel: suavizar borra o glifo. */
+	image-rendering: pixelated;
 }

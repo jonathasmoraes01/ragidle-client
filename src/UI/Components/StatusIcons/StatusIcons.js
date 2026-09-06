@@ -21,7 +21,16 @@ import ScreenEffectManager from 'Renderer/ScreenEffectManager.js';
 import Session from 'Engine/SessionStorage.js';
 import htmlText from './StatusIcons.html?raw';
 import cssText from './StatusIcons.css?raw';
-import { getStatusEnd, getStatusIconsPerColumn, getStatusLabel, isStatusActive } from './statusTiming.js';
+import {
+	LADO_DO_ICONE,
+	PASSO_HORIZONTAL,
+	PASSO_VERTICAL,
+	formatarRelogioDoBuff,
+	getStatusEnd,
+	getStatusIconsPerColumn,
+	getStatusLabel,
+	isStatusActive
+} from './statusTiming.js';
 
 /**
  * Create component
@@ -274,8 +283,8 @@ function resetElementsPosition() {
 
 	for (let i = 0; i < count; ++i) {
 		const element = elements[i];
-		element.style.top = `${(i % perColumn) * 36}px`;
-		element.style.right = `${Math.floor(i / perColumn) * 45}px`;
+		element.style.top = `${(i % perColumn) * PASSO_VERTICAL}px`;
+		element.style.right = `${Math.floor(i / perColumn) * PASSO_HORIZONTAL}px`;
 	}
 }
 
@@ -315,14 +324,35 @@ function createElement(index) {
 	const state = document.createElement('div');
 	state.className = 'state';
 
-	const canvas = document.createElement('canvas');
-	canvas.width = 32;
-	canvas.height = 32;
+	/*
+	 * A CELULA (06/09/2026 — pedido do dono, com print): moldura com o icone
+	 * dentro e, colada embaixo, a faixa com o tempo que falta.
+	 *
+	 * Ate aqui o `<canvas>` era filho direto de `.state` e nao tinha moldura
+	 * nenhuma: o icone ficava solto no canto da tela, e o tempo restante so
+	 * existia dentro da dica de hover — que no celular ninguem alcanca, porque
+	 * nao ha hover. A faixa poe o numero na tela em qualquer aparelho.
+	 *
+	 * A moldura e um `<div>` proprio, e nao borda no `.state`, porque a faixa
+	 * precisa ficar FORA dela: com borda no `.state`, o relogio entraria dentro
+	 * do quadro do icone.
+	 */
+	const moldura = document.createElement('div');
+	moldura.className = 'moldura';
 
-	state.appendChild(canvas);
+	const canvas = document.createElement('canvas');
+	canvas.width = LADO_DO_ICONE;
+	canvas.height = LADO_DO_ICONE;
+	moldura.appendChild(canvas);
+	state.appendChild(moldura);
+
+	const relogio = document.createElement('div');
+	relogio.className = 'relogio';
+	state.appendChild(relogio);
 
 	_status[index] = {};
 	_status[index].element = state;
+	_status[index].relogio = relogio;
 	_status[index].ctx = canvas.getContext('2d');
 
 	// Add description. Sem os LUBs stateicon, o nome do EFST e melhor que um
@@ -367,23 +397,21 @@ function createElement(index) {
 /**
  * Add element to the list, helper for multi-column
  *
+ * A CONTA DA POSICAO E UMA SO (06/09/2026): esta funcao repetia, com os
+ * numeros escritos a mao, a mesma aritmetica de `resetElementsPosition` — duas
+ * copias que precisavam concordar para a pilha nao ficar torta, e que so
+ * concordavam por sorte. Anexar e reposicionar todo mundo da o mesmo resultado
+ * (a ordem do DOM e a ordem de insercao) com uma fonte so.
+ *
  * @param {CanvasElement}
  */
 function addElement(element) {
 	const root = StatusIcons.getRoot();
-	const elements = root.querySelectorAll('.state');
-	const max = getIconsPerColumn();
-	const count = elements.length;
-	const x = ((count / max) | 0) * 45;
-	const y = (count % max) * 36;
-
-	element.style.top = `${y}px`;
-	element.style.right = `${x}px`;
-
 	const container = root.querySelector('#StatusIcons');
 	if (container) {
 		container.appendChild(element);
 	}
+	resetElementsPosition();
 }
 
 /**
@@ -398,30 +426,34 @@ function renderStatus(status, now) {
 	}
 
 	const ctx = status.ctx;
-	const start = status.start;
 	let end = status.end;
-	let color, perc;
 
 	if (now > end) {
 		end = now;
 	}
 
-	if (end < now + 60000) {
-		color = 'rgba(255,150,50,0.65)';
-		perc = 1 - (end - now) / 60000;
-	} else {
-		color = 'rgba(255,255,255,0.65)';
-		perc = (now - start) / (end - 60000 - start);
-	}
-
-	ctx.clearRect(0, 0, 32, 32);
+	/*
+	 * O ICONE SAI LIMPO (06/09/2026). Ate aqui, por cima dele era pintado um
+	 * setor de circulo translucido — a "torta" de progresso do upstream —, e
+	 * com a faixa numerica embaixo ele passou a ser ruido: sao duas leituras do
+	 * mesmo dado, e a que borra o glifo e a menos precisa. A print do dono nao
+	 * tem torta nenhuma.
+	 */
+	ctx.clearRect(0, 0, LADO_DO_ICONE, LADO_DO_ICONE);
 	ctx.drawImage(status.img, 0, 0);
-	ctx.fillStyle = color;
 
-	ctx.beginPath();
-	ctx.arc(16, 16, 24, 1.5 * Math.PI, ((1.5 + perc * 2) % 2) * Math.PI);
-	ctx.lineTo(16, 16);
-	ctx.fill();
+	/*
+	 * A FAIXA e escrita a cada passe (meio segundo), e nao a cada segundo como
+	 * a dica: a comparacao com o texto de agora evita o toque no DOM quando
+	 * nada mudou, que e o custo real — e um relogio que so acorda de segundo em
+	 * segundo perde o instante em que o buff acaba.
+	 */
+	if (status.relogio) {
+		const texto = formatarRelogioDoBuff(end - now);
+		if (status.relogio.textContent !== texto) {
+			status.relogio.textContent = texto;
+		}
+	}
 
 	if (status.time && status.timeTick + 1000 < now) {
 		status.timeTick = now;
