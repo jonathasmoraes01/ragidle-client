@@ -109,6 +109,11 @@ const MOB_STACK_MAX = 5;
  * por pedido. Um cliente que lesse `mapa.monstros[].raca` de um servidor v2
  * acharia `undefined` — recusar pelo `v` e melhor que desenhar em branco.
  */
+// v3 (06/09/2026, D-1138): o catalogo em PARTES (D-1134) e contrato novo — um
+// cliente sem a acumulacao mostrava so a ultima pagina (45 mapas) em silencio.
+// ...e voltou a 2 (D-1138, adendo): producao sobe servidor e cliente em momentos
+// diferentes, e o 3 fez o cliente novo recusar o servidor v2 do ar. As partes sao
+// aditivas; o contrato fica em 2 e este cliente as acumula.
 const CONTRATO_DO_CATALOGO = 2;
 
 /**
@@ -240,6 +245,8 @@ HuntMap.selectedMobId = null;
  * leaves the window closed, instead of the usual render.
  */
 let _pendingAutoTravel = false;
+// RAGIDLE (D-1134): o catalogo chega em PARTES (parte/partes) quando nao cabe num pacote.
+let _catalogoParcial = null;
 
 /**
  * ESQUECE O PERSONAGEM ANTERIOR — ver a nota gemea em IdleConfig.js
@@ -595,7 +602,33 @@ function onCatalogReceived(pkt) {
 		return;
 	}
 
+	// RAGIDLE (D-1134): com 200+ mapas o catalogo nao cabe num pacote u16; o
+	// servidor manda `parte`/`partes` e aqui os `mapas` sao acumulados ate a
+	// ultima parte. Um servidor antigo (sem `partes`) segue pelo caminho de sempre.
+	if (data.partes && data.partes > 1) {
+		if (data.parte === 1 || !_catalogoParcial || _catalogoParcial.partes !== data.partes) {
+			_catalogoParcial = Object.assign({}, data, { mapas: [] });
+		}
+		_catalogoParcial.mapas = _catalogoParcial.mapas.concat(data.mapas || []);
+		if (data.parte < data.partes) {
+			_pendingAutoTravel = viagemPendente;
+			return;
+		}
+		data = _catalogoParcial;
+		_catalogoParcial = null;
+	}
+
 	HuntMap.catalog = data;
+
+	// RAGIDLE (D-1133): o indice passou a mandar os drops como itemId — com 126
+	// mapas o catalogo com os NOMES chegou a 68 KB e o pacote u16 para em 65.535.
+	// Resolvidos aqui, UMA vez, com o mesmo nomeLocalDoItem da ficha; a busca do
+	// atlas e a contagem de drops seguem lendo strings, como antes.
+	for (const mapa of data.mapas || []) {
+		for (const m of (mapa.monstros || []).concat(mapa.mvp ? [mapa.mvp] : [])) {
+			m.drops = (m.drops || []).map(d => (typeof d === 'number' ? nomeLocalDoItem(d, `#${d}`) : d));
+		}
+	}
 
 	// RAGIDLE: HuntMap.travelToCity() asked for this catalog just to learn
 	// catalog.cidade.mapa, not to open the window — finish that trip now and
