@@ -334,6 +334,14 @@ const RiIcones = {
 	// segundo glifo pra cada sentido. ───────────────────────────────────────
 	seta: svg('<path d="M6 9l6 6 6-6"/>'),
 
+	// ── Conversa — Lucide "MessageSquare" (path oficial). O chat MINIMIZADO
+	// (05/09/2026, pedido do dono: "que ele minimize totalmente, fica so o
+	// icon pequeno pra pessoa retomar o chat") some da tela inteiro, e o unico
+	// jeito de voltar e este disco. A seta de recolher nao servia sozinha ali:
+	// ela diz "ha algo dobrado aqui", e nao "aqui mora o chat" — com o painel
+	// invisivel, quem chega na tela precisa saber o QUE o botao devolve.
+	conversa: svg('<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>'),
+
 	// ── Glifos-fantasma de slot vazio (MochilaIdle, 19/08/2026) — a peca
 	// central do alvo "Origin" (redesign/extracao-inventario-origin.md secao
 	// 2): um slot de equipamento VAZIO mostra a SILUETA do que falta ali, nao
@@ -402,6 +410,30 @@ const RiIcones = {
 	// a busca. ────────────────────────────────────────────────────────────
 	busca: svg('<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>'),
 	cadeado: svg('<rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>'),
+
+	// ── Cadeado ABERTO — Lucide "LockOpen" (path oficial). A trava do tamanho
+	// do chat (05/09/2026) precisa dos DOIS estados, e girar ou colorir o
+	// fechado nao serve: aberto e fechado sao formas diferentes, e e a forma
+	// que se le de relance num botao de 26px. O arco sai do lugar em vez de
+	// mudar de cor.
+	cadeadoAberto: svg('<rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/>'),
+
+	// ── Os cinco da spec do CHAT (05/09/2026). Ela pede icones Tabler
+	// (`ti-send`, `ti-eye-off`, `ti-arrow-back-up`, `ti-alert-triangle`,
+	// `ti-package`), e o fork nao tem Tabler nem vai ter: a regra do DS e
+	// glifo Lucide INLINE, sem CDN nem dependencia de rede. Os cinco abaixo
+	// sao os equivalentes Lucide, no mesmo idioma dos outros 57.
+	enviar: svg('<path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/>'),
+	olhoFechado: svg(
+		'<path d="M10.7 5.1A9 9 0 0 1 12 5c5 0 9 4.5 9 7a12 12 0 0 1-2.2 3.2"/><path d="M6.6 6.6A12 12 0 0 0 3 12c0 2.5 4 7 9 7a9 9 0 0 0 4.2-1"/><path d="m2 2 20 20"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/>',
+	),
+	desfazer: svg('<path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/>'),
+	alerta: svg(
+		'<path d="m10.3 3.9-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.7-3.1l-8-14a2 2 0 0 0-3.4 0z"/><path d="M12 9v4"/><path d="M12 17h.01"/>',
+	),
+	pacote: svg(
+		'<path d="m7.5 4.27 9 5.15"/><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/>',
+	),
 	irPara: svg('<path d="M5 12h14"/><path d="m12 5 7 7-7 7"/>'),
 	mapaVazio: svg(
 		'<path d="M14.106 5.553a2 2 0 0 0 1.788 0l3.659-1.83A1 1 0 0 1 21 4.619v12.764a1 1 0 0 1-.553.894l-4.553 2.277a2 2 0 0 1-1.788 0l-4.212-2.106a2 2 0 0 0-1.788 0l-3.659 1.83A1 1 0 0 1 3 19.381V6.618a1 1 0 0 1 .553-.894l4.553-2.277a2 2 0 0 1 1.788 0z"/><path d="M15 5.764v15"/><path d="M9 3.236v15"/>'

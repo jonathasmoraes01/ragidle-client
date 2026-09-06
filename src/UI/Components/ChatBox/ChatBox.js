@@ -1,4 +1,4 @@
-/**
+﻿/**
  * UI/Components/ChatBox/ChatBox.js
  *
  * ChatBox windows
@@ -8,7 +8,10 @@
  * @author Vincent Thibault
  *
  * ─────────────────────────────────────────────────────────────────────────
- * RAG IDLE, 20/08/2026 — o chat virou TRES CANAIS FIXOS: Global, Trade, Farm.
+ * RAG IDLE, 20/08/2026 — o chat virou CANAIS FIXOS: Global, Trade, Farm.
+ * (Em 31/08/2026 entrou o quarto, "Logs" — CANAIS abaixo e a lista de hoje.
+ * Este cabecalho dizia "TRES CANAIS" muito depois de serem quatro; o numero
+ * saiu daqui porque uma contagem escrita a mao envelhece e a lista nao.)
  *
  * O que mudou de mecanismo (e por que):
  *
@@ -22,10 +25,27 @@
  *    estrutural, nao configuravel, e nao depende do TEXTO da mensagem (que
  *    muda com traducao).
  *
- * 2. O ciclo de alturas de F10/".size" (updateHeight/_heightIndex) e o
- *    redimensionar por arrasto sairam: o painel tem UMA altura, definida em
- *    CSS pelo gabarito (~12% da tela), mais o estado recolhido. F10 passou a
- *    alternar recolhido/expandido, que e o unico eixo de tamanho que sobrou.
+ * 2. O ciclo de alturas de F10/".size" (updateHeight/_heightIndex) saiu, e
+ *    DEPOIS voltou em duas partes — este item ficou meses descrevendo um chat
+ *    de altura unica que nao existia mais:
+ *      - 28/08/2026, o ARRASTO: a alca ".cb-alca" na borda de cima, com a
+ *        altura em pixels persistida em "ChatBoxAltura" (o dono desfez a
+ *        altura unica com "esta muito ruim, pequeno e limitado assim");
+ *      - 05/09/2026, a ESCADA: o botao "1x/2x" da barra de controles, que faz
+ *        o painel crescer PARA CIMA em degraus e voltar ao normal. A
+ *        aritmetica mora em ./degrausDeAltura.js, fora deste arquivo, para
+ *        poder ser EXECUTADA por teste.
+ *    Os dois escrevem no MESMO campo (o pixel); o degrau nunca e persistido,
+ *    e sempre derivado — senao o arrasto, que nao passa pelo botao, deixaria
+ *    o rotulo mentindo.
+ *    F10 continua alternando minimizado/aberto.
+ *
+ * 2b. MINIMIZAR virou minimizar de verdade (05/09/2026, pedido do dono: "que
+ *    ele minimize totalmente... vai ficar so o icon pequeno pra pessoa
+ *    retomar o chat"). Antes ".is-recolhido" deixava 42px de log sobre o
+ *    vidro; agora esconde o painel inteiro e sobra um disco com o glifo de
+ *    conversa. O disco fica FORA do que esconde — a mesma regra que
+ *    TopMenuIdle registra para a alca do cluster.
  *
  * 3. O painel nao e mais arrastavel. Ele mora no canto inferior esquerdo
  *    (gabarito, secao 4) e cede espaco a barra de habilidades e ao canto
@@ -60,6 +80,10 @@ import Configs from 'Core/Configs.js';
 import EntityManager from 'Renderer/EntityManager.js';
 import RiIcones from 'UI/ri-icones.js';
 import { emUnidadesDaHud } from 'UI/escalaDaHud.js'; // D-934: geometria medida vira unidade da HUD
+// O GID do personagem em foco — a preferencia do chat e POR PERSONAGEM
+// (spec §9), e nao por conta.
+import Session from 'Engine/SessionStorage.js';
+import { alturasDosDegraus, proximoDegrau, degrauAtual, rotuloDoDegrau } from './degrausDeAltura.js';
 
 /**
  * @var {number} max message in the chatbox
@@ -105,45 +129,168 @@ const _preferences = Preferences.get(
 );
 
 /**
- * Estado recolhido/expandido do painel. Chave PROPRIA, como em TopMenuIdle.js.
+ * ===========================================================================
+ * O LAYOUT DO CHAT — POR PERSONAGEM, E EM PORCENTAGEM DA VIEWPORT (spec §9)
+ * ===========================================================================
+ * Duas escolhas aqui sao contra-intuitivas e as duas sao da spec:
+ *
+ * 1. **Por personagem, e nao por conta.** Quem joga de Mercador com a mochila
+ *    aberta e de Mago com a barra de skills nao quer o mesmo chat. A chave
+ *    carrega o GID do personagem em foco.
+ *
+ * 2. **Em PORCENTAGEM, e nao em pixels.** Um chat gravado a 1.400px da esquerda
+ *    num monitor ultrawide e um chat FORA DA TELA num notebook. Gravando em
+ *    fracao da viewport, trocar de monitor reposiciona sozinho — e no load
+ *    ainda passa por `clamp` contra a viewport de agora, porque porcentagem
+ *    resolve o deslocamento e nao resolve o tamanho minimo.
+ *
+ * O `Preferences` do fork e por CHAVE de `localStorage`, e as chaves sao lidas
+ * no topo do modulo — antes de existir personagem. Por isso o layout NAO usa
+ * `Preferences.get` de topo: ele e lido em `onAppend`, quando ja ha GID.
  */
-/*
- * `escolhido` entrou em D-930 SEM subir a versao, e isso e proposital: subir a
- * versao faz o `Preferences.get` descartar o save inteiro (o proprio arquivo
- * avisa disso duas vezes), e aqui nao ha nada a descartar — um save antigo
- * chega sem o campo, `escolhido` sai `undefined`, e "undefined" e exatamente o
- * que significa "este jogador nunca decidiu". A informacao que faltava ja
- * estava codificada na ausencia.
+const PADRAO_LAYOUT = { esquerdaPct: null, baixoPct: null, largPct: null, altPct: null };
+/* `tema` entra aqui junto dos interruptores porque ele e a MESMA classe de
+   preferencia: gosto do jogador, por personagem, sem efeito em regra de jogo.
+   O padrao e a HUD moderna — ela e a que o dono desenhou nesta rodada; a
+   classica e a escolha de quem a prefere, e nao o contrario. */
+const PADRAO_OPCOES = { travado: false, horario: false, repouso: true, tema: 'moderna' };
+const PADRAO_ENVIOS = { enviados: 0 };
+
+let _layout = Object.assign({}, PADRAO_LAYOUT);
+let _opcoes = Object.assign({}, PADRAO_OPCOES);
+let _envios = Object.assign({}, PADRAO_ENVIOS);
+/** O estado de abertura, por personagem — e estado de layout. */
+let _recolhido = { estado: 'aberto' };
+
+/** As chaves que este componente grava, para o "Restaurar padrao" saber apagar. */
+const SUFIXOS = ['Layout', 'Opcoes', 'Envios', 'Recolhido'];
+
+function chaveDoPersonagem(sufixo) {
+	// `Session.GID` e o id do personagem em foco. Sem ele (tela de login, ou
+	// um fluxo que suba o chat antes do mapa) o chat cai numa chave COMPARTILHADA
+	// em vez de nao gravar nada: perder a preferencia e pior que compartilha-la,
+	// e o caso e transitorio.
+	const gid = Session && Session.GID ? Session.GID : 'sem-personagem';
+	return `ChatBox:${gid}:${sufixo}`;
+}
+
+function lerPreferencia(sufixo, padrao) {
+	try {
+		const bruto = localStorage.getItem(chaveDoPersonagem(sufixo));
+		if (!bruto) return Object.assign({}, padrao);
+		const lido = JSON.parse(bruto);
+		// Mescla sobre o padrao: campo novo numa versao futura nasce com valor,
+		// em vez de `undefined` atravessando o codigo inteiro.
+		return Object.assign({}, padrao, lido);
+	} catch (_e) {
+		// `localStorage` lanca em janela privada e com dados de site bloqueados.
+		// O chat tem de abrir do mesmo jeito.
+		return Object.assign({}, padrao);
+	}
+}
+
+function gravarPreferencia(sufixo, valor) {
+	try {
+		localStorage.setItem(chaveDoPersonagem(sufixo), JSON.stringify(valor));
+	} catch (_e) {
+		// Ver acima: nao gravar e aceitavel, quebrar o chat nao e.
+	}
+}
+
+/** Le as quatro do personagem em foco. Chamado em `onAppend`. */
+function carregarPreferenciasDoPersonagem() {
+	_layout = lerPreferencia('Layout', PADRAO_LAYOUT);
+	_opcoes = lerPreferencia('Opcoes', PADRAO_OPCOES);
+	_envios = lerPreferencia('Envios', PADRAO_ENVIOS);
+	/* `escolhido` e da D-930 e entra SEM subir versao, de proposito: um save
+	   antigo chega sem o campo, `lerPreferencia` mescla sobre o padrao e ele sai
+	   `false` — que e exatamente o que "este jogador nunca decidiu" quer dizer.
+	   A informacao que faltava ja estava codificada na ausencia. */
+	_recolhido = lerPreferencia('Recolhido', { estado: 'aberto', escolhido: false });
+	/* MIGRACAO do save booleano: ate 05/09/2026 este campo era
+	   `{ recolhido: true|false }`, e desde entao sao TRES estados. Sem esta
+	   linha, quem tinha o chat recolhido reabriria com ele aberto — perder a
+	   preferencia e pequeno, mas o custo de nao perder e uma linha. */
+	if (typeof _recolhido.recolhido === 'boolean' && !_recolhido.estado) {
+		_recolhido.estado = _recolhido.recolhido ? 'recolhido' : 'aberto';
+	}
+}
+
+/* ===========================================================================
+ * GEOMETRIA
+ * ===========================================================================
+ * O painel cresce para CIMA e para a DIREITA, ancorado por `left` + `bottom`.
+ * Nunca por `top`: com `top` ancorado, crescer a altura empurraria a barra de
+ * digitacao para baixo — e ela tem de ficar no mesmo pixel, porque o jogador
+ * aperta Enter por reflexo, sem olhar.
  */
-const _prefsRecolhido = Preferences.get('ChatBoxRecolhido', { recolhido: false, escolhido: false }, 1.0);
+
+/** Os limites da spec §3, lidos dos tokens para nao haver dois donos. */
+function medidaDoToken(nome, reserva) {
+	try {
+		const bruto = getComputedStyle(document.documentElement).getPropertyValue(nome);
+		const n = parseFloat(bruto);
+		return isFinite(n) && n > 0 ? n : reserva;
+	} catch (_e) {
+		return reserva;
+	}
+}
+
+const LIMITES = {
+	largMin: () => medidaDoToken('--chat-larg-min', 320),
+	largMax: () => medidaDoToken('--chat-larg-max', 640),
+	altMin: () => medidaDoToken('--chat-alt-min', 100),
+	altMax: () => medidaDoToken('--chat-alt-max', 380),
+	margem: () => medidaDoToken('--chat-margem', 10),
+	encaixe: () => medidaDoToken('--chat-encaixe', 20),
+};
+
+const prender = (valor, minimo, maximo) => Math.max(minimo, Math.min(maximo, valor));
 
 /**
- * A ALTURA do log, em pixels — arrastavel pela alca (28/08/2026).
+ * A altura do LOG que corresponde a uma altura de PAINEL.
  *
- * Chave PROPRIA, como o recolhido: a de `ChatBox` esta na versao 2.0 e subir a
- * versao dela para caber um campo novo APAGARIA o canal ativo de todo mundo
- * (`Preferences.get` descarta o save inteiro quando a versao nao bate).
- *
- * `null` significa "nunca arrastei" — e ai vale o padrao do CSS, que e o
- * gabarito antigo. Guardar um numero de largada congelaria a altura de quem
- * nunca pediu nada, e ainda por cima em pixels, num painel cujo padrao e
- * relativo a viewport (`6.6vh`).
+ * A casca (faixa de arrasto, abas, divisor, barra) nao e constante: ela muda
+ * com o canal (Farm e Logs nao tem barra de digitacao) e com a fonte. Por isso
+ * ela e MEDIDA, e nao um numero cravado — cravar deu, na primeira tentativa,
+ * um painel 12px mais alto que o pedido em todo canal so-leitura.
  */
-const _prefsAltura = Preferences.get('ChatBoxAltura', { altura: null }, 1.0);
+function cascaDoPainel(root) {
+	const painel = root.querySelector('#chatbox');
+	const corpo = root.querySelector('.contentwrapper');
+	if (!painel || !corpo) return 0;
+	const alturaPainel = painel.getBoundingClientRect().height;
+	const alturaLog = corpo.getBoundingClientRect().height;
+	return Math.max(0, Math.round(alturaPainel - alturaLog));
+}
 
-/** Os limites do arrasto. O piso e ~duas linhas; o teto, metade da tela. */
-const ALTURA_MINIMA = 48;
-const alturaMaxima = () => Math.max(ALTURA_MINIMA, Math.round(window.innerHeight * 0.5));
-
-/** Escreve a altura no elemento. `null` devolve o padrao do CSS. */
-function aplicarAltura(root) {
-	const painel = root.querySelector('#chatbox') || root.host || root;
+/** Escreve largura e altura no elemento, dentro dos limites da spec. */
+function aplicarTamanho(root) {
+	const painel = root.querySelector('#chatbox');
 	if (!painel || !painel.style) return;
-	if (_prefsAltura.altura === null) {
-		painel.style.removeProperty('--cb-altura');
-		return;
+
+	if (_layout.largPct !== null) {
+		const larg = prender(
+			Math.round((_layout.largPct / 100) * window.innerWidth),
+			LIMITES.largMin(),
+			Math.min(LIMITES.largMax(), window.innerWidth - LIMITES.margem() * 2),
+		);
+		painel.style.width = `${larg}px`;
+	} else {
+		painel.style.removeProperty('width');
 	}
-	painel.style.setProperty('--cb-altura', `${_prefsAltura.altura}px`);
+
+	if (_layout.altPct !== null) {
+		const altoPainel = prender(
+			Math.round((_layout.altPct / 100) * window.innerHeight),
+			LIMITES.altMin(),
+			Math.min(LIMITES.altMax(), window.innerHeight - LIMITES.margem() * 2),
+		);
+		const log = Math.max(24, altoPainel - cascaDoPainel(root));
+		painel.style.setProperty('--cb-altura', `${log}px`);
+	} else {
+		painel.style.removeProperty('--cb-altura');
+	}
 }
 
 /**
@@ -202,55 +349,322 @@ function ehTelaDeToque() {
 }
 
 /**
- * Liga a alca de redimensionar.
+ * Escreve a posicao, sempre CLAMPADA contra a viewport de agora.
  *
- * O arrasto e por `pointer*` e nao `mouse*`: o `setPointerCapture` mantem os
- * eventos vindo mesmo quando o cursor sai do elemento fino de 8px, que e o caso
- * comum de quem arrasta rapido. Com `mousemove` no documento daria para fazer
- * igual, mas seria preciso lembrar de tirar o listener — e listener esquecido e
- * o vazamento que este fork ja consertou em outros lugares.
+ * O clamp no load e o que cumpre o criterio de aceite "redimensionar a janela
+ * para metade da largura mantem o painel inteiramente visivel": porcentagem
+ * sozinha reposiciona, mas um painel de 640px numa viewport de 500 ainda
+ * sairia pela direita.
  */
-function ligarAlcaDeAltura(root) {
-	const alca = root.querySelector('.cb-alca');
+function aplicarPosicao(root) {
 	const painel = root.querySelector('#chatbox');
-	const corpo = root.querySelector('.contentwrapper');
-	if (!alca || !painel || !corpo || alca.dataset.ligada === '1') return;
-	alca.dataset.ligada = '1';
+	if (!painel || !painel.style) return;
 
-	let alturaInicial = 0;
-	let yInicial = 0;
+	if (_layout.esquerdaPct === null || _layout.baixoPct === null) {
+		painel.style.removeProperty('left');
+		painel.style.removeProperty('bottom');
+		return;
+	}
 
-	alca.addEventListener('pointerdown', event => {
+	const caixa = painel.getBoundingClientRect();
+	const margem = LIMITES.margem();
+	const esquerda = prender(
+		(_layout.esquerdaPct / 100) * window.innerWidth,
+		margem,
+		Math.max(margem, window.innerWidth - caixa.width - margem),
+	);
+	const baixo = prender(
+		(_layout.baixoPct / 100) * window.innerHeight,
+		margem,
+		Math.max(margem, window.innerHeight - caixa.height - margem),
+	);
+	painel.style.left = `${Math.round(esquerda)}px`;
+	painel.style.bottom = `${Math.round(baixo)}px`;
+}
+
+function aplicarLayout(root) {
+	aplicarTamanho(root);
+	aplicarPosicao(root);
+}
+
+/** Grava o layout de agora, lendo do DOM. Chamado no SOLTAR, nunca durante. */
+function gravarLayout(root) {
+	const painel = root.querySelector('#chatbox');
+	if (!painel) return;
+	const caixa = painel.getBoundingClientRect();
+
+	_layout.largPct = (caixa.width / window.innerWidth) * 100;
+	_layout.altPct = (caixa.height / window.innerHeight) * 100;
+	_layout.esquerdaPct = (caixa.left / window.innerWidth) * 100;
+	_layout.baixoPct = ((window.innerHeight - caixa.bottom) / window.innerHeight) * 100;
+
+	gravarPreferencia('Layout', _layout);
+}
+
+/* ===========================================================================
+ * ARRASTAR E REDIMENSIONAR
+ * ===========================================================================
+ * Um mecanismo so, parametrizado por eixo. Tres alcas e uma faixa de arrasto
+ * escritas a mao seriam quatro copias da mesma matematica de `pointer`, e
+ * "duas rotas escritas a mao" e o defeito mais repetido deste projeto.
+ *
+ * `pointer*` e nao `mouse*`: o `setPointerCapture` mantem os eventos vindo
+ * mesmo quando o cursor sai do elemento fino, que e o caso comum de quem
+ * arrasta rapido. Com `mousemove` no documento daria para fazer igual, mas
+ * seria preciso lembrar de tirar o ouvinte — e ouvinte esquecido e o
+ * vazamento que este fork ja consertou em outros lugares.
+ */
+function ligarGesto(root, seletor, aoMover, classe) {
+	const alvo = root.querySelector(seletor);
+	const painel = root.querySelector('#chatbox');
+	if (!alvo || !painel || alvo.dataset.ligada === '1') return;
+	alvo.dataset.ligada = '1';
+
+	let inicio = null;
+
+	alvo.addEventListener('pointerdown', event => {
+		// TRAVADO: nenhum gesto comeca. A guarda mora aqui, e nao so no
+		// `pointer-events` do CSS, porque a trava pode ser ligada com um
+		// arrasto EM CURSO — e ai o CSS ja nao tem a quem recusar.
+		if (_opcoes.travado) return;
 		event.preventDefault();
-		alturaInicial = corpo.getBoundingClientRect().height;
-		yInicial = event.clientY;
-		painel.classList.add('cb-redimensionando');
-		alca.setPointerCapture(event.pointerId);
+		const caixa = painel.getBoundingClientRect();
+		inicio = {
+			x: event.clientX,
+			y: event.clientY,
+			larg: caixa.width,
+			alt: caixa.height,
+			esquerda: caixa.left,
+			baixo: window.innerHeight - caixa.bottom,
+		};
+		painel.classList.add(classe);
+		alvo.setPointerCapture(event.pointerId);
 	});
 
-	alca.addEventListener('pointermove', event => {
-		if (!alca.hasPointerCapture(event.pointerId)) return;
-		// Para CIMA cresce: o painel e ancorado embaixo, entao subir a borda
-		// superior aumenta o log. Dai o sinal invertido.
-		const bruto = alturaInicial + (yInicial - event.clientY);
-		const altura = Math.max(ALTURA_MINIMA, Math.min(alturaMaxima(), Math.round(bruto)));
-		_prefsAltura.altura = altura;
-		aplicarAltura(root);
+	alvo.addEventListener('pointermove', event => {
+		if (inicio === null || !alvo.hasPointerCapture(event.pointerId)) return;
+		aoMover(painel, inicio, event.clientX - inicio.x, event.clientY - inicio.y, root);
 	});
 
 	const soltar = event => {
-		if (!alca.hasPointerCapture(event.pointerId)) return;
-		alca.releasePointerCapture(event.pointerId);
-		painel.classList.remove('cb-redimensionando');
-		// Grava SO no soltar, e nao a cada pixel do arrasto: `save()` escreve no
-		// armazenamento, e um `pointermove` dispara dezenas de vezes por segundo.
-		_prefsAltura.save();
-		const ativo = root.querySelector('.content.active');
-		if (ativo) ativo.scrollTop = ativo.scrollHeight;
+		if (inicio === null || !alvo.hasPointerCapture(event.pointerId)) return;
+		alvo.releasePointerCapture(event.pointerId);
+		painel.classList.remove(classe);
+		inicio = null;
+		// Grava SO no soltar: `pointermove` dispara dezenas de vezes por
+		// segundo, e `localStorage.setItem` e sincrono.
+		gravarLayout(root);
+		atualizarBotaoDeTamanho(root);
+		rolarParaOFimSeColado(root);
 	};
-	alca.addEventListener('pointerup', soltar);
-	alca.addEventListener('pointercancel', soltar);
+	alvo.addEventListener('pointerup', soltar);
+	alvo.addEventListener('pointercancel', soltar);
 }
+
+/** Altura: para CIMA cresce, porque o painel e ancorado embaixo. */
+function moverAltura(painel, inicio, _dx, dy, root) {
+	const alvo = prender(inicio.alt - dy, LIMITES.altMin(), LIMITES.altMax());
+	const log = Math.max(24, Math.round(alvo - cascaDoPainel(root)));
+	painel.style.setProperty('--cb-altura', `${log}px`);
+}
+
+/** Largura: para a DIREITA cresce; a borda esquerda nao se move. */
+function moverLargura(painel, inicio, dx) {
+	const alvo = prender(inicio.larg + dx, LIMITES.largMin(), LIMITES.largMax());
+	painel.style.width = `${Math.round(alvo)}px`;
+}
+
+function moverCanto(painel, inicio, dx, dy, root) {
+	moverLargura(painel, inicio, dx);
+	moverAltura(painel, inicio, dx, dy, root);
+}
+
+/**
+ * Mover o painel, com ENCAIXE nas bordas (spec §7) e clamp na viewport.
+ *
+ * O encaixe e a 20px de qualquer borda. Ele existe porque HUD que quase encosta
+ * na borda parece defeito — e acertar 0px a mao, num painel que o jogador
+ * arrasta com o jogo rodando, nao acontece.
+ */
+function moverPainel(painel, inicio, dx, dy) {
+	const margem = LIMITES.margem();
+	const encaixe = LIMITES.encaixe();
+	const maxEsquerda = Math.max(margem, window.innerWidth - inicio.larg - margem);
+	const maxBaixo = Math.max(margem, window.innerHeight - inicio.alt - margem);
+
+	let esquerda = prender(inicio.esquerda + dx, margem, maxEsquerda);
+	let baixo = prender(inicio.baixo - dy, margem, maxBaixo);
+
+	if (esquerda - margem < encaixe) esquerda = margem;
+	if (maxEsquerda - esquerda < encaixe) esquerda = maxEsquerda;
+	if (baixo - margem < encaixe) baixo = margem;
+	if (maxBaixo - baixo < encaixe) baixo = maxBaixo;
+
+	painel.style.left = `${Math.round(esquerda)}px`;
+	painel.style.bottom = `${Math.round(baixo)}px`;
+}
+
+/**
+ * A ALTURA-BASE do log — o que o CSS daria se ninguem tivesse mexido.
+ *
+ * Medida no DOM, e nao copiada: o padrao vem de um token com `calc()`, e
+ * `getComputedStyle` devolve a STRING da expressao para custom property nao
+ * registrada, nao o pixel resolvido. Reescrever a conta em JS criaria dois
+ * donos do mesmo numero.
+ *
+ * Os modificadores saem antes da medida e voltam depois — o acrescimo dos
+ * canais sem barra descreveria um degrau que nao e a base. Leitura e escrita
+ * acontecem na MESMA tarefa sincrona, entao nao ha pintura entre elas.
+ *
+ * `cb-redimensionando` entra durante a medida porque e a classe que desliga a
+ * transicao de altura: com a transicao valendo, `getBoundingClientRect`
+ * devolveria o valor INTERPOLADO de uma animacao em curso, e dois cliques
+ * rapidos no botao mediriam uma base fantasma.
+ */
+function alturaBase(root) {
+	const painel = root.querySelector('#chatbox');
+	const corpo = root.querySelector('.contentwrapper');
+	if (!painel || !corpo) return null;
+
+	const MODIFICADORES = ['canal-farm', 'canal-logs', 'is-recolhido'];
+	const ligados = MODIFICADORES.filter(nome => painel.classList.contains(nome));
+	const inline = painel.style.getPropertyValue('--cb-altura');
+
+	painel.classList.add('cb-redimensionando');
+	ligados.forEach(nome => painel.classList.remove(nome));
+	painel.style.removeProperty('--cb-altura');
+
+	const base = Math.round(corpo.getBoundingClientRect().height);
+
+	if (inline) painel.style.setProperty('--cb-altura', inline);
+	ligados.forEach(nome => painel.classList.add(nome));
+	painel.classList.remove('cb-redimensionando');
+
+	return base > 0 ? base : null;
+}
+
+/** O acrescimo que Farm e Logs dao ao log, lido do token que o CSS define. */
+function acrescimoDoCanal(painel) {
+	const bruto = getComputedStyle(painel).getPropertyValue('--cb-acrescimo-do-canal');
+	const n = parseFloat(bruto);
+	return isFinite(n) ? n : 0;
+}
+
+/**
+ * O TETO da altura do LOG, para a escada de degraus.
+ *
+ * Ele sai do teto de PAINEL da spec (`--chat-alt-max`) menos a casca, e nao de
+ * uma fracao da tela: dois tetos discordando fariam o botao oferecer um degrau
+ * que o arrasto recusa. Farm e Logs somam o acrescimo DEPOIS do `--cb-altura`,
+ * entao ele tambem e descontado aqui.
+ */
+function tetoDeAltura(root) {
+	const painel = root.querySelector('#chatbox');
+	if (!painel) return 24;
+	let teto = LIMITES.altMax() - cascaDoPainel(root);
+	if (painel.classList.contains('canal-farm') || painel.classList.contains('canal-logs')) {
+		teto -= acrescimoDoCanal(painel);
+	}
+	return Math.max(24, Math.round(teto));
+}
+
+/**
+ * A altura do log de agora, em pixels — a fonte da verdade do degrau.
+ *
+ * O INLINE vem primeiro, e nao a medida do DOM. A razao e um defeito que esta
+ * prova pegou: `.contentwrapper` tem `transition: height`, e medir logo depois
+ * de escrever `--cb-altura` devolve o valor INTERPOLADO de uma animacao em
+ * curso — nao o alvo. O botao entao recalculava o rotulo a partir da altura
+ * velha e ficava eternamente em "1x", com o painel crescendo atras dele.
+ *
+ * O inline E o alvo: foi ele que acabou de ser escrito. So quando nao ha
+ * inline (o jogador nunca mexeu) e que vale medir o que o CSS deu.
+ */
+function alturaAtualDoLog(root) {
+	const painel = root.querySelector('#chatbox');
+	const corpo = root.querySelector('.contentwrapper');
+	if (!corpo) return null;
+
+	if (painel && painel.style) {
+		const inline = parseFloat(painel.style.getPropertyValue('--cb-altura'));
+		if (isFinite(inline) && inline > 0) return Math.round(inline);
+	}
+	return Math.round(corpo.getBoundingClientRect().height);
+}
+
+/**
+ * Poe o botao de tamanho em dia: rotulo, titulo e leitor de tela.
+ *
+ * O rotulo e DERIVADO da altura medida toda vez — nunca um segundo estado
+ * guardado. Se o degrau fosse persistido ao lado do tamanho, o primeiro
+ * arrasto (que nao passa pelo botao) os poria em desacordo, e um F5
+ * congelaria o desacordo.
+ */
+function atualizarBotaoDeTamanho(root) {
+	const botao = root.querySelector('.cb-tamanho');
+	if (!botao) return;
+
+	const base = alturaBase(root);
+	const teto = tetoDeAltura(root);
+	const alturas = alturasDosDegraus(base, teto);
+
+	// Escada de um degrau so (tela curta demais para o 2x) = botao que o
+	// jogador aperta e nada acontece. Nesse caso ele nao existe.
+	botao.hidden = alturas.length < 2;
+	if (botao.hidden) return;
+
+	const atual = rotuloDoDegrau(degrauAtual(alturaAtualDoLog(root), base, teto));
+	botao.textContent = atual;
+
+	if (_opcoes.travado) {
+		botao.disabled = true;
+		botao.title = `Tamanho do chat: ${atual} — travado`;
+		botao.setAttribute(
+			'aria-label',
+			`Tamanho do chat: ${atual}. Travado — destrave nas configurações para mudar.`,
+		);
+		return;
+	}
+
+	botao.disabled = false;
+	const proximo = proximoDegrau(alturaAtualDoLog(root), base, teto);
+	const acao =
+		proximo.indice === 0
+			? 'Clique para voltar ao normal.'
+			: `Clique para ${rotuloDoDegrau(proximo.indice)}.`;
+	botao.title = `Tamanho do chat: ${atual}`;
+	botao.setAttribute('aria-label', `Tamanho do chat: ${atual}. ${acao}`);
+}
+
+/** Um degrau acima; depois do ultimo, de volta ao normal. */
+function subirUmDegrau(root) {
+	if (_opcoes.travado) return;
+	const painel = root.querySelector('#chatbox');
+	const proximo = proximoDegrau(alturaAtualDoLog(root), alturaBase(root), tetoDeAltura(root));
+	if (proximo.altura === null || !painel) return;
+
+	painel.style.setProperty('--cb-altura', `${proximo.altura}px`);
+
+	/*
+	 * A altura e persistida a partir do ALVO, e nao de uma medida do painel.
+	 *
+	 * `gravarLayout` le `getBoundingClientRect`, e aqui a transicao de altura
+	 * acabou de comecar — a medida devolveria um quadro intermediario e o F5
+	 * traria de volta uma altura que nunca foi escolhida. A CASCA pode ser
+	 * medida sem medo: ela e a diferenca entre painel e log, e os dois estao
+	 * deslocados pelo mesmo tanto durante a animacao.
+	 */
+	const caixa = painel.getBoundingClientRect();
+	_layout.altPct = ((proximo.altura + cascaDoPainel(root)) / window.innerHeight) * 100;
+	_layout.largPct = (caixa.width / window.innerWidth) * 100;
+	_layout.esquerdaPct = (caixa.left / window.innerWidth) * 100;
+	_layout.baixoPct = ((window.innerHeight - caixa.bottom) / window.innerHeight) * 100;
+	gravarPreferencia('Layout', _layout);
+
+	atualizarBotaoDeTamanho(root);
+	rolarParaOFimSeColado(root);
+}
+
 
 /**
  * Create Basic Info component
@@ -349,7 +763,23 @@ ChatBox.FILTER = {
 /**
  * Os tres canais, na ordem em que aparecem.
  */
-const CANAIS = ['global', 'trade', 'farm', 'logs'];
+const CANAIS = ['global', 'guilda', 'party', 'trade', 'farm', 'logs'];
+
+/**
+ * ROTULO por canal, para a etiqueta que abre cada linha.
+ *
+ * A etiqueta e TEXTO e nao so cor (spec §10): coral (guilda) e dourado (trade)
+ * ficam proximos para daltonicos do tipo protanopia, entao "[Guilda]" escrito
+ * e obrigatorio. A cor e reforco, nunca o unico sinal.
+ */
+const ROTULO_DO_CANAL = {
+	global: 'Global',
+	guilda: 'Guilda',
+	party: 'Party',
+	trade: 'Trade',
+	farm: 'Farm',
+	logs: 'Logs',
+};
 
 /*
  * OS CANAIS EM QUE NAO SE DIGITA (31/08/2026, pedido do dono).
@@ -363,6 +793,25 @@ const CANAIS = ['global', 'trade', 'farm', 'logs'];
  * regra espalhada pelo arquivo.
  */
 const CANAIS_SO_LEITURA = ['logs'];
+
+/*
+ * OS CANAIS EM QUE O ENTER NAO ABRE A CAIXA DE DIGITACAO.
+ *
+ * DUAS listas, e nao uma — elas respondem perguntas diferentes:
+ *
+ *  - esta aqui responde *"o Enter abre a caixa neste canal?"*. O Trade entra
+ *    por um motivo que NAO e ser so-leitura: ele nao tem canal no servidor de
+ *    mapa, e o que fosse digitado sairia como fala publica e cairia no Global
+ *    (ver ".cb-inerte" em ChatBox.html);
+ *  - `CANAIS_SO_LEITURA` responde *"este texto pode sair?"*, ja dentro do
+ *    `submit`, e devolve uma mensagem especifica do Logs. Fundir as duas faria
+ *    o Trade receber "o canal Logs e so leitura", que e mentira.
+ *
+ * CONSERTO de 05/09/2026: esta guarda tinha 'farm' e 'trade' CRAVADOS no `if`,
+ * e o 'logs' — que nasceu depois — nunca foi somado. No Logs a caixa ABRIA e so
+ * o `submit` recusava, depois de o jogador ter digitado a frase inteira.
+ */
+const CANAIS_SEM_DIGITACAO = ['trade', 'farm', 'logs'];
 
 /**
  * FILTRO -> CANAL. Esta tabela E a regra dura: cada filtro pertence a
@@ -423,7 +872,26 @@ const TIPOS_DE_LOG = ChatBox.TYPE.ERROR | ChatBox.TYPE.BLUE;
 function canalDaMensagem(filterType, colorType) {
 	const doFiltro = CANAL_DO_FILTRO[filterType];
 	if (doFiltro) return doFiltro;
-	if (typeof colorType === 'number' && (colorType & TIPOS_DE_LOG) !== 0) return 'logs';
+
+	/*
+	 * GUILDA e PARTY entraram em 05/09/2026, e a ORDEM importa: o filtro vem
+	 * ANTES do tipo, de proposito.
+	 *
+	 * `CANAL_DO_FILTRO` manda `PARTY_ITEM`, `PARTY_BATTLE` e `PARTY_EXP` para o
+	 * FARM — eles sao log de caca de um grupo, e nao conversa. Se o teste de
+	 * tipo viesse primeiro, o `TYPE.PARTY` desses tres os arrastaria para a aba
+	 * Party e o canal de conversa do grupo viraria um despejo de log de dano.
+	 * O filtro e mais especifico que o tipo, entao decide antes.
+	 *
+	 * Os dois canais EXISTEM no servidor, com anti-flood: `CZ_GUILD_CHAT` /
+	 * `ZC_GUILD_CHAT` e `CZ_REQUEST_CHAT_PARTY` / `ZC_NOTIFY_CHAT_PARTY`
+	 * (0x0109) — ver `servidor/mapa/todo-canal-de-fala-tranca.test.ts`.
+	 */
+	if (typeof colorType === 'number') {
+		if ((colorType & ChatBox.TYPE.GUILD) !== 0) return 'guilda';
+		if ((colorType & ChatBox.TYPE.PARTY) !== 0) return 'party';
+		if ((colorType & TIPOS_DE_LOG) !== 0) return 'logs';
+	}
 	return 'global';
 }
 
@@ -467,7 +935,16 @@ ChatBox.init = function init() {
 	// mao. ".body" entrou na lista porque o log deixou de ser transparente:
 	// virou um painel solido, e passar o mouse por cima nao pode mais mirar
 	// monstro atras dele.
-	const interactiveSelector = '.cb-abas, .body, .input, .battlemode, .cb-collapse';
+	// ".cb-controles" (e nao mais ".cb-collapse" sozinho): a barra ganhou o
+	// botao de tamanho ao lado da seta, e sem o contêiner nesta lista passar o
+	// mouse sobre ele continuaria mirando monstro atras do painel.
+	// Cada pedaco que precisa se comportar como UI desliga o hover do mundo na
+	// mao. As pecas novas de 05/09 entram aqui: sem elas, passar o mouse sobre
+	// a faixa de arrasto, sobre uma alca ou sobre o popover continua MIRANDO
+	// MONSTRO atras do painel.
+	const interactiveSelector =
+		'.cb-abas, .body, .input, .battlemode, .cb-controles, .cb-arrasto, ' +
+		'.cb-alca, .cb-alca-direita, .cb-alca-canto, .cb-popover, .cb-novas';
 	const interactiveEls = root.querySelectorAll(interactiveSelector);
 	interactiveEls.forEach(el => {
 		let _intersect;
@@ -677,17 +1154,17 @@ ChatBox.init = function init() {
 			event.stopPropagation();
 		});
 
-		// Recolhido, o corpo inteiro expande (gabarito: "clicar expande").
-		chatBody.addEventListener('click', event => {
-			if (!_prefsRecolhido.recolhido) {
-				return;
-			}
-			if (event.target.closest('a, .item-link')) {
-				return;
-			}
-			event.stopImmediatePropagation();
-			definirRecolhido(false);
-		});
+		// AQUI MORAVA "recolhido, o corpo inteiro expande".
+		//
+		// Ele fazia sentido enquanto minimizar deixava 42px de log na tela: o
+		// corpo continuava visivel e clicar em qualquer parte dele devolvia o
+		// chat. Desde 05/09/2026 minimizar esconde o corpo inteiro
+		// (`display:none` em ".is-recolhido .body"), entao este ouvinte nunca
+		// mais poderia disparar — o unico caminho de volta e o disco da barra
+		// de controles, que fica FORA do que ele esconde.
+		//
+		// Fica o registro em vez do codigo morto: um `addEventListener` que
+		// nao pode rodar e uma pista falsa para quem for depurar o botao.
 	}
 
 	// Chat font scale context menu (right click)
@@ -715,7 +1192,16 @@ ChatBox.init = function init() {
 
 		// Clicking interactive elements in chat should not trigger map movement
 		chatboxEl.addEventListener('mousedown', event => {
-			if (event.target.closest('.tab, .cb-collapse, .content a, .content .item-link')) {
+			// ".cb-controles" cobre a seta E o botao de tamanho. Sem ele aqui,
+			// clicar em "2x" AUMENTA o chat e ANDA COM O PERSONAGEM junto.
+			// Sem isto, clicar em qualquer destes ANDA COM O PERSONAGEM junto
+			// com a acao do botao — o clique vaza para o mapa.
+			if (
+				event.target.closest(
+					'.tab, .cb-controles, .cb-arrasto, .cb-alca, .cb-alca-direita, ' +
+						'.cb-alca-canto, .cb-popover, .cb-novas, .content a, .content .item-link',
+				)
+			) {
 				event.stopPropagation();
 			}
 		});
@@ -741,17 +1227,132 @@ ChatBox.init = function init() {
 		});
 	}
 
-	const collapseBtn = root.querySelector('.cb-collapse');
-	if (collapseBtn) {
-		collapseBtn.addEventListener('click', event => {
+	/*
+	 * OS BOTOES DA BARRA — todos com o par `click` + `mousedown`.
+	 *
+	 * O `mousedown` com `stopImmediatePropagation` + `preventDefault` NAO e
+	 * redundante: sem ele o clique vaza para o mapa e o personagem CAMINHA ate
+	 * o chat enquanto o botao faz o que devia fazer.
+	 */
+	const ligarBotao = (seletor, aoClicar) => {
+		const botao = root.querySelector(seletor);
+		if (!botao) return;
+		botao.addEventListener('click', event => {
 			event.stopImmediatePropagation();
-			definirRecolhido(!_prefsRecolhido.recolhido);
+			acordarDoRepouso(root);
+			aoClicar(event);
 		});
-		collapseBtn.addEventListener('mousedown', event => {
+		botao.addEventListener('mousedown', event => {
+			event.stopImmediatePropagation();
+			event.preventDefault();
+		});
+	};
+
+	ligarBotao('.cb-collapse', () => definirEstado(proximoEstado()));
+	ligarBotao('.cb-tamanho', () => subirUmDegrau(root));
+	ligarBotao('.cb-config', () => alternarPopover(root));
+	ligarBotao('.cb-novas', () => rolarParaOFimSeColado(root));
+	ligarBotao('.cb-enviar', () => ChatBox.submit());
+
+	/*
+	 * AS OPCOES DO POPOVER, delegadas: um ouvinte no popover em vez de quatro
+	 * nos botoes. Opcao nova nasce ligada sozinha, e nao esquecida — que e o
+	 * modo de falha que este arquivo ja registrou em outros lugares ("a peca
+	 * existe e falta o consumidor").
+	 */
+	const popover = root.querySelector('.cb-popover');
+	if (popover) {
+		popover.addEventListener('click', event => {
+			const tema = event.target.closest('.cb-tema-op');
+			if (tema) {
+				event.stopImmediatePropagation();
+				definirOpcao('tema', tema.dataset.tema);
+				return;
+			}
+
+			const botao = event.target.closest('.cb-opcao');
+			if (!botao) return;
+			event.stopImmediatePropagation();
+			const nome = botao.dataset.opcao;
+			if (nome === 'restaurar') restaurarPadrao();
+			else definirOpcao(nome, !_opcoes[nome]);
+		});
+		popover.addEventListener('mousedown', event => {
 			event.stopImmediatePropagation();
 			event.preventDefault();
 		});
 	}
+
+	/*
+	 * Clicar FORA fecha o popover. O ouvinte mora no painel (e nao no
+	 * documento) porque o Shadow DOM nao deixa o clique de dentro chegar ao
+	 * documento com o alvo real — `event.target` viria como o host, e o teste
+	 * "o clique foi dentro do popover?" responderia sempre que sim.
+	 */
+	if (chatboxEl) {
+		chatboxEl.addEventListener('pointerdown', event => {
+			if (event.target.closest('.cb-popover, .cb-config')) return;
+			fecharPopover(root);
+		});
+	}
+
+	/*
+	 * TAB CICLA ENTRE CANAIS (spec §6).
+	 *
+	 * O ouvinte mora no CAMPO, e nao na cadeia de teclas nativa: la o Tab e
+	 * navegacao de foco do documento inteiro, e sequestra-lo naquele nivel
+	 * tiraria do teclado o unico jeito de alcancar os botoes da barra — que e
+	 * justamente o que a spec §10 pede para preservar. Dentro do campo, Tab nao
+	 * tem outro papel.
+	 *
+	 * Ele pula os canais em que nao se digita: ciclar para o Trade ou o Logs
+	 * poria o jogador num canal que recusa a fala que ele estava escrevendo.
+	 */
+	const campo = root.querySelector('.input-chatbox');
+	if (campo) {
+		campo.addEventListener('keydown', event => {
+			if (event.key !== 'Tab' || event.ctrlKey || event.altKey) return;
+			event.preventDefault();
+			event.stopImmediatePropagation();
+
+			const faladores = CANAIS.filter(c => !CANAIS_SEM_DIGITACAO.includes(c));
+			if (faladores.length === 0) return;
+			const atual = faladores.indexOf(ChatBox.activeTab);
+			const passo = event.shiftKey ? -1 : 1;
+			const proximo = (atual + passo + faladores.length) % faladores.length;
+			ChatBox.switchTab(faladores[proximo]);
+			campo.focus();
+		});
+	}
+
+	/* ─── OS QUATRO GESTOS: mover, altura, largura, canto ─────────────────── */
+	ligarGesto(root, '.cb-arrasto', moverPainel, 'cb-arrastando');
+	ligarGesto(root, '.cb-alca', moverAltura, 'cb-redimensionando');
+	ligarGesto(root, '.cb-alca-direita', moverLargura, 'cb-redimensionando');
+	ligarGesto(root, '.cb-alca-canto', moverCanto, 'cb-redimensionando');
+
+	/* ─── REPOUSO: qualquer toque no painel acorda ────────────────────────── */
+	if (chatboxEl) {
+		['pointerenter', 'pointerdown', 'focusin', 'wheel'].forEach(evento => {
+			chatboxEl.addEventListener(evento, () => acordarDoRepouso(root), { passive: true });
+		});
+	}
+
+	/* ─── ROLAGEM ANCORADA: o botao aparece quando se sobe no historico ───── */
+	root.querySelectorAll('.content').forEach(conteudo => {
+		conteudo.addEventListener('scroll', () => atualizarBotaoDeNovas(root), { passive: true });
+	});
+
+	/*
+	 * A JANELA MUDOU DE TAMANHO: reancora o painel contra a viewport de agora.
+	 * E o criterio de aceite "redimensionar para metade da largura mantem o
+	 * painel inteiramente visivel" — e a razao de a posicao ser gravada em
+	 * porcentagem em vez de pixels.
+	 */
+	window.addEventListener('resize', () => {
+		aplicarLayout(root);
+		atualizarBotaoDeTamanho(root);
+	});
 
 	// Restaura o canal em foco (a preferencia so aceita canal que existe).
 	ChatBox.switchTab(CANAIS.includes(_preferences.canalAtivo) ? _preferences.canalAtivo : 'global');
@@ -821,16 +1422,12 @@ ChatBox.switchTab = function switchTab(canal) {
 		const ativo = aba.dataset.canal === canal;
 		aba.setAttribute('aria-selected', String(ativo));
 		const pill = aba.querySelector('.cb-aba');
-		if (pill) {
-			pill.classList.toggle('is-active', ativo);
-			if (ativo) {
-				/* D-930: zera o CONTADOR, e nao so a classe — senao a proxima
-				   mensagem continuaria de onde o numero velho parou. */
-				_naoLidos[aba.dataset.canal] = 0;
-				pintarNaoLido(aba.dataset.canal);
-			}
-		}
+		if (pill) pill.classList.toggle('is-active', ativo);
 	});
+
+	// O badge do canal em foco ZERA (spec §4): o jogador esta olhando para ele.
+	zerarNaoLido(canal);
+	atualizarBadges(root);
 
 	root.querySelectorAll('.content').forEach(el => {
 		el.classList.toggle('active', el.dataset.content === canal);
@@ -841,12 +1438,56 @@ ChatBox.switchTab = function switchTab(canal) {
 		chatboxEl.classList.toggle('canal-farm', canal === 'farm');
 		// Trade: a barra fica, o campo sai (ver ".cb-inerte" em ChatBox.css).
 		chatboxEl.classList.toggle('canal-trade', canal === 'trade');
+		// Logs esconde a barra inteira, como o Farm (05/09/2026). Sem isto,
+		// trocar para o Logs com a caixa ABERTA a deixava aberta e focada, e o
+		// Enter seguinte ia direto ao `submit` sem passar por guarda de canal
+		// nenhuma. Ver o bloco ".canal-logs" em ChatBox.css.
+		chatboxEl.classList.toggle('canal-logs', canal === 'logs');
 	}
+
+	/*
+	 * A ABA MANDA PARA ONDE A FALA VAI (pedido do dono, 05/09/2026).
+	 *
+	 * Esta era uma lacuna real da primeira versao das abas novas: o Guilda e o
+	 * Party foram ligados na CHEGADA das mensagens e ninguem ligou a SAIDA.
+	 * Trocar de aba acendia a pilula certa, e o que o jogador digitasse
+	 * continuava saindo em PUBLICO e caindo no Global — ele falava numa aba e a
+	 * linha aparecia em outra, sem nada avisar.
+	 *
+	 * Estar num canal E escolher aquele canal. E como o Tab cicla entre as abas
+	 * (spec §6), ele passou a ser tambem o atalho para trocar o destino da fala
+	 * sem tirar a mao do teclado — que e o segundo caminho que o dono pediu.
+	 *
+	 * O `.filter` continua existindo e continua mandando: quem quiser falar em
+	 * CLA, ou em grupo de dentro do Global, muda por ele. Esta linha define o
+	 * PADRAO ao entrar no canal, e nao uma prisao.
+	 *
+	 * O sussurro vence os dois, como sempre — `ChatBox.submit()` manda como
+	 * sussurro sempre que houver nome no campo, e `definirEtiquetaDeDestino`
+	 * diz isso na pilula.
+	 */
+	const DESTINO_DO_CANAL = {
+		global: ChatBox.TYPE.PUBLIC,
+		guilda: ChatBox.TYPE.GUILD,
+		party: ChatBox.TYPE.PARTY,
+	};
+	if (Object.prototype.hasOwnProperty.call(DESTINO_DO_CANAL, canal)) {
+		ChatBox.sendTo = DESTINO_DO_CANAL[canal];
+	}
+	definirEtiquetaDeDestino();
+
+	// O canal muda o TETO da altura (Farm e Logs somam o acrescimo depois
+	// dele), e o teto pode fazer o 2x deixar de caber.
+	atualizarBotaoDeTamanho(root);
 
 	const contentDiv = root.querySelector(`.content[data-content="${canal}"]`);
 	if (contentDiv) {
 		contentDiv.scrollTop = contentDiv.scrollHeight;
 	}
+	// Trocar de aba e interacao: o painel acorda, e o botao "novas mensagens"
+	// se recalcula para o log que passou a estar visivel.
+	acordarDoRepouso(root);
+	atualizarBotaoDeNovas(root);
 };
 
 /**
@@ -856,31 +1497,57 @@ ChatBox.onAppend = function OnAppend() {
 	const root = _root();
 
 	/*
+	 * A ORDEM AQUI E O CONTRATO, e cada passo depende do anterior:
+	 *
+	 * 1. LER as preferencias DESTE personagem. So agora existe `Session.GID` —
+	 *    no topo do modulo, quando as chaves de `Preferences` sao criadas, o
+	 *    jogador ainda estava na tela de login. E por isso que o layout nao usa
+	 *    `Preferences.get` de topo.
+	 * 2. aplicar layout ANTES de tudo: posicao e tamanho mudam a caixa, e o
+	 *    resto mede a caixa.
+	 * 3. recolhido e opcoes, que dependem do layout ja aplicado.
+	 * 4. so entao rolar o log para o fim — com a altura certa, senao a primeira
+	 *    tela aparece rolada pela metade.
+	 *
+	 * O passo 1.5 e a D-930, e ele so cabe ENTRE ler e aplicar: ele decide o
+	 * estado inicial, e decidir depois de aplicar seria pintar duas vezes.
+	 */
+	carregarPreferenciasDoPersonagem();
+
+	/*
 	 * D-930 — EM TELA DE TOQUE O CHAT NASCE RECOLHIDO, e so na PRIMEIRA vez.
 	 *
 	 * A conta que obriga: num celular em pe de 393x852, a doca ocupa 96px do
 	 * rodape, a barra de atalhos nativa pede 42 e o chat aberto pede ~126. Os
 	 * tres somam 264px — quase um terco da tela — e a prioridade declarada e a
-	 * CENA de caca. Recolhido, o chat vira a barra de abas e devolve ~86px.
+	 * CENA de caca. Recolhido, o chat vira a barra de digitacao e devolve ~86px.
 	 *
 	 * `escolhido` e o freio: no instante em que o jogador toca no botao de
-	 * recolher, `definirRecolhido` marca a escolha e este bloco cala a boca
-	 * para sempre. Um padrao que reaparece depois de o jogador ter decidido o
+	 * recolher, `definirEstado` marca a escolha e este bloco cala a boca para
+	 * sempre. Um padrao que reaparece depois de o jogador ter decidido o
 	 * contrario nao e padrao, e teimosia — e e a queixa classica de quem joga
 	 * no celular e no computador com a mesma conta.
+	 *
+	 * Ele sobreviveu a reescrita do chat (D-948) mudando de SUJEITO: era o
+	 * booleano `_prefsRecolhido.recolhido`, e hoje e um dos tres estados de
+	 * `_recolhido.estado`. O 'recolhido' e o do meio de proposito — a barra de
+	 * digitacao fica, e quem entra no celular ainda consegue falar sem reabrir
+	 * nada.
 	 */
-	if (!_prefsRecolhido.escolhido && ehTelaDeToque()) {
-		_prefsRecolhido.recolhido = true;
+	if (!_recolhido.escolhido && ehTelaDeToque()) {
+		_recolhido.estado = 'recolhido';
 	}
 
+	aplicarLayout(root);
 	aplicarRecolhido();
-	// A altura arrastada ATRAVESSA a sessao: restaurada aqui, antes de o log
-	// rolar para o fim logo abaixo — assim o `scrollHeight` ja e o da altura
-	// certa e a primeira tela nao aparece rolada pela metade.
-	aplicarAltura(root);
-	ligarAlcaDeAltura(root);
-	/* A altura vai para o `documentElement` para quem se pendura acima do chat
-	   (a barra de atalhos) poder se posicionar sem copiar numero nenhum. */
+	aplicarOpcoes();
+	aplicarDicaDoTab(root);
+	atualizarBadges(root);
+	agendarRepouso(root);
+	/* D-930/D-934: a altura vai para o `documentElement` para quem se pendura
+	   acima do chat (a barra de atalhos) se posicionar sem copiar numero
+	   nenhum. Com as tres alcas de D-948 a caixa muda em mais lugares que
+	   antes, e o `ResizeObserver` cobre todos eles sem uma linha nova. */
 	publicarAlturaDoChat(root);
 	observarAlturaDoChat(root);
 
@@ -1076,11 +1743,13 @@ ChatBox.onKeyDown = function OnKeyDown(event) {
 			}
 			return true;
 
-		// F10 era o ciclo de 6 alturas do chat nativo. Com uma altura so
-		// (gabarito) o unico eixo que sobrou e recolher/expandir, e a tecla
-		// ficou nele em vez de virar tecla morta.
+		// F10 era o ciclo de 6 alturas do chat nativo, e ficou em
+		// minimizar/abrir quando o chat passou a ter altura unica. A altura
+		// voltou depois (arrasto em 28/08, escada em 05/09), mas a tecla FICA
+		// aqui: minimizar e a acao que o jogador quer no meio de uma luta, e
+		// remapear atalho que ja esta na mao custa mais do que ganha.
 		case KEYS.F10:
-			definirRecolhido(!_prefsRecolhido.recolhido);
+			definirEstado(proximoEstado());
 			break;
 
 		// Send message
@@ -1099,15 +1768,22 @@ ChatBox.onKeyDown = function OnKeyDown(event) {
 				return false;
 			}
 
-			// Farm e somente leitura, e Trade nao tem canal no servidor: em
-			// nenhum dos dois o Enter abre digitacao. No Trade isso e a mesma
-			// decisao do ".cb-inerte" (ChatBox.html) — sem esta guarda, digitar
-			// no Trade sairia como fala PUBLICA e a linha apareceria no Global.
-			if (this.activeTab === 'farm' || this.activeTab === 'trade') {
+			// Farm e Logs sao somente leitura, e o Trade nao tem canal no
+			// servidor: em nenhum dos tres o Enter abre digitacao. No Trade isso
+			// e a mesma decisao do ".cb-inerte" (ChatBox.html) — sem esta
+			// guarda, digitar la sairia como fala PUBLICA e a linha apareceria
+			// no Global.
+			//
+			// A LISTA, e nao os nomes cravados: ate 05/09/2026 este `if` dizia
+			// `=== 'farm' || === 'trade'`, e o 'logs' — criado em 31/08 — nunca
+			// entrou aqui. O canal ficava com a caixa abrindo e a recusa
+			// chegando so no `submit`, depois da frase digitada. Nome cravado
+			// nao acompanha canal novo; lista acompanha.
+			if (CANAIS_SEM_DIGITACAO.includes(this.activeTab)) {
 				event.stopImmediatePropagation();
 				return false;
 			}
-			if (_prefsRecolhido.recolhido) {
+			if (estaFechado()) {
 				definirRecolhido(false);
 			}
 
@@ -1221,6 +1897,11 @@ ChatBox.submit = function Submit() {
 		return;
 	}
 
+	// A dica do Tab conta ENVIO DE FALA, e nao comando: quem digita "/comando"
+	// nao esta aprendendo a trocar de canal (o `return` acima ja saiu daqui
+	// nesse caso).
+	contarEnvio(_root());
+
 	this.onRequestTalk(user, trimmedText, ChatBox.sendTo);
 };
 
@@ -1324,15 +2005,37 @@ function flushMessageBuffer() {
 			const div = document.createElement('div');
 			div.style.color = color;
 
-			const tag = etiquetaDaLinha(msg.colorType, msg.filterType);
-			const tagHtml = `<span class="ri-badge ri-badge--${tag.variante} cb-tag">${tag.rotulo}</span>`;
+			/*
+			 * A ETIQUETA E TEXTO, e a cor e reforco (spec §10).
+			 *
+			 * Coral (guilda) e dourado (trade) ficam proximos para daltonicos
+			 * do tipo protanopia, entao "[Guilda]" ESCRITO e obrigatorio — nao
+			 * da para depender so da cor para dizer de onde a linha veio.
+			 *
+			 * `etiquetaDaLinha` continua mandando quando tem algo MAIS
+			 * especifico a dizer (Sussurro, Erro, Admin, Correio): "Sussurro"
+			 * informa mais que "Global", e um sussurro que se anunciasse como
+			 * Global seria pior que nao ter etiqueta.
+			 */
+			const especifica = etiquetaDaLinha(msg.colorType, msg.filterType);
+			const rotulo = especifica.rotulo || ROTULO_DO_CANAL[canal] || 'Global';
+			const corDaTag = especifica.rotulo === 'Sussurro' ? 'sussurro' : canal;
+			const tagHtml = `<span class="cb-tag" data-canal="${corDaTag}">[${rotulo}]</span>`;
+
+			// A hora nasce em TODA linha e some por CSS quando o interruptor
+			// esta desligado — assim liga-lo mostra o horario do que ja esta no
+			// log, e nao so das proximas.
+			const agora = new Date();
+			const hh = String(agora.getHours()).padStart(2, '0');
+			const mm = String(agora.getMinutes()).padStart(2, '0');
+			const horaHtml = `<span class="cb-hora">${hh}:${mm}</span> `;
 
 			if (!msg.override) {
-				div.innerHTML = tagHtml + highlightMessage(msg.text, msg.colorType);
+				div.innerHTML = horaHtml + tagHtml + ' ' + highlightMessage(msg.text, msg.colorType);
 			} else {
 				// Override ja e HTML pronto (ITEMLINK, link de historico,
-				// nickname-link) -- so a etiqueta de canal e somada por cima.
-				div.innerHTML = tagHtml + msg.text;
+				// nickname-link) -- so hora e etiqueta sao somadas por cima.
+				div.innerHTML = horaHtml + tagHtml + ' ' + msg.text;
 			}
 			fragment.appendChild(div);
 		});
@@ -1350,54 +2053,56 @@ function flushMessageBuffer() {
 			element.remove();
 		}
 
+		/*
+		 * ROLAGEM ANCORADA (spec §7): quem subiu no historico NAO e puxado de
+		 * volta. Em vez disso o botao "novas mensagens" aparece, e ele e o
+		 * caminho de volta — perder o lugar da leitura por causa de uma linha
+		 * nova e o defeito que esta regra existe para evitar.
+		 */
 		if (wasAtBottom) {
 			content.scrollTop = content.scrollHeight;
+		} else if (canal === ChatBox.activeTab) {
+			atualizarBotaoDeNovas(root, true);
 		}
 
 		marcarNaoLido(canal);
 	});
+
+	/*
+	 * MENSAGEM NOVA ACORDA O PAINEL (spec §7).
+	 *
+	 * Sussurro e alerta critico acordam SEMPRE — sao as duas coisas que o
+	 * jogador nao pode perder por estar de olho noutro canto da tela. O resto
+	 * acorda tambem, mas so quando "sumir parado" nao esta ligado: quem ligou o
+	 * repouso pediu justamente para o log de caca nao piscar o painel a cada
+	 * abate.
+	 */
+	const temUrgente = messages.some(
+		msg =>
+			typeof msg.colorType === 'number' &&
+			(msg.colorType & (ChatBox.TYPE.PRIVATE | ChatBox.TYPE.ERROR)) !== 0,
+	);
+	if (temUrgente || !_opcoes.repouso) acordarDoRepouso(root);
 }
 
 /**
- * Quantas mensagens novas cada canal acumulou desde a ultima vez que o jogador
- * olhou para ele. Zerado ao entrar no canal (ver `switchTab`).
- */
-const _naoLidos = Object.create(null);
-
-/**
- * Nao-lido na aba do canal que recebeu mensagem, quando ele nao e o canal em
- * foco. Usa ".ri-dot" do design system (Common.css), nunca um indicador
- * proprio.
+ * CONTA o nao-lido do canal que recebeu mensagem (spec §4).
  *
- * D-930: o ponto virou CONTADOR. Ele dizia so "tem coisa nova", e num jogo
- * idle em que o chat nasce recolhido no celular essa e a informacao menos
- * util que existe — "3" e "80 desde que voce entrou" pedem reacoes
- * diferentes. O ponto continua sendo o mesmo `.ri-dot` do design system; o
- * que mudou e ele passar a carregar o numero.
+ * Conta em vez de so marcar: o pontinho antigo dizia "ha algo" e nao dizia se
+ * valia a pena trocar de aba. O numero diz.
  *
- * O teto e "99+", e nao o numero cru: a aba tem 66px de largura minima
- * (`ChatBox.css`, `.cb-aba`), e um contador de quatro digitos empurraria o
- * rotulo do canal para fora — trocaria uma informacao por outra.
+ * O canal em foco nao acumula — o jogador esta lendo aquilo. A EXCECAO e o
+ * chat RECOLHIDO: sem abas na tela, ate a mensagem do canal ativo passa
+ * despercebida, entao ali tudo conta e o badge somado do botao avisa.
  */
 function marcarNaoLido(canal) {
-	if (canal === ChatBox.activeTab) {
-		return;
-	}
-	_naoLidos[canal] = (_naoLidos[canal] || 0) + 1;
-	pintarNaoLido(canal);
-}
-
-/** Escreve o estado de nao-lido de UM canal na aba dele. */
-function pintarNaoLido(canal) {
 	const root = _root();
-	const pill = root.querySelector(`.tab[data-canal="${canal}"] .cb-aba`);
-	if (!pill) return;
-	const total = _naoLidos[canal] || 0;
-	const ponto = pill.querySelector('.cb-aba-dot');
-	if (ponto) {
-		ponto.textContent = total > 99 ? '99+' : total > 0 ? String(total) : '';
+	const escondido = estaFechado();
+
+	if (escondido || canal !== ChatBox.activeTab) {
+		somarNaoLido(canal);
+		atualizarBadges(root);
 	}
-	pill.classList.toggle('tem-nova', total > 0);
 }
 
 function getColorForType(colorType) {
@@ -1735,38 +2440,327 @@ function definirEtiquetaDeDestino() {
 }
 
 /**
- * Recolher/expandir: grava a preferencia e reflete no DOM.
+ * ===========================================================================
+ * RECOLHER (spec §7) — sobra a BARRA DE DIGITACAO, e nao nada
+ * ===========================================================================
+ * Recolhido o painel guarda abas, log e modo batalha, e mantem a barra de
+ * digitacao com o badge SOMADO de todos os canais nao lidos. A escolha e da
+ * spec e a razao e de jogo: o jogador continua podendo falar sem reabrir, que
+ * e o que se quer no meio de uma luta.
+ *
+ * A faixa de arrasto FICA: recolhido o painel continua movel, e tirar a unica
+ * alca de mover junto com o corpo prenderia o chat onde ele estava.
  */
-function definirRecolhido(recolhido) {
-	_prefsRecolhido.recolhido = !!recolhido;
-	/* D-930: a partir do primeiro clique no botao, a escolha e DO JOGADOR — e
-	   o padrao por tamanho de tela (ver `ChatBox.onAppend`) para de opinar. */
-	_prefsRecolhido.escolhido = true;
-	_prefsRecolhido.save();
+/**
+ * OS TRES ESTADOS, e o chevron cicla entre eles:
+ *
+ *   aberto -> recolhido (so a barra de digitacao) -> minimizado (so o disco)
+ *
+ * Os dois pedidos do dono existem e nao competem. `recolhido` e a spec §7 e
+ * serve a quem quer continuar falando sem o log na frente; `minimizado` e o
+ * *"minimizasse full a ponto de nao ter"* e serve a quem quer a tela limpa.
+ * Escolher um so teria negado metade do que foi pedido.
+ */
+const ESTADOS = ['aberto', 'recolhido', 'minimizado'];
+
+/** Fechado = qualquer estado que esconda as abas. */
+const estaFechado = () => _recolhido.estado !== 'aberto';
+
+function proximoEstado() {
+	const i = ESTADOS.indexOf(_recolhido.estado);
+	return ESTADOS[(i < 0 ? 0 : i + 1) % ESTADOS.length];
+}
+
+function definirEstado(estado) {
+	_recolhido.estado = ESTADOS.includes(estado) ? estado : 'aberto';
+	/* D-930: a partir do primeiro gesto no chevron, a escolha e DO JOGADOR — e
+	   o padrao por tamanho de tela (ver `ChatBox.onAppend`) para de opinar.
+	   Ele fica AQUI, e nao no `definirRecolhido`, porque o chevron cicla pelos
+	   tres estados por este caminho: marcar so no atalho de duas posicoes
+	   deixaria o jogador que minimiza no celular sem freio nenhum. */
+	_recolhido.escolhido = true;
+	gravarPreferencia('Recolhido', _recolhido);
 	aplicarRecolhido();
+}
+
+/** Mantido com o nome antigo: e API interna chamada de varios pontos. */
+function definirRecolhido(fechar) {
+	definirEstado(fechar ? 'recolhido' : 'aberto');
 }
 
 function aplicarRecolhido() {
 	const root = _root();
 	const chatboxEl = root.querySelector('#chatbox');
 	const collapseBtn = root.querySelector('.cb-collapse');
-	if (!chatboxEl || !collapseBtn) {
-		return;
-	}
+	if (!chatboxEl || !collapseBtn) return;
 
-	const recolhido = !!_prefsRecolhido.recolhido;
+	const estado = ESTADOS.includes(_recolhido.estado) ? _recolhido.estado : 'aberto';
+	const recolhido = estado === 'recolhido';
+	const minimizado = estado === 'minimizado';
+
 	chatboxEl.classList.toggle('is-recolhido', recolhido);
+	chatboxEl.classList.toggle('is-minimizado', minimizado);
 	collapseBtn.classList.toggle('is-recolhido', recolhido);
-	collapseBtn.setAttribute('aria-expanded', String(!recolhido));
+	collapseBtn.setAttribute('aria-expanded', String(estado === 'aberto'));
 
-	const label = recolhido ? 'Expandir chat' : 'Recolher chat';
+	/*
+	 * O rotulo diz PARA ONDE O CLIQUE LEVA, e nao onde se esta.
+	 *
+	 * Num botao que cicla tres estados, dizer o estado atual ("recolhido")
+	 * deixaria o jogador adivinhando o que acontece se ele apertar. Aqui e o
+	 * unico controle do chat em que a acao vence o estado — e a diferenca e que
+	 * o estado ja esta VISIVEL na tela, e o proximo passo nao.
+	 */
+	const label =
+		estado === 'aberto'
+			? 'Recolher chat'
+			: recolhido
+				? 'Minimizar o chat por completo'
+				: 'Abrir chat';
 	collapseBtn.title = label;
 	collapseBtn.setAttribute('aria-label', label);
 
-	const content = root.querySelector('.content.active');
-	if (content) {
-		content.scrollTop = content.scrollHeight;
+	// Fechar leva o popover junto: ele e ancorado no topo do painel, que acabou
+	// de sumir, e ficaria boiando solto sobre o mundo.
+	if (estado !== 'aberto') fecharPopover(root);
+
+	atualizarBadges(root);
+	atualizarBotaoDeTamanho(root);
+	rolarParaOFimSeColado(root);
+}
+
+/**
+ * ===========================================================================
+ * AS OPCOES (spec §8)
+ * ===========================================================================
+ * Tres interruptores e uma acao. "Travar" governa POSICAO E TAMANHO juntos —
+ * a spec e explicita: com ele ligado a faixa de arrasto sai e as tres alcas
+ * desativam. Travar so um dos dois faria o cadeado prometer o que nao cumpre.
+ */
+function definirOpcao(nome, valor) {
+	// `tema` e uma STRING ('moderna' | 'classica'); os outros sao booleanos.
+	// Coagir tudo com `!!` transformaria 'classica' em `true` e a classe nunca
+	// entraria — um modo inteiro morto por um operador.
+	_opcoes[nome] = nome === 'tema' ? String(valor) : !!valor;
+	gravarPreferencia('Opcoes', _opcoes);
+	aplicarOpcoes();
+}
+
+function aplicarOpcoes() {
+	const root = _root();
+	const chatboxEl = root.querySelector('#chatbox');
+	if (!chatboxEl) return;
+
+	chatboxEl.classList.toggle('is-travado', !!_opcoes.travado);
+	chatboxEl.classList.toggle('mostra-hora', !!_opcoes.horario);
+	chatboxEl.classList.toggle('is-classico', _opcoes.tema === 'classica');
+
+	root.querySelectorAll('.cb-tema-op[data-tema]').forEach(botao => {
+		const ativo = botao.dataset.tema === (_opcoes.tema || 'moderna');
+		botao.classList.toggle('is-ativo', ativo);
+		botao.setAttribute('aria-checked', String(ativo));
+	});
+
+	root.querySelectorAll('.cb-opcao[data-opcao]').forEach(botao => {
+		const nome = botao.dataset.opcao;
+		// `restaurar` e acao, nao estado; `tema` e escolha entre dois e mora no
+		// proprio seletor acima. Nenhum dos dois e interruptor.
+		if (nome === 'restaurar' || nome === 'tema') return;
+		botao.setAttribute('aria-checked', String(!!_opcoes[nome]));
+	});
+
+	// O horario e um `display` no CSS, entao ligar/desligar nao repinta linha
+	// nenhuma — as que ja estao no log obedecem na hora.
+	atualizarBotaoDeTamanho(root);
+
+	// Desligar "sumir parado" tem de ACORDAR o painel na hora, e nao no
+	// proximo evento: quem desliga esta olhando para ele agora.
+	if (!_opcoes.repouso) acordarDoRepouso(root);
+	else agendarRepouso(root);
+}
+
+/** Restaurar padrao (spec §8): apaga o que este personagem gravou. */
+function restaurarPadrao() {
+	const root = _root();
+	SUFIXOS.forEach(sufixo => {
+		try {
+			localStorage.removeItem(chaveDoPersonagem(sufixo));
+		} catch (_e) {
+			// Ver `gravarPreferencia`: nao apagar e aceitavel, quebrar nao e.
+		}
+	});
+	_layout = Object.assign({}, PADRAO_LAYOUT);
+	_opcoes = Object.assign({}, PADRAO_OPCOES);
+	_envios = Object.assign({}, PADRAO_ENVIOS);
+	_recolhido = { estado: 'aberto' };
+
+	const painel = root.querySelector('#chatbox');
+	if (painel) {
+		// Tirar os inline devolve o painel ao que o CSS manda — que e o que
+		// "padrao" quer dizer. Zerar para numeros escritos aqui criaria um
+		// segundo dono do valor de fabrica.
+		painel.style.removeProperty('width');
+		painel.style.removeProperty('left');
+		painel.style.removeProperty('bottom');
+		painel.style.removeProperty('--cb-altura');
 	}
+	aplicarRecolhido();
+	aplicarOpcoes();
+	aplicarDicaDoTab(root);
+	fecharPopover(root);
+}
+
+/* ─── O POPOVER ─────────────────────────────────────────────────────────── */
+function abrirPopover(root) {
+	const popover = root.querySelector('.cb-popover');
+	const botao = root.querySelector('.cb-config');
+	if (!popover || !botao) return;
+	popover.hidden = false;
+	botao.classList.add('is-aberto');
+	botao.setAttribute('aria-expanded', 'true');
+	acordarDoRepouso(root);
+}
+
+function fecharPopover(root) {
+	const popover = root.querySelector('.cb-popover');
+	const botao = root.querySelector('.cb-config');
+	if (!popover || !botao) return;
+	popover.hidden = true;
+	botao.classList.remove('is-aberto');
+	botao.setAttribute('aria-expanded', 'false');
+}
+
+function alternarPopover(root) {
+	const popover = root.querySelector('.cb-popover');
+	if (!popover) return;
+	if (popover.hidden) abrirPopover(root);
+	else fecharPopover(root);
+}
+
+/**
+ * ===========================================================================
+ * REPOUSO (spec §7)
+ * ===========================================================================
+ * 8 s sem mensagem nova e sem interacao, o painel cai para 28%. Volta a 100%
+ * com hover, foco no campo, ou mensagem nova.
+ *
+ * SUSSURRO E ALERTA CRITICO IGNORAM O REPOUSO e trazem o painel de volta — sao
+ * as duas coisas que o jogador nao pode perder por estar de olho noutro canto
+ * da tela.
+ */
+const MS_DE_REPOUSO = 8_000;
+let _relogioDoRepouso = null;
+
+function agendarRepouso(root) {
+	if (_relogioDoRepouso !== null) {
+		clearTimeout(_relogioDoRepouso);
+		_relogioDoRepouso = null;
+	}
+	if (!_opcoes.repouso) return;
+	_relogioDoRepouso = setTimeout(() => {
+		_relogioDoRepouso = null;
+		const painel = root.querySelector('#chatbox');
+		// Com o campo em foco o painel NAO dorme: quem esta digitando esta
+		// usando, mesmo sem gerar evento nenhum por 8 s.
+		if (!painel || painel.contains(root.activeElement)) return;
+		painel.classList.add('is-repouso');
+	}, MS_DE_REPOUSO);
+}
+
+function acordarDoRepouso(root) {
+	const painel = root.querySelector('#chatbox');
+	if (painel) painel.classList.remove('is-repouso');
+	agendarRepouso(root);
+}
+
+/**
+ * ===========================================================================
+ * ROLAGEM ANCORADA (spec §7)
+ * ===========================================================================
+ * Quem rolou para cima nao perde o lugar quando chega mensagem nova. O botao
+ * "novas mensagens" e o caminho de volta, e so aparece quando ha o que ler
+ * abaixo.
+ */
+const FOLGA_DO_FIM = 8;
+
+function estaColadoNoFim(elemento) {
+	return elemento.scrollHeight - elemento.scrollTop - elemento.clientHeight <= FOLGA_DO_FIM;
+}
+
+function rolarParaOFimSeColado(root) {
+	const ativo = root.querySelector('.content.active');
+	if (ativo) ativo.scrollTop = ativo.scrollHeight;
+	atualizarBotaoDeNovas(root);
+}
+
+function atualizarBotaoDeNovas(root, forcar) {
+	const botao = root.querySelector('.cb-novas');
+	const ativo = root.querySelector('.content.active');
+	if (!botao || !ativo) return;
+	botao.hidden = forcar === true ? false : estaColadoNoFim(ativo);
+}
+
+/**
+ * ===========================================================================
+ * OS BADGES DE NAO LIDO (spec §4)
+ * ===========================================================================
+ * Contagem por canal, ate "9+". Passar disso nao muda a decisao do jogador —
+ * ele vai olhar de qualquer jeito — e estouraria a pilula.
+ *
+ * Antes era um pontinho sem numero: o jogador sabia que havia algo e nao sabia
+ * se valia a pena trocar de aba.
+ */
+const _naoLidos = {};
+
+function somarNaoLido(canal) {
+	_naoLidos[canal] = (_naoLidos[canal] || 0) + 1;
+}
+
+function zerarNaoLido(canal) {
+	_naoLidos[canal] = 0;
+}
+
+const textoDoBadge = n => (n > 9 ? '9+' : String(n));
+
+function atualizarBadges(root) {
+	let total = 0;
+	CANAIS.forEach(canal => {
+		const n = _naoLidos[canal] || 0;
+		total += n;
+		const pilula = root.querySelector(`.tab[data-canal="${canal}"] .cb-aba`);
+		if (!pilula) return;
+		pilula.classList.toggle('tem-nova', n > 0);
+		const badge = pilula.querySelector('.cb-aba-badge');
+		if (badge) badge.textContent = textoDoBadge(n);
+	});
+
+	// Recolhido nao ha aba na tela, e sem este badge somado o jogador nao teria
+	// aviso nenhum — um chat que esconde novidade nao esta recolhido, esta mudo.
+	const collapseBtn = root.querySelector('.cb-collapse');
+	if (collapseBtn) {
+		collapseBtn.classList.toggle('tem-nova', total > 0);
+		const badge = collapseBtn.querySelector('.cb-collapse-badge');
+		if (badge) badge.textContent = textoDoBadge(total);
+	}
+}
+
+/**
+ * A dica do Tab some depois de 20 envios (spec §6): ela ensina, e quem ja
+ * aprendeu nao precisa de professor ocupando a barra.
+ */
+const ENVIOS_ATE_APRENDER = 20;
+
+function aplicarDicaDoTab(root) {
+	const dica = root.querySelector('.cb-dica-tab');
+	if (dica) dica.hidden = (_envios.enviados || 0) >= ENVIOS_ATE_APRENDER;
+}
+
+function contarEnvio(root) {
+	_envios.enviados = (_envios.enviados || 0) + 1;
+	// Grava so ate o limite: depois dele o numero nao decide mais nada, e
+	// escrever no `localStorage` a cada fala e desperdicio sincrono.
+	if (_envios.enviados <= ENVIOS_ATE_APRENDER) gravarPreferencia('Envios', _envios);
+	aplicarDicaDoTab(root);
 }
 
 function setChatFontScale(scale) {
