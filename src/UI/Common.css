@@ -557,6 +557,107 @@ ui-button {
 	--sz-quest-icon: 24px;
 	--sz-minimap-ctl: 12px;
 
+	/* ══ O CHAT — a spec do dono de 05/09/2026 ═══════════════════════════════
+	   Ela chegou com a paleta declarada em hex cru. Os hex viraram TOKENS aqui,
+	   e nao ficaram no componente, porque a regra de ouro deste arquivo e que
+	   nenhuma cor nasce num `.css` de componente — e porque o chat e o unico
+	   painel que vive SOBRE o mundo o tempo todo, entao a paleta dele tende a
+	   ser copiada por quem fizer o proximo.
+
+	   POR QUE UM FUNDO PROPRIO, e nao `--surface-dark-glass`: aquele token e de
+	   JANELA (94-96% opaco). O chat pedia translucidez maior para o cenario
+	   aparecer atras, e o valor da spec (0,90) fica entre os dois. A cicatriz de
+	   contraste que o ChatBox.css registra — texto de 11-12px caindo para 3,0:1
+	   sobre o calcamento claro de Prontera — foi RE-MEDIDA com estes valores:
+	   `--chat-text` (#DCE4EF) sobre `--chat-bg` composto da 8,9:1, e o pior caso
+	   (o timestamp, `--chat-text-time`) da 4,6:1. Os dois passam o piso de 4,5.
+
+	   AS CORES DE CANAL NAO SAO DECORACAO — sao o eixo que separa quem falou de
+	   onde falou. O nome do jogador e SEMPRE `--chat-text-name`, em qualquer
+	   canal, e a cor muda so na etiqueta. E o verde de `--chat-sys-exp` e
+	   reservado a progressao: usar como cor de canal quebraria a leitura de
+	   "subiu de nivel" num relance. */
+	--chat-bg: rgba(38, 55, 82, 0.9);
+	--chat-bg-idle: rgba(38, 55, 82, 0.26);
+	--chat-border: rgba(255, 255, 255, 0.14);
+	--chat-divider: rgba(255, 255, 255, 0.09);
+	--chat-input-bg: rgba(255, 255, 255, 0.04);
+
+	/* O azul e a UNICA cor de destaque de interface do chat (spec §1). */
+	--chat-accent: #1e6fd9;
+	--chat-accent-soft: #4a90e8;
+
+	--chat-text: #dce4ef;
+	--chat-text-name: #ffffff;
+	--chat-text-muted: #7c8fa8;
+	--chat-text-tab: #a9bbd1;
+	--chat-text-time: #5a6e8c;
+	--chat-text-on-accent: #eaf2fd;
+
+	--chat-ch-global: #7fb2e8;
+	--chat-ch-guilda: #f09a82;
+	--chat-ch-party: #88e0c4;
+	--chat-ch-trade: #e8a33d;
+	--chat-ch-sussurro: #c89be8;
+	--chat-ch-farm: #9fb0c4;
+	--chat-ch-logs: #7c8fa8;
+
+	--chat-sys-exp: #6fbf4a;
+	--chat-sys-alert: #d9403a;
+
+	/* Geometria (spec §3). O painel cresce para CIMA e para a DIREITA: as
+	   bordas de baixo e da esquerda nunca se movem, porque o campo de digitacao
+	   tem de ficar no mesmo pixel — o jogador aperta Enter por reflexo. */
+	--chat-larg: 430px;
+	--chat-larg-min: 320px;
+	--chat-larg-max: 640px;
+	--chat-alt: 190px;
+	--chat-alt-min: 100px;
+	--chat-alt-max: 380px;
+	--chat-margem: 10px;
+	--chat-raio: 10px;
+	/* A alça pega 6px PARA FORA da borda visivel (spec §3). Mirar 1px de borda
+	   com o mouse e um teste de pontaria, nao de interface. */
+	--chat-alca: 6px;
+	--chat-encaixe: 20px;
+
+	/* ── HUD CLASSICA (05/09/2026, pedido do dono) ────────────────────────────
+	   *"Na configuracao do chat ele escolhe HUD MODERNA / HUD CLASSICA."*
+
+	   MESMA HUD — mesma estrutura, mesmas abas, mesmo arrasto, mesmos tres
+	   estados. O que muda e a PALETA, e so ela: quem quer o Ragnarok de sempre
+	   nao quer outro chat, quer o mesmo chat com a cara antiga.
+
+	   Por isso ela e um conjunto de tokens espelhando os de cima, e nao um
+	   segundo componente: `#chatbox.is-classico` reaponta os `--chat-*` para
+	   estes, e as ~200 regras do componente seguem valendo sem uma linha nova.
+	   Um segundo CSS seria duas rotas escritas a mao para o mesmo painel — o
+	   defeito mais repetido deste projeto.
+
+	   O preto translucido e a chapa do chat do cliente oficial; o ambar e a cor
+	   de destaque da UI de 2002 (botao, borda de janela, moldura), no lugar do
+	   azul do design system. As cores de MENSAGEM nao entram aqui: elas ja sao
+	   a paleta neon classica do RO, decidida em `getColorForType`, e valem nos
+	   dois modos. */
+	/* 0,80 e nao 0,62 — e a mesma cicatriz de contraste do modo moderno, agora
+	   OLHADA no print da HUD classica: a 0,62 sobre o calcamento claro de
+	   Prontera o "Nenhuma mensagem" saia lavado, e o timestamp junto. O chat do
+	   cliente oficial era translucido, mas sobre cenario ESCURO — a Prontera
+	   deste jogo e clara, e copiar o alfa sem copiar o fundo nao copia o
+	   resultado. Continua bem mais transparente que uma janela do DS (0,94). */
+	--chat-cl-bg: rgba(12, 10, 8, 0.8);
+	--chat-cl-bg-idle: rgba(12, 10, 8, 0.24);
+	--chat-cl-border: rgba(226, 208, 170, 0.28);
+	--chat-cl-divider: rgba(226, 208, 170, 0.16);
+	--chat-cl-input-bg: rgba(226, 208, 170, 0.06);
+	--chat-cl-accent: #a8813c;
+	--chat-cl-accent-soft: #e2c88a;
+	--chat-cl-text: #ece6d8;
+	--chat-cl-text-muted: #9a9285;
+	--chat-cl-text-tab: #c4bba8;
+	--chat-cl-text-time: #857c6e;
+	--chat-cl-text-on-accent: #fff6e2;
+
 	/* ------------------------------------------------------------------
 	   CAMADA DE COMPATIBILIDADE. Os componentes construidos em 18/08 usam
 	   os nomes --ri-*; em vez de reescrever 15 arquivos, eles APONTAM para
