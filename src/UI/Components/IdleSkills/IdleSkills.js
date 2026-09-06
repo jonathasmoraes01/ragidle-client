@@ -71,6 +71,7 @@ import UIManager from 'UI/UIManager.js';
 import GUIComponent from 'UI/GUIComponent.js';
 import buildResumo from './resumoDaDescricao.js';
 import RiIcones from 'UI/ri-icones.js';
+import { ehCelularEmPe } from 'UI/hudVertical.js'; // D-942: o detalhe vira folha no celular em pe
 import htmlText from './IdleSkills.html?raw';
 import cssText from './IdleSkills.css?raw';
 import { fecharEEsquecer } from '../limpezaDeJanelaIdle.js';
@@ -330,6 +331,16 @@ IdleSkills.init = function init() {
 	root.querySelector('.is-close').addEventListener('click', onClickClose);
 	root.querySelector('.is-btn-aplicar').addEventListener('click', onClickAplicar);
 	root.querySelector('.is-btn-resetar').addEventListener('click', onClickResetar);
+	/* D-942: o "Voltar para a arvore" da folha de detalhe do celular. Guarda
+	   pelo mesmo motivo dos vizinhos: este init roda dentro de
+	   MapEngine.init e excecao aqui derruba o mundo. */
+	const voltarDetalhe = root.querySelector('.is-voltar-detalhe');
+	if (voltarDetalhe) {
+		voltarDetalhe.addEventListener('click', e => {
+			e.stopImmediatePropagation();
+			fecharDetalheMovel();
+		});
+	}
 
 	const check = root.querySelector('.is-desc-check');
 	check.checked = IdleSkills.mostrarDescricoes;
@@ -399,6 +410,9 @@ function onClickButton(e) {
 }
 
 function onClickClose(e) {
+	/* D-942: fechar a janela tambem recolhe a folha — reabrir mostra a
+	   arvore, nunca um detalhe orfao da sessao anterior. */
+	fecharDetalheMovel();
 	e.stopImmediatePropagation();
 	closeWindow();
 }
@@ -679,6 +693,9 @@ function renderRail() {
 }
 
 function onClickGrau(e) {
+	/* D-942: trocar de degrau e um gesto de ARVORE — se a folha de detalhe
+	   estiver aberta no celular, ela sai da frente. */
+	fecharDetalheMovel();
 	e.stopImmediatePropagation();
 	IdleSkills.grauAtivo = parseInt(e.currentTarget.dataset.tab, 10) || 0;
 	lembrarAba(_preferences, IdleSkills.grauAtivo);
@@ -1163,6 +1180,30 @@ function onClickNo(e) {
 	IdleSkills.selectedSkillId = e.currentTarget.dataset.skillSel;
 	renderArvore();
 	renderDetail();
+	/* D-942: no celular em pe o painel lateral nao cabe (292px numa tela de
+	   ~390) — tocar no NO abre o detalhe como FOLHA por cima da arvore. So o
+	   toque no no: a seta de rascunho (onClickMais) tambem seleciona, e
+	   abrir uma folha a cada ponto distribuido seria a janela atrapalhando o
+	   proprio gesto. */
+	abrirDetalheMovel();
+}
+
+/** D-942 — a folha de detalhe do celular em pe. */
+function abrirDetalheMovel() {
+	if (!ehCelularEmPe()) {
+		return;
+	}
+	const janela = _root().querySelector('.is-window');
+	if (janela) {
+		janela.classList.add('is-detalhe-movel-aberto');
+	}
+}
+
+function fecharDetalheMovel() {
+	const janela = _root().querySelector('.is-window');
+	if (janela) {
+		janela.classList.remove('is-detalhe-movel-aberto');
+	}
 }
 
 /**

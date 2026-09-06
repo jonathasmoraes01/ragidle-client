@@ -40,6 +40,13 @@
 			<!-- O DOSSIÊ: o corpo rola por dentro, o rodapé (próximo nível +
 			     rotação) fica fixo à vista. -->
 			<aside class="is-detail">
+				<!-- D-942 (06/09/2026): no celular em pe o detalhe vira uma FOLHA
+				     por cima da arvore, e este botao e o caminho de volta. Fora da
+				     HUD vertical ele nao existe (display:none no CSS) - no desktop
+				     o painel e fixo ao lado e nao ha o que voltar. -->
+				<button type="button" class="is-voltar-detalhe" title="Voltar para a árvore">
+					<span aria-hidden="true">‹</span> Voltar para a árvore
+				</button>
 				<div class="is-detail-scroll ri-scroll">
 					<div class="is-empty">Selecione uma habilidade.</div>
 				</div>

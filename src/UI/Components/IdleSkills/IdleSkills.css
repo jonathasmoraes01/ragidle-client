@@ -1210,3 +1210,100 @@
 		min-height: var(--hit-touch, 44px);
 	}
 }
+
+/* O "Voltar para a arvore" da folha de detalhe (D-942) NAO EXISTE fora do
+   celular em pe. */
+#IdleSkills .is-voltar-detalhe {
+	display: none;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   D-942 — CELULAR EM PE: a arvore em TELA CHEIA, o detalhe como FOLHA
+   (06/09/2026). Veredito do dono sobre a primeira forma: *"o de habilidade
+   vc vai ter que fazer de outra forma, nao da pra usar"* — e ele estava
+   certo pela aritmetica: o painel lateral tem 292px fixos e o trilho 60,
+   numa tela de ~390 sobravam ~25px para a arvore inteira.
+
+   A forma nova: o painel lateral SAI do fluxo, a arvore fica com a largura
+   toda (os nos ja tem 92x108 — tamanho de dedo por desenho) e PANORAMA
+   pelos dois eixos com o dedo, sem trilho de rolagem (D-941). Tocar num NO
+   abre o detalhe como FOLHA por cima da arvore (so da area de conteudo: a
+   barra de titulo e o rodape de pontos/Aplicar continuam a vista), com
+   "Voltar para a arvore" no topo. A seta ▶ de rascunho NAO abre a folha —
+   distribuir pontos e um gesto rapido e a folha atrapalharia.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.ri-vertical #IdleSkills .is-content {
+	position: relative;
+}
+
+/* A chave "Descricoes" e do arranjo lado a lado; na folha nao ha o que
+   ligar ou desligar. */
+.ri-vertical #IdleSkills .is-desc-toggle {
+	display: none;
+}
+
+/* A arvore com a largura toda, panoravel nos dois eixos. */
+.ri-vertical #IdleSkills .is-arvore {
+	overflow: auto;
+	overscroll-behavior: contain;
+	-webkit-overflow-scrolling: touch;
+}
+
+/* O detalhe some do fluxo... */
+.ri-vertical #IdleSkills .is-detail {
+	display: none;
+}
+
+/* ...e volta como FOLHA quando um no e tocado (classe posta por
+   abrirDetalheMovel em IdleSkills.js). O `!important` vence o
+   `.is-sem-detalhe` da preferencia "Descricoes" salva no desktop. */
+.ri-vertical #IdleSkills .is-window.is-detalhe-movel-aberto .is-detail {
+	display: flex !important;
+	flex-direction: column;
+	position: absolute;
+	inset: 0;
+	z-index: 5;
+	width: auto;
+	max-width: none;
+	box-sizing: border-box;
+	background: var(--is-window-bg, #f4f6fb);
+	border-left: none;
+}
+
+.ri-vertical #IdleSkills .is-voltar-detalhe {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	width: 100%;
+	box-sizing: border-box;
+	min-height: var(--hit-touch, 44px);
+	margin: 0;
+	padding: 8px 12px;
+	appearance: none;
+	border: 0;
+	border-bottom: 1px solid var(--is-rule, #dde3ee);
+	background: var(--is-titlebar-bg, #e6ebf5);
+	color: var(--is-accent, #3b6ea5);
+	font-family: var(--font-ui, var(--ri-fonte));
+	font-size: 13px;
+	font-weight: var(--fw-bold, 700);
+	text-align: left;
+	cursor: pointer;
+}
+
+/* As setas da plaqueta (◀ n/m ▶) ganham area de dedo sem inchar o desenho —
+   a tecnica de sempre (::before com inset negativo). Mais na VERTICAL do
+   que na horizontal: as duas setas moram a ~50px uma da outra dentro do no,
+   e crescer demais para os lados faria uma roubar o toque da outra. */
+.ri-vertical #IdleSkills [data-skill-mais],
+.ri-vertical #IdleSkills [data-skill-menos] {
+	position: relative;
+}
+
+.ri-vertical #IdleSkills [data-skill-mais]::before,
+.ri-vertical #IdleSkills [data-skill-menos]::before {
+	content: '';
+	position: absolute;
+	inset: -12px -4px;
+}
