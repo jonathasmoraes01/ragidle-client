@@ -111,7 +111,10 @@ const MOB_STACK_MAX = 5;
  */
 // v3 (06/09/2026, D-1138): o catalogo em PARTES (D-1134) e contrato novo — um
 // cliente sem a acumulacao mostrava so a ultima pagina (45 mapas) em silencio.
-const CONTRATO_DO_CATALOGO = 3;
+// ...e voltou a 2 (D-1138, adendo): producao sobe servidor e cliente em momentos
+// diferentes, e o 3 fez o cliente novo recusar o servidor v2 do ar. As partes sao
+// aditivas; o contrato fica em 2 e este cliente as acumula.
+const CONTRATO_DO_CATALOGO = 2;
 
 /**
  * Race translation (PT-BR), fixed dictionary as requested.
