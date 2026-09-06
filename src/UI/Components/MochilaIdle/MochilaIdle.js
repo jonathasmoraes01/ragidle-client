@@ -151,6 +151,7 @@ import htmlText from './MochilaIdle.html?raw';
 import cssText from './MochilaIdle.css?raw';
 import { fecharEEsquecer } from '../limpezaDeJanelaIdle.js';
 import { abaLembrada, lembrarAba } from '../memoriaDeAba.js';
+import { pegar } from 'UI/toqueParaAtalho.js';
 
 /**
  * Mantido em sincronia com ":host"/".mo-window"/".mo-frame" em
@@ -325,6 +326,22 @@ function _root() {
 }
 
 /**
+ * O ponteiro deste aparelho e GROSSO (dedo)? LIDO NA HORA DO EVENTO -- nunca
+ * uma vez so no boot, porque a janela pode trocar de aparelho SEM recarregar
+ * a pagina (DevTools, um tablet com teclado que liga/desliga o toque). Mesmo
+ * criterio que escalaDaHud.js/ChatBox.js ja usam pra essa mesma pergunta --
+ * duplicado aqui (em vez de importado) porque a fronteira deste buraco e
+ * SOMENTE MochilaIdle.js/.css.
+ *
+ * Usado pra abrir o MESMO menu do botao direito com um toque simples (ver
+ * onClickItemGrade abaixo): no MOUSE um clique simples continua sem fazer
+ * nada, o desktop nao muda.
+ */
+function ehToque() {
+	return typeof window !== 'undefined' && !!window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
+}
+
+/**
  * One-time setup.
  */
 MochilaIdle.init = function init() {
@@ -377,6 +394,9 @@ MochilaIdle.init = function init() {
 	grade.addEventListener('mouseout', onHoverSai);
 	grade.addEventListener('dblclick', onDblClickItem);
 	grade.addEventListener('contextmenu', onContextMenuItem);
+	// TOQUE (05/09/2026): um toque simples abre o MESMO menu do botao direito
+	// -- so no dedo (ehToque() decide na hora, ver onClickItemGrade abaixo).
+	grade.addEventListener('click', onClickItemGrade);
 	// Arrastar um item da grade (fonte, contrato global _OBJ_DRAG_).
 	grade.addEventListener('dragstart', onGradeDragStart);
 	grade.addEventListener('dragend', onGradeDragEnd);
@@ -969,6 +989,12 @@ function onDblClickItem(e) {
  * descricao (mesma janela ItemInfo de sempre, contrato tecnico secao 5b).
  * Rotulo por aba: equipavel = Equipar, consumivel = Usar, sem acao real
  * (Diversos) = so Detalhes -- getItemTab() acima ja classifica certo.
+ *
+ * O CORPO foi extraido pra abrirMenuDoItem() (05/09/2026, frente de toque:
+ * "sem clique direito e sem arraste obrigatorio"). Este handler so cuida do
+ * evento de mouse (preventDefault/stopImmediatePropagation do contextmenu);
+ * onClickItemGrade abaixo chama a MESMA funcao pro toque, pra nao existirem
+ * duas montagens do mesmo menu envelhecendo em paralelo.
  */
 function onContextMenuItem(e) {
 	const cell = e.target.closest('.mo-item');
@@ -977,6 +1003,40 @@ function onContextMenuItem(e) {
 	}
 	e.preventDefault();
 	e.stopImmediatePropagation();
+	abrirMenuDoItem(cell);
+}
+
+/**
+ * TOQUE (05/09/2026, D-938 -- "sem clique direito e sem arraste obrigatorio,
+ * todo fluxo tem caminho por toque"): um toque simples na celula abre o
+ * MESMO menu do botao direito. O dedo nao tem "botao direito", e o
+ * `contextmenu` sintetico de toque-longo e inconsistente entre navegadores
+ * moveis -- por isso o caminho e um `click` normal, nao um gesto novo.
+ *
+ * SO no dedo (ehToque() acima, lido na hora do proprio evento): no mouse um
+ * clique simples continua sem fazer nada -- dblclick usa/equipa
+ * (onDblClickItem), botao direito abre o menu (onContextMenuItem acima),
+ * exatamente como antes desta entrega. Isto SOMA um caminho, nao troca.
+ */
+function onClickItemGrade(e) {
+	if (!ehToque()) {
+		return;
+	}
+	const cell = e.target.closest('.mo-item');
+	if (!cell || cell.classList.contains('is-empty')) {
+		return;
+	}
+	e.preventDefault();
+	e.stopImmediatePropagation();
+	abrirMenuDoItem(cell);
+}
+
+/**
+ * Monta o menu de um item da grade -- chamada pelos DOIS caminhos que abrem o
+ * MESMO menu (botao direito no mouse via onContextMenuItem, toque simples no
+ * dedo via onClickItemGrade, ambos acima). Uma unica montagem, nunca duas.
+ */
+function abrirMenuDoItem(cell) {
 	const index = parseInt(cell.dataset.index, 10);
 	const item = Inventory.getUI().getItemByIndex(index);
 	if (!item) {
@@ -1001,6 +1061,53 @@ function onContextMenuItem(e) {
 		});
 		ContextMenu.nextGroup();
 	}
+
+	/*
+	 * "POR NA BARRA" (05/09/2026, D-938) -- o caminho por TOQUE ate a barra de
+	 * atalhos, ver UI/toqueParaAtalho.js pro raciocinio inteiro (pegar-e-por,
+	 * nao polifill de arrasto HTML5, que nao existe no toque). O payload e
+	 * EXATAMENTE o que onGradeDragStart ja monta pro arrasto nativo (mesmo
+	 * `{type:'item', from:'Inventory', data:item}`), so com `rotulo` a mais --
+	 * a MESMA chamada DB.getItemName({showItemOptions:false}) que
+	 * mostrarDicaItem() ja usa pro nome da dica, sem inventar um segundo
+	 * criterio de "nome do item".
+	 *
+	 * Aparece nos DOIS caminhos (mouse e toque) de proposito: no mouse
+	 * continua sendo um atalho legitimo pra quem prefere menu a arrastar, nao
+	 * um botao exclusivo de celular.
+	 *
+	 * SEM filtro por aba de proposito: o `case 'Inventory'` de onDrop em
+	 * ShortCut.js (so lido, nao editado) so exige um ITID que resolva de
+	 * volta no inventario -- o MESMO `item` que getItemByIndex ja garantiu
+	 * aqui em cima. Nenhum dos tres tabs (Consumiveis/Equipar/Diversos) fica
+	 * de fora.
+	 */
+	ContextMenu.addElement('Pôr na barra', () => {
+		pegar({
+			type: 'item',
+			from: 'Inventory',
+			data: item,
+			rotulo: DB.getItemName(item, { showItemOptions: false })
+		});
+		/*
+		 * NO DEDO, ARMAR FECHA A MOCHILA — e isto nao e conveniencia.
+		 *
+		 * Em tela estreita esta janela vira PAINEL DE TELA CHEIA (D-932) e
+		 * cobre a barra de atalhos. A prova do jogo real reprovou exatamente
+		 * aqui: o item foi para a mao, o rotulo mandou "toque num espaco da
+		 * barra", e a barra estava DEBAIXO da mochila -- o toque no slot
+		 * expirou porque o slot nao recebia evento nenhum. Mandar o jogador
+		 * tocar no que ele nao pode ver e pior do que nao ter o caminho.
+		 *
+		 * So no dedo: no mouse a janela nao cobre a barra, e fechar a mochila
+		 * de quem so queria armar um atalho seria tirar da tela o que ele
+		 * ainda esta usando.
+		 */
+		if (ehToque()) {
+			MochilaIdle.toggle();
+		}
+	});
+	ContextMenu.nextGroup();
 
 	ContextMenu.addElement('Detalhes', () => {
 		abrirDetalhes(item);

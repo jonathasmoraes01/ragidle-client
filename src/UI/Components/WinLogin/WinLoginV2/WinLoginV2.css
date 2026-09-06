@@ -307,3 +307,58 @@ input:focus-visible {
 		transition: none !important;
 	}
 }
+@media (max-height: 439px) {
+	/* Celular DEITADO medido (852x393 / 667x375 / 915x412): o botao "Entrar em
+	 * Midgard" ficava sempre em y=495..543, em QUALQUER altura de janela, e nao
+	 * havia rolagem para alcanca-lo (junto com "Lembrar usuario", o campo Senha
+	 * e os dois links). CAUSA REAL: #WinLogin (:9) e um flex row e
+	 * .wl-composition (:20) se centraliza nos DOIS eixos por `margin: auto`
+	 * (:25). Quando o conteudo fica mais alto que #WinLogin, essa centralizacao
+	 * reparte o excesso metade ACIMA / metade ABAIXO do eixo vertical - e
+	 * overflow-y:auto (:15) so alcanca scroll POSITIVO (a metade de baixo). A
+	 * metade de cima (empurrada para fora por margin:auto) fica presa em
+	 * scrollTop=0, entao o botao mais abaixo no fluxo nunca chega a aparecer e
+	 * nao ha nada para rolar ate ele. E o Flexbug #10 (overflow + centralizacao
+	 * por flex nao coexistem - github.com/philipwalton/flexbugs#flexbug10). O
+	 * conserto de raiz troca a centralizacao vertical por alinhamento no topo
+	 * SO nesta faixa: aí o excesso vira fluxo normal (tudo abaixo, nada preso
+	 * acima) e o overflow-y:auto que ja existe em #WinLogin passa a funcionar.
+	 * O resto (logo escondida, respiros menores) so reduz QUANTO precisa rolar
+	 * - com logo escondida e os cortes abaixo, o cartao passa a caber inteiro
+	 * em 412px e falta ~11px em 393px / ~29px em 375px, que agora rolam. */
+	#WinLogin {
+		align-items: flex-start;
+		padding-block: var(--sp-4);
+		max-height: 100vh;
+		max-height: 100dvh; /* barra de URL do Chrome/Safari muda a altura; vh cru mente (regra do dono), dvh acompanha */
+	}
+	.wl-composition {
+		/* so a auto-margem VERTICAL sai (era ela que causava o Flexbug #10);
+		 * a horizontal fica, para o cartao continuar centralizado na largura. */
+		margin: 0 auto;
+	}
+	.wl-logo {
+		/* decoracao, nao funcao: some aqui e devolve ~90px ao botao. */
+		display: none;
+	}
+	.wl-header {
+		padding-top: var(--sp-4);
+	}
+	.wl-eyebrow {
+		margin-bottom: var(--sp-2);
+	}
+	.wl-ornament {
+		margin-top: var(--sp-3);
+	}
+	.wl-title {
+		font-size: calc(var(--fs-hero) - var(--sp-4));
+	}
+	.wl-body {
+		gap: var(--sp-3);
+		padding-block: var(--sp-3);
+	}
+	.wl-replay {
+		/* flush com o gap novo (var(--sp-3)), igual ao padrao ja usado em :292..301 */
+		margin-top: calc(-1 * var(--sp-3));
+	}
+}

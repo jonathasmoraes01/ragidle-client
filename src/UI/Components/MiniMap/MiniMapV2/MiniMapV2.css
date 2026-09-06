@@ -137,3 +137,57 @@
 	top: 0px;
 	left: -45px;
 }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   D-930 (05/09/2026) — CELULAR DEITADO: a coluna da direita nao cabe inteira.
+
+   MEDIDO com o jogo de pe, em 852x393 e 915x412: o botao "Menu" ficava
+   COBERTO pelos botoes de caca. A conta da coluna da direita, de cima para
+   baixo:
+
+       --hud-td-topo ...................  6
+     + minimapa ....................... 184
+     + respiro .........................  8
+     + os dois botoes de caca (44+4+44)  92
+     = 290
+
+   e o botao "Menu", que mora na pilha do rodape, ocupa de 209 a 273 numa tela
+   de 393. Os dois se cruzam de 209 a 273, e quem perde e o "Menu": ele fica
+   desenhado e inalcancavel — o defeito exato que esta frente inteira existe
+   para matar.
+
+   O QUE CEDE E O MINIMAPA, e a escolha nao e arbitraria. Num jogo idle o
+   personagem caca sozinho: o minimapa informa, o "Menu" e os botoes de caca
+   AGEM. Entre encolher o que informa e esconder o que age, encolhe-se o que
+   informa — e so nesta faixa.
+
+   84x84 no lugar de 128x128, sem cabecalho e sem rodape:
+       8 (respiro do card) + 84 = 92, contra os 184 de antes.
+   Com isso a coluna fecha em 6 + 92 + 8 + 92 = 198, e o "Menu" comeca em 209.
+
+   O `<canvas>` continua com 128x128 de BUFFER (o contrato de
+   `MiniMapCommon.js`, citado no cabecalho deste arquivo): quem encolhe e a
+   caixa CSS, e o navegador reduz. `image-rendering: pixelated` mantem o
+   desenho nitido em vez de borrado — a mesma regra que vale para toda arte
+   do cliente neste projeto.
+
+   O nome do mapa nao se perde: ele continua aparecendo no `MapName` a cada
+   troca de mapa. As coordenadas, sim, somem nesta faixa — e sao a informacao
+   mais dispensavel da tela num jogo em que ninguem anda a mao.
+   ═══════════════════════════════════════════════════════════════════════ */
+@media (max-height: 439px) {
+	.mm-header,
+	.mm-footer {
+		display: none;
+	}
+
+	.mm-canvas-frame,
+	.mm-body canvas {
+		width: 84px;
+		height: 84px;
+	}
+
+	.mm-body canvas {
+		image-rendering: pixelated;
+	}
+}

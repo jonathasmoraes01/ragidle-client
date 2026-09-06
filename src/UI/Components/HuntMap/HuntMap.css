@@ -1185,3 +1185,120 @@
 }
 
 /* ─── Barras de rolagem: ".ri-scroll" (Common.css) já cuida ──────────── */
+
+/* ═══════════════════════════════════════════════════════════════════════
+   TELA ESTREITA (<600px) — as DUAS colunas do dossiê empilham (Lote 3,
+   frente "HUD adaptável"; a moldura de janela-vira-painel é o D-932, em
+   Common.css — aqui só o CONTEÚDO desta janela, que o D-932 não toca).
+
+   MECANISMO (sem este bloco): ".hm-body" (linha ~282) é um flex ROW com
+   TRÊS filhos que nunca quebram linha — ".hm-rail" (trilho de regiões,
+   "flex: 0 0 var(--hm-rail)" = 138px), ".hm-list-wrap" (lista de mapas,
+   "flex: 1 1 auto", já com min-width:0) e ".hm-panel" (dossiê, "flex: 0 0
+   var(--hm-panel)" = 318px). Os dois "flex: 0 0 <px>" têm flex-shrink 0 —
+   NUNCA encolhem — então em 393px de tela (o D-932 já deixa ".hm-window"
+   com 100% de largura) a conta é 138 + lista espremida a quase-zero + 318
+   = ~456px: o dossiê estoura sozinho, porque é ele quem carrega a largura
+   fixa e recusa ceder. Medido pelo senior: ".hm-panel" ia de x=139 a
+   x=458 numa tela de 393 — o botão "Caçar aqui" nascia fora dela.
+
+   Nenhum FILHO do dossiê (".hm-hero", ".hm-fit", ".hm-section", ".hm-mobs",
+   ".hm-chip", ".hm-drops", ".hm-panel-footer", ".hm-btn-go"...) tem largura
+   própria em px — é tudo margem/padding relativo ao pai (".hm-drops" nem
+   isso: é grid com "minmax(0, 1fr)", nunca estoura). Por isso corrigir os
+   DOIS flex-basis fixos e a direção de ".hm-body" já resolve os 24
+   elementos que o senior mediu, sem tocar em nenhum deles.
+
+   ORDEM ESCOLHIDA: trilho → lista → dossiê, a mesma do DOM. Dossiê primeiro
+   foi cogitado (mostrar o mapa selecionado antes de rolar), mas antes de
+   escolher um mapa o dossiê é só ".hm-panel-empty" ("Abra o mapa de caça
+   para carregar o catálogo."): pôr isso no topo da janela toda vez que ela
+   abre é pior estreia que a lista (que já chega com conteúdo). Trilho antes
+   da lista também é o fluxo natural: filtra a região, escolhe o mapa, vê o
+   dossiê.
+
+   AS TRÊS FAIXAS GANHAM TETO PRÓPRIO (max-height + a rolagem que cada uma
+   já tinha ANTES deste bloco — nenhuma ganha "overflow-y" novo): sem isso,
+   a lista de mapas (podem ser dezenas) empurraria o dossiê para longe do
+   topo, e o próprio dossiê (herói + encaixe + monstros + drops) empurraria
+   o rodapé fixo — a MESMA doença que este bloco conserta, só que mais
+   abaixo na página. Cada teto é DESTE arquivo (as três classes e seus
+   "overflow-y" não têm concorrência do Common.css), então funciona mesmo
+   que a especificidade do "overflow-y" que o D-932 tenta dar a ".ri-window"
+   perca para o "overflow:hidden" da base desta janela (linha ~112,
+   "#HuntMap .hm-window" tem ID+classe contra a classe única do D-932) — só
+   o senior mede isso de dentro do Common.css; aqui a rolagem de cada faixa
+   não depende do resultado.
+   ═══════════════════════════════════════════════════════════════════════ */
+@media (max-width: 599px) {
+	#HuntMap .hm-body {
+		flex-direction: column;
+	}
+
+	/* Os dois flex-basis fixos só faziam sentido como LARGURA de coluna; em
+	   coluna (acima) o mesmo número vira ALTURA e cada caixa fica baixa
+	   demais, com o conteúdo vazando por cima da faixa seguinte. */
+	#HuntMap .hm-rail,
+	#HuntMap .hm-list-wrap,
+	#HuntMap .hm-panel {
+		flex: 0 0 auto;
+		width: 100%;
+		min-width: 0;
+		max-width: 100%;
+	}
+
+	/* Trilho de regiões: era a coluna mais à esquerda (138px, borda à
+	   direita); vira uma faixa curta no topo (borda embaixo). A rolagem
+	   vertical já existia na base (linha ~297) — só o teto é novo. */
+	#HuntMap .hm-rail {
+		max-height: 140px;
+		border-right: none;
+		border-bottom: var(--divider);
+	}
+
+	/* Lista de mapas: curta e rolável por dentro dela mesma, para o dossiê
+	   não nascer longe do topo quando há muitos mapas na região. */
+	#HuntMap .hm-list {
+		max-height: 36dvh;
+	}
+
+	/* Dossiê: preserva o rodapé SEMPRE VISÍVEL que já existia no desktop —
+	   ".hm-panel-scroll" (linha ~763) é "flex: 1 1 auto" + overflow-y:auto e
+	   ".hm-panel-footer" (linha ~1149) é "flex: 0 0 auto" FORA da rolagem;
+	   no desktop isso funciona porque ".hm-panel" herda altura fixa da
+	   janela (620/590px). Aqui a janela virou altura automática (D-932) —
+	   sem um teto próprio ".hm-panel" cresceria com o dossiê inteiro e o
+	   botão "Caçar aqui" iria parar no fim de tudo. O teto abaixo devolve o
+	   rodapé fixo: o dossiê rola por dentro, o botão fica parado embaixo. */
+	#HuntMap .hm-panel {
+		max-height: 48dvh;
+		border-left: none;
+		border-top: var(--divider);
+	}
+
+	/* ─── Alvos de toque: nenhum abaixo de 44px nesta faixa ────────────── */
+
+	/* Aba de região: 28px no desktop (padding 6px + 14,4px de texto) — vira
+	   o item de navegação da faixa do topo. */
+	#HuntMap .hm-tab {
+		min-height: 44px;
+	}
+
+	/* Chip de monstro: ~42px (avatar 30px + 5px de padding × 2 + borda) — 2px
+	   curto do piso. Vira o seletor de monstro do dossiê no celular. */
+	#HuntMap .hm-chip {
+		min-height: 44px;
+	}
+
+	/* Botão de caçar/ir para a cidade: ".ri-btn" (Common.css) é inline-flex
+	   centralizado, mas esta janela já troca para "display: block" (linha
+	   ~1163) para o "text-overflow: ellipsis" do nome do mapa funcionar —
+	   por isso o reforço aqui é por PADDING (mantém o texto centralizado),
+	   não por "min-height" (que deixaria o texto colado no topo da caixa
+	   mais alta). 12px de fonte (--fs-info) × ~1,2 de altura de linha + 2×
+	   15px de padding ≈ 45px. */
+	#HuntMap .hm-btn-go,
+	#HuntMap .hm-btn-city {
+		padding: 15px 10px;
+	}
+}

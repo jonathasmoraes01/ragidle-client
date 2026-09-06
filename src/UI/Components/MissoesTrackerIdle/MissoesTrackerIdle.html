@@ -1,5 +1,14 @@
 <div id="MissoesTrackerIdle">
 	<div class="mt-painel">
+		<!-- D-939 (05/09/2026): as ABAS do mockup do celular em pe. Fora da
+		     HUD vertical elas nao existem (display:none no CSS) e o cabecalho
+		     de sempre continua mandando. "Grupo" abre a janela de Procurar
+		     Grupo — o conteudo do grupo continua morando la; a aba e a PORTA,
+		     nao uma segunda tela de party. -->
+		<div class="mt-abas" role="tablist" aria-label="Missões e grupo">
+			<button type="button" class="mt-aba is-ativa" data-aba="missoes" role="tab" aria-selected="true">Missões</button>
+			<button type="button" class="mt-aba" data-aba="grupo" role="tab" aria-selected="false">Grupo</button>
+		</div>
 		<div class="mt-header">
 			<span class="mt-titulo">Missões</span>
 			<button type="button" class="mt-recolher" title="Recolher">−</button>
@@ -8,5 +17,8 @@
 			<div class="mt-ativa" data-vazia="true"></div>
 			<ul class="mt-lista"></ul>
 		</div>
+		<!-- D-939: o rodape do cartao ("Ver todas as missões >") — mesmo
+		     destino do clique na Troca de Classe: a janela de Missões. -->
+		<button type="button" class="mt-ver-todas">Ver todas as missões <span aria-hidden="true">›</span></button>
 	</div>
 </div>

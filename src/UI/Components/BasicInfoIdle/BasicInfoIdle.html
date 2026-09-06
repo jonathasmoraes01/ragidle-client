@@ -111,5 +111,31 @@
 			<span class="bi-moeda-rotulo">Cash</span>
 			<span class="bi-cash">0</span>
 		</div>
+
+
+	</div>
+
+	<!-- O RODAPE DA HUD VERTICAL (D-939, 05/09/2026). So existe visivel no
+		     celular em pe (`.ri-vertical` — ver UI/hudVertical.js); em todo o
+		     resto e `display:none` de nascenca. Mora NESTE componente porque o
+		     dado que ele mostra (nivel de base + EXP) ja e sincronizado aqui
+		     (syncFromNativeState), e um componente novo duplicaria a leitura.
+		     No PWA instalado a barra de status do aparelho some (display
+		     fullscreen), entao o wifi e a bateria deixam de estar na tela —
+		     e por isso o mockup do dono os traz de volta no rodape do jogo. -->
+	<div class="bi-rodape" aria-hidden="false">
+		<span class="bi-rodape-nivel">Lv. <b class="bi-rodape-blvl">1</b></span>
+		<div class="bi-rodape-exp-track"><div class="bi-rodape-exp-fill"></div></div>
+		<span class="bi-rodape-exp-texto">0 / 0</span>
+		<svg class="bi-rodape-wifi" viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+			<path d="M2 9 C8 3.5 16 3.5 22 9"></path>
+			<path d="M5.5 12.5 C9.5 9 14.5 9 18.5 12.5"></path>
+			<path d="M9 16 C11 14.5 13 14.5 15 16"></path>
+			<circle cx="12" cy="19" r="1.4" fill="currentColor" stroke="none"></circle>
+		</svg>
+		<span class="bi-rodape-bateria">
+			<span class="bi-rodape-bateria-caixa"><span class="bi-rodape-bateria-nivel"></span></span>
+			<span class="bi-rodape-bateria-texto">—</span>
+		</span>
 	</div>
 </div>

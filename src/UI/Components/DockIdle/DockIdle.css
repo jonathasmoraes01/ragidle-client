@@ -87,7 +87,11 @@
 	align-items: center;
 	justify-content: center;
 	width: 100%;
-	min-height: 96px;
+	/* D-929 (Lote 1, 05/09/2026): 96px virou o token --hud-doca-altura no
+	   Common.css -- em 1920/1366 o token resolve pro MESMO 96px de sempre
+	   (fallback igual ao literal antigo), entao o desktop nao muda 1px; nas
+	   faixas de altura curta (fim deste arquivo) ele encolhe pra 82/62px. */
+	min-height: var(--hud-doca-altura, 96px);
 	/*
 	 * O `padding-right` RESERVA a coluna do botao "Menu" (I1, 31/08/2026).
 	 *
@@ -550,5 +554,96 @@
 			box-shadow: 0 0 0 1px rgba(12, 34, 64, 0.35), var(--shadow-float), inset 0 2px 6px rgba(255, 255, 255, 0.5);
 			transform: scale(1);
 		}
+	}
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   D-929 (Lote 1, 05/09/2026) — ALTURA ABAIXO DE 440: CELULAR DEITADO.
+
+   ESTE BLOCO FICA NO FIM DO ARQUIVO -- a cicatriz esta em StatusIdle.css:545:
+   um `@media` colado perto do seletor que ele queria vencer NAO FAZIA NADA,
+   porque em empate de especificidade quem vence e a ORDEM no arquivo, e as
+   regras sem media query vinham depois. Aqui e o oposto: este bloco vem
+   DEPOIS de tudo, entao vence de proposito.
+
+   O PROBLEMA MEDIDO: nesta faixa `--hud-doca-altura` cai para 62px
+   (Common.css), mas o CONTEUDO da doca continuava com os numeros cravados de
+   sempre. `min-height` e um PISO, nao um teto -- se o conteudo pede mais, a
+   caixa cresce, e o conteudo pedia:
+
+     .dk-bar padding (10+10)                      = 20
+   + maior de:
+       .dk-delimitador (60, cravado)               = 60
+       .dk-slot min-height (78, orbe+gap+rotulo)    = 78
+       .dk-auto (anel 58 + gap 4 + rotulo ~14)      = 76
+                                                    = 78 (o maior dos tres)
+   = 98px MEDIDOS contra os 62px que o token promete -- 36px de sobra que
+   avancam sobre o painel de personagem por cima (ver a conta em
+   BasicInfoIdle.css: o orcamento de 852x393 e painel(~254) + doca(62) = 316,
+   tela 393; uma doca de 98 comeria 36px desse respiro).
+
+   A SAIDA: sem rotulo embaixo do orbe, o unico conteudo que sobra e o
+   PROPRIO orbe -- entao cada peca passa a acompanhar o MESMO piso tatil que
+   ja rege a largura da doca (44px, WCAG 2.5.5), nunca um numero solto novo. */
+@media (max-height: 439px) {
+	.dk-bar {
+		/* SO o eixo vertical. Nao mexe no shorthand "padding" nem em
+		   "padding-right": a doca ja usa "padding-right" (linha ~106, calc
+		   com --hud-reserva-do-menu) pra reservar a coluna do botao Menu -- um
+		   shorthand aqui, vindo DEPOIS no arquivo, apagaria essa reserva pela
+		   mesma regra de ordem/especificidade da cicatriz acima. */
+		padding-top: 6px;
+		padding-bottom: 6px;
+	}
+
+	/* Divisor decorativo: 60px cravado, pensado pra bater com o slot antigo
+	   de 78px (rotulo incluso). Sem rotulo (ver ".dk-slot-nome" abaixo) o
+	   conteudo da fileira encolhe pro tamanho do orbe (48-56px conforme a
+	   largura), e um divisor de 60 passaria a ser sozinho o elemento mais
+	   alto do grupo -- voltando a ditar a altura da doca. 44px fica abaixo do
+	   menor orbe (48) de proposito: e so ornamento, nunca alvo de toque,
+	   entao nao carrega o piso de 44px -- o numero aqui e so pra nao dominar
+	   a fileira. */
+	.dk-delimitador {
+		height: 44px;
+	}
+
+	/* O slot (rotacao E consumiveis reusam a MESMA classe) reservava 78px pro
+	   conjunto orbe + respiro + rotulo (ver comentario original da regra,
+	   acima). Sem rotulo o unico conteudo e o orbe -- entao o min-height
+	   passa a seguir o MESMO token que dimensiona ".dk-slot-ring-wrap"
+	   (--hud-doca-consumivel), nunca um numero solto: os dois SEMPRE
+	   concordam, em qualquer combinacao de largura x altura (inclusive numa
+	   tela larga e curta, onde a faixa de largura nao encolheu o orbe e ele
+	   continua 56). */
+	.dk-slot {
+		min-height: var(--hud-doca-consumivel, 56px);
+	}
+
+	/* Rotulo do slot (nome da skill, "Estoque") ESCONDIDO nesta faixa --
+	   permissao explicita do briefing ("aceitavel esconder desde que orbe e
+	   icone continuem visiveis"). O icone, o numero de prioridade e o relogio
+	   de recarga (todos DENTRO do orbe) continuam de pe; so o texto solto sob
+	   o orbe some. */
+	.dk-slot-nome {
+		display: none;
+	}
+
+	/* O Auto e a MESMA familia visual (orbe + rotulo embaixo), so que fora da
+	   classe ".dk-slot" -- sem encolher os dois juntos ele sobraria como o
+	   elemento mais alto do grupo (58 + 4 + ~14 = 76) e devolveria o estouro
+	   que este bloco existe pra fechar. O anel passa a seguir o MESMO piso
+	   dos outros orbes da doca (nunca menos que 44px de alvo tatil -- por
+	   isso o max(), nao um calc() cru), e o rotulo "Auto" some pelo mesmo
+	   motivo do ".dk-slot-nome" acima -- o estado ligado/desligado continua
+	   visivel pela COR do proprio anel (".dk-auto.is-on .dk-auto-ring",
+	   acima neste arquivo). */
+	.dk-auto-ring {
+		width: max(44px, var(--hud-doca-consumivel, 56px));
+		height: max(44px, var(--hud-doca-consumivel, 56px));
+	}
+
+	.dk-auto-label {
+		display: none;
 	}
 }

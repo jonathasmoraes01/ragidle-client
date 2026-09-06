@@ -188,7 +188,7 @@ function createHTML(includeManifest = false, buildArgs = {}, isAllBuild = false)
         <title>Ragnarok Classic Idle [${pkg.version} - ${buildDate}]</title>
         <link rel="icon" type="image/png" href="./icon.png">    
     
-        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">    
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">    
         <meta name="HandheldFriendly" content="true">    
     
         <meta name="apple-mobile-web-app-capable" content="yes">    
@@ -209,7 +209,8 @@ function createHTML(includeManifest = false, buildArgs = {}, isAllBuild = false)
         <meta property="og:locale" content="en_US">    
     
         <link rel="apple-touch-icon" href="./icon.png">    
-        ${manifest}`;
+        ${manifest}
+        ${includeManifest ? `<script src="./registrar-sw.js" defer></script>` : ``}`;
 
 	let body;
 
@@ -219,7 +220,11 @@ function createHTML(includeManifest = false, buildArgs = {}, isAllBuild = false)
 			.map(v => `                <button class="app-btn" onclick="launchApp('${v.app}')">${v.label}</button>`)
 			.join('\n');
 
-		createApiHTML();
+		/* O `api.html` herda a decisao de manifesto do `index.html`: quem
+		   builda com `--PWA` (ou sem argumento nenhum, que e `--all`) copia o
+		   `manifest.webmanifest` para o `dist` em `copyPwaFiles()`, e so ai o
+		   `<link rel="manifest">` daqui aponta para um arquivo que existe. */
+		createApiHTML(includeManifest);
 
 		body = `${commonHead}    
   
@@ -518,13 +523,69 @@ window.ROConfigBase = {
 	fs.writeFileSync(dist + platform + '/Config.js', configContent, { encoding: 'utf8' });
 }
 
-function createApiHTML() {
-	const apiHtml = `<!DOCTYPE html>    
-<html>    
-    <head>    
-        <meta charset="UTF-8">    
+/*
+ * D-928 (05/09/2026) — O `<head>` DE PRODUCAO ESTAVA PELADO, E ISSO APAGAVA A
+ * RESPONSIVIDADE INTEIRA DO JOGO NO CELULAR.
+ *
+ * `applications/deploy/vercel.json` roteia a raiz de `play.roclassicidle.com.br`
+ * para ESTE arquivo (`api.html`) — nao para o `index.html` que o
+ * `createHTML()` logo acima monta com o `<head>` completo. E o `<head>` daqui
+ * tinha `charset`, `title` e o `<style>` do pre-carregador. Mais nada.
+ *
+ * SEM `<meta name="viewport">`, o navegador de celular assume o viewport de
+ * compatibilidade de **980px** e encolhe a pagina inteira. Medido em
+ * 05/09/2026 na URL real, com um Pixel 8 emulado (tela de 375px):
+ *
+ *   document.clientWidth .............. 980   (e nao 375)
+ *   matchMedia('(max-width: 599px)') ... false
+ *   matchMedia('(max-width: 899px)') ... false
+ *
+ * Ou seja: as tres faixas que a rodada I1+I2 de 31/08 escreveu no
+ * `Common.css` (899/759/599) **nunca casaram num celular em producao**. O
+ * conserto estava certo e estava desligado — quem testava local via
+ * funcionar (o `dev` serve `applications/pwa/index.html`, que TEM o viewport)
+ * e quem abria no celular via tudo minusculo. As duas observacoes eram
+ * verdadeiras ao mesmo tempo, e essa e a forma mais cara de defeito que este
+ * projeto ja registrou.
+ *
+ * O `<link rel="manifest">` vem pelo mesmo motivo: sem ele nao existe PWA
+ * instalavel, por mais completo que o `manifest.webmanifest` esteja — e ele
+ * estava completo e orfao desde sempre.
+ *
+ * `viewport-fit=cover` ENTROU em D-936, e a ordem importa: ele so podia
+ * entrar DEPOIS do CSS que o acompanha. Sozinho, ele estende a pagina para
+ * baixo do entalhe e da barra de gestos — e a HUD, que se ancora nos cantos,
+ * passaria a correr por baixo dos dois. Com ele, `env(safe-area-inset-*)`
+ * deixa de ser zero e os tokens `--safe-*` do `Common.css` passam a valer.
+ *
+ * Este comentario dizia "NAO entra aqui de proposito... e da Fase 2" enquanto
+ * a linha logo abaixo ja o incluia — a Fase 2 chegou e o comentario ficou.
+ *
+ * O `theme_color` e `#060810` — o tom do proprio pre-carregador logo abaixo, e
+ * do fundo escuro do jogo. O `#ff8cb5` que o `createHTML` usa e rosa, e e
+ * heranca do template do roBrowser: nunca descreveu a arte deste jogo.
+ */
+function createApiHTML(includeManifest = false) {
+	const manifest = includeManifest ? `<link rel="manifest" href="./manifest.webmanifest">` : ``;
+	/* O registrador anda COM o manifesto: sem manifesto nao ha instalacao, e um
+	   service worker sem instalacao seria so cache sem o resto do PWA. */
+	const registrador = includeManifest ? `<script src="./registrar-sw.js" defer></script>` : ``;
+	const apiHtml = `<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="UTF-8">
         <title>Ragnarok Classic Idle</title>
-        <style>    
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+        <meta name="HandheldFriendly" content="true">
+        <meta name="mobile-web-app-capable" content="yes">
+        <meta name="apple-mobile-web-app-capable" content="yes">
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+        <meta name="apple-mobile-web-app-title" content="Ragnarok Classic Idle">
+        <meta name="theme-color" content="#060810">
+        <link rel="apple-touch-icon" href="./icon.png">
+        ${manifest}
+        ${registrador}
+        <style>
             html, body {    
                 margin: 0; padding: 0; border: 0;    
                 height: 100%; width: 100%; overflow: hidden;    
@@ -659,20 +720,100 @@ function createApiHTML() {
 	fs.copyFileSync('./applications/api/api.js', dist + platform + '/api.js');
 }
 
+/**
+ * D-933 (05/09/2026) — OS ARQUIVOS DO PWA, E POR QUE CADA UM MUDOU.
+ *
+ * --- ICONES ------------------------------------------------------------
+ * O manifesto declarava UM icone de 144x144, e o arquivo em disco tem
+ * **450x450** — a declaracao estava errada desde sempre. Pior: 144 fica
+ * abaixo do minimo que Chrome e Android pedem para OFERECER a instalacao
+ * (192), entao o jogo nao seria instalavel nem se a pagina linkasse o
+ * manifesto.
+ *
+ * Agora saem quatro, gerados do MESMO arquivo de 450px (que tem resolucao de
+ * sobra): 192 e 512 normais, e 192 e 512 `maskable`.
+ *
+ * O MASKABLE nao e capricho. O Android recorta o icone na forma do sistema
+ * (circulo, "squircle", gota) e come ate 20% de cada borda. Um icone `any`
+ * usado como mascara perde a arte nas pontas. A variante maskable tem a arte
+ * encolhida para 60% e centrada sobre o fundo do jogo, entao qualquer
+ * recorte razoavel cai no vazio e nao no desenho. Os 60% vem da "zona
+ * segura" da especificacao: um circulo inscrito de 80% de diametro, mais
+ * uma folga.
+ *
+ * --- CAPTURAS DE TELA --------------------------------------------------
+ * As duas eram o PAPEL DE PAREDE da tela de Intro redimensionado por
+ * `sharp` — nao uma captura do jogo. O cartao de instalacao mostrava uma
+ * arte bonita que nao diz nada sobre o que o jogo e.
+ *
+ * Agora sao capturas REAIS, tiradas do jogo de pe pela matriz de resolucoes
+ * desta frente: 1920x1080 no computador e 393x852 num celular. O fallback
+ * para o papel de parede fica, para o build nao quebrar numa arvore que nao
+ * tenha as duas.
+ */
 async function copyPwaFiles() {
 	const start = Date.now();
 	const sharp = (await import('sharp')).default;
-	const bgPath = './src/UI/Components/Intro/images/background.jpg';
-	fs.copyFileSync('./applications/pwa/icon.png', dist + platform + '/icon.png');
-	fs.copyFileSync('./applications/pwa/manifest.webmanifest', dist + platform + '/manifest.webmanifest');
-	await sharp(bgPath)
-		.resize(1920, 1080)
-		.png()
-		.toFile(dist + platform + '/screenshotwide.png');
-	await sharp(bgPath)
-		.resize(390, 844)
-		.png()
-		.toFile(dist + platform + '/screenshotnarrow.png');
+	const origem = './applications/pwa/icon.png';
+	const destino = dist + platform;
+	const FUNDO = { r: 6, g: 8, b: 16, alpha: 1 }; // #060810, o mesmo do theme_color
+
+	fs.copyFileSync(origem, destino + '/icon.png');
+	fs.copyFileSync('./applications/pwa/manifest.webmanifest', destino + '/manifest.webmanifest');
+
+	/*
+	 * O SERVICE WORKER, com a VERSAO DO BUILD injetada.
+	 *
+	 * O nome do cache carrega essa versao (`ragidle-casca-<versao>`), e e assim
+	 * que publicar troca o cache inteiro: o `activate` do worker novo apaga
+	 * todo cache cujo nome nao seja o dele. Sem a injecao, o literal do
+	 * arquivo-fonte ficaria congelado e o cache de duas publicacoes
+	 * diferentes teria o MESMO nome — que e a definicao de servir arquivo
+	 * velho para sempre.
+	 *
+	 * A versao e `<versao do package> + carimbo do build`, os dois numeros que
+	 * o `createHTML` ja usa no `<title>`.
+	 */
+	const versaoDoBuild = pkg.version + '-' + buildDate.replace(/[^0-9]/g, '');
+	const sw = fs.readFileSync('./applications/pwa/sw.js', 'utf8').replace('__VERSAO_DO_BUILD__', versaoDoBuild);
+	fs.writeFileSync(destino + '/sw.js', sw, { encoding: 'utf8' });
+	fs.copyFileSync('./applications/pwa/registrar-sw.js', destino + '/registrar-sw.js');
+
+	for (const lado of [192, 512]) {
+		await sharp(origem)
+			.resize(lado, lado, { fit: 'contain', background: FUNDO })
+			.png()
+			.toFile(destino + '/icon-' + lado + '.png');
+
+		/* A arte em 60% do lado, centrada sobre o fundo do jogo: sobra 20% de
+		   margem em cada borda, que e o que o recorte do sistema come. */
+		const miolo = Math.round(lado * 0.6);
+		const arte = await sharp(origem)
+			.resize(miolo, miolo, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } })
+			.png()
+			.toBuffer();
+		await sharp({ create: { width: lado, height: lado, channels: 4, background: FUNDO } })
+			.composite([{ input: arte, gravity: 'center' }])
+			.png()
+			.toFile(destino + '/icon-maskable-' + lado + '.png');
+	}
+
+	const capturas = [
+		['./applications/pwa/screenshot-wide.png', 'screenshotwide.png', 1920, 1080],
+		['./applications/pwa/screenshot-narrow.png', 'screenshotnarrow.png', 393, 852],
+	];
+	const papelDeParede = './src/UI/Components/Intro/images/background.jpg';
+	for (const [real, nome, w, h] of capturas) {
+		if (fs.existsSync(real)) {
+			fs.copyFileSync(real, destino + '/' + nome);
+		} else {
+			/* Sem a captura real, o papel de parede volta: o build nao pode
+			   quebrar numa arvore incompleta, e cartao sem imagem e pior que
+			   cartao generico. */
+			await sharp(papelDeParede).resize(w, h).png().toFile(destino + '/' + nome);
+		}
+	}
+
 	console.log('PWA files copied', Date.now() - start, 'ms.');
 }
 

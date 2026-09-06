@@ -452,3 +452,42 @@
 		max-height: calc(100dvh - 85px);
 	}
 }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   D-940 — A ENTRADA NO CELULAR EM PE ESTAVA CORTADA (05/09/2026)
+
+   MEDIDO com o jogo de pe (diag-entrada-no-celular.ts): em 360x640 a ficha
+   do personagem (`.charinfo`) tinha 346px de conteudo numa caixa de 119 com
+   `overflow: hidden` — 227px escondidos, e o "Entrar em Midgard" entre
+   eles. Em 375x667 a mesma coisa (200px escondidos). Ou seja: **no iPhone
+   SE e no Galaxy A nao dava para ENTRAR no jogo** — o botao existia, era
+   "visivel" para o DOM, e nenhum dedo o alcancava. So 393x852 para cima
+   escapava, e por poucos pixels.
+
+   O conserto: em tela baixa/estreita a ficha cresce ate o proprio conteudo
+   e quem rola e o corpo (`.cs-body`), que ja tem `overflow: auto` no layout
+   de grade. Este bloco mora no FIM do arquivo para vencer por ordem os dois
+   layouts (o classico e o de grade) — a mesma regra de cascata que o
+   Common.css documenta desde D-929.
+   ═══════════════════════════════════════════════════════════════════════ */
+@media (max-width: 600px), (max-height: 700px) {
+	#CharSelectV4 .cs-body {
+		min-height: 0;
+		overflow-y: auto;
+		overscroll-behavior: contain;
+		-webkit-overflow-scrolling: touch;
+	}
+	#CharSelectV4 .charinfo {
+		height: auto;
+		max-height: none;
+		overflow: visible;
+		flex: 0 0 auto;
+	}
+	#CharSelectV4 .char_list {
+		flex: 0 0 auto;
+	}
+	/* O botao de entrar respira e nao morre colado na borda de baixo. */
+	#CharSelectV4 .charinfo .ok {
+		margin-bottom: var(--sp-6, 12px);
+	}
+}

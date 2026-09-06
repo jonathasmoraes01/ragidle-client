@@ -46,9 +46,26 @@ describe('barra de atalhos nativa como unica hotbar', () => {
 		// A preferencia antiga (1.0) trazia x/y do desenho de topo-centro e
 		// venceria a ancora nova — ver o comentario do Preferences.get.
 		expect(shortcut).toMatch(/^\t1\.1$/m);
-		expect(shortcutCss).toContain('width: 368px');
+		/*
+		 * D-929 (05/09/2026): os DOIS numeros deste desenho continuam sendo 368
+		 * e 184 — mudou a expressao que os carrega, e nao a medida.
+		 *
+		 * A barra tinha `width: 368px` cravado e transbordava 8px numa tela de
+		 * 360 (a resolucao minima suportada). Ela passou a ser
+		 * `min(368px, calc(100vw - 16px))`, e a centralizacao passou a usar a
+		 * MESMA metade (`min(184px, calc(50vw - 8px))`) para largura e posicao
+		 * nunca divergirem. Em qualquer tela >= 384px de largura — 1920 e 1366
+		 * inclusas — o `min()` resolve exatamente para 368 e 184, e o computado
+		 * e identico ao de antes.
+		 *
+		 * O portao continua fixando o desenho: se alguem trocar o 368 ou o 184
+		 * por outro numero, ele reprova igual. O que ele NAO pode mais fazer e
+		 * exigir a forma literal `368px` solta, porque essa forma era
+		 * justamente o defeito.
+		 */
+		expect(shortcutCss).toContain('width: min(368px, calc(100vw - 16px))');
 		expect(shortcutCss).toContain('bottom: 20px');
-		expect(shortcutCss).toContain('left: calc(50% - 184px)');
+		expect(shortcutCss).toContain('left: calc(50% - min(184px, calc(50vw - 8px)))');
 		expect(shortcutCss).toContain('width: 32px');
 		expect(shortcutCss).toContain('background: var(--window-fill)');
 		expect(shortcutCss).toContain('border: var(--window-frame)');

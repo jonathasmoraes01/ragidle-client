@@ -82,3 +82,80 @@
 		min-height: 44px;
 	}
 }
+
+/* ─── D-929: o MESMO piso, agora tambem pelo eixo da ALTURA (05/09/2026) ───
+   A faixa acima cobre o celular EM PE (375..430px de largura). O celular
+   DEITADO tem 852, 915 ou 667px de largura — passa longe dos 599 — e nunca
+   disparava nada. Medido em 05/09/2026 com o jogo de pe: em 852x393 o
+   `hb-cacar` voltava a 136x32, o mesmo 32 que a faixa de largura conserta.
+
+   A tela deitada e onde 44px de altura mais doem (sobram ~390px de vertical
+   para a HUD inteira) e e exatamente por isso que nao se negocia: alvo
+   espremido abaixo do piso tatil e o que o dono chamou de "nao esta
+   clicavel". Quem tem de ceder e o que NAO e alvo. */
+@media (max-height: 439px) {
+	.hb-btn {
+		min-height: 44px;
+	}
+}
+
+/* O glifo dos botoes (D-939) so existe na HUD vertical; no desktop os
+   botoes continuam sendo texto puro, como sempre foram. */
+.hb-glifo {
+	display: none;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   D-939 — CELULAR EM PE: "Caçar" vira o botao GRANDE do canto inferior
+   direito do mockup (abre o Mapa de Caça — e o que este botao sempre fez) e
+   "Retornar" vira o disco menor com a bota, logo abaixo. A ANCORA do host e
+   do Common.css; aqui e a roupa dos dois botoes.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.ri-vertical #HuntButtonIdle {
+	display: flex;
+	flex-direction: column;
+	align-items: flex-end;
+	gap: 8px;
+	width: auto;
+}
+
+.ri-vertical .hb-btn {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 0;
+	margin: 0;
+	border-radius: 50%;
+	width: auto;
+}
+
+.ri-vertical .hb-rotulo {
+	/* O mockup nao rotula os dois discos; o title/aria continua dizendo. */
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	overflow: hidden;
+	clip-path: inset(50%);
+	white-space: nowrap;
+}
+
+.ri-vertical .hb-glifo {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+.ri-vertical .hb-cacar {
+	width: 64px;
+	height: 64px;
+	min-height: 64px;
+}
+
+.ri-vertical .hb-voltar {
+	width: 48px;
+	height: 48px;
+	min-height: 48px;
+	/* alinhado ao centro do grande, como no mockup (a bota entra um pouco) */
+	margin-right: 8px;
+}

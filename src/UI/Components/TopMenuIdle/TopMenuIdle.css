@@ -858,3 +858,416 @@
 		align-items: flex-end;
 	}
 }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   D-929 (05/09/2026) — O BURACO QUE O CELULAR DEITADO EXPLORAVA.
+
+   As DUAS regras de ".tm-menu" acima so disparam por LARGURA
+   (max-width:599px). Celular deitado (852x393, por exemplo) tem 852 de
+   largura — ACIMA de 599 — e nunca entra nelas, entao o botao "Menu"
+   continua em "bottom:16px" (a faixa da doca) exatamente pela mesma conta
+   que o comentario do ".tm-menu" descreve la em cima. E o mesmo buraco que
+   fez o D-929 nascer: uma HUD que so olha LARGURA passa por toda tela onde
+   quem aperta e a ALTURA.
+
+   NO FIM DO ARQUIVO de proposito (cicatriz de StatusIdle.css:545: em CSS de
+   mesma especificidade quem vence e a ORDEM, e um bloco no meio nao venceria
+   nada). Nada abaixo destas linhas volta a escrever "bottom"/"gap"/
+   "min-height" destes seletores — conferido.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* ─── Celular DEITADO: o botao "Menu" SOBE para cima da doca aqui tambem ──
+   Mesmo defeito da faixa de 599 (ver o comentario logo acima dela), mesma
+   correcao, faixa DIFERENTE: sobe pelo MESMO token, que ja acompanha a doca
+   sozinho quando ela encolhe ainda mais por altura (--hud-doca-altura:62px
+   nesta faixa, Common.css) — nao ha numero novo para divergir aqui. */
+@media (max-height: 439px) {
+	.tm-menu {
+		bottom: var(--hud-acima-da-doca, 104px);
+	}
+}
+
+/* ─── Celular DEITADO: o cluster de cima ENCOLHE NA VERTICAL ──────────────
+   852x393 nao dispara NENHUMA faixa de largura (759/599), entao o cluster
+   ficava com o respiro inteiro de tela larga (gap 10/18, disco de 42) numa
+   tela que so tem 393px de altura de sobra. "--ui-escala" (0.76 nesta
+   faixa, Common.css) ja encolhe "--disc-menu" sozinho — falta encolher o
+   RESPIRO junto, senao o gap continua tomando o espaco que a doca (62px
+   aqui) e o proprio cluster disputam.
+
+   A altura CLICAVEL do botao (".tm-item") NAO acompanha a escala: uso
+   "min-height: var(--hit-touch)" (44px, sempre) em vez de multiplicar uma
+   altura natural por "--ui-escala" dentro de um "max()". Este projeto ja
+   errou DUAS VEZES estimando uma medida a mao em vez de le-la do DOM (o
+   minimapa em 157px e a coluna de botoes em 34px — ver o comentario de
+   "--hud-td-abaixo-da-coluna" e "--hud-td-altura-dos-botoes" em
+   Common.css), e as duas vezes o erro so apareceu como sobreposicao em
+   jogo, nunca no codigo. "min-height" faz o proprio navegador calcular
+   "nunca abaixo de 44px, mas cresce se o conteudo pedir mais" — que E a
+   conta de um "max(--hit-touch, <altura natural>)" — sem que eu precise
+   adivinhar a tal altura natural (disco + gap + capsula de rotulo) para
+   escrever um numero que este arquivo nao mede em lugar nenhum. */
+@media (max-height: 439px) {
+	.tm-top {
+		gap: calc(10px * var(--ui-escala, 1)) calc(18px * var(--ui-escala, 1));
+	}
+
+	/* ".tm-item" e a MESMA classe do cluster de cima e do leque (ver o
+	   comentario de ".tm-fan .tm-item" mais acima: "a MESMA peca do
+	   cluster de cima") — a regra vale para os dois de proposito, e nao so
+	   por economia: o alvo de 44px e a mesma exigencia dos dois lugares. */
+	.tm-item {
+		gap: calc(3px * var(--ui-escala, 1));
+		padding-top: calc(3px * var(--ui-escala, 1));
+		padding-bottom: calc(3px * var(--ui-escala, 1));
+		min-height: var(--hit-touch, 44px);
+	}
+
+	/* A alca do cluster (".tm-toggle", 26px fora do celular) precisa dos
+	   mesmos 44px de AREA que a alca do leque (regra de 599px acima), mas
+	   NAO por "min-width/min-height": isso cresceria a CAIXA de verdade —
+	   e o ".tm-top.is-collapsed" reserva essa altura em "--tm-altura" para
+	   nao pular ao recolher, entao um "min-height" aqui devolveria
+	   exatamente a vertical que este bloco inteiro esta tentando
+	   economizar. "::before" com "inset" negativo aumenta so a AREA DE
+	   CLIQUE, fora do fluxo — mesma tecnica da barra de atalhos
+	   (ShortCut.css, ".close"/".resize"). ".tm-toggle" ja tem
+	   "position: relative" (declarado acima), entao o pseudo-elemento
+	   posiciona relativo a ele mesmo. */
+	.tm-toggle::before {
+		content: '';
+		position: absolute;
+		inset: calc((var(--disc-alca, 26px) - var(--hit-touch, 44px)) / 2);
+	}
+}
+
+/* ─── D-929: o piso tatil tambem na LARGURA do item, em tela deitada ───────
+   O bloco de `max-height: 439px` acima poe `min-height: var(--hit-touch)` no
+   `.tm-item`, e isso resolveu a altura. Medido depois, com o jogo de pe em
+   852x393: o item ficava **42x58** — a altura entrou, a largura nao. 42 vem
+   do `--disc-menu` (34px nesta faixa) mais o respiro, e 42 < 44.
+
+   A faixa de largura de 599 ja cobria isso com `min-width: 46px`
+   (`.tm-item`, no bloco de celular EM PE); a tela deitada tem 852 de largura
+   e nunca a dispara. E o mesmo buraco de sempre desta frente: regra escrita
+   para um eixo so.
+
+   `var(--hit-touch)` e nao 46: o 46 daquele bloco e uma folga escolhida la, e
+   aqui o que se cobra e o PISO — em tela deitada cada pixel horizontal
+   tambem esta disputado. */
+@media (max-height: 439px) {
+	.tm-item {
+		min-width: var(--hit-touch, 44px);
+	}
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   D-930 (05/09/2026) — O CLUSTER PARA DE SE PENDURAR NO PAINEL E PASSA A SE
+   ANCORAR NA PILHA DO RODAPE.
+
+   A faixa de 759px acima o traz para debaixo da coluna da esquerda
+   (`top: --hud-coluna-fundo + 12`). Isso resolvia o eixo X — ele deixa de
+   disputar largura com o painel — e ignorava o Y: o que existe ABAIXO dele
+   nao e vazio, e a pilha do rodape (doca + chat + barra de atalhos), que
+   cresce para cima.
+
+   MEDIDO com sessao nova por resolucao (o arnes que redimensionava a mesma
+   sessao nao via isto, porque o chat nascia expandido em 1920 e ficava):
+
+     360x640 .... 5 alvos do cluster COBERTOS pelo chat
+     667x375 .... 4 alvos com o centro FORA DA TELA, em y=417 de 375
+
+   Ancorar pelo `bottom` inverte a dependencia: o cluster passa a encostar em
+   quem esta EMBAIXO dele — que e quem o empurrava — em vez de flutuar a uma
+   distancia fixa de quem esta em cima. A conta e a pilha inteira, e cada
+   parcela e lida de quem a conhece:
+
+     --hud-acima-da-doca ... doca + respiro (Common.css, derivado da doca)
+     --hud-chat-altura ..... o chat publica a propria caixa (ChatBox.js)
+     58 .................... a barra de atalhos (42) + os dois respiros de 8
+
+   O 58 e o unico numero cravado aqui, e ele e o unico que nao muda: a barra
+   de atalhos tem uma fileira de 42px (`ShortCut.css`, `.row height: 42px`).
+   ═══════════════════════════════════════════════════════════════════════ */
+@media (max-width: 759px) {
+	:host {
+		top: auto;
+		bottom: calc(var(--hud-acima-da-doca, 104px) + var(--hud-chat-altura, 0px) + 58px);
+	}
+}
+
+/* ─── CELULAR DEITADO: o cluster VOLTA para o lado, e nao para baixo ───────
+   Em paisagem sobra LARGURA (667..915px) e falta ALTURA (375..412px) — o
+   contrario do retrato, e por isso a regra do retrato piora tudo aqui. Com o
+   cluster embaixo, a coluna da esquerda vira painel(254) + rastreador +
+   cluster(123) numa tela de 375: nao cabe, e foi isso que a medicao mostrou.
+
+   Entao ele volta a morar ao lado do minimapa, como no desktop — a MESMA
+   ancoragem do `:host` la de cima, repetida aqui porque a faixa de 759 vem
+   antes no arquivo e venceria pela ordem.
+
+   E ele vira TRES COLUNAS. Com quatro, a fileira dupla mede ~308px de
+   largura e a borda esquerda dela cairia em x=195 num aparelho de 667 —
+   dentro do painel de personagem, que vai ate 259. Com tres colunas sao
+   ~200px, borda em x=303, e os dois deixam de se tocar. O `--tm-colunas` e
+   normalmente calculado pelo JS (`distribuirFileiras`); aqui a tela e que
+   manda, e por isso o valor vem do CSS. */
+@media (max-height: 439px) {
+	:host {
+		top: var(--hud-td-topo, 16px);
+		bottom: auto;
+		left: auto;
+		right: calc(var(--hud-td-direita, 16px) + var(--hud-td-largura, 136px) + 12px);
+	}
+
+	.tm-top {
+		--tm-colunas: 3;
+	}
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   D-930 — O BOTAO "MENU" E O CLUSTER ENTRAM NA PILHA DO RODAPE
+
+   A pilha esta declarada por extenso em `ChatBox.css` (fim do arquivo). Aqui
+   moram as duas pecas deste componente:
+
+   - o botao "Menu" divide a linha COM o chat (ele a direita, o chat a
+     esquerda ja encolhido para deixar a coluna livre);
+   - o cluster de essenciais fica um degrau acima, e por isso soma a altura
+     que o chat publica.
+
+   Este bloco vem DEPOIS dos dois de cima (`max-width: 599px` e
+   `max-height: 439px`) de proposito: ele corrige a ancoragem dos dois, e em
+   CSS de mesma especificidade quem vence e a ORDEM.
+   ═══════════════════════════════════════════════════════════════════════ */
+@media (max-width: 599px), (max-height: 439px) {
+	.tm-menu {
+		bottom: calc(var(--hud-acima-da-doca, 104px) + 50px);
+	}
+}
+
+@media (max-width: 759px) {
+	:host {
+		bottom: calc(var(--hud-acima-da-doca, 104px) + 50px + var(--hud-chat-altura, 0px) + 16px);
+	}
+}
+
+/* A paisagem repete a ancoragem lateral: o bloco de largura acima acabou de
+   reescrever o `bottom`, e sem esta repeticao ele venceria pela ordem e o
+   cluster voltaria para o rodape numa tela que nao tem rodape sobrando. */
+@media (max-height: 439px) {
+	:host {
+		top: var(--hud-td-topo, 16px);
+		bottom: auto;
+		left: auto;
+		right: calc(var(--hud-td-direita, 16px) + var(--hud-td-largura, 136px) + 12px);
+	}
+}
+
+/* ─── D-930: em PAISAGEM o botao "Menu" desce um degrau ───────────────────
+   Ele divide linha com o chat no retrato. Em paisagem a coluna da direita
+   (minimapa + botoes de caca) desce ate y=198 numa tela de 393, e o botao,
+   um degrau acima da barra de atalhos, subia para 191 — 9px de encostao,
+   medido.
+
+   Aqui ele desce para a MESMA linha da barra de atalhos. Eles nao se cruzam
+   em X: a barra e centrada (242..610 num aparelho de 852) e o botao mora a
+   16px da borda direita (784..836). Em retrato essa mesma linha seria
+   disputada, e por isso a regra vale so nesta faixa. */
+@media (max-height: 439px) {
+	.tm-menu {
+		bottom: var(--hud-acima-da-doca, 104px);
+	}
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   D-939 — CELULAR EM PE: o menu vira FAB no topo + TRILHO a direita +
+   FOLHA de menu (05/09/2026). Quem liga `.ri-vertical` e UI/hudVertical.js.
+
+   O mockup do dono: um botao quadrado azul de menu no canto superior
+   direito, um trilho vertical de botoes redondos na borda direita (Mochila,
+   Auto, Skills, Config — o Auto e o CombatCornerIdle, encaixado no 2o
+   degrau pelo Common.css), e o resto do catalogo atras do botao de menu.
+
+   A FOLHA: com o menu aberto (`#TopMenuIdle.tm-aberto`, classe posta pelo
+   MESMO codigo que ja poe `.is-open` no leque), o cluster inteiro aparece
+   como a primeira secao e o leque como a segunda — nada fica inalcancavel:
+   Personagem, Caca, Correio, Missoes e Analise, que sairam do trilho,
+   continuam a dois toques.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* ─── O botao de menu: quadrado azul no topo, fechando a barra do topo ── */
+.ri-vertical .tm-menu {
+	position: fixed;
+	top: calc(var(--vr-topo, 14px) + 4px);
+	right: calc(var(--safe-dir, 0px) + var(--vr-margem, 8px));
+	bottom: auto;
+	left: auto;
+	min-width: 0;
+	flex-direction: column;
+	align-items: flex-end;
+	gap: 0;
+}
+
+.ri-vertical .tm-fab {
+	width: 44px;
+}
+
+.ri-vertical .tm-fab .tm-label {
+	display: none;
+}
+
+.ri-vertical .tm-fab-wrap {
+	width: 44px;
+	height: 44px;
+	border-radius: 10px;
+	background: var(--is-accent, #3b6ea5);
+	color: var(--white, #fff);
+	border-color: transparent;
+}
+
+/* ─── O TRILHO (menu fechado): so Mochila, Skills e Config ──────────────
+   Os demais itens do cluster somem do trilho e moram na folha. O degrau e
+   RIGIDO (--vr-trilho-passo) para a conta do "Auto" no Common.css fechar:
+   Mochila no 1o, o buraco do 2o e do CombatCornerIdle, Skills no 3o,
+   Config no 4o. */
+.ri-vertical .tm-top {
+	display: flex !important;
+	position: fixed;
+	top: var(--vr-abaixo-do-topo, 70px);
+	right: calc(var(--safe-dir, 0px) + var(--vr-margem, 8px));
+	left: auto;
+	flex-direction: column;
+	align-items: center;
+	gap: 0;
+	min-height: 0;
+	width: var(--vr-trilho-largura, 60px);
+}
+
+.ri-vertical .tm-top .tm-item {
+	display: none !important;
+}
+
+.ri-vertical .tm-top .tm-toggle {
+	display: none !important;
+}
+
+.ri-vertical .tm-top .tm-item[data-action='inventory'],
+.ri-vertical .tm-top .tm-item[data-action='skills'],
+.ri-vertical .tm-top .tm-item[data-action='config'] {
+	display: flex !important;
+	box-sizing: border-box;
+	min-height: var(--vr-trilho-passo, 72px);
+	justify-content: flex-start;
+}
+
+/* O buraco do "Auto" (CombatCornerIdle): um degrau inteiro depois da
+   Mochila. O numero e o MESMO token que posiciona o host do Auto no
+   Common.css — mexer num sem o outro descola o trilho. */
+.ri-vertical .tm-top .tm-item[data-action='inventory'] {
+	margin-bottom: var(--vr-trilho-passo, 72px);
+}
+
+/* Rotulo curto onde o mockup pede (Config. em vez de Idle). */
+.ri-vertical .tm-top .tm-label {
+	font-size: 9px;
+}
+.tm-label--v {
+	display: none;
+}
+.ri-vertical .tm-top .tm-item[data-action='config'] .tm-label:not(.tm-label--v) {
+	display: none;
+}
+.ri-vertical .tm-top .tm-item[data-action='config'] .tm-label--v {
+	display: block;
+}
+
+/* ─── A FOLHA (menu aberto) ─────────────────────────────────────────────
+   Secao 1: o cluster inteiro, como grade de 4 colunas num cartao.
+   Secao 2: o leque, no cartao logo abaixo, com a propria rolagem. */
+.ri-vertical #TopMenuIdle.tm-aberto .tm-top {
+	position: fixed;
+	top: var(--vr-abaixo-do-topo, 70px);
+	left: calc(var(--safe-esq, 0px) + var(--vr-margem, 8px));
+	right: calc(var(--safe-dir, 0px) + var(--vr-margem, 8px));
+	width: auto;
+	display: grid !important;
+	grid-template-columns: repeat(4, 1fr);
+	gap: 8px 4px;
+	padding: 12px 8px;
+	border-radius: 12px;
+	background: var(--is-window-bg, #f4f6fb);
+	box-shadow: inset 0 0 0 1px var(--is-window-border, #c7d0e0);
+	z-index: 3;
+}
+
+.ri-vertical #TopMenuIdle.tm-aberto .tm-top .tm-item {
+	display: flex !important;
+	min-height: 0;
+	margin-bottom: 0;
+}
+
+.ri-vertical #TopMenuIdle.tm-aberto .tm-top .tm-toggle {
+	display: none !important;
+}
+
+/* Na folha os rotulos ficam escuros (fundo claro de cartao, nao mais o
+   mundo): a capsula de vidro escuro do cluster nao e necessaria aqui. */
+.ri-vertical #TopMenuIdle.tm-aberto .tm-top .tm-label {
+	color: var(--is-title-ink, #1c2540);
+	text-shadow: none;
+	background: transparent;
+}
+
+/* A secao do leque. `--vr-menu-cluster-altura` e a altura da secao 1 —
+   grade de 4 colunas com 8 itens = 2 fileiras de ~72 + respiro. */
+.ri-vertical .tm-fan {
+	--vr-menu-cluster-altura: 172px;
+}
+
+.ri-vertical .tm-fan.is-mounted {
+	position: fixed;
+	top: calc(var(--vr-abaixo-do-topo, 70px) + var(--vr-menu-cluster-altura));
+	left: calc(var(--safe-esq, 0px) + var(--vr-margem, 8px));
+	right: calc(var(--safe-dir, 0px) + var(--vr-margem, 8px));
+	max-height: calc(
+		100dvh - var(--vr-abaixo-do-topo, 70px) - var(--vr-menu-cluster-altura) -
+			var(--vr-acima-dos-atalhos, 92px) - 8px
+	);
+	overflow-y: auto;
+	overscroll-behavior: contain;
+	-webkit-overflow-scrolling: touch;
+	display: grid;
+	grid-template-columns: 1fr;
+	row-gap: 4px;
+	padding: 10px 8px 12px;
+	margin: 0;
+	border-radius: 12px;
+	background: var(--is-window-bg, #f4f6fb);
+	box-shadow: inset 0 0 0 1px var(--is-window-border, #c7d0e0);
+	z-index: 3;
+	pointer-events: auto;
+}
+
+/* O veu e o ornamento sao do leque flutuante; no cartao, saem. */
+.ri-vertical .tm-fan .tm-veu,
+.ri-vertical .tm-fan .tm-sep {
+	display: none;
+}
+
+/* As colunas do leque viram grades de 4, como a secao de cima. */
+.ri-vertical .tm-fan .tm-col {
+	display: grid;
+	grid-template-columns: repeat(4, 1fr);
+	gap: 8px 4px;
+}
+
+.ri-vertical .tm-fan .tm-item {
+	width: auto;
+}
+
+.ri-vertical .tm-fan .tm-label {
+	color: var(--is-title-ink, #1c2540);
+	text-shadow: none;
+	background: transparent;
+}

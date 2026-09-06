@@ -18,6 +18,8 @@ import Renderer from 'Renderer/Renderer.js';
 import Mouse from 'Controls/MouseEventHandler.js';
 import UIManager from 'UI/UIManager.js';
 import GUIComponent from 'UI/GUIComponent.js';
+import toqueParaAtalho from 'UI/toqueParaAtalho.js';
+import { emUnidadesDaHud } from 'UI/escalaDaHud.js';
 import ItemInfo from 'UI/Components/ItemInfo/ItemInfo.js';
 import Inventory from 'UI/Components/Inventory/Inventory.js';
 import SkillListMH from 'UI/Components/SkillListMH/SkillListMH.js';
@@ -53,6 +55,53 @@ const COLLAPSED_HEIGHT = 42;
 const MAX_ROW_COUNT = 4;
 
 /**
+ * @var {number} pagina ativa da HUD vertical (D-939) — indice da fileira que
+ * o celular em pe mostra. Estado de MODULO, como _rowCount: a barra e
+ * recriada na troca de mapa e a pagina escolhida atravessa.
+ */
+let _paginaVertical = 0;
+
+/**
+ * Redesenha os pontinhos e marca a fileira ativa (D-939).
+ *
+ * Roda no init, no setList (o numero de fileiras DISPONIVEIS vem do
+ * servidor e muda ali) e no toque num pontinho. Fora da HUD vertical tudo
+ * isto e inerte: os pontinhos sao display:none e a classe da fileira nao
+ * casa com regra nenhuma.
+ */
+function aplicarPaginaVertical(pagina) {
+	const root = ShortCut.getRoot();
+	const paginas = root.querySelector('.shortcut-paginas');
+	if (!paginas) {
+		return;
+	}
+	const total = getAvailableRowCount();
+	_paginaVertical = Math.max(0, Math.min(pagina, total - 1));
+
+	if (paginas.childElementCount !== total) {
+		paginas.innerHTML = '';
+		for (let i = 0; i < total; i++) {
+			const ponto = document.createElement('button');
+			ponto.type = 'button';
+			ponto.className = 'shortcut-pagina';
+			ponto.setAttribute('data-pagina', String(i));
+			ponto.setAttribute('role', 'tab');
+			ponto.setAttribute('aria-label', `Página ${i + 1}`);
+			paginas.appendChild(ponto);
+		}
+	}
+	const pontos = paginas.querySelectorAll('.shortcut-pagina');
+	for (let i = 0; i < pontos.length; i++) {
+		pontos[i].classList.toggle('is-ativa', i === _paginaVertical);
+		pontos[i].setAttribute('aria-selected', String(i === _paginaVertical));
+	}
+	const fileiras = root.querySelectorAll('.row');
+	for (let i = 0; i < fileiras.length; i++) {
+		fileiras[i].classList.toggle('is-pagina-ativa', i === _paginaVertical);
+	}
+}
+
+/**
  * @var {object} server load hotkeys
  */
 let _lastServerHotkeys = null;
@@ -61,6 +110,13 @@ let _lastServerHotkeys = null;
  * Cache for active animation frames
  */
 const _activeAnimations = new Map();
+
+/**
+ * Desassinar de "toqueParaAtalho" (D-938). Guarda a funcao devolvida por
+ * "assinar()" para poder desligar em "onRemove" e tambem para proteger
+ * contra assinar duas vezes se "init" rodar de novo.
+ */
+let _desassinarToque = null;
 
 /**
  * @var {Preference} structure to save informations about shortcut
@@ -121,6 +177,50 @@ ShortCut.init = function init() {
 
 	const container = root.querySelector('#ShortCut');
 
+	/*
+	 * TOQUE: rotulo "algo na mao" (D-938) — criado aqui em JS, e nao em
+	 * ShortCut.html, para nao mexer no template. Mora dentro do MESMO
+	 * shadow root do ShortCut (nunca em document.body — ver o comentario
+	 * de "atualizarRotuloDeToque" sobre por que ele precisa ser fixo).
+	 */
+	if (!root.querySelector('.shortcut-toque-rotulo')) {
+		const rotuloToque = document.createElement('div');
+		rotuloToque.className = 'shortcut-toque-rotulo';
+		container.appendChild(rotuloToque);
+	}
+	if (!_desassinarToque) {
+		_desassinarToque = toqueParaAtalho.assinar(atualizarRotuloDeToque);
+	}
+
+	/*
+	 * PAGINAS DA HUD VERTICAL (D-939) — os pontinhos do mockup.
+	 *
+	 * No desktop as fileiras aparecem por ALTURA (applyShortcutSize corta o
+	 * host em N x 42px, e o resize da mais fileiras). No celular em pe nao ha
+	 * altura para empilhar fileiras nem pegador para redimensionar: cada
+	 * fileira vira uma PAGINA, e os pontinhos trocam qual esta na tela.
+	 *
+	 * Criado em JS como o rotulo de toque acima (nao mexe no template), e
+	 * INERTE fora da vertical: o CSS so mostra os pontinhos e so esconde
+	 * fileiras dentro de `.ri-vertical`. A classe `is-pagina-ativa` existe
+	 * sempre, mas nenhuma regra de desktop a le.
+	 */
+	if (!root.querySelector('.shortcut-paginas')) {
+		const paginas = document.createElement('div');
+		paginas.className = 'shortcut-paginas';
+		paginas.setAttribute('role', 'tablist');
+		paginas.setAttribute('aria-label', 'Páginas da barra de atalhos');
+		paginas.addEventListener('click', e => {
+			const ponto = e.target.closest('.shortcut-pagina');
+			if (ponto) {
+				e.stopImmediatePropagation();
+				aplicarPaginaVertical(parseInt(ponto.getAttribute('data-pagina'), 10) || 0);
+			}
+		});
+		container.appendChild(paginas);
+	}
+	aplicarPaginaVertical(_paginaVertical);
+
 	// Dropping to the shortcut
 	container.addEventListener('drop', e => {
 		const target = e.target.closest('.container');
@@ -173,6 +273,26 @@ ShortCut.init = function init() {
 		if (e.target.closest('.icon')) {
 			e.stopImmediatePropagation();
 		}
+	});
+
+	/*
+	 * TOQUE: o SEGUNDO gesto de "pegar e por" (D-938, ver
+	 * UI/toqueParaAtalho.js). O toque nao gera "dragstart", entao o "por"
+	 * chega aqui como um "click" comum no slot de destino. Sem nada
+	 * pendente, um clique simples num slot NUNCA fez nada neste componente
+	 * (o unico gesto de um toque e o "dblclick" via "onUseShortCut") — e
+	 * isso continua valendo: o guarda abaixo devolve sem tocar em nada.
+	 */
+	container.addEventListener('click', e => {
+		const target = e.target.closest('.container');
+		if (!target || !toqueParaAtalho.pendente()) {
+			return;
+		}
+		e.stopImmediatePropagation();
+		e.preventDefault();
+		const carga = toqueParaAtalho.entregar();
+		const index = parseInt(target.getAttribute('data-index'), 10);
+		aplicarNoSlot(carga, index);
 	});
 
 	/*
@@ -282,6 +402,13 @@ ShortCut.onRemove = function onRemove() {
 		tooltip.classList.remove('show');
 	}
 
+	// D-938: desliga a assinatura de "toqueParaAtalho" — senao um segundo
+	// "init" (ver o guarda "if (!_desassinarToque)") nunca voltaria a assinar.
+	if (_desassinarToque) {
+		_desassinarToque();
+		_desassinarToque = null;
+	}
+
 	// Cancels all active animation loops defensively to prevent leaks in unattached elements
 	for (const [index, animationId] of _activeAnimations.entries()) {
 		cancelAnimationFrame(animationId);
@@ -374,6 +501,9 @@ ShortCut.setList = function setList(list) {
 	});
 	_list.length = list.length;
 	_rowCount = Math.min(4, Math.floor(list.length / 9));
+	/* D-939: o numero de paginas da HUD vertical segue o de fileiras
+	   disponiveis — e ele acabou de (possivelmente) mudar. */
+	aplicarPaginaVertical(_paginaVertical);
 
 	for (let i = 0, count = list.length; i < count; ++i) {
 		if (list[i].isSkill) {
@@ -570,8 +700,19 @@ function onContainerMouseEnter(event) {
 			top = hostRect.top + hostRect.height + 2;
 		}
 
-		tooltip.style.left = `${left}px`;
-		tooltip.style.top = `${top}px`;
+		/*
+		 * A CONVERSAO DO ZOOM (D-934), e ela vale para os DOIS rotulos fixos
+		 * deste componente.
+		 *
+		 * `getBoundingClientRect()` devolve pixel de VIEWPORT; `style.left`
+		 * escrito num elemento que vive dentro de um host com `zoom` e lido
+		 * nas unidades LOCAIS dele. `position: fixed` NAO escapa disso —
+		 * medido em 05/09/2026: `left: 400px` dentro de `zoom: 0.5` desenha em
+		 * x=200. Sem a divisao, a dica de item saia do lugar em toda janela
+		 * pequena. Em escala 1 a funcao e identidade.
+		 */
+		tooltip.style.left = `${emUnidadesDaHud(left)}px`;
+		tooltip.style.top = `${emUnidadesDaHud(top)}px`;
 	}
 }
 
@@ -854,9 +995,8 @@ ShortCut.removeElement = function removeElement(isSkill, ID, row, amount) {
  * and skill window to save to shortcut ?
  */
 function onDrop(event, target) {
-	let data, element;
+	let data;
 	const index = parseInt(target.getAttribute('data-index'), 10);
-	const row = Math.floor(index / 9);
 
 	event.stopImmediatePropagation();
 	event.preventDefault();
@@ -865,10 +1005,31 @@ function onDrop(event, target) {
 	try {
 		const serialized = event.dataTransfer.getData('Text') || event.dataTransfer.getData('text/plain');
 		data = serialized ? JSON.parse(serialized) : window._OBJ_DRAG_;
-		element = data.data;
 	} catch (_e) {
 		return;
 	}
+
+	aplicarNoSlot(data, index);
+}
+
+/**
+ * Aplica um payload {type, from, data} JA PRONTO num slot da barra — o MESMO
+ * switch que "onDrop" sempre teve, agora tambem chamado pelo caminho de
+ * TOQUE (D-938, ver "toqueParaAtalho.entregar()" em ShortCut.init). Nenhuma
+ * linha da logica mudou, so saiu do meio da leitura do "dataTransfer": quem
+ * chama aqui ja tem o payload pronto, seja do mouse (onDrop) ou da mao
+ * (toqueParaAtalho).
+ *
+ * @param {{type:string, from:string, data:object}} data payload pronto
+ * @param {number} index slot de destino
+ */
+function aplicarNoSlot(data, index) {
+	if (!data) {
+		return;
+	}
+
+	const row = Math.floor(index / 9);
+	const element = data.data;
 
 	// Do not process others things than item and skill
 	if (data.type !== 'item' && data.type !== 'skill') {
@@ -907,6 +1068,51 @@ function onDrop(event, target) {
 			ShortCut.onChange(index, element.isSkill, element.ID, element.count);
 			break;
 	}
+}
+
+/**
+ * TOQUE: mostra/esconde o rotulo "algo na mao" (D-938) e destaca os slots.
+ *
+ * O rotulo E FIXO ("position: fixed" no CSS) pelo MESMO motivo que ja obriga
+ * ".shortcut-tooltip" a ser fixo: tanto ":host" quanto "#ShortCut" tem
+ * "overflow: hidden" (ver o comentario da TEXTURA no topo do CSS), entao um
+ * rotulo absoluto posicionado ACIMA da barra seria cortado — so um elemento
+ * fixo escapa da caixa do host. A conta de posicao repete a de
+ * "onContainerMouseEnter" logo abaixo: centraliza pela largura do HOST e
+ * mede o proprio elemento depois de mostrar, para nao adivinhar a largura.
+ *
+ * Assinado em "toqueParaAtalho.assinar()" (ShortCut.init) — chamado com o
+ * pendente atual sempre que ele muda, e com `null` quando a mao esvazia.
+ *
+ * @param {?{type:string, from:string, data:object, rotulo?:string}} payload
+ */
+function atualizarRotuloDeToque(payload) {
+	const root = ShortCut.getRoot();
+	const container = root.querySelector('#ShortCut');
+	const rotulo = root.querySelector('.shortcut-toque-rotulo');
+	if (!container || !rotulo) {
+		return;
+	}
+
+	if (!payload) {
+		container.classList.remove('is-esperando-atalho');
+		rotulo.classList.remove('show');
+		return;
+	}
+
+	container.classList.add('is-esperando-atalho');
+	rotulo.textContent = payload.rotulo ? `${payload.rotulo} → toque num espaço` : 'Toque num espaço da barra';
+	rotulo.classList.add('show');
+
+	const host = ShortCut._host;
+	if (!host) {
+		return;
+	}
+	const hostRect = host.getBoundingClientRect();
+	const rotuloRect = rotulo.getBoundingClientRect();
+	/* A mesma conversao do zoom da dica de item — ver o comentario la. */
+	rotulo.style.left = `${emUnidadesDaHud(hostRect.left + hostRect.width / 2 - rotuloRect.width / 2)}px`;
+	rotulo.style.top = `${emUnidadesDaHud(hostRect.top - rotuloRect.height - 8)}px`;
 }
 
 /**

@@ -54,3 +54,29 @@
 	background: var(--tab-active-fill);
 	color: var(--tab-active-text);
 }
+
+/* ─── Toque (05/09/2026): a mochila passa a abrir este menu tambem, e no dedo
+   ele precisa de duas coisas que o mouse ja tinha de graca -- alvo grande e
+   feedback de pressionado. Tudo preso a `pointer: coarse` (mesmo criterio do
+   D-935 em Common.css), entao a aparencia e o tamanho no MOUSE nao mudam nem
+   um pixel: o bloco inteiro nao existe fora do dedo. */
+@media (pointer: coarse) {
+	#ContextMenu .menu div {
+		/* --hit-touch (44px) e o piso do design system para alvo de dedo.
+		   `flex` + `align-items: center` centraliza o texto na caixa mais alta
+		   sem mudar o alinhamento horizontal (fica em flex-start, igual ao
+		   bloco original). */
+		display: flex;
+		align-items: center;
+		box-sizing: border-box;
+		min-height: var(--hit-touch, 44px);
+	}
+
+	/* :hover nao existe no dedo -- sem ele, tocar um item nao dava NENHUM
+	   sinal visivel antes do menu fechar. Mesmo preenchimento do :hover (o
+	   :hover acima continua servindo o mouse, intocado). */
+	#ContextMenu .menu div:active {
+		background: var(--tab-active-fill);
+		color: var(--tab-active-text);
+	}
+}

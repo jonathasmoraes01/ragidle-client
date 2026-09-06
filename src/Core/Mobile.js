@@ -21,6 +21,7 @@ import Session from 'Engine/SessionStorage.js';
 import Mouse from 'Controls/MouseEventHandler.js';
 import KEYS from 'Controls/KeyEventHandler.js';
 import MobileUI from 'UI/Components/MobileUI/MobileUI.js';
+import { ehEventoDaUI } from 'Controls/ehEventoDaUI.js'; // D-932: o toque para na UI, como o clique ja parava
 
 /**
  * @var {boolean} is doing a gesture ?
@@ -36,6 +37,16 @@ let _scale, _angle, _touches, _intersect;
  * Timer to detect delayed click
  */
 let _timer = -1;
+
+/**
+ * O gesto ATUAL comecou dentro da UI? (D-932)
+ *
+ * O `touchend` e o `touchmove` nao trazem a resposta de graca: o alvo deles
+ * pode ser outro elemento, porque o dedo anda. Quem decide e o `touchstart`,
+ * e a decisao vale ate o dedo sair da tela — e a mesma logica de captura de
+ * ponteiro que o arrasto ja usa.
+ */
+let _daUI = false;
 
 /**
  * @namespace Mobile
@@ -157,6 +168,43 @@ const onTouchStart = (function onTouchStartClosure() {
 	}
 
 	return function (event) {
+		/*
+		 * ═══════════════════════════════════════════════════════════════
+		 * D-932 — O TOQUE PARA NA UI, COMO O CLIQUE JA PARAVA.
+		 *
+		 * Este ouvinte mora no `window` com `passive:false` e dava
+		 * `preventDefault()` + `stopImmediatePropagation()` em TODO
+		 * `touchstart`, sem perguntar onde o dedo encostou.
+		 *
+		 * Pela especificacao de Touch Events, `preventDefault` num
+		 * `touchstart` SUPRIME os eventos de mouse sinteticos daquele toque
+		 * — `mousedown`, `mouseup` e `click`. Consequencia: **todo elemento
+		 * que so escuta `click` ficava inalcancavel por toque**. Isso cobre
+		 * as abas do chat, o `ContextMenu` inteiro (82 chamadores no jogo),
+		 * o botao de fechar do sussurro e a fonte do chat.
+		 *
+		 * A prova de que isso era sabido esta no proprio fork: o
+		 * `MobileUI.js` reimplementa CADA botao dele com `touchstart`
+		 * manual, em vez de confiar em `click`. Era o sintoma tratado um
+		 * botao por vez.
+		 *
+		 * Este e o MESMO defeito que o mouse teve em 19/08/2026 ("clicar
+		 * num botao fazia o personagem andar"), e a resposta e a MESMA
+		 * pergunta: o evento nasceu dentro da UI? O predicado agora e um
+		 * modulo so (`Controls/ehEventoDaUI.js`), lido pelos dois lados,
+		 * porque duplica-lo faria o toque e o clique divergirem no dia em
+		 * que alguem somasse um marcador novo de UI.
+		 *
+		 * `_daUI` guarda a resposta para o `touchend`/`touchmove` do MESMO
+		 * gesto: um dedo que comecou num botao e escorregou para o mapa nao
+		 * pode virar um passo do personagem no meio do caminho.
+		 * ═══════════════════════════════════════════════════════════════
+		 */
+		_daUI = ehEventoDaUI(event);
+		if (_daUI) {
+			return;
+		}
+
 		remoteAutoFocus();
 		_touches = event.touches;
 		event.preventDefault();
@@ -192,7 +240,12 @@ const onTouchStart = (function onTouchStartClosure() {
  * Hook touch end to know when a gesture end
  * process OnMouseUp if no gesture detected
  */
+
 function onTouchEnd(event) {
+	if (_daUI) {
+		_daUI = false;
+		return;
+	}
 	if (_processGesture) {
 		_processGesture = false;
 		KEYS.SHIFT = false;
@@ -217,6 +270,10 @@ function onTouchEnd(event) {
  * Else move.
  */
 function onTouchMove(event) {
+	/* D-932: rolar a lista de uma janela nao pode girar a camera. */
+	if (_daUI) {
+		return;
+	}
 	event.stopImmediatePropagation();
 
 	const touches = event.touches;

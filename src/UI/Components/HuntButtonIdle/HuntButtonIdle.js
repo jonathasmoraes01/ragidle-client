@@ -56,6 +56,7 @@ import AdminPanel from 'UI/Components/AdminPanel/AdminPanel.js';
 import ChatBox from 'UI/Components/ChatBox/ChatBox.js';
 import htmlText from './HuntButtonIdle.html?raw';
 import cssText from './HuntButtonIdle.css?raw';
+import { emUnidadesDaHud } from 'UI/escalaDaHud.js'; // D-934: geometria medida vira unidade da HUD
 
 /**
  * Mesmo intervalo de polling leve que DockIdle.js/TopMenuIdle.js.
@@ -152,7 +153,11 @@ function publicarAltura() {
 	if (altura <= 0) {
 		return;
 	}
-	document.documentElement.style.setProperty('--hud-td-altura-dos-botoes', `${altura}px`);
+	/* D-934: unidade da HUD. Ver `emUnidadesDaHud`. */
+	document.documentElement.style.setProperty(
+		'--hud-td-altura-dos-botoes',
+		`${Math.round(emUnidadesDaHud(altura))}px`,
+	);
 }
 
 /**
