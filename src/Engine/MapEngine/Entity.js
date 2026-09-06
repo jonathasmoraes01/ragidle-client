@@ -397,7 +397,9 @@ function onEntityVanish(pkt) {
 					 */
 					if (entity.objecttype === Entity.TYPE_MOB && Session.Entity) {
 						const nome = DB.getMonsterName(entity.job);
-						registrarAbate(Session.Entity.GID, nome === 'Unknown' ? '' : nome);
+						/* O job vai junto (D-943): e o mobId do avatar em
+						   /ragidle/mobs/<id>.png, o mesmo do Mapa de Caca. */
+						registrarAbate(Session.Entity.GID, nome === 'Unknown' ? '' : nome, entity.job);
 					}
 					EntityManager.removeLife(pkt.GID);
 				}

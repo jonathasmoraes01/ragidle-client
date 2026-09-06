@@ -142,7 +142,9 @@ function onItemPickAnswer(pkt) {
 	 * hoje custa um slot da reserva `0x0fce..0x0feb`.
 	 */
 	if (Session.Entity && ehDropDeCaca(IdleConfig.contexto)) {
-		registrarItem(Session.Entity.GID, getTextItem, pkt.count);
+		/* O ITID vai junto (D-943): e ele que deixa a janela desenhar o icone
+		   do drop, pelo mesmo caminho de icone da Mochila (setItemIcon). */
+		registrarItem(Session.Entity.GID, getTextItem, pkt.count, pkt.ITID);
 	}
 
 	Inventory.getUI().addItem(pkt);

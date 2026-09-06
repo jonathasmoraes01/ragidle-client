@@ -2,95 +2,151 @@
 	<!-- ".ha-window" e o retangulo INTEIRO; ".ha-frame" carrega ".ri-window"
 	     (fundo/aro/sombra). Mesma divisao de camadas de CorreioIdle.html e
 	     MochilaIdle.html, pelo mesmo motivo: quem liga/desliga "is-open" e o
-	     retangulo de fora, pro host continuar mensuravel com a janela fechada. -->
+	     retangulo de fora, pro host continuar mensuravel com a janela fechada.
+	     A classe ".ha-window" e CONTRATO: a pilha do ESC (MapEngine.js:1008),
+	     o TopMenu (isRagIdleWindowOpen) e o modo vertical (Common.css) leem
+	     por ela. -->
 	<div class="ha-window ri-anima">
 		<div class="ha-frame ri-window">
 			<div class="ha-header ri-header">
-				<span class="ha-titulo ri-title">Hunt Analyzer</span>
+				<span class="ha-titulo ri-title">Análise de Caça</span>
 				<button type="button" class="ha-close ri-close" title="Fechar">&times;</button>
 			</div>
 
+			<!-- ─── AS TRES ABAS (D-943). "Atual" e a cacada em curso (ou a
+			     travada, ate a proxima comecar); as outras duas sao o
+			     historico — a mais recente primeiro. Abas sem cacada ficam
+			     desabilitadas em vez de abrir uma tela vazia. -->
+			<div class="ha-abas" role="tablist">
+				<button type="button" role="tab" aria-selected="true" class="ri-tab ha-aba is-active" data-aba="0">Atual</button>
+				<button type="button" role="tab" aria-selected="false" class="ri-tab ha-aba" data-aba="1" disabled>Última</button>
+				<button type="button" role="tab" aria-selected="false" class="ri-tab ha-aba" data-aba="2" disabled>Penúltima</button>
+			</div>
+
 			<div class="ha-corpo ri-scroll">
-				<!-- ─── A FAIXA DE SESSAO. "Medindo ha" e o denominador de tudo
-				     que aparece abaixo; deixa-lo visivel e o que permite ao
-				     jogador desconfiar de um ritmo colhido em 12 segundos. -->
-				<div class="ha-sessao">
-					<span class="ha-sessao-texto">Medindo há <b class="ha-decorrido">—</b></span>
-					<span class="ha-ocioso" hidden></span>
+				<!-- ─── A CABINE: o cronometro grande do Midgard, com o estado
+				     do ciclo automatico ao lado. O "Zerar" so aparece na aba
+				     Atual (historico nao se zera — se descarta sozinho). -->
+				<div class="ha-cabine">
+					<div class="ha-cabine-info">
+						<span class="ha-cabine-rotulo">Duração</span>
+						<span class="ha-cronometro">00:00:00</span>
+						<!-- role="status" + aria-atomic: a troca Medindo/Travada
+						     e anunciada como frase inteira, sem virar um coro de
+						     live regions (um por numero seria o anti-padrao). -->
+						<span class="ha-estado ha-estado--ociosa" role="status" aria-atomic="true">
+							<span class="ha-estado-ponto"></span>
+							<span class="ha-estado-texto">Aguardando caça</span>
+						</span>
+						<span class="ha-mapa" hidden></span>
+					</div>
 					<button type="button" class="ha-zerar ri-btn ri-btn--sec" data-acao="zerar">Zerar</button>
 				</div>
 
-				<!-- ─── EXPERIENCIA ────────────────────────────────────────
-				     Os dois trilhos vem de ZC_NOTIFY_EXP (varID 1 e 2), que o
-				     servidor manda a cada abate. Sao somas de valores reais. -->
-				<section class="ha-bloco">
-					<h3 class="ha-bloco-titulo">Experiência</h3>
-					<div class="ha-cartoes">
-						<div class="ha-cartao">
-							<span class="ha-cartao-rotulo">Base / hora</span>
-							<span class="ha-cartao-valor ha-exp-base-hora">—</span>
-							<span class="ha-cartao-nota">Total: <b class="ha-exp-base">0</b></span>
-						</div>
-						<div class="ha-cartao">
-							<span class="ha-cartao-rotulo">Classe / hora</span>
-							<span class="ha-cartao-valor ha-exp-classe-hora">—</span>
-							<span class="ha-cartao-nota">Total: <b class="ha-exp-classe">0</b></span>
-						</div>
+				<!-- ─── OS QUATRO NUMEROS DE DECISAO em tiles (auditoria de
+				     UX, 06/09): a pergunta da janela e "este spot presta?", e
+				     quem responde e o POR HORA — entao os quatro ritmos sobem
+				     para uma faixa 2x2 escaneavel de relance, e a trilha
+				     abaixo fica com os acumulados. O losango carrega a cor da
+				     familia; a cor nunca e o unico portador (o rotulo fala). -->
+				<div class="ha-ritmos">
+					<div class="ha-ritmo">
+						<span class="ha-ritmo-rotulo"><span class="ha-losango ha-losango--exp"></span>EXP/h</span>
+						<span class="ha-ritmo-valor ha-exp-base-hora">—</span>
 					</div>
-
-					<!-- A projecao so aparece quando ha ritmo medido E o cliente
-					     sabe quanto falta (BasicInfo.base_exp_next). Sem uma das
-					     duas ela mostra "--", nunca um numero de consolo. -->
-					<div class="ha-projecoes">
-						<div class="ha-projecao">
-							<span class="ha-projecao-rotulo">Próximo nível</span>
-							<span class="ha-projecao-valor ha-falta-base">—</span>
-						</div>
-						<div class="ha-projecao">
-							<span class="ha-projecao-rotulo">Próximo nível de classe</span>
-							<span class="ha-projecao-valor ha-falta-classe">—</span>
-						</div>
+					<div class="ha-ritmo">
+						<span class="ha-ritmo-rotulo"><span class="ha-losango ha-losango--classe"></span>Classe/h</span>
+						<span class="ha-ritmo-valor ha-exp-classe-hora">—</span>
 					</div>
-				</section>
+					<div class="ha-ritmo">
+						<span class="ha-ritmo-rotulo"><span class="ha-losango ha-losango--monstro"></span>Monstros/h</span>
+						<span class="ha-ritmo-valor ha-abates-hora">—</span>
+					</div>
+					<div class="ha-ritmo">
+						<span class="ha-ritmo-rotulo"><span class="ha-losango ha-losango--drop"></span>Drops/h</span>
+						<span class="ha-ritmo-valor ha-itens-hora">—</span>
+					</div>
+				</div>
 
-				<!-- ─── ABATES E RANKING ───────────────────────────────────
-				     Contados no VANISH/DEAD de entidade TYPE_MOB. A ressalva
-				     (conta o que morre A VISTA) esta no cabecalho de
-				     registroDaCaca.js -- hoje a caca e solo, D-246. -->
+				<!-- ─── A TRILHA DE ACUMULADOS, no desenho do Midgard: uma
+				     linha por numero, losango colorido por familia (verde =
+				     EXP base, azul = EXP de classe, vermelho = monstros, ouro
+				     = drops). "—" enquanto a janela medida for curta demais. -->
+				<ul class="ha-metricas">
+					<li class="ha-metrica">
+						<span class="ha-losango ha-losango--exp"></span>
+						<span class="ha-metrica-rotulo">EXP</span>
+						<span class="ha-metrica-valor ha-exp-base">0</span>
+					</li>
+					<li class="ha-metrica">
+						<span class="ha-losango ha-losango--classe"></span>
+						<span class="ha-metrica-rotulo">EXP de Classe</span>
+						<span class="ha-metrica-valor ha-exp-classe">0</span>
+					</li>
+
+					<!-- A projecao so aparece quando ha ritmo medido E o
+					     cliente sabe quanto falta (BasicInfo.base_exp_next) —
+					     e so na aba Atual: o ritmo de uma cacada antiga sobre
+					     o "quanto falta" de hoje misturaria duas epocas. -->
+					<li class="ha-metrica ha-metrica--projecao">
+						<span class="ha-losango ha-losango--exp"></span>
+						<span class="ha-metrica-rotulo">Próximo nível</span>
+						<span class="ha-metrica-valor ha-falta-base">—</span>
+					</li>
+					<li class="ha-metrica ha-metrica--projecao">
+						<span class="ha-losango ha-losango--classe"></span>
+						<span class="ha-metrica-rotulo">Próximo nível de classe</span>
+						<span class="ha-metrica-valor ha-falta-classe">—</span>
+					</li>
+
+					<li class="ha-metrica ha-metrica--corte">
+						<span class="ha-losango ha-losango--monstro"></span>
+						<span class="ha-metrica-rotulo">Monstros</span>
+						<span class="ha-metrica-valor ha-abates">0</span>
+					</li>
+					<li class="ha-metrica">
+						<span class="ha-losango ha-losango--drop"></span>
+						<span class="ha-metrica-rotulo">Drops</span>
+						<span class="ha-metrica-valor ha-itens-total">0</span>
+					</li>
+					<li class="ha-metrica">
+						<span class="ha-losango ha-losango--drop"></span>
+						<span class="ha-metrica-rotulo">Drops por 100 monstros</span>
+						<span class="ha-metrica-valor ha-itens-100">—</span>
+					</li>
+				</ul>
+
+				<!-- A nota cinza do Midgard, com as NOSSAS ressalvas honestas
+				     (elas moravam no rodape; o lugar novo e o mesmo do deles). -->
+				<p class="ha-nota">
+					A taxa de drops é global: o servidor não diz de qual monstro caiu cada item. Zeny fica de fora —
+					o mesmo pacote traz o zeny do monstro e o de uma venda, e não dá para separar.
+				</p>
+
+				<!-- ─── MONSTROS: contagem por especie, com participacao e uma
+				     barra de proporcao atras da linha. Contados no VANISH/DEAD
+				     de entidade TYPE_MOB — a ressalva ("conta o que morre a
+				     vista") esta no cabecalho de registroDaCaca.js. -->
 				<section class="ha-bloco">
 					<h3 class="ha-bloco-titulo">
-						Abates
-						<span class="ha-bloco-resumo"
-							><b class="ha-abates">0</b> · <b class="ha-abates-hora">—</b>/h</span
-						>
+						Monstros
+						<span class="ha-bloco-resumo ha-monstros-tipos">0 tipos</span>
 					</h3>
 					<ul class="ha-ranking"></ul>
-					<div class="ha-vazio ha-ranking-vazio">Nenhum abate registrado ainda.</div>
+					<div class="ha-vazio ha-ranking-vazio">Nenhum abate ainda — o ranking enche conforme a caçada anda.</div>
 				</section>
 
-				<!-- ─── ITENS ──────────────────────────────────────────────
-				     So o TOTAL e a lista: a taxa "por 100 abates" saiu a pedido
-				     do dono (25/08/2026) e a coluna de % tambem -- aqui a
-				     porcentagem compararia Jellopy com Carta, o que nao responde
-				     pergunta nenhuma. A % continua no RANKING de abates, onde
-				     "metade foi Poring" e leitura util.
-
-				     Contam so os itens de DROP: `ZC_ITEM_PICKUP_ACK` responde a
-				     qualquer item entrando no inventario (correio, loja,
-				     carrinho, armazem), e o filtro esta em `ehDropDeCaca`. -->
+				<!-- ─── DROPS: a grade de icones do Midgard. So itens de DROP
+				     entram (o filtro contra correio/loja/carrinho/armazem e
+				     `ehDropDeCaca`); o icone vem pelo mesmo caminho da Mochila. -->
 				<section class="ha-bloco">
 					<h3 class="ha-bloco-titulo">
-						Itens
-						<span class="ha-bloco-resumo"><b class="ha-itens-total">0</b></span>
+						Drops
+						<span class="ha-bloco-resumo ha-drops-tipos">0 tipos</span>
 					</h3>
-					<ul class="ha-itens"></ul>
-					<div class="ha-vazio ha-itens-vazio">Nenhum item apanhado ainda.</div>
+					<div class="ha-drops"></div>
+					<div class="ha-vazio ha-drops-vazio">Nenhum drop ainda — cada item recolhido na caçada aparece aqui.</div>
 				</section>
-
-				<p class="ha-rodape-nota">
-					Zeny não entra: o servidor usa o mesmo pacote para o zeny do monstro e para uma venda em loja, então
-					não dá para separar.
-				</p>
 			</div>
 		</div>
 	</div>

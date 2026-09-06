@@ -1,15 +1,32 @@
 /**
  * UI/Components/HuntAnalyzer/HuntAnalyzer.js
  *
- * "Hunt Analyzer" -- a leitura da cacada EM CURSO. Responde a UMA pergunta:
- * este spot presta? Por isso tudo aqui e RITMO (por hora) e nao total bruto.
+ * "Analise de Caca" (D-943) -- a leitura das cacadas, no desenho do Hunt
+ * Analyzer do Midgard: cronometro grande, uma linha por metrica, monstros e
+ * drops com icone, e TRES abas (a cacada corrente + as duas ultimas).
+ *
+ * ── O CICLO E AUTOMATICO, E QUEM DIRIGE E O TIQUE DAQUI ──────────────────
+ * O registro (`registroDaCaca.js`) guarda o estado e decide as transicoes
+ * (entrar no mapa de caca INICIA, morrer ou voltar a cidade TRAVA, entrar de
+ * novo ARQUIVA e recomeca); este arquivo so LE o mundo e entrega a situacao
+ * a cada tique de 250 ms, via `atualizarSituacao()`:
+ *
+ *   - mapa de caca?  IdleConfig.contexto.ehCidade -- ausente ou OBSOLETO
+ *     (troca de mapa sondada e ainda sem resposta) vira "desconhecido", que
+ *     nao transiciona nada. Mesma guarda de HuntButtonIdle.syncLabel().
+ *   - morto?  Session.Entity.life com hp<=0 e hp_max>0 -- o MESMO criterio
+ *     da DeathWindow (hp_max>0 e o que separa "morto" de "dado ainda nao
+ *     populado", que nasce -1/-1).
+ *
+ * O tique roda desde o append, com a janela aberta OU fechada -- por isso o
+ * ciclo anda e o historico se forma mesmo com ela escondida.
  *
  * ── DE ONDE VEM O DADO ───────────────────────────────────────────────────
  * Esta janela nao fisga pacote nenhum. Quem acumula e
  * `registroDaCaca.js`, alimentado pelos handlers que JA recebem os pacotes:
  *   - abate  -> Engine/MapEngine/Entity.js, onEntityVanish (VT.DEAD, TYPE_MOB)
  *   - exp    -> Engine/MapEngine/Entity.js, onNotifyExp (0x07f6)
- *   - item   -> Engine/MapEngine/Item.js, onItemPickup
+ *   - item   -> Engine/MapEngine/Item.js, onItemPickup (com o ITID, D-943)
  *
  * O motivo de ser assim e duro: `Network.hookPacket()` guarda UM callback por
  * pacote (Network/NetworkManager.js:210). Fisgar qualquer um dos tres aqui
@@ -25,31 +42,40 @@
  *   - **Zeny.** O servidor manda o mesmo ZC_PAR_CHANGE para o zeny do mob_db
  *     e para uma venda em loja (a ambiguidade esta registrada em
  *     Engine/MapEngine/Main.js:423-427). "Zeny/hora da caca" seria falso, e a
- *     nota no rodape da janela diz isso ao jogador em vez de esconder.
+ *     nota da janela diz isso ao jogador em vez de esconder. E por isso nao
+ *     ha "Venda NPC/h" como no Midgard: o cliente nao tem preco de item, e
+ *     numero estimado sem fonte violaria a regra 1 do projeto.
  *   - **Taxa de drop por monstro.** O pacote do item que cai nao diz de qual
  *     mob veio, e no spot do dono morrem ate 4 juntos (D-325). A taxa e
  *     global, por 100 abates, e o rotulo fala.
  *   - **Qualquer ritmo antes de haver janela medida.** Ver
  *     MS_MINIMOS_PARA_RITMO em registroDaCaca.js: ate la sai "--".
+ *   - **Projecao de nivel nas abas de historico.** O ritmo de uma cacada
+ *     antiga sobre o "quanto falta" de HOJE misturaria duas epocas; as duas
+ *     linhas de projecao so existem na aba Atual.
  */
 
 import Renderer from 'Renderer/Renderer.js';
 import Preferences from 'Core/Preferences.js';
 import Session from 'Engine/SessionStorage.js';
+import DB from 'DB/DBManager.js';
+import Client from 'Core/Client.js';
 import GUIComponent from 'UI/GUIComponent.js';
 import BasicInfo from 'UI/Components/BasicInfo/BasicInfo.js';
-import { estimarMsAteONivel, ler, zerar } from './registroDaCaca.js';
+import IdleConfig from 'UI/Components/IdleConfig/IdleConfig.js';
+import { atualizarSituacao, estimarMsAteONivel, ler, lerHistorico, zerarCacadaAtual } from './registroDaCaca.js';
 import htmlText from './HuntAnalyzer.html?raw';
 import cssText from './HuntAnalyzer.css?raw';
 import { fecharEEsquecer } from '../limpezaDeJanelaIdle.js';
+import { abaLembrada, lembrarAba } from '../memoriaDeAba.js';
 
 /*
  * Estes DOIS numeros repetem os de HuntAnalyzer.css (":host" e ".ha-window").
  * A duplicacao e conhecida e esta anotada nas duas pontas -- cicatriz D-341.
  * Quem mudar um muda o outro.
  */
-const WINDOW_WIDTH = 420;
-const WINDOW_HEIGHT = 480;
+const WINDOW_WIDTH = 360;
+const WINDOW_HEIGHT = 540;
 
 /** Mesma cadencia das outras janelas RAGIDLE. */
 const POLL_INTERVAL_MS = 250;
@@ -59,8 +85,8 @@ const POLL_INTERVAL_MS = 250;
  *
  * Num idle o intervalo entre dois abates e de segundos, entao um aviso que
  * acendesse a cada respiro seria ruido piscando. Ele existe para o caso que
- * importa: a caca PAROU (morreu, travou, saiu do spot) e o ritmo na tela
- * ainda descreve um passado que nao volta.
+ * importa: a caca esta viva mas nada morre (spot vazio, personagem preso) e
+ * o ritmo na tela ainda descreve um passado que nao volta.
  */
 const OCIOSO_VISIVEL_MS = 15_000;
 
@@ -75,15 +101,21 @@ const _preferences = Preferences.get(
 	'HuntAnalyzer',
 	{
 		x: null,
-		y: null
+		y: null,
+		/* A aba escolhida sobrevive ao F5 (portao D-797, memoriaDeAba.js).
+		   Uma aba de historico lembrada sem historico ainda (o F5 apaga as
+		   cacadas arquivadas) cai pra Atual em sincronizarAbas — sem erro. */
+		aba: null
 	},
 	1
 );
 
 let _pollTimer = null;
+/** A aba na tela: 0 = atual, 1 = ultima, 2 = penultima. */
+let _aba = 0;
 /** Assinaturas das listas, para nao reconstruir DOM a cada tique. */
 let _sigRanking = null;
-let _sigItens = null;
+let _sigDrops = null;
 
 /*
  * A raiz e a SHADOW ROOT, com o host como reserva -- mesmo `_root()` de
@@ -104,6 +136,16 @@ function numero(valor) {
 		return TRACO;
 	}
 	return Math.round(valor).toLocaleString('pt-BR');
+}
+
+/** O cronometro do Midgard: HH:MM:SS, sempre com as tres casas. */
+function cronometro(ms) {
+	const total = Math.max(0, Math.floor((Number(ms) || 0) / 1000));
+	const h = Math.floor(total / 3600);
+	const min = Math.floor((total % 3600) / 60);
+	const s = total % 60;
+	const dois = n => String(n).padStart(2, '0');
+	return `${dois(h)}:${dois(min)}:${dois(s)}`;
 }
 
 /**
@@ -128,6 +170,56 @@ function duracao(ms) {
 	return `${s}s`;
 }
 
+/**
+ * "1.234 (0,3%)" -- o total com a fatia que ele representa do nivel, como o
+ * Midgard mostra. Sem teto conhecido (BasicInfo ainda sem base_exp_next, ou
+ * aba de historico) sai so o total: um % sem denominador seria inventado.
+ */
+function totalComPct(total, teto) {
+	const base = numero(total);
+	if (!teto || teto <= 0 || !total) {
+		return base;
+	}
+	const pct = ((total * 100) / teto).toLocaleString('pt-BR', {
+		minimumFractionDigits: 1,
+		maximumFractionDigits: 1
+	});
+	return `${base} (${pct}%)`;
+}
+
+/* ─── Leitura do mundo (as entradas do ciclo automatico) ───────────────── */
+
+/**
+ * Morto = hp<=0 com hp_max>0. O hp_max>0 e o que separa "morto" de "dado
+ * ainda nao populado" (Entity.life nasce -1/-1) -- o mesmo criterio corrigido
+ * da DeathWindow (ver o cabecalho de DeathWindow.js sobre o personagem que
+ * loga ja morto).
+ */
+function estaMorto() {
+	const life = Session.Entity && Session.Entity.life;
+	return !!(life && life.hp_max > 0 && life.hp <= 0);
+}
+
+/**
+ * A situacao que o registro consome. Contexto ausente ou OBSOLETO (mapa
+ * trocado, resposta ainda no fio) vira `emMapaDeCaca: null` -- desconhecido
+ * nao trava cacada viva nem inicia cacada nova. So o booleano estrito conta,
+ * na mesma linha de `ehDropDeCaca`.
+ */
+function situacaoDoMundo() {
+	const ctx = IdleConfig.contextoObsoleto ? null : IdleConfig.contexto;
+	let emMapaDeCaca = null;
+	if (ctx) {
+		emMapaDeCaca = ctx.ehCidade === true ? false : ctx.ehCidade === false ? true : null;
+	}
+	return {
+		emMapaDeCaca,
+		morto: estaMorto(),
+		mapa: ctx ? ctx.mapa || null : null,
+		rotuloDoMapa: ctx ? ctx.rotuloDoMapa || null : null
+	};
+}
+
 /* ─── Desenho ──────────────────────────────────────────────────────────── */
 
 function texto(root, seletor, valor) {
@@ -143,10 +235,6 @@ function texto(root, seletor, valor) {
  * Os dois numeros respondem coisas diferentes e por isso aparecem juntos
  * (pedido do dono, 25/08/2026): o tempo depende do ritmo e muda a cada onda,
  * a exp que falta e um fato do personagem e nao se mexe com a sorte do spot.
- *
- * Sem saber o quanto falta nao ha o que dizer -- travessao. Sabendo o quanto
- * falta mas ainda sem ritmo, o numero aparece e o tempo fica em travessao
- * DENTRO do parenteses: "511 (--)" e mais honesto que esconder os 511.
  */
 function projecao(restante, porHoraDaExp) {
 	const falta = Number(restante) || 0;
@@ -156,115 +244,317 @@ function projecao(restante, porHoraDaExp) {
 	return `${numero(falta)} (${duracao(estimarMsAteONivel(falta, porHoraDaExp))})`;
 }
 
-/**
- * Reconstroi uma lista SO quando o conteudo mudou.
- *
- * A assinatura inclui o valor, e nao so os nomes: sem isso a lista congelaria
- * no primeiro desenho e os numeros parariam de subir com o ranking estavel --
- * que e o caso comum, e portanto o que passaria despercebido.
- *
- * `mostrarParte` liga a coluna de participacao (%). Ela vale no RANKING, onde
- * "metade dos abates foi Poring" e uma leitura util, e NAO nos itens, onde o
- * dono pediu so a quantidade -- ali a porcentagem compara Jellopy com Carta e
- * nao responde pergunta nenhuma.
- */
-function desenharLista(root, seletorLista, seletorVazio, linhas, sigAnterior, mostrarParte) {
-	const sig = linhas.map(l => `${l.nome}:${l.valor}`).join('|');
-	const lista = root.querySelector(seletorLista);
-	const vazio = root.querySelector(seletorVazio);
-
-	if (vazio) {
-		vazio.hidden = linhas.length > 0;
-	}
-	if (sig === sigAnterior || !lista) {
-		return sig;
+/** A faixa de estado da cabine: ponto colorido + frase + linha do mapa. */
+function desenharEstado(root, r, aoVivo) {
+	const estadoEl = root.querySelector('.ha-estado');
+	const textoEl = root.querySelector('.ha-estado-texto');
+	const mapaEl = root.querySelector('.ha-mapa');
+	if (!estadoEl || !textoEl || !mapaEl) {
+		return;
 	}
 
-	const total = linhas.reduce((soma, l) => soma + l.valor, 0);
-	lista.textContent = '';
+	let classe = 'ociosa';
+	let frase = 'Aguardando caça';
+	let linhaDoMapa = 'A medição começa quando você entrar num mapa de caça.';
 
-	for (const linha of linhas) {
-		const li = document.createElement('li');
-		li.className = mostrarParte ? 'ha-linha' : 'ha-linha ha-linha--sem-parte';
+	const ondeFoi = r.rotuloDoMapa || r.mapa || '';
 
-		const nome = document.createElement('span');
-		nome.className = 'ha-linha-nome';
-		nome.textContent = linha.nome;
-		/* O nome completo no title: a coluna corta com ellipsis. */
-		nome.title = linha.nome;
-
-		const valor = document.createElement('span');
-		valor.className = 'ha-linha-valor';
-		valor.textContent = numero(linha.valor);
-
-		li.append(nome, valor);
-
-		if (mostrarParte) {
-			const parte = document.createElement('span');
-			parte.className = 'ha-linha-parte';
-			parte.textContent = total > 0 ? `${Math.round((linha.valor * 100) / total)}%` : TRACO;
-			li.appendChild(parte);
+	if (r.fase === 'ativa') {
+		classe = 'ativa';
+		frase = 'Medindo';
+		if (r.ociosoMs >= OCIOSO_VISIVEL_MS) {
+			frase += ` · parado há ${duracao(r.ociosoMs)}`;
 		}
-
-		lista.appendChild(li);
+		linhaDoMapa = ondeFoi;
+	} else if (r.fase === 'travada') {
+		classe = 'travada';
+		frase = r.motivoDoFim === 'morte' ? 'Travada — você morreu' : 'Travada — você está na cidade';
+		linhaDoMapa = ondeFoi;
+	} else if (r.fase === 'encerrada') {
+		/* Aba de historico: cinza, com "quando" em vez de estado vivo. */
+		frase =
+			r.motivoDoFim === 'morte'
+				? 'Encerrada — morte'
+				: r.motivoDoFim === 'mapa'
+					? 'Encerrada — trocou de mapa'
+					: 'Encerrada — voltou à cidade';
+		const haQuanto = r.encerradaEm ? duracao(Date.now() - r.encerradaEm) : null;
+		linhaDoMapa = ondeFoi + (haQuanto ? `${ondeFoi ? ' · ' : ''}há ${haQuanto}` : '');
 	}
 
-	return sig;
+	estadoEl.classList.remove('ha-estado--ociosa', 'ha-estado--ativa', 'ha-estado--travada');
+	estadoEl.classList.add(`ha-estado--${classe === 'encerrada' ? 'ociosa' : classe}`);
+	textoEl.textContent = frase;
+	mapaEl.hidden = !linhaDoMapa;
+	mapaEl.textContent = linhaDoMapa;
+	mapaEl.title = linhaDoMapa;
+
+	/* O Zerar so faz sentido sobre a cacada corrente. */
+	const zerar = root.querySelector('.ha-zerar');
+	if (zerar) {
+		zerar.hidden = !aoVivo;
+	}
 }
 
-function tique() {
-	const root = _root();
-	const gid = Session.Entity ? Session.Entity.GID : null;
-	const r = ler(gid);
+/**
+ * O ranking de monstros: linha por especie com contagem, participacao e a
+ * barra de proporcao por tras. Reconstroi SO quando o conteudo mudou -- a
+ * assinatura inclui o valor, senao a lista congelaria com o ranking estavel
+ * (o caso comum, e portanto o que passaria despercebido).
+ */
+function desenharMonstros(root, ranking) {
+	/* O mobId entra na assinatura: um id que chega DEPOIS do primeiro
+	   desenho (mob anonimo que ganhou identidade) precisa redesenhar, senao
+	   a linha ficaria sem avatar por "nao ter mudado". */
+	const sig = ranking.map(m => `${m.nome}:${m.abates}:${m.mobId}`).join('|');
+	const lista = root.querySelector('.ha-ranking');
+	const vazio = root.querySelector('.ha-ranking-vazio');
+	const tipos = root.querySelector('.ha-monstros-tipos');
 
-	texto(root, '.ha-decorrido', r.decorridoMs > 0 ? duracao(r.decorridoMs) : TRACO);
-
-	const ocioso = root.querySelector('.ha-ocioso');
-	if (ocioso) {
-		const mostrar = r.decorridoMs > 0 && r.ociosoMs >= OCIOSO_VISIVEL_MS;
-		ocioso.hidden = !mostrar;
-		if (mostrar) {
-			ocioso.textContent = `· parado há ${duracao(r.ociosoMs)}`;
-		}
+	if (tipos) {
+		tipos.textContent = `${ranking.length} ${ranking.length === 1 ? 'tipo' : 'tipos'}`;
 	}
+	if (vazio) {
+		vazio.hidden = ranking.length > 0;
+	}
+	if (sig === _sigRanking || !lista) {
+		return;
+	}
+	_sigRanking = sig;
 
-	texto(root, '.ha-exp-base-hora', numero(r.expBasePorHora));
-	texto(root, '.ha-exp-classe-hora', numero(r.expClassePorHora));
-	texto(root, '.ha-exp-base', numero(r.expBase));
-	texto(root, '.ha-exp-classe', numero(r.expClasse));
+	const total = ranking.reduce((soma, m) => soma + m.abates, 0);
+	lista.textContent = '';
+
+	for (const m of ranking) {
+		const parte = total > 0 ? Math.round((m.abates * 100) / total) : 0;
+
+		const li = document.createElement('li');
+		li.className = 'ha-monstro';
+
+		const barra = document.createElement('span');
+		barra.className = 'ha-monstro-barra';
+		barra.style.width = `${parte}%`;
+
+		/*
+		 * O avatar da especie — o MESMO /ragidle/mobs/<id>.png do Mapa de
+		 * Caca (HuntMap.js:827) e da Config idle. O span fica mesmo sem
+		 * imagem: e ele que segura a coluna do grid; o onerror esconde so a
+		 * IMG, e a linha continua alinhada com as outras.
+		 */
+		const avatar = document.createElement('span');
+		avatar.className = 'ha-monstro-avatar';
+		if (m.mobId !== null && m.mobId !== undefined) {
+			const img = document.createElement('img');
+			img.alt = '';
+			img.onerror = () => {
+				img.hidden = true;
+			};
+			img.src = `/ragidle/mobs/${m.mobId}.png`;
+			avatar.appendChild(img);
+		}
+
+		const nome = document.createElement('span');
+		nome.className = 'ha-monstro-nome';
+		nome.textContent = m.nome;
+		/* O nome completo no title: a coluna corta com ellipsis. */
+		nome.title = m.nome;
+
+		const abates = document.createElement('span');
+		abates.className = 'ha-monstro-abates';
+		abates.textContent = numero(m.abates);
+
+		const pct = document.createElement('span');
+		pct.className = 'ha-monstro-parte';
+		pct.textContent = total > 0 ? `${parte}%` : TRACO;
+
+		li.append(barra, avatar, nome, abates, pct);
+		lista.appendChild(li);
+	}
+}
+
+/**
+ * Icone do drop: tenta /ragidle/item/<ITID>.png (o builder que publica os
+ * icones em paralelo) e cai pro bmp do cliente -- MESMA dupla de caminhos de
+ * MochilaIdle.setItemIcon, pro visual nao divergir entre as duas janelas.
+ */
+function definirIconeDoDrop(img, itid) {
+	const info = DB.getItemInfo(itid);
+	const resName = info && info.identifiedResourceName;
+	img.onerror = () => {
+		img.onerror = null;
+		if (resName) {
+			Client.loadFile(DB.INTERFACE_PATH + 'item/' + resName + '.bmp', dataURI => {
+				img.src = dataURI;
+			});
+		} else {
+			img.hidden = true;
+		}
+	};
+	img.src = `/ragidle/item/${itid}.png`;
+}
+
+/** A grade de drops do Midgard: quadrado com icone e badge de quantidade. */
+function desenharDrops(root, itens) {
+	const sig = itens.map(i => `${i.nome}:${i.quantidade}`).join('|');
+	const grade = root.querySelector('.ha-drops');
+	const vazio = root.querySelector('.ha-drops-vazio');
+	const tipos = root.querySelector('.ha-drops-tipos');
+
+	if (tipos) {
+		tipos.textContent = `${itens.length} ${itens.length === 1 ? 'tipo' : 'tipos'}`;
+	}
+	if (vazio) {
+		vazio.hidden = itens.length > 0;
+	}
+	if (sig === _sigDrops || !grade) {
+		return;
+	}
+	_sigDrops = sig;
+
+	grade.textContent = '';
+
+	for (const item of itens) {
+		const tile = document.createElement('div');
+		tile.className = 'ha-drop';
+		tile.title = `${item.nome} x${item.quantidade}`;
+
+		if (item.itid !== null && item.itid !== undefined) {
+			const img = document.createElement('img');
+			img.className = 'ha-drop-icone';
+			img.alt = '';
+			definirIconeDoDrop(img, item.itid);
+			tile.appendChild(img);
+		} else {
+			/* Item registrado antes de D-943 nao trazia o id: a inicial do
+			   nome segura o quadrado em vez de um icone quebrado. */
+			const letra = document.createElement('span');
+			letra.className = 'ha-drop-letra';
+			letra.textContent = (item.nome || '?').charAt(0).toUpperCase();
+			tile.appendChild(letra);
+		}
+
+		const qtd = document.createElement('span');
+		qtd.className = 'ha-drop-qtd';
+		qtd.textContent = numero(item.quantidade);
+		tile.appendChild(qtd);
+
+		grade.appendChild(tile);
+	}
+}
+
+/**
+ * Desenha UM retrato (a cacada corrente ou uma do historico) na tela.
+ * `aoVivo` liga o que so faz sentido no presente: %, projecoes e o Zerar.
+ */
+function desenharRetrato(root, r, aoVivo) {
+	texto(root, '.ha-cronometro', cronometro(r.decorridoMs));
+	desenharEstado(root, r, aoVivo);
 
 	/*
 	 * O QUE FALTA vem da BasicInfo NATIVA, que e onde o cliente ja guarda
 	 * base_exp/base_exp_next (ela recebe ZC_PAR_CHANGE normalmente). Ler dela
 	 * e o mesmo que BasicInfoIdle faz -- nao ha segunda copia deste estado.
+	 * So na aba Atual: o teto de HOJE nao descreve uma cacada de ontem.
 	 */
-	const nativa = BasicInfo.getUI ? BasicInfo.getUI() : null;
-	const restanteBase = nativa ? (nativa.base_exp_next || 0) - (nativa.base_exp || 0) : 0;
-	const restanteClasse = nativa ? (nativa.job_exp_next || 0) - (nativa.job_exp || 0) : 0;
+	const nativa = aoVivo && BasicInfo.getUI ? BasicInfo.getUI() : null;
+	const tetoBase = nativa ? nativa.base_exp_next || 0 : 0;
+	const tetoClasse = nativa ? nativa.job_exp_next || 0 : 0;
 
-	texto(root, '.ha-falta-base', projecao(restanteBase, r.expBasePorHora));
-	texto(root, '.ha-falta-classe', projecao(restanteClasse, r.expClassePorHora));
+	texto(root, '.ha-exp-base-hora', numero(r.expBasePorHora));
+	texto(root, '.ha-exp-base', totalComPct(r.expBase, tetoBase));
+	texto(root, '.ha-exp-classe-hora', numero(r.expClassePorHora));
+	texto(root, '.ha-exp-classe', totalComPct(r.expClasse, tetoClasse));
 
-	texto(root, '.ha-abates', numero(r.abatesTotal));
+	for (const linha of root.querySelectorAll('.ha-metrica--projecao')) {
+		linha.hidden = !aoVivo;
+	}
+	if (aoVivo) {
+		const restanteBase = nativa ? (nativa.base_exp_next || 0) - (nativa.base_exp || 0) : 0;
+		const restanteClasse = nativa ? (nativa.job_exp_next || 0) - (nativa.job_exp || 0) : 0;
+		texto(root, '.ha-falta-base', projecao(restanteBase, r.expBasePorHora));
+		texto(root, '.ha-falta-classe', projecao(restanteClasse, r.expClassePorHora));
+	}
+
 	texto(root, '.ha-abates-hora', numero(r.abatesPorHora));
+	texto(root, '.ha-abates', numero(r.abatesTotal));
+	texto(root, '.ha-itens-hora', numero(r.itensPorHora));
 	texto(root, '.ha-itens-total', numero(r.itensTotal));
+	/*
+	 * UMA casa decimal, e nao `numero()`: com carta a 0,01% a taxa honesta e
+	 * "0,5 por 100" e o arredondamento inteiro mostraria "1" — o dobro.
+	 */
+	texto(
+		root,
+		'.ha-itens-100',
+		r.itensPor100Abates === null ? TRACO : r.itensPor100Abates.toLocaleString('pt-BR', { maximumFractionDigits: 1 })
+	);
 
-	_sigRanking = desenharLista(
-		root,
-		'.ha-ranking',
-		'.ha-ranking-vazio',
-		r.ranking.map(m => ({ nome: m.nome, valor: m.abates })),
-		_sigRanking,
-		true
-	);
-	_sigItens = desenharLista(
-		root,
-		'.ha-itens',
-		'.ha-itens-vazio',
-		r.itens.map(i => ({ nome: i.nome, valor: i.quantidade })),
-		_sigItens,
-		false
-	);
+	desenharMonstros(root, r.ranking);
+	desenharDrops(root, r.itens);
+}
+
+/** Habilita as abas conforme o historico existe, e mantem `_aba` valida. */
+function sincronizarAbas(root, historico) {
+	/* A aba na tela pode deixar de existir (troca de personagem zera o
+	   historico): cair pra Atual DIRETO, sem trocarDeAba() — ela chama
+	   tique() e isto roda DENTRO do tique. */
+	if (_aba > historico.length) {
+		_aba = 0;
+		_sigRanking = null;
+		_sigDrops = null;
+	}
+	const abas = root.querySelectorAll('.ha-aba');
+	for (const aba of abas) {
+		const indice = parseInt(aba.dataset.aba, 10);
+		if (indice > 0) {
+			const tem = historico.length >= indice;
+			aba.disabled = !tem;
+			aba.title = tem ? '' : 'Nenhuma caçada concluída ainda';
+		}
+		aba.classList.toggle('is-active', indice === _aba);
+		/* O papel de aba pede o estado dito, nao so pintado (role=tablist
+		   no HTML): leitor de tela sem isto anuncia tres botoes iguais. */
+		aba.setAttribute('aria-selected', indice === _aba ? 'true' : 'false');
+	}
+}
+
+function trocarDeAba(indice) {
+	if (_aba === indice) {
+		return;
+	}
+	_aba = indice;
+	lembrarAba(_preferences, String(indice));
+	/* As listas sao de OUTRA cacada agora: sem zerar a assinatura, a tela
+	   ficaria com o ranking anterior "por nao ter mudado". */
+	_sigRanking = null;
+	_sigDrops = null;
+	tique();
+}
+
+function tique() {
+	const root = _root();
+	const gid = Session.Entity ? Session.Entity.GID : null;
+
+	/*
+	 * O CICLO ANDA AQUI, janela aberta ou fechada: e este tique que percebe
+	 * "entrou no mapa de caca" / "morreu" / "voltou pra cidade" e faz o
+	 * registro iniciar, travar e arquivar. Ver o cabecalho.
+	 */
+	if (gid !== null && gid !== undefined) {
+		atualizarSituacao(gid, situacaoDoMundo());
+	}
+
+	const historico = lerHistorico(gid);
+	sincronizarAbas(root, historico);
+
+	if (_aba === 0) {
+		desenharRetrato(root, ler(gid), true);
+	} else {
+		const retrato = historico[_aba - 1];
+		if (retrato) {
+			desenharRetrato(root, retrato, false);
+		}
+	}
 }
 
 /* ─── Ciclo de vida ────────────────────────────────────────────────────── */
@@ -279,13 +569,26 @@ HuntAnalyzer.init = function init() {
 	});
 
 	root.querySelector('.ha-zerar').addEventListener('click', () => {
-		zerar();
-		/* As assinaturas tambem: senao a lista velha ficaria na tela por nao
-		   "ter mudado" em relacao ao ultimo desenho. */
+		/* Descarta so a cacada CORRENTE -- o historico fica (ver o porque em
+		   zerarCacadaAtual). As assinaturas tambem: senao a lista velha
+		   ficaria na tela por nao "ter mudado" em relacao ao ultimo desenho. */
+		zerarCacadaAtual();
 		_sigRanking = null;
-		_sigItens = null;
+		_sigDrops = null;
 		tique();
 	});
+
+	root.querySelector('.ha-abas').addEventListener('click', e => {
+		const aba = e.target.closest('.ha-aba');
+		if (aba && !aba.disabled) {
+			trocarDeAba(parseInt(aba.dataset.aba, 10));
+		}
+	});
+
+	/* A aba lembrada (D-797). Restaurada aqui e nao no primeiro tique: o
+	   tique roda a cada 250 ms e re-restaurar a cada giro prenderia o
+	   jogador na aba gravada. */
+	_aba = parseInt(abaLembrada(_preferences, '0', ['0', '1', '2']), 10);
 
 	this._host.style.top = Math.max(0, (Renderer.height - WINDOW_HEIGHT) / 2) + 'px';
 	this._host.style.left = Math.max(0, (Renderer.width - WINDOW_WIDTH) / 2) + 'px';
@@ -356,19 +659,20 @@ HuntAnalyzer.toggle = function toggle() {
  * Voltar ao menu de personagem NAO recarrega a pagina: `onRestartAnswer` chama
  * `cleanGameUI()` e `onRestart()`, sem `GameEngine.reload()` (o reload so
  * acontece no SAIR). Todo estado de MODULO atravessa a troca — e este arquivo
- * guarda as assinaturas do ranking e dos itens.
+ * guarda a aba ativa e as assinaturas do ranking e dos drops.
  *
- * O relatorio de caca e por personagem. Com a assinatura velha, o painel segue
- * mostrando o que o anterior matou e juntou.
- *
- * Chamada por `cleanGameUI()` em Engine/MapEngine.js, junto com os outros
- * componentes RAGIDLE. Quem somar estado de personagem aqui soma a linha
- * correspondente ABAIXO, e o portao `limpeza-da-troca-de-personagem.test.ts`
- * (no repo do servidor) reprova se esquecer.
+ * O relatorio de caca e por personagem — o REGISTRO (sessao + historico) se
+ * limpa sozinho pela troca de GID em registroDaCaca.js; aqui limpa-se o que e
+ * da TELA. Chamada por `cleanGameUI()` em Engine/MapEngine.js, junto com os
+ * outros componentes RAGIDLE. Quem somar estado de personagem aqui soma a
+ * linha correspondente ABAIXO, e o portao
+ * `limpeza-da-troca-de-personagem.test.ts` (no repo do servidor) reprova se
+ * esquecer.
  */
 HuntAnalyzer.limparEstadoDoPersonagem = function limparEstadoDoPersonagem() {
+	_aba = 0;
 	_sigRanking = null;
-	_sigItens = null;
+	_sigDrops = null;
 	/*
 	 * ZERAR O DADO NAO BASTA: `GUIComponent.remove()` so DESANEXA o host,
 	 * entao o shadow DOM (com `is-open` e o HTML do personagem anterior)

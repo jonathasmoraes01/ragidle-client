@@ -1,17 +1,37 @@
 /**
  * UI/Components/HuntAnalyzer/registroDaCaca.js
  *
- * O REGISTRO da cacada em curso. Estado puro: sem DOM, sem rede, sem timer --
+ * O REGISTRO das cacadas. Estado puro: sem DOM, sem rede, sem timer --
  * so contas sobre eventos que os handlers do motor JA recebem. Por isso ele
  * roda no Node dos testes sem navegador nenhum.
  *
- * ── POR QUE UM MODULO SEPARADO, E NAO UM HOOK ────────────────────────────
- * `Network.hookPacket()` guarda UM callback por pacote
- * (Network/NetworkManager.js:210 -- `Packets.list[packet.id].callback = cb`).
- * Fisgar ZC_NOTIFY_EXP ou ZC_NOTIFY_VANISH aqui SUBSTITUIRIA em silencio os
- * handlers de Engine/MapEngine/Entity.js e apagaria o feed do canal Farm, sem
- * erro nenhum na tela. Entao o caminho e o contrario: quem ja recebe o pacote
- * chama este modulo. Uma linha em cada handler, nada sobrescrito.
+ * ── O CICLO AUTOMATICO (D-943, 06/09/2026 — pedido do dono) ──────────────
+ * A cacada deixou de ser "do primeiro evento ate o Zerar" e virou uma SESSAO
+ * com ciclo de vida proprio, no modelo do Hunt Analyzer do Midgard:
+ *
+ *   - ENTRAR num mapa de caca INICIA a contagem sozinho (mesmo sem abate);
+ *   - MORRER ou VOLTAR para a cidade TRAVA a sessao (o relogio para no
+ *     instante da trava, e evento que chegue depois e ignorado);
+ *   - ENTRAR de novo num mapa de caca ARQUIVA a sessao travada no historico
+ *     (as 2 ultimas cacadas, mais recente primeiro) e comeca uma nova.
+ *
+ * Quem dirige as transicoes e `atualizarSituacao()`, chamada pelo tique de
+ * 250 ms da janela (HuntAnalyzer.js roda o tique desde o append, com a janela
+ * aberta OU fechada — nada se perde com ela escondida). A situacao vem de
+ * duas fontes que ja existem:
+ *
+ *   - mapa de caca?  IdleConfig.contexto.ehCidade (servidor, a cada troca de
+ *     mapa via sondarMapa). Contexto ausente ou OBSOLETO = situacao
+ *     desconhecida, e situacao desconhecida NAO transiciona nada: nem trava
+ *     uma cacada viva, nem inicia uma nova. E a mesma direcao de erro de
+ *     `ehDropDeCaca` — na duvida, o estado fica como esta.
+ *   - morto?  Session.Entity.life (hp<=0 com hp_max>0 ja visto), o MESMO
+ *     criterio da DeathWindow.
+ *
+ * Sessao iniciada por EVENTO continua existindo como reserva: se um abate
+ * chega antes de o contexto do mapa responder, a sessao nasce nele (relogio
+ * a partir do evento) e ADOTA o mapa quando o contexto chegar. Descartar o
+ * evento por burocracia de contexto seria sumir com drop de verdade.
  *
  * ── DE ONDE VEM CADA DADO, E O QUE ELE GARANTE ───────────────────────────
  *   - ABATE: `onEntityVanish` com `pkt.type === Entity.VT.DEAD` sobre uma
@@ -23,7 +43,16 @@
  *     `varID === 2` e classe; `expType === 0` e o abate (1 e missao, e NAO
  *     entra: nao e caca).
  *   - ITEM: `onItemPickup` (Engine/MapEngine/Item.js), o item que caiu e foi
- *     apanhado.
+ *     apanhado. Desde D-943 ele traz tambem o ITID, para a janela desenhar o
+ *     icone do item (mesmo caminho de icone da Mochila).
+ *
+ * ── POR QUE UM MODULO SEPARADO, E NAO UM HOOK ────────────────────────────
+ * `Network.hookPacket()` guarda UM callback por pacote
+ * (Network/NetworkManager.js:210 -- `Packets.list[packet.id].callback = cb`).
+ * Fisgar ZC_NOTIFY_EXP ou ZC_NOTIFY_VANISH aqui SUBSTITUIRIA em silencio os
+ * handlers de Engine/MapEngine/Entity.js e apagaria o feed do canal Farm, sem
+ * erro nenhum na tela. Entao o caminho e o contrario: quem ja recebe o pacote
+ * chama este modulo. Uma linha em cada handler, nada sobrescrito.
  *
  * ── AS TRES COISAS QUE ELE SE RECUSA A DIZER ─────────────────────────────
  *   1. **Taxa de drop POR MONSTRO.** O pacote do item que cai nao diz de qual
@@ -47,7 +76,7 @@
  */
 
 /**
- * Abaixo disto, `agora - inicio` e curto demais para virar "por hora": um
+ * Abaixo disto, a janela medida e curta demais para virar "por hora": um
  * abate aos 300 ms projetaria 12.000 abates/hora, um numero que a tela
  * mostraria com toda a seriedade. Enquanto nao ha janela medida o ritmo sai
  * como `null`, e quem desenha escreve "--".
@@ -57,38 +86,160 @@
  */
 export const MS_MINIMOS_PARA_RITMO = 10_000;
 
+/** Quantas cacadas ENCERRADAS o historico guarda (as 2 abas "anteriores"). */
+export const HISTORICO_MAX = 2;
+
 const MS_POR_HORA = 3_600_000;
 
 /** Dono do registro. Trocar de personagem sem recarregar zera tudo. */
 let _dono = null;
-/** Instante do PRIMEIRO evento deste dono -- nao o do login. */
-let _inicio = null;
-/** Instante do ultimo evento, para a tela poder dizer "parado ha X". */
-let _ultimo = null;
-
-let _abatesPorMonstro = new Map();
-let _abatesTotal = 0;
-let _expBase = 0;
-let _expClasse = 0;
-let _itens = new Map();
 
 /**
- * O relogio comeca no PRIMEIRO evento, e nao no login.
- *
- * Quem fica dez minutos na cidade e depois caca dois minutos tem um ritmo de
- * dois minutos, nao de doze. Comecar no login diluiria a medida com um tempo
- * em que nao havia caca nenhuma -- e o numero serve justamente para responder
- * "este spot presta?".
+ * A cacada corrente: viva (`fim === null`) ou travada (`fim` cravado no
+ * instante da trava). `null` quando nao ha cacada nenhuma (ex.: logou na
+ * cidade e ainda nao viajou).
  */
-function marcar(gid, agora) {
+let _sessao = null;
+
+/**
+ * As cacadas ENCERRADAS, mais recente primeiro, ja em formato de retrato
+ * (o mesmo shape que `ler()` devolve) -- congelar o retrato no arquivamento
+ * evita guardar Maps vivos que alguem pudesse mutar depois.
+ */
+let _historico = [];
+
+function novaSessao(agora, mapa, rotuloDoMapa) {
+	return {
+		inicio: agora,
+		fim: null,
+		/* 'morte' | 'cidade' | 'mapa' (pulou direto para outro mapa de caca). */
+		motivoDoFim: null,
+		mapa: mapa || null,
+		rotuloDoMapa: rotuloDoMapa || null,
+		ultimo: null,
+		/* nome -> { abates, mobId } — o mobId e o primeiro visto para o nome
+		   (mesma especie = mesmo id) e e o que deixa a janela desenhar o
+		   avatar do monstro, como o Mapa de Caca ja faz. */
+		abatesPorMonstro: new Map(),
+		abatesTotal: 0,
+		expBase: 0,
+		expClasse: 0,
+		/* nome -> { quantidade, itid } — o itid e o primeiro visto para o
+		   nome (o mesmo item chega sempre com o mesmo id; guardar um basta
+		   para a janela pedir o icone). */
+		itens: new Map()
+	};
+}
+
+/** Troca de personagem zera TUDO: sessao e historico sao por personagem. */
+function garantirDono(gid) {
 	if (_dono !== gid) {
 		zerar();
 		_dono = gid;
 	}
-	if (_inicio === null) {
-		_inicio = agora;
+}
+
+/**
+ * Um evento de caca aconteceu. Devolve a sessao que deve receber o evento,
+ * ou `null` se o evento deve ser IGNORADO (sessao travada: a cacada acabou,
+ * e um mob morrendo a vista do cadaver nao pertence a ela).
+ *
+ * Sem sessao nenhuma, o evento ABRE uma (relogio a partir dele): e a reserva
+ * para o contexto do mapa que ainda nao chegou -- descartar seria sumir com
+ * drop de verdade, na direcao de erro que ninguem ve.
+ */
+function marcar(gid, agora) {
+	garantirDono(gid);
+	if (_sessao && _sessao.fim !== null) {
+		return null;
 	}
-	_ultimo = agora;
+	if (!_sessao) {
+		_sessao = novaSessao(agora, null, null);
+	}
+	_sessao.ultimo = agora;
+	return _sessao;
+}
+
+function congelar(motivo, agora) {
+	if (_sessao && _sessao.fim === null) {
+		_sessao.fim = agora;
+		_sessao.motivoDoFim = motivo;
+	}
+}
+
+/**
+ * Sessao travada vira historico -- mas so se tiver ALGUM evento. Entrar no
+ * mapa, olhar a paisagem e voltar nao e uma cacada: um retrato todo zerado
+ * expulsaria uma cacada de verdade das 2 vagas.
+ */
+function arquivarSeTeveEventos(agora) {
+	if (!_sessao) {
+		return;
+	}
+	const teveEvento =
+		_sessao.abatesTotal > 0 || _sessao.expBase > 0 || _sessao.expClasse > 0 || _sessao.itens.size > 0;
+	if (teveEvento) {
+		const retrato = lerSessao(_sessao, agora);
+		retrato.fase = 'encerrada';
+		_historico.unshift(retrato);
+		if (_historico.length > HISTORICO_MAX) {
+			_historico.length = HISTORICO_MAX;
+		}
+	}
+	_sessao = null;
+}
+
+/**
+ * O CORACAO DO CICLO. Chamada pelo tique da janela (250 ms) com a leitura
+ * atual do mundo; decide iniciar/travar/arquivar. Pura: toda entrada vem
+ * por parametro, e chama-la de novo com a mesma situacao nao faz nada.
+ *
+ * @param {*} gid dono do registro (Session.Entity.GID)
+ * @param {{emMapaDeCaca?: boolean|null, morto?: boolean, mapa?: string|null, rotuloDoMapa?: string|null}} situacao
+ *   `emMapaDeCaca === null` significa DESCONHECIDO (contexto ausente ou
+ *   obsoleto na troca de mapa) e nao transiciona nada -- ver o cabecalho.
+ * @param {number} agora
+ */
+export function atualizarSituacao(gid, situacao, agora = Date.now()) {
+	garantirDono(gid);
+	const s = situacao || {};
+	const emCaca = s.emMapaDeCaca === true;
+	const naCidade = s.emMapaDeCaca === false;
+	const morto = s.morto === true;
+
+	if (_sessao && _sessao.fim === null) {
+		/* Cacada viva. A morte trava ANTES de qualquer leitura de mapa:
+		   morrer dentro do mapa de caca e o caso comum. */
+		if (morto) {
+			congelar('morte', agora);
+			return;
+		}
+		if (naCidade) {
+			congelar('cidade', agora);
+			return;
+		}
+		if (emCaca) {
+			if (s.mapa && _sessao.mapa && s.mapa !== _sessao.mapa) {
+				/* Pulou direto de um mapa de caca para outro: cada mapa e uma
+				   cacada — e o que torna o rotulo da aba ("onde foi") honesto. */
+				congelar('mapa', agora);
+				arquivarSeTeveEventos(agora);
+				_sessao = novaSessao(agora, s.mapa, s.rotuloDoMapa);
+			} else if (s.mapa && !_sessao.mapa) {
+				/* A sessao nasceu por evento antes de o contexto responder:
+				   adota o mapa em vez de reiniciar — e a mesma cacada. */
+				_sessao.mapa = s.mapa;
+				_sessao.rotuloDoMapa = s.rotuloDoMapa || null;
+			}
+		}
+		return;
+	}
+
+	/* Sem cacada, ou travada: entrar num mapa de caca (vivo) recomeca. */
+	if (emCaca && !morto) {
+		arquivarSeTeveEventos(agora);
+		_sessao = novaSessao(agora, s.mapa || null, s.rotuloDoMapa || null);
+	}
 }
 
 /**
@@ -112,27 +263,51 @@ export function ehDropDeCaca(contexto) {
 	return !(contexto && contexto.ehCidade === true);
 }
 
-/** Zera o registro inteiro. O botao "Zerar" da janela chama isto. */
+/** Zera TUDO: sessao, historico e dono. E o reset da troca de personagem. */
 export function zerar() {
 	_dono = null;
-	_inicio = null;
-	_ultimo = null;
-	_abatesPorMonstro = new Map();
-	_abatesTotal = 0;
-	_expBase = 0;
-	_expClasse = 0;
-	_itens = new Map();
+	_sessao = null;
+	_historico = [];
+}
+
+/**
+ * O botao "Zerar" da janela: descarta a cacada CORRENTE, sem tocar no
+ * historico. Viva, ela recomeca AGORA no mesmo mapa (o cronometro volta a
+ * zero e segue andando — e o Zerar do Midgard); travada, ela e descartada
+ * sem virar historico (zerar e jogar fora, nao arquivar).
+ */
+export function zerarCacadaAtual(agora = Date.now()) {
+	if (!_sessao) {
+		return;
+	}
+	if (_sessao.fim === null) {
+		_sessao = novaSessao(agora, _sessao.mapa, _sessao.rotuloDoMapa);
+	} else {
+		_sessao = null;
+	}
 }
 
 /**
  * Um mob morreu a vista. `nome` ja vem resolvido por quem chama (o motor tem
  * `DB.getMonsterName`); nome vazio cai num balde explicito em vez de sumir.
+ * `mobId` (entity.job) alimenta o avatar do ranking; `null` quando falta.
  */
-export function registrarAbate(gid, nome, agora = Date.now()) {
-	marcar(gid, agora);
+export function registrarAbate(gid, nome, mobId = null, agora = Date.now()) {
+	const sessao = marcar(gid, agora);
+	if (!sessao) {
+		return;
+	}
 	const chave = nome || 'Nao identificado';
-	_abatesPorMonstro.set(chave, (_abatesPorMonstro.get(chave) || 0) + 1);
-	_abatesTotal += 1;
+	const atual = sessao.abatesPorMonstro.get(chave);
+	if (atual) {
+		atual.abates += 1;
+		if (atual.mobId === null && mobId !== null) {
+			atual.mobId = mobId;
+		}
+	} else {
+		sessao.abatesPorMonstro.set(chave, { abates: 1, mobId: mobId === undefined ? null : mobId });
+	}
+	sessao.abatesTotal += 1;
 }
 
 /**
@@ -146,22 +321,39 @@ export function registrarExp(gid, tipo, valor, agora = Date.now()) {
 	if (ganho <= 0) {
 		return;
 	}
-	marcar(gid, agora);
+	const sessao = marcar(gid, agora);
+	if (!sessao) {
+		return;
+	}
 	if (tipo === 'base') {
-		_expBase += ganho;
+		sessao.expBase += ganho;
 	} else if (tipo === 'classe') {
-		_expClasse += ganho;
+		sessao.expClasse += ganho;
 	}
 }
 
-/** Um item que caiu e foi apanhado. */
-export function registrarItem(gid, nome, quantidade, agora = Date.now()) {
+/**
+ * Um item que caiu e foi apanhado. `itid` e o id do item (pkt.ITID), que a
+ * janela usa para desenhar o icone; `null` quando quem chama nao o tem.
+ */
+export function registrarItem(gid, nome, quantidade, itid = null, agora = Date.now()) {
 	const qtd = Number(quantidade) || 0;
 	if (qtd <= 0 || !nome) {
 		return;
 	}
-	marcar(gid, agora);
-	_itens.set(nome, (_itens.get(nome) || 0) + qtd);
+	const sessao = marcar(gid, agora);
+	if (!sessao) {
+		return;
+	}
+	const atual = sessao.itens.get(nome);
+	if (atual) {
+		atual.quantidade += qtd;
+		if (atual.itid === null && itid !== null) {
+			atual.itid = itid;
+		}
+	} else {
+		sessao.itens.set(nome, { quantidade: qtd, itid: itid === undefined ? null : itid });
+	}
 }
 
 /** `total` por hora, ou `null` enquanto a janela medida for curta demais. */
@@ -191,49 +383,80 @@ export function estimarMsAteONivel(restante, expPorHora) {
 }
 
 /**
- * O retrato do registro. Nada aqui e guardado: e tudo derivado na hora, para
- * nao haver um segundo contador que possa divergir do primeiro.
+ * O retrato de UMA sessao. Tudo derivado na hora, para nao haver um segundo
+ * contador que possa divergir do primeiro. Numa sessao TRAVADA o "agora" e o
+ * instante da trava: o relogio parou la, e os ritmos descrevem a janela que
+ * de fato foi medida.
  */
-export function ler(gid, agora = Date.now()) {
-	if (_dono !== gid || _inicio === null) {
-		return vazio();
-	}
+function lerSessao(sessao, agora) {
+	const fimEfetivo = sessao.fim === null ? agora : sessao.fim;
+	const decorridoMs = Math.max(0, fimEfetivo - sessao.inicio);
 
-	const decorridoMs = Math.max(0, agora - _inicio);
-
-	const ranking = [..._abatesPorMonstro.entries()]
-		.map(([nome, abates]) => ({ nome, abates }))
+	const ranking = [...sessao.abatesPorMonstro.entries()]
+		.map(([nome, m]) => ({ nome, abates: m.abates, mobId: m.mobId }))
 		.sort((a, b) => b.abates - a.abates || a.nome.localeCompare(b.nome, 'pt-BR'));
 
-	const itens = [..._itens.entries()]
-		.map(([nome, quantidade]) => ({ nome, quantidade }))
+	const itens = [...sessao.itens.entries()]
+		.map(([nome, i]) => ({ nome, quantidade: i.quantidade, itid: i.itid }))
 		.sort((a, b) => b.quantidade - a.quantidade || a.nome.localeCompare(b.nome, 'pt-BR'));
 
 	const itensTotal = itens.reduce((soma, i) => soma + i.quantidade, 0);
 
 	return {
+		fase: sessao.fim === null ? 'ativa' : 'travada',
+		motivoDoFim: sessao.motivoDoFim,
+		mapa: sessao.mapa,
+		rotuloDoMapa: sessao.rotuloDoMapa,
+		iniciadaEm: sessao.inicio,
+		encerradaEm: sessao.fim,
 		decorridoMs,
-		ociosoMs: _ultimo === null ? 0 : Math.max(0, agora - _ultimo),
-		abatesTotal: _abatesTotal,
-		abatesPorHora: porHora(_abatesTotal, decorridoMs),
-		expBase: _expBase,
-		expClasse: _expClasse,
-		expBasePorHora: porHora(_expBase, decorridoMs),
-		expClassePorHora: porHora(_expClasse, decorridoMs),
+		ociosoMs: sessao.ultimo === null ? decorridoMs : Math.max(0, fimEfetivo - sessao.ultimo),
+		abatesTotal: sessao.abatesTotal,
+		abatesPorHora: porHora(sessao.abatesTotal, decorridoMs),
+		expBase: sessao.expBase,
+		expClasse: sessao.expClasse,
+		expBasePorHora: porHora(sessao.expBase, decorridoMs),
+		expClassePorHora: porHora(sessao.expClasse, decorridoMs),
 		ranking,
 		itens,
 		itensTotal,
+		itensPorHora: porHora(itensTotal, decorridoMs),
 		/*
-		 * Por 100 abates, e nao por abate: com taxa de carta em 1% (D-215) o
-		 * numero por abate seria 0,01 e a tela mostraria "0,0" o tempo todo.
+		 * Por 100 abates, e nao por abate: com taxa de carta em 0,01% o numero
+		 * por abate seria invisivel e a tela mostraria "0,0" o tempo todo.
 		 * `null` sem abate nenhum -- dividir por zero nao vira "0%".
 		 */
-		itensPor100Abates: _abatesTotal === 0 ? null : (itensTotal * 100) / _abatesTotal
+		itensPor100Abates: sessao.abatesTotal === 0 ? null : (itensTotal * 100) / sessao.abatesTotal
 	};
+}
+
+/** O retrato da cacada CORRENTE (viva ou travada), ou o vazio. */
+export function ler(gid, agora = Date.now()) {
+	if (_dono !== gid || !_sessao) {
+		return vazio();
+	}
+	return lerSessao(_sessao, agora);
+}
+
+/**
+ * As cacadas encerradas deste personagem, mais recente primeiro (no maximo
+ * HISTORICO_MAX). Retratos ja congelados -- ver `_historico`.
+ */
+export function lerHistorico(gid) {
+	if (_dono !== gid) {
+		return [];
+	}
+	return _historico.slice();
 }
 
 function vazio() {
 	return {
+		fase: 'ociosa',
+		motivoDoFim: null,
+		mapa: null,
+		rotuloDoMapa: null,
+		iniciadaEm: null,
+		encerradaEm: null,
 		decorridoMs: 0,
 		ociosoMs: 0,
 		abatesTotal: 0,
@@ -245,17 +468,22 @@ function vazio() {
 		ranking: [],
 		itens: [],
 		itensTotal: 0,
+		itensPorHora: null,
 		itensPor100Abates: null
 	};
 }
 
 export default {
 	MS_MINIMOS_PARA_RITMO,
+	HISTORICO_MAX,
 	ehDropDeCaca,
 	zerar,
+	zerarCacadaAtual,
+	atualizarSituacao,
 	registrarAbate,
 	registrarExp,
 	registrarItem,
 	estimarMsAteONivel,
-	ler
+	ler,
+	lerHistorico
 };

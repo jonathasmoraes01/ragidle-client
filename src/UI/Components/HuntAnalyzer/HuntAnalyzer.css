@@ -1,10 +1,11 @@
 /**
  * UI/Components/HuntAnalyzer/HuntAnalyzer.css
  *
- * "Hunt Analyzer" -- a leitura da cacada EM CURSO, no design system oficial.
- * Uma coluna so, tres blocos (experiencia, abates, itens) e uma faixa de
- * sessao no topo. Nao substitui janela nativa nenhuma: e tela nova, entao nao
- * ha host escondido aqui (ao contrario de Mochila/Correio).
+ * "Analise de Caca" (D-943) -- o desenho do Hunt Analyzer do Midgard, no
+ * nosso design system: coluna unica e estreita, cronometro grande no topo,
+ * uma linha por metrica com losango colorido por familia, a nota honesta no
+ * meio, e as secoes de Monstros e Drops (com icone) embaixo. Tres abas:
+ * a cacada corrente e as duas ultimas.
  *
  * Medidas: nenhum token oficial cravou esta janela -- a lista de medidas do
  * design system em Common.css nao a inclui, como tambem nao inclui Mochila
@@ -13,14 +14,14 @@
  * WINDOW_WIDTH/WINDOW_HEIGHT em HuntAnalyzer.js) -- cicatriz D-341, a mesma
  * anotada em StatusIdle.css, MochilaIdle.css e CorreioIdle.css.
  *
- * Cor, raio, sombra, fonte e espacamento saem SO de token/receita --ri-(algo)
- * de Common.css. Nenhum literal novo de cor nesta folha.
+ * Cor, raio, sombra, fonte e espacamento saem SO de token/receita de
+ * Common.css. Nenhum literal novo de cor nesta folha.
  */
 
 :host {
 	position: absolute;
-	width: 420px;
-	height: 480px;
+	width: 360px;
+	height: 540px;
 	/* Mesmo contrato dos outros flutuantes RAGIDLE: o host nao intercepta
 	   clique no mundo; so o miolo da janela reabre pointer-events. */
 	pointer-events: none;
@@ -36,8 +37,8 @@
 	display: none;
 	position: absolute;
 	inset: 0;
-	width: 420px;
-	height: 480px;
+	width: 360px;
+	height: 540px;
 	pointer-events: auto;
 }
 
@@ -66,6 +67,23 @@
 	cursor: move;
 }
 
+/* ─── Abas ────────────────────────────────────────────────────────────── */
+
+.ha-abas {
+	display: flex;
+	gap: var(--sp-2);
+	flex: 0 0 auto;
+	padding: var(--sp-3) var(--sp-3) 0;
+}
+
+/* Aba sem cacada arquivada: a mesma receita do ri-btn desabilitado
+   (dessaturar, nunca cinza chapado). O cursor diz que nao ha o que abrir. */
+.ha-aba:disabled {
+	filter: grayscale(1);
+	opacity: 0.55;
+	cursor: default;
+}
+
 .ha-corpo {
 	flex: 1 1 auto;
 	display: flex;
@@ -75,34 +93,236 @@
 	overflow-y: auto;
 }
 
-/* ─── Faixa de sessao ─────────────────────────────────────────────────── */
+/* ─── A cabine (cronometro + estado + Zerar) ──────────────────────────── */
 
-.ha-sessao {
+.ha-cabine {
 	display: flex;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: var(--sp-2);
+	padding: var(--pad-card);
+	background: var(--surface-card);
+	border-radius: var(--radius-card);
+	box-shadow: var(--shadow-card);
+}
+
+.ha-cabine-info {
+	display: flex;
+	flex-direction: column;
+	gap: var(--sp-1);
+	min-width: 0;
+}
+
+.ha-cabine-rotulo {
+	font: var(--type-label);
+	letter-spacing: var(--ls-caps);
+	color: var(--text-muted);
+}
+
+/*
+ * O PAR tamanho+familia, e nao `font: var(--fs-hero)`: token de TAMANHO
+ * dentro do shorthand `font` invalida a declaracao inteira em silencio
+ * (cicatriz de CorreioIdle.css:340-341). Numerico tabular para o cronometro
+ * nao "dancar" a cada segundo.
+ */
+.ha-cronometro {
+	font-family: var(--font-numeric);
+	font-size: var(--fs-hero);
+	font-weight: var(--fw-bold);
+	line-height: var(--lh-tight);
+	font-variant-numeric: tabular-nums;
+	color: var(--accent-strong);
+}
+
+.ha-estado {
+	display: inline-flex;
 	align-items: center;
 	gap: var(--sp-2);
-	padding-bottom: var(--sp-2);
-	border-bottom: var(--border-hairline);
 	font: var(--type-info);
 	color: var(--text-muted);
 }
 
-.ha-sessao-texto b {
-	color: var(--text-body);
-	font-weight: var(--fw-bold);
+.ha-estado-ponto {
+	width: 8px;
+	height: 8px;
+	border-radius: 50%;
+	flex: 0 0 auto;
+	background: var(--text-muted);
 }
 
-/* Empurra o "Zerar" para a direita sem um espacador vazio no HTML. */
-.ha-zerar {
-	margin-left: auto;
+.ha-estado--ativa .ha-estado-ponto {
+	background: var(--ri-verde);
 }
 
-.ha-ocioso {
+.ha-estado--ativa .ha-estado-texto {
+	color: var(--ri-verde);
+}
+
+.ha-estado--travada .ha-estado-ponto {
+	background: var(--ri-hp);
+}
+
+.ha-estado--travada .ha-estado-texto {
+	color: var(--ri-hp);
+}
+
+/* O pulso so na cacada VIVA -- e so para quem nao pediu menos movimento. */
+@media (prefers-reduced-motion: no-preference) {
+	.ha-estado--ativa .ha-estado-ponto {
+		animation: ha-pulso 1.6s ease-in-out infinite;
+	}
+
+	@keyframes ha-pulso {
+		0%,
+		100% {
+			opacity: 1;
+		}
+		50% {
+			opacity: 0.35;
+		}
+	}
+}
+
+.ha-mapa {
 	font: var(--type-badge);
+	color: var(--text-muted);
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.ha-zerar {
+	flex: 0 0 auto;
+}
+
+/* ─── Os quatro ritmos (a faixa de KPI) ───────────────────────────────── */
+
+.ha-ritmos {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: var(--sp-2);
+}
+
+.ha-ritmo {
+	display: flex;
+	flex-direction: column;
+	gap: var(--sp-1);
+	padding: var(--pad-card);
+	background: var(--surface-card);
+	border-radius: var(--radius-card);
+	box-shadow: var(--shadow-card), var(--rim-light);
+	transition: background var(--dur-fast) var(--ease-out);
+}
+
+.ha-ritmo:hover {
+	background: var(--surface-card-hover);
+}
+
+.ha-ritmo-rotulo {
+	display: inline-flex;
+	align-items: center;
+	gap: var(--sp-2);
+	font: var(--type-label);
+	letter-spacing: var(--ls-caps);
 	color: var(--text-muted);
 }
 
-/* ─── Blocos ──────────────────────────────────────────────────────────── */
+/* O mesmo par tamanho+familia do cronometro (token de tamanho dentro do
+   shorthand `font` invalidaria a declaracao em silencio — cicatriz de
+   CorreioIdle.css). Tabular para os quatro nao dancarem entre tiques. */
+.ha-ritmo-valor {
+	font-family: var(--font-numeric);
+	font-size: var(--fs-numeric-lg);
+	font-weight: var(--fw-bold);
+	line-height: var(--lh-tight);
+	font-variant-numeric: tabular-nums;
+	color: var(--accent-strong);
+}
+
+/* ─── A trilha de metricas ────────────────────────────────────────────── */
+
+.ha-metricas {
+	display: flex;
+	flex-direction: column;
+	margin: 0;
+	padding: var(--sp-1) 0;
+	list-style: none;
+	background: var(--surface-card);
+	border-radius: var(--radius-card);
+	box-shadow: var(--shadow-card);
+}
+
+.ha-metrica {
+	display: flex;
+	align-items: center;
+	gap: var(--sp-3);
+	padding: var(--sp-2) var(--sp-4);
+	font: var(--type-info);
+	color: var(--text-body);
+}
+
+.ha-metrica + .ha-metrica {
+	border-top: var(--border-hairline);
+}
+
+/* O corte entre familias (EXP acima, monstros/drops abaixo) e um fio mais
+   presente que o hairline entre linhas -- o agrupamento visivel do Midgard. */
+.ha-metrica--corte {
+	border-top: var(--divider) !important;
+	margin-top: var(--sp-1);
+	padding-top: var(--sp-3);
+}
+
+/* O losango do Midgard: um quadrado de token girado. Cor por FAMILIA de
+   metrica, sempre de token existente (--ri-*, Common.css:662-671). */
+.ha-losango {
+	width: 7px;
+	height: 7px;
+	flex: 0 0 auto;
+	transform: rotate(45deg);
+	border-radius: 1px;
+}
+
+.ha-losango--exp {
+	background: var(--ri-exp);
+}
+
+.ha-losango--classe {
+	background: var(--ri-sp);
+}
+
+.ha-losango--monstro {
+	background: var(--ri-hp);
+}
+
+.ha-losango--drop {
+	background: var(--ri-dourado);
+}
+
+.ha-metrica-rotulo {
+	flex: 1 1 auto;
+	color: var(--text-muted);
+}
+
+.ha-metrica-valor {
+	font: var(--type-numeric);
+	font-variant-numeric: tabular-nums;
+	color: var(--text-body);
+}
+
+/* ─── A nota honesta (a caixa cinza do Midgard) ───────────────────────── */
+
+.ha-nota {
+	margin: 0;
+	padding: var(--pad-card);
+	background: var(--well-fill);
+	border-radius: var(--radius-panel);
+	box-shadow: var(--well-shadow);
+	font: var(--type-desc);
+	color: var(--text-muted);
+}
+
+/* ─── Blocos (Monstros e Drops) ───────────────────────────────────────── */
 
 .ha-bloco {
 	display: flex;
@@ -126,87 +346,9 @@
 	color: var(--text-muted);
 }
 
-.ha-bloco-resumo b {
-	font: var(--type-numeric);
-	color: var(--text-body);
-}
+/* ─── Monstros: linha com barra de proporcao por tras ─────────────────── */
 
-/* ─── Cartoes de experiencia ──────────────────────────────────────────── */
-
-.ha-cartoes {
-	display: grid;
-	grid-template-columns: 1fr 1fr;
-	gap: var(--sp-2);
-}
-
-.ha-cartao {
-	display: flex;
-	flex-direction: column;
-	gap: 2px;
-	padding: var(--pad-card);
-	background: var(--surface-card);
-	border-radius: var(--radius-card);
-	box-shadow: var(--shadow-card);
-}
-
-.ha-cartao-rotulo {
-	font: var(--type-label);
-	letter-spacing: var(--ls-caps);
-	color: var(--text-muted);
-}
-
-/*
- * O PAR, e nao `font: var(--fs-numeric-lg)`: esse token e um TAMANHO ("16px"),
- * e o shorthand `font` exige familia -- com so o tamanho a declaracao inteira
- * e invalida e o navegador a descarta em silencio, deixando o numero no
- * tamanho herdado. Mesmo par de CorreioIdle.css:340-341.
- */
-.ha-cartao-valor {
-	font: var(--type-numeric);
-	font-size: var(--fs-numeric-lg);
-	font-weight: var(--fw-bold);
-	color: var(--accent-strong);
-}
-
-.ha-cartao-nota {
-	font: var(--type-badge);
-	color: var(--text-muted);
-}
-
-.ha-cartao-nota b {
-	color: var(--text-body);
-}
-
-/* ─── Projecoes ───────────────────────────────────────────────────────── */
-
-.ha-projecoes {
-	display: flex;
-	flex-direction: column;
-	gap: 2px;
-	padding: var(--pad-card);
-	background: var(--well-fill);
-	border-radius: var(--radius-panel);
-	box-shadow: var(--well-shadow);
-}
-
-.ha-projecao {
-	display: flex;
-	align-items: baseline;
-	justify-content: space-between;
-	gap: var(--sp-2);
-	font: var(--type-info);
-	color: var(--text-muted);
-}
-
-.ha-projecao-valor {
-	font: var(--type-numeric);
-	color: var(--text-body);
-}
-
-/* ─── Listas (ranking e itens) ────────────────────────────────────────── */
-
-.ha-ranking,
-.ha-itens {
+.ha-ranking {
 	display: flex;
 	flex-direction: column;
 	gap: 2px;
@@ -215,46 +357,130 @@
 	list-style: none;
 }
 
-.ha-linha {
+.ha-monstro {
+	position: relative;
 	display: grid;
-	/* nome | contagem | participacao -- as duas colunas da direita sao fixas
-	   para os numeros alinharem entre linhas de nomes de larguras diferentes. */
-	grid-template-columns: 1fr auto 48px;
+	/* avatar | nome | contagem | participacao -- as duas da direita fixas
+	   para os numeros alinharem entre nomes de larguras diferentes; o
+	   avatar fixo para os nomes comecarem alinhados. */
+	grid-template-columns: 24px 1fr auto 40px;
 	align-items: center;
 	gap: var(--sp-2);
 	padding: 4px var(--sp-2);
+	min-height: 28px;
 	background: var(--surface-card);
 	border-radius: var(--radius-card);
+	overflow: hidden;
 	font: var(--type-info);
 	color: var(--text-body);
+	transition: background var(--dur-fast) var(--ease-out);
 }
 
-/* A lista de ITENS nao tem a coluna de participacao (pedido do dono,
-   25/08/2026): comparar Jellopy com Carta em % nao responde pergunta
-   nenhuma. Sem a terceira coluna, a quantidade encosta na direita. */
-.ha-linha--sem-parte {
-	grid-template-columns: 1fr auto;
+/* O avatar da especie (o mesmo /ragidle/mobs/<id>.png do Mapa de Caca). O
+   quadrado fixo mantem a coluna estavel mesmo quando a imagem falta (o
+   onerror esconde a IMG, nunca o span). */
+.ha-monstro-avatar {
+	position: relative;
+	width: 24px;
+	height: 24px;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	overflow: hidden;
 }
 
-.ha-linha:hover {
-	background: var(--surface-card-hover);
+.ha-monstro-avatar img {
+	max-width: 100%;
+	max-height: 100%;
+	object-fit: contain;
 }
 
-.ha-linha-nome {
+/* A proporcao da especie, desenhada por TRAS do texto (largura escrita pelo
+   JS). Token claro de superficie -- informacao redundante com a coluna %,
+   entao pode ser sutil.
+
+   O seletor e `>.ha-monstro-barra` DE PROPOSITO: a regra dos spans de
+   conteudo logo abaixo tem especificidade 0-1-1, e um `.ha-monstro-barra`
+   sozinho (0-1-0) perderia o `position:absolute` para ela -- a barra virava
+   item do grid, empurrava o % pra segunda linha e a medicao pegou. */
+.ha-monstro > .ha-monstro-barra {
+	position: absolute;
+	inset: 0 auto 0 0;
+	background: var(--sky-100);
+	pointer-events: none;
+}
+
+.ha-monstro > span {
+	position: relative;
+}
+
+.ha-monstro-nome {
 	overflow: hidden;
 	text-overflow: ellipsis;
 	white-space: nowrap;
 }
 
-.ha-linha-valor {
+.ha-monstro-abates {
 	font: var(--type-numeric);
 	font-weight: var(--fw-bold);
 }
 
-.ha-linha-parte {
+.ha-monstro-parte {
 	text-align: right;
 	font: var(--type-badge);
 	color: var(--text-muted);
+}
+
+/* ─── Drops: a grade de icones do Midgard ─────────────────────────────── */
+
+.ha-drops {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--sp-2);
+}
+
+.ha-drop {
+	position: relative;
+	width: 40px;
+	height: 40px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	background: var(--surface-card);
+	border: 1px solid var(--border-hairline);
+	border-radius: var(--radius-card);
+	box-shadow: var(--shadow-card);
+	transition: background var(--dur-fast) var(--ease-out);
+}
+
+.ha-drop:hover {
+	background: var(--surface-card-hover);
+}
+
+.ha-drop-icone {
+	/* O bmp do item e 24x24: ampliacao por inteiro (1x) e pixel firme, a
+	   regra de sempre para arte do cliente. */
+	width: 24px;
+	height: 24px;
+	image-rendering: pixelated;
+}
+
+/* Sem ITID nao ha icone: a inicial do nome segura o quadrado. */
+.ha-drop-letra {
+	font: var(--type-section);
+	color: var(--text-muted);
+}
+
+.ha-drop-qtd {
+	position: absolute;
+	right: 1px;
+	bottom: 1px;
+	padding: 0 3px;
+	border-radius: var(--radius-pill);
+	background: var(--surface-dark-glass);
+	color: var(--text-on-accent);
+	font: var(--type-badge);
+	font-variant-numeric: tabular-nums;
 }
 
 .ha-vazio {
@@ -262,13 +488,4 @@
 	font: var(--type-info);
 	color: var(--text-muted);
 	text-align: center;
-}
-
-.ha-rodape-nota {
-	margin: 0;
-	padding-top: var(--sp-2);
-	border-top: var(--border-hairline);
-	font: var(--type-badge);
-	line-height: var(--lh-read);
-	color: var(--text-muted);
 }
