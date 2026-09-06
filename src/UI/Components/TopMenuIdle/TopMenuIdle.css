@@ -647,9 +647,11 @@
    perder na grade.
 
    O destaque usa o MESMO vocabulario da janela que ele abre: aro dourado
-   (--border-gold), brilho dourado no repouso (--glow-gold) e o rotulo em
-   dourado escuro. Nada de efeito novo — inventar um segundo vocabulario de
+   (--border-gold), brilho dourado no repouso (--glow-gold) e um anel dourado
+   no ROTULO. Nada de efeito novo — inventar um segundo vocabulario de
    "premium" e o que faz um design system envelhecer.
+   (O ouro esteve no TEXTO do rotulo ate 06/09/2026; por que saiu de la, ver
+   o bloco ".tm-item--destaque .tm-label" logo abaixo.)
 
    Ele NAO pulsa: o leque fica aberto sobre a cena de caca, e uma animacao
    perpetua na periferia da visao e ruido, nao destaque. */
@@ -664,9 +666,45 @@
 	box-shadow: var(--glow-gold), var(--rim-light), var(--shadow-float);
 }
 
+/* O ROTULO do item em destaque: legivel PRIMEIRO, dourado depois
+   (06/09/2026, pedido do dono: "mude a cor do texto das recompensas, nao da
+   para ler, arrume outra forma de dar destaque para ele").
+
+   Ate hoje ele era `color: var(--gold-700)` — #8a6a18, ouro ESCURO — dentro
+   da capsula de vidro ESCURO que todo ".tm-label" tem (--surface-dark-glass,
+   o azul-900 a 58%). Escuro sobre escuro da ~2:1 de contraste, contra os
+   4.5:1 que o DS pede: na foto do dono a palavra "Recompensas" simplesmente
+   nao esta la. O agravante e que a capsula e SEMITRANSPARENTE, entao quem
+   decide o fundo e o mapa atras — sobre o calcamento claro de Prontera (o
+   caso da foto) o ouro escuro fica ainda mais perto do fundo.
+
+   O erro de fundo foi por o ouro DENTRO da palavra. O DS ja escreve "Ouro —
+   detalhe premium, NUNCA superficie", e vale igual para o texto: o ouro e
+   MOLDURA. Quem carrega a palavra e o contraste.
+
+   O destaque agora mora em tres coisas, nenhuma delas dentro da palavra:
+     1. a capsula fica OPACA (0.88 contra 0.58) — e o que estabiliza o
+        contraste, porque a 58% o fundo era o mapa;
+     2. um ANEL dourado no contorno dela (--rim-gold, o mesmo aro das nossas
+        janelas) mais um halo suave: e o UNICO rotulo com moldura no cluster
+        inteiro, entao a moldura sozinha ja o aponta;
+     3. o texto em ouro CLARO (--gold-300), que continua dizendo "premium" e
+        da ~8:1 sobre a capsula opaca.
+
+   ANEL POR "box-shadow" INSET, NUNCA POR "border": a coluna da grade e
+   `auto` e "Recompensas" e o rotulo mais largo do cluster (a conta esta no
+   bloco dele em TopMenuIdle.html) — 2px de borda entrariam na largura do
+   cluster, que e justamente o numero que o `prove:hud-responsiva` mede e que
+   ja reprovou uma vez por 13px. Sombra nao ocupa espaco: a largura fica
+   identica a de antes desta mudanca.
+
+   Ele tambem NAO pisca — mesma razao do disco logo acima. */
 .tm-item--destaque .tm-label {
-	color: var(--gold-700);
+	color: var(--gold-300);
 	font-weight: var(--fw-bold);
+	background: rgba(18, 41, 74, 0.88);
+	box-shadow: var(--rim-gold), 0 0 10px rgba(224, 176, 77, 0.35);
+	text-shadow: 0 1px 2px rgba(8, 22, 40, 0.9);
 }
 
 /* ─── Toast "Em breve": ancorado no LEQUE (e nao mais na viewport), logo
@@ -1217,6 +1255,8 @@
 	color: var(--is-title-ink, #1c2540);
 	text-shadow: none;
 	background: transparent;
+	/* sem capsula aqui = sem o anel dourado do item em destaque. */
+	box-shadow: none;
 }
 
 /* A secao do leque. `--vr-menu-cluster-altura` e a altura da secao 1 —
@@ -1270,4 +1310,6 @@
 	color: var(--is-title-ink, #1c2540);
 	text-shadow: none;
 	background: transparent;
+	/* sem capsula aqui = sem o anel dourado do item em destaque. */
+	box-shadow: none;
 }
