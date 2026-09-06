@@ -1079,3 +1079,195 @@
 		bottom: var(--hud-acima-da-doca, 104px);
 	}
 }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   D-939 — CELULAR EM PE: o menu vira FAB no topo + TRILHO a direita +
+   FOLHA de menu (05/09/2026). Quem liga `.ri-vertical` e UI/hudVertical.js.
+
+   O mockup do dono: um botao quadrado azul de menu no canto superior
+   direito, um trilho vertical de botoes redondos na borda direita (Mochila,
+   Auto, Skills, Config — o Auto e o CombatCornerIdle, encaixado no 2o
+   degrau pelo Common.css), e o resto do catalogo atras do botao de menu.
+
+   A FOLHA: com o menu aberto (`#TopMenuIdle.tm-aberto`, classe posta pelo
+   MESMO codigo que ja poe `.is-open` no leque), o cluster inteiro aparece
+   como a primeira secao e o leque como a segunda — nada fica inalcancavel:
+   Personagem, Caca, Correio, Missoes e Analise, que sairam do trilho,
+   continuam a dois toques.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* ─── O botao de menu: quadrado azul no topo, fechando a barra do topo ── */
+.ri-vertical .tm-menu {
+	position: fixed;
+	top: calc(var(--vr-topo, 14px) + 4px);
+	right: calc(var(--safe-dir, 0px) + var(--vr-margem, 8px));
+	bottom: auto;
+	left: auto;
+	min-width: 0;
+	flex-direction: column;
+	align-items: flex-end;
+	gap: 0;
+}
+
+.ri-vertical .tm-fab {
+	width: 44px;
+}
+
+.ri-vertical .tm-fab .tm-label {
+	display: none;
+}
+
+.ri-vertical .tm-fab-wrap {
+	width: 44px;
+	height: 44px;
+	border-radius: 10px;
+	background: var(--is-accent, #3b6ea5);
+	color: var(--white, #fff);
+	border-color: transparent;
+}
+
+/* ─── O TRILHO (menu fechado): so Mochila, Skills e Config ──────────────
+   Os demais itens do cluster somem do trilho e moram na folha. O degrau e
+   RIGIDO (--vr-trilho-passo) para a conta do "Auto" no Common.css fechar:
+   Mochila no 1o, o buraco do 2o e do CombatCornerIdle, Skills no 3o,
+   Config no 4o. */
+.ri-vertical .tm-top {
+	display: flex !important;
+	position: fixed;
+	top: var(--vr-abaixo-do-topo, 70px);
+	right: calc(var(--safe-dir, 0px) + var(--vr-margem, 8px));
+	left: auto;
+	flex-direction: column;
+	align-items: center;
+	gap: 0;
+	min-height: 0;
+	width: var(--vr-trilho-largura, 60px);
+}
+
+.ri-vertical .tm-top .tm-item {
+	display: none !important;
+}
+
+.ri-vertical .tm-top .tm-toggle {
+	display: none !important;
+}
+
+.ri-vertical .tm-top .tm-item[data-action='inventory'],
+.ri-vertical .tm-top .tm-item[data-action='skills'],
+.ri-vertical .tm-top .tm-item[data-action='config'] {
+	display: flex !important;
+	box-sizing: border-box;
+	min-height: var(--vr-trilho-passo, 72px);
+	justify-content: flex-start;
+}
+
+/* O buraco do "Auto" (CombatCornerIdle): um degrau inteiro depois da
+   Mochila. O numero e o MESMO token que posiciona o host do Auto no
+   Common.css — mexer num sem o outro descola o trilho. */
+.ri-vertical .tm-top .tm-item[data-action='inventory'] {
+	margin-bottom: var(--vr-trilho-passo, 72px);
+}
+
+/* Rotulo curto onde o mockup pede (Config. em vez de Idle). */
+.ri-vertical .tm-top .tm-label {
+	font-size: 9px;
+}
+.tm-label--v {
+	display: none;
+}
+.ri-vertical .tm-top .tm-item[data-action='config'] .tm-label:not(.tm-label--v) {
+	display: none;
+}
+.ri-vertical .tm-top .tm-item[data-action='config'] .tm-label--v {
+	display: block;
+}
+
+/* ─── A FOLHA (menu aberto) ─────────────────────────────────────────────
+   Secao 1: o cluster inteiro, como grade de 4 colunas num cartao.
+   Secao 2: o leque, no cartao logo abaixo, com a propria rolagem. */
+.ri-vertical #TopMenuIdle.tm-aberto .tm-top {
+	position: fixed;
+	top: var(--vr-abaixo-do-topo, 70px);
+	left: calc(var(--safe-esq, 0px) + var(--vr-margem, 8px));
+	right: calc(var(--safe-dir, 0px) + var(--vr-margem, 8px));
+	width: auto;
+	display: grid !important;
+	grid-template-columns: repeat(4, 1fr);
+	gap: 8px 4px;
+	padding: 12px 8px;
+	border-radius: 12px;
+	background: var(--is-window-bg, #f4f6fb);
+	box-shadow: inset 0 0 0 1px var(--is-window-border, #c7d0e0);
+	z-index: 3;
+}
+
+.ri-vertical #TopMenuIdle.tm-aberto .tm-top .tm-item {
+	display: flex !important;
+	min-height: 0;
+	margin-bottom: 0;
+}
+
+.ri-vertical #TopMenuIdle.tm-aberto .tm-top .tm-toggle {
+	display: none !important;
+}
+
+/* Na folha os rotulos ficam escuros (fundo claro de cartao, nao mais o
+   mundo): a capsula de vidro escuro do cluster nao e necessaria aqui. */
+.ri-vertical #TopMenuIdle.tm-aberto .tm-top .tm-label {
+	color: var(--is-title-ink, #1c2540);
+	text-shadow: none;
+	background: transparent;
+}
+
+/* A secao do leque. `--vr-menu-cluster-altura` e a altura da secao 1 —
+   grade de 4 colunas com 8 itens = 2 fileiras de ~72 + respiro. */
+.ri-vertical .tm-fan {
+	--vr-menu-cluster-altura: 172px;
+}
+
+.ri-vertical .tm-fan.is-mounted {
+	position: fixed;
+	top: calc(var(--vr-abaixo-do-topo, 70px) + var(--vr-menu-cluster-altura));
+	left: calc(var(--safe-esq, 0px) + var(--vr-margem, 8px));
+	right: calc(var(--safe-dir, 0px) + var(--vr-margem, 8px));
+	max-height: calc(
+		100dvh - var(--vr-abaixo-do-topo, 70px) - var(--vr-menu-cluster-altura) -
+			var(--vr-acima-dos-atalhos, 92px) - 8px
+	);
+	overflow-y: auto;
+	overscroll-behavior: contain;
+	-webkit-overflow-scrolling: touch;
+	display: grid;
+	grid-template-columns: 1fr;
+	row-gap: 4px;
+	padding: 10px 8px 12px;
+	margin: 0;
+	border-radius: 12px;
+	background: var(--is-window-bg, #f4f6fb);
+	box-shadow: inset 0 0 0 1px var(--is-window-border, #c7d0e0);
+	z-index: 3;
+	pointer-events: auto;
+}
+
+/* O veu e o ornamento sao do leque flutuante; no cartao, saem. */
+.ri-vertical .tm-fan .tm-veu,
+.ri-vertical .tm-fan .tm-sep {
+	display: none;
+}
+
+/* As colunas do leque viram grades de 4, como a secao de cima. */
+.ri-vertical .tm-fan .tm-col {
+	display: grid;
+	grid-template-columns: repeat(4, 1fr);
+	gap: 8px 4px;
+}
+
+.ri-vertical .tm-fan .tm-item {
+	width: auto;
+}
+
+.ri-vertical .tm-fan .tm-label {
+	color: var(--is-title-ink, #1c2540);
+	text-shadow: none;
+	background: transparent;
+}

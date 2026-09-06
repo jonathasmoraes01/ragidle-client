@@ -118,3 +118,31 @@
 		bottom: calc(var(--hud-acima-da-doca, 104px) + 74px);
 	}
 }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   D-939 — CELULAR EM PE: o "Ataque auto" vira o degrau "Auto" do trilho da
+   direita (05/09/2026). A POSICAO do host e do Common.css (o buraco que o
+   item da Mochila deixa no trilho do TopMenuIdle); aqui e so a roupa: disco
+   do mesmo tamanho dos vizinhos e o rotulo curto do mockup.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.cc-label--v {
+	display: none;
+}
+
+.ri-vertical .cc-ring {
+	width: 46px;
+	height: 46px;
+}
+
+.ri-vertical .cc-label {
+	display: none;
+}
+
+.ri-vertical .cc-label--v {
+	display: block;
+	font-size: 9px;
+	font-weight: var(--fw-bold, 700);
+	color: var(--white);
+	text-shadow: 0 1px 2px rgba(8, 22, 40, 0.85);
+}

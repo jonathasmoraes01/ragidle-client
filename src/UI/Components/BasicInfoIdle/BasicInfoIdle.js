@@ -189,6 +189,10 @@ BasicInfoIdle.init = function init() {
 	if (minimizeBtn) {
 		minimizeBtn.addEventListener('click', onClickMinimize);
 	}
+
+	/* D-939: o rodape da HUD vertical mostra wifi e bateria. Ligado no init
+	   (uma vez por vida do componente), e nao no polling. */
+	ligarBateriaEWifi();
 };
 
 /**
@@ -498,6 +502,91 @@ function syncFromNativeState() {
 	// O cash usa o MESMO formatador do zeny: e o mesmo tipo de numero para o
 	// jogador, e dois formatos na mesma faixa so criariam duvida.
 	setText(root, '.bi-cash', formatZeny(Session.cash));
+
+	sincronizarRodapeVertical(root, entity, nativeUI);
+}
+
+/**
+ * O RODAPE DA HUD VERTICAL (D-939) — nivel de base + EXP com numeros.
+ *
+ * Roda no MESMO polling de tudo aqui, e nao num relogio proprio: o dado e o
+ * mesmo que `.bi-blvl-value`/`.bi-bexp-fill` ja leem, so muda a apresentacao
+ * (o mockup do dono mostra "31.233 / 45.000 (69,4%)" no rodape). O elemento e
+ * `display:none` fora do celular em pe, e atualizar um span invisivel custa
+ * nada perto de ramificar o polling por modo.
+ */
+function sincronizarRodapeVertical(root, entity, nativeUI) {
+	if (!root.querySelector('.bi-rodape')) {
+		return;
+	}
+	setText(root, '.bi-rodape-blvl', entity.clevel || 0);
+	const val = nativeUI.base_exp || 0;
+	const max = nativeUI.base_exp_next || 0;
+	updateExpBar(root, '.bi-rodape-exp-fill', val, max);
+	const pct = max > 0 ? Math.max(0, Math.min(100, (val / max) * 100)) : 0;
+	// Virgula decimal de proposito: todo texto do jogador e pt-BR.
+	setText(
+		root,
+		'.bi-rodape-exp-texto',
+		`${formatZeny(val)} / ${formatZeny(max)} (${pct.toFixed(1).replace('.', ',')}%)`,
+	);
+}
+
+/**
+ * WIFI E BATERIA NO RODAPE (D-939).
+ *
+ * No PWA instalado o jogo roda em `display: fullscreen` e a barra de status
+ * do aparelho SOME — o jogador perde o relogio de bateria do proprio
+ * celular. O mockup do dono devolve os dois no rodape do jogo.
+ *
+ * As duas fontes sao de MELHOR ESFORCO, e falham para ESCONDIDO:
+ *   - `navigator.getBattery` so existe em Chromium; onde nao existe (iOS),
+ *     a bateria fica oculta em vez de mostrar um numero inventado (regra 1
+ *     da casa: nada de numero inventado — vale ate aqui).
+ *   - o wifi e `navigator.onLine`: um booleano honesto (conectado ou nao),
+ *     sem fingir medir intensidade de sinal.
+ */
+function ligarBateriaEWifi() {
+	const root = _root();
+	const wifi = root.querySelector('.bi-rodape-wifi');
+	const bateria = root.querySelector('.bi-rodape-bateria');
+	if (!wifi || !bateria) {
+		return;
+	}
+
+	const pintarWifi = () => {
+		wifi.classList.toggle('is-off', typeof navigator !== 'undefined' && navigator.onLine === false);
+	};
+	window.addEventListener('online', pintarWifi);
+	window.addEventListener('offline', pintarWifi);
+	pintarWifi();
+
+	if (typeof navigator === 'undefined' || typeof navigator.getBattery !== 'function') {
+		bateria.style.display = 'none';
+		return;
+	}
+	navigator
+		.getBattery()
+		.then(function (b) {
+			const pintar = () => {
+				const pct = Math.round((b.level || 0) * 100);
+				const nivel = root.querySelector('.bi-rodape-bateria-nivel');
+				const texto = root.querySelector('.bi-rodape-bateria-texto');
+				if (nivel) {
+					nivel.style.width = pct + '%';
+				}
+				if (texto) {
+					texto.textContent = pct + '%';
+				}
+				bateria.classList.toggle('is-baixa', pct <= 20 && !b.charging);
+			};
+			b.addEventListener('levelchange', pintar);
+			b.addEventListener('chargingchange', pintar);
+			pintar();
+		})
+		.catch(function () {
+			bateria.style.display = 'none';
+		});
 }
 
 /**

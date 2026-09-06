@@ -288,12 +288,17 @@
 	position: absolute;
 	right: 1px;
 	top: 26px;
-	text-shadow: 0 1px 2px rgba(18, 41, 74, 0.85);
+	/* O slot ocupado e BRANCO (ver .container:has(.icon) acima), entao o
+	   numero precisa ser escuro; o halo claro segura a leitura quando ele
+	   cai por cima da arte do proprio item. */
+	text-shadow:
+		0 0 2px var(--white),
+		0 1px 0 var(--white);
 	text-align: right;
 	font-weight: bold;
 	font-size: var(--fs-badge);
 	line-height: 1;
-	color: var(--white);
+	color: var(--blue-900);
 }
 
 .shortcut-tooltip {
@@ -508,4 +513,109 @@
 }
 .shortcut-toque-rotulo.show {
 	display: block;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   D-939 — CELULAR EM PE: a barra tira a roupa de RO original e veste a do
+   mockup (05/09/2026). Pedido literal do dono: *"o mobile nao precisa ter
+   essa barra de skills do Ragnarok original"*. Sai o chrome inteiro (o "X",
+   o pegador de redimensionar, o numero da fileira — coisas de mouse), fica
+   um cartao claro com UMA fileira e os pontinhos de pagina embaixo
+   (aplicarPaginaVertical em ShortCut.js). A ANCORA do host e do Common.css.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* Os pontinhos NAO EXISTEM fora da vertical — regra sem prefixo. */
+.shortcut-paginas {
+	display: none;
+}
+
+.ri-vertical #ShortCut {
+	/* O template e `position:absolute; height:100%` (o desenho de desktop
+	   preenche o host cortado por altura). Na vertical o HOST e `height:auto`
+	   (Common.css) — com o filho absoluto ele colapsaria a 0x0 e a barra
+	   inteira sumiria (aconteceu, medido na primeira rodada do arnes). Aqui o
+	   filho volta ao fluxo e a altura passa a ser a do conteudo. */
+	position: static;
+	width: auto;
+	height: auto;
+	padding: 5px 6px 2px;
+	border-radius: 14px;
+	background: rgba(244, 246, 251, 0.92);
+	box-shadow:
+		0 4px 14px rgba(10, 20, 40, 0.28),
+		inset 0 0 0 1px var(--is-window-border, #c7d0e0);
+}
+
+/* O chrome de mouse sai inteiro. */
+.ri-vertical #ShortCut .close,
+.ri-vertical #ShortCut .resize,
+.ri-vertical #ShortCut .reopen,
+.ri-vertical #ShortCut .row .index,
+.ri-vertical #ShortCut .row .clear {
+	display: none !important;
+}
+
+/* Uma fileira por vez: quem manda e a pagina ativa, nao a altura do host. */
+.ri-vertical #ShortCut .row {
+	display: none;
+	height: auto;
+	background: transparent;
+	cursor: default;
+}
+
+.ri-vertical #ShortCut .row + .row {
+	box-shadow: none;
+}
+
+.ri-vertical #ShortCut .row.is-pagina-ativa {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: 2px 1px;
+}
+
+.ri-vertical #ShortCut .row .container {
+	float: none;
+	margin: 2px 0;
+	background: var(--white, #fff);
+	border-color: var(--is-card-border, #d7deea);
+}
+
+/* Os pontinhos de pagina. */
+.ri-vertical .shortcut-paginas {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 2px;
+}
+
+.ri-vertical .shortcut-pagina {
+	appearance: none;
+	width: 22px;
+	height: 14px;
+	margin: 0;
+	padding: 0;
+	border: 0;
+	background: transparent;
+	cursor: pointer;
+	position: relative;
+}
+
+.ri-vertical .shortcut-pagina::after {
+	content: '';
+	position: absolute;
+	left: 50%;
+	top: 50%;
+	transform: translate(-50%, -50%);
+	width: 7px;
+	height: 7px;
+	border-radius: 50%;
+	background: var(--is-muted-3, #8b93a5);
+	opacity: 0.55;
+	transition: opacity var(--dur-fast) var(--ease-out), background-color var(--dur-fast) var(--ease-out);
+}
+
+.ri-vertical .shortcut-pagina.is-ativa::after {
+	background: var(--is-accent, #3b6ea5);
+	opacity: 1;
 }

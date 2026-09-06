@@ -1874,3 +1874,186 @@ html.ri-hud-classica :host {
 	--safe-esq: 0px !important;
 	--safe-dir: 0px !important;
 }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   D-939 — A HUD VERTICAL DO CELULAR EM PE (05/09/2026)
+
+   Pedido do dono, com um MOCKUP desenhado junto: *"eu quero que voce
+   desenvolva uma hud para mobile que seja na vertical (...) a hud no jogo eu
+   quero que seja exatamente assim, unica diferenca que iremos tirar o mini
+   mapa (...) lembrando so iremos mexer na hud para mobile"*.
+
+   O desenho: personagem vira BARRA NO TOPO (avatar, nome, classe, Base/
+   Classe, zeny, cash, menu), missoes viram CARTAO a esquerda, os botoes de
+   janela viram TRILHO redondo a direita, a caca vira botao GRANDE no canto
+   inferior direito, o chat vira cartao, a barra de atalhos fica branca com
+   paginas, e um RODAPE fino mostra nivel + EXP. SEM minimapa.
+
+   ── QUEM LIGA ISTO E JS, NAO `@media` ──────────────────────────────────
+   A marca `.ri-vertical` e posta por `UI/hudVertical.js` no `<html>` e no
+   `.ui-component-root` de cada Shadow DOM. Por isso UM MESMO seletor
+   `.ri-vertical <alvo>` funciona nos dois mundos: no documento o ancestral
+   com a classe e o `<html>` (e os alvos sao os HOSTS); dentro do shadow o
+   ancestral e o root interno (e os alvos sao as entranhas). O criterio
+   (dedo + em pe + estreito) e a bandeira de rollout moram la, escritos uma
+   vez — `@media` aqui nao saberia da bandeira.
+
+   ── ESTE BLOCO MORA NO FIM DO ARQUIVO DE PROPOSITO ─────────────────────
+   Ele precisa VENCER as faixas de largura/altura (D-929/D-930) e o painel
+   de tela cheia (D-932) em tudo o que redeclarar — e em CSS de mesma
+   especificidade quem vence e a ORDEM. E a mesma licao que este arquivo
+   registra desde D-929, agora usada a favor.
+
+   ── POR QUE `!important` nas ancoras de host ───────────────────────────
+   O mesmo adversario de D-932: o `GUIComponent.draggable()` escreve
+   `left/top` INLINE no host, e o `ClampToViewport` os reescreve em todo
+   resize. Sem `!important` a ancora seria ignorada no primeiro toque.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.ri-vertical {
+	/* A geometria da HUD vertical, em tokens — cada peca le daqui, e mexer
+	   numa altura move os vizinhos juntos (a licao de --hud-acima-da-doca).
+	   So `.ri-vertical`, sem `:host`: a classe esta no `<html>` E no root
+	   interno de cada shadow, entao os tokens nascem nos dois mundos por
+	   heranca — nao ha terceiro lugar. */
+	--vr-margem: 8px;
+	--vr-topo: calc(var(--safe-topo, 0px) + 6px);
+	/* Altura da barra do topo: avatar 40 + respiro. MEDIDA no jogo depois de
+	   montada; o valor daqui e o de nascenca ate o primeiro desenho. */
+	--vr-topo-altura: 56px;
+	--vr-abaixo-do-topo: calc(var(--vr-topo) + var(--vr-topo-altura) + 8px);
+	/* O trilho da direita: disco de 48 + rotulo, num passo de 68px. */
+	--vr-trilho-passo: 68px;
+	--vr-trilho-largura: 60px;
+	/* O rodape fino (nivel + EXP) e a barra de atalhos acima dele. */
+	--vr-rodape-altura: 22px;
+	--vr-atalhos-altura: 56px;
+	--vr-acima-dos-atalhos: calc(
+		var(--safe-baixo, 0px) + var(--vr-rodape-altura) + var(--vr-atalhos-altura) + 10px
+	);
+}
+
+/* ─── O MINIMAPA SAI — a unica diferenca que o dono pediu contra o mockup ─── */
+html.ri-vertical #MiniMapV2 {
+	display: none !important;
+}
+
+/* ─── AS ANCORAS DOS HOSTS (documento) ──────────────────────────────────────
+   Cada host vira uma peca fixa da moldura. `width/height` de volta a `auto`
+   porque varios deles carregam tamanho INLINE (arrasto, applyShortcutSize).
+
+   TODAS com o prefixo `html.ri-vertical`, e o `html` NAO e enfeite: este
+   arquivo e replicado DENTRO de cada Shadow DOM, e la dentro o template de
+   varios componentes repete o id do host (`div#ShortCut` dentro do host
+   `div#ShortCut`). Um seletor `.ri-vertical #X` casaria com os DOIS — e o
+   `#CombatCornerIdle` interno e `position: relative`, entao receber estes
+   top/right o DESLOCARIA em vez de ancorar. `html` so existe no documento;
+   dentro do shadow o seletor inteiro morre no primeiro elo. */
+html.ri-vertical #BasicInfoIdle {
+	position: fixed !important;
+	/* O calc CRU (e nao `var(--vr-topo)`) e deliberado: custom property
+	   encadeada resolve o `var()` interno no elemento onde foi DECLARADA
+	   (o html), entao `--vr-topo` chega aqui ja computada e um `--safe-topo`
+	   escrito no HOST nao a move — e escrever no host e exatamente como a
+	   `prove:hud-responsiva` falsifica o entalhe. Com o calc cru, o token
+	   resolve NESTE host: a prova enxerga, e o aparelho real tambem. */
+	top: calc(var(--safe-topo, 0px) + 6px) !important;
+	left: calc(var(--safe-esq, 0px) + var(--vr-margem)) !important;
+	/* O cartao TERMINA antes do botao de menu: no mockup o menu e uma peca
+	   separada, e na primeira rodada o cartao passava por baixo dele e o
+	   escondia (dois hosts, mesmo plano — quem paira depende da ordem do
+	   DOM, e perder essa loteria custou o botao inteiro). 52 = fab 44 + 8. */
+	right: calc(var(--safe-dir, 0px) + var(--vr-margem) + 52px) !important;
+	bottom: auto !important;
+	width: auto !important;
+	height: auto !important;
+}
+
+html.ri-vertical #MissoesTrackerIdle {
+	position: fixed !important;
+	top: var(--vr-abaixo-do-topo) !important;
+	left: calc(var(--safe-esq, 0px) + var(--vr-margem)) !important;
+	right: auto !important;
+	bottom: auto !important;
+	width: min(236px, calc(100vw - var(--vr-trilho-largura) - 32px)) !important;
+}
+
+/* O menu inteiro (fab + trilho + leque) posiciona os FILHOS por `fixed`;
+   o host vira um ponto sem caixa para nao cobrir nada. */
+html.ri-vertical #TopMenuIdle {
+	position: fixed !important;
+	inset: 0 auto auto 0 !important;
+	width: 0 !important;
+	height: 0 !important;
+	overflow: visible !important;
+	pointer-events: none !important;
+}
+
+/* O "Auto" mora no 2o degrau do trilho (entre Mochila e Skills — a ordem do
+   mockup), e o degrau vago e o `margin-bottom` que o item da Mochila deixa
+   (TopMenuIdle.css). Os dois numeros andam JUNTOS: quem mexer no passo do
+   trilho mexe nos dois. */
+html.ri-vertical #CombatCornerIdle {
+	top: calc(var(--vr-abaixo-do-topo) + var(--vr-trilho-passo)) !important;
+	right: calc(var(--safe-dir, 0px) + var(--vr-margem)) !important;
+	bottom: auto !important;
+	left: auto !important;
+}
+
+/* O botao de caca (grande) + retorno, acima da barra de atalhos. */
+html.ri-vertical #HuntButtonIdle {
+	position: fixed !important;
+	top: auto !important;
+	left: auto !important;
+	right: calc(var(--safe-dir, 0px) + var(--vr-margem) + 4px) !important;
+	bottom: calc(var(--vr-acima-dos-atalhos) + 6px) !important;
+	width: auto !important;
+	height: auto !important;
+}
+
+html.ri-vertical #ShortCut {
+	position: fixed !important;
+	top: auto !important;
+	left: calc(var(--safe-esq, 0px) + var(--vr-margem)) !important;
+	right: calc(var(--safe-dir, 0px) + var(--vr-margem)) !important;
+	bottom: calc(var(--safe-baixo, 0px) + var(--vr-rodape-altura) + 4px) !important;
+	width: auto !important;
+	/* `applyShortcutSize` escreve height inline (1 fileira = 42px); na
+	   vertical a altura e do conteudo (fileira + paginas). */
+	height: auto !important;
+}
+
+/* ─── D-932 continua valendo (janela = painel de tela cheia) ────────────────
+   So o TETO muda: quem precisa continuar alcancavel por baixo de um painel
+   aberto deixou de ser a doca (aposentada) e passou a ser a barra de atalhos
+   nova + o rodape. */
+.ri-vertical .ri-window,
+.ri-vertical .mo-window,
+.ri-vertical .co-window,
+.ri-vertical .ha-window {
+	max-height: calc(100dvh - var(--vr-acima-dos-atalhos) - var(--vr-topo) - 16px) !important;
+}
+
+/* Os icones de status (buffs) na vertical: descem para baixo da barra do
+   topo, encostados na esquerda do trilho — o lugar que o mockup deixa
+   livre. O host le os tokens da coluna direita (StatusIcons.css); aqui os
+   dois sao recalculados para o arranjo vertical. */
+html.ri-vertical #StatusIcons {
+	top: var(--vr-abaixo-do-topo) !important;
+	right: calc(var(--safe-dir, 0px) + var(--vr-trilho-largura) + 16px) !important;
+}
+
+/* O botao de menu MORAVA ATRAS da barra do topo: os hosts nascem todos com
+   z-index 50 inline (GUIComponent) e o desempate por ordem de DOM deixava o
+   fab invisivel — medido na primeira foto do arnes. O menu (fab + folha)
+   fica um degrau acima dos paineis fixos da moldura. */
+html.ri-vertical #TopMenuIdle {
+	z-index: 55 !important;
+}
+
+/* O aviso de item obtido nascia por cima da barra do topo (top: 50 do
+   layout de desktop); na vertical ele desce para o vao livre entre o cartao
+   de missoes e o mundo. */
+html.ri-vertical #ItemObtain {
+	top: calc(var(--vr-abaixo-do-topo) + 130px) !important;
+}

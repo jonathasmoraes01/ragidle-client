@@ -38,6 +38,8 @@ import { podeIniciarMissao } from 'UI/Components/MissoesIdle/podeIniciarMissao.j
 import htmlText from './MissoesTrackerIdle.html?raw';
 import cssText from './MissoesTrackerIdle.css?raw';
 import { emUnidadesDaHud } from 'UI/escalaDaHud.js'; // D-934: geometria medida vira unidade da HUD
+import LFGIdle from 'UI/Components/LFGIdle/LFGIdle.js'; // D-939: a aba "Grupo" do cartao vertical
+import { ehCelularEmPe } from 'UI/hudVertical.js'; // D-939: na vertical a ancora e do CSS, nao deste polling
 
 /** Quantas missões clicáveis o painel lista (as demais ficam na janela). */
 const MAX_LINHAS = 5;
@@ -95,6 +97,26 @@ MissoesTrackerIdle.init = function init() {
 			recolher.textContent = _recolhido ? '+' : '−';
 		});
 	}
+	/*
+	 * D-939: as pecas do cartao da HUD vertical. A aba "Grupo" e o rodape
+	 * "Ver todas as missões" sao PORTAS (abrem as janelas que ja existem),
+	 * nao telas novas — e fora da vertical nenhum dos dois aparece.
+	 */
+	const abaGrupo = root && root.querySelector('.mt-aba[data-aba="grupo"]');
+	if (abaGrupo) {
+		abaGrupo.addEventListener('click', e => {
+			e.stopImmediatePropagation();
+			LFGIdle.toggle();
+		});
+	}
+	const verTodas = root && root.querySelector('.mt-ver-todas');
+	if (verTodas) {
+		verTodas.addEventListener('click', e => {
+			e.stopImmediatePropagation();
+			MissoesIdle.toggle();
+		});
+	}
+
 	// Delegação: um listener no corpo resolve lista re-renderizada por
 	// innerHTML (o padrão do CorreioIdle).
 	const corpo = root && root.querySelector('.mt-corpo');
@@ -143,6 +165,21 @@ function syncPosition() {
 	const host = MissoesTrackerIdle._host;
 	const alvo = BasicInfoIdle && BasicInfoIdle._host;
 	if (!host || !alvo) {
+		return;
+	}
+	/*
+	 * D-939: NO CELULAR EM PE A ANCORA E DO CSS (Common.css, `.ri-vertical
+	 * #MissoesTrackerIdle`), e a conta de "cabe no vao" de D-930 nao
+	 * descreve aquele arranjo — la o cluster e um TRILHO na borda direita, o
+	 * `--hud-cluster-topo` publicado fica praticamente igual ao topo deste
+	 * cartao, e a conta concluia "nao cabe" e ESCONDIA o cartao que o mockup
+	 * manda mostrar. Este retorno tambem para de escrever `style.top/left`
+	 * inline a cada 250ms — o CSS da vertical ja os vence com `!important`,
+	 * mas estado inline que ninguem le e sujeira que confunde o proximo.
+	 */
+	if (ehCelularEmPe()) {
+		host.style.display = '';
+		host.style.maxHeight = '';
 		return;
 	}
 	const rect = alvo.getBoundingClientRect();

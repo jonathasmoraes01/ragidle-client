@@ -55,6 +55,53 @@ const COLLAPSED_HEIGHT = 42;
 const MAX_ROW_COUNT = 4;
 
 /**
+ * @var {number} pagina ativa da HUD vertical (D-939) — indice da fileira que
+ * o celular em pe mostra. Estado de MODULO, como _rowCount: a barra e
+ * recriada na troca de mapa e a pagina escolhida atravessa.
+ */
+let _paginaVertical = 0;
+
+/**
+ * Redesenha os pontinhos e marca a fileira ativa (D-939).
+ *
+ * Roda no init, no setList (o numero de fileiras DISPONIVEIS vem do
+ * servidor e muda ali) e no toque num pontinho. Fora da HUD vertical tudo
+ * isto e inerte: os pontinhos sao display:none e a classe da fileira nao
+ * casa com regra nenhuma.
+ */
+function aplicarPaginaVertical(pagina) {
+	const root = ShortCut.getRoot();
+	const paginas = root.querySelector('.shortcut-paginas');
+	if (!paginas) {
+		return;
+	}
+	const total = getAvailableRowCount();
+	_paginaVertical = Math.max(0, Math.min(pagina, total - 1));
+
+	if (paginas.childElementCount !== total) {
+		paginas.innerHTML = '';
+		for (let i = 0; i < total; i++) {
+			const ponto = document.createElement('button');
+			ponto.type = 'button';
+			ponto.className = 'shortcut-pagina';
+			ponto.setAttribute('data-pagina', String(i));
+			ponto.setAttribute('role', 'tab');
+			ponto.setAttribute('aria-label', `Página ${i + 1}`);
+			paginas.appendChild(ponto);
+		}
+	}
+	const pontos = paginas.querySelectorAll('.shortcut-pagina');
+	for (let i = 0; i < pontos.length; i++) {
+		pontos[i].classList.toggle('is-ativa', i === _paginaVertical);
+		pontos[i].setAttribute('aria-selected', String(i === _paginaVertical));
+	}
+	const fileiras = root.querySelectorAll('.row');
+	for (let i = 0; i < fileiras.length; i++) {
+		fileiras[i].classList.toggle('is-pagina-ativa', i === _paginaVertical);
+	}
+}
+
+/**
  * @var {object} server load hotkeys
  */
 let _lastServerHotkeys = null;
@@ -144,6 +191,35 @@ ShortCut.init = function init() {
 	if (!_desassinarToque) {
 		_desassinarToque = toqueParaAtalho.assinar(atualizarRotuloDeToque);
 	}
+
+	/*
+	 * PAGINAS DA HUD VERTICAL (D-939) — os pontinhos do mockup.
+	 *
+	 * No desktop as fileiras aparecem por ALTURA (applyShortcutSize corta o
+	 * host em N x 42px, e o resize da mais fileiras). No celular em pe nao ha
+	 * altura para empilhar fileiras nem pegador para redimensionar: cada
+	 * fileira vira uma PAGINA, e os pontinhos trocam qual esta na tela.
+	 *
+	 * Criado em JS como o rotulo de toque acima (nao mexe no template), e
+	 * INERTE fora da vertical: o CSS so mostra os pontinhos e so esconde
+	 * fileiras dentro de `.ri-vertical`. A classe `is-pagina-ativa` existe
+	 * sempre, mas nenhuma regra de desktop a le.
+	 */
+	if (!root.querySelector('.shortcut-paginas')) {
+		const paginas = document.createElement('div');
+		paginas.className = 'shortcut-paginas';
+		paginas.setAttribute('role', 'tablist');
+		paginas.setAttribute('aria-label', 'Páginas da barra de atalhos');
+		paginas.addEventListener('click', e => {
+			const ponto = e.target.closest('.shortcut-pagina');
+			if (ponto) {
+				e.stopImmediatePropagation();
+				aplicarPaginaVertical(parseInt(ponto.getAttribute('data-pagina'), 10) || 0);
+			}
+		});
+		container.appendChild(paginas);
+	}
+	aplicarPaginaVertical(_paginaVertical);
 
 	// Dropping to the shortcut
 	container.addEventListener('drop', e => {
@@ -425,6 +501,9 @@ ShortCut.setList = function setList(list) {
 	});
 	_list.length = list.length;
 	_rowCount = Math.min(4, Math.floor(list.length / 9));
+	/* D-939: o numero de paginas da HUD vertical segue o de fileiras
+	   disponiveis — e ele acabou de (possivelmente) mudar. */
+	aplicarPaginaVertical(_paginaVertical);
 
 	for (let i = 0, count = list.length; i < count; ++i) {
 		if (list[i].isSkill) {

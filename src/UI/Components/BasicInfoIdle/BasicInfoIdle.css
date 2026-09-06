@@ -821,3 +821,272 @@
 		inset: -7px -8px -17px -16px;
 	}
 }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   D-939 — CELULAR EM PE: o painel vira a BARRA DO TOPO do mockup
+   (05/09/2026). Quem liga `.ri-vertical` e UI/hudVertical.js; fora dela
+   nada daqui casa com nada.
+
+   O desenho do dono: avatar + nome/classe + barras de Base/Classe numa
+   faixa so, com zeny e cash em pilulas a direita e o botao de menu (do
+   TopMenuIdle) fechando a linha. HP/SP saem da barra — a barrinha sobre a
+   cabeca do personagem segue na cena, e o painel completo continua a um
+   toque (janela de Status).
+
+   Os `!important` daqui vencem DUAS cascatas que ja existem: o estilo
+   inline de arrasto/clamp (no host, tratado no Common.css) e o modo
+   compacto (`.bi-body.is-compact ...` esconde filhos — num celular em pe o
+   compacto nao existe, a barra JA E o compacto).
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.ri-vertical .bi-window {
+	display: grid;
+	/* corpo (avatar+nome+niveis) | pilulas de moeda | vao do botao de menu
+	   (o fab do TopMenuIdle e FIXO no canto; o vao so garante que nada fica
+	   por baixo dele). */
+	grid-template-columns: minmax(0, 1fr) auto;
+	grid-auto-rows: min-content;
+	column-gap: 6px;
+	row-gap: 2px;
+	align-items: center;
+	padding: 5px 8px;
+	border-radius: 12px;
+}
+
+.ri-vertical .bi-header {
+	display: none !important;
+}
+
+.ri-vertical .bi-body {
+	display: flex !important;
+	grid-row: 1 / span 2;
+	grid-column: 1;
+	flex-direction: row;
+	align-items: center;
+	gap: 8px;
+	padding: 0 !important;
+	margin: 0 !important;
+	min-width: 0;
+}
+
+.ri-vertical .bi-top {
+	display: flex !important;
+	align-items: center;
+	gap: 6px;
+	margin: 0 !important;
+	flex: 0 1 auto;
+	min-width: 0;
+}
+
+.ri-vertical .bi-avatar-frame {
+	width: 38px;
+	height: 38px;
+	flex: 0 0 38px;
+}
+
+.ri-vertical .bi-identity {
+	min-width: 0;
+}
+
+.ri-vertical .bi-name {
+	font-size: 12px;
+	line-height: 1.15;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	max-width: 72px;
+}
+
+.ri-vertical .bi-class {
+	font-size: 10px;
+	line-height: 1.15;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	max-width: 72px;
+}
+
+.ri-vertical .bi-levels {
+	display: flex !important;
+	flex-direction: column;
+	gap: 3px;
+	margin: 0 !important;
+	flex: 1 1 auto;
+	min-width: 0;
+}
+
+.ri-vertical .bi-level-row {
+	display: flex !important;
+	align-items: center;
+	gap: 4px;
+	margin: 0 !important;
+}
+
+.ri-vertical .bi-level-label {
+	display: inline-block !important;
+	font-size: 9px;
+	white-space: nowrap;
+	flex: 0 0 auto;
+	min-width: 52px;
+}
+
+.ri-vertical .bi-exp-track {
+	display: block !important;
+	flex: 1 1 auto;
+	height: 6px;
+	margin: 0 !important;
+}
+
+/* HP/SP, divisor e peso saem da barra do topo — o mockup nao os traz. */
+.ri-vertical .bi-bar,
+.ri-vertical .bi-divisor,
+.ri-vertical .bi-stats-line {
+	display: none !important;
+}
+
+/* As moedas viram pilulas empilhadas (zeny em cima, cash embaixo). */
+.ri-vertical .bi-moeda {
+	grid-column: 2;
+	display: flex;
+	align-items: center;
+	gap: 4px;
+	margin: 0 !important;
+	padding: 1px 7px;
+	border-radius: var(--radius-pill);
+	background: var(--surface-inset, #eef1f8);
+	box-shadow: inset 0 0 0 1px var(--border-hairline, #d7deea);
+	font-size: 10px;
+	line-height: 1.3;
+	white-space: nowrap;
+}
+
+.ri-vertical .bi-moeda-medalha {
+	width: 14px;
+	height: 14px;
+	min-width: 14px;
+}
+
+.ri-vertical .bi-moeda-rotulo {
+	display: none; /* a medalha ja diz qual moeda e; o rotulo nao cabe */
+}
+
+/* ─── O RODAPE (nivel + EXP + wifi + bateria) ─────────────────────────── */
+
+/* Fora do celular em pe ele NAO EXISTE — e a regra sem prefixo, entao vale
+   em desktop, deitado, tablet, tudo. */
+.bi-rodape {
+	display: none;
+}
+
+.ri-vertical .bi-rodape {
+	display: flex;
+	position: fixed;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	align-items: center;
+	gap: 8px;
+	height: calc(var(--vr-rodape-altura, 22px) + var(--safe-baixo, 0px));
+	padding: 0 12px var(--safe-baixo, 0px) 12px;
+	box-sizing: border-box;
+	background: rgba(12, 24, 42, 0.78);
+	color: var(--white, #fff);
+	font-size: 10px;
+	line-height: 1;
+	z-index: 5;
+	pointer-events: none; /* faixa informativa: o toque atravessa */
+}
+
+.ri-vertical .bi-rodape-nivel {
+	font-weight: var(--fw-bold, 700);
+	white-space: nowrap;
+}
+
+.ri-vertical .bi-rodape-exp-track {
+	flex: 1 1 auto;
+	height: 7px;
+	border-radius: var(--radius-pill);
+	background: rgba(255, 255, 255, 0.22);
+	overflow: hidden;
+}
+
+.ri-vertical .bi-rodape-exp-fill {
+	height: 100%;
+	width: 0;
+	border-radius: inherit;
+	background: #58c26e;
+}
+
+.ri-vertical .bi-rodape-exp-texto {
+	white-space: nowrap;
+	font-variant-numeric: tabular-nums;
+}
+
+.ri-vertical .bi-rodape-wifi {
+	flex: 0 0 auto;
+}
+
+.ri-vertical .bi-rodape-wifi.is-off {
+	opacity: 0.35;
+}
+
+.ri-vertical .bi-rodape-bateria {
+	display: inline-flex;
+	align-items: center;
+	gap: 3px;
+}
+
+.ri-vertical .bi-rodape-bateria-caixa {
+	display: inline-block;
+	width: 17px;
+	height: 9px;
+	border: 1px solid rgba(255, 255, 255, 0.75);
+	border-radius: 2px;
+	padding: 1px;
+	box-sizing: border-box;
+	position: relative;
+}
+
+/* O polo da pilha. */
+.ri-vertical .bi-rodape-bateria-caixa::after {
+	content: '';
+	position: absolute;
+	right: -3px;
+	top: 2px;
+	width: 2px;
+	height: 3px;
+	background: rgba(255, 255, 255, 0.75);
+	border-radius: 0 1px 1px 0;
+}
+
+.ri-vertical .bi-rodape-bateria-nivel {
+	display: block;
+	height: 100%;
+	width: 0;
+	background: var(--white, #fff);
+	border-radius: 1px;
+}
+
+.ri-vertical .bi-rodape-bateria.is-baixa .bi-rodape-bateria-nivel {
+	background: #e05a4e;
+}
+
+/* A conta do aperto em 360px (medida na 1a foto do arnes): as pilulas e o
+   nome comiam a linha e as trilhas de EXP sobravam com ~4px. Pisos e tetos
+   explicitos: a trilha tem largura MINIMA (e a informacao central da barra)
+   e nome/pilula cedem primeiro. */
+.ri-vertical .bi-levels {
+	min-width: 92px;
+}
+
+.ri-vertical .bi-moeda {
+	max-width: 88px;
+	overflow: hidden;
+}
+
+.ri-vertical .bi-zeny,
+.ri-vertical .bi-cash {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}

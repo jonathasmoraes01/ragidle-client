@@ -162,6 +162,7 @@ import RagidleRelatorioEngine from './MapEngine/RagidleRelatorio.js';
 import RagidleCashEngine from './MapEngine/RagidleCash.js';
 import RagidleConfirmarEngine from './MapEngine/RagidleConfirmar.js'; // RAGIDLE: janela de confirmacao do `#` destrutivo
 import EscalaDaHud from 'UI/escalaDaHud.js'; // RAGIDLE: a HUD diminui junto com a janela (D-934)
+import HudVertical from 'UI/hudVertical.js'; // RAGIDLE: a HUD vertical do celular em pe (D-939)
 
 /**
  * @type {string} mapname
@@ -1037,6 +1038,11 @@ function onMapChange(pkt) {
 		/* D-934: e a escala da HUD, ligada DEPOIS do registro — ela varre os
 		   hosts e precisa que todos ja existam. */
 		EscalaDaHud.ligar();
+
+		/* D-939: a HUD vertical do celular em pe — mesma razao de ordem: ela
+		   carimba `ri-vertical` no root interno de cada shadow, entao todos
+		   os hosts precisam ja existir. */
+		HudVertical.ligar();
 
 		if (Configs.get('enableCashShop')) {
 			/*

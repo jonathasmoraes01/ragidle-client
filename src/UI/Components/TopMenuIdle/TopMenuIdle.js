@@ -159,6 +159,7 @@ import IdleConfig from 'UI/Components/IdleConfig/IdleConfig.js';
 import Guild from 'UI/Components/Guild/Guild.js';
 import PartyFriends from 'UI/Components/PartyFriends/PartyFriends.js';
 import LFGIdle from 'UI/Components/LFGIdle/LFGIdle.js'; // RAGIDLE: Procurar Grupo (D-634)
+import { ehCelularEmPe } from 'UI/hudVertical.js'; // D-939: a folha do menu flutua sobre o chat
 import SkillList from 'UI/Components/SkillList/SkillList.js';
 import StatusIdle from 'UI/Components/StatusIdle/StatusIdle.js';
 import MochilaIdle from 'UI/Components/MochilaIdle/MochilaIdle.js';
@@ -692,6 +693,29 @@ function aplicarEstadoDoLeque(imediato) {
 	}
 
 	fab.classList.toggle('is-open', _lequeAberto);
+	/* D-939: a HUD vertical desenha o menu aberto como FOLHA (cluster +
+	   leque em cartoes), e o CSS dela le esta classe no elemento raiz — o
+	   mesmo gesto que abre o leque e o que muda a apresentacao, sem um
+	   segundo estado para dessincronizar. Fora da vertical a classe existe e
+	   nao casa com regra nenhuma. */
+	const raizVertical = _root().querySelector('#TopMenuIdle');
+	if (raizVertical) {
+		raizVertical.classList.toggle('tm-aberto', _lequeAberto);
+	}
+	/* Ainda D-939: com a folha aberta o menu precisa flutuar sobre o CHAT,
+	   que e needFocus e ganha z ~60-70 do gerenciador de foco (o rodape do
+	   leque aparecia com a caixa de digitar por cima, medido em foto). So
+	   inline-important vence a regra `z-index: 55 !important` do Common.css
+	   — e ela precisa continuar existindo para o fab nao voltar a nascer
+	   atras da barra do topo. Fora do celular em pe, nada disto roda. */
+	if (ehCelularEmPe() && TopMenuIdle._host) {
+		if (_lequeAberto) {
+			TopMenuIdle._host.style.setProperty('z-index', '90', 'important');
+		} else {
+			TopMenuIdle._host.style.removeProperty('z-index');
+			TopMenuIdle._host.style.zIndex = '50';
+		}
+	}
 	fab.setAttribute('aria-expanded', String(_lequeAberto));
 	fab.title = _lequeAberto ? 'Fechar menu' : 'Menu';
 	fab.setAttribute('aria-label', fab.title);

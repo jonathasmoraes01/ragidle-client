@@ -93,6 +93,10 @@
 		<button type="button" class="tm-item" data-action="config" title="Idle">
 			<span class="tm-icon-wrap ri-disc"><!--RI_ICONE:config--></span>
 			<span class="tm-label">Idle</span>
+			<!-- D-939: no trilho do celular em pe o mockup do dono escreve
+			     "Config." — "Idle" solto num trilho sem contexto nao se le.
+			     Escondido por padrao (.tm-label--v), so a HUD vertical o mostra. -->
+			<span class="tm-label tm-label--v" aria-hidden="true">Config.</span>
 		</button>
 
 		<!-- HUNT ANALYZER: a leitura da cacada em curso (exp/hora, abates/hora,

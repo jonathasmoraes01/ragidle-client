@@ -772,3 +772,38 @@
 		width: min(300px, calc(100vw - var(--hud-basic-largura, 246px) - 24px - 214px));
 	}
 }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   D-939 — CELULAR EM PE: o chat vira o cartao do canto inferior esquerdo do
+   mockup, apoiado sobre a barra de atalhos nova (05/09/2026). As abas e o
+   recolher que o mockup desenha JA EXISTEM (cb-abas / cb-collapse) — aqui e
+   so posicao e largura: ele deixa livre a coluna da direita, onde moram o
+   botao grande de caca e o retorno.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.ri-vertical #chatbox {
+	left: calc(var(--safe-esq, 0px) + var(--vr-margem, 8px));
+	bottom: calc(var(--vr-acima-dos-atalhos, 92px) + 2px);
+	width: min(76vw, 300px);
+	border-radius: 12px;
+}
+
+/* A area de mensagens nao pode subir ate cobrir o cartao de missoes: teto
+   proporcional a tela, o resto continua por conta da alca de altura. */
+.ri-vertical #chatbox .contentwrapper {
+	max-height: 30dvh;
+}
+
+/* As abas do chat na vertical: quatro nao cabiam em ~274px e a ultima
+   quebrava para debaixo do botao de caca (medido na 1a foto do arnes).
+   Ficam menores e numa linha so, com rolagem horizontal de reserva. */
+.ri-vertical #chatbox .cb-abas {
+	flex-wrap: nowrap;
+	overflow-x: auto;
+	scrollbar-width: none;
+}
+
+.ri-vertical #chatbox .cb-aba {
+	min-width: 52px;
+	height: 22px;
+}

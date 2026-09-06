@@ -14,6 +14,7 @@ import UIVersionManager from 'UI/UIVersionManager.js';
 import KEYS from 'Controls/KeyEventHandler.js';
 import ClampToViewport from 'UI/ClampToViewport.js';
 import EscalaDaHud from 'UI/escalaDaHud.js'; // D-934: a HUD diminui junto com a janela
+import HudVertical from 'UI/hudVertical.js'; // D-939: a HUD vertical do celular em pe
 
 /**
  * Centralize popup position
@@ -229,6 +230,10 @@ class UIManager {
 		 * escala que ja vigora.
 		 */
 		EscalaDaHud.reaplicar();
+		/* D-939: mesmo motivo — um host recem-criado precisa nascer com a
+		   marca `ri-vertical` que ja vigora, e este e o ponto por onde toda
+		   mudanca de tamanho e todo host novo passam. */
+		HudVertical.reaplicar();
 		const keys = Object.keys(this.components);
 		for (let i = 0; i < keys.length; ++i) {
 			const component = this.components[keys[i]];
