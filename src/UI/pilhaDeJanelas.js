@@ -162,6 +162,30 @@ export function registrar({ nome, componente, seletor, tipo = TIPO.JANELA, estaA
 	}
 
 	/*
+	 * D-941 — A MARCA TAMBEM NO CORPO, para a HUD vertical (05/09/2026).
+	 *
+	 * Pedido do dono, depois de ver as janelas no celular: *"Todas as janelas
+	 * devem ser encaixadas perfeitamente, nao devem ter barras de rolagem"*.
+	 * Encaixar de verdade exige ALTURA EXATA (do topo ate a barra de
+	 * atalhos), e a altura se escreve no CORPO da janela, que mora DENTRO do
+	 * Shadow DOM — onde a classe do host nao alcanca e onde `.ri-window`
+	 * sozinha pega tambem o que NAO e janela de pilha (a carta de morte, o
+	 * menu de sistema). Quem sabe o que e janela e este registro, pelo mesmo
+	 * argumento da marca do host logo acima — entao ele marca o corpo, e so
+	 * o CSS da vertical le (`.ri-vertical .ri-janela-corpo`).
+	 *
+	 * So janelas de TIPO.JANELA com seletor proprio: decisao/modal fica de
+	 * fora de proposito — esticar um "tem certeza?" em tela cheia nao e
+	 * encaixar, e desfigurar.
+	 */
+	if (tipo === TIPO.JANELA && !classica) {
+		const corpo = elemento();
+		if (corpo && corpo.classList) {
+			corpo.classList.add('ri-janela-corpo');
+		}
+	}
+
+	/*
 	 * O EMBRULHO DO `toggle()`. Ele não muda o que a janela faz — chama a
 	 * função original e só compara o antes com o depois para saber se deve
 	 * empilhar ou desempilhar. Se a janela não tiver `toggle`, quem a abre

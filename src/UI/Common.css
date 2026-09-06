@@ -1951,6 +1951,11 @@ html.ri-vertical #MiniMapV2 {
    dentro do shadow o seletor inteiro morre no primeiro elo. */
 html.ri-vertical #BasicInfoIdle {
 	position: fixed !important;
+	/* MOLDURA fica EMBAIXO de janela: o sistema de foco poe este host em
+	   z~86 (medido — ele participa da pilha de foco), e com isso a barra do
+	   topo pairava sobre as abas do Grupo aberto. Na vertical a barra e
+	   chrome fixo: nada dela precisa vencer uma janela. */
+	z-index: 10 !important;
 	/* O calc CRU (e nao `var(--vr-topo)`) e deliberado: custom property
 	   encadeada resolve o `var()` interno no elemento onde foi DECLARADA
 	   (o html), entao `--vr-topo` chega aqui ja computada e um `--safe-topo`
@@ -1971,6 +1976,7 @@ html.ri-vertical #BasicInfoIdle {
 
 html.ri-vertical #MissoesTrackerIdle {
 	position: fixed !important;
+	z-index: 10 !important; /* moldura, como a barra do topo */
 	top: var(--vr-abaixo-do-topo) !important;
 	left: calc(var(--safe-esq, 0px) + var(--vr-margem)) !important;
 	right: auto !important;
@@ -2056,4 +2062,62 @@ html.ri-vertical #TopMenuIdle {
    de missoes e o mundo. */
 html.ri-vertical #ItemObtain {
 	top: calc(var(--vr-abaixo-do-topo) + 130px) !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   D-941 — JANELA ENCAIXADA, SEM BARRA DE ROLAGEM (05/09/2026)
+
+   Pedido do dono, depois de ver as janelas no celular: *"Todas as janelas
+   devem ser encaixadas perfeitamente, nao devem ter barras de rolagem"*.
+
+   DUAS metades:
+
+   1. ENCAIXE — na HUD vertical, o corpo de toda janela DE PILHA
+      (`.ri-janela-corpo`, marcado por pilhaDeJanelas.registrar: as onze
+      janelas Idle, e SO elas — modal de decisao nao estica) ganha ALTURA
+      EXATA: do topo do painel (safe + 8, onde D-932 o ancora) ate a barra
+      de atalhos. Janela curta fica com respiro embaixo em vez de terminar
+      no meio da tela; janela comprida rola por dentro.
+
+   2. SEM BARRAS — em TODO aparelho de dedo (`pointer: coarse`), some o
+      TRILHO da rolagem, nunca a rolagem: o conteudo continua panoravel
+      pelo toque, como em qualquer app de celular. Sao dois sistemas:
+      o scrollbar CUSTOM do roBrowser (`.ro-custom-scrollbar`, DOM de
+      verdade com setas — as barras azuis da foto que gerou o pedido) e os
+      nativos/`.ri-scroll` (via `::-webkit-scrollbar` + `scrollbar-width`).
+      No mouse nada muda: la o trilho e util e o dono nao pediu.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.ri-vertical .ri-janela-corpo {
+	height: calc(100dvh - var(--safe-topo, 0px) - var(--vr-acima-dos-atalhos, 92px) - 14px) !important;
+	max-height: calc(100dvh - var(--safe-topo, 0px) - var(--vr-acima-dos-atalhos, 92px) - 14px) !important;
+}
+
+@media (pointer: coarse) {
+	.ro-custom-scrollbar {
+		display: none !important;
+	}
+	* {
+		scrollbar-width: none;
+	}
+	*::-webkit-scrollbar {
+		display: none !important;
+		width: 0 !important;
+		height: 0 !important;
+	}
+}
+
+/* Janela de pilha aberta cobre a MOLDURA da HUD (barra do topo, trilho,
+   cartao) — na primeira foto o Grupo abriu com a barra do topo por cima da
+   fileira de abas dele, porque host de janela e host de moldura nascem
+   ambos com z 50 e o desempate era a ordem do DOM. 60 fica acima da moldura
+   (50) e abaixo da folha do menu aberta (90). */
+html.ri-vertical .ri-janela {
+	/* Todas as onze no MESMO plano, acima da moldura (10/50) e abaixo da
+	   folha do menu aberta (90). Entre duas janelas abertas quem decide e a
+	   ordem do DOM — a pilha logica (ESC/voltar) continua sendo da
+	   pilhaDeJanelas, que nao e aparencia. O pino tambem NEUTRALIZA o z do
+	   sistema de foco (86+ medido), que e desenhado para janelas
+	   arrastaveis de desktop e nao para folhas de tela cheia. */
+	z-index: 60 !important;
 }
