@@ -142,6 +142,7 @@ import BasicInfo from 'UI/Components/BasicInfo/BasicInfo.js';
 import htmlText from './StatusIdle.html?raw';
 import cssText from './StatusIdle.css?raw';
 import { fecharEEsquecer } from '../limpezaDeJanelaIdle.js';
+import { METADES, lerMetades } from './metadesDaDerivada.js';
 
 /**
  * Keep in sync with the ":host"/".st-window" size in StatusIdle.css — same
@@ -196,77 +197,13 @@ const PARCELAS_DO_BONUS = [
 	['outros', 'Outros']
 ];
 
-/**
- * As QUATRO derivadas que o RO escreve em duas metades, e o que cada lado
- * significa no title.
- *
- * ── Por que os lados sao esses ──────────────────────────────────────────
- * O emulador manda DUAS: no renewal o `leftside` e o derivado de STATUS e o
- * `rightside` e o de EQUIPAMENTO (`pc.hpp:1241-1244`, dentro do `#ifdef
- * RENEWAL`; no pre-renewal os lados de ATK e MATK TROCAM). Quem decide de que
- * lado cada numero cai e o SERVIDOR, que ja entrega `esquerda`/`direita`
- * prontos — esta tabela so desenha, e por isso nao ha `isRenewal` nenhum aqui.
- *
- * ── A cicatriz que criou a metade de status (27/08/2026, auditoria C) ────
- * A ficha mandava so a metade de EQUIPAMENTO. Para o MDEF isso e devastador e
- * mensuravel: MDEF de jogador nasce SO de `bonus bMdef` (nao ha campo
- * `MagicDefense` no item_db de equipamento), entao a metade de equipamento e
- * zero em quase todo personagem. Medido no corpus antes do conserto: **276 de
- * 276** fichas com `derivados.mdef === 0`. O jogador abria a janela com INT e
- * lia MDEF 0 — o numero de status estava calculado o tempo todo, so nao
- * atravessava.
- *
- * `legado` e o par de campos soltos do v1 que ainda diz a mesma coisa para
- * DEF/MDEF; ele e a rede quando um servidor v2 esquecer de mandar `metades`
- * (ver lerMetades()). ATK/MATK NAO tem legado: `derivados.atk` e o total do
- * motor, e nao a metade da direita — usa-lo ali imprimiria 123 no lugar de 55.
- *
- * `totalDoMotor` so existe onde o total DIVERGE da soma das duas metades, que
- * e exatamente ATK e MATK. Em DEF/MDEF a soma na tela ja E o total, e repeti-la
- * no title seria ruido.
+/*
+ * A tabela METADES e a decisao `lerMetades` moraram AQUI ate 06/09/2026 e
+ * hoje vivem em `./metadesDaDerivada.js` — modulo puro, sem DOM. O motivo
+ * esta escrito la: enquanto a decisao morava neste closure, o unico jeito de
+ * medi-la era LER O FONTE, e o portao que fazia isso (`duasMetadesDeDefesa`)
+ * morreu na refatoracao de D-852 sem que nada no comportamento mudasse.
  */
-const METADES = [
-	{
-		chave: 'atk',
-		rotulo: 'ATK',
-		alvo: '.st-atk',
-		alvoDaDireita: '.st-atk2',
-		daEsquerda: 'de status',
-		daDireita: 'de arma e equipamento',
-		totalDoMotor: 'atk',
-		legado: null
-	},
-	{
-		chave: 'matk',
-		rotulo: 'MATK',
-		alvo: '.st-matk',
-		alvoDaDireita: '.st-matk2',
-		daEsquerda: 'de status',
-		daDireita: 'de equipamento',
-		totalDoMotor: 'matk',
-		legado: null
-	},
-	{
-		chave: 'def',
-		rotulo: 'DEF',
-		alvo: '.st-def',
-		alvoDaDireita: '.st-def2',
-		daEsquerda: 'de status',
-		daDireita: 'de equipamento',
-		totalDoMotor: null,
-		legado: { esquerda: 'defDeStatus', direita: 'def' }
-	},
-	{
-		chave: 'mdef',
-		rotulo: 'MDEF',
-		alvo: '.st-mdef',
-		alvoDaDireita: '.st-mdef2',
-		daEsquerda: 'de status',
-		daDireita: 'de equipamento',
-		totalDoMotor: null,
-		legado: { esquerda: 'mdefDeStatus', direita: 'mdef' }
-	}
-];
 
 /**
  * PT-BR label for the handful of common jobs, keyed off MonsterTable's
@@ -681,7 +618,7 @@ function renderAtributo(row, chave, info) {
 	if (declarado !== bonus) {
 		console.warn(
 			`[StatusIdle] ${chave}: bonus declarado (${declarado}) != total - base (${total} - ${base} = ${bonus}). ` +
-			'A tela mostra a conta, nao o campo.'
+				'A tela mostra a conta, nao o campo.'
 		);
 	}
 
@@ -731,40 +668,6 @@ function renderMetades(root, derivados) {
 }
 
 /**
- * As duas metades de uma derivada, com a rede do `legado` (ver METADES).
- *
- * Sem `metades` E sem legado (ATK/MATK), sobra o total do motor sozinho do lado
- * esquerdo — e o unico numero verdadeiro que existe nesse caso. O console diz o
- * que faltou, porque o sintoma na tela ("ATK 123" sem a metade) e discreto
- * demais para alguem notar que o servidor regrediu.
- */
-function lerMetades(metade, derivados, def) {
-	if (metade && metade.esquerda !== undefined && metade.direita !== undefined) {
-		return {
-			esquerda: Number(metade.esquerda) || 0,
-			direita: Number(metade.direita) || 0,
-			temDireita: true
-		};
-	}
-
-	console.warn(`[StatusIdle] derivados.metades.${def.chave} ausente na ficha; caindo no formato antigo.`);
-
-	if (def.legado) {
-		return {
-			esquerda: Number(derivados[def.legado.esquerda]) || 0,
-			direita: Number(derivados[def.legado.direita]) || 0,
-			temDireita: true
-		};
-	}
-
-	return {
-		esquerda: Number(derivados[def.totalDoMotor]) || 0,
-		direita: 0,
-		temDireita: false
-	};
-}
-
-/**
  * "STR 50 + 15" + uma linha por parcela DIFERENTE DE ZERO. Parcela zerada nao
  * entra: a lista existe para responder "de onde vem o +15", e zero nao vem de
  * lugar nenhum.
@@ -776,9 +679,9 @@ function lerMetades(metade, derivados, def) {
 function titleDoAtributo(sigla, base, bonus, info) {
 	const cabecalho = sigla + ' ' + base + (bonus === 0 ? '' : ' ' + textoDaParcela(bonus));
 
-	const parcelas = PARCELAS_DO_BONUS
-		.map(([campo, rotulo]) => ({ rotulo, valor: Number(info[campo]) || 0 }))
-		.filter(p => p.valor !== 0);
+	const parcelas = PARCELAS_DO_BONUS.map(([campo, rotulo]) => ({ rotulo, valor: Number(info[campo]) || 0 })).filter(
+		p => p.valor !== 0
+	);
 
 	if (!parcelas.length) {
 		return cabecalho + '\nSem bonus de nenhuma fonte.';
@@ -788,7 +691,7 @@ function titleDoAtributo(sigla, base, bonus, info) {
 	if (soma !== bonus) {
 		console.warn(
 			`[StatusIdle] ${sigla}: as parcelas somam ${soma} e o bonus e ${bonus}. ` +
-			'Falta uma fonte no lado do servidor (ela deveria chegar como "outros").'
+				'Falta uma fonte no lado do servidor (ela deveria chegar como "outros").'
 		);
 	}
 
@@ -797,9 +700,7 @@ function titleDoAtributo(sigla, base, bonus, info) {
 	// alinha — e a alternativa (uma janela de tooltip propria) seria inventar
 	// mecanismo onde o fork ja tem um.
 	const largura = Math.max(...parcelas.map(p => p.rotulo.length)) + 2;
-	return [cabecalho]
-		.concat(parcelas.map(p => '  ' + p.rotulo.padEnd(largura) + comSinal(p.valor)))
-		.join('\n');
+	return [cabecalho].concat(parcelas.map(p => '  ' + p.rotulo.padEnd(largura) + comSinal(p.valor))).join('\n');
 }
 
 /**
@@ -862,7 +763,7 @@ function tintaDaParcela(el, valor) {
  * deste contrato.
  */
 function numeroDe(valor, alternativa) {
-	return Number.isFinite(Number(valor)) ? Number(valor) : (Number(alternativa) || 0);
+	return Number.isFinite(Number(valor)) ? Number(valor) : Number(alternativa) || 0;
 }
 
 function setText(root, selector, text) {
