@@ -45,6 +45,56 @@
 			<span class="tm-label">Caça</span>
 		</button>
 
+		<!-- RECOMPENSAS (06/09/2026, pedido do dono): TROCOU DE CASA com o
+		     Missoes. Ate hoje ele era o ultimo item do leque e o Missoes era o
+		     sexto do cluster; o dono pediu a troca. Os dois so mudaram de
+		     lugar -- nenhuma janela, nenhum "data-action" e nenhum pacote
+		     mudou, e a contagem das duas partes continua a mesma (8 no
+		     cluster, 11 no leque).
+
+		     Por que ele merece o cluster: e o unico produto PAGO do menu, e
+		     um botao que se paga so existe se o jogador o encontrar. Numa
+		     gaveta que vive FECHADA ele dependia de o jogador abrir a porta
+		     por conta propria -- a mesma razao que ja tinha trazido o Correio
+		     para ca (ver o bloco dele acima).
+
+		     O "data-action" continua "passe", e a divergencia com o rotulo e
+		     deliberada: ele nomeia o DOMINIO (o componente e PasseIdle, os
+		     pacotes sao CZ/ZC_RAGIDLE_*_PASSE) e "Recompensas" e o nome que o
+		     jogador ve. Alem disso e a chave que o switch de TopMenuIdle.js e
+		     o gate prova-clique-nao-vaza.ts ja miram: renomear a cadeia
+		     inteira seria churn nos dois repositorios para trocar uma palavra
+		     de tela.
+
+		     O DESTAQUE dourado (".tm-item--destaque") VEIO JUNTO, e continua
+		     valendo aqui: a regra do CSS nunca foi escopada ao leque, e o
+		     vocabulario (--border-gold/--glow-gold) e o da janela que ele
+		     abre. O ICONE e ARTE REAL do cliente
+		     (ro_menu_icon/achievement_1.bmp, o trofeu), pela regra 4.
+
+		     ─── POR QUE ELE E O PRIMEIRO DA SEGUNDA FILEIRA, E NAO ONDE O
+		     MISSOES ESTAVA ────────────────────────────────────────────────
+		     Isto NAO e gosto: e a unica posicao que cabe. A grade tem colunas
+		     "auto", entao a largura de cada coluna e a do ROTULO mais largo
+		     dela, e "Recompensas" e o rotulo mais largo do cluster inteiro.
+		     Em qualquer coluna que nao seja a do "Personagem" (o segundo mais
+		     largo) ele SOMA largura ao cluster; embaixo dele, o "max" da
+		     coluna quase nao muda.
+
+		     Medido num arnes de leiaute (o cluster sozinho num Playwright, em
+		     768x1024): 337px aqui, 359px no lugar onde o Missoes estava, 331px
+		     antes da troca. A diferenca nao e estetica: com ele no lugar do
+		     Missoes o `prove:hud-responsiva` REPROVOU em tablet-768x1024 com
+		     "BasicInfoIdle x TopMenuIdle.tm-top (13x146px)" — o cluster montou
+		     em cima do painel do personagem. Aqui ele passa.
+
+		     QUEM REORDENAR ESTE CLUSTER RE-MEDE. A regra em uma linha: o
+		     rotulo mais longo mora na mesma coluna do segundo mais longo. -->
+		<button type="button" class="tm-item tm-item--destaque" data-action="passe" title="Recompensas">
+			<span class="tm-icon-wrap ri-disc"><!--RI_ICONE:recompensas--></span>
+			<span class="tm-label">Recompensas</span>
+		</button>
+
 		<!-- Correio: a caixa do SISTEMA (rag-idle-master/servidor/caixa.ts,
 		     D-366). Mora no cluster de cima, e nao no leque, por causa do
 		     INDICADOR: o leque vive FECHADO, e um aviso de "voce tem
@@ -64,19 +114,6 @@
 				<span class="ri-dot" style="display: none"></span>
 			</span>
 			<span class="tm-label">Correio</span>
-		</button>
-
-		<!-- MISSOES (24/08/2026, D-551): o guia de progressao — abas
-		     Principais/Opcionais, comecando pela Troca de Classe. Mora no
-		     cluster, e nao no leque, pela mesma regra do Correio: e consulta
-		     de toda hora (objetivo com progresso, requisito que abre com o
-		     level up), nao destino ocasional — e a primeira missao principal
-		     e exatamente o momento-chave do early game, que nao pode viver
-		     escondido numa gaveta. Com ele o cluster vai de 6 para 7
-		     essenciais; o leque nao mudou. -->
-		<button type="button" class="tm-item" data-action="missoes" title="Missões">
-			<span class="tm-icon-wrap ri-disc"><!--RI_ICONE:missoes--></span>
-			<span class="tm-label">Missões</span>
 		</button>
 
 		<!-- IDLE (21/08/2026, pedido do dono): o antigo "Configuracoes" saiu do
@@ -141,8 +178,11 @@
 	     permanente e igual ao do cluster de cima — que era o defeito de
 	     fundo.
 
-	     ORDEM: funcionais primeiro (Configuracoes, Guilda, Grupo, Admin) e
-	     "em breve" por ultimo, nunca misturado. A leitura e a natural do
+	     ORDEM: funcionais primeiro (Guilda, Amigos, Grupo, Admin, Codex,
+	     Missoes) e "em breve" por ultimo, nunca misturado. Em 06/09/2026 o
+	     Recompensas SAIU daqui (subiu para o cluster) e o Missoes ENTROU no
+	     lugar dele, no fim do bloco funcional -- a troca que o dono pediu; a
+	     contagem do leque nao mudou (11 botoes, 10 visiveis). A leitura e a natural do
 	     portugues: desce a coluna da ESQUERDA e depois desce a da DIREITA.
 	     Quem POE cada item na sua coluna e o JS (distribuirColunas()), nao
 	     este HTML: o item de Admin so existe para a conta dona, e com ele
@@ -228,6 +268,28 @@
 					<span class="tm-label">Codex</span>
 				</button>
 
+				<!-- MISSOES (D-551) -- 06/09/2026: DESCEU do cluster para o leque, em
+				     troca com o Recompensas (pedido do dono). Ele subiu para o
+				     cluster em 24/08/2026 com o argumento de que a primeira missao
+				     principal e o momento-chave do early game; o que o argumento nao
+				     considerava e que quem acompanha a missao de toda hora e o
+				     RASTREADOR (MissoesTrackerIdle, D-601), sempre visivel abaixo do
+				     painel do personagem. A JANELA e destino ocasional -- abre-se
+				     para escolher a proxima missao e fecha -- que e exatamente o
+				     criterio do leque.
+
+				     Ele fica com os FUNCIONAIS, ANTES do bloco "em breve": e a ordem
+				     canonica declarada no cabecalho deste arquivo (quem POE cada
+				     item na sua coluna e distribuirColunas(), no JS -- com 10
+				     visiveis ele cai como ultimo item da coluna da esquerda).
+
+				     A janela nao mudou: o mesmo MissoesIdle.toggle(), que PEDE o
+				     estado ao servidor (0x0fec) ao abrir. -->
+				<button type="button" class="tm-item" data-action="missoes" title="Missões">
+					<span class="tm-icon-wrap ri-disc"><!--RI_ICONE:missoes--></span>
+					<span class="tm-label">Missões</span>
+				</button>
+
 				<!-- ─── Em breve: a funcao NAO existe no jogo hoje (ver cabecalho de
 				     TopMenuIdle.js). Visual honesto - o DS pede DESSATURAR, e na
 				     rodada 2 a dessaturacao encolheu para o MIOLO: o disco e o aro
@@ -293,44 +355,6 @@
 				<button type="button" class="tm-item tm-item--em-breve" data-action="eventos" data-em-breve="1" title="Eventos — em breve" aria-disabled="true">
 					<span class="tm-icon-wrap ri-disc"><!--RI_ICONE:eventos--></span>
 					<span class="tm-label">Eventos</span>
-				</button>
-
-				<!-- RECOMPENSAS (D-813) — o unico produto PAGO do leque.
-				     
-				     ELE FUNDIU DOIS BOTOES. Nasceu como "Passe" e havia um
-				     "Recompensas" em breve logo acima; o dono renomeou o
-				     primeiro e o segundo saiu, porque a janela que este botao
-				     abre E o que aquele prometia. Sobraram seis "em breve".
-				     
-				     O ICONE veio do que saiu, e nao do que ficou: o de
-				     "recompensas" e ARTE REAL do cliente
-				     (ro_menu_icon/achievement_1.bmp, o trofeu) e o de "passe"
-				     era um bilhete vetorial. A regra 4 do projeto manda o que
-				     INFORMA vir da arte do cliente.
-				     
-				     O `data-action` continua "passe", e a divergencia com o
-				     rotulo e deliberada: ele nomeia o DOMINIO (o componente e
-				     PasseIdle, os pacotes sao CZ/ZC_RAGIDLE_*_PASSE), e
-				     "Recompensas" e o nome que o jogador ve. Renomear a cadeia
-				     inteira seria churn nos dois repositorios para trocar uma
-				     palavra de tela.
-				     
-				     O DESTAQUE dourado usa o mesmo vocabulario da janela que
-				     ele abre (--border-gold/--glow-gold). Sem ele, o unico
-				     botao que gasta cash ficaria indistinguivel dos vizinhos. -->
-				<!-- O botao VOLTOU A VIVER em 30/08/2026, quando o lado-servidor
-				     (0x0fe5..0x0fe7) entrou na master e o trio ganhou linha na tabela
-				     de tamanhos DESTE repositorio — que era a terceira lista, e a que
-				     faltava.
-
-				     Ele passou um dia como `em breve` porque derrubava a conexao: sem
-				     tamanho declarado nao ha como enquadrar, e o transporte encerra o
-				     fluxo. O jogador caia do jogo com um clique de menu, sem nada na
-				     tela dizendo por que — e desligar o botao foi a decisao certa, em
-				     vez de adivinhar o tamanho. -->
-				<button type="button" class="tm-item tm-item--destaque" data-action="passe" title="Recompensas">
-					<span class="tm-icon-wrap ri-disc"><!--RI_ICONE:recompensas--></span>
-					<span class="tm-label">Recompensas</span>
 				</button>
 			</div>
 

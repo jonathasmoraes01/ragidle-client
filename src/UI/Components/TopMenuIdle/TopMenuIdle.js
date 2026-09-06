@@ -64,6 +64,23 @@
  *   destino em varios arquivos. Com isso o leque fica em 10 itens -- a
  *   divisao 5+5 que o dono desenhou.
  *
+ *   MUDOU DE NOVO EM 06/09/2026, a pedido do dono: RECOMPENSAS e MISSOES
+ *   TROCARAM DE CASA. O Recompensas (`data-action` "passe") subiu para o
+ *   cluster, no lugar exato onde o Missoes estava, e o Missoes desceu para o
+ *   leque, no fim do bloco funcional (logo depois do Codex). So a POSICAO
+ *   mudou: as duas janelas, os dois `data-action`, os pacotes e os dois
+ *   switches deste arquivo continuam iguais -- por isso nenhuma fiacao foi
+ *   tocada, e as contagens tambem nao mudaram (8 no cluster, 11 no leque,
+ *   10 visiveis fora a conta dona).
+ *
+ *   O QUE MUDA DE COMPORTAMENTO, e vale dito: escolher um item DO LEQUE
+ *   fecha a gaveta (fim de onClickAction()), e item de cluster nao fecha
+ *   nada. Entao o Missoes passa a fechar o leque ao abrir a janela, e o
+ *   Recompensas deixou de fechar coisa alguma. O gate
+ *   prova-clique-nao-vaza.ts depende dessa diferenca e foi ajustado na
+ *   mesma rodada: o alvo do Missoes saiu do bloco do cluster e entrou no
+ *   roteiro do leque, que so existe depois de o botao Menu abrir a gaveta.
+ *
  * ─── FIACAO REAL (cada item chama o MESMO metodo publico que ja abre a
  * janela em outro lugar do fork — nenhum alias novo foi criado) ──────────
  *   - Personagem  -> StatusIdle.toggle()     (StatusIdle.js)
@@ -109,8 +126,12 @@
  * pendencia [DONO] no relatorio da frente; se ele quiser a porta de mouse de
  * volta, o lugar barato e uma linha dentro da propria Configuracao idle.
  *
- * ─── EM BREVE (Loja, RO Shop, Troca, Leilao, Recompensas, Eventos, Passe):
- * a funcao ainda nao existe no jogo. Visual honesto (o DS manda dessaturar;
+ * ─── EM BREVE (contado no HTML em 06/09/2026: Loja, Troca, Leilao e
+ * Eventos -- os quatro com `data-em-breve`): a funcao ainda nao existe no
+ * jogo. A lista escrita aqui ja dizia sete, e tres deles LIGARAM desde
+ * entao (RO Shop em I5, Recompensas/Passe em D-813, que sao o mesmo botao):
+ * numero escrito a mao em comentario nao acompanha a pasta, e a fonte de
+ * verdade e o atributo no HTML. Visual honesto (o DS manda dessaturar;
  * desde a rodada 2 a dessaturacao vale so pro MIOLO, e o aro dourado fica em
  * opacidade cheia — ver o CSS), "aria-disabled" pro leitor de tela, e o
  * clique responde com o toast proprio do componente (".tm-toast", ver

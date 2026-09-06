@@ -24,8 +24,10 @@
  * 4. **O botão não some quando falta cash.** Ele apaga e explica. Sumir faria
  *    o jogador procurar o que fazer; apagado ele diz "existe, e falta saldo".
  *
- * Entrada na HUD: o botão "Recompensas" do leque (TopMenuIdle), que chama
- * PasseIdle.toggle().
+ * Entrada na HUD: o botão "Recompensas" do CLUSTER de essenciais
+ * (TopMenuIdle), que chama PasseIdle.toggle(). Ele morou no leque até
+ * 06/09/2026, quando o dono o trocou de casa com o "Missões" (D-944): o único
+ * produto pago do menu deixou de depender de o jogador abrir a gaveta.
  *
  * **O NOME DE TELA E "Recompensas" e o do CODIGO e "Passe", de propósito.**
  * O dono renomeou o botão em 29/08/2026 e o "Recompensas" que existia em breve

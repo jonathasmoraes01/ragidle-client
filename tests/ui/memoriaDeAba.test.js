@@ -179,7 +179,7 @@ describe('PORTÃO: toda janela RAGIDLE com abas lembra a aba', () => {
 		f => f.codigo.includes('limpezaDeJanelaIdle.js') && MARCAS_DE_ABA.some(marca => f.codigo.includes(marca))
 	);
 
-	it('acha as sete janelas de hoje (controle: o filtro não está vazio)', () => {
+	it('acha as oito janelas de hoje (controle: o filtro não está vazio)', () => {
 		/*
 		 * Sem esta conferência, um filtro que parasse de casar deixaria o portão
 		 * VERDE por não medir nada — a forma mais comum de portão morto.
@@ -189,8 +189,11 @@ describe('PORTÃO: toda janela RAGIDLE com abas lembra a aba', () => {
 		 *  - uma janela GANHOU abas (some `lembrarAba` nela, e some aqui);
 		 *  - uma janela PERDEU as abas (tire-a daqui, e tire o código morto que
 		 *    ficou apontando para o markup que saiu).
+		 *
+		 * A oitava é a Análise de Caça (D-943): Atual + as duas últimas.
 		 */
 		expect(comAbas.map(f => f.rel).sort(), 'a lista de janelas com abas mudou — ver o comentário acima').toEqual([
+			'HuntAnalyzer/HuntAnalyzer.js',
 			'HuntMap/HuntMap.js',
 			'IdleConfig/IdleConfig.js',
 			'IdleSkills/IdleSkills.js',
