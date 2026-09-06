@@ -109,7 +109,9 @@ const MOB_STACK_MAX = 5;
  * por pedido. Um cliente que lesse `mapa.monstros[].raca` de um servidor v2
  * acharia `undefined` — recusar pelo `v` e melhor que desenhar em branco.
  */
-const CONTRATO_DO_CATALOGO = 2;
+// v3 (06/09/2026, D-1138): o catalogo em PARTES (D-1134) e contrato novo — um
+// cliente sem a acumulacao mostrava so a ultima pagina (45 mapas) em silencio.
+const CONTRATO_DO_CATALOGO = 3;
 
 /**
  * Race translation (PT-BR), fixed dictionary as requested.
