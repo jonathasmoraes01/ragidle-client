@@ -30,19 +30,19 @@
 		},
 		"map": {
 			"entrada": {
-				"total": 724,
+				"total": 727,
 				"semTamanho": 0
 			},
 			"saida": {
-				"total": 544,
+				"total": 547,
 				"semTamanho": 0
 			}
 		}
 	},
 	"comprimentosDoCliente": {
 		"arquivo": "src/Network/Packets/packets2021_len_main.js",
-		"declarados": 1622,
-		"preencheram": 87,
+		"declarados": 1628,
+		"preencheram": 91,
 		"divergencias": [
 			{
 				"opcode": "0x0276",
@@ -1491,14 +1491,6 @@
 				"sentido": "entrada",
 				"struct": 21,
 				"cliente": 31
-			},
-			{
-				"opcode": "0x018f",
-				"nome": "ZC_ACK_REQMAKINGITEM",
-				"servidor": "map",
-				"sentido": "entrada",
-				"struct": 6,
-				"cliente": 8
 			},
 			{
 				"opcode": "0x0191",
@@ -9777,7 +9769,7 @@
 					"nome": "ZC_ACK_REQMAKINGITEM",
 					"tamanho": 8,
 					"desde": null,
-					"fonteDoTamanho": "cliente (venceu a struct do rathena)"
+					"fonteDoTamanho": "cliente"
 				},
 				"0x0191": {
 					"nome": "ZC_TALKBOX_CHATCONTENTS",
@@ -12474,6 +12466,16 @@
 				},
 				"0x0fd1": {
 					"nome": "ZC_RAGIDLE_CONFIRMAR",
+					"tamanho": -1,
+					"desde": null
+				},
+				"0x0fd3": {
+					"nome": "ZC_RAGIDLE_REFINO",
+					"tamanho": -1,
+					"desde": null
+				},
+				"0x0fd5": {
+					"nome": "ZC_RAGIDLE_VOTO",
 					"tamanho": -1,
 					"desde": null
 				},
@@ -15439,6 +15441,12 @@
 				"0x0fd2": {
 					"nome": "CZ_RAGIDLE_CONFIRMAR",
 					"tamanho": 7,
+					"desde": null,
+					"fonteDoTamanho": "cliente"
+				},
+				"0x0fd4": {
+					"nome": "CZ_RAGIDLE_VOTO_ACAO",
+					"tamanho": -1,
 					"desde": null,
 					"fonteDoTamanho": "cliente"
 				},

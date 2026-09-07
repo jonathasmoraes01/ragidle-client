@@ -297,6 +297,15 @@ const RiIcones = {
 		'<path d="M3 9a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2 2 2 0 0 0 0 4 2 2 0 0 1-2 2H5a2 2 0 0 1-2-2 2 2 0 0 0 0-4z"/><path d="M9 7v10" stroke-dasharray="2 2.4"/>'
 	),
 
+	// ── Voto — Lucide "Vote" (a cédula com o visto). Traço puro, SEM arte
+	// ilustrada nem BMP do cliente: não existe ícone de votação no GRF — o
+	// conceito não existe no RO —, e inventar uma arte só para este botão
+	// abriria um vocabulário de um item só. A cadeia de reserva das outras é o
+	// que existe para o dia em que a arte chegar. ────────────────────────────
+	voto: svg(
+		'<path d="m9 12 2 2 4-4"/><path d="M5 7c0-1.1.9-2 2-2h10a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2z"/><path d="M2 21h20"/>'
+	),
+
 	// ── Auto — arte REAL (ro_menu_icon/battle_1.bmp, espadas cruzadas) com
 	// reserva Lucide "Zap" (le "automatico"). ────────────────────────────────
 	auto: artReal('auto', svg('<path d="M13 2 3 14h8l-1 8 11-14h-8z"/>')),
@@ -439,6 +448,14 @@ const RiIcones = {
 		'<path d="M14.106 5.553a2 2 0 0 0 1.788 0l3.659-1.83A1 1 0 0 1 21 4.619v12.764a1 1 0 0 1-.553.894l-4.553 2.277a2 2 0 0 1-1.788 0l-4.212-2.106a2 2 0 0 0-1.788 0l-3.659 1.83A1 1 0 0 1 3 19.381V6.618a1 1 0 0 1 .553-.894l4.553-2.277a2 2 0 0 1 1.788 0z"/><path d="M15 5.764v15"/><path d="M9 3.236v15"/>'
 	),
 	fechar: svg('<path d="M18 6 6 18"/><path d="m6 6 12 12"/>'),
+
+	// ── MVP — a coroa que marca, na LISTA do Mapa de Caça, o mapa que tem
+	// chefe (07/09/2026). Arte ILUSTRADA do dono (a mesma coroa que o site usa
+	// no pilar "MVP", assets/img/pilares/mvp.webp), convertida pela receita de
+	// vite/converter-ui-icons.mjs — recorte na caixa alfa, lado maior 128px.
+	// Reserva Lucide "Crown" se o WebP faltar: 25 dos 193 mapas têm MVP, e um
+	// selo vazio nesses 25 seria pior que o glífo de traço.
+	mvp: arteUi('mvp', svg('<path d="M2 6l4 10h12l4-10-6 5-4-7-4 7z"/><path d="M5 20h14"/>')),
 
 	// ── Árvore de habilidades (D-902, 01/09/2026): as setas da plaqueta
 	// ◀ n/m ▶ eram glifos de FONTE (viravam emoji em alguns sistemas) e o

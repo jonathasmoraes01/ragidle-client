@@ -105,6 +105,7 @@ import ClassChangeNotice from 'UI/Components/ClassChangeNotice/ClassChangeNotice
 import MissoesIdle from 'UI/Components/MissoesIdle/MissoesIdle.js'; // RAGIDLE: janela de Missões (D-551)
 import PasseIdle from 'UI/Components/PasseIdle/PasseIdle.js'; // RAGIDLE: janela do Passe (D-813)
 import CodexIdle from 'UI/Components/CodexIdle/CodexIdle.js'; // RAGIDLE: janela do Codex (D-851)
+import VotoIdle from 'UI/Components/VotoIdle/VotoIdle.js'; // RAGIDLE: janela de Voto (D-1159)
 import LFGIdle from 'UI/Components/LFGIdle/LFGIdle.js'; // RAGIDLE: janela de Procurar Grupo (D-634)
 import GrupoIdle from 'UI/Components/GrupoIdle/GrupoIdle.js'; // RAGIDLE: janela de Grupo (D-960)
 import MissoesTrackerIdle from 'UI/Components/MissoesTrackerIdle/MissoesTrackerIdle.js'; // RAGIDLE: tracker estilo Origin (D-601)
@@ -461,6 +462,7 @@ class MapEngine {
 					MissoesIdle: MissoesIdle,
 					PasseIdle: PasseIdle,
 					CodexIdle: CodexIdle,
+					VotoIdle: VotoIdle,
 					LFGIdle: LFGIdle,
 					GrupoIdle: GrupoIdle
 				};
@@ -506,6 +508,7 @@ class MapEngine {
 			MissoesIdle.prepare(); // RAGIDLE: janela de Missões (D-551) — sem dependência de ordem: só escuta 0x0fed
 			PasseIdle.prepare(); // RAGIDLE: janela do Passe (D-813) — idem, só escuta 0x0fe5
 			CodexIdle.prepare(); // RAGIDLE: janela do Codex (D-851) — idem, só escuta 0x0fe3
+			VotoIdle.prepare(); // RAGIDLE: janela de Voto (D-1159) — idem, só escuta 0x0fd5
 			LFGIdle.prepare(); // RAGIDLE: janela de Procurar Grupo (D-634) — idem: só escuta 0x0fe9/0x0fe8
 			GrupoIdle.prepare(); // RAGIDLE: janela de Grupo (D-960) — idem: só escuta 0x0fcc
 
@@ -942,6 +945,9 @@ function onMapChange(pkt) {
 		MissoesIdle.append(); // RAGIDLE: janela de Missões (D-551)
 		PasseIdle.append(); // RAGIDLE: janela do Passe (D-813)
 		CodexIdle.append(); // RAGIDLE: janela do Codex (D-851)
+		// RAGIDLE (D-1159): a janela de Voto. Anexada SEMPRE, como as vizinhas —
+		// o aviso da entrada chega pelo pacote e precisa de um host de pé.
+		VotoIdle.append(); // RAGIDLE: janela de Voto (D-1159)
 		LFGIdle.append(); // RAGIDLE: janela de Procurar Grupo (D-634)
 		GrupoIdle.append(); // RAGIDLE: janela de Grupo (D-960)
 		// RAGIDLE: o tracker ancora ABAIXO do BasicInfoIdle por medição — vem
@@ -1051,6 +1057,7 @@ function onMapChange(pkt) {
 			['correio', CorreioIdle, '.co-window'],
 			['missoes', MissoesIdle, '.mi-window'],
 			['passe', PasseIdle, '.pi-window'],
+			['voto', VotoIdle, '.vi-window'],
 			['analise', HuntAnalyzer, '.ha-window'],
 		]) {
 			PilhaDeJanelas.registrar({ nome, componente, seletor });
@@ -1234,7 +1241,8 @@ function cleanGameUI() {
 		MissoesTrackerIdle,
 		MochilaIdle,
 		PasseIdle,
-		CodexIdle
+		CodexIdle,
+		VotoIdle
 	]) {
 		if (typeof modulo.limparEstadoDoPersonagem === 'function') {
 			modulo.limparEstadoDoPersonagem();

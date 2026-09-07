@@ -1,0 +1,470 @@
+/**
+ * UI/Components/VotoIdle/VotoIdle.css
+ *
+ * "Vote e ganhe" — a janela de votação e a loja da moeda de voto (D-1159).
+ *
+ * Mesmo float/window/drag/pointer-events split de PasseIdle.css e
+ * MissoesIdle.css (ver o cabeçalho de lá para o racional completo): ":host" é
+ * o elemento que draggable() move, fica pointer-events:none para a janela
+ * fechada nunca engolir clique de cena, e só a janela aberta opta de volta.
+ *
+ * ---------------------------------------------------------------------------
+ * O QUE ESTA FOLHA ACRESCENTA, E O QUE ELA NÃO REFAZ
+ * ---------------------------------------------------------------------------
+ * A moldura inteira vem do design system (.ri-window/.ri-header/.ri-title/
+ * .ri-close/.ri-tab/.ri-btn/.ri-btn--ouro/.ri-badge--*, UI/Common.css). Nada
+ * disso é redesenhado aqui — inclusive as cores, que saem todas de token.
+ *
+ * O que é específico e mora aqui: o CARTÃO DE PLATAFORMA (a peça que carrega o
+ * estado "disponível / faltam Xh"), o cartão da loja, e o AVISO DA ENTRADA.
+ *
+ * ---------------------------------------------------------------------------
+ * O AVISO DA ENTRADA É MODAL, E ISSO É UMA ESCOLHA CARA
+ * ---------------------------------------------------------------------------
+ * Ele cobre a tela e para o jogo por um instante — o preço mais alto que uma
+ * peça de interface pode cobrar. Ele o paga porque **só aparece quando há algo
+ * a fazer** (o servidor só manda `avisar: true` com voto liberado) e **no
+ * máximo uma vez por entrada** (o servidor carimba a conexão). Um aviso modal
+ * que aparecesse a cada viagem seria a definição de incômodo, e o primeiro que
+ * o jogador aprenderia a fechar sem ler.
+ *
+ * O véu é `pointer-events:auto` de propósito: enquanto ele está na tela, o
+ * clique não passa para a cena. Um modal que deixa clicar atrás não é modal —
+ * é uma imagem por cima do jogo, e o jogador anda sem querer ao tentar fechá-lo.
+ */
+
+:host {
+	position: absolute;
+	width: 480px;
+	height: 560px;
+	pointer-events: none;
+}
+
+#VotoIdle {
+	position: relative;
+	width: 100%;
+	height: 100%;
+	color: var(--text-body);
+	font: var(--type-info);
+	-webkit-font-smoothing: antialiased;
+	text-rendering: optimizeLegibility;
+}
+
+/* ═══ A JANELA ══════════════════════════════════════════════════════ */
+
+#VotoIdle .vi-window {
+	display: none;
+	position: absolute;
+	inset: 0;
+	pointer-events: auto;
+	flex-direction: column;
+	width: 480px;
+	height: 560px;
+}
+
+#VotoIdle .vi-window.is-open {
+	display: flex;
+}
+
+#VotoIdle .vi-titlebar {
+	flex: 0 0 auto;
+}
+
+/*
+ * A CARTEIRA mora na barra de título, absoluta à esquerda, espelhando o
+ * `.ri-close` à direita — a mesma receita do Passe, e pelo mesmo motivo
+ * registrado lá: `margin-left:auto` num cabeçalho `flex` mata o
+ * `justify-content:center` do design system e o saldo aparece cortado sob o X.
+ */
+#VotoIdle .vi-carteira {
+	position: absolute;
+	left: var(--sp-4);
+	top: 50%;
+	transform: translateY(-50%);
+	display: inline-flex;
+	align-items: baseline;
+	gap: var(--sp-2);
+	padding: var(--sp-1) var(--sp-4);
+	border-radius: var(--radius-pill);
+	background: var(--surface-inset);
+	border: 1px solid var(--border-gold);
+	box-shadow: var(--rim-light);
+}
+
+#VotoIdle .vi-carteira-valor {
+	font: var(--type-numeric);
+	font-size: var(--fs-numeric-lg);
+	color: var(--gold-700);
+	font-variant-numeric: tabular-nums;
+}
+
+#VotoIdle .vi-carteira-unidade {
+	font: var(--type-badge);
+	color: var(--text-muted);
+	text-transform: uppercase;
+	letter-spacing: var(--ls-caps);
+}
+
+#VotoIdle .vi-tabs {
+	flex: 0 0 auto;
+	display: flex;
+	gap: var(--sp-3);
+	padding: var(--sp-4) var(--sp-5);
+	border-bottom: 1px solid var(--border-hairline);
+}
+
+#VotoIdle .vi-body {
+	flex: 1 1 auto;
+	overflow-y: auto;
+	overflow-x: hidden;
+	padding: var(--sp-5);
+	display: flex;
+	flex-direction: column;
+	gap: var(--sp-5);
+}
+
+#VotoIdle .vi-carregando {
+	color: var(--text-muted);
+	text-align: center;
+	padding: var(--sp-9) 0;
+}
+
+/* ═══ O CARTÃO DE PLATAFORMA ════════════════════════════════════════ */
+
+#VotoIdle .vi-plat {
+	border: 1px solid var(--border-hairline);
+	border-radius: var(--radius-panel);
+	background: var(--surface-card);
+	padding: var(--sp-5);
+	display: flex;
+	flex-direction: column;
+	gap: var(--sp-4);
+}
+
+/*
+ * O ESTADO "DISPONÍVEL" É O ÚNICO COM OURO, e a restrição é o ponto.
+ *
+ * Se todo cartão tivesse aro dourado, o ouro deixaria de significar
+ * "aqui, agora" e viraria decoração — que é como o destaque morre. O cartão
+ * bloqueado fica com a moldura comum e o texto do prazo.
+ *
+ * O aro é `box-shadow`, e NÃO `border`: trocar a espessura da borda no estado
+ * ativo muda a caixa e o cartão pula 2px ao virar disponível. É a mesma
+ * cicatriz registrada em D-944.
+ */
+#VotoIdle .vi-plat.is-livre {
+	box-shadow: var(--glow-gold);
+	border-color: var(--border-gold);
+}
+
+#VotoIdle .vi-plat-topo {
+	display: flex;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: var(--sp-4);
+}
+
+#VotoIdle .vi-plat-nome {
+	font: var(--type-section);
+	color: var(--text-title);
+}
+
+#VotoIdle .vi-plat-ciclo {
+	font: var(--type-desc);
+	color: var(--text-muted);
+	text-transform: uppercase;
+	letter-spacing: var(--ls-caps);
+	margin-top: var(--sp-1);
+}
+
+/*
+ * O ESTADO em uma linha só: "Disponível agora" ou "Faltam 7h 12min".
+ * `tabular-nums` para a contagem não dançar a cada segundo — sem isso os
+ * dígitos têm larguras diferentes e a linha inteira treme.
+ */
+#VotoIdle .vi-plat-estado {
+	font: var(--type-numeric);
+	font-size: var(--fs-numeric-lg);
+	font-variant-numeric: tabular-nums;
+	color: var(--text-muted);
+}
+
+#VotoIdle .vi-plat.is-livre .vi-plat-estado {
+	color: var(--gold-500);
+}
+
+#VotoIdle .vi-plat-votar {
+	width: 100%;
+}
+
+#VotoIdle .vi-plat-rodape {
+	font: var(--type-desc);
+	color: var(--text-muted);
+	text-align: center;
+}
+
+/* ═══ A LOJA ════════════════════════════════════════════════════════ */
+
+#VotoIdle .vi-oferta {
+	border: 1px solid var(--border-hairline);
+	border-radius: var(--radius-panel);
+	background: var(--surface-card);
+	padding: var(--sp-5);
+	display: flex;
+	flex-direction: column;
+	gap: var(--sp-4);
+}
+
+#VotoIdle .vi-oferta-topo {
+	display: flex;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: var(--sp-4);
+}
+
+#VotoIdle .vi-oferta-nome {
+	font: var(--type-section);
+	color: var(--text-title);
+}
+
+#VotoIdle .vi-oferta-resumo {
+	font: var(--type-desc);
+	color: var(--text-muted);
+	margin-top: var(--sp-2);
+}
+
+#VotoIdle .vi-preco {
+	display: inline-flex;
+	align-items: baseline;
+	gap: var(--sp-2);
+	white-space: nowrap;
+}
+
+#VotoIdle .vi-preco-valor {
+	font: var(--type-numeric);
+	font-size: var(--fs-numeric-lg);
+	color: var(--gold-700);
+	font-variant-numeric: tabular-nums;
+}
+
+#VotoIdle .vi-preco-unidade {
+	font: var(--type-badge);
+	color: var(--text-muted);
+	text-transform: uppercase;
+	letter-spacing: var(--ls-caps);
+}
+
+/* O impulso ATIVO: a faixa que diz quanto tempo ainda resta. */
+#VotoIdle .vi-impulso {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--sp-4);
+	padding: var(--sp-4) var(--sp-5);
+	border-radius: var(--radius-panel);
+	background: var(--surface-inset);
+	border: 1px solid var(--border-gold);
+}
+
+#VotoIdle .vi-impulso-texto {
+	font: var(--type-info);
+	color: var(--text-body);
+}
+
+#VotoIdle .vi-impulso-tempo {
+	font: var(--type-numeric);
+	font-size: var(--fs-numeric-lg);
+	color: var(--gold-500);
+	font-variant-numeric: tabular-nums;
+}
+
+/* ═══ O "COMO FUNCIONA" ═════════════════════════════════════════════ */
+
+#VotoIdle .vi-passos {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+	display: flex;
+	flex-direction: column;
+	gap: var(--sp-3);
+	counter-reset: passo;
+}
+
+#VotoIdle .vi-passos li {
+	position: relative;
+	padding-left: var(--sp-9);
+	font: var(--type-desc);
+	color: var(--text-muted);
+	counter-increment: passo;
+}
+
+#VotoIdle .vi-passos li::before {
+	content: counter(passo);
+	position: absolute;
+	left: 0;
+	top: -1px;
+	width: 18px;
+	height: 18px;
+	border-radius: var(--radius-pill);
+	background: var(--surface-inset);
+	border: 1px solid var(--border-gold);
+	color: var(--gold-500);
+	font: var(--type-badge);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+#VotoIdle .vi-secao {
+	font: var(--type-label);
+	color: var(--text-muted);
+	text-transform: uppercase;
+	letter-spacing: var(--ls-caps);
+}
+
+#VotoIdle .vi-nota {
+	flex: 0 0 auto;
+	min-height: 18px;
+	padding: 0 var(--sp-5) var(--sp-4);
+	font: var(--type-desc);
+	color: var(--green-600);
+	opacity: 0;
+	transition: opacity 160ms ease;
+	text-align: center;
+}
+
+#VotoIdle .vi-nota.is-visivel {
+	opacity: 1;
+}
+
+#VotoIdle .vi-nota.is-erro {
+	color: var(--red-500, #d8443c);
+}
+
+/* ═══ O AVISO DA ENTRADA ════════════════════════════════════════════ */
+
+/*
+ * `position: fixed` e não `absolute`: o host desta janela é posicionado (e
+ * ARRASTADO) pelo jogador, e um véu absoluto herdaria essa posição — ele
+ * cobriria um retângulo de 480x560 em algum canto, em vez da tela.
+ */
+#VotoIdle .vi-aviso-modal {
+	position: fixed;
+	inset: 0;
+	z-index: 100;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	pointer-events: auto;
+	background: rgba(4, 8, 16, 0.66);
+}
+
+/* `[hidden]` sozinho perde para o `display:flex` acima — daí o !important.
+   Fechado ele não pode ter caixa: véu invisível que engole clique é o defeito
+   registrado no cabeçalho de TopMenuIdle.css. */
+#VotoIdle .vi-aviso-modal[hidden] {
+	display: none !important;
+}
+
+#VotoIdle .vi-aviso-caixa {
+	position: relative;
+	width: 380px;
+	max-width: calc(100vw - 32px);
+	padding: var(--sp-9) var(--sp-8) var(--sp-8);
+	text-align: center;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: var(--sp-4);
+	box-shadow: var(--glow-gold), var(--shadow-window);
+}
+
+#VotoIdle .vi-aviso-x {
+	position: absolute;
+	top: var(--sp-4);
+	right: var(--sp-4);
+}
+
+#VotoIdle .vi-aviso-selo {
+	width: 62px;
+	height: 62px;
+	border-radius: var(--radius-pill);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	background: var(--surface-inset);
+	border: 2px solid var(--border-gold);
+	box-shadow: var(--glow-gold);
+	color: var(--gold-500);
+}
+
+#VotoIdle .vi-aviso-supra {
+	font: var(--type-badge);
+	color: var(--gold-700);
+	text-transform: uppercase;
+	letter-spacing: var(--ls-caps);
+}
+
+#VotoIdle .vi-aviso-titulo {
+	font: var(--type-hero);
+	color: var(--gold-500);
+	text-transform: uppercase;
+	line-height: var(--lh-tight);
+}
+
+#VotoIdle .vi-aviso-texto {
+	margin: 0;
+	font: var(--type-info);
+	color: var(--text-muted);
+	line-height: var(--lh-read);
+}
+
+#VotoIdle .vi-aviso-premio {
+	color: var(--gold-700);
+}
+
+#VotoIdle .vi-aviso-ir {
+	width: 100%;
+	margin-top: var(--sp-3);
+}
+
+/*
+ * "Agora não" é texto, e não botão: as duas saídas não têm o mesmo peso, e
+ * desenhá-las iguais faria o jogador escolher pela posição em vez de pela
+ * intenção. Ele continua com alvo tátil de 44px pela regra da HUD.
+ */
+#VotoIdle .vi-aviso-depois {
+	background: none;
+	border: 0;
+	cursor: pointer;
+	min-height: 44px;
+	padding: 0 var(--sp-5);
+	font: var(--type-label);
+	color: var(--text-muted);
+	text-transform: uppercase;
+	letter-spacing: var(--ls-caps);
+}
+
+#VotoIdle .vi-aviso-depois:hover {
+	color: var(--text-body);
+}
+
+/* ═══ TELA ESTREITA ═════════════════════════════════════════════════ */
+
+/*
+ * No celular a janela ocupa a tela quase inteira: 480px fixos passariam da
+ * borda em qualquer aparelho em pé, e `prove:hud-responsiva` mede exatamente
+ * isso ("nenhum painel passa da borda").
+ */
+@media (max-width: 759px) {
+	:host {
+		width: calc(100vw - 16px);
+		height: calc(100vh - 120px);
+		max-height: 560px;
+	}
+
+	#VotoIdle .vi-window {
+		width: 100%;
+		height: 100%;
+	}
+}

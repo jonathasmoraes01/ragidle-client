@@ -64,6 +64,11 @@
 		"altura": 128,
 		"aspecto": 0.82
 	},
+	"mvp": {
+		"largura": 128,
+		"altura": 115,
+		"aspecto": 1.11
+	},
 	"personagem": {
 		"largura": 104,
 		"altura": 128,

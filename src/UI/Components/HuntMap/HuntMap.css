@@ -524,13 +524,18 @@
 	box-shadow: var(--shadow-card);
 }
 
+/* `overflow: visible` — e nao `hidden`, como era ate 07/09/2026: o selo de MVP
+   TRANSBORDA o canto superior direito de proposito, e a miniatura cortaria
+   justamente a metade que sai. Quem arredonda a imagem passou a ser a propria
+   <img> (`border-radius: inherit` abaixo), que era o unico servico que o
+   recorte prestava aqui. */
 #HuntMap .hm-card-thumb {
 	position: relative;
 	flex: 0 0 auto;
 	width: var(--hm-thumb-w);
 	height: var(--hm-thumb-h);
 	border-radius: var(--radius-card);
-	overflow: hidden;
+	overflow: visible;
 	background: var(--sky-100);
 	border: 1px solid var(--border-hairline);
 	box-shadow: var(--rim-light);
@@ -559,6 +564,59 @@
 	height: 100%;
 	object-fit: cover;
 	display: block;
+	border-radius: inherit;
+}
+
+/* SELO DE MVP no canto superior direito da miniatura (07/09/2026).
+
+   TRES decisoes do dono, e as tres sao o desenho:
+
+   1. NADA EM VOLTA. Sem disco, sem aro, sem chapa — so a arte. A primeira
+      rodada punha a coroa dentro de um disco escuro com aro dourado, e o
+      dono cortou: o selo e a ilustracao, e moldura em cima de arte ilustrada
+      briga com ela em vez de ajudar. A legibilidade sobre minimapa de
+      qualquer cor sai do `filter` abaixo, que segue a SILHUETA do desenho —
+      um contorno escuro colado nela, mais um halo dourado por fora.
+   2. ELE SAI PARA FORA. O deslocamento negativo poe metade do selo alem do
+      canto da miniatura: e o que da a impressao de que a peca esta POR CIMA
+      do mapa, e nao colada dentro dele. Por isso `.hm-card-thumb` deixou de
+      cortar (ver o comentario la em cima).
+   3. MAIOR que os 20px da primeira rodada. 32px sobre uma miniatura de
+      96x54 — o emblema tem LETRA dentro ("MVP"), e abaixo disso as tres
+      letras viram borrao dourado; e o tamanho que faz a palavra ser lida.
+
+   z-index 2 porque a miniatura e z-index 1. `pointer-events: none` NAO entra
+   aqui de proposito: o clique borbulha para a linha (o handler le
+   `currentTarget`, nao `target`), e sem ele o `title` com o nome do chefe nao
+   apareceria no hover. */
+#HuntMap .hm-card-mvp {
+	position: absolute;
+	top: -6px;
+	right: -6px;
+	z-index: 2;
+	display: block;
+	width: 32px;
+	height: 32px;
+	filter:
+		drop-shadow(0 0 1px rgba(21, 21, 74, 0.9))
+		drop-shadow(0 1px 2px rgba(21, 21, 74, 0.55))
+		drop-shadow(0 0 6px rgba(224, 176, 77, 0.55));
+	transition: transform var(--dur-fast) var(--ease-out);
+}
+
+#HuntMap .hm-card-mvp svg {
+	width: 100%;
+	height: 100%;
+	display: block;
+	color: var(--gold-300);
+}
+
+/* A linha em foco levanta o selo um tico — o mesmo gesto que a linha inteira
+   ja faz no hover (`transform: translateY(-1px)`), so que para a peca que
+   esta por cima dela. */
+#HuntMap .hm-card:hover .hm-card-mvp,
+#HuntMap .hm-card.is-selected .hm-card-mvp {
+	transform: scale(1.08);
 }
 
 #HuntMap .hm-card-body {

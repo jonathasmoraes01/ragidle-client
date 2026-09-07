@@ -213,6 +213,28 @@ function searchLong(x0, y0, x1, y1, range, out) {
 		pathLength: 0
 	};
 
+	/*
+	 * SEM MAPA CARREGADO NAO HA CAMINHO — e isso e uma resposta, nao um erro
+	 * (RAGIDLE, 07/09/2026).
+	 *
+	 * `GAT.cells` nasce `null` e so e preenchido quando o mapa termina de
+	 * carregar (`Altitude.js` -> `setGat`). Entre o pedido de troca de mapa e
+	 * esse instante o servidor ja manda entidade andando, e o caminho era
+	 * `onEntitySpam` -> `Entity.set` -> `walkTo` -> aqui, lendo `null[206]`.
+	 *
+	 * MEDIDO em `prove:anuncio-de-drop` (repo do servidor): **14 excecoes numa
+	 * unica entrada em mapa de caca**, todas no celular em pe — onde o mapa
+	 * demora mais e a janela e maior. Elas sobem pelo `Socket.receive`, ou seja
+	 * ABORTAM o laco que fatia o buffer de rede: o que vinha depois no mesmo
+	 * quadro do WebSocket e descartado sem ninguem contar.
+	 *
+	 * A guarda devolve o `result` de falha que a funcao ja monta — o chamador
+	 * ve "nao ha caminho", que e a verdade enquanto o mapa nao chegou.
+	 */
+	if (!GAT.cells) {
+		return result;
+	}
+
 	rx = x1 - x0;
 	ry = y1 - y0;
 
@@ -304,6 +326,14 @@ function search(x0, y0, x1, y1, range, out) {
 	const height = GAT.height;
 	const types = GAT.cells;
 	const TYPE = GAT.type;
+
+	/* A MESMA guarda de `searchLong`, e ela precisa estar nas DUAS: o A* abaixo
+	   le `types[...]` por conta propria depois da busca direta, entao proteger
+	   so a busca direta trocaria a excecao de lugar em vez de tirá-la. `0` e o
+	   "sem caminho" que os outros ramos de falha desta funcao ja devolvem. */
+	if (!types) {
+		return 0;
+	}
 
 	// Direct search
 	const result = searchLong(x0, y0, x1, y1, range, out);

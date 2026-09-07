@@ -2160,9 +2160,20 @@ html.ri-vertical #TopMenuIdle {
 
 /* O aviso de item obtido nascia por cima da barra do topo (top: 50 do
    layout de desktop); na vertical ele desce para o vao livre entre o cartao
-   de missoes e o mundo. */
+   de missoes e o mundo.
+
+   O 130px ERA CRAVADO, e ele envelheceu (07/09/2026). Ele foi escolhido com o
+   cartao de missoes mostrando UMA missao; com duas (mais o "Ver todas as
+   missoes") o cartao passa dos 130 e o aviso do drop nasce EM CIMA dele —
+   medido na foto do celular em `prove:anuncio-de-drop`. O cartao cresce com o
+   numero de missoes, entao nenhum numero fixo serve.
+
+   Quem sabe onde o cartao termina e o navegador: `ItemObtain.js` mede
+   `#MissoesTrackerIdle` na hora de aparecer e publica o resultado nesta
+   variavel. O `calc` continua aqui como valor de NASCENCA — se o cartao nao
+   existir (jogador sem missao), a variavel nao e definida e o fallback vale. */
 html.ri-vertical #ItemObtain {
-	top: calc(var(--vr-abaixo-do-topo) + 130px) !important;
+	top: var(--vr-item-obtido-topo, calc(var(--vr-abaixo-do-topo) + 130px)) !important;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════

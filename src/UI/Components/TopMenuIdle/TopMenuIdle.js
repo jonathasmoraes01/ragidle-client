@@ -194,6 +194,7 @@ import CorreioIdle from 'UI/Components/CorreioIdle/CorreioIdle.js';
 import HuntAnalyzer from 'UI/Components/HuntAnalyzer/HuntAnalyzer.js';
 import MissoesIdle from 'UI/Components/MissoesIdle/MissoesIdle.js';
 import PasseIdle from 'UI/Components/PasseIdle/PasseIdle.js';
+import VotoIdle from 'UI/Components/VotoIdle/VotoIdle.js'; // RAGIDLE: janela de Voto (D-1159)
 import CodexIdle from 'UI/Components/CodexIdle/CodexIdle.js'; // RAGIDLE: Codex (D-851)
 import AdminPanel from 'UI/Components/AdminPanel/AdminPanel.js';
 import CashShop from 'UI/Components/CashShop/CashShop.js'; // RAGIDLE: a loja de cash (I5)
@@ -363,6 +364,7 @@ TopMenuIdle.onAppend = function onAppend() {
 	syncAllActiveStates();
 	syncSkillDot();
 	syncCorreioDot();
+	syncVotoLivre();
 	syncToggleDot();
 	startPolling();
 	ligarFechamentoExterno();
@@ -514,6 +516,12 @@ function onClickAction(e) {
 		   e 0x0fe5/0x0fe6/0x0fe7 (PacketStructure.js). */
 		case 'passe':
 			PasseIdle.toggle();
+			break;
+		/* VOTAR (D-1159). Ele PEDE o estado ao abrir (0x0fd4 com
+		   `{acao:'pedir'}`): saldo, prazo de cada plataforma e preco sao do
+		   servidor — a janela so desenha. */
+		case 'voto':
+			VotoIdle.toggle();
 			break;
 		/*
 		 * A LOJA DE CASH (I5, 31/08/2026 — pedido do dono).
@@ -853,7 +861,26 @@ function distribuirFileiras() {
 		typeof window !== 'undefined' && window.matchMedia
 			? window.matchMedia('(max-height: 439px)').matches
 			: false;
-	const colunas = deitado ? 3 : Math.max(1, Math.ceil(visiveis.length / 2));
+	/*
+	 * O TETO DE QUATRO COLUNAS (D-1159, 07/09/2026) — e ele existe por uma
+	 * medicao, nao por gosto.
+	 *
+	 * A grade tem colunas `auto`: a largura de cada coluna e a do ROTULO mais
+	 * largo dela. Com a conta pura (metade dos visiveis) o NONO item abriria uma
+	 * QUINTA coluna, e ela nasceria com o "Recompensas" sozinho — o rotulo mais
+	 * largo do cluster inteiro virando a coluna mais larga. Medido em D-944: o
+	 * cluster com 337px REPROVA o `prove:hud-responsiva` em tablet-768x1024
+	 * quando passa de ~359px (ele monta em cima do painel de personagem).
+	 *
+	 * Com o teto, o nono item cai numa TERCEIRA fileira, na coluna 1, embaixo
+	 * de "Personagem" e "Recompensas" — e como "Votar" e mais curto que os dois,
+	 * o `max` daquela coluna nao muda e a largura fica IDENTICA. O cluster passa
+	 * a crescer para BAIXO, onde ha espaco, e quem mora abaixo dele ja se ajusta
+	 * sozinho por `--tm-topo` (D-930).
+	 *
+	 * Com oito itens ou menos nada muda: `ceil(8/2)` ja e 4.
+	 */
+	const colunas = deitado ? 3 : Math.min(4, Math.max(1, Math.ceil(visiveis.length / 2)));
 	topo.style.setProperty('--tm-colunas', String(colunas));
 }
 
@@ -1094,6 +1121,11 @@ function isActionOpen(action) {
 		 */
 		case 'passe':
 			return isRagIdleWindowOpen(PasseIdle, '.pi-window');
+		/* VOTO (D-1159): entrou nos DOIS switches no mesmo commit, que e o que
+		   o comentario do `passe` logo acima manda fazer enquanto a tabela
+		   unica de acao -> { abrir, seletor } nao existir. */
+		case 'voto':
+			return isRagIdleWindowOpen(VotoIdle, '.vi-window');
 		default:
 			// os itens "em breve" caem aqui -- nunca acendem.
 			return false;
@@ -1134,6 +1166,10 @@ function pollEstado() {
 	publicarTopoDoCluster();
 	syncSkillDot();
 	syncCorreioDot();
+	// D-1159: o destaque do botao de votar entra no MESMO tique dos outros
+	// dois avisos, e antes do `syncToggleDot()` de proposito — ele le os
+	// pontos dos itens ja calculados para decidir o ponto da alca.
+	syncVotoLivre();
 	syncToggleDot();
 	syncAllActiveStates();
 }
@@ -1232,6 +1268,40 @@ function syncCorreioDot() {
 			btn.title = `Correio — ${quantas} por ler`;
 		}
 	}
+}
+
+/**
+ * O DESTAQUE DO BOTAO DE VOTAR (D-1159) — o pedido do dono era literal:
+ * *"com bastante destaque quando tem voto disponivel"*.
+ *
+ * SAO DUAS MARCAS, e cada uma cobre um buraco da outra:
+ *
+ *  - `.is-voto-livre` no botao (aro dourado + pulso) e o destaque que se ve de
+ *    longe. Ele some quando o jogador recolhe o cluster pela alca;
+ *  - o `.ri-dot` e a MESMA receita do Correio e do Skills, e existe para o
+ *    aviso sobreviver a isso: recolhido, o ponto migra para a alca
+ *    (`syncToggleDot()` le os pontos dos itens, e nao a classe).
+ *
+ * A fonte do dado e `VotoIdle.temVotoDisponivel()`, que le o campo `liberados`
+ * calculado pelo SERVIDOR. Refazer a conta aqui (comparar `ultimoVotoMs` com
+ * 12 h) daria a segunda copia da regra, e um dia o botao piscaria com a janela
+ * dizendo "faltam 3h" — o defeito que ninguem reproduz.
+ */
+function syncVotoLivre() {
+	const root = _root();
+	const btn = root.querySelector('.tm-item[data-action="voto"]');
+	if (!btn) {
+		return;
+	}
+	const livre = VotoIdle.temVotoDisponivel();
+	btn.classList.toggle('is-voto-livre', livre);
+	const dot = btn.querySelector('.ri-dot');
+	if (dot) {
+		dot.style.display = livre ? '' : 'none';
+	}
+	btn.title = livre
+		? 'Votar — você tem voto disponível!'
+		: 'Votar e ganhar Vote Cash';
 }
 
 /**

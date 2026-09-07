@@ -61,6 +61,9 @@ const NOMES = new Map([
 	['auction_icon', 'leilao'],
 	['fantasy_shop_icon', 'loja'],
 	['ro_shop_icon', 'ro-shop'],
+	// selo de MVP da lista do Mapa de Caça (07/09/2026): a coroa do pilar "MVP"
+	// do site, o mesmo PNG de origem — nenhum outro arquivo do lote casa "mvp".
+	['mvp', 'mvp'],
 ]);
 
 function nomeFinal(arquivo) {
