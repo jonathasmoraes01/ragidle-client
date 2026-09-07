@@ -132,6 +132,9 @@ MissoesTrackerIdle.init = function init() {
 				mandarAcao('iniciar', btn.dataset.id);
 			} else if (acao === 'pausar' || acao === 'retomar') {
 				mandarAcao(acao, null);
+			} else if (acao === 'abandonar' && btn.dataset.id) {
+				// D-1150: abandonar leva o id; o progresso fica no servidor.
+				mandarAcao('abandonar', btn.dataset.id);
 			} else if (acao === 'abrir-janela') {
 				// A Troca de Classe não roda pelo executor: o clique abre a
 				// janela de missões, onde a grade de classes mora (D-609).
@@ -301,6 +304,7 @@ function render(missoes, execucao) {
 			<div class="mt-ativa-acoes">
 				<span class="mt-eta">${passo.etaMin ? `~${passo.etaMin} min` : ''}</span>
 				<button type="button" class="ri-btn ri-btn--sec mt-btn-mini" data-acao="pausar">Pausar</button>
+				<button type="button" class="ri-btn ri-btn--sec mt-btn-mini" data-acao="abandonar" data-id="${escapeHtml(execucao.ativaId)}" title="O progresso fica guardado">Abandonar</button>
 			</div>`;
 	} else if (execucao && execucao.pausada) {
 		caixaAtiva.dataset.vazia = 'false';
@@ -310,6 +314,7 @@ function render(missoes, execucao) {
 			<div class="mt-ativa-acoes">
 				<span class="mt-eta"></span>
 				<button type="button" class="ri-btn ri-btn--ouro mt-btn-mini" data-acao="retomar">Retomar</button>
+				${execucao.fila && execucao.fila[0] ? `<button type="button" class="ri-btn ri-btn--sec mt-btn-mini" data-acao="abandonar" data-id="${escapeHtml(execucao.fila[0])}" title="O progresso fica guardado">Abandonar</button>` : ''}
 			</div>`;
 	} else {
 		caixaAtiva.dataset.vazia = 'true';

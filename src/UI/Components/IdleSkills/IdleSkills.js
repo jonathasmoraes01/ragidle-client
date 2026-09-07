@@ -978,6 +978,14 @@ function renderNo(no, contexto) {
 		'">' +
 		escapeHtml(skill.nome) +
 		'</span>' +
+		/*
+		 * RAGIDLE (D-1154) — a habilidade de QUEST entra sozinha no maximo quando
+		 * a arvore permite e nao custa ponto; o servidor manda `deQuest: true` e o
+		 * jogador precisa VER por que ela nao tem botao de "+" nem cobra nada.
+		 */
+		(skill.deQuest
+			? '<span class="is-no-quest" title="Habilidade de quest: entra sozinha quando os requisitos são cumpridos, sem gastar ponto">quest · grátis</span>'
+			: '') +
 		plaqueta(skill, contexto) +
 		'</div>'
 	);
@@ -1039,6 +1047,24 @@ function plaqueta(skill, contexto, modificador) {
 	const nivelHtml = extra
 		? escapeHtml(skill.aprendido) + '<em>+' + escapeHtml(extra) + '</em>/' + escapeHtml(skill.nivelMaximo)
 		: escapeHtml(efetivo) + '/' + escapeHtml(skill.nivelMaximo);
+
+	/*
+	 * RAGIDLE (D-1155) — a habilidade de QUEST nao tem setas: o servidor a
+	 * concede sozinho no maximo quando a arvore permite (D-1154), e uma seta
+	 * "+" que nunca faz nada e o defeito que o jogador reporta como "nao
+	 * consigo aprender". A plaqueta vira so o nivel, com a etiqueta ao lado.
+	 */
+	if (skill.deQuest) {
+		return (
+			'<span class="is-plaqueta is-plaqueta--quest' +
+			(modificador ? ' ' + modificador : '') +
+			'" title="Habilidade de quest: entra sozinha, sem gastar ponto">' +
+			'<span class="is-no-nivel">' +
+			nivelHtml +
+			'</span>' +
+			'</span>'
+		);
+	}
 
 	return (
 		'<span class="is-plaqueta' +
