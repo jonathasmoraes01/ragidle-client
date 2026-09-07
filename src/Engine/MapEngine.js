@@ -106,6 +106,7 @@ import MissoesIdle from 'UI/Components/MissoesIdle/MissoesIdle.js'; // RAGIDLE: 
 import PasseIdle from 'UI/Components/PasseIdle/PasseIdle.js'; // RAGIDLE: janela do Passe (D-813)
 import CodexIdle from 'UI/Components/CodexIdle/CodexIdle.js'; // RAGIDLE: janela do Codex (D-851)
 import LFGIdle from 'UI/Components/LFGIdle/LFGIdle.js'; // RAGIDLE: janela de Procurar Grupo (D-634)
+import GrupoIdle from 'UI/Components/GrupoIdle/GrupoIdle.js'; // RAGIDLE: janela de Grupo (D-960)
 import MissoesTrackerIdle from 'UI/Components/MissoesTrackerIdle/MissoesTrackerIdle.js'; // RAGIDLE: tracker estilo Origin (D-601)
 import IdleConfig from 'UI/Components/IdleConfig/IdleConfig.js'; // RAGIDLE: "Configuração idle"
 import AdminPanel from 'UI/Components/AdminPanel/AdminPanel.js'; // RAGIDLE: "Painel de admin"
@@ -405,6 +406,20 @@ class MapEngine {
 					Session: Session,
 					EntityManager: EntityManager,
 					Camera: Camera,
+					// RAGIDLE: acrescentados 07/09/2026 pela prova em jogo da
+					// janela de refino (`scripts/fotografar-refino.ts`), que
+					// precisa CLICAR num NPC sem andar ate ele.
+					//
+					// Ela tentava `await import('/src/Network/...')` e caía numa
+					// armadilha do vite em desenvolvimento: o import dinamico
+					// puxa uma SEGUNDA instancia do modulo (com `?t=` de HMR na
+					// dependencia), e a segunda `PacketVerManager` nasce sem o
+					// `versions` que a primeira ja tinha preenchido —
+					// `TypeError: Cannot set properties of undefined`. Expor as
+					// instancias VIVAS resolve na raiz: a prova usa as mesmas
+					// que o jogo usa, e nao uma copia.
+					Network: Network,
+					PACKET: PACKET,
 					// RAGIDLE: acrescentado 19/08/2026 pra prova Playwright da
 					// MochilaIdle (janela unica de inventario + equipamento) —
 					// injetar itens sinteticos e vestir uma peca pelo caminho
@@ -446,7 +461,8 @@ class MapEngine {
 					MissoesIdle: MissoesIdle,
 					PasseIdle: PasseIdle,
 					CodexIdle: CodexIdle,
-					LFGIdle: LFGIdle
+					LFGIdle: LFGIdle,
+					GrupoIdle: GrupoIdle
 				};
 			}
 
@@ -491,6 +507,7 @@ class MapEngine {
 			PasseIdle.prepare(); // RAGIDLE: janela do Passe (D-813) — idem, só escuta 0x0fe5
 			CodexIdle.prepare(); // RAGIDLE: janela do Codex (D-851) — idem, só escuta 0x0fe3
 			LFGIdle.prepare(); // RAGIDLE: janela de Procurar Grupo (D-634) — idem: só escuta 0x0fe9/0x0fe8
+			GrupoIdle.prepare(); // RAGIDLE: janela de Grupo (D-960) — idem: só escuta 0x0fcc
 
 			BasicInfoIdle.prepare(); // RAGIDLE: "Informações básicas"
 			StatusIdle.prepare(); // RAGIDLE: "Status"
@@ -926,6 +943,7 @@ function onMapChange(pkt) {
 		PasseIdle.append(); // RAGIDLE: janela do Passe (D-813)
 		CodexIdle.append(); // RAGIDLE: janela do Codex (D-851)
 		LFGIdle.append(); // RAGIDLE: janela de Procurar Grupo (D-634)
+		GrupoIdle.append(); // RAGIDLE: janela de Grupo (D-960)
 		// RAGIDLE: o tracker ancora ABAIXO do BasicInfoIdle por medição — vem
 		// DEPOIS dele no append para o primeiro syncPosition já achar o host.
 		MissoesTrackerIdle.append();
@@ -1048,6 +1066,29 @@ function onMapChange(pkt) {
 			seletor: '.lfg-window',
 			fechar: () => LFGIdle.fechar(),
 		});
+
+		/* A janela de GRUPO (D-960) tem o mesmo arranjo do LFG, e pela mesma
+		   razao: ela nao usa `toggle()` no ESC porque `fechar()` tambem
+		   DESINSCREVE do empurrao do servidor — fechar pelo embrulho deixaria
+		   o servidor montando estado para uma janela que ninguem esta vendo. */
+		PilhaDeJanelas.registrar({
+			nome: 'grupo',
+			componente: GrupoIdle,
+			seletor: '.gi-window',
+			fechar: () => GrupoIdle.fechar(),
+		});
+
+		/* A PONTE entre as duas janelas de grupo (D-960). Ela mora aqui, e nao
+		   num import cruzado entre os dois componentes: o `MapEngine` ja
+		   conhece os dois, e um import de um componente de UI dentro de outro
+		   prenderia a ordem de carga de um a do outro.
+
+		   O botao "Abrir o Localizador" da janela de Grupo e a materializacao
+		   do pedido do dono de que os DOIS caminhos de entrada convivam. */
+		GrupoIdle.aoPedirLocalizador = () => {
+			GrupoIdle.fechar();
+			LFGIdle.abrir();
+		};
 
 		/* A MORTE é decisão: o ESC não a fecha, e ela também não deixa o ESC
 		   vazar para as janelas de baixo. Isso já era verdade por dentro do
@@ -1186,6 +1227,7 @@ function cleanGameUI() {
 		IdleSkills,
 		StatusIdle,
 		LFGIdle,
+		GrupoIdle,
 		CorreioIdle,
 		HuntAnalyzer,
 		HuntButtonIdle,

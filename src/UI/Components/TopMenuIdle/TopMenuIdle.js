@@ -104,7 +104,7 @@
  *                 janela — chama Guild.promptCreateGuild(), exatamente como
  *                 o atalho de teclado nativo faz (Guild.js:420-423). Aceito
  *                 de proposito: e o unico caminho de entrada que existe.
- *   - Grupo       -> PartyFriends.toggle()   (PartyFriends.js:47-52) — proxy
+ *   - Grupo       -> GrupoIdle.toggle()      (D-960; era PartyFriends.toggle())
  *                 PUBLICO do controller de versao (V0/V1), que delega pra
  *                 PartyFriendsCommon.js:132-138.
  *   - Admin       -> AdminPanel.toggle()     (AdminPanel.js:268), com a
@@ -178,8 +178,13 @@ import Session from 'Engine/SessionStorage.js';
 import IdleSkills from 'UI/Components/IdleSkills/IdleSkills.js';
 import IdleConfig from 'UI/Components/IdleConfig/IdleConfig.js';
 import Guild from 'UI/Components/Guild/Guild.js';
-import PartyFriends from 'UI/Components/PartyFriends/PartyFriends.js';
+// A janela NATIVA de party saiu deste arquivo em D-960: o item "Grupo"
+// passou a abrir a `GrupoIdle`, e nao havia mais nenhum uso de
+// `PartyFriends` aqui. Ela continua VIVA no jogo — quem a anexa e quem a
+// alimenta e o `Engine/MapEngine.js` e o `Engine/MapEngine/Group.js`, que
+// desenham o convite que CHEGA e a lista de amigos.
 import LFGIdle from 'UI/Components/LFGIdle/LFGIdle.js'; // RAGIDLE: Procurar Grupo (D-634)
+import GrupoIdle from 'UI/Components/GrupoIdle/GrupoIdle.js'; // RAGIDLE: janela de Grupo (D-960)
 import { ehCelularEmPe } from 'UI/hudVertical.js'; // D-939: a folha do menu flutua sobre o chat
 import SkillList from 'UI/Components/SkillList/SkillList.js';
 import StatusIdle from 'UI/Components/StatusIdle/StatusIdle.js';
@@ -460,8 +465,25 @@ function onClickAction(e) {
 		case 'guild':
 			Guild.toggle();
 			break;
+		/*
+		 * "Grupo" passou a abrir a NOSSA janela (D-960, 07/09/2026).
+		 *
+		 * Ordem do dono: *"quando a pessoa vir a nossa lista de grupos e
+		 * entrar em um grupo, ela deve ficar nessa tela ate sair do grupo"* —
+		 * a tela de quem esta em party e a `GrupoIdle`, e nao a janela nativa
+		 * do roBrowser, que nao tem posto, rateio nem ajuste.
+		 *
+		 * A nativa (`PartyFriends`) NAO foi removida: ela continua sendo quem
+		 * desenha o convite que CHEGA (a caixa de aceite) e a lista de amigos,
+		 * e continua escutando os mesmos pacotes de party de sempre. O que
+		 * mudou foi a PORTA deste item de menu.
+		 *
+		 * ATENCAO: existe um SEGUNDO switch neste arquivo, o `isActionOpen()`
+		 * la embaixo. Este aqui ABRE; o de la acende o aro. Ja houve TRES
+		 * casos de so um dos dois ser editado — os tres comentados la.
+		 */
 		case 'group':
-			PartyFriends.toggle();
+			GrupoIdle.toggle();
 			break;
 		// O LFG e uma janela SEPARADA da de party (D-634): a nativa mostra
 		// quem ja esta no grupo, esta procura grupo para entrar.
@@ -1027,8 +1049,14 @@ function isActionOpen(action) {
 			return isRagIdleWindowOpen(AdminPanel, '.ap-window');
 		case 'guild':
 			return isHostVisible(Guild);
+		/* Ver o comentario do `case 'group'` no switch de ABRIR: o item passou
+		   a abrir a janela RAGIDLE (D-960), entao ele le
+		   '.gi-window.is-open' — e nao `isHostVisible`, que e a armadilha que
+		   o comentario de `lfg` logo abaixo registra (o `_host` de um
+		   GUIComponent nunca ganha display:none sozinho, entao o aro nunca
+		   apagaria). */
 		case 'group':
-			return isHostVisible(PartyFriends.getUI());
+			return isRagIdleWindowOpen(GrupoIdle, '.gi-window');
 		/*
 		 * LFG (D-634): ele e janela RAGIDLE, e NAO nativa -- entao le
 		 * ".lfg-window.is-open", como as vizinhas de cima.
