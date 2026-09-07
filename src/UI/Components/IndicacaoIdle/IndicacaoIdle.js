@@ -30,6 +30,20 @@ import { fecharEEsquecer } from '../limpezaDeJanelaIdle.js';
 const WINDOW_WIDTH = 520;
 const WINDOW_HEIGHT = 540;
 
+/*
+ * O TAMANHO REAL NA TELA (07/09/2026): a folha usa `min(520px, 100vw - 16px)`,
+ * entao num celular a janela e menor que a constante. Centrar pela constante a
+ * empurrava para fora e a fazia cobrir a HUD — no telefone o botao "Cacar"
+ * ficava debaixo dela, e ela abre sozinha uma vez por dia.
+ */
+function larguraNaTela() {
+	return Math.min(WINDOW_WIDTH, Math.max(0, Renderer.width - 16));
+}
+
+function alturaNaTela() {
+	return Math.min(WINDOW_HEIGHT, Math.max(0, Renderer.height - 132));
+}
+
 const RECUSAS = {
 	'codigo-invalido': 'Esse código não existe. Confira as seis letras com quem te indicou.',
 	'proprio-codigo': 'Esse é o seu próprio código — não dá para se indicar.',
@@ -96,15 +110,17 @@ IndicacaoIdle.init = function init() {
 			corpo.addEventListener('keydown', e => e.stopPropagation());
 		}
 	}
-	this._host.style.top = Math.max(0, (Renderer.height - WINDOW_HEIGHT) / 2) + 'px';
-	this._host.style.left = Math.max(0, (Renderer.width - WINDOW_WIDTH) / 2) + 'px';
+	this._host.style.top = Math.max(0, (Renderer.height - alturaNaTela()) / 2) + 'px';
+	this._host.style.left = Math.max(0, (Renderer.width - larguraNaTela()) / 2) + 'px';
 	render();
 };
 
 IndicacaoIdle.onAppend = function onAppend() {
 	if (_preferences.x != null && _preferences.y != null) {
-		this._host.style.top = Math.min(Math.max(0, _preferences.y), Renderer.height - WINDOW_HEIGHT) + 'px';
-		this._host.style.left = Math.min(Math.max(0, _preferences.x), Renderer.width - WINDOW_WIDTH) + 'px';
+		this._host.style.top =
+			Math.min(Math.max(0, _preferences.y), Math.max(0, Renderer.height - alturaNaTela())) + 'px';
+		this._host.style.left =
+			Math.min(Math.max(0, _preferences.x), Math.max(0, Renderer.width - larguraNaTela())) + 'px';
 	}
 };
 

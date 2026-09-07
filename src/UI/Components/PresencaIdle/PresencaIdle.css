@@ -7,10 +7,24 @@
  * a grade de dias e os quatro estados de um dia (recebido, hoje, futuro, fora
  * do periodo). Zero cor literal: tudo por token.
  */
+
+/*
+ * A JANELA CABE NO CELULAR (07/09/2026).
+ *
+ * Ela nasceu com 520x560 fixos e centrada, e foi medida so em desktop. Num
+ * telefone de 393x852 isso poe a borda direita 127px FORA da tela e, pior,
+ * cobre a HUD: a sonda de FPS mediu o ponto do botao "Cacar" (349,670) e quem
+ * respondia ao toque la era esta janela — no celular o jogador nao conseguia
+ * cacar enquanto ela estivesse aberta, e ela ABRE SOZINHA uma vez por dia.
+ *
+ * `min()` no lugar do numero fixo: no desktop nada muda (520 e menor que a
+ * conta), e no celular a janela encolhe ate caber com folga para a barra de
+ * atalhos. A altura desconta a barra do topo e a fileira de atalhos.
+ */
 :host {
 	position: absolute;
-	width: 520px;
-	height: 560px;
+	width: min(520px, calc(100vw - 16px));
+	height: min(560px, calc(100vh - 132px));
 	pointer-events: none;
 }
 #PresencaIdle {
@@ -28,8 +42,8 @@
 	inset: 0;
 	pointer-events: auto;
 	flex-direction: column;
-	width: 520px;
-	height: 560px;
+	width: 100%;
+	height: 100%;
 }
 #PresencaIdle .pr-window.is-open {
 	display: flex;
