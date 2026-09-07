@@ -179,7 +179,7 @@ describe('PORTÃO: toda janela RAGIDLE com abas lembra a aba', () => {
 		f => f.codigo.includes('limpezaDeJanelaIdle.js') && MARCAS_DE_ABA.some(marca => f.codigo.includes(marca))
 	);
 
-	it('acha as oito janelas de hoje (controle: o filtro não está vazio)', () => {
+	it('acha as nove janelas de hoje (controle: o filtro não está vazio)', () => {
 		/*
 		 * Sem esta conferência, um filtro que parasse de casar deixaria o portão
 		 * VERDE por não medir nada — a forma mais comum de portão morto.
@@ -191,8 +191,14 @@ describe('PORTÃO: toda janela RAGIDLE com abas lembra a aba', () => {
 		 *    ficou apontando para o markup que saiu).
 		 *
 		 * A oitava é a Análise de Caça (D-943): Atual + as duas últimas.
+		 * A NONA é a janela de Grupo (D-960, 07/09/2026): Grupo · Postos ·
+		 * Rateio · Ajustes. Ela nasceu com quatro abas de propósito — a
+		 * referência que o dono mandou abre três janelas POR CIMA da
+		 * principal, e a decisão desta entrega foi resolver tudo dentro de uma
+		 * moldura só, alternando por [hidden].
 		 */
 		expect(comAbas.map(f => f.rel).sort(), 'a lista de janelas com abas mudou — ver o comentário acima').toEqual([
+			'GrupoIdle/GrupoIdle.js',
 			'HuntAnalyzer/HuntAnalyzer.js',
 			'HuntMap/HuntMap.js',
 			'IdleConfig/IdleConfig.js',
