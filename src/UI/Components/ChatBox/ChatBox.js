@@ -859,8 +859,21 @@ const CANAL_DO_FILTRO = {
  * mesmo criterio do filtro.
  *
  * `ANNOUNCE` fica de FORA: e o anuncio da staff, que o dono quer no Global.
+ *
+ * `MAIL` entrou em 07/09/2026 (D-949-B), com o print do dono: as tres linhas do
+ * correio ("O item foi movido para o seu inventario", "Falha ao retirar os
+ * Zenys", "A mensagem foi excluida") sairam no GLOBAL, e ele disse que elas
+ * *"deveriam ter aparecido na aba Logs"*. Correio e registro do que aconteceu
+ * com a sua caixa, e nao conversa.
+ *
+ * Elas nao caiam la por um motivo que nao era de roteamento: os 21 sitios que
+ * as emitem citavam `ChatBox.TYPE.INFO_MAIL`, que **nao existe** neste objeto
+ * (ha `INFO` e ha `MAIL`). `undefined` num `&` vira `NaN`, todo teste de tipo
+ * deu falso, e a linha caia no rotulo de ultimo caso — "Global". O ChatBox ja
+ * sabia desenhar correio (rotulo "Correio", cor propria) e nunca recebia o
+ * tipo.
  */
-const TIPOS_DE_LOG = ChatBox.TYPE.ERROR | ChatBox.TYPE.BLUE;
+const TIPOS_DE_LOG = ChatBox.TYPE.ERROR | ChatBox.TYPE.BLUE | ChatBox.TYPE.MAIL;
 
 /**
  * O canal de uma mensagem.
@@ -2107,6 +2120,18 @@ function marcarNaoLido(canal) {
 }
 
 function getColorForType(colorType) {
+	/*
+	 * A FALA DE GM E AMARELA, e ela decide ANTES de tudo (07/09/2026, pedido
+	 * do dono: a tag "GM" em amarelo).
+	 *
+	 * A ordem importa: `PUBLIC | SELF` (o eco da propria fala) devolveria
+	 * verde e o administrador seria o unico a nao ver o proprio destaque. O
+	 * `TYPE.ADMIN` so e posto por quem sabe que a entidade e GM
+	 * (`Session.AdminList`), entao poe-lo no topo nao muda mais nada.
+	 */
+	if (colorType & ChatBox.TYPE.ADMIN) {
+		return '#FFFF00';
+	}
 	if (colorType & ChatBox.TYPE.PUBLIC && colorType & ChatBox.TYPE.SELF) {
 		return '#00FF00';
 	} else if (colorType & ChatBox.TYPE.PARTY) {
@@ -2161,7 +2186,9 @@ function etiquetaDaLinha(colorType, filterType) {
 	}
 
 	if (colorType & ChatBox.TYPE.ERROR) return { rotulo: 'Erro', variante: 'ouro' };
-	if (colorType & ChatBox.TYPE.ADMIN) return { rotulo: 'Admin', variante: 'ouro' };
+	// "GM" e a palavra que o dono pediu, e a que o jogador reconhece de outros
+	// servidores de RO. "Admin" era o nome interno do tipo, e nao um rotulo.
+	if (colorType & ChatBox.TYPE.ADMIN) return { rotulo: 'GM', variante: 'ouro' };
 	if (colorType & ChatBox.TYPE.MAIL) return { rotulo: 'Correio', variante: 'ouro' };
 	if (colorType & ChatBox.TYPE.CLAN) return { rotulo: 'Clã', variante: 'ouro' };
 	if (colorType & ChatBox.TYPE.GUILD) return { rotulo: 'Guilda', variante: 'ouro' };

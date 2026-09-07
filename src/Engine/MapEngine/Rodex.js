@@ -302,13 +302,13 @@ function rodexRead(pkt) {
 function rodexGetZeny(pkt) {
 	switch (pkt.result) {
 		case 1: // failure
-			ChatBox.addText(DB.getMessage(2592), ChatBox.TYPE.INFO_MAIL, ChatBox.FILTER.PUBLIC_LOG);
+			ChatBox.addText(DB.getMessage(2592), ChatBox.TYPE.MAIL, ChatBox.FILTER.PUBLIC_LOG);
 			break;
 		case 2: //  too many zenys
-			ChatBox.addText(DB.getMessage(2593), ChatBox.TYPE.INFO_MAIL, ChatBox.FILTER.PUBLIC_LOG);
+			ChatBox.addText(DB.getMessage(2593), ChatBox.TYPE.MAIL, ChatBox.FILTER.PUBLIC_LOG);
 			break;
 		default:
-			ChatBox.addText(DB.getMessage(2591), ChatBox.TYPE.INFO_MAIL, ChatBox.FILTER.PUBLIC_LOG);
+			ChatBox.addText(DB.getMessage(2591), ChatBox.TYPE.MAIL, ChatBox.FILTER.PUBLIC_LOG);
 			ReadRodex.clearZeny();
 	}
 }
@@ -321,13 +321,13 @@ function rodexGetZeny(pkt) {
 function rodexGetItem(pkt) {
 	switch (pkt.result) {
 		case 1: // failure
-			ChatBox.addText(DB.getMessage(2589), ChatBox.TYPE.INFO_MAIL, ChatBox.FILTER.PUBLIC_LOG);
+			ChatBox.addText(DB.getMessage(2589), ChatBox.TYPE.MAIL, ChatBox.FILTER.PUBLIC_LOG);
 			break;
 		case 2: //  too many items
-			ChatBox.addText(DB.getMessage(2590), ChatBox.TYPE.INFO_MAIL, ChatBox.FILTER.PUBLIC_LOG);
+			ChatBox.addText(DB.getMessage(2590), ChatBox.TYPE.MAIL, ChatBox.FILTER.PUBLIC_LOG);
 			break;
 		default:
-			ChatBox.addText(DB.getMessage(2588), ChatBox.TYPE.INFO_MAIL, ChatBox.FILTER.PUBLIC_LOG);
+			ChatBox.addText(DB.getMessage(2588), ChatBox.TYPE.MAIL, ChatBox.FILTER.PUBLIC_LOG);
 			ReadRodex.clearItemList();
 	}
 }
@@ -349,10 +349,10 @@ function openWindowsWriteMail(pkt) {
  */
 function onRodexItemAdded(pkt) {
 	if (!pkt.result) {
-		ChatBox.addText(DB.getMessage(2594), ChatBox.TYPE.INFO_MAIL, ChatBox.FILTER.PUBLIC_LOG);
+		ChatBox.addText(DB.getMessage(2594), ChatBox.TYPE.MAIL, ChatBox.FILTER.PUBLIC_LOG);
 		WriteRodex.addItem(pkt);
 	} else {
-		ChatBox.addText(DB.getMessage(2589), ChatBox.TYPE.INFO_MAIL, ChatBox.FILTER.PUBLIC_LOG);
+		ChatBox.addText(DB.getMessage(2589), ChatBox.TYPE.MAIL, ChatBox.FILTER.PUBLIC_LOG);
 	}
 }
 
@@ -363,10 +363,10 @@ function onRodexItemAdded(pkt) {
  */
 function onRodexRemoveItem(pkt) {
 	if (pkt.result) {
-		ChatBox.addText(DB.getMessage(2589), ChatBox.TYPE.INFO_MAIL, ChatBox.FILTER.PUBLIC_LOG);
+		ChatBox.addText(DB.getMessage(2589), ChatBox.TYPE.MAIL, ChatBox.FILTER.PUBLIC_LOG);
 		WriteRodex.removeItem(pkt.index, pkt.count, pkt.weight);
 	} else {
-		ChatBox.addText(DB.getMessage(2588), ChatBox.TYPE.INFO_MAIL, ChatBox.FILTER.PUBLIC_LOG);
+		ChatBox.addText(DB.getMessage(2588), ChatBox.TYPE.MAIL, ChatBox.FILTER.PUBLIC_LOG);
 	}
 }
 
@@ -377,9 +377,9 @@ function onRodexRemoveItem(pkt) {
  */
 function rodexSend(pkt) {
 	if (!pkt.result) {
-		ChatBox.addText(DB.getMessage(2587), ChatBox.TYPE.INFO_MAIL, ChatBox.FILTER.PUBLIC_LOG);
+		ChatBox.addText(DB.getMessage(2587), ChatBox.TYPE.MAIL, ChatBox.FILTER.PUBLIC_LOG);
 	} else {
-		ChatBox.addText(DB.getMessage(2597), ChatBox.TYPE.INFO_MAIL, ChatBox.FILTER.PUBLIC_LOG);
+		ChatBox.addText(DB.getMessage(2597), ChatBox.TYPE.MAIL, ChatBox.FILTER.PUBLIC_LOG);
 	}
 	WriteRodex.close();
 }
@@ -391,11 +391,11 @@ function rodexSend(pkt) {
  */
 function rodexDelete(pkt) {
 	if (!pkt.result) {
-		ChatBox.addText(DB.getMessage(1038), ChatBox.TYPE.INFO_MAIL, ChatBox.FILTER.PUBLIC_LOG);
+		ChatBox.addText(DB.getMessage(1038), ChatBox.TYPE.MAIL, ChatBox.FILTER.PUBLIC_LOG);
 		Rodex.updateDeletedMailContent(pkt.openType, pkt.MailID);
 		ReadRodex.close();
 	} else {
-		ChatBox.addText(DB.getMessage(1039), ChatBox.TYPE.INFO_MAIL, ChatBox.FILTER.PUBLIC_LOG);
+		ChatBox.addText(DB.getMessage(1039), ChatBox.TYPE.MAIL, ChatBox.FILTER.PUBLIC_LOG);
 	}
 }
 
@@ -403,7 +403,7 @@ function rodexCharacterInfo(pkt) {
 	if (pkt.CharID > 0) {
 		WriteRodex.characterInfo(pkt);
 	} else {
-		ChatBox.addText(DB.getMessage(2615), ChatBox.TYPE.INFO_MAIL, ChatBox.FILTER.PUBLIC_LOG);
+		ChatBox.addText(DB.getMessage(2615), ChatBox.TYPE.MAIL, ChatBox.FILTER.PUBLIC_LOG);
 	}
 }
 

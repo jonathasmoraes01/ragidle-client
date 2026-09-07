@@ -64,7 +64,20 @@ function onPlayerMessage(pkt) {
 		return;
 	}
 
-	ChatBox.addText(pkt.msg, ChatBox.TYPE.PUBLIC | ChatBox.TYPE.SELF, ChatBox.FILTER.PUBLIC_CHAT, null, false);
+	/*
+	 * O ECO DA PROPRIA FALA: o proprio GM ve a sua tag (07/09/2026).
+	 *
+	 * Sem isto o administrador seria o unico a nao ver o proprio destaque, e
+	 * nao teria como conferir que ele esta funcionando — que foi exatamente
+	 * como o defeito passou despercebido ate o dono notar pelo chat de outra
+	 * pessoa.
+	 */
+	let tipoDaPropria = ChatBox.TYPE.PUBLIC | ChatBox.TYPE.SELF;
+	if (Session.Entity && Session.Entity.isAdmin) {
+		tipoDaPropria |= ChatBox.TYPE.ADMIN;
+	}
+
+	ChatBox.addText(pkt.msg, tipoDaPropria, ChatBox.FILTER.PUBLIC_CHAT, null, false);
 
 	if (Session.Entity) {
 		pkt.msg = pkt.msg.replace(
