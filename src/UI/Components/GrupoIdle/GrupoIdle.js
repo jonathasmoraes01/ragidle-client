@@ -360,7 +360,7 @@ function desenharMembros(e) {
 		/*
 		 * A SAIDA MORA NO ESTADO VAZIO (D-969, 07/09/2026).
 		 *
-		 * Ate aqui o unico botao "Abrir o Localizador" vivia DENTRO do painel
+		 * Ate aqui o unico botao "Encontrar grupo" vivia DENTRO do painel
 		 * de Convidar — e "Convidar" nasce `disabled` para quem nao esta em
 		 * grupo. Ou seja: exatamente quem precisa achar um grupo era quem nao
 		 * conseguia chegar ao Localizador. O texto do rodape ate mandava
@@ -372,7 +372,7 @@ function desenharMembros(e) {
 		 */
 		lista.innerHTML =
 			'<div class="gi-vazio">Voce nao esta em nenhum grupo.' +
-			'<button type="button" class="ri-btn ri-btn--sec gi-vazio-lfg">Abrir o Localizador</button>' +
+			'<button type="button" class="ri-btn ri-btn--sec gi-vazio-lfg">Encontrar grupo</button>' +
 			'</div>';
 		const atalho = lista.querySelector('.gi-vazio-lfg');
 		if (atalho) {
