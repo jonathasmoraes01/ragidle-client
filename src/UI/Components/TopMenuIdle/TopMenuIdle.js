@@ -864,6 +864,9 @@ function distribuirFileiras() {
  * aparece para a conta dona) e com o numero de colunas. Copiar esse numero
  * seria a armadilha que criou todos estes tokens.
  */
+/** O ultimo valor publicado em `--hud-cluster-topo` (ver a guarda abaixo). */
+let _topoPublicado = null;
+
 function publicarTopoDoCluster() {
 	const root = _root();
 	const topo = root && root.querySelector('.tm-top');
@@ -875,10 +878,21 @@ function publicarTopoDoCluster() {
 		return;
 	}
 	/* D-934: unidade da HUD. Ver `emUnidadesDaHud`. */
-	topo.ownerDocument.documentElement.style.setProperty(
-		'--hud-cluster-topo',
-		`${Math.round(emUnidadesDaHud(caixa.top))}px`,
-	);
+	const valor = `${Math.round(emUnidadesDaHud(caixa.top))}px`;
+	/*
+	 * SO PUBLICA QUANDO MUDA (07/09/2026, frente de FPS).
+	 *
+	 * `setProperty` no `documentElement` invalida o estilo de TODO descendente
+	 * que use `var()`, e esta funcao republicava o MESMO numero 4x por segundo,
+	 * vindo do tique. A geometria do cluster muda em evento raro — recolher a
+	 * HUD, girar o aparelho, redimensionar a janela —, entao a guarda
+	 * transforma trabalho constante em trabalho por evento.
+	 */
+	if (valor === _topoPublicado) {
+		return;
+	}
+	_topoPublicado = valor;
+	topo.ownerDocument.documentElement.style.setProperty('--hud-cluster-topo', valor);
 }
 
 let _observadorDoCluster = null;
