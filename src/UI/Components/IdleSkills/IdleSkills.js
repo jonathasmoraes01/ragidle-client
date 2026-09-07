@@ -978,6 +978,14 @@ function renderNo(no, contexto) {
 		'">' +
 		escapeHtml(skill.nome) +
 		'</span>' +
+		/*
+		 * RAGIDLE (D-1154) — a habilidade de QUEST entra sozinha no maximo quando
+		 * a arvore permite e nao custa ponto; o servidor manda `deQuest: true` e o
+		 * jogador precisa VER por que ela nao tem botao de "+" nem cobra nada.
+		 */
+		(skill.deQuest
+			? '<span class="is-no-quest" title="Habilidade de quest: entra sozinha quando os requisitos são cumpridos, sem gastar ponto">quest · grátis</span>'
+			: '') +
 		plaqueta(skill, contexto) +
 		'</div>'
 	);
