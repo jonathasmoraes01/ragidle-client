@@ -196,8 +196,14 @@ export function createWinLogin({ name, htmlText, cssText }) {
 	}
 
 	function signup() {
-		const url = Configs.get('registrationweb');
+		let url = Configs.get('registrationweb');
 		if (url) {
+			// INDIQUE & GANHE (D-1164): o codigo guardado pela casca (`?ref=`) segue
+			// para o formulario do site, que o manda no POST /cadastrar.
+			const ref = Configs.get('codigoDeIndicacao');
+			if (ref && /^[A-Za-z0-9]{6}$/.test(String(ref))) {
+				url += (url.indexOf('?') === -1 ? '?' : '&') + 'ref=' + encodeURIComponent(String(ref).toUpperCase());
+			}
 			UIManager.showPromptBox(
 				DB.getMessage(662),
 				'ok',

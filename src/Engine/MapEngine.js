@@ -106,6 +106,7 @@ import MissoesIdle from 'UI/Components/MissoesIdle/MissoesIdle.js'; // RAGIDLE: 
 import PasseIdle from 'UI/Components/PasseIdle/PasseIdle.js'; // RAGIDLE: janela do Passe (D-813)
 import CodexIdle from 'UI/Components/CodexIdle/CodexIdle.js'; // RAGIDLE: janela do Codex (D-851)
 import PresencaIdle from 'UI/Components/PresencaIdle/PresencaIdle.js'; // RAGIDLE: janela de presenca (D-1162)
+import IndicacaoIdle from 'UI/Components/IndicacaoIdle/IndicacaoIdle.js'; // RAGIDLE: Indique & Ganhe (D-1164)
 import LFGIdle from 'UI/Components/LFGIdle/LFGIdle.js'; // RAGIDLE: janela de Procurar Grupo (D-634)
 import MissoesTrackerIdle from 'UI/Components/MissoesTrackerIdle/MissoesTrackerIdle.js'; // RAGIDLE: tracker estilo Origin (D-601)
 import IdleConfig from 'UI/Components/IdleConfig/IdleConfig.js'; // RAGIDLE: "Configuração idle"
@@ -448,6 +449,7 @@ class MapEngine {
 					PasseIdle: PasseIdle,
 					CodexIdle: CodexIdle,
 					PresencaIdle: PresencaIdle,
+					IndicacaoIdle: IndicacaoIdle,
 					LFGIdle: LFGIdle
 				};
 			}
@@ -493,6 +495,7 @@ class MapEngine {
 			PasseIdle.prepare(); // RAGIDLE: janela do Passe (D-813) — idem, só escuta 0x0fe5
 			CodexIdle.prepare(); // RAGIDLE: janela do Codex (D-851) — idem, só escuta 0x0fe3
 			PresencaIdle.prepare(); // RAGIDLE: janela de presenca (D-1162) — escuta 0x0fde e abre sozinha quando o servidor manda
+			IndicacaoIdle.prepare(); // RAGIDLE: Indique & Ganhe (D-1164) — escuta 0x0fdc
 			LFGIdle.prepare(); // RAGIDLE: janela de Procurar Grupo (D-634) — idem: só escuta 0x0fe9/0x0fe8
 
 			BasicInfoIdle.prepare(); // RAGIDLE: "Informações básicas"
@@ -929,6 +932,7 @@ function onMapChange(pkt) {
 		PasseIdle.append(); // RAGIDLE: janela do Passe (D-813)
 		CodexIdle.append(); // RAGIDLE: janela do Codex (D-851)
 		PresencaIdle.append(); // RAGIDLE: janela de presenca (D-1162)
+		IndicacaoIdle.append(); // RAGIDLE: Indique & Ganhe (D-1164)
 		LFGIdle.append(); // RAGIDLE: janela de Procurar Grupo (D-634)
 		// RAGIDLE: o tracker ancora ABAIXO do BasicInfoIdle por medição — vem
 		// DEPOIS dele no append para o primeiro syncPosition já achar o host.
@@ -1035,6 +1039,7 @@ function onMapChange(pkt) {
 			['caca', HuntMap, '.hm-window'],
 			['codex', CodexIdle, '.cx-window'],
 			['presenca', PresencaIdle, '.pr-window'],
+			['indicacao', IndicacaoIdle, '.in-window'],
 			['correio', CorreioIdle, '.co-window'],
 			['missoes', MissoesIdle, '.mi-window'],
 			['passe', PasseIdle, '.pi-window'],
@@ -1202,7 +1207,8 @@ function cleanGameUI() {
 		MochilaIdle,
 		PasseIdle,
 		CodexIdle,
-		PresencaIdle
+		PresencaIdle,
+		IndicacaoIdle
 	]) {
 		if (typeof modulo.limparEstadoDoPersonagem === 'function') {
 			modulo.limparEstadoDoPersonagem();

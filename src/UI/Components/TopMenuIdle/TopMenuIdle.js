@@ -191,6 +191,7 @@ import MissoesIdle from 'UI/Components/MissoesIdle/MissoesIdle.js';
 import PasseIdle from 'UI/Components/PasseIdle/PasseIdle.js';
 import CodexIdle from 'UI/Components/CodexIdle/CodexIdle.js'; // RAGIDLE: Codex (D-851)
 import PresencaIdle from 'UI/Components/PresencaIdle/PresencaIdle.js'; // RAGIDLE: Presenca (D-1162)
+import IndicacaoIdle from 'UI/Components/IndicacaoIdle/IndicacaoIdle.js'; // RAGIDLE: Indique & Ganhe (D-1164)
 import AdminPanel from 'UI/Components/AdminPanel/AdminPanel.js';
 import CashShop from 'UI/Components/CashShop/CashShop.js'; // RAGIDLE: a loja de cash (I5)
 import RiIcones from 'UI/ri-icones.js';
@@ -488,6 +489,10 @@ function onClickAction(e) {
 		case 'presenca':
 			/* D-1162: PresencaIdle.toggle() tambem PEDE o painel ao abrir (0x0fdf) */
 			PresencaIdle.toggle();
+			break;
+		case 'indicacao':
+			/* D-1164: IndicacaoIdle.toggle() tambem PEDE o painel ao abrir (0x0fdd) */
+			IndicacaoIdle.toggle();
 			break;
 		/* O Passe saiu de "em breve" em D-813. Ele PEDE o estado ao abrir
 		   (0x0fe5): preco, vencimento e o que cada dia entrega sao do
@@ -1059,6 +1064,8 @@ function isActionOpen(action) {
 			return isRagIdleWindowOpen(CodexIdle, '.cx-window');
 		case 'presenca':
 			return isRagIdleWindowOpen(PresencaIdle, '.pr-window');
+		case 'indicacao':
+			return isRagIdleWindowOpen(IndicacaoIdle, '.in-window');
 		/*
 		 * PASSE (D-813): a TERCEIRA vez do mesmo defeito, achado em 29/08/2026
 		 * ao somar o Codex. Ele tinha `case 'passe'` no switch de ABRIR e

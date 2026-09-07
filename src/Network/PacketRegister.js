@@ -1023,6 +1023,7 @@ export default {
 	// recusado — nao ha ZC de erro.
 	0x0fe3: PACKET.ZC.RAGIDLE_CODEX,
 	0x0fde: PACKET.ZC.RAGIDLE_PRESENCA,
+	0x0fdc: PACKET.ZC.RAGIDLE_INDICACAO,
 
 	0xb1a: PACKET.ZC.USESKILL_ACK3 // USE SKILL 3
 };
