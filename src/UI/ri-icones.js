@@ -242,6 +242,10 @@ const RiIcones = {
 	// confundem na tela, e os dois botoes moram em lugares diferentes (cluster
 	// e leque). Se um dia o `skills` perder o PNG, o par fica ambiguo: e o
 	// ponto em que este glifo precisa mudar.
+	// RAGIDLE (D-1162): a presenca mensal — calendario com o visto (Lucide calendar-check).
+	presenca: svg(
+		'<path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/><path d="m9 16 2 2 4-4"/>'
+	),
 	codex: arteUi(
 		'codex',
 		svg(

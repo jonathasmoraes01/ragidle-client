@@ -190,6 +190,7 @@ import HuntAnalyzer from 'UI/Components/HuntAnalyzer/HuntAnalyzer.js';
 import MissoesIdle from 'UI/Components/MissoesIdle/MissoesIdle.js';
 import PasseIdle from 'UI/Components/PasseIdle/PasseIdle.js';
 import CodexIdle from 'UI/Components/CodexIdle/CodexIdle.js'; // RAGIDLE: Codex (D-851)
+import PresencaIdle from 'UI/Components/PresencaIdle/PresencaIdle.js'; // RAGIDLE: Presenca (D-1162)
 import AdminPanel from 'UI/Components/AdminPanel/AdminPanel.js';
 import CashShop from 'UI/Components/CashShop/CashShop.js'; // RAGIDLE: a loja de cash (I5)
 import RiIcones from 'UI/ri-icones.js';
@@ -483,6 +484,10 @@ function onClickAction(e) {
 		   comentados no proprio isActionOpen(). */
 		case 'codex':
 			CodexIdle.toggle();
+			break;
+		case 'presenca':
+			/* D-1162: PresencaIdle.toggle() tambem PEDE o painel ao abrir (0x0fdf) */
+			PresencaIdle.toggle();
 			break;
 		/* O Passe saiu de "em breve" em D-813. Ele PEDE o estado ao abrir
 		   (0x0fe5): preco, vencimento e o que cada dia entrega sao do
@@ -1052,6 +1057,8 @@ function isActionOpen(action) {
 		 */
 		case 'codex':
 			return isRagIdleWindowOpen(CodexIdle, '.cx-window');
+		case 'presenca':
+			return isRagIdleWindowOpen(PresencaIdle, '.pr-window');
 		/*
 		 * PASSE (D-813): a TERCEIRA vez do mesmo defeito, achado em 29/08/2026
 		 * ao somar o Codex. Ele tinha `case 'passe'` no switch de ABRIR e
