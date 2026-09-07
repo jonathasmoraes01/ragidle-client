@@ -50,7 +50,9 @@
  * - `../rag-idle-site` (repo IRMAO, `marcoslourencoads-svg/rag-idle-site`) ->
  *   a RAIZ do pacote. Desde 26/08 a v0 abre no site de entrada, com "Jogar" e
  *   "Cadastrar" apontando para `/jogo/`; o antigo `index.html` do jogo mudou
- *   de lugar por isso (item acima).
+ *   de lugar por isso (item acima). Alem do `index.html` e das pastas
+ *   servidas, vem todo `.txt` da raiz do site — os tokens de verificacao de
+ *   dono (ver o passo 5/6).
  *
  * Os quatro sao copiados DEPOIS do build de proposito: o build limpa o `dist`.
  *
@@ -344,6 +346,29 @@ for (const pasta of ['css', 'js', 'assets']) {
 	rmSync(join(DIST, pasta), { recursive: true, force: true });
 	cpSync(join(SITE, pasta), join(DIST, pasta), { recursive: true });
 	console.log(`     ${pasta}/`);
+}
+
+/*
+ * OS `.txt` DA RAIZ DO SITE TAMBEM VEM — e por REGRA, nao por lista.
+ *
+ * Sao os arquivos de VERIFICACAO DE DONO que agregador de servidor e buscador
+ * pedem: um token solto que precisa abrir em
+ * `https://roclassicidle.com.br/<nome-que-ELES-escolhem>.txt`. O primeiro foi
+ * o `topidle-verification.txt` (06/09/2026).
+ *
+ * Vem por EXTENSAO, e nao por nome, porque cada verificacao nova traz um nome
+ * novo: com lista fixa, quem so mexe no site (o caminho normal) poe o arquivo
+ * la, ve o commit subir pela esteira, e o token NUNCA chega ao pacote — a
+ * falha e silenciosa (o site continua no ar; o que quebra e a verificacao de
+ * um terceiro, as vezes semanas depois).
+ *
+ * `.txt` na raiz do site nao tem outro uso aqui, e a documentacao interna
+ * (`README.md`, `DESIGN-SYSTEM.md`) fica de fora por ser `.md`.
+ */
+for (const arquivo of readdirSync(SITE, { withFileTypes: true })) {
+	if (!arquivo.isFile() || !arquivo.name.endsWith('.txt')) continue;
+	copyFileSync(join(SITE, arquivo.name), join(DIST, arquivo.name));
+	console.log(`     ${arquivo.name}`);
 }
 console.log('     index.html       (a home)');
 
