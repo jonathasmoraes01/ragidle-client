@@ -179,7 +179,7 @@ describe('PORTÃO: toda janela RAGIDLE com abas lembra a aba', () => {
 		f => f.codigo.includes('limpezaDeJanelaIdle.js') && MARCAS_DE_ABA.some(marca => f.codigo.includes(marca))
 	);
 
-	it('acha as nove janelas de hoje (controle: o filtro não está vazio)', () => {
+	it('acha as dez janelas de hoje (controle: o filtro não está vazio)', () => {
 		/*
 		 * Sem esta conferência, um filtro que parasse de casar deixaria o portão
 		 * VERDE por não medir nada — a forma mais comum de portão morto.
@@ -206,7 +206,8 @@ describe('PORTÃO: toda janela RAGIDLE com abas lembra a aba', () => {
 			'LFGIdle/LFGIdle.js',
 			'MissoesIdle/MissoesIdle.js',
 			'MochilaIdle/MochilaIdle.js',
-			'PasseIdle/PasseIdle.js'
+			'PasseIdle/PasseIdle.js',
+			'VotoIdle/VotoIdle.js'
 		]);
 	});
 
