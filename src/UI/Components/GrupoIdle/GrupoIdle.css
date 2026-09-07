@@ -872,6 +872,13 @@
 	color: var(--text-muted);
 }
 
+/* D-969: o atalho para o Localizador no estado vazio — ele respira acima do
+   texto e nao encosta nele, porque e ACAO e o resto e explicacao. */
+#GrupoIdle .gi-vazio-lfg {
+	display: block;
+	margin: var(--sp-4) auto 0;
+}
+
 #GrupoIdle .gi-rodape {
 	display: flex;
 	align-items: center;

@@ -357,7 +357,32 @@ function desenharMembros(e) {
 
 	if (!grupo || !grupo.membros.length) {
 		contador.textContent = '0/0';
-		lista.innerHTML = '<div class="gi-vazio">Voce nao esta em nenhum grupo.</div>';
+		/*
+		 * A SAIDA MORA NO ESTADO VAZIO (D-969, 07/09/2026).
+		 *
+		 * Ate aqui o unico botao "Abrir o Localizador" vivia DENTRO do painel
+		 * de Convidar — e "Convidar" nasce `disabled` para quem nao esta em
+		 * grupo. Ou seja: exatamente quem precisa achar um grupo era quem nao
+		 * conseguia chegar ao Localizador. O texto do rodape ate mandava
+		 * "abra o Localizador", sem dar por onde.
+		 *
+		 * Isso so virou buraco quando D-967 tirou o segundo item do menu; ate
+		 * entao o menu tinha a porta de tras. Fechar a porta de tras sem abrir
+		 * a da frente e o que teria deixado o jogador preso.
+		 */
+		lista.innerHTML =
+			'<div class="gi-vazio">Voce nao esta em nenhum grupo.' +
+			'<button type="button" class="ri-btn ri-btn--sec gi-vazio-lfg">Abrir o Localizador</button>' +
+			'</div>';
+		const atalho = lista.querySelector('.gi-vazio-lfg');
+		if (atalho) {
+			atalho.addEventListener('click', function () {
+				// A MESMA ponte do botao do painel de convite — um caminho so.
+				if (GrupoIdle.aoPedirLocalizador) {
+					GrupoIdle.aoPedirLocalizador();
+				}
+			});
+		}
 		return;
 	}
 	contador.textContent = grupo.membros.length + '/' + grupo.limite;
