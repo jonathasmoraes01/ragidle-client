@@ -1094,17 +1094,19 @@ function renderAtaque() {
 
 		let adicionar;
 		if (rotacao.length >= TETO_DA_ORDEM) {
-			adicionar = '<div class="ic-note">As três vagas estão ocupadas. Tire um golpe para pôr outro.</div>';
+			adicionar = '<div class="ic-note">As três vagas estão ocupadas. Tire uma habilidade para pôr outra.</div>';
 		} else if (!livres.length) {
-			adicionar = '<div class="ic-note">Todos os golpes disponíveis já estão na ordem.</div>';
+			adicionar = '<div class="ic-note">Todas as habilidades disponíveis já estão na ordem.</div>';
 		} else {
 			adicionar = `
 				<select class="ic-add-skill" data-action="skill-add">
-					<option value="">+ Pôr um golpe na ordem</option>
+					<option value="">+ Pôr uma habilidade na ordem</option>
 					${livres
 						.map(
 							s =>
-								`<option value="${escapeHtml(s.skillId)}">${escapeHtml(s.nome || s.skillId)} (Nv ${s.aprendido})</option>`
+								`<option value="${escapeHtml(s.skillId)}">${escapeHtml(s.nome || s.skillId)} (Nv ${s.aprendido})${
+									curas.has(s.skillId) ? ' — cura' : ''
+								}</option>`
 						)
 						.join('')}
 				</select>`;
@@ -1130,13 +1132,40 @@ function renderAtaque() {
 	const podeDesligarBasico = !!(ctx.capacidades && ctx.capacidades.suprimirAtaqueBasico);
 	const semGolpe = cfg.modoDeAtaque !== 'apenas-skills' && !rotacao.length;
 
+	/*
+	 * B3 (06/09/2026) — A CURA MORA AQUI, E A TELA PRECISA DIZER ISSO.
+	 *
+	 * Reporte do playtest: *"ainda ta confuso isso aqui, quando se trata de
+	 * classe de suporte... a skill 'curar' tambem consegue estar em 'ataque'"*.
+	 *
+	 * Nao e defeito: e o desenho. `baldeDaHabilidade` (D-1060) manda `cura`,
+	 * `curaFixa` e `removerStatusDoAlvo` para a ORDEM DE USO — sao as tres que
+	 * o MOTOR conjura contra o relogio da luta, e por isso disputam as mesmas
+	 * tres vagas dos golpes. A `recomporRotacaoAutomatica` chega a instala-las
+	 * PRIMEIRO (D-1132), porque quem se cura antes de pensar em dano sobrevive.
+	 *
+	 * O que faltava era a tela DIZER isso. A etiqueta por linha ja existia; o
+	 * que ela nao dava era a regra — quem le "Ordem de golpes" e ve a Cura ali
+	 * conclui que a janela esta errada, e nao que as duas coisas dividem a
+	 * lista de proposito.
+	 */
+	const curasAprendidas = (ctx.skillsDeCura || []).length;
+	const curasNaOrdem = rotacao.filter(r => curas.has(r.skillId)).length;
+	const notaDeCura = curasAprendidas
+		? `<div class="ic-note">Cura e golpe dividem estas ${TETO_DA_ORDEM} vagas de propósito: as duas são
+			lançadas na luta, e o personagem escolhe a primeira que puder usar. Uma cura só sai quando a vida
+			cai abaixo do limiar — o limiar e o alvo (você ou o grupo) ficam na seção <strong>Suporte</strong>.
+			${curasNaOrdem ? `Você tem ${curasNaOrdem === 1 ? 'uma cura' : `${curasNaOrdem} curas`} na ordem.` : 'Nenhuma cura na ordem agora.'}</div>`
+		: '';
+
 	return `
 		<div class="ic-card">
 			<div class="ic-card-head">
-				<h3>Ordem de golpes</h3>
+				<h3>Ordem de uso</h3>
 				<span class="ic-card-meta">${rotacao.length}/${TETO_DA_ORDEM} vagas</span>
 			</div>
-			<div class="ic-note">O personagem tenta o primeiro que puder usar e vai rodando a lista; sem nenhum, dá o golpe básico.</div>
+			<div class="ic-note">O personagem tenta a primeira que puder usar e vai rodando a lista; sem nenhuma, dá o golpe básico.</div>
+			${notaDeCura}
 			${ordem}
 		</div>
 		<div class="ic-card">
