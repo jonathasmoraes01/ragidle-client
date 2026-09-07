@@ -12457,6 +12457,11 @@
 					"tamanho": 10,
 					"desde": null
 				},
+				"0x0fcc": {
+					"nome": "ZC_RAGIDLE_GRUPO",
+					"tamanho": -1,
+					"desde": null
+				},
 				"0x0fce": {
 					"nome": "ZC_RAGIDLE_SALDO_DE_CASH",
 					"tamanho": 6,
@@ -15409,6 +15414,18 @@
 				},
 				"0x0ba0": {
 					"nome": "CZ_CLOSE_UI_ENCHANT",
+					"tamanho": 2,
+					"desde": null,
+					"fonteDoTamanho": "cliente"
+				},
+				"0x0fcb": {
+					"nome": "CZ_RAGIDLE_GRUPO_ACAO",
+					"tamanho": -1,
+					"desde": null,
+					"fonteDoTamanho": "cliente"
+				},
+				"0x0fcd": {
+					"nome": "CZ_RAGIDLE_PEDIR_GRUPO",
 					"tamanho": 2,
 					"desde": null,
 					"fonteDoTamanho": "cliente"

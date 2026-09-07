@@ -16319,6 +16319,84 @@ PACKET.CZ.RAGIDLE_CONFIRMAR.prototype.build = function build() {
 	return pkt;
 };
 
+// ---------------------------------------------------------------------------
+// A JANELA DE GRUPO (D-960, 07/09/2026) — 0x0fcd pede, 0x0fcc responde,
+// 0x0fcb age.
+//
+// Mesmo trio de config idle (0x0ff3/4/5), admin (0x0ff6/7/8) e Passe
+// (0x0fe5/6/7). Os tres slots ESTENDEM a faixa RAGIDLE para baixo: o menor
+// ocupado era 0x0fce (o saldo de cash), e estes sao os tres imediatamente
+// abaixo dele — o bloco continua contiguo, que e o que torna a proxima
+// colisao visivel.
+//
+// A JANELA NAO SUBSTITUI OS PACOTES DE PARTY DO rAthena. Criar, convidar,
+// aceitar, sair, expulsar e trocar lider continuam nos 0x00f9/0x01e8/0x02c4/
+// 0x0100/0x0103/0x07da, que este cliente ja fala — e o botao "Convidar" desta
+// janela manda exatamente o 0x02c4 de sempre, com a caixa de aceite NATIVA do
+// outro lado. O que este trio carrega e o ESTADO da janela (postos, rateio,
+// ajustes), que nao cabe em pacote nenhum existente.
+// ---------------------------------------------------------------------------
+
+// 0x0fcd - RAGIDLE: CZ_RAGIDLE_PEDIR_GRUPO (client -> server)
+// Fixo, 2 bytes: so o opcode. A janela abriu, e ela INSCREVE a conexao no
+// empurrao (o servidor reenvia o estado a cada mudanca do grupo) — a mesma
+// receita do {acao:'listar'} do LFG.
+PACKET.CZ.RAGIDLE_PEDIR_GRUPO = function PACKET_CZ_RAGIDLE_PEDIR_GRUPO() {};
+PACKET.CZ.RAGIDLE_PEDIR_GRUPO.prototype.build = function build() {
+	const pkt = new BinaryWriter(2);
+	pkt.writeShort(0x0fcd);
+	return pkt;
+};
+
+// 0x0fcc - RAGIDLE: ZC_RAGIDLE_GRUPO (server -> client)
+// Variavel: u16 opcode + u16 comprimento total + JSON UTF-8.
+//
+// Contrato v1: { v, aplicado?, problemas: [], recado, eu: { personagemId,
+// nome, souLider, posto, aproximacao, aceitaConvites }, grupo: null |
+// { id, nome, liderPersonagemId, exp, itens, limite, membros: [{ personagemId,
+// nome, classe, nivel, mapa, mapaRotulo, canal, online, vivo, hp, hpMaximo,
+// ehLider, souEu, posto, postoNome }] }, postos: [{ id, nome, resumo,
+// disponivel, motivo }], rateio, tabela: [{ elegiveis, premio, porMembro,
+// somaDoGrupo }] }.
+//
+// TUDO decidido pelo servidor, inclusive o NOME e a DESCRICAO de cada posto e
+// o MOTIVO de um posto indisponivel: a janela so reflete. E a mesma regra
+// escrita no cabecalho do LFGIdle.js, pela mesma razao — uma lista propria no
+// cliente envelheceria no dia em que um posto mudasse de regra, e mostraria
+// "disponivel" ao lado de uma recusa.
+PACKET.ZC.RAGIDLE_GRUPO = function PACKET_ZC_RAGIDLE_GRUPO(fp, end) {
+	this.json = fp.readString(end - fp.tell());
+};
+PACKET.ZC.RAGIDLE_GRUPO.size = -1;
+
+// 0x0fcb - RAGIDLE: CZ_RAGIDLE_GRUPO_ACAO (client -> server)
+// Variavel: u16 opcode + u16 comprimento total + JSON UTF-8.
+//
+// UM CZ COM VERBO, e nao um opcode por botao — o mesmo padrao de
+// CZ_RAGIDLE_LFG_ACAO e CZ_RAGIDLE_MISSAO_ACAO, e ele existe porque a faixa
+// ja ficou cheia uma vez.
+//   { acao: 'pedir' | 'fechar' | 'sair' | 'dissolver' }
+//   { acao: 'posto', posto: 'andarilho'|'vanguarda'|'baluarte'|'amparo' }
+//   { acao: 'preferencias', convites?: bool, aproximacao?: 'avancar'|'segurar' }
+//   { acao: 'regras', exp?: 0|1, itens?: 0|1 }   (so o lider)
+//   { acao: 'convidar', nome: '<nome exato>' }
+//
+// O comprimento e medido em BYTES UTF-8 reais (TextEncoding.encode), e nao no
+// `.length` da string: nome de personagem acentuado tem mais bytes que
+// caracteres, e um comprimento curto desalinha o stream inteiro do servidor.
+PACKET.CZ.RAGIDLE_GRUPO_ACAO = function PACKET_CZ_RAGIDLE_GRUPO_ACAO() {
+	this.json = '{}';
+};
+PACKET.CZ.RAGIDLE_GRUPO_ACAO.prototype.build = function build() {
+	const bytes = TextEncoding.encode(this.json, 'utf-8');
+	const pkt_len = 2 + 2 + bytes.length;
+	const pkt_buf = new BinaryWriter(pkt_len);
+	pkt_buf.writeShort(0x0fcb);
+	pkt_buf.writeUShort(pkt_len);
+	pkt_buf.writeString(this.json);
+	return pkt_buf;
+};
+
 PACKET.ZC.RAGIDLE_MISSOES = function PACKET_ZC_RAGIDLE_MISSOES(fp, end) {
 	this.json = fp.readString(end - fp.tell());
 };

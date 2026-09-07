@@ -994,6 +994,10 @@ export default {
 	0x0fce: PACKET.ZC.RAGIDLE_SALDO_DE_CASH,
 	0x0fd0: PACKET.ZC.RAGIDLE_ADMINS,
 	0x0fd1: PACKET.ZC.RAGIDLE_CONFIRMAR,
+	// A janela de Grupo (D-960): so o ZC entra aqui — os dois CZ (0x0fcd e
+	// 0x0fcb) sao ESCRITOS pelo cliente, nunca lidos. Mesma razao de
+	// 0x0ff1/0x0ff4/0x0ff7/0x0ffa/0x0fea acima.
+	0x0fcc: PACKET.ZC.RAGIDLE_GRUPO,
 	0x0fee: PACKET.ZC.RAGIDLE_MUDANCA_DE_CLASSE,
 	0x0ffa: PACKET.ZC.RAGIDLE_SKILLS,
 
