@@ -183,6 +183,33 @@ function trocarAba(nome) {
 	GrupoIdle.abaAtiva = nome;
 	lembrarAba(_preferences, nome);
 	sincronizarAbas();
+	// D-964: cada aba tem uma altura de conteudo, entao a marca de rolagem e
+	// por aba — a de Ajustes rola onde a de Grupo nao rola.
+	marcarRolagem();
+}
+
+/*
+ * D-964 — A MARCA DE "TEM MAIS COISA EMBAIXO".
+ *
+ * Ela acende `is-rolando` no corpo da janela quando ainda ha conteudo abaixo
+ * da borda, e o CSS desvanece os 20px do pe. O corte de meia linha no fim da
+ * lista passa a LER como continuacao, em vez de ler como defeito de
+ * renderizacao — foi assim que o dono leu o print do celular.
+ *
+ * Por que a condicao e "ha conteudo abaixo", e nao "o elemento rola": no fim
+ * da rolagem nao ha nada embaixo, e desvanecer ali apagaria a ultima linha
+ * prometendo uma continuacao que nao existe.
+ *
+ * Ela e barata de proposito (duas leituras de layout) porque roda a cada
+ * empurrao do servidor, a cada troca de aba e a cada rolagem.
+ */
+function marcarRolagem() {
+	const corpo = raiz().querySelector('.gi-body');
+	if (!corpo) {
+		return;
+	}
+	const sobra = corpo.scrollHeight - corpo.clientHeight - corpo.scrollTop;
+	corpo.classList.toggle('is-rolando', sobra > 1);
 }
 
 /* ------------------------------------------------------------------ */
@@ -280,18 +307,35 @@ function linhaDeMembro(m) {
 		'</span>' +
 		'</div>' +
 		'<div class="gi-membro-direita">' +
-		'<span class="ri-bar ri-bar--hp gi-membro-hp' +
-		// O NUMERO SOBRE A PARTE VAZIA (achado do print): o `.rotulo` do design
-		// system e BRANCO com sombra, feito para barras largas e cheias. Numa
-		// barra de 76px com pouca vida, o texto cai sobre a calha CLARA e some.
-		// Abaixo da metade ele vira azul escuro com halo claro — mesma peca,
-		// contraste invertido.
-		(fracao < 0.55 ? ' is-baixo' : '') +
-		'">' +
+		/*
+		 * D-962 — O NUMERO VIVE FORA DA BARRA.
+		 *
+		 * Ele morava DENTRO dela, no `.rotulo` do design system, e a rodada
+		 * anterior tentou salvar a leitura invertendo a cor abaixo da metade
+		 * (`is-baixo`: branco em cima do preenchimento, azul escuro sobre a
+		 * calha). Os dois ramos falham pelo mesmo motivo, e o print mediu: em
+		 * 9 das 10 linhas a BORDA do preenchimento cai DENTRO do numero, e os
+		 * digitos trocam de cor no meio da palavra — "600 / 1200" com metade
+		 * em cada cor.
+		 *
+		 * E a cicatriz D-944 na forma geral: *ouro e MOLDURA, nunca a
+		 * palavra*. Texto nao vive em cima de preenchimento que se move —
+		 * inverter a cor do texto so troca em qual metade ele some, porque a
+		 * fronteira continua atravessando o glifo. O numero saiu para o lado,
+		 * sobre a chapa do cartao, que nao se move: um fundo so, um contraste
+		 * so, em qualquer fracao de vida.
+		 *
+		 * A barra fica — ela e a leitura de RELANCE (quanto falta), e o numero
+		 * e a leitura EXATA. Sao duas perguntas, e agora cada uma tem a sua
+		 * peca.
+		 */
+		'<span class="gi-membro-vida">' +
+		'<span class="ri-bar ri-bar--hp gi-membro-hp">' +
 		'<span class="fill" style="width:' +
 		(fracao * 100).toFixed(1) +
 		'%"></span>' +
-		'<span class="rotulo">' +
+		'</span>' +
+		'<span class="gi-membro-hp-num">' +
 		escapeHtml(m.hp) +
 		' / ' +
 		escapeHtml(m.hpMaximo) +
@@ -566,6 +610,9 @@ function desenharTudo() {
 	desenharPostos(e);
 	desenharRateio(e);
 	desenharAjustes(e);
+	// D-964: o conteudo acabou de mudar, entao a marca de rolagem tambem pode
+	// ter mudado — um grupo de 10 rola, um de 1 nao.
+	marcarRolagem();
 }
 
 function mostrarRecado(texto, ehProblema) {
@@ -584,6 +631,12 @@ function ligarEventos(r) {
 	r.querySelector('.gi-close').addEventListener('click', function () {
 		GrupoIdle.fechar();
 	});
+
+	/* D-964: chegar ao fim da rolagem APAGA o desvanecer — e a metade que
+	   torna o sinal honesto (sem ela, o pe da lista prometeria uma
+	   continuacao que nao existe). `passive` porque este listener nunca
+	   cancela a rolagem. */
+	r.querySelector('.gi-body').addEventListener('scroll', marcarRolagem, { passive: true });
 
 	r.querySelectorAll('.gi-tab').forEach(function (aba) {
 		aba.addEventListener('click', function () {

@@ -36,9 +36,26 @@
  * membros apareciam.
  *
  * Abaixo de 900px de largura a linha vira DUAS (nome e mapa nao cabem lado a
- * lado em 353px), as duas colunas EMPILHAM, e a lista ganha rolagem propria
- * com teto: no celular em pe a janela nao pode empurrar o rodape — a linha de
- * estado — para fora da tela.
+ * lado em 353px) e as duas colunas EMPILHAM.
+ *
+ * ---------------------------------------------------------------------------
+ * UMA ROLAGEM SO, E ELA AVISA (D-963/D-964)
+ * ---------------------------------------------------------------------------
+ * Esta secao dizia que no celular "a lista ganha rolagem propria com teto",
+ * de 216px, para a janela nao empurrar o rodape para fora. As duas metades
+ * estavam erradas:
+ *
+ *  - o rodape nunca dependeu daquele teto. `.gi-window` e uma coluna flex com
+ *    o rodape em `flex: 0 0 auto` e o corpo em `flex: 1 1 auto; min-height:0`
+ *    — quem cede altura e o corpo, sempre;
+ *  - e 216px cravados valiam o mesmo num aparelho de 760 e num de 900,
+ *    enquanto a JANELA se estica ate a barra de atalhos (D-941). Medido em
+ *    393x852: 4,3 dos 10 membros visiveis, com a janela ainda tendo altura
+ *    sobrando e rolando por fora.
+ *
+ * Hoje quem rola e o `.gi-body`, sozinho, e ele acende `is-rolando` enquanto
+ * houver conteudo abaixo da borda — o desvanecer do pe e o que transforma
+ * "meia linha cortada" em "tem mais coisa embaixo".
  */
 
 :host {
@@ -185,6 +202,30 @@
 	box-sizing: border-box;
 }
 
+/*
+ * D-964 — QUANDO O CORPO ROLA, ELE DIZ QUE ROLA.
+ *
+ * O corte de meia linha no pe da lista le como defeito de renderizacao, e
+ * nao como "tem mais coisa embaixo" — foi assim que o dono leu o print do
+ * celular. O desvanecer resolve pelo lado certo: ele nao esconde a meia
+ * linha, ele a EXPLICA.
+ *
+ * Por que nao a barra de rolagem: em aparelho de dedo o design system apaga
+ * o trilho de TODAS as rolagens (`@media (pointer: coarse)`, D-941 — ordem
+ * do dono: *"nao devem ter barras de rolagem"*). No celular o `.ri-scroll`
+ * da lista nao desenha nada, entao no celular ele nao comunica nada. O
+ * desvanecer e o sinal que sobrevive aquela regra, e e o mesmo que todo app
+ * de celular usa.
+ *
+ * A classe e do JS (`marcarRolagem`) e nao uma mascara fixa, porque mascara
+ * fixa apagaria a ultima linha tambem quando NAO ha nada embaixo — um
+ * "continua" mentindo no fim da lista e pior que sinal nenhum.
+ */
+#GrupoIdle .gi-body.is-rolando {
+	-webkit-mask-image: linear-gradient(180deg, #000 calc(100% - 20px), transparent 100%);
+	mask-image: linear-gradient(180deg, #000 calc(100% - 20px), transparent 100%);
+}
+
 /* So "display" precisa do guard de :not([hidden]) — uma classe com display
    proprio VENCE o display:none que o navegador da ao atributo, por ORIGEM da
    regra e nao por especificidade (a cicatriz de 26/08, registrada no
@@ -248,8 +289,30 @@
 	gap: var(--sp-6);
 }
 
-/* CELULAR EM PE: as colunas empilham e a lista ganha teto proprio. Sem o
-   teto, dez membros empurrariam o rodape (a linha de estado) para fora. */
+/*
+ * CELULAR EM PE: as colunas empilham.
+ *
+ * D-963 — O TETO DE 216px DA LISTA SAIU, e a razao e o print.
+ *
+ * Ele era "6 linhas de 36px", cravado, e cravado ele valia o mesmo num
+ * aparelho de 760 e num de 900. So que a janela NAO tem altura cravada no
+ * celular: o design system a estica do topo ate a barra de atalhos
+ * (`.ri-vertical .ri-janela-corpo`, D-941). O resultado media assim, em
+ * 393x852: a lista mostrava 4,3 dos 10 membros e parava, enquanto o corpo da
+ * janela ainda tinha altura sobrando e rolava POR FORA. Duas rolagens
+ * empilhadas — a de dentro escondendo 282px, a de fora escondendo 198px — e
+ * o jogador tendo de descobrir qual das duas mexer.
+ *
+ * Agora quem rola e UM so: o `.gi-body`, que e o unico que sabe quanta
+ * altura sobrou depois do estandarte, das abas e do rodape. A lista entrega
+ * as dez linhas e a janela usa a altura que tem.
+ *
+ * O rodape (a linha de estado) continua preso embaixo sem depender de teto
+ * nenhum: `.gi-window` e uma coluna flex, o rodape e `flex: 0 0 auto` e o
+ * `.gi-body` e `flex: 1 1 auto` com `min-height: 0` — quem cede altura e o
+ * corpo, sempre. Era esse o medo que o teto de 216px tentava cobrir, e ele
+ * ja estava coberto pelo flex.
+ */
 @media (max-width: 900px) {
 	#GrupoIdle .gi-colunas {
 		flex-direction: column;
@@ -258,10 +321,6 @@
 	#GrupoIdle .gi-coluna-lado {
 		flex: 1 1 auto;
 		width: 100%;
-	}
-	#GrupoIdle .gi-membros {
-		max-height: 216px; /* 6 linhas de 36px — o resto rola */
-		overflow-y: auto;
 	}
 }
 
@@ -315,15 +374,21 @@
 	background: var(--surface-card);
 	box-shadow: var(--rim-light), var(--shadow-card);
 }
-/* As duas colunas elasticas dividem o que sobra na razao 3:2 — o nome e a
+/* As duas colunas elasticas dividem o que sobra na razao 5:4 — o nome e a
    informacao mais procurada da linha, e o mapa e a segunda. Nenhuma das duas
-   tem largura fixa: largura fixa e o que produziu o nome de uma letra so. */
+   tem largura fixa: largura fixa e o que produziu o nome de uma letra so.
+
+   D-962: a razao era 3:2 e virou 5:4 porque o NUMERO do HP entrou na linha e
+   levou ~50px do que sobrava. Medido no print: com 3:2 o mapa desenhava
+   "Campo de P..." — a mesma perda que a razao de 62/38 tinha causado ao
+   NOME, so que uma coluna adiante. O nome continua vindo primeiro; o que
+   mudou foi de quanto. */
 #GrupoIdle .gi-membro > .gi-membro-topo {
-	flex: 3 1 0;
+	flex: 5 1 0;
 	min-width: 0;
 }
 #GrupoIdle .gi-membro > .gi-membro-onde {
-	flex: 2 1 0;
+	flex: 4 1 0;
 	min-width: 0;
 }
 #GrupoIdle .gi-membro > .gi-membro-direita {
@@ -333,7 +398,9 @@
 	gap: var(--sp-4);
 }
 #GrupoIdle .gi-membro-posto {
-	min-width: 62px;
+	/* 56px: o mais largo dos quatro postos e "Vanguarda", com 47px medidos.
+	   Era 62 e cedeu 6 ao numero do HP (D-962). */
+	min-width: 56px;
 	text-align: right;
 }
 
@@ -350,8 +417,11 @@
 	#GrupoIdle .gi-membro > .gi-membro-onde {
 		flex: 1 1 auto;
 	}
+	/* D-962: a barra encolhe no celular porque agora ela divide a coluna com
+	   o numero — que e quem carrega a leitura exata. Antes ela tinha 108px
+	   sozinha, com o numero por dentro. */
 	#GrupoIdle .gi-membro-hp {
-		width: 108px;
+		width: 52px;
 	}
 	#GrupoIdle .gi-membro > .gi-membro-direita {
 		flex-direction: column;
@@ -439,6 +509,13 @@
 	color: var(--text-muted);
 }
 #GrupoIdle .gi-membro-mapa {
+	/* D-962: ele CRESCE para dentro do que sobra em `.gi-membro-onde`. Sem
+	   isto ele se dimensiona pelo proprio texto (87,28px para "Campo de
+	   Prontera") e a caixa arredonda para 87 — a reticencia aparecia por
+	   TRES DECIMOS de pixel, com espaco livre ao lado. Dar mais largura a
+	   coluna nao resolvia nada enquanto ele nao aceitasse crescer. */
+	flex: 1 1 auto;
+	min-width: 0;
 	white-space: nowrap;
 	overflow: hidden;
 	text-overflow: ellipsis;
@@ -472,10 +549,34 @@
 	gap: var(--sp-2);
 	flex: 0 0 auto;
 }
+/*
+ * D-962 — A BARRA E O NUMERO SAO PECAS SEPARADAS, LADO A LADO.
+ *
+ * A barra responde "quanto falta" de relance; o numero responde "quanto
+ * exatamente". Enquanto o numero morava DENTRO da barra, a fronteira do
+ * preenchimento atravessava o glifo e os digitos trocavam de cor no meio da
+ * palavra — medido no print de dez membros: 9 das 10 linhas.
+ *
+ * E a cicatriz D-944 generalizada (*ouro e MOLDURA, nunca a palavra*): texto
+ * nao vive em cima de preenchimento que se move. Inverter a cor abaixo da
+ * metade, que era o remendo anterior (`is-baixo`), so trocava em qual metade
+ * o numero sumia.
+ */
+#GrupoIdle .gi-membro-vida {
+	display: flex;
+	align-items: center;
+	gap: var(--sp-3);
+	flex: 0 0 auto;
+}
 #GrupoIdle .gi-membro-hp {
 	display: block;
-	width: 76px;
-	height: 12px;
+	/* 54px, e o numero saiu do print: com 64 o mapa desenhava "Campo de
+	   P...", e com 60 ele ainda perdia a ultima letra. A barra e a leitura
+	   de relance — ela pode encolher; o nome do mapa, nao. Os 54 deixam
+	   ~3,7px de folga no mapa, e nao zero: folga zero neste layout vira
+	   reticencia por arredondamento. */
+	width: 54px;
+	height: 8px;
 }
 /*
  * O PREENCHIMENTO precisa ser BLOCO, e este e um defeito que so o print
@@ -490,15 +591,23 @@
 	display: block;
 }
 /*
- * O NUMERO SOBRE A PARTE VAZIA. O `.rotulo` do design system e branco com
- * sombra escura — certo sobre o preenchimento, ilegivel sobre a calha clara
- * de uma barra quase vazia. Abaixo da metade a peca inverte: azul escuro com
- * halo claro. Achado no print, e nao no DOM: o elemento estava la, com o
- * texto invisivel dentro (regra 5).
+ * O NUMERO. `tabular-nums` porque a coluna nao pode pular de largura quando
+ * 900 vira 1000 — a lista inteira tremeria a cada tique de vida —, e a
+ * largura minima e a de "1200 / 1200", o texto mais largo que ela recebe.
+ *
+ * A cor e `--text-title` sobre a chapa do cartao: um fundo so atras do
+ * numero, do cheio ao vazio. E o contraste disso a prova visual MEDE, no
+ * PNG, linha por linha (regra 5).
  */
-#GrupoIdle .gi-membro-hp.is-baixo > .rotulo {
+#GrupoIdle .gi-membro-hp-num {
+	flex: 0 0 auto;
+	/* 52px: "1200 / 1200", o texto mais largo que ela recebe, mede 48. */
+	min-width: 52px;
+	text-align: right;
+	font: var(--type-badge);
+	font-variant-numeric: tabular-nums;
 	color: var(--text-title);
-	text-shadow: 0 1px 0 rgba(255, 255, 255, 0.85);
+	white-space: nowrap;
 }
 #GrupoIdle .gi-membro-posto {
 	font: var(--type-badge);
@@ -581,9 +690,30 @@
 	font: var(--type-desc);
 	flex: 1 1 auto;
 }
+/*
+ * D-966 — O MOTIVO E INSTRUCAO, E NAO DECORACAO. (cicatriz D-944 de novo)
+ *
+ * Ele era `color: var(--amber-600)` puro sobre a chapa afundada do cartao
+ * bloqueado. Medido no PNG de `postos`: **3,49:1** — abaixo do piso de 4,5:1
+ * de texto normal, e o texto MENOS legivel da tela era justamente o unico que
+ * diz ao jogador COMO destravar o posto.
+ *
+ * E a mesma cicatriz D-944 pela terceira vez nesta janela: *a cor de aviso e
+ * MOLDURA, nunca a palavra*. O ambar virou um filete a esquerda — por
+ * `box-shadow`, nunca `border`, porque `border` mexe na caixa — e a palavra
+ * voltou para `--text-body`, que mede 10,9:1 no mesmo fundo.
+ *
+ * O RESUMO do cartao bloqueado continua esmaecido de proposito (3,46:1): ele
+ * e a descricao do posto, repetida nos quatro cartoes, e esmaecer e o que diz
+ * "este esta desligado". O que nao podia ficar ilegivel e a saida.
+ */
 #GrupoIdle .gi-posto-motivo {
+	padding: var(--sp-3) var(--sp-4);
+	border-radius: var(--radius-card);
+	background: var(--surface-card);
+	box-shadow: inset 2px 0 0 var(--amber-600);
 	font: var(--type-desc);
-	color: var(--amber-600);
+	color: var(--text-body);
 }
 #GrupoIdle .gi-posto .ri-btn {
 	align-self: flex-start;
