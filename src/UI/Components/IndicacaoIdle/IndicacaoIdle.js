@@ -28,7 +28,7 @@ import cssText from './IndicacaoIdle.css?raw';
 import { fecharEEsquecer } from '../limpezaDeJanelaIdle.js';
 
 const WINDOW_WIDTH = 520;
-const WINDOW_HEIGHT = 620;
+const WINDOW_HEIGHT = 540;
 
 const RECUSAS = {
 	'codigo-invalido': 'Esse código não existe. Confira as seis letras com quem te indicou.',
