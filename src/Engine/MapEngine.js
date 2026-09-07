@@ -1089,7 +1089,11 @@ function onMapChange(pkt) {
 			// CashShopIcon.append();
 		}
 
-		if (Configs.get('enableCheckAttendance') && PACKETVER.value >= 20180307) {
+		// RAGIDLE (07/09/2026): so abre a janela de presenca se HA evento — o
+		// servidor paga a presenca por correio e nao manda o 0x0ae2; sem a
+		// guarda, cada carregamento de mapa (a Asa de Mosca inclusive) imprimia
+		// "Nao ha evento de presenca no momento." no chat.
+		if (Configs.get('enableCheckAttendance') && PACKETVER.value >= 20180307 && CheckAttendance.temEvento()) {
 			CheckAttendance.append();
 		}
 
