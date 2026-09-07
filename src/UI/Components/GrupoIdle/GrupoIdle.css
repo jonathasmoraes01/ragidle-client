@@ -73,14 +73,34 @@
 	font: var(--type-info);
 }
 
+/*
+ * A MEDIDA E EM PIXEL, e nao em `100%` — D-968 (07/09/2026).
+ *
+ * A janela abria e o dono via **uma barrinha fina no topo**: `.gi-window`
+ * media 2px de altura (so as bordas) com o `:host` correto em 640px.
+ *
+ * A CADEIA, medida no runtime: `.gi-window` e `position: absolute`, entao ela
+ * sai do fluxo; `#GrupoIdle` fica **sem nenhum filho em fluxo** e o
+ * `height: 100%` dele nao resolve — computa **0px**. Com o pai em zero, o
+ * `height: 100%` daqui tambem vira zero, e o `inset: 0` nao salva porque
+ * altura declarada vence o `bottom` quando as duas existem (o caso
+ * sobre-restrito da spec: com `top`, `bottom` E `height`, o `bottom` e
+ * ignorado).
+ *
+ * O `LFGIdle` — a janela IRMA, mesma familia `.ri-window`, que sempre
+ * desenhou certo — nunca usou porcentagem aqui: ele crava `880px`/`600px`.
+ * Esta janela nasceu com `100%` copiado de outro lugar, e por isso foi a
+ * unica a colapsar. O pixel casa com o `:host` logo acima (760x640) e as
+ * duas medidas andam juntas, como la.
+ */
 #GrupoIdle .gi-window {
 	display: none;
 	position: absolute;
 	inset: 0;
 	pointer-events: auto;
 	flex-direction: column;
-	width: 100%;
-	height: 100%;
+	width: 760px;
+	height: 640px;
 	box-sizing: border-box;
 	overflow: hidden;
 }
