@@ -770,6 +770,34 @@ function onConnectionRefused(pkt) {
  */
 function onMapChange(pkt) {
 	MapRenderer.onLoad = () => {
+		/*
+		 * RAGIDLE (B1, 06/09/2026) — A SEGUNDA LIMPEZA, E ELA E O CONSERTO.
+		 *
+		 * Reporte do playtest: *"essa prova de vocacao (...) ta levando pra
+		 * Prontera com os mobs"*. A pista que fechou o diagnostico foi do
+		 * proprio dono: *"quando eu dei ctrl f5 (sem cache) (...) desbugou"* —
+		 * recarregar conserta estado do CLIENTE, e so dele.
+		 *
+		 * `MapRenderer.setMap` ja limpa as entidades, mas no COMECO do
+		 * carregamento, e o mapa parseia num worker por SEGUNDOS. Nessa janela a
+		 * rede segue sendo processada: todo pacote de entidade do mapa VELHO
+		 * ainda em voo quando o `viajar` rodou — os mobs que o jogador estava
+		 * batendo, os passos deles, os que nasceram no mesmo tique — chega
+		 * DEPOIS daquela limpeza, entra no EntityManager e sobrevive para o mapa
+		 * novo. Por isso o defeito so aparece quando a viagem acontece NO MEIO
+		 * DA LUTA, que e exatamente o que a Prova de Vocacao faz: o primeiro
+		 * passo dela e `{ tipo: 'travel', mapa: 'prontera' }`.
+		 *
+		 * Aqui e o instante CERTO por construcao: o servidor so desce o lote do
+		 * mapa novo depois de receber o `CZ_NOTIFY_ACTORINIT`, que sai no fim
+		 * desta funcao. Entao o que estiver no EntityManager agora e resto do
+		 * mapa anterior, e nada de legitimo e perdido.
+		 *
+		 * A limpeza do comeco FICA: e ela que apaga a tela enquanto a arte do
+		 * carregamento sobe. As duas juntas fecham a janela inteira.
+		 */
+		EntityManager.free();
+
 		Session.Entity.set({
 			PosDir: [pkt.xPos, pkt.yPos, 0],
 			// Use Session.AID rather than Session.Entity.GID here:

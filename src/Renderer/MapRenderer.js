@@ -510,6 +510,20 @@ function onMapComplete(success, error) {
 
 	// Problem during loading ?
 	if (!success) {
+		/*
+		 * RAGIDLE (B1, 06/09/2026) — A BANDEIRA TEM DE CAIR AQUI TAMBEM.
+		 *
+		 * `setMap` comeca com `if (this.loading) return;`, e `loading` so
+		 * voltava a `false` no caminho de SUCESSO (dentro do
+		 * `Background.remove` la embaixo). Um mapa que falhasse ao carregar
+		 * deixava a bandeira presa em `true`, e dai em diante TODA troca de
+		 * mapa era descartada em silencio: o servidor movia o personagem e o
+		 * cliente continuava desenhando o mapa velho, com a populacao dele.
+		 *
+		 * E a outra metade do "so o Ctrl+F5 desbuga" — e a unica saida sem
+		 * recarregar nao existia.
+		 */
+		MapRenderer.loading = false;
 		UIManager.showErrorBox(error).ui.css('zIndex', 1000);
 		return;
 	}
