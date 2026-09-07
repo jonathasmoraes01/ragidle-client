@@ -1321,3 +1321,13 @@
 	background: linear-gradient(180deg, #f4c03e, #d9a020);
 	box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5);
 }
+
+/* RAGIDLE (D-1155): a plaqueta da habilidade de QUEST — so o nivel, sem setas. */
+#IdleSkills .is-plaqueta--quest {
+	justify-content: center;
+	border-color: #d9a020;
+	background: linear-gradient(180deg, #fff6dc, #f6e3a8);
+}
+#IdleSkills .is-plaqueta--quest .is-no-nivel {
+	color: #6b4a00;
+}
