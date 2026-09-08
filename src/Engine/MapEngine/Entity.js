@@ -982,7 +982,28 @@ function onEntityAction(pkt) {
 			break;
 	}
 
-	if (pkt?.damage > 0) {
+	/*
+	 * SEM O ALVO NA TELA NAO HA LINHA DE DANO — e isso e uma resposta, nao um
+	 * erro (RAGIDLE, 07/09/2026).
+	 *
+	 * O topo desta funcao ja guarda `srcEntity` (*"Entity out of the screen?"*)
+	 * e o `case 1` ja guarda `dstEntity` (`if (dstEntity)`). Este bloco, nao:
+	 * ele le `dstEntity.display.name` em SETE ramos, e `EntityManager.get`
+	 * devolve `null` sempre que o alvo ja saiu da area de interesse — o caso
+	 * comum e o mob que morre no mesmo tique em que o golpe e anunciado.
+	 *
+	 * MEDIDO em `prove:anuncio-de-drop` (repo do servidor): a excecao aparece
+	 * numa caca de 3 minutos, no celular. Ela sobe pelo `Socket.receive`, que e
+	 * o laco que FATIA o buffer de rede — uma excecao ali ABORTA o laco, e o
+	 * que vinha depois no mesmo quadro do WebSocket e descartado sem ninguem
+	 * contar. E o mesmo modo de falha da busca de caminho sem mapa carregado
+	 * (`PathFinding.searchLong`), consertado no mesmo dia.
+	 *
+	 * A guarda e so para a LINHA DO CHAT: a animacao de golpe acima ja rodou, e
+	 * ela nao depende do alvo. Perder a linha de dano de um mob que ja sumiu
+	 * nao custa nada; perder o resto do quadro de rede custa.
+	 */
+	if (pkt?.damage > 0 && dstEntity) {
 		if (srcEntity.GID === Session.Entity.GID) {
 			// I deal damage
 			ChatBox.addText(

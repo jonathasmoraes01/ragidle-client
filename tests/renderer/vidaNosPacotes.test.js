@@ -7,6 +7,8 @@ const entidades = new Map();
 const hooks = new Map();
 const renderer = { tick: 1000 };
 const numeros = [];
+/** As linhas que `ChatBox.addText` recebeu — ver o mock dos componentes. */
+const linhasDoChat = [];
 const config = { arco: false };
 const packet = { ZC: new Proxy({}, { get(alvo, nome) {
 	return alvo[nome] ??= function Pacote() {};
@@ -57,7 +59,16 @@ for (const nome of [
 	'BasicInfo', 'ChatBox', 'ChatRoom', 'Escape', 'DeathWindow', 'HomunInformations',
 	'MercenaryInformations', 'Inventory', 'ShortCut', 'StatusIcons', 'StatusIdle',
 	'MiniMap', 'PartyFriends', 'Equipment'
-]) vi.doMock(`UI/Components/${nome}/${nome}.js`, () => ({ default: { isGroupMember: () => false } }));
+]) vi.doMock(`UI/Components/${nome}/${nome}.js`, () => ({ default: {
+	isGroupMember: () => false,
+	// `addText` ESPIA, e nao um vazio: o bloco da linha de dano em
+	// `onEntityAction` so pode ser MEDIDO se alguem observar o que ele escreve.
+	// Sem isto, um mutante que apagasse o bloco inteiro sobreviveria — medido
+	// em 07/09/2026, e foi assim que o controle positivo daquele caso nasceu.
+	addText: (...args) => linhasDoChat.push(args),
+	TYPE: { INFO: 2, BLUE: 16, ERROR: 32 },
+	FILTER: { BATTLE: 15, PARTY_BATTLE: 16 }
+} }));
 for (const nome of [
 	'EntityAction', 'EntityCast', 'EntityDisplay', 'EntityDialog', 'EntitySound',
 	'EntityView', 'EntityWalk', 'EntityRender', 'EntityRoom', 'EntityState',
@@ -167,5 +178,70 @@ describe('vida no caminho real dos pacotes ate o desenho', () => {
 		avancar(2000);
 		expect(entidades.get(2)).toBe(novo);
 		expect(largura(novo)).toBe(58);
+	});
+
+	/*
+	 * O GOLPE NO ALVO QUE JA SUMIU (RAGIDLE, 07/09/2026).
+	 *
+	 * `onEntityAction` guarda `srcEntity` desde sempre (*"Entity out of the
+	 * screen?"*) e o `case 1` guarda `dstEntity` — mas o bloco da LINHA DE DANO
+	 * lia `dstEntity.display.name` em sete ramos sem checar. Quando o alvo ja
+	 * saiu da area de interesse (o mob que morre no mesmo tique do golpe),
+	 * `EntityManager.get` devolve `null` e o handler estoura.
+	 *
+	 * O CUSTO NAO E A LINHA PERDIDA. A excecao sobe pelo `Socket.receive`, que
+	 * e o laco que fatia o buffer de rede: ela ABORTA o laco, e o que vinha
+	 * depois no mesmo quadro do WebSocket e descartado sem ninguem contar —
+	 * pacote perdido em silencio, num cliente que so desenha o que o servidor
+	 * manda. Medido em `prove:anuncio-de-drop` (repo do servidor): aparece numa
+	 * caca de tres minutos. E o mesmo modo de falha da busca de caminho sem
+	 * mapa carregado, consertada no mesmo dia.
+	 */
+	it('o golpe num alvo que JA SUMIU nao derruba o handler de rede', () => {
+		nascer();
+		expect(() =>
+			enviar('NOTIFY_ACT3', {
+				GID: 1,
+				targetGID: 777, // ninguem: o alvo saiu da area de interesse
+				action: 0,
+				damage: 300,
+				leftDamage: 0,
+				attackMT: 400,
+				attackedMT: 200,
+				count: 1
+			})
+		).not.toThrow();
+	});
+
+	it('e o golpe COM alvo na tela ESCREVE a linha de dano', () => {
+		/*
+		 * O CONTROLE POSITIVO da guarda acima, e ele nasceu de um mutante que
+		 * SOBREVIVEU: a primeira versao deste caso so cobrava "nao estourou" e
+		 * contava numeros de dano — que vem de `Damage.add`, noutro ponto da
+		 * funcao. Trocar a guarda inteira por `if (false)` apagava o bloco do
+		 * chat e os nove casos continuavam verdes.
+		 *
+		 * Agora ele cobra o que o bloco PRODUZ. O golpe sai do proprio jogador
+		 * (`Session.Entity.GID` e 9000 no aparelho), que e o primeiro ramo — o
+		 * unico que nao depende de party nem de bicho de estimacao.
+		 */
+		const eu = new Entity();
+		eu.set({ GID: 9000, objecttype: Entity.TYPE_PC, job: 0 });
+		entidades.set(9000, eu);
+		nascer();
+		linhasDoChat.length = 0;
+
+		enviar('NOTIFY_ACT3', {
+			GID: 9000,
+			targetGID: 2,
+			action: 0,
+			damage: 300,
+			leftDamage: 0,
+			attackMT: 400,
+			attackedMT: 200,
+			count: 1
+		});
+		expect(linhasDoChat.length, 'a linha de dano nao foi escrita').toBeGreaterThan(0);
+		expect(String(linhasDoChat[0][0])).toContain('300');
 	});
 });

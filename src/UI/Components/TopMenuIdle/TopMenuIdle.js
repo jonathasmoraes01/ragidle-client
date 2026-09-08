@@ -104,7 +104,7 @@
  *                 janela — chama Guild.promptCreateGuild(), exatamente como
  *                 o atalho de teclado nativo faz (Guild.js:420-423). Aceito
  *                 de proposito: e o unico caminho de entrada que existe.
- *   - Grupo       -> PartyFriends.toggle()   (PartyFriends.js:47-52) — proxy
+ *   - Grupo       -> GrupoIdle.toggle()      (D-960; era PartyFriends.toggle())
  *                 PUBLICO do controller de versao (V0/V1), que delega pra
  *                 PartyFriendsCommon.js:132-138.
  *   - Admin       -> AdminPanel.toggle()     (AdminPanel.js:268), com a
@@ -178,8 +178,13 @@ import Session from 'Engine/SessionStorage.js';
 import IdleSkills from 'UI/Components/IdleSkills/IdleSkills.js';
 import IdleConfig from 'UI/Components/IdleConfig/IdleConfig.js';
 import Guild from 'UI/Components/Guild/Guild.js';
-import PartyFriends from 'UI/Components/PartyFriends/PartyFriends.js';
+// A janela NATIVA de party saiu deste arquivo em D-960: o item "Grupo"
+// passou a abrir a `GrupoIdle`, e nao havia mais nenhum uso de
+// `PartyFriends` aqui. Ela continua VIVA no jogo — quem a anexa e quem a
+// alimenta e o `Engine/MapEngine.js` e o `Engine/MapEngine/Group.js`, que
+// desenham o convite que CHEGA e a lista de amigos.
 import LFGIdle from 'UI/Components/LFGIdle/LFGIdle.js'; // RAGIDLE: Procurar Grupo (D-634)
+import GrupoIdle from 'UI/Components/GrupoIdle/GrupoIdle.js'; // RAGIDLE: janela de Grupo (D-960)
 import { ehCelularEmPe } from 'UI/hudVertical.js'; // D-939: a folha do menu flutua sobre o chat
 import SkillList from 'UI/Components/SkillList/SkillList.js';
 import StatusIdle from 'UI/Components/StatusIdle/StatusIdle.js';
@@ -189,6 +194,7 @@ import CorreioIdle from 'UI/Components/CorreioIdle/CorreioIdle.js';
 import HuntAnalyzer from 'UI/Components/HuntAnalyzer/HuntAnalyzer.js';
 import MissoesIdle from 'UI/Components/MissoesIdle/MissoesIdle.js';
 import PasseIdle from 'UI/Components/PasseIdle/PasseIdle.js';
+import VotoIdle from 'UI/Components/VotoIdle/VotoIdle.js'; // RAGIDLE: janela de Voto (D-1159)
 import CodexIdle from 'UI/Components/CodexIdle/CodexIdle.js'; // RAGIDLE: Codex (D-851)
 import PresencaIdle from 'UI/Components/PresencaIdle/PresencaIdle.js'; // RAGIDLE: Presenca (D-1162)
 import IndicacaoIdle from 'UI/Components/IndicacaoIdle/IndicacaoIdle.js'; // RAGIDLE: Indique & Ganhe (D-1164)
@@ -360,6 +366,7 @@ TopMenuIdle.onAppend = function onAppend() {
 	syncAllActiveStates();
 	syncSkillDot();
 	syncCorreioDot();
+	syncVotoLivre();
 	syncToggleDot();
 	startPolling();
 	ligarFechamentoExterno();
@@ -462,8 +469,25 @@ function onClickAction(e) {
 		case 'guild':
 			Guild.toggle();
 			break;
+		/*
+		 * "Grupo" passou a abrir a NOSSA janela (D-960, 07/09/2026).
+		 *
+		 * Ordem do dono: *"quando a pessoa vir a nossa lista de grupos e
+		 * entrar em um grupo, ela deve ficar nessa tela ate sair do grupo"* —
+		 * a tela de quem esta em party e a `GrupoIdle`, e nao a janela nativa
+		 * do roBrowser, que nao tem posto, rateio nem ajuste.
+		 *
+		 * A nativa (`PartyFriends`) NAO foi removida: ela continua sendo quem
+		 * desenha o convite que CHEGA (a caixa de aceite) e a lista de amigos,
+		 * e continua escutando os mesmos pacotes de party de sempre. O que
+		 * mudou foi a PORTA deste item de menu.
+		 *
+		 * ATENCAO: existe um SEGUNDO switch neste arquivo, o `isActionOpen()`
+		 * la embaixo. Este aqui ABRE; o de la acende o aro. Ja houve TRES
+		 * casos de so um dos dois ser editado — os tres comentados la.
+		 */
 		case 'group':
-			PartyFriends.toggle();
+			GrupoIdle.toggle();
 			break;
 		// O LFG e uma janela SEPARADA da de party (D-634): a nativa mostra
 		// quem ja esta no grupo, esta procura grupo para entrar.
@@ -502,6 +526,12 @@ function onClickAction(e) {
 		   e 0x0fe5/0x0fe6/0x0fe7 (PacketStructure.js). */
 		case 'passe':
 			PasseIdle.toggle();
+			break;
+		/* VOTAR (D-1159). Ele PEDE o estado ao abrir (0x0fd4 com
+		   `{acao:'pedir'}`): saldo, prazo de cada plataforma e preco sao do
+		   servidor — a janela so desenha. */
+		case 'voto':
+			VotoIdle.toggle();
 			break;
 		/*
 		 * A LOJA DE CASH (I5, 31/08/2026 — pedido do dono).
@@ -841,7 +871,26 @@ function distribuirFileiras() {
 		typeof window !== 'undefined' && window.matchMedia
 			? window.matchMedia('(max-height: 439px)').matches
 			: false;
-	const colunas = deitado ? 3 : Math.max(1, Math.ceil(visiveis.length / 2));
+	/*
+	 * O TETO DE QUATRO COLUNAS (D-1159, 07/09/2026) — e ele existe por uma
+	 * medicao, nao por gosto.
+	 *
+	 * A grade tem colunas `auto`: a largura de cada coluna e a do ROTULO mais
+	 * largo dela. Com a conta pura (metade dos visiveis) o NONO item abriria uma
+	 * QUINTA coluna, e ela nasceria com o "Recompensas" sozinho — o rotulo mais
+	 * largo do cluster inteiro virando a coluna mais larga. Medido em D-944: o
+	 * cluster com 337px REPROVA o `prove:hud-responsiva` em tablet-768x1024
+	 * quando passa de ~359px (ele monta em cima do painel de personagem).
+	 *
+	 * Com o teto, o nono item cai numa TERCEIRA fileira, na coluna 1, embaixo
+	 * de "Personagem" e "Recompensas" — e como "Votar" e mais curto que os dois,
+	 * o `max` daquela coluna nao muda e a largura fica IDENTICA. O cluster passa
+	 * a crescer para BAIXO, onde ha espaco, e quem mora abaixo dele ja se ajusta
+	 * sozinho por `--tm-topo` (D-930).
+	 *
+	 * Com oito itens ou menos nada muda: `ceil(8/2)` ja e 4.
+	 */
+	const colunas = deitado ? 3 : Math.min(4, Math.max(1, Math.ceil(visiveis.length / 2)));
 	topo.style.setProperty('--tm-colunas', String(colunas));
 }
 
@@ -1051,8 +1100,14 @@ function isActionOpen(action) {
 			return isRagIdleWindowOpen(AdminPanel, '.ap-window');
 		case 'guild':
 			return isHostVisible(Guild);
+		/* Ver o comentario do `case 'group'` no switch de ABRIR: o item passou
+		   a abrir a janela RAGIDLE (D-960), entao ele le
+		   '.gi-window.is-open' — e nao `isHostVisible`, que e a armadilha que
+		   o comentario de `lfg` logo abaixo registra (o `_host` de um
+		   GUIComponent nunca ganha display:none sozinho, entao o aro nunca
+		   apagaria). */
 		case 'group':
-			return isHostVisible(PartyFriends.getUI());
+			return isRagIdleWindowOpen(GrupoIdle, '.gi-window');
 		/*
 		 * LFG (D-634): ele e janela RAGIDLE, e NAO nativa -- entao le
 		 * ".lfg-window.is-open", como as vizinhas de cima.
@@ -1094,6 +1149,11 @@ function isActionOpen(action) {
 		 */
 		case 'passe':
 			return isRagIdleWindowOpen(PasseIdle, '.pi-window');
+		/* VOTO (D-1159): entrou nos DOIS switches no mesmo commit, que e o que
+		   o comentario do `passe` logo acima manda fazer enquanto a tabela
+		   unica de acao -> { abrir, seletor } nao existir. */
+		case 'voto':
+			return isRagIdleWindowOpen(VotoIdle, '.vi-window');
 		default:
 			// os itens "em breve" caem aqui -- nunca acendem.
 			return false;
@@ -1134,6 +1194,10 @@ function pollEstado() {
 	publicarTopoDoCluster();
 	syncSkillDot();
 	syncCorreioDot();
+	// D-1159: o destaque do botao de votar entra no MESMO tique dos outros
+	// dois avisos, e antes do `syncToggleDot()` de proposito — ele le os
+	// pontos dos itens ja calculados para decidir o ponto da alca.
+	syncVotoLivre();
 	syncToggleDot();
 	syncAllActiveStates();
 }
@@ -1232,6 +1296,40 @@ function syncCorreioDot() {
 			btn.title = `Correio — ${quantas} por ler`;
 		}
 	}
+}
+
+/**
+ * O DESTAQUE DO BOTAO DE VOTAR (D-1159) — o pedido do dono era literal:
+ * *"com bastante destaque quando tem voto disponivel"*.
+ *
+ * SAO DUAS MARCAS, e cada uma cobre um buraco da outra:
+ *
+ *  - `.is-voto-livre` no botao (aro dourado + pulso) e o destaque que se ve de
+ *    longe. Ele some quando o jogador recolhe o cluster pela alca;
+ *  - o `.ri-dot` e a MESMA receita do Correio e do Skills, e existe para o
+ *    aviso sobreviver a isso: recolhido, o ponto migra para a alca
+ *    (`syncToggleDot()` le os pontos dos itens, e nao a classe).
+ *
+ * A fonte do dado e `VotoIdle.temVotoDisponivel()`, que le o campo `liberados`
+ * calculado pelo SERVIDOR. Refazer a conta aqui (comparar `ultimoVotoMs` com
+ * 12 h) daria a segunda copia da regra, e um dia o botao piscaria com a janela
+ * dizendo "faltam 3h" — o defeito que ninguem reproduz.
+ */
+function syncVotoLivre() {
+	const root = _root();
+	const btn = root.querySelector('.tm-item[data-action="voto"]');
+	if (!btn) {
+		return;
+	}
+	const livre = VotoIdle.temVotoDisponivel();
+	btn.classList.toggle('is-voto-livre', livre);
+	const dot = btn.querySelector('.ri-dot');
+	if (dot) {
+		dot.style.display = livre ? '' : 'none';
+	}
+	btn.title = livre
+		? 'Votar — você tem voto disponível!'
+		: 'Votar e ganhar Vote Cash';
 }
 
 /**

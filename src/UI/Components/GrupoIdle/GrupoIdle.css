@@ -1,0 +1,888 @@
+/**
+ * UI/Components/GrupoIdle/GrupoIdle.css
+ *
+ * A JANELA DE GRUPO (D-960). A moldura inteira vem do design system
+ * (`.ri-window`/`.ri-header`/`.ri-tab`/`.ri-btn`/`.ri-scroll`, `Common.css`,
+ * injetado em todo shadow root); o que mora aqui e so o que e DESTA janela.
+ *
+ * ---------------------------------------------------------------------------
+ * REGRA 4 DO PROJETO, aplicada linha a linha
+ * ---------------------------------------------------------------------------
+ * A MOLDURA e CSS: chapa, aro, medidor, aba, segmento — `gradient` +
+ * `box-shadow` inset + `border-radius`, tudo aqui.
+ *
+ * O que CARREGA INFORMACAO e arte do cliente: o icone de classe de cada
+ * membro e a coroa do lider sao BMP do GRF, carregados por `Client.loadFile`
+ * (a mesma tecnica de `PartyFriendsCommon.js` e do `LFGIdle.js`), desenhados
+ * com `image-rendering: pixelated` e ampliacao por numero INTEIRO.
+ *
+ * ---------------------------------------------------------------------------
+ * O OURO E MOLDURA, NUNCA A PALAVRA (cicatriz D-944)
+ * ---------------------------------------------------------------------------
+ * O rotulo do lider e do posto em vigor usa aro dourado por `box-shadow`, com
+ * o TEXTO em `--text-title` (azul escuro). Dourado em texto sobre chapa clara
+ * fica ilegivel — foi exatamente o defeito do rotulo "Recompensas" em 06/09.
+ *
+ * E o aro e `box-shadow`, e nao `border`: `border` muda a caixa e desloca o
+ * layout quando o estado troca. Mesma cicatriz, mesma linha.
+ *
+ * ---------------------------------------------------------------------------
+ * DEZ MEMBROS TEM DE CABER
+ * ---------------------------------------------------------------------------
+ * Em tela larga `.gi-membro` e UMA linha de 32px (o icone de classe de 24 do
+ * GRF, mais 4 de respiro em cima e embaixo): dez membros somam 338px com os
+ * vaos e cabem na coluna INTEIROS, sem barra de rolagem. Foi o print que
+ * mediu isso — a primeira versao tinha linhas de duas alturas e so quatro
+ * membros apareciam.
+ *
+ * Abaixo de 900px de largura a linha vira DUAS (nome e mapa nao cabem lado a
+ * lado em 353px) e as duas colunas EMPILHAM.
+ *
+ * ---------------------------------------------------------------------------
+ * UMA ROLAGEM SO, E ELA AVISA (D-963/D-964)
+ * ---------------------------------------------------------------------------
+ * Esta secao dizia que no celular "a lista ganha rolagem propria com teto",
+ * de 216px, para a janela nao empurrar o rodape para fora. As duas metades
+ * estavam erradas:
+ *
+ *  - o rodape nunca dependeu daquele teto. `.gi-window` e uma coluna flex com
+ *    o rodape em `flex: 0 0 auto` e o corpo em `flex: 1 1 auto; min-height:0`
+ *    — quem cede altura e o corpo, sempre;
+ *  - e 216px cravados valiam o mesmo num aparelho de 760 e num de 900,
+ *    enquanto a JANELA se estica ate a barra de atalhos (D-941). Medido em
+ *    393x852: 4,3 dos 10 membros visiveis, com a janela ainda tendo altura
+ *    sobrando e rolando por fora.
+ *
+ * Hoje quem rola e o `.gi-body`, sozinho, e ele acende `is-rolando` enquanto
+ * houver conteudo abaixo da borda — o desvanecer do pe e o que transforma
+ * "meia linha cortada" em "tem mais coisa embaixo".
+ */
+
+:host {
+	position: absolute;
+	width: 760px;
+	height: 640px;
+	pointer-events: none;
+}
+
+#GrupoIdle {
+	position: relative;
+	width: 100%;
+	height: 100%;
+	color: var(--text-body);
+	font: var(--type-info);
+}
+
+#GrupoIdle .gi-window {
+	display: none;
+	position: absolute;
+	inset: 0;
+	pointer-events: auto;
+	flex-direction: column;
+	width: 100%;
+	height: 100%;
+	box-sizing: border-box;
+	overflow: hidden;
+}
+
+#GrupoIdle .gi-window.is-open {
+	display: flex;
+}
+
+/* Piso de tela baixa. Ele vem DEPOIS das regras incondicionais de propósito:
+   mesma especificidade, e em empate quem vence e a regra que aparece por
+   ultimo — a cicatriz medida no LFGIdle.css (a variante de 560px nunca
+   desenhava porque estava declarada antes). */
+@media (max-height: 760px) {
+	:host {
+		height: 540px;
+	}
+}
+@media (max-width: 820px) {
+	:host {
+		width: 96vw;
+		max-width: 760px;
+	}
+}
+
+#GrupoIdle .gi-titlebar,
+#GrupoIdle .gi-tabs,
+#GrupoIdle .gi-estandarte,
+#GrupoIdle .gi-convite,
+#GrupoIdle .gi-rodape {
+	flex: 0 0 auto;
+}
+
+/* ─── O estandarte: identidade do grupo, fora das abas ──────────────────── */
+
+#GrupoIdle .gi-estandarte {
+	display: flex;
+	align-items: center;
+	gap: var(--sp-6);
+	padding: var(--sp-6) var(--sp-7);
+	background: var(--surface-glass);
+	border-bottom: var(--divider);
+}
+#GrupoIdle .gi-estandarte-texto {
+	flex: 1 1 auto;
+	min-width: 0;
+}
+#GrupoIdle .gi-nome {
+	margin: 0;
+	font: var(--type-section);
+	color: var(--text-title);
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+#GrupoIdle .gi-resumo {
+	margin-top: var(--sp-2);
+	font: var(--type-desc);
+	color: var(--text-muted);
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+#GrupoIdle .gi-estandarte-acoes {
+	display: flex;
+	gap: var(--sp-3);
+	flex: 0 0 auto;
+}
+
+/* ─── O painel de convite: embutido, nunca modal ────────────────────────── */
+
+#GrupoIdle .gi-convite:not([hidden]) {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: flex-end;
+	gap: var(--sp-6);
+	padding: var(--sp-6) var(--sp-7);
+	background: var(--surface-inset);
+	box-shadow: var(--well-shadow);
+}
+#GrupoIdle .gi-convite-campo {
+	display: flex;
+	flex-direction: column;
+	gap: var(--sp-2);
+	flex: 1 1 220px;
+	min-width: 0;
+}
+#GrupoIdle .gi-convite-rotulo {
+	font: var(--type-label);
+	color: var(--text-muted);
+}
+#GrupoIdle .gi-convite-botoes {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--sp-3);
+}
+
+/* ─── Abas ──────────────────────────────────────────────────────────────── */
+
+#GrupoIdle .gi-tabs {
+	display: flex;
+	gap: var(--sp-3);
+	padding: var(--sp-4) var(--sp-7) 0;
+	border-bottom: var(--divider);
+	background: var(--surface-glass);
+	overflow-x: auto;
+}
+#GrupoIdle .gi-tabs .ri-tab {
+	margin-bottom: var(--sp-3);
+	white-space: nowrap;
+}
+
+/* ─── Corpo: as quatro vistas se excluem ────────────────────────────────── */
+
+#GrupoIdle .gi-body {
+	flex: 1 1 auto;
+	min-height: 0;
+	overflow-y: auto;
+	padding: var(--sp-6) var(--sp-7);
+	box-sizing: border-box;
+}
+
+/*
+ * D-964 — QUANDO O CORPO ROLA, ELE DIZ QUE ROLA.
+ *
+ * O corte de meia linha no pe da lista le como defeito de renderizacao, e
+ * nao como "tem mais coisa embaixo" — foi assim que o dono leu o print do
+ * celular. O desvanecer resolve pelo lado certo: ele nao esconde a meia
+ * linha, ele a EXPLICA.
+ *
+ * Por que nao a barra de rolagem: em aparelho de dedo o design system apaga
+ * o trilho de TODAS as rolagens (`@media (pointer: coarse)`, D-941 — ordem
+ * do dono: *"nao devem ter barras de rolagem"*). No celular o `.ri-scroll`
+ * da lista nao desenha nada, entao no celular ele nao comunica nada. O
+ * desvanecer e o sinal que sobrevive aquela regra, e e o mesmo que todo app
+ * de celular usa.
+ *
+ * A classe e do JS (`marcarRolagem`) e nao uma mascara fixa, porque mascara
+ * fixa apagaria a ultima linha tambem quando NAO ha nada embaixo — um
+ * "continua" mentindo no fim da lista e pior que sinal nenhum.
+ */
+#GrupoIdle .gi-body.is-rolando {
+	-webkit-mask-image: linear-gradient(180deg, #000 calc(100% - 20px), transparent 100%);
+	mask-image: linear-gradient(180deg, #000 calc(100% - 20px), transparent 100%);
+}
+
+/* So "display" precisa do guard de :not([hidden]) — uma classe com display
+   proprio VENCE o display:none que o navegador da ao atributo, por ORIGEM da
+   regra e nao por especificidade (a cicatriz de 26/08, registrada no
+   LFGIdle.html). */
+#GrupoIdle .gi-view:not([hidden]) {
+	display: flex;
+	flex-direction: column;
+	gap: var(--sp-6);
+}
+
+/* ─── A faixa do rateio em vigor ────────────────────────────────────────── */
+
+#GrupoIdle .gi-faixa {
+	display: flex;
+	align-items: center;
+	gap: var(--sp-6);
+	padding: var(--sp-5) var(--sp-6);
+	border-radius: var(--radius-panel);
+	background: linear-gradient(180deg, rgba(255, 255, 255, 0.8) 0%, rgba(239, 245, 252, 0.7) 100%);
+	/* O aro dourado e MOLDURA (box-shadow, nunca border: border desloca o
+	   layout quando o estado troca). O texto continua azul. */
+	box-shadow: var(--rim-gold), var(--shadow-card);
+}
+#GrupoIdle .gi-faixa-texto {
+	flex: 1 1 auto;
+	min-width: 0;
+}
+#GrupoIdle .gi-faixa-modo {
+	display: block;
+	font: var(--type-label);
+	color: var(--text-title);
+}
+#GrupoIdle .gi-faixa-nota {
+	display: block;
+	margin-top: var(--sp-1);
+	font: var(--type-desc);
+	color: var(--text-muted);
+}
+
+/* ─── As duas colunas da aba Grupo ──────────────────────────────────────── */
+
+#GrupoIdle .gi-colunas {
+	display: flex;
+	gap: var(--sp-7);
+	align-items: flex-start;
+	min-height: 0;
+}
+/* 68/32 e nao 62/38, e o numero saiu do PRINT: com 62% a linha de membro
+   espremia o nome ate uma letra so ("C.", "D.", "E") enquanto o mapa e a
+   barra ficavam inteiros. Contar os elementos no DOM nao teria pego nada — as
+   dez linhas existiam, com o nome ilegivel dentro (regra 5). */
+#GrupoIdle .gi-coluna-membros {
+	flex: 1 1 68%;
+	min-width: 0;
+}
+#GrupoIdle .gi-coluna-lado {
+	flex: 1 1 32%;
+	min-width: 0;
+	display: flex;
+	flex-direction: column;
+	gap: var(--sp-6);
+}
+
+/*
+ * CELULAR EM PE: as colunas empilham.
+ *
+ * D-963 — O TETO DE 216px DA LISTA SAIU, e a razao e o print.
+ *
+ * Ele era "6 linhas de 36px", cravado, e cravado ele valia o mesmo num
+ * aparelho de 760 e num de 900. So que a janela NAO tem altura cravada no
+ * celular: o design system a estica do topo ate a barra de atalhos
+ * (`.ri-vertical .ri-janela-corpo`, D-941). O resultado media assim, em
+ * 393x852: a lista mostrava 4,3 dos 10 membros e parava, enquanto o corpo da
+ * janela ainda tinha altura sobrando e rolava POR FORA. Duas rolagens
+ * empilhadas — a de dentro escondendo 282px, a de fora escondendo 198px — e
+ * o jogador tendo de descobrir qual das duas mexer.
+ *
+ * Agora quem rola e UM so: o `.gi-body`, que e o unico que sabe quanta
+ * altura sobrou depois do estandarte, das abas e do rodape. A lista entrega
+ * as dez linhas e a janela usa a altura que tem.
+ *
+ * O rodape (a linha de estado) continua preso embaixo sem depender de teto
+ * nenhum: `.gi-window` e uma coluna flex, o rodape e `flex: 0 0 auto` e o
+ * `.gi-body` e `flex: 1 1 auto` com `min-height: 0` — quem cede altura e o
+ * corpo, sempre. Era esse o medo que o teto de 216px tentava cobrir, e ele
+ * ja estava coberto pelo flex.
+ */
+@media (max-width: 900px) {
+	#GrupoIdle .gi-colunas {
+		flex-direction: column;
+	}
+	#GrupoIdle .gi-coluna-membros,
+	#GrupoIdle .gi-coluna-lado {
+		flex: 1 1 auto;
+		width: 100%;
+	}
+}
+
+#GrupoIdle .gi-secao {
+	display: flex;
+	align-items: baseline;
+	justify-content: space-between;
+	gap: var(--sp-4);
+	margin-bottom: var(--sp-4);
+	padding-bottom: var(--sp-2);
+	border-bottom: var(--divider);
+}
+#GrupoIdle .gi-secao-titulo {
+	font: var(--type-label);
+	color: var(--text-title);
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+}
+#GrupoIdle .gi-secao-contador {
+	font: var(--type-badge);
+	color: var(--text-muted);
+}
+
+/* ─── A lista de membros ────────────────────────────────────────────────── */
+
+#GrupoIdle .gi-membros {
+	display: flex;
+	flex-direction: column;
+	gap: var(--sp-1);
+}
+
+/*
+ * A LINHA DE MEMBRO tem DUAS formas, e o motivo e o teto de dez.
+ *
+ * Em tela larga ela e UMA linha de 32px (icone de 24 + 4 de respiro em cima e
+ * embaixo): dez membros somam 338px com os vaos, e cabem na coluna sem barra
+ * de rolagem — o pedido era que a lista de dez nao estourasse a janela nem
+ * virasse rolagem infinita.
+ *
+ * No celular em pe (abaixo de 900px) ela vira DUAS linhas: o nome e o mapa
+ * nao cabem lado a lado em 353px, e espremer os dois produziria duas
+ * reticencias em vez de uma informacao.
+ */
+#GrupoIdle .gi-membro {
+	display: flex;
+	align-items: center;
+	gap: var(--sp-3);
+	min-height: 24px;
+	padding: var(--sp-2) var(--sp-5);
+	border-radius: var(--radius-card);
+	background: var(--surface-card);
+	box-shadow: var(--rim-light), var(--shadow-card);
+}
+/* As duas colunas elasticas dividem o que sobra na razao 5:4 — o nome e a
+   informacao mais procurada da linha, e o mapa e a segunda. Nenhuma das duas
+   tem largura fixa: largura fixa e o que produziu o nome de uma letra so.
+
+   D-962: a razao era 3:2 e virou 5:4 porque o NUMERO do HP entrou na linha e
+   levou ~50px do que sobrava. Medido no print: com 3:2 o mapa desenhava
+   "Campo de P..." — a mesma perda que a razao de 62/38 tinha causado ao
+   NOME, so que uma coluna adiante. O nome continua vindo primeiro; o que
+   mudou foi de quanto. */
+#GrupoIdle .gi-membro > .gi-membro-topo {
+	flex: 5 1 0;
+	min-width: 0;
+}
+#GrupoIdle .gi-membro > .gi-membro-onde {
+	flex: 4 1 0;
+	min-width: 0;
+}
+#GrupoIdle .gi-membro > .gi-membro-direita {
+	flex: 0 0 auto;
+	flex-direction: row;
+	align-items: center;
+	gap: var(--sp-4);
+}
+#GrupoIdle .gi-membro-posto {
+	/* 56px: o mais largo dos quatro postos e "Vanguarda", com 47px medidos.
+	   Era 62 e cedeu 6 ao numero do HP (D-962). */
+	min-width: 56px;
+	text-align: right;
+}
+
+@media (max-width: 900px) {
+	#GrupoIdle .gi-membro {
+		display: grid;
+		grid-template-columns: 24px 1fr auto;
+		grid-template-rows: auto auto;
+		column-gap: var(--sp-4);
+		row-gap: var(--sp-1);
+		min-height: 36px;
+		padding: var(--sp-3) var(--sp-5);
+	}
+	#GrupoIdle .gi-membro > .gi-membro-onde {
+		flex: 1 1 auto;
+	}
+	/* D-962: a barra encolhe no celular porque agora ela divide a coluna com
+	   o numero — que e quem carrega a leitura exata. Antes ela tinha 108px
+	   sozinha, com o numero por dentro. */
+	#GrupoIdle .gi-membro-hp {
+		width: 52px;
+	}
+	#GrupoIdle .gi-membro > .gi-membro-direita {
+		flex-direction: column;
+		align-items: flex-end;
+		gap: var(--sp-2);
+	}
+}
+/* O membro que sou EU ganha aro azul — por box-shadow, nunca border. */
+#GrupoIdle .gi-membro.is-eu {
+	box-shadow: inset 0 0 0 1px var(--accent), var(--rim-light), var(--shadow-card);
+}
+#GrupoIdle .gi-membro.is-offline {
+	opacity: 0.55;
+}
+
+/* O ICONE DE CLASSE e PNG/BMP do cliente (regra 4): ampliacao por numero
+   INTEIRO e nada de suavizacao. O bmp de `renewalparty` mede 24x24, entao a
+   ampliacao aqui e 1x — e a caixa e cravada em 24px para nunca reamostrar. */
+#GrupoIdle .gi-membro-classe {
+	grid-row: 1 / span 2;
+	width: 24px;
+	height: 24px;
+	background-repeat: no-repeat;
+	background-position: center;
+	background-size: 24px 24px;
+	image-rendering: pixelated;
+}
+
+#GrupoIdle .gi-membro-topo {
+	display: flex;
+	align-items: center;
+	gap: var(--sp-3);
+	min-width: 0;
+}
+#GrupoIdle .gi-membro-nome {
+	font: var(--type-label);
+	color: var(--text-title);
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+#GrupoIdle .gi-membro-nivel {
+	font: var(--type-badge);
+	color: var(--text-muted);
+	flex: 0 0 auto;
+}
+
+/* A marca do LIDER: aro DOURADO, palavra AZUL (cicatriz D-944 — dourado e
+   moldura, nunca a palavra). */
+#GrupoIdle .gi-tag {
+	display: inline-flex;
+	align-items: center;
+	gap: var(--sp-2);
+	flex: 0 0 auto;
+	padding: 1px var(--sp-4);
+	border-radius: var(--radius-pill);
+	font: var(--type-badge);
+	color: var(--text-title);
+	background: var(--surface-glass);
+	box-shadow: inset 0 0 0 1px var(--border-hairline);
+}
+#GrupoIdle .gi-tag.is-lider {
+	box-shadow: var(--rim-gold);
+}
+#GrupoIdle .gi-tag.is-eu {
+	box-shadow: inset 0 0 0 1px var(--accent);
+}
+/* A COROA e arte do cliente, e nao um glifo desenhado a mao (regra 4). */
+#GrupoIdle .gi-coroa {
+	width: 16px;
+	height: 16px;
+	background-repeat: no-repeat;
+	background-position: center;
+	background-size: contain;
+	image-rendering: pixelated;
+}
+
+#GrupoIdle .gi-membro-onde {
+	grid-column: 2;
+	display: flex;
+	align-items: center;
+	gap: var(--sp-4);
+	min-width: 0;
+	font: var(--type-desc);
+	color: var(--text-muted);
+}
+#GrupoIdle .gi-membro-mapa {
+	/* D-962: ele CRESCE para dentro do que sobra em `.gi-membro-onde`. Sem
+	   isto ele se dimensiona pelo proprio texto (87,28px para "Campo de
+	   Prontera") e a caixa arredonda para 87 — a reticencia aparecia por
+	   TRES DECIMOS de pixel, com espaco livre ao lado. Dar mais largura a
+	   coluna nao resolvia nada enquanto ele nao aceitasse crescer. */
+	flex: 1 1 auto;
+	min-width: 0;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+/* O ponto de estado: verde vivo/online, cinza offline, vermelho morto. Ele e
+   CSS puro (moldura), nao arte — ele delimita um estado, nao informa um
+   conteudo do jogo. */
+#GrupoIdle .gi-estado {
+	flex: 0 0 auto;
+	width: 8px;
+	height: 8px;
+	border-radius: 50%;
+	border: 1px solid var(--white);
+	box-shadow: var(--shadow-card);
+	background: var(--ink-500);
+}
+#GrupoIdle .gi-estado.is-vivo {
+	background: linear-gradient(160deg, #a5e08f 0%, #2e7d32 100%);
+}
+#GrupoIdle .gi-estado.is-morto {
+	background: linear-gradient(160deg, #ff7a6e 0%, #c9302c 100%);
+}
+
+#GrupoIdle .gi-membro-direita {
+	grid-column: 3;
+	grid-row: 1 / span 2;
+	display: flex;
+	flex-direction: column;
+	align-items: flex-end;
+	gap: var(--sp-2);
+	flex: 0 0 auto;
+}
+/*
+ * D-962 — A BARRA E O NUMERO SAO PECAS SEPARADAS, LADO A LADO.
+ *
+ * A barra responde "quanto falta" de relance; o numero responde "quanto
+ * exatamente". Enquanto o numero morava DENTRO da barra, a fronteira do
+ * preenchimento atravessava o glifo e os digitos trocavam de cor no meio da
+ * palavra — medido no print de dez membros: 9 das 10 linhas.
+ *
+ * E a cicatriz D-944 generalizada (*ouro e MOLDURA, nunca a palavra*): texto
+ * nao vive em cima de preenchimento que se move. Inverter a cor abaixo da
+ * metade, que era o remendo anterior (`is-baixo`), so trocava em qual metade
+ * o numero sumia.
+ */
+#GrupoIdle .gi-membro-vida {
+	display: flex;
+	align-items: center;
+	gap: var(--sp-3);
+	flex: 0 0 auto;
+}
+#GrupoIdle .gi-membro-hp {
+	display: block;
+	/* 54px, e o numero saiu do print: com 64 o mapa desenhava "Campo de
+	   P...", e com 60 ele ainda perdia a ultima letra. A barra e a leitura
+	   de relance — ela pode encolher; o nome do mapa, nao. Os 54 deixam
+	   ~3,7px de folga no mapa, e nao zero: folga zero neste layout vira
+	   reticencia por arredondamento. */
+	width: 54px;
+	height: 8px;
+}
+/*
+ * O PREENCHIMENTO precisa ser BLOCO, e este e um defeito que so o print
+ * mostrou: `.ri-bar > .fill` do design system e um `<span>`, e `width`/
+ * `height` NAO se aplicam a caixa inline. A barra desenhava a moldura e
+ * ficava VAZIA — com o rotulo branco por cima da chapa clara, ilegivel.
+ *
+ * A caixa da barra escapava do mesmo defeito por acidente: ela e filha de um
+ * container flex, e filho de flex e "blocado" pelo proprio layout.
+ */
+#GrupoIdle .gi-membro-hp > .fill {
+	display: block;
+}
+/*
+ * O NUMERO. `tabular-nums` porque a coluna nao pode pular de largura quando
+ * 900 vira 1000 — a lista inteira tremeria a cada tique de vida —, e a
+ * largura minima e a de "1200 / 1200", o texto mais largo que ela recebe.
+ *
+ * A cor e `--text-title` sobre a chapa do cartao: um fundo so atras do
+ * numero, do cheio ao vazio. E o contraste disso a prova visual MEDE, no
+ * PNG, linha por linha (regra 5).
+ */
+#GrupoIdle .gi-membro-hp-num {
+	flex: 0 0 auto;
+	/* 52px: "1200 / 1200", o texto mais largo que ela recebe, mede 48. */
+	min-width: 52px;
+	text-align: right;
+	font: var(--type-badge);
+	font-variant-numeric: tabular-nums;
+	color: var(--text-title);
+	white-space: nowrap;
+}
+#GrupoIdle .gi-membro-posto {
+	font: var(--type-badge);
+	color: var(--text-muted);
+}
+
+/* ─── Os cartoes da coluna lateral ──────────────────────────────────────── */
+
+#GrupoIdle .gi-cartao {
+	padding: var(--sp-6);
+	border-radius: var(--radius-panel);
+	box-shadow: var(--rim-light), var(--shadow-card);
+}
+#GrupoIdle .gi-meu-posto-nome {
+	font: var(--type-section);
+	color: var(--text-title);
+}
+#GrupoIdle .gi-meu-posto-resumo {
+	margin-top: var(--sp-3);
+	font: var(--type-desc);
+	color: var(--text-body);
+}
+#GrupoIdle .gi-meu-posto-estado {
+	margin-top: var(--sp-4);
+	font: var(--type-badge);
+	color: var(--text-muted);
+}
+#GrupoIdle .gi-meu-posto .ri-btn {
+	margin-top: var(--sp-6);
+	width: 100%;
+}
+#GrupoIdle .gi-cacada-linhas {
+	display: flex;
+	flex-direction: column;
+	gap: var(--sp-3);
+}
+#GrupoIdle .gi-cacada-linha {
+	display: flex;
+	justify-content: space-between;
+	gap: var(--sp-4);
+	font: var(--type-desc);
+	color: var(--text-body);
+}
+#GrupoIdle .gi-cacada-linha b {
+	color: var(--text-title);
+}
+
+/* ─── Aba POSTOS ────────────────────────────────────────────────────────── */
+
+#GrupoIdle .gi-postos {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+	gap: var(--sp-6);
+}
+#GrupoIdle .gi-posto {
+	display: flex;
+	flex-direction: column;
+	gap: var(--sp-3);
+	padding: var(--sp-6);
+	border-radius: var(--radius-panel);
+	background: var(--surface-card);
+	box-shadow: var(--rim-light), var(--shadow-card);
+}
+/* O posto ESCOLHIDO: aro dourado (moldura), texto azul (cicatriz D-944). */
+#GrupoIdle .gi-posto.is-escolhido {
+	box-shadow: var(--rim-gold), var(--glow-gold);
+}
+#GrupoIdle .gi-posto.is-bloqueado {
+	background: var(--surface-inset);
+	color: var(--text-muted);
+}
+#GrupoIdle .gi-posto-nome {
+	font: var(--type-section);
+	color: var(--text-title);
+}
+#GrupoIdle .gi-posto.is-bloqueado .gi-posto-nome {
+	color: var(--text-muted);
+}
+#GrupoIdle .gi-posto-resumo {
+	font: var(--type-desc);
+	flex: 1 1 auto;
+}
+/*
+ * D-966 — O MOTIVO E INSTRUCAO, E NAO DECORACAO. (cicatriz D-944 de novo)
+ *
+ * Ele era `color: var(--amber-600)` puro sobre a chapa afundada do cartao
+ * bloqueado. Medido no PNG de `postos`: **3,49:1** — abaixo do piso de 4,5:1
+ * de texto normal, e o texto MENOS legivel da tela era justamente o unico que
+ * diz ao jogador COMO destravar o posto.
+ *
+ * E a mesma cicatriz D-944 pela terceira vez nesta janela: *a cor de aviso e
+ * MOLDURA, nunca a palavra*. O ambar virou um filete a esquerda — por
+ * `box-shadow`, nunca `border`, porque `border` mexe na caixa — e a palavra
+ * voltou para `--text-body`, que mede 10,9:1 no mesmo fundo.
+ *
+ * O RESUMO do cartao bloqueado continua esmaecido de proposito (3,46:1): ele
+ * e a descricao do posto, repetida nos quatro cartoes, e esmaecer e o que diz
+ * "este esta desligado". O que nao podia ficar ilegivel e a saida.
+ */
+#GrupoIdle .gi-posto-motivo {
+	padding: var(--sp-3) var(--sp-4);
+	border-radius: var(--radius-card);
+	background: var(--surface-card);
+	box-shadow: inset 2px 0 0 var(--amber-600);
+	font: var(--type-desc);
+	color: var(--text-body);
+}
+#GrupoIdle .gi-posto .ri-btn {
+	align-self: flex-start;
+}
+
+/* ─── Aba RATEIO ────────────────────────────────────────────────────────── */
+
+#GrupoIdle .gi-rateio-agora {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+	gap: var(--sp-4);
+}
+#GrupoIdle .gi-numero {
+	padding: var(--sp-5);
+	border-radius: var(--radius-panel);
+	background: var(--surface-card);
+	box-shadow: var(--rim-light), var(--shadow-card);
+	text-align: center;
+}
+#GrupoIdle .gi-numero-valor {
+	display: block;
+	font: var(--type-numeric);
+	color: var(--text-title);
+}
+#GrupoIdle .gi-numero-rotulo {
+	display: block;
+	margin-top: var(--sp-2);
+	font: var(--type-badge);
+	color: var(--text-muted);
+}
+
+#GrupoIdle .gi-rateio-tabela {
+	display: flex;
+	flex-direction: column;
+	border-radius: var(--radius-panel);
+	overflow: hidden;
+	box-shadow: var(--rim-light), var(--shadow-card);
+}
+#GrupoIdle .gi-rateio-linha {
+	display: grid;
+	grid-template-columns: 1fr 1fr 1fr 1fr;
+	gap: var(--sp-4);
+	padding: var(--sp-4) var(--sp-6);
+	background: var(--surface-card);
+	font: var(--type-info);
+}
+#GrupoIdle .gi-rateio-linha:nth-child(even) {
+	background: var(--surface-inset);
+}
+#GrupoIdle .gi-rateio-linha.is-cabecalho {
+	background: var(--surface-titlebar);
+	font: var(--type-label);
+	color: var(--text-title);
+}
+/* A linha do TAMANHO ATUAL do grupo: aro azul por dentro, sem deslocar. */
+#GrupoIdle .gi-rateio-linha.is-agora {
+	box-shadow: inset 0 0 0 1px var(--accent);
+}
+#GrupoIdle .gi-rateio-linha span:not(:first-child) {
+	text-align: right;
+}
+
+/* ─── Aba AJUSTES ───────────────────────────────────────────────────────── */
+
+#GrupoIdle .gi-ajuste {
+	padding: var(--sp-6);
+	border-radius: var(--radius-panel);
+	box-shadow: var(--rim-light), var(--shadow-card);
+}
+#GrupoIdle .gi-ajuste .ri-btn {
+	margin-top: var(--sp-5);
+}
+#GrupoIdle .gi-seg {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--sp-2);
+	padding: var(--sp-2);
+	border-radius: var(--radius-pill);
+	background: var(--surface-inset);
+	box-shadow: var(--well-shadow);
+}
+#GrupoIdle .gi-seg-btn {
+	flex: 1 1 auto;
+	min-height: 32px;
+	padding: var(--sp-3) var(--sp-6);
+	border: 0;
+	border-radius: var(--radius-pill);
+	background: transparent;
+	color: var(--text-muted);
+	font: var(--type-label);
+	cursor: pointer;
+}
+#GrupoIdle .gi-seg-btn.is-on {
+	background: var(--tab-active-fill);
+	color: var(--tab-active-text);
+	box-shadow: var(--rim-light), var(--shadow-card);
+}
+#GrupoIdle .gi-seg-btn:disabled {
+	cursor: default;
+	opacity: 0.5;
+}
+
+#GrupoIdle .gi-ajuste-saida .ri-btn {
+	margin-right: var(--sp-3);
+}
+#GrupoIdle .gi-desfazer-confirma:not([hidden]) {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: var(--sp-3);
+	margin-top: var(--sp-5);
+	font: var(--type-desc);
+	color: var(--amber-600);
+}
+
+/* ─── Textos auxiliares e rodape ────────────────────────────────────────── */
+
+#GrupoIdle .gi-explica {
+	margin: 0;
+	font: var(--type-desc);
+	color: var(--text-muted);
+}
+#GrupoIdle .gi-aviso {
+	margin: 0;
+	padding: var(--sp-5) var(--sp-6);
+	border-radius: var(--radius-panel);
+	background: var(--surface-inset);
+	box-shadow: var(--well-shadow);
+	font: var(--type-desc);
+	color: var(--text-muted);
+}
+#GrupoIdle .gi-vazio {
+	padding: var(--sp-8) var(--sp-6);
+	text-align: center;
+	font: var(--type-desc);
+	color: var(--text-muted);
+}
+
+#GrupoIdle .gi-rodape {
+	display: flex;
+	align-items: center;
+	gap: var(--sp-4);
+	padding: var(--sp-5) var(--sp-7);
+	border-top: var(--divider);
+	background: var(--surface-glass);
+	min-height: 20px;
+}
+#GrupoIdle .gi-recado {
+	font: var(--type-desc);
+	color: var(--text-muted);
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+#GrupoIdle .gi-recado.is-problema {
+	color: var(--amber-600);
+}
+
+/* ALVO TATIL: onde ha DEDO, 44px de lado — a mesma regra que a
+   `prove:hud-responsiva` cobra na HUD. Ela vale para os botoes desta janela
+   tambem, e nao so para a HUD: um segmento de 32px e confortavel no mouse e
+   e um teste de pontaria no polegar. */
+@media (pointer: coarse) {
+	#GrupoIdle .ri-btn,
+	#GrupoIdle .gi-seg-btn,
+	#GrupoIdle .gi-close {
+		min-height: 44px;
+	}
+	#GrupoIdle .gi-tabs .ri-tab {
+		min-height: 44px;
+	}
+}

@@ -707,6 +707,62 @@
 	text-shadow: 0 1px 2px rgba(8, 22, 40, 0.9);
 }
 
+/* ═══════════════════════════════════════════════════════════════════════
+   O BOTAO DE VOTAR COM VOTO DISPONIVEL (D-1159, 07/09/2026)
+
+   O pedido do dono foi literal: "com bastante destaque quando tem voto
+   disponivel". As duas palavras que importam sao "QUANDO TEM" — o destaque
+   e CONDICIONAL, e e disso que ele tira a forca. Um botao permanentemente
+   dourado no cluster seria mais um item dourado ao lado do "Recompensas", e
+   o ouro deixaria de significar "aqui, agora".
+
+   POR QUE ELE PULSA E O "Recompensas" NAO. O comentario do
+   ".tm-item--destaque" acima diz, com razao, que "uma animacao perpetua na
+   periferia da visao e ruido, nao destaque" — e ele esta falando de um
+   destaque PERMANENTE. Este some assim que o jogador vota: ele nao e
+   perpetuo, e a mensagem que ele carrega ("ha uma acao esperando por voce")
+   e exatamente a que o movimento comunica.
+
+   `prefers-reduced-motion` desliga o pulso e mantem o aro estatico — quem
+   pediu menos movimento continua vendo QUE ha voto.
+
+   O ANEL e `box-shadow`, e NUNCA `border`: trocar a espessura da borda em
+   um estado mudaria a caixa e o disco pularia 2px ao acender. E a cicatriz
+   de D-944, e ela vale para todo estado ligado/desligado deste arquivo. */
+.tm-item--voto.is-voto-livre .tm-icon-wrap {
+	border-color: var(--border-gold);
+	background: linear-gradient(180deg, var(--white) 0%, var(--gold-200) 160%);
+	animation: tm-voto-pulso 2.4s ease-in-out infinite;
+}
+
+.tm-item--voto.is-voto-livre .tm-label {
+	color: var(--gold-300);
+	font-weight: var(--fw-bold);
+	background: rgba(18, 41, 74, 0.88);
+	box-shadow: var(--rim-gold), 0 0 10px rgba(224, 176, 77, 0.35);
+	text-shadow: 0 1px 2px rgba(8, 22, 40, 0.9);
+}
+
+@keyframes tm-voto-pulso {
+	0%,
+	100% {
+		box-shadow: var(--glow-gold), var(--rim-light);
+	}
+	50% {
+		box-shadow:
+			0 0 0 1px rgba(201, 162, 39, 0.85),
+			0 0 22px rgba(224, 176, 77, 0.75),
+			var(--rim-light);
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.tm-item--voto.is-voto-livre .tm-icon-wrap {
+		animation: none;
+		box-shadow: var(--glow-gold), var(--rim-light);
+	}
+}
+
 /* ─── Toast "Em breve": ancorado no LEQUE (e nao mais na viewport), logo
    acima do ornamento. Os sete "em breve" so existem dentro do leque, entao
    o toast so pode aparecer com ele aberto — e ancorado aqui ele nasce no

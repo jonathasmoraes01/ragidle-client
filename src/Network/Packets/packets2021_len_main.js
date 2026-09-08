@@ -4911,6 +4911,22 @@ function init(packetver) {
 	length_list[0x0fd0] = -1; // ZC_RAGIDLE_ADMINS (variavel, JSON)
 	length_list[0x0fd1] = -1; // ZC_RAGIDLE_CONFIRMAR (variavel, JSON)
 	length_list[0x0fd2] = 7; // CZ_RAGIDLE_CONFIRMAR (u16 opcode + u32 id + u8 resposta)
+	length_list[0x0fd3] = -1; // ZC_RAGIDLE_REFINO (variavel, JSON: a ficha do degrau)
+	// RAGIDLE: a JANELA DE VOTO (D-1159, 07/09/2026). Pelo PISO da reserva de
+	// D-527, logo acima do refino (0x0fd3), para o bloco seguir contiguo. O
+	// servidor os declarou no MESMO commit (pacotes-mapa.ts, tamanhos-do-cliente.ts
+	// e faixa-ragidle.test.ts): vaga so e vaga depois das duas pontas.
+	length_list[0x0fd4] = -1; // CZ_RAGIDLE_VOTO_ACAO (variavel, JSON com verbo)
+	length_list[0x0fd5] = -1; // ZC_RAGIDLE_VOTO (variavel, JSON: o retrato do voto)
+
+	// RAGIDLE: a JANELA DE GRUPO (D-960, 07/09/2026). Estes tres ESTENDEM a
+	// faixa para baixo: o menor ocupado era 0x0fce, e eles sao os tres logo
+	// abaixo dele, para o bloco RAGIDLE continuar contiguo. O servidor os
+	// declarou no MESMO commit (servidor/protocolo/pacotes-mapa.ts e
+	// tamanhos-do-cliente.ts) — vaga so e vaga depois das duas pontas.
+	length_list[0x0fcb] = -1; // CZ_RAGIDLE_GRUPO_ACAO (variavel, JSON com verbo)
+	length_list[0x0fcc] = -1; // ZC_RAGIDLE_GRUPO (variavel, JSON: o estado da janela)
+	length_list[0x0fcd] = 2; // CZ_RAGIDLE_PEDIR_GRUPO (so o opcode)
 
 	length_list[0x0ffd] = 2; // CZ_RAGIDLE_RENASCER (opcode only)
 	length_list[0x0ffe] = 2; // CZ_RAGIDLE_DISTRIBUIR (opcode only)

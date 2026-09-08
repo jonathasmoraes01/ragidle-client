@@ -537,6 +537,30 @@ export function createEquipment({
 		Component.setCostumeConfig = function setCostumeConfig(_on) {};
 	}
 
+	/**
+	 * O QUE ESTA VESTIDO, como objeto — e nao como numero de sprite.
+	 *
+	 * Acrescentado em 07/09/2026 pela janela de refino. Ate aqui o contrato
+	 * publico desta peca oferecia so `checkEquipLoc()`, que devolve o
+	 * `wItemSpriteNumber` para alimentar o boneco 3D — e o cabecalho da
+	 * `MochilaIdle.js` registra a consequencia por escrito: para saber o que o
+	 * jogador esta vestindo ela **le o DOM do host nativo escondido**.
+	 *
+	 * Ler DOM para recuperar dado que existe em memoria a dois metros dali e
+	 * uma divida, e ela cobra juros: a Mochila consegue nome, icone e refino
+	 * assim, mas nao consegue o `index` do fio — que e exatamente o que o
+	 * refino precisa para dizer ao servidor QUAL peca. Entao o acessor nasce
+	 * aqui, onde o dado mora.
+	 *
+	 * A copia do array e de proposito: `_list` e o estado desta janela, e quem
+	 * le nao deve poder escrever nele.
+	 *
+	 * @returns {object[]} os itens vestidos, com `index`, `ITID`, `WearState`.
+	 */
+	Component.getEquippedList = function getEquippedList() {
+		return Object.keys(_list).map(chave => _list[chave]);
+	};
+
 	Component.equip = function equip(item, location) {
 		const it = DB.getItemInfo(item.ITID);
 		if (entityRender) {

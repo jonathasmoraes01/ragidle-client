@@ -107,7 +107,9 @@ import PasseIdle from 'UI/Components/PasseIdle/PasseIdle.js'; // RAGIDLE: janela
 import CodexIdle from 'UI/Components/CodexIdle/CodexIdle.js'; // RAGIDLE: janela do Codex (D-851)
 import PresencaIdle from 'UI/Components/PresencaIdle/PresencaIdle.js'; // RAGIDLE: janela de presenca (D-1162)
 import IndicacaoIdle from 'UI/Components/IndicacaoIdle/IndicacaoIdle.js'; // RAGIDLE: Indique & Ganhe (D-1164)
+import VotoIdle from 'UI/Components/VotoIdle/VotoIdle.js'; // RAGIDLE: janela de Voto (D-1159)
 import LFGIdle from 'UI/Components/LFGIdle/LFGIdle.js'; // RAGIDLE: janela de Procurar Grupo (D-634)
+import GrupoIdle from 'UI/Components/GrupoIdle/GrupoIdle.js'; // RAGIDLE: janela de Grupo (D-960)
 import MissoesTrackerIdle from 'UI/Components/MissoesTrackerIdle/MissoesTrackerIdle.js'; // RAGIDLE: tracker estilo Origin (D-601)
 import IdleConfig from 'UI/Components/IdleConfig/IdleConfig.js'; // RAGIDLE: "Configuração idle"
 import AdminPanel from 'UI/Components/AdminPanel/AdminPanel.js'; // RAGIDLE: "Painel de admin"
@@ -407,6 +409,20 @@ class MapEngine {
 					Session: Session,
 					EntityManager: EntityManager,
 					Camera: Camera,
+					// RAGIDLE: acrescentados 07/09/2026 pela prova em jogo da
+					// janela de refino (`scripts/fotografar-refino.ts`), que
+					// precisa CLICAR num NPC sem andar ate ele.
+					//
+					// Ela tentava `await import('/src/Network/...')` e caía numa
+					// armadilha do vite em desenvolvimento: o import dinamico
+					// puxa uma SEGUNDA instancia do modulo (com `?t=` de HMR na
+					// dependencia), e a segunda `PacketVerManager` nasce sem o
+					// `versions` que a primeira ja tinha preenchido —
+					// `TypeError: Cannot set properties of undefined`. Expor as
+					// instancias VIVAS resolve na raiz: a prova usa as mesmas
+					// que o jogo usa, e nao uma copia.
+					Network: Network,
+					PACKET: PACKET,
 					// RAGIDLE: acrescentado 19/08/2026 pra prova Playwright da
 					// MochilaIdle (janela unica de inventario + equipamento) —
 					// injetar itens sinteticos e vestir uma peca pelo caminho
@@ -436,13 +452,11 @@ class MapEngine {
 					// caminho REAL (CZ_CONTACTNPC) sem depender de acertar o
 					// sprite no canvas: o jogador nasce longe do Mestre e a
 					// caca de cliques as cegas nao e um roteiro, e loteria.
-					Network: Network,
 					// RAGIDLE: acrescentado 27/08/2026 pra sonda dos ATALHOS —
 					// inspecionar qual onShortCut esta instalado em cada
 					// componente nativo (UIManager.getComponent(nome)) sem
 					// depender de teclado sintetico acertar o roteamento.
 					UIManager: UIManager,
-					PACKET: PACKET,
 					// RAGIDLE (25/08): o roteiro de fotos do executor le o estado
 					// da janela de missoes para saber quando a ativa concluiu.
 					MissoesIdle: MissoesIdle,
@@ -450,7 +464,9 @@ class MapEngine {
 					CodexIdle: CodexIdle,
 					PresencaIdle: PresencaIdle,
 					IndicacaoIdle: IndicacaoIdle,
-					LFGIdle: LFGIdle
+					VotoIdle: VotoIdle,
+					LFGIdle: LFGIdle,
+					GrupoIdle: GrupoIdle
 				};
 			}
 
@@ -496,7 +512,9 @@ class MapEngine {
 			CodexIdle.prepare(); // RAGIDLE: janela do Codex (D-851) — idem, só escuta 0x0fe3
 			PresencaIdle.prepare(); // RAGIDLE: janela de presenca (D-1162) — escuta 0x0fde e abre sozinha quando o servidor manda
 			IndicacaoIdle.prepare(); // RAGIDLE: Indique & Ganhe (D-1164) — escuta 0x0fdc
+			VotoIdle.prepare(); // RAGIDLE: janela de Voto (D-1159) — idem, só escuta 0x0fd5
 			LFGIdle.prepare(); // RAGIDLE: janela de Procurar Grupo (D-634) — idem: só escuta 0x0fe9/0x0fe8
+			GrupoIdle.prepare(); // RAGIDLE: janela de Grupo (D-960) — idem: só escuta 0x0fcc
 
 			BasicInfoIdle.prepare(); // RAGIDLE: "Informações básicas"
 			StatusIdle.prepare(); // RAGIDLE: "Status"
@@ -933,7 +951,11 @@ function onMapChange(pkt) {
 		CodexIdle.append(); // RAGIDLE: janela do Codex (D-851)
 		PresencaIdle.append(); // RAGIDLE: janela de presenca (D-1162)
 		IndicacaoIdle.append(); // RAGIDLE: Indique & Ganhe (D-1164)
+		// RAGIDLE (D-1159): a janela de Voto. Anexada SEMPRE, como as vizinhas —
+		// o aviso da entrada chega pelo pacote e precisa de um host de pé.
+		VotoIdle.append(); // RAGIDLE: janela de Voto (D-1159)
 		LFGIdle.append(); // RAGIDLE: janela de Procurar Grupo (D-634)
+		GrupoIdle.append(); // RAGIDLE: janela de Grupo (D-960)
 		// RAGIDLE: o tracker ancora ABAIXO do BasicInfoIdle por medição — vem
 		// DEPOIS dele no append para o primeiro syncPosition já achar o host.
 		MissoesTrackerIdle.append();
@@ -1043,6 +1065,7 @@ function onMapChange(pkt) {
 			['correio', CorreioIdle, '.co-window'],
 			['missoes', MissoesIdle, '.mi-window'],
 			['passe', PasseIdle, '.pi-window'],
+			['voto', VotoIdle, '.vi-window'],
 			['analise', HuntAnalyzer, '.ha-window'],
 		]) {
 			PilhaDeJanelas.registrar({ nome, componente, seletor });
@@ -1058,6 +1081,29 @@ function onMapChange(pkt) {
 			seletor: '.lfg-window',
 			fechar: () => LFGIdle.fechar(),
 		});
+
+		/* A janela de GRUPO (D-960) tem o mesmo arranjo do LFG, e pela mesma
+		   razao: ela nao usa `toggle()` no ESC porque `fechar()` tambem
+		   DESINSCREVE do empurrao do servidor — fechar pelo embrulho deixaria
+		   o servidor montando estado para uma janela que ninguem esta vendo. */
+		PilhaDeJanelas.registrar({
+			nome: 'grupo',
+			componente: GrupoIdle,
+			seletor: '.gi-window',
+			fechar: () => GrupoIdle.fechar(),
+		});
+
+		/* A PONTE entre as duas janelas de grupo (D-960). Ela mora aqui, e nao
+		   num import cruzado entre os dois componentes: o `MapEngine` ja
+		   conhece os dois, e um import de um componente de UI dentro de outro
+		   prenderia a ordem de carga de um a do outro.
+
+		   O botao "Abrir o Localizador" da janela de Grupo e a materializacao
+		   do pedido do dono de que os DOIS caminhos de entrada convivam. */
+		GrupoIdle.aoPedirLocalizador = () => {
+			GrupoIdle.fechar();
+			LFGIdle.abrir();
+		};
 
 		/* A MORTE é decisão: o ESC não a fecha, e ela também não deixa o ESC
 		   vazar para as janelas de baixo. Isso já era verdade por dentro do
@@ -1200,6 +1246,7 @@ function cleanGameUI() {
 		IdleSkills,
 		StatusIdle,
 		LFGIdle,
+		GrupoIdle,
 		CorreioIdle,
 		HuntAnalyzer,
 		HuntButtonIdle,
@@ -1208,7 +1255,8 @@ function cleanGameUI() {
 		PasseIdle,
 		CodexIdle,
 		PresencaIdle,
-		IndicacaoIdle
+		IndicacaoIdle,
+		VotoIdle
 	]) {
 		if (typeof modulo.limparEstadoDoPersonagem === 'function') {
 			modulo.limparEstadoDoPersonagem();

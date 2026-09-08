@@ -1,0 +1,61 @@
+<div id="VotoIdle">
+	<!-- ═══ 1. O AVISO DA ENTRADA ═══════════════════════════════════════
+	     A caixa que aparece sozinha ao logar quando o último voto foi há mais
+	     de 12h (pedido do dono, 07/09/2026 — o terceiro print do briefing).
+
+	     Ela é IRMÃ da janela, e não um componente à parte: as duas leem o mesmo
+	     `ZC_RAGIDLE_VOTO`, e separá-las criaria dois donos do mesmo estado —
+	     o aviso diria "você tem voto" enquanto a janela, aberta atrás, ainda
+	     mostrasse o prazo velho.
+
+	     Nasce escondida. Quem a mostra é o servidor, mandando `avisar: true`
+	     no lote de entrada no mapa — o mesmo padrão do ClassChangeNotice. -->
+	<div class="vi-aviso-modal" hidden>
+		<div class="vi-aviso-caixa ri-window">
+			<button type="button" class="vi-aviso-x ri-close" title="Fechar">&times;</button>
+
+			<div class="vi-aviso-selo" aria-hidden="true">
+				<svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+					<path d="M4 12.5 L9.5 18 L20 6"></path>
+				</svg>
+			</div>
+
+			<div class="vi-aviso-supra">Recompensa disponível</div>
+			<div class="vi-aviso-titulo">Seu voto está liberado!</div>
+			<p class="vi-aviso-texto">
+				Você tem <span class="vi-aviso-quantos">1 votação pendente</span>.
+				Cada voto confirmado entrega <strong class="vi-aviso-premio">+1 Vote Cash</strong>,
+				que você troca por bônus na loja de votação.
+			</p>
+
+			<button type="button" class="vi-aviso-ir ri-btn ri-btn--ouro">Ver plataformas disponíveis</button>
+			<button type="button" class="vi-aviso-depois">Agora não</button>
+		</div>
+	</div>
+
+	<!-- ═══ 2. A JANELA ═════════════════════════════════════════════════ -->
+	<div class="vi-window ri-window ri-anima">
+		<div class="vi-titlebar ri-header">
+			<span class="vi-carteira" title="Seu saldo de Vote Cash">
+				<span class="vi-carteira-valor">0</span>
+				<span class="vi-carteira-unidade">vote cash</span>
+			</span>
+			<span class="vi-title ri-title">Vote e ganhe</span>
+			<button type="button" class="vi-close ri-close" title="Fechar">&times;</button>
+		</div>
+
+		<div class="vi-tabs">
+			<button type="button" class="vi-tab ri-tab is-active" data-tab="votar">Votar</button>
+			<button type="button" class="vi-tab ri-tab" data-tab="loja">Loja</button>
+		</div>
+
+		<div class="vi-body ri-scroll">
+			<div class="vi-carregando">Carregando…</div>
+		</div>
+
+		<!-- Texto, nunca janela nem pacote: ancorado no rodapé para o olho de
+		     quem acabou de clicar no botão encontrá-lo sem procurar. Mesma
+		     peça do `.pi-aviso` do Passe. -->
+		<div class="vi-nota" aria-live="polite"></div>
+	</div>
+</div>

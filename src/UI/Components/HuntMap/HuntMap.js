@@ -842,6 +842,28 @@ function renderThumb(mapa) {
 }
 
 /**
+ * O SELO DE MVP sobre a miniatura (07/09/2026): a coroa no canto superior
+ * direito de todo mapa que tem chefe. São 25 dos 193 mapas — a marca só
+ * informa porque é MINORIA; um selo em toda linha não diria nada.
+ *
+ * Por que sobre a miniatura e não mais uma etiqueta na linha: o rodapé da
+ * linha já carrega badge de encaixe, medidor, contagem de monstros e o
+ * "encontrado por" da busca. Mais uma palavra ali competiria com o nome do
+ * mapa; a coroa é lida de relance, na varredura vertical da lista, sem
+ * disputar espaço com texto nenhum.
+ *
+ * O `mvp` chega no ÍNDICE do catálogo (servidor/mapa/catalogo.ts, `paraOIndice`),
+ * não só na ficha — então a lista sabe disso sem pedir nada ao servidor.
+ */
+function renderSeloMvp(mapa) {
+	if (!mapa.mvp) {
+		return '';
+	}
+	const titulo = `MVP: ${mapa.mvp.nome}`;
+	return `<span class="hm-card-mvp" title="${escapeHtml(titulo)}" aria-label="${escapeHtml(titulo)}" role="img">${RiIcones.mvp}</span>`;
+}
+
+/**
  * NOTE on the wrapper tag: the row contains an inner ".hm-card-go" <button>,
  * and HTML forbids nesting interactive controls inside a <button> (the
  * parser would silently close the outer button early and break the layout).
@@ -875,7 +897,7 @@ function renderCard(mapa, motivo) {
 
 	return `
 		<div class="hm-card fit-${encaixe.cls}${isCurrent ? ' is-current' : ''}${isSelected ? ' is-selected' : ''}" data-mapa="${escapeHtml(mapa.mapa)}" role="button" tabindex="0" aria-pressed="${isSelected ? 'true' : 'false'}">
-			<div class="hm-card-thumb">${renderThumb(mapa)}</div>
+			<div class="hm-card-thumb">${renderThumb(mapa)}${renderSeloMvp(mapa)}</div>
 			<div class="hm-card-body">
 				<div class="hm-card-top">
 					<span class="hm-card-name">${escapeHtml(mapa.rotulo)}</span>

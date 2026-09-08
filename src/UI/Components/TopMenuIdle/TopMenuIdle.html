@@ -150,6 +150,44 @@
 			<span class="tm-label">Análise</span>
 		</button>
 
+		<!-- VOTAR (D-1159, 07/09/2026, pedido do dono: "esse botao de votar
+		     deve ficar na barra de cima ao lado do mini mapa com bastante
+		     destaque quando tem voto disponivel").
+
+		     ─── POR QUE ELE E O NONO E ULTIMO, E POR QUE ISSO NAO ENGORDA O
+		     CLUSTER ────────────────────────────────────────────────────────
+		     A regra medida em D-944 diz que a grade tem colunas "auto": a
+		     largura de cada coluna e a do ROTULO mais largo dela. Um nono item
+		     com a conta antiga de colunas (metade dos visiveis, arredondada
+		     para cima) daria CINCO colunas, e a quinta nasceria com o
+		     "Recompensas" sozinho — o rotulo mais largo do cluster inteiro
+		     virando a coluna mais larga, ~84px a mais.
+
+		     Com o teto de QUATRO colunas (ver distribuirFileiras() em
+		     TopMenuIdle.js) ele cai na TERCEIRA fileira, na coluna 1, embaixo
+		     de "Personagem" e "Recompensas". "Votar" e mais curto que os dois,
+		     entao o `max` da coluna nao muda e a largura do cluster fica
+		     IDENTICA a de antes deste botao. O que cresce e a altura, para
+		     baixo, onde ha espaco — e o rastreador de missoes ja se ajusta
+		     sozinho por `--tm-topo` (D-930).
+
+		     ─── O DESTAQUE ──────────────────────────────────────────────────
+		     ".is-voto-livre" (aro dourado + pulso) entra e sai por JS, lendo
+		     `VotoIdle.temVotoDisponivel()` — que le o campo `liberados` que o
+		     SERVIDOR calculou. O botao e a janela contam a mesma historia
+		     porque leem o mesmo numero; recalcular aqui seria a segunda conta
+		     da mesma regra. -->
+		<button type="button" class="tm-item tm-item--voto" data-action="voto" title="Votar e ganhar Vote Cash">
+			<span class="tm-icon-wrap ri-disc">
+				<!--RI_ICONE:voto-->
+				<!-- Ponto de "ha voto disponivel" — a MESMA receita ".ri-dot" do
+				     Correio e do Skills, para o aviso sobreviver ao cluster
+				     recolhido (ele migra para a alca, ver syncToggleDot()). -->
+				<span class="ri-dot" style="display: none"></span>
+			</span>
+			<span class="tm-label">Votar</span>
+		</button>
+
 		<!-- Alca de recolher o CLUSTER (os 5 acima). Fica FORA do que ela
 		     esconde, de proposito: nunca some, senao o jogador se tranca fora
 		     dos essenciais. Recolhido, e o unico pixel que sobra deste canto.

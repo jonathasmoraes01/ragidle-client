@@ -72,12 +72,49 @@ ItemObtain.init = function init() {
 };
 
 /**
+ * Poe o aviso onde ele CABE — e as duas contas sao diferentes.
+ *
+ * HORIZONTAL: centralizado, como sempre foi (`Renderer.width` menos a largura
+ * medida do toast). Ela ja era feita aqui e em `set()`, porque a largura muda
+ * com o nome do item.
+ *
+ * VERTICAL, e so na HUD do celular em pe (RAGIDLE, 07/09/2026): o `top` daquele
+ * arranjo era `--vr-abaixo-do-topo + 130px`, um numero escolhido quando o
+ * cartao de missoes mostrava UMA missao. Com duas o cartao passa dos 130px e o
+ * aviso do drop nasce EM CIMA dele — a foto do celular em
+ * `prove:anuncio-de-drop` (repo do servidor) mostra o toast cobrindo o "Ver
+ * todas as missoes". O cartao cresce com o numero de missoes, entao nenhum
+ * numero fixo serve: quem sabe onde ele termina e o navegador.
+ *
+ * A medida vai para `--vr-item-obtido-topo` (lida em `UI/Common.css`) em vez de
+ * um `top` inline: a regra de la e `!important` (a moldura vertical inteira e,
+ * ver o cabecalho daquele bloco) e venceria o inline sem `!important` — e um
+ * inline COM `!important` sequestraria a posicao tambem no dia em que o
+ * arranjo mudar. Sem cartao na tela a variavel nao e definida, e o `calc` de
+ * nascenca continua valendo.
+ */
+function posicionar(host, root) {
+	const el = root.querySelector('#ItemObtain');
+	host.style.left = `${(Renderer.width - (el ? el.offsetWidth : 0)) >> 1}px`;
+
+	if (!document.documentElement.classList.contains('ri-vertical')) {
+		host.style.removeProperty('--vr-item-obtido-topo');
+		return;
+	}
+	const cartao = document.querySelector('div[id^="MissoesTrackerIdle"]');
+	const caixa = cartao ? cartao.getBoundingClientRect() : null;
+	if (!caixa || caixa.height <= 0) {
+		host.style.removeProperty('--vr-item-obtido-topo');
+		return;
+	}
+	host.style.setProperty('--vr-item-obtido-topo', `${Math.round(caixa.bottom + 10)}px`);
+}
+
+/**
  * Once append to body
  */
 ItemObtain.onAppend = function onAppend() {
-	const root = this.getRoot();
-	const el = root.querySelector('#ItemObtain');
-	this._host.style.left = `${(Renderer.width - (el ? el.offsetWidth : 0)) >> 1}px`;
+	posicionar(this._host, this.getRoot());
 };
 
 /**
@@ -122,8 +159,7 @@ ItemObtain.set = function set(item) {
 			_sanitizeHtml(`${display} - ${item.count || 1} obtido(s).`);
 	}
 
-	const el = root.querySelector('#ItemObtain');
-	this._host.style.left = `${(Renderer.width - (el ? el.offsetWidth : 0)) >> 1}px`;
+	posicionar(this._host, root);
 
 	Client.loadFile(DB.INTERFACE_PATH + 'item/' + resource + '.bmp', url => {
 		const img = root.querySelector(`img.item-${item.ITID}`);
