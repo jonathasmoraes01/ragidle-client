@@ -5,12 +5,15 @@
  */
 import { describe, expect, it } from 'vitest';
 import {
+	classeDeRaridade,
+	derivarRaridade,
 	encaixeDeNivel,
-	formatarChance,
 	medidorDeEncaixe,
 	motivoDaBusca,
 	ordenarMapas,
-	resumoDoMotivo
+	raridadeDoDrop,
+	resumoDoMotivo,
+	rotuloDeRaridade
 } from '../../src/UI/Components/HuntMap/atlasDeCaca.js';
 
 const campo = { mapa: 'prt_fild08', rotulo: 'Campo de Prontera', nivelQueAbre: 1, nivelMinimo: 1, nivelMaximo: 16, nivelMedio: 6.5 };
@@ -112,17 +115,60 @@ describe('ordenarMapas', () => {
 	});
 });
 
-describe('formatarChance', () => {
-	it('inteiro de 10% para cima, uma casa entre 1% e 10%, duas abaixo — vírgula e sem zero à direita', () => {
-		expect(formatarChance(7000)).toBe('70%');
-		expect(formatarChance(5600)).toBe('56%');
-		expect(formatarChance(1000)).toBe('10%');
-		expect(formatarChance(800)).toBe('8%');
-		expect(formatarChance(320)).toBe('3,2%');
-		expect(formatarChance(80)).toBe('0,8%');
-		expect(formatarChance(16)).toBe('0,16%');
-		expect(formatarChance(1)).toBe('0,01%');
-		expect(formatarChance(0)).toBe('0%');
-		expect(formatarChance(undefined)).toBe('0%');
+describe('derivarRaridade', () => {
+	it('as bordas da escada defensiva (mesma escada do servidor, D-919): ≤5 Lendário, ≤100 Raro, ≤1000 Incomum, senão Comum', () => {
+		expect(derivarRaridade(5)).toBe(3);
+		expect(derivarRaridade(6)).toBe(2);
+		expect(derivarRaridade(100)).toBe(2);
+		expect(derivarRaridade(101)).toBe(1);
+		expect(derivarRaridade(1000)).toBe(1);
+		expect(derivarRaridade(1001)).toBe(0);
+	});
+	it('chance ausente não quebra: cai no mesmo caminho de chance zero', () => {
+		expect(derivarRaridade(undefined)).toBe(derivarRaridade(0));
+	});
+});
+
+describe('raridadeDoDrop', () => {
+	it('o campo `raridade` do servidor SEMPRE vence — o cliente não recalcula por cima dele', () => {
+		// chance 9000 (90%) derivaria Comum pela escada; o servidor manda
+		// Lendário explícito, e é isso que tem que aparecer.
+		expect(raridadeDoDrop({ chance: 9000, raridade: 3 })).toBe(3);
+		expect(raridadeDoDrop({ chance: 1, raridade: 0 })).toBe(0);
+	});
+	it('sem `raridade` (servidor velho), deriva DEFENSIVAMENTE da chance pela mesma escada', () => {
+		expect(raridadeDoDrop({ chance: 5 })).toBe(3);
+		expect(raridadeDoDrop({ chance: 1001 })).toBe(0);
+	});
+	it('`raridade` fora de 0..3 ou não-inteiro é tratado como ausente (defesa contra payload sujo)', () => {
+		expect(raridadeDoDrop({ chance: 5, raridade: 4 })).toBe(3);
+		expect(raridadeDoDrop({ chance: 5, raridade: -1 })).toBe(3);
+		expect(raridadeDoDrop({ chance: 5, raridade: 1.5 })).toBe(3);
+		expect(raridadeDoDrop({ chance: 5, raridade: null })).toBe(3);
+	});
+});
+
+describe('rotuloDeRaridade', () => {
+	it('os quatro rótulos exatos, com acento', () => {
+		expect(rotuloDeRaridade(0)).toBe('Comum');
+		expect(rotuloDeRaridade(1)).toBe('Incomum');
+		expect(rotuloDeRaridade(2)).toBe('Raro');
+		expect(rotuloDeRaridade(3)).toBe('Lendário');
+	});
+	it('índice desconhecido cai em Comum, não fica vazio', () => {
+		expect(rotuloDeRaridade(undefined)).toBe('Comum');
+		expect(rotuloDeRaridade(9)).toBe('Comum');
+	});
+});
+
+describe('classeDeRaridade', () => {
+	it('r0..r3, uma por raridade', () => {
+		expect(classeDeRaridade(0)).toBe('r0');
+		expect(classeDeRaridade(1)).toBe('r1');
+		expect(classeDeRaridade(2)).toBe('r2');
+		expect(classeDeRaridade(3)).toBe('r3');
+	});
+	it('índice desconhecido cai em r0', () => {
+		expect(classeDeRaridade(9)).toBe('r0');
 	});
 });

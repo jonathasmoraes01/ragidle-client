@@ -56,12 +56,14 @@ import GUIComponent from 'UI/GUIComponent.js';
 import RiIcones from 'UI/ri-icones.js';
 import { dropsDoMapa } from './dropsDoMapa.js'; // RAGIDLE: a visao agregada (I6)
 import {
+	classeDeRaridade,
 	encaixeDeNivel,
-	formatarChance,
 	medidorDeEncaixe,
 	motivoDaBusca,
 	ordenarMapas,
-	resumoDoMotivo
+	raridadeDoDrop,
+	resumoDoMotivo,
+	rotuloDeRaridade
 } from './atlasDeCaca.js';
 import htmlText from './HuntMap.html?raw';
 import cssText from './HuntMap.css?raw';
@@ -1112,24 +1114,31 @@ function renderMobRow(m, mapa, ficha) {
 }
 
 /**
- * Um LADRILHO de drop: o ícone real do item (24x24 do cliente), o nome, a
- * chance — e, na visão do mapa, de quantos monstros cai. É um botão: o
- * clique abre a ficha do item (onClickDrop).
+ * Um LADRILHO de drop: o ícone real do item (24x24 do cliente), o nome, o
+ * SELO DE RARIDADE (Comum/Incomum/Raro/Lendário — trocou de lugar com a % de
+ * chance, RAGIDLE 08/09/2026) — e, na visão do mapa, de quantos monstros
+ * cai. É um botão: o clique abre a ficha do item (onClickDrop).
+ *
+ * O selo NUNCA é só cor: o texto do rótulo vai sempre junto (pedido do dono,
+ * acessibilidade — daltonismo não pode deixar o jogador sem saber o que
+ * está vendo). `raridade` já é o valor final (0..3) — quem decide entre o
+ * que o servidor mandou e a escada defensiva é o CHAMADOR (`raridadeDoDrop`).
  */
-function renderDropTile(itemId, nome, chanceTexto, extraHtml, title) {
+function renderDropTile(itemId, nome, raridade, extraHtml, title) {
 	const aberto = ItemInfo.uid === itemId;
 	return `
 		<button type="button" class="hm-drop${aberto ? ' is-open' : ''}" data-item-id="${itemId}" title="${escapeHtml(title || nome)}">
 			<span class="hm-drop-tile ri-tile"><img data-item-id="${itemId}" alt="" /></span>
 			<span class="hm-drop-name">${escapeHtml(nome)}</span>
-			<span class="hm-drop-chance">${chanceTexto}</span>
+			<span class="hm-drop-rarity ${classeDeRaridade(raridade)}">${escapeHtml(rotuloDeRaridade(raridade))}</span>
 			${extraHtml || ''}
 		</button>`;
 }
 
 /**
  * Os drops do monstro selecionado, da maior chance para a menor (empate pelo
- * nome, para a grade não dançar).
+ * nome, para a grade não dançar). A ORDEM continua pela chance real (que
+ * ainda chega do servidor) — só a EXIBIÇÃO virou selo de raridade.
  */
 function renderMobDrops(monster) {
 	const nomeDe = d => d.nomeLocal || d.nome;
@@ -1140,15 +1149,10 @@ function renderMobDrops(monster) {
 		return '<div class="hm-drops-empty">Sem drops conhecidos.</div>';
 	}
 	return `<div class="hm-drops">${drops
-		.map(d =>
-			renderDropTile(
-				d.itemId,
-				nomeDe(d),
-				formatarChance(d.chance),
-				'',
-				`${nomeDe(d)} — ${formatarChance(d.chance)}`
-			)
-		)
+		.map(d => {
+			const raridade = raridadeDoDrop(d);
+			return renderDropTile(d.itemId, nomeDe(d), raridade, '', `${nomeDe(d)} — ${rotuloDeRaridade(raridade)}`);
+		})
 		.join('')}</div>`;
 }
 
@@ -1159,11 +1163,16 @@ function renderMobDrops(monster) {
  * estavel) mora em `dropsDoMapa.js`, num modulo sem imports — e tem teste que a
  * EXECUTA (`servidor/mapa/drops-do-mapa.test.ts`, 11 casos). Aqui so se desenha.
  *
- * A chance mostrada e a MELHOR, e nao "a chance": medido no catalogo, 25 dos
- * 33 mapas tem item que cai de mais de um monstro, e a chance de um item "no
- * mapa" nao existe no rAthena — ela e por monstro. Somar daria numero
- * inventado. Quando ha mais de uma origem, o ladrilho diz de quantas, e o
- * `title` nomeia cada monstro com a chance dele.
+ * O SELO AGREGADO (RAGIDLE 08/09/2026) e a raridade da OCORRENCIA de melhor
+ * chance — a MESMA cuja % era exibida antes da troca (maior chance = menos
+ * raro), e nao um recalculo em cima do numero agregado: `dropsDoMapa` ja
+ * repassa `melhorChanceRaridade` junto de `melhorChance` (mesma atualizacao,
+ * mesma ocorrencia). Medido no catalogo, 25 dos 33 mapas tem item que cai de
+ * mais de um monstro, e a chance de um item "no mapa" nao existe no rAthena
+ * — ela e por monstro; somar daria numero inventado, e isso nao mudou.
+ * Quando ha mais de uma origem, o ladrilho diz de quantas, e o `title`
+ * nomeia cada monstro com a RARIDADE dele (era a chance; o nome do monstro
+ * continua — e detalhe util).
  */
 function renderDropsDoMapa(ficha) {
 	const linhas = dropsDoMapa(ficha);
@@ -1174,13 +1183,14 @@ function renderDropsDoMapa(ficha) {
 		.map(l => {
 			// `dropsDoMapa` devolve o nome do servidor; o ladrilho mostra o local.
 			const nome = nomeLocalDoItem(l.itemId, l.nome);
-			const origem = l.monstros.map(m => `${m.nome} ${formatarChance(m.chance)}`).join(' · ');
+			const raridade = raridadeDoDrop({ chance: l.melhorChance, raridade: l.melhorChanceRaridade });
+			const origem = l.monstros.map(m => `${m.nome} ${rotuloDeRaridade(raridadeDoDrop(m))}`).join(' · ');
 			const extra = l.deQuantosMobs > 1 ? `<span class="hm-drop-origens">${l.deQuantosMobs} mobs</span>` : '';
-			return renderDropTile(l.itemId, nome, formatarChance(l.melhorChance), extra, `${nome} — ${origem}`);
+			return renderDropTile(l.itemId, nome, raridade, extra, `${nome} — ${origem}`);
 		})
 		.join('');
 	return `
-		<div class="hm-drops-legenda">${linhas.length} ${linhas.length === 1 ? 'item' : 'itens'} · a chance é a melhor entre os monstros</div>
+		<div class="hm-drops-legenda">${linhas.length} ${linhas.length === 1 ? 'item' : 'itens'} · a raridade é a do melhor caso entre os monstros</div>
 		<div class="hm-drops">${grade}</div>`;
 }
 

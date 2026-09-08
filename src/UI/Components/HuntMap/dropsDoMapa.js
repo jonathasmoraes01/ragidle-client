@@ -42,9 +42,19 @@
 /**
  * Todo o drop de um mapa, um item por linha.
  *
+ * `raridade` (RAGIDLE, 08/09/2026 — troca de % por raridade no Atlas): este
+ * modulo continua SEM IMPORTS de proposito (ve o cabecalho acima), entao ele
+ * nao chama a escada defensiva de `atlasDeCaca.js` — so REPASSA o campo que
+ * cada drop ja trouxe (`d.raridade`, pode vir `undefined` de servidor
+ * velho). Quem decide "explicito vence, senao deriva da chance" e quem
+ * desenha a tela (`HuntMap.js`, via `raridadeDoDrop`). `melhorChanceRaridade`
+ * anda SEMPRE junto de `melhorChance`: e a raridade da MESMA ocorrencia que
+ * tinha a maior chance, nao um recalculo em cima do numero agregado.
+ *
  * @param {{monstros?: Array<object>, mvp?: object|null}} mapa - um `MapaDoCatalogo`.
  * @returns {Array<{itemId: number, nome: string, melhorChance: number,
- *                  deQuantosMobs: number, monstros: Array<{mobId: number, nome: string, chance: number}>}>}
+ *                  melhorChanceRaridade: number|undefined, deQuantosMobs: number,
+ *                  monstros: Array<{mobId: number, nome: string, chance: number, raridade: number|undefined}>}>}
  *   Ordenado da maior chance para a menor; empate desempata pelo NOME, para a
  *   lista nao dancar entre duas aberturas da mesma janela.
  */
@@ -67,17 +77,21 @@ export function dropsDoMapa(mapa) {
 			 * atras de um item que nao esta la.
 			 */
 			const jaVisto = porItem.get(d.itemId);
-			const origem = { mobId: mob.mobId, nome: mob.nome, chance: d.chance };
+			const origem = { mobId: mob.mobId, nome: mob.nome, chance: d.chance, raridade: d.raridade };
 			if (jaVisto) {
 				jaVisto.deQuantosMobs++;
 				jaVisto.monstros.push(origem);
-				if (d.chance > jaVisto.melhorChance) jaVisto.melhorChance = d.chance;
+				if (d.chance > jaVisto.melhorChance) {
+					jaVisto.melhorChance = d.chance;
+					jaVisto.melhorChanceRaridade = d.raridade;
+				}
 				continue;
 			}
 			porItem.set(d.itemId, {
 				itemId: d.itemId,
 				nome: d.nome,
 				melhorChance: d.chance,
+				melhorChanceRaridade: d.raridade,
 				deQuantosMobs: 1,
 				monstros: [origem],
 			});
