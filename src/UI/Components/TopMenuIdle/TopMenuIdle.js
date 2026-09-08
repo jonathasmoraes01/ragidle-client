@@ -872,26 +872,66 @@ function distribuirFileiras() {
 			? window.matchMedia('(max-height: 439px)').matches
 			: false;
 	/*
-	 * O TETO DE QUATRO COLUNAS (D-1159, 07/09/2026) — e ele existe por uma
-	 * medicao, nao por gosto.
+	 * O TETO DE CINCO COLUNAS — era QUATRO ate 08/09/2026, e a troca tem dono
+	 * e medicao.
 	 *
-	 * A grade tem colunas `auto`: a largura de cada coluna e a do ROTULO mais
-	 * largo dela. Com a conta pura (metade dos visiveis) o NONO item abriria uma
-	 * QUINTA coluna, e ela nasceria com o "Recompensas" sozinho — o rotulo mais
-	 * largo do cluster inteiro virando a coluna mais larga. Medido em D-944: o
-	 * cluster com 337px REPROVA o `prove:hud-responsiva` em tablet-768x1024
-	 * quando passa de ~359px (ele monta em cima do painel de personagem).
+	 * O teto nasceu em D-1159 para impedir que o NONO item (o "Votar") abrisse
+	 * uma quinta coluna com o "Recompensas" sozinho nela: a grade tem colunas
+	 * `auto`, a largura de cada uma e a do ROTULO mais largo dela, e
+	 * "Recompensas" e o rotulo mais largo do cluster inteiro. Medido em D-944,
+	 * o cluster REPROVA o `prove:hud-responsiva` em tablet-768x1024 quando
+	 * passa de ~359px (ele monta em cima do painel de personagem).
 	 *
-	 * Com o teto, o nono item cai numa TERCEIRA fileira, na coluna 1, embaixo
-	 * de "Personagem" e "Recompensas" — e como "Votar" e mais curto que os dois,
-	 * o `max` daquela coluna nao muda e a largura fica IDENTICA. O cluster passa
-	 * a crescer para BAIXO, onde ha espaco, e quem mora abaixo dele ja se ajusta
-	 * sozinho por `--tm-topo` (D-930).
+	 * Em 08/09 o dono pediu o "Votar" ao lado do "Caca", com a vaga de baixo
+	 * livre para o proximo botao. Isso reordenou o DOM (ver TopMenuIdle.html) e
+	 * mudou QUEM mora na quinta coluna: agora e o proprio "Votar", um dos
+	 * rotulos mais CURTOS, e nao o "Recompensas" — que continua na coluna 1,
+	 * embaixo do "Personagem", que e onde a regra de D-944 manda o rotulo mais
+	 * longo morar. O perigo que o teto de quatro cobria deixou de existir nesta
+	 * ordem; o que o teto ainda faz e impedir uma SEXTA coluna no dia em que o
+	 * cluster passar de dez itens.
+	 *
+	 * ─── E POR QUE A QUINTA COLUNA SO NASCE ACIMA DE 900px ──────────────────
+	 * Porque a quinta coluna FOI MEDIDA, e ela nao cabe em tudo. Com ela o
+	 * cluster passa de 333px para 403px, e o `prove:hud-responsiva` reprovou em
+	 * **tablet-768x1024** com "BasicInfoIdle x TopMenuIdle.tm-top (57x146px)" —
+	 * exatamente o defeito que o teto de quatro tinha sido criado para impedir.
+	 * A mesma prova, na mesma rodada, com a ordem antiga: 23 falhas (todas
+	 * anteriores a esta frente); com cinco colunas em toda tela: 24, e a nova
+	 * era essa.
+	 *
+	 * 57px de sobreposicao em 768 pedem ~830px para zerar; 900 e o degrau
+	 * seguro, e e onde a HUD de mouse ja encolheu o bastante (`--ui-escala` 0,78
+	 * em 900x600) para o cluster caber com folga. Abaixo disso o teto volta a
+	 * ser quatro e o "Votar" desce para a terceira fileira sozinho — a HUD
+	 * refluindo em tela estreita, que e o que ela ja faz com `deitado ? 3`.
+	 *
+	 * O criterio e `matchMedia` e nao `@media` no CSS pelo motivo de D-930:
+	 * esta linha escreve `--tm-colunas` como estilo INLINE, e inline vence
+	 * folha — uma regra de media no CSS seria escrita, lida e ignorada.
 	 *
 	 * Com oito itens ou menos nada muda: `ceil(8/2)` ja e 4.
 	 */
-	const colunas = deitado ? 3 : Math.min(4, Math.max(1, Math.ceil(visiveis.length / 2)));
+	const largo =
+		typeof window !== 'undefined' && window.matchMedia
+			? window.matchMedia('(min-width: 900px)').matches
+			: true;
+	const teto = deitado ? 3 : largo ? 5 : 4;
+	const colunas = Math.min(teto, Math.max(1, Math.ceil(visiveis.length / 2)));
 	topo.style.setProperty('--tm-colunas', String(colunas));
+	/*
+	 * O MESMO numero, em atributo, para o CSS conseguir PERGUNTAR por ele.
+	 *
+	 * `--tm-colunas` serve para CONTAR (o `repeat()` da grade o consome), mas
+	 * nenhum seletor consegue ramificar pelo VALOR de uma custom property sem
+	 * `@container style()`, que e recente demais para o fork depender dela. O
+	 * atributo resolve isso com um seletor comum, e e o que permite ao "Votar"
+	 * subir para a primeira fileira SO quando ha cinco colunas — sem mexer na
+	 * ordem do DOM, que e o que mantem o arranjo de quatro colunas identico ao
+	 * que ja passava no `prove:hud-responsiva` (ver o bloco do "Votar" em
+	 * TopMenuIdle.html).
+	 */
+	topo.dataset.colunas = String(colunas);
 }
 
 /**

@@ -44,6 +44,11 @@
 		"altura": 115,
 		"aspecto": 1.11
 	},
+	"indicacao": {
+		"largura": 124,
+		"altura": 128,
+		"aspecto": 0.97
+	},
 	"inventario": {
 		"largura": 128,
 		"altura": 125,
@@ -74,6 +79,11 @@
 		"altura": 128,
 		"aspecto": 0.81
 	},
+	"presenca": {
+		"largura": 128,
+		"altura": 108,
+		"aspecto": 1.18
+	},
 	"recompensas": {
 		"largura": 128,
 		"altura": 113,
@@ -93,5 +103,10 @@
 		"largura": 128,
 		"altura": 115,
 		"aspecto": 1.12
+	},
+	"voto": {
+		"largura": 125,
+		"altura": 128,
+		"aspecto": 0.98
 	}
 }

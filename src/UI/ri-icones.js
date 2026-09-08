@@ -242,13 +242,24 @@ const RiIcones = {
 	// confundem na tela, e os dois botoes moram em lugares diferentes (cluster
 	// e leque). Se um dia o `skills` perder o PNG, o par fica ambiguo: e o
 	// ponto em que este glifo precisa mudar.
-	// RAGIDLE (D-1164): Indique & Ganhe — duas pessoas e um mais (Lucide user-plus).
-	indicacao: svg(
-		'<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" x2="19" y1="8" y2="14"/><line x1="22" x2="16" y1="11" y2="11"/>'
+	// RAGIDLE (D-1164): Indique & Ganhe — arte ILUSTRADA desde 08/09/2026 (o
+	// dono entregou o PNG: dois aventureiros de mao dada, um apresentando o
+	// outro). Reserva Lucide "user-plus", o traco que estava aqui ate hoje.
+	indicacao: arteUi(
+		'indicacao',
+		svg(
+			'<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" x2="19" y1="8" y2="14"/><line x1="22" x2="16" y1="11" y2="11"/>'
+		)
 	),
-	// RAGIDLE (D-1162): a presenca mensal — calendario com o visto (Lucide calendar-check).
-	presenca: svg(
-		'<path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/><path d="m9 16 2 2 4-4"/>'
+	// RAGIDLE (D-1162): a presenca mensal — arte ILUSTRADA desde 08/09/2026 (o
+	// dono entregou o PNG: o pergaminho de calendario com a gema azul).
+	// Reserva Lucide "calendar-check", o traco que estava aqui ate hoje — e
+	// que continua sendo o conceito (calendario + visto) se o WebP faltar.
+	presenca: arteUi(
+		'presenca',
+		svg(
+			'<path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/><path d="m9 16 2 2 4-4"/>'
+		)
 	),
 	codex: arteUi(
 		'codex',
@@ -305,13 +316,20 @@ const RiIcones = {
 		'<path d="M3 9a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2 2 2 0 0 0 0 4 2 2 0 0 1-2 2H5a2 2 0 0 1-2-2 2 2 0 0 0 0-4z"/><path d="M9 7v10" stroke-dasharray="2 2.4"/>'
 	),
 
-	// ── Voto — Lucide "Vote" (a cédula com o visto). Traço puro, SEM arte
-	// ilustrada nem BMP do cliente: não existe ícone de votação no GRF — o
-	// conceito não existe no RO —, e inventar uma arte só para este botão
-	// abriria um vocabulário de um item só. A cadeia de reserva das outras é o
-	// que existe para o dia em que a arte chegar. ────────────────────────────
-	voto: svg(
-		'<path d="m9 12 2 2 4-4"/><path d="M5 7c0-1.1.9-2 2-2h10a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2z"/><path d="M2 21h20"/>'
+	// ── Voto — arte ILUSTRADA desde 08/09/2026 (a manopla de placas dando o
+	// polegar para cima), com reserva Lucide "Vote" (a cédula com o visto).
+	//
+	// Este bloco dizia, ate hoje, que o botao ficaria em traco puro porque
+	// "nao existe icone de votacao no GRF e inventar uma arte so para ele
+	// abriria um vocabulario de um item so". O argumento morreu do jeito
+	// previsto na propria nota — "a cadeia de reserva e o que existe para o
+	// dia em que a arte chegar": o dono entregou o PNG, e a arte deixou de ser
+	// de um item so ao chegar no mesmo lote de `presenca` e `indicacao`. ─────
+	voto: arteUi(
+		'voto',
+		svg(
+			'<path d="m9 12 2 2 4-4"/><path d="M5 7c0-1.1.9-2 2-2h10a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2z"/><path d="M2 21h20"/>'
+		)
 	),
 
 	// ── Auto — arte REAL (ro_menu_icon/battle_1.bmp, espadas cruzadas) com
