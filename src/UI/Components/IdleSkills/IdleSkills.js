@@ -989,7 +989,24 @@ function renderNo(no, contexto) {
 		 * que na verdade pede missao.
 		 */
 		(skill.deQuest
-			? (skill.name === 'NV_FIRSTAID'
+			/*
+			 * `skillId`, e nao `name` (07/09/2026, no merge).
+			 *
+			 * D-1189 leu o campo `name` da skill, que NAO existe no payload
+			 * do 0x0ffa — o servidor manda `skillId` (o identificador
+			 * `NV_FIRSTAID`) e `nome` (o nome legivel, em portugues). Todo o
+			 * resto deste arquivo ja usa `skill.skillId`.
+			 *
+			 * O efeito era silencioso e total: `undefined === 'NV_FIRSTAID'` e
+			 * sempre falso, entao o Primeiros Socorros caia no ramo do `else` e
+			 * a etiqueta dele dizia "é aprendida numa missão" — exatamente o
+			 * contrario do que D-1189 quis dizer, e a unica peca que a decisao
+			 * existia para distinguir.
+			 *
+			 * Quem pegou foi o portao `contrato-de-skills.test.ts`, que cruza os
+			 * campos LIDOS pelo fork com os DECLARADOS pelo servidor.
+			 */
+			? (skill.skillId === 'NV_FIRSTAID'
 				? '<span class="is-no-quest" title="Habilidade de quest: entra sozinha quando os requisitos são cumpridos, sem gastar ponto">quest · grátis</span>'
 				: '<span class="is-no-quest" title="Habilidade de quest: é aprendida numa missão, sem gastar ponto">quest · missão</span>')
 			: '') +
