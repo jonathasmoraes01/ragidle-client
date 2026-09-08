@@ -860,7 +860,7 @@ const CANAL_DO_FILTRO = {
  *
  * `ANNOUNCE` fica de FORA: e o anuncio da staff, que o dono quer no Global.
  *
- * `MAIL` entrou em 07/09/2026 (D-949-B), com o print do dono: as tres linhas do
+ * `MAIL` entrou em 07/09/2026 (D-950), com o print do dono: as tres linhas do
  * correio ("O item foi movido para o seu inventario", "Falha ao retirar os
  * Zenys", "A mensagem foi excluida") sairam no GLOBAL, e ele disse que elas
  * *"deveriam ter aparecido na aba Logs"*. Correio e registro do que aconteceu

@@ -149,7 +149,7 @@ let _selecionada = null;
 /** @var {string|null} assinatura da ultima lista desenhada. */
 let _sigLista = null;
 /**
- * Os botoes de coleta ja pedidos e ainda sem resposta (D-949-B, 07/09/2026).
+ * Os botoes de coleta ja pedidos e ainda sem resposta (D-950, 07/09/2026).
  *
  * O relato do dono: *"fui apagar os e-mails do correio do kit de boas vindas,
  * deu falha ao retirar o zenny"*. O servidor recusa a SEGUNDA retirada de
@@ -590,7 +590,7 @@ function onClickAcao(e) {
 }
 
 /**
- * Pede a coleta UMA vez por carta (D-949-B).
+ * Pede a coleta UMA vez por carta (D-950).
  *
  * O botao some assim que o pedido sai, e volta quando a lista chegar dizendo o
  * que aconteceu — o servidor zera o anexo retirado (`zeny: carta.zenyRetirado ?

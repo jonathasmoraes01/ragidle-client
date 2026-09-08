@@ -16305,6 +16305,49 @@ PACKET.CZ.RAGIDLE_VOTO_ACAO.prototype.build = function () {
 	return pkt_buf;
 };
 
+// 0x0fdf - RAGIDLE: CZ_RAGIDLE_PRESENCA_ACAO (client -> server)
+// Variable size: u16 opcode + u16 total length + JSON UTF-8 {acao:'pedir'|'recolher'}.
+// D-1162: a janela de presenca (PresencaIdle). Um opcode por JANELA, como o
+// Codex — o verbo vai no corpo.
+PACKET.CZ.RAGIDLE_PRESENCA_ACAO = function PACKET_CZ_RAGIDLE_PRESENCA_ACAO() {
+	this.json = '{}';
+};
+PACKET.CZ.RAGIDLE_PRESENCA_ACAO.prototype.build = function () {
+	const bytes = TextEncoding.encode(this.json, 'utf-8');
+	const pkt_len = 2 + 2 + bytes.length;
+	const pkt_buf = new BinaryWriter(pkt_len);
+	pkt_buf.writeShort(0x0fdf);
+	pkt_buf.writeUShort(pkt_len);
+	pkt_buf.writeString(this.json);
+	return pkt_buf;
+};
+
+// 0x0fd5 - RAGIDLE: ZC_RAGIDLE_VOTO (server -> client)
+// Variable size: u16 opcode + u16 total length + JSON UTF-8 payload.
+// Contrato v1 (D-1159): { v, moeda, saldo, agoraMs, intervaloMs,
+// plataformas: [{ id, nome, ligada, liberado, proximoEm, votos,
+// ultimoVotoMs }], liberados, impulso: { ateMs, ativo, base, job },
+// loja: [{ id, nome, resumo, custo, duracaoMs, base, job, recusa }],
+// avisar, comprou, abrir }.
+//
+// UM pacote de resposta para os TRES verbos — e para a ENTRADA no mapa, onde
+// ele desce com `avisar: true` para a janela abrir o aviso de "seu voto esta
+// liberado". Fora dessa vez, `avisar` e sempre falso.
+//
+// `abrir` traz a URL de voto ja montada pelo servidor (chave publica +
+// identidade opaca da conta). A janela NUNCA monta essa URL: a identidade nao
+// existe do lado do cliente, e montar aqui exigiria mandar a chave publica no
+// pacote de estado, que e uma viagem a mais para um dado que so serve no
+// clique.
+//
+// E a janela NUNCA recalcula prazo nem saldo: `liberado`, `proximoEm` e o
+// `recusa` de cada item da loja sao veredito do servidor. Recalcular daria a
+// segunda conta da mesma regra, e a que o jogador ve seria a errada — o
+// servidor decide depois do clique.
+PACKET.ZC.RAGIDLE_VOTO = function PACKET_ZC_RAGIDLE_VOTO(fp, end) {
+	this.json = fp.readString(end - fp.tell());
+};
+PACKET.ZC.RAGIDLE_VOTO.size = -1;
 // 0x0fde - RAGIDLE: ZC_RAGIDLE_PRESENCA (server -> client)
 // Variable size: u16 opcode + u16 total length + JSON UTF-8 payload.
 // Contrato v1 (D-1162): { v, hoje, periodo, diasDoPeriodo, recolhidos,

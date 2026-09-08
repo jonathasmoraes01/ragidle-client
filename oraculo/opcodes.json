@@ -3158,7 +3158,9 @@
 			}
 		]
 	},
-	"nomesComMaisDeUmTamanho": [],
+	"nomesComMaisDeUmTamanho": [
+		"ZC_RAGIDLE_VOTO"
+	],
 	"rathena": {
 		"arquivo": "rathena/src/map/clif_packetdb.hpp",
 		"lido": true,

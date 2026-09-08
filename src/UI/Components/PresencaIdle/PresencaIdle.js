@@ -17,7 +17,7 @@
  *
  * Nao usa a janela nativa `CheckAttendance` do RO: aquela precisa do
  * `CheckAttendance.lub` e do `0x0ae2`, e o nosso evento e por CONTA e por MES
- * do calendario — outro modelo. Ver D-949 para o que a nativa fazia aqui.
+ * do calendario — outro modelo. Ver D-959 para o que a nativa fazia aqui.
  *
  * This file is part of the ragidle fork of ROBrowser.
  */
