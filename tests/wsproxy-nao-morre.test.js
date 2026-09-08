@@ -69,6 +69,28 @@ function bater(caminho) {
   });
 }
 
+/**
+ * Espera uma linha aparecer na saida do processo, com prazo.
+ *
+ * **Ela nasceu de um vermelho que so aparecia na suite inteira** (08/09/2026):
+ * o caso da tranca de D-540 passava sozinho e reprovava com os 87 arquivos
+ * rodando. A causa nao era o codigo — era ESTE teste afirmando sobre a saida de
+ * OUTRO processo no instante seguinte ao gesto. O `console.log` da ponte, o
+ * `write` no pipe e a chegada ao nosso buffer sao tres passos assincronos, e
+ * sob disputa de CPU eles nao cabem no mesmo tique.
+ *
+ * Afirmar direto sobre `saida()` e o mesmo defeito que "criterio que passa com
+ * zero", do avesso: um teste que passa por sorte de escalonamento.
+ */
+async function esperarLinha(saida, texto, prazo = 5_000) {
+  const ate = Date.now() + prazo;
+  while (Date.now() < ate) {
+    if (saida().includes(texto)) return true;
+    await new Promise((r) => setTimeout(r, 25));
+  }
+  return false;
+}
+
 /** O processo continua vivo depois de `ms`? */
 function continuaViva(morreu, ms) {
   return Promise.race([
@@ -97,7 +119,7 @@ describe('a ponte WebSocket', () => {
        * so a linha prova que ela chegou ao `listen`.
        */
       const { saida, morreu } = await subirAPonte();
-      expect(saida()).toContain(`Listening on 127.0.0.1:${String(PORTA)}`);
+      expect(await esperarLinha(saida, `Listening on 127.0.0.1:${String(PORTA)}`)).toBe(true);
       expect(saida(), 'sem aviso de porta aberta, porque ela nao esta aberta').not.toContain(
         'fora de loopback',
       );
@@ -118,9 +140,10 @@ describe('a ponte WebSocket', () => {
         await continuaViva(morreu, 200),
         'a ponte precisa estar viva ANTES do caso, senao o teste nao mede nada',
       ).toBe(true);
-      expect(saida(), 'o controle tem de ter sido ATENDIDO, e nao recusado').toContain(
-        'Connection request from',
-      );
+      expect(
+        await esperarLinha(saida, 'Connection request from'),
+        'o controle tem de ter sido ATENDIDO, e nao recusado',
+      ).toBe(true);
 
       // O CASO: `constructor`, `__proto__` e companhia. Nenhum e um destino;
       // todos existem em `Object.prototype`.
@@ -135,7 +158,11 @@ describe('a ponte WebSocket', () => {
       // E continua ATENDENDO — sobreviver calada nao serve de nada.
       const antes = saida().length;
       await bater('127.0.0.1:6121');
-      expect(saida().length, 'a ponte tem de seguir atendendo depois dos pedidos ruins').toBeGreaterThan(antes);
+      expect(
+        await esperarLinha(saida, '127.0.0.1:6121'),
+        'a ponte tem de seguir atendendo depois dos pedidos ruins',
+      ).toBe(true);
+      expect(saida().length).toBeGreaterThan(antes);
     },
     30_000,
   );
@@ -145,7 +172,7 @@ describe('a ponte WebSocket', () => {
     async () => {
       const { morreu, saida } = await subirAPonte();
       await bater('10.0.0.1:22');
-      expect(saida()).toContain('RECUSADO destino fora da lista');
+      expect(await esperarLinha(saida, 'RECUSADO destino fora da lista')).toBe(true);
       expect(await continuaViva(morreu, 200)).toBe(true);
     },
     30_000,
