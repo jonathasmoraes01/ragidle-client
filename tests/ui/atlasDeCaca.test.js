@@ -129,9 +129,10 @@ describe('ordenarMapas', () => {
 });
 
 describe('derivarRaridade', () => {
-	it('as bordas da escada defensiva (mesma escada do servidor, D-919): ≤5 Lendário, ≤100 Raro, ≤1000 Incomum, senão Comum', () => {
-		expect(derivarRaridade(5)).toBe(3);
-		expect(derivarRaridade(6)).toBe(2);
+	it('as bordas da escada defensiva (a mesma do servidor): ≤3 Lendário (ordem do dono 08/09), ≤100 Raro, ≤1000 Incomum, senão Comum', () => {
+		expect(derivarRaridade(3)).toBe(3); // 0,03% — o teto do Lendário
+		expect(derivarRaridade(4)).toBe(2); // 0,04% — o primeiro Raro
+		expect(derivarRaridade(5)).toBe(2); // 0,05% — era Lendário até a emenda; o limiar do ANÚNCIO ficou lá
 		expect(derivarRaridade(100)).toBe(2);
 		expect(derivarRaridade(101)).toBe(1);
 		expect(derivarRaridade(1000)).toBe(1);
@@ -150,14 +151,14 @@ describe('raridadeDoDrop', () => {
 		expect(raridadeDoDrop({ chance: 1, raridade: 0 })).toBe(0);
 	});
 	it('sem `raridade` (servidor velho), deriva DEFENSIVAMENTE da chance pela mesma escada', () => {
-		expect(raridadeDoDrop({ chance: 5 })).toBe(3);
+		expect(raridadeDoDrop({ chance: 3 })).toBe(3);
 		expect(raridadeDoDrop({ chance: 1001 })).toBe(0);
 	});
 	it('`raridade` fora de 0..3 ou não-inteiro é tratado como ausente (defesa contra payload sujo)', () => {
-		expect(raridadeDoDrop({ chance: 5, raridade: 4 })).toBe(3);
-		expect(raridadeDoDrop({ chance: 5, raridade: -1 })).toBe(3);
-		expect(raridadeDoDrop({ chance: 5, raridade: 1.5 })).toBe(3);
-		expect(raridadeDoDrop({ chance: 5, raridade: null })).toBe(3);
+		expect(raridadeDoDrop({ chance: 3, raridade: 4 })).toBe(3);
+		expect(raridadeDoDrop({ chance: 3, raridade: -1 })).toBe(3);
+		expect(raridadeDoDrop({ chance: 3, raridade: 1.5 })).toBe(3);
+		expect(raridadeDoDrop({ chance: 3, raridade: null })).toBe(3);
 	});
 });
 

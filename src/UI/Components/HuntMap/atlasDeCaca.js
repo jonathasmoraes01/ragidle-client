@@ -184,9 +184,12 @@ const RARIDADE_ROTULOS = ['Comum', 'Incomum', 'Raro', 'Lendário'];
 /**
  * A escada de raridade a partir da chance BASE, em décimos de milésimo
  * (7000 = 70%, o mesmo contrato que `chance` sempre teve no catálogo):
- * ≤5 → Lendário, ≤100 → Raro, ≤1000 → Incomum, senão Comum. A ordem dos
- * testes importa — é a mesma escada de cima para baixo que D-919 usa na
- * Loja (`raridadeDaChance`, do lado do servidor); ESTA função só existe
+ * ≤3 → Lendário, ≤100 → Raro, ≤1000 → Incomum, senão Comum. O teto do
+ * Lendário é 0,03% por ordem do dono (08/09/2026: "raro vai até 0,03% e
+ * lendário é 0,03% para baixo" — era 0,05%, acoplado ao limiar do anúncio
+ * global, e o anúncio NÃO acompanhou: só a escada desceu). A ordem dos
+ * testes importa — é a mesma escada de cima para baixo do servidor
+ * (`raridadeDaChance`, `game/raridade-de-drop.ts`); ESTA função só existe
  * para cobrir a transição, enquanto um servidor ainda não manda `raridade`.
  *
  * @param {number} chance
@@ -194,7 +197,7 @@ const RARIDADE_ROTULOS = ['Comum', 'Incomum', 'Raro', 'Lendário'];
  */
 export function derivarRaridade(chance) {
 	const c = chance || 0;
-	if (c <= 5) return 3;
+	if (c <= 3) return 3;
 	if (c <= 100) return 2;
 	if (c <= 1000) return 1;
 	return 0;
