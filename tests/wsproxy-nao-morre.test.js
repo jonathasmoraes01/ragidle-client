@@ -48,7 +48,7 @@ async function subirAPonte() {
   await new Promise((resolve, reject) => {
     const prazo = setTimeout(() => reject(new Error(`a ponte nao subiu em 5 s: ${saida}`)), 5_000);
     const olhar = setInterval(() => {
-      if (saida.includes('Listening on port')) {
+      if (saida.includes('Listening on')) {
         clearInterval(olhar);
         clearTimeout(prazo);
         resolve();
@@ -83,6 +83,29 @@ afterEach(() => {
 });
 
 describe('a ponte WebSocket', () => {
+  it(
+    'escuta so em LOOPBACK — quem alcanca a ponte e o tunel na mesma maquina, nao a internet',
+    async () => {
+      /*
+       * Medido na VPS em 08/09/2026: a ponte aparecia como `*:5999` no
+       * `ss -ltnp` — todas as interfaces — enquanto as seis portas do jogo
+       * estavam em `127.0.0.1`. Quem segurava o mundo do lado de fora era so o
+       * `ufw`, **protecao que mora fora deste repositorio**.
+       *
+       * O teste le a linha de subida porque ela e o COMPORTAMENTO observavel: o
+       * processo diz onde ligou. Olhar o fonte provaria que a constante existe;
+       * so a linha prova que ela chegou ao `listen`.
+       */
+      const { saida, morreu } = await subirAPonte();
+      expect(saida()).toContain(`Listening on 127.0.0.1:${String(PORTA)}`);
+      expect(saida(), 'sem aviso de porta aberta, porque ela nao esta aberta').not.toContain(
+        'fora de loopback',
+      );
+      expect(await continuaViva(morreu, 100), 'e ela sobe, nao so imprime').toBe(true);
+    },
+    30_000,
+  );
+
   it(
     'sobrevive a um pedido cuja chave so existe no PROTOTIPO — o caso que a matava',
     async () => {
