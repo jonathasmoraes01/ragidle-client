@@ -7,7 +7,20 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const isDocker = process.env.RO_PROXY_TARGET === 'docker';
 const webTarget = isDocker ? 'http://rathena-web:8888' : 'http://127.0.0.1:8888';  
-const remoteClientTarget = isDocker ? 'http://remote-client-php:80' : 'http://127.0.0.1:8010';  
+/*
+ * 8010 -> 8000 (07/09/2026, no merge).
+ *
+ * O merge `0dc3f43f` trocou esta porta para 8010, e nenhum dos dois lados a
+ * tinha antes — as duas branches diziam 8000, e o comentario logo abaixo, que
+ * nao foi tocado, continua dizendo `remoteClientTarget -> 127.0.0.1:8000`.
+ *
+ * Quem serve os assets e o `npm run oraculo:assets`, e ele escuta na **8000**
+ * (`PORTAS_DO_DEV.assets`, `scripts/lib/stack-de-dev.ts`) — nos DOIS masters.
+ * Com 8010 o vite devolve 502 em todo asset e o cliente nao passa da tela
+ * preta: medido pela `prove:e2e`, que parou no passo da tela de login com
+ * `ECONNREFUSED 127.0.0.1:8010` repetido para textura, fonte e msgstringtable.
+ */
+const remoteClientTarget = isDocker ? 'http://remote-client-php:80' : 'http://127.0.0.1:8000';  
   
 const _proxy = {  
 	'/get': {  
