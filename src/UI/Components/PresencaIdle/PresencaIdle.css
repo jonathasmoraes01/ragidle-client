@@ -21,10 +21,26 @@
  * conta), e no celular a janela encolhe ate caber com folga para a barra de
  * atalhos. A altura desconta a barra do topo e a fileira de atalhos.
  */
+/*
+ * 620x640 DESDE 08/09/2026 (era 520x560), e o numero saiu do print.
+ *
+ * O desenho do dono tem sete colunas de ~78px com o dia em tres faixas
+ * (numero, arte do item, "xN nome"). Em 520px de largura essas colunas caem
+ * para ~62px e o nome do item quebra em duas ou tres linhas — a grade deixa
+ * de ser a do print. A altura acompanha para as cinco fileiras de um mes de
+ * 31 dias caberem sem rolagem, que e como o print mostra.
+ *
+ * O `min()` continua mandando no celular (ver a nota logo abaixo), entao o
+ * aumento so vale onde ha tela: num telefone de 393px a janela segue com
+ * `100vw - 16px`.
+ *
+ * `WINDOW_WIDTH`/`WINDOW_HEIGHT` em PresencaIdle.js sao a copia desta conta e
+ * andam junto — e por eles que a janela se centraliza.
+ */
 :host {
 	position: absolute;
-	width: min(520px, calc(100vw - 16px));
-	height: min(560px, calc(100vh - 132px));
+	width: min(620px, calc(100vw - 16px));
+	height: min(640px, calc(100vh - 132px));
 	pointer-events: none;
 }
 /*
@@ -90,66 +106,231 @@
 	display: flex;
 }
 
+/* ═══════════════════════════════════════════════════════════════════════
+   O DESENHO DO PRINT DO DONO (08/09/2026)
+
+   Ele mandou um print e escreveu: *"Deixe o design da pagina de presenca
+   igual deste print"*. O que o print define, e que esta folha passa a
+   cumprir:
+
+     - cabecalho de uma linha: ornamento dourado, "Presenca de <MES> · dia
+       N" com o MES em ouro, e do outro lado o contador com o numero em
+       ouro, precedido de um losango;
+     - a grade de sete colunas com o dia em TRES faixas — numero em cima,
+       ARTE DO ITEM no meio (ladeada por dois brilhos), "xN <nome>" embaixo;
+     - o nome do item em SERIFA (a face display), o "xN" em ouro;
+     - o dia de hoje com o quadro dourado;
+     - a frase do rodape, em italico, ocupando a sobra da ultima fileira.
+
+   ── O ICONE DO ITEM E ARTE DO CLIENTE, e isso e a regra 4 ──────────────
+   O que delimita virou CSS (o quadro, o brilho, o aro dourado); o que
+   INFORMA continua sendo o PNG de 24x24 do item, servido por
+   `/ragidle/item/<id>.png` (Utils/ItemArt.js). O `itemId` ja vinha no
+   payload — o servidor o resolve pelo AegisName antes de mandar
+   (`enviarPresenca`, servidor-mapa.ts) —, so ninguem o estava desenhando.
+
+   ── O OURO COMO SUPERFICIE, uma vez, e de proposito ────────────────────
+   A regra da casa e "o ouro nunca e superficie, so aro" (ver `.ri-window`
+   em Common.css). O print do dono pede o contrario no dia de hoje: o
+   quadro dele e PREENCHIDO. Cumpri o pedido pelo tom mais claro da rampa
+   (`--gold-200`, um creme), e nao pelo ouro cheio: assim o quadro le como
+   destaque, o texto escuro por cima continua legivel, e a cicatriz de
+   D-944 (ouro na PALAVRA fica ilegivel) nao volta pela porta dos fundos.
+   O aro dourado forte continua sendo aro.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+#PresencaIdle {
+	/* Os tamanhos do print, num lugar so. Mexer aqui move a grade inteira
+	   junto — foi assim que ela parou de brigar com a largura da janela. */
+	--pr-dia-altura: 92px;
+	--pr-vao: 8px;
+
+	/* Brilho de quatro pontas, no idioma dos ornamentos do design system
+	   (data-URI SVG na cor do ouro, como o `--ri-asa` da Common.css). Ele
+	   ladeia a arte do item nos dois lados, como no print. */
+	--pr-brilho: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M6 0C6.6 4.2 7.8 5.4 12 6 7.8 6.6 6.6 7.8 6 12 5.4 7.8 4.2 6.6 0 6 4.2 5.4 5.4 4.2 6 0Z' fill='%23c9a353'/%3E%3C/svg%3E");
+}
+
 /* ---- cabecalho: o mes e o progresso ---- */
 #PresencaIdle .pr-cabecalho {
 	display: flex;
-	align-items: baseline;
+	align-items: center;
 	justify-content: space-between;
 	gap: var(--sp-4);
-	padding: var(--sp-4) var(--sp-6) var(--sp-3);
+	padding: var(--sp-4) var(--sp-6);
 	border-bottom: 1px solid var(--border-hairline);
 }
 #PresencaIdle .pr-mes {
 	font: var(--type-section);
+	font-family: var(--font-display);
+	font-size: 15px;
 	color: var(--text-title);
+	letter-spacing: var(--ls-title);
+	white-space: nowrap;
+}
+/* O ornamento da esquerda: a asa dourada do header, o MESMO desenho que o
+   titulo das janelas usa — nenhum glifo novo entrou por causa deste print. */
+#PresencaIdle .pr-mes::before {
+	content: '';
+	display: inline-block;
+	width: 26px;
+	height: 12px;
+	margin-right: var(--sp-4);
+	vertical-align: middle;
+	background: var(--ri-asa) no-repeat center / contain;
+}
+/* O MES em ouro — o unico pedaco colorido do titulo, como no print. */
+#PresencaIdle .pr-mes b {
+	color: var(--gold-700);
+	font-weight: inherit;
 }
 #PresencaIdle .pr-progresso {
 	font: var(--type-desc);
 	color: var(--text-muted);
+	white-space: nowrap;
 }
 #PresencaIdle .pr-progresso strong {
-	color: var(--text-title);
+	color: var(--gold-700);
+	font-weight: 700;
+}
+/* O losango antes do contador: a mesma peca do `.ri-divisor` (quadrado de
+   5px girado 45deg), que e como o design system desenha losango. */
+#PresencaIdle .pr-progresso::before {
+	content: '';
+	display: inline-block;
+	width: 5px;
+	height: 5px;
+	margin-right: var(--sp-3);
+	transform: rotate(45deg);
+	background: var(--gold-400);
+	vertical-align: middle;
 }
 
 /* ---- a grade dos dias ---- */
 #PresencaIdle .pr-body {
 	flex: 1 1 auto;
 	overflow: auto;
-	padding: var(--sp-4) var(--sp-6);
+	padding: var(--sp-5) var(--sp-6);
 }
 #PresencaIdle .pr-grade {
 	display: grid;
 	grid-template-columns: repeat(7, minmax(0, 1fr));
-	gap: var(--sp-3);
+	gap: var(--pr-vao);
+	align-content: start;
 }
 #PresencaIdle .pr-dia {
 	position: relative;
+	/* Tres faixas com altura propria: numero, arte, premio. Com `flex` +
+	   `center` as tres dancavam conforme o nome do item quebrasse em uma ou
+	   duas linhas, e no print elas estao ANCORADAS. */
+	display: grid;
+	grid-template-rows: auto 1fr auto;
+	justify-items: center;
+	gap: var(--sp-1);
+	min-height: var(--pr-dia-altura);
+	/* 2px nas laterais, e nao `--sp-2`: sao esses 4px que fazem "x10 Poção
+	   Branca" — o rotulo mais longo do calendario — caber numa linha so, como
+	   no print. Com 4px de cada lado ele quebrava em duas e TODOS os dias
+	   ficavam 14px mais altos, o que tirava a quinta fileira da tela. */
+	padding: var(--sp-3) 2px var(--sp-4);
+	/* `border-box` porque o `min-height` acima e a altura DO QUADRO, e nao a do
+	   conteudo dele: sem isto o navegador somava os 14px de padding e os 2 de
+	   borda aos 92, o quadro media 106 e a quinta fileira do mes saia da area
+	   visivel (medido no arnes: corpo com 592px de conteudo em 523 de altura).
+	   O Common.css nao declara `box-sizing` global — quem precisa, declara. */
+	box-sizing: border-box;
+	background: var(--surface-card-hover);
+	border: 1px solid var(--border-hairline);
+	border-radius: var(--radius-panel);
+	box-shadow: var(--shadow-card), var(--rim-light);
+}
+#PresencaIdle .pr-dia-numero {
+	font: var(--type-label);
+	font-size: 12px;
+	color: var(--blue-700);
+	line-height: 1;
+}
+/* A ARTE: o PNG do item entre dois brilhos. */
+#PresencaIdle .pr-dia-arte {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: var(--sp-2);
+	align-self: center;
+}
+#PresencaIdle .pr-dia-icone {
+	/* Regra 4: ampliacao INTEIRA e `pixelated`. O PNG e 24x24 e e desenhado
+	   a 24x24, entao hoje nao ha o que interpolar; a declaracao fica porque
+	   e ela que impede o borrao no dia em que alguem aumentar o quadro. */
+	width: 24px;
+	height: 24px;
+	image-rendering: pixelated;
+	flex: 0 0 auto;
+}
+#PresencaIdle .pr-brilho {
+	width: 7px;
+	height: 7px;
+	background: var(--pr-brilho) no-repeat center / contain;
+	opacity: 0.55;
+	flex: 0 0 auto;
+}
+/* Uma COLUNA de linhas, sempre — inclusive quando ha um item so. A alternativa
+   (linha quando e um, coluna quando sao varios) pedia uma classe condicional no
+   JS para o mesmo desenho; assim o dia de um item e o dia de tres se montam
+   pelo mesmo caminho, e o segundo item nunca disputa a largura do primeiro. */
+#PresencaIdle .pr-dia-premio {
 	display: flex;
 	flex-direction: column;
 	align-items: center;
+	gap: 1px;
+	max-width: 100%;
+	text-align: center;
+	line-height: 1.15;
+}
+#PresencaIdle .pr-dia-linha {
+	display: flex;
+	align-items: baseline;
 	justify-content: center;
 	gap: 2px;
-	aspect-ratio: 1 / 1;
-	min-height: 52px;
-	padding: var(--sp-2);
-	background: var(--surface-card);
-	border: 1px solid var(--border-hairline);
-	border-radius: var(--radius-card);
-	box-shadow: var(--shadow-card);
+	max-width: 100%;
 }
-#PresencaIdle .pr-dia-numero {
-	font: var(--type-desc);
-	color: var(--text-muted);
-	line-height: 1;
-}
-#PresencaIdle .pr-dia-premio {
+#PresencaIdle .pr-dia-qtd {
 	font: var(--type-badge);
-	color: var(--text-title);
-	white-space: nowrap;
+	font-size: 8px;
+	color: var(--gold-700);
+	flex: 0 0 auto;
 }
-#PresencaIdle .pr-dia-premio small {
-	color: var(--text-muted);
-	font-weight: 400;
+#PresencaIdle .pr-dia-nome {
+	font-family: var(--font-display);
+	font-size: 9px;
+	white-space: nowrap;
+	color: var(--text-title);
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+/* A FRASE DO PRINT, na sobra da ultima fileira.
+
+   QUANTAS colunas ela ocupa e conta do JS (`--pr-frase-colunas`, escrito
+   inline pelo `render()`), e nao do CSS, porque depende do MES: setembro deixa
+   5 colunas livres na ultima fileira, janeiro deixa 3, fevereiro nao deixa
+   nenhuma. Um `span` cravado acertaria um mes e erraria os outros.
+
+   `grid-column: auto / -1` foi tentado antes e NAO serve: com o inicio
+   automatico e o fim definido, a spec da a ela um span de 1 — medido no arnes,
+   ela ocupou uma celula de 77px em vez da fileira. O fallback do `var()` (7)
+   e o mes que fecha exato: ai ela desce para uma fileira propria, inteira. */
+#PresencaIdle .pr-frase {
+	grid-column: span var(--pr-frase-colunas, 7);
+	align-self: center;
+	justify-self: end;
+	max-width: 100%;
+	padding: 0 var(--sp-4);
+	font-family: var(--font-display);
+	font-size: 12px;
+	font-style: italic;
+	line-height: 1.35;
+	text-align: right;
+	color: var(--blue-400);
 }
 
 /* recebido: apagado, com o selo de "feito" */
@@ -158,8 +339,16 @@
 	background: var(--surface-inset);
 	box-shadow: none;
 }
-#PresencaIdle .pr-dia.is-recebido .pr-dia-premio,
-#PresencaIdle .pr-dia.is-recebido-hoje .pr-dia-premio {
+#PresencaIdle .pr-dia.is-recebido .pr-dia-icone,
+#PresencaIdle .pr-dia.is-recebido-hoje .pr-dia-icone {
+	/* O item recolhido continua visivel — so para de disputar atencao com o
+	   que ainda ha por recolher. Riscar o nome ja diz "foi". */
+	opacity: 0.5;
+}
+#PresencaIdle .pr-dia.is-recebido .pr-dia-nome,
+#PresencaIdle .pr-dia.is-recebido-hoje .pr-dia-nome,
+#PresencaIdle .pr-dia.is-recebido .pr-dia-qtd,
+#PresencaIdle .pr-dia.is-recebido-hoje .pr-dia-qtd {
 	color: var(--text-muted);
 	text-decoration: line-through;
 }
@@ -167,24 +356,30 @@
 #PresencaIdle .pr-dia.is-recebido-hoje::after {
 	content: '\2713';
 	position: absolute;
-	top: 3px;
-	right: 5px;
+	top: 4px;
+	right: 6px;
 	font-size: 10px;
 	line-height: 1;
 	color: var(--green-600);
 }
-/* o de hoje: aro dourado, e o unico que pulsa */
+/* o de hoje: o quadro dourado do print (ver a nota do ouro no topo) */
 #PresencaIdle .pr-dia.is-hoje {
-	border-color: var(--border-gold);
+	background: linear-gradient(180deg, var(--gold-200) 0%, var(--gold-300) 100%);
+	border-color: var(--gold-400);
 	box-shadow: var(--shadow-card), var(--glow-gold);
 }
-#PresencaIdle .pr-dia.is-hoje .pr-dia-numero {
+#PresencaIdle .pr-dia.is-hoje .pr-dia-numero,
+#PresencaIdle .pr-dia.is-hoje .pr-dia-qtd {
 	color: var(--gold-700);
 	font-weight: 700;
 }
-/* futuro: como esta, so mais quieto */
+#PresencaIdle .pr-dia.is-hoje .pr-brilho {
+	opacity: 1;
+}
+/* futuro: o print NAO apaga os dias que ainda vem — eles sao o catalogo do
+   mes, e quem se destaca e o dia de hoje, por adicao e nao por subtracao. */
 #PresencaIdle .pr-dia.is-futuro {
-	opacity: 0.78;
+	background: var(--surface-card);
 }
 /* fora do periodo (fevereiro nao tem 30): nao existe */
 #PresencaIdle .pr-dia.is-fora-do-periodo {
