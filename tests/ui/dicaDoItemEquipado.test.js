@@ -130,3 +130,44 @@ describe('a dica DESENHA o selo', () => {
 		expect(css).toMatch(/\.mo-dica-equipado\s*\{[^}]*var\(--accent\)/);
 	});
 });
+
+describe('a PORTA da peça vestida — no dedo não há hover nem botão direito', () => {
+	const js = readFileSync(
+		join(process.cwd(), 'src/UI/Components/MochilaIdle/MochilaIdle.js'),
+		'utf8',
+	);
+	const ficha = readFileSync(
+		join(process.cwd(), 'src/UI/Components/ItemInfo/ItemInfo.js'),
+		'utf8',
+	);
+
+	it('o TOQUE no slot abre o MESMO menu do botão direito', () => {
+		/*
+		 * O painel de slots só escutava o "×": a peça vestida tinha dois
+		 * caminhos, hover (a dica com o selo) e botão direito (Tirar/Detalhes),
+		 * e nenhum dos dois existe no dedo. No celular o jogador não conseguia
+		 * abrir a ficha do que estava usando. É a mesma lacuna que D-938 fechou
+		 * na GRADE, no mesmo arquivo — e que ficou de fora aqui.
+		 */
+		const trecho = js.slice(
+			js.indexOf('function onClickPainelEsq'),
+			js.indexOf('function getItemTab'),
+		);
+		expect(trecho).toContain('ehToque()');
+		expect(trecho).toContain('abrirMenuDoSlot(tile)');
+
+		// UMA montagem do menu, chamada pelos dois gestos — nunca duas.
+		const menu = js.slice(js.indexOf('function onContextMenuSlot'));
+		expect(menu.slice(0, 600)).toContain('abrirMenuDoSlot(tile)');
+	});
+
+	it('a ficha da peça vestida carrega o selo — é o único lugar sem hover', () => {
+		const trecho = js.slice(js.indexOf('function abrirDetalhesEquipado'));
+		expect(trecho.slice(0, 2000)).toContain('ItemInfo.setVestido');
+		expect(trecho.slice(0, 2000)).toContain('mascaraVestidaDoIndice');
+
+		expect(ficha).toContain('ItemInfo.setVestido = function setVestido');
+		const setItem = ficha.slice(ficha.indexOf('ItemInfo.setItem = function setItem'));
+		expect(setItem.slice(0, 1200)).toContain('ItemInfo.setVestido(null)');
+	});
+});

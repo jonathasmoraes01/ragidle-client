@@ -837,14 +837,38 @@ function extractUrl(backgroundImage) {
  */
 function onClickPainelEsq(e) {
 	const btn = e.target.closest('.mo-slot-remover');
-	if (!btn) {
+	if (btn) {
+		e.stopImmediatePropagation();
+		const index = parseInt(btn.dataset.index, 10);
+		if (!isNaN(index)) {
+			tentarTirar(index, btn.closest('.mo-slot'));
+		}
 		return;
 	}
-	e.stopImmediatePropagation();
-	const index = parseInt(btn.dataset.index, 10);
-	if (!isNaN(index)) {
-		tentarTirar(index, btn.closest('.mo-slot'));
+
+	/*
+	 * TOQUE NA PECA VESTIDA = o MESMO menu do botao direito (08/09/2026).
+	 *
+	 * A peca vestida so tinha DOIS caminhos, e os dois sao de mouse: passar o
+	 * cursor (a dica com o selo "Equipado") e o botao direito (Tirar /
+	 * Detalhes). No dedo nao existe nenhum dos dois — entao, no celular, o
+	 * jogador nao tinha como abrir a ficha do que esta usando. E a mesma
+	 * lacuna que D-938 fechou na GRADE, no mesmo arquivo, e que ficou de fora
+	 * aqui porque o painel de slots so escutava o "x".
+	 *
+	 * So no dedo (`ehToque()`, lido na hora do evento): no mouse um clique
+	 * simples no slot continua sem fazer nada.
+	 */
+	if (!ehToque()) {
+		return;
 	}
+	const tile = e.target.closest('.mo-slot');
+	if (!tile || !tile.classList.contains('is-ocupado')) {
+		return;
+	}
+	e.preventDefault();
+	e.stopImmediatePropagation();
+	abrirMenuDoSlot(tile);
 }
 
 /**
@@ -1140,6 +1164,15 @@ function onContextMenuSlot(e) {
 	}
 	e.preventDefault();
 	e.stopImmediatePropagation();
+	abrirMenuDoSlot(tile);
+}
+
+/**
+ * Monta o menu de uma peca VESTIDA -- chamada pelos DOIS caminhos que abrem o
+ * MESMO menu (botao direito no mouse, toque simples no dedo). Uma unica
+ * montagem, nunca duas -- o mesmo desenho de `abrirMenuDoItem` na grade.
+ */
+function abrirMenuDoSlot(tile) {
 	const index = parseInt(tile.dataset.index, 10);
 	if (isNaN(index)) {
 		return;
@@ -1249,6 +1282,22 @@ function abrirDetalhesEquipado(index) {
 	}
 	const evt = new MouseEvent('contextmenu', { bubbles: true, cancelable: true });
 	itemDiv.dispatchEvent(evt);
+
+	/*
+	 * O SELO VAI JUNTO PARA A FICHA (08/09/2026).
+	 *
+	 * A dica de hover diz "Equipado — Arma", e no dedo nao ha hover: sem isto,
+	 * o jogador de celular abre a ficha da peca que esta usando e ela nao diz
+	 * que esta em uso. A janela e a MESMA nos dois aparelhos, entao o selo
+	 * mora nela e serve aos dois.
+	 *
+	 * O despacho acima e SINCRONO: quando ele volta, `ItemInfo.setItem` ja
+	 * rodou (e ja limpou o selo anterior), e este e o momento de por o novo.
+	 */
+	const espaco = rotuloDoEspacoEquipado(mascaraVestidaDoIndice(String(index)), EQUIP_SLOTS);
+	if (espaco && typeof ItemInfo.setVestido === 'function') {
+		ItemInfo.setVestido(`Equipado — ${espaco}`);
+	}
 }
 
 /**

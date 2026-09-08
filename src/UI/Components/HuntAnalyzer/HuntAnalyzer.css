@@ -523,9 +523,41 @@
 	grid-template-columns: repeat(3, 1fr);
 }
 
-/* O título come o espaço livre para os DOIS botões do cabeçalho (compactar +
-   fechar) ficarem juntos à direita — com space-between e três filhos, o
-   botão do meio flutuaria no centro da janela. */
+/* ─── OS DOIS BOTÕES DO CABEÇALHO ────────────────────────────────────────
+   O BOTÃO DE COMPACTAR PRECISA DE LUGAR PRÓPRIO, e a falta disso deixou a
+   entrega inteira sem porta.
+
+   `.ri-close` do design system é `position:absolute; right:8px; top:50%`
+   (Common.css) — DOIS botões com essa classe caem no MESMO ponto, e o que vem
+   depois no DOM (o "Fechar") fica por cima e recebe o clique. O modo compacto
+   funcionava por código e NÃO existia para o jogador: a foto do cabeçalho
+   mostrava um botão só, o "×".
+
+   Por isso o comentário que estava aqui — "o título come o espaço livre para
+   os dois botões ficarem juntos à direita" — descrevia um layout que nunca
+   aconteceu: `flex` não posiciona filho absoluto.
+
+   52px = 8 (a margem do "×") + 20 (a largura dele) + 24 de folga. No dedo cada
+   botão ganha 44px de alvo pelo `::before` de `inset:-12px` do Common.css; com
+   os centros a 44px de distância, os dois alvos se encostam no meio do caminho
+   em vez de um roubar o toque do outro. */
+.ha-compactar {
+	right: 52px;
+}
+
+/* O título não passa por baixo dos dois botões em tela estreita — o
+   cabeçalho é `justify-content:center` e sem este teto o "Análise de Caça"
+   escorregaria para debaixo deles no celular em pé. */
 .ha-titulo {
 	flex: 1 1 auto;
+	/* O teto e a largura dos DOIS botoes (8 + 20 + 24 + 20) mais uma folga: sem
+	   ele o titulo passaria por baixo deles em tela estreita. Com folga DEMAIS
+	   ele quebra em duas linhas e engorda o cabecalho — foi o que a foto do
+	   primeiro conserto mostrou, com "Analise de / Caca" empilhado. O
+	   `nowrap` e o cinto de seguranca: teto errado passa a cortar, e nao a
+	   empurrar a janela para baixo. */
+	max-width: calc(100% - 88px);
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
 }

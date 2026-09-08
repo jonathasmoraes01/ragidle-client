@@ -411,6 +411,26 @@
    (+/-) vai junto em texto, que é a regra de acessibilidade que a Análise de
    Caça já segue com os losangos. */
 /*
+ * O SELO "Equipado — <espaco>": mesma chapa do painel de comparacao (os dois
+ * moram FORA do `.container`), com a cor de ACENTO da dica — estado, e nao
+ * botao. E o unico lugar onde a peca vestida se apresenta no celular.
+ */
+.ItemInfo .vestido {
+	width: 100%;
+	box-sizing: border-box;
+	margin-top: 4px;
+	padding: 6px 10px;
+	font-family: var(--font-ui, sans-serif);
+	font-size: 11.5px;
+	font-weight: 700;
+	background: var(--surface-titlebar, linear-gradient(180deg, #f7fbff 0%, #dfe8f6 55%, #cddcef 100%));
+	border: 1px solid var(--border-window, rgba(36, 92, 158, 0.34));
+	border-radius: var(--radius-window, 6px);
+	box-shadow: var(--rim-light), var(--shadow-float);
+	color: var(--accent, #2a6fb5);
+}
+
+/*
  * ELE PAINTA A PROPRIA CHAPA, como o botao de link logo abaixo — e a razao e
  * uma foto: o painel mora FORA do `.container` (a chapa da janela para ali),
  * entao um fundo translucido deixava o mapa, o boneco e a coluna de slots

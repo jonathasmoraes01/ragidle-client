@@ -94,3 +94,38 @@ describe('o que o compacto mostra — e o que ele NÃO toca', () => {
 		expect(js).toContain('ha-itens-hora');
 	});
 });
+
+describe('a PORTA do modo compacto', () => {
+	const css = readFileSync(
+		join(process.cwd(), 'src/UI/Components/HuntAnalyzer/HuntAnalyzer.css'),
+		'utf8',
+	);
+
+	it('o botão de compactar tem lugar PRÓPRIO — dois `.ri-close` caem no mesmo ponto', () => {
+		/*
+		 * A cicatriz mais cara desta rodada (08/09/2026). `.ri-close` do design
+		 * system é `position:absolute; right:8px; top:50%` (Common.css): o botão
+		 * de compactar e o de fechar nasceram EMPILHADOS, e o "×" — que vem
+		 * depois no DOM — ficava por cima recebendo todos os cliques.
+		 *
+		 * O modo compacto existia, era testado, tinha estado persistido... e o
+		 * jogador não tinha como acioná-lo. A foto do cabeçalho mostrava UM
+		 * botão só. Este caso prende o deslocamento; a sonda de tela prende o
+		 * resto (`elementFromPoint` no centro do botão).
+		 */
+		const bloco = css.slice(css.indexOf('.ha-compactar {'));
+		expect(bloco.slice(0, 200)).toMatch(/right:\s*52px/);
+	});
+
+	it('o título tem teto E não quebra linha — os dois, ou o cabeçalho engorda', () => {
+		/*
+		 * O teto sozinho já reprovou uma vez: com folga demais o título quebrou
+		 * em duas linhas ("Análise de / Caça") e o cabeçalho ficou com o dobro
+		 * da altura — a foto do primeiro conserto. O `nowrap` é o cinto: teto
+		 * errado passa a CORTAR, e não a empurrar a janela para baixo.
+		 */
+		const bloco = css.slice(css.indexOf('.ha-titulo {'));
+		expect(bloco.slice(0, 700)).toContain('max-width');
+		expect(bloco.slice(0, 700)).toContain('white-space: nowrap');
+	});
+});
