@@ -142,8 +142,8 @@
 #PresencaIdle {
 	/* Os tamanhos do print, num lugar so. Mexer aqui move a grade inteira
 	   junto — foi assim que ela parou de brigar com a largura da janela. */
-	--pr-dia-altura: 92px;
-	--pr-vao: 8px;
+	--pr-dia-altura: 88px;
+	--pr-vao: 7px;
 
 	/* Brilho de quatro pontas, no idioma dos ornamentos do design system
 	   (data-URI SVG na cor do ouro, como o `--ri-asa` da Common.css). Ele
@@ -210,7 +210,7 @@
 #PresencaIdle .pr-body {
 	flex: 1 1 auto;
 	overflow: auto;
-	padding: var(--sp-5) var(--sp-6);
+	padding: var(--sp-4) var(--sp-6);
 }
 #PresencaIdle .pr-grade {
 	display: grid;
@@ -259,11 +259,21 @@
 	align-self: center;
 }
 #PresencaIdle .pr-dia-icone {
-	/* Regra 4: ampliacao INTEIRA e `pixelated`. O PNG e 24x24 e e desenhado
-	   a 24x24, entao hoje nao ha o que interpolar; a declaracao fica porque
-	   e ela que impede o borrao no dia em que alguem aumentar o quadro. */
-	width: 24px;
-	height: 24px;
+	/*
+	 * 48px = 24 DOBRADO, e o dobro nao e gosto: e a regra 4.
+	 *
+	 * "o PNG do cliente, com ampliacao por numero INTEIRO e `image-rendering:
+	 * pixelated`" — o arquivo e 24x24 (`/ragidle/item/504.png`), entao os
+	 * tamanhos legais sao 24, 48, 72. O dono pediu maior (08/09/2026) e 48 e
+	 * o degrau seguinte; 32 ou 36 dariam o tamanho "certo" a olho e sairiam
+	 * BORRADOS, porque 1,33x nao tem como cair em pixel inteiro.
+	 *
+	 * O quadro de 92px comporta: 14 de respiro + 12 do numero + 4 de vaos +
+	 * 48 da arte + 11 do premio = 89. A faixa do meio e `1fr`, entao a sobra
+	 * fica nela e a arte centraliza sozinha.
+	 */
+	width: 48px;
+	height: 48px;
 	image-rendering: pixelated;
 	flex: 0 0 auto;
 }
