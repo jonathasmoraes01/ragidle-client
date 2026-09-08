@@ -62,9 +62,41 @@
 .ha-header {
 	display: flex;
 	align-items: center;
-	justify-content: space-between;
+	/* 08/09/2026 (reporte do dono): o titulo estava descentralizado — o
+	   space-between o empurrava para a esquerda. Centrado como toda janela
+	   ri-*: os botoes sao absolutos a direita (.ri-close). */
+	justify-content: center;
+	position: relative;
 	flex: 0 0 auto;
 	cursor: move;
+}
+
+.ha-minimize {
+	right: 34px;
+	font-size: 15px;
+	line-height: 1;
+}
+
+/* ─── Modo enxuto (08/09/2026, ordem do dono: "igual fizemos com a janela
+   Personagem"): fica o cabecalho, o cronometro (.ha-cabine) e os quatro
+   ritmos (.ha-ritmos); abas, metricas, nota e listas somem. A janela deixa
+   de ter altura fixa e abraca o que sobrou. */
+#HuntAnalyzer.is-compact .ha-abas,
+#HuntAnalyzer.is-compact .ha-metricas,
+#HuntAnalyzer.is-compact .ha-nota,
+#HuntAnalyzer.is-compact .ha-bloco {
+	display: none;
+}
+
+:host(.is-compact),
+#HuntAnalyzer.is-compact,
+#HuntAnalyzer.is-compact .ha-window,
+#HuntAnalyzer.is-compact .ha-frame {
+	height: auto;
+}
+
+#HuntAnalyzer.is-compact .ha-corpo {
+	overflow: visible;
 }
 
 /* ─── Abas ────────────────────────────────────────────────────────────── */

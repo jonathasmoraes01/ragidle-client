@@ -328,3 +328,18 @@
 #CodexIdle .cx-abas .ri-tab {
 	flex: 1;
 }
+
+/* RAGIDLE (08/09/2026): o interruptor de ocultar as missoes concluidas. */
+#CodexIdle .cx-ocultar {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	margin: 0 0 8px;
+	font-size: 12px;
+	cursor: pointer;
+	user-select: none;
+}
+
+#CodexIdle .cx-ocultar-n {
+	opacity: 0.7;
+}

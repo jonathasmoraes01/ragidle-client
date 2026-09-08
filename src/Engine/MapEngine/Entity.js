@@ -12,6 +12,7 @@
 import DB from 'DB/DBManager.js';
 import SkillId from 'DB/Skills/SkillConst.js';
 import SkillInfo from 'DB/Skills/SkillInfo.js';
+import { nomeDaHabilidadeParaOJogador } from 'DB/Skills/SkillNamePtBr.js'; // RAGIDLE (08/09/2026): o balao em portugues
 import StatusConst from 'DB/Status/StatusConst.js';
 import StatusState from 'DB/Status/StatusState.js';
 import Emotions from 'DB/Emotions.js';
@@ -1593,7 +1594,7 @@ function onEntityUseSkill(pkt) {
 	) {
 		if (!SkillNameDisplayExclude.includes(pkt.SKID)) {
 			srcEntity.dialog.set(
-				((SkillInfo[pkt.SKID] && SkillInfo[pkt.SKID].SkillName) || 'Unknown Skill') + ' !!',
+				nomeDaHabilidadeParaOJogador(pkt.SKID) + ' !!',
 				'white'
 			);
 		}
@@ -1753,7 +1754,7 @@ function onEntityUseSkillToAttack(pkt) {
 			!(pkt.level < 0) &&
 			!(pkt.SKID < 0)
 		) {
-			srcEntity.dialog.set(((SkillInfo[pkt.SKID] && SkillInfo[pkt.SKID].SkillName) || 'Unknown Skill') + ' !!');
+			srcEntity.dialog.set(nomeDaHabilidadeParaOJogador(pkt.SKID) + ' !!');
 		}
 
 		//Action handling
@@ -1986,7 +1987,7 @@ function onEntityCastSkill(pkt) {
 	) {
 		if (!SkillNameDisplayExclude.includes(pkt.SKID)) {
 			srcEntity.dialog.set(
-				((SkillInfo[pkt.SKID] && SkillInfo[pkt.SKID].SkillName) || 'Unknown Skill') + ' !!',
+				nomeDaHabilidadeParaOJogador(pkt.SKID) + ' !!',
 				'white'
 			);
 		}

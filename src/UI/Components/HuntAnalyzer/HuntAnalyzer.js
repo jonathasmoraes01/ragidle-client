@@ -105,10 +105,39 @@ const _preferences = Preferences.get(
 		/* A aba escolhida sobrevive ao F5 (portao D-797, memoriaDeAba.js).
 		   Uma aba de historico lembrada sem historico ainda (o F5 apaga as
 		   cacadas arquivadas) cai pra Atual em sincronizarAbas — sem erro. */
-		aba: null
+		aba: null,
+		/* O modo enxuto (08/09/2026) sobrevive ao F5, como o compacto do BasicInfoIdle. */
+		compacto: false
 	},
 	1
 );
+
+/* ─── Modo enxuto (08/09/2026, ordem do dono) ─── */
+function aplicarCompacto() {
+	const root = _root();
+	if (!root) {
+		return;
+	}
+	const compacto = !!_preferences.compacto;
+	// `_root()` e o ShadowRoot (sem classList): a classe vai no #HuntAnalyzer de
+	// dentro e no HOST (a altura de 540px e do :host). Sem as guardas, um
+	// `toggle` em undefined derrubava o init inteiro da HUD (tela preta, 08/09).
+	const raiz = root.querySelector ? root.querySelector('#HuntAnalyzer') : null;
+	if (raiz && raiz.classList) raiz.classList.toggle('is-compact', compacto);
+	const host = HuntAnalyzer._host;
+	if (host && host.classList) host.classList.toggle('is-compact', compacto);
+	const botao = root.querySelector('.ha-minimize');
+	if (botao) {
+		botao.setAttribute('title', compacto ? 'Restaurar' : 'Recolher');
+		botao.setAttribute('aria-label', compacto ? 'Restaurar a janela completa' : 'Recolher para o modo enxuto');
+	}
+}
+
+HuntAnalyzer.alternarCompacto = function alternarCompacto() {
+	_preferences.compacto = !_preferences.compacto;
+	_preferences.save();
+	aplicarCompacto();
+};
 
 let _pollTimer = null;
 /** A aba na tela: 0 = atual, 1 = ultima, 2 = penultima. */
@@ -563,6 +592,12 @@ HuntAnalyzer.init = function init() {
 	const root = _root();
 
 	this.draggable(root.querySelector('.ha-header'));
+
+	root.querySelector('.ha-minimize').addEventListener('click', e => {
+		e.stopPropagation();
+		HuntAnalyzer.alternarCompacto();
+	});
+	aplicarCompacto();
 
 	root.querySelector('.ha-close').addEventListener('click', () => {
 		HuntAnalyzer.toggle();

@@ -107,7 +107,9 @@ const _preferences = Preferences.get(
 		y: null,
 		// A aba lembrada (08/09/2026), pelo contrato de memoriaDeAba.js: chave nova nos
 		// padroes nao exige subir a versao.
-		aba: null
+		aba: null,
+		// Ocultar as missoes concluidas (08/09/2026).
+		ocultarConcluidas: false
 	},
 	1.0
 );
@@ -280,6 +282,14 @@ function abasHtml() {
 }
 
 function onClickCorpo(e) {
+	const ocultar = e.target && e.target.closest && e.target.closest('[data-action="cx-ocultar"]');
+	if (ocultar) {
+		e.stopImmediatePropagation();
+		_preferences.ocultarConcluidas = !!ocultar.checked;
+		_preferences.save();
+		render();
+		return;
+	}
 	const aba = e.target && e.target.closest && e.target.closest('.cx-aba');
 	if (aba && aba.dataset.tab && aba.dataset.tab !== _aba) {
 		e.stopImmediatePropagation();
@@ -355,13 +365,34 @@ function placarHtml(estado) {
 }
 
 /** A lista de missoes: monstro, progresso e a marca de cumprida. */
+/**
+ * RAGIDLE (08/09/2026, ordem do dono): a lista sai da MENOR quantidade para a
+ * maior (o total da missao; empate pelo titulo), e as concluidas podem ser
+ * ocultadas — o interruptor fica gravado nas preferencias.
+ */
+function ordenarMissoes(missoes) {
+	return missoes.slice().sort((a, b) => (Number(a.alvo) || 0) - (Number(b.alvo) || 0) || String(a.titulo || '').localeCompare(String(b.titulo || ''), 'pt-BR'));
+}
+
 function missoesHtml(estado) {
-	const missoes = Array.isArray(estado.missoes) ? estado.missoes : [];
-	if (missoes.length === 0) {
+	const todas = Array.isArray(estado.missoes) ? estado.missoes : [];
+	if (todas.length === 0) {
 		return '<div class="cx-vazio">Nenhuma missao no catalogo.</div>';
 	}
-
+	const ocultar = !!_preferences.ocultarConcluidas;
+	const concluidas = todas.filter(m => m.cumprida).length;
+	const missoes = ordenarMissoes(ocultar ? todas.filter(m => !m.cumprida) : todas);
+	const barra =
+		'<label class="cx-ocultar"><input type="checkbox" data-action="cx-ocultar"' +
+		(ocultar ? ' checked' : '') +
+		' /> Ocultar concluidas' +
+		(concluidas ? ' <span class="cx-ocultar-n">(' + escapeHtml(concluidas) + ')</span>' : '') +
+		'</label>';
+	if (missoes.length === 0) {
+		return barra + '<div class="cx-vazio">Todas as missoes estao concluidas.</div>';
+	}
 	return (
+		barra +
 		'<div class="cx-missoes">' +
 		missoes
 			.map(m => {
