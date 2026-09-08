@@ -1060,7 +1060,38 @@
 
 #IdleSkills .is-detail-acoes {
 	display: flex;
+	flex-wrap: wrap;
 	gap: var(--sp-3);
+}
+
+/* O caminho de VOLTA (07/09/2026). Os dois botões são secundários de
+   propósito: eles desfazem, e desfazer nunca compete visualmente com o
+   "Pôr na rotação", que é a ação do dia a dia. */
+#IdleSkills .is-btn-esquecer,
+#IdleSkills .is-btn-desaprender {
+	flex: 0 0 auto;
+	padding: 6px 12px;
+	font-size: 11px;
+}
+
+/* A confirmação do desaprender — mesmo desenho da do correio, e pelo mesmo
+   motivo: a caixa de prompt nativa é de outra pele e abriria por cima. */
+#IdleSkills .is-confirma-esquecer {
+	display: flex;
+	align-items: center;
+	flex-wrap: wrap;
+	gap: var(--sp-2);
+	margin-top: var(--sp-3);
+	padding: var(--sp-3);
+	border-radius: var(--radius-panel);
+	border: 1px solid var(--border-hairline);
+	background: var(--surface-glass);
+}
+
+#IdleSkills .is-confirma-esquecer-texto {
+	flex: 1 1 100%;
+	font: var(--type-label);
+	color: var(--text-body);
 }
 
 #IdleSkills .is-btn-rotacao {

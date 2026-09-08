@@ -553,12 +553,29 @@ function onConfigReceived(pkt) {
 	IdleConfig.problemas = rejected ? data.problemas : [];
 
 	if (!rejected) {
-		// Either the initial "pedir" answer, or a successful "aplicar":
-		// adopt the server's config as the new baseline AND the new draft.
+		/*
+		 * A BASE anda sempre; o RASCUNHO so quando nao ha rascunho (07/09/2026).
+		 *
+		 * Desde esta data o servidor EMPURRA a config a cada gravacao — aprender
+		 * skill, promocao, vestir equipamento, o clique na lista de skills. O
+		 * empurrao existe para o `serverConfig` nunca ficar velho: o botao de
+		 * Cacar (`alternarCacaAutomatica`) monta o pedido a partir dele, e uma
+		 * copia velha reenviava a rotacao de antes — foi assim que "Primeiros
+		 * Socorros voltava sozinha" depois de o jogador a tirar pela janela de
+		 * habilidades.
+		 *
+		 * O preco de adotar o pacote inteiro seria APAGAR o rascunho do jogador
+		 * no meio de uma edicao, e agora isso aconteceria varias vezes por
+		 * sessao. Entao: a base adota sempre (e ela que o botao de Cacar usa), e
+		 * o rascunho so e substituido quando nao ha rascunho a perder.
+		 */
 		IdleConfig.serverConfig = data.config;
-		IdleConfig.editConfig = cloneConfig(data.config);
-		garantirCura(IdleConfig.editConfig);
-		IdleConfig.dirty = false;
+		const temRascunho = IdleConfig.dirty && !isApplyResponse;
+		if (!temRascunho) {
+			IdleConfig.editConfig = cloneConfig(data.config);
+			garantirCura(IdleConfig.editConfig);
+			IdleConfig.dirty = false;
+		}
 		// Em cidade o aviso mora AQUI (D-359): a janela edita normalmente e o
 		// rodape lembra que a caca so comeca fora da cidade.
 		setStatus(

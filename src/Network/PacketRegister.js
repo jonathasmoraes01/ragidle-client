@@ -1033,9 +1033,11 @@ export default {
 	// nao lido. Mesma razao dos vizinhos acima. Ele desce respondendo aos TRES
 	// verbos e tambem na ENTRADA no mapa (com `avisar: true`), sem ZC de erro.
 	0x0fd5: PACKET.ZC.RAGIDLE_VOTO,
+	0x0fd7: PACKET.ZC.RAGIDLE_CORREIO,
 	// COMPARACAO DE EQUIPAMENTO (08/09/2026): so o ZC entra aqui — o CZ 0x0fd8 e
-	// escrito pelo cliente. 0x0fd6/0x0fd7 estao em voo na fix/alpha-player-feedback.
+	// escrito pelo cliente.
 	0x0fd9: PACKET.ZC.RAGIDLE_ITEM,
+
 
 	0xb1a: PACKET.ZC.USESKILL_ACK3 // USE SKILL 3
 };

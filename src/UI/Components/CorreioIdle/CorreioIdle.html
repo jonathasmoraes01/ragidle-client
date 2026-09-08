@@ -38,7 +38,23 @@
 
 					<div class="co-rodape">
 						<span class="co-contagem">—</span>
+						<!-- APAGAR TODAS (07/09/2026, pedido do dono no alfa). Ele mora
+						     no rodape da LISTA, e nao ao lado do "Apagar" da carta
+						     aberta: a acao e sobre a caixa inteira, e por-la junto do
+						     avulso convidaria ao clique errado. -->
+						<button type="button" class="co-apagar-todas ri-btn ri-btn--sec" data-acao="apagar-todas">Apagar todas</button>
 						<button type="button" class="co-atualizar ri-btn ri-btn--sec" data-acao="atualizar">Atualizar</button>
+					</div>
+
+					<!-- Confirmacao INLINE do lote, no MESMO desenho da confirmacao
+					     da carta avulsa (e pelo mesmo motivo: a caixa de prompt
+					     nativa e de outra pele e abriria por cima desta). O texto
+					     diz o numero, porque "apagar todas" sem numero e a frase
+					     que o jogador confirma sem ler. -->
+					<div class="co-confirma-todas" hidden>
+						<span class="co-confirma-todas-texto">Apagar todas as mensagens?</span>
+						<button type="button" class="co-confirma-todas-sim ri-btn" data-acao="apagar-todas-sim">Apagar</button>
+						<button type="button" class="co-confirma-todas-nao ri-btn ri-btn--sec" data-acao="apagar-todas-nao">Cancelar</button>
 					</div>
 				</div>
 

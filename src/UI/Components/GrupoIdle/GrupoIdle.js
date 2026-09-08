@@ -58,6 +58,7 @@
  */
 
 import Renderer from 'Renderer/Renderer.js';
+import EntityManager from 'Renderer/EntityManager.js';
 import Preferences from 'Core/Preferences.js';
 import Client from 'Core/Client.js';
 import DB from 'DB/DBManager.js';
@@ -69,6 +70,7 @@ import htmlText from './GrupoIdle.html?raw';
 import cssText from './GrupoIdle.css?raw';
 import { fecharEEsquecer } from '../limpezaDeJanelaIdle.js';
 import { abaLembrada, lembrarAba } from '../memoriaDeAba.js';
+import { vidaDoMembro } from './vidaDoMembro.js';
 
 /* Manter em sincronia com o ":host" do CSS — o mesmo papel do
    WINDOW_WIDTH/HEIGHT de LFGIdle.js. O JS supoe a caixa GRANDE de proposito:
@@ -282,6 +284,17 @@ function linhaDeMembro(m) {
 		'<div class="gi-membro' +
 		(m.souEu ? ' is-eu' : '') +
 		(m.online ? '' : ' is-offline') +
+		/*
+		 * A CONTA na linha (07/09/2026) — ela é a chave do `EntityManager`.
+		 *
+		 * O empurrão desta janela chega quando o GRUPO muda (entrar, sair,
+		 * trocar posto), e não a cada golpe: sem isto a barra do companheiro
+		 * ficava parada no valor do último empurrão. `vidaAoVivo` lê o HP que o
+		 * `ZC_NOTIFY_HP_TO_GROUPM_R2` (0x080e) já deposita por conta, e para
+		 * achá-lo precisa do `AID` — que é o `contaId`.
+		 */
+		'" data-conta="' +
+		escapeHtml(m.contaId) +
 		'">' +
 		'<span class="gi-membro-classe" data-classe-icone="' +
 		escapeHtml(m.classe) +
@@ -600,6 +613,97 @@ function desenharAjustes(e) {
 	r.querySelector('.gi-desfazer-confirma').hidden = !(souLider && GrupoIdle.confirmarDesfazer);
 }
 
+
+/* ------------------------------------------------------------------ */
+/* A VIDA AO VIVO (07/09/2026 — relato do alfa)                        */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Quanto tempo entre duas leituras da vida dos companheiros.
+ *
+ * O servidor manda o `ZC_NOTIFY_HP_TO_GROUPM_R2` **uma vez por LOTE** de
+ * combate, e nao por golpe (`difundirHpNoGrupo`, servidor-mapa.ts). 400 ms fica
+ * abaixo desse ritmo sem ser um laco quente: a leitura e um `Map.get` por
+ * linha, sobre no maximo tres linhas (`LIMITE_DE_MEMBROS_DO_GRUPO`).
+ */
+const VIDA_AO_VIVO_MS = 400;
+
+/** @var {number|null} handle do ticker. Existe so com a janela ABERTA. */
+let _tickerDeVida = null;
+
+/**
+ * MOVE A BARRA de cada companheiro com o HP que o combate ja mandou.
+ *
+ * ---------------------------------------------------------------------------
+ * POR QUE LER O `EntityManager`, E NAO FISGAR O PACOTE
+ * ---------------------------------------------------------------------------
+ * `Network.hookPacket` SOBRESCREVE (NetworkManager.js guarda UM callback por
+ * pacote): fisgar o 0x080e trocaria em silencio o `onMemberLifeUpdate` de
+ * `Engine/MapEngine/Group.js`, que e quem desenha a barrinha em cima da cabeca
+ * e alimenta a janela nativa. E a mesma razao pela qual toda janela RAGIDLE le
+ * estado em vez de fisgar (ver o cabecalho do `CorreioIdle`).
+ *
+ * O handler nativo ja deposita o par em `EntityManager.storeLife(AID, ...)`,
+ * inclusive quando a entidade nao esta na tela. Ler dali e ler o MESMO dado que
+ * o servidor mandou, sem competir com ninguem por ele.
+ *
+ * ---------------------------------------------------------------------------
+ * POR QUE ELE NAO REDESENHA A LISTA
+ * ---------------------------------------------------------------------------
+ * `desenharMembros` reescreve o `innerHTML` inteiro e recarrega a arte de
+ * classe. A quatro vezes por segundo isso piscaria os icones e mataria
+ * qualquer foco. Aqui so a LARGURA do preenchimento e o texto do numero mudam.
+ */
+function vidaAoVivo() {
+	const lista = raiz().querySelector('.gi-membros');
+	if (!lista) {
+		return;
+	}
+	lista.querySelectorAll('.gi-membro[data-conta]').forEach(function (linha) {
+		const conta = parseInt(linha.dataset.conta, 10);
+		if (!conta) {
+			return;
+		}
+		// `null` = "o combate ainda nao falou", e nao "zero de vida": a linha
+		// fica com o que o empurrao trouxe. Ver `vidaDoMembro`.
+		const barra = vidaDoMembro(EntityManager.getLife(conta));
+		if (!barra) {
+			return;
+		}
+		const fill = linha.querySelector('.gi-membro-hp .fill');
+		if (fill) {
+			fill.style.width = (barra.fracao * 100).toFixed(1) + '%';
+		}
+		const numero = linha.querySelector('.gi-membro-hp-num');
+		if (numero) {
+			numero.textContent = barra.texto;
+		}
+		const estado = linha.querySelector('.gi-estado');
+		if (estado && !linha.classList.contains('is-offline')) {
+			estado.classList.toggle('is-vivo', barra.vivo);
+			estado.classList.toggle('is-morto', !barra.vivo);
+			estado.title = barra.vivo ? 'No mundo' : 'Caido';
+		}
+	});
+}
+
+/** Liga o ticker. Idempotente: abrir duas vezes nao cria dois. */
+function ligarVidaAoVivo() {
+	if (_tickerDeVida !== null) {
+		return;
+	}
+	_tickerDeVida = setInterval(vidaAoVivo, VIDA_AO_VIVO_MS);
+}
+
+/** Desliga. Janela fechada nao le nada — e o mesmo contrato do empurrao. */
+function desligarVidaAoVivo() {
+	if (_tickerDeVida === null) {
+		return;
+	}
+	clearInterval(_tickerDeVida);
+	_tickerDeVida = null;
+}
+
 function desenharTudo() {
 	const e = GrupoIdle.estado;
 	desenharEstandarte(e);
@@ -806,6 +910,11 @@ GrupoIdle.onAppend = function onAppend() {
 		return;
 	}
 	raiz().querySelector('.gi-window').classList.add('is-open');
+	// O mapa novo ESVAZIOU o cache de vida (`MapRenderer.clearLifeCache`), e o
+	// primeiro lote de combate o enche de novo. Religar aqui e o que faz a
+	// barra voltar a andar depois da viagem — sem isto, a janela reaberta
+	// mostrava o HP do empurrao e mais nada.
+	ligarVidaAoVivo();
 	setTimeout(function () {
 		if (GrupoIdle.estavaAberta) {
 			Network.sendPacket(new PACKET.CZ.RAGIDLE_PEDIR_GRUPO());
@@ -814,6 +923,10 @@ GrupoIdle.onAppend = function onAppend() {
 };
 
 GrupoIdle.onRemove = function onRemove() {
+	// O `onRemove` roda na troca de mapa e na saida: um ticker sobrevivente
+	// leria um DOM que ja nao esta na arvore, quatro vezes por segundo, para
+	// sempre.
+	desligarVidaAoVivo();
 	_preferences.x = parseInt(GrupoIdle._host.style.left, 10) || 0;
 	_preferences.y = parseInt(GrupoIdle._host.style.top, 10) || 0;
 	_preferences.save();
@@ -822,6 +935,7 @@ GrupoIdle.onRemove = function onRemove() {
 GrupoIdle.abrir = function abrir() {
 	raiz().querySelector('.gi-window').classList.add('is-open');
 	GrupoIdle.estavaAberta = true;
+	ligarVidaAoVivo();
 	// PEDE o estado ao abrir, e o pedido tambem INSCREVE a conexao no
 	// empurrao — quem decide o que a janela mostra e o servidor.
 	Network.sendPacket(new PACKET.CZ.RAGIDLE_PEDIR_GRUPO());
@@ -832,6 +946,7 @@ GrupoIdle.abrir = function abrir() {
 GrupoIdle.fechar = function fechar() {
 	const win = raiz().querySelector('.gi-window');
 	GrupoIdle.estavaAberta = false;
+	desligarVidaAoVivo();
 	if (win.classList.contains('is-open')) {
 		win.classList.remove('is-open');
 		mandar({ acao: 'fechar' });

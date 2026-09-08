@@ -21,12 +21,52 @@ describe('encaixeDeNivel', () => {
 		expect(encaixeDeNivel(10, cemiterio).cls).toBe('locked');
 		expect(encaixeDeNivel(10, cemiterio).rotulo).toBe('Abre no Nv. 55');
 	});
-	it('dentro da faixa é ideal; acima é fácil; abaixo (mas aberto) é desafio', () => {
+	it('a partir do representativo é ideal; acima do máximo é fácil; abaixo dele é desafio', () => {
+		// `campo` tem representativo 1 — ele é o mapa inicial, e nada nele é alto.
 		expect(encaixeDeNivel(10, campo).cls).toBe('ideal');
 		expect(encaixeDeNivel(16, campo).cls).toBe('ideal');
 		expect(encaixeDeNivel(17, campo).cls).toBe('easy');
+		const comPiso = { ...campo, nivelRepresentativo: 7 };
+		expect(encaixeDeNivel(6, comPiso).cls).toBe('challenge');
+		expect(encaixeDeNivel(7, comPiso).cls).toBe('ideal');
 		const aberto = { ...cemiterio, nivelQueAbre: 50 };
 		expect(encaixeDeNivel(52, aberto).cls).toBe('challenge');
+	});
+
+	it('sem o campo do servidor o piso volta a ser o mínimo — o selo de antes', () => {
+		// O contrato é aditivo (D-1138): servidor velho + cliente novo não pode
+		// virar selo em branco nem "Desafio" em tudo.
+		const semCampo = { mapa: 'x', rotulo: 'X', nivelQueAbre: 10, nivelMinimo: 10, nivelMaximo: 40, nivelMedio: 25 };
+		expect(encaixeDeNivel(10, semCampo).cls).toBe('ideal');
+	});
+
+	/*
+	 * O RELATO DO ALFA, com o mapa de verdade (07/09/2026).
+	 *
+	 * `ra_fild12` no `conteudo.json`: 24 unidades de nível 14 e 265 de nível 95
+	 * — 8% contra 92%. Com a regra antiga (`nivel >= nivelMinimo`) a janela
+	 * dizia "Ideal para você" a um jogador de nível 14, e a tranca do servidor
+	 * (`nivelQueAbre = nivelMinimo`) ainda o deixava entrar.
+	 */
+	it('mapa alto com UM monstro fraco não é recomendado a iniciante', () => {
+		const raFild12 = {
+			mapa: 'ra_fild12',
+			rotulo: 'Campo de Rachel',
+			// A TRANCA continua no bicho mais fraco: mexer nela deixaria 35
+			// missões pedindo caça em mapa trancado (ver `nivelQueAbre`).
+			nivelQueAbre: 14,
+			nivelMinimo: 14,
+			nivelMaximo: 95,
+			nivelMedio: 68,
+			// O que o servidor passou a mandar: 92% da população é nível 95.
+			nivelRepresentativo: 95
+		};
+		// Não é mais "Ideal para você" — é "Acima do seu nível".
+		expect(encaixeDeNivel(14, raFild12).cls).toBe('challenge');
+		expect(encaixeDeNivel(14, raFild12).rotulo).toBe('Acima do seu nível');
+		// E continua CLICÁVEL: quem quiser entrar entra, e paga por isso.
+		expect(encaixeDeNivel(14, raFild12).cls).not.toBe('locked');
+		expect(encaixeDeNivel(95, raFild12).cls).toBe('ideal');
 	});
 });
 
