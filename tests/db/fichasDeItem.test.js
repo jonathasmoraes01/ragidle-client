@@ -46,14 +46,15 @@ describe('o arquivo publicado', () => {
 		expect(Object.keys(publicado.itens).length).toBeGreaterThan(500);
 	});
 
-	it('o degrau de cima e o teto do Lendario do DONO (0,03% — desacoplado do limiar de anuncio desde 08/09)', () => {
+	it('o degrau de cima e o teto do Lendario do DONO (0,03% - e o anuncio global anda JUNTO de novo)', () => {
 		/*
 		 * 3 decimos de milesimo = **0,03%** — o teto do Lendario, ordem do
 		 * dono de 08/09/2026 ("raro vai ate 0,03% e lendario e 0,03% para
 		 * baixo"). ERA 5 (0,05%), acoplado ao limiar do anuncio global de
-		 * drop raro; o dono moveu SO a escada, entao os dois se separaram —
-		 * o anuncio continua em 0,05% (`ANUNCIO_DE_DROP_RARO_DO_DONO`,
-		 * servidor) e um drop de 0,04% anuncia como "(drop Raro)". A escada
+		 * drop raro; por algumas horas os dois ficaram separados (a escada
+		 * desceu primeiro) e na mesma noite o dono reacoplou: "pode publicar
+		 * so os lendarios" - o anuncio tambem vale 0,03% e so Lendario para
+		 * o chat (`ANUNCIO_DE_DROP_RARO_DO_DONO`, servidor). A escada
 		 * mora em `game/raridade-de-drop.ts` (`LENDARIO_ATE_DO_DONO`) e chega
 		 * aqui pelo arquivo publicado — este teste e o portao que avisa
 		 * quando o arquivo em disco fica para tras do jogo.

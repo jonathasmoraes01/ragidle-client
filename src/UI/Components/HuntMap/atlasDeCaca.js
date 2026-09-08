@@ -186,8 +186,9 @@ const RARIDADE_ROTULOS = ['Comum', 'Incomum', 'Raro', 'Lendário'];
  * (7000 = 70%, o mesmo contrato que `chance` sempre teve no catálogo):
  * ≤3 → Lendário, ≤100 → Raro, ≤1000 → Incomum, senão Comum. O teto do
  * Lendário é 0,03% por ordem do dono (08/09/2026: "raro vai até 0,03% e
- * lendário é 0,03% para baixo" — era 0,05%, acoplado ao limiar do anúncio
- * global, e o anúncio NÃO acompanhou: só a escada desceu). A ordem dos
+ * lendário é 0,03% para baixo" - era 0,05%, acoplado ao limiar do anúncio
+ * global; o anúncio desceu junto na mesma noite, "pode publicar só os
+ * lendários" - só Lendário para o chat). A ordem dos
  * testes importa — é a mesma escada de cima para baixo do servidor
  * (`raridadeDaChance`, `game/raridade-de-drop.ts`); ESTA função só existe
  * para cobrir a transição, enquanto um servidor ainda não manda `raridade`.
