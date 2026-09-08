@@ -18,8 +18,33 @@
  * design system (selecionado/bloqueado/etc. são estados; estas são de
  * conteúdo) e a ordem de teste importa: a tranca vem antes de tudo.
  *
+ * ── O "IDEAL" DEIXOU DE SAIR DO MONSTRO MAIS FRACO (07/09/2026) ────────
+ * Relato do alfa: *"alguns mapas de nível alto possuem um monstro de nível
+ * baixo e, por isso, aparecem como recomendados para iniciantes"*.
+ *
+ * A linha era `if (nivel >= mapa.nivelMinimo) → ideal`, e `nivelMinimo` é o
+ * bicho mais fraco que EXISTE no mapa. Em `ra_fild12` ele é nível 14 e
+ * responde por 8% da população — os outros 92% são nível 95. Um jogador de
+ * nível 14 lia "Ideal para você" e entrava para morrer.
+ *
+ * Agora o piso do "ideal" é o **`nivelRepresentativo`**, que o servidor calcula
+ * e o catálogo carrega (`nivelRepresentativoDoMapa`, `game/caca.ts`): ele
+ * descarta a fatia de baixo da população — até um quarto das unidades que
+ * nascem — e devolve o nível do monstro mais fraco que o jogador de fato
+ * ENCONTRA. Entre a tranca e ele o mapa vira **Desafio**, que é a verdade: dá
+ * para entrar, e a maior parte do que nasce lá está acima de você.
+ *
+ * **A TRANCA não mudou, e isso foi medido**: pô-la no representativo moveria
+ * 100 dos 191 mapas e deixaria **35 missões** pedindo caça em mapa trancado
+ * (`prova-monge` no nível 13 com `pay_dun02` abrindo no 58, os seis `set-3-*`
+ * no 14 com `prt_fild07` no 15). O relato do alfa é sobre a RECOMENDAÇÃO, e é
+ * ela que muda aqui. Ver o cabeçalho de `nivelQueAbre`.
+ *
+ * Este arquivo continua sem inventar número nenhum: o piso é um campo do
+ * catálogo.
+ *
  * @param {number} nivel - nível base do jogador
- * @param {{nivelQueAbre: number, nivelMinimo: number, nivelMaximo: number}} mapa
+ * @param {{nivelQueAbre: number, nivelMinimo: number, nivelMaximo: number, nivelRepresentativo?: number}} mapa
  * @returns {{cls: 'locked'|'easy'|'ideal'|'challenge', rotulo: string, curto: string}}
  */
 export function encaixeDeNivel(nivel, mapa) {
@@ -29,7 +54,14 @@ export function encaixeDeNivel(nivel, mapa) {
 	if (nivel > mapa.nivelMaximo) {
 		return { cls: 'easy', rotulo: 'Abaixo do seu nível', curto: 'Fácil' };
 	}
-	if (nivel >= mapa.nivelMinimo) {
+	/*
+	 * O campo é ADITIVO no contrato (o catálogo continua na versão 2, pela
+	 * política de D-1138): um servidor mais velho não o manda, e aí o piso volta
+	 * a ser o `nivelMinimo` — o comportamento de antes, e não um selo em branco.
+	 */
+	const piso =
+		typeof mapa.nivelRepresentativo === 'number' ? mapa.nivelRepresentativo : mapa.nivelMinimo;
+	if (nivel >= piso) {
 		return { cls: 'ideal', rotulo: 'Ideal para você', curto: 'Ideal' };
 	}
 	return { cls: 'challenge', rotulo: 'Acima do seu nível', curto: 'Desafio' };

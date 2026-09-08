@@ -68,6 +68,8 @@
 
 import Renderer from 'Renderer/Renderer.js';
 import Preferences from 'Core/Preferences.js';
+import Network from 'Network/NetworkManager.js';
+import PACKET from 'Network/PacketStructure.js';
 import UIManager from 'UI/UIManager.js';
 import GUIComponent from 'UI/GUIComponent.js';
 import Rodex from 'UI/Components/Rodex/Rodex.js';
@@ -76,6 +78,7 @@ import RodexIcon from 'UI/Components/Rodex/RodexIcon.js';
 import htmlText from './CorreioIdle.html?raw';
 import cssText from './CorreioIdle.css?raw';
 import { fecharEEsquecer } from '../limpezaDeJanelaIdle.js';
+import { fraseDoRelatorio } from './relatorioDoLote.js';
 
 /**
  * Mantido em sincronia com ":host"/".co-window"/".co-frame" em
@@ -113,6 +116,12 @@ const AVISO_MS = 3600;
 
 const MSG_APAGAR_RECUSADO =
 	'Não foi possível apagar: retire o anexo desta mensagem primeiro.';
+
+/** O lote com a caixa vazia: nada a fazer, e dizer isso é melhor que o silêncio. */
+const MSG_SEM_NADA_A_APAGAR = 'A caixa já está vazia.';
+
+/** Quanto tempo o relatório do lote fica na tela — ele é mais longo de ler. */
+const AVISO_DO_LOTE_MS = 8000;
 
 /**
  * Create Component
@@ -296,6 +305,28 @@ CorreioIdle.init = function init() {
 	root.querySelector('.co-lista').addEventListener('click', onClickLista);
 	root.querySelector('.co-painel-esq').addEventListener('click', onClickAcao);
 	root.querySelector('.co-painel-dir').addEventListener('click', onClickAcao);
+
+	/*
+	 * O RELATÓRIO DO LOTE (07/09/2026).
+	 *
+	 * `hookPacket` SOBRESCREVE, e por isso o cabeçalho desta janela diz que ela
+	 * não fisga nada: fisgar um ACK do correio trocaria em silêncio o handler de
+	 * `Engine/MapEngine/Rodex.js`. Este é a exceção que confirma a regra —
+	 * `ZC_RAGIDLE_CORREIO` é pacote NOSSO, criado nesta rodada, e não tem outro
+	 * dono. É o mesmo arranjo de `GrupoIdle` e `LFGIdle` com os pacotes deles.
+	 */
+	Network.hookPacket(PACKET.ZC.RAGIDLE_CORREIO, function (pkt) {
+		let relatorio;
+		try {
+			relatorio = JSON.parse(pkt.json);
+		} catch (_erro) {
+			return;
+		}
+		if (!relatorio || relatorio.acao !== 'apagar-todas') {
+			return;
+		}
+		mostrarAviso(fraseDoRelatorio(relatorio), AVISO_DO_LOTE_MS);
+	});
 
 	this._host.style.top = Math.max(0, (Renderer.height - WINDOW_HEIGHT) / 2) + 'px';
 	this._host.style.left = Math.max(0, (Renderer.width - WINDOW_WIDTH) / 2) + 'px';
@@ -584,6 +615,19 @@ function onClickAcao(e) {
 			esconderConfirmacao();
 			break;
 
+		case 'apagar-todas':
+			mostrarConfirmacaoDeTodas();
+			break;
+
+		case 'apagar-todas-sim':
+			esconderConfirmacaoDeTodas();
+			apagarTodas();
+			break;
+
+		case 'apagar-todas-nao':
+			esconderConfirmacaoDeTodas();
+			break;
+
 		default:
 			break;
 	}
@@ -647,7 +691,54 @@ function apagarSelecionada() {
 	}, RECUSA_DELAY_MS);
 }
 
-function mostrarAviso(msg) {
+/* ------------------------------------------------------------------ */
+/* APAGAR TODAS (07/09/2026 — pedido do dono no alfa)                   */
+/* ------------------------------------------------------------------ */
+
+/**
+ * A confirmação do lote, com o NÚMERO na frase.
+ *
+ * "Apagar todas as mensagens?" sem número é a pergunta que o jogador confirma
+ * sem ler. O número sai da lista que ele está vendo — e ele é o TOTAL, e não
+ * quantas vão sair: a janela não sabe quais têm anexo (o bloco da lista manda
+ * `classe: 0` fixo), e prometer "3 serão apagadas" seria inventar. Quem diz o
+ * que aconteceu é o relatório do servidor, depois.
+ */
+function mostrarConfirmacaoDeTodas() {
+	const root = _root();
+	const quantas = cartas().length;
+	if (quantas === 0) {
+		mostrarAviso(MSG_SEM_NADA_A_APAGAR);
+		return;
+	}
+	root.querySelector('.co-confirma-todas-texto').textContent =
+		quantas === 1
+			? 'Apagar a mensagem da caixa?'
+			: 'Apagar as ' + quantas + ' mensagens da caixa?';
+	root.querySelector('.co-confirma-todas').hidden = false;
+	root.querySelector('.co-rodape').hidden = true;
+}
+
+function esconderConfirmacaoDeTodas() {
+	const root = _root();
+	root.querySelector('.co-confirma-todas').hidden = true;
+	root.querySelector('.co-rodape').hidden = false;
+}
+
+/**
+ * Manda o verbo e espera o RELATÓRIO.
+ *
+ * Repede a lista junto porque quem tira a linha da lista nativa é o
+ * `ZC_ACK_DELETE_RODEX` por carta — o relatório é texto, e não estado.
+ */
+function apagarTodas() {
+	const pkt = new PACKET.CZ.RAGIDLE_CORREIO_ACAO();
+	pkt.json = JSON.stringify({ acao: 'apagar-todas' });
+	Network.sendPacket(pkt);
+	setTimeout(repedirLista, REPEDIR_LISTA_MS);
+}
+
+function mostrarAviso(msg, quantoTempo) {
 	const root = _root();
 	const el = root.querySelector('.co-aviso');
 	if (!el) {
@@ -661,7 +752,7 @@ function mostrarAviso(msg) {
 	_avisoTimer = setTimeout(() => {
 		el.hidden = true;
 		_avisoTimer = null;
-	}, AVISO_MS);
+	}, quantoTempo || AVISO_MS);
 }
 
 /**
