@@ -12481,6 +12481,11 @@
 					"tamanho": -1,
 					"desde": null
 				},
+				"0x0fd7": {
+					"nome": "ZC_RAGIDLE_CORREIO",
+					"tamanho": -1,
+					"desde": null
+				},
 				"0x0fdc": {
 					"nome": "ZC_RAGIDLE_INDICACAO",
 					"tamanho": -1,
@@ -15458,6 +15463,12 @@
 				},
 				"0x0fd4": {
 					"nome": "CZ_RAGIDLE_VOTO_ACAO",
+					"tamanho": -1,
+					"desde": null,
+					"fonteDoTamanho": "cliente"
+				},
+				"0x0fd6": {
+					"nome": "CZ_RAGIDLE_CORREIO_ACAO",
 					"tamanho": -1,
 					"desde": null,
 					"fonteDoTamanho": "cliente"
