@@ -16283,6 +16283,11 @@ PACKET.CZ.RAGIDLE_VOTO_ACAO.prototype.build = function () {
 	const pkt_len = 2 + 2 + bytes.length;
 	const pkt_buf = new BinaryWriter(pkt_len);
 	pkt_buf.writeShort(0x0fd4);
+	pkt_buf.writeUShort(pkt_len);
+	pkt_buf.writeString(this.json);
+	return pkt_buf;
+};
+
 // 0x0fdf - RAGIDLE: CZ_RAGIDLE_PRESENCA_ACAO (client -> server)
 // Variable size: u16 opcode + u16 total length + JSON UTF-8 {acao:'pedir'|'recolher'}.
 // D-1162: a janela de presenca (PresencaIdle). Um opcode por JANELA, como o
