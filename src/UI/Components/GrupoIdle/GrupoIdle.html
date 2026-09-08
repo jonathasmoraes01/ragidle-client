@@ -34,7 +34,7 @@
 
 	Ganchos ESTAVEIS que a prova visual usa (preservar em qualquer redesenho):
 	.gi-window, .gi-close, .gi-tab, .gi-membro, .gi-posto, .gi-rateio-linha,
-	.gi-convite-nome, .gi-recado.
+	.gi-convite-nome, .gi-recado. Entrou em D-975: .gi-teleportar.
 -->
 <div id="GrupoIdle">
 	<div class="gi-window ri-window ri-anima">
@@ -133,6 +133,21 @@
 								<span class="gi-secao-titulo">A cacada agora</span>
 							</div>
 							<div class="gi-cacada-linhas"></div>
+							<!--
+								IR ATE O LIDER (D-975). Ele mora AQUI, e nao no estandarte,
+								porque a linha "Lider · <mapa>" que ele responde esta logo
+								acima: o botao e a acao daquela linha, e nao mais uma acao
+								solta de topo. Teleportar tira o jogador do mapa em que ele
+								esta -- dizer para onde antes de oferecer o passo e o minimo.
+
+								Ele nasce `hidden` e quem o acende e `desenharCacada`: so
+								existe para quem TEM lider e NAO e o lider. O pacote e o
+								`{acao:'teleportar'}` do Localizador, pela ponte
+								`aoPedirTeleporte` -- uma implementacao so.
+							-->
+							<button type="button" class="ri-btn ri-btn--sec gi-teleportar" hidden>
+								Teleportar para o lider
+							</button>
 						</div>
 					</aside>
 				</div>

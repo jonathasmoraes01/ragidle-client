@@ -800,7 +800,7 @@ function ligarBotoesDoRodape(r) {
 			return;
 		}
 		if (evento.target.closest('.lfg-teleportar')) {
-			mandar({ acao: 'teleportar' });
+			LFGIdle.teleportarParaOLider();
 			return;
 		}
 
@@ -1053,6 +1053,32 @@ LFGIdle.toggle = function toggle() {
 	} else {
 		LFGIdle.abrir();
 	}
+};
+
+/**
+ * IR ATÉ O LÍDER — a ÚNICA implementação do teleporte de party (D-975).
+ *
+ * Ela era o corpo do `if` de `.lfg-teleportar` lá em cima e virou método
+ * público porque a janela de Grupo passou a oferecer o mesmo botão. O pedido
+ * do dono foi explícito quanto a isso: *reutilize a lógica existente, nada de
+ * uma segunda implementação montando o pacote de novo*.
+ *
+ * E não é preciosismo: `{acao:'teleportar'}` é do `CZ_RAGIDLE_LFG_ACAO`, e o
+ * servidor responde com um `RESULTADO` que esta janela já sabe ler — o
+ * 'teleportar' está em `ACOES_QUE_FECHAM`, então o sucesso fecha o Localizador
+ * (o jogador saiu do mapa; a lista que ele estava vendo é de outro lugar).
+ * Uma segunda cópia noutro componente perderia essa metade em silêncio.
+ *
+ * Quando a chamada vem da janela de Grupo, esse `fechar()` cai num Localizador
+ * que já está fechado e não faz nada — `fechar()` só manda `{acao:'fechar'}`
+ * se a janela estava mesmo aberta.
+ *
+ * QUEM PODE: o servidor decide, como sempre. A janela de Grupo só oferece o
+ * botão a quem tem líder e não é o líder, que é a mesma condição em que o
+ * rodapé daqui mostra `.lfg-acao-membro`.
+ */
+LFGIdle.teleportarParaOLider = function teleportarParaOLider() {
+	mandar({ acao: 'teleportar' });
 };
 
 /*

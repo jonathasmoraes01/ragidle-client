@@ -674,6 +674,34 @@
 #GrupoIdle .gi-cacada-linha b {
 	color: var(--text-title);
 }
+/* O "Teleportar para o lider" (D-975) fecha o cartao da cacada, embaixo da
+   linha "Lider · <mapa>" que ele responde. Largura cheia como o botao do
+   cartao vizinho ("Trocar de posto"): sao os dois unicos botoes da coluna
+   lateral, e um deles solto a esquerda quebraria a coluna. */
+#GrupoIdle .gi-cacada .ri-btn {
+	margin-top: var(--sp-6);
+	width: 100%;
+}
+
+/*
+ * D-975 — `hidden` NUM `.ri-btn` NAO ESCONDIA NADA.
+ *
+ * A cicatriz de 26/08 (registrada no LFGIdle.html e citada no guard de
+ * `.gi-view` la em cima) na sua forma mais barata de passar despercebida: o
+ * `display: inline-flex` de `.ri-btn` mora na Common.css, que o GUIComponent
+ * injeta DENTRO deste shadow. Regra de autor VENCE o `display:none` que o
+ * navegador da ao atributo `hidden`, por ORIGEM — entao `botao.hidden = true`
+ * escondia zero pixels.
+ *
+ * Isto nao chegou com o botao novo: `.gi-sair` (que so devia existir para quem
+ * esta em grupo) e `.gi-desfazer` (so para o lider) nasceram com o mesmo furo
+ * em D-960, e os dois apareciam para todo mundo. Uma linha so conserta os
+ * tres, e qualquer botao futuro desta janela — a alternativa era mais um
+ * `:not([hidden])` por botao, que e exatamente como a cicatriz se repete.
+ */
+#GrupoIdle .ri-btn[hidden] {
+	display: none;
+}
 
 /* ─── Aba POSTOS ────────────────────────────────────────────────────────── */
 
