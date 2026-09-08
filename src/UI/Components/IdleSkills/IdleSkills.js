@@ -979,12 +979,19 @@ function renderNo(no, contexto) {
 		escapeHtml(skill.nome) +
 		'</span>' +
 		/*
-		 * RAGIDLE (D-1154) — a habilidade de QUEST entra sozinha no maximo quando
-		 * a arvore permite e nao custa ponto; o servidor manda `deQuest: true` e o
-		 * jogador precisa VER por que ela nao tem botao de "+" nem cobra nada.
+		 * RAGIDLE (D-1154, lapidada por D-1189) — habilidade de QUEST nao custa
+		 * ponto, mas so Primeiros Socorros entra SOZINHA: as outras sao
+		 * ENTREGUES pelas missoes da campanha ("unica skill que ira ficar de
+		 * graca e a primeiro socorros, as outras irao ficar tudo nas missoes" —
+		 * o dono, 07/09/2026). A lista de graca mora no servidor
+		 * (HABILIDADES_DE_QUEST_DE_GRACA, servidor/habilidades-de-quest.ts);
+		 * este espelho dela existe so para a etiqueta nao PROMETER de graca o
+		 * que na verdade pede missao.
 		 */
 		(skill.deQuest
-			? '<span class="is-no-quest" title="Habilidade de quest: entra sozinha quando os requisitos são cumpridos, sem gastar ponto">quest · grátis</span>'
+			? (skill.name === 'NV_FIRSTAID'
+				? '<span class="is-no-quest" title="Habilidade de quest: entra sozinha quando os requisitos são cumpridos, sem gastar ponto">quest · grátis</span>'
+				: '<span class="is-no-quest" title="Habilidade de quest: é aprendida numa missão, sem gastar ponto">quest · missão</span>')
 			: '') +
 		plaqueta(skill, contexto) +
 		'</div>'
