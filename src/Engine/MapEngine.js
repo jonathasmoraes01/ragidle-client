@@ -1123,6 +1123,32 @@ function onMapChange(pkt) {
 			fechar: () => CashShop.toggle(),
 		});
 
+		/*
+		 * E ELA PRECISA AVISAR A PILHA POR FORA DO EMBRULHO (08/09/2026).
+		 *
+		 * O embrulho de `registrar()` compara o "aberta?" ANTES e DEPOIS de
+		 * `toggle()`. Isso funciona para as janelas que abrem no mesmo quadro —
+		 * e a loja de cash não é uma delas: `toggle()` só MANDA O PACOTE
+		 * (`CZ_SE_CASHSHOP_OPEN2`), e a janela nasce quando o servidor
+		 * responde. No instante em que o embrulho olha, ela ainda está
+		 * fechada, então `aoAbrir('cash')` nunca era chamado.
+		 *
+		 * A consequência era invisível e específica: a regra de UMA JANELA POR
+		 * VEZ do celular não disparava para ela. Medido em 393x852 — com a
+		 * janela "Votar" aberta antes, **28 controles da loja** respondiam
+		 * `div.vi-*` no `elementFromPoint`. O jogador via a loja e tocava no
+		 * Votar.
+		 *
+		 * `onAppend` é o ponto em que ela ENTRA na tela, seja qual for o
+		 * caminho — é lá que a pilha fica sabendo.
+		 */
+		const cashShopOnAppendOriginal = CashShop.onAppend;
+		CashShop.onAppend = function onAppendComPilha(...args) {
+			const r = cashShopOnAppendOriginal ? cashShopOnAppendOriginal.apply(this, args) : undefined;
+			PilhaDeJanelas.aoAbrir('cash');
+			return r;
+		};
+
 		/* O LFG não usa `toggle()`: ele tem `abrir()`/`fechar()` próprios, por
 		   causa da corrida de troca de mapa que já derrubou o `is-open` dele por
 		   baixo dos panos (ver o cabeçalho de LFGIdle.js). Então ele entra com o

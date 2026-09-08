@@ -1421,6 +1421,13 @@
 .ri-vertical #HuntMap .hm-body {
 	flex-direction: column;
 	min-height: 0;
+	/* MEDIDO: sem o teto, `.hm-rail` (191 regioes) crescia alem do rodape da
+	   janela e as ultimas linhas nasciam ATRAS da barra de atalhos — um item
+	   de regiao respondia `div.shortcut-paginas` no `elementFromPoint`, e
+	   outro caia em y=872 numa tela de 852. Com o teto, quem rola e a LISTA
+	   (ela ja tem `overflow-y: auto`), dentro da janela, e nada sai por baixo. */
+	flex: 1 1 auto;
+	overflow: hidden;
 }
 
 .ri-vertical #HuntMap .hm-rail,
