@@ -93,8 +93,22 @@ class Life {
 		let height = 5;
 		const Entity = this.entity.constructor;
 
-		// Don't display it, if negatives values.
-		if (this.hp < 0 || this.hp_max < 0) {
+		/*
+		 * Não desenhe com valores negativos — NEM COM TETO ZERO (08/09/2026).
+		 *
+		 * O `hp_max === 0` passava por esta guarda, e `hp / 0` é `Infinity` ou
+		 * `NaN`: o `fillRect` do preenchimento não desenha nada e sobra só a
+		 * borda `#10189c`, que num bar de 5px de altura lê como uma **barra
+		 * preta**. Foi o relato do dono numa sessão real, com print: *"a
+		 * barrinha tá preta"* — e ela não estava vazia por falta de vida, estava
+		 * indefinida por falta de teto.
+		 *
+		 * Sumir é melhor que mentir: uma barra sem teto não tem o que informar,
+		 * e o `update()` seguinte (quando o `MAXHP` chegar) a traz de volta.
+		 * Este é o mesmo espírito do `hp_max` zerado que `hpNoTeto` protege do
+		 * lado do servidor — as duas pontas recusam o mesmo número.
+		 */
+		if (this.hp < 0 || this.hp_max <= 0) {
 			this.remove();
 			return;
 		}
