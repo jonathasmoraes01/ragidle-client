@@ -410,16 +410,26 @@
    Ganho verde, perda vermelha — e a COR nunca é o único portador: o sinal
    (+/-) vai junto em texto, que é a regra de acessibilidade que a Análise de
    Caça já segue com os losangos. */
+/*
+ * ELE PAINTA A PROPRIA CHAPA, como o botao de link logo abaixo — e a razao e
+ * uma foto: o painel mora FORA do `.container` (a chapa da janela para ali),
+ * entao um fundo translucido deixava o mapa, o boneco e a coluna de slots
+ * atravessarem o texto. Medido na sonda de tela de 08/09/2026: "Se equipar
+ * (no lugar de Faca)" saiu por cima do nome do personagem, ilegivel.
+ */
 .ItemInfo .comparacao {
+	width: 100%;
+	box-sizing: border-box;
 	margin-top: 4px;
-	padding: 6px 8px;
+	padding: 8px 10px;
 	font-family: var(--font-ui, sans-serif);
-	font-size: 11px;
+	font-size: 11.5px;
 	line-height: 1.45;
-	background: var(--well-fill, rgba(0, 0, 0, 0.25));
-	border-radius: var(--radius-sm, 4px);
-	box-shadow: var(--well-shadow, none);
-	color: var(--text-body, #ddd);
+	background: var(--surface-titlebar, linear-gradient(180deg, #f7fbff 0%, #dfe8f6 55%, #cddcef 100%));
+	border: 1px solid var(--border-window, rgba(36, 92, 158, 0.34));
+	border-radius: var(--radius-window, 6px);
+	box-shadow: var(--rim-light), var(--shadow-float);
+	color: var(--text-body, #26364d);
 }
 .ItemInfo .comparacao .comparacao-titulo {
 	font-weight: 700;

@@ -102,6 +102,42 @@ describe('a costura da janela', () => {
 		expect(trecho).toContain('ItemInfo.uid === -1');
 	});
 
+	it('o painel pinta a PRÓPRIA chapa — ele vive fora do `.container` da janela', () => {
+		/*
+		 * A foto da sonda de tela (08/09/2026): com fundo translúcido, o mapa,
+		 * o nome do personagem e a coluna de slots atravessavam o texto do
+		 * veredito. O `.container` (a chapa da janela) termina acima daqui —
+		 * quem mora fora dele pinta a própria, como o botão de link ao lado.
+		 */
+		const css = readFileSync(
+			join(process.cwd(), 'src/UI/Components/ItemInfo/ItemInfo.css'),
+			'utf8',
+		);
+		const bloco = css.slice(
+			css.indexOf('.ItemInfo .comparacao {'),
+			css.indexOf('.ItemInfo .comparacao .comparacao-titulo'),
+		);
+		expect(bloco).toContain('--surface-titlebar');
+		expect(bloco).toMatch(/border:\s*1px solid/);
+	});
+
+	it('o LADO A LADO converte os códigos de cor — nada de "^777777" na tela', () => {
+		/*
+		 * A ItemCompare punha a descrição em `textContent`, e a descrição do RO
+		 * vem com `^RRGGBB` embutido: a foto mostrou "Tipo: ^777777Adaga^000000"
+		 * na peça vestida. A janela irmã (ItemInfo) já passava por
+		 * `DB.formatMsgToHtml`; esta ficou para trás porque só passou a abrir
+		 * para o jogador com a comparação do alfa.
+		 */
+		const compare = readFileSync(
+			join(process.cwd(), 'src/UI/Components/ItemCompare/ItemCompare.js'),
+			'utf8',
+		);
+		const trecho = compare.slice(compare.indexOf('identifiedDescriptionName') - 600);
+		expect(trecho.slice(0, 1200)).toContain('DB.formatMsgToHtml');
+		expect(trecho.slice(0, 1200)).not.toContain('descInner.textContent =');
+	});
+
 	it('trocar de item na ficha LIMPA o painel — o veredito da espada não vale para a poção', () => {
 		const trecho = ficha.slice(ficha.indexOf('ItemInfo.setItem = function setItem'));
 		expect(trecho.slice(0, 900)).toContain('ItemInfo.setComparacao(null)');

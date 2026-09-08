@@ -1496,8 +1496,49 @@ function renderCorpoDaDescricao(linhas) {
  * resolvido na hora); isto só entra se o índice não resolver mais no
  * instante do hover (item trocado entre o desenho do slot e o mouse chegar).
  */
+/**
+ * O ITEM DE UM INDICE -- mochila OU corpo.
+ *
+ * A PECA VESTIDA NAO ESTA EM `Inventory.list` (`countLabel()` soma
+ * `list.length + Equipment.getUI().getNumber()`, InventoryCommon.js: sao duas
+ * listas, nao uma). Quem pergunta so ao inventario recebe `null` de tudo o que
+ * o jogador esta usando -- e foi assim que a dica do slot caiu no formato de
+ * TEXTO simples, sem o selo "Equipado", na sonda de tela de 08/09/2026.
+ */
+function itemDoIndice(indice) {
+	const idx = parseInt(indice, 10);
+	const daMochila = Inventory.getUI().getItemByIndex(idx);
+	if (daMochila) {
+		return daMochila;
+	}
+	const vestidos = Equipment.getUI().getEquippedList ? Equipment.getUI().getEquippedList() : [];
+	return vestidos.find(it => it.index === idx) || null;
+}
+
+/**
+ * A MASCARA DOS ESPACOS QUE ESTE INDICE OCUPA AGORA, lida dos proprios
+ * ladrilhos.
+ *
+ * O `WearState` do objeto so e confiavel na lista que veio do servidor no
+ * login; uma peca vestida DURANTE a sessao chega a `Equipment.equip()` com a
+ * mascara de onde ela PODE ir. Os ladrilhos, ao contrario, sao construidos a
+ * partir de onde a Equipment nativa REALMENTE pos a peca -- entao a arma de
+ * duas maos aparece nos dois ladrilhos e o OU deles e a verdade da tela.
+ */
+function mascaraVestidaDoIndice(indice) {
+	const root = _root();
+	if (!root || !indice) {
+		return 0;
+	}
+	let mascara = 0;
+	root.querySelectorAll(`.mo-slot.is-ocupado[data-index="${indice}"]`).forEach(tile => {
+		mascara |= parseInt(tile.dataset.location, 10) || 0;
+	});
+	return mascara;
+}
+
 function dicaDoItemNoIndice(indice) {
-	const item = Inventory.getUI().getItemByIndex(parseInt(indice, 10));
+	const item = itemDoIndice(indice);
 	if (!item) {
 		return '';
 	}
@@ -1532,9 +1573,9 @@ function onHoverEntra(e) {
 			return;
 		}
 	} else if (el.classList.contains('mo-slot') && el.classList.contains('is-ocupado')) {
-		const item = Inventory.getUI().getItemByIndex(parseInt(el.dataset.index, 10));
+		const item = itemDoIndice(el.dataset.index);
 		if (item) {
-			mostrarDicaItem(el, item);
+			mostrarDicaItem(el, item, mascaraVestidaDoIndice(el.dataset.index));
 			return;
 		}
 	}
@@ -1590,7 +1631,7 @@ function posicionarDica(alvoEl, dica, janela) {
  * `renderRunasHTML`) — nada aqui é `textContent` mais, então nada disso pode
  * ir cru.
  */
-function mostrarDicaItem(alvoEl, item) {
+function mostrarDicaItem(alvoEl, item, vestidoEmForcado) {
 	const root = _root();
 	const dica = root.querySelector('.mo-dica');
 	const janela = root.querySelector('.mo-window');
@@ -1627,7 +1668,17 @@ function mostrarDicaItem(alvoEl, item) {
 	 * ele ESTA. Um arco na mochila tem `location = Arma|Escudo` e WearState 0 —
 	 * com a mascara errada o selo diria "Equipado" para meia mochila.
 	 */
-	const vestidoEm = typeof item.WearState === 'number' ? item.WearState : 0;
+	/*
+	 * E o chamador do SLOT quem sabe a verdade (`mascaraVestidaDoIndice`): o
+	 * `WearState` do objeto vale para a lista do login, e nao para a peca que
+	 * o jogador acabou de vestir nesta sessao.
+	 */
+	const vestidoEm =
+		typeof vestidoEmForcado === 'number' && vestidoEmForcado > 0
+			? vestidoEmForcado
+			: typeof item.WearState === 'number'
+				? item.WearState
+				: 0;
 	const espaco = rotuloDoEspacoEquipado(vestidoEm, EQUIP_SLOTS);
 
 	dica.innerHTML =

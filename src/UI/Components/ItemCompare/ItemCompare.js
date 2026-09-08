@@ -195,7 +195,21 @@ ItemCompare.setItem = function setItem(item) {
 
 	const descInner = root.querySelector('.description-inner');
 	if (descInner) {
-		descInner.textContent = item.IsIdentified ? it.identifiedDescriptionName : it.unidentifiedDescriptionName;
+		/*
+		 * O MESMO tratamento da ItemInfo (`DB.formatMsgToHtml` sobre o texto
+		 * escapado), e nao `textContent` cru.
+		 *
+		 * A descricao do item vem com os codigos de cor do RO embutidos
+		 * (`^777777Adaga^000000`). Em `textContent` eles aparecem LITERAIS na
+		 * tela — a sonda de 08/09/2026 fotografou a Faca vestida dizendo
+		 * "Tipo: ^777777Adaga^000000". A janela irma ja convertia; esta
+		 * ficava com o cru porque nunca tinha sido aberta pelo jogador comum
+		 * (o lado a lado so passou a abrir com a comparacao do alfa).
+		 */
+		const bruta = item.IsIdentified ? it.identifiedDescriptionName : it.unidentifiedDescriptionName;
+		const div = document.createElement('div');
+		div.textContent = bruta || '';
+		descInner.innerHTML = DB.formatMsgToHtml(div.innerHTML);
 	}
 
 	// Add view button (for cards)
