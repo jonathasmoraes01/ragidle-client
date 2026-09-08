@@ -28,6 +28,23 @@
 	height: min(540px, calc(100vh - 132px));
 	pointer-events: none;
 }
+/*
+ * A ALTURA PRECISA ATRAVESSAR O `.ui-component-root` — 08/09/2026
+ * (emenda a D-1164; a cicatriz inteira esta em `PresencaIdle.css`).
+ *
+ * Mesmo relato, mesma medicao, mesma janela de 2px: o `GUIComponent` embrulha
+ * o html num `<div class="ui-component-root">` sem altura declarada, o unico
+ * filho dele (`.in-window`) e absoluto, o embrulho computa **zero** e todo
+ * `height: 100%` abaixo vira zero. O painel do servidor ja tinha chegado.
+ *
+ * Cravar pixel (o remedio de D-968 no `GrupoIdle`) desfaria o `min()` do
+ * `:host` logo acima, que existe para a janela caber no telefone. Dar altura
+ * ao embrulho conserta a cadeia e deixa o `min()` mandando.
+ */
+.ui-component-root {
+	height: 100%;
+}
+
 #IndicacaoIdle {
 	position: relative;
 	width: 100%;

@@ -27,6 +27,47 @@
 	height: min(560px, calc(100vh - 132px));
 	pointer-events: none;
 }
+/*
+ * A ALTURA PRECISA ATRAVESSAR O `.ui-component-root` — 08/09/2026
+ * (emenda a D-1162; a MESMA cicatriz de D-968, com outro remedio).
+ *
+ * Relato do dono, testando ao vivo: *"nao estao abrindo, eles aparecem apenas
+ * uma linha em cima e nao carregam"*. Medido no jogo, com a janela aberta e o
+ * painel do servidor JA renderizado (31 dias na grade):
+ *
+ *   host  (`:host`)         -> 560px   OK
+ *   .ui-component-root      -> **0px**  <- aqui
+ *   #PresencaIdle           -> 0px
+ *   .pr-window              -> 2px (so as bordas)
+ *
+ * Entre o `:host` e o `#PresencaIdle` existe um terceiro elemento que nenhuma
+ * folha deste projeto conhecia: o `GUIComponent` embrulha o html do componente
+ * num `<div class="ui-component-root">` (GUIComponent.js, `_prepare()`). Ele
+ * nao tem altura declarada em lugar nenhum, entao vale `auto` — e como o unico
+ * filho dele (`.pr-window`) e `position: absolute`, ele fica sem NADA em fluxo
+ * e computa zero. Dai para baixo todo `height: 100%` resolve para zero, e o
+ * `inset: 0` nao salva: altura declarada vence o `bottom` quando as duas
+ * existem (o caso sobre-restrito da spec).
+ *
+ * O dado NUNCA foi o problema — `.pr-mes` ja dizia "Presenca de setembro ·
+ * dia 8" e a grade ja tinha os 31 dias quando a janela media 2px.
+ *
+ * POR QUE AQUI, e nao cravando pixel como em D-968: a irma `GrupoIdle` foi
+ * consertada com `760px/640px` no lugar do `100%`, e para ela isso bastava
+ * porque o tamanho dela e fixo. ESTA janela e responsiva de proposito (o
+ * `min()` do `:host` logo acima existe para ela caber num telefone de 393px,
+ * onde a versao de 520px fixos cobria o botao "Cacar"). Cravar pixel aqui
+ * desfaria aquele conserto. Dar altura ao embrulho conserta a cadeia inteira
+ * e deixa o `min()` continuar mandando.
+ *
+ * O seletor e sem `:host`/`#id` de proposito: esta folha e injetada DENTRO do
+ * Shadow DOM deste componente (GUIComponent), entao `.ui-component-root` aqui
+ * so alcanca o embrulho desta janela — nao vaza para os outros 50 componentes.
+ */
+.ui-component-root {
+	height: 100%;
+}
+
 #PresencaIdle {
 	position: relative;
 	width: 100%;

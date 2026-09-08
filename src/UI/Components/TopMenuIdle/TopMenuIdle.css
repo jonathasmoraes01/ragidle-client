@@ -123,6 +123,35 @@
 	gap: 10px 18px;
 }
 
+/*
+ * O "VOTAR" AO LADO DO "CACA" — 08/09/2026, pedido do dono: *"mude o icone de
+ * Votar de lugar, coloque ele ao lado do icone Caca, sobrando uma vaga para
+ * icone abaixo"*.
+ *
+ * Ele e o NONO botao no DOM e continua sendo — o que muda e onde a grade o
+ * desenha. Com cinco colunas ele vai para a primeira fileira, coluna 5, e os
+ * outros oito seguem no fluxo automatico (quatro em cima, quatro embaixo),
+ * deixando a coluna 5 da segunda fileira VAZIA: e a vaga que o dono reservou
+ * para o proximo icone.
+ *
+ * POR QUE PELA GRADE E NAO REORDENANDO O DOM: medido com `prove:hud-responsiva`
+ * em 08/09. Mover o `<button>` para depois do "Caca" tira o "Recompensas" — o
+ * rotulo mais largo do cluster — da coluna do "Personagem" e o poe na do
+ * "Mochila", contra a regra de D-944 ("o mais longo mora na coluna do segundo
+ * mais longo"). O cluster engorda 13px e a prova REPROVA em tablet-768x1024,
+ * mesmo com quatro colunas. Com o DOM intacto, a queda para quatro colunas
+ * (abaixo de 900px de largura) volta a ser byte a byte o arranjo que ja
+ * passava.
+ *
+ * O `[data-colunas]` e escrito pelo `distribuirFileiras()` no mesmo lugar em
+ * que `--tm-colunas` e escrito, e existe porque seletor nao le valor de custom
+ * property sem `@container style()`.
+ */
+.tm-top[data-colunas='5'] .tm-item--voto {
+	grid-column: 5;
+	grid-row: 1;
+}
+
 .tm-top .tm-toggle {
 	grid-column: -2 / -1;
 	/* "span 2", e NAO "1 / -1". O `-1` conta a ultima linha da grade EXPLICITA,

@@ -154,8 +154,28 @@
 		     deve ficar na barra de cima ao lado do mini mapa com bastante
 		     destaque quando tem voto disponivel").
 
-		     ─── POR QUE ELE E O NONO E ULTIMO, E POR QUE ISSO NAO ENGORDA O
-		     CLUSTER ────────────────────────────────────────────────────────
+		     ─── ELE MUDOU DE LUGAR NA TELA EM 08/09/2026, E NAO NO DOM ──────
+		     Pedido do dono, olhando o cluster no jogo: *"mude o icone de Votar
+		     de lugar, coloque ele ao lado do icone Caca, sobrando uma vaga
+		     para icone abaixo"*. Agora, em tela larga, ele desenha na PRIMEIRA
+		     fileira, coluna 5, colado no "Caca" — e a coluna 5 da segunda
+		     fileira fica vazia, que e a vaga que o dono reservou.
+
+		     A mudanca e de GRADE, nao de documento: ele continua sendo o nono
+		     `<button>` daqui, e quem o move e uma regra de uma linha no
+		     TopMenuIdle.css (`.tm-top[data-colunas="5"] .tm-item--voto`). Isso
+		     e deliberado, e custou uma medicao para descobrir: reordenar o DOM
+		     (por o botao entre "Caca" e "Recompensas") tira o "Recompensas" da
+		     coluna do "Personagem" e o poe na do "Mochila" — e a regra de D-944
+		     diz que o rotulo mais longo tem de morar na coluna do segundo mais
+		     longo. Medido: com o DOM reordenado, o `prove:hud-responsiva`
+		     REPROVA em tablet-768x1024 mesmo com quatro colunas
+		     ("BasicInfoIdle x TopMenuIdle.tm-top 13x224px"), porque o cluster
+		     engorda 13px. Com o DOM intacto, a queda para quatro colunas volta
+		     a ser BYTE A BYTE o arranjo que ja passava.
+
+		     ─── POR QUE ELE E O NONO E ULTIMO NO DOM, E POR QUE ISSO NAO
+		     ENGORDA O CLUSTER ──────────────────────────────────────────────
 		     A regra medida em D-944 diz que a grade tem colunas "auto": a
 		     largura de cada coluna e a do ROTULO mais largo dela. Um nono item
 		     com a conta antiga de colunas (metade dos visiveis, arredondada
@@ -163,13 +183,21 @@
 		     "Recompensas" sozinho — o rotulo mais largo do cluster inteiro
 		     virando a coluna mais larga, ~84px a mais.
 
-		     Com o teto de QUATRO colunas (ver distribuirFileiras() em
-		     TopMenuIdle.js) ele cai na TERCEIRA fileira, na coluna 1, embaixo
-		     de "Personagem" e "Recompensas". "Votar" e mais curto que os dois,
-		     entao o `max` da coluna nao muda e a largura do cluster fica
-		     IDENTICA a de antes deste botao. O que cresce e a altura, para
-		     baixo, onde ha espaco — e o rastreador de missoes ja se ajusta
-		     sozinho por `--tm-topo` (D-930).
+		     Com QUATRO colunas (o teto abaixo de 900px de largura, ver
+		     distribuirFileiras() em TopMenuIdle.js) ele cai na TERCEIRA
+		     fileira, na coluna 1, embaixo de "Personagem" e "Recompensas".
+		     "Votar" e mais curto que os dois, entao o `max` da coluna nao muda
+		     e a largura do cluster fica IDENTICA a de antes deste botao. O que
+		     cresce e a altura, para baixo, onde ha espaco — e o rastreador de
+		     missoes ja se ajusta sozinho por `--tm-topo` (D-930).
+
+		     ACIMA de 900px o teto e CINCO, e ai ele sobe para a primeira
+		     fileira (a regra de grade citada acima). A quinta coluna que nasce
+		     e a do "Votar", um dos rotulos mais curtos — nao a do
+		     "Recompensas", que era o risco medido em D-1159. O corte em 900px
+		     tambem foi medido: com cinco colunas em TODA tela o cluster vai de
+		     333px para 403px e o `prove:hud-responsiva` reprova em
+		     tablet-768x1024 ("BasicInfoIdle x TopMenuIdle.tm-top 57x146px").
 
 		     ─── O DESTAQUE ──────────────────────────────────────────────────
 		     ".is-voto-livre" (aro dourado + pulso) entra e sai por JS, lendo
