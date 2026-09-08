@@ -1733,8 +1733,35 @@ let _confirmandoEsquecer = null;
  * `problemas`. Aqui vale o mesmo argumento do aprendizado — *"seta acesa que
  * devolve recusa em vermelho: chato, nunca inseguro"*.
  */
+/**
+ * O PISO DE GRAÇA: até onde o jogo deu a habilidade sem cobrar ponto.
+ *
+ * Quem decide é o servidor (`pisosDeGraca`, que lê a árvore e o catálogo de
+ * missões); aqui ele só é lido. **O `?? 0` não é defensivo à toa**: um cliente
+ * novo pode falar com um servidor que ainda não manda o campo, e nesse caso o
+ * certo é oferecer o botão e deixar o servidor recusar — o contrário esconderia
+ * o caminho de volta de todas as habilidades.
+ */
+function pisoDeGracaDe(skill) {
+	return typeof skill.pisoDeGraca === 'number' ? skill.pisoDeGraca : 0;
+}
+
+/** Quantos níveis desta habilidade o jogador PAGOU — os únicos que voltam. */
+function niveisPagosDe(skill) {
+	return Math.max(0, skill.aprendido - pisoDeGracaDe(skill));
+}
+
 function esquecerHtml(skill) {
-	if (!skill || skill.aprendido <= 0 || skill.deQuest) {
+	/*
+	 * A condição é "sobrou nível PAGO", e não "não é de quest" (07/09/2026).
+	 *
+	 * A primeira versão escondia o botão em toda `deQuest` — e são 38 delas,
+	 * das quais o jogo só dá UMA de graça: desde R14 as outras 37 são compradas
+	 * na janela como qualquer outra, e escondê-las tirava do jogador o direito
+	 * de desfazer a própria compra. Os Primeiros Socorros continuam sem botão,
+	 * agora pela regra (piso = teto) e não por uma exceção escrita aqui.
+	 */
+	if (!skill || skill.aprendido <= 0 || niveisPagosDe(skill) <= 0) {
 		return '';
 	}
 	return (
@@ -1759,14 +1786,19 @@ function confirmacaoDeEsquecerHtml(skill) {
 	if (!skill || _confirmandoEsquecer !== skill.skillId) {
 		return '';
 	}
+	// Os pontos prometidos são os PAGOS, e não o nível: numa habilidade com piso
+	// (a missão deu o nível 1) prometer `aprendido` seria prometer um ponto a
+	// mais do que o servidor devolve — e a janela mentindo é pior que a janela
+	// calada.
+	const pagos = niveisPagosDe(skill);
 	return (
 		'<div class="is-confirma-esquecer">' +
 		'<span class="is-confirma-esquecer-texto">Desaprender ' +
 		escapeHtml(skill.nome) +
 		' e recuperar ' +
-		skill.aprendido +
+		pagos +
 		' ponto' +
-		(skill.aprendido === 1 ? '' : 's') +
+		(pagos === 1 ? '' : 's') +
 		'?</span>' +
 		'<button type="button" class="ri-btn" data-esquecer-sim="' +
 		escapeHtml(skill.skillId) +

@@ -30,15 +30,50 @@ describe('a janela oferece o caminho de volta', () => {
 		expect(js).toContain("data-niveis=\"tudo\"");
 	});
 
-	it('a habilidade de QUEST não mostra botão — o jogo a deu de graça', () => {
+	it('o botão só aparece onde sobrou nível PAGO — e não "não é de quest"', () => {
 		/*
-		 * Devolver ponto por uma habilidade concedida seria IMPRIMIR ponto, e o
-		 * servidor recusa (`naoRegridem`). Mostrar o botão seria a janela
-		 * prometendo o que ele nega — o mesmo argumento do `motivoDaRotacao`.
+		 * Devolver ponto por um nível que o jogo CONCEDEU seria imprimir ponto,
+		 * e o servidor recusa (`pisoDeGraca`). Mostrar o botão ali seria a
+		 * janela prometendo o que ele nega — o mesmo argumento do
+		 * `motivoDaRotacao`.
+		 *
+		 * **O critério mudou, e essa é a correção que este caso guarda.** Ele
+		 * cobrava `skill.deQuest`, e são 38 habilidades de quest das quais o
+		 * jogo só dá UMA de graça: as outras 37 o jogador compra na janela
+		 * (R14), e esconder o botão nelas tirava dele o direito de desfazer a
+		 * própria compra. Os Primeiros Socorros continuam sem botão — agora
+		 * porque o piso deles é o teto, e não por uma exceção escrita aqui.
 		 */
 		const trecho = js.slice(js.indexOf('function esquecerHtml'), js.indexOf('function confirmacaoDeEsquecerHtml'));
-		expect(trecho).toContain('skill.deQuest');
+		expect(trecho).toContain('niveisPagosDe(skill) <= 0');
 		expect(trecho).toContain('skill.aprendido <= 0');
+		// O critério antigo NÃO pode voltar por descuido: ele reprovava as 37.
+		expect(trecho).not.toContain('skill.deQuest');
+	});
+
+	it('o piso vem do SERVIDOR, e a janela não o adivinha', () => {
+		/*
+		 * Quem sabe o que foi concedido é o servidor — ele lê a árvore e o
+		 * catálogo de missões. Uma segunda conta aqui divergiria no dia em que
+		 * uma missão nova ensinasse habilidade, e o jogador veria dois
+		 * vereditos para o mesmo clique.
+		 */
+		const trecho = js.slice(js.indexOf('function pisoDeGracaDe'), js.indexOf('function esquecerHtml'));
+		expect(trecho).toContain('skill.pisoDeGraca');
+		// Sem servidor que mande o campo, OFERECER é o lado seguro: o servidor
+		// recusa se for o caso; esconder tiraria o caminho de volta de todas.
+		expect(trecho).toContain(': 0');
+	});
+
+	it('a confirmação promete os pontos PAGOS, e não o nível', () => {
+		// Numa habilidade com piso, prometer `aprendido` prometeria um ponto a
+		// mais do que o servidor devolve — a janela mentindo por um.
+		const trecho = js.slice(
+			js.indexOf('function confirmacaoDeEsquecerHtml'),
+			js.indexOf('function onClickEsquecer'),
+		);
+		expect(trecho).toContain('niveisPagosDe(skill)');
+		expect(trecho).not.toContain('skill.aprendido +');
 	});
 
 	it('DESAPRENDER pede confirmação; o ▼ de um nível não', () => {
