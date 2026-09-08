@@ -114,7 +114,7 @@ const MOB_STACK_MAX = 5;
 // ...e voltou a 2 (D-1138, adendo): producao sobe servidor e cliente em momentos
 // diferentes, e o 3 fez o cliente novo recusar o servidor v2 do ar. As partes sao
 // aditivas; o contrato fica em 2 e este cliente as acumula.
-const CONTRATO_DO_CATALOGO = 2;
+const CONTRATO_DO_CATALOGO = 3; // 3 (08/09/2026): drop pode vir `raro: true` SEM chance
 
 /**
  * Race translation (PT-BR), fixed dictionary as requested.
@@ -1131,11 +1131,25 @@ function renderDropTile(itemId, nome, chanceTexto, extraHtml, title) {
  * Os drops do monstro selecionado, da maior chance para a menor (empate pelo
  * nome, para a grade não dançar).
  */
+/**
+ * O texto da chance de um drop — ou "RARO", quando o servidor nao mandou o
+ * numero (08/09/2026, ordem do dono: a carta de MVP/mini-chefe sem porcentagem,
+ * para a chance poder ser ajustada no balanceamento sem os jogadores saberem).
+ */
+function textoDaChance(d) {
+	return d && d.raro ? 'RARO' : formatarChance(d ? d.chance : 0);
+}
+
+/** Ordena da maior chance para a menor; o RARO (sem numero) vai por ultimo. */
+function chanceParaOrdenar(d) {
+	return d.raro ? -1 : d.chance || 0;
+}
+
 function renderMobDrops(monster) {
 	const nomeDe = d => d.nomeLocal || d.nome;
 	const drops = (monster.drops || [])
 		.slice()
-		.sort((a, b) => b.chance - a.chance || nomeDe(a).localeCompare(nomeDe(b), 'pt-BR'));
+		.sort((a, b) => chanceParaOrdenar(b) - chanceParaOrdenar(a) || nomeDe(a).localeCompare(nomeDe(b), 'pt-BR'));
 	if (!drops.length) {
 		return '<div class="hm-drops-empty">Sem drops conhecidos.</div>';
 	}
@@ -1144,9 +1158,9 @@ function renderMobDrops(monster) {
 			renderDropTile(
 				d.itemId,
 				nomeDe(d),
-				formatarChance(d.chance),
+				textoDaChance(d),
 				'',
-				`${nomeDe(d)} — ${formatarChance(d.chance)}`
+				`${nomeDe(d)} — ${textoDaChance(d)}`
 			)
 		)
 		.join('')}</div>`;
@@ -1174,9 +1188,9 @@ function renderDropsDoMapa(ficha) {
 		.map(l => {
 			// `dropsDoMapa` devolve o nome do servidor; o ladrilho mostra o local.
 			const nome = nomeLocalDoItem(l.itemId, l.nome);
-			const origem = l.monstros.map(m => `${m.nome} ${formatarChance(m.chance)}`).join(' · ');
+			const origem = l.monstros.map(m => `${m.nome} ${textoDaChance(m)}`).join(' · ');
 			const extra = l.deQuantosMobs > 1 ? `<span class="hm-drop-origens">${l.deQuantosMobs} mobs</span>` : '';
-			return renderDropTile(l.itemId, nome, formatarChance(l.melhorChance), extra, `${nome} — ${origem}`);
+			return renderDropTile(l.itemId, nome, l.raro ? 'RARO' : formatarChance(l.melhorChance), extra, `${nome} — ${origem}`);
 		})
 		.join('');
 	return `

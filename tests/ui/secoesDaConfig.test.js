@@ -86,7 +86,12 @@ describe('os resumos do trilho', () => {
 
 	it('Suporte diz buffs e cura — ou "nada mantido"', () => {
 		expect(resumoDaSecao('suporte', CFG, CTX)).toBe('1 buff · cura');
-		expect(resumoDaSecao('suporte', { ...CFG, rotacaoDeBuffs: [], rotacao: [] }, CTX)).toBe('nada mantido');
+		// 08/09/2026: a cura e SUPORTE e nao mora mais na ordem de golpes — tirar
+		// a habilidade da `rotacao` nao a desliga; o interruptor e `cura.ligada`.
+		expect(resumoDaSecao('suporte', { ...CFG, rotacao: [] }, CTX)).toBe('1 buff · cura');
+		expect(
+			resumoDaSecao('suporte', { ...CFG, rotacaoDeBuffs: [], rotacao: [], cura: { ...(CFG.cura || {}), ligada: false } }, CTX)
+		).toBe('nada mantido');
 	});
 
 	it('Sobrevivência lista o que está ligado', () => {

@@ -1357,10 +1357,11 @@ function renderCura() {
 		</div>`;
 	}
 
-	const naRotacao = curaNaRotacao(cfg, ctx);
-	const ligada = !!naRotacao;
-	const habilidade = naRotacao ? curas.find(c => c.skillId === naRotacao.skillId) || curas[0] : curas[0];
-	const semVaga = !ligada && (cfg.rotacao || []).length >= TETO_DA_ORDEM;
+	// 08/09/2026: a cura e SUPORTE e nao mora mais na ordem de golpes (D-1132
+	// a punha na primeira vaga). Ligar/desligar e `cura.ligada`; o servidor a
+	// antepoe sozinho a rotacao da cena e o limiar continua sendo o de baixo.
+	const ligada = cura.ligada !== false;
+	const habilidade = curas[0];
 	const alcanca = !!(habilidade && habilidade.alcancaGrupo);
 
 	return `
@@ -1371,15 +1372,14 @@ function renderCura() {
 			</div>
 			<label class="ic-switch-row">
 				<span class="ic-switch">
-					<input type="checkbox" data-action="cura-toggle" ${ligada ? 'checked' : ''} ${semVaga ? 'disabled' : ''} />
+					<input type="checkbox" data-action="cura-toggle" ${ligada ? 'checked' : ''} />
 					<span class="ic-switch-track"></span>
 				</span>
 				<span class="ic-switch-text">
 					<span class="ic-switch-label">Curar automaticamente</span>
-					<span class="ic-switch-sub">${ligada ? 'Ocupa a primeira vaga da ordem de golpes.' : 'Entra na primeira vaga da ordem de golpes.'}</span>
+					<span class="ic-switch-sub">${ligada ? 'Usada sozinha quando a barra cair abaixo do limite — não ocupa vaga na ordem de golpes.' : 'Desligada: o personagem não usa esta habilidade para se curar.'}</span>
 				</span>
 			</label>
-			${semVaga ? '<div class="ic-note ic-note-warn">As três vagas da ordem de golpes estão ocupadas — tire um golpe na seção Ataque para ligar a cura.</div>' : ''}
 			<div class="ic-subsection${ligada ? '' : ' ic-subsection-disabled'}">
 				<div class="ic-field-row ic-field-row--seg">
 					<span>Quem curar</span>
@@ -1442,13 +1442,11 @@ function bindSuporteExtra(pane) {
 	if (curaToggle) {
 		curaToggle.addEventListener('change', () => {
 			const cfg = IdleConfig.editConfig;
-			const nova = alternarCura(cfg, IdleConfig.contexto, curaToggle.checked);
-			if (nova === null) {
-				// Sem vaga ou sem habilidade: a tela já explica; o rascunho não muda.
-				renderBody();
-				return;
-			}
-			cfg.rotacao = nova;
+			const cura = garantirCura(cfg);
+			cfg.cura = { ...cura, ligada: !!curaToggle.checked };
+			// Migracao: a cura que estava na ordem de golpes (o desenho de D-1132)
+			// sai dela — o servidor nao a aceita mais como golpe.
+			cfg.rotacao = alternarCura(cfg, IdleConfig.contexto, false);
 			markDirty();
 			renderBody();
 		});

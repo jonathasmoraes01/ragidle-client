@@ -211,6 +211,16 @@
 	color: var(--text-muted);
 }
 
+/* RAGIDLE (08/09/2026): o progresso de CADA especie numa missao de dois alvos. */
+#CodexIdle .cx-missao-especie-prog {
+	font-variant-numeric: tabular-nums;
+	opacity: 0.9;
+}
+
+#CodexIdle .cx-missao-especie-prog.is-cumprida {
+	color: #7be07b;
+}
+
 #CodexIdle .cx-missao-premio {
 	color: var(--amber-600);
 }
@@ -305,4 +315,16 @@
 	opacity: 0.45;
 	cursor: not-allowed;
 	filter: saturate(0.4);
+}
+
+/* RAGIDLE (08/09/2026): as duas abas do Codex — Missoes e Status. A receita da
+   aba e a compartilhada (`.ri-tab` em Common.css); aqui so o trilho. */
+#CodexIdle .cx-abas {
+	display: flex;
+	gap: 6px;
+	margin: 10px 0 8px;
+}
+
+#CodexIdle .cx-abas .ri-tab {
+	flex: 1;
 }
