@@ -105,7 +105,11 @@ const _preferences = Preferences.get(
 		/* A aba escolhida sobrevive ao F5 (portao D-797, memoriaDeAba.js).
 		   Uma aba de historico lembrada sem historico ainda (o F5 apaga as
 		   cacadas arquivadas) cai pra Atual em sincronizarAbas — sem erro. */
-		aba: null
+		aba: null,
+		/* O MODO COMPACTO sobrevive ao F5 (08/09/2026, pedido do alfa): quem
+		   encolheu a janela pra cacar quer reabri-la encolhida. `false` e o
+		   padrao — a janela inteira e o que apresenta a ferramenta. */
+		compacta: false
 	},
 	1
 );
@@ -568,6 +572,23 @@ HuntAnalyzer.init = function init() {
 		HuntAnalyzer.toggle();
 	});
 
+	/*
+	 * O MODO COMPACTO (08/09/2026, pedido do alfa): a janela encolhe para a
+	 * cabine (Duração + estado) e os ritmos por hora, e o mesmo botão
+	 * restaura o painel completo.
+	 *
+	 * **Alternar não toca em dado nenhum, e isso é por construção**: o estado
+	 * da caçada mora em `registroDaCaca.js` (fora da janela), o `tique`
+	 * continua rodando no mesmo intervalo e atualizando os MESMOS elementos —
+	 * compactar é só uma classe de CSS escondendo o resto. Não há segunda
+	 * rota de dados para o modo compacto divergir da cheia.
+	 */
+	root.querySelector('.ha-compactar').addEventListener('click', () => {
+		aplicarCompacto(root, !root.querySelector('.ha-window').classList.contains('is-compacta'));
+	});
+	// O modo lembrado sobrevive ao F5, como a aba e a posição.
+	aplicarCompacto(root, _preferences.compacta === true);
+
 	root.querySelector('.ha-zerar').addEventListener('click', () => {
 		/* Descarta so a cacada CORRENTE -- o historico fica (ver o porque em
 		   zerarCacadaAtual). As assinaturas tambem: senao a lista velha
@@ -613,6 +634,27 @@ function salvarPosicao() {
 	_preferences.x = parseInt(HuntAnalyzer._host.style.left, 10) || 0;
 	_preferences.y = parseInt(HuntAnalyzer._host.style.top, 10) || 0;
 	_preferences.save();
+}
+
+/**
+ * Liga/desliga o MODO COMPACTO e mantém o botão dizendo o que o próximo
+ * clique faz (▾ "Modo compacto" cheio, ▴ "Restaurar painel" compacto) — um
+ * glifo mudo obrigaria o jogador a clicar para descobrir.
+ */
+function aplicarCompacto(root, ligado) {
+	const win = root.querySelector('.ha-window');
+	const btn = root.querySelector('.ha-compactar');
+	win.classList.toggle('is-compacta', ligado);
+	if (btn) {
+		btn.innerHTML = ligado ? '&#9652;' : '&#9662;';
+		const verbo = ligado ? 'Restaurar painel completo' : 'Modo compacto';
+		btn.title = verbo;
+		btn.setAttribute('aria-label', verbo);
+	}
+	if (_preferences.compacta !== ligado) {
+		_preferences.compacta = ligado;
+		_preferences.save();
+	}
 }
 
 function iniciarPolling() {

@@ -242,11 +242,36 @@ function itemParaLink(item) {
  *
  * @param {object} item
  */
+/**
+ * O PAINEL DE COMPARAÇÃO (08/09/2026, pedido do alfa) — quem escreve aqui é a
+ * MochilaIdle, com o que o SERVIDOR respondeu no `ZC_RAGIDLE_ITEM`. `null`
+ * esconde. O HTML chega PRONTO e já escapado por quem monta (a janela não sabe
+ * comparar, e não deve saber — a régua é a `derivarStats` do servidor).
+ */
+ItemInfo.setComparacao = function setComparacao(html) {
+	const painel = ItemInfo.getRoot().querySelector('.comparacao');
+	if (!painel) {
+		return;
+	}
+	if (!html) {
+		painel.hidden = true;
+		painel.innerHTML = '';
+		return;
+	}
+	painel.innerHTML = html;
+	painel.hidden = false;
+};
+
 ItemInfo.setItem = function setItem(item) {
 	const it = DB.getItemInfo(item.ITID);
 	const root = ItemInfo.getRoot();
 	const cardList = root.querySelector('.cardlist .border');
 	const optionContainer = root.querySelector('.option-container');
+
+	// A ficha TROCOU de item: o veredito da troca anterior não vale para o
+	// novo — quem pedir a comparação nova preenche de novo. Sem esta linha o
+	// painel da espada aparecia sob a poção aberta em seguida.
+	ItemInfo.setComparacao(null);
 
 	this.item = it;
 	/*

@@ -489,3 +489,43 @@
 	color: var(--text-muted);
 	text-align: center;
 }
+
+/* ─── Modo compacto (08/09/2026, pedido do alfa) ─────────────────────────
+   A janela vira a cabine (Duração + estado) e os TRÊS ritmos que respondem
+   "este spot presta?" de relance — EXP/h, Classe/h e Drops/h, com a unidade
+   no rótulo e a distinção base/classe preservada. Monstros/h volta com o
+   painel completo (o pedido nomeia XP e drops; três tiles é o que cabe numa
+   linha sem encolher fonte). NENHUM dado muda de rota: são os mesmos
+   elementos que o tique já atualiza, o resto só se esconde. */
+.ha-window.is-compacta {
+	height: auto;
+	bottom: auto;
+}
+
+.ha-window.is-compacta .ha-frame {
+	height: auto;
+}
+
+.ha-window.is-compacta .ha-abas,
+.ha-window.is-compacta .ha-zerar,
+.ha-window.is-compacta .ha-metricas,
+.ha-window.is-compacta .ha-nota,
+.ha-window.is-compacta .ha-bloco,
+.ha-window.is-compacta .ha-ritmo--monstro {
+	display: none;
+}
+
+.ha-window.is-compacta .ha-corpo {
+	overflow: visible;
+}
+
+.ha-window.is-compacta .ha-ritmos {
+	grid-template-columns: repeat(3, 1fr);
+}
+
+/* O título come o espaço livre para os DOIS botões do cabeçalho (compactar +
+   fechar) ficarem juntos à direita — com space-between e três filhos, o
+   botão do meio flutuaria no centro da janela. */
+.ha-titulo {
+	flex: 1 1 auto;
+}

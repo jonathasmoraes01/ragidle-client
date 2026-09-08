@@ -140,6 +140,7 @@ import UIManager from 'UI/UIManager.js';
 import GUIComponent from 'UI/GUIComponent.js';
 import Inventory from 'UI/Components/Inventory/Inventory.js';
 import { posicaoDaDica } from './posicaoDaDica.js';
+import { rotuloDoEspacoEquipado } from './espacoEquipado.js';
 import { FANTASIA_SLOTS, eDeFantasia } from './slotsDeFantasia.js';
 import Equipment from 'UI/Components/Equipment/Equipment.js';
 import ItemInfo from 'UI/Components/ItemInfo/ItemInfo.js';
@@ -147,6 +148,10 @@ import ContextMenu from 'UI/Components/ContextMenu/ContextMenu.js';
 import RiIcones from 'UI/ri-icones.js';
 import { carregarArteDeColecao } from 'Utils/ItemArt.js';
 import { escapeHTML, renderRunasHTML } from 'Utils/ItemOptionsView.js';
+import Network from 'Network/NetworkManager.js';
+import PACKET from 'Network/PacketStructure.js';
+import ItemCompare from 'UI/Components/ItemCompare/ItemCompare.js';
+import { htmlDaComparacao } from './comparacaoDoItem.js';
 import htmlText from './MochilaIdle.html?raw';
 import cssText from './MochilaIdle.css?raw';
 import { fecharEEsquecer } from '../limpezaDeJanelaIdle.js';
@@ -350,6 +355,9 @@ MochilaIdle.init = function init() {
 	this.draggable(root.querySelector('.mo-topo'));
 
 	root.querySelector('.mo-close').addEventListener('click', onClickClose);
+
+	// A resposta da comparação de equipamento (08/09/2026) — ver abrirDetalhes.
+	Network.hookPacket(PACKET.ZC.RAGIDLE_ITEM, aoChegarComparacao);
 
 	// Boneca ao vivo -- contexto capturado uma vez, o laço em si so liga/
 	// desliga no toggle() (ver renderBoneco()/onClickClose/toggle abaixo).
@@ -1151,14 +1159,79 @@ function onContextMenuSlot(e) {
 /**
  * Descricao de um item da mochila -- ItemInfo, contrato tecnico secao 5b.
  */
+/**
+ * O índice cuja comparação está no ar. A resposta chega assíncrona e a ficha
+ * pode ter trocado de item no meio — só o payload do índice PEDIDO entra na
+ * janela; o resto é resposta órfã e morre calada.
+ */
+let _indiceComparado = null;
+
 function abrirDetalhes(item) {
 	if (ItemInfo.uid === item.ITID) {
 		ItemInfo.remove();
+		if (ItemCompare.ui) {
+			ItemCompare.remove();
+		}
 		return;
 	}
 	ItemInfo.append();
 	ItemInfo.uid = item.ITID;
 	ItemInfo.setItem(item);
+
+	/*
+	 * A COMPARAÇÃO COM O EQUIPADO (08/09/2026, pedido do alfa) — só para
+	 * EQUIPÁVEL que não está no corpo: comparar a peça vestida com ela mesma
+	 * não diz nada, e consumível não tem espaço correspondente.
+	 *
+	 * Duas metades, duas fontes:
+	 *  1. o LADO A LADO usa a estrutura que o cliente já tinha (ItemCompare —
+	 *     a ficha do item equipado no espaço correspondente, aberta ao lado);
+	 *  2. a DIFERENÇA numérica vem do SERVIDOR (`CZ_RAGIDLE_ITEM_ACAO`), que
+	 *     calcula com a mesma régua da janela de status. A janela nunca
+	 *     recalcula — duas contas para a mesma pergunta divergem um dia.
+	 */
+	if (ItemCompare.ui) {
+		ItemCompare.remove();
+	}
+	_indiceComparado = null;
+	const vestivel = typeof item.location === 'number' && item.location !== 0;
+	const jaNoCorpo = typeof item.WearState === 'number' && item.WearState !== 0;
+	if (!vestivel || jaNoCorpo) {
+		return;
+	}
+
+	const equipado = Equipment.getUI().isInEquipList(item.location);
+	if (equipado) {
+		ItemCompare.prepare();
+		ItemCompare.append();
+		ItemCompare.uid = equipado.ITID;
+		ItemCompare.setItem(equipado);
+	}
+
+	_indiceComparado = item.index;
+	const pkt = new PACKET.CZ.RAGIDLE_ITEM_ACAO();
+	pkt.json = JSON.stringify({ acao: 'comparar', indice: item.index });
+	Network.sendPacket(pkt);
+}
+
+/**
+ * A resposta do servidor com o veredito da troca — desenhada DENTRO da ficha
+ * (ItemInfo.setComparacao), que é onde o jogador está olhando.
+ */
+function aoChegarComparacao(pkt) {
+	let dados;
+	try {
+		dados = JSON.parse(pkt.json);
+	} catch (_erro) {
+		return;
+	}
+	if (!dados || dados.acao !== 'comparar' || dados.indice !== _indiceComparado) {
+		return;
+	}
+	if (ItemInfo.uid === -1) {
+		return; // a ficha fechou antes de a resposta chegar
+	}
+	ItemInfo.setComparacao(htmlDaComparacao(dados, escapeHTML));
 }
 
 /**
@@ -1541,11 +1614,21 @@ function mostrarDicaItem(alvoEl, item) {
 	// `.mo-dica-corpo` oco abrindo margem entre o nome e as Runas.
 	const corpo = renderCorpoDaDescricao(descricaoLinhas(item));
 
+	/*
+	 * O SELO "Equipado" (08/09/2026, pedido do alfa: *"indique claramente
+	 * quando o item estiver equipado e em qual espaço"*). A máscara diz os
+	 * espaços TOMADOS — a arma de duas mãos sai "Arma (duas mãos)", o chapéu
+	 * grande "Chapéu + Óculos" — e a regra mora em `espacoEquipado.js`, onde
+	 * dá para medir sem DOM.
+	 */
+	const espaco = rotuloDoEspacoEquipado(location, EQUIP_SLOTS);
+
 	dica.innerHTML =
 		'<div class="mo-dica-cabecalho">' +
 		'<div class="ri-tile mo-dica-arte"><img class="mo-dica-arte-img" alt="" /></div>' +
 		`<div class="mo-dica-nome">${escapeHTML(titulo)}</div>` +
 		'</div>' +
+		(espaco ? `<div class="mo-dica-equipado">Equipado — ${escapeHTML(espaco)}</div>` : '') +
 		(corpo ? `<div class="mo-dica-corpo">${corpo}</div>` : '') +
 		renderRunasHTML(item);
 

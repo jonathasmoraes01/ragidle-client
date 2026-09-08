@@ -405,3 +405,39 @@
 	border-radius: var(--radius-card);
 	box-shadow: var(--shadow-float);
 }
+
+/* ─── A comparação com o equipado (08/09/2026, pedido do alfa) ─────────────
+   Ganho verde, perda vermelha — e a COR nunca é o único portador: o sinal
+   (+/-) vai junto em texto, que é a regra de acessibilidade que a Análise de
+   Caça já segue com os losangos. */
+.ItemInfo .comparacao {
+	margin-top: 4px;
+	padding: 6px 8px;
+	font-family: var(--font-ui, sans-serif);
+	font-size: 11px;
+	line-height: 1.45;
+	background: var(--well-fill, rgba(0, 0, 0, 0.25));
+	border-radius: var(--radius-sm, 4px);
+	box-shadow: var(--well-shadow, none);
+	color: var(--text-body, #ddd);
+}
+.ItemInfo .comparacao .comparacao-titulo {
+	font-weight: 700;
+	color: var(--text-title, #fff);
+}
+.ItemInfo .comparacao .comparacao-troca {
+	opacity: 0.85;
+}
+.ItemInfo .comparacao .dif-ganho {
+	color: var(--ok, #7ad07a);
+	font-weight: 700;
+}
+.ItemInfo .comparacao .dif-perda {
+	color: var(--danger, #e07a7a);
+	font-weight: 700;
+}
+.ItemInfo .comparacao .comparacao-aviso {
+	margin-top: 3px;
+	font-size: 10px;
+	opacity: 0.7;
+}

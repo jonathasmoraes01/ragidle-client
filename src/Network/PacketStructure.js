@@ -16332,6 +16332,48 @@ PACKET.ZC.RAGIDLE_VOTO = function PACKET_ZC_RAGIDLE_VOTO(fp, end) {
 	this.json = fp.readString(end - fp.tell());
 };
 PACKET.ZC.RAGIDLE_VOTO.size = -1;
+
+// ===========================================================================
+// A COMPARAÇÃO DE EQUIPAMENTO (08/09/2026, pedido do alfa) — quem calcula é o
+// SERVIDOR, com a mesma régua da janela de status (`derivarStats` sobre a
+// ficha de agora e sobre a ficha hipotética com a troca aplicada). A janela
+// NUNCA recalcula: arma de duas mãos, slot vazio e peça deslocada já vêm
+// resolvidos, e uma segunda conta aqui divergiria — o mesmo argumento do voto.
+//
+// A VAGA pula 0x0fd6/0x0fd7 DE PROPÓSITO: os dois estão em voo na
+// fix/alpha-player-feedback (o correio em lote). Ver a nota em
+// servidor/protocolo/faixa-ragidle.test.ts.
+
+// 0x0fd8 - RAGIDLE: CZ_RAGIDLE_ITEM_ACAO (client -> server)
+// Variable size: u16 opcode + u16 total length + JSON UTF-8 payload.
+// { acao: 'comparar', indice } — o índice do item no inventário, o MESMO que
+// CZ_REQ_WEAR_EQUIP usa.
+PACKET.CZ.RAGIDLE_ITEM_ACAO = function PACKET_CZ_RAGIDLE_ITEM_ACAO() {
+	this.json = '{}';
+};
+PACKET.CZ.RAGIDLE_ITEM_ACAO.prototype.build = function () {
+	const bytes = TextEncoding.encode(this.json, 'utf-8');
+	const pkt_len = 2 + 2 + bytes.length;
+	const pkt_buf = new BinaryWriter(pkt_len);
+	pkt_buf.writeShort(0x0fd8);
+	pkt_buf.writeUShort(pkt_len);
+	pkt_buf.writeString(this.json);
+	return pkt_buf;
+};
+
+// 0x0fd9 - RAGIDLE: ZC_RAGIDLE_ITEM (server -> client)
+// Variable size: u16 opcode + u16 total length + JSON UTF-8 payload.
+// Contrato v1 (08/09/2026): { v, acao: 'comparar', indice,
+// candidato: { itemId, nome }, saem: [{ itemId, nome }],
+// difs: [{ rotulo, antes, depois, delta }], avisos: [string],
+// recusa: string|null }.
+// `difs` só traz linha que MUDA; `saem` nomeia quem o vestir desalojaria (a
+// arma de duas mãos lista o escudo junto); `recusa` não-nula = a troca nem é
+// possível, e o texto diz por quê.
+PACKET.ZC.RAGIDLE_ITEM = function PACKET_ZC_RAGIDLE_ITEM(fp, end) {
+	this.json = fp.readString(end - fp.tell());
+};
+PACKET.ZC.RAGIDLE_ITEM.size = -1;
 // 0x0fde - RAGIDLE: ZC_RAGIDLE_PRESENCA (server -> client)
 // Variable size: u16 opcode + u16 total length + JSON UTF-8 payload.
 // Contrato v1 (D-1162): { v, hoje, periodo, diasDoPeriodo, recolhidos,

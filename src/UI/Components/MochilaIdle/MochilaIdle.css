@@ -737,6 +737,18 @@
 	color: var(--text-title);
 }
 
+/* O selo "Equipado — <espaço>" (08/09/2026, pedido do alfa). Cor de acento e
+   não borda (a regra do texto dourado de D-944 vale pra todo destaque): o selo
+   diz ESTADO, não é botão. */
+.mo-dica-equipado {
+	margin-top: 2px;
+	font-family: var(--font-ui);
+	font-size: 11px;
+	font-weight: 700;
+	letter-spacing: 0.02em;
+	color: var(--accent);
+}
+
 /* Corpo: SO as linhas de ficha ("Rotulo: valor") da descricao (pipeline de
    `comDescricao` de antes: tira `^RRGGBB`, corta em MAX_LINHAS_DA_DICA). O
    texto corrido e o "Indestrutivel..." SAIRAM da dica a pedido do dono
