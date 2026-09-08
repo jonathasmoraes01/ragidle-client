@@ -1621,7 +1621,14 @@ function mostrarDicaItem(alvoEl, item) {
 	 * grande "Chapéu + Óculos" — e a regra mora em `espacoEquipado.js`, onde
 	 * dá para medir sem DOM.
 	 */
-	const espaco = rotuloDoEspacoEquipado(location, EQUIP_SLOTS);
+	/*
+	 * `WearState`, e NAO o `location` logo acima: `location` e a mascara de onde
+	 * o item PODE ser vestido (e o que `eDeFantasia` quer), `WearState` e onde
+	 * ele ESTA. Um arco na mochila tem `location = Arma|Escudo` e WearState 0 —
+	 * com a mascara errada o selo diria "Equipado" para meia mochila.
+	 */
+	const vestidoEm = typeof item.WearState === 'number' ? item.WearState : 0;
+	const espaco = rotuloDoEspacoEquipado(vestidoEm, EQUIP_SLOTS);
 
 	dica.innerHTML =
 		'<div class="mo-dica-cabecalho">' +

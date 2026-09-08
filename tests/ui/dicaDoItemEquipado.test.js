@@ -72,7 +72,14 @@ describe('a dica DESENHA o selo', () => {
 
 	it('mostrarDicaItem consulta a regra e renderiza `mo-dica-equipado`', () => {
 		const trecho = js.slice(js.indexOf('function mostrarDicaItem'), js.indexOf('function mostrarDicaTexto'));
-		expect(trecho).toContain('rotuloDoEspacoEquipado(location, EQUIP_SLOTS)');
+		/*
+		 * `WearState`, e NAO `location`: `location` e onde o item PODE ir (o
+		 * arco da mochila tem Arma|Escudo ali com WearState 0) — com a mascara
+		 * errada, meia mochila ganharia o selo. O caso prende o campo certo.
+		 */
+		expect(trecho).toContain('rotuloDoEspacoEquipado(vestidoEm, EQUIP_SLOTS)');
+		expect(trecho).toContain('item.WearState');
+		expect(trecho).not.toContain('rotuloDoEspacoEquipado(location');
 		expect(trecho).toContain('mo-dica-equipado');
 		// O texto passa por escape antes do innerHTML, como todo texto da dica.
 		expect(trecho).toMatch(/Equipado — \$\{escapeHTML\(espaco\)\}/);
