@@ -89,14 +89,27 @@ describe('motivoDaBusca', () => {
 });
 
 describe('ordenarMapas', () => {
-	const mapas = [cemiterio, campo, { ...campo, mapa: 'x', rotulo: 'Arredores', nivelMinimo: 1, nivelMedio: 3 }];
-	it('por nível: faixa crescente, média desempata, nome por último', () => {
+	const mapas = [cemiterio, campo, { ...campo, mapa: 'x', rotulo: 'Arredores', nivelQueAbre: 1, nivelMinimo: 1, nivelMedio: 3 }];
+	it('por nível: TRANCA crescente (o número do cartão), média desempata, nome por último', () => {
 		expect(ordenarMapas(mapas, 'nivel', 1).map(m => m.rotulo)).toEqual([
 			'Arredores',
 			'Campo de Prontera',
 			'Cemitério de Glast Heim'
 		]);
 	});
+	it('a chave é a TRANCA, não o mínimo — mapa com bicho fraco e média alta desce na lista', () => {
+		// O caso que criou a regra (pay_fild04): mínimo 1, tranca 17. Ordenado
+		// pelo mínimo ele apareceria como "mapa de nível 1" acima de mapas que
+		// abrem no 10 — a contradição que o dono viu no print do celular.
+		const payonzao = { ...campo, mapa: 'pay', rotulo: 'Payonzão', nivelQueAbre: 17, nivelMinimo: 1, nivelMedio: 17.5, nivelMaximo: 37 };
+		const meio = { ...campo, mapa: 'meio', rotulo: 'Meio', nivelQueAbre: 10, nivelMinimo: 10, nivelMedio: 12, nivelMaximo: 14 };
+		expect(ordenarMapas([payonzao, meio, campo], 'nivel', 1).map(m => m.rotulo)).toEqual([
+			'Campo de Prontera',
+			'Meio',
+			'Payonzão'
+		]);
+	});
+
 	it('por nome: alfabética pt-BR', () => {
 		expect(ordenarMapas(mapas, 'nome', 1).map(m => m.rotulo)).toEqual([
 			'Arredores',
