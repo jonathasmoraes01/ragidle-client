@@ -18,6 +18,7 @@ import EntityManager from 'Renderer/EntityManager.js';
 import Entity from 'Renderer/Entity/Entity.js';
 import SpriteRenderer from 'Renderer/SpriteRenderer.js';
 import Mouse from 'Controls/MouseEventHandler.js';
+import { ehDedo } from 'UI/escalaDaHud.js'; // 08/09/2026: no toque nao se desenha cursor
 
 /**
  * @type {integer} tick
@@ -188,6 +189,32 @@ class Cursor {
 	 * Render the cursor (update)
 	 */
 	static render(tick) {
+		/*
+		 * NO DEDO NAO HA CURSOR (08/09/2026, pedido do dono).
+		 *
+		 * O roBrowser desenha a setinha do RO como um sprite proprio, seguindo
+		 * `Mouse.x/y`. Num celular nao existe ponteiro: o dedo toca e sai, e a
+		 * setinha fica PARADA no ultimo ponto tocado — o print de 393x852
+		 * mostrava a seta encalhada no meio da tela, sobre a interface, sem
+		 * significar nada. Pior: `document.body.classList.add('custom-cursor')`
+		 * mais abaixo troca o cursor do CSS por uma imagem, o que no toque so
+		 * pode atrapalhar.
+		 *
+		 * O criterio e o mesmo `pointer: coarse` que a escala da HUD ja usa
+		 * (`escalaDaHud.ehDedo`), e nao um segundo teste escrito aqui. No mouse
+		 * NADA muda — a condicao e a primeira coisa da funcao e o desktop nunca
+		 * entra nela.
+		 *
+		 * `_selector` e o elemento do seletor de alvo (a "grade" do chao); ele
+		 * some junto, pelo mesmo motivo: e desenho de ponteiro.
+		 */
+		if (ehDedo()) {
+			if (_selector) {
+				_selector.style.display = 'none';
+			}
+			document.body.classList.remove('custom-cursor');
+			return;
+		}
 		if (!Graphics.cursor || !_compiledStyle.length) {
 			if (_selector) {
 				// Pre-rework it used 'hidden' css

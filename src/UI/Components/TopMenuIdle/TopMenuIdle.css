@@ -1346,17 +1346,27 @@
 
 /* A secao do leque. `--vr-menu-cluster-altura` e a altura da secao 1 —
    grade de 4 colunas com 8 itens = 2 fileiras de ~72 + respiro. */
-.ri-vertical .tm-fan {
-	--vr-menu-cluster-altura: 172px;
-}
+/* A ALTURA DO CLUSTER NÃO MORA MAIS AQUI (08/09/2026).
+ *
+ * Ela era `--vr-menu-cluster-altura: 172px`, cravada — e quem a publica agora
+ * é `publicarAlturaDoCluster()` (TopMenuIdle.js), MEDINDO o cluster e
+ * escrevendo no `documentElement`. O motivo está lá por extenso; o resumo é
+ * que 172 não acompanhava o número de itens, e a folha começava dentro do
+ * cartão de cima, escondendo a fileira do "Guilda".
+ *
+ * A DEFINIÇÃO LOCAL TINHA DE SAIR, e não só mudar de valor: uma custom
+ * property declarada aqui vence a HERDADA do `documentElement`, então
+ * publicar a medida com esta linha no lugar não teria efeito nenhum. Onde ela
+ * é usada, o `var(..., 172px)` guarda o valor antigo como reserva para o
+ * primeiro quadro, antes da primeira medição. */
 
 .ri-vertical .tm-fan.is-mounted {
 	position: fixed;
-	top: calc(var(--vr-abaixo-do-topo, 70px) + var(--vr-menu-cluster-altura));
+	top: calc(var(--vr-abaixo-do-topo, 70px) + var(--vr-menu-cluster-altura, 172px));
 	left: calc(var(--safe-esq, 0px) + var(--vr-margem, 8px));
 	right: calc(var(--safe-dir, 0px) + var(--vr-margem, 8px));
 	max-height: calc(
-		100dvh - var(--vr-abaixo-do-topo, 70px) - var(--vr-menu-cluster-altura) -
+		100dvh - var(--vr-abaixo-do-topo, 70px) - var(--vr-menu-cluster-altura, 172px) -
 			var(--vr-acima-dos-atalhos, 92px) - 8px
 	);
 	overflow-y: auto;
@@ -1397,4 +1407,59 @@
 	background: transparent;
 	/* sem capsula aqui = sem o anel dourado do item em destaque. */
 	box-shadow: none;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   "INSTALAR APP" — a linha no pe da folha (08/09/2026, pedido do dono).
+
+   Ela e do CELULAR EM PE: fora de `.ri-vertical` nao ha regra nenhuma que a
+   mostre, e o `hidden` do HTML segura o resto. No desktop a porta continua
+   sendo a aba de Config, e o menu fica pixel a pixel como estava.
+
+   Larga e com rotulo por extenso de proposito: ela nao e um destino do jogo,
+   e vira um disco entre Mochila e Skills daria a ela o mesmo peso de uma
+   janela. `min-height: 48px` porque ela e um alvo de dedo, e 48 > o piso de
+   44px que a `prove:hud-responsiva` cobra.
+   ═══════════════════════════════════════════════════════════════════════ */
+.tm-instalar {
+	display: none;
+}
+
+.ri-vertical .tm-instalar:not([hidden]) {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	gap: 2px;
+	width: 100%;
+	min-height: 48px;
+	margin-top: 8px;
+	padding: 8px 12px;
+	border: 0;
+	border-radius: 10px;
+	background: var(--ri-acento, #2f6fd0);
+	color: #fff;
+	font: inherit;
+	font-weight: 700;
+	text-align: center;
+	cursor: pointer;
+}
+
+.ri-vertical .tm-instalar-rotulo {
+	font-size: 14px;
+	line-height: 1.2;
+}
+
+/* A dica e um paragrafo no modo `instrucao`; ela quebra em varias linhas e a
+   folha ja rola (`overflow-y: auto` no `.tm-fan.is-mounted`). */
+.ri-vertical .tm-instalar-dica {
+	font-size: 11px;
+	font-weight: 400;
+	line-height: 1.35;
+	opacity: 0.92;
+	white-space: normal;
+}
+
+.ri-vertical .tm-instalar-dica[hidden] {
+	display: none;
 }

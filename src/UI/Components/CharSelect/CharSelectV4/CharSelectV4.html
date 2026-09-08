@@ -169,7 +169,22 @@
 					<button type="button" class="btn delete ri-btn ri-btn--sec">Excluir personagem</button>
 					<button type="button" class="btn canceldelete ri-btn ri-btn--sec">Cancelar exclusão</button>
 					<button type="button" class="btn finaldelete ri-btn ri-btn--sec">Confirmar exclusão</button>
-					<button type="button" class="btn ok ri-btn pg-primary">Entrar em Midgard</button>
+					<!-- O rotulo tem DUAS versoes (08/09/2026, pedido do dono: "inclua um
+					     botao explicito 'Jogar' para confirmar a escolha e entrar com
+					     ele"). O botao e o MESMO — mesmo seletor `.ok`, mesmo `connect()`,
+					     mesma confirmacao — e so o texto muda: "Jogar" no dedo, onde a
+					     largura e o recurso escasso e o verbo curto e mais claro, e
+					     "Entrar em Midgard" no mouse, que e como o desktop sempre foi.
+
+					     DOIS SPANS e nao troca de `textContent` por JS: esta tela roda
+					     ANTES do jogo (nao ha HUD montada para consultar), e um `<div>`
+					     aqui seria apagado pelo `charinfo.querySelectorAll('div')` do
+					     `moveCursorToGrid()` — a mesma cicatriz que fez `.cs-attrs` ser
+					     um `<span>`, documentada logo acima. -->
+					<button type="button" class="btn ok ri-btn pg-primary">
+						<span class="ok-longo">Entrar em Midgard</span>
+						<span class="ok-curto">Jogar</span>
+					</button>
 					<!-- Pages infos: markup mantido pelo contrato de versoes irmas
 			     (V1/V2/V3 pagined usam), mas o layout em grade (V4) nunca
 			     escreve nele -- CharSelectCommon.js so atualiza ".pageinfo"

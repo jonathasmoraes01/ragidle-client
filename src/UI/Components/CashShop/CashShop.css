@@ -660,3 +660,68 @@
 #CashShop .overlay.grey {
 	color: var(--text-muted);
 }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   CELULAR EM PE: A LOJA CABE NA TELA (08/09/2026, pedido do dono)
+   ═══════════════════════════════════════════════════════════════════════
+   As dimensoes estruturais desta janela sao CRAVADAS em px (723x540, colunas
+   535/185, cartao 172) — e o comentario do topo diz por que: o JS de arrasto,
+   magnet e paginacao MEDE o DOM. Isso vale no desktop, e este bloco nao mexe
+   la.
+
+   No celular era outro filme. MEDIDO em 393x852 (`diag-mobile-portrait.ts`):
+   a janela abria com **723px numa tela de 393** e transbordava 330px — as
+   abas "Aluguel"/"Equipamento" e metade da grade ficavam fora do mundo, e o
+   titulo saia cortado. O host ja foi consertado registrando a janela na
+   `pilhaDeJanelas` (MapEngine.js), o que lhe deu a moldura de painel de
+   D-932; falta o INTERIOR, que continua com os numeros de desktop.
+
+   Aqui as tres larguras cravadas viram fluidas e a janela empilha em coluna.
+   `pointer: coarse` + `portrait` — o mouse nunca entra neste bloco, e o
+   arrasto/magnet do JS continua medindo o DOM que ele sempre mediu la.
+   ═══════════════════════════════════════════════════════════════════════ */
+@media (pointer: coarse) and (orientation: portrait) and (max-width: 599px) {
+	:host,
+	#CashShop {
+		width: 100%;
+		max-width: 100%;
+		height: auto;
+		max-height: none;
+	}
+
+	/* As duas colunas (catalogo 535 + carrinho 185) nao cabem lado a lado em
+	   393px: elas empilham, e cada uma toma a largura toda. */
+	#CashShop .panel-content {
+		width: 100%;
+		min-width: 0;
+	}
+
+	/* O cartao de item era 172px fixo numa grade pensada para 535: em coluna
+	   estreita ele vira uma grade de duas colunas que se ajusta sozinha. */
+	#CashShop .panel-content .panel-items {
+		display: grid;
+		grid-template-columns: repeat(auto-fill, minmax(0, 1fr));
+		gap: var(--sp-2, 6px);
+	}
+
+	#CashShop .panel-content .panel-items .item {
+		width: auto;
+		min-width: 0;
+	}
+
+	/* As abas do catalogo saiam pela direita: elas quebram em linhas. */
+	#CashShop .panel-tabs,
+	#CashShop .tabs {
+		flex-wrap: wrap;
+	}
+
+	/* O "X" nascia em x=704 numa tela de 393 — desenhado e fora do mundo.
+	   Ancorado na borda direita da janela, ele volta para dentro e ganha
+	   alvo de dedo. */
+	#CashShop .base.close {
+		right: 8px;
+		left: auto;
+		min-width: 44px;
+		min-height: 44px;
+	}
+}

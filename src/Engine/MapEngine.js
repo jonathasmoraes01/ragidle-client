@@ -1081,9 +1081,47 @@ function onMapChange(pkt) {
 			['passe', PasseIdle, '.pi-window'],
 			['voto', VotoIdle, '.vi-window'],
 			['analise', HuntAnalyzer, '.ha-window'],
+			/*
+			 * O PAINEL DE ADMIN entrou em 08/09/2026. Ele tem a mesma forma das
+			 * outras (`.ap-window` + `is-open` + `toggle()`) e só não estava
+			 * aqui porque só a conta dona o vê — e o que não entra na pilha não
+			 * ganha a moldura de painel de tela cheia de D-932.
+			 *
+			 * MEDIDO em 393x852 antes disto (`scripts/diag-mobile-portrait.ts`):
+			 * o Admin nascia em `7,166 380x742` e **transbordava 56px por
+			 * baixo** — a última linha de botões ficava fora da tela. Em 412x915
+			 * eram 58px. Registrado, ele passa pela mesma regra das outras onze.
+			 */
+			['admin', AdminPanel, '.ap-window'],
 		]) {
 			PilhaDeJanelas.registrar({ nome, componente, seletor });
 		}
+
+		/*
+		 * A LOJA DE CASH é NATIVA do roBrowser, e por isso ficou de fora da
+		 * pilha até 08/09/2026 — ela não usa `is-open` num `.xx-window`: ela é
+		 * inserida e REMOVIDA do DOM, e o estado se lê em `CashShop.ui`.
+		 *
+		 * O preço de ficar de fora é medido: em 393x852 ela abria com **723px
+		 * de largura numa tela de 393** e transbordava 330px para a direita —
+		 * as abas "Aluguel"/"Equipamento" e metade da grade de itens ficavam
+		 * fora do mundo, e o título saía cortado ("Loja de Cas..."). Ela é um
+		 * item do menu do celular, então isso é um destino inalcançável.
+		 *
+		 * A marca `.ri-janela` que o registro põe no host é o que a regra de
+		 * painel de D-932 lê. As duas funções abaixo existem porque a forma
+		 * dela é outra — e é exatamente para isso que `registrar()` aceita
+		 * `estaAberta` e `fechar` declarados.
+		 */
+		PilhaDeJanelas.registrar({
+			nome: 'cash',
+			componente: CashShop,
+			estaAberta: () => !!(CashShop.ui && CashShop.ui.is(':visible')),
+			/* `toggle()` e não `remove()`: fechar a loja de cash AVISA o
+			   servidor (`CZ_CASH_SHOP_CLOSE`). Arrancá-la do DOM deixaria o
+			   servidor achando que o jogador ainda está na loja. */
+			fechar: () => CashShop.toggle(),
+		});
 
 		/* O LFG não usa `toggle()`: ele tem `abrir()`/`fechar()` próprios, por
 		   causa da corrida de troca de mapa que já derrubou o `is-open` dele por

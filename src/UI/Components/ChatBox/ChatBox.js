@@ -1548,8 +1548,31 @@ ChatBox.onAppend = function OnAppend() {
 	 * digitacao fica, e quem entra no celular ainda consegue falar sem reabrir
 	 * nada.
 	 */
-	if (!_recolhido.escolhido && ehTelaDeToque()) {
-		_recolhido.estado = 'recolhido';
+	/*
+	 * ── 08/09/2026: NO CELULAR ELE NASCE MINIMIZADO, E A CADA ENTRADA ──
+	 *
+	 * Ordem do dono, e ela MUDA D-930 em duas coisas de propósito. Palavras
+	 * dele: *"o chat deve começar minimizado a cada entrada no jogo, ocupando
+	 * apenas uma pequena área da HUD"*.
+	 *
+	 *   1. o estado passa de 'recolhido' (a barra de digitação, ~86px) para
+	 *      'minimizado' (só o disco) — é o "apenas uma pequena área";
+	 *   2. **deixa de valer só na primeira vez.** O `escolhido` continua
+	 *      existindo e continua mandando DENTRO da sessão: quem expandir joga
+	 *      com ele expandido até sair. O que não atravessa mais é a ENTRADA.
+	 *
+	 * O parágrafo de D-930 logo acima argumenta contra isto ("um padrão que
+	 * reaparece depois de o jogador ter decidido o contrário não é padrão, é
+	 * teimosia"), e continua sendo o melhor argumento contra — quem for
+	 * desfazer esta ordem começa por ele. A razão de o dono ter decidido
+	 * assim mesmo é que no celular a tela é o recurso escasso, e a prioridade
+	 * declarada é a CENA de caça: entrar e encontrar a tela limpa vale mais
+	 * do que herdar o tamanho da sessão passada.
+	 *
+	 * No MOUSE nada muda: o `ehTelaDeToque()` é a primeira pergunta.
+	 */
+	if (ehTelaDeToque()) {
+		_recolhido.estado = 'minimizado';
 	}
 
 	aplicarLayout(root);
