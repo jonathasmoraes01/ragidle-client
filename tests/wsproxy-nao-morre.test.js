@@ -1,0 +1,130 @@
+/**
+ * A PONTE NAO PODE MORRER POR UM PEDIDO (08/09/2026).
+ *
+ * Ela e o ponto unico de falha do jogo: nao guarda estado, mas TODO jogador
+ * entra por ela, e o supervisor de producao nao vigiava a saida dela — quando
+ * morria, o painel seguia dizendo "NO AR" com o jogo inutilizavel.
+ *
+ * O caminho medido era `redirects[target]` com `target` vindo CRU da URL:
+ * `const redirects = {}` tem a cadeia de prototipo, entao `/constructor`
+ * devolvia a funcao `Object` (truthy), o codigo fazia `target = Object` e a
+ * linha seguinte chamava `target.split(':')`. `TypeError` dentro de um
+ * listener de evento nao tem quem o contenha, e o processo morria.
+ *
+ * Este arquivo SOBE A PONTE DE VERDADE, em porta isolada, e mede o processo —
+ * porque o defeito nao era do valor devolvido por uma funcao: era de o
+ * processo continuar existindo. Nenhum teste de unidade veria isso.
+ *
+ * O CONTROLE vem primeiro e importa tanto quanto o caso: sem ele, uma ponte
+ * que se recusasse a subir passaria neste teste por nao ter morrido.
+ */
+
+import { spawn } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
+import path from 'node:path';
+import WebSocket from 'ws';
+import { afterEach, describe, expect, it } from 'vitest';
+
+const RAIZ = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+
+/** Porta isolada: a 5999 e a de producao/desenvolvimento e nao pode ser tocada. */
+const PORTA = 15997;
+
+let ponte = null;
+
+/** Sobe a ponte com a configuracao EXATA de producao e espera ela escutar. */
+async function subirAPonte() {
+  ponte = spawn(process.execPath, ['wsproxy.js', '-p', String(PORTA)], {
+    cwd: RAIZ,
+    // Como em producao: lista de destinos definida, e NENHUM `-r`. Sem isto o
+    // teste mediria um arranjo que ninguem usa.
+    env: { ...process.env, WSPROXY_ALVOS: '127.0.0.1:6900,127.0.0.1:6121,127.0.0.1:5121' },
+    stdio: ['ignore', 'pipe', 'pipe'],
+  });
+  let saida = '';
+  ponte.stdout.on('data', (d) => (saida += String(d)));
+  ponte.stderr.on('data', (d) => (saida += String(d)));
+  const morreu = new Promise((resolve) => ponte.once('exit', (c) => resolve(c ?? -1)));
+  await new Promise((resolve, reject) => {
+    const prazo = setTimeout(() => reject(new Error(`a ponte nao subiu em 5 s: ${saida}`)), 5_000);
+    const olhar = setInterval(() => {
+      if (saida.includes('Listening on port')) {
+        clearInterval(olhar);
+        clearTimeout(prazo);
+        resolve();
+      }
+    }, 50);
+  });
+  return { morreu, saida: () => saida };
+}
+
+/** Abre um WebSocket, espera ele fechar (ou dar erro) e devolve. */
+function bater(caminho) {
+  return new Promise((resolve) => {
+    const ws = new WebSocket(`ws://127.0.0.1:${String(PORTA)}/${caminho}`);
+    const pronto = () => resolve();
+    ws.on('close', pronto);
+    ws.on('error', pronto);
+    ws.on('open', () => setTimeout(() => ws.close(), 150));
+  });
+}
+
+/** O processo continua vivo depois de `ms`? */
+function continuaViva(morreu, ms) {
+  return Promise.race([
+    morreu.then(() => false),
+    new Promise((r) => setTimeout(() => r(true), ms)),
+  ]);
+}
+
+afterEach(() => {
+  if (ponte && ponte.exitCode === null) ponte.kill();
+  ponte = null;
+});
+
+describe('a ponte WebSocket', () => {
+  it(
+    'sobrevive a um pedido cuja chave so existe no PROTOTIPO — o caso que a matava',
+    async () => {
+      const { morreu, saida } = await subirAPonte();
+
+      // CONTROLE: um destino legitimo. Se a ponte ja estivesse morta ou surda
+      // aqui, o caso abaixo passaria de graca.
+      await bater('127.0.0.1:6900');
+      expect(
+        await continuaViva(morreu, 200),
+        'a ponte precisa estar viva ANTES do caso, senao o teste nao mede nada',
+      ).toBe(true);
+      expect(saida(), 'o controle tem de ter sido ATENDIDO, e nao recusado').toContain(
+        'Connection request from',
+      );
+
+      // O CASO: `constructor`, `__proto__` e companhia. Nenhum e um destino;
+      // todos existem em `Object.prototype`.
+      for (const chave of ['constructor', '__proto__', 'toString', 'valueOf']) {
+        await bater(chave);
+        expect(
+          await continuaViva(morreu, 120),
+          `a ponte morreu depois de um pedido para /${chave}`,
+        ).toBe(true);
+      }
+
+      // E continua ATENDENDO — sobreviver calada nao serve de nada.
+      const antes = saida().length;
+      await bater('127.0.0.1:6121');
+      expect(saida().length, 'a ponte tem de seguir atendendo depois dos pedidos ruins').toBeGreaterThan(antes);
+    },
+    30_000,
+  );
+
+  it(
+    'um destino fora da lista e recusado sem derrubar a ponte (a tranca de D-540 continua)',
+    async () => {
+      const { morreu, saida } = await subirAPonte();
+      await bater('10.0.0.1:22');
+      expect(saida()).toContain('RECUSADO destino fora da lista');
+      expect(await continuaViva(morreu, 200)).toBe(true);
+    },
+    30_000,
+  );
+});

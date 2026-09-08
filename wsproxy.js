@@ -19,7 +19,32 @@ for (let i = 2; i < process.argv.length; i++) {
 
 const port = parseInt(args.p || args.port || process.env.PORT || '5999', 10);
 const redirectStr = args.r || args.redirect || '';
-const redirects = {};
+/*
+ * `Object.create(null)`, E NAO `{}` (08/09/2026) — REPRODUZIDO, nao suposto.
+ *
+ * Este mapa e consultado com uma chave que vem CRUA da URL do WebSocket
+ * (`redirects[target]`, no handler de conexao). Com um objeto comum, chave
+ * nenhuma esta vazia: `redirects['constructor']` desce pela cadeia de
+ * prototipo e devolve a funcao `Object` — que e truthy. O codigo entao faz
+ * `target = redirects[target]` e, na linha seguinte, `target.split(':')`.
+ * Funcao nao tem `.split`.
+ *
+ * O `TypeError` acontece DENTRO de um listener de evento, e listener de evento
+ * nao tem quem o contenha: **o processo da ponte morre**. Como toda pessoa que
+ * joga entra por aqui, todo mundo cai junto — e nada religa a ponte.
+ *
+ * Medido em 08/09/2026, na configuracao de producao (`WSPROXY_ALVOS` definida,
+ * sem `-r`): um WebSocket para `/constructor` derruba a ponte com codigo 1,
+ * enquanto o controle (um destino legitimo) a mantem viva. Vale igual para
+ * `__proto__`, `toString`, `valueOf` e qualquer nome de `Object.prototype`.
+ *
+ * Um objeto sem prototipo nao tem chave herdada nenhuma: `redirects[qualquer]`
+ * so e truthy se alguem o TIVER posto ali, que e o que a linha sempre quis
+ * dizer. As outras duas camadas (o try/catch do handler e o gancho de ultimo
+ * caso, mais abaixo) existem porque uma linha nao pode ser a unica defesa de
+ * um processo do qual todo mundo depende.
+ */
+const redirects = Object.create(null);
 
 if (redirectStr) {
 	redirectStr.split(',').forEach(pair => {
@@ -78,7 +103,32 @@ const TETO_DE_FRAME = 256 * 1024;
 
 const wss = new WebSocketServer({ port, maxPayload: TETO_DE_FRAME });
 
+/*
+ * O HANDLER INTEIRO NUMA GUARDA (08/09/2026).
+ *
+ * Uma excecao dentro de um listener de evento nao tem quem a contenha: ela
+ * sobe como excecao nao tratada e MATA O PROCESSO. Numa ponte pela qual todo
+ * jogador passa, isso quer dizer que qualquer defeito no tratamento de UMA
+ * conexao derruba TODAS — e foi exatamente esse o caminho do `/constructor`.
+ *
+ * A guarda inverte o custo: o pedido esquisito perde a conexao dele, e nao o
+ * jogo inteiro. E o mesmo idioma do `try/catch` por handler que o servidor de
+ * jogo ja usa (`servidor/transporte.ts`, ~395).
+ */
 wss.on('connection', (ws, req) => {
+	try {
+		aceitarConexao(ws, req);
+	} catch (erro) {
+		console.error(`[wsProxy] conexao recusada por excecao (${req && req.url}): ${erro && erro.message}`);
+		try {
+			ws.close();
+		} catch {
+			/* fechar ja fechado nao e problema de ninguem */
+		}
+	}
+});
+
+function aceitarConexao(ws, req) {
 	const from = req.socket.remoteAddress;
 	let target = req.url.slice(1); // Remove leading slash
 
@@ -176,4 +226,22 @@ wss.on('connection', (ws, req) => {
 		console.error(`[wsProxy] TCP Error for ${target}:`, err.message);
 		cleanup();
 	});
+}
+
+/*
+ * O GANCHO DE ULTIMO CASO (08/09/2026) — o mesmo que o servidor de jogo ganhou
+ * em D-1191, e pela mesma razao.
+ *
+ * A ponte e um ponto unico de falha: ela nao guarda estado, mas TODO mundo
+ * passa por ela, e quando ela morre ninguem consegue nem entrar. Ficar de pe
+ * com um erro registrado e sempre melhor do que sair calada — e sair calada e
+ * literalmente o que acontecia, porque o supervisor de producao nao vigiava a
+ * saida desta peca.
+ */
+process.on('uncaughtException', (erro) => {
+	console.error(`[wsProxy] QUEDA EVITADA (uncaughtException): ${erro && erro.message}`);
+	console.error(erro && erro.stack ? erro.stack : '(sem pilha)');
+});
+process.on('unhandledRejection', (erro) => {
+	console.error(`[wsProxy] QUEDA EVITADA (unhandledRejection): ${erro && erro.message ? erro.message : String(erro)}`);
 });
