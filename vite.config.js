@@ -7,7 +7,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const isDocker = process.env.RO_PROXY_TARGET === 'docker';
 const webTarget = isDocker ? 'http://rathena-web:8888' : 'http://127.0.0.1:8888';  
-const remoteClientTarget = isDocker ? 'http://remote-client-php:80' : 'http://127.0.0.1:8000';  
+const remoteClientTarget = isDocker ? 'http://remote-client-php:80' : 'http://127.0.0.1:8010';  
   
 const _proxy = {  
 	'/get': {  
@@ -48,7 +48,7 @@ _proxy['/remote-client'] = {
 // (Guild.js so usa o webserverAddress em file://). Sem este proxy, o upload
 // pela janela da guilda devolve 404 do proprio vite.
 _proxy['/emblem'] = {
-	target: 'http://127.0.0.1:8888',
+	target: 'http://127.0.0.1:7888',
 	changeOrigin: true,
 	secure: false
 };

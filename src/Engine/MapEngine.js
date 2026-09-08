@@ -106,6 +106,9 @@ import MissoesIdle from 'UI/Components/MissoesIdle/MissoesIdle.js'; // RAGIDLE: 
 import PasseIdle from 'UI/Components/PasseIdle/PasseIdle.js'; // RAGIDLE: janela do Passe (D-813)
 import CodexIdle from 'UI/Components/CodexIdle/CodexIdle.js'; // RAGIDLE: janela do Codex (D-851)
 import VotoIdle from 'UI/Components/VotoIdle/VotoIdle.js'; // RAGIDLE: janela de Voto (D-1159)
+import PresencaIdle from 'UI/Components/PresencaIdle/PresencaIdle.js'; // RAGIDLE: janela de presenca (D-1162)
+import IndicacaoIdle from 'UI/Components/IndicacaoIdle/IndicacaoIdle.js'; // RAGIDLE: Indique & Ganhe (D-1164)
+import BoasVindasIdle from 'UI/Components/BoasVindasIdle/BoasVindasIdle.js'; // RAGIDLE: caixa de boas-vindas (D-968)
 import LFGIdle from 'UI/Components/LFGIdle/LFGIdle.js'; // RAGIDLE: janela de Procurar Grupo (D-634)
 import GrupoIdle from 'UI/Components/GrupoIdle/GrupoIdle.js'; // RAGIDLE: janela de Grupo (D-960)
 import MissoesTrackerIdle from 'UI/Components/MissoesTrackerIdle/MissoesTrackerIdle.js'; // RAGIDLE: tracker estilo Origin (D-601)
@@ -463,6 +466,12 @@ class MapEngine {
 					PasseIdle: PasseIdle,
 					CodexIdle: CodexIdle,
 					VotoIdle: VotoIdle,
+					PresencaIdle: PresencaIdle,
+					IndicacaoIdle: IndicacaoIdle,
+					// RAGIDLE (D-968): a caixa de boas-vindas. A prova de tela
+					// precisa reabri-la sem relogar — a trava de "uma vez por
+					// entrada" é justamente o que impede repetir a medida.
+					BoasVindasIdle: BoasVindasIdle,
 					LFGIdle: LFGIdle,
 					GrupoIdle: GrupoIdle
 				};
@@ -509,6 +518,9 @@ class MapEngine {
 			PasseIdle.prepare(); // RAGIDLE: janela do Passe (D-813) — idem, só escuta 0x0fe5
 			CodexIdle.prepare(); // RAGIDLE: janela do Codex (D-851) — idem, só escuta 0x0fe3
 			VotoIdle.prepare(); // RAGIDLE: janela de Voto (D-1159) — idem, só escuta 0x0fd5
+			PresencaIdle.prepare(); // RAGIDLE: janela de presenca (D-1162) — escuta 0x0fde e abre sozinha quando o servidor manda
+			IndicacaoIdle.prepare(); // RAGIDLE: Indique & Ganhe (D-1164) — escuta 0x0fdc
+			BoasVindasIdle.prepare(); // RAGIDLE: caixa de boas-vindas (D-968) — não escuta pacote nenhum: a lista de cartazes é do cliente
 			LFGIdle.prepare(); // RAGIDLE: janela de Procurar Grupo (D-634) — idem: só escuta 0x0fe9/0x0fe8
 			GrupoIdle.prepare(); // RAGIDLE: janela de Grupo (D-960) — idem: só escuta 0x0fcc
 
@@ -948,6 +960,16 @@ function onMapChange(pkt) {
 		// RAGIDLE (D-1159): a janela de Voto. Anexada SEMPRE, como as vizinhas —
 		// o aviso da entrada chega pelo pacote e precisa de um host de pé.
 		VotoIdle.append(); // RAGIDLE: janela de Voto (D-1159)
+		PresencaIdle.append(); // RAGIDLE: janela de presenca (D-1162)
+		IndicacaoIdle.append(); // RAGIDLE: Indique & Ganhe (D-1164)
+		/*
+		 * RAGIDLE (D-968): a CAIXA DE BOAS-VINDAS — o cartaz que abre sozinho
+		 * ao entrar (hoje, o convite do Discord). Anexada por ÚLTIMO entre as
+		 * janelas: o `append()` termina com `focus()`, e ser a última a deixa
+		 * no topo da pilha de foco. Quem decide se ela aparece é o `onAppend`
+		 * DELA (a trava de "uma vez por entrada" mora no componente).
+		 */
+		BoasVindasIdle.append();
 		LFGIdle.append(); // RAGIDLE: janela de Procurar Grupo (D-634)
 		GrupoIdle.append(); // RAGIDLE: janela de Grupo (D-960)
 		// RAGIDLE: o tracker ancora ABAIXO do BasicInfoIdle por medição — vem
@@ -1054,6 +1076,8 @@ function onMapChange(pkt) {
 			['config', IdleConfig, '.ic-window'],
 			['caca', HuntMap, '.hm-window'],
 			['codex', CodexIdle, '.cx-window'],
+			['presenca', PresencaIdle, '.pr-window'],
+			['indicacao', IndicacaoIdle, '.in-window'],
 			['correio', CorreioIdle, '.co-window'],
 			['missoes', MissoesIdle, '.mi-window'],
 			['passe', PasseIdle, '.pi-window'],
@@ -1137,7 +1161,11 @@ function onMapChange(pkt) {
 			// CashShopIcon.append();
 		}
 
-		if (Configs.get('enableCheckAttendance') && PACKETVER.value >= 20180307) {
+		// RAGIDLE (07/09/2026): so abre a janela de presenca se HA evento — o
+		// servidor paga a presenca por correio e nao manda o 0x0ae2; sem a
+		// guarda, cada carregamento de mapa (a Asa de Mosca inclusive) imprimia
+		// "Nao ha evento de presenca no momento." no chat.
+		if (Configs.get('enableCheckAttendance') && PACKETVER.value >= 20180307 && CheckAttendance.temEvento()) {
 			CheckAttendance.append();
 		}
 
@@ -1242,7 +1270,10 @@ function cleanGameUI() {
 		MochilaIdle,
 		PasseIdle,
 		CodexIdle,
-		VotoIdle
+		VotoIdle,
+		PresencaIdle,
+		IndicacaoIdle,
+		BoasVindasIdle
 	]) {
 		if (typeof modulo.limparEstadoDoPersonagem === 'function') {
 			modulo.limparEstadoDoPersonagem();

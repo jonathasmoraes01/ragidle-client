@@ -1,0 +1,25 @@
+<div id="PresencaIdle">
+	<div class="pr-window ri-window ri-anima">
+		<div class="pr-titlebar ri-header">
+			<span class="pr-title ri-title">Presença</span>
+			<button type="button" class="pr-close ri-close" title="Fechar">&times;</button>
+		</div>
+
+		<!-- O CABECALHO diz o mes e quantos dias ja foram recolhidos. E o servidor
+		     quem diz que dia e (`hoje` no payload): a janela nunca le o relogio
+		     do aparelho, senao a meia-noite do jogador e a do servidor brigariam. -->
+		<div class="pr-cabecalho">
+			<div class="pr-mes">Carregando…</div>
+			<div class="pr-progresso"></div>
+		</div>
+
+		<div class="pr-body ri-scroll">
+			<div class="pr-grade"></div>
+		</div>
+
+		<div class="pr-rodape">
+			<div class="pr-recado"></div>
+			<button type="button" class="pr-recolher ri-btn ri-btn--ouro" disabled>Recolher</button>
+		</div>
+	</div>
+</div>

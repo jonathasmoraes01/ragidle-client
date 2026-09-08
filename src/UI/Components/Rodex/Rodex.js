@@ -241,7 +241,7 @@ Rodex.deleteAll = function deleteAll() {
 		if (mail.type === 0) {
 			Rodex.requestDeleteRodex(mail.openType, mail.MailID);
 		} else {
-			ChatBox.addText(DB.getMessage(2612), ChatBox.TYPE.INFO_MAIL, ChatBox.FILTER.PUBLIC_LOG);
+			ChatBox.addText(DB.getMessage(2612), ChatBox.TYPE.MAIL, ChatBox.FILTER.PUBLIC_LOG);
 		}
 	}
 };

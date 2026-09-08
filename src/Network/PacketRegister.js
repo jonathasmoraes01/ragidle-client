@@ -1031,6 +1031,8 @@ export default {
 	// nao lido. Mesma razao dos vizinhos acima. Ele desce respondendo aos TRES
 	// verbos e tambem na ENTRADA no mapa (com `avisar: true`), sem ZC de erro.
 	0x0fd5: PACKET.ZC.RAGIDLE_VOTO,
+	0x0fde: PACKET.ZC.RAGIDLE_PRESENCA,
+	0x0fdc: PACKET.ZC.RAGIDLE_INDICACAO,
 
 	0xb1a: PACKET.ZC.USESKILL_ACK3 // USE SKILL 3
 };

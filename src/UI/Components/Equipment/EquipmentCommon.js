@@ -434,11 +434,34 @@ export function createEquipment({
 		}
 
 		if (switchEquip) {
+			/*
+			 * ESCONDE ANTES DE APENDAR (07/09/2026, auditoria de FPS).
+			 *
+			 * A ordem estava invertida, e as duas linhas se anulavam:
+			 * `append()` chama `SwitchEquip.onAppend`, que liga o desenho do
+			 * boneco olhando `this._host.style.display !== 'none'` — e naquele
+			 * instante o display ainda nao era 'none', porque so virava na
+			 * linha SEGUINTE. O render ficava ligado para sempre, para uma
+			 * janela invisivel, e nada o parava (so `toggle()`/`onRemove` o
+			 * fazem, e ninguem os chama).
+			 *
+			 * O que isso custava, medido no perfil de CPU da cena de caca
+			 * (`scripts/auditar-fps.ts`, GPU real, processador a 1/4):
+			 * **802 ms de 12 s — 6,7% da thread principal**, em duas das oito
+			 * funcoes mais caras do jogo inteiro. E pelo caminho LENTO: o
+			 * boneco vai por `RenderCanvas2D` (`SpriteRenderer.js:114`), que
+			 * monta a imagem pixel a pixel na CPU e chama `putImageData` —
+			 * 666 ms so ai. Mais um `new Entity()` por quadro
+			 * (`SwitchEquip.js:277`), alimentando o coletor de lixo.
+			 *
+			 * `prepare()` primeiro porque `_host` so existe depois dele; sem
+			 * isso o `display` seria escrito num objeto que ainda nao nasceu e
+			 * a inversao voltaria calada.
+			 */
+			SwitchEquip.prepare();
+			const switchHost = SwitchEquip._host || SwitchEquip.ui;
+			if (switchHost && switchHost.style) switchHost.style.display = 'none';
 			SwitchEquip.append(switchappend);
-			if (SwitchEquip.ui) {
-				const switchHost = SwitchEquip._host || SwitchEquip.ui;
-				if (switchHost.style) switchHost.style.display = 'none';
-			}
 		}
 	};
 

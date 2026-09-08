@@ -242,6 +242,14 @@ const RiIcones = {
 	// confundem na tela, e os dois botoes moram em lugares diferentes (cluster
 	// e leque). Se um dia o `skills` perder o PNG, o par fica ambiguo: e o
 	// ponto em que este glifo precisa mudar.
+	// RAGIDLE (D-1164): Indique & Ganhe — duas pessoas e um mais (Lucide user-plus).
+	indicacao: svg(
+		'<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" x2="19" y1="8" y2="14"/><line x1="22" x2="16" y1="11" y2="11"/>'
+	),
+	// RAGIDLE (D-1162): a presenca mensal — calendario com o visto (Lucide calendar-check).
+	presenca: svg(
+		'<path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/><path d="m9 16 2 2 4-4"/>'
+	),
 	codex: arteUi(
 		'codex',
 		svg(

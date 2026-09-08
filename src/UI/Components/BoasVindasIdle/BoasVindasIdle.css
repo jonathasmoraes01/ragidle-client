@@ -1,0 +1,369 @@
+/**
+ * UI/Components/BoasVindasIdle/BoasVindasIdle.css
+ *
+ * A caixa de boas-vindas (D-968) — o cartaz que abre sozinho ao entrar.
+ *
+ * Ela é quase toda ARTE: a peça inteira (logo, texto, botão) vem pronta numa
+ * imagem só, e o papel do CSS aqui é o mínimo — centralizar, dar moldura, e
+ * garantir que a arte caiba em qualquer tela sem cortar nem transbordar. É a
+ * mesma divisão da regra 4 do projeto lida ao contrário: quando o conteúdo
+ * inteiro É a ilustração, o CSS só emoldura.
+ *
+ * O QUE ELA NÃO É: uma janela da pilha (`pilhaDeJanelas.js`). Registrar-se lá
+ * marcaria o host com `.ri-janela`, e abaixo de 600px isso transforma janela em
+ * painel de tela cheia (D-932) — o que desfiguraria um cartaz 4:3. O ESC é
+ * tratado no `onKeyDown` do próprio componente, do mesmo jeito que o aviso de
+ * entrada do VotoIdle.
+ */
+
+/*
+ * A CAMADA — acima da HUD e das janelas, abaixo da morte.
+ *
+ * O z-index de todo componente é INLINE no host (`GUIComponent.js` nasce com
+ * 50 e cada `focus()` reescreve para empilhar), e regra normal de folha perde
+ * do inline: daí o `!important`, pelo mesmo argumento medido em
+ * DeathWindow.css. O número fica ordens de grandeza acima da faixa de foco
+ * (50-88) e do overlay do UIManager (99), e DELIBERADAMENTE abaixo dos
+ * 2.000.000 da morte — se o jogador entrar já morto, quem manda na tela é a
+ * morte, não o cartaz.
+ */
+:host {
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 100vw;
+	height: 100vh;
+	pointer-events: none;
+	font-family: var(--font-ui);
+	z-index: 1900000 !important;
+
+	/*
+	 * Quantos de largura por 1 de altura na arte, e quanto o rodapé come da
+	 * altura. O JS reescreve as duas a cada cartaz: cada imagem tem a
+	 * proporção dela, e chumbar uma aqui faria a segunda arte nascer torta.
+	 * Os valores abaixo são só o ponto de partida até o primeiro `render()`.
+	 */
+	--bv-proporcao: 1.333;
+	--bv-rodape-altura: 0px;
+}
+
+#BoasVindasIdle {
+	position: relative;
+	width: 100%;
+	height: 100%;
+}
+
+/* ─── O véu ──────────────────────────────────────────────────────────── */
+
+.bv-modal {
+	display: none;
+	position: fixed;
+	inset: 0;
+	align-items: center;
+	justify-content: center;
+	/* O respiro que sobra em volta da arte. É ele que dá margem no celular,
+	   onde o `Common.css` força `width: 100%` no `.ri-window` (D-932). */
+	padding: var(--sp-7);
+	box-sizing: border-box;
+	/* Azul-tinta, nunca preto puro — mesma tinta do scrim da morte. */
+	background: rgba(18, 41, 74, 0.62);
+	pointer-events: none;
+}
+
+.bv-modal.is-open {
+	display: flex;
+	pointer-events: auto;
+}
+
+/*
+ * A entrada, na mesma coreografia de `.ri-anima` (Common.css) — véu em fade,
+ * cartaz subindo. Ela é escrita à mão e não herdada porque `.ri-anima` aplica
+ * o `transform` no MESMO elemento que carrega o `is-open`, e aqui esse
+ * elemento é o véu de tela cheia: escalar o véu escalaria a tela inteira.
+ *
+ * `allow-discrete` + `@starting-style` animam a própria troca de `display`.
+ * Navegador sem suporte ignora e a caixa abre seca — degradação, não quebra.
+ */
+@media (prefers-reduced-motion: no-preference) {
+	.bv-modal {
+		opacity: 0;
+		transition:
+			opacity var(--dur-janela-fecha) var(--ease-in),
+			display var(--dur-janela-fecha) allow-discrete,
+			overlay var(--dur-janela-fecha) allow-discrete;
+	}
+
+	.bv-modal.is-open {
+		opacity: 1;
+		transition:
+			opacity var(--dur-janela-abre) var(--ease-out),
+			display var(--dur-janela-abre) allow-discrete,
+			overlay var(--dur-janela-abre) allow-discrete;
+	}
+
+	@starting-style {
+		.bv-modal.is-open {
+			opacity: 0;
+		}
+	}
+
+	.bv-modal.is-open .bv-card {
+		transition: transform var(--dur-janela-abre) var(--ease-out);
+		transform: none;
+	}
+
+	@starting-style {
+		.bv-modal.is-open .bv-card {
+			transform: translateY(10px) scale(0.98);
+		}
+	}
+}
+
+/* ─── O cartaz ───────────────────────────────────────────────────────── */
+
+/*
+ * `.ri-window` já dá fundo, aro dourado, raio e sombra. O que é daqui é o
+ * TAMANHO, e ele tem três tetos ao mesmo tempo:
+ *
+ *   1. 720px — o cartaz não precisa crescer além disso num monitor grande;
+ *   2. a largura da tela menos o respiro do véu;
+ *   3. a ALTURA disponível convertida em largura pela proporção da arte.
+ *
+ * O terceiro é o que resolve a tela baixa e larga (um notebook 1366x768 com o
+ * navegador em meia altura, ou o celular deitado): sem ele o cartaz ficaria
+ * largo demais para a altura, e o teto de altura da imagem deixaria faixas de
+ * fundo vazio nas laterais.
+ */
+.bv-card {
+	position: relative;
+	width: min(
+		720px,
+		calc(100vw - 2 * var(--sp-7)),
+		calc((100vh - 2 * var(--sp-7) - var(--bv-rodape-altura, 0px)) * var(--bv-proporcao))
+	);
+	max-width: 100%;
+	box-sizing: border-box;
+	padding: 0;
+	overflow: hidden;
+	box-shadow: var(--shadow-window), var(--glow-gold);
+}
+
+/* ─── O palco: a arte, o "X" e o contador ────────────────────────────── */
+
+.bv-palco {
+	position: relative;
+	display: block;
+	line-height: 0;
+}
+
+.bv-link {
+	display: block;
+	cursor: pointer;
+	-webkit-tap-highlight-color: transparent;
+}
+
+.bv-arte {
+	display: block;
+	width: 100%;
+	height: auto;
+	/* A arte é uma peça grande e desenhada em alta: interpolação suave é o
+	   certo aqui (não é ícone de item, que pede `pixelated` pela regra 4). */
+	image-rendering: auto;
+}
+
+/* Um leve realce ao passar o mouse diz que a arte É clicável — a única pista
+   possível numa peça em que o "botão" está desenhado dentro da imagem. */
+@media (hover: hover) {
+	.bv-link:hover .bv-arte {
+		filter: brightness(1.04);
+	}
+}
+
+.bv-link:active .bv-arte {
+	transform: var(--press-shift);
+}
+
+/*
+ * O "X" fica SOBRE a arte, no canto, com disco escuro por baixo: a arte é
+ * clara e ilustrada, e um X sem contraste próprio some no primeiro cartaz de
+ * fundo claro que alguém publicar.
+ *
+ * `.ri-close` já lhe dá o alvo tátil de 44px em tela de toque (D-931).
+ */
+.bv-x {
+	position: absolute;
+	top: var(--sp-4);
+	right: var(--sp-4);
+	background: var(--surface-dark-glass);
+	backdrop-filter: var(--blur-glass);
+	border: 1px solid var(--border-gold);
+	color: var(--white);
+	line-height: 1;
+}
+
+.bv-x:hover {
+	background: rgba(18, 41, 74, 0.82);
+	color: var(--white);
+}
+
+.bv-contador {
+	position: absolute;
+	top: var(--sp-4);
+	left: var(--sp-4);
+	padding: 3px var(--sp-4);
+	border-radius: var(--radius-pill);
+	background: var(--surface-dark-glass);
+	backdrop-filter: var(--blur-glass);
+	border: 1px solid var(--border-gold);
+	color: var(--gold-300);
+	font: var(--type-label);
+	letter-spacing: var(--ls-caps);
+	line-height: 1.6;
+}
+
+/* ─── O rodapé (permanente) ──────────────────────────────────────────── */
+
+.bv-rodape {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--sp-5);
+	padding: var(--sp-4) var(--sp-6);
+	border-top: var(--divider);
+	background: var(--surface-card);
+}
+
+/*
+ * O ADIAMENTO DE 24 h — um interruptor, e não um botão.
+ *
+ * Botão executa; interruptor DECLARA um estado que continua valendo depois que
+ * a caixa fecha. Desenhá-lo como botão faria o jogador procurar um "confirmar"
+ * que não existe: aqui marcar já é a decisão, e desmarcar a desfaz.
+ *
+ * Ele é a saída DISCRETA e o "Fechar" é a de peso, como no mockup do dono —
+ * as duas não têm a mesma consequência, e desenhá-las iguais faria escolher
+ * pela posição em vez de pela intenção.
+ */
+.bv-hoje {
+	display: inline-flex;
+	align-items: center;
+	gap: var(--sp-4);
+	cursor: pointer;
+	/* O alvo tátil de 44px é do RÓTULO INTEIRO, e não do trilho de 34px: o
+	   `<label>` inteiro alterna a caixa, então é ele que o dedo precisa
+	   acertar (mesma regra da HUD, D-931). */
+	min-height: var(--hit-touch);
+	user-select: none;
+	-webkit-tap-highlight-color: transparent;
+}
+
+/* A caixa de verdade fica INVISÍVEL mas VIVA: ela é quem guarda o estado, quem
+   o teclado alcança e quem o leitor de tela anuncia. Trocá-la por uma `div`
+   com `click` custaria as três coisas. */
+.bv-hoje-caixa {
+	position: absolute;
+	opacity: 0;
+	width: 0;
+	height: 0;
+	margin: 0;
+	pointer-events: none;
+}
+
+.bv-hoje-trilho {
+	position: relative;
+	flex: none;
+	width: 34px;
+	height: 20px;
+	border-radius: var(--radius-pill);
+	background: var(--surface-inset);
+	border: 1px solid var(--border-inset);
+	box-shadow: var(--shadow-inset);
+	transition: background var(--dur-fast) var(--ease-out);
+}
+
+.bv-hoje-pino {
+	position: absolute;
+	top: 2px;
+	left: 2px;
+	width: 14px;
+	height: 14px;
+	border-radius: var(--radius-pill);
+	background: var(--white);
+	box-shadow: var(--shadow-card);
+	transition: transform var(--dur-fast) var(--ease-out);
+}
+
+.bv-hoje-caixa:checked + .bv-hoje-trilho {
+	background: var(--tab-active-fill);
+	border-color: var(--blue-400);
+}
+
+.bv-hoje-caixa:checked + .bv-hoje-trilho .bv-hoje-pino {
+	transform: translateX(14px);
+}
+
+/* O foco de teclado tem de aparecer no TRILHO, porque a caixa é invisível. */
+.bv-hoje-caixa:focus-visible + .bv-hoje-trilho {
+	box-shadow: var(--glow-accent);
+}
+
+.bv-hoje-texto {
+	font: var(--type-info);
+	color: var(--text-muted);
+}
+
+.bv-hoje-caixa:checked ~ .bv-hoje-texto {
+	color: var(--text-body);
+}
+
+.bv-pontos {
+	display: inline-flex;
+	align-items: center;
+	gap: var(--sp-3);
+}
+
+.bv-ponto {
+	width: 7px;
+	height: 7px;
+	border-radius: var(--radius-pill);
+	background: var(--border-inset);
+	box-shadow: var(--shadow-inset);
+}
+
+.bv-ponto.is-atual {
+	background: var(--gold-400);
+	box-shadow: var(--glow-gold);
+}
+
+.bv-proximo {
+	min-height: var(--hit-touch);
+}
+
+/* No celular o contador sai do alto (o espaço lá é da arte) e o rótulo do
+   adiamento encurta — "Não mostrar hoje" cabe ao lado do botão em 393px, a
+   frase inteira não. O texto curto mora no CSS, e não no JS, porque quem sabe
+   a largura é a folha: um `if (window.innerWidth < 600)` no JS congelaria a
+   escolha no instante da abertura e erraria ao girar o aparelho. */
+@media (max-width: 599px) {
+	.bv-contador {
+		display: none;
+	}
+
+	.bv-rodape {
+		padding: var(--sp-3) var(--sp-5);
+		gap: var(--sp-4);
+	}
+
+	/*
+	 * O rótulo QUEBRA em duas linhas em vez de encurtar por CSS.
+	 *
+	 * A primeira versão trocava o texto com `font-size: 0` + `::after`, e isso
+	 * tem um preço que não aparece na foto: o leitor de tela lê os DOIS textos,
+	 * e o rótulo do `<label>` deixa de bater com o que está desenhado. Duas
+	 * linhas custam 12px de altura e não custam nada disso.
+	 */
+	.bv-hoje-texto {
+		font-size: var(--fs-desc);
+		line-height: var(--lh-ui);
+	}
+}

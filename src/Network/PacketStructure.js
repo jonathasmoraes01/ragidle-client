@@ -16283,6 +16283,18 @@ PACKET.CZ.RAGIDLE_VOTO_ACAO.prototype.build = function () {
 	const pkt_len = 2 + 2 + bytes.length;
 	const pkt_buf = new BinaryWriter(pkt_len);
 	pkt_buf.writeShort(0x0fd4);
+// 0x0fdf - RAGIDLE: CZ_RAGIDLE_PRESENCA_ACAO (client -> server)
+// Variable size: u16 opcode + u16 total length + JSON UTF-8 {acao:'pedir'|'recolher'}.
+// D-1162: a janela de presenca (PresencaIdle). Um opcode por JANELA, como o
+// Codex — o verbo vai no corpo.
+PACKET.CZ.RAGIDLE_PRESENCA_ACAO = function PACKET_CZ_RAGIDLE_PRESENCA_ACAO() {
+	this.json = '{}';
+};
+PACKET.CZ.RAGIDLE_PRESENCA_ACAO.prototype.build = function () {
+	const bytes = TextEncoding.encode(this.json, 'utf-8');
+	const pkt_len = 2 + 2 + bytes.length;
+	const pkt_buf = new BinaryWriter(pkt_len);
+	pkt_buf.writeShort(0x0fdf);
 	pkt_buf.writeUShort(pkt_len);
 	pkt_buf.writeString(this.json);
 	return pkt_buf;
@@ -16314,6 +16326,46 @@ PACKET.ZC.RAGIDLE_VOTO = function PACKET_ZC_RAGIDLE_VOTO(fp, end) {
 	this.json = fp.readString(end - fp.tell());
 };
 PACKET.ZC.RAGIDLE_VOTO.size = -1;
+// 0x0fde - RAGIDLE: ZC_RAGIDLE_PRESENCA (server -> client)
+// Variable size: u16 opcode + u16 total length + JSON UTF-8 payload.
+// Contrato v1 (D-1162): { v, hoje, periodo, diasDoPeriodo, recolhidos,
+// podeRecolher, diaDeHoje, diaDoCalendario, dias: [{ dia, estado, itens:
+// [{ item, itemId, nome, quantidade }] }], abrir, recolhido?: { dia, itens,
+// destino: 'mochila'|'correio' }, recusa?: 'ja-recebeu-hoje'|
+// 'periodo-esgotado'|'sem-espaco' }.
+// Chega SEM pedido com `abrir: true` no primeiro contato do dia (login) e a
+// meia-noite para quem esta online — a janela abre sozinha.
+PACKET.ZC.RAGIDLE_PRESENCA = function PACKET_ZC_RAGIDLE_PRESENCA(fp, end) {
+	this.json = fp.readString(end - fp.tell());
+};
+PACKET.ZC.RAGIDLE_PRESENCA.size = -1;
+
+// 0x0fdd - RAGIDLE: CZ_RAGIDLE_INDICACAO_ACAO (client -> server)
+// Variable size: u16 opcode + u16 total length + JSON UTF-8 {acao:'pedir'|'usar', codigo?}.
+// D-1164: Indique & Ganhe (IndicacaoIdle). Um opcode por JANELA.
+PACKET.CZ.RAGIDLE_INDICACAO_ACAO = function PACKET_CZ_RAGIDLE_INDICACAO_ACAO() {
+	this.json = '{}';
+};
+PACKET.CZ.RAGIDLE_INDICACAO_ACAO.prototype.build = function () {
+	const bytes = TextEncoding.encode(this.json, 'utf-8');
+	const pkt_len = 2 + 2 + bytes.length;
+	const pkt_buf = new BinaryWriter(pkt_len);
+	pkt_buf.writeShort(0x0fdd);
+	pkt_buf.writeUShort(pkt_len);
+	pkt_buf.writeString(this.json);
+	return pkt_buf;
+};
+
+// 0x0fdc - RAGIDLE: ZC_RAGIDLE_INDICACAO (server -> client)
+// Variable size: u16 opcode + u16 total length + JSON UTF-8 payload.
+// Contrato v1 (D-1164): { v, codigo, link, taxa, ganhos, indicados: [{ nome,
+// nivel }], indicadoPor: nome|null, podeUsarCodigo, emTeste, recusa?:
+// 'codigo-invalido'|'proprio-codigo'|'ja-indicado'|'indicador-nao-existe'|
+// 'nao-e-conta-nova' }.
+PACKET.ZC.RAGIDLE_INDICACAO = function PACKET_ZC_RAGIDLE_INDICACAO(fp, end) {
+	this.json = fp.readString(end - fp.tell());
+};
+PACKET.ZC.RAGIDLE_INDICACAO.size = -1;
 
 // 0x0fec - RAGIDLE: CZ_RAGIDLE_PEDIR_MISSOES (client -> server)
 // Fixed 2 bytes: opcode only. Sent when the MissoesIdle window is opened.

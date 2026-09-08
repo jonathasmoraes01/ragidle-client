@@ -1079,6 +1079,31 @@ function onEntityTalk(pkt) {
 	type = ChatBox.TYPE.PUBLIC;
 	const entity = EntityManager.get(pkt.GID);
 
+	/*
+	 * A TAG DE GM (07/09/2026, pedido do dono).
+	 *
+	 * *"Quero conseguir identificar administradores com a tag de 'GM', por
+	 * exemplo, em amarelo no chat. Veja so, o Amendoim e um Administrador e
+	 * esta conversando no chat como se fosse um player comum."*
+	 *
+	 * A peca inteira ja existia e nao chegava a lugar nenhum: o `type` ganhava
+	 * `TYPE.ADMIN` DEPOIS do `addText`, entao o valor era calculado e jogado
+	 * fora — a linha do chat sempre saiu com `TYPE.PUBLIC` puro. `isAdmin` vem
+	 * de `Session.AdminList`, que o servidor manda no `ZC_RAGIDLE_ADMINS` e ja
+	 * alimenta o sprite de GM; era so o chat que nunca perguntava.
+	 *
+	 * A decisao subiu para ANTES da escrita. O balao sobre a cabeca continua
+	 * como era.
+	 */
+	if (entity) {
+		if (entity === Session.Entity) {
+			type |= ChatBox.TYPE.SELF;
+		}
+		if (entity.isAdmin) {
+			type |= ChatBox.TYPE.ADMIN;
+		}
+	}
+
 	ChatBox.addText(pkt.msg, type, ChatBox.FILTER.PUBLIC_CHAT, null, false);
 
 	if (entity) {
@@ -1090,13 +1115,6 @@ function onEntityTalk(pkt) {
 		);
 
 		entity.dialog.set(pkt.msg);
-
-		// Should not happen
-		if (entity === Session.Entity) {
-			type |= ChatBox.TYPE.SELF;
-		} else if (entity.isAdmin) {
-			type |= ChatBox.TYPE.ADMIN;
-		}
 	}
 }
 

@@ -4985,6 +4985,10 @@ function init(packetver) {
 
 	length_list[0x0fe4] = -1; // CZ_RAGIDLE_CODEX_ACAO (variable, JSON payload)
 	length_list[0x0fe3] = -1; // ZC_RAGIDLE_CODEX (variable, JSON payload)
+	length_list[0x0fdf] = -1; // CZ_RAGIDLE_PRESENCA_ACAO (variable, JSON payload) — D-1162
+	length_list[0x0fde] = -1; // ZC_RAGIDLE_PRESENCA (variable, JSON payload) — D-1162
+	length_list[0x0fdd] = -1; // CZ_RAGIDLE_INDICACAO_ACAO (variable, JSON payload) — D-1164
+	length_list[0x0fdc] = -1; // ZC_RAGIDLE_INDICACAO (variable, JSON payload) — D-1164
 
 	return length_list;
 }

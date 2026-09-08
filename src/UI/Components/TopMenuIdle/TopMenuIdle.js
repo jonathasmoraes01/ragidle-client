@@ -196,6 +196,8 @@ import MissoesIdle from 'UI/Components/MissoesIdle/MissoesIdle.js';
 import PasseIdle from 'UI/Components/PasseIdle/PasseIdle.js';
 import VotoIdle from 'UI/Components/VotoIdle/VotoIdle.js'; // RAGIDLE: janela de Voto (D-1159)
 import CodexIdle from 'UI/Components/CodexIdle/CodexIdle.js'; // RAGIDLE: Codex (D-851)
+import PresencaIdle from 'UI/Components/PresencaIdle/PresencaIdle.js'; // RAGIDLE: Presenca (D-1162)
+import IndicacaoIdle from 'UI/Components/IndicacaoIdle/IndicacaoIdle.js'; // RAGIDLE: Indique & Ganhe (D-1164)
 import AdminPanel from 'UI/Components/AdminPanel/AdminPanel.js';
 import CashShop from 'UI/Components/CashShop/CashShop.js'; // RAGIDLE: a loja de cash (I5)
 import RiIcones from 'UI/ri-icones.js';
@@ -507,6 +509,14 @@ function onClickAction(e) {
 		   comentados no proprio isActionOpen(). */
 		case 'codex':
 			CodexIdle.toggle();
+			break;
+		case 'presenca':
+			/* D-1162: PresencaIdle.toggle() tambem PEDE o painel ao abrir (0x0fdf) */
+			PresencaIdle.toggle();
+			break;
+		case 'indicacao':
+			/* D-1164: IndicacaoIdle.toggle() tambem PEDE o painel ao abrir (0x0fdd) */
+			IndicacaoIdle.toggle();
 			break;
 		/* O Passe saiu de "em breve" em D-813. Ele PEDE o estado ao abrir
 		   (0x0fe5): preco, vencimento e o que cada dia entrega sao do
@@ -903,6 +913,9 @@ function distribuirFileiras() {
  * aparece para a conta dona) e com o numero de colunas. Copiar esse numero
  * seria a armadilha que criou todos estes tokens.
  */
+/** O ultimo valor publicado em `--hud-cluster-topo` (ver a guarda abaixo). */
+let _topoPublicado = null;
+
 function publicarTopoDoCluster() {
 	const root = _root();
 	const topo = root && root.querySelector('.tm-top');
@@ -914,10 +927,21 @@ function publicarTopoDoCluster() {
 		return;
 	}
 	/* D-934: unidade da HUD. Ver `emUnidadesDaHud`. */
-	topo.ownerDocument.documentElement.style.setProperty(
-		'--hud-cluster-topo',
-		`${Math.round(emUnidadesDaHud(caixa.top))}px`,
-	);
+	const valor = `${Math.round(emUnidadesDaHud(caixa.top))}px`;
+	/*
+	 * SO PUBLICA QUANDO MUDA (07/09/2026, frente de FPS).
+	 *
+	 * `setProperty` no `documentElement` invalida o estilo de TODO descendente
+	 * que use `var()`, e esta funcao republicava o MESMO numero 4x por segundo,
+	 * vindo do tique. A geometria do cluster muda em evento raro — recolher a
+	 * HUD, girar o aparelho, redimensionar a janela —, entao a guarda
+	 * transforma trabalho constante em trabalho por evento.
+	 */
+	if (valor === _topoPublicado) {
+		return;
+	}
+	_topoPublicado = valor;
+	topo.ownerDocument.documentElement.style.setProperty('--hud-cluster-topo', valor);
 }
 
 let _observadorDoCluster = null;
@@ -1107,6 +1131,10 @@ function isActionOpen(action) {
 		 */
 		case 'codex':
 			return isRagIdleWindowOpen(CodexIdle, '.cx-window');
+		case 'presenca':
+			return isRagIdleWindowOpen(PresencaIdle, '.pr-window');
+		case 'indicacao':
+			return isRagIdleWindowOpen(IndicacaoIdle, '.in-window');
 		/*
 		 * PASSE (D-813): a TERCEIRA vez do mesmo defeito, achado em 29/08/2026
 		 * ao somar o Codex. Ele tinha `case 'passe'` no switch de ABRIR e

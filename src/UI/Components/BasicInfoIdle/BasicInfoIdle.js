@@ -323,16 +323,32 @@ function clampPositionToViewport() {
  * `documentElement` do documento DESTE painel, e nao o da pagina de cima: o
  * jogo roda num iframe, e escrever a propriedade no topo nao alcanca ninguem.
  */
+/** A ultima dupla publicada (ver a guarda em `publicarCaixa`). */
+let _caixaPublicada = null;
+
 function publicarCaixa() {
 	const host = BasicInfoIdle._host;
 	if (!host) return;
 	const r = host.getBoundingClientRect();
 	if (r.height < 1) return;
-	const raiz = host.ownerDocument.documentElement;
 	/* D-934: em unidade da HUD, e nao em pixel de viewport — quem le estes
 	   dois esta dentro de um host com `zoom`, e la o pixel vale menos. */
-	raiz.style.setProperty('--hud-basic-altura', `${Math.round(emUnidadesDaHud(r.height))}px`);
-	raiz.style.setProperty('--hud-basic-fundo', `${Math.round(emUnidadesDaHud(r.bottom))}px`);
+	const altura = `${Math.round(emUnidadesDaHud(r.height))}px`;
+	const fundo = `${Math.round(emUnidadesDaHud(r.bottom))}px`;
+	/*
+	 * SO PUBLICA QUANDO MUDA (07/09/2026, frente de FPS).
+	 *
+	 * As duas escritas caem no `documentElement` e invalidam o estilo de todo
+	 * descendente que use `var()`. Como isto roda no tique de 250 ms, eram 8
+	 * invalidacoes globais por segundo para publicar, quase sempre, o mesmo
+	 * numero. A leitura fica — e ela quem detecta a mudanca; sai a escrita.
+	 */
+	const assinatura = `${altura}|${fundo}`;
+	if (assinatura === _caixaPublicada) return;
+	_caixaPublicada = assinatura;
+	const raiz = host.ownerDocument.documentElement;
+	raiz.style.setProperty('--hud-basic-altura', altura);
+	raiz.style.setProperty('--hud-basic-fundo', fundo);
 }
 
 /**
