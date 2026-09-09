@@ -119,8 +119,16 @@ export function ehAdaptavel() {
 	return true;
 }
 
-/** O ponteiro deste aparelho é grosso (dedo)? */
-function ehDedo() {
+/**
+ * O ponteiro deste aparelho é grosso (dedo)?
+ *
+ * EXPORTADA em 08/09/2026 porque deixou de ter um consumidor só. O cursor do
+ * mouse desenhado (`UI/CursorManager.js`) pergunta a MESMA coisa que a escala,
+ * e a alternativa era um segundo `matchMedia('(pointer: coarse)')` escrito
+ * noutro arquivo — que é como a cicatriz de `--hud-acima-da-doca` (D-929)
+ * começou: o mesmo critério em dois lugares, e um deles envelhecendo sozinho.
+ */
+export function ehDedo() {
 	if (typeof window === 'undefined' || !window.matchMedia) {
 		return false;
 	}
@@ -245,6 +253,7 @@ export function emUnidadesDaHud(px) {
 
 export default {
 	ehAdaptavel,
+	ehDedo,
 	MARCA_CLASSICA,
 	escalaAtual,
 	aplicar,

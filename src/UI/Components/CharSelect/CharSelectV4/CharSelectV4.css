@@ -491,3 +491,106 @@
 		margin-bottom: var(--sp-6, 12px);
 	}
 }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   CELULAR EM PE: O "JOGAR", O DESTAQUE E O ALVO DE DEDO (08/09/2026)
+   ═══════════════════════════════════════════════════════════════════════
+   D-940 ja tinha consertado o pior desta tela (a ficha com 227px escondidos
+   e o botao de entrar inalcancavel). O que falta aqui e o pedido do dono:
+   um botao "Jogar" explicito, um destaque de selecao que nao deixe duvida
+   sobre QUAL personagem vai entrar, e alvos que o dedo acerte.
+
+   Criterio `pointer: coarse` — e um DEDO, e nao "tela pequena". Uma janela
+   de desktop estreita continua lendo "Entrar em Midgard", que e como ela
+   sempre foi. Esta tela roda ANTES do jogo, entao aqui o `@media` e o
+   caminho certo: a marca `.ri-vertical` e da HUD, e a HUD ainda nao existe.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* Um rotulo por vez, sempre — nunca os dois, nunca nenhum. */
+#CharSelectV4 .ok .ok-curto {
+	display: none;
+}
+
+@media (pointer: coarse) and (orientation: portrait) {
+	#CharSelectV4 .ok .ok-longo {
+		display: none;
+	}
+	#CharSelectV4 .ok .ok-curto {
+		display: inline;
+	}
+
+	/* O ALVO. O canvas do slot tem 157x195 e ja e grande, mas o cartao em
+	   volta e quem recebe o toque — ele ganha piso proprio para a grade de
+	   duas colunas nao espremer o cartao abaixo do confortavel em 360px. */
+	#CharSelectV4 .char_canvas {
+		min-height: 168px;
+	}
+
+	/* O DESTAQUE. O `is-selected` ja existia (anel dourado + sombra), e no
+	   celular ele precisa gritar mais: e a unica coisa que responde "qual
+	   personagem o Jogar vai levar?". Anel mais grosso e um fundo proprio,
+	   porque no dedo nao ha `:hover` para ajudar a distinguir. */
+	#CharSelectV4 .char_canvas.is-selected {
+		box-shadow:
+			inset 0 0 0 3px var(--gold-500),
+			var(--shadow-float);
+	}
+
+	/* Os botoes da ficha sao a acao principal desta tela. 48 > o piso de 44. */
+	#CharSelectV4 .charinfo .btn {
+		min-height: 48px;
+	}
+
+	/* O "x" de voltar ao login nasce com area de icone; no dedo ele precisa
+	   de area de dedo. */
+	#CharSelectV4 .cs-close {
+		min-width: 44px;
+		min-height: 44px;
+	}
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   O "JOGAR" NUNCA SAI DA TELA (08/09/2026)
+
+   MEDIDO com o jogo de pe (`npm run prove:mobile-vertical`): em 393x852 o
+   centro do botao caia em **y = 897 numa tela de 852** — abaixo da dobra. Ele
+   nao estava cortado por `overflow` (D-940 ja tinha consertado aquilo, e o
+   corpo rola): ele estava depois de uma ficha longa (Mapa, Classe, Nivel, EXP,
+   HP, SP e os seis atributos) mais o "Excluir personagem". O jogador PODE
+   rolar ate ele — e a acao principal da tela nao deve depender disso.
+
+   Curioso e util: 360x640 e 412x915 PASSARAM. O 360 escapa porque a grade de
+   duas colunas encurta a lista de personagens, e o 412 por ter altura de
+   sobra. So a tela do meio reprovava — a razao pela qual "tres telas" e o
+   piso desta frente, e nao uma.
+
+   O conserto e o mesmo do rodape do Mapa de Caca: a acao principal fica
+   GRUDADA no pe da area que rola. Ela nunca sai da vista, e o resto da ficha
+   continua rolando por baixo dela.
+   ═══════════════════════════════════════════════════════════════════════ */
+@media (pointer: coarse) and (orientation: portrait) {
+	#CharSelectV4 .charinfo .ok {
+		position: sticky;
+		bottom: 0;
+		z-index: 2;
+		margin-top: var(--sp-4, 8px);
+		/* Fundo proprio: grudado, ele passa por cima do texto da ficha, e um
+		   botao translucido sobre numeros seria ilegivel. */
+		background: var(--blue-500);
+	}
+
+	/* A ficha respira menos no celular: sao 12 linhas de texto entre o
+	   personagem e a acao, e cada pixel economizado aqui e um pixel a menos
+	   de rolagem entre "escolhi" e "entrar". */
+	#CharSelectV4 .charinfo {
+		padding-bottom: var(--sp-4, 8px);
+	}
+
+	/* A lista de personagens nao pode comer a tela inteira: com ela curta, a
+	   ficha e o "Jogar" ja aparecem sem rolar em 393x852. */
+	#CharSelectV4 .char_list {
+		max-height: 42dvh;
+		overflow-y: auto;
+		overscroll-behavior: contain;
+	}
+}

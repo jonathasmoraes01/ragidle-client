@@ -335,6 +335,10 @@ HuntMap.init = function init() {
 	root.querySelector('.hm-search-clear').addEventListener('click', onClickSearchClear);
 	root.querySelectorAll('.hm-modo .hm-seg-btn').forEach(b => b.addEventListener('click', onClickModo));
 	root.querySelector('.hm-sort').addEventListener('change', onChangeSort);
+	root.querySelector('.hm-voltar').addEventListener('click', e => {
+		e.stopImmediatePropagation();
+		voltarUmPasso();
+	});
 
 	this.draggable(root.querySelector('.hm-titlebar'));
 
@@ -349,6 +353,10 @@ HuntMap.init = function init() {
 	renderTabs();
 	renderList();
 	renderPanel();
+	/* A classe de passo tem de existir desde o primeiro desenho: sem ela o CSS
+	   da vertical nao casa com nada e a janela abriria com as tres faixas
+	   empilhadas — o estado que este desenho existe para tirar. */
+	definirPasso('regioes');
 };
 
 /**
@@ -379,6 +387,72 @@ function savePosition() {
 /**
  * Show/hide the window (button stays visible either way).
  */
+/* ═══════════════════════════════════════════════════════════════════════
+   OS TRÊS PASSOS DO CELULAR EM PÉ (08/09/2026, pedido do dono)
+   ═══════════════════════════════════════════════════════════════════════
+   *"Navegação por categorias e submenus, aproveitando a organização existente
+   dos mapas (...) Lista compacta com informações essenciais (...) Detalhes
+   adicionais acessíveis sem sobrecarregar a lista."*
+
+   A janela já TEM as três peças — trilho de regiões, lista e dossiê. No
+   desktop elas convivem em três colunas; no celular elas se atropelavam. Aqui
+   elas viram três PASSOS do mesmo caminho, e nenhuma peça foi duplicada: o
+   mesmo `renderTabs`/`renderList`/`renderPanel` de sempre desenha os três.
+
+   O estado é UM só, e ele só é lido pelo CSS da vertical. No desktop
+   `definirPasso` continua sendo chamado e a classe continua sendo escrita —
+   e nenhuma regra casa com ela, então lá nada muda. Isso é deliberado: um
+   `if (ehCelularEmPe())` em cada chamador daria quatro lugares para
+   dessincronizar.
+
+   REGRAS DE VIAGEM: nenhuma passa por aqui. Requisito de nível, custo e
+   recusa continuam onde estavam (`onClickTravel` e o servidor). Isto é
+   navegação, não permissão.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+const PASSOS = ['regioes', 'mapas', 'detalhe'];
+let _passo = 'regioes';
+
+/** O rótulo do mapa, para o título do passo. O id cru não serve ao jogador. */
+function nomeDoMapa(id) {
+	const catalog = HuntMap.catalog;
+	if (!id || !catalog || !catalog.mapas) {
+		return '';
+	}
+	const achado = catalog.mapas.find(m => m.mapa === id);
+	return achado ? achado.rotulo : '';
+}
+
+function definirPasso(passo) {
+	_passo = PASSOS.includes(passo) ? passo : 'regioes';
+	const root = _root();
+	const win = root && root.querySelector('.hm-window');
+	if (!win) {
+		return;
+	}
+	for (const p of PASSOS) {
+		win.classList.toggle(`is-passo-${p}`, p === _passo);
+	}
+	const barra = root.querySelector('.hm-passo');
+	if (barra) {
+		/* A barra só existe a partir do 2º passo: no 1º não há para onde
+		   voltar, e um "‹ Voltar" que não volta é pior do que nenhum. */
+		barra.hidden = _passo === 'regioes';
+		const titulo = barra.querySelector('.hm-passo-titulo');
+		if (titulo) {
+			titulo.textContent =
+				_passo === 'mapas'
+					? HuntMap.activeTab || 'Mapas'
+					: nomeDoMapa(HuntMap.selectedMapa) || 'Detalhes';
+		}
+	}
+}
+
+/** Um passo para trás: dossiê → lista → regiões. */
+function voltarUmPasso() {
+	definirPasso(_passo === 'detalhe' ? 'mapas' : 'regioes');
+}
+
 HuntMap.toggle = function toggle() {
 	const root = _root();
 	const win = root.querySelector('.hm-window');
@@ -386,6 +460,11 @@ HuntMap.toggle = function toggle() {
 		closeWindow();
 	} else {
 		win.classList.add('is-open');
+		/* Abrir sempre recomeça no 1º passo. Reabrir no dossiê de um mapa que
+		   o jogador escolheu na sessão passada seria abrir num lugar que ele
+		   não pediu — o mesmo argumento de D-942 para a folha de detalhe da
+		   árvore ("reabrir mostra a árvore, nunca um detalhe órfão"). */
+		definirPasso('regioes');
 		HuntMap.focus();
 		requestCatalog();
 	}
@@ -714,6 +793,9 @@ function onClickTab(e) {
 	lembrarAba(_preferences, HuntMap.activeTab);
 	renderTabs();
 	renderList();
+	/* Escolher a regiao AVANCA um passo no celular. No desktop a classe e
+	   escrita e nenhuma regra a le — as tres colunas continuam juntas. */
+	definirPasso('mapas');
 }
 
 /**
@@ -923,6 +1005,9 @@ function onClickCard(e) {
 	HuntMap.selectedMobId = null;
 	renderList();
 	renderPanel();
+	/* Tocar no cartao abre o DOSSIE como passo 3 — e o "detalhes adicionais
+	   acessiveis sem sobrecarregar a lista" do pedido. */
+	definirPasso('detalhe');
 }
 
 /**

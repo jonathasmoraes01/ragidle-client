@@ -443,6 +443,26 @@
 			     tela por baixo da segunda coluna. Ele nunca e pacote nem janela
 			     e some sozinho (ver showToast() em TopMenuIdle.js). -->
 			<div class="tm-toast" aria-live="polite"></div>
+
+			<!-- INSTALAR O APP (08/09/2026, pedido do dono).
+
+			     Ele NASCE ESCONDIDO e so aparece quando `decidirOferta()`
+			     (UI/ofertaDeInstalacao.js, D-945) diz que ha o que fazer:
+			     nunca dentro do PWA ja instalado, e nunca como botao morto.
+			     A decisao NAO e reescrita aqui — este arquivo so desenha, do
+			     mesmo jeito que a tela de entrada e a aba de Config ja fazem.
+
+			     Por que uma LINHA larga e nao mais um disco: ela nao e um
+			     destino do jogo, e misturar "instalar o app" entre Mochila e
+			     Skills daria a ela o mesmo peso de uma janela. Ela mora no pe
+			     da folha, larga, com o rotulo escrito por extenso.
+
+			     Ela e do CELULAR: o CSS so a mostra sob `.ri-vertical`. No
+			     desktop a porta continua sendo a aba de Config. -->
+			<button type="button" class="tm-instalar" data-action="instalar" hidden>
+				<span class="tm-instalar-rotulo">Instalar app</span>
+				<span class="tm-instalar-dica"></span>
+			</button>
 		</div>
 
 		<!-- O botao Menu. Disco maior que os do leque (52 contra 42): ele e a
