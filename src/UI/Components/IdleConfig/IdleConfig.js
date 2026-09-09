@@ -76,8 +76,7 @@ import {
 	contarAlteracoes,
 	curaNaRotacao,
 	duracaoCurta,
-	resumoDaSecao
-} from './secoesDaConfig.js';
+	resumoDaSecao, curaLigadaPara } from './secoesDaConfig.js';
 import htmlText from './IdleConfig.html?raw';
 import cssText from './IdleConfig.css?raw';
 import { fecharEEsquecer } from '../limpezaDeJanelaIdle.js';
@@ -242,9 +241,22 @@ function setPath(obj, path, value) {
  * desde D-1000, e uma resposta de servidor mais antigo (sem o campo) cai no
  * mesmo padrao que ele usaria — metade da barra, grupo.
  */
-function garantirCura(cfg) {
+function garantirCura(cfg, ctx) {
 	if (!cfg.cura || typeof cfg.cura !== 'object') {
 		cfg.cura = { alvo: 'grupo', curarAbaixoDe: 50 };
+	}
+	// 08/09/2026: por habilidade. `setPath` nao cria objeto no meio do caminho,
+	// entao a entrada de cada cura aprendida nasce AQUI, herdando o interruptor e
+	// o alvo gerais — e a escolha unica da manha (`skillId`) sai do contrato.
+	const curas = (ctx && ctx.skillsDeCura) || [];
+	if (curas.length) {
+		if (!cfg.cura.habilidades || typeof cfg.cura.habilidades !== 'object') cfg.cura.habilidades = {};
+		for (const c of curas) {
+			if (!cfg.cura.habilidades[c.skillId]) {
+				cfg.cura.habilidades[c.skillId] = { ligada: cfg.cura.ligada !== false, alvo: cfg.cura.alvo || 'grupo' };
+			}
+		}
+		if ('skillId' in cfg.cura) delete cfg.cura.skillId;
 	}
 	return cfg.cura;
 }
@@ -1168,11 +1180,11 @@ function renderAtaque() {
 	 */
 	const curasAprendidas = (ctx.skillsDeCura || []).length;
 	const curasNaOrdem = rotacao.filter(r => curas.has(r.skillId)).length;
+	// 08/09/2026 (ordem do dono): a cura NAO divide mais estas vagas — ela e
+	// suporte. A nota aponta para onde ela mora, pelo nome da habilidade.
+	const nomesDasCuras = (ctx.skillsDeCura || []).map(c => escapeHtml(c.nome || c.skillId)).join(' e ');
 	const notaDeCura = curasAprendidas
-		? `<div class="ic-note">Cura e golpe dividem estas ${TETO_DA_ORDEM} vagas de propósito: as duas são
-			lançadas na luta, e o personagem escolhe a primeira que puder usar. Uma cura só sai quando a vida
-			cai abaixo do limiar — o limiar e o alvo (você ou o grupo) ficam na seção <strong>Suporte</strong>.
-			${curasNaOrdem ? `Você tem ${curasNaOrdem === 1 ? 'uma cura' : `${curasNaOrdem} curas`} na ordem.` : 'Nenhuma cura na ordem agora.'}</div>`
+		? `<div class="ic-note">${nomesDasCuras} ${curasAprendidas === 1 ? 'é habilidade de suporte e não ocupa' : 'são habilidades de suporte e não ocupam'} vaga aqui: ${curasAprendidas === 1 ? 'ela é usada sozinha' : 'elas são usadas sozinhas'} quando a vida cai abaixo do limiar. O interruptor, o limiar e o alvo (você ou o grupo) ficam na seção <strong>Suporte</strong>.</div>`
 		: '';
 
 	return `
@@ -1364,7 +1376,7 @@ function renderCura() {
 	const cfg = IdleConfig.editConfig;
 	const ctx = IdleConfig.contexto;
 	const curas = ctx.skillsDeCura || [];
-	const cura = garantirCura(cfg);
+	const cura = garantirCura(cfg, ctx);
 
 	if (!curas.length) {
 		return `
@@ -1374,43 +1386,53 @@ function renderCura() {
 		</div>`;
 	}
 
-	const naRotacao = curaNaRotacao(cfg, ctx);
-	const ligada = !!naRotacao;
-	const habilidade = naRotacao ? curas.find(c => c.skillId === naRotacao.skillId) || curas[0] : curas[0];
-	const semVaga = !ligada && (cfg.rotacao || []).length >= TETO_DA_ORDEM;
-	const alcanca = !!(habilidade && habilidade.alcancaGrupo);
+	// 08/09/2026 (ordem do dono): a configuracao e POR HABILIDADE — cada cura
+	// aprendida tem o proprio "Curar automaticamente" e o proprio "Quem curar"
+	// ("nao quero mais usar Primeiros Socorros, mas quero que Curar funcione").
+	// O limiar e UM so, porque o motor tem um portao de HP unico. A cura nao
+	// mora na ordem de golpes (D-1201): o servidor a antepoe sozinho.
+	const ordenadas = curas.slice().sort((a, b) => (b.custoSp || 0) - (a.custoSp || 0) || (b.aprendido || 0) - (a.aprendido || 0));
+	const ligadas = ordenadas.filter(c => curaLigadaPara(cura, c.skillId));
+	const algumaLigada = ligadas.length > 0;
+	const cartoes = ordenadas
+		.map(c => {
+			const ligada = curaLigadaPara(cura, c.skillId);
+			const alcanca = !!c.alcancaGrupo;
+			const ajuste = (cura.habilidades && cura.habilidades[c.skillId]) || {};
+			const alvo = ajuste.alvo || cura.alvo || 'grupo';
+			return `
+			<div class="ic-cura-item">
+				<label class="ic-switch-row">
+					<span class="ic-switch">
+						<input type="checkbox" data-action="cura-toggle" data-skill="${escapeHtml(c.skillId)}" ${ligada ? 'checked' : ''} />
+						<span class="ic-switch-track"></span>
+					</span>
+					<span class="ic-switch-text">
+						<span class="ic-switch-label">${escapeHtml(c.nome || c.skillId)} <span class="ic-card-meta">Nv ${c.aprendido} · ${c.custoSp} SP</span></span>
+						<span class="ic-switch-sub">${ligada ? 'Usada sozinha quando a barra cair abaixo do limite — não ocupa vaga na ordem de golpes.' : 'Desligada: o personagem não usa esta habilidade sozinho.'}</span>
+					</span>
+				</label>
+				<div class="ic-field-row ic-field-row--seg${ligada ? '' : ' ic-subsection-disabled'}">
+					<span>Quem curar</span>
+					${segmentadoDeAlvo(`cura.habilidades.${c.skillId}.alvo`, alvo, alcanca, 'Quem curar')}
+				</div>
+			</div>`;
+		})
+		.join('');
 
 	return `
 		<div class="ic-card">
 			<div class="ic-card-head">
 				<h3>Cura</h3>
-				<span class="ic-card-meta">${escapeHtml(habilidade.nome || habilidade.skillId)} · Nv ${habilidade.aprendido} · ${habilidade.custoSp} SP</span>
+				<span class="ic-card-meta">${ligadas.length} de ${ordenadas.length} ligada${ordenadas.length === 1 ? '' : 's'}</span>
 			</div>
-			<label class="ic-switch-row">
-				<span class="ic-switch">
-					<input type="checkbox" data-action="cura-toggle" ${ligada ? 'checked' : ''} ${semVaga ? 'disabled' : ''} />
-					<span class="ic-switch-track"></span>
-				</span>
-				<span class="ic-switch-text">
-					<span class="ic-switch-label">Curar automaticamente</span>
-					<span class="ic-switch-sub">${ligada ? 'Ocupa a primeira vaga da ordem de golpes.' : 'Entra na primeira vaga da ordem de golpes.'}</span>
-				</span>
-			</label>
-			${semVaga ? '<div class="ic-note ic-note-warn">As três vagas da ordem de golpes estão ocupadas — tire um golpe na seção Ataque para ligar a cura.</div>' : ''}
-			<div class="ic-subsection${ligada ? '' : ' ic-subsection-disabled'}">
-				<div class="ic-field-row ic-field-row--seg">
-					<span>Quem curar</span>
-					${segmentadoDeAlvo('cura.alvo', cura.alvo, alcanca, 'Quem curar')}
-				</div>
+			${cartoes}
+			<div class="ic-subsection${algumaLigada ? '' : ' ic-subsection-disabled'}">
 				<div class="ic-field-row">
 					<span>Curar quem estiver abaixo de <span class="ic-inline-value" data-range-display="cura.curarAbaixoDe">${cura.curarAbaixoDe}%</span> de HP</span>
 				</div>
-				<input type="range" class="ic-slider" min="1" max="99" step="1" value="${cura.curarAbaixoDe}" data-range="cura.curarAbaixoDe" ${ligada ? '' : 'disabled'} />
-				<div class="ic-note">${
-					cura.alvo === 'grupo' && alcanca
-						? 'No grupo, cura o mais ferido que estiver no alcance da habilidade — mesmo com a sua barra cheia. Fora do grupo, cura você.'
-						: 'Cura você quando a barra cair abaixo do limiar.'
-				}</div>
+				<input type="range" class="ic-slider" min="1" max="99" step="1" value="${cura.curarAbaixoDe}" data-range="cura.curarAbaixoDe" ${algumaLigada ? '' : 'disabled'} />
+				<div class="ic-note">O limite vale para todas as curas ligadas. No grupo, a habilidade cura o mais ferido que estiver no alcance dela — mesmo com a sua barra cheia; fora do grupo, cura você.</div>
 			</div>
 		</div>`;
 }
@@ -1455,21 +1477,23 @@ function bindSuporteExtra(pane) {
 		});
 	}
 
-	const curaToggle = pane.querySelector('[data-action="cura-toggle"]');
-	if (curaToggle) {
+	pane.querySelectorAll('[data-action="cura-toggle"]').forEach(curaToggle => {
 		curaToggle.addEventListener('change', () => {
 			const cfg = IdleConfig.editConfig;
-			const nova = alternarCura(cfg, IdleConfig.contexto, curaToggle.checked);
-			if (nova === null) {
-				// Sem vaga ou sem habilidade: a tela já explica; o rascunho não muda.
-				renderBody();
-				return;
-			}
-			cfg.rotacao = nova;
+			const cura = garantirCura(cfg, IdleConfig.contexto);
+			const skillId = curaToggle.dataset.skill;
+			const atual = cura.habilidades[skillId] || { alvo: cura.alvo || 'grupo' };
+			const habilidades = { ...cura.habilidades, [skillId]: { ...atual, ligada: !!curaToggle.checked } };
+			// O interruptor geral acompanha as individuais (ligado se alguma estiver):
+			// e ele que uma habilidade SEM entrada propria herda no servidor.
+			cfg.cura = { ...cura, habilidades, ligada: Object.values(habilidades).some(h => h.ligada !== false) };
+			// Migracao: a cura que estava na ordem de golpes (o desenho de D-1132)
+			// sai dela — o servidor nao a aceita mais como golpe.
+			cfg.rotacao = alternarCura(cfg, IdleConfig.contexto, false);
 			markDirty();
 			renderBody();
 		});
-	}
+	});
 }
 
 /* ─── Seção: Sobrevivência ───────────────────────────────────────── */

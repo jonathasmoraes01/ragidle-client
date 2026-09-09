@@ -111,6 +111,7 @@ import IndicacaoIdle from 'UI/Components/IndicacaoIdle/IndicacaoIdle.js'; // RAG
 import BoasVindasIdle from 'UI/Components/BoasVindasIdle/BoasVindasIdle.js'; // RAGIDLE: caixa de boas-vindas (D-968)
 import LFGIdle from 'UI/Components/LFGIdle/LFGIdle.js'; // RAGIDLE: janela de Procurar Grupo (D-634)
 import GrupoIdle from 'UI/Components/GrupoIdle/GrupoIdle.js'; // RAGIDLE: janela de Grupo (D-960)
+import PortaDoGrupo from 'UI/Components/portaDoGrupo.js'; // RAGIDLE: qual das duas janelas de grupo abre (D-984)
 import MissoesTrackerIdle from 'UI/Components/MissoesTrackerIdle/MissoesTrackerIdle.js'; // RAGIDLE: tracker estilo Origin (D-601)
 import IdleConfig from 'UI/Components/IdleConfig/IdleConfig.js'; // RAGIDLE: "Configuração idle"
 import AdminPanel from 'UI/Components/AdminPanel/AdminPanel.js'; // RAGIDLE: "Painel de admin"
@@ -738,6 +739,11 @@ function onConnectionAccepted(pkt) {
 	Session.petId = 0;
 	Session.hasParty = false;
 	Session.isPartyLeader = false;
+	/* RAGIDLE (D-984): a porta do grupo anota que a verdade voltou a zero.
+	   Sem isto, a memória de party do personagem ANTERIOR atravessaria a troca
+	   (nada aqui recarrega a página) e o primeiro grupo do personagem novo não
+	   seria uma mudança para ela — a janela de Grupo não abriria sozinha. */
+	PortaDoGrupo.sincronizar();
 	Session.hasGuild = false;
 	Session.guildRight = 0;
 
@@ -1081,9 +1087,73 @@ function onMapChange(pkt) {
 			['passe', PasseIdle, '.pi-window'],
 			['voto', VotoIdle, '.vi-window'],
 			['analise', HuntAnalyzer, '.ha-window'],
+			/*
+			 * O PAINEL DE ADMIN entrou em 08/09/2026. Ele tem a mesma forma das
+			 * outras (`.ap-window` + `is-open` + `toggle()`) e só não estava
+			 * aqui porque só a conta dona o vê — e o que não entra na pilha não
+			 * ganha a moldura de painel de tela cheia de D-932.
+			 *
+			 * MEDIDO em 393x852 antes disto (`scripts/diag-mobile-portrait.ts`):
+			 * o Admin nascia em `7,166 380x742` e **transbordava 56px por
+			 * baixo** — a última linha de botões ficava fora da tela. Em 412x915
+			 * eram 58px. Registrado, ele passa pela mesma regra das outras onze.
+			 */
+			['admin', AdminPanel, '.ap-window'],
 		]) {
 			PilhaDeJanelas.registrar({ nome, componente, seletor });
 		}
+
+		/*
+		 * A LOJA DE CASH é NATIVA do roBrowser, e por isso ficou de fora da
+		 * pilha até 08/09/2026 — ela não usa `is-open` num `.xx-window`: ela é
+		 * inserida e REMOVIDA do DOM, e o estado se lê em `CashShop.ui`.
+		 *
+		 * O preço de ficar de fora é medido: em 393x852 ela abria com **723px
+		 * de largura numa tela de 393** e transbordava 330px para a direita —
+		 * as abas "Aluguel"/"Equipamento" e metade da grade de itens ficavam
+		 * fora do mundo, e o título saía cortado ("Loja de Cas..."). Ela é um
+		 * item do menu do celular, então isso é um destino inalcançável.
+		 *
+		 * A marca `.ri-janela` que o registro põe no host é o que a regra de
+		 * painel de D-932 lê. As duas funções abaixo existem porque a forma
+		 * dela é outra — e é exatamente para isso que `registrar()` aceita
+		 * `estaAberta` e `fechar` declarados.
+		 */
+		PilhaDeJanelas.registrar({
+			nome: 'cash',
+			componente: CashShop,
+			estaAberta: () => !!(CashShop.ui && CashShop.ui.is(':visible')),
+			/* `toggle()` e não `remove()`: fechar a loja de cash AVISA o
+			   servidor (`CZ_CASH_SHOP_CLOSE`). Arrancá-la do DOM deixaria o
+			   servidor achando que o jogador ainda está na loja. */
+			fechar: () => CashShop.toggle(),
+		});
+
+		/*
+		 * E ELA PRECISA AVISAR A PILHA POR FORA DO EMBRULHO (08/09/2026).
+		 *
+		 * O embrulho de `registrar()` compara o "aberta?" ANTES e DEPOIS de
+		 * `toggle()`. Isso funciona para as janelas que abrem no mesmo quadro —
+		 * e a loja de cash não é uma delas: `toggle()` só MANDA O PACOTE
+		 * (`CZ_SE_CASHSHOP_OPEN2`), e a janela nasce quando o servidor
+		 * responde. No instante em que o embrulho olha, ela ainda está
+		 * fechada, então `aoAbrir('cash')` nunca era chamado.
+		 *
+		 * A consequência era invisível e específica: a regra de UMA JANELA POR
+		 * VEZ do celular não disparava para ela. Medido em 393x852 — com a
+		 * janela "Votar" aberta antes, **28 controles da loja** respondiam
+		 * `div.vi-*` no `elementFromPoint`. O jogador via a loja e tocava no
+		 * Votar.
+		 *
+		 * `onAppend` é o ponto em que ela ENTRA na tela, seja qual for o
+		 * caminho — é lá que a pilha fica sabendo.
+		 */
+		const cashShopOnAppendOriginal = CashShop.onAppend;
+		CashShop.onAppend = function onAppendComPilha(...args) {
+			const r = cashShopOnAppendOriginal ? cashShopOnAppendOriginal.apply(this, args) : undefined;
+			PilhaDeJanelas.aoAbrir('cash');
+			return r;
+		};
 
 		/* O LFG não usa `toggle()`: ele tem `abrir()`/`fechar()` próprios, por
 		   causa da corrida de troca de mapa que já derrubou o `is-open` dele por
@@ -1118,6 +1188,49 @@ function onMapChange(pkt) {
 			GrupoIdle.fechar();
 			LFGIdle.abrir();
 		};
+
+		/* A IRMÃ dela (D-984): "me leve até o líder".
+
+		   O corpo mora no Localizador porque é lá que `{acao:'teleportar'}`
+		   sempre morou, e é lá que o RESULTADO desse pacote sabe ser lido (o
+		   'teleportar' está em `ACOES_QUE_FECHAM`). A janela de Grupo só oferece
+		   o botão; nenhuma linha dela monta pacote de LFG. */
+		GrupoIdle.aoPedirTeleporte = () => {
+			LFGIdle.teleportarParaOLider();
+		};
+
+		/*
+		 * A PORTA DO GRUPO (D-984) — qual das duas janelas o item "Grupo" abre,
+		 * e quem troca de janela quando a party muda.
+		 *
+		 * A ligação mora aqui pela MESMA razão das duas pontes acima: só o
+		 * `MapEngine` conhece as duas janelas, e um import cruzado entre
+		 * componentes de UI prenderia a ordem de carga de um à do outro — de
+		 * quebra, é o que deixa `portaDoGrupo.js` ser provado sem subir
+		 * Renderer, Network e o GRF inteiro.
+		 *
+		 * `estaAberta` lê a flag de MÓDULO das duas janelas, e NÃO a classe
+		 * `is-open`: as duas registram por escrito que o `is-open` já sumiu por
+		 * baixo dos panos numa troca de mapa (a sonda de 03/09/2026, no
+		 * cabeçalho de `LFGIdle.onAppend`). `componente`/`seletor` são para o
+		 * aro do menu, que aí sim quer saber o que está PINTADO na tela.
+		 */
+		PortaDoGrupo.ligar({
+			localizador: {
+				componente: LFGIdle,
+				seletor: '.lfg-window',
+				abrir: () => LFGIdle.abrir(),
+				fechar: () => LFGIdle.fechar(),
+				estaAberta: () => LFGIdle.estavaAberta,
+			},
+			grupo: {
+				componente: GrupoIdle,
+				seletor: '.gi-window',
+				abrir: () => GrupoIdle.abrir(),
+				fechar: () => GrupoIdle.fechar(),
+				estaAberta: () => GrupoIdle.estavaAberta,
+			},
+		});
 
 		/* A MORTE é decisão: o ESC não a fecha, e ela também não deixa o ESC
 		   vazar para as janelas de baixo. Isso já era verdade por dentro do

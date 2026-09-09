@@ -179,7 +179,7 @@ describe('PORTÃO: toda janela RAGIDLE com abas lembra a aba', () => {
 		f => f.codigo.includes('limpezaDeJanelaIdle.js') && MARCAS_DE_ABA.some(marca => f.codigo.includes(marca))
 	);
 
-	it('acha as dez janelas de hoje (controle: o filtro não está vazio)', () => {
+	it('acha as onze janelas de hoje (controle: o filtro não está vazio)', () => {
 		/*
 		 * Sem esta conferência, um filtro que parasse de casar deixaria o portão
 		 * VERDE por não medir nada — a forma mais comum de portão morto.
@@ -196,8 +196,10 @@ describe('PORTÃO: toda janela RAGIDLE com abas lembra a aba', () => {
 		 * referência que o dono mandou abre três janelas POR CIMA da
 		 * principal, e a decisão desta entrega foi resolver tudo dentro de uma
 		 * moldura só, alternando por [hidden].
+		 * A DÉCIMA PRIMEIRA é o Codex (D-971, 08/09/2026): Missões · Status.
 		 */
 		expect(comAbas.map(f => f.rel).sort(), 'a lista de janelas com abas mudou — ver o comentário acima').toEqual([
+			'CodexIdle/CodexIdle.js',
 			'GrupoIdle/GrupoIdle.js',
 			'HuntAnalyzer/HuntAnalyzer.js',
 			'HuntMap/HuntMap.js',
@@ -207,7 +209,7 @@ describe('PORTÃO: toda janela RAGIDLE com abas lembra a aba', () => {
 			'MissoesIdle/MissoesIdle.js',
 			'MochilaIdle/MochilaIdle.js',
 			'PasseIdle/PasseIdle.js',
-			'VotoIdle/VotoIdle.js'
+			'VotoIdle/VotoIdle.js',
 		]);
 	});
 

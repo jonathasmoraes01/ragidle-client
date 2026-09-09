@@ -370,7 +370,32 @@ function desenharMembros(e) {
 
 	if (!grupo || !grupo.membros.length) {
 		contador.textContent = '0/0';
-		lista.innerHTML = '<div class="gi-vazio">Voce nao esta em nenhum grupo.</div>';
+		/*
+		 * A SAIDA MORA NO ESTADO VAZIO (D-982, 07/09/2026).
+		 *
+		 * Ate aqui o unico botao "Encontrar grupo" vivia DENTRO do painel
+		 * de Convidar — e "Convidar" nasce `disabled` para quem nao esta em
+		 * grupo. Ou seja: exatamente quem precisa achar um grupo era quem nao
+		 * conseguia chegar ao Localizador. O texto do rodape ate mandava
+		 * "abra o Localizador", sem dar por onde.
+		 *
+		 * Isso so virou buraco quando D-980 tirou o segundo item do menu; ate
+		 * entao o menu tinha a porta de tras. Fechar a porta de tras sem abrir
+		 * a da frente e o que teria deixado o jogador preso.
+		 */
+		lista.innerHTML =
+			'<div class="gi-vazio">Voce nao esta em nenhum grupo.' +
+			'<button type="button" class="ri-btn ri-btn--sec gi-vazio-lfg">Encontrar grupo</button>' +
+			'</div>';
+		const atalho = lista.querySelector('.gi-vazio-lfg');
+		if (atalho) {
+			atalho.addEventListener('click', function () {
+				// A MESMA ponte do botao do painel de convite — um caminho so.
+				if (GrupoIdle.aoPedirLocalizador) {
+					GrupoIdle.aoPedirLocalizador();
+				}
+			});
+		}
 		return;
 	}
 	contador.textContent = grupo.membros.length + '/' + grupo.limite;
@@ -414,6 +439,11 @@ function desenharCacada(e) {
 	const alvo = r.querySelector('.gi-cacada-linhas');
 	if (!grupo) {
 		alvo.innerHTML = '<div class="gi-cacada-linha">Nada acontecendo.</div>';
+		// Sem grupo nao ha lider para quem ir. Esta linha nao e redundante com
+		// o `hidden` do HTML: quem SAIU do grupo com a janela aberta chega aqui
+		// com o botao ja aceso do estado anterior, e sem apaga-lo ele
+		// sobreviveria ao grupo que o justificava.
+		desenharTeleporte(e, null);
 		return;
 	}
 	const online = grupo.membros.filter(function (m) {
@@ -458,6 +488,45 @@ function desenharCacada(e) {
 			);
 		})
 		.join('');
+
+	desenharTeleporte(e, lider);
+}
+
+/*
+ * O BOTAO "IR ATE O LIDER" (D-984).
+ *
+ * O pedido do dono: o botao que o Localizador ja tem no rodape de quem e
+ * MEMBRO precisa existir tambem aqui. As duas condicoes sao dele: *"so faz
+ * sentido quando ha lider e voce nao e o lider"*.
+ *
+ * "Ha lider" e uma pergunta ao ESTADO QUE CHEGOU, e nao ao `liderPersonagemId`
+ * do grupo: um grupo sempre TEM um id de lider gravado, mas a lista de membros
+ * pode chegar sem a linha dele (ele saiu do mundo entre um empurrao e outro).
+ * Oferecer o teleporte para um lider que a janela nem consegue nomear seria
+ * prometer um destino que ninguem sabe qual e.
+ *
+ * O botao fica HIDDEN quando nao cabe, e nao `disabled`: um botao apagado no
+ * canto de um cartao pequeno le como defeito de carregamento. Quem e o lider
+ * nunca precisa dele, e para essa pessoa ele simplesmente nao existe.
+ *
+ * O lider OFFLINE e outro caso: ali o botao aparece desabilitado, com o motivo
+ * no `title` — a diferenca entre "isto nao e para voce" (some) e "isto e para
+ * voce, mas nao agora" (fica, cinza, com a razao). O servidor recusa de
+ * qualquer forma; isto so evita o clique que so sabe receber "nao".
+ */
+function desenharTeleporte(e, lider) {
+	const botao = raiz().querySelector('.gi-teleportar');
+	if (!botao) {
+		return;
+	}
+	const souLider = !!(e && e.eu && e.eu.souLider);
+	const cabe = !!lider && !souLider;
+	botao.hidden = !cabe;
+	if (!cabe) {
+		return;
+	}
+	botao.disabled = !lider.online;
+	botao.title = lider.online ? '' : lider.nome + ' esta offline agora.';
 }
 
 function desenharPostos(e) {
@@ -472,15 +541,35 @@ function desenharPostos(e) {
 	alvo.innerHTML = postos
 		.map(function (p) {
 			const ehEscolhido = p.id === escolhido;
-			const motivo = p.motivo
-				? '<div class="gi-posto-motivo">' + escapeHtml(p.motivo) + '</div>'
-				: '';
+			/*
+			 * D-984 — POSTO BLOQUEADO SEM MOTIVO NAO EXISTE.
+			 *
+			 * O `motivo` so era impresso quando o servidor mandava um, e ate
+			 * aqui todo bloqueio dele vinha com frase. A regra de LIDER (secoes
+			 * 9 e 10 do pedido do dono) triplica os cartoes cinzas na tela de
+			 * quem manda no grupo: enquanto a coroa for sua, so o Andarilho
+			 * fica de pe. Tres cartoes apagados lado a lado, sem uma palavra
+			 * dizendo por que, leem como janela quebrada — e a lupa cai no
+			 * cliente, que nao decidiu nada disso.
+			 *
+			 * A frase de reserva NAO e a regra reescrita aqui (isso seria uma
+			 * segunda leitura da decisao do servidor, e ela vai mentir no dia
+			 * em que a regra mudar): ela so diz que o veredito veio e que a
+			 * explicacao nao veio junto. Se esta frase aparecer no jogo, o
+			 * defeito e do pacote, e ela e o rastro que aponta para la.
+			 */
+			const frase = p.disponivel ? p.motivo : p.motivo || 'Indisponivel agora.';
+			const motivo = frase ? '<div class="gi-posto-motivo">' + escapeHtml(frase) + '</div>' : '';
+			/* `aria-disabled` ANDA JUNTO com `disabled`: o cartao cinza e o
+			   filete ambar sao a leitura do olho, e o leitor de tela nao tem
+			   nenhum dos dois. Mesmo estado, dois sentidos — a mesma regra que
+			   o `aria-expanded` do TopMenuIdle segue. */
 			const botao = ehEscolhido
-				? '<button type="button" class="ri-btn ri-btn--sec" disabled>Este e o seu posto</button>'
+				? '<button type="button" class="ri-btn ri-btn--sec" disabled aria-disabled="true">Este e o seu posto</button>'
 				: '<button type="button" class="ri-btn gi-assumir" data-posto="' +
 					escapeHtml(p.id) +
 					'"' +
-					(p.disponivel ? '' : ' disabled') +
+					(p.disponivel ? '' : ' disabled aria-disabled="true"') +
 					'>' +
 					(p.disponivel ? 'Assumir' : 'Indisponivel') +
 					'</button>';
@@ -504,6 +593,25 @@ function desenharPostos(e) {
 
 	alvo.querySelectorAll('.gi-assumir').forEach(function (botao) {
 		botao.addEventListener('click', function () {
+			/*
+			 * D-984 — NAO CONFIE SO NO `disabled` (ordem do dono, secao 10).
+			 *
+			 * O atributo e desenho: ele some com um clique no inspetor, e o
+			 * botao aqui e RECONSTRUIDO a cada empurrao — entre o desenho e o
+			 * clique cabe uma troca de lider que bloqueou este posto. A guarda
+			 * nao recalcula regra nenhuma: ela RELE o veredito que o servidor
+			 * mandou, no ultimo estado que chegou. Quem decide continua sendo
+			 * ele, e ele recusa de novo do outro lado — isto so evita o pedido
+			 * que ja nasce sabendo a resposta.
+			 */
+			const atual = GrupoIdle.estado && GrupoIdle.estado.postos;
+			const veredito = (atual || []).filter(function (p) {
+				return p.id === botao.dataset.posto;
+			})[0];
+			if (veredito && !veredito.disponivel) {
+				mostrarRecado(veredito.motivo || 'Esse posto nao esta disponivel agora.', true);
+				return;
+			}
 			mandar({ acao: 'posto', posto: botao.dataset.posto });
 		});
 	});
@@ -758,6 +866,17 @@ function ligarEventos(r) {
 		trocarAba('postos');
 	});
 
+	r.querySelector('.gi-teleportar').addEventListener('click', function () {
+		// A ponte IRMA de `aoPedirLocalizador`, e pela mesma razao: quem sabe
+		// mandar `{acao:'teleportar'}` e o Localizador, e importa-lo daqui
+		// prenderia a ordem de carga de uma janela a da outra. Nao ha um
+		// segundo `PACKET.CZ.RAGIDLE_LFG_ACAO` montado neste arquivo — o dono
+		// pediu reuso, e reuso e nao ter a segunda copia.
+		if (GrupoIdle.aoPedirTeleporte) {
+			GrupoIdle.aoPedirTeleporte();
+		}
+	});
+
 	// ─── Convite ───────────────────────────────────────────────────────────
 	const painelConvite = r.querySelector('.gi-convite');
 	const campoNome = r.querySelector('.gi-convite-nome');
@@ -968,6 +1087,18 @@ GrupoIdle.toggle = function toggle() {
  * gancho e o `MapEngine.js`, que ja conhece as duas.
  */
 GrupoIdle.aoPedirLocalizador = null;
+
+/**
+ * A IRMA da ponte acima (D-984): "me leve ate o lider".
+ *
+ * Ela existe pelos mesmos dois motivos — nao importar `LFGIdle.js` daqui, e
+ * nao ter uma SEGUNDA implementacao do teleporte. O corpo dela e uma linha
+ * so, no Localizador (`LFGIdle.teleportarParaOLider`), que e onde o
+ * `{acao:'teleportar'}` sempre morou e onde o RESULTADO desse pacote sabe ser
+ * lido. Quem liga as duas pontas e o `MapEngine.js`, que ja conhece as duas
+ * janelas.
+ */
+GrupoIdle.aoPedirTeleporte = null;
 
 /*
  * ATENCAO ao `hookPacket`: ele SOBRESCREVE o handler anterior daquele opcode.

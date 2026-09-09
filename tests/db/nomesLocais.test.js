@@ -67,8 +67,20 @@ describe('a lista aponta so para item que o jogo conhece', () => {
 	 * fazia este cruzamento PULAR calado onde a pasta existia com o outro
 	 * nome, que e a forma mais silenciosa de um guarda-costas sumir.
 	 */
-	const CONTEUDO = ['Rag Idle 2.0', 'rag-idle-master']
-		.map(pasta => join(process.cwd(), '..', pasta, 'assets-build', 'game', 'conteudo.json'))
+	/*
+	 * `RAG_JOGO` vem PRIMEIRO (08/09/2026): numa WORKTREE, `..` aponta para
+	 * dentro do proprio repositorio do cliente e nenhum dos dois nomes existe
+	 * — o cruzamento PULAVA calado justamente na arvore onde a tabela estava
+	 * sendo mudada. E a irma da `RAG_FORK` que o repositorio do jogo usa para
+	 * achar este fork.
+	 */
+	const CONTEUDO = [
+		process.env.RAG_JOGO ? join(process.env.RAG_JOGO, 'assets-build', 'game', 'conteudo.json') : null,
+		...['Rag Idle 2.0', 'rag-idle-master'].map(pasta =>
+			join(process.cwd(), '..', pasta, 'assets-build', 'game', 'conteudo.json')
+		)
+	]
+		.filter(Boolean)
 		.find(existsSync);
 	const temConteudo = CONTEUDO !== undefined;
 
@@ -102,7 +114,7 @@ describe('a lista aponta so para item que o jogo conhece', () => {
 		).toEqual([]);
 	});
 
-	it('sao exatamente os 42 das quatro rodadas — crescimento passa por aqui', () => {
+	it('sao exatamente os 76 das cinco rodadas — crescimento passa por aqui', () => {
 		/*
 		 * Nao e um pino por vaidade: um id somado sem passar pelo cruzamento
 		 * acima (na maquina sem a arvore irma, onde ele PULA) entraria cego.
@@ -111,9 +123,19 @@ describe('a lista aponta so para item que o jogo conhece', () => {
 		 *
 		 * 22 dos drops (25/08) + 14 da Loja de Cosmeticos (31/08) + o 420010,
 		 * o cosmetico de CABECA que o dono pediu no mesmo dia (D-796) + os 5
-		 * das LOJAS DE NPC do catalogo (01/09, D-900).
+		 * das LOJAS DE NPC do catalogo (01/09, D-900) + os **34 dos MAPAS
+		 * NOVOS** (08/09, D-1226 — o relato do alfa sobre o 1680, e os outros
+		 * 33 que a mesma medicao achou).
+		 *
+		 * **E o pino deixou de ser a unica defesa.** Ele existia porque o
+		 * cruzamento acima PULA na maquina sem a arvore irma, e um pino nao
+		 * responde "falta alguem?" — so "entrou alguem?". Foi por isso que os
+		 * 34 puderam crescer em silencio: o catalogo de mapas quadruplicou e
+		 * nada perguntava pela direcao contraria. Quem pergunta agora e
+		 * `servidor/drop-com-nome.test.ts`, no repositorio do jogo, que cruza
+		 * TODO drop de TODO monstro contra esta tabela.
 		 */
-		expect(Object.keys(NOMES_LOCAIS)).toHaveLength(42);
+		expect(Object.keys(NOMES_LOCAIS)).toHaveLength(76);
 	});
 });
 
@@ -207,8 +229,15 @@ describe('o icone local (31/08/2026)', () => {
 		 * Merchant: 상급포션-<cor>, a traducao literal de `High_*Potion`, com
 		 * dono UNICO cada e nenhum id reivindicando o `.bmp` na tabela do GRF
 		 * (`.tmp-scratch/provar-icone-siropes.ts`, no repositorio do jogo).
+		 * Os 21 da Rodada 6 (08/09/2026, D-1226) sao os drops dos mapas novos:
+		 * 9 Crimson pela MESMA derivacao 진홍의<tipo> da Rodada 4b (a familia
+		 * tem 18 arquivos no GRF, os 18 tambem em `collection\`, e ZERO ids da
+		 * tabela de recurso apontam para eles), 2 com nome ASCII proprio
+		 * (white_snake_tear, konts_letter) e 10 cartas no 이름없는카드
+		 * generico — o mesmo caso do 4545. Os outros 13 continuam na maca, e
+		 * estao nomeados no rodape de `ICONES_LOCAIS`.
 		 */
-		expect(Object.keys(ICONES_LOCAIS)).toHaveLength(35);
+		expect(Object.keys(ICONES_LOCAIS)).toHaveLength(56);
 	});
 
 	it('os 5 mob-drop com .bmp proprio no GRF, em ASCII (Rodada 4, 31/08/2026)', () => {

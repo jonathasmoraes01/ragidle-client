@@ -975,3 +975,71 @@
 		content: none;
 	}
 }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   AS ABAS DE CATEGORIA VOLTAM A APARECER NO CELULAR (08/09/2026)
+   ═══════════════════════════════════════════════════════════════════════
+   RELATO DO DONO: *"existem abas que nao aparecem e, na mochila, nao e
+   possivel trocar de categoria"*.
+
+   MEDIDO antes do conserto (`scripts/diag-hud-seis.ts`, 393x852, no jogo de
+   pe): **0 de 3 abas visiveis**. No deitado e no desktop as tres aparecem.
+
+   ── A CAUSA ─────────────────────────────────────────────────────────────
+   `.mo-abas` e IRMA de `.mo-frame`, e vem DEPOIS dele no HTML — no desktop
+   ela e uma "orelha" em `position: absolute; left: 516px`, pendurada fora da
+   borda direita, e a ordem no DOM nao importa.
+
+   No celular o `@media (max-width: 599px)` a devolve ao fluxo
+   (`position: static`), e ai a ordem passa a importar: ela cai DEPOIS da
+   grade de itens inteira, a y~1500 numa tela de 852. D-932 poe
+   `overflow-y: auto` na `.mo-window`, entao ela existe, tem caixa e e
+   alcancavel rolando ate o fim — e nenhum jogador rola a mochila inteira
+   procurando as categorias que deveriam estar a vista.
+
+   (Foi tambem o que enganou a primeira versao da sonda: ela media
+   visibilidade so na HORIZONTAL e disse "3/3 visiveis".)
+
+   ── O CONSERTO, E POR QUE ESTE E NAO OUTRO ──────────────────────────────
+   `position: sticky; bottom: 0` dentro da propria janela que rola. Ela para
+   de depender da rolagem sem sair do lugar no DOM.
+
+   As duas alternativas descartadas:
+   - **`order: -1`** poria a faixa ACIMA de `.mo-frame` — ou seja, acima da
+     BARRA DE TITULO, que mora dentro do frame. Aba antes do titulo da
+     janela le como outra coisa;
+   - **fixar no topo** (`sticky; top: 0`) colocaria a faixa no lugar mais
+     longe do polegar numa tela de 852px de altura. No pe ela e alcancavel
+     com a mao que ja segura o aparelho.
+   ═══════════════════════════════════════════════════════════════════════ */
+@media (max-width: 599px) {
+	.mo-abas {
+		position: sticky;
+		bottom: 0;
+		z-index: 3;
+		/* Fundo proprio: grudada, ela passa por cima da grade de itens, e
+		   uma fileira translucida sobre ladrilhos seria ilegivel. */
+		background: var(--surface-window, #f4f6fb);
+		box-shadow: 0 -1px 0 var(--border-hairline, #dde3ee);
+
+		/* ── NAVEGACAO HORIZONTAL EVIDENTE, quando nao couberem ──────────
+		   O pedido cobra isto por escrito: *"Quando nao couberem, ofereca
+		   navegacao horizontal evidente."* Hoje sao tres e elas cabem; a
+		   regra existe para a quarta nao reabrir o defeito em silencio.
+
+		   `flex: 1 0 auto` (e nao o `1 1 0` da regra acima): com tres, cada
+		   uma toma um terco; com muitas, elas param de encolher e a fileira
+		   ROLA em vez de espremer rotulo ate ficar ilegivel. */
+		flex-wrap: nowrap;
+		overflow-x: auto;
+		overscroll-behavior-x: contain;
+		-webkit-overflow-scrolling: touch;
+		scroll-snap-type: x proximity;
+	}
+
+	.mo-abas .mo-aba {
+		flex: 1 0 auto;
+		min-width: max-content;
+		scroll-snap-align: start;
+	}
+}

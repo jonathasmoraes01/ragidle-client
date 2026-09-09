@@ -10,13 +10,9 @@
 		<div class="ha-frame ri-window">
 			<div class="ha-header ri-header">
 				<span class="ha-titulo ri-title">Análise de Caça</span>
-				<!-- ─── MODO COMPACTO (08/09/2026, pedido do alfa): encolhe a
-				     janela para a cabine + os ritmos por hora, sem tocar na
-				     coleta — o estado mora em registroDaCaca.js e o tique
-				     continua atualizando os MESMOS elementos. O glifo e a
-				     dupla ▾/▴ e o title diz o verbo; quem restaura e o mesmo
-				     botao. -->
-				<button type="button" class="ha-compactar ri-close" title="Modo compacto" aria-label="Modo compacto">&#9662;</button>
+				<!-- RAGIDLE (08/09/2026, ordem do dono): o modo ENXUTO, como o da janela
+				     Personagem (.bi-minimize) — so o cronometro e os quatro ritmos ficam. -->
+				<button type="button" class="ha-minimize ri-close" data-action="minimize" title="Recolher" aria-label="Recolher para o modo enxuto">&minus;</button>
 				<button type="button" class="ha-close ri-close" title="Fechar">&times;</button>
 			</div>
 
@@ -57,19 +53,19 @@
 				     abaixo fica com os acumulados. O losango carrega a cor da
 				     familia; a cor nunca e o unico portador (o rotulo fala). -->
 				<div class="ha-ritmos">
-					<div class="ha-ritmo ha-ritmo--exp">
+					<div class="ha-ritmo">
 						<span class="ha-ritmo-rotulo"><span class="ha-losango ha-losango--exp"></span>EXP/h</span>
 						<span class="ha-ritmo-valor ha-exp-base-hora">—</span>
 					</div>
-					<div class="ha-ritmo ha-ritmo--classe">
+					<div class="ha-ritmo">
 						<span class="ha-ritmo-rotulo"><span class="ha-losango ha-losango--classe"></span>Classe/h</span>
 						<span class="ha-ritmo-valor ha-exp-classe-hora">—</span>
 					</div>
-					<div class="ha-ritmo ha-ritmo--monstro">
+					<div class="ha-ritmo">
 						<span class="ha-ritmo-rotulo"><span class="ha-losango ha-losango--monstro"></span>Monstros/h</span>
 						<span class="ha-ritmo-valor ha-abates-hora">—</span>
 					</div>
-					<div class="ha-ritmo ha-ritmo--drop">
+					<div class="ha-ritmo">
 						<span class="ha-ritmo-rotulo"><span class="ha-losango ha-losango--drop"></span>Drops/h</span>
 						<span class="ha-ritmo-valor ha-itens-hora">—</span>
 					</div>

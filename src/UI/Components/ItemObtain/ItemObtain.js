@@ -107,7 +107,20 @@ function posicionar(host, root) {
 		host.style.removeProperty('--vr-item-obtido-topo');
 		return;
 	}
-	host.style.setProperty('--vr-item-obtido-topo', `${Math.round(caixa.bottom + 10)}px`);
+	/*
+	 * O VAO CAIU DE 10 PARA 4 (08/09/2026, pedido do dono: *"Posicione-o
+	 * mais acima sem cobrir informacoes importantes da HUD"*).
+	 *
+	 * As duas metades do pedido brigam: "mais acima" e "sem cobrir" apontam
+	 * para lados opostos enquanto o cartao de missoes estiver aberto — ele e
+	 * quem ocupa o alto da tela. A medida continua sendo a borda de baixo do
+	 * cartao, que e o que garante o "sem cobrir"; o que encolhe e o respiro.
+	 *
+	 * E o "mais acima" ganhou uma segunda porta no mesmo dia: o cartao
+	 * passou a RECOLHER (`.mt-recolher-v`). Recolhido, ele encurta, e este
+	 * `calc` sobe o aviso sozinho — sem numero novo em lugar nenhum.
+	 */
+	host.style.setProperty('--vr-item-obtido-topo', `${Math.round(caixa.bottom + 4)}px`);
 }
 
 /**

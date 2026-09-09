@@ -56,12 +56,14 @@ import GUIComponent from 'UI/GUIComponent.js';
 import RiIcones from 'UI/ri-icones.js';
 import { dropsDoMapa } from './dropsDoMapa.js'; // RAGIDLE: a visao agregada (I6)
 import {
+	classeDeRaridade,
 	encaixeDeNivel,
-	formatarChance,
 	medidorDeEncaixe,
 	motivoDaBusca,
 	ordenarMapas,
-	resumoDoMotivo
+	raridadeDoDrop,
+	resumoDoMotivo,
+	rotuloDeRaridade
 } from './atlasDeCaca.js';
 import htmlText from './HuntMap.html?raw';
 import cssText from './HuntMap.css?raw';
@@ -114,7 +116,7 @@ const MOB_STACK_MAX = 5;
 // ...e voltou a 2 (D-1138, adendo): producao sobe servidor e cliente em momentos
 // diferentes, e o 3 fez o cliente novo recusar o servidor v2 do ar. As partes sao
 // aditivas; o contrato fica em 2 e este cliente as acumula.
-const CONTRATO_DO_CATALOGO = 2;
+const CONTRATO_DO_CATALOGO = 3; // 3 (08/09/2026): drop pode vir `raro: true` SEM chance
 
 /**
  * Race translation (PT-BR), fixed dictionary as requested.
@@ -335,6 +337,10 @@ HuntMap.init = function init() {
 	root.querySelector('.hm-search-clear').addEventListener('click', onClickSearchClear);
 	root.querySelectorAll('.hm-modo .hm-seg-btn').forEach(b => b.addEventListener('click', onClickModo));
 	root.querySelector('.hm-sort').addEventListener('change', onChangeSort);
+	root.querySelector('.hm-voltar').addEventListener('click', e => {
+		e.stopImmediatePropagation();
+		voltarUmPasso();
+	});
 
 	this.draggable(root.querySelector('.hm-titlebar'));
 
@@ -349,6 +355,10 @@ HuntMap.init = function init() {
 	renderTabs();
 	renderList();
 	renderPanel();
+	/* A classe de passo tem de existir desde o primeiro desenho: sem ela o CSS
+	   da vertical nao casa com nada e a janela abriria com as tres faixas
+	   empilhadas — o estado que este desenho existe para tirar. */
+	definirPasso('regioes');
 };
 
 /**
@@ -379,6 +389,72 @@ function savePosition() {
 /**
  * Show/hide the window (button stays visible either way).
  */
+/* ═══════════════════════════════════════════════════════════════════════
+   OS TRÊS PASSOS DO CELULAR EM PÉ (08/09/2026, pedido do dono)
+   ═══════════════════════════════════════════════════════════════════════
+   *"Navegação por categorias e submenus, aproveitando a organização existente
+   dos mapas (...) Lista compacta com informações essenciais (...) Detalhes
+   adicionais acessíveis sem sobrecarregar a lista."*
+
+   A janela já TEM as três peças — trilho de regiões, lista e dossiê. No
+   desktop elas convivem em três colunas; no celular elas se atropelavam. Aqui
+   elas viram três PASSOS do mesmo caminho, e nenhuma peça foi duplicada: o
+   mesmo `renderTabs`/`renderList`/`renderPanel` de sempre desenha os três.
+
+   O estado é UM só, e ele só é lido pelo CSS da vertical. No desktop
+   `definirPasso` continua sendo chamado e a classe continua sendo escrita —
+   e nenhuma regra casa com ela, então lá nada muda. Isso é deliberado: um
+   `if (ehCelularEmPe())` em cada chamador daria quatro lugares para
+   dessincronizar.
+
+   REGRAS DE VIAGEM: nenhuma passa por aqui. Requisito de nível, custo e
+   recusa continuam onde estavam (`onClickTravel` e o servidor). Isto é
+   navegação, não permissão.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+const PASSOS = ['regioes', 'mapas', 'detalhe'];
+let _passo = 'regioes';
+
+/** O rótulo do mapa, para o título do passo. O id cru não serve ao jogador. */
+function nomeDoMapa(id) {
+	const catalog = HuntMap.catalog;
+	if (!id || !catalog || !catalog.mapas) {
+		return '';
+	}
+	const achado = catalog.mapas.find(m => m.mapa === id);
+	return achado ? achado.rotulo : '';
+}
+
+function definirPasso(passo) {
+	_passo = PASSOS.includes(passo) ? passo : 'regioes';
+	const root = _root();
+	const win = root && root.querySelector('.hm-window');
+	if (!win) {
+		return;
+	}
+	for (const p of PASSOS) {
+		win.classList.toggle(`is-passo-${p}`, p === _passo);
+	}
+	const barra = root.querySelector('.hm-passo');
+	if (barra) {
+		/* A barra só existe a partir do 2º passo: no 1º não há para onde
+		   voltar, e um "‹ Voltar" que não volta é pior do que nenhum. */
+		barra.hidden = _passo === 'regioes';
+		const titulo = barra.querySelector('.hm-passo-titulo');
+		if (titulo) {
+			titulo.textContent =
+				_passo === 'mapas'
+					? HuntMap.activeTab || 'Mapas'
+					: nomeDoMapa(HuntMap.selectedMapa) || 'Detalhes';
+		}
+	}
+}
+
+/** Um passo para trás: dossiê → lista → regiões. */
+function voltarUmPasso() {
+	definirPasso(_passo === 'detalhe' ? 'mapas' : 'regioes');
+}
+
 HuntMap.toggle = function toggle() {
 	const root = _root();
 	const win = root.querySelector('.hm-window');
@@ -386,6 +462,11 @@ HuntMap.toggle = function toggle() {
 		closeWindow();
 	} else {
 		win.classList.add('is-open');
+		/* Abrir sempre recomeça no 1º passo. Reabrir no dossiê de um mapa que
+		   o jogador escolheu na sessão passada seria abrir num lugar que ele
+		   não pediu — o mesmo argumento de D-942 para a folha de detalhe da
+		   árvore ("reabrir mostra a árvore, nunca um detalhe órfão"). */
+		definirPasso('regioes');
 		HuntMap.focus();
 		requestCatalog();
 	}
@@ -714,6 +795,9 @@ function onClickTab(e) {
 	lembrarAba(_preferences, HuntMap.activeTab);
 	renderTabs();
 	renderList();
+	/* Escolher a regiao AVANCA um passo no celular. No desktop a classe e
+	   escrita e nenhuma regra a le — as tres colunas continuam juntas. */
+	definirPasso('mapas');
 }
 
 /**
@@ -868,6 +952,13 @@ function renderSeloMvp(mapa) {
  * and HTML forbids nesting interactive controls inside a <button> (the
  * parser would silently close the outer button early and break the layout).
  * The wrapper is a <div role="button" tabindex="0">.
+ *
+ * O NIVEL do cartao e a TRANCA (`nivelQueAbre` servido — a media dos tipos
+ * arredondada para baixo, D-1233), e nao mais a faixa "min–max" da
+ * populacao. Ordem do dono de 08/09/2026, dada com o print do celular na
+ * mao: "Nv. 1–6" num cartao Bloqueado para o nivel 1 lia como contradicao.
+ * O unico numero que nao e a media e o do mapa de entrada, que mostra o 1
+ * da excecao — o mesmo numero que o servidor cobra na viagem.
  */
 function renderCard(mapa, motivo) {
 	const catalog = HuntMap.catalog;
@@ -905,7 +996,7 @@ function renderCard(mapa, motivo) {
 				</div>
 				<div class="hm-meter">
 					${renderMeter(mapa, catalog.nivel)}
-					<span class="hm-meter-text">Nv. ${mapa.nivelMinimo}–${mapa.nivelMaximo}</span>
+					<span class="hm-meter-text">Nv. ${mapa.nivelQueAbre}</span>
 				</div>
 				<div class="hm-card-foot">
 					<span class="hm-mob-stack">${avatarsHtml}</span>
@@ -923,6 +1014,9 @@ function onClickCard(e) {
 	HuntMap.selectedMobId = null;
 	renderList();
 	renderPanel();
+	/* Tocar no cartao abre o DOSSIE como passo 3 — e o "detalhes adicionais
+	   acessiveis sem sobrecarregar a lista" do pedido. */
+	definirPasso('detalhe');
 }
 
 /**
@@ -1026,7 +1120,7 @@ function renderPanel() {
 				<div class="hm-meter">${renderMeter(mapa, catalog.nivel)}</div>
 				<div class="hm-fit-row">
 					<span class="hm-fit-verdict">${escapeHtml(veredito)}</span>
-					<span class="hm-fit-range">Mapa Nv. ${mapa.nivelMinimo}–${mapa.nivelMaximo}</span>
+					<span class="hm-fit-range">Mapa Nv. ${mapa.nivelQueAbre}</span>
 				</div>
 			</div>
 		</div>
@@ -1112,43 +1206,64 @@ function renderMobRow(m, mapa, ficha) {
 }
 
 /**
- * Um LADRILHO de drop: o ícone real do item (24x24 do cliente), o nome, a
- * chance — e, na visão do mapa, de quantos monstros cai. É um botão: o
- * clique abre a ficha do item (onClickDrop).
+ * Um LADRILHO de drop: o ícone real do item (24x24 do cliente), o nome, o
+ * SELO DE RARIDADE (Comum/Incomum/Raro/Lendário — trocou de lugar com a % de
+ * chance, RAGIDLE 08/09/2026) — e, na visão do mapa, de quantos monstros
+ * cai. É um botão: o clique abre a ficha do item (onClickDrop).
+ *
+ * O selo NUNCA é só cor: o texto do rótulo vai sempre junto (pedido do dono,
+ * acessibilidade — daltonismo não pode deixar o jogador sem saber o que
+ * está vendo). `raridade` já é o valor final (0..3) — quem decide entre o
+ * que o servidor mandou e a escada defensiva é o CHAMADOR (`raridadeDoDrop`).
  */
-function renderDropTile(itemId, nome, chanceTexto, extraHtml, title) {
+function renderDropTile(itemId, nome, raridade, extraHtml, title) {
 	const aberto = ItemInfo.uid === itemId;
 	return `
 		<button type="button" class="hm-drop${aberto ? ' is-open' : ''}" data-item-id="${itemId}" title="${escapeHtml(title || nome)}">
 			<span class="hm-drop-tile ri-tile"><img data-item-id="${itemId}" alt="" /></span>
 			<span class="hm-drop-name">${escapeHtml(nome)}</span>
-			<span class="hm-drop-chance">${chanceTexto}</span>
+			<span class="hm-drop-rarity ${classeDeRaridade(raridade)}">${escapeHtml(rotuloDeRaridade(raridade))}</span>
 			${extraHtml || ''}
 		</button>`;
 }
 
 /**
  * Os drops do monstro selecionado, da maior chance para a menor (empate pelo
- * nome, para a grade não dançar).
+ * nome, para a grade não dançar). A ORDEM continua pela chance real (que
+ * ainda chega do servidor) — só a EXIBIÇÃO virou selo de raridade.
  */
+/**
+ * Ordena da maior chance para a menor; o RARO (sem numero) vai por ultimo.
+ *
+ * A ORDEM ainda usa a chance real, que continua chegando do servidor — o que
+ * mudou (D-1234) foi so a EXIBICAO, que virou selo de raridade. O drop marcado
+ * `raro` nao traz numero nenhum (08/09/2026, ordem do dono: a carta de
+ * MVP/mini-chefe sem porcentagem, para a taxa poder ser ajustada no
+ * balanceamento sem os jogadores saberem), entao ele vale -1 aqui e cai para o
+ * fim da lista.
+ *
+ * A funcao `textoDaChance`, que desenhava "RARO" ou a porcentagem, SAIU no
+ * merge de 09/09: o selo de raridade cobre os dois casos (a carta de chefe e
+ * Lendario pela escada) e ela ficou sem chamador — e sem o `formatarChance`
+ * que ela usava, que saiu junto com a % da tela.
+ */
+function chanceParaOrdenar(d) {
+	return d.raro ? -1 : d.chance || 0;
+}
+
 function renderMobDrops(monster) {
 	const nomeDe = d => d.nomeLocal || d.nome;
 	const drops = (monster.drops || [])
 		.slice()
-		.sort((a, b) => b.chance - a.chance || nomeDe(a).localeCompare(nomeDe(b), 'pt-BR'));
+		.sort((a, b) => chanceParaOrdenar(b) - chanceParaOrdenar(a) || nomeDe(a).localeCompare(nomeDe(b), 'pt-BR'));
 	if (!drops.length) {
 		return '<div class="hm-drops-empty">Sem drops conhecidos.</div>';
 	}
 	return `<div class="hm-drops">${drops
-		.map(d =>
-			renderDropTile(
-				d.itemId,
-				nomeDe(d),
-				formatarChance(d.chance),
-				'',
-				`${nomeDe(d)} — ${formatarChance(d.chance)}`
-			)
-		)
+		.map(d => {
+			const raridade = raridadeDoDrop(d);
+			return renderDropTile(d.itemId, nomeDe(d), raridade, '', `${nomeDe(d)} — ${rotuloDeRaridade(raridade)}`);
+		})
 		.join('')}</div>`;
 }
 
@@ -1159,11 +1274,16 @@ function renderMobDrops(monster) {
  * estavel) mora em `dropsDoMapa.js`, num modulo sem imports — e tem teste que a
  * EXECUTA (`servidor/mapa/drops-do-mapa.test.ts`, 11 casos). Aqui so se desenha.
  *
- * A chance mostrada e a MELHOR, e nao "a chance": medido no catalogo, 25 dos
- * 33 mapas tem item que cai de mais de um monstro, e a chance de um item "no
- * mapa" nao existe no rAthena — ela e por monstro. Somar daria numero
- * inventado. Quando ha mais de uma origem, o ladrilho diz de quantas, e o
- * `title` nomeia cada monstro com a chance dele.
+ * O SELO AGREGADO (RAGIDLE 08/09/2026) e a raridade da OCORRENCIA de melhor
+ * chance — a MESMA cuja % era exibida antes da troca (maior chance = menos
+ * raro), e nao um recalculo em cima do numero agregado: `dropsDoMapa` ja
+ * repassa `melhorChanceRaridade` junto de `melhorChance` (mesma atualizacao,
+ * mesma ocorrencia). Medido no catalogo, 25 dos 33 mapas tem item que cai de
+ * mais de um monstro, e a chance de um item "no mapa" nao existe no rAthena
+ * — ela e por monstro; somar daria numero inventado, e isso nao mudou.
+ * Quando ha mais de uma origem, o ladrilho diz de quantas, e o `title`
+ * nomeia cada monstro com a RARIDADE dele (era a chance; o nome do monstro
+ * continua — e detalhe util).
  */
 function renderDropsDoMapa(ficha) {
 	const linhas = dropsDoMapa(ficha);
@@ -1174,13 +1294,14 @@ function renderDropsDoMapa(ficha) {
 		.map(l => {
 			// `dropsDoMapa` devolve o nome do servidor; o ladrilho mostra o local.
 			const nome = nomeLocalDoItem(l.itemId, l.nome);
-			const origem = l.monstros.map(m => `${m.nome} ${formatarChance(m.chance)}`).join(' · ');
+			const raridade = raridadeDoDrop({ chance: l.melhorChance, raridade: l.melhorChanceRaridade });
+			const origem = l.monstros.map(m => `${m.nome} ${rotuloDeRaridade(raridadeDoDrop(m))}`).join(' · ');
 			const extra = l.deQuantosMobs > 1 ? `<span class="hm-drop-origens">${l.deQuantosMobs} mobs</span>` : '';
-			return renderDropTile(l.itemId, nome, formatarChance(l.melhorChance), extra, `${nome} — ${origem}`);
+			return renderDropTile(l.itemId, nome, raridade, extra, `${nome} — ${origem}`);
 		})
 		.join('');
 	return `
-		<div class="hm-drops-legenda">${linhas.length} ${linhas.length === 1 ? 'item' : 'itens'} · a chance é a melhor entre os monstros</div>
+		<div class="hm-drops-legenda">${linhas.length} ${linhas.length === 1 ? 'item' : 'itens'} · a raridade é a do melhor caso entre os monstros</div>
 		<div class="hm-drops">${grade}</div>`;
 }
 

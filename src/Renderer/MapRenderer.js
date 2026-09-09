@@ -137,6 +137,7 @@ class MapRenderer {
 		if (this.loading) {
 			return;
 		}
+		MapRenderer.vigiarVisibilidade();
 
 		// Support for instance map
 		// Is it always 3 digits ?
@@ -201,9 +202,45 @@ class MapRenderer {
 	/**
 	 * Clean up data
 	 */
+	/**
+	 * RAGIDLE (08/09/2026 — reporte do dono: "se eu deixar a aba em segundo
+	 * plano alguns minutos, demora seculos ate a tela do game abrir de novo, e
+	 * as vezes abre travando"). Em aba oculta o navegador nao entrega quadro
+	 * (`requestAnimationFrame` para), mas o WebSocket continua chegando: cada
+	 * golpe visto pelo servidor virava um numero de dano e um efeito, empilhados
+	 * numa lista que so o render esvazia. Minutos depois eram milhares, cada um
+	 * com textura, e o primeiro quadro da volta os percorria e removia um a um.
+	 *
+	 * Duas medidas, nas duas pontas: o que e efemero NAO NASCE em aba oculta
+	 * (`Damage.add`), e o que ja venceu SAI DE UMA VEZ ao voltar, antes do
+	 * primeiro quadro (`Damage.free`, `EffectManager.limparEfemeros`). O laco
+	 * de render nao e reiniciado: o tick de servidor precisa do tempo real que
+	 * passou. Registrado UMA vez; `setMap` chama a cada mapa e isto e idempotente.
+	 */
+	static vigiarVisibilidade() {
+		if (MapRenderer._vigiaDeVisibilidade || typeof document === 'undefined') {
+			return;
+		}
+		MapRenderer._vigiaDeVisibilidade = function aoMudarVisibilidade() {
+			if (document.visibilityState !== 'visible') {
+				return;
+			}
+			const gl = Renderer.getContext();
+			if (!gl) {
+				return;
+			}
+			try {
+				Damage.free(gl);
+				EffectManager.limparEfemeros(gl, Date.now());
+			} catch (e) {
+				console.error('[MapRenderer] limpeza ao voltar para a aba falhou', e);
+			}
+		};
+		document.addEventListener('visibilitychange', MapRenderer._vigiaDeVisibilidade);
+	}
+
 	static free() {
 		const gl = Renderer.getContext();
-
 		EntityManager.free();
 		EntityManager.clearLifeCache();
 		GridSelector.free(gl);

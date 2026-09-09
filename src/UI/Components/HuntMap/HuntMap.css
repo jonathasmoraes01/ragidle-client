@@ -1184,11 +1184,45 @@
 	word-break: break-word;
 }
 
-#HuntMap .hm-drop-chance {
-	font: var(--type-numeric);
-	font-size: var(--fs-label);
-	color: var(--text-link);
-	font-variant-numeric: tabular-nums;
+/* Selo de raridade do drop (RAGIDLE 08/09/2026 — trocou a % de chance).
+   Reaproveita os MESMOS tokens do ".ri-tile" da Loja (Common.css:1282-1291):
+   verde/azul/dourado sao is-uncommon/is-rare/is-unique lá, r1/r2/r3 aqui —
+   nao existe um terceiro conjunto de cor de raridade neste jogo. Comum (r0)
+   fica neutro de proposito, no mesmo espirito de ".ri-tile" nao pintar a
+   borda do item comum. O texto do rótulo é SEMPRE mostrado junto da cor —
+   nunca só a cor (daltonismo, pedido do dono) — por isso é uma pilula com
+   palavra, não um ponto colorido. */
+#HuntMap .hm-drop-rarity {
+	display: inline-block;
+	font: var(--type-badge);
+	padding: 2px 6px;
+	border: 1px solid transparent;
+	border-radius: var(--radius-pill);
+	white-space: nowrap;
+}
+
+#HuntMap .hm-drop-rarity.r0 {
+	color: var(--text-muted);
+	background: var(--surface-inset);
+	border-color: var(--border-hairline);
+}
+
+#HuntMap .hm-drop-rarity.r1 {
+	color: var(--green-600);
+	background: color-mix(in srgb, var(--green-600) 10%, var(--white));
+	border-color: color-mix(in srgb, var(--green-600) 35%, transparent);
+}
+
+#HuntMap .hm-drop-rarity.r2 {
+	color: var(--blue-500);
+	background: color-mix(in srgb, var(--blue-500) 10%, var(--white));
+	border-color: color-mix(in srgb, var(--blue-500) 35%, transparent);
+}
+
+#HuntMap .hm-drop-rarity.r3 {
+	color: var(--gold-700);
+	background: linear-gradient(180deg, var(--gold-200), var(--gold-300));
+	border-color: var(--border-gold);
 }
 
 #HuntMap .hm-drop-origens {
@@ -1359,4 +1393,167 @@
 	#HuntMap .hm-btn-city {
 		padding: 15px 10px;
 	}
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   CELULAR EM PÉ: UM PASSO POR VEZ (08/09/2026, pedido do dono)
+   ═══════════════════════════════════════════════════════════════════════
+   O bloco `@media (max-width: 599px)` acima EMPILHA as três faixas (trilho,
+   lista, dossiê) — e empilhar não bastou. Medido no jogo de pé em 393x852
+   (`scripts/diag-mobile-portrait.ts`): **29 controles cobertos**, e os
+   cobridores eram `div.hm-card`, `img` (as miniaturas) e `div.hm-count` caindo
+   por cima de `.hm-tabs`. Três faixas com teto próprio numa tela de 750px de
+   altura útil continuam disputando o mesmo espaço, e a que perde não some:
+   ela fica embaixo, invisível e clicável.
+
+   Aqui elas deixam de disputar: **uma por vez**, cada uma ocupando a área
+   inteira. O passo é escrito pelo JS (`definirPasso`) em `.hm-window`, e o
+   caminho é região → mapas → dossiê, com "‹ Voltar".
+
+   Este bloco vem DEPOIS do `@media` de propósito: `.ri-vertical` é uma classe
+   a mais na cadeia, então ele vence sem `!important`. E ele NÃO é um
+   `@media`: quem decide "celular em pé" é o JS de D-939 (que também conhece a
+   bandeira de rollout), e duplicar o critério em CSS é a cicatriz de D-929.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* A barra de passo só existe aqui. No desktop o HTML já a deixa `hidden`. */
+.ri-vertical #HuntMap .hm-passo {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 6px 8px;
+	border-bottom: var(--divider);
+}
+
+.ri-vertical #HuntMap .hm-passo[hidden] {
+	display: none;
+}
+
+.ri-vertical #HuntMap .hm-voltar {
+	flex: 0 0 auto;
+	min-height: 44px;
+	padding: 0 12px;
+	border: 0;
+	border-radius: 8px;
+	background: var(--hm-chip-bg, #e8edf6);
+	color: var(--hm-ink, #1c2540);
+	font: inherit;
+	font-weight: 600;
+	cursor: pointer;
+}
+
+.ri-vertical #HuntMap .hm-passo-titulo {
+	overflow: hidden;
+	font-weight: 700;
+	white-space: nowrap;
+	text-overflow: ellipsis;
+}
+
+/* As três faixas viram telas: a do passo ativo ocupa tudo, as outras somem.
+   `display:none` e não `visibility`/opacidade: o que está escondido não pode
+   continuar recebendo toque, que é exatamente o defeito medido. */
+.ri-vertical #HuntMap .hm-body {
+	flex-direction: column;
+	min-height: 0;
+	/* MEDIDO: sem o teto, `.hm-rail` (191 regioes) crescia alem do rodape da
+	   janela e as ultimas linhas nasciam ATRAS da barra de atalhos — um item
+	   de regiao respondia `div.shortcut-paginas` no `elementFromPoint`, e
+	   outro caia em y=872 numa tela de 852. Com o teto, quem rola e a LISTA
+	   (ela ja tem `overflow-y: auto`), dentro da janela, e nada sai por baixo. */
+	flex: 1 1 auto;
+	overflow: hidden;
+}
+
+.ri-vertical #HuntMap .hm-rail,
+.ri-vertical #HuntMap .hm-list-wrap,
+.ri-vertical #HuntMap .hm-panel {
+	display: none;
+	flex: 1 1 auto;
+	width: 100%;
+	min-width: 0;
+	min-height: 0;
+	max-width: 100%;
+	max-height: none;
+	border-right: none;
+}
+
+.ri-vertical #HuntMap .hm-window.is-passo-regioes .hm-rail,
+.ri-vertical #HuntMap .hm-window.is-passo-mapas .hm-list-wrap,
+.ri-vertical #HuntMap .hm-window.is-passo-detalhe .hm-panel {
+	display: flex;
+	flex-direction: column;
+}
+
+/* Cada tela rola por DENTRO. O teto some (`max-height: none` acima) porque
+   agora ela é a única na área — o limite é a área, e não um número. */
+.ri-vertical #HuntMap .hm-rail,
+.ri-vertical #HuntMap .hm-list,
+.ri-vertical #HuntMap .hm-panel-scroll {
+	overflow-y: auto;
+	overscroll-behavior: contain;
+	-webkit-overflow-scrolling: touch;
+	max-height: none;
+}
+
+/* As regiões viram uma lista de linhas altas, e não chips apertados: é o
+   passo 1 e o alvo tem de ser confortável. 48 > o piso de 44px. */
+.ri-vertical #HuntMap .hm-tabs {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+}
+
+.ri-vertical #HuntMap .hm-tab {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	width: 100%;
+	min-height: 48px;
+	padding: 0 12px;
+	text-align: left;
+}
+
+/* A barra de ferramentas quebrava para fora da tela: o `select` de ordem
+   saía pela direita em 393px (visível no PNG de 393x852). Ela passa a
+   quebrar em linhas, e a busca ocupa a primeira inteira. */
+.ri-vertical #HuntMap .hm-toolbar {
+	flex-wrap: wrap;
+	gap: 6px;
+}
+
+.ri-vertical #HuntMap .hm-search-wrap {
+	flex: 1 0 100%;
+	min-width: 0;
+}
+
+.ri-vertical #HuntMap .hm-seg,
+.ri-vertical #HuntMap .hm-sort-wrap {
+	flex: 1 1 auto;
+	min-width: 0;
+}
+
+.ri-vertical #HuntMap .hm-seg-btn,
+.ri-vertical #HuntMap .hm-sort {
+	min-height: 44px;
+}
+
+/* No dossiê a barra de busca/filtro não tem função e come altura da tela —
+   o que importa ali é o mapa e o botão de viajar. */
+.ri-vertical #HuntMap .hm-window.is-passo-detalhe .hm-toolbar,
+.ri-vertical #HuntMap .hm-window.is-passo-detalhe .hm-count {
+	display: none;
+}
+
+/* O rodapé do dossiê carrega o "Caçar aqui". Ele fica FIXO no pé da tela,
+   fora da rolagem: a ação de teleportar não pode depender de o jogador
+   rolar até o fim de uma ficha longa. */
+.ri-vertical #HuntMap .hm-panel-footer {
+	position: sticky;
+	bottom: 0;
+	z-index: 2;
+	background: var(--hm-window-bg, #f4f6fb);
+}
+
+.ri-vertical #HuntMap .hm-panel-footer .hm-btn-go {
+	min-height: 48px;
 }

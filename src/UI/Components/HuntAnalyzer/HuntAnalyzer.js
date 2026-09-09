@@ -106,13 +106,38 @@ const _preferences = Preferences.get(
 		   Uma aba de historico lembrada sem historico ainda (o F5 apaga as
 		   cacadas arquivadas) cai pra Atual em sincronizarAbas — sem erro. */
 		aba: null,
-		/* O MODO COMPACTO sobrevive ao F5 (08/09/2026, pedido do alfa): quem
-		   encolheu a janela pra cacar quer reabri-la encolhida. `false` e o
-		   padrao — a janela inteira e o que apresenta a ferramenta. */
-		compacta: false
+		/* O modo enxuto (08/09/2026) sobrevive ao F5, como o compacto do BasicInfoIdle. */
+		compacto: false
 	},
 	1
 );
+
+/* ─── Modo enxuto (08/09/2026, ordem do dono) ─── */
+function aplicarCompacto() {
+	const root = _root();
+	if (!root) {
+		return;
+	}
+	const compacto = !!_preferences.compacto;
+	// `_root()` e o ShadowRoot (sem classList): a classe vai no #HuntAnalyzer de
+	// dentro e no HOST (a altura de 540px e do :host). Sem as guardas, um
+	// `toggle` em undefined derrubava o init inteiro da HUD (tela preta, 08/09).
+	const raiz = root.querySelector ? root.querySelector('#HuntAnalyzer') : null;
+	if (raiz && raiz.classList) raiz.classList.toggle('is-compact', compacto);
+	const host = HuntAnalyzer._host;
+	if (host && host.classList) host.classList.toggle('is-compact', compacto);
+	const botao = root.querySelector('.ha-minimize');
+	if (botao) {
+		botao.setAttribute('title', compacto ? 'Restaurar' : 'Recolher');
+		botao.setAttribute('aria-label', compacto ? 'Restaurar a janela completa' : 'Recolher para o modo enxuto');
+	}
+}
+
+HuntAnalyzer.alternarCompacto = function alternarCompacto() {
+	_preferences.compacto = !_preferences.compacto;
+	_preferences.save();
+	aplicarCompacto();
+};
 
 let _pollTimer = null;
 /** A aba na tela: 0 = atual, 1 = ultima, 2 = penultima. */
@@ -568,26 +593,15 @@ HuntAnalyzer.init = function init() {
 
 	this.draggable(root.querySelector('.ha-header'));
 
+	root.querySelector('.ha-minimize').addEventListener('click', e => {
+		e.stopPropagation();
+		HuntAnalyzer.alternarCompacto();
+	});
+	aplicarCompacto();
+
 	root.querySelector('.ha-close').addEventListener('click', () => {
 		HuntAnalyzer.toggle();
 	});
-
-	/*
-	 * O MODO COMPACTO (08/09/2026, pedido do alfa): a janela encolhe para a
-	 * cabine (Duração + estado) e os ritmos por hora, e o mesmo botão
-	 * restaura o painel completo.
-	 *
-	 * **Alternar não toca em dado nenhum, e isso é por construção**: o estado
-	 * da caçada mora em `registroDaCaca.js` (fora da janela), o `tique`
-	 * continua rodando no mesmo intervalo e atualizando os MESMOS elementos —
-	 * compactar é só uma classe de CSS escondendo o resto. Não há segunda
-	 * rota de dados para o modo compacto divergir da cheia.
-	 */
-	root.querySelector('.ha-compactar').addEventListener('click', () => {
-		aplicarCompacto(root, !root.querySelector('.ha-window').classList.contains('is-compacta'));
-	});
-	// O modo lembrado sobrevive ao F5, como a aba e a posição.
-	aplicarCompacto(root, _preferences.compacta === true);
 
 	root.querySelector('.ha-zerar').addEventListener('click', () => {
 		/* Descarta so a cacada CORRENTE -- o historico fica (ver o porque em
@@ -634,27 +648,6 @@ function salvarPosicao() {
 	_preferences.x = parseInt(HuntAnalyzer._host.style.left, 10) || 0;
 	_preferences.y = parseInt(HuntAnalyzer._host.style.top, 10) || 0;
 	_preferences.save();
-}
-
-/**
- * Liga/desliga o MODO COMPACTO e mantém o botão dizendo o que o próximo
- * clique faz (▾ "Modo compacto" cheio, ▴ "Restaurar painel" compacto) — um
- * glifo mudo obrigaria o jogador a clicar para descobrir.
- */
-function aplicarCompacto(root, ligado) {
-	const win = root.querySelector('.ha-window');
-	const btn = root.querySelector('.ha-compactar');
-	win.classList.toggle('is-compacta', ligado);
-	if (btn) {
-		btn.innerHTML = ligado ? '&#9652;' : '&#9662;';
-		const verbo = ligado ? 'Restaurar painel completo' : 'Modo compacto';
-		btn.title = verbo;
-		btn.setAttribute('aria-label', verbo);
-	}
-	if (_preferences.compacta !== ligado) {
-		_preferences.compacta = ligado;
-		_preferences.save();
-	}
 }
 
 function iniciarPolling() {

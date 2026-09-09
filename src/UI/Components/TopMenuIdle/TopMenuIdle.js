@@ -104,9 +104,13 @@
  *                 janela — chama Guild.promptCreateGuild(), exatamente como
  *                 o atalho de teclado nativo faz (Guild.js:420-423). Aceito
  *                 de proposito: e o unico caminho de entrada que existe.
- *   - Grupo       -> GrupoIdle.toggle()      (D-960; era PartyFriends.toggle())
- *                 PUBLICO do controller de versao (V0/V1), que delega pra
- *                 PartyFriendsCommon.js:132-138.
+ *   - Grupo       -> GrupoIdle.toggle()  (D-988; era PartyFriends.toggle()
+ *                 antes de D-960, e a porta automatica de D-984 no meio). Ele
+ *                 abre a janela de Grupo SEMPRE, inclusive sem party: e la que
+ *                 se le a aba Postos antes de decidir entrar num grupo.
+ *   - Procurar grupo -> LFGIdle.toggle()  (D-988). O par do de cima. A troca
+ *                 automatica ao entrar e ao sair continua em portaDoGrupo.js;
+ *                 o que ela nao faz mais e escolher o que o MENU abre.
  *   - Admin       -> AdminPanel.toggle()     (AdminPanel.js:268), com a
  *                 MESMA trava de conta dona que AdminPanel.js:65/186 usa
  *                 (Session.AID === 2000000, ver isOwnerAccount()) — o item
@@ -184,8 +188,14 @@ import Guild from 'UI/Components/Guild/Guild.js';
 // alimenta e o `Engine/MapEngine.js` e o `Engine/MapEngine/Group.js`, que
 // desenham o convite que CHEGA e a lista de amigos.
 import LFGIdle from 'UI/Components/LFGIdle/LFGIdle.js'; // RAGIDLE: Procurar Grupo (D-634)
-import GrupoIdle from 'UI/Components/GrupoIdle/GrupoIdle.js'; // RAGIDLE: janela de Grupo (D-960)
+/* A `GrupoIdle` saiu dos imports em D-984 pelo mesmo motivo que a `PartyFriends`
+   saiu em D-960: o item "Grupo" deixou de citar uma janela por nome. Quem
+   escolhe entre as duas — e quem carrega as duas — e a `portaDoGrupo`. */
+import GrupoIdle from 'UI/Components/GrupoIdle/GrupoIdle.js'; // RAGIDLE: a janela de Grupo (D-960)
 import { ehCelularEmPe } from 'UI/hudVertical.js'; // D-939: a folha do menu flutua sobre o chat
+/* 08/09/2026: a terceira porta do "Instalar app". A DECISAO e toda de la — ver
+   `ligarOfertaDeInstalacao()` mais abaixo. */
+import { escutarACasca, ofertaAtual, pontePWA, textoDoResultado } from 'UI/ofertaDeInstalacao.js';
 import SkillList from 'UI/Components/SkillList/SkillList.js';
 import StatusIdle from 'UI/Components/StatusIdle/StatusIdle.js';
 import MochilaIdle from 'UI/Components/MochilaIdle/MochilaIdle.js';
@@ -196,6 +206,7 @@ import MissoesIdle from 'UI/Components/MissoesIdle/MissoesIdle.js';
 import PasseIdle from 'UI/Components/PasseIdle/PasseIdle.js';
 import VotoIdle from 'UI/Components/VotoIdle/VotoIdle.js'; // RAGIDLE: janela de Voto (D-1159)
 import CodexIdle from 'UI/Components/CodexIdle/CodexIdle.js'; // RAGIDLE: Codex (D-851)
+import { temAvisoDoCodex } from 'UI/Components/avisoDoCodex.js'; // D-1232
 import PresencaIdle from 'UI/Components/PresencaIdle/PresencaIdle.js'; // RAGIDLE: Presenca (D-1162)
 import IndicacaoIdle from 'UI/Components/IndicacaoIdle/IndicacaoIdle.js'; // RAGIDLE: Indique & Ganhe (D-1164)
 import AdminPanel from 'UI/Components/AdminPanel/AdminPanel.js';
@@ -366,11 +377,102 @@ TopMenuIdle.onAppend = function onAppend() {
 	syncAllActiveStates();
 	syncSkillDot();
 	syncCorreioDot();
+	syncCodexDot();
 	syncVotoLivre();
 	syncToggleDot();
+	ligarOfertaDeInstalacao();
 	startPolling();
 	ligarFechamentoExterno();
 };
+
+/* ═══════════════════════════════════════════════════════════════════════
+   "INSTALAR APP" NO PE DA FOLHA (08/09/2026, pedido do dono)
+   ═══════════════════════════════════════════════════════════════════════
+   *"Sempre que o jogador entrar pelo navegador mobile, fora do PWA instalado,
+   apresente um botao visivel 'Instalar app', sem bloquear a partida."*
+
+   A porta que existia era a aba de Config — DEPOIS do login e atras de um
+   menu. A tela de entrada tambem oferece (D-945), mas quem ja entrou nao volta
+   la. Esta linha e a terceira porta, e a unica que o jogador ve enquanto joga.
+
+   TODA a decisao vem de `ofertaDeInstalacao.js`: se mostrar, com que rotulo,
+   e o que o clique faz. Nada disso e reescrito aqui — sao as MESMAS tres
+   saidas (prompt / instrucao / nada) que a entrada e o Config ja usam. Um
+   quarto lugar decidindo por conta propria seria o quarto a envelhecer.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+function ligarOfertaDeInstalacao() {
+	const botao = _root().querySelector('.tm-instalar');
+	if (!botao) {
+		return;
+	}
+	sincronizarOferta();
+	/* A casca avisa quando o `beforeinstallprompt` chega (pode ser DEPOIS do
+	   append) e quando o app foi instalado. Sem escutar, o botao decidiria uma
+	   vez e ficaria com a resposta velha — visivel num app ja instalado. */
+	escutarACasca(sincronizarOferta);
+	botao.addEventListener('click', aoClicarInstalar);
+}
+
+/** Poe na tela o que `decidirOferta()` mandou — ou esconde a linha. */
+function sincronizarOferta() {
+	const root = _root();
+	const botao = root && root.querySelector('.tm-instalar');
+	if (!botao) {
+		return;
+	}
+	const oferta = ofertaAtual();
+	botao.hidden = !oferta.mostrar;
+	if (!oferta.mostrar) {
+		return;
+	}
+	const rotulo = botao.querySelector('.tm-instalar-rotulo');
+	if (rotulo) rotulo.textContent = oferta.rotulo;
+	const dica = botao.querySelector('.tm-instalar-dica');
+	if (dica) {
+		dica.textContent = oferta.dica;
+		/* No modo `prompt` a dica e uma linha curta e cabe sempre. No modo
+		   `instrucao` ela e um passo a passo, e so aparece no toque — despejar
+		   um paragrafo no pe do menu seria o banner que o pedido recusou. */
+		dica.hidden = oferta.modo !== 'prompt';
+	}
+	botao.classList.toggle('is-instrucao', oferta.modo === 'instrucao');
+}
+
+/** O clique: dispara a instalacao real, ou revela o passo a passo. */
+function aoClicarInstalar(evento) {
+	evento.preventDefault();
+	evento.stopPropagation();
+	const oferta = ofertaAtual();
+	const dica = _root().querySelector('.tm-instalar-dica');
+
+	if (oferta.modo !== 'prompt') {
+		/* Sem evento do navegador nao ha o que disparar, e o botao NAO fica
+		   morto: ele abre (e fecha) a explicacao do aparelho. O pedido e
+		   explicito — "quando a instalacao exigir passos manuais, o botao deve
+		   abrir instrucoes adequadas ao dispositivo". */
+		if (dica) {
+			dica.textContent = oferta.dica;
+			dica.hidden = !dica.hidden;
+		}
+		return;
+	}
+
+	const ponte = pontePWA();
+	if (!ponte) {
+		return;
+	}
+	Promise.resolve(ponte.instalar()).then(resultado => {
+		/* Sincroniza ANTES de escrever a resposta: a ordem inversa apagaria o
+		   texto que acabou de ser posto (a cicatriz que a prova da tela de
+		   entrada cobrou em D-945). */
+		sincronizarOferta();
+		if (dica) {
+			dica.hidden = false;
+			dica.textContent = textoDoResultado(resultado);
+		}
+	});
+}
 
 /**
  * Desliga o polling, os ouvintes globais de fechar a gaveta e qualquer
@@ -485,6 +587,25 @@ function onClickAction(e) {
 		 * ATENCAO: existe um SEGUNDO switch neste arquivo, o `isActionOpen()`
 		 * la embaixo. Este aqui ABRE; o de la acende o aro. Ja houve TRES
 		 * casos de so um dos dois ser editado — os tres comentados la.
+		 *
+		 * D-984: o item deixou de abrir SEMPRE a mesma janela. Quem nao tem
+		 * party recebia a tela de gerenciar um grupo que nao existe (nome "Sem
+		 * grupo", zero membros, "Convidar" desabilitado) — e a janela que ele
+		 * queria, o Localizador, so existia como um SEGUNDO item, dentro do
+		 * leque. A decisao virou uma so, em `portaDoGrupo.js`, e ela le
+		 * `Session.hasParty` — nunca o estado da janela de Grupo, que so chega
+		 * enquanto a janela esta inscrita (o cabecalho da porta explica).
+		 *
+		 * O `isActionOpen()` la embaixo DERIVA da mesma decisao, em vez de
+		 * repeti-la: e o comeco da "UMA tabela de acao -> {abrir, seletor}"
+		 * que o proprio `isActionOpen()` pede por escrito ha tres casos.
+		 */
+		/*
+		 * D-988: cada caminho tem o proprio botao, e este ABRE A JANELA DE
+		 * GRUPO sempre — inclusive para quem nao esta em grupo nenhum, que e
+		 * quem mais precisa ler a aba Postos. A porta automatica (D-984)
+		 * continua viva em `portaDoGrupo.js`, so que agora ela cuida da TROCA
+		 * (entrar/sair) e nao mais de decidir qual janela o menu abre.
 		 */
 		case 'group':
 			GrupoIdle.toggle();
@@ -547,11 +668,32 @@ function onClickAction(e) {
 			return;
 	}
 
-	// Escolheu no leque? O leque sai da frente. Ele e uma gaveta: abriu,
-	// escolheu, fechou -- e a janela que acabou de abrir e que precisa da
-	// tela agora. So vale pro leque; o cluster de cima nunca se fecha
-	// sozinho.
-	if (_lequeAberto && btn.closest('.tm-fan')) {
+	/*
+	 * Escolheu no leque? O leque sai da frente. Ele e uma gaveta: abriu,
+	 * escolheu, fechou -- e a janela que acabou de abrir e que precisa da
+	 * tela agora. No DESKTOP so vale pro leque; o cluster de cima e barra
+	 * permanente e nunca se fecha sozinho.
+	 *
+	 * ── NO CELULAR EM PE, O CLUSTER TAMBEM FECHA (08/09/2026) ──
+	 *
+	 * Na HUD vertical o `.tm-top` nao e barra permanente: ele e DESENHADO
+	 * DENTRO DA FOLHA (`.ri-vertical #TopMenuIdle.tm-aberto .tm-top`,
+	 * TopMenuIdle.css:1311). A condicao `btn.closest('.tm-fan')` e do arranjo
+	 * de desktop, e no celular ela responde `null` para os NOVE itens do
+	 * cluster — entao a folha ficava aberta POR CIMA da janela que o jogador
+	 * acabou de abrir, e era ela quem comia o toque.
+	 *
+	 * MEDIDO antes do conserto (`scripts/diag-mobile-portrait.ts`, 393x852):
+	 * a folha ficou por cima em 9 das 18 janelas, e os nove sao exatamente os
+	 * itens do cluster — Personagem, Mochila, Skills, Caca, Correio, Config.,
+	 * Analise, Recompensas e Votar. O agregado de "quem cobre" apontava
+	 * `button.tm-item` como o coberturador numero 1, com 18 ocorrencias.
+	 *
+	 * A licao e a de sempre neste projeto: condicao escrita para um arranjo
+	 * nao acompanha o outro arranjo — quem pergunta "estou na gaveta?" tem de
+	 * perguntar tambem "a gaveta e a tela inteira agora?".
+	 */
+	if (_lequeAberto && (btn.closest('.tm-fan') || ehCelularEmPe())) {
 		fecharLeque();
 	}
 
@@ -977,11 +1119,57 @@ function publicarTopoDoCluster() {
 	 * HUD, girar o aparelho, redimensionar a janela —, entao a guarda
 	 * transforma trabalho constante em trabalho por evento.
 	 */
+	/* A ALTURA vem ANTES da guarda do topo, e isso não é estilo: o cluster
+	   pode ganhar uma fileira sem mudar de topo (ele é ancorado no alto), e
+	   sair pelo `return` de baixo deixaria a altura velha publicada — que é o
+	   defeito exato que ela existe para tapar. */
+	publicarAlturaDoCluster(topo, caixa);
 	if (valor === _topoPublicado) {
 		return;
 	}
 	_topoPublicado = valor;
 	topo.ownerDocument.documentElement.style.setProperty('--hud-cluster-topo', valor);
+}
+
+let _alturaPublicada = null;
+
+/*
+ * A ALTURA DO CLUSTER, MEDIDA (08/09/2026).
+ *
+ * ─── O DEFEITO ──────────────────────────────────────────────────────────
+ * `--vr-menu-cluster-altura` estava CRAVADA em 172px no CSS
+ * (TopMenuIdle.css:1350), e é dela que sai o `top` da folha do leque. Com a
+ * folha aberta no celular, o cluster desenha os NOVE itens numa grade de 4
+ * colunas — três fileiras — e passa de 172px. A folha então começa ACIMA de
+ * onde o cluster termina, e a primeira fileira dela fica ATRÁS do cartão do
+ * cluster.
+ *
+ * MEDIDO com o jogo de pé (`npm run prove:mobile-vertical`, nas três telas):
+ * o item **Guilda** — o primeiro da folha — respondia `button.tm-item` e
+ * `span.tm-label` no `elementFromPoint`. Ele estava desenhado, "visível" para
+ * o DOM, e nenhum dedo o alcançava. É o mesmo defeito que a foto de 393x852
+ * já mostrava: "Guilda Amigos Grupo Admin" aparecendo cortado por baixo da
+ * borda do cartão de cima.
+ *
+ * ─── POR QUE MEDIR, E NÃO SÓ AUMENTAR O NÚMERO ──────────────────────────
+ * Porque a altura do cluster MUDA: com o item de Admin são 11 itens, sem ele
+ * são 10; recolher a HUD muda; a largura da tela muda quantos cabem por
+ * fileira. Trocar 172 por 220 acertaria hoje e erraria na próxima vez que
+ * alguém somasse um item de menu — que é exatamente como o 172 envelheceu.
+ * O arquivo ao lado já ensina isso por escrito: *"A altura e MEDIDA e nao
+ * cravada porque o numero de itens muda"* (o comentário do `applyCollapsedState`).
+ *
+ * Ela pega carona no `publicarTopoDoCluster`: mesmo `ResizeObserver`, mesma
+ * guarda de "só publica quando muda" (D-958, a frente de FPS), mesma unidade
+ * da HUD. Um observador novo seria trabalho repetido para o mesmo evento.
+ */
+function publicarAlturaDoCluster(topo, caixa) {
+	const valor = `${Math.round(emUnidadesDaHud(caixa.height))}px`;
+	if (valor === _alturaPublicada) {
+		return;
+	}
+	_alturaPublicada = valor;
+	topo.ownerDocument.documentElement.style.setProperty('--vr-menu-cluster-altura', valor);
 }
 
 let _observadorDoCluster = null;
@@ -1140,12 +1328,25 @@ function isActionOpen(action) {
 			return isRagIdleWindowOpen(AdminPanel, '.ap-window');
 		case 'guild':
 			return isHostVisible(Guild);
-		/* Ver o comentario do `case 'group'` no switch de ABRIR: o item passou
-		   a abrir a janela RAGIDLE (D-960), entao ele le
-		   '.gi-window.is-open' — e nao `isHostVisible`, que e a armadilha que
-		   o comentario de `lfg` logo abaixo registra (o `_host` de um
-		   GUIComponent nunca ganha display:none sozinho, entao o aro nunca
-		   apagaria). */
+		/*
+		 * Ver o comentario do `case 'group'` no switch de ABRIR: o item passou
+		 * a abrir a janela RAGIDLE (D-960), entao ele le '.gi-window.is-open'
+		 * — e nao `isHostVisible`, que e a armadilha que o comentario de `lfg`
+		 * logo abaixo registra (o `_host` de um GUIComponent nunca ganha
+		 * display:none sozinho, entao o aro nunca apagaria).
+		 *
+		 * D-984: o item passou a abrir DUAS janelas diferentes conforme a
+		 * party, e o aro segue junto — quem pergunta qual e a janela e a
+		 * MESMA funcao que o switch de abrir usa. Escrever aqui um segundo
+		 * `Session.hasParty ? ... : ...` seria reencenar de novo o defeito que
+		 * este arquivo ja registra quatro vezes: dois switches paralelos
+		 * ligados so pela disciplina de quem edita.
+		 *
+		 * `null` antes do `ligar()` (fora do jogo) = aro apagado, que e o
+		 * mesmo que o `default` faz para os itens "em breve".
+		 */
+		// D-988: o aro do 'Grupo' acende com a janela de Grupo aberta, e o do
+		// 'Procurar grupo' com o Localizador — um item, uma janela.
 		case 'group':
 			return isRagIdleWindowOpen(GrupoIdle, '.gi-window');
 		/*
@@ -1234,6 +1435,7 @@ function pollEstado() {
 	publicarTopoDoCluster();
 	syncSkillDot();
 	syncCorreioDot();
+	syncCodexDot();
 	// D-1159: o destaque do botao de votar entra no MESMO tique dos outros
 	// dois avisos, e antes do `syncToggleDot()` de proposito — ele le os
 	// pontos dos itens ja calculados para decidir o ponto da alca.
@@ -1335,6 +1537,33 @@ function syncCorreioDot() {
 		} else {
 			btn.title = `Correio — ${quantas} por ler`;
 		}
+	}
+}
+
+/**
+ * Ponto de "ha objetivo do Codex esperando voce" (D-1232, 08/09/2026).
+ *
+ * A fonte e `avisoDoCodex.js`, que guarda o veredito do SERVIDOR
+ * (`temNovidadeNoCodex`) — entrada cumprida com premio nao resgatado, ou
+ * cumprida sem premio e ainda nao consultada. Esta funcao nao recalcula nada:
+ * refazer a regra aqui seria a segunda rota escrita a mao de sempre, e ela
+ * discordaria do servidor no instante seguinte a um resgate.
+ *
+ * Mesma receita ".ri-dot" do Correio e das Skills, de proposito.
+ */
+function syncCodexDot() {
+	const root = _root();
+	const dot = root.querySelector('.tm-item[data-action="codex"] .ri-dot');
+	if (!dot) {
+		return;
+	}
+
+	const tem = temAvisoDoCodex();
+	dot.style.display = tem ? '' : 'none';
+
+	const btn = dot.closest('.tm-item');
+	if (btn) {
+		btn.title = tem ? 'Codex — você tem um objetivo concluído' : 'Codex';
 	}
 }
 

@@ -93,21 +93,12 @@ class Life {
 		let height = 5;
 		const Entity = this.entity.constructor;
 
-		/*
-		 * Não desenhe com valores negativos — NEM COM TETO ZERO (08/09/2026).
-		 *
-		 * O `hp_max === 0` passava por esta guarda, e `hp / 0` é `Infinity` ou
-		 * `NaN`: o `fillRect` do preenchimento não desenha nada e sobra só a
-		 * borda `#10189c`, que num bar de 5px de altura lê como uma **barra
-		 * preta**. Foi o relato do dono numa sessão real, com print: *"a
-		 * barrinha tá preta"* — e ela não estava vazia por falta de vida, estava
-		 * indefinida por falta de teto.
-		 *
-		 * Sumir é melhor que mentir: uma barra sem teto não tem o que informar,
-		 * e o `update()` seguinte (quando o `MAXHP` chegar) a traz de volta.
-		 * Este é o mesmo espírito do `hp_max` zerado que `hpNoTeto` protege do
-		 * lado do servidor — as duas pontas recusam o mesmo número.
-		 */
+		// Don't display it, if negatives values.
+		// RAGIDLE (08/09/2026): hp_max ZERO tambem e "sem informacao". O servidor
+		// mandava 0/0 no pacote de entrada de todo jogador e a barra era desenhada
+		// VAZIA (largura NaN) — a "barra de HP zerado" que o dono viu sobre os
+		// outros jogadores. E e o apagador que o servidor manda no
+		// ZC_NOTIFY_MONSTER_HP quando o mob saiu da luta.
 		if (this.hp < 0 || this.hp_max <= 0) {
 			this.remove();
 			return;
