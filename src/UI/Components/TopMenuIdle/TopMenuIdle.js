@@ -792,11 +792,49 @@ function onPointerDownGlobal(e) {
 		return;
 	}
 
+	/*
+	 * ── O CLUSTER TAMBEM E "DENTRO DO MENU" NO CELULAR (09/09/2026) ──
+	 *
+	 * RELATO DO DONO: *"ao clicar no menu azul com 3 linhas ele abre a janela
+	 * com os icones (...) o clique esta 'vazando' para tras do menu e movendo
+	 * o personagem, em vez de registrar o clique no icone do menu"*.
+	 *
+	 * A CAUSA e a estrutura: `.tm-fan` e `.tm-fab` moram DENTRO de `.tm-menu`,
+	 * mas `.tm-top` — o cartao com Personagem, Mochila, Skills, Caca,
+	 * Recompensas, Correio, Config., Analise e Votar — e IRMAO dele. No
+	 * desktop isso esta certo: la o cluster e barra permanente, fora da
+	 * gaveta, e tocar nele DEVE fechar a gaveta.
+	 *
+	 * No celular o cluster e desenhado DENTRO da folha
+	 * (`.ri-vertical #TopMenuIdle.tm-aberto .tm-top`, TopMenuIdle.css:1311).
+	 * Entao tocar num daqueles nove icones caia aqui como "fora do menu": a
+	 * folha fechava no `pointerdown`, e o `click` seguinte — que vem DEPOIS —
+	 * chegava no que tivesse sobrado sob o dedo, que e a CENA. Dai o boneco
+	 * andar e a janela nao abrir.
+	 *
+	 * MEDIDO (`scripts/diag-menu-lateral.ts`, clique por COORDENADA e nao
+	 * `.click()` no elemento): no celular em pe, **2 de 9** icones
+	 * funcionavam, e um deles registrou o pedido de andar. No desktop, 9 de 9.
+	 *
+	 * E A MESMA FAMILIA DA CORRECAO DE 08/09 — la a pergunta era
+	 * `btn.closest('.tm-fan')` para decidir FECHAR a folha depois de escolher;
+	 * aqui e `.tm-menu` para decidir NAO fechar antes. As duas eram testes de
+	 * DOM escritos para o arranjo de desktop, e as duas erram no celular pelo
+	 * mesmo motivo: la o cluster mudou de lugar. Consertei uma e nao procurei
+	 * a irma — e ela e que o jogador sentiu.
+	 */
+	const noCelular = ehCelularEmPe();
 	const caminho = e.composedPath();
 	for (let i = 0; i < caminho.length; i++) {
 		const no = caminho[i];
 		// Window/Document/ShadowRoot nao tem classList: so elemento interessa.
-		if (no && no.classList && no.classList.contains('tm-menu')) {
+		if (!no || !no.classList) {
+			continue;
+		}
+		if (no.classList.contains('tm-menu')) {
+			return;
+		}
+		if (noCelular && no.classList.contains('tm-top')) {
 			return;
 		}
 	}
