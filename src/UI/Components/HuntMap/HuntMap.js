@@ -872,7 +872,7 @@ function renderSeloMvp(mapa) {
  * The wrapper is a <div role="button" tabindex="0">.
  *
  * O NIVEL do cartao e a TRANCA (`nivelQueAbre` servido — a media dos tipos
- * arredondada para baixo, D-1192), e nao mais a faixa "min–max" da
+ * arredondada para baixo, D-1233), e nao mais a faixa "min–max" da
  * populacao. Ordem do dono de 08/09/2026, dada com o print do celular na
  * mao: "Nv. 1–6" num cartao Bloqueado para o nivel 1 lia como contradicao.
  * O unico numero que nao e a media e o do mapa de entrada, que mostra o 1

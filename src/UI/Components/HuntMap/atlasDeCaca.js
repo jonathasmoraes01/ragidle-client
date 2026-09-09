@@ -155,7 +155,7 @@ export function ordenarMapas(mapas, chave, nivel) {
 		arr.sort((a, b) => Math.abs(a.nivelMedio - nivel) - Math.abs(b.nivelMedio - nivel) || porNome(a, b));
 	} else {
 		// A chave 'nivel' ordena pelo MESMO numero que o cartao mostra — a
-		// tranca (`nivelQueAbre`, D-1192) — para a lista nunca contradizer o
+		// tranca (`nivelQueAbre`, D-1233) — para a lista nunca contradizer o
 		// rotulo. Era `nivelMinimo` enquanto a tranca era o minimo; a media
 		// desempata, e o nome por ultimo segura a ordem estavel.
 		arr.sort((a, b) => a.nivelQueAbre - b.nivelQueAbre || a.nivelMedio - b.nivelMedio || porNome(a, b));
