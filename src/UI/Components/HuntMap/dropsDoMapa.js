@@ -42,9 +42,19 @@
 /**
  * Todo o drop de um mapa, um item por linha.
  *
+ * `raridade` (RAGIDLE, 08/09/2026 — troca de % por raridade no Atlas): este
+ * modulo continua SEM IMPORTS de proposito (ve o cabecalho acima), entao ele
+ * nao chama a escada defensiva de `atlasDeCaca.js` — so REPASSA o campo que
+ * cada drop ja trouxe (`d.raridade`, pode vir `undefined` de servidor
+ * velho). Quem decide "explicito vence, senao deriva da chance" e quem
+ * desenha a tela (`HuntMap.js`, via `raridadeDoDrop`). `melhorChanceRaridade`
+ * anda SEMPRE junto de `melhorChance`: e a raridade da MESMA ocorrencia que
+ * tinha a maior chance, nao um recalculo em cima do numero agregado.
+ *
  * @param {{monstros?: Array<object>, mvp?: object|null}} mapa - um `MapaDoCatalogo`.
  * @returns {Array<{itemId: number, nome: string, melhorChance: number,
- *                  deQuantosMobs: number, monstros: Array<{mobId: number, nome: string, chance: number}>}>}
+ *                  melhorChanceRaridade: number|undefined, deQuantosMobs: number,
+ *                  monstros: Array<{mobId: number, nome: string, chance: number, raridade: number|undefined}>}>}
  *   Ordenado da maior chance para a menor; empate desempata pelo NOME, para a
  *   lista nao dancar entre duas aberturas da mesma janela.
  */
@@ -69,13 +79,18 @@ export function dropsDoMapa(mapa) {
 			const jaVisto = porItem.get(d.itemId);
 			// RAGIDLE (08/09/2026): drop `raro` vem SEM chance (a carta de MVP/mini-chefe).
 			// Ele conta como 0 para ordenar, e a linha so e RARO se TODA origem for.
+			// A `raridade` (D-1234) vem nos DOIS casos — inclusive no `raro`, que e
+			// justamente onde o numero nao viaja: e ela que o selo desenha.
 			const raro = !!d.raro;
 			const chance = raro ? 0 : d.chance;
-			const origem = { mobId: mob.mobId, nome: mob.nome, chance, raro };
+			const origem = { mobId: mob.mobId, nome: mob.nome, chance, raro, raridade: d.raridade };
 			if (jaVisto) {
 				jaVisto.deQuantosMobs++;
 				jaVisto.monstros.push(origem);
-				if (chance > jaVisto.melhorChance) jaVisto.melhorChance = chance;
+				if (chance > jaVisto.melhorChance) {
+					jaVisto.melhorChance = chance;
+					jaVisto.melhorChanceRaridade = d.raridade;
+				}
 				if (!raro) jaVisto.raro = false;
 				continue;
 			}
@@ -83,6 +98,7 @@ export function dropsDoMapa(mapa) {
 				itemId: d.itemId,
 				nome: d.nome,
 				melhorChance: chance,
+				melhorChanceRaridade: d.raridade,
 				raro,
 				deQuantosMobs: 1,
 				monstros: [origem],

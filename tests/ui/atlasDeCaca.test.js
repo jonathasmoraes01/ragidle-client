@@ -5,12 +5,15 @@
  */
 import { describe, expect, it } from 'vitest';
 import {
+	classeDeRaridade,
+	derivarRaridade,
 	encaixeDeNivel,
-	formatarChance,
 	medidorDeEncaixe,
 	motivoDaBusca,
 	ordenarMapas,
-	resumoDoMotivo
+	raridadeDoDrop,
+	resumoDoMotivo,
+	rotuloDeRaridade
 } from '../../src/UI/Components/HuntMap/atlasDeCaca.js';
 
 const campo = { mapa: 'prt_fild08', rotulo: 'Campo de Prontera', nivelQueAbre: 1, nivelMinimo: 1, nivelMaximo: 16, nivelMedio: 6.5 };
@@ -86,14 +89,27 @@ describe('motivoDaBusca', () => {
 });
 
 describe('ordenarMapas', () => {
-	const mapas = [cemiterio, campo, { ...campo, mapa: 'x', rotulo: 'Arredores', nivelMinimo: 1, nivelMedio: 3 }];
-	it('por nível: faixa crescente, média desempata, nome por último', () => {
+	const mapas = [cemiterio, campo, { ...campo, mapa: 'x', rotulo: 'Arredores', nivelQueAbre: 1, nivelMinimo: 1, nivelMedio: 3 }];
+	it('por nível: TRANCA crescente (o número do cartão), média desempata, nome por último', () => {
 		expect(ordenarMapas(mapas, 'nivel', 1).map(m => m.rotulo)).toEqual([
 			'Arredores',
 			'Campo de Prontera',
 			'Cemitério de Glast Heim'
 		]);
 	});
+	it('a chave é a TRANCA, não o mínimo — mapa com bicho fraco e média alta desce na lista', () => {
+		// O caso que criou a regra (pay_fild04): mínimo 1, tranca 17. Ordenado
+		// pelo mínimo ele apareceria como "mapa de nível 1" acima de mapas que
+		// abrem no 10 — a contradição que o dono viu no print do celular.
+		const payonzao = { ...campo, mapa: 'pay', rotulo: 'Payonzão', nivelQueAbre: 17, nivelMinimo: 1, nivelMedio: 17.5, nivelMaximo: 37 };
+		const meio = { ...campo, mapa: 'meio', rotulo: 'Meio', nivelQueAbre: 10, nivelMinimo: 10, nivelMedio: 12, nivelMaximo: 14 };
+		expect(ordenarMapas([payonzao, meio, campo], 'nivel', 1).map(m => m.rotulo)).toEqual([
+			'Campo de Prontera',
+			'Meio',
+			'Payonzão'
+		]);
+	});
+
 	it('por nome: alfabética pt-BR', () => {
 		expect(ordenarMapas(mapas, 'nome', 1).map(m => m.rotulo)).toEqual([
 			'Arredores',
@@ -112,17 +128,61 @@ describe('ordenarMapas', () => {
 	});
 });
 
-describe('formatarChance', () => {
-	it('inteiro de 10% para cima, uma casa entre 1% e 10%, duas abaixo — vírgula e sem zero à direita', () => {
-		expect(formatarChance(7000)).toBe('70%');
-		expect(formatarChance(5600)).toBe('56%');
-		expect(formatarChance(1000)).toBe('10%');
-		expect(formatarChance(800)).toBe('8%');
-		expect(formatarChance(320)).toBe('3,2%');
-		expect(formatarChance(80)).toBe('0,8%');
-		expect(formatarChance(16)).toBe('0,16%');
-		expect(formatarChance(1)).toBe('0,01%');
-		expect(formatarChance(0)).toBe('0%');
-		expect(formatarChance(undefined)).toBe('0%');
+describe('derivarRaridade', () => {
+	it('as bordas da escada defensiva (a mesma do servidor): ≤3 Lendário (ordem do dono 08/09), ≤100 Raro, ≤1000 Incomum, senão Comum', () => {
+		expect(derivarRaridade(3)).toBe(3); // 0,03% — o teto do Lendário
+		expect(derivarRaridade(4)).toBe(2); // 0,04% — o primeiro Raro
+		expect(derivarRaridade(5)).toBe(2); // 0,05% — era Lendário até a emenda; o limiar do ANÚNCIO ficou lá
+		expect(derivarRaridade(100)).toBe(2);
+		expect(derivarRaridade(101)).toBe(1);
+		expect(derivarRaridade(1000)).toBe(1);
+		expect(derivarRaridade(1001)).toBe(0);
+	});
+	it('chance ausente não quebra: cai no mesmo caminho de chance zero', () => {
+		expect(derivarRaridade(undefined)).toBe(derivarRaridade(0));
+	});
+});
+
+describe('raridadeDoDrop', () => {
+	it('o campo `raridade` do servidor SEMPRE vence — o cliente não recalcula por cima dele', () => {
+		// chance 9000 (90%) derivaria Comum pela escada; o servidor manda
+		// Lendário explícito, e é isso que tem que aparecer.
+		expect(raridadeDoDrop({ chance: 9000, raridade: 3 })).toBe(3);
+		expect(raridadeDoDrop({ chance: 1, raridade: 0 })).toBe(0);
+	});
+	it('sem `raridade` (servidor velho), deriva DEFENSIVAMENTE da chance pela mesma escada', () => {
+		expect(raridadeDoDrop({ chance: 3 })).toBe(3);
+		expect(raridadeDoDrop({ chance: 1001 })).toBe(0);
+	});
+	it('`raridade` fora de 0..3 ou não-inteiro é tratado como ausente (defesa contra payload sujo)', () => {
+		expect(raridadeDoDrop({ chance: 3, raridade: 4 })).toBe(3);
+		expect(raridadeDoDrop({ chance: 3, raridade: -1 })).toBe(3);
+		expect(raridadeDoDrop({ chance: 3, raridade: 1.5 })).toBe(3);
+		expect(raridadeDoDrop({ chance: 3, raridade: null })).toBe(3);
+	});
+});
+
+describe('rotuloDeRaridade', () => {
+	it('os quatro rótulos exatos, com acento', () => {
+		expect(rotuloDeRaridade(0)).toBe('Comum');
+		expect(rotuloDeRaridade(1)).toBe('Incomum');
+		expect(rotuloDeRaridade(2)).toBe('Raro');
+		expect(rotuloDeRaridade(3)).toBe('Lendário');
+	});
+	it('índice desconhecido cai em Comum, não fica vazio', () => {
+		expect(rotuloDeRaridade(undefined)).toBe('Comum');
+		expect(rotuloDeRaridade(9)).toBe('Comum');
+	});
+});
+
+describe('classeDeRaridade', () => {
+	it('r0..r3, uma por raridade', () => {
+		expect(classeDeRaridade(0)).toBe('r0');
+		expect(classeDeRaridade(1)).toBe('r1');
+		expect(classeDeRaridade(2)).toBe('r2');
+		expect(classeDeRaridade(3)).toBe('r3');
+	});
+	it('índice desconhecido cai em r0', () => {
+		expect(classeDeRaridade(9)).toBe('r0');
 	});
 });

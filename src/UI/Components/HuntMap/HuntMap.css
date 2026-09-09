@@ -1184,11 +1184,45 @@
 	word-break: break-word;
 }
 
-#HuntMap .hm-drop-chance {
-	font: var(--type-numeric);
-	font-size: var(--fs-label);
-	color: var(--text-link);
-	font-variant-numeric: tabular-nums;
+/* Selo de raridade do drop (RAGIDLE 08/09/2026 — trocou a % de chance).
+   Reaproveita os MESMOS tokens do ".ri-tile" da Loja (Common.css:1282-1291):
+   verde/azul/dourado sao is-uncommon/is-rare/is-unique lá, r1/r2/r3 aqui —
+   nao existe um terceiro conjunto de cor de raridade neste jogo. Comum (r0)
+   fica neutro de proposito, no mesmo espirito de ".ri-tile" nao pintar a
+   borda do item comum. O texto do rótulo é SEMPRE mostrado junto da cor —
+   nunca só a cor (daltonismo, pedido do dono) — por isso é uma pilula com
+   palavra, não um ponto colorido. */
+#HuntMap .hm-drop-rarity {
+	display: inline-block;
+	font: var(--type-badge);
+	padding: 2px 6px;
+	border: 1px solid transparent;
+	border-radius: var(--radius-pill);
+	white-space: nowrap;
+}
+
+#HuntMap .hm-drop-rarity.r0 {
+	color: var(--text-muted);
+	background: var(--surface-inset);
+	border-color: var(--border-hairline);
+}
+
+#HuntMap .hm-drop-rarity.r1 {
+	color: var(--green-600);
+	background: color-mix(in srgb, var(--green-600) 10%, var(--white));
+	border-color: color-mix(in srgb, var(--green-600) 35%, transparent);
+}
+
+#HuntMap .hm-drop-rarity.r2 {
+	color: var(--blue-500);
+	background: color-mix(in srgb, var(--blue-500) 10%, var(--white));
+	border-color: color-mix(in srgb, var(--blue-500) 35%, transparent);
+}
+
+#HuntMap .hm-drop-rarity.r3 {
+	color: var(--gold-700);
+	background: linear-gradient(180deg, var(--gold-200), var(--gold-300));
+	border-color: var(--border-gold);
 }
 
 #HuntMap .hm-drop-origens {

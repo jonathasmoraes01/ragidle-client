@@ -121,7 +121,60 @@ export const NOMES_LOCAIS = {
 	11622: 'Yellow Syrup', // db/re/item_db_usable.yml:4199 (High_YelloPotion)
 	11623: 'White Syrup', // db/re/item_db_usable.yml:4210 (High_WhitePotion)
 	11624: 'Blue Syrup', // db/re/item_db_usable.yml:4221 (High_BluePotion)
-	12849: 'Combination Kit' // db/re/item_db_usable.yml:14476 (Combination_Kit) — Chef Assistant
+	12849: 'Combination Kit', // db/re/item_db_usable.yml:14476 (Combination_Kit) — Chef Assistant
+
+	// --- Rodada 6: os DROPS DOS MAPAS NOVOS (08/09/2026, D-1226) ---
+	// O relato do alfa foi UM item: "Item desconhecido (1680)", caido perto de
+	// Bathory e Joker. A causa nao e do 1680 — e da MEDIDA: a Rodada 1 cruzou
+	// os drops dos **112 monstros** que o jogo tinha em 25/08, e desde entao os
+	// lotes de mapas de 05 e 06/09 levaram o elenco a **713 registros em 191
+	// mapas**. Ninguem refez o cruzamento, e 34 ids novos ficaram mudos.
+	//
+	// Estes sao os 34, medidos com a tabela do GRF na mao
+	// (`data/idnum2itemdisplaynametable.txt`, 6.929 nomes) contra TODO drop de
+	// TODO monstro do `conteudo.json` de hoje. Ha portao agora
+	// (`servidor/drop-com-nome.test.ts`, no repositorio do jogo): drop novo sem
+	// nome reprova, em vez de chegar ao jogador como "Item desconhecido".
+	//
+	// **Nove sao a familia Crimson/RUBI** — os irmaos deles ja estavam aqui
+	// desde a Rodada 1 (Spear, Revolver, Mace, Two-Handed Sword, Katar, Bible,
+	// Dagger); o que mudou foi o mapa onde eles caem.
+	1498: 'Crimson Lance', // db/re/item_db_equip.yml:10355 (Scarlet_Lance)
+	1680: 'Crimson Rod', // db/re/item_db_equip.yml:15312 (Scarlet_Rod) — o relato do alfa
+	1839: 'Crimson Knuckles', // db/re/item_db_equip.yml:17919 (Scarlet_Knuckle)
+	1939: 'Crimson Violin', // db/re/item_db_equip.yml:19549 (Scarlet_Viollin)
+	1995: 'Crimson Whip', // db/re/item_db_equip.yml:20843 (Scarlet_Wire)
+	2025: 'Crimson Two-Handed Staff', // db/re/item_db_equip.yml:21697 (Scarlet_Staff)
+	10037: 'Black Butterfly Mask', // db/re/item_db_equip.yml:59119 (Black_Butterfly_Mask)
+	12337: 'Grilled Sausages', // db/re/item_db_usable.yml:8621 (Grilled_Sausage)
+	13327: 'Crimson Huuma Shuriken', // db/re/item_db_equip.yml:65254 (Scarlet_Huuma)
+	13332: 'Huuma Shuriken of Dancing Petals', // db/re/item_db_equip.yml:65360 (Huuma_Hundred_Petal)
+	13454: 'Crimson Saber', // db/re/item_db_equip.yml:67368 (Scarlet_Saber)
+	18130: 'Crimson Bow', // db/re/item_db_equip.yml:82698 (Scarlet_Bow)
+	18145: 'Vigilante Bow', // db/re/item_db_equip.yml:83019 (Vigilante_Bow)
+	23187: 'Sap Liquid', // db/re/item_db_usable.yml:61767 (Sap_Jelly)
+	23189: 'Small Needle Kit', // db/re/item_db_usable.yml:61781 (Little_Dall_Needle)
+	25276: 'Clean Bone', // db/re/item_db_etc.yml:35591 (CleanBone)
+	25278: "Bandit's Scarf", // db/re/item_db_etc.yml:35607 (BanditsScarf)
+	25279: 'Crude Ammo', // db/re/item_db_etc.yml:35615 (CrudeAmmo)
+	25283: 'Brown Muffler', // db/re/item_db_etc.yml:35647 (BrownMuffler)
+	25622: "White Snake's Tear", // db/re/item_db_etc.yml:36746 (White_Snake_Tear)
+	25629: 'Knotted Letter', // db/re/item_db_etc.yml:36759 (Konts_Letter)
+	28116: "Mine Worker's Pickaxe", // db/re/item_db_equip.yml:142241 (Mine_Worker_Pickax)
+	28608: 'Elemental Origin', // db/re/item_db_equip.yml:148227 (Origin_Of_Elemental)
+	28721: 'Monokage', // db/re/item_db_equip.yml:149764 (Monokage)
+	// As DEZ cartas dos mapas novos (Moscovia, Rock Ridge). Carta sem nome no
+	// GRF e a regra e nao a excecao — o 4545 da Rodada 1 e o mesmo caso.
+	27157: 'Wood Goblin Card', // db/re/item_db_etc.yml:39743 (Wood_Goblin_Card)
+	27158: 'Les Card', // db/re/item_db_etc.yml:39760 (Les_Card)
+	27159: 'Uzhas Card', // db/re/item_db_etc.yml:39773 (Uzhas_Card)
+	27160: 'Vavayaga Card', // db/re/item_db_etc.yml:39788 (Vavayaga_Card)
+	27161: 'Mavka Card', // db/re/item_db_etc.yml:39801 (Mavka_Card)
+	27162: 'Gopinich Card', // db/re/item_db_etc.yml:39815 (Gopinich_Card)
+	27170: 'Shotgun Buffalo Bandit Card', // db/re/item_db_etc.yml:39942 (Cowraiders1_Card)
+	27171: 'Revolver Buffalo Bandit Card', // db/re/item_db_etc.yml:39956 (Cowraiders2_Card)
+	27172: 'Scimitar Buffalo Bandit Card', // db/re/item_db_etc.yml:39970 (Cowraiders3_Card)
+	27179: 'Coyote Card', // db/re/item_db_etc.yml:40103 (Coyote_Card)
 };
 
 /**
@@ -351,7 +404,81 @@ export const ICONES_LOCAIS = {
 	11621: '\xbb\xf3\xb1\xde\xc6\xf7\xbc\xc7-\xbb\xa1\xb0\xad', // Red Syrup / 상급포션-빨강
 	11622: '\xbb\xf3\xb1\xde\xc6\xf7\xbc\xc7-\xb3\xeb\xb6\xfb', // Yellow Syrup / 상급포션-노랑
 	11623: '\xbb\xf3\xb1\xde\xc6\xf7\xbc\xc7-\xc7\xcf\xbe\xe7', // White Syrup / 상급포션-하양
-	11624: '\xbb\xf3\xb1\xde\xc6\xf7\xbc\xc7-\xc6\xc4\xb6\xfb' // Blue Syrup / 상급포션-파랑
+	11624: '\xbb\xf3\xb1\xde\xc6\xf7\xbc\xc7-\xc6\xc4\xb6\xfb', // Blue Syrup / 상급포션-파랑
+
+	/* --- Rodada 6: os icones dos DROPS DOS MAPAS NOVOS (08/09/2026, D-1226) ---
+	 *
+	 * Nome sem icone deixa a linha meio consertada: era a queixa do dono na
+	 * Rodada 4 ("maca no lugar do icone da Crimson Bible"), e o relato do alfa
+	 * sobre o 1680 dizia a mesma coisa por outras palavras ("imagem
+	 * aparentemente incompativel").
+	 *
+	 * **21 dos 34 passam nas DUAS peneiras**; os 13 restantes ficam com a maca,
+	 * declarados no fim deste bloco. Nenhum caminho foi chutado.
+	 *
+	 * ### Os NOVE Crimson — a MESMA derivacao da Rodada 4b, sem novidade
+	 *
+	 * Prefixo `진홍의` (jinhong-ui, "de carmesim") + a transliteracao coreana do
+	 * TIPO da arma. O cabecalho da Rodada 4b ja NOMEAVA estes arquivos ao
+	 * descrever a familia ("와이어 Wire, 스태프 Staff, 로드 Rod, ... 세이버
+	 * Saber, 랜스 Lance, 너클 Knuckle, 보우 Bow, 바이올린 Violin") — eles nao
+	 * entraram na epoca porque os itens ainda nao caiam de mob nenhum.
+	 *
+	 * Medido de novo agora, com a lista do GRF inteira: a familia tem **18**
+	 * arquivos em `item\`, os **18** tambem em `collection\`, e a tabela de
+	 * recurso do GRF aponta **ZERO** ids para qualquer um deles — dono unico,
+	 * sem disputa de identidade.
+	 */
+	1498: '\xc1\xf8\xc8\xab\xc0\xc7\xb7\xa3\xbd\xba', // Crimson Lance / 진홍의랜스
+	1680: '\xc1\xf8\xc8\xab\xc0\xc7\xb7\xce\xb5\xe5', // Crimson Rod / 진홍의로드
+	1839: '\xc1\xf8\xc8\xab\xc0\xc7\xb3\xca\xc5\xac', // Crimson Knuckles / 진홍의너클
+	1939: '\xc1\xf8\xc8\xab\xc0\xc7\xb9\xd9\xc0\xcc\xbf\xc3\xb8\xb0', // Crimson Violin / 진홍의바이올린
+	1995: '\xc1\xf8\xc8\xab\xc0\xc7\xbf\xcd\xc0\xcc\xbe\xee', // Crimson Whip / 진홍의와이어
+	2025: '\xc1\xf8\xc8\xab\xc0\xc7\xbd\xba\xc5\xc2\xc7\xc1', // Crimson Two-Handed Staff / 진홍의스태프
+	13327: '\xc1\xf8\xc8\xab\xc0\xc7\xc7\xb3\xb8\xb6\xbc\xf6\xb8\xae\xb0\xcb', // Crimson Huuma Shuriken / 진홍의풍마수리검
+	13454: '\xc1\xf8\xc8\xab\xc0\xc7\xbc\xbc\xc0\xcc\xb9\xf6', // Crimson Saber / 진홍의세이버
+	18130: '\xc1\xf8\xc8\xab\xc0\xc7\xba\xb8\xbf\xec', // Crimson Bow / 진홍의보우
+
+	/* Os DOIS com nome ASCII de verdade no GRF — a mesma tecnica da Rodada 4
+	 * (primeira passada), e os dois tem `item\` e `collection\`. */
+	25622: 'white_snake_tear', // White Snake's Tear, item_db_etc.yml:36746
+	25629: 'konts_letter', // Knotted Letter, item_db_etc.yml:36759
+
+	/* As DEZ cartas: `이름없는카드` ("carta sem nome"), o MESMO recurso do 4001
+	 * e do 4545. E icone DE FAMILIA, e nao disputa de identidade — medido: a
+	 * tabela de recurso deste GRF aponta **625** ids para este unico arquivo, e
+	 * e o comportamento canonico do RO classico (carta sem ilustracao propria
+	 * usa o icone generico). O precedente ja aceito e o 4545, na Rodada 4c. */
+	27157: '\xc0\xcc\xb8\xa7\xbe\xf8\xb4\xc2\xc4\xab\xb5\xe5', // Wood Goblin Card / 이름없는카드
+	27158: '\xc0\xcc\xb8\xa7\xbe\xf8\xb4\xc2\xc4\xab\xb5\xe5', // Les Card
+	27159: '\xc0\xcc\xb8\xa7\xbe\xf8\xb4\xc2\xc4\xab\xb5\xe5', // Uzhas Card
+	27160: '\xc0\xcc\xb8\xa7\xbe\xf8\xb4\xc2\xc4\xab\xb5\xe5', // Vavayaga Card
+	27161: '\xc0\xcc\xb8\xa7\xbe\xf8\xb4\xc2\xc4\xab\xb5\xe5', // Mavka Card
+	27162: '\xc0\xcc\xb8\xa7\xbe\xf8\xb4\xc2\xc4\xab\xb5\xe5', // Gopinich Card
+	27170: '\xc0\xcc\xb8\xa7\xbe\xf8\xb4\xc2\xc4\xab\xb5\xe5', // Shotgun Buffalo Bandit Card
+	27171: '\xc0\xcc\xb8\xa7\xbe\xf8\xb4\xc2\xc4\xab\xb5\xe5', // Revolver Buffalo Bandit Card
+	27172: '\xc0\xcc\xb8\xa7\xbe\xf8\xb4\xc2\xc4\xab\xb5\xe5', // Scimitar Buffalo Bandit Card
+	27179: '\xc0\xcc\xb8\xa7\xbe\xf8\xb4\xc2\xc4\xab\xb5\xe5' // Coyote Card
+
+	/*
+	 * OS 13 QUE FICAM COM A MACA, declarados — e nenhum deles e "nao procurei".
+	 *
+	 * Medido contra os 9.172 icones de `item\` deste GRF: nenhum tem `.bmp` sob
+	 * o proprio `AegisName` em ASCII, e nenhum tem entrada na tabela de recurso
+	 * (`idnum2itemresnametable.txt`) — sao ids de episodio mais novo que este
+	 * cliente. Uma derivacao CP949 por tipo, como a dos Crimson, nao se aplica:
+	 * eles nao sao familia com nome padronizado.
+	 *
+	 *   10037 Black_Butterfly_Mask · 12337 Grilled_Sausage ·
+	 *   13332 Huuma_Hundred_Petal · 18145 Vigilante_Bow · 23187 Sap_Jelly ·
+	 *   23189 Little_Dall_Needle · 25276 CleanBone · 25278 BanditsScarf ·
+	 *   25279 CrudeAmmo · 25283 BrownMuffler · 28116 Mine_Worker_Pickax ·
+	 *   28608 Origin_Of_Elemental · 28721 Monokage
+	 *
+	 * Eles chegam ao jogador NOMEADOS (a tabela de cima), com a ficha do
+	 * servidor inteira no tooltip, e com a maca no lugar do icone. Nome errado
+	 * seria pior; icone chutado seria pior ainda.
+	 */
 
 	/*
 	 * O 12849 (Combination Kit) NAO ENTRA, e e o mesmo veredito do 28382

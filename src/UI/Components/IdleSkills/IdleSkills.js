@@ -95,7 +95,7 @@ import {
  * cobra que os dois números sejam o mesmo, porque ele é a única coisa que
  * separa "árvore certa" de "árvore plausível e errada".
  */
-const VERSAO_DO_CONTRATO = 2;
+const VERSAO_DO_CONTRATO = 3;
 
 const NUMERIC_SKILL_ID_BY_NAME = new Map(
 	Object.entries(SkillInfo)
@@ -1107,10 +1107,26 @@ function plaqueta(skill, contexto, modificador) {
 		'<span class="is-no-nivel">' +
 		nivelHtml +
 		'</span>' +
-		'<button type="button" class="is-seta is-seta--mais" data-skill-mais="' +
+		/*
+		 * A SETA BLOQUEADA CONTINUA CLICÁVEL (D-1225, 08/09/2026).
+		 *
+		 * Ela era `disabled` com o motivo só no `title=`, e `title` não existe
+		 * no toque: no celular — que é como o alfa joga — o jogador tocava numa
+		 * seta que não fazia nada e não dizia nada. Foi assim que "Contra-Ataque
+		 * não permite aumentar o nível" chegou como relato em vez de como
+		 * pergunta respondida na própria janela.
+		 *
+		 * `aria-disabled` + a classe apagam a seta do mesmo jeito para quem vê e
+		 * para o leitor de tela; o clique cai em `onClickMais`, que já sabia
+		 * mostrar o motivo em `showProblemas` e nunca era alcançado. O `title`
+		 * fica para o mouse.
+		 */
+		'<button type="button" class="is-seta is-seta--mais' +
+		(subir.ok ? '' : ' is-seta--travada') +
+		'" data-skill-mais="' +
 		escapeHtml(skill.skillId) +
 		'"' +
-		(subir.ok ? '' : ' disabled') +
+		(subir.ok ? '' : ' aria-disabled="true"') +
 		' title="' +
 		escapeHtml(subir.ok ? 'Somar um ponto' : subir.motivo) +
 		'">' +
@@ -1427,6 +1443,21 @@ function buildMecanicaRows(skill) {
  * Sem nenhum dos dois, o silêncio é o selo: a habilidade funciona.
  */
 function seloDeEfeito(skill) {
+	/*
+	 * O SELO DE "NÃO DÁ PARA APRENDER" vem ANTES (D-1225, 08/09/2026).
+	 *
+	 * O relato do alfa foi *"Contra-Ataque não permite aumentar o nível"* com o
+	 * selo "sem efeito em combate ainda" na tela — e o selo estava certo sem
+	 * responder a pergunta. `portada: false` diz que o motor não executa;
+	 * `aceitaPeloMotor: false` é a TRANCA, e é ela que apaga a seta.
+	 *
+	 * Os dois eixos quase sempre coincidem, mas quem lê a janela precisa da
+	 * consequência, e não da causa: "sem efeito" convida a comprar assim mesmo,
+	 * e a seta então não obedece. O selo novo diz o que acontece.
+	 */
+	if (!skill.aceitaPeloMotor) {
+		return '<span class="is-badge ri-badge ri-badge--cinza" title="A tranca do motor: enquanto o motor de combate não executar esta habilidade, o ponto não pode ser gasto nela — ele sairia da sua conta sem mudar nada na luta.">não dá para aprender ainda</span>';
+	}
 	if (!skill.portada) {
 		return '<span class="is-badge ri-badge ri-badge--cinza" title="O motor de combate ainda não executa esta habilidade — aprendê-la não muda nada na luta.">sem efeito em combate ainda</span>';
 	}
@@ -1462,6 +1493,25 @@ function renderRequisitos(skill, contexto) {
 	skill.preRequisitos.forEach(requisito => {
 		const alvo = contexto.porId.get(requisito.skillId);
 		const tem = alvo ? nivelEfetivo(alvo, contexto.rascunho) : 0;
+		/*
+		 * O REQUISITO DISPENSADO (D-1225) — e ele precisa DIZER que foi
+		 * dispensado, em vez de só sair da lista.
+		 *
+		 * Some-lo daria uma lista que discorda do `skill_tree.yml` sem
+		 * explicação; deixá-lo com "X" era o defeito do alfa. A terceira via é
+		 * a honesta: linha cumprida, com o motivo ao lado.
+		 */
+		if (requisito.perdoado) {
+			linhas.push({
+				ok: true,
+				texto:
+					(alvo ? alvo.nome : requisito.skillId) +
+					' Nv. ' +
+					requisito.nivel +
+					' - dispensado (o motor ainda não executa esta habilidade)'
+			});
+			return;
+		}
 		linhas.push({
 			ok: tem >= requisito.nivel,
 			texto: (alvo ? alvo.nome : requisito.skillId) + ' Nv. ' + requisito.nivel + ' (você: ' + tem + ')'
