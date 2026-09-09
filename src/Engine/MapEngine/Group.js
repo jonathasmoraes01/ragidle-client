@@ -24,6 +24,20 @@ import ChatBox from 'UI/Components/ChatBox/ChatBox.js';
 import WorldMap from 'UI/Components/WorldMap/WorldMap.js';
 import MiniMap from 'UI/Components/MiniMap/MiniMap.js';
 import PartyFriends from 'UI/Components/PartyFriends/PartyFriends.js';
+/*
+ * RAGIDLE (D-984): quem troca a janela de grupo quando a party muda.
+ *
+ * A chamada mora AQUI, e nao dentro das janelas, porque este arquivo e o unico
+ * lugar do cliente onde `Session.hasParty` nasce e morre — e `Session.hasParty`
+ * e a fonte da verdade que o pedido do dono mandou usar. A porta compara com a
+ * ultima verdade que viu e so age na BORDA; chamar de mais nao faz mal.
+ *
+ * `partyMudou()` = EVENTO ("entrei/sai agora"), `sincronizar()` = RETRATO ("e
+ * assim que esta"). Os dois existem porque `hasParty` fica `true` tanto quando
+ * o jogador entra num grupo quanto quando ele LOGA ja em grupo (D-1097), e
+ * abrir a janela na segunda seria roubar a tela de quem so entrou no jogo.
+ */
+import PortaDoGrupo from 'UI/Components/portaDoGrupo.js';
 
 /**
  * @var {string} temporary variable to store party name
@@ -240,6 +254,15 @@ function onPartyCreate(pkt) {
 			}
 
 			PartyFriends.getUI().setParty(_partyName, [memberData]);
+			/* RAGIDLE (D-984): RETRATO, e nao evento. Criar um grupo tambem
+			   liga `hasParty`, mas o Localizador ja trata o 'criar' de um jeito
+			   escolhido (ele nao esta em `ACOES_QUE_FECHAM`, e a aba volta para
+			   'grupos' para o lider ver o proprio anuncio) — trocar a janela
+			   debaixo dele desfaria esse desenho. Criar tambem nao e um dos
+			   dois caminhos que o dono enumerou ("convite aceito" e "lista do
+			   LFG"). O que a anotacao garante e a BORDA seguinte: sem ela, sair
+			   do grupo que voce mesmo criou nao seria mudanca nenhuma. */
+			PortaDoGrupo.sincronizar();
 			break;
 		}
 		case 1: // party name already exists
@@ -295,6 +318,17 @@ function onPartyList(pkt) {
 
 	PartyFriends.getUI().setParty(pkt.groupName, pkt.groupInfo);
 	WorldMap.updatePartyMembers(pkt);
+
+	/*
+	 * RAGIDLE (D-984): RETRATO. Esta e a lista INTEIRA, e ela chega nas duas
+	 * situacoes que parecem a mesma e nao sao: depois de entrar num grupo (o
+	 * `ADD_MEMBER` la embaixo ja avisou, como evento) e na ENTRADA NO MUNDO de
+	 * quem ja estava em grupo (D-1097 — o cliente zera `hasParty` em todo
+	 * `ZC_ACCEPT_ENTER`, entao logar em grupo tambem e uma borda de false para
+	 * true). Tratar as duas como evento abriria a janela de Grupo na cara de
+	 * quem so entrou no jogo.
+	 */
+	PortaDoGrupo.sincronizar();
 }
 
 /**
@@ -325,6 +359,22 @@ function onPartyMemberJoin(pkt) {
 	}
 	PartyUI.setOptions(pkt.expOption, pkt.ItemPickupRule, pkt.ItemDivisionRule);
 	PartyUI.addPartyMember(pkt);
+
+	/*
+	 * RAGIDLE (D-984): EVENTO — "eu ENTREI num grupo agora".
+	 *
+	 * Este pacote e o unico que carrega esse sentido, e ele vale para os DOIS
+	 * caminhos que o dono enumerou: o servidor difunde o membro novo para o
+	 * grupo inteiro "e o proprio novo, que e como o cliente liga
+	 * Session.hasParty" (as palavras estao la, nas duas rotas — aceitar convite
+	 * e entrar pela lista do LFG).
+	 *
+	 * Ele tambem chega quando OUTRA pessoa entra no meu grupo, e ai `hasParty`
+	 * ja era `true`: nao ha borda, e a porta nao mexe em janela nenhuma. E por
+	 * isso que a comparacao vive la dentro, e nao num `if` aqui — um `if`
+	 * daqui seria uma segunda leitura da mesma pergunta.
+	 */
+	PortaDoGrupo.partyMudou();
 }
 
 /**
@@ -367,6 +417,20 @@ function onPartyMemberLeave(pkt) {
 	}
 
 	PartyFriends.getUI().removePartyMember(pkt.AID, pkt.characterName);
+
+	/*
+	 * RAGIDLE (D-984): EVENTO — "eu SAI do grupo agora".
+	 *
+	 * Os TRES motivos do pedido do dono descem por aqui: sair, ser expulso e o
+	 * grupo se desfazer. O servidor reusa este mesmo pacote para os tres ("o
+	 * MESMO pacote que sair/expulsar ja usam", no comentario do dissolver) —
+	 * por isso nao ha um segundo aviso para escutar.
+	 *
+	 * `pkt.result` 2 e 3 (nao da para sair NESTE mapa) sairam pelo `return` la
+	 * em cima: ali ninguem saiu de grupo nenhum, e trocar a janela seria
+	 * mentir sobre uma recusa.
+	 */
+	PortaDoGrupo.partyMudou();
 }
 
 /**

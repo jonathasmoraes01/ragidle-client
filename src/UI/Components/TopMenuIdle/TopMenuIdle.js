@@ -104,9 +104,11 @@
  *                 janela — chama Guild.promptCreateGuild(), exatamente como
  *                 o atalho de teclado nativo faz (Guild.js:420-423). Aceito
  *                 de proposito: e o unico caminho de entrada que existe.
- *   - Grupo       -> GrupoIdle.toggle()      (D-960; era PartyFriends.toggle())
- *                 PUBLICO do controller de versao (V0/V1), que delega pra
- *                 PartyFriendsCommon.js:132-138.
+ *   - Grupo       -> PortaDoGrupo.abrirPeloMenu()  (D-984; era GrupoIdle.toggle()
+ *                 em D-960, e PartyFriends.toggle() antes disso). O item NAO
+ *                 abre mais uma janela fixa: sem party ele abre o Localizador
+ *                 (LFGIdle), com party abre a janela de Grupo (GrupoIdle). Quem
+ *                 decide e portaDoGrupo.js, lendo Session.hasParty.
  *   - Admin       -> AdminPanel.toggle()     (AdminPanel.js:268), com a
  *                 MESMA trava de conta dona que AdminPanel.js:65/186 usa
  *                 (Session.AID === 2000000, ver isOwnerAccount()) — o item
@@ -184,7 +186,10 @@ import Guild from 'UI/Components/Guild/Guild.js';
 // alimenta e o `Engine/MapEngine.js` e o `Engine/MapEngine/Group.js`, que
 // desenham o convite que CHEGA e a lista de amigos.
 import LFGIdle from 'UI/Components/LFGIdle/LFGIdle.js'; // RAGIDLE: Procurar Grupo (D-634)
-import GrupoIdle from 'UI/Components/GrupoIdle/GrupoIdle.js'; // RAGIDLE: janela de Grupo (D-960)
+/* A `GrupoIdle` saiu dos imports em D-984 pelo mesmo motivo que a `PartyFriends`
+   saiu em D-960: o item "Grupo" deixou de citar uma janela por nome. Quem
+   escolhe entre as duas — e quem carrega as duas — e a `portaDoGrupo`. */
+import PortaDoGrupo from 'UI/Components/portaDoGrupo.js'; // RAGIDLE: quem decide QUAL das duas (D-984)
 import { ehCelularEmPe } from 'UI/hudVertical.js'; // D-939: a folha do menu flutua sobre o chat
 /* 08/09/2026: a terceira porta do "Instalar app". A DECISAO e toda de la — ver
    `ligarOfertaDeInstalacao()` mais abaixo. */
@@ -580,9 +585,21 @@ function onClickAction(e) {
 		 * ATENCAO: existe um SEGUNDO switch neste arquivo, o `isActionOpen()`
 		 * la embaixo. Este aqui ABRE; o de la acende o aro. Ja houve TRES
 		 * casos de so um dos dois ser editado — os tres comentados la.
+		 *
+		 * D-984: o item deixou de abrir SEMPRE a mesma janela. Quem nao tem
+		 * party recebia a tela de gerenciar um grupo que nao existe (nome "Sem
+		 * grupo", zero membros, "Convidar" desabilitado) — e a janela que ele
+		 * queria, o Localizador, so existia como um SEGUNDO item, dentro do
+		 * leque. A decisao virou uma so, em `portaDoGrupo.js`, e ela le
+		 * `Session.hasParty` — nunca o estado da janela de Grupo, que so chega
+		 * enquanto a janela esta inscrita (o cabecalho da porta explica).
+		 *
+		 * O `isActionOpen()` la embaixo DERIVA da mesma decisao, em vez de
+		 * repeti-la: e o comeco da "UMA tabela de acao -> {abrir, seletor}"
+		 * que o proprio `isActionOpen()` pede por escrito ha tres casos.
 		 */
 		case 'group':
-			GrupoIdle.toggle();
+			PortaDoGrupo.abrirPeloMenu();
 			break;
 		// O LFG e uma janela SEPARADA da de party (D-634): a nativa mostra
 		// quem ja esta no grupo, esta procura grupo para entrar.
@@ -1302,14 +1319,27 @@ function isActionOpen(action) {
 			return isRagIdleWindowOpen(AdminPanel, '.ap-window');
 		case 'guild':
 			return isHostVisible(Guild);
-		/* Ver o comentario do `case 'group'` no switch de ABRIR: o item passou
-		   a abrir a janela RAGIDLE (D-960), entao ele le
-		   '.gi-window.is-open' — e nao `isHostVisible`, que e a armadilha que
-		   o comentario de `lfg` logo abaixo registra (o `_host` de um
-		   GUIComponent nunca ganha display:none sozinho, entao o aro nunca
-		   apagaria). */
-		case 'group':
-			return isRagIdleWindowOpen(GrupoIdle, '.gi-window');
+		/*
+		 * Ver o comentario do `case 'group'` no switch de ABRIR: o item passou
+		 * a abrir a janela RAGIDLE (D-960), entao ele le '.gi-window.is-open'
+		 * — e nao `isHostVisible`, que e a armadilha que o comentario de `lfg`
+		 * logo abaixo registra (o `_host` de um GUIComponent nunca ganha
+		 * display:none sozinho, entao o aro nunca apagaria).
+		 *
+		 * D-984: o item passou a abrir DUAS janelas diferentes conforme a
+		 * party, e o aro segue junto — quem pergunta qual e a janela e a
+		 * MESMA funcao que o switch de abrir usa. Escrever aqui um segundo
+		 * `Session.hasParty ? ... : ...` seria reencenar de novo o defeito que
+		 * este arquivo ja registra quatro vezes: dois switches paralelos
+		 * ligados so pela disciplina de quem edita.
+		 *
+		 * `null` antes do `ligar()` (fora do jogo) = aro apagado, que e o
+		 * mesmo que o `default` faz para os itens "em breve".
+		 */
+		case 'group': {
+			const alvo = PortaDoGrupo.janelaDoBotao();
+			return alvo ? isRagIdleWindowOpen(alvo.componente, alvo.seletor) : false;
+		}
 		/*
 		 * LFG (D-634): ele e janela RAGIDLE, e NAO nativa -- entao le
 		 * ".lfg-window.is-open", como as vizinhas de cima.

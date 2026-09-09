@@ -289,15 +289,19 @@
 					<span class="tm-label">Guilda</span>
 				</button>
 
-				<!-- Ate 01/09/2026 este botao desenhava o MESMO icone do Grupo
-				     logo abaixo — dois rotulos, uma figura. A chave `amigos`
-				     nasceu na onda de icones ([DONO-5]): o par DESARMADO e
-				     Amigos, o armado e Grupo. -->
-				<button type="button" class="tm-item" data-action="group" title="Amigos">
-					<span class="tm-icon-wrap ri-disc"><!--RI_ICONE:amigos--></span>
-					<span class="tm-label">Amigos</span>
-				</button>
-				<button type="button" class="tm-item" data-action="lfg" title="Grupo">
+				<!-- D-980: UM SO BOTAO, e nao mais o par Amigos/Grupo.
+				     Ate aqui existiam DOIS itens de menu para grupo: este
+				     (`data-action="group"`, a janela NOVA, D-960) rotulado
+				     "Amigos", e um segundo (`data-action="lfg"`, o
+				     Localizador antigo) rotulado "Grupo" — o dono clicava no
+				     item ESCRITO "Grupo" e caia no sistema ANTIGO, que era
+				     exatamente o rotulo do item errado. Pedido do dono,
+				     07/09/2026: *"tire o sistema antigo, deixe so o novo"*.
+				     O Localizador NAO sumiu do jogo — GrupoIdle tem o proprio
+				     botao "Abrir o Localizador" para quem nao esta em grupo
+				     (a ponte que D-961 ja descrevia); so o SEGUNDO caminho de
+				     entrada, direto do menu, saiu. -->
+				<button type="button" class="tm-item" data-action="group" title="Grupo">
 					<span class="tm-icon-wrap ri-disc"><!--RI_ICONE:grupo--></span>
 					<span class="tm-label">Grupo</span>
 				</button>
