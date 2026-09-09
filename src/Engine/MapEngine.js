@@ -168,6 +168,7 @@ import RagidleCashEngine from './MapEngine/RagidleCash.js';
 import RagidleConfirmarEngine from './MapEngine/RagidleConfirmar.js'; // RAGIDLE: janela de confirmacao do `#` destrutivo
 import EscalaDaHud from 'UI/escalaDaHud.js'; // RAGIDLE: a HUD diminui junto com a janela (D-934)
 import HudVertical from 'UI/hudVertical.js'; // RAGIDLE: a HUD vertical do celular em pe (D-939)
+import TelaAcesaNoFarm from 'UI/telaAcesaNoFarm.js'; // RAGIDLE: o modo leitura — a tela nao apaga no farm
 
 /**
  * @type {string} mapname
@@ -1206,6 +1207,18 @@ function onMapChange(pkt) {
 		   os hosts precisam ja existir. */
 		HudVertical.ligar();
 
+		/*
+		 * O MODO LEITURA (09/09/2026, pedido do dono): a tela nao apaga
+		 * enquanto o personagem esta em farm automatico.
+		 *
+		 * Ligado AQUI, e nao no `CombatCornerIdle` que ja pesquisa o mesmo
+		 * `cacaAutomatica`: aquele componente e desenho, sai de cena na troca
+		 * de mapa, e o wake lock nao pode piscar a cada viagem. Este e o
+		 * mesmo lugar onde a escala e a HUD vertical se ligam — o que vive
+		 * enquanto a sessao vive mora aqui.
+		 */
+		TelaAcesaNoFarm.ligar();
+
 		if (Configs.get('enableCashShop')) {
 			/*
 			 * O ICONE SOLTO DA LOJA DE CASH SAIU DA TELA (I5, 31/08/2026 — pedido
@@ -1406,6 +1419,16 @@ function onExitSuccess() {
 		ShortCut.saveToServer();
 	}
 
+	/*
+	 * O MODO LEITURA SOLTA AQUI (09/09/2026).
+	 *
+	 * Sair do jogo e o unico caminho em que a condicao dele deixa de existir
+	 * sem nunca virar falsa: o `IdleConfig` para de receber resposta, entao
+	 * `cacaAutomatica` congela no ultimo valor e o relogio do modulo seguiria
+	 * renovando o lock numa tela de login. Trocar de MAPA nao passa por aqui,
+	 * e e proposital — o lock nao pode piscar a cada viagem.
+	 */
+	TelaAcesaNoFarm.desligar();
 	GuildEngine.guild_id = 0;
 	cleanGameUI();
 	Session.Achievement = null;
