@@ -104,11 +104,13 @@
  *                 janela — chama Guild.promptCreateGuild(), exatamente como
  *                 o atalho de teclado nativo faz (Guild.js:420-423). Aceito
  *                 de proposito: e o unico caminho de entrada que existe.
- *   - Grupo       -> PortaDoGrupo.abrirPeloMenu()  (D-984; era GrupoIdle.toggle()
- *                 em D-960, e PartyFriends.toggle() antes disso). O item NAO
- *                 abre mais uma janela fixa: sem party ele abre o Localizador
- *                 (LFGIdle), com party abre a janela de Grupo (GrupoIdle). Quem
- *                 decide e portaDoGrupo.js, lendo Session.hasParty.
+ *   - Grupo       -> GrupoIdle.toggle()  (D-988; era PartyFriends.toggle()
+ *                 antes de D-960, e a porta automatica de D-984 no meio). Ele
+ *                 abre a janela de Grupo SEMPRE, inclusive sem party: e la que
+ *                 se le a aba Postos antes de decidir entrar num grupo.
+ *   - Procurar grupo -> LFGIdle.toggle()  (D-988). O par do de cima. A troca
+ *                 automatica ao entrar e ao sair continua em portaDoGrupo.js;
+ *                 o que ela nao faz mais e escolher o que o MENU abre.
  *   - Admin       -> AdminPanel.toggle()     (AdminPanel.js:268), com a
  *                 MESMA trava de conta dona que AdminPanel.js:65/186 usa
  *                 (Session.AID === 2000000, ver isOwnerAccount()) — o item
@@ -189,7 +191,7 @@ import LFGIdle from 'UI/Components/LFGIdle/LFGIdle.js'; // RAGIDLE: Procurar Gru
 /* A `GrupoIdle` saiu dos imports em D-984 pelo mesmo motivo que a `PartyFriends`
    saiu em D-960: o item "Grupo" deixou de citar uma janela por nome. Quem
    escolhe entre as duas — e quem carrega as duas — e a `portaDoGrupo`. */
-import PortaDoGrupo from 'UI/Components/portaDoGrupo.js'; // RAGIDLE: quem decide QUAL das duas (D-984)
+import GrupoIdle from 'UI/Components/GrupoIdle/GrupoIdle.js'; // RAGIDLE: a janela de Grupo (D-960)
 import { ehCelularEmPe } from 'UI/hudVertical.js'; // D-939: a folha do menu flutua sobre o chat
 /* 08/09/2026: a terceira porta do "Instalar app". A DECISAO e toda de la — ver
    `ligarOfertaDeInstalacao()` mais abaixo. */
@@ -598,8 +600,15 @@ function onClickAction(e) {
 		 * repeti-la: e o comeco da "UMA tabela de acao -> {abrir, seletor}"
 		 * que o proprio `isActionOpen()` pede por escrito ha tres casos.
 		 */
+		/*
+		 * D-988: cada caminho tem o proprio botao, e este ABRE A JANELA DE
+		 * GRUPO sempre — inclusive para quem nao esta em grupo nenhum, que e
+		 * quem mais precisa ler a aba Postos. A porta automatica (D-984)
+		 * continua viva em `portaDoGrupo.js`, so que agora ela cuida da TROCA
+		 * (entrar/sair) e nao mais de decidir qual janela o menu abre.
+		 */
 		case 'group':
-			PortaDoGrupo.abrirPeloMenu();
+			GrupoIdle.toggle();
 			break;
 		// O LFG e uma janela SEPARADA da de party (D-634): a nativa mostra
 		// quem ja esta no grupo, esta procura grupo para entrar.
@@ -1336,10 +1345,10 @@ function isActionOpen(action) {
 		 * `null` antes do `ligar()` (fora do jogo) = aro apagado, que e o
 		 * mesmo que o `default` faz para os itens "em breve".
 		 */
-		case 'group': {
-			const alvo = PortaDoGrupo.janelaDoBotao();
-			return alvo ? isRagIdleWindowOpen(alvo.componente, alvo.seletor) : false;
-		}
+		// D-988: o aro do 'Grupo' acende com a janela de Grupo aberta, e o do
+		// 'Procurar grupo' com o Localizador — um item, uma janela.
+		case 'group':
+			return isRagIdleWindowOpen(GrupoIdle, '.gi-window');
 		/*
 		 * LFG (D-634): ele e janela RAGIDLE, e NAO nativa -- entao le
 		 * ".lfg-window.is-open", como as vizinhas de cima.

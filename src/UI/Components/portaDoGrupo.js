@@ -119,34 +119,20 @@ PortaDoGrupo.ligar = function ligar(janelas) {
 	_grupo = janelas.grupo;
 };
 
-/**
- * A janela que o item "Grupo" do menu abriria AGORA.
+/*
+ * `janelaDoBotao` e `abrirPeloMenu` SAIRAM em D-988.
  *
- * Ela existe para que os DOIS switches do `TopMenuIdle` (o que abre e o
- * `isActionOpen()`, que acende o aro) derivem da MESMA decisão. Esse par já
- * produziu QUATRO casos de "só um dos dois foi editado" — os quatro comentados
- * no próprio arquivo, com o pedido literal de "faça UMA tabela e derive os dois
- * dela". Esta função é essa tabela para o item "Grupo".
+ * A porta decidia qual das duas janelas o item de menu abria, e o desenho
+ * estava certo no papel e errado na mao: quem nao esta em grupo nunca
+ * alcancava a janela de Grupo, e a aba Postos e justamente o que se le ANTES
+ * de entrar num. Hoje o menu tem os DOIS botoes, cada um com o rotulo do que
+ * faz, e este modulo ficou so com o que ele sempre soube fazer melhor: a
+ * TROCA automatica quando o jogador entra ou sai de um grupo.
  *
- * @returns {JanelaDeGrupo|null} `null` antes do `ligar()` (fora do jogo).
+ * Sairam de vez em vez de ficarem sem chamador: modulo com funcao morta e
+ * teste verde por cima dela e a cicatriz que os Postos ja custaram a este
+ * projeto (D-1236).
  */
-PortaDoGrupo.janelaDoBotao = function janelaDoBotao() {
-	return temParty() ? _grupo : _localizador;
-};
-
-/** O clique no item "Grupo": alterna a janela que a decisão acima escolheu. */
-PortaDoGrupo.abrirPeloMenu = function abrirPeloMenu() {
-	const alvo = PortaDoGrupo.janelaDoBotao();
-	if (!alvo) {
-		return;
-	}
-	if (alvo.estaAberta()) {
-		alvo.fechar();
-	} else {
-		alvo.abrir();
-	}
-};
-
 /**
  * RETRATO: "é assim que a party está". Anota e não mexe em janela nenhuma.
  *

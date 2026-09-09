@@ -79,15 +79,10 @@ describe('a porta do grupo: qual janela o botão "Grupo" abre', () => {
 
 	// ─── OS QUATRO CASOS DO ENUNCIADO ──────────────────────────────────────
 
-	it('sem party + clicar Grupo -> abre o LOCALIZADOR', () => {
-		PortaDoGrupo.abrirPeloMenu();
 
-		expect(lfg.estado.aberta).toBe(true);
-		expect(grupo.estado.aberta).toBe(false);
-	});
 
 	it('entrar em party -> o LFG fecha e o Grupo abre, sem tocar em nada', () => {
-		PortaDoGrupo.abrirPeloMenu(); // o jogador estava olhando a lista
+		lfg.descritor.abrir(); // o jogador estava olhando a lista, pelo botao dela
 		expect(lfg.estado.aberta).toBe(true);
 
 		entrouNumGrupo();
@@ -96,15 +91,7 @@ describe('a porta do grupo: qual janela o botão "Grupo" abre', () => {
 		expect(grupo.estado.aberta).toBe(true);
 	});
 
-	it('com party + clicar Grupo -> abre a JANELA DE GRUPO', () => {
-		Session.hasParty = true;
-		PortaDoGrupo.sincronizar();
 
-		PortaDoGrupo.abrirPeloMenu();
-
-		expect(grupo.estado.aberta).toBe(true);
-		expect(lfg.estado.aberta).toBe(false);
-	});
 
 	it('sair da party com a janela ABERTA -> o Grupo fecha e o LFG abre no lugar', () => {
 		entrouNumGrupo();
@@ -171,50 +158,13 @@ describe('a porta do grupo: qual janela o botão "Grupo" abre', () => {
 		expect(grupo.estado.fechouVezes).toBe(fechadas);
 	});
 
-	it('a verdade é `Session.hasParty`, e NÃO o estado da janela de Grupo', () => {
-		/*
-		 * A armadilha que o enunciado destaca: o servidor só empurra
-		 * `ZC_RAGIDLE_GRUPO` para quem está INSCRITO, e a inscrição morre com
-		 * `fechar()`. Com a janela fechada — que é o instante em que o botão
-		 * decide — esse estado não chega. Perguntar à janela devolveria "sem
-		 * grupo" para quem está em grupo.
-		 *
-		 * A prova: a janela de Grupo nunca abriu (logo, nunca recebeu estado
-		 * nenhum) e mesmo assim o botão manda nela.
-		 */
-		Session.hasParty = true;
 
-		PortaDoGrupo.abrirPeloMenu();
 
-		expect(grupo.estado.aberta).toBe(true);
-	});
 
-	it('clicar de novo FECHA a janela que o botão abriu (o toggle não se perdeu)', () => {
-		PortaDoGrupo.abrirPeloMenu();
-		PortaDoGrupo.abrirPeloMenu();
-		expect(lfg.estado.aberta).toBe(false);
 
-		Session.hasParty = true;
-		PortaDoGrupo.abrirPeloMenu();
-		PortaDoGrupo.abrirPeloMenu();
-		expect(grupo.estado.aberta).toBe(false);
-	});
 
-	it('`janelaDoBotao()` devolve o descritor que o ARO do menu lê', () => {
-		/* Os dois switches do TopMenuIdle derivam desta função — é o que os
-		   impede de discordar (o arquivo registra QUATRO casos de "só um dos
-		   dois foi editado"). */
-		expect(PortaDoGrupo.janelaDoBotao().seletor).toBe('.lfg-window');
-		Session.hasParty = true;
-		expect(PortaDoGrupo.janelaDoBotao().seletor).toBe('.gi-window');
-	});
 
-	it('fora do jogo (sem `ligar()`) o botão não explode e o aro fica apagado', () => {
-		PortaDoGrupo._zerar();
 
-		expect(PortaDoGrupo.janelaDoBotao()).toBe(null);
-		expect(() => PortaDoGrupo.abrirPeloMenu()).not.toThrow();
-	});
 
 	it('a memória de party NÃO atravessa a troca de personagem', () => {
 		/*
@@ -255,15 +205,43 @@ const ler = (rel) => readFileSync(join(process.cwd(), 'src', rel), 'utf8');
 const semComentarios = (fonte) => fonte.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
 
 describe('a porta está ligada nos dois lados', () => {
-	it('os DOIS switches do TopMenuIdle derivam da MESMA decisão', () => {
+	it('cada item de menu abre a SUA janela, nos dois switches (D-988)', () => {
+		/*
+		 * O arquivo registra QUATRO casos de "so um dos dois switches foi
+		 * editado" — o que ABRE e o que acende o ARO. Com dois itens em vez de
+		 * um, sao quatro pares para manter em pe, e este pino cobra os quatro.
+		 */
 		const fonte = semComentarios(ler('UI/Components/TopMenuIdle/TopMenuIdle.js'));
-		// o que ABRE
-		expect(fonte.includes('PortaDoGrupo.abrirPeloMenu()')).toBe(true);
+		/*
+		 * O PAR, e nao a presenca. Cobrar so que as duas chamadas existem no
+		 * arquivo passaria com elas TROCADAS — que e exatamente o defeito que
+		 * D-980 consertou (o item escrito "Grupo" abrindo o sistema errado).
+		 * Entao o que se mede e o que vem DEPOIS de cada `case`.
+		 */
+		const depoisDoCase = (acao) =>
+			fonte.slice(fonte.indexOf(`case '${acao}':`)).slice(0, 120);
+		expect(depoisDoCase('group')).toContain('GrupoIdle.toggle()');
+		expect(depoisDoCase('lfg')).toContain('LFGIdle.toggle()');
 		// o que acende o ARO
-		expect(fonte.includes('PortaDoGrupo.janelaDoBotao()')).toBe(true);
-		/* E nenhum dos dois pode ter voltado a citar uma janela por nome: era
-		   assim que o item abria SEMPRE a mesma tela. */
-		expect(fonte.includes('GrupoIdle.toggle()')).toBe(false);
+		expect(fonte.includes("isRagIdleWindowOpen(GrupoIdle, '.gi-window')")).toBe(true);
+		expect(fonte.includes("isRagIdleWindowOpen(LFGIdle, '.lfg-window')")).toBe(true);
+		// e a porta NAO decide mais o que o menu abre
+		expect(fonte.includes('PortaDoGrupo')).toBe(false);
+	});
+
+	it('o menu tem UM item por janela de grupo, e nao mais nem menos', () => {
+		/*
+		 * D-980 tinha cortado para um item porque os DOIS diziam a coisa errada
+		 * (o escrito "Grupo" caia no sistema antigo). O corte resolveu o rotulo
+		 * e criou outro buraco: sem party, a janela de Grupo virava inalcancavel.
+		 * Dois itens com o rotulo CERTO e o desenho de D-988 — e este pino existe
+		 * para nenhum dos dois voltar a sumir ou a duplicar.
+		 */
+		const html = ler('UI/Components/TopMenuIdle/TopMenuIdle.html');
+		const botoes = html.match(/<button[^>]*data-action="(?:group|lfg)"/g) ?? [];
+		expect(botoes).toHaveLength(2);
+		expect(botoes.filter((b) => b.includes('"group"'))).toHaveLength(1);
+		expect(botoes.filter((b) => b.includes('"lfg"'))).toHaveLength(1);
 	});
 
 	it('o TopMenuIdle não decide sozinho quem tem party', () => {
