@@ -1,5 +1,5 @@
 /**
- * A PORTA DO GRUPO (D-975, 08/09/2026) — os quatro casos do dono.
+ * A PORTA DO GRUPO (D-984, 08/09/2026) — os quatro casos do dono.
  *
  * O pedido, palavra por palavra:
  *

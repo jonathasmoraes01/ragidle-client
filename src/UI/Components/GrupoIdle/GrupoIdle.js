@@ -358,7 +358,7 @@ function desenharMembros(e) {
 	if (!grupo || !grupo.membros.length) {
 		contador.textContent = '0/0';
 		/*
-		 * A SAIDA MORA NO ESTADO VAZIO (D-969, 07/09/2026).
+		 * A SAIDA MORA NO ESTADO VAZIO (D-982, 07/09/2026).
 		 *
 		 * Ate aqui o unico botao "Encontrar grupo" vivia DENTRO do painel
 		 * de Convidar — e "Convidar" nasce `disabled` para quem nao esta em
@@ -366,7 +366,7 @@ function desenharMembros(e) {
 		 * conseguia chegar ao Localizador. O texto do rodape ate mandava
 		 * "abra o Localizador", sem dar por onde.
 		 *
-		 * Isso so virou buraco quando D-967 tirou o segundo item do menu; ate
+		 * Isso so virou buraco quando D-980 tirou o segundo item do menu; ate
 		 * entao o menu tinha a porta de tras. Fechar a porta de tras sem abrir
 		 * a da frente e o que teria deixado o jogador preso.
 		 */
@@ -480,7 +480,7 @@ function desenharCacada(e) {
 }
 
 /*
- * O BOTAO "IR ATE O LIDER" (D-975).
+ * O BOTAO "IR ATE O LIDER" (D-984).
  *
  * O pedido do dono: o botao que o Localizador ja tem no rodape de quem e
  * MEMBRO precisa existir tambem aqui. As duas condicoes sao dele: *"so faz
@@ -529,7 +529,7 @@ function desenharPostos(e) {
 		.map(function (p) {
 			const ehEscolhido = p.id === escolhido;
 			/*
-			 * D-975 — POSTO BLOQUEADO SEM MOTIVO NAO EXISTE.
+			 * D-984 — POSTO BLOQUEADO SEM MOTIVO NAO EXISTE.
 			 *
 			 * O `motivo` so era impresso quando o servidor mandava um, e ate
 			 * aqui todo bloqueio dele vinha com frase. A regra de LIDER (secoes
@@ -581,7 +581,7 @@ function desenharPostos(e) {
 	alvo.querySelectorAll('.gi-assumir').forEach(function (botao) {
 		botao.addEventListener('click', function () {
 			/*
-			 * D-975 — NAO CONFIE SO NO `disabled` (ordem do dono, secao 10).
+			 * D-984 — NAO CONFIE SO NO `disabled` (ordem do dono, secao 10).
 			 *
 			 * O atributo e desenho: ele some com um clique no inspetor, e o
 			 * botao aqui e RECONSTRUIDO a cada empurrao — entre o desenho e o
@@ -974,7 +974,7 @@ GrupoIdle.toggle = function toggle() {
 GrupoIdle.aoPedirLocalizador = null;
 
 /**
- * A IRMA da ponte acima (D-975): "me leve ate o lider".
+ * A IRMA da ponte acima (D-984): "me leve ate o lider".
  *
  * Ela existe pelos mesmos dois motivos — nao importar `LFGIdle.js` daqui, e
  * nao ter uma SEGUNDA implementacao do teleporte. O corpo dela e uma linha

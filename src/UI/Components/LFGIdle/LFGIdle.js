@@ -1056,7 +1056,7 @@ LFGIdle.toggle = function toggle() {
 };
 
 /**
- * IR ATÉ O LÍDER — a ÚNICA implementação do teleporte de party (D-975).
+ * IR ATÉ O LÍDER — a ÚNICA implementação do teleporte de party (D-984).
  *
  * Ela era o corpo do `if` de `.lfg-teleportar` lá em cima e virou método
  * público porque a janela de Grupo passou a oferecer o mesmo botão. O pedido

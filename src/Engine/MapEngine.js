@@ -107,7 +107,7 @@ import PasseIdle from 'UI/Components/PasseIdle/PasseIdle.js'; // RAGIDLE: janela
 import CodexIdle from 'UI/Components/CodexIdle/CodexIdle.js'; // RAGIDLE: janela do Codex (D-851)
 import LFGIdle from 'UI/Components/LFGIdle/LFGIdle.js'; // RAGIDLE: janela de Procurar Grupo (D-634)
 import GrupoIdle from 'UI/Components/GrupoIdle/GrupoIdle.js'; // RAGIDLE: janela de Grupo (D-960)
-import PortaDoGrupo from 'UI/Components/portaDoGrupo.js'; // RAGIDLE: qual das duas janelas de grupo abre (D-975)
+import PortaDoGrupo from 'UI/Components/portaDoGrupo.js'; // RAGIDLE: qual das duas janelas de grupo abre (D-984)
 import MissoesTrackerIdle from 'UI/Components/MissoesTrackerIdle/MissoesTrackerIdle.js'; // RAGIDLE: tracker estilo Origin (D-601)
 import IdleConfig from 'UI/Components/IdleConfig/IdleConfig.js'; // RAGIDLE: "Configuração idle"
 import AdminPanel from 'UI/Components/AdminPanel/AdminPanel.js'; // RAGIDLE: "Painel de admin"
@@ -726,7 +726,7 @@ function onConnectionAccepted(pkt) {
 	Session.petId = 0;
 	Session.hasParty = false;
 	Session.isPartyLeader = false;
-	/* RAGIDLE (D-975): a porta do grupo anota que a verdade voltou a zero.
+	/* RAGIDLE (D-984): a porta do grupo anota que a verdade voltou a zero.
 	   Sem isto, a memória de party do personagem ANTERIOR atravessaria a troca
 	   (nada aqui recarrega a página) e o primeiro grupo do personagem novo não
 	   seria uma mudança para ela — a janela de Grupo não abriria sozinha. */
@@ -1096,7 +1096,7 @@ function onMapChange(pkt) {
 			LFGIdle.abrir();
 		};
 
-		/* A IRMÃ dela (D-975): "me leve até o líder".
+		/* A IRMÃ dela (D-984): "me leve até o líder".
 
 		   O corpo mora no Localizador porque é lá que `{acao:'teleportar'}`
 		   sempre morou, e é lá que o RESULTADO desse pacote sabe ser lido (o
@@ -1107,7 +1107,7 @@ function onMapChange(pkt) {
 		};
 
 		/*
-		 * A PORTA DO GRUPO (D-975) — qual das duas janelas o item "Grupo" abre,
+		 * A PORTA DO GRUPO (D-984) — qual das duas janelas o item "Grupo" abre,
 		 * e quem troca de janela quando a party muda.
 		 *
 		 * A ligação mora aqui pela MESMA razão das duas pontes acima: só o

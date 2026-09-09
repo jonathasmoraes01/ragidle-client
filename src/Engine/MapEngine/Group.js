@@ -25,7 +25,7 @@ import WorldMap from 'UI/Components/WorldMap/WorldMap.js';
 import MiniMap from 'UI/Components/MiniMap/MiniMap.js';
 import PartyFriends from 'UI/Components/PartyFriends/PartyFriends.js';
 /*
- * RAGIDLE (D-975): quem troca a janela de grupo quando a party muda.
+ * RAGIDLE (D-984): quem troca a janela de grupo quando a party muda.
  *
  * A chamada mora AQUI, e nao dentro das janelas, porque este arquivo e o unico
  * lugar do cliente onde `Session.hasParty` nasce e morre — e `Session.hasParty`
@@ -254,7 +254,7 @@ function onPartyCreate(pkt) {
 			}
 
 			PartyFriends.getUI().setParty(_partyName, [memberData]);
-			/* RAGIDLE (D-975): RETRATO, e nao evento. Criar um grupo tambem
+			/* RAGIDLE (D-984): RETRATO, e nao evento. Criar um grupo tambem
 			   liga `hasParty`, mas o Localizador ja trata o 'criar' de um jeito
 			   escolhido (ele nao esta em `ACOES_QUE_FECHAM`, e a aba volta para
 			   'grupos' para o lider ver o proprio anuncio) — trocar a janela
@@ -320,7 +320,7 @@ function onPartyList(pkt) {
 	WorldMap.updatePartyMembers(pkt);
 
 	/*
-	 * RAGIDLE (D-975): RETRATO. Esta e a lista INTEIRA, e ela chega nas duas
+	 * RAGIDLE (D-984): RETRATO. Esta e a lista INTEIRA, e ela chega nas duas
 	 * situacoes que parecem a mesma e nao sao: depois de entrar num grupo (o
 	 * `ADD_MEMBER` la embaixo ja avisou, como evento) e na ENTRADA NO MUNDO de
 	 * quem ja estava em grupo (D-1097 — o cliente zera `hasParty` em todo
@@ -361,7 +361,7 @@ function onPartyMemberJoin(pkt) {
 	PartyUI.addPartyMember(pkt);
 
 	/*
-	 * RAGIDLE (D-975): EVENTO — "eu ENTREI num grupo agora".
+	 * RAGIDLE (D-984): EVENTO — "eu ENTREI num grupo agora".
 	 *
 	 * Este pacote e o unico que carrega esse sentido, e ele vale para os DOIS
 	 * caminhos que o dono enumerou: o servidor difunde o membro novo para o
@@ -406,7 +406,7 @@ function onPartyMemberLeave(pkt) {
 	PartyFriends.getUI().removePartyMember(pkt.AID, pkt.characterName);
 
 	/*
-	 * RAGIDLE (D-975): EVENTO — "eu SAI do grupo agora".
+	 * RAGIDLE (D-984): EVENTO — "eu SAI do grupo agora".
 	 *
 	 * Os TRES motivos do pedido do dono descem por aqui: sair, ser expulso e o
 	 * grupo se desfazer. O servidor reusa este mesmo pacote para os tres ("o

@@ -104,7 +104,7 @@
  *                 janela — chama Guild.promptCreateGuild(), exatamente como
  *                 o atalho de teclado nativo faz (Guild.js:420-423). Aceito
  *                 de proposito: e o unico caminho de entrada que existe.
- *   - Grupo       -> PortaDoGrupo.abrirPeloMenu()  (D-975; era GrupoIdle.toggle()
+ *   - Grupo       -> PortaDoGrupo.abrirPeloMenu()  (D-984; era GrupoIdle.toggle()
  *                 em D-960, e PartyFriends.toggle() antes disso). O item NAO
  *                 abre mais uma janela fixa: sem party ele abre o Localizador
  *                 (LFGIdle), com party abre a janela de Grupo (GrupoIdle). Quem
@@ -186,10 +186,10 @@ import Guild from 'UI/Components/Guild/Guild.js';
 // alimenta e o `Engine/MapEngine.js` e o `Engine/MapEngine/Group.js`, que
 // desenham o convite que CHEGA e a lista de amigos.
 import LFGIdle from 'UI/Components/LFGIdle/LFGIdle.js'; // RAGIDLE: Procurar Grupo (D-634)
-/* A `GrupoIdle` saiu dos imports em D-975 pelo mesmo motivo que a `PartyFriends`
+/* A `GrupoIdle` saiu dos imports em D-984 pelo mesmo motivo que a `PartyFriends`
    saiu em D-960: o item "Grupo" deixou de citar uma janela por nome. Quem
    escolhe entre as duas — e quem carrega as duas — e a `portaDoGrupo`. */
-import PortaDoGrupo from 'UI/Components/portaDoGrupo.js'; // RAGIDLE: quem decide QUAL das duas (D-975)
+import PortaDoGrupo from 'UI/Components/portaDoGrupo.js'; // RAGIDLE: quem decide QUAL das duas (D-984)
 import { ehCelularEmPe } from 'UI/hudVertical.js'; // D-939: a folha do menu flutua sobre o chat
 import SkillList from 'UI/Components/SkillList/SkillList.js';
 import StatusIdle from 'UI/Components/StatusIdle/StatusIdle.js';
@@ -487,7 +487,7 @@ function onClickAction(e) {
 		 * la embaixo. Este aqui ABRE; o de la acende o aro. Ja houve TRES
 		 * casos de so um dos dois ser editado — os tres comentados la.
 		 *
-		 * D-975: o item deixou de abrir SEMPRE a mesma janela. Quem nao tem
+		 * D-984: o item deixou de abrir SEMPRE a mesma janela. Quem nao tem
 		 * party recebia a tela de gerenciar um grupo que nao existe (nome "Sem
 		 * grupo", zero membros, "Convidar" desabilitado) — e a janela que ele
 		 * queria, o Localizador, so existia como um SEGUNDO item, dentro do
@@ -1073,7 +1073,7 @@ function isActionOpen(action) {
 		 * logo abaixo registra (o `_host` de um GUIComponent nunca ganha
 		 * display:none sozinho, entao o aro nunca apagaria).
 		 *
-		 * D-975: o item passou a abrir DUAS janelas diferentes conforme a
+		 * D-984: o item passou a abrir DUAS janelas diferentes conforme a
 		 * party, e o aro segue junto — quem pergunta qual e a janela e a
 		 * MESMA funcao que o switch de abrir usa. Escrever aqui um segundo
 		 * `Session.hasParty ? ... : ...` seria reencenar de novo o defeito que

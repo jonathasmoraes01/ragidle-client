@@ -74,7 +74,7 @@
 }
 
 /*
- * A MEDIDA E EM PIXEL, e nao em `100%` — D-968 (07/09/2026).
+ * A MEDIDA E EM PIXEL, e nao em `100%` — D-981 (07/09/2026).
  *
  * A janela abria e o dono via **uma barrinha fina no topo**: `.gi-window`
  * media 2px de altura (so as bordas) com o `:host` correto em 640px.
@@ -674,7 +674,7 @@
 #GrupoIdle .gi-cacada-linha b {
 	color: var(--text-title);
 }
-/* O "Teleportar para o lider" (D-975) fecha o cartao da cacada, embaixo da
+/* O "Teleportar para o lider" (D-984) fecha o cartao da cacada, embaixo da
    linha "Lider · <mapa>" que ele responde. Largura cheia como o botao do
    cartao vizinho ("Trocar de posto"): sao os dois unicos botoes da coluna
    lateral, e um deles solto a esquerda quebraria a coluna. */
@@ -684,7 +684,7 @@
 }
 
 /*
- * D-975 — `hidden` NUM `.ri-btn` NAO ESCONDIA NADA.
+ * D-984 — `hidden` NUM `.ri-btn` NAO ESCONDIA NADA.
  *
  * A cicatriz de 26/08 (registrada no LFGIdle.html e citada no guard de
  * `.gi-view` la em cima) na sua forma mais barata de passar despercebida: o
@@ -900,7 +900,7 @@
 	color: var(--text-muted);
 }
 
-/* D-969: o atalho para o Localizador no estado vazio — ele respira acima do
+/* D-982: o atalho para o Localizador no estado vazio — ele respira acima do
    texto e nao encosta nele, porque e ACAO e o resto e explicacao. */
 #GrupoIdle .gi-vazio-lfg {
 	display: block;
