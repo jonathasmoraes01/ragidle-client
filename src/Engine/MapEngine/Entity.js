@@ -12,6 +12,7 @@
 import DB from 'DB/DBManager.js';
 import SkillId from 'DB/Skills/SkillConst.js';
 import SkillInfo from 'DB/Skills/SkillInfo.js';
+import { nomeDaHabilidadeParaOJogador } from 'DB/Skills/SkillNamePtBr.js'; // RAGIDLE (08/09/2026): o balao em portugues
 import StatusConst from 'DB/Status/StatusConst.js';
 import StatusState from 'DB/Status/StatusState.js';
 import Emotions from 'DB/Emotions.js';
@@ -155,7 +156,7 @@ function onEntitySpam(pkt) {
 			if (cachedLife.sp_max !== undefined) entity.life.sp_max = cachedLife.sp_max;
 			if (cachedLife.hunger !== undefined) entity.life.hunger = cachedLife.hunger;
 			if (cachedLife.hunger_max !== undefined) entity.life.hunger_max = cachedLife.hunger_max;
-			if (entity.life.hp > -1 && entity.life.hp_max > -1) {
+			if (entity.life.hp > -1 && entity.life.hp_max > 0) {
 				entity.life.update();
 				entity.life.display = true;
 			}
@@ -982,7 +983,28 @@ function onEntityAction(pkt) {
 			break;
 	}
 
-	if (pkt?.damage > 0) {
+	/*
+	 * SEM O ALVO NA TELA NAO HA LINHA DE DANO — e isso e uma resposta, nao um
+	 * erro (RAGIDLE, 07/09/2026).
+	 *
+	 * O topo desta funcao ja guarda `srcEntity` (*"Entity out of the screen?"*)
+	 * e o `case 1` ja guarda `dstEntity` (`if (dstEntity)`). Este bloco, nao:
+	 * ele le `dstEntity.display.name` em SETE ramos, e `EntityManager.get`
+	 * devolve `null` sempre que o alvo ja saiu da area de interesse — o caso
+	 * comum e o mob que morre no mesmo tique em que o golpe e anunciado.
+	 *
+	 * MEDIDO em `prove:anuncio-de-drop` (repo do servidor): a excecao aparece
+	 * numa caca de 3 minutos, no celular. Ela sobe pelo `Socket.receive`, que e
+	 * o laco que FATIA o buffer de rede — uma excecao ali ABORTA o laco, e o
+	 * que vinha depois no mesmo quadro do WebSocket e descartado sem ninguem
+	 * contar. E o mesmo modo de falha da busca de caminho sem mapa carregado
+	 * (`PathFinding.searchLong`), consertado no mesmo dia.
+	 *
+	 * A guarda e so para a LINHA DO CHAT: a animacao de golpe acima ja rodou, e
+	 * ela nao depende do alvo. Perder a linha de dano de um mob que ja sumiu
+	 * nao custa nada; perder o resto do quadro de rede custa.
+	 */
+	if (pkt?.damage > 0 && dstEntity) {
 		if (srcEntity.GID === Session.Entity.GID) {
 			// I deal damage
 			ChatBox.addText(
@@ -1058,6 +1080,31 @@ function onEntityTalk(pkt) {
 	type = ChatBox.TYPE.PUBLIC;
 	const entity = EntityManager.get(pkt.GID);
 
+	/*
+	 * A TAG DE GM (07/09/2026, pedido do dono).
+	 *
+	 * *"Quero conseguir identificar administradores com a tag de 'GM', por
+	 * exemplo, em amarelo no chat. Veja so, o Amendoim e um Administrador e
+	 * esta conversando no chat como se fosse um player comum."*
+	 *
+	 * A peca inteira ja existia e nao chegava a lugar nenhum: o `type` ganhava
+	 * `TYPE.ADMIN` DEPOIS do `addText`, entao o valor era calculado e jogado
+	 * fora — a linha do chat sempre saiu com `TYPE.PUBLIC` puro. `isAdmin` vem
+	 * de `Session.AdminList`, que o servidor manda no `ZC_RAGIDLE_ADMINS` e ja
+	 * alimenta o sprite de GM; era so o chat que nunca perguntava.
+	 *
+	 * A decisao subiu para ANTES da escrita. O balao sobre a cabeca continua
+	 * como era.
+	 */
+	if (entity) {
+		if (entity === Session.Entity) {
+			type |= ChatBox.TYPE.SELF;
+		}
+		if (entity.isAdmin) {
+			type |= ChatBox.TYPE.ADMIN;
+		}
+	}
+
 	ChatBox.addText(pkt.msg, type, ChatBox.FILTER.PUBLIC_CHAT, null, false);
 
 	if (entity) {
@@ -1069,13 +1116,6 @@ function onEntityTalk(pkt) {
 		);
 
 		entity.dialog.set(pkt.msg);
-
-		// Should not happen
-		if (entity === Session.Entity) {
-			type |= ChatBox.TYPE.SELF;
-		} else if (entity.isAdmin) {
-			type |= ChatBox.TYPE.ADMIN;
-		}
 	}
 }
 
@@ -1275,6 +1315,20 @@ function onTitleChangeAck(pkt) {
  * @param {object} pkt - PACKET.ZC.NOTIFY_MONSTER_HP
  */
 function onEntityLifeUpdate(pkt) {
+	// RAGIDLE (08/09/2026): maxhp 0 e o APAGADOR — o servidor o manda a quem
+	// deixou de lutar com o mob (a barra e so de quem esta na luta, e do grupo
+	// dele). Sem isto a barra ficava pintada ate a entidade sumir.
+	if (!(pkt.maxhp > 0)) {
+		EntityManager.storeLife(pkt.AID, { hp: -1, hp_max: -1 });
+		const apagada = EntityManager.get(pkt.AID);
+		if (apagada) {
+			apagada.life.hp = -1;
+			apagada.life.hp_max = -1;
+			apagada.life.display = false;
+			apagada.life.remove();
+		}
+		return;
+	}
 	EntityManager.storeLife(pkt.AID, { hp: pkt.hp, hp_max: pkt.maxhp });
 
 	const entity = EntityManager.get(pkt.AID);
@@ -1540,7 +1594,7 @@ function onEntityUseSkill(pkt) {
 	) {
 		if (!SkillNameDisplayExclude.includes(pkt.SKID)) {
 			srcEntity.dialog.set(
-				((SkillInfo[pkt.SKID] && SkillInfo[pkt.SKID].SkillName) || 'Unknown Skill') + ' !!',
+				nomeDaHabilidadeParaOJogador(pkt.SKID) + ' !!',
 				'white'
 			);
 		}
@@ -1700,7 +1754,7 @@ function onEntityUseSkillToAttack(pkt) {
 			!(pkt.level < 0) &&
 			!(pkt.SKID < 0)
 		) {
-			srcEntity.dialog.set(((SkillInfo[pkt.SKID] && SkillInfo[pkt.SKID].SkillName) || 'Unknown Skill') + ' !!');
+			srcEntity.dialog.set(nomeDaHabilidadeParaOJogador(pkt.SKID) + ' !!');
 		}
 
 		//Action handling
@@ -1933,7 +1987,7 @@ function onEntityCastSkill(pkt) {
 	) {
 		if (!SkillNameDisplayExclude.includes(pkt.SKID)) {
 			srcEntity.dialog.set(
-				((SkillInfo[pkt.SKID] && SkillInfo[pkt.SKID].SkillName) || 'Unknown Skill') + ' !!',
+				nomeDaHabilidadeParaOJogador(pkt.SKID) + ' !!',
 				'white'
 			);
 		}

@@ -1,0 +1,60 @@
+<div id="BoasVindasIdle">
+	<!-- A CAIXA DE BOAS-VINDAS (D-968).
+
+	     Ela aparece sozinha uma vez por entrada no jogo, cobre a cena e mostra
+	     UMA arte por vez. A arte é o botão: clicar nela abre o link daquele
+	     cartaz numa aba nova (hoje, o convite do Discord).
+
+	     O `.bv-palco` é quem ancora o "X" e o contador, e NÃO o `.bv-card`: em
+	     tela abaixo de 600px o `Common.css` reescreve `.ri-window` com
+	     `position: static !important` (D-932), e um filho absoluto ancorado no
+	     card cairia no canto da TELA em vez do canto da arte. -->
+	<div class="bv-modal">
+		<div class="bv-card ri-window">
+			<div class="bv-palco">
+				<!--
+					`<a href target="_blank">` continua aqui como REDE DE SEGURANÇA,
+					e não como o caminho principal: quem abre a aba é o
+					`window.open` do JS (ver `abrirEmAbaNova` no .js), porque o
+					`target` sozinho navegou na aba do jogo no navegador do dono.
+					Se o `window.open` for barrado, o clique não é impedido e este
+					link ainda tenta — duas chances de não perder a sessão do
+					jogador.
+
+					O `href` e o `src` são escritos pelo JS a cada cartaz: aqui
+					eles nascem vazios de propósito, para nunca existir um estado
+					em que a caixa mostre a arte de um cartaz com o link de outro.
+				-->
+				<a class="bv-link" href="" target="_blank" rel="noopener noreferrer">
+					<img class="bv-arte" src="" alt="" />
+				</a>
+
+				<!-- Só aparece com mais de um cartaz (o JS decide). -->
+				<span class="bv-contador" hidden></span>
+
+				<button type="button" class="bv-x ri-close" title="Fechar">&times;</button>
+			</div>
+
+			<!--
+				O RODAPÉ É PERMANENTE desde que o dono pediu o "não mostrar
+				novamente hoje" (07/09/2026): antes ele só existia com mais de um
+				cartaz, e a opção de adiar não tem onde morar sem ele.
+
+				A ordem é a do mockup que o dono mandou: o adiamento à esquerda,
+				discreto; a ação à direita, com peso. Os pontinhos ficam no meio e
+				só nascem com mais de um cartaz.
+			-->
+			<div class="bv-rodape">
+				<label class="bv-hoje">
+					<input type="checkbox" class="bv-hoje-caixa" />
+					<span class="bv-hoje-trilho" aria-hidden="true"><span class="bv-hoje-pino"></span></span>
+					<span class="bv-hoje-texto">Não mostrar novamente hoje</span>
+				</label>
+
+				<span class="bv-pontos" aria-hidden="true"></span>
+
+				<button type="button" class="bv-proximo ri-btn">Fechar</button>
+			</div>
+		</div>
+	</div>
+</div>

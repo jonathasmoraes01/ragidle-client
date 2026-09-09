@@ -524,13 +524,18 @@
 	box-shadow: var(--shadow-card);
 }
 
+/* `overflow: visible` — e nao `hidden`, como era ate 07/09/2026: o selo de MVP
+   TRANSBORDA o canto superior direito de proposito, e a miniatura cortaria
+   justamente a metade que sai. Quem arredonda a imagem passou a ser a propria
+   <img> (`border-radius: inherit` abaixo), que era o unico servico que o
+   recorte prestava aqui. */
 #HuntMap .hm-card-thumb {
 	position: relative;
 	flex: 0 0 auto;
 	width: var(--hm-thumb-w);
 	height: var(--hm-thumb-h);
 	border-radius: var(--radius-card);
-	overflow: hidden;
+	overflow: visible;
 	background: var(--sky-100);
 	border: 1px solid var(--border-hairline);
 	box-shadow: var(--rim-light);
@@ -559,6 +564,59 @@
 	height: 100%;
 	object-fit: cover;
 	display: block;
+	border-radius: inherit;
+}
+
+/* SELO DE MVP no canto superior direito da miniatura (07/09/2026).
+
+   TRES decisoes do dono, e as tres sao o desenho:
+
+   1. NADA EM VOLTA. Sem disco, sem aro, sem chapa — so a arte. A primeira
+      rodada punha a coroa dentro de um disco escuro com aro dourado, e o
+      dono cortou: o selo e a ilustracao, e moldura em cima de arte ilustrada
+      briga com ela em vez de ajudar. A legibilidade sobre minimapa de
+      qualquer cor sai do `filter` abaixo, que segue a SILHUETA do desenho —
+      um contorno escuro colado nela, mais um halo dourado por fora.
+   2. ELE SAI PARA FORA. O deslocamento negativo poe metade do selo alem do
+      canto da miniatura: e o que da a impressao de que a peca esta POR CIMA
+      do mapa, e nao colada dentro dele. Por isso `.hm-card-thumb` deixou de
+      cortar (ver o comentario la em cima).
+   3. MAIOR que os 20px da primeira rodada. 32px sobre uma miniatura de
+      96x54 — o emblema tem LETRA dentro ("MVP"), e abaixo disso as tres
+      letras viram borrao dourado; e o tamanho que faz a palavra ser lida.
+
+   z-index 2 porque a miniatura e z-index 1. `pointer-events: none` NAO entra
+   aqui de proposito: o clique borbulha para a linha (o handler le
+   `currentTarget`, nao `target`), e sem ele o `title` com o nome do chefe nao
+   apareceria no hover. */
+#HuntMap .hm-card-mvp {
+	position: absolute;
+	top: -6px;
+	right: -6px;
+	z-index: 2;
+	display: block;
+	width: 32px;
+	height: 32px;
+	filter:
+		drop-shadow(0 0 1px rgba(21, 21, 74, 0.9))
+		drop-shadow(0 1px 2px rgba(21, 21, 74, 0.55))
+		drop-shadow(0 0 6px rgba(224, 176, 77, 0.55));
+	transition: transform var(--dur-fast) var(--ease-out);
+}
+
+#HuntMap .hm-card-mvp svg {
+	width: 100%;
+	height: 100%;
+	display: block;
+	color: var(--gold-300);
+}
+
+/* A linha em foco levanta o selo um tico — o mesmo gesto que a linha inteira
+   ja faz no hover (`transform: translateY(-1px)`), so que para a peca que
+   esta por cima dela. */
+#HuntMap .hm-card:hover .hm-card-mvp,
+#HuntMap .hm-card.is-selected .hm-card-mvp {
+	transform: scale(1.08);
 }
 
 #HuntMap .hm-card-body {
@@ -1301,4 +1359,167 @@
 	#HuntMap .hm-btn-city {
 		padding: 15px 10px;
 	}
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   CELULAR EM PÉ: UM PASSO POR VEZ (08/09/2026, pedido do dono)
+   ═══════════════════════════════════════════════════════════════════════
+   O bloco `@media (max-width: 599px)` acima EMPILHA as três faixas (trilho,
+   lista, dossiê) — e empilhar não bastou. Medido no jogo de pé em 393x852
+   (`scripts/diag-mobile-portrait.ts`): **29 controles cobertos**, e os
+   cobridores eram `div.hm-card`, `img` (as miniaturas) e `div.hm-count` caindo
+   por cima de `.hm-tabs`. Três faixas com teto próprio numa tela de 750px de
+   altura útil continuam disputando o mesmo espaço, e a que perde não some:
+   ela fica embaixo, invisível e clicável.
+
+   Aqui elas deixam de disputar: **uma por vez**, cada uma ocupando a área
+   inteira. O passo é escrito pelo JS (`definirPasso`) em `.hm-window`, e o
+   caminho é região → mapas → dossiê, com "‹ Voltar".
+
+   Este bloco vem DEPOIS do `@media` de propósito: `.ri-vertical` é uma classe
+   a mais na cadeia, então ele vence sem `!important`. E ele NÃO é um
+   `@media`: quem decide "celular em pé" é o JS de D-939 (que também conhece a
+   bandeira de rollout), e duplicar o critério em CSS é a cicatriz de D-929.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* A barra de passo só existe aqui. No desktop o HTML já a deixa `hidden`. */
+.ri-vertical #HuntMap .hm-passo {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 6px 8px;
+	border-bottom: var(--divider);
+}
+
+.ri-vertical #HuntMap .hm-passo[hidden] {
+	display: none;
+}
+
+.ri-vertical #HuntMap .hm-voltar {
+	flex: 0 0 auto;
+	min-height: 44px;
+	padding: 0 12px;
+	border: 0;
+	border-radius: 8px;
+	background: var(--hm-chip-bg, #e8edf6);
+	color: var(--hm-ink, #1c2540);
+	font: inherit;
+	font-weight: 600;
+	cursor: pointer;
+}
+
+.ri-vertical #HuntMap .hm-passo-titulo {
+	overflow: hidden;
+	font-weight: 700;
+	white-space: nowrap;
+	text-overflow: ellipsis;
+}
+
+/* As três faixas viram telas: a do passo ativo ocupa tudo, as outras somem.
+   `display:none` e não `visibility`/opacidade: o que está escondido não pode
+   continuar recebendo toque, que é exatamente o defeito medido. */
+.ri-vertical #HuntMap .hm-body {
+	flex-direction: column;
+	min-height: 0;
+	/* MEDIDO: sem o teto, `.hm-rail` (191 regioes) crescia alem do rodape da
+	   janela e as ultimas linhas nasciam ATRAS da barra de atalhos — um item
+	   de regiao respondia `div.shortcut-paginas` no `elementFromPoint`, e
+	   outro caia em y=872 numa tela de 852. Com o teto, quem rola e a LISTA
+	   (ela ja tem `overflow-y: auto`), dentro da janela, e nada sai por baixo. */
+	flex: 1 1 auto;
+	overflow: hidden;
+}
+
+.ri-vertical #HuntMap .hm-rail,
+.ri-vertical #HuntMap .hm-list-wrap,
+.ri-vertical #HuntMap .hm-panel {
+	display: none;
+	flex: 1 1 auto;
+	width: 100%;
+	min-width: 0;
+	min-height: 0;
+	max-width: 100%;
+	max-height: none;
+	border-right: none;
+}
+
+.ri-vertical #HuntMap .hm-window.is-passo-regioes .hm-rail,
+.ri-vertical #HuntMap .hm-window.is-passo-mapas .hm-list-wrap,
+.ri-vertical #HuntMap .hm-window.is-passo-detalhe .hm-panel {
+	display: flex;
+	flex-direction: column;
+}
+
+/* Cada tela rola por DENTRO. O teto some (`max-height: none` acima) porque
+   agora ela é a única na área — o limite é a área, e não um número. */
+.ri-vertical #HuntMap .hm-rail,
+.ri-vertical #HuntMap .hm-list,
+.ri-vertical #HuntMap .hm-panel-scroll {
+	overflow-y: auto;
+	overscroll-behavior: contain;
+	-webkit-overflow-scrolling: touch;
+	max-height: none;
+}
+
+/* As regiões viram uma lista de linhas altas, e não chips apertados: é o
+   passo 1 e o alvo tem de ser confortável. 48 > o piso de 44px. */
+.ri-vertical #HuntMap .hm-tabs {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+}
+
+.ri-vertical #HuntMap .hm-tab {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	width: 100%;
+	min-height: 48px;
+	padding: 0 12px;
+	text-align: left;
+}
+
+/* A barra de ferramentas quebrava para fora da tela: o `select` de ordem
+   saía pela direita em 393px (visível no PNG de 393x852). Ela passa a
+   quebrar em linhas, e a busca ocupa a primeira inteira. */
+.ri-vertical #HuntMap .hm-toolbar {
+	flex-wrap: wrap;
+	gap: 6px;
+}
+
+.ri-vertical #HuntMap .hm-search-wrap {
+	flex: 1 0 100%;
+	min-width: 0;
+}
+
+.ri-vertical #HuntMap .hm-seg,
+.ri-vertical #HuntMap .hm-sort-wrap {
+	flex: 1 1 auto;
+	min-width: 0;
+}
+
+.ri-vertical #HuntMap .hm-seg-btn,
+.ri-vertical #HuntMap .hm-sort {
+	min-height: 44px;
+}
+
+/* No dossiê a barra de busca/filtro não tem função e come altura da tela —
+   o que importa ali é o mapa e o botão de viajar. */
+.ri-vertical #HuntMap .hm-window.is-passo-detalhe .hm-toolbar,
+.ri-vertical #HuntMap .hm-window.is-passo-detalhe .hm-count {
+	display: none;
+}
+
+/* O rodapé do dossiê carrega o "Caçar aqui". Ele fica FIXO no pé da tela,
+   fora da rolagem: a ação de teleportar não pode depender de o jogador
+   rolar até o fim de uma ficha longa. */
+.ri-vertical #HuntMap .hm-panel-footer {
+	position: sticky;
+	bottom: 0;
+	z-index: 2;
+	background: var(--hm-window-bg, #f4f6fb);
+}
+
+.ri-vertical #HuntMap .hm-panel-footer .hm-btn-go {
+	min-height: 48px;
 }

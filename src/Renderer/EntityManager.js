@@ -18,6 +18,7 @@ import PathFinding from 'Utils/PathFinding.js';
 import GraphicsSettings from 'Preferences/Graphics.js';
 import Altitude from 'Renderer/Map/Altitude.js';
 import GR2ModelRenderer from 'Renderer/GR2/GR2ModelRenderer.js';
+import glMatrix from 'Utils/gl-matrix.js';
 const _list = [];
 
 /**
@@ -31,6 +32,28 @@ function releaseGr2(entity) {
 		entity.gr2Model = null;
 	}
 }
+
+/*
+ * Vetores reaproveitados do descarte por tela (ver o bloco em `render`).
+ *
+ * Fora do laco de proposito: alocar um `Float32Array` por entidade por quadro
+ * daria centenas de objetos por segundo de vida curtissima, e a pressao de
+ * coletor aparece como engasgo — que e exatamente o que esta frente combate.
+ */
+const _cullVP = glMatrix.mat4.create();
+
+/**
+ * Quanto o clip space e esticado antes de considerar a entidade fora da tela.
+ *
+ * O teste e sobre o PONTO da entidade (os pes), e o sprite cresce a partir
+ * dele — para cima, sobretudo. Uma margem apertada faria monstro grande sumir
+ * ao encostar na borda. 1,6 na horizontal e 2,6 para cima cobrem com folga o
+ * maior sprite do jogo; o custo de errar para mais e desenhar alguns a mais,
+ * e o de errar para menos e um bicho que pisca na beirada.
+ */
+const MARGEM_DE_CLIP_X = 1.6;
+const MARGEM_DE_CLIP_CIMA = 2.6;
+const MARGEM_DE_CLIP_BAIXO = 1.4;
 
 // O(1) GID lookup map
 const _gidMap = new Map();
@@ -319,6 +342,76 @@ function sortByPriority(a, b) {
 /**
  * Render all entities (picking or not)
  *
+ * A entidade projeta FORA da tela? (07/09/2026, frente de FPS)
+ *
+ * A conta e a mesma de `renderGUI` (`EntityRender.js`): leva a posicao para o
+ * espaco da camera, projeta, e testa o clip space com a margem declarada em
+ * `MARGEM_DE_CLIP_*`. Um `w` menor ou igual a zero quer dizer ATRAS da camera.
+ *
+ * Devolve `false` (isto e, "desenhe") em toda duvida: sem posicao, sendo o
+ * proprio jogador, ou sendo efeito. Descartar por engano some com algo da tela,
+ * e nenhum ganho de quadro paga isso.
+ *
+ * @param {Entity} entity
+ * @param {number|string|null} meuGID o GID do jogador — nunca descartado
+ * @returns {boolean}
+ */
+function foraDaTela(entity, meuGID) {
+	/*
+	 * INTERRUPTOR DE MEDICAO (07/09/2026): `window.__ri_culling = false`
+	 * desliga o descarte em tempo de execucao.
+	 *
+	 * Ele existe porque comparar duas CORRIDAS nao separa o efeito da
+	 * variancia — o personagem esta noutro lugar, com outros bichos, e o
+	 * numero anda sozinho. Com o interruptor a sonda mede A/B **na mesma
+	 * cena, no mesmo minuto**. Em producao a propriedade nao existe e o teste
+	 * e um `!== false` por quadro por entidade.
+	 */
+	if (typeof window !== 'undefined' && window.__ri_culling === false) {
+		return false;
+	}
+	if (!entity.position || entity.objecttype === entity.constructor.TYPE_EFFECT) {
+		return false;
+	}
+	if (meuGID !== null && entity.GID === meuGID) {
+		return false;
+	}
+
+	/*
+	 * UMA multiplicacao de VETOR, e nao duas de MATRIZ.
+	 *
+	 * A primeira versao fazia `mat4.translate` + `mat4.multiply` por entidade —
+	 * ~128 multiplicacoes cada, so para descobrir onde um PONTO cai. Medido em
+	 * caca real, ela cortou 77% dos desenhos e ainda assim **piorou** o quadro
+	 * com o processador livre: o teste custava mais que o desenho que
+	 * economizava.
+	 *
+	 * Projetar um ponto precisa de 16 multiplicacoes, nao de 128: a matriz
+	 * combinada (`_cullVP = projection x modelView`) e calculada UMA vez por
+	 * quadro em `render`, e aqui so passa o vetor por ela. A troca de eixos e a
+	 * mesma de `renderGUI`: no mundo o Y e a altura e o Z e a profundidade.
+	 */
+	const x = entity.position[0] + 0.5;
+	const y = -entity.position[2];
+	const z = entity.position[1] + 0.5;
+	const m = _cullVP;
+
+	const cw = m[3] * x + m[7] * y + m[11] * z + m[15];
+	if (cw <= 0) {
+		return true;
+	}
+	const cx = m[0] * x + m[4] * y + m[8] * z + m[12];
+	if (cx < -cw * MARGEM_DE_CLIP_X || cx > cw * MARGEM_DE_CLIP_X) {
+		return true;
+	}
+	const cy = m[1] * x + m[5] * y + m[9] * z + m[13];
+	if (cy < -cw * MARGEM_DE_CLIP_BAIXO || cy > cw * MARGEM_DE_CLIP_CIMA) {
+		return true;
+	}
+	return false;
+}
+
+/**
  * @param {object} gl webgl context
  * @param {mat4} modelView
  * @param {mat4} projection
@@ -357,6 +450,38 @@ function render(gl, modelView, projection, fog, renderEffects) {
 		viewAreaSq = GraphicsSettings.viewArea * GraphicsSettings.viewArea;
 	}
 
+	/*
+	 * DESCARTE DO QUE ESTA FORA DA TELA (07/09/2026, frente de FPS).
+	 *
+	 * O descarte que existia era por DISTANCIA em celulas do mapa
+	 * (`viewArea`, 400) e so ligava com `performanceMode` — que vem desligado.
+	 * Com raio de 400 celulas ele nao descartava praticamente nada: a validacao
+	 * em caca real mediu **325 chamadas de desenho por quadro com 133 mobs**,
+	 * e boa parte deles estava fora da tela.
+	 *
+	 * Este aqui e por TELA, e vale sempre. A conta e a mesma que `renderGUI` ja
+	 * faz para posicionar a interface da entidade: projeta a posicao pelo
+	 * `projection * modelView` e testa o clip space. O que sai daqui nao paga
+	 * sprite, nem interface, nem os elementos de tela da barra de vida.
+	 *
+	 * A MARGEM E GENEROSA DE PROPOSITO (`MARGEM_DE_CLIP`). O teste e sobre o
+	 * PONTO da entidade (os pes), e o sprite sobe a partir dele: um monstro
+	 * grande com os pes logo abaixo da borda ainda aparece na tela. Cortar no
+	 * limite exato faria o bicho sumir na beirada, que e pior que o custo que
+	 * se economiza — e por isso a margem e maior para cima do que para baixo.
+	 *
+	 * O que NAO e descartado, e a razao de cada um:
+	 *   - o proprio jogador (a camera o segue; se ele sair do teste, e a
+	 *     camera que esta errada e o jogo fica sem personagem);
+	 *   - efeitos (`TYPE_EFFECT`), que se posicionam sozinhos e podem nascer
+	 *     longe do ponto de origem;
+	 *   - entidade sem `position` valida, que cairia no teste por acidente.
+	 */
+	const meuGID = Session.Entity ? Session.Entity.GID : null;
+	// A matriz combinada UMA vez por quadro: e o que torna o teste barato o
+	// bastante para pagar (ver `foraDaTela`).
+	glMatrix.mat4.multiply(_cullVP, projection, modelView);
+
 	// Rendering
 	for (i = 0, count = _list.length; i < count; ++i) {
 		if (
@@ -387,6 +512,9 @@ function render(gl, modelView, projection, fog, renderEffects) {
 				if (dx * dx + dy * dy > viewAreaSq) {
 					continue;
 				}
+			}
+			if (foraDaTela(_list[i], meuGID)) {
+				continue;
 			}
 			_list[i].render(modelView, projection);
 		}

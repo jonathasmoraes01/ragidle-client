@@ -123,6 +123,35 @@
 	gap: 10px 18px;
 }
 
+/*
+ * O "VOTAR" AO LADO DO "CACA" — 08/09/2026, pedido do dono: *"mude o icone de
+ * Votar de lugar, coloque ele ao lado do icone Caca, sobrando uma vaga para
+ * icone abaixo"*.
+ *
+ * Ele e o NONO botao no DOM e continua sendo — o que muda e onde a grade o
+ * desenha. Com cinco colunas ele vai para a primeira fileira, coluna 5, e os
+ * outros oito seguem no fluxo automatico (quatro em cima, quatro embaixo),
+ * deixando a coluna 5 da segunda fileira VAZIA: e a vaga que o dono reservou
+ * para o proximo icone.
+ *
+ * POR QUE PELA GRADE E NAO REORDENANDO O DOM: medido com `prove:hud-responsiva`
+ * em 08/09. Mover o `<button>` para depois do "Caca" tira o "Recompensas" — o
+ * rotulo mais largo do cluster — da coluna do "Personagem" e o poe na do
+ * "Mochila", contra a regra de D-944 ("o mais longo mora na coluna do segundo
+ * mais longo"). O cluster engorda 13px e a prova REPROVA em tablet-768x1024,
+ * mesmo com quatro colunas. Com o DOM intacto, a queda para quatro colunas
+ * (abaixo de 900px de largura) volta a ser byte a byte o arranjo que ja
+ * passava.
+ *
+ * O `[data-colunas]` e escrito pelo `distribuirFileiras()` no mesmo lugar em
+ * que `--tm-colunas` e escrito, e existe porque seletor nao le valor de custom
+ * property sem `@container style()`.
+ */
+.tm-top[data-colunas='5'] .tm-item--voto {
+	grid-column: 5;
+	grid-row: 1;
+}
+
 .tm-top .tm-toggle {
 	grid-column: -2 / -1;
 	/* "span 2", e NAO "1 / -1". O `-1` conta a ultima linha da grade EXPLICITA,
@@ -707,6 +736,62 @@
 	text-shadow: 0 1px 2px rgba(8, 22, 40, 0.9);
 }
 
+/* ═══════════════════════════════════════════════════════════════════════
+   O BOTAO DE VOTAR COM VOTO DISPONIVEL (D-1159, 07/09/2026)
+
+   O pedido do dono foi literal: "com bastante destaque quando tem voto
+   disponivel". As duas palavras que importam sao "QUANDO TEM" — o destaque
+   e CONDICIONAL, e e disso que ele tira a forca. Um botao permanentemente
+   dourado no cluster seria mais um item dourado ao lado do "Recompensas", e
+   o ouro deixaria de significar "aqui, agora".
+
+   POR QUE ELE PULSA E O "Recompensas" NAO. O comentario do
+   ".tm-item--destaque" acima diz, com razao, que "uma animacao perpetua na
+   periferia da visao e ruido, nao destaque" — e ele esta falando de um
+   destaque PERMANENTE. Este some assim que o jogador vota: ele nao e
+   perpetuo, e a mensagem que ele carrega ("ha uma acao esperando por voce")
+   e exatamente a que o movimento comunica.
+
+   `prefers-reduced-motion` desliga o pulso e mantem o aro estatico — quem
+   pediu menos movimento continua vendo QUE ha voto.
+
+   O ANEL e `box-shadow`, e NUNCA `border`: trocar a espessura da borda em
+   um estado mudaria a caixa e o disco pularia 2px ao acender. E a cicatriz
+   de D-944, e ela vale para todo estado ligado/desligado deste arquivo. */
+.tm-item--voto.is-voto-livre .tm-icon-wrap {
+	border-color: var(--border-gold);
+	background: linear-gradient(180deg, var(--white) 0%, var(--gold-200) 160%);
+	animation: tm-voto-pulso 2.4s ease-in-out infinite;
+}
+
+.tm-item--voto.is-voto-livre .tm-label {
+	color: var(--gold-300);
+	font-weight: var(--fw-bold);
+	background: rgba(18, 41, 74, 0.88);
+	box-shadow: var(--rim-gold), 0 0 10px rgba(224, 176, 77, 0.35);
+	text-shadow: 0 1px 2px rgba(8, 22, 40, 0.9);
+}
+
+@keyframes tm-voto-pulso {
+	0%,
+	100% {
+		box-shadow: var(--glow-gold), var(--rim-light);
+	}
+	50% {
+		box-shadow:
+			0 0 0 1px rgba(201, 162, 39, 0.85),
+			0 0 22px rgba(224, 176, 77, 0.75),
+			var(--rim-light);
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.tm-item--voto.is-voto-livre .tm-icon-wrap {
+		animation: none;
+		box-shadow: var(--glow-gold), var(--rim-light);
+	}
+}
+
 /* ─── Toast "Em breve": ancorado no LEQUE (e nao mais na viewport), logo
    acima do ornamento. Os sete "em breve" so existem dentro do leque, entao
    o toast so pode aparecer com ele aberto — e ancorado aqui ele nasce no
@@ -1261,17 +1346,27 @@
 
 /* A secao do leque. `--vr-menu-cluster-altura` e a altura da secao 1 —
    grade de 4 colunas com 8 itens = 2 fileiras de ~72 + respiro. */
-.ri-vertical .tm-fan {
-	--vr-menu-cluster-altura: 172px;
-}
+/* A ALTURA DO CLUSTER NÃO MORA MAIS AQUI (08/09/2026).
+ *
+ * Ela era `--vr-menu-cluster-altura: 172px`, cravada — e quem a publica agora
+ * é `publicarAlturaDoCluster()` (TopMenuIdle.js), MEDINDO o cluster e
+ * escrevendo no `documentElement`. O motivo está lá por extenso; o resumo é
+ * que 172 não acompanhava o número de itens, e a folha começava dentro do
+ * cartão de cima, escondendo a fileira do "Guilda".
+ *
+ * A DEFINIÇÃO LOCAL TINHA DE SAIR, e não só mudar de valor: uma custom
+ * property declarada aqui vence a HERDADA do `documentElement`, então
+ * publicar a medida com esta linha no lugar não teria efeito nenhum. Onde ela
+ * é usada, o `var(..., 172px)` guarda o valor antigo como reserva para o
+ * primeiro quadro, antes da primeira medição. */
 
 .ri-vertical .tm-fan.is-mounted {
 	position: fixed;
-	top: calc(var(--vr-abaixo-do-topo, 70px) + var(--vr-menu-cluster-altura));
+	top: calc(var(--vr-abaixo-do-topo, 70px) + var(--vr-menu-cluster-altura, 172px));
 	left: calc(var(--safe-esq, 0px) + var(--vr-margem, 8px));
 	right: calc(var(--safe-dir, 0px) + var(--vr-margem, 8px));
 	max-height: calc(
-		100dvh - var(--vr-abaixo-do-topo, 70px) - var(--vr-menu-cluster-altura) -
+		100dvh - var(--vr-abaixo-do-topo, 70px) - var(--vr-menu-cluster-altura, 172px) -
 			var(--vr-acima-dos-atalhos, 92px) - 8px
 	);
 	overflow-y: auto;
@@ -1312,4 +1407,59 @@
 	background: transparent;
 	/* sem capsula aqui = sem o anel dourado do item em destaque. */
 	box-shadow: none;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   "INSTALAR APP" — a linha no pe da folha (08/09/2026, pedido do dono).
+
+   Ela e do CELULAR EM PE: fora de `.ri-vertical` nao ha regra nenhuma que a
+   mostre, e o `hidden` do HTML segura o resto. No desktop a porta continua
+   sendo a aba de Config, e o menu fica pixel a pixel como estava.
+
+   Larga e com rotulo por extenso de proposito: ela nao e um destino do jogo,
+   e vira um disco entre Mochila e Skills daria a ela o mesmo peso de uma
+   janela. `min-height: 48px` porque ela e um alvo de dedo, e 48 > o piso de
+   44px que a `prove:hud-responsiva` cobra.
+   ═══════════════════════════════════════════════════════════════════════ */
+.tm-instalar {
+	display: none;
+}
+
+.ri-vertical .tm-instalar:not([hidden]) {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	gap: 2px;
+	width: 100%;
+	min-height: 48px;
+	margin-top: 8px;
+	padding: 8px 12px;
+	border: 0;
+	border-radius: 10px;
+	background: var(--ri-acento, #2f6fd0);
+	color: #fff;
+	font: inherit;
+	font-weight: 700;
+	text-align: center;
+	cursor: pointer;
+}
+
+.ri-vertical .tm-instalar-rotulo {
+	font-size: 14px;
+	line-height: 1.2;
+}
+
+/* A dica e um paragrafo no modo `instrucao`; ela quebra em varias linhas e a
+   folha ja rola (`overflow-y: auto` no `.tm-fan.is-mounted`). */
+.ri-vertical .tm-instalar-dica {
+	font-size: 11px;
+	font-weight: 400;
+	line-height: 1.35;
+	opacity: 0.92;
+	white-space: normal;
+}
+
+.ri-vertical .tm-instalar-dica[hidden] {
+	display: none;
 }

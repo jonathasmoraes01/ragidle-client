@@ -105,6 +105,10 @@ import ClassChangeNotice from 'UI/Components/ClassChangeNotice/ClassChangeNotice
 import MissoesIdle from 'UI/Components/MissoesIdle/MissoesIdle.js'; // RAGIDLE: janela de Missões (D-551)
 import PasseIdle from 'UI/Components/PasseIdle/PasseIdle.js'; // RAGIDLE: janela do Passe (D-813)
 import CodexIdle from 'UI/Components/CodexIdle/CodexIdle.js'; // RAGIDLE: janela do Codex (D-851)
+import VotoIdle from 'UI/Components/VotoIdle/VotoIdle.js'; // RAGIDLE: janela de Voto (D-1159)
+import PresencaIdle from 'UI/Components/PresencaIdle/PresencaIdle.js'; // RAGIDLE: janela de presenca (D-1162)
+import IndicacaoIdle from 'UI/Components/IndicacaoIdle/IndicacaoIdle.js'; // RAGIDLE: Indique & Ganhe (D-1164)
+import BoasVindasIdle from 'UI/Components/BoasVindasIdle/BoasVindasIdle.js'; // RAGIDLE: caixa de boas-vindas (D-968)
 import LFGIdle from 'UI/Components/LFGIdle/LFGIdle.js'; // RAGIDLE: janela de Procurar Grupo (D-634)
 import GrupoIdle from 'UI/Components/GrupoIdle/GrupoIdle.js'; // RAGIDLE: janela de Grupo (D-960)
 import PortaDoGrupo from 'UI/Components/portaDoGrupo.js'; // RAGIDLE: qual das duas janelas de grupo abre (D-984)
@@ -450,18 +454,23 @@ class MapEngine {
 					// caminho REAL (CZ_CONTACTNPC) sem depender de acertar o
 					// sprite no canvas: o jogador nasce longe do Mestre e a
 					// caca de cliques as cegas nao e um roteiro, e loteria.
-					Network: Network,
 					// RAGIDLE: acrescentado 27/08/2026 pra sonda dos ATALHOS —
 					// inspecionar qual onShortCut esta instalado em cada
 					// componente nativo (UIManager.getComponent(nome)) sem
 					// depender de teclado sintetico acertar o roteamento.
 					UIManager: UIManager,
-					PACKET: PACKET,
 					// RAGIDLE (25/08): o roteiro de fotos do executor le o estado
 					// da janela de missoes para saber quando a ativa concluiu.
 					MissoesIdle: MissoesIdle,
 					PasseIdle: PasseIdle,
 					CodexIdle: CodexIdle,
+					VotoIdle: VotoIdle,
+					PresencaIdle: PresencaIdle,
+					IndicacaoIdle: IndicacaoIdle,
+					// RAGIDLE (D-968): a caixa de boas-vindas. A prova de tela
+					// precisa reabri-la sem relogar — a trava de "uma vez por
+					// entrada" é justamente o que impede repetir a medida.
+					BoasVindasIdle: BoasVindasIdle,
 					LFGIdle: LFGIdle,
 					GrupoIdle: GrupoIdle
 				};
@@ -507,6 +516,10 @@ class MapEngine {
 			MissoesIdle.prepare(); // RAGIDLE: janela de Missões (D-551) — sem dependência de ordem: só escuta 0x0fed
 			PasseIdle.prepare(); // RAGIDLE: janela do Passe (D-813) — idem, só escuta 0x0fe5
 			CodexIdle.prepare(); // RAGIDLE: janela do Codex (D-851) — idem, só escuta 0x0fe3
+			VotoIdle.prepare(); // RAGIDLE: janela de Voto (D-1159) — idem, só escuta 0x0fd5
+			PresencaIdle.prepare(); // RAGIDLE: janela de presenca (D-1162) — escuta 0x0fde e abre sozinha quando o servidor manda
+			IndicacaoIdle.prepare(); // RAGIDLE: Indique & Ganhe (D-1164) — escuta 0x0fdc
+			BoasVindasIdle.prepare(); // RAGIDLE: caixa de boas-vindas (D-968) — não escuta pacote nenhum: a lista de cartazes é do cliente
 			LFGIdle.prepare(); // RAGIDLE: janela de Procurar Grupo (D-634) — idem: só escuta 0x0fe9/0x0fe8
 			GrupoIdle.prepare(); // RAGIDLE: janela de Grupo (D-960) — idem: só escuta 0x0fcc
 
@@ -948,6 +961,19 @@ function onMapChange(pkt) {
 		MissoesIdle.append(); // RAGIDLE: janela de Missões (D-551)
 		PasseIdle.append(); // RAGIDLE: janela do Passe (D-813)
 		CodexIdle.append(); // RAGIDLE: janela do Codex (D-851)
+		// RAGIDLE (D-1159): a janela de Voto. Anexada SEMPRE, como as vizinhas —
+		// o aviso da entrada chega pelo pacote e precisa de um host de pé.
+		VotoIdle.append(); // RAGIDLE: janela de Voto (D-1159)
+		PresencaIdle.append(); // RAGIDLE: janela de presenca (D-1162)
+		IndicacaoIdle.append(); // RAGIDLE: Indique & Ganhe (D-1164)
+		/*
+		 * RAGIDLE (D-968): a CAIXA DE BOAS-VINDAS — o cartaz que abre sozinho
+		 * ao entrar (hoje, o convite do Discord). Anexada por ÚLTIMO entre as
+		 * janelas: o `append()` termina com `focus()`, e ser a última a deixa
+		 * no topo da pilha de foco. Quem decide se ela aparece é o `onAppend`
+		 * DELA (a trava de "uma vez por entrada" mora no componente).
+		 */
+		BoasVindasIdle.append();
 		LFGIdle.append(); // RAGIDLE: janela de Procurar Grupo (D-634)
 		GrupoIdle.append(); // RAGIDLE: janela de Grupo (D-960)
 		// RAGIDLE: o tracker ancora ABAIXO do BasicInfoIdle por medição — vem
@@ -1054,13 +1080,80 @@ function onMapChange(pkt) {
 			['config', IdleConfig, '.ic-window'],
 			['caca', HuntMap, '.hm-window'],
 			['codex', CodexIdle, '.cx-window'],
+			['presenca', PresencaIdle, '.pr-window'],
+			['indicacao', IndicacaoIdle, '.in-window'],
 			['correio', CorreioIdle, '.co-window'],
 			['missoes', MissoesIdle, '.mi-window'],
 			['passe', PasseIdle, '.pi-window'],
+			['voto', VotoIdle, '.vi-window'],
 			['analise', HuntAnalyzer, '.ha-window'],
+			/*
+			 * O PAINEL DE ADMIN entrou em 08/09/2026. Ele tem a mesma forma das
+			 * outras (`.ap-window` + `is-open` + `toggle()`) e só não estava
+			 * aqui porque só a conta dona o vê — e o que não entra na pilha não
+			 * ganha a moldura de painel de tela cheia de D-932.
+			 *
+			 * MEDIDO em 393x852 antes disto (`scripts/diag-mobile-portrait.ts`):
+			 * o Admin nascia em `7,166 380x742` e **transbordava 56px por
+			 * baixo** — a última linha de botões ficava fora da tela. Em 412x915
+			 * eram 58px. Registrado, ele passa pela mesma regra das outras onze.
+			 */
+			['admin', AdminPanel, '.ap-window'],
 		]) {
 			PilhaDeJanelas.registrar({ nome, componente, seletor });
 		}
+
+		/*
+		 * A LOJA DE CASH é NATIVA do roBrowser, e por isso ficou de fora da
+		 * pilha até 08/09/2026 — ela não usa `is-open` num `.xx-window`: ela é
+		 * inserida e REMOVIDA do DOM, e o estado se lê em `CashShop.ui`.
+		 *
+		 * O preço de ficar de fora é medido: em 393x852 ela abria com **723px
+		 * de largura numa tela de 393** e transbordava 330px para a direita —
+		 * as abas "Aluguel"/"Equipamento" e metade da grade de itens ficavam
+		 * fora do mundo, e o título saía cortado ("Loja de Cas..."). Ela é um
+		 * item do menu do celular, então isso é um destino inalcançável.
+		 *
+		 * A marca `.ri-janela` que o registro põe no host é o que a regra de
+		 * painel de D-932 lê. As duas funções abaixo existem porque a forma
+		 * dela é outra — e é exatamente para isso que `registrar()` aceita
+		 * `estaAberta` e `fechar` declarados.
+		 */
+		PilhaDeJanelas.registrar({
+			nome: 'cash',
+			componente: CashShop,
+			estaAberta: () => !!(CashShop.ui && CashShop.ui.is(':visible')),
+			/* `toggle()` e não `remove()`: fechar a loja de cash AVISA o
+			   servidor (`CZ_CASH_SHOP_CLOSE`). Arrancá-la do DOM deixaria o
+			   servidor achando que o jogador ainda está na loja. */
+			fechar: () => CashShop.toggle(),
+		});
+
+		/*
+		 * E ELA PRECISA AVISAR A PILHA POR FORA DO EMBRULHO (08/09/2026).
+		 *
+		 * O embrulho de `registrar()` compara o "aberta?" ANTES e DEPOIS de
+		 * `toggle()`. Isso funciona para as janelas que abrem no mesmo quadro —
+		 * e a loja de cash não é uma delas: `toggle()` só MANDA O PACOTE
+		 * (`CZ_SE_CASHSHOP_OPEN2`), e a janela nasce quando o servidor
+		 * responde. No instante em que o embrulho olha, ela ainda está
+		 * fechada, então `aoAbrir('cash')` nunca era chamado.
+		 *
+		 * A consequência era invisível e específica: a regra de UMA JANELA POR
+		 * VEZ do celular não disparava para ela. Medido em 393x852 — com a
+		 * janela "Votar" aberta antes, **28 controles da loja** respondiam
+		 * `div.vi-*` no `elementFromPoint`. O jogador via a loja e tocava no
+		 * Votar.
+		 *
+		 * `onAppend` é o ponto em que ela ENTRA na tela, seja qual for o
+		 * caminho — é lá que a pilha fica sabendo.
+		 */
+		const cashShopOnAppendOriginal = CashShop.onAppend;
+		CashShop.onAppend = function onAppendComPilha(...args) {
+			const r = cashShopOnAppendOriginal ? cashShopOnAppendOriginal.apply(this, args) : undefined;
+			PilhaDeJanelas.aoAbrir('cash');
+			return r;
+		};
 
 		/* O LFG não usa `toggle()`: ele tem `abrir()`/`fechar()` próprios, por
 		   causa da corrida de troca de mapa que já derrubou o `is-open` dele por
@@ -1179,7 +1272,11 @@ function onMapChange(pkt) {
 			// CashShopIcon.append();
 		}
 
-		if (Configs.get('enableCheckAttendance') && PACKETVER.value >= 20180307) {
+		// RAGIDLE (07/09/2026): so abre a janela de presenca se HA evento — o
+		// servidor paga a presenca por correio e nao manda o 0x0ae2; sem a
+		// guarda, cada carregamento de mapa (a Asa de Mosca inclusive) imprimia
+		// "Nao ha evento de presenca no momento." no chat.
+		if (Configs.get('enableCheckAttendance') && PACKETVER.value >= 20180307 && CheckAttendance.temEvento()) {
 			CheckAttendance.append();
 		}
 
@@ -1283,7 +1380,11 @@ function cleanGameUI() {
 		MissoesTrackerIdle,
 		MochilaIdle,
 		PasseIdle,
-		CodexIdle
+		CodexIdle,
+		PresencaIdle,
+		IndicacaoIdle,
+		VotoIdle,
+		BoasVindasIdle
 	]) {
 		if (typeof modulo.limparEstadoDoPersonagem === 'function') {
 			modulo.limparEstadoDoPersonagem();

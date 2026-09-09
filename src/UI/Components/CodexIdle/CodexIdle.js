@@ -50,6 +50,7 @@ import GUIComponent from 'UI/GUIComponent.js';
 import htmlText from './CodexIdle.html?raw';
 import cssText from './CodexIdle.css?raw';
 import { fecharEEsquecer } from '../limpezaDeJanelaIdle.js';
+import { abaLembrada, lembrarAba } from '../memoriaDeAba.js';
 
 /** Manter em sincronia com o ":host"/".cx-window" do CSS (mesmo papel do
  * WINDOW_WIDTH/HEIGHT de PasseIdle.js:51-52). */
@@ -103,7 +104,12 @@ const _preferences = Preferences.get(
 	'CodexIdle',
 	{
 		x: null,
-		y: null
+		y: null,
+		// A aba lembrada (08/09/2026), pelo contrato de memoriaDeAba.js: chave nova nos
+		// padroes nao exige subir a versao.
+		aba: null,
+		// Ocultar as missoes concluidas (08/09/2026).
+		ocultarConcluidas: false
 	},
 	1.0
 );
@@ -251,7 +257,47 @@ function onClickClose(e) {
 }
 
 /** Delegacao: o unico clique que o corpo trata e o "+" de um eixo. */
+/**
+ * RAGIDLE (08/09/2026, ordem do dono): a janela tem DUAS abas — "Missoes"
+ * (onde os pontos nascem) e "Status" (onde os pontos sao gastos). Antes as
+ * duas secoes vinham empilhadas na mesma rolagem.
+ */
+const ABA_PADRAO = 'missoes';
+const ABAS = ['missoes', 'status'];
+// Restaurada do localStorage e gravada a cada troca (memoriaDeAba.js).
+let _aba = abaLembrada(_preferences, ABA_PADRAO, ABAS);
+
+function abasHtml() {
+	const aba = (id, rotulo) =>
+		'<button type="button" class="cx-aba ri-tab' +
+		(_aba === id ? ' is-active' : '') +
+		'" data-tab="' +
+		id +
+		'" role="tab" aria-selected="' +
+		(_aba === id ? 'true' : 'false') +
+		'">' +
+		rotulo +
+		'</button>';
+	return '<div class="cx-abas" role="tablist">' + aba('missoes', 'Missões') + aba('status', 'Status') + '</div>';
+}
+
 function onClickCorpo(e) {
+	const ocultar = e.target && e.target.closest && e.target.closest('[data-action="cx-ocultar"]');
+	if (ocultar) {
+		e.stopImmediatePropagation();
+		_preferences.ocultarConcluidas = !!ocultar.checked;
+		_preferences.save();
+		render();
+		return;
+	}
+	const aba = e.target && e.target.closest && e.target.closest('.cx-aba');
+	if (aba && aba.dataset.tab && aba.dataset.tab !== _aba) {
+		e.stopImmediatePropagation();
+		_aba = aba.dataset.tab;
+		lembrarAba(_preferences, _aba);
+		render();
+		return;
+	}
 	const botao = e.target && e.target.closest && e.target.closest('.cx-mais');
 	if (!botao || botao.disabled) {
 		return;
@@ -319,13 +365,34 @@ function placarHtml(estado) {
 }
 
 /** A lista de missoes: monstro, progresso e a marca de cumprida. */
+/**
+ * RAGIDLE (08/09/2026, ordem do dono): a lista sai da MENOR quantidade para a
+ * maior (o total da missao; empate pelo titulo), e as concluidas podem ser
+ * ocultadas — o interruptor fica gravado nas preferencias.
+ */
+function ordenarMissoes(missoes) {
+	return missoes.slice().sort((a, b) => (Number(a.alvo) || 0) - (Number(b.alvo) || 0) || String(a.titulo || '').localeCompare(String(b.titulo || ''), 'pt-BR'));
+}
+
 function missoesHtml(estado) {
-	const missoes = Array.isArray(estado.missoes) ? estado.missoes : [];
-	if (missoes.length === 0) {
+	const todas = Array.isArray(estado.missoes) ? estado.missoes : [];
+	if (todas.length === 0) {
 		return '<div class="cx-vazio">Nenhuma missao no catalogo.</div>';
 	}
-
+	const ocultar = !!_preferences.ocultarConcluidas;
+	const concluidas = todas.filter(m => m.cumprida).length;
+	const missoes = ordenarMissoes(ocultar ? todas.filter(m => !m.cumprida) : todas);
+	const barra =
+		'<label class="cx-ocultar"><input type="checkbox" data-action="cx-ocultar"' +
+		(ocultar ? ' checked' : '') +
+		' /> Ocultar concluidas' +
+		(concluidas ? ' <span class="cx-ocultar-n">(' + escapeHtml(concluidas) + ')</span>' : '') +
+		'</label>';
+	if (missoes.length === 0) {
+		return barra + '<div class="cx-vazio">Todas as missoes estao concluidas.</div>';
+	}
 	return (
+		barra +
 		'<div class="cx-missoes">' +
 		missoes
 			.map(m => {
@@ -342,8 +409,25 @@ function missoesHtml(estado) {
 				// nome de um monstro: uma entrada pode pedir três espécies
 				// ("Família Orc"), e mostrar só a primeira mentiria sobre o que
 				// falta. As espécies vão na linha de baixo, que é onde cabem.
+				// RAGIDLE (08/09/2026, reporte do dono): com dois alvos, "115/150" nao
+				// diz quanto falta de CADA um — "Bichos Barulhentos" e 50 Muka + 100
+				// PecoPeco, e um jogador teve que descobrir na mao. Cada especie mostra o
+				// proprio progresso (o servidor ja mandava `abates`/`alvo` por alvo).
 				const especies = Array.isArray(m.alvos)
-					? m.alvos.map(a => escapeHtml(a.monstro)).join(' · ')
+					? m.alvos
+							.map(a =>
+								m.alvos.length > 1 && typeof a.abates === 'number' && typeof a.alvo === 'number'
+									? escapeHtml(a.monstro) +
+										' <span class="cx-missao-especie-prog' +
+										(a.abates >= a.alvo ? ' is-cumprida' : '') +
+										'">' +
+										escapeHtml(a.abates) +
+										'/' +
+										escapeHtml(a.alvo) +
+										'</span>'
+									: escapeHtml(a.monstro)
+							)
+							.join(' · ')
 					: '';
 				// O que a entrada paga ALÉM do ponto — vazio nas oito de D-851.
 				const premio = Array.isArray(m.recompensas)
@@ -502,15 +586,12 @@ function render() {
 		return;
 	}
 
-	corpo.innerHTML =
-		placarHtml(estado) +
-		'<div class="cx-secao"><div class="cx-secao-titulo">Onde os pontos nascem</div>' +
-		missoesHtml(estado) +
-		'</div>' +
-		'<div class="ri-divisor"></div>' +
-		'<div class="cx-secao"><div class="cx-secao-titulo">Onde gastar</div>' +
-		eixosHtml(estado) +
-		'</div>';
+	// Uma aba por vez (08/09/2026): Missoes = onde os pontos nascem; Status = onde gastar.
+	const secao =
+		_aba === 'status'
+			? '<div class="cx-secao"><div class="cx-secao-titulo">Onde gastar</div>' + eixosHtml(estado) + '</div>'
+			: '<div class="cx-secao"><div class="cx-secao-titulo">Onde os pontos nascem</div>' + missoesHtml(estado) + '</div>';
+	corpo.innerHTML = placarHtml(estado) + abasHtml() + secao;
 }
 
 /* ------------------------------------------------------------------ */

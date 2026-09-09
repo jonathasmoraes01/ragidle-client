@@ -978,6 +978,38 @@ function renderNo(no, contexto) {
 		'">' +
 		escapeHtml(skill.nome) +
 		'</span>' +
+		/*
+		 * RAGIDLE (D-1154, lapidada por D-1189) — habilidade de QUEST nao custa
+		 * ponto, mas so Primeiros Socorros entra SOZINHA: as outras sao
+		 * ENTREGUES pelas missoes da campanha ("unica skill que ira ficar de
+		 * graca e a primeiro socorros, as outras irao ficar tudo nas missoes" —
+		 * o dono, 07/09/2026). A lista de graca mora no servidor
+		 * (HABILIDADES_DE_QUEST_DE_GRACA, servidor/habilidades-de-quest.ts);
+		 * este espelho dela existe so para a etiqueta nao PROMETER de graca o
+		 * que na verdade pede missao.
+		 */
+		(skill.deQuest
+			/*
+			 * `skillId`, e nao `name` (07/09/2026, no merge).
+			 *
+			 * D-1189 leu o campo `name` da skill, que NAO existe no payload
+			 * do 0x0ffa — o servidor manda `skillId` (o identificador
+			 * `NV_FIRSTAID`) e `nome` (o nome legivel, em portugues). Todo o
+			 * resto deste arquivo ja usa `skill.skillId`.
+			 *
+			 * O efeito era silencioso e total: `undefined === 'NV_FIRSTAID'` e
+			 * sempre falso, entao o Primeiros Socorros caia no ramo do `else` e
+			 * a etiqueta dele dizia "é aprendida numa missão" — exatamente o
+			 * contrario do que D-1189 quis dizer, e a unica peca que a decisao
+			 * existia para distinguir.
+			 *
+			 * Quem pegou foi o portao `contrato-de-skills.test.ts`, que cruza os
+			 * campos LIDOS pelo fork com os DECLARADOS pelo servidor.
+			 */
+			? (skill.skillId === 'NV_FIRSTAID'
+				? '<span class="is-no-quest" title="Habilidade de quest: entra sozinha quando os requisitos são cumpridos, sem gastar ponto">quest · grátis</span>'
+				: '<span class="is-no-quest" title="Habilidade de quest: é aprendida numa missão, sem gastar ponto">quest · missão</span>')
+			: '') +
 		plaqueta(skill, contexto) +
 		'</div>'
 	);
@@ -1039,6 +1071,24 @@ function plaqueta(skill, contexto, modificador) {
 	const nivelHtml = extra
 		? escapeHtml(skill.aprendido) + '<em>+' + escapeHtml(extra) + '</em>/' + escapeHtml(skill.nivelMaximo)
 		: escapeHtml(efetivo) + '/' + escapeHtml(skill.nivelMaximo);
+
+	/*
+	 * RAGIDLE (D-1155) — a habilidade de QUEST nao tem setas: o servidor a
+	 * concede sozinho no maximo quando a arvore permite (D-1154), e uma seta
+	 * "+" que nunca faz nada e o defeito que o jogador reporta como "nao
+	 * consigo aprender". A plaqueta vira so o nivel, com a etiqueta ao lado.
+	 */
+	if (skill.deQuest) {
+		return (
+			'<span class="is-plaqueta is-plaqueta--quest' +
+			(modificador ? ' ' + modificador : '') +
+			'" title="Habilidade de quest: entra sozinha, sem gastar ponto">' +
+			'<span class="is-no-nivel">' +
+			nivelHtml +
+			'</span>' +
+			'</span>'
+		);
+	}
 
 	return (
 		'<span class="is-plaqueta' +

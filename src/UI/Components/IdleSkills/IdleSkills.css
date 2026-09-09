@@ -1307,3 +1307,55 @@
 	position: absolute;
 	inset: -12px -4px;
 }
+
+/* RAGIDLE (D-1154): a etiqueta da habilidade de QUEST — entra sozinha, sem ponto. */
+#IdleSkills .is-no-quest {
+	display: inline-block;
+	margin-top: 2px;
+	padding: 0 6px;
+	border-radius: 8px;
+	font-size: 10px;
+	line-height: 14px;
+	letter-spacing: 0.02em;
+	color: #2b1d00;
+	background: linear-gradient(180deg, #f4c03e, #d9a020);
+	box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5);
+}
+
+/* RAGIDLE (D-1155): a plaqueta da habilidade de QUEST — so o nivel, sem setas. */
+#IdleSkills .is-plaqueta--quest {
+	justify-content: center;
+	border-color: #d9a020;
+	background: linear-gradient(180deg, #fff6dc, #f6e3a8);
+}
+#IdleSkills .is-plaqueta--quest .is-no-nivel {
+	color: #6b4a00;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   CELULAR EM PE: A PLAQUETA ◀ n/m ▶ PARA DE CORTAR (08/09/2026)
+
+   MEDIDO por `scripts/diag-mobile-portrait.ts` em 393x852: a plaqueta tinha
+   **31px de conteudo numa caixa de 19 com `overflow: hidden`** — 12px
+   escondidos, e o que sumia era o proprio "n/m", o numero que diz quantos
+   pontos a habilidade tem. Uma plaqueta de nivel que nao mostra o nivel.
+
+   A altura de 19px e de desktop, onde o texto e menor e cabe. No dedo a
+   fonte da HUD e maior (D-934 nao encolhe em `pointer: coarse`), e o mesmo
+   conteudo passa a nao caber.
+
+   Ela CRESCE em vez de esconder — 26px acomoda o texto e continua abaixo do
+   no de 92x108, sem mexer no arranjo da arvore. As setas ◀ ▶ ja tem area
+   tatil por `::before` desde D-942; isto e so o miolo.
+   ═══════════════════════════════════════════════════════════════════════ */
+@media (pointer: coarse) and (orientation: portrait) {
+	#IdleSkills .is-plaqueta {
+		/* `min-height: 26px` sozinho nao bastou: a caixa cresceu de 19 para 26
+		   e o conteudo de 31 para 38, porque o `overflow: hidden` da regra base
+		   continuava recortando em vez de deixar a caixa seguir o texto. Quem
+		   corta e ele; sem ele, `height: auto` faz o que promete. */
+		height: auto;
+		min-height: 26px;
+		overflow: visible;
+	}
+}

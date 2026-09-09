@@ -67,17 +67,23 @@ export function dropsDoMapa(mapa) {
 			 * atras de um item que nao esta la.
 			 */
 			const jaVisto = porItem.get(d.itemId);
-			const origem = { mobId: mob.mobId, nome: mob.nome, chance: d.chance };
+			// RAGIDLE (08/09/2026): drop `raro` vem SEM chance (a carta de MVP/mini-chefe).
+			// Ele conta como 0 para ordenar, e a linha so e RARO se TODA origem for.
+			const raro = !!d.raro;
+			const chance = raro ? 0 : d.chance;
+			const origem = { mobId: mob.mobId, nome: mob.nome, chance, raro };
 			if (jaVisto) {
 				jaVisto.deQuantosMobs++;
 				jaVisto.monstros.push(origem);
-				if (d.chance > jaVisto.melhorChance) jaVisto.melhorChance = d.chance;
+				if (chance > jaVisto.melhorChance) jaVisto.melhorChance = chance;
+				if (!raro) jaVisto.raro = false;
 				continue;
 			}
 			porItem.set(d.itemId, {
 				itemId: d.itemId,
 				nome: d.nome,
-				melhorChance: d.chance,
+				melhorChance: chance,
+				raro,
 				deQuantosMobs: 1,
 				monstros: [origem],
 			});

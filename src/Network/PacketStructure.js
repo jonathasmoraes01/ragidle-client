@@ -16253,6 +16253,126 @@ PACKET.ZC.RAGIDLE_CODEX = function PACKET_ZC_RAGIDLE_CODEX(fp, end) {
 };
 PACKET.ZC.RAGIDLE_CODEX.size = -1;
 
+// 0x0fdf - RAGIDLE: CZ_RAGIDLE_PRESENCA_ACAO (client -> server)
+// Variable size: u16 opcode + u16 total length + JSON UTF-8 {acao:'pedir'|'recolher'}.
+// D-1162: a janela de presenca (PresencaIdle). Um opcode por JANELA, como o
+// Codex — o verbo vai no corpo.
+PACKET.CZ.RAGIDLE_PRESENCA_ACAO = function PACKET_CZ_RAGIDLE_PRESENCA_ACAO() {
+	this.json = '{}';
+};
+PACKET.CZ.RAGIDLE_PRESENCA_ACAO.prototype.build = function () {
+	const bytes = TextEncoding.encode(this.json, 'utf-8');
+	const pkt_len = 2 + 2 + bytes.length;
+	const pkt_buf = new BinaryWriter(pkt_len);
+	pkt_buf.writeShort(0x0fdf);
+	pkt_buf.writeUShort(pkt_len);
+	pkt_buf.writeString(this.json);
+	return pkt_buf;
+};
+
+// ===========================================================================
+// A JANELA DE VOTO (D-1159) — 0x0fd4 / 0x0fd5
+// ===========================================================================
+// DOIS pacotes, e nao quatro. Mesmo padrao do Codex logo acima: **um CZ com
+// verbo** em vez de um opcode por acao. `{acao:'pedir'}`, `{acao:'link',
+// plataforma}` e `{acao:'comprar', produto}` cabem no mesmo pacote, e os tres
+// respondem com o MESMO `ZC_RAGIDLE_VOTO`.
+//
+// A VAGA sai do PISO da reserva de D-527, logo acima do refino (0x0fd3), para
+// o bloco RAGIDLE continuar contiguo — gastar do topo abriria um vao mudo no
+// meio, que e o erro que o comentario do trio do Passe manda nao repetir. A
+// reserva foi movida no MESMO commit nos DOIS repositorios
+// (servidor/protocolo/faixa-ragidle.test.ts tem o portao).
+
+// 0x0fd4 - RAGIDLE: CZ_RAGIDLE_VOTO_ACAO (client -> server)
+// Variable size: u16 opcode + u16 total length + JSON UTF-8 payload.
+// { acao: 'pedir' } | { acao: 'link', plataforma: 'idlerank'|'topidle' } |
+// { acao: 'comprar', produto: 'xp-2h' }.
+//
+// O servidor NAO confia em nada disto: verbo fora dos tres, plataforma fora
+// das duas e produto fora do catalogo caem na mesma recusa silenciosa, na
+// BORDA (servidor-mapa.ts) e antes da regra pura.
+PACKET.CZ.RAGIDLE_VOTO_ACAO = function PACKET_CZ_RAGIDLE_VOTO_ACAO() {
+	this.json = '{}';
+};
+PACKET.CZ.RAGIDLE_VOTO_ACAO.prototype.build = function () {
+	const bytes = TextEncoding.encode(this.json, 'utf-8');
+	const pkt_len = 2 + 2 + bytes.length;
+	const pkt_buf = new BinaryWriter(pkt_len);
+	pkt_buf.writeShort(0x0fd4);
+	pkt_buf.writeUShort(pkt_len);
+	pkt_buf.writeString(this.json);
+	return pkt_buf;
+};
+
+
+// 0x0fd5 - RAGIDLE: ZC_RAGIDLE_VOTO (server -> client)
+// Variable size: u16 opcode + u16 total length + JSON UTF-8 payload.
+// Contrato v1 (D-1159): { v, moeda, saldo, agoraMs, intervaloMs,
+// plataformas: [{ id, nome, ligada, liberado, proximoEm, votos,
+// ultimoVotoMs }], liberados, impulso: { ateMs, ativo, base, job },
+// loja: [{ id, nome, resumo, custo, duracaoMs, base, job, recusa }],
+// avisar, comprou, abrir }.
+//
+// UM pacote de resposta para os TRES verbos — e para a ENTRADA no mapa, onde
+// ele desce com `avisar: true` para a janela abrir o aviso de "seu voto esta
+// liberado". Fora dessa vez, `avisar` e sempre falso.
+//
+// `abrir` traz a URL de voto ja montada pelo servidor (chave publica +
+// identidade opaca da conta). A janela NUNCA monta essa URL: a identidade nao
+// existe do lado do cliente, e montar aqui exigiria mandar a chave publica no
+// pacote de estado, que e uma viagem a mais para um dado que so serve no
+// clique.
+//
+// E a janela NUNCA recalcula prazo nem saldo: `liberado`, `proximoEm` e o
+// `recusa` de cada item da loja sao veredito do servidor. Recalcular daria a
+// segunda conta da mesma regra, e a que o jogador ve seria a errada — o
+// servidor decide depois do clique.
+PACKET.ZC.RAGIDLE_VOTO = function PACKET_ZC_RAGIDLE_VOTO(fp, end) {
+	this.json = fp.readString(end - fp.tell());
+};
+PACKET.ZC.RAGIDLE_VOTO.size = -1;
+// 0x0fde - RAGIDLE: ZC_RAGIDLE_PRESENCA (server -> client)
+// Variable size: u16 opcode + u16 total length + JSON UTF-8 payload.
+// Contrato v1 (D-1162): { v, hoje, periodo, diasDoPeriodo, recolhidos,
+// podeRecolher, diaDeHoje, diaDoCalendario, dias: [{ dia, estado, itens:
+// [{ item, itemId, nome, quantidade }] }], abrir, recolhido?: { dia, itens,
+// destino: 'mochila'|'correio' }, recusa?: 'ja-recebeu-hoje'|
+// 'periodo-esgotado'|'sem-espaco' }.
+// Chega SEM pedido com `abrir: true` no primeiro contato do dia (login) e a
+// meia-noite para quem esta online — a janela abre sozinha.
+PACKET.ZC.RAGIDLE_PRESENCA = function PACKET_ZC_RAGIDLE_PRESENCA(fp, end) {
+	this.json = fp.readString(end - fp.tell());
+};
+PACKET.ZC.RAGIDLE_PRESENCA.size = -1;
+
+// 0x0fdd - RAGIDLE: CZ_RAGIDLE_INDICACAO_ACAO (client -> server)
+// Variable size: u16 opcode + u16 total length + JSON UTF-8 {acao:'pedir'|'usar', codigo?}.
+// D-1164: Indique & Ganhe (IndicacaoIdle). Um opcode por JANELA.
+PACKET.CZ.RAGIDLE_INDICACAO_ACAO = function PACKET_CZ_RAGIDLE_INDICACAO_ACAO() {
+	this.json = '{}';
+};
+PACKET.CZ.RAGIDLE_INDICACAO_ACAO.prototype.build = function () {
+	const bytes = TextEncoding.encode(this.json, 'utf-8');
+	const pkt_len = 2 + 2 + bytes.length;
+	const pkt_buf = new BinaryWriter(pkt_len);
+	pkt_buf.writeShort(0x0fdd);
+	pkt_buf.writeUShort(pkt_len);
+	pkt_buf.writeString(this.json);
+	return pkt_buf;
+};
+
+// 0x0fdc - RAGIDLE: ZC_RAGIDLE_INDICACAO (server -> client)
+// Variable size: u16 opcode + u16 total length + JSON UTF-8 payload.
+// Contrato v1 (D-1164): { v, codigo, link, taxa, ganhos, indicados: [{ nome,
+// nivel }], indicadoPor: nome|null, podeUsarCodigo, emTeste, recusa?:
+// 'codigo-invalido'|'proprio-codigo'|'ja-indicado'|'indicador-nao-existe'|
+// 'nao-e-conta-nova' }.
+PACKET.ZC.RAGIDLE_INDICACAO = function PACKET_ZC_RAGIDLE_INDICACAO(fp, end) {
+	this.json = fp.readString(end - fp.tell());
+};
+PACKET.ZC.RAGIDLE_INDICACAO.size = -1;
+
 // 0x0fec - RAGIDLE: CZ_RAGIDLE_PEDIR_MISSOES (client -> server)
 // Fixed 2 bytes: opcode only. Sent when the MissoesIdle window is opened.
 // Same shape as CZ_RAGIDLE_PEDIR_CONFIG above.
@@ -16304,6 +16424,32 @@ PACKET.ZC.RAGIDLE_CONFIRMAR = function PACKET_ZC_RAGIDLE_CONFIRMAR(fp, end) {
 	this.json = fp.readString(end - fp.tell());
 };
 PACKET.ZC.RAGIDLE_CONFIRMAR.size = -1;
+
+// 0x0fd3 - RAGIDLE: ZC_RAGIDLE_REFINO (server -> client)
+// Variable size: u16 opcode + u16 total length + JSON UTF-8 payload.
+//
+// A FICHA DO DEGRAU de refino (07/09/2026). Ele nao substitui o
+// ZC.REFINING_MATERIAL_LIST (0x0aa2) do RO: fica ao lado dele, porque aquele
+// tem bloco FIXO de 9 bytes (itemId.L + chance.B + zeny.L) e nao ha onde somar
+// as quatro coisas que a janela precisa dizer:
+//   - a chance na grade de 10000 (o byte do 0x0aa2 so guarda 0..100);
+//   - quantas unidades do material o jogador TEM (a diferenca entre um botao
+//     apagado que se explica e um que parece defeito);
+//   - quantos niveis a FALHA custa (o servidor rebaixa; ver servidor/refino.ts);
+//   - o bonus do degrau atual e do proximo (a resposta a "por que refinar?").
+//
+// Contrato v1: { v, indice, itemId, nome, grupo, nivelItem, refino, teto,
+// motivo, zeny, degrau: { taxa, preco, materialId, materialNome, materialTem,
+// niveisPerdidosNaFalha, atributo, bonusAtual, bonusProximo } | null }.
+//
+// `degrau: null` + `motivo` e a RECUSA por extenso ('esta-vestida', 'no-teto',
+// 'nao-refinavel'). Ela viaja de proposito: antes deste pacote o servidor
+// simplesmente nao respondia, e a janela ficava mostrando o degrau da peca
+// anterior enquanto o jogador achava que tinha escolhido esta.
+PACKET.ZC.RAGIDLE_REFINO = function PACKET_ZC_RAGIDLE_REFINO(fp, end) {
+	this.json = fp.readString(end - fp.tell());
+};
+PACKET.ZC.RAGIDLE_REFINO.size = -1;
 
 // 0x0fd2 - RAGIDLE: CZ_RAGIDLE_CONFIRMAR (client -> server)
 // Fixo, 7 bytes: u16 opcode + u32 id + u8 resposta (1 = sim, 0 = nao).

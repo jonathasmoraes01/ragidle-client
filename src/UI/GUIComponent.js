@@ -1042,6 +1042,32 @@ class GUIComponent {
 			setTimeout(() => checkScrollbars(root), 150);
 			setTimeout(() => checkScrollbars(root), 500);
 
+			/*
+			 * UMA VARREDURA POR QUADRO, NO MAXIMO (07/09/2026, frente de FPS).
+			 *
+			 * `checkScrollbars` percorre TODOS os descendentes e chama
+			 * `getComputedStyle` em cada um — uma leitura que forca recalculo de
+			 * estilo. O observador a disparava por LOTE de mutacoes, e a HUD
+			 * muda o tempo todo (chat, barras, contadores): medido, o jogo fazia
+			 * **~3.000 `getComputedStyle` por segundo**.
+			 *
+			 * Agrupar por `requestAnimationFrame` colapsa todas as mutacoes de
+			 * um quadro numa varredura so, e faz o trabalho cair junto com o
+			 * quadro — o que e o comportamento certo para algo que so importa
+			 * quando a tela vai ser pintada. Nada e perdido: a varredura roda
+			 * depois de todas as mutacoes daquele quadro, e ve o estado final.
+			 */
+			let varreduraAgendada = 0;
+			const agendarVarredura = () => {
+				if (varreduraAgendada !== 0) {
+					return;
+				}
+				varreduraAgendada = requestAnimationFrame(() => {
+					varreduraAgendada = 0;
+					checkScrollbars(root);
+				});
+			};
+
 			// Re-apply on visibility or content changes
 			const observer = new MutationObserver(mutations => {
 				let needsCheck = false;
@@ -1059,7 +1085,7 @@ class GUIComponent {
 						}
 					}
 				}
-				if (needsCheck) checkScrollbars(root);
+				if (needsCheck) agendarVarredura();
 			});
 
 			observer.observe(observeTarget, {

@@ -403,6 +403,19 @@ function onPartyMemberLeave(pkt) {
 		Session.hasParty = false;
 	}
 
+	// RAGIDLE (08/09/2026): o HP de outro jogador e so do grupo. Quem sai do
+	// grupo leva a barra junto — e o cache que a re-acenderia no proximo spawn.
+	if (Session.AID !== pkt.AID) {
+		EntityManager.storeLife(pkt.AID, { hp: -1, hp_max: -1 });
+		const exMembro = EntityManager.get(pkt.AID);
+		if (exMembro && exMembro.life) {
+			exMembro.life.hp = -1;
+			exMembro.life.hp_max = -1;
+			exMembro.life.display = false;
+			exMembro.life.remove();
+		}
+	}
+
 	PartyFriends.getUI().removePartyMember(pkt.AID, pkt.characterName);
 
 	/*

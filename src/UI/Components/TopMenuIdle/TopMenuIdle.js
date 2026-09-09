@@ -191,6 +191,9 @@ import LFGIdle from 'UI/Components/LFGIdle/LFGIdle.js'; // RAGIDLE: Procurar Gru
    escolhe entre as duas — e quem carrega as duas — e a `portaDoGrupo`. */
 import PortaDoGrupo from 'UI/Components/portaDoGrupo.js'; // RAGIDLE: quem decide QUAL das duas (D-984)
 import { ehCelularEmPe } from 'UI/hudVertical.js'; // D-939: a folha do menu flutua sobre o chat
+/* 08/09/2026: a terceira porta do "Instalar app". A DECISAO e toda de la — ver
+   `ligarOfertaDeInstalacao()` mais abaixo. */
+import { escutarACasca, ofertaAtual, pontePWA, textoDoResultado } from 'UI/ofertaDeInstalacao.js';
 import SkillList from 'UI/Components/SkillList/SkillList.js';
 import StatusIdle from 'UI/Components/StatusIdle/StatusIdle.js';
 import MochilaIdle from 'UI/Components/MochilaIdle/MochilaIdle.js';
@@ -199,7 +202,10 @@ import CorreioIdle from 'UI/Components/CorreioIdle/CorreioIdle.js';
 import HuntAnalyzer from 'UI/Components/HuntAnalyzer/HuntAnalyzer.js';
 import MissoesIdle from 'UI/Components/MissoesIdle/MissoesIdle.js';
 import PasseIdle from 'UI/Components/PasseIdle/PasseIdle.js';
+import VotoIdle from 'UI/Components/VotoIdle/VotoIdle.js'; // RAGIDLE: janela de Voto (D-1159)
 import CodexIdle from 'UI/Components/CodexIdle/CodexIdle.js'; // RAGIDLE: Codex (D-851)
+import PresencaIdle from 'UI/Components/PresencaIdle/PresencaIdle.js'; // RAGIDLE: Presenca (D-1162)
+import IndicacaoIdle from 'UI/Components/IndicacaoIdle/IndicacaoIdle.js'; // RAGIDLE: Indique & Ganhe (D-1164)
 import AdminPanel from 'UI/Components/AdminPanel/AdminPanel.js';
 import CashShop from 'UI/Components/CashShop/CashShop.js'; // RAGIDLE: a loja de cash (I5)
 import RiIcones from 'UI/ri-icones.js';
@@ -368,10 +374,101 @@ TopMenuIdle.onAppend = function onAppend() {
 	syncAllActiveStates();
 	syncSkillDot();
 	syncCorreioDot();
+	syncVotoLivre();
 	syncToggleDot();
+	ligarOfertaDeInstalacao();
 	startPolling();
 	ligarFechamentoExterno();
 };
+
+/* ═══════════════════════════════════════════════════════════════════════
+   "INSTALAR APP" NO PE DA FOLHA (08/09/2026, pedido do dono)
+   ═══════════════════════════════════════════════════════════════════════
+   *"Sempre que o jogador entrar pelo navegador mobile, fora do PWA instalado,
+   apresente um botao visivel 'Instalar app', sem bloquear a partida."*
+
+   A porta que existia era a aba de Config — DEPOIS do login e atras de um
+   menu. A tela de entrada tambem oferece (D-945), mas quem ja entrou nao volta
+   la. Esta linha e a terceira porta, e a unica que o jogador ve enquanto joga.
+
+   TODA a decisao vem de `ofertaDeInstalacao.js`: se mostrar, com que rotulo,
+   e o que o clique faz. Nada disso e reescrito aqui — sao as MESMAS tres
+   saidas (prompt / instrucao / nada) que a entrada e o Config ja usam. Um
+   quarto lugar decidindo por conta propria seria o quarto a envelhecer.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+function ligarOfertaDeInstalacao() {
+	const botao = _root().querySelector('.tm-instalar');
+	if (!botao) {
+		return;
+	}
+	sincronizarOferta();
+	/* A casca avisa quando o `beforeinstallprompt` chega (pode ser DEPOIS do
+	   append) e quando o app foi instalado. Sem escutar, o botao decidiria uma
+	   vez e ficaria com a resposta velha — visivel num app ja instalado. */
+	escutarACasca(sincronizarOferta);
+	botao.addEventListener('click', aoClicarInstalar);
+}
+
+/** Poe na tela o que `decidirOferta()` mandou — ou esconde a linha. */
+function sincronizarOferta() {
+	const root = _root();
+	const botao = root && root.querySelector('.tm-instalar');
+	if (!botao) {
+		return;
+	}
+	const oferta = ofertaAtual();
+	botao.hidden = !oferta.mostrar;
+	if (!oferta.mostrar) {
+		return;
+	}
+	const rotulo = botao.querySelector('.tm-instalar-rotulo');
+	if (rotulo) rotulo.textContent = oferta.rotulo;
+	const dica = botao.querySelector('.tm-instalar-dica');
+	if (dica) {
+		dica.textContent = oferta.dica;
+		/* No modo `prompt` a dica e uma linha curta e cabe sempre. No modo
+		   `instrucao` ela e um passo a passo, e so aparece no toque — despejar
+		   um paragrafo no pe do menu seria o banner que o pedido recusou. */
+		dica.hidden = oferta.modo !== 'prompt';
+	}
+	botao.classList.toggle('is-instrucao', oferta.modo === 'instrucao');
+}
+
+/** O clique: dispara a instalacao real, ou revela o passo a passo. */
+function aoClicarInstalar(evento) {
+	evento.preventDefault();
+	evento.stopPropagation();
+	const oferta = ofertaAtual();
+	const dica = _root().querySelector('.tm-instalar-dica');
+
+	if (oferta.modo !== 'prompt') {
+		/* Sem evento do navegador nao ha o que disparar, e o botao NAO fica
+		   morto: ele abre (e fecha) a explicacao do aparelho. O pedido e
+		   explicito — "quando a instalacao exigir passos manuais, o botao deve
+		   abrir instrucoes adequadas ao dispositivo". */
+		if (dica) {
+			dica.textContent = oferta.dica;
+			dica.hidden = !dica.hidden;
+		}
+		return;
+	}
+
+	const ponte = pontePWA();
+	if (!ponte) {
+		return;
+	}
+	Promise.resolve(ponte.instalar()).then(resultado => {
+		/* Sincroniza ANTES de escrever a resposta: a ordem inversa apagaria o
+		   texto que acabou de ser posto (a cicatriz que a prova da tela de
+		   entrada cobrou em D-945). */
+		sincronizarOferta();
+		if (dica) {
+			dica.hidden = false;
+			dica.textContent = textoDoResultado(resultado);
+		}
+	});
+}
 
 /**
  * Desliga o polling, os ouvintes globais de fechar a gaveta e qualquer
@@ -523,6 +620,14 @@ function onClickAction(e) {
 		case 'codex':
 			CodexIdle.toggle();
 			break;
+		case 'presenca':
+			/* D-1162: PresencaIdle.toggle() tambem PEDE o painel ao abrir (0x0fdf) */
+			PresencaIdle.toggle();
+			break;
+		case 'indicacao':
+			/* D-1164: IndicacaoIdle.toggle() tambem PEDE o painel ao abrir (0x0fdd) */
+			IndicacaoIdle.toggle();
+			break;
 		/* O Passe saiu de "em breve" em D-813. Ele PEDE o estado ao abrir
 		   (0x0fe5): preco, vencimento e o que cada dia entrega sao do
 		   servidor — a janela so desenha.
@@ -531,6 +636,12 @@ function onClickAction(e) {
 		   e 0x0fe5/0x0fe6/0x0fe7 (PacketStructure.js). */
 		case 'passe':
 			PasseIdle.toggle();
+			break;
+		/* VOTAR (D-1159). Ele PEDE o estado ao abrir (0x0fd4 com
+		   `{acao:'pedir'}`): saldo, prazo de cada plataforma e preco sao do
+		   servidor — a janela so desenha. */
+		case 'voto':
+			VotoIdle.toggle();
 			break;
 		/*
 		 * A LOJA DE CASH (I5, 31/08/2026 — pedido do dono).
@@ -546,11 +657,32 @@ function onClickAction(e) {
 			return;
 	}
 
-	// Escolheu no leque? O leque sai da frente. Ele e uma gaveta: abriu,
-	// escolheu, fechou -- e a janela que acabou de abrir e que precisa da
-	// tela agora. So vale pro leque; o cluster de cima nunca se fecha
-	// sozinho.
-	if (_lequeAberto && btn.closest('.tm-fan')) {
+	/*
+	 * Escolheu no leque? O leque sai da frente. Ele e uma gaveta: abriu,
+	 * escolheu, fechou -- e a janela que acabou de abrir e que precisa da
+	 * tela agora. No DESKTOP so vale pro leque; o cluster de cima e barra
+	 * permanente e nunca se fecha sozinho.
+	 *
+	 * ── NO CELULAR EM PE, O CLUSTER TAMBEM FECHA (08/09/2026) ──
+	 *
+	 * Na HUD vertical o `.tm-top` nao e barra permanente: ele e DESENHADO
+	 * DENTRO DA FOLHA (`.ri-vertical #TopMenuIdle.tm-aberto .tm-top`,
+	 * TopMenuIdle.css:1311). A condicao `btn.closest('.tm-fan')` e do arranjo
+	 * de desktop, e no celular ela responde `null` para os NOVE itens do
+	 * cluster — entao a folha ficava aberta POR CIMA da janela que o jogador
+	 * acabou de abrir, e era ela quem comia o toque.
+	 *
+	 * MEDIDO antes do conserto (`scripts/diag-mobile-portrait.ts`, 393x852):
+	 * a folha ficou por cima em 9 das 18 janelas, e os nove sao exatamente os
+	 * itens do cluster — Personagem, Mochila, Skills, Caca, Correio, Config.,
+	 * Analise, Recompensas e Votar. O agregado de "quem cobre" apontava
+	 * `button.tm-item` como o coberturador numero 1, com 18 ocorrencias.
+	 *
+	 * A licao e a de sempre neste projeto: condicao escrita para um arranjo
+	 * nao acompanha o outro arranjo — quem pergunta "estou na gaveta?" tem de
+	 * perguntar tambem "a gaveta e a tela inteira agora?".
+	 */
+	if (_lequeAberto && (btn.closest('.tm-fan') || ehCelularEmPe())) {
 		fecharLeque();
 	}
 
@@ -870,8 +1002,67 @@ function distribuirFileiras() {
 		typeof window !== 'undefined' && window.matchMedia
 			? window.matchMedia('(max-height: 439px)').matches
 			: false;
-	const colunas = deitado ? 3 : Math.max(1, Math.ceil(visiveis.length / 2));
+	/*
+	 * O TETO DE CINCO COLUNAS — era QUATRO ate 08/09/2026, e a troca tem dono
+	 * e medicao.
+	 *
+	 * O teto nasceu em D-1159 para impedir que o NONO item (o "Votar") abrisse
+	 * uma quinta coluna com o "Recompensas" sozinho nela: a grade tem colunas
+	 * `auto`, a largura de cada uma e a do ROTULO mais largo dela, e
+	 * "Recompensas" e o rotulo mais largo do cluster inteiro. Medido em D-944,
+	 * o cluster REPROVA o `prove:hud-responsiva` em tablet-768x1024 quando
+	 * passa de ~359px (ele monta em cima do painel de personagem).
+	 *
+	 * Em 08/09 o dono pediu o "Votar" ao lado do "Caca", com a vaga de baixo
+	 * livre para o proximo botao. Isso reordenou o DOM (ver TopMenuIdle.html) e
+	 * mudou QUEM mora na quinta coluna: agora e o proprio "Votar", um dos
+	 * rotulos mais CURTOS, e nao o "Recompensas" — que continua na coluna 1,
+	 * embaixo do "Personagem", que e onde a regra de D-944 manda o rotulo mais
+	 * longo morar. O perigo que o teto de quatro cobria deixou de existir nesta
+	 * ordem; o que o teto ainda faz e impedir uma SEXTA coluna no dia em que o
+	 * cluster passar de dez itens.
+	 *
+	 * ─── E POR QUE A QUINTA COLUNA SO NASCE ACIMA DE 900px ──────────────────
+	 * Porque a quinta coluna FOI MEDIDA, e ela nao cabe em tudo. Com ela o
+	 * cluster passa de 333px para 403px, e o `prove:hud-responsiva` reprovou em
+	 * **tablet-768x1024** com "BasicInfoIdle x TopMenuIdle.tm-top (57x146px)" —
+	 * exatamente o defeito que o teto de quatro tinha sido criado para impedir.
+	 * A mesma prova, na mesma rodada, com a ordem antiga: 23 falhas (todas
+	 * anteriores a esta frente); com cinco colunas em toda tela: 24, e a nova
+	 * era essa.
+	 *
+	 * 57px de sobreposicao em 768 pedem ~830px para zerar; 900 e o degrau
+	 * seguro, e e onde a HUD de mouse ja encolheu o bastante (`--ui-escala` 0,78
+	 * em 900x600) para o cluster caber com folga. Abaixo disso o teto volta a
+	 * ser quatro e o "Votar" desce para a terceira fileira sozinho — a HUD
+	 * refluindo em tela estreita, que e o que ela ja faz com `deitado ? 3`.
+	 *
+	 * O criterio e `matchMedia` e nao `@media` no CSS pelo motivo de D-930:
+	 * esta linha escreve `--tm-colunas` como estilo INLINE, e inline vence
+	 * folha — uma regra de media no CSS seria escrita, lida e ignorada.
+	 *
+	 * Com oito itens ou menos nada muda: `ceil(8/2)` ja e 4.
+	 */
+	const largo =
+		typeof window !== 'undefined' && window.matchMedia
+			? window.matchMedia('(min-width: 900px)').matches
+			: true;
+	const teto = deitado ? 3 : largo ? 5 : 4;
+	const colunas = Math.min(teto, Math.max(1, Math.ceil(visiveis.length / 2)));
 	topo.style.setProperty('--tm-colunas', String(colunas));
+	/*
+	 * O MESMO numero, em atributo, para o CSS conseguir PERGUNTAR por ele.
+	 *
+	 * `--tm-colunas` serve para CONTAR (o `repeat()` da grade o consome), mas
+	 * nenhum seletor consegue ramificar pelo VALOR de uma custom property sem
+	 * `@container style()`, que e recente demais para o fork depender dela. O
+	 * atributo resolve isso com um seletor comum, e e o que permite ao "Votar"
+	 * subir para a primeira fileira SO quando ha cinco colunas — sem mexer na
+	 * ordem do DOM, que e o que mantem o arranjo de quatro colunas identico ao
+	 * que ja passava no `prove:hud-responsiva` (ver o bloco do "Votar" em
+	 * TopMenuIdle.html).
+	 */
+	topo.dataset.colunas = String(colunas);
 }
 
 /**
@@ -893,6 +1084,9 @@ function distribuirFileiras() {
  * aparece para a conta dona) e com o numero de colunas. Copiar esse numero
  * seria a armadilha que criou todos estes tokens.
  */
+/** O ultimo valor publicado em `--hud-cluster-topo` (ver a guarda abaixo). */
+let _topoPublicado = null;
+
 function publicarTopoDoCluster() {
 	const root = _root();
 	const topo = root && root.querySelector('.tm-top');
@@ -904,10 +1098,67 @@ function publicarTopoDoCluster() {
 		return;
 	}
 	/* D-934: unidade da HUD. Ver `emUnidadesDaHud`. */
-	topo.ownerDocument.documentElement.style.setProperty(
-		'--hud-cluster-topo',
-		`${Math.round(emUnidadesDaHud(caixa.top))}px`,
-	);
+	const valor = `${Math.round(emUnidadesDaHud(caixa.top))}px`;
+	/*
+	 * SO PUBLICA QUANDO MUDA (07/09/2026, frente de FPS).
+	 *
+	 * `setProperty` no `documentElement` invalida o estilo de TODO descendente
+	 * que use `var()`, e esta funcao republicava o MESMO numero 4x por segundo,
+	 * vindo do tique. A geometria do cluster muda em evento raro — recolher a
+	 * HUD, girar o aparelho, redimensionar a janela —, entao a guarda
+	 * transforma trabalho constante em trabalho por evento.
+	 */
+	/* A ALTURA vem ANTES da guarda do topo, e isso não é estilo: o cluster
+	   pode ganhar uma fileira sem mudar de topo (ele é ancorado no alto), e
+	   sair pelo `return` de baixo deixaria a altura velha publicada — que é o
+	   defeito exato que ela existe para tapar. */
+	publicarAlturaDoCluster(topo, caixa);
+	if (valor === _topoPublicado) {
+		return;
+	}
+	_topoPublicado = valor;
+	topo.ownerDocument.documentElement.style.setProperty('--hud-cluster-topo', valor);
+}
+
+let _alturaPublicada = null;
+
+/*
+ * A ALTURA DO CLUSTER, MEDIDA (08/09/2026).
+ *
+ * ─── O DEFEITO ──────────────────────────────────────────────────────────
+ * `--vr-menu-cluster-altura` estava CRAVADA em 172px no CSS
+ * (TopMenuIdle.css:1350), e é dela que sai o `top` da folha do leque. Com a
+ * folha aberta no celular, o cluster desenha os NOVE itens numa grade de 4
+ * colunas — três fileiras — e passa de 172px. A folha então começa ACIMA de
+ * onde o cluster termina, e a primeira fileira dela fica ATRÁS do cartão do
+ * cluster.
+ *
+ * MEDIDO com o jogo de pé (`npm run prove:mobile-vertical`, nas três telas):
+ * o item **Guilda** — o primeiro da folha — respondia `button.tm-item` e
+ * `span.tm-label` no `elementFromPoint`. Ele estava desenhado, "visível" para
+ * o DOM, e nenhum dedo o alcançava. É o mesmo defeito que a foto de 393x852
+ * já mostrava: "Guilda Amigos Grupo Admin" aparecendo cortado por baixo da
+ * borda do cartão de cima.
+ *
+ * ─── POR QUE MEDIR, E NÃO SÓ AUMENTAR O NÚMERO ──────────────────────────
+ * Porque a altura do cluster MUDA: com o item de Admin são 11 itens, sem ele
+ * são 10; recolher a HUD muda; a largura da tela muda quantos cabem por
+ * fileira. Trocar 172 por 220 acertaria hoje e erraria na próxima vez que
+ * alguém somasse um item de menu — que é exatamente como o 172 envelheceu.
+ * O arquivo ao lado já ensina isso por escrito: *"A altura e MEDIDA e nao
+ * cravada porque o numero de itens muda"* (o comentário do `applyCollapsedState`).
+ *
+ * Ela pega carona no `publicarTopoDoCluster`: mesmo `ResizeObserver`, mesma
+ * guarda de "só publica quando muda" (D-958, a frente de FPS), mesma unidade
+ * da HUD. Um observador novo seria trabalho repetido para o mesmo evento.
+ */
+function publicarAlturaDoCluster(topo, caixa) {
+	const valor = `${Math.round(emUnidadesDaHud(caixa.height))}px`;
+	if (valor === _alturaPublicada) {
+		return;
+	}
+	_alturaPublicada = valor;
+	topo.ownerDocument.documentElement.style.setProperty('--vr-menu-cluster-altura', valor);
 }
 
 let _observadorDoCluster = null;
@@ -1110,6 +1361,10 @@ function isActionOpen(action) {
 		 */
 		case 'codex':
 			return isRagIdleWindowOpen(CodexIdle, '.cx-window');
+		case 'presenca':
+			return isRagIdleWindowOpen(PresencaIdle, '.pr-window');
+		case 'indicacao':
+			return isRagIdleWindowOpen(IndicacaoIdle, '.in-window');
 		/*
 		 * PASSE (D-813): a TERCEIRA vez do mesmo defeito, achado em 29/08/2026
 		 * ao somar o Codex. Ele tinha `case 'passe'` no switch de ABRIR e
@@ -1124,6 +1379,11 @@ function isActionOpen(action) {
 		 */
 		case 'passe':
 			return isRagIdleWindowOpen(PasseIdle, '.pi-window');
+		/* VOTO (D-1159): entrou nos DOIS switches no mesmo commit, que e o que
+		   o comentario do `passe` logo acima manda fazer enquanto a tabela
+		   unica de acao -> { abrir, seletor } nao existir. */
+		case 'voto':
+			return isRagIdleWindowOpen(VotoIdle, '.vi-window');
 		default:
 			// os itens "em breve" caem aqui -- nunca acendem.
 			return false;
@@ -1164,6 +1424,10 @@ function pollEstado() {
 	publicarTopoDoCluster();
 	syncSkillDot();
 	syncCorreioDot();
+	// D-1159: o destaque do botao de votar entra no MESMO tique dos outros
+	// dois avisos, e antes do `syncToggleDot()` de proposito — ele le os
+	// pontos dos itens ja calculados para decidir o ponto da alca.
+	syncVotoLivre();
 	syncToggleDot();
 	syncAllActiveStates();
 }
@@ -1262,6 +1526,40 @@ function syncCorreioDot() {
 			btn.title = `Correio — ${quantas} por ler`;
 		}
 	}
+}
+
+/**
+ * O DESTAQUE DO BOTAO DE VOTAR (D-1159) — o pedido do dono era literal:
+ * *"com bastante destaque quando tem voto disponivel"*.
+ *
+ * SAO DUAS MARCAS, e cada uma cobre um buraco da outra:
+ *
+ *  - `.is-voto-livre` no botao (aro dourado + pulso) e o destaque que se ve de
+ *    longe. Ele some quando o jogador recolhe o cluster pela alca;
+ *  - o `.ri-dot` e a MESMA receita do Correio e do Skills, e existe para o
+ *    aviso sobreviver a isso: recolhido, o ponto migra para a alca
+ *    (`syncToggleDot()` le os pontos dos itens, e nao a classe).
+ *
+ * A fonte do dado e `VotoIdle.temVotoDisponivel()`, que le o campo `liberados`
+ * calculado pelo SERVIDOR. Refazer a conta aqui (comparar `ultimoVotoMs` com
+ * 12 h) daria a segunda copia da regra, e um dia o botao piscaria com a janela
+ * dizendo "faltam 3h" — o defeito que ninguem reproduz.
+ */
+function syncVotoLivre() {
+	const root = _root();
+	const btn = root.querySelector('.tm-item[data-action="voto"]');
+	if (!btn) {
+		return;
+	}
+	const livre = VotoIdle.temVotoDisponivel();
+	btn.classList.toggle('is-voto-livre', livre);
+	const dot = btn.querySelector('.ri-dot');
+	if (dot) {
+		dot.style.display = livre ? '' : 'none';
+	}
+	btn.title = livre
+		? 'Votar — você tem voto disponível!'
+		: 'Votar e ganhar Vote Cash';
 }
 
 /**

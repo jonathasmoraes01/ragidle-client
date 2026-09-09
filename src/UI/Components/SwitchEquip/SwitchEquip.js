@@ -146,10 +146,27 @@ SwitchEquip.onAppend = function onAppend() {
 	const currentEquipTabId = Equipment.getUI().getCurrentTabId();
 	SwitchEquip.showSwapTab(currentEquipTabId);
 
+	/*
+	 * A GUARDA E DUPLA de proposito (07/09/2026, auditoria de FPS).
+	 *
+	 * `style.display !== 'none'` sozinha era furada: quem apenda pode esconder
+	 * a janela na linha SEGUINTE, e o desenho ficava ligado para sempre — foi
+	 * o que aconteceu em `EquipmentCommon`, e custava 6,7% da thread principal
+	 * durante a caca, por um boneco que ninguem via.
+	 *
+	 * `offsetParent === null` responde a pergunta de verdade ("isto esta na
+	 * tela?"): ele cobre o display do proprio elemento E o de qualquer
+	 * ancestral. Ele so vale depois do append, e por isso as duas ficam.
+	 */
 	const root = SwitchEquip.getRoot();
 	const canvas = root ? root.querySelector('canvas') : null;
-	if (canvas && this._host.style.display !== 'none') {
+	const naTela = this._host.style.display !== 'none' && this._host.offsetParent !== null;
+	if (canvas && naTela) {
 		Renderer.render(swaprender);
+	} else {
+		// Sem isto, um append com a janela escondida deixaria um render de
+		// abertura anterior ainda armado.
+		Renderer.stop(swaprender);
 	}
 };
 
