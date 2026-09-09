@@ -111,6 +111,7 @@ import IndicacaoIdle from 'UI/Components/IndicacaoIdle/IndicacaoIdle.js'; // RAG
 import BoasVindasIdle from 'UI/Components/BoasVindasIdle/BoasVindasIdle.js'; // RAGIDLE: caixa de boas-vindas (D-968)
 import LFGIdle from 'UI/Components/LFGIdle/LFGIdle.js'; // RAGIDLE: janela de Procurar Grupo (D-634)
 import GrupoIdle from 'UI/Components/GrupoIdle/GrupoIdle.js'; // RAGIDLE: janela de Grupo (D-960)
+import PortaDoGrupo from 'UI/Components/portaDoGrupo.js'; // RAGIDLE: qual das duas janelas de grupo abre (D-984)
 import MissoesTrackerIdle from 'UI/Components/MissoesTrackerIdle/MissoesTrackerIdle.js'; // RAGIDLE: tracker estilo Origin (D-601)
 import IdleConfig from 'UI/Components/IdleConfig/IdleConfig.js'; // RAGIDLE: "Configuração idle"
 import AdminPanel from 'UI/Components/AdminPanel/AdminPanel.js'; // RAGIDLE: "Painel de admin"
@@ -739,6 +740,11 @@ function onConnectionAccepted(pkt) {
 	Session.petId = 0;
 	Session.hasParty = false;
 	Session.isPartyLeader = false;
+	/* RAGIDLE (D-984): a porta do grupo anota que a verdade voltou a zero.
+	   Sem isto, a memória de party do personagem ANTERIOR atravessaria a troca
+	   (nada aqui recarrega a página) e o primeiro grupo do personagem novo não
+	   seria uma mudança para ela — a janela de Grupo não abriria sozinha. */
+	PortaDoGrupo.sincronizar();
 	Session.hasGuild = false;
 	Session.guildRight = 0;
 
@@ -1183,6 +1189,49 @@ function onMapChange(pkt) {
 			GrupoIdle.fechar();
 			LFGIdle.abrir();
 		};
+
+		/* A IRMÃ dela (D-984): "me leve até o líder".
+
+		   O corpo mora no Localizador porque é lá que `{acao:'teleportar'}`
+		   sempre morou, e é lá que o RESULTADO desse pacote sabe ser lido (o
+		   'teleportar' está em `ACOES_QUE_FECHAM`). A janela de Grupo só oferece
+		   o botão; nenhuma linha dela monta pacote de LFG. */
+		GrupoIdle.aoPedirTeleporte = () => {
+			LFGIdle.teleportarParaOLider();
+		};
+
+		/*
+		 * A PORTA DO GRUPO (D-984) — qual das duas janelas o item "Grupo" abre,
+		 * e quem troca de janela quando a party muda.
+		 *
+		 * A ligação mora aqui pela MESMA razão das duas pontes acima: só o
+		 * `MapEngine` conhece as duas janelas, e um import cruzado entre
+		 * componentes de UI prenderia a ordem de carga de um à do outro — de
+		 * quebra, é o que deixa `portaDoGrupo.js` ser provado sem subir
+		 * Renderer, Network e o GRF inteiro.
+		 *
+		 * `estaAberta` lê a flag de MÓDULO das duas janelas, e NÃO a classe
+		 * `is-open`: as duas registram por escrito que o `is-open` já sumiu por
+		 * baixo dos panos numa troca de mapa (a sonda de 03/09/2026, no
+		 * cabeçalho de `LFGIdle.onAppend`). `componente`/`seletor` são para o
+		 * aro do menu, que aí sim quer saber o que está PINTADO na tela.
+		 */
+		PortaDoGrupo.ligar({
+			localizador: {
+				componente: LFGIdle,
+				seletor: '.lfg-window',
+				abrir: () => LFGIdle.abrir(),
+				fechar: () => LFGIdle.fechar(),
+				estaAberta: () => LFGIdle.estavaAberta,
+			},
+			grupo: {
+				componente: GrupoIdle,
+				seletor: '.gi-window',
+				abrir: () => GrupoIdle.abrir(),
+				fechar: () => GrupoIdle.fechar(),
+				estaAberta: () => GrupoIdle.estavaAberta,
+			},
+		});
 
 		/* A MORTE é decisão: o ESC não a fecha, e ela também não deixa o ESC
 		   vazar para as janelas de baixo. Isso já era verdade por dentro do

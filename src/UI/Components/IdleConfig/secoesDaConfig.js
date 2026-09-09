@@ -98,6 +98,27 @@ export function alternarCura(cfg, ctx, ligar) {
 }
 
 /** O alvo de uma entrada de buff: ausente = grupo (o que P2 fazia sem opção). */
+/**
+ * A cura automatica esta ligada? (08/09/2026) Ela e SUPORTE: nao mora mais na
+ * ordem de golpes — o interruptor e `cura.ligada`, ligado quando ausente, e
+ * so vale se o personagem aprendeu alguma habilidade de cura.
+ */
+/**
+ * Esta habilidade de cura esta ligada? POR HABILIDADE (08/09/2026, ordem do
+ * dono): a entrada propria vence; sem ela, herda o interruptor geral. E o
+ * espelho de `curaLigadaPara` do servidor (servidor/idle/cura-automatica.ts).
+ */
+export function curaLigadaPara(cura, skillId) {
+	const propria = cura && cura.habilidades && cura.habilidades[skillId];
+	if (propria && typeof propria === 'object') return propria.ligada !== false;
+	return !(cura && cura.ligada === false);
+}
+
+export function curaLigada(cfg, ctx) {
+	const curas = (ctx && ctx.skillsDeCura) || [];
+	return curas.some(c => curaLigadaPara(cfg && cfg.cura, c.skillId));
+}
+
 export function alvoDoBuff(entrada) {
 	return entrada && entrada.alvo === 'eu' ? 'eu' : 'grupo';
 }
@@ -136,7 +157,7 @@ export function resumoDaSecao(id, cfg, ctx) {
 			if (buffs) {
 				partes.push(`${buffs} ${buffs === 1 ? 'buff' : 'buffs'}`);
 			}
-			if (curaNaRotacao(cfg, contexto)) {
+			if (curaLigada(cfg, contexto)) {
 				partes.push('cura');
 			}
 			return partes.length ? partes.join(' · ') : 'nada mantido';

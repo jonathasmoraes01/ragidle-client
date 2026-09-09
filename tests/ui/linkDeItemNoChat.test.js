@@ -26,11 +26,13 @@
 import fs from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import {
+	cabeNoLimite,
+	CANAIS_QUE_FALAM_NO_GLOBAL,
 	CANAIS_QUE_NAO_DIGITAM,
 	CANAL_DE_FALA,
-	cabeNoLimite,
+	canalDaFala,
 	markupDoLink,
-	preparoParaLinkar
+	preparoParaLinkar,
 } from 'UI/Components/ChatBox/linkDeItemNoChat.js';
 
 /** O estado bom: chat aberto, no Global, com a barra de digitação à mostra. */
@@ -270,5 +272,18 @@ describe('o SHIFT+clique da mochila', () => {
 		// escrevia num campo invisível e ia embora.
 		expect(inventoryJs).not.toMatch(/msgBox\.innerHTML \+=/);
 		expect(inventoryJs).not.toMatch(/querySelector\('\.input-chatbox'\)/);
+	});
+});
+
+describe('canalDaFala: Farm e Logs se leem, mas falam no Global (08/09/2026, ordem do dono)', () => {
+	it('digitar no Logs ou no Farm sai no Global', () => {
+		expect(canalDaFala('logs')).toBe('global');
+		expect(canalDaFala('farm')).toBe('global');
+		expect([...CANAIS_QUE_FALAM_NO_GLOBAL].sort()).toEqual(['farm', 'logs']);
+	});
+	it('o Global fala no Global e o Trade continua Trade — ele nao digita, e a outra lista que o barra', () => {
+		expect(canalDaFala('global')).toBe('global');
+		expect(canalDaFala('trade')).toBe('trade');
+		expect(CANAIS_QUE_FALAM_NO_GLOBAL).not.toContain('trade');
 	});
 });

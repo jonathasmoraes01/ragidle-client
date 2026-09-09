@@ -4918,6 +4918,11 @@ function init(packetver) {
 	// e faixa-ragidle.test.ts): vaga so e vaga depois das duas pontas.
 	length_list[0x0fd4] = -1; // CZ_RAGIDLE_VOTO_ACAO (variavel, JSON com verbo)
 	length_list[0x0fd5] = -1; // ZC_RAGIDLE_VOTO (variavel, JSON: o retrato do voto)
+	length_list[0x0fd6] = -1; // CZ_RAGIDLE_CORREIO_ACAO (variavel, JSON com verbo)
+	length_list[0x0fd7] = -1; // ZC_RAGIDLE_CORREIO (variavel, JSON: o relatorio do lote)
+	length_list[0x0fd8] = -1; // CZ_RAGIDLE_ITEM_ACAO (variavel, JSON com verbo)
+	length_list[0x0fd9] = -1; // ZC_RAGIDLE_ITEM (variavel, JSON: a comparacao de equipamento)
+
 
 	// RAGIDLE: a JANELA DE GRUPO (D-960, 07/09/2026). Estes tres ESTENDEM a
 	// faixa para baixo: o menor ocupado era 0x0fce, e eles sao os tres logo

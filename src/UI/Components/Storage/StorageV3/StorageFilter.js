@@ -14,6 +14,7 @@ import Mouse from 'Controls/MouseEventHandler.js';
 import GUIComponent from 'UI/GUIComponent.js';
 import 'UI/Elements/Elements.js';
 import ItemInfo from 'UI/Components/ItemInfo/ItemInfo.js';
+import ContextMenu from 'UI/Components/ContextMenu/ContextMenu.js';
 import htmlText from './StorageFilter.html?raw';
 import cssText from './StorageFilter.css?raw';
 
@@ -99,6 +100,24 @@ StorageFilter.prototype.init = function init() {
 			if (itemEl) {
 				e.preventDefault();
 				this.onItemInfo(e, itemEl);
+			}
+		});
+		/*
+		 * O MESMO menu da janela grande, pelo mesmo motivo (D-991, 09/09/2026): estas
+		 * janelas de aba tambem so tinham arrasto e Alt+botao direito para
+		 * tirar a peca, e nenhum dos dois existe no dedo. `ehToqueNoArmazem()`
+		 * decide na hora do proprio evento -- no mouse um clique simples segue
+		 * sem fazer nada.
+		 */
+		content.addEventListener('click', e => {
+			if (!ehToqueNoArmazem()) {
+				return;
+			}
+			const itemEl = e.target.closest('.item');
+			if (itemEl) {
+				e.preventDefault();
+				e.stopImmediatePropagation();
+				this.abrirMenuDoItem(itemEl);
 			}
 		});
 		content.addEventListener('dragstart', e => {
@@ -269,15 +288,51 @@ StorageFilter.prototype.onItemInfo = function onItemInfo(event, itemEl) {
 		return false;
 	}
 
-	if (ItemInfo.uid === item.ITID) {
-		ItemInfo.remove();
-	}
-
-	ItemInfo.append();
-	ItemInfo.uid = item.ITID;
-	ItemInfo.setItem(item);
+	/* O botao direito abre o MENU, e a ficha mora dentro dele -- ver a nota
+	   em `onItemInfo` de StorageCommon.js, que descreve o defeito inteiro. */
+	this.abrirMenuDoItem(itemEl);
 	return false;
 };
+
+/**
+ * O menu de um item desta janela de aba -- os DOIS caminhos (botao direito no
+ * mouse, toque simples no dedo) montam o mesmo.
+ *
+ * "Retirar" passa por `onPedirRetirada`, que StorageCommon.js liga a MESMA
+ * `pedirRetirada` da janela grande: um unico jeito de pedir quantidade no
+ * armazem inteiro.
+ */
+StorageFilter.prototype.abrirMenuDoItem = function abrirMenuDoItem(itemEl) {
+	const index = parseInt(itemEl.getAttribute('data-index'), 10);
+	const item = this.getItemFromIndex(index);
+	if (!item) {
+		return;
+	}
+
+	ContextMenu.remove();
+	ContextMenu.append();
+	ContextMenu.addElement('Retirar', () => {
+		if (typeof this.onPedirRetirada === 'function') {
+			this.onPedirRetirada(item);
+		} else if (typeof this.onTransferItemToOtherUI === 'function') {
+			this.onTransferItemToOtherUI(item);
+		}
+	});
+	ContextMenu.nextGroup();
+	ContextMenu.addElement('Detalhes', () => {
+		if (ItemInfo.uid === item.ITID) {
+			ItemInfo.remove();
+		}
+		ItemInfo.append();
+		ItemInfo.uid = item.ITID;
+		ItemInfo.setItem(item);
+	});
+};
+
+/** Estamos num aparelho de dedo? (o mesmo teste de StorageCommon.js) */
+function ehToqueNoArmazem() {
+	return typeof window !== 'undefined' && !!window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
+}
 
 StorageFilter.prototype.resizeHeight = function resizeHeight(height) {
 	height = Math.min(Math.max(height, 4), 10);

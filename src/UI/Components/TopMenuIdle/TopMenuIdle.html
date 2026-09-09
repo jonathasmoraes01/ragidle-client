@@ -289,17 +289,30 @@
 					<span class="tm-label">Guilda</span>
 				</button>
 
-				<!-- Ate 01/09/2026 este botao desenhava o MESMO icone do Grupo
-				     logo abaixo — dois rotulos, uma figura. A chave `amigos`
-				     nasceu na onda de icones ([DONO-5]): o par DESARMADO e
-				     Amigos, o armado e Grupo. -->
-				<button type="button" class="tm-item" data-action="group" title="Amigos">
-					<span class="tm-icon-wrap ri-disc"><!--RI_ICONE:amigos--></span>
-					<span class="tm-label">Amigos</span>
-				</button>
-				<button type="button" class="tm-item" data-action="lfg" title="Grupo">
+				<!-- OS DOIS CAMINHOS DE GRUPO, cada um com o proprio botao (D-988,
+				     09/09/2026, pedido do dono).
+				
+				     D-980 tinha deixado UM item so, e D-984 fez esse item DECIDIR
+				     sozinho: sem party abria o Localizador, com party a janela de
+				     Grupo. O desenho estava certo no papel e errado na mao — quem
+				     nao esta em grupo (a maioria, e todo mundo antes do primeiro)
+				     NUNCA alcancava a janela de Grupo, e a aba POSTOS e justamente
+				     onde se le o que cada posto faz ANTES de decidir entrar. Uma
+				     janela que so aparece para quem ja nao precisa dela.
+				
+				     Agora os dois sao explicitos e o rotulo diz o que faz. A troca
+				     AUTOMATICA continua (portaDoGrupo.js): entrar num grupo fecha o
+				     Localizador e abre a janela de Grupo, e sair faz o contrario —
+				     o que muda e que nenhuma das duas depende mais de adivinhacao
+				     para ser ABERTA a mao. -->
+				<button type="button" class="tm-item" data-action="group" title="Grupo">
 					<span class="tm-icon-wrap ri-disc"><!--RI_ICONE:grupo--></span>
 					<span class="tm-label">Grupo</span>
+				</button>
+
+				<button type="button" class="tm-item" data-action="lfg" title="Procurar ou criar grupo">
+					<span class="tm-icon-wrap ri-disc"><!--RI_ICONE:grupo--></span>
+					<span class="tm-label">Procurar grupo</span>
 				</button>
 
 				<!-- Admin: so aparece pra conta dona (isOwnerAccount() em
@@ -331,6 +344,10 @@
 				     que declara o parentesco com o icone de skills). -->
 				<button type="button" class="tm-item" data-action="codex" title="Codex">
 					<span class="tm-icon-wrap ri-disc"><!--RI_ICONE:codex--></span>
+					<!-- Ponto de "ha objetivo esperando voce" — a MESMA receita
+					     ".ri-dot" do Correio e das Skills (D-1232). O design system
+					     tem UM indicador de notificacao, e este e ele. -->
+					<span class="ri-dot" style="display: none"></span>
 					<span class="tm-label">Codex</span>
 				</button>
 				<!-- RAGIDLE (D-1162): a presença mensal — a janela que abre sozinha

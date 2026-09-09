@@ -1,5 +1,5 @@
 /**
- * UI/decisaoDoModoLeitura.js — A CONDICAO do modo leitura, sozinha.
+ * UI/decisaoDoModoLeitura.js — A CONDICAO do modo leitura, sozinha (D-992).
  *
  * ═══════════════════════════════════════════════════════════════════════
  * POR QUE ELA MORA NUM ARQUIVO SO DELA

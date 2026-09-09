@@ -154,34 +154,90 @@ export function ordenarMapas(mapas, chave, nivel) {
 	} else if (chave === 'nivel-recomendado') {
 		arr.sort((a, b) => Math.abs(a.nivelMedio - nivel) - Math.abs(b.nivelMedio - nivel) || porNome(a, b));
 	} else {
-		arr.sort((a, b) => a.nivelMinimo - b.nivelMinimo || a.nivelMedio - b.nivelMedio || porNome(a, b));
+		// A chave 'nivel' ordena pelo MESMO numero que o cartao mostra — a
+		// tranca (`nivelQueAbre`, D-1233) — para a lista nunca contradizer o
+		// rotulo. Era `nivelMinimo` enquanto a tranca era o minimo; a media
+		// desempata, e o nome por ultimo segura a ordem estavel.
+		arr.sort((a, b) => a.nivelQueAbre - b.nivelQueAbre || a.nivelMedio - b.nivelMedio || porNome(a, b));
 	}
 	return arr;
 }
 
 /**
- * Chance de drop em décimos de milésimo (7000 = 70%, contrato do catálogo).
- * A precisão acompanha o tamanho: de 10% para cima é inteiro; entre 1% e 10%
- * uma casa; abaixo de 1% duas casas — o Poring Card é 0,01% e "0,0%" seria
- * mentir que é zero. Zero à direita cai ("3,20" vira "3,2"; "5,00" vira "5").
- * Vírgula decimal: o design system escreve números em pt-BR.
+ * RARIDADE DE DROP no Atlas (redesenho 08/09/2026): o Atlas parou de mostrar
+ * a % de chance e passou a mostrar uma classificação — Comum / Incomum /
+ * Raro / Lendário. `formatarChance` (a função que vivia aqui) saiu junto:
+ * sem ela, o ladrilho de drop não tinha mais chamador nenhum no cliente.
+ *
+ * A FONTE DA VERDADE É O SERVIDOR: `FichaDeMonstro.drops[].raridade` chega
+ * calculada a partir da chance BASE pela MESMA escada que já classifica item
+ * na Loja (D-919, `raridadeDaChance` do lado do servidor). Este arquivo não
+ * reimplementa aquela regra de negócio — ele só a REPETE como rede de
+ * segurança (`derivarRaridade`), para a janela não quebrar nem ficar vazia
+ * durante a transição, enquanto algum servidor ainda não manda o campo novo.
+ * Quando `raridade` vier no payload, ela SEMPRE vence — o cliente nunca
+ * recalcula por cima do que o servidor já decidiu.
+ */
+
+const RARIDADE_ROTULOS = ['Comum', 'Incomum', 'Raro', 'Lendário'];
+
+/**
+ * A escada de raridade a partir da chance BASE, em décimos de milésimo
+ * (7000 = 70%, o mesmo contrato que `chance` sempre teve no catálogo):
+ * ≤3 → Lendário, ≤100 → Raro, ≤1000 → Incomum, senão Comum. O teto do
+ * Lendário é 0,03% por ordem do dono (08/09/2026: "raro vai até 0,03% e
+ * lendário é 0,03% para baixo" - era 0,05%, acoplado ao limiar do anúncio
+ * global; o anúncio desceu junto na mesma noite, "pode publicar só os
+ * lendários" - só Lendário para o chat). A ordem dos
+ * testes importa — é a mesma escada de cima para baixo do servidor
+ * (`raridadeDaChance`, `game/raridade-de-drop.ts`); ESTA função só existe
+ * para cobrir a transição, enquanto um servidor ainda não manda `raridade`.
  *
  * @param {number} chance
+ * @returns {0|1|2|3}
+ */
+export function derivarRaridade(chance) {
+	const c = chance || 0;
+	if (c <= 3) return 3;
+	if (c <= 100) return 2;
+	if (c <= 1000) return 1;
+	return 0;
+}
+
+/**
+ * A raridade de UM drop: usa `d.raridade` quando o servidor mandou — a
+ * fonte da verdade, e o cliente NUNCA recalcula por cima dela, mesmo que a
+ * chance ali pareça "alta" — e só cai para `derivarRaridade(d.chance)`
+ * quando o campo está ausente (servidor velho).
+ *
+ * @param {{raridade?: number, chance?: number}} d
+ * @returns {0|1|2|3}
+ */
+export function raridadeDoDrop(d) {
+	const r = d && d.raridade;
+	if (Number.isInteger(r) && r >= 0 && r <= 3) {
+		return r;
+	}
+	return derivarRaridade(d && d.chance);
+}
+
+/**
+ * O rótulo em português (com acento) que o jogador lê no selo.
+ *
+ * @param {0|1|2|3} r
  * @returns {string}
  */
-export function formatarChance(chance) {
-	const pct = (chance || 0) / 100;
-	let texto;
-	if (pct >= 10) {
-		texto = String(Math.round(pct));
-	} else if (pct >= 1) {
-		texto = pct.toFixed(1);
-	} else {
-		texto = pct.toFixed(2);
-	}
-	// Só corta zero à direita quando HÁ casa decimal — "70" tem que continuar "70".
-	if (texto.includes('.')) {
-		texto = texto.replace(/\.?0+$/, '');
-	}
-	return texto.replace('.', ',') + '%';
+export function rotuloDeRaridade(r) {
+	return RARIDADE_ROTULOS[r] || RARIDADE_ROTULOS[0];
+}
+
+/**
+ * A classe CSS do selo (`.hm-drop-rarity`, HuntMap.css) — `r0`..`r3`, nunca
+ * um índice fora da tabela (raridade desconhecida cai em Comum/`r0`).
+ *
+ * @param {0|1|2|3} r
+ * @returns {string}
+ */
+export function classeDeRaridade(r) {
+	return RARIDADE_ROTULOS[r] ? `r${r}` : 'r0';
 }

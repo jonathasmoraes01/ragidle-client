@@ -27,6 +27,8 @@ import InputBox from 'UI/Components/InputBox/InputBox.js';
 import ItemInfo from 'UI/Components/ItemInfo/ItemInfo.js';
 import CartItems from 'UI/Components/CartItems/CartItems.js';
 import Inventory from 'UI/Components/Inventory/Inventory.js';
+import ContextMenu from 'UI/Components/ContextMenu/ContextMenu.js';
+import { CARRINHO, destinoDaRetirada, quantidadeDaRetirada } from './retiradaDoArmazem.js';
 
 export function createStorage(config) {
 	const {
@@ -182,6 +184,26 @@ export function createStorage(config) {
 				if (itemEl) {
 					e.preventDefault();
 					onItemInfo(e, itemEl);
+				}
+			});
+			/*
+			 * TOQUE (D-991, 09/09/2026, D-938 de novo): um toque simples abre o MESMO
+			 * menu do botao direito. Sem isto o armazem NAO TEM caminho
+			 * nenhum de retirada no dedo -- o arrasto HTML5 nao existe no
+			 * toque e o menu de contexto sintetico e inconsistente entre os
+			 * navegadores moveis. So no dedo (`ehToque()`, lido na hora do
+			 * proprio evento): no mouse um clique simples segue sem fazer
+			 * nada, exatamente como antes.
+			 */
+			content.addEventListener('click', e => {
+				if (!ehToque()) {
+					return;
+				}
+				const itemEl = e.target.closest('.item');
+				if (itemEl) {
+					e.preventDefault();
+					e.stopImmediatePropagation();
+					abrirMenuDoItem(itemEl);
 				}
 			});
 		}
@@ -417,6 +439,9 @@ export function createStorage(config) {
 				newFilter.onTransferItemToOtherUI = function (item) {
 					Component.transferItemToOtherUI(item);
 				};
+				newFilter.onPedirRetirada = function (item) {
+					pedirRetirada(item);
+				};
 
 				newFilter.append();
 				newFilter.setItems('Search', filteredItems, ItemType.SEARCH);
@@ -606,6 +631,9 @@ export function createStorage(config) {
 		newFilter.onTransferItemToOtherUI = function (item) {
 			Component.transferItemToOtherUI(item);
 		};
+		newFilter.onPedirRetirada = function (item) {
+			pedirRetirada(item);
+		};
 
 		newFilter.append();
 		newFilter.setItems(title, filtered_list, tabId);
@@ -695,6 +723,16 @@ export function createStorage(config) {
 		delete window._OBJ_DRAG_;
 	}
 
+	/** Estamos num aparelho de dedo? (o mesmo teste de MochilaIdle.js) */
+	function ehToque() {
+		return typeof window !== 'undefined' && !!window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
+	}
+
+	/** O carrinho esta na tela? (unico destino alternativo ao corpo) */
+	function carrinhoAberto() {
+		return CartItems.ui ? CartItems.ui.is(':visible') : false;
+	}
+
 	function onItemInfo(event, itemEl) {
 		event.stopImmediatePropagation();
 
@@ -711,31 +749,120 @@ export function createStorage(config) {
 			return false;
 		}
 
-		if (ItemInfo.uid === _list[i].ITID) {
+		/*
+		 * O BOTAO DIREITO ABRE O MENU, e a ficha mora dentro dele (D-991).
+		 *
+		 * Antes ele ia direto na ficha do item, e isso deixava a RETIRADA sem
+		 * porta visivel: os dois caminhos que existiam (arrastar ate a janela
+		 * Inventario, e o Alt+botao direito daqui de cima) dependem de uma
+		 * janela que esta permanentemente escondida neste fork -- a
+		 * MochilaIdle esconde os hosts nativos de Inventory/Equipment e
+		 * REPOE o `display:none` a cada 250 ms (MochilaIdle.js,
+		 * `hideNativeHosts`). Quem clicava em "tirar" nao via erro nenhum: a
+		 * requisicao simplesmente nunca saia.
+		 *
+		 * "Detalhes" continua no menu, entao nada foi perdido -- e o mesmo
+		 * desenho que a Mochila ja usa para os itens dela.
+		 */
+		abrirMenuDoItem(itemEl);
+		return false;
+	}
+
+	/**
+	 * O menu de um item do armazem -- chamado pelos DOIS caminhos que abrem o
+	 * MESMO menu (botao direito no mouse, toque simples no dedo).
+	 */
+	function abrirMenuDoItem(itemEl) {
+		const index = parseInt(itemEl.getAttribute('data-index'), 10);
+		const i = getItemIndexById(index);
+
+		if (i === -1) {
+			return;
+		}
+
+		const item = _list[i];
+
+		onItemOut(Component.getRoot());
+
+		ContextMenu.remove();
+		ContextMenu.append();
+
+		ContextMenu.addElement('Retirar', () => pedirRetirada(item));
+		if (carrinhoAberto()) {
+			ContextMenu.addElement('Mandar pro carrinho', () => {
+				Component.reqMoveItemToCart(item.index, item.count || 1);
+			});
+		}
+		ContextMenu.nextGroup();
+		ContextMenu.addElement('Detalhes', () => abrirDetalhes(item));
+	}
+
+	/**
+	 * Retirar do armazem para o corpo. Pilha de mais de um pergunta quanto,
+	 * pelo MESMO InputBox que o deposito ja usa em `onDrop` acima -- um unico
+	 * jeito de pedir quantidade nesta janela.
+	 */
+	function pedirRetirada(item) {
+		const total = item.count || 1;
+
+		if (total > 1) {
+			InputBox.append();
+			InputBox.setType('number', false, total);
+			InputBox.onSubmitRequest = function OnSubmitRequest(count) {
+				InputBox.remove();
+				const quantos = quantidadeDaRetirada(count, total);
+				if (quantos !== null) {
+					Component.reqRemoveItem(item.index, quantos);
+				}
+			};
+			return;
+		}
+
+		Component.reqRemoveItem(item.index, 1);
+	}
+
+	function abrirDetalhes(item) {
+		if (ItemInfo.uid === item.ITID) {
 			ItemInfo.remove();
 		}
 
 		ItemInfo.append();
-		ItemInfo.uid = _list[i].ITID;
-		ItemInfo.setItem(_list[i]);
-
-		return false;
+		ItemInfo.uid = item.ITID;
+		ItemInfo.setItem(item);
 	}
 
+	/**
+	 * Para onde vai a peca que sai daqui.
+	 *
+	 * O CORPO E O PADRAO (D-991, 09/09/2026). O teste antigo era
+	 * `Inventory.getUI().ui.is(':visible')` e ele NUNCA e verdadeiro neste
+	 * fork: a MochilaIdle e a janela de inventario do jogo e ela deixa o host
+	 * nativo em `display:none` permanente (ver a nota em `onItemInfo`). Com
+	 * isso a funcao caia no `else if` do carrinho, o carrinho tambem estava
+	 * fechado, e ela terminava sem pedir nada -- retirada muda.
+	 *
+	 * A visibilidade da janela nunca foi a condicao de verdade: o servidor
+	 * aceita `CZ_MOVE_ITEM_FROM_STORE_TO_BODY` com o armazem aberto, olhando
+	 * peso e posicao (servidor-mapa.ts, `CZ_MOVE_ITEM_FROM_STORE_TO_BODY`), e
+	 * nao que janela o cliente pintou. O carrinho continua tendo prioridade
+	 * quando E ELE que esta na tela, que era a unica escolha real do teste
+	 * antigo.
+	 */
 	Component.transferItemToOtherUI = function transferItemToOtherUI(item) {
-		const isInventoryOpen = Inventory.getUI().ui ? Inventory.getUI().ui.is(':visible') : false;
-		const isCartOpen = CartItems.ui ? CartItems.ui.is(':visible') : false;
-
 		if (!item) {
 			return false;
 		}
 
 		const count = item.count || 1;
+		const destino = destinoDaRetirada({
+			carrinhoAberto: carrinhoAberto(),
+			inventarioNativoAberto: Inventory.getUI().ui ? Inventory.getUI().ui.is(':visible') : false
+		});
 
-		if (isInventoryOpen) {
-			Component.reqRemoveItem(item.index, count);
-		} else if (isCartOpen) {
+		if (destino === CARRINHO) {
 			Component.reqMoveItemToCart(item.index, count);
+		} else {
+			Component.reqRemoveItem(item.index, count);
 		}
 
 		return true;

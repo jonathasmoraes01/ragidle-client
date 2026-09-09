@@ -418,6 +418,31 @@
 	padding: var(--sp-2) var(--sp-5);
 }
 
+/* A confirmação do LOTE, no rodapé da lista. Mesmo desenho da avulsa — uma
+   segunda linguagem visual para a mesma pergunta seria ruído —, só que sem a
+   borda arredondada de card: aqui ela substitui o rodapé em vez de flutuar
+   dentro do painel. */
+.co-confirma-todas {
+	flex: 0 0 auto;
+	display: flex;
+	align-items: center;
+	justify-content: flex-end;
+	gap: var(--sp-3);
+	padding: var(--sp-3) var(--sp-4);
+	border-top: var(--divider);
+	background: var(--surface-glass);
+}
+
+.co-confirma-todas-texto {
+	flex: 1 1 auto;
+	font: var(--type-label);
+	color: var(--text-body);
+}
+
+.co-confirma-todas .ri-btn {
+	padding: var(--sp-2) var(--sp-5);
+}
+
 /* ─── Aviso de recusa ─────────────────────────────────────────────────── */
 
 .co-aviso {

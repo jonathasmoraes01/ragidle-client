@@ -140,6 +140,7 @@ import UIManager from 'UI/UIManager.js';
 import GUIComponent from 'UI/GUIComponent.js';
 import Inventory from 'UI/Components/Inventory/Inventory.js';
 import { posicaoDaDica } from './posicaoDaDica.js';
+import { rotuloDoEspacoEquipado } from './espacoEquipado.js';
 import { FANTASIA_SLOTS, eDeFantasia } from './slotsDeFantasia.js';
 import Equipment from 'UI/Components/Equipment/Equipment.js';
 import ItemInfo from 'UI/Components/ItemInfo/ItemInfo.js';
@@ -147,11 +148,18 @@ import ContextMenu from 'UI/Components/ContextMenu/ContextMenu.js';
 import RiIcones from 'UI/ri-icones.js';
 import { carregarArteDeColecao } from 'Utils/ItemArt.js';
 import { escapeHTML, renderRunasHTML } from 'Utils/ItemOptionsView.js';
+import Network from 'Network/NetworkManager.js';
+import PACKET from 'Network/PacketStructure.js';
+import ItemCompare from 'UI/Components/ItemCompare/ItemCompare.js';
+import { htmlDaComparacao } from './comparacaoDoItem.js';
 import htmlText from './MochilaIdle.html?raw';
 import cssText from './MochilaIdle.css?raw';
 import { fecharEEsquecer } from '../limpezaDeJanelaIdle.js';
 import { abaLembrada, lembrarAba } from '../memoriaDeAba.js';
 import { pegar } from 'UI/toqueParaAtalho.js';
+import Storage from 'UI/Components/Storage/Storage.js';
+import InputBox from 'UI/Components/InputBox/InputBox.js';
+import { ehArrastoDoArmazem, quantidadeDaRetirada } from 'UI/Components/Storage/retiradaDoArmazem.js';
 
 /**
  * Mantido em sincronia com ":host"/".mo-window"/".mo-frame" em
@@ -350,6 +358,9 @@ MochilaIdle.init = function init() {
 	this.draggable(root.querySelector('.mo-topo'));
 
 	root.querySelector('.mo-close').addEventListener('click', onClickClose);
+
+	// A resposta da comparação de equipamento (08/09/2026) — ver abrirDetalhes.
+	Network.hookPacket(PACKET.ZC.RAGIDLE_ITEM, aoChegarComparacao);
 
 	// Boneca ao vivo -- contexto capturado uma vez, o laço em si so liga/
 	// desliga no toggle() (ver renderBoneco()/onClickClose/toggle abaixo).
@@ -829,14 +840,38 @@ function extractUrl(backgroundImage) {
  */
 function onClickPainelEsq(e) {
 	const btn = e.target.closest('.mo-slot-remover');
-	if (!btn) {
+	if (btn) {
+		e.stopImmediatePropagation();
+		const index = parseInt(btn.dataset.index, 10);
+		if (!isNaN(index)) {
+			tentarTirar(index, btn.closest('.mo-slot'));
+		}
 		return;
 	}
-	e.stopImmediatePropagation();
-	const index = parseInt(btn.dataset.index, 10);
-	if (!isNaN(index)) {
-		tentarTirar(index, btn.closest('.mo-slot'));
+
+	/*
+	 * TOQUE NA PECA VESTIDA = o MESMO menu do botao direito (08/09/2026).
+	 *
+	 * A peca vestida so tinha DOIS caminhos, e os dois sao de mouse: passar o
+	 * cursor (a dica com o selo "Equipado") e o botao direito (Tirar /
+	 * Detalhes). No dedo nao existe nenhum dos dois — entao, no celular, o
+	 * jogador nao tinha como abrir a ficha do que esta usando. E a mesma
+	 * lacuna que D-938 fechou na GRADE, no mesmo arquivo, e que ficou de fora
+	 * aqui porque o painel de slots so escutava o "x".
+	 *
+	 * So no dedo (`ehToque()`, lido na hora do evento): no mouse um clique
+	 * simples no slot continua sem fazer nada.
+	 */
+	if (!ehToque()) {
+		return;
 	}
+	const tile = e.target.closest('.mo-slot');
+	if (!tile || !tile.classList.contains('is-ocupado')) {
+		return;
+	}
+	e.preventDefault();
+	e.stopImmediatePropagation();
+	abrirMenuDoSlot(tile);
 }
 
 /**
@@ -1132,6 +1167,15 @@ function onContextMenuSlot(e) {
 	}
 	e.preventDefault();
 	e.stopImmediatePropagation();
+	abrirMenuDoSlot(tile);
+}
+
+/**
+ * Monta o menu de uma peca VESTIDA -- chamada pelos DOIS caminhos que abrem o
+ * MESMO menu (botao direito no mouse, toque simples no dedo). Uma unica
+ * montagem, nunca duas -- o mesmo desenho de `abrirMenuDoItem` na grade.
+ */
+function abrirMenuDoSlot(tile) {
 	const index = parseInt(tile.dataset.index, 10);
 	if (isNaN(index)) {
 		return;
@@ -1151,14 +1195,79 @@ function onContextMenuSlot(e) {
 /**
  * Descricao de um item da mochila -- ItemInfo, contrato tecnico secao 5b.
  */
+/**
+ * O índice cuja comparação está no ar. A resposta chega assíncrona e a ficha
+ * pode ter trocado de item no meio — só o payload do índice PEDIDO entra na
+ * janela; o resto é resposta órfã e morre calada.
+ */
+let _indiceComparado = null;
+
 function abrirDetalhes(item) {
 	if (ItemInfo.uid === item.ITID) {
 		ItemInfo.remove();
+		if (ItemCompare.ui) {
+			ItemCompare.remove();
+		}
 		return;
 	}
 	ItemInfo.append();
 	ItemInfo.uid = item.ITID;
 	ItemInfo.setItem(item);
+
+	/*
+	 * A COMPARAÇÃO COM O EQUIPADO (08/09/2026, pedido do alfa) — só para
+	 * EQUIPÁVEL que não está no corpo: comparar a peça vestida com ela mesma
+	 * não diz nada, e consumível não tem espaço correspondente.
+	 *
+	 * Duas metades, duas fontes:
+	 *  1. o LADO A LADO usa a estrutura que o cliente já tinha (ItemCompare —
+	 *     a ficha do item equipado no espaço correspondente, aberta ao lado);
+	 *  2. a DIFERENÇA numérica vem do SERVIDOR (`CZ_RAGIDLE_ITEM_ACAO`), que
+	 *     calcula com a mesma régua da janela de status. A janela nunca
+	 *     recalcula — duas contas para a mesma pergunta divergem um dia.
+	 */
+	if (ItemCompare.ui) {
+		ItemCompare.remove();
+	}
+	_indiceComparado = null;
+	const vestivel = typeof item.location === 'number' && item.location !== 0;
+	const jaNoCorpo = typeof item.WearState === 'number' && item.WearState !== 0;
+	if (!vestivel || jaNoCorpo) {
+		return;
+	}
+
+	const equipado = Equipment.getUI().isInEquipList(item.location);
+	if (equipado) {
+		ItemCompare.prepare();
+		ItemCompare.append();
+		ItemCompare.uid = equipado.ITID;
+		ItemCompare.setItem(equipado);
+	}
+
+	_indiceComparado = item.index;
+	const pkt = new PACKET.CZ.RAGIDLE_ITEM_ACAO();
+	pkt.json = JSON.stringify({ acao: 'comparar', indice: item.index });
+	Network.sendPacket(pkt);
+}
+
+/**
+ * A resposta do servidor com o veredito da troca — desenhada DENTRO da ficha
+ * (ItemInfo.setComparacao), que é onde o jogador está olhando.
+ */
+function aoChegarComparacao(pkt) {
+	let dados;
+	try {
+		dados = JSON.parse(pkt.json);
+	} catch (_erro) {
+		return;
+	}
+	if (!dados || dados.acao !== 'comparar' || dados.indice !== _indiceComparado) {
+		return;
+	}
+	if (ItemInfo.uid === -1) {
+		return; // a ficha fechou antes de a resposta chegar
+	}
+	ItemInfo.setComparacao(htmlDaComparacao(dados, escapeHTML));
 }
 
 /**
@@ -1176,6 +1285,22 @@ function abrirDetalhesEquipado(index) {
 	}
 	const evt = new MouseEvent('contextmenu', { bubbles: true, cancelable: true });
 	itemDiv.dispatchEvent(evt);
+
+	/*
+	 * O SELO VAI JUNTO PARA A FICHA (08/09/2026).
+	 *
+	 * A dica de hover diz "Equipado — Arma", e no dedo nao ha hover: sem isto,
+	 * o jogador de celular abre a ficha da peca que esta usando e ela nao diz
+	 * que esta em uso. A janela e a MESMA nos dois aparelhos, entao o selo
+	 * mora nela e serve aos dois.
+	 *
+	 * O despacho acima e SINCRONO: quando ele volta, `ItemInfo.setItem` ja
+	 * rodou (e ja limpou o selo anterior), e este e o momento de por o novo.
+	 */
+	const espaco = rotuloDoEspacoEquipado(mascaraVestidaDoIndice(String(index)), EQUIP_SLOTS);
+	if (espaco && typeof ItemInfo.setVestido === 'function') {
+		ItemInfo.setVestido(`Equipado - ${espaco}`);
+	}
 }
 
 /**
@@ -1304,7 +1429,7 @@ function onSlotDragEnd() {
 }
 
 function onGradeDragOver(e) {
-	if (_dragUnequipIndex == null) {
+	if (_dragUnequipIndex == null && !ehArrastoVindoDoArmazem()) {
 		return;
 	}
 	e.preventDefault();
@@ -1312,9 +1437,30 @@ function onGradeDragOver(e) {
 }
 
 function onGradeDrop(e) {
+	/*
+	 * ── Armazem -> grade (retirar), D-991 ─────────────────────────────────
+	 * Esta grade E o inventario do jogo, mas a janela NATIVA de inventario --
+	 * a unica que o armazem sabia usar como alvo de drop
+	 * (InventoryCommon.js:1125) -- fica em `display:none` permanente por
+	 * `hideNativeHosts()` aqui deste arquivo. Sem este ramo, arrastar do
+	 * armazem para a mochila nao tinha alvo nenhum: o item voltava e o
+	 * jogador nao conseguia tirar nada.
+	 *
+	 * O payload e o contrato global `_OBJ_DRAG_` que StorageCommon.js ja
+	 * escreve no `dragstart` dele (`{type:'item', from:'Storage', data:item}`)
+	 * -- o MESMO que a janela nativa lia. Nada de novo no fio.
+	 */
 	if (_dragUnequipIndex == null) {
+		const doArmazem = itemDoArrastoDoArmazem(e);
+		if (!doArmazem) {
+			return;
+		}
+		e.preventDefault();
+		e.stopImmediatePropagation();
+		retirarDoArmazem(doArmazem);
 		return;
 	}
+
 	e.preventDefault();
 	e.stopImmediatePropagation();
 	const index = _dragUnequipIndex;
@@ -1322,6 +1468,52 @@ function onGradeDrop(e) {
 
 	const tile = _root().querySelector(`.mo-slot[data-index="${index}"]`);
 	tentarTirar(index, tile);
+}
+
+/**
+ * O arrasto em curso vem do armazem? Lido do `_OBJ_DRAG_` global porque no
+ * `dragover` o `dataTransfer` ainda nao entrega o texto (so no `drop`), e sem
+ * o `preventDefault` do dragover o navegador nem dispara o `drop`.
+ */
+function ehArrastoVindoDoArmazem() {
+	return ehArrastoDoArmazem(window._OBJ_DRAG_);
+}
+
+/** O item do armazem que caiu na grade, ou null se o drop foi de outra coisa. */
+function itemDoArrastoDoArmazem(e) {
+	let data;
+	try {
+		data = JSON.parse(e.dataTransfer.getData('Text'));
+	} catch (_e) {
+		return null;
+	}
+	if (!ehArrastoDoArmazem(data)) {
+		return null;
+	}
+	return data.data;
+}
+
+/**
+ * Pede a retirada. Pilha de mais de um pergunta quanto, pelo MESMO InputBox
+ * que a janela nativa usava para este gesto (InventoryCommon.js:1128-1140).
+ */
+function retirarDoArmazem(item) {
+	const total = item.count || 1;
+
+	if (total > 1) {
+		InputBox.append();
+		InputBox.setType('number', false, total);
+		InputBox.onSubmitRequest = function OnSubmitRequest(count) {
+			InputBox.remove();
+			const quantos = quantidadeDaRetirada(count, total);
+			if (quantos !== null) {
+				Storage.reqRemoveItem(item.index, quantos);
+			}
+		};
+		return;
+	}
+
+	Storage.reqRemoveItem(item.index, 1);
 }
 
 function limparRealceSlots() {
@@ -1423,8 +1615,49 @@ function renderCorpoDaDescricao(linhas) {
  * resolvido na hora); isto só entra se o índice não resolver mais no
  * instante do hover (item trocado entre o desenho do slot e o mouse chegar).
  */
+/**
+ * O ITEM DE UM INDICE -- mochila OU corpo.
+ *
+ * A PECA VESTIDA NAO ESTA EM `Inventory.list` (`countLabel()` soma
+ * `list.length + Equipment.getUI().getNumber()`, InventoryCommon.js: sao duas
+ * listas, nao uma). Quem pergunta so ao inventario recebe `null` de tudo o que
+ * o jogador esta usando -- e foi assim que a dica do slot caiu no formato de
+ * TEXTO simples, sem o selo "Equipado", na sonda de tela de 08/09/2026.
+ */
+function itemDoIndice(indice) {
+	const idx = parseInt(indice, 10);
+	const daMochila = Inventory.getUI().getItemByIndex(idx);
+	if (daMochila) {
+		return daMochila;
+	}
+	const vestidos = Equipment.getUI().getEquippedList ? Equipment.getUI().getEquippedList() : [];
+	return vestidos.find(it => it.index === idx) || null;
+}
+
+/**
+ * A MASCARA DOS ESPACOS QUE ESTE INDICE OCUPA AGORA, lida dos proprios
+ * ladrilhos.
+ *
+ * O `WearState` do objeto so e confiavel na lista que veio do servidor no
+ * login; uma peca vestida DURANTE a sessao chega a `Equipment.equip()` com a
+ * mascara de onde ela PODE ir. Os ladrilhos, ao contrario, sao construidos a
+ * partir de onde a Equipment nativa REALMENTE pos a peca -- entao a arma de
+ * duas maos aparece nos dois ladrilhos e o OU deles e a verdade da tela.
+ */
+function mascaraVestidaDoIndice(indice) {
+	const root = _root();
+	if (!root || !indice) {
+		return 0;
+	}
+	let mascara = 0;
+	root.querySelectorAll(`.mo-slot.is-ocupado[data-index="${indice}"]`).forEach(tile => {
+		mascara |= parseInt(tile.dataset.location, 10) || 0;
+	});
+	return mascara;
+}
+
 function dicaDoItemNoIndice(indice) {
-	const item = Inventory.getUI().getItemByIndex(parseInt(indice, 10));
+	const item = itemDoIndice(indice);
 	if (!item) {
 		return '';
 	}
@@ -1459,9 +1692,9 @@ function onHoverEntra(e) {
 			return;
 		}
 	} else if (el.classList.contains('mo-slot') && el.classList.contains('is-ocupado')) {
-		const item = Inventory.getUI().getItemByIndex(parseInt(el.dataset.index, 10));
+		const item = itemDoIndice(el.dataset.index);
 		if (item) {
-			mostrarDicaItem(el, item);
+			mostrarDicaItem(el, item, mascaraVestidaDoIndice(el.dataset.index));
 			return;
 		}
 	}
@@ -1517,7 +1750,7 @@ function posicionarDica(alvoEl, dica, janela) {
  * `renderRunasHTML`) — nada aqui é `textContent` mais, então nada disso pode
  * ir cru.
  */
-function mostrarDicaItem(alvoEl, item) {
+function mostrarDicaItem(alvoEl, item, vestidoEmForcado) {
 	const root = _root();
 	const dica = root.querySelector('.mo-dica');
 	const janela = root.querySelector('.mo-window');
@@ -1541,11 +1774,38 @@ function mostrarDicaItem(alvoEl, item) {
 	// `.mo-dica-corpo` oco abrindo margem entre o nome e as Runas.
 	const corpo = renderCorpoDaDescricao(descricaoLinhas(item));
 
+	/*
+	 * O SELO "Equipado" (08/09/2026, pedido do alfa: *"indique claramente
+	 * quando o item estiver equipado e em qual espaço"*). A máscara diz os
+	 * espaços TOMADOS — a arma de duas mãos sai "Arma (duas mãos)", o chapéu
+	 * grande "Chapéu + Óculos" — e a regra mora em `espacoEquipado.js`, onde
+	 * dá para medir sem DOM.
+	 */
+	/*
+	 * `WearState`, e NAO o `location` logo acima: `location` e a mascara de onde
+	 * o item PODE ser vestido (e o que `eDeFantasia` quer), `WearState` e onde
+	 * ele ESTA. Um arco na mochila tem `location = Arma|Escudo` e WearState 0 —
+	 * com a mascara errada o selo diria "Equipado" para meia mochila.
+	 */
+	/*
+	 * E o chamador do SLOT quem sabe a verdade (`mascaraVestidaDoIndice`): o
+	 * `WearState` do objeto vale para a lista do login, e nao para a peca que
+	 * o jogador acabou de vestir nesta sessao.
+	 */
+	const vestidoEm =
+		typeof vestidoEmForcado === 'number' && vestidoEmForcado > 0
+			? vestidoEmForcado
+			: typeof item.WearState === 'number'
+				? item.WearState
+				: 0;
+	const espaco = rotuloDoEspacoEquipado(vestidoEm, EQUIP_SLOTS);
+
 	dica.innerHTML =
 		'<div class="mo-dica-cabecalho">' +
 		'<div class="ri-tile mo-dica-arte"><img class="mo-dica-arte-img" alt="" /></div>' +
 		`<div class="mo-dica-nome">${escapeHTML(titulo)}</div>` +
 		'</div>' +
+		(espaco ? `<div class="mo-dica-equipado">Equipado - ${escapeHTML(espaco)}</div>` : '') +
 		(corpo ? `<div class="mo-dica-corpo">${corpo}</div>` : '') +
 		renderRunasHTML(item);
 

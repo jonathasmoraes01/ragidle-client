@@ -46,24 +46,26 @@ describe('o arquivo publicado', () => {
 		expect(Object.keys(publicado.itens).length).toBeGreaterThan(500);
 	});
 
-	it('o degrau de cima e o limiar de anuncio de drop raro do JOGO (D-631)', () => {
+	it('o degrau de cima e o teto do Lendario do DONO (0,03% - e o anuncio global anda JUNTO de novo)', () => {
 		/*
-		 * 5 decimos de milesimo = **0,05%**. E o unico degrau que nao e
-		 * apresentacao: o servidor para o chat para anunciar um drop assim.
+		 * 3 decimos de milesimo = **0,03%** — o teto do Lendario, ordem do
+		 * dono de 08/09/2026 ("raro vai ate 0,03% e lendario e 0,03% para
+		 * baixo"). ERA 5 (0,05%), acoplado ao limiar do anuncio global de
+		 * drop raro; por algumas horas os dois ficaram separados (a escada
+		 * desceu primeiro) e na mesma noite o dono reacoplou: "pode publicar
+		 * so os lendarios" - o anuncio tambem vale 0,03% e so Lendario para
+		 * o chat (`ANUNCIO_DE_DROP_RARO_DO_DONO`, servidor). A escada
+		 * mora em `game/raridade-de-drop.ts` (`LENDARIO_ATE_DO_DONO`) e chega
+		 * aqui pelo arquivo publicado — este teste e o portao que avisa
+		 * quando o arquivo em disco fica para tras do jogo.
 		 *
-		 * ERA 10 (0,1%) ate 07/09/2026, quando o dono cortou o limiar pela
-		 * metade no mesmo pedido em que o anuncio virou GLOBAL, com faixa na
-		 * tela (D-1158, no repo do servidor). O numero mora la
-		 * (`ANUNCIO_DE_DROP_RARO_DO_DONO`, `game/ajustes-do-dono.ts`) e chega
-		 * aqui pelo arquivo publicado — este teste e o portao que avisa quando
-		 * o arquivo em disco fica para tras do jogo.
-		 *
-		 * **E foi ele quem pegou a defasagem**: o `publicar:fichas-de-item`
-		 * roda no repo do servidor, e nada do lado de ca saberia que a escada
-		 * de raridade tinha mudado.
+		 * (Antes de 5 era 10, ate 07/09/2026 — D-1158; **e foi este portao
+		 * quem pegou aquela defasagem**: o `publicar:fichas-de-item` roda no
+		 * repo do servidor, e nada do lado de ca saberia que a escada tinha
+		 * mudado.)
 		 */
-		expect(publicado.degraus[0]).toBe(5);
-		expect(publicado.degraus).toEqual([5, 100, 1000]);
+		expect(publicado.degraus[0]).toBe(3);
+		expect(publicado.degraus).toEqual([3, 100, 1000]);
 	});
 
 	it('toda linha tem os quatro campos, e a raridade cabe na escada', () => {

@@ -1,5 +1,10 @@
 /**
- * UI/telaAcesaNoFarm.js — O MODO LEITURA (09/09/2026, pedido do dono).
+ * UI/telaAcesaNoFarm.js — O MODO LEITURA (D-992, 09/09/2026, pedido do dono).
+ *
+ * A decisao nasceu D-970 e virou D-992 na colisao 23: o master ja tinha um
+ * D-970 publicado um dia antes. A mensagem do commit que trouxe este arquivo
+ * (`61b73008`) ainda cita o numero velho — nao da para reescrever historia ja
+ * empurrada, e a nota no corpo de D-992 e o que liga um ao outro.
  *
  * ═══════════════════════════════════════════════════════════════════════
  * O PEDIDO

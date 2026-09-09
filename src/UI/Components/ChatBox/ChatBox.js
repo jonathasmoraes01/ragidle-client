@@ -80,7 +80,7 @@ import Configs from 'Core/Configs.js';
 import EntityManager from 'Renderer/EntityManager.js';
 import RiIcones from 'UI/ri-icones.js';
 import { emUnidadesDaHud } from 'UI/escalaDaHud.js'; // D-934: geometria medida vira unidade da HUD
-import { cabeNoLimite, markupDoLink, preparoParaLinkar } from './linkDeItemNoChat.js'; // D-946: linkar item no chat
+import { CANAIS_QUE_FALAM_NO_GLOBAL, CANAL_DE_FALA, cabeNoLimite, markupDoLink, preparoParaLinkar } from './linkDeItemNoChat.js'; // D-946: linkar item no chat
 // O GID do personagem em foco — a preferencia do chat e POR PERSONAGEM
 // (spec §9), e nao por conta.
 import Session from 'Engine/SessionStorage.js';
@@ -793,26 +793,17 @@ const ROTULO_DO_CANAL = {
  * segundo canal so-leitura, quem o criar acha esta linha em vez de descobrir a
  * regra espalhada pelo arquivo.
  */
-const CANAIS_SO_LEITURA = ['logs'];
-
 /*
- * OS CANAIS EM QUE O ENTER NAO ABRE A CAIXA DE DIGITACAO.
+ * O CANAL EM QUE O ENTER NAO ABRE A CAIXA DE DIGITACAO.
  *
- * DUAS listas, e nao uma — elas respondem perguntas diferentes:
- *
- *  - esta aqui responde *"o Enter abre a caixa neste canal?"*. O Trade entra
- *    por um motivo que NAO e ser so-leitura: ele nao tem canal no servidor de
- *    mapa, e o que fosse digitado sairia como fala publica e cairia no Global
- *    (ver ".cb-inerte" em ChatBox.html);
- *  - `CANAIS_SO_LEITURA` responde *"este texto pode sair?"*, ja dentro do
- *    `submit`, e devolve uma mensagem especifica do Logs. Fundir as duas faria
- *    o Trade receber "o canal Logs e so leitura", que e mentira.
- *
- * CONSERTO de 05/09/2026: esta guarda tinha 'farm' e 'trade' CRAVADOS no `if`,
- * e o 'logs' — que nasceu depois — nunca foi somado. No Logs a caixa ABRIA e so
- * o `submit` recusava, depois de o jogador ter digitado a frase inteira.
+ * So o Trade (08/09/2026): ele nao tem canal no servidor de mapa, e o que
+ * fosse digitado sairia como fala publica (ver ".cb-inerte" em ChatBox.html).
+ * Farm e Logs SAIRAM desta lista por ordem do dono — la o Enter abre a caixa,
+ * mas no Global: digitar nesses dois troca de canal antes de falar
+ * (`CANAIS_QUE_FALAM_NO_GLOBAL`, em linkDeItemNoChat.js, a parte pura). Ate
+ * 08/09 o Logs era so-leitura e recusava a frase DEPOIS de digitada.
  */
-const CANAIS_SEM_DIGITACAO = ['trade', 'farm', 'logs'];
+const CANAIS_SEM_DIGITACAO = ['trade'];
 
 /**
  * FILTRO -> CANAL. Esta tabela E a regra dura: cada filtro pertence a
@@ -1805,17 +1796,12 @@ ChatBox.onKeyDown = function OnKeyDown(event) {
 				return false;
 			}
 
-			// Farm e Logs sao somente leitura, e o Trade nao tem canal no
-			// servidor: em nenhum dos tres o Enter abre digitacao. No Trade isso
-			// e a mesma decisao do ".cb-inerte" (ChatBox.html) — sem esta
-			// guarda, digitar la sairia como fala PUBLICA e a linha apareceria
-			// no Global.
-			//
-			// A LISTA, e nao os nomes cravados: ate 05/09/2026 este `if` dizia
-			// `=== 'farm' || === 'trade'`, e o 'logs' — criado em 31/08 — nunca
-			// entrou aqui. O canal ficava com a caixa abrindo e a recusa
-			// chegando so no `submit`, depois da frase digitada. Nome cravado
-			// nao acompanha canal novo; lista acompanha.
+			// FARM E LOGS FALAM NO GLOBAL (08/09/2026, ordem do dono): o Enter
+			// nesses dois troca para o Global e abre a caixa la. O Trade continua
+			// sem digitacao — nao tem canal no servidor (".cb-inerte", ChatBox.html).
+			if (CANAIS_QUE_FALAM_NO_GLOBAL.includes(this.activeTab)) {
+				this.switchTab(CANAL_DE_FALA);
+			}
 			if (CANAIS_SEM_DIGITACAO.includes(this.activeTab)) {
 				event.stopImmediatePropagation();
 				return false;
@@ -1878,28 +1864,16 @@ ChatBox.submit = function Submit() {
 	const trimmedText = text.replace(/\u00A0/g, ' ').trim();
 
 	/*
-	 * NO CANAL "Logs" NINGUEM DIGITA (31/08/2026, pedido do dono).
-	 *
-	 * A guarda fica AQUI, e nao no botao de enviar: o Enter chega por
-	 * `onKeyDown` e o clique por outro caminho, e os dois desaguam neste
-	 * `submit`. Barrar so um deixaria o outro passar, e a fala iria para o canal
-	 * errado sem nada avisar.
-	 *
-	 * Depois do `trimmedText`, e nao antes: com o campo VAZIO o Enter alterna o
-	 * modo batalha, e isso continua valendo no Logs \u2014 recolher o campo nao e
-	 * falar.
-	 *
-	 * O texto NAO e apagado: ele fica no campo, entao trocar para o Global e
-	 * apertar Enter manda o que ele escreveu. Limpar seria punir um engano com a
-	 * perda da frase.
+	 * FARM E LOGS FALAM NO GLOBAL (08/09/2026, ordem do dono: "o chat na aba Logs
+	 * e Farm estao disponiveis sim, mas quando o player digita, a mensagem dele
+	 * cai em Global"). Ate aqui o Logs recusava a frase depois de digitada
+	 * (31/08). A guarda fica AQUI porque o Enter e o clique desaguam neste
+	 * `submit`; trocar o canal ANTES de enviar faz o eco do servidor cair na aba
+	 * que o jogador esta vendo. Com o campo VAZIO nada muda: o Enter continua
+	 * alternando o modo batalha, e recolher o campo nao e falar.
 	 */
-	if (trimmedText.length && CANAIS_SO_LEITURA.includes(ChatBox.activeTab)) {
-		ChatBox.addText(
-			'O canal Logs e so leitura \u2014 escolha Global para falar.',
-			ChatBox.TYPE.ERROR,
-			ChatBox.FILTER.SISTEMA
-		);
-		return;
+	if (trimmedText.length && CANAIS_QUE_FALAM_NO_GLOBAL.includes(ChatBox.activeTab)) {
+		ChatBox.switchTab(CANAL_DE_FALA);
 	}
 
 	// Battle mode

@@ -12,6 +12,7 @@
 import DB from 'DB/DBManager.js';
 import SkillId from 'DB/Skills/SkillConst.js';
 import SkillInfo from 'DB/Skills/SkillInfo.js';
+import { nomeDaHabilidadeParaOJogador } from 'DB/Skills/SkillNamePtBr.js'; // RAGIDLE (08/09/2026): o balao em portugues
 import StatusConst from 'DB/Status/StatusConst.js';
 import StatusState from 'DB/Status/StatusState.js';
 import Emotions from 'DB/Emotions.js';
@@ -155,7 +156,7 @@ function onEntitySpam(pkt) {
 			if (cachedLife.sp_max !== undefined) entity.life.sp_max = cachedLife.sp_max;
 			if (cachedLife.hunger !== undefined) entity.life.hunger = cachedLife.hunger;
 			if (cachedLife.hunger_max !== undefined) entity.life.hunger_max = cachedLife.hunger_max;
-			if (entity.life.hp > -1 && entity.life.hp_max > -1) {
+			if (entity.life.hp > -1 && entity.life.hp_max > 0) {
 				entity.life.update();
 				entity.life.display = true;
 			}
@@ -1314,6 +1315,20 @@ function onTitleChangeAck(pkt) {
  * @param {object} pkt - PACKET.ZC.NOTIFY_MONSTER_HP
  */
 function onEntityLifeUpdate(pkt) {
+	// RAGIDLE (08/09/2026): maxhp 0 e o APAGADOR — o servidor o manda a quem
+	// deixou de lutar com o mob (a barra e so de quem esta na luta, e do grupo
+	// dele). Sem isto a barra ficava pintada ate a entidade sumir.
+	if (!(pkt.maxhp > 0)) {
+		EntityManager.storeLife(pkt.AID, { hp: -1, hp_max: -1 });
+		const apagada = EntityManager.get(pkt.AID);
+		if (apagada) {
+			apagada.life.hp = -1;
+			apagada.life.hp_max = -1;
+			apagada.life.display = false;
+			apagada.life.remove();
+		}
+		return;
+	}
 	EntityManager.storeLife(pkt.AID, { hp: pkt.hp, hp_max: pkt.maxhp });
 
 	const entity = EntityManager.get(pkt.AID);
@@ -1579,7 +1594,7 @@ function onEntityUseSkill(pkt) {
 	) {
 		if (!SkillNameDisplayExclude.includes(pkt.SKID)) {
 			srcEntity.dialog.set(
-				((SkillInfo[pkt.SKID] && SkillInfo[pkt.SKID].SkillName) || 'Unknown Skill') + ' !!',
+				nomeDaHabilidadeParaOJogador(pkt.SKID) + ' !!',
 				'white'
 			);
 		}
@@ -1739,7 +1754,7 @@ function onEntityUseSkillToAttack(pkt) {
 			!(pkt.level < 0) &&
 			!(pkt.SKID < 0)
 		) {
-			srcEntity.dialog.set(((SkillInfo[pkt.SKID] && SkillInfo[pkt.SKID].SkillName) || 'Unknown Skill') + ' !!');
+			srcEntity.dialog.set(nomeDaHabilidadeParaOJogador(pkt.SKID) + ' !!');
 		}
 
 		//Action handling
@@ -1972,7 +1987,7 @@ function onEntityCastSkill(pkt) {
 	) {
 		if (!SkillNameDisplayExclude.includes(pkt.SKID)) {
 			srcEntity.dialog.set(
-				((SkillInfo[pkt.SKID] && SkillInfo[pkt.SKID].SkillName) || 'Unknown Skill') + ' !!',
+				nomeDaHabilidadeParaOJogador(pkt.SKID) + ' !!',
 				'white'
 			);
 		}

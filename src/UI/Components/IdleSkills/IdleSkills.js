@@ -95,7 +95,7 @@ import {
  * cobra que os dois números sejam o mesmo, porque ele é a única coisa que
  * separa "árvore certa" de "árvore plausível e errada".
  */
-const VERSAO_DO_CONTRATO = 2;
+const VERSAO_DO_CONTRATO = 3;
 
 const NUMERIC_SKILL_ID_BY_NAME = new Map(
 	Object.entries(SkillInfo)
@@ -452,6 +452,28 @@ function sendAplicar() {
 
 	const pkt = new PACKET.CZ.RAGIDLE_APRENDER();
 	pkt.json = JSON.stringify({ lote: lote });
+	Network.sendPacket(pkt);
+}
+
+/**
+ * ESQUECER: regride um nível, ou desaprende inteiro (07/09/2026).
+ *
+ * O verbo vai no MESMO pacote do aprender — `CZ_RAGIDLE_APRENDER` é só o nome
+ * histórico do canal da árvore, e o servidor despacha por `acao`. Um opcode
+ * por botão é o caminho mais curto para a faixa RAGIDLE encher de novo.
+ *
+ * **Não há rascunho aqui, e a assimetria é deliberada.** Subir tem rascunho
+ * porque o jogador distribui vinte pontos e aplica uma vez; descer é um gesto
+ * por vez, com confirmação — e um lote de esquecimentos tornaria a conferência
+ * de pré-requisito dependente da ORDEM em que eles chegam.
+ *
+ * @param {string} skillId
+ * @param {number|'tudo'} niveis
+ */
+function sendEsquecer(skillId, niveis) {
+	setStatus(niveis === 'tudo' ? 'Desaprendendo…' : 'Regredindo…');
+	const pkt = new PACKET.CZ.RAGIDLE_APRENDER();
+	pkt.json = JSON.stringify({ acao: 'esquecer', skillId: skillId, niveis: niveis });
 	Network.sendPacket(pkt);
 }
 
@@ -1107,10 +1129,26 @@ function plaqueta(skill, contexto, modificador) {
 		'<span class="is-no-nivel">' +
 		nivelHtml +
 		'</span>' +
-		'<button type="button" class="is-seta is-seta--mais" data-skill-mais="' +
+		/*
+		 * A SETA BLOQUEADA CONTINUA CLICÁVEL (D-1225, 08/09/2026).
+		 *
+		 * Ela era `disabled` com o motivo só no `title=`, e `title` não existe
+		 * no toque: no celular — que é como o alfa joga — o jogador tocava numa
+		 * seta que não fazia nada e não dizia nada. Foi assim que "Contra-Ataque
+		 * não permite aumentar o nível" chegou como relato em vez de como
+		 * pergunta respondida na própria janela.
+		 *
+		 * `aria-disabled` + a classe apagam a seta do mesmo jeito para quem vê e
+		 * para o leitor de tela; o clique cai em `onClickMais`, que já sabia
+		 * mostrar o motivo em `showProblemas` e nunca era alcançado. O `title`
+		 * fica para o mouse.
+		 */
+		'<button type="button" class="is-seta is-seta--mais' +
+		(subir.ok ? '' : ' is-seta--travada') +
+		'" data-skill-mais="' +
 		escapeHtml(skill.skillId) +
 		'"' +
-		(subir.ok ? '' : ' disabled') +
+		(subir.ok ? '' : ' aria-disabled="true"') +
 		' title="' +
 		escapeHtml(subir.ok ? 'Somar um ponto' : subir.motivo) +
 		'">' +
@@ -1427,6 +1465,21 @@ function buildMecanicaRows(skill) {
  * Sem nenhum dos dois, o silêncio é o selo: a habilidade funciona.
  */
 function seloDeEfeito(skill) {
+	/*
+	 * O SELO DE "NÃO DÁ PARA APRENDER" vem ANTES (D-1225, 08/09/2026).
+	 *
+	 * O relato do alfa foi *"Contra-Ataque não permite aumentar o nível"* com o
+	 * selo "sem efeito em combate ainda" na tela — e o selo estava certo sem
+	 * responder a pergunta. `portada: false` diz que o motor não executa;
+	 * `aceitaPeloMotor: false` é a TRANCA, e é ela que apaga a seta.
+	 *
+	 * Os dois eixos quase sempre coincidem, mas quem lê a janela precisa da
+	 * consequência, e não da causa: "sem efeito" convida a comprar assim mesmo,
+	 * e a seta então não obedece. O selo novo diz o que acontece.
+	 */
+	if (!skill.aceitaPeloMotor) {
+		return '<span class="is-badge ri-badge ri-badge--cinza" title="A tranca do motor: enquanto o motor de combate não executar esta habilidade, o ponto não pode ser gasto nela — ele sairia da sua conta sem mudar nada na luta.">não dá para aprender ainda</span>';
+	}
 	if (!skill.portada) {
 		return '<span class="is-badge ri-badge ri-badge--cinza" title="O motor de combate ainda não executa esta habilidade — aprendê-la não muda nada na luta.">sem efeito em combate ainda</span>';
 	}
@@ -1462,6 +1515,25 @@ function renderRequisitos(skill, contexto) {
 	skill.preRequisitos.forEach(requisito => {
 		const alvo = contexto.porId.get(requisito.skillId);
 		const tem = alvo ? nivelEfetivo(alvo, contexto.rascunho) : 0;
+		/*
+		 * O REQUISITO DISPENSADO (D-1225) — e ele precisa DIZER que foi
+		 * dispensado, em vez de só sair da lista.
+		 *
+		 * Some-lo daria uma lista que discorda do `skill_tree.yml` sem
+		 * explicação; deixá-lo com "X" era o defeito do alfa. A terceira via é
+		 * a honesta: linha cumprida, com o motivo ao lado.
+		 */
+		if (requisito.perdoado) {
+			linhas.push({
+				ok: true,
+				texto:
+					(alvo ? alvo.nome : requisito.skillId) +
+					' Nv. ' +
+					requisito.nivel +
+					' - dispensado (o motor ainda não executa esta habilidade)'
+			});
+			return;
+		}
 		linhas.push({
 			ok: tem >= requisito.nivel,
 			texto: (alvo ? alvo.nome : requisito.skillId) + ' Nv. ' + requisito.nivel + ' (você: ' + tem + ')'
@@ -1643,7 +1715,14 @@ function renderDetail() {
 		mecanicaHtml +
 		'</div></div>';
 
-	footerEl.innerHTML = acaoHtml + '<div class="is-detail-acoes">' + rotacaoHtml + atalhoHtml + '</div>';
+	footerEl.innerHTML =
+		acaoHtml +
+		'<div class="is-detail-acoes">' +
+		rotacaoHtml +
+		atalhoHtml +
+		esquecerHtml(skill) +
+		'</div>' +
+		confirmacaoDeEsquecerHtml(skill);
 
 	const btnRot = footerEl.querySelector('[data-skill-rotacao]');
 	if (btnRot) {
@@ -1652,6 +1731,25 @@ function renderDetail() {
 	const btnAtalho = footerEl.querySelector('[data-skill-atalho]');
 	if (btnAtalho) {
 		btnAtalho.addEventListener('click', onClickPorNaBarra);
+	}
+	footerEl.querySelectorAll('[data-esquecer]').forEach(b => b.addEventListener('click', onClickEsquecer));
+	const simEsquecer = footerEl.querySelector('[data-esquecer-sim]');
+	if (simEsquecer) {
+		simEsquecer.addEventListener('click', function (e) {
+			e.stopImmediatePropagation();
+			const alvo = e.currentTarget.dataset.esquecerSim;
+			_confirmandoEsquecer = null;
+			sendEsquecer(alvo, 'tudo');
+			renderDetail();
+		});
+	}
+	const naoEsquecer = footerEl.querySelector('[data-esquecer-nao]');
+	if (naoEsquecer) {
+		naoEsquecer.addEventListener('click', function (e) {
+			e.stopImmediatePropagation();
+			_confirmandoEsquecer = null;
+			renderDetail();
+		});
 	}
 	// A plaqueta do cabeçalho usa os MESMOS data-* e o mesmo juiz do nó.
 	scrollEl.querySelectorAll('[data-skill-mais]').forEach(b => b.addEventListener('click', onClickMais));
@@ -1663,6 +1761,116 @@ function renderDetail() {
 	if (alvo && alvo.scrollIntoView) {
 		alvo.scrollIntoView({ block: 'nearest' });
 	}
+}
+
+/* ------------------------------------------------------------------ */
+/* ESQUECER (07/09/2026 — pedido do dono no alfa)                      */
+/* ------------------------------------------------------------------ */
+
+/** @var {string|null} a habilidade cuja confirmação de esquecer está aberta. */
+let _confirmandoEsquecer = null;
+
+/**
+ * Os dois botões do caminho de volta: **▼ um nível** e **Desaprender**.
+ *
+ * Eles só existem para habilidade APRENDIDA e que o jogo não deu de graça — o
+ * `deQuest` vem do servidor e é a mesma marca que a etiqueta "quest · grátis"
+ * usa. Desaprender uma delas devolveria ponto que nunca foi gasto, e o servidor
+ * recusa; mostrar o botão seria a janela prometendo o que ele nega.
+ *
+ * A janela NÃO reimplementa a regra de pré-requisito: quem decide é
+ * `avaliarEsquecimento` (`game/progressao.ts`), e a recusa chega em
+ * `problemas`. Aqui vale o mesmo argumento do aprendizado — *"seta acesa que
+ * devolve recusa em vermelho: chato, nunca inseguro"*.
+ */
+/**
+ * O PISO DE GRAÇA: até onde o jogo deu a habilidade sem cobrar ponto.
+ *
+ * Quem decide é o servidor (`pisosDeGraca`, que lê a árvore e o catálogo de
+ * missões); aqui ele só é lido. **O `?? 0` não é defensivo à toa**: um cliente
+ * novo pode falar com um servidor que ainda não manda o campo, e nesse caso o
+ * certo é oferecer o botão e deixar o servidor recusar — o contrário esconderia
+ * o caminho de volta de todas as habilidades.
+ */
+function pisoDeGracaDe(skill) {
+	return typeof skill.pisoDeGraca === 'number' ? skill.pisoDeGraca : 0;
+}
+
+/** Quantos níveis desta habilidade o jogador PAGOU — os únicos que voltam. */
+function niveisPagosDe(skill) {
+	return Math.max(0, skill.aprendido - pisoDeGracaDe(skill));
+}
+
+function esquecerHtml(skill) {
+	/*
+	 * A condição é "sobrou nível PAGO", e não "não é de quest" (07/09/2026).
+	 *
+	 * A primeira versão escondia o botão em toda `deQuest` — e são 38 delas,
+	 * das quais o jogo só dá UMA de graça: desde R14 as outras 37 são compradas
+	 * na janela como qualquer outra, e escondê-las tirava do jogador o direito
+	 * de desfazer a própria compra. Os Primeiros Socorros continuam sem botão,
+	 * agora pela regra (piso = teto) e não por uma exceção escrita aqui.
+	 */
+	if (!skill || skill.aprendido <= 0 || niveisPagosDe(skill) <= 0) {
+		return '';
+	}
+	return (
+		'<button type="button" class="is-btn-esquecer ri-btn ri-btn--sec" data-esquecer="' +
+		escapeHtml(skill.skillId) +
+		'" data-niveis="1" title="Devolve 1 ponto e baixa um nível">▼ Um nível</button>' +
+		'<button type="button" class="is-btn-desaprender ri-btn ri-btn--sec" data-esquecer="' +
+		escapeHtml(skill.skillId) +
+		'" data-niveis="tudo" title="Devolve todos os pontos desta habilidade">Desaprender</button>'
+	);
+}
+
+/**
+ * A confirmação, INLINE e no mesmo desenho do resto — a caixa de prompt nativa
+ * é de outra pele e abriria por cima desta janela.
+ *
+ * Ela aparece só para o **Desaprender**: o ▼ tira um nível e o jogador o recompra
+ * com um clique, então pedir confirmação a cada seta seria a janela atrapalhando.
+ * Perder uma habilidade inteira não tem esse desfazer barato.
+ */
+function confirmacaoDeEsquecerHtml(skill) {
+	if (!skill || _confirmandoEsquecer !== skill.skillId) {
+		return '';
+	}
+	// Os pontos prometidos são os PAGOS, e não o nível: numa habilidade com piso
+	// (a missão deu o nível 1) prometer `aprendido` seria prometer um ponto a
+	// mais do que o servidor devolve — e a janela mentindo é pior que a janela
+	// calada.
+	const pagos = niveisPagosDe(skill);
+	return (
+		'<div class="is-confirma-esquecer">' +
+		'<span class="is-confirma-esquecer-texto">Desaprender ' +
+		escapeHtml(skill.nome) +
+		' e recuperar ' +
+		pagos +
+		' ponto' +
+		(pagos === 1 ? '' : 's') +
+		'?</span>' +
+		'<button type="button" class="ri-btn" data-esquecer-sim="' +
+		escapeHtml(skill.skillId) +
+		'">Desaprender</button>' +
+		'<button type="button" class="ri-btn ri-btn--sec" data-esquecer-nao="1">Cancelar</button>' +
+		'</div>'
+	);
+}
+
+function onClickEsquecer(e) {
+	e.stopImmediatePropagation();
+	const skillId = e.currentTarget.dataset.esquecer;
+	if (!skillId) {
+		return;
+	}
+	if (e.currentTarget.dataset.niveis === 'tudo') {
+		// Duas etapas: abre a confirmação e redesenha o dossiê com ela dentro.
+		_confirmandoEsquecer = skillId;
+		renderDetail();
+		return;
+	}
+	sendEsquecer(skillId, 1);
 }
 
 /**

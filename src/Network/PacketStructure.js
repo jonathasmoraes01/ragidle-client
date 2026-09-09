@@ -16271,6 +16271,62 @@ PACKET.CZ.RAGIDLE_PRESENCA_ACAO.prototype.build = function () {
 };
 
 // ===========================================================================
+// O CORREIO EM LOTE (07/09/2026) — 0x0fd6 / 0x0fd7
+// ===========================================================================
+// Pedido do dono no alfa: *"adicione uma acao para excluir todas as mensagens,
+// com confirmacao antes da exclusao. Preserve mensagens com recompensas ou
+// anexos ainda nao resgatados e informe claramente quando alguma mensagem nao
+// puder ser apagada."*
+//
+// **Por que um pacote novo, e nao N x `CZ_REQ_DELETE_RODEX`:** a protecao de
+// anexo ja e por mensagem, entao mandar um 0x09f5 por carta funcionaria — e
+// falharia na METADE do pedido. **O cliente nao sabe quais cartas tem anexo**:
+// o bloco de 41 bytes do `ZC_ACK_RODEX_LIST` tem o campo e o servidor manda
+// `classe: 0` fixo, entao a janela so descobre o anexo ao LER a carta. Sem um
+// relatorio do servidor, o "informe claramente" viraria a janela adivinhando
+// por ausencia de ack, a 1,5 s por carta.
+//
+// A VAGA sai do PISO da reserva de D-527, logo acima do voto (0x0fd5), para o
+// bloco RAGIDLE continuar contiguo. A reserva foi movida no MESMO commit nos
+// DOIS repositorios (servidor/protocolo/faixa-ragidle.test.ts tem o portao).
+
+// 0x0fd6 - RAGIDLE: CZ_RAGIDLE_CORREIO_ACAO (client -> server)
+// Variable size: u16 opcode + u16 total length + JSON UTF-8 payload.
+// { acao: 'apagar-todas' }
+//
+// A CONFIRMACAO e da JANELA, e nao deste pacote: o servidor nao tem como saber
+// se houve confirmacao, e um campo `confirmado: true` seria teatro — quem
+// manda o pacote o preenche. O que o servidor garante e a protecao do ANEXO.
+PACKET.CZ.RAGIDLE_CORREIO_ACAO = function PACKET_CZ_RAGIDLE_CORREIO_ACAO() {
+	this.json = '{}';
+};
+PACKET.CZ.RAGIDLE_CORREIO_ACAO.prototype.build = function () {
+	const bytes = TextEncoding.encode(this.json, 'utf-8');
+	const pkt_len = 2 + 2 + bytes.length;
+	const pkt_buf = new BinaryWriter(pkt_len);
+	pkt_buf.writeShort(0x0fd6);
+	pkt_buf.writeUShort(pkt_len);
+	pkt_buf.writeString(this.json);
+	return pkt_buf;
+};
+
+
+// 0x0fd7 - RAGIDLE: ZC_RAGIDLE_CORREIO (server -> client)
+// Variable size: u16 opcode + u16 total length + JSON UTF-8 payload.
+// Contrato v1: { v, acao: 'apagar-todas', apagadas,
+// mantidas: [{ id, titulo, motivo: 'zeny'|'itens'|'ambos' }] }.
+//
+// O MOTIVO vem do servidor e a janela nao o deduz: a regra de "o que segura a
+// exclusao" mora em `servidor/caixa.ts` (`apagar`), e uma segunda leitura aqui
+// envelheceria no dia em que ela mudasse — dizendo "anexo de zeny" para uma
+// carta que ficou por outro motivo.
+PACKET.ZC.RAGIDLE_CORREIO = function PACKET_ZC_RAGIDLE_CORREIO(fp, end) {
+	this.json = fp.readString(end - fp.tell());
+};
+PACKET.ZC.RAGIDLE_CORREIO.size = -1;
+
+
+// ===========================================================================
 // A JANELA DE VOTO (D-1159) — 0x0fd4 / 0x0fd5
 // ===========================================================================
 // DOIS pacotes, e nao quatro. Mesmo padrao do Codex logo acima: **um CZ com
@@ -16332,6 +16388,48 @@ PACKET.ZC.RAGIDLE_VOTO = function PACKET_ZC_RAGIDLE_VOTO(fp, end) {
 	this.json = fp.readString(end - fp.tell());
 };
 PACKET.ZC.RAGIDLE_VOTO.size = -1;
+
+// ===========================================================================
+// A COMPARAÇÃO DE EQUIPAMENTO (08/09/2026, pedido do alfa) — quem calcula é o
+// SERVIDOR, com a mesma régua da janela de status (`derivarStats` sobre a
+// ficha de agora e sobre a ficha hipotética com a troca aplicada). A janela
+// NUNCA recalcula: arma de duas mãos, slot vazio e peça deslocada já vêm
+// resolvidos, e uma segunda conta aqui divergiria — o mesmo argumento do voto.
+//
+// A VAGA pula 0x0fd6/0x0fd7 DE PROPÓSITO: os dois estão em voo na
+// fix/alpha-player-feedback (o correio em lote). Ver a nota em
+// servidor/protocolo/faixa-ragidle.test.ts.
+
+// 0x0fd8 - RAGIDLE: CZ_RAGIDLE_ITEM_ACAO (client -> server)
+// Variable size: u16 opcode + u16 total length + JSON UTF-8 payload.
+// { acao: 'comparar', indice } — o índice do item no inventário, o MESMO que
+// CZ_REQ_WEAR_EQUIP usa.
+PACKET.CZ.RAGIDLE_ITEM_ACAO = function PACKET_CZ_RAGIDLE_ITEM_ACAO() {
+	this.json = '{}';
+};
+PACKET.CZ.RAGIDLE_ITEM_ACAO.prototype.build = function () {
+	const bytes = TextEncoding.encode(this.json, 'utf-8');
+	const pkt_len = 2 + 2 + bytes.length;
+	const pkt_buf = new BinaryWriter(pkt_len);
+	pkt_buf.writeShort(0x0fd8);
+	pkt_buf.writeUShort(pkt_len);
+	pkt_buf.writeString(this.json);
+	return pkt_buf;
+};
+
+// 0x0fd9 - RAGIDLE: ZC_RAGIDLE_ITEM (server -> client)
+// Variable size: u16 opcode + u16 total length + JSON UTF-8 payload.
+// Contrato v1 (08/09/2026): { v, acao: 'comparar', indice,
+// candidato: { itemId, nome }, saem: [{ itemId, nome }],
+// difs: [{ rotulo, antes, depois, delta }], avisos: [string],
+// recusa: string|null }.
+// `difs` só traz linha que MUDA; `saem` nomeia quem o vestir desalojaria (a
+// arma de duas mãos lista o escudo junto); `recusa` não-nula = a troca nem é
+// possível, e o texto diz por quê.
+PACKET.ZC.RAGIDLE_ITEM = function PACKET_ZC_RAGIDLE_ITEM(fp, end) {
+	this.json = fp.readString(end - fp.tell());
+};
+PACKET.ZC.RAGIDLE_ITEM.size = -1;
 // 0x0fde - RAGIDLE: ZC_RAGIDLE_PRESENCA (server -> client)
 // Variable size: u16 opcode + u16 total length + JSON UTF-8 payload.
 // Contrato v1 (D-1162): { v, hoje, periodo, diasDoPeriodo, recolhidos,

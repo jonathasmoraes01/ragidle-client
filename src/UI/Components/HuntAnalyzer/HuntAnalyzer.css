@@ -62,9 +62,52 @@
 .ha-header {
 	display: flex;
 	align-items: center;
-	justify-content: space-between;
+	/* 08/09/2026 (reporte do dono): o titulo estava descentralizado — o
+	   space-between o empurrava para a esquerda. Centrado como toda janela
+	   ri-*: os botoes sao absolutos a direita (.ri-close). */
+	justify-content: center;
+	position: relative;
 	flex: 0 0 auto;
 	cursor: move;
+}
+
+/* 52px, e não 34px (09/09/2026, medido na sonda de tela).
+
+   `.ri-close` do design system é `position:absolute; right:8px` e no dedo cada
+   um destes botões ganha 44px de alvo pelo `::before` de `inset:-12px`
+   (Common.css). A 34px os centros ficam a 26px um do outro: os dois colchões
+   se sobrepõem, e o "Fechar" - que vem depois no DOM - come metade do alvo do
+   "Recolher". Um toque um pouco à direita do "-" fechava a janela.
+
+   52 = 8 (a margem do X) + 20 (a largura dele) + 24 de folga, e põe os centros
+   a 44px: os alvos se encostam no meio do caminho, sem um roubar o outro.
+   Medido em 393x852 com toque, e a mesma conta do "x" da janela. */
+.ha-minimize {
+	right: 52px;
+	font-size: 15px;
+	line-height: 1;
+}
+
+/* ─── Modo enxuto (08/09/2026, ordem do dono: "igual fizemos com a janela
+   Personagem"): fica o cabecalho, o cronometro (.ha-cabine) e os quatro
+   ritmos (.ha-ritmos); abas, metricas, nota e listas somem. A janela deixa
+   de ter altura fixa e abraca o que sobrou. */
+#HuntAnalyzer.is-compact .ha-abas,
+#HuntAnalyzer.is-compact .ha-metricas,
+#HuntAnalyzer.is-compact .ha-nota,
+#HuntAnalyzer.is-compact .ha-bloco {
+	display: none;
+}
+
+:host(.is-compact),
+#HuntAnalyzer.is-compact,
+#HuntAnalyzer.is-compact .ha-window,
+#HuntAnalyzer.is-compact .ha-frame {
+	height: auto;
+}
+
+#HuntAnalyzer.is-compact .ha-corpo {
+	overflow: visible;
 }
 
 /* ─── Abas ────────────────────────────────────────────────────────────── */
@@ -488,4 +531,18 @@
 	font: var(--type-info);
 	color: var(--text-muted);
 	text-align: center;
+}
+
+/* O título não passa por baixo dos DOIS botões do cabeçalho (recolher +
+   fechar), e não quebra linha para caber.
+
+   O teto sozinho já reprovou uma vez: com folga demais o título quebrou em
+   duas linhas e o cabeçalho ficou com o dobro da altura. O `nowrap` é o
+   cinto - teto errado passa a CORTAR, e não a empurrar a janela para baixo. */
+.ha-titulo {
+	flex: 1 1 auto;
+	max-width: calc(100% - 88px);
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
 }
