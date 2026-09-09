@@ -417,6 +417,54 @@
 	color: var(--text-muted);
 }
 
+/* A ESTRELA DE FAVORITO do cartao (09/09/2026).
+
+   Ela mora no canto superior direito do cartao, sobre a moldura, porque o
+   rodape da linha ja carrega badge, medidor, contagem e o "encontrado por" da
+   busca — mais um controle ali competiria com o nome do mapa.
+
+   44px de lado NAO e enfeite: e a regra tatil do dono (08/09/2026), e o
+   cartao e o alvo mais tocado desta janela no celular. No desktop o glifo e
+   menor que a caixa de toque, que e o arranjo certo: area generosa, desenho
+   discreto. */
+#HuntMap .hm-card {
+	position: relative;
+}
+
+#HuntMap .hm-card-fav {
+	appearance: none;
+	position: absolute;
+	top: 0;
+	right: 0;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 44px;
+	height: 44px;
+	padding: 0;
+	border: 0;
+	background: none;
+	color: var(--text-muted);
+	cursor: pointer;
+	opacity: 0.55;
+}
+
+#HuntMap .hm-card-fav svg {
+	width: 18px;
+	height: 18px;
+}
+
+#HuntMap .hm-card-fav:hover {
+	opacity: 1;
+}
+
+/* Marcada: cheia e dourada, e SEMPRE em opacidade plena — a estrela apagada
+   e discreta de proposito, mas a acesa e informacao. */
+#HuntMap .hm-card-fav.is-on {
+	color: var(--gold-700);
+	opacity: 1;
+}
+
 /* "Voltar a cacar": o atalho para o ultimo mapa de caca (09/09/2026).
 
    Ele mora colado no card "Voce esta em" e le como a acao dele — por isso o

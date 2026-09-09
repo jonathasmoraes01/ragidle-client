@@ -16471,6 +16471,35 @@ PACKET.ZC.RAGIDLE_INDICACAO = function PACKET_ZC_RAGIDLE_INDICACAO(fp, end) {
 };
 PACKET.ZC.RAGIDLE_INDICACAO.size = -1;
 
+// 0x0fda - RAGIDLE: CZ_RAGIDLE_CACA_ACAO (client -> server)
+// Variable size: u16 opcode + u16 total length + JSON UTF-8 {acao:'pedir'|
+// 'alternar-favorito', mapa?}.
+// 09/09/2026: os MAPAS FAVORITOS do Atlas. Um opcode por JANELA, verbo no
+// JSON — e `alternar` e um interruptor so, para o cliente e o servidor nunca
+// discordarem sobre qual verbo mandar.
+PACKET.CZ.RAGIDLE_CACA_ACAO = function PACKET_CZ_RAGIDLE_CACA_ACAO() {
+	this.json = '{}';
+};
+PACKET.CZ.RAGIDLE_CACA_ACAO.prototype.build = function () {
+	const bytes = TextEncoding.encode(this.json, 'utf-8');
+	const pkt_len = 2 + 2 + bytes.length;
+	const pkt_buf = new BinaryWriter(pkt_len);
+	pkt_buf.writeShort(0x0fda);
+	pkt_buf.writeUShort(pkt_len);
+	pkt_buf.writeString(this.json);
+	return pkt_buf;
+};
+
+// 0x0fdb - RAGIDLE: ZC_RAGIDLE_FAVORITOS (server -> client)
+// Variable size: u16 opcode + u16 total length + JSON UTF-8 payload.
+// Contrato v1 (09/09/2026): { v, favoritos: string[], recusa?: string }.
+// So a LISTA desce, e nao o catalogo: ele tem 60 kB e e paginado, e reenvia-lo
+// a cada clique numa estrela seria pagar o Atlas inteiro por um bit.
+PACKET.ZC.RAGIDLE_FAVORITOS = function PACKET_ZC_RAGIDLE_FAVORITOS(fp, end) {
+	this.json = fp.readString(end - fp.tell());
+};
+PACKET.ZC.RAGIDLE_FAVORITOS.size = -1;
+
 // 0x0fec - RAGIDLE: CZ_RAGIDLE_PEDIR_MISSOES (client -> server)
 // Fixed 2 bytes: opcode only. Sent when the MissoesIdle window is opened.
 // Same shape as CZ_RAGIDLE_PEDIR_CONFIG above.

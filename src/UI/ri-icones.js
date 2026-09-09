@@ -481,6 +481,12 @@ const RiIcones = {
 	// vite/converter-ui-icons.mjs — recorte na caixa alfa, lado maior 128px.
 	// Reserva Lucide "Crown" se o WebP faltar: 25 dos 193 mapas têm MVP, e um
 	// selo vazio nesses 25 seria pior que o glífo de traço.
+	// ── Favoritos do Atlas (09/09/2026). Lucide "star": a MESMA silhueta nas
+	// duas, e o que muda e so o preenchimento. Duas silhuetas diferentes
+	// fariam a estrela "pular" ao acender, e o olho leria como outro botao.
+	estrela: svg('<path d="m12 3 2.7 5.5 6.1.9-4.4 4.3 1 6-5.4-2.8-5.4 2.8 1-6L3.2 9.4l6.1-.9z"/>'),
+	estrelaCheia: svg('<path fill="currentColor" d="m12 3 2.7 5.5 6.1.9-4.4 4.3 1 6-5.4-2.8-5.4 2.8 1-6L3.2 9.4l6.1-.9z"/>'),
+
 	mvp: arteUi('mvp', svg('<path d="M2 6l4 10h12l4-10-6 5-4-7-4 7z"/><path d="M5 20h14"/>')),
 
 	// ── Árvore de habilidades (D-902, 01/09/2026): as setas da plaqueta

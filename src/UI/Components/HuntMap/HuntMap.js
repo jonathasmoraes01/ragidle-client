@@ -217,6 +217,32 @@ HuntMap.searchTerm = '';
 HuntMap.filterIdealOnly = false;
 
 /**
+ * @var {boolean} o terceiro botao do segmentado: "Favoritos" (09/09/2026).
+ *
+ * Ele e EXCLUSIVO com o "Para mim": os dois sao o mesmo controle, e ligar um
+ * desliga o outro. Dois booleanos em vez de um modo de tres valores e
+ * deliberado — `filterIdealOnly` ja e lido em varios pontos e persistido nas
+ * preferencias, e troca-lo por um enum seria refatorar o que funciona para
+ * caber num campo novo.
+ *
+ * NAO e persistido: "Para mim" e preferencia estavel (o dono pediu que ela
+ * sobrevivesse ao F5), e este e um recorte momentaneo — quem abre a janela
+ * quer ver o Atlas, e nao a lista curta de ontem.
+ */
+HuntMap.filterFavoritos = false;
+
+/**
+ * @var {string[]} os mapas favoritos, na ordem em que foram marcados.
+ *
+ * **A fonte e o SERVIDOR**, e o cliente nunca calcula o proximo estado: ela
+ * chega no cabecalho do catalogo e e substituida INTEIRA pela resposta de
+ * cada clique na estrela (`ZC_RAGIDLE_FAVORITOS`). Calcular localmente seria
+ * a segunda rota que este projeto ja pagou treze vezes — e ela erraria no
+ * caso que importa: o teto de 30, onde o clique e RECUSADO.
+ */
+HuntMap.favoritos = [];
+
+/**
  * @var {string} left-list sort key: 'nivel' | 'nivel-recomendado' | 'nome'
  */
 HuntMap.sortKey = 'nivel';
@@ -265,6 +291,10 @@ HuntMap.limparEstadoDoPersonagem = function limparEstadoDoPersonagem() {
 	HuntMap.fichas = {};
 	HuntMap.selectedMapa = null;
 	HuntMap.selectedMobId = null;
+	// Os favoritos sao do PERSONAGEM: deixa-los atravessar mostraria a lista
+	// de A na janela de B — o mesmo defeito que o `catalog` acima resolve.
+	HuntMap.favoritos = [];
+	HuntMap.filterFavoritos = false;
 	_pendingAutoTravel = false;
 	/*
 	 * ZERAR O DADO NAO BASTA: `GUIComponent.remove()` so DESANEXA o host,
@@ -469,6 +499,7 @@ HuntMap.toggle = function toggle() {
 		definirPasso('regioes');
 		HuntMap.focus();
 		requestCatalog();
+		pedirFavoritos();
 	}
 };
 
@@ -504,9 +535,22 @@ function onClickSearchClear(e) {
 	campo.focus();
 }
 
+/** Qual dos tres botoes do segmentado esta ligado agora. */
+function modoAtual() {
+	return HuntMap.filterFavoritos ? 'favoritos' : HuntMap.filterIdealOnly ? 'ideais' : 'todos';
+}
+
 function onClickModo(e) {
 	e.stopImmediatePropagation();
-	HuntMap.filterIdealOnly = e.currentTarget.dataset.modo === 'ideais';
+	const modo = e.currentTarget.dataset.modo;
+	HuntMap.filterIdealOnly = modo === 'ideais';
+	HuntMap.filterFavoritos = modo === 'favoritos';
+	/*
+	 * SO "Para mim" e persistido, e nao o modo inteiro. O dono pediu que ele
+	 * sobrevivesse ao F5 (31/08/2026) porque quem caca no que serve ao proprio
+	 * nivel o religava toda sessao; "Favoritos" e um recorte momentaneo, e
+	 * abrir a janela em cima da lista curta de ontem esconderia o Atlas.
+	 */
 	_preferences.soIdeais = HuntMap.filterIdealOnly;
 	_preferences.save();
 	renderModo();
@@ -517,7 +561,7 @@ function renderModo() {
 	_root()
 		.querySelectorAll('.hm-modo .hm-seg-btn')
 		.forEach(b => {
-			const ativo = (b.dataset.modo === 'ideais') === HuntMap.filterIdealOnly;
+			const ativo = b.dataset.modo === modoAtual();
 			b.classList.toggle('is-selected', ativo);
 			b.setAttribute('aria-selected', ativo ? 'true' : 'false');
 		});
@@ -532,6 +576,20 @@ function onChangeSort(e) {
  * Ask the server for the hunting-map catalog.
  * CZ_RAGIDLE_PEDIR_CATALOGO — opcode 0x0ff0, fixed 2 bytes (opcode only).
  */
+/**
+ * Pede so a lista de favoritos (`CZ_RAGIDLE_CACA_ACAO {acao:"pedir"}`).
+ *
+ * Ela tambem chega no cabecalho do catalogo, entao este pedido parece
+ * redundante — e nao e: o catalogo tem 60 kB e vem PAGINADO, e a lista chega
+ * na primeira pagina de um envio que pode levar varias. Pedir a lista sozinha
+ * e alguns bytes, e ela pinta as estrelas na hora em que a janela abre.
+ */
+function pedirFavoritos() {
+	const pkt = new PACKET.CZ.RAGIDLE_CACA_ACAO();
+	pkt.json = JSON.stringify({ acao: 'pedir' });
+	Network.sendPacket(pkt);
+}
+
 function requestCatalog() {
 	setStatus(HuntMap.catalog ? 'Atualizando catálogo...' : 'Carregando mapas de caça...');
 	Network.sendPacket(new PACKET.CZ.RAGIDLE_PEDIR_CATALOGO());
@@ -700,6 +758,10 @@ function onCatalogReceived(pkt) {
 	}
 
 	HuntMap.catalog = data;
+	// Os FAVORITOS chegam no cabecalho do catalogo, ja limpos pelo servidor
+	// (mapa podado nao vira estrela fantasma). `|| []` cobre o servidor
+	// antigo, que nao manda o campo.
+	HuntMap.favoritos = data.favoritos || [];
 
 	// RAGIDLE (D-1133): o indice passou a mandar os drops como itemId — com 126
 	// mapas o catalogo com os NOMES chegou a 68 KB e o pacote u16 para em 65.535.
@@ -935,6 +997,9 @@ function renderList() {
 		if (HuntMap.filterIdealOnly && encaixeDeNivel(catalog.nivel, mapa).cls !== 'ideal') {
 			return false;
 		}
+		if (HuntMap.filterFavoritos && !HuntMap.favoritos.includes(mapa.mapa)) {
+			return false;
+		}
 		motivos.set(mapa.mapa, motivo);
 		return true;
 	});
@@ -952,9 +1017,11 @@ function renderList() {
 
 	if (!mapas.length) {
 		listEl.innerHTML = `<div class="hm-list-empty">${
-			HuntMap.filterIdealOnly && !term
-				? 'Nenhum mapa ideal para o seu nível nesta região. Veja em "Todos".'
-				: 'Nenhum mapa encontrado.'
+			HuntMap.filterFavoritos && !term
+				? 'Você ainda não marcou nenhum mapa. Toque na estrela de um cartão para marcar.'
+				: HuntMap.filterIdealOnly && !term
+					? 'Nenhum mapa ideal para o seu nível nesta região. Veja em "Todos".'
+					: 'Nenhum mapa encontrado.'
 		}</div>`;
 		return;
 	}
@@ -964,6 +1031,7 @@ function renderList() {
 	// O botão de viajar da linha: same travel handler as the dossier's
 	// footer button (onClickTravel) — just a second trigger, no new logic.
 	listEl.querySelectorAll('.hm-card-go').forEach(btn => btn.addEventListener('click', onClickTravel));
+	listEl.querySelectorAll('.hm-card-fav').forEach(btn => btn.addEventListener('click', onClickFavorito));
 }
 
 /**
@@ -997,6 +1065,26 @@ function renderThumb(mapa) {
  * O `mvp` chega no ÍNDICE do catálogo (servidor/mapa/catalogo.ts, `paraOIndice`),
  * não só na ficha — então a lista sabe disso sem pedir nada ao servidor.
  */
+/**
+ * A ESTRELA DE FAVORITO no cartao (09/09/2026).
+ *
+ * Ela fica na LINHA e nao so no dossie porque marcar e um gesto de varredura:
+ * o jogador passa a lista, reconhece os cinco mapas dele e marca. Obriga-lo a
+ * abrir o dossie de cada um transformaria cinco toques em quinze.
+ *
+ * E um `<button>` de verdade, com `aria-pressed`, e nao um `<span>` clicavel —
+ * ele muda estado, e leitor de tela e teclado precisam saber disso.
+ *
+ * O `stopPropagation` do clique mora no handler: o cartao inteiro tambem e
+ * clicavel (seleciona o mapa), e sem isso marcar a estrela selecionaria o mapa
+ * junto.
+ */
+function renderEstrela(mapa) {
+	const marcado = HuntMap.favoritos.includes(mapa.mapa);
+	const titulo = marcado ? 'Tirar dos favoritos' : 'Marcar como favorito';
+	return `<button type="button" class="hm-card-fav${marcado ? ' is-on' : ''}" data-mapa="${escapeHtml(mapa.mapa)}" title="${escapeHtml(titulo)}" aria-label="${escapeHtml(titulo)}" aria-pressed="${marcado ? 'true' : 'false'}">${marcado ? RiIcones.estrelaCheia : RiIcones.estrela}</button>`;
+}
+
 function renderSeloMvp(mapa) {
 	if (!mapa.mvp) {
 		return '';
@@ -1047,6 +1135,7 @@ function renderCard(mapa, motivo) {
 	return `
 		<div class="hm-card fit-${encaixe.cls}${isCurrent ? ' is-current' : ''}${isSelected ? ' is-selected' : ''}" data-mapa="${escapeHtml(mapa.mapa)}" role="button" tabindex="0" aria-pressed="${isSelected ? 'true' : 'false'}">
 			<div class="hm-card-thumb">${renderThumb(mapa)}${renderSeloMvp(mapa)}</div>
+	${renderEstrela(mapa)}
 			<div class="hm-card-body">
 				<div class="hm-card-top">
 					<span class="hm-card-name">${escapeHtml(mapa.rotulo)}</span>
@@ -1490,6 +1579,50 @@ function sendTravel(mapName) {
 	closeWindow();
 }
 
+/**
+ * O clique na estrela: pede ao servidor e ESPERA a lista de volta.
+ *
+ * Nada e alterado localmente antes da resposta. Pintar otimista pareceria mais
+ * rapido e mentiria no unico caso que importa — o teto de 30, onde o servidor
+ * RECUSA: a estrela acenderia e apagaria sozinha um instante depois, sem o
+ * jogador saber por que.
+ */
+function onClickFavorito(e) {
+	e.stopImmediatePropagation();
+	const mapa = e.currentTarget.dataset.mapa;
+	if (!mapa) {
+		return;
+	}
+	const pkt = new PACKET.CZ.RAGIDLE_CACA_ACAO();
+	pkt.json = JSON.stringify({ acao: 'alternar-favorito', mapa });
+	Network.sendPacket(pkt);
+}
+
+/**
+ * A lista nova chegou (`ZC_RAGIDLE_FAVORITOS`): substitui INTEIRA e redesenha.
+ *
+ * `recusa` so existe hoje para o teto de 30 e para mapa fora do catalogo. Ela
+ * vai para a barra de estado da janela em vez de um alerta — o jogador esta no
+ * meio de uma varredura, e uma caixa modal a interromperia por um limite que
+ * ele resolve tirando outra estrela.
+ */
+function onFavoritosRecebidos(pkt) {
+	let dados = null;
+	try {
+		dados = JSON.parse(pkt.json);
+	} catch (err) {
+		return;
+	}
+	if (!dados || dados.v !== 1 || !Array.isArray(dados.favoritos)) {
+		return;
+	}
+	HuntMap.favoritos = dados.favoritos;
+	if (dados.recusa) {
+		setStatus(dados.recusa);
+	}
+	renderList();
+}
+
 function onClickTravel(e) {
 	e.stopImmediatePropagation();
 	if (e.currentTarget.disabled) {
@@ -1522,6 +1655,7 @@ HuntMap.travelToCity = function travelToCity() {
 };
 
 Network.hookPacket(PACKET.ZC.RAGIDLE_CATALOGO, onCatalogReceived);
+Network.hookPacket(PACKET.ZC.RAGIDLE_FAVORITOS, onFavoritosRecebidos);
 Network.hookPacket(PACKET.ZC.RAGIDLE_MONSTROS, onMonstrosReceived);
 
 /**
