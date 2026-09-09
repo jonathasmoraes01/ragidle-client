@@ -157,6 +157,9 @@ import cssText from './MochilaIdle.css?raw';
 import { fecharEEsquecer } from '../limpezaDeJanelaIdle.js';
 import { abaLembrada, lembrarAba } from '../memoriaDeAba.js';
 import { pegar } from 'UI/toqueParaAtalho.js';
+import Storage from 'UI/Components/Storage/Storage.js';
+import InputBox from 'UI/Components/InputBox/InputBox.js';
+import { ehArrastoDoArmazem, quantidadeDaRetirada } from 'UI/Components/Storage/retiradaDoArmazem.js';
 
 /**
  * Mantido em sincronia com ":host"/".mo-window"/".mo-frame" em
@@ -1426,7 +1429,7 @@ function onSlotDragEnd() {
 }
 
 function onGradeDragOver(e) {
-	if (_dragUnequipIndex == null) {
+	if (_dragUnequipIndex == null && !ehArrastoVindoDoArmazem()) {
 		return;
 	}
 	e.preventDefault();
@@ -1434,9 +1437,30 @@ function onGradeDragOver(e) {
 }
 
 function onGradeDrop(e) {
+	/*
+	 * ── Armazem -> grade (retirar), D-991 ─────────────────────────────────
+	 * Esta grade E o inventario do jogo, mas a janela NATIVA de inventario --
+	 * a unica que o armazem sabia usar como alvo de drop
+	 * (InventoryCommon.js:1125) -- fica em `display:none` permanente por
+	 * `hideNativeHosts()` aqui deste arquivo. Sem este ramo, arrastar do
+	 * armazem para a mochila nao tinha alvo nenhum: o item voltava e o
+	 * jogador nao conseguia tirar nada.
+	 *
+	 * O payload e o contrato global `_OBJ_DRAG_` que StorageCommon.js ja
+	 * escreve no `dragstart` dele (`{type:'item', from:'Storage', data:item}`)
+	 * -- o MESMO que a janela nativa lia. Nada de novo no fio.
+	 */
 	if (_dragUnequipIndex == null) {
+		const doArmazem = itemDoArrastoDoArmazem(e);
+		if (!doArmazem) {
+			return;
+		}
+		e.preventDefault();
+		e.stopImmediatePropagation();
+		retirarDoArmazem(doArmazem);
 		return;
 	}
+
 	e.preventDefault();
 	e.stopImmediatePropagation();
 	const index = _dragUnequipIndex;
@@ -1444,6 +1468,52 @@ function onGradeDrop(e) {
 
 	const tile = _root().querySelector(`.mo-slot[data-index="${index}"]`);
 	tentarTirar(index, tile);
+}
+
+/**
+ * O arrasto em curso vem do armazem? Lido do `_OBJ_DRAG_` global porque no
+ * `dragover` o `dataTransfer` ainda nao entrega o texto (so no `drop`), e sem
+ * o `preventDefault` do dragover o navegador nem dispara o `drop`.
+ */
+function ehArrastoVindoDoArmazem() {
+	return ehArrastoDoArmazem(window._OBJ_DRAG_);
+}
+
+/** O item do armazem que caiu na grade, ou null se o drop foi de outra coisa. */
+function itemDoArrastoDoArmazem(e) {
+	let data;
+	try {
+		data = JSON.parse(e.dataTransfer.getData('Text'));
+	} catch (_e) {
+		return null;
+	}
+	if (!ehArrastoDoArmazem(data)) {
+		return null;
+	}
+	return data.data;
+}
+
+/**
+ * Pede a retirada. Pilha de mais de um pergunta quanto, pelo MESMO InputBox
+ * que a janela nativa usava para este gesto (InventoryCommon.js:1128-1140).
+ */
+function retirarDoArmazem(item) {
+	const total = item.count || 1;
+
+	if (total > 1) {
+		InputBox.append();
+		InputBox.setType('number', false, total);
+		InputBox.onSubmitRequest = function OnSubmitRequest(count) {
+			InputBox.remove();
+			const quantos = quantidadeDaRetirada(count, total);
+			if (quantos !== null) {
+				Storage.reqRemoveItem(item.index, quantos);
+			}
+		};
+		return;
+	}
+
+	Storage.reqRemoveItem(item.index, 1);
 }
 
 function limparRealceSlots() {
