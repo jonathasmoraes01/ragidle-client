@@ -628,24 +628,40 @@
 	height: 11px;
 }
 
-/* A seta que PODE ser usada carrega a tinta de "ativa". */
-#IdleSkills .is-seta:not(:disabled) {
+/*
+ * A seta que PODE ser usada carrega a tinta de "ativa".
+ *
+ * `.is-seta--travada` (D-1210) desenha exatamente como `:disabled` e continua
+ * CLICAVEL, para o toque poder perguntar "por que nao?" e receber o motivo em
+ * `showProblemas`. `title=` nao existe no celular, e era so nele que o motivo
+ * viajava.
+ */
+#IdleSkills .is-seta:not(:disabled):not(.is-seta--travada) {
 	background: var(--badge-ativa-bg);
 	color: var(--badge-ativa-ink);
 }
 
-#IdleSkills .is-seta:hover:not(:disabled) {
+#IdleSkills .is-seta:hover:not(:disabled):not(.is-seta--travada) {
 	background: var(--tab-active-fill);
 	color: var(--text-on-accent);
 }
 
-#IdleSkills .is-seta:active:not(:disabled) {
+#IdleSkills .is-seta:active:not(:disabled):not(.is-seta--travada) {
 	transform: var(--press-shift);
 }
 
-#IdleSkills .is-seta:disabled {
+#IdleSkills .is-seta:disabled,
+#IdleSkills .is-seta--travada {
 	opacity: 0.35;
+}
+
+#IdleSkills .is-seta:disabled {
 	cursor: default;
+}
+
+/* Travada, mas viva: o cursor de ajuda avisa que ela responde. */
+#IdleSkills .is-seta--travada {
+	cursor: help;
 }
 
 #IdleSkills .is-no-nivel {

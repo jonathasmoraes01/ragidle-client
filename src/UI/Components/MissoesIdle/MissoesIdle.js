@@ -40,6 +40,7 @@ import htmlText from './MissoesIdle.html?raw';
 import cssText from './MissoesIdle.css?raw';
 import { fecharEEsquecer } from '../limpezaDeJanelaIdle.js';
 import { abaLembrada, lembrarAba } from '../memoriaDeAba.js';
+import { anotarAvisoDoCodex, limparAvisoDoCodex } from '../avisoDoCodex.js'; // D-1217
 
 /** Manter em sincronia com o ":host"/".mi-window" do CSS (mesmo papel do
  * WINDOW_WIDTH/HEIGHT de IdleConfig.js:47-48). */
@@ -122,6 +123,9 @@ const BADGES = {
 MissoesIdle.limparEstadoDoPersonagem = function limparEstadoDoPersonagem() {
 	MissoesIdle.missoes = [];
 	MissoesIdle.execucao = null;
+	// O Codex é DO PERSONAGEM: a bolinha do anterior falaria de um progresso
+	// que este não tem. Ela volta no primeiro pacote da sessão nova (D-1217).
+	limparAvisoDoCodex();
 	/*
 	 * A ABA VOLTA PARA A LEMBRADA, e nao para 'principais' (31/08/2026). Aba
 	 * nao e dado de personagem: e a escolha da PESSOA, e vale para todos os
@@ -386,6 +390,16 @@ function onMissoesRecebidas(pkt) {
 	}
 	MissoesIdle.missoes = Array.isArray(dados.missoes) ? dados.missoes : [];
 	MissoesIdle.execucao = dados.execucao && typeof dados.execucao === 'object' ? dados.execucao : null;
+	/*
+	 * A BOLINHA DO CODEX PEGA CARONA NESTE PACOTE (D-1217).
+	 *
+	 * Ela não é assunto desta janela — e é por isso que o valor vai para um
+	 * módulo de um fato só (`avisoDoCodex.js`) em vez de virar um campo aqui.
+	 * O carona existe porque este é o ÚNICO pacote empurrado a cada mudança e
+	 * forçado na entrada: o `ZC_RAGIDLE_CODEX` só desce quando a janela do
+	 * Codex abre, e a bolinha precisa aparecer antes disso.
+	 */
+	anotarAvisoDoCodex(dados.codexComNovidade === true);
 	render();
 }
 

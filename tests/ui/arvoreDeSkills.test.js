@@ -16,7 +16,7 @@
  *    mesmo motivo em ordem diferente dizem frases diferentes para o mesmo
  *    clique.
  *
- * Os dublês abaixo são payloads do contrato v2, escritos à mão. É o certo aqui:
+ * Os dublês abaixo são payloads do contrato v3, escritos à mão. É o certo aqui:
  * a pergunta é sobre a GEOMETRIA e sobre a ORDEM DAS RECUSAS, e as duas se
  * respondem melhor com uma árvore que cabe na cabeça do que com a do Cavaleiro.
  * Quem cobre o dado real é `grau-da-habilidade.test.ts`, no repo do servidor.
@@ -34,7 +34,7 @@ import {
 	pontosNoRascunho
 } from 'UI/Components/IdleSkills/arvoreDeSkills.js';
 
-/** Uma habilidade do contrato v2, com os campos que a árvore lê. */
+/** Uma habilidade do contrato v3, com os campos que a árvore lê. */
 function skill(skillId, extra) {
 	return Object.assign(
 		{
@@ -414,5 +414,70 @@ describe('as contas do rascunho', () => {
 	it('pontosNoRascunho soma tudo o que está comprometido', () => {
 		expect(pontosNoRascunho({ A: 3, B: 2 })).toBe(5);
 		expect(pontosNoRascunho({})).toBe(0);
+	});
+});
+
+/*
+ * O PERDAO DE PRE-REQUISITO (D-1210, 08/09/2026).
+ *
+ * O relato do alfa foi "Contra-Ataque nao permite aumentar o nivel", e o
+ * defeito de verdade estava um no acima: `KN_BOWLINGBASH` (e `CR_DEVOTION`)
+ * exigem uma habilidade que a tranca do motor nunca deixa comprar, e o
+ * servidor JA perdoava esse requisito desde D-442 — so o cliente nao sabia.
+ *
+ * Os dois casos abaixo sao as duas metades da regra, e o segundo e o que
+ * impede o conserto de virar "o cliente aprova tudo": perdao e por REQUISITO,
+ * e o requisito comum ao lado dele continua barrando.
+ */
+describe('o perdão de pré-requisito (D-1210)', () => {
+	it('requisito `perdoado` não barra a seta — o caso KN_BOWLINGBASH', () => {
+		const skills = [
+			skill('KN_AUTOCOUNTER', { nome: 'Contra-Ataque', aceitaPeloMotor: false, portada: false }),
+			skill('KN_BOWLINGBASH', {
+				nome: 'Golpe de Boliche',
+				preRequisitos: [{ skillId: 'KN_AUTOCOUNTER', nivel: 5, perdoado: true }]
+			})
+		];
+		const veredito = avaliarSubir(skills[1], contexto(skills));
+		expect(veredito.ok).toBe(true);
+		expect(veredito.motivo).toBe(null);
+	});
+
+	it('sem o perdão o mesmo requisito continua barrando — o mundo de antes', () => {
+		const skills = [
+			skill('KN_AUTOCOUNTER', { nome: 'Contra-Ataque', aceitaPeloMotor: false }),
+			skill('KN_BOWLINGBASH', {
+				nome: 'Golpe de Boliche',
+				preRequisitos: [{ skillId: 'KN_AUTOCOUNTER', nivel: 5, perdoado: false }]
+			})
+		];
+		const veredito = avaliarSubir(skills[1], contexto(skills));
+		expect(veredito.ok).toBe(false);
+		expect(veredito.motivo).toContain('Contra-Ataque');
+	});
+
+	it('o perdão é POR REQUISITO: o irmão não perdoado continua barrando', () => {
+		const skills = [
+			skill('RECUSADA', { aceitaPeloMotor: false }),
+			skill('COMUM'),
+			skill('FILHA', {
+				preRequisitos: [
+					{ skillId: 'RECUSADA', nivel: 5, perdoado: true },
+					{ skillId: 'COMUM', nivel: 3, perdoado: false }
+				]
+			})
+		];
+		const veredito = avaliarSubir(skills[2], contexto(skills));
+		expect(veredito.ok).toBe(false);
+		expect(veredito.motivo).toContain('COMUM');
+	});
+
+	it('a tranca do motor continua sendo a última da fila, e ela não é perdoável', () => {
+		// O proprio Contra-Ataque: requisitos em dia, ponto na mao, e mesmo
+		// assim recusado — e a recusa e a do MOTOR, e nao a de requisito.
+		const skills = [skill('KN_AUTOCOUNTER', { nome: 'Contra-Ataque', aceitaPeloMotor: false })];
+		const veredito = avaliarSubir(skills[0], contexto(skills));
+		expect(veredito.ok).toBe(false);
+		expect(veredito.motivo).toContain('motor de combate');
 	});
 });

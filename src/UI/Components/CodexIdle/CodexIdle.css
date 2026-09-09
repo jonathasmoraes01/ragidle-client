@@ -221,6 +221,116 @@
 	height: 6px;
 }
 
+/* ─── O progresso POR ESPÉCIE (D-1216, 08/09/2026) ──────────────
+   O relato do alfa era sobre a SOMA: "Bichos Barulhentos" pede 50 Muka e 100
+   PecoPeco, e a barra única (`X / 150`) não sabe dizer qual dos dois falta.
+   Estas linhas dizem — e ficam ACIMA da barra, porque quem abriu a entrada
+   incompleta veio atrás de "o que falta", não de "quanto por cento". */
+#CodexIdle .cx-especies {
+	grid-column: 1 / -1;
+	display: flex;
+	flex-direction: column;
+	gap: var(--sp-1, 2px);
+}
+
+#CodexIdle .cx-especie {
+	display: grid;
+	/* Três colunas fixas em vez de `flex`: com duas ou três espécies os
+	   contadores têm de ficar alinhados entre si, senão a linha vira uma
+	   lista de números soltos. */
+	grid-template-columns: 1fr auto auto;
+	align-items: baseline;
+	gap: var(--sp-3);
+	font: var(--type-caption, var(--type-info));
+	color: var(--text-muted);
+}
+
+#CodexIdle .cx-especie-conta {
+	font: var(--type-numeric);
+	font-size: 11px;
+	font-variant-numeric: tabular-nums;
+}
+
+#CodexIdle .cx-especie-falta {
+	min-width: 72px;
+	text-align: right;
+}
+
+/* A espécie que já bateu o alvo dela sai do caminho, do mesmo jeito que a
+   entrada cumprida — e é o contraste com ela que faz a que FALTA saltar. */
+#CodexIdle .cx-especie.is-ok {
+	color: var(--green-600);
+}
+
+/* ─── A novidade e o resgate (D-1217) ──────────────────────────── */
+
+/* A entrada que pede atenção ganha a mesma borda de acento do resto do design
+   system. Ela NÃO pisca: um aviso que se move na lista atrapalha justamente
+   quem está lendo o que falta. */
+#CodexIdle .cx-missao.is-novidade {
+	border-color: var(--gold-500, var(--amber-600));
+	box-shadow: var(--rim-gold, none);
+}
+
+/* Cumprida E nova continua com o destaque: sem esta regra o `.is-cumprida`
+   acima (opacity 0.78) apagaria justamente a linha que o jogador veio ver. */
+#CodexIdle .cx-missao.is-cumprida.is-novidade {
+	opacity: 1;
+}
+
+#CodexIdle .cx-selo-novo {
+	margin-left: var(--sp-2, 4px);
+}
+
+#CodexIdle .cx-resgatar {
+	grid-column: 1 / -1;
+	justify-self: end;
+	/* 44px de alvo tátil — a regra do celular vale mesmo no desktop, e um
+	   botão de recompensa é o último lugar para economizar altura. */
+	min-height: 44px;
+	padding: 0 var(--sp-5);
+}
+
+#CodexIdle .cx-resgatar[disabled] {
+	opacity: 0.45;
+	cursor: progress;
+}
+
+/*
+ * CELULAR EM PÉ: a linha da espécie não cabe em três colunas.
+ *
+ * No dedo a Common.css já força `width:100%` + `height:auto` + rolagem em
+ * `.ri-window` (o bloco `pointer: coarse`), então a janela de 520px vira a
+ * largura da tela — ~393px num celular em pé. Com o nome do monstro, o
+ * contador e o "faltam N" lado a lado nessa largura o nome quebra em duas
+ * linhas e o "faltam" encosta na borda. As três colunas viram duas: nome em
+ * cima, contador e falta embaixo.
+ *
+ * O corte é `599px` porque é o que o projeto já usa para reflow de janela
+ * (`IdleSkills.css`, `HuntMap.css`), e `pointer: coarse` entra junto pelo
+ * critério de D-935: o alvo tátil segue o PONTEIRO, e não o tamanho da tela.
+ */
+@media (max-width: 599px), (pointer: coarse) {
+	#CodexIdle .cx-especie {
+		grid-template-columns: auto 1fr;
+	}
+
+	#CodexIdle .cx-especie-nome {
+		grid-column: 1 / -1;
+	}
+
+	#CodexIdle .cx-especie-falta {
+		min-width: 0;
+	}
+
+	/* O resgate ocupa a largura toda: com a janela estreita, um botão
+	   encostado à direita fica pequeno demais para o dedo. */
+	#CodexIdle .cx-resgatar {
+		justify-self: stretch;
+		width: 100%;
+	}
+}
+
 /* ─── Os eixos ─────────────────────────────────────────────── */
 
 #CodexIdle .cx-eixos {

@@ -250,8 +250,32 @@ function onClickClose(e) {
 	closeWindow();
 }
 
-/** Delegacao: o unico clique que o corpo trata e o "+" de um eixo. */
+/** Delegacao: o "+" de um eixo, e o "Resgatar" de uma entrada (D-1217). */
 function onClickCorpo(e) {
+	/*
+	 * O RESGATE vem PRIMEIRO porque os dois alvos sao botoes dentro do mesmo
+	 * corpo, e um `closest('.cx-mais')` num clique de resgate devolveria
+	 * `null` — o `return` de baixo engoliria o clique em silencio.
+	 */
+	const resgatar = e.target && e.target.closest && e.target.closest('.cx-resgatar');
+	if (resgatar) {
+		e.stopImmediatePropagation();
+		const id = resgatar.dataset.resgatar;
+		if (!id) {
+			return;
+		}
+		/*
+		 * AQUI O BOTAO TRAVA, ao contrario do "+" logo abaixo — e a diferenca
+		 * e a mesma que o comentario dele explica: dois cliques no "+" QUEREM
+		 * dizer dois pontos, e dois cliques em "Resgatar" querem dizer um
+		 * resgate so. O servidor ja recusa o segundo (`ja-paga`), entao isto e
+		 * conforto e nao seguranca: o botao para de responder ate o retrato
+		 * novo chegar e redesenhar a lista sem ele.
+		 */
+		resgatar.disabled = true;
+		enviarAcao({ acao: 'resgatar', id: id });
+		return;
+	}
 	const botao = e.target && e.target.closest && e.target.closest('.cx-mais');
 	if (!botao || botao.disabled) {
 		return;
@@ -318,7 +342,27 @@ function placarHtml(estado) {
 	);
 }
 
-/** A lista de missoes: monstro, progresso e a marca de cumprida. */
+/**
+ * A lista de missoes: monstro, progresso POR ESPECIE, e o que falta.
+ *
+ * ---------------------------------------------------------------------------
+ * POR QUE A LINHA POR ESPECIE ENTROU (D-1216, 08/09/2026)
+ * ---------------------------------------------------------------------------
+ * Relato do alfa: *"a contagem de monstros nas missoes parece incorreta"*,
+ * comparando o Hunt Analyzer com a entrada "Bichos Barulhentos" e concluindo
+ * que seriam *"75 de cada especie para completar os 150"*.
+ *
+ * A regra cadastrada nao e nenhuma das duas: sao **50 Muka E 100 PecoPeco**,
+ * alvos DIFERENTES por especie que somam 150. Esta janela desenhava so a soma,
+ * entao quem matasse 150 PecoPeco e nenhum Muka via `100 / 150` — o contador de
+ * PecoPeco parou no alvo dele — enquanto o Hunt Analyzer, que conta TODA morte,
+ * mostrava 150. Dois numeros verdadeiros sobre coisas diferentes, e nada na
+ * tela dizendo qual era qual.
+ *
+ * A barra somada FICA (ela e o progresso da entrada, e e o que o jogador
+ * reconhece), e embaixo dela vai uma linha por especie com `n / alvo` e o que
+ * falta. `falta` vem do servidor pronto — a janela nao subtrai nada.
+ */
 function missoesHtml(estado) {
 	const missoes = Array.isArray(estado.missoes) ? estado.missoes : [];
 	if (missoes.length === 0) {
@@ -338,12 +382,42 @@ function missoesHtml(estado) {
 				const marca = m.cumprida
 					? '<span class="ri-badge ri-badge--verde">Cumprida</span>'
 					: '';
+				// O SELO DE NOVIDADE (D-1217): a mesma informacao que a bolinha
+				// do menu, dentro da janela — sem ele o jogador abriria o Codex
+				// por causa do ponto vermelho e teria de caçar qual entrada
+				// mudou numa lista de 62.
+				const selo = m.novidade
+					? '<span class="ri-badge ri-badge--ouro cx-selo-novo">Novo</span>'
+					: '';
 				// O NOME é o `titulo` da entrada (D-1110). Ele deixou de ser o
 				// nome de um monstro: uma entrada pode pedir três espécies
 				// ("Família Orc"), e mostrar só a primeira mentiria sobre o que
-				// falta. As espécies vão na linha de baixo, que é onde cabem.
-				const especies = Array.isArray(m.alvos)
-					? m.alvos.map(a => escapeHtml(a.monstro)).join(' · ')
+				// falta. As espécies vão nas linhas de baixo, com o progresso
+				// de cada uma (D-1216).
+				const linhasDeEspecie = Array.isArray(m.alvos)
+					? m.alvos
+							.map(a => {
+								const feitos = Number(a.abates) || 0;
+								const meta = Number(a.alvo) || 0;
+								const falta = Number(a.falta) || 0;
+								return (
+									'<span class="cx-especie' +
+									(a.cumprida ? ' is-ok' : '') +
+									'">' +
+									'<span class="cx-especie-nome">' +
+									escapeHtml(a.monstro) +
+									'</span>' +
+									'<span class="cx-especie-conta">' +
+									escapeHtml(feitos) +
+									' / ' +
+									escapeHtml(meta) +
+									'</span>' +
+									'<span class="cx-especie-falta">' +
+									(a.cumprida ? 'completo' : 'faltam ' + escapeHtml(falta)) +
+									'</span></span>'
+								);
+							})
+							.join('')
 					: '';
 				// O que a entrada paga ALÉM do ponto — vazio nas oito de D-851.
 				const premio = Array.isArray(m.recompensas)
@@ -360,16 +434,33 @@ function missoesHtml(estado) {
 							.filter(Boolean)
 							.join(' · ')
 					: '';
+				/*
+				 * O BOTAO DE RESGATE (D-1217) só existe quando o servidor diz
+				 * `aResgatar`. Ele NÃO é derivado de `cumprida && premio`: o
+				 * servidor é quem sabe o que já foi pago (`pagas`), e uma janela
+				 * que decidisse sozinha mostraria o botão de novo depois de um
+				 * resgate que ela ainda não viu.
+				 */
+				const resgate = m.aResgatar
+					? '<button type="button" class="cx-resgatar ri-btn ri-btn--primario" ' +
+						'data-resgatar="' +
+						escapeHtml(m.id) +
+						'">Resgatar</button>'
+					: '';
 				return (
 					'<div class="cx-missao' +
 					(m.cumprida ? ' is-cumprida' : '') +
+					(m.novidade ? ' is-novidade' : '') +
 					'">' +
 					'<span class="cx-missao-nome">' +
 					escapeHtml(m.titulo || m.monstro || '') +
 					' ' +
 					marca +
+					selo +
 					'</span>' +
-					(especies ? '<span class="cx-missao-especies">' + especies + '</span>' : '') +
+					(linhasDeEspecie
+						? '<div class="cx-especies">' + linhasDeEspecie + '</div>'
+						: '') +
 					(premio ? '<span class="cx-missao-premio">+1 ponto · ' + escapeHtml(premio) + '</span>' : '') +
 					'<span class="cx-missao-progresso">' +
 					escapeHtml(abates) +
@@ -380,6 +471,7 @@ function missoesHtml(estado) {
 					'<div class="fill" style="width:' +
 					pct +
 					'%"></div></div>' +
+					resgate +
 					'</div>'
 				);
 			})

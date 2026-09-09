@@ -190,6 +190,7 @@ import HuntAnalyzer from 'UI/Components/HuntAnalyzer/HuntAnalyzer.js';
 import MissoesIdle from 'UI/Components/MissoesIdle/MissoesIdle.js';
 import PasseIdle from 'UI/Components/PasseIdle/PasseIdle.js';
 import CodexIdle from 'UI/Components/CodexIdle/CodexIdle.js'; // RAGIDLE: Codex (D-851)
+import { temAvisoDoCodex } from 'UI/Components/avisoDoCodex.js'; // D-1217
 import AdminPanel from 'UI/Components/AdminPanel/AdminPanel.js';
 import CashShop from 'UI/Components/CashShop/CashShop.js'; // RAGIDLE: a loja de cash (I5)
 import RiIcones from 'UI/ri-icones.js';
@@ -358,6 +359,7 @@ TopMenuIdle.onAppend = function onAppend() {
 	syncAllActiveStates();
 	syncSkillDot();
 	syncCorreioDot();
+	syncCodexDot();
 	syncToggleDot();
 	startPolling();
 	ligarFechamentoExterno();
@@ -1106,6 +1108,7 @@ function pollEstado() {
 	publicarTopoDoCluster();
 	syncSkillDot();
 	syncCorreioDot();
+	syncCodexDot();
 	syncToggleDot();
 	syncAllActiveStates();
 }
@@ -1203,6 +1206,33 @@ function syncCorreioDot() {
 		} else {
 			btn.title = `Correio — ${quantas} por ler`;
 		}
+	}
+}
+
+/**
+ * Ponto de "ha objetivo do Codex esperando voce" (D-1217, 08/09/2026).
+ *
+ * A fonte e `avisoDoCodex.js`, que guarda o veredito do SERVIDOR
+ * (`temNovidadeNoCodex`) — entrada cumprida com premio nao resgatado, ou
+ * cumprida sem premio e ainda nao consultada. Esta funcao nao recalcula nada:
+ * refazer a regra aqui seria a segunda rota escrita a mao de sempre, e ela
+ * discordaria do servidor no instante seguinte a um resgate.
+ *
+ * Mesma receita ".ri-dot" do Correio e das Skills, de proposito.
+ */
+function syncCodexDot() {
+	const root = _root();
+	const dot = root.querySelector('.tm-item[data-action="codex"] .ri-dot');
+	if (!dot) {
+		return;
+	}
+
+	const tem = temAvisoDoCodex();
+	dot.style.display = tem ? '' : 'none';
+
+	const btn = dot.closest('.tm-item');
+	if (btn) {
+		btn.title = tem ? 'Codex — você tem um objetivo concluído' : 'Codex';
 	}
 }
 
