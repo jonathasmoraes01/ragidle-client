@@ -487,7 +487,20 @@ function onUpdateJoyQuick() {
 }
 
 function onUpdateJoyDeadline() {
-	Controls.joyDeadline = parseInt(this.value, 10);
+	/*
+	 * `parseFloat`, e nao `parseInt` (09/09/2026, relato do alfa).
+	 *
+	 * O campo e `type="range" min="0.0" max="1.0" step="0.1"`, entao TODO
+	 * valor abaixo de 1.0 e fracionario — e `parseInt("0.5")` e ZERO. Quem
+	 * mexia no controle para reduzir o ruido do volante gravava zona morta
+	 * ZERO, e a partir dali qualquer tremor do conversor do dispositivo
+	 * virava movimento. O ajuste que existe para consertar o problema o
+	 * tornava permanente e pior.
+	 *
+	 * O vizinho `onUpdateSense` (logo acima) sempre usou `parseFloat`.
+	 */
+	const lido = parseFloat(this.value);
+	Controls.joyDeadline = Number.isFinite(lido) ? lido : 0.1;
 	Controls.save();
 }
 
