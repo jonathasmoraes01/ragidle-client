@@ -138,6 +138,30 @@
 			function initialize(gitHash) {
 				// Merge Config.js defaults with Config.local.js overrides
 				var baseConfig = deepMerge({}, window.ROConfigBase || {});
+
+				/*
+				 * INDIQUE & GANHE (D-1164): o `?ref=XXXXXX` do link de convite. O PWA
+				 * instalado abre a raiz limpa (`start_url: "./"`) e o service worker pode
+				 * servir a casca do cache — a query so existe no PRIMEIRO carregamento.
+				 * Por isso ela e lida aqui e guardada em localStorage por 30 dias; quem
+				 * le depois (a tela de login, o formulario do site) pega de la. O
+				 * primeiro codigo que chega e o que fica: um segundo link nao rouba a
+				 * indicacao do primeiro.
+				 */
+				try {
+					var refDaUrl = new URLSearchParams(window.location.search).get('ref');
+					if (refDaUrl && /^[A-Za-z0-9]{6}$/.test(refDaUrl) && !window.localStorage.getItem('ri.ref')) {
+						window.localStorage.setItem('ri.ref', refDaUrl.toUpperCase());
+						window.localStorage.setItem('ri.ref.em', String(Date.now()));
+					}
+					var refGuardado = window.localStorage.getItem('ri.ref');
+					var refEm = Number(window.localStorage.getItem('ri.ref.em') || 0);
+					if (refGuardado && Date.now() - refEm < 30 * 24 * 3600 * 1000) {
+						baseConfig.codigoDeIndicacao = refGuardado;
+					}
+				} catch (e) {
+					/* localStorage bloqueado: sem indicacao, e o jogo abre igual */
+				}
 				if (window.ROConfigLocal) {
 					baseConfig = deepMerge(baseConfig, window.ROConfigLocal);
 				}

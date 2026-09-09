@@ -26,6 +26,24 @@ import { ehEventoDaUI } from 'Controls/ehEventoDaUI.js'; // D-932: o toque para 
 /**
  * @var {boolean} is doing a gesture ?
  */
+/**
+ * Quantos pixels de movimento sao necessarios para o gesto DECIDIR o que e.
+ * Abaixo disto e tremor de mao, e alternar entre pinca e giro a cada quadro
+ * daria uma camera epileptica.
+ */
+const C_LIMIAR_DE_GESTO = 8;
+
+/**
+ * Quantos pixels de pinca valem UM passo de zoom da camera.
+ *
+ * `Camera.setZoom(d)` faz `zoomFinal += d * zoomStep` com `zoomStep = 15`,
+ * entao 60px de pinca movem 15 unidades — cerca de um oitavo da faixa util
+ * numa altitude tipica. Foi escolhido para a pinca de uma mao (~150px de
+ * curso) atravessar a faixa sem exigir um segundo gesto, e sem estourar a
+ * faixa inteira num tranco.
+ */
+const C_PIXELS_POR_PASSO_DE_ZOOM = 120;
+
 let _processGesture = false;
 
 /**
@@ -286,25 +304,73 @@ function onTouchMove(event) {
 		return;
 	}
 
-	const scale = touchDistance(touches) - _scale;
-	//var angle = touchAngle(touches) / _angle;
+	/*
+	 * ═══════════════════════════════════════════════════════════════════
+	 * A PINCA VOLTA A SER ZOOM (08/09/2026, pedido do dono)
+	 * ═══════════════════════════════════════════════════════════════════
+	 * *"O gesto de pinca sobre a area de jogo deve controlar o zoom da
+	 * camera, mantendo a HUD no mesmo tamanho."*
+	 *
+	 * O codigo de zoom JA EXISTIA aqui embaixo, e nunca rodava. Tres
+	 * defeitos, e o primeiro engolia os outros dois:
+	 *
+	 *   1. **a ROTACAO vinha antes e dava `return`.** Ela dispara com
+	 *      `x > 10 || y > 10` — o deslocamento medio dos dois dedos. Numa
+	 *      pinca os dedos SEMPRE se deslocam (e o que uma pinca e), entao a
+	 *      condicao casava primeiro e o gesto virava giro de camera. O
+	 *      bloco de zoom era inalcancavel na pratica;
+	 *   2. **`_scale` nunca era atualizado.** O delta era sempre contra a
+	 *      distancia do INICIO do gesto, entao ele crescia sozinho a cada
+	 *      quadro: a mesma pinca aplicaria 10, 20, 30... de zoom. Se o
+	 *      bloco rodasse, ele daria um salto e nao um movimento;
+	 *   3. **escrevia `Camera.zoomFinal` na mao**, com um piso cravado de
+	 *      `2.0` e sem o teto de INTERIOR (`MAX_ZOOM_INDOOR`, que e metade
+	 *      do de fora). Os limites do jogo ficavam de fora do gesto.
+	 *
+	 * ── COMO ELE DECIDE AGORA ───────────────────────────────────────────
+	 * Pinca e giro sao gestos diferentes e a diferenca e MEDIVEL: na pinca
+	 * o que mudou foi a DISTANCIA entre os dedos; no giro, a POSICAO dos
+	 * dois. Comparar as duas grandezas responde qual gesto e — em vez de
+	 * "quem chegou primeiro no `if`", que era o criterio antigo.
+	 *
+	 * O limiar existe para o tremor da mao nao alternar entre os dois a
+	 * cada quadro: enquanto nenhum dos dois passa dele, nada acontece.
+	 * ═══════════════════════════════════════════════════════════════════
+	 */
+	const distanciaAgora = touchDistance(touches);
+	const mudouADistancia = distanciaAgora - _scale;
 	const x = Math.abs(touchTranslationX(_touches, touches));
 	const y = Math.abs(touchTranslationY(_touches, touches));
+	const deslocou = Math.max(x, y);
 
-	if (!Camera.action.active && (x > 10 || y > 10)) {
-		KEYS.SHIFT = y > x;
-		Camera.rotate(true);
+	/* Nem pinca nem giro ainda: mao parada tremendo. */
+	if (Math.abs(mudouADistancia) < C_LIMIAR_DE_GESTO && deslocou < C_LIMIAR_DE_GESTO) {
 		return;
 	}
 
-	// Process zoom
-	if (Math.abs(scale) > 10) {
-		Camera.zoomFinal -= scale * 0.1;
-		Camera.zoomFinal = Math.min(
-			Camera.zoomFinal,
-			Math.abs(Camera.altitudeTo - Camera.altitudeFrom) * Camera.MAX_ZOOM
-		);
-		Camera.zoomFinal = Math.max(Camera.zoomFinal, 2.0);
+	if (Math.abs(mudouADistancia) >= deslocou) {
+		/*
+		 * PINCA. `Camera.setZoom()` e nao `zoomFinal` na mao: e ela quem
+		 * conhece `MIN_ZOOM`, `MAX_ZOOM` e o teto menor de INTERIOR, e quem
+		 * grava a preferencia. Os limites do gesto passam a ser os limites
+		 * da camera, sem um segundo numero para envelhecer.
+		 *
+		 * SINAL: afastar os dedos aproxima a camera. `setZoom` SOMA ao
+		 * `zoomFinal`, e `zoomFinal` menor e camera mais perto — dai o
+		 * menos.
+		 *
+		 * `_scale` e reancorado AQUI: o delta passa a ser o do quadro, e
+		 * nao o do gesto inteiro. Era o defeito 2.
+		 */
+		Camera.setZoom(-mudouADistancia / C_PIXELS_POR_PASSO_DE_ZOOM);
+		_scale = distanciaAgora;
+		_touches = touches;
+		return;
+	}
+
+	if (!Camera.action.active) {
+		KEYS.SHIFT = y > x;
+		Camera.rotate(true);
 	}
 }
 

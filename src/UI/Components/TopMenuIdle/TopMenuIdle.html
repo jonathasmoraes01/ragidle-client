@@ -150,6 +150,72 @@
 			<span class="tm-label">Análise</span>
 		</button>
 
+		<!-- VOTAR (D-1159, 07/09/2026, pedido do dono: "esse botao de votar
+		     deve ficar na barra de cima ao lado do mini mapa com bastante
+		     destaque quando tem voto disponivel").
+
+		     ─── ELE MUDOU DE LUGAR NA TELA EM 08/09/2026, E NAO NO DOM ──────
+		     Pedido do dono, olhando o cluster no jogo: *"mude o icone de Votar
+		     de lugar, coloque ele ao lado do icone Caca, sobrando uma vaga
+		     para icone abaixo"*. Agora, em tela larga, ele desenha na PRIMEIRA
+		     fileira, coluna 5, colado no "Caca" — e a coluna 5 da segunda
+		     fileira fica vazia, que e a vaga que o dono reservou.
+
+		     A mudanca e de GRADE, nao de documento: ele continua sendo o nono
+		     `<button>` daqui, e quem o move e uma regra de uma linha no
+		     TopMenuIdle.css (`.tm-top[data-colunas="5"] .tm-item--voto`). Isso
+		     e deliberado, e custou uma medicao para descobrir: reordenar o DOM
+		     (por o botao entre "Caca" e "Recompensas") tira o "Recompensas" da
+		     coluna do "Personagem" e o poe na do "Mochila" — e a regra de D-944
+		     diz que o rotulo mais longo tem de morar na coluna do segundo mais
+		     longo. Medido: com o DOM reordenado, o `prove:hud-responsiva`
+		     REPROVA em tablet-768x1024 mesmo com quatro colunas
+		     ("BasicInfoIdle x TopMenuIdle.tm-top 13x224px"), porque o cluster
+		     engorda 13px. Com o DOM intacto, a queda para quatro colunas volta
+		     a ser BYTE A BYTE o arranjo que ja passava.
+
+		     ─── POR QUE ELE E O NONO E ULTIMO NO DOM, E POR QUE ISSO NAO
+		     ENGORDA O CLUSTER ──────────────────────────────────────────────
+		     A regra medida em D-944 diz que a grade tem colunas "auto": a
+		     largura de cada coluna e a do ROTULO mais largo dela. Um nono item
+		     com a conta antiga de colunas (metade dos visiveis, arredondada
+		     para cima) daria CINCO colunas, e a quinta nasceria com o
+		     "Recompensas" sozinho — o rotulo mais largo do cluster inteiro
+		     virando a coluna mais larga, ~84px a mais.
+
+		     Com QUATRO colunas (o teto abaixo de 900px de largura, ver
+		     distribuirFileiras() em TopMenuIdle.js) ele cai na TERCEIRA
+		     fileira, na coluna 1, embaixo de "Personagem" e "Recompensas".
+		     "Votar" e mais curto que os dois, entao o `max` da coluna nao muda
+		     e a largura do cluster fica IDENTICA a de antes deste botao. O que
+		     cresce e a altura, para baixo, onde ha espaco — e o rastreador de
+		     missoes ja se ajusta sozinho por `--tm-topo` (D-930).
+
+		     ACIMA de 900px o teto e CINCO, e ai ele sobe para a primeira
+		     fileira (a regra de grade citada acima). A quinta coluna que nasce
+		     e a do "Votar", um dos rotulos mais curtos — nao a do
+		     "Recompensas", que era o risco medido em D-1159. O corte em 900px
+		     tambem foi medido: com cinco colunas em TODA tela o cluster vai de
+		     333px para 403px e o `prove:hud-responsiva` reprova em
+		     tablet-768x1024 ("BasicInfoIdle x TopMenuIdle.tm-top 57x146px").
+
+		     ─── O DESTAQUE ──────────────────────────────────────────────────
+		     ".is-voto-livre" (aro dourado + pulso) entra e sai por JS, lendo
+		     `VotoIdle.temVotoDisponivel()` — que le o campo `liberados` que o
+		     SERVIDOR calculou. O botao e a janela contam a mesma historia
+		     porque leem o mesmo numero; recalcular aqui seria a segunda conta
+		     da mesma regra. -->
+		<button type="button" class="tm-item tm-item--voto" data-action="voto" title="Votar e ganhar Vote Cash">
+			<span class="tm-icon-wrap ri-disc">
+				<!--RI_ICONE:voto-->
+				<!-- Ponto de "ha voto disponivel" — a MESMA receita ".ri-dot" do
+				     Correio e do Skills, para o aviso sobreviver ao cluster
+				     recolhido (ele migra para a alca, ver syncToggleDot()). -->
+				<span class="ri-dot" style="display: none"></span>
+			</span>
+			<span class="tm-label">Votar</span>
+		</button>
+
 		<!-- Alca de recolher o CLUSTER (os 5 acima). Fica FORA do que ela
 		     esconde, de proposito: nunca some, senao o jogador se tranca fora
 		     dos essenciais. Recolhido, e o unico pixel que sobra deste canto.
@@ -271,6 +337,17 @@
 					<span class="ri-dot" style="display: none"></span>
 					<span class="tm-label">Codex</span>
 				</button>
+				<!-- RAGIDLE (D-1162): a presença mensal — a janela que abre sozinha
+				     1x por dia e à meia-noite; aqui fica o caminho manual. -->
+				<button type="button" class="tm-item" data-action="presenca" title="Presença">
+					<span class="tm-icon-wrap ri-disc"><!--RI_ICONE:presenca--></span>
+					<span class="tm-label">Presença</span>
+				</button>
+				<!-- RAGIDLE (D-1164): Indique & Ganhe — o link de convite e os ganhos. -->
+				<button type="button" class="tm-item" data-action="indicacao" title="Indique &amp; Ganhe">
+					<span class="tm-icon-wrap ri-disc"><!--RI_ICONE:indicacao--></span>
+					<span class="tm-label">Indique</span>
+				</button>
 
 				<!-- MISSOES (D-551) -- 06/09/2026: DESCEU do cluster para o leque, em
 				     troca com o Recompensas (pedido do dono). Ele subiu para o
@@ -370,6 +447,26 @@
 			     tela por baixo da segunda coluna. Ele nunca e pacote nem janela
 			     e some sozinho (ver showToast() em TopMenuIdle.js). -->
 			<div class="tm-toast" aria-live="polite"></div>
+
+			<!-- INSTALAR O APP (08/09/2026, pedido do dono).
+
+			     Ele NASCE ESCONDIDO e so aparece quando `decidirOferta()`
+			     (UI/ofertaDeInstalacao.js, D-945) diz que ha o que fazer:
+			     nunca dentro do PWA ja instalado, e nunca como botao morto.
+			     A decisao NAO e reescrita aqui — este arquivo so desenha, do
+			     mesmo jeito que a tela de entrada e a aba de Config ja fazem.
+
+			     Por que uma LINHA larga e nao mais um disco: ela nao e um
+			     destino do jogo, e misturar "instalar o app" entre Mochila e
+			     Skills daria a ela o mesmo peso de uma janela. Ela mora no pe
+			     da folha, larga, com o rotulo escrito por extenso.
+
+			     Ela e do CELULAR: o CSS so a mostra sob `.ri-vertical`. No
+			     desktop a porta continua sendo a aba de Config. -->
+			<button type="button" class="tm-instalar" data-action="instalar" hidden>
+				<span class="tm-instalar-rotulo">Instalar app</span>
+				<span class="tm-instalar-dica"></span>
+			</button>
 		</div>
 
 		<!-- O botao Menu. Disco maior que os do leque (52 contra 42): ele e a

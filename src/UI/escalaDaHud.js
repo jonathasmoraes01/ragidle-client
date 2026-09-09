@@ -119,8 +119,16 @@ export function ehAdaptavel() {
 	return true;
 }
 
-/** O ponteiro deste aparelho é grosso (dedo)? */
-function ehDedo() {
+/**
+ * O ponteiro deste aparelho é grosso (dedo)?
+ *
+ * EXPORTADA em 08/09/2026 porque deixou de ter um consumidor só. O cursor do
+ * mouse desenhado (`UI/CursorManager.js`) pergunta a MESMA coisa que a escala,
+ * e a alternativa era um segundo `matchMedia('(pointer: coarse)')` escrito
+ * noutro arquivo — que é como a cicatriz de `--hud-acima-da-doca` (D-929)
+ * começou: o mesmo critério em dois lugares, e um deles envelhecendo sozinho.
+ */
+export function ehDedo() {
 	if (typeof window === 'undefined' || !window.matchMedia) {
 		return false;
 	}
@@ -201,7 +209,10 @@ export function ligar(doc) {
 		return;
 	}
 	const alvo = doc || document;
-	const responder = () => aplicar(alvo);
+	const responder = () => {
+		aplicar(alvo);
+		publicarAlturaDoTeclado(alvo);
+	};
 	window.addEventListener('resize', responder);
 	window.addEventListener('orientationchange', responder);
 	if (window.visualViewport) {
@@ -211,6 +222,40 @@ export function ligar(doc) {
 	   escala vigente. `_ultima` é zerada para a próxima aplicação valer. */
 	_ultima = null;
 	aplicar(alvo);
+	publicarAlturaDoTeclado(alvo);
+}
+
+/**
+ * QUANTOS PIXELS O TECLADO VIRTUAL COMEU (08/09/2026).
+ *
+ * O teclado do celular nao redimensiona a janela: ele encolhe o
+ * `visualViewport` e deixa o `innerHeight` como estava. A diferenca entre os
+ * dois E a altura do teclado — e sem ela, tudo o que esta ancorado em
+ * `bottom` (o chat, a barra de atalhos) continua desenhado ATRAS dele.
+ *
+ * Publicada como token porque quem precisa dela e CSS, e porque ha mais de um
+ * interessado: repetir a conta em cada componente e como a cicatriz de
+ * `--hud-acima-da-doca` (D-929) comecou.
+ *
+ * Vale ZERO quando nao ha teclado, entao `calc(... + var(--teclado-altura, 0px))`
+ * e inerte no desktop e no celular sem foco em campo.
+ *
+ * LIMITE DECLARADO: isto NAO foi medido em aparelho real — o Chromium do
+ * Playwright nao abre teclado de sistema. O que a emulacao prova e que o token
+ * existe, vale zero sem teclado e nao quebra o arranjo; que ele suba o chat na
+ * altura certa e pergunta para um telefone.
+ */
+function publicarAlturaDoTeclado(doc) {
+	const alvo = doc || document;
+	if (typeof window === 'undefined' || !window.visualViewport) {
+		return;
+	}
+	const comido = Math.max(0, Math.round(window.innerHeight - window.visualViewport.height));
+	/* Ruido de barra de navegador que aparece/some tambem move o
+	   `visualViewport` em algumas dezenas de pixels. O piso evita que isso
+	   passe por teclado e empurre a HUD sem motivo. */
+	const altura = comido > 120 ? comido : 0;
+	alvo.documentElement.style.setProperty('--teclado-altura', `${altura}px`);
 }
 
 /** Reaplica ignorando o cache — para quando um host novo entra no documento. */
@@ -245,6 +290,7 @@ export function emUnidadesDaHud(px) {
 
 export default {
 	ehAdaptavel,
+	ehDedo,
 	MARCA_CLASSICA,
 	escalaAtual,
 	aplicar,

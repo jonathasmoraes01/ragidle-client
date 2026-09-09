@@ -350,10 +350,25 @@ class ScrollBar {
 
 		let poller = null;
 
+		/*
+		 * O RELOGIO SO E REARMADO SE ESTIVER PARADO (07/09/2026, frente de FPS).
+		 *
+		 * Antes, toda chamada limpava e recriava o `setInterval`. E a chamada
+		 * nao vinha de vez em quando: `checkScrollbars` reaplica em todo no ja
+		 * marcado, e ela roda a cada mutacao de classe ou filho no shadow root
+		 * do componente. Medido no jogo: **~74 rearmacoes por segundo**, e
+		 * cada uma ainda chamava `updateThumb()`, que LE layout.
+		 *
+		 * O relogio ja existente faz exatamente o mesmo trabalho a cada 300 ms
+		 * e se limpa sozinho quando o elemento sai do DOM — recria-lo nao
+		 * acrescentava nada. Agora o `restart` atualiza o polegar uma vez (que
+		 * e o util quando o conteudo acabou de mudar) e so arma o relogio se
+		 * nao houver um vivo.
+		 */
 		element._roScrollbarRestart = () => {
 			updateThumb();
-			if (poller) {
-				clearInterval(poller);
+			if (poller !== null) {
+				return;
 			}
 			poller = setInterval(() => {
 				if (!element.isConnected) {

@@ -47,10 +47,23 @@ describe('o arquivo publicado', () => {
 	});
 
 	it('o degrau de cima e o limiar de anuncio de drop raro do JOGO (D-631)', () => {
-		// 10 decimos de milesimo = 0,1%. E o unico degrau que nao e
-		// apresentacao: o servidor para o chat para anunciar um drop assim.
-		expect(publicado.degraus[0]).toBe(10);
-		expect(publicado.degraus).toEqual([10, 100, 1000]);
+		/*
+		 * 5 decimos de milesimo = **0,05%**. E o unico degrau que nao e
+		 * apresentacao: o servidor para o chat para anunciar um drop assim.
+		 *
+		 * ERA 10 (0,1%) ate 07/09/2026, quando o dono cortou o limiar pela
+		 * metade no mesmo pedido em que o anuncio virou GLOBAL, com faixa na
+		 * tela (D-1158, no repo do servidor). O numero mora la
+		 * (`ANUNCIO_DE_DROP_RARO_DO_DONO`, `game/ajustes-do-dono.ts`) e chega
+		 * aqui pelo arquivo publicado — este teste e o portao que avisa quando
+		 * o arquivo em disco fica para tras do jogo.
+		 *
+		 * **E foi ele quem pegou a defasagem**: o `publicar:fichas-de-item`
+		 * roda no repo do servidor, e nada do lado de ca saberia que a escada
+		 * de raridade tinha mudado.
+		 */
+		expect(publicado.degraus[0]).toBe(5);
+		expect(publicado.degraus).toEqual([5, 100, 1000]);
 	});
 
 	it('toda linha tem os quatro campos, e a raridade cabe na escada', () => {

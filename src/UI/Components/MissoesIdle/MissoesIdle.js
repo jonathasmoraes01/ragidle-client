@@ -271,8 +271,9 @@ function render() {
 			e.stopImmediatePropagation();
 			const pkt = new PACKET.CZ.RAGIDLE_MISSAO_ACAO();
 			const acao = btn.dataset.executar;
+			// D-1150: iniciar E abandonar levam o id; pausar/retomar agem na ativa/fila.
 			pkt.json = JSON.stringify(
-				acao === 'iniciar' ? { acao, id: btn.dataset.id } : { acao }
+				acao === 'iniciar' || acao === 'abandonar' ? { acao, id: btn.dataset.id } : { acao }
 			);
 			Network.sendPacket(pkt);
 		});
@@ -287,9 +288,15 @@ function cardDeMissao(m) {
 	let botao = '';
 	if (m.executavel) {
 		if (execucao.ativaId === m.id) {
-			botao = `<button type="button" class="ri-btn ri-btn--sec mi-executar" data-executar="pausar">Pausar</button>`;
+			botao =
+				`<button type="button" class="ri-btn ri-btn--sec mi-executar" data-executar="pausar">Pausar</button>` +
+				`<button type="button" class="ri-btn ri-btn--sec mi-executar" data-executar="abandonar" data-id="${escapeHtml(m.id)}" title="O progresso fica guardado">Abandonar</button>`;
 		} else if (m.naFila) {
-			botao = `<span class="mi-fila-aviso">Na fila…</span>`;
+			// D-1150: a que esta na fila tambem pode ser largada — sem isto uma
+			// missao que nao andasse ficava na fila para sempre.
+			botao =
+				`<span class="mi-fila-aviso">Na fila…</span>` +
+				`<button type="button" class="ri-btn ri-btn--sec mi-executar" data-executar="abandonar" data-id="${escapeHtml(m.id)}" title="O progresso fica guardado">Abandonar</button>`;
 		} else if (podeIniciarMissao(m, execucao)) {
 			/* A REGRA MORA EM `podeIniciarMissao.js` (I16, 31/08/2026).
 			   O teste que estava aqui — `estado === 'disponivel' || (concluida

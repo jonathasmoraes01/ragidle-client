@@ -925,6 +925,19 @@ export function createInventory(config) {
 				Component.onUseCard(item.index);
 				break;
 			case ItemType.DELAYCONSUME:
+				/*
+				 * RAGIDLE (D-1150, 06/09/2026) — a ASA DE MOSCA E DE BORBOLETA sao
+				 * `IT_DELAYCONSUME` (type 11, `item_db_usable.yml`), e o roBrowser
+				 * original deixava este ramo VAZIO: o clique em "Usar" nao mandava
+				 * nada. Foi o "a asa nao funciona" do dono — o servidor teleporta
+				 * (prove:asa, 8 de 8), mas o pacote `CZ_USE_ITEM` nunca saia do
+				 * cliente. O rAthena usa o MESMO pacote para os dois tipos
+				 * (clif_parse_UseItem -> pc_useitem, sem olhar o type); quem decide
+				 * o que o item faz e o servidor (`itemskill` da asa, `sc_start` da
+				 * poção). Consumível que o servidor não implementa volta com ack de
+				 * recusa e não some da mochila (prove:asa, o Óculos).
+				 */
+				Component.onUseItem(item.index);
 				break;
 			case ItemType.WEAPON:
 			case ItemType.ARMOR:

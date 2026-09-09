@@ -1869,6 +1869,37 @@ ui-button {
 		inset: -7px -8px -17px -16px;
 	}
 
+	/*
+	 * 08/09/2026 — OS QUATRO QUE A VARREDURA DO CELULAR AINDA ACHOU.
+	 *
+	 * Medidos por `scripts/diag-mobile-portrait.ts` nas 18 janelas do menu,
+	 * em 393x852: o "+" do Codex (`cx-mais`), as abas de Missoes
+	 * (`mi-tab`), os campos do painel de Admin (`ap-input`) e o "comprar"
+	 * dos cartoes da Loja de Cash (`add-to-cart`).
+	 *
+	 * Os dois primeiros usam o `::before` das linhas acima — expandem a AREA
+	 * sem mexer no desenho, que e o que mantem o leiaute como esta. Os campos
+	 * de texto e o botao de compra crescem de verdade: campo baixo e
+	 * desconfortavel de mirar mesmo quando a area invisivel acerta, porque o
+	 * cursor de texto precisa CAIR dentro dele.
+	 */
+	.cx-mais::before,
+	.mi-tab::before {
+		content: '';
+		position: absolute;
+		inset: -12px;
+	}
+
+	.cx-mais,
+	.mi-tab {
+		position: relative;
+	}
+
+	.ap-input,
+	#CashShop .add-to-cart {
+		min-height: var(--hit-touch, 44px);
+	}
+
 	/* O "+" de distribuir atributo (20x20) e os dois menores da barra de
 	   atalhos (14x14 e 15x15). */
 	.st-stat-up::before,
@@ -2026,8 +2057,19 @@ html.ri-hud-classica :host {
 	/* O trilho da direita: disco de 48 + rotulo, num passo de 68px. */
 	--vr-trilho-passo: 68px;
 	--vr-trilho-largura: 60px;
-	/* O rodape fino (nivel + EXP) e a barra de atalhos acima dele. */
-	--vr-rodape-altura: 22px;
+	/*
+	 * O RODAPE FINO SAIU (08/09/2026, ordem do dono) — ver o comentario em
+	 * `BasicInfoIdle.html`. Ele mostrava nivel + EXP, que a barra do TOPO ja
+	 * mostra, e cobrava 22px de tela.
+	 *
+	 * O TOKEN FICA, valendo ZERO, e isso nao e preguica: ele e lido por
+	 * `--vr-acima-dos-atalhos` (logo abaixo) e pelo `bottom` da barra de
+	 * atalhos e do chat. Apagar a linha faria os tres caírem no `var(..., X)`
+	 * de reserva de cada um — tres numeros para manter em vez de um. Com ele
+	 * em zero, tudo o que se pendurava no rodape desce 22px sozinho, e
+	 * devolver a faixa e trocar este numero de volta.
+	 */
+	--vr-rodape-altura: 0px;
 	--vr-atalhos-altura: 56px;
 	--vr-acima-dos-atalhos: calc(
 		var(--safe-baixo, 0px) + var(--vr-rodape-altura) + var(--vr-atalhos-altura) + 10px
@@ -2160,9 +2202,20 @@ html.ri-vertical #TopMenuIdle {
 
 /* O aviso de item obtido nascia por cima da barra do topo (top: 50 do
    layout de desktop); na vertical ele desce para o vao livre entre o cartao
-   de missoes e o mundo. */
+   de missoes e o mundo.
+
+   O 130px ERA CRAVADO, e ele envelheceu (07/09/2026). Ele foi escolhido com o
+   cartao de missoes mostrando UMA missao; com duas (mais o "Ver todas as
+   missoes") o cartao passa dos 130 e o aviso do drop nasce EM CIMA dele —
+   medido na foto do celular em `prove:anuncio-de-drop`. O cartao cresce com o
+   numero de missoes, entao nenhum numero fixo serve.
+
+   Quem sabe onde o cartao termina e o navegador: `ItemObtain.js` mede
+   `#MissoesTrackerIdle` na hora de aparecer e publica o resultado nesta
+   variavel. O `calc` continua aqui como valor de NASCENCA — se o cartao nao
+   existir (jogador sem missao), a variavel nao e definida e o fallback vale. */
 html.ri-vertical #ItemObtain {
-	top: calc(var(--vr-abaixo-do-topo) + 130px) !important;
+	top: var(--vr-item-obtido-topo, calc(var(--vr-abaixo-do-topo) + 130px)) !important;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════

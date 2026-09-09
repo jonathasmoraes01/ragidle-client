@@ -392,3 +392,94 @@
 	overscroll-behavior: contain;
 	-webkit-overflow-scrolling: touch;
 }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   RECOLHER AS MISSOES NO CELULAR (08/09/2026, pedido do dono)
+   ═══════════════════════════════════════════════════════════════════════
+   *"Adicione um controle claro para recolher e expandir o painel de missoes.
+   Recolhido, ele deve ocupar pouco espaco e manter uma indicacao da missao
+   atual."*
+
+   MEDIDO antes: na HUD vertical NAO HAVIA como recolher. O botao existia
+   (`.mt-recolher`), mas mora no `.mt-header`, e a vertical esconde o header
+   inteiro — o cartao do mockup nao tem um segundo titulo "Missoes". Um
+   `display: none` de aparencia levou junto uma FUNCAO, e ninguem viu porque
+   quem procurou o botao procurou no HTML, onde ele esta.
+
+   O gemeo `.mt-recolher-v` mora na fileira de abas, a unica faixa de
+   controle que a vertical desenha.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* Fora do celular em pe ele nao existe: la o `.mt-header` aparece e o botao
+   de sempre ja resolve. Dois botoes visiveis para a mesma coisa seria pior. */
+.mt-recolher-v {
+	display: none;
+}
+
+.ri-vertical .mt-recolher-v {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	margin-left: auto;
+	/* 44px de alvo: e um controle, e no dedo controle tem piso (D-935). */
+	min-width: 44px;
+	min-height: 44px;
+	padding: 0;
+	border: 0;
+	background: transparent;
+	color: var(--is-title-ink, #1c2540);
+	cursor: pointer;
+}
+
+.ri-vertical .mt-recolher-v-glifo {
+	display: block;
+	font-size: 16px;
+	line-height: 1;
+	transition: transform 140ms ease-out;
+}
+
+/* O chevron GIRA — o mesmo controle, apontando para o que vai acontecer. */
+.ri-vertical .mt-recolher-v.is-recolhido .mt-recolher-v-glifo {
+	transform: rotate(180deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.ri-vertical .mt-recolher-v-glifo {
+		transition: none;
+	}
+}
+
+/* ── RECOLHIDO: pouco espaco, mas a missao ATUAL continua na tela ────────
+   A regra base (`.mt-painel.is-recolhido .mt-corpo { display: none }`)
+   esconde o corpo INTEIRO — inclusive a missao ativa. No celular isso
+   deixaria um cartao que so diz "Missoes | Grupo", sem informacao nenhuma,
+   e o pedido cobra o contrario por escrito.
+
+   Entao na vertical o corpo VOLTA quando recolhido, e o que some e a LISTA
+   e o rodape. Sobra `.mt-ativa` — o titulo e o passo da missao em curso —,
+   que e exatamente "a indicacao da missao atual". Nenhum elemento novo: a
+   peca ja existia e so mudou quem a esconde. */
+.ri-vertical .mt-painel.is-recolhido .mt-corpo {
+	display: flex;
+}
+
+/* MEDIDO: esconder a LISTA inteira deixava o cartao recolhido MUDO.
+   `.mt-ativa` so tem texto quando ha missao EM EXECUCAO; um jogador com
+   missoes acompanhadas mas nenhuma rodando via so as abas — e a sonda pegou
+   isto no primeiro toque ("recolhido mostra ''").
+
+   Entao some a lista MENOS a primeira linha. Com missao ativa, `.mt-ativa`
+   responde; sem ela, a primeira acompanhada responde. Os dois casos dizem
+   alguma coisa, que e o que o pedido cobra. */
+.ri-vertical .mt-painel.is-recolhido .mt-lista > *:not(:first-child),
+.ri-vertical .mt-painel.is-recolhido .mt-ver-todas {
+	display: none;
+}
+
+/* Recolhido o cartao para de rolar: com uma linha so nao ha o que rolar, e
+   um `overflow: auto` num conteudo curto deixa barra fantasma em alguns
+   navegadores. */
+.ri-vertical .mt-painel.is-recolhido .mt-corpo {
+	max-height: none;
+	overflow: visible;
+}

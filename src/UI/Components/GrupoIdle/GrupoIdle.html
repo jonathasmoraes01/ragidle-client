@@ -1,0 +1,238 @@
+<!--
+	A JANELA DE GRUPO (D-960, 07/09/2026) -- a tela de quem esta em party.
+
+	ORDEM DO DONO: *"quando a pessoa vir a nossa lista de grupos e entrar em um
+	grupo, ela deve ficar nessa tela ate sair do grupo"*. Esta janela e essa
+	tela, e o Localizador de Grupos (LFGIdle) continua sendo a porta de
+	entrada -- os dois convivem, como os dois caminhos de entrada convivem (o
+	convite por nome e o anuncio).
+
+	=========================================================================
+	UMA JANELA SO -- e este e o ponto do desenho
+	=========================================================================
+	A referencia que o dono mandou abre TRES coisas por cima da janela
+	principal: uma janela de configuracoes, um dialogo de EXP e um dialogo de
+	funcao. Aqui tudo mora DENTRO da mesma moldura, em quatro abas alternadas
+	por [hidden]:
+
+	    Grupo · Postos · Rateio · Ajustes
+
+	E mais rapido de usar (nenhum passo de "fechar o de cima para ver o de
+	baixo"), cabe num celular em pe, e e visivelmente outro produto.
+
+	=========================================================================
+	TUDO JA NASCE NO HTML, e a razao e cicatriz
+	=========================================================================
+	Nenhum trecho com <input> e reconstruido por innerHTML -- e a mesma regra
+	que o rodape do LFGIdle carrega por escrito: um empurrao de estado
+	chegando enquanto o jogador digita o nome de quem quer convidar apagaria o
+	que ele escreveu. Aqui os campos sao ESTATICOS e o JS so liga/desliga
+	[hidden], troca textContent e mexe em disabled.
+
+	O que E reconstruido por innerHTML: a lista de membros, os cartoes de
+	posto e a tabela de rateio -- nenhum dos tres tem campo de digitacao.
+
+	Ganchos ESTAVEIS que a prova visual usa (preservar em qualquer redesenho):
+	.gi-window, .gi-close, .gi-tab, .gi-membro, .gi-posto, .gi-rateio-linha,
+	.gi-convite-nome, .gi-recado.
+-->
+<div id="GrupoIdle">
+	<div class="gi-window ri-window ri-anima">
+		<div class="gi-titlebar ri-header">
+			<span class="gi-title ri-title">Grupo</span>
+			<button type="button" class="gi-close ri-close" title="Fechar">&times;</button>
+		</div>
+
+		<!--
+			O ESTANDARTE: nome do grupo, a linha de resumo (membros · rateio ·
+			coleta) e as duas acoes de topo. Ele fica FORA das abas de
+			proposito -- é a identidade do grupo, e ela nao muda de aba.
+		-->
+		<div class="gi-estandarte">
+			<div class="gi-estandarte-texto">
+				<h3 class="gi-nome">Sem grupo</h3>
+				<div class="gi-resumo">Voce nao esta em nenhum grupo.</div>
+			</div>
+			<div class="gi-estandarte-acoes">
+				<button type="button" class="ri-btn gi-convidar-abrir">Convidar</button>
+				<button type="button" class="ri-btn ri-btn--sec gi-ir-ajustes">Ajustes</button>
+			</div>
+		</div>
+
+		<!--
+			O CONVITE POR NOME. Painel embutido, nunca modal -- ele empurra o
+			conteudo para baixo em vez de tapa-lo, e o campo sobrevive a
+			qualquer empurrao de estado porque este bloco e estatico.
+
+			Os DOIS caminhos de entrada convivem, e o segundo esta aqui do
+			lado: o botao que abre o Localizador de Grupos.
+		-->
+		<div class="gi-convite" hidden>
+			<label class="gi-convite-campo">
+				<span class="gi-convite-rotulo">Convidar por nome exato</span>
+				<input
+					type="text"
+					class="ri-input gi-convite-nome"
+					autocomplete="off"
+					spellcheck="false"
+					autocapitalize="off"
+					maxlength="23"
+					placeholder="Nome do personagem"
+				/>
+			</label>
+			<div class="gi-convite-botoes">
+				<button type="button" class="ri-btn gi-convite-enviar">Enviar convite</button>
+				<button type="button" class="ri-btn ri-btn--sec gi-convite-lfg">Abrir o Localizador</button>
+				<button type="button" class="ri-btn ri-btn--sec gi-convite-fechar">Fechar</button>
+			</div>
+		</div>
+
+		<div class="gi-tabs">
+			<button type="button" class="gi-tab ri-tab is-active" data-tab="grupo">Grupo</button>
+			<button type="button" class="gi-tab ri-tab" data-tab="postos">Postos</button>
+			<button type="button" class="gi-tab ri-tab" data-tab="rateio">Rateio</button>
+			<button type="button" class="gi-tab ri-tab" data-tab="ajustes">Ajustes</button>
+		</div>
+
+		<div class="gi-body ri-scroll">
+			<!-- ─────────────── ABA GRUPO ─────────────── -->
+			<div class="gi-view gi-view-grupo">
+				<!-- A faixa do rateio em vigor, com a porta para os detalhes. -->
+				<div class="gi-faixa">
+					<div class="gi-faixa-texto">
+						<span class="gi-faixa-modo">Rateio</span>
+						<span class="gi-faixa-nota"></span>
+					</div>
+					<button type="button" class="ri-btn ri-btn--sec gi-ver-rateio">Ver o rateio</button>
+				</div>
+
+				<div class="gi-colunas">
+					<section class="gi-coluna-membros">
+						<div class="gi-secao">
+							<span class="gi-secao-titulo">Membros</span>
+							<span class="gi-secao-contador">0/0</span>
+						</div>
+						<div class="gi-membros ri-scroll">
+							<div class="gi-vazio">Voce nao esta em nenhum grupo.</div>
+						</div>
+					</section>
+
+					<aside class="gi-coluna-lado">
+						<div class="gi-cartao ri-card gi-meu-posto">
+							<div class="gi-secao">
+								<span class="gi-secao-titulo">O seu posto</span>
+							</div>
+							<div class="gi-meu-posto-nome">Andarilho</div>
+							<div class="gi-meu-posto-resumo"></div>
+							<div class="gi-meu-posto-estado"></div>
+							<button type="button" class="ri-btn ri-btn--sec gi-trocar-posto">Trocar de posto</button>
+						</div>
+
+						<div class="gi-cartao ri-card gi-cacada">
+							<div class="gi-secao">
+								<span class="gi-secao-titulo">A cacada agora</span>
+							</div>
+							<div class="gi-cacada-linhas"></div>
+						</div>
+					</aside>
+				</div>
+			</div>
+
+			<!-- ─────────────── ABA POSTOS ─────────────── -->
+			<div class="gi-view gi-view-postos" hidden>
+				<p class="gi-explica">
+					O posto muda como <b>a sua personagem</b> caca ao lado do grupo: se ela acompanha o
+					lider, se abre a luta e quem ela prefere bater. Ele nao muda o jogo de mais ninguem.
+				</p>
+				<div class="gi-postos"></div>
+			</div>
+
+			<!-- ─────────────── ABA RATEIO ─────────────── -->
+			<div class="gi-view gi-view-rateio" hidden>
+				<div class="gi-rateio-agora"></div>
+				<p class="gi-explica gi-rateio-explica"></p>
+				<div class="gi-rateio-tabela"></div>
+				<p class="gi-aviso">
+					Os numeros desta tabela sao <b>referencia didatica</b>, arredondados sobre um total de
+					exemplo. Eles mostram como a divisao e o premio funcionam &mdash; nao sao promessa de
+					recompensa: o que cada monstro paga depende do monstro, do seu nivel e do seu dano.
+				</p>
+			</div>
+
+			<!-- ─────────────── ABA AJUSTES ─────────────── -->
+			<div class="gi-view gi-view-ajustes" hidden>
+				<div class="gi-ajuste ri-card">
+					<div class="gi-secao"><span class="gi-secao-titulo">Convites</span></div>
+					<p class="gi-explica">
+						Com isto desligado, ninguem consegue te convidar por nome &mdash; quem tentar recebe
+						a recusa na tela dele.
+					</p>
+					<div class="gi-seg" role="group" aria-label="Receber convites">
+						<button type="button" class="gi-seg-btn" data-convites="1">Receber convites</button>
+						<button type="button" class="gi-seg-btn" data-convites="0">Nao receber</button>
+					</div>
+				</div>
+
+				<div class="gi-ajuste ri-card">
+					<div class="gi-secao"><span class="gi-secao-titulo">Experiencia</span></div>
+					<p class="gi-explica">
+						<b>Quem abate, leva</b>: a experiencia inteira vai para quem deu o golpe final.
+						<br />
+						<b>Rateio igual</b>: as parcelas viram um bolo, o bolo e dividido entre os elegiveis e
+						so entao o premio de grupo entra. E elegivel quem esta <b>vivo e no mesmo mapa</b> no
+						momento do abate, e o rateio so vale se os niveis do grupo couberem na faixa.
+					</p>
+					<div class="gi-seg" role="group" aria-label="Distribuicao de experiencia">
+						<button type="button" class="gi-seg-btn" data-exp="0">Quem abate, leva</button>
+						<button type="button" class="gi-seg-btn" data-exp="1">Rateio igual</button>
+					</div>
+					<button type="button" class="ri-btn gi-aplicar-exp">Aplicar</button>
+				</div>
+
+				<div class="gi-ajuste ri-card">
+					<div class="gi-secao"><span class="gi-secao-titulo">Itens</span></div>
+					<p class="gi-explica">
+						<b>Quem pega, fica</b>: o item e de quem o recolheu do chao.
+						<br />
+						<b>Bolsa comum</b>: o item recolhido entra na vez do grupo, um membro de cada vez.
+					</p>
+					<div class="gi-seg" role="group" aria-label="Distribuicao de itens">
+						<button type="button" class="gi-seg-btn" data-itens="0">Quem pega, fica</button>
+						<button type="button" class="gi-seg-btn" data-itens="1">Bolsa comum</button>
+					</div>
+					<button type="button" class="ri-btn gi-aplicar-itens">Aplicar</button>
+				</div>
+
+				<div class="gi-ajuste ri-card">
+					<div class="gi-secao"><span class="gi-secao-titulo">Aproximacao</span></div>
+					<p class="gi-explica">
+						Onde voce prefere ficar quando a luta abre. Ela vale junto com o posto, e nao no lugar
+						dele: um Amparo que prefere avancar continua sendo Amparo, so que perto.
+					</p>
+					<div class="gi-seg" role="group" aria-label="Preferencia de aproximacao">
+						<button type="button" class="gi-seg-btn" data-aprox="avancar">Avancar</button>
+						<button type="button" class="gi-seg-btn" data-aprox="segurar">Segurar distancia</button>
+					</div>
+				</div>
+
+				<div class="gi-ajuste ri-card gi-ajuste-saida">
+					<div class="gi-secao"><span class="gi-secao-titulo">Sair</span></div>
+					<button type="button" class="ri-btn ri-btn--sec gi-sair">Sair do grupo</button>
+
+					<!-- Dois passos, sem window.confirm (o padrao do LFGIdle). -->
+					<button type="button" class="ri-btn ri-btn--sec gi-desfazer" hidden>Desfazer o grupo</button>
+					<div class="gi-desfazer-confirma" hidden>
+						<span>Tem certeza? Todo mundo volta para a cidade.</span>
+						<button type="button" class="ri-btn ri-btn--sec gi-desfazer-sim">Sim, desfazer</button>
+						<button type="button" class="ri-btn gi-desfazer-nao">Cancelar</button>
+					</div>
+				</div>
+			</div>
+		</div>
+
+		<!-- A LINHA DE ESTADO: a ultima coisa que aconteceu no grupo. -->
+		<div class="gi-rodape">
+			<span class="gi-recado">Abra o Localizador de Grupos para entrar num grupo.</span>
+		</div>
+	</div>
+</div>

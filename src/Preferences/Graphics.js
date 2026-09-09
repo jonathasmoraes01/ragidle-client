@@ -29,7 +29,7 @@ const defaultGraphicsSettings = {
 	/**
 	 * Game FPS Limit
 	 */
-	fpslimit: 60,
+	fpslimit: 120,
 
 	/**
 	 * Os NOMES dos jogadores sempre visiveis (28/08/2026, pedido do dono).

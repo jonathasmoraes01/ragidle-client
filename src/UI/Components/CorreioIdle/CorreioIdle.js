@@ -148,6 +148,20 @@ let _selecionada = null;
 
 /** @var {string|null} assinatura da ultima lista desenhada. */
 let _sigLista = null;
+/**
+ * Os botoes de coleta ja pedidos e ainda sem resposta (D-950, 07/09/2026).
+ *
+ * O relato do dono: *"fui apagar os e-mails do correio do kit de boas vindas,
+ * deu falha ao retirar o zenny"*. O servidor recusa a SEGUNDA retirada de
+ * proposito — e o que impede o clique repetido de imprimir dinheiro
+ * (`retirarZeny`, `servidor/caixa.ts`) —, mas o botao continuava clicavel ate a
+ * lista voltar (600 ms depois), entao dois cliques seguidos rendiam um
+ * "Falha ao retirar os Zenys" que nao descreve falha nenhuma: o zeny JA estava
+ * na bolsa.
+ *
+ * Chave: `<acao>:<mensagemId>`. Some quando a lista chega com o anexo zerado.
+ */
+const _coletaEmVoo = new Set();
 
 /** @var {string|null} assinatura do ultimo detalhe desenhado. */
 let _sigDetalhe = null;
@@ -550,15 +564,11 @@ function onClickAcao(e) {
 			break;
 
 		case 'zeny':
-			if (_selecionada != null) {
-				exigirRede('requestZenyFromRodex')(0, _selecionada);
-			}
+			pedirColeta('zeny', 'requestZenyFromRodex', btn);
 			break;
 
 		case 'itens':
-			if (_selecionada != null) {
-				exigirRede('requestItemsFromRodex')(0, _selecionada);
-			}
+			pedirColeta('itens', 'requestItemsFromRodex', btn);
 			break;
 
 		case 'apagar':
@@ -577,6 +587,31 @@ function onClickAcao(e) {
 		default:
 			break;
 	}
+}
+
+/**
+ * Pede a coleta UMA vez por carta (D-950).
+ *
+ * O botao some assim que o pedido sai, e volta quando a lista chegar dizendo o
+ * que aconteceu — o servidor zera o anexo retirado (`zeny: carta.zenyRetirado ?
+ * 0 : carta.zeny`), entao a carta coletada volta sem botao, e a que falhou de
+ * verdade volta com ele.
+ */
+function pedirColeta(acao, metodo, btn) {
+	if (_selecionada == null) {
+		return;
+	}
+	const chave = `${acao}:${_selecionada}`;
+	if (_coletaEmVoo.has(chave)) {
+		return;
+	}
+	_coletaEmVoo.add(chave);
+	if (btn) {
+		btn.hidden = true;
+	}
+	exigirRede(metodo)(0, _selecionada);
+	setTimeout(repedirLista, REPEDIR_LISTA_MS);
+	setTimeout(() => _coletaEmVoo.delete(chave), RECUSA_DELAY_MS);
 }
 
 function mostrarConfirmacao() {

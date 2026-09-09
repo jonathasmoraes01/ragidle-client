@@ -50,6 +50,7 @@ import GUIComponent from 'UI/GUIComponent.js';
 import htmlText from './CodexIdle.html?raw';
 import cssText from './CodexIdle.css?raw';
 import { fecharEEsquecer } from '../limpezaDeJanelaIdle.js';
+import { abaLembrada, lembrarAba } from '../memoriaDeAba.js';
 
 /** Manter em sincronia com o ":host"/".cx-window" do CSS (mesmo papel do
  * WINDOW_WIDTH/HEIGHT de PasseIdle.js:51-52). */
@@ -103,7 +104,12 @@ const _preferences = Preferences.get(
 	'CodexIdle',
 	{
 		x: null,
-		y: null
+		y: null,
+		// A aba lembrada (08/09/2026), pelo contrato de memoriaDeAba.js: chave nova nos
+		// padroes nao exige subir a versao.
+		aba: null,
+		// Ocultar as missoes concluidas (08/09/2026).
+		ocultarConcluidas: false
 	},
 	1.0
 );
@@ -250,7 +256,32 @@ function onClickClose(e) {
 	closeWindow();
 }
 
-/** Delegacao: o "+" de um eixo, e o "Resgatar" de uma entrada (D-1232). */
+/** Delegacao: o unico clique que o corpo trata e o "+" de um eixo. */
+/**
+ * RAGIDLE (08/09/2026, ordem do dono): a janela tem DUAS abas — "Missoes"
+ * (onde os pontos nascem) e "Status" (onde os pontos sao gastos). Antes as
+ * duas secoes vinham empilhadas na mesma rolagem.
+ */
+const ABA_PADRAO = 'missoes';
+const ABAS = ['missoes', 'status'];
+// Restaurada do localStorage e gravada a cada troca (memoriaDeAba.js).
+let _aba = abaLembrada(_preferences, ABA_PADRAO, ABAS);
+
+function abasHtml() {
+	const aba = (id, rotulo) =>
+		'<button type="button" class="cx-aba ri-tab' +
+		(_aba === id ? ' is-active' : '') +
+		'" data-tab="' +
+		id +
+		'" role="tab" aria-selected="' +
+		(_aba === id ? 'true' : 'false') +
+		'">' +
+		rotulo +
+		'</button>';
+	return '<div class="cx-abas" role="tablist">' + aba('missoes', 'Missões') + aba('status', 'Status') + '</div>';
+}
+
+/** Delegacao: o "+" de um eixo, as abas, o filtro e o "Resgatar" (D-1232). */
 function onClickCorpo(e) {
 	/*
 	 * O RESGATE vem PRIMEIRO porque os dois alvos sao botoes dentro do mesmo
@@ -274,6 +305,22 @@ function onClickCorpo(e) {
 		 */
 		resgatar.disabled = true;
 		enviarAcao({ acao: 'resgatar', id: id });
+		return;
+	}
+	const ocultar = e.target && e.target.closest && e.target.closest('[data-action="cx-ocultar"]');
+	if (ocultar) {
+		e.stopImmediatePropagation();
+		_preferences.ocultarConcluidas = !!ocultar.checked;
+		_preferences.save();
+		render();
+		return;
+	}
+	const aba = e.target && e.target.closest && e.target.closest('.cx-aba');
+	if (aba && aba.dataset.tab && aba.dataset.tab !== _aba) {
+		e.stopImmediatePropagation();
+		_aba = aba.dataset.tab;
+		lembrarAba(_preferences, _aba);
+		render();
 		return;
 	}
 	const botao = e.target && e.target.closest && e.target.closest('.cx-mais');
@@ -352,24 +399,51 @@ function placarHtml(estado) {
  * comparando o Hunt Analyzer com a entrada "Bichos Barulhentos" e concluindo
  * que seriam *"75 de cada especie para completar os 150"*.
  *
- * A regra cadastrada nao e nenhuma das duas: sao **50 Muka E 100 PecoPeco**,
- * alvos DIFERENTES por especie que somam 150. Esta janela desenhava so a soma,
- * entao quem matasse 150 PecoPeco e nenhum Muka via `100 / 150` — o contador de
- * PecoPeco parou no alvo dele — enquanto o Hunt Analyzer, que conta TODA morte,
- * mostrava 150. Dois numeros verdadeiros sobre coisas diferentes, e nada na
- * tela dizendo qual era qual.
+ * A regra cadastrada nao e nenhuma das duas: sao alvos DIFERENTES por especie —
+ * na FONTE, 50 Muka e 100 PecoPeco, somando 150. Esta janela desenhava so a
+ * soma, entao quem matasse 150 PecoPeco e nenhum Muka via `100 / 150` — o
+ * contador de PecoPeco parou no alvo dele — enquanto o Hunt Analyzer, que conta
+ * TODA morte, mostrava 150. Dois numeros verdadeiros sobre coisas diferentes, e
+ * nada na tela dizendo qual era qual.
+ *
+ * **Os numeros da tela hoje sao outros** (colisao 21, 09/09/2026): D-1207/D-1210
+ * escalaram o TOTAL da missao e o repartem na proporcao da fonte, entao esta
+ * entrada pede 333 Muka e 667 PecoPeco. O conserto e o mesmo, e a assimetria
+ * que ele mostra ficou maior.
  *
  * A barra somada FICA (ela e o progresso da entrada, e e o que o jogador
  * reconhece), e embaixo dela vai uma linha por especie com `n / alvo` e o que
  * falta. `falta` vem do servidor pronto — a janela nao subtrai nada.
  */
+
+/**
+ * RAGIDLE (08/09/2026, ordem do dono): a lista sai da MENOR quantidade para a
+ * maior (o total da missao; empate pelo titulo), e as concluidas podem ser
+ * ocultadas — o interruptor fica gravado nas preferencias.
+ */
+function ordenarMissoes(missoes) {
+	return missoes.slice().sort((a, b) => (Number(a.alvo) || 0) - (Number(b.alvo) || 0) || String(a.titulo || '').localeCompare(String(b.titulo || ''), 'pt-BR'));
+}
+
 function missoesHtml(estado) {
-	const missoes = Array.isArray(estado.missoes) ? estado.missoes : [];
-	if (missoes.length === 0) {
+	const todas = Array.isArray(estado.missoes) ? estado.missoes : [];
+	if (todas.length === 0) {
 		return '<div class="cx-vazio">Nenhuma missao no catalogo.</div>';
 	}
-
+	const ocultar = !!_preferences.ocultarConcluidas;
+	const concluidas = todas.filter(m => m.cumprida).length;
+	const missoes = ordenarMissoes(ocultar ? todas.filter(m => !m.cumprida) : todas);
+	const barra =
+		'<label class="cx-ocultar"><input type="checkbox" data-action="cx-ocultar"' +
+		(ocultar ? ' checked' : '') +
+		' /> Ocultar concluidas' +
+		(concluidas ? ' <span class="cx-ocultar-n">(' + escapeHtml(concluidas) + ')</span>' : '') +
+		'</label>';
+	if (missoes.length === 0) {
+		return barra + '<div class="cx-vazio">Todas as missoes estao concluidas.</div>';
+	}
 	return (
+		barra +
 		'<div class="cx-missoes">' +
 		missoes
 			.map(m => {
@@ -394,30 +468,41 @@ function missoesHtml(estado) {
 				// ("Família Orc"), e mostrar só a primeira mentiria sobre o que
 				// falta. As espécies vão nas linhas de baixo, com o progresso
 				// de cada uma (D-1231).
-				const linhasDeEspecie = Array.isArray(m.alvos)
-					? m.alvos
-							.map(a => {
-								const feitos = Number(a.abates) || 0;
-								const meta = Number(a.alvo) || 0;
-								const falta = Number(a.falta) || 0;
-								return (
-									'<span class="cx-especie' +
-									(a.cumprida ? ' is-ok' : '') +
-									'">' +
-									'<span class="cx-especie-nome">' +
-									escapeHtml(a.monstro) +
-									'</span>' +
-									'<span class="cx-especie-conta">' +
-									escapeHtml(feitos) +
-									' / ' +
-									escapeHtml(meta) +
-									'</span>' +
-									'<span class="cx-especie-falta">' +
-									(a.cumprida ? 'completo' : 'faltam ' + escapeHtml(falta)) +
-									'</span></span>'
-								);
-							})
-							.join('')
+				//
+				// AS DUAS FRENTES CONSERTARAM ISTO NO MESMO DIA (colisao 21,
+				// 09/09/2026), e sobrou UMA rota: o master ja desenhava
+				// `Muka 12/333 · PecoPeco 40/667` em linha, e esta versao diz
+				// tambem QUANTO FALTA, que e o que o pedido cobrava com todas as
+				// letras (*"tornando explicito o que esta faltando"*). Duas rotas
+				// para o mesmo dado e o defeito que este projeto mais repete.
+				//
+				// A GUARDA `length > 1` E DO MASTER, e ela e certa: numa entrada de
+				// uma especie so a linha repetiria a barra somada logo acima.
+				const linhasDeEspecie =
+					Array.isArray(m.alvos) && m.alvos.length > 1
+						? m.alvos
+								.map(a => {
+									const feitos = Number(a.abates) || 0;
+									const meta = Number(a.alvo) || 0;
+									const falta = Number(a.falta) || 0;
+									return (
+										'<span class="cx-especie' +
+										(a.cumprida ? ' is-ok' : '') +
+										'">' +
+										'<span class="cx-especie-nome">' +
+										escapeHtml(a.monstro) +
+										'</span>' +
+										'<span class="cx-especie-conta">' +
+										escapeHtml(feitos) +
+										' / ' +
+										escapeHtml(meta) +
+										'</span>' +
+										'<span class="cx-especie-falta">' +
+										(a.cumprida ? 'completo' : 'faltam ' + escapeHtml(falta)) +
+										'</span></span>'
+									);
+								})
+								.join('')
 					: '';
 				// O que a entrada paga ALÉM do ponto — vazio nas oito de D-851.
 				const premio = Array.isArray(m.recompensas)
@@ -594,15 +679,12 @@ function render() {
 		return;
 	}
 
-	corpo.innerHTML =
-		placarHtml(estado) +
-		'<div class="cx-secao"><div class="cx-secao-titulo">Onde os pontos nascem</div>' +
-		missoesHtml(estado) +
-		'</div>' +
-		'<div class="ri-divisor"></div>' +
-		'<div class="cx-secao"><div class="cx-secao-titulo">Onde gastar</div>' +
-		eixosHtml(estado) +
-		'</div>';
+	// Uma aba por vez (08/09/2026): Missoes = onde os pontos nascem; Status = onde gastar.
+	const secao =
+		_aba === 'status'
+			? '<div class="cx-secao"><div class="cx-secao-titulo">Onde gastar</div>' + eixosHtml(estado) + '</div>'
+			: '<div class="cx-secao"><div class="cx-secao-titulo">Onde os pontos nascem</div>' + missoesHtml(estado) + '</div>';
+	corpo.innerHTML = placarHtml(estado) + abasHtml() + secao;
 }
 
 /* ------------------------------------------------------------------ */

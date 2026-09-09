@@ -263,6 +263,14 @@ class Damage {
 	 * @param {number} type - Damage|Heal
 	 */
 	static add(damage, entity, tick, weapon, type) {
+		// RAGIDLE (08/09/2026): aba em segundo plano nao desenha quadro nenhum. O
+		// numero nasceria aqui, ficaria na lista ate a aba voltar e morreria no
+		// primeiro quadro — depois de custar uma textura e um splice O(n). Minutos
+		// escondidos acumulavam milhares, e a volta travava por segundos. Nao ha o
+		// que mostrar de um golpe que ninguem viu: ele nao nasce.
+		if (typeof document !== 'undefined' && document.hidden) {
+			return;
+		}
 		_skin = GraphicsSettings.damageSkin || 0;
 
 		if (_skin == 3) {
