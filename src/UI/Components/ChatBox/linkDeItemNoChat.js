@@ -46,6 +46,20 @@ export const CANAIS_QUE_NAO_DIGITAM = ['logs', 'trade', 'farm'];
 export const CANAL_DE_FALA = 'global';
 
 /**
+ * OS CANAIS QUE SE LEEM MAS NAO SE FALAM (08/09/2026, ordem do dono: "o chat na
+ * aba Logs e Farm estao disponiveis sim, mas quando o player digita, a mensagem
+ * dele cai em Global"). Digitar neles TROCA para o Global antes de enviar — o
+ * eco do servidor cai na aba que o jogador esta vendo. O Trade fica de fora:
+ * ele nao tem canal no servidor e continua sem digitacao (".cb-inerte").
+ */
+export const CANAIS_QUE_FALAM_NO_GLOBAL = ['logs', 'farm'];
+
+/** Em que canal a fala digitada em `canalAtivo` deve sair. */
+export function canalDaFala(canalAtivo) {
+	return CANAIS_QUE_FALAM_NO_GLOBAL.includes(canalAtivo) ? CANAL_DE_FALA : canalAtivo;
+}
+
+/**
  * O que o chat precisa fazer ANTES de receber o link.
  *
  * @param {{recolhido?: boolean, canal?: string, barraVisivel?: boolean}} estado

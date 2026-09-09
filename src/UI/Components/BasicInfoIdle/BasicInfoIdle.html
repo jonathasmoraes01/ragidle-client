@@ -112,30 +112,65 @@
 			<span class="bi-cash">0</span>
 		</div>
 
+		<!-- WIFI E BATERIA (08/09/2026) — de volta, mas NA FAIXA DO TOPO.
+		     .
+		     Eles moravam no rodape do pe da tela, que saiu por ordem do dono
+		     (o EXP dali ja estava aqui em cima, duplicado). Os dois nao eram o
+		     motivo da remocao e voltaram — mas voltar como FAIXA custaria de
+		     novo os 22px que a remocao devolveu ao jogo, e por um motivo menor
+		     que o original.
+		     .
+		     Aqui eles nao custam altura nenhuma: a faixa de Zeny/Cash ja
+		     existe, ja e desenhada, e tem folga a direita. E a razao de os dois
+		     existirem continua valendo — no PWA instalado a barra de status do
+		     aparelho some (display fullscreen), entao sem isto o jogador nao ve
+		     sinal nem carga em lugar nenhum.
+		     .
+		     Os seletores sao os MESMOS de antes (`.bi-rodape-wifi`,
+		     `.bi-rodape-bateria*`): `ligarBateriaEWifi()` no JS nao mudou de
+		     contrato, so o lugar onde os dois aparecem. Trocar o nome custaria
+		     uma edicao no JS e nao compraria nada.
+		     .
+		     `aria-hidden`: sao indicadores do APARELHO, e nao do jogo. Um
+		     leitor de tela ja anuncia sinal e bateria pelo sistema; repetir
+		     aqui seria ruido. -->
+		<div class="bi-aparelho" aria-hidden="true">
+			<svg class="bi-rodape-wifi" viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+				<path d="M2 9 C8 3.5 16 3.5 22 9"></path>
+				<path d="M5.5 12.5 C9.5 9 14.5 9 18.5 12.5"></path>
+				<path d="M9 16 C11 14.5 13 14.5 15 16"></path>
+				<circle cx="12" cy="19" r="1.4" fill="currentColor" stroke="none"></circle>
+			</svg>
+			<span class="bi-rodape-bateria">
+				<span class="bi-rodape-bateria-caixa"><span class="bi-rodape-bateria-nivel"></span></span>
+				<span class="bi-rodape-bateria-texto">—</span>
+			</span>
+		</div>
+
 
 	</div>
 
-	<!-- O RODAPE DA HUD VERTICAL (D-939, 05/09/2026). So existe visivel no
-		     celular em pe (`.ri-vertical` — ver UI/hudVertical.js); em todo o
-		     resto e `display:none` de nascenca. Mora NESTE componente porque o
-		     dado que ele mostra (nivel de base + EXP) ja e sincronizado aqui
-		     (syncFromNativeState), e um componente novo duplicaria a leitura.
-		     No PWA instalado a barra de status do aparelho some (display
-		     fullscreen), entao o wifi e a bateria deixam de estar na tela —
-		     e por isso o mockup do dono os traz de volta no rodape do jogo. -->
-	<div class="bi-rodape" aria-hidden="false">
-		<span class="bi-rodape-nivel">Lv. <b class="bi-rodape-blvl">1</b></span>
-		<div class="bi-rodape-exp-track"><div class="bi-rodape-exp-fill"></div></div>
-		<span class="bi-rodape-exp-texto">0 / 0</span>
-		<svg class="bi-rodape-wifi" viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-			<path d="M2 9 C8 3.5 16 3.5 22 9"></path>
-			<path d="M5.5 12.5 C9.5 9 14.5 9 18.5 12.5"></path>
-			<path d="M9 16 C11 14.5 13 14.5 15 16"></path>
-			<circle cx="12" cy="19" r="1.4" fill="currentColor" stroke="none"></circle>
-		</svg>
-		<span class="bi-rodape-bateria">
-			<span class="bi-rodape-bateria-caixa"><span class="bi-rodape-bateria-nivel"></span></span>
-			<span class="bi-rodape-bateria-texto">—</span>
-		</span>
-	</div>
+	<!-- O RODAPE DA HUD VERTICAL FOI REMOVIDO (08/09/2026, ordem do dono).
+	     .
+	     Ele era a faixa fina do pe da tela: "Lv. N", a barra de EXP com os
+	     numeros, wifi e bateria — o rodape do mockup de D-939.
+	     .
+	     Palavras do dono, com um print da faixa: *"vamos remover essa parte de
+	     baixo pois ja tem la em cima ja tem o xp"*. E ele esta certo na
+	     aritmetica: a BARRA DO TOPO deste mesmo componente ja mostra Base Lv.,
+	     Classe Lv. e as duas barras de experiencia. O rodape dizia a mesma
+	     coisa uma segunda vez, e cobrava 22px de uma tela onde a prioridade
+	     declarada e a CENA de caca.
+	     .
+	     O wifi e a bateria foram junto, e vale registrar por que eles
+	     existiam: no PWA instalado a barra de status do aparelho some
+	     (display fullscreen), e o mockup os devolvia. Esse argumento continua
+	     de pe e e o melhor argumento contra esta remocao — quem for desfazer
+	     comeca por ele. O que pesou mais foi que a faixa inteira saiu por um
+	     pedido sobre o EXP, e manter meia faixa so pelos dois icones custaria
+	     os mesmos 22px pelo menor dos dois motivos.
+	     .
+	     `sincronizarRodapeVertical()` e `ligarBateriaEWifi()` (BasicInfoIdle.js)
+	     FICAM: as duas ja saem cedo quando o elemento nao existe, e sao a
+	     implementacao pronta caso o dono queira a faixa de volta. -->
 </div>

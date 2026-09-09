@@ -21,7 +21,19 @@
 	box-shadow: var(--shadow-float), var(--rim-gold);
 	padding: 2px;
 	letter-spacing: 0px;
-	pointer-events: auto;
+	/*
+	 * O AVISO NAO RECEBE TOQUE (08/09/2026, pedido do dono: *"A notificacao
+	 * nao deve bloquear cliques ou toques no jogo"*).
+	 *
+	 * Ele era `auto`, e isso e uma zona morta de ~195x33 no meio-alto da
+	 * tela durante 3 segundos a cada item recolhido — em cima da cena, que e
+	 * onde o jogador toca para andar e atacar. O `:host` ja era `none`; era
+	 * esta linha que reabria o buraco um nivel abaixo.
+	 *
+	 * (E foi ela que enganou a sonda: medindo o `pointer-events` do HOST ela
+	 * lia `none` e aprovava.)
+	 */
+	pointer-events: none;
 	font-family: var(--font-ui);
 }
 #ItemObtain .content {
@@ -42,4 +54,72 @@
 	border: 1px solid var(--border-gold);
 	background: var(--surface-card);
 	box-shadow: var(--rim-light);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   O AVISO DE COLETA VIRA DISCRETO NO DEDO (08/09/2026, pedido do dono)
+   ═══════════════════════════════════════════════════════════════════════
+   *"O aviso de coleta esta muito grande e ocupando espaco demais na tela.
+   Suba sua posicao e reduza suas dimensoes, margens, icones e espacamento
+   para formar uma notificacao compacta. Deixe o aviso discreto e quase
+   transparente, principalmente o fundo, mantendo nome e quantidade do item
+   legiveis."*
+
+   MEDIDO antes (393x852): 195x33, com DUAS camadas de fundo opaco — o
+   `--surface-glass` do `#ItemObtain` e o `--surface-card` do `.content` — e
+   um aro dourado com sombra flutuante. Um cartao de janela para dizer
+   "Pocao Azul - 1".
+
+   `pointer: coarse` e nao `max-width`: o criterio e o DEDO, o mesmo de
+   D-935. No mouse o aviso continua exatamente como era.
+
+   ── O QUE NAO MUDA: A LEGIBILIDADE ──────────────────────────────────────
+   O pedido diz "quase transparente, PRINCIPALMENTE O FUNDO, mantendo nome e
+   quantidade legiveis". Entao o fundo cai para 38% e ganha desfoque, e o
+   TEXTO fica em opacidade cheia com sombra — texto claro sobre cena clara
+   sem sombra e o jeito de cumprir "discreto" e falhar "legivel".
+   ═══════════════════════════════════════════════════════════════════════ */
+@media (pointer: coarse) {
+	#ItemObtain {
+		/* Some o cartao: sem aro dourado, sem sombra flutuante, sem
+		   preenchimento. Sobra uma pilula. */
+		padding: 0;
+		border: 0;
+		border-radius: 999px;
+		background: transparent;
+		box-shadow: none;
+		backdrop-filter: none;
+	}
+
+	#ItemObtain .content {
+		/* 25px -> 20px de altura, e o respiro lateral cai de 20/15 para 8/10. */
+		height: 20px;
+		line-height: 20px;
+		padding-left: 8px;
+		padding-right: 10px;
+		border: 0;
+		border-radius: 999px;
+		/* O fundo quase some. O desfoque e o que segura o contraste quando a
+		   cena atras e clara (o calcamento de Prontera e quase branco). */
+		background: rgba(12, 24, 42, 0.38);
+		backdrop-filter: blur(3px);
+		color: #fff;
+		font-size: 11px;
+		font-weight: 600;
+		/* A sombra e o que mantem "legivel" depois de o fundo virar quase
+		   nada — sem ela, texto branco sobre pedra clara desaparece. */
+		text-shadow: 0 1px 2px rgba(0, 0, 0, 0.75);
+	}
+
+	/* O icone acompanha a altura nova: 24 -> 16, sem aro nem fundo proprio.
+	   O atributo `width`/`height` do `<img>` vem do JS; o CSS vence. */
+	#ItemObtain img {
+		width: 16px;
+		height: 16px;
+		vertical-align: -3px;
+		border: 0;
+		background: transparent;
+		box-shadow: none;
+		border-radius: 3px;
+	}
 }

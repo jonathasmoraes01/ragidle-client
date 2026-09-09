@@ -1172,3 +1172,7 @@
 #IdleConfig .ic-instalar.is-instrucao .ic-instalar-btn {
 	display: none;
 }
+
+/* 08/09/2026: um bloco por habilidade de cura (interruptor + alvo proprios) */
+.ic-cura-item { padding: 4px 0 6px; border-top: 1px solid rgba(255, 255, 255, 0.06); }
+.ic-cura-item:first-of-type { border-top: 0; }

@@ -628,24 +628,40 @@
 	height: 11px;
 }
 
-/* A seta que PODE ser usada carrega a tinta de "ativa". */
-#IdleSkills .is-seta:not(:disabled) {
+/*
+ * A seta que PODE ser usada carrega a tinta de "ativa".
+ *
+ * `.is-seta--travada` (D-1225) desenha exatamente como `:disabled` e continua
+ * CLICAVEL, para o toque poder perguntar "por que nao?" e receber o motivo em
+ * `showProblemas`. `title=` nao existe no celular, e era so nele que o motivo
+ * viajava.
+ */
+#IdleSkills .is-seta:not(:disabled):not(.is-seta--travada) {
 	background: var(--badge-ativa-bg);
 	color: var(--badge-ativa-ink);
 }
 
-#IdleSkills .is-seta:hover:not(:disabled) {
+#IdleSkills .is-seta:hover:not(:disabled):not(.is-seta--travada) {
 	background: var(--tab-active-fill);
 	color: var(--text-on-accent);
 }
 
-#IdleSkills .is-seta:active:not(:disabled) {
+#IdleSkills .is-seta:active:not(:disabled):not(.is-seta--travada) {
 	transform: var(--press-shift);
 }
 
-#IdleSkills .is-seta:disabled {
+#IdleSkills .is-seta:disabled,
+#IdleSkills .is-seta--travada {
 	opacity: 0.35;
+}
+
+#IdleSkills .is-seta:disabled {
 	cursor: default;
+}
+
+/* Travada, mas viva: o cursor de ajuda avisa que ela responde. */
+#IdleSkills .is-seta--travada {
+	cursor: help;
 }
 
 #IdleSkills .is-no-nivel {
@@ -1330,4 +1346,32 @@
 }
 #IdleSkills .is-plaqueta--quest .is-no-nivel {
 	color: #6b4a00;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   CELULAR EM PE: A PLAQUETA ◀ n/m ▶ PARA DE CORTAR (08/09/2026)
+
+   MEDIDO por `scripts/diag-mobile-portrait.ts` em 393x852: a plaqueta tinha
+   **31px de conteudo numa caixa de 19 com `overflow: hidden`** — 12px
+   escondidos, e o que sumia era o proprio "n/m", o numero que diz quantos
+   pontos a habilidade tem. Uma plaqueta de nivel que nao mostra o nivel.
+
+   A altura de 19px e de desktop, onde o texto e menor e cabe. No dedo a
+   fonte da HUD e maior (D-934 nao encolhe em `pointer: coarse`), e o mesmo
+   conteudo passa a nao caber.
+
+   Ela CRESCE em vez de esconder — 26px acomoda o texto e continua abaixo do
+   no de 92x108, sem mexer no arranjo da arvore. As setas ◀ ▶ ja tem area
+   tatil por `::before` desde D-942; isto e so o miolo.
+   ═══════════════════════════════════════════════════════════════════════ */
+@media (pointer: coarse) and (orientation: portrait) {
+	#IdleSkills .is-plaqueta {
+		/* `min-height: 26px` sozinho nao bastou: a caixa cresceu de 19 para 26
+		   e o conteudo de 31 para 38, porque o `overflow: hidden` da regra base
+		   continuava recortando em vez de deixar a caixa seguir o texto. Quem
+		   corta e ele; sem ele, `height: auto` faz o que promete. */
+		height: auto;
+		min-height: 26px;
+		overflow: visible;
+	}
 }

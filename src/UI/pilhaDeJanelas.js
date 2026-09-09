@@ -67,6 +67,9 @@
 
 import KEYS from 'Controls/KeyEventHandler.js';
 import { aoEscapar as desarmarAtalhoPendente } from 'UI/toqueParaAtalho.js';
+/* `hudVertical` importa só `escalaDaHud`, que não importa nada — não há ciclo
+   por este caminho (conferido em 08/09/2026). */
+import { ehCelularEmPe } from 'UI/hudVertical.js';
 
 /** Os tipos de janela, e o que cada um responde ao ESC. */
 export const TIPO = {
@@ -208,11 +211,62 @@ export function registrar({ nome, componente, seletor, tipo = TIPO.JANELA, estaA
 	}
 }
 
+/**
+ * UMA JANELA POR VEZ NO CELULAR EM PE (08/09/2026).
+ *
+ * No desktop as janelas Idle CONVIVEM — é decisão declarada em
+ * `MapEngine.js` ("o jogador abre Mochila e Skills lado a lado de propósito"),
+ * e ela continua valendo lá, intacta.
+ *
+ * No celular em pé conviver é impossível: D-932 transforma toda janela de
+ * pilha em painel de TELA CHEIA, então duas abertas não ficam lado a lado —
+ * ficam uma EM CIMA da outra, e a de baixo vira uma camada que come o toque
+ * sem que nada na tela diga que ela está ali.
+ *
+ * MEDIDO antes do conserto (`scripts/diag-mobile-portrait.ts`, 393x852): com
+ * a Mochila e a Análise abertas por baixo, o Mapa de Caça teve **40 dos seus
+ * controles cobertos** — o "X", a busca, os segmentos e as abas, todos
+ * respondendo `div.mo-*` e `span.ha-*` no `elementFromPoint`. É o "ficam
+ * escondidas umas atrás das outras" do relato, com nome e número.
+ *
+ * **Modal de DECISÃO nunca é fechado por aqui, e nunca fecha ninguém**: o
+ * pedido diz que submenu e confirmação têm de aparecer SOBRE a janela que os
+ * abriu, e é exatamente isso — a confirmação empilha, a janela de baixo fica.
+ * Janela auxiliar não registrada (a ficha de item que nasce da Mochila)
+ * também não é afetada: a pilha só conhece quem se registrou.
+ */
+function fecharAsOutrasNoCelular(nome) {
+	if (!ehCelularEmPe()) {
+		return;
+	}
+	const doAlvo = _registro.get(nome);
+	if (!doAlvo || doAlvo.tipo === TIPO.DECISAO) {
+		return;
+	}
+	for (const outro of abertas()) {
+		if (outro === nome) {
+			continue;
+		}
+		const d = _registro.get(outro);
+		if (!d || d.tipo === TIPO.DECISAO) {
+			continue;
+		}
+		try {
+			d.fechar();
+		} catch (erro) {
+			/* Uma janela que recusa fechar não pode impedir a que o jogador
+			   ACABOU de pedir de aparecer. O `catch` é por isso, e não por
+			   preguiça: o pior desfecho aqui é a tela ficar como estava. */
+		}
+	}
+}
+
 /** Avisa a pilha que a janela abriu (o embrulho chama sozinho). */
 export function aoAbrir(nome) {
 	if (!_registro.has(nome)) {
 		return;
 	}
+	fecharAsOutrasNoCelular(nome);
 	const i = _pilha.indexOf(nome);
 	if (i !== -1) {
 		_pilha.splice(i, 1);

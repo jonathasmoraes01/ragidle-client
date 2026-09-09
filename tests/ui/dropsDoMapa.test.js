@@ -18,7 +18,34 @@ describe('dropsDoMapa — raridade', () => {
 			]
 		};
 		const [linha] = dropsDoMapa(mapa);
-		expect(linha.monstros[0]).toEqual({ mobId: 1, nome: 'Poring', chance: 7500, raridade: 0 });
+		// `raro: false` entrou no merge de 09/09 (a carta de MVP/mini-chefe vem
+		// SEM chance e marcada `raro`, ordem do dono de 08/09). Um drop comum
+		// carrega o `false` explícito — o objeto é fixado inteiro de propósito,
+		// para campo novo aparecer aqui em vez de passar despercebido.
+		expect(linha.monstros[0]).toEqual({
+			mobId: 1,
+			nome: 'Poring',
+			chance: 7500,
+			raro: false,
+			raridade: 0
+		});
+	});
+
+	it('a carta de chefe vem SEM chance e marcada `raro` — e a raridade viaja mesmo assim', () => {
+		// A união das duas frentes: o número não viaja (ordem do dono, para a
+		// taxa poder mudar sem os jogadores saberem) e a categoria viaja (é ela
+		// que o selo desenha). Sem este caso, um merge futuro poderia devolver a
+		// chance ao ramo `raro` e nada acusaria.
+		const mapa = {
+			monstros: [
+				{ mobId: 3, nome: 'Poring Lendário', drops: [{ itemId: 4001, nome: 'Poring Card', raro: true, raridade: 3 }] }
+			]
+		};
+		const [linha] = dropsDoMapa(mapa);
+		expect(linha.raro).toBe(true);
+		expect(linha.melhorChance).toBe(0);
+		expect(linha.melhorChanceRaridade).toBe(3);
+		expect(linha.monstros[0].chance).toBe(0);
 	});
 
 	it('`melhorChanceRaridade` anda junto de `melhorChance`: é a raridade da MESMA ocorrência vencedora, não um recalculo', () => {

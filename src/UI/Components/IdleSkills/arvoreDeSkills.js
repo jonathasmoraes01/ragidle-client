@@ -149,6 +149,27 @@ export function avaliarSubir(skill, contexto) {
 		};
 	}
 	for (const requisito of skill.preRequisitos) {
+		/*
+		 * O REQUISITO PERDOADO NÃO BARRA (D-1225, 08/09/2026).
+		 *
+		 * `perdoado` vem do servidor (`requisitosNoFio`), e é o mesmo perdão que
+		 * `avaliarAprendizado` aplica desde D-442: um pré-requisito que a NOSSA
+		 * recusa tornou impossível de comprar não pode trancar o filho.
+		 *
+		 * Esta linha não existia, e o preço foi medido nas 20 classes jogáveis:
+		 * `Knight / KN_BOWLINGBASH` e `Crusader / CR_DEVOTION` — as duas
+		 * portadas, com efeito, e ACEITAS pelo servidor — ficavam com a seta
+		 * morta na janela, cobrando um `KN_AUTOCOUNTER` / `CR_TRUST` que a
+		 * tranca do motor nunca deixa comprar. O jogador ia atrás do
+		 * pré-requisito, batia na tranca, e virava o relato do alfa.
+		 *
+		 * Ela é LEITURA, e não uma segunda redação da regra: o cálculo mora no
+		 * servidor porque a cláusula "está na árvore desta classe" pede a árvore
+		 * inteira. Ver `servidor/mapa/requisitos-no-fio.ts`.
+		 */
+		if (requisito.perdoado) {
+			continue;
+		}
 		const tem = nivelEfetivoDe(contexto.porId, contexto.rascunho, requisito.skillId);
 		if (tem < requisito.nivel) {
 			const alvo = contexto.porId.get(requisito.skillId);

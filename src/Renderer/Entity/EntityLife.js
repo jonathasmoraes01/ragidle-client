@@ -94,7 +94,12 @@ class Life {
 		const Entity = this.entity.constructor;
 
 		// Don't display it, if negatives values.
-		if (this.hp < 0 || this.hp_max < 0) {
+		// RAGIDLE (08/09/2026): hp_max ZERO tambem e "sem informacao". O servidor
+		// mandava 0/0 no pacote de entrada de todo jogador e a barra era desenhada
+		// VAZIA (largura NaN) — a "barra de HP zerado" que o dono viu sobre os
+		// outros jogadores. E e o apagador que o servidor manda no
+		// ZC_NOTIFY_MONSTER_HP quando o mob saiu da luta.
+		if (this.hp < 0 || this.hp_max <= 0) {
 			this.remove();
 			return;
 		}

@@ -33,6 +33,29 @@
 			</div>
 		</div>
 
+		<!-- A BARRA DE PASSO — só do celular em pé (08/09/2026).
+
+		     No desktop o Mapa de Caça é uma janela de TRÊS COLUNAS (regiões |
+		     lista | dossiê) e não existe "passo": tudo está à vista ao mesmo
+		     tempo, e esta barra fica `display:none`.
+
+		     Num celular de 393px as três colunas não cabem lado a lado — elas
+		     se SOBREPÕEM. Medido antes do conserto
+		     (`scripts/diag-mobile-portrait.ts`): 29 controles do Mapa de Caça
+		     respondiam a outro elemento no `elementFromPoint`, e os cobridores
+		     eram os cartões e as miniaturas da própria janela caindo por cima
+		     do trilho de regiões.
+
+		     Então no celular a janela vira um caminho de três passos, o mesmo
+		     desenho que D-942 deu à árvore de habilidades: região → mapas →
+		     dossiê, com um "‹ Voltar" que desfaz um passo por vez. O título do
+		     passo diz onde o jogador está, para "voltar" nunca ser um salto no
+		     escuro. -->
+		<div class="hm-passo" hidden>
+			<button type="button" class="hm-voltar" aria-label="Voltar">‹ Voltar</button>
+			<span class="hm-passo-titulo"></span>
+		</div>
+
 		<div class="hm-status" role="status"></div>
 
 		<div class="hm-body">
