@@ -2183,13 +2183,38 @@ html.ri-vertical #ShortCut {
 	max-height: calc(100dvh - var(--vr-acima-dos-atalhos) - var(--vr-topo) - 16px) !important;
 }
 
-/* Os icones de status (buffs) na vertical: descem para baixo da barra do
-   topo, encostados na esquerda do trilho — o lugar que o mockup deixa
-   livre. O host le os tokens da coluna direita (StatusIcons.css); aqui os
-   dois sao recalculados para o arranjo vertical. */
+/* Os icones de status (buffs) na vertical.
+
+   ELES FICAVAM NUM VAO, e nao num canto (09/09/2026, relato do Bob: "no
+   video ta em baixo da barra... tinha que ficar no cantin bonitin").
+
+   A conta, com os numeros medidos pela `prove:hud-vertical` num 393x852: a
+   barra do topo e 325x70 em (8,6); o cartao de missoes vai de x=8 a x=244;
+   o trilho ocupa os 60px da direita, de x=333. Com `top` na altura do
+   cartao e `right: 76`, o icone nascia em x=279..317 — dentro do vao de
+   35px ENTRE o cartao e o trilho, boiando sobre o mundo. Nao e um canto:
+   e o unico pedaco de tela que ninguem reivindicou.
+
+   Agora ele desce para DEPOIS do cartao de missoes e do vao do aviso de
+   item, encostado no trilho. `--vr-item-obtido-topo` e publicada pelo
+   `ItemObtain.js`, que MEDE `#MissoesTrackerIdle` na hora de aparecer —
+   reusar a medida que ja existe evita a segunda conta que envelhece
+   sozinha (foi assim que o 130px cravado apodreceu). Os 44px somados sao
+   uma fileira de aviso, para os dois nao dividirem a mesma linha.
+
+   O anexo continua ancorado a DIREITA de proposito: `StatusIcons.js`
+   empilha por `right: floor(i/porColuna) * PASSO`, entao a segunda coluna
+   cresce para a ESQUERDA. Ancorar pela esquerda mandaria a segunda coluna
+   para fora da tela no dia em que o jogador tivesse buffs demais.
+
+   NAO FOTOGRAFADO com buff ativo nesta rodada: a `prove:hud-vertical` nao
+   tira print, e o passo final dela expirou por toque. A geometria acima e
+   medida; a aparencia final pede um olho humano. */
 html.ri-vertical #StatusIcons {
-	top: var(--vr-abaixo-do-topo) !important;
-	right: calc(var(--safe-dir, 0px) + var(--vr-trilho-largura) + 16px) !important;
+	top: calc(
+		var(--vr-item-obtido-topo, calc(var(--vr-abaixo-do-topo) + 130px)) + 44px
+	) !important;
+	right: calc(var(--safe-dir, 0px) + var(--vr-trilho-largura) + var(--vr-margem)) !important;
 }
 
 /* O botao de menu MORAVA ATRAS da barra do topo: os hosts nascem todos com
