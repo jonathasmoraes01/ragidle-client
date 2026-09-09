@@ -306,3 +306,828 @@
 	cursor: not-allowed;
 	filter: saturate(0.4);
 }
+
+/* ═════════════════════════════════════════════════════════════════════
+   A JORNADA DE MIDGARD - a aba "Missoes do Codex" (08/09/2026)
+   ═════════════════════════════════════════════════════════════════════
+
+   O que esta metade acrescenta e SO o que a moldura do design system nao
+   tem: o mapa-mundi com pinos, o selo de estado (glifo + palavra + forma),
+   a linha de missao com avatar de monstro, e o cartaz do premio. Botao,
+   aba, medidor, selo de canto e divisor continuam vindo do Common.css.
+
+   -- A REGRA QUE MANDA AQUI: COR E O QUARTO SINAL, NUNCA O PRIMEIRO --
+
+   Os quatro estados (disponivel, em andamento, concluido, bloqueado) sao
+   distinguidos por PALAVRA escrita, por GLIFO e por FORMA do disco
+   (cheio / meio / vazado / tracejado). A cor entra depois, para quem a
+   enxerga. Um print em preto e branco e um jogador daltonico continuam
+   separando os quatro - que e exatamente o que o pedido cobra.
+
+   -- O MAPA E EM PORCENTAGEM --
+
+   O fundo e uma <img> de 1457x1080 com `width:100%`, e cada pino mora em
+   `left/top` em % da caixa. Nada aqui depende de pixel de tela: a mesma
+   folha desenha o mapa num painel de 496px no desktop e num de 353px no
+   celular, e os pinos continuam sobre os mesmos lugares. Cravar pixel
+   seria repetir o remedio que D-968 teve de desfazer.
+   ═════════════════════════════════════════════════════════════════════ */
+
+/* --- As duas abas --------------------------------------------- */
+
+#CodexIdle .cx-tabs {
+	flex: 0 0 auto;
+	display: flex;
+	gap: var(--sp-2);
+	padding: var(--sp-3) var(--sp-6) 0;
+}
+
+#CodexIdle .cx-tab {
+	flex: 1 1 auto;
+}
+
+/* --- A ponte: a entrada do Codex leva as missoes da especie ---- */
+
+#CodexIdle .cx-ponte-especie {
+	display: inline-flex;
+	align-items: center;
+	gap: var(--sp-2);
+	margin: var(--sp-1) var(--sp-2) 0 0;
+	padding: var(--sp-1) var(--sp-3);
+	border: 1px solid var(--border-hairline);
+	border-radius: var(--radius-pill);
+	background: var(--surface-card);
+	color: var(--text-link);
+	font: var(--type-desc);
+	cursor: pointer;
+}
+
+#CodexIdle .cx-ponte-especie:hover {
+	background: var(--surface-card-hover);
+	border-color: var(--border-window);
+}
+
+#CodexIdle .cx-ponte-avatar {
+	width: 20px;
+	height: 20px;
+	object-fit: contain;
+	image-rendering: pixelated;
+}
+
+/* A entrada para onde a ponte trouxe o jogador. Sem o realce, cair numa
+   lista de 38 entradas seria o mesmo que nao ter ponte. */
+#CodexIdle .cx-missao.is-realce {
+	border-color: var(--border-gold);
+	box-shadow: var(--glow-gold);
+}
+
+/* --- O selo de estado: glifo + palavra + forma ----------------- */
+
+#CodexIdle .cx-selo {
+	display: inline-flex;
+	align-items: center;
+	gap: var(--sp-2);
+	font: var(--type-badge);
+	text-transform: uppercase;
+	letter-spacing: var(--ls-caps);
+	color: var(--text-muted);
+	white-space: nowrap;
+}
+
+#CodexIdle .cx-selo-glifo {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 16px;
+	height: 16px;
+	border-radius: var(--radius-pill);
+	box-sizing: border-box;
+}
+
+#CodexIdle .cx-selo-glifo svg {
+	width: 10px;
+	height: 10px;
+}
+
+/* AS QUATRO FORMAS. Elas sao o sinal que sobrevive ao print em preto e
+   branco: cheia, meia, vazada e tracejada continuam diferentes sem cor. */
+#CodexIdle .cx-selo--cheia .cx-selo-glifo {
+	background: var(--green-600);
+	color: var(--white);
+	border: 1px solid var(--green-600);
+}
+
+#CodexIdle .cx-selo--meia .cx-selo-glifo {
+	background: linear-gradient(90deg, var(--amber-600) 0 50%, transparent 50% 100%);
+	color: var(--ink-900);
+	border: 1px solid var(--amber-600);
+}
+
+#CodexIdle .cx-selo--vazada .cx-selo-glifo {
+	background: transparent;
+	color: var(--blue-600);
+	border: 1px solid var(--blue-600);
+}
+
+#CodexIdle .cx-selo--tracejada .cx-selo-glifo {
+	background: transparent;
+	color: var(--ink-500);
+	border: 1px dashed var(--ink-500);
+}
+
+#CodexIdle .cx-selo.is-concluido {
+	color: var(--green-600);
+}
+#CodexIdle .cx-selo.is-andamento {
+	color: var(--amber-600);
+}
+#CodexIdle .cx-selo.is-disponivel {
+	color: var(--blue-600);
+}
+#CodexIdle .cx-selo.is-bloqueado {
+	color: var(--ink-500);
+}
+
+#CodexIdle .cx-jor-legenda {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--sp-3) var(--sp-6);
+	margin: var(--sp-4) 0;
+	padding: var(--sp-3) var(--sp-5);
+	border-radius: var(--radius-card);
+	background: var(--surface-inset);
+}
+
+/* --- O cartaz do premio --------------------------------------- */
+
+#CodexIdle .cx-jor-premio {
+	display: flex;
+	align-items: center;
+	gap: var(--sp-5);
+	padding: var(--sp-5) var(--sp-6);
+	border-radius: var(--radius-card);
+	background: var(--surface-card);
+	border: 1px solid var(--border-gold);
+	box-shadow: var(--rim-light), var(--shadow-card);
+}
+
+#CodexIdle .cx-jor-premio.is-entregue {
+	border-color: var(--green-600);
+}
+
+#CodexIdle .cx-jor-premio-glifo {
+	flex: 0 0 auto;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 34px;
+	height: 34px;
+	border-radius: var(--radius-pill);
+	background: var(--surface-inset);
+	border: 1px solid var(--border-gold);
+	color: var(--gold-700);
+}
+
+#CodexIdle .cx-jor-premio-glifo svg {
+	width: 18px;
+	height: 18px;
+}
+
+#CodexIdle .cx-jor-premio-texto {
+	flex: 1 1 auto;
+	min-width: 0;
+}
+
+#CodexIdle .cx-jor-premio-titulo {
+	font: var(--type-section);
+	color: var(--text-title);
+}
+
+#CodexIdle .cx-jor-premio-descricao {
+	font: var(--type-info);
+	color: var(--text-body);
+}
+
+#CodexIdle .cx-jor-premio-falta {
+	margin-top: var(--sp-1);
+	font: var(--type-desc);
+	color: var(--amber-600);
+}
+
+#CodexIdle .cx-jor-premio-placar {
+	flex: 0 0 auto;
+	display: flex;
+	flex-direction: column;
+	align-items: flex-end;
+	font: var(--type-numeric);
+	color: var(--gold-700);
+	font-variant-numeric: tabular-nums;
+	white-space: nowrap;
+}
+
+#CodexIdle .cx-jor-premio-placar small {
+	font: var(--type-badge);
+	color: var(--text-muted);
+	text-transform: uppercase;
+	letter-spacing: var(--ls-caps);
+}
+
+/* --- O requisito (antes do desbloqueio) ------------------------ */
+
+#CodexIdle .cx-jor-requisito {
+	display: flex;
+	gap: var(--sp-5);
+	margin-top: var(--sp-4);
+	padding: var(--sp-5) var(--sp-6);
+	border-radius: var(--radius-card);
+	background: var(--surface-inset);
+	border: 1px dashed var(--border-window);
+}
+
+#CodexIdle .cx-jor-requisito-glifo {
+	flex: 0 0 auto;
+	color: var(--ink-500);
+}
+
+#CodexIdle .cx-jor-requisito-glifo svg {
+	width: 22px;
+	height: 22px;
+}
+
+#CodexIdle .cx-jor-requisito-titulo {
+	font: var(--type-section);
+	color: var(--text-title);
+}
+
+#CodexIdle .cx-jor-requisito-como {
+	margin: var(--sp-2) 0 var(--sp-4);
+	font: var(--type-info);
+	color: var(--text-body);
+}
+
+/* --- O trilho das duas telas de topo -------------------------- */
+
+#CodexIdle .cx-jor-trilho {
+	display: flex;
+	gap: var(--sp-2);
+	margin: var(--sp-5) 0 var(--sp-4);
+}
+
+#CodexIdle .cx-jor-trilho-item {
+	flex: 1 1 auto;
+}
+
+/* --- TELA A: o mapa-mundi ------------------------------------- */
+
+#CodexIdle .cx-jor-mapa-caixa {
+	position: relative;
+	width: 100%;
+	border-radius: var(--radius-card);
+	overflow: hidden;
+	border: 1px solid var(--border-window);
+	box-shadow: var(--shadow-inset);
+	background: var(--blue-900);
+}
+
+#CodexIdle .cx-jor-mapa-fundo {
+	display: block;
+	width: 100%;
+	height: auto;
+}
+
+/* O PINO. `translate(-50%,-50%)` poe o centro do BOTAO sobre a coordenada
+   medida - sem isso o canto superior esquerdo e que cairia no ponto, e
+   todo lugar ficaria deslocado para baixo e para a direita.
+
+   O botao tem tamanho FIXO (o alvo do clique) e o disco mora centrado
+   dentro dele; a etiqueta e absoluta e pendurada nesse mesmo centro. E o
+   que permite crescer o alvo para 44px no celular sem o disco crescer -
+   e sem o rotulo, que e absoluto, empurrar coisa nenhuma. */
+#CodexIdle .cx-jor-pino {
+	position: absolute;
+	transform: translate(-50%, -50%);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 30px;
+	height: 30px;
+	padding: 0;
+	border: 0;
+	background: none;
+	cursor: pointer;
+	color: var(--white);
+}
+
+#CodexIdle .cx-jor-pino-disco {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 22px;
+	height: 22px;
+	border-radius: var(--radius-pill);
+	box-sizing: border-box;
+	box-shadow: 0 2px 6px rgba(0, 0, 0, 0.55);
+}
+
+#CodexIdle .cx-jor-pino-disco svg {
+	width: 12px;
+	height: 12px;
+}
+
+#CodexIdle .cx-jor-pino.is-concluido .cx-jor-pino-disco {
+	background: var(--green-600);
+	border: 2px solid var(--white);
+	color: var(--white);
+}
+
+#CodexIdle .cx-jor-pino.is-andamento .cx-jor-pino-disco {
+	background: linear-gradient(90deg, var(--amber-600) 0 50%, rgba(255, 255, 255, 0.92) 50% 100%);
+	border: 2px solid var(--white);
+	color: var(--ink-900);
+}
+
+#CodexIdle .cx-jor-pino.is-disponivel .cx-jor-pino-disco {
+	background: rgba(255, 255, 255, 0.92);
+	border: 2px solid var(--blue-600);
+	color: var(--blue-600);
+}
+
+#CodexIdle .cx-jor-pino.is-bloqueado .cx-jor-pino-disco {
+	background: rgba(24, 48, 82, 0.72);
+	border: 2px dashed rgba(255, 255, 255, 0.85);
+	color: var(--white);
+}
+
+/* O capitulo do proximo passo ganha anel dourado: e o unico destaque do
+   mapa, e destacar dois seria nao destacar nenhum. */
+#CodexIdle .cx-jor-pino.is-atual {
+	z-index: 3;
+}
+
+#CodexIdle .cx-jor-pino.is-atual .cx-jor-pino-disco {
+	width: 28px;
+	height: 28px;
+	box-shadow: var(--glow-gold), 0 2px 8px rgba(0, 0, 0, 0.6);
+	outline: 2px solid var(--gold-400);
+	outline-offset: 1px;
+}
+
+/* A ETIQUETA e ABSOLUTA, pendurada abaixo do disco. Absoluta porque ela nao
+   pode participar do tamanho do botao: se participasse, o alvo do clique
+   viraria a caixa "disco + nome" e um pino comeria o vizinho. */
+#CodexIdle .cx-jor-pino-nome {
+	position: absolute;
+	top: 100%;
+	left: 50%;
+	transform: translateX(-50%);
+	max-width: 104px;
+	padding: 1px 5px;
+	border-radius: var(--radius-card);
+	background: rgba(9, 22, 40, 0.82);
+	color: var(--white);
+	font: var(--type-badge);
+	line-height: 1.25;
+	text-align: center;
+	pointer-events: none;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+/* Perto da borda a etiqueta troca de ancora, e o disco NAO se mexe. Ver o
+   comentario gemeo em `jornadaHtml.js`, que decide a classe. */
+#CodexIdle .cx-jor-pino.is-a-direita .cx-jor-pino-nome {
+	left: auto;
+	right: 0;
+	transform: none;
+}
+
+#CodexIdle .cx-jor-pino.is-a-esquerda .cx-jor-pino-nome {
+	left: 0;
+	transform: none;
+}
+
+#CodexIdle .cx-jor-pino.is-acima .cx-jor-pino-nome {
+	top: auto;
+	bottom: 100%;
+}
+
+#CodexIdle .cx-jor-pino:hover,
+#CodexIdle .cx-jor-pino:focus-visible {
+	z-index: 4;
+}
+
+#CodexIdle .cx-jor-pino:hover .cx-jor-pino-nome,
+#CodexIdle .cx-jor-pino:focus-visible .cx-jor-pino-nome {
+	max-width: none;
+	background: var(--blue-700);
+}
+
+#CodexIdle .cx-jor-nota {
+	margin: var(--sp-3) 0;
+	font: var(--type-desc);
+	color: var(--text-muted);
+}
+
+/* --- O cartao do proximo passo -------------------------------- */
+
+#CodexIdle .cx-jor-proximo {
+	margin-top: var(--sp-5);
+	padding: var(--sp-5) var(--sp-6);
+	border-radius: var(--radius-card);
+	background: var(--surface-card);
+	border: 1px solid var(--border-gold);
+	box-shadow: var(--rim-light), var(--shadow-card);
+}
+
+#CodexIdle .cx-jor-proximo-faixa,
+#CodexIdle .cx-jor-fita {
+	display: inline-block;
+	padding: 1px var(--sp-3);
+	border-radius: var(--radius-pill);
+	background: var(--gold-400);
+	color: var(--ink-900);
+	font: var(--type-badge);
+	text-transform: uppercase;
+	letter-spacing: var(--ls-caps);
+}
+
+#CodexIdle .cx-jor-proximo-titulo {
+	margin-top: var(--sp-2);
+	font: var(--type-section);
+	color: var(--text-title);
+}
+
+#CodexIdle .cx-jor-proximo-abertura {
+	margin-top: var(--sp-1);
+	font: var(--type-desc);
+	color: var(--text-muted);
+}
+
+#CodexIdle .cx-jor-proximo-rodape {
+	display: flex;
+	align-items: center;
+	gap: var(--sp-4);
+	margin-top: var(--sp-4);
+	flex-wrap: wrap;
+}
+
+/* --- TELA C: a jornada inteira -------------------------------- */
+
+#CodexIdle .cx-jor-capitulos {
+	display: flex;
+	flex-direction: column;
+	gap: var(--sp-3);
+}
+
+#CodexIdle .cx-jor-capitulo {
+	position: relative;
+	display: grid;
+	grid-template-columns: auto 1fr auto;
+	align-items: center;
+	gap: var(--sp-2) var(--sp-5);
+	padding: var(--sp-4) var(--sp-5);
+	border-radius: var(--radius-card);
+	background: var(--surface-card);
+	border: 1px solid var(--border-hairline);
+	border-left: 4px solid var(--border-hairline);
+}
+
+#CodexIdle .cx-jor-capitulo.is-concluido {
+	border-left-color: var(--green-600);
+	background: var(--surface-inset);
+}
+#CodexIdle .cx-jor-capitulo.is-andamento {
+	border-left-color: var(--amber-600);
+}
+#CodexIdle .cx-jor-capitulo.is-disponivel {
+	border-left-color: var(--blue-600);
+}
+#CodexIdle .cx-jor-capitulo.is-bloqueado {
+	border-left-style: dashed;
+	border-left-color: var(--ink-500);
+	opacity: 0.82;
+}
+
+#CodexIdle .cx-jor-capitulo.is-proximo {
+	border-color: var(--border-gold);
+	box-shadow: var(--rim-light), var(--glow-gold);
+}
+
+#CodexIdle .cx-jor-fita {
+	position: absolute;
+	top: -9px;
+	right: var(--sp-5);
+}
+
+#CodexIdle .cx-jor-capitulo-ordem {
+	flex: 0 0 auto;
+	min-width: 24px;
+	text-align: center;
+	font: var(--type-numeric);
+	font-size: var(--fs-numeric-lg);
+	color: var(--text-title);
+	font-variant-numeric: tabular-nums;
+}
+
+#CodexIdle .cx-jor-capitulo-texto {
+	min-width: 0;
+}
+
+#CodexIdle .cx-jor-capitulo-nome {
+	display: block;
+	font: var(--type-info);
+	color: var(--text-body);
+}
+
+#CodexIdle .cx-jor-capitulo-lugar {
+	display: inline-flex;
+	align-items: center;
+	gap: 2px;
+	color: var(--text-muted);
+	font: var(--type-badge);
+}
+
+#CodexIdle .cx-jor-capitulo-lugar svg {
+	width: 10px;
+	height: 10px;
+}
+
+#CodexIdle .cx-jor-capitulo-abertura {
+	display: block;
+	margin-top: var(--sp-1);
+	font: var(--type-desc);
+	color: var(--text-muted);
+}
+
+#CodexIdle .cx-jor-capitulo-lado,
+#CodexIdle .cx-jor-missao-lado,
+#CodexIdle .cx-jor-cabeca-lado {
+	display: flex;
+	flex-direction: column;
+	align-items: flex-end;
+	gap: var(--sp-1);
+	justify-self: end;
+}
+
+#CodexIdle .cx-jor-contador {
+	font: var(--type-numeric);
+	color: var(--text-body);
+	font-variant-numeric: tabular-nums;
+	white-space: nowrap;
+}
+
+#CodexIdle .cx-jor-barra {
+	grid-column: 1 / -1;
+	height: 6px;
+}
+
+#CodexIdle .cx-jor-acao {
+	grid-column: 1 / -1;
+	display: flex;
+	align-items: center;
+	gap: var(--sp-4);
+	flex-wrap: wrap;
+}
+
+/* --- TELA B: a lista de missoes de um capitulo ----------------- */
+
+#CodexIdle .cx-jor-cabeca {
+	display: flex;
+	align-items: center;
+	gap: var(--sp-5);
+	margin-top: var(--sp-4);
+	padding: var(--sp-5) var(--sp-6);
+	border-radius: var(--radius-card);
+	background: var(--surface-card);
+	border: 1px solid var(--border-hairline);
+}
+
+#CodexIdle .cx-jor-cabeca > div:not(.cx-jor-cabeca-lado) {
+	flex: 1 1 auto;
+	min-width: 0;
+}
+
+#CodexIdle .cx-jor-cabeca-titulo {
+	font: var(--type-section);
+	color: var(--text-title);
+}
+
+#CodexIdle .cx-jor-cabeca-abertura {
+	margin-top: var(--sp-1);
+	font: var(--type-desc);
+	color: var(--text-muted);
+}
+
+#CodexIdle .cx-jor-voltar {
+	display: inline-flex;
+	align-items: center;
+	gap: var(--sp-2);
+	margin: var(--sp-4) 0 0;
+	padding: var(--sp-2) var(--sp-4);
+	border: 1px solid var(--border-hairline);
+	border-radius: var(--radius-pill);
+	background: var(--surface-card);
+	color: var(--text-link);
+	font: var(--type-desc);
+	cursor: pointer;
+}
+
+#CodexIdle .cx-jor-voltar svg {
+	width: 12px;
+	height: 12px;
+}
+
+#CodexIdle .cx-jor-missoes {
+	display: flex;
+	flex-direction: column;
+	gap: var(--sp-3);
+	margin-top: var(--sp-4);
+}
+
+#CodexIdle .cx-jor-missao {
+	display: grid;
+	grid-template-columns: auto 1fr auto;
+	align-items: center;
+	gap: var(--sp-2) var(--sp-5);
+	padding: var(--sp-4) var(--sp-5);
+	border-radius: var(--radius-card);
+	background: var(--surface-card);
+	border: 1px solid var(--border-hairline);
+	border-left: 4px solid var(--border-hairline);
+}
+
+#CodexIdle .cx-jor-missao.is-concluido {
+	border-left-color: var(--green-600);
+	background: var(--surface-inset);
+}
+#CodexIdle .cx-jor-missao.is-andamento {
+	border-left-color: var(--amber-600);
+}
+#CodexIdle .cx-jor-missao.is-disponivel {
+	border-left-color: var(--blue-600);
+}
+#CodexIdle .cx-jor-missao.is-bloqueado {
+	border-left-style: dashed;
+	border-left-color: var(--ink-500);
+	opacity: 0.82;
+}
+
+/* O AVATAR do monstro e um BOTAO: ele e a metade "missao -> Codex" da
+   ponte. Ver a linha "Ver no Codex" ao lado, que faz a mesma coisa com
+   palavra - o icone sozinho nao diz para onde leva. */
+#CodexIdle .cx-jor-alvo {
+	padding: 2px;
+	border: 1px solid var(--border-hairline);
+	border-radius: var(--radius-card);
+	background: var(--surface-inset);
+	cursor: pointer;
+	line-height: 0;
+}
+
+#CodexIdle .cx-jor-avatar {
+	width: 40px;
+	height: 40px;
+	object-fit: contain;
+	image-rendering: pixelated;
+}
+
+#CodexIdle .cx-jor-avatar--grande {
+	width: 56px;
+	height: 56px;
+}
+
+#CodexIdle .cx-jor-missao-texto {
+	min-width: 0;
+}
+
+#CodexIdle .cx-jor-missao-nome {
+	display: block;
+	font: var(--type-info);
+	color: var(--text-body);
+}
+
+#CodexIdle .cx-jor-missao-local {
+	display: flex;
+	align-items: center;
+	gap: var(--sp-2);
+	margin-top: var(--sp-1);
+	font: var(--type-desc);
+	color: var(--text-muted);
+	flex-wrap: wrap;
+}
+
+#CodexIdle .cx-jor-missao-local svg {
+	width: 11px;
+	height: 11px;
+}
+
+#CodexIdle .cx-jor-missao-premio {
+	display: block;
+	margin-top: var(--sp-1);
+	font: var(--type-desc);
+	color: var(--amber-600);
+}
+
+#CodexIdle .cx-jor-link {
+	padding: 0;
+	border: 0;
+	background: none;
+	color: var(--text-link);
+	font: var(--type-desc);
+	text-decoration: underline;
+	cursor: pointer;
+}
+
+#CodexIdle .cx-jor-link:hover {
+	color: var(--text-link-hover);
+}
+
+/* O MOTIVO de a viagem nao sair. Ele mora ao lado do botao apagado, e nao
+   dentro do `title`: dica de mouse nao existe no dedo, e o pedido cobra
+   que a janela DIGA o motivo. */
+#CodexIdle .cx-jor-motivo {
+	display: inline-flex;
+	align-items: center;
+	gap: var(--sp-2);
+	font: var(--type-desc);
+	color: var(--red-600);
+}
+
+#CodexIdle .cx-jor-motivo svg {
+	width: 12px;
+	height: 12px;
+	flex: 0 0 auto;
+}
+
+#CodexIdle .cx-jor-fecho {
+	margin-top: var(--sp-5);
+	padding: var(--sp-4) var(--sp-5);
+	border-radius: var(--radius-card);
+	background: var(--surface-inset);
+	font: var(--type-desc);
+	color: var(--text-muted);
+	font-style: italic;
+}
+
+/* ═════════════════════════════════════════════════════════════════════
+   CELULAR - abaixo de 600px a janela ja e painel de tela cheia
+   (Common.css). O que falta e o que e DESTA tela:
+   - o alvo do pino cresce para o dedo (a moldura do projeto cobra 44px
+     onde ha toque), sem o disco crescer junto;
+   - o NOME ao lado do pino sai: num mapa de ~350px de largura, dez
+     rotulos de 9px viram uma mancha. O nome continua no `title`, na
+     lista de capitulos e no cartao do proximo passo - a informacao nao
+     se perde, ela muda de lugar;
+   - a linha de missao empilha, porque avatar + texto + selo + contador
+     nao cabem lado a lado em 350px sem cortar o nome do monstro.
+   ═════════════════════════════════════════════════════════════════════ */
+@media (max-width: 599px) {
+	#CodexIdle .cx-jor-pino {
+		width: 44px;
+		height: 44px;
+	}
+
+	#CodexIdle .cx-jor-pino-nome {
+		display: none;
+	}
+
+	#CodexIdle .cx-jor-missao,
+	#CodexIdle .cx-jor-capitulo {
+		grid-template-columns: auto 1fr;
+	}
+
+	#CodexIdle .cx-jor-missao-lado,
+	#CodexIdle .cx-jor-capitulo-lado {
+		grid-column: 1 / -1;
+		flex-direction: row;
+		align-items: center;
+		justify-content: space-between;
+		justify-self: stretch;
+	}
+
+	/* O cartaz do premio quebra em DUAS linhas, e nao em tres: o brasao e o
+	   texto continuam lado a lado (o `flex-basis` de 60% e o que os obriga a
+	   dividir a primeira linha em vez de o texto empurrar o brasao para cima
+	   sozinho), e so o placar desce - alinhado a direita, que e onde o olho
+	   ja o procura no desktop. */
+	#CodexIdle .cx-jor-premio {
+		flex-wrap: wrap;
+	}
+
+	#CodexIdle .cx-jor-premio-texto {
+		flex: 1 1 60%;
+	}
+
+	#CodexIdle .cx-jor-premio-placar {
+		flex-direction: row;
+		align-items: baseline;
+		gap: var(--sp-2);
+		width: 100%;
+		justify-content: flex-end;
+	}
+
+	#CodexIdle .cx-jor-acao .ri-btn {
+		flex: 1 1 100%;
+	}
+}

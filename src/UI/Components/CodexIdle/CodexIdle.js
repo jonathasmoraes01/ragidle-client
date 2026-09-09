@@ -35,6 +35,24 @@
  *    locais, e um eixo desconhecido aparece com a sigla crua em vez de sumir
  *    da tela em silencio.
  *
+ * 5. **A JORNADA DE MIDGARD E UMA ABA, E NAO UMA QUINTA SECAO** (08/09/2026).
+ *    A escolha foi medida contra a alternativa, e sao quatro razoes:
+ *    - a Jornada tem TRES telas proprias (o mapa-mundi com os capitulos, a
+ *      lista de um capitulo e a jornada inteira). Empilhar isso abaixo dos
+ *      sete eixos poria o botao "+" a uma rolagem de distancia do topo, e o
+ *      "+" e a acao mais frequente desta janela;
+ *    - as missoes de um capitulo pedem um PACOTE
+ *      (`{acao:'capitulo'}`): como secao, toda abertura da janela cobraria
+ *      essa viagem de rede de quem so queria gastar um ponto;
+ *    - o retrato ja separa os dois assuntos (`missoes` do Codex contra
+ *      `jornada`), e uma aba e o espelho disso na tela;
+ *    - o projeto ja tem o padrao de aba LEMBRADA (`memoriaDeAba.js`, D-797),
+ *      entao quem vive na Jornada reabre na Jornada, inclusive depois do F5 e
+ *      da troca de personagem.
+ *    O que a aba NAO faz e mexer no que ja existia: os sete eixos, o saldo, o
+ *    botao "+", as frases de recusa e a ordem vinda do retrato continuam
+ *    exatamente como estavam, na aba "Codex".
+ *
  * Entrada na HUD: o botao "Codex" do leque (TopMenuIdle), que chama
  * CodexIdle.toggle().
  *
@@ -47,9 +65,15 @@ import Network from 'Network/NetworkManager.js';
 import PACKET from 'Network/PacketStructure.js';
 import UIManager from 'UI/UIManager.js';
 import GUIComponent from 'UI/GUIComponent.js';
+import Session from 'Engine/SessionStorage.js';
+import MapRenderer from 'Renderer/MapRenderer.js';
+import HuntMap from 'UI/Components/HuntMap/HuntMap.js';
+import MissoesIdle from 'UI/Components/MissoesIdle/MissoesIdle.js';
+import { chipDeEspecieHtml, jornadaHtml } from './jornadaHtml.js';
 import htmlText from './CodexIdle.html?raw';
 import cssText from './CodexIdle.css?raw';
 import { fecharEEsquecer } from '../limpezaDeJanelaIdle.js';
+import { abaLembrada, lembrarAba } from '../memoriaDeAba.js';
 
 /** Manter em sincronia com o ":host"/".cx-window" do CSS (mesmo papel do
  * WINDOW_WIDTH/HEIGHT de PasseIdle.js:51-52). */
@@ -88,6 +112,21 @@ const MOTIVO_DA_RECUSA = {
 /** O unico eixo cujo bonus e uma PORCENTAGEM, e nao pontos de atributo. */
 const EIXO_DE_EXP = 'exp';
 
+/** As duas abas da janela. `codex` e a de sempre; `jornada` e a nova. */
+const ABAS = ['codex', 'jornada'];
+const ABA_PADRAO = 'codex';
+
+/**
+ * As telas da aba Jornada.
+ *
+ * `mapa` e a porta: o mapa-mundi com os capitulos como lugares, no papel do
+ * "World Map" da referencia. `jornada` e a lista inteira, com o proximo passo
+ * marcado. `capitulo` e o desenho do painel de missoes da referencia (avatar,
+ * contador escrito, recompensa, uma acao). `especie` e a ponte que responde
+ * "onde mais este bicho aparece".
+ */
+const VISTA_PADRAO = 'mapa';
+
 const CodexIdle = new GUIComponent('CodexIdle', cssText);
 
 CodexIdle.render = () => htmlText;
@@ -99,11 +138,38 @@ CodexIdle.mouseMode = GUIComponent.MouseMode.CROSS;
 /** O ultimo retrato que o servidor mandou (contrato v1 de ZC_RAGIDLE_CODEX). */
 CodexIdle.estado = null;
 
+/** A aba em que o jogador esta. Preferencia da PESSOA, nao do personagem. */
+CodexIdle.aba = ABA_PADRAO;
+
+/** A tela da aba Jornada: 'mapa' | 'jornada' | 'capitulo' | 'especie'. */
+CodexIdle.vista = VISTA_PADRAO;
+
+/** O capitulo aberto na tela `capitulo`, e a especie aberta na tela `especie`. */
+CodexIdle.capituloAberto = null;
+CodexIdle.especieAberta = null;
+
+/**
+ * AS MISSOES QUE JA CHEGARAM, por capitulo.
+ *
+ * Elas NAO descem todas de uma vez: sao centenas, e o campo de tamanho do
+ * protocolo e u16. O servidor manda as de UM capitulo por vez, a pedido
+ * (`{acao:'capitulo'}`), e a janela acumula aqui. Acumular e o que faz a
+ * ponte por especie existir sem um verbo novo: ela le deste indice.
+ */
+CodexIdle.missoesPorCapitulo = {};
+
+/** O capitulo cujo pedido esta EM VOO - a resposta vazia nao diz de quem e. */
+let _capituloEmVoo = null;
+
+/** A fila da varredura por especie (os capitulos que faltam carregar). */
+let _filaDaVarredura = [];
+
 const _preferences = Preferences.get(
 	'CodexIdle',
 	{
 		x: null,
-		y: null
+		y: null,
+		aba: null
 	},
 	1.0
 );
@@ -160,6 +226,19 @@ function escapeHtml(value) {
  */
 CodexIdle.limparEstadoDoPersonagem = function limparEstadoDoPersonagem() {
 	CodexIdle.estado = null;
+	/*
+	 * As missoes da Jornada e o `abates` de cada uma sao DO PERSONAGEM: deixar
+	 * o indice de pe mostraria o progresso de um na tela do outro, que e a
+	 * confusao inteira que esta funcao existe para evitar. A ABA nao entra
+	 * aqui, pelo mesmo motivo escrito em MissoesIdle: aba e escolha da pessoa.
+	 */
+	CodexIdle.missoesPorCapitulo = {};
+	CodexIdle.vista = VISTA_PADRAO;
+	CodexIdle.capituloAberto = null;
+	CodexIdle.especieAberta = null;
+	_capituloEmVoo = null;
+	_filaDaVarredura = [];
+	CodexIdle.aba = abaLembrada(_preferences, ABA_PADRAO, ABAS);
 	// A peca compartilhada (auditoria de 30/08/2026). O miolo que estava aqui
 	// virou `fecharEEsquecer`, e as outras nove janelas — que a nota abaixo
 	// registrava como conhecidas e nao consertadas — passaram a chama-la.
@@ -168,6 +247,8 @@ CodexIdle.limparEstadoDoPersonagem = function limparEstadoDoPersonagem() {
 
 CodexIdle.init = function init() {
 	const root = _root();
+	// A aba em que o jogador estava, ANTES do render() la embaixo.
+	CodexIdle.aba = abaLembrada(_preferences, ABA_PADRAO, ABAS);
 	// Guardas nos querySelector, pelo motivo registrado em
 	// ClassChangeNotice.js:68-88 e repetido em PasseIdle.js:133-136: este init
 	// roda dentro de MapEngine.init, e uma excecao aqui derruba o motor de
@@ -188,6 +269,11 @@ CodexIdle.init = function init() {
 		if (corpo) {
 			corpo.addEventListener('click', onClickCorpo);
 		}
+		// As duas abas sao FIXAS no HTML (nao renascem a cada retrato), entao
+		// aqui o listener pode ser por botao.
+		root.querySelectorAll('.cx-tab').forEach(btn => {
+			btn.addEventListener('click', onClickAba);
+		});
 	}
 
 	this._host.style.top = Math.max(0, (Renderer.height - WINDOW_HEIGHT) / 2) + 'px';
@@ -233,8 +319,42 @@ CodexIdle.toggle = function toggle() {
 		win.classList.add('is-open');
 		CodexIdle.focus();
 		enviarAcao({ acao: 'pedir' });
+		aoEntrarNaAba();
 	}
 };
+
+/**
+ * O que cada aba precisa PEDIR ao entrar.
+ *
+ * O `pedir` acima ja traz o retrato inteiro, e com ele os capitulos - o mapa e
+ * a jornada inteira desenham so com isso. O que a Jornada pede a mais e o
+ * CATALOGO de mapas, e nao por causa do desenho: e para o botao de viagem
+ * saber dizer "este mapa abre no Nv. X" em vez de nao fazer nada. Ver
+ * `motivoDeNaoViajar`.
+ */
+function aoEntrarNaAba() {
+	if (CodexIdle.aba !== 'jornada') {
+		return;
+	}
+	if (typeof HuntMap.pedirCatalogoSeFaltar === 'function') {
+		HuntMap.pedirCatalogoSeFaltar();
+	}
+	if (CodexIdle.vista === 'capitulo' && CodexIdle.capituloAberto) {
+		pedirCapitulo(CodexIdle.capituloAberto);
+	}
+}
+
+function onClickAba(e) {
+	e.stopImmediatePropagation();
+	const aba = e.currentTarget.dataset.aba;
+	if (!aba || aba === CodexIdle.aba) {
+		return;
+	}
+	CodexIdle.aba = aba;
+	lembrarAba(_preferences, aba);
+	aoEntrarNaAba();
+	render();
+}
 
 function closeWindow() {
 	const root = _root();
@@ -250,8 +370,20 @@ function onClickClose(e) {
 	closeWindow();
 }
 
-/** Delegacao: o unico clique que o corpo trata e o "+" de um eixo. */
+/**
+ * Delegacao no CORPO. O corpo inteiro renasce a cada retrato, entao um
+ * listener por botao vazaria dezenas por resposta do servidor - o mesmo
+ * motivo pelo qual o "+" ja era delegado.
+ *
+ * A ordem importa: o alvo mais especifico primeiro. Um `.cx-jor-alvo` mora
+ * DENTRO de uma linha de missao que tambem e clicavel, e `closest` acharia a
+ * linha se ela viesse antes.
+ */
 function onClickCorpo(e) {
+	const alvo = e.target && e.target.closest ? e.target : null;
+	if (alvo && cliqueDaJornada(e, alvo)) {
+		return;
+	}
 	const botao = e.target && e.target.closest && e.target.closest('.cx-mais');
 	if (!botao || botao.disabled) {
 		return;
@@ -335,15 +467,22 @@ function missoesHtml(estado) {
 				// LARGURA, nao do dado — uma barra de 130% desenhada por cima
 				// da moldura seria defeito visual de um retrato legitimo.
 				const pct = alvo > 0 ? Math.min(100, Math.round((abates / alvo) * 100)) : 0;
-				const marca = m.cumprida
-					? '<span class="ri-badge ri-badge--verde">Cumprida</span>'
-					: '';
+				const marca = m.cumprida ? '<span class="ri-badge ri-badge--verde">Cumprida</span>' : '';
 				// O NOME é o `titulo` da entrada (D-1110). Ele deixou de ser o
 				// nome de um monstro: uma entrada pode pedir três espécies
 				// ("Família Orc"), e mostrar só a primeira mentiria sobre o que
 				// falta. As espécies vão na linha de baixo, que é onde cabem.
+				/*
+				 * A PONTE ENTRADA -> MISSOES DAQUELA ESPECIE (08/09/2026).
+				 *
+				 * Cada especie da entrada virou BOTAO: ele leva a lista de
+				 * todos os mapas e objetivos da Jornada daquele `mobId`. Uma
+				 * especie que vive em varios mapas tem UMA entrada aqui e
+				 * varias missoes la, e este e o unico caminho que liga as
+				 * duas sem o jogador ter de adivinhar em que capitulo procurar.
+				 */
 				const especies = Array.isArray(m.alvos)
-					? m.alvos.map(a => escapeHtml(a.monstro)).join(' · ')
+					? m.alvos.map(a => chipDeEspecieHtml(a.mobId, a.monstro)).join('')
 					: '';
 				// O que a entrada paga ALÉM do ponto — vazio nas oito de D-851.
 				const premio = Array.isArray(m.recompensas)
@@ -363,6 +502,10 @@ function missoesHtml(estado) {
 				return (
 					'<div class="cx-missao' +
 					(m.cumprida ? ' is-cumprida' : '') +
+					'" data-entrada="' +
+					escapeHtml(m.id || '') +
+					'" data-mobids="' +
+					escapeHtml((Array.isArray(m.alvos) ? m.alvos : []).map(a => a.mobId).join(',')) +
 					'">' +
 					'<span class="cx-missao-nome">' +
 					escapeHtml(m.titulo || m.monstro || '') +
@@ -439,8 +582,7 @@ function eixosHtml(estado) {
 		const bonus = bonusDoEixo(estado, eixo);
 		const titulo = semVeredito
 			? 'Este servidor nao diz se o gasto e possivel — atualize o cliente'
-			: MOTIVO_DA_RECUSA[recusa] ||
-				'Gastar 1 ponto em ' + (NOME_DO_EIXO[eixo] || eixo);
+			: MOTIVO_DA_RECUSA[recusa] || 'Gastar 1 ponto em ' + (NOME_DO_EIXO[eixo] || eixo);
 
 		return (
 			'<div class="cx-eixo' +
@@ -493,12 +635,21 @@ function render() {
 		saldo.textContent = String((estado && estado.pontosDisponiveis) || 0);
 	}
 
+	root.querySelectorAll('.cx-tab').forEach(btn => {
+		btn.classList.toggle('is-active', btn.dataset.aba === CodexIdle.aba);
+	});
+
 	const corpo = root.querySelector('.cx-body');
 	if (!corpo) {
 		return;
 	}
 	if (!estado) {
 		corpo.innerHTML = '<div class="cx-carregando">Carregando…</div>';
+		return;
+	}
+
+	if (CodexIdle.aba === 'jornada') {
+		corpo.innerHTML = jornadaHtml(estado, contextoDaJornada());
 		return;
 	}
 
@@ -511,6 +662,215 @@ function render() {
 		'<div class="cx-secao"><div class="cx-secao-titulo">Onde gastar</div>' +
 		eixosHtml(estado) +
 		'</div>';
+}
+
+/* ------------------------------------------------------------------ */
+/* A JORNADA DE MIDGARD - o que so a janela sabe                       */
+/* ------------------------------------------------------------------ */
+/*
+ * O DESENHO mora em `jornadaHtml.js`, e a razao esta escrita la: assim ele e
+ * FOTOGRAFAVEL sem o cliente inteiro de pe, e a prova de tela mede o codigo
+ * que roda no jogo em vez de uma copia feita para o arnes.
+ *
+ * O que fica aqui e o que so existe com o jogo rodando: a sessao (nivel,
+ * morte, mapa atual), o catalogo do Mapa de Caca e o que ja chegou do
+ * servidor. Eles entram la como ARGUMENTO.
+ */
+
+/** O que o cliente sabe hoje sobre o proprio personagem, para a viagem. */
+function situacaoDoJogador() {
+	const entidade = Session && Session.Entity;
+	const vida = entidade && entidade.life;
+	const mapa = MapRenderer && MapRenderer.currentMap ? String(MapRenderer.currentMap) : '';
+	return {
+		nivelDoJogador: (entidade && Number(entidade.clevel)) || 0,
+		// A regra do `DeathWindow`: `hp_max > 0` e o que separa "cadaver" de
+		// "os pacotes de vida ainda nao chegaram" (a entidade nasce com -1).
+		morto: !!(vida && Number(vida.hp_max) > 0 && Number(vida.hp) <= 0),
+		mapaAtual: mapa.replace(/\.gat$/i, '')
+	};
+}
+
+/** O nivel em que um mapa abre, lido do catalogo do Mapa de Caca. */
+function nivelQueAbre(mapa) {
+	if (typeof HuntMap.mapaDoCatalogo !== 'function') {
+		return null;
+	}
+	const doCatalogo = HuntMap.mapaDoCatalogo(mapa);
+	return doCatalogo && Number.isFinite(Number(doCatalogo.nivelQueAbre)) ? Number(doCatalogo.nivelQueAbre) : null;
+}
+
+/** O contexto que `jornadaHtml.js` precisa, montado do estado vivo da janela. */
+function contextoDaJornada() {
+	return {
+		estado: CodexIdle.estado,
+		vista: CodexIdle.vista,
+		capituloAberto: CodexIdle.capituloAberto,
+		especieAberta: CodexIdle.especieAberta,
+		missoesPorCapitulo: CodexIdle.missoesPorCapitulo,
+		situacao: situacaoDoJogador(),
+		nivelQueAbre: nivelQueAbre,
+		faltamNaVarredura: _filaDaVarredura.length
+	};
+}
+
+/* ------------------------------------------------------------------ */
+/* Os cliques da Jornada                                               */
+/* ------------------------------------------------------------------ */
+
+/**
+ * @returns {boolean} true quando o clique era da Jornada e ja foi tratado.
+ */
+function cliqueDaJornada(e, alvo) {
+	const pino = alvo.closest('[data-capitulo]');
+	if (pino && !pino.disabled) {
+		e.stopImmediatePropagation();
+		abrirCapitulo(pino.dataset.capitulo);
+		return true;
+	}
+
+	const viagem = alvo.closest('[data-viajar]');
+	if (viagem && !viagem.disabled) {
+		e.stopImmediatePropagation();
+		viajarPara(viagem.dataset.viajar);
+		return true;
+	}
+
+	const paraOCodex = alvo.closest('[data-codex-mobid]');
+	if (paraOCodex) {
+		e.stopImmediatePropagation();
+		abrirEntradaDoCodex(Number(paraOCodex.dataset.codexMobid));
+		return true;
+	}
+
+	const paraAEspecie = alvo.closest('.cx-ponte-especie');
+	if (paraAEspecie) {
+		e.stopImmediatePropagation();
+		abrirEspecie(Number(paraAEspecie.dataset.mobid));
+		return true;
+	}
+
+	const troca = alvo.closest('[data-vista]');
+	if (troca) {
+		e.stopImmediatePropagation();
+		CodexIdle.vista = troca.dataset.vista;
+		CodexIdle.capituloAberto = null;
+		CodexIdle.especieAberta = null;
+		render();
+		return true;
+	}
+
+	const missoes = alvo.closest('.cx-jor-abrir-missoes');
+	if (missoes) {
+		e.stopImmediatePropagation();
+		MissoesIdle.toggle();
+		return true;
+	}
+
+	return false;
+}
+
+/** Pede as missoes de um capitulo, uma vez por capitulo. */
+function pedirCapitulo(id) {
+	if (!id || Object.prototype.hasOwnProperty.call(CodexIdle.missoesPorCapitulo, id)) {
+		return;
+	}
+	_capituloEmVoo = id;
+	enviarAcao({ acao: 'capitulo', capitulo: id });
+}
+
+function abrirCapitulo(id) {
+	if (!id) {
+		return;
+	}
+	CodexIdle.vista = 'capitulo';
+	CodexIdle.capituloAberto = id;
+	CodexIdle.especieAberta = null;
+	pedirCapitulo(id);
+	render();
+}
+
+/**
+ * A PONTE ENTRADA -> MISSOES DAQUELA ESPECIE.
+ *
+ * As missoes chegam por capitulo, entao a lista completa de uma especie so
+ * existe depois que os capitulos chegaram. Em vez de esperar, a tela abre com
+ * o que ja tem e VARRE o resto um a um, redesenhando a cada resposta - uma
+ * rajada de N pacotes de uma vez seria pior para o servidor e para o jogador,
+ * que veria a tela parada do mesmo jeito.
+ */
+function abrirEspecie(mobId) {
+	if (!Number.isFinite(mobId)) {
+		return;
+	}
+	CodexIdle.aba = 'jornada';
+	lembrarAba(_preferences, 'jornada');
+	CodexIdle.vista = 'especie';
+	CodexIdle.especieAberta = mobId;
+	CodexIdle.capituloAberto = null;
+
+	const jor = (CodexIdle.estado && CodexIdle.estado.jornada) || {};
+	_filaDaVarredura = (jor.capitulos || [])
+		.map(c => c && c.id)
+		.filter(id => id && !Object.prototype.hasOwnProperty.call(CodexIdle.missoesPorCapitulo, id));
+	render();
+	seguirVarredura();
+}
+
+function seguirVarredura() {
+	if (_capituloEmVoo || _filaDaVarredura.length === 0) {
+		return;
+	}
+	pedirCapitulo(_filaDaVarredura[0]);
+}
+
+/**
+ * A PONTE MISSAO -> ENTRADA DE ESPECIE DO CODEX.
+ *
+ * Troca de aba, desenha e ACENDE a entrada que cita aquele `mobId`. Sem o
+ * realce, cair numa lista de 38 entradas seria o mesmo que nao ter ponte.
+ */
+function abrirEntradaDoCodex(mobId) {
+	if (!Number.isFinite(mobId)) {
+		return;
+	}
+	CodexIdle.aba = 'codex';
+	lembrarAba(_preferences, 'codex');
+	render();
+
+	const root = _root();
+	const corpo = root && root.querySelector('.cx-body');
+	if (!corpo) {
+		return;
+	}
+	const linha = Array.prototype.find.call(corpo.querySelectorAll('.cx-missao[data-mobids]'), el =>
+		String(el.dataset.mobids || '')
+			.split(',')
+			.includes(String(mobId))
+	);
+	if (!linha) {
+		return;
+	}
+	linha.classList.add('is-realce');
+	if (typeof linha.scrollIntoView === 'function') {
+		linha.scrollIntoView({ block: 'center' });
+	}
+}
+
+/**
+ * A viagem. MESMO pacote que o Mapa de Caca e a janela de Missoes mandam
+ * (`CZ_RAGIDLE_VIAJAR`, 0x0ff2) - nenhum caminho novo, so um segundo gatilho.
+ * A janela FECHA porque o servidor responde com o mapmove e o cliente recarrega
+ * o mapa por baixo dela, como o botao do atlas ja faz.
+ */
+function viajarPara(mapa) {
+	if (!mapa) {
+		return;
+	}
+	const pkt = new PACKET.CZ.RAGIDLE_VIAJAR();
+	pkt.mapName = mapa;
+	Network.sendPacket(pkt);
+	closeWindow();
 }
 
 /* ------------------------------------------------------------------ */
@@ -531,9 +891,67 @@ function onCodexRecebido(pkt) {
 		return;
 	}
 	CodexIdle.estado = dados;
+	acumularMissoesDaJornada(dados);
 	render();
+	seguirVarredura();
+}
+
+/**
+ * AS MISSOES DE UM CAPITULO CHEGARAM - guarde-as.
+ *
+ * O retrato vem inteiro em toda resposta, e `jornada.missoes` so aparece na
+ * resposta do verbo `capitulo`. Duas armadilhas tratadas aqui:
+ *
+ * 1. **capitulo VAZIO nao diz de quem e.** Uma lista sem elementos nao carrega
+ *    o `capitulo` de ninguem, e sem marcar o capitulo como carregado a janela
+ *    ficaria pedindo o mesmo para sempre. Por isso o `_capituloEmVoo`.
+ * 2. **a resposta pode trazer missoes de mais de um capitulo** se um dia o
+ *    servidor agrupar - agrupar por `m.capitulo` cobre os dois casos sem
+ *    supor nada.
+ */
+function acumularMissoesDaJornada(dados) {
+	const jornada = dados.jornada;
+	const pedido = _capituloEmVoo;
+	if (!jornada || !Array.isArray(jornada.missoes)) {
+		return;
+	}
+	_capituloEmVoo = null;
+
+	const porCapitulo = {};
+	for (const m of jornada.missoes) {
+		const id = (m && m.capitulo) || pedido;
+		if (!id) {
+			continue;
+		}
+		(porCapitulo[id] = porCapitulo[id] || []).push(m);
+	}
+	if (pedido && !porCapitulo[pedido]) {
+		porCapitulo[pedido] = [];
+	}
+	for (const id of Object.keys(porCapitulo)) {
+		porCapitulo[id].sort((a, b) => (Number(a.ordem) || 0) - (Number(b.ordem) || 0));
+		CodexIdle.missoesPorCapitulo[id] = porCapitulo[id];
+	}
+	_filaDaVarredura = _filaDaVarredura.filter(
+		id => !Object.prototype.hasOwnProperty.call(CodexIdle.missoesPorCapitulo, id)
+	);
 }
 
 Network.hookPacket(PACKET.ZC.RAGIDLE_CODEX, onCodexRecebido);
+
+/*
+ * O CATALOGO NAO E DESTA JANELA - ele e do Mapa de Caca, e `hookPacket` e
+ * atribuicao simples: enganchar `ZC_RAGIDLE_CATALOGO` aqui SUBSTITUIRIA o
+ * gancho de la em silencio, e o atlas pararia de funcionar sem nada acusar.
+ * Entao a Jornada pede por emprestimo e so avisa quando o dado chegar, para o
+ * botao de viagem trocar "Ir para X" pelo motivo de a viagem nao sair.
+ */
+if (typeof HuntMap.aoChegarCatalogo === 'function') {
+	HuntMap.aoChegarCatalogo(() => {
+		if (CodexIdle.aba === 'jornada' && CodexIdle.estado) {
+			render();
+		}
+	});
+}
 
 export default UIManager.addComponent(CodexIdle);

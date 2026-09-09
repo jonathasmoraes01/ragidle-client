@@ -179,7 +179,7 @@ describe('PORTÃO: toda janela RAGIDLE com abas lembra a aba', () => {
 		f => f.codigo.includes('limpezaDeJanelaIdle.js') && MARCAS_DE_ABA.some(marca => f.codigo.includes(marca))
 	);
 
-	it('acha as oito janelas de hoje (controle: o filtro não está vazio)', () => {
+	it('acha as nove janelas de hoje (controle: o filtro não está vazio)', () => {
 		/*
 		 * Sem esta conferência, um filtro que parasse de casar deixaria o portão
 		 * VERDE por não medir nada — a forma mais comum de portão morto.
@@ -191,8 +191,14 @@ describe('PORTÃO: toda janela RAGIDLE com abas lembra a aba', () => {
 		 *    ficou apontando para o markup que saiu).
 		 *
 		 * A oitava é a Análise de Caça (D-943): Atual + as duas últimas.
+		 *
+		 * A NONA é o Códex (08/09/2026): ele ganhou a aba "Missões do Códex", a
+		 * Jornada de Midgard. Foi este caso que reprovou primeiro, e ele fez
+		 * exatamente o que o comentário acima promete - uma janela ganhou abas,
+		 * e o portão cobrou a memória de aba antes de o defeito existir.
 		 */
 		expect(comAbas.map(f => f.rel).sort(), 'a lista de janelas com abas mudou — ver o comentário acima').toEqual([
+			'CodexIdle/CodexIdle.js',
 			'HuntAnalyzer/HuntAnalyzer.js',
 			'HuntMap/HuntMap.js',
 			'IdleConfig/IdleConfig.js',
