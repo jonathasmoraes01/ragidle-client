@@ -972,105 +972,17 @@
 
 /* ─── O RODAPE (nivel + EXP + wifi + bateria) ─────────────────────────── */
 
-/* Fora do celular em pe ele NAO EXISTE — e a regra sem prefixo, entao vale
-   em desktop, deitado, tablet, tudo. */
-.bi-rodape {
-	display: none;
-}
+/* ═══════════════════════════════════════════════════════════════════
+   O RODAPE DA HUD VERTICAL SAIU (08/09/2026, ordem do dono).
 
-.ri-vertical .bi-rodape {
-	display: flex;
-	position: fixed;
-	left: 0;
-	right: 0;
-	bottom: 0;
-	align-items: center;
-	gap: 8px;
-	height: calc(var(--vr-rodape-altura, 22px) + var(--safe-baixo, 0px));
-	padding: 0 12px var(--safe-baixo, 0px) 12px;
-	box-sizing: border-box;
-	background: rgba(12, 24, 42, 0.78);
-	color: var(--white, #fff);
-	font-size: 10px;
-	line-height: 1;
-	z-index: 5;
-	pointer-events: none; /* faixa informativa: o toque atravessa */
-}
+   Eram ~13 regras `.bi-rodape*` desenhando a faixa fina do pe da tela
+   (Lv. + EXP + wifi + bateria). O elemento foi removido do HTML — ver o
+   comentario la, que carrega o motivo e o melhor argumento CONTRA.
 
-.ri-vertical .bi-rodape-nivel {
-	font-weight: var(--fw-bold, 700);
-	white-space: nowrap;
-}
-
-.ri-vertical .bi-rodape-exp-track {
-	flex: 1 1 auto;
-	height: 7px;
-	border-radius: var(--radius-pill);
-	background: rgba(255, 255, 255, 0.22);
-	overflow: hidden;
-}
-
-.ri-vertical .bi-rodape-exp-fill {
-	height: 100%;
-	width: 0;
-	border-radius: inherit;
-	background: #58c26e;
-}
-
-.ri-vertical .bi-rodape-exp-texto {
-	white-space: nowrap;
-	font-variant-numeric: tabular-nums;
-}
-
-.ri-vertical .bi-rodape-wifi {
-	flex: 0 0 auto;
-}
-
-.ri-vertical .bi-rodape-wifi.is-off {
-	opacity: 0.35;
-}
-
-.ri-vertical .bi-rodape-bateria {
-	display: inline-flex;
-	align-items: center;
-	gap: 3px;
-}
-
-.ri-vertical .bi-rodape-bateria-caixa {
-	display: inline-block;
-	width: 17px;
-	height: 9px;
-	border: 1px solid rgba(255, 255, 255, 0.75);
-	border-radius: 2px;
-	padding: 1px;
-	box-sizing: border-box;
-	position: relative;
-}
-
-/* O polo da pilha. */
-.ri-vertical .bi-rodape-bateria-caixa::after {
-	content: '';
-	position: absolute;
-	right: -3px;
-	top: 2px;
-	width: 2px;
-	height: 3px;
-	background: rgba(255, 255, 255, 0.75);
-	border-radius: 0 1px 1px 0;
-}
-
-.ri-vertical .bi-rodape-bateria-nivel {
-	display: block;
-	height: 100%;
-	width: 0;
-	background: var(--white, #fff);
-	border-radius: 1px;
-}
-
-.ri-vertical .bi-rodape-bateria.is-baixa .bi-rodape-bateria-nivel {
-	background: #e05a4e;
-}
-
+   As regras sairam junto em vez de ficarem sem sujeito: CSS que nao casa
+   com nada e pior que CSS ausente, porque o proximo leitor gasta tempo
+   procurando o elemento que ele estiliza.
+   ═══════════════════════════════════════════════════════════════════ */
 /* A conta do aperto em 360px (medida na 1a foto do arnes): as pilulas e o
    nome comiam a linha e as trilhas de EXP sobravam com ~4px. Pisos e tetos
    explicitos: a trilha tem largura MINIMA (e a informacao central da barra)
