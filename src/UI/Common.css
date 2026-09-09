@@ -2057,8 +2057,19 @@ html.ri-hud-classica :host {
 	/* O trilho da direita: disco de 48 + rotulo, num passo de 68px. */
 	--vr-trilho-passo: 68px;
 	--vr-trilho-largura: 60px;
-	/* O rodape fino (nivel + EXP) e a barra de atalhos acima dele. */
-	--vr-rodape-altura: 22px;
+	/*
+	 * O RODAPE FINO SAIU (08/09/2026, ordem do dono) — ver o comentario em
+	 * `BasicInfoIdle.html`. Ele mostrava nivel + EXP, que a barra do TOPO ja
+	 * mostra, e cobrava 22px de tela.
+	 *
+	 * O TOKEN FICA, valendo ZERO, e isso nao e preguica: ele e lido por
+	 * `--vr-acima-dos-atalhos` (logo abaixo) e pelo `bottom` da barra de
+	 * atalhos e do chat. Apagar a linha faria os tres caírem no `var(..., X)`
+	 * de reserva de cada um — tres numeros para manter em vez de um. Com ele
+	 * em zero, tudo o que se pendurava no rodape desce 22px sozinho, e
+	 * devolver a faixa e trocar este numero de volta.
+	 */
+	--vr-rodape-altura: 0px;
 	--vr-atalhos-altura: 56px;
 	--vr-acima-dos-atalhos: calc(
 		var(--safe-baixo, 0px) + var(--vr-rodape-altura) + var(--vr-atalhos-altura) + 10px

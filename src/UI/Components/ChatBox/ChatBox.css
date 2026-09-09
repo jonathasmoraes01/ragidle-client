@@ -1390,3 +1390,94 @@
 		inset: -10px 0;
 	}
 }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   O CHAT NO CELULAR EM PE (08/09/2026, pedido do dono)
+   ═══════════════════════════════════════════════════════════════════════
+   *"Ajuste dimensoes, posicao e espaco ocupado para permitir acompanhar a
+   conversa e enxergar o jogo (...) Ao abrir o teclado, o campo de digitacao
+   deve continuar visivel."*
+
+   MEDIDO antes (393x852, no jogo de pe): o painel aberto come 18% da tela, e
+   a BARRA DE DIGITACAO quebra "Enter para digitar" em QUATRO linhas
+   empilhadas — o PNG mostra "Ente / r / para / digit / ar" numa coluna. A
+   barra tenta caber, em 393px, seis coisas: a etiqueta de destino, o campo de
+   sussurro, o campo da mensagem, a dica do Tab e dois botoes.
+
+   ── O QUE SAI, E POR QUE CADA UM ────────────────────────────────────────
+   Nada aqui e escondido por ser feio: os dois que saem sao AFFORDANCES DE
+   TECLADO num aparelho que nao tem teclado fisico.
+   ═══════════════════════════════════════════════════════════════════════ */
+@media (pointer: coarse) and (orientation: portrait) and (max-width: 599px) {
+	/* A dica "Tab" ensina a ciclar canais com a tecla Tab. Não há Tab no
+	   dedo — quem troca de canal usa as abas ou o botao de destino. */
+	#chatbox .cb-dica-tab {
+		display: none;
+	}
+
+	/* O campo de SUSSURRO ("Sussurrar para") e um segundo input dentro de
+	   uma barra que ja esta apertada, e so serve quando se vai sussurrar.
+	   Ele volta sozinho quando o destino E sussurro — a etiqueta
+	   `.cb-destino` vira "Sussurro" nesse caso, e a regra abaixo o traz de
+	   volta. Enquanto isso, o campo da MENSAGEM fica com o espaco. */
+	#chatbox .input .username {
+		display: none;
+	}
+
+	#chatbox .cb-destino[data-destino='sussurro'] ~ .username {
+		display: block;
+		flex: 0 1 96px;
+		min-width: 0;
+	}
+
+	/* O campo da mensagem toma o que sobrou, e para de quebrar. */
+	#chatbox .input .wrapper {
+		flex: 1 1 auto;
+		min-width: 0;
+	}
+
+	#chatbox .input .message {
+		white-space: nowrap;
+		overflow-x: auto;
+	}
+
+	/* Os dois botoes viram alvo de dedo. */
+	#chatbox .input .filter,
+	#chatbox .input .cb-enviar {
+		flex: 0 0 auto;
+		min-width: 44px;
+		min-height: 44px;
+	}
+
+	/* ── ENXERGAR O JOGO ────────────────────────────────────────────────
+	   O painel aberto tinha 202px de altura numa tela de 852. Ele cai para
+	   uma fracao da ALTURA UTIL em vez de um numero fixo: assim ele
+	   acompanha telas mais baixas (o 360x640 da matriz) sem uma segunda
+	   regra. 28dvh em 852 da ~238px de teto, e o log continua rolando por
+	   dentro — o que encolhe e o teto, e nao o conteudo. */
+	#chatbox:not(.is-recolhido):not(.is-minimizado) .content {
+		max-height: 28dvh;
+	}
+
+	/* ── O TECLADO ──────────────────────────────────────────────────────
+	   O teclado virtual nao redimensiona a janela: ele encolhe o
+	   `visualViewport`. Sem isto o chat continua ancorado no `bottom` do
+	   layout e fica DESENHADO ATRAS do teclado — o jogador digita sem ver o
+	   que escreve.
+
+	   `--teclado-altura` e publicada por `UI/escalaDaHud.js` e vale ZERO sem
+	   teclado, entao este `calc` e inerte o resto do tempo.
+
+	   LIMITE DECLARADO: nao medido em aparelho real — o Chromium do
+	   Playwright nao abre teclado de sistema. */
+	#chatbox {
+		bottom: calc(var(--chat-bottom, 8px) + var(--teclado-altura, 0px));
+		transition: bottom 120ms ease-out;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	#chatbox {
+		transition: none;
+	}
+}

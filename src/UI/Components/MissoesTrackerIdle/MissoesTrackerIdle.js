@@ -81,22 +81,71 @@ function mandarAcao(acao, id) {
 	Network.sendPacket(pkt);
 }
 
+/**
+ * Vira o estado de recolhido e repinta os dois botoes.
+ *
+ * A PREFERENCIA ATRAVESSA o redesenho do painel e a troca de mapa sem
+ * esforco: `_recolhido` e estado de MODULO e `render()` nunca toca na classe
+ * do `.mt-painel` — ele reescreve so o conteudo de `.mt-ativa` e `.mt-lista`.
+ * Foi conferido antes de escrever isto, e nao suposto.
+ */
+function alternarRecolhido() {
+	_recolhido = !_recolhido;
+	pintarRecolhido();
+}
+
+/** Poe o estado na tela. Chamada no `init` tambem, para o primeiro quadro. */
+function pintarRecolhido() {
+	const root = _root();
+	if (!root) {
+		return;
+	}
+	const painel = root.querySelector('.mt-painel');
+	if (painel) {
+		painel.classList.toggle('is-recolhido', _recolhido);
+	}
+	const antigo = root.querySelector('.mt-recolher');
+	if (antigo) {
+		antigo.textContent = _recolhido ? '+' : '−';
+	}
+	const vertical = root.querySelector('.mt-recolher-v');
+	if (vertical) {
+		/* O glifo GIRA em vez de trocar de caractere: o chevron apontando
+		   para baixo e "fecha", apontando para cima e "abre", e a rotacao
+		   deixa claro que e o mesmo controle. */
+		vertical.classList.toggle('is-recolhido', _recolhido);
+		vertical.setAttribute('aria-expanded', String(!_recolhido));
+		const rotulo = _recolhido ? 'Expandir missões' : 'Recolher missões';
+		vertical.setAttribute('aria-label', rotulo);
+		vertical.title = rotulo;
+	}
+}
+
 MissoesTrackerIdle.init = function init() {
 	const root = _root();
 	// Guardas pelo motivo de ClassChangeNotice.js:68-88: este init roda dentro
 	// de MapEngine.init e uma exceção aqui derruba o mundo 3D.
-	const recolher = root && root.querySelector('.mt-recolher');
-	if (recolher) {
-		recolher.addEventListener('click', e => {
+	/*
+	 * OS DOIS INTERRUPTORES DA MESMA LUZ (08/09/2026).
+	 *
+	 * `.mt-recolher` e o botao de sempre, no `.mt-header` — que a HUD
+	 * vertical esconde. `.mt-recolher-v` e o gemeo dele na fileira de abas,
+	 * que so a vertical desenha. Os dois chamam `alternarRecolhido()`: um
+	 * estado, dois lugares de tocar nele.
+	 *
+	 * Escrever a troca duas vezes seria a receita do "dois estados que
+	 * dessincronizam" que este projeto ja registrou varias vezes.
+	 */
+	for (const botao of [root && root.querySelector('.mt-recolher'), root && root.querySelector('.mt-recolher-v')]) {
+		if (!botao) {
+			continue;
+		}
+		botao.addEventListener('click', e => {
 			e.stopImmediatePropagation();
-			_recolhido = !_recolhido;
-			const painel = _root().querySelector('.mt-painel');
-			if (painel) {
-				painel.classList.toggle('is-recolhido', _recolhido);
-			}
-			recolher.textContent = _recolhido ? '+' : '−';
+			alternarRecolhido();
 		});
 	}
+	pintarRecolhido();
 	/*
 	 * D-939: as pecas do cartao da HUD vertical. A aba "Grupo" e o rodape
 	 * "Ver todas as missões" sao PORTAS (abrem as janelas que ja existem),
