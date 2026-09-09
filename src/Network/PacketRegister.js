@@ -1017,11 +1017,17 @@ export default {
 	// nao lido. Ver PacketStructure.js para o contrato JSON de cada um.
 	0x0fe9: PACKET.ZC.RAGIDLE_LFG_LISTA,
 	0x0fe8: PACKET.ZC.RAGIDLE_LFG_RESULTADO,
-	// CODEX (D-851): so o ZC entra aqui — o CZ 0x0fe4 e escrito pelo cliente,
+	// CODEX (D-851): so o ZC entra aqui, e o CZ 0x0fe4 e escrito pelo cliente,
 	// nao lido. Mesma razao de 0x0ff1/0x0ff4/0x0ff7/0x0ffa/0x0fea acima. O
 	// retrato desce respondendo aos DOIS verbos, inclusive a um gastar
 	// recusado — nao ha ZC de erro.
 	0x0fe3: PACKET.ZC.RAGIDLE_CODEX,
+
+	// TUTORIAL GUIADO (secao 6 do CONTRATO-JORNADA.md): so o ZC entra aqui, e o
+	// CZ 0x0fde e escrito pelo cliente, nao lido. Mesma razao de
+	// 0x0ff1/0x0ff4/0x0ff7/0x0ffa/0x0fea/0x0fe3 acima. O retrato desce
+	// respondendo aos QUATRO verbos, inclusive a um avancar recusado.
+	0x0fdf: PACKET.ZC.RAGIDLE_TUTORIAL,
 
 	0xb1a: PACKET.ZC.USESKILL_ACK3 // USE SKILL 3
 };

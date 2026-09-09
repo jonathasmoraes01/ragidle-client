@@ -185,6 +185,46 @@ class Cursor {
 	}
 
 	/**
+	 * O BLOB DE UM QUADRO JA RASTERIZADO (08/09/2026, tutorial guiado).
+	 *
+	 * `preCompiledAnimations()` ja transforma cada quadro de
+	 * `data/sprite/cursors.spr` num PNG de 50x50 e guarda a URL de blob em
+	 * `_compiledStyle`. O trabalho inteiro esta feito, e ele so nao tinha
+	 * porta. Esta e a porta.
+	 *
+	 * Ela existe para a camada do tutorial (UI/Components/TutorialIdle) poder
+	 * usar a MAO do proprio Ragnarok (`Cursor.ACTION.CLICK`, quadro 0: a luva
+	 * com o indicador esticado) como um `<img>` apontando o controle. A regra
+	 * do design system proibe emoji e ilustracao SVG desenhada a mao
+	 * (`UI/ri-icones.js:6-8`), e desenhar uma mao nova seria as duas coisas
+	 * ao mesmo tempo; aqui a mao e arte do cliente, como manda a regra 4 do
+	 * projeto.
+	 *
+	 * Devolve `null` (e nao lanca) enquanto `Cursor.init()` nao rodou ou
+	 * quando o par acao/quadro nao existe: quem chama tem de ter um plano B na
+	 * tela, e uma excecao no caminho de desenho da UI seria pior que a falta
+	 * do icone.
+	 *
+	 * @param {number} action - Cursor.ACTION.*
+	 * @param {number} [frame] - o quadro dentro da acao (0 e o primeiro)
+	 * @returns {string|null} URL de blob de um PNG 50x50
+	 */
+	static getCompiledFrameURL(action, frame) {
+		if (!_action || !_compiledStyle.length) {
+			return null;
+		}
+		const act = _action.actions[action];
+		if (!act || !act.animations) {
+			return null;
+		}
+		const animation = act.animations[frame || 0];
+		if (!animation || typeof animation.compiledStyleIndex !== 'number') {
+			return null;
+		}
+		return _compiledStyle[animation.compiledStyleIndex] || null;
+	}
+
+	/**
 	 * Render the cursor (update)
 	 */
 	static render(tick) {

@@ -16240,7 +16240,7 @@ PACKET.CZ.RAGIDLE_CODEX_ACAO.prototype.build = function () {
 // cumprida }] }.
 //
 // UM pacote de resposta para os DOIS verbos, inclusive para um `gastar`
-// RECUSADO — que desce o retrato inalterado em vez de um pacote de erro.
+// RECUSADO, que desce o retrato inalterado em vez de um pacote de erro.
 // Nao ha ZC de recusa de proposito: seria um segundo caminho a manter
 // dizendo o que o primeiro ja diz, e a janela ficaria escolhendo, pelo
 // conteudo, a qual pergunta o servidor esta respondendo.
@@ -16252,6 +16252,63 @@ PACKET.ZC.RAGIDLE_CODEX = function PACKET_ZC_RAGIDLE_CODEX(fp, end) {
 	this.json = fp.readString(end - fp.tell());
 };
 PACKET.ZC.RAGIDLE_CODEX.size = -1;
+
+// ===========================================================================
+// O TUTORIAL GUIADO - 0x0fdf / 0x0fde (secao 6 do CONTRATO-JORNADA.md)
+// ===========================================================================
+// Estes DOIS saem do TOPO do vao livre da reserva de D-527 (0x0fd3..0x0fdf,
+// 13 slots), e nao do fundo: as branches irmas desta rodada estao cunhando de
+// BAIXO para cima, entao pegar do topo e o que deixa as duas frentes
+// avancarem sem colidir no meio do vao.
+//
+// A RESERVA se declara nos DOIS repositorios antes de qualquer lado usar. Do
+// lado do servidor ha portao (servidor/protocolo/faixa-ragidle.test.ts, que
+// move a fronteira RESERVADA/USADOS_DA_RESERVA); este repositorio nao tem
+// portao proprio de faixa, e e por isso que a declaracao vive escrita aqui.
+//
+// DOIS pacotes, e nao cinco: os quatro verbos ('pedir', 'avancar', 'pular',
+// 'retomar') cabem num CZ so, com o verbo no corpo, o mesmo padrao de
+// CZ_RAGIDLE_CODEX_ACAO logo acima e de CZ_RAGIDLE_MISSAO_ACAO.
+
+// 0x0fde - RAGIDLE: CZ_RAGIDLE_TUTORIAL_ACAO (client -> server)
+// Variable size: u16 opcode + u16 total length + JSON UTF-8 payload.
+// { acao: 'pedir' | 'avancar' | 'pular' | 'retomar', etapa?: number }.
+//
+// `etapa` so acompanha o 'avancar', e ela e a etapa PARA A QUAL o cliente quer
+// ir (a vigente + 1). O servidor so aceita quando o numero e exatamente
+// `atual + 1`, e e essa guarda que faz pacote repetido e reconexao nao
+// pularem etapa. Como no Codex, o servidor NAO confia no corpo: verbo fora dos
+// quatro e etapa fora da faixa caem na mesma recusa silenciosa, na borda.
+PACKET.CZ.RAGIDLE_TUTORIAL_ACAO = function PACKET_CZ_RAGIDLE_TUTORIAL_ACAO() {
+	this.json = '{}';
+};
+PACKET.CZ.RAGIDLE_TUTORIAL_ACAO.prototype.build = function () {
+	const bytes = TextEncoding.encode(this.json, 'utf-8');
+	const pkt_len = 2 + 2 + bytes.length;
+	const pkt_buf = new BinaryWriter(pkt_len);
+	pkt_buf.writeShort(0x0fde);
+	pkt_buf.writeUShort(pkt_len);
+	pkt_buf.writeString(this.json);
+	return pkt_buf;
+};
+
+// 0x0fdf - RAGIDLE: ZC_RAGIDLE_TUTORIAL (server -> client)
+// Variable size: u16 opcode + u16 total length + JSON UTF-8 payload.
+// Contrato v1: { v, estado, etapa, total }, onde `estado` e
+// 'nao-iniciado' | 'em-andamento' | 'concluido' | 'pulado' e `etapa` e 0
+// quando nao iniciado, 1..total enquanto anda.
+//
+// UM pacote de resposta para os QUATRO verbos, inclusive para um 'avancar'
+// RECUSADO, que desce o retrato inalterado em vez de um pacote de erro. Mesma
+// escolha do Codex, pela mesma razao: um ZC de recusa seria um segundo caminho
+// a manter dizendo o que o primeiro ja diz.
+//
+// E e ele que torna a recuperacao barata: reconexao, morte, troca de mapa e
+// fechar a janela nao perdem a etapa, porque a etapa nunca esteve no cliente.
+PACKET.ZC.RAGIDLE_TUTORIAL = function PACKET_ZC_RAGIDLE_TUTORIAL(fp, end) {
+	this.json = fp.readString(end - fp.tell());
+};
+PACKET.ZC.RAGIDLE_TUTORIAL.size = -1;
 
 // 0x0fec - RAGIDLE: CZ_RAGIDLE_PEDIR_MISSOES (client -> server)
 // Fixed 2 bytes: opcode only. Sent when the MissoesIdle window is opened.

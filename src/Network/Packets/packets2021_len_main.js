@@ -4970,6 +4970,18 @@ function init(packetver) {
 	length_list[0x0fe4] = -1; // CZ_RAGIDLE_CODEX_ACAO (variable, JSON payload)
 	length_list[0x0fe3] = -1; // ZC_RAGIDLE_CODEX (variable, JSON payload)
 
+	// O TUTORIAL GUIADO (secao 6 do CONTRATO-JORNADA.md): os DOIS saem do TOPO
+	// do vao livre da reserva de D-527 (0x0fd3..0x0fdf), porque as branches
+	// irmas desta rodada cunham de baixo para cima. Checado: nenhum outro
+	// length_list[] deste arquivo toca 0x0fdf/0x0fde.
+	//
+	// A quarta lista e esta, e e a que sempre falta: ver o bloco do Passe e o
+	// do ZC_RAGIDLE_LOG logo acima. Sem a linha o opcode nao tem tamanho, o
+	// fatiamento para no meio do fluxo e TUDO o que vem depois fica invisivel,
+	// sem um erro no console.
+	length_list[0x0fde] = -1; // CZ_RAGIDLE_TUTORIAL_ACAO (variable, JSON payload)
+	length_list[0x0fdf] = -1; // ZC_RAGIDLE_TUTORIAL (variable, JSON payload)
+
 	return length_list;
 }
 

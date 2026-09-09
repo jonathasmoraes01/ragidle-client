@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="pt-BR">
+	<head>
+		<meta charset="utf-8" />
+		<!-- A MESMA meta do jogo (applications/pwa/index.html:9). Sem
+			`initial-scale=1` o Chrome em emulacao de celular ENCOLHE a pagina para
+			caber no conteudo mais largo, e o viewport de leiaute (`innerWidth`)
+			deixa de ser o da foto: a prova mediu 578 CSS px de leiaute contra uma
+			foto de 393, e toda a geometria saiu deslocada. -->
+		<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+		<title>Arnes do tutorial guiado</title>
+		<!--
+			ARNES DE FOTO DO TUTORIAL GUIADO (frente D da Jornada de Midgard).
+
+			Ele monta a HUD de verdade (o Shadow DOM real de cada componente, com
+			o HTML e o CSS deles) e o COMPONENTE DE VERDADE do tutorial, e deixa a
+			prova de tela (`scripts/prova-tutorial.mjs`) mandar nele por
+			`window.__arnes`.
+
+			POR QUE UM ARNES, E NAO O JOGO INTEIRO: a etapa do tutorial mora no
+			SERVIDOR, e o servidor dela (frente C) ainda nao existe. Fotografar
+			contra a pilha completa e o passo seguinte, e esta pagina nao o
+			substitui. O que ela mede e o que nao depende do fio: a geometria da
+			camada contra alvos REAIS, o furo, o clique que passa, o balao que nao
+			cobre o alvo, e a mao do proprio cliente.
+
+			O que ela NAO mede, dito por escrito: o pacote 0x0fdf indo e voltando,
+			e o avanco por resultado real de jogo. Isso e prova de servidor.
+		-->
+		<style>
+			html,
+			body {
+				margin: 0;
+				padding: 0;
+				width: 100%;
+				height: 100%;
+				overflow: hidden;
+				background: #2b3a4d;
+			}
+			/* Um chao que faz as vezes da cena 3D: sem ele a mascara escura fica
+			   contra branco e a foto nao diz nada sobre contraste. */
+			#cena {
+				position: absolute;
+				inset: 0;
+				background:
+					radial-gradient(circle at 30% 35%, #6e8a5f 0%, #47603c 45%, #2f4429 100%),
+					linear-gradient(180deg, #7ea2c4 0%, #4a6c8f 100%);
+			}
+		</style>
+	</head>
+	<body>
+		<div id="cena"></div>
+		<script type="module" src="/scripts/arnes-tutorial.js"></script>
+	</body>
+</html>
