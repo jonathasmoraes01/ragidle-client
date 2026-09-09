@@ -805,6 +805,39 @@ function onConnectionRefused(pkt) {
  *
  * @param {object} pkt - PACKET.ZC.NPCACK_MAPMOVE
  */
+/**
+ * RAGIDLE (09/09/2026): liga um acessorio da HUD sem deixar que ele derrube
+ * o resto da entrada no mapa.
+ *
+ * MEDIDO, e nao suposto. `onMapChange` e um handler de ~460 linhas, e os tres
+ * `ligar()` (escala, HUD vertical, modo leitura) ficam no MEIO dele. Depois
+ * deles, no MESMO bloco, ainda rodam:
+ *
+ *   - `CheckAttendance.append()` — a janela de presenca diaria (D-1162);
+ *   - `PluginManager.init()`;
+ *   - `Network.sendPacket(CZ.NOTIFY_ACTORINIT)` — o estou-pronto ao servidor;
+ *   - o anuncio de taxas e a lista da loja de cash.
+ *
+ * Uma excecao em qualquer um dos tres levava tudo isso junto, em silencio.
+ *
+ * E A PROVA NAO VIA. `npm run prove:e2e` sai 9/9 mesmo com o modulo do modo
+ * leitura lancando de proposito — conferido nas duas direcoes em 09/09/2026 —
+ * porque os nove passos dela terminam ANTES desta linha: a UI de jogo ja
+ * apareceu e o servidor ja sabe do personagem pelo MAPMOVE. "O jogador entra"
+ * e verdade e nao e o bastante.
+ *
+ * O `catch` NAO engole: ele registra no console com o nome de quem falhou.
+ * Acessorio de HUD nao e razao para o jogo nao comecar; e razao para um erro
+ * legivel.
+ */
+function ligarAcessorioDaHud(nome, ligar) {
+	try {
+		ligar();
+	} catch (erro) {
+		console.error('[hud] ' + nome + ' falhou ao ligar — o jogo segue sem ele:', erro);
+	}
+}
+
 function onMapChange(pkt) {
 	MapRenderer.onLoad = () => {
 		/*
@@ -1249,12 +1282,12 @@ function onMapChange(pkt) {
 
 		/* D-934: e a escala da HUD, ligada DEPOIS do registro — ela varre os
 		   hosts e precisa que todos ja existam. */
-		EscalaDaHud.ligar();
+		ligarAcessorioDaHud('escala da HUD', EscalaDaHud.ligar);
 
 		/* D-939: a HUD vertical do celular em pe — mesma razao de ordem: ela
 		   carimba `ri-vertical` no root interno de cada shadow, entao todos
 		   os hosts precisam ja existir. */
-		HudVertical.ligar();
+		ligarAcessorioDaHud('HUD vertical', HudVertical.ligar);
 
 		/*
 		 * O MODO LEITURA (09/09/2026, pedido do dono): a tela nao apaga
@@ -1266,7 +1299,7 @@ function onMapChange(pkt) {
 		 * mesmo lugar onde a escala e a HUD vertical se ligam — o que vive
 		 * enquanto a sessao vive mora aqui.
 		 */
-		TelaAcesaNoFarm.ligar();
+		ligarAcessorioDaHud('modo leitura', TelaAcesaNoFarm.ligar);
 
 		if (Configs.get('enableCashShop')) {
 			/*
