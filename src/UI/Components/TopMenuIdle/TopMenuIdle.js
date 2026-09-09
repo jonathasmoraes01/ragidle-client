@@ -190,7 +190,7 @@ import HuntAnalyzer from 'UI/Components/HuntAnalyzer/HuntAnalyzer.js';
 import MissoesIdle from 'UI/Components/MissoesIdle/MissoesIdle.js';
 import PasseIdle from 'UI/Components/PasseIdle/PasseIdle.js';
 import CodexIdle from 'UI/Components/CodexIdle/CodexIdle.js'; // RAGIDLE: Codex (D-851)
-import { temAvisoDoCodex } from 'UI/Components/avisoDoCodex.js'; // D-1217
+import { temAvisoDoCodex } from 'UI/Components/avisoDoCodex.js'; // D-1232
 import AdminPanel from 'UI/Components/AdminPanel/AdminPanel.js';
 import CashShop from 'UI/Components/CashShop/CashShop.js'; // RAGIDLE: a loja de cash (I5)
 import RiIcones from 'UI/ri-icones.js';
@@ -1210,7 +1210,7 @@ function syncCorreioDot() {
 }
 
 /**
- * Ponto de "ha objetivo do Codex esperando voce" (D-1217, 08/09/2026).
+ * Ponto de "ha objetivo do Codex esperando voce" (D-1232, 08/09/2026).
  *
  * A fonte e `avisoDoCodex.js`, que guarda o veredito do SERVIDOR
  * (`temNovidadeNoCodex`) — entrada cumprida com premio nao resgatado, ou

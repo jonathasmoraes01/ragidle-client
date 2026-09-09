@@ -1058,7 +1058,7 @@ function plaqueta(skill, contexto, modificador) {
 		nivelHtml +
 		'</span>' +
 		/*
-		 * A SETA BLOQUEADA CONTINUA CLICÁVEL (D-1210, 08/09/2026).
+		 * A SETA BLOQUEADA CONTINUA CLICÁVEL (D-1225, 08/09/2026).
 		 *
 		 * Ela era `disabled` com o motivo só no `title=`, e `title` não existe
 		 * no toque: no celular — que é como o alfa joga — o jogador tocava numa
@@ -1394,7 +1394,7 @@ function buildMecanicaRows(skill) {
  */
 function seloDeEfeito(skill) {
 	/*
-	 * O SELO DE "NÃO DÁ PARA APRENDER" vem ANTES (D-1210, 08/09/2026).
+	 * O SELO DE "NÃO DÁ PARA APRENDER" vem ANTES (D-1225, 08/09/2026).
 	 *
 	 * O relato do alfa foi *"Contra-Ataque não permite aumentar o nível"* com o
 	 * selo "sem efeito em combate ainda" na tela — e o selo estava certo sem
@@ -1444,7 +1444,7 @@ function renderRequisitos(skill, contexto) {
 		const alvo = contexto.porId.get(requisito.skillId);
 		const tem = alvo ? nivelEfetivo(alvo, contexto.rascunho) : 0;
 		/*
-		 * O REQUISITO DISPENSADO (D-1210) — e ele precisa DIZER que foi
+		 * O REQUISITO DISPENSADO (D-1225) — e ele precisa DIZER que foi
 		 * dispensado, em vez de só sair da lista.
 		 *
 		 * Some-lo daria uma lista que discorda do `skill_tree.yml` sem

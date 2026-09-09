@@ -631,7 +631,7 @@
 /*
  * A seta que PODE ser usada carrega a tinta de "ativa".
  *
- * `.is-seta--travada` (D-1210) desenha exatamente como `:disabled` e continua
+ * `.is-seta--travada` (D-1225) desenha exatamente como `:disabled` e continua
  * CLICAVEL, para o toque poder perguntar "por que nao?" e receber o motivo em
  * `showProblemas`. `title=` nao existe no celular, e era so nele que o motivo
  * viajava.

@@ -124,7 +124,7 @@ describe('a lista aponta so para item que o jogo conhece', () => {
 		 * 22 dos drops (25/08) + 14 da Loja de Cosmeticos (31/08) + o 420010,
 		 * o cosmetico de CABECA que o dono pediu no mesmo dia (D-796) + os 5
 		 * das LOJAS DE NPC do catalogo (01/09, D-900) + os **34 dos MAPAS
-		 * NOVOS** (08/09, D-1211 — o relato do alfa sobre o 1680, e os outros
+		 * NOVOS** (08/09, D-1226 — o relato do alfa sobre o 1680, e os outros
 		 * 33 que a mesma medicao achou).
 		 *
 		 * **E o pino deixou de ser a unica defesa.** Ele existia porque o
@@ -229,7 +229,7 @@ describe('o icone local (31/08/2026)', () => {
 		 * Merchant: 상급포션-<cor>, a traducao literal de `High_*Potion`, com
 		 * dono UNICO cada e nenhum id reivindicando o `.bmp` na tabela do GRF
 		 * (`.tmp-scratch/provar-icone-siropes.ts`, no repositorio do jogo).
-		 * Os 21 da Rodada 6 (08/09/2026, D-1211) sao os drops dos mapas novos:
+		 * Os 21 da Rodada 6 (08/09/2026, D-1226) sao os drops dos mapas novos:
 		 * 9 Crimson pela MESMA derivacao 진홍의<tipo> da Rodada 4b (a familia
 		 * tem 18 arquivos no GRF, os 18 tambem em `collection\`, e ZERO ids da
 		 * tabela de recurso apontam para eles), 2 com nome ASCII proprio

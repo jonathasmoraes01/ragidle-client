@@ -1,7 +1,7 @@
 /**
  * UI/Components/avisoDoCodex.js
  *
- * A BOLINHA VERMELHA DO CODEX — um fato, e um lugar só (D-1217, 08/09/2026).
+ * A BOLINHA VERMELHA DO CODEX — um fato, e um lugar só (D-1232, 08/09/2026).
  *
  * ## O pedido
  *

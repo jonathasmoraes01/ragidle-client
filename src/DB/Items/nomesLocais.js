@@ -123,7 +123,7 @@ export const NOMES_LOCAIS = {
 	11624: 'Blue Syrup', // db/re/item_db_usable.yml:4221 (High_BluePotion)
 	12849: 'Combination Kit', // db/re/item_db_usable.yml:14476 (Combination_Kit) — Chef Assistant
 
-	// --- Rodada 6: os DROPS DOS MAPAS NOVOS (08/09/2026, D-1211) ---
+	// --- Rodada 6: os DROPS DOS MAPAS NOVOS (08/09/2026, D-1226) ---
 	// O relato do alfa foi UM item: "Item desconhecido (1680)", caido perto de
 	// Bathory e Joker. A causa nao e do 1680 — e da MEDIDA: a Rodada 1 cruzou
 	// os drops dos **112 monstros** que o jogo tinha em 25/08, e desde entao os
@@ -406,7 +406,7 @@ export const ICONES_LOCAIS = {
 	11623: '\xbb\xf3\xb1\xde\xc6\xf7\xbc\xc7-\xc7\xcf\xbe\xe7', // White Syrup / 상급포션-하양
 	11624: '\xbb\xf3\xb1\xde\xc6\xf7\xbc\xc7-\xc6\xc4\xb6\xfb', // Blue Syrup / 상급포션-파랑
 
-	/* --- Rodada 6: os icones dos DROPS DOS MAPAS NOVOS (08/09/2026, D-1211) ---
+	/* --- Rodada 6: os icones dos DROPS DOS MAPAS NOVOS (08/09/2026, D-1226) ---
 	 *
 	 * Nome sem icone deixa a linha meio consertada: era a queixa do dono na
 	 * Rodada 4 ("maca no lugar do icone da Crimson Bible"), e o relato do alfa

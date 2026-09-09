@@ -418,7 +418,7 @@ describe('as contas do rascunho', () => {
 });
 
 /*
- * O PERDAO DE PRE-REQUISITO (D-1210, 08/09/2026).
+ * O PERDAO DE PRE-REQUISITO (D-1225, 08/09/2026).
  *
  * O relato do alfa foi "Contra-Ataque nao permite aumentar o nivel", e o
  * defeito de verdade estava um no acima: `KN_BOWLINGBASH` (e `CR_DEVOTION`)
@@ -429,7 +429,7 @@ describe('as contas do rascunho', () => {
  * impede o conserto de virar "o cliente aprova tudo": perdao e por REQUISITO,
  * e o requisito comum ao lado dele continua barrando.
  */
-describe('o perdão de pré-requisito (D-1210)', () => {
+describe('o perdão de pré-requisito (D-1225)', () => {
 	it('requisito `perdoado` não barra a seta — o caso KN_BOWLINGBASH', () => {
 		const skills = [
 			skill('KN_AUTOCOUNTER', { nome: 'Contra-Ataque', aceitaPeloMotor: false, portada: false }),

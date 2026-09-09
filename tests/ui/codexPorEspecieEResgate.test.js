@@ -1,5 +1,5 @@
 /**
- * O CODEX POR ESPÉCIE, A BOLINHA E O RESGATE (D-1216/D-1217, 08/09/2026).
+ * O CODEX POR ESPÉCIE, A BOLINHA E O RESGATE (D-1231/D-1232, 08/09/2026).
  *
  * ---------------------------------------------------------------------------
  * O QUE ESTE ARQUIVO MEDE, E POR QUE ELE LÊ O FONTE
@@ -10,9 +10,9 @@
  * existam:
  *
  *  - a linha por espécie usa o `falta` que o servidor manda, em vez de subtrair
- *    sozinha (D-1216);
+ *    sozinha (D-1231);
  *  - o botão de resgate obedece ao `aResgatar` do servidor, e não a um
- *    `cumprida && tem prêmio` reescrito aqui (D-1217);
+ *    `cumprida && tem prêmio` reescrito aqui (D-1232);
  *  - a bolinha do menu lê o módulo de um fato só, e o menu não recalcula regra;
  *  - o aviso é zerado na troca de personagem.
  *
@@ -48,14 +48,14 @@ const TOP_MENU_HTML = readFileSync('src/UI/Components/TopMenuIdle/TopMenuIdle.ht
 const MISSOES = readFileSync('src/UI/Components/MissoesIdle/MissoesIdle.js', 'utf8');
 const CODEX_CSS = readFileSync('src/UI/Components/CodexIdle/CodexIdle.css', 'utf8');
 
-describe('D-1216 — o progresso por espécie', () => {
+describe('D-1231 — o progresso por espécie', () => {
 	it('o aparelho enxerga o arquivo — controle positivo', () => {
 		expect(CODEX.length).toBeGreaterThan(10_000);
 		expect(CODEX).toContain('function missoesHtml');
 	});
 
 	it('desenha uma linha POR espécie, e não só os nomes', () => {
-		// Antes de D-1216 a linha era `m.alvos.map(a => a.monstro).join(' · ')`.
+		// Antes de D-1231 a linha era `m.alvos.map(a => a.monstro).join(' · ')`.
 		expect(CODEX).not.toContain("m.alvos.map(a => escapeHtml(a.monstro)).join(' · ')");
 		expect(CODEX).toContain('cx-especie-nome');
 		expect(CODEX).toContain('cx-especie-conta');
@@ -92,7 +92,7 @@ describe('D-1216 — o progresso por espécie', () => {
 	});
 });
 
-describe('D-1217 — o resgate', () => {
+describe('D-1232 — o resgate', () => {
 	it('o botão obedece ao `aResgatar` do servidor', () => {
 		expect(CODEX).toContain('const resgate = m.aResgatar');
 		// E NÃO a uma regra reescrita aqui: `pagas` mora no servidor.
@@ -126,7 +126,7 @@ describe('D-1217 — o resgate', () => {
 	});
 });
 
-describe('D-1217 — a bolinha do menu', () => {
+describe('D-1232 — a bolinha do menu', () => {
 	it('o item do Codex tem o `.ri-dot` do design system', () => {
 		const i = TOP_MENU_HTML.indexOf('data-action="codex"');
 		expect(i).toBeGreaterThan(0);

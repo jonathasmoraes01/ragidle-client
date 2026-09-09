@@ -250,7 +250,7 @@ function onClickClose(e) {
 	closeWindow();
 }
 
-/** Delegacao: o "+" de um eixo, e o "Resgatar" de uma entrada (D-1217). */
+/** Delegacao: o "+" de um eixo, e o "Resgatar" de uma entrada (D-1232). */
 function onClickCorpo(e) {
 	/*
 	 * O RESGATE vem PRIMEIRO porque os dois alvos sao botoes dentro do mesmo
@@ -346,7 +346,7 @@ function placarHtml(estado) {
  * A lista de missoes: monstro, progresso POR ESPECIE, e o que falta.
  *
  * ---------------------------------------------------------------------------
- * POR QUE A LINHA POR ESPECIE ENTROU (D-1216, 08/09/2026)
+ * POR QUE A LINHA POR ESPECIE ENTROU (D-1231, 08/09/2026)
  * ---------------------------------------------------------------------------
  * Relato do alfa: *"a contagem de monstros nas missoes parece incorreta"*,
  * comparando o Hunt Analyzer com a entrada "Bichos Barulhentos" e concluindo
@@ -382,7 +382,7 @@ function missoesHtml(estado) {
 				const marca = m.cumprida
 					? '<span class="ri-badge ri-badge--verde">Cumprida</span>'
 					: '';
-				// O SELO DE NOVIDADE (D-1217): a mesma informacao que a bolinha
+				// O SELO DE NOVIDADE (D-1232): a mesma informacao que a bolinha
 				// do menu, dentro da janela — sem ele o jogador abriria o Codex
 				// por causa do ponto vermelho e teria de caçar qual entrada
 				// mudou numa lista de 62.
@@ -393,7 +393,7 @@ function missoesHtml(estado) {
 				// nome de um monstro: uma entrada pode pedir três espécies
 				// ("Família Orc"), e mostrar só a primeira mentiria sobre o que
 				// falta. As espécies vão nas linhas de baixo, com o progresso
-				// de cada uma (D-1216).
+				// de cada uma (D-1231).
 				const linhasDeEspecie = Array.isArray(m.alvos)
 					? m.alvos
 							.map(a => {
@@ -435,7 +435,7 @@ function missoesHtml(estado) {
 							.join(' · ')
 					: '';
 				/*
-				 * O BOTAO DE RESGATE (D-1217) só existe quando o servidor diz
+				 * O BOTAO DE RESGATE (D-1232) só existe quando o servidor diz
 				 * `aResgatar`. Ele NÃO é derivado de `cumprida && premio`: o
 				 * servidor é quem sabe o que já foi pago (`pagas`), e uma janela
 				 * que decidisse sozinha mostraria o botão de novo depois de um

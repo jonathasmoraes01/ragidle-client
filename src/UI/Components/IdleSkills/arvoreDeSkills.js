@@ -150,7 +150,7 @@ export function avaliarSubir(skill, contexto) {
 	}
 	for (const requisito of skill.preRequisitos) {
 		/*
-		 * O REQUISITO PERDOADO NÃO BARRA (D-1210, 08/09/2026).
+		 * O REQUISITO PERDOADO NÃO BARRA (D-1225, 08/09/2026).
 		 *
 		 * `perdoado` vem do servidor (`requisitosNoFio`), e é o mesmo perdão que
 		 * `avaliarAprendizado` aplica desde D-442: um pré-requisito que a NOSSA
