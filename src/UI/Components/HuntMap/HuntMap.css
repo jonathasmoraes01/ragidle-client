@@ -417,6 +417,51 @@
 	color: var(--text-muted);
 }
 
+/* "Voltar a cacar": o atalho para o ultimo mapa de caca (09/09/2026).
+
+   Ele mora colado no card "Voce esta em" e le como a acao dele — por isso o
+   `margin-top` curto e o mesmo raio. A altura minima de 44px NAO e enfeite:
+   e a regra tatil do dono (08/09/2026), e este botao nasce visivel no
+   PRIMEIRO passo do celular em pe. */
+#HuntMap .hm-voltar-caca {
+	appearance: none;
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	width: 100%;
+	min-height: 44px;
+	box-sizing: border-box;
+	margin-top: var(--sp-3);
+	padding: var(--sp-3) var(--sp-4);
+	border: 1px solid var(--border-gold);
+	border-radius: var(--radius-panel);
+	background: var(--gold-100, var(--white));
+	color: var(--text-body);
+	font: var(--type-desc);
+	text-align: left;
+	cursor: pointer;
+	box-shadow: var(--rim-light);
+}
+
+#HuntMap .hm-voltar-caca:hover {
+	box-shadow: var(--glow-gold), var(--rim-light);
+}
+
+#HuntMap .hm-voltar-label {
+	font: var(--type-badge);
+	letter-spacing: var(--ls-caps);
+	text-transform: uppercase;
+	color: var(--gold-700);
+}
+
+#HuntMap .hm-voltar-map {
+	font: var(--type-label);
+	color: var(--text-title);
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
 /* ─── Lista de mapas ─────────────────────────────────────────────────── */
 
 #HuntMap .hm-list-wrap {

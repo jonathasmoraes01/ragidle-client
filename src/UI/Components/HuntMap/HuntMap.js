@@ -786,6 +786,64 @@ function renderTabs() {
 		if (atual) {
 			card.addEventListener('click', onClickVoce);
 		}
+		renderVoltarACacar();
+	}
+}
+
+/**
+ * "VOLTAR A CACAR" — o atalho de um clique para o ultimo mapa de caca.
+ *
+ * O jogador vai a cidade vender, pega uma missao ou morre, e para voltar
+ * precisava reabrir o Atlas, achar a regiao, achar o mapa e clicar. Todo dia,
+ * varias vezes.
+ *
+ * **Quem decide o destino e o SERVIDOR** (`voltarPara`, no cabecalho do
+ * catalogo): o mapa lembrado pode ter saido do catalogo, e o cliente nao tem
+ * como saber disso. Ausente quer dizer "nao ha para onde voltar" — personagem
+ * novo, jogador que ja esta la, ou mapa que saiu. Nesses casos o botao nao
+ * aparece, em vez de aparecer desabilitado: um botao morto na cara do jogador
+ * pede explicacao, e nao ha o que explicar.
+ *
+ * Ele mora ao lado do "Voce esta em" porque e a mesma pergunta lida ao
+ * contrario, e porque esse card fica no TRILHO — que no celular em pe e o
+ * primeiro passo, a primeira coisa que se ve ao abrir a janela.
+ */
+function renderVoltarACacar() {
+	const voceEl = _root().querySelector('.hm-voce');
+	if (!voceEl) {
+		return;
+	}
+	const antigo = voceEl.querySelector('.hm-voltar-caca');
+	if (antigo) {
+		antigo.remove();
+	}
+	const destino = HuntMap.catalog && HuntMap.catalog.voltarPara;
+	if (!destino) {
+		return;
+	}
+	const alvo = HuntMap.catalog.mapas.find(m => m.mapa === destino);
+	const rotulo = alvo ? alvo.rotulo : destino;
+	const botao = document.createElement('button');
+	botao.type = 'button';
+	botao.className = 'hm-voltar-caca';
+	botao.dataset.mapa = destino;
+	botao.title = 'Voltar para ' + rotulo;
+	botao.innerHTML =
+		'<span class="hm-voltar-label">Voltar a cacar</span>' +
+		'<span class="hm-voltar-map"></span>';
+	// `textContent` e nao `innerHTML` no rotulo: ele vem do catalogo, mas o
+	// custo de escapar aqui e zero e o de esquecer nao e.
+	botao.querySelector('.hm-voltar-map').textContent = rotulo;
+	botao.addEventListener('click', onClickVoltarACacar);
+	voceEl.appendChild(botao);
+}
+
+/** O clique: viaja direto. A tranca de nivel e reavaliada pelo servidor. */
+function onClickVoltarACacar(e) {
+	e.stopImmediatePropagation();
+	const mapa = e.currentTarget.dataset.mapa;
+	if (mapa) {
+		sendTravel(mapa);
 	}
 }
 
