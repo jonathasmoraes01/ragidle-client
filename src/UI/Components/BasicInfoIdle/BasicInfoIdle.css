@@ -1002,3 +1002,80 @@
 	text-overflow: ellipsis;
 	white-space: nowrap;
 }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   WIFI E BATERIA NA FAIXA DO TOPO (08/09/2026)
+
+   Eles voltaram do rodape que saiu — ver o comentario no HTML. O que mudou
+   nao foi so o lugar: como FAIXA eles custavam 22px de altura; aqui eles
+   cabem na folga que a linha de Zeny/Cash ja tinha, e custam ZERO.
+
+   So no CELULAR EM PE (`.ri-vertical`), pelo mesmo motivo de sempre: e la
+   que o PWA instalado esconde a barra de status do aparelho. No desktop e
+   no deitado o navegador/sistema ja mostra os dois, e repeti-los seria
+   ruido — por isso a regra sem prefixo os esconde.
+   ═══════════════════════════════════════════════════════════════════════ */
+.bi-aparelho {
+	display: none;
+}
+
+.ri-vertical .bi-aparelho {
+	display: flex;
+	align-items: center;
+	gap: 5px;
+	margin-left: auto;
+	padding-right: 2px;
+	/* Indicador, e nao controle: o toque atravessa e chega em quem esta
+	   atras. Sem isto eles virariam uma zona morta na barra do topo. */
+	pointer-events: none;
+	color: var(--text-muted, #6b7897);
+}
+
+.ri-vertical .bi-aparelho .bi-rodape-wifi {
+	flex: 0 0 auto;
+	opacity: 0.85;
+}
+
+/* `navigator.onLine === false` — um booleano honesto, sem fingir medir
+   intensidade de sinal (a razao esta em `ligarBateriaEWifi`). */
+.ri-vertical .bi-aparelho .bi-rodape-wifi.is-off {
+	opacity: 0.35;
+}
+
+.ri-vertical .bi-aparelho .bi-rodape-bateria {
+	display: flex;
+	align-items: center;
+	gap: 3px;
+	font-size: 10px;
+	line-height: 1;
+}
+
+.ri-vertical .bi-aparelho .bi-rodape-bateria-caixa {
+	position: relative;
+	width: 18px;
+	height: 9px;
+	border: 1px solid currentColor;
+	border-radius: 2px;
+	opacity: 0.85;
+}
+
+/* O bico do polo positivo, do lado direito da caixinha. */
+.ri-vertical .bi-aparelho .bi-rodape-bateria-caixa::after {
+	content: '';
+	position: absolute;
+	top: 2px;
+	right: -3px;
+	width: 2px;
+	height: 3px;
+	background: currentColor;
+	border-radius: 0 1px 1px 0;
+}
+
+.ri-vertical .bi-aparelho .bi-rodape-bateria-nivel {
+	display: block;
+	height: 100%;
+	background: currentColor;
+	/* A largura vem do JS, em porcentagem — quando o aparelho responde. Sem
+	   `navigator.getBattery` (iOS) o texto se esconde em vez de inventar
+	   numero, e a caixinha fica vazia: regra 1 da casa. */
+}
