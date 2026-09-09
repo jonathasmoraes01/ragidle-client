@@ -15,6 +15,7 @@ import Sound from 'Audio/SoundManager.js';
 import BGM from 'Audio/BGM.js';
 import DB from 'DB/DBManager.js';
 import Configs from 'Core/Configs.js';
+import { ligarRelatoDeErro } from 'UI/relatoDeErro.js'; // RAGIDLE: a tela preta que ninguem via (09/09/2026)
 import Client from 'Core/Client.js';
 import Thread from 'Core/Thread.js';
 import Context from 'Core/Context.js';
@@ -95,6 +96,15 @@ function probeRemoteClient(remoteClient, callback) {
  * Load files.
  */
 function loadFiles(callback) {
+	/*
+	 * O RELATO DE ERRO LIGA ANTES DE TUDO (09/09/2026).
+	 *
+	 * Ele fica aqui, e nao depois do login, porque o erro que motivou a peca
+	 * aconteceu ANTES do login: em 08/09 um `TypeError` no init de um componente
+	 * derrubou a HUD e a tela ficou preta, e ninguem no servidor soube. Ligar
+	 * depois deixaria justamente o trecho mais fragil sem testemunha.
+	 */
+	ligarRelatoDeErro();
 	const q = new Queue();
 
 	// Start Intro, wait the user to add files
