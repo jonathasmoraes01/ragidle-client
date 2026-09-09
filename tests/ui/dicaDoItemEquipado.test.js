@@ -82,7 +82,7 @@ describe('a dica DESENHA o selo', () => {
 		expect(trecho).not.toContain('rotuloDoEspacoEquipado(location');
 		expect(trecho).toContain('mo-dica-equipado');
 		// O texto passa por escape antes do innerHTML, como todo texto da dica.
-		expect(trecho).toMatch(/Equipado — \$\{escapeHTML\(espaco\)\}/);
+		expect(trecho).toMatch(/Equipado - \$\{escapeHTML\(espaco\)\}/);
 	});
 
 	it('o SLOT resolve a peça FORA do inventário — vestido não está em Inventory.list', () => {

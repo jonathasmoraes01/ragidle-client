@@ -1296,7 +1296,7 @@ function abrirDetalhesEquipado(index) {
 	 */
 	const espaco = rotuloDoEspacoEquipado(mascaraVestidaDoIndice(String(index)), EQUIP_SLOTS);
 	if (espaco && typeof ItemInfo.setVestido === 'function') {
-		ItemInfo.setVestido(`Equipado — ${espaco}`);
+		ItemInfo.setVestido(`Equipado - ${espaco}`);
 	}
 }
 
@@ -1735,7 +1735,7 @@ function mostrarDicaItem(alvoEl, item, vestidoEmForcado) {
 		'<div class="ri-tile mo-dica-arte"><img class="mo-dica-arte-img" alt="" /></div>' +
 		`<div class="mo-dica-nome">${escapeHTML(titulo)}</div>` +
 		'</div>' +
-		(espaco ? `<div class="mo-dica-equipado">Equipado — ${escapeHTML(espaco)}</div>` : '') +
+		(espaco ? `<div class="mo-dica-equipado">Equipado - ${escapeHTML(espaco)}</div>` : '') +
 		(corpo ? `<div class="mo-dica-corpo">${corpo}</div>` : '') +
 		renderRunasHTML(item);
 
