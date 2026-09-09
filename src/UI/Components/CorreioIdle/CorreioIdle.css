@@ -220,18 +220,39 @@
 	color: var(--text-muted);
 }
 
+/*
+ * O RODAPE EM DUAS FILAS (09/09/2026, relato do dono: *"conserte o layout
+ * dos botoes, veja que esta desequilibrando o layout"*).
+ *
+ * A lista tem ~250px e o rodape tentava caber TRES coisas numa fila so.
+ * O resultado era o da print: a contagem quebrando em duas linhas, o
+ * "Apagar todas" quebrando em duas, o "Atualizar" ficando com UMA — e os
+ * dois botoes com alturas diferentes, um ao lado do outro.
+ *
+ * Duas filas resolvem sem apertar fonte nem encurtar texto: a contagem
+ * ocupa a primeira inteira, e os botoes dividem a segunda em partes
+ * iguais. Como cada um recebe metade da largura, nenhum precisa quebrar —
+ * e o `nowrap` garante isso mesmo se o texto crescer na traducao.
+ */
 .co-rodape {
 	flex: 0 0 auto;
 	display: flex;
-	align-items: center;
-	justify-content: space-between;
-	gap: var(--sp-4);
+	flex-wrap: wrap;
+	align-items: stretch;
+	gap: var(--sp-2) var(--sp-3);
 	padding: var(--sp-3) var(--sp-4);
 	border-top: var(--divider);
 	background: var(--surface-glass);
 }
 
+.co-rodape > button {
+	flex: 1 1 0;
+	white-space: nowrap;
+}
+
 .co-contagem {
+	/* A fila inteira: e ela que libera os dois botoes para dividir a de baixo. */
+	flex: 1 0 100%;
 	font: var(--type-label);
 	color: var(--text-muted);
 }

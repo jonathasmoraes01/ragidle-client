@@ -180,10 +180,18 @@ function onEquipementTakeOff(pkt) {
 		if (item) {
 			item.WearState = 0;
 
+			/*
+			 * TIRAR UMA PECA E AVISO, E NAO ERRO (09/09/2026, relato do dono).
+			 *
+			 * Vestir ja era BLUE, entao o par saia vermelho e verde na MESMA
+			 * troca de arma. O vermelho e o unico sinal que o jogador tem para
+			 * "algo deu errado": gasta-lo no gesto normal que ele mesmo pediu
+			 * ensina a ignorar a cor.
+			 */
 			const it = DB.getItemInfo(item.ITID);
 			ChatBox.addText(
 				it.identifiedDisplayName + ' ' + DB.getMessage(171),
-				ChatBox.TYPE.ERROR,
+				ChatBox.TYPE.BLUE,
 				ChatBox.FILTER.ITEM
 			);
 
