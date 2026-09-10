@@ -1911,6 +1911,24 @@ ui-button {
 	}
 
 	/*
+	 * 10/09/2026 — O "+" DO ATRIBUTO NAO ERA POSICIONADO, e o dedo subia o
+	 * atributo ERRADO. Relato do alfa: *"nao da pra colocar os pontos de
+	 * atributo no mobile"*.
+	 *
+	 * `::before` absoluto ancora no ancestral POSICIONADO mais proximo. O
+	 * `.close` e o `.resize` da barra ja sao `position: absolute` (ShortCut.css),
+	 * mas o `.st-stat-up` e a linha dele eram estaticos: a area de toque dos seis
+	 * "+" virava a janela inteira, uma por cima da outra, e quem pintava por
+	 * ultimo ganhava o toque. Medido pela `prove:jogador-no-celular` em 393x852:
+	 * o toque no "+" de STR subiu DEX, o de VIT subiu INT, e os pontos sumiram
+	 * onde o jogador nao pediu. E o mesmo par de `.cx-mais`/`.mi-tab` acima: o
+	 * `::before` que aumenta a area so vale com o proprio botao posicionado.
+	 */
+	.st-stat-up {
+		position: relative;
+	}
+
+	/*
 	 * OS SLOTS DA BARRA — e a unica excecao MEDIDA aos 44px desta frente.
 	 *
 	 * Desde D-938 o slot deixou de ser so alvo de arrasto: ele e o SEGUNDO
