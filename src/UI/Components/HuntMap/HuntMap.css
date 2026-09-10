@@ -277,6 +277,50 @@
 	padding-top: var(--sp-2);
 }
 
+
+/* ─── Barra de passo: "‹ Voltar" + onde o jogador está ──────────────── */
+
+/* Esta barra nasceu para o CELULAR EM PE (o caminho regiao -> mapas ->
+   dossie), e o estilo dela morava inteiro no bloco `.ri-vertical` do fim do
+   arquivo. So que quem a MOSTRA e o JS (`definirPasso` escreve
+   `barra.hidden`), nao o CSS - entao no desktop ela tambem aparece, e
+   aparecia SEM regra nenhuma: `<div>` cru e botao cru do navegador, cinza,
+   fora do design system (print do dono, 10/09/2026, ao entrar em Prontera).
+
+   A correcao e dar o estilo aqui na BASE, para as duas telas. O botao em si
+   nao ganha desenho proprio: ele leva `.ri-btn .ri-btn--sec` no HTML, que e o
+   botao secundario oficial - o mesmo par que o rodape do dossie ja usa em
+   "Retornar ao ponto salvo". Um desenho novo aqui seria um terceiro botao
+   cinza no cliente. */
+#HuntMap .hm-passo {
+	flex: 0 0 auto;
+	display: flex;
+	align-items: center;
+	gap: var(--sp-4);
+	padding: var(--sp-3) var(--sp-6);
+	border-bottom: var(--divider);
+}
+
+#HuntMap .hm-passo[hidden] {
+	display: none;
+}
+
+/* O `.ri-btn` traz `--pad-button` (8px 18px), largo demais para uma barra de
+   navegacao: aqui o botao e um atalho, nao a acao principal da tela. */
+#HuntMap .hm-voltar {
+	flex: 0 0 auto;
+	padding: var(--sp-3) var(--sp-5);
+}
+
+#HuntMap .hm-passo-titulo {
+	min-width: 0;
+	overflow: hidden;
+	font: var(--type-label);
+	color: var(--text-title);
+	white-space: nowrap;
+	text-overflow: ellipsis;
+}
+
 /* ─── Corpo: trilho | lista | dossiê ─────────────────────────────────── */
 
 #HuntMap .hm-body {
@@ -426,7 +470,20 @@
    44px de lado NAO e enfeite: e a regra tatil do dono (08/09/2026), e o
    cartao e o alvo mais tocado desta janela no celular. No desktop o glifo e
    menor que a caixa de toque, que e o arranjo certo: area generosa, desenho
-   discreto. */
+   discreto.
+
+   O GLIFO NAO FICA NO MEIO DA CAIXA DE TOQUE (10/09/2026, print do dono).
+   Centralizado, ele nascia a 22px do topo e a 22px da direita - e o botao
+   redondo de viajar (".hm-card-go", 30px) e centralizado na vertical do
+   cartao, ou seja, comeca a 21px do topo e vai ate 41px da direita. As duas
+   pecas dividiam o mesmo pedaco de moldura e a estrela ficava POR CIMA da
+   seta.
+
+   O conserto e ancorar o desenho no canto (flex-start/flex-end) em vez de
+   encolher a caixa: os 44px de toque continuam inteiros, e o glifo sobe e
+   vai para a direita ate quase encostar na moldura. Com 22px de lado ele
+   termina a 22px do topo e a 24px da direita - para exatamente onde a seta
+   comeca, sem sobrepor. */
 #HuntMap .hm-card {
 	position: relative;
 }
@@ -434,14 +491,17 @@
 #HuntMap .hm-card-fav {
 	appearance: none;
 	position: absolute;
-	top: 0;
-	right: 0;
+	/* -1px nos dois lados anula a BORDA do cartao: `position:absolute` mede a
+	   partir da caixa de PADDING, entao `top:0` ja nascia 1px abaixo da
+	   moldura - e era esse 1px que ainda encostava na seta (medido). */
+	top: -1px;
+	right: -1px;
 	display: flex;
-	align-items: center;
-	justify-content: center;
+	align-items: flex-start;
+	justify-content: flex-end;
 	width: 44px;
 	height: 44px;
-	padding: 0;
+	padding: 0 2px 0 0;
 	border: 0;
 	background: none;
 	color: var(--text-muted);
@@ -450,8 +510,8 @@
 }
 
 #HuntMap .hm-card-fav svg {
-	width: 18px;
-	height: 18px;
+	width: 22px;
+	height: 22px;
 }
 
 #HuntMap .hm-card-fav:hover {
@@ -1509,37 +1569,14 @@
    bandeira de rollout), e duplicar o critério em CSS é a cicatriz de D-929.
    ═══════════════════════════════════════════════════════════════════════ */
 
-/* A barra de passo só existe aqui. No desktop o HTML já a deixa `hidden`. */
-.ri-vertical #HuntMap .hm-passo {
-	display: flex;
-	align-items: center;
-	gap: 8px;
-	padding: 6px 8px;
-	border-bottom: var(--divider);
-}
-
-.ri-vertical #HuntMap .hm-passo[hidden] {
-	display: none;
-}
-
+/* A barra de passo e o "‹ Voltar" tem desenho na BASE (busque "Barra de
+   passo" acima). Aqui sobra so o que e do TOQUE: 44px de altura minima, a
+   regra tatil do dono (08/09/2026). O `background`/`color` de hex cru que
+   morava aqui saiu: `--hm-chip-bg` e `--hm-ink` nunca existiram no design
+   system, entao o botao vinha sempre pelo valor de reserva - e ele vencia o
+   `.ri-btn--sec` por especificidade. */
 .ri-vertical #HuntMap .hm-voltar {
-	flex: 0 0 auto;
 	min-height: 44px;
-	padding: 0 12px;
-	border: 0;
-	border-radius: 8px;
-	background: var(--hm-chip-bg, #e8edf6);
-	color: var(--hm-ink, #1c2540);
-	font: inherit;
-	font-weight: 600;
-	cursor: pointer;
-}
-
-.ri-vertical #HuntMap .hm-passo-titulo {
-	overflow: hidden;
-	font-weight: 700;
-	white-space: nowrap;
-	text-overflow: ellipsis;
 }
 
 /* As três faixas viram telas: a do passo ativo ocupa tudo, as outras somem.
