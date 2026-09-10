@@ -53,6 +53,14 @@
  * arrastado). Escrever uma segunda rota para as mesmas duas perguntas seria o
  * defeito mais repetido deste projeto.
  *
+ * TRANSFERIR LIDERANCA (10/09/2026) e o MESMO reuso, pelo MESMO motivo: o
+ * pacote e `CZ_CHANGE_GROUP_MASTER` (0x07da, `{AID}`) — o nativo que
+ * `PartyFriendsCommon.js`/`Engine/MapEngine/Group.js:onRequestChangeLeader`
+ * ja falam, e que o servidor (`servidor-mapa.ts:23425`) ja trata por inteiro
+ * (confere mesmo mapa, troca o lider, difunde para todo o grupo, sincroniza
+ * o anuncio do Localizador). Esta janela so precisava do BOTAO; nao ha
+ * verbo novo em `CZ_RAGIDLE_GRUPO_ACAO` para isto, e nao deveria haver.
+ *
  * Receber `ZC_RAGIDLE_GRUPO` (0x0fcc): `{ v, aplicado?, problemas, recado,
  * eu, grupo, postos, rateio, tabela }`.
  */
@@ -271,7 +279,54 @@ function desenharFaixa(e) {
 	}
 }
 
-function linhaDeMembro(m) {
+/**
+ * O BOTAO "TRANSFERIR LIDERANCA" DESTA LINHA (10/09/2026).
+ *
+ * So EXISTE quando `ctx.souLider && !m.souEu` — o mesmo criterio de
+ * `desenharTeleporte`: quem nao e lider nunca ve um botao que so sabe
+ * recusar, e o proprio lider nao ve o botao na PROPRIA linha (transferir
+ * para si mesmo nao e uma acao).
+ *
+ * Quando existe, ele NUNCA some por estar indisponivel — fica DESABILITADO
+ * com o motivo no `title` (o mesmo padrao do `.gi-teleportar` e dos cartoes
+ * de posto bloqueado): "isto nao e para voce" some, "isto e para voce, mas
+ * nao agora" fica cinza com a razao.
+ *
+ * As DUAS razoes de recusa vem do payload que a propria janela ja tem —
+ * nenhuma regra nova e inventada aqui, so lida:
+ *   - `!m.online`: a guarda D3 do servidor (nao se passa a coroa a um
+ *     ausente).
+ *   - `m.mapa !== ctx.meuMapa`: a tranca de mesmo mapa (party.conf:64,
+ *     `change_party_leader_samemap`) que o handler ja aplica — o servidor
+ *     recusa de qualquer forma, e isto so evita o clique que so sabe ouvir
+ *     "nao".
+ */
+function botaoTransferir(m, ctx) {
+	if (!ctx.souLider || m.souEu) {
+		return '';
+	}
+	const offline = !m.online;
+	const foraDoMapa = !offline && ctx.meuMapa !== null && m.mapa !== ctx.meuMapa;
+	const desabilitado = offline || foraDoMapa;
+	const motivo = offline
+		? escapeHtml(m.nome) + ' esta offline agora.'
+		: foraDoMapa
+			? 'Precisa estar no mesmo mapa que ' + escapeHtml(m.nome) + '.'
+			: 'Transferir a lideranca para ' + escapeHtml(m.nome) + '.';
+	return (
+		'<button type="button" class="gi-transferir" data-conta-transferir="' +
+		escapeHtml(m.contaId) +
+		'"' +
+		(desabilitado ? ' disabled aria-disabled="true"' : '') +
+		' title="' +
+		motivo +
+		'">' +
+		'<span class="gi-coroa" aria-hidden="true" data-coroa></span>' +
+		'</button>'
+	);
+}
+
+function linhaDeMembro(m, ctx) {
 	const fracao = m.hpMaximo > 0 ? Math.max(0, Math.min(1, m.hp / m.hpMaximo)) : 0;
 	const classeEstado = !m.online ? '' : m.vivo ? ' is-vivo' : ' is-morto';
 	const rotuloEstado = !m.online ? 'Offline' : m.vivo ? 'No mundo' : 'Caido';
@@ -357,6 +412,7 @@ function linhaDeMembro(m) {
 		'<span class="gi-membro-posto">' +
 		escapeHtml(m.postoNome) +
 		'</span>' +
+		botaoTransferir(m, ctx) +
 		'</div>' +
 		'</div>'
 	);
@@ -399,8 +455,85 @@ function desenharMembros(e) {
 		return;
 	}
 	contador.textContent = grupo.membros.length + '/' + grupo.limite;
-	lista.innerHTML = grupo.membros.map(linhaDeMembro).join('');
+	/*
+	 * O CONTEXTO do botao de transferir (10/09/2026): `souLider` vem do `eu`
+	 * do payload, e `meuMapa` vem da MINHA PROPRIA linha em `grupo.membros`
+	 * (`souEu: true`) — o `eu` do topo do pacote nao carrega mapa nenhum, e
+	 * inventar uma segunda fonte para "onde eu estou" seria divergir da
+	 * mesma lista que ja desenha a coluna "Onde" de todo mundo.
+	 */
+	const meuMembro = grupo.membros.filter(function (x) {
+		return x.souEu;
+	})[0];
+	const ctx = {
+		souLider: !!(e && e.eu && e.eu.souLider),
+		meuMapa: meuMembro ? meuMembro.mapa : null
+	};
+	lista.innerHTML = grupo.membros
+		.map(function (m) {
+			return linhaDeMembro(m, ctx);
+		})
+		.join('');
 	carregarArteDeClasse(lista);
+	ligarBotoesDeTransferir(lista);
+}
+
+/**
+ * RELIGA os cliques dos botoes de transferir — o mesmo padrao de
+ * `desenharPostos`/`.gi-assumir`: a linha inteira e HTML reconstruido, entao
+ * o listener morre com o `innerHTML` anterior e precisa renascer aqui.
+ *
+ * `NAO CONFIE SO NO disabled` (a mesma guarda de D-984 nos postos): o botao e
+ * desenhado com o ULTIMO estado que chegou, e entre o desenho e o clique cabe
+ * um empurrao que mudou quem esta online ou em qual mapa. A guarda RELE
+ * `GrupoIdle.estado` na hora do clique — quem decide continua sendo o
+ * servidor, que recusa de novo do outro lado; isto so evita mandar um pedido
+ * que ja nasce sabendo a resposta.
+ */
+function ligarBotoesDeTransferir(lista) {
+	lista.querySelectorAll('.gi-transferir').forEach(function (botao) {
+		botao.addEventListener('click', function () {
+			if (botao.disabled) {
+				return;
+			}
+			const atual = GrupoIdle.estado;
+			const grupo = atual && atual.grupo;
+			const eu = atual && atual.eu;
+			if (!eu || !eu.souLider || !grupo) {
+				return;
+			}
+			const contaId = Number(botao.dataset.contaTransferir);
+			const alvo = grupo.membros.filter(function (x) {
+				return x.contaId === contaId;
+			})[0];
+			const meu = grupo.membros.filter(function (x) {
+				return x.souEu;
+			})[0];
+			if (!alvo || alvo.souEu) {
+				return;
+			}
+			if (!alvo.online) {
+				mostrarRecado(alvo.nome + ' esta offline agora.', true);
+				return;
+			}
+			if (meu && alvo.mapa !== meu.mapa) {
+				mostrarRecado('Precisa estar no mesmo mapa que ' + alvo.nome + '.', true);
+				return;
+			}
+			/*
+			 * O PACOTE NATIVO, direto — a MESMA tecnica do `.gi-sair` (linha
+			 * ~964): sem importar `Engine/MapEngine/Group.js` (que prenderia a
+			 * ordem de carga desta janela a dele, pela mesma razao que
+			 * `aoPedirLocalizador`/`aoPedirTeleporte` sao ganchos e nao
+			 * imports), e sem escrever um segundo verbo em
+			 * `CZ_RAGIDLE_GRUPO_ACAO` para a mesma pergunta que o nativo ja
+			 * responde.
+			 */
+			const pkt = new PACKET.CZ.CHANGE_GROUP_MASTER();
+			pkt.AID = contaId;
+			Network.sendPacket(pkt);
+		});
+	});
 }
 
 function desenharMeuPosto(e) {

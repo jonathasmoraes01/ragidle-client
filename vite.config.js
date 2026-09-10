@@ -128,6 +128,26 @@ export default defineConfig({
 	test: {
 		environment: 'jsdom',
 		include: ['tests/**/*.test.js'],
+		/*
+		 * TETO DE 20 s, e nao os 5 s default do vitest (10/09/2026).
+		 *
+		 * Medido nesta maquina numa corrida da suite inteira: 103 arquivos,
+		 * 961 testes, `import 34.83s` — a maior fatia do tempo e o PRIMEIRO
+		 * import de cada arquivo, que arrasta meio cliente (jsdom + os
+		 * módulos de UI + Vendors) antes de o primeiro `it` rodar. Casos que
+		 * passam em ~1 s sozinhos estouram 5 s quando pagam essa entrada com
+		 * a maquina disputada.
+		 *
+		 * O sintoma é traicoeiro: o caso que reprova MUDA de corrida para
+		 * corrida (foi `abaSobreviveAoF5` numa, `wsproxy-nao-morre` noutra),
+		 * porque quem paga o import e quem chegou primeiro. Isso reprovava o
+		 * portao de deploy do cliente por RELOGIO, e nao por regra.
+		 *
+		 * 20 s e folgado para o import e ainda finito: um teste de verdade
+		 * pendurado continua morrendo, so que sem levar junto o vizinho que
+		 * apenas demorou a carregar.
+		 */
+		testTimeout: 20_000,
 		coverage: {  
 			provider: 'v8',  
 			reporter: ['text', 'html'],  
