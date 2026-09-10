@@ -1402,7 +1402,20 @@ function onPainelEsqDrop(e) {
 	if (!location || (location & slotLoc) === 0) {
 		return;
 	}
-	tentarEquipar(item, location);
+	/*
+	 * SO O LADO DO SLOT ONDE O ITEM FOI SOLTO (10/09/2026).
+	 *
+	 * Mandar a mascara inteira deixava o servidor escolher o lado: o acessorio
+	 * solto no slot da ESQUERDA ia para o da direita se ele estivesse livre. No
+	 * rAthena o lado pedido vence (`pc_equipitem`, pc.cpp:12088-12107: `pos =
+	 * req_pos & EQP_ACC`), e e o mesmo caminho que deixa o Assassino por uma
+	 * adaga na mao esquerda. Peca que ocupa mais de um slot (arma de duas maos,
+	 * chapeu de dois andares) continua inteira: o servidor so estreita acessorio
+	 * e arma de mao, e o pedido aqui e sempre um pedaco da propria mascara. O
+	 * "Equipar" do menu segue mandando a mascara inteira, e ai o servidor escolhe
+	 * o lado livre, como o duplo clique do cliente oficial.
+	 */
+	tentarEquipar(item, location & slotLoc);
 }
 
 /**
