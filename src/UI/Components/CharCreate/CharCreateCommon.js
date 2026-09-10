@@ -25,6 +25,7 @@ import Camera from 'Renderer/Camera.js';
 import Client from 'Core/Client.js';
 import UIManager from 'UI/UIManager.js';
 import GUIComponent from 'UI/GUIComponent.js';
+import { normalizarNomeDoPersonagem, recusaDoNomeNoCliente } from './nomeDoPersonagem.js';
 import 'UI/Elements/Elements.js';
 
 const TYPE = {
@@ -346,7 +347,20 @@ export function createCharCreate(config) {
 	 */
 	function create() {
 		const root = Component.getRoot();
-		const charname = root.querySelector(nameInputSelector).value;
+		/*
+		 * O NOME APARADO E CONFERIDO AQUI (10/09/2026) — ver `nomeDoPersonagem.js`.
+		 * O teclado do celular deixa espaco no fim da palavra sugerida, e um
+		 * nome curto voltava do servidor como "ja existe". O campo recebe o
+		 * nome ja aparado, para o jogador ver exatamente o que vai ser criado.
+		 */
+		const campoDoNome = root.querySelector(nameInputSelector);
+		const charname = normalizarNomeDoPersonagem(campoDoNome.value);
+		campoDoNome.value = charname;
+		const recusaDoNome = recusaDoNomeNoCliente(charname);
+		if (recusaDoNome) {
+			UIManager.showMessageBox(recusaDoNome, 'ok');
+			return;
+		}
 
 		let str = 1;
 		let agi = 1;

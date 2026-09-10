@@ -29,7 +29,7 @@ import Network from 'Network/NetworkManager.js';
 import PACKET from 'Network/PacketStructure.js';
 import UIManager from 'UI/UIManager.js';
 import GUIComponent from 'UI/GUIComponent.js';
-import DB from 'DB/DBManager.js';
+import MonsterTable from 'DB/Monsters/MonsterTable.js';
 import htmlText from './RankingIdle.html?raw';
 import cssText from './RankingIdle.css?raw';
 import { fecharEEsquecer } from '../limpezaDeJanelaIdle.js';
@@ -175,8 +175,14 @@ RankingIdle.toggle = function toggle() {
 
 /** O nome da classe em portugues, do proprio cliente. */
 function nomeDaClasse(job) {
-	const nome = DB.getJobName ? DB.getJobName(job) : null;
-	return nome || String(job);
+	/*
+	 * A MESMA tabela da selecao de personagem (`CharSelectCommon.js` le
+	 * `MonsterTable[info.job]`). A versao anterior perguntava a
+	 * `DB.getJobName`, que NAO EXISTE neste cliente — e a coluna mostrava o
+	 * numero cru da classe ("4" no Novico, "0" no Aprendiz). Pergunta do
+	 * dono em 10/09/2026: *"essa coluna aqui do ranking e o que?"*.
+	 */
+	return MonsterTable[job] || String(job);
 }
 
 function linhaHtml(linha) {

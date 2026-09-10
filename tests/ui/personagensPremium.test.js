@@ -23,7 +23,7 @@ describe('Contrato das telas premium de personagem', () => {
    expect(info.querySelector(`.${key}`)).not.toBeNull();
   }
   expect(info.querySelector('.pg-section-title').textContent).toBe('Ficha do personagem');
-  expect(info.querySelectorAll('button')).toHaveLength(4);
+  expect(info.querySelectorAll('button')).toHaveLength(5);
  });
  it('preserva os três modelos e os grupos de aparência com labels associados', () => {
   for (const id of ['human', 'doram', 'style_model']) {
@@ -44,5 +44,12 @@ describe('Contrato das telas premium de personagem', () => {
    expect(doc.querySelectorAll('h1')).toHaveLength(1);
    for (const button of doc.querySelectorAll('button')) { expect(button.type).toBe('button'); }
   }
+ });
+ it('a vaga vazia tem um "Criar personagem" para o dedo, com o acabamento do "Jogar"', () => {
+  const botao = selection.querySelector('.charinfo .criar-vaga');
+  expect(botao).not.toBeNull();
+  expect(botao.type).toBe('button');
+  expect(botao.textContent.trim()).toBe('Criar personagem');
+  expect(botao.classList.contains('pg-primary')).toBe(true);
  });
 });

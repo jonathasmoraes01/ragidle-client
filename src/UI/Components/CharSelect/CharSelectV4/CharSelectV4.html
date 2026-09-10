@@ -185,6 +185,14 @@
 						<span class="ok-longo">Entrar em Midgard</span>
 						<span class="ok-curto">Jogar</span>
 					</button>
+					<!-- A VAGA VAZIA NO DEDO (10/09/2026) — relato do dono: "no celular nao da
+					     para criar personagem". Na grade, a vaga vazia so vira tela de criacao
+					     por `dblclick` no canvas, e o `.ok` SOME quando a vaga selecionada esta
+					     vazia: no dedo nao sobrava gesto nenhum (o Safari do iPhone faz ZOOM no
+					     toque duplo e nao entrega `dblclick`). Este botao so aparece no dedo e
+					     so com a vaga vazia selecionada (`.charinfo.vaga-vazia`, no CSS); no
+					     mouse o duplo clique continua sendo o caminho, e nada muda. -->
+					<button type="button" class="btn criar-vaga ri-btn pg-primary">Criar personagem</button>
 					<!-- Pages infos: markup mantido pelo contrato de versoes irmas
 			     (V1/V2/V3 pagined usam), mas o layout em grade (V4) nunca
 			     escreve nele -- CharSelectCommon.js so atualiza ".pageinfo"

@@ -83,7 +83,10 @@
 					</div>
 					<div class="cc-campo">
 						<label class="cc-rotulo" for="char_name">Nome do personagem</label>
-						<input type="text" id="char_name" class="ri-input" maxlength="24" />
+						<!-- O TECLADO DO CELULAR (10/09/2026): sem estes atributos ele corrige,
+						     completa e deixa um espaco depois da palavra sugerida. O nome ainda
+						     e aparado no create() (nomeDoPersonagem.js) e no servidor. -->
+						<input type="text" id="char_name" class="ri-input" maxlength="24" autocomplete="off" autocorrect="off" spellcheck="false" enterkeyhint="done" />
 					</div>
 				</div>
 

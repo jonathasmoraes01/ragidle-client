@@ -594,3 +594,39 @@
 		overscroll-behavior: contain;
 	}
 }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   A VAGA VAZIA NO DEDO: "Criar personagem" (10/09/2026)
+   ═══════════════════════════════════════════════════════════════════════
+   Relato do dono: "Players do mobile nao estao conseguindo criar um
+   personagem na tela de login." Na grade, a vaga vazia so vira tela de
+   criacao por `dblclick` no canvas (`CharSelectCommon.js`), e o `.ok` some
+   quando a vaga selecionada esta vazia. No mouse, o duplo clique e o gesto de
+   sempre; no dedo ele nao e confiavel — o Safari do iPhone faz ZOOM no toque
+   duplo e nao entrega `dblclick`. O jogador tocava na vaga vazia e ficava
+   sem saida.
+
+   Criterio `pointer: coarse`, o MESMO do "Jogar" logo acima: e um DEDO, e
+   nao "tela pequena". No mouse este botao nunca aparece.
+   ═══════════════════════════════════════════════════════════════════════ */
+#CharSelectV4 .charinfo .criar-vaga {
+	display: none;
+}
+
+@media (pointer: coarse) {
+	#CharSelectV4 .charinfo.vaga-vazia .criar-vaga {
+		display: block;
+		margin-top: auto;
+	}
+}
+
+/* Em pe, ele gruda no pe da area que rola, como o "Jogar". */
+@media (pointer: coarse) and (orientation: portrait) {
+	#CharSelectV4 .charinfo.vaga-vazia .criar-vaga {
+		position: sticky;
+		bottom: 0;
+		z-index: 2;
+		margin-top: var(--sp-4, 8px);
+		background: var(--blue-500);
+	}
+}
