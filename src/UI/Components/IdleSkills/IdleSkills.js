@@ -72,6 +72,7 @@ import GUIComponent from 'UI/GUIComponent.js';
 import buildResumo from './resumoDaDescricao.js';
 import RiIcones from 'UI/ri-icones.js';
 import { ehCelularEmPe } from 'UI/hudVertical.js'; // D-942: o detalhe vira folha no celular em pe
+import MissoesIdle from 'UI/Components/MissoesIdle/MissoesIdle.js'; // 09/09/2026: a etiqueta de quest leva a missao
 import htmlText from './IdleSkills.html?raw';
 import cssText from './IdleSkills.css?raw';
 import { fecharEEsquecer } from '../limpezaDeJanelaIdle.js';
@@ -95,7 +96,7 @@ import {
  * cobra que os dois números sejam o mesmo, porque ele é a única coisa que
  * separa "árvore certa" de "árvore plausível e errada".
  */
-const VERSAO_DO_CONTRATO = 3;
+const VERSAO_DO_CONTRATO = 4;
 
 const NUMERIC_SKILL_ID_BY_NAME = new Map(
 	Object.entries(SkillInfo)
@@ -1030,11 +1031,65 @@ function renderNo(no, contexto) {
 			 */
 			? (skill.skillId === 'NV_FIRSTAID'
 				? '<span class="is-no-quest" title="Habilidade de quest: entra sozinha quando os requisitos são cumpridos, sem gastar ponto">quest · grátis</span>'
-				: '<span class="is-no-quest" title="Habilidade de quest: é aprendida numa missão, sem gastar ponto">quest · missão</span>')
+				: etiquetaDaMissao(skill))
 			: '') +
 		plaqueta(skill, contexto) +
 		'</div>'
 	);
+}
+
+/**
+ * A ETIQUETA `quest · missão` — E ELA VIROU UM CAMINHO (09/09/2026).
+ *
+ * Pedido do dono: *"quero que tenha algum tooltip ou alguma coisa que o player
+ * clique e descubra/vá até a missão para desbloquear essa respectiva
+ * habilidade"*.
+ *
+ * Até aqui a etiqueta dizia que EXISTE uma missão e não dizia qual. O jogador
+ * ficava com uma habilidade visível, um aviso de que há um caminho, e nenhuma
+ * forma de achar o caminho — e as três órfãs do mesmo dia (`AL_HOLYLIGHT`,
+ * `AC_CHARGEARROW`, `HT_PHANTASMIC`) eram o caso extremo disso: nem missão
+ * havia.
+ *
+ * O `<span>` continua quando `missaoQueEnsina` é nulo, e esse ramo NÃO é
+ * defensivo à toa: é o que um cliente novo vê contra um servidor velho, antes
+ * de a versão do contrato (4) derrubar a janela. Prometer um clique que não
+ * abre nada seria pior do que não ter o clique — o jogador concluiria que a
+ * missão sumiu.
+ */
+function etiquetaDaMissao(skill) {
+	const m = skill.missaoQueEnsina;
+	/*
+	 * JÁ APRENDIDA volta ao texto simples, e isso é o pedido lido ao pé da
+	 * letra: *"para desbloquear essa respectiva habilidade"*. Quem já a tem não
+	 * tem nada a desbloquear, e o link viraria um convite para reabrir uma
+	 * missão concluída — ruído no lugar exato onde a etiqueta existe para
+	 * informar.
+	 */
+	if (!m || !m.id || skill.aprendido >= 1) {
+		return '<span class="is-no-quest" title="Habilidade de quest: é aprendida numa missão, sem gastar ponto">quest · missão</span>';
+	}
+	return (
+		'<button type="button" class="is-no-quest is-no-quest--link"' +
+		' data-missao-de="' + escapeHtml(m.id) + '"' +
+		' data-missao-aba="' + escapeHtml(m.tipo || 'opcional') + '"' +
+		' title="Aprendida na missão &quot;' + escapeHtml(m.titulo) + '&quot;. Toque para abri-la.">' +
+		'quest · ' + escapeHtml(m.titulo) + ' ›' +
+		'</button>'
+	);
+}
+
+/**
+ * O clique da etiqueta: abre a janela de Missões JÁ NA MISSÃO.
+ *
+ * `stopPropagation` porque a etiqueta mora DENTRO do nó da árvore, e o nó tem
+ * o próprio clique (`onClickNo`, que abre o detalhe da habilidade). Sem isto o
+ * toque faria as duas coisas, e a janela de Missões nasceria atrás do detalhe.
+ */
+function onClickMissaoDaQuest(e) {
+	e.preventDefault();
+	e.stopPropagation();
+	MissoesIdle.abrirEmMissao(e.currentTarget.dataset.missaoDe, e.currentTarget.dataset.missaoAba);
 }
 
 /**
@@ -1192,6 +1247,10 @@ function renderArvore() {
 	});
 	tela.querySelectorAll('[data-skill-mais]').forEach(b => b.addEventListener('click', onClickMais));
 	tela.querySelectorAll('[data-skill-menos]').forEach(b => b.addEventListener('click', onClickMenos));
+	// 09/09/2026: a etiqueta de quest leva a missao. Religada AQUI com as outras
+	// porque `tela.innerHTML` acabou de trocar os nos — um listener preso ao no
+	// antigo morre junto com ele, calado.
+	tela.querySelectorAll('[data-missao-de]').forEach(b => b.addEventListener('click', onClickMissaoDaQuest));
 }
 
 /**

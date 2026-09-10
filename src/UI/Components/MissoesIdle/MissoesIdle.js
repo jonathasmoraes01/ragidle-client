@@ -73,6 +73,30 @@ const ABA_PADRAO = 'principais';
  * init(), que e onde `_preferences` ja existe. */
 MissoesIdle.activeTab = ABA_PADRAO;
 
+/**
+ * A MISSÃO A DESTACAR quando a lista chegar (09/09/2026).
+ *
+ * `abrirEmMissao` é chamada de fora (a etiqueta `quest · missão` da árvore de
+ * habilidades) e a lista de missões NÃO está garantida em memória: abrir a
+ * janela dispara `RAGIDLE_PEDIR_MISSOES` e a resposta chega depois. Guardar o
+ * id aqui e consumi-lo no `render()` é o que faz o destaque funcionar nos DOIS
+ * casos — janela já aberta com a lista na mão, e janela fechada abrindo do
+ * zero. Tentar destacar na hora só cobriria o primeiro.
+ */
+let _missaoADestacar = null;
+
+/**
+ * A rolagem já aconteceu para o destaque atual?
+ *
+ * Separada do id porque as duas coisas têm vidas diferentes, e a primeira
+ * versão as juntou num campo só — o defeito que a prova pegou. `abrirEmMissao`
+ * PEDE a lista ao servidor, a resposta chega e chama `render()` de novo: o
+ * segundo render reescreve o `innerHTML` e leva a classe junto, e um id já
+ * consumido não a repõe. O id fica até um gesto do jogador; a rolagem, não,
+ * senão a lista se puxaria de volta a cada atualização.
+ */
+let _jaRolouAteODestaque = false;
+
 /** Posicao da janela e a aba em que o jogador estava. Versao continua 1.0: ver
  * a conta no cabecalho de memoriaDeAba.js. */
 const _preferences = Preferences.get(
@@ -122,6 +146,8 @@ const BADGES = {
  */
 MissoesIdle.limparEstadoDoPersonagem = function limparEstadoDoPersonagem() {
 	MissoesIdle.missoes = [];
+	_missaoADestacar = null;
+	_jaRolouAteODestaque = false;
 	MissoesIdle.execucao = null;
 	// O Codex é DO PERSONAGEM: a bolinha do anterior falaria de um progresso
 	// que este não tem. Ela volta no primeiro pacote da sessão nova (D-1232).
@@ -201,7 +227,40 @@ MissoesIdle.toggle = function toggle() {
 	}
 };
 
+/**
+ * ABRE A JANELA JÁ NA MISSÃO PEDIDA — o outro lado do pedido do dono de
+ * 09/09/2026 sobre as habilidades de quest.
+ *
+ * Método público, no mesmo molde de `HuntMap.travelToCity()`: quem chama é a
+ * árvore de habilidades (`IdleSkills.js`), e o acoplamento fica numa função
+ * nomeada em vez de o outro componente mexer no DOM desta janela.
+ *
+ * Ele NÃO alterna: chamar com a janela já aberta reposiciona na missão em vez
+ * de fechar. `toggle` seria o gesto errado aqui — o jogador pediu para ver uma
+ * missão, e fechar a janela é o contrário disso.
+ */
+MissoesIdle.abrirEmMissao = function abrirEmMissao(id, tipo) {
+	const root = _root();
+	const win = root && root.querySelector('.mi-window');
+	if (!win || !id) {
+		return;
+	}
+	MissoesIdle.activeTab = tipo === 'principal' ? 'principais' : 'opcionais';
+	lembrarAba(_preferences, MissoesIdle.activeTab);
+	_missaoADestacar = id;
+	_jaRolouAteODestaque = false;
+	if (!win.classList.contains('is-open')) {
+		win.classList.add('is-open');
+		MissoesIdle.focus();
+	}
+	Network.sendPacket(new PACKET.CZ.RAGIDLE_PEDIR_MISSOES());
+	// Com a lista já em memória isto destaca AGORA; sem ela, o `render()` que a
+	// resposta dispara consome o mesmo `_missaoADestacar`.
+	render();
+};
+
 function closeWindow() {
+	_missaoADestacar = null;
 	const root = _root();
 	const win = root && root.querySelector('.mi-window');
 	if (win) {
@@ -217,6 +276,8 @@ function onClickClose(e) {
 
 function onClickTab(e) {
 	e.stopImmediatePropagation();
+	// Gesto do jogador: ele foi olhar outra coisa, o destaque cumpriu o papel.
+	_missaoADestacar = null;
 	MissoesIdle.activeTab = e.currentTarget.dataset.tab;
 	lembrarAba(_preferences, MissoesIdle.activeTab);
 	render();
@@ -251,6 +312,35 @@ function render() {
 	}
 
 	body.innerHTML = daAba.map(cardDeMissao).join('');
+
+	/*
+	 * O DESTAQUE PEDIDO POR `abrirEmMissao` (09/09/2026).
+	 *
+	 * Reaplicado a CADA render, e não consumido no primeiro: `abrirEmMissao`
+	 * pede a lista ao servidor, e a resposta dispara um render que reescreve o
+	 * `innerHTML` inteiro. A primeira versão marcava e zerava o id no mesmo
+	 * render — o segundo apagava a classe e não tinha com que a repor, e a
+	 * `prove:quest-e-carrinho` mediu exatamente isso: o cartão na lista, sem
+	 * destaque.
+	 *
+	 * Quem solta o destaque é um GESTO do jogador (trocar de aba, fechar), e
+	 * não a passagem do tempo: enquanto ele estiver olhando a missão que pediu,
+	 * ela continua marcada.
+	 *
+	 * O cartão pode não estar aqui — outra aba, ou missão que o servidor não
+	 * mandou. Nesse caso não acontece nada e a janela abre normal, que é o
+	 * degrau certo: melhor abrir a lista do que abrir em nada.
+	 */
+	if (_missaoADestacar) {
+		const alvo = body.querySelector('[data-missao="' + _missaoADestacar.replace(/"/g, '') + '"]');
+		if (alvo) {
+			alvo.classList.add('is-destacada');
+			if (!_jaRolouAteODestaque) {
+				_jaRolouAteODestaque = true;
+				alvo.scrollIntoView({ block: 'center' });
+			}
+		}
+	}
 
 	body.querySelectorAll('[data-mapa]').forEach(btn => {
 		btn.addEventListener('click', e => {

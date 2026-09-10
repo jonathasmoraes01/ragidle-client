@@ -1369,6 +1369,36 @@
 	box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5);
 }
 
+/* RAGIDLE (09/09/2026): a etiqueta que LEVA a missao. Ela e um <button>, entao
+   herda a fonte do agente do usuario e ganha borda e fundo proprios se nada
+   disser o contrario — as tres primeiras linhas sao para ela parecer
+   exatamente a mesma etiqueta de antes, e nao um botao de formulario. */
+#IdleSkills .is-no-quest--link {
+	font: inherit;
+	font-size: 10px;
+	border: 0;
+	cursor: pointer;
+	position: relative;
+}
+
+#IdleSkills .is-no-quest--link:hover,
+#IdleSkills .is-no-quest--link:focus-visible {
+	background: linear-gradient(180deg, #ffd76a, #e8b02c);
+	outline: none;
+}
+
+/* O ALVO TATIL (regra do dono, 08/09/2026): a etiqueta tem 14px de altura, e
+   dedo nao acerta 14px. Mesmo idioma das setas logo acima — uma area invisivel
+   por ::before, que cresce o toque sem mexer no desenho nem empurrar o vizinho.
+   `-15px` na vertical leva os 14px a 44px; nos lados a etiqueta ja e larga. */
+@media (pointer: coarse) {
+	#IdleSkills .is-no-quest--link::before {
+		content: '';
+		position: absolute;
+		inset: -15px -6px;
+	}
+}
+
 /* RAGIDLE (D-1155): a plaqueta da habilidade de QUEST — so o nivel, sem setas. */
 #IdleSkills .is-plaqueta--quest {
 	justify-content: center;
