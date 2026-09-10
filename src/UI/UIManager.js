@@ -202,11 +202,15 @@ class UIManager {
 	/**
 	 * Remove all components in screen
 	 */
-	static removeComponents() {
+	static removeComponents(manter = []) {
 		const keys = Object.keys(this.components);
 		const count = keys.length;
 
 		for (let i = 0; i < count; ++i) {
+			/* `manter` (10/09/2026): a TROCA DE MAPA preserva o chat — ver
+			   `MapRenderer.setMap`. Sem argumento, como em todo outro chamador
+			   (login, selecao de personagem, sair do jogo), sai tudo. */
+			if (manter.includes(keys[i])) continue;
 			this.components[keys[i]].remove();
 		}
 	}

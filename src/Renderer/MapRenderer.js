@@ -148,7 +148,17 @@ class MapRenderer {
 		// Clean objects
 		SoundManager.stop();
 		Renderer.stop();
-		UIManager.removeComponents();
+		/*
+		 * O CHAT ATRAVESSA A TROCA DE MAPA (10/09/2026). Relato do alfa: "nem
+		 * digitar no chat global" no celular. Toda troca de mapa passa por aqui
+		 * — inclusive o teleporte no MESMO mapa (a Asa de Mosca, e a Asa
+		 * automatica do VIP depois de 10 s sem alvo, servidor/idle/teleporte.ts)
+		 * — e tirava o chat da pagina: o campo perdia o foco, o teclado do
+		 * celular fechava, e o `onAppend` o devolvia MINIMIZADO. O cliente
+		 * oficial nao fecha o chat num warp. O `MapEngine` so o anexa de novo se
+		 * ele saiu (a entrada no jogo), e sair do jogo continua tirando tudo.
+		 */
+		UIManager.removeComponents(['ChatBox']);
 		Cursor.setType(Cursor.ACTION.DEFAULT);
 
 		// The server may address the same map with different extensions (.gat/.rsw)

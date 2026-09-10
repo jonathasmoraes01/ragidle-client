@@ -377,7 +377,20 @@ function onTouchMove(event) {
 // Add full screen on mobile (sux to have the browser title bar)
 if (Math.max(screen.availHeight, screen.availWidth) <= 800) {
 	// Fullscreen on action
-	window.addEventListener('touchstart', () => {
+	window.addEventListener('touchstart', evento => {
+		/*
+		 * NUNCA NO TOQUE QUE ABRE UM CAMPO DE TEXTO (10/09/2026). Nos celulares
+		 * com o lado maior ate 800px cada toque pede tela cheia — e no PWA
+		 * instalado (`display: fullscreen`) o `isFullScreen()` nao enxerga o
+		 * modo, entao o pedido se repete a cada toque. Uma transicao de tela
+		 * cheia no mesmo toque que foca o campo do chat pode derrubar o
+		 * teclado. HIPOTESE, nao medida em aparelho (o Chromium sem cabeca nao
+		 * abre teclado de sistema); pular o campo de texto nao custa nada.
+		 */
+		const alvo = evento.composedPath ? evento.composedPath()[0] : evento.target;
+		if (alvo && (alvo.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(alvo.tagName || ''))) {
+			return;
+		}
 		if (!Context.isFullScreen()) {
 			Context.requestFullScreen();
 		}

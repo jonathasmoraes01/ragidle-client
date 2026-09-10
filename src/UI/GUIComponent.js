@@ -1024,6 +1024,16 @@ class GUIComponent {
 						continue;
 					}
 
+					// Campo EDITAVEL nunca ganha a barra legada (10/09/2026): ela
+					// injeta um `div.ro-custom-scrollbar` DENTRO do contenteditable
+					// e reescreve o padding dele a cada 300 ms, o que atropela o
+					// teclado que compoe palavras (GBoard, predicao do iOS). Era o
+					// campo do chat no celular, onde o `overflow-x: auto` faz o
+					// `overflow-y` computar `auto`.
+					if (node.isContentEditable) {
+						continue;
+					}
+
 					if (node._roScrollbarApplied) {
 						_ScrollBar?.applyDOMScrollbar(node);
 						continue;

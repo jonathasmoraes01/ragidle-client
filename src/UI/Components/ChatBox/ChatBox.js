@@ -350,6 +350,42 @@ function ehTelaDeToque() {
 }
 
 /**
+ * O TECLADO VIRTUAL, EM PIXELS, AGORA (10/09/2026) — o `--teclado-altura` que
+ * `UI/escalaDaHud.js` publica no `documentElement`, e que vale ZERO sem teclado.
+ *
+ * A posicao que o jogador escolhe e gravada SEM o teclado, e quem a escreve no
+ * painel soma o token por `calc()`: o chat sobe quando o teclado abre e desce
+ * quando ele fecha, sem ninguem reescrever nada. Por isso quem MEDE a caixa (o
+ * inicio do arrasto e `gravarLayout`) desconta este numero — senao a subida do
+ * teclado entraria na posicao gravada e o chat subiria duas vezes.
+ */
+function tecladoAgora() {
+	if (typeof document === 'undefined' || !document.documentElement) return 0;
+	return parseFloat(document.documentElement.style.getPropertyValue('--teclado-altura')) || 0;
+}
+
+/**
+ * O CURSOR NO FIM DO CAMPO, sem apagar o cursor do toque (10/09/2026).
+ *
+ * Era `removeAllRanges` + `addRange` em tres lugares deste arquivo. O campo
+ * mora num shadow root, e a especificacao manda o `addRange` NAO fazer nada
+ * quando o range nao pertence ao documento: o Chromium ignora a regra (por
+ * isso a prova passa), e o WebKit do iPhone pode segui-la — ai o
+ * `removeAllRanges` ja tinha apagado o cursor, e o campo ficava focado SEM
+ * onde escrever. `collapse` no proprio no leva o cursor ao fim onde o
+ * navegador deixa, e onde nao deixa, nao destroi o que o toque nativo pos ali.
+ */
+function cursorNoFim(campo) {
+	const selecao = window.getSelection();
+	if (!selecao) return;
+	try {
+		selecao.collapse(campo, campo.childNodes.length);
+	} catch (_erro) {
+		// nada: o cursor do toque fica onde o navegador o pos
+	}
+}
+
+/**
  * Escreve a posicao, sempre CLAMPADA contra a viewport de agora.
  *
  * O clamp no load e o que cumpre o criterio de aceite "redimensionar a janela
@@ -380,7 +416,10 @@ function aplicarPosicao(root) {
 		Math.max(margem, window.innerHeight - caixa.height - margem),
 	);
 	painel.style.left = `${Math.round(esquerda)}px`;
-	painel.style.bottom = `${Math.round(baixo)}px`;
+	// + o teclado (10/09/2026): sem o token, a posicao que o jogador escolheu
+	// vencia a regra do CSS que ergue o chat acima do teclado, e ele digitava
+	// por tras dele. Ver `tecladoAgora`.
+	painel.style.bottom = `calc(${Math.round(baixo)}px + var(--teclado-altura, 0px))`;
 }
 
 function aplicarLayout(root) {
@@ -397,7 +436,8 @@ function gravarLayout(root) {
 	_layout.largPct = (caixa.width / window.innerWidth) * 100;
 	_layout.altPct = (caixa.height / window.innerHeight) * 100;
 	_layout.esquerdaPct = (caixa.left / window.innerWidth) * 100;
-	_layout.baixoPct = ((window.innerHeight - caixa.bottom) / window.innerHeight) * 100;
+	// Sem o teclado: a caixa medida pode estar erguida por ele (`tecladoAgora`).
+	_layout.baixoPct = ((window.innerHeight - caixa.bottom - tecladoAgora()) / window.innerHeight) * 100;
 
 	gravarPreferencia('Layout', _layout);
 }
@@ -436,7 +476,8 @@ function ligarGesto(root, seletor, aoMover, classe) {
 			larg: caixa.width,
 			alt: caixa.height,
 			esquerda: caixa.left,
-			baixo: window.innerHeight - caixa.bottom,
+			// Sem o teclado, como a posicao gravada (`tecladoAgora`).
+			baixo: window.innerHeight - caixa.bottom - tecladoAgora(),
 		};
 		painel.classList.add(classe);
 		alvo.setPointerCapture(event.pointerId);
@@ -502,7 +543,7 @@ function moverPainel(painel, inicio, dx, dy) {
 	if (maxBaixo - baixo < encaixe) baixo = maxBaixo;
 
 	painel.style.left = `${Math.round(esquerda)}px`;
-	painel.style.bottom = `${Math.round(baixo)}px`;
+	painel.style.bottom = `calc(${Math.round(baixo)}px + var(--teclado-altura, 0px))`;
 }
 
 /**
@@ -659,7 +700,7 @@ function subirUmDegrau(root) {
 	_layout.altPct = ((proximo.altura + cascaDoPainel(root)) / window.innerHeight) * 100;
 	_layout.largPct = (caixa.width / window.innerWidth) * 100;
 	_layout.esquerdaPct = (caixa.left / window.innerWidth) * 100;
-	_layout.baixoPct = ((window.innerHeight - caixa.bottom) / window.innerHeight) * 100;
+	_layout.baixoPct = ((window.innerHeight - caixa.bottom - tecladoAgora()) / window.innerHeight) * 100;
 	gravarPreferencia('Layout', _layout);
 
 	atualizarBotaoDeTamanho(root);
@@ -1006,24 +1047,14 @@ ChatBox.init = function init() {
 		});
 	}
 
-	// Move caret to end of text
+	// Move caret to end of text (`cursorNoFim`, no topo do modulo)
 	if (inputChatbox) {
 		inputChatbox.addEventListener('click', function () {
-			const range = document.createRange();
-			const selection = window.getSelection();
-			range.selectNodeContents(this);
-			range.collapse(false);
-			selection.removeAllRanges();
-			selection.addRange(range);
+			cursorNoFim(this);
 		});
 
 		inputChatbox.addEventListener('focus', function () {
-			const range = document.createRange();
-			const selection = window.getSelection();
-			range.selectNodeContents(this);
-			range.collapse(false);
-			selection.removeAllRanges();
-			selection.addRange(range);
+			cursorNoFim(this);
 		});
 
 		inputChatbox.maxLength = MAX_LENGTH;
@@ -1229,6 +1260,31 @@ ChatBox.init = function init() {
 			const bmEl = root.querySelector('.battlemode');
 			if (inputEl) inputEl.style.display = inputEl.style.display === 'none' ? 'flex' : 'none';
 			if (bmEl) bmEl.style.display = bmEl.style.display === 'none' ? 'flex' : 'none';
+			/*
+			 * A BARRA ABRE JA COM O CAMPO FOCADO (10/09/2026). O "Modo batalha"
+			 * mostrava a barra e parava ali: no celular o jogador precisava de um
+			 * SEGUNDO toque, e certeiro, numa linha de 18px. O `focus()` vai aqui,
+			 * sincrono, dentro do mesmo toque — e so assim o iOS abre o teclado (foco
+			 * fora do gesto do usuario nao abre).
+			 */
+			if (inputEl && inputEl.style.display !== 'none') {
+				const campo = root.querySelector('.input-chatbox');
+				if (campo) campo.focus();
+			}
+		});
+	}
+
+	/*
+	 * O TOQUE NO VAO EM VOLTA DO CAMPO TAMBEM E NO CAMPO (10/09/2026). A linha
+	 * editavel e baixa dentro de uma barra de 44px, e o toque que caia no vao do
+	 * `.wrapper` nao ia a lugar nenhum. So o vao do proprio embrulho: o que tem
+	 * dono ali dentro continua respondendo por si.
+	 */
+	const embrulhoDoCampo = root.querySelector('.input .wrapper');
+	if (embrulhoDoCampo) {
+		embrulhoDoCampo.addEventListener('click', event => {
+			const campo = root.querySelector('.input-chatbox');
+			if (campo && event.target === embrulhoDoCampo) campo.focus();
 		});
 	}
 
@@ -1818,12 +1874,7 @@ ChatBox.onKeyDown = function OnKeyDown(event) {
 			}
 
 			messageBox.focus();
-			const range = document.createRange();
-			const sel = window.getSelection();
-			range.selectNodeContents(messageBox);
-			range.collapse(false);
-			sel.removeAllRanges();
-			sel.addRange(range);
+			cursorNoFim(messageBox);
 			event.stopImmediatePropagation();
 			return false;
 		}
@@ -3004,14 +3055,7 @@ ChatBox.inserirLinkDeItem = function inserirLinkDeItem(item) {
 
 	campo.focus();
 	// Cursor no fim, senao ele volta para antes do link que acabou de entrar.
-	const selection = window.getSelection();
-	if (selection) {
-		const range = document.createRange();
-		range.selectNodeContents(campo);
-		range.collapse(false);
-		selection.removeAllRanges();
-		selection.addRange(range);
-	}
+	cursorNoFim(campo);
 
 	return true;
 };

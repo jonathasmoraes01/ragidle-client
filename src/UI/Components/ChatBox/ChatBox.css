@@ -680,6 +680,12 @@
 	line-height: 18px;
 	outline: none;
 	overflow-wrap: anywhere;
+	/* O campo EDITAVEL aceita selecao (10/09/2026): o `body` do jogo e
+	   `user-select: none` e o Common.css poe `-moz-user-select: none` em tudo,
+	   e os dois chegavam aqui. O iOS antigo e o Firefox do Android recusam
+	   editar um contenteditable assim. */
+	-webkit-user-select: text;
+	user-select: text;
 }
 
 #chatbox .input .message:empty::before {
@@ -1286,7 +1292,10 @@
 
 .ri-vertical #chatbox {
 	left: calc(var(--safe-esq, 0px) + var(--vr-margem, 8px));
-	bottom: calc(var(--vr-acima-dos-atalhos, 92px) + 2px);
+	/* + o teclado (10/09/2026): esta regra e mais especifica que a do bloco
+	   pointer: coarse que ergue o chat, e vencia justamente nos celulares em pe
+	   — o chat ficava desenhado atras do teclado. */
+	bottom: calc(var(--vr-acima-dos-atalhos, 92px) + 2px + var(--teclado-altura, 0px));
 	width: min(76vw, 300px);
 	border-radius: 12px;
 }
@@ -1439,6 +1448,13 @@
 	#chatbox .input .message {
 		white-space: nowrap;
 		overflow-x: auto;
+		/* `overflow-x: auto` sozinho faz o `overflow-y` computar `auto`, e ai o
+		   GUIComponent montava a barra de rolagem LEGADA dentro do campo
+		   (10/09/2026). O campo e uma linha so: o que rola e o lado. */
+		overflow-y: hidden;
+		/* Alvo de dedo: 18px de linha + 13 + 13 = 44, o piso da casa. A barra ja
+		   tem 44px pelos botoes, entao o desenho dela nao muda. */
+		padding: 13px 0;
 	}
 
 	/* Os dois botoes viram alvo de dedo. */

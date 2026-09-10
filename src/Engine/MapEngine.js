@@ -948,7 +948,10 @@ function onMapChange(pkt) {
 			MapName.setMap(MapRenderer.currentMap);
 			MapName.append();
 		}
-		ChatBox.append();
+		// O chat atravessa a troca de mapa (ver `MapRenderer.setMap`): ele so e
+		// anexado de novo quando saiu — a entrada no jogo. Anexar um host que ja
+		// esta na pagina o MOVE, e mover tira o foco do campo e fecha o teclado.
+		if (!ChatBox.__active) ChatBox.append();
 		BasicInfo.getUI().append();
 		Escape.append();
 		Inventory.getUI().append();
