@@ -87,6 +87,7 @@ import {
 	ordemDoLote,
 	pontosNoRascunho
 } from './arvoreDeSkills.js';
+import { linhaDaMissaoNoRequisito } from './requisitoDeMissao.js';
 
 /**
  * A versão do contrato que esta janela sabe ler.
@@ -1559,6 +1560,13 @@ function seloDeEfeito(skill) {
 function renderRequisitos(skill, contexto) {
 	const linhas = [];
 
+	// A MISSAO QUE ENSINA (10/09/2026) — ver `requisitoDeMissao.js`. A caixa
+	// dizia "Sem pre-requisito" para a Luz Divina, que so se aprende pela missao.
+	const daMissao = linhaDaMissaoNoRequisito(skill, nivelEfetivo(skill, contexto.rascunho));
+	if (daMissao) {
+		linhas.push(daMissao);
+	}
+
 	if (skill.nivelBaseMinimo > 0) {
 		linhas.push({
 			ok: contexto.nivelBase >= skill.nivelBaseMinimo,
@@ -1731,7 +1739,10 @@ function renderDetail() {
 	// no ponto dali, sem caçar o nó de volta na árvore.
 	const plaquetaHtml = plaqueta(skill, contexto, 'is-plaqueta--detalhe');
 	const nRequisitos =
-		(skill.nivelBaseMinimo > 0 ? 1 : 0) + (skill.nivelClasseMinimo > 0 ? 1 : 0) + skill.preRequisitos.length;
+		(skill.nivelBaseMinimo > 0 ? 1 : 0) +
+		(skill.nivelClasseMinimo > 0 ? 1 : 0) +
+		skill.preRequisitos.length +
+		(linhaDaMissaoNoRequisito(skill, efetivo) ? 1 : 0);
 
 	scrollEl.innerHTML =
 		'<div class="is-hero">' +
