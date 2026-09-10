@@ -1,0 +1,30 @@
+<div id="RankingIdle">
+	<div class="rk-window ri-window ri-anima">
+		<div class="rk-titlebar ri-header">
+			<span class="rk-title ri-title">Ranking</span>
+			<button type="button" class="rk-close ri-close" title="Fechar">&times;</button>
+		</div>
+
+		<!-- AS QUATRO ABAS. Elas trocam SEM ida ao servidor: o painel inteiro
+		     desce de uma vez (poucos kB), e esperar quatro vezes para comparar
+		     seria pior que o custo do payload. -->
+		<div class="rk-abas" role="tablist" aria-label="O que ranquear">
+			<button type="button" class="rk-aba" data-eixo="base" role="tab">Nível</button>
+			<button type="button" class="rk-aba" data-eixo="classe" role="tab">Classe</button>
+			<button type="button" class="rk-aba" data-eixo="codex" role="tab">Codex</button>
+			<button type="button" class="rk-aba" data-eixo="cartas" role="tab">Cartas</button>
+		</div>
+
+		<div class="rk-body ri-scroll">
+			<!-- A MINHA POSIÇÃO, fixa no topo. Sem ela um ranking é uma parede:
+			     quem não está entre os vinte primeiros não tem o que fazer com a
+			     lista, e "você é o 47º" é a única informação acionável da tela. -->
+			<div class="rk-eu"></div>
+			<ol class="rk-lista"></ol>
+		</div>
+
+		<div class="rk-rodape">
+			<span class="rk-nota"></span>
+		</div>
+	</div>
+</div>

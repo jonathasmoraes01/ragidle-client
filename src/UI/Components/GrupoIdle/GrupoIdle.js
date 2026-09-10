@@ -1100,6 +1100,18 @@ GrupoIdle.aoPedirLocalizador = null;
  */
 GrupoIdle.aoPedirTeleporte = null;
 
+/**
+ * O GANCHO DA HUD DE PARTY (09/09/2026).
+ *
+ * `Network.hookPacket` SOBRESCREVE — um callback por opcode. Se a HUD fisgasse
+ * o `ZC_RAGIDLE_GRUPO` para saber a composicao, ela mataria em silencio o
+ * handler desta janela. Entao quem recebe e UM so (este arquivo), e quem mais
+ * precisa do estado se pendura aqui.
+ *
+ * `null` quando ninguem se pendurou — a janela funciona sozinha, como sempre.
+ */
+GrupoIdle.aoAtualizar = null;
+
 /*
  * ATENCAO ao `hookPacket`: ele SOBRESCREVE o handler anterior daquele opcode.
  * Este e nosso e de mais ninguem.
@@ -1127,6 +1139,14 @@ Network.hookPacket(PACKET.ZC.RAGIDLE_GRUPO, function (pkt) {
 	}
 
 	desenharTudo();
+	/*
+	 * E QUEM MAIS DEPENDE DO ESTADO e avisado — hoje, a HUD de party. O gancho
+	 * dispara mesmo com a janela FECHADA: o estado chega por empurrao do
+	 * servidor, e a HUD nao pode depender de alguem ter aberto isto.
+	 */
+	if (GrupoIdle.aoAtualizar) {
+		GrupoIdle.aoAtualizar();
+	}
 });
 
 /**

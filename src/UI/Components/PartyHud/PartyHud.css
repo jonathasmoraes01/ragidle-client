@@ -1,0 +1,119 @@
+/**
+ * PartyHud.css — a faixa de companheiros, sempre a vista.
+ *
+ * Ela mora no canto SUPERIOR ESQUERDO, abaixo do painel do proprio personagem:
+ * e onde o RO original a poe, e e o unico canto que nao disputa com o minimapa
+ * (direita), o chat (baixo) nem os atalhos.
+ */
+
+:host {
+	position: absolute;
+	/* Abaixo das janelas (50) e acima da cena: ela informa, nao interage. */
+	z-index: 20;
+	top: 96px;
+	left: 8px;
+	pointer-events: none;
+}
+
+#PartyHud .ph-hud {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	width: 172px;
+}
+
+#PartyHud .ph-hud[hidden] {
+	display: none;
+}
+
+#PartyHud .ph-membro {
+	display: grid;
+	grid-template-columns: 1fr auto;
+	grid-template-areas:
+		'nome classe'
+		'hp   num';
+	align-items: center;
+	gap: 1px 6px;
+	padding: 3px 6px;
+	border: 1px solid var(--border-gold);
+	border-radius: var(--radius-chip, 4px);
+	/* Semitransparente: ela fica em cima da cena o tempo todo, e opaca demais
+	   viraria uma parede no canto da tela. */
+	background: rgba(255, 255, 255, 0.82);
+	font: var(--type-badge);
+}
+
+#PartyHud .ph-nome {
+	grid-area: nome;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	color: var(--text-title);
+	font-weight: 600;
+}
+
+#PartyHud .ph-classe {
+	grid-area: classe;
+	color: var(--text-muted);
+}
+
+#PartyHud .ph-hp {
+	grid-area: hp;
+	position: relative;
+	height: 6px;
+	border-radius: 3px;
+	background: rgba(0, 0, 0, 0.18);
+	overflow: hidden;
+}
+
+#PartyHud .ph-hp .fill {
+	display: block;
+	height: 100%;
+	width: 100%;
+	border-radius: 3px;
+	background: var(--hp, #3fae4a);
+	transition: width 0.2s linear;
+}
+
+#PartyHud .ph-hp-num {
+	grid-area: num;
+	color: var(--text-muted);
+	font-variant-numeric: tabular-nums;
+}
+
+/* O LIDER e o EU sao marcados na borda, e nao com icone: um glifo a mais em
+   cada linha competiria com o nome, que e o que se procura de relance. */
+#PartyHud .ph-membro.is-eu {
+	border-color: var(--gold-700);
+}
+
+#PartyHud .ph-membro.is-lider .ph-nome::before {
+	content: '★ ';
+	color: var(--gold-700);
+}
+
+/* MORTO e OFFLINE precisam ser lidos de relance — e a razao de a HUD existir.
+   Morto esvazia a barra visualmente; offline apaga a linha inteira. */
+#PartyHud .ph-membro.is-morto .ph-hp .fill {
+	background: var(--danger, #c0392b);
+}
+
+#PartyHud .ph-membro.is-offline {
+	opacity: 0.45;
+}
+
+/*
+ * NO CELULAR EM PE ELA NAO APARECE — decisao declarada, nao esquecimento.
+ *
+ * A HUD vertical (D-939) ja ocupa a coluna inteira: barra do topo, cartao de
+ * missoes, trilho, botao de caca, atalhos e rodape. Somar uma faixa fixa ali
+ * quebraria o enquadramento que a `prove:hud-vertical` mede — e no celular quem
+ * quer ver o grupo abre a janela, que la vira painel de tela cheia.
+ *
+ * O criterio e a marca `ri-vertical`, e nao uma media-query propria: repetir
+ * `matchMedia('(pointer: coarse)')` num arquivo novo e como a cicatriz de
+ * `--hud-acima-da-doca` (D-929) comecou.
+ */
+:host-context(html.ri-vertical) .ph-hud {
+	display: none !important;
+}

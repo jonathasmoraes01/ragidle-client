@@ -108,6 +108,8 @@ import CodexIdle from 'UI/Components/CodexIdle/CodexIdle.js'; // RAGIDLE: janela
 import VotoIdle from 'UI/Components/VotoIdle/VotoIdle.js'; // RAGIDLE: janela de Voto (D-1159)
 import PresencaIdle from 'UI/Components/PresencaIdle/PresencaIdle.js'; // RAGIDLE: janela de presenca (D-1162)
 import IndicacaoIdle from 'UI/Components/IndicacaoIdle/IndicacaoIdle.js'; // RAGIDLE: Indique & Ganhe (D-1164)
+import RankingIdle from 'UI/Components/RankingIdle/RankingIdle.js'; // RAGIDLE: o Ranking (09/09/2026)
+import PartyHud from 'UI/Components/PartyHud/PartyHud.js'; // RAGIDLE: a HUD de party (09/09/2026)
 import BoasVindasIdle from 'UI/Components/BoasVindasIdle/BoasVindasIdle.js'; // RAGIDLE: caixa de boas-vindas (D-968)
 import LFGIdle from 'UI/Components/LFGIdle/LFGIdle.js'; // RAGIDLE: janela de Procurar Grupo (D-634)
 import GrupoIdle from 'UI/Components/GrupoIdle/GrupoIdle.js'; // RAGIDLE: janela de Grupo (D-960)
@@ -468,6 +470,8 @@ class MapEngine {
 					VotoIdle: VotoIdle,
 					PresencaIdle: PresencaIdle,
 					IndicacaoIdle: IndicacaoIdle,
+					RankingIdle: RankingIdle,
+					PartyHud: PartyHud,
 					// RAGIDLE (D-968): a caixa de boas-vindas. A prova de tela
 					// precisa reabri-la sem relogar — a trava de "uma vez por
 					// entrada" é justamente o que impede repetir a medida.
@@ -520,6 +524,8 @@ class MapEngine {
 			VotoIdle.prepare(); // RAGIDLE: janela de Voto (D-1159) — idem, só escuta 0x0fd5
 			PresencaIdle.prepare(); // RAGIDLE: janela de presenca (D-1162) — escuta 0x0fde e abre sozinha quando o servidor manda
 			IndicacaoIdle.prepare(); // RAGIDLE: Indique & Ganhe (D-1164) — escuta 0x0fdc
+			RankingIdle.prepare(); // RAGIDLE: o Ranking — escuta 0x0fca
+			PartyHud.prepare(); // RAGIDLE: a HUD de party — NAO fisga pacote (ver o cabecalho)
 			BoasVindasIdle.prepare(); // RAGIDLE: caixa de boas-vindas (D-968) — não escuta pacote nenhum: a lista de cartazes é do cliente
 			LFGIdle.prepare(); // RAGIDLE: janela de Procurar Grupo (D-634) — idem: só escuta 0x0fe9/0x0fe8
 			GrupoIdle.prepare(); // RAGIDLE: janela de Grupo (D-960) — idem: só escuta 0x0fcc
@@ -1000,6 +1006,8 @@ function onMapChange(pkt) {
 		VotoIdle.append(); // RAGIDLE: janela de Voto (D-1159)
 		PresencaIdle.append(); // RAGIDLE: janela de presenca (D-1162)
 		IndicacaoIdle.append(); // RAGIDLE: Indique & Ganhe (D-1164)
+		RankingIdle.append(); // RAGIDLE: o Ranking
+		PartyHud.append(); // RAGIDLE: a HUD de party
 		/*
 		 * RAGIDLE (D-968): a CAIXA DE BOAS-VINDAS — o cartaz que abre sozinho
 		 * ao entrar (hoje, o convite do Discord). Anexada por ÚLTIMO entre as
@@ -1116,6 +1124,7 @@ function onMapChange(pkt) {
 			['codex', CodexIdle, '.cx-window'],
 			['presenca', PresencaIdle, '.pr-window'],
 			['indicacao', IndicacaoIdle, '.in-window'],
+			['ranking', RankingIdle, '.rk-window'],
 			['correio', CorreioIdle, '.co-window'],
 			['missoes', MissoesIdle, '.mi-window'],
 			['passe', PasseIdle, '.pi-window'],
@@ -1264,6 +1273,10 @@ function onMapChange(pkt) {
 				fechar: () => GrupoIdle.fechar(),
 				estaAberta: () => GrupoIdle.estavaAberta,
 			},
+			// A HUD DE PARTY (09/09/2026): a porta e o unico lugar que sabe QUANDO a
+			// composicao muda, e a HUD precisa disso para pedir o painel — a inscricao
+			// no empurrao morre quando a janela fecha.
+			hud: PartyHud,
 		});
 
 		/* A MORTE é decisão: o ESC não a fecha, e ela também não deixa o ESC
@@ -1429,6 +1442,8 @@ function cleanGameUI() {
 		CodexIdle,
 		PresencaIdle,
 		IndicacaoIdle,
+		RankingIdle,
+		PartyHud,
 		VotoIdle,
 		BoasVindasIdle
 	]) {

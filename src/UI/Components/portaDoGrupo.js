@@ -90,6 +90,15 @@ let _localizador = null;
 let _grupo = null;
 
 /**
+ * A HUD de party (09/09/2026) — opcional, e por isso `null` por padrao.
+ *
+ * A porta ja e o unico lugar que sabe QUANDO a composicao muda de verdade, e a
+ * HUD precisa disso para pedir o painel: a inscricao no empurrao morre quando a
+ * janela fecha, e sem o pedido a composicao congelaria.
+ */
+let _hud = null;
+
+/**
  * A última verdade de party que a porta VIU. Nasce `false` pelo mesmo motivo
  * que `SessionStorage.hasParty` nasce `false`: sem personagem no mundo não há
  * grupo. Ela é o outro lado da borda — sem ela, "entrou" e "continua dentro"
@@ -112,11 +121,12 @@ const PortaDoGrupo = {};
  * NÃO sincroniza a verdade de propósito — carregar mapa não é notícia de
  * party, e engolir aqui uma borda que chegou pelo fio seria perder o pedido.
  *
- * @param {{localizador: JanelaDeGrupo, grupo: JanelaDeGrupo}} janelas
+ * @param {{localizador: JanelaDeGrupo, grupo: JanelaDeGrupo, hud?: object}} janelas
  */
 PortaDoGrupo.ligar = function ligar(janelas) {
 	_localizador = janelas.localizador;
 	_grupo = janelas.grupo;
+	_hud = janelas.hud || null;
 };
 
 /*
@@ -170,6 +180,12 @@ PortaDoGrupo.partyMudou = function partyMudou() {
  * que é o caso do convite aceito, um dos dois caminhos que o dono enumerou.
  */
 function entrei() {
+	// A HUD DE PARTY (09/09/2026): a composicao mudou, e ela precisa do painel.
+	// O pedido tambem REINSCREVE — sem isto, quem fecha a janela veria a HUD
+	// congelada na composicao de quando ela estava aberta.
+	if (_hud) {
+		_hud.pedirPainel();
+	}
 	if (_localizador && _localizador.estaAberta()) {
 		_localizador.fechar();
 	}
@@ -188,6 +204,12 @@ function entrei() {
  * dono proíbe com todas as letras.
  */
 function sai() {
+	// Mesma razao do `entrei`: a composicao mudou. Este ramo retorna cedo para
+	// quem estava de janela fechada, e e exatamente esse jogador que precisa do
+	// pedido — por isso ele vem ANTES da guarda.
+	if (_hud) {
+		_hud.pedirPainel();
+	}
 	if (!_grupo || !_grupo.estaAberta()) {
 		return;
 	}
