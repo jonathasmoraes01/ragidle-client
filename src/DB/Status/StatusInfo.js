@@ -3118,4 +3118,214 @@ StatusInfo[SC.RESIST_PROPERTY_UNDEAD] = {
 	]
 };
 
+/*
+ * RAG IDLE (10/09/2026) - as cancoes, as dancas e os conjuntos que o servidor
+ * passou a mandar (`EFST_POR_STATUS`, servidor/mapa/status-no-fio.ts). Sem
+ * entrada aqui o icone vira o quadrado de reserva com iniciais
+ * (`addFallbackStatusIcon`), e o jogador nao reconhece o buff.
+ *
+ * NADA aqui foi escolhido por nos: a ARTE e o `stateiconimginfo.lub` do
+ * data.grf (EFST_WHISTLE -> WHISTLE.tga, e assim nos quinze; os arquivos
+ * existem em data/texture/effect/) e o TEXTO e o `stateiconinfo.lub` ingles
+ * do mesmo GRF, com a cor do titulo que ele declara. A traducao mora no
+ * StatusInfoPtBr.js, como a de todo o resto deste arquivo.
+ */
+StatusInfo[SC.WHISTLE] = {
+	icon: 'whistle.tga',
+	haveTimeLimit: 1,
+	posTimeLimitStr: 2,
+	descript: [
+		['Perfect Tablature', COLOR_TITLE_BUFF],
+		['%s', COLOR_TIME],
+		["Increase party member's FLEE"],
+		['Increase perfect dodge.']
+	]
+};
+
+StatusInfo[SC.ASSASSINCROSS] = {
+	icon: 'assassincross.tga',
+	haveTimeLimit: 1,
+	posTimeLimitStr: 2,
+	descript: [
+		['Impressive Riff', COLOR_TITLE_BUFF],
+		['%s', COLOR_TIME],
+		["Increase party member's ASPD."],
+		['(Reduce delay after attack.)']
+	]
+};
+
+StatusInfo[SC.POEMBRAGI] = {
+	icon: 'poembragi.tga',
+	haveTimeLimit: 1,
+	posTimeLimitStr: 2,
+	descript: [
+		['Magic Strings', COLOR_TITLE_BUFF],
+		['%s', COLOR_TIME],
+		["Reduce party member's variable casting."],
+		['Reduce delay after skill.']
+	]
+};
+
+StatusInfo[SC.APPLEIDUN] = {
+	icon: 'appleidun.tga',
+	haveTimeLimit: 1,
+	posTimeLimitStr: 2,
+	descript: [
+		['Song of Lutie', COLOR_TITLE_BUFF],
+		['%s', COLOR_TIME],
+		["Increase party member's maximum HP."],
+		['Increase healings received.']
+	]
+};
+
+StatusInfo[SC.HUMMING] = {
+	icon: 'humming.tga',
+	haveTimeLimit: 1,
+	posTimeLimitStr: 2,
+	descript: [['Focus Ballet', COLOR_TITLE_BUFF], ['%s', COLOR_TIME], ["Increase party member's HIT."]]
+};
+
+StatusInfo[SC.DONTFORGETME] = {
+	icon: 'dontforgetme.tga',
+	haveTimeLimit: 1,
+	posTimeLimitStr: 2,
+	descript: [
+		['Slow Grace', COLOR_TITLE_DEBUFF],
+		['%s', COLOR_TIME],
+		['Reduce movement speed and ASPD.'],
+		['Removes all effects that increase ASPD and movement speed.']
+	]
+};
+
+StatusInfo[SC.FORTUNEKISS] = {
+	icon: 'fortunekiss.tga',
+	haveTimeLimit: 1,
+	posTimeLimitStr: 2,
+	descript: [
+		['Lady Luck', COLOR_TITLE_BUFF],
+		['%s', COLOR_TIME],
+		["Increase party member's CRI."],
+		['Increase critical damage.']
+	]
+};
+
+StatusInfo[SC.SERVICEFORYOU] = {
+	icon: 'serviceforyou.tga',
+	haveTimeLimit: 1,
+	posTimeLimitStr: 2,
+	descript: [
+		["Gypsy's Kiss", COLOR_TITLE_BUFF],
+		['%s', COLOR_TIME],
+		["Increase party member's maximum SP."],
+		['Reduce SP consumption.']
+	]
+};
+
+StatusInfo[SC.RICHMANKIM] = {
+	icon: 'richmankim.tga',
+	haveTimeLimit: 1,
+	posTimeLimitStr: 2,
+	descript: [
+		['Mental Sensing', COLOR_TITLE_BUFF],
+		['%s', COLOR_TIME],
+		['When hunting monsters'],
+		['Exp, JOB exp Increase']
+	]
+};
+
+StatusInfo[SC.ETERNALCHAOS] = {
+	icon: 'eternalchaos.tga',
+	haveTimeLimit: 1,
+	posTimeLimitStr: 2,
+	descript: [['Down Tempo', COLOR_TITLE_DEBUFF], ['%s', COLOR_TIME], ['Armor fixed to 0.']]
+};
+
+StatusInfo[SC.DRUMBATTLEFIELD] = {
+	icon: 'drumbattlefield.tga',
+	haveTimeLimit: 1,
+	posTimeLimitStr: 2,
+	descript: [['Battle Theme', COLOR_TITLE_BUFF], ['%s', COLOR_TIME], ["Increase party members' ATK and DEF."]]
+};
+
+StatusInfo[SC.ROKISWEIL] = {
+	icon: 'rokisweil.tga',
+	haveTimeLimit: 1,
+	posTimeLimitStr: 2,
+	descript: [
+		['Classical Pluck', COLOR_TITLE_DEBUFF],
+		['%s', COLOR_TIME],
+		['Cannot use a skill.'],
+		['Chance to Confuse.']
+	]
+};
+
+StatusInfo[SC.INTOABYSS] = {
+	icon: 'intoabyss.tga',
+	haveTimeLimit: 1,
+	posTimeLimitStr: 2,
+	descript: [
+		['Power Cord', COLOR_TITLE_BUFF],
+		['%s', COLOR_TIME],
+		['Remove Gemstone consumption of a party member.'],
+		['(There are few exceptions).']
+	]
+};
+
+StatusInfo[SC.SIEGFRIED] = {
+	icon: 'siegfried.tga',
+	haveTimeLimit: 1,
+	posTimeLimitStr: 2,
+	descript: [
+		['Acoustic Rhythm', COLOR_TITLE_BUFF],
+		['%s', COLOR_TIME],
+		['Tolerance to Water/Wind/Earth/Fire'],
+		['for party members.'],
+		['Tolerance to some status effect.']
+	]
+};
+
+StatusInfo[SC.ADAPTATION] = {
+	icon: 'adaptation.tga',
+	haveTimeLimit: 1,
+	posTimeLimitStr: 2,
+	descript: [
+		['Amp', COLOR_TITLE_BUFF],
+		['%s', COLOR_TIME],
+		['Decrease SP consumption'],
+		['for perfoming, dancing and duet skill.']
+	]
+};
+
+/*
+ * RAG IDLE (10/09/2026) - tres que o servidor JA mandava e que caiam no
+ * quadrado de reserva: Aura Blade, Spear Dynamo (a Concentracao do Lorde) e
+ * Magic Amplification. Arte e texto dos mesmos dois lubs oficiais do bloco
+ * acima; o nome da arte do Magic Amplification e CP949, por isso o escape.
+ */
+StatusInfo[SC.AURABLADE] = {
+	icon: 'icon04.tga',
+	haveTimeLimit: 1,
+	posTimeLimitStr: 2,
+	descript: [['Aura Blade', COLOR_TITLE_BUFF], ['%s', COLOR_TIME], ['Increase in Physical damage']]
+};
+
+StatusInfo[SC.LKCONCENTRATION] = {
+	icon: 'exeedbreak.tga',
+	haveTimeLimit: 1,
+	posTimeLimitStr: 2,
+	descript: [
+		['Spear Dynamo', COLOR_TITLE_BUFF],
+		['%s', COLOR_TIME],
+		['ATK, Increase Accuracy'],
+		['Physical Defense reduced']
+	]
+};
+
+StatusInfo[SC.MAGICPOWER] = {
+	icon: '\xb8\xb6\xb9\xfd\xb7\xc2\xc1\xf5\xc6\xf8.tga',
+	haveTimeLimit: 1,
+	posTimeLimitStr: 2,
+	descript: [['Magic Amplification', COLOR_TITLE_BUFF], ['%s', COLOR_TIME], ['MATK Amplified']]
+};
+
 export default StatusInfo;

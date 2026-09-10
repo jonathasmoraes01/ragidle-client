@@ -2550,7 +2550,12 @@ function onEntityStatusChange(pkt) {
 			break;
 
 		// Cast a skill, TODO: add progressbar in shortcut
-		case StatusConst.GROUNDMAGIC:
+		//
+		// O GROUNDMAGIC SAIU DAQUI (10/09/2026). Ele e o icone dos TRES campos do
+		// Sabio (Volcano, Deluge e Violent Gale: `Icon: EFST_GROUNDMAGIC` no
+		// status.yml do rAthena), e nao um atraso de conjuracao. O RemainMS dele e
+		// a DURACAO do campo (60 a 300 s), e tratado como post-delay acinzentava a
+		// barra de atalhos inteira por esse tempo. So o POSTDELAY e atraso.
 		case StatusConst.POSTDELAY:
 			if (pkt.RemainMS && entity == Session.Entity) {
 				ShortCut.setGlobalSkillDelay(pkt.RemainMS);
