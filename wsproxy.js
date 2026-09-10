@@ -95,7 +95,6 @@ const alvosPermitidos = new Set(
 	(process.env.WSPROXY_ALVOS ?? ALVOS_PADRAO.join(',')).split(',').map(t => t.trim()).filter(Boolean)
 );
 
-console.log(`[wsProxy] Listening on ${host}:${port}`);
 if (host !== '127.0.0.1' && host !== 'localhost') {
 	// Quem abre precisa VER que abriu. A linha e o unico aviso que existe entre
 	// "so o tunel alcanca" e "a internet alcanca, se o firewall deixar".
@@ -128,6 +127,21 @@ const TETO_DE_FRAME = 256 * 1024;
 
 
 const wss = new WebSocketServer({ port, host, maxPayload: TETO_DE_FRAME });
+
+/*
+ * "Listening on" SO QUANDO ESCUTA (10/09/2026).
+ *
+ * A linha era impressa no topo do arquivo, antes ate de o servidor ser
+ * criado — e o `listen` e assincrono. Quem esperava por ela (o
+ * `tests/wsproxy-nao-morre.test.js`) conectava numa porta que as vezes ainda
+ * nao escutava: medido, uma em tres conexoes feitas no instante da linha deu
+ * `ECONNREFUSED`, e o teste reprovou tres vezes seguidas com a ponte perfeita.
+ * Em producao a mentira era a mesma com outra cara: porta ocupada imprimia
+ * "Listening on" e morria logo em seguida.
+ */
+wss.on('listening', () => {
+	console.log(`[wsProxy] Listening on ${host}:${port}`);
+});
 
 /*
  * O HANDLER INTEIRO NUMA GUARDA (08/09/2026).
