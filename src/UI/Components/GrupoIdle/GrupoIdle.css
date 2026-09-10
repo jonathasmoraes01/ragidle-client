@@ -634,6 +634,52 @@
 	color: var(--text-muted);
 }
 
+/*
+ * O BOTAO DE TRANSFERIR LIDERANCA (10/09/2026) — um icone, nao um `.ri-btn`
+ * inteiro, porque a linha e CRAVADA em 32px (o comentario "DEZ MEMBROS TEM
+ * DE CABER" no topo deste arquivo) e o padding do botao do design system
+ * estouraria essa altura. 18px cabe ao lado do numero de HP e do posto sem
+ * mexer na conta que fez dez membros caberem sem rolagem.
+ *
+ * Desabilitado usa a MESMA receita do `.ri-btn:disabled` (dessaturar, nao
+ * apagar) — o design system pede consistencia entre botao grande e pequeno.
+ */
+#GrupoIdle .gi-transferir {
+	appearance: none;
+	flex: 0 0 auto;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 18px;
+	height: 18px;
+	padding: 0;
+	border-radius: var(--radius-pill);
+	border: 1px solid var(--border-hairline);
+	background: var(--surface-card-hover);
+	cursor: pointer;
+	box-shadow: var(--shadow-card);
+	transition:
+		background var(--dur-fast) var(--ease-out),
+		transform var(--dur-instant) var(--ease-out);
+}
+#GrupoIdle .gi-transferir:hover:not(:disabled) {
+	background: var(--white);
+	border-color: var(--accent);
+}
+#GrupoIdle .gi-transferir:active:not(:disabled) {
+	transform: var(--press-shift);
+}
+#GrupoIdle .gi-transferir:disabled {
+	filter: grayscale(1);
+	opacity: 0.45;
+	cursor: default;
+	box-shadow: none;
+}
+#GrupoIdle .gi-transferir .gi-coroa {
+	width: 12px;
+	height: 12px;
+}
+
 /* ─── Os cartoes da coluna lateral ──────────────────────────────────────── */
 
 #GrupoIdle .gi-cartao {
