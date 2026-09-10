@@ -30,19 +30,19 @@
 		},
 		"map": {
 			"entrada": {
-				"total": 732,
+				"total": 733,
 				"semTamanho": 0
 			},
 			"saida": {
-				"total": 552,
+				"total": 553,
 				"semTamanho": 0
 			}
 		}
 	},
 	"comprimentosDoCliente": {
 		"arquivo": "src/Network/Packets/packets2021_len_main.js",
-		"declarados": 1638,
-		"preencheram": 96,
+		"declarados": 1640,
+		"preencheram": 97,
 		"divergencias": [
 			{
 				"opcode": "0x0276",
@@ -12449,6 +12449,11 @@
 					"tamanho": 10,
 					"desde": null
 				},
+				"0x0fca": {
+					"nome": "ZC_RAGIDLE_RANKING",
+					"tamanho": -1,
+					"desde": null
+				},
 				"0x0fcc": {
 					"nome": "ZC_RAGIDLE_GRUPO",
 					"tamanho": -1,
@@ -15442,6 +15447,12 @@
 				"0x0ba0": {
 					"nome": "CZ_CLOSE_UI_ENCHANT",
 					"tamanho": 2,
+					"desde": null,
+					"fonteDoTamanho": "cliente"
+				},
+				"0x0fc9": {
+					"nome": "CZ_RAGIDLE_RANKING_ACAO",
+					"tamanho": -1,
 					"desde": null,
 					"fonteDoTamanho": "cliente"
 				},

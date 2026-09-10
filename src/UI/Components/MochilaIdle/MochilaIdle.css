@@ -740,6 +740,23 @@
 /* O selo "Equipado — <espaço>" (08/09/2026, pedido do alfa). Cor de acento e
    não borda (a regra do texto dourado de D-944 vale pra todo destaque): o selo
    diz ESTADO, não é botão. */
+/* "Exclusivo para VIPs" (09/09/2026): o selo do item que so VIP usa.
+
+   Dourado e em caixa alta porque ele compete com o nome do item logo acima e
+   precisa perder essa disputa de proposito — quem procura o nome acha o nome,
+   e quem passa o olho ve a faixa. */
+.mo-dica-vip {
+	margin-top: 2px;
+	padding: 2px 6px;
+	border: 1px solid var(--border-gold);
+	border-radius: var(--radius-chip, 4px);
+	background: var(--gold-100, rgba(244, 192, 62, 0.12));
+	color: var(--gold-700);
+	font: var(--type-badge);
+	letter-spacing: var(--ls-caps);
+	text-transform: uppercase;
+}
+
 .mo-dica-equipado {
 	margin-top: 2px;
 	font-family: var(--font-ui);

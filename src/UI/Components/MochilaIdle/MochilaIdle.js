@@ -127,6 +127,7 @@
  */
 
 import Renderer from 'Renderer/Renderer.js';
+import { legendaDeVip } from '../../../DB/Items/exclusivosDeVip.js';
 import Camera from 'Renderer/Camera.js';
 import SpriteRenderer from 'Renderer/SpriteRenderer.js';
 import Entity from 'Renderer/Entity/Entity.js';
@@ -1800,12 +1801,25 @@ function mostrarDicaItem(alvoEl, item, vestidoEmForcado) {
 				: 0;
 	const espaco = rotuloDoEspacoEquipado(vestidoEm, EQUIP_SLOTS);
 
+	/*
+	 * O SELO "Exclusivo para VIPs" (09/09/2026 — ordem do dono).
+	 *
+	 * Ele vai DEPOIS do nome e ANTES da descricao: e a primeira coisa que o
+	 * jogador le sobre o item, porque e a que muda se ele pode usa-lo. A
+	 * recusa de verdade e do servidor; isto existe para ele saber ANTES de
+	 * tentar.
+	 *
+	 * Nao da para pendura-lo na descricao: ela vem do GRF e esta dica so
+	 * mostra linhas no formato "Rotulo: valor" (ver `renderCorpoDaDescricao`).
+	 */
+	const legendaVip = legendaDeVip(item.ITID);
 	dica.innerHTML =
 		'<div class="mo-dica-cabecalho">' +
 		'<div class="ri-tile mo-dica-arte"><img class="mo-dica-arte-img" alt="" /></div>' +
 		`<div class="mo-dica-nome">${escapeHTML(titulo)}</div>` +
 		'</div>' +
 		(espaco ? `<div class="mo-dica-equipado">Equipado - ${escapeHTML(espaco)}</div>` : '') +
+		(legendaVip ? `<div class="mo-dica-vip">${escapeHTML(legendaVip)}</div>` : '') +
 		(corpo ? `<div class="mo-dica-corpo">${corpo}</div>` : '') +
 		renderRunasHTML(item);
 

@@ -4996,6 +4996,8 @@ function init(packetver) {
 	length_list[0x0fdc] = -1; // ZC_RAGIDLE_INDICACAO (variable, JSON payload) — D-1164
 	length_list[0x0fda] = -1; // CZ_RAGIDLE_CACA_ACAO (variable, JSON payload) — favoritos, 09/09/2026
 	length_list[0x0fdb] = -1; // ZC_RAGIDLE_FAVORITOS (variable, JSON payload) — favoritos, 09/09/2026
+	length_list[0x0fc9] = -1; // CZ_RAGIDLE_RANKING_ACAO (variable, JSON payload) — ranking, 09/09/2026
+	length_list[0x0fca] = -1; // ZC_RAGIDLE_RANKING (variable, JSON payload) — ranking, 09/09/2026
 
 	return length_list;
 }

@@ -16471,6 +16471,33 @@ PACKET.ZC.RAGIDLE_INDICACAO = function PACKET_ZC_RAGIDLE_INDICACAO(fp, end) {
 };
 PACKET.ZC.RAGIDLE_INDICACAO.size = -1;
 
+// 0x0fc9 - RAGIDLE: CZ_RAGIDLE_RANKING_ACAO (client -> server)
+// Variable size: u16 opcode + u16 total length + JSON UTF-8 {acao:'pedir'}.
+// 09/09/2026: o Ranking. Um opcode por JANELA, verbo no JSON.
+PACKET.CZ.RAGIDLE_RANKING_ACAO = function PACKET_CZ_RAGIDLE_RANKING_ACAO() {
+	this.json = '{}';
+};
+PACKET.CZ.RAGIDLE_RANKING_ACAO.prototype.build = function () {
+	const bytes = TextEncoding.encode(this.json, 'utf-8');
+	const pkt_len = 2 + 2 + bytes.length;
+	const pkt_buf = new BinaryWriter(pkt_len);
+	pkt_buf.writeShort(0x0fc9);
+	pkt_buf.writeUShort(pkt_len);
+	pkt_buf.writeString(this.json);
+	return pkt_buf;
+};
+
+// 0x0fca - RAGIDLE: ZC_RAGIDLE_RANKING (server -> client)
+// Variable size: u16 opcode + u16 total length + JSON UTF-8 payload.
+// Contrato v1 (09/09/2026): { v, base, classe, codex, cartas }, cada um
+// { linhas: [{posicao, nome, classe, valor, souEu}], eu: {posicao, valor, total}|null }.
+// As QUATRO abas descem juntas: trocar de aba sem ida ao servidor e o que faz a
+// janela parecer instantanea, e sao poucos kB.
+PACKET.ZC.RAGIDLE_RANKING = function PACKET_ZC_RAGIDLE_RANKING(fp, end) {
+	this.json = fp.readString(end - fp.tell());
+};
+PACKET.ZC.RAGIDLE_RANKING.size = -1;
+
 // 0x0fda - RAGIDLE: CZ_RAGIDLE_CACA_ACAO (client -> server)
 // Variable size: u16 opcode + u16 total length + JSON UTF-8 {acao:'pedir'|
 // 'alternar-favorito', mapa?}.

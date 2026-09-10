@@ -1032,6 +1032,8 @@ export default {
 	// FAVORITOS (09/09/2026): so o ZC entra aqui — o CZ 0x0fda e escrito pelo
 	// cliente, nunca lido. Mesma razao dos vizinhos.
 	0x0fdb: PACKET.ZC.RAGIDLE_FAVORITOS,
+	// RANKING (09/09/2026): so o ZC — o CZ 0x0fc9 e escrito, nunca lido.
+	0x0fca: PACKET.ZC.RAGIDLE_RANKING,
 	// VOTO (D-1159): so o ZC entra aqui — o CZ 0x0fd4 e escrito pelo cliente,
 	// nao lido. Mesma razao dos vizinhos acima. Ele desce respondendo aos TRES
 	// verbos e tambem na ENTRADA no mapa (com `avisar: true`), sem ZC de erro.
