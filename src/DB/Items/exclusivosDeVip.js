@@ -45,7 +45,15 @@
 export const EXCLUSIVOS_DE_VIP = {
 	// Wing_Of_Fly (item_db do rAthena). Ordem do dono, 09/09/2026: todos usam,
 	// o VIP nao espera os 4 s e ganha o gatilho automatico, e so o NPC vende.
-	601: 'VIP: sem espera e uso automático'
+	//
+	// 10/09/2026: a legenda passou a dizer as DUAS regras. Ela so dizia a do
+	// VIP, e o jogador comum descobria os 4 s clicando e nada acontecendo —
+	// o dono perguntou se a descricao estava atualizada, e nao estava.
+	//
+	// A COPIA do servidor (`LEGENDA_DO_VIP`, game/asa-de-mosca-do-dono.ts)
+	// tem o mesmo texto sem acento e com a cor do RO; o teste de la compara
+	// as duas. Mudou uma, mude a outra.
+	601: 'Jogador comum: 4 s de espera entre usos · VIP: sem espera e uso automático no idle'
 };
 
 /** A legenda deste item, ou `null` quando ele nao e exclusivo. */

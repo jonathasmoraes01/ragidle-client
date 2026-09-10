@@ -9,6 +9,7 @@
  */
 
 import DB from 'DB/DBManager.js';
+import { legendaDeVip } from 'DB/Items/exclusivosDeVip.js'; // 10/09/2026: a regra do item em destaque
 import ItemType from 'DB/Items/ItemType.js';
 import EquipLocation from 'DB/Items/EquipmentLocation.js';
 import Client from 'Core/Client.js';
@@ -358,7 +359,23 @@ ItemInfo.setItem = function setItem(item) {
 	const descInner = root.querySelector('.description-inner');
 	if (descInner) {
 		const rawDesc = item.IsIdentified ? it.identifiedDescriptionName : it.unidentifiedDescriptionName;
-		descInner.innerHTML = DB.formatMsgToHtml(_escapeHTML(rawDesc));
+		/*
+		 * A REGRA DO DONO EM DESTAQUE, na PRIMEIRA linha (10/09/2026).
+		 *
+		 * A descricao desta janela vem do GRF, que nao sabe das regras do dono
+		 * (a Asa de Mosca: 4 s para o jogador comum, sem espera e automatica
+		 * para o VIP). Ate aqui a legenda so aparecia na dica da mochila, e esta
+		 * janela — a descricao de verdade, a que o jogador abre para ler —
+		 * nao dizia nada. Primeira linha porque a caixa e alta: enterrada no
+		 * fim, ela so seria lida por quem ja rolou o texto.
+		 */
+		const legenda = legendaDeVip(item.ITID);
+		descInner.innerHTML =
+			(legenda
+				? '<div class="ri-legenda-do-item" style="color:#ff8800;font-weight:bold;margin-bottom:4px">' +
+					_escapeHTML(legenda) +
+					'</div>'
+				: '') + DB.formatMsgToHtml(_escapeHTML(rawDesc));
 	}
 
 	if (item.HireExpireDate) {
