@@ -104,7 +104,21 @@ const _preferences = Preferences.get(
 	{
 		x: null,
 		y: null,
-		aba: null
+		aba: null,
+		/*
+		 * MOSTRAR TAMBEM AS CONCLUIDAS (11/09/2026, pedido do dono: "oculte por
+		 * padrao todas as missoes que ja foram concluidas").
+		 *
+		 * `false` de fabrica — ocultar E o pedido. E a VERSAO NAO SOBE: se a
+		 * leitura nao mesclar campo novo sobre o padrao, ele chega `undefined`,
+		 * que e falso, que e exatamente o que se quer. Falha segura por
+		 * construcao, sem obrigar ninguem a perder a posicao da janela.
+		 *
+		 * Fica ao lado de `aba` porque e a mesma classe de preferencia: escolha
+		 * da PESSOA, e nao dado do personagem — `limparEstadoDoPersonagem` nao
+		 * a toca, pela razao que `abaSobreviveAoF5` ja registra sobre a aba.
+		 */
+		concluidas: false
 	},
 	1.0
 );
@@ -181,6 +195,13 @@ MissoesIdle.init = function init() {
 	}
 	if (root) {
 		root.querySelectorAll('.mi-tab').forEach(btn => btn.addEventListener('click', onClickTab));
+		// O interruptor das concluidas (11/09/2026). Guarda no `querySelector`
+		// pelo mesmo motivo dos de cima: este init roda dentro de
+		// `MapEngine.init`, e uma excecao aqui derruba o motor de mapa.
+		const concluidas = root.querySelector('.mi-concluidas');
+		if (concluidas) {
+			concluidas.addEventListener('click', onClickConcluidas);
+		}
 		const titulo = root.querySelector('.mi-titlebar');
 		if (titulo) {
 			this.draggable(titulo);
@@ -283,6 +304,22 @@ function onClickTab(e) {
 	render();
 }
 
+/**
+ * Alterna "mostrar tambem as concluidas" (11/09/2026).
+ *
+ * NAO e um `.mi-tab`, e a distincao e deliberada: `abaSobreviveAoF5` liga e
+ * conta os `.mi-tab` por `data-tab`, e um terceiro botao com aquela classe
+ * entraria na conta dele como se fosse uma aba.
+ */
+function onClickConcluidas(e) {
+	e.stopImmediatePropagation();
+	// Mesmo gesto do clique de aba: o jogador foi olhar outra coisa.
+	_missaoADestacar = null;
+	_preferences.concluidas = !_preferences.concluidas;
+	_preferences.save();
+	render();
+}
+
 function render() {
 	const root = _root();
 	if (!root) {
@@ -297,8 +334,29 @@ function render() {
 		btn.classList.toggle('is-active', btn.dataset.tab === MissoesIdle.activeTab);
 	});
 
+	/*
+	 * AS CONCLUIDAS SAO OCULTAS POR PADRAO (11/09/2026, pedido do dono).
+	 *
+	 * O filtro fica NESTE ponto porque ele ja e o unico lugar que recorta a
+	 * lista — somar um segundo recorte noutro sitio seria a segunda rota que
+	 * este projeto passa o dia consertando.
+	 *
+	 * O BOTAO E PINTADO AQUI, e nao no clique: `render()` tambem roda quando a
+	 * lista chega do servidor e na abertura da janela, e pintar so no clique
+	 * deixaria o botao mentindo nesses dois caminhos — o mesmo motivo pelo qual
+	 * as abas sao repintadas logo acima.
+	 */
+	const mostrarConcluidas = _preferences.concluidas === true;
+	const alternador = root.querySelector('.mi-concluidas');
+	if (alternador) {
+		alternador.classList.toggle('is-active', mostrarConcluidas);
+		alternador.setAttribute('aria-pressed', String(mostrarConcluidas));
+	}
+
 	const tipoDaAba = MissoesIdle.activeTab === 'opcionais' ? 'opcional' : 'principal';
-	const daAba = (MissoesIdle.missoes || []).filter(m => m.tipo === tipoDaAba);
+	const daAba = (MissoesIdle.missoes || []).filter(
+		m => m.tipo === tipoDaAba && (mostrarConcluidas || m.estado !== 'concluida')
+	);
 
 	if (!daAba.length) {
 		// A aba Opcionais é ESTRUTURA por enquanto (decisão do dono, 24/08/2026):
