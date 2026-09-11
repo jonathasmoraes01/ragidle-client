@@ -573,6 +573,30 @@ function tique() {
 		atualizarSituacao(gid, situacaoDoMundo());
 	}
 
+	/*
+	 * O DESENHO PARA AQUI COM A JANELA FECHADA (auditoria de desempenho,
+	 * 11/09/2026).
+	 *
+	 * O que vem abaixo e so pintura: `sincronizarAbas` reconstroi a fileira de
+	 * abas e `desenharRetrato` reescreve a tabela inteira. Com a janela fechada
+	 * ninguem ve nada disso, e mesmo assim rodava 4x por segundo, durante a
+	 * cacada toda -- que e exatamente quando o celular tem menos folga (17fps
+	 * medidos com o processador em 1/4, gargalo na thread principal).
+	 *
+	 * **O ciclo ACIMA continua rodando de qualquer jeito**, e a ordem aqui nao
+	 * e arbitraria: e ele que percebe "entrou no mapa de caca" / "morreu" /
+	 * "voltou pra cidade" e faz o registro iniciar, travar e arquivar. Guardar
+	 * o tique INTEIRO atras da janela quebraria a leitura da cacada -- ver o
+	 * cabecalho do arquivo.
+	 *
+	 * E reabrir nao mostra dado velho: `HuntAnalyzer.toggle` chama `tique()`
+	 * no ramo que abre a janela, entao o primeiro quadro dela ja vem pintado.
+	 */
+	const win = root.querySelector('.ha-window');
+	if (!win || !win.classList.contains('is-open')) {
+		return;
+	}
+
 	const historico = lerHistorico(gid);
 	sincronizarAbas(root, historico);
 

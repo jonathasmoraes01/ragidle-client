@@ -386,8 +386,31 @@ function stopPolling() {
 
 function setText(root, selector, text) {
 	const el = root.querySelector(selector);
-	if (el) {
-		el.textContent = text;
+	if (!el) {
+		return;
+	}
+	/*
+	 * COMPARA ANTES DE ESCREVER (auditoria de desempenho, 11/09/2026).
+	 *
+	 * Este painel PESQUISA o estado a cada 250 ms e chama isto DEZ vezes por
+	 * volta, com a janela visivel ou nao. Escrever `textContent` com o MESMO
+	 * texto nao e de graca: o navegador invalida o layout daquele no, e o
+	 * quadro seguinte paga o reflow.
+	 *
+	 * Onde isso doi esta medido: a `sonda:fps` mediu 17fps no celular com o
+	 * processador em 1/4, com os tempos de quadro em multiplos exatos de
+	 * vsync -- o gargalo e CPU da thread principal, e nao GPU. Trabalho de HUD
+	 * desperdicado sai exatamente dai.
+	 *
+	 * Nome, classe, nivel, peso e zeny quase nunca mudam entre duas voltas,
+	 * entao a comparacao corta quase toda a escrita. **O padrao ja estava neste
+	 * arquivo, uma funcao abaixo**: o retrato de classe so troca o `src` quando
+	 * o `dataset.jobId` muda, "pra nao reiniciar a carga da imagem a cada tick
+	 * de 250ms do polling". A regra certa ja morava aqui ao lado.
+	 */
+	const novo = String(text);
+	if (el.textContent !== novo) {
+		el.textContent = novo;
 	}
 }
 
