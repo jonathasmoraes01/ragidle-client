@@ -106,7 +106,19 @@ describe('B7 — nenhuma marca de terceiro no que o jogador lê', () => {
 	it('o manifesto se chama Ragnarok Classic Idle', () => {
 		const m = JSON.parse(readFileSync('applications/pwa/manifest.webmanifest', 'utf8'));
 		expect(m.name).toBe('Ragnarok Classic Idle');
-		expect(m.short_name).toBe('Rag Idle');
+		/*
+		 * O `short_name` e DIFERENTE do `name` DE PROPOSITO — nao e sobra de
+		 * rename, e ja foi confundido com uma uma vez.
+		 *
+		 * Ele e o nome que cabe embaixo do icone na tela inicial do celular, e
+		 * "Ragnarok Classic Idle" (21 caracteres) e cortado la. A forma curta
+		 * "RO Classic Idle" (15) e a mesma que o servidor manda no `charNome`,
+		 * onde 21 nem cabe: o campo do fio tem 20 bytes e o codec LANCA em vez
+		 * de truncar (`servidor/protocolo/campos.ts`, no repo do servidor).
+		 *
+		 * Renomeou o jogo? Os dois andam junto, e a forma curta continua curta.
+		 */
+		expect(m.short_name).toBe('RO Classic Idle');
 		expect(JSON.stringify(m).toLowerCase()).not.toContain('robrowser');
 	});
 });

@@ -189,7 +189,7 @@
 						callback(status, xhr.response);
 					}
 				};
-				// Rag Idle: sem onerror, uma falha de REDE aqui (offline, bloqueio)
+				// Ragnarok Classic Idle: sem onerror, uma falha de REDE aqui (offline, bloqueio)
 				// nunca dispara onload e o jogo fica em LOADING para sempre.
 				xhr.onerror = function () {
 					callback('network', null);

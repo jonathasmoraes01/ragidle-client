@@ -24,8 +24,8 @@ window.ROConfigLocal = {
 	skipIntro: true,
 	servers: [
 		{
-			display: 'Rag Idle (servidor local)',
-			desc: 'o servidor TS do Rag Idle',
+			display: 'Ragnarok Classic Idle (servidor local)',
+			desc: 'o servidor TS do Ragnarok Classic Idle',
 			address: '127.0.0.1',
 			port: 6900,
 			version: 25,

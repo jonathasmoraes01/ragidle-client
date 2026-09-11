@@ -755,7 +755,7 @@ ChatBox.TYPE = {
  * Os filtros 0..21 sao os do roBrowser/rAthena e NAO podem mudar de numero:
  * cada "ChatBox.addText(..., FILTER.X)" espalhado por Engine/ e UI/ os cita.
  *
- * Os de 22 em diante sao do Rag Idle. Eles existem para o log automatico do
+ * Os de 22 em diante sao do Ragnarok Classic Idle. Eles existem para o log automatico do
  * idle ter uma ORIGEM propria em vez de dividir "FILTER.ITEM" com as
  * mensagens de acao do jogador (equipar, usar, nao conseguir pegar) — sem
  * eles, separar "caiu um item da caca" de "voce nao pode equipar isso" so
@@ -784,16 +784,16 @@ ChatBox.FILTER = {
 	QUEST: 19,
 	BATTLEFIELD: 20,
 	CLAN: 21,
-	// Rag Idle — log automatico da caca
+	// Ragnarok Classic Idle — log automatico da caca
 	FARM_ITEM: 22,
 	FARM_EXP: 23,
 	FARM_ZENY: 24,
 	FARM_NIVEL: 25,
 	FARM_LOG: 26,
-	// Rag Idle — canal de comercio (SEM FONTE no servidor de mapa de hoje)
+	// Ragnarok Classic Idle — canal de comercio (SEM FONTE no servidor de mapa de hoje)
 	TRADE: 27,
 	/*
-	 * Rag Idle — a FALA DO SISTEMA (31/08/2026, pedido do dono).
+	 * Ragnarok Classic Idle — a FALA DO SISTEMA (31/08/2026, pedido do dono).
 	 *
 	 * Missoes, NPCs, respostas de comando, avisos de loja: tudo o que o
 	 * SERVIDOR diz e nao e jogador nem anuncio da staff. Chega pelo opcode

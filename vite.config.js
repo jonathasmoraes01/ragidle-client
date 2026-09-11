@@ -43,7 +43,7 @@ const _proxy = {
 	}  
 };  
   
-// Rag Idle / oráculo M0: este proxy era criado SÓ quando RO_PROXY_TARGET=docker,
+// Ragnarok Classic Idle / oráculo M0: este proxy era criado SÓ quando RO_PROXY_TARGET=docker,
 // embora o alvo de fora do Docker já estivesse calculado logo acima
 // (`remoteClientTarget` → 127.0.0.1:8000). Sem ele, rodando o vite no host,
 // `/remote-client/...` cai no servidor estático do próprio vite e devolve 404
@@ -56,7 +56,7 @@ _proxy['/remote-client'] = {
 	rewrite: path => path.replace(/^\/remote-client/, '')
 };
 
-// Rag Idle: o EMBLEMA de guilda (D-350) e HTTP na porta 8888 do servidor de
+// Ragnarok Classic Idle: o EMBLEMA de guilda (D-350) e HTTP na porta 8888 do servidor de
 // jogo -- e o cliente servido por http chama /emblem/* na PROPRIA ORIGEM
 // (Guild.js so usa o webserverAddress em file://). Sem este proxy, o upload
 // pela janela da guilda devolve 404 do proprio vite.
@@ -70,7 +70,7 @@ export default defineConfig({
 	/**
 	 * A RAIZ REDIRECIONA PARA O JOGO (03/09/2026).
 	 *
-	 * O `npm run dev` do Rag Idle imprime a URL completa
+	 * O `npm run dev` do Ragnarok Classic Idle imprime a URL completa
 	 * (`/applications/pwa/index.html`), mas quem digita so `127.0.0.1:3000` — ou
 	 * deixa o navegador completar do historico — cai na RAIZ, e a raiz devolvia
 	 * **404**: este projeto nao tem `index.html` no topo, so
