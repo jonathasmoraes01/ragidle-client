@@ -76,7 +76,9 @@ import {
 	contarAlteracoes,
 	curaNaRotacao,
 	duracaoCurta,
-	resumoDaSecao, curaLigadaPara } from './secoesDaConfig.js';
+	resumoDaSecao,
+	curaLigadaPara
+} from './secoesDaConfig.js';
 import htmlText from './IdleConfig.html?raw';
 import cssText from './IdleConfig.css?raw';
 import { fecharEEsquecer } from '../limpezaDeJanelaIdle.js';
@@ -241,6 +243,27 @@ function setPath(obj, path, value) {
  * desde D-1000, e uma resposta de servidor mais antigo (sem o campo) cai no
  * mesmo padrao que ele usaria — metade da barra, grupo.
  */
+/**
+ * A FAIXA DA ASA (11/09/2026) - os MESMOS numeros de `servidor/idle/teleporte.ts`
+ * (`SEGUNDOS_DE_OCIOSIDADE_MIN/MAX`). Divergir faria a barrinha oferecer um
+ * valor que o Aplicar recusa, que e exatamente o defeito que D-1060 registrou
+ * quando o teto de buffs morava em dois lugares.
+ */
+const ASA_MIN_S = 3;
+const ASA_MAX_S = 20;
+
+/**
+ * `setPath` nao cria objeto no meio do caminho, entao o bloco precisa existir
+ * antes de a barrinha escrever nele. O servidor ja desce com `asa` resolvida;
+ * isto cobre a config antiga que ficou no rascunho.
+ */
+function garantirAsa(cfg) {
+	if (!cfg.asa || typeof cfg.asa !== 'object') {
+		cfg.asa = { ligada: true, teleportarApos: 10 };
+	}
+	return cfg.asa;
+}
+
 function garantirCura(cfg, ctx) {
 	if (!cfg.cura || typeof cfg.cura !== 'object') {
 		cfg.cura = { alvo: 'grupo', curarAbaixoDe: 50 };
@@ -351,11 +374,11 @@ function ligarInstalar() {
 	const botao = root && root.querySelector('.ic-instalar-btn');
 	if (botao && !botao.__ligado) {
 		botao.__ligado = true;
-		botao.addEventListener('click', (e) => {
+		botao.addEventListener('click', e => {
 			e.stopImmediatePropagation();
 			const ponte = pontePWA();
 			if (!ponte) return;
-			Promise.resolve(ponte.instalar()).then((resultado) => {
+			Promise.resolve(ponte.instalar()).then(resultado => {
 				const sub = _root().querySelector('.ic-instalar-sub');
 				/* Diz o que aconteceu, inclusive quando não deu — recusar a
 				   instalação é uma escolha legítima e o jogo não vai insistir. */
@@ -586,6 +609,7 @@ function onConfigReceived(pkt) {
 		if (!temRascunho) {
 			IdleConfig.editConfig = cloneConfig(data.config);
 			garantirCura(IdleConfig.editConfig);
+			garantirAsa(IdleConfig.editConfig);
 			IdleConfig.dirty = false;
 		}
 		// Em cidade o aviso mora AQUI (D-359): a janela edita normalmente e o
@@ -846,8 +870,9 @@ function bindGenericControls(el) {
 		const path = range.dataset.range;
 		range.addEventListener('input', () => {
 			setPath(IdleConfig.editConfig, path, Number(range.value));
+			const sufixo = range.dataset.rangeSufixo || '%';
 			el.querySelectorAll(`[data-range-display="${path}"]`).forEach(disp => {
-				disp.textContent = range.value + '%';
+				disp.textContent = range.value + sufixo;
 			});
 			markDirty();
 		});
@@ -998,6 +1023,7 @@ function renderCaca() {
 				<span>Recolher o que cai no chão</span>
 			</label>
 			<div class="ic-note">Experiência e zeny entram sempre; só os itens dependem disto.</div>
+			${renderAsa()}
 			<div class="ri-divisor"></div>
 			<label class="ic-switch-row">
 				<span class="ic-switch">
@@ -1010,6 +1036,49 @@ function renderCaca() {
 				</span>
 			</label>
 		</div>`;
+}
+
+/**
+ * A ASA DE MOSCA AUTOMATICA (11/09/2026 - ordem do dono: *"preciso que essa asa
+ * de mosca fique visivel no menu, seja possivel ativar e seja possivel
+ * configurar"*).
+ *
+ * Ela mora em **Caçada**, e nao em Consumiveis, porque o que ela decide e PARA
+ * ONDE ir quando o mapa seca - e a pergunta da cacada. O desenho e o mesmo da
+ * cura (interruptor + barrinha) de proposito: o jogador ja aprendeu esse par.
+ *
+ * O gatilho e do passe VIP. Sem passe o controle aparece DESABILITADO em vez de
+ * sumir: esconder faria o jogador comum procurar no menu uma coisa que o post
+ * de patch anunciou - que foi literalmente a primeira pergunta do dono.
+ */
+function renderAsa() {
+	const cfg = IdleConfig.editConfig;
+	const ctx = IdleConfig.contexto;
+	const asa = garantirAsa(cfg);
+	const ehVip = !!(ctx && ctx.ehVip);
+	const asas = (ctx && ctx.asasNaMochila) || 0;
+	const ligada = asa.ligada !== false;
+
+	return `
+		<div class="ri-divisor"></div>
+		${switchRow(
+			'asa.ligada',
+			ligada,
+			'Usar Asa de Mosca sozinho',
+			'Durante a caça, se passar o tempo escolhido sem atacar nenhum monstro, o personagem gasta uma Asa e reaparece noutro canto. Cada ataque zera a contagem.',
+			!ehVip
+		)}
+		<div class="ic-subsection${ehVip && ligada ? '' : ' ic-subsection-disabled'}">
+			<div class="ic-field-row">
+				<span>Teleportar após <span class="ic-inline-value" data-range-display="asa.teleportarApos">${asa.teleportarApos}s</span> sem atacar</span>
+			</div>
+			<input type="range" class="ic-slider" min="${ASA_MIN_S}" max="${ASA_MAX_S}" step="1" value="${asa.teleportarApos}" data-range="asa.teleportarApos" data-range-sufixo="s" ${ehVip && ligada ? '' : 'disabled'} />
+		</div>
+		${
+			ehVip
+				? `<div class="ic-note${asas ? '' : ' ic-note-warn'}">${asas ? `${asas} Asa${asas === 1 ? '' : 's'} de Mosca na mochila — cada viagem gasta uma.` : 'Nenhuma Asa de Mosca na mochila: compre no NPC de itens para o gatilho ter o que usar.'}</div>`
+				: '<div class="ic-note ic-note-warn">O uso automático é do passe VIP. Sem ele a Asa continua sua: use pela mochila, com 4 s de espera entre uma e outra.</div>'
+		}`;
 }
 
 function bindCacaExtra(pane) {
@@ -1391,7 +1460,9 @@ function renderCura() {
 	// ("nao quero mais usar Primeiros Socorros, mas quero que Curar funcione").
 	// O limiar e UM so, porque o motor tem um portao de HP unico. A cura nao
 	// mora na ordem de golpes (D-1201): o servidor a antepoe sozinho.
-	const ordenadas = curas.slice().sort((a, b) => (b.custoSp || 0) - (a.custoSp || 0) || (b.aprendido || 0) - (a.aprendido || 0));
+	const ordenadas = curas
+		.slice()
+		.sort((a, b) => (b.custoSp || 0) - (a.custoSp || 0) || (b.aprendido || 0) - (a.aprendido || 0));
 	const ligadas = ordenadas.filter(c => curaLigadaPara(cura, c.skillId));
 	const algumaLigada = ligadas.length > 0;
 	const cartoes = ordenadas
