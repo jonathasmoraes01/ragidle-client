@@ -476,10 +476,22 @@ function missoesHtml(estado) {
 				// letras (*"tornando explicito o que esta faltando"*). Duas rotas
 				// para o mesmo dado e o defeito que este projeto mais repete.
 				//
-				// A GUARDA `length > 1` E DO MASTER, e ela e certa: numa entrada de
-				// uma especie so a linha repetiria a barra somada logo acima.
+				// A GUARDA `length > 1` CAIU EM 11/09/2026 — relato do dono:
+				// *"algumas missoes do Codex nao estao aparecendo quais sao os
+				// monstros que precisam matar"*.
+				//
+				// Ela vinha do master com a razao de que "numa entrada de uma
+				// especie so a linha repetiria a barra somada logo acima". A
+				// razao estava meio certa e por isso enganava: a linha repete os
+				// NUMEROS, mas e o unico lugar da janela que diz o NOME do
+				// monstro. O cabecalho imprime `m.titulo || m.monstro`, e como
+				// toda entrada do Codex TEM titulo ("Bichos Barulhentos"), o
+				// `m.monstro` nunca e alcancado.
+				//
+				// Resultado: em missao de especie unica o jogador via
+				// `0 / 300` e uma barra, sem nada dizendo em que bicho bater.
 				const linhasDeEspecie =
-					Array.isArray(m.alvos) && m.alvos.length > 1
+					Array.isArray(m.alvos) && m.alvos.length > 0
 						? m.alvos
 								.map(a => {
 									const feitos = Number(a.abates) || 0;

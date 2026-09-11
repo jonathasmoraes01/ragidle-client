@@ -83,6 +83,32 @@ describe('D-1231 — o progresso por espécie', () => {
 		expect(CODEX_CODIGO).toContain('escapeHtml(alvo)');
 	});
 
+	it('a espécie ÚNICA também nomeia o monstro — a guarda `length > 1` caiu (11/09/2026)', () => {
+		/*
+		 * Relato do dono: *"algumas missões do Codex não estão aparecendo quais
+		 * são os monstros que precisam matar"*.
+		 *
+		 * A guarda do master escondia a linha quando havia UMA espécie, com a
+		 * razão de que ela "repetiria a barra somada". Ela repete os NÚMEROS —
+		 * mas é o único lugar da janela que diz o NOME. O cabeçalho imprime
+		 * `m.titulo || m.monstro`, e como toda entrada do Codex tem título, o
+		 * `m.monstro` nunca é alcançado.
+		 *
+		 * O caso lê o CÓDIGO sem comentários de propósito: o comentário que
+		 * explica a queda da guarda cita a forma antiga, e casar nele seria o
+		 * primeiro modo de mentir que este arquivo já registra no topo.
+		 */
+		expect(CODEX_CODIGO).not.toMatch(/m\.alvos\.length\s*>\s*1/);
+		expect(CODEX_CODIGO).toMatch(/m\.alvos\.length\s*>\s*0/);
+	});
+
+	it('CONTROLE: o nome do monstro não vem do cabeçalho — ele cai no título', () => {
+		// Sem isto, alguém "consertaria" o relato mexendo no cabeçalho e o caso
+		// acima continuaria verde medindo outra coisa. O cabeçalho é
+		// `m.titulo || m.monstro`: com título presente, o nome nunca aparece.
+		expect(CODEX_CODIGO).toContain('m.titulo || m.monstro');
+	});
+
 	it('a linha da espécie reflui no celular em pé', () => {
 		expect(CODEX_CSS).toContain('@media (max-width: 599px), (pointer: coarse)');
 		const i = CODEX_CSS.indexOf('@media (max-width: 599px), (pointer: coarse)');
