@@ -696,9 +696,28 @@ ui-button {
 	/* Geometria (spec §3). O painel cresce para CIMA e para a DIREITA: as
 	   bordas de baixo e da esquerda nunca se movem, porque o campo de digitacao
 	   tem de ficar no mesmo pixel — o jogador aperta Enter por reflexo. */
-	--chat-larg: 430px;
+	/* O TETO SUBIU EM 11/09/2026 — relato do dono: "a largura do chat pensando
+	   no usuario do desktop esta muito pequena".
+
+	   O defeito NAO era responsividade: o chat ja e redimensionavel por arrasto
+	   e ja grava a largura em FRACAO da viewport, por personagem. Era o TETO —
+	   640px escritos para caber em tela pequena, aplicados tambem onde sobra
+	   espaco. Num monitor de 1920 o painel nascia com 22% da largura e nao
+	   passava de 33% por mais que se arrastasse; num 2560, 25%.
+
+	   ELES TEM DE SER px LITERAL. `ChatBox.js` le estes tokens com
+	   `parseFloat(getComputedStyle(...).getPropertyValue(nome))`, e custom
+	   property NAO e resolvida por `getComputedStyle` — `46vw` viraria o numero
+	   46 (um teto de 46 pixels) e `min(880px, 46vw)` viraria `NaN`, caindo na
+	   reserva e deixando o teto em 640 sem ninguem notar. Conserto inerte e
+	   pior que conserto ausente.
+
+	   O CELULAR NAO SENTE, e isto e do codigo e nao de suposicao: `aplicarTamanho`
+	   ja prende em `Math.min(largMax, innerWidth - margem*2)`, o que num 393px da
+	   373px — abaixo de qualquer teto daqui. */
+	--chat-larg: 520px;
 	--chat-larg-min: 320px;
-	--chat-larg-max: 640px;
+	--chat-larg-max: 1000px;
 	--chat-alt: 190px;
 	--chat-alt-min: 100px;
 	--chat-alt-max: 380px;

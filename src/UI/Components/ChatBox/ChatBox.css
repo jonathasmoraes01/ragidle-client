@@ -1249,24 +1249,32 @@
 	}
 }
 
-/* ─── A FAIXA DO MEIO: de 900 a 1263px o chat e a barra dividem o rodape ────
+/* ─── A FAIXA DO MEIO: de 900 a 1443px o chat e a barra dividem o rodape ────
    Acima de 899px a pilha acima deixa de valer: o chat volta ao canto
    (`--chat-margem` de afastamento e `--chat-larg` de largura, Common.css) e a
    barra de atalhos fica centrada em `bottom: 20px`, com meia largura de 184
    (ShortCut.css). Os dois so cabem lado a lado, com o respiro de 8 da pilha,
    quando a metade da tela passa da borda direita do chat mais o respiro mais
-   a meia barra: 2 x (10 + 430 + 8 + 184) = 1264px. Abaixo disso eles se
+   a meia barra: 2 x (10 + 520 + 8 + 184) = 1444px. Abaixo disso eles se
    cruzavam — 112x42px no tablet deitado (1024x768) e 37x33px na janela de
    900x600, medidos pela `prove:hud-responsiva` em 10/09/2026 (D-995).
+
+   ESTA FAIXA E DERIVADA DE `--chat-larg`, E POR ISSO ELA ANDOU EM 11/09/2026.
+   O token foi de 430 para 520 (o teto do chat subiu; ver Common.css e o relato
+   do dono sobre a largura no desktop), e a fronteira do cruzamento anda os
+   mesmos 2 x 90 = 180px: 1264 -> 1444. Quem mexer no token de novo refaz esta
+   conta — `cruzamentosDaHudResponsiva.test.js` a recalcula a partir do literal
+   e reprova nomeando os dois lados, de proposito: um chat mais largo cruza a
+   barra numa janela de tela que antes estava livre, e o defeito seria calado.
 
    O chat SOBE para cima da fileira da barra, que e a mesma saida da pilha do
    celular: os 20 do `bottom` dela + os 42 da fileira + 8 de respiro. Encolher
    o chat ate escapar nao serve — em 900 de tela sobrariam 248px, abaixo do
-   minimo do proprio chat (`--chat-larg-min: 320px`).
+   minimo do proprio chat (`--chat-larg-min: 320px`), que NAO mudou.
 
    A ESCALA NAO MUDA A FAIXA, E ISTO E DECLARADO: a janela de 900x600 roda com
    a HUD em 0,78, e a escala encolhe os dois paineis mas nao a metade da tela,
-   entao o cruzamento real vai so ate 1264 x escala. A faixa daqui e a da
+   entao o cruzamento real vai so ate 1444 x escala. A faixa daqui e a da
    escala 1, que e a maior; com escala menor o chat sobe mesmo onde nao
    cruzaria, e isso nao foi medido fora das duas telas da matriz.
 
@@ -1274,7 +1282,7 @@
    439px`): sem ela, o celular deitado de 915x412 casaria as duas. E so a
    posicao de NASCENCA muda — a que o jogador escolheu e inline
    (`aplicarPosicao`, ChatBox.js) e continua vencendo. */
-@media (min-width: 900px) and (max-width: 1263px) and (min-height: 440px) {
+@media (min-width: 900px) and (max-width: 1443px) and (min-height: 440px) {
 	#chatbox {
 		bottom: calc(20px + 42px + 8px);
 	}

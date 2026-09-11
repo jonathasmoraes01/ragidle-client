@@ -240,7 +240,12 @@ function medidaDoToken(nome, reserva) {
 
 const LIMITES = {
 	largMin: () => medidaDoToken('--chat-larg-min', 320),
-	largMax: () => medidaDoToken('--chat-larg-max', 640),
+	// A reserva acompanha o token (11/09/2026): ela dizia 640 depois de o teto
+	// subir para 1000, e uma reserva atrasada e um segundo dono do mesmo numero
+	// — o defeito que o proprio `--cb-acrescimo` documenta logo abaixo. Ela so
+	// aparece quando `getComputedStyle` falha, entao divergir aqui produz um
+	// teto diferente em silencio, no caso mais dificil de reproduzir.
+	largMax: () => medidaDoToken('--chat-larg-max', 1000),
 	altMin: () => medidaDoToken('--chat-alt-min', 100),
 	altMax: () => medidaDoToken('--chat-alt-max', 380),
 	margem: () => medidaDoToken('--chat-margem', 10),
