@@ -2068,9 +2068,21 @@ html.ri-hud-classica :host {
 	   heranca — nao ha terceiro lugar. */
 	--vr-margem: 8px;
 	--vr-topo: calc(var(--safe-topo, 0px) + 6px);
-	/* Altura da barra do topo: avatar 40 + respiro. MEDIDA no jogo depois de
-	   montada; o valor daqui e o de nascenca ate o primeiro desenho. */
-	--vr-topo-altura: 56px;
+	/* Altura da barra do topo: a caixa MEDIDA do painel de personagem, que
+	   `BasicInfoIdle.js` publica em `--hud-basic-altura` (publicarCaixa, em
+	   unidade da HUD). Os 56px sao o valor de nascenca, ate o primeiro desenho.
+
+	   Este comentario ja dizia "MEDIDA no jogo" e o token era um numero
+	   cravado: ninguem publicava `--vr-topo-altura`. Os 56 (avatar 40 +
+	   respiro) valiam no dia em que nasceram (D-939, 05/09/2026) e deixaram de
+	   valer em 08/09, quando a faixa de wifi e bateria entrou no topo e a barra
+	   passou a 70px. Tudo o que se pendura em `--vr-abaixo-do-topo` ficou 6px
+	   POR BAIXO dela — o cartao de missoes (236x6px) e o `.tm-top` (8x6px), nas
+	   quatro telas em pe da `prove:hud-responsiva` (D-995, 10/09/2026).
+
+	   Nao ha laco: a altura da barra e a do conteudo dela, e nao le este
+	   token. */
+	--vr-topo-altura: var(--hud-basic-altura, 56px);
 	--vr-abaixo-do-topo: calc(var(--vr-topo) + var(--vr-topo-altura) + 8px);
 	/* O trilho da direita: disco de 48 + rotulo, num passo de 68px. */
 	--vr-trilho-passo: 68px;

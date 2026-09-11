@@ -1249,6 +1249,37 @@
 	}
 }
 
+/* ─── A FAIXA DO MEIO: de 900 a 1263px o chat e a barra dividem o rodape ────
+   Acima de 899px a pilha acima deixa de valer: o chat volta ao canto
+   (`--chat-margem` de afastamento e `--chat-larg` de largura, Common.css) e a
+   barra de atalhos fica centrada em `bottom: 20px`, com meia largura de 184
+   (ShortCut.css). Os dois so cabem lado a lado, com o respiro de 8 da pilha,
+   quando a metade da tela passa da borda direita do chat mais o respiro mais
+   a meia barra: 2 x (10 + 430 + 8 + 184) = 1264px. Abaixo disso eles se
+   cruzavam — 112x42px no tablet deitado (1024x768) e 37x33px na janela de
+   900x600, medidos pela `prove:hud-responsiva` em 10/09/2026 (D-995).
+
+   O chat SOBE para cima da fileira da barra, que e a mesma saida da pilha do
+   celular: os 20 do `bottom` dela + os 42 da fileira + 8 de respiro. Encolher
+   o chat ate escapar nao serve — em 900 de tela sobrariam 248px, abaixo do
+   minimo do proprio chat (`--chat-larg-min: 320px`).
+
+   A ESCALA NAO MUDA A FAIXA, E ISTO E DECLARADO: a janela de 900x600 roda com
+   a HUD em 0,78, e a escala encolhe os dois paineis mas nao a metade da tela,
+   entao o cruzamento real vai so ate 1264 x escala. A faixa daqui e a da
+   escala 1, que e a maior; com escala menor o chat sobe mesmo onde nao
+   cruzaria, e isso nao foi medido fora das duas telas da matriz.
+
+   `min-height: 440px` deixa esta faixa DISJUNTA da pilha (`max-height:
+   439px`): sem ela, o celular deitado de 915x412 casaria as duas. E so a
+   posicao de NASCENCA muda — a que o jogador escolheu e inline
+   (`aplicarPosicao`, ChatBox.js) e continua vencendo. */
+@media (min-width: 900px) and (max-width: 1263px) and (min-height: 440px) {
+	#chatbox {
+		bottom: calc(20px + 42px + 8px);
+	}
+}
+
 /* ─── D-930: em PAISAGEM o chat sai de baixo do painel e vai para o LADO ───
    Medido em 852x393 e 915x412: o corpo do chat cruzava o painel de personagem
    (242x46px e 242x27px). A causa e geometrica e nao tem conserto vertical — a
