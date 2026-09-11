@@ -6,6 +6,17 @@
 	"outputDirectory": ".",
 	"routes": [
 		{
+			"src": "/(.*)",
+			"headers": {
+				"X-Content-Type-Options": "nosniff",
+				"Referrer-Policy": "strict-origin-when-cross-origin",
+				"X-Frame-Options": "SAMEORIGIN",
+				"Permissions-Policy": "geolocation=(), microphone=(), camera=(), payment=()",
+				"Content-Security-Policy-Report-Only": "default-src 'self'; script-src 'self' blob: 'wasm-unsafe-eval'; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://assets.roclassicidle.com.br; media-src 'self' data: blob: https://assets.roclassicidle.com.br; font-src 'self' data:; connect-src 'self' https://api.roclassicidle.com.br https://assets.roclassicidle.com.br wss://ws.roclassicidle.com.br; manifest-src 'self'; base-uri 'self'; form-action 'self' https://api.roclassicidle.com.br; frame-ancestors 'self'; frame-src 'self'; object-src 'none'"
+			},
+			"continue": true
+		},
+		{
 			"src": "^/$",
 			"has": [
 				{

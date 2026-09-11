@@ -19,6 +19,7 @@ import htmlText from './NpcBox.html?raw';
 import cssText from './NpcBox.css?raw';
 import NpcMenu from 'UI/Components/NpcMenu/NpcMenu.js';
 import InputBox from 'UI/Components/InputBox/InputBox.js';
+import { escaparHtml } from 'Utils/escaparHtml.js'; // D-1308: dialogo de NPC vai a innerHTML/atributo (XSS)
 
 /**
  * Create NpcBox component
@@ -54,7 +55,10 @@ function processNAVITags(text) {
 	}
 	text = String(text);
 	return text.replace(/<NAVI>([^<]+)<INFO>([^<]+)<\/INFO><\/NAVI>/g, (match, displayName, naviInfo) => {
-		return `<span class="navi-link" data-navi-info="${naviInfo}" data-navi-name="${displayName}">${displayName}</span>`;
+		// D-1308: `naviInfo`/`displayName` vem do dialogo de NPC e caem em ATRIBUTO
+		// (`data-navi-info="..."`) e em texto; uma aspa quebrava o atributo. Escapa
+		// os dois nos dois contextos.
+		return `<span class="navi-link" data-navi-info="${escaparHtml(naviInfo)}" data-navi-name="${escaparHtml(displayName)}">${escaparHtml(displayName)}</span>`;
 	});
 }
 
@@ -71,7 +75,8 @@ function processItemTags(text) {
 	return text.replace(
 		/<(ITEMLINK|ITEM)>([\s\S]*?)<INFO>([\s\S]*?)<\/INFO><\/\1>/g,
 		(match, tag, itemName, itemId) => {
-			return `<span class="item-link" data-item-id="${itemId}">${itemName}</span>`;
+			// D-1308: `itemId` cai em ATRIBUTO e `itemName` em texto; escapa os dois.
+			return `<span class="item-link" data-item-id="${escaparHtml(itemId)}">${escaparHtml(itemName)}</span>`;
 		}
 	);
 }

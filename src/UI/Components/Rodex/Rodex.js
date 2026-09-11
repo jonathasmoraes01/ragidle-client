@@ -15,6 +15,7 @@ import KEYS from 'Controls/KeyEventHandler.js';
 import ChatBox from 'UI/Components/ChatBox/ChatBox.js';
 import UIManager from 'UI/UIManager.js';
 import GUIComponent from 'UI/GUIComponent.js';
+import { escaparHtml } from 'Utils/escaparHtml.js'; // D-1308: titulo/remetente do correio sao texto de outro jogador (XSS)
 
 import htmlText from './Rodex.html?raw';
 import cssText from './Rodex.css?raw';
@@ -181,8 +182,8 @@ Rodex.createRodexList = function createRodexList(tabID = 0, search = false, term
 				<div class="mail-image" data-background="basic_interface/rodexsystem/renewal/${mail_image}.bmp">
 				</div>
 				<div class="mail-text">
-					<div class="title"><div id="mail_${mailID}" openType="${openType}" class="text event_add_cursor"><span data-text="2702"></span>${title}</div></div>
-					<div class="sender"><div id="sender_${mailID}" sender="${sender}" class="text event_add_cursor"><span data-text="2701"></span>${sender}</div></div>
+					<div class="title"><div id="mail_${mailID}" openType="${openType}" class="text event_add_cursor"><span data-text="2702"></span>${escaparHtml(title)}</div></div>
+					<div class="sender"><div id="sender_${mailID}" sender="${escaparHtml(sender)}" class="text event_add_cursor"><span data-text="2701"></span>${escaparHtml(sender)}</div></div>
 				</div>
 				<div class="mail-content" data-background="${mail_content}"></div>
 				<div class="expire-days">${remaining_days} days</div>

@@ -88,7 +88,32 @@ const RAIZ = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const DIST = join(RAIZ, 'dist', 'Web');
 const FONTES = join(RAIZ, 'applications', 'deploy');
 const PUBLICO = join(RAIZ, 'public');
-const SITE = resolve(RAIZ, '..', 'rag-idle-site');
+/*
+ * QUAL SITE VIRA A RAIZ DO PACOTE — e a CONTRADICAO que so o dono resolve.
+ *
+ * Os comentarios deste script apontam para o fork `-jhow`: o passo 5/6 e a
+ * geracao do cartao (~264) citam `topidle-verification.txt` e
+ * `ferramentas/gerar-marca.py`, que so existem em
+ * `../rag-idle-site-jhow` (origin jonathasmoraes01/rag-idle-site). Mas o
+ * `const SITE` sempre apontou para o OUTRO, `../rag-idle-site` (origin
+ * marcoslourencoads-svg/rag-idle-site). Essa divergencia entre o comentario e o
+ * caminho E o achado.
+ *
+ * Medido em 11/09/2026: `../rag-idle-site` esta em MODO DEMONSTRACAO — o
+ * cadastro NAO faz requisicao e devolve "sucesso" falso (js/auth.js:mockAuth,
+ * js/config.js base:null). O fork com o cadastro REAL, que posta em
+ * `/cadastrar` pelo `cadastroUrl`, e o `-jhow`.
+ *
+ * NAO trocamos o default no escuro: daqui nao da para saber qual fork e o
+ * canonico, e chutar errado e outro risco. Entao o default fica como sempre
+ * foi, o caminho vira parametrizavel por RAG_SITE_DIR (relativo a raiz do repo
+ * ou absoluto), e QUEM GARANTE que o site certo foi para o pacote e a SENTINELA
+ * do passo 6/6 (mais abaixo), que RECUSA o deploy se a home copiada nao for a
+ * real. O DONO precisa confirmar qual fork e o canonico e alinhar este default.
+ */
+const SITE = process.env.RAG_SITE_DIR
+	? resolve(RAIZ, process.env.RAG_SITE_DIR)
+	: resolve(RAIZ, '..', 'rag-idle-site');
 
 /** Os visualizadores: ferramenta de dev, fora do pacote publico. */
 const VISUALIZADORES = [
@@ -316,8 +341,82 @@ rmSync(join(DIST, 'jogo'), { recursive: true, force: true });
  * ESTRITO: um campo a mais (tentei `_comentario`) reprova o deploy inteiro
  * com "should NOT have additional property". Medido em 04/09/2026.
  */
+/*
+ * CABECALHOS DE SEGURANCA (D-1309, 11/09/2026) — a superficie web publica saia
+ * com ZERO cabecalho de resposta de seguranca. Eles entram no `vercel.json`
+ * como a PRIMEIRA rota (`src: "/(.*)"`, `continue: true`), o mesmo padrao das
+ * rotas de cache logo abaixo dela: a rota casa todo caminho, aplica os
+ * cabecalhos e SEGUE para a reescrita por host. Um `vercel.json` que misture
+ * `routes` (chave legada) com um array `headers` de topo e REJEITADO pela
+ * Vercel — por isso vao como rota, e nao como bloco separado. O comentario mora
+ * aqui pelo mesmo motivo do de cima: o schema do json nao aceita comentario.
+ *
+ * O MESMO `dist/Web` serve os DOIS dominios (site no apex, jogo em `play.`),
+ * entao um cabecalho so vale para os dois — a politica abaixo e o menor
+ * denominador que nao atrapalha nenhum dos dois.
+ *
+ * QUATRO deles ENTRAM JA VALENDO (seguros para os dois hosts, hoje):
+ *   - X-Content-Type-Options: nosniff        (mata sniffing de MIME)
+ *   - Referrer-Policy: strict-origin-when-cross-origin
+ *   - Permissions-Policy: geolocation=(), microphone=(), camera=(), payment=()
+ *       lista-de-negacao: o cliente nao usa NENHUMA dessas APIs.
+ *   - X-Frame-Options: SAMEORIGIN  — e SAMEORIGIN, NAO DENY, DE PROPOSITO. O
+ *       jogo se EMBUTE a si mesmo: `api.js` cria um iframe de `api.html` na
+ *       MESMA origem (ROBrowser.TYPE.FRAME). `DENY` recusaria esse iframe e o
+ *       resultado seria TELA PRETA para todo jogador. SAMEORIGIN barra o embed
+ *       de fora (clickjacking) e libera o proprio jogo. Verificado.
+ *
+ * O QUINTO — a CSP — entra em REPORT-ONLY (`Content-Security-Policy-Report-Only`)
+ * e NAO em modo de bloqueio, DE PROPOSITO e por ordem: este e um cliente WebGL
+ * com <script> inline e `import()` dinamico, e uma CSP de bloqueio mal calibrada
+ * vira TELA PRETA para os ~271 jogadores ao vivo — o pior desfecho do projeto, e
+ * um que nao da para verificar daqui (a regra 5). Report-Only NUNCA bloqueia:
+ * so REPORTA no console. Ela nao pode quebrar o jogo; ela existe para, no dia em
+ * que uma XSS escapar, esse script injetado virar um relato no console em vez de
+ * rodar. A politica reflete o que o cliente REALMENTE carrega (auditado em
+ * 11/09), para que o relato seja util:
+ *   - default-src 'self'                     : base.
+ *   - script-src 'self' blob: 'wasm-unsafe-eval' : os .js externos (api.js,
+ *       Config*.js, registrar-sw.js, os bundles, o `import()` dinamico) sao
+ *       same-origin; `blob:` porque o motor cria Web Workers a partir de
+ *       `createObjectURL(new Blob([...]))`; `'wasm-unsafe-eval'` (e NAO
+ *       `'unsafe-eval'`) porque o bundle usa WebAssembly (emscripten) mas NAO
+ *       usa `eval`/`new Function` — conferido no literal de `Online.js`. FALTA
+ *       DE PROPOSITO o `'unsafe-inline'`: e ele que, se estivesse aqui, deixaria
+ *       uma XSS injetar <script> e continuar detonando. Sem ele, o <script>
+ *       injetado (o amplificador) VIRA RELATO. O preco: os proprios <script>
+ *       inline de `api.html` tambem sao relatados — e essa e a LISTA do que
+ *       precisa virar hash/nonce/externo antes de dar para ENFORCAR em `play.`.
+ *   - worker-src 'self' blob:                : os workers, dos dois jeitos acima.
+ *   - style-src 'self' 'unsafe-inline'       : `<style>` e `style=""` inline
+ *       existem no jogo e no site; estilo injetado e risco baixo (nao roda JS),
+ *       entao aqui `'unsafe-inline'` fica — o alvo e SCRIPT, nao estilo.
+ *   - img-src / media-src 'self' data: blob: https://assets.roclassicidle.com.br
+ *       texturas e som saem de canvas (`data:`/`blob:`) e do host de assets.
+ *   - font-src 'self' data:                  : as fontes (Cinzel/Inter) sao
+ *       self-hospedadas no site; nada de Google Fonts.
+ *   - connect-src 'self' + os TRES tuneis    : `https://api.` (cadastro/saude),
+ *       `https://assets.` (arte do cliente) e `wss://ws.` (a ponte do jogo).
+ *       ESTA e a diretiva amarrada ao dominio: os tres hosts saem de
+ *       `gerar-config-de-producao.mjs`; se o tunel/RAG_DOMINIO mudar, muda aqui.
+ *   - base-uri 'self', form-action, frame-ancestors 'self', frame-src 'self',
+ *       object-src 'none', manifest-src 'self' : endurecimento barato.
+ *
+ * CAMINHO ATE ENFORCAR (so depois de o dono abrir o console AO VIVO e confirmar
+ * que os relatos estao limpos — ai troca `-Report-Only` por
+ * `Content-Security-Policy`):
+ *   - APEX (`roclassicidle.com.br`) esta QUASE la: os `js/*` sao externos
+ *     (`'self'`); sobra UM bloco `<script type="application/ld+json">` inline
+ *     que precisa de hash (e dois `onclick="return false"` a trocar por
+ *     listeners — os dois no repo do site, `rag-idle-site`).
+ *   - `play.` (o jogo) e mais duro: `api.html` tem <script> inline de bootstrap
+ *     E o carimbo `?v=<build>` mora DENTRO desse inline — logo o hash dele muda
+ *     a cada build, entao hash fixo nao serve; precisa de nonce (exige runtime,
+ *     nao ha em host estatico) ou de mover o inline para arquivo externo (isso e
+ *     trabalho em `src/`/no build, fora do escopo deste round).
+ */
 copyFileSync(join(FONTES, 'vercel.json'), join(DIST, 'vercel.json'));
-console.log('     vercel.json      (cabecalhos de cache)');
+console.log('     vercel.json      (cabecalhos de cache + seguranca; CSP em Report-Only)');
 
 /*
  * O SITE DE ENTRADA (`../rag-idle-site`, repo irmao) VIRA A RAIZ.
@@ -328,10 +427,11 @@ console.log('     vercel.json      (cabecalhos de cache)');
  * todas as letras, o que no conteudo publico era placeholder), e o
  * `vercel.json` proprio do site, ja fundido no de `applications/deploy`.
  */
-console.log('\n' + '5/6  copiando o site de entrada (../rag-idle-site)...');
+console.log('\n' + `5/6  copiando o site de entrada (${SITE})...`);
 if (!existsSync(SITE)) {
 	console.error(`\nSITE NAO ENCONTRADO em ${SITE}`);
-	console.error('Clone github.com/marcoslourencoads-svg/rag-idle-site como pasta irma de ragidle-client.');
+	console.error('Aponte RAG_SITE_DIR para o fork correto, ou clone-o como pasta irma de ragidle-client.');
+	console.error('ATENCAO: existem DOIS forks (marcoslourencoads-svg e jonathasmoraes01/rag-idle-site) e eles DIVERGEM — ver o comentario do `const SITE`.');
 	process.exit(1);
 }
 copyFileSync(join(SITE, 'index.html'), join(DIST, 'index.html'));
@@ -411,6 +511,65 @@ if (semArte.length > 0) {
 	console.error('Em producao isso vira icone sumido — e o `onerror` do codigo esconde.');
 	process.exit(1);
 }
+
+/*
+ * SENTINELA DA HOME (D-1310, 11/09/2026) — o pacote leva o site REAL, nao a DEMO?
+ *
+ * POR QUE EXISTE: ate aqui o passo 6/6 so conferia os cinco bundles do JOGO
+ * (OBRIGATORIOS) e o Config — nada olhava a HOME. Um site de entrada em MODO
+ * DEMONSTRACAO passava limpo, e demonstracao aqui NAO e cosmetico: o cadastro
+ * devolve "Conta criada com sucesso!" SEM mandar requisicao e SEM salvar conta
+ * (js/auth.js:mockAuth + js/config.js base:null, no fork
+ * marcoslourencoads-svg/rag-idle-site, que e para onde o `const SITE` aponta
+ * por padrao). Publicar isso da ao jogador um sucesso FALSO e perde o cadastro
+ * dele calado. Auditado em 11/09/2026.
+ *
+ * DOIS SINAIS INDEPENDENTES, e os DOIS precisam valer:
+ *  (a) FUNCIONAL e decisivo — a home real LE `cadastroUrl` do Config.local.js e
+ *      posta em `/cadastrar` (ver o passo 4/6). Medido em 11/09/2026: essas
+ *      strings tem 0 ocorrencia na home demo e 7 na real. Varremos o
+ *      `index.html` e TODO o `js/` copiados, e nao um nome de arquivo fixo,
+ *      porque os DOIS forks tem `js/main.js` — so o CONTEUDO os separa.
+ *  (b) BARATO e ortogonal — `topidle-verification.txt` na raiz do pacote. Ele
+ *      so existe no fork do cadastro real, e e o mesmo token de verificacao de
+ *      dono que o passo 5/6 ja copia por regra.
+ *
+ * Exigir os DOIS e o que fecha a porta: a home demo falha ambos de uma vez (0
+ * string de cadastro E sem token), entao nenhum casamento incidental de uma
+ * palavra tao comum quanto "cadastrar" a deixa passar sozinha. Se um dia o dono
+ * remover o token de proposito, o gate reprova nomeando exatamente ele — e ai
+ * afrouxar a regra e decisao consciente, nao silencio.
+ */
+const arquivosDaHome = [join(DIST, 'index.html')];
+const dirJs = join(DIST, 'js');
+if (existsSync(dirJs)) {
+	for (const e of readdirSync(dirJs, { withFileTypes: true })) {
+		if (e.isFile() && e.name.endsWith('.js')) arquivosDaHome.push(join(dirJs, e.name));
+	}
+}
+const textoDaHome = arquivosDaHome
+	.map((abs) => (existsSync(abs) ? readFileSync(abs, 'utf8') : ''))
+	.join('\n');
+const temFormularioReal = textoDaHome.includes('cadastroUrl') || textoDaHome.includes('cadastrar');
+const temTokenDeVerificacao = existsSync(join(DIST, 'topidle-verification.txt'));
+// So para deixar a MENSAGEM exata quando (a) falha: a impressao digital da demo.
+const pareceDemo = /mockAuth|nada foi salvo|modo demonstra/i.test(textoDaHome);
+if (!temFormularioReal || !temTokenDeVerificacao) {
+	console.error('\nSITE ERRADO NO PACOTE — DEPLOY RECUSADO.');
+	console.error(`Pasta de site usada (SITE): ${SITE}`);
+	if (!temFormularioReal) {
+		console.error('  - a home copiada NAO tem o cadastro real: nenhum `cadastroUrl`/`cadastrar` em index.html nem em js/.');
+		if (pareceDemo) {
+			console.error('    E a home em MODO DEMONSTRACAO (achei mockAuth/"nada foi salvo"): o cadastro fingiria sucesso e NAO salvaria conta. NUNCA publicar.');
+		}
+	}
+	if (!temTokenDeVerificacao) {
+		console.error('  - falta `topidle-verification.txt` na raiz do pacote (so o fork do cadastro real o traz).');
+	}
+	console.error('Confirme qual fork e o canonico e aponte RAG_SITE_DIR (ou alinhe o default `const SITE`) para ele.');
+	process.exit(1);
+}
+console.log('     home real (cadastro em /cadastrar + topidle-verification.txt)');
 
 let bytes = 0;
 for (const a of [...OBRIGATORIOS, 'Config.js', 'Config.local.js', 'index.html']) {

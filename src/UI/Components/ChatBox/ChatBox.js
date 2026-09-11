@@ -81,6 +81,7 @@ import EntityManager from 'Renderer/EntityManager.js';
 import RiIcones from 'UI/ri-icones.js';
 import { emUnidadesDaHud } from 'UI/escalaDaHud.js'; // D-934: geometria medida vira unidade da HUD
 import { CANAIS_QUE_FALAM_NO_GLOBAL, CANAL_DE_FALA, cabeNoLimite, markupDoLink, preparoParaLinkar } from './linkDeItemNoChat.js'; // D-946: linkar item no chat
+import { renderFalaSegura } from './textoSeguroDoChat.js'; // D-1308: escapa antes de transformar (XSS)
 // O GID do personagem em foco — a preferencia do chat e POR PERSONAGEM
 // (spec §9), e nao por conta.
 import Session from 'Engine/SessionStorage.js';
@@ -1988,18 +1989,20 @@ function extractChatMessage(inputEl) {
  * Add text to chatbox
  */
 ChatBox.addText = function addText(text, colorType, filterType, color, override) {
-	text = text.replace(/<ITEMLINK>.*?<\/ITEMLINK>|<ITEML>.*?<\/ITEML>|<ITEM>.*?<\/ITEM>/gi, function (match) {
-		const item = DB.parseItemLink(match);
-		const span = `<span data-item="${match}" class="item-link" style="color:#FFFF63;">&lt;${item.name}&gt;</span>`;
-		override = true;
-		return span;
-	});
-
-	// Auto-detect client-generated HTML (nickname links in whispers)
-	if (!override && /<span\s+class="nickname-link"/.test(text)) {
-		override = true;
-	}
-
+	/*
+	 * SEGURANCA (D-1308): o texto do jogador NUNCA decide se e HTML.
+	 *
+	 * Antes, achar `<ITEM>`/`<ITEML>` ou o literal `<span class="nickname-link"`
+	 * dentro do texto ligava `override`, e o override jogava a mensagem INTEIRA,
+	 * crua, em `innerHTML` (ver flushMessageBuffer). Bastava um jogador DIGITAR
+	 * uma dessas coisas -- ou um `<img onerror>` -- para rodar HTML no navegador
+	 * de quem lesse. O link de item continua funcionando, mas agora ele e
+	 * montado com seguranca na HORA DE DESENHAR (renderFalaSegura), a partir do
+	 * que o parser extrai, e todo o resto da linha e escapado. `override` volta
+	 * a significar so o que o proprio cliente montou com seguranca: o link de
+	 * download (screenshot/historico) e o sussurro de PrivateMessage.js, que ja
+	 * escapa o nome e o corpo antes de passar `true`.
+	 */
 	if (isNaN(filterType)) {
 		filterType = ChatBox.FILTER.PUBLIC_LOG;
 	}
@@ -2093,10 +2096,21 @@ function flushMessageBuffer() {
 			const horaHtml = `<span class="cb-hora">${hh}:${mm}</span> `;
 
 			if (!msg.override) {
-				div.innerHTML = horaHtml + tagHtml + ' ' + highlightMessage(msg.text, msg.colorType);
+				// D-1308: escapa PRIMEIRO, transforma DEPOIS. O texto cru de outro
+				// jogador passa por highlightMessage (que escapa) em cada trecho
+				// fora de um link de item; o link vira um span seguro montado do
+				// que o parser extraiu — nunca do markup que o jogador digitou.
+				div.innerHTML =
+					horaHtml +
+					tagHtml +
+					' ' +
+					renderFalaSegura(msg.text, (segmento, ehPrimeiro) =>
+						highlightMessage(segmento, msg.colorType, ehPrimeiro)
+					);
 			} else {
-				// Override ja e HTML pronto (ITEMLINK, link de historico,
-				// nickname-link) -- so hora e etiqueta sao somadas por cima.
+				// Override e HTML que o PROPRIO cliente montou com seguranca (link de
+				// download; sussurro de PrivateMessage.js com nome e corpo ja
+				// escapados). Nunca vem do texto cru de outro jogador (D-1308).
 				div.innerHTML = horaHtml + tagHtml + ' ' + msg.text;
 			}
 			fragment.appendChild(div);
@@ -2262,13 +2276,19 @@ function escapeChatHtml(text) {
  *  - o prefixo "Nome : " que o proprio rAthena manda PRONTO dentro de pkt.msg
  *  - numeros (zeny, quantidade, nivel) em qualquer mensagem.
  */
-function highlightMessage(rawText, colorType) {
+function highlightMessage(rawText, colorType, aplicarNome = true) {
 	const escaped = escapeChatHtml(rawText);
 
-	const isSpeech = !!(
-		colorType &
-		(ChatBox.TYPE.PUBLIC | ChatBox.TYPE.PARTY | ChatBox.TYPE.GUILD | ChatBox.TYPE.PRIVATE | ChatBox.TYPE.CLAN)
-	);
+	// `aplicarNome` (D-1308): renderFalaSegura chama isto uma vez por trecho de
+	// texto (os pedacos entre os links de item). O prefixo "Nome : " so existe
+	// no comeco da linha, entao so o PRIMEIRO trecho pode ganha-lo — senao um
+	// trecho depois de um link que comece com "algo : " viraria um nome falso.
+	const isSpeech =
+		aplicarNome &&
+		!!(
+			colorType &
+			(ChatBox.TYPE.PUBLIC | ChatBox.TYPE.PARTY | ChatBox.TYPE.GUILD | ChatBox.TYPE.PRIVATE | ChatBox.TYPE.CLAN)
+		);
 	const withName = isSpeech
 		? escaped.replace(/^(\s*[^\n:]{1,24}?)\s:\s/, '<span class="cb-name">$1</span> : ')
 		: escaped;
