@@ -30,9 +30,23 @@ import GUIComponent from 'UI/GUIComponent.js';
 import htmlText from './PresencaIdle.html?raw';
 import cssText from './PresencaIdle.css?raw';
 import { fecharEEsquecer } from '../limpezaDeJanelaIdle.js';
+import { itemIconUrl } from 'Utils/ItemArt.js';
 
-const WINDOW_WIDTH = 520;
-const WINDOW_HEIGHT = 560;
+/*
+ * A FRASE DO PRINT (08/09/2026). Ela mora na sobra da ultima fileira da grade
+ * e e a unica linha de sabor da janela — o resto do texto aqui e informacao do
+ * servidor. Fica no JS, e nao no HTML, porque e um FILHO DA GRADE: o
+ * `grid-column: auto / -1` da folha so a coloca "no que sobrou" se ela for
+ * irma dos dias, e a grade e reescrita inteira a cada painel.
+ */
+const FRASE_DO_MES = 'Todo dia é um novo passo para um mundo melhor!';
+
+/* A COPIA da conta que esta no `:host` de PresencaIdle.css (620x640 desde
+   08/09/2026, com o desenho do print). As duas andam JUNTAS: e por estas
+   constantes que a janela se centraliza, e uma divergencia poe a janela fora
+   do centro sem erro nenhum aparecer. */
+const WINDOW_WIDTH = 620;
+const WINDOW_HEIGHT = 640;
 
 /*
  * O TAMANHO REAL NA TELA (07/09/2026): a folha usa `min(520px, 100vw - 16px)`,
@@ -210,14 +224,55 @@ function onClickRecolher(e) {
 	enviarAcao({ acao: 'recolher' });
 }
 
-/** "5× Poção Branca" — a soma do dia numa linha curta. */
+/** "x5 Poção Branca" — uma linha por item, com a quantidade em ouro. */
 function premioHtml(itens) {
 	if (!Array.isArray(itens) || itens.length === 0) {
 		return '';
 	}
-	return itens
-		.map(it => '×' + escapeHtml(it.quantidade) + ' <small>' + escapeHtml(it.nome || it.item || '') + '</small>')
-		.join('<br>');
+	const linhas = itens
+		.map(
+			it =>
+				'<span class="pr-dia-linha"><b class="pr-dia-qtd">x' +
+				escapeHtml(it.quantidade) +
+				'</b><span class="pr-dia-nome">' +
+				escapeHtml(it.nome || it.item || '') +
+				'</span></span>'
+		)
+		.join('');
+	return '<span class="pr-dia-premio">' + linhas + '</span>';
+}
+
+/**
+ * A ARTE do dia: o icone 24x24 do PRIMEIRO item, entre os dois brilhos do
+ * print (regra 4 — o quadro e CSS, o que informa e o PNG do cliente).
+ *
+ * O `itemId` ja vinha no payload desde D-1162: o servidor resolve o AegisName
+ * antes de mandar (`enviarPresenca`). Ninguem estava desenhando.
+ *
+ * DOIS jeitos de nao haver icone, e nos dois o quadro continua de pe (os
+ * brilhos sozinhos ja preenchem a faixa do meio): o item que o servidor nao
+ * soube resolver chega com `itemId: 0`, e o item que o pipeline de arte ainda
+ * nao converteu (hoje sao 582 ids) da 404 — dai o `onerror` tira a imagem.
+ * Nao ha volta ao GRF aqui de proposito: as recompensas de presenca sao itens
+ * comuns, todos publicados, e montar o caminho antigo (DB + Client.loadFile)
+ * por um caso que nao acontece seria codigo que ninguem consegue provar.
+ */
+function arteHtml(itens) {
+	const primeiro = Array.isArray(itens) ? itens[0] : null;
+	const id = primeiro ? Number(primeiro.itemId) : 0;
+	const icone =
+		Number.isFinite(id) && id > 0
+			? '<img class="pr-dia-icone" src="' +
+				escapeHtml(itemIconUrl(id)) +
+				'" alt="" onerror="this.remove()">'
+			: '';
+	return (
+		'<span class="pr-dia-arte">' +
+		'<span class="pr-brilho" aria-hidden="true"></span>' +
+		icone +
+		'<span class="pr-brilho" aria-hidden="true"></span>' +
+		'</span>'
+	);
 }
 
 function diaHtml(d) {
@@ -238,9 +293,8 @@ function diaHtml(d) {
 		'<span class="pr-dia-numero">' +
 		escapeHtml(d.dia) +
 		'</span>' +
-		'<span class="pr-dia-premio">' +
+		arteHtml(d.itens) +
 		premioHtml(d.itens) +
-		'</span>' +
 		'</div>'
 	);
 }
@@ -274,10 +328,26 @@ function render() {
 		btn.textContent = 'Recolher';
 		return;
 	}
-	mes.textContent = 'Presença de ' + nomeDoMes(estado.periodo) + ' · dia ' + estado.diaDoCalendario;
+	/* O MES em ouro (o `<b>` que a folha pinta), o resto na cor do titulo — o
+	   nome do mes sai da tabela MESES daqui, nao do servidor, entao o `<b>`
+	   nunca embrulha texto de fora; o dia vem do payload e por isso escapa. */
+	mes.innerHTML =
+		'Presença de <b>' + nomeDoMes(estado.periodo) + '</b> · dia ' + escapeHtml(estado.diaDoCalendario);
 	progresso.innerHTML =
 		'<strong>' + escapeHtml(estado.recolhidos) + '</strong> de ' + escapeHtml(estado.diasDoPeriodo) + ' dias recolhidos';
-	grade.innerHTML = (estado.dias || []).map(diaHtml).join('');
+	/* A frase ocupa O QUE SOBROU da ultima fileira, e quanto sobra depende do
+	   mes: 30 dias deixam 5 colunas, 31 deixam 4, 28 nao deixam nenhuma (e ai
+	   ela ganha uma fileira inteira, com o `|| 7`). A conta e do JS porque so
+	   ele sabe quantos dias o painel trouxe. */
+	const dias = estado.dias || [];
+	const colunasLivres = (7 - (dias.length % 7)) % 7 || 7;
+	grade.innerHTML =
+		dias.map(diaHtml).join('') +
+		'<p class="pr-frase" style="--pr-frase-colunas: ' +
+		colunasLivres +
+		'">' +
+		escapeHtml(FRASE_DO_MES) +
+		'</p>';
 
 	if (estado.recolhido) {
 		const itens = (estado.recolhido.itens || [])
