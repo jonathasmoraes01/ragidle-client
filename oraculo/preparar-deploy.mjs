@@ -104,16 +104,21 @@ const PUBLICO = join(RAIZ, 'public');
  * js/config.js base:null). O fork com o cadastro REAL, que posta em
  * `/cadastrar` pelo `cadastroUrl`, e o `-jhow`.
  *
- * NAO trocamos o default no escuro: daqui nao da para saber qual fork e o
- * canonico, e chutar errado e outro risco. Entao o default fica como sempre
- * foi, o caminho vira parametrizavel por RAG_SITE_DIR (relativo a raiz do repo
- * ou absoluto), e QUEM GARANTE que o site certo foi para o pacote e a SENTINELA
- * do passo 6/6 (mais abaixo), que RECUSA o deploy se a home copiada nao for a
- * real. O DONO precisa confirmar qual fork e o canonico e alinhar este default.
+ * **O DONO CRAVOU O CANONICO EM 11/09/2026: `jonathasmoraes01/rag-idle-site`.**
+ * Entao o default deixa de ser o demo e passa a ser `../rag-idle-site-jhow` —
+ * e o nome da pasta NAO foi suposto: o `origin` das duas irmas foi lido nesta
+ * maquina (`rag-idle-site` -> marcoslourencoads-svg, branch `indicacao-ref`;
+ * `rag-idle-site-jhow` -> jonathasmoraes01, branch `main`).
+ *
+ * O que NAO muda: `RAG_SITE_DIR` continua mandando mais que o default, para
+ * quem clonar o fork com outro nome de pasta; e a SENTINELA do passo 6/6
+ * continua de pe, recusando o deploy se a home copiada nao for a real. O
+ * default certo e conveniencia — a sentinela e a garantia, e e ela que impede
+ * o modo demonstracao de ir ao ar por acidente.
  */
 const SITE = process.env.RAG_SITE_DIR
 	? resolve(RAIZ, process.env.RAG_SITE_DIR)
-	: resolve(RAIZ, '..', 'rag-idle-site');
+	: resolve(RAIZ, '..', 'rag-idle-site-jhow');
 
 /** Os visualizadores: ferramenta de dev, fora do pacote publico. */
 const VISUALIZADORES = [
