@@ -32,13 +32,21 @@
 			</div>
 
 			<div class="bi-levels">
+				<!-- A PORCENTAGEM DENTRO DA BARRA (11/09/2026, pedido do dono:
+				     "pequeno, visivel, dentro da barra com a cor verde"). O
+				     numero e DERIVADO no cliente a partir de
+				     `BasicInfo.getUI().base_exp / base_exp_next` — nao ha campo
+				     novo no pacote nem nada a pedir ao servidor. O texto e
+				     escrito por `setText`, que compara antes de escrever: este
+				     painel repesquisa o estado a cada 250 ms, e `textContent`
+				     direto somaria duas invalidacoes de layout por volta. -->
 				<div class="bi-level-row">
 					<span class="bi-level-label">Base Lv. <b class="bi-blvl-value">1</b></span>
-					<div class="bi-exp-track"><div class="bi-exp-fill bi-bexp-fill"></div></div>
+					<div class="bi-exp-track"><div class="bi-exp-fill bi-bexp-fill"></div><span class="bi-exp-pct bi-bexp-pct">0,0%</span></div>
 				</div>
 				<div class="bi-level-row">
 					<span class="bi-level-label">Classe Lv. <b class="bi-jlvl-value">1</b></span>
-					<div class="bi-exp-track"><div class="bi-exp-fill bi-jexp-fill"></div></div>
+					<div class="bi-exp-track"><div class="bi-exp-fill bi-jexp-fill"></div><span class="bi-exp-pct bi-jexp-pct">0,0%</span></div>
 				</div>
 			</div>
 

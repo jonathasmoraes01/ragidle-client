@@ -66,6 +66,51 @@ describe('BasicInfoIdle: escrever no DOM so quando o texto MUDA', () => {
 	});
 });
 
+describe('BasicInfoIdle: a porcentagem de EXP DENTRO da barra (11/09/2026)', () => {
+	/*
+	 * Pedido do dono: *"adicionar a porcentagem da EXP de Base/Classe na barra
+	 * do personagem (pequeno, visivel, dentro da barra com a cor verde)"*.
+	 *
+	 * Ele mora NESTE arquivo de proposito, e nao num teste proprio: a feature
+	 * escreve texto num painel que repesquisa o estado a cada 250 ms, entao ela
+	 * e exatamente o tipo de coisa que desfaz o achado 5 por fora. O portao do
+	 * anti-reflow e o portao da feature sao o mesmo assunto.
+	 */
+	const html = readFileSync(join(componentes, 'BasicInfoIdle/BasicInfoIdle.html'), 'utf8');
+	const corpo = corpoDaFuncao(basicInfo, 'function updateExpBar(');
+	const rodape = corpoDaFuncao(basicInfo, 'function sincronizarRodapeVertical(');
+
+	it('as duas barras tem o span da porcentagem', () => {
+		expect(html).toContain('bi-bexp-pct');
+		expect(html).toContain('bi-jexp-pct');
+	});
+
+	it('a porcentagem vai por setText — nunca por textContent', () => {
+		// `textContent` direto somaria DUAS invalidacoes de layout por volta de
+		// 250 ms, uma por barra. `setText` compara antes de escrever.
+		expect(corpo).toMatch(/setText\(\s*root,\s*pctSelector/);
+		expect(corpo).not.toMatch(/textContent/);
+	});
+
+	it('o seletor do texto e OPCIONAL, e o rodape do celular NAO o recebe', () => {
+		/*
+		 * Sao TRES chamadores da mesma funcao. O terceiro e o rodape do celular
+		 * em pe, que ja escreve o proprio texto com valor e maximo por extenso
+		 * ("31.233 / 45.000 (69,4%)", o mockup de D-939). Sem o parametro
+		 * opcional, ou a porcentagem duplicaria la, ou a chamada quebraria.
+		 */
+		expect(corpo).toMatch(/if\s*\(\s*pctSelector\s*\)/);
+		expect(rodape).toContain('.bi-rodape-exp-fill');
+		expect(rodape).not.toContain('-pct');
+	});
+
+	it('CONTROLE: o rodape continua escrevendo o texto DELE', () => {
+		// Senao o caso acima passaria de graca no dia em que o rodape perdesse
+		// o texto — e a ausencia de duplicata seria ausencia de tudo.
+		expect(rodape).toContain('.bi-rodape-exp-texto');
+	});
+});
+
 describe('HuntAnalyzer: o ciclo anda sempre, o DESENHO so com a janela aberta', () => {
 	const corpo = corpoDaFuncao(huntAnalyzer, 'function tique()');
 

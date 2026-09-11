@@ -270,9 +270,23 @@
 /* Mini .ri-bar--exp: trilho JA nasce com cara de dourado (fundo com leve
    tinta de ouro + borda dourada), pra nao sumir contra o fundo quando o
    preenchimento esta em 0% (personagem recem-criado) — pedido da rodada 2. */
+/* A ALTURA SUBIU DE 6px PARA 14px EM 11/09/2026: o dono pediu a porcentagem
+   DENTRO da barra, e texto legivel nao cabe em seis pixels. As barras de HP/SP
+   logo abaixo ja resolviam o mesmo problema com `line-height: 17px` — esta
+   segue o mesmo padrao, dois pixels mais magra porque sao DUAS empilhadas.
+
+   `position: relative` entra junto: o texto e absoluto por cima do
+   preenchimento, entao ele nao pode empurrar o `.bi-exp-fill` nem herdar o
+   `width` animado dele.
+
+   Nenhum teste pina esta altura — conferido nos tres que citam o componente
+   (`atalhosDaUiNova`, `cruzamentosDaHudResponsiva`, `hudNaoRedesenhaAToa`);
+   o painel tambem nao tem altura fixa, ele cresce pelo conteudo e a posicao e
+   re-clampada contra a borda da tela. */
 .bi-exp-track {
+	position: relative;
 	flex: 1 1 auto;
-	height: 6px;
+	height: 14px;
 	border-radius: 999px;
 	background: linear-gradient(180deg, #f4e9cd, #ecdbac);
 	border: 1px solid var(--ri-dourado);
@@ -286,6 +300,27 @@
 	border-radius: 999px;
 	background: linear-gradient(180deg, var(--ri-exp), var(--ri-exp-2));
 	transition: width 0.35s ease;
+}
+
+/* O verde ESCURO (e nao o `--ri-exp`, que e o do preenchimento): o texto fica
+   por cima de dois fundos — o verde claro onde a barra ja encheu e o dourado
+   claro onde ainda nao — e precisa ler nos dois. O realce branco por baixo faz
+   o contorno contra o verde; a sombra escura sozinha sumiria no dourado.
+
+   `pointer-events: none` para o texto nao roubar o alvo de nenhum gesto: a
+   barra inteira fica dentro do painel arrastavel. */
+.bi-exp-pct {
+	position: absolute;
+	inset: 0;
+	display: block;
+	text-align: center;
+	line-height: 14px;
+	font-size: 9px;
+	font-weight: 700;
+	letter-spacing: 0.2px;
+	color: #2c4a14;
+	text-shadow: 0 1px 0 rgba(255, 255, 255, 0.6);
+	pointer-events: none;
 }
 
 /* ─── HP/SP bars: trilho com borda fina, texto centrado dentro,

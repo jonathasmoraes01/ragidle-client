@@ -501,13 +501,38 @@ function updateLifeBar(root, type, val, max) {
 	}
 }
 
-function updateExpBar(root, selector, val, max) {
+/**
+ * A barra de EXP, e opcionalmente a PORCENTAGEM dentro dela.
+ *
+ * `pctSelector` e OPCIONAL de proposito (11/09/2026, pedido do dono: *"adicionar
+ * a porcentagem da EXP de Base/Classe na barra do personagem (pequeno, visivel,
+ * dentro da barra com a cor verde)"*).
+ *
+ * SAO TRES CHAMADORES, e o terceiro nao quer o texto: o rodape do celular em pe
+ * (`sincronizarRodapeVertical`) usa esta mesma funcao e ja escreve o seu proprio
+ * texto, com valor e maximo por extenso — "31.233 / 45.000 (69,4%)", o formato
+ * do mockup de D-939. Escrever sempre duplicaria a porcentagem la; exigir o
+ * parametro quebraria a chamada. Opcional deixa o rodape intocado.
+ *
+ * O texto vai por `setText`, que COMPARA ANTES DE ESCREVER. Este painel
+ * repesquisa o estado a cada 250 ms: `textContent` direto somaria duas
+ * invalidacoes de layout por volta e desfaria, por fora, o achado 5 da auditoria
+ * de desempenho — que tem portao proprio em `hudNaoRedesenhaAToa.test.js`.
+ *
+ * O numero e DERIVADO aqui do que a janela nativa ja tem
+ * (`base_exp`/`base_exp_next`): nao ha campo novo no pacote nem nada a pedir ao
+ * servidor.
+ */
+function updateExpBar(root, selector, val, max, pctSelector) {
 	const el = root.querySelector(selector);
 	if (!el) {
 		return;
 	}
 	const perc = max > 0 ? Math.max(0, Math.min(100, (val / max) * 100)) : 0;
 	el.style.width = perc + '%';
+	if (pctSelector) {
+		setText(root, pctSelector, formatPercent(val, max));
+	}
 }
 
 /**
@@ -545,8 +570,8 @@ function syncFromNativeState() {
 
 	setText(root, '.bi-blvl-value', entity.clevel || 0);
 	setText(root, '.bi-jlvl-value', entity.joblevel || 0);
-	updateExpBar(root, '.bi-bexp-fill', nativeUI.base_exp || 0, nativeUI.base_exp_next || 0);
-	updateExpBar(root, '.bi-jexp-fill', nativeUI.job_exp || 0, nativeUI.job_exp_next || 0);
+	updateExpBar(root, '.bi-bexp-fill', nativeUI.base_exp || 0, nativeUI.base_exp_next || 0, '.bi-bexp-pct');
+	updateExpBar(root, '.bi-jexp-fill', nativeUI.job_exp || 0, nativeUI.job_exp_next || 0, '.bi-jexp-pct');
 
 	// Native BasicInfoCommon.update('weight', ...) divides by 10 before
 	// display (BasicInfoCommon.js:507-512) — mirrored here so the number
