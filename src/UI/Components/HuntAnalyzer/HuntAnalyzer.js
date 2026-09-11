@@ -592,8 +592,21 @@ function tique() {
 	 * E reabrir nao mostra dado velho: `HuntAnalyzer.toggle` chama `tique()`
 	 * no ramo que abre a janela, entao o primeiro quadro dela ja vem pintado.
 	 */
+	/*
+	 * INTERRUPTOR DE MEDICAO (11/09/2026): `window.__ri_hud_guarda = false`
+	 * devolve o comportamento ANTIGO (desenhar de janela fechada).
+	 *
+	 * Irmao do `__ri_culling` do EntityManager e do `__ri_hud_compara` do
+	 * BasicInfoIdle, pela mesma razao escrita la: duas CORRIDAS nao separam o
+	 * efeito da variancia, e o A/B precisa acontecer na mesma cena.
+	 *
+	 * Sem ele, medir o ganho desta guarda exigiria reverter o codigo, rodar, e
+	 * comparar com outra sessao — que e exatamente o que produz numero que anda
+	 * sozinho.
+	 */
+	const guardaLigada = typeof window === 'undefined' || window.__ri_hud_guarda !== false;
 	const win = root.querySelector('.ha-window');
-	if (!win || !win.classList.contains('is-open')) {
+	if (guardaLigada && (!win || !win.classList.contains('is-open'))) {
 		return;
 	}
 

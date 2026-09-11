@@ -408,7 +408,25 @@ function setText(root, selector, text) {
 	 * o `dataset.jobId` muda, "pra nao reiniciar a carga da imagem a cada tick
 	 * de 250ms do polling". A regra certa ja morava aqui ao lado.
 	 */
+	/*
+	 * INTERRUPTOR DE MEDICAO (11/09/2026): `window.__ri_hud_compara = false`
+	 * devolve o comportamento ANTIGO (escrever sempre).
+	 *
+	 * Ele existe pelo mesmo motivo do `__ri_culling` do EntityManager, e a
+	 * razao esta escrita la: comparar duas CORRIDAS nao separa o efeito da
+	 * variancia — o personagem esta noutro lugar, com outros bichos, e o numero
+	 * anda sozinho. Com o interruptor a sonda mede A/B **na mesma cena, no
+	 * mesmo minuto**.
+	 *
+	 * Em producao a propriedade nao existe e o teste e um `!== false` por
+	 * chamada — dez por volta de 250 ms, contra as dezenas de milhares de
+	 * operacoes que ele decide evitar.
+	 */
 	const novo = String(text);
+	if (typeof window !== 'undefined' && window.__ri_hud_compara === false) {
+		el.textContent = novo;
+		return;
+	}
 	if (el.textContent !== novo) {
 		el.textContent = novo;
 	}
