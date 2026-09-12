@@ -44,6 +44,31 @@ export const TETO_DA_ORDEM = 3;
 export const TETO_DE_BUFFS = 6;
 
 /**
+ * O teto do filtro de coleta — o MESMO número do servidor
+ * (`TETO_DO_FILTRO_DE_COLETA`, servidor/idle/filtro-de-coleta.ts, D-1348; um
+ * teste do servidor lê este arquivo e compara). Divergir faria a janela deixar
+ * desmarcar o que o Aplicar recusa.
+ */
+export const TETO_DO_FILTRO_DE_COLETA = 100;
+
+/**
+ * Marca ou desmarca um item do filtro de coleta (D-1348) e devolve a lista
+ * nova — a NEGATIVA: marcado (coletar) sai dela, desmarcado entra. No teto,
+ * desmarcar mais um não faz nada, em vez de montar uma configuração que o
+ * servidor recusaria.
+ */
+export function alternarColeta(naoColetados, itemId, coletar) {
+	const lista = Array.isArray(naoColetados) ? naoColetados : [];
+	if (coletar) {
+		return lista.filter(id => id !== itemId);
+	}
+	if (lista.includes(itemId) || lista.length >= TETO_DO_FILTRO_DE_COLETA) {
+		return lista;
+	}
+	return [...lista, itemId];
+}
+
+/**
  * As abas de ANTES, apontando para a seção que herdou o conteúdo delas. Quem
  * chama `abrirNaAba('skills')` (o medalhão do canto de combate, o slot do
  * dock) e quem tinha 'alvos' gravado no localStorage cai no lugar certo em

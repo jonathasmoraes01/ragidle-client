@@ -45,8 +45,6 @@
 
 import Renderer from 'Renderer/Renderer.js';
 import Preferences from 'Core/Preferences.js';
-import Client from 'Core/Client.js';
-import DB from 'DB/DBManager.js';
 import Network from 'Network/NetworkManager.js';
 import PACKET from 'Network/PacketStructure.js';
 import UIManager from 'UI/UIManager.js';
@@ -54,6 +52,7 @@ import ChatBox from 'UI/Components/ChatBox/ChatBox.js';
 import ItemInfo from 'UI/Components/ItemInfo/ItemInfo.js';
 import GUIComponent from 'UI/GUIComponent.js';
 import RiIcones from 'UI/ri-icones.js';
+import { aplicarIconeDoItem as setItemIcon, nomeLocalDoItem } from 'UI/itemNaTela.js';
 import { dropsDoMapa } from './dropsDoMapa.js'; // RAGIDLE: a visao agregada (I6)
 import {
 	classeDeRaridade,
@@ -658,20 +657,6 @@ function onMonstrosReceived(pkt) {
 	if (HuntMap.selectedMapa === data.mapa) {
 		renderPanel();
 	}
-}
-
-/**
- * O nome local de um item pelo id, com o do servidor de reserva: a tabela do
- * cliente devolve "Unknown Item" (ou nada) para id que o GRF não conhece, e
- * nesse caso o nome do rAthena é a única verdade disponível.
- */
-function nomeLocalDoItem(itemId, nomeDoServidor) {
-	const it = DB.getItemInfo(itemId);
-	const local = it && it.identifiedDisplayName;
-	if (!local || /^unknown item$/i.test(String(local).trim())) {
-		return nomeDoServidor;
-	}
-	return local;
 }
 
 function setStatus(text) {
@@ -1469,32 +1454,6 @@ function renderDropsDoMapa(ficha) {
 	return `
 		<div class="hm-drops-legenda">${linhas.length} ${linhas.length === 1 ? 'item' : 'itens'} · a raridade é a do melhor caso entre os monstros</div>
 		<div class="hm-drops">${grade}</div>`;
-}
-
-/**
- * Ícone do item: /ragidle/item/<id>.png (a arte publicada pelo pipeline) com
- * reserva no bitmap do GRF — a mesma receita da Mochila e da loja de NPC V2.
- */
-function setItemIcon(img, itemId) {
-	const it = DB.getItemInfo(itemId);
-	const resName = it && it.identifiedResourceName;
-	img.onerror = () => {
-		img.onerror = null;
-		if (!resName) {
-			img.style.display = 'none';
-			return;
-		}
-		Client.loadFile(
-			DB.INTERFACE_PATH + 'item/' + resName + '.bmp',
-			dataURI => {
-				img.src = dataURI;
-			},
-			() => {
-				img.style.display = 'none';
-			}
-		);
-	};
-	img.src = `/ragidle/item/${itemId}.png`;
 }
 
 function onClickVisao(e) {

@@ -838,6 +838,23 @@
 	border-color: var(--border-hairline);
 }
 
+/* O chip de ITEM (D-1348): o ícone é arte do cliente, 24×24, e fica no tamanho
+   natural dentro do medalhão — esticá-lo aos 30 px do monstro seria ampliação
+   por número quebrado (regra 4 do projeto). */
+#IdleConfig .ic-presa--item .ic-presa-avatar {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	border-radius: var(--radius-panel);
+}
+
+#IdleConfig .ic-presa--item .ic-presa-avatar img {
+	width: 24px;
+	height: 24px;
+	object-fit: none;
+	image-rendering: pixelated;
+}
+
 /* ─── Rotação e buffs: linhas com medalhão ───────────────────────── */
 
 #IdleConfig .ic-rot-list {
@@ -1109,6 +1126,16 @@
  * "pequeno" (112px), sozinho cabe folgado em 393px.
  */
 @media (max-width: 599px) {
+	/* A grade de ITENS tem UMA coluna aqui (D-1348): em duas, ao lado da lista
+	   de seções, o nome ficava em uma letra ("J…", e três "M…" iguais), e o
+	   jogador precisa saber QUAL item está tirando da coleta. O corte é o
+	   deste bloco: a janela vive num Shadow DOM, e a primeira versão, que
+	   partia do `html.ri-vertical`, nunca a alcançou — a prova do celular
+	   mediu, e a foto mostrou as duas colunas. */
+	#IdleConfig .ic-presas.ic-presas--itens {
+		grid-template-columns: minmax(0, 1fr);
+	}
+
 	#IdleConfig .ic-card-head {
 		flex-wrap: wrap;
 	}

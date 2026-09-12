@@ -65,12 +65,14 @@ import ChatBox from 'UI/Components/ChatBox/ChatBox.js';
 import GUIComponent from 'UI/GUIComponent.js';
 import RiIcones from 'UI/ri-icones.js';
 import { pocoesDoEixo, escolherPocaoPadrao } from './escolhaDePocao.js';
+import { aplicarIconeDoItem, nomeLocalDoItem } from 'UI/itemNaTela.js';
 import {
 	ABAS_ACEITAS,
 	ABA_PADRAO,
 	TETO_DA_ORDEM,
 	TETO_DE_BUFFS,
 	abaCanonica,
+	alternarColeta,
 	alternarCura,
 	alvoDoBuff,
 	contarAlteracoes,
@@ -1023,6 +1025,7 @@ function renderCaca() {
 				<span>Recolher o que cai no chão</span>
 			</label>
 			<div class="ic-note">Experiência e zeny entram sempre; só os itens dependem disto.</div>
+			${renderFiltroDeColeta()}
 			${renderAsa()}
 			<div class="ri-divisor"></div>
 			<label class="ic-switch-row">
@@ -1035,6 +1038,52 @@ function renderCaca() {
 					<span class="ic-switch-sub">Desligado, uma missão de caça foca só no alvo dela. Ligado, ataca o que aparecer enquanto a missão roda.</span>
 				</span>
 			</label>
+		</div>`;
+}
+
+/**
+ * O FILTRO DE COLETA (D-1348 — a D-1165 do dono: *"fica o filtro de coleta
+ * (lista negativa)"*). Mora em Caçada, logo abaixo da chave que ele refina: a
+ * chave decide SE recolhe; o filtro, O QUE fica de fora. Com a chave desligada
+ * ele aparece desabilitado — não haveria o que filtrar.
+ *
+ * Os chips são os drops DESTE mapa e o que já está na lista (o servidor manda os
+ * dois em `itensDoFiltro`); o nome é o do cliente instalado quando ele o tem,
+ * como no Mapa de Caça. O desenho é o das presas, de propósito: o jogador já
+ * aprendeu que o chip marcado é o que entra.
+ */
+function renderFiltroDeColeta() {
+	const cfg = IdleConfig.editConfig;
+	const ctx = IdleConfig.contexto || {};
+	const itens = ctx.itensDoFiltro || [];
+	if (!itens.length) {
+		return '';
+	}
+	const fora = new Set(cfg.itensNaoColetados || []);
+	const ativo = cfg.coletarItens !== false;
+	const chips = itens
+		.map(it => {
+			const nome = nomeLocalDoItem(it.itemId, it.nome);
+			const desligado = fora.has(it.itemId);
+			const dica = it.caiAqui ? nome : `${nome} — não cai neste mapa`;
+			return `
+			<label class="ic-presa ic-presa--item${desligado ? ' is-off' : ''}" title="${escapeHtml(dica)}">
+				<input type="checkbox" data-item-toggle="${it.itemId}" ${desligado ? '' : 'checked'} ${ativo ? '' : 'disabled'} />
+				<span class="ic-presa-avatar"><img data-item-icon="${it.itemId}" alt="" /></span>
+				<span class="ic-presa-nome">${escapeHtml(nome)}</span>
+				<span class="ic-presa-check">${RiIcones.confere}</span>
+			</label>`;
+		})
+		.join('');
+	return `
+		<div class="ri-divisor"></div>
+		<div class="ic-subsection${ativo ? '' : ' ic-subsection-disabled'}">
+			<div class="ic-field-row">
+				<span>Itens que ele recolhe</span>
+				<span class="ic-card-meta">${fora.size ? `${fora.size} de fora` : 'todos'}</span>
+			</div>
+			<div class="ic-note">Desmarque o que não quer na mochila. O que ninguém desmarcou — inclusive o drop novo — continua entrando.</div>
+			<div class="ic-presas ic-presas--itens">${chips}</div>
 		</div>`;
 }
 
@@ -1110,6 +1159,25 @@ function bindCacaExtra(pane) {
 			renderBody();
 		});
 	}
+
+	pane.querySelectorAll('[data-item-icon]').forEach(img => aplicarIconeDoItem(img, Number(img.dataset.itemIcon)));
+
+	pane.querySelectorAll('[data-item-toggle]').forEach(input => {
+		input.addEventListener('change', () => {
+			const cfg = IdleConfig.editConfig;
+			const nova = alternarColeta(cfg.itensNaoColetados, Number(input.dataset.itemToggle), input.checked);
+			// Lista vazia num servidor que nunca teve o campo e "nada mudou": sem
+			// isto, desmarcar e remarcar o mesmo item contaria uma alteracao.
+			const servidorTem = !!(IdleConfig.serverConfig && 'itensNaoColetados' in IdleConfig.serverConfig);
+			if (nova.length === 0 && !servidorTem) {
+				delete cfg.itensNaoColetados;
+			} else {
+				cfg.itensNaoColetados = nova;
+			}
+			markDirty();
+			renderBody();
+		});
+	});
 
 	pane.querySelectorAll('[data-mob-toggle]').forEach(input => {
 		input.addEventListener('change', () => {

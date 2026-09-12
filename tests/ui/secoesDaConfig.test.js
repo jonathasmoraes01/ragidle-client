@@ -10,7 +10,9 @@ import {
 	SECOES,
 	TETO_DA_ORDEM,
 	TETO_DE_BUFFS,
+	TETO_DO_FILTRO_DE_COLETA,
 	abaCanonica,
+	alternarColeta,
 	alternarCura,
 	alvoDoBuff,
 	contarAlteracoes,
@@ -20,6 +22,29 @@ import {
 	curaLigada,
 	curaLigadaPara,
 } from '../../src/UI/Components/IdleConfig/secoesDaConfig.js';
+
+describe('alternarColeta: o filtro de coleta é uma lista NEGATIVA (D-1348)', () => {
+	it('desmarcar põe o item na lista; marcar tira', () => {
+		expect(alternarColeta([], 909, false)).toEqual([909]);
+		expect(alternarColeta([909, 512], 909, true)).toEqual([512]);
+	});
+
+	it('sem lista ainda (config de antes do filtro), desmarcar começa uma', () => {
+		expect(alternarColeta(undefined, 909, false)).toEqual([909]);
+		expect(alternarColeta(undefined, 909, true)).toEqual([]);
+	});
+
+	it('desmarcar o que já está fora não repete o item', () => {
+		expect(alternarColeta([909], 909, false)).toEqual([909]);
+	});
+
+	it('no teto de 100, desmarcar mais um não faz nada — o servidor recusaria', () => {
+		const cem = Array.from({ length: 100 }, (_, i) => 20000 + i);
+		expect(TETO_DO_FILTRO_DE_COLETA).toBe(100);
+		expect(alternarColeta(cem, 909, false)).toEqual(cem);
+		expect(alternarColeta(cem, 20000, true)).toHaveLength(99);
+	});
+});
 
 const CTX = {
 	ehCidade: false,
