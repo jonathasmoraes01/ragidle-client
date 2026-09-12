@@ -128,6 +128,7 @@
 
 import Renderer from 'Renderer/Renderer.js';
 import { legendaDeVip } from '../../../DB/Items/exclusivosDeVip.js';
+import { linhaDeIdParaAdmin } from '../../../DB/Items/idParaAdmin.js'; // 11/09/2026, D-1331
 import Camera from 'Renderer/Camera.js';
 import SpriteRenderer from 'Renderer/SpriteRenderer.js';
 import Entity from 'Renderer/Entity/Entity.js';
@@ -1826,6 +1827,18 @@ function mostrarDicaItem(alvoEl, item, vestidoEmForcado) {
 	 * mostra linhas no formato "Rotulo: valor" (ver `renderCorpoDaDescricao`).
 	 */
 	const legendaVip = legendaDeVip(item.ITID);
+	/*
+	 * O ID PARA O ADMINISTRADOR (11/09/2026, D-1331 — pedido do dono).
+	 *
+	 * Ele vai por ULTIMO, depois da descricao: quem joga nao deve tropecar
+	 * nele, e quem o procura sabe onde esta. E o oposto do selo de VIP logo
+	 * acima, que vem primeiro porque muda o que o jogador PODE fazer.
+	 *
+	 * `null` para todo mundo que nao e administrador — quem decide isso e
+	 * `idParaAdmin.js`, o unico lugar do fork que pergunta pela Session para
+	 * desenhar. Aqui so se renderiza o que ele devolve.
+	 */
+	const idDoItem = linhaDeIdParaAdmin(item.ITID);
 	dica.innerHTML =
 		'<div class="mo-dica-cabecalho">' +
 		'<div class="ri-tile mo-dica-arte"><img class="mo-dica-arte-img" alt="" /></div>' +
@@ -1834,7 +1847,8 @@ function mostrarDicaItem(alvoEl, item, vestidoEmForcado) {
 		(espaco ? `<div class="mo-dica-equipado">Equipado - ${escapeHTML(espaco)}</div>` : '') +
 		(legendaVip ? `<div class="mo-dica-vip">${escapeHTML(legendaVip)}</div>` : '') +
 		(corpo ? `<div class="mo-dica-corpo">${corpo}</div>` : '') +
-		renderRunasHTML(item);
+		renderRunasHTML(item) +
+		(idDoItem ? `<div class="mo-dica-id">${escapeHTML(idDoItem)}</div>` : '');
 
 	// Visivel ANTES de medir: `hidden` e `display:none`, e um elemento
 	// escondido mede 0x0 — a dica nasceria no canto e so acertaria a posicao

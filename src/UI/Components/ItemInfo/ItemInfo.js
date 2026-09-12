@@ -10,6 +10,7 @@
 
 import DB from 'DB/DBManager.js';
 import { legendaDeVip } from 'DB/Items/exclusivosDeVip.js'; // 10/09/2026: a regra do item em destaque
+import { linhaDeIdParaAdmin } from 'DB/Items/idParaAdmin.js'; // 11/09/2026, D-1331: o id so para admin
 import ItemType from 'DB/Items/ItemType.js';
 import EquipLocation from 'DB/Items/EquipmentLocation.js';
 import Client from 'Core/Client.js';
@@ -370,12 +371,35 @@ ItemInfo.setItem = function setItem(item) {
 		 * fim, ela so seria lida por quem ja rolou o texto.
 		 */
 		const legenda = legendaDeVip(item.ITID);
+		/*
+		 * O ID PARA O ADMINISTRADOR (11/09/2026, D-1331 — pedido do dono).
+		 *
+		 * Por ULTIMO, depois da descricao do GRF, e e o oposto da legenda de
+		 * VIP logo acima: aquela briga pela primeira linha porque muda o que o
+		 * jogador PODE fazer; o id e ferramenta de quem atende chamado e nao
+		 * deve competir com o texto do item.
+		 *
+		 * `null` para quem nao e administrador. Quem decide isso e
+		 * `idParaAdmin.js` — o unico lugar do fork que pergunta pela Session
+		 * para desenhar, e a MESMA funcao que a dica da MochilaIdle chama.
+		 * Duas telas, uma regra: escrever `Session.Entity.isAdmin` aqui e la
+		 * seria a segunda rota escrita a mao.
+		 */
+		const idDoItem = linhaDeIdParaAdmin(item.ITID);
 		descInner.innerHTML =
 			(legenda
 				? '<div class="ri-legenda-do-item" style="color:#ff8800;font-weight:bold;margin-bottom:4px">' +
 					_escapeHTML(legenda) +
 					'</div>'
-				: '') + DB.formatMsgToHtml(_escapeHTML(rawDesc));
+				: '') +
+				DB.formatMsgToHtml(_escapeHTML(rawDesc)) +
+				(idDoItem
+					? '<div class="ri-id-do-item" style="margin-top:6px;padding-top:4px;' +
+						'border-top:1px solid rgba(0,0,0,0.15);color:#777;font-family:monospace;' +
+						'font-size:10px;user-select:text">' +
+						_escapeHTML(idDoItem) +
+						'</div>'
+					: '');
 	}
 
 	if (item.HireExpireDate) {
