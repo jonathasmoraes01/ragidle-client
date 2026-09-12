@@ -123,6 +123,15 @@
 	line-height: 1.5;
 }
 
+/* A contagem da volta sozinha (D-1343). Os numeros em colunas iguais para o
+   "15 s" nao pular de largura a cada segundo. */
+.dw-contagem {
+	margin: -8px 0 16px 0;
+	font-size: 12px;
+	color: var(--text-muted);
+	font-variant-numeric: tabular-nums;
+}
+
 .dw-btn {
 	display: block;
 	width: 100%;

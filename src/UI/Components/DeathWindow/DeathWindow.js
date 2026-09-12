@@ -87,6 +87,7 @@ import UIManager from 'UI/UIManager.js';
 import GUIComponent from 'UI/GUIComponent.js';
 import htmlText from './DeathWindow.html?raw';
 import cssText from './DeathWindow.css?raw';
+import { textoDaContagem } from './contagemDaVolta.js';
 
 /**
  * Light polling interval for Session.Entity.life.hp (see file header).
@@ -190,6 +191,26 @@ let _dadosValidosVistos = false;
  */
 let _pollTimer = null;
 
+/**
+ * @var {number|null} quando a janela de morte abriu (Date.now), para a
+ *      contagem da volta sozinha (D-1343). `null` com a janela fechada.
+ */
+let _mortoDesde = null;
+
+/**
+ * A linha "Voltando à cidade em N s" (D-1343 — a D-1165, item 5). So MOSTRA: quem
+ * devolve o morto e o servidor, aos 15 s. A contagem anda no MESMO laco de
+ * 250 ms que decide abrir e fechar a janela, entao nao ha timer novo.
+ */
+function atualizarContagem() {
+	const root = _root();
+	const linha = root && root.querySelector('.dw-contagem');
+	if (!linha) {
+		return;
+	}
+	linha.textContent = _mortoDesde === null ? '' : textoDaContagem(Date.now() - _mortoDesde);
+}
+
 function _root() {
 	return DeathWindow._shadow || DeathWindow._host;
 }
@@ -260,11 +281,15 @@ function syncFromNativeState() {
 		showOverlay();
 	} else if (!isDead && _visible) {
 		hideOverlay();
+	} else if (_visible) {
+		atualizarContagem();
 	}
 }
 
 function showOverlay() {
 	_visible = true;
+	_mortoDesde = Date.now();
+	atualizarContagem();
 	const root = _root();
 	const overlay = root.querySelector('.dw-overlay');
 	if (overlay) {
@@ -277,6 +302,8 @@ function showOverlay() {
 
 function hideOverlay() {
 	_visible = false;
+	_mortoDesde = null;
+	atualizarContagem();
 	const root = _root();
 	if (!root) {
 		return;
