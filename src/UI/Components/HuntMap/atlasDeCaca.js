@@ -164,6 +164,64 @@ export function ordenarMapas(mapas, chave, nivel) {
 }
 
 /**
+ * A FAIXA DE EXP que este mapa paga a VOCÊ (D-1338, 12/09/2026 — tarefa 4 do
+ * dono: "adicione um tooltip referente a isso no mapa de caça, para o player
+ * saber quando recebe penalidade/bônus de exp no mapa que deseja caçar").
+ *
+ * O servidor manda a tabela JÁ RESOLVIDA no cabeçalho do catálogo
+ * (`taxaDeExpPorDiferenca`: uma taxa por diferença de nível, monstro menos
+ * jogador). Este arquivo NÃO conhece a regra — nem o bônus pela metade, nem a
+ * caminhada da tabela do rAthena —, ele só lê o número. Fora das pontas vale a
+ * taxa da ponta (o grampo abaixo), e o servidor tem teste cobrando que isso é
+ * exatamente o que o abate paga.
+ *
+ * Percorre cada nível de monstro da faixa do mapa, porque a taxa é por
+ * MONSTRO e não por mapa: num mapa de 20 a 35 um jogador nível 25 ganha bônus
+ * com uns e penalidade com outros — e dizer só um número esconderia isso.
+ *
+ * @param {number} nivel - nível base do jogador
+ * @param {{nivelMinimo: number, nivelMaximo: number}} mapa
+ * @param {{de: number, taxas: number[]}|undefined} tabela - o campo do catálogo
+ * @returns {null|{min: number, max: number, cls: 'bonus'|'penalidade'|'neutro'|'misto'}}
+ *   `null` quando o servidor não mandou a tabela (servidor antigo)
+ */
+export function faixaDeExp(nivel, mapa, tabela) {
+	if (!tabela || !Array.isArray(tabela.taxas) || tabela.taxas.length === 0) {
+		return null;
+	}
+	const ultimo = tabela.taxas.length - 1;
+	const taxa = diferenca => tabela.taxas[Math.min(ultimo, Math.max(0, diferenca - tabela.de))];
+	let min = Infinity;
+	let max = -Infinity;
+	for (let nivelDoMonstro = mapa.nivelMinimo; nivelDoMonstro <= mapa.nivelMaximo; nivelDoMonstro++) {
+		const t = taxa(nivelDoMonstro - nivel);
+		if (t < min) min = t;
+		if (t > max) max = t;
+	}
+	if (min === Infinity) {
+		return null;
+	}
+	let cls = 'misto';
+	if (min === 100 && max === 100) cls = 'neutro';
+	else if (min >= 100) cls = 'bonus';
+	else if (max <= 100) cls = 'penalidade';
+	return { min, max, cls };
+}
+
+/**
+ * O texto curto da faixa: "EXP aqui: 120%" ou "EXP aqui: 95%–110%".
+ *
+ * @param {null|{min: number, max: number}} faixa
+ * @returns {string} vazio quando não há faixa
+ */
+export function textoDaFaixaDeExp(faixa) {
+	if (!faixa) {
+		return '';
+	}
+	return faixa.min === faixa.max ? `EXP aqui: ${faixa.min}%` : `EXP aqui: ${faixa.min}%–${faixa.max}%`;
+}
+
+/**
  * RARIDADE DE DROP no Atlas (redesenho 08/09/2026): o Atlas parou de mostrar
  * a % de chance e passou a mostrar uma classificação — Comum / Incomum /
  * Raro / Lendário. `formatarChance` (a função que vivia aqui) saiu junto:

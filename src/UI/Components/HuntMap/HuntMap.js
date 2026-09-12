@@ -58,7 +58,9 @@ import { dropsDoMapa } from './dropsDoMapa.js'; // RAGIDLE: a visao agregada (I6
 import {
 	classeDeRaridade,
 	encaixeDeNivel,
+	faixaDeExp,
 	medidorDeEncaixe,
+	textoDaFaixaDeExp,
 	motivoDaBusca,
 	ordenarMapas,
 	raridadeDoDrop,
@@ -1246,6 +1248,22 @@ function renderPanel() {
 
 	const { dentro } = medidorDeEncaixe(catalog.nivel, mapa);
 	const veredito = encaixe.cls === 'ideal' ? 'Ideal para você' : dentro ? 'Na faixa' : encaixe.rotulo;
+	/*
+	 * A FAIXA DE EXP DESTE MAPA PARA VOCÊ (D-1338, tarefa 4 do dono: "adicione um
+	 * tooltip referente a isso no mapa de caça, para o player saber quando recebe
+	 * penalidade/bônus de exp").
+	 *
+	 * É TEXTO VISÍVEL, e não só um `title`: no celular não existe hover, e a regra
+	 * do dono de 08/09/2026 exige a versão mobile de toda interface nova. O
+	 * `title` fica como reforço de desktop, com a explicação de onde o número vem.
+	 * Servidor antigo (sem a tabela no cabeçalho) não desenha a linha.
+	 */
+	const faixa = faixaDeExp(catalog.nivel, mapa, catalog.taxaDeExpPorDiferenca);
+	const faixaHtml = faixa
+		? `<div class="hm-fit-row hm-fit-exp-row"><span class="hm-fit-exp exp-${faixa.cls}" title="${escapeHtml(
+				'Monstros acima do seu nível rendem mais EXP, até +20% a 10 níveis acima; muito acima (16+) ou abaixo do seu nível rendem menos.'
+		  )}">${escapeHtml(textoDaFaixaDeExp(faixa))}</span></div>`
+		: '';
 
 	scrollEl.innerHTML = `
 		<div class="hm-hero fit-${encaixe.cls}">
@@ -1269,6 +1287,7 @@ function renderPanel() {
 					<span class="hm-fit-verdict">${escapeHtml(veredito)}</span>
 					<span class="hm-fit-range">Mapa Nv. ${mapa.nivelQueAbre}</span>
 				</div>
+				${faixaHtml}
 			</div>
 		</div>
 		<div class="hm-section">

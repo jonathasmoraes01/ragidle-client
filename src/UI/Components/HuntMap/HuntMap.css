@@ -1115,6 +1115,31 @@
 	font-variant-numeric: tabular-nums;
 }
 
+/*
+ * A FAIXA DE EXP deste mapa para o jogador (D-1338, tarefa 4). Texto visível, e
+ * não só `title`, porque no celular não há hover. As cores são as do encaixe de
+ * nível, e não novas: verde é o mesmo "bom para você" do `fit-ideal`, e ouro o
+ * mesmo "cuidado" do `fit-challenge`.
+ */
+#HuntMap .hm-fit-exp-row {
+	justify-content: flex-start;
+	margin-top: var(--sp-2);
+}
+
+#HuntMap .hm-fit-exp {
+	font-variant-numeric: tabular-nums;
+	color: var(--text-muted);
+}
+
+#HuntMap .hm-fit-exp.exp-bonus {
+	color: var(--green-600);
+}
+
+#HuntMap .hm-fit-exp.exp-penalidade,
+#HuntMap .hm-fit-exp.exp-misto {
+	color: var(--gold-500);
+}
+
 /* Cabeçalho de seção: título + contagem, com a régua ornamentada embaixo. */
 #HuntMap .hm-section {
 	display: flex;
