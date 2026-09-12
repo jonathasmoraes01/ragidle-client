@@ -2256,9 +2256,11 @@ html.ri-vertical #ShortCut {
    cresce para a ESQUERDA. Ancorar pela esquerda mandaria a segunda coluna
    para fora da tela no dia em que o jogador tivesse buffs demais.
 
-   NAO FOTOGRAFADO com buff ativo nesta rodada: a `prove:hud-vertical` nao
-   tira print, e o passo final dela expirou por toque. A geometria acima e
-   medida; a aparencia final pede um olho humano. */
+   FOTOGRAFADO com dois icones acesos em 12/09/2026 (`prove:jogador-no-celular`,
+   foto `393x852-17-sobrepeso.png`): o buff de boas-vindas e o icone de
+   sobrepeso de 90% (D-1345) empilhados ao lado do trilho, abaixo do cartao de
+   missoes, dentro da tela. Ate la esta nota dizia que a barra nunca tinha sido
+   fotografada com buff ativo — a `prove:hud-vertical` nao tira print. */
 html.ri-vertical #StatusIcons {
 	top: calc(
 		var(--vr-item-obtido-topo, calc(var(--vr-abaixo-do-topo) + 130px)) + 44px
