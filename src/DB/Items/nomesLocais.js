@@ -175,6 +175,30 @@ export const NOMES_LOCAIS = {
 	27171: 'Revolver Buffalo Bandit Card', // db/re/item_db_etc.yml:39956 (Cowraiders2_Card)
 	27172: 'Scimitar Buffalo Bandit Card', // db/re/item_db_etc.yml:39970 (Cowraiders3_Card)
 	27179: 'Coyote Card', // db/re/item_db_etc.yml:40103 (Coyote_Card)
+
+	// --- Rodada 7: o MERCADO DO GRUPO EDEN (11/09/2026, D-1330) ---
+	// Relato do dono: "tem alguns itens que continuam com o icone da maca e o
+	// nome unknown item, como e o caso do ID 18145 (Vigilante Bow)".
+	//
+	// O 18145 ja estava nomeado desde a Rodada 6 (08/09), e o commit esta em
+	// producao — medido, nao suposto. O que ele viu ali e a MACA, que e decisao
+	// declarada no fim deste arquivo. Mas o "alguns" tinha sujeito, e ele estava
+	// noutra porta.
+	//
+	// A Rodada 5 mediu as lojas do catalogo em 01/09 e EXCLUIU Eden de proposito
+	// ("lojas que o servidor carrega mas o jogo nao serve"), deixando escrito:
+	// *"quando uma delas entrar no catalogo, rode de novo"*. Eden entrou
+	// (`LOJAS_DO_JOGO`, game/loja.ts) e ninguem refez o cruzamento — a MESMA
+	// causa da Rodada 6, que e a medida e nao o item.
+	//
+	// Desta vez a medida cobriu as SEIS portas por onde item chega ao jogador
+	// (drop de mob, loja, forja, flecha, Velha Caixa e recompensa de missao):
+	// 1.480 ids distintos, e **estes 4 sao os unicos mudos**. As Velhas Caixas
+	// (1.103 ids) estavam limpas — e elas nunca tinham sido medidas.
+	12290: 'Mysterious Can Magic Powder', // db/re/item_db_usable.yml:7997 (Mysterious_Can)
+	12291: 'Mysterious PET Bottle', // db/re/item_db_usable.yml:8011 (Mysterious_PET_Bottle)
+	12376: 'Mysterious Can2', // db/re/item_db_usable.yml:9062 (Mysterious_Can2)
+	12377: 'Mysterious PET Bottle2' // db/re/item_db_usable.yml:9075 (Mysterious_PET_Bottle2)
 };
 
 /**
@@ -478,6 +502,26 @@ export const ICONES_LOCAIS = {
 	 * Eles chegam ao jogador NOMEADOS (a tabela de cima), com a ficha do
 	 * servidor inteira no tooltip, e com a maca no lugar do icone. Nome errado
 	 * seria pior; icone chutado seria pior ainda.
+	 */
+
+	/*
+	 * RODADA 7 (11/09/2026, D-1330): os 4 do Mercado de Eden entram na MESMA
+	 * lista de maca declarada, e a medicao foi a mesma dos 13 acima.
+	 *
+	 *   12290 Mysterious_Can · 12291 Mysterious_PET_Bottle ·
+	 *   12376 Mysterious_Can2 · 12377 Mysterious_PET_Bottle2
+	 *
+	 * As DUAS tabelas de recurso deste GRF foram lidas
+	 * (`idnum2itemresnametable.txt`, 7.902 ids, e `num2itemresnametable.txt`,
+	 * 7.897) e NENHUMA tem os quatro. Nao ha `.bmp` sob o AegisName em ASCII
+	 * minusculo em `item\` nem em `collection\` — a tecnica que resolveu 5 dos
+	 * 21 da Rodada 4. E nao ha familia CP949 com nome padronizado a derivar:
+	 * eles nao sao Crimson nem Doram nem carta.
+	 *
+	 * **A medicao teve CONTROLE POSITIVO**: a Pocao Vermelha (501) aparece nas
+	 * duas tabelas. Sem ele, uma leitura quebrada diria "os 4 nao tem" com a
+	 * tabela vazia, e o veredito seria o criterio que passa com zero.
+	 * Sonda: `.tmp-scratch/icone-dos-mysterious.ts`, no repositorio do jogo.
 	 */
 
 	/*

@@ -114,18 +114,22 @@ describe('a lista aponta so para item que o jogo conhece', () => {
 		).toEqual([]);
 	});
 
-	it('sao exatamente os 76 das cinco rodadas — crescimento passa por aqui', () => {
+	it('sao exatamente os 80 das seis rodadas — crescimento passa por aqui', () => {
 		/*
 		 * Nao e um pino por vaidade: um id somado sem passar pelo cruzamento
 		 * acima (na maquina sem a arvore irma, onde ele PULA) entraria cego.
-		 * Quem somar o 43o atualiza este numero no mesmo commit — e roda o
+		 * Quem somar o 81o atualiza este numero no mesmo commit — e roda o
 		 * cruzamento numa arvore que tenha o conteudo.
 		 *
 		 * 22 dos drops (25/08) + 14 da Loja de Cosmeticos (31/08) + o 420010,
 		 * o cosmetico de CABECA que o dono pediu no mesmo dia (D-796) + os 5
 		 * das LOJAS DE NPC do catalogo (01/09, D-900) + os **34 dos MAPAS
 		 * NOVOS** (08/09, D-1226 — o relato do alfa sobre o 1680, e os outros
-		 * 33 que a mesma medicao achou).
+		 * 33 que a mesma medicao achou) + os **4 do MERCADO DE EDEN**
+		 * (11/09, D-1330): a loja entrou em `LOJAS_DO_JOGO` DEPOIS da medicao de
+		 * 01/09 — que a tinha excluido de proposito, com o "rode de novo quando
+		 * ela entrar" escrito — e ninguem refez o cruzamento. Mesma causa da
+		 * Rodada 6: a MEDIDA, e nao o item.
 		 *
 		 * **E o pino deixou de ser a unica defesa.** Ele existia porque o
 		 * cruzamento acima PULA na maquina sem a arvore irma, e um pino nao
@@ -133,9 +137,11 @@ describe('a lista aponta so para item que o jogo conhece', () => {
 		 * 34 puderam crescer em silencio: o catalogo de mapas quadruplicou e
 		 * nada perguntava pela direcao contraria. Quem pergunta agora e
 		 * `servidor/drop-com-nome.test.ts`, no repositorio do jogo, que cruza
-		 * TODO drop de TODO monstro contra esta tabela.
+		 * TODO drop de TODO monstro contra esta tabela — e, desde D-1330, as SEIS portas
+		 * por onde item chega ao jogador (drop, loja, forja, flecha, Velha Caixa
+		 * e recompensa de missao), com piso por porta para porta muda reprovar.
 		 */
-		expect(Object.keys(NOMES_LOCAIS)).toHaveLength(76);
+		expect(Object.keys(NOMES_LOCAIS)).toHaveLength(80);
 	});
 });
 
