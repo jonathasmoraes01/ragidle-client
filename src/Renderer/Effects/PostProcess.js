@@ -41,16 +41,50 @@ class PostProcess {
 	static prepare(gl) {
 		_activeEffects = _effects.filter(e => e.isActive());
 
-		// Ensure global buffers exist and match canvas size
-		this.validateBuffers(gl);
-
 		if (_activeEffects.length > 0) {
+			// Ensure global buffers exist and match canvas size
+			this.validateBuffers(gl);
 			// Render the scene into the write buffer (which becomes read buffer in .render())
 			PostProcess.beforeRenderPass(gl, _writeFbo);
 		} else {
+			/*
+			 * RAGIDLE (13/09/2026): SEM EFEITO, SEM BUFFER. Os dois FBOs do
+			 * tamanho do canvas eram criados todo quadro mesmo com bloom, blur,
+			 * fxaa, vibrance, cartoon e cas desligados — o padrao. Num iPhone
+			 * (DPR 3) eram ~36 MB de GPU sem uso, tirados do mesmo orcamento de
+			 * memoria que derruba a aba. Desligar o ultimo efeito os devolve.
+			 * Teste: `tests/renderer/postProcessSemEfeito.test.js`.
+			 */
+			this.liberarBuffers(gl);
 			// No effects? Render directly to screen
 			PostProcess.beforeRenderPass(gl, null);
 		}
+	}
+
+	/**
+	 * Devolve os dois buffers de ida e volta a GPU, se existirem.
+	 * @param {WebGLRenderingContext} gl - The WebGL context.
+	 */
+	static liberarBuffers(gl) {
+		if (!_readFbo && !_writeFbo) {
+			return;
+		}
+		for (const fbo of [_readFbo, _writeFbo]) {
+			if (!fbo) {
+				continue;
+			}
+			if (gl.isTexture(fbo.texture)) {
+				gl.deleteTexture(fbo.texture);
+			}
+			if (gl.isRenderbuffer(fbo.rbo)) {
+				gl.deleteRenderbuffer(fbo.rbo);
+			}
+			if (gl.isFramebuffer(fbo.framebuffer)) {
+				gl.deleteFramebuffer(fbo.framebuffer);
+			}
+		}
+		_readFbo = null;
+		_writeFbo = null;
 	}
 
 	/**
@@ -177,9 +211,14 @@ class PostProcess {
 		const scaledWidth = Math.floor(width * scale);
 		const scaledHeight = Math.floor(height * scale);
 
-		// Recreate global buffers
-		_readFbo = this.createFbo(gl, scaledWidth, scaledHeight, _readFbo);
-		_writeFbo = this.createFbo(gl, scaledWidth, scaledHeight, _writeFbo);
+		// Recreate global buffers — so se algum efeito estiver ligado (13/09/2026):
+		// sem efeito eles nao existem, e o proximo `prepare` com efeito os cria.
+		if (_activeEffects.length > 0) {
+			_readFbo = this.createFbo(gl, scaledWidth, scaledHeight, _readFbo);
+			_writeFbo = this.createFbo(gl, scaledWidth, scaledHeight, _writeFbo);
+		} else {
+			this.liberarBuffers(gl);
+		}
 
 		// Notify modules to recreate their internal buffers (if any)
 		_effects.forEach(module => {

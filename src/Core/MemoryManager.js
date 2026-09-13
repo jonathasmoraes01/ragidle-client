@@ -44,6 +44,49 @@ const _cleanUpInterval = 10 * 1000;
 let _cleaningInProgress = false; // Prevents multiple clean cycles running at the same time
 let _cleanIndex = 0; // Tracks the current cleanup position
 let _filesToClean = []; // List of memory entries scheduled for removal
+
+/*
+ * RAGIDLE (13/09/2026): O IPHONE NAO TEM `requestIdleCallback`.
+ *
+ * O Safari do iOS nao expoe a funcao em versao estavel nenhuma, e o Chrome do
+ * iPhone e o mesmo WebKit. A chamada crua lancava `ReferenceError` logo depois
+ * de `clean` ligar `_cleaningInProgress` — a trava nunca soltava, e a partir da
+ * primeira limpeza NENHUM sprite, textura ou som era liberado ate a pagina
+ * recarregar. Medido com o jogo de verdade: 0 limpezas sem a funcao, contra 4
+ * limpezas e 583 arquivos no mesmo tempo com ela.
+ *
+ * Sem a funcao o passo roda num `setTimeout` com um orcamento fixo de 8 ms
+ * (meio quadro de 60 fps) — o mesmo teto de 5 arquivos por passo continua
+ * valendo. E a guarda do `catch` solta a trava se algo lancar no meio: sem ela,
+ * qualquer excecao repetia o defeito por outro caminho.
+ * Teste: `tests/util/memoriaSemIdleCallback.test.js`.
+ */
+const ORCAMENTO_SEM_IDLE_CALLBACK_MS = 8;
+
+function _quandoOcioso(passo) {
+	const rodar = deadline => {
+		try {
+			passo(deadline);
+		} catch (e) {
+			console.error('[MemoryManager] limpeza interrompida:', e);
+			_cleaningInProgress = false;
+			_filesToClean = [];
+			_cleanIndex = 0;
+		}
+	};
+	if (typeof requestIdleCallback === 'function') {
+		requestIdleCallback(rodar);
+		return;
+	}
+	setTimeout(() => {
+		const inicio = Date.now();
+		rodar({
+			didTimeout: false,
+			timeRemaining: () => Math.max(0, ORCAMENTO_SEM_IDLE_CALLBACK_MS - (Date.now() - inicio))
+		});
+	}, 1);
+}
+
 class MemoryManager {
 	/**
 	 * Get back data from memory
@@ -138,13 +181,20 @@ class MemoryManager {
 		_cleanIndex = 0;
 
 		// Perform cleanup incrementally during idle time to reduce frame drops
-		requestIdleCallback(function cleanChunk(deadline) {
+		_quandoOcioso(function cleanChunk(deadline) {
 			let processed = 0;
 			// Limit the number of removals per idle callback
 			const maxProcess = Math.min(5, _filesToClean.length - _cleanIndex);
 
 			while (_cleanIndex < _filesToClean.length && processed < maxProcess && deadline.timeRemaining() > 0) {
-				MemoryManager.remove(gl, _filesToClean[_cleanIndex]);
+				// Um arquivo que falha ao sair (textura de um contexto ja perdido,
+				// por exemplo) nao pode barrar os outros: sai da lista mesmo assim.
+				try {
+					MemoryManager.remove(gl, _filesToClean[_cleanIndex]);
+				} catch (e) {
+					console.error('[MemoryManager] falha ao liberar ' + _filesToClean[_cleanIndex], e);
+					delete _memory[_filesToClean[_cleanIndex]];
+				}
 				files.push(_filesToClean[_cleanIndex]);
 				_cleanIndex++;
 				processed++;
@@ -152,7 +202,7 @@ class MemoryManager {
 
 			if (_cleanIndex < _filesToClean.length) {
 				// Continue cleanup in the next idle period
-				requestIdleCallback(cleanChunk);
+				_quandoOcioso(cleanChunk);
 			} else {
 				// Cleanup finished
 				_cleaningInProgress = false;

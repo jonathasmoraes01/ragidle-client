@@ -27,12 +27,16 @@
  *    a versao do build. Nome, conta e personagem ficam de fora: o servidor ja
  *    sabe quem esta conectado, e o relato existe para consertar codigo.
  */
+import { rotaDoBalcao } from 'UI/enderecoDoBalcao.js';
+
+// O caminho no BALCAO do servidor. Ate 13/09/2026 ele ia relativo, ao site
+// estatico da Vercel, e nenhum relato chegava — ver `UI/enderecoDoBalcao.js`.
 var ROTA = '/analytics/erro';
 var TETO_POR_SESSAO = 10;
 var jaVistos = {};
 var enviados = 0;
 
-function versaoDoBuild() {
+export function versaoDoBuild() {
 	try {
 		var meta = document.querySelector('meta[name="ragidle-versao"]');
 		return meta ? meta.getAttribute('content') : undefined;
@@ -62,15 +66,15 @@ export function relatarErro(mensagem, pilha) {
 			mensagem: chave,
 			pilha: pilha ? String(pilha).slice(0, 1000) : undefined,
 			tela: telaAtual(),
-			versao: versaoDoBuild(),
+			versao: versaoDoBuild()
 		});
 		// `keepalive` para o relato sobreviver a navegacao que o proprio erro
 		// pode causar. O `catch` vazio e deliberado: ver a regra 1.
-		fetch(ROTA, {
+		fetch(rotaDoBalcao(ROTA), {
 			method: 'POST',
 			headers: { 'Content-Type': 'application/json' },
 			body: corpo,
-			keepalive: true,
+			keepalive: true
 		}).catch(function () {});
 	} catch (e) {
 		/* relatar erro nao pode virar erro */

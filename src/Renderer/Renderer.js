@@ -23,6 +23,10 @@ import Camera from 'Renderer/Camera.js';
 import Session from 'Engine/SessionStorage.js';
 import PostProcess from 'Renderer/Effects/PostProcess.js';
 import MemoryManager from 'Core/MemoryManager.js';
+import { ehDedo } from 'UI/escalaDaHud.js';
+import { densidadeDoMundo } from 'Renderer/densidadeDoMundo.js';
+import { AVISO_DE_PERDA_DE_CONTEXTO, agendarRecarga, recarregarAgora } from 'Renderer/perdaDeContexto.js';
+import { registrarQuadro } from 'Renderer/quadrosNoCampo.js';
 
 const { mat4 } = glMatrix;
 
@@ -196,12 +200,15 @@ class Renderer {
 			this.errorOverlay = document.createElement('div');
 			this.errorOverlay.style.cssText =
 				'position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); color:white; display:flex; flex-direction:column; justify-content:center; align-items:center; z-index:10000; text-align:center;';
-			this.errorOverlay.innerHTML =
-				'<h2 style="color:#ff6b6b; margin-bottom:10px;">Graphics Context Lost</h2><p>The browser lost connection to the GPU.</p><p style="font-size:0.9em; opacity:0.8;">Attempting to restore automatically...</p>';
+			this.errorOverlay.innerHTML = AVISO_DE_PERDA_DE_CONTEXTO;
 			document.body.appendChild(this.errorOverlay);
 		} else {
 			this.errorOverlay.style.display = 'flex';
 		}
+
+		// RAGIDLE (13/09/2026): a recuperacao antiga deixava o mundo congelado, e
+		// o iOS nem sempre devolve o contexto. Ver `Renderer/perdaDeContexto.js`.
+		agendarRecarga(window);
 	}
 
 	/**
@@ -209,33 +216,14 @@ class Renderer {
 	 * Re-initializes WebGL state and resumes rendering
 	 */
 	static onContextRestored(event) {
-		console.info('[Renderer] WebGL Context Restored! Re-initializing...');
-		this.contextLost = false;
-
-		if (this.errorOverlay) {
-			this.errorOverlay.style.display = 'none';
-		}
-
-		const gl = this.gl;
-
-		// Re-detect capabilities
-		this.isWebGL2 = WebGL.isWebGL2(gl);
-
-		// Reset Global GL State
-		gl.clearDepth(1.0);
-		gl.enable(gl.DEPTH_TEST);
-		gl.depthFunc(gl.LEQUAL);
-		gl.enable(gl.BLEND);
-		gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
-
-		// Restart post process active modules
-		PostProcess.restartModules(gl);
-
-		// Trigger resize to reset viewport and framebuffers
-		this.resize();
-
-		// Resume Render Loop
-		this.render();
+		/*
+		 * RAGIDLE (13/09/2026): RECARREGA, e nao reconstroi. O caminho antigo
+		 * religava o laco com a lista de render VAZIA (o `stop()` da perda a
+		 * esvaziou) e sem refazer os buffers de sprite, chao, modelos e ceu: o
+		 * aviso sumia e o mundo ficava congelado. Ver `Renderer/perdaDeContexto.js`.
+		 */
+		console.info('[Renderer] WebGL Context Restored! Recarregando o jogo...');
+		recarregarAgora(window);
 	}
 
 	/**
@@ -281,7 +269,9 @@ class Renderer {
 		}
 
 		let width, height;
-		const dpr = window.devicePixelRatio || 1;
+		// RAGIDLE (13/09/2026): teto de 2 no toque — o iPhone e 3 e desenhava 9x
+		// os pixels da tela. Ver `Renderer/densidadeDoMundo.js`.
+		const dpr = densidadeDoMundo(window.devicePixelRatio || 1, ehDedo());
 
 		width = window.innerWidth || document.body.offsetWidth;
 		height = window.innerHeight || document.body.offsetHeight;
@@ -369,6 +359,10 @@ class Renderer {
 			// No limit => run every rAF
 			this._lastFrameTime = now;
 		}
+
+		// RAGIDLE (13/09/2026): o quadro que o jogo DESENHOU, depois do limitador —
+		// e o FPS que o aparelho do jogador relata. Ver `Renderer/quadrosNoCampo.js`.
+		registrarQuadro(now);
 
 		// Use Date.now for serverTick and Events processing, to keep existing behavior intact
 		const newTick = Date.now();

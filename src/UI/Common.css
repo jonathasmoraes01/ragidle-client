@@ -798,6 +798,31 @@ ui-button {
 	--ri-asa: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 44 16'%3E%3Cg fill='none' stroke='%23c9a353' stroke-width='1.4' stroke-linecap='round'%3E%3Cpath d='M42 8 C34 2, 24 1, 14 4 C8 6, 4 8, 2 8'/%3E%3Cpath d='M42 8 C35 6, 26 6, 18 8'/%3E%3Cpath d='M42 8 C36 11, 28 12, 20 11'/%3E%3C/g%3E%3Ccircle cx='42' cy='8' r='2' fill='%23e9cc8f' stroke='%23c9a353' stroke-width='1'/%3E%3C/svg%3E");
 }
 
+/*
+ * NO TOQUE, SEM DESFOQUE DE FUNDO (13/09/2026, auditoria do iPhone).
+ *
+ * O `backdrop-filter` desfoca o que esta ATRAS do painel — e atras de toda
+ * janela da HUD esta o canvas do mundo, que muda todo quadro. Entao o desfoque
+ * e refeito todo quadro, sobre a area inteira do painel. No celular em pe a
+ * barra do topo, o cartao de Missoes e o chat cobrem mais da metade da tela, e
+ * no iPhone o canvas tem 3x a densidade da tela em CSS. A medicao de 07/09
+ * ("custa 0,2 fps") foi numa placa de desktop e nao descreve isto.
+ *
+ * O desfoque sai pelo PROPRIO token, e nao regra a regra: toda folha le
+ * `var(--blur-glass)`, e zerar o token aqui alcanca os shadow roots de uma vez.
+ * Os dois vidros translucidos ficam mais opacos para devolver a leitura que o
+ * desfoque dava sobre o chao claro de Prontera. A consulta e a mesma de
+ * `ehDedo()` (`UI/escalaDaHud.js`): o criterio de "e um dedo" continua um so.
+ */
+@media (pointer: coarse) {
+	:host {
+		--blur-glass: none;
+		--blur-glass-strong: none;
+		--surface-glass: rgba(244, 248, 253, 0.9);
+		--surface-dark-glass: rgba(18, 41, 74, 0.82);
+	}
+}
+
 /* A janela padrao: moldura dourada fina, respiro claro interno, sombra suave */
 .ri-window {
 	/* Receita do design system: hairline AZUL por fora, aro DOURADO por
