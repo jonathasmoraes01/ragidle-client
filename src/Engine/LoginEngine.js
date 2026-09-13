@@ -30,6 +30,7 @@ import Queue from 'Utils/Queue.js';
 import Background from 'UI/Background.js';
 import MD5 from 'Vendors/spark-md5.min.js';
 import Rijndael from 'Utils/Rijndael.js';
+import { capturarEntrada, loginAceito, loginRecusado, pedidoDeLogin } from 'Engine/entradaPosCadastro.js';
 
 // Version Dependent UIs
 import WinLogin from 'UI/Components/WinLogin/WinLogin.js';
@@ -161,8 +162,19 @@ class LoginEngine {
 			);
 		};
 
+		/*
+		 * A ENTRADA POS-CADASTRO (D-1379) vem ANTES do autoLogin do config: quem
+		 * chega do site com o passe de uso unico entra sem ver a tela de login.
+		 * `capturarEntrada` so devolve algo uma vez por pagina, entao um
+		 * `LoginEngine.init` repetido (voltar ao login) cai no caminho de sempre.
+		 */
+		const entrada = capturarEntrada();
+		if (entrada) {
+			onConnectionRequest(entrada.usuario, entrada.passe);
+		}
+
 		// Autologin features
-		if (autoLogin instanceof Array && autoLogin[0] && autoLogin[1]) {
+		else if (autoLogin instanceof Array && autoLogin[0] && autoLogin[1]) {
 			onConnectionRequest.apply(null, autoLogin);
 			Configs.set('autoLogin', null);
 		} else {
@@ -228,6 +240,10 @@ class LoginEngine {
  * @param {string} password
  */
 function onConnectionRequest(username, password) {
+	// Todo login passa aqui: so o que leva o passe capturado arma a entrada
+	// pos-cadastro, e qualquer outro a desarma (ver `entradaPosCadastro.js`).
+	pedidoDeLogin(username, password);
+
 	// Play "¹öÆ°¼Ò¸®.wav" (possible problem with charset)
 	Sound.play('\xB9\xF6\xC6\xB0\xBC\xD2\xB8\xAE.wav');
 
@@ -381,6 +397,13 @@ function onCharServerSelected(index) {
  */
 function onConnectionAccepted(pkt) {
 	UIManager.removeComponents();
+
+	// Entrou pelo passe: a tela de login passa a lembrar do usuario, como faria
+	// se ele tivesse digitado com "salvar ID" ligado.
+	const usuarioDaEntrada = loginAceito();
+	if (usuarioDaEntrada) {
+		WinLogin.getUI().lembrarUsuario?.(usuarioDaEntrada);
+	}
 
 	Session.AuthCode = pkt.AuthCode;
 	Session.AID = pkt.AID;
@@ -623,6 +646,29 @@ function onInternationalConnectionRefused(pkt) {
  * @param {object} pkt - PACKET.AC.REFUSE_LOGIN
  */
 function onConnectionRefused(pkt) {
+	/*
+	 * O PASSE NAO VALEU (D-1379): vencido, ja gasto ou perdido num restart do
+	 * servidor. O servidor so ve uma senha errada, e a mensagem padrao diria
+	 * isso a quem nao digitou senha nenhuma. A conta existe: o que resolve e
+	 * entrar com o que ele acabou de escolher no site, e a tela vem com o
+	 * usuario preenchido.
+	 */
+	const usuarioDaEntrada = loginRecusado();
+	if (usuarioDaEntrada) {
+		UIManager.showMessageBox(
+			'Sua conta está criada, mas não deu para entrar sozinho desta vez. Entre com o usuário e a senha que você acabou de escolher.',
+			'ok',
+			() => {
+				UIManager.removeComponents();
+				WinLogin.getUI().lembrarUsuario?.(usuarioDaEntrada);
+				WinLogin.getUI().append();
+			},
+			true
+		);
+		Network.close();
+		return;
+	}
+
 	let error = 9;
 	switch (pkt.ErrorCode) {
 		case 0:
