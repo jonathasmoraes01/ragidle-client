@@ -49,11 +49,11 @@ describe('a loja do NPC nao fecha depois da compra ou da venda', () => {
 });
 
 describe('a loja entra na pilha de janelas (o celular em pe)', () => {
-	it('registrada como DECISAO e preparada ANTES — a marca de painel vai no host', () => {
+	it('registrada como JANELA (o ESC a fecha, ordem do dono, D-1363) e preparada ANTES — a marca de painel vai no host', () => {
 		const i = MOTOR.indexOf("nome: 'loja',");
 		expect(i, 'a loja nao esta registrada na pilha').toBeGreaterThan(-1);
 		const trecho = MOTOR.slice(i, i + 300);
-		expect(trecho).toContain('tipo: PilhaDeJanelas.TIPO.DECISAO,');
+		expect(trecho).toContain('tipo: PilhaDeJanelas.TIPO.JANELA,');
 		expect(trecho).toContain('fechar: () => lojaDoNpc.remove(),');
 		const prepara = MOTOR.indexOf('lojaDoNpc.prepare();');
 		expect(prepara, 'a loja nao e preparada').toBeGreaterThan(-1);

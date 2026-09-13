@@ -1116,8 +1116,9 @@ function onMapChange(pkt) {
 		 *     jogador abre Mochila e Skills lado a lado de propósito;
 		 *   - a morte (`DeathWindow`) é DECISÃO: cobre tudo, e o ESC não a tira
 		 *     da tela — a única saída é o botão "Voltar para a cidade";
-		 *   - troca, venda, refino e loja de NPC são DECISÃO pela mesma razão:
-		 *     tem alguém do outro lado esperando resposta.
+		 *   - troca, venda e refino são DECISÃO pela mesma razão: tem alguém do
+		 *     outro lado esperando resposta. A loja de NPC SAIU desta linha por
+		 *     ordem do dono (D-1363, 13/09/2026): o ESC a fecha, como fecha as Idle.
 		 */
 		for (const [nome, componente, seletor] of [
 			['personagem', StatusIdle, '.st-window'],
@@ -1217,10 +1218,14 @@ function onMapChange(pkt) {
 		if (typeof lojaDoNpc.prepare === 'function') {
 			lojaDoNpc.prepare();
 		}
+		// JANELA, e nao DECISAO, por ordem do dono (D-1363, 13/09/2026): o ESC e
+		// o voltar do Android fecham a loja, como fecham as Idle. Do outro lado da
+		// loja do NPC nao ha ninguem esperando resposta, e fechar manda o 0x09D4,
+		// que encerra a negociacao no servidor (D-1361).
 		PilhaDeJanelas.registrar({
 			nome: 'loja',
 			componente: lojaDoNpc,
-			tipo: PilhaDeJanelas.TIPO.DECISAO,
+			tipo: PilhaDeJanelas.TIPO.JANELA,
 			estaAberta: () => !!(lojaDoNpc._host && lojaDoNpc._host.isConnected),
 			fechar: () => lojaDoNpc.remove(),
 		});
