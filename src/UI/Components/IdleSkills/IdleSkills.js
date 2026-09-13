@@ -97,7 +97,7 @@ import { linhaDaMissaoNoRequisito } from './requisitoDeMissao.js';
  * cobra que os dois números sejam o mesmo, porque ele é a única coisa que
  * separa "árvore certa" de "árvore plausível e errada".
  */
-const VERSAO_DO_CONTRATO = 4;
+const VERSAO_DO_CONTRATO = 5;
 
 const NUMERIC_SKILL_ID_BY_NAME = new Map(
 	Object.entries(SkillInfo)
@@ -274,7 +274,10 @@ function contextoDoRascunho() {
 		rascunho: IdleSkills.rascunho,
 		pontos: data ? data.pontos : 0,
 		nivelBase: data ? data.nivelBase : 0,
-		nivelDeJob: data ? data.nivelDeJob : 0
+		nivelDeJob: data ? data.nivelDeJob : 0,
+		// D-1366: a árvore aberta e o trilho, para o rascunho refazer a trava.
+		trava: data ? data.trava : null,
+		graus: data ? data.graus : []
 	};
 }
 
@@ -541,7 +544,9 @@ function onSkillsReceived(pkt) {
 		!Array.isArray(data.graus) ||
 		typeof data.pontos !== 'number' ||
 		typeof data.nivelBase !== 'number' ||
-		typeof data.nivelDeJob !== 'number'
+		typeof data.nivelDeJob !== 'number' ||
+		!data.trava ||
+		!Array.isArray(data.trava.pontosPorGrau)
 	) {
 		/*
 		 * RECUSA ALTA, e não desenho parcial. Um servidor na v1 responde JSON
