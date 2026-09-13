@@ -87,7 +87,12 @@ Announce.set = function set(text, color, options = {}) {
 		targetWidth = opts.width;
 	}
 
-	const maxWidth = targetWidth ? targetWidth - 20 : 500;
+	// RAGIDLE (13/09/2026, D-1376): o teto de 500px nao olhava a TELA. Num
+	// celular em pe (393px) a faixa do anuncio do evento de EXP saia com 514px,
+	// comecando em x=-61 e cortada dos dois lados (medido em `diag-evento-de-exp`).
+	// A quebra de linha abaixo ja existia; faltava o teto caber na tela. No
+	// desktop nada muda: a tela e maior que 520px.
+	const maxWidth = targetWidth ? targetWidth - 20 : Math.max(100, Math.min(500, Renderer.width - 20));
 	const lines = [];
 
 	this.ctx.font = `${fontSize}px Arial`;

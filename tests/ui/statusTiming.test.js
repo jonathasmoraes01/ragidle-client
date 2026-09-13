@@ -5,7 +5,8 @@ import {
 	getStatusEnd,
 	getStatusIconsPerColumn,
 	getStatusLabel,
-	isStatusActive
+	isStatusActive,
+	tempoDaDica
 } from '../../src/UI/Components/StatusIcons/statusTiming.js';
 
 describe('tempo e estado dos buffs da HUD', () => {
@@ -58,6 +59,36 @@ describe('tempo e estado dos buffs da HUD', () => {
 		// Com `M:SS` puro, uma hora e dois minutos sairia como `62:00` — um
 		// numero que o jogador le como sessenta e dois de alguma coisa.
 		expect(formatarRelogioDoBuff(3_720_000)).toBe('1:02:00');
+	});
+
+	it('...e a `1d18h` a partir de um dia (D-1376, o evento de EXP dura dias)', () => {
+		// Sete dias em `H:MM:SS` seriam `168:00:00` — nove caracteres na faixa de 38px.
+		const HORA = 3_600_000;
+		expect(formatarRelogioDoBuff(42 * HORA)).toBe('1d18h');
+		expect(formatarRelogioDoBuff(48 * HORA)).toBe('2d');
+		expect(formatarRelogioDoBuff(168 * HORA)).toBe('7d');
+		// A borda: um segundo a menos de um dia continua no formato de horas.
+		expect(formatarRelogioDoBuff(24 * HORA - 1000)).toBe('23:59:59');
+		expect(formatarRelogioDoBuff(24 * HORA)).toBe('1d');
+		// E o `ceil` vale aqui tambem: 47h59m59s e alguns ms ja leem como 2 dias.
+		expect(formatarRelogioDoBuff(48 * HORA - 1)).toBe('2d');
+	});
+
+	it('a dica escreve o tempo por extenso, com dia e hora, e sem o `ss` (D-1376)', () => {
+		const HORA = 3_600_000;
+		// O que a foto mostrava num evento de dois dias: `2878 minutoss 53 segundoss`.
+		expect(tempoDaDica(48 * HORA - 67_000, 'minutos', 'segundos')).toBe('1 dia 23 horas');
+		expect(tempoDaDica(48 * HORA, 'minutos', 'segundos')).toBe('2 dias');
+		expect(tempoDaDica(2 * HORA + 5 * 60_000, 'minutos', 'segundos')).toBe('2 horas 5 minutos');
+		expect(tempoDaDica(HORA, 'minuto', 'segundo')).toBe('1 hora');
+		// Abaixo de uma hora, o formato de sempre — e o plural certo venha a
+		// palavra da tabela no singular ou no plural.
+		expect(tempoDaDica(17 * 60_000 + 13_000, 'minutos', 'segundos')).toBe('17 minutos 13 segundos');
+		expect(tempoDaDica(17 * 60_000 + 13_000, 'minuto', 'segundo')).toBe('17 minutos 13 segundos');
+		expect(tempoDaDica(61_000, 'minutos', 'segundos')).toBe('1 minuto 1 segundo');
+		expect(tempoDaDica(9_999)).toBe('9 segundos');
+		expect(tempoDaDica(0)).toBe('');
+		expect(tempoDaDica(Infinity)).toBe('');
 	});
 
 	it('arredonda para CIMA — o ultimo segundo do buff nao aparece como zero', () => {

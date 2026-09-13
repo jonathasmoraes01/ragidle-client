@@ -231,6 +231,10 @@ const PT_BR = {
 	'Physical Defense reduced': 'Reduz a DEF',
 	'Magic Amplification': 'Amplificação Mística',
 	'MATK Amplified': 'Bônus de ATQM',
+
+	/* -------- o evento de EXP do servidor (D-1376, 13/09/2026) -------- */
+	'EXP Event': 'Evento de EXP',
+	'Increases acquired EXP': 'Mais EXP de todos os monstros',
 };
 
 /**

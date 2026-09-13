@@ -1519,11 +1519,18 @@ StatusInfo[SC.MAGICMUSHROOM] = {
 	]
 };
 
+/*
+ * RAGIDLE (D-1376, 13/09/2026): o EFST_CASH_PLUSEXP e o icone do EVENTO DE EXP
+ * do servidor — o mesmo icone que o rAthena da ao SC_EXPBOOST
+ * (`db/re/status.yml:2720-2721`). O titulo entrou porque o upstream nao tinha
+ * nenhum, e o jogador que toca no icone precisa ler de onde vem o bonus. O
+ * quanto vai no anuncio de entrada: esta tabela e fixa por EFST.
+ */
 StatusInfo[SC.CASH_PLUSEXP] = {
 	icon: 'exp.tga',
 	haveTimeLimit: 1,
-	posTimeLimitStr: 1,
-	descript: [['%s', COLOR_TIME], ['Increases acquired EXP']]
+	posTimeLimitStr: 2,
+	descript: [['EXP Event', COLOR_TITLE_BUFF], ['%s', COLOR_TIME], ['Increases acquired EXP']]
 };
 
 StatusInfo[SC.ATTHASTE_POTION2] = {

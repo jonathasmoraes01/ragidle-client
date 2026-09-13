@@ -29,7 +29,8 @@ import {
 	getStatusEnd,
 	getStatusIconsPerColumn,
 	getStatusLabel,
-	isStatusActive
+	isStatusActive,
+	tempoDaDica
 } from './statusTiming.js';
 
 /**
@@ -458,10 +459,6 @@ function renderStatus(status, now) {
 	if (status.time && status.timeTick + 1000 < now) {
 		status.timeTick = now;
 
-		const tick = ((end - now) / 1000) | 0;
-		const seconds = tick % 60;
-		const minutes = (tick / 60) | 0;
-
 		/*
 		 * O TEMPO EM PORTUGUES, E O PLURAL CERTO (03/09/2026).
 		 *
@@ -474,12 +471,20 @@ function renderStatus(status, now) {
 		 * quando ele existe, manda ele; o segundo argumento e so o fallback. Por
 		 * isso a traducao passa por `emPortugues` DEPOIS — assim ela cobre os dois
 		 * casos, a tabela e o fallback.
+		 *
+		 * A CONTA saiu para `tempoDaDica` (13/09/2026, D-1376): a tabela desta
+		 * instalacao ja traz a palavra no plural, e o `+ 's'` daqui escrevia
+		 * `minutoss`; e so havendo minuto e segundo, o evento de EXP de dois dias
+		 * aparecia como 2878 minutos.
 		 */
-		const unidade = (n, chave, padrao) => `${n} ${emPortugues(DB.getMessage(chave, padrao))}${n === 1 ? '' : 's'}`;
 		status.time.textContent =
 			now >= end || end === Infinity
 				? ''
-				: (minutes ? `${unidade(minutes, 1807, 'minute')} ` : '') + unidade(seconds, 1808, 'second');
+				: tempoDaDica(
+						end - now,
+						emPortugues(DB.getMessage(1807, 'minute')),
+						emPortugues(DB.getMessage(1808, 'second'))
+					);
 	}
 }
 
