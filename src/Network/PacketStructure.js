@@ -16498,6 +16498,32 @@ PACKET.ZC.RAGIDLE_RANKING = function PACKET_ZC_RAGIDLE_RANKING(fp, end) {
 };
 PACKET.ZC.RAGIDLE_RANKING.size = -1;
 
+// 0x0fc7 - RAGIDLE: CZ_RAGIDLE_COMANDOS_ACAO (client -> server)
+// Variable size: u16 opcode + u16 total length + JSON UTF-8 {acao:'pedir'}.
+// 12/09/2026: o AUTOCOMPLETAR dos comandos (a proposta 5 da tarefa 20). O chat
+// pede a lista no primeiro `@` digitado; um opcode por JANELA, verbo no JSON.
+PACKET.CZ.RAGIDLE_COMANDOS_ACAO = function PACKET_CZ_RAGIDLE_COMANDOS_ACAO() {
+	this.json = '{}';
+};
+PACKET.CZ.RAGIDLE_COMANDOS_ACAO.prototype.build = function () {
+	const bytes = TextEncoding.encode(this.json, 'utf-8');
+	const pkt_len = 2 + 2 + bytes.length;
+	const pkt_buf = new BinaryWriter(pkt_len);
+	pkt_buf.writeShort(0x0fc7);
+	pkt_buf.writeUShort(pkt_len);
+	pkt_buf.writeString(this.json);
+	return pkt_buf;
+};
+
+// 0x0fc8 - RAGIDLE: ZC_RAGIDLE_COMANDOS (server -> client)
+// Variable size: u16 opcode + u16 total length + JSON UTF-8 payload.
+// Contrato v1 (12/09/2026): { v, comandos: [{ nome, ajuda }] } — so os que o
+// jogador PODE usar e que RODAM, em ordem; o chat filtra a cada tecla.
+PACKET.ZC.RAGIDLE_COMANDOS = function PACKET_ZC_RAGIDLE_COMANDOS(fp, end) {
+	this.json = fp.readString(end - fp.tell());
+};
+PACKET.ZC.RAGIDLE_COMANDOS.size = -1;
+
 // 0x0fda - RAGIDLE: CZ_RAGIDLE_CACA_ACAO (client -> server)
 // Variable size: u16 opcode + u16 total length + JSON UTF-8 {acao:'pedir'|
 // 'alternar-favorito', mapa?}.

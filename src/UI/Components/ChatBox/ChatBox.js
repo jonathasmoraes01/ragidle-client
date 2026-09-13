@@ -70,6 +70,9 @@ import Cursor from 'UI/CursorManager.js';
 import BattleMode from 'Controls/BattleMode.js';
 import History from './History.js';
 import { comecaComoComando, ehLinhaDeComando, guardarComando, lerComandosGravados, passoDaBusca } from './historicoDeComandos.js'; // a proposta 5 da tarefa 20: o historico so de comandos
+import { ajudaSemONome, sugestoesPara, textoCompletado } from './autocompletarComandos.js'; // a proposta 5 da tarefa 20: o autocompletar
+import Network from 'Network/NetworkManager.js';
+import PACKET from 'Network/PacketStructure.js';
 import UIManager from 'UI/UIManager.js';
 import GUIComponent from 'UI/GUIComponent.js';
 import 'UI/Elements/Elements.js';
@@ -112,6 +115,14 @@ const _historyNickName = new History(true);
  */
 let _comandos = [];
 let _buscaDeComando = null;
+
+/**
+ * O AUTOCOMPLETAR (a proposta 5 da tarefa 20, a segunda metade): a lista de
+ * comandos que o servidor diz que este personagem pode usar — pedida uma vez,
+ * no primeiro `@` ou `#` digitado, e esquecida na troca de personagem.
+ */
+let _listaDeComandos = null;
+let _pediuListaDeComandos = false;
 
 /**
  * Buffer para acumular mensagens antes de adicionar ao DOM.
@@ -224,6 +235,90 @@ function lerListaGravada(sufixo) {
 	}
 }
 
+/**
+ * O AUTOCOMPLETAR NA TELA (a proposta 5 da tarefa 20, a segunda metade). A
+ * regra mora em `autocompletarComandos.js`; aqui ficam a lista chegada do
+ * servidor, o pedido dela e o desenho — sempre por `textContent`: o nome e a
+ * ajuda vem do fio, e HTML vindo do fio e a porta que o `textoSeguroDoChat`
+ * fecha.
+ */
+function pedirListaDeComandos() {
+	if (_listaDeComandos !== null || _pediuListaDeComandos) return;
+	_pediuListaDeComandos = true;
+	const pkt = new PACKET.CZ.RAGIDLE_COMANDOS_ACAO();
+	pkt.json = JSON.stringify({ acao: 'pedir' });
+	Network.sendPacket(pkt);
+}
+
+function esconderSugestoes(root) {
+	const caixa = root && root.querySelector('.cb-sugestoes');
+	if (caixa) caixa.hidden = true;
+}
+
+function atualizarSugestoes(root) {
+	const caixa = root && root.querySelector('.cb-sugestoes');
+	const campo = root && root.querySelector('.input-chatbox');
+	if (!caixa || !campo) return;
+	const texto = campo.textContent || '';
+	if (comecaComoComando(texto)) pedirListaDeComandos();
+	const sugestoes = sugestoesPara(texto, _listaDeComandos);
+	if (sugestoes === null) {
+		caixa.hidden = true;
+		return;
+	}
+	caixa.replaceChildren(
+		...sugestoes.itens.map(item => {
+			const botao = document.createElement('button');
+			botao.type = 'button';
+			botao.className = 'cb-sugestao';
+			botao.setAttribute('role', 'option');
+			botao.dataset.simbolo = sugestoes.simbolo;
+			botao.dataset.nome = item.nome;
+			const nome = document.createElement('span');
+			nome.className = 'cb-sugestao-nome';
+			nome.textContent = `${sugestoes.simbolo}${item.nome}`;
+			const ajuda = document.createElement('span');
+			ajuda.className = 'cb-sugestao-ajuda';
+			ajuda.textContent = ajudaSemONome(item.nome, item.ajuda);
+			botao.append(nome, ajuda);
+			return botao;
+		})
+	);
+	caixa.hidden = false;
+}
+
+/** Escreve a sugestao no campo e devolve o foco a ele — o toque, o clique e o Tab chegam aqui. */
+function escolherSugestao(root, simbolo, nome) {
+	const campo = root.querySelector('.input-chatbox');
+	if (!campo) return;
+	campo.textContent = textoCompletado(simbolo, nome);
+	esconderSugestoes(root);
+	campo.focus();
+	cursorNoFim(campo);
+}
+
+/** O Tab com a lista aberta completa com a primeira. Devolve se completou. */
+function completarPrimeiraSugestao(root) {
+	const caixa = root.querySelector('.cb-sugestoes');
+	const primeira = caixa && !caixa.hidden ? caixa.querySelector('.cb-sugestao') : null;
+	if (!primeira) return false;
+	escolherSugestao(root, primeira.dataset.simbolo, primeira.dataset.nome);
+	return true;
+}
+
+/** A lista chegou do servidor: guarda e redesenha, se o campo ainda pede. */
+function onListaDeComandos(pkt) {
+	let dados;
+	try {
+		dados = JSON.parse(pkt.json);
+	} catch (_e) {
+		return;
+	}
+	if (!dados || dados.v !== 1 || !Array.isArray(dados.comandos)) return;
+	_listaDeComandos = dados.comandos;
+	atualizarSugestoes(_root());
+}
+
 /** Le as preferencias do personagem em foco — as quatro de layout e o historico de comandos. Chamado em `onAppend`. */
 function carregarPreferenciasDoPersonagem() {
 	_layout = lerPreferencia('Layout', PADRAO_LAYOUT);
@@ -244,6 +339,9 @@ function carregarPreferenciasDoPersonagem() {
 	// O historico so de comandos (a proposta 5 da tarefa 20) e do personagem, como o resto.
 	_comandos = lerComandosGravados(lerListaGravada('Comandos'));
 	_buscaDeComando = null;
+	// E a lista do autocompletar e pedida de novo: o grupo pode ser outro.
+	_listaDeComandos = null;
+	_pediuListaDeComandos = false;
 }
 
 /* ===========================================================================
@@ -1100,6 +1198,11 @@ ChatBox.init = function init() {
 			}
 		});
 
+		// O AUTOCOMPLETAR (a proposta 5 da tarefa 20): a cada tecla, a lista dos
+		// comandos que casam com o que esta no campo — e ela some com o foco.
+		inputChatbox.addEventListener('input', () => atualizarSugestoes(root));
+		inputChatbox.addEventListener('blur', () => esconderSugestoes(root));
+
 		inputChatbox.addEventListener('keydown', event => {
 			const currentText = extractChatMessage(inputChatbox);
 			if (currentText.length >= MAX_LENGTH) {
@@ -1350,6 +1453,25 @@ ChatBox.init = function init() {
 	ligarBotao('.cb-enviar', () => ChatBox.submit());
 
 	/*
+	 * O AUTOCOMPLETAR (a proposta 5 da tarefa 20): tocar numa sugestao a escreve
+	 * no campo. O `mousedown` para ali, como no `ligarBotao`: sem isso o toque
+	 * tiraria o foco do campo, e o teclado do celular fecharia no meio do comando.
+	 */
+	const caixaDeSugestoes = root.querySelector('.cb-sugestoes');
+	if (caixaDeSugestoes) {
+		caixaDeSugestoes.addEventListener('mousedown', event => {
+			event.stopImmediatePropagation();
+			event.preventDefault();
+		});
+		caixaDeSugestoes.addEventListener('click', event => {
+			const botao = event.target.closest('.cb-sugestao');
+			if (!botao) return;
+			event.stopImmediatePropagation();
+			escolherSugestao(root, botao.dataset.simbolo, botao.dataset.nome);
+		});
+	}
+
+	/*
 	 * AS OPCOES DO POPOVER, delegadas: um ouvinte no popover em vez de quatro
 	 * nos botoes. Opcao nova nasce ligada sozinha, e nao esquecida — que e o
 	 * modo de falha que este arquivo ja registrou em outros lugares ("a peca
@@ -1409,6 +1531,12 @@ ChatBox.init = function init() {
 			if (event.key !== 'Tab' || event.ctrlKey || event.altKey) return;
 			event.preventDefault();
 			event.stopImmediatePropagation();
+
+			// O AUTOCOMPLETAR vem antes do canal (a proposta 5 da tarefa 20): com a
+			// lista de comandos aberta, o Tab completa a primeira — no meio de um
+			// nome de comando, trocar de canal nao e o que se quer. O Shift+Tab
+			// continua voltando o canal.
+			if (!event.shiftKey && completarPrimeiraSugestao(root)) return;
 
 			const faladores = CANAIS.filter(c => !CANAIS_SEM_DIGITACAO.includes(c));
 			if (faladores.length === 0) return;
@@ -1489,6 +1617,7 @@ ChatBox.clean = function Clean() {
 
 	const inputChatbox = root.querySelector('.input-chatbox');
 	if (inputChatbox) inputChatbox.innerHTML = '';
+	esconderSugestoes(root);
 
 	const nickBox = root.querySelector('.input .username');
 	if (nickBox) nickBox.value = '';
@@ -1839,6 +1968,7 @@ ChatBox.onKeyDown = function OnKeyDown(event) {
 						_buscaDeComando = passo.busca;
 						messageBox.textContent = passo.texto;
 						cursorNoFim(messageBox);
+						atualizarSugestoes(root);
 						break;
 					}
 					messageBox.innerHTML = _historyMessage.previous();
@@ -1867,6 +1997,7 @@ ChatBox.onKeyDown = function OnKeyDown(event) {
 						_buscaDeComando = passo.busca;
 						messageBox.textContent = passo.texto;
 						cursorNoFim(messageBox);
+						atualizarSugestoes(root);
 						break;
 					}
 					messageBox.innerHTML = _historyMessage.next();
@@ -2013,6 +2144,7 @@ ChatBox.submit = function Submit() {
 	_buscaDeComando = null;
 
 	$text.innerHTML = '';
+	esconderSugestoes(root);
 
 	// Command
 	if (trimmedText[0] === '/') {
@@ -3153,6 +3285,9 @@ ChatBox.insertText = function (text) {
 
 // Override mouseMode to CROSS since chatbox body is click-through
 ChatBox.mouseMode = GUIComponent.MouseMode.CROSS;
+
+// O AUTOCOMPLETAR (a proposta 5 da tarefa 20): a lista de comandos chega por aqui.
+Network.hookPacket(PACKET.ZC.RAGIDLE_COMANDOS, onListaDeComandos);
 
 /**
  * Create component and export it

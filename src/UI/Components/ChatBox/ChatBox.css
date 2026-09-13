@@ -117,7 +117,8 @@
 /* O popover herda a chapa do painel — ele tem cor propria no moderno (um azul
    mais opaco) e no classico precisa acompanhar, senao fica um retangulo azul
    flutuando sobre um chat marrom. */
-#chatbox.is-classico .cb-popover {
+#chatbox.is-classico .cb-popover,
+#chatbox.is-classico .cb-sugestoes {
 	background: rgba(12, 10, 8, 0.9);
 	border-color: var(--chat-cl-border);
 	backdrop-filter: none;
@@ -626,6 +627,82 @@
 	background: var(--chat-input-bg);
 	border-radius: 0 0 calc(var(--chat-raio) - 1px) calc(var(--chat-raio) - 1px);
 	box-sizing: border-box;
+}
+
+/* ─── O AUTOCOMPLETAR DOS COMANDOS (a proposta 5 da tarefa 20) ─────────────
+   A lista sobe da barra de digitacao, por cima do log, e nunca passa da
+   largura do painel: a barra vira a ancora dela. Seis linhas no maximo — o
+   resto rola por dentro. */
+#chatbox .input {
+	position: relative;
+}
+
+#chatbox .cb-sugestoes {
+	position: absolute;
+	left: 6px;
+	right: 6px;
+	bottom: calc(100% + 4px);
+	max-height: 188px;
+	overflow-y: auto;
+	padding: 4px 0;
+	border: 1px solid rgba(255, 255, 255, 0.16);
+	border-radius: var(--chat-raio);
+	background: rgba(38, 55, 82, 0.96);
+	backdrop-filter: var(--blur-glass);
+	box-shadow: var(--shadow-float);
+	box-sizing: border-box;
+	z-index: 8;
+}
+
+#chatbox .cb-sugestoes[hidden] {
+	display: none !important;
+}
+
+#chatbox .cb-sugestao {
+	display: flex;
+	align-items: baseline;
+	gap: 8px;
+	width: 100%;
+	min-height: 30px;
+	padding: 5px 11px;
+	border: none;
+	background: none;
+	color: var(--chat-text);
+	font-family: var(--font-ui);
+	font-size: 12px;
+	text-align: left;
+	cursor: pointer;
+	box-sizing: border-box;
+}
+
+#chatbox .cb-sugestao:hover {
+	background: rgba(255, 255, 255, 0.08);
+}
+
+#chatbox .cb-sugestao-nome {
+	flex: 0 0 auto;
+	font-weight: 600;
+}
+
+#chatbox .cb-sugestao-ajuda {
+	flex: 1 1 auto;
+	min-width: 0;
+	color: var(--chat-text-muted);
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+/* No DEDO cada linha e um alvo de 44px, o piso da casa, e as seis cabem. */
+@media (pointer: coarse) {
+	#chatbox .cb-sugestao {
+		min-height: 44px;
+		align-items: center;
+	}
+
+	#chatbox .cb-sugestoes {
+		max-height: calc(6 * 44px + 10px);
+	}
 }
 
 /* A barra ACESA enquanto o teclado esta nela. `Common.css` mata o outline
