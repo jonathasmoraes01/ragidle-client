@@ -1,10 +1,10 @@
 /**
  * UI/Components/AdminPanel/AdminPanel.js
  *
- * "Painel de admin" — custom RAGIDLE window. Lets the OWNER's account
- * (Session.AID === 2000000, see isOwnerAccount() below) inspect and edit
- * a handful of admin-only character fields: class, zeny, base/job level,
- * and attribute/skill points.
+ * "Painel de admin" — custom RAGIDLE window. Lets the ADMINISTRATOR (the mark
+ * the server sends in ZC_RAGIDLE_ADMINS, read by souAdmin() — D-1367) inspect
+ * and edit a handful of admin-only character fields: class, zeny, base/job
+ * level, and attribute/skill points.
  *
  * Protocol (custom extension, not part of stock rAthena/roBrowser):
  *   CZ_RAGIDLE_PEDIR_ADMIN    0x0ff6  (client -> server, fixed, opcode only)
@@ -19,12 +19,18 @@
  * 0x0ff6-0x0ff8 sit right after IdleConfig's 0x0ff3-0x0ff5 in the same free
  * range of this fork's packet tables.
  *
- * IMPORTANT — the server only ever answers ZC_RAGIDLE_ADMIN for the owner's
- * account (AID 2000000); for any other account it stays silent. That silence
- * is enforced server-side; this client only decides whether to SHOW the
- * button/window at all (isOwnerAccount()/AdminPanel.onAppend below) and,
- * separately, how to react if a "pedir" for the owner's account itself gets
- * no answer within 3s (requestAdmin()/onClickButton below).
+ * IMPORTANT — the server only ever answers ZC_RAGIDLE_ADMIN for an
+ * administrator (`ehAdministrador`: the owner's user, or group >= 99); for any
+ * other account it stays silent. That silence is enforced server-side; this
+ * client only decides whether to SHOW the button/window at all (souAdmin() in
+ * AdminPanel.onAppend and AdminPanel.toggle below) and, separately, how to
+ * react if a "pedir" gets no answer within 3s (requestAdmin() below).
+ *
+ * D-1367: until 13/09/2026 the SHOW decision compared Session.AID with one
+ * hard-coded account — the shortcut the server dropped in D-694, when the
+ * administrator became the owner's USER, which in production is another
+ * account. The owner saw the server accept his commands and never saw this
+ * window.
  *
  * Pattern followed here is IdleConfig (UI/Components/IdleConfig/IdleConfig.js,
  * read in full before writing this file): GUIComponent base class, ES
@@ -44,6 +50,7 @@ import Preferences from 'Core/Preferences.js';
 import Network from 'Network/NetworkManager.js';
 import PACKET from 'Network/PacketStructure.js';
 import Session from 'Engine/SessionStorage.js';
+import { souAdmin } from 'DB/Items/idParaAdmin.js';
 import UIManager from 'UI/UIManager.js';
 import GUIComponent from 'UI/GUIComponent.js';
 import htmlText from './AdminPanel.html?raw';
@@ -56,13 +63,6 @@ import cssText from './AdminPanel.css?raw';
  */
 const WINDOW_WIDTH = 380;
 const WINDOW_HEIGHT = 520;
-
-/**
- * The one account this window ever works for. The server enforces this on
- * every packet (silence for anyone else); this constant only drives whether
- * the client shows the button/window at all (see onAppend() below).
- */
-const OWNER_AID = 2000000;
 
 /**
  * How long to wait for a ZC_RAGIDLE_ADMIN answer to a "pedir" before telling
@@ -176,17 +176,6 @@ function escapeHtml(value) {
 }
 
 /**
- * Only the owner's account (Session.AID, populated at login/char-select —
- * see Engine/LoginEngine.js:386 and Engine/CharEngine.js:98) ever gets this
- * window shown. The server independently enforces the same restriction on
- * every packet — this is purely a client-side "don't even show the button"
- * check, not the real access control.
- */
-function isOwnerAccount() {
-	return Session.AID === OWNER_AID;
-}
-
-/**
  * Pick out just the editable fields from a "personagem" object (contract's
  * shape — nome/nivelDeJob/hp/etc — into the flat draft/baseline shape this
  * window edits).
@@ -229,10 +218,10 @@ AdminPanel.init = function init() {
 /**
  * Restore saved window position once appended to the DOM (same as
  * IdleConfig.js:197-202), then hide the whole component (button + window)
- * for every account except the owner's — same "hide the whole host" pattern
- * as UI/Components/CartItems/CartItems.js:148-151
- * (`if (Session.Entity.hasCart === false) { this._host.style.display =
- * 'none'; }`), just keyed on Session.AID instead of Session.Entity.hasCart.
+ * for everyone the server has not marked as administrator — same "hide the
+ * whole host" pattern as UI/Components/CartItems/CartItems.js:148-151, keyed
+ * on souAdmin() (D-1367). The mark may arrive AFTER this runs, so toggle()
+ * gives the host back to an administrator.
  */
 AdminPanel.onAppend = function onAppend() {
 	if (_preferences.x != null && _preferences.y != null) {
@@ -240,7 +229,7 @@ AdminPanel.onAppend = function onAppend() {
 		this._host.style.left = Math.min(Math.max(0, _preferences.x), Renderer.width - WINDOW_WIDTH) + 'px';
 	}
 
-	if (!isOwnerAccount()) {
+	if (!souAdmin()) {
 		this._host.style.display = 'none';
 	}
 };
@@ -266,6 +255,12 @@ function savePosition() {
  * IdleConfig.toggle() (IdleConfig.js:223-233).
  */
 AdminPanel.toggle = function toggle() {
+	// D-1367: o onAppend esconde o anfitriao de quem a marca de administrador
+	// ainda nao tinha alcancado; abrir o painel o devolve a quem ja a tem —
+	// senao a janela abriria dentro de um anfitriao invisivel.
+	if (souAdmin()) {
+		AdminPanel._host.style.display = '';
+	}
 	const root = _root();
 	const win = root.querySelector('.ap-window');
 	if (win.classList.contains('is-open')) {

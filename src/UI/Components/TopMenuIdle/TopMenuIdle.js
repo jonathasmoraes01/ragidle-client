@@ -111,11 +111,10 @@
  *   - Procurar grupo -> LFGIdle.toggle()  (D-988). O par do de cima. A troca
  *                 automatica ao entrar e ao sair continua em portaDoGrupo.js;
  *                 o que ela nao faz mais e escolher o que o MENU abre.
- *   - Admin       -> AdminPanel.toggle()     (AdminPanel.js:268), com a
- *                 MESMA trava de conta dona que AdminPanel.js:65/186 usa
- *                 (Session.AID === 2000000, ver isOwnerAccount()) — o item
- *                 e escondido client-side pra quem nao e a conta dona; o
- *                 servidor aplica a restricao de verdade.
+ *   - Admin       -> AdminPanel.toggle(), com a MESMA pergunta que o painel
+ *                 faz: `souAdmin()` (DB/Items/idParaAdmin.js), a marca que o
+ *                 servidor manda (D-1367) — o item e escondido client-side de
+ *                 quem nao a tem; o servidor aplica a restricao de verdade.
  *
  * ─── A FUSAO "Config" + "Menu" -> "Configuracoes" (pedido do dono) ───────
  * Eram dois discos vizinhos, os dois com cara de ajuste, e o jogador tinha
@@ -216,12 +215,7 @@ import RiIcones from 'UI/ri-icones.js';
 import htmlText from './TopMenuIdle.html?raw';
 import cssText from './TopMenuIdle.css?raw';
 import { emUnidadesDaHud } from 'UI/escalaDaHud.js'; // D-934: geometria medida vira unidade da HUD
-
-/**
- * Mesma constante de conta dona que AdminPanel.js:65 -- copia local (nao
- * exportada de la, e o instrucional pede pra nao tocar em AdminPanel.js).
- */
-const OWNER_AID = 2000000;
+import { souAdmin } from 'DB/Items/idParaAdmin.js'; // D-1367: quem ve o item "Admin"
 
 /**
  * Mesmo intervalo de polling leve que DockIdle.js/BasicInfoIdle.js.
@@ -319,11 +313,28 @@ function movimentoReduzido() {
 }
 
 /**
- * Mesmo criterio de AdminPanel.js:186 (Session.AID === OWNER_AID) -- so
- * esconde o item client-side, o servidor aplica a restricao de verdade.
+ * O item "Admin" aparece para quem o SERVIDOR marcou como administrador
+ * (`souAdmin()`, D-1367) — e nao mais para uma conta fixa, o atalho que o
+ * servidor abandonou em D-694. So esconde o item client-side; o servidor
+ * aplica a restricao de verdade.
+ *
+ * Devolve se a visibilidade MUDOU: quem chama refaz a grade, porque as
+ * colunas, as fileiras e o leque contam so os itens visiveis. O laco de
+ * 250 ms chama isto sempre, porque a marca pode chegar depois do menu, e um
+ * `#adjgroup` promove sem relogar.
  */
-function isOwnerAccount() {
-	return Session.AID === OWNER_AID;
+function sincronizarItemDeAdmin() {
+	const root = _root();
+	const adminBtn = root && root.querySelector('.tm-item-admin');
+	if (!adminBtn) {
+		return false;
+	}
+	const display = souAdmin() ? '' : 'none';
+	if (adminBtn.style.display === display) {
+		return false;
+	}
+	adminBtn.style.display = display;
+	return true;
 }
 
 /**
@@ -355,15 +366,10 @@ TopMenuIdle.onAppend = function onAppend() {
 	hideReplacedControls();
 	applyCollapsedState();
 
-	// Admin: mesma trava de conta dona de sempre -- so quem e a conta dona ve
-	// o item; qualquer outra conta nunca ve nem consegue clicar. Precisa vir
-	// ANTES de distribuirColunas() e de escalonarLeque(), que contam so os
-	// itens visiveis.
-	const root = _root();
-	const adminBtn = root.querySelector('.tm-item-admin');
-	if (adminBtn) {
-		adminBtn.style.display = isOwnerAccount() ? '' : 'none';
-	}
+	// Admin: so quem o servidor marcou como administrador ve o item (D-1367).
+	// Precisa vir ANTES de distribuirColunas() e de escalonarLeque(), que
+	// contam so os itens visiveis — e o laco reconfere, se a marca chegar tarde.
+	sincronizarItemDeAdmin();
 
 	distribuirColunas();
 	distribuirFileiras();
@@ -617,7 +623,7 @@ function onClickAction(e) {
 			LFGIdle.toggle();
 			break;
 		case 'admin':
-			if (!isOwnerAccount()) {
+			if (!souAdmin()) {
 				return;
 			}
 			AdminPanel.toggle();
@@ -1466,6 +1472,14 @@ function isHostVisible(component) {
  */
 function pollEstado() {
 	hideReplacedControls();
+	// D-1367: o item "Admin" pela marca do servidor, que pode chegar depois do
+	// menu. Quando ele aparece ou some, a grade e refeita como no onAppend.
+	if (sincronizarItemDeAdmin()) {
+		distribuirColunas();
+		distribuirFileiras();
+		publicarTopoDoCluster();
+		aplicarEstadoDoLeque(true);
+	}
 	/*
 	 * D-930: o topo do cluster entra no tique que ja existia, e nao num timer
 	 * proprio. O `ResizeObserver` sozinho nao bastava: ele dispara quando a
