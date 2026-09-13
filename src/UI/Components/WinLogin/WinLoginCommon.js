@@ -224,6 +224,23 @@ export function createWinLogin({ name, htmlText, cssText }) {
 		}
 	}
 
+	/**
+	 * LEMBRA o usuario de quem entrou sem passar por esta tela (a entrada
+	 * pos-cadastro, D-1379), do mesmo jeito que `connect` lembra quem digita:
+	 * so com "salvar ID" ligado. Serve tambem para a tela vir PREENCHIDA quando
+	 * aquela entrada falha e o jogador precisa digitar a senha.
+	 *
+	 * Mexe no `_preferences` desta instancia, e nao so no disco: ele foi lido
+	 * quando o modulo carregou, e e dele que o `onAppend` tira o ID.
+	 *
+	 * @param {string} usuario
+	 */
+	Component.lembrarUsuario = function lembrarUsuario(usuario) {
+		if (!_preferences.saveID || typeof usuario !== 'string') return;
+		_preferences.ID = usuario;
+		_preferences.save();
+	};
+
 	Component.onConnectionRequest = function onConnectionRequest() {};
 	Component.onExitRequest = function onExitRequest() {};
 
