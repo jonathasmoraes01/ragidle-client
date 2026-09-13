@@ -698,6 +698,17 @@ function onFalaDoSistema(pkt) {
 }
 
 /**
+ * A RESPOSTA DO COMANDO (D-1364): o mesmo corpo da fala do sistema, por um
+ * opcode proprio — o ChatBox a desenha na aba em que o comando foi digitado, e
+ * nao no Logs.
+ *
+ * @param {object} pkt - PACKET.ZC.RAGIDLE_RESPOSTA_DE_COMANDO
+ */
+function onRespostaDeComando(pkt) {
+	ChatBox.addText(pkt.msg, ChatBox.TYPE.PUBLIC, ChatBox.FILTER.RESPOSTA_DE_COMANDO);
+}
+
+/**
  * Received announce from server
  *
  * @param {object} pkt - PACKET.ZC.BROADCAST
@@ -1122,6 +1133,7 @@ export default function MainEngine() {
 	Network.hookPacket(PACKET.ZC.USER_COUNT, onPlayerCountAnswer);
 	Network.hookPacket(PACKET.ZC.NOTIFY_PLAYERCHAT, onPlayerMessage);
 	Network.hookPacket(PACKET.ZC.RAGIDLE_LOG, onFalaDoSistema);
+	Network.hookPacket(PACKET.ZC.RAGIDLE_RESPOSTA_DE_COMANDO, onRespostaDeComando);
 	Network.hookPacket(PACKET.ZC.ATTACK_FAILURE_FOR_DISTANCE, onPlayerTooFarToAttack);
 	Network.hookPacket(PACKET.ZC.ACTION_FAILURE, onActionFailure);
 	Network.hookPacket(PACKET.ZC.MSG, onMessage);

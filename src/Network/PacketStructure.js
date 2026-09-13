@@ -16757,6 +16757,18 @@ PACKET.ZC.RAGIDLE_LOG = function PACKET_ZC_RAGIDLE_LOG(fp, end) {
 };
 PACKET.ZC.RAGIDLE_LOG.size = -1;
 
+// 0x0fc6 - RAGIDLE: ZC_RAGIDLE_RESPOSTA_DE_COMANDO (server -> client) — 13/09/2026
+//
+// A RESPOSTA DO COMANDO a quem o digitou (D-1364, a proposta 1 da tarefa 20 do
+// dono: "a resposta do comando aparece na aba em que ele digitou"). O corpo e o
+// MESMO da fala do sistema ("Comando : <texto>\0"); o opcode proprio e o que
+// deixa o ChatBox desenha-la na aba em que o comando foi digitado, e nao no
+// Logs, sem ler o texto. O aviso ao ALVO de um `#` continua no RAGIDLE_LOG.
+PACKET.ZC.RAGIDLE_RESPOSTA_DE_COMANDO = function PACKET_ZC_RAGIDLE_RESPOSTA_DE_COMANDO(fp, end) {
+	this.msg = fp.readString(end - fp.tell());
+};
+PACKET.ZC.RAGIDLE_RESPOSTA_DE_COMANDO.size = -1;
+
 // ---------------------------------------------------------------------------
 // O MENU LFG (Looking For Group) — D-634, 25/08/2026.
 //

@@ -71,6 +71,7 @@ import BattleMode from 'Controls/BattleMode.js';
 import History from './History.js';
 import { comecaComoComando, ehLinhaDeComando, guardarComando, lerComandosGravados, passoDaBusca } from './historicoDeComandos.js'; // a proposta 5 da tarefa 20: o historico so de comandos
 import { ajudaSemONome, sugestoesPara, textoCompletado } from './autocompletarComandos.js'; // a proposta 5 da tarefa 20: o autocompletar
+import { canalDaRespostaDeComando } from './respostaDeComando.js'; // a proposta 1 da tarefa 20: a resposta na aba de quem digitou
 import Network from 'Network/NetworkManager.js';
 import PACKET from 'Network/PacketStructure.js';
 import UIManager from 'UI/UIManager.js';
@@ -115,6 +116,12 @@ const _historyNickName = new History(true);
  */
 let _comandos = [];
 let _buscaDeComando = null;
+/**
+ * A aba em que o ULTIMO comando foi digitado (D-1364): e para ela que a
+ * resposta do servidor vai. Nula ate o primeiro comando da sessao — e ai a
+ * resposta cai no Logs, como antes.
+ */
+let _canalDoUltimoComando = null;
 
 /**
  * O AUTOCOMPLETAR (a proposta 5 da tarefa 20, a segunda metade): a lista de
@@ -931,7 +938,12 @@ ChatBox.FILTER = {
 	 * proprio 0x0fe2 (ZC_RAGIDLE_LOG), e nao pelo 0x008e — que carrega tambem
 	 * o eco da fala do proprio jogador e por isso nao dava para separar.
 	 */
-	SISTEMA: 28
+	SISTEMA: 28,
+	/*
+	 * A RESPOSTA DO COMANDO (D-1364): chega pelo 0x0fc6, e o canal dela nao e
+	 * fixo — e a aba em que o comando foi digitado (`canalDaMensagem`).
+	 */
+	RESPOSTA_DE_COMANDO: 29
 };
 
 /**
@@ -1048,6 +1060,11 @@ const TIPOS_DE_LOG = ChatBox.TYPE.ERROR | ChatBox.TYPE.BLUE | ChatBox.TYPE.MAIL;
  * o Farm perderia justamente o log que ele existe para juntar.
  */
 function canalDaMensagem(filterType, colorType) {
+	// A UNICA mensagem sem canal fixo (D-1364): a resposta do comando vai para a
+	// aba em que ele foi digitado. Antes da tabela, porque ela nao esta la.
+	if (filterType === ChatBox.FILTER.RESPOSTA_DE_COMANDO) {
+		return canalDaRespostaDeComando(_canalDoUltimoComando, CANAIS, CANAIS_SEM_DIGITACAO);
+	}
 	const doFiltro = CANAL_DO_FILTRO[filterType];
 	if (doFiltro) return doFiltro;
 
@@ -2138,6 +2155,7 @@ ChatBox.submit = function Submit() {
 	// E o comando entra TAMBEM no historico so de comandos, gravado por
 	// personagem (a proposta 5 da tarefa 20). A busca das setas recomeca.
 	if (ehLinhaDeComando(trimmedText)) {
+		_canalDoUltimoComando = this.activeTab;
 		_comandos = guardarComando(_comandos, trimmedText);
 		gravarPreferencia('Comandos', _comandos);
 	}

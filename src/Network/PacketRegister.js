@@ -1018,6 +1018,7 @@ export default {
 	// RAGIDLE: a fala do sistema -> canal "Logs" (31/08/2026). Ver o contrato
 	// em PacketStructure.js; o slot sai do TOPO da reserva de D-527.
 	0x0fe2: PACKET.ZC.RAGIDLE_LOG,
+	0x0fc6: PACKET.ZC.RAGIDLE_RESPOSTA_DE_COMANDO,
 	// LFG (D-634): so os ZC entram aqui — o CZ 0x0fea e escrito pelo cliente,
 	// nao lido. Ver PacketStructure.js para o contrato JSON de cada um.
 	0x0fe9: PACKET.ZC.RAGIDLE_LFG_LISTA,

@@ -4986,6 +4986,7 @@ function init(packetver) {
 	// Sao QUATRO pontas para um opcode nosso, e o portao so vigiava tres:
 	// servidor, PacketStructure, PacketRegister e ESTA tabela.
 	length_list[0x0fe2] = -1; // ZC_RAGIDLE_LOG (variable, "<remetente> : <texto>")
+	length_list[0x0fc6] = -1; // ZC_RAGIDLE_RESPOSTA_DE_COMANDO (variable, "Comando : <texto>") — D-1364
 	length_list[0x0fe5] = 2;  // CZ_RAGIDLE_PEDIR_PASSE (so o opcode)
 
 	length_list[0x0fe4] = -1; // CZ_RAGIDLE_CODEX_ACAO (variable, JSON payload)
