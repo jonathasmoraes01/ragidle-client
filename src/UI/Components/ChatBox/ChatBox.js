@@ -69,6 +69,7 @@ import Mouse from 'Controls/MouseEventHandler.js';
 import Cursor from 'UI/CursorManager.js';
 import BattleMode from 'Controls/BattleMode.js';
 import History from './History.js';
+import { comecaComoComando, ehLinhaDeComando, guardarComando, lerComandosGravados, passoDaBusca } from './historicoDeComandos.js'; // a proposta 5 da tarefa 20: o historico so de comandos
 import UIManager from 'UI/UIManager.js';
 import GUIComponent from 'UI/GUIComponent.js';
 import 'UI/Elements/Elements.js';
@@ -102,6 +103,15 @@ const _historyMessage = new History();
  * @var {History} nickname cached in history
  */
 const _historyNickName = new History(true);
+
+/**
+ * O HISTORICO SO DE COMANDOS (a proposta 5 da tarefa 20): gravado por
+ * personagem e lido pelas setas quando o campo comeca com `@` ou `#`. A regra
+ * mora em `historicoDeComandos.js`; aqui fica o estado — a lista e o passo em
+ * curso das setas.
+ */
+let _comandos = [];
+let _buscaDeComando = null;
 
 /**
  * Buffer para acumular mensagens antes de adicionar ao DOM.
@@ -165,7 +175,7 @@ let _envios = Object.assign({}, PADRAO_ENVIOS);
 let _recolhido = { estado: 'aberto' };
 
 /** As chaves que este componente grava, para o "Restaurar padrao" saber apagar. */
-const SUFIXOS = ['Layout', 'Opcoes', 'Envios', 'Recolhido'];
+const SUFIXOS = ['Layout', 'Opcoes', 'Envios', 'Recolhido', 'Comandos'];
 
 function chaveDoPersonagem(sufixo) {
 	// `Session.GID` e o id do personagem em foco. Sem ele (tela de login, ou
@@ -199,7 +209,22 @@ function gravarPreferencia(sufixo, valor) {
 	}
 }
 
-/** Le as quatro do personagem em foco. Chamado em `onAppend`. */
+/**
+ * Uma LISTA gravada do personagem. `lerPreferencia` mescla o gravado sobre um
+ * OBJETO padrao, e a lista de comandos e um array — mescla-la num objeto a
+ * transformaria em `{0: ..., 1: ...}`.
+ */
+function lerListaGravada(sufixo) {
+	try {
+		const bruto = localStorage.getItem(chaveDoPersonagem(sufixo));
+		return bruto ? JSON.parse(bruto) : [];
+	} catch (_e) {
+		// Ver `lerPreferencia`: sem lista, o chat abre do mesmo jeito.
+		return [];
+	}
+}
+
+/** Le as preferencias do personagem em foco — as quatro de layout e o historico de comandos. Chamado em `onAppend`. */
 function carregarPreferenciasDoPersonagem() {
 	_layout = lerPreferencia('Layout', PADRAO_LAYOUT);
 	_opcoes = lerPreferencia('Opcoes', PADRAO_OPCOES);
@@ -216,6 +241,9 @@ function carregarPreferenciasDoPersonagem() {
 	if (typeof _recolhido.recolhido === 'boolean' && !_recolhido.estado) {
 		_recolhido.estado = _recolhido.recolhido ? 'recolhido' : 'aberto';
 	}
+	// O historico so de comandos (a proposta 5 da tarefa 20) e do personagem, como o resto.
+	_comandos = lerComandosGravados(lerListaGravada('Comandos'));
+	_buscaDeComando = null;
 }
 
 /* ===========================================================================
@@ -1802,6 +1830,17 @@ ChatBox.onKeyDown = function OnKeyDown(event) {
 						event.stopImmediatePropagation();
 						return true;
 					}
+					// O historico so de comandos (a proposta 5 da tarefa 20): com o
+					// campo comecando por @ ou #, a seta busca nos comandos gravados,
+					// e escreve TEXTO — a linha volta do localStorage.
+					const digitado = messageBox.textContent || '';
+					if (comecaComoComando(digitado)) {
+						const passo = passoDaBusca(_buscaDeComando, digitado, _comandos, 'cima');
+						_buscaDeComando = passo.busca;
+						messageBox.textContent = passo.texto;
+						cursorNoFim(messageBox);
+						break;
+					}
 					messageBox.innerHTML = _historyMessage.previous();
 					break;
 				}
@@ -1820,6 +1859,15 @@ ChatBox.onKeyDown = function OnKeyDown(event) {
 					if (shouldLetChatInputHandleVerticalArrows(messageBox, 'down')) {
 						event.stopImmediatePropagation();
 						return true;
+					}
+					// Ver a seta para cima: a mesma busca, voltando ate o que foi digitado.
+					const digitado = messageBox.textContent || '';
+					if (comecaComoComando(digitado)) {
+						const passo = passoDaBusca(_buscaDeComando, digitado, _comandos, 'baixo');
+						_buscaDeComando = passo.busca;
+						messageBox.textContent = passo.texto;
+						cursorNoFim(messageBox);
+						break;
 					}
 					messageBox.innerHTML = _historyMessage.next();
 					break;
@@ -1956,6 +2004,13 @@ ChatBox.submit = function Submit() {
 
 	// Save in history
 	_historyMessage.push(trimmedText);
+	// E o comando entra TAMBEM no historico so de comandos, gravado por
+	// personagem (a proposta 5 da tarefa 20). A busca das setas recomeca.
+	if (ehLinhaDeComando(trimmedText)) {
+		_comandos = guardarComando(_comandos, trimmedText);
+		gravarPreferencia('Comandos', _comandos);
+	}
+	_buscaDeComando = null;
 
 	$text.innerHTML = '';
 
@@ -2701,6 +2756,8 @@ function restaurarPadrao() {
 	_opcoes = Object.assign({}, PADRAO_OPCOES);
 	_envios = Object.assign({}, PADRAO_ENVIOS);
 	_recolhido = { estado: 'aberto' };
+	_comandos = [];
+	_buscaDeComando = null;
 
 	const painel = root.querySelector('#chatbox');
 	if (painel) {
