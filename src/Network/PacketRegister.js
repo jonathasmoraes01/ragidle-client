@@ -1019,6 +1019,10 @@ export default {
 	// em PacketStructure.js; o slot sai do TOPO da reserva de D-527.
 	0x0fe2: PACKET.ZC.RAGIDLE_LOG,
 	0x0fc6: PACKET.ZC.RAGIDLE_RESPOSTA_DE_COMANDO,
+	// DORMIR (13/09/2026, D-1381): so o ZC entra aqui — o CZ 0x0fc4 e escrito
+	// pelo cliente, nunca lido. Ele desce respondendo ao pedido e tambem SEM
+	// pedido no login, enquanto o personagem ainda dorme.
+	0x0fc5: PACKET.ZC.RAGIDLE_SONO,
 	// LFG (D-634): so os ZC entram aqui — o CZ 0x0fea e escrito pelo cliente,
 	// nao lido. Ver PacketStructure.js para o contrato JSON de cada um.
 	0x0fe9: PACKET.ZC.RAGIDLE_LFG_LISTA,

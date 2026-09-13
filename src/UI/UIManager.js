@@ -346,6 +346,87 @@ class UIManager {
 	}
 
 	/**
+	 * A tela de "Dormindo..." (D-1381, 13/09/2026) — o servidor responde ao
+	 * `CZ_ENTER2` com `ZC_RAGIDLE_SONO{dormindo:true}` em vez do
+	 * `ZC_ACCEPT_ENTER2` normal, quando o personagem ainda esta no sono do
+	 * "Dormir" ao logar (decisao "b" do dono: reconectar NAO acerta contas
+	 * sozinho).
+	 *
+	 * Construida sobre o MESMO clone de `WinPopup` que `showErrorBox` usa, e
+	 * pelo mesmo motivo: e a UNICA janela comprovada a renderizar NESTE ponto
+	 * do boot — antes de `MapEngine` ter entrado em mundo nenhum, sem HUD e
+	 * sem cena do Renderer.
+	 *
+	 * @param {number} restanteMs tempo restante de sono, em ms
+	 * @param {function(): void} onAcordar chamado quando o jogador clica em "Acordar agora"
+	 * @returns {object} o componente aberto — quem chama fecha com `.remove()` se precisar
+	 */
+	static showDormindo(restanteMs, onAcordar) {
+		const WinSono = this.getComponent('WinPopup').clone('WinSono');
+		WinSono.riAnimaJanela = true; // entra/sai com a animacao unica (Fase 3)
+		// eslint-disable-next-line
+		let overlay;
+		let timer = null;
+		let restante = Math.max(0, Number(restanteMs) || 0);
+
+		function textoDoResto(ms) {
+			const totalMin = Math.floor(ms / 60000);
+			const h = Math.floor(totalMin / 60);
+			const m = totalMin % 60;
+			return h > 0 ? `Dormindo... ${h}h ${m}min restante(s)` : `Dormindo... ${m}min restante(s)`;
+		}
+
+		WinSono.init = function Init() {
+			const root = this._shadow;
+			root.querySelector('.text').textContent = textoDoResto(restante);
+			Object.assign(this._host.style, _popupPosition());
+
+			root.querySelector('.btns').appendChild(
+				_createButton(
+					'ok',
+					() => {
+						if (timer) clearInterval(timer);
+						overlay.remove();
+						WinSono.remove();
+						onAcordar();
+					},
+					'Acordar agora'
+				)
+			);
+
+			// O contador na TELA (D-1380 ja usa o mesmo padrao no aviso de
+			// versao nova): a cada segundo, sem depender de outro tique.
+			timer = setInterval(() => {
+				restante = Math.max(0, restante - 1000);
+				const el = root.querySelector('.text');
+				if (el) el.textContent = textoDoResto(restante);
+				if (restante <= 0 && timer) {
+					// O teto de 8h venceu enquanto o jogador olhava a tela:
+					// o mesmo botao resolve, sem exigir um segundo clique.
+					clearInterval(timer);
+					timer = null;
+				}
+			}, 1000);
+		};
+
+		WinSono.onKeyDown = function OnKeyDown(event) {
+			/*
+			 * SEM ESC/ENTER fechando sozinho — ao contrario do erro/aviso
+			 * comuns, "acordar" e uma decisao explicita do jogador, e um ENTER
+			 * sem querer (o mesmo toque que confirmou o login, por exemplo)
+			 * nao pode reativar a conta sem o jogador ter escolhido isso.
+			 */
+			event.stopImmediatePropagation();
+		};
+
+		overlay = _createOverlay();
+		WinSono.onAppend = _prioritizeKeyDown;
+		WinSono.append();
+
+		return WinSono;
+	}
+
+	/**
 	 * Prompt a message to the user
 	 *
 	 * @param {string} message to show
@@ -395,6 +476,80 @@ class UIManager {
 
 		WinPrompt.append();
 		return WinPrompt;
+	}
+
+	/**
+	 * A contagem de 5s do "Dormir" (D-1381, 13/09/2026) — pedido do dono:
+	 * *"aparece um timer de 5 segundos dizendo que o sistema de caça offline
+	 * será iniciado"*. Generico o bastante para qualquer contagem que precise
+	 * de um botao de cancelar e de disparar algo so quando chega a zero — o
+	 * MESMO padrao de contagem que `registrar-sw.js` ja usa no aviso de versao
+	 * nova (D-1380), aqui como janela em vez de rodape.
+	 *
+	 * @param {string} texto a frase antes do numero (ex.: "Iniciando o sono em")
+	 * @param {number} segundos quantos segundos contar
+	 * @param {function(): void} aoZerar chamado quando a contagem chega a zero — a janela ja fechou
+	 * @returns {{ cancelar: function(): void }} para o chamador cancelar de fora (ex.: a janela fechou)
+	 */
+	static showContagemRegressiva(texto, segundos, aoZerar) {
+		const WinContagem = this.getComponent('WinPopup').clone('WinContagem');
+		WinContagem.riAnimaJanela = true;
+		let overlay;
+		let timer = null;
+		let restante = Math.max(1, Math.floor(segundos));
+		let zerada = false;
+
+		function encerrar() {
+			if (timer) clearInterval(timer);
+			timer = null;
+			overlay.remove();
+			WinContagem.remove();
+		}
+
+		WinContagem.init = function Init() {
+			const root = this._shadow;
+			root.querySelector('.text').textContent = `${texto} ${restante}...`;
+			Object.assign(this._host.style, _popupPosition());
+
+			root.querySelector('.btns').appendChild(
+				_createButton(
+					'cancel',
+					() => {
+						encerrar();
+					},
+					'Cancelar'
+				)
+			);
+
+			timer = setInterval(() => {
+				restante -= 1;
+				if (restante <= 0) {
+					zerada = true;
+					encerrar();
+					aoZerar();
+					return;
+				}
+				const el = root.querySelector('.text');
+				if (el) el.textContent = `${texto} ${restante}...`;
+			}, 1000);
+		};
+
+		WinContagem.onKeyDown = function OnKeyDown(event) {
+			event.stopImmediatePropagation();
+			if (event.which === KEYS.ESCAPE) {
+				encerrar();
+			}
+		};
+
+		overlay = _createOverlay();
+		WinContagem.onAppend = _prioritizeKeyDown;
+		WinContagem.append();
+
+		return {
+			cancelar() {
+				if (!zerada) encerrar();
+			}
+		};
 	}
 
 	/**

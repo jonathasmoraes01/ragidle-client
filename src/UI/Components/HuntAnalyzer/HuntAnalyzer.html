@@ -43,7 +43,15 @@
 						</span>
 						<span class="ha-mapa" hidden></span>
 					</div>
-					<button type="button" class="ha-zerar ri-btn ri-btn--sec" data-acao="zerar">Zerar</button>
+					<div class="ha-cabine-acoes">
+						<button type="button" class="ha-zerar ri-btn ri-btn--sec" data-acao="zerar">Zerar</button>
+						<!-- ─── O "DORMIR" (D-1381): so aparece com 10 min de caca
+						     NESTE mapa e o mapa ate 1 nivel abaixo do jogador — as
+						     duas em `IdleConfig.contexto.mapaElegivelParaDormir` e no
+						     registro local (`decorridoMs`). Escondido por padrao;
+						     `sincronizarDormir` decide. -->
+						<button type="button" class="ha-dormir ri-btn" data-acao="dormir" hidden title="Farm offline de EXP por até 8h">Dormir</button>
+					</div>
 				</div>
 
 				<!-- ─── OS QUATRO NUMEROS DE DECISAO em tiles (auditoria de

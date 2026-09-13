@@ -351,6 +351,10 @@ class MapEngine {
 			Network.hookPacket(PACKET.ZC.CONFIG_NOTIFY4, onConfigNotify);
 			Network.hookPacket(PACKET.ZC.CONFIG, onConfig);
 			Network.hookPacket(PACKET.ZC.REFUSE_ENTER, onConnectionRefused);
+			// O "DORMIR" (D-1381): so dispara para quem esta dormindo — nao
+			// muda em nada o caminho normal de entrada. Ver o cabecalho de
+			// onSonoRecebido, abaixo.
+			Network.hookPacket(PACKET.ZC.RAGIDLE_SONO, onSonoRecebido);
 
 			// hook reassembly packets and map the responses
 			for (let i = 1; i <= 42; i++) {
@@ -805,6 +809,49 @@ function onConnectionAccepted(pkt) {
  */
 function onConnectionRefused(pkt) {
 	UIManager.showErrorBox(DB.getMessage(9)); // MSI_ACCESS_DENIED = Rejected from Server.
+}
+
+/**
+ * onSonoRecebido (D-1381, 13/09/2026) — o "Dormir".
+ *
+ * O servidor responde ao MESMO `CZ_ENTER2` que dispara `onConnectionAccepted`
+ * com `ZC_RAGIDLE_SONO{dormindo:true, restanteMs}` em vez de
+ * `ZC_ACCEPT_ENTER2`, quando o personagem ainda esta dormindo. Isto so chega
+ * para quem esta dormindo — o caminho normal (accept/refuse) nunca muda.
+ *
+ * Sem `dormindo:true` este handler nao faz nada: o pacote so desce SEM pedido
+ * neste ponto do boot quando ha sono para mostrar (o "acordar" explicito, pelo
+ * botao da tela, chega por uma resposta DIRETA ao `CZ_RAGIDLE_SONO_ACAO`, e
+ * quem trata essa e a propria tela — ver `showDormindo`).
+ *
+ * `UIManager.showDormindo` e a MESMA janela (`WinPopup` clonada) que
+ * `showErrorBox` usa para o boot inteiro — a unica comprovada a renderizar
+ * aqui, antes de `MapEngine` ter entrado em mundo nenhum.
+ */
+function onSonoRecebido(pkt) {
+	let corpo;
+	try {
+		corpo = JSON.parse(pkt.json);
+	} catch {
+		return;
+	}
+	if (!corpo || corpo.dormindo !== true) {
+		return;
+	}
+	UIManager.showDormindo(corpo.restanteMs || 0, () => {
+		const acordar = new PACKET.CZ.RAGIDLE_SONO_ACAO();
+		acordar.json = JSON.stringify({ acao: 'acordar' });
+		Network.sendPacket(acordar);
+		/*
+		 * O SERVIDOR FECHA A CONEXAO ao processar o "acordar" (o handler dele
+		 * so conhece UM caminho de entrada no mundo — o de sempre — para nao
+		 * duplicar a sequencia inteira numa segunda rota escrita a mao). O
+		 * cliente forca o mesmo desfecho pelo lado dele: um reload refaz o
+		 * boot INTEIRO pelo caminho normal, e desta vez o personagem ja
+		 * acordou, entao a entrada segue sem sono nenhum no caminho.
+		 */
+		import('Engine/GameEngine.js').then(m => m.default.reload());
+	});
 }
 
 /**
