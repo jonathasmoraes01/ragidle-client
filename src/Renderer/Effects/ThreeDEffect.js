@@ -1,10 +1,11 @@
-import WebGL from 'Utils/WebGL.js';
 import Client from 'Core/Client.js';
 import SpriteRenderer from 'Renderer/SpriteRenderer.js';
 import EntityManager from 'Renderer/EntityManager.js';
 import Altitude from 'Renderer/Map/Altitude.js';
 import Camera from 'Renderer/Camera.js';
 import Entity from 'Renderer/Entity/Entity.js';
+import { texturaDeEfeito } from 'Renderer/Effects/texturaDeEfeito.js';
+import { carregarTexturaDeEfeito } from 'Renderer/Effects/carregadorDeTexturaDeEfeito.js';
 
 function randBetween(minimum, maximum) {
 	return parseFloat(Math.min(minimum + Math.random() * (maximum - minimum), maximum).toFixed(3));
@@ -383,30 +384,41 @@ class ThreeDEffect {
 			const textureCount = this.textureNameList.length;
 
 			for (let i = 0; i < textureCount; i++) {
-				Client.loadFile(`data/texture/${this.textureNameList[i]}`, buffer => {
-					WebGL.texture(gl, buffer, texture => {
+				// RAGIDLE (13/09/2026): uma textura por NOME, dividida entre os
+				// efeitos — era uma NOVA por efeito, e nenhuma era apagada (480 em
+				// 4 min de caca). Ver `Renderer/Effects/texturaDeEfeito.js`.
+				texturaDeEfeito(
+					gl,
+					this.textureNameList[i],
+					texture => {
 						this.textureList[i] = texture;
 						this.loadedTextures++;
 
 						if (this.loadedTextures == textureCount) {
 							this.ready = true;
 						}
-					});
-				});
+					},
+					carregarTexturaDeEfeito
+				);
 			}
 		} else if (this.textureName) {
-			Client.loadFile(`data/texture/${this.textureName}`, buffer => {
-				WebGL.texture(gl, buffer, texture => {
+			texturaDeEfeito(
+				gl,
+				this.textureName,
+				texture => {
 					this.texture = texture;
 					this.ready = true;
-				});
-			});
+				},
+				carregarTexturaDeEfeito
+			);
 		} else {
 			this.ready = true;
 		}
 	}
 
 	free(gl) {
+		// A textura e DIVIDIDA com os outros efeitos do mesmo nome
+		// (`texturaDeEfeito.js`): este efeito nao a apaga.
 		this.ready = false;
 	}
 

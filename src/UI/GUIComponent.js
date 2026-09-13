@@ -15,6 +15,7 @@ import UIPreferences from 'Preferences/UI.js';
 import Session from 'Engine/SessionStorage.js';
 import Targa from 'Loaders/Targa.js';
 import ClampToViewport from 'UI/ClampToViewport.js';
+import { alvosDaVarredura } from 'UI/alvosDaVarredura.js';
 
 /**
  * Heavy modules loaded lazily to keep viewer bundles lightweight.
@@ -266,7 +267,7 @@ class GUIComponent {
 		   Trade...). O observador vive enquanto o componente viver — remove()
 		   so desanexa o host, o shadow continua o mesmo. */
 		_blindarArvoreContraAutofill(this._container);
-		this.__autofillObserver = new MutationObserver((mutacoes) => {
+		this.__autofillObserver = new MutationObserver(mutacoes => {
 			for (const m of mutacoes) {
 				for (const no of m.addedNodes) {
 					if (no.nodeType === 1) {
@@ -1067,35 +1068,47 @@ class GUIComponent {
 			 * quando a tela vai ser pintada. Nada e perdido: a varredura roda
 			 * depois de todas as mutacoes daquele quadro, e ve o estado final.
 			 */
+			/*
+			 * SO O QUE MUDOU (13/09/2026). A varredura acima percorria o
+			 * componente INTEIRO a cada quadro com mutacao, e o chat guarda ate
+			 * 400 linhas por aba: medido, as leituras de estilo iam de 1.669 a
+			 * 2.273 por segundo conforme o chat enchia. Agora o quadro varre so
+			 * os alvos das mutacoes dele; folha de estilo nova ainda pede o
+			 * componente inteiro. Ver `UI/alvosDaVarredura.js`.
+			 */
 			let varreduraAgendada = 0;
-			const agendarVarredura = () => {
-				if (varreduraAgendada !== 0) {
+			let varrerTudo = false;
+			const pendentes = new Set();
+			const agendarVarredura = ({ tudo, alvos }) => {
+				if (tudo) {
+					varrerTudo = true;
+				}
+				for (const el of alvos) {
+					pendentes.add(el);
+				}
+				if ((!varrerTudo && pendentes.size === 0) || varreduraAgendada !== 0) {
 					return;
 				}
 				varreduraAgendada = requestAnimationFrame(() => {
 					varreduraAgendada = 0;
-					checkScrollbars(root);
+					if (varrerTudo) {
+						varrerTudo = false;
+						pendentes.clear();
+						checkScrollbars(root);
+						return;
+					}
+					for (const el of pendentes) {
+						if (el.isConnected) {
+							checkScrollbars(el);
+						}
+					}
+					pendentes.clear();
 				});
 			};
 
 			// Re-apply on visibility or content changes
 			const observer = new MutationObserver(mutations => {
-				let needsCheck = false;
-				for (const mutation of mutations) {
-					if (mutation.type === 'childList') {
-						needsCheck = true;
-					} else if (mutation.type === 'attributes') {
-						if (mutation.attributeName === 'style') {
-							const oldVal = mutation.oldValue || '';
-							const wasHidden = oldVal.includes('display: none') || oldVal.includes('display:none');
-							const isHidden = mutation.target.style.display === 'none';
-							if (wasHidden && !isHidden) needsCheck = true;
-						} else if (mutation.attributeName === 'class') {
-							needsCheck = true;
-						}
-					}
-				}
-				if (needsCheck) agendarVarredura();
+				agendarVarredura(alvosDaVarredura(mutations));
 			});
 
 			observer.observe(observeTarget, {

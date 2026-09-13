@@ -39,12 +39,24 @@ const CAPACIDADE = 16384;
 const _intervalos = new Float32Array(CAPACIDADE);
 let _quantos = 0;
 let _anterior = 0;
+/*
+ * O PRIMEIRO QUADRO EM JOGO (13/09/2026). "Perde FPS depois de um tempo" pode
+ * ser acumulo no jogo ou o telefone esquentando; o relato leva os minutos
+ * desde que o jogador entrou, e o painel mostra o FPS por faixa de minutos.
+ * Voltar para a selecao zera: a sessao que interessa e a de jogo.
+ */
+let _entrouEm = 0;
 
 /**
  * Um quadro desenhado. Chamado todo quadro pelo renderizador.
  * @param {number} agora - o `DOMHighResTimeStamp` do quadro
  */
 export function registrarQuadro(agora) {
+	if (!Session.Playing) {
+		_entrouEm = 0;
+	} else if (_entrouEm === 0) {
+		_entrouEm = agora;
+	}
 	if (_anterior > 0) {
 		const delta = agora - _anterior;
 		if (delta > 0 && delta <= INTERVALO_MAXIMO_MS && _quantos < CAPACIDADE) {
@@ -59,10 +71,23 @@ export function quadrosNaAmostra() {
 	return _quantos;
 }
 
-/** Descarta a amostra atual e o quadro anterior. */
+/** Descarta a amostra atual, o quadro anterior e o relogio da sessao. */
 export function zerarAmostra() {
 	_quantos = 0;
 	_anterior = 0;
+	_entrouEm = 0;
+}
+
+/**
+ * Os minutos desde o primeiro quadro em jogo, medidos no MESMO relogio dos
+ * quadros (o carimbo do `requestAnimationFrame`), e nao em outro.
+ * @return {number}
+ */
+function minutosEmJogo() {
+	if (_entrouEm === 0 || _anterior < _entrouEm) {
+		return 0;
+	}
+	return Math.round(((_anterior - _entrouEm) / 60000) * 10) / 10;
 }
 
 /**
@@ -125,7 +150,7 @@ export function enviarRelatoDeDesempenho() {
 		fetch(rotaDoBalcao(ROTA_DO_DESEMPENHO), {
 			method: 'POST',
 			headers: { 'Content-Type': 'application/json' },
-			body: JSON.stringify(Object.assign(resumo, aparelho())),
+			body: JSON.stringify(Object.assign(resumo, aparelho(), { minutosDeSessao: minutosEmJogo() })),
 			keepalive: true
 		}).catch(function () {});
 		return true;

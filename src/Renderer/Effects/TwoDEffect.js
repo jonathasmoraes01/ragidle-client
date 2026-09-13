@@ -1,7 +1,7 @@
-import WebGL from 'Utils/WebGL.js';
-import Client from 'Core/Client.js';
 import SpriteRenderer from 'Renderer/SpriteRenderer.js';
 import Camera from 'Renderer/Camera.js';
+import { texturaDeEfeito } from 'Renderer/Effects/texturaDeEfeito.js';
+import { carregarTexturaDeEfeito } from 'Renderer/Effects/carregadorDeTexturaDeEfeito.js';
 
 function getRandomIntInclusive(min, max) {
 	min = Math.ceil(min);
@@ -417,15 +417,23 @@ class TwoDEffect {
 	}
 
 	init(gl) {
-		Client.loadFile(`data/texture/${this.textureName}`, buffer => {
-			WebGL.texture(gl, buffer, texture => {
+		// RAGIDLE (13/09/2026): uma textura por NOME, dividida entre os efeitos
+		// — era uma NOVA por efeito, e nenhuma era apagada. Ver
+		// `Renderer/Effects/texturaDeEfeito.js`.
+		texturaDeEfeito(
+			gl,
+			this.textureName,
+			texture => {
 				this.texture = texture;
 				this.ready = true;
-			});
-		});
+			},
+			carregarTexturaDeEfeito
+		);
 	}
 
 	free(gl) {
+		// A textura e DIVIDIDA com os outros efeitos do mesmo nome: este efeito
+		// nao a apaga.
 		this.ready = false;
 	}
 

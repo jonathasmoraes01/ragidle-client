@@ -26,6 +26,14 @@ import {
 	zerarAmostra
 } from 'Renderer/quadrosNoCampo.js';
 
+/** Quadros de 1 s cada, de `inicio` ate `fim` (ms), com o jogo no estado dado. */
+function desenharDe(inicio, fim, jogando) {
+	estado.jogando = jogando;
+	for (let t = inicio; t <= fim; t += 1000) {
+		registrarQuadro(t);
+	}
+}
+
 function desenhar(quadros, passoMs) {
 	let t = 1000;
 	for (let i = 0; i <= quadros; i++) {
@@ -115,5 +123,27 @@ describe('enviarRelatoDeDesempenho', () => {
 		desenhar(MINIMO_DE_QUADROS, 16.7);
 		enviarRelatoDeDesempenho();
 		expect(quadrosNaAmostra()).toBe(0);
+	});
+
+	/*
+	 * OS MINUTOS DE SESSAO (13/09/2026). "Perde FPS depois de um tempo" pode ser
+	 * acumulo no jogo ou o telefone esquentando; o FPS por faixa de minutos, no
+	 * aparelho de verdade, separa os dois (cartao `fps_ao_longo_da_sessao`).
+	 */
+	it('os minutos contam desde o primeiro quadro EM JOGO, e nao desde o login', () => {
+		desenharDe(0, 30_000, false); // meio minuto na selecao de personagem
+		desenharDe(31_000, 31_000 + 190_000, true); // 190 s em jogo
+		expect(enviarRelatoDeDesempenho()).toBe(true);
+		const corpo = JSON.parse(fetch.mock.calls[0][1].body);
+		expect(corpo.minutosDeSessao).toBeCloseTo(190 / 60, 1);
+	});
+
+	it('voltar para a selecao zera o relogio', () => {
+		desenharDe(0, 600_000, true); // dez minutos em jogo
+		desenharDe(601_000, 602_000, false); // voltou para a selecao
+		desenharDe(603_000, 603_000 + 150_000, true); // entrou de novo
+		enviarRelatoDeDesempenho();
+		const corpo = JSON.parse(fetch.mock.calls[0][1].body);
+		expect(corpo.minutosDeSessao).toBeCloseTo(150 / 60, 1);
 	});
 });
