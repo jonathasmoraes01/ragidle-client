@@ -53,6 +53,24 @@ const NpcStore = new Proxy(
 );
 
 /**
+ * A LOJA DO NPC NAO FECHA DEPOIS DA COMPRA OU DA VENDA (a tarefa 25 do dono,
+ * D-1361). A lista que o servidor mandou fica guardada para a janela se REFAZER
+ * depois do resultado: na compra, o carrinho volta a zero e o rodape le o zeny
+ * e o peso novos (o servidor os manda ANTES do resultado); na venda, as linhas
+ * saem do inventario de agora — a pilha vendida inteira some, e a vendida em
+ * parte mostra o que sobrou, porque o numero do slot nao muda com a venda
+ * (`indiceNoFio`, servidor/itens.ts).
+ */
+let _listaDeCompra = null;
+let _listaDeVenda = null;
+
+/** A loja do NPC deste tipo esta na tela? A de outro jogador (vending) nao conta. */
+function lojaDoNpcAberta(tipo) {
+	const host = NpcStore._host;
+	return NpcStore.getCurrentType() === tipo && !!(host && host.isConnected);
+}
+
+/**
  * Received items list to buy from cash npc
  *
  * @param {object} pkt - PACKET.ZC.ZC_PC_CASH_POINT_ITEMLIST
@@ -125,6 +143,7 @@ function onBuyList(pkt) {
 	NpcStore.append();
 	NpcStore.setType(NpcStore.Type.BUY);
 	NpcStore.setList(pkt.itemList);
+	_listaDeCompra = pkt.itemList;
 	NpcStore.onSubmit = itemList => {
 		const _pkt = new PACKET.CZ.PC_PURCHASE_ITEMLIST();
 		const count = itemList.length;
@@ -199,7 +218,19 @@ function onExpandedBarterBuyList(pkt) {
  * @param {object} pkt - PACKET_ZC_PC_PURCHASE_RESULT
  */
 function onBuyResult(pkt) {
-	NpcStore.remove();
+	/*
+	 * A loja do NPC fica aberta (a tarefa 25): comprar de novo nao pede um clique
+	 * no NPC. Na compra certa o carrinho zera e o rodape se refaz; na recusada, o
+	 * carrinho fica para o jogador ajustar. A de outro jogador (vending) fecha
+	 * como sempre — o `onSubmit` dela ja a tirou da tela.
+	 */
+	if (lojaDoNpcAberta(NpcStore.Type.BUY)) {
+		if (pkt.result === 0 && _listaDeCompra) {
+			NpcStore.setList(_listaDeCompra);
+		}
+	} else {
+		NpcStore.remove();
+	}
 
 	switch (pkt.result) {
 		case 0:
@@ -317,6 +348,7 @@ function onSellList(pkt) {
 	NpcStore.append();
 	NpcStore.setType(NpcStore.Type.SELL);
 	NpcStore.setList(pkt.itemList);
+	_listaDeVenda = pkt.itemList;
 	NpcStore.onSubmit = itemList => {
 		const _pkt = new PACKET.CZ.PC_SELL_ITEMLIST();
 		const count = itemList.length;
@@ -338,8 +370,19 @@ function onSellList(pkt) {
  * @param {object} pkt - PACKET_ZC.PC.SELL_RESULT
  */
 function onSellResult(pkt) {
-	NpcStore.setClosePacketSent(true);
-	NpcStore.remove();
+	/*
+	 * A loja do NPC fica aberta (a tarefa 25): a lista se refaz do inventario de
+	 * agora. Quando o jogador fechar, o `NPC_TRADE_QUIT` sai — e e ele que
+	 * encerra a negociacao no servidor, como na fonte.
+	 */
+	if (lojaDoNpcAberta(NpcStore.Type.SELL)) {
+		if (_listaDeVenda) {
+			NpcStore.setList(_listaDeVenda);
+		}
+	} else {
+		NpcStore.setClosePacketSent(true);
+		NpcStore.remove();
+	}
 
 	// success
 	if (pkt.result === 0) {

@@ -32,6 +32,7 @@ import UIManager from 'UI/UIManager.js';
 import EffectManager from 'Renderer/EffectManager.js';
 import Escape from 'UI/Components/Escape/Escape.js';
 import PilhaDeJanelas from 'UI/pilhaDeJanelas.js'; // RAGIDLE: o dono do ESC e do voltar do Android (D-931)
+import { avisarAoAbrir } from 'UI/aberturaNaPilha.js'; // a tarefa 25: o onAppend embrulhado UMA vez
 import ChatBox from 'UI/Components/ChatBox/ChatBox.js';
 // ChatBoxSettings saiu em 20/08/2026: era o painel de filtros POR ABA das
 // abas dinamicas do chat, que morreram com os tres canais fixos (Global /
@@ -1194,12 +1195,36 @@ function onMapChange(pkt) {
 		 * `onAppend` é o ponto em que ela ENTRA na tela, seja qual for o
 		 * caminho — é lá que a pilha fica sabendo.
 		 */
-		const cashShopOnAppendOriginal = CashShop.onAppend;
-		CashShop.onAppend = function onAppendComPilha(...args) {
-			const r = cashShopOnAppendOriginal ? cashShopOnAppendOriginal.apply(this, args) : undefined;
-			PilhaDeJanelas.aoAbrir('cash');
-			return r;
-		};
+		/* UMA VEZ por componente (a tarefa 25, D-1361): este bloco roda a cada
+		   mapa carregado (`MapRenderer.onLoad`), e o embrulho que estava escrito
+		   aqui se aninhava — cada troca de mapa somava um `aoAbrir('cash')`, e
+		   cada um empilha uma entrada no historico do voltar. */
+		avisarAoAbrir(CashShop, () => PilhaDeJanelas.aoAbrir('cash'));
+
+		/*
+		 * A LOJA DE NPC (a tarefa 25, D-1361). Ela e DECISAO na tabela do dono,
+		 * no topo deste bloco ("troca, venda, refino e loja de NPC"), e ficou
+		 * fora da pilha enquanto fechava sozinha a cada compra — que era, no
+		 * celular em pe, o que tirava o jogador de uma janela de 460px numa tela
+		 * de 393. Agora que ela fica aberta, o registro e o que a encaixa (a marca
+		 * `ri-janela` de D-932) e o que diz a pilha quando ela esta na tela.
+		 *
+		 * `prepare()` ANTES do registro: o host so nasce ali (GUIComponent), e a
+		 * marca vai no host. A versao e a eleita no boot do mapa
+		 * (`NpcStore.selectUIVersion`).
+		 */
+		const lojaDoNpc = NpcStore.getUI();
+		if (typeof lojaDoNpc.prepare === 'function') {
+			lojaDoNpc.prepare();
+		}
+		PilhaDeJanelas.registrar({
+			nome: 'loja',
+			componente: lojaDoNpc,
+			tipo: PilhaDeJanelas.TIPO.DECISAO,
+			estaAberta: () => !!(lojaDoNpc._host && lojaDoNpc._host.isConnected),
+			fechar: () => lojaDoNpc.remove(),
+		});
+		avisarAoAbrir(lojaDoNpc, () => PilhaDeJanelas.aoAbrir('loja'));
 
 		/* O LFG não usa `toggle()`: ele tem `abrir()`/`fechar()` próprios, por
 		   causa da corrida de troca de mapa que já derrubou o `is-open` dele por
