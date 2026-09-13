@@ -2183,6 +2183,26 @@ function onEntityStatusChange(pkt) {
 			break;
 		}
 
+		/*
+		 * O SIGHT BLASTER (D-1359): a bola de fogo nasce com o STATUS e some com
+		 * ele — na fonte e a detonacao que encerra o status
+		 * (status.cpp:15289-15304), e ele dura ate 900 s (re/skill_db.yml,
+		 * Duration1). O Sight (22) faz o mesmo pelo bit de estado
+		 * (`onEntityOptionChange`); o Sight Blaster nao tem bit, entao a ancora e
+		 * o EFST. Apagar ANTES de acender e o que torna o reenvio do status
+		 * inofensivo: sem isso, cada reenvio somaria uma bola.
+		 */
+		case StatusConst.WZ_SIGHTBLASTER:
+			EffectManager.remove(null, pkt.AID, EffectConst.EF_SIGHT2);
+			if (pkt.state == 1) {
+				EffectManager.spam({
+					effectId: EffectConst.EF_SIGHT2,
+					ownerAID: pkt.AID,
+					persistent: true
+				});
+			}
+			break;
+
 		case StatusConst.FALCON:
 			if (pkt.state || !pkt.hasOwnProperty('state')) {
 				if (!entity.falcon) {

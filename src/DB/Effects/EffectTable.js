@@ -11218,7 +11218,65 @@ export default {
 		}
 	],
 
-	//601: [{}],	//EF_SIGHT2	   Sight Blaster
+	601: [
+		{
+			/*
+			 * EF_SIGHT2 — Sight Blaster (D-1359). O roBrowser deixou este lugar
+			 * vazio, e o upstream tambem. A bola e a do EF_SIGHT (22), copiada: o
+			 * mesmo `sight.spr` e o mesmo `ef_sight.wav` do GRF. Quem a acende e
+			 * APAGA e o STATUS (Entity.js, o EFST 198), porque ela vive o que o
+			 * status vive — ate 900 s na fonte, e nao os 12 s de uma volta —; por
+			 * isso o pedido vem `persistent` e o som sai uma vez so. Que o Sight
+			 * Blaster do cliente oficial seja ESTA bola e leitura, e nao medida:
+			 * falta alguem olhar (regra 5).
+			 */
+			type: '3D',
+			shadowTexture: true,
+			alphaMax: 0.5,
+			attachedEntity: true,
+			blendMode: 8,
+			duration: 12200,
+			duplicate: 10,
+			timeBetweenDupli: 0,
+			nbOfRotation: 10,
+			posx: -2,
+			posz: 4,
+			playSprite: true,
+			rotateLate: 0.9,
+			rotateLateDelta: -0.1,
+			rotatePosX: 3,
+			rotatePosY: 3,
+			rotationClockwise: true,
+			size: 30,
+			sizeDelta: 10
+		},
+		{
+			type: '3D',
+			spriteName: 'sight',
+			alphaMax: 123 / 255,
+			alphaMaxDelta: 3 / 255,
+			attachedEntity: true,
+			blendMode: 8,
+			duration: 12200,
+			duplicate: 10,
+			timeBetweenDupli: 0,
+			nbOfRotation: 10,
+			posx: -2,
+			posz: 4,
+			playSprite: true,
+			rotateLate: 0.9,
+			rotateLateDelta: -0.1,
+			rotatePosX: 3,
+			rotatePosY: 3,
+			rotationClockwise: true,
+			size: 60,
+			sizeDelta: 20
+		},
+		{
+			wav: 'effect/ef_sight',
+			repeat: false
+		}
+	],
 	//602: [{}],	//EF_QUAKEBODY4	   Close Confine (Grab Effect)
 
 	603: [
