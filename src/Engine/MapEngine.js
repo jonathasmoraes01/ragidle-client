@@ -813,7 +813,7 @@ function onConnectionAccepted(pkt) {
 		xPos: pkt.PosDir[0],
 		yPos: pkt.PosDir[1],
 		mapName: _mapName
-	});
+	}, true);
 }
 
 /**
@@ -956,6 +956,14 @@ let _tiqueDaEconomia = null;
 let _snapshotDaEconomia = null;
 /** O relogio LOCAL, so mostrador — a mesma ressalva de `showDormindo`: a verdade e do servidor. */
 let _restanteDaEconomiaMs = 0;
+/**
+ * O personagem morreu NESTA sessao de economia de energia (D-1398,
+ * 14/09/2026)? Uma vez `true` por `onEconomiaRecebida`, fica `true` ate
+ * `fecharTelaDaEconomia` — o relogio de 1s (`_tiqueDaEconomia`) reusa este
+ * valor em toda repintura, entao o aviso nao precisa de um pacote novo do
+ * servidor a cada segundo pra continuar visivel.
+ */
+let _personagemMorreuEmEconomia = false;
 
 /**
  * Os numeros da tela preta: o quanto foi ganho DESDE que entrou em economia
@@ -965,7 +973,7 @@ let _restanteDaEconomiaMs = 0;
  * relogio aparece.
  */
 function statsDaEconomia() {
-	const base = { restanteMs: _restanteDaEconomiaMs };
+	const base = { restanteMs: _restanteDaEconomiaMs, morreu: _personagemMorreuEmEconomia };
 	if (!Session.Entity || !_snapshotDaEconomia) return base;
 	const agora = lerRegistroDaCaca(Session.Entity.GID);
 	return {
@@ -1004,6 +1012,7 @@ function fecharTelaDaEconomia() {
 		_janelaDaEconomia = null;
 	}
 	_snapshotDaEconomia = null;
+	_personagemMorreuEmEconomia = false;
 }
 
 /**
@@ -1083,6 +1092,14 @@ function onVisibilidadeMudouParaEconomia() {
  * do lado do servidor, que vai fechar o socket a seguir — o mesmo padrao do
  * "Acordar agora" do Dormir, reentrando pelo caminho unico de sempre
  * (CZ_ENTER2) em vez de uma segunda rota escrita a mao.
+ *
+ * `morreu:true` (D-1398, 14/09/2026) chega SEM o cliente ter pedido nada —
+ * o servidor empurra este mesmo pacote na hora em que o personagem morre
+ * dentro de uma sessao de economia. Uma vez visto, o aviso fica marcado ate
+ * a tela fechar (`_personagemMorreuEmEconomia`, nunca sobrescrito de volta
+ * pra `false` por uma resposta SEM o campo — o servidor manda `morreu` em
+ * TODA resposta da sessao depois que ele vira `true` uma vez, mas o cliente
+ * nao depende disso: ele so soma, nunca some com o proprio aviso).
  */
 function onEconomiaRecebida(pkt) {
 	let corpo;
@@ -1094,6 +1111,7 @@ function onEconomiaRecebida(pkt) {
 	if (!corpo) return;
 
 	if (corpo.ativa === true) {
+		if (corpo.morreu === true) _personagemMorreuEmEconomia = true;
 		abrirTelaDaEconomia(Number(corpo.restanteMs) || 0);
 		return;
 	}
@@ -1142,7 +1160,13 @@ function ligarAcessorioDaHud(nome, ligar) {
 	}
 }
 
-function onMapChange(pkt) {
+/**
+ * @param {boolean} [ehEntradaNoMundo] `true` só quando quem chama é
+ *   `onConnectionAccepted` — login OU RECONEXÃO (`ZC_ACCEPT_ENTER2`/`ENTER3`).
+ *   `false`/ausente é o caminho comum, o hook de `ZC_NPCACK_MAPMOVE`
+ *   (teleporte dentro da MESMA conexão — Asa de Mosca, viagem por menu).
+ */
+function onMapChange(pkt, ehEntradaNoMundo) {
 	/*
 	 * O MAPA ANTES DESTE PACOTE (D-1385, 13/09/2026) — capturado ANTES de
 	 * `MapRenderer.setMap` rodar, porque `setMap` só reatribui
@@ -1344,8 +1368,24 @@ function onMapChange(pkt) {
 		 * por um instante — e o relato do dono foi exatamente esse instante
 		 * sendo lido como "saiu da cacada": a "Duracao" do Hunt Analyzer
 		 * resetava a cada uso da asa.
+		 *
+		 * ...MAS TAMBEM SEMPRE NUMA ENTRADA NO MUNDO (D-1400, 14/09/2026),
+		 * mesmo se o mapa "nao mudou" pela leitura de `mapaAntesDoLoad` —
+		 * relato do dono: o botao "Dormir" ficava HABILITADO mesmo depois do
+		 * servidor recusar por amostra insuficiente. A causa: o servidor
+		 * reinicia `amostrasDeSono` em TODA entrada no mundo, reconexao
+		 * inclusive (`servidor-mapa.ts`, comentario gemeo de `viajar()`) — e
+		 * uma reconexao (a queda de rede real que a economia de energia
+		 * tolera em segundo plano, D-1389/D-1394, ou qualquer outra) para o
+		 * MESMO mapa nunca mexe em `MapRenderer.currentMap` (a pagina nao
+		 * recarrega), entao o guard acima calava a sondagem justamente
+		 * quando o relogio do servidor tinha acabado de reiniciar sem o
+		 * cliente saber. `ehEntradaNoMundo` distingue as duas origens do
+		 * MESMO pacote (`ZC_NPCACK_MAPMOVE` de teleporte vs `onConnectionAccepted`
+		 * de login/reconexao) — so a segunda forca a sondagem mesmo sem o
+		 * nome do mapa ter mudado.
 		 */
-		if (stripMapExtension(mapaAntesDoLoad) !== stripMapExtension(pkt.mapName)) {
+		if (ehEntradaNoMundo || stripMapExtension(mapaAntesDoLoad) !== stripMapExtension(pkt.mapName)) {
 			IdleConfig.sondarMapa();
 		}
 
