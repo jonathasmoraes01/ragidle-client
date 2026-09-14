@@ -352,8 +352,8 @@ function desenharEstado(root, r, aoVivo) {
  * servidor confere a MESMA amostra e o MESMO mapa de novo, pela regra 1 do
  * projeto (nada de decisao de jogo so no cliente).
  *
- * OS 10 MINUTOS SAO O RELOGIO DO SERVIDOR (`faltamMsParaDormir`, D-1396,
- * 14/09/2026), NUNCA UM CONTADO AQUI. Ate D-1396 esta janela adivinhava
+ * O PONTO DE PARTIDA E O RELOGIO DO SERVIDOR (`faltamMsParaDormir`, D-1396,
+ * 14/09/2026), NUNCA UM CONTADO SO AQUI. Ate D-1396 esta janela adivinhava
  * "desde quando estou neste mapa" pela hora em que ELA MESMA abria pela
  * primeira vez (`_entrouNoMapaDoSonoEm = Date.now()` no primeiro render) —
  * quem começava a caçar e só abria o Analyzer minutos depois via o timer
@@ -362,7 +362,40 @@ function desenharEstado(root, r, aoVivo) {
  * (`amostrasDeSono`, `entradaNoMapaMs`) para o próprio handler de `iniciar`
  * conferir — bastava servir a mesma conta em vez de o cliente reimplementá-la
  * (a "segunda rota escrita à mão" de sempre).
+ *
+ * D-1396 TROCOU A ADIVINHACAO POR UM DEFEITO NOVO E OPOSTO (D-1398,
+ * 14/09/2026, relato do dono: "o timer do botão de Dormir não está
+ * funcionando... acredito que ele esteja pausando/congelando"): mostrar
+ * `ctx.faltamMsParaDormir` direto CONGELA o numero na tela, porque o cliente
+ * so pede um contexto novo ao servidor (`CZ_RAGIDLE_PEDIR_CONFIG`) ao trocar
+ * de mapa ou abrir a janela de configuracao (`IdleConfig.js`) — nunca por
+ * intervalo. Um jogador caçando parado no MESMO mapa por minutos via o mesmo
+ * `faltamMsParaDormir` de novo a cada re-render, porque `IdleConfig.contexto`
+ * so muda de objeto quando uma dessas duas coisas acontece. `faltamMsParaDormirAoVivo`
+ * resolve as DUAS pontas: ANCORA no numero do servidor toda vez que chega um
+ * contexto novo (identidade do objeto mudou) e daí CONTA em `Date.now()` local
+ * ate a proxima ancora — nunca inventa o ponto de partida (regra 1), só o
+ * ritmo entre uma atualização do servidor e a próxima.
  */
+let _ctxDaUltimaAncoraDeSono = null;
+let _faltamMsNaAncoraDeSono = 0;
+let _ancoraDeSonoRecebidaEm = 0;
+function faltamMsParaDormirAoVivo(ctx) {
+	if (!ctx || typeof ctx.faltamMsParaDormir !== 'number') {
+		// Contrato antigo, ou servidor ainda sem amostra para este mapa: trata
+		// como "faltam os 10 minutos inteiros" -- nunca como zero, que
+		// destravaria o botao sem o servidor ter medido nada.
+		_ctxDaUltimaAncoraDeSono = null;
+		return MS_MINIMOS_PARA_DORMIR;
+	}
+	if (ctx !== _ctxDaUltimaAncoraDeSono) {
+		_ctxDaUltimaAncoraDeSono = ctx;
+		_faltamMsNaAncoraDeSono = ctx.faltamMsParaDormir;
+		_ancoraDeSonoRecebidaEm = Date.now();
+	}
+	return Math.max(0, _faltamMsNaAncoraDeSono - (Date.now() - _ancoraDeSonoRecebidaEm));
+}
+
 function sincronizarDormir(root, r, aoVivo) {
 	const botao = root.querySelector('.ha-dormir');
 	const status = root.querySelector('.ha-dormir-status');
@@ -386,15 +419,7 @@ function sincronizarDormir(root, r, aoVivo) {
 	const ctx = IdleConfig.contextoObsoleto ? null : IdleConfig.contexto;
 	const emCaca = r.fase === 'ativa';
 	const mapaElegivel = !!ctx && ctx.mapaElegivelParaDormir === true;
-	/*
-	 * `null`/`undefined` (contrato antigo, ou servidor ainda sem amostra para
-	 * este mapa) trata como "faltam os 10 minutos inteiros" -- nunca como
-	 * zero, que destravaria o botao sem o servidor ter medido nada.
-	 */
-	const faltamMs =
-		typeof ctx?.faltamMsParaDormir === 'number'
-			? Math.max(0, ctx.faltamMsParaDormir)
-			: MS_MINIMOS_PARA_DORMIR;
+	const faltamMs = faltamMsParaDormirAoVivo(ctx);
 	const pronto = emCaca && mapaElegivel && faltamMs <= 0;
 
 	/*
