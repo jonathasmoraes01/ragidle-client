@@ -524,30 +524,39 @@ class UIManager {
 	}
 
 	/**
-	 * A TELA DA ECONOMIA DE ENERGIA (D-1389/D-1390, 14/09/2026) — pedido do
-	 * dono, no estilo dos idles de mobile: quando a aba vai pro fundo
-	 * (`visibilitychange`, `MapEngine.js`), cobre tudo com uma tela preta
-	 * mostrando o tempo restante e um resumo AO VIVO (EXP, mobs mortos,
-	 * itens) — quem chama (`MapEngine.js`) reatualiza com `.atualizar(...)`
-	 * a cada segundo, puxando os numeros de `registroDaCaca`.
+	 * A TELA DA ECONOMIA DE ENERGIA (D-1389/D-1390, 14/09/2026 — sair virou
+	 * escolha do jogador em D-1392) — pedido do dono, no estilo dos idles de
+	 * mobile: quando a aba vai pro fundo (`visibilitychange`, `MapEngine.js`),
+	 * cobre tudo com uma tela preta mostrando o tempo restante e um resumo AO
+	 * VIVO (EXP, mobs mortos, itens) — quem chama (`MapEngine.js`) reatualiza
+	 * com `.atualizar(...)` a cada segundo, puxando os numeros de
+	 * `registroDaCaca`.
+	 *
+	 * VOLTAR PRA ABA NAO FECHA SOZINHO (D-1392, correção do dono no mesmo
+	 * dia): a primeira versão mandava "sair" automático assim que a aba
+	 * ficava visível de novo — e um relance rápido na aba (checar uma
+	 * notificação, por exemplo) já tirava o personagem do modo sem o jogador
+	 * ter escolhido isso. Agora só o clique em "Voltar a jogar" sai; olhar a
+	 * aba sozinho não muda nada, e o jogador pode ficar deliberadamente na
+	 * economia de energia mesmo olhando a tela.
 	 *
 	 * NAO usa o clone de `WinPopup` das outras telas do "Dormir": aquela é
 	 * uma caixa pequena com moldura do RO, pensada pra diálogo. Esta é tela
 	 * CHEIA, sem moldura nenhuma — o pedido foi explícito ("pode ser uma
 	 * tela preta mesmo") — então é um `<div>` simples cobrindo o viewport,
-	 * sem Shadow DOM: não há reaproveitamento de estilo do design system
-	 * aqui, e a tela nem é vista por olho humano na maioria das vezes (só
-	 * quem espiar a aba em segundo plano a vê renderizada).
+	 * sem Shadow DOM.
 	 *
 	 * O relógio que ESTE componente mostra é só mostrador, como em
 	 * `showDormindo` — quem manda a verdade é o servidor; `MapEngine.js`
 	 * ressincroniza a cada resposta de `ZC_RAGIDLE_ECONOMIA`.
 	 *
 	 * @param {number} restanteMs tempo restante, em ms
+	 * @param {function(): void} onVoltar chamado quando o jogador clica em "Voltar a jogar" —
+	 *   quem chama manda o `sair` e fecha esta tela; ela nunca se fecha sozinha
 	 * @returns {{atualizar: function({restanteMs:number, expBase?:number, expClasse?:number,
 	 *   abates?:number, itensTotal?:number}): void, remove: function(): void}}
 	 */
-	static showEconomiaDeEnergia(restanteMs) {
+	static showEconomiaDeEnergia(restanteMs, onVoltar) {
 		const overlay = document.createElement('div');
 		Object.assign(overlay.style, {
 			position: 'fixed',
@@ -584,11 +593,29 @@ class UIManager {
 		const resumo = document.createElement('div');
 		Object.assign(resumo.style, { fontSize: '14px', opacity: '0.85', lineHeight: '1.7' });
 
-		const rodape = document.createElement('div');
-		Object.assign(rodape.style, { fontSize: '12px', opacity: '0.5', marginTop: '8px' });
-		rodape.textContent = 'Volte a esta aba para continuar jogando normalmente.';
+		const botao = document.createElement('button');
+		botao.type = 'button';
+		botao.textContent = 'Voltar a jogar';
+		Object.assign(botao.style, {
+			marginTop: '16px',
+			padding: '10px 28px',
+			fontSize: '14px',
+			fontWeight: '600',
+			color: '#0a0a0a',
+			background: '#e8c76a',
+			border: 'none',
+			borderRadius: '6px',
+			cursor: 'pointer'
+		});
+		botao.addEventListener('click', () => {
+			if (onVoltar) onVoltar();
+		});
 
-		overlay.append(titulo, timer, resumo, rodape);
+		const rodape = document.createElement('div');
+		Object.assign(rodape.style, { fontSize: '12px', opacity: '0.5', marginTop: '4px' });
+		rodape.textContent = 'Clique em "Voltar a jogar" quando quiser retomar — olhar a aba sozinho não sai do modo.';
+
+		overlay.append(titulo, timer, resumo, botao, rodape);
 		document.body.appendChild(overlay);
 
 		function textoDoTimer(ms) {

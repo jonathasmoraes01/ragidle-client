@@ -985,7 +985,7 @@ function abrirTelaDaEconomia(restanteMs) {
 		return;
 	}
 	_snapshotDaEconomia = Session.Entity ? lerRegistroDaCaca(Session.Entity.GID) : null;
-	_janelaDaEconomia = UIManager.showEconomiaDeEnergia(restanteMs);
+	_janelaDaEconomia = UIManager.showEconomiaDeEnergia(restanteMs, sairDaEconomiaDeEnergia);
 	_janelaDaEconomia.atualizar(statsDaEconomia());
 	_tiqueDaEconomia = setInterval(() => {
 		_restanteDaEconomiaMs = Math.max(0, _restanteDaEconomiaMs - 1000);
@@ -1007,14 +1007,68 @@ function fecharTelaDaEconomia() {
 }
 
 /**
- * onVisibilidadeMudouParaEconomia (D-1389/D-1390) — o gatilho automatico. A
- * aba foi pro fundo ou voltou; o SERVIDOR decide se o pedido e elegivel
- * (regra 1 — nunca confia no cliente sozinho), este handler so avisa.
+ * O CLIQUE EM "Voltar a jogar" (D-1392, 14/09/2026, correção do dono).
+ *
+ * Ate aqui `onVisibilidadeMudouParaEconomia` mandava "sair" sozinho assim
+ * que `visibilitychange` via a aba voltar — e um relance rapido na aba (ver
+ * uma notificacao, por exemplo) ja tirava o personagem do modo sem o
+ * jogador ter pedido isso. Agora SAIR e SEMPRE este botao: a tela preta
+ * fica de pe ate o jogador clicar, mesmo com a aba em primeiro plano — ele
+ * pode deliberadamente continuar em economia de energia olhando pra ela.
+ */
+function sairDaEconomiaDeEnergia() {
+	const pkt = new PACKET.CZ.RAGIDLE_ECONOMIA_ACAO();
+	pkt.json = JSON.stringify({ acao: 'sair' });
+	Network.sendPacket(pkt);
+	// Fecha na hora, sem esperar o ack: o jogador ja pediu, e a resposta do
+	// servidor (ativa:false) so confirmaria o que a tela ja fez.
+	fecharTelaDaEconomia();
+}
+
+/**
+ * Quanto esperar, com a aba escondida, antes de avisar o servidor (D-1394,
+ * 14/09/2026) — o suficiente pra distinguir "so foi pro fundo" (alt-tab,
+ * troca de app) de "fechou de vez": se a aba fechar, o JavaScript da pagina
+ * MORRE antes deste atraso disparar, e o aviso nunca sai — nao ha timer
+ * pendurado sobrevivendo ao fechamento, e por isso nao precisa de sinal
+ * nenhum de "beforeunload"/"pagehide" tentando avisar na saida (que nem tem
+ * garantia de chegar a tempo pela rede). Pedido do dono, com as palavras
+ * dele: *"essa economia de energia automática é feita somente caso a pessoa
+ * dê alt tab OU troque de aplicativo no mobile. Se ele FECHAR a aba ou o
+ * aplicativo, deve encerrar."*
+ */
+const MS_DE_ATRASO_ANTES_DE_ENTRAR_NA_ECONOMIA = 3000;
+
+/** O atraso agendado, se houver — cancelado se a aba voltar antes de disparar. */
+let _atrasoDaEconomia = null;
+
+/**
+ * onVisibilidadeMudouParaEconomia (D-1389/D-1390, 14/09/2026 — so 'entrar'
+ * desde D-1392; o atraso de confirmacao desde D-1394) — o gatilho automatico
+ * de ENTRADA. Voltar a aba NAO manda "sair" mais (ver
+ * `sairDaEconomiaDeEnergia`, o unico lugar que manda): `visibilitychange` so
+ * avisa o servidor quando a aba vai pro FUNDO — e so depois de confirmar,
+ * pelo atraso acima, que a pagina continua viva. O SERVIDOR decide se o
+ * pedido de entrar e elegivel (regra 1 — nunca confia no cliente sozinho);
+ * voltar a olhar a aba, sozinho, nao decide nada.
  */
 function onVisibilidadeMudouParaEconomia() {
-	const pkt = new PACKET.CZ.RAGIDLE_ECONOMIA_ACAO();
-	pkt.json = JSON.stringify({ acao: document.visibilityState === 'hidden' ? 'entrar' : 'sair' });
-	Network.sendPacket(pkt);
+	if (document.visibilityState === 'hidden') {
+		if (_atrasoDaEconomia) return; // ja agendado — nao empilha um segundo
+		_atrasoDaEconomia = setTimeout(() => {
+			_atrasoDaEconomia = null;
+			// Confere de novo: pode ter voltado no instante exato do disparo.
+			if (document.visibilityState !== 'hidden') return;
+			const pkt = new PACKET.CZ.RAGIDLE_ECONOMIA_ACAO();
+			pkt.json = JSON.stringify({ acao: 'entrar' });
+			Network.sendPacket(pkt);
+		}, MS_DE_ATRASO_ANTES_DE_ENTRAR_NA_ECONOMIA);
+	} else if (_atrasoDaEconomia) {
+		// Voltou antes do atraso disparar: cancela — nunca chegou a avisar,
+		// entao nao ha "entrar" pra desfazer.
+		clearTimeout(_atrasoDaEconomia);
+		_atrasoDaEconomia = null;
+	}
 }
 
 /**
@@ -1832,6 +1886,10 @@ function onExitSuccess() {
 	UIManager.removeComponents();
 	BackgroundTicker.stop();
 	document.removeEventListener('visibilitychange', onVisibilidadeMudouParaEconomia);
+	if (_atrasoDaEconomia) {
+		clearTimeout(_atrasoDaEconomia);
+		_atrasoDaEconomia = null;
+	}
 	fecharTelaDaEconomia();
 	Network.close();
 	Renderer.stop();
