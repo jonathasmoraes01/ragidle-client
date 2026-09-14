@@ -812,6 +812,23 @@ function onConnectionRefused(pkt) {
 }
 
 /**
+ * O TEXTO DA RECUSA, por codigo (D-1383, 13/09/2026 — o relato do grupo de
+ * teste: a contagem de 5s terminava e o jogo so CONTINUAVA, sem sinal
+ * nenhum de que o "iniciar" tinha sido recusado). `amostra-insuficiente` e a
+ * mais provavel: a amostra do servidor reseta em TODO mapa novo (D-1381),
+ * mas a "Duracao" que o Hunt Analyzer mostra e da CACADA inteira e pode
+ * atravessar varios mapas de caca sem resetar — os dois relogios medem
+ * coisas diferentes de proposito, e essa diferenca e o que engana o botao
+ * quando o jogador troca de mapa de caca no meio da sessao.
+ */
+const TEXTO_DA_RECUSA_DE_SONO = {
+	'amostra-insuficiente':
+		'Ainda não são 10 minutos de caça contínua NESTE mapa — trocar de mapa (mesmo que seja outro mapa de caça) reinicia a contagem.',
+	'nivel-do-mapa': 'Este mapa não é elegível para o "Dormir" — precisa estar pelo menos 1 nível abaixo do seu.',
+	'sem-mundo': 'Não foi possível iniciar o sono agora — você não está numa caçada.'
+};
+
+/**
  * onSonoRecebido (D-1381, 13/09/2026) — o "Dormir".
  *
  * O servidor responde ao MESMO `CZ_ENTER2` que dispara `onConnectionAccepted`
@@ -819,14 +836,13 @@ function onConnectionRefused(pkt) {
  * `ZC_ACCEPT_ENTER2`, quando o personagem ainda esta dormindo. Isto so chega
  * para quem esta dormindo — o caminho normal (accept/refuse) nunca muda.
  *
- * Sem `dormindo:true` este handler nao faz nada: o pacote so desce SEM pedido
- * neste ponto do boot quando ha sono para mostrar (o "acordar" explicito, pelo
- * botao da tela, chega por uma resposta DIRETA ao `CZ_RAGIDLE_SONO_ACAO`, e
- * quem trata essa e a propria tela — ver `showDormindo`).
- *
  * `UIManager.showDormindo` e a MESMA janela (`WinPopup` clonada) que
  * `showErrorBox` usa para o boot inteiro — a unica comprovada a renderizar
  * aqui, antes de `MapEngine` ter entrado em mundo nenhum.
+ *
+ * Uma RECUSA (`dormindo:false` com `recusa`) agora tambem tem tela — a
+ * resposta direta ao "acordar" bem-sucedido tambem manda `dormindo:false`,
+ * mas SEM `recusa`, e por isso nunca cai neste ramo.
  */
 function onSonoRecebido(pkt) {
 	let corpo;
@@ -835,7 +851,16 @@ function onSonoRecebido(pkt) {
 	} catch {
 		return;
 	}
-	if (!corpo || corpo.dormindo !== true) {
+	if (!corpo) {
+		return;
+	}
+	if (corpo.dormindo !== true) {
+		if (corpo.recusa) {
+			UIManager.showMessageBox(
+				TEXTO_DA_RECUSA_DE_SONO[corpo.recusa] || 'Não foi possível iniciar o sono agora.',
+				'ok'
+			);
+		}
 		return;
 	}
 	UIManager.showDormindo(corpo.restanteMs || 0, () => {

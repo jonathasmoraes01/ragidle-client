@@ -352,6 +352,28 @@ function desenharEstado(root, r, aoVivo) {
  * o `iniciar` no servidor confere a MESMA amostra e o MESMO mapa de novo,
  * pela regra 1 do projeto (nada de decisao de jogo so no cliente).
  */
+/**
+ * DESDE QUANDO O JOGADOR ESTA NO MAPA ATUAL — zera a cada TROCA de mapa, o
+ * MESMO critério que a amostra do servidor usa (`amostrasDeSono` reseta em
+ * todo `viajar()`/`CZ_ENTER2`, D-1381). De propósito DIFERENTE de
+ * `r.decorridoMs`, que mede a CAÇADA inteira e pode atravessar vários mapas
+ * de caça sem resetar — foi exatamente essa diferença que enganou o botão
+ * (D-1383, relato do grupo de teste): o jogador via "10:01" na tela porque a
+ * caçada inteira já ia longa, mas o servidor via menos, porque ele tinha
+ * trocado de mapa de caça no meio do caminho e a amostra daquele mapa era
+ * nova. Os dois relógios continuam existindo — cada um mede a pergunta certa
+ * para o que responde —, só o "Dormir" agora pergunta a pergunta certa.
+ */
+let _mapaDoRelogioDeSono = null;
+let _entrouNoMapaDoSonoEm = 0;
+function tempoNoMapaAtualMs(mapa) {
+	if (mapa !== _mapaDoRelogioDeSono) {
+		_mapaDoRelogioDeSono = mapa;
+		_entrouNoMapaDoSonoEm = Date.now();
+	}
+	return mapa ? Date.now() - _entrouNoMapaDoSonoEm : 0;
+}
+
 function sincronizarDormir(root, r, aoVivo) {
 	const botao = root.querySelector('.ha-dormir');
 	const status = root.querySelector('.ha-dormir-status');
@@ -375,7 +397,7 @@ function sincronizarDormir(root, r, aoVivo) {
 	const ctx = IdleConfig.contextoObsoleto ? null : IdleConfig.contexto;
 	const emCaca = r.fase === 'ativa';
 	const mapaElegivel = !!ctx && ctx.mapaElegivelParaDormir === true;
-	const faltamMs = Math.max(0, MS_MINIMOS_PARA_DORMIR - (r.decorridoMs || 0));
+	const faltamMs = Math.max(0, MS_MINIMOS_PARA_DORMIR - tempoNoMapaAtualMs(ctx ? ctx.mapa : null));
 	const pronto = emCaca && mapaElegivel && faltamMs <= 0;
 
 	/*
@@ -871,6 +893,11 @@ HuntAnalyzer.limparEstadoDoPersonagem = function limparEstadoDoPersonagem() {
 	_aba = 0;
 	_sigRanking = null;
 	_sigDrops = null;
+	// O relógio do "Dormir" (D-1383) é por MAPA, e o personagem novo pode
+	// calhar no mesmo nome de mapa do anterior — sem zerar aqui, o tempo
+	// "no mapa atual" herdaria o instante de entrada de outro personagem.
+	_mapaDoRelogioDeSono = null;
+	_entrouNoMapaDoSonoEm = 0;
 	/*
 	 * ZERAR O DADO NAO BASTA: `GUIComponent.remove()` so DESANEXA o host,
 	 * entao o shadow DOM (com `is-open` e o HTML do personagem anterior)
