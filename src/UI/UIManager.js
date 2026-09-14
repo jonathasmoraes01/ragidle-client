@@ -554,7 +554,10 @@ class UIManager {
 	 * @param {function(): void} onVoltar chamado quando o jogador clica em "Voltar a jogar" —
 	 *   quem chama manda o `sair` e fecha esta tela; ela nunca se fecha sozinha
 	 * @returns {{atualizar: function({restanteMs:number, expBase?:number, expClasse?:number,
-	 *   abates?:number, itensTotal?:number}): void, remove: function(): void}}
+	 *   abates?:number, itensTotal?:number, morreu?:boolean}): void, remove: function(): void}}
+	 *   `morreu` (D-1398) liga um aviso fixo de que o personagem morreu nesta
+	 *   sessao — o relogio continua contando do mesmo jeito, e sem o aviso o
+	 *   jogador nao teria como saber que parou de render nada
 	 */
 	static showEconomiaDeEnergia(restanteMs, onVoltar) {
 		const overlay = document.createElement('div');
@@ -593,6 +596,29 @@ class UIManager {
 		const resumo = document.createElement('div');
 		Object.assign(resumo.style, { fontSize: '14px', opacity: '0.85', lineHeight: '1.7' });
 
+		/*
+		 * O AVISO DE MORTE (D-1398, 14/09/2026 — pedido do dono): sem ele, quem
+		 * arma 2h de economia e morre aos 30min so descobriria ao voltar, tendo
+		 * perdido 1h30 de "farm intencional" sem saber — o relogio continua
+		 * contando do mesmo jeito, morto ou vivo (o teto nao muda, so o AVISO
+		 * e novo), e nada na tela preta distinguia as duas situacoes. Escondido
+		 * por padrao; `atualizar` o liga quando `stats.morreu` chega `true`.
+		 */
+		const aviso = document.createElement('div');
+		aviso.hidden = true;
+		Object.assign(aviso.style, {
+			fontSize: '14px',
+			fontWeight: '600',
+			color: '#ffb454',
+			background: 'rgba(255, 90, 60, 0.12)',
+			border: '1px solid rgba(255, 180, 84, 0.4)',
+			borderRadius: '6px',
+			padding: '10px 16px',
+			maxWidth: '420px'
+		});
+		aviso.textContent =
+			'⚠ Seu personagem morreu. O farm parou, mas o relógio continua contando — clique em "Voltar a jogar" para não perder o resto do tempo.';
+
 		const botao = document.createElement('button');
 		botao.type = 'button';
 		botao.textContent = 'Voltar a jogar';
@@ -615,7 +641,7 @@ class UIManager {
 		Object.assign(rodape.style, { fontSize: '12px', opacity: '0.5', marginTop: '4px' });
 		rodape.textContent = 'Clique em "Voltar a jogar" quando quiser retomar — olhar a aba sozinho não sai do modo.';
 
-		overlay.append(titulo, timer, resumo, botao, rodape);
+		overlay.append(titulo, timer, aviso, resumo, botao, rodape);
 		document.body.appendChild(overlay);
 
 		function textoDoTimer(ms) {
@@ -628,6 +654,7 @@ class UIManager {
 
 		function atualizar(stats) {
 			timer.textContent = textoDoTimer(stats?.restanteMs);
+			aviso.hidden = stats?.morreu !== true;
 			const expBase = Math.round(Number(stats?.expBase) || 0).toLocaleString('pt-BR');
 			const expClasse = Math.round(Number(stats?.expClasse) || 0).toLocaleString('pt-BR');
 			const abates = Math.round(Number(stats?.abates) || 0).toLocaleString('pt-BR');
