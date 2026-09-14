@@ -16798,6 +16798,35 @@ PACKET.ZC.RAGIDLE_SONO = function PACKET_ZC_RAGIDLE_SONO(fp, end) {
 };
 PACKET.ZC.RAGIDLE_SONO.size = -1;
 
+// 0x0fc2 - RAGIDLE: CZ_RAGIDLE_ECONOMIA_ACAO (client -> server) — 14/09/2026
+// Variable size: u16 opcode + u16 total length + JSON UTF-8 {acao:'entrar'|'sair'}.
+// A ECONOMIA DE ENERGIA (D-1389/D-1390): diferente do "Dormir", o gatilho e
+// automatico — `visibilitychange` detectando a aba indo pro fundo — e o
+// personagem continua caçando com loot/zeny/EXP de verdade, nao so EXP.
+PACKET.CZ.RAGIDLE_ECONOMIA_ACAO = function PACKET_CZ_RAGIDLE_ECONOMIA_ACAO() {
+	this.json = '{}';
+};
+PACKET.CZ.RAGIDLE_ECONOMIA_ACAO.prototype.build = function () {
+	const bytes = TextEncoding.encode(this.json, 'utf-8');
+	const pkt_len = 2 + 2 + bytes.length;
+	const pkt_buf = new BinaryWriter(pkt_len);
+	pkt_buf.writeShort(0x0fc2);
+	pkt_buf.writeUShort(pkt_len);
+	pkt_buf.writeString(this.json);
+	return pkt_buf;
+};
+
+// 0x0fc3 - RAGIDLE: ZC_RAGIDLE_ECONOMIA (server -> client) — 14/09/2026
+// Variable size: u16 opcode + u16 total length + JSON UTF-8 payload.
+// Contrato (D-1389/D-1390): { ativa, restanteMs?, recusa?, expulso? }.
+// `expulso:true` chega quando o teto de 4h venceu com a conexao AINDA viva —
+// o servidor fecha o socket logo em seguida, do mesmo jeito que "Acordar
+// agora" do Dormir fecha, pra reentrar pelo caminho unico de sempre.
+PACKET.ZC.RAGIDLE_ECONOMIA = function PACKET_ZC_RAGIDLE_ECONOMIA(fp, end) {
+	this.json = fp.readString(end - fp.tell());
+};
+PACKET.ZC.RAGIDLE_ECONOMIA.size = -1;
+
 // ---------------------------------------------------------------------------
 // O MENU LFG (Looking For Group) — D-634, 25/08/2026.
 //

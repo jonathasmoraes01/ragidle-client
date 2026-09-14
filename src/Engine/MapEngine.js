@@ -17,6 +17,7 @@ import Events from 'Core/Events.js';
 import Session from 'Engine/SessionStorage.js';
 import Network from 'Network/NetworkManager.js';
 import BackgroundTicker from 'Network/BackgroundTicker.js';
+import { ler as lerRegistroDaCaca } from 'UI/Components/HuntAnalyzer/registroDaCaca.js';
 import PACKETVER from 'Network/PacketVerManager.js';
 import PACKET from 'Network/PacketStructure.js';
 import Renderer from 'Renderer/Renderer.js';
@@ -300,6 +301,16 @@ class MapEngine {
 				// the map-server's own resync-on-gap logic kicks in promptly.
 				BackgroundTicker.start(sendKeepAlive);
 
+				/*
+				 * A ECONOMIA DE ENERGIA (D-1389/D-1390, 14/09/2026) — o gatilho
+				 * do cliente pro modo automatico. `visibilitychange` e o MESMO
+				 * evento que o BackgroundTicker ja escuta pra ressincronizar; ele
+				 * nunca e estrangulado por aba escondida (ao contrario de
+				 * setInterval), entao "a aba foi pro fundo" chega ao servidor na
+				 * hora, com o socket ainda respondendo normal.
+				 */
+				document.addEventListener('visibilitychange', onVisibilidadeMudouParaEconomia);
+
 				Session.Playing = true;
 			},
 			true
@@ -355,6 +366,9 @@ class MapEngine {
 			// muda em nada o caminho normal de entrada. Ver o cabecalho de
 			// onSonoRecebido, abaixo.
 			Network.hookPacket(PACKET.ZC.RAGIDLE_SONO, onSonoRecebido);
+			// A ECONOMIA DE ENERGIA (D-1389/D-1390) — ver o cabecalho de
+			// onEconomiaRecebida, abaixo.
+			Network.hookPacket(PACKET.ZC.RAGIDLE_ECONOMIA, onEconomiaRecebida);
 
 			// hook reassembly packets and map the responses
 			for (let i = 1; i <= 42; i++) {
@@ -930,6 +944,110 @@ function onSonoRecebido(pkt) {
 	UIManager.showResumoDoSono(resumo, () => {
 		import('Engine/GameEngine.js').then(m => m.default.reload());
 	});
+}
+
+/* ---------------- A ECONOMIA DE ENERGIA (D-1389/D-1390, 14/09/2026) ---------------- */
+
+/** A tela preta aberta agora, se houver ({atualizar, remove} de UIManager.showEconomiaDeEnergia). */
+let _janelaDaEconomia = null;
+/** O laco de 1s que reatualiza o timer e os numeros ao vivo, enquanto a tela esta aberta. */
+let _tiqueDaEconomia = null;
+/** O retrato de `registroDaCaca` no instante em que entrou — os numeros mostrados sao DELTA contra isto. */
+let _snapshotDaEconomia = null;
+/** O relogio LOCAL, so mostrador — a mesma ressalva de `showDormindo`: a verdade e do servidor. */
+let _restanteDaEconomiaMs = 0;
+
+/**
+ * Os numeros da tela preta: o quanto foi ganho DESDE que entrou em economia
+ * de energia, nunca a caçada inteira — por isso o delta contra o snapshot
+ * tirado em `abrirTelaDaEconomia`. Sem personagem ou sem snapshot (corrida
+ * entre a resposta do servidor e `Session.Entity` ainda nao existir), so o
+ * relogio aparece.
+ */
+function statsDaEconomia() {
+	const base = { restanteMs: _restanteDaEconomiaMs };
+	if (!Session.Entity || !_snapshotDaEconomia) return base;
+	const agora = lerRegistroDaCaca(Session.Entity.GID);
+	return {
+		...base,
+		expBase: Math.max(0, (agora.expBase || 0) - (_snapshotDaEconomia.expBase || 0)),
+		expClasse: Math.max(0, (agora.expClasse || 0) - (_snapshotDaEconomia.expClasse || 0)),
+		abates: Math.max(0, (agora.abatesTotal || 0) - (_snapshotDaEconomia.abatesTotal || 0)),
+		itensTotal: Math.max(0, (agora.itensTotal || 0) - (_snapshotDaEconomia.itensTotal || 0))
+	};
+}
+
+/** Abre a tela preta (idempotente — reentrar com a tela ja aberta so reatualiza o relogio). */
+function abrirTelaDaEconomia(restanteMs) {
+	_restanteDaEconomiaMs = restanteMs;
+	if (_janelaDaEconomia) {
+		_janelaDaEconomia.atualizar(statsDaEconomia());
+		return;
+	}
+	_snapshotDaEconomia = Session.Entity ? lerRegistroDaCaca(Session.Entity.GID) : null;
+	_janelaDaEconomia = UIManager.showEconomiaDeEnergia(restanteMs);
+	_janelaDaEconomia.atualizar(statsDaEconomia());
+	_tiqueDaEconomia = setInterval(() => {
+		_restanteDaEconomiaMs = Math.max(0, _restanteDaEconomiaMs - 1000);
+		if (_janelaDaEconomia) _janelaDaEconomia.atualizar(statsDaEconomia());
+	}, 1000);
+}
+
+/** Fecha a tela preta, se houver — seguro chamar mesmo sem nenhuma aberta. */
+function fecharTelaDaEconomia() {
+	if (_tiqueDaEconomia) {
+		clearInterval(_tiqueDaEconomia);
+		_tiqueDaEconomia = null;
+	}
+	if (_janelaDaEconomia) {
+		_janelaDaEconomia.remove();
+		_janelaDaEconomia = null;
+	}
+	_snapshotDaEconomia = null;
+}
+
+/**
+ * onVisibilidadeMudouParaEconomia (D-1389/D-1390) — o gatilho automatico. A
+ * aba foi pro fundo ou voltou; o SERVIDOR decide se o pedido e elegivel
+ * (regra 1 — nunca confia no cliente sozinho), este handler so avisa.
+ */
+function onVisibilidadeMudouParaEconomia() {
+	const pkt = new PACKET.CZ.RAGIDLE_ECONOMIA_ACAO();
+	pkt.json = JSON.stringify({ acao: document.visibilityState === 'hidden' ? 'entrar' : 'sair' });
+	Network.sendPacket(pkt);
+}
+
+/**
+ * onEconomiaRecebida (D-1389/D-1390, 14/09/2026) — a resposta do servidor a
+ * `entrar`/`sair`, e tambem o aviso de "venceu o teto com a conexao viva"
+ * (`expulso:true`), sem pedido nenhum do cliente.
+ *
+ * `ativa:true` abre/reatualiza a tela preta. `ativa:false` fecha — seja o ack
+ * normal de "sair", seja uma recusa silenciosa de "entrar" (ninguem ve a
+ * tela mesmo: o jogador nao esta olhando a aba, entao nao ha erro pra
+ * mostrar). `expulso:true` e o caso especial: o personagem ja saiu do mundo
+ * do lado do servidor, que vai fechar o socket a seguir — o mesmo padrao do
+ * "Acordar agora" do Dormir, reentrando pelo caminho unico de sempre
+ * (CZ_ENTER2) em vez de uma segunda rota escrita a mao.
+ */
+function onEconomiaRecebida(pkt) {
+	let corpo;
+	try {
+		corpo = JSON.parse(pkt.json);
+	} catch {
+		return;
+	}
+	if (!corpo) return;
+
+	if (corpo.ativa === true) {
+		abrirTelaDaEconomia(Number(corpo.restanteMs) || 0);
+		return;
+	}
+
+	fecharTelaDaEconomia();
+	if (corpo.expulso === true) {
+		import('Engine/GameEngine.js').then(m => m.default.reload());
+	}
 }
 
 /**
@@ -1713,6 +1831,8 @@ function onExitSuccess() {
 	Mouse.intersect = false;
 	UIManager.removeComponents();
 	BackgroundTicker.stop();
+	document.removeEventListener('visibilitychange', onVisibilidadeMudouParaEconomia);
+	fecharTelaDaEconomia();
 	Network.close();
 	Renderer.stop();
 	MapRenderer.free();

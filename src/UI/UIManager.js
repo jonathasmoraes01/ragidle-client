@@ -524,6 +524,99 @@ class UIManager {
 	}
 
 	/**
+	 * A TELA DA ECONOMIA DE ENERGIA (D-1389/D-1390, 14/09/2026) — pedido do
+	 * dono, no estilo dos idles de mobile: quando a aba vai pro fundo
+	 * (`visibilitychange`, `MapEngine.js`), cobre tudo com uma tela preta
+	 * mostrando o tempo restante e um resumo AO VIVO (EXP, mobs mortos,
+	 * itens) — quem chama (`MapEngine.js`) reatualiza com `.atualizar(...)`
+	 * a cada segundo, puxando os numeros de `registroDaCaca`.
+	 *
+	 * NAO usa o clone de `WinPopup` das outras telas do "Dormir": aquela é
+	 * uma caixa pequena com moldura do RO, pensada pra diálogo. Esta é tela
+	 * CHEIA, sem moldura nenhuma — o pedido foi explícito ("pode ser uma
+	 * tela preta mesmo") — então é um `<div>` simples cobrindo o viewport,
+	 * sem Shadow DOM: não há reaproveitamento de estilo do design system
+	 * aqui, e a tela nem é vista por olho humano na maioria das vezes (só
+	 * quem espiar a aba em segundo plano a vê renderizada).
+	 *
+	 * O relógio que ESTE componente mostra é só mostrador, como em
+	 * `showDormindo` — quem manda a verdade é o servidor; `MapEngine.js`
+	 * ressincroniza a cada resposta de `ZC_RAGIDLE_ECONOMIA`.
+	 *
+	 * @param {number} restanteMs tempo restante, em ms
+	 * @returns {{atualizar: function({restanteMs:number, expBase?:number, expClasse?:number,
+	 *   abates?:number, itensTotal?:number}): void, remove: function(): void}}
+	 */
+	static showEconomiaDeEnergia(restanteMs) {
+		const overlay = document.createElement('div');
+		Object.assign(overlay.style, {
+			position: 'fixed',
+			inset: '0',
+			background: '#000',
+			color: '#e8e8e8',
+			display: 'flex',
+			flexDirection: 'column',
+			alignItems: 'center',
+			justifyContent: 'center',
+			// 2000000, nunca o teto do cursor (2147483647, CursorManager.js) — o
+			// mesmo numero que DeathWindow.css já usa como "camada solta mais
+			// alta" (ver o censo no cabeçalho dele); `tests/ui/cursorAcimaDeTudo
+			// .test.js` reprova qualquer z-index que alcance o do cursor.
+			zIndex: '2000000',
+			fontFamily: "'Figtree', Arial, 'Liberation Sans', Arimo, sans-serif",
+			textAlign: 'center',
+			gap: '12px',
+			padding: '24px',
+			boxSizing: 'border-box'
+		});
+
+		const titulo = document.createElement('div');
+		Object.assign(titulo.style, { fontSize: '13px', opacity: '0.6', letterSpacing: '0.08em' });
+		titulo.textContent = 'MODO DE ECONOMIA DE ENERGIA';
+
+		const timer = document.createElement('div');
+		Object.assign(timer.style, {
+			fontSize: 'clamp(32px, 8vw, 56px)',
+			fontVariantNumeric: 'tabular-nums',
+			fontWeight: '600'
+		});
+
+		const resumo = document.createElement('div');
+		Object.assign(resumo.style, { fontSize: '14px', opacity: '0.85', lineHeight: '1.7' });
+
+		const rodape = document.createElement('div');
+		Object.assign(rodape.style, { fontSize: '12px', opacity: '0.5', marginTop: '8px' });
+		rodape.textContent = 'Volte a esta aba para continuar jogando normalmente.';
+
+		overlay.append(titulo, timer, resumo, rodape);
+		document.body.appendChild(overlay);
+
+		function textoDoTimer(ms) {
+			const total = Math.max(0, Math.floor((Number(ms) || 0) / 1000));
+			const h = String(Math.floor(total / 3600)).padStart(2, '0');
+			const m = String(Math.floor((total % 3600) / 60)).padStart(2, '0');
+			const s = String(total % 60).padStart(2, '0');
+			return `${h}:${m}:${s}`;
+		}
+
+		function atualizar(stats) {
+			timer.textContent = textoDoTimer(stats?.restanteMs);
+			const expBase = Math.round(Number(stats?.expBase) || 0).toLocaleString('pt-BR');
+			const expClasse = Math.round(Number(stats?.expClasse) || 0).toLocaleString('pt-BR');
+			const abates = Math.round(Number(stats?.abates) || 0).toLocaleString('pt-BR');
+			const itens = Math.round(Number(stats?.itensTotal) || 0).toLocaleString('pt-BR');
+			resumo.textContent = `EXP base +${expBase} · EXP classe +${expClasse} · Mobs mortos: ${abates} · Itens: ${itens}`;
+		}
+
+		atualizar({ restanteMs });
+
+		return {
+			atualizar,
+			remove: () => overlay.remove()
+		};
+	}
+
+	/**
 	 * Prompt a message to the user
 	 *
 	 * @param {string} message to show
