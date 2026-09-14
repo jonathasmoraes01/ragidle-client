@@ -354,13 +354,50 @@ function desenharEstado(root, r, aoVivo) {
  */
 function sincronizarDormir(root, r, aoVivo) {
 	const botao = root.querySelector('.ha-dormir');
+	const status = root.querySelector('.ha-dormir-status');
 	if (!botao) {
 		return;
 	}
+
+	/* Na aba de HISTÓRICO o botão nem faz sentido (a cacada acabou) -- some
+	   de vez, do mesmo jeito que o Zerar já fazia. Na aba Atual ele fica
+	   SEMPRE visível: sumir com o botão quando a condição não bate foi o
+	   relato do Jhow em produção ("não achei o botão") -- indistinguível de
+	   bug. Ele agora aparece desabilitado, com o motivo escrito. */
+	botao.hidden = !aoVivo;
+	if (status) {
+		status.hidden = !aoVivo;
+	}
+	if (!aoVivo) {
+		return;
+	}
+
 	const ctx = IdleConfig.contextoObsoleto ? null : IdleConfig.contexto;
-	const elegivel =
-		aoVivo && r.fase === 'ativa' && r.decorridoMs >= MS_MINIMOS_PARA_DORMIR && !!ctx && ctx.mapaElegivelParaDormir === true;
-	botao.hidden = !elegivel;
+	const emCaca = r.fase === 'ativa';
+	const mapaElegivel = !!ctx && ctx.mapaElegivelParaDormir === true;
+	const faltamMs = Math.max(0, MS_MINIMOS_PARA_DORMIR - (r.decorridoMs || 0));
+	const pronto = emCaca && mapaElegivel && faltamMs <= 0;
+
+	/*
+	 * A ORDEM DOS MOTIVOS é a ordem em que o jogador resolve: primeiro
+	 * precisa estar caçando, depois o mapa precisa servir, só então o
+	 * relógio conta. Mostrar "faltam 3min" com o mapa errado mandaria o
+	 * jogador esperar 3 minutos à toa.
+	 */
+	let motivo = '';
+	if (!emCaca) {
+		motivo = 'comece a caçar';
+	} else if (!mapaElegivel) {
+		motivo = 'só em mapa ≥1 nível abaixo do seu';
+	} else if (faltamMs > 0) {
+		motivo = `disponível em ${duracao(faltamMs)}`;
+	}
+
+	botao.disabled = !pronto;
+	botao.title = pronto ? 'Farm offline de EXP por até 8h' : motivo;
+	if (status) {
+		status.textContent = pronto ? '' : motivo;
+	}
 }
 
 /**
@@ -737,7 +774,12 @@ HuntAnalyzer.init = function init() {
 		}
 	});
 
-	root.querySelector('.ha-dormir').addEventListener('click', () => {
+	root.querySelector('.ha-dormir').addEventListener('click', e => {
+		// O `disabled` nativo já barra o clique; a guarda é so para o dia em
+		// que o atributo e o estado visual saírem de sincronia (D-1381).
+		if (e.currentTarget.disabled) {
+			return;
+		}
 		pedirParaDormir();
 	});
 
