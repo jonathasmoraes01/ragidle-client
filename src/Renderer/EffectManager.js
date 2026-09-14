@@ -417,6 +417,20 @@ class EffectManager {
 
 		keys.forEach(key => {
 			const list = _list[key];
+
+			/*
+			 * `limparEfemeros()` esvazia a lista (`list.length = 0`) sem
+			 * apagar a CHAVE de `_list` — a mesma lista, so vazia, continua
+			 * la. `list[0].constructor` explodia nesse intervalo
+			 * ("Cannot read properties of undefined (reading 'constructor')",
+			 * o 3o erro mais frequente do analytics em 13/09/2026). `render()`,
+			 * logo abaixo, ja tinha esta guarda — so `free()` estava sem ela.
+			 */
+			if (!list.length) {
+				delete _list[key];
+				return;
+			}
+
 			const constructor = list[0].constructor;
 
 			list.forEach(item => {

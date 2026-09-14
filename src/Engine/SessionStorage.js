@@ -53,6 +53,21 @@ export default {
 	},
 
 	/**
+	 * O GID da entidade controlada agora — nao confundir com `Session.GID`
+	 * (o GID da CONTA, do login, sempre um numero). Padrao ja duplicado em
+	 * tres lugares como `Session.Entity ? Session.Entity.GID : null`
+	 * (`Engine/MapEngine/Main.js`, `Renderer/EntityManager.js`,
+	 * `UI/Components/HuntAnalyzer/HuntAnalyzer.js`); virou acessor pelo mesmo
+	 * motivo do `zeny` acima, e para os pontos que ainda liam `.GID` direto
+	 * sem checar (`Cannot read properties of null (reading 'GID')`, o erro
+	 * mais frequente do analytics em 13/09/2026 — `Engine/MapEngine/Entity.js`
+	 * tratava um acesso e deixava dois sem guarda, na MESMA funcao).
+	 */
+	get meuGID() {
+		return this.Entity ? this.Entity.GID : null;
+	},
+
+	/**
 	 * Saldo de CASH da conta (28/08/2026).
 	 *
 	 * Campo simples, e nao acessor sobre a entidade como o `zeny`: o cash e

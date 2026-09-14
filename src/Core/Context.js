@@ -33,7 +33,16 @@ class Context {
 			const element = document.documentElement;
 
 			if (element.requestFullscreen) {
-				element.requestFullscreen();
+				/*
+				 * `requestFullscreen()` devolve uma Promise, e sem `.catch()` a
+				 * recusa do navegador (sem gesto do usuario valido no instante,
+				 * ou Permissions Policy do contexto) sobe como
+				 * `unhandledrejection` — "Permissions check failed", o erro
+				 * mais frequente do analytics em 13/09/2026, empatado com o
+				 * GID nulo. Recusa de fullscreen nao e defeito: o jogo segue
+				 * normal sem ele.
+				 */
+				element.requestFullscreen().catch(() => {});
 			} else if (element.mozRequestFullScreen) {
 				element.mozRequestFullScreen();
 			} else if (element.webkitRequestFullscreen) {
