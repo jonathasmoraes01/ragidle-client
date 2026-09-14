@@ -829,7 +829,25 @@ const TEXTO_DA_RECUSA_DE_SONO = {
 };
 
 /**
- * onSonoRecebido (D-1381, 13/09/2026 — taxas de EXP em D-1386) — o "Dormir".
+ * O tempo que `onSonoRecebido` espera pela resposta do "acordar" antes de
+ * desistir do resumo e reconectar do mesmo jeito (D-1387). So dispara se a
+ * resposta se perder de verdade (rede caiu entre o clique e o pacote voltar)
+ * — o caminho normal responde em milissegundos, no MESMO socket.
+ */
+const MS_DE_ESPERA_PELO_ACORDAR = 8000;
+
+/** A janela "Dormindo.../Acordando..." hoje aberta, se houver (D-1387). */
+let _janelaDoSonoAtiva = null;
+/**
+ * Ja resolvemos o "acordar" desta rodada — pelo ack do servidor ou pelo teto
+ * de seguranca, o que chegar primeiro? Evita reagir duas vezes se a resposta
+ * chegar atrasada, depois do teto ja ter fechado a janela e reconectado.
+ */
+let _acordarResolvido = false;
+
+/**
+ * onSonoRecebido (D-1381, 13/09/2026 — taxas de EXP em D-1386, resumo do
+ * "acordar" em D-1387) — o "Dormir".
  *
  * O servidor responde ao MESMO `CZ_ENTER2` que dispara `onConnectionAccepted`
  * com `ZC_RAGIDLE_SONO{dormindo:true, restanteMs, taxaExpBasePorMs,
@@ -841,9 +859,17 @@ const TEXTO_DA_RECUSA_DE_SONO = {
  * `showErrorBox` usa para o boot inteiro — a unica comprovada a renderizar
  * aqui, antes de `MapEngine` ter entrado em mundo nenhum.
  *
- * Uma RECUSA (`dormindo:false` com `recusa`) agora tambem tem tela — a
- * resposta direta ao "acordar" bem-sucedido tambem manda `dormindo:false`,
- * mas SEM `recusa`, e por isso nunca cai neste ramo.
+ * Uma RECUSA (`dormindo:false` com `recusa`) tambem tem tela. A resposta ao
+ * "acordar" bem-sucedido tambem manda `dormindo:false`, mas SEM `recusa` — e
+ * o ramo novo (D-1387): fecha a janela de espera, mostra o RESUMO do que foi
+ * ganho, e SO NO "Continuar" do resumo reconecta. O relato do Jhow no grupo
+ * de teste ("ficou meio bugado na hora de voltar... aparece essa mensagem")
+ * era exatamente a corrida entre o close do servidor e o reload do cliente —
+ * o reload saia ANTES de esperar esta resposta, entao o dialogo generico de
+ * "Disconnected from Server" (`NetworkManager.js`) as vezes ganhava a corrida
+ * e aparecia por cima. `Network.onDisconnect` suprime esse dialogo soh para
+ * este close deliberado; `LoginEngine.init` reassume o dele proprio assim que
+ * o boot volta a tela de login, entao nao precisa ser desfeito aqui.
  */
 function onSonoRecebido(pkt) {
 	let corpo;
@@ -855,31 +881,53 @@ function onSonoRecebido(pkt) {
 	if (!corpo) {
 		return;
 	}
-	if (corpo.dormindo !== true) {
-		if (corpo.recusa) {
-			UIManager.showMessageBox(
-				TEXTO_DA_RECUSA_DE_SONO[corpo.recusa] || 'Não foi possível iniciar o sono agora.',
-				'ok'
-			);
-		}
+
+	if (corpo.dormindo === true) {
+		_acordarResolvido = false;
+		const taxas = {
+			expBasePorMs: Number(corpo.taxaExpBasePorMs) || 0,
+			expClassePorMs: Number(corpo.taxaExpClassePorMs) || 0
+		};
+		_janelaDoSonoAtiva = UIManager.showDormindo(corpo.restanteMs || 0, taxas, () => {
+			const acordar = new PACKET.CZ.RAGIDLE_SONO_ACAO();
+			acordar.json = JSON.stringify({ acao: 'acordar' });
+			Network.onDisconnect = () => {};
+			Network.sendPacket(acordar);
+			setTimeout(() => {
+				if (_acordarResolvido) return;
+				_acordarResolvido = true;
+				if (_janelaDoSonoAtiva) {
+					_janelaDoSonoAtiva.remove();
+					_janelaDoSonoAtiva = null;
+				}
+				import('Engine/GameEngine.js').then(m => m.default.reload());
+			}, MS_DE_ESPERA_PELO_ACORDAR);
+		});
 		return;
 	}
-	const taxas = {
-		expBasePorMs: Number(corpo.taxaExpBasePorMs) || 0,
-		expClassePorMs: Number(corpo.taxaExpClassePorMs) || 0
+
+	// dormindo === false a partir daqui.
+	if (corpo.recusa) {
+		UIManager.showMessageBox(
+			TEXTO_DA_RECUSA_DE_SONO[corpo.recusa] || 'Não foi possível iniciar o sono agora.',
+			'ok'
+		);
+		return;
+	}
+
+	// O ACK do "acordar": fecha a janela de espera e mostra o resumo.
+	if (_acordarResolvido) return; // o teto de seguranca ja resolveu isto
+	_acordarResolvido = true;
+	if (_janelaDoSonoAtiva) {
+		_janelaDoSonoAtiva.remove();
+		_janelaDoSonoAtiva = null;
+	}
+	const resumo = {
+		expBase: Number(corpo.expBase) || 0,
+		expClasse: Number(corpo.expClasse) || 0,
+		tempoDormidoMs: Number(corpo.tempoDormidoMs) || 0
 	};
-	UIManager.showDormindo(corpo.restanteMs || 0, taxas, () => {
-		const acordar = new PACKET.CZ.RAGIDLE_SONO_ACAO();
-		acordar.json = JSON.stringify({ acao: 'acordar' });
-		Network.sendPacket(acordar);
-		/*
-		 * O SERVIDOR FECHA A CONEXAO ao processar o "acordar" (o handler dele
-		 * so conhece UM caminho de entrada no mundo — o de sempre — para nao
-		 * duplicar a sequencia inteira numa segunda rota escrita a mao). O
-		 * cliente forca o mesmo desfecho pelo lado dele: um reload refaz o
-		 * boot INTEIRO pelo caminho normal, e desta vez o personagem ja
-		 * acordou, entao a entrada segue sem sono nenhum no caminho.
-		 */
+	UIManager.showResumoDoSono(resumo, () => {
 		import('Engine/GameEngine.js').then(m => m.default.reload());
 	});
 }

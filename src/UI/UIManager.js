@@ -368,8 +368,11 @@ class UIManager {
 	 * @param {number} restanteMs tempo restante de sono, em ms
 	 * @param {{expBasePorMs: number, expClassePorMs: number}} taxas taxa de EXP/ms
 	 *   medida na amostra (a MESMA que o servidor congelou ao iniciar o sono)
-	 * @param {function(): void} onAcordar chamado quando o jogador clica em "Acordar agora"
-	 * @returns {object} o componente aberto — quem chama fecha com `.remove()` se precisar
+	 * @param {function(): void} onAcordar chamado quando o jogador clica em "Acordar agora" —
+	 *   so manda o pedido ao servidor (D-1387: quem fecha esta janela e reconecta e o
+	 *   `dormindo:false` que chega depois, via `onSonoRecebido`, nunca o clique em si)
+	 * @returns {{remove: function(): void}} quem chama fecha com `.remove()` se precisar —
+	 *   fecha a janela E o overlay juntos (os dois sao peças separadas no DOM)
 	 */
 	static showDormindo(restanteMs, taxas, onAcordar) {
 		const WinSono = this.getComponent('WinPopup').clone('WinSono');
@@ -395,6 +398,11 @@ class UIManager {
 			);
 		}
 
+		function fecharTudo() {
+			if (overlay) overlay.remove();
+			WinSono.remove();
+		}
+
 		WinSono.init = function Init() {
 			const root = this._shadow;
 			root.querySelector('.text').textContent = textoDoResto(restante);
@@ -405,8 +413,18 @@ class UIManager {
 					'ok',
 					() => {
 						if (timer) clearInterval(timer);
-						overlay.remove();
-						WinSono.remove();
+						/*
+						 * NAO fecha nem reconecta aqui (D-1387). Um clique so pede —
+						 * a janela vira "Acordando..." (sem botao, pra nao deixar
+						 * clicar de novo) e fica de pe ate o servidor confirmar. Quem
+						 * fecha esta janela e mostra o resumo e `onSonoRecebido`,
+						 * quando a resposta chegar (ou o teto de seguranca dela, se
+						 * a resposta se perder).
+						 */
+						const textEl = root.querySelector('.text');
+						if (textEl) textEl.textContent = 'Acordando...';
+						const btnsEl = root.querySelector('.btns');
+						if (btnsEl) btnsEl.innerHTML = '';
 						onAcordar();
 					},
 					'Acordar agora'
@@ -442,7 +460,67 @@ class UIManager {
 		WinSono.onAppend = _prioritizeKeyDown;
 		WinSono.append();
 
-		return WinSono;
+		return { remove: fecharTudo };
+	}
+
+	/**
+	 * O RESUMO DO "DORMIR" (D-1387, 13/09/2026) — pedido do dono e do Jhow no
+	 * grupo de teste ("abrir uma janela com o resumo do Farm off"), depois de
+	 * relatar que voltar do sono parecia bugado. Mostrado depois que o servidor
+	 * confirma o "acordar" (`onSonoRecebido`), ANTES de reconectar — o jogador
+	 * ve o que ganhou antes da tela mudar para o boot/login.
+	 *
+	 * Mesmo clone de `WinPopup`, pelo mesmo motivo das outras telas do "Dormir":
+	 * e a unica janela comprovada a renderizar antes de `MapEngine` ter entrado
+	 * em mundo nenhum.
+	 *
+	 * @param {{expBase: number, expClasse: number, tempoDormidoMs: number}} resumo
+	 * @param {function(): void} onContinuar chamado quando o jogador fecha o resumo — e aqui
+	 *   que quem chama deve reconectar
+	 * @returns {object} o componente aberto
+	 */
+	static showResumoDoSono(resumo, onContinuar) {
+		const WinResumo = this.getComponent('WinPopup').clone('WinResumoSono');
+		WinResumo.riAnimaJanela = true;
+		let overlay;
+
+		function textoDoResumo() {
+			const totalMin = Math.max(0, Math.floor((Number(resumo?.tempoDormidoMs) || 0) / 60000));
+			const h = Math.floor(totalMin / 60);
+			const m = totalMin % 60;
+			const tempo = h > 0 ? `Você dormiu ${h}h ${m}min e ganhou:` : `Você dormiu ${m}min e ganhou:`;
+			const expBase = Math.round(Number(resumo?.expBase) || 0).toLocaleString('pt-BR');
+			const expClasse = Math.round(Number(resumo?.expClasse) || 0).toLocaleString('pt-BR');
+			return `${tempo}\n${expBase} EXP base · ${expClasse} EXP classe`;
+		}
+
+		function fechar() {
+			overlay.remove();
+			WinResumo.remove();
+			onContinuar();
+		}
+
+		WinResumo.init = function Init() {
+			const root = this._shadow;
+			root.querySelector('.text').textContent = textoDoResumo();
+			Object.assign(this._host.style, _popupPosition());
+			root.querySelector('.btns').appendChild(_createButton('ok', fechar, 'Continuar'));
+		};
+
+		WinResumo.onKeyDown = function OnKeyDown(event) {
+			switch (event.which) {
+				case KEYS.ENTER:
+				case KEYS.ESCAPE:
+					fechar();
+			}
+			event.stopImmediatePropagation();
+		};
+
+		overlay = _createOverlay();
+		WinResumo.onAppend = _prioritizeKeyDown;
+		WinResumo.append();
+
+		return WinResumo;
 	}
 
 	/**
