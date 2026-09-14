@@ -346,34 +346,53 @@ class UIManager {
 	}
 
 	/**
-	 * A tela de "Dormindo..." (D-1381, 13/09/2026) — o servidor responde ao
-	 * `CZ_ENTER2` com `ZC_RAGIDLE_SONO{dormindo:true}` em vez do
-	 * `ZC_ACCEPT_ENTER2` normal, quando o personagem ainda esta no sono do
-	 * "Dormir" ao logar (decisao "b" do dono: reconectar NAO acerta contas
-	 * sozinho).
+	 * A tela de "Dormindo..." (D-1381, 13/09/2026 — EXP projetada e aviso de
+	 * aba em D-1386) — o servidor responde ao `CZ_ENTER2` com
+	 * `ZC_RAGIDLE_SONO{dormindo:true}` em vez do `ZC_ACCEPT_ENTER2` normal,
+	 * quando o personagem ainda esta no sono do "Dormir" ao logar (decisao
+	 * "b" do dono: reconectar NAO acerta contas sozinho).
 	 *
 	 * Construida sobre o MESMO clone de `WinPopup` que `showErrorBox` usa, e
 	 * pelo mesmo motivo: e a UNICA janela comprovada a renderizar NESTE ponto
 	 * do boot — antes de `MapEngine` ter entrado em mundo nenhum, sem HUD e
 	 * sem cena do Renderer.
 	 *
+	 * A EXP projetada (D-1386, achado do dono ao testar: a tela so dizia
+	 * QUANTO TEMPO faltava, nunca o que aquele tempo valia) e recalculada a
+	 * cada segundo, do mesmo jeito que o relogio — ela MOSTRA o preco de
+	 * acordar cedo em vez de só dizer o prazo, e cai pra zero junto com o
+	 * `restante`, nunca inventando um total fixo que a taxa medida não sustenta
+	 * (regra 1). E a mesma razao do "pode fechar a aba": achamos essa lacuna
+	 * numa auditoria de UX e nenhuma tela dizia isso ate aqui.
+	 *
 	 * @param {number} restanteMs tempo restante de sono, em ms
+	 * @param {{expBasePorMs: number, expClassePorMs: number}} taxas taxa de EXP/ms
+	 *   medida na amostra (a MESMA que o servidor congelou ao iniciar o sono)
 	 * @param {function(): void} onAcordar chamado quando o jogador clica em "Acordar agora"
 	 * @returns {object} o componente aberto — quem chama fecha com `.remove()` se precisar
 	 */
-	static showDormindo(restanteMs, onAcordar) {
+	static showDormindo(restanteMs, taxas, onAcordar) {
 		const WinSono = this.getComponent('WinPopup').clone('WinSono');
 		WinSono.riAnimaJanela = true; // entra/sai com a animacao unica (Fase 3)
 		// eslint-disable-next-line
 		let overlay;
 		let timer = null;
 		let restante = Math.max(0, Number(restanteMs) || 0);
+		const expBasePorMs = Number(taxas?.expBasePorMs) || 0;
+		const expClassePorMs = Number(taxas?.expClassePorMs) || 0;
 
 		function textoDoResto(ms) {
 			const totalMin = Math.floor(ms / 60000);
 			const h = Math.floor(totalMin / 60);
 			const m = totalMin % 60;
-			return h > 0 ? `Dormindo... ${h}h ${m}min restante(s)` : `Dormindo... ${m}min restante(s)`;
+			const tempo = h > 0 ? `Dormindo... ${h}h ${m}min restante(s)` : `Dormindo... ${m}min restante(s)`;
+			const expBase = Math.round(expBasePorMs * ms).toLocaleString('pt-BR');
+			const expClasse = Math.round(expClassePorMs * ms).toLocaleString('pt-BR');
+			return (
+				`${tempo}\n` +
+				`~${expBase} EXP base · ~${expClasse} EXP classe pela frente\n` +
+				`Pode fechar esta aba com segurança — o sono continua sem ela.`
+			);
 		}
 
 		WinSono.init = function Init() {
@@ -489,15 +508,24 @@ class UIManager {
 	 * @param {string} texto a frase antes do numero (ex.: "Iniciando o sono em")
 	 * @param {number} segundos quantos segundos contar
 	 * @param {function(): void} aoZerar chamado quando a contagem chega a zero — a janela ja fechou
+	 * @param {string} [avisoExtra] linha fixa abaixo da contagem (D-1386 — o "Dormir"
+	 *   usa pra avisar "pode fechar a aba" ja aqui, antes do pacote sair, e nao so
+	 *   na tela final de "Dormindo..."). Vazio por padrao: nenhum outro chamador
+	 *   existia ate aqui, entao isto nao muda comportamento de ninguem
 	 * @returns {{ cancelar: function(): void }} para o chamador cancelar de fora (ex.: a janela fechou)
 	 */
-	static showContagemRegressiva(texto, segundos, aoZerar) {
+	static showContagemRegressiva(texto, segundos, aoZerar, avisoExtra = '') {
 		const WinContagem = this.getComponent('WinPopup').clone('WinContagem');
 		WinContagem.riAnimaJanela = true;
 		let overlay;
 		let timer = null;
 		let restante = Math.max(1, Math.floor(segundos));
 		let zerada = false;
+
+		function textoDaContagem() {
+			const base = `${texto} ${restante}...`;
+			return avisoExtra ? `${base}\n${avisoExtra}` : base;
+		}
 
 		function encerrar() {
 			if (timer) clearInterval(timer);
@@ -508,7 +536,7 @@ class UIManager {
 
 		WinContagem.init = function Init() {
 			const root = this._shadow;
-			root.querySelector('.text').textContent = `${texto} ${restante}...`;
+			root.querySelector('.text').textContent = textoDaContagem();
 			Object.assign(this._host.style, _popupPosition());
 
 			root.querySelector('.btns').appendChild(
@@ -530,7 +558,7 @@ class UIManager {
 					return;
 				}
 				const el = root.querySelector('.text');
-				if (el) el.textContent = `${texto} ${restante}...`;
+				if (el) el.textContent = textoDaContagem();
 			}, 1000);
 		};
 

@@ -829,12 +829,13 @@ const TEXTO_DA_RECUSA_DE_SONO = {
 };
 
 /**
- * onSonoRecebido (D-1381, 13/09/2026) — o "Dormir".
+ * onSonoRecebido (D-1381, 13/09/2026 — taxas de EXP em D-1386) — o "Dormir".
  *
  * O servidor responde ao MESMO `CZ_ENTER2` que dispara `onConnectionAccepted`
- * com `ZC_RAGIDLE_SONO{dormindo:true, restanteMs}` em vez de
- * `ZC_ACCEPT_ENTER2`, quando o personagem ainda esta dormindo. Isto so chega
- * para quem esta dormindo — o caminho normal (accept/refuse) nunca muda.
+ * com `ZC_RAGIDLE_SONO{dormindo:true, restanteMs, taxaExpBasePorMs,
+ * taxaExpClassePorMs}` em vez de `ZC_ACCEPT_ENTER2`, quando o personagem
+ * ainda esta dormindo. Isto so chega para quem esta dormindo — o caminho
+ * normal (accept/refuse) nunca muda.
  *
  * `UIManager.showDormindo` e a MESMA janela (`WinPopup` clonada) que
  * `showErrorBox` usa para o boot inteiro — a unica comprovada a renderizar
@@ -863,7 +864,11 @@ function onSonoRecebido(pkt) {
 		}
 		return;
 	}
-	UIManager.showDormindo(corpo.restanteMs || 0, () => {
+	const taxas = {
+		expBasePorMs: Number(corpo.taxaExpBasePorMs) || 0,
+		expClassePorMs: Number(corpo.taxaExpClassePorMs) || 0
+	};
+	UIManager.showDormindo(corpo.restanteMs || 0, taxas, () => {
 		const acordar = new PACKET.CZ.RAGIDLE_SONO_ACAO();
 		acordar.json = JSON.stringify({ acao: 'acordar' });
 		Network.sendPacket(acordar);

@@ -16788,8 +16788,11 @@ PACKET.CZ.RAGIDLE_SONO_ACAO.prototype.build = function () {
 
 // 0x0fc5 - RAGIDLE: ZC_RAGIDLE_SONO (server -> client) — 13/09/2026
 // Variable size: u16 opcode + u16 total length + JSON UTF-8 payload.
-// Contrato v1 (D-1381): { dormindo, restanteMs?, recusa? }. Desce em resposta
-// ao pedido, e tambem SEM pedido no login enquanto o personagem ainda dorme.
+// Contrato (D-1381, taxas em D-1386): { dormindo, restanteMs?, recusa?,
+// taxaExpBasePorMs?, taxaExpClassePorMs? }. As duas taxas so vem com
+// dormindo:true — e a mesma TaxaDeSono que o servidor congelou, pro cliente
+// multiplicar por restanteMs e mostrar a EXP projetada. Desce em resposta ao
+// pedido, e tambem SEM pedido no login enquanto o personagem ainda dorme.
 PACKET.ZC.RAGIDLE_SONO = function PACKET_ZC_RAGIDLE_SONO(fp, end) {
 	this.json = fp.readString(end - fp.tell());
 };

@@ -721,11 +721,15 @@ function tique() {
 }
 
 /**
- * O CLIQUE EM "DORMIR" (D-1381, 13/09/2026) — a sequencia pedida pelo dono:
- * (1) se um evento de EXP esta ativo agora, avisa e pede confirmacao — a
- * taxa fica CONGELADA no que o evento rendia no instante do sono, e o
- * evento pode acabar antes do jogador voltar; (2) uma contagem de 5s antes de
- * mandar o pedido, com a frase "pode fechar a aba"; (3) so entao o pacote sai.
+ * O CLIQUE EM "DORMIR" (D-1381, 13/09/2026 — avisos de UX em D-1386) — a
+ * sequencia pedida pelo dono: (1) se um evento de EXP esta ativo agora,
+ * avisa e pede confirmacao — a taxa fica CONGELADA no que o evento rendia no
+ * instante do sono, e o evento pode acabar antes do jogador voltar; (2) uma
+ * contagem de 5s antes de mandar o pedido, com a frase "pode fechar a aba"
+ * JA nela (D-1386 — antes a frase so existia neste comentario, nunca na
+ * tela: achado numa auditoria de UX, e nao suposto); (3) so entao o pacote
+ * sai. A tela final de "Dormindo..." (`UIManager.showDormindo`) repete o
+ * mesmo aviso, ao lado da EXP projetada.
  *
  * O SERVIDOR CONFERE TUDO DE NOVO — este fluxo e so a experiencia; a decisao
  * de jogo (10 min, nivel do mapa) mora em `farm-por-estimativa.ts`.
@@ -734,18 +738,23 @@ function pedirParaDormir() {
 	const eventoAtivo = StatusIcons.estaAtivo(SC.CASH_PLUSEXP);
 
 	function contagem() {
-		UIManager.showContagemRegressiva('Iniciando o sono em', SEGUNDOS_DE_CONTAGEM_DO_SONO, () => {
-			const pkt = new PACKET.CZ.RAGIDLE_SONO_ACAO();
-			pkt.json = JSON.stringify({ acao: 'iniciar' });
-			Network.sendPacket(pkt);
-			/*
-			 * A RESPOSTA (`ZC_RAGIDLE_SONO{dormindo:true}`) chega pelo handler
-			 * CENTRAL de `Engine/MapEngine.js` (`onSonoRecebido`) — o MESMO que
-			 * trata o sono encontrado no login. Ele mostra a tela "Dormindo..."
-			 * com o "Acordar agora", que e onde o aviso "pode fechar a aba"
-			 * mora de verdade (a contagem so avisa que o pedido VAI sair).
-			 */
-		});
+		UIManager.showContagemRegressiva(
+			'Iniciando o sono em',
+			SEGUNDOS_DE_CONTAGEM_DO_SONO,
+			() => {
+				const pkt = new PACKET.CZ.RAGIDLE_SONO_ACAO();
+				pkt.json = JSON.stringify({ acao: 'iniciar' });
+				Network.sendPacket(pkt);
+				/*
+				 * A RESPOSTA (`ZC_RAGIDLE_SONO{dormindo:true}`) chega pelo handler
+				 * CENTRAL de `Engine/MapEngine.js` (`onSonoRecebido`) — o MESMO que
+				 * trata o sono encontrado no login. Ele mostra a tela "Dormindo..."
+				 * com o "Acordar agora", que repete o mesmo aviso "pode fechar a
+				 * aba" (D-1386) — aqui embaixo so avisa que o pedido VAI sair.
+				 */
+			},
+			'Você já pode fechar esta aba — o sono começa mesmo assim.'
+		);
 	}
 
 	if (eventoAtivo) {
