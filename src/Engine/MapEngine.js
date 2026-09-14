@@ -21,7 +21,7 @@ import PACKETVER from 'Network/PacketVerManager.js';
 import PACKET from 'Network/PacketStructure.js';
 import Renderer from 'Renderer/Renderer.js';
 import Camera from 'Renderer/Camera.js';
-import MapRenderer from 'Renderer/MapRenderer.js';
+import MapRenderer, { stripMapExtension } from 'Renderer/MapRenderer.js';
 import EntityManager from 'Renderer/EntityManager.js';
 import Entity from 'Renderer/Entity/Entity.js';
 import Altitude from 'Renderer/Map/Altitude.js';
@@ -918,6 +918,17 @@ function ligarAcessorioDaHud(nome, ligar) {
 }
 
 function onMapChange(pkt) {
+	/*
+	 * O MAPA ANTES DESTE PACOTE (D-1385, 13/09/2026) — capturado ANTES de
+	 * `MapRenderer.setMap` rodar, porque `setMap` só reatribui
+	 * `MapRenderer.currentMap` quando é uma troca de mapa DE VERDADE
+	 * (`MapRenderer.js`, o teleporte no mesmo mapa nunca toca nele). Um
+	 * `ZC_NPCACK_MAPMOVE` da Asa de Mosca chega aqui do MESMO jeito que uma
+	 * troca real — é o mesmo pacote, o rAthena não distingue os dois — e sem
+	 * este valor não havia como `onLoad` (abaixo) responder "isto mudou de
+	 * mapa mesmo?" sem reescrever a comparação de `setMap` uma terceira vez.
+	 */
+	const mapaAntesDoLoad = MapRenderer.currentMap;
 	MapRenderer.onLoad = () => {
 		/*
 		 * RAGIDLE (B1, 06/09/2026) — A SEGUNDA LIMPEZA, E ELA E O CONSERTO.
@@ -1097,9 +1108,21 @@ function onMapChange(pkt) {
 		// RAGIDLE: o tracker ancora ABAIXO do BasicInfoIdle por medição — vem
 		// DEPOIS dele no append para o primeiro syncPosition já achar o host.
 		MissoesTrackerIdle.append();
-		// RAGIDLE: pergunta se este mapa e cidade (D-355) para desabilitar o
-		// botao quando nao ha caca. A resposta cai no mesmo handler do pedir.
-		IdleConfig.sondarMapa();
+		/*
+		 * RAGIDLE: pergunta se este mapa e cidade (D-355) para desabilitar o
+		 * botao quando nao ha caca. A resposta cai no mesmo handler do pedir.
+		 *
+		 * SO QUANDO O MAPA MUDOU DE VERDADE (D-1385, 13/09/2026) — sem esta
+		 * checagem, todo teleporte no MESMO mapa (a Asa de Mosca; o `pc_setpos`
+		 * do rAthena chama `clif_changemap` mesmo quando o destino e igual ao
+		 * mapa atual) sondava de novo, marcando `IdleConfig.contextoObsoleto`
+		 * por um instante — e o relato do dono foi exatamente esse instante
+		 * sendo lido como "saiu da cacada": a "Duracao" do Hunt Analyzer
+		 * resetava a cada uso da asa.
+		 */
+		if (stripMapExtension(mapaAntesDoLoad) !== stripMapExtension(pkt.mapName)) {
+			IdleConfig.sondarMapa();
+		}
 
 		// RAGIDLE: "Painel de admin" floating button — same unconditional
 		// append() as HuntMap/IdleConfig right above; AdminPanel.onAppend()

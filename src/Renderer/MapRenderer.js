@@ -63,8 +63,15 @@ const _pos = new Uint16Array(2);
 /**
  * @param {string} mapname
  * @returns {string} map name without its extension
+ *
+ * EXPORTADA (D-1385, 13/09/2026): era privada do modulo, e por isso
+ * `MapEngine.onMapChange` nao tinha como fazer a MESMA pergunta que
+ * `setMap` (linha ~169, abaixo) ja fazia — "isto e uma troca de mapa de
+ * verdade, ou um teleporte no MESMO mapa (a Asa de Mosca)?" — e acabava
+ * nao perguntando nada, sondando o mapa a cada `ZC_NPCACK_MAPMOVE`. Duas
+ * rotas escritas a mao para a mesma resposta; agora e uma so.
  */
-function stripMapExtension(mapname) {
+export function stripMapExtension(mapname) {
 	return (mapname || '').replace(/\.[^.]*$/, '');
 }
 
