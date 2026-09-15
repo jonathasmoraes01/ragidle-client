@@ -168,6 +168,30 @@ function onToggleShortcutUI() {
 }
 
 /**
+ * ABRE PELO MENU (15/09/2026, D-1416 — pedido do dono).
+ *
+ * A porta que o menu do celular usa. Ela existe como metodo PROPRIO, e nao
+ * como um `_host.style.display = ''` escrito la, por dois motivos:
+ *
+ * 1. a mesma trava da morte que o `onKeyDown` respeita vale aqui — com a
+ *    DeathWindow na tela este menu abriria POR BAIXO do scrim dela, visivel e
+ *    inerte (o defeito que o dono fotografou em 19/08/2026). Duplicar a
+ *    condicao no chamador seria a segunda rota escrita a mao;
+ * 2. `focus()` e do componente, e sem ele a janela abre sem receber o teclado.
+ *
+ * Devolve `false` quando recusou, para quem chamar poder dizer por que — hoje
+ * ninguem pergunta, e a morte ja tem a propria janela explicando o que fazer.
+ */
+Escape.abrirPeloMenu = function abrirPeloMenu() {
+	if (DeathWindow.aMorteEstaNaTela()) {
+		return false;
+	}
+	this._host.style.display = '';
+	this.focus();
+	return true;
+};
+
+/**
  * Show death menu (called when player dies)
  */
 Escape.showDeathMenu = function showDeathMenu(hasSiegfried) {

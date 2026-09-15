@@ -210,6 +210,7 @@ import PresencaIdle from 'UI/Components/PresencaIdle/PresencaIdle.js'; // RAGIDL
 import IndicacaoIdle from 'UI/Components/IndicacaoIdle/IndicacaoIdle.js'; // RAGIDLE: Indique & Ganhe (D-1164)
 import RankingIdle from 'UI/Components/RankingIdle/RankingIdle.js'; // RAGIDLE: o Ranking
 import AdminPanel from 'UI/Components/AdminPanel/AdminPanel.js';
+import Escape from 'UI/Components/Escape/Escape.js'; // RAGIDLE: a janela de sistema (D-1416)
 import CashShop from 'UI/Components/CashShop/CashShop.js'; // RAGIDLE: a loja de cash (I5)
 import RiIcones from 'UI/ri-icones.js';
 import htmlText from './TopMenuIdle.html?raw';
@@ -388,6 +389,7 @@ TopMenuIdle.onAppend = function onAppend() {
 	syncVotoLivre();
 	syncToggleDot();
 	ligarOfertaDeInstalacao();
+	ligarPortaDoSistema();
 	startPolling();
 	ligarFechamentoExterno();
 };
@@ -407,6 +409,28 @@ TopMenuIdle.onAppend = function onAppend() {
    saidas (prompt / instrucao / nada) que a entrada e o Config ja usam. Um
    quarto lugar decidindo por conta propria seria o quarto a envelhecer.
    ═══════════════════════════════════════════════════════════════════════ */
+
+/**
+ * A PORTA DA JANELA DE SISTEMA (15/09/2026, D-1416 — pedido do dono).
+ *
+ * Ela abre o `Escape` (video, audio, atalho, trocar personagem, fechar jogo),
+ * que ate aqui so tinha a TECLA ESC como entrada — inalcancavel num celular.
+ *
+ * Fecha o leque antes de abrir, como todo item que abre janela: o menu aberto
+ * por cima da janela que ele mesmo acabou de abrir foi o defeito que a
+ * auditoria de 08/09 achou em 9 das 18 janelas.
+ */
+function ligarPortaDoSistema() {
+	const botao = _root().querySelector('.tm-sistema');
+	if (!botao) {
+		return;
+	}
+	botao.addEventListener('click', e => {
+		e.stopImmediatePropagation();
+		fecharLeque();
+		Escape.abrirPeloMenu();
+	});
+}
 
 function ligarOfertaDeInstalacao() {
 	const botao = _root().querySelector('.tm-instalar');

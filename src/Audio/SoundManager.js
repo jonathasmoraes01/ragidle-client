@@ -70,6 +70,20 @@ class SoundManager {
 			_sounds[filename].instances = [];
 			_sounds[filename].lastTick = 0;
 		}
+		/*
+		 * RAGIDLE (15/09/2026, D-1415): O INTERVALO MINIMO VALE PARA OS DOIS
+		 * CAMINHOS.
+		 *
+		 * `C_SAME_SOUND_DELAY` so era conferido la embaixo, DENTRO do callback
+		 * de `Client.loadFile` — ou seja, so quando o elemento ia ser CRIADO.
+		 * Som que veio do cache passava direto, entao a mesma rajada da caca
+		 * automatica (um golpe atras do outro no mesmo alvo) tirava uma
+		 * instancia do cache por golpe e tocava todas ao mesmo tempo. Aqui em
+		 * cima ele vale para o cache tambem, que era a intencao original.
+		 */
+		if (_sounds[filename].lastTick > Date.now() - C_SAME_SOUND_DELAY) {
+			return;
+		}
 		// Re-usable sound from cache
 		const sound = getSoundFromCache(filename);
 		if (sound) {
@@ -86,10 +100,16 @@ class SoundManager {
 						}
 						sound.remove();
 						mediaPlayerCount--;
+						// A tentativa que acabou de falhar ja gravou `lastTick`; sem
+						// zerar, a guarda de intervalo la em cima engoliria a
+						// recarga e o som sumiria de vez.
+						if (_sounds[filename]) {
+							_sounds[filename].lastTick = 0;
+						}
 						SoundManager.play(filename, vol);
 						return;
 					}
-					console.warn('Failed to play sound:', err);
+					descartarInstancia(sound, filename);
 				});
 			}
 			_sounds[filename].instances.push(sound);
@@ -116,9 +136,24 @@ class SoundManager {
 			audio.addEventListener('error', onSoundError, false);
 			audio.addEventListener('ended', onSoundEnded, false);
 			audio.play().catch(err => {
-				if (err.name !== 'AbortError') {
-					console.warn('Failed to play sound:', err);
+				if (err.name === 'AbortError') {
+					// `play()` cortado por um `pause()`/`play()` no MESMO elemento.
+					// Ele continua valido e reutilizavel: nao ha o que descartar.
+					return;
 				}
+				/*
+				 * RAGIDLE (15/09/2026, D-1415): AQUI MORAVA O VAZAMENTO.
+				 *
+				 * Antes isto era so um `console.warn`. Um `play()` recusado pela
+				 * POLITICA do navegador (`NotAllowedError` — o WebKit do iPhone
+				 * enquanto o audio nao esta destravado por gesto) nao dispara
+				 * `ended` (nunca tocou) nem `error` (a fonte esta boa), entao o
+				 * elemento ficava em `instances` para sempre e
+				 * `mediaPlayerCount` nunca voltava. Como `balancedMax()` divide
+				 * pelo teto de 800, cada preso encolhia o teto dos proximos: o
+				 * jogo acumulava midia e ia ficando surdo ao mesmo tempo.
+				 */
+				descartarInstancia(audio, filename);
 			});
 			_sounds[filename].instances.push(audio);
 			_sounds[filename].lastTick = Date.now();
@@ -200,7 +235,55 @@ class SoundManager {
 			});
 		});
 	}
+
+	/**
+	 * QUANTA MIDIA ESTE GERENCIADOR ESTA SEGURANDO (15/09/2026, D-1415).
+	 *
+	 * Existe porque o vazamento do `play()` recusado era INVISIVEL: os
+	 * `<audio>` nunca entram no documento (nao ha `appendChild` em lugar
+	 * nenhum), entao nem `document.querySelectorAll('audio')` nem o contador de
+	 * nos de DOM das sondas o enxergavam. Sem um numero para olhar, a unica
+	 * forma de discutir "o som esta vazando?" era opiniao.
+	 *
+	 * `players` e o mesmo `mediaPlayerCount` que `balancedMax()` usa para
+	 * encolher o teto — e o numero que importa.
+	 */
+	static diagnostico() {
+		let vivos = 0;
+		for (const nome of Object.keys(_sounds)) {
+			vivos += _sounds[nome].instances.length;
+		}
+		let emCache = 0;
+		for (const nome of Object.keys(_cache)) {
+			emCache += _cache[nome].instances.length;
+		}
+		return { players: mediaPlayerCount, vivos, emCache };
+	}
 }
+/**
+ * DESCARTA UMA INSTANCIA QUE NAO VAI TOCAR (15/09/2026, D-1415).
+ *
+ * O mesmo servico que `onSoundError` presta quando o navegador dispara
+ * `error` — so que chamado a mao, para o caso em que evento nenhum vem: o
+ * `play()` recusado por politica. Nao mandamos para o cache de proposito: um
+ * elemento que o navegador recusou tocar nao e "reutilizavel", e guarda-lo
+ * so adiaria o mesmo problema para o proximo golpe.
+ */
+function descartarInstancia(sound, filename) {
+	const entrada = _sounds[filename];
+	if (entrada) {
+		const pos = entrada.instances.indexOf(sound);
+		if (pos !== -1) {
+			entrada.instances.splice(pos, 1);
+		}
+		if (entrada.instances.length === 0) {
+			delete _sounds[filename];
+		}
+	}
+	sound.remove();
+	mediaPlayerCount--;
+}
+
 /**
  * Move sound to cache.
  * ff we have a request to play the same sound again, get it back
