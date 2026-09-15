@@ -1,7 +1,7 @@
 /**
  * UI/Components/TutorialIdle/etapasDoTutorial.js
  *
- * A REGRA PURA DO TUTORIAL GUIADO: a tabela das dez etapas e a geometria da
+ * A REGRA PURA DO TUTORIAL GUIADO: a tabela das onze etapas e a geometria da
  * camada (recorte, mascara, mao, balao). Zero DOM, zero import.
  *
  * Ele mora fora do componente pelo mesmo motivo que `secoesDaConfig.js` mora
@@ -49,7 +49,7 @@
 
 /** Quantas etapas o tutorial tem. O servidor manda `total` no retrato; este
  *  numero e o que o cliente desenha quando o retrato ainda nao chegou. */
-export const TOTAL_DE_ETAPAS = 10;
+export const TOTAL_DE_ETAPAS = 11;
 
 /**
  * Quem guia. E a Kafra da praca de Prontera, com o nome que o jogador ja le
@@ -62,16 +62,17 @@ export const TOTAL_DE_ETAPAS = 10;
 export const QUEM_GUIA = 'Funcionária Kafra';
 
 /**
- * AS DEZ ETAPAS (secao 7 do CONTRATO-JORNADA.md, mais as DUAS do Correio - 15/09/2026).
+ * AS ONZE ETAPAS (secao 7 do CONTRATO-JORNADA.md, mais o Correio e as
+ * poções - achados faltando/fora de ordem em 15/09/2026).
  *
  * Campos de cada uma:
- *   numero      1..10, o que o servidor guarda em `etapa`.
+ *   numero      1..11, o que o servidor guarda em `etapa`.
  *   rotulo      o texto do controle, EXATAMENTE como ele aparece na tela.
  *               E o que vai entre aspas na frase.
  *   frase       imperativo, uma acao so, com `{acao}` onde entra o verbo do
  *               ponteiro e `{rotulo}` onde entra o nome do controle.
  *   alvo        { host, seletor } do controle a destacar, ou `null` quando a
- *               etapa nao tem controle nenhum (a etapa 8 e de OLHAR).
+ *               etapa nao tem controle nenhum (a etapa 9 e de OLHAR).
  *   quandoSumir { host, seletor, frase } o caminho de volta, quando o alvo
  *               nao tem caixa (janela fechada, leque recolhido). E o que a
  *               secao 6 do contrato manda: explicar como voltar, em vez de
@@ -82,6 +83,13 @@ export const QUEM_GUIA = 'Funcionária Kafra';
  *
  * Nao existe campo de "botao Proximo", e isso e deliberado: a regra 6 da
  * gravacao proibe um botao que substitua a acao.
+ *
+ * A ORDEM MUDOU em 15/09/2026 (pedido do dono, jogando ao vivo): equipar o
+ * kit e configurar as poções agora acontecem TODOS antes de "Iniciar a
+ * missão", e nao depois - quem aceita a missao e viaja com a mochila cheia
+ * de pocao mas nenhuma ligada para beber sozinho fica preso abrindo a
+ * mochila na mao a cada combate. O personagem se prepara POR INTEIRO
+ * (Correio, arma, pocoes) e so entao aceita a primeira tarefa.
  */
 export const ETAPAS = Object.freeze([
 	Object.freeze({
@@ -107,39 +115,27 @@ export const ETAPAS = Object.freeze([
 		}),
 		avancaPor: 'janela-de-missoes-aberta'
 	}),
-	Object.freeze({
-		numero: 3,
-		rotulo: 'Iniciar',
-		frase: '{acao} {rotulo} na primeira missão. Eu anoto o resto.',
-		alvo: Object.freeze({ host: 'MissoesIdle', seletor: '.mi-executar[data-executar="iniciar"]' }),
-		quandoSumir: Object.freeze({
-			host: 'TopMenuIdle',
-			seletor: '.tm-fab',
-			frase: 'A janela de "Missões" fechou. Abra o "Menu" e volte nela.'
-		}),
-		avancaPor: 'missao-ativa-no-servidor'
-	}),
 	/*
 	 * AS DUAS ETAPAS DO CORREIO (15/09/2026), achadas faltando na auditoria: um
 	 * personagem novo nasce com a MOCHILA VAZIA - a arma, as pocoes e o zeny
 	 * do kit inicial chegam pela carta de boas-vindas (D-534,
-	 * `servidor/index.ts`), nao equipados de fabrica. Sem elas entre
-	 * "Iniciar" e "Arma", o tutorial mandava o novato vestir uma arma que
-	 * ele ainda nao tinha: o slot `.mo-slot[data-location="2"]` da etapa
-	 * seguinte existe, mas esta vazio, e nao ha o que clicar.
+	 * `servidor/index.ts`), nao equipados de fabrica. Sem uma etapa de
+	 * Correio, o tutorial mandava o novato vestir uma arma que ele ainda nao
+	 * tinha: o slot `.mo-slot[data-location="2"]` da etapa seguinte existe,
+	 * mas esta vazio, e nao ha o que clicar.
 	 *
 	 * **SAO DUAS, E NAO UMA** - achado ao JOGAR a versao com uma so: abrir o
 	 * Correio e retirar o kit de dentro dela sao dois gestos em dois lugares
 	 * da tela (o botao do menu, depois a janela que abre longe dele), e a
 	 * mascara (ver o cabecalho deste arquivo, "POR QUE QUATRO RETANGULOS")
 	 * so ilumina UM alvo por etapa - o mesmo motivo por que "abrir Missoes"
-	 * (2) e "Iniciar a missao" (3) ja eram etapas separadas. Uma etapa so
-	 * com alvo no botao do menu bloquearia o clique DENTRO da janela do
-	 * Correio que esse botao abre: a mascara escurece e desliga tudo fora
-	 * do furo, por desenho.
+	 * e "Iniciar a missao" ja eram etapas separadas. Uma etapa so com alvo
+	 * no botao do menu bloquearia o clique DENTRO da janela do Correio que
+	 * esse botao abre: a mascara escurece e desliga tudo fora do furo, por
+	 * desenho.
 	 */
 	Object.freeze({
-		numero: 4,
+		numero: 3,
 		rotulo: 'Correio',
 		frase: '{acao} {rotulo}. O seu kit inicial chegou lá dentro.',
 		alvo: Object.freeze({ host: 'TopMenuIdle', seletor: '.tm-item[data-action="correio"]' }),
@@ -151,7 +147,7 @@ export const ETAPAS = Object.freeze([
 		avancaPor: 'correio-aberto'
 	}),
 	Object.freeze({
-		numero: 5,
+		numero: 4,
 		rotulo: null,
 		/* A janela inteira fica livre (sem furo estreito): o jogador precisa
 		   selecionar a carta na LISTA (esquerda) e depois clicar em "retirar"
@@ -167,7 +163,7 @@ export const ETAPAS = Object.freeze([
 		avancaPor: 'kit-retirado'
 	}),
 	Object.freeze({
-		numero: 6,
+		numero: 5,
 		rotulo: 'Arma',
 		frase: 'Ponha a sua arma no slot {rotulo}. Ninguém sai de Midgard de mãos vazias.',
 		/*
@@ -191,8 +187,57 @@ export const ETAPAS = Object.freeze([
 		}),
 		avancaPor: 'arma-vestida-confirmada'
 	}),
+	/*
+	 * A ETAPA DAS POCOES (15/09/2026) - pedido do dono, jogando ao vivo:
+	 * ensinar a configurar o auto-uso de pocao no menu Idle, ANTES de aceitar
+	 * a missao. Quem parte para a caca com a mochila cheia de pocao mas
+	 * nenhuma ligada fica dependendo de abrir a mochila na mao a cada golpe.
+	 * O alvo e a JANELA INTEIRA (`.ic-window`), pela mesma familia de defeito
+	 * das etapas do Correio e da arma: o jogador precisa trocar para a aba
+	 * "Sobrevivência" e so entao mexer nos dois cartoes de poção, dois gestos
+	 * em lugares diferentes da mesma janela.
+	 */
+	Object.freeze({
+		numero: 6,
+		rotulo: null,
+		frase: 'Na aba "Sobrevivência", ligue as duas poções e arraste a barra até 50%.',
+		alvo: Object.freeze({ host: 'IdleConfig', seletor: '.ic-window' }),
+		quandoSumir: Object.freeze({
+			host: 'TopMenuIdle',
+			seletor: '.tm-item[data-action="config"]',
+			frase: 'Abra o "Menu" e toque em "Configurações" para ligar as poções.'
+		}),
+		avancaPor: 'pocoes-configuradas'
+	}),
 	Object.freeze({
 		numero: 7,
+		rotulo: 'Iniciar',
+		frase: '{acao} {rotulo} na primeira missão. Eu anoto o resto.',
+		alvo: Object.freeze({ host: 'MissoesIdle', seletor: '.mi-executar[data-executar="iniciar"]' }),
+		/*
+		 * O QUANDOSUMIR APONTA PARA O ICONE DO LEQUE, NAO PARA O `.tm-fab`
+		 * (achado ao JOGAR o reordenamento, 15/09/2026) - a mesma familia de
+		 * defeito das etapas do Correio/Arma/Mapa, um nivel mais fundo. O
+		 * `.tm-fab` tem caixa valida SEMPRE, leque aberto ou fechado; um
+		 * furo preso nele NUNCA some, entao o alvo primario nunca ganha a
+		 * chance de assumir e o segundo clique (o icone "Missões" DENTRO do
+		 * leque aberto) fica do lado de fora do furo - exatamente como
+		 * `.tm-fab` sozinho bloqueava o clique dentro da janela que ele
+		 * abre, nas outras etapas. Apontando para o PROPRIO icone (0x0 com
+		 * o leque fechado, valido com o leque aberto) o comportamento vira
+		 * o mesmo da etapa 4: leque fechado cai no `semMascara` (nada
+		 * bloqueado, o jogador abre o leque livre), leque aberto acerta o
+		 * icone de "Missões" direto.
+		 */
+		quandoSumir: Object.freeze({
+			host: 'TopMenuIdle',
+			seletor: '.tm-item[data-action="missoes"]',
+			frase: 'A janela de "Missões" fechou. Abra o "Menu" e volte em "Missões".'
+		}),
+		avancaPor: 'missao-ativa-no-servidor'
+	}),
+	Object.freeze({
+		numero: 8,
 		rotulo: null,
 		frase: 'Escolha um mapa e viaje. Qualquer um serve para começar.',
 		/*
@@ -215,7 +260,7 @@ export const ETAPAS = Object.freeze([
 		avancaPor: 'mapa-mudou'
 	}),
 	Object.freeze({
-		numero: 8,
+		numero: 9,
 		rotulo: null,
 		frase: 'Pronto: agora você luta sozinho. Olhe a vida do monstro descer.',
 		/*
@@ -232,7 +277,7 @@ export const ETAPAS = Object.freeze([
 		avancaPor: 'primeiro-abate'
 	}),
 	Object.freeze({
-		numero: 9,
+		numero: 10,
 		rotulo: 'Objetivo',
 		frase: 'Olhe aqui: este é o seu {rotulo}, e ele anda a cada monstro.',
 		alvo: Object.freeze({ host: 'MissoesTrackerIdle', seletor: '.mt-ativa' }),
@@ -240,7 +285,7 @@ export const ETAPAS = Object.freeze([
 		avancaPor: 'contador-andou'
 	}),
 	Object.freeze({
-		numero: 10,
+		numero: 11,
 		rotulo: 'Codex',
 		frase: '{acao} {rotulo}. A Jornada de Midgard te espera lá dentro.',
 		alvo: Object.freeze({ host: 'TopMenuIdle', seletor: '.tm-item[data-action="codex"]' }),
@@ -253,7 +298,7 @@ export const ETAPAS = Object.freeze([
 	})
 ]);
 
-/** A etapa de numero `n`, ou `null`. Fora de 1..10 devolve `null` de proposito:
+/** A etapa de numero `n`, ou `null`. Fora de 1..11 devolve `null` de proposito:
  *  um retrato de servidor mais novo (mais etapas) nao pode desenhar lixo. */
 export function etapaDe(numero) {
 	return ETAPAS.find(e => e.numero === numero) || null;

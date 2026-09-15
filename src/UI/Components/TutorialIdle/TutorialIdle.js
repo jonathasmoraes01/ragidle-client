@@ -240,6 +240,58 @@ function janelaAberta(hostId, seletor) {
 	return !!(el && el.classList.contains('is-open'));
 }
 
+/**
+ * O componente da Configuracao Idle, SE ele existir.
+ *
+ * Por REGISTRO e nao por `import`, o mesmo criterio que `IdleConfig.js` usa
+ * para o caminho inverso (ver o cabecalho de `tutorialIdle()` la): um
+ * `import` estatico aqui prenderia o ciclo de carga desta janela ao de
+ * `IdleConfig.js` sem necessidade, quando tudo que esta etapa precisa e ler
+ * um campo estatico (`IdleConfig.serverConfig`) uma vez por tique.
+ */
+function idleConfig() {
+	try {
+		return UIManager.getComponent('IdleConfig');
+	} catch (_erro) {
+		return null;
+	}
+}
+
+/**
+ * FECHA A JANELA QUE UMA ETAPA JA CUMPRIDA ABRIU (15/09/2026, achado ao
+ * JOGAR o reordenamento das etapas).
+ *
+ * Entre "abrir Missoes" (etapa 2) e "iniciar a missao" (etapa 7) passaram a
+ * entrar TRES janelas (Correio, Mochila, Configuracao) que NUNCA se fecham
+ * sozinhas - o jogo EMPILHA janela Idle, nunca substitui. Sem este
+ * fechamento, a janela de Missoes fica ENTERRADA embaixo das outras tres: o
+ * furo da mascara mede a posicao REAL do botao "Iniciar" (o layout dele nao
+ * muda so por estar coberto), entao `medirRecorte` devolve uma caixa VALIDA
+ * e o `quandoSumir` nunca dispara - o jogador via o furo boiando sobre a
+ * janela ERRADA (a ultima aberta), sem nenhum jeito de alcancar o botao de
+ * verdade por baixo. Fechar a janela de cada etapa assim que ela cumpre o
+ * que tinha para ensinar devolve Missoes ao topo da pilha a tempo da etapa 7.
+ *
+ * `UIManager.getComponent`, e nao `import`: o mesmo criterio de
+ * `idleConfig()` acima - `CorreioIdle` e `MochilaIdle` tambem puxam
+ * `Renderer/Renderer.js` (a segunda ainda `Renderer/SpriteRenderer.js`) na
+ * carga, e um import estatico aqui prenderia o teste desta janela ao canvas
+ * delas.
+ */
+function fecharJanelaDaEtapa(hostId, seletor) {
+	if (!janelaAberta(hostId, seletor)) {
+		return;
+	}
+	try {
+		const comp = UIManager.getComponent(hostId);
+		if (comp && typeof comp.toggle === 'function') {
+			comp.toggle();
+		}
+	} catch (_erro) {
+		/* componente nao carregado: nada a fechar. */
+	}
+}
+
 /* ------------------------------------------------------------------ */
 /* A condicao REAL de cada etapa                                       */
 /* ------------------------------------------------------------------ */
@@ -294,15 +346,11 @@ function etapaCumprida(numero) {
 		case 2:
 			return janelaAberta('MissoesIdle', '.mi-window');
 		case 3:
-			/* O SERVIDOR marcou a missao ativa. `execucao` vem do
-			   ZC_RAGIDLE_MISSOES, que a janela de Missoes recebe e guarda. */
-			return !!(execucao && execucao.ativaId);
-		case 4:
 			/* A janela do Correio abriu (`CorreioIdle.js`, `.co-window` ganha
 			   `is-open` no toggle). So abrir - retirar o kit de dentro dela e a
-			   etapa 5, com alvo na janela inteira (dois gestos, um furo so). */
+			   etapa 4, com alvo na janela inteira (dois gestos, um furo so). */
 			return janelaAberta('CorreioIdle', '.co-window');
-		case 5: {
+		case 4: {
 			/*
 			 * O KIT RETIRADO POR INTEIRO, e nao so a metade dele.
 			 *
@@ -314,7 +362,7 @@ function etapaCumprida(numero) {
 			 * apontar a Mochila, e o segundo clique ("Coletar itens") ficaria
 			 * do lado de fora do furo - achado ao JOGAR esta etapa pela
 			 * primeira vez (15/09/2026), o mesmo defeito de fundo que a
-			 * etapa 4-5 nasceu para consertar, um clique adiante.
+			 * etapa 3-4 nasceu para consertar, um clique adiante.
 			 *
 			 * **NAO uso `Session.Entity.weight` subir** - errado por medicao
 			 * NO PROPRIO JOGO (15/09/2026): um personagem que ja estava
@@ -331,7 +379,7 @@ function etapaCumprida(numero) {
 			const temArmaNaMochila = Inventory.getUI().list.some((item) => item.type === ItemType.WEAPON);
 			return zenySubiu && temArmaNaMochila;
 		}
-		case 6: {
+		case 5: {
 			/* A peca vestida CONFIRMADA: `Session.Entity.weapon` so muda quando
 			   o servidor manda o ZC_SPRITE_CHANGE (Engine/MapEngine/Entity.js).
 			   Comparar com o marco cobre tanto "estava sem arma" quanto "trocou
@@ -339,18 +387,41 @@ function etapaCumprida(numero) {
 			const arma = (Session.Entity && Session.Entity.weapon) || 0;
 			return arma !== 0 && (!_marco || arma !== _marco.arma);
 		}
+		case 6: {
+			/*
+			 * AS DUAS POCOES LIGADAS, CONFIRMADAS PELO SERVIDOR (15/09/2026).
+			 *
+			 * `IdleConfig.serverConfig` e o ESTADO ACEITO - o mesmo campo que
+			 * `IdleConfig.js` so preenche na resposta de `pedir` ou de `aplicar`
+			 * bem sucedido (nunca o rascunho `editConfig`, que o jogador pode
+			 * estar editando sem ter confirmado nada). Exigir os DOIS campos
+			 * (`pocaoDeHp.ligado` e `pocaoDeSp.ligado`) e nao o rascunho e o
+			 * mesmo padrao de "sinal confirmado pelo servidor" que a etapa da
+			 * arma usa com `Session.Entity.weapon`. O percentual de 50% que a
+			 * frase ensina NAO e cobrado aqui: e o numero que o passo ENSINA a
+			 * colocar, nao um piso que a etapa exige - ver o cabecalho de
+			 * `retrato.pocoesConfiguradas` em `servidor/tutorial.ts`.
+			 */
+			const ic = idleConfig();
+			const cfg = ic && ic.serverConfig;
+			return !!(cfg && cfg.pocaoDeHp && cfg.pocaoDeHp.ligado && cfg.pocaoDeSp && cfg.pocaoDeSp.ligado);
+		}
 		case 7:
+			/* O SERVIDOR marcou a missao ativa. `execucao` vem do
+			   ZC_RAGIDLE_MISSOES, que a janela de Missoes recebe e guarda. */
+			return !!(execucao && execucao.ativaId);
+		case 8:
 			/* Chegou: o mapa carregado nao e mais o de quando a etapa comecou. */
 			return !!(_marco && MapRenderer.currentMap && MapRenderer.currentMap !== _marco.mapa);
-		case 8:
+		case 9:
 			/* O primeiro abate depois que a etapa comecou. */
 			return abatesAgora() > (_marco ? _marco.abates : 0);
-		case 9: {
+		case 10: {
 			/* O contador do objetivo andou. */
 			const agora = execucao && execucao.passo ? execucao.passo.progresso || 0 : 0;
 			return agora > (_marco ? _marco.progresso : 0);
 		}
-		case 10:
+		case 11:
 			return janelaAberta('CodexIdle', '.cx-window');
 		default:
 			return false;
@@ -545,7 +616,7 @@ function desenhar() {
 		recorte = medirRecorte(alvo, tela);
 	}
 
-	/* Etapa sem alvo por desenho (a 6) OU alvo que sumiu e nao tem volta:
+	/* Etapa sem alvo por desenho (a 9) OU alvo que sumiu e nao tem volta:
 	   a camada fica sem mascara e so o balao fala. Escurecer a tela sem um
 	   furo seria trancar o jogador atras de um vidro preto. */
 	const semMascara = !recorte;
@@ -586,7 +657,7 @@ function desenhar() {
 	 * SEM FURO, NENHUM RETANGULO. A prova de tela pegou isto: o CSS ja tinha
 	 * `.sem-mascara .tu-veu { display: none }`, mas o `style.display` que este
 	 * laco escreve e INLINE e vence a folha, entao a etapa de OLHAR (sem alvo
-	 * - a 8a, "entender a caca automatica", ver `etapasDoTutorial.js`) saia
+	 * - a 9a, "entender a caca automatica", ver `etapasDoTutorial.js`) saia
 	 * com a tela inteira escurecida e engolindo o clique da cena. Quem
 	 * manda no `display` e este laco, e nao a folha: um estado escrito em dois
 	 * lugares e um estado que discorda de si mesmo.
@@ -675,6 +746,17 @@ function tique() {
 
 	if (_avancoMandado !== numero && etapaCumprida(numero)) {
 		_avancoMandado = numero;
+		/* Fecha a janela desta etapa ANTES de pedir o avanco: ver o
+		   cabecalho de `fecharJanelaDaEtapa`. So as tres cujo alvo e a
+		   janela INTEIRA (e que ficam no caminho de "iniciar a missao"
+		   ate a proxima etapa abrir outra coisa) precisam disso. */
+		if (numero === 4) {
+			fecharJanelaDaEtapa('CorreioIdle', '.co-window');
+		} else if (numero === 5) {
+			fecharJanelaDaEtapa('MochilaIdle', '.mo-window');
+		} else if (numero === 6) {
+			fecharJanelaDaEtapa('IdleConfig', '.ic-window');
+		}
 		mandar('avancar', numero + 1);
 	}
 

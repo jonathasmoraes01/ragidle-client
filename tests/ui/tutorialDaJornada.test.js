@@ -25,10 +25,10 @@ import {
 const TELA = { largura: 1600, altura: 900 };
 const MAO = { largura: 100, altura: 100, pontaX: 10, pontaY: 12 };
 
-describe('as dez etapas', () => {
-	it('são dez, numeradas de 1 a 10, sem buraco', () => {
+describe('as onze etapas', () => {
+	it('são onze, numeradas de 1 a 11, sem buraco', () => {
 		expect(ETAPAS).toHaveLength(TOTAL_DE_ETAPAS);
-		expect(ETAPAS.map(e => e.numero)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+		expect(ETAPAS.map(e => e.numero)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]);
 	});
 
 	it('cada etapa avança por um RESULTADO nomeado, e nenhum deles é um clique em "Próximo"', () => {
@@ -81,7 +81,7 @@ describe('as dez etapas', () => {
 	it('toda etapa cujo alvo pode sumir da tela tem caminho de volta', () => {
 		/* As que apontam para dentro do leque ou de uma janela: fechar a janela
 		   ou recolher o leque deixa o alvo em 0x0. */
-		for (const numero of [2, 3, 4, 5, 6, 7, 10]) {
+		for (const numero of [2, 3, 4, 5, 6, 7, 8, 11]) {
 			const etapa = etapaDe(numero);
 			expect(etapa.quandoSumir, `etapa ${numero}`).toBeTruthy();
 			expect(etapa.quandoSumir.seletor).toBeTruthy();
@@ -89,8 +89,8 @@ describe('as dez etapas', () => {
 		}
 	});
 
-	it('a etapa 8 é a única sem alvo, e isso é declarado', () => {
-		expect(ETAPAS.filter(e => e.alvo === null).map(e => e.numero)).toEqual([8]);
+	it('a etapa 9 é a única sem alvo, e isso é declarado', () => {
+		expect(ETAPAS.filter(e => e.alvo === null).map(e => e.numero)).toEqual([9]);
 	});
 
 	it('todo alvo mora num Shadow DOM identificado por host', () => {
@@ -103,7 +103,7 @@ describe('as dez etapas', () => {
 
 	it('etapa fora da faixa não desenha nada', () => {
 		expect(etapaDe(0)).toBeNull();
-		expect(etapaDe(11)).toBeNull();
+		expect(etapaDe(12)).toBeNull();
 		expect(etapaDe(undefined)).toBeNull();
 	});
 });
