@@ -8,7 +8,8 @@
 
 import WebGL from 'Utils/WebGL.js';
 import glMatrix from 'Utils/gl-matrix.js';
-import Client from 'Core/Client.js';
+import { texturaDeEfeito } from 'Renderer/Effects/texturaDeEfeito.js';
+import { carregarTexturaDeEfeito } from 'Renderer/Effects/carregadorDeTexturaDeEfeito.js';
 import _vertexShader from './QuadHorn.vs?raw';
 import _fragmentShader from './QuadHorn.fs?raw';
 
@@ -99,16 +100,33 @@ class QuadHorn {
 		gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(texCoords), gl.STATIC_DRAW);
 
 		const self = this;
-		Client.loadFile('data/texture/' + this.textureFile, function (buffer) {
-			WebGL.texture(gl, buffer, function (texture) {
+		// RAGIDLE (15/09/2026, D-1412): textura por NOME, dividida entre os
+		// efeitos — ver `Renderer/Effects/texturaDeEfeito.js` (D-1378).
+		texturaDeEfeito(
+			gl,
+			this.textureFile,
+			function (texture) {
 				self.texture = texture;
 				self.ready = true;
-			});
-		});
+			},
+			carregarTexturaDeEfeito
+		);
 	}
 
 	free(gl) {
 		gl.deleteBuffer(this.buffer);
+		/*
+		 * RAGIDLE (15/09/2026, D-1412): `texCoordBuffer` e criado por
+		 * INSTANCIA em `init()` (linha 97) e nunca era apagado aqui — o
+		 * vizinho `this.buffer`, criado do lado, ja era. Ao contrario da
+		 * textura (dividida por nome), os dois buffers de vertice NAO sao
+		 * compartilhados entre efeitos.
+		 */
+		if (this.texCoordBuffer) {
+			gl.deleteBuffer(this.texCoordBuffer);
+			this.texCoordBuffer = null;
+		}
+		// A textura e DIVIDIDA (`texturaDeEfeito.js`): este efeito nao a apaga.
 		this.ready = false;
 	}
 

@@ -10,7 +10,8 @@
 import _vertexShader from './GroundAura.vs?raw';
 import _fragmentShader from './GroundAura.fs?raw';
 import WebGL from 'Utils/WebGL.js';
-import Client from 'Core/Client.js';
+import { texturaDeEfeito } from 'Renderer/Effects/texturaDeEfeito.js';
+import { carregarTexturaDeEfeito } from 'Renderer/Effects/carregadorDeTexturaDeEfeito.js';
 import Altitude from 'Renderer/Map/Altitude.js';
 import SpriteRenderer from 'Renderer/SpriteRenderer.js';
 
@@ -116,18 +117,24 @@ class GroundAura {
 	 * Initialize instance
 	 */
 	init(gl) {
-		Client.loadFile(`data/texture/effect/${this.textureName}`, buffer => {
-			WebGL.texture(gl, buffer, texture => {
+		// RAGIDLE (15/09/2026, D-1412): textura por NOME, dividida entre os
+		// efeitos — ver `Renderer/Effects/texturaDeEfeito.js` (D-1378).
+		texturaDeEfeito(
+			gl,
+			`effect/${this.textureName}`,
+			texture => {
 				this.texture = texture;
 				this.ready = true;
-			});
-		});
+			},
+			carregarTexturaDeEfeito
+		);
 	}
 
 	/**
 	 * Free instance resources
 	 */
 	free(gl) {
+		// A textura e DIVIDIDA (`texturaDeEfeito.js`): este efeito nao a apaga.
 		this.ready = false;
 	}
 

@@ -8,7 +8,8 @@
 
 import WebGL from 'Utils/WebGL.js';
 import glMatrix from 'Utils/gl-matrix.js';
-import Client from 'Core/Client.js';
+import { texturaDeEfeito } from 'Renderer/Effects/texturaDeEfeito.js';
+import { carregarTexturaDeEfeito } from 'Renderer/Effects/carregadorDeTexturaDeEfeito.js';
 import Camera from 'Renderer/Camera.js';
 import SpriteRenderer from 'Renderer/SpriteRenderer.js';
 import _vertexShader from './Cylinder.vs?raw';
@@ -183,12 +184,17 @@ class Cylinder {
 		gl.bindBuffer(gl.ARRAY_BUFFER, this.buffer);
 		gl.bufferData(gl.ARRAY_BUFFER, this.vertices, gl.STATIC_DRAW);
 
-		Client.loadFile(`data/texture/effect/${this.textureName}.tga`, buffer => {
-			WebGL.texture(gl, buffer, texture => {
+		// RAGIDLE (15/09/2026, D-1412): textura por NOME, dividida entre os
+		// efeitos — ver `Renderer/Effects/texturaDeEfeito.js` (D-1378).
+		texturaDeEfeito(
+			gl,
+			`effect/${this.textureName}.tga`,
+			texture => {
 				this.texture = texture;
 				this.ready = true;
-			});
-		});
+			},
+			carregarTexturaDeEfeito
+		);
 	}
 
 	/**
@@ -197,6 +203,20 @@ class Cylinder {
 	 * @param {object} webgl context
 	 */
 	free(gl) {
+		/*
+		 * RAGIDLE (15/09/2026, D-1412): o BUFFER de vertices e POR INSTANCIA
+		 * (criado em `init()`, um por invocacao do efeito) e nunca era
+		 * apagado aqui. O `static free(gl)` logo abaixo tambem nunca o
+		 * apagava: `this` ali e a CLASSE, e `Cylinder.buffer` nunca chega a
+		 * existir — so a instancia tem `this.buffer`. Ao contrario da
+		 * textura (dividida por nome), o buffer NAO e compartilhado entre
+		 * efeitos, entao ele e apagado aqui mesmo.
+		 */
+		if (this.buffer) {
+			gl.deleteBuffer(this.buffer);
+			this.buffer = null;
+		}
+		// A textura e DIVIDIDA (`texturaDeEfeito.js`): este efeito nao a apaga.
 		this.ready = false;
 	}
 
