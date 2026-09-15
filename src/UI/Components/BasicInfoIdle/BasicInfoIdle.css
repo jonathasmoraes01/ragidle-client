@@ -146,7 +146,9 @@
 		var(--ri-dourado) 75%,
 		var(--ri-dourado-claro)
 	);
-	box-shadow: 0 0 0 1px var(--ri-dourado), 0 3px 8px rgba(31, 54, 92, 0.32);
+	box-shadow:
+		0 0 0 1px var(--ri-dourado),
+		0 3px 8px rgba(31, 54, 92, 0.32);
 }
 
 .bi-avatar-frame::before,
@@ -283,10 +285,29 @@
    (`atalhosDaUiNova`, `cruzamentosDaHudResponsiva`, `hudNaoRedesenhaAToa`);
    o painel tambem nao tem altura fixa, ele cresce pelo conteudo e a posicao e
    re-clampada contra a borda da tela. */
+/* A ALTURA E UMA VARIAVEL, E ISSO E O CONSERTO (15/09/2026, D-1486).
+   Relato do dono, no iPhone: *"no mobile ainda nao esta aparecendo a % do level
+   atual (a altura da barra de exp esta pequena)"* — e o diagnostico dele estava
+   certo, letra por letra.
+
+   O defeito: a % nasceu em D-1319 com `line-height: 14px` CRAVADO, casando com
+   a altura desta regra. Mas TRES outras regras encolhem o trilho — 6px no
+   celular em pe, 4px na tela baixa, 4px no modo compacto — e nenhuma delas foi
+   visitada por aquela rodada. Com `overflow: hidden` aqui, o texto de 9px
+   dentro de uma caixa de linha de 14px sobrava ~3,5px de ~9px de glifo: o dono
+   via o TOPO dos digitos e mais nada.
+
+   Por que uma variavel e nao so trocar os numeros: consertar as tres regras a
+   mao deixaria a QUARTA — a que alguem escrever amanha — livre para repetir o
+   mesmo defeito, calada. Aqui quem muda a altura do trilho move o texto junto,
+   de graca, porque os dois leem o mesmo valor. E abaixo de ~12px nao ha altura
+   que faca 9px caberem: nesses casos a regra APAGA a % (`--bi-exp-pct-visivel`)
+   em vez de mostrar meio digito, que e pior que nao mostrar nada. */
 .bi-exp-track {
 	position: relative;
 	flex: 1 1 auto;
-	height: 14px;
+	--bi-exp-altura: 14px;
+	height: var(--bi-exp-altura);
 	border-radius: 999px;
 	background: linear-gradient(180deg, #f4e9cd, #ecdbac);
 	border: 1px solid var(--ri-dourado);
@@ -312,9 +333,12 @@
 .bi-exp-pct {
 	position: absolute;
 	inset: 0;
-	display: block;
+	/* Os dois `var()` sao o que amarra este texto ao trilho que o contem: a
+	   altura vem de `--bi-exp-altura` (herdada do `.bi-exp-track`, que e o pai),
+	   e o trilho fino demais para 9px apaga a % em vez de corta-la. */
+	display: var(--bi-exp-pct-visivel, block);
 	text-align: center;
-	line-height: 14px;
+	line-height: var(--bi-exp-altura, 14px);
 	font-size: 9px;
 	font-weight: 700;
 	letter-spacing: 0.2px;
@@ -562,8 +586,14 @@
 	font-size: 10px;
 }
 
+/* O COMPACTO FICA FINO E APAGA A %, de proposito (15/09/2026, D-1486). Aqui o
+   trilho e uma risca: 9px de letra nao cabem em 4px, e engordar a barra
+   desfaria o unico motivo de existir do modo compacto. Meio digito e pior que
+   digito nenhum — quem quer o numero abre o cartao. */
 .bi-body.is-compact .bi-exp-track {
-	height: 4px;
+	--bi-exp-altura: 4px;
+	--bi-exp-pct-visivel: none;
+	height: var(--bi-exp-altura);
 }
 
 .bi-body.is-compact .bi-bar {
@@ -729,8 +759,14 @@
 		font-size: 10px;
 	}
 
+	/* Tela BAIXA (celular deitado, janela curta): mesma decisao do compacto —
+	   4px nao comportam a %, entao ela sai em vez de sair pela metade
+	   (15/09/2026, D-1486). O celular EM PE nao cai aqui: `.ri-vertical
+	   .bi-exp-track` vence por especificidade e da 13px com a % visivel. */
 	.bi-exp-track {
-		height: 4px;
+		--bi-exp-altura: 4px;
+		--bi-exp-pct-visivel: none;
+		height: var(--bi-exp-altura);
 	}
 
 	/* ─── HP/SP: mesmos numeros de ".bi-body.is-compact .bi-bar" etc (o
@@ -968,7 +1004,18 @@
 .ri-vertical .bi-exp-track {
 	display: block !important;
 	flex: 1 1 auto;
-	height: 6px;
+	/* 6px -> 13px (15/09/2026, D-1486): E ESTA A REGRA DO APARELHO DO DONO.
+	   Um 402x714 com dedo cai aqui, e com 6px a % ficava cortada ao meio — 9px
+	   de letra nao cabem em 6px de caixa, e `overflow: hidden` no trilho fazia o
+	   resto. 13px e o menor valor que mostra o digito INTEIRO com folga; o
+	   desktop usa 14. O preco sao 7px por linha, 14px nas duas — o que o cartao
+	   do topo cresce para a % existir.
+
+	   Esta regra vence a de `max-height: 699px` por especificidade (0,2,0 contra
+	   0,1,0 — media query nao soma), entao todo celular EM PE passa por aqui,
+	   inclusive os baixos. Era ja assim com os 6px. */
+	--bi-exp-altura: 13px;
+	height: var(--bi-exp-altura);
 	margin: 0 !important;
 }
 

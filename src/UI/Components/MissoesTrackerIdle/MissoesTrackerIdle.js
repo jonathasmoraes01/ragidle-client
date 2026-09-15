@@ -63,11 +63,45 @@ import { ehCelularEmPe } from 'UI/hudVertical.js'; // D-939: na vertical a ancor
  * pioraria uma violação que já existe e trocaria "cartão grande" por "cartão
  * em que o dedo erra o alvo" — que é o defeito mais caro dos dois.
  *
- * A dívida dos 44px fica NOMEADA aqui de propósito, e não foi paga nesta
- * rodada: pagá-la faria o cartão CRESCER, que é o oposto do que o dono pediu,
- * e as duas coisas juntas precisam da decisão dele.
+ * ---------------------------------------------------------------------------
+ * A DÍVIDA DOS 44px FOI PAGA — 3 -> 2, e o cartão ENCOLHEU (D-1487, 15/09/2026)
+ * ---------------------------------------------------------------------------
+ * O dono mandou pagar. O parágrafo acima apresentava isso como uma troca — ou
+ * cartão pequeno, ou alvo tocável — e **a troca não existia**: ela vinha de uma
+ * conta errada, e refazê-la resolveu os dois lados.
+ *
+ * O que a conta anterior não viu: `.mt-corpo` é **content-box** (este projeto
+ * não tem `box-sizing` global — o `Common.css` o declara só para `.ri-header`),
+ * então os `8px` de `padding` ficavam FORA do `max-height: 22dvh`. O cartão era
+ * ~16px mais alto do que o próprio comentário de D-1483 calculava. Esses 16px
+ * pagaram quase toda a conta sozinhos.
+ *
+ * O balanço, num 402x714 — `2 + 48 + (157 + 16) + 36` = **~259px** antes:
+ *
+ * | | |
+ * |---|---|
+ * | `box-sizing: border-box` no `.mt-corpo` | **−16px** |
+ * | `MAX_LINHAS` 3 -> 2, com a linha a 44px | **−3px** |
+ * | `.mt-ver-todas` 36 -> 44px | **+8px** |
+ * | | **~248px**, contra ~259px |
+ *
+ * Ou seja: **todo alvo alcançou o piso e o cartão ficou MENOR do que estava.**
+ *
+ * As duas linhas listadas cabem em `2 × 44 + 4 de gap + 16 de padding = 108px`,
+ * contra os `3 × 29 + 8 + 16 = 111px` de antes — e a terceira missão não some
+ * do jogo, pelo mesmo motivo que as duas de D-1483: a lista completa sempre
+ * morou na janela de Missões.
+ *
+ * As regras táteis moram no bloco `@media (pointer: coarse)` do `Common.css`,
+ * e não aqui — é lá que o portão `areaDeToqueAncoraNoBotao` procura, e regra
+ * escrita na folha do componente não seria vigiada por ninguém.
+ *
+ * **O que sobrou na mesa, se o dono quiser mais 36px:** `.mt-ver-todas` pode
+ * virar um ícone dentro da fileira de abas (que já tem 44px de altura e ~56px
+ * livres), apagando a faixa própria dele. Não foi feito aqui porque troca um
+ * botão com texto por um glifo, e isso é escolha de produto, não de layout.
  */
-const MAX_LINHAS = 3;
+const MAX_LINHAS = 2;
 
 const MissoesTrackerIdle = new GUIComponent('MissoesTrackerIdle', cssText);
 
@@ -298,7 +332,7 @@ function syncPosition() {
 	 * que torna essa gaveta aceitavel -- o acompanhamento de toda hora e ele.
 	 */
 	const topoDoCluster = parseFloat(
-		getComputedStyle(host.ownerDocument.documentElement).getPropertyValue('--hud-cluster-topo'),
+		getComputedStyle(host.ownerDocument.documentElement).getPropertyValue('--hud-cluster-topo')
 	);
 	const meuTopo = rect.bottom + 8;
 	if (Number.isFinite(topoDoCluster) && topoDoCluster > meuTopo) {
@@ -336,7 +370,7 @@ function syncPosition() {
 	if (meu.height > 0) {
 		host.ownerDocument.documentElement.style.setProperty(
 			'--hud-coluna-fundo',
-			`${Math.round(emUnidadesDaHud(meu.bottom))}px`,
+			`${Math.round(emUnidadesDaHud(meu.bottom))}px`
 		);
 	}
 }
@@ -404,9 +438,7 @@ function render(missoes, execucao) {
 	 * dela não é um Iniciar: é a porta da janela, onde a grade de classes
 	 * mora. `m.classes` só viaja na missão de troca — é a marca dela.
 	 */
-	const trocasAbertas = missoes.filter(
-		m => m.classes && m.classes.length && m.estado === 'disponivel'
-	);
+	const trocasAbertas = missoes.filter(m => m.classes && m.classes.length && m.estado === 'disponivel');
 	const linhasDeTroca = trocasAbertas.map(
 		m => `
 			<li>
