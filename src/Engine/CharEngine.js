@@ -62,6 +62,16 @@ let _resettingPincode = false;
 let _creatingPincode = false;
 
 class CharEngine {
+	/**
+	 * O servidor de personagem ATUAL (R12, 14/09/2026) — `null` antes da
+	 * primeira selecao. Getter, e nao propriedade solta: `_server` continua
+	 * privado ao modulo, so' a LEITURA e' publica (mesmo padrao de
+	 * `MapEngine.servidorAtual`).
+	 */
+	static get servidorAtual() {
+		return _server;
+	}
+
 	/*
 	 * Connect to char server
 	 */

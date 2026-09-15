@@ -48,8 +48,19 @@ function Socket(host, port, proxy) {
 		self.onMessage(event.data);
 	};
 
-	this.ws.onclose = function OnClose() {
+	this.ws.onclose = function OnClose(event) {
 		self.connected = false;
+		/*
+		 * R12 (14/09/2026, reconexao automatica): guarda o codigo/razao do
+		 * fechamento ANTES de notificar — e' o unico jeito de a camada de cima
+		 * (NetworkManager.onClose) distinguir "servidor fora" de "a PONTE
+		 * recusou por lotacao" (wsproxy.js fecha com 1013, motivo "ponte no
+		 * limite: ..."). `event` pode faltar num `close()` disparado por nos
+		 * mesmos (linha abaixo, `this.close()` sem argumento nenhum), entao os
+		 * dois campos tem valor de reserva.
+		 */
+		self.closeCode = event && typeof event.code === 'number' ? event.code : null;
+		self.closeReason = event && typeof event.reason === 'string' ? event.reason : '';
 		this.close();
 
 		if (self.onClose) {
@@ -71,12 +82,21 @@ Socket.prototype.send = function Send(buffer) {
 
 /**
  * Closing connection to server
+ *
+ * R12 (14/09/2026): antes so fechava se `this.connected` fosse verdadeiro —
+ * uma conexao ainda em CONNECTING (nem aberta nem com erro ainda) passava
+ * batido, e e' exatamente o caso que a reconexao automatica precisa
+ * encerrar de fora quando uma tentativa fica PENDURADA alem do proprio
+ * orcamento de tempo (Network/reconexao.js). `readyState` e' quem manda
+ * agora: fecha em CONNECTING (0) e OPEN (1), nunca de novo em CLOSING (2)
+ * ou CLOSED (3) — chamar `.close()` num WebSocket ja fechado nao da erro,
+ * mas nao ha motivo para o pedido extra.
  */
 Socket.prototype.close = function Close() {
-	if (this.connected) {
+	if (this.ws && this.ws.readyState !== 2 && this.ws.readyState !== 3) {
 		this.ws.close();
-		this.connected = false;
 	}
+	this.connected = false;
 };
 
 /**

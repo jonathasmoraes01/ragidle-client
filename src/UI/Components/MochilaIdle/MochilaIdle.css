@@ -522,6 +522,40 @@
 	height: 9px;
 }
 
+/* Selo de TRAVA CONTRA VENDA (R14/C2-3, 14/09/2026): canto SUPERIOR
+   ESQUERDO — o direito e' da fantasia, o inferior esquerdo e' da
+   quantidade/refino. Cinza/neutro de proposito (nao e' premium nem
+   conquista, e' um AVISO de protecao) — a mesma tinta do "trancado" do
+   Mapa de Caca (`.hm-card.fit-locked`, HuntMap.css). */
+.mo-item-trava {
+	position: absolute;
+	top: -4px;
+	left: -4px;
+	width: 15px;
+	height: 15px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	border-radius: 50%;
+	border: 1px solid var(--border-hairline);
+	background: linear-gradient(180deg, var(--white), var(--ink-100, var(--sky-100)));
+	color: var(--text-muted);
+	box-shadow: var(--shadow-card);
+	pointer-events: none;
+}
+
+.mo-item-trava svg {
+	width: 9px;
+	height: 9px;
+}
+
+/* A celula inteira a 85% (nao 55% como o mapa trancado): a peca ainda pode
+   ser usada/equipada/guardada normalmente (a trava e' SO contra venda), um
+   apagamento forte demais leria como "esta peca esta desativada". */
+.mo-item.is-travado {
+	opacity: 0.85;
+}
+
 .mo-rodape {
 	flex: 0 0 auto;
 	display: flex;

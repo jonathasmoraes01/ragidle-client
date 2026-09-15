@@ -15,6 +15,8 @@
 
 import DB from 'DB/DBManager.js';
 import ItemType from 'DB/Items/ItemType.js';
+import Session from 'Engine/SessionStorage.js';
+import { pesoDeItem } from 'DB/Items/fichasDeItem.js';
 import Client from 'Core/Client.js';
 import Preferences from 'Core/Preferences.js';
 import Renderer from 'Renderer/Renderer.js';
@@ -28,7 +30,13 @@ import ItemInfo from 'UI/Components/ItemInfo/ItemInfo.js';
 import CartItems from 'UI/Components/CartItems/CartItems.js';
 import Inventory from 'UI/Components/Inventory/Inventory.js';
 import ContextMenu from 'UI/Components/ContextMenu/ContextMenu.js';
-import { CARRINHO, destinoDaRetirada, quantidadeDaRetirada } from './retiradaDoArmazem.js';
+import {
+	CARRINHO,
+	destinoDaRetirada,
+	quantidadeDaRetirada,
+	quantidadePadraoDaRetirada,
+	tetoPeloPeso
+} from './retiradaDoArmazem.js';
 
 export function createStorage(config) {
 	const {
@@ -801,16 +809,29 @@ export function createStorage(config) {
 	 * Retirar do armazem para o corpo. Pilha de mais de um pergunta quanto,
 	 * pelo MESMO InputBox que o deposito ja usa em `onDrop` acima -- um unico
 	 * jeito de pedir quantidade nesta janela.
+	 *
+	 * R17/C2-6 (14/09/2026): o armazem nao tinha "máx" nenhum -- so' a pilha
+	 * limitava, e retirar tudo podia passar do peso livre sem aviso nenhum
+	 * ate o servidor recusar. O campo agora NASCE preenchido com a maior
+	 * quantidade que cabe no peso restante (`quantidadePadraoDaRetirada`), e
+	 * o mesmo teto entra na confirmacao (`quantidadeDaRetirada`) -- digitar
+	 * um numero maior continua sendo recusado aqui, antes de qualquer
+	 * viagem de rede.
 	 */
 	function pedirRetirada(item) {
 		const total = item.count || 1;
 
 		if (total > 1) {
+			const pesoUnit = typeof item.weight === 'number' ? item.weight : pesoDeItem(item.ITID);
+			const pesoLivre = Session.Entity ? (Session.Entity.max_weight || 0) - (Session.Entity.weight || 0) : 0;
+			const tetoDoPeso = tetoPeloPeso(pesoLivre, pesoUnit);
+			const padrao = quantidadePadraoDaRetirada(total, tetoDoPeso);
+
 			InputBox.append();
-			InputBox.setType('number', false, total);
+			InputBox.setType('number', false, padrao);
 			InputBox.onSubmitRequest = function OnSubmitRequest(count) {
 				InputBox.remove();
-				const quantos = quantidadeDaRetirada(count, total);
+				const quantos = quantidadeDaRetirada(count, total, tetoDoPeso);
 				if (quantos !== null) {
 					Component.reqRemoveItem(item.index, quantos);
 				}

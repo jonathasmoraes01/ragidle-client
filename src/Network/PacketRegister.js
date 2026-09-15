@@ -1037,6 +1037,9 @@ export default {
 	0x0fca: PACKET.ZC.RAGIDLE_RANKING,
 	// COMANDOS (12/09/2026, o autocompletar): so o ZC — o CZ 0x0fc7 e escrito, nunca lido.
 	0x0fc8: PACKET.ZC.RAGIDLE_COMANDOS,
+	// TRAVA CONTRA VENDA (R14/C2-3, 14/09/2026): so o ZC entra aqui — o CZ
+	// 0x0fc2 e escrito pelo cliente, nunca lido. Mesma razao dos vizinhos.
+	0x0fc3: PACKET.ZC.RAGIDLE_TRAVAS,
 	// VOTO (D-1159): so o ZC entra aqui — o CZ 0x0fd4 e escrito pelo cliente,
 	// nao lido. Mesma razao dos vizinhos acima. Ele desce respondendo aos TRES
 	// verbos e tambem na ENTRADA no mapa (com `avisar: true`), sem ZC de erro.
@@ -1045,7 +1048,6 @@ export default {
 	// COMPARACAO DE EQUIPAMENTO (08/09/2026): so o ZC entra aqui — o CZ 0x0fd8 e
 	// escrito pelo cliente.
 	0x0fd9: PACKET.ZC.RAGIDLE_ITEM,
-
 
 	0xb1a: PACKET.ZC.USESKILL_ACK3 // USE SKILL 3
 };

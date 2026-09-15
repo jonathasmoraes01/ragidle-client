@@ -16,6 +16,7 @@ import BGM from 'Audio/BGM.js';
 import Events from 'Core/Events.js';
 import Session from 'Engine/SessionStorage.js';
 import Network from 'Network/NetworkManager.js';
+import Reconexao from 'Network/reconexao.js';
 import BackgroundTicker from 'Network/BackgroundTicker.js';
 import PACKETVER from 'Network/PacketVerManager.js';
 import PACKET from 'Network/PacketStructure.js';
@@ -180,6 +181,15 @@ import TelaAcesaNoFarm from 'UI/telaAcesaNoFarm.js'; // RAGIDLE: o modo leitura 
 let _mapName = '';
 
 /**
+ * @type {number|null} raw ip/port passed to init() — os MESMOS argumentos
+ * que uma reconexao (Network/reconexao.js) precisa para re-entrar
+ * (MapEngine.init de novo, o mesmo caminho ja reentrante do onServerChange).
+ * Privados ate o R12 (14/09/2026): expor via `MapEngine.servidorAtual`.
+ */
+let _ip = null;
+let _port = null;
+
+/**
  * @type {boolean} is initialized
  */
 let _isInitialised = false;
@@ -201,14 +211,33 @@ class MapEngine {
 	static needsUIVerUpdate = false;
 
 	/**
+	 * O endereco do servidor de mapa ATUAL (R12, 14/09/2026) — `null` antes da
+	 * primeira entrada. Getter, e nao propriedade solta: `_ip`/`_port`/
+	 * `_mapName` continuam privados ao modulo, so' a LEITURA e' publica.
+	 */
+	static get servidorAtual() {
+		return _ip !== null ? { ip: _ip, port: _port, mapName: _mapName } : null;
+	}
+
+	/**
 	 * Connect to Map Server
 	 *
-	 * @param {number} IP
+	 * @param {number} ip
 	 * @param {number} port
 	 * @param {string} mapName
+	 * @param {function} [aoFalhar] - R12 (14/09/2026): quando fornecida, e'
+	 *   chamada no lugar de `UIManager.showErrorBox` se o connect falhar —
+	 *   e' assim que Network/reconexao.js tenta de novo sem reabrir a caixa
+	 *   de erro generica a cada tentativa. Omitida, o comportamento e' o de
+	 *   sempre.
+	 * @return {Socket} o socket criado (Network.connect ja o devolve
+	 *   sincronamente) — a reconexao guarda essa referencia para poder
+	 *   fechar explicitamente uma tentativa que fique pendurada.
 	 */
-	static init(ip, port, mapName) {
+	static init(ip, port, mapName, aoFalhar) {
 		_mapName = mapName;
+		_ip = ip;
+		_port = port;
 		_exiting = false;
 		_exitTimer = null;
 
@@ -216,7 +245,7 @@ class MapEngine {
 		const forceAddress = Configs.get('forceUseAddress');
 		const server_info = Configs.getServer();
 		const current_ip = forceAddress ? server_info.address : Network.utils.longToIP(ip);
-		Network.connect(
+		const socket = Network.connect(
 			current_ip,
 			port,
 			success => {
@@ -225,7 +254,11 @@ class MapEngine {
 
 				// Fail to connect...
 				if (!success) {
-					UIManager.showErrorBox(DB.getMessage(1));
+					if (typeof aoFalhar === 'function') {
+						aoFalhar();
+					} else {
+						UIManager.showErrorBox(DB.getMessage(1));
+					}
 					return;
 				}
 
@@ -301,6 +334,15 @@ class MapEngine {
 				BackgroundTicker.start(sendKeepAlive);
 
 				Session.Playing = true;
+
+				/*
+				 * R12 (14/09/2026): ARMA (ou re-arma) a reconexao automatica
+				 * assim que o SOCKET fica de pe — antes mesmo da confirmacao
+				 * do personagem (ZC_ACCEPT_ENTER*, ver onConnectionAccepted).
+				 * Se o socket cair ANTES dessa confirmacao, ainda queremos
+				 * tentar de novo com o mesmo endereco.
+				 */
+				Reconexao.armar(ip, port, mapName);
 			},
 			true
 		);
@@ -633,6 +675,8 @@ class MapEngine {
 			// Avoid zone server change init
 			MapEngine.needsUIVerUpdate = false;
 		}
+
+		return socket;
 	}
 }
 
@@ -737,6 +781,11 @@ function onReceiveAccountID(pkt) {
  * @param {object} pkt - PACKET.ZC.ACCEPT_ENTER
  */
 function onConnectionAccepted(pkt) {
+	// R12 (14/09/2026): entrada confirmada — se isto era uma reconexao em
+	// curso, zera a escalada e avisa "reconectado"; se nao, e' um no-op
+	// seguro (ver Reconexao.aoEntrarComSucesso).
+	Reconexao.aoEntrarComSucesso();
+
 	Session.Entity.onWalkEnd = onWalkEnd;
 
 	if ('sex' in pkt && pkt.sex < 2) {
@@ -804,6 +853,15 @@ function onConnectionAccepted(pkt) {
  * @param {object} pkt - PACKET.ZC.REFUSE_ENTER
  */
 function onConnectionRefused(pkt) {
+	/*
+	 * R12 (14/09/2026): uma recusa DURANTE um ciclo de reconexao quer dizer
+	 * que a sessao (AuthCode) nao vale mais — nao adianta insistir no mesmo
+	 * endereco. `aoSerRecusado()` so' age (e devolve true) quando havia um
+	 * ciclo em curso; fora disso o comportamento e' o de sempre.
+	 */
+	if (Reconexao.aoSerRecusado()) {
+		return;
+	}
 	UIManager.showErrorBox(DB.getMessage(9)); // MSI_ACCESS_DENIED = Rejected from Server.
 }
 
@@ -1565,6 +1623,11 @@ function onExitSuccess() {
 	Mouse.intersect = false;
 	UIManager.removeComponents();
 	BackgroundTicker.stop();
+	// R12 (14/09/2026): logout voluntario cancela qualquer ciclo de
+	// reconexao em curso (rede de seguranca explicita — `Network.close()`
+	// logo abaixo ja impede o proprio `onDisconnect` de disparar, ver
+	// NetworkManager.js).
+	Reconexao.cancelar();
 	Network.close();
 	Renderer.stop();
 	MapRenderer.free();
@@ -1615,6 +1678,9 @@ function onRestartAnswer(pkt) {
 		Mouse.intersect = false;
 		MapRenderer.free();
 		Renderer.stop();
+		// R12 (14/09/2026): voltar ao char-select e' saida voluntaria da
+		// fase de mapa, mesma razao de onExitSuccess acima.
+		Reconexao.cancelar();
 		onRestart();
 	}
 }

@@ -277,7 +277,6 @@
 	padding-top: var(--sp-2);
 }
 
-
 /* ─── Barra de passo: "‹ Voltar" + onde o jogador está ──────────────── */
 
 /* Esta barra nasceu para o CELULAR EM PE (o caminho regiao -> mapas ->
@@ -479,11 +478,32 @@
    pecas dividiam o mesmo pedaco de moldura e a estrela ficava POR CIMA da
    seta.
 
-   O conserto e ancorar o desenho no canto (flex-start/flex-end) em vez de
-   encolher a caixa: os 44px de toque continuam inteiros, e o glifo sobe e
-   vai para a direita ate quase encostar na moldura. Com 22px de lado ele
-   termina a 22px do topo e a 24px da direita - para exatamente onde a seta
-   comeca, sem sobrepor. */
+   O conserto de 10/09 ancorou o DESENHO no canto (flex-start/flex-end) em
+   vez de encolher a caixa, e so resolveu a metade do problema: o GLIFO
+   parou de se sobrepor visualmente, mas a CAIXA DE TOQUE invisivel — os
+   44px inteiros, "area generosa, desenho discreto" acima — continuava
+   cobrindo os 22px superiores da seta inteira, porque `.hm-card-fav` e
+   `position: absolute` (participa da ordem de pintura dos elementos
+   posicionados) e `.hm-card-go` nao era posicionado nenhum: um elemento
+   posicionado pinta POR CIMA de um estatico, na mesma pilha, nao importa a
+   ordem no DOM. Um toque no topo da seta ainda favoritava, nunca viajava —
+   sem o mapa entrar em @stopImmediatePropagation nenhum, porque o alvo do
+   evento ja era a estrela, e nao a seta (R13, 14/09/2026).
+
+   O CONSERTO DE VERDADE (14/09/2026) separa as DUAS caixas de toque SEM
+   encolher nenhuma delas — as duas ficam em 44x44, o piso tatil real do
+   dono ("onde ha DEDO todo alvo tem 44px de lado", e o mesmo passo de 44px
+   de `prove:toque-na-barra`; NAO 40px, que foi um numero sem fonte que
+   chegou a estar aqui e foi revertido na auditoria do senior-C de
+   14/09/2026). ".hm-card" ganhou `min-height: 100px`, a estrela continua
+   com 44px de altura ancorada no TOPO, e ".hm-card-go"/".hm-card-here"
+   foram para o RODAPE do cartao (`align-self: flex-end`) com a area de
+   toque da seta expandida de 30px de desenho para 44px via `::before`
+   (`inset: -7px`, o mesmo truque de `Common.css`). Com 44 em cima (a
+   estrela) e 44 embaixo (a seta) somando 88 dentro dos 100px de altura
+   minima do cartao, as duas faixas nao se tocam — o z-index abaixo fica de
+   reforco, para o caso de um ajuste futuro reintroduzir uma sobra de 1-2px
+   por arredondamento. */
 #HuntMap .hm-card {
 	position: relative;
 }
@@ -491,6 +511,7 @@
 #HuntMap .hm-card-fav {
 	appearance: none;
 	position: absolute;
+	z-index: 1;
 	/* -1px nos dois lados anula a BORDA do cartao: `position:absolute` mede a
 	   partir da caixa de PADDING, entao `top:0` ja nascia 1px abaixo da
 	   moldura - e era esse 1px que ainda encostava na seta (medido). */
@@ -500,6 +521,11 @@
 	align-items: flex-start;
 	justify-content: flex-end;
 	width: 44px;
+	/* 44px: o piso tatil do dono ("onde ha DEDO todo alvo tem 44px de lado",
+	   e o passo de 44px de `prove:toque-na-barra") — os DOIS lugares onde o
+	   contrato escreve o numero. A separacao das caixas vem da folga de
+	   `min-height:100px` do cartao (ver o comentario grande acima), nao de
+	   encolher esta caixa. */
 	height: 44px;
 	padding: 0 2px 0 0;
 	border: 0;
@@ -625,12 +651,22 @@
 
 /* A LINHA de mapa. Card bespoke (não .ri-card): precisa do filete de
    encaixe à esquerda, do hover com lift e do estado trancado dessaturado. */
+/* ALTURA MINIMA DE 100px (14/09/2026, R13): antes disso o conteudo (o
+   thumbnail de 54px) decidia a altura da linha, e os dois controles do
+   canto direito - a estrela (topo) e a seta de viajar (antes centralizada)
+   - nao tinham 44px de folga cada um sem se sobrepor: 54px de conteudo mal
+   da para UM alvo de 44px, e muito menos para dois empilhados (44+44=88,
+   por isso o minimo do cartao subiu para 100px, e nao ficou nos 88 exatos).
+   Ver ".hm-card-fav" e ".hm-card-go"/".hm-card-here" logo abaixo: a folga
+   extra e o que separa as duas caixas de toque de vez, sem depender de
+   z-index. */
 #HuntMap .hm-card {
 	position: relative;
 	display: flex;
 	align-items: center;
 	gap: var(--sp-5);
 	width: 100%;
+	min-height: 100px;
 	box-sizing: border-box;
 	padding: var(--sp-4) var(--sp-5) var(--sp-4) var(--sp-5);
 	background: var(--surface-card);
@@ -750,9 +786,7 @@
 	display: block;
 	width: 32px;
 	height: 32px;
-	filter:
-		drop-shadow(0 0 1px rgba(21, 21, 74, 0.9))
-		drop-shadow(0 1px 2px rgba(21, 21, 74, 0.55))
+	filter: drop-shadow(0 0 1px rgba(21, 21, 74, 0.9)) drop-shadow(0 1px 2px rgba(21, 21, 74, 0.55))
 		drop-shadow(0 0 6px rgba(224, 176, 77, 0.55));
 	transition: transform var(--dur-fast) var(--ease-out);
 }
@@ -918,9 +952,23 @@
 	color: var(--text-muted);
 }
 
-/* Cauda da linha: o botão redondo de viajar OU a pílula "Aqui". */
+/* Cauda da linha: o botão redondo de viajar OU a pílula "Aqui".
+
+   `align-self: flex-end` (14/09/2026, R13) poe o botao no RODAPE do
+   cartao, e nao mais centralizado na vertical: era centralizado que fazia
+   ele nascer embaixo da estrela (".hm-card-fav", topo do cartao) sempre
+   que a caixa de toque dela crescia. Com ".hm-card" em min-height:100px
+   (ver o comentario grande acima da estrela) o rodape fica livre.
+
+   `position: relative` + `z-index: 2` sao o mesmo padrao de defesa: se um
+   ajuste futuro reduzir a folga entre topo e rodape, quem vence o
+   hit-test na sobra e o proprio botao, e nao a estrela por estar na
+   ordem de pintura dos elementos posicionados. */
 #HuntMap .hm-card-go {
 	appearance: none;
+	position: relative;
+	z-index: 2;
+	align-self: flex-end;
 	flex: 0 0 auto;
 	width: 30px;
 	height: 30px;
@@ -938,6 +986,20 @@
 		transform var(--dur-fast) var(--ease-out);
 }
 
+/* A area de toque REAL do botao (14/09/2026, inset corrigido de -5 para -7
+   na auditoria de 14/09/2026): 30px de desenho, mas 44px de alvo — o piso
+   tatil real do dono, nao os 40px sem fonte que estavam aqui antes. Mesmo
+   truque de `Common.css` (`::before` absoluto com `inset` negativo), so que
+   aqui o host ja e posicionado por regra propria (`position: relative`
+   acima), entao o portao de `tests/ui/areaDeToqueAncoraNoBotao.test.js`
+   (que so vigia `Common.css`) nao precisa saber deste par - mas a REGRA
+   dele (posicionar por conta propria) foi seguida do mesmo jeito. */
+#HuntMap .hm-card-go::before {
+	content: '';
+	position: absolute;
+	inset: -7px;
+}
+
 #HuntMap .hm-card-go svg {
 	width: 15px;
 	height: 15px;
@@ -948,7 +1010,11 @@
 	transform: translateY(-1px);
 }
 
+/* Mesmo ancoramento embaixo do ".hm-card-go" (14/09/2026): os dois trocam de
+   lugar conforme o estado (viajavel/atual), e nao podem pular de vertical
+   quando trocam. */
 #HuntMap .hm-card-here {
+	align-self: flex-end;
 	flex: 0 0 auto;
 	font: var(--type-badge);
 	letter-spacing: var(--ls-caps);
@@ -1253,6 +1319,19 @@
 #HuntMap .hm-chip-meta b {
 	font-weight: var(--fw-semibold);
 	color: var(--text-body);
+}
+
+/* Elemento recomendado (R15/C2-4, 14/09/2026): linha PROPRIA, e nao mais um
+   pedaco espremido dentro de ".hm-chip-meta" — a mesma informacao (nivel +
+   raca + elemento defensivo + recomendacao) numa linha so' ficava ilegivel
+   com varias especies na tela e no mobile (celular em pe, chip mais
+   estreito). "white-space: normal" (ao contrario do resto do chip) porque
+   "Recomendado: sem dado" e o texto mais comum ate o servidor publicar o
+   campo, e cortar essa frase com reticencias leria como bug. */
+#HuntMap .hm-chip-recomendacao {
+	font: var(--type-desc);
+	color: var(--text-muted);
+	white-space: normal;
 }
 
 #HuntMap .hm-chip-mvp,

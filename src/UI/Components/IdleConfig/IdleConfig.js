@@ -850,6 +850,32 @@ function bindGenericControls(el) {
 		});
 	});
 
+	/*
+	 * R16/C2-5 (14/09/2026): o modo da poção automática — outro booleano de
+	 * UI mapeado para um ENUM (`modo: 'item_especifico' | 'qualquer'`,
+	 * contrato v1 do jr-C1), pela mesma razão de `data-modo-basico` logo
+	 * abaixo. Desligar (voltar a "item_especifico") reaproveita a MESMA
+	 * escolha de default do toggle geral — sem isso o `<select>` reapareceria
+	 * ainda apontando pro itemId antigo, que pode nem ser mais valido.
+	 */
+	el.querySelectorAll('[data-modo-pocao]').forEach(input => {
+		input.addEventListener('change', () => {
+			const campo = input.dataset.modoPocao;
+			const pocao = IdleConfig.editConfig[campo];
+			pocao.modo = input.checked ? 'qualquer' : 'item_especifico';
+			if (pocao.modo === 'item_especifico') {
+				const disponiveis = pocoesDoEixo(
+					IdleConfig.contexto && IdleConfig.contexto.consumiveisDeCura,
+					campo === 'pocaoDeSp' ? 'curaSp' : 'curaHp'
+				);
+				pocao.itemId = escolherPocaoPadrao(disponiveis, pocao.itemId);
+			}
+			markDirty();
+			renderMaster();
+			renderBody();
+		});
+	});
+
 	// D-342: 'Desligar o golpe básico' mapeia um booleano de UI para o ENUM
 	// modoDeAtaque — por isso não cabe no data-bool genérico. MARCADO =
 	// 'apenas-skills' (D-361).
@@ -922,11 +948,18 @@ function onSliderSettled(path) {
 
 /* ─── Peças de markup compartilhadas ─────────────────────────────── */
 
-function switchRow(path, checked, label, sub, disabled) {
+/**
+ * @param {string} attrName - R16/C2-5 (14/09/2026): o interruptor de MODO da
+ *   poção automática nao escreve um booleano solto por `data-bool` (o campo
+ *   real é um enum, `modo: 'item_especifico'|'qualquer'`) — precisa do
+ *   proprio handler (`data-modo-pocao`, ver bindGenericControls). Omitido,
+ *   o comportamento é o de sempre.
+ */
+function switchRow(path, checked, label, sub, disabled, attrName = 'data-bool') {
 	return `
 		<label class="ic-switch-row">
 			<span class="ic-switch">
-				<input type="checkbox" data-bool="${path}" ${checked ? 'checked' : ''} ${disabled ? 'disabled' : ''} />
+				<input type="checkbox" ${attrName}="${path}" ${checked ? 'checked' : ''} ${disabled ? 'disabled' : ''} />
 				<span class="ic-switch-track"></span>
 			</span>
 			<span class="ic-switch-text">
@@ -1643,6 +1676,11 @@ function renderSobrevivencia() {
 	const d = cfg.descanso;
 	const canSentar = !!(ctx.capacidades && ctx.capacidades.sentarParaRecuperar);
 	const canSp = !!(ctx.capacidades && ctx.capacidades.pocaoDeSp);
+	// R16/C2-5 (14/09/2026): o modo "qualquer poção elegível" so' existe
+	// quando o servidor desta build declara a capacidade — sem ela o
+	// controle NAO APARECE (nada de botao que mente), mesmo padrao ja usado
+	// por `pocaoDeSp`/`suporteAoGrupo` no contrato v1.
+	const canAuto = !!(ctx.capacidades && ctx.capacidades.pocaoAutomatica);
 
 	return `
 		<div class="ic-card">
@@ -1688,20 +1726,28 @@ function renderSobrevivencia() {
 			<h3>Poções</h3>
 			<div class="ic-note">Bebidas entre as lutas, do inventário. Escolha o frasco e com quanto de barra beber.</div>
 			<div class="ic-duas">
-				${renderPocao('pocaoDeHp', cfg.pocaoDeHp, ctx.consumiveisDeCura, true, 'HP')}
-				${renderPocao('pocaoDeSp', cfg.pocaoDeSp, ctx.consumiveisDeCura, canSp, 'SP')}
+				${renderPocao('pocaoDeHp', cfg.pocaoDeHp, ctx.consumiveisDeCura, true, 'HP', canAuto)}
+				${renderPocao('pocaoDeSp', cfg.pocaoDeSp, ctx.consumiveisDeCura, canSp, 'SP', canAuto)}
 			</div>
 			${!canSp ? '<div class="ic-note ic-note-warn">Recuperação automática de SP não está disponível.</div>' : ''}
 		</div>`;
 }
 
-function renderPocao(fieldName, pocao, itens, enabled, label) {
+/**
+ * R16/C2-5 (14/09/2026): o eixo agora tem DOIS modos — "item_especifico"
+ * (o de sempre: escolhe UM frasco) e "qualquer" (o servidor troca sozinho
+ * quando o escolhido acabar; contrato v1 do jr-C1, `PocaoDoContrato`). O
+ * modo automático so' aparece com a capacidade `pocaoAutomatica` (parâmetro
+ * `canAuto`) — sem ela esta função desenha exatamente como antes.
+ */
+function renderPocao(fieldName, pocao, itens, enabled, label, canAuto) {
 	const campoDoEixo = fieldName === 'pocaoDeSp' ? 'curaSp' : 'curaHp';
 	const disponiveis = pocoesDoEixo(itens, campoDoEixo);
 	const temPocao = disponiveis.length > 0;
 	// O interruptor só liga se houver o que beber — e a escolha mostrada é a
 	// mesma que vai no payload (escolherPocaoPadrao roda no toggle).
 	const ligavel = enabled && temPocao;
+	const automatico = canAuto && pocao.modo === 'qualquer';
 	const selecionado = escolherPocaoPadrao(disponiveis, pocao.itemId);
 
 	const options = disponiveis
@@ -1714,10 +1760,22 @@ function renderPocao(fieldName, pocao, itens, enabled, label) {
 	return `
 		<div class="ic-eixo ic-pocao${ligavel ? '' : ' ic-subsection-disabled'}">
 			${switchRow(`${fieldName}.ligado`, pocao.ligado, `Poção de ${label}`, '', !ligavel)}
-			<select class="ic-select" data-select="${fieldName}.itemId" data-select-number="1" ${ligavel && pocao.ligado ? '' : 'disabled'}>
+			${
+				canAuto
+					? switchRow(
+							fieldName,
+							automatico,
+							'Automático (qualquer frasco elegível)',
+							'Troca sozinho quando o escolhido acabar, em vez de travar num só.',
+							!(ligavel && pocao.ligado),
+							'data-modo-pocao'
+						)
+					: ''
+			}
+			<select class="ic-select" data-select="${fieldName}.itemId" data-select-number="1" ${ligavel && pocao.ligado && !automatico ? '' : 'disabled'} ${automatico ? 'hidden' : ''}>
 				${options}
 			</select>
-			${!temPocao && enabled ? `<div class="ic-note ic-note-warn">Nenhum frasco que restaure ${label} no inventário.</div>` : ''}
+			${!temPocao && enabled ? `<div class="ic-note ic-note-warn">Nenhum frasco que restaure ${label} no inventário${automatico ? ' — o automático não tem o que escolher' : ''}.</div>` : ''}
 			<div class="ic-field-row">
 				<span>Beber com <span class="ic-inline-value" data-range-display="${fieldName}.usarCom">${pocao.usarCom}%</span> ou menos</span>
 			</div>

@@ -246,13 +246,30 @@ const conflitosNoRathena = [];
 let preenchidosPeloRathena = 0;
 
 if (!fs.existsSync(CAMINHO_DO_PACKETDB)) {
-	// AVISO ALTO, e não silêncio: a reserva morta não quebra nada visivelmente —
-	// ela só deixa o fatiador parar mais cedo, e o sintoma chega como "o pacote
-	// não apareceu". Foi assim que ela ficou morta sem ninguém notar.
-	console.warn(
-		`[oraculo] AVISO: a reserva do rAthena NAO foi lida — ${CAMINHO_DO_PACKETDB} nao existe.\n` +
-			'          A tabela sai so com o que o cliente declara, e o sentido c2s fica\n' +
-			'          incompleto. Aponte RAG_EMULADOR para a raiz do emulador.'
+	// FALHA ALTA, não aviso e siga (D-1462/D-487, 14/09/2026). A versão anterior
+	// deste bloco só dava `console.warn` e continuava — e foi exatamente esse
+	// "continuar calado" que produziu o incidente: o gerador rodou sem
+	// RAG_EMULADOR resolvível, perdeu 585 entradas do sentido c2s (414
+	// "rathena (parseable)" + 171 "cliente (venceu a struct do rathena)"),
+	// escreveu um `opcodes.json` 8.092 linhas mais enxuto e SAIU COM EXIT 0 —
+	// o mesmo defeito que o teste `oraculo-conhece-o-que-recebemos` existe para
+	// impedir (D-487), só que desta vez no PRÓPRIO gerador da tabela que o
+	// teste lê. "Declarar tamanho não é implementar": um oráculo incompleto que
+	// sai verde é pior que um oráculo que não roda, porque ninguém audita um
+	// `console.warn` perdido no meio do log de uma regeneração de rotina.
+	//
+	// Por isso este bloco agora lança e para o processo (exit != 0) em vez de
+	// escrever uma tabela pela metade. Aponte RAG_EMULADOR para a raiz do
+	// emulador (`.../Emulador-Serverside Ravena`, a pasta que contém
+	// `src/map/clif_packetdb.hpp`) e rode de novo.
+	throw new Error(
+		`[oraculo] FALHA: a reserva do rAthena NAO foi lida — ${CAMINHO_DO_PACKETDB} nao existe.\n` +
+			'          A tabela sairia so com o que o cliente declara, com o sentido c2s\n' +
+			'          incompleto (medido: 18,9% dos bytes fatiados contra 100% do s2c).\n' +
+			'          Aponte RAG_EMULADOR para a raiz do emulador (a pasta que contem\n' +
+			'          src/map/clif_packetdb.hpp) e rode de novo. NAO capture este erro\n' +
+			'          para "seguir mesmo assim" — foi exatamente isso que apagou 585\n' +
+			'          entradas em silencio no D-1462.'
 	);
 } else {
   for (const linha of fs.readFileSync(CAMINHO_DO_PACKETDB, 'utf8').split('\n')) {
@@ -739,6 +756,58 @@ const saidaJson = {
 };
 
 const destino = path.join(AQUI, 'opcodes.json');
+
+/*
+ * CHECAGEM DE PISO (D-1462, 14/09/2026) — a tabela nova não pode ter menos
+ * entradas que a anterior sem alarme.
+ *
+ * O incidente que motivou isto: o gerador rodou sem RAG_EMULADOR resolvível,
+ * a reserva do rAthena contribuiu zero, e o `opcodes.json` saiu com 585
+ * entradas a menos no sentido c2s — mas o arquivo ainda era JSON válido, o
+ * script ainda saía com `exit 0`, e nada nesta gravação teria acusado a
+ * perda. Só apareceu porque alguém rodou o teste do OUTRO repositório
+ * (`servidor/protocolo/oraculo-conhece-o-que-recebemos`) e contou o
+ * `git diff --stat` à mão. Uma tabela que pode encolher em silêncio não é
+ * uma tabela confiável: a próxima regeneração precisa se acusar sozinha.
+ *
+ * A conta é a soma de todas as entradas (entrada+saida × login/char/map) do
+ * `resumo` gravado da vez anterior contra o `resumo` desta vez. Ela não
+ * substitui a checagem de RAG_EMULADOR acima (aquela já falha alto sozinha)
+ * — é uma segunda rede, para qualquer OUTRA causa de encolhimento (uma fonte
+ * do cliente truncada, um regex que parou de casar, etc.) que a checagem
+ * específica do rAthena não cobriria.
+ */
+const somaDoResumo = (r) =>
+	Object.values(r).reduce((total, s) => total + s.entrada.total + s.saida.total, 0);
+
+if (fs.existsSync(destino)) {
+	let totalAnterior = null;
+	try {
+		const anterior = JSON.parse(fs.readFileSync(destino, 'utf8'));
+		if (anterior && anterior.resumo) totalAnterior = somaDoResumo(anterior.resumo);
+	} catch {
+		// Arquivo anterior não é JSON válido (ou não tem `resumo`) — não há com
+		// o que comparar. Isso não é o defeito que esta checagem existe para
+		// pegar (esse é silêncio com um arquivo VÁLIDO, mas menor), então segue
+		// sem alarme; a checagem de RAG_EMULADOR acima já cobre a causa raiz.
+	}
+	if (totalAnterior !== null) {
+		const totalNovo = somaDoResumo(resumo);
+		if (totalNovo < totalAnterior) {
+			throw new Error(
+				`[oraculo] FALHA: a tabela nova tem MENOS entradas que a anterior ` +
+					`(${totalNovo} contra ${totalAnterior}) — isso é encolhimento, não\n` +
+					'          atualização, e o gravador/teste do backend dependem desta\n' +
+					'          tabela para saber o que o cliente sabe enviar/receber.\n' +
+					'          Confira RAG_EMULADOR e as fontes do cliente antes de gravar.\n' +
+					'          Se o encolhimento for esperado (um opcode removido de\n' +
+					'          propósito), apague oraculo/opcodes.json e rode de novo para\n' +
+					'          resetar o piso.'
+			);
+		}
+	}
+}
+
 fs.writeFileSync(destino, JSON.stringify(saidaJson, null, '\t') + '\n');
 
 console.log(`packetver                 ${PACKETVER}`);

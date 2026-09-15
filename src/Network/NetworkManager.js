@@ -100,6 +100,12 @@ Packets.list = [];
  * @param {number} port
  * @param {function} callback once connected or not
  * @param {boolean} is zone server ?
+ * @return {Socket} the socket instance, synchronously — before it's known to
+ *   have connected. R12 (reconexao automatica, 14/09/2026) needs this: a
+ *   tentativa PENDURADA alem do proprio orcamento de tempo precisa ser
+ *   fechada explicitamente de fora antes de abrir a proxima (ver
+ *   Network/reconexao.js). Callers que nao precisam disso simplesmente
+ *   ignoram o retorno, como sempre.
  */
 function connect(host, port, callback, isZone) {
 	const socket = _socketFactory ? _socketFactory(host, port) : defaultSocketFactory(host, port);
@@ -126,11 +132,30 @@ function connect(host, port, callback, isZone) {
 			if (isZone) {
 				PacketCrypt.init();
 			}
+		} else {
+			/*
+			 * R12 (14/09/2026): uma tentativa que FALHA no proprio connect (o
+			 * `onComplete(false)` so acontece via `onerror`, antes de qualquer
+			 * `onopen`) nunca entrava em `_sockets` nem virava `_socket` — e
+			 * nada chamava `.close()` nela: o socket nativo ficava para tras,
+			 * com os 4 handlers ainda presos (`onopen`/`onerror`/`onmessage`/
+			 * `onclose`), so' se desfazendo quando o navegador decidisse. Uma
+			 * reconexao que tenta de novo a cada 10-60s por uma queda longa
+			 * pode acumular varios desses. Fechar aqui e' o mesmo `close()`
+			 * que qualquer socket bem-sucedido ja recebe ao ser substituido.
+			 */
+			try {
+				socket.close();
+			} catch {
+				/* fechar ja fechado (ou nunca aberto) nao e problema de ninguem */
+			}
 		}
 
 		console.log('%c[Network] ' + msg + ' to connect to ' + host + ':' + port, 'font-weight:bold;color:' + color);
 		callback.call(this, success);
 	};
+
+	return socket;
 }
 
 /**
@@ -362,8 +387,28 @@ function onClose() {
 			clearInterval(_socket.ping);
 		}
 
+		/*
+		 * R12 (14/09/2026): `_socket` NUNCA era zerado aqui. Isso nao quebrava
+		 * nada sozinho (`send()` ja checa `if (_socket)` e o socket morto
+		 * responde `false` a `this.connected`, entao virava um no-op calado
+		 * em vez de um erro) — mas deixava `_socket` mentindo "ainda conectado"
+		 * para qualquer leitor externo (a reconexao automatica precisa saber
+		 * de verdade se ha socket vivo). Zerar ANTES de notificar tambem
+		 * importa: se `_onDisconnect` chamar `Network.connect()` de novo de
+		 * forma sincrona, o novo socket tem de encontrar `_socket === null`,
+		 * nao o cadaver deste.
+		 */
+		_socket = null;
+
 		if (_onDisconnect) {
-			_onDisconnect();
+			/*
+			 * R12: o motivo do fechamento (codigo/razao do WebSocket, quando o
+			 * socket os capturou — ver SocketHelpers/WebSocket.js) segue junto,
+			 * para quem esta ouvindo (Network/reconexao.js) distinguir "servidor
+			 * fora" de "a PONTE recusou por lotacao" (wsproxy.js, codigo 1013) —
+			 * as duas fecham o socket do mesmo jeito, so' o motivo difere.
+			 */
+			_onDisconnect({ code: this.closeCode ?? null, reason: this.closeReason ?? '' });
 		} else {
 			import('UI/UIManager.js').then(UIManager => {
 				UIManager.default.showErrorBox('Disconnected from Server.');

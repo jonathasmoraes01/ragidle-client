@@ -16310,7 +16310,6 @@ PACKET.CZ.RAGIDLE_CORREIO_ACAO.prototype.build = function () {
 	return pkt_buf;
 };
 
-
 // 0x0fd7 - RAGIDLE: ZC_RAGIDLE_CORREIO (server -> client)
 // Variable size: u16 opcode + u16 total length + JSON UTF-8 payload.
 // Contrato v1: { v, acao: 'apagar-todas', apagadas,
@@ -16324,7 +16323,6 @@ PACKET.ZC.RAGIDLE_CORREIO = function PACKET_ZC_RAGIDLE_CORREIO(fp, end) {
 	this.json = fp.readString(end - fp.tell());
 };
 PACKET.ZC.RAGIDLE_CORREIO.size = -1;
-
 
 // ===========================================================================
 // A JANELA DE VOTO (D-1159) — 0x0fd4 / 0x0fd5
@@ -16360,7 +16358,6 @@ PACKET.CZ.RAGIDLE_VOTO_ACAO.prototype.build = function () {
 	pkt_buf.writeString(this.json);
 	return pkt_buf;
 };
-
 
 // 0x0fd5 - RAGIDLE: ZC_RAGIDLE_VOTO (server -> client)
 // Variable size: u16 opcode + u16 total length + JSON UTF-8 payload.
@@ -16552,6 +16549,41 @@ PACKET.ZC.RAGIDLE_FAVORITOS = function PACKET_ZC_RAGIDLE_FAVORITOS(fp, end) {
 	this.json = fp.readString(end - fp.tell());
 };
 PACKET.ZC.RAGIDLE_FAVORITOS.size = -1;
+
+// 0x0fc2 - RAGIDLE: CZ_RAGIDLE_TRAVA_ACAO (client -> server)
+// Variable size: u16 opcode + u16 total length + JSON UTF-8 {acao:'pedir'|
+// 'alternar', slot?}.
+// 14/09/2026: a TRAVA CONTRA VENDA da mochila (R14/C2-3). Mesmo molde de
+// CZ_RAGIDLE_CACA_ACAO acima — um opcode por JANELA, verbo no JSON, e
+// 'alternar' e um interruptor so' para o cliente e o servidor nunca
+// discordarem sobre qual verbo mandar. `slot` (nao "posicao"): a posicao de
+// uma pilha anda quando ela esgota, e o cliente nunca reindexa por conta
+// propria — o par final (0x0fc2/0x0fc3) foi confirmado pelo SENIOR-C depois
+// de a primeira tentativa (0x0fc7/0x0fc8) colidir com
+// CZ_RAGIDLE_COMANDOS_ACAO/ZC_RAGIDLE_COMANDOS (o autocompletar de comandos,
+// ja em producao — ver o comentario deles, mais acima).
+PACKET.CZ.RAGIDLE_TRAVA_ACAO = function PACKET_CZ_RAGIDLE_TRAVA_ACAO() {
+	this.json = '{}';
+};
+PACKET.CZ.RAGIDLE_TRAVA_ACAO.prototype.build = function () {
+	const bytes = TextEncoding.encode(this.json, 'utf-8');
+	const pkt_len = 2 + 2 + bytes.length;
+	const pkt_buf = new BinaryWriter(pkt_len);
+	pkt_buf.writeShort(0x0fc2);
+	pkt_buf.writeUShort(pkt_len);
+	pkt_buf.writeString(this.json);
+	return pkt_buf;
+};
+
+// 0x0fc3 - RAGIDLE: ZC_RAGIDLE_TRAVAS (server -> client)
+// Variable size: u16 opcode + u16 total length + JSON UTF-8 payload.
+// Contrato v1 (14/09/2026): { v, travados: number[], recusa? } — `travados`
+// sao SLOTS travados HOJE (o estado inteiro, nao um delta), a mesma forma
+// de ZC_RAGIDLE_FAVORITOS.
+PACKET.ZC.RAGIDLE_TRAVAS = function PACKET_ZC_RAGIDLE_TRAVAS(fp, end) {
+	this.json = fp.readString(end - fp.tell());
+};
+PACKET.ZC.RAGIDLE_TRAVAS.size = -1;
 
 // 0x0fec - RAGIDLE: CZ_RAGIDLE_PEDIR_MISSOES (client -> server)
 // Fixed 2 bytes: opcode only. Sent when the MissoesIdle window is opened.

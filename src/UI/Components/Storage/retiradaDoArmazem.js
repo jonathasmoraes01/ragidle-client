@@ -79,6 +79,33 @@ export function ehArrastoDoArmazem(data) {
 }
 
 /**
+ * O teto que o PESO acrescenta a retirada (R17/C2-6, 14/09/2026).
+ *
+ * Retirar do armazem para o CORPO pesa (ao contrario de vender): a peca sai
+ * de um deposito sem peso e passa a contar no `Session.Entity.weight` do
+ * personagem. Antes desta regra o armazem "nao tinha máx" nenhum — so' a
+ * pilha limitava, e o jogador so' descobria o excesso no aviso de peso do
+ * servidor.
+ *
+ * `null` significa "sem teto pelo peso" (peso desconhecido ou zero) — e
+ * NAO EQUIVALE a zero: a regra 1 do projeto e' nunca inventar um limite que
+ * o dado real nao sustenta. `pesoLivre`/`pesoUnitario` sao DECIGRAMAS (a
+ * mesma unidade de `Session.Entity.weight`/`max_weight` e de
+ * `pesoDeItem`/`pesoUnitario` em NpcStoreV2.js) — a conta inteira fica
+ * nessa precisao, sem passar por nenhum arredondamento de exibicao.
+ *
+ * @param {number} pesoLivre - max_weight - weight atual, em decigramas
+ * @param {number|null} pesoUnitario - peso de UMA unidade, em decigramas (null = desconhecido)
+ * @returns {number|null}
+ */
+export function tetoPeloPeso(pesoLivre, pesoUnitario) {
+	if (typeof pesoUnitario !== 'number' || pesoUnitario <= 0) {
+		return null;
+	}
+	return Math.max(0, Math.floor(pesoLivre / pesoUnitario));
+}
+
+/**
  * Quantas unidades a retirada pede, a partir do que o jogador digitou.
  *
  * Devolve `null` quando nao ha nada a pedir - e `null` e uma RECUSA, nao um
@@ -89,14 +116,18 @@ export function ehArrastoDoArmazem(data) {
  *
  * O teto e a propria pilha porque o cliente ja sabe o tamanho dela (veio no
  * `ZC_ADD_ITEM_TO_STORE`/lista do armazem): pedir 999 de uma pilha de 3 nao
- * e um pedido de 3, e um engano.
+ * e um pedido de 3, e um engano. `tetoDoPeso` (R17/C2-6, `null` = sem teto
+ * pelo peso) entra pelo MESMO motivo, apertando ainda mais quando o peso
+ * livre e' o fator mais escasso.
  *
  * @param {unknown} entrada - o texto do InputBox (ou um numero)
  * @param {number} total - o tamanho da pilha no armazem
+ * @param {number|null} [tetoDoPeso] - ver `tetoPeloPeso`; omitido/`null` = sem teto pelo peso
  * @returns {number|null}
  */
-export function quantidadeDaRetirada(entrada, total) {
-	const teto = Number.isFinite(total) && total > 0 ? Math.floor(total) : 0;
+export function quantidadeDaRetirada(entrada, total, tetoDoPeso = null) {
+	const tetoDaPilha = Number.isFinite(total) && total > 0 ? Math.floor(total) : 0;
+	const teto = tetoDoPeso === null ? tetoDaPilha : Math.min(tetoDaPilha, Math.max(0, Math.floor(tetoDoPeso)));
 	if (teto < 1) {
 		return null;
 	}
@@ -105,4 +136,22 @@ export function quantidadeDaRetirada(entrada, total) {
 		return null;
 	}
 	return pedido;
+}
+
+/**
+ * O valor que o InputBox ja abre preenchido — "a maior quantidade que cabe
+ * no peso restante" (R17/C2-6), a mesma regra do "Máx" da loja, so' que
+ * aqui nao ha um segundo botao: o campo NASCE com o numero certo, e
+ * confirmar direto (Enter) ja retira o maximo que cabe.
+ *
+ * @param {number} total - o tamanho da pilha no armazem
+ * @param {number|null} tetoDoPeso - ver `tetoPeloPeso`
+ * @returns {number}
+ */
+export function quantidadePadraoDaRetirada(total, tetoDoPeso) {
+	const tetoDaPilha = Number.isFinite(total) && total > 0 ? Math.floor(total) : 0;
+	if (tetoDoPeso === null) {
+		return tetoDaPilha;
+	}
+	return Math.max(0, Math.min(tetoDaPilha, Math.floor(tetoDoPeso)));
 }

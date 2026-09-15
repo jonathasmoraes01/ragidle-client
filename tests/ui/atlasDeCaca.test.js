@@ -3,6 +3,7 @@
  * `atlasDeCaca.js`. Executa a aritmética — encaixe, medidor, motivo da busca,
  * ordem e formato de chance — em vez de ler o fonte.
  */
+import fs from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import {
 	classeDeRaridade,
@@ -13,7 +14,8 @@ import {
 	ordenarMapas,
 	raridadeDoDrop,
 	resumoDoMotivo,
-	rotuloDeRaridade
+	rotuloDeRaridade,
+	textoDaRecomendacao
 } from '../../src/UI/Components/HuntMap/atlasDeCaca.js';
 
 const campo = { mapa: 'prt_fild08', rotulo: 'Campo de Prontera', nivelQueAbre: 1, nivelMinimo: 1, nivelMaximo: 16, nivelMedio: 6.5 };
@@ -184,5 +186,98 @@ describe('classeDeRaridade', () => {
 	});
 	it('índice desconhecido cai em r0', () => {
 		expect(classeDeRaridade(9)).toBe('r0');
+	});
+});
+
+describe('textoDaRecomendacao (R15/C2-4, 14/09/2026)', () => {
+	const ELEMENT_PT_DE_TESTE = { Water: 'Água', Fire: 'Fogo' };
+
+	it('SEM o campo (ausente, ou `null` — "nada passou de 100%" no ajusteElemental do servidor), diz "sem dado" — nunca inventa', () => {
+		expect(textoDaRecomendacao(undefined, ELEMENT_PT_DE_TESTE)).toBe('Recomendado: sem dado');
+		expect(textoDaRecomendacao(null, ELEMENT_PT_DE_TESTE)).toBe('Recomendado: sem dado');
+		expect(textoDaRecomendacao({}, ELEMENT_PT_DE_TESTE)).toBe('Recomendado: sem dado');
+	});
+
+	it('com o campo, traduz o elemento e mostra o multiplicador', () => {
+		expect(textoDaRecomendacao({ elemento: 'Water', multiplicador: 200 }, ELEMENT_PT_DE_TESTE)).toBe(
+			'Recomendado: Água (200%)'
+		);
+	});
+
+	it('elemento sem entrada no dicionario usa o nome cru, em vez de sumir', () => {
+		expect(textoDaRecomendacao({ elemento: 'Poison', multiplicador: 125 }, ELEMENT_PT_DE_TESTE)).toBe(
+			'Recomendado: Poison (125%)'
+		);
+	});
+
+	it('sem dicionario nenhum (chamada crua), ainda funciona com o nome do elemento', () => {
+		expect(textoDaRecomendacao({ elemento: 'Fire', multiplicador: 150 })).toBe('Recomendado: Fire (150%)');
+	});
+
+	it('multiplicador ausente nao inventa numero — so' + ' o elemento aparece', () => {
+		expect(textoDaRecomendacao({ elemento: 'Fire' }, ELEMENT_PT_DE_TESTE)).toBe('Recomendado: Fogo');
+	});
+});
+
+/**
+ * O DESENHO REAL em HuntMap.js (R15/C2-4, destrave de 14/09/2026: o campo
+ * `FichaDeMonstro.recomendacao?: { elemento, multiplicador }` agora existe no
+ * servidor, derivado de `ajusteElemental`, `null` quando nada passa de 100%).
+ *
+ * `textoDaRecomendacao` acima é puro e não tem chamador nestes testes — e
+ * "módulo puro sem chamador fica verde" é uma armadilha já registrada neste
+ * projeto: o CALL SITE em `HuntMap.js` podia regredir (voltar a mostrar
+ * hardcoded, trocar `m.recomendacao` por outro campo, sair da guarda da
+ * ficha) sem que nenhum caso aqui acusasse, porque nenhum deles importa
+ * `HuntMap.js`. `HuntMap.js` puxa Renderer/rede/UIManager/28 subsistemas do
+ * MapEngine — importar o módulo inteiro só para isto trocaria um teste barato
+ * por uma manutenção cara. Por isso este é um teste de FONTE (o mesmo molde
+ * de `tests/ui/estadoEntrePersonagensEMapas.test.js`): lê o arquivo real e
+ * confere a FORMA do call site, não a prosa ao redor dela.
+ */
+describe('renderMobRow (HuntMap.js) liga o campo real, e nao so a funcao pura', () => {
+	const NL = String.fromCharCode(10);
+
+	function corpoDeRenderMobRow() {
+		const fonte = fs.readFileSync('src/UI/Components/HuntMap/HuntMap.js', 'utf8');
+		const inicio = fonte.indexOf('function renderMobRow(');
+		expect(inicio, 'renderMobRow sumiu de HuntMap.js').toBeGreaterThan(-1);
+		const fim = fonte.indexOf(NL + '}', inicio);
+		return fonte.slice(inicio, fim);
+	}
+
+	it('chama textoDaRecomendacao com o campo real do monstro (m.recomendacao), nao um valor fixo', () => {
+		const corpo = corpoDeRenderMobRow();
+		expect(corpo, 'o call site parou de chamar textoDaRecomendacao').toContain(
+			'textoDaRecomendacao(m.recomendacao, ELEMENT_PT)'
+		);
+	});
+
+	it('so desenha a recomendacao QUANDO a ficha real (com raca) ja chegou — sem flash de "sem dado" antes da hora', () => {
+		const corpo = corpoDeRenderMobRow();
+		const guarda = corpo.indexOf('if (ficha && m.raca)');
+		const usoDaFuncao = corpo.indexOf('textoDaRecomendacao(');
+		expect(guarda, 'a guarda da ficha sumiu — sem ela a recomendacao pode desenhar antes do raca/elemento chegarem').toBeGreaterThan(-1);
+		expect(usoDaFuncao, 'a chamada continua depois da guarda, no mesmo bloco').toBeGreaterThan(guarda);
+	});
+
+	it('o texto sai dentro de .hm-chip-recomendacao, escapado (nunca HTML cru do servidor)', () => {
+		const corpo = corpoDeRenderMobRow();
+		expect(corpo).toContain('class="hm-chip-recomendacao"');
+		expect(corpo, 'o texto da recomendacao passou a ir pro HTML sem escapeHtml').toContain(
+			'escapeHtml(textoDaRecomendacao('
+		);
+	});
+});
+
+describe('.hm-chip-recomendacao — legibilidade movel (nao trunca com ellipsis como nome/meta)', () => {
+	it('usa white-space normal, ao contrario de .hm-chip-name/.hm-chip-meta (nowrap+ellipsis)', () => {
+		const css = fs.readFileSync('src/UI/Components/HuntMap/HuntMap.css', 'utf8');
+		const inicio = css.indexOf('.hm-chip-recomendacao {');
+		expect(inicio, '.hm-chip-recomendacao sumiu do CSS').toBeGreaterThan(-1);
+		const bloco = css.slice(inicio, css.indexOf('}', inicio));
+		expect(bloco, 'a recomendacao pode voltar a ser cortada com ellipsis num nome de elemento longo').toContain(
+			'white-space: normal'
+		);
 	});
 });
