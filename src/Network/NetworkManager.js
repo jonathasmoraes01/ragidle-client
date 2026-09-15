@@ -19,6 +19,7 @@ import PacketCrypt from './PacketCrypt.js';
 import PacketLength from './PacketLength.js';
 import WebSocket from './SocketHelpers/WebSocket.js';
 import NodeSocket from './SocketHelpers/NodeSocket.js';
+import { FASE, registrarFase } from 'Renderer/fasesDoQuadro.js';
 
 /**
  * Sockets list
@@ -230,6 +231,32 @@ read.callback = null;
  * @param {Uint8Array} buffer
  */
 function receive(buf) {
+	const inicioDaRede = performance.now();
+	try {
+		processarPacotes(buf);
+	} finally {
+		// `finally`, e nao uma linha depois da chamada: `processarPacotes` tem
+		// varios `return` (buffer incompleto espera o resto do lote), e sem ele
+		// a medicao perderia justamente os lotes partidos — que sao os grandes.
+		registrarFase(FASE.REDE, performance.now() - inicioDaRede);
+	}
+}
+
+function processarPacotes(buf) {
+	/*
+	 * RAGIDLE (15/09/2026): O PROCESSAMENTO DE PACOTE RODA **FORA** DO LACO DE
+	 * QUADRO, e por isso ele e medido.
+	 *
+	 * O contador de FPS mede o intervalo entre carimbos do
+	 * `requestAnimationFrame`. Entre um e o proximo cabe isto: um lote grande
+	 * de pacotes (chegada de mob, lote do mapa, rajada de dano) e atendido
+	 * aqui, e o quadro seguinte "atrasa" sem que nenhuma fase do DESENHO tenha
+	 * demorado.
+	 *
+	 * Sem esta medida, uma travada nascida aqui apareceria como "o desenho
+	 * esta lento" e mandaria a investigacao para o renderizador — o lugar
+	 * errado. Ver `Renderer/fasesDoQuadro.js`.
+	 */
 	let id, packet;
 	let length = 0;
 	let offset = 0;

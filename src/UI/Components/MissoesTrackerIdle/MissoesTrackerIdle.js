@@ -41,8 +41,33 @@ import { emUnidadesDaHud } from 'UI/escalaDaHud.js'; // D-934: geometria medida 
 import LFGIdle from 'UI/Components/LFGIdle/LFGIdle.js'; // D-939: a aba "Grupo" do cartao vertical
 import { ehCelularEmPe } from 'UI/hudVertical.js'; // D-939: na vertical a ancora e do CSS, nao deste polling
 
-/** Quantas missões clicáveis o painel lista (as demais ficam na janela). */
-const MAX_LINHAS = 5;
+/**
+ * Quantas missões clicáveis o painel lista (as demais ficam na janela).
+ *
+ * 5 -> 3 EM 15/09/2026, pelo relato do dono de que o cartão ocupa *"praticamente
+ * a metade da tela"* no celular. Cada linha custa ~30px mais o `gap`, então as
+ * duas que saíram valem ~68px — e elas não somem do jogo: continuam na janela
+ * de Missões, que é onde a lista completa sempre morou.
+ *
+ * ---------------------------------------------------------------------------
+ * POR QUE O CORTE VEIO DAQUI E DO `max-height`, E NÃO DOS BOTÕES
+ * ---------------------------------------------------------------------------
+ * O caminho óbvio para encolher um cartão é apertar padding e altura de linha.
+ * **Aqui isso seria errado, e a medição diz por quê**: os alvos tocáveis deste
+ * componente (`.mt-item`, `.mt-aba`, `.mt-ver-todas`, `.mt-btn-mini`) já estão
+ * ABAIXO do piso de 44px que a regra do dono (D-935) exige, e nenhum deles
+ * aparece no bloco `@media (pointer: coarse)` do `Common.css` que cuida disso
+ * para os outros componentes. Só o `.mt-recolher-v` tem os 44px.
+ *
+ * Ou seja: eles precisam CRESCER, não encolher. Apertá-los para ganhar altura
+ * pioraria uma violação que já existe e trocaria "cartão grande" por "cartão
+ * em que o dedo erra o alvo" — que é o defeito mais caro dos dois.
+ *
+ * A dívida dos 44px fica NOMEADA aqui de propósito, e não foi paga nesta
+ * rodada: pagá-la faria o cartão CRESCER, que é o oposto do que o dono pediu,
+ * e as duas coisas juntas precisam da decisão dele.
+ */
+const MAX_LINHAS = 3;
 
 const MissoesTrackerIdle = new GUIComponent('MissoesTrackerIdle', cssText);
 

@@ -17,6 +17,7 @@ import Memory from './MemoryManager.js';
 import PACKETVER from 'Network/PacketVerManager.js';
 import Texture from 'Utils/Texture.js';
 import WebGL from 'Utils/WebGL.js';
+import { FASE, registrarFase } from 'Renderer/fasesDoQuadro.js';
 import GraphicsSettings from 'Preferences/Graphics.js';
 
 class Client {
@@ -314,10 +315,28 @@ async function onFileLoaded(data, error, input) {
 				Memory.set(input.filename, data, error);
 				return;
 
-			case 'spr':
+			case 'spr': {
 				gl = (await import('Renderer/Renderer.js')).default.getContext();
 				frames = data.frames;
 				count = frames.length;
+
+				/*
+				 * RAGIDLE (15/09/2026): ESTE LACO E O SUSPEITO NUMERO 1.
+				 *
+				 * Ele sobe UMA TEXTURA POR QUADRO DO SPRITE, e um sprite de
+				 * monstro tem centenas — tudo numa tarefa de JS so, no instante
+				 * em que um mob, jogador ou equipamento NOVO entra na tela.
+				 *
+				 * E o formato certo para explicar o PIOR quadro do relato do
+				 * dono (578 ms): esporadico e pesado. No Chromium desta maquina
+				 * o mesmo laco custa pouco — upload de textura la e barato —, e
+				 * e por isso que a sonda local nao reproduz.
+				 *
+				 * O relogio nao muda comportamento nenhum: ele existe para o
+				 * proximo relato do aparelho DELE condenar ou absolver este
+				 * laco, em vez de eu escolher no escuro.
+				 */
+				const inicioDoSprite = performance.now();
 
 				// Send sprites to GPU
 				for (i = 0; i < count; i++) {
@@ -356,8 +375,12 @@ async function onFileLoaded(data, error, input) {
 					gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
 				}
 
+				// Fecha DEPOIS da paleta: ela e do mesmo lote de upload.
+				registrarFase(FASE.SPRITE, performance.now() - inicioDoSprite);
+
 				Memory.set(input.filename, data, error);
 				return;
+			}
 
 			// Build palette
 			case 'pal': {

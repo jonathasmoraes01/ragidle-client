@@ -170,6 +170,24 @@ const RiIcones = {
 		)
 	),
 
+	// ── Sistema (a janela do ESC: video, audio, atalhos, trocar personagem,
+	// sair) — Lucide "SlidersHorizontal". ────────────────────────────────────
+	//
+	// ICONE PROPRIO, e nao o `config` (15/09/2026, pedido do dono: *"crie um
+	// icone especificamente para essas configuracoes"*). Os dois sao "ajuste",
+	// e por isso a distincao tem de ser VISUAL e nao so textual: a ENGRENAGEM
+	// e do idle — o dono cravou isso em [DONO-4], e ela ja nomeia o botao ao
+	// lado. Reusar a engrenagem aqui poria dois itens com a mesma cara no
+	// mesmo leque, e o jogador teria de ler o rotulo para saber qual e qual —
+	// que e exatamente o defeito que a fusao "Config + Menu" tinha criado.
+	//
+	// Controles deslizantes dizem "ajustar o APARELHO" (volume, qualidade),
+	// enquanto a engrenagem diz "ajustar o JOGO". A leitura sobrevive a 12px,
+	// que e o teste que importa num disco de menu.
+	sistema: svg(
+		'<path d="M4 8h10M18 8h2M4 16h4M12 16h8"/><circle cx="16" cy="8" r="2"/><circle cx="10" cy="16" r="2"/>'
+	),
+
 	// ── Menu — Lucide "Menu". ────────────────────────────────────────────────
 	menu: svg('<path d="M4 6h16M4 12h16M4 18h16"/>'),
 

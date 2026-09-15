@@ -66,6 +66,30 @@ _proxy['/emblem'] = {
 	secure: false
 };
 
+/*
+ * Ragnarok Classic Idle (15/09/2026): O RELATO DE FPS E DE ERRO NO DEV.
+ *
+ * `UI/enderecoDoBalcao.js` monta a rota com o `cadastroUrl` da config — que em
+ * producao aponta para `api.roclassicidle.com.br` e no `npm run dev` NAO
+ * EXISTE, entao o caminho fica relativo (`/analytics/desempenho`) e bate no
+ * proprio vite, que devolve 404. O `.catch` do cliente engole, e o relato
+ * some em silencio.
+ *
+ * E o MESMO modo de falha que `enderecoDoBalcao.js` documenta ter acontecido
+ * em producao ("nenhum erro de jogador chegou ao servidor desde 09/09/2026"),
+ * so que do lado de ca. Este proxy o fecha: no dev o relato chega ao balcao.
+ *
+ * 8889 e `PORTA_DE_CADASTRO` (`servidor/index.ts`), e o balcao so sobe com as
+ * contas ligadas — ou seja, `npm run dev:publico` / `npm run dev -- --lan
+ * --publico`. Sem ele o proxy simplesmente nao encontra ninguem, que e o
+ * mesmo 404 de antes e nao piora nada.
+ */
+_proxy['/analytics'] = {
+	target: 'http://127.0.0.1:8889',
+	changeOrigin: true,
+	secure: false
+};
+
 export default defineConfig({
 	/**
 	 * A RAIZ REDIRECIONA PARA O JOGO (03/09/2026).

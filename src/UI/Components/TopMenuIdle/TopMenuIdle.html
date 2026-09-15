@@ -455,6 +455,32 @@
 					<span class="tm-icon-wrap ri-disc"><!--RI_ICONE:eventos--></span>
 					<span class="tm-label">Eventos</span>
 				</button>
+
+				<!-- CONFIGURACOES DO JOGO (D-1479, 15/09/2026 — pedido do dono).
+
+				     A janela de sistema do cliente (video, audio, atalho, trocar
+				     personagem, fechar jogo). Ela existe e funciona desde
+				     sempre; o que faltava era PORTA — a fusao "Config + Menu"
+				     deixou escrito no cabecalho do .js que ela "perdeu a porta
+				     de mouse e ficou so na TECLA ESC", e celular nao tem ESC.
+
+				     NASCEU COMO LINHA LARGA NO RODAPE E ESTAVA ERRADO (relato do
+				     dono, com foto: "nao esta clicavel, nao esta responsivo").
+				     Ela ficava FORA das duas colunas, solta ao lado do toast e
+				     do "Instalar app" — sem a grade, sem o alvo tatil e sem o
+				     despachante de clique que todo `.tm-item` ganha de graca.
+				     Aqui dentro da coluna ela e um item como os outros 22, e a
+				     clicabilidade deixa de ser uma regra propria para ser a
+				     mesma de todo mundo.
+
+				     ICONE PROPRIO (`sistema`, controles deslizantes) e nao o
+				     `config`: a ENGRENAGEM e do idle ([DONO-4]), e dois itens
+				     com a mesma cara no mesmo leque obrigariam a ler o rotulo
+				     para distinguir. -->
+				<button type="button" class="tm-item" data-action="sistema" title="Configurações do jogo — vídeo, áudio, atalhos e sair">
+					<span class="tm-icon-wrap ri-disc"><!--RI_ICONE:sistema--></span>
+					<span class="tm-label">Configurações</span>
+				</button>
 			</div>
 
 			<!-- Toast "Em breve": mora DENTRO do leque desde a rodada 2, e nao
@@ -486,27 +512,6 @@
 				<span class="tm-instalar-dica"></span>
 			</button>
 
-			<!-- CONFIGURACOES DO JOGO (15/09/2026, D-1416 — pedido do dono).
-
-			     *"No RO pelo navegador, ao clicar em ESC tem como alterar as
-			     configuracoes de video/audio. Quero que no mobile isso tambem
-			     seja possivel."*
-
-			     A janela de sistema (Escape.js: video, audio, atalho, trocar
-			     personagem, fechar jogo) existe e funciona — o que ela nao tinha
-			     era PORTA. A fusao "Config + Menu" (ver o cabecalho do .js)
-			     deixou isso escrito como pendencia [DONO]: *"a janela de sistema
-			     perdeu a porta de mouse e ficou so na TECLA ESC"*. Num celular
-			     nao ha tecla ESC, entao la ela estava inalcancavel.
-
-			     Vizinha do "Instalar app" pelo mesmo motivo que ele: nao e um
-			     destino do jogo, e um disco entre Mochila e Skills lhe daria o
-			     peso de uma janela de jogo. Ao contrario dele, NAO e so do
-			     celular — o clique de mouse tambem tinha perdido a porta. -->
-			<button type="button" class="tm-sistema" data-action="sistema">
-				<span class="tm-sistema-rotulo">Configurações do jogo</span>
-				<span class="tm-sistema-dica">Vídeo, áudio, atalhos e sair</span>
-			</button>
 		</div>
 
 		<!-- O botao Menu. Disco maior que os do leque (52 contra 42): ele e a

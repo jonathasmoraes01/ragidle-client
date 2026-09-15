@@ -389,7 +389,6 @@ TopMenuIdle.onAppend = function onAppend() {
 	syncVotoLivre();
 	syncToggleDot();
 	ligarOfertaDeInstalacao();
-	ligarPortaDoSistema();
 	startPolling();
 	ligarFechamentoExterno();
 };
@@ -409,28 +408,6 @@ TopMenuIdle.onAppend = function onAppend() {
    saidas (prompt / instrucao / nada) que a entrada e o Config ja usam. Um
    quarto lugar decidindo por conta propria seria o quarto a envelhecer.
    ═══════════════════════════════════════════════════════════════════════ */
-
-/**
- * A PORTA DA JANELA DE SISTEMA (15/09/2026, D-1416 — pedido do dono).
- *
- * Ela abre o `Escape` (video, audio, atalho, trocar personagem, fechar jogo),
- * que ate aqui so tinha a TECLA ESC como entrada — inalcancavel num celular.
- *
- * Fecha o leque antes de abrir, como todo item que abre janela: o menu aberto
- * por cima da janela que ele mesmo acabou de abrir foi o defeito que a
- * auditoria de 08/09 achou em 9 das 18 janelas.
- */
-function ligarPortaDoSistema() {
-	const botao = _root().querySelector('.tm-sistema');
-	if (!botao) {
-		return;
-	}
-	botao.addEventListener('click', e => {
-		e.stopImmediatePropagation();
-		fecharLeque();
-		Escape.abrirPeloMenu();
-	});
-}
 
 function ligarOfertaDeInstalacao() {
 	const botao = _root().querySelector('.tm-instalar');
@@ -592,6 +569,19 @@ function onClickAction(e) {
 		case 'config':
 			/* "Configuracoes" = a fusao de Config + Menu (ver cabecalho). */
 			IdleConfig.toggle();
+			break;
+		case 'sistema':
+			/*
+			 * A JANELA DE SISTEMA do cliente (D-1479): video, audio, atalho,
+			 * trocar personagem, fechar jogo. Ela so tinha a TECLA ESC como
+			 * entrada, e celular nao tem ESC.
+			 *
+			 * `abrirPeloMenu` (e nao `_host.style.display = ''` aqui) porque a
+			 * trava da morte que o `onKeyDown` respeita vale igual: com a
+			 * DeathWindow na tela este menu abriria POR BAIXO do scrim dela,
+			 * visivel e inerte — o defeito que o dono fotografou em 19/08/2026.
+			 */
+			Escape.abrirPeloMenu();
 			break;
 		case 'analyzer':
 			/* A janela nao pede nada ao servidor ao abrir: o registro ja vem

@@ -1421,57 +1421,6 @@
    janela. `min-height: 48px` porque ela e um alvo de dedo, e 48 > o piso de
    44px que a `prove:hud-responsiva` cobra.
    ═══════════════════════════════════════════════════════════════════════ */
-/* CONFIGURACOES DO JOGO (15/09/2026, D-1416 — pedido do dono).
-
-   Mesma forma do "Instalar app": linha larga no pe da folha, porque nenhum
-   dos dois e um destino do jogo. A diferenca e que esta NAO e so do celular —
-   a fusao "Config + Menu" tirou a porta de MOUSE da janela de sistema
-   tambem, entao ela volta nos dois. O alvo tem 48px de altura, que e o piso
-   tatil que a regra do dono cobra.
-
-   A COR DO TEXTO E LITERAL, E ISSO E CICATRIZ (15/09/2026): a primeira versao
-   usava `color: var(--ri-texto, #fff)` sobre `var(--ri-superficie-2, #2a3550)`
-   e saiu INVISIVEL em producao — um retangulo azul sem letra nenhuma, que o
-   dono fotografou. Os dois tokens eram armadilhas opostas: `--ri-superficie-2`
-   NAO EXISTE (caiu no literal escuro), e `--ri-texto` EXISTE e e
-   `var(--text-body)` -> `var(--ink-700)`, tinta ESCURA, porque ela foi feita
-   para texto sobre fundo CLARO. Escuro sobre escuro.
-   O `.tm-instalar` ao lado ja resolvia isso do jeito certo — `color: #fff`
-   literal — e foi de la que esta regra passou a copiar. */
-.tm-sistema {
-	display: flex;
-	flex-direction: column;
-	align-items: center;
-	justify-content: center;
-	gap: 2px;
-	width: 100%;
-	min-height: 48px;
-	margin-top: 8px;
-	padding: 8px 12px;
-	border: 0;
-	border-radius: 10px;
-	background: #2a3550;
-	color: #fff;
-	font: inherit;
-	font-weight: 700;
-	text-align: center;
-	cursor: pointer;
-}
-
-.tm-sistema-rotulo {
-	font-size: 14px;
-	line-height: 1.2;
-	color: #fff;
-}
-
-.tm-sistema-dica {
-	font-size: 11px;
-	font-weight: 400;
-	line-height: 1.35;
-	color: #dbe4f5;
-	white-space: normal;
-}
-
 .tm-instalar {
 	display: none;
 }

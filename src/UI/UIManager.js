@@ -61,14 +61,103 @@ function _createButton(name, onClick, label) {
 	btn.className = name === 'ok' || name === 'yes' ? 'btn ri-btn' : 'btn ri-btn ri-btn--sec';
 	btn.textContent = label || _rotuloDeBotao(name);
 
+	/*
+	 * DEDO E MOUSE (15/09/2026), e nao so o clique.
+	 *
+	 * Esta fabrica serve TODOS os botoes de caixa deste arquivo — inclusive o
+	 * "Acordar agora" do "Dormindo..." e o "Continuar" do resumo do sono. O
+	 * relato do dono foi sobre a tela de economia de energia, mas o defeito era
+	 * desta forma inteira: `click` sozinho, numa interface que o projeto ja
+	 * sabia precisar de `touchstart` (ver `ligarAoDedoEAoMouse`).
+	 *
+	 * Consertar AQUI e nao em cada chamador e o ponto: sao cinco sitios, e
+	 * cinco copias da mesma correcao seriam cinco chances de uma envelhecer.
+	 *
+	 * O `clicked` continua: ele e outra guarda, de outro assunto — impede o
+	 * SEGUNDO acionamento legitimo (dois toques rapidos em "OK"), enquanto a
+	 * guarda de dentro do helper impede o `click` sintetizado do mesmo toque.
+	 */
 	let clicked = false;
-	btn.addEventListener('click', () => {
+	ligarAoDedoEAoMouse(btn, () => {
 		if (clicked) return;
 		clicked = true;
 		onClick();
 	});
 
 	return btn;
+}
+
+/**
+ * A GUARDA ENTRE O TOQUE E O CLIQUE — 750 ms, o mesmo de `MobileUI`.
+ *
+ * O `touchstart` dispara primeiro; o navegador SINTETIZA um `click` depois. Sem
+ * a guarda, o handler rodaria duas vezes por toque.
+ */
+const MS_DE_GUARDA_DO_TOQUE = 750;
+
+/**
+ * LIGA UM BOTAO DE TELA CHEIA AO DEDO **E** AO MOUSE (15/09/2026).
+ *
+ * ---------------------------------------------------------------------------
+ * POR QUE `click` SOZINHO NAO BASTA NESTE JOGO
+ * ---------------------------------------------------------------------------
+ * Relato do dono: *"o botao de 'voltar a jogar' no economia de energia nao
+ * esta funcionando no iphone/mobile"*. O botao era um `<button>` de verdade,
+ * com `addEventListener('click')` — e no desktop funciona.
+ *
+ * **O projeto ja sabia que isso nao basta**: `MobileUI.bindButton`
+ * (`src/UI/Components/MobileUI/MobileUI.js`) existe exatamente para ligar
+ * `click` E `touchstart` nos botoes do jogo, com uma guarda para o handler
+ * nao rodar duas vezes. Ela nasceu para os controles da HUD e ficou presa la;
+ * as telas CHEIAS deste arquivo (economia de energia, "Dormindo...", resumo do
+ * sono) foram escritas depois e so escutaram `click`.
+ *
+ * Nao e regra nova: e a regra que ja existia, alcancando quem tinha ficado de
+ * fora. Ela vive aqui, e nao importada da `MobileUI`, porque aquela casa a
+ * um `root.querySelector(seletor)` e estes botoes sao elementos crus, criados
+ * em DOM claro — o seletor nao existe.
+ *
+ * @param {HTMLElement} botao
+ * @param {function(): void} aoAcionar
+ */
+function ligarAoDedoEAoMouse(botao, aoAcionar) {
+	let peloToque = false;
+	let soltar = null;
+
+	const limpar = () => {
+		if (soltar !== null) {
+			clearTimeout(soltar);
+			soltar = null;
+		}
+	};
+	const armarSoltura = () => {
+		limpar();
+		soltar = setTimeout(() => {
+			soltar = null;
+			peloToque = false;
+		}, MS_DE_GUARDA_DO_TOQUE);
+	};
+
+	botao.addEventListener('click', evento => {
+		// O `click` sintetizado depois do toque ja foi atendido: engole.
+		if (peloToque) {
+			peloToque = false;
+			limpar();
+			evento.preventDefault();
+			evento.stopImmediatePropagation();
+			return;
+		}
+		aoAcionar();
+	});
+	botao.addEventListener('touchstart', evento => {
+		peloToque = true;
+		limpar();
+		// Sem isto o toque tambem vira gesto da cena atras da tela cheia.
+		evento.stopImmediatePropagation();
+		aoAcionar();
+	});
+	botao.addEventListener('touchend', armarSoltura);
+	botao.addEventListener('touchcancel', armarSoltura);
 }
 
 /**
@@ -633,7 +722,13 @@ class UIManager {
 			borderRadius: '6px',
 			cursor: 'pointer'
 		});
-		botao.addEventListener('click', () => {
+		/*
+		 * DEDO E MOUSE (15/09/2026): era so `click`, e no iPhone o botao nao
+		 * respondia — relato do dono. Ver `ligarAoDedoEAoMouse` para o porque.
+		 * Esta tela e a que MAIS precisa disso: ela cobre o viewport inteiro e
+		 * este botao e a UNICA saida dela.
+		 */
+		ligarAoDedoEAoMouse(botao, () => {
 			if (onVoltar) onVoltar();
 		});
 

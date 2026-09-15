@@ -1308,7 +1308,28 @@ function onMapChange(pkt, ehEntradaNoMundo) {
 		MobileUI.append();
 		JoystickUI.append();
 		Navigation.append();
-		Roulette.append();
+		/*
+		 * A ROLETA SAIU DA HUD (D-1480, 15/09/2026 — pedido do dono: *"esse
+		 * icone de poring premiado que esta na HUD, remova isso tambem"*).
+		 *
+		 * `Roulette.append()` nao desenhava so a janela: ela cria um BOTAO
+		 * SOLTO em `document.body` (`addRouletteIcon`), com a arte
+		 * `RoulletteIcon.bmp` — a caixa de porings do RO — e posicao cravada em
+		 * pixel de DESKTOP (`top: 74px; right: 145px`). Num celular de 402px
+		 * isso cai em cima do cartao de missoes, que e onde o dono o
+		 * fotografou.
+		 *
+		 * E ela e um BOTAO MORTO neste jogo: a roleta fala `REQ_OPEN_ROULETTE`,
+		 * `REQ_GENERATE_ROULETTE` e `RECV_ROULETTE_ITEM`, e o servidor deste
+		 * projeto nao conhece NENHUM desses pacotes (conferido em
+		 * `servidor/protocolo/pacotes-mapa.ts`: zero ocorrencias de ROULETTE —
+		 * as citacoes de "roleta" que existem la sao a do PET, outro assunto).
+		 * Clicar abria uma janela que pedia ao servidor algo que ele nunca
+		 * responde.
+		 *
+		 * O componente FICA no repositorio, intocado: se um dia a roleta for
+		 * servida, volta com uma linha. O que sai e so a montagem dela na HUD.
+		 */
 		if (Configs.get('enableAchievements') && PACKETVER.value >= 20150513) {
 			Achievement.append();
 		}

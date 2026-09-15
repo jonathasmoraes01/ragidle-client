@@ -27,6 +27,7 @@ import { ehDedo } from 'UI/escalaDaHud.js';
 import { densidadeDoMundo } from 'Renderer/densidadeDoMundo.js';
 import { AVISO_DE_PERDA_DE_CONTEXTO, agendarRecarga, recarregarAgora } from 'Renderer/perdaDeContexto.js';
 import { registrarQuadro } from 'Renderer/quadrosNoCampo.js';
+import { FASE, fecharQuadro, registrarFase } from 'Renderer/fasesDoQuadro.js';
 
 const { mat4 } = glMatrix;
 
@@ -364,6 +365,18 @@ class Renderer {
 		// e o FPS que o aparelho do jogador relata. Ver `Renderer/quadrosNoCampo.js`.
 		registrarQuadro(now);
 
+		/*
+		 * RAGIDLE (15/09/2026): ONDE O QUADRO GASTOU O TEMPO.
+		 *
+		 * `registrarQuadro` acima mede o INTERVALO entre carimbos do rAF; isto
+		 * mede o JS que roda DENTRO do quadro. A diferenca entre os dois e o
+		 * produto principal desta medicao: se o intervalo for muito maior que
+		 * este total, a travada NAO esta no desenho — esta no que acontece
+		 * entre um quadro e o outro (pacote, coleta de lixo, composicao do
+		 * proprio navegador). Ver `Renderer/quadrosNoCampo.js`.
+		 */
+		const inicioDoQuadro = performance.now();
+
 		// Use Date.now for serverTick and Events processing, to keep existing behavior intact
 		const newTick = Date.now();
 
@@ -374,9 +387,14 @@ class Renderer {
 		this.tick = newTick;
 
 		// Execute events
+		// `Events.process` dispara TODOS os timeouts vencidos, sem teto de
+		// tempo: um lote grande cabe inteiro num quadro so.
+		const inicioDosEventos = performance.now();
 		Events.process(this.tick);
+		registrarFase(FASE.EVENTOS, performance.now() - inicioDosEventos);
 
 		// Execute render callbacks
+		const inicioDoDesenho = performance.now();
 		let i, count;
 		for (i = 0, count = this.renderCallbacks.length; i < count; ++i) {
 			try {
@@ -401,7 +419,13 @@ class Renderer {
 			}
 		}
 
+		registrarFase(FASE.DESENHO, performance.now() - inicioDoDesenho);
+
 		Cursor.render(this.tick);
+
+		// O quadro fecha DEPOIS do cursor: ele tambem e trabalho do quadro.
+		registrarFase(FASE.QUADRO, performance.now() - inicioDoQuadro);
+		fecharQuadro();
 
 		// Schedule next frame
 		this.updateId = _requestAnimationFrame(this._renderBound);

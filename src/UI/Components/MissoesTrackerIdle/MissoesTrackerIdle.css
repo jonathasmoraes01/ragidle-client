@@ -385,9 +385,23 @@
 	text-align: left;
 }
 
-/* A lista respira menos: o cartao dividir a tela com o jogo e o ponto. */
+/*
+ * A lista respira menos: o cartao dividir a tela com o jogo e o ponto.
+ *
+ * 32dvh -> 22dvh EM 15/09/2026 (relato do dono: *"esta ocupando praticamente
+ * a metade da tela de um usuario que esta jogando na versao mobile"*). Num
+ * 402x714 de iPhone, 32dvh do CORPO sao ~228px — e o corpo nao e o cartao
+ * inteiro: por cima dele vem a fileira de abas (48px, o `min-height` do
+ * recolher) e por baixo o "ver todas" (36px). O cartao passava de 310px numa
+ * tela de 714, que e quase metade dela e bate com a foto.
+ *
+ * 22dvh derruba o corpo para ~157px. O corte veio daqui e do numero de LINHAS
+ * (`MAX_LINHAS`, no .js) de proposito: as duas folgas que nao sao alvo de
+ * dedo. Os alvos tocaveis deste cartao NAO foram encolhidos — e o motivo esta
+ * escrito no .js, junto do `MAX_LINHAS`.
+ */
 .ri-vertical .mt-corpo {
-	max-height: 32dvh;
+	max-height: 22dvh;
 	overflow-y: auto;
 	overscroll-behavior: contain;
 	-webkit-overflow-scrolling: touch;

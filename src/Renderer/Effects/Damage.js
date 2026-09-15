@@ -23,6 +23,7 @@ import EffectManager from 'Renderer/EffectManager.js';
 import MemoryManager from 'Core/MemoryManager.js';
 import Entity from 'Renderer/Entity/Entity.js';
 import GraphicsSettings from 'Preferences/Graphics.js';
+import { FASE, registrarFase } from 'Renderer/fasesDoQuadro.js';
 import PACKETVER from 'Network/PacketVerManager.js';
 
 // Load dependencies
@@ -465,6 +466,20 @@ class Damage {
 			width += frame.width + PADDING;
 		}
 
+		/*
+		 * RAGIDLE (15/09/2026): ESTE BLOCO E UM SUSPEITO MEDIDO.
+		 *
+		 * Subir um CANVAS para a GPU (`texImage2D` com `procCanvas`) e uma das
+		 * operacoes mais caras do WebKit do iOS — pode forcar leitura de volta
+		 * da placa —, e aqui ela roda UMA VEZ POR NUMERO DE DANO. Em caca
+		 * automatica isso e varias vezes por segundo.
+		 *
+		 * O relogio existe para o proximo relato do aparelho do dono dizer se e
+		 * isto ou nao: ele mede so o custo, e nao muda comportamento nenhum.
+		 * A textura E apagada no fim de vida do numero (`deleteTexture`, mais
+		 * abaixo), entao isto e CHURN e nao vazamento.
+		 */
+		const inicioDaTextura = performance.now();
 		const texture = gl.createTexture();
 
 		const enableMipmap = Configs.get('enableMipmap');
@@ -475,6 +490,7 @@ class Damage {
 		if (enableMipmap) {
 			gl.generateMipmap(gl.TEXTURE_2D);
 		}
+		registrarFase(FASE.DANO, performance.now() - inicioDaTextura);
 
 		obj.texture = texture;
 		obj.width = finalWidth;
