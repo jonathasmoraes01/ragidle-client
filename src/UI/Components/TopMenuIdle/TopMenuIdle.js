@@ -1252,7 +1252,103 @@ function observarTopoDoCluster() {
 	_observadorDoCluster.observe(topo);
 	if (typeof window !== 'undefined') {
 		window.addEventListener('resize', publicarTopoDoCluster);
+		/*
+		 * O ARRANJO TAMBEM E REFEITO NO `resize` (D-1490, 15/09/2026).
+		 *
+		 * Ate aqui o unico ouvinte de `resize` do arquivo era o de cima, que so
+		 * republica a posicao do cluster. `distribuirFileiras` (as colunas do
+		 * cluster) e `distribuirColunas` (as do leque) rodavam SO na montagem e
+		 * na troca de visibilidade do Admin — entao quem abrisse o jogo numa
+		 * janela grande e a encolhesse ficava com o arranjo da largada para
+		 * sempre, e o leque voltava a invadir a coluna da direita sem nada
+		 * recalcular.
+		 *
+		 * As duas sao baratas (percorrem ~24 botoes e mexem em variaveis de
+		 * CSS) e o `resize` do navegador ja e limitado ao quadro.
+		 */
+		window.addEventListener('resize', () => {
+			distribuirFileiras();
+			distribuirColunas();
+		});
 	}
+}
+
+/* ─── O LEQUE CABE NA ALTURA (D-1490, 15/09/2026) ───────────────────────────
+ *
+ * Relato do dono, com print: os discos do menu caem EM CIMA do minimapa e dos
+ * botoes "Cacar"/"Retornar para Prontera".
+ *
+ * **A causa e ALTURA, e nao largura** — medido antes de consertar. O leque
+ * cresce PARA CIMA a partir do botao Menu, 60px por fileira, e o numero de
+ * fileiras era sempre `ceil(visiveis / 2)`, sem olhar para a tela. Com as 15
+ * entradas de hoje (a conta dona ve o Admin) sao 8 fileiras = 566px, e o topo
+ * do leque para a 667px do chao. A coluna da direita esta ocupada ate 288px do
+ * TOPO. Numa tela de 898 o topo do leque cai em y=231 e invade os botoes por
+ * 57px; num notebook de 768 ele cobre o minimapa inteiro.
+ *
+ * **A CSS tinha uma prova de que cabia, e ela errava duas vezes** (o comentario
+ * em `TopMenuIdle.css`): dizia base de 39px quando sao 101 (esquecia o disco do
+ * Menu e o respiro), e 6 fileiras quando hoje sao 8. 202px de erro, no unico
+ * eixo do projeto que nao tem media query nenhuma — a maior altura vigiada em
+ * todo o CSS e `max-height: 699px`.
+ *
+ * O conserto escolhido pelo dono entre tres: **mais colunas quando a tela e
+ * baixa**, em vez de rolar a folha (que cortaria o veu de contraste atras dos
+ * discos) ou encolher os discos. Duas colunas por lado viram 4 no total, as 8
+ * fileiras caem para 4, e o leque passa a ocupar 286px — cabe com folga onde
+ * antes invadia.
+ *
+ * POR QUE EM JS E NAO NUMA MEDIA QUERY: o numero de fileiras depende de quantos
+ * itens estao VISIVEIS, e isso muda com a conta (o Admin some para quem nao e o
+ * dono) e com o que o jogo libera. Uma media query so sabe da tela, entao ela
+ * teria de assumir o pior caso e alargar o menu para todo mundo, sempre.
+ */
+const BASE_DO_LEQUE = 101;
+const ALTURA_DA_FILEIRA = 60;
+const RESPIRO_DA_FILEIRA = 10;
+const TOPO_DO_LEQUE = 16;
+/** O leque nao passa de 3 colunas por lado: seis discos de largura ja e um painel. */
+const MAXIMO_DE_COLUNAS_POR_LADO = 3;
+
+/**
+ * Quantas colunas cada metade do leque precisa para caber na altura livre.
+ *
+ * @param {number} porLado quantos itens visiveis a metade mais cheia tem
+ * @returns {number} 1 (o de sempre) ate `MAXIMO_DE_COLUNAS_POR_LADO`
+ */
+function colunasPorLadoDoLeque(porLado) {
+	if (porLado <= 0 || typeof window === 'undefined') {
+		return 1;
+	}
+	/*
+	 * `--hud-td-abaixo-da-coluna` e publicado pelo `Common.css` e ja significa
+	 * exatamente "a partir daqui a coluna da direita esta livre" — ele soma o
+	 * minimapa, o respiro e os botoes de caca, inclusive quando a altura dos
+	 * botoes e REMEDIDA em tempo de execucao. Repetir 288 aqui seria assinar um
+	 * numero que muda noutro arquivo.
+	 */
+	const raiz = document.documentElement;
+	const publicado = parseFloat(getComputedStyle(raiz).getPropertyValue('--hud-td-abaixo-da-coluna'));
+	const ocupadoAcima = Number.isFinite(publicado) && publicado > 0 ? publicado : 288;
+
+	const livre = window.innerHeight - BASE_DO_LEQUE - ocupadoAcima;
+	const porFileira = ALTURA_DA_FILEIRA + RESPIRO_DA_FILEIRA;
+	const fileirasQueCabem = Math.floor((livre - TOPO_DO_LEQUE + RESPIRO_DA_FILEIRA) / porFileira);
+	if (fileirasQueCabem >= porLado) {
+		return 1; // cabe em coluna unica: nada muda
+	}
+	for (let colunas = 2; colunas <= MAXIMO_DE_COLUNAS_POR_LADO; colunas++) {
+		if (Math.ceil(porLado / colunas) <= fileirasQueCabem) {
+			return colunas;
+		}
+	}
+	/*
+	 * Nem no maximo cabe (janela muito baixa). Devolve o maximo mesmo assim: o
+	 * leque ainda encolhe bastante, e sobrepor menos e melhor que sobrepor
+	 * tudo. Tela abaixo disso ja cai nas faixas de `max-height: 439px`, que
+	 * mexem no arranjo inteiro.
+	 */
+	return MAXIMO_DE_COLUNAS_POR_LADO;
 }
 
 function distribuirColunas() {
@@ -1276,6 +1372,9 @@ function distribuirColunas() {
 			contados++;
 		}
 	});
+
+	// A metade MAIS CHEIA manda: as duas colunas dividem a mesma altura.
+	fan.style.setProperty('--tm-leque-colunas', String(colunasPorLadoDoLeque(naEsquerda)));
 }
 
 /**

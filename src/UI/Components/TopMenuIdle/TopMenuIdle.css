@@ -513,12 +513,26 @@
 
 /* Cada coluna: pilha vertical ancorada na BASE. "align-items:center" poe o
    disco no meio da largura da coluna, que e ditada pelo rotulo mais largo. */
+/* A COLUNA E UMA GRADE DE LARGURA VARIAVEL (D-1490, 15/09/2026).
+   Era `flex-direction: column` — uma fila unica de discos, sempre. O leque
+   cresce para CIMA a partir do botao Menu, entao "sempre uma fila" significa
+   "sempre mais alto a cada item novo", e foi assim que ele chegou a invadir o
+   minimapa e os botoes de caca (o relato do dono, com print).
+
+   Quem decide o numero e `colunasPorLadoDoLeque` (TopMenuIdle.js), medindo a
+   altura livre contra `--hud-td-abaixo-da-coluna`: em tela alta o valor e 1 e
+   NADA muda em relacao ao que existia; em tela baixa ele sobe e as fileiras
+   caem na mesma proporcao.
+
+   `align-content: end` guarda o comportamento do `justify-content: flex-end`
+   anterior: os discos ficam colados na base, junto do botao que os abriu — e e
+   de la que a animacao de entrada sobe. */
 .tm-col {
-	display: flex;
-	flex-direction: column;
-	justify-content: flex-end;
-	align-items: center;
-	row-gap: 10px;
+	display: grid;
+	grid-template-columns: repeat(var(--tm-leque-colunas, 1), 1fr);
+	align-content: end;
+	justify-items: center;
+	gap: 10px;
 }
 
 /* "Montado" e o passo intermediario que existe SO pra animacao poder rodar:
