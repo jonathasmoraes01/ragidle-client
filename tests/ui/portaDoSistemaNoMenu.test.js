@@ -73,8 +73,40 @@ describe('a janela de sistema tem porta no menu (D-1416)', () => {
 	});
 
 	it('o alvo tem 48px — o piso tatil que a regra do dono cobra', () => {
-		const bloco = css.slice(css.indexOf('.tm-sistema {'));
-		expect(bloco.slice(0, 400)).toMatch(/min-height:\s*48px/);
+		const bloco = css.slice(css.indexOf('.tm-sistema {'), css.indexOf('.tm-instalar {'));
+		expect(bloco).toMatch(/min-height:\s*48px/);
+	});
+
+	/*
+	 * O BOTAO PRECISA TER LETRA VISIVEL (15/09/2026) — e esta e a cicatriz mais
+	 * cara desta entrega.
+	 *
+	 * A primeira versao foi para PRODUCAO como um retangulo azul SEM TEXTO
+	 * NENHUM, e o dono a fotografou. A causa eram dois tokens de cor, opostos
+	 * na armadilha: `--ri-superficie-2` nao existe (caiu no literal escuro do
+	 * fallback) e `--ri-texto` existe e e tinta ESCURA (`--text-body` ->
+	 * `--ink-700`, feita para fundo claro). Escuro sobre escuro.
+	 *
+	 * E a `prove:mobile-vertical` tinha APROVADO 78/78, porque ela mede quem
+	 * responde ao toque e o que cabe na tela — nunca se da para LER. E a regra
+	 * 5 do projeto na letra ("contar elemento nao prova que da para ver"), e eu
+	 * cai nela.
+	 *
+	 * O portao cobra o que e verificavel sem navegador: a cor do texto e
+	 * LITERAL e clara, e nenhum token de cor entra nesta regra — porque foi
+	 * exatamente o token que mentiu.
+	 */
+	it('a cor do texto e LITERAL e clara — token de cor foi o que apagou o botao', () => {
+		const bloco = css.slice(css.indexOf('.tm-sistema {'), css.indexOf('.tm-instalar {'));
+
+		expect(bloco, 'nenhum `var(--...)` de cor nesta regra: foi o que apagou o texto').not.toMatch(
+			/(?:^|\s)(?:color|background)\s*:\s*var\(/
+		);
+		// `#fff` no botao e no rotulo; a dica pode ser um cinza claro proprio.
+		expect(bloco).toMatch(/color:\s*#fff/);
+
+		const rotulo = css.slice(css.indexOf('.tm-sistema-rotulo {'));
+		expect(rotulo.slice(0, 200), 'o rotulo precisa da propria cor clara').toMatch(/color:\s*#fff/);
 	});
 
 	it('NAO e escondida no desktop: a porta de mouse tambem tinha sumido', () => {
