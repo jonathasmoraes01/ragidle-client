@@ -243,6 +243,7 @@ NpcStore.init = function init() {
 	});
 
 	root.querySelector('.ns-tudo').addEventListener('click', () => encherOuLimparAVista());
+	root.querySelector('.ns-tudo-lista').addEventListener('click', () => encherOuLimparListaInteira());
 
 	/* Delegacao: as linhas nascem e morrem com setList, os ouvintes ficam na
 	   lista — um por evento, nao um por item. */
@@ -365,10 +366,25 @@ NpcStore.setList = function setList(items) {
 			const InventoryVersion = UIManager.getComponent('Inventory').name;
 			for (let i = 0; i < items.length; ++i) {
 				const it = Inventory.getUI().getItemByIndex(items[i].index);
+				/*
+				 * AUSENTE VALE 0 (R1/C-2, 14/09/2026): PlaceETCTab nasce `undefined`
+				 * em item pego DEPOIS do login (drop do idle, correio, loja,
+				 * armazem, carrinho - ver MapEngine/Item.js). `undefined < 1` e'
+				 * `false`, entao com `npcsalelock` ligado o item sumia da venda
+				 * sem nunca ter sido vendido - o "diversos que nao vendia" do
+				 * relato do dono.
+				 *
+				 * TRAVA (R14/C2-3, 14/09/2026): `it.travado` e' um cadeado
+				 * SEPARADO do `npcsalelock` (aquele e' preferencia do jogador,
+				 * liga/desliga; a trava vem do SERVIDOR por pilha e vale SEMPRE,
+				 * mesmo com o cadeado geral desligado) — por isso entra com `&&`
+				 * no lugar de disputar o mesmo `||` do PlaceETCTab. Vale nas DUAS
+				 * versoes de inventario: a legada (V0) nunca filtrava nada aqui.
+				 */
 				const condition =
 					InventoryVersion !== 'InventoryV0'
-						? it && (!Inventory.getUI().npcsalelock || it.PlaceETCTab < 1)
-						: it;
+						? it && !it.travado && (!Inventory.getUI().npcsalelock || (it.PlaceETCTab || 0) < 1)
+						: it && !it.travado;
 				if (condition) {
 					const item = Object.assign({}, it);
 					item.price = items[i].price;
@@ -564,16 +580,74 @@ NpcStore.setClosePacketSent = function (bool) {
 
 /* ─── A linha da lista ───────────────────────────────────────────────────── */
 
+/**
+ * O teto de UMA linha — o que o botao "Máx" (e o clique manual em "+", e o
+ * "Tudo no máx") nunca pode passar.
+ *
+ * R17/C2-6 (14/09/2026): ate aqui, comprar so' olhava ESTOQUE (9999 numa
+ * loja infinita) — o "Máx" de uma flecha ou pocao quase sempre pedia mais
+ * do que o peso livre de verdade aguentava, e o jogador so' descobria no
+ * FAIL_WEIGHT do servidor, com a janela ja fechada. VENDER continua sem
+ * teto de peso (o jogador esta largando peso, nao carregando).
+ *
+ * Ordem exigida pelo pedido: peso -> dinheiro/preco -> estoque. O peso
+ * entra JA aplicado sobre o estoque (nunca por cima de um numero maior),
+ * entao o resultado final e' sempre o MENOR dos tres, na pratica.
+ */
 function tetoDoItem(item) {
 	// O teto de compra/venda de UMA linha: estoque da loja, ou o que voce tem
 	// (venda), ou o que o comprador ainda quer (buying store).
 	if (_type === NpcStore.Type.BUYING_STORE) {
 		return Math.min(item.count || 0, item.maxCount || 0) || 0;
 	}
-	if (isFinite(item.count)) {
-		return item.count;
+
+	const estoque = isFinite(item.count) ? item.count : 9999; // loja infinita: o limite pratico do protocolo por clique
+
+	// VENDER: o unico teto e' o que o jogador TEM — vender alivia peso, nunca soma.
+	if (eDeVenda()) {
+		return estoque;
 	}
-	return 9999; // loja infinita: o limite pratico do protocolo por clique
+
+	// COMPRAR/ESCAMBO/MERCADO/CASH: o jogador vai CARREGAR o item.
+	let teto = estoque;
+
+	/*
+	 * PESO. `pesoUnitario()` devolve `null` quando ninguem sabe o peso (a
+	 * ficha publicada nao tem o dado) — sem numero, o teto NAO muda: a regra
+	 * 1 do projeto e' nunca inventar um limite que o dado real nao sustenta.
+	 * Peso zero (`pesoUnit === 0`) tambem nao aplica teto — dividir por zero
+	 * daria `Infinity`/`NaN`, e um item que nao pesa nada nao tem por que
+	 * limitar a compra pelo peso.
+	 *
+	 * `Session.Entity.weight`/`max_weight` sao DECIGRAMAS (mesma unidade de
+	 * `pesoDeItem`/`pesoUnitario` — ver o cabecalho do arquivo): a conta
+	 * inteira e' feita nessa precisao, sem passar pelo `/10` de exibicao em
+	 * NENHUM momento — arredondar antes de dividir e' exatamente o erro que
+	 * o pedido pede para evitar.
+	 */
+	const pesoUnit = pesoUnitario(item);
+	if (typeof pesoUnit === 'number' && pesoUnit > 0 && Session.Entity) {
+		const pesoLivre = (Session.Entity.max_weight || 0) - (Session.Entity.weight || 0);
+		// Capacidade ja atingida (pesoLivre <= 0) cai em 0, nunca negativo.
+		teto = Math.min(teto, Math.max(0, Math.floor(pesoLivre / pesoUnit)));
+	}
+
+	/*
+	 * DINHEIRO/PRECO. Escambo (`eEscambo()`) nao usa zeny nem cash — a
+	 * "moeda" dele e' outro item, e o proprio motor ja resolve isso por
+	 * fora (ver `setPriceLimit`/`_limiteZeny` para BUYING_STORE, tratado
+	 * acima). CASH_SHOP usa o saldo de CASH da conta (`Session.cash`,
+	 * SessionStorage.js), nao zeny.
+	 */
+	if (!eEscambo()) {
+		const unitario = precoUnitario(item);
+		if (unitario > 0) {
+			const saldo = _type === NpcStore.Type.CASH_SHOP ? Session.cash || 0 : Session.zeny || 0;
+			teto = Math.min(teto, Math.max(0, Math.floor(saldo / unitario)));
+		}
+	}
+
+	return Math.max(0, teto);
 }
 
 /**
@@ -819,6 +893,11 @@ function aVistaEstaCheia() {
 	});
 }
 
+/** Ha aba ou busca reduzindo o alcance de ".ns-tudo" a menos que a lista inteira? */
+function filtroAtivo() {
+	return _categoria !== CATEGORIA_TUDO || !!_termo;
+}
+
 /**
  * O botao de acao em massa (D-922, pedido do dono).
  *
@@ -826,17 +905,60 @@ function aVistaEstaCheia() {
  * botao que so enche e uma armadilha: quem enchesse uma vitrine de 40 linhas
  * sem querer teria 40 cliques de volta pela frente. A regra de virar e a do
  * seletor-mestre de qualquer lista: cheio -> o clique desfaz.
+ *
+ * COM ABA/BUSCA ATIVA (14/09/2026, C-1), o alcance dele encolhe para "o que
+ * esta a vista" — comportamento que ja existia, mas so o `title` (tooltip
+ * que ninguem ve no toque) contava. Agora o TEXTO do botao muda tambem, e um
+ * segundo botao (".ns-tudo-lista") aparece do lado oferecendo o alcance
+ * cheio, sem exigir que o jogador ache sozinho que precisa limpar a busca.
  */
 function atualizarBotaoDeTudo() {
-	const botao = NpcStore.getRoot().querySelector('.ns-tudo');
+	const root = NpcStore.getRoot();
+	const botao = root.querySelector('.ns-tudo');
+	const botaoLista = root.querySelector('.ns-tudo-lista');
 	const cheia = aVistaEstaCheia();
-	const escopo = _categoria === CATEGORIA_TUDO && !_termo ? 'a lista' : 'o que está à vista';
+	const comFiltro = filtroAtivo();
+	const escopo = comFiltro ? 'o que está à vista' : 'a lista';
 
 	botao.disabled = _visiveis.length === 0;
-	botao.textContent = cheia ? 'Limpar' : 'Tudo no máx';
+	botao.textContent = cheia ? (comFiltro ? 'Limpar a vista' : 'Limpar') : comFiltro ? 'Tudo à vista' : 'Tudo no máx';
 	botao.title = cheia
 		? `Zerar a quantidade de ${escopo}`
 		: `Pôr no máximo a quantidade de ${escopo} (${_visiveis.length} ${_visiveis.length === 1 ? 'item' : 'itens'})`;
+
+	// O segundo gesto so faz sentido quando o primeiro NAO ja alcanca tudo.
+	botaoLista.hidden = !comFiltro;
+	if (comFiltro) {
+		const totalIndices = totalIndicesDoInput();
+		const cheiaLista = listaInteiraEstaCheia(totalIndices);
+		botaoLista.disabled = totalIndices.length === 0;
+		botaoLista.textContent = cheiaLista ? 'Limpar lista inteira' : 'Lista inteira';
+		botaoLista.title = cheiaLista
+			? 'Zerar a quantidade de TODA a lista (ignora a aba/busca atual)'
+			: `Pôr no máximo a quantidade de TODA a lista (${totalIndices.length} ${totalIndices.length === 1 ? 'item' : 'itens'}, ignora a aba/busca atual)`;
+	}
+}
+
+/** Todo indice com item de verdade em `_input` — o alcance de "lista inteira", sem filtro. */
+function totalIndicesDoInput() {
+	const indices = [];
+	for (let i = 0; i < _input.length; ++i) {
+		if (_input[i]) {
+			indices.push(i);
+		}
+	}
+	return indices;
+}
+
+function listaInteiraEstaCheia(indices) {
+	if (indices.length === 0) {
+		return false;
+	}
+	return indices.every(index => {
+		const item = _input[index];
+		const escolhido = _output[index];
+		return item && escolhido && escolhido.count === tetoDoItem(item);
+	});
 }
 
 /**
@@ -852,6 +974,24 @@ function atualizarBotaoDeTudo() {
 function encherOuLimparAVista() {
 	const limpar = aVistaEstaCheia();
 	for (const index of _visiveis) {
+		const item = _input[index];
+		if (item) {
+			aplicarQuantidade(index, limpar ? 0 : tetoDoItem(item));
+		}
+	}
+	atualizarResumo();
+}
+
+/**
+ * O segundo gesto (14/09/2026, C-1): mesma acao de `encherOuLimparAVista`,
+ * mas ignorando aba e busca — o alcance e TODO `_input`, e nao `_visiveis`.
+ * So existe (o botao so aparece) quando ha filtro ativo; sem filtro os dois
+ * alcances ja sao o mesmo, e o botao principal basta.
+ */
+function encherOuLimparListaInteira() {
+	const indices = totalIndicesDoInput();
+	const limpar = listaInteiraEstaCheia(indices);
+	for (const index of indices) {
 		const item = _input[index];
 		if (item) {
 			aplicarQuantidade(index, limpar ? 0 : tetoDoItem(item));

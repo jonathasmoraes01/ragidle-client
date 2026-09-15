@@ -30,7 +30,7 @@
 		},
 		"map": {
 			"entrada": {
-				"total": 737,
+				"total": 738,
 				"semTamanho": 0
 			},
 			"saida": {
@@ -41,7 +41,7 @@
 	},
 	"comprimentosDoCliente": {
 		"arquivo": "src/Network/Packets/packets2021_len_main.js",
-		"declarados": 1647,
+		"declarados": 1649,
 		"preencheram": 100,
 		"divergencias": [
 			{
@@ -12449,6 +12449,11 @@
 					"tamanho": 10,
 					"desde": null
 				},
+				"0x0fc1": {
+					"nome": "ZC_RAGIDLE_TRAVAS",
+					"tamanho": -1,
+					"desde": null
+				},
 				"0x0fc3": {
 					"nome": "ZC_RAGIDLE_ECONOMIA",
 					"tamanho": -1,
@@ -15470,7 +15475,7 @@
 					"desde": null,
 					"fonteDoTamanho": "cliente"
 				},
-				"0x0fc2": {
+				"0x0fc0": {
 					"nome": "CZ_RAGIDLE_ECONOMIA_ACAO",
 					"tamanho": -1,
 					"desde": null,

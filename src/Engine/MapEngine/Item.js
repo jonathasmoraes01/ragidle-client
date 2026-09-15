@@ -147,6 +147,23 @@ function onItemPickAnswer(pkt) {
 		registrarItem(Session.Entity.GID, getTextItem, pkt.count, pkt.ITID);
 	}
 
+	/*
+	 * PlaceETCTab EXPLICITO (R1/C-2, 14/09/2026): as versoes do pacote que
+	 * carregam `favorite` (ITEM_PICKUP_ACK6/7/8) sao a UNICA fonte desse dado
+	 * para um item que entra pelo PICKUP - ao contrario da lista completa do
+	 * login (PacketStructure.js, `flag & 2`/`flag & 4`), nada aqui atribuia
+	 * `item.PlaceETCTab`, entao ele nascia `undefined`. Isso parecia inofensivo
+	 * (o item aparecia normal na mochila), mas `undefined < 1` e' `false` em
+	 * JS - e a janela de venda (NpcStoreV2/V1) usa exatamente essa comparacao
+	 * para respeitar o cadeado `npcsalelock`. Resultado medido: com o cadeado
+	 * ligado, TODO item pego depois do login sumia da lista de venda sem
+	 * nunca ter sido vendido (a categoria "Diversos" do relato do dono, ja
+	 * que e' a mais cheia de loot novo). Versoes sem o campo (ACK/ACK2/ACK3/
+	 * ACK5) deixam `pkt.favorite` undefined, e `|| 0` cai no mesmo default
+	 * seguro que os itens do login usam quando o servidor manda o bit desligado.
+	 */
+	pkt.PlaceETCTab = pkt.favorite || 0;
+
 	Inventory.getUI().addItem(pkt);
 }
 
@@ -712,6 +729,31 @@ function onFavItemList(pkt) {
 }
 
 /**
+ * A TRAVA CONTRA VENDA (R14/C2-3, 14/09/2026) — ZC_RAGIDLE_TRAVAS.
+ *
+ * Contrato v1: `{v:1, travados: number[], recusa?}`. `travados` e' o
+ * estado INTEIRO (nunca um delta) e mora aqui — junto dos outros pacotes de
+ * inventario, e nao em MochilaIdle.js — porque `item.travado` precisa valer
+ * para QUALQUER janela que leia o inventario (MochilaIdle, NpcStoreV2/V1),
+ * nao so' para quem pediu.
+ */
+function onTravasRecebidas(pkt) {
+	let dados = null;
+	try {
+		dados = JSON.parse(pkt.json);
+	} catch (_e) {
+		return;
+	}
+	if (!dados || dados.v !== 1 || !Array.isArray(dados.travados)) {
+		return;
+	}
+	Inventory.getUI().aplicarTravas(dados.travados);
+	if (dados.recusa) {
+		ChatBox.addText(String(dados.recusa), ChatBox.TYPE.ERROR, ChatBox.FILTER.ITEM);
+	}
+}
+
+/**
  * Received Switch Equip List
  */
 function onSwitchEquipList(pkt) {
@@ -800,6 +842,7 @@ export default function ItemEngine() {
 	Network.hookPacket(PACKET.ZC.REQ_WEAR_EQUIP_ACK2, onItemEquip);
 	Network.hookPacket(PACKET.ZC.ACK_WEAR_EQUIP_V5, onItemEquip);
 	Network.hookPacket(PACKET.ZC.DELETE_ITEM_FROM_BODY, onIventoryRemoveItem);
+	Network.hookPacket(PACKET.ZC.RAGIDLE_TRAVAS, onTravasRecebidas);
 	Network.hookPacket(PACKET.ZC.DELETE_ITEM_FROM_CART, onCartRemoveItem);
 	Network.hookPacket(PACKET.ZC.USE_ITEM_ACK, onItemUseAnswer);
 	Network.hookPacket(PACKET.ZC.USE_ITEM_ACK2, onItemUseAnswer);

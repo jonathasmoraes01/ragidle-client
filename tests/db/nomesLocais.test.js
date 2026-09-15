@@ -114,12 +114,24 @@ describe('a lista aponta so para item que o jogo conhece', () => {
 		).toEqual([]);
 	});
 
-	it('sao exatamente os 80 das seis rodadas — crescimento passa por aqui', () => {
+	it('sao exatamente os 83 das sete rodadas — crescimento passa por aqui', () => {
 		/*
 		 * Nao e um pino por vaidade: um id somado sem passar pelo cruzamento
 		 * acima (na maquina sem a arvore irma, onde ele PULA) entraria cego.
-		 * Quem somar o 81o atualiza este numero no mesmo commit — e roda o
+		 * Quem somar o 84o atualiza este numero no mesmo commit — e roda o
 		 * cruzamento numa arvore que tenha o conteudo.
+		 *
+		 * **Rodada 7 (14/09/2026, D-1420 — o corte da fonte de spawn):** +3, e
+		 * eles sao a prova de que a porta contraria funciona. Nenhum dos tres e
+		 * item NOVO no `item_db`: o que mudou foi CAIREM DE BICHO QUE AGORA
+		 * NASCE, porque 9 especies entraram com a fonte pre-renewal. Quem
+		 * perguntou foi exatamente o `servidor/drop-com-nome.test.ts` que o
+		 * paragrafo abaixo descreve — ele reprovou dizendo que 3 drops
+		 * chegariam ao jogador como "Item desconhecido (id)": o 25508
+		 * (Orc Warlord Token, do Orc Hero em `gef_fild02`) e os 28106 e 28380
+		 * (Crimson Two-Handed Axe e Fresh Grass Necklace, dos Kobold de
+		 * `gef_fild06`/`gef_fild08`). Os dois ultimos sao irmaos de familias que
+		 * esta tabela ja conhecia.
 		 *
 		 * 22 dos drops (25/08) + 14 da Loja de Cosmeticos (31/08) + o 420010,
 		 * o cosmetico de CABECA que o dono pediu no mesmo dia (D-796) + os 5
@@ -141,7 +153,7 @@ describe('a lista aponta so para item que o jogo conhece', () => {
 		 * por onde item chega ao jogador (drop, loja, forja, flecha, Velha Caixa
 		 * e recompensa de missao), com piso por porta para porta muda reprovar.
 		 */
-		expect(Object.keys(NOMES_LOCAIS)).toHaveLength(80);
+		expect(Object.keys(NOMES_LOCAIS)).toHaveLength(83);
 	});
 });
 

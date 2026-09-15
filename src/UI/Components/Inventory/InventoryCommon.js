@@ -1454,6 +1454,33 @@ export function createInventory(config) {
 	}
 
 	/**
+	 * TRAVA CONTRA VENDA (R14/C2-3, 14/09/2026) — NAO e' o `itemlock` logo
+	 * abaixo: aquele e' a preferencia nativa do RO "trava contra jogar item
+	 * fora" (um preferencia GLOBAL do jogador, sem estado por item). Esta e'
+	 * NOVA: um cadeado POR PILHA/SLOT que o SERVIDOR decide e manda
+	 * (`ZC_RAGIDLE_TRAVAS`, contrato v1: `{v:1, travados: number[], recusa?}`
+	 * — `travados` sao SLOTS, nao posicoes: a posicao de uma pilha anda
+	 * quando ela esgota, e o cliente NUNCA reindexa por conta propria).
+	 *
+	 * `item.travado` mora no PROPRIO objeto do inventario (mesma casa de
+	 * `PlaceETCTab`) para MochilaIdle e NpcStoreV2/V1 lerem sem precisar de
+	 * outro import — os dois ja leem `Inventory.getUI().list`/`getItemByIndex`
+	 * para tudo o mais.
+	 */
+	Component.aplicarTravas = function aplicarTravas(slotsTravados) {
+		const conjunto = new Set(Array.isArray(slotsTravados) ? slotsTravados : []);
+		for (const item of Component.list) {
+			item.travado = conjunto.has(item.index);
+		}
+		requestFilter();
+	};
+
+	Component.estaTravado = function estaTravado(index) {
+		const item = Component.getItemByIndex(index);
+		return !!(item && item.travado);
+	};
+
+	/**
 	 * Toggle the item drop lock preference
 	 */
 	function onItemLock() {

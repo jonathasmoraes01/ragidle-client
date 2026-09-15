@@ -163,6 +163,18 @@ export const NOMES_LOCAIS = {
 	28116: "Mine Worker's Pickaxe", // db/re/item_db_equip.yml:142241 (Mine_Worker_Pickax)
 	28608: 'Elemental Origin', // db/re/item_db_equip.yml:148227 (Origin_Of_Elemental)
 	28721: 'Monokage', // db/re/item_db_equip.yml:149764 (Monokage)
+	// RODADA D-1420 (14/09/2026) — o corte da fonte de spawn do jogo trocou 104
+	// mapas de `npc/re` para `npc/pre-re` e somou NOVE especies ao elenco; estes
+	// TRES ids sao o drop delas que chegaria a tela como "Item desconhecido".
+	// Nenhum e novo no `item_db` — o que mudou foi CAIR de bicho que agora nasce.
+	//
+	// Os dois primeiros sao familia que este arquivo ja conhece: o 28106 e o
+	// Crimson/RUBI (irmao do 21015 Two-Handed Sword, ja aqui desde a Rodada 1) e
+	// o 28380 e irmao direto do 28382 (Charm Grass Necklace), logo acima — mesmo
+	// sufixo `_G_Necklace`, mesma familia, mesmo veredito de icone.
+	25508: 'Orc Warlord Token', // db/re/item_db_etc.yml:36675 (Token_of_OrcGeneral) — cai do Orc Hero (gef_fild02)
+	28106: 'Crimson Two-Handed Axe', // db/re/item_db_equip.yml:142093 (Scarlet_Twohand_Axe) — cai do Kobold (gef_fild06, gef_fild08)
+	28380: 'Fresh Grass Necklace', // db/re/item_db_equip.yml:145040 (Fresh_G_Necklace) — cai do Kobold (gef_fild06, gef_fild08)
 	// As DEZ cartas dos mapas novos (Moscovia, Rock Ridge). Carta sem nome no
 	// GRF e a regra e nao a excecao — o 4545 da Rodada 1 e o mesmo caso.
 	27157: 'Wood Goblin Card', // db/re/item_db_etc.yml:39743 (Wood_Goblin_Card)

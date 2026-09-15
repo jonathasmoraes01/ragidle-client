@@ -299,3 +299,38 @@ export function rotuloDeRaridade(r) {
 export function classeDeRaridade(r) {
 	return RARIDADE_ROTULOS[r] ? `r${r}` : 'r0';
 }
+
+/**
+ * O ELEMENTO RECOMENDADO para causar mais dano (R15/C2-4, 14/09/2026).
+ *
+ * ESPERA um campo NOVO do servidor (`recomendacao: { elemento, multiplicador }`),
+ * ainda NAO publicado hoje — a proposta de contrato foi mandada ao
+ * coordenador para o SENIOR-C publicar em `FichaDeMonstro`, derivada da
+ * tabela elemental REAL do combate (`tools/gamedata/tables/index.ts`,
+ * `ajusteElemental`) — a mesma matriz indexada pelo NIVEL ELEMENTAL DO ALVO
+ * (nao do atacante, a armadilha que o proprio arquivo documenta:
+ * `niveis[nivelDoAlvo-1][elementoDaArma][elementoDoAlvo]`), nunca uma conta
+ * paralela inventada aqui.
+ *
+ * Sem o campo, devolve "sem dado" — a regra 1 do projeto proibe inventar
+ * numero, e elemento DEFENSIVO do mob (o que ja viaja na ficha) nao e o
+ * mesmo dado que elemento de ataque recomendado: um mob Terra nivel 1 nao
+ * necessariamente cai mais rapido para Agua do que para outro elemento, ISSO
+ * depende da tabela inteira, nao so' do proprio elemento.
+ *
+ * `dicionarioDeElemento` e' injetado (em vez de importado) porque este
+ * arquivo e' deliberadamente sem DOM/dependencia — quem chama (HuntMap.js) ja
+ * tem o `ELEMENT_PT` para a mesma tela.
+ *
+ * @param {{elemento?: string, multiplicador?: number}|null|undefined} recomendacao
+ * @param {Record<string, string>} [dicionarioDeElemento] - tradução PT-BR (ex.: ELEMENT_PT)
+ * @returns {string}
+ */
+export function textoDaRecomendacao(recomendacao, dicionarioDeElemento) {
+	if (!recomendacao || typeof recomendacao.elemento !== 'string') {
+		return 'Recomendado: sem dado';
+	}
+	const elementoPt = (dicionarioDeElemento && dicionarioDeElemento[recomendacao.elemento]) || recomendacao.elemento;
+	const mult = typeof recomendacao.multiplicador === 'number' ? ` (${recomendacao.multiplicador}%)` : '';
+	return `Recomendado: ${elementoPt}${mult}`;
+}

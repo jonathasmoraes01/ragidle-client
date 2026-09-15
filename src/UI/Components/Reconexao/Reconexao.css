@@ -1,0 +1,80 @@
+/**
+ * A pele vem do design system oficial (tokens do Common.css, injetado em
+ * todo Shadow DOM) — a mesma familia visual do AvisoDeAtualizacao, que este
+ * componente usa de molde. Nenhum hex literal aqui de proposito.
+ *
+ * MOBILE NASCE JUNTO (14/09/2026): a caixa nao tem largura fixa — ela usa
+ * `min()` contra a largura da tela, entao o celular em pe (393px e menos)
+ * nunca a deixa vazar para fora nem encostar na borda. Nao ha `@media`
+ * porque nao ha nada para reformatar: a mesma caixa central, so mais
+ * estreita, serve nos dois casos (a diferenca de HuntMap/IdleConfig — que
+ * reorganizam colunas — nao existe aqui, o conteudo e so texto empilhado).
+ */
+
+:host {
+	top: 40%;
+	left: 50%;
+	transform: translate(-50%, -50%);
+	z-index: 2000;
+	/* Ao contrario do AvisoDeAtualizacao: este overlay PRECISA ser lido antes
+	   de o jogador tentar clicar em qualquer coisa (o servidor nao vai
+	   responder mesmo) — mas continua sem botao, entao nao rouba foco de
+	   teclado nem trava o Escape. CROSS deixa o clique atravessar para o
+	   jogo congelado embaixo, que e inofensivo neste estado. */
+	pointer-events: none;
+}
+
+#Reconexao {
+	width: min(360px, calc(100vw - 32px));
+	box-sizing: border-box;
+	background: var(--window-fill);
+	border: var(--window-frame);
+	border-radius: var(--radius-window);
+	box-shadow: var(--window-shadow);
+	overflow: hidden;
+	text-align: center;
+	animation: rc-entrada 200ms ease-out;
+	-webkit-font-smoothing: antialiased;
+}
+
+.rc-ornamento {
+	height: 3px;
+	background: var(--ornament-gold);
+}
+
+.rc-titulo {
+	padding: 10px 20px 2px;
+	font: var(--type-section);
+	color: var(--text-title);
+	letter-spacing: 0.5px;
+	text-transform: uppercase;
+}
+
+.rc-texto {
+	padding: 4px 20px 0;
+	font: var(--type-info);
+	color: var(--text-body);
+}
+
+.rc-contagem {
+	padding: 6px 20px 14px;
+	font: var(--type-numeric);
+	color: var(--gold-700);
+	font-variant-numeric: tabular-nums;
+}
+
+.rc-contagem:empty {
+	display: none;
+	padding: 0;
+}
+
+@keyframes rc-entrada {
+	from {
+		opacity: 0;
+		transform: translateY(-8px);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}

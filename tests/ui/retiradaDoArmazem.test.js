@@ -44,7 +44,9 @@ import {
 	CORPO,
 	destinoDaRetirada,
 	ehArrastoDoArmazem,
-	quantidadeDaRetirada
+	quantidadeDaRetirada,
+	quantidadePadraoDaRetirada,
+	tetoPeloPeso
 } from 'UI/Components/Storage/retiradaDoArmazem.js';
 
 const ler = nome => readFileSync(join(process.cwd(), 'src', nome), 'utf8');
@@ -136,5 +138,57 @@ describe('quantidadeDaRetirada', () => {
 	it('pilha invalida nao produz pedido', () => {
 		expect(quantidadeDaRetirada('1', 0)).toBeNull();
 		expect(quantidadeDaRetirada('1', undefined)).toBeNull();
+	});
+
+	it('R17/C2-6: o teto do peso aperta mais que a pilha quando ele e o mais escasso', () => {
+		// Pilha de 50, mas so' cabem 7 no peso livre.
+		expect(quantidadeDaRetirada('50', 50, 7)).toBeNull();
+		expect(quantidadeDaRetirada('7', 50, 7)).toBe(7);
+		expect(quantidadeDaRetirada('8', 50, 7)).toBeNull();
+	});
+
+	it('R17/C2-6: `null` (peso desconhecido/zero) nao aperta nada — so' + ' a pilha manda', () => {
+		expect(quantidadeDaRetirada('50', 50, null)).toBe(50);
+		expect(quantidadeDaRetirada('50', 50)).toBe(50); // parametro omitido = mesmo default
+	});
+
+	it('R17/C2-6: peso livre negativo (capacidade ja estourada) recusa tudo, nunca vira negativo', () => {
+		expect(quantidadeDaRetirada('1', 50, -3)).toBeNull();
+	});
+});
+
+describe('tetoPeloPeso (R17/C2-6, 14/09/2026)', () => {
+	it('floor((pesoLivre)/pesoUnitario), a formula exigida pelo pedido', () => {
+		expect(tetoPeloPeso(1000, 100)).toBe(10);
+		expect(tetoPeloPeso(999, 100)).toBe(9); // arredonda para BAIXO, nunca para cima
+	});
+
+	it('capacidade ja atingida (peso livre <= 0) trava em 0, nunca negativo', () => {
+		expect(tetoPeloPeso(0, 100)).toBe(0);
+		expect(tetoPeloPeso(-50, 100)).toBe(0);
+	});
+
+	it('peso unitario zero ou desconhecido (null/undefined) devolve null — sem teto pelo peso', () => {
+		expect(tetoPeloPeso(1000, 0)).toBeNull();
+		expect(tetoPeloPeso(1000, null)).toBeNull();
+		expect(tetoPeloPeso(1000, undefined)).toBeNull();
+	});
+});
+
+describe('quantidadePadraoDaRetirada (R17/C2-6, 14/09/2026 — o valor que o InputBox ja abre preenchido)', () => {
+	it('sem teto pelo peso (null), o padrao e a pilha inteira — o comportamento de sempre', () => {
+		expect(quantidadePadraoDaRetirada(12, null)).toBe(12);
+	});
+
+	it('com teto pelo peso mais apertado que a pilha, o padrao e o teto', () => {
+		expect(quantidadePadraoDaRetirada(50, 7)).toBe(7);
+	});
+
+	it('com teto pelo peso MAIOR que a pilha (peso nao e o fator limitante), o padrao continua sendo a pilha', () => {
+		expect(quantidadePadraoDaRetirada(5, 1000)).toBe(5);
+	});
+
+	it('capacidade ja atingida (teto 0) preenche 0, nao a pilha inteira', () => {
+		expect(quantidadePadraoDaRetirada(50, 0)).toBe(0);
 	});
 });

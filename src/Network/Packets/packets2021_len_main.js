@@ -4923,7 +4923,6 @@ function init(packetver) {
 	length_list[0x0fd8] = -1; // CZ_RAGIDLE_ITEM_ACAO (variavel, JSON com verbo)
 	length_list[0x0fd9] = -1; // ZC_RAGIDLE_ITEM (variavel, JSON: a comparacao de equipamento)
 
-
 	// RAGIDLE: a JANELA DE GRUPO (D-960, 07/09/2026). Estes tres ESTENDEM a
 	// faixa para baixo: o menor ocupado era 0x0fce, e eles sao os tres logo
 	// abaixo dele, para o bloco RAGIDLE continuar contiguo. O servidor os
@@ -4987,7 +4986,7 @@ function init(packetver) {
 	// servidor, PacketStructure, PacketRegister e ESTA tabela.
 	length_list[0x0fe2] = -1; // ZC_RAGIDLE_LOG (variable, "<remetente> : <texto>")
 	length_list[0x0fc6] = -1; // ZC_RAGIDLE_RESPOSTA_DE_COMANDO (variable, "Comando : <texto>") — D-1364
-	length_list[0x0fe5] = 2;  // CZ_RAGIDLE_PEDIR_PASSE (so o opcode)
+	length_list[0x0fe5] = 2; // CZ_RAGIDLE_PEDIR_PASSE (so o opcode)
 
 	length_list[0x0fe4] = -1; // CZ_RAGIDLE_CODEX_ACAO (variable, JSON payload)
 	length_list[0x0fe3] = -1; // ZC_RAGIDLE_CODEX (variable, JSON payload)
@@ -5001,6 +5000,8 @@ function init(packetver) {
 	length_list[0x0fca] = -1; // ZC_RAGIDLE_RANKING (variable, JSON payload) — ranking, 09/09/2026
 	length_list[0x0fc7] = -1; // CZ_RAGIDLE_COMANDOS_ACAO (variable, JSON payload) — o autocompletar, 12/09/2026
 	length_list[0x0fc8] = -1; // ZC_RAGIDLE_COMANDOS (variable, JSON payload) — o autocompletar, 12/09/2026
+	length_list[0x0fc0] = -1; // CZ_RAGIDLE_TRAVA_ACAO (variable, JSON payload) — trava contra venda, 14/09/2026
+	length_list[0x0fc1] = -1; // ZC_RAGIDLE_TRAVAS (variable, JSON payload) — trava contra venda, 14/09/2026
 	length_list[0x0fc4] = -1; // CZ_RAGIDLE_SONO_ACAO (variable, JSON payload) — o "Dormir", D-1381, 13/09/2026
 	length_list[0x0fc5] = -1; // ZC_RAGIDLE_SONO (variable, JSON payload) — o "Dormir", D-1381, 13/09/2026
 	length_list[0x0fc2] = -1; // CZ_RAGIDLE_ECONOMIA_ACAO (variable, JSON payload) — economia de energia, D-1389/D-1390, 14/09/2026

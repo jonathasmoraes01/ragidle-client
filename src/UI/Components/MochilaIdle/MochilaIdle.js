@@ -161,7 +161,13 @@ import { abaLembrada, lembrarAba } from '../memoriaDeAba.js';
 import { pegar } from 'UI/toqueParaAtalho.js';
 import Storage from 'UI/Components/Storage/Storage.js';
 import InputBox from 'UI/Components/InputBox/InputBox.js';
-import { ehArrastoDoArmazem, quantidadeDaRetirada } from 'UI/Components/Storage/retiradaDoArmazem.js';
+import {
+	ehArrastoDoArmazem,
+	quantidadeDaRetirada,
+	quantidadePadraoDaRetirada,
+	tetoPeloPeso
+} from 'UI/Components/Storage/retiradaDoArmazem.js';
+import { pesoDeItem } from 'DB/Items/fichasDeItem.js';
 
 /**
  * Mantido em sincronia com ":host"/".mo-window"/".mo-frame" em
@@ -481,6 +487,10 @@ MochilaIdle.onAppend = function onAppend() {
 	hideNativeHosts();
 	syncAll();
 	startPolling();
+	// R14/C2-3 (14/09/2026): pede o estado da trava toda vez que a mochila
+	// abre — mesmo padrao de `requestFavoritos` no Mapa de Caca (pedir ao
+	// ABRIR a janela relevante, e nao manter um estado presumido).
+	pedirTravas();
 
 	/*
 	 * A BONECA PRECISA SER REARMADA (27/08/2026, auditoria C).
@@ -971,11 +981,18 @@ function syncGrade() {
 			cell.classList.add('is-fantasia');
 		}
 
+		if (item.travado) {
+			cell.classList.add('is-travado');
+		}
+
 		const count = item.count || 1;
 		cell.innerHTML =
 			'<img class="mo-item-icone" alt="" />' +
 			(count > 1 ? `<span class="mo-item-qtd">${count}</span>` : '') +
-			(eFantasia ? `<span class="mo-item-fantasia" aria-hidden="true">${RiIcones.fantasia || ''}</span>` : '');
+			(eFantasia ? `<span class="mo-item-fantasia" aria-hidden="true">${RiIcones.fantasia || ''}</span>` : '') +
+			(item.travado
+				? `<span class="mo-item-trava" aria-hidden="true" title="Travado contra venda">${RiIcones.cadeado || '🔒'}</span>`
+				: '');
 
 		const img = cell.querySelector('.mo-item-icone');
 		setItemIcon(img, item, it);
@@ -1146,9 +1163,54 @@ function abrirMenuDoItem(cell) {
 	});
 	ContextMenu.nextGroup();
 
+	/*
+	 * TRAVA CONTRA VENDA (R14/C2-3, 14/09/2026). So o ROTULO troca (Travar
+	 * <-> Destravar); a acao de verdade e' `pedirAlternarTrava`, que hoje so
+	 * AVISA (console) em vez de mandar o pacote -- ver o comentario grande
+	 * na funcao, mais abaixo: os opcodes que o servidor publicou colidem com
+	 * um recurso ja em producao.
+	 */
+	ContextMenu.addElement(item.travado ? 'Destravar' : 'Travar', () => {
+		pedirAlternarTrava(item.index);
+	});
+	ContextMenu.nextGroup();
+
 	ContextMenu.addElement('Detalhes', () => {
 		abrirDetalhes(item);
 	});
+}
+
+/**
+ * PEDE A TROCA DA TRAVA AO SERVIDOR (R14/C2-3, 14/09/2026).
+ *
+ * Contrato v1: `CZ_RAGIDLE_TRAVA_ACAO` = 0x0fc0, JSON `{acao:'alternar',
+ * slot}`; a resposta e' `ZC_RAGIDLE_TRAVAS` = 0x0fc1, JSON `{v:1, travados:
+ * number[], recusa?}`, aplicada via `Inventory.getUI().aplicarTravas(travados)`
+ * (InventoryCommon.js) — o handler mora em MapEngine/Item.js, junto dos
+ * outros pacotes de inventario, para valer em QUALQUER janela que leia
+ * `item.travado` (MochilaIdle, NpcStoreV2/V1), nao so' nesta.
+ *
+ * O PAR FINAL (0x0fc0/0x0fc1) foi confirmado pelo SENIOR-C depois de a
+ * primeira tentativa (0x0fc7/0x0fc8) colidir com
+ * `CZ_RAGIDLE_COMANDOS_ACAO`/`ZC_RAGIDLE_COMANDOS` (o autocompletar de
+ * comandos do chat, ja em producao) — ver o comentario deles em
+ * `Network/PacketStructure.js`.
+ */
+function pedirAlternarTrava(index) {
+	const pkt = new PACKET.CZ.RAGIDLE_TRAVA_ACAO();
+	pkt.json = JSON.stringify({ acao: 'alternar', slot: index });
+	Network.sendPacket(pkt);
+}
+
+/**
+ * Pede o estado INTEIRO da trava — chamado ao ABRIR a mochila
+ * (`MochilaIdle.onAppend`), mesmo padrao de `requestFavoritos` no Mapa de
+ * Caca: pedir ao abrir a janela relevante, nunca presumir estado.
+ */
+function pedirTravas() {
+	const pkt = new PACKET.CZ.RAGIDLE_TRAVA_ACAO();
+	pkt.json = JSON.stringify({ acao: 'pedir' });
+	Network.sendPacket(pkt);
 }
 
 /**
@@ -1511,16 +1573,26 @@ function itemDoArrastoDoArmazem(e) {
 /**
  * Pede a retirada. Pilha de mais de um pergunta quanto, pelo MESMO InputBox
  * que a janela nativa usava para este gesto (InventoryCommon.js:1128-1140).
+ *
+ * R17/C2-6 (14/09/2026): mesmo conserto de `StorageCommon.js#pedirRetirada`
+ * (o outro caminho ate o mesmo gesto — este e' o do arrasto). O campo nasce
+ * preenchido com a maior quantidade que cabe no peso restante, e o mesmo
+ * teto entra na confirmacao.
  */
 function retirarDoArmazem(item) {
 	const total = item.count || 1;
 
 	if (total > 1) {
+		const pesoUnit = typeof item.weight === 'number' ? item.weight : pesoDeItem(item.ITID);
+		const pesoLivre = Session.Entity ? (Session.Entity.max_weight || 0) - (Session.Entity.weight || 0) : 0;
+		const tetoDoPeso = tetoPeloPeso(pesoLivre, pesoUnit);
+		const padrao = quantidadePadraoDaRetirada(total, tetoDoPeso);
+
 		InputBox.append();
-		InputBox.setType('number', false, total);
+		InputBox.setType('number', false, padrao);
 		InputBox.onSubmitRequest = function OnSubmitRequest(count) {
 			InputBox.remove();
-			const quantos = quantidadeDaRetirada(count, total);
+			const quantos = quantidadeDaRetirada(count, total, tetoDoPeso);
 			if (quantos !== null) {
 				Storage.reqRemoveItem(item.index, quantos);
 			}

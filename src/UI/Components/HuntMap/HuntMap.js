@@ -64,7 +64,8 @@ import {
 	ordenarMapas,
 	raridadeDoDrop,
 	resumoDoMotivo,
-	rotuloDeRaridade
+	rotuloDeRaridade,
+	textoDaRecomendacao
 } from './atlasDeCaca.js';
 import htmlText from './HuntMap.html?raw';
 import cssText from './HuntMap.css?raw';
@@ -474,9 +475,7 @@ function definirPasso(passo) {
 		const titulo = barra.querySelector('.hm-passo-titulo');
 		if (titulo) {
 			titulo.textContent =
-				_passo === 'mapas'
-					? HuntMap.activeTab || 'Mapas'
-					: nomeDoMapa(HuntMap.selectedMapa) || 'Detalhes';
+				_passo === 'mapas' ? HuntMap.activeTab || 'Mapas' : nomeDoMapa(HuntMap.selectedMapa) || 'Detalhes';
 		}
 	}
 }
@@ -877,9 +876,7 @@ function renderVoltarACacar() {
 	botao.className = 'hm-voltar-caca';
 	botao.dataset.mapa = destino;
 	botao.title = 'Voltar para ' + rotulo;
-	botao.innerHTML =
-		'<span class="hm-voltar-label">Voltar a cacar</span>' +
-		'<span class="hm-voltar-map"></span>';
+	botao.innerHTML = '<span class="hm-voltar-label">Voltar a cacar</span>' + '<span class="hm-voltar-map"></span>';
 	// `textContent` e nao `innerHTML` no rotulo: ele vem do catalogo, mas o
 	// custo de escapar aqui e zero e o de esquecer nao e.
 	botao.querySelector('.hm-voltar-map').textContent = rotulo;
@@ -1260,7 +1257,7 @@ function renderPanel() {
 	const faixaHtml = faixa
 		? `<div class="hm-fit-row hm-fit-exp-row"><span class="hm-fit-exp exp-${faixa.cls}" title="${escapeHtml(
 				'Monstros acima do seu nível rendem mais EXP, até +20% a 10 níveis acima; muito acima (16+) ou abaixo do seu nível rendem menos.'
-		  )}">${escapeHtml(textoDaFaixaDeExp(faixa))}</span></div>`
+			)}">${escapeHtml(textoDaFaixaDeExp(faixa))}</span></div>`
 		: '';
 
 	scrollEl.innerHTML = `
@@ -1343,18 +1340,22 @@ function bindFooter(footerEl) {
 
 /**
  * Uma linha de monstro no dossiê: avatar, nome (+MVP), e — quando a ficha já
- * chegou — nível, raça e elemento. Sem a ficha, só a contagem de drops do
- * índice, que já vem com o catálogo.
+ * chegou — nível, raça, elemento defensivo E o elemento recomendado contra
+ * ele (linha própria, R15/C2-4: a mesma info cabendo numa linha só ficava
+ * ilegível em mapas com várias espécies e no mobile). Sem a ficha, só a
+ * contagem de drops do índice, que já vem com o catálogo.
  */
 function renderMobRow(m, mapa, ficha) {
 	const isMvp = !!(mapa.mvp && m.mobId === mapa.mvp.mobId);
 	const isSelected = String(m.mobId) === String(HuntMap.selectedMobId);
 	const nDrops = (m.drops || []).length;
 	let meta;
+	let recomendacaoHtml = '';
 	if (ficha && m.raca) {
 		const raca = RACE_PT[m.raca] || m.raca;
 		const elemento = ELEMENT_PT[m.elemento] || m.elemento;
 		meta = `<b>Nv. ${m.nivel}</b> · ${escapeHtml(raca)} · ${escapeHtml(elemento)} ${m.nivelDoElemento}`;
+		recomendacaoHtml = `<span class="hm-chip-recomendacao">${escapeHtml(textoDaRecomendacao(m.recomendacao, ELEMENT_PT))}</span>`;
 	} else {
 		meta = `${nDrops} drop${nDrops === 1 ? '' : 's'}`;
 	}
@@ -1364,6 +1365,7 @@ function renderMobRow(m, mapa, ficha) {
 			<span class="hm-chip-text">
 				<span class="hm-chip-name">${escapeHtml(m.nome)}${isMvp ? '<span class="hm-chip-mvp">MVP</span>' : ''}</span>
 				<span class="hm-chip-meta">${meta}</span>
+				${recomendacaoHtml}
 			</span>
 			<span class="hm-chip-drops">${nDrops} ${nDrops === 1 ? 'drop' : 'drops'}</span>
 		</button>`;

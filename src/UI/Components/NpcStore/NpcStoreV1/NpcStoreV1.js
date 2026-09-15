@@ -507,10 +507,25 @@ NpcStore.setList = function setList(items) {
 			for (i = 0, count = items.length; i < count; ++i) {
 				it = Inventory.getUI().getItemByIndex(items[i].index);
 
+				/*
+				 * AUSENTE VALE 0 (R1/C-2, 14/09/2026): PlaceETCTab nasce `undefined`
+				 * em item pego DEPOIS do login (drop do idle, correio, loja,
+				 * armazem, carrinho - ver MapEngine/Item.js). `undefined < 1` e'
+				 * `false`, entao com `npcsalelock` ligado o item sumia da venda
+				 * sem nunca ter sido vendido - o "diversos que nao vendia" do
+				 * relato do dono.
+				 *
+				 * TRAVA (R14/C2-3, 14/09/2026): `it.travado` e' um cadeado
+				 * SEPARADO do `npcsalelock` (aquele e' preferencia do jogador,
+				 * liga/desliga; a trava vem do SERVIDOR por pilha e vale SEMPRE,
+				 * mesmo com o cadeado geral desligado) — por isso entra com `&&`
+				 * no lugar de disputar o mesmo `||` do PlaceETCTab. Vale nas DUAS
+				 * versoes de inventario: a legada (V0) nunca filtrava nada aqui.
+				 */
 				const condition =
 					InventoryVersion !== 'InventoryV0'
-						? it && (!Inventory.getUI().npcsalelock || it.PlaceETCTab < 1)
-						: it;
+						? it && !it.travado && (!Inventory.getUI().npcsalelock || (it.PlaceETCTab || 0) < 1)
+						: it && !it.travado;
 
 				if (condition) {
 					item = Object.assign({}, it);
