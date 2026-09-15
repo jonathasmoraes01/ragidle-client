@@ -90,6 +90,59 @@ let _sons = 0;
 /** O tempo somado de TODOS os pedidos de som da amostra. */
 let _somTotalMs = 0;
 
+/*
+   ── OS PACOTES, PELO MESMO MOLDE QUE RESOLVEU O SOM (D-1488, 15/09/2026) ───
+   Depois que o som saiu do caminho, o pior quadro passou a mostrar `rede`. Mas
+   **o instrumento nao sustenta conclusao sobre isso**, e a razao esta escrita
+   em `reparticaoDoPior`: `piorMs` e o maior INTERVALO entre quadros e a
+   reparticao e fotografada no quadro de maior `JS + rede` — dois "pior"
+   diferentes. Quando caem em quadros distintos, a conta "FORA do JS" sai
+   NEGATIVA (-50 ms, -811 ms no aparelho do dono), que e a assinatura de que a
+   subtracao nao vale ali.
+
+   Entao estes dois campos NAO sao mais uma foto de quadro: sao AGREGADO DA
+   AMOSTRA, exatamente como `sons`/`somTotalMs`. Aquele par foi conclusivo
+   justamente por nao depender de qual quadro foi o pior — `895 pedidos ·
+   19.617 ms · 21,92 ms por som` decidiu a troca de tecnologia sozinho.
+
+   `pacotes / redeTotalMs` da o **ms por pacote**, e e ele que separa as duas
+   explicacoes OPOSTAS de um `rede` alto, que tem consertos opostos:
+
+     - muito pacote e barato cada  -> VOLUME; o conserto e fatiar o
+       processamento, como o teto de tempo fez com a fila de eventos (D-1481);
+     - pouco pacote e caro cada    -> um MANIPULADOR caro; o conserto e achar
+       qual, e nao mexer no laco.
+
+   Custa um contador e uma soma. O conserto do "mesmo quadro" — fazer as duas
+   medidas falarem do mesmo quadro — fica para quando a rede realmente importar:
+   ele e invasivo (o intervalo vive noutro modulo) e sozinho nao entrega numero
+   nenhum.
+*/
+/** Quantos pacotes a amostra processou. Total, e nao por quadro. */
+let _pacotes = 0;
+/** O tempo somado de TODA a decodificacao de pacote da amostra. */
+let _redeTotalMs = 0;
+
+/**
+ * Um pacote processado. So conta; quem soma o tempo e `contarLoteDeRede`.
+ *
+ * Separado do tempo de proposito: o relogio e lido UMA vez por lote recebido
+ * (`NetworkManager.receive`), e um lote traz de um a centenas de pacotes. Ler
+ * `performance.now()` por pacote cobraria a medicao dentro do que ela mede.
+ */
+export function contarPacote() {
+	_pacotes++;
+}
+
+/**
+ * O tempo de um LOTE de pacotes recebido do servidor.
+ * @param {number} ms
+ */
+export function contarLoteDeRede(ms) {
+	_redeTotalMs += ms;
+	registrarFase(FASE.REDE, ms);
+}
+
 /**
  * Um pedido de som, com o que ele custou.
  *
@@ -151,6 +204,8 @@ export function reparticaoDoPior() {
 	// chamadas, e o pior quadro sozinho e uma amostra de um.
 	saida.sons = _sons;
 	saida.somTotalMs = Math.round(_somTotalMs);
+	saida.pacotes = _pacotes;
+	saida.redeTotalMs = Math.round(_redeTotalMs);
 	return saida;
 }
 
@@ -161,4 +216,6 @@ export function zerarFases() {
 	_piorQuadroMs = 0;
 	_sons = 0;
 	_somTotalMs = 0;
+	_pacotes = 0;
+	_redeTotalMs = 0;
 }

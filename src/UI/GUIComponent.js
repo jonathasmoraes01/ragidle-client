@@ -16,6 +16,9 @@ import Session from 'Engine/SessionStorage.js';
 import Targa from 'Loaders/Targa.js';
 import ClampToViewport from 'UI/ClampToViewport.js';
 import { alvosDaVarredura } from 'UI/alvosDaVarredura.js';
+// D-1489: a barra legada do RO e para MOUSE; no dedo quem rola e o navegador.
+// `escalaDaHud.js` nao importa nada (e folha), entao nao ha ciclo possivel.
+import { ehDedo } from 'UI/escalaDaHud.js';
 
 /**
  * Heavy modules loaded lazily to keep viewer bundles lightweight.
@@ -1011,6 +1014,47 @@ class GUIComponent {
 			if (!this._host || !this._host.parentNode) return;
 
 			const checkScrollbars = el => {
+				/*
+				 * ═══════════════════════════════════════════════════════════
+				 * NO DEDO, A ROLAGEM E A DO NAVEGADOR (D-1489, 15/09/2026).
+				 *
+				 * Relato do dono, no iPhone: *"nao conseguimos descer a janela
+				 * do menu (arrastar para baixo)"*.
+				 *
+				 * **MEDIDO no aparelho emulado (402x714, dedo), com o menu
+				 * aberto:** a folha tinha `scrollHeight 369` contra
+				 * `clientHeight 309` — ou seja, 60px de conteudo escondido,
+				 * sendo o botao "Instalar app" inteiro (top 640, com a caixa
+				 * terminando em 640) — e o `overflow-y` COMPUTADO era
+				 * **`hidden`**, com a folha declarando `auto`.
+				 *
+				 * Quem escreve o `hidden` e `UI/Scrollbar.js:222`, INLINE (por
+				 * isso vence a folha): a barra legada do roBrowser desliga a
+				 * rolagem nativa e desenha um puxador com a arte do RO, feito
+				 * para ser ARRASTADO COM O MOUSE. Num celular nao ha o que
+				 * pegar: o dedo escorrega sobre os botoes e a lista nao anda.
+				 *
+				 * **Isto nao e do menu: e de TODA janela rolavel do jogo**, e a
+				 * varredura acontece aqui, num lugar so. Por isso a guarda e
+				 * aqui, e nao no `TopMenuIdle`.
+				 *
+				 * O precedente e o de baixo, da mesma funcao: o campo editavel
+				 * ja foi excluido em 10/09 porque a mesma barra legada
+				 * atropelava o teclado do celular. E o mesmo defeito, e a
+				 * segunda vez que ele aparece — a diferenca e que agora a
+				 * excecao cobre o APARELHO em vez de um elemento.
+				 *
+				 * A rolagem nativa do celular e melhor aqui de qualquer forma:
+				 * ela tem inercia, barra que some sozinha e o `overscroll` que
+				 * a folha ja pede (`overscroll-behavior: contain`). E varrer
+				 * todos os descendentes a cada quadro tambem sai do caminho, o
+				 * que nao atrapalha o FPS do aparelho mais fraco.
+				 * ═══════════════════════════════════════════════════════════
+				 */
+				if (ehDedo()) {
+					return;
+				}
+
 				// Check the element itself and all descendants
 				const candidates = [el, ...el.querySelectorAll('*')];
 				for (const node of candidates) {

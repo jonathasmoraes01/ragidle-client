@@ -19,7 +19,7 @@ import PacketCrypt from './PacketCrypt.js';
 import PacketLength from './PacketLength.js';
 import WebSocket from './SocketHelpers/WebSocket.js';
 import NodeSocket from './SocketHelpers/NodeSocket.js';
-import { FASE, registrarFase } from 'Renderer/fasesDoQuadro.js';
+import { contarLoteDeRede, contarPacote } from 'Renderer/fasesDoQuadro.js';
 
 /**
  * Sockets list
@@ -263,7 +263,11 @@ function receive(buf) {
 		// `finally`, e nao uma linha depois da chamada: `processarPacotes` tem
 		// varios `return` (buffer incompleto espera o resto do lote), e sem ele
 		// a medicao perderia justamente os lotes partidos — que sao os grandes.
-		registrarFase(FASE.REDE, performance.now() - inicioDaRede);
+		//
+		// `contarLoteDeRede` faz o `registrarFase(FASE.REDE, ...)` por dentro e
+		// ainda SOMA o total da amostra (D-1488) — e o total, dividido pela
+		// contagem de pacotes, e que da o `ms por pacote`.
+		contarLoteDeRede(performance.now() - inicioDaRede);
 	}
 }
 
@@ -339,6 +343,11 @@ function processarPacotes(buf) {
 			_save_buffer = new Uint8Array(buffer, offset, fp.length - offset);
 			return;
 		}
+
+		// Daqui para baixo o pacote esta COMPLETO no buffer: as tres saidas por
+		// "faltam bytes" ja passaram. Contar antes seria contar lote partido
+		// duas vezes — uma agora e outra quando o resto chegasse (D-1488).
+		contarPacote();
 
 		if (Packets.list[id]) {
 			packet = Packets.list[id];
