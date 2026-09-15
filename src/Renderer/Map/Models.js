@@ -45,6 +45,15 @@ let _batchesReady = false;
 let _pendingTextures = 0;
 
 /**
+ * @let {number} bumped a cada `init()` — descarta callback de textura de um
+ * `init()` ANTERIOR que ainda estava carregando quando um mapa novo chegou
+ * (`_objects` e module-level e compartilhado; um `init()` com `count` menor
+ * TRUNCA o array, e o callback velho indexava um `index` que pode nao existir
+ * mais — "TypeError: _objects[i] is undefined" no analytics, 13/09/2026).
+ */
+let _geracao = 0;
+
+/**
  * Build batched draw calls by merging consecutive objects with the same texture.
  * Objects sharing the same texture with contiguous vertex ranges are merged
  * into a single draw call, reducing GPU state changes.
@@ -54,7 +63,7 @@ function buildBatches() {
 	let current = null;
 
 	for (let i = 0, count = _objects.length; i < count; ++i) {
-		if (!_objects[i].complete) {
+		if (!_objects[i] || !_objects[i].complete) {
 			continue;
 		}
 
@@ -87,6 +96,7 @@ function buildBatches() {
 function init(gl, data) {
 	const objects = data.infos;
 	const count = objects.length;
+	const geracao = ++_geracao;
 	_objects.length = count;
 	_batchesReady = false;
 	_pendingTextures = count;
@@ -104,6 +114,11 @@ function init(gl, data) {
 	gl.bufferData(gl.ARRAY_BUFFER, data.buffer, gl.STATIC_DRAW);
 
 	function onTextureLoaded(texture, index) {
+		// Descarta o callback de um `init()` anterior — `_objects` pode ter
+		// sido truncado por um mapa novo com menos objetos.
+		if (geracao !== _geracao || !_objects[index]) {
+			return;
+		}
 		_objects[index].texture = texture;
 		_objects[index].complete = true;
 		_pendingTextures--;
@@ -196,7 +211,7 @@ function render(gl, modelView, projection, normalMat, fog, light) {
 		} else {
 			// Fallback: render individually while textures are still loading
 			for (i = 0, count = _objects.length; i < count; ++i) {
-				if (_objects[i].complete) {
+				if (_objects[i] && _objects[i].complete) {
 					gl.bindTexture(gl.TEXTURE_2D, _objects[i].texture);
 					gl.drawArrays(gl.TRIANGLES, _objects[i].vertOffset, _objects[i].vertCount);
 				}
@@ -230,7 +245,9 @@ function free(gl) {
 	}
 
 	for (i = 0, count = _objects.length; i < count; ++i) {
-		gl.deleteTexture(_objects[i].texture);
+		if (_objects[i]) {
+			gl.deleteTexture(_objects[i].texture);
+		}
 	}
 
 	_objects.length = 0;

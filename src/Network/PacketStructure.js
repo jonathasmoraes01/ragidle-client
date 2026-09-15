@@ -16801,6 +16801,35 @@ PACKET.ZC.RAGIDLE_RESPOSTA_DE_COMANDO = function PACKET_ZC_RAGIDLE_RESPOSTA_DE_C
 };
 PACKET.ZC.RAGIDLE_RESPOSTA_DE_COMANDO.size = -1;
 
+// 0x0fc4 - RAGIDLE: CZ_RAGIDLE_SONO_ACAO (client -> server) — 13/09/2026
+// Variable size: u16 opcode + u16 total length + JSON UTF-8 {acao:'iniciar'|'acordar'}.
+// O "DORMIR" (D-1381): o farm offline por estimativa que substitui a sessao
+// desassistida (D-275). Um opcode por JANELA, verbo no JSON.
+PACKET.CZ.RAGIDLE_SONO_ACAO = function PACKET_CZ_RAGIDLE_SONO_ACAO() {
+	this.json = '{}';
+};
+PACKET.CZ.RAGIDLE_SONO_ACAO.prototype.build = function () {
+	const bytes = TextEncoding.encode(this.json, 'utf-8');
+	const pkt_len = 2 + 2 + bytes.length;
+	const pkt_buf = new BinaryWriter(pkt_len);
+	pkt_buf.writeShort(0x0fc4);
+	pkt_buf.writeUShort(pkt_len);
+	pkt_buf.writeString(this.json);
+	return pkt_buf;
+};
+
+// 0x0fc5 - RAGIDLE: ZC_RAGIDLE_SONO (server -> client) — 13/09/2026
+// Variable size: u16 opcode + u16 total length + JSON UTF-8 payload.
+// Contrato (D-1381, taxas em D-1386): { dormindo, restanteMs?, recusa?,
+// taxaExpBasePorMs?, taxaExpClassePorMs? }. As duas taxas so vem com
+// dormindo:true — e a mesma TaxaDeSono que o servidor congelou, pro cliente
+// multiplicar por restanteMs e mostrar a EXP projetada. Desce em resposta ao
+// pedido, e tambem SEM pedido no login enquanto o personagem ainda dorme.
+PACKET.ZC.RAGIDLE_SONO = function PACKET_ZC_RAGIDLE_SONO(fp, end) {
+	this.json = fp.readString(end - fp.tell());
+};
+PACKET.ZC.RAGIDLE_SONO.size = -1;
+
 // ---------------------------------------------------------------------------
 // O MENU LFG (Looking For Group) — D-634, 25/08/2026.
 //

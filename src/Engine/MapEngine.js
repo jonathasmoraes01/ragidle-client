@@ -22,7 +22,7 @@ import PACKETVER from 'Network/PacketVerManager.js';
 import PACKET from 'Network/PacketStructure.js';
 import Renderer from 'Renderer/Renderer.js';
 import Camera from 'Renderer/Camera.js';
-import MapRenderer from 'Renderer/MapRenderer.js';
+import MapRenderer, { stripMapExtension } from 'Renderer/MapRenderer.js';
 import EntityManager from 'Renderer/EntityManager.js';
 import Entity from 'Renderer/Entity/Entity.js';
 import Altitude from 'Renderer/Map/Altitude.js';
@@ -393,6 +393,10 @@ class MapEngine {
 			Network.hookPacket(PACKET.ZC.CONFIG_NOTIFY4, onConfigNotify);
 			Network.hookPacket(PACKET.ZC.CONFIG, onConfig);
 			Network.hookPacket(PACKET.ZC.REFUSE_ENTER, onConnectionRefused);
+			// O "DORMIR" (D-1381): so dispara para quem esta dormindo — nao
+			// muda em nada o caminho normal de entrada. Ver o cabecalho de
+			// onSonoRecebido, abaixo.
+			Network.hookPacket(PACKET.ZC.RAGIDLE_SONO, onSonoRecebido);
 
 			// hook reassembly packets and map the responses
 			for (let i = 1; i <= 42; i++) {
@@ -866,6 +870,127 @@ function onConnectionRefused(pkt) {
 }
 
 /**
+ * O TEXTO DA RECUSA, por codigo (D-1383, 13/09/2026 — o relato do grupo de
+ * teste: a contagem de 5s terminava e o jogo so CONTINUAVA, sem sinal
+ * nenhum de que o "iniciar" tinha sido recusado). `amostra-insuficiente` e a
+ * mais provavel: a amostra do servidor reseta em TODO mapa novo (D-1381),
+ * mas a "Duracao" que o Hunt Analyzer mostra e da CACADA inteira e pode
+ * atravessar varios mapas de caca sem resetar — os dois relogios medem
+ * coisas diferentes de proposito, e essa diferenca e o que engana o botao
+ * quando o jogador troca de mapa de caca no meio da sessao.
+ */
+const TEXTO_DA_RECUSA_DE_SONO = {
+	'amostra-insuficiente':
+		'Ainda não são 10 minutos de caça contínua NESTE mapa — trocar de mapa (mesmo que seja outro mapa de caça) reinicia a contagem.',
+	'nivel-do-mapa': 'Este mapa não é elegível para o "Dormir" — precisa estar pelo menos 1 nível abaixo do seu.',
+	'sem-mundo': 'Não foi possível iniciar o sono agora — você não está numa caçada.'
+};
+
+/**
+ * O tempo que `onSonoRecebido` espera pela resposta do "acordar" antes de
+ * desistir do resumo e reconectar do mesmo jeito (D-1387). So dispara se a
+ * resposta se perder de verdade (rede caiu entre o clique e o pacote voltar)
+ * — o caminho normal responde em milissegundos, no MESMO socket.
+ */
+const MS_DE_ESPERA_PELO_ACORDAR = 8000;
+
+/** A janela "Dormindo.../Acordando..." hoje aberta, se houver (D-1387). */
+let _janelaDoSonoAtiva = null;
+/**
+ * Ja resolvemos o "acordar" desta rodada — pelo ack do servidor ou pelo teto
+ * de seguranca, o que chegar primeiro? Evita reagir duas vezes se a resposta
+ * chegar atrasada, depois do teto ja ter fechado a janela e reconectado.
+ */
+let _acordarResolvido = false;
+
+/**
+ * onSonoRecebido (D-1381, 13/09/2026 — taxas de EXP em D-1386, resumo do
+ * "acordar" em D-1387) — o "Dormir".
+ *
+ * O servidor responde ao MESMO `CZ_ENTER2` que dispara `onConnectionAccepted`
+ * com `ZC_RAGIDLE_SONO{dormindo:true, restanteMs, taxaExpBasePorMs,
+ * taxaExpClassePorMs}` em vez de `ZC_ACCEPT_ENTER2`, quando o personagem
+ * ainda esta dormindo. Isto so chega para quem esta dormindo — o caminho
+ * normal (accept/refuse) nunca muda.
+ *
+ * `UIManager.showDormindo` e a MESMA janela (`WinPopup` clonada) que
+ * `showErrorBox` usa para o boot inteiro — a unica comprovada a renderizar
+ * aqui, antes de `MapEngine` ter entrado em mundo nenhum.
+ *
+ * Uma RECUSA (`dormindo:false` com `recusa`) tambem tem tela. A resposta ao
+ * "acordar" bem-sucedido tambem manda `dormindo:false`, mas SEM `recusa` — e
+ * o ramo novo (D-1387): fecha a janela de espera, mostra o RESUMO do que foi
+ * ganho, e SO NO "Continuar" do resumo reconecta. O relato do Jhow no grupo
+ * de teste ("ficou meio bugado na hora de voltar... aparece essa mensagem")
+ * era exatamente a corrida entre o close do servidor e o reload do cliente —
+ * o reload saia ANTES de esperar esta resposta, entao o dialogo generico de
+ * "Disconnected from Server" (`NetworkManager.js`) as vezes ganhava a corrida
+ * e aparecia por cima. `Network.onDisconnect` suprime esse dialogo soh para
+ * este close deliberado; `LoginEngine.init` reassume o dele proprio assim que
+ * o boot volta a tela de login, entao nao precisa ser desfeito aqui.
+ */
+function onSonoRecebido(pkt) {
+	let corpo;
+	try {
+		corpo = JSON.parse(pkt.json);
+	} catch {
+		return;
+	}
+	if (!corpo) {
+		return;
+	}
+
+	if (corpo.dormindo === true) {
+		_acordarResolvido = false;
+		const taxas = {
+			expBasePorMs: Number(corpo.taxaExpBasePorMs) || 0,
+			expClassePorMs: Number(corpo.taxaExpClassePorMs) || 0
+		};
+		_janelaDoSonoAtiva = UIManager.showDormindo(corpo.restanteMs || 0, taxas, () => {
+			const acordar = new PACKET.CZ.RAGIDLE_SONO_ACAO();
+			acordar.json = JSON.stringify({ acao: 'acordar' });
+			Network.onDisconnect = () => {};
+			Network.sendPacket(acordar);
+			setTimeout(() => {
+				if (_acordarResolvido) return;
+				_acordarResolvido = true;
+				if (_janelaDoSonoAtiva) {
+					_janelaDoSonoAtiva.remove();
+					_janelaDoSonoAtiva = null;
+				}
+				import('Engine/GameEngine.js').then(m => m.default.reload());
+			}, MS_DE_ESPERA_PELO_ACORDAR);
+		});
+		return;
+	}
+
+	// dormindo === false a partir daqui.
+	if (corpo.recusa) {
+		UIManager.showMessageBox(
+			TEXTO_DA_RECUSA_DE_SONO[corpo.recusa] || 'Não foi possível iniciar o sono agora.',
+			'ok'
+		);
+		return;
+	}
+
+	// O ACK do "acordar": fecha a janela de espera e mostra o resumo.
+	if (_acordarResolvido) return; // o teto de seguranca ja resolveu isto
+	_acordarResolvido = true;
+	if (_janelaDoSonoAtiva) {
+		_janelaDoSonoAtiva.remove();
+		_janelaDoSonoAtiva = null;
+	}
+	const resumo = {
+		expBase: Number(corpo.expBase) || 0,
+		expClasse: Number(corpo.expClasse) || 0,
+		tempoDormidoMs: Number(corpo.tempoDormidoMs) || 0
+	};
+	UIManager.showResumoDoSono(resumo, () => {
+		import('Engine/GameEngine.js').then(m => m.default.reload());
+	});
+}
+
+/**
  * Changing map, loading new map
  *
  * @param {object} pkt - PACKET.ZC.NPCACK_MAPMOVE
@@ -904,6 +1029,17 @@ function ligarAcessorioDaHud(nome, ligar) {
 }
 
 function onMapChange(pkt) {
+	/*
+	 * O MAPA ANTES DESTE PACOTE (D-1385, 13/09/2026) — capturado ANTES de
+	 * `MapRenderer.setMap` rodar, porque `setMap` só reatribui
+	 * `MapRenderer.currentMap` quando é uma troca de mapa DE VERDADE
+	 * (`MapRenderer.js`, o teleporte no mesmo mapa nunca toca nele). Um
+	 * `ZC_NPCACK_MAPMOVE` da Asa de Mosca chega aqui do MESMO jeito que uma
+	 * troca real — é o mesmo pacote, o rAthena não distingue os dois — e sem
+	 * este valor não havia como `onLoad` (abaixo) responder "isto mudou de
+	 * mapa mesmo?" sem reescrever a comparação de `setMap` uma terceira vez.
+	 */
+	const mapaAntesDoLoad = MapRenderer.currentMap;
 	MapRenderer.onLoad = () => {
 		/*
 		 * RAGIDLE (B1, 06/09/2026) — A SEGUNDA LIMPEZA, E ELA E O CONSERTO.
@@ -1083,9 +1219,21 @@ function onMapChange(pkt) {
 		// RAGIDLE: o tracker ancora ABAIXO do BasicInfoIdle por medição — vem
 		// DEPOIS dele no append para o primeiro syncPosition já achar o host.
 		MissoesTrackerIdle.append();
-		// RAGIDLE: pergunta se este mapa e cidade (D-355) para desabilitar o
-		// botao quando nao ha caca. A resposta cai no mesmo handler do pedir.
-		IdleConfig.sondarMapa();
+		/*
+		 * RAGIDLE: pergunta se este mapa e cidade (D-355) para desabilitar o
+		 * botao quando nao ha caca. A resposta cai no mesmo handler do pedir.
+		 *
+		 * SO QUANDO O MAPA MUDOU DE VERDADE (D-1385, 13/09/2026) — sem esta
+		 * checagem, todo teleporte no MESMO mapa (a Asa de Mosca; o `pc_setpos`
+		 * do rAthena chama `clif_changemap` mesmo quando o destino e igual ao
+		 * mapa atual) sondava de novo, marcando `IdleConfig.contextoObsoleto`
+		 * por um instante — e o relato do dono foi exatamente esse instante
+		 * sendo lido como "saiu da cacada": a "Duracao" do Hunt Analyzer
+		 * resetava a cada uso da asa.
+		 */
+		if (stripMapExtension(mapaAntesDoLoad) !== stripMapExtension(pkt.mapName)) {
+			IdleConfig.sondarMapa();
+		}
 
 		// RAGIDLE: "Painel de admin" floating button — same unconditional
 		// append() as HuntMap/IdleConfig right above; AdminPanel.onAppend()

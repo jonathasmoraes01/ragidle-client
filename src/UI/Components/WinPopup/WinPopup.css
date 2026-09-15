@@ -71,6 +71,14 @@
 	font-family: var(--font-ui, 'Figtree', Arial, 'Liberation Sans', Arimo, sans-serif);
 	text-align: center;
 	overflow-wrap: break-word;
+	/*
+	 * D-1386: a tela de "Dormindo..." passou a mandar `\n` no `textContent`
+	 * pra separar tempo restante / EXP projetada / aviso de aba — sem isto o
+	 * navegador colapsa a quebra e as tres linhas viram uma frase corrida.
+	 * Nao afeta ninguem mais: todo outro chamador de WinPopup passa string
+	 * sem `\n`, entao o comportamento deles fica identico.
+	 */
+	white-space: pre-line;
 }
 
 #win_popup .buttonscontainer {

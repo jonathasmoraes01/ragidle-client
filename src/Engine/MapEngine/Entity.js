@@ -309,7 +309,7 @@ function onEntityVanish(pkt) {
 		return;
 	}
 	if (entity) {
-		if (entity.objecttype === Entity.TYPE_PC && pkt.GID === Session.Entity.GID) {
+		if (entity.objecttype === Entity.TYPE_PC && pkt.GID === Session.meuGID) {
 			//death animation only for myself
 			const EF_Init_Par = {
 				effectId: EffectConst.EF_DEVIL,
@@ -411,7 +411,7 @@ function onEntityVanish(pkt) {
 	}
 
 	// Show escape menu
-	if (pkt.GID === Session.Entity.GID && pkt.type === 1) {
+	if (pkt.GID === Session.meuGID && pkt.type === 1) {
 		/*
 		 * RAGIDLE (19/08/2026): quem desenha a morte neste fork e a
 		 * DeathWindow — cartao centralizado, no design system, com o

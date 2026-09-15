@@ -93,6 +93,17 @@ StatusIcons.onRemove = function onRemove() {
 /**
  * Clean up component
  */
+/**
+ * Existe um status ATIVO com este index agora? (D-1381, 13/09/2026: o
+ * "Dormir" pergunta ao jogador antes de congelar a taxa durante um evento de
+ * EXP — `SC.CASH_PLUSEXP`, o mesmo EFST que a HUD ja desenha.) `_status` e o
+ * MESMO registro que `update`/`removeElementIndex` mantem: nenhum estado
+ * novo, so uma pergunta sobre o que ja existe.
+ */
+StatusIcons.estaAtivo = function estaAtivo(index) {
+	return index in _status;
+};
+
 StatusIcons.clean = function clean() {
 	const root = StatusIcons.getRoot();
 	const container = root.querySelector('#StatusIcons');

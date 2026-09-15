@@ -30,19 +30,19 @@
 		},
 		"map": {
 			"entrada": {
-				"total": 736,
+				"total": 737,
 				"semTamanho": 0
 			},
 			"saida": {
-				"total": 555,
+				"total": 556,
 				"semTamanho": 0
 			}
 		}
 	},
 	"comprimentosDoCliente": {
 		"arquivo": "src/Network/Packets/packets2021_len_main.js",
-		"declarados": 1645,
-		"preencheram": 99,
+		"declarados": 1647,
+		"preencheram": 100,
 		"divergencias": [
 			{
 				"opcode": "0x0276",
@@ -12454,6 +12454,11 @@
 					"tamanho": -1,
 					"desde": null
 				},
+				"0x0fc5": {
+					"nome": "ZC_RAGIDLE_SONO",
+					"tamanho": -1,
+					"desde": null
+				},
 				"0x0fc6": {
 					"nome": "ZC_RAGIDLE_RESPOSTA_DE_COMANDO",
 					"tamanho": -1,
@@ -15467,6 +15472,12 @@
 				},
 				"0x0fc2": {
 					"nome": "CZ_RAGIDLE_TRAVA_ACAO",
+					"tamanho": -1,
+					"desde": null,
+					"fonteDoTamanho": "cliente"
+				},
+				"0x0fc4": {
+					"nome": "CZ_RAGIDLE_SONO_ACAO",
 					"tamanho": -1,
 					"desde": null,
 					"fonteDoTamanho": "cliente"

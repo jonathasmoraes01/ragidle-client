@@ -131,8 +131,23 @@ function novaSessao(agora, mapa, rotuloDoMapa) {
 	};
 }
 
-/** Troca de personagem zera TUDO: sessao e historico sao por personagem. */
+/**
+ * Troca de personagem zera TUDO: sessao e historico sao por personagem.
+ *
+ * GID INVALIDO (`null`/`undefined`/`-1`) NUNCA CONTA COMO TROCA (D-1385,
+ * 13/09/2026) — `-1` e o valor TRANSITORIO que `Entity.clean()` poe no GID
+ * durante a limpeza de entidades de toda troca de mapa (`Engine/MapEngine.js`,
+ * comentario ao lado de `Session.Entity.set({..., GID: Session.AID})`), antes
+ * do valor certo ser restaurado. Nao ha janela de corrida hoje para o tique de
+ * 250ms ler esse `-1` (a limpeza e a restauracao sao sincronas), mas tratar
+ * qualquer GID invalido como "personagem novo" e uma fragilidade real —
+ * confundir isso com troca de personagem apagaria sessao e historico de
+ * verdade, e nao so pausaria a contagem.
+ */
 function garantirDono(gid) {
+	if (gid === null || gid === undefined || gid === -1) {
+		return;
+	}
 	if (_dono !== gid) {
 		zerar();
 		_dono = gid;
