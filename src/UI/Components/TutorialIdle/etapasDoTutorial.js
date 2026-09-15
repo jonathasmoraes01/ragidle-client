@@ -1,7 +1,7 @@
 /**
  * UI/Components/TutorialIdle/etapasDoTutorial.js
  *
- * A REGRA PURA DO TUTORIAL GUIADO: a tabela das nove etapas e a geometria da
+ * A REGRA PURA DO TUTORIAL GUIADO: a tabela das dez etapas e a geometria da
  * camada (recorte, mascara, mao, balao). Zero DOM, zero import.
  *
  * Ele mora fora do componente pelo mesmo motivo que `secoesDaConfig.js` mora
@@ -49,7 +49,7 @@
 
 /** Quantas etapas o tutorial tem. O servidor manda `total` no retrato; este
  *  numero e o que o cliente desenha quando o retrato ainda nao chegou. */
-export const TOTAL_DE_ETAPAS = 9;
+export const TOTAL_DE_ETAPAS = 10;
 
 /**
  * Quem guia. E a Kafra da praca de Prontera, com o nome que o jogador ja le
@@ -62,16 +62,16 @@ export const TOTAL_DE_ETAPAS = 9;
 export const QUEM_GUIA = 'Funcionária Kafra';
 
 /**
- * AS NOVE ETAPAS (secao 7 do CONTRATO-JORNADA.md, mais o Correio - 15/09/2026).
+ * AS DEZ ETAPAS (secao 7 do CONTRATO-JORNADA.md, mais as DUAS do Correio - 15/09/2026).
  *
  * Campos de cada uma:
- *   numero      1..9, o que o servidor guarda em `etapa`.
+ *   numero      1..10, o que o servidor guarda em `etapa`.
  *   rotulo      o texto do controle, EXATAMENTE como ele aparece na tela.
  *               E o que vai entre aspas na frase.
  *   frase       imperativo, uma acao so, com `{acao}` onde entra o verbo do
  *               ponteiro e `{rotulo}` onde entra o nome do controle.
  *   alvo        { host, seletor } do controle a destacar, ou `null` quando a
- *               etapa nao tem controle nenhum (a etapa 7 e de OLHAR).
+ *               etapa nao tem controle nenhum (a etapa 8 e de OLHAR).
  *   quandoSumir { host, seletor, frase } o caminho de volta, quando o alvo
  *               nao tem caixa (janela fechada, leque recolhido). E o que a
  *               secao 6 do contrato manda: explicar como voltar, em vez de
@@ -120,13 +120,23 @@ export const ETAPAS = Object.freeze([
 		avancaPor: 'missao-ativa-no-servidor'
 	}),
 	/*
-	 * A ETAPA DO CORREIO (15/09/2026), achada faltando na auditoria: um
+	 * AS DUAS ETAPAS DO CORREIO (15/09/2026), achadas faltando na auditoria: um
 	 * personagem novo nasce com a MOCHILA VAZIA - a arma, as pocoes e o zeny
 	 * do kit inicial chegam pela carta de boas-vindas (D-534,
-	 * `servidor/index.ts`), nao equipados de fabrica. Sem esta etapa entre
+	 * `servidor/index.ts`), nao equipados de fabrica. Sem elas entre
 	 * "Iniciar" e "Arma", o tutorial mandava o novato vestir uma arma que
 	 * ele ainda nao tinha: o slot `.mo-slot[data-location="2"]` da etapa
 	 * seguinte existe, mas esta vazio, e nao ha o que clicar.
+	 *
+	 * **SAO DUAS, E NAO UMA** - achado ao JOGAR a versao com uma so: abrir o
+	 * Correio e retirar o kit de dentro dela sao dois gestos em dois lugares
+	 * da tela (o botao do menu, depois a janela que abre longe dele), e a
+	 * mascara (ver o cabecalho deste arquivo, "POR QUE QUATRO RETANGULOS")
+	 * so ilumina UM alvo por etapa - o mesmo motivo por que "abrir Missoes"
+	 * (2) e "Iniciar a missao" (3) ja eram etapas separadas. Uma etapa so
+	 * com alvo no botao do menu bloquearia o clique DENTRO da janela do
+	 * Correio que esse botao abre: a mascara escurece e desliga tudo fora
+	 * do furo, por desenho.
 	 */
 	Object.freeze({
 		numero: 4,
@@ -138,16 +148,42 @@ export const ETAPAS = Object.freeze([
 			seletor: '.tm-fab',
 			frase: 'Abra o "Menu" de novo. O "Correio" mora lá dentro.'
 		}),
-		avancaPor: 'kit-retirado'
+		avancaPor: 'correio-aberto'
 	}),
 	Object.freeze({
 		numero: 5,
+		rotulo: null,
+		/* A janela inteira fica livre (sem furo estreito): o jogador precisa
+		   selecionar a carta na LISTA (esquerda) e depois clicar em "retirar"
+		   no PAINEL de detalhe (direita) - dois lugares dentro da mesma
+		   janela, que um furo em volta de um botao so nao cobriria. */
+		frase: 'Abra a carta e retire TUDO dela: o zeny e os itens. Ele é seu, pode usar sem dó.',
+		alvo: Object.freeze({ host: 'CorreioIdle', seletor: '.co-window' }),
+		quandoSumir: Object.freeze({
+			host: 'TopMenuIdle',
+			seletor: '.tm-item[data-action="correio"]',
+			frase: 'A janela do "Correio" fechou. Abra-a de novo para retirar o kit.'
+		}),
+		avancaPor: 'kit-retirado'
+	}),
+	Object.freeze({
+		numero: 6,
 		rotulo: 'Arma',
 		frase: 'Ponha a sua arma no slot {rotulo}. Ninguém sai de Midgard de mãos vazias.',
-		/* `data-location="2"` e `EquipLocation.WEAPON` (`1 << 1`,
-		   `src/DB/Items/EquipmentLocation.js:13`), o mesmo bitmask que
-		   MochilaIdle carimba em cada ladrilho (MochilaIdle.js:775). */
-		alvo: Object.freeze({ host: 'MochilaIdle', seletor: '.mo-slot[data-location="2"]' }),
+		/*
+		 * O ALVO E A JANELA INTEIRA (`.mo-window`), NAO SO O SLOT (achado ao
+		 * JOGAR esta etapa, 15/09/2026) - o mesmo defeito de fundo da dupla do
+		 * Correio, um passo adiante. A faca chega no kit dentro da aba
+		 * "Equipar", e a mochila abre na aba "Consumíveis" (as poções do
+		 * mesmo kit). Um furo so em volta do slot `.mo-slot[data-location="2"]`
+		 * bloquearia o clique na PROPRIA aba "Equipar" - o jogador nao
+		 * conseguiria nem trocar de aba para achar a arma, muito menos
+		 * arrasta-la ate o slot. `data-location="2"` e `EquipLocation.WEAPON`
+		 * (`1 << 1`, `src/DB/Items/EquipmentLocation.js:13`), o mesmo bitmask
+		 * que MochilaIdle carimba em cada ladrilho (MochilaIdle.js:775) - fica
+		 * so na frase agora, ja que o furo nao aponta mais so pra ele.
+		 */
+		alvo: Object.freeze({ host: 'MochilaIdle', seletor: '.mo-window' }),
 		quandoSumir: Object.freeze({
 			host: 'TopMenuIdle',
 			seletor: '.tm-item[data-action="inventory"]',
@@ -156,19 +192,30 @@ export const ETAPAS = Object.freeze([
 		avancaPor: 'arma-vestida-confirmada'
 	}),
 	Object.freeze({
-		numero: 6,
-		rotulo: 'Caçar',
-		frase: '{acao} {rotulo}. Eu te levo até o campo.',
-		alvo: Object.freeze({ host: 'HuntButtonIdle', seletor: '.hb-cacar' }),
+		numero: 7,
+		rotulo: null,
+		frase: 'Escolha um mapa e viaje. Qualquer um serve para começar.',
+		/*
+		 * O ALVO E A JANELA DO MAPA (`.hm-window`), NAO O BOTAO `.hb-cacar`
+		 * (achado ao JOGAR esta etapa, 15/09/2026) - a mesma familia de
+		 * defeito da dupla do Correio e da etapa da arma, um passo adiante.
+		 * `.hb-cacar` so viaja DIRETO quando ja existe um mapa lembrado; para
+		 * quem nunca cacou (todo mundo que ve este tutorial, por definicao)
+		 * ele abre o SELETOR de mapa (`HuntMap`) em vez de viajar - e "Viajar
+		 * para Campo de Prontera" mora DENTRO dessa janela, fora do furo
+		 * antigo. `quandoSumir` cobre o instante ANTES de abrir: a janela
+		 * ainda nao existe, entao o furo volta para o botao que a abre.
+		 */
+		alvo: Object.freeze({ host: 'HuntMap', seletor: '.hm-window' }),
 		quandoSumir: Object.freeze({
-			host: 'TopMenuIdle',
-			seletor: '.tm-item[data-action="huntmap"]',
-			frase: 'Abra o "Mapa de Caça" e escolha para onde nós vamos.'
+			host: 'HuntButtonIdle',
+			seletor: '.hb-cacar',
+			frase: 'Clique em "Caçar". Eu te levo até o campo.'
 		}),
 		avancaPor: 'mapa-mudou'
 	}),
 	Object.freeze({
-		numero: 7,
+		numero: 8,
 		rotulo: null,
 		frase: 'Pronto: agora você luta sozinho. Olhe a vida do monstro descer.',
 		/*
@@ -185,7 +232,7 @@ export const ETAPAS = Object.freeze([
 		avancaPor: 'primeiro-abate'
 	}),
 	Object.freeze({
-		numero: 8,
+		numero: 9,
 		rotulo: 'Objetivo',
 		frase: 'Olhe aqui: este é o seu {rotulo}, e ele anda a cada monstro.',
 		alvo: Object.freeze({ host: 'MissoesTrackerIdle', seletor: '.mt-ativa' }),
@@ -193,7 +240,7 @@ export const ETAPAS = Object.freeze([
 		avancaPor: 'contador-andou'
 	}),
 	Object.freeze({
-		numero: 9,
+		numero: 10,
 		rotulo: 'Codex',
 		frase: '{acao} {rotulo}. A Jornada de Midgard te espera lá dentro.',
 		alvo: Object.freeze({ host: 'TopMenuIdle', seletor: '.tm-item[data-action="codex"]' }),
@@ -206,8 +253,8 @@ export const ETAPAS = Object.freeze([
 	})
 ]);
 
-/** A etapa de numero `n`, ou `null`. Fora de 1..9 devolve `null` de proposito:
- *  um retrato de servidor mais novo (nove etapas) nao pode desenhar lixo. */
+/** A etapa de numero `n`, ou `null`. Fora de 1..10 devolve `null` de proposito:
+ *  um retrato de servidor mais novo (mais etapas) nao pode desenhar lixo. */
 export function etapaDe(numero) {
 	return ETAPAS.find(e => e.numero === numero) || null;
 }

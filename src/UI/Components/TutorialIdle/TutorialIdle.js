@@ -77,6 +77,8 @@ import GUIComponent from 'UI/GUIComponent.js';
 import Cursor from 'UI/CursorManager.js';
 import RiIcones from 'UI/ri-icones.js';
 import MissoesIdle from 'UI/Components/MissoesIdle/MissoesIdle.js';
+import Inventory from 'UI/Components/Inventory/Inventory.js';
+import ItemType from 'DB/Items/ItemType.js';
 import { ler as lerRegistroDaCaca } from 'UI/Components/HuntAnalyzer/registroDaCaca.js';
 import htmlText from './TutorialIdle.html?raw';
 import cssText from './TutorialIdle.css?raw';
@@ -254,7 +256,10 @@ function marcoDaEtapa(numero) {
 		/* `Session.zeny` (Engine/SessionStorage.js) e o MESMO getter que a HUD
 		   le para desenhar o saldo (BasicInfoIdle.js:501) - o personagem novo
 		   nasce com `zeny: 0` (servidor/char/servidor-char.ts) e so ganha o do
-		   kit ao retirar a carta de boas-vindas do Correio (D-534). */
+		   kit ao retirar a carta de boas-vindas do Correio (D-534). E metade
+		   do par que o caso 5 confere - a outra metade e `Inventory.getUI().
+		   list` (a ARMA em si), lida direto na hora, sem marco: presenca de
+		   item nao precisa de "antes/depois", so precisa existir agora. */
 		zeny: Session.zeny || 0
 	};
 }
@@ -292,16 +297,41 @@ function etapaCumprida(numero) {
 			/* O SERVIDOR marcou a missao ativa. `execucao` vem do
 			   ZC_RAGIDLE_MISSOES, que a janela de Missoes recebe e guarda. */
 			return !!(execucao && execucao.ativaId);
-		case 4: {
-			/* O KIT RETIRADO: `Session.zeny` so sobe quando o servidor confirma a
-			   retirada do anexo (`CZ_REQ_ITEM_FROM_RODEX`/native pickup ack). O
-			   kit tem zeny > 0 sempre (`servidor/kit-inicial.ts`), entao o
-			   personagem que nasceu com `zeny: 0` so passa daqui depois de abrir
-			   o Correio de verdade - o mesmo desenho do caso 5 (arma), so que
-			   com o numero que a HUD ja mostra em vez do sprite da entidade. */
-			return Session.zeny > (_marco ? _marco.zeny : 0);
-		}
+		case 4:
+			/* A janela do Correio abriu (`CorreioIdle.js`, `.co-window` ganha
+			   `is-open` no toggle). So abrir - retirar o kit de dentro dela e a
+			   etapa 5, com alvo na janela inteira (dois gestos, um furo so). */
+			return janelaAberta('CorreioIdle', '.co-window');
 		case 5: {
+			/*
+			 * O KIT RETIRADO POR INTEIRO, e nao so a metade dele.
+			 *
+			 * `CorreioIdle.js` tem DOIS botoes para esta carta - "Coletar zeny"
+			 * e "Coletar itens" - e cada clique manda o proprio pacote
+			 * (`CZ_REQ_ITEM_FROM_RODEX`/native pickup ack). Exigir SO
+			 * `Session.zeny` subir avancaria a etapa no primeiro clique: a
+			 * mascara sairia da janela do Correio (o alvo desta etapa) para
+			 * apontar a Mochila, e o segundo clique ("Coletar itens") ficaria
+			 * do lado de fora do furo - achado ao JOGAR esta etapa pela
+			 * primeira vez (15/09/2026), o mesmo defeito de fundo que a
+			 * etapa 4-5 nasceu para consertar, um clique adiante.
+			 *
+			 * **NAO uso `Session.Entity.weight` subir** - errado por medicao
+			 * NO PROPRIO JOGO (15/09/2026): um personagem que ja estava
+			 * cacando (idle/offline) quando esta etapa comecou pode ganhar
+			 * peso por DROP de monstro, sem ter clicado "Coletar itens" -
+			 * `pesoSubiu` ficaria verdadeiro do mesmo jeito, avancando a
+			 * etapa com a mochila ainda sem arma nenhuma. `Inventory.getUI().
+			 * list` (o MESMO array publico que `MochilaIdle.js` le - ver o
+			 * cabecalho dele) e especifico: existe uma ARMA na mochila, ou
+			 * nao existe. `ItemType.WEAPON` e o mesmo criterio de
+			 * `getItemTab()` em `MochilaIdle.js`, nao uma copia solta.
+			 */
+			const zenySubiu = Session.zeny > (_marco ? _marco.zeny : 0);
+			const temArmaNaMochila = Inventory.getUI().list.some((item) => item.type === ItemType.WEAPON);
+			return zenySubiu && temArmaNaMochila;
+		}
+		case 6: {
 			/* A peca vestida CONFIRMADA: `Session.Entity.weapon` so muda quando
 			   o servidor manda o ZC_SPRITE_CHANGE (Engine/MapEngine/Entity.js).
 			   Comparar com o marco cobre tanto "estava sem arma" quanto "trocou
@@ -309,18 +339,18 @@ function etapaCumprida(numero) {
 			const arma = (Session.Entity && Session.Entity.weapon) || 0;
 			return arma !== 0 && (!_marco || arma !== _marco.arma);
 		}
-		case 6:
+		case 7:
 			/* Chegou: o mapa carregado nao e mais o de quando a etapa comecou. */
 			return !!(_marco && MapRenderer.currentMap && MapRenderer.currentMap !== _marco.mapa);
-		case 7:
+		case 8:
 			/* O primeiro abate depois que a etapa comecou. */
 			return abatesAgora() > (_marco ? _marco.abates : 0);
-		case 8: {
+		case 9: {
 			/* O contador do objetivo andou. */
 			const agora = execucao && execucao.passo ? execucao.passo.progresso || 0 : 0;
 			return agora > (_marco ? _marco.progresso : 0);
 		}
-		case 9:
+		case 10:
 			return janelaAberta('CodexIdle', '.cx-window');
 		default:
 			return false;
@@ -556,8 +586,8 @@ function desenhar() {
 	 * SEM FURO, NENHUM RETANGULO. A prova de tela pegou isto: o CSS ja tinha
 	 * `.sem-mascara .tu-veu { display: none }`, mas o `style.display` que este
 	 * laco escreve e INLINE e vence a folha, entao a etapa de OLHAR (sem alvo
-	 * - hoje a 7a, a Jornada, ver `etapasDoTutorial.js`) saia com a tela
-	 * inteira escurecida e engolindo o clique da cena. Quem
+	 * - a 8a, "entender a caca automatica", ver `etapasDoTutorial.js`) saia
+	 * com a tela inteira escurecida e engolindo o clique da cena. Quem
 	 * manda no `display` e este laco, e nao a folha: um estado escrito em dois
 	 * lugares e um estado que discorda de si mesmo.
 	 */
