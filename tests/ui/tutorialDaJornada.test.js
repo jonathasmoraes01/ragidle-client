@@ -1,6 +1,6 @@
 /**
  * A regra sem DOM do tutorial guiado (frente D da Jornada de Midgard): a
- * tabela das oito etapas e a geometria da camada.
+ * tabela das nove etapas e a geometria da camada.
  *
  * O que este arquivo NAO prova, e nao pode: que da para VER. Isso e a prova de
  * tela (`scripts/prova-tutorial.mjs`), e a regra 5 do projeto existe por causa
@@ -25,10 +25,10 @@ import {
 const TELA = { largura: 1600, altura: 900 };
 const MAO = { largura: 100, altura: 100, pontaX: 10, pontaY: 12 };
 
-describe('as oito etapas', () => {
-	it('são oito, numeradas de 1 a 8, sem buraco', () => {
+describe('as nove etapas', () => {
+	it('são nove, numeradas de 1 a 9, sem buraco', () => {
 		expect(ETAPAS).toHaveLength(TOTAL_DE_ETAPAS);
-		expect(ETAPAS.map(e => e.numero)).toEqual([1, 2, 3, 4, 5, 6, 7, 8]);
+		expect(ETAPAS.map(e => e.numero)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9]);
 	});
 
 	it('cada etapa avança por um RESULTADO nomeado, e nenhum deles é um clique em "Próximo"', () => {
@@ -81,7 +81,7 @@ describe('as oito etapas', () => {
 	it('toda etapa cujo alvo pode sumir da tela tem caminho de volta', () => {
 		/* As que apontam para dentro do leque ou de uma janela: fechar a janela
 		   ou recolher o leque deixa o alvo em 0x0. */
-		for (const numero of [2, 3, 4, 5, 8]) {
+		for (const numero of [2, 3, 4, 5, 6, 9]) {
 			const etapa = etapaDe(numero);
 			expect(etapa.quandoSumir, `etapa ${numero}`).toBeTruthy();
 			expect(etapa.quandoSumir.seletor).toBeTruthy();
@@ -89,8 +89,8 @@ describe('as oito etapas', () => {
 		}
 	});
 
-	it('a etapa 6 é a única sem alvo, e isso é declarado', () => {
-		expect(ETAPAS.filter(e => e.alvo === null).map(e => e.numero)).toEqual([6]);
+	it('a etapa 7 é a única sem alvo, e isso é declarado', () => {
+		expect(ETAPAS.filter(e => e.alvo === null).map(e => e.numero)).toEqual([7]);
 	});
 
 	it('todo alvo mora num Shadow DOM identificado por host', () => {
@@ -103,7 +103,7 @@ describe('as oito etapas', () => {
 
 	it('etapa fora da faixa não desenha nada', () => {
 		expect(etapaDe(0)).toBeNull();
-		expect(etapaDe(9)).toBeNull();
+		expect(etapaDe(10)).toBeNull();
 		expect(etapaDe(undefined)).toBeNull();
 	});
 });

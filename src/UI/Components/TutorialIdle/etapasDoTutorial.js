@@ -1,7 +1,7 @@
 /**
  * UI/Components/TutorialIdle/etapasDoTutorial.js
  *
- * A REGRA PURA DO TUTORIAL GUIADO: a tabela das oito etapas e a geometria da
+ * A REGRA PURA DO TUTORIAL GUIADO: a tabela das nove etapas e a geometria da
  * camada (recorte, mascara, mao, balao). Zero DOM, zero import.
  *
  * Ele mora fora do componente pelo mesmo motivo que `secoesDaConfig.js` mora
@@ -49,7 +49,7 @@
 
 /** Quantas etapas o tutorial tem. O servidor manda `total` no retrato; este
  *  numero e o que o cliente desenha quando o retrato ainda nao chegou. */
-export const TOTAL_DE_ETAPAS = 8;
+export const TOTAL_DE_ETAPAS = 9;
 
 /**
  * Quem guia. E a Kafra da praca de Prontera, com o nome que o jogador ja le
@@ -62,16 +62,16 @@ export const TOTAL_DE_ETAPAS = 8;
 export const QUEM_GUIA = 'Funcionária Kafra';
 
 /**
- * AS OITO ETAPAS (secao 7 do CONTRATO-JORNADA.md).
+ * AS NOVE ETAPAS (secao 7 do CONTRATO-JORNADA.md, mais o Correio - 15/09/2026).
  *
  * Campos de cada uma:
- *   numero      1..8, o que o servidor guarda em `etapa`.
+ *   numero      1..9, o que o servidor guarda em `etapa`.
  *   rotulo      o texto do controle, EXATAMENTE como ele aparece na tela.
  *               E o que vai entre aspas na frase.
  *   frase       imperativo, uma acao so, com `{acao}` onde entra o verbo do
  *               ponteiro e `{rotulo}` onde entra o nome do controle.
  *   alvo        { host, seletor } do controle a destacar, ou `null` quando a
- *               etapa nao tem controle nenhum (a etapa 6 e de OLHAR).
+ *               etapa nao tem controle nenhum (a etapa 7 e de OLHAR).
  *   quandoSumir { host, seletor, frase } o caminho de volta, quando o alvo
  *               nao tem caixa (janela fechada, leque recolhido). E o que a
  *               secao 6 do contrato manda: explicar como voltar, em vez de
@@ -119,8 +119,29 @@ export const ETAPAS = Object.freeze([
 		}),
 		avancaPor: 'missao-ativa-no-servidor'
 	}),
+	/*
+	 * A ETAPA DO CORREIO (15/09/2026), achada faltando na auditoria: um
+	 * personagem novo nasce com a MOCHILA VAZIA - a arma, as pocoes e o zeny
+	 * do kit inicial chegam pela carta de boas-vindas (D-534,
+	 * `servidor/index.ts`), nao equipados de fabrica. Sem esta etapa entre
+	 * "Iniciar" e "Arma", o tutorial mandava o novato vestir uma arma que
+	 * ele ainda nao tinha: o slot `.mo-slot[data-location="2"]` da etapa
+	 * seguinte existe, mas esta vazio, e nao ha o que clicar.
+	 */
 	Object.freeze({
 		numero: 4,
+		rotulo: 'Correio',
+		frase: '{acao} {rotulo}. O seu kit inicial chegou lá dentro.',
+		alvo: Object.freeze({ host: 'TopMenuIdle', seletor: '.tm-item[data-action="correio"]' }),
+		quandoSumir: Object.freeze({
+			host: 'TopMenuIdle',
+			seletor: '.tm-fab',
+			frase: 'Abra o "Menu" de novo. O "Correio" mora lá dentro.'
+		}),
+		avancaPor: 'kit-retirado'
+	}),
+	Object.freeze({
+		numero: 5,
 		rotulo: 'Arma',
 		frase: 'Ponha a sua arma no slot {rotulo}. Ninguém sai de Midgard de mãos vazias.',
 		/* `data-location="2"` e `EquipLocation.WEAPON` (`1 << 1`,
@@ -135,7 +156,7 @@ export const ETAPAS = Object.freeze([
 		avancaPor: 'arma-vestida-confirmada'
 	}),
 	Object.freeze({
-		numero: 5,
+		numero: 6,
 		rotulo: 'Caçar',
 		frase: '{acao} {rotulo}. Eu te levo até o campo.',
 		alvo: Object.freeze({ host: 'HuntButtonIdle', seletor: '.hb-cacar' }),
@@ -147,7 +168,7 @@ export const ETAPAS = Object.freeze([
 		avancaPor: 'mapa-mudou'
 	}),
 	Object.freeze({
-		numero: 6,
+		numero: 7,
 		rotulo: null,
 		frase: 'Pronto: agora você luta sozinho. Olhe a vida do monstro descer.',
 		/*
@@ -164,7 +185,7 @@ export const ETAPAS = Object.freeze([
 		avancaPor: 'primeiro-abate'
 	}),
 	Object.freeze({
-		numero: 7,
+		numero: 8,
 		rotulo: 'Objetivo',
 		frase: 'Olhe aqui: este é o seu {rotulo}, e ele anda a cada monstro.',
 		alvo: Object.freeze({ host: 'MissoesTrackerIdle', seletor: '.mt-ativa' }),
@@ -172,7 +193,7 @@ export const ETAPAS = Object.freeze([
 		avancaPor: 'contador-andou'
 	}),
 	Object.freeze({
-		numero: 8,
+		numero: 9,
 		rotulo: 'Codex',
 		frase: '{acao} {rotulo}. A Jornada de Midgard te espera lá dentro.',
 		alvo: Object.freeze({ host: 'TopMenuIdle', seletor: '.tm-item[data-action="codex"]' }),
@@ -185,7 +206,7 @@ export const ETAPAS = Object.freeze([
 	})
 ]);
 
-/** A etapa de numero `n`, ou `null`. Fora de 1..8 devolve `null` de proposito:
+/** A etapa de numero `n`, ou `null`. Fora de 1..9 devolve `null` de proposito:
  *  um retrato de servidor mais novo (nove etapas) nao pode desenhar lixo. */
 export function etapaDe(numero) {
 	return ETAPAS.find(e => e.numero === numero) || null;

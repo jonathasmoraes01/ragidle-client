@@ -250,7 +250,12 @@ function marcoDaEtapa(numero) {
 		mapa: MapRenderer.currentMap || '',
 		arma: (Session.Entity && Session.Entity.weapon) || 0,
 		abates: abatesAgora(),
-		progresso: execucao && execucao.passo ? execucao.passo.progresso || 0 : 0
+		progresso: execucao && execucao.passo ? execucao.passo.progresso || 0 : 0,
+		/* `Session.zeny` (Engine/SessionStorage.js) e o MESMO getter que a HUD
+		   le para desenhar o saldo (BasicInfoIdle.js:501) - o personagem novo
+		   nasce com `zeny: 0` (servidor/char/servidor-char.ts) e so ganha o do
+		   kit ao retirar a carta de boas-vindas do Correio (D-534). */
+		zeny: Session.zeny || 0
 	};
 }
 
@@ -288,6 +293,15 @@ function etapaCumprida(numero) {
 			   ZC_RAGIDLE_MISSOES, que a janela de Missoes recebe e guarda. */
 			return !!(execucao && execucao.ativaId);
 		case 4: {
+			/* O KIT RETIRADO: `Session.zeny` so sobe quando o servidor confirma a
+			   retirada do anexo (`CZ_REQ_ITEM_FROM_RODEX`/native pickup ack). O
+			   kit tem zeny > 0 sempre (`servidor/kit-inicial.ts`), entao o
+			   personagem que nasceu com `zeny: 0` so passa daqui depois de abrir
+			   o Correio de verdade - o mesmo desenho do caso 5 (arma), so que
+			   com o numero que a HUD ja mostra em vez do sprite da entidade. */
+			return Session.zeny > (_marco ? _marco.zeny : 0);
+		}
+		case 5: {
 			/* A peca vestida CONFIRMADA: `Session.Entity.weapon` so muda quando
 			   o servidor manda o ZC_SPRITE_CHANGE (Engine/MapEngine/Entity.js).
 			   Comparar com o marco cobre tanto "estava sem arma" quanto "trocou
@@ -295,18 +309,18 @@ function etapaCumprida(numero) {
 			const arma = (Session.Entity && Session.Entity.weapon) || 0;
 			return arma !== 0 && (!_marco || arma !== _marco.arma);
 		}
-		case 5:
+		case 6:
 			/* Chegou: o mapa carregado nao e mais o de quando a etapa comecou. */
 			return !!(_marco && MapRenderer.currentMap && MapRenderer.currentMap !== _marco.mapa);
-		case 6:
+		case 7:
 			/* O primeiro abate depois que a etapa comecou. */
 			return abatesAgora() > (_marco ? _marco.abates : 0);
-		case 7: {
+		case 8: {
 			/* O contador do objetivo andou. */
 			const agora = execucao && execucao.passo ? execucao.passo.progresso || 0 : 0;
 			return agora > (_marco ? _marco.progresso : 0);
 		}
-		case 8:
+		case 9:
 			return janelaAberta('CodexIdle', '.cx-window');
 		default:
 			return false;
@@ -541,8 +555,9 @@ function desenhar() {
 	 *
 	 * SEM FURO, NENHUM RETANGULO. A prova de tela pegou isto: o CSS ja tinha
 	 * `.sem-mascara .tu-veu { display: none }`, mas o `style.display` que este
-	 * laco escreve e INLINE e vence a folha, entao a etapa 6 (a de OLHAR)
-	 * saia com a tela inteira escurecida e engolindo o clique da cena. Quem
+	 * laco escreve e INLINE e vence a folha, entao a etapa de OLHAR (sem alvo
+	 * - hoje a 7a, a Jornada, ver `etapasDoTutorial.js`) saia com a tela
+	 * inteira escurecida e engolindo o clique da cena. Quem
 	 * manda no `display` e este laco, e nao a folha: um estado escrito em dois
 	 * lugares e um estado que discorda de si mesmo.
 	 */
