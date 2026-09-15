@@ -524,6 +524,153 @@ class UIManager {
 	}
 
 	/**
+	 * A TELA DA ECONOMIA DE ENERGIA (D-1389/D-1390, 14/09/2026 — sair virou
+	 * escolha do jogador em D-1392) — pedido do dono, no estilo dos idles de
+	 * mobile: quando a aba vai pro fundo (`visibilitychange`, `MapEngine.js`),
+	 * cobre tudo com uma tela preta mostrando o tempo restante e um resumo AO
+	 * VIVO (EXP, mobs mortos, itens) — quem chama (`MapEngine.js`) reatualiza
+	 * com `.atualizar(...)` a cada segundo, puxando os numeros de
+	 * `registroDaCaca`.
+	 *
+	 * VOLTAR PRA ABA NAO FECHA SOZINHO (D-1392, correção do dono no mesmo
+	 * dia): a primeira versão mandava "sair" automático assim que a aba
+	 * ficava visível de novo — e um relance rápido na aba (checar uma
+	 * notificação, por exemplo) já tirava o personagem do modo sem o jogador
+	 * ter escolhido isso. Agora só o clique em "Voltar a jogar" sai; olhar a
+	 * aba sozinho não muda nada, e o jogador pode ficar deliberadamente na
+	 * economia de energia mesmo olhando a tela.
+	 *
+	 * NAO usa o clone de `WinPopup` das outras telas do "Dormir": aquela é
+	 * uma caixa pequena com moldura do RO, pensada pra diálogo. Esta é tela
+	 * CHEIA, sem moldura nenhuma — o pedido foi explícito ("pode ser uma
+	 * tela preta mesmo") — então é um `<div>` simples cobrindo o viewport,
+	 * sem Shadow DOM.
+	 *
+	 * O relógio que ESTE componente mostra é só mostrador, como em
+	 * `showDormindo` — quem manda a verdade é o servidor; `MapEngine.js`
+	 * ressincroniza a cada resposta de `ZC_RAGIDLE_ECONOMIA`.
+	 *
+	 * @param {number} restanteMs tempo restante, em ms
+	 * @param {function(): void} onVoltar chamado quando o jogador clica em "Voltar a jogar" —
+	 *   quem chama manda o `sair` e fecha esta tela; ela nunca se fecha sozinha
+	 * @returns {{atualizar: function({restanteMs:number, expBase?:number, expClasse?:number,
+	 *   abates?:number, itensTotal?:number, morreu?:boolean}): void, remove: function(): void}}
+	 *   `morreu` (D-1398) liga um aviso fixo de que o personagem morreu nesta
+	 *   sessao — o relogio continua contando do mesmo jeito, e sem o aviso o
+	 *   jogador nao teria como saber que parou de render nada
+	 */
+	static showEconomiaDeEnergia(restanteMs, onVoltar) {
+		const overlay = document.createElement('div');
+		Object.assign(overlay.style, {
+			position: 'fixed',
+			inset: '0',
+			background: '#000',
+			color: '#e8e8e8',
+			display: 'flex',
+			flexDirection: 'column',
+			alignItems: 'center',
+			justifyContent: 'center',
+			// 2000000, nunca o teto do cursor (2147483647, CursorManager.js) — o
+			// mesmo numero que DeathWindow.css já usa como "camada solta mais
+			// alta" (ver o censo no cabeçalho dele); `tests/ui/cursorAcimaDeTudo
+			// .test.js` reprova qualquer z-index que alcance o do cursor.
+			zIndex: '2000000',
+			fontFamily: "'Figtree', Arial, 'Liberation Sans', Arimo, sans-serif",
+			textAlign: 'center',
+			gap: '12px',
+			padding: '24px',
+			boxSizing: 'border-box'
+		});
+
+		const titulo = document.createElement('div');
+		Object.assign(titulo.style, { fontSize: '13px', opacity: '0.6', letterSpacing: '0.08em' });
+		titulo.textContent = 'MODO DE ECONOMIA DE ENERGIA';
+
+		const timer = document.createElement('div');
+		Object.assign(timer.style, {
+			fontSize: 'clamp(32px, 8vw, 56px)',
+			fontVariantNumeric: 'tabular-nums',
+			fontWeight: '600'
+		});
+
+		const resumo = document.createElement('div');
+		Object.assign(resumo.style, { fontSize: '14px', opacity: '0.85', lineHeight: '1.7' });
+
+		/*
+		 * O AVISO DE MORTE (D-1398, 14/09/2026 — pedido do dono): sem ele, quem
+		 * arma 2h de economia e morre aos 30min so descobriria ao voltar, tendo
+		 * perdido 1h30 de "farm intencional" sem saber — o relogio continua
+		 * contando do mesmo jeito, morto ou vivo (o teto nao muda, so o AVISO
+		 * e novo), e nada na tela preta distinguia as duas situacoes. Escondido
+		 * por padrao; `atualizar` o liga quando `stats.morreu` chega `true`.
+		 */
+		const aviso = document.createElement('div');
+		aviso.hidden = true;
+		Object.assign(aviso.style, {
+			fontSize: '14px',
+			fontWeight: '600',
+			color: '#ffb454',
+			background: 'rgba(255, 90, 60, 0.12)',
+			border: '1px solid rgba(255, 180, 84, 0.4)',
+			borderRadius: '6px',
+			padding: '10px 16px',
+			maxWidth: '420px'
+		});
+		aviso.textContent =
+			'⚠ Seu personagem morreu. O farm parou, mas o relógio continua contando — clique em "Voltar a jogar" para não perder o resto do tempo.';
+
+		const botao = document.createElement('button');
+		botao.type = 'button';
+		botao.textContent = 'Voltar a jogar';
+		Object.assign(botao.style, {
+			marginTop: '16px',
+			padding: '10px 28px',
+			fontSize: '14px',
+			fontWeight: '600',
+			color: '#0a0a0a',
+			background: '#e8c76a',
+			border: 'none',
+			borderRadius: '6px',
+			cursor: 'pointer'
+		});
+		botao.addEventListener('click', () => {
+			if (onVoltar) onVoltar();
+		});
+
+		const rodape = document.createElement('div');
+		Object.assign(rodape.style, { fontSize: '12px', opacity: '0.5', marginTop: '4px' });
+		rodape.textContent = 'Clique em "Voltar a jogar" quando quiser retomar — olhar a aba sozinho não sai do modo.';
+
+		overlay.append(titulo, timer, aviso, resumo, botao, rodape);
+		document.body.appendChild(overlay);
+
+		function textoDoTimer(ms) {
+			const total = Math.max(0, Math.floor((Number(ms) || 0) / 1000));
+			const h = String(Math.floor(total / 3600)).padStart(2, '0');
+			const m = String(Math.floor((total % 3600) / 60)).padStart(2, '0');
+			const s = String(total % 60).padStart(2, '0');
+			return `${h}:${m}:${s}`;
+		}
+
+		function atualizar(stats) {
+			timer.textContent = textoDoTimer(stats?.restanteMs);
+			aviso.hidden = stats?.morreu !== true;
+			const expBase = Math.round(Number(stats?.expBase) || 0).toLocaleString('pt-BR');
+			const expClasse = Math.round(Number(stats?.expClasse) || 0).toLocaleString('pt-BR');
+			const abates = Math.round(Number(stats?.abates) || 0).toLocaleString('pt-BR');
+			const itens = Math.round(Number(stats?.itensTotal) || 0).toLocaleString('pt-BR');
+			resumo.textContent = `EXP base +${expBase} · EXP classe +${expClasse} · Mobs mortos: ${abates} · Itens: ${itens}`;
+		}
+
+		atualizar({ restanteMs });
+
+		return {
+			atualizar,
+			remove: () => overlay.remove()
+		};
+	}
+
+	/**
 	 * Prompt a message to the user
 	 *
 	 * @param {string} message to show

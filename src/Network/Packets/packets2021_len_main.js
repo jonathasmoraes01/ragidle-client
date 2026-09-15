@@ -5000,10 +5000,12 @@ function init(packetver) {
 	length_list[0x0fca] = -1; // ZC_RAGIDLE_RANKING (variable, JSON payload) — ranking, 09/09/2026
 	length_list[0x0fc7] = -1; // CZ_RAGIDLE_COMANDOS_ACAO (variable, JSON payload) — o autocompletar, 12/09/2026
 	length_list[0x0fc8] = -1; // ZC_RAGIDLE_COMANDOS (variable, JSON payload) — o autocompletar, 12/09/2026
-	length_list[0x0fc2] = -1; // CZ_RAGIDLE_TRAVA_ACAO (variable, JSON payload) — trava contra venda, 14/09/2026
-	length_list[0x0fc3] = -1; // ZC_RAGIDLE_TRAVAS (variable, JSON payload) — trava contra venda, 14/09/2026
+	length_list[0x0fc0] = -1; // CZ_RAGIDLE_TRAVA_ACAO (variable, JSON payload) — trava contra venda, 14/09/2026
+	length_list[0x0fc1] = -1; // ZC_RAGIDLE_TRAVAS (variable, JSON payload) — trava contra venda, 14/09/2026
 	length_list[0x0fc4] = -1; // CZ_RAGIDLE_SONO_ACAO (variable, JSON payload) — o "Dormir", D-1381, 13/09/2026
 	length_list[0x0fc5] = -1; // ZC_RAGIDLE_SONO (variable, JSON payload) — o "Dormir", D-1381, 13/09/2026
+	length_list[0x0fc2] = -1; // CZ_RAGIDLE_ECONOMIA_ACAO (variable, JSON payload) — economia de energia, D-1389/D-1390, 14/09/2026
+	length_list[0x0fc3] = -1; // ZC_RAGIDLE_ECONOMIA (variable, JSON payload) — economia de energia, D-1389/D-1390, 14/09/2026
 
 	return length_list;
 }

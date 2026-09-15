@@ -20,7 +20,8 @@ import _vertexShader from './SwirlingAura.vs?raw';
 import _fragmentShader from './SwirlingAura.fs?raw';
 import WebGL from 'Utils/WebGL.js';
 import glMatrix from 'Utils/gl-matrix.js';
-import Client from 'Core/Client.js';
+import { texturaDeEfeito } from 'Renderer/Effects/texturaDeEfeito.js';
+import { carregarTexturaDeEfeito } from 'Renderer/Effects/carregadorDeTexturaDeEfeito.js';
 import Altitude from 'Renderer/Map/Altitude.js';
 import SpriteRenderer from 'Renderer/SpriteRenderer.js';
 
@@ -220,12 +221,17 @@ class SwirlingAura {
 		this.indexCount = indices.length;
 
 		// Load texture
-		Client.loadFile(`data/texture/effect/${this.textureName}`, buffer => {
-			WebGL.texture(gl, buffer, texture => {
+		// RAGIDLE (15/09/2026, D-1412): textura por NOME, dividida entre os
+		// efeitos — ver `Renderer/Effects/texturaDeEfeito.js` (D-1378).
+		texturaDeEfeito(
+			gl,
+			`effect/${this.textureName}`,
+			texture => {
 				this.texture = texture;
 				this.ready = true;
-			});
-		});
+			},
+			carregarTexturaDeEfeito
+		);
 	}
 
 	/**
@@ -242,6 +248,7 @@ class SwirlingAura {
 			gl.deleteBuffer(this.indexBuffer);
 			this.indexBuffer = null;
 		}
+		// A textura e DIVIDIDA (`texturaDeEfeito.js`): este efeito nao a apaga.
 		this.ready = false;
 	}
 

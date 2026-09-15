@@ -1183,14 +1183,14 @@ function abrirMenuDoItem(cell) {
 /**
  * PEDE A TROCA DA TRAVA AO SERVIDOR (R14/C2-3, 14/09/2026).
  *
- * Contrato v1: `CZ_RAGIDLE_TRAVA_ACAO` = 0x0fc2, JSON `{acao:'alternar',
- * slot}`; a resposta e' `ZC_RAGIDLE_TRAVAS` = 0x0fc3, JSON `{v:1, travados:
+ * Contrato v1: `CZ_RAGIDLE_TRAVA_ACAO` = 0x0fc0, JSON `{acao:'alternar',
+ * slot}`; a resposta e' `ZC_RAGIDLE_TRAVAS` = 0x0fc1, JSON `{v:1, travados:
  * number[], recusa?}`, aplicada via `Inventory.getUI().aplicarTravas(travados)`
  * (InventoryCommon.js) — o handler mora em MapEngine/Item.js, junto dos
  * outros pacotes de inventario, para valer em QUALQUER janela que leia
  * `item.travado` (MochilaIdle, NpcStoreV2/V1), nao so' nesta.
  *
- * O PAR FINAL (0x0fc2/0x0fc3) foi confirmado pelo SENIOR-C depois de a
+ * O PAR FINAL (0x0fc0/0x0fc1) foi confirmado pelo SENIOR-C depois de a
  * primeira tentativa (0x0fc7/0x0fc8) colidir com
  * `CZ_RAGIDLE_COMANDOS_ACAO`/`ZC_RAGIDLE_COMANDOS` (o autocompletar de
  * comandos do chat, ja em producao) — ver o comentario deles em

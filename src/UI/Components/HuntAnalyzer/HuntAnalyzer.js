@@ -345,33 +345,55 @@ function desenharEstado(root, r, aoVivo) {
 }
 
 /**
- * O botao "Dormir" aparece so quando as DUAS condicoes do cliente batem: a
- * caçada esta ATIVA neste mapa ha pelo menos 10 minutos, e o servidor ja
- * disse que este mapa e elegivel (`mapaElegivelParaDormir`, D-1381 —
- * `contextoIdleDe`, servidor-mapa.ts). Nenhuma das duas e a fonte da verdade:
- * o `iniciar` no servidor confere a MESMA amostra e o MESMO mapa de novo,
- * pela regra 1 do projeto (nada de decisao de jogo so no cliente).
+ * O botao "Dormir" aparece so quando as DUAS condicoes batem: a caçada esta
+ * ATIVA neste mapa ha pelo menos 10 minutos, e o servidor ja disse que este
+ * mapa e elegivel (`mapaElegivelParaDormir`, D-1381 — `contextoIdleDe`,
+ * servidor-mapa.ts). NENHUMA das duas e a fonte da verdade: o `iniciar` no
+ * servidor confere a MESMA amostra e o MESMO mapa de novo, pela regra 1 do
+ * projeto (nada de decisao de jogo so no cliente).
+ *
+ * O PONTO DE PARTIDA E O RELOGIO DO SERVIDOR (`faltamMsParaDormir`, D-1396,
+ * 14/09/2026), NUNCA UM CONTADO SO AQUI. Ate D-1396 esta janela adivinhava
+ * "desde quando estou neste mapa" pela hora em que ELA MESMA abria pela
+ * primeira vez (`_entrouNoMapaDoSonoEm = Date.now()` no primeiro render) —
+ * quem começava a caçar e só abria o Analyzer minutos depois via o timer
+ * reiniciar do zero, contando de novo a partir da abertura da janela em vez
+ * da caçada. O servidor já guarda a hora real de entrada no mapa
+ * (`amostrasDeSono`, `entradaNoMapaMs`) para o próprio handler de `iniciar`
+ * conferir — bastava servir a mesma conta em vez de o cliente reimplementá-la
+ * (a "segunda rota escrita à mão" de sempre).
+ *
+ * D-1396 TROCOU A ADIVINHACAO POR UM DEFEITO NOVO E OPOSTO (D-1398,
+ * 14/09/2026, relato do dono: "o timer do botão de Dormir não está
+ * funcionando... acredito que ele esteja pausando/congelando"): mostrar
+ * `ctx.faltamMsParaDormir` direto CONGELA o numero na tela, porque o cliente
+ * so pede um contexto novo ao servidor (`CZ_RAGIDLE_PEDIR_CONFIG`) ao trocar
+ * de mapa ou abrir a janela de configuracao (`IdleConfig.js`) — nunca por
+ * intervalo. Um jogador caçando parado no MESMO mapa por minutos via o mesmo
+ * `faltamMsParaDormir` de novo a cada re-render, porque `IdleConfig.contexto`
+ * so muda de objeto quando uma dessas duas coisas acontece. `faltamMsParaDormirAoVivo`
+ * resolve as DUAS pontas: ANCORA no numero do servidor toda vez que chega um
+ * contexto novo (identidade do objeto mudou) e daí CONTA em `Date.now()` local
+ * ate a proxima ancora — nunca inventa o ponto de partida (regra 1), só o
+ * ritmo entre uma atualização do servidor e a próxima.
  */
-/**
- * DESDE QUANDO O JOGADOR ESTA NO MAPA ATUAL — zera a cada TROCA de mapa, o
- * MESMO critério que a amostra do servidor usa (`amostrasDeSono` reseta em
- * todo `viajar()`/`CZ_ENTER2`, D-1381). De propósito DIFERENTE de
- * `r.decorridoMs`, que mede a CAÇADA inteira e pode atravessar vários mapas
- * de caça sem resetar — foi exatamente essa diferença que enganou o botão
- * (D-1383, relato do grupo de teste): o jogador via "10:01" na tela porque a
- * caçada inteira já ia longa, mas o servidor via menos, porque ele tinha
- * trocado de mapa de caça no meio do caminho e a amostra daquele mapa era
- * nova. Os dois relógios continuam existindo — cada um mede a pergunta certa
- * para o que responde —, só o "Dormir" agora pergunta a pergunta certa.
- */
-let _mapaDoRelogioDeSono = null;
-let _entrouNoMapaDoSonoEm = 0;
-function tempoNoMapaAtualMs(mapa) {
-	if (mapa !== _mapaDoRelogioDeSono) {
-		_mapaDoRelogioDeSono = mapa;
-		_entrouNoMapaDoSonoEm = Date.now();
+let _ctxDaUltimaAncoraDeSono = null;
+let _faltamMsNaAncoraDeSono = 0;
+let _ancoraDeSonoRecebidaEm = 0;
+function faltamMsParaDormirAoVivo(ctx) {
+	if (!ctx || typeof ctx.faltamMsParaDormir !== 'number') {
+		// Contrato antigo, ou servidor ainda sem amostra para este mapa: trata
+		// como "faltam os 10 minutos inteiros" -- nunca como zero, que
+		// destravaria o botao sem o servidor ter medido nada.
+		_ctxDaUltimaAncoraDeSono = null;
+		return MS_MINIMOS_PARA_DORMIR;
 	}
-	return mapa ? Date.now() - _entrouNoMapaDoSonoEm : 0;
+	if (ctx !== _ctxDaUltimaAncoraDeSono) {
+		_ctxDaUltimaAncoraDeSono = ctx;
+		_faltamMsNaAncoraDeSono = ctx.faltamMsParaDormir;
+		_ancoraDeSonoRecebidaEm = Date.now();
+	}
+	return Math.max(0, _faltamMsNaAncoraDeSono - (Date.now() - _ancoraDeSonoRecebidaEm));
 }
 
 function sincronizarDormir(root, r, aoVivo) {
@@ -397,7 +419,7 @@ function sincronizarDormir(root, r, aoVivo) {
 	const ctx = IdleConfig.contextoObsoleto ? null : IdleConfig.contexto;
 	const emCaca = r.fase === 'ativa';
 	const mapaElegivel = !!ctx && ctx.mapaElegivelParaDormir === true;
-	const faltamMs = Math.max(0, MS_MINIMOS_PARA_DORMIR - tempoNoMapaAtualMs(ctx ? ctx.mapa : null));
+	const faltamMs = faltamMsParaDormirAoVivo(ctx);
 	const pronto = emCaca && mapaElegivel && faltamMs <= 0;
 
 	/*
@@ -823,10 +845,42 @@ HuntAnalyzer.init = function init() {
 	this._host.style.left = Math.max(0, (Renderer.width - WINDOW_WIDTH) / 2) + 'px';
 };
 
+/*
+ * `onAppend` SO REPOSICIONA NA PRIMEIRA VEZ (14/09/2026, relato do dono: "usar
+ * a asa de mosca automatica esta mudando a posicao de algumas janelas, como
+ * a do hunt analyzer").
+ *
+ * A CAUSA: `MapEngine.js` (`onMapChange`) chama `HuntAnalyzer.append()` em
+ * TODO carregamento de mapa — comentario ao lado (D-1385): *"cada
+ * carregamento de mapa (a Asa de Mosca inclusive)"*. E `GUIComponent.append()`
+ * dispara `onAppend()` TODA VEZ que e chamado, sem checar se a janela ja
+ * estava aberta (`GUIComponent.js:308-364` — nenhum guard ali). Resultado: a
+ * cada teleporte — inclusive a Asa automatica, que dispara sozinha e com
+ * frequencia enquanto o jogador caca — a posicao salva (`_preferences`, so
+ * atualizada quando a janela FECHA de vez) sobrescrevia o arrasto que o
+ * jogador tinha acabado de fazer e nunca chegou a salvar. Parecia
+ * "aleatorio" porque na verdade era "a ultima posicao salva, nem sempre a
+ * que o jogador via na tela".
+ *
+ * O CONSERTO fica local a este arquivo, e nao no `GUIComponent` compartilhado
+ * (`.append()` e chamado por ~50 janelas em `onMapChange`; mudar o
+ * comportamento la sem auditar cada uma arriscaria quebrar quem DEPENDE de
+ * `onAppend` rodando a cada mapa — WorldMap e MiniMap, por exemplo, plausivelmente
+ * atualizam dado por mapa desse jeito). Aqui, `_jaAberta` separa as duas
+ * coisas que `onAppend` fazia juntas: reposicionar (so na PRIMEIRA vez que a
+ * janela aparece, ou depois de fechada de vez) e atualizar os numeros
+ * (`tique`/`iniciarPolling`, que continuam corretos a cada carregamento de
+ * mapa — a caçada pode ter avançado nesse meio tempo).
+ */
+let _jaAberta = false;
+
 HuntAnalyzer.onAppend = function onAppend() {
-	if (_preferences.x != null && _preferences.y != null) {
-		this._host.style.top = Math.min(Math.max(0, _preferences.y), Renderer.height - WINDOW_HEIGHT) + 'px';
-		this._host.style.left = Math.min(Math.max(0, _preferences.x), Renderer.width - WINDOW_WIDTH) + 'px';
+	if (!_jaAberta) {
+		if (_preferences.x != null && _preferences.y != null) {
+			this._host.style.top = Math.min(Math.max(0, _preferences.y), Renderer.height - WINDOW_HEIGHT) + 'px';
+			this._host.style.left = Math.min(Math.max(0, _preferences.x), Renderer.width - WINDOW_WIDTH) + 'px';
+		}
+		_jaAberta = true;
 	}
 
 	tique();
@@ -836,6 +890,7 @@ HuntAnalyzer.onAppend = function onAppend() {
 HuntAnalyzer.onRemove = function onRemove() {
 	pararPolling();
 	salvarPosicao();
+	_jaAberta = false;
 };
 
 function salvarPosicao() {

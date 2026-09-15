@@ -1023,6 +1023,9 @@ export default {
 	// pelo cliente, nunca lido. Ele desce respondendo ao pedido e tambem SEM
 	// pedido no login, enquanto o personagem ainda dorme.
 	0x0fc5: PACKET.ZC.RAGIDLE_SONO,
+	// ECONOMIA DE ENERGIA (14/09/2026, D-1389/D-1390): so o ZC entra aqui — o
+	// CZ 0x0fc2 e escrito pelo cliente, nunca lido.
+	0x0fc3: PACKET.ZC.RAGIDLE_ECONOMIA,
 	// LFG (D-634): so os ZC entram aqui — o CZ 0x0fea e escrito pelo cliente,
 	// nao lido. Ver PacketStructure.js para o contrato JSON de cada um.
 	0x0fe9: PACKET.ZC.RAGIDLE_LFG_LISTA,
@@ -1042,8 +1045,8 @@ export default {
 	// COMANDOS (12/09/2026, o autocompletar): so o ZC — o CZ 0x0fc7 e escrito, nunca lido.
 	0x0fc8: PACKET.ZC.RAGIDLE_COMANDOS,
 	// TRAVA CONTRA VENDA (R14/C2-3, 14/09/2026): so o ZC entra aqui — o CZ
-	// 0x0fc2 e escrito pelo cliente, nunca lido. Mesma razao dos vizinhos.
-	0x0fc3: PACKET.ZC.RAGIDLE_TRAVAS,
+	// 0x0fc0 e escrito pelo cliente, nunca lido. Mesma razao dos vizinhos.
+	0x0fc1: PACKET.ZC.RAGIDLE_TRAVAS,
 	// VOTO (D-1159): so o ZC entra aqui — o CZ 0x0fd4 e escrito pelo cliente,
 	// nao lido. Mesma razao dos vizinhos acima. Ele desce respondendo aos TRES
 	// verbos e tambem na ENTRADA no mapa (com `avisar: true`), sem ZC de erro.

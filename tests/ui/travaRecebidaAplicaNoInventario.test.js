@@ -1,7 +1,7 @@
 /**
  * A FIACAO DE REDE DA TRAVA (R14/C2-3, 14/09/2026) — par final confirmado
- * pelo SENIOR-C: `CZ_RAGIDLE_TRAVA_ACAO` = 0x0fc2, `ZC_RAGIDLE_TRAVAS` =
- * 0x0fc3 (a primeira tentativa, 0x0fc7/0x0fc8, colidia com
+ * pelo SENIOR-C: `CZ_RAGIDLE_TRAVA_ACAO` = 0x0fc0, `ZC_RAGIDLE_TRAVAS` =
+ * 0x0fc1 (a primeira tentativa, 0x0fc7/0x0fc8, colidia com
  * CZ_RAGIDLE_COMANDOS_ACAO/ZC_RAGIDLE_COMANDOS — ja corrigido).
  *
  * Duas coisas provadas aqui:
@@ -55,13 +55,13 @@ const { default: PACKET } = await import('Network/PacketStructure.js');
 const { default: ItemEngine } = await import('Engine/MapEngine/Item.js');
 
 describe('PACKET.CZ.RAGIDLE_TRAVA_ACAO — o pacote de saida', () => {
-	it('monta o opcode 0x0fc2 e o JSON pedido', () => {
+	it('monta o opcode 0x0fc0 e o JSON pedido', () => {
 		const pkt = new PACKET.CZ.RAGIDLE_TRAVA_ACAO();
 		pkt.json = JSON.stringify({ acao: 'alternar', slot: 7 });
 		const built = pkt.build();
 
 		const fp = new DataView(built.buffer);
-		expect(fp.getUint16(0, true)).toBe(0x0fc2);
+		expect(fp.getUint16(0, true)).toBe(0x0fc0);
 	});
 
 	it('o "pedir" (sem slot) monta do mesmo jeito', () => {
@@ -69,7 +69,7 @@ describe('PACKET.CZ.RAGIDLE_TRAVA_ACAO — o pacote de saida', () => {
 		pkt.json = JSON.stringify({ acao: 'pedir' });
 		const built = pkt.build();
 		const fp = new DataView(built.buffer);
-		expect(fp.getUint16(0, true)).toBe(0x0fc2);
+		expect(fp.getUint16(0, true)).toBe(0x0fc0);
 	});
 });
 

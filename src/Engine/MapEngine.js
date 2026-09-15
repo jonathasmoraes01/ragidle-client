@@ -18,6 +18,7 @@ import Session from 'Engine/SessionStorage.js';
 import Network from 'Network/NetworkManager.js';
 import Reconexao from 'Network/reconexao.js';
 import BackgroundTicker from 'Network/BackgroundTicker.js';
+import { ler as lerRegistroDaCaca } from 'UI/Components/HuntAnalyzer/registroDaCaca.js';
 import PACKETVER from 'Network/PacketVerManager.js';
 import PACKET from 'Network/PacketStructure.js';
 import Renderer from 'Renderer/Renderer.js';
@@ -333,6 +334,16 @@ class MapEngine {
 				// the map-server's own resync-on-gap logic kicks in promptly.
 				BackgroundTicker.start(sendKeepAlive);
 
+				/*
+				 * A ECONOMIA DE ENERGIA (D-1389/D-1390, 14/09/2026) — o gatilho
+				 * do cliente pro modo automatico. `visibilitychange` e o MESMO
+				 * evento que o BackgroundTicker ja escuta pra ressincronizar; ele
+				 * nunca e estrangulado por aba escondida (ao contrario de
+				 * setInterval), entao "a aba foi pro fundo" chega ao servidor na
+				 * hora, com o socket ainda respondendo normal.
+				 */
+				document.addEventListener('visibilitychange', onVisibilidadeMudouParaEconomia);
+
 				Session.Playing = true;
 
 				/*
@@ -397,6 +408,9 @@ class MapEngine {
 			// muda em nada o caminho normal de entrada. Ver o cabecalho de
 			// onSonoRecebido, abaixo.
 			Network.hookPacket(PACKET.ZC.RAGIDLE_SONO, onSonoRecebido);
+			// A ECONOMIA DE ENERGIA (D-1389/D-1390) — ver o cabecalho de
+			// onEconomiaRecebida, abaixo.
+			Network.hookPacket(PACKET.ZC.RAGIDLE_ECONOMIA, onEconomiaRecebida);
 
 			// hook reassembly packets and map the responses
 			for (let i = 1; i <= 42; i++) {
@@ -848,7 +862,7 @@ function onConnectionAccepted(pkt) {
 		xPos: pkt.PosDir[0],
 		yPos: pkt.PosDir[1],
 		mapName: _mapName
-	});
+	}, true);
 }
 
 /**
@@ -990,6 +1004,182 @@ function onSonoRecebido(pkt) {
 	});
 }
 
+/* ---------------- A ECONOMIA DE ENERGIA (D-1389/D-1390, 14/09/2026) ---------------- */
+
+/** A tela preta aberta agora, se houver ({atualizar, remove} de UIManager.showEconomiaDeEnergia). */
+let _janelaDaEconomia = null;
+/** O laco de 1s que reatualiza o timer e os numeros ao vivo, enquanto a tela esta aberta. */
+let _tiqueDaEconomia = null;
+/** O retrato de `registroDaCaca` no instante em que entrou — os numeros mostrados sao DELTA contra isto. */
+let _snapshotDaEconomia = null;
+/** O relogio LOCAL, so mostrador — a mesma ressalva de `showDormindo`: a verdade e do servidor. */
+let _restanteDaEconomiaMs = 0;
+/**
+ * O personagem morreu NESTA sessao de economia de energia (D-1398,
+ * 14/09/2026)? Uma vez `true` por `onEconomiaRecebida`, fica `true` ate
+ * `fecharTelaDaEconomia` — o relogio de 1s (`_tiqueDaEconomia`) reusa este
+ * valor em toda repintura, entao o aviso nao precisa de um pacote novo do
+ * servidor a cada segundo pra continuar visivel.
+ */
+let _personagemMorreuEmEconomia = false;
+
+/**
+ * Os numeros da tela preta: o quanto foi ganho DESDE que entrou em economia
+ * de energia, nunca a caçada inteira — por isso o delta contra o snapshot
+ * tirado em `abrirTelaDaEconomia`. Sem personagem ou sem snapshot (corrida
+ * entre a resposta do servidor e `Session.Entity` ainda nao existir), so o
+ * relogio aparece.
+ */
+function statsDaEconomia() {
+	const base = { restanteMs: _restanteDaEconomiaMs, morreu: _personagemMorreuEmEconomia };
+	if (!Session.Entity || !_snapshotDaEconomia) return base;
+	const agora = lerRegistroDaCaca(Session.Entity.GID);
+	return {
+		...base,
+		expBase: Math.max(0, (agora.expBase || 0) - (_snapshotDaEconomia.expBase || 0)),
+		expClasse: Math.max(0, (agora.expClasse || 0) - (_snapshotDaEconomia.expClasse || 0)),
+		abates: Math.max(0, (agora.abatesTotal || 0) - (_snapshotDaEconomia.abatesTotal || 0)),
+		itensTotal: Math.max(0, (agora.itensTotal || 0) - (_snapshotDaEconomia.itensTotal || 0))
+	};
+}
+
+/** Abre a tela preta (idempotente — reentrar com a tela ja aberta so reatualiza o relogio). */
+function abrirTelaDaEconomia(restanteMs) {
+	_restanteDaEconomiaMs = restanteMs;
+	if (_janelaDaEconomia) {
+		_janelaDaEconomia.atualizar(statsDaEconomia());
+		return;
+	}
+	_snapshotDaEconomia = Session.Entity ? lerRegistroDaCaca(Session.Entity.GID) : null;
+	_janelaDaEconomia = UIManager.showEconomiaDeEnergia(restanteMs, sairDaEconomiaDeEnergia);
+	_janelaDaEconomia.atualizar(statsDaEconomia());
+	_tiqueDaEconomia = setInterval(() => {
+		_restanteDaEconomiaMs = Math.max(0, _restanteDaEconomiaMs - 1000);
+		if (_janelaDaEconomia) _janelaDaEconomia.atualizar(statsDaEconomia());
+	}, 1000);
+}
+
+/** Fecha a tela preta, se houver — seguro chamar mesmo sem nenhuma aberta. */
+function fecharTelaDaEconomia() {
+	if (_tiqueDaEconomia) {
+		clearInterval(_tiqueDaEconomia);
+		_tiqueDaEconomia = null;
+	}
+	if (_janelaDaEconomia) {
+		_janelaDaEconomia.remove();
+		_janelaDaEconomia = null;
+	}
+	_snapshotDaEconomia = null;
+	_personagemMorreuEmEconomia = false;
+}
+
+/**
+ * O CLIQUE EM "Voltar a jogar" (D-1392, 14/09/2026, correção do dono).
+ *
+ * Ate aqui `onVisibilidadeMudouParaEconomia` mandava "sair" sozinho assim
+ * que `visibilitychange` via a aba voltar — e um relance rapido na aba (ver
+ * uma notificacao, por exemplo) ja tirava o personagem do modo sem o
+ * jogador ter pedido isso. Agora SAIR e SEMPRE este botao: a tela preta
+ * fica de pe ate o jogador clicar, mesmo com a aba em primeiro plano — ele
+ * pode deliberadamente continuar em economia de energia olhando pra ela.
+ */
+function sairDaEconomiaDeEnergia() {
+	const pkt = new PACKET.CZ.RAGIDLE_ECONOMIA_ACAO();
+	pkt.json = JSON.stringify({ acao: 'sair' });
+	Network.sendPacket(pkt);
+	// Fecha na hora, sem esperar o ack: o jogador ja pediu, e a resposta do
+	// servidor (ativa:false) so confirmaria o que a tela ja fez.
+	fecharTelaDaEconomia();
+}
+
+/**
+ * Quanto esperar, com a aba escondida, antes de avisar o servidor (D-1394,
+ * 14/09/2026) — o suficiente pra distinguir "so foi pro fundo" (alt-tab,
+ * troca de app) de "fechou de vez": se a aba fechar, o JavaScript da pagina
+ * MORRE antes deste atraso disparar, e o aviso nunca sai — nao ha timer
+ * pendurado sobrevivendo ao fechamento, e por isso nao precisa de sinal
+ * nenhum de "beforeunload"/"pagehide" tentando avisar na saida (que nem tem
+ * garantia de chegar a tempo pela rede). Pedido do dono, com as palavras
+ * dele: *"essa economia de energia automática é feita somente caso a pessoa
+ * dê alt tab OU troque de aplicativo no mobile. Se ele FECHAR a aba ou o
+ * aplicativo, deve encerrar."*
+ */
+const MS_DE_ATRASO_ANTES_DE_ENTRAR_NA_ECONOMIA = 3000;
+
+/** O atraso agendado, se houver — cancelado se a aba voltar antes de disparar. */
+let _atrasoDaEconomia = null;
+
+/**
+ * onVisibilidadeMudouParaEconomia (D-1389/D-1390, 14/09/2026 — so 'entrar'
+ * desde D-1392; o atraso de confirmacao desde D-1394) — o gatilho automatico
+ * de ENTRADA. Voltar a aba NAO manda "sair" mais (ver
+ * `sairDaEconomiaDeEnergia`, o unico lugar que manda): `visibilitychange` so
+ * avisa o servidor quando a aba vai pro FUNDO — e so depois de confirmar,
+ * pelo atraso acima, que a pagina continua viva. O SERVIDOR decide se o
+ * pedido de entrar e elegivel (regra 1 — nunca confia no cliente sozinho);
+ * voltar a olhar a aba, sozinho, nao decide nada.
+ */
+function onVisibilidadeMudouParaEconomia() {
+	if (document.visibilityState === 'hidden') {
+		if (_atrasoDaEconomia) return; // ja agendado — nao empilha um segundo
+		_atrasoDaEconomia = setTimeout(() => {
+			_atrasoDaEconomia = null;
+			// Confere de novo: pode ter voltado no instante exato do disparo.
+			if (document.visibilityState !== 'hidden') return;
+			const pkt = new PACKET.CZ.RAGIDLE_ECONOMIA_ACAO();
+			pkt.json = JSON.stringify({ acao: 'entrar' });
+			Network.sendPacket(pkt);
+		}, MS_DE_ATRASO_ANTES_DE_ENTRAR_NA_ECONOMIA);
+	} else if (_atrasoDaEconomia) {
+		// Voltou antes do atraso disparar: cancela — nunca chegou a avisar,
+		// entao nao ha "entrar" pra desfazer.
+		clearTimeout(_atrasoDaEconomia);
+		_atrasoDaEconomia = null;
+	}
+}
+
+/**
+ * onEconomiaRecebida (D-1389/D-1390, 14/09/2026) — a resposta do servidor a
+ * `entrar`/`sair`, e tambem o aviso de "venceu o teto com a conexao viva"
+ * (`expulso:true`), sem pedido nenhum do cliente.
+ *
+ * `ativa:true` abre/reatualiza a tela preta. `ativa:false` fecha — seja o ack
+ * normal de "sair", seja uma recusa silenciosa de "entrar" (ninguem ve a
+ * tela mesmo: o jogador nao esta olhando a aba, entao nao ha erro pra
+ * mostrar). `expulso:true` e o caso especial: o personagem ja saiu do mundo
+ * do lado do servidor, que vai fechar o socket a seguir — o mesmo padrao do
+ * "Acordar agora" do Dormir, reentrando pelo caminho unico de sempre
+ * (CZ_ENTER2) em vez de uma segunda rota escrita a mao.
+ *
+ * `morreu:true` (D-1398, 14/09/2026) chega SEM o cliente ter pedido nada —
+ * o servidor empurra este mesmo pacote na hora em que o personagem morre
+ * dentro de uma sessao de economia. Uma vez visto, o aviso fica marcado ate
+ * a tela fechar (`_personagemMorreuEmEconomia`, nunca sobrescrito de volta
+ * pra `false` por uma resposta SEM o campo — o servidor manda `morreu` em
+ * TODA resposta da sessao depois que ele vira `true` uma vez, mas o cliente
+ * nao depende disso: ele so soma, nunca some com o proprio aviso).
+ */
+function onEconomiaRecebida(pkt) {
+	let corpo;
+	try {
+		corpo = JSON.parse(pkt.json);
+	} catch {
+		return;
+	}
+	if (!corpo) return;
+
+	if (corpo.ativa === true) {
+		if (corpo.morreu === true) _personagemMorreuEmEconomia = true;
+		abrirTelaDaEconomia(Number(corpo.restanteMs) || 0);
+		return;
+	}
+
+	fecharTelaDaEconomia();
+	if (corpo.expulso === true) {
+		import('Engine/GameEngine.js').then(m => m.default.reload());
+	}
+}
+
 /**
  * Changing map, loading new map
  *
@@ -1028,7 +1218,13 @@ function ligarAcessorioDaHud(nome, ligar) {
 	}
 }
 
-function onMapChange(pkt) {
+/**
+ * @param {boolean} [ehEntradaNoMundo] `true` só quando quem chama é
+ *   `onConnectionAccepted` — login OU RECONEXÃO (`ZC_ACCEPT_ENTER2`/`ENTER3`).
+ *   `false`/ausente é o caminho comum, o hook de `ZC_NPCACK_MAPMOVE`
+ *   (teleporte dentro da MESMA conexão — Asa de Mosca, viagem por menu).
+ */
+function onMapChange(pkt, ehEntradaNoMundo) {
 	/*
 	 * O MAPA ANTES DESTE PACOTE (D-1385, 13/09/2026) — capturado ANTES de
 	 * `MapRenderer.setMap` rodar, porque `setMap` só reatribui
@@ -1230,8 +1426,24 @@ function onMapChange(pkt) {
 		 * por um instante — e o relato do dono foi exatamente esse instante
 		 * sendo lido como "saiu da cacada": a "Duracao" do Hunt Analyzer
 		 * resetava a cada uso da asa.
+		 *
+		 * ...MAS TAMBEM SEMPRE NUMA ENTRADA NO MUNDO (D-1400, 14/09/2026),
+		 * mesmo se o mapa "nao mudou" pela leitura de `mapaAntesDoLoad` —
+		 * relato do dono: o botao "Dormir" ficava HABILITADO mesmo depois do
+		 * servidor recusar por amostra insuficiente. A causa: o servidor
+		 * reinicia `amostrasDeSono` em TODA entrada no mundo, reconexao
+		 * inclusive (`servidor-mapa.ts`, comentario gemeo de `viajar()`) — e
+		 * uma reconexao (a queda de rede real que a economia de energia
+		 * tolera em segundo plano, D-1389/D-1394, ou qualquer outra) para o
+		 * MESMO mapa nunca mexe em `MapRenderer.currentMap` (a pagina nao
+		 * recarrega), entao o guard acima calava a sondagem justamente
+		 * quando o relogio do servidor tinha acabado de reiniciar sem o
+		 * cliente saber. `ehEntradaNoMundo` distingue as duas origens do
+		 * MESMO pacote (`ZC_NPCACK_MAPMOVE` de teleporte vs `onConnectionAccepted`
+		 * de login/reconexao) — so a segunda forca a sondagem mesmo sem o
+		 * nome do mapa ter mudado.
 		 */
-		if (stripMapExtension(mapaAntesDoLoad) !== stripMapExtension(pkt.mapName)) {
+		if (ehEntradaNoMundo || stripMapExtension(mapaAntesDoLoad) !== stripMapExtension(pkt.mapName)) {
 			IdleConfig.sondarMapa();
 		}
 
@@ -1776,6 +1988,12 @@ function onExitSuccess() {
 	// logo abaixo ja impede o proprio `onDisconnect` de disparar, ver
 	// NetworkManager.js).
 	Reconexao.cancelar();
+	document.removeEventListener('visibilitychange', onVisibilidadeMudouParaEconomia);
+	if (_atrasoDaEconomia) {
+		clearTimeout(_atrasoDaEconomia);
+		_atrasoDaEconomia = null;
+	}
+	fecharTelaDaEconomia();
 	Network.close();
 	Renderer.stop();
 	MapRenderer.free();

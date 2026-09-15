@@ -10,7 +10,8 @@
 
 import WebGL from 'Utils/WebGL.js';
 import glMatrix from 'Utils/gl-matrix.js';
-import Client from 'Core/Client.js';
+import { texturaDeEfeito } from 'Renderer/Effects/texturaDeEfeito.js';
+import { carregarTexturaDeEfeito } from 'Renderer/Effects/carregadorDeTexturaDeEfeito.js';
 import _vertexShader from './MagicRing.vs?raw';
 import _fragmentShader from './MagicRing.fs?raw';
 
@@ -98,12 +99,17 @@ class MagicRing {
 	 * @param {object} webgl context
 	 */
 	init(gl) {
-		Client.loadFile(`data/texture/effect/${this.textureName}.tga`, buffer => {
-			WebGL.texture(gl, buffer, texture => {
+		// RAGIDLE (15/09/2026, D-1412): textura por NOME, dividida entre os
+		// efeitos — ver `Renderer/Effects/texturaDeEfeito.js` (D-1378).
+		texturaDeEfeito(
+			gl,
+			`effect/${this.textureName}.tga`,
+			texture => {
 				this.texture = texture;
 				this.ready = true;
-			});
-		});
+			},
+			carregarTexturaDeEfeito
+		);
 	}
 
 	/**
@@ -112,6 +118,7 @@ class MagicRing {
 	 * @param {object} webgl context
 	 */
 	free(gl) {
+		// A textura e DIVIDIDA (`texturaDeEfeito.js`): este efeito nao a apaga.
 		this.ready = false;
 	}
 

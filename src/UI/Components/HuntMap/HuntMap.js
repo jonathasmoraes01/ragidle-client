@@ -1032,7 +1032,17 @@ function renderBadge(encaixe) {
 }
 
 function renderThumb(mapa) {
-	return `<span class="hm-thumb-vazio">${RiIcones.mapaVazio}</span><img src="/ragidle/minimapas/${escapeHtml(mapa.mapa)}.webp" alt="" onerror="this.style.display='none'" />`;
+	/*
+	 * `loading="lazy"` (queixa do dono: "lag/travamento de FPS absurdo" ao
+	 * abrir o Mapa de Caça) — com o filtro "Todos", `renderList` monta ATE
+	 * 191 cartões de uma vez (`listEl.innerHTML = mapas.map(...).join('')`),
+	 * e cada um pede esta miniatura. Sem lazy, os 191 `<img>` disparam a
+	 * requisição e o decode JUNTOS no instante do `innerHTML` — o navegador
+	 * decodifica dezenas de imagens fora da tela ao mesmo tempo que o motor
+	 * do jogo tenta desenhar o próximo quadro. Com lazy, só as ~6-8 linhas
+	 * visíveis pedem a imagem; o resto espera rolar até perto da viewport.
+	 */
+	return `<span class="hm-thumb-vazio">${RiIcones.mapaVazio}</span><img src="/ragidle/minimapas/${escapeHtml(mapa.mapa)}.webp" alt="" loading="lazy" onerror="this.style.display='none'" />`;
 }
 
 /**
@@ -1096,11 +1106,14 @@ function renderCard(mapa, motivo) {
 	const isCurrent = mapa.mapa === catalog.mapaAtual;
 	const isSelected = mapa.mapa === HuntMap.selectedMapa;
 	const monstros = allMonstersOf(mapa);
+	// `loading="lazy"` pelo MESMO motivo de `renderThumb`: até 5 destes por
+	// cartão (MOB_STACK_MAX), vezes até 191 cartões, é a rajada de imagens
+	// que travava o FPS ao abrir a janela com "Todos" selecionado.
 	const avatarsHtml = monstros
 		.slice(0, MOB_STACK_MAX)
 		.map(
 			m =>
-				`<img class="hm-mob-avatar" src="/ragidle/mobs/${m.mobId}.png" alt="" onerror="this.style.display='none'" />`
+				`<img class="hm-mob-avatar" src="/ragidle/mobs/${m.mobId}.png" alt="" loading="lazy" onerror="this.style.display='none'" />`
 		)
 		.join('');
 
@@ -1348,7 +1361,7 @@ function renderMobRow(m, mapa, ficha) {
 	}
 	return `
 		<button type="button" class="hm-chip${isSelected ? ' is-selected' : ''}${isMvp ? ' is-mvp' : ''}" data-mob-id="${m.mobId}" aria-pressed="${isSelected ? 'true' : 'false'}">
-			<span class="hm-chip-avatar"><img src="/ragidle/mobs/${m.mobId}.png" alt="" onerror="this.style.display='none'" /></span>
+			<span class="hm-chip-avatar"><img src="/ragidle/mobs/${m.mobId}.png" alt="" loading="lazy" onerror="this.style.display='none'" /></span>
 			<span class="hm-chip-text">
 				<span class="hm-chip-name">${escapeHtml(m.nome)}${isMvp ? '<span class="hm-chip-mvp">MVP</span>' : ''}</span>
 				<span class="hm-chip-meta">${meta}</span>
@@ -1373,7 +1386,7 @@ function renderDropTile(itemId, nome, raridade, extraHtml, title) {
 	const aberto = ItemInfo.uid === itemId;
 	return `
 		<button type="button" class="hm-drop${aberto ? ' is-open' : ''}" data-item-id="${itemId}" title="${escapeHtml(title || nome)}">
-			<span class="hm-drop-tile ri-tile"><img data-item-id="${itemId}" alt="" /></span>
+			<span class="hm-drop-tile ri-tile"><img data-item-id="${itemId}" alt="" loading="lazy" /></span>
 			<span class="hm-drop-name">${escapeHtml(nome)}</span>
 			<span class="hm-drop-rarity ${classeDeRaridade(raridade)}">${escapeHtml(rotuloDeRaridade(raridade))}</span>
 			${extraHtml || ''}

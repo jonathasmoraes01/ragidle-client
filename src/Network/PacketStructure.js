@@ -16550,7 +16550,7 @@ PACKET.ZC.RAGIDLE_FAVORITOS = function PACKET_ZC_RAGIDLE_FAVORITOS(fp, end) {
 };
 PACKET.ZC.RAGIDLE_FAVORITOS.size = -1;
 
-// 0x0fc2 - RAGIDLE: CZ_RAGIDLE_TRAVA_ACAO (client -> server)
+// 0x0fc0 - RAGIDLE: CZ_RAGIDLE_TRAVA_ACAO (client -> server)
 // Variable size: u16 opcode + u16 total length + JSON UTF-8 {acao:'pedir'|
 // 'alternar', slot?}.
 // 14/09/2026: a TRAVA CONTRA VENDA da mochila (R14/C2-3). Mesmo molde de
@@ -16558,7 +16558,7 @@ PACKET.ZC.RAGIDLE_FAVORITOS.size = -1;
 // 'alternar' e um interruptor so' para o cliente e o servidor nunca
 // discordarem sobre qual verbo mandar. `slot` (nao "posicao"): a posicao de
 // uma pilha anda quando ela esgota, e o cliente nunca reindexa por conta
-// propria — o par final (0x0fc2/0x0fc3) foi confirmado pelo SENIOR-C depois
+// propria — o par final (0x0fc0/0x0fc1) foi confirmado pelo SENIOR-C depois
 // de a primeira tentativa (0x0fc7/0x0fc8) colidir com
 // CZ_RAGIDLE_COMANDOS_ACAO/ZC_RAGIDLE_COMANDOS (o autocompletar de comandos,
 // ja em producao — ver o comentario deles, mais acima).
@@ -16569,13 +16569,13 @@ PACKET.CZ.RAGIDLE_TRAVA_ACAO.prototype.build = function () {
 	const bytes = TextEncoding.encode(this.json, 'utf-8');
 	const pkt_len = 2 + 2 + bytes.length;
 	const pkt_buf = new BinaryWriter(pkt_len);
-	pkt_buf.writeShort(0x0fc2);
+	pkt_buf.writeShort(0x0fc0);
 	pkt_buf.writeUShort(pkt_len);
 	pkt_buf.writeString(this.json);
 	return pkt_buf;
 };
 
-// 0x0fc3 - RAGIDLE: ZC_RAGIDLE_TRAVAS (server -> client)
+// 0x0fc1 - RAGIDLE: ZC_RAGIDLE_TRAVAS (server -> client)
 // Variable size: u16 opcode + u16 total length + JSON UTF-8 payload.
 // Contrato v1 (14/09/2026): { v, travados: number[], recusa? } — `travados`
 // sao SLOTS travados HOJE (o estado inteiro, nao um delta), a mesma forma
@@ -16829,6 +16829,35 @@ PACKET.ZC.RAGIDLE_SONO = function PACKET_ZC_RAGIDLE_SONO(fp, end) {
 	this.json = fp.readString(end - fp.tell());
 };
 PACKET.ZC.RAGIDLE_SONO.size = -1;
+
+// 0x0fc0 - RAGIDLE: CZ_RAGIDLE_ECONOMIA_ACAO (client -> server) — 14/09/2026
+// Variable size: u16 opcode + u16 total length + JSON UTF-8 {acao:'entrar'|'sair'}.
+// A ECONOMIA DE ENERGIA (D-1389/D-1390): diferente do "Dormir", o gatilho e
+// automatico — `visibilitychange` detectando a aba indo pro fundo — e o
+// personagem continua caçando com loot/zeny/EXP de verdade, nao so EXP.
+PACKET.CZ.RAGIDLE_ECONOMIA_ACAO = function PACKET_CZ_RAGIDLE_ECONOMIA_ACAO() {
+	this.json = '{}';
+};
+PACKET.CZ.RAGIDLE_ECONOMIA_ACAO.prototype.build = function () {
+	const bytes = TextEncoding.encode(this.json, 'utf-8');
+	const pkt_len = 2 + 2 + bytes.length;
+	const pkt_buf = new BinaryWriter(pkt_len);
+	pkt_buf.writeShort(0x0fc0);
+	pkt_buf.writeUShort(pkt_len);
+	pkt_buf.writeString(this.json);
+	return pkt_buf;
+};
+
+// 0x0fc1 - RAGIDLE: ZC_RAGIDLE_ECONOMIA (server -> client) — 14/09/2026
+// Variable size: u16 opcode + u16 total length + JSON UTF-8 payload.
+// Contrato (D-1389/D-1390): { ativa, restanteMs?, recusa?, expulso? }.
+// `expulso:true` chega quando o teto de 4h venceu com a conexao AINDA viva —
+// o servidor fecha o socket logo em seguida, do mesmo jeito que "Acordar
+// agora" do Dormir fecha, pra reentrar pelo caminho unico de sempre.
+PACKET.ZC.RAGIDLE_ECONOMIA = function PACKET_ZC_RAGIDLE_ECONOMIA(fp, end) {
+	this.json = fp.readString(end - fp.tell());
+};
+PACKET.ZC.RAGIDLE_ECONOMIA.size = -1;
 
 // ---------------------------------------------------------------------------
 // O MENU LFG (Looking For Group) — D-634, 25/08/2026.

@@ -10,7 +10,8 @@
 
 import WebGL from 'Utils/WebGL.js';
 import glMatrix from 'Utils/gl-matrix.js';
-import Client from 'Core/Client.js';
+import { texturaDeEfeito } from 'Renderer/Effects/texturaDeEfeito.js';
+import { carregarTexturaDeEfeito } from 'Renderer/Effects/carregadorDeTexturaDeEfeito.js';
 import _vertexShader from './MagnumBreak.vs?raw';
 import _fragmentShader from './MagnumBreak.fs?raw';
 
@@ -101,12 +102,20 @@ function MagnumBreak(position, topSize, bottomSize, height, textureName, tick) {
 MagnumBreak.prototype.init = function init(gl) {
 	const self = this;
 
-	Client.loadFile('data/texture/effect/' + this.textureName + '.tga', function (buffer) {
-		WebGL.texture(gl, buffer, function (texture) {
+	// RAGIDLE (15/09/2026, D-1412): uma textura por NOME, dividida entre os
+	// efeitos — era uma NOVA por invocacao de Magnum Break e nenhuma era
+	// apagada (o mesmo defeito da D-1378 em ThreeDEffect/TwoDEffect, so que
+	// este site nunca foi migrado para `texturaDeEfeito.js`). Ver o cabecalho
+	// daquele modulo.
+	texturaDeEfeito(
+		gl,
+		'effect/' + this.textureName + '.tga',
+		function (texture) {
 			self.texture = texture;
 			self.ready = true;
-		});
-	});
+		},
+		carregarTexturaDeEfeito
+	);
 };
 
 /**
@@ -115,6 +124,8 @@ MagnumBreak.prototype.init = function init(gl) {
  * @param {object} webgl context
  */
 MagnumBreak.prototype.free = function free(gl) {
+	// A textura e DIVIDIDA com os outros efeitos do mesmo nome
+	// (`texturaDeEfeito.js`): este efeito nao a apaga.
 	this.ready = false;
 };
 
