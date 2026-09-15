@@ -957,11 +957,20 @@ HuntAnalyzer.limparEstadoDoPersonagem = function limparEstadoDoPersonagem() {
 	_aba = 0;
 	_sigRanking = null;
 	_sigDrops = null;
-	// O relógio do "Dormir" (D-1383) é por MAPA, e o personagem novo pode
-	// calhar no mesmo nome de mapa do anterior — sem zerar aqui, o tempo
-	// "no mapa atual" herdaria o instante de entrada de outro personagem.
-	_mapaDoRelogioDeSono = null;
-	_entrouNoMapaDoSonoEm = 0;
+	/*
+	 * A ANCORA do "Dormir" (D-1396) é por PERSONAGEM: sem zerar aqui, o
+	 * personagem novo herdaria o "faltam X" medido para o anterior até o
+	 * servidor mandar o primeiro contexto dele.
+	 *
+	 * ATE D-1413 ESTAS TRES LINHAS ZERAVAM `_mapaDoRelogioDeSono` e
+	 * `_entrouNoMapaDoSonoEm`, que D-1396 tinha APAGADO — arquivo ESM é strict
+	 * mode, então aquilo lançava `ReferenceError` e abortava o `for` de
+	 * `cleanGameUI()`, deixando os 11 módulos seguintes sem limpar. Portão:
+	 * `tests/util/semErroDeLint.test.js`.
+	 */
+	_ctxDaUltimaAncoraDeSono = null;
+	_faltamMsNaAncoraDeSono = 0;
+	_ancoraDeSonoRecebidaEm = 0;
 	/*
 	 * ZERAR O DADO NAO BASTA: `GUIComponent.remove()` so DESANEXA o host,
 	 * entao o shadow DOM (com `is-open` e o HTML do personagem anterior)
