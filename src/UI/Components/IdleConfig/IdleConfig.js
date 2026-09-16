@@ -1377,17 +1377,20 @@ function renderAtaque() {
 		} else if (!livres.length) {
 			adicionar = '<div class="ic-note">Todas as habilidades disponíveis já estão na ordem.</div>';
 		} else {
+			// Agrupado por Ataques/Debuffs (D-1481, 16/09/2026) para achar mais
+			// rápido — a ORDEM continua sendo uma lista só (as duas disputam as
+			// mesmas 3 vagas no motor), o agrupamento é só para escolher.
+			const opcao = s =>
+				`<option value="${escapeHtml(s.skillId)}">${escapeHtml(s.nome || s.skillId)} (Nv ${s.aprendido})${
+					curas.has(s.skillId) ? ' — cura' : ''
+				}</option>`;
+			const livresAtaque = livres.filter(s => !debuffs.has(s.skillId));
+			const livresDebuff = livres.filter(s => debuffs.has(s.skillId));
 			adicionar = `
 				<select class="ic-add-skill" data-action="skill-add">
 					<option value="">+ Pôr uma habilidade na ordem</option>
-					${livres
-						.map(
-							s =>
-								`<option value="${escapeHtml(s.skillId)}">${escapeHtml(s.nome || s.skillId)} (Nv ${s.aprendido})${
-									curas.has(s.skillId) ? ' — cura' : ''
-								}${debuffs.has(s.skillId) ? ' — debuff' : ''}</option>`
-						)
-						.join('')}
+					${livresAtaque.length ? `<optgroup label="Ataques">${livresAtaque.map(opcao).join('')}</optgroup>` : ''}
+					${livresDebuff.length ? `<optgroup label="Debuffs">${livresDebuff.map(opcao).join('')}</optgroup>` : ''}
 				</select>`;
 		}
 

@@ -367,6 +367,32 @@
 					<span class="tm-label">Indique</span>
 				</button>
 
+				<!-- REORGANIZACAO DO LEQUE (16/09/2026, pedido do dono: "precisa
+				     organizar esse menu"). RO Shop e Configuracoes MUDARAM DE
+				     POSICAO NO DOCUMENTO -- so isso, nenhum "data-action", pacote
+				     ou janela mudou. Ate aqui o leque misturava funcional e "em
+				     breve" na coluna B (Loja/em-breve, RO Shop/funcional,
+				     Troca+Leilao+Eventos/em-breve, Configuracoes/funcional),
+				     contrariando a propria ordem canonica que o cabecalho deste
+				     arquivo descreve ("funcionais primeiro... em breve por
+				     ultimo, nunca misturado"). Os dois funcionais vieram para
+				     perto dos outros funcionais (Social -> Progressao ->
+				     RO Shop/Configuracoes), e o bloco "em breve" (mais abaixo)
+				     fica inteiro e sozinho no fim: Loja, Troca, Leilao, Eventos. -->
+				<button type="button" class="tm-item" data-action="roshop" title="RO Shop">
+					<span class="tm-icon-wrap ri-disc"><!--RI_ICONE:roshop--></span>
+					<span class="tm-label">RO Shop</span>
+				</button>
+
+				<!-- CONFIGURACOES DO JOGO (D-1479) — trazida para perto dos
+				     outros funcionais na mesma reorganizacao acima. Continua
+				     sendo o MESMO item (video, audio, atalhos, sair), so mudou
+				     de vizinho. -->
+				<button type="button" class="tm-item" data-action="sistema" title="Configurações do jogo — vídeo, áudio, atalhos e sair">
+					<span class="tm-icon-wrap ri-disc"><!--RI_ICONE:sistema--></span>
+					<span class="tm-label">Configurações</span>
+				</button>
+
 				<!-- MISSOES (D-551) -- REMOVIDO do leque em 16/09/2026, pedido do
 				     dono. A janela `MissoesIdle` continua existindo (ver o
 				     cabecalho de `missoesGeraisHtml.js`: MapEngine, MissoesTrackerIdle,
@@ -395,22 +421,6 @@
 				<button type="button" class="tm-item tm-item--em-breve" data-action="loja" data-em-breve="1" title="Loja — em breve" aria-disabled="true">
 					<span class="tm-icon-wrap ri-disc"><!--RI_ICONE:loja--></span>
 					<span class="tm-label">Loja</span>
-				</button>
-
-				<!-- RO SHOP LIGADO (I5, 31/08/2026 — pedido do dono: "mudar o
-				     botao atual da loja de cash para o RO Shop").
-
-				     Ele ja existia aqui como "em breve", desabilitado, enquanto
-				     a loja de cash era um ICONE BMP SOLTO flutuando ao lado do
-				     minimapa (CashShopIcon, 43x45, sem rotulo). O pedido junta
-				     as duas pontas: o item rotulado do menu passa a ser a porta
-				     da loja, e o icone solto se aposenta.
-
-				     A janela e a MESMA de sempre — a `CashShop` nativa do
-				     roBrowser, que o icone solto ja abria. Nao ha janela nova. -->
-				<button type="button" class="tm-item" data-action="roshop" title="RO Shop">
-					<span class="tm-icon-wrap ri-disc"><!--RI_ICONE:roshop--></span>
-					<span class="tm-label">RO Shop</span>
 				</button>
 			</div>
 
@@ -443,32 +453,6 @@
 				<button type="button" class="tm-item tm-item--em-breve" data-action="eventos" data-em-breve="1" title="Eventos — em breve" aria-disabled="true">
 					<span class="tm-icon-wrap ri-disc"><!--RI_ICONE:eventos--></span>
 					<span class="tm-label">Eventos</span>
-				</button>
-
-				<!-- CONFIGURACOES DO JOGO (D-1479, 15/09/2026 — pedido do dono).
-
-				     A janela de sistema do cliente (video, audio, atalho, trocar
-				     personagem, fechar jogo). Ela existe e funciona desde
-				     sempre; o que faltava era PORTA — a fusao "Config + Menu"
-				     deixou escrito no cabecalho do .js que ela "perdeu a porta
-				     de mouse e ficou so na TECLA ESC", e celular nao tem ESC.
-
-				     NASCEU COMO LINHA LARGA NO RODAPE E ESTAVA ERRADO (relato do
-				     dono, com foto: "nao esta clicavel, nao esta responsivo").
-				     Ela ficava FORA das duas colunas, solta ao lado do toast e
-				     do "Instalar app" — sem a grade, sem o alvo tatil e sem o
-				     despachante de clique que todo `.tm-item` ganha de graca.
-				     Aqui dentro da coluna ela e um item como os outros 22, e a
-				     clicabilidade deixa de ser uma regra propria para ser a
-				     mesma de todo mundo.
-
-				     ICONE PROPRIO (`sistema`, controles deslizantes) e nao o
-				     `config`: a ENGRENAGEM e do idle ([DONO-4]), e dois itens
-				     com a mesma cara no mesmo leque obrigariam a ler o rotulo
-				     para distinguir. -->
-				<button type="button" class="tm-item" data-action="sistema" title="Configurações do jogo — vídeo, áudio, atalhos e sair">
-					<span class="tm-icon-wrap ri-disc"><!--RI_ICONE:sistema--></span>
-					<span class="tm-label">Configurações</span>
 				</button>
 			</div>
 

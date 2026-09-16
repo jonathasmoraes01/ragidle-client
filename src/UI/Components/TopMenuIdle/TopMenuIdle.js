@@ -203,6 +203,7 @@ import CorreioIdle from 'UI/Components/CorreioIdle/CorreioIdle.js';
 import HuntAnalyzer from 'UI/Components/HuntAnalyzer/HuntAnalyzer.js';
 import PasseIdle from 'UI/Components/PasseIdle/PasseIdle.js';
 import VotoIdle from 'UI/Components/VotoIdle/VotoIdle.js'; // RAGIDLE: janela de Voto (D-1159)
+import CombatCornerIdle from 'UI/Components/CombatCornerIdle/CombatCornerIdle.js'; // RAGIDLE: o aro "Ataque auto" (16/09/2026 — some enquanto o leque esta aberto)
 import CodexIdle from 'UI/Components/CodexIdle/CodexIdle.js'; // RAGIDLE: Codex (D-851)
 import { temAvisoDoCodex } from 'UI/Components/avisoDoCodex.js'; // D-1232
 import PresencaIdle from 'UI/Components/PresencaIdle/PresencaIdle.js'; // RAGIDLE: Presenca (D-1162)
@@ -952,6 +953,7 @@ function aplicarEstadoDoLeque(imediato) {
 	}
 
 	fab.classList.toggle('is-open', _lequeAberto);
+	ocultarAtaqueAutoEnquantoOLequeEstaAberto();
 	/* D-939: a HUD vertical desenha o menu aberto como FOLHA (cluster +
 	   leque em cartoes), e o CSS dela le esta classe no elemento raiz — o
 	   mesmo gesto que abre o leque e o que muda a apresentacao, sem um
@@ -1327,8 +1329,14 @@ const TOPO_DO_LEQUE = 16;
 /** O leque nao passa de 3 colunas por lado: seis discos de largura ja e um painel. */
 const MAXIMO_DE_COLUNAS_POR_LADO = 3;
 
-/** Onde o menu descansa quando nao ha doca no caminho (`afastarMenuDaDoca`). */
-const BASE_DO_MENU_NO_CHAO = 16;
+/**
+ * Onde o menu descansa quando nao ha doca no caminho (`afastarMenuDaDoca`).
+ *
+ * Era 16 ate 16/09/2026 — pedido do dono, olhando o botao aberto: "um pouco
+ * mais para baixo". So o numero mudou; a logica de desviar da doca continua a
+ * mesma.
+ */
+const BASE_DO_MENU_NO_CHAO = 8;
 /**
  * O vao entre o pe do menu levantado e o topo da barra de atalhos.
  *
@@ -1826,6 +1834,34 @@ function hideReplacedControls() {
 	if (jobLevelButton) {
 		jobLevelButton.style.display = 'none';
 	}
+}
+
+/**
+ * O "Ataque auto" (`CombatCornerIdle`) SOME enquanto o leque esta aberto
+ * (16/09/2026, pedido do dono, com print: o leque abre por cima do botao de
+ * ataque automatico).
+ *
+ * Os dois moram no MESMO canto — o aro do Ataque Auto fica logo ACIMA do
+ * botao Menu (CombatCornerIdle.css, `bottom: 90px` contra o Menu em
+ * `bottom: 16px`) — e o leque, ao abrir, cresce PARA CIMA a partir do Menu
+ * atravessando exatamente essa faixa. Reposicionar os dois para nunca se
+ * tocarem exigiria reproduzir aqui a mesma conta de breakpoint que
+ * CombatCornerIdle.css ja faz sozinho (ela muda de novo abaixo de 600px de
+ * largura); esconder um dos dois enquanto o outro esta em uso e a saida mais
+ * simples, e foi a que o dono pediu.
+ *
+ * Mesmo molde de `hideReplacedControls()` acima: pega a raiz do OUTRO
+ * componente por `getRoot()` e alterna o `display` do elemento visivel dele
+ * (`:host` tem `pointer-events:none`, entao escondido ele tambem nao intercepta
+ * clique nenhum).
+ */
+function ocultarAtaqueAutoEnquantoOLequeEstaAberto() {
+	const root = CombatCornerIdle.getRoot && CombatCornerIdle.getRoot();
+	const corner = root && root.querySelector('.cc-corner');
+	if (!corner) {
+		return;
+	}
+	corner.style.display = _lequeAberto ? 'none' : '';
 }
 
 /**
