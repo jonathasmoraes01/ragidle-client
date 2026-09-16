@@ -5007,21 +5007,6 @@ function init(packetver) {
 	length_list[0x0fc2] = -1; // CZ_RAGIDLE_ECONOMIA_ACAO (variable, JSON payload) — economia de energia, D-1389/D-1390, 14/09/2026
 	length_list[0x0fc3] = -1; // ZC_RAGIDLE_ECONOMIA (variable, JSON payload) — economia de energia, D-1389/D-1390, 14/09/2026
 
-	// O TUTORIAL GUIADO (secao 6 do CONTRATO-JORNADA.md). RENUMERADO de
-	// 0x0fde/0x0fdf para 0x0fbe/0x0fbf em 16/09/2026, no merge com
-	// origin/master: o vao 0x0fd3..0x0fdf estava CHEIO com os seis pares que a
-	// outra frente cunhou enquanto esta branch nao mesclava (Voto, Correio em
-	// lote, Item, Caca/favoritos, Indicacao e Presenca — esta ultima no MESMO
-	// par 0x0fde/0x0fdf, CZ/ZC trocados). Ver a nota completa em
-	// `PacketStructure.js`, junto de `CZ_RAGIDLE_TUTORIAL_ACAO`.
-	//
-	// A quarta lista e esta, e e a que sempre falta: ver o bloco do Passe e o
-	// do ZC_RAGIDLE_LOG logo acima. Sem a linha o opcode nao tem tamanho, o
-	// fatiamento para no meio do fluxo e TUDO o que vem depois fica invisivel,
-	// sem um erro no console.
-	length_list[0x0fbe] = -1; // CZ_RAGIDLE_TUTORIAL_ACAO (variable, JSON payload)
-	length_list[0x0fbf] = -1; // ZC_RAGIDLE_TUTORIAL (variable, JSON payload)
-
 	return length_list;
 }
 

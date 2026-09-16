@@ -58,16 +58,6 @@ MissoesIdle.mouseMode = GUIComponent.MouseMode.CROSS;
 /** As missões que o servidor mandou por último ({v:1, missoes:[...]}). */
 MissoesIdle.missoes = [];
 
-/**
- * O PACOTE JA RESPONDEU AO MENOS UMA VEZ NESTA SESSAO?
- *
- * `missoes` nasce `[]`, e um array vazio LEGITIMO ("nenhuma missao opcional
- * ainda") e indistinguivel dele por forma. Quem le este estado de FORA (a
- * aba "Missões Gerais" do Codex, 16/09/2026) precisa saber a diferenca para
- * mostrar "carregando" em vez de "nenhuma missao" no primeiro instante.
- */
-MissoesIdle.recebeuAlgumaVez = false;
-
 /** O retrato do EXECUTOR (D-601): {ativaId, tituloAtiva, passo, fila, pausada}.
  * O tracker (MissoesTrackerIdle) LÊ daqui — uma fonte só, um hook só. */
 MissoesIdle.execucao = null;
@@ -176,11 +166,6 @@ MissoesIdle.limparEstadoDoPersonagem = function limparEstadoDoPersonagem() {
 	// O Codex é DO PERSONAGEM: a bolinha do anterior falaria de um progresso
 	// que este não tem. Ela volta no primeiro pacote da sessão nova (D-1232).
 	limparAvisoDoCodex();
-	// O personagem novo ainda nao respondeu nada — sem isto a aba "Missões
-	// Gerais" do Codex mostraria as missões do personagem ANTERIOR ate o
-	// primeiro pacote chegar (o mesmo defeito que `fecharEEsquecer` existe
-	// para evitar nas outras janelas).
-	MissoesIdle.recebeuAlgumaVez = false;
 	/*
 	 * A ABA VOLTA PARA A LEMBRADA, e nao para 'principais' (31/08/2026). Aba
 	 * nao e dado de personagem: e a escolha da PESSOA, e vale para todos os
@@ -570,7 +555,6 @@ function onMissoesRecebidas(pkt) {
 	 * Codex abre, e a bolinha precisa aparecer antes disso.
 	 */
 	anotarAvisoDoCodex(dados.codexComNovidade === true);
-	MissoesIdle.recebeuAlgumaVez = true;
 	render();
 }
 

@@ -191,18 +191,12 @@ describe('PORTÃO: toda janela RAGIDLE com abas lembra a aba', () => {
 		 *    ficou apontando para o markup que saiu).
 		 *
 		 * A oitava é a Análise de Caça (D-943): Atual + as duas últimas.
-		 *
 		 * A NONA é a janela de Grupo (D-960, 07/09/2026): Grupo · Postos ·
 		 * Rateio · Ajustes. Ela nasceu com quatro abas de propósito — a
 		 * referência que o dono mandou abre três janelas POR CIMA da
 		 * principal, e a decisão desta entrega foi resolver tudo dentro de uma
 		 * moldura só, alternando por [hidden].
-		 *
-		 * O Códex ganhou abas no mesmo dia (08/09/2026) em DUAS branches
-		 * diferentes: a divisão da aba única em "Missões" (o bestiário) e
-		 * "Status" (os sete eixos) numa, e a aba "Missões do Códex" com a
-		 * Jornada de Midgard na outra. O merge de 16/09/2026 juntou as duas
-		 * — a janela tem hoje três abas, mas conta UMA vez só nesta lista.
+		 * A DÉCIMA PRIMEIRA é o Codex (D-971, 08/09/2026): Missões · Status.
 		 */
 		expect(comAbas.map(f => f.rel).sort(), 'a lista de janelas com abas mudou — ver o comentário acima').toEqual([
 			'CodexIdle/CodexIdle.js',
