@@ -67,6 +67,33 @@ const TIMEOUT_DA_TENTATIVA_MS = 8000;
 /** Quanto tempo o aviso de sucesso fica visivel antes de sumir sozinho. */
 const VIDA_DO_AVISO_DE_SUCESSO_MS = 1800;
 
+/**
+ * QUANTAS TENTATIVAS ANTES DE DESISTIR E MANDAR PARA O LOGIN (16/09/2026).
+ *
+ * Ate hoje a escalada repetia o ultimo degrau **para sempre**, e o
+ * `aoSerRecusado()` — a unica porta para o login — era CODIGO MORTO: ele so
+ * dispara com um `ZC_REFUSE_ENTER`, e esse pacote **nao existe no servidor**.
+ * As tres recusas do `CZ_ENTER2` la fecham o socket em silencio, entao do lado
+ * de ca a recusa e indistinguivel de um servidor fora do ar.
+ *
+ * O resultado media-se no relato do dono: com o passe vencido (o defeito de
+ * D-1506), o cliente tentava a cada 60 s, com uma credencial que o servidor ja
+ * tinha apagado, **sem fim e sem saida**. O jogador ficava olhando
+ * "Reconectando automaticamente" para sempre — que e o "volta com o aviso de
+ * disconnect" que ele descreveu.
+ *
+ * 12 tentativas sao ~9,5 min de escalada (10+20+30+40+50 e depois 60 fixos).
+ * O numero e generoso de proposito: reinicio de servidor e deploy cabem com
+ * folga larga, e quem cai por rede instavel volta muito antes. Passou disso, a
+ * hipotese "o servidor volta sozinho" ja se esgotou e insistir so esconde do
+ * jogador que ele precisa entrar de novo.
+ *
+ * **Isto NAO substitui o pacote de recusa** — com ele o jogador iria ao login
+ * na primeira tentativa, em vez de na decima segunda. Ele continua sendo
+ * divida nomeada no servidor; este teto e a rede embaixo dela.
+ */
+const TENTATIVAS_ANTES_DE_DESISTIR = 12;
+
 /** Cadencia de atualizacao da contagem regressiva mostrada na tela. */
 const INTERVALO_DO_TICK_MS = 1000;
 
@@ -207,17 +234,36 @@ function aoSerRecusado() {
 	if (!_emCiclo) {
 		return false;
 	}
+	desistirEIrParaOLogin('Sua sessão não é mais válida. Voltando ao login…');
+	return true;
+}
+
+/**
+ * A UNICA SAIDA DO CICLO QUE NAO E SUCESSO (16/09/2026).
+ *
+ * Nasceu do corpo de `aoSerRecusado()` porque passou a ter DOIS chamadores: a
+ * recusa explicita (que hoje nunca chega — o servidor nao manda pacote de
+ * recusa) e o teto de tentativas, que e a rede embaixo dessa falta. Deixar o
+ * corpo duplicado seria o defeito que este projeto mais repete: duas rotas, e
+ * a segunda escrita a mao.
+ *
+ * `Network.onDisconnect = null` antes do `reload()` importa: sem isso o
+ * fechamento provocado pela propria recarga reentra aqui.
+ */
+function desistirEIrParaOLogin(texto) {
 	limparCiclo();
 	Network.onDisconnect = null;
 
 	importarUI().then(ui => {
-		ui.mostrar({ titulo: 'Sessão expirada', texto: 'Sua sessão não é mais válida. Voltando ao login…' });
+		ui.mostrar({
+			titulo: 'Sessão expirada',
+			texto: texto || 'Não foi possível reconectar. Voltando ao login…'
+		});
 		setTimeout(() => {
 			ui.esconder();
 			importarGameEngine().then(GameEngine => GameEngine.reload());
 		}, 2500);
 	});
-	return true;
 }
 
 /**
@@ -289,6 +335,19 @@ function tick() {
 }
 
 function iniciarTentativa() {
+	/*
+	 * O TETO DE DESISTENCIA (16/09/2026) — ver `TENTATIVAS_ANTES_DE_DESISTIR`.
+	 *
+	 * A checagem vem ANTES de incrementar e de abrir socket: desistir e uma
+	 * decisao sobre a escalada, e nao o resultado de mais uma tentativa.
+	 * Reusa `desistirEIrParaOLogin`, que e o mesmo caminho de
+	 * `aoSerRecusado()` — um lugar so sabe como sair daqui.
+	 */
+	if (_indice >= TENTATIVAS_ANTES_DE_DESISTIR) {
+		desistirEIrParaOLogin();
+		return;
+	}
+
 	_tentativaEmAndamento = true;
 	_geracao++;
 	const minhaGeracao = _geracao;
