@@ -71,10 +71,12 @@ const VIDA_DO_AVISO_DE_SUCESSO_MS = 1800;
  * QUANTAS TENTATIVAS ANTES DE DESISTIR E MANDAR PARA O LOGIN (16/09/2026).
  *
  * Ate hoje a escalada repetia o ultimo degrau **para sempre**, e o
- * `aoSerRecusado()` — a unica porta para o login — era CODIGO MORTO: ele so
- * dispara com um `ZC_REFUSE_ENTER`, e esse pacote **nao existe no servidor**.
- * As tres recusas do `CZ_ENTER2` la fecham o socket em silencio, entao do lado
- * de ca a recusa e indistinguivel de um servidor fora do ar.
+ * `aoSerRecusado()` — a unica porta para o login — era CODIGO MORTO: as tres
+ * recusas do `CZ_ENTER2` fechavam o socket em silencio, e do lado de ca a
+ * recusa era indistinguivel de um servidor fora do ar. **Desde D-1520
+ * (16/09/2026) o servidor avisa** com o `SC_NOTIFY_BAN` codigo 0, como o
+ * `pc_authfail` do rAthena, e o `LoginEngine.onServerClosed` chama
+ * `aoSerRecusado()`; o teto abaixo fica como rede para servidor sem o aviso.
  *
  * O resultado media-se no relato do dono: com o passe vencido (o defeito de
  * D-1506), o cliente tentava a cada 60 s, com uma credencial que o servidor ja
@@ -242,8 +244,8 @@ function aoSerRecusado() {
  * A UNICA SAIDA DO CICLO QUE NAO E SUCESSO (16/09/2026).
  *
  * Nasceu do corpo de `aoSerRecusado()` porque passou a ter DOIS chamadores: a
- * recusa explicita (que hoje nunca chega — o servidor nao manda pacote de
- * recusa) e o teto de tentativas, que e a rede embaixo dessa falta. Deixar o
+ * recusa explicita (o `SC_NOTIFY_BAN` desde D-1520, ou o `ZC_REFUSE_ENTER`) e
+ * o teto de tentativas, que e a rede para servidor que nao avisa. Deixar o
  * corpo duplicado seria o defeito que este projeto mais repete: duas rotas, e
  * a segunda escrita a mao.
  *

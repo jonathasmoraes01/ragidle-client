@@ -304,6 +304,17 @@ if (!fs.existsSync(CAMINHO_DO_PACKETDB)) {
 
 const EXCECOES = [
   {
+    opcode: 0x0081,
+    servidor: 'map',
+    sentido: 'entrada',
+    tamanho: 3,
+    nome: 'SC_NOTIFY_BAN',
+    // A familia `SC` nao cabe no classificador de duas letras. O servidor de
+    // MAPA passou a manda-lo ao recusar a entrada (D-1520): `pc_authfail`
+    // (pc.cpp:2311-2315) -> `clif_authfail_fd` (clif.cpp:825-838).
+    porque: 'PacketStructure.js SC.NOTIFY_BAN size 3; D-1520 (pc_authfail no mapa)'
+  },
+  {
     opcode: 0x09a0,
     servidor: 'char',
     sentido: 'entrada',
