@@ -308,10 +308,16 @@
    O botao mora em right:16 / bottom:16, ou seja na MESMA faixa de altura da
    barra de habilidades e a 681px de distancia dela (gabarito secao 4: "os
    tres convivem na mesma faixa de altura sem se tocar"). */
+/* O `bottom` VIRA VARIAVEL (D-1492, 15/09/2026), e o padrao e o 16px de sempre.
+   Quem a levanta e `afastarMenuDaDoca` (TopMenuIdle.js), MEDINDO se o menu
+   aberto cruzaria a barra de atalhos. As media queries abaixo continuam
+   valendo e vencem esta linha nas faixas delas — o que muda e o caso que elas
+   NAO cobrem: `tablet-768x1024` erra a faixa de 759 por NOVE pixels, e ali o
+   menu sentava na doca. */
 .tm-menu {
 	position: fixed;
 	right: 16px;
-	bottom: 16px;
+	bottom: var(--tm-base-do-menu, 16px);
 	display: flex;
 	/* COLUNA, e nao linha (21/08/2026, pedido do dono): o leque abre PARA CIMA
 	   do botao, nao ao lado dele. Como o ".tm-fan" vem ANTES do ".tm-fab" no

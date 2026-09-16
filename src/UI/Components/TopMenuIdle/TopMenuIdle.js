@@ -991,6 +991,23 @@ function aplicarEstadoDoLeque(imediato) {
 		// Leitura que forca o reflow -- sem ela o navegador junta "montar" e
 		// "abrir" no mesmo quadro e a transicao nao acontece.
 		void fan.offsetWidth;
+		/*
+		 * A CONTA DA DOCA VEM DEPOIS DO `is-mounted` (D-1495, 15/09/2026), e a
+		 * ordem e o conserto inteiro.
+		 *
+		 * Ela morava 30 linhas acima, ANTES desta linha, e por isso media o menu
+		 * FECHADO: 198px de `min-width`, enquanto o leque aberto tem o dobro ou
+		 * mais. Em 1024x768 o menu fechado comeca em x=810 e a doca termina em
+		 * x=696 — "nao cruzam", decidia ela, e nao levantava nada; um quadro
+		 * depois o leque montava com 2 colunas por lado, o menu passava a comecar
+		 * em x=607, e os 89px de encosto que a prova mede apareciam. Ninguem
+		 * refazia a conta: nao ha `ResizeObserver` na doca nem `rAF` aqui.
+		 *
+		 * O `void fan.offsetWidth` logo acima ja forcou o reflow por outro motivo
+		 * (a transicao), entao a caixa lida aqui e a definitiva. Duas razoes pelo
+		 * preco de uma leitura.
+		 */
+		afastarMenuDaDoca(root);
 		fan.classList.add('is-open');
 		return;
 	}
@@ -1000,10 +1017,16 @@ function aplicarEstadoDoLeque(imediato) {
 	const espera = imediato || movimentoReduzido() ? 0 : LEQUE_SAIDA_MS;
 	if (espera === 0) {
 		fan.classList.remove('is-mounted');
+		afastarMenuDaDoca(root);
 		return;
 	}
 	_lequeTimer = setTimeout(() => {
 		fan.classList.remove('is-mounted');
+		// O menu FECHADO e estreito e quase nunca cruza a doca: sem esta chamada
+		// ele ficaria levantado para sempre depois da primeira abertura, ocupando
+		// altura que o minimapa e os botoes de caca querem. A conta e a mesma; o
+		// que mudou foi a largura do sujeito.
+		afastarMenuDaDoca(root);
 		_lequeTimer = null;
 	}, espera);
 }
@@ -1310,12 +1333,50 @@ const TOPO_DO_LEQUE = 16;
 /** O leque nao passa de 3 colunas por lado: seis discos de largura ja e um painel. */
 const MAXIMO_DE_COLUNAS_POR_LADO = 3;
 
+/** Onde o menu descansa quando nao ha doca no caminho (`afastarMenuDaDoca`). */
+const BASE_DO_MENU_NO_CHAO = 16;
+/**
+ * O vao entre o pe do menu levantado e o topo da barra de atalhos.
+ *
+ * E o mesmo 8 da escada do rodape que o `Common.css` publica
+ * (`--hud-acima-da-doca: calc(var(--hud-doca-altura) + 8px + ...)`), escrito
+ * aqui porque o degrau desta funcao e MEDIDO e nao herdado daquele token — ver
+ * o cabecalho de `afastarMenuDaDoca` para o porque.
+ */
+const RESPIRO_ACIMA_DA_DOCA = 8;
+
 /**
  * Quantas colunas cada metade do leque precisa para caber na altura livre.
  *
  * @param {number} porLado quantos itens visiveis a metade mais cheia tem
  * @returns {number} 1 (o de sempre) ate `MAXIMO_DE_COLUNAS_POR_LADO`
  */
+/**
+ * Quantas fileiras de disco cabem entre o botao Menu e a coluna da direita.
+ *
+ * Extraida porque tem DOIS leitores agora (o numero de colunas e o teto de
+ * rolagem do caso impossivel), e duas copias da mesma conta divergem na
+ * primeira vez que alguem mexe numa delas.
+ */
+function fileirasQueCabemNaAltura() {
+	if (typeof window === 'undefined' || typeof document === 'undefined') {
+		return Number.POSITIVE_INFINITY;
+	}
+	/*
+	 * `--hud-td-abaixo-da-coluna` e publicado pelo `Common.css` e ja significa
+	 * exatamente "a partir daqui a coluna da direita esta livre" — ele soma o
+	 * minimapa, o respiro e os botoes de caca, inclusive quando a altura dos
+	 * botoes e REMEDIDA em tempo de execucao. Repetir 288 aqui seria assinar um
+	 * numero que muda noutro arquivo.
+	 */
+	const publicado = parseFloat(
+		getComputedStyle(document.documentElement).getPropertyValue('--hud-td-abaixo-da-coluna'),
+	);
+	const ocupadoAcima = Number.isFinite(publicado) && publicado > 0 ? publicado : 288;
+	const livre = window.innerHeight - BASE_DO_LEQUE - ocupadoAcima;
+	return Math.floor((livre - TOPO_DO_LEQUE + RESPIRO_DA_FILEIRA) / (ALTURA_DA_FILEIRA + RESPIRO_DA_FILEIRA));
+}
+
 function colunasPorLadoDoLeque(porLado) {
 	if (porLado <= 0 || typeof window === 'undefined') {
 		return 1;
@@ -1327,13 +1388,7 @@ function colunasPorLadoDoLeque(porLado) {
 	 * botoes e REMEDIDA em tempo de execucao. Repetir 288 aqui seria assinar um
 	 * numero que muda noutro arquivo.
 	 */
-	const raiz = document.documentElement;
-	const publicado = parseFloat(getComputedStyle(raiz).getPropertyValue('--hud-td-abaixo-da-coluna'));
-	const ocupadoAcima = Number.isFinite(publicado) && publicado > 0 ? publicado : 288;
-
-	const livre = window.innerHeight - BASE_DO_LEQUE - ocupadoAcima;
-	const porFileira = ALTURA_DA_FILEIRA + RESPIRO_DA_FILEIRA;
-	const fileirasQueCabem = Math.floor((livre - TOPO_DO_LEQUE + RESPIRO_DA_FILEIRA) / porFileira);
+	const fileirasQueCabem = fileirasQueCabemNaAltura();
 	if (fileirasQueCabem >= porLado) {
 		return 1; // cabe em coluna unica: nada muda
 	}
@@ -1374,7 +1429,155 @@ function distribuirColunas() {
 	});
 
 	// A metade MAIS CHEIA manda: as duas colunas dividem a mesma altura.
-	fan.style.setProperty('--tm-leque-colunas', String(colunasPorLadoDoLeque(naEsquerda)));
+	const colunas = colunasPorLadoDoLeque(naEsquerda);
+	fan.style.setProperty('--tm-leque-colunas', String(colunas));
+
+	/*
+	 * A ROLAGEM DO CASO IMPOSSIVEL FOI TENTADA, MEDIDA E DESFEITA (D-1492).
+	 *
+	 * Ha telas em que nao existe arranjo: numa janela de 580x250 o leque precisa
+	 * de ~318px com o maximo de colunas, e a janela inteira tem 250. A tentativa
+	 * foi por teto de altura mais rolagem — e ela PIOROU, medido:
+	 *
+	 * os discos que ficam fora da area rolada continuam tendo posicao, e o ponto
+	 * central deles cai no CANVAS do jogo. A `prove:hud-responsiva` passou a
+	 * acusar "coberto por CANVAS" em tres telas e um alvo FORA DA TELA em
+	 * 580x250. **Trocar um alvo sobreposto por um alvo inalcancavel nao e
+	 * conserto** — e o segundo e pior, porque some sem deixar rastro.
+	 *
+	 * O caso impossivel passou a ser tratado onde ele pertence: a prova nao abre
+	 * o menu ali, pela mesma razao que nao o abre no celular deitado. Cobrar um
+	 * arranjo que nao existe nao o faz existir.
+	 */
+	afastarMenuDaDoca(root);
+}
+
+/**
+ * O MENU ABERTO NAO SENTA NA BARRA DE ATALHOS (D-1492, 15/09/2026).
+ *
+ * A `prove:hud-responsiva` acusou `TopMenuIdle.tm-menu x ShortCut#ShortCut` em
+ * tres telas — 20x42px no tablet em pe, 89x42 no deitado, 173x33 numa janela de
+ * 900x600.
+ *
+ * **Uma delas nao e minha e duas sao.** No `tablet-768x1024` o leque tem UMA
+ * coluna (a conta de altura devolve 1 ali), entao o encosto ja existia e so
+ * estava invisivel — a prova nunca abria o menu. Nas outras duas o leque ficou
+ * mais LARGO ao ganhar colunas, e foi ate a doca: consertei o eixo vertical e
+ * criei um problema no horizontal.
+ *
+ * **O mecanismo de levantar o menu JA EXISTIA** (`--hud-acima-da-doca`), preso
+ * atras de media queries de largura. E elas erram o tablet por NOVE pixels: a
+ * faixa e `max-width: 759px` e o aparelho tem 768. Um limiar cravado que erra
+ * por 9px e a razao de este conserto MEDIR em vez de adivinhar.
+ *
+ * A conta e estavel de proposito — ela pergunta se o menu cruzaria A DOCA **na
+ * posicao BASE**, e nao na atual. Perguntar pela atual oscilaria: levanta, para
+ * de cruzar, abaixa, cruza de novo, a cada quadro. O DEGRAU tambem e estavel
+ * pelo mesmo motivo: ele sai da doca, que nao se move quando o menu sobe.
+ *
+ * **ELA ERRAVA DUAS VEZES, e as duas foram consertadas em D-1495** (15/09/2026),
+ * depois de a aritmetica reconstruida no fonte PREVER os tres numeros que a
+ * prova media (20x42, 89x42, 173x33) — o que e a diferenca entre diagnostico e
+ * palpite. Os dois defeitos sao independentes e cada um pegava uma tela:
+ *
+ *   | tela | o que falhava |
+ *   |---|---|
+ *   | 1024x768 | a ORDEM: media o menu FECHADO (`is-mounted` vinha depois) e concluia "nao cruzam" |
+ *   | 768x1024 | a ARITMETICA: levantava ate o PE da doca, e nao ate o topo dela |
+ *
+ * Ver `aplicarEstadoDoLeque` para a primeira e o bloco do degrau, abaixo, para
+ * a segunda.
+ */
+function afastarMenuDaDoca(root) {
+	const menu = root && root.querySelector('.tm-menu');
+	if (!menu || typeof document === 'undefined' || typeof window === 'undefined') {
+		return;
+	}
+	const doca = document.getElementById('ShortCut');
+	if (!doca) {
+		return;
+	}
+	const caixaDaDoca = doca.getBoundingClientRect();
+	if (caixaDaDoca.width < 4 || caixaDaDoca.height < 4) {
+		return; // doca escondida: nada a desviar
+	}
+	const caixaDoMenu = menu.getBoundingClientRect();
+
+	// O lado horizontal nao muda quando o menu sobe, entao pode vir da caixa
+	// atual. Ja o vertical e perguntado sobre a BASE: "com `bottom: 16px`, o pe
+	// do menu entraria na faixa da doca?".
+	const cruzaNaHorizontal = caixaDoMenu.left < caixaDaDoca.right && caixaDoMenu.right > caixaDaDoca.left;
+	const peNaBase = window.innerHeight - BASE_DO_MENU_NO_CHAO;
+	const cruzaNaVertical = peNaBase > caixaDaDoca.top;
+
+	if (!cruzaNaHorizontal || !cruzaNaVertical) {
+		menu.style.setProperty('--tm-base-do-menu', BASE_DO_MENU_NO_CHAO + 'px');
+		return;
+	}
+
+	/*
+	 * O DEGRAU SAI DA DOCA MEDIDA, e nao de uma constante (D-1495).
+	 *
+	 * A versao anterior escrevia `var(--hud-acima-da-doca)` — que e a distancia
+	 * do chao ate o PE da barra de atalhos, e nao ate o topo dela. Nas faixas em
+	 * que a barra tambem esta ancorada nesse token (`ShortCut.css`, `@media
+	 * max-width: 899px`) os dois passavam a dividir a mesma linha de base: em
+	 * 768x1024 o pe do menu caia em y=920, que e exatamente a borda de baixo da
+	 * barra, e o menu cobria os 42px dela inteiros. Era o levantamento
+	 * acontecendo e chegando UM DEGRAU CURTO — que e o que a prova media como
+	 * "20x42px".
+	 *
+	 * O repositorio ja tinha o numero certo escrito em dois lugares
+	 * (`ChatBox.css`, a escada do rodape; `TopMenuIdle.css`, com
+	 * `calc(var(--hud-acima-da-doca) + 50px)`), e esta funcao foi a unica
+	 * moradora a escrever o degrau de baixo achando que era o de cima.
+	 *
+	 * **Mas nem o `+50px` serviria**, e por isso a conta e MEDIDA: aquele 50 e
+	 * "42 da fileira + 8 de respiro", e a barra de atalhos tem de UMA a QUATRO
+	 * fileiras (`MAX_ROW_COUNT`, `ShortCut.js`) — o jogador arrasta o pegador e
+	 * ela vira 168px. Uma constante erraria por 126px no dia em que ele fizesse
+	 * isso, e o defeito voltaria com outra cara. `caixaDaDoca.top` ja sabe de
+	 * tudo: quantas fileiras ela tem, onde ela esta ancorada nesta tela, e se o
+	 * recorte do aparelho a empurrou.
+	 */
+	const acimaDaDoca = window.innerHeight - caixaDaDoca.top + RESPIRO_ACIMA_DA_DOCA;
+
+	/*
+	 * O TETO DO LEVANTAMENTO (D-1499, 15/09/2026) — e ele nasceu de uma medicao
+	 * que reprovou o conserto anterior.
+	 *
+	 * D-1495 tirou o encosto na doca e **empurrou o menu para dentro dos botoes
+	 * de caca**: a `prove:hud-responsiva` mediu `HuntButtonIdle x tm-menu` de
+	 * 136x73px no tablet em pe, e — o que importa mais — o alvo `missoes`
+	 * COBERTO. Dois paineis que se encostam sao feios; um botao que o jogador
+	 * nao consegue apertar e quebrado. **A troca foi para pior**, e este teto e
+	 * o conserto dela.
+	 *
+	 * `--hud-td-abaixo-da-coluna` ja significa "a partir daqui a coluna da
+	 * direita esta livre" — o mesmo token que `fileirasQueCabemNaAltura` usa, e
+	 * pelo mesmo motivo de nao repetir 288 a mao.
+	 *
+	 * **A conta NAO e circular, e isso foi conferido antes de escreve-la**: a
+	 * altura do menu aqui e a MEDIDA (`caixaDoMenu.height`), e o numero de
+	 * fileiras do leque sai de `fileirasQueCabemNaAltura()`, que nao olha para
+	 * `--tm-base-do-menu`. Levantar nao muda a altura do menu, entao o teto nao
+	 * realimenta a conta que o produziu. Se um dia as fileiras passarem a
+	 * depender do levantamento, esta funcao vira um ponto fixo e precisa de
+	 * outra solucao — e o aviso fica escrito aqui por isso.
+	 *
+	 * O `Math.max` com o chao e o que impede o teto de virar um AFUNDAMENTO
+	 * numa tela onde nem a posicao base cabe: ali ele nao levanta, e o encosto
+	 * na doca volta a ser o que era — pior que o ideal, melhor que um botao
+	 * coberto.
+	 */
+	const publicado = parseFloat(
+		getComputedStyle(document.documentElement).getPropertyValue('--hud-td-abaixo-da-coluna'),
+	);
+	const tetoOcupado = Number.isFinite(publicado) && publicado > 0 ? publicado : 288;
+	const cabe = window.innerHeight - tetoOcupado - caixaDoMenu.height - RESPIRO_ACIMA_DA_DOCA;
+	const base = Math.max(BASE_DO_MENU_NO_CHAO, Math.min(acimaDaDoca, cabe));
+
+	menu.style.setProperty('--tm-base-do-menu', Math.round(base) + 'px');
 }
 
 /**
