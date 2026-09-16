@@ -201,6 +201,7 @@ import MochilaIdle from 'UI/Components/MochilaIdle/MochilaIdle.js';
 import HuntMap from 'UI/Components/HuntMap/HuntMap.js';
 import CorreioIdle from 'UI/Components/CorreioIdle/CorreioIdle.js';
 import HuntAnalyzer from 'UI/Components/HuntAnalyzer/HuntAnalyzer.js';
+import MissoesIdle from 'UI/Components/MissoesIdle/MissoesIdle.js';
 import PasseIdle from 'UI/Components/PasseIdle/PasseIdle.js';
 import VotoIdle from 'UI/Components/VotoIdle/VotoIdle.js'; // RAGIDLE: janela de Voto (D-1159)
 import CombatCornerIdle from 'UI/Components/CombatCornerIdle/CombatCornerIdle.js'; // RAGIDLE: o aro "Ataque auto" (16/09/2026 — some enquanto o leque esta aberto)
@@ -560,6 +561,11 @@ function onClickAction(e) {
 			/* CorreioIdle.toggle() tambem PEDE a caixa ao abrir (0x09e6): a
 			   lista so existe no cliente depois que o servidor a manda. */
 			CorreioIdle.toggle();
+			break;
+		case 'missoes':
+			/* MissoesIdle.toggle() tambem PEDE o estado ao abrir (0x0fec):
+			   quem decide bloqueada/disponivel/concluida e o servidor. */
+			MissoesIdle.toggle();
 			break;
 		case 'config':
 			/* "Configuracoes" = a fusao de Config + Menu (ver cabecalho). */
@@ -1676,6 +1682,16 @@ function isActionOpen(action) {
 			return isRagIdleWindowOpen(HuntMap, '.hm-window');
 		case 'correio':
 			return isRagIdleWindowOpen(CorreioIdle, '.co-window');
+		/*
+		 * MISSOES (D-551) estava no switch de ABRIR e faltava neste, o de
+		 * ESTADO -- achado ao mesclar, em 25/08/2026. Sem o caso, o botao caia
+		 * no `default` e NUNCA acendia o aro, mesmo com a janela aberta: o
+		 * unico item funcional do cluster sem realimentacao visual. A janela
+		 * marca `.mi-window.is-open` no padrao RAGIDLE de sempre
+		 * (MissoesIdle.js:146-153), entao a linha e identica as vizinhas.
+		 */
+		case 'missoes':
+			return isRagIdleWindowOpen(MissoesIdle, '.mi-window');
 		case 'config':
 			return isRagIdleWindowOpen(IdleConfig, '.ic-window');
 		case 'analyzer':

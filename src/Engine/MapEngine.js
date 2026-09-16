@@ -108,7 +108,6 @@ import ClassChangeNotice from 'UI/Components/ClassChangeNotice/ClassChangeNotice
 import MissoesIdle from 'UI/Components/MissoesIdle/MissoesIdle.js'; // RAGIDLE: janela de Missões (D-551)
 import PasseIdle from 'UI/Components/PasseIdle/PasseIdle.js'; // RAGIDLE: janela do Passe (D-813)
 import CodexIdle from 'UI/Components/CodexIdle/CodexIdle.js'; // RAGIDLE: janela do Codex (D-851)
-import TutorialIdle from 'UI/Components/TutorialIdle/TutorialIdle.js'; // RAGIDLE: a camada guiada do tutorial (frente D da Jornada)
 import VotoIdle from 'UI/Components/VotoIdle/VotoIdle.js'; // RAGIDLE: janela de Voto (D-1159)
 import PresencaIdle from 'UI/Components/PresencaIdle/PresencaIdle.js'; // RAGIDLE: janela de presenca (D-1162)
 import IndicacaoIdle from 'UI/Components/IndicacaoIdle/IndicacaoIdle.js'; // RAGIDLE: Indique & Ganhe (D-1164)
@@ -251,8 +250,27 @@ class MapEngine {
 			current_ip,
 			port,
 			success => {
-				// Force reloading map
-				MapRenderer.currentMap = '';
+				/*
+				 * FORCA O RECARREGAMENTO — mas nunca por cima de um carregamento
+				 * EM CURSO (16/09/2026, a tela preta depois da economia).
+				 *
+				 * Com a aba oculta o carregamento do mapa so anda com um quadro, e
+				 * a aba oculta nao da quadro: a primeira reconexao deixa
+				 * `MapRenderer.loading` em `true` ate a aba voltar. Se a conexao
+				 * nova cair de novo ainda oculta (a borda de D-1509), a segunda
+				 * reconexao zerava o nome aqui, e o `setMap` dela voltava cedo por
+				 * causa do `loading` — sem repor o nome. Na volta da aba o
+				 * carregamento terminava com o nome VAZIO, o `Navigation` lancava
+				 * dentro da transicao e o veu preto do `Background` ficava opaco
+				 * para sempre: so o cursor na tela. Medido por
+				 * `scripts/diag-tela-preta-da-economia.ts --quedas=2`.
+				 *
+				 * O pedido que chega durante o carregamento nao se perde: o
+				 * `setMap` o guarda e o atende no fim (`MapRenderer.mapaPendente`).
+				 */
+				if (!MapRenderer.loading) {
+					MapRenderer.currentMap = '';
+				}
 
 				// Fail to connect...
 				if (!success) {
@@ -583,7 +601,6 @@ class MapEngine {
 			MissoesIdle.prepare(); // RAGIDLE: janela de Missões (D-551) — sem dependência de ordem: só escuta 0x0fed
 			PasseIdle.prepare(); // RAGIDLE: janela do Passe (D-813) — idem, só escuta 0x0fe5
 			CodexIdle.prepare(); // RAGIDLE: janela do Codex (D-851) — idem, só escuta 0x0fe3
-			TutorialIdle.prepare(); // RAGIDLE: a camada guiada do tutorial - idem, só escuta 0x0fdf
 			VotoIdle.prepare(); // RAGIDLE: janela de Voto (D-1159) — idem, só escuta 0x0fd5
 			PresencaIdle.prepare(); // RAGIDLE: janela de presenca (D-1162) — escuta 0x0fde e abre sozinha quando o servidor manda
 			IndicacaoIdle.prepare(); // RAGIDLE: Indique & Ganhe (D-1164) — escuta 0x0fdc
@@ -1600,23 +1617,6 @@ function onMapChange(pkt, ehEntradaNoMundo) {
 		HuntButtonIdle.append();
 
 		/*
-		 * RAGIDLE: a CAMADA GUIADA DO TUTORIAL (frente D da Jornada de Midgard).
-		 *
-		 * Por ULTIMO de propósito: ela mede o `getBoundingClientRect()` dos
-		 * controles dos outros componentes (o `.tm-fab` do TopMenuIdle, o
-		 * `.hb-cacar` do HuntButtonIdle, o `.mt-ativa` do rastreador), e um
-		 * alvo que ainda não entrou no DOM mede 0x0: e exatamente o
-		 * sintoma de "leque fechado" que ela trata como "o alvo sumiu". Ela se
-		 * recupera sozinha no tique seguinte, mas nascer medindo certo é de
-		 * graça.
-		 *
-		 * Ela nasce ESCONDIDA: quem a acende é o servidor, mandando
-		 * ZC_RAGIDLE_TUTORIAL com estado 'em-andamento'. Anexar sempre é o
-		 * mesmo padrão do HuntMap/DeathWindow acima.
-		 */
-		TutorialIdle.append();
-
-		/*
 		 * A PILHA DE JANELAS (D-931) — o dono do ESC e do voltar do Android.
 		 *
 		 * DEPOIS de todos os `append()` de propósito: o registro embrulha o
@@ -1840,20 +1840,6 @@ function onMapChange(pkt, ehEntradaNoMundo) {
 			fechar: () => {},
 		});
 
-		/* O TUTORIAL é DECISÃO pela mesma razão da morte: enquanto ele está na
-		   tela há um passo a cumprir, e o ESC não pode fazê-lo sumir nem vazar
-		   para as janelas de baixo (fechar a janela de Missões por baixo do
-		   tutorial deixaria a etapa apontando para o vazio). A saída é
-		   explícita, com o dedo no botão: "Pular tutorial", que está SEMPRE
-		   visível no balão. */
-		PilhaDeJanelas.registrar({
-			nome: 'tutorial',
-			componente: TutorialIdle,
-			tipo: PilhaDeJanelas.TIPO.DECISAO,
-			estaAberta: () => TutorialIdle.estaNaTela(),
-			fechar: () => {},
-		});
-
 		PilhaDeJanelas.ligar();
 
 		/* D-934: e a escala da HUD, ligada DEPOIS do registro — ela varre os
@@ -1876,22 +1862,6 @@ function onMapChange(pkt, ehEntradaNoMundo) {
 		 * enquanto a sessao vive mora aqui.
 		 */
 		ligarAcessorioDaHud('modo leitura', TelaAcesaNoFarm.ligar);
-
-		/*
-		 * RAGIDLE: "INTERFACE PRONTA": o gancho de entrada do tutorial guiado.
-		 *
-		 * Aqui, e não em `onConnectionAccepted`, porque o que a camada precisa
-		 * não é "entrei na zona": é a HUD montada, escalada e com a marca do
-		 * celular em pé já carimbada. Ela mede o `getBoundingClientRect()` dos
-		 * controles, e antes de `EscalaDaHud.ligar()`/`HudVertical.ligar()` as
-		 * caixas ainda não são as finais.
-		 *
-		 * Rodar em TODA troca de mapa é o desenho, e não um descuido: a etapa
-		 * mora no servidor, então este ponto é também a RECUPERAÇÃO depois de
-		 * morte, viagem e reconexão. Quem decide se o tutorial começa é o
-		 * SERVIDOR, e o cliente so pergunta, e desenha o que vier.
-		 */
-		TutorialIdle.interfacePronta();
 
 		if (Configs.get('enableCashShop')) {
 			/*
@@ -2019,7 +1989,6 @@ function cleanGameUI() {
 		MochilaIdle,
 		PasseIdle,
 		CodexIdle,
-		TutorialIdle,
 		PresencaIdle,
 		IndicacaoIdle,
 		RankingIdle,

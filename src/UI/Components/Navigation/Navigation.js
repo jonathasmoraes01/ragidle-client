@@ -646,6 +646,11 @@ Navigation.onMapClick = function onMapClick(event) {
  * Load a map for display
  */
 Navigation.loadMap = function loadMap(mapName, displayName) {
+	// Sem mapa (o renderer ainda nao tem nome) nao ha o que mostrar; lancar aqui
+	// derrubava a montagem da HUD inteira (16/09/2026, a tela preta da economia).
+	if (typeof mapName !== 'string' || mapName === '') {
+		return;
+	}
 	if (_isMapClickTarget && _mapData && _mapData.map && _mapData.map !== mapName) {
 		this.clear();
 		_isMapClickTarget = false;

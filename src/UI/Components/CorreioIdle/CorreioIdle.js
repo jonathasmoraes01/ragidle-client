@@ -79,6 +79,9 @@ import htmlText from './CorreioIdle.html?raw';
 import cssText from './CorreioIdle.css?raw';
 import { fecharEEsquecer } from '../limpezaDeJanelaIdle.js';
 import { fraseDaColeta, fraseDoRelatorio } from './relatorioDoLote.js';
+import { temAnexoParaColetar } from './anexosDaCaixa.js';
+import ChatBox from 'UI/Components/ChatBox/ChatBox.js';
+import { abrirLoteDoCorreio, fecharLoteDoCorreio } from 'Engine/MapEngine/loteDoCorreio.js';
 
 /**
  * Mantido em sincronia com ":host"/".co-window"/".co-frame" em
@@ -370,15 +373,20 @@ CorreioIdle.init = function init() {
 		 */
 		switch (relatorio.acao) {
 			case 'apagar-todas':
+				fecharLoteDoCorreio();
 				mostrarAviso(fraseDoRelatorio(relatorio), AVISO_DO_LOTE_MS);
+				// UMA linha no chat pelo lote inteiro, e nao uma por carta.
+				ChatBox.addText(fraseDoRelatorio(relatorio), ChatBox.TYPE.MAIL, ChatBox.FILTER.PUBLIC_LOG);
 				break;
 
 			case 'coletar-todos':
 				// O botão só volta quando a resposta chega: é ela que diz que o
 				// lote acabou. Ver `coletarTodos`.
 				_coletaDeLoteEmVoo = false;
+				fecharLoteDoCorreio();
 				sincronizarBotaoDaColeta();
 				mostrarAviso(fraseDaColeta(relatorio), AVISO_DO_LOTE_MS);
+				ChatBox.addText(fraseDaColeta(relatorio), ChatBox.TYPE.MAIL, ChatBox.FILTER.PUBLIC_LOG);
 				break;
 
 			default:
@@ -497,6 +505,7 @@ function sincronizarTudo() {
 	sincronizarLista();
 	sincronizarDetalhe();
 	sincronizarRodape();
+	sincronizarBotaoDaColeta();
 }
 
 function estaAberta() {
@@ -783,6 +792,7 @@ function coletarTodos() {
 	_coletaDeLoteEmVoo = true;
 	sincronizarBotaoDaColeta();
 
+	abrirLoteDoCorreio();
 	const pkt = new PACKET.CZ.RAGIDLE_CORREIO_ACAO();
 	pkt.json = JSON.stringify({ acao: 'coletar-todos' });
 	Network.sendPacket(pkt);
@@ -811,8 +821,11 @@ function sincronizarBotaoDaColeta() {
 	if (!botao) {
 		return;
 	}
-	botao.disabled = _coletaDeLoteEmVoo;
-	botao.classList.toggle('is-disabled', _coletaDeLoteEmVoo);
+	// Apagado em voo E quando nao ha anexo nenhum (D-1525): o botao so fica
+	// disponivel quando ha o que coletar.
+	const indisponivel = _coletaDeLoteEmVoo || !temAnexoParaColetar(cartas());
+	botao.disabled = indisponivel;
+	botao.classList.toggle('is-disabled', indisponivel);
 }
 
 /* ------------------------------------------------------------------ */
@@ -856,6 +869,7 @@ function esconderConfirmacaoDeTodas() {
  * `ZC_ACK_DELETE_RODEX` por carta — o relatório é texto, e não estado.
  */
 function apagarTodas() {
+	abrirLoteDoCorreio();
 	const pkt = new PACKET.CZ.RAGIDLE_CORREIO_ACAO();
 	pkt.json = JSON.stringify({ acao: 'apagar-todas' });
 	Network.sendPacket(pkt);

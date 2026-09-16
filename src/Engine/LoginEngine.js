@@ -887,7 +887,9 @@ function onServerClosed(pkt) {
 	 * "o passe venceu": a reconexao leva ao login com a mensagem dela, em vez
 	 * de bater na mesma porta ate o teto de tentativas.
 	 */
-	if (Reconexao.aoSerRecusado()) {
+	// So o codigo 0 e "sessao invalida" (o `pc_authfail`); os outros seguem o
+	// caminho de sempre.
+	if (pkt.ErrorCode === 0 && Reconexao.aoSerRecusado()) {
 		return;
 	}
 	let msg_id;

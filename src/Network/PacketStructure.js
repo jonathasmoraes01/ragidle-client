@@ -16240,7 +16240,7 @@ PACKET.CZ.RAGIDLE_CODEX_ACAO.prototype.build = function () {
 // cumprida }] }.
 //
 // UM pacote de resposta para os DOIS verbos, inclusive para um `gastar`
-// RECUSADO, que desce o retrato inalterado em vez de um pacote de erro.
+// RECUSADO — que desce o retrato inalterado em vez de um pacote de erro.
 // Nao ha ZC de recusa de proposito: seria um segundo caminho a manter
 // dizendo o que o primeiro ja diz, e a janela ficaria escolhendo, pelo
 // conteudo, a qual pergunta o servidor esta respondendo.
@@ -16252,64 +16252,6 @@ PACKET.ZC.RAGIDLE_CODEX = function PACKET_ZC_RAGIDLE_CODEX(fp, end) {
 	this.json = fp.readString(end - fp.tell());
 };
 PACKET.ZC.RAGIDLE_CODEX.size = -1;
-
-// ===========================================================================
-// O TUTORIAL GUIADO - 0x0fbe / 0x0fbf (secao 6 do CONTRATO-JORNADA.md)
-// ===========================================================================
-// **RENUMERADO em 16/09/2026, no merge com origin/master.** Nasceram em
-// 0x0fdf/0x0fde, do TOPO do vao livre da reserva de D-527 (0x0fd3..0x0fdf) —
-// mas origin/master cunhou SEIS pares nesse mesmo vao enquanto esta branch
-// nao mesclava (Voto 0x0fd4/5, Correio-em-lote 0x0fd6/7, Item 0x0fd8/9, Caca
-// 0x0fda/b, Indicacao 0x0fdc/d e **Presenca 0x0fde/0x0fdf** — a mesma dupla do
-// Tutorial, so que CZ/ZC trocados), e a Presenca ja tem lado-servidor
-// mesclado no repositorio principal (`servidor/presenca-painel.ts`, D-1162,
-// documentado no CLAUDE.md da raiz). Pela regra de sempre deste projeto
-// ("quem publicou primeiro fica com o numero" — ver a tabela de colisoes de
-// D- no CLAUDE.md), quem move e o Tutorial: ele so tem lado-servidor NESTA
-// worktree, ainda nao mesclado (`AINDA_SEM_LADO_CLIENTE` em
-// `servidor/protocolo/faixa-ragidle.test.ts`).
-//
-// O vao 0x0fd3..0x0fdf esta CHEIO depois deste merge (13 de 13 slots, sem
-// contar o Tutorial). **0x0fbe/0x0fbf sao os dois primeiros livres abaixo
-// dele** — 0x0fb0..0x0fbf nao aparece em pacote nenhum deste arquivo (nem
-// RAGIDLE nem rAthena), conferido por grep antes de escolher.
-//
-// **PENDENCIA que este merge NAO fecha**: o lado-servidor desta worktree
-// (`servidor/protocolo/faixa-ragidle.test.ts`, `USADOS_DA_RESERVA`) ainda diz
-// 0x0fdf/0x0fde para o Tutorial. Ele precisa mover para 0x0fbf/0x0fbe no
-// MESMO commit que fechar esta renumeracao, e so entao os dois lados voltam
-// a concordar.
-//
-// A RESERVA se declara nos DOIS repositorios antes de qualquer lado usar. Do
-// lado do servidor ha portao (servidor/protocolo/faixa-ragidle.test.ts, que
-// move a fronteira RESERVADA/USADOS_DA_RESERVA); este repositorio nao tem
-// portao proprio de faixa, e e por isso que a declaracao vive escrita aqui.
-//
-// DOIS pacotes, e nao cinco: os quatro verbos ('pedir', 'avancar', 'pular',
-// 'retomar') cabem num CZ so, com o verbo no corpo, o mesmo padrao de
-// CZ_RAGIDLE_CODEX_ACAO logo acima e de CZ_RAGIDLE_MISSAO_ACAO.
-
-// 0x0fbe - RAGIDLE: CZ_RAGIDLE_TUTORIAL_ACAO (client -> server)
-// Variable size: u16 opcode + u16 total length + JSON UTF-8 payload.
-// { acao: 'pedir' | 'avancar' | 'pular' | 'retomar', etapa?: number }.
-//
-// `etapa` so acompanha o 'avancar', e ela e a etapa PARA A QUAL o cliente quer
-// ir (a vigente + 1). O servidor so aceita quando o numero e exatamente
-// `atual + 1`, e e essa guarda que faz pacote repetido e reconexao nao
-// pularem etapa. Como no Codex, o servidor NAO confia no corpo: verbo fora dos
-// quatro e etapa fora da faixa caem na mesma recusa silenciosa, na borda.
-PACKET.CZ.RAGIDLE_TUTORIAL_ACAO = function PACKET_CZ_RAGIDLE_TUTORIAL_ACAO() {
-	this.json = '{}';
-};
-PACKET.CZ.RAGIDLE_TUTORIAL_ACAO.prototype.build = function () {
-	const bytes = TextEncoding.encode(this.json, 'utf-8');
-	const pkt_len = 2 + 2 + bytes.length;
-	const pkt_buf = new BinaryWriter(pkt_len);
-	pkt_buf.writeShort(0x0fbe);
-	pkt_buf.writeUShort(pkt_len);
-	pkt_buf.writeString(this.json);
-	return pkt_buf;
-};
 
 // 0x0fdf - RAGIDLE: CZ_RAGIDLE_PRESENCA_ACAO (client -> server)
 // Variable size: u16 opcode + u16 total length + JSON UTF-8 {acao:'pedir'|'recolher'}.
@@ -16327,29 +16269,6 @@ PACKET.CZ.RAGIDLE_PRESENCA_ACAO.prototype.build = function () {
 	pkt_buf.writeString(this.json);
 	return pkt_buf;
 };
-
-// 0x0fbf - RAGIDLE: ZC_RAGIDLE_TUTORIAL (server -> client)
-// Variable size: u16 opcode + u16 total length + JSON UTF-8 payload.
-// Contrato v1: { v, estado, etapa, total }, onde `estado` e
-// 'nao-iniciado' | 'em-andamento' | 'concluido' | 'pulado' e `etapa` e 0
-// quando nao iniciado, 1..total enquanto anda.
-//
-// UM pacote de resposta para os QUATRO verbos, inclusive para um 'avancar'
-// RECUSADO, que desce o retrato inalterado em vez de um pacote de erro. Mesma
-// escolha do Codex, pela mesma razao: um ZC de recusa seria um segundo caminho
-// a manter dizendo o que o primeiro ja diz.
-//
-// E e ele que torna a recuperacao barata: reconexao, morte, troca de mapa e
-// fechar a janela nao perdem a etapa, porque a etapa nunca esteve no cliente.
-//
-// RENUMERADO de 0x0fdf para 0x0fbf em 16/09/2026 — ver a nota completa junto
-// de CZ_RAGIDLE_TUTORIAL_ACAO, acima: origin/master cunhou ZC_RAGIDLE_PRESENCA
-// no mesmo par (0x0fde/0x0fdf) enquanto esta branch nao mesclava, e a Presenca
-// ja tem lado-servidor no repositorio principal.
-PACKET.ZC.RAGIDLE_TUTORIAL = function PACKET_ZC_RAGIDLE_TUTORIAL(fp, end) {
-	this.json = fp.readString(end - fp.tell());
-};
-PACKET.ZC.RAGIDLE_TUTORIAL.size = -1;
 
 // ===========================================================================
 // O CORREIO EM LOTE (07/09/2026) — 0x0fd6 / 0x0fd7

@@ -8,6 +8,8 @@
  * @author Vincent Thibault
  */
 
+import { pesoDeItem } from 'DB/Items/fichasDeItem.js';
+import { comPesoDaFicha } from 'DB/Items/pesoNaDescricao.js';
 import Client from 'Core/Client.js';
 import Configs from 'Core/Configs.js';
 import TextEncoding from 'Utils/CodepageManager.js';
@@ -2287,6 +2289,19 @@ class DB {
 			item.processitemlist =
 				item.processitemlist && item.processitemlist instanceof Array ? item.processitemlist.join('\n') : '';
 			item._decoded = true;
+		}
+
+		/*
+		 * O PESO DA DESCRICAO E O DO JOGO (D-1526, 16/09/2026): a linha "Peso"
+		 * do texto oficial e trocada pelo peso da ficha publicada pelo
+		 * servidor, uma vez por valor — a ficha chega assincrona, entao a troca
+		 * acontece na primeira chamada depois dela.
+		 */
+		const pesoDaFicha = pesoDeItem(Number(itemid));
+		if (item !== unknownItem && pesoDaFicha !== null && item._pesoNaDescricao !== pesoDaFicha) {
+			item.identifiedDescriptionName = comPesoDaFicha(item.identifiedDescriptionName, pesoDaFicha);
+			item.unidentifiedDescriptionName = comPesoDaFicha(item.unidentifiedDescriptionName, pesoDaFicha);
+			item._pesoNaDescricao = pesoDaFicha;
 		}
 
 		/*

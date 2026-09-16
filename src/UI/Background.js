@@ -690,13 +690,22 @@ function transition(callback) {
 	document.body.appendChild(_overlay);
 
 	_overlayAnim = animateElement(_overlay, { opacity: 1.0 }, transitionDuration, () => {
-		callback();
-
-		_overlayAnim = animateElement(_overlay, { opacity: 0.01 }, transitionDuration, () => {
-			if (_overlay.parentNode) {
-				_overlay.parentNode.removeChild(_overlay);
-			}
-		});
+		/*
+		 * O VEU SAI MESMO QUE O CALLBACK LANCE (16/09/2026).
+		 *
+		 * O desvanecer era agendado DEPOIS do callback: uma excecao la dentro
+		 * deixava este div preto (z-index 1000) opaco para sempre, por cima de
+		 * tudo menos do cursor — o print do dono. O erro continua subindo.
+		 */
+		try {
+			callback();
+		} finally {
+			_overlayAnim = animateElement(_overlay, { opacity: 0.01 }, transitionDuration, () => {
+				if (_overlay.parentNode) {
+					_overlay.parentNode.removeChild(_overlay);
+				}
+			});
+		}
 	});
 }
 

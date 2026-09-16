@@ -50,8 +50,13 @@
 
 import Network from './NetworkManager.js';
 
-/** Intervalo ENTRE OS INICIOS das tentativas (ms). O ultimo repete. */
-const ESPERA_MS = [10000, 20000, 30000, 40000, 50000, 60000];
+/**
+ * Intervalo ENTRE OS INICIOS das tentativas (ms). O ultimo repete.
+ *
+ * O teto era 60 s; o dono pediu 30 (16/09/2026: *"60 e muita coisa"*). A
+ * contagem que o jogador ve na tela nunca passa de 30 s.
+ */
+const ESPERA_MS = [10000, 20000, 30000];
 
 /** Pequeno e declarado — ver o cabecalho do arquivo. */
 const JITTER_MAX_MS = 2000;
@@ -84,7 +89,8 @@ const VIDA_DO_AVISO_DE_SUCESSO_MS = 1800;
  * "Reconectando automaticamente" para sempre — que e o "volta com o aviso de
  * disconnect" que ele descreveu.
  *
- * 12 tentativas sao ~9,5 min de escalada (10+20+30+40+50 e depois 60 fixos).
+ * 12 tentativas sao ~5,5 min de escalada (10, 20 e depois 30 fixos — o teto
+ * era 60 ate 16/09/2026).
  * O numero e generoso de proposito: reinicio de servidor e deploy cabem com
  * folga larga, e quem cai por rede instavel volta muito antes. Passou disso, a
  * hipotese "o servidor volta sozinho" ja se esgotou e insistir so esconde do
@@ -249,12 +255,15 @@ function aoSerRecusado() {
  * corpo duplicado seria o defeito que este projeto mais repete: duas rotas, e
  * a segunda escrita a mao.
  *
- * `Network.onDisconnect = null` antes do `reload()` importa: sem isso o
- * fechamento provocado pela propria recarga reentra aqui.
+ * O gancho vira um NO-OP antes do `reload()`, e nao `null` (16/09/2026): sem
+ * gancho nenhum o `NetworkManager.onClose` cai no ramo padrao e mostra a caixa
+ * inglesa "Disconnected from Server." quando o servidor fecha o socket que a
+ * recusa deixou aberto — por cima do "Sessao expirada". E o no-op, e nao este
+ * mesmo gancho, porque o fechamento da propria recarga nao pode reentrar aqui.
  */
 function desistirEIrParaOLogin(texto) {
 	limparCiclo();
-	Network.onDisconnect = null;
+	Network.onDisconnect = () => {};
 
 	importarUI().then(ui => {
 		ui.mostrar({
