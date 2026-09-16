@@ -765,7 +765,65 @@ function aceitarConexao(ws, req) {
 		}
 	});
 
+	/*
+	 * O PING QUE MANTEM O CANO AQUECIDO (D-1505, 15/09/2026).
+	 *
+	 * ------------------------------------------------------------------
+	 * A CICATRIZ
+	 * ------------------------------------------------------------------
+	 * Relato de varios jogadores, ha semanas: *"disconnect do nada, cerca de 5
+	 * minutos depois de trocar de aba"*. A auditoria mediu os quatro saltos
+	 * entre o navegador e o jogo e achou esta ponte **completamente muda**: sem
+	 * `ping`, sem `pong`, sem `socket.setTimeout`, sem `setKeepAlive`.
+	 *
+	 * **O `ws` do Node nao manda ping sozinho** — nao ha heartbeat embutido. E
+	 * como ninguem mandava por ele, a UNICA coisa que mantinha a conexao viva
+	 * era o keepalive do proprio jogo, vindo do navegador. No instante em que
+	 * ele para — aba congelada pelo Energy Saver do Chrome, que congela o grupo
+	 * de contexto (e os Web Workers dele) depois de ~5 min oculto — **o cano
+	 * inteiro fica mudo nas duas direcoes**, e o primeiro intermediario com
+	 * regra de ociosidade ganha.
+	 *
+	 * Entre o navegador e esta ponte ha DOIS saltos da Cloudflare (a borda e o
+	 * tunel), e **nenhum dos dois tem prazo declarado em lugar nenhum do
+	 * repositorio** — o que existir esta no painel. Nao da para consertar o que
+	 * nao se ve; da para nao depender dele.
+	 *
+	 * ------------------------------------------------------------------
+	 * POR QUE PING DE WEBSOCKET, E DAQUI
+	 * ------------------------------------------------------------------
+	 * O frame de ping e do PROTOCOLO, e nao do jogo: ele nao passa pelo
+	 * `onmessage` do cliente, nao vira pacote, nao custa nada ao jogo — e a
+	 * resposta e automatica em todo navegador. E ele nasce **no lado
+	 * servidor**, que e a metade do cano que NUNCA congela. Uma aba dormindo
+	 * deixa de falar; esta ponte nao.
+	 *
+	 * 30 s e o intervalo, e ele e escolhido por ser folgadamente menor que o
+	 * menor prazo plausivel de um intermediario (a Cloudflare documenta ~100 s
+	 * de ociosidade para WebSocket em alguns planos). Dobrar seria apertado;
+	 * metade seria trafego a toa.
+	 *
+	 * **Isto NAO ressuscita o jogador.** Se a aba congelou, o jogo dela parou de
+	 * qualquer jeito. O que o ping compra e que a CONEXAO sobreviva ate ele
+	 * voltar — e o que o jogador sente e a diferenca entre "voltei e continuei"
+	 * e "voltei e tinha caido".
+	 */
+	const PING_MS = 30_000;
+	const relogioDePing = setInterval(() => {
+		if (ws.readyState !== ws.OPEN) return;
+		// `ws.ping()` lanca se o socket fechar entre o `readyState` e a escrita;
+		// uma ponte nao pode morrer por causa do proprio keepalive.
+		try {
+			ws.ping();
+		} catch {
+			/* o `close` que vem a seguir limpa o relogio */
+		}
+	}, PING_MS);
+	// Nunca segurar o processo de pe por causa de um relogio de keepalive.
+	relogioDePing.unref?.();
+
 	const cleanup = () => {
+		clearInterval(relogioDePing);
 		tcp.end();
 		ws.close();
 		console.log(`[wsProxy] Connection closed for ${target}`);
