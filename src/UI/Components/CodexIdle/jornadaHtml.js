@@ -273,27 +273,38 @@ function capituloPorId(id) {
 
 /** O cartaz do premio - anunciado desde a PRIMEIRA abertura, pedido do dono. */
 function premioHtml(jornada) {
+	/*
+	 * A FAIXA, e nao mais o cartao (reforma de 16/09/2026, pedido do dono:
+	 * "minimalista e premium... que encaixe dentro de uma janela").
+	 *
+	 * O cartao antigo tinha fundo dourado, glifo grande e tres linhas de
+	 * texto - ~90px que brigavam com o mapa pelo espaco de uma janela de
+	 * 600. A faixa diz o MESMO em uma linha: o nome da jornada, o placar e
+	 * uma barra de fio. O premio nao sumiu: a descricao e o que falta moram
+	 * no `title` do placar, e o glifo troca para o "confere" quando entregue.
+	 * Informacao de consulta ocasional nao paga 90px permanentes.
+	 */
 	const placar = placarDoPremio(jornada);
 	const premio = (jornada && jornada.premio) || {};
+	const pct = porcentagem(placar.concluidos, placar.total);
+	const sobrePremio =
+		'Prêmio: ' + (premio.descricao || 'ainda não anunciado pelo servidor') + ' — ' + placar.falta;
 	return (
-		'<div class="cx-jor-premio' +
+		'<div class="cx-jor-faixa' +
 		(placar.entregue ? ' is-entregue' : '') +
 		'">' +
-		'<span class="cx-jor-premio-glifo">' +
+		'<span class="cx-jor-faixa-nome">Jornada de Midgard</span>' +
+		'<span class="cx-jor-faixa-placar" title="' +
+		escapeHtml(sobrePremio) +
+		'">' +
 		glifo(placar.entregue ? 'confere' : 'recompensas') +
+		'<b>' +
+		escapeHtml(String(placar.concluidos)) +
+		'</b><small>de ' +
+		escapeHtml(String(placar.total)) +
+		'</small>' +
 		'</span>' +
-		'<div class="cx-jor-premio-texto">' +
-		'<div class="cx-jor-premio-titulo">Prêmio da Jornada</div>' +
-		'<div class="cx-jor-premio-descricao">' +
-		escapeHtml(premio.descricao || 'O prêmio ainda não foi anunciado pelo servidor.') +
-		'</div>' +
-		'<div class="cx-jor-premio-falta">' +
-		escapeHtml(placar.falta) +
-		'</div>' +
-		'</div>' +
-		'<span class="cx-jor-premio-placar">' +
-		escapeHtml(contadorEscrito(placar.concluidos, placar.total)) +
-		'<small>capítulos</small></span>' +
+		'<div class="cx-jor-faixa-barra" aria-hidden="true"><i style="width:' + pct + '%"></i></div>' +
 		'</div>'
 	);
 }
@@ -305,39 +316,124 @@ function premioHtml(jornada) {
  * falta e como seguir - nao e uma aba vazia nem um cadeado mudo. O texto e do
  * servidor (`requisito.titulo` e `requisito.comoSeguir`); o botao e a porta,
  * porque so a frase deixaria o jogador procurando o caminho a mao.
+ *
+ * UMA FAIXA, e nao mais um cartao (16/09/2026 — achado do dono: a janela real
+ * estourava 602px de conteudo contra 536,8px disponiveis, e este cartao
+ * sozinho pesava 125px, o maior bloco da tela trancada). A frase completa
+ * continua inteira — no `title` da faixa, como o placar do premio ja faz —
+ * e a versao visivel trunca numa linha. O botao sai do cartao e vira parte da
+ * PROPRIA faixa, a direita, onde a faixa do premio poe o placar.
  */
 function requisitoHtml(jornada) {
 	const req = (jornada && jornada.requisito) || null;
+	const titulo = (req && req.titulo) || 'A Jornada ainda não está aberta';
+	const como =
+		(req && req.comoSeguir) || 'Conclua a missão de troca de classe para começar a Jornada de Midgard.';
 	return (
-		'<div class="cx-jor-requisito">' +
-		'<span class="cx-jor-requisito-glifo">' +
+		'<div class="cx-jor-requisito" title="' +
+		escapeHtml(titulo + ' — ' + como) +
+		'">' +
+		'<span class="cx-jor-requisito-glifo" aria-hidden="true">' +
 		glifo('cadeado') +
 		'</span>' +
-		'<div>' +
-		'<div class="cx-jor-requisito-titulo">' +
-		escapeHtml((req && req.titulo) || 'A Jornada ainda não está aberta') +
-		'</div>' +
-		'<div class="cx-jor-requisito-como">' +
-		escapeHtml(
-			(req && req.comoSeguir) || 'Conclua a missão de troca de classe para começar a Jornada de Midgard.'
-		) +
-		'</div>' +
+		'<span class="cx-jor-requisito-texto">' +
+		'<b>' +
+		escapeHtml(titulo) +
+		'</b><span>' +
+		escapeHtml(como) +
+		'</span>' +
+		'</span>' +
 		'<button type="button" class="cx-jor-abrir-missoes ri-btn ri-btn--sec">Abrir as Missões</button>' +
-		'</div>' +
 		'</div>'
 	);
 }
 
-/** A legenda dos quatro estados - a prova de que a cor nao e o unico sinal. */
+/**
+ * A legenda do MAPA: quatro miniaturas do proprio pino, com a palavra ao lado.
+ *
+ * Ate a reforma de 16/09 ela reusava `seloHtml` - quatro chips coloridos que
+ * nao se pareciam com os pinos que pretendiam explicar. Legenda que mostra
+ * outra coisa nao legenda nada. As miniaturas sao os MESMOS discos do mapa
+ * (mesmas classes de estado), entao mudar o desenho do pino muda a legenda
+ * junto, de graca.
+ *
+ * A prova de que cor nao e o unico sinal continua valendo: os quatro estados
+ * se distinguem pela FORMA (cheio, anel, vazado, tracejado) - e a reforma
+ * reduziu a paleta a ouro + neutro justamente apoiada nesse eixo.
+ */
 function legendaHtml() {
+	const itens = [
+		['is-concluido', 'Concluído'],
+		['is-andamento', 'Em andamento'],
+		['is-disponivel', 'Disponível'],
+		['is-bloqueado', 'Bloqueado']
+	];
 	return (
 		'<div class="cx-jor-legenda">' +
-		['concluido', 'em-andamento', 'disponivel', 'bloqueado'].map(seloHtml).join('') +
+		itens
+			.map(
+				par =>
+					'<span class="cx-jor-legenda-item ' +
+					par[0] +
+					'"><i class="cx-jor-legenda-pino" aria-hidden="true"></i>' +
+					par[1] +
+					'</span>'
+			)
+			.join('') +
 		'</div>'
 	);
 }
 
 /** TELA A - o mapa-mundi com os capitulos como lugares. */
+/**
+ * A PERNA ATUAL: o arco do capitulo anterior ate o proximo passo.
+ *
+ * A PRIMEIRA VERSAO LIGAVA TODOS OS CAPITULOS em sequencia, e so olhando deu
+ * para ver que estava errado: a ordem dos capitulos e de DIFICULDADE, nao de
+ * geografia. O fio saia Prontera -> Geffen -> Payon -> Morroc -> Ayothaya ->
+ * Comodo, cruzando o mapa inteiro de um lado ao outro, e o resultado era um
+ * rabisco por cima da ilustracao. Mais linha nao e mais premium.
+ *
+ * O que ficou e UM arco so: de onde o jogador veio para onde ele vai agora.
+ * Ele nunca vira rabisco, some quando a jornada acaba, e diz a unica coisa
+ * que o jogador precisa saber olhando o mapa.
+ *
+ * `viewBox="0 0 100 100"` com `preserveAspectRatio="none"` faz a coordenada
+ * do SVG ser a MESMA porcentagem que o pino usa em `left/top`. Sem isso eu
+ * precisaria converter para pixel e o fio sairia do lugar em toda largura de
+ * tela diferente - o defeito que o `%` do pino ja evita.
+ */
+function rotaHtml(capitulos, pinos, proximo) {
+	if (!proximo || !pinos[proximo.id]) {
+		return '';
+	}
+	const comPino = capitulos.filter(c => pinos[c.id]);
+	const onde = comPino.findIndex(c => c.id === proximo.id);
+	if (onde < 1) {
+		return '';
+	}
+	const de = pinos[comPino[onde - 1].id];
+	const ate = pinos[proximo.id];
+	/*
+	 * O ARCO, e nao a reta. A curva sai da linha que o mapa ja tem (estradas,
+	 * costa) em vez de competir com ela, e da a leitura de "trajeto". O desvio
+	 * e perpendicular ao segmento, com 18% do comprimento - o bastante para
+	 * curvar, pouco o bastante para nao passar por cima de outro pino.
+	 */
+	const mx = (de.x + ate.x) / 2;
+	const my = (de.y + ate.y) / 2;
+	const dx = ate.x - de.x;
+	const dy = ate.y - de.y;
+	const cx = mx - dy * 0.18;
+	const cy = my + dx * 0.18;
+	const d = 'M' + de.x + ' ' + de.y + ' Q' + cx + ' ' + cy + ' ' + ate.x + ' ' + ate.y;
+	return (
+		'<svg class="cx-jor-mapa-rota" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">' +
+		'<path class="cx-jor-rota-perna" d="' + d + '" />' +
+		'</svg>'
+	);
+}
+
 function telaDoMapaHtml(jornada) {
 	const capitulos = (jornada.capitulos || []).slice().sort((a, b) => (a.ordem || 0) - (b.ordem || 0));
 	const pinos = pinosDosCapitulos(capitulos);
@@ -379,13 +475,26 @@ function telaDoMapaHtml(jornada) {
 				p.x +
 				'%;top:' +
 				p.y +
-				'%"' +
+				'%;--progresso:' +
+				porcentagem(c.concluidas, c.total) +
+				'"' +
 				// Trancada, o pino nao abre nada - e um botao que nao faz nada e
 				// pior que um botao apagado, que ao menos diz que ainda nao e hora.
 				(trancada ? ' disabled' : ' data-capitulo="' + escapeHtml(c.id) + '"') +
 				' title="' +
 				escapeHtml(c.titulo + ' - ' + s.rotulo + ' - ' + contadorEscrito(c.concluidas, c.total) + ' missões') +
 				'">' +
+				/*
+				 * O ANEL DE PROGRESSO e o que faz o mapa "encher" a cada missao,
+				 * e nao so a cada capitulo: ele le `--progresso` (0..100) e
+				 * desenha a fatia com um `conic-gradient`. Sem ele o pino so
+				 * tinha QUATRO estados, e o jogador que matou 30 de 48 via a
+				 * mesma marca de quem matou 1.
+				 *
+				 * `aria-hidden`: o numero ja vai escrito no `title` do botao e
+				 * na lista abaixo. Anunciar de novo seria ruido no leitor.
+				 */
+				'<span class="cx-jor-pino-anel" aria-hidden="true"></span>' +
 				'<span class="cx-jor-pino-disco">' +
 				glifo(s.glifo) +
 				'</span>' +
@@ -406,45 +515,58 @@ function telaDoMapaHtml(jornada) {
 		})
 		.join('');
 
+	/*
+	 * A NOTA DOS "N CAPITULOS SEM LUGAR" SAIU DA TELA (reforma de 16/09).
+	 *
+	 * Ela era a justificativa do desenvolvedor - por que ha menos pinos que
+	 * capitulos - vazando para o jogador, que nao pediu satisfacao nenhuma. A
+	 * regra que ela defendia continua inteira no cabecalho de
+	 * `pinosDosCapitulos`; a lista continua mostrando os 22; e `semPino` segue
+	 * calculado acima porque o portao de teste o exercita.
+	 */
+	void semPino;
+
 	return (
 		'<div class="cx-jor-mapa-caixa">' +
 		'<img class="cx-jor-mapa-fundo" src="' +
 		MAPA_DE_MIDGARD +
 		'" alt="Mapa de Midgard" />' +
+		rotaHtml(capitulos, pinos, proximo) +
 		marcas +
+		/*
+		 * O PROXIMO PASSO FLUTUA SOBRE O MAPA, dentro da caixa (16/09). O
+		 * cartao antigo morava ABAIXO, com narrativa e botao proprio: ~120px
+		 * que empurravam a tela para fora da janela de 600. A barra ocupa
+		 * altura NENHUMA (overlay) e a narrativa fica onde ja morava por
+		 * inteiro, na tela do capitulo.
+		 */
+		(proximo ? proximoPassoHtml(proximo) : '') +
 		'</div>' +
-		legendaHtml() +
-		(semPino
-			? '<div class="cx-jor-nota">' +
-				semPino +
-				(semPino === 1
-					? ' capítulo não tem lugar reconhecido no mapa e vive só na lista.'
-					: ' capítulos não têm lugar reconhecido no mapa e vivem só na lista.') +
-				' Um pino no lugar errado ensinaria geografia falsa.</div>'
-			: '') +
-		(proximo ? proximoPassoHtml(proximo) : '')
+		legendaHtml()
 	);
 }
 
-/** O cartao do PROXIMO PASSO - o que o pedido chama de "evidente". */
+/**
+ * A barra flutuante do PROXIMO PASSO - o que o pedido chama de "evidente".
+ *
+ * Ela e UM botao inteiro (`data-capitulo`), e nao um cartao com um botao
+ * dentro: o gesto que a barra oferece e um so, entao a barra inteira e o
+ * alvo. O chevron diz "isto abre" sem custar um segundo rotulo.
+ */
 function proximoPassoHtml(cap) {
 	return (
-		'<div class="cx-jor-proximo">' +
-		'<div class="cx-jor-proximo-faixa">Próximo passo</div>' +
-		'<div class="cx-jor-proximo-titulo">' +
-		escapeHtml(String(cap.ordem || '') + '. ' + (cap.titulo || cap.id)) +
-		'</div>' +
-		(cap.abertura ? '<div class="cx-jor-proximo-abertura">' + escapeHtml(cap.abertura) + '</div>' : '') +
-		'<div class="cx-jor-proximo-rodape">' +
-		seloHtml(cap.estado) +
-		'<span class="cx-jor-contador">' +
-		escapeHtml(contadorEscrito(cap.concluidas, cap.total)) +
-		' missões</span>' +
-		'<button type="button" class="cx-jor-ir ri-btn" data-capitulo="' +
+		'<button type="button" class="cx-jor-proximo" data-capitulo="' +
 		escapeHtml(cap.id) +
-		'">Ver as missões</button>' +
-		'</div>' +
-		'</div>'
+		'" title="Abrir as missões deste capítulo">' +
+		'<span class="cx-jor-proximo-rotulo">Próximo</span>' +
+		'<span class="cx-jor-proximo-titulo">' +
+		escapeHtml(String(cap.ordem || '') + '. ' + (cap.titulo || cap.id)) +
+		'</span>' +
+		'<span class="cx-jor-proximo-conta">' +
+		escapeHtml(contadorEscrito(cap.concluidas, cap.total)) +
+		'</span>' +
+		'<span class="cx-jor-proximo-seta" aria-hidden="true">&rsaquo;</span>' +
+		'</button>'
 	);
 }
 
@@ -458,10 +580,25 @@ function telaDaJornadaHtml(jornada) {
 	// missao de classe, e nao o capitulo 1.
 	const trancada = jornada.desbloqueada === false;
 	const proximo = trancada ? null : proximoPasso(jornada);
-	const pinos = pinosDosCapitulos(capitulos);
 
+	/*
+	 * A LINHA INTEIRA E O BOTAO (reforma de 16/09/2026).
+	 *
+	 * Cada capitulo tinha um cartao com borda colorida, fundo proprio, selo
+	 * escrito, barra grossa e um botao azul "Ver as missoes" - vinte e dois
+	 * botoes identicos e nenhum silencio. O gesto que a linha oferece e UM
+	 * (abrir o capitulo), entao a linha e o alvo: `<button>` de verdade, com
+	 * `data-capitulo`, que o `closest` do handler ja resolve sem uma linha de
+	 * JS nova. O chevron a direita e o unico convite que sobrou.
+	 *
+	 * O que cada coisa virou: o selo escrito virou o GLIFO do estado (a
+	 * palavra continua no `title`, e a forma do glifo distingue os quatro sem
+	 * cor); a barra grossa virou um fio de 2px rente a base, so em quem tem
+	 * progresso para mostrar; a narrativa continua a regra de sempre (celular
+	 * so no proximo; desktop em todos, agora num corpo mais quieto); e a
+	 * legenda saiu - linha que se explica nao precisa de manual em cima.
+	 */
 	return (
-		legendaHtml() +
 		'<div class="cx-jor-capitulos">' +
 		capitulos
 			.map(c => {
@@ -469,53 +606,38 @@ function telaDaJornadaHtml(jornada) {
 				const pct = porcentagem(c.concluidas, c.total);
 				const ehProximo = proximo && proximo.id === c.id;
 				return (
-					'<div class="cx-jor-capitulo ' +
+					'<button type="button" class="cx-jor-capitulo ' +
 					escapeHtml(s.classe) +
 					(ehProximo ? ' is-proximo' : '') +
+					'"' +
+					(trancada ? ' disabled' : ' data-capitulo="' + escapeHtml(c.id) + '"') +
+					' title="' +
+					escapeHtml(s.rotulo + (trancada ? ' — a Jornada ainda não está aberta' : '')) +
 					'">' +
-					(ehProximo ? '<span class="cx-jor-fita">Próximo passo</span>' : '') +
 					'<span class="cx-jor-capitulo-ordem">' +
 					escapeHtml(c.ordem || '?') +
 					'</span>' +
-					'<div class="cx-jor-capitulo-texto">' +
+					'<span class="cx-jor-capitulo-texto">' +
 					'<span class="cx-jor-capitulo-nome">' +
+					(ehProximo ? '<span class="cx-jor-fita">Próximo</span>' : '') +
 					escapeHtml(c.titulo || c.id) +
 					(c.ehDosChefes ? ' <span class="ri-badge ri-badge--ouro">Chefes</span>' : '') +
-					(pinos[c.id]
-						? ' <span class="cx-jor-capitulo-lugar">' +
-							glifo('pin') +
-							escapeHtml(pinos[c.id].lugar) +
-							'</span>'
-						: '') +
 					'</span>' +
 					(c.abertura ? '<span class="cx-jor-capitulo-abertura">' + escapeHtml(c.abertura) + '</span>' : '') +
-					'</div>' +
-					'<div class="cx-jor-capitulo-lado">' +
-					seloHtml(c.estado) +
+					'</span>' +
+					'<span class="cx-jor-capitulo-lado">' +
+					'<span class="cx-jor-capitulo-estado" aria-hidden="true">' +
+					glifo(s.glifo) +
+					'</span>' +
 					'<span class="cx-jor-contador">' +
 					escapeHtml(contadorEscrito(c.concluidas, c.total)) +
 					'</span>' +
-					'</div>' +
-					'<div class="ri-bar ri-bar--exp cx-jor-barra"><div class="fill" style="width:' +
-					pct +
-					'%"></div></div>' +
-					'<div class="cx-jor-acao">' +
-					/*
-					 * ESPIAR O QUE VEM E PERMITIDO, e por isso o botao de um
-					 * capitulo bloqueado continua de pe - so que SECUNDARIO. Ele
-					 * nao pode competir em peso com o do capitulo que da para
-					 * jogar agora. Com a Jornada TRANCADA ele apaga: la ele nao
-					 * abriria nada, e botao que nao faz nada parece defeito.
-					 */
-					'<button type="button" class="cx-jor-ir ri-btn' +
-					(c.estado === 'bloqueado' ? ' ri-btn--sec' : '') +
-					'"' +
-					(trancada
-						? ' disabled title="A Jornada ainda não está aberta"'
-						: ' data-capitulo="' + escapeHtml(c.id) + '"') +
-					'>Ver as missões</button>' +
-					'</div>' +
-					'</div>'
+					'</span>' +
+					'<span class="cx-jor-capitulo-seta" aria-hidden="true">&rsaquo;</span>' +
+					(pct > 0 && pct < 100
+						? '<span class="cx-jor-fio" aria-hidden="true"><i style="width:' + pct + '%"></i></span>'
+						: '') +
+					'</button>'
 				);
 			})
 			.join('') +
@@ -554,7 +676,9 @@ function telaDoCapituloHtml(jornada) {
 		escapeHtml(contadorEscrito(cap.concluidas, cap.total)) +
 		'</span></div>' +
 		'</div>' +
-		legendaHtml() +
+		// Sem legenda aqui (16/09): cada linha de missao ja carrega o selo COM
+		// a palavra escrita - a legenda era um manual explicando o que a
+		// propria pagina soletra logo abaixo.
 		corpo +
 		(cap.fecho ? '<div class="cx-jor-fecho">' + escapeHtml(cap.fecho) + '</div>' : '')
 	);
@@ -628,6 +752,14 @@ function voltarHtml(texto) {
 
 /** O trilho das duas telas de topo (mapa e jornada inteira). */
 function trilhoHtml() {
+	/*
+	 * SEM MAPA, SEM TRILHO. Duas abas em que uma leva ao lugar onde a outra ja
+	 * esta e pior que nenhuma: ela promete uma tela que nao existe. No celular
+	 * a Jornada tem UMA tela, entao o seletor some junto com o mapa.
+	 */
+	if (_ctx.semMapa) {
+		return '';
+	}
 	const atual = _ctx.vista === 'jornada' ? 'jornada' : 'mapa';
 	return (
 		'<div class="cx-jor-trilho">' +
@@ -639,6 +771,21 @@ function trilhoHtml() {
 		'" data-vista="jornada">A jornada inteira</button>' +
 		'</div>'
 	);
+}
+
+/**
+ * A TELA DE ABERTURA DA ABA: o mapa, ou a lista.
+ *
+ * No desktop o padrao e o MAPA e o jogador troca pelo trilho. No celular em
+ * pe (`semMapa`) o mapa nao existe, entao a lista e a unica - e a escolha
+ * guardada em `vista` nao pode mandar, senao quem abriu o mapa no desktop e
+ * depois girou o telefone cairia numa tela em branco.
+ */
+function telaDaListaOuMapa(jornada) {
+	if (_ctx.semMapa || _ctx.vista === 'jornada') {
+		return telaDaJornadaHtml(jornada);
+	}
+	return telaDoMapaHtml(jornada);
 }
 
 /** O corpo da aba "Missoes do Codex". */
@@ -666,7 +813,7 @@ export function jornadaHtml(estado, contexto) {
 		 * vem com `estado: 'bloqueado'` do servidor e nao abrem.
 		 */
 		return (
-			cabeca + trilhoHtml() + (_ctx.vista === 'jornada' ? telaDaJornadaHtml(jornada) : telaDoMapaHtml(jornada))
+			cabeca + trilhoHtml() + telaDaListaOuMapa(jornada)
 		);
 	}
 
@@ -676,5 +823,5 @@ export function jornadaHtml(estado, contexto) {
 	if (_ctx.vista === 'especie') {
 		return cabeca + telaDaEspecieHtml();
 	}
-	return cabeca + trilhoHtml() + (_ctx.vista === 'jornada' ? telaDaJornadaHtml(jornada) : telaDoMapaHtml(jornada));
+	return cabeca + trilhoHtml() + telaDaListaOuMapa(jornada);
 }

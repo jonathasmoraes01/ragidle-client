@@ -77,6 +77,7 @@ import GUIComponent from 'UI/GUIComponent.js';
 import Cursor from 'UI/CursorManager.js';
 import RiIcones from 'UI/ri-icones.js';
 import MissoesIdle from 'UI/Components/MissoesIdle/MissoesIdle.js';
+import BoasVindasIdle from 'UI/Components/BoasVindasIdle/BoasVindasIdle.js';
 import Inventory from 'UI/Components/Inventory/Inventory.js';
 import ItemType from 'DB/Items/ItemType.js';
 import { ler as lerRegistroDaCaca } from 'UI/Components/HuntAnalyzer/registroDaCaca.js';
@@ -241,6 +242,19 @@ function janelaAberta(hostId, seletor) {
 }
 
 /**
+ * A aba `idDaAba` do Codex esta ATIVA agora? Mesma leitura que
+ * `CodexIdle.js:render()` faz para acender o botao (`.cx-tab.is-active`).
+ *
+ * Usado pelas etapas 2 e 11 (16/09/2026): as duas abrem "Codex & Missões" e
+ * so avancam quando a aba CERTA esta na frente, e nao so "a janela esta
+ * aberta" - ela ja pode estar aberta ha varias etapas, na aba errada.
+ */
+function abaDoCodexAtiva(idDaAba) {
+	const btn = acharAlvo({ host: 'CodexIdle', seletor: `.cx-tab[data-aba="${idDaAba}"]` });
+	return !!(btn && btn.classList.contains('is-active'));
+}
+
+/**
  * O componente da Configuracao Idle, SE ele existir.
  *
  * Por REGISTRO e nao por `import`, o mesmo criterio que `IdleConfig.js` usa
@@ -344,7 +358,9 @@ function etapaCumprida(numero) {
 			return janelaAberta('TopMenuIdle', '.tm-fan');
 		}
 		case 2:
-			return janelaAberta('MissoesIdle', '.mi-window');
+			/* A aba "Missões Gerais" do Codex esta ativa (16/09/2026: a
+			   janela `MissoesIdle` independente saiu do leque). */
+			return abaDoCodexAtiva('missoes');
 		case 3:
 			/* A janela do Correio abriu (`CorreioIdle.js`, `.co-window` ganha
 			   `is-open` no toggle). So abrir - retirar o kit de dentro dela e a
@@ -422,7 +438,10 @@ function etapaCumprida(numero) {
 			return agora > (_marco ? _marco.progresso : 0);
 		}
 		case 11:
-			return janelaAberta('CodexIdle', '.cx-window');
+			/* A aba "Missões do Códex" (Jornada) esta ativa - nao so "a
+			   janela esta aberta" (16/09/2026): ela ja esta aberta desde a
+			   etapa 2, na aba "Missões Gerais". */
+			return abaDoCodexAtiva('jornada');
 		default:
 			return false;
 	}
@@ -590,7 +609,20 @@ function desenhar() {
 
 	const estado = TutorialIdle.estado;
 	const numero = estado ? estado.etapa : 0;
-	const etapa = estado && estado.estado === 'em-andamento' ? etapaDe(numero) : null;
+	/*
+	 * O CARTAZ DE BOAS-VINDAS VEM PRIMEIRO (16/09/2026, relato do dono: "o
+	 * aviso do discord atrapalha"). Os dois sao camadas de tela cheia que
+	 * disparam no MESMO instante (a entrada no mapa), e nenhuma sabe da
+	 * outra. Em vez de fazer o cartaz saber do tutorial (ele e usado por
+	 * QUALQUER janela futura, e acoplar so pioraria isso), o tutorial e
+	 * quem cede: com o cartaz aberto a etapa fica como se nao tivesse
+	 * comecado, e o proximo tique (250 ms depois de fechado) a desenha
+	 * normalmente. `BoasVindasIdle.estaAberta()` e leitura pura de DOM
+	 * (`.bv-modal.is-open`), do mesmo jeito que `janelaAberta()` le as
+	 * janelas RAGIDLE - sem pacote, sem estado novo aqui.
+	 */
+	const etapa =
+		estado && estado.estado === 'em-andamento' && !BoasVindasIdle.estaAberta() ? etapaDe(numero) : null;
 
 	if (!etapa) {
 		camada.classList.remove('is-open');
@@ -601,19 +633,46 @@ function desenhar() {
 
 	ligarAMao();
 
-	/* O alvo da etapa. Sem caixa (leque fechado, janela fechada), cai no
-	   caminho de volta - e nunca aponta para o vazio. */
-	let descricao = etapa.alvo;
-	let frasePersonalizada = null;
-	let alvo = acharAlvo(descricao);
 	const tela = { largura: window.innerWidth, altura: window.innerHeight };
-	let recorte = medirRecorte(alvo, tela);
+	let descricao = null;
+	let frasePersonalizada = null;
+	let alvo = null;
+	let recorte = null;
 
-	if (!recorte && etapa.quandoSumir) {
-		descricao = etapa.quandoSumir;
-		frasePersonalizada = etapa.quandoSumir.frase;
+	if (Array.isArray(etapa.alvos)) {
+		/*
+		 * TRES ALCANCES OU MAIS, NA ORDEM DO GESTO (16/09/2026, achado ao
+		 * JOGAR as etapas 2/7/11: apontar so para o icone do leque, ou so
+		 * para o `.tm-fab`, cobria UM dos dois estados do leque e deixava
+		 * o outro sem mao). `etapa.alvos` e uma LISTA - o primeiro
+		 * candidato com caixa valida vence, e a frase dele (quando tem)
+		 * substitui a da etapa. O `alvo`/`quandoSumir` de duas pontas
+		 * continua servindo as etapas que so tem DOIS estados reais.
+		 */
+		for (const candidato of etapa.alvos) {
+			const el = acharAlvo(candidato);
+			const r = medirRecorte(el, tela);
+			if (r) {
+				descricao = candidato;
+				frasePersonalizada = candidato.frase || null;
+				alvo = el;
+				recorte = r;
+				break;
+			}
+		}
+	} else {
+		/* O alvo da etapa. Sem caixa (leque fechado, janela fechada), cai no
+		   caminho de volta - e nunca aponta para o vazio. */
+		descricao = etapa.alvo;
 		alvo = acharAlvo(descricao);
 		recorte = medirRecorte(alvo, tela);
+
+		if (!recorte && etapa.quandoSumir) {
+			descricao = etapa.quandoSumir;
+			frasePersonalizada = etapa.quandoSumir.frase;
+			alvo = acharAlvo(descricao);
+			recorte = medirRecorte(alvo, tela);
+		}
 	}
 
 	/* Etapa sem alvo por desenho (a 9) OU alvo que sumiu e nao tem volta:
@@ -626,13 +685,33 @@ function desenhar() {
 	const alturaDoBalao = balaoEl && balaoEl.offsetHeight ? balaoEl.offsetHeight : BALAO_PADRAO.altura;
 	const casa = casaDoBalao(recorte, tela, { altura: alturaDoBalao, margem: BALAO_PADRAO.margem });
 
+	/*
+	 * A MAO PODE MIRAR UM SUB-ALVO DIFERENTE DO FURO (16/09/2026, relato do
+	 * dono nas etapas 4 e 6). Etapas com furo na JANELA INTEIRA (dois ou
+	 * tres gestos, um furo so - ver o cabecalho de cada uma em
+	 * `etapasDoTutorial.js`) declaram `maoEm`: uma LISTA de candidatos, na
+	 * ordem do gesto. O primeiro com caixa valida vence; sem nenhum (o
+	 * sub-alvo ainda nao existe - a aba certa nem foi aberta), a mao volta
+	 * ao canto do furo inteiro, o comportamento de sempre.
+	 */
+	let recorteDaMao = recorte;
+	if (recorte && Array.isArray(etapa.maoEm)) {
+		for (const candidato of etapa.maoEm) {
+			const r = medirRecorte(acharAlvo(candidato), tela);
+			if (r) {
+				recorteDaMao = r;
+				break;
+			}
+		}
+	}
+
 	const mao = {
 		largura: LADO_DA_MAO,
 		altura: LADO_DA_MAO,
 		pontaX: (_pontaDaMao || PONTA_DE_RESERVA).x,
 		pontaY: (_pontaDaMao || PONTA_DE_RESERVA).y
 	};
-	const posMao = recorte ? posicaoDaMao(recorte, tela, mao) : null;
+	const posMao = recorteDaMao ? posicaoDaMao(recorteDaMao, tela, mao) : null;
 
 	const assinatura = JSON.stringify([
 		numero,
@@ -747,15 +826,27 @@ function tique() {
 	if (_avancoMandado !== numero && etapaCumprida(numero)) {
 		_avancoMandado = numero;
 		/* Fecha a janela desta etapa ANTES de pedir o avanco: ver o
-		   cabecalho de `fecharJanelaDaEtapa`. So as tres cujo alvo e a
-		   janela INTEIRA (e que ficam no caminho de "iniciar a missao"
-		   ate a proxima etapa abrir outra coisa) precisam disso. */
+		   cabecalho de `fecharJanelaDaEtapa`. As cinco cujo alvo fica no
+		   caminho de uma etapa seguinte precisam disso. */
 		if (numero === 4) {
 			fecharJanelaDaEtapa('CorreioIdle', '.co-window');
 		} else if (numero === 5) {
 			fecharJanelaDaEtapa('MochilaIdle', '.mo-window');
 		} else if (numero === 6) {
 			fecharJanelaDaEtapa('IdleConfig', '.ic-window');
+		} else if (numero === 2 || numero === 7) {
+			/*
+			 * O CODEX FICA NO CAMINHO DA PROPRIA VOLTA (16/09/2026, relato
+			 * do dono: a etapa 10 mostrava um furo VAZIO, porque "Codex &
+			 * Missões" - aberta na etapa 2 e nunca fechada - cobria o
+			 * rastreador de missao que a etapa 10 aponta). Diferente do
+			 * Correio/Mochila/Config, o Codex e alvo de TRES etapas nao
+			 * contiguas (2, 7 e 11): fechar aqui nao perde nada, porque
+			 * `etapa.alvos` (etapasDoTutorial.js) ja sabe guiar o jogador
+			 * de volta a ele pelo leque quando a proxima usa-lo precisar -
+			 * o mesmo motivo por que esta cadeia de tres alcances existe.
+			 */
+			fecharJanelaDaEtapa('CodexIdle', '.cx-window');
 		}
 		mandar('avancar', numero + 1);
 	}

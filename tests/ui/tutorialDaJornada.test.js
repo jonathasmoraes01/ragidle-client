@@ -70,6 +70,13 @@ describe('as onze etapas', () => {
 			textos.push(etapa.frase);
 			if (etapa.rotulo) textos.push(etapa.rotulo);
 			if (etapa.quandoSumir) textos.push(etapa.quandoSumir.frase);
+			// `alvos` (16/09/2026): cada candidato pode ter a própria frase de
+			// fallback — o mesmo texto que `quandoSumir.frase` cobria antes.
+			if (Array.isArray(etapa.alvos)) {
+				for (const candidato of etapa.alvos) {
+					if (candidato.frase) textos.push(candidato.frase);
+				}
+			}
 		}
 		/* Controle positivo: sem ele um detector quebrado parece aprovação. */
 		expect('a — b').toMatch(/[—–]/);
@@ -80,9 +87,20 @@ describe('as onze etapas', () => {
 
 	it('toda etapa cujo alvo pode sumir da tela tem caminho de volta', () => {
 		/* As que apontam para dentro do leque ou de uma janela: fechar a janela
-		   ou recolher o leque deixa o alvo em 0x0. */
+		   ou recolher o leque deixa o alvo em 0x0. Duas formas contam como
+		   "tem caminho de volta": o par `alvo`/`quandoSumir` de sempre, ou a
+		   lista `alvos` (16/09/2026) para quem tem TRES estados reais, e não
+		   dois — o alcance de topo mais um ou mais candidatos de fallback. */
 		for (const numero of [2, 3, 4, 5, 6, 7, 8, 11]) {
 			const etapa = etapaDe(numero);
+			if (Array.isArray(etapa.alvos)) {
+				expect(etapa.alvos.length, `etapa ${numero}`).toBeGreaterThan(1);
+				for (const candidato of etapa.alvos.slice(1)) {
+					expect(candidato.seletor, `etapa ${numero}`).toBeTruthy();
+					expect(fraseDaEtapa(etapa, false, candidato.frase).length).toBeGreaterThan(10);
+				}
+				continue;
+			}
 			expect(etapa.quandoSumir, `etapa ${numero}`).toBeTruthy();
 			expect(etapa.quandoSumir.seletor).toBeTruthy();
 			expect(fraseDaEtapa(etapa, false, etapa.quandoSumir.frase).length).toBeGreaterThan(10);
@@ -95,6 +113,13 @@ describe('as onze etapas', () => {
 
 	it('todo alvo mora num Shadow DOM identificado por host', () => {
 		for (const etapa of ETAPAS) {
+			if (Array.isArray(etapa.alvos)) {
+				for (const candidato of etapa.alvos) {
+					expect(candidato.host).toMatch(/^[A-Za-z]+$/);
+					expect(candidato.seletor.startsWith('.') || candidato.seletor.startsWith('[')).toBe(true);
+				}
+				continue;
+			}
 			if (!etapa.alvo) continue;
 			expect(etapa.alvo.host).toMatch(/^[A-Za-z]+$/);
 			expect(etapa.alvo.seletor.startsWith('.')).toBe(true);

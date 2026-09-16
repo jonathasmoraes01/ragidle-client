@@ -100,20 +100,44 @@ export const ETAPAS = Object.freeze([
 		quandoSumir: null,
 		avancaPor: 'leque-aberto'
 	}),
+	/*
+	 * RENUMERADO (16/09/2026, pedido do dono): a janela `MissoesIdle`
+	 * independente saiu do leque — o único caminho até as missões agora é a
+	 * aba "Missões Gerais" dentro de "Codex & Missões" (ver o cabeçalho de
+	 * `missoesGeraisHtml.js`).
+	 *
+	 * TRES ALCANCES, NAO DOIS (achado ao JOGAR, 16/09/2026, em duas
+	 * rodadas). Primeiro apontei so para a aba (com volta no `.tm-item`
+	 * do leque) e a etapa ficou SEM MAO, porque `TopMenuIdle.js` fecha o
+	 * leque assim que um item dele e clicado ("abriu, escolheu, fechou")
+	 * - e a etapa 1 termina bem ali, com o leque JA fechado. Troquei a
+	 * volta para o `.tm-fab` (sempre com caixa) e a etapa passou a
+	 * ignorar o leque ABERTO: com o `.tm-fab` sozinho como volta, a mao
+	 * fica presa nele mesmo depois do jogador reabrir o leque, porque o
+	 * `.tm-fab` continua tendo caixa valida e nunca cede a vez ao icone
+	 * de dentro. As DUAS versões erravam por olhar so um dos dois estados
+	 * do leque. `alvos` cobre os TRES de verdade, na ordem:
+	 * a aba (Codex aberto), o icone do leque (leque aberto, Codex
+	 * fechado), o `.tm-fab` (leque fechado).
+	 */
 	Object.freeze({
 		numero: 2,
-		rotulo: 'Missões',
-		frase: '{acao} {rotulo}. Separei a sua primeira tarefa.',
-		alvo: Object.freeze({ host: 'TopMenuIdle', seletor: '.tm-item[data-action="missoes"]' }),
-		/* O leque fechado nao tem caixa (armadilha 3 do contrato): os itens
-		   somem com `display:none`, entao o alvo mede 0x0. Em vez de apontar
-		   para o vazio, o tutorial volta a apontar a porta. */
-		quandoSumir: Object.freeze({
-			host: 'TopMenuIdle',
-			seletor: '.tm-fab',
-			frase: 'Abra o "Menu" de novo. As "Missões" moram lá dentro.'
-		}),
-		avancaPor: 'janela-de-missoes-aberta'
+		rotulo: 'Missões Gerais',
+		frase: '{acao} a aba "{rotulo}". Separei a sua primeira tarefa lá.',
+		alvos: Object.freeze([
+			Object.freeze({ host: 'CodexIdle', seletor: '.cx-tab[data-aba="missoes"]' }),
+			Object.freeze({
+				host: 'TopMenuIdle',
+				seletor: '.tm-item[data-action="codex"]',
+				frase: '{acao} "Codex & Missões". Separei a sua primeira tarefa lá.'
+			}),
+			Object.freeze({
+				host: 'TopMenuIdle',
+				seletor: '.tm-fab',
+				frase: 'Abra o "Menu" e toque em "Codex & Missões". Separei a sua primeira tarefa lá.'
+			})
+		]),
+		avancaPor: 'aba-de-missoes-gerais-ativa'
 	}),
 	/*
 	 * AS DUAS ETAPAS DO CORREIO (15/09/2026), achadas faltando na auditoria: um
@@ -160,6 +184,23 @@ export const ETAPAS = Object.freeze([
 			seletor: '.tm-item[data-action="correio"]',
 			frase: 'A janela do "Correio" fechou. Abra-a de novo para retirar o kit.'
 		}),
+		/*
+		 * A MAO segue o GESTO, e nao mais so o canto do furo (16/09/2026,
+		 * relato do dono: "o dedinho deve ficar apontando para abrir a
+		 * mensagem antes de clicar para coletar"). O FURO continua a janela
+		 * inteira - os dois gestos precisam do clique livre em dois lugares
+		 * dela - mas a mao agora mira o candidato certo NA ORDEM do gesto:
+		 * primeiro a carta ainda fechada na lista, depois (ela some da lista
+		 * ao abrir - `.is-selecionada` tira o seletor do ar) o botao que
+		 * coleta tudo dela. Se nenhum candidato tiver caixa (a janela ainda
+		 * nao montou a lista), a mao volta ao canto do furo inteiro - o
+		 * comportamento de sempre, nunca um estado sem mao (ver o uso em
+		 * TutorialIdle.js).
+		 */
+		maoEm: Object.freeze([
+			Object.freeze({ host: 'CorreioIdle', seletor: '.co-item:not(.is-selecionada)' }),
+			Object.freeze({ host: 'CorreioIdle', seletor: '.co-coletar-todos' })
+		]),
 		avancaPor: 'kit-retirado'
 	}),
 	Object.freeze({
@@ -207,33 +248,71 @@ export const ETAPAS = Object.freeze([
 			seletor: '.tm-item[data-action="config"]',
 			frase: 'Abra o "Menu" e toque em "Configurações" para ligar as poções.'
 		}),
+		/*
+		 * A MAO segue os TRES gestos em ordem (16/09/2026, relato do dono:
+		 * "a mãozinha deve ficar em cima do botão de ativar e depois em cima
+		 * da barrinha") - mesma receita da etapa 4. O FURO continua a janela
+		 * inteira (o jogador ainda precisa trocar para a aba "Sobrevivência"
+		 * primeiro, fora do alcance de qualquer sub-alvo aqui), mas a mao
+		 * mira o interruptor de HP, depois o de SP, e so entao a barra de
+		 * HP - a frase fala de "a barra" no singular, e as duas so avancam
+		 * a etapa pelos INTERRUPTORES (`avancaPor`), nunca pelo numero da
+		 * barra (ver `servidor/tutorial.ts`: so `ligado` e cobrado). Os
+		 * `input[type=checkbox]` do interruptor ficam com `opacity:0` sobre
+		 * a trilha visivel (`#IdleConfig .ic-switch input`,
+		 * IdleConfig.css) - a caixa que `getBoundingClientRect` mede e a da
+		 * trilha, nao um elemento invisivel de verdade. `data-bool`/
+		 * `data-range` (e nao `.ic-slider--hp`, que tambem nomeia as
+		 * barras do Descanso) sao os UNICOS seletores desta janela para
+		 * cada campo - `renderPocao` os escreve uma vez cada.
+		 */
+		maoEm: Object.freeze([
+			Object.freeze({ host: 'IdleConfig', seletor: 'input[data-bool="pocaoDeHp.ligado"]:not(:checked)' }),
+			Object.freeze({ host: 'IdleConfig', seletor: 'input[data-bool="pocaoDeSp.ligado"]:not(:checked)' }),
+			Object.freeze({ host: 'IdleConfig', seletor: 'input[data-range="pocaoDeHp.usarCom"]' })
+		]),
 		avancaPor: 'pocoes-configuradas'
 	}),
+	/*
+	 * RENUMERADO (16/09/2026, pedido do dono): o botão "Iniciar" agora mora
+	 * na TELA DE DETALHE da aba "Missões Gerais" (`missoesGeraisHtml.js`,
+	 * `telaDaMissaoHtml`) — o jogador PRECISA abrir "Primeiros Passos" na
+	 * lista antes de ver o botão, o mesmo par de gestos que a dupla do
+	 * Correio já ensina (abrir, depois agir DENTRO).
+	 *
+	 * DUAS TELAS, NUNCA AO MESMO TEMPO (achado ao JOGAR, 16/09/2026: "a
+	 * etapa 7 ficou sem mão"). `missoesGeraisHtml()` desenha OU a lista OU
+	 * o detalhe — nunca os dois — então o candidato de topo é um seletor
+	 * COM VÍRGULA: o botão "Iniciar" quando o detalhe está na tela, a
+	 * LINHA da missão quando é a lista. `querySelector` só acha o que
+	 * existe agora, então nunca há ambiguidade.
+	 *
+	 * TRES ALCANCES, NAO DOIS (mesmo achado da etapa 2, ver o cabeçalho
+	 * dela): a janela do Codex pode estar ABERTA (candidato de topo), o
+	 * LEQUE pode estar aberto com o Codex fechado (o ícone "Codex &
+	 * Missões" dentro dele), ou o leque pode estar fechado (`.tm-fab`,
+	 * sempre com caixa). Um `quandoSumir` só cobria DOIS desses tres.
+	 */
 	Object.freeze({
 		numero: 7,
 		rotulo: 'Iniciar',
-		frase: '{acao} {rotulo} na primeira missão. Eu anoto o resto.',
-		alvo: Object.freeze({ host: 'MissoesIdle', seletor: '.mi-executar[data-executar="iniciar"]' }),
-		/*
-		 * O QUANDOSUMIR APONTA PARA O ICONE DO LEQUE, NAO PARA O `.tm-fab`
-		 * (achado ao JOGAR o reordenamento, 15/09/2026) - a mesma familia de
-		 * defeito das etapas do Correio/Arma/Mapa, um nivel mais fundo. O
-		 * `.tm-fab` tem caixa valida SEMPRE, leque aberto ou fechado; um
-		 * furo preso nele NUNCA some, entao o alvo primario nunca ganha a
-		 * chance de assumir e o segundo clique (o icone "Missões" DENTRO do
-		 * leque aberto) fica do lado de fora do furo - exatamente como
-		 * `.tm-fab` sozinho bloqueava o clique dentro da janela que ele
-		 * abre, nas outras etapas. Apontando para o PROPRIO icone (0x0 com
-		 * o leque fechado, valido com o leque aberto) o comportamento vira
-		 * o mesmo da etapa 4: leque fechado cai no `semMascara` (nada
-		 * bloqueado, o jogador abre o leque livre), leque aberto acerta o
-		 * icone de "Missões" direto.
-		 */
-		quandoSumir: Object.freeze({
-			host: 'TopMenuIdle',
-			seletor: '.tm-item[data-action="missoes"]',
-			frase: 'A janela de "Missões" fechou. Abra o "Menu" e volte em "Missões".'
-		}),
+		frase: '{acao} {rotulo} para começar "Primeiros Passos". Eu anoto o resto.',
+		alvos: Object.freeze([
+			Object.freeze({
+				host: 'CodexIdle',
+				seletor: '.cx-mg-rodape [data-mg-executar="iniciar"], [data-mg-missao="primeiros-passos"]'
+			}),
+			Object.freeze({
+				host: 'TopMenuIdle',
+				seletor: '.tm-item[data-action="codex"]',
+				frase: '{acao} "Codex & Missões" de novo. "Primeiros Passos" te espera na aba "Missões Gerais".'
+			}),
+			Object.freeze({
+				host: 'TopMenuIdle',
+				seletor: '.tm-fab',
+				frase: 'Abra o "Menu" e toque em "Codex & Missões". "Primeiros Passos" te espera na aba "Missões Gerais".'
+			})
+		]),
 		avancaPor: 'missao-ativa-no-servidor'
 	}),
 	Object.freeze({
@@ -284,17 +363,38 @@ export const ETAPAS = Object.freeze([
 		quandoSumir: null,
 		avancaPor: 'contador-andou'
 	}),
+	/*
+	 * RENUMERADO (16/09/2026, pedido do dono): esta etapa NAO pode mais
+	 * olhar so "a janela do Codex esta aberta" - a etapa 2 ja abriu essa
+	 * janela ha nove passos, e ela nunca fecha sozinha (o mesmo motivo que
+	 * fez a dupla do Correio existir). Com o alvo antigo, o alcance desta
+	 * etapa seria IMEDIATO e mudo assim que ela comecasse - a janela ja
+	 * esta aberta desde a 2, so que na aba "Missões Gerais".
+	 *
+	 * TRES ALCANCES, NAO DOIS (mesmo achado da etapa 2, ver o cabeçalho
+	 * dela): a aba "Missões do Códex" quando o Codex esta aberto, o
+	 * icone "Codex & Missões" quando so o leque esta aberto, e o
+	 * `.tm-fab` quando os dois estao fechados. Um `quandoSumir` so
+	 * cobria dois desses tres estados.
+	 */
 	Object.freeze({
 		numero: 11,
-		rotulo: 'Codex',
-		frase: '{acao} {rotulo}. A Jornada de Midgard te espera lá dentro.',
-		alvo: Object.freeze({ host: 'TopMenuIdle', seletor: '.tm-item[data-action="codex"]' }),
-		quandoSumir: Object.freeze({
-			host: 'TopMenuIdle',
-			seletor: '.tm-fab',
-			frase: 'Abra o "Menu". O "Codex" é o último passo.'
-		}),
-		avancaPor: 'janela-do-codex-aberta'
+		rotulo: 'Jornada de Midgard',
+		frase: '{acao} a aba "Missões do Códex". A {rotulo} te espera lá dentro.',
+		alvos: Object.freeze([
+			Object.freeze({ host: 'CodexIdle', seletor: '.cx-tab[data-aba="jornada"]' }),
+			Object.freeze({
+				host: 'TopMenuIdle',
+				seletor: '.tm-item[data-action="codex"]',
+				frase: '{acao} "Codex & Missões" de novo. A aba "Missões do Códex" é o último passo.'
+			}),
+			Object.freeze({
+				host: 'TopMenuIdle',
+				seletor: '.tm-fab',
+				frase: 'Abra o "Menu" e toque em "Codex & Missões". A aba "Missões do Códex" é o último passo.'
+			})
+		]),
+		avancaPor: 'aba-da-jornada-ativa'
 	})
 ]);
 

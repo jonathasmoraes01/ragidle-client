@@ -37,7 +37,7 @@
 
 /**
  * Os lugares do mapa-mundi, em PORCENTAGEM da imagem
- * (`public/ragidle/mapa-de-midgard.webp`, 1457x1080).
+ * (`public/ragidle/mapa-de-midgard.webp`, 1456x1092).
  *
  * Medidos sobre uma grade de 100 px desenhada no PNG de origem e OLHADOS, com
  * precisao de ~10 px - a tabela e
@@ -47,34 +47,90 @@
  * todos caiam dentro de 0..100.
  */
 export const PONTOS_DO_MAPA = [
-	{ lugar: 'Prontera', x: 47.8, y: 42.8 },
-	{ lugar: 'Esgotos de Prontera', x: 59.8, y: 75.3 },
-	{ lugar: 'Mina de Carvao', x: 39.1, y: 45.1 },
-	{ lugar: 'Torre de Geffen', x: 26.9, y: 49.8 },
-	{ lugar: 'Geffenia', x: 29.3, y: 58.9 },
-	{ lugar: 'Piramide', x: 38.2, y: 65.0 },
-	{ lugar: 'Esfinge', x: 41.2, y: 73.1 },
-	{ lugar: 'Caverna de Payon', x: 90.7, y: 62.3 },
-	{ lugar: 'Caverna de Byalan', x: 77.6, y: 62.7 },
-	{ lugar: 'Calabocos de Glast Heim', x: 13.7, y: 53.1 },
-	{ lugar: 'Niflheim', x: 9.4, y: 73.7 },
-	{ lugar: 'Vulcao de Thor', x: 8.4, y: 40.6 },
-	{ lugar: 'Caverna de Magma', x: 21.5, y: 4.7 },
-	{ lugar: 'Tumba Selada', x: 7.9, y: 4.0 },
-	{ lugar: 'Torre de Thanatos', x: 48.3, y: 2.7 },
-	{ lugar: 'Novus', x: 55.3, y: 3.9 },
-	{ lugar: 'Caverna de Gelo', x: 38.6, y: 6.3 },
-	{ lugar: 'Lago do Abismo', x: 67.7, y: 4.0 },
-	{ lugar: 'Juperos', x: 73.8, y: 6.5 },
-	{ lugar: 'Academia de Kiel', x: 70.0, y: 17.6 },
-	{ lugar: 'Santuario de Odin', x: 87.3, y: 22.2 },
-	{ lugar: 'Torre de Relogio', x: 75.2, y: 35.4 },
-	{ lugar: 'Laboratorio de Somatologia', x: 34.7, y: 37.5 },
-	{ lugar: 'Formigueiro Infernal', x: 22.4, y: 95.4 },
-	{ lugar: 'Ilha da Tartaruga', x: 94.2, y: 96.5 },
-	{ lugar: 'Navio Fantasma', x: 93.6, y: 84.4 },
-	{ lugar: 'Ilha Esquecida', x: 6.0, y: 62.9 }
+	// A Rune-Midgard central
+	{ lugar: 'Prontera', x: 50.7, y: 37.0 },
+	{ lugar: 'Izlude', x: 50.6, y: 47.8 },
+	{ lugar: 'Geffen', x: 31.5, y: 35.1 },
+	{ lugar: 'Al De Baran', x: 50.8, y: 24.4 },
+	{ lugar: 'Morroc', x: 28.7, y: 55.8 },
+	{ lugar: 'Payon', x: 69.6, y: 49.2 },
+	{ lugar: 'Alberta', x: 78.3, y: 36.1 },
+	{ lugar: 'Comodo', x: 12.4, y: 51.9 },
+	{ lugar: 'Glast Heim', x: 15.3, y: 37.5 },
+	{ lugar: 'Niflheim', x: 13.5, y: 27.5 },
+	{ lugar: 'Vulcao de Thor', x: 23.9, y: 45.4 },
+	{ lugar: 'Caverna de Payon', x: 85.6, y: 45.4 },
+	{ lugar: 'Caverna de Byalan', x: 91.8, y: 53.5 },
+	// O norte: Schwartzvald e a cordilheira
+	{ lugar: 'Juno', x: 63.5, y: 17.9 },
+	{ lugar: 'Einbroch', x: 32.3, y: 17.9 },
+	{ lugar: 'Einbech', x: 27.3, y: 10.5 },
+	{ lugar: 'Floresta de Bifrost', x: 44.5, y: 6.8 },
+	{ lugar: 'El Dicastes', x: 64.6, y: 8.5 },
+	{ lugar: 'Veins', x: 78.5, y: 16.0 },
+	{ lugar: 'Mora', x: 6.5, y: 38.1 },
+	// As ilhas do nordeste, de nivel alto
+	{ lugar: 'Torre de Thanatos', x: 85.5, y: 5.6 },
+	{ lugar: 'Lago do Abismo', x: 90.0, y: 11.9 },
+	{ lugar: 'Juperos', x: 91.3, y: 17.6 },
+	{ lugar: 'Santuario de Odin', x: 91.3, y: 29.6 },
+	// O oriente e o sul
+	{ lugar: 'Ayothaya', x: 58.2, y: 62.2 },
+	{ lugar: 'Kunlun', x: 74.9, y: 62.1 },
+	{ lugar: 'Louyang', x: 69.6, y: 66.9 },
+	{ lugar: 'Amatsu', x: 91.1, y: 84.6 },
+	{ lugar: 'Dewata', x: 78.8, y: 79.7 },
+	{ lugar: 'Ilha da Tartaruga', x: 91.5, y: 69.9 },
+	{ lugar: 'Splendide', x: 7.8, y: 67.3 },
+	{ lugar: 'Manuk', x: 48.8, y: 71.4 },
+	{ lugar: 'Malangdo', x: 13.0, y: 81.0 },
+	{ lugar: 'Brasilis', x: 31.0, y: 84.6 },
+	{ lugar: 'Eclage', x: 65.1, y: 86.8 },
+	{ lugar: 'Acampamento de Midgard', x: 49.2, y: 89.1 }
 ];
+
+/**
+ * ONDE CADA CAPITULO POUSA NO MAPA, dito a mao.
+ *
+ * O `pinosDosCapitulos` sabia achar o lugar pelo NOME do capitulo, e isso
+ * cobria pouco: medido no mapa antigo, 3 capitulos de 22 ganhavam pino. As
+ * falhas nao eram ambiguidade de verdade - eram grafia. "Aldebaran" nao casa
+ * "Al De Baran"; "Hugel e o Lago Abismo" nao casa "Lago do Abismo";
+ * "Schwartzvald" nao casa nada, porque no mapa quem aparece e a capital dela,
+ * Juno.
+ *
+ * Declarar resolve sem afrouxar a regra do cabecalho: continua proibido
+ * ADIVINHAR o lugar, so que agora quem decide e uma linha escrita, e nao uma
+ * semelhanca de texto. Capitulo fora desta tabela cai na busca por nome, e
+ * quem nao casar nem ali segue sem pino, vivendo na lista.
+ *
+ * O capitulo dos CHEFES fica fora de proposito: ele nao e um lugar, e o
+ * conselho que acontece no fim da jornada inteira.
+ */
+export const LUGAR_DO_CAPITULO = {
+	'cap-01-prontera': 'Prontera',
+	'cap-02-geffen': 'Geffen',
+	'cap-03-payon': 'Payon',
+	// Mjolnir e a cordilheira ao norte de Prontera; o rotulo mais perto dela
+	// no mapa novo e Al De Baran, e o capitulo 17 ja e o dono desse pino.
+	// Sem lugar proprio, entao: fica na lista.
+	'cap-05-morroc': 'Morroc',
+	'cap-06-ayothaya': 'Ayothaya',
+	'cap-07-comodo': 'Comodo',
+	'cap-09-alberta': 'Alberta',
+	'cap-11-louyang': 'Louyang',
+	// A capital de Schwartzvald e Juno - e e ela que o mapa rotula.
+	'cap-12-schwartzvald': 'Juno',
+	'cap-13-dewata': 'Dewata',
+	// Rachel nao esta no mapa; Veins e a vizinha dela na mesma regiao.
+	'cap-15-rachel': 'Veins',
+	'cap-16-kunlun': 'Kunlun',
+	'cap-17-aldebaran': 'Al De Baran',
+	'cap-18-hugel': 'Lago do Abismo',
+	'cap-19-glastheim': 'Glast Heim',
+	'cap-20-malangdo': 'Malangdo',
+	'cap-21-amatsu': 'Amatsu'
+};
 
 /**
  * Os quatro estados que o retrato pode mandar, com as QUATRO marcas de cada um.
@@ -151,11 +207,31 @@ export function porcentagem(feitos, meta) {
 export function pinosDosCapitulos(capitulos) {
 	const lista = Array.isArray(capitulos) ? capitulos : [];
 	const pontos = PONTOS_DO_MAPA.map(p => ({ ponto: p, chave: normalizarNome(p.lugar) }));
+	const porLugar = {};
+	for (const p of pontos) {
+		porLugar[p.chave] = p.ponto;
+	}
 
 	/** id -> ponto, ja resolvido o empate por especificidade. */
 	const escolha = {};
 	for (const cap of lista) {
 		if (!cap || typeof cap.id !== 'string') {
+			continue;
+		}
+		/*
+		 * A AMARRACAO DECLARADA VEM PRIMEIRO, e ela existe porque a busca por
+		 * NOME errava por um fio em capitulo que tem lugar obvio no mapa:
+		 * "Aldebaran" contra o rotulo "Al De Baran", "Lago Abismo" contra
+		 * "Lago do Abismo", "Schwartzvald" contra a capital dela, que e Juno.
+		 * Medido antes de existir: 3 capitulos com pino, de 22.
+		 *
+		 * Ela NAO afrouxa a regra do cabecalho - continua sendo proibido
+		 * adivinhar. O que muda e quem decide: aqui esta escrito a mao, uma
+		 * linha por capitulo, em vez de inferido por semelhanca.
+		 */
+		const declarado = porLugar[normalizarNome(LUGAR_DO_CAPITULO[cap.id] || '')];
+		if (declarado) {
+			escolha[cap.id] = declarado;
 			continue;
 		}
 		const texto = normalizarNome(String(cap.titulo || '') + ' ' + String(cap.id || ''));

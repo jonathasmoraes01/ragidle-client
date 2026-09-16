@@ -58,13 +58,20 @@ describe('pinosDosCapitulos', () => {
 		expect(pinos['cap-04-niflheim'].lugar).toBe('Niflheim');
 	});
 
-	it('o MAIS ESPECIFICO ganha: os esgotos nao viram a cidade', () => {
+	/*
+	 * REANCORADO no mapa novo (16/09/2026). O par de antes era
+	 * "Prontera" / "Esgotos de Prontera", e os esgotos nao existem no mapa
+	 * novo - ele rotula CIDADES, nao masmorras urbanas. O par de hoje e
+	 * "Payon" / "Caverna de Payon", que mede exatamente a mesma regra: um
+	 * lugar cujo nome CONTEM o outro nao pode roubar o pino dele.
+	 */
+	it('o MAIS ESPECIFICO ganha: a caverna nao vira a cidade', () => {
 		const pinos = pinosDosCapitulos([
-			{ id: 'a', titulo: 'Os campos de Prontera', ordem: 1 },
-			{ id: 'b', titulo: 'Os esgotos de Prontera', ordem: 2 }
+			{ id: 'a', titulo: 'As florestas de Payon', ordem: 1 },
+			{ id: 'b', titulo: 'A Caverna de Payon', ordem: 2 }
 		]);
-		expect(pinos.a.lugar).toBe('Prontera');
-		expect(pinos.b.lugar).toBe('Esgotos de Prontera');
+		expect(pinos.a.lugar).toBe('Payon');
+		expect(pinos.b.lugar).toBe('Caverna de Payon');
 	});
 
 	it('capitulo que nao cita lugar nenhum NAO ganha pino', () => {
@@ -85,8 +92,10 @@ describe('pinosDosCapitulos', () => {
 	});
 
 	it('acento e maiuscula nao atrapalham', () => {
-		const pinos = pinosDosCapitulos([{ id: 'gh', titulo: 'Os CALABOÇOS de Glast Heim', ordem: 3 }]);
-		expect(pinos.gh.lugar).toBe('Calabocos de Glast Heim');
+		// Reancorado no mapa novo: o rotulo medido e `Vulcao de Thor`, sem
+		// acento, e o titulo vem com ele e em caixa alta.
+		const pinos = pinosDosCapitulos([{ id: 'thor', titulo: 'O VULCÃO DE THOR', ordem: 3 }]);
+		expect(pinos.thor.lugar).toBe('Vulcao de Thor');
 	});
 
 	it('entrada torta nao derruba nada', () => {

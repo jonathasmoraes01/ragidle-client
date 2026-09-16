@@ -69,7 +69,10 @@ import Session from 'Engine/SessionStorage.js';
 import MapRenderer from 'Renderer/MapRenderer.js';
 import HuntMap from 'UI/Components/HuntMap/HuntMap.js';
 import MissoesIdle from 'UI/Components/MissoesIdle/MissoesIdle.js';
+// Quem responde "isto e um celular em pe?" no projeto inteiro (D-929).
+import { ehCelularEmPe } from 'UI/hudVertical.js';
 import { jornadaHtml } from './jornadaHtml.js';
+import { missoesGeraisHtml, cliqueDeMissoesGerais, SUBABA_PADRAO } from './missoesGeraisHtml.js';
 import htmlText from './CodexIdle.html?raw';
 import cssText from './CodexIdle.css?raw';
 import { fecharEEsquecer } from '../limpezaDeJanelaIdle.js';
@@ -77,8 +80,14 @@ import { abaLembrada, lembrarAba } from '../memoriaDeAba.js';
 
 /** Manter em sincronia com o ":host"/".cx-window" do CSS (mesmo papel do
  * WINDOW_WIDTH/HEIGHT de PasseIdle.js:51-52). */
-const WINDOW_WIDTH = 520;
-const WINDOW_HEIGHT = 600;
+/*
+ * +10% (16/09/2026, pedido do dono: "achando a janela pequena, da para
+ * aumentar +10%"). 520x600 e o tamanho de familia que Intro/Mochila/Passe/
+ * ShortCutOption tambem usam - esta janela sai dele de proposito, porque foi
+ * ESTA que ele apontou. 572x660, arredondado ao pixel.
+ */
+const WINDOW_WIDTH = 572;
+const WINDOW_HEIGHT = 660;
 
 /**
  * O rotulo de cada eixo. SO o rotulo — a ordem e a existencia de cada um vem
@@ -115,14 +124,19 @@ const EIXO_DE_EXP = 'exp';
 /**
  * As tres abas da janela.
  *
- * `missoes` e `status` sao a antiga aba unica `codex` DIVIDIDA (08/09/2026,
- * ordem do dono): as missoes do bestiario (onde os pontos nascem) e os sete
- * eixos (onde eles se gastam) empilhavam na mesma rolagem, e viraram duas
- * abas. `jornada` e a Jornada de Midgard, sem equivalente no `codex` de
- * antes.
+ * `codex` ("Codex & Missões" no HTML) e a aba de sempre: as missoes do
+ * bestiario (onde os pontos nascem) e os sete eixos (onde eles se gastam),
+ * empilhados na mesma rolagem. O merge com origin/master (16/09/2026) tinha
+ * trazido a divisao independente da outra frente em `bestiario`+`status`
+ * (duas abas separadas) — o dono pediu para DESFAZER esse split e voltar a
+ * uma aba so, renomeada para deixar claro que ela cobre os dois assuntos.
+ * `missoes` e a integracao da janela MissoesIdle (16/09/2026, "Missões
+ * Gerais" no HTML) — uma janela DIFERENTE do bestiario, com o proprio nome
+ * desde o pedido do dono ("ele sera uma aba 'Missões Gerais'"). `jornada` e a
+ * Jornada de Midgard, sem equivalente no `codex`.
  */
-const ABAS = ['missoes', 'status', 'jornada'];
-const ABA_PADRAO = 'missoes';
+const ABAS = ['codex', 'missoes', 'jornada'];
+const ABA_PADRAO = 'codex';
 
 /**
  * As telas da aba Jornada.
@@ -157,6 +171,18 @@ CodexIdle.capituloAberto = null;
 CodexIdle.especieAberta = null;
 
 /**
+ * O ESTADO DA ABA "MISSOES GERAIS" (16/09/2026) — todo local, nada
+ * persistido. A subaba Principais/Opcionais nasce sempre em Principais a
+ * cada sessao; `MissoesIdle` persiste a PROPRIA preferencia dela
+ * (`_preferences.aba`, privada do modulo), e ler aquele campo daqui exigiria
+ * exportar um detalhe interno so para isto — simplificacao deliberada, sem
+ * perda: e um clique para trocar.
+ */
+CodexIdle.vistaDeMissoes = 'lista';
+CodexIdle.missaoAberta = null;
+CodexIdle.subabaDeMissoes = SUBABA_PADRAO;
+
+/**
  * AS MISSOES QUE JA CHEGARAM, por capitulo.
  *
  * Elas NAO descem todas de uma vez: sao centenas, e o campo de tamanho do
@@ -171,6 +197,18 @@ let _capituloEmVoo = null;
 
 /** A fila da varredura por especie (os capitulos que faltam carregar). */
 let _filaDaVarredura = [];
+
+/**
+ * A ASSINATURA de `MissoesIdle.missoes`/`.execucao` NO ULTIMO REDESENHO desta
+ * aba — mesmo idioma de `MissoesTrackerIdle.js:renderSeMudou`. `null` de
+ * proposito (nao `''`) para o primeiro poll SEMPRE redesenhar, mesmo se o
+ * dado mandado for igual ao residuo de uma sessao anterior.
+ */
+let _assinaturaDeMissoes = null;
+
+/** O relogio do poll — vive so enquanto a JANELA esta anexada (onAppend
+ * liga, onRemove desliga), igual `MissoesTrackerIdle.js`. */
+let _pollDeMissoes = null;
 
 const _preferences = Preferences.get(
 	'CodexIdle',
@@ -248,8 +286,12 @@ CodexIdle.limparEstadoDoPersonagem = function limparEstadoDoPersonagem() {
 	CodexIdle.vista = VISTA_PADRAO;
 	CodexIdle.capituloAberto = null;
 	CodexIdle.especieAberta = null;
+	CodexIdle.vistaDeMissoes = 'lista';
+	CodexIdle.missaoAberta = null;
+	CodexIdle.subabaDeMissoes = SUBABA_PADRAO;
 	_capituloEmVoo = null;
 	_filaDaVarredura = [];
+	_assinaturaDeMissoes = null;
 	CodexIdle.aba = abaLembrada(_preferences, ABA_PADRAO, ABAS);
 	// A peca compartilhada (auditoria de 30/08/2026). O miolo que estava aqui
 	// virou `fecharEEsquecer`, e as outras nove janelas — que a nota abaixo
@@ -299,10 +341,27 @@ CodexIdle.onAppend = function onAppend() {
 		this._host.style.top = Math.min(Math.max(0, _preferences.y), Renderer.height - WINDOW_HEIGHT) + 'px';
 		this._host.style.left = Math.min(Math.max(0, _preferences.x), Renderer.width - WINDOW_WIDTH) + 'px';
 	}
+	/*
+	 * O POLL DA ABA "MISSOES GERAIS" (16/09/2026) — mesmo idioma de
+	 * `MissoesTrackerIdle.js`: `Network.hookPacket` sobrescreve o handler do
+	 * pacote, entao fisgar `ZC_RAGIDLE_MISSOES` aqui roubaria `MissoesIdle`.
+	 * Em vez disso, esta aba LE `MissoesIdle.missoes`/`.execucao` a cada
+	 * 250ms e so redesenha quando a assinatura muda — e SO quando esta aba
+	 * esta na tela, para nao gastar ciclo nenhum enquanto o jogador olha o
+	 * Codex ou a Jornada.
+	 */
+	if (_pollDeMissoes) {
+		clearInterval(_pollDeMissoes);
+	}
+	_pollDeMissoes = setInterval(renderMissoesSeMudou, 250);
 };
 
 CodexIdle.onRemove = function onRemove() {
 	savePosition();
+	if (_pollDeMissoes) {
+		clearInterval(_pollDeMissoes);
+		_pollDeMissoes = null;
+	}
 };
 
 function savePosition() {
@@ -345,6 +404,18 @@ CodexIdle.toggle = function toggle() {
  * `motivoDeNaoViajar`.
  */
 function aoEntrarNaAba() {
+	/*
+	 * "MISSOES GERAIS" PEDE O MESMO PACOTE QUE `MissoesIdle.toggle()` MANDA
+	 * (`CZ_RAGIDLE_PEDIR_MISSOES`). O servidor tambem EMPURRA sem pedido (no
+	 * level up e na troca de classe — cabecalho de `MissoesIdle.js`), mas
+	 * quem nunca abriu a janela MissoesIdle nesta sessao pode chegar aqui com
+	 * `MissoesIdle.missoes` ainda vazio; pedir de novo e barato e idempotente
+	 * — o MESMO gatilho que a janela separada ja usava.
+	 */
+	if (CodexIdle.aba === 'missoes') {
+		Network.sendPacket(new PACKET.CZ.RAGIDLE_PEDIR_MISSOES());
+		return;
+	}
 	if (CodexIdle.aba !== 'jornada') {
 		return;
 	}
@@ -396,6 +467,9 @@ function onClickClose(e) {
  */
 function onClickCorpo(e) {
 	const alvo = e.target && e.target.closest ? e.target : null;
+	if (alvo && cliqueDeMissoesGerais(e, alvo, GANCHOS_DE_MISSOES)) {
+		return;
+	}
 	if (alvo && cliqueDaJornada(e, alvo)) {
 		return;
 	}
@@ -779,6 +853,20 @@ function render() {
 	if (!corpo) {
 		return;
 	}
+
+	/*
+	 * "MISSOES GERAIS" NAO DEPENDE DO RETRATO DO CODEX — sai ANTES da guarda
+	 * `if (!estado)` logo abaixo, de proposito. Os dados desta aba vem de
+	 * `ZC_RAGIDLE_MISSOES` (via `MissoesIdle`), um pacote TOTALMENTE
+	 * diferente de `ZC_RAGIDLE_CODEX`; gatilhar esta aba na chegada do
+	 * retrato ERRADO faria quem abrisse a janela direto nela ficar presa em
+	 * "Carregando…" ate o Codex responder, mesmo com as missoes ja na mao.
+	 */
+	if (CodexIdle.aba === 'missoes') {
+		corpo.innerHTML = missoesGeraisHtml(contextoDeMissoesGerais());
+		return;
+	}
+
 	if (!estado) {
 		corpo.innerHTML = '<div class="cx-carregando">Carregando…</div>';
 		return;
@@ -789,15 +877,20 @@ function render() {
 		return;
 	}
 
-	// Uma aba por vez (08/09/2026): Missoes = onde os pontos nascem; Status =
-	// onde gastar. A aba em si e a barra FIXA de `.cx-tab` do HTML (mesmo
-	// padrao da Jornada), e nao `abasHtml()` gerado aqui — um so jeito de
-	// desenhar aba nesta janela.
+	// A aba "Codex & Missões" (16/09/2026, DESFEITO o split de origin/master a
+	// pedido do dono): chegando aqui so resta 'codex' — 'missoes' (Missões
+	// Gerais) e 'jornada' ja saíram por cima (linhas 865 e 875). As missoes do
+	// bestiario e os sete eixos voltam a empilhar na mesma rolagem, como era
+	// antes do split.
 	corpo.innerHTML =
 		placarHtml(estado) +
-		(CodexIdle.aba === 'status'
-			? '<div class="cx-secao"><div class="cx-secao-titulo">Onde gastar</div>' + eixosHtml(estado) + '</div>'
-			: '<div class="cx-secao"><div class="cx-secao-titulo">Onde os pontos nascem</div>' + missoesHtml(estado) + '</div>');
+		'<div class="cx-secao"><div class="cx-secao-titulo">Onde os pontos nascem</div>' +
+		missoesHtml(estado) +
+		'</div>' +
+		'<div class="ri-divisor"></div>' +
+		'<div class="cx-secao"><div class="cx-secao-titulo">Onde gastar</div>' +
+		eixosHtml(estado) +
+		'</div>';
 }
 
 /* ------------------------------------------------------------------ */
@@ -846,8 +939,105 @@ function contextoDaJornada() {
 		missoesPorCapitulo: CodexIdle.missoesPorCapitulo,
 		situacao: situacaoDoJogador(),
 		nivelQueAbre: nivelQueAbre,
-		faltamNaVarredura: _filaDaVarredura.length
+		faltamNaVarredura: _filaDaVarredura.length,
+		/*
+		 * NO CELULAR EM PE NAO HA MAPA (decisao do dono, 16/09/2026):
+		 * *"em vez da gente perder tempo fazendo um mapa e nao ficar legal,
+		 * fazer so uma lista mesmo, simples"*.
+		 *
+		 * O mapa-mundi tem 1456 px de largura e vive de distancia entre
+		 * lugares; espremido em 393 px ele vira uma miniatura ilegivel com
+		 * dezessete alvos de agulha em cima. A lista diz a MESMA coisa (ordem,
+		 * estado, quantas missoes faltam, para onde ir) num formato que ja
+		 * nasceu para tela estreita.
+		 *
+		 * Quem decide e `ehCelularEmPe()`, e nao um `matchMedia` escrito aqui:
+		 * repetir o criterio num arquivo novo e como a cicatriz do
+		 * `--hud-acima-da-doca` (D-929) comecou. Ele entra no CONTEXTO porque
+		 * `jornadaHtml.js` e fotografavel de proposito - ele nao consulta
+		 * janela nem media query, recebe tudo pronto.
+		 */
+		semMapa: ehCelularEmPe()
 	};
+}
+
+/* ------------------------------------------------------------------ */
+/* "MISSOES GERAIS" - a janela MissoesIdle integrada (16/09/2026)      */
+/* ------------------------------------------------------------------ */
+/*
+ * O DESENHO mora em `missoesGeraisHtml.js`, pelo MESMO motivo da Jornada — ver
+ * o cabecalho de la. O que fica aqui e o LACO com o jogo: o poll do estado
+ * compartilhado, o pedido de rede na entrada da aba e os cliques.
+ */
+
+/** O contexto que `missoesGeraisHtml.js` precisa. */
+function contextoDeMissoesGerais() {
+	return {
+		// `MissoesIdle.missoes` nasce `[]` (nao `null`), e um array vazio
+		// legitimo ("nenhuma missao opcional") e indistinguivel de "o pacote
+		// ainda nao respondeu" ali. `recebeuAlgumaVez` e o sinal explicito
+		// (ver a nota gemea em `MissoesIdle.js`) — so ele vira `null` aqui.
+		missoes: MissoesIdle.recebeuAlgumaVez ? MissoesIdle.missoes || [] : null,
+		execucao: MissoesIdle.execucao || null,
+		vista: CodexIdle.vistaDeMissoes,
+		subaba: CodexIdle.subabaDeMissoes,
+		missaoAberta: CodexIdle.missaoAberta
+	};
+}
+
+/**
+ * OS CLIQUES DA ABA — mesmas acoes de `MissoesIdle.js:render`, so que
+ * despachadas por `cliqueDeMissoesGerais` (`missoesGeraisHtml.js`) em vez de
+ * um listener por botao redesenhado a cada resposta (mesmo motivo do
+ * `onClickCorpo` de sempre: o corpo inteiro renasce a cada retrato).
+ */
+const GANCHOS_DE_MISSOES = {
+	abrirMissao(id) {
+		CodexIdle.vistaDeMissoes = 'missao';
+		CodexIdle.missaoAberta = id;
+		render();
+	},
+	voltarParaLista() {
+		CodexIdle.vistaDeMissoes = 'lista';
+		CodexIdle.missaoAberta = null;
+		render();
+	},
+	trocarSubaba(subaba) {
+		CodexIdle.subabaDeMissoes = subaba;
+		render();
+	},
+	// MESMO pacote e MESMA logica que `MissoesIdle.js` e
+	// `MissoesTrackerIdle.js` ja mandam — nenhum caminho novo.
+	executar(acao, id) {
+		const pkt = new PACKET.CZ.RAGIDLE_MISSAO_ACAO();
+		pkt.json = JSON.stringify(acao === 'iniciar' ? { acao, id } : { acao });
+		Network.sendPacket(pkt);
+	},
+	// MESMA viagem que a Jornada ja manda (`viajarPara`, `CZ_RAGIDLE_VIAJAR`)
+	// — a janela fecha, porque o mapa que chega por baixo dela e o motivo de
+	// ter clicado.
+	viajar(mapa) {
+		viajarPara(mapa);
+	}
+};
+
+/** O poll de 250ms (ver o cabecalho de `onAppend`): so redesenha quando a
+ * aba esta NA TELA e o dado mudou desde o ultimo desenho. */
+function renderMissoesSeMudou() {
+	const root = _root();
+	const win = root && root.querySelector('.cx-window');
+	if (!win || !win.classList.contains('is-open') || CodexIdle.aba !== 'missoes') {
+		return;
+	}
+	const assinatura = JSON.stringify([
+		MissoesIdle.execucao,
+		(MissoesIdle.missoes || []).map(m => [m.id, m.estado, m.cooldownS, m.naFila])
+	]);
+	if (assinatura === _assinaturaDeMissoes) {
+		return;
+	}
+	_assinaturaDeMissoes = assinatura;
+	render();
 }
 
 /* ------------------------------------------------------------------ */
@@ -899,7 +1089,17 @@ function cliqueDaJornada(e, alvo) {
 	const missoes = alvo.closest('.cx-jor-abrir-missoes');
 	if (missoes) {
 		e.stopImmediatePropagation();
-		MissoesIdle.toggle();
+		/*
+		 * TROCA DE ABA, e nao mais `MissoesIdle.toggle()` (16/09/2026). Antes
+		 * este botao abria uma SEGUNDA janela por cima da primeira — com a
+		 * integracao, a missao de Troca de Classe ja vive na propria aba
+		 * "Missões Gerais" desta janela, entao "abrir as missoes" virou
+		 * "trocar de aba aqui dentro".
+		 */
+		CodexIdle.aba = 'missoes';
+		lembrarAba(_preferences, 'missoes');
+		aoEntrarNaAba();
+		render();
 		return true;
 	}
 
@@ -970,8 +1170,8 @@ function abrirEntradaDoCodex(mobId) {
 	if (!Number.isFinite(mobId)) {
 		return;
 	}
-	CodexIdle.aba = 'missoes';
-	lembrarAba(_preferences, 'missoes');
+	CodexIdle.aba = 'codex';
+	lembrarAba(_preferences, 'codex');
 	render();
 
 	const root = _root();
