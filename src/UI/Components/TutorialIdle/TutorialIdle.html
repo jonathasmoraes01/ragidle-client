@@ -1,0 +1,52 @@
+<div id="TutorialIdle">
+	<!-- A CAMADA. Nasce fechada (`display:none` pelo CSS) e so o
+	     ZC_RAGIDLE_TUTORIAL com estado "em-andamento" liga o `.is-open` -
+	     mesma forma das nove janelas Idle, e a mesma que a pilha de janelas
+	     do ESC ja sabe ler. -->
+	<div class="tu-camada">
+		<!-- ═══ 1. A MASCARA: quatro retangulos em volta do furo.
+		     Eles sao os UNICOS elementos com `pointer-events:auto` aqui: e por
+		     isso que o caminho errado fica desligado e o certo continua
+		     clicavel (o furo e espaco vazio, nao ha nada meu sobre o alvo).
+		     A ordem topo/baixo/esquerda/direita e a mesma de
+		     `retangulosDaMascara()`. -->
+		<div class="tu-veu" data-veu="0"></div>
+		<div class="tu-veu" data-veu="1"></div>
+		<div class="tu-veu" data-veu="2"></div>
+		<div class="tu-veu" data-veu="3"></div>
+
+		<!-- ═══ 2. O REALCE: o anel que segue a boca do furo. E ele que devolve
+		     o canto arredondado que os quatro retangulos nao tem, e o brilho
+		     que a gravacao mostra em volta do alvo. Nunca recebe ponteiro. -->
+		<div class="tu-anel" aria-hidden="true"></div>
+
+		<!-- ═══ 3. A MAO: arte do proprio jogo (quadro 0 da acao CLICK de
+		     `data/sprite/cursors.spr`, servida por CursorManager). O `<img>`
+		     nasce sem `src`: quem o preenche e o JS, com o blob que o
+		     CursorManager ja rasterizou. Se o cursor nao carregou, o JS troca
+		     por `.tu-mao-reserva` (o glifo `setaCima` do design system). -->
+		<div class="tu-mao" aria-hidden="true">
+			<img class="tu-mao-img" alt="" />
+			<!-- A reserva sao DUAS setas, e nao uma: a mao do jogo aponta para
+			     cima e a esquerda e a camada a espelha quando falta espaco, entao
+			     uma seta so estaria apontando ao contrario em metade das etapas.
+			     Quem escolhe e o CSS, pela mesma classe de espelho. -->
+			<span class="tu-mao-reserva tu-seta-cima"><!--RI_ICONE:setaCima--></span>
+			<span class="tu-mao-reserva tu-seta-baixo"><!--RI_ICONE:setaBaixo--></span>
+		</div>
+
+		<!-- ═══ 4. O BALAO. Duas casas declaradas (`is-baixo` / `is-cima`),
+		     nunca uma terceira. Traz quem fala, a frase curta e o
+		     "Pular tutorial", que fica SEMPRE visivel. -->
+		<div class="tu-balao is-baixo" role="dialog" aria-live="polite" aria-label="Tutorial">
+			<div class="tu-balao-topo">
+				<span class="tu-quem"></span>
+				<span class="tu-passo"></span>
+			</div>
+			<p class="tu-frase"></p>
+			<div class="tu-rodape">
+				<button type="button" class="tu-pular ri-btn ri-btn--sec">Pular tutorial</button>
+			</div>
+		</div>
+	</div>
+</div>

@@ -17,6 +17,7 @@ import Session from 'Engine/SessionStorage.js';
 import Camera from 'Renderer/Camera.js';
 import _vertexShader from './MagicTarget.vs?raw';
 import _fragmentShader from './MagicTarget.fs?raw';
+import { carregarAreasDeSkill, diametroDoCirculo } from 'DB/Skills/areasDeSkill.js';
 
 // Load dependencies
 /**
@@ -159,14 +160,22 @@ class MagicTarget {
 		this.y = y;
 
 		//A hacky way to read the last skill level and ring size. The official client does the same thing, unless they add a packet that tells the skill level directly.
-		if (CastSize[id]) {
-			if (
-				Session.Entity == srcEntity &&
-				id == Session.Entity.lastSKID &&
-				Session.Entity.lastSkLvl &&
-				CastSize[id].length >= Session.Entity.lastSkLvl
-			) {
-				this.size = CastSize[id][Session.Entity.lastSkLvl - 1] || 1;
+		const nivelConhecido =
+			Session.Entity == srcEntity && id == Session.Entity.lastSKID && Session.Entity.lastSkLvl
+				? Session.Entity.lastSkLvl
+				: undefined;
+		/*
+		 * O TAMANHO DO NOSSO SERVIDOR PRIMEIRO (13/09/2026). A tabela `CastSize`
+		 * acima e a do servidor oficial, e o nosso dobra a area das skills (ajuste
+		 * do dono de 31/08): o circulo mostrava uma area menor que a do dano. Ver
+		 * `DB/Skills/areasDeSkill.js`. Sem o arquivo publicado, a tabela antiga.
+		 */
+		const doServidor = diametroDoCirculo(id, nivelConhecido);
+		if (doServidor !== null) {
+			this.size = doServidor;
+		} else if (CastSize[id]) {
+			if (nivelConhecido && CastSize[id].length >= nivelConhecido) {
+				this.size = CastSize[id][nivelConhecido - 1] || 1;
 			} else {
 				this.size = CastSize[id][0] || 1;
 			}
@@ -228,6 +237,9 @@ class MagicTarget {
 	 * @param {object} webgl context
 	 */
 	static init(gl) {
+		// A tabela do servidor chega antes da primeira conjuracao na pratica; se
+		// nao chegar, o circulo usa a `CastSize` ate ela chegar.
+		carregarAreasDeSkill();
 		_program = WebGL.createShaderProgram(gl, _vertexShader, _fragmentShader);
 
 		Client.loadFile('data/texture/effect/magic_target.tga', buffer => {

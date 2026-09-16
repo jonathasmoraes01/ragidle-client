@@ -172,8 +172,22 @@ export function resumoDaSecao(id, cfg, ctx) {
 			return `${marcadas}/${mobs.length} presas`;
 		}
 		case 'ataque': {
-			const n = (cfg.rotacao || []).length;
-			const base = n ? `${n} ${n === 1 ? 'golpe' : 'golpes'}` : 'só o básico';
+			const rotacao = cfg.rotacao || [];
+			// A mesma quebra ataque/debuff da lista (D-1481, 16/09/2026):
+			// o resumo do trilho dizia só "N golpes" e escondia que parte
+			// deles são debuffs — pedido do dono ao ver a aba sem essa
+			// contagem, do mesmo jeito que Suporte já quebra buff/cura.
+			const debuffIds = new Set((contexto.skillsAtivas || []).filter(s => s.ehDebuff).map(s => s.skillId));
+			const debuffs = rotacao.filter(r => debuffIds.has(r.skillId)).length;
+			const ataques = rotacao.length - debuffs;
+			const partes = [];
+			if (ataques) {
+				partes.push(`${ataques} ${ataques === 1 ? 'ataque' : 'ataques'}`);
+			}
+			if (debuffs) {
+				partes.push(`${debuffs} ${debuffs === 1 ? 'debuff' : 'debuffs'}`);
+			}
+			const base = partes.length ? partes.join(' · ') : 'só o básico';
 			return cfg.modoDeAtaque === 'apenas-skills' ? `${base} · sem básico` : base;
 		}
 		case 'suporte': {

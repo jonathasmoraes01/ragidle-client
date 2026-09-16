@@ -5,14 +5,34 @@
 			     PasseIdle: e a primeira coisa que o jogador confere antes de
 			     decidir onde gastar, e no rodape ficaria ABAIXO dos botoes que o
 			     consomem. Absoluto a esquerda, espelhando o ".ri-close" a
-			     direita — assim o titulo continua centrado como em toda outra
+			     direita - assim o titulo continua centrado como em toda outra
 			     janela do sistema. -->
 			<span class="cx-saldo" title="Pontos do Codex que voce ainda nao gastou">
 				<span class="cx-saldo-valor">0</span>
 				<span class="cx-saldo-unidade">pontos</span>
 			</span>
-			<span class="cx-title ri-title">Codex</span>
+			<span class="cx-title ri-title">Codex &amp; Missões</span>
 			<button type="button" class="cx-close ri-close" title="Fechar">&times;</button>
+		</div>
+
+		<!-- AS TRES ABAS (08/09, +1 em 16/09, RECONSOLIDADAS em 16/09/2026 -
+		     ordem do dono). "Codex & Missões" volta a ser UMA aba so: o merge
+		     com origin/master tinha trazido a divisao independente da outra
+		     frente em "Missões" (bestiario) + "Status" (os sete eixos), e o
+		     dono pediu para desfazer - as missoes do bestiario, onde os pontos
+		     nascem, e os sete eixos, onde eles se gastam, voltam a empilhar na
+		     mesma rolagem, como era antes do split. "Missões Gerais" e a
+		     janela MissoesIdle INTEGRADA aqui (16/09/2026), com o mesmo visual
+		     de linha da Jornada. A Jornada nao e uma segunda secao rolando
+		     abaixo dos sete eixos: ela tem tres telas proprias e pede um
+		     pacote por capitulo. O racional das tres esta no cabecalho de
+		     CodexIdle.js e de missoesGeraisHtml.js. Aba e o interruptor que
+		     nao custa nada a quem so quer gastar um ponto, e o
+		     `memoriaDeAba.js` faz o jogador voltar onde estava. -->
+		<div class="cx-tabs">
+			<button type="button" class="cx-tab ri-tab is-active" data-aba="codex">Codex &amp; Missões</button>
+			<button type="button" class="cx-tab ri-tab" data-aba="missoes">Missões Gerais</button>
+			<button type="button" class="cx-tab ri-tab" data-aba="jornada">Missões do Códex</button>
 		</div>
 
 		<div class="cx-body ri-scroll">

@@ -104,10 +104,30 @@ describe('os resumos do trilho', () => {
 	});
 
 	it('Ataque conta os golpes e marca o modo sem básico', () => {
-		expect(resumoDaSecao('ataque', CFG, CTX)).toBe('2 golpes');
+		// 16/09/2026 (D-1481): "N golpes" virou "N ataques" para poder somar
+		// "· M debuffs" ao lado, sem os dois lados soarem como sinônimo.
+		expect(resumoDaSecao('ataque', CFG, CTX)).toBe('2 ataques');
 		expect(resumoDaSecao('ataque', { ...CFG, rotacao: [] }, CTX)).toBe('só o básico');
 		expect(resumoDaSecao('ataque', { ...CFG, rotacao: [CFG.rotacao[0]], modoDeAtaque: 'apenas-skills' }, CTX)).toBe(
-			'1 golpe · sem básico'
+			'1 ataque · sem básico'
+		);
+	});
+
+	it('Ataque separa debuff de ataque de verdade na contagem (D-1481, 16/09/2026)', () => {
+		// A janela usa `ehDebuff` do contexto (o mesmo campo do servidor,
+		// `balde-da-habilidade.ts`) — nunca o nome da skill.
+		const ctxComDebuff = {
+			...CTX,
+			skillsAtivas: [
+				{ skillId: 'MG_FIREBOLT', nome: 'Fogo Fátuo', aprendido: 3, ehDebuff: false },
+				{ skillId: 'HT_LANDMINE', nome: 'Mina Terrestre', aprendido: 1, ehDebuff: true }
+			]
+		};
+		const cfgComDebuff = { ...CFG, rotacao: [CFG.rotacao[1], { skillId: 'HT_LANDMINE', nivelDeUso: 1 }] };
+		expect(resumoDaSecao('ataque', cfgComDebuff, ctxComDebuff)).toBe('1 ataque · 1 debuff');
+		// So debuffs, sem ataque de dano direto nenhum na ordem:
+		expect(resumoDaSecao('ataque', { ...cfgComDebuff, rotacao: [cfgComDebuff.rotacao[1]] }, ctxComDebuff)).toBe(
+			'1 debuff'
 		);
 	});
 

@@ -432,10 +432,84 @@ IdleConfig.toggle = function toggle() {
 		win.classList.add('is-open');
 		ligarInstalar();
 		sincronizarInstalar();
+		ligarRetomarTutorial();
+		sincronizarRetomarTutorial();
 		IdleConfig.focus();
 		requestConfig();
 	}
 };
+
+/**
+ * O componente do tutorial, SE ele existir.
+ *
+ * Por REGISTRO e nao por `import`, e a razao e medida: `TutorialIdle` puxa o
+ * `CursorManager` e o `MapRenderer` (ele precisa da mao do jogo e do nome do
+ * mapa), e esses dois puxam o `SpriteRenderer`, que pede um contexto 2D de
+ * canvas na hora do import. Um `import` aqui derrubou TRES arquivos de teste
+ * desta janela (24 casos) em jsdom, sem que nada nesta janela tivesse mudado.
+ *
+ * Devolve `null` quando o tutorial nao esta carregado (fora do mapa, ou num
+ * teste que so monta a Configuracao). A linha simplesmente nao aparece.
+ */
+function tutorialIdle() {
+	try {
+		return UIManager.getComponent('TutorialIdle');
+	} catch (_erro) {
+		return null;
+	}
+}
+
+/*
+ * ─── RETOMAR O TUTORIAL PELA AJUDA ────────────────────────────────────
+ *
+ * O tutorial guiado (frente D da Jornada de Midgard) pode ser pulado a
+ * qualquer etapa, e um jogador que pulou sem querer nao pode ficar sem
+ * caminho de volta. A porta e esta linha, e ela mora aqui pelo mesmo
+ * criterio que trouxe o Idle para o cluster do menu: e o painel que se abre
+ * ENTRE uma coisa e outra, e nao um destino ocasional.
+ *
+ * O estado vem do SERVIDOR (`TutorialIdle.estado`), como todo o resto do
+ * tutorial. A linha nao inventa nada: se o retrato ainda nao chegou, ela
+ * simplesmente nao aparece.
+ */
+function sincronizarRetomarTutorial() {
+	const root = _root();
+	const linha = root && root.querySelector('.ic-tutorial');
+	if (!linha) return;
+
+	const tutorial = tutorialIdle();
+	const estado = tutorial && tutorial.estado;
+	/* Sem retrato, nao ha o que dizer. E com o tutorial JA na tela, a linha
+	   sairia oferecendo o que o jogador esta fazendo neste instante. */
+	const mostrar = !!estado && estado.estado !== 'em-andamento' && estado.estado !== 'nao-iniciado';
+	linha.hidden = !mostrar;
+	if (!mostrar) return;
+
+	const sub = linha.querySelector('.ic-tutorial-sub');
+	if (sub) {
+		sub.textContent =
+			estado.estado === 'pulado'
+				? 'Você pulou a apresentação. Dá para vê-la de novo quando quiser.'
+				: 'Você já terminou. Dá para rever os passos quando quiser.';
+	}
+}
+
+function ligarRetomarTutorial() {
+	const root = _root();
+	const botao = root && root.querySelector('.ic-tutorial-btn');
+	if (!botao || botao.__ligado) return;
+	botao.__ligado = true;
+	botao.addEventListener('click', e => {
+		e.stopImmediatePropagation();
+		/* Quem retoma e o SERVIDOR: o cliente pede e o proximo retrato traz a
+		   etapa. Fechar o painel aqui e o que tira a janela de cima do primeiro
+		   controle que o tutorial vai apontar. */
+		const tutorial = tutorialIdle();
+		if (!tutorial) return;
+		tutorial.retomar();
+		closeWindow();
+	});
+}
 
 function closeWindow() {
 	const root = _root();
@@ -1260,6 +1334,11 @@ function renderAtaque() {
 	const passivas = ctx.skillsPassivas || [];
 	const rotacao = cfg.rotacao || [];
 	const curas = new Set((ctx.skillsDeCura || []).map(s => s.skillId));
+	// A SUBSECAO DEBUFF (16/09/2026, ESPECIFICACAO_MENU_IDLE_INTELIGENTE.md
+	// §1/§4): MESMA lista de ataque, MESMA ordem de golpes — so a etiqueta que
+	// diz "isto aplica algo no inimigo, e nao e dano direto" (o servidor ja
+	// separa por efeito real em `ehDebuff`, e nao por nome/alvo da skill).
+	const debuffs = new Set(ativas.filter(s => s.ehDebuff).map(s => s.skillId));
 
 	let ordem;
 	if (!ativas.length) {
@@ -1276,6 +1355,7 @@ function renderAtaque() {
 					<span class="ic-rot-tags">
 						<span class="ri-badge ri-badge--azul">Nv ${r.nivelDeUso}</span>
 						${curas.has(r.skillId) ? '<span class="ri-badge ri-badge--verde" title="O limiar e o alvo desta cura se ajustam na seção Suporte">cura · ajuste em Suporte</span>' : ''}
+						${debuffs.has(r.skillId) ? '<span class="ri-badge ri-badge--vermelho" title="Aplica algo negativo no inimigo — não é dano direto">Debuff</span>' : ''}
 					</span>
 				</span>
 				<span class="ic-rot-actions">
@@ -1297,17 +1377,20 @@ function renderAtaque() {
 		} else if (!livres.length) {
 			adicionar = '<div class="ic-note">Todas as habilidades disponíveis já estão na ordem.</div>';
 		} else {
+			// Agrupado por Ataques/Debuffs (D-1481, 16/09/2026) para achar mais
+			// rápido — a ORDEM continua sendo uma lista só (as duas disputam as
+			// mesmas 3 vagas no motor), o agrupamento é só para escolher.
+			const opcao = s =>
+				`<option value="${escapeHtml(s.skillId)}">${escapeHtml(s.nome || s.skillId)} (Nv ${s.aprendido})${
+					curas.has(s.skillId) ? ' — cura' : ''
+				}</option>`;
+			const livresAtaque = livres.filter(s => !debuffs.has(s.skillId));
+			const livresDebuff = livres.filter(s => debuffs.has(s.skillId));
 			adicionar = `
 				<select class="ic-add-skill" data-action="skill-add">
 					<option value="">+ Pôr uma habilidade na ordem</option>
-					${livres
-						.map(
-							s =>
-								`<option value="${escapeHtml(s.skillId)}">${escapeHtml(s.nome || s.skillId)} (Nv ${s.aprendido})${
-									curas.has(s.skillId) ? ' — cura' : ''
-								}</option>`
-						)
-						.join('')}
+					${livresAtaque.length ? `<optgroup label="Ataques">${livresAtaque.map(opcao).join('')}</optgroup>` : ''}
+					${livresDebuff.length ? `<optgroup label="Debuffs">${livresDebuff.map(opcao).join('')}</optgroup>` : ''}
 				</select>`;
 		}
 

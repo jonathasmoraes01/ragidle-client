@@ -1200,6 +1200,49 @@
 	display: none;
 }
 
+/* RETOMAR O TUTORIAL (frente D da Jornada). Mesma receita da linha de
+   instalar acima, sem inventar um segundo desenho para a mesma forma: aro
+   dourado, fundo de poco, texto a esquerda e um botao de 44px a direita.
+   Ela tambem nasce `hidden` e pelo mesmo motivo. */
+#IdleConfig .ic-tutorial {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	margin: 0 var(--sp-6) var(--sp-4);
+	padding: 10px 12px;
+	border: 1px solid var(--border-gold);
+	border-radius: var(--radius-panel);
+	background: var(--surface-inset);
+}
+
+#IdleConfig .ic-tutorial[hidden] {
+	display: none;
+}
+
+#IdleConfig .ic-tutorial-texto {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	flex: 1 1 auto;
+	min-width: 0;
+}
+
+#IdleConfig .ic-tutorial-titulo {
+	font-size: var(--fs-body);
+	color: var(--text-body);
+}
+
+#IdleConfig .ic-tutorial-sub {
+	font-size: var(--fs-info);
+	color: var(--text-muted);
+}
+
+#IdleConfig .ic-tutorial-btn {
+	flex: 0 0 auto;
+	min-height: var(--hit-touch, 44px);
+	padding: 0 16px;
+}
+
 /* 08/09/2026: um bloco por habilidade de cura (interruptor + alvo proprios) */
 .ic-cura-item { padding: 4px 0 6px; border-top: 1px solid rgba(255, 255, 255, 0.06); }
 .ic-cura-item:first-of-type { border-top: 0; }

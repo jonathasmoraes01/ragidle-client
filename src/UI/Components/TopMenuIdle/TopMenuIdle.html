@@ -342,13 +342,13 @@
 				     e o cliente oficial nao tem candidato em ro_menu_icon para uma
 				     mecanica que e NOSSA (ver a nota da chave em ri-icones.js,
 				     que declara o parentesco com o icone de skills). -->
-				<button type="button" class="tm-item" data-action="codex" title="Codex">
+				<button type="button" class="tm-item" data-action="codex" title="Codex &amp; Missões">
 					<span class="tm-icon-wrap ri-disc"><!--RI_ICONE:codex--></span>
 					<!-- Ponto de "ha objetivo esperando voce" — a MESMA receita
 					     ".ri-dot" do Correio e das Skills (D-1232). O design system
 					     tem UM indicador de notificacao, e este e ele. -->
 					<span class="ri-dot" style="display: none"></span>
-					<span class="tm-label">Codex</span>
+					<span class="tm-label">Codex &amp; Missões</span>
 				</button>
 				<!-- RAGIDLE (D-1162): a presença mensal — a janela que abre sozinha
 				     1x por dia e à meia-noite; aqui fica o caminho manual. -->
@@ -367,26 +367,49 @@
 					<span class="tm-label">Indique</span>
 				</button>
 
-				<!-- MISSOES (D-551) -- 06/09/2026: DESCEU do cluster para o leque, em
-				     troca com o Recompensas (pedido do dono). Ele subiu para o
-				     cluster em 24/08/2026 com o argumento de que a primeira missao
-				     principal e o momento-chave do early game; o que o argumento nao
-				     considerava e que quem acompanha a missao de toda hora e o
-				     RASTREADOR (MissoesTrackerIdle, D-601), sempre visivel abaixo do
-				     painel do personagem. A JANELA e destino ocasional -- abre-se
-				     para escolher a proxima missao e fecha -- que e exatamente o
-				     criterio do leque.
+				<!-- MISSOES (D-551) -- REMOVIDO do leque em 16/09/2026, pedido do
+				     dono. A janela `MissoesIdle` continua existindo (ver o
+				     cabecalho de `missoesGeraisHtml.js`: MapEngine, MissoesTrackerIdle,
+				     LFGIdle, PasseIdle e ChatBox ainda leem o estado dela), mas o
+				     unico CAMINHO ATE ELA agora e a aba "Missões Gerais" dentro do
+				     "Codex & Missões" -- ter duas portas para a mesma tela era
+				     exatamente a duplicacao que a integracao de 16/09 (mais acima,
+				     ver `missoesGeraisHtml.js`) tentava evitar, e o icone sozinho
+				     aqui continuava desfazendo isso. Historico do icone (06/09,
+				     24/08) fica em `git log` deste arquivo, e nao repetido aqui.
 
-				     Ele fica com os FUNCIONAIS, ANTES do bloco "em breve": e a ordem
-				     canonica declarada no cabecalho deste arquivo (quem POE cada
-				     item na sua coluna e distribuirColunas(), no JS -- com 10
-				     visiveis ele cai como ultimo item da coluna da esquerda).
+				     ESTE BOTAO SAIU DUAS VEZES NO MESMO DIA: a integracao "Codex &
+				     Missões" o removeu, um revert (258f84a2, 16/09/2026 15:23) o
+				     trouxe de volta, e o revert-do-revert (16/09/2026, pedido do
+				     dono: "trazer de volta") o tira de novo -- a justificativa
+				     desta vez e a mesma da primeira remocao, que voltou a valer. -->
 
-				     A janela nao mudou: o mesmo MissoesIdle.toggle(), que PEDE o
-				     estado ao servidor (0x0fec) ao abrir. -->
-				<button type="button" class="tm-item" data-action="missoes" title="Missões">
-					<span class="tm-icon-wrap ri-disc"><!--RI_ICONE:missoes--></span>
-					<span class="tm-label">Missões</span>
+				<!-- REORGANIZACAO DO LEQUE (16/09/2026, pedido do dono: "precisa
+				     organizar esse menu"). RO Shop e Configuracoes MUDARAM DE
+				     POSICAO NO DOCUMENTO -- so isso, nenhum "data-action", pacote
+				     ou janela mudou. Ate aqui o leque misturava funcional e "em
+				     breve" na coluna B (Loja/em-breve, RO Shop/funcional,
+				     Troca+Leilao+Eventos/em-breve, Configuracoes/funcional),
+				     contrariando a propria ordem canonica que o cabecalho deste
+				     arquivo descreve ("funcionais primeiro... em breve por
+				     ultimo, nunca misturado"). Os dois funcionais vieram para
+				     perto dos outros funcionais (Social -> Progressao ->
+				     RO Shop/Configuracoes), e o bloco "em breve" (mais abaixo)
+				     fica inteiro e sozinho no fim: Loja, Troca, Leilao, Eventos.
+				     (Missões nao mora mais aqui: voltou a ser aba dentro do
+				     "Codex & Missões" no revert-do-revert de 16/09/2026.) -->
+				<button type="button" class="tm-item" data-action="roshop" title="RO Shop">
+					<span class="tm-icon-wrap ri-disc"><!--RI_ICONE:roshop--></span>
+					<span class="tm-label">RO Shop</span>
+				</button>
+
+				<!-- CONFIGURACOES DO JOGO (D-1479) — trazida para perto dos
+				     outros funcionais na mesma reorganizacao acima. Continua
+				     sendo o MESMO item (video, audio, atalhos, sair), so mudou
+				     de vizinho. -->
+				<button type="button" class="tm-item" data-action="sistema" title="Configurações do jogo — vídeo, áudio, atalhos e sair">
+					<span class="tm-icon-wrap ri-disc"><!--RI_ICONE:sistema--></span>
+					<span class="tm-label">Configurações</span>
 				</button>
 
 				<!-- ─── Em breve: a funcao NAO existe no jogo hoje (ver cabecalho de
@@ -406,22 +429,6 @@
 				<button type="button" class="tm-item tm-item--em-breve" data-action="loja" data-em-breve="1" title="Loja — em breve" aria-disabled="true">
 					<span class="tm-icon-wrap ri-disc"><!--RI_ICONE:loja--></span>
 					<span class="tm-label">Loja</span>
-				</button>
-
-				<!-- RO SHOP LIGADO (I5, 31/08/2026 — pedido do dono: "mudar o
-				     botao atual da loja de cash para o RO Shop").
-
-				     Ele ja existia aqui como "em breve", desabilitado, enquanto
-				     a loja de cash era um ICONE BMP SOLTO flutuando ao lado do
-				     minimapa (CashShopIcon, 43x45, sem rotulo). O pedido junta
-				     as duas pontas: o item rotulado do menu passa a ser a porta
-				     da loja, e o icone solto se aposenta.
-
-				     A janela e a MESMA de sempre — a `CashShop` nativa do
-				     roBrowser, que o icone solto ja abria. Nao ha janela nova. -->
-				<button type="button" class="tm-item" data-action="roshop" title="RO Shop">
-					<span class="tm-icon-wrap ri-disc"><!--RI_ICONE:roshop--></span>
-					<span class="tm-label">RO Shop</span>
 				</button>
 			</div>
 
@@ -454,32 +461,6 @@
 				<button type="button" class="tm-item tm-item--em-breve" data-action="eventos" data-em-breve="1" title="Eventos — em breve" aria-disabled="true">
 					<span class="tm-icon-wrap ri-disc"><!--RI_ICONE:eventos--></span>
 					<span class="tm-label">Eventos</span>
-				</button>
-
-				<!-- CONFIGURACOES DO JOGO (D-1479, 15/09/2026 — pedido do dono).
-
-				     A janela de sistema do cliente (video, audio, atalho, trocar
-				     personagem, fechar jogo). Ela existe e funciona desde
-				     sempre; o que faltava era PORTA — a fusao "Config + Menu"
-				     deixou escrito no cabecalho do .js que ela "perdeu a porta
-				     de mouse e ficou so na TECLA ESC", e celular nao tem ESC.
-
-				     NASCEU COMO LINHA LARGA NO RODAPE E ESTAVA ERRADO (relato do
-				     dono, com foto: "nao esta clicavel, nao esta responsivo").
-				     Ela ficava FORA das duas colunas, solta ao lado do toast e
-				     do "Instalar app" — sem a grade, sem o alvo tatil e sem o
-				     despachante de clique que todo `.tm-item` ganha de graca.
-				     Aqui dentro da coluna ela e um item como os outros 22, e a
-				     clicabilidade deixa de ser uma regra propria para ser a
-				     mesma de todo mundo.
-
-				     ICONE PROPRIO (`sistema`, controles deslizantes) e nao o
-				     `config`: a ENGRENAGEM e do idle ([DONO-4]), e dois itens
-				     com a mesma cara no mesmo leque obrigariam a ler o rotulo
-				     para distinguir. -->
-				<button type="button" class="tm-item" data-action="sistema" title="Configurações do jogo — vídeo, áudio, atalhos e sair">
-					<span class="tm-icon-wrap ri-disc"><!--RI_ICONE:sistema--></span>
-					<span class="tm-label">Configurações</span>
 				</button>
 			</div>
 

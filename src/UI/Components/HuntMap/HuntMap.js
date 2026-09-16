@@ -759,6 +759,24 @@ function onCatalogReceived(pkt) {
 		}
 	}
 
+	/*
+	 * RAGIDLE (08/09/2026): QUEM MAIS ESPERA O CATALOGO.
+	 *
+	 * A Jornada de Midgard (aba "Missoes do Codex", CodexIdle.js) le
+	 * `nivelQueAbre` daqui para dizer POR QUE a viagem nao vai sair - o
+	 * servidor recusa em silencio o mapa acima do nivel, e um botao que nao
+	 * faz nada parece defeito. O aviso fica ANTES dos returns antecipados de
+	 * baixo pelo mesmo motivo que a `viagemPendente` foi movida para cima em
+	 * 27/08: quem espera nao pode ficar esperando por uma corrida.
+	 */
+	for (const ouvinte of _ouvintesDoCatalogo) {
+		try {
+			ouvinte(data);
+		} catch (err) {
+			console.error('[HuntMap] ouvinte do catalogo lancou', err);
+		}
+	}
+
 	// RAGIDLE: HuntMap.travelToCity() asked for this catalog just to learn
 	// catalog.cidade.mapa, not to open the window — finish that trip now and
 	// skip the normal render (the window stays closed the whole time).
@@ -1645,6 +1663,42 @@ HuntMap.travelToCity = function travelToCity() {
 	}
 	_pendingAutoTravel = true;
 	requestCatalog();
+};
+
+/* ------------------------------------------------------------------ */
+/* O CATALOGO PARA QUEM NAO E ESTA JANELA (08/09/2026)                 */
+/* ------------------------------------------------------------------ */
+/*
+ * O `ZC_RAGIDLE_CATALOGO` tem UM dono, e e este arquivo: `Network.hookPacket`
+ * e atribuicao simples, entao um segundo gancho no mesmo opcode SUBSTITUI o
+ * primeiro em silencio (a cicatriz esta em Engine/MapEngine/RagidleCash.js).
+ * Quem precisar do catalogo pergunta aqui, em vez de enganchar de novo.
+ */
+
+/** Quem quer saber quando o catalogo chegar (a Jornada, hoje). */
+const _ouvintesDoCatalogo = [];
+
+/** O registro de um mapa no catalogo, ou `null` se ele ainda nao chegou. */
+HuntMap.mapaDoCatalogo = function mapaDoCatalogo(nome) {
+	if (!nome || !HuntMap.catalog || !Array.isArray(HuntMap.catalog.mapas)) {
+		return null;
+	}
+	return HuntMap.catalog.mapas.find(m => m && m.mapa === nome) || null;
+};
+
+/** Pede o catalogo SO se ele ainda nao veio - a janela nem precisa abrir. */
+HuntMap.pedirCatalogoSeFaltar = function pedirCatalogoSeFaltar() {
+	if (HuntMap.catalog) {
+		return;
+	}
+	requestCatalog();
+};
+
+/** Avisa quando um catalogo novo entrar. Chamada uma vez, na carga do modulo. */
+HuntMap.aoChegarCatalogo = function aoChegarCatalogo(ouvinte) {
+	if (typeof ouvinte === 'function' && _ouvintesDoCatalogo.indexOf(ouvinte) === -1) {
+		_ouvintesDoCatalogo.push(ouvinte);
+	}
 };
 
 Network.hookPacket(PACKET.ZC.RAGIDLE_CATALOGO, onCatalogReceived);
