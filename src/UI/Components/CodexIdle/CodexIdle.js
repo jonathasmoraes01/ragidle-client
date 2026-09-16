@@ -199,6 +199,14 @@ let _capituloEmVoo = null;
 let _filaDaVarredura = [];
 
 /**
+ * O ACUMULO DE PAGINAS (16/09/2026) - o capitulo mais pesado (Prontera) nao
+ * cabe num pacote so, e o servidor manda `parte`/`partes` (`enviarCodex`,
+ * servidor-mapa.ts), do MESMO jeito que `HuntMap.js:onCatalogReceived` ja
+ * acumula o catalogo (D-1134). `null` entre uma sequencia de paginas e outra.
+ */
+let _codexParcial = null;
+
+/**
  * A ASSINATURA de `MissoesIdle.missoes`/`.execucao` NO ULTIMO REDESENHO desta
  * aba — mesmo idioma de `MissoesTrackerIdle.js:renderSeMudou`. `null` de
  * proposito (nao `''`) para o primeiro poll SEMPRE redesenhar, mesmo se o
@@ -1226,6 +1234,27 @@ function onCodexRecebido(pkt) {
 	if (!dados || dados.v !== 1) {
 		return;
 	}
+
+	// AS MISSOES DA JORNADA PODEM VIR EM VARIAS PAGINAS (16/09/2026): o
+	// capitulo mais pesado nao cabe num pacote so, e o servidor manda
+	// `parte`/`partes` - acumula `jornada.missoes` ate a ultima parte, do
+	// mesmo jeito que `HuntMap.js:onCatalogReceived` ja acumula `mapas`.
+	if (dados.partes && dados.partes > 1) {
+		if (dados.parte === 1 || !_codexParcial || _codexParcial.partes !== dados.partes) {
+			_codexParcial = Object.assign({}, dados, {
+				jornada: dados.jornada ? Object.assign({}, dados.jornada, { missoes: [] }) : dados.jornada,
+			});
+		}
+		if (dados.jornada && Array.isArray(dados.jornada.missoes)) {
+			_codexParcial.jornada.missoes = _codexParcial.jornada.missoes.concat(dados.jornada.missoes);
+		}
+		if (dados.parte < dados.partes) {
+			return;
+		}
+		dados = _codexParcial;
+		_codexParcial = null;
+	}
+
 	CodexIdle.estado = dados;
 	acumularMissoesDaJornada(dados);
 	render();

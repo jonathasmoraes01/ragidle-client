@@ -81,6 +81,7 @@ import BoasVindasIdle from 'UI/Components/BoasVindasIdle/BoasVindasIdle.js';
 import Inventory from 'UI/Components/Inventory/Inventory.js';
 import ItemType from 'DB/Items/ItemType.js';
 import { ler as lerRegistroDaCaca } from 'UI/Components/HuntAnalyzer/registroDaCaca.js';
+import { fecharEEsquecer } from '../limpezaDeJanelaIdle.js';
 import htmlText from './TutorialIdle.html?raw';
 import cssText from './TutorialIdle.css?raw';
 import {
@@ -208,11 +209,12 @@ TutorialIdle.limparEstadoDoPersonagem = function limparEstadoDoPersonagem() {
 	_marco = null;
 	_comecoPedido = false;
 	desobservar();
-	const root = _root();
-	const camada = root && root.querySelector('.tu-camada');
-	if (camada) {
-		camada.classList.remove('is-open');
-	}
+	/*
+	 * ZERAR O DADO NAO BASTA: `GUIComponent.remove()` so DESANEXA o host,
+	 * entao o shadow DOM (com `is-open` e o HTML do personagem anterior)
+	 * atravessa a troca. Ver `UI/Components/limpezaDeJanelaIdle.js`.
+	 */
+	fecharEEsquecer(_root(), '.tu-camada');
 };
 
 /* ------------------------------------------------------------------ */
