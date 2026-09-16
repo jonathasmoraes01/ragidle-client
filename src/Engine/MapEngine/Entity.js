@@ -1725,6 +1725,13 @@ function onEntityUseSkillToAttack(pkt) {
 	const srcEntity = EntityManager.get(pkt.AID);
 	const dstEntity = EntityManager.get(pkt.targetID);
 	let srcWeapon;
+	// Quem golpeou e uma unidade de chao desenhada como entidade (ver a guarda do
+	// `spamSkill`, no fim desta funcao).
+	const origemEhUnidadeDeChao =
+		!!srcEntity &&
+		(srcEntity.objecttype === Entity.TYPE_EFFECT ||
+			srcEntity.objecttype === Entity.TYPE_UNIT ||
+			srcEntity.objecttype === Entity.TYPE_TRAP);
 
 	if (srcEntity) {
 		pkt.attackMT = Math.min(9999, pkt.attackMT); // FIXME: cap value ?
@@ -1757,8 +1764,12 @@ function onEntityUseSkillToAttack(pkt) {
 			srcEntity.dialog.set(nomeDaHabilidadeParaOJogador(pkt.SKID) + ' !!');
 		}
 
-		//Action handling
-		if (srcEntity.action !== srcEntity.ACTION.DIE && srcEntity.action !== srcEntity.ACTION.SIT) {
+		//Action handling (a unidade de chao nao tem pose de golpe)
+		if (
+			!origemEhUnidadeDeChao &&
+			srcEntity.action !== srcEntity.ACTION.DIE &&
+			srcEntity.action !== srcEntity.ACTION.SIT
+		) {
 			if (pkt.SKID in SkillActionTable) {
 				const action = SkillActionTable[pkt.SKID];
 				if (action) {
@@ -1880,7 +1891,19 @@ function onEntityUseSkillToAttack(pkt) {
 		}
 	}
 
-	if (srcEntity && dstEntity && pkt.action != SkillAction.SPLASH) {
+	/*
+	 * O GOLPE DE UNIDADE DE CHAO NAO REDESENHA A HABILIDADE (14/09/2026, relato do
+	 * dono: "quando a nevasca pega em 3 mobs, aparecem 3 nevascas").
+	 *
+	 * No tique de uma area o servidor manda a UNIDADE como quem golpeia, como o
+	 * emulador (skill.cpp:3141). Quando a unidade nao e entidade aqui (a Nevasca,
+	 * o Meteoro, o Thunder Storm), `srcEntity` e vazio e o efeito ja nao sai. Mas
+	 * `spamSkillZone` cria entidade para as unidades que tem desenho proprio
+	 * (Magnus, Muralha de Fogo, Nuvem Venenosa): sem esta guarda, o efeito inteiro
+	 * da skill nascia em cima de cada alvo, a cada tique. O efeito da area ja esta
+	 * no chao; o do golpe continua saindo por `spamSkillHit`, acima.
+	 */
+	if (srcEntity && dstEntity && pkt.action != SkillAction.SPLASH && !origemEhUnidadeDeChao) {
 		// && pkt.action != SkillAction.MULTI_HIT
 		EffectManager.spamSkill(pkt.SKID, pkt.targetID, null, Renderer.tick + pkt.attackMT, pkt.AID);
 	}
