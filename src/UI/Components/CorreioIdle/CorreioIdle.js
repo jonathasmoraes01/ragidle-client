@@ -79,6 +79,7 @@ import htmlText from './CorreioIdle.html?raw';
 import cssText from './CorreioIdle.css?raw';
 import { fecharEEsquecer } from '../limpezaDeJanelaIdle.js';
 import { fraseDaColeta, fraseDoRelatorio } from './relatorioDoLote.js';
+import { temAnexoParaColetar } from './anexosDaCaixa.js';
 import ChatBox from 'UI/Components/ChatBox/ChatBox.js';
 import { abrirLoteDoCorreio, fecharLoteDoCorreio } from 'Engine/MapEngine/loteDoCorreio.js';
 
@@ -504,6 +505,7 @@ function sincronizarTudo() {
 	sincronizarLista();
 	sincronizarDetalhe();
 	sincronizarRodape();
+	sincronizarBotaoDaColeta();
 }
 
 function estaAberta() {
@@ -819,8 +821,11 @@ function sincronizarBotaoDaColeta() {
 	if (!botao) {
 		return;
 	}
-	botao.disabled = _coletaDeLoteEmVoo;
-	botao.classList.toggle('is-disabled', _coletaDeLoteEmVoo);
+	// Apagado em voo E quando nao ha anexo nenhum (D-1525): o botao so fica
+	// disponivel quando ha o que coletar.
+	const indisponivel = _coletaDeLoteEmVoo || !temAnexoParaColetar(cartas());
+	botao.disabled = indisponivel;
+	botao.classList.toggle('is-disabled', indisponivel);
 }
 
 /* ------------------------------------------------------------------ */

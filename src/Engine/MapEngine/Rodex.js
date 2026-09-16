@@ -19,6 +19,7 @@ import Rodex from 'UI/Components/Rodex/Rodex.js';
 import ReadRodex from 'UI/Components/Rodex/ReadRodex.js';
 import WriteRodex from 'UI/Components/Rodex/WriteRodex.js';
 import { loteDoCorreioEmVoo } from './loteDoCorreio.js'; // 16/09/2026: uma linha por lote, e nao por carta
+import { semOBit, TIPO_ITEM, TIPO_ZENY } from 'UI/Components/CorreioIdle/anexosDaCaixa.js';
 
 /**
  * Request to Open RodEx Box
@@ -296,6 +297,17 @@ function rodexRead(pkt) {
 }
 
 /**
+ * O anexo retirado some tambem da LISTA local (D-1525): e dela que o botao
+ * "coletar todos" le se ainda ha o que coletar.
+ */
+function apagarBitDaCarta(mailID, bit) {
+	const mail = Rodex.getMailByID(mailID);
+	if (mail) {
+		mail.type = semOBit(mail.type, bit);
+	}
+}
+
+/**
  * Notification about the result of request to get zeny from Rodex Mail
  *
  * @param {object} pkt - PACKET.ZC.ACK_ZENY_FROM_RODEX
@@ -313,6 +325,7 @@ function rodexGetZeny(pkt) {
 				ChatBox.addText(DB.getMessage(2591), ChatBox.TYPE.MAIL, ChatBox.FILTER.PUBLIC_LOG);
 			}
 			ReadRodex.clearZeny();
+			apagarBitDaCarta(pkt.MailID, TIPO_ZENY);
 	}
 }
 
@@ -334,6 +347,7 @@ function rodexGetItem(pkt) {
 				ChatBox.addText(DB.getMessage(2588), ChatBox.TYPE.MAIL, ChatBox.FILTER.PUBLIC_LOG);
 			}
 			ReadRodex.clearItemList();
+			apagarBitDaCarta(pkt.MailID, TIPO_ITEM);
 	}
 }
 

@@ -87,11 +87,11 @@ describe('o arquivo publicado', () => {
 });
 
 describe('o peso', () => {
-	it('a Poção Vermelha pesa 70 decigramas — o `Weight` do item_db', () => {
-		// 70 e o numero do rAthena (item_db, Red_Potion). A tela divide por 10
-		// e mostra 7, como BasicInfoIdle e MochilaIdle ja faziam com o peso
-		// carregado.
-		expect(pesoDeItem(501)).toBe(70);
+	it('a Poção Vermelha pesa 50 decigramas — a R30 do dono sobre o `Weight` do item_db', () => {
+		// O rAthena diz 70 (item_db, Red_Potion); a R30 (D-1523, 16/09/2026)
+		// baixou para 50, e a ficha publicada traz o numero do jogo. A tela
+		// divide por 10 e mostra 5.
+		expect(pesoDeItem(501)).toBe(50);
 	});
 
 	it('item fora da tabela devolve null, e NAO zero', () => {
@@ -143,6 +143,6 @@ describe('a recusa', () => {
 		// prefere abrir sem peso a abrir com o peso do build anterior.
 		expect(pesoDeItem(501)).toBe(null);
 		absorverFichasDeItem(publicado);
-		expect(pesoDeItem(501)).toBe(70);
+		expect(pesoDeItem(501)).toBe(50);
 	});
 });
