@@ -249,12 +249,15 @@ function aoSerRecusado() {
  * corpo duplicado seria o defeito que este projeto mais repete: duas rotas, e
  * a segunda escrita a mao.
  *
- * `Network.onDisconnect = null` antes do `reload()` importa: sem isso o
- * fechamento provocado pela propria recarga reentra aqui.
+ * O gancho vira um NO-OP antes do `reload()`, e nao `null` (16/09/2026): sem
+ * gancho nenhum o `NetworkManager.onClose` cai no ramo padrao e mostra a caixa
+ * inglesa "Disconnected from Server." quando o servidor fecha o socket que a
+ * recusa deixou aberto — por cima do "Sessao expirada". E o no-op, e nao este
+ * mesmo gancho, porque o fechamento da propria recarga nao pode reentrar aqui.
  */
 function desistirEIrParaOLogin(texto) {
 	limparCiclo();
-	Network.onDisconnect = null;
+	Network.onDisconnect = () => {};
 
 	importarUI().then(ui => {
 		ui.mostrar({

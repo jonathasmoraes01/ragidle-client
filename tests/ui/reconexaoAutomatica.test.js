@@ -195,6 +195,20 @@ describe('sessao invalida (REFUSE_ENTER durante o ciclo)', () => {
 		await vi.advanceTimersByTimeAsync(120000);
 		expect(mocks.mapEngineInit).not.toHaveBeenCalled();
 	});
+
+	it('depois de desistir, o gancho e um NO-OP (nao `null`) — o fechamento seguinte nao abre caixa nem ciclo', async () => {
+		Reconexao.armar('127.0.0.1', 5121, 'prontera');
+		cair();
+		await vi.advanceTimersByTimeAsync(10000);
+		expect(Reconexao.aoSerRecusado()).toBe(true);
+		// `null` faria o NetworkManager mostrar "Disconnected from Server." no
+		// fechamento que o servidor faz logo depois da recusa (16/09/2026).
+		expect(mocks.network.onDisconnect).toBeTypeOf('function');
+		mocks.mapEngineInit.mockClear();
+		mocks.network.onDisconnect({ code: 1006, reason: '' });
+		await vi.advanceTimersByTimeAsync(60000);
+		expect(mocks.mapEngineInit).not.toHaveBeenCalled();
+	});
 });
 
 describe('a ponte recusando por lotacao (codigo 1013) tem mensagem propria, mesma escalada', () => {

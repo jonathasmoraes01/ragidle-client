@@ -17,7 +17,7 @@ describe('a recusa da volta', () => {
 		const inicio = login.indexOf('function onServerClosed(pkt) {');
 		expect(inicio).toBeGreaterThan(0);
 		const corpo = login.slice(inicio, login.indexOf('UIManager.showMessageBox(', inicio));
-		expect(corpo).toContain('if (Reconexao.aoSerRecusado()) {');
+		expect(corpo).toContain('if (pkt.ErrorCode === 0 && Reconexao.aoSerRecusado()) {');
 		expect(corpo.indexOf('Reconexao.aoSerRecusado()')).toBeLessThan(corpo.indexOf('let msg_id;'));
 	});
 
