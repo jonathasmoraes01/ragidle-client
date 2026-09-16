@@ -170,6 +170,11 @@
 		 * @type {boolean}dump packet as hex in console ?
 		 */
 		packetDump: false,
+		// 16/09/2026: o traco por pacote fica DESLIGADO em producao — o console
+		// retem cada objeto que recebe, e dez minutos de caca em segundo plano
+		// viram dezenas de milhares deles. `Config.local.js` liga para quem
+		// desenvolve. Ver o comentario em src/Network/NetworkManager.js.
+		packetLog: false,
 
 		/**
 		 * @type {integer|boolean|array} packetKeys

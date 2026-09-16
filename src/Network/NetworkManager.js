@@ -75,6 +75,31 @@ let _onDisconnect = null;
 const packetDump = Configs.get('packetDump', false);
 
 /**
+ * O TRACO POR PACOTE — DESLIGADO POR PADRAO desde 16/09/2026.
+ *
+ * As duas linhas `[Network] Send:` e `[Network] Recv:` eram INCONDICIONAIS, e
+ * cada uma entrega ao console o OBJETO do pacote inteiro. O console guarda
+ * referencia de tudo que recebe (e para isso que ele serve — o objeto tem de
+ * continuar inspecionavel), entao **nada daquilo e coletado**.
+ *
+ * O custo aparece exatamente no cenario do defeito de disconnect: dez minutos
+ * de caca com a aba escondida sao dezenas de milhares de objetos retidos, cada
+ * um com os campos decodificados do pacote. Num celular isso e pressao de
+ * memoria de verdade — e **o sistema matando a aba parece, para o jogador,
+ * identico a um disconnect**.
+ *
+ * Nao foi medido como causa dos relatos, e a honestidade pede dizer isso: o que
+ * esta medido e que o custo existe e que ele nao paga nada em producao. O
+ * jogador nunca abre o console; quem abre e quem desenvolve, e para esse o
+ * interruptor liga.
+ *
+ * Mesmo molde do `packetDump` logo acima — um `Configs.get`, para nao nascer um
+ * segundo mecanismo de ligar/desligar tracado. `Config.local.js` (de maquina,
+ * gitignored) e onde quem desenvolve poe `packetLog: true`.
+ */
+const packetLog = Configs.get('packetLog', false);
+
+/**
  * Packets definition
  *
  * @param {string} name
@@ -181,7 +206,9 @@ function sendPacket(Packet) {
 		);
 	}
 
-	console.log('%c[Network] Send:', 'color:#007070', Packet);
+	if (packetLog) {
+		console.log('%c[Network] Send:', 'color:#007070', Packet);
+	}
 
 	// Encrypt packet
 	if (_socket && _socket.isZone) {
@@ -373,7 +400,9 @@ function processarPacotes(buf) {
 			//	packet.Struct.call(packet.instance, fp, offset); //this causes packet conflicts where the same type of packets following eachother copy the previous packet's variables with the previous values
 			//}
 
-			console.log('%c[Network] Recv:', 'color:#900090', packet.instance, packet.callback ? '' : '(no callback)');
+			if (packetLog) {
+				console.log('%c[Network] Recv:', 'color:#900090', packet.instance, packet.callback ? '' : '(no callback)');
+			}
 
 			// Call controller
 			if (packet.callback) {
