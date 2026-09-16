@@ -250,8 +250,27 @@ class MapEngine {
 			current_ip,
 			port,
 			success => {
-				// Force reloading map
-				MapRenderer.currentMap = '';
+				/*
+				 * FORCA O RECARREGAMENTO — mas nunca por cima de um carregamento
+				 * EM CURSO (16/09/2026, a tela preta depois da economia).
+				 *
+				 * Com a aba oculta o carregamento do mapa so anda com um quadro, e
+				 * a aba oculta nao da quadro: a primeira reconexao deixa
+				 * `MapRenderer.loading` em `true` ate a aba voltar. Se a conexao
+				 * nova cair de novo ainda oculta (a borda de D-1509), a segunda
+				 * reconexao zerava o nome aqui, e o `setMap` dela voltava cedo por
+				 * causa do `loading` — sem repor o nome. Na volta da aba o
+				 * carregamento terminava com o nome VAZIO, o `Navigation` lancava
+				 * dentro da transicao e o veu preto do `Background` ficava opaco
+				 * para sempre: so o cursor na tela. Medido por
+				 * `scripts/diag-tela-preta-da-economia.ts --quedas=2`.
+				 *
+				 * O pedido que chega durante o carregamento nao se perde: o
+				 * `setMap` o guarda e o atende no fim (`MapRenderer.mapaPendente`).
+				 */
+				if (!MapRenderer.loading) {
+					MapRenderer.currentMap = '';
+				}
 
 				// Fail to connect...
 				if (!success) {

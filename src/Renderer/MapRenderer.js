@@ -84,6 +84,9 @@ class MapRenderer {
 	 */
 	static currentMap = '';
 
+	/** O `setMap` que chegou com um carregamento em curso (ver `setMap`). */
+	static mapaPendente = null;
+
 	/**
 	 * @var {object} Global Light Structure
 	 */
@@ -140,8 +143,15 @@ class MapRenderer {
 	 * @param {string} mapname to load
 	 */
 	static setMap(mapname) {
-		// TODO: stop the map loading, and start to load the new map.
+		/*
+		 * PEDIDO DURANTE UM CARREGAMENTO (16/09/2026): guardado, e nao
+		 * descartado. O ultimo vence, e ele e atendido quando o carregamento em
+		 * curso termina (`atenderMapaPendente`). Descarta-lo deixava o cliente
+		 * desenhando um mapa enquanto o servidor punha o personagem noutro — o
+		 * caido em economia viaja (D-1511) e reconecta com a aba ainda oculta.
+		 */
 		if (this.loading) {
+			this.mapaPendente = mapname;
 			return;
 		}
 		MapRenderer.vigiarVisibilidade();
@@ -579,6 +589,7 @@ function onMapComplete(success, error) {
 		 */
 		MapRenderer.loading = false;
 		UIManager.showErrorBox(error).ui.css('zIndex', 1000);
+		atenderMapaPendente();
 		return;
 	}
 
@@ -612,15 +623,42 @@ function onMapComplete(success, error) {
 	Background.remove(() => {
 		MapRenderer.loading = false;
 
-		MapRenderer.onLoad();
-		Sky.setUpCloudData();
-		ScreenEffectManager.startMapflagEffect(worldResource);
+		/*
+		 * O JOGO APARECE MESMO QUE A MONTAGEM DA HUD FALHE (16/09/2026).
+		 *
+		 * `onLoad` monta a HUD inteira; uma excecao ali abortava este callback
+		 * antes de `Renderer.show()`, e o jogador ficava sem canvas e sem HUD,
+		 * atras do veu preto. O erro vai ao console com o nome de quem lancou —
+		 * esconder a tela nao o conserta, so o esconde.
+		 */
+		try {
+			MapRenderer.onLoad();
+			Sky.setUpCloudData();
+			ScreenEffectManager.startMapflagEffect(worldResource);
+		} catch (erro) {
+			console.error('[MapRenderer] a montagem do mapa falhou; o jogo aparece mesmo assim', erro);
+		}
 
 		// Display game
 		Renderer.show();
 		Renderer.render(MapRenderer.onRender);
 		Mouse.intersect = true;
+
+		atenderMapaPendente();
 	});
+}
+
+/**
+ * O pedido guardado durante o carregamento: outro mapa carrega agora; o mesmo
+ * mapa ja esta na tela, e o `onLoad` que rodou acima ja e o da conexao mais
+ * recente (`MapEngine` o reatribui a cada `onMapChange`).
+ */
+function atenderMapaPendente() {
+	const pendente = MapRenderer.mapaPendente;
+	MapRenderer.mapaPendente = null;
+	if (pendente && stripMapExtension(pendente) !== stripMapExtension(MapRenderer.currentMap)) {
+		MapRenderer.setMap(pendente);
+	}
 }
 
 /**
