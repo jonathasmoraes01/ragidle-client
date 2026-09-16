@@ -38,6 +38,7 @@ import Inventory from 'UI/Components/Inventory/Inventory.js';
 import { carregarArteDeColecao } from 'Utils/ItemArt.js';
 import { renderRunasHTML } from 'Utils/ItemOptionsView.js';
 import { textoDoRefino } from './linhaDoRefino.js'; // 16/09/2026, D-1516: o bonus do refino
+import { carregarFichasDeItem, pesoDeItem } from 'DB/Items/fichasDeItem.js'; // D-1526: o peso da descricao
 
 /**
  * Create Component
@@ -315,6 +316,20 @@ ItemInfo.receberRefino = function receberRefino(dados) {
 };
 
 ItemInfo.setItem = function setItem(item) {
+	/*
+	 * O PESO DA DESCRICAO VEM DA FICHA DO SERVIDOR (D-1526). Ela so era
+	 * carregada pela loja; sem ela, `getItemInfo` mostra o peso escrito no texto
+	 * oficial. Aqui a carga e disparada e, quando chega, a MESMA peca e
+	 * redesenhada. Sem laco: depois da carga o peso existe, ou o item nao esta
+	 * na ficha e nada e redesenhado.
+	 */
+	if (pesoDeItem(item.ITID) === null) {
+		carregarFichasDeItem().then(temFichas => {
+			if (temFichas && pesoDeItem(item.ITID) !== null && ItemInfo.uid === item.ITID) {
+				ItemInfo.setItem(item);
+			}
+		});
+	}
 	const it = DB.getItemInfo(item.ITID);
 	const root = ItemInfo.getRoot();
 	const cardList = root.querySelector('.cardlist .border');

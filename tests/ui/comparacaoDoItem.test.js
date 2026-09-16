@@ -140,6 +140,7 @@ describe('a costura da janela', () => {
 
 	it('trocar de item na ficha LIMPA o painel — o veredito da espada não vale para a poção', () => {
 		const trecho = ficha.slice(ficha.indexOf('ItemInfo.setItem = function setItem'));
-		expect(trecho.slice(0, 900)).toContain('ItemInfo.setComparacao(null)');
+		// 1800: o bloco do peso (D-1526) entrou no topo da funcao.
+		expect(trecho.slice(0, 1800)).toContain('ItemInfo.setComparacao(null)');
 	});
 });
