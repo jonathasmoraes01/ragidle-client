@@ -488,8 +488,7 @@ ui-button {
 	/* O primeiro y LIVRE abaixo de TODA a coluna: minimapa + os DOIS botoes
 	   (I3) + respiro. E aqui que os icones de status se penduram. */
 	--hud-td-abaixo-da-coluna: calc(
-		var(--hud-td-topo) + var(--hud-td-altura-do-minimapa) + 8px +
-			var(--hud-td-altura-dos-botoes) + 12px
+		var(--hud-td-topo) + var(--hud-td-altura-do-minimapa) + 8px + var(--hud-td-altura-dos-botoes) + 12px
 	);
 
 	/* ═══ I1+I2: A HUD SE ADAPTA A RESOLUCAO (dono, 31/08/2026) ══════════
@@ -1953,6 +1952,69 @@ ui-button {
 		min-height: var(--hit-touch, 44px);
 	}
 
+	/*
+	 * D-1487 (15/09/2026) — O CARTAO DE MISSOES: a divida que D-1483 NOMEOU e
+	 * nao pagou.
+	 *
+	 * Quando o cartao encolheu a pedido do dono (*"veja como esta ocupando
+	 * praticamente a metade da tela"*), ficou escrito que os alvos dele estavam
+	 * ABAIXO do piso e que paga-los faria o cartao CRESCER — e que a escolha
+	 * entre as duas coisas era dele. Ele mandou pagar; e o cartao **nao**
+	 * cresceu, porque a conta foi refeita em vez de aceita (ver o balanco no
+	 * cabecalho de `MissoesTrackerIdle.js`).
+	 *
+	 * Medido antes, num 402x714: `.mt-item` **29px**, `.mt-ver-todas` **36px**,
+	 * `.mt-btn-mini` **18px** (40% do piso) e `.mt-recolher` **14px**. Nenhum
+	 * deles aparecia neste bloco — o cartao inteiro estava fora do mecanismo
+	 * tatil, e `prove:hud-responsiva` tambem nao o varria, entao nada media.
+	 *
+	 * A escolha entre as duas tecnicas segue o criterio ja usado aqui em cima:
+	 *
+	 * - **cresce de verdade** o que o dedo MIRA. `.mt-item` e a linha que
+	 *   comeca uma missao e `.mt-ver-todas` a que abre a lista: uma linha de
+	 *   29px que apenas ACEITA o toque numa area invisivel maior continua
+	 *   PARECENDO pequena demais para ser tocada, e o jogador nao tenta. O
+	 *   mesmo argumento dos `.ap-input` acima;
+	 * - **ganha area invisivel** o que e pequeno por desenho. `.mt-btn-mini`
+	 *   (Pausar/Abandonar) mora dentro do cartao da missao ativa, entre a barra
+	 *   de progresso e a lista — engorda-lo empurraria as duas. Ha 12px de vao
+	 *   acima (a barra e a margem dela) e 14px abaixo (o padding do cartao mais
+	 *   o `gap` do corpo), e `-13px` cabe nos dois sem encostar no `.mt-item`.
+	 *
+	 * `.mt-aba` ja alcanca 44 hoje, e por ACIDENTE: a fileira dela e um flex sem
+	 * `align-items`, entao o `stretch` a estica ate a altura do `.mt-recolher-v`
+	 * (44px) ao lado. O `min-height` aqui nao muda um pixel — ele ESCREVE o
+	 * piso, para a conta parar de depender de um vizinho que alguem pode mover.
+	 *
+	 * `.mt-recolher` (o "−" do cabecalho) cresce de verdade em vez de ganhar
+	 * overlay porque `.mt-painel` tem `overflow: hidden`: uma area invisivel
+	 * subindo seria CORTADA, e descendo os 30px que faltam roubaria o toque da
+	 * primeira missao. Ele e `display: none` no celular em pe, entao quem paga a
+	 * altura e o TABLET — que e exatamente o aparelho que D-935 nomeia ("um
+	 * tablet e DEDO numa tela LARGA") e onde ha espaco de sobra.
+	 */
+	.mt-item,
+	.mt-ver-todas,
+	.mt-aba,
+	.mt-recolher {
+		box-sizing: border-box;
+		min-height: var(--hit-touch, 44px);
+	}
+
+	.mt-recolher {
+		min-width: var(--hit-touch, 44px);
+	}
+
+	.mt-btn-mini::before {
+		content: '';
+		position: absolute;
+		inset: -13px -4px;
+	}
+
+	.mt-btn-mini {
+		position: relative;
+	}
+
 	/* O "+" de distribuir atributo (20x20) e os dois menores da barra de
 	   atalhos (14x14 e 15x15). */
 	.st-stat-up::before,
@@ -2154,9 +2216,7 @@ html.ri-hud-classica :host {
 	 */
 	--vr-rodape-altura: 0px;
 	--vr-atalhos-altura: 56px;
-	--vr-acima-dos-atalhos: calc(
-		var(--safe-baixo, 0px) + var(--vr-rodape-altura) + var(--vr-atalhos-altura) + 10px
-	);
+	--vr-acima-dos-atalhos: calc(var(--safe-baixo, 0px) + var(--vr-rodape-altura) + var(--vr-atalhos-altura) + 10px);
 }
 
 /* ─── O MINIMAPA SAI — a unica diferenca que o dono pediu contra o mockup ─── */
@@ -2296,9 +2356,7 @@ html.ri-vertical #ShortCut {
    missoes, dentro da tela. Ate la esta nota dizia que a barra nunca tinha sido
    fotografada com buff ativo — a `prove:hud-vertical` nao tira print. */
 html.ri-vertical #StatusIcons {
-	top: calc(
-		var(--vr-item-obtido-topo, calc(var(--vr-abaixo-do-topo) + 130px)) + 44px
-	) !important;
+	top: calc(var(--vr-item-obtido-topo, calc(var(--vr-abaixo-do-topo) + 130px)) + 44px) !important;
 	right: calc(var(--safe-dir, 0px) + var(--vr-trilho-largura) + var(--vr-margem)) !important;
 }
 

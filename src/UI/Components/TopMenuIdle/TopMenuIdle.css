@@ -308,10 +308,16 @@
    O botao mora em right:16 / bottom:16, ou seja na MESMA faixa de altura da
    barra de habilidades e a 681px de distancia dela (gabarito secao 4: "os
    tres convivem na mesma faixa de altura sem se tocar"). */
+/* O `bottom` VIRA VARIAVEL (D-1492, 15/09/2026), e o padrao e o 16px de sempre.
+   Quem a levanta e `afastarMenuDaDoca` (TopMenuIdle.js), MEDINDO se o menu
+   aberto cruzaria a barra de atalhos. As media queries abaixo continuam
+   valendo e vencem esta linha nas faixas delas — o que muda e o caso que elas
+   NAO cobrem: `tablet-768x1024` erra a faixa de 759 por NOVE pixels, e ali o
+   menu sentava na doca. */
 .tm-menu {
 	position: fixed;
 	right: 16px;
-	bottom: 16px;
+	bottom: var(--tm-base-do-menu, 16px);
 	display: flex;
 	/* COLUNA, e nao linha (21/08/2026, pedido do dono): o leque abre PARA CIMA
 	   do botao, nao ao lado dele. Como o ".tm-fan" vem ANTES do ".tm-fab" no
@@ -513,12 +519,26 @@
 
 /* Cada coluna: pilha vertical ancorada na BASE. "align-items:center" poe o
    disco no meio da largura da coluna, que e ditada pelo rotulo mais largo. */
+/* A COLUNA E UMA GRADE DE LARGURA VARIAVEL (D-1490, 15/09/2026).
+   Era `flex-direction: column` — uma fila unica de discos, sempre. O leque
+   cresce para CIMA a partir do botao Menu, entao "sempre uma fila" significa
+   "sempre mais alto a cada item novo", e foi assim que ele chegou a invadir o
+   minimapa e os botoes de caca (o relato do dono, com print).
+
+   Quem decide o numero e `colunasPorLadoDoLeque` (TopMenuIdle.js), medindo a
+   altura livre contra `--hud-td-abaixo-da-coluna`: em tela alta o valor e 1 e
+   NADA muda em relacao ao que existia; em tela baixa ele sobe e as fileiras
+   caem na mesma proporcao.
+
+   `align-content: end` guarda o comportamento do `justify-content: flex-end`
+   anterior: os discos ficam colados na base, junto do botao que os abriu — e e
+   de la que a animacao de entrada sobe. */
 .tm-col {
-	display: flex;
-	flex-direction: column;
-	justify-content: flex-end;
-	align-items: center;
-	row-gap: 10px;
+	display: grid;
+	grid-template-columns: repeat(var(--tm-leque-colunas, 1), 1fr);
+	align-content: end;
+	justify-items: center;
+	gap: 10px;
 }
 
 /* "Montado" e o passo intermediario que existe SO pra animacao poder rodar:
@@ -1421,46 +1441,6 @@
    janela. `min-height: 48px` porque ela e um alvo de dedo, e 48 > o piso de
    44px que a `prove:hud-responsiva` cobra.
    ═══════════════════════════════════════════════════════════════════════ */
-/* CONFIGURACOES DO JOGO (15/09/2026, D-1416 — pedido do dono).
-
-   Mesma forma do "Instalar app": linha larga no pe da folha, porque nenhum
-   dos dois e um destino do jogo. A diferenca e que esta NAO e so do celular —
-   a fusao "Config + Menu" tirou a porta de MOUSE da janela de sistema
-   tambem, entao ela volta nos dois. O alvo tem 48px de altura, que e o piso
-   tatil que a regra do dono cobra. */
-.tm-sistema {
-	display: flex;
-	flex-direction: column;
-	align-items: center;
-	justify-content: center;
-	gap: 2px;
-	width: 100%;
-	min-height: 48px;
-	margin-top: 8px;
-	padding: 8px 12px;
-	border: 0;
-	border-radius: 10px;
-	background: var(--ri-superficie-2, #2a3550);
-	color: var(--ri-texto, #fff);
-	font: inherit;
-	font-weight: 700;
-	text-align: center;
-	cursor: pointer;
-}
-
-.tm-sistema-rotulo {
-	font-size: 14px;
-	line-height: 1.2;
-}
-
-.tm-sistema-dica {
-	font-size: 11px;
-	font-weight: 400;
-	line-height: 1.35;
-	opacity: 0.85;
-	white-space: normal;
-}
-
 .tm-instalar {
 	display: none;
 }

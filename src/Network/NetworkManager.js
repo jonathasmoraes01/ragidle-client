@@ -19,6 +19,7 @@ import PacketCrypt from './PacketCrypt.js';
 import PacketLength from './PacketLength.js';
 import WebSocket from './SocketHelpers/WebSocket.js';
 import NodeSocket from './SocketHelpers/NodeSocket.js';
+import { contarLoteDeRede, contarPacote } from 'Renderer/fasesDoQuadro.js';
 
 /**
  * Sockets list
@@ -72,6 +73,31 @@ let _onDisconnect = null;
  * @const {boolean}
  */
 const packetDump = Configs.get('packetDump', false);
+
+/**
+ * O TRACO POR PACOTE — DESLIGADO POR PADRAO desde 16/09/2026.
+ *
+ * As duas linhas `[Network] Send:` e `[Network] Recv:` eram INCONDICIONAIS, e
+ * cada uma entrega ao console o OBJETO do pacote inteiro. O console guarda
+ * referencia de tudo que recebe (e para isso que ele serve — o objeto tem de
+ * continuar inspecionavel), entao **nada daquilo e coletado**.
+ *
+ * O custo aparece exatamente no cenario do defeito de disconnect: dez minutos
+ * de caca com a aba escondida sao dezenas de milhares de objetos retidos, cada
+ * um com os campos decodificados do pacote. Num celular isso e pressao de
+ * memoria de verdade — e **o sistema matando a aba parece, para o jogador,
+ * identico a um disconnect**.
+ *
+ * Nao foi medido como causa dos relatos, e a honestidade pede dizer isso: o que
+ * esta medido e que o custo existe e que ele nao paga nada em producao. O
+ * jogador nunca abre o console; quem abre e quem desenvolve, e para esse o
+ * interruptor liga.
+ *
+ * Mesmo molde do `packetDump` logo acima — um `Configs.get`, para nao nascer um
+ * segundo mecanismo de ligar/desligar tracado. `Config.local.js` (de maquina,
+ * gitignored) e onde quem desenvolve poe `packetLog: true`.
+ */
+const packetLog = Configs.get('packetLog', false);
 
 /**
  * Packets definition
@@ -180,7 +206,9 @@ function sendPacket(Packet) {
 		);
 	}
 
-	console.log('%c[Network] Send:', 'color:#007070', Packet);
+	if (packetLog) {
+		console.log('%c[Network] Send:', 'color:#007070', Packet);
+	}
 
 	// Encrypt packet
 	if (_socket && _socket.isZone) {
@@ -255,6 +283,36 @@ read.callback = null;
  * @param {Uint8Array} buffer
  */
 function receive(buf) {
+	const inicioDaRede = performance.now();
+	try {
+		processarPacotes(buf);
+	} finally {
+		// `finally`, e nao uma linha depois da chamada: `processarPacotes` tem
+		// varios `return` (buffer incompleto espera o resto do lote), e sem ele
+		// a medicao perderia justamente os lotes partidos — que sao os grandes.
+		//
+		// `contarLoteDeRede` faz o `registrarFase(FASE.REDE, ...)` por dentro e
+		// ainda SOMA o total da amostra (D-1488) — e o total, dividido pela
+		// contagem de pacotes, e que da o `ms por pacote`.
+		contarLoteDeRede(performance.now() - inicioDaRede);
+	}
+}
+
+function processarPacotes(buf) {
+	/*
+	 * RAGIDLE (15/09/2026): O PROCESSAMENTO DE PACOTE RODA **FORA** DO LACO DE
+	 * QUADRO, e por isso ele e medido.
+	 *
+	 * O contador de FPS mede o intervalo entre carimbos do
+	 * `requestAnimationFrame`. Entre um e o proximo cabe isto: um lote grande
+	 * de pacotes (chegada de mob, lote do mapa, rajada de dano) e atendido
+	 * aqui, e o quadro seguinte "atrasa" sem que nenhuma fase do DESENHO tenha
+	 * demorado.
+	 *
+	 * Sem esta medida, uma travada nascida aqui apareceria como "o desenho
+	 * esta lento" e mandaria a investigacao para o renderizador — o lugar
+	 * errado. Ver `Renderer/fasesDoQuadro.js`.
+	 */
 	let id, packet;
 	let length = 0;
 	let offset = 0;
@@ -313,6 +371,11 @@ function receive(buf) {
 			return;
 		}
 
+		// Daqui para baixo o pacote esta COMPLETO no buffer: as tres saidas por
+		// "faltam bytes" ja passaram. Contar antes seria contar lote partido
+		// duas vezes — uma agora e outra quando o resto chegasse (D-1488).
+		contarPacote();
+
 		if (Packets.list[id]) {
 			packet = Packets.list[id];
 
@@ -337,7 +400,9 @@ function receive(buf) {
 			//	packet.Struct.call(packet.instance, fp, offset); //this causes packet conflicts where the same type of packets following eachother copy the previous packet's variables with the previous values
 			//}
 
-			console.log('%c[Network] Recv:', 'color:#900090', packet.instance, packet.callback ? '' : '(no callback)');
+			if (packetLog) {
+				console.log('%c[Network] Recv:', 'color:#900090', packet.instance, packet.callback ? '' : '(no callback)');
+			}
 
 			// Call controller
 			if (packet.callback) {

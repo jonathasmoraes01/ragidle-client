@@ -52,6 +52,16 @@
  */
 
 import { ehAdaptavel } from 'UI/escalaDaHud.js';
+/*
+ * D-1491: o celular DEITADO recusa desenhar e pede para girar. Ele entra por
+ * aqui — e nao com ouvintes proprios — porque este modulo ja escuta `resize`,
+ * `orientationchange` e o `visualViewport`, que sao exatamente os tres eventos
+ * que mudam a resposta. Um segundo conjunto de ouvintes noutro arquivo seria a
+ * "segunda rota escrita a mao" que este projeto ja pagou varias vezes.
+ *
+ * `giroDoCelular` nao importa nada, entao nao ha ciclo possivel.
+ */
+import { aplicarTelaDeGiro } from 'UI/giroDoCelular.js';
 
 /** A marca que o CSS le — no `<html>` e no root interno de cada shadow. */
 export const MARCA_VERTICAL = 'ri-vertical';
@@ -87,6 +97,33 @@ export function aplicar(doc, forcar) {
 	if (!d || !d.documentElement) {
 		return false;
 	}
+	/*
+	 * A tela de "gire o celular" e avaliada ANTES do cache de "nada mudou"
+	 * (D-1491): girar um celular em pe para deitado deixa `ehCelularEmPe` em
+	 * `false` nos DOIS estados seguintes (deitado e desktop nunca sao "em pe"),
+	 * entao o `agora === _ultimo` abaixo sairia cedo e a tela nunca apareceria.
+	 * Ela tem criterio proprio e e barata; quem decide se ela entra e ela.
+	 *
+	 * **SO DEPOIS DE `ligar()`, e isso e conserto de um defeito MEDIDO.** A
+	 * primeira versao avaliava a tela em qualquer `aplicar`, inclusive no que
+	 * roda quando um componente novo entra no documento — ou seja, na tela de
+	 * LOGIN. A `prove:hud-responsiva` abortou por causa disso, com a mensagem
+	 * que nomeia o culpado: *"<div id=ri-gire-o-celular> intercepts pointer
+	 * events"*. A capa subia num celular EM PE e engolia o clique de entrar.
+	 *
+	 * A causa raiz e a caixa medida: o jogo roda num IFRAME, e o `matchMedia`
+	 * daqui mede o iframe, e nao o aparelho. Durante o boot ele pode estar mais
+	 * largo que alto, e "deitado" da verdadeiro num telefone em pe.
+	 *
+	 * `_ligado` so vira `true` em `ligar()`, que roda na ENTRADA NO MAPA — e ali
+	 * o iframe ja ocupa a area de jogo, com a proporcao do aparelho. A tela
+	 * tambem so faz sentido ali: recusar a desenhar o JOGO nao e recusar a
+	 * desenhar a tela de login.
+	 */
+	if (_ligado) {
+		aplicarTelaDeGiro(d);
+	}
+
 	const agora = ehCelularEmPe();
 	if (!forcar && agora === _ultimo) {
 		return agora;

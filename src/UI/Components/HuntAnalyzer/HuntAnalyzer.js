@@ -104,9 +104,6 @@ const OCIOSO_VISIVEL_MS = 15_000;
  */
 const MS_MINIMOS_PARA_DORMIR = 10 * 60 * 1000;
 
-/** A contagem antes de "iniciar" — pedido do dono. */
-const SEGUNDOS_DE_CONTAGEM_DO_SONO = 5;
-
 const HuntAnalyzer = new GUIComponent('HuntAnalyzer', cssText);
 
 HuntAnalyzer.render = () => htmlText;
@@ -743,15 +740,27 @@ function tique() {
 }
 
 /**
- * O CLIQUE EM "DORMIR" (D-1381, 13/09/2026 — avisos de UX em D-1386) — a
- * sequencia pedida pelo dono: (1) se um evento de EXP esta ativo agora,
- * avisa e pede confirmacao — a taxa fica CONGELADA no que o evento rendia no
- * instante do sono, e o evento pode acabar antes do jogador voltar; (2) uma
- * contagem de 5s antes de mandar o pedido, com a frase "pode fechar a aba"
- * JA nela (D-1386 — antes a frase so existia neste comentario, nunca na
- * tela: achado numa auditoria de UX, e nao suposto); (3) so entao o pacote
- * sai. A tela final de "Dormindo..." (`UIManager.showDormindo`) repete o
- * mesmo aviso, ao lado da EXP projetada.
+ * O CLIQUE EM "DORMIR" (D-1381, 13/09/2026 — avisos de UX em D-1386).
+ *
+ * Hoje sao DOIS passos: (1) se um evento de EXP esta ativo agora, avisa e pede
+ * confirmacao — a taxa fica CONGELADA no que o evento rendia no instante do
+ * sono, e o evento pode acabar antes do jogador voltar; (2) o pacote sai. A
+ * tela preta de "Dormindo..." abre quando o servidor confirma.
+ *
+ * ---------------------------------------------------------------------------
+ * A CONTAGEM DE 5 SEGUNDOS SAIU (D-1485, 15/09/2026 — pedido do dono)
+ * ---------------------------------------------------------------------------
+ * *"Ao clicar para dormir tambem esta ruim... poderia entrar na tela preta
+ * direto"*.
+ *
+ * Ela era ESPERA PURA, e o proprio texto dela dizia isso: *"Voce ja pode fechar
+ * esta aba — o sono comeca mesmo assim"*. Nao havia cancelar, entao os 5 s nao
+ * protegiam de clique errado nem davam escolha nenhuma; so adiavam.
+ *
+ * **A frase nao se perdeu, e isso importa** — ela entrou na contagem em D-1386
+ * porque uma auditoria de UX achou que ela so existia num comentario. Hoje ela
+ * vive no rodape da tela preta (`_telaPretaDeEspera`), que e onde o jogador
+ * esta quando a duvida aparece.
  *
  * O SERVIDOR CONFERE TUDO DE NOVO — este fluxo e so a experiencia; a decisao
  * de jogo (10 min, nivel do mapa) mora em `farm-por-estimativa.ts`.
@@ -759,24 +768,15 @@ function tique() {
 function pedirParaDormir() {
 	const eventoAtivo = StatusIcons.estaAtivo(SC.CASH_PLUSEXP);
 
-	function contagem() {
-		UIManager.showContagemRegressiva(
-			'Iniciando o sono em',
-			SEGUNDOS_DE_CONTAGEM_DO_SONO,
-			() => {
-				const pkt = new PACKET.CZ.RAGIDLE_SONO_ACAO();
-				pkt.json = JSON.stringify({ acao: 'iniciar' });
-				Network.sendPacket(pkt);
-				/*
-				 * A RESPOSTA (`ZC_RAGIDLE_SONO{dormindo:true}`) chega pelo handler
-				 * CENTRAL de `Engine/MapEngine.js` (`onSonoRecebido`) — o MESMO que
-				 * trata o sono encontrado no login. Ele mostra a tela "Dormindo..."
-				 * com o "Acordar agora", que repete o mesmo aviso "pode fechar a
-				 * aba" (D-1386) — aqui embaixo so avisa que o pedido VAI sair.
-				 */
-			},
-			'Você já pode fechar esta aba — o sono começa mesmo assim.'
-		);
+	function dormir() {
+		const pkt = new PACKET.CZ.RAGIDLE_SONO_ACAO();
+		pkt.json = JSON.stringify({ acao: 'iniciar' });
+		Network.sendPacket(pkt);
+		/*
+		 * A RESPOSTA (`ZC_RAGIDLE_SONO{dormindo:true}`) chega pelo handler
+		 * CENTRAL de `Engine/MapEngine.js` (`onSonoRecebido`) — o MESMO que trata
+		 * o sono encontrado no login. E ele que abre a tela preta.
+		 */
 	}
 
 	if (eventoAtivo) {
@@ -785,11 +785,11 @@ function pedirParaDormir() {
 				'— o evento pode acabar antes de você voltar. Continuar mesmo assim?',
 			'yes',
 			'no',
-			contagem,
+			dormir,
 			null
 		);
 	} else {
-		contagem();
+		dormir();
 	}
 }
 

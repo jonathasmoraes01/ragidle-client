@@ -108,6 +108,7 @@ import ClassChangeNotice from 'UI/Components/ClassChangeNotice/ClassChangeNotice
 import MissoesIdle from 'UI/Components/MissoesIdle/MissoesIdle.js'; // RAGIDLE: janela de Missões (D-551)
 import PasseIdle from 'UI/Components/PasseIdle/PasseIdle.js'; // RAGIDLE: janela do Passe (D-813)
 import CodexIdle from 'UI/Components/CodexIdle/CodexIdle.js'; // RAGIDLE: janela do Codex (D-851)
+import TutorialIdle from 'UI/Components/TutorialIdle/TutorialIdle.js'; // RAGIDLE: a camada guiada do tutorial (frente D da Jornada)
 import VotoIdle from 'UI/Components/VotoIdle/VotoIdle.js'; // RAGIDLE: janela de Voto (D-1159)
 import PresencaIdle from 'UI/Components/PresencaIdle/PresencaIdle.js'; // RAGIDLE: janela de presenca (D-1162)
 import IndicacaoIdle from 'UI/Components/IndicacaoIdle/IndicacaoIdle.js'; // RAGIDLE: Indique & Ganhe (D-1164)
@@ -582,6 +583,7 @@ class MapEngine {
 			MissoesIdle.prepare(); // RAGIDLE: janela de Missões (D-551) — sem dependência de ordem: só escuta 0x0fed
 			PasseIdle.prepare(); // RAGIDLE: janela do Passe (D-813) — idem, só escuta 0x0fe5
 			CodexIdle.prepare(); // RAGIDLE: janela do Codex (D-851) — idem, só escuta 0x0fe3
+			TutorialIdle.prepare(); // RAGIDLE: a camada guiada do tutorial - idem, só escuta 0x0fdf
 			VotoIdle.prepare(); // RAGIDLE: janela de Voto (D-1159) — idem, só escuta 0x0fd5
 			PresencaIdle.prepare(); // RAGIDLE: janela de presenca (D-1162) — escuta 0x0fde e abre sozinha quando o servidor manda
 			IndicacaoIdle.prepare(); // RAGIDLE: Indique & Ganhe (D-1164) — escuta 0x0fdc
@@ -943,6 +945,55 @@ let _acordarResolvido = false;
  * este close deliberado; `LoginEngine.init` reassume o dele proprio assim que
  * o boot volta a tela de login, entao nao precisa ser desfeito aqui.
  */
+/**
+ * VOLTAR AO MUNDO DEPOIS DO SONO — SEM PEDIR LOGIN DE NOVO (D-1485, 15/09/2026).
+ *
+ * ---------------------------------------------------------------------------
+ * O RELATO, E ONDE ESTAVA A CULPA
+ * ---------------------------------------------------------------------------
+ * Dono: *"quando o player clicasse em 'acordar agora', que nao precisasse
+ * refazer o login/senha"*.
+ *
+ * O caminho antigo chamava `GameEngine.reload()`, que derruba a sessao inteira
+ * ate a LISTA DE SERVIDORES — e dali o proximo passo e a tela de usuario e
+ * senha. Era o CLIENTE que fazia isso: **o `conexao.encerrar()` do lado do
+ * servidor e deliberado e esta certo**. O comentario dele diz o porque — quem
+ * dormiu SAIU do mundo no `iniciar`, entao reentrar no meio do mesmo socket
+ * duplicaria a sequencia de entrada; fechar faz o cliente refazer o MESMO
+ * `CZ_ENTER2` que a entrada normal usa.
+ *
+ * E esse pacote **nao precisa de senha**: ele leva `AID`/`GID`/`AuthCode`, que
+ * moram em `Session` (memoria), e o passe do servidor vale por uma janela
+ * deslizante de 15 minutos (`servidor/validade-do-passe.ts`) — uma reconexao
+ * imediata cai folgada dentro dela. O servidor ate remove sozinho a sessao
+ * anterior do mesmo personagem ("um personagem, uma sessao"): este caminho foi
+ * desenhado para reconexao.
+ *
+ * ---------------------------------------------------------------------------
+ * POR QUE `MapEngine.init` E NAO UMA PECA NOVA
+ * ---------------------------------------------------------------------------
+ * O merge de 15/09 trouxe a reconexao automatica, e com ela o getter
+ * `MapEngine.servidorAtual` — que estava **sem um unico chamador**, nasceu para
+ * a R12 e ficou esperando. E exatamente a alca que faltava aqui, e reusa-la faz
+ * o "acordar" percorrer o MESMO caminho que uma queda de conexao ja percorre, e
+ * que dois testes ja vigiam (`reconexaoAutomatica`, `reconexaoTransporte`).
+ *
+ * O `reload()` continua existindo como ULTIMO recurso: sem endereco guardado,
+ * ou se a reentrada falhar de verdade (passe vencido, servidor fora do ar), a
+ * tela de login e a resposta honesta.
+ */
+function voltarAoMundoDepoisDoSono() {
+	const aoBoot = () => {
+		import('Engine/GameEngine.js').then(m => m.default.reload());
+	};
+	const servidor = MapEngine.servidorAtual;
+	if (!servidor) {
+		aoBoot();
+		return;
+	}
+	MapEngine.init(servidor.ip, servidor.port, servidor.mapName, aoBoot);
+}
+
 function onSonoRecebido(pkt) {
 	let corpo;
 	try {
@@ -963,7 +1014,16 @@ function onSonoRecebido(pkt) {
 		_janelaDoSonoAtiva = UIManager.showDormindo(corpo.restanteMs || 0, taxas, () => {
 			const acordar = new PACKET.CZ.RAGIDLE_SONO_ACAO();
 			acordar.json = JSON.stringify({ acao: 'acordar' });
-			Network.onDisconnect = () => {};
+			/*
+			 * `Reconexao.cancelar()` no lugar de `Network.onDisconnect = () => {}`
+			 * (D-1485). Os dois calam o dialogo de "Disconnected from Server" no
+			 * close deliberado que vem a seguir — mas a atribuicao crua tambem
+			 * DESARMAVA a reconexao automatica pelas costas dela, escrevendo no
+			 * campo que aquele modulo considera seu. `cancelar()` e a porta que
+			 * ele mesmo oferece e deixa o estado dele coerente; quem rearma e o
+			 * `Reconexao.armar()` que roda sozinho quando o socket novo abre.
+			 */
+			Reconexao.cancelar();
 			Network.sendPacket(acordar);
 			setTimeout(() => {
 				if (_acordarResolvido) return;
@@ -972,7 +1032,9 @@ function onSonoRecebido(pkt) {
 					_janelaDoSonoAtiva.remove();
 					_janelaDoSonoAtiva = null;
 				}
-				import('Engine/GameEngine.js').then(m => m.default.reload());
+				// O teto de seguranca: a resposta se perdeu. Mesmo aqui a volta e
+				// pelo mundo, e nao pelo login — so a falha DELA cai no boot.
+				voltarAoMundoDepoisDoSono();
 			}, MS_DE_ESPERA_PELO_ACORDAR);
 		});
 		return;
@@ -999,9 +1061,7 @@ function onSonoRecebido(pkt) {
 		expClasse: Number(corpo.expClasse) || 0,
 		tempoDormidoMs: Number(corpo.tempoDormidoMs) || 0
 	};
-	UIManager.showResumoDoSono(resumo, () => {
-		import('Engine/GameEngine.js').then(m => m.default.reload());
-	});
+	UIManager.showResumoDoSono(resumo, voltarAoMundoDepoisDoSono);
 }
 
 /* ---------------- A ECONOMIA DE ENERGIA (D-1389/D-1390, 14/09/2026) ---------------- */
@@ -1366,7 +1426,28 @@ function onMapChange(pkt, ehEntradaNoMundo) {
 		MobileUI.append();
 		JoystickUI.append();
 		Navigation.append();
-		Roulette.append();
+		/*
+		 * A ROLETA SAIU DA HUD (D-1480, 15/09/2026 — pedido do dono: *"esse
+		 * icone de poring premiado que esta na HUD, remova isso tambem"*).
+		 *
+		 * `Roulette.append()` nao desenhava so a janela: ela cria um BOTAO
+		 * SOLTO em `document.body` (`addRouletteIcon`), com a arte
+		 * `RoulletteIcon.bmp` — a caixa de porings do RO — e posicao cravada em
+		 * pixel de DESKTOP (`top: 74px; right: 145px`). Num celular de 402px
+		 * isso cai em cima do cartao de missoes, que e onde o dono o
+		 * fotografou.
+		 *
+		 * E ela e um BOTAO MORTO neste jogo: a roleta fala `REQ_OPEN_ROULETTE`,
+		 * `REQ_GENERATE_ROULETTE` e `RECV_ROULETTE_ITEM`, e o servidor deste
+		 * projeto nao conhece NENHUM desses pacotes (conferido em
+		 * `servidor/protocolo/pacotes-mapa.ts`: zero ocorrencias de ROULETTE —
+		 * as citacoes de "roleta" que existem la sao a do PET, outro assunto).
+		 * Clicar abria uma janela que pedia ao servidor algo que ele nunca
+		 * responde.
+		 *
+		 * O componente FICA no repositorio, intocado: se um dia a roleta for
+		 * servida, volta com uma linha. O que sai e so a montagem dela na HUD.
+		 */
 		if (Configs.get('enableAchievements') && PACKETVER.value >= 20150513) {
 			Achievement.append();
 		}
@@ -1517,6 +1598,23 @@ function onMapChange(pkt, ehEntradaNoMundo) {
 		// o esconderijo de AdminPanel ".ap-button" nao dependem de ORDEM de
 		// append, so da shadow DOM ja existir — garantida no prepare()).
 		HuntButtonIdle.append();
+
+		/*
+		 * RAGIDLE: a CAMADA GUIADA DO TUTORIAL (frente D da Jornada de Midgard).
+		 *
+		 * Por ULTIMO de propósito: ela mede o `getBoundingClientRect()` dos
+		 * controles dos outros componentes (o `.tm-fab` do TopMenuIdle, o
+		 * `.hb-cacar` do HuntButtonIdle, o `.mt-ativa` do rastreador), e um
+		 * alvo que ainda não entrou no DOM mede 0x0: e exatamente o
+		 * sintoma de "leque fechado" que ela trata como "o alvo sumiu". Ela se
+		 * recupera sozinha no tique seguinte, mas nascer medindo certo é de
+		 * graça.
+		 *
+		 * Ela nasce ESCONDIDA: quem a acende é o servidor, mandando
+		 * ZC_RAGIDLE_TUTORIAL com estado 'em-andamento'. Anexar sempre é o
+		 * mesmo padrão do HuntMap/DeathWindow acima.
+		 */
+		TutorialIdle.append();
 
 		/*
 		 * A PILHA DE JANELAS (D-931) — o dono do ESC e do voltar do Android.
@@ -1742,6 +1840,20 @@ function onMapChange(pkt, ehEntradaNoMundo) {
 			fechar: () => {},
 		});
 
+		/* O TUTORIAL é DECISÃO pela mesma razão da morte: enquanto ele está na
+		   tela há um passo a cumprir, e o ESC não pode fazê-lo sumir nem vazar
+		   para as janelas de baixo (fechar a janela de Missões por baixo do
+		   tutorial deixaria a etapa apontando para o vazio). A saída é
+		   explícita, com o dedo no botão: "Pular tutorial", que está SEMPRE
+		   visível no balão. */
+		PilhaDeJanelas.registrar({
+			nome: 'tutorial',
+			componente: TutorialIdle,
+			tipo: PilhaDeJanelas.TIPO.DECISAO,
+			estaAberta: () => TutorialIdle.estaNaTela(),
+			fechar: () => {},
+		});
+
 		PilhaDeJanelas.ligar();
 
 		/* D-934: e a escala da HUD, ligada DEPOIS do registro — ela varre os
@@ -1764,6 +1876,22 @@ function onMapChange(pkt, ehEntradaNoMundo) {
 		 * enquanto a sessao vive mora aqui.
 		 */
 		ligarAcessorioDaHud('modo leitura', TelaAcesaNoFarm.ligar);
+
+		/*
+		 * RAGIDLE: "INTERFACE PRONTA": o gancho de entrada do tutorial guiado.
+		 *
+		 * Aqui, e não em `onConnectionAccepted`, porque o que a camada precisa
+		 * não é "entrei na zona": é a HUD montada, escalada e com a marca do
+		 * celular em pé já carimbada. Ela mede o `getBoundingClientRect()` dos
+		 * controles, e antes de `EscalaDaHud.ligar()`/`HudVertical.ligar()` as
+		 * caixas ainda não são as finais.
+		 *
+		 * Rodar em TODA troca de mapa é o desenho, e não um descuido: a etapa
+		 * mora no servidor, então este ponto é também a RECUPERAÇÃO depois de
+		 * morte, viagem e reconexão. Quem decide se o tutorial começa é o
+		 * SERVIDOR, e o cliente so pergunta, e desenha o que vier.
+		 */
+		TutorialIdle.interfacePronta();
 
 		if (Configs.get('enableCashShop')) {
 			/*
@@ -1891,6 +2019,7 @@ function cleanGameUI() {
 		MochilaIdle,
 		PasseIdle,
 		CodexIdle,
+		TutorialIdle,
 		PresencaIdle,
 		IndicacaoIdle,
 		RankingIdle,

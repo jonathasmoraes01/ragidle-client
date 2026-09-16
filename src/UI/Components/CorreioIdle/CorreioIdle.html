@@ -38,6 +38,30 @@
 
 					<div class="co-rodape">
 						<span class="co-contagem">—</span>
+
+						<!-- COLETAR TODOS OS ITENS (15/09/2026, D-1494 -- pedido do dono:
+						     *"Adicione um botao para 'Coletar todos os itens' no
+						     correio"*).
+
+						     Ele vem ANTES do "Apagar todas" e ocupa a fila inteira por
+						     tres motivos: e a acao que o jogador quer fazer primeiro
+						     (coletar, e so depois limpar); e a unica CONSTRUTIVA das
+						     tres, entao herda o ouro dos "Coletar zeny/itens" da carta
+						     aberta em vez do cinza; e o `.co-rodape > button` divide a
+						     fila igualmente entre os botoes -- com TRES na mesma fila
+						     cada um ficaria com ~1/3 de 224px no celular em pe, que e
+						     exatamente a quebra que o comentario do `.co-rodape` no CSS
+						     ja registra ter acontecido uma vez.
+
+						     NAO HA CONFIRMACAO, e isso e deliberado: coletar nao
+						     destroi nada -- o pior caso e o peso nao caber, e ai o
+						     servidor coleta o que da e a frase do relatorio diz quais
+						     ficaram. O "Apagar todas" ao lado tem confirmacao porque
+						     aquilo nao tem desfazer; por um gesto a mais aqui o botao
+						     perderia a razao de existir, que e tirar cliques de cima de
+						     quem tem 500 cartas. -->
+						<button type="button" class="co-coletar-todos ri-btn ri-btn--ouro" data-acao="coletar-todos">Coletar todos os itens</button>
+
 						<!-- APAGAR TODAS (07/09/2026, pedido do dono no alfa). Ele mora
 						     no rodape da LISTA, e nao ao lado do "Apagar" da carta
 						     aberta: a acao e sobre a caixa inteira, e por-la junto do

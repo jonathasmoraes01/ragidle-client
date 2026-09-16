@@ -23,6 +23,7 @@
  * Teste: `tests/renderer/quadrosNoCampo.test.js`.
  */
 import Session from 'Engine/SessionStorage.js';
+import { reparticaoDoPior, zerarFases } from 'Renderer/fasesDoQuadro.js';
 import { ehDedo } from 'UI/escalaDaHud.js';
 import { ehCelularEmPe } from 'UI/hudVertical.js';
 import { rotaDoBalcao } from 'UI/enderecoDoBalcao.js';
@@ -91,9 +92,39 @@ function minutosEmJogo() {
 }
 
 /**
+ * O que conta como TRAVADA — meio segundo de olho humano, e nao um quadro
+ * ruim. 100 ms e ~6 quadros perdidos a 60 fps: abaixo disso e cadencia, acima
+ * disso a tela PAROU.
+ */
+const TRAVADA_MS = 100;
+
+/**
+ * O RESUMO PRECISA DO PIOR, E NAO SO DOS PERCENTIS (15/09/2026).
+ *
+ * ---------------------------------------------------------------------------
+ * POR QUE p50/p95 SAO CEGOS PARA O DEFEITO QUE O DONO RELATOU
+ * ---------------------------------------------------------------------------
+ * O video que ele gravou no iPhone mediu, no trecho de caca, **51% do TEMPO**
+ * com a tela congelada — travadas de 600 a 900 ms alternando com segundos
+ * inteiros a 60 fps.
+ *
+ * Em TEMPO isso e metade da sessao. Em QUADROS e quase nada: cada travada e
+ * UM intervalo longo. Dois minutos a 55 fps sao ~6.600 quadros; vinte
+ * travadas sao 0,3% deles. O p95 olha os 5% piores e **passa longe**.
+ *
+ * Medido na pratica: a primeira amostra do iPhone pelo Wi-Fi local veio com
+ * `p50 17 ms · p95 24 ms` — numeros de um jogo fluido — sem que isso pudesse
+ * dizer se houve ou nao congelamento. **O instrumento estava cego para a coisa
+ * que ele existia para medir**, e concluir "ficou liso" dali teria sido o
+ * "criterio que passa com zero" que este projeto ja catalogou.
+ *
+ * `piorMs` e `travadas` respondem a pergunta certa. Sao dois campos, e nao um:
+ * uma travada de 900 ms e um problema diferente de trinta de 120 ms.
+ *
  * @param {ArrayLike<number>} intervalos
  * @param {number} quantos
- * @return {{quadros: number, fps: number, p50Ms: number, p95Ms: number}|null}
+ * @return {{quadros: number, fps: number, p50Ms: number, p95Ms: number,
+ *   piorMs: number, travadas: number, paradoMs: number}|null}
  */
 export function resumirIntervalos(intervalos, quantos) {
 	if (!(quantos > 0)) {
@@ -101,15 +132,25 @@ export function resumirIntervalos(intervalos, quantos) {
 	}
 	const ordenados = Array.prototype.slice.call(intervalos, 0, quantos).sort((a, b) => a - b);
 	let soma = 0;
+	let travadas = 0;
+	let paradoMs = 0;
 	for (let i = 0; i < quantos; i++) {
 		soma += ordenados[i];
+		if (ordenados[i] > TRAVADA_MS) {
+			travadas++;
+			paradoMs += ordenados[i];
+		}
 	}
 	const percentil = q => ordenados[Math.min(quantos - 1, Math.floor(quantos * q))];
 	return {
 		quadros: quantos,
 		fps: Math.round(((quantos * 1000) / soma) * 10) / 10,
 		p50Ms: Math.round(percentil(0.5) * 10) / 10,
-		p95Ms: Math.round(percentil(0.95) * 10) / 10
+		p95Ms: Math.round(percentil(0.95) * 10) / 10,
+		// O ultimo do array ordenado — o quadro mais longo da amostra.
+		piorMs: Math.round(ordenados[quantos - 1] * 10) / 10,
+		travadas,
+		paradoMs: Math.round(paradoMs)
 	};
 }
 
@@ -143,14 +184,21 @@ export function enviarRelatoDeDesempenho() {
 	try {
 		const vale = !document.hidden && Session.Playing && _quantos >= MINIMO_DE_QUADROS;
 		const resumo = vale ? resumirIntervalos(_intervalos, _quantos) : null;
+		// A reparticao e lida ANTES de zerar, e zerada junto da amostra: as
+		// duas descrevem a MESMA janela, e desencontra-las faria o pior quadro
+		// de uma janela ser explicado pelas fases de outra.
+		const fases = vale ? reparticaoDoPior() : {};
 		_quantos = 0;
+		zerarFases();
 		if (!resumo) {
 			return false;
 		}
 		fetch(rotaDoBalcao(ROTA_DO_DESEMPENHO), {
 			method: 'POST',
 			headers: { 'Content-Type': 'application/json' },
-			body: JSON.stringify(Object.assign(resumo, aparelho(), { minutosDeSessao: minutosEmJogo() })),
+			body: JSON.stringify(
+				Object.assign(resumo, aparelho(), fases, { minutosDeSessao: minutosEmJogo() })
+			),
 			keepalive: true
 		}).catch(function () {});
 		return true;

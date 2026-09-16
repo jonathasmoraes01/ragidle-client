@@ -37,6 +37,7 @@ import Equipment from 'UI/Components/Equipment/Equipment.js';
 import Inventory from 'UI/Components/Inventory/Inventory.js';
 import { carregarArteDeColecao } from 'Utils/ItemArt.js';
 import { renderRunasHTML } from 'Utils/ItemOptionsView.js';
+import { textoDoRefino } from './linhaDoRefino.js'; // 16/09/2026, D-1516: o bonus do refino
 
 /**
  * Create Component
@@ -285,6 +286,34 @@ ItemInfo.setVestido = function setVestido(texto) {
 	faixa.hidden = false;
 };
 
+/**
+ * O BÔNUS DO REFINO (16/09/2026, D-1516). O pedido sai em `setItem` para toda
+ * peça refinada — da mochila, do corpo, do carrinho, do armazém ou de um link
+ * no chat —, por ITEM e NÍVEL, e a resposta chega pela MochilaIdle (dona do
+ * único tratador do `ZC_RAGIDLE_ITEM`). Só desenha se ainda for a peça aberta.
+ */
+let _refinoPedido = null;
+
+ItemInfo.receberRefino = function receberRefino(dados) {
+	if (!_refinoPedido || !dados) {
+		return;
+	}
+	if (dados.itemId !== _refinoPedido.itemId || dados.nivel !== _refinoPedido.nivel) {
+		return;
+	}
+	const texto = textoDoRefino(dados.refino);
+	const descInner = ItemInfo.getRoot().querySelector('.description-inner');
+	if (!texto || !descInner) {
+		return;
+	}
+	const linha = document.createElement('div');
+	linha.className = 'ri-refino-do-item';
+	linha.style.cssText = 'color:#1a7f37;font-weight:bold;margin-bottom:4px';
+	linha.textContent = texto;
+	descInner.insertBefore(linha, descInner.firstChild);
+	_refinoPedido = null;
+};
+
 ItemInfo.setItem = function setItem(item) {
 	const it = DB.getItemInfo(item.ITID);
 	const root = ItemInfo.getRoot();
@@ -400,6 +429,14 @@ ItemInfo.setItem = function setItem(item) {
 						_escapeHTML(idDoItem) +
 						'</div>'
 					: '');
+	}
+
+	_refinoPedido = null;
+	if (item.RefiningLevel > 0 && item.ITID > 0) {
+		_refinoPedido = { itemId: item.ITID, nivel: item.RefiningLevel };
+		const pedido = new PACKET.CZ.RAGIDLE_ITEM_ACAO();
+		pedido.json = JSON.stringify({ acao: 'refino', itemId: item.ITID, nivel: item.RefiningLevel });
+		Network.sendPacket(pedido);
 	}
 
 	if (item.HireExpireDate) {

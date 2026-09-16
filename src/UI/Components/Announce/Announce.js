@@ -36,9 +36,24 @@ Announce.needFocus = false;
 let _timer = 0;
 
 /**
- * @var {number} how many time the announce is display (20secs)
+ * Quanto tempo a faixa fica na tela.
+ *
+ * ERA 20 s, e caiu para 10 s em 15/09/2026 (D-1496) — pedido do dono:
+ * *"Reduza o tempo dos anuncios de 20 segundos para 10 segundos"*. O que
+ * puxou o assunto foi a `prove:hud-responsiva`: a faixa do evento de EXP que
+ * o servidor manda na ENTRADA do mapa vivia 20 s, que e justamente a janela
+ * em que a prova mede, e ela aparecia em seis telas cobrindo os discos do
+ * menu.
+ *
+ * **O acerto de toque ja foi resolvido em outro lugar, e nao aqui** — a faixa
+ * deixou de pegar o ponteiro em `Announce.css` (D-1493). Este numero e sobre
+ * LEGIBILIDADE: por quanto tempo o anuncio passa por cima do que esta atras
+ * dele. Diminuir a vida sem o `pointer-events` teria sido remendo; com ele,
+ * e so o tempo de leitura.
+ *
+ * @var {number} milissegundos
  */
-const _life = 20 * 1000;
+const _life = 10 * 1000;
 
 Announce.render = () => htmlText;
 

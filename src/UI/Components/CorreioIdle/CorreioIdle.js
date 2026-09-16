@@ -78,7 +78,7 @@ import RodexIcon from 'UI/Components/Rodex/RodexIcon.js';
 import htmlText from './CorreioIdle.html?raw';
 import cssText from './CorreioIdle.css?raw';
 import { fecharEEsquecer } from '../limpezaDeJanelaIdle.js';
-import { fraseDoRelatorio } from './relatorioDoLote.js';
+import { fraseDaColeta, fraseDoRelatorio } from './relatorioDoLote.js';
 
 /**
  * Mantido em sincronia com ":host"/".co-window"/".co-frame" em
@@ -119,6 +119,28 @@ const MSG_APAGAR_RECUSADO =
 
 /** O lote com a caixa vazia: nada a fazer, e dizer isso é melhor que o silêncio. */
 const MSG_SEM_NADA_A_APAGAR = 'A caixa já está vazia.';
+
+/**
+ * A mesma coisa para a coleta — e **é o único caso que a janela pode decidir
+ * sozinha** (D-1494).
+ *
+ * Ela não sabe QUAIS cartas têm anexo: o bloco da lista manda `classe: 0` fixo
+ * (o mesmo motivo pelo qual a confirmação do "apagar todas" diz o total, e não
+ * quantas vão sair). Então "não há anexo a coletar" só é uma afirmação honesta
+ * quando não há CARTA nenhuma. Nos outros casos quem responde é o relatório do
+ * servidor, e adivinhar aqui seria a segunda leitura da regra dele.
+ */
+const MSG_CAIXA_VAZIA_PARA_COLETA = 'A caixa está vazia — não há anexo a coletar.';
+
+/**
+ * Quanto tempo o botão de coleta fica desarmado esperando o relatório.
+ *
+ * Ele é uma REDE, e não o mecanismo: quem o rearma é a chegada do relatório
+ * (ver o `hookPacket`). Isto existe só para o caso em que o relatório não vem —
+ * conexão caída, servidor velho sem o verbo — para o botão não ficar morto até
+ * o jogador fechar e reabrir a janela.
+ */
+const COLETA_DE_LOTE_TIMEOUT_MS = 10000;
 
 /** Quanto tempo o relatório do lote fica na tela — ele é mais longo de ler. */
 const AVISO_DO_LOTE_MS = 8000;
@@ -171,6 +193,20 @@ let _sigLista = null;
  * Chave: `<acao>:<mensagemId>`. Some quando a lista chega com o anexo zerado.
  */
 const _coletaEmVoo = new Set();
+
+/**
+ * O lote de coleta já pedido e ainda sem relatório (D-1494, 15/09/2026).
+ *
+ * É um booleano e não um Set porque o lote é sobre a CAIXA, e não sobre uma
+ * carta: não há duas coletas de lote concorrentes possíveis. A razão de existir
+ * é a mesma do `_coletaEmVoo` irmão — o segundo clique chegaria ao servidor com
+ * a caixa já esvaziada e voltaria com "Nenhum anexo coletado", que descreve
+ * falha nenhuma e faria o jogador achar que o botão quebrou.
+ */
+let _coletaDeLoteEmVoo = false;
+
+/** @var {number|null} handle da rede de segurança do lote de coleta. */
+let _coletaDeLoteTimer = null;
 
 /** @var {string|null} assinatura do ultimo detalhe desenhado. */
 let _sigDetalhe = null;
@@ -322,10 +358,32 @@ CorreioIdle.init = function init() {
 		} catch (_erro) {
 			return;
 		}
-		if (!relatorio || relatorio.acao !== 'apagar-todas') {
+		if (!relatorio) {
 			return;
 		}
-		mostrarAviso(fraseDoRelatorio(relatorio), AVISO_DO_LOTE_MS);
+		/*
+		 * UM `case` POR VERBO (D-1494). Isto era um `if (acao !== 'apagar-todas')
+		 * return`, e o relatorio da coleta caía no chão em silêncio — o defeito
+		 * que este projeto chama de "duas rotas, a 2ª escrita à mão", só que na
+		 * forma mais barata: a 2ª rota nem existia. O `default` continua mudo de
+		 * propósito, porque verbo novo no servidor chega antes do cliente novo.
+		 */
+		switch (relatorio.acao) {
+			case 'apagar-todas':
+				mostrarAviso(fraseDoRelatorio(relatorio), AVISO_DO_LOTE_MS);
+				break;
+
+			case 'coletar-todos':
+				// O botão só volta quando a resposta chega: é ela que diz que o
+				// lote acabou. Ver `coletarTodos`.
+				_coletaDeLoteEmVoo = false;
+				sincronizarBotaoDaColeta();
+				mostrarAviso(fraseDaColeta(relatorio), AVISO_DO_LOTE_MS);
+				break;
+
+			default:
+				break;
+		}
 	});
 
 	this._host.style.top = Math.max(0, (Renderer.height - WINDOW_HEIGHT) / 2) + 'px';
@@ -615,6 +673,10 @@ function onClickAcao(e) {
 			esconderConfirmacao();
 			break;
 
+		case 'coletar-todos':
+			coletarTodos();
+			break;
+
 		case 'apagar-todas':
 			mostrarConfirmacaoDeTodas();
 			break;
@@ -689,6 +751,68 @@ function apagarSelecionada() {
 			mostrarAviso(MSG_APAGAR_RECUSADO);
 		}
 	}, RECUSA_DELAY_MS);
+}
+
+/* ------------------------------------------------------------------ */
+/* COLETAR TODOS OS ITENS (15/09/2026, D-1494 — pedido do dono)         */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Manda o verbo e espera o RELATÓRIO.
+ *
+ * ── O QUE ESTA FUNÇÃO NÃO FAZ, E POR QUÊ ─────────────────────────────────
+ * Ela não decide o que cabe. **Quem decide é `planejarColetaDeAnexos`**, no
+ * servidor, e a razão está escrita lá: o peso ACUMULA ao longo do lote, então
+ * uma segunda conta aqui — cada carta contra o peso de ANTES — aceitaria demais
+ * e deixaria o jogador acima do teto. A janela nem sabe o peso.
+ *
+ * ── A COSTURA COM A LISTA ────────────────────────────────────────────────
+ * O `repedirLista` é o mesmo do `apagarTodas`, e pelo mesmo motivo: quem tira o
+ * anexo da linha na lista NATIVA do roBrowser são os `ZC_ACK_*_FROM_RODEX` que
+ * o servidor manda carta a carta. O relatório é TEXTO, e não estado.
+ */
+function coletarTodos() {
+	if (_coletaDeLoteEmVoo) {
+		return;
+	}
+	if (cartas().length === 0) {
+		mostrarAviso(MSG_CAIXA_VAZIA_PARA_COLETA);
+		return;
+	}
+
+	_coletaDeLoteEmVoo = true;
+	sincronizarBotaoDaColeta();
+
+	const pkt = new PACKET.CZ.RAGIDLE_CORREIO_ACAO();
+	pkt.json = JSON.stringify({ acao: 'coletar-todos' });
+	Network.sendPacket(pkt);
+	setTimeout(repedirLista, REPEDIR_LISTA_MS);
+
+	if (_coletaDeLoteTimer) {
+		clearTimeout(_coletaDeLoteTimer);
+	}
+	_coletaDeLoteTimer = setTimeout(() => {
+		_coletaDeLoteTimer = null;
+		_coletaDeLoteEmVoo = false;
+		sincronizarBotaoDaColeta();
+	}, COLETA_DE_LOTE_TIMEOUT_MS);
+}
+
+/**
+ * O botão desarmado enquanto o lote está no ar.
+ *
+ * `disabled` e não `hidden`: o botão ocupa a fila inteira do rodapé, e
+ * escondê-lo faria o rodapé PULAR de altura no instante do clique — o "Apagar
+ * todas" subiria para debaixo do dedo que acabou de tocar. É o mesmo cuidado
+ * que o irmão avulso não precisa ter, porque lá o botão divide a fila.
+ */
+function sincronizarBotaoDaColeta() {
+	const botao = _root().querySelector('.co-coletar-todos');
+	if (!botao) {
+		return;
+	}
+	botao.disabled = _coletaDeLoteEmVoo;
+	botao.classList.toggle('is-disabled', _coletaDeLoteEmVoo);
 }
 
 /* ------------------------------------------------------------------ */

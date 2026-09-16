@@ -61,14 +61,103 @@ function _createButton(name, onClick, label) {
 	btn.className = name === 'ok' || name === 'yes' ? 'btn ri-btn' : 'btn ri-btn ri-btn--sec';
 	btn.textContent = label || _rotuloDeBotao(name);
 
+	/*
+	 * DEDO E MOUSE (15/09/2026), e nao so o clique.
+	 *
+	 * Esta fabrica serve TODOS os botoes de caixa deste arquivo — inclusive o
+	 * "Acordar agora" do "Dormindo..." e o "Continuar" do resumo do sono. O
+	 * relato do dono foi sobre a tela de economia de energia, mas o defeito era
+	 * desta forma inteira: `click` sozinho, numa interface que o projeto ja
+	 * sabia precisar de `touchstart` (ver `ligarAoDedoEAoMouse`).
+	 *
+	 * Consertar AQUI e nao em cada chamador e o ponto: sao cinco sitios, e
+	 * cinco copias da mesma correcao seriam cinco chances de uma envelhecer.
+	 *
+	 * O `clicked` continua: ele e outra guarda, de outro assunto — impede o
+	 * SEGUNDO acionamento legitimo (dois toques rapidos em "OK"), enquanto a
+	 * guarda de dentro do helper impede o `click` sintetizado do mesmo toque.
+	 */
 	let clicked = false;
-	btn.addEventListener('click', () => {
+	ligarAoDedoEAoMouse(btn, () => {
 		if (clicked) return;
 		clicked = true;
 		onClick();
 	});
 
 	return btn;
+}
+
+/**
+ * A GUARDA ENTRE O TOQUE E O CLIQUE — 750 ms, o mesmo de `MobileUI`.
+ *
+ * O `touchstart` dispara primeiro; o navegador SINTETIZA um `click` depois. Sem
+ * a guarda, o handler rodaria duas vezes por toque.
+ */
+const MS_DE_GUARDA_DO_TOQUE = 750;
+
+/**
+ * LIGA UM BOTAO DE TELA CHEIA AO DEDO **E** AO MOUSE (15/09/2026).
+ *
+ * ---------------------------------------------------------------------------
+ * POR QUE `click` SOZINHO NAO BASTA NESTE JOGO
+ * ---------------------------------------------------------------------------
+ * Relato do dono: *"o botao de 'voltar a jogar' no economia de energia nao
+ * esta funcionando no iphone/mobile"*. O botao era um `<button>` de verdade,
+ * com `addEventListener('click')` — e no desktop funciona.
+ *
+ * **O projeto ja sabia que isso nao basta**: `MobileUI.bindButton`
+ * (`src/UI/Components/MobileUI/MobileUI.js`) existe exatamente para ligar
+ * `click` E `touchstart` nos botoes do jogo, com uma guarda para o handler
+ * nao rodar duas vezes. Ela nasceu para os controles da HUD e ficou presa la;
+ * as telas CHEIAS deste arquivo (economia de energia, "Dormindo...", resumo do
+ * sono) foram escritas depois e so escutaram `click`.
+ *
+ * Nao e regra nova: e a regra que ja existia, alcancando quem tinha ficado de
+ * fora. Ela vive aqui, e nao importada da `MobileUI`, porque aquela casa a
+ * um `root.querySelector(seletor)` e estes botoes sao elementos crus, criados
+ * em DOM claro — o seletor nao existe.
+ *
+ * @param {HTMLElement} botao
+ * @param {function(): void} aoAcionar
+ */
+function ligarAoDedoEAoMouse(botao, aoAcionar) {
+	let peloToque = false;
+	let soltar = null;
+
+	const limpar = () => {
+		if (soltar !== null) {
+			clearTimeout(soltar);
+			soltar = null;
+		}
+	};
+	const armarSoltura = () => {
+		limpar();
+		soltar = setTimeout(() => {
+			soltar = null;
+			peloToque = false;
+		}, MS_DE_GUARDA_DO_TOQUE);
+	};
+
+	botao.addEventListener('click', evento => {
+		// O `click` sintetizado depois do toque ja foi atendido: engole.
+		if (peloToque) {
+			peloToque = false;
+			limpar();
+			evento.preventDefault();
+			evento.stopImmediatePropagation();
+			return;
+		}
+		aoAcionar();
+	});
+	botao.addEventListener('touchstart', evento => {
+		peloToque = true;
+		limpar();
+		// Sem isto o toque tambem vira gesto da cena atras da tela cheia.
+		evento.stopImmediatePropagation();
+		aoAcionar();
+	});
+	botao.addEventListener('touchend', armarSoltura);
+	botao.addEventListener('touchcancel', armarSoltura);
 }
 
 /**
@@ -80,6 +169,143 @@ function _createOverlay() {
 	overlay.className = 'win_popup_overlay';
 	document.body.appendChild(overlay);
 	return overlay;
+}
+
+/** HH:MM:SS a partir de ms. Usado pelas duas telas pretas. */
+function _relogioDeEspera(ms) {
+	const total = Math.max(0, Math.floor((Number(ms) || 0) / 1000));
+	const h = String(Math.floor(total / 3600)).padStart(2, '0');
+	const m = String(Math.floor((total % 3600) / 60)).padStart(2, '0');
+	const s = String(total % 60).padStart(2, '0');
+	return `${h}:${m}:${s}`;
+}
+
+/**
+ * A TELA PRETA DE ESPERA — o casco que o "Dormir" e a "economia de energia"
+ * dividem (D-1485, 15/09/2026).
+ *
+ * ---------------------------------------------------------------------------
+ * POR QUE ELE EXISTE
+ * ---------------------------------------------------------------------------
+ * Relato do dono sobre o "Dormir": *"a experiencia de uso esta muito simples...
+ * gostaria que fosse igual a tela preta do 'economia de energia'... ao clicar
+ * para dormir a tela nao fica preta, o personagem so fica parado"*.
+ *
+ * E ele estava descrevendo um DEFEITO, nao um gosto. O "Dormir" usava o clone
+ * de `WinPopup` com `_createOverlay()`, e `.win_popup_overlay` **nao tem
+ * `background` nenhum** (so `position: fixed` e `z-index`): ele barra o clique
+ * e deixa a cena inteira visivel. Como o servidor ja tirou o personagem do
+ * mundo em `iniciar`, o que sobra na tela e exatamente o que ele descreveu —
+ * o boneco parado num cenario que nao anda mais.
+ *
+ * Escrever uma segunda tela preta ao lado da que ja funciona seria "duas rotas,
+ * e a segunda escrita a mao" — o defeito que este projeto mais repete. Entao a
+ * que existe virou casco e as duas passam por aqui.
+ *
+ * Quem chama recebe os PEDACOS (timer, aviso, resumo, botao, rodape) e escreve
+ * neles; este modulo nao sabe o que cada tela mostra, so como ela e.
+ *
+ * @param {{titulo: string, rodape: string, textoDoBotao: string,
+ *   onBotao: function(): void}} opcoes
+ * @returns {{timer: HTMLElement, aviso: HTMLElement, resumo: HTMLElement,
+ *   botao: HTMLElement, rodape: HTMLElement, remove: function(): void}}
+ */
+function _telaPretaDeEspera({ titulo, rodape, textoDoBotao, onBotao }) {
+	const overlay = document.createElement('div');
+	Object.assign(overlay.style, {
+		position: 'fixed',
+		inset: '0',
+		background: '#000',
+		color: '#e8e8e8',
+		display: 'flex',
+		flexDirection: 'column',
+		alignItems: 'center',
+		justifyContent: 'center',
+		// 2000000, nunca o teto do cursor (2147483647, CursorManager.js) — o
+		// mesmo numero que DeathWindow.css já usa como "camada solta mais
+		// alta" (ver o censo no cabeçalho dele); `tests/ui/cursorAcimaDeTudo
+		// .test.js` reprova qualquer z-index que alcance o do cursor.
+		zIndex: '2000000',
+		fontFamily: "'Figtree', Arial, 'Liberation Sans', Arimo, sans-serif",
+		textAlign: 'center',
+		gap: '12px',
+		padding: '24px',
+		boxSizing: 'border-box'
+	});
+
+	const elTitulo = document.createElement('div');
+	Object.assign(elTitulo.style, { fontSize: '13px', opacity: '0.6', letterSpacing: '0.08em' });
+	elTitulo.textContent = titulo;
+
+	const elTimer = document.createElement('div');
+	Object.assign(elTimer.style, {
+		fontSize: 'clamp(32px, 8vw, 56px)',
+		fontVariantNumeric: 'tabular-nums',
+		fontWeight: '600'
+	});
+
+	const elResumo = document.createElement('div');
+	Object.assign(elResumo.style, { fontSize: '14px', opacity: '0.85', lineHeight: '1.7' });
+
+	/*
+	 * A FAIXA DE AVISO, escondida por padrao. Na economia de energia ela diz
+	 * que o personagem morreu (D-1398); no sono, que o pedido esta a caminho.
+	 * Quem chama decide o texto e quando mostrar.
+	 */
+	const elAviso = document.createElement('div');
+	elAviso.hidden = true;
+	Object.assign(elAviso.style, {
+		fontSize: '14px',
+		fontWeight: '600',
+		color: '#ffb454',
+		background: 'rgba(255, 90, 60, 0.12)',
+		border: '1px solid rgba(255, 180, 84, 0.4)',
+		borderRadius: '6px',
+		padding: '10px 16px',
+		maxWidth: '420px'
+	});
+
+	const elBotao = document.createElement('button');
+	elBotao.type = 'button';
+	elBotao.textContent = textoDoBotao;
+	Object.assign(elBotao.style, {
+		marginTop: '16px',
+		padding: '10px 28px',
+		fontSize: '14px',
+		fontWeight: '600',
+		color: '#0a0a0a',
+		background: '#e8c76a',
+		border: 'none',
+		borderRadius: '6px',
+		cursor: 'pointer',
+		// O piso tatil (D-935): esta tela cobre o viewport inteiro e o botao e a
+		// UNICA saida dela — errar o alvo aqui e ficar preso.
+		minHeight: '44px',
+		minWidth: '44px'
+	});
+	/*
+	 * DEDO E MOUSE (15/09/2026): era so `click`, e no iPhone o botao nao
+	 * respondia — relato do dono. Ver `ligarAoDedoEAoMouse` para o porque.
+	 */
+	ligarAoDedoEAoMouse(elBotao, () => {
+		if (onBotao) onBotao();
+	});
+
+	const elRodape = document.createElement('div');
+	Object.assign(elRodape.style, { fontSize: '12px', opacity: '0.5', marginTop: '4px' });
+	elRodape.textContent = rodape;
+
+	overlay.append(elTitulo, elTimer, elAviso, elResumo, elBotao, elRodape);
+	document.body.appendChild(overlay);
+
+	return {
+		timer: elTimer,
+		aviso: elAviso,
+		resumo: elResumo,
+		botao: elBotao,
+		rodape: elRodape,
+		remove: () => overlay.remove()
+	};
 }
 
 // Common CSS must live in a global <style> tag so document-level rules
@@ -375,92 +601,74 @@ class UIManager {
 	 *   fecha a janela E o overlay juntos (os dois sao peças separadas no DOM)
 	 */
 	static showDormindo(restanteMs, taxas, onAcordar) {
-		const WinSono = this.getComponent('WinPopup').clone('WinSono');
-		WinSono.riAnimaJanela = true; // entra/sai com a animacao unica (Fase 3)
-		// eslint-disable-next-line
-		let overlay;
-		let timer = null;
 		let restante = Math.max(0, Number(restanteMs) || 0);
 		const expBasePorMs = Number(taxas?.expBasePorMs) || 0;
 		const expClassePorMs = Number(taxas?.expClassePorMs) || 0;
+		let timer = null;
+		let pedindo = false;
 
-		function textoDoResto(ms) {
-			const totalMin = Math.floor(ms / 60000);
-			const h = Math.floor(totalMin / 60);
-			const m = totalMin % 60;
-			const tempo = h > 0 ? `Dormindo... ${h}h ${m}min restante(s)` : `Dormindo... ${m}min restante(s)`;
-			const expBase = Math.round(expBasePorMs * ms).toLocaleString('pt-BR');
-			const expClasse = Math.round(expClassePorMs * ms).toLocaleString('pt-BR');
-			return (
-				`${tempo}\n` +
-				`~${expBase} EXP base · ~${expClasse} EXP classe pela frente\n` +
-				`Pode fechar esta aba com segurança — o sono continua sem ela.`
-			);
-		}
-
-		function fecharTudo() {
-			if (overlay) overlay.remove();
-			WinSono.remove();
-		}
-
-		WinSono.init = function Init() {
-			const root = this._shadow;
-			root.querySelector('.text').textContent = textoDoResto(restante);
-			Object.assign(this._host.style, _popupPosition());
-
-			root.querySelector('.btns').appendChild(
-				_createButton(
-					'ok',
-					() => {
-						if (timer) clearInterval(timer);
-						/*
-						 * NAO fecha nem reconecta aqui (D-1387). Um clique so pede —
-						 * a janela vira "Acordando..." (sem botao, pra nao deixar
-						 * clicar de novo) e fica de pe ate o servidor confirmar. Quem
-						 * fecha esta janela e mostra o resumo e `onSonoRecebido`,
-						 * quando a resposta chegar (ou o teto de seguranca dela, se
-						 * a resposta se perder).
-						 */
-						const textEl = root.querySelector('.text');
-						if (textEl) textEl.textContent = 'Acordando...';
-						const btnsEl = root.querySelector('.btns');
-						if (btnsEl) btnsEl.innerHTML = '';
-						onAcordar();
-					},
-					'Acordar agora'
-				)
-			);
-
-			// O contador na TELA (D-1380 ja usa o mesmo padrao no aviso de
-			// versao nova): a cada segundo, sem depender de outro tique.
-			timer = setInterval(() => {
-				restante = Math.max(0, restante - 1000);
-				const el = root.querySelector('.text');
-				if (el) el.textContent = textoDoResto(restante);
-				if (restante <= 0 && timer) {
-					// O teto de 8h venceu enquanto o jogador olhava a tela:
-					// o mesmo botao resolve, sem exigir um segundo clique.
+		const tela = _telaPretaDeEspera({
+			titulo: 'DORMINDO',
+			rodape: 'Pode fechar esta aba com segurança — o sono continua sem ela.',
+			textoDoBotao: 'Acordar agora',
+			onBotao: () => {
+				/*
+				 * UM CLIQUE SO PEDE (D-1387). A tela NAO fecha e NAO reconecta
+				 * aqui: quem a fecha e o `dormindo:false` que chega depois, em
+				 * `onSonoRecebido`. O botao vira "Acordando..." e sai de
+				 * servico para nao aceitar um segundo clique — a guarda
+				 * `pedindo` existe porque `disabled` barra o `click` mas nao
+				 * necessariamente o `touchstart` que `ligarAoDedoEAoMouse` usa.
+				 */
+				if (pedindo) {
+					return;
+				}
+				pedindo = true;
+				if (timer) {
 					clearInterval(timer);
 					timer = null;
 				}
-			}, 1000);
+				tela.botao.disabled = true;
+				tela.botao.textContent = 'Acordando...';
+				tela.botao.style.opacity = '0.6';
+				tela.botao.style.cursor = 'default';
+				onAcordar();
+			}
+		});
+
+		function desenhar() {
+			tela.timer.textContent = _relogioDeEspera(restante);
+			const expBase = Math.round(expBasePorMs * restante).toLocaleString('pt-BR');
+			const expClasse = Math.round(expClassePorMs * restante).toLocaleString('pt-BR');
+			tela.resumo.textContent = `~${expBase} EXP base · ~${expClasse} EXP classe pela frente`;
+		}
+
+		desenhar();
+		// O contador na TELA, a cada segundo e sem depender de outro tique. O
+		// relogio daqui e so mostrador: quem manda a verdade e o servidor.
+		timer = setInterval(() => {
+			restante = Math.max(0, restante - 1000);
+			desenhar();
+			if (restante <= 0 && timer) {
+				clearInterval(timer);
+				timer = null;
+			}
+		}, 1000);
+
+		return {
+			remove: () => {
+				// O `clearInterval` AQUI e conserto, e nao arrumacao: a versao
+				// anterior so limpava o intervalo dentro do clique do botao,
+				// entao fechar a tela por qualquer outro caminho — o teto de
+				// seguranca de 8 s, por exemplo — deixava um `setInterval`
+				// rodando para sempre contra um DOM ja removido.
+				if (timer) {
+					clearInterval(timer);
+					timer = null;
+				}
+				tela.remove();
+			}
 		};
-
-		WinSono.onKeyDown = function OnKeyDown(event) {
-			/*
-			 * SEM ESC/ENTER fechando sozinho — ao contrario do erro/aviso
-			 * comuns, "acordar" e uma decisao explicita do jogador, e um ENTER
-			 * sem querer (o mesmo toque que confirmou o login, por exemplo)
-			 * nao pode reativar a conta sem o jogador ter escolhido isso.
-			 */
-			event.stopImmediatePropagation();
-		};
-
-		overlay = _createOverlay();
-		WinSono.onAppend = _prioritizeKeyDown;
-		WinSono.append();
-
-		return { remove: fecharTudo };
 	}
 
 	/**
@@ -560,113 +768,35 @@ class UIManager {
 	 *   jogador nao teria como saber que parou de render nada
 	 */
 	static showEconomiaDeEnergia(restanteMs, onVoltar) {
-		const overlay = document.createElement('div');
-		Object.assign(overlay.style, {
-			position: 'fixed',
-			inset: '0',
-			background: '#000',
-			color: '#e8e8e8',
-			display: 'flex',
-			flexDirection: 'column',
-			alignItems: 'center',
-			justifyContent: 'center',
-			// 2000000, nunca o teto do cursor (2147483647, CursorManager.js) — o
-			// mesmo numero que DeathWindow.css já usa como "camada solta mais
-			// alta" (ver o censo no cabeçalho dele); `tests/ui/cursorAcimaDeTudo
-			// .test.js` reprova qualquer z-index que alcance o do cursor.
-			zIndex: '2000000',
-			fontFamily: "'Figtree', Arial, 'Liberation Sans', Arimo, sans-serif",
-			textAlign: 'center',
-			gap: '12px',
-			padding: '24px',
-			boxSizing: 'border-box'
+		const tela = _telaPretaDeEspera({
+			titulo: 'MODO DE ECONOMIA DE ENERGIA',
+			rodape: 'Clique em "Voltar a jogar" quando quiser retomar — olhar a aba sozinho não sai do modo.',
+			textoDoBotao: 'Voltar a jogar',
+			onBotao: () => {
+				if (onVoltar) {
+					onVoltar();
+				}
+			}
 		});
 
-		const titulo = document.createElement('div');
-		Object.assign(titulo.style, { fontSize: '13px', opacity: '0.6', letterSpacing: '0.08em' });
-		titulo.textContent = 'MODO DE ECONOMIA DE ENERGIA';
-
-		const timer = document.createElement('div');
-		Object.assign(timer.style, {
-			fontSize: 'clamp(32px, 8vw, 56px)',
-			fontVariantNumeric: 'tabular-nums',
-			fontWeight: '600'
-		});
-
-		const resumo = document.createElement('div');
-		Object.assign(resumo.style, { fontSize: '14px', opacity: '0.85', lineHeight: '1.7' });
-
-		/*
-		 * O AVISO DE MORTE (D-1398, 14/09/2026 — pedido do dono): sem ele, quem
-		 * arma 2h de economia e morre aos 30min so descobriria ao voltar, tendo
-		 * perdido 1h30 de "farm intencional" sem saber — o relogio continua
-		 * contando do mesmo jeito, morto ou vivo (o teto nao muda, so o AVISO
-		 * e novo), e nada na tela preta distinguia as duas situacoes. Escondido
-		 * por padrao; `atualizar` o liga quando `stats.morreu` chega `true`.
-		 */
-		const aviso = document.createElement('div');
-		aviso.hidden = true;
-		Object.assign(aviso.style, {
-			fontSize: '14px',
-			fontWeight: '600',
-			color: '#ffb454',
-			background: 'rgba(255, 90, 60, 0.12)',
-			border: '1px solid rgba(255, 180, 84, 0.4)',
-			borderRadius: '6px',
-			padding: '10px 16px',
-			maxWidth: '420px'
-		});
-		aviso.textContent =
+		tela.aviso.textContent =
 			'⚠ Seu personagem morreu. O farm parou, mas o relógio continua contando — clique em "Voltar a jogar" para não perder o resto do tempo.';
 
-		const botao = document.createElement('button');
-		botao.type = 'button';
-		botao.textContent = 'Voltar a jogar';
-		Object.assign(botao.style, {
-			marginTop: '16px',
-			padding: '10px 28px',
-			fontSize: '14px',
-			fontWeight: '600',
-			color: '#0a0a0a',
-			background: '#e8c76a',
-			border: 'none',
-			borderRadius: '6px',
-			cursor: 'pointer'
-		});
-		botao.addEventListener('click', () => {
-			if (onVoltar) onVoltar();
-		});
-
-		const rodape = document.createElement('div');
-		Object.assign(rodape.style, { fontSize: '12px', opacity: '0.5', marginTop: '4px' });
-		rodape.textContent = 'Clique em "Voltar a jogar" quando quiser retomar — olhar a aba sozinho não sai do modo.';
-
-		overlay.append(titulo, timer, aviso, resumo, botao, rodape);
-		document.body.appendChild(overlay);
-
-		function textoDoTimer(ms) {
-			const total = Math.max(0, Math.floor((Number(ms) || 0) / 1000));
-			const h = String(Math.floor(total / 3600)).padStart(2, '0');
-			const m = String(Math.floor((total % 3600) / 60)).padStart(2, '0');
-			const s = String(total % 60).padStart(2, '0');
-			return `${h}:${m}:${s}`;
-		}
-
 		function atualizar(stats) {
-			timer.textContent = textoDoTimer(stats?.restanteMs);
-			aviso.hidden = stats?.morreu !== true;
+			tela.timer.textContent = _relogioDeEspera(stats?.restanteMs);
+			tela.aviso.hidden = stats?.morreu !== true;
 			const expBase = Math.round(Number(stats?.expBase) || 0).toLocaleString('pt-BR');
 			const expClasse = Math.round(Number(stats?.expClasse) || 0).toLocaleString('pt-BR');
 			const abates = Math.round(Number(stats?.abates) || 0).toLocaleString('pt-BR');
 			const itens = Math.round(Number(stats?.itensTotal) || 0).toLocaleString('pt-BR');
-			resumo.textContent = `EXP base +${expBase} · EXP classe +${expClasse} · Mobs mortos: ${abates} · Itens: ${itens}`;
+			tela.resumo.textContent = `EXP base +${expBase} · EXP classe +${expClasse} · Mobs mortos: ${abates} · Itens: ${itens}`;
 		}
 
 		atualizar({ restanteMs });
 
 		return {
 			atualizar,
-			remove: () => overlay.remove()
+			remove: tela.remove
 		};
 	}
 
@@ -704,17 +834,25 @@ class UIManager {
 			 * DOM (WinPopup.css:90-93).
 			 */
 			btnsContainer.appendChild(
-				_createButton(btn_yes, () => {
-					WinPrompt.remove();
-					if (onYes) onYes();
-				}, _rotuloDeBotao(btn_yes))
+				_createButton(
+					btn_yes,
+					() => {
+						WinPrompt.remove();
+						if (onYes) onYes();
+					},
+					_rotuloDeBotao(btn_yes)
+				)
 			);
 
 			btnsContainer.appendChild(
-				_createButton(btn_no, () => {
-					WinPrompt.remove();
-					if (onNo) onNo();
-				}, _rotuloDeBotao(btn_no))
+				_createButton(
+					btn_no,
+					() => {
+						WinPrompt.remove();
+						if (onNo) onNo();
+					},
+					_rotuloDeBotao(btn_no)
+				)
 			);
 		};
 
@@ -722,88 +860,17 @@ class UIManager {
 		return WinPrompt;
 	}
 
-	/**
-	 * A contagem de 5s do "Dormir" (D-1381, 13/09/2026) — pedido do dono:
-	 * *"aparece um timer de 5 segundos dizendo que o sistema de caça offline
-	 * será iniciado"*. Generico o bastante para qualquer contagem que precise
-	 * de um botao de cancelar e de disparar algo so quando chega a zero — o
-	 * MESMO padrao de contagem que `registrar-sw.js` ja usa no aviso de versao
-	 * nova (D-1380), aqui como janela em vez de rodape.
+	/*
+	 * `showContagemRegressiva` SAIU em 15/09/2026 (D-1485).
 	 *
-	 * @param {string} texto a frase antes do numero (ex.: "Iniciando o sono em")
-	 * @param {number} segundos quantos segundos contar
-	 * @param {function(): void} aoZerar chamado quando a contagem chega a zero — a janela ja fechou
-	 * @param {string} [avisoExtra] linha fixa abaixo da contagem (D-1386 — o "Dormir"
-	 *   usa pra avisar "pode fechar a aba" ja aqui, antes do pacote sair, e nao so
-	 *   na tela final de "Dormindo..."). Vazio por padrao: nenhum outro chamador
-	 *   existia ate aqui, entao isto nao muda comportamento de ninguem
-	 * @returns {{ cancelar: function(): void }} para o chamador cancelar de fora (ex.: a janela fechou)
+	 * Ela era a contagem de 5 s do "Dormir" (D-1381), e o dono pediu a tela
+	 * preta DIRETO — sem espera. Com aquele chamador removido ela ficou sem
+	 * nenhum: um helper de UI sem chamador e o mesmo padrao que deixou 12
+	 * arquivos do `viewer/` rodando mortos por 17 dias (D-1076), com duas
+	 * baterias de mutacao apontando para o vazio e ninguem notando.
+	 *
+	 * O git lembra dela se um dia voltar a fazer falta.
 	 */
-	static showContagemRegressiva(texto, segundos, aoZerar, avisoExtra = '') {
-		const WinContagem = this.getComponent('WinPopup').clone('WinContagem');
-		WinContagem.riAnimaJanela = true;
-		let overlay;
-		let timer = null;
-		let restante = Math.max(1, Math.floor(segundos));
-		let zerada = false;
-
-		function textoDaContagem() {
-			const base = `${texto} ${restante}...`;
-			return avisoExtra ? `${base}\n${avisoExtra}` : base;
-		}
-
-		function encerrar() {
-			if (timer) clearInterval(timer);
-			timer = null;
-			overlay.remove();
-			WinContagem.remove();
-		}
-
-		WinContagem.init = function Init() {
-			const root = this._shadow;
-			root.querySelector('.text').textContent = textoDaContagem();
-			Object.assign(this._host.style, _popupPosition());
-
-			root.querySelector('.btns').appendChild(
-				_createButton(
-					'cancel',
-					() => {
-						encerrar();
-					},
-					'Cancelar'
-				)
-			);
-
-			timer = setInterval(() => {
-				restante -= 1;
-				if (restante <= 0) {
-					zerada = true;
-					encerrar();
-					aoZerar();
-					return;
-				}
-				const el = root.querySelector('.text');
-				if (el) el.textContent = textoDaContagem();
-			}, 1000);
-		};
-
-		WinContagem.onKeyDown = function OnKeyDown(event) {
-			event.stopImmediatePropagation();
-			if (event.which === KEYS.ESCAPE) {
-				encerrar();
-			}
-		};
-
-		overlay = _createOverlay();
-		WinContagem.onAppend = _prioritizeKeyDown;
-		WinContagem.append();
-
-		return {
-			cancelar() {
-				if (!zerada) encerrar();
-			}
-		};
-	}
 
 	/**
 	 * Reload CSS of a component
