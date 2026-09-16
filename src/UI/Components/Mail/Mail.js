@@ -21,6 +21,7 @@ import ChatBox from 'UI/Components/ChatBox/ChatBox.js';
 import UIManager from 'UI/UIManager.js';
 import GUIComponent from 'UI/GUIComponent.js';
 import 'UI/Elements/Elements.js';
+import { escaparHtml } from 'Utils/escaparHtml.js'; // D-1308: remetente/assunto do correio sao texto de outro jogador (XSS)
 import htmlText from './Mail.html?raw';
 import cssText from './Mail.css?raw';
 
@@ -494,8 +495,8 @@ function createMailList() {
 					<div class="to_title" style="flex: 3;">
 						<div class="flex">
 							<div style="flex: 3;">
-								<span id="from_name_${mailId}" class="event_add_cursor tooltip name_data"> ${from_name}
-									<span class="tooltiptext to">${Mail.list.mailList[i].FromName}</span>
+								<span id="from_name_${mailId}" class="event_add_cursor tooltip name_data"> ${escaparHtml(from_name)}
+									<span class="tooltiptext to">${escaparHtml(Mail.list.mailList[i].FromName)}</span>
 								</span>
 							</div>
 							<div style="flex: 3;">
@@ -503,8 +504,8 @@ function createMailList() {
 							</div>
 						</div>
 						<div>
-							<span id="from_header_${mailId}" data-id="${mailId}" class="event_add_cursor tooltip"> ${header}
-								<span class="tooltiptext title">${Mail.list.mailList[i].HEADER}</span>
+							<span id="from_header_${mailId}" data-id="${mailId}" class="event_add_cursor tooltip"> ${escaparHtml(header)}
+								<span class="tooltiptext title">${escaparHtml(Mail.list.mailList[i].HEADER)}</span>
 							</span>
 						</div>
 					</div>

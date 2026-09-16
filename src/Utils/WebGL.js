@@ -12,6 +12,8 @@
 
 import Texture from 'Utils/Texture.js';
 import Configs from 'Core/Configs.js';
+import { ehDedo } from 'UI/escalaDaHud.js';
+import { preservarBufferDeDesenho } from 'Renderer/densidadeDoMundo.js';
 
 /**
  * Get WebGL Context
@@ -33,7 +35,10 @@ export function getContext(canvas, parameters) {
 			stencil: false,
 			antialias: true,
 			premultipliedAlpha: false,
-			preserveDrawingBuffer: true
+			// RAGIDLE (13/09/2026): so o print do Alt+P precisa dele, e no toque
+			// ele custa uma copia do buffer inteiro por quadro na GPU da Apple.
+			// Ver `Renderer/densidadeDoMundo.js`.
+			preserveDrawingBuffer: preservarBufferDeDesenho(ehDedo())
 		};
 	}
 

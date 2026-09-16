@@ -1,10 +1,11 @@
 /**
  * UI/Components/AdminPanel/AdminPanel.js
  *
- * "Painel de admin" — custom RAGIDLE window. Lets the OWNER's account
- * (Session.AID === 2000000, see isOwnerAccount() below) inspect and edit
- * a handful of admin-only character fields: class, zeny, base/job level,
- * and attribute/skill points.
+ * "Painel de admin" — custom RAGIDLE window. Lets the ADMINISTRATOR (the mark
+ * the server sends in ZC_RAGIDLE_ADMINS, read by souAdmin() — D-1367) inspect
+ * and edit a handful of admin-only character fields: class, zeny, base/job
+ * level, and attribute/skill points — and, since D-1376, start or end the
+ * server-wide EXP EVENT (see the "O EVENTO DE EXP" section near the bottom).
  *
  * Protocol (custom extension, not part of stock rAthena/roBrowser):
  *   CZ_RAGIDLE_PEDIR_ADMIN    0x0ff6  (client -> server, fixed, opcode only)
@@ -19,12 +20,18 @@
  * 0x0ff6-0x0ff8 sit right after IdleConfig's 0x0ff3-0x0ff5 in the same free
  * range of this fork's packet tables.
  *
- * IMPORTANT — the server only ever answers ZC_RAGIDLE_ADMIN for the owner's
- * account (AID 2000000); for any other account it stays silent. That silence
- * is enforced server-side; this client only decides whether to SHOW the
- * button/window at all (isOwnerAccount()/AdminPanel.onAppend below) and,
- * separately, how to react if a "pedir" for the owner's account itself gets
- * no answer within 3s (requestAdmin()/onClickButton below).
+ * IMPORTANT — the server only ever answers ZC_RAGIDLE_ADMIN for an
+ * administrator (`ehAdministrador`: the owner's user, or group >= 99); for any
+ * other account it stays silent. That silence is enforced server-side; this
+ * client only decides whether to SHOW the button/window at all (souAdmin() in
+ * AdminPanel.onAppend and AdminPanel.toggle below) and, separately, how to
+ * react if a "pedir" gets no answer within 3s (requestAdmin() below).
+ *
+ * D-1367: until 13/09/2026 the SHOW decision compared Session.AID with one
+ * hard-coded account — the shortcut the server dropped in D-694, when the
+ * administrator became the owner's USER, which in production is another
+ * account. The owner saw the server accept his commands and never saw this
+ * window.
  *
  * Pattern followed here is IdleConfig (UI/Components/IdleConfig/IdleConfig.js,
  * read in full before writing this file): GUIComponent base class, ES
@@ -44,6 +51,7 @@ import Preferences from 'Core/Preferences.js';
 import Network from 'Network/NetworkManager.js';
 import PACKET from 'Network/PacketStructure.js';
 import Session from 'Engine/SessionStorage.js';
+import { souAdmin } from 'DB/Items/idParaAdmin.js';
 import UIManager from 'UI/UIManager.js';
 import GUIComponent from 'UI/GUIComponent.js';
 import htmlText from './AdminPanel.html?raw';
@@ -56,13 +64,6 @@ import cssText from './AdminPanel.css?raw';
  */
 const WINDOW_WIDTH = 380;
 const WINDOW_HEIGHT = 520;
-
-/**
- * The one account this window ever works for. The server enforces this on
- * every packet (silence for anyone else); this constant only drives whether
- * the client shows the button/window at all (see onAppend() below).
- */
-const OWNER_AID = 2000000;
 
 /**
  * How long to wait for a ZC_RAGIDLE_ADMIN answer to a "pedir" before telling
@@ -134,6 +135,28 @@ AdminPanel.dirty = false;
 AdminPanel._pedirTimer = null;
 
 /**
+ * @var {{base:number, job:number, horas:number}} o rascunho do EVENTO DE EXP
+ *      (D-1376). Vive fora de `draft` de proposito: o evento e do SERVIDOR, e
+ *      nao do personagem — sai pelo proprio botao e nunca vai no patch do
+ *      "Aplicar".
+ */
+AdminPanel.eventoDraft = { base: 100, job: 100, horas: 24 };
+
+/**
+ * @var {number} o fim do evento no relogio DESTA maquina: `Date.now()` da
+ *      chegada + o `restanteMs` do servidor. Somar ao relogio local o que
+ *      falta, e nao comparar com o `fimMs` do servidor, tira do caminho a
+ *      diferenca entre os dois relogios.
+ */
+AdminPanel.eventoFimLocal = 0;
+
+/** @var {number|null} o setInterval da contagem regressiva, so com a janela aberta. */
+AdminPanel._eventoTimer = null;
+
+/** @var {boolean} o pedido de atualizacao do fim ja saiu — um so por evento. */
+AdminPanel._eventoPediuFim = false;
+
+/**
  * @var {Preferences} window position (x/y are null until the player moves it)
  */
 const _preferences = Preferences.get(
@@ -173,17 +196,6 @@ function escapeHtml(value) {
 				return '&#39;';
 		}
 	});
-}
-
-/**
- * Only the owner's account (Session.AID, populated at login/char-select —
- * see Engine/LoginEngine.js:386 and Engine/CharEngine.js:98) ever gets this
- * window shown. The server independently enforces the same restriction on
- * every packet — this is purely a client-side "don't even show the button"
- * check, not the real access control.
- */
-function isOwnerAccount() {
-	return Session.AID === OWNER_AID;
 }
 
 /**
@@ -229,10 +241,10 @@ AdminPanel.init = function init() {
 /**
  * Restore saved window position once appended to the DOM (same as
  * IdleConfig.js:197-202), then hide the whole component (button + window)
- * for every account except the owner's — same "hide the whole host" pattern
- * as UI/Components/CartItems/CartItems.js:148-151
- * (`if (Session.Entity.hasCart === false) { this._host.style.display =
- * 'none'; }`), just keyed on Session.AID instead of Session.Entity.hasCart.
+ * for everyone the server has not marked as administrator — same "hide the
+ * whole host" pattern as UI/Components/CartItems/CartItems.js:148-151, keyed
+ * on souAdmin() (D-1367). The mark may arrive AFTER this runs, so toggle()
+ * gives the host back to an administrator.
  */
 AdminPanel.onAppend = function onAppend() {
 	if (_preferences.x != null && _preferences.y != null) {
@@ -240,7 +252,7 @@ AdminPanel.onAppend = function onAppend() {
 		this._host.style.left = Math.min(Math.max(0, _preferences.x), Renderer.width - WINDOW_WIDTH) + 'px';
 	}
 
-	if (!isOwnerAccount()) {
+	if (!souAdmin()) {
 		this._host.style.display = 'none';
 	}
 };
@@ -253,6 +265,7 @@ AdminPanel.onAppend = function onAppend() {
 AdminPanel.onRemove = function onRemove() {
 	savePosition();
 	clearPedirTimeout();
+	pararRelogioDoEvento();
 };
 
 function savePosition() {
@@ -266,6 +279,12 @@ function savePosition() {
  * IdleConfig.toggle() (IdleConfig.js:223-233).
  */
 AdminPanel.toggle = function toggle() {
+	// D-1367: o onAppend esconde o anfitriao de quem a marca de administrador
+	// ainda nao tinha alcancado; abrir o painel o devolve a quem ja a tem —
+	// senao a janela abriria dentro de um anfitriao invisivel.
+	if (souAdmin()) {
+		AdminPanel._host.style.display = '';
+	}
 	const root = _root();
 	const win = root.querySelector('.ap-window');
 	if (win.classList.contains('is-open')) {
@@ -274,6 +293,7 @@ AdminPanel.toggle = function toggle() {
 		win.classList.add('is-open');
 		AdminPanel.focus();
 		requestAdmin();
+		iniciarRelogioDoEvento();
 	}
 };
 
@@ -282,6 +302,7 @@ function closeWindow() {
 	root.querySelector('.ap-window').classList.remove('is-open');
 	savePosition();
 	clearPedirTimeout();
+	pararRelogioDoEvento();
 }
 
 function onClickButton(e) {
@@ -416,6 +437,16 @@ function onAdminReceived(pkt) {
 
 	AdminPanel.problemas = rejected ? data.problemas : [];
 
+	// O EVENTO DE EXP (D-1376) e do SERVIDOR: o retrato vem em toda resposta,
+	// inclusive numa recusa da ficha, e e sempre o de agora.
+	if (data.eventoDeExp) {
+		AdminPanel.eventoFimLocal = data.eventoDeExp.ativo ? Date.now() + data.eventoDeExp.restanteMs : 0;
+		AdminPanel._eventoPediuFim = false;
+		if (rejected && AdminPanel.serverData) {
+			AdminPanel.serverData.eventoDeExp = data.eventoDeExp;
+		}
+	}
+
 	if (!rejected) {
 		// Either the initial "pedir" answer, or a successful "aplicar":
 		// adopt the server's personagem/classes/limites as the new baseline
@@ -506,7 +537,10 @@ function renderBody() {
 		.map(c => `<option value="${c.id}" ${c.id === draft.classe ? 'selected' : ''}>${escapeHtml(c.nome)}</option>`)
 		.join('');
 
+	// O evento de EXP vem PRIMEIRO (D-1376): e o que vale para o servidor
+	// inteiro, e o dono pediu que o administrador o veja ao abrir o painel.
 	bodyEl.innerHTML = `
+		${renderEvento()}
 		<div class="ap-section ri-card">
 			<h3>Personagem</h3>
 			<div class="ap-field-row">
@@ -550,6 +584,7 @@ function renderBody() {
 		</div>`;
 
 	bindFieldControls(bodyEl);
+	bindEventoControls(bodyEl);
 }
 
 /**
@@ -569,6 +604,247 @@ function bindFieldControls(bodyEl) {
 			markDirty();
 		});
 	});
+}
+
+/* ─── O EVENTO DE EXP (D-1376) ──────────────────────────────── */
+/*
+ * O evento e do SERVIDOR: um bonus de EXP de base e de classe em todos os
+ * monstros, por um prazo que o administrador escolhe. Quem valida, grava,
+ * acende o icone de todo mundo e encerra pelo relogio e o servidor
+ * (`servidor/evento-de-exp.ts`); esta janela so mostra o retrato e manda o
+ * pedido pelo MESMO 0x0ff8 do resto do painel — o contrato ja e um patch
+ * parcial, entao o evento nao precisou de pacote novo.
+ */
+
+/** "1 dia", "2 dias", "12 h" — o rotulo de um atalho de duracao. */
+function rotuloDeHoras(horas) {
+	if (horas % 24 !== 0) {
+		return `${horas} h`;
+	}
+	const dias = horas / 24;
+	return dias === 1 ? '1 dia' : `${dias} dias`;
+}
+
+/** O que falta, legivel: "1d 18h 5min", "3h 12min", "4min 09s". */
+function faltamPorExtenso(ms) {
+	if (!(ms > 0)) {
+		return 'encerrando…';
+	}
+	const total = Math.ceil(ms / 1000);
+	const dias = Math.floor(total / 86400);
+	const horas = Math.floor((total % 86400) / 3600);
+	const minutos = Math.floor((total % 3600) / 60);
+	const segundos = total % 60;
+	if (dias > 0) {
+		return `${dias}d ${horas}h ${minutos}min`;
+	}
+	if (horas > 0) {
+		return `${horas}h ${minutos}min`;
+	}
+	return `${minutos}min ${String(segundos).padStart(2, '0')}s`;
+}
+
+/** "+100% base e classe", "+100% base · +50% classe". */
+function bonusPorExtenso(base, job) {
+	if (base === job) {
+		return `+${base}% base e classe`;
+	}
+	if (job === 0) {
+		return `+${base}% só base`;
+	}
+	if (base === 0) {
+		return `+${job}% só classe`;
+	}
+	return `+${base}% base · +${job}% classe`;
+}
+
+function renderEvento() {
+	const ev = AdminPanel.serverData && AdminPanel.serverData.eventoDeExp;
+	if (!ev) {
+		// Servidor anterior a D-1376: sem retrato, sem secao — melhor que um
+		// "nenhum evento" que o servidor nunca disse.
+		return '';
+	}
+	const rascunho = AdminPanel.eventoDraft;
+	const limites = ev.limites || { bonus: [0, 1000], horas: [1, 720] };
+	const duracoes = ev.duracoesSugeridasEmHoras || [];
+
+	const estado = ev.ativo
+		? `<div class="ap-evento-estado is-ativo">
+				<div class="ap-evento-titulo">Evento ativo · ${escapeHtml(bonusPorExtenso(ev.base, ev.job))}</div>
+				<div>Termina ${escapeHtml(
+					new Date(AdminPanel.eventoFimLocal).toLocaleString('pt-BR', {
+						weekday: 'short',
+						day: '2-digit',
+						month: '2-digit',
+						hour: '2-digit',
+						minute: '2-digit'
+					})
+				)} · faltam <span class="ap-evento-faltam">${escapeHtml(
+					faltamPorExtenso(AdminPanel.eventoFimLocal - Date.now())
+				)}</span></div>
+				<div class="ap-hint">Iniciado por ${escapeHtml(ev.porQuem)}</div>
+			</div>`
+		: '<div class="ap-evento-estado">Nenhum evento de EXP ativo.</div>';
+
+	const atalhos = duracoes
+		.map(
+			h =>
+				`<button type="button" class="ap-chip ri-btn${h === rascunho.horas ? ' is-sel' : ''}" data-horas="${h}">${escapeHtml(
+					rotuloDeHoras(h)
+				)}</button>`
+		)
+		.join('');
+
+	return `
+		<div class="ap-section ri-card ap-evento">
+			<h3>Evento de EXP</h3>
+			${estado}
+			<div class="ap-evento-bonus">
+				<div class="ap-field-row">
+					<label>Bônus de EXP base (%)</label>
+					<input type="number" inputmode="numeric" class="ap-input ri-input" data-evento="base" min="${limites.bonus[0]}" max="${limites.bonus[1]}" value="${rascunho.base}" />
+				</div>
+				<div class="ap-field-row">
+					<label>Bônus de EXP de classe (%)</label>
+					<input type="number" inputmode="numeric" class="ap-input ri-input" data-evento="job" min="${limites.bonus[0]}" max="${limites.bonus[1]}" value="${rascunho.job}" />
+				</div>
+			</div>
+			<div class="ap-field-row">
+				<label>Duração (horas)</label>
+				<div class="ap-chips">${atalhos}</div>
+				<input type="number" inputmode="numeric" class="ap-input ri-input" data-evento="horas" min="${limites.horas[0]}" max="${limites.horas[1]}" value="${rascunho.horas}" />
+				<span class="ap-hint">+100% dobra a EXP. ${limites.horas[0]}–${limites.horas[1]} h.</span>
+			</div>
+			<div class="ap-evento-acoes">
+				${ev.ativo ? '<button type="button" class="ap-evento-encerrar ri-btn">Encerrar evento</button>' : ''}
+				<button type="button" class="ap-evento-iniciar ri-btn">${ev.ativo ? 'Substituir evento' : 'Iniciar evento'}</button>
+			</div>
+		</div>`;
+}
+
+function bindEventoControls(bodyEl) {
+	bodyEl.querySelectorAll('[data-evento]').forEach(el => {
+		el.addEventListener('input', () => {
+			AdminPanel.eventoDraft[el.dataset.evento] = Number(el.value);
+			if (el.dataset.evento === 'horas') {
+				marcarAtalho(bodyEl);
+			}
+		});
+	});
+	bodyEl.querySelectorAll('.ap-chip[data-horas]').forEach(chip => {
+		chip.addEventListener('click', e => {
+			e.stopImmediatePropagation();
+			AdminPanel.eventoDraft.horas = Number(chip.dataset.horas);
+			const campo = bodyEl.querySelector('[data-evento="horas"]');
+			if (campo) {
+				campo.value = String(AdminPanel.eventoDraft.horas);
+			}
+			marcarAtalho(bodyEl);
+		});
+	});
+
+	const ativo = !!(AdminPanel.serverData.eventoDeExp && AdminPanel.serverData.eventoDeExp.ativo);
+	const iniciar = bodyEl.querySelector('.ap-evento-iniciar');
+	if (iniciar) {
+		iniciar.addEventListener('click', e => {
+			e.stopImmediatePropagation();
+			// SUBSTITUIR um evento que esta valendo pede o segundo toque; iniciar
+			// do zero nao tem o que perder.
+			if (ativo) {
+				comConfirmacao(iniciar, iniciarEvento);
+			} else {
+				iniciarEvento();
+			}
+		});
+	}
+	const encerrar = bodyEl.querySelector('.ap-evento-encerrar');
+	if (encerrar) {
+		encerrar.addEventListener('click', e => {
+			e.stopImmediatePropagation();
+			comConfirmacao(encerrar, encerrarEvento);
+		});
+	}
+}
+
+function marcarAtalho(bodyEl) {
+	bodyEl.querySelectorAll('.ap-chip[data-horas]').forEach(chip => {
+		chip.classList.toggle('is-sel', Number(chip.dataset.horas) === AdminPanel.eventoDraft.horas);
+	});
+}
+
+/**
+ * O SEGUNDO TOQUE confirma. Sem `window.confirm`: ele trava o laco do jogo e,
+ * no app instalado do celular, e uma caixa do SISTEMA por cima da HUD. O botao
+ * troca o texto por 3 s e volta sozinho.
+ *
+ * O texto e CURTO de proposito: "Toque de novo para confirmar" alargava o
+ * botao e jogava o vizinho para outra linha, atras do rodape no desktop
+ * (fotografado em 13/09/2026, `diag-evento-de-exp`).
+ */
+function comConfirmacao(botao, acao) {
+	if (botao.dataset.armado === '1') {
+		acao();
+		return;
+	}
+	const original = botao.textContent;
+	botao.dataset.armado = '1';
+	botao.textContent = 'Confirmar?';
+	setTimeout(() => {
+		if (botao.isConnected) {
+			botao.dataset.armado = '';
+			botao.textContent = original;
+		}
+	}, 3000);
+}
+
+function enviarPatchDoEvento(patch, status) {
+	setStatus(status);
+	AdminPanel.problemas = [];
+	renderProblemas();
+	const pkt = new PACKET.CZ.RAGIDLE_APLICAR_ADMIN();
+	pkt.json = JSON.stringify(patch);
+	Network.sendPacket(pkt);
+}
+
+function iniciarEvento() {
+	const d = AdminPanel.eventoDraft;
+	enviarPatchDoEvento({ v: 1, eventoDeExp: { iniciar: { base: d.base, job: d.job, horas: d.horas } } }, 'Iniciando evento...');
+}
+
+function encerrarEvento() {
+	enviarPatchDoEvento({ v: 1, eventoDeExp: { encerrar: true } }, 'Encerrando evento...');
+}
+
+/** A contagem regressiva do "faltam", so com a janela aberta. */
+function iniciarRelogioDoEvento() {
+	pararRelogioDoEvento();
+	AdminPanel._eventoTimer = setInterval(atualizarRelogioDoEvento, 1000);
+}
+
+function pararRelogioDoEvento() {
+	if (AdminPanel._eventoTimer != null) {
+		clearInterval(AdminPanel._eventoTimer);
+		AdminPanel._eventoTimer = null;
+	}
+}
+
+function atualizarRelogioDoEvento() {
+	const ev = AdminPanel.serverData && AdminPanel.serverData.eventoDeExp;
+	if (!ev || !ev.ativo) {
+		return;
+	}
+	const restante = AdminPanel.eventoFimLocal - Date.now();
+	const el = _root().querySelector('.ap-evento-faltam');
+	if (el) {
+		el.textContent = faltamPorExtenso(restante);
+	}
+	// QUEM ENCERRA e o tique do servidor, que tambem apaga o icone e anuncia;
+	// aqui so se pede o retrato novo, uma vez, logo depois.
+	if (restante <= 0 && !AdminPanel._eventoPediuFim) {
+		AdminPanel._eventoPediuFim = true;
+		setTimeout(requestAdmin, 1500);
+	}
 }
 
 Network.hookPacket(PACKET.ZC.RAGIDLE_ADMIN, onAdminReceived);

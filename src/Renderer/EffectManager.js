@@ -369,6 +369,47 @@ class EffectManager {
 	}
 
 	/**
+	 * RAGIDLE (08/09/2026): tira de uma vez os efeitos cujo prazo ja venceu.
+	 * Em aba oculta o laco de render nao roda e eles se acumulam; na volta, o
+	 * render os removeria um a um com `splice` — O(n^2) numa lista de milhares.
+	 * Aqui a lista e REFEITA por filtro, e so o que ainda esta no prazo fica.
+	 * Efeito sem prazo (persistente, aura, animacao que se encerra sozinha)
+	 * nao e tocado: nao ha como saber que ele acabou sem desenha-lo.
+	 *
+	 * @param {object} gl - webgl context
+	 * @param {number} tick - game tick
+	 * @returns {number} quantos sairam
+	 */
+	static limparEfemeros(gl, tick) {
+		let removidos = 0;
+		Object.keys(_list).forEach(key => {
+			const list = _list[key];
+			const vivos = [];
+			for (let i = 0; i < list.length; i++) {
+				const effect = list[i];
+				const inst = effect._Params && effect._Params.Inst;
+				const vencido =
+					inst && inst.duration > 0 && typeof inst.endTick === 'number' && tick > inst.endTick && !inst.persistent;
+				if (vencido) {
+					if (effect.free) {
+						effect.free(gl);
+					}
+					removidos++;
+				} else {
+					vivos.push(effect);
+				}
+			}
+			if (vivos.length !== list.length) {
+				list.length = 0;
+				for (let i = 0; i < vivos.length; i++) {
+					list.push(vivos[i]);
+				}
+			}
+		});
+		return removidos;
+	}
+
+	/**
 	 * Destroy all effects
 	 */
 	static free(gl) {
@@ -376,6 +417,20 @@ class EffectManager {
 
 		keys.forEach(key => {
 			const list = _list[key];
+
+			/*
+			 * `limparEfemeros()` esvazia a lista (`list.length = 0`) sem
+			 * apagar a CHAVE de `_list` — a mesma lista, so vazia, continua
+			 * la. `list[0].constructor` explodia nesse intervalo
+			 * ("Cannot read properties of undefined (reading 'constructor')",
+			 * o 3o erro mais frequente do analytics em 13/09/2026). `render()`,
+			 * logo abaixo, ja tinha esta guarda — so `free()` estava sem ela.
+			 */
+			if (!list.length) {
+				delete _list[key];
+				return;
+			}
+
 			const constructor = list[0].constructor;
 
 			list.forEach(item => {

@@ -329,7 +329,7 @@ let _loading = [];
 
 /**
  * ------------------------------------------------------------------
- * As telas de carregamento do Rag Idle
+ * As telas de carregamento do Ragnarok Classic Idle
  *
  * Por que fora do GRF: as dez telas originais do RO (loading01..10.jpg) moram
  * DENTRO de data.grf, e o GRF e o pacote de arte do dono -- ele e regravado por
@@ -385,7 +385,7 @@ class Background {
 
 		// O sorteio SO pode cair na arte do dono. O parametro `loading` (a lista do
 		// clientinfo.xml do roBrowser) e ignorado de proposito: nenhum chamador do
-		// Rag Idle passa lista hoje, e honra-lo seria uma porta silenciosa de volta
+		// Ragnarok Classic Idle passa lista hoje, e honra-lo seria uma porta silenciosa de volta
 		// para as loading01..10.jpg do GRF -- exatamente o que esta entrega tirou de
 		// circulacao. Para devolver o comportamento upstream basta um
 		// `if (loading) { _loading = loading; return; }` aqui.
@@ -535,7 +535,7 @@ class Background {
 	}
 
 	/**
-	 * O fundo da tela de login do Rag Idle.
+	 * O fundo da tela de login do Ragnarok Classic Idle.
 	 *
 	 * Arte do dono, servida pelo vite como as telas de carregamento (ver
 	 * TELAS_DE_CARREGAMENTO): comeca com '/', entao setImage a pinta pelo desvio

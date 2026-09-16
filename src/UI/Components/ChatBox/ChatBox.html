@@ -202,6 +202,10 @@
 	<div class="battlemode"><button type="button" class="bmtoggle">Modo batalha — Enter para digitar</button></div>
 
 	<div class="input">
+		<!-- O AUTOCOMPLETAR DOS COMANDOS (a proposta 5 da tarefa 20): a lista
+		     sobe da barra ao digitar `@` ou `#`, com os comandos que casam. O JS
+		     a enche por `textContent` — o nome e a ajuda vem do servidor. -->
+		<div class="cb-sugestoes ri-scroll" role="listbox" aria-label="Comandos" hidden></div>
 		<!-- A etiqueta e o DESTINO da fala, dito em voz alta. Antes o unico
 		     rotulo visivel era o placeholder "Sussurrar para", e o destino real
 		     (publico / grupo / guilda / cla) morava escondido atras do botao

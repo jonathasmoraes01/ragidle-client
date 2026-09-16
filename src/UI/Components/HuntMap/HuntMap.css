@@ -277,6 +277,49 @@
 	padding-top: var(--sp-2);
 }
 
+/* ─── Barra de passo: "‹ Voltar" + onde o jogador está ──────────────── */
+
+/* Esta barra nasceu para o CELULAR EM PE (o caminho regiao -> mapas ->
+   dossie), e o estilo dela morava inteiro no bloco `.ri-vertical` do fim do
+   arquivo. So que quem a MOSTRA e o JS (`definirPasso` escreve
+   `barra.hidden`), nao o CSS - entao no desktop ela tambem aparece, e
+   aparecia SEM regra nenhuma: `<div>` cru e botao cru do navegador, cinza,
+   fora do design system (print do dono, 10/09/2026, ao entrar em Prontera).
+
+   A correcao e dar o estilo aqui na BASE, para as duas telas. O botao em si
+   nao ganha desenho proprio: ele leva `.ri-btn .ri-btn--sec` no HTML, que e o
+   botao secundario oficial - o mesmo par que o rodape do dossie ja usa em
+   "Retornar ao ponto salvo". Um desenho novo aqui seria um terceiro botao
+   cinza no cliente. */
+#HuntMap .hm-passo {
+	flex: 0 0 auto;
+	display: flex;
+	align-items: center;
+	gap: var(--sp-4);
+	padding: var(--sp-3) var(--sp-6);
+	border-bottom: var(--divider);
+}
+
+#HuntMap .hm-passo[hidden] {
+	display: none;
+}
+
+/* O `.ri-btn` traz `--pad-button` (8px 18px), largo demais para uma barra de
+   navegacao: aqui o botao e um atalho, nao a acao principal da tela. */
+#HuntMap .hm-voltar {
+	flex: 0 0 auto;
+	padding: var(--sp-3) var(--sp-5);
+}
+
+#HuntMap .hm-passo-titulo {
+	min-width: 0;
+	overflow: hidden;
+	font: var(--type-label);
+	color: var(--text-title);
+	white-space: nowrap;
+	text-overflow: ellipsis;
+}
+
 /* ─── Corpo: trilho | lista | dossiê ─────────────────────────────────── */
 
 #HuntMap .hm-body {
@@ -417,6 +460,142 @@
 	color: var(--text-muted);
 }
 
+/* A ESTRELA DE FAVORITO do cartao (09/09/2026).
+
+   Ela mora no canto superior direito do cartao, sobre a moldura, porque o
+   rodape da linha ja carrega badge, medidor, contagem e o "encontrado por" da
+   busca — mais um controle ali competiria com o nome do mapa.
+
+   44px de lado NAO e enfeite: e a regra tatil do dono (08/09/2026), e o
+   cartao e o alvo mais tocado desta janela no celular. No desktop o glifo e
+   menor que a caixa de toque, que e o arranjo certo: area generosa, desenho
+   discreto.
+
+   O GLIFO NAO FICA NO MEIO DA CAIXA DE TOQUE (10/09/2026, print do dono).
+   Centralizado, ele nascia a 22px do topo e a 22px da direita - e o botao
+   redondo de viajar (".hm-card-go", 30px) e centralizado na vertical do
+   cartao, ou seja, comeca a 21px do topo e vai ate 41px da direita. As duas
+   pecas dividiam o mesmo pedaco de moldura e a estrela ficava POR CIMA da
+   seta.
+
+   O conserto de 10/09 ancorou o DESENHO no canto (flex-start/flex-end) em
+   vez de encolher a caixa, e so resolveu a metade do problema: o GLIFO
+   parou de se sobrepor visualmente, mas a CAIXA DE TOQUE invisivel — os
+   44px inteiros, "area generosa, desenho discreto" acima — continuava
+   cobrindo os 22px superiores da seta inteira, porque `.hm-card-fav` e
+   `position: absolute` (participa da ordem de pintura dos elementos
+   posicionados) e `.hm-card-go` nao era posicionado nenhum: um elemento
+   posicionado pinta POR CIMA de um estatico, na mesma pilha, nao importa a
+   ordem no DOM. Um toque no topo da seta ainda favoritava, nunca viajava —
+   sem o mapa entrar em @stopImmediatePropagation nenhum, porque o alvo do
+   evento ja era a estrela, e nao a seta (R13, 14/09/2026).
+
+   O CONSERTO DE VERDADE (14/09/2026) separa as DUAS caixas de toque SEM
+   encolher nenhuma delas — as duas ficam em 44x44, o piso tatil real do
+   dono ("onde ha DEDO todo alvo tem 44px de lado", e o mesmo passo de 44px
+   de `prove:toque-na-barra`; NAO 40px, que foi um numero sem fonte que
+   chegou a estar aqui e foi revertido na auditoria do senior-C de
+   14/09/2026). ".hm-card" ganhou `min-height: 100px`, a estrela continua
+   com 44px de altura ancorada no TOPO, e ".hm-card-go"/".hm-card-here"
+   foram para o RODAPE do cartao (`align-self: flex-end`) com a area de
+   toque da seta expandida de 30px de desenho para 44px via `::before`
+   (`inset: -7px`, o mesmo truque de `Common.css`). Com 44 em cima (a
+   estrela) e 44 embaixo (a seta) somando 88 dentro dos 100px de altura
+   minima do cartao, as duas faixas nao se tocam — o z-index abaixo fica de
+   reforco, para o caso de um ajuste futuro reintroduzir uma sobra de 1-2px
+   por arredondamento. */
+#HuntMap .hm-card {
+	position: relative;
+}
+
+#HuntMap .hm-card-fav {
+	appearance: none;
+	position: absolute;
+	z-index: 1;
+	/* -1px nos dois lados anula a BORDA do cartao: `position:absolute` mede a
+	   partir da caixa de PADDING, entao `top:0` ja nascia 1px abaixo da
+	   moldura - e era esse 1px que ainda encostava na seta (medido). */
+	top: -1px;
+	right: -1px;
+	display: flex;
+	align-items: flex-start;
+	justify-content: flex-end;
+	width: 44px;
+	/* 44px: o piso tatil do dono ("onde ha DEDO todo alvo tem 44px de lado",
+	   e o passo de 44px de `prove:toque-na-barra") — os DOIS lugares onde o
+	   contrato escreve o numero. A separacao das caixas vem da folga de
+	   `min-height:100px` do cartao (ver o comentario grande acima), nao de
+	   encolher esta caixa. */
+	height: 44px;
+	padding: 0 2px 0 0;
+	border: 0;
+	background: none;
+	color: var(--text-muted);
+	cursor: pointer;
+	opacity: 0.55;
+}
+
+#HuntMap .hm-card-fav svg {
+	width: 22px;
+	height: 22px;
+}
+
+#HuntMap .hm-card-fav:hover {
+	opacity: 1;
+}
+
+/* Marcada: cheia e dourada, e SEMPRE em opacidade plena — a estrela apagada
+   e discreta de proposito, mas a acesa e informacao. */
+#HuntMap .hm-card-fav.is-on {
+	color: var(--gold-700);
+	opacity: 1;
+}
+
+/* "Voltar a cacar": o atalho para o ultimo mapa de caca (09/09/2026).
+
+   Ele mora colado no card "Voce esta em" e le como a acao dele — por isso o
+   `margin-top` curto e o mesmo raio. A altura minima de 44px NAO e enfeite:
+   e a regra tatil do dono (08/09/2026), e este botao nasce visivel no
+   PRIMEIRO passo do celular em pe. */
+#HuntMap .hm-voltar-caca {
+	appearance: none;
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	width: 100%;
+	min-height: 44px;
+	box-sizing: border-box;
+	margin-top: var(--sp-3);
+	padding: var(--sp-3) var(--sp-4);
+	border: 1px solid var(--border-gold);
+	border-radius: var(--radius-panel);
+	background: var(--gold-100, var(--white));
+	color: var(--text-body);
+	font: var(--type-desc);
+	text-align: left;
+	cursor: pointer;
+	box-shadow: var(--rim-light);
+}
+
+#HuntMap .hm-voltar-caca:hover {
+	box-shadow: var(--glow-gold), var(--rim-light);
+}
+
+#HuntMap .hm-voltar-label {
+	font: var(--type-badge);
+	letter-spacing: var(--ls-caps);
+	text-transform: uppercase;
+	color: var(--gold-700);
+}
+
+#HuntMap .hm-voltar-map {
+	font: var(--type-label);
+	color: var(--text-title);
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
 /* ─── Lista de mapas ─────────────────────────────────────────────────── */
 
 #HuntMap .hm-list-wrap {
@@ -472,12 +651,22 @@
 
 /* A LINHA de mapa. Card bespoke (não .ri-card): precisa do filete de
    encaixe à esquerda, do hover com lift e do estado trancado dessaturado. */
+/* ALTURA MINIMA DE 100px (14/09/2026, R13): antes disso o conteudo (o
+   thumbnail de 54px) decidia a altura da linha, e os dois controles do
+   canto direito - a estrela (topo) e a seta de viajar (antes centralizada)
+   - nao tinham 44px de folga cada um sem se sobrepor: 54px de conteudo mal
+   da para UM alvo de 44px, e muito menos para dois empilhados (44+44=88,
+   por isso o minimo do cartao subiu para 100px, e nao ficou nos 88 exatos).
+   Ver ".hm-card-fav" e ".hm-card-go"/".hm-card-here" logo abaixo: a folga
+   extra e o que separa as duas caixas de toque de vez, sem depender de
+   z-index. */
 #HuntMap .hm-card {
 	position: relative;
 	display: flex;
 	align-items: center;
 	gap: var(--sp-5);
 	width: 100%;
+	min-height: 100px;
 	box-sizing: border-box;
 	padding: var(--sp-4) var(--sp-5) var(--sp-4) var(--sp-5);
 	background: var(--surface-card);
@@ -524,13 +713,18 @@
 	box-shadow: var(--shadow-card);
 }
 
+/* `overflow: visible` — e nao `hidden`, como era ate 07/09/2026: o selo de MVP
+   TRANSBORDA o canto superior direito de proposito, e a miniatura cortaria
+   justamente a metade que sai. Quem arredonda a imagem passou a ser a propria
+   <img> (`border-radius: inherit` abaixo), que era o unico servico que o
+   recorte prestava aqui. */
 #HuntMap .hm-card-thumb {
 	position: relative;
 	flex: 0 0 auto;
 	width: var(--hm-thumb-w);
 	height: var(--hm-thumb-h);
 	border-radius: var(--radius-card);
-	overflow: hidden;
+	overflow: visible;
 	background: var(--sky-100);
 	border: 1px solid var(--border-hairline);
 	box-shadow: var(--rim-light);
@@ -559,6 +753,57 @@
 	height: 100%;
 	object-fit: cover;
 	display: block;
+	border-radius: inherit;
+}
+
+/* SELO DE MVP no canto superior direito da miniatura (07/09/2026).
+
+   TRES decisoes do dono, e as tres sao o desenho:
+
+   1. NADA EM VOLTA. Sem disco, sem aro, sem chapa — so a arte. A primeira
+      rodada punha a coroa dentro de um disco escuro com aro dourado, e o
+      dono cortou: o selo e a ilustracao, e moldura em cima de arte ilustrada
+      briga com ela em vez de ajudar. A legibilidade sobre minimapa de
+      qualquer cor sai do `filter` abaixo, que segue a SILHUETA do desenho —
+      um contorno escuro colado nela, mais um halo dourado por fora.
+   2. ELE SAI PARA FORA. O deslocamento negativo poe metade do selo alem do
+      canto da miniatura: e o que da a impressao de que a peca esta POR CIMA
+      do mapa, e nao colada dentro dele. Por isso `.hm-card-thumb` deixou de
+      cortar (ver o comentario la em cima).
+   3. MAIOR que os 20px da primeira rodada. 32px sobre uma miniatura de
+      96x54 — o emblema tem LETRA dentro ("MVP"), e abaixo disso as tres
+      letras viram borrao dourado; e o tamanho que faz a palavra ser lida.
+
+   z-index 2 porque a miniatura e z-index 1. `pointer-events: none` NAO entra
+   aqui de proposito: o clique borbulha para a linha (o handler le
+   `currentTarget`, nao `target`), e sem ele o `title` com o nome do chefe nao
+   apareceria no hover. */
+#HuntMap .hm-card-mvp {
+	position: absolute;
+	top: -6px;
+	right: -6px;
+	z-index: 2;
+	display: block;
+	width: 32px;
+	height: 32px;
+	filter: drop-shadow(0 0 1px rgba(21, 21, 74, 0.9)) drop-shadow(0 1px 2px rgba(21, 21, 74, 0.55))
+		drop-shadow(0 0 6px rgba(224, 176, 77, 0.55));
+	transition: transform var(--dur-fast) var(--ease-out);
+}
+
+#HuntMap .hm-card-mvp svg {
+	width: 100%;
+	height: 100%;
+	display: block;
+	color: var(--gold-300);
+}
+
+/* A linha em foco levanta o selo um tico — o mesmo gesto que a linha inteira
+   ja faz no hover (`transform: translateY(-1px)`), so que para a peca que
+   esta por cima dela. */
+#HuntMap .hm-card:hover .hm-card-mvp,
+#HuntMap .hm-card.is-selected .hm-card-mvp {
+	transform: scale(1.08);
 }
 
 #HuntMap .hm-card-body {
@@ -707,9 +952,23 @@
 	color: var(--text-muted);
 }
 
-/* Cauda da linha: o botão redondo de viajar OU a pílula "Aqui". */
+/* Cauda da linha: o botão redondo de viajar OU a pílula "Aqui".
+
+   `align-self: flex-end` (14/09/2026, R13) poe o botao no RODAPE do
+   cartao, e nao mais centralizado na vertical: era centralizado que fazia
+   ele nascer embaixo da estrela (".hm-card-fav", topo do cartao) sempre
+   que a caixa de toque dela crescia. Com ".hm-card" em min-height:100px
+   (ver o comentario grande acima da estrela) o rodape fica livre.
+
+   `position: relative` + `z-index: 2` sao o mesmo padrao de defesa: se um
+   ajuste futuro reduzir a folga entre topo e rodape, quem vence o
+   hit-test na sobra e o proprio botao, e nao a estrela por estar na
+   ordem de pintura dos elementos posicionados. */
 #HuntMap .hm-card-go {
 	appearance: none;
+	position: relative;
+	z-index: 2;
+	align-self: flex-end;
 	flex: 0 0 auto;
 	width: 30px;
 	height: 30px;
@@ -727,6 +986,20 @@
 		transform var(--dur-fast) var(--ease-out);
 }
 
+/* A area de toque REAL do botao (14/09/2026, inset corrigido de -5 para -7
+   na auditoria de 14/09/2026): 30px de desenho, mas 44px de alvo — o piso
+   tatil real do dono, nao os 40px sem fonte que estavam aqui antes. Mesmo
+   truque de `Common.css` (`::before` absoluto com `inset` negativo), so que
+   aqui o host ja e posicionado por regra propria (`position: relative`
+   acima), entao o portao de `tests/ui/areaDeToqueAncoraNoBotao.test.js`
+   (que so vigia `Common.css`) nao precisa saber deste par - mas a REGRA
+   dele (posicionar por conta propria) foi seguida do mesmo jeito. */
+#HuntMap .hm-card-go::before {
+	content: '';
+	position: absolute;
+	inset: -7px;
+}
+
 #HuntMap .hm-card-go svg {
 	width: 15px;
 	height: 15px;
@@ -737,7 +1010,11 @@
 	transform: translateY(-1px);
 }
 
+/* Mesmo ancoramento embaixo do ".hm-card-go" (14/09/2026): os dois trocam de
+   lugar conforme o estado (viajavel/atual), e nao podem pular de vertical
+   quando trocam. */
 #HuntMap .hm-card-here {
+	align-self: flex-end;
 	flex: 0 0 auto;
 	font: var(--type-badge);
 	letter-spacing: var(--ls-caps);
@@ -904,6 +1181,31 @@
 	font-variant-numeric: tabular-nums;
 }
 
+/*
+ * A FAIXA DE EXP deste mapa para o jogador (D-1338, tarefa 4). Texto visível, e
+ * não só `title`, porque no celular não há hover. As cores são as do encaixe de
+ * nível, e não novas: verde é o mesmo "bom para você" do `fit-ideal`, e ouro o
+ * mesmo "cuidado" do `fit-challenge`.
+ */
+#HuntMap .hm-fit-exp-row {
+	justify-content: flex-start;
+	margin-top: var(--sp-2);
+}
+
+#HuntMap .hm-fit-exp {
+	font-variant-numeric: tabular-nums;
+	color: var(--text-muted);
+}
+
+#HuntMap .hm-fit-exp.exp-bonus {
+	color: var(--green-600);
+}
+
+#HuntMap .hm-fit-exp.exp-penalidade,
+#HuntMap .hm-fit-exp.exp-misto {
+	color: var(--gold-500);
+}
+
 /* Cabeçalho de seção: título + contagem, com a régua ornamentada embaixo. */
 #HuntMap .hm-section {
 	display: flex;
@@ -1019,6 +1321,19 @@
 	color: var(--text-body);
 }
 
+/* Elemento recomendado (R15/C2-4, 14/09/2026): linha PROPRIA, e nao mais um
+   pedaco espremido dentro de ".hm-chip-meta" — a mesma informacao (nivel +
+   raca + elemento defensivo + recomendacao) numa linha so' ficava ilegivel
+   com varias especies na tela e no mobile (celular em pe, chip mais
+   estreito). "white-space: normal" (ao contrario do resto do chip) porque
+   "Recomendado: sem dado" e o texto mais comum ate o servidor publicar o
+   campo, e cortar essa frase com reticencias leria como bug. */
+#HuntMap .hm-chip-recomendacao {
+	font: var(--type-desc);
+	color: var(--text-muted);
+	white-space: normal;
+}
+
 #HuntMap .hm-chip-mvp,
 #HuntMap .hm-mvp-badge {
 	flex: 0 0 auto;
@@ -1126,11 +1441,45 @@
 	word-break: break-word;
 }
 
-#HuntMap .hm-drop-chance {
-	font: var(--type-numeric);
-	font-size: var(--fs-label);
-	color: var(--text-link);
-	font-variant-numeric: tabular-nums;
+/* Selo de raridade do drop (RAGIDLE 08/09/2026 — trocou a % de chance).
+   Reaproveita os MESMOS tokens do ".ri-tile" da Loja (Common.css:1282-1291):
+   verde/azul/dourado sao is-uncommon/is-rare/is-unique lá, r1/r2/r3 aqui —
+   nao existe um terceiro conjunto de cor de raridade neste jogo. Comum (r0)
+   fica neutro de proposito, no mesmo espirito de ".ri-tile" nao pintar a
+   borda do item comum. O texto do rótulo é SEMPRE mostrado junto da cor —
+   nunca só a cor (daltonismo, pedido do dono) — por isso é uma pilula com
+   palavra, não um ponto colorido. */
+#HuntMap .hm-drop-rarity {
+	display: inline-block;
+	font: var(--type-badge);
+	padding: 2px 6px;
+	border: 1px solid transparent;
+	border-radius: var(--radius-pill);
+	white-space: nowrap;
+}
+
+#HuntMap .hm-drop-rarity.r0 {
+	color: var(--text-muted);
+	background: var(--surface-inset);
+	border-color: var(--border-hairline);
+}
+
+#HuntMap .hm-drop-rarity.r1 {
+	color: var(--green-600);
+	background: color-mix(in srgb, var(--green-600) 10%, var(--white));
+	border-color: color-mix(in srgb, var(--green-600) 35%, transparent);
+}
+
+#HuntMap .hm-drop-rarity.r2 {
+	color: var(--blue-500);
+	background: color-mix(in srgb, var(--blue-500) 10%, var(--white));
+	border-color: color-mix(in srgb, var(--blue-500) 35%, transparent);
+}
+
+#HuntMap .hm-drop-rarity.r3 {
+	color: var(--gold-700);
+	background: linear-gradient(180deg, var(--gold-200), var(--gold-300));
+	border-color: var(--border-gold);
 }
 
 #HuntMap .hm-drop-origens {
@@ -1301,4 +1650,144 @@
 	#HuntMap .hm-btn-city {
 		padding: 15px 10px;
 	}
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   CELULAR EM PÉ: UM PASSO POR VEZ (08/09/2026, pedido do dono)
+   ═══════════════════════════════════════════════════════════════════════
+   O bloco `@media (max-width: 599px)` acima EMPILHA as três faixas (trilho,
+   lista, dossiê) — e empilhar não bastou. Medido no jogo de pé em 393x852
+   (`scripts/diag-mobile-portrait.ts`): **29 controles cobertos**, e os
+   cobridores eram `div.hm-card`, `img` (as miniaturas) e `div.hm-count` caindo
+   por cima de `.hm-tabs`. Três faixas com teto próprio numa tela de 750px de
+   altura útil continuam disputando o mesmo espaço, e a que perde não some:
+   ela fica embaixo, invisível e clicável.
+
+   Aqui elas deixam de disputar: **uma por vez**, cada uma ocupando a área
+   inteira. O passo é escrito pelo JS (`definirPasso`) em `.hm-window`, e o
+   caminho é região → mapas → dossiê, com "‹ Voltar".
+
+   Este bloco vem DEPOIS do `@media` de propósito: `.ri-vertical` é uma classe
+   a mais na cadeia, então ele vence sem `!important`. E ele NÃO é um
+   `@media`: quem decide "celular em pé" é o JS de D-939 (que também conhece a
+   bandeira de rollout), e duplicar o critério em CSS é a cicatriz de D-929.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* A barra de passo e o "‹ Voltar" tem desenho na BASE (busque "Barra de
+   passo" acima). Aqui sobra so o que e do TOQUE: 44px de altura minima, a
+   regra tatil do dono (08/09/2026). O `background`/`color` de hex cru que
+   morava aqui saiu: `--hm-chip-bg` e `--hm-ink` nunca existiram no design
+   system, entao o botao vinha sempre pelo valor de reserva - e ele vencia o
+   `.ri-btn--sec` por especificidade. */
+.ri-vertical #HuntMap .hm-voltar {
+	min-height: 44px;
+}
+
+/* As três faixas viram telas: a do passo ativo ocupa tudo, as outras somem.
+   `display:none` e não `visibility`/opacidade: o que está escondido não pode
+   continuar recebendo toque, que é exatamente o defeito medido. */
+.ri-vertical #HuntMap .hm-body {
+	flex-direction: column;
+	min-height: 0;
+	/* MEDIDO: sem o teto, `.hm-rail` (191 regioes) crescia alem do rodape da
+	   janela e as ultimas linhas nasciam ATRAS da barra de atalhos — um item
+	   de regiao respondia `div.shortcut-paginas` no `elementFromPoint`, e
+	   outro caia em y=872 numa tela de 852. Com o teto, quem rola e a LISTA
+	   (ela ja tem `overflow-y: auto`), dentro da janela, e nada sai por baixo. */
+	flex: 1 1 auto;
+	overflow: hidden;
+}
+
+.ri-vertical #HuntMap .hm-rail,
+.ri-vertical #HuntMap .hm-list-wrap,
+.ri-vertical #HuntMap .hm-panel {
+	display: none;
+	flex: 1 1 auto;
+	width: 100%;
+	min-width: 0;
+	min-height: 0;
+	max-width: 100%;
+	max-height: none;
+	border-right: none;
+}
+
+.ri-vertical #HuntMap .hm-window.is-passo-regioes .hm-rail,
+.ri-vertical #HuntMap .hm-window.is-passo-mapas .hm-list-wrap,
+.ri-vertical #HuntMap .hm-window.is-passo-detalhe .hm-panel {
+	display: flex;
+	flex-direction: column;
+}
+
+/* Cada tela rola por DENTRO. O teto some (`max-height: none` acima) porque
+   agora ela é a única na área — o limite é a área, e não um número. */
+.ri-vertical #HuntMap .hm-rail,
+.ri-vertical #HuntMap .hm-list,
+.ri-vertical #HuntMap .hm-panel-scroll {
+	overflow-y: auto;
+	overscroll-behavior: contain;
+	-webkit-overflow-scrolling: touch;
+	max-height: none;
+}
+
+/* As regiões viram uma lista de linhas altas, e não chips apertados: é o
+   passo 1 e o alvo tem de ser confortável. 48 > o piso de 44px. */
+.ri-vertical #HuntMap .hm-tabs {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+}
+
+.ri-vertical #HuntMap .hm-tab {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	width: 100%;
+	min-height: 48px;
+	padding: 0 12px;
+	text-align: left;
+}
+
+/* A barra de ferramentas quebrava para fora da tela: o `select` de ordem
+   saía pela direita em 393px (visível no PNG de 393x852). Ela passa a
+   quebrar em linhas, e a busca ocupa a primeira inteira. */
+.ri-vertical #HuntMap .hm-toolbar {
+	flex-wrap: wrap;
+	gap: 6px;
+}
+
+.ri-vertical #HuntMap .hm-search-wrap {
+	flex: 1 0 100%;
+	min-width: 0;
+}
+
+.ri-vertical #HuntMap .hm-seg,
+.ri-vertical #HuntMap .hm-sort-wrap {
+	flex: 1 1 auto;
+	min-width: 0;
+}
+
+.ri-vertical #HuntMap .hm-seg-btn,
+.ri-vertical #HuntMap .hm-sort {
+	min-height: 44px;
+}
+
+/* No dossiê a barra de busca/filtro não tem função e come altura da tela —
+   o que importa ali é o mapa e o botão de viajar. */
+.ri-vertical #HuntMap .hm-window.is-passo-detalhe .hm-toolbar,
+.ri-vertical #HuntMap .hm-window.is-passo-detalhe .hm-count {
+	display: none;
+}
+
+/* O rodapé do dossiê carrega o "Caçar aqui". Ele fica FIXO no pé da tela,
+   fora da rolagem: a ação de teleportar não pode depender de o jogador
+   rolar até o fim de uma ficha longa. */
+.ri-vertical #HuntMap .hm-panel-footer {
+	position: sticky;
+	bottom: 0;
+	z-index: 2;
+	background: var(--hm-window-bg, #f4f6fb);
+}
+
+.ri-vertical #HuntMap .hm-panel-footer .hm-btn-go {
+	min-height: 48px;
 }

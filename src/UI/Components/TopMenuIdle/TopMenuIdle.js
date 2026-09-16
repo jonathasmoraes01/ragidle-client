@@ -104,14 +104,17 @@
  *                 janela — chama Guild.promptCreateGuild(), exatamente como
  *                 o atalho de teclado nativo faz (Guild.js:420-423). Aceito
  *                 de proposito: e o unico caminho de entrada que existe.
- *   - Grupo       -> PartyFriends.toggle()   (PartyFriends.js:47-52) — proxy
- *                 PUBLICO do controller de versao (V0/V1), que delega pra
- *                 PartyFriendsCommon.js:132-138.
- *   - Admin       -> AdminPanel.toggle()     (AdminPanel.js:268), com a
- *                 MESMA trava de conta dona que AdminPanel.js:65/186 usa
- *                 (Session.AID === 2000000, ver isOwnerAccount()) — o item
- *                 e escondido client-side pra quem nao e a conta dona; o
- *                 servidor aplica a restricao de verdade.
+ *   - Grupo       -> GrupoIdle.toggle()  (D-988; era PartyFriends.toggle()
+ *                 antes de D-960, e a porta automatica de D-984 no meio). Ele
+ *                 abre a janela de Grupo SEMPRE, inclusive sem party: e la que
+ *                 se le a aba Postos antes de decidir entrar num grupo.
+ *   - Procurar grupo -> LFGIdle.toggle()  (D-988). O par do de cima. A troca
+ *                 automatica ao entrar e ao sair continua em portaDoGrupo.js;
+ *                 o que ela nao faz mais e escolher o que o MENU abre.
+ *   - Admin       -> AdminPanel.toggle(), com a MESMA pergunta que o painel
+ *                 faz: `souAdmin()` (DB/Items/idParaAdmin.js), a marca que o
+ *                 servidor manda (D-1367) — o item e escondido client-side de
+ *                 quem nao a tem; o servidor aplica a restricao de verdade.
  *
  * ─── A FUSAO "Config" + "Menu" -> "Configuracoes" (pedido do dono) ───────
  * Eram dois discos vizinhos, os dois com cara de ajuste, e o jogador tinha
@@ -178,9 +181,20 @@ import Session from 'Engine/SessionStorage.js';
 import IdleSkills from 'UI/Components/IdleSkills/IdleSkills.js';
 import IdleConfig from 'UI/Components/IdleConfig/IdleConfig.js';
 import Guild from 'UI/Components/Guild/Guild.js';
-import PartyFriends from 'UI/Components/PartyFriends/PartyFriends.js';
+// A janela NATIVA de party saiu deste arquivo em D-960: o item "Grupo"
+// passou a abrir a `GrupoIdle`, e nao havia mais nenhum uso de
+// `PartyFriends` aqui. Ela continua VIVA no jogo — quem a anexa e quem a
+// alimenta e o `Engine/MapEngine.js` e o `Engine/MapEngine/Group.js`, que
+// desenham o convite que CHEGA e a lista de amigos.
 import LFGIdle from 'UI/Components/LFGIdle/LFGIdle.js'; // RAGIDLE: Procurar Grupo (D-634)
+/* A `GrupoIdle` saiu dos imports em D-984 pelo mesmo motivo que a `PartyFriends`
+   saiu em D-960: o item "Grupo" deixou de citar uma janela por nome. Quem
+   escolhe entre as duas — e quem carrega as duas — e a `portaDoGrupo`. */
+import GrupoIdle from 'UI/Components/GrupoIdle/GrupoIdle.js'; // RAGIDLE: a janela de Grupo (D-960)
 import { ehCelularEmPe } from 'UI/hudVertical.js'; // D-939: a folha do menu flutua sobre o chat
+/* 08/09/2026: a terceira porta do "Instalar app". A DECISAO e toda de la — ver
+   `ligarOfertaDeInstalacao()` mais abaixo. */
+import { escutarACasca, ofertaAtual, pontePWA, textoDoResultado } from 'UI/ofertaDeInstalacao.js';
 import SkillList from 'UI/Components/SkillList/SkillList.js';
 import StatusIdle from 'UI/Components/StatusIdle/StatusIdle.js';
 import MochilaIdle from 'UI/Components/MochilaIdle/MochilaIdle.js';
@@ -189,19 +203,20 @@ import CorreioIdle from 'UI/Components/CorreioIdle/CorreioIdle.js';
 import HuntAnalyzer from 'UI/Components/HuntAnalyzer/HuntAnalyzer.js';
 import MissoesIdle from 'UI/Components/MissoesIdle/MissoesIdle.js';
 import PasseIdle from 'UI/Components/PasseIdle/PasseIdle.js';
+import VotoIdle from 'UI/Components/VotoIdle/VotoIdle.js'; // RAGIDLE: janela de Voto (D-1159)
 import CodexIdle from 'UI/Components/CodexIdle/CodexIdle.js'; // RAGIDLE: Codex (D-851)
+import { temAvisoDoCodex } from 'UI/Components/avisoDoCodex.js'; // D-1232
+import PresencaIdle from 'UI/Components/PresencaIdle/PresencaIdle.js'; // RAGIDLE: Presenca (D-1162)
+import IndicacaoIdle from 'UI/Components/IndicacaoIdle/IndicacaoIdle.js'; // RAGIDLE: Indique & Ganhe (D-1164)
+import RankingIdle from 'UI/Components/RankingIdle/RankingIdle.js'; // RAGIDLE: o Ranking
 import AdminPanel from 'UI/Components/AdminPanel/AdminPanel.js';
+import Escape from 'UI/Components/Escape/Escape.js'; // RAGIDLE: a janela de sistema (D-1416)
 import CashShop from 'UI/Components/CashShop/CashShop.js'; // RAGIDLE: a loja de cash (I5)
 import RiIcones from 'UI/ri-icones.js';
 import htmlText from './TopMenuIdle.html?raw';
 import cssText from './TopMenuIdle.css?raw';
 import { emUnidadesDaHud } from 'UI/escalaDaHud.js'; // D-934: geometria medida vira unidade da HUD
-
-/**
- * Mesma constante de conta dona que AdminPanel.js:65 -- copia local (nao
- * exportada de la, e o instrucional pede pra nao tocar em AdminPanel.js).
- */
-const OWNER_AID = 2000000;
+import { souAdmin } from 'DB/Items/idParaAdmin.js'; // D-1367: quem ve o item "Admin"
 
 /**
  * Mesmo intervalo de polling leve que DockIdle.js/BasicInfoIdle.js.
@@ -299,11 +314,28 @@ function movimentoReduzido() {
 }
 
 /**
- * Mesmo criterio de AdminPanel.js:186 (Session.AID === OWNER_AID) -- so
- * esconde o item client-side, o servidor aplica a restricao de verdade.
+ * O item "Admin" aparece para quem o SERVIDOR marcou como administrador
+ * (`souAdmin()`, D-1367) — e nao mais para uma conta fixa, o atalho que o
+ * servidor abandonou em D-694. So esconde o item client-side; o servidor
+ * aplica a restricao de verdade.
+ *
+ * Devolve se a visibilidade MUDOU: quem chama refaz a grade, porque as
+ * colunas, as fileiras e o leque contam so os itens visiveis. O laco de
+ * 250 ms chama isto sempre, porque a marca pode chegar depois do menu, e um
+ * `#adjgroup` promove sem relogar.
  */
-function isOwnerAccount() {
-	return Session.AID === OWNER_AID;
+function sincronizarItemDeAdmin() {
+	const root = _root();
+	const adminBtn = root && root.querySelector('.tm-item-admin');
+	if (!adminBtn) {
+		return false;
+	}
+	const display = souAdmin() ? '' : 'none';
+	if (adminBtn.style.display === display) {
+		return false;
+	}
+	adminBtn.style.display = display;
+	return true;
 }
 
 /**
@@ -335,15 +367,10 @@ TopMenuIdle.onAppend = function onAppend() {
 	hideReplacedControls();
 	applyCollapsedState();
 
-	// Admin: mesma trava de conta dona de sempre -- so quem e a conta dona ve
-	// o item; qualquer outra conta nunca ve nem consegue clicar. Precisa vir
-	// ANTES de distribuirColunas() e de escalonarLeque(), que contam so os
-	// itens visiveis.
-	const root = _root();
-	const adminBtn = root.querySelector('.tm-item-admin');
-	if (adminBtn) {
-		adminBtn.style.display = isOwnerAccount() ? '' : 'none';
-	}
+	// Admin: so quem o servidor marcou como administrador ve o item (D-1367).
+	// Precisa vir ANTES de distribuirColunas() e de escalonarLeque(), que
+	// contam so os itens visiveis — e o laco reconfere, se a marca chegar tarde.
+	sincronizarItemDeAdmin();
 
 	distribuirColunas();
 	distribuirFileiras();
@@ -358,10 +385,102 @@ TopMenuIdle.onAppend = function onAppend() {
 	syncAllActiveStates();
 	syncSkillDot();
 	syncCorreioDot();
+	syncCodexDot();
+	syncVotoLivre();
 	syncToggleDot();
+	ligarOfertaDeInstalacao();
 	startPolling();
 	ligarFechamentoExterno();
 };
+
+/* ═══════════════════════════════════════════════════════════════════════
+   "INSTALAR APP" NO PE DA FOLHA (08/09/2026, pedido do dono)
+   ═══════════════════════════════════════════════════════════════════════
+   *"Sempre que o jogador entrar pelo navegador mobile, fora do PWA instalado,
+   apresente um botao visivel 'Instalar app', sem bloquear a partida."*
+
+   A porta que existia era a aba de Config — DEPOIS do login e atras de um
+   menu. A tela de entrada tambem oferece (D-945), mas quem ja entrou nao volta
+   la. Esta linha e a terceira porta, e a unica que o jogador ve enquanto joga.
+
+   TODA a decisao vem de `ofertaDeInstalacao.js`: se mostrar, com que rotulo,
+   e o que o clique faz. Nada disso e reescrito aqui — sao as MESMAS tres
+   saidas (prompt / instrucao / nada) que a entrada e o Config ja usam. Um
+   quarto lugar decidindo por conta propria seria o quarto a envelhecer.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+function ligarOfertaDeInstalacao() {
+	const botao = _root().querySelector('.tm-instalar');
+	if (!botao) {
+		return;
+	}
+	sincronizarOferta();
+	/* A casca avisa quando o `beforeinstallprompt` chega (pode ser DEPOIS do
+	   append) e quando o app foi instalado. Sem escutar, o botao decidiria uma
+	   vez e ficaria com a resposta velha — visivel num app ja instalado. */
+	escutarACasca(sincronizarOferta);
+	botao.addEventListener('click', aoClicarInstalar);
+}
+
+/** Poe na tela o que `decidirOferta()` mandou — ou esconde a linha. */
+function sincronizarOferta() {
+	const root = _root();
+	const botao = root && root.querySelector('.tm-instalar');
+	if (!botao) {
+		return;
+	}
+	const oferta = ofertaAtual();
+	botao.hidden = !oferta.mostrar;
+	if (!oferta.mostrar) {
+		return;
+	}
+	const rotulo = botao.querySelector('.tm-instalar-rotulo');
+	if (rotulo) rotulo.textContent = oferta.rotulo;
+	const dica = botao.querySelector('.tm-instalar-dica');
+	if (dica) {
+		dica.textContent = oferta.dica;
+		/* No modo `prompt` a dica e uma linha curta e cabe sempre. No modo
+		   `instrucao` ela e um passo a passo, e so aparece no toque — despejar
+		   um paragrafo no pe do menu seria o banner que o pedido recusou. */
+		dica.hidden = oferta.modo !== 'prompt';
+	}
+	botao.classList.toggle('is-instrucao', oferta.modo === 'instrucao');
+}
+
+/** O clique: dispara a instalacao real, ou revela o passo a passo. */
+function aoClicarInstalar(evento) {
+	evento.preventDefault();
+	evento.stopPropagation();
+	const oferta = ofertaAtual();
+	const dica = _root().querySelector('.tm-instalar-dica');
+
+	if (oferta.modo !== 'prompt') {
+		/* Sem evento do navegador nao ha o que disparar, e o botao NAO fica
+		   morto: ele abre (e fecha) a explicacao do aparelho. O pedido e
+		   explicito — "quando a instalacao exigir passos manuais, o botao deve
+		   abrir instrucoes adequadas ao dispositivo". */
+		if (dica) {
+			dica.textContent = oferta.dica;
+			dica.hidden = !dica.hidden;
+		}
+		return;
+	}
+
+	const ponte = pontePWA();
+	if (!ponte) {
+		return;
+	}
+	Promise.resolve(ponte.instalar()).then(resultado => {
+		/* Sincroniza ANTES de escrever a resposta: a ordem inversa apagaria o
+		   texto que acabou de ser posto (a cicatriz que a prova da tela de
+		   entrada cobrou em D-945). */
+		sincronizarOferta();
+		if (dica) {
+			dica.hidden = false;
+			dica.textContent = textoDoResultado(resultado);
+		}
+	});
+}
 
 /**
  * Desliga o polling, os ouvintes globais de fechar a gaveta e qualquer
@@ -451,6 +570,19 @@ function onClickAction(e) {
 			/* "Configuracoes" = a fusao de Config + Menu (ver cabecalho). */
 			IdleConfig.toggle();
 			break;
+		case 'sistema':
+			/*
+			 * A JANELA DE SISTEMA do cliente (D-1479): video, audio, atalho,
+			 * trocar personagem, fechar jogo. Ela so tinha a TECLA ESC como
+			 * entrada, e celular nao tem ESC.
+			 *
+			 * `abrirPeloMenu` (e nao `_host.style.display = ''` aqui) porque a
+			 * trava da morte que o `onKeyDown` respeita vale igual: com a
+			 * DeathWindow na tela este menu abriria POR BAIXO do scrim dela,
+			 * visivel e inerte — o defeito que o dono fotografou em 19/08/2026.
+			 */
+			Escape.abrirPeloMenu();
+			break;
 		case 'analyzer':
 			/* A janela nao pede nada ao servidor ao abrir: o registro ja vem
 			   sendo alimentado desde o primeiro abate da sessao, esteja ela
@@ -460,8 +592,44 @@ function onClickAction(e) {
 		case 'guild':
 			Guild.toggle();
 			break;
+		/*
+		 * "Grupo" passou a abrir a NOSSA janela (D-960, 07/09/2026).
+		 *
+		 * Ordem do dono: *"quando a pessoa vir a nossa lista de grupos e
+		 * entrar em um grupo, ela deve ficar nessa tela ate sair do grupo"* —
+		 * a tela de quem esta em party e a `GrupoIdle`, e nao a janela nativa
+		 * do roBrowser, que nao tem posto, rateio nem ajuste.
+		 *
+		 * A nativa (`PartyFriends`) NAO foi removida: ela continua sendo quem
+		 * desenha o convite que CHEGA (a caixa de aceite) e a lista de amigos,
+		 * e continua escutando os mesmos pacotes de party de sempre. O que
+		 * mudou foi a PORTA deste item de menu.
+		 *
+		 * ATENCAO: existe um SEGUNDO switch neste arquivo, o `isActionOpen()`
+		 * la embaixo. Este aqui ABRE; o de la acende o aro. Ja houve TRES
+		 * casos de so um dos dois ser editado — os tres comentados la.
+		 *
+		 * D-984: o item deixou de abrir SEMPRE a mesma janela. Quem nao tem
+		 * party recebia a tela de gerenciar um grupo que nao existe (nome "Sem
+		 * grupo", zero membros, "Convidar" desabilitado) — e a janela que ele
+		 * queria, o Localizador, so existia como um SEGUNDO item, dentro do
+		 * leque. A decisao virou uma so, em `portaDoGrupo.js`, e ela le
+		 * `Session.hasParty` — nunca o estado da janela de Grupo, que so chega
+		 * enquanto a janela esta inscrita (o cabecalho da porta explica).
+		 *
+		 * O `isActionOpen()` la embaixo DERIVA da mesma decisao, em vez de
+		 * repeti-la: e o comeco da "UMA tabela de acao -> {abrir, seletor}"
+		 * que o proprio `isActionOpen()` pede por escrito ha tres casos.
+		 */
+		/*
+		 * D-988: cada caminho tem o proprio botao, e este ABRE A JANELA DE
+		 * GRUPO sempre — inclusive para quem nao esta em grupo nenhum, que e
+		 * quem mais precisa ler a aba Postos. A porta automatica (D-984)
+		 * continua viva em `portaDoGrupo.js`, so que agora ela cuida da TROCA
+		 * (entrar/sair) e nao mais de decidir qual janela o menu abre.
+		 */
 		case 'group':
-			PartyFriends.toggle();
+			GrupoIdle.toggle();
 			break;
 		// O LFG e uma janela SEPARADA da de party (D-634): a nativa mostra
 		// quem ja esta no grupo, esta procura grupo para entrar.
@@ -469,7 +637,7 @@ function onClickAction(e) {
 			LFGIdle.toggle();
 			break;
 		case 'admin':
-			if (!isOwnerAccount()) {
+			if (!souAdmin()) {
 				return;
 			}
 			AdminPanel.toggle();
@@ -484,6 +652,17 @@ function onClickAction(e) {
 		case 'codex':
 			CodexIdle.toggle();
 			break;
+		case 'presenca':
+			/* D-1162: PresencaIdle.toggle() tambem PEDE o painel ao abrir (0x0fdf) */
+			PresencaIdle.toggle();
+			break;
+		case 'ranking':
+			RankingIdle.toggle();
+			break;
+		case 'indicacao':
+			/* D-1164: IndicacaoIdle.toggle() tambem PEDE o painel ao abrir (0x0fdd) */
+			IndicacaoIdle.toggle();
+			break;
 		/* O Passe saiu de "em breve" em D-813. Ele PEDE o estado ao abrir
 		   (0x0fe5): preco, vencimento e o que cada dia entrega sao do
 		   servidor — a janela so desenha.
@@ -492,6 +671,12 @@ function onClickAction(e) {
 		   e 0x0fe5/0x0fe6/0x0fe7 (PacketStructure.js). */
 		case 'passe':
 			PasseIdle.toggle();
+			break;
+		/* VOTAR (D-1159). Ele PEDE o estado ao abrir (0x0fd4 com
+		   `{acao:'pedir'}`): saldo, prazo de cada plataforma e preco sao do
+		   servidor — a janela so desenha. */
+		case 'voto':
+			VotoIdle.toggle();
 			break;
 		/*
 		 * A LOJA DE CASH (I5, 31/08/2026 — pedido do dono).
@@ -507,11 +692,32 @@ function onClickAction(e) {
 			return;
 	}
 
-	// Escolheu no leque? O leque sai da frente. Ele e uma gaveta: abriu,
-	// escolheu, fechou -- e a janela que acabou de abrir e que precisa da
-	// tela agora. So vale pro leque; o cluster de cima nunca se fecha
-	// sozinho.
-	if (_lequeAberto && btn.closest('.tm-fan')) {
+	/*
+	 * Escolheu no leque? O leque sai da frente. Ele e uma gaveta: abriu,
+	 * escolheu, fechou -- e a janela que acabou de abrir e que precisa da
+	 * tela agora. No DESKTOP so vale pro leque; o cluster de cima e barra
+	 * permanente e nunca se fecha sozinho.
+	 *
+	 * ── NO CELULAR EM PE, O CLUSTER TAMBEM FECHA (08/09/2026) ──
+	 *
+	 * Na HUD vertical o `.tm-top` nao e barra permanente: ele e DESENHADO
+	 * DENTRO DA FOLHA (`.ri-vertical #TopMenuIdle.tm-aberto .tm-top`,
+	 * TopMenuIdle.css:1311). A condicao `btn.closest('.tm-fan')` e do arranjo
+	 * de desktop, e no celular ela responde `null` para os NOVE itens do
+	 * cluster — entao a folha ficava aberta POR CIMA da janela que o jogador
+	 * acabou de abrir, e era ela quem comia o toque.
+	 *
+	 * MEDIDO antes do conserto (`scripts/diag-mobile-portrait.ts`, 393x852):
+	 * a folha ficou por cima em 9 das 18 janelas, e os nove sao exatamente os
+	 * itens do cluster — Personagem, Mochila, Skills, Caca, Correio, Config.,
+	 * Analise, Recompensas e Votar. O agregado de "quem cobre" apontava
+	 * `button.tm-item` como o coberturador numero 1, com 18 ocorrencias.
+	 *
+	 * A licao e a de sempre neste projeto: condicao escrita para um arranjo
+	 * nao acompanha o outro arranjo — quem pergunta "estou na gaveta?" tem de
+	 * perguntar tambem "a gaveta e a tela inteira agora?".
+	 */
+	if (_lequeAberto && (btn.closest('.tm-fan') || ehCelularEmPe())) {
 		fecharLeque();
 	}
 
@@ -638,11 +844,49 @@ function onPointerDownGlobal(e) {
 		return;
 	}
 
+	/*
+	 * ── O CLUSTER TAMBEM E "DENTRO DO MENU" NO CELULAR (09/09/2026) ──
+	 *
+	 * RELATO DO DONO: *"ao clicar no menu azul com 3 linhas ele abre a janela
+	 * com os icones (...) o clique esta 'vazando' para tras do menu e movendo
+	 * o personagem, em vez de registrar o clique no icone do menu"*.
+	 *
+	 * A CAUSA e a estrutura: `.tm-fan` e `.tm-fab` moram DENTRO de `.tm-menu`,
+	 * mas `.tm-top` — o cartao com Personagem, Mochila, Skills, Caca,
+	 * Recompensas, Correio, Config., Analise e Votar — e IRMAO dele. No
+	 * desktop isso esta certo: la o cluster e barra permanente, fora da
+	 * gaveta, e tocar nele DEVE fechar a gaveta.
+	 *
+	 * No celular o cluster e desenhado DENTRO da folha
+	 * (`.ri-vertical #TopMenuIdle.tm-aberto .tm-top`, TopMenuIdle.css:1311).
+	 * Entao tocar num daqueles nove icones caia aqui como "fora do menu": a
+	 * folha fechava no `pointerdown`, e o `click` seguinte — que vem DEPOIS —
+	 * chegava no que tivesse sobrado sob o dedo, que e a CENA. Dai o boneco
+	 * andar e a janela nao abrir.
+	 *
+	 * MEDIDO (`scripts/diag-menu-lateral.ts`, clique por COORDENADA e nao
+	 * `.click()` no elemento): no celular em pe, **2 de 9** icones
+	 * funcionavam, e um deles registrou o pedido de andar. No desktop, 9 de 9.
+	 *
+	 * E A MESMA FAMILIA DA CORRECAO DE 08/09 — la a pergunta era
+	 * `btn.closest('.tm-fan')` para decidir FECHAR a folha depois de escolher;
+	 * aqui e `.tm-menu` para decidir NAO fechar antes. As duas eram testes de
+	 * DOM escritos para o arranjo de desktop, e as duas erram no celular pelo
+	 * mesmo motivo: la o cluster mudou de lugar. Consertei uma e nao procurei
+	 * a irma — e ela e que o jogador sentiu.
+	 */
+	const noCelular = ehCelularEmPe();
 	const caminho = e.composedPath();
 	for (let i = 0; i < caminho.length; i++) {
 		const no = caminho[i];
 		// Window/Document/ShadowRoot nao tem classList: so elemento interessa.
-		if (no && no.classList && no.classList.contains('tm-menu')) {
+		if (!no || !no.classList) {
+			continue;
+		}
+		if (no.classList.contains('tm-menu')) {
+			return;
+		}
+		if (noCelular && no.classList.contains('tm-top')) {
 			return;
 		}
 	}
@@ -747,6 +991,23 @@ function aplicarEstadoDoLeque(imediato) {
 		// Leitura que forca o reflow -- sem ela o navegador junta "montar" e
 		// "abrir" no mesmo quadro e a transicao nao acontece.
 		void fan.offsetWidth;
+		/*
+		 * A CONTA DA DOCA VEM DEPOIS DO `is-mounted` (D-1495, 15/09/2026), e a
+		 * ordem e o conserto inteiro.
+		 *
+		 * Ela morava 30 linhas acima, ANTES desta linha, e por isso media o menu
+		 * FECHADO: 198px de `min-width`, enquanto o leque aberto tem o dobro ou
+		 * mais. Em 1024x768 o menu fechado comeca em x=810 e a doca termina em
+		 * x=696 — "nao cruzam", decidia ela, e nao levantava nada; um quadro
+		 * depois o leque montava com 2 colunas por lado, o menu passava a comecar
+		 * em x=607, e os 89px de encosto que a prova mede apareciam. Ninguem
+		 * refazia a conta: nao ha `ResizeObserver` na doca nem `rAF` aqui.
+		 *
+		 * O `void fan.offsetWidth` logo acima ja forcou o reflow por outro motivo
+		 * (a transicao), entao a caixa lida aqui e a definitiva. Duas razoes pelo
+		 * preco de uma leitura.
+		 */
+		afastarMenuDaDoca(root);
 		fan.classList.add('is-open');
 		return;
 	}
@@ -756,10 +1017,16 @@ function aplicarEstadoDoLeque(imediato) {
 	const espera = imediato || movimentoReduzido() ? 0 : LEQUE_SAIDA_MS;
 	if (espera === 0) {
 		fan.classList.remove('is-mounted');
+		afastarMenuDaDoca(root);
 		return;
 	}
 	_lequeTimer = setTimeout(() => {
 		fan.classList.remove('is-mounted');
+		// O menu FECHADO e estreito e quase nunca cruza a doca: sem esta chamada
+		// ele ficaria levantado para sempre depois da primeira abertura, ocupando
+		// altura que o minimapa e os botoes de caca querem. A conta e a mesma; o
+		// que mudou foi a largura do sujeito.
+		afastarMenuDaDoca(root);
 		_lequeTimer = null;
 	}, espera);
 }
@@ -831,8 +1098,67 @@ function distribuirFileiras() {
 		typeof window !== 'undefined' && window.matchMedia
 			? window.matchMedia('(max-height: 439px)').matches
 			: false;
-	const colunas = deitado ? 3 : Math.max(1, Math.ceil(visiveis.length / 2));
+	/*
+	 * O TETO DE CINCO COLUNAS — era QUATRO ate 08/09/2026, e a troca tem dono
+	 * e medicao.
+	 *
+	 * O teto nasceu em D-1159 para impedir que o NONO item (o "Votar") abrisse
+	 * uma quinta coluna com o "Recompensas" sozinho nela: a grade tem colunas
+	 * `auto`, a largura de cada uma e a do ROTULO mais largo dela, e
+	 * "Recompensas" e o rotulo mais largo do cluster inteiro. Medido em D-944,
+	 * o cluster REPROVA o `prove:hud-responsiva` em tablet-768x1024 quando
+	 * passa de ~359px (ele monta em cima do painel de personagem).
+	 *
+	 * Em 08/09 o dono pediu o "Votar" ao lado do "Caca", com a vaga de baixo
+	 * livre para o proximo botao. Isso reordenou o DOM (ver TopMenuIdle.html) e
+	 * mudou QUEM mora na quinta coluna: agora e o proprio "Votar", um dos
+	 * rotulos mais CURTOS, e nao o "Recompensas" — que continua na coluna 1,
+	 * embaixo do "Personagem", que e onde a regra de D-944 manda o rotulo mais
+	 * longo morar. O perigo que o teto de quatro cobria deixou de existir nesta
+	 * ordem; o que o teto ainda faz e impedir uma SEXTA coluna no dia em que o
+	 * cluster passar de dez itens.
+	 *
+	 * ─── E POR QUE A QUINTA COLUNA SO NASCE ACIMA DE 900px ──────────────────
+	 * Porque a quinta coluna FOI MEDIDA, e ela nao cabe em tudo. Com ela o
+	 * cluster passa de 333px para 403px, e o `prove:hud-responsiva` reprovou em
+	 * **tablet-768x1024** com "BasicInfoIdle x TopMenuIdle.tm-top (57x146px)" —
+	 * exatamente o defeito que o teto de quatro tinha sido criado para impedir.
+	 * A mesma prova, na mesma rodada, com a ordem antiga: 23 falhas (todas
+	 * anteriores a esta frente); com cinco colunas em toda tela: 24, e a nova
+	 * era essa.
+	 *
+	 * 57px de sobreposicao em 768 pedem ~830px para zerar; 900 e o degrau
+	 * seguro, e e onde a HUD de mouse ja encolheu o bastante (`--ui-escala` 0,78
+	 * em 900x600) para o cluster caber com folga. Abaixo disso o teto volta a
+	 * ser quatro e o "Votar" desce para a terceira fileira sozinho — a HUD
+	 * refluindo em tela estreita, que e o que ela ja faz com `deitado ? 3`.
+	 *
+	 * O criterio e `matchMedia` e nao `@media` no CSS pelo motivo de D-930:
+	 * esta linha escreve `--tm-colunas` como estilo INLINE, e inline vence
+	 * folha — uma regra de media no CSS seria escrita, lida e ignorada.
+	 *
+	 * Com oito itens ou menos nada muda: `ceil(8/2)` ja e 4.
+	 */
+	const largo =
+		typeof window !== 'undefined' && window.matchMedia
+			? window.matchMedia('(min-width: 900px)').matches
+			: true;
+	const teto = deitado ? 3 : largo ? 5 : 4;
+	const colunas = Math.min(teto, Math.max(1, Math.ceil(visiveis.length / 2)));
 	topo.style.setProperty('--tm-colunas', String(colunas));
+	/*
+	 * O MESMO numero, em atributo, para o CSS conseguir PERGUNTAR por ele.
+	 *
+	 * `--tm-colunas` serve para CONTAR (o `repeat()` da grade o consome), mas
+	 * nenhum seletor consegue ramificar pelo VALOR de uma custom property sem
+	 * `@container style()`, que e recente demais para o fork depender dela. O
+	 * atributo resolve isso com um seletor comum, e e o que permite ao "Votar"
+	 * subir para a primeira fileira SO quando ha cinco colunas — sem mexer na
+	 * ordem do DOM, que e o que mantem o arranjo de quatro colunas identico ao
+	 * que ja passava no `prove:hud-responsiva` (ver o bloco do "Votar" em
+	 * TopMenuIdle.html).
+	 */
+	topo.dataset.colunas = String(colunas);
 }
 
 /**
@@ -854,6 +1180,9 @@ function distribuirFileiras() {
  * aparece para a conta dona) e com o numero de colunas. Copiar esse numero
  * seria a armadilha que criou todos estes tokens.
  */
+/** O ultimo valor publicado em `--hud-cluster-topo` (ver a guarda abaixo). */
+let _topoPublicado = null;
+
 function publicarTopoDoCluster() {
 	const root = _root();
 	const topo = root && root.querySelector('.tm-top');
@@ -865,10 +1194,67 @@ function publicarTopoDoCluster() {
 		return;
 	}
 	/* D-934: unidade da HUD. Ver `emUnidadesDaHud`. */
-	topo.ownerDocument.documentElement.style.setProperty(
-		'--hud-cluster-topo',
-		`${Math.round(emUnidadesDaHud(caixa.top))}px`,
-	);
+	const valor = `${Math.round(emUnidadesDaHud(caixa.top))}px`;
+	/*
+	 * SO PUBLICA QUANDO MUDA (07/09/2026, frente de FPS).
+	 *
+	 * `setProperty` no `documentElement` invalida o estilo de TODO descendente
+	 * que use `var()`, e esta funcao republicava o MESMO numero 4x por segundo,
+	 * vindo do tique. A geometria do cluster muda em evento raro — recolher a
+	 * HUD, girar o aparelho, redimensionar a janela —, entao a guarda
+	 * transforma trabalho constante em trabalho por evento.
+	 */
+	/* A ALTURA vem ANTES da guarda do topo, e isso não é estilo: o cluster
+	   pode ganhar uma fileira sem mudar de topo (ele é ancorado no alto), e
+	   sair pelo `return` de baixo deixaria a altura velha publicada — que é o
+	   defeito exato que ela existe para tapar. */
+	publicarAlturaDoCluster(topo, caixa);
+	if (valor === _topoPublicado) {
+		return;
+	}
+	_topoPublicado = valor;
+	topo.ownerDocument.documentElement.style.setProperty('--hud-cluster-topo', valor);
+}
+
+let _alturaPublicada = null;
+
+/*
+ * A ALTURA DO CLUSTER, MEDIDA (08/09/2026).
+ *
+ * ─── O DEFEITO ──────────────────────────────────────────────────────────
+ * `--vr-menu-cluster-altura` estava CRAVADA em 172px no CSS
+ * (TopMenuIdle.css:1350), e é dela que sai o `top` da folha do leque. Com a
+ * folha aberta no celular, o cluster desenha os NOVE itens numa grade de 4
+ * colunas — três fileiras — e passa de 172px. A folha então começa ACIMA de
+ * onde o cluster termina, e a primeira fileira dela fica ATRÁS do cartão do
+ * cluster.
+ *
+ * MEDIDO com o jogo de pé (`npm run prove:mobile-vertical`, nas três telas):
+ * o item **Guilda** — o primeiro da folha — respondia `button.tm-item` e
+ * `span.tm-label` no `elementFromPoint`. Ele estava desenhado, "visível" para
+ * o DOM, e nenhum dedo o alcançava. É o mesmo defeito que a foto de 393x852
+ * já mostrava: "Guilda Amigos Grupo Admin" aparecendo cortado por baixo da
+ * borda do cartão de cima.
+ *
+ * ─── POR QUE MEDIR, E NÃO SÓ AUMENTAR O NÚMERO ──────────────────────────
+ * Porque a altura do cluster MUDA: com o item de Admin são 11 itens, sem ele
+ * são 10; recolher a HUD muda; a largura da tela muda quantos cabem por
+ * fileira. Trocar 172 por 220 acertaria hoje e erraria na próxima vez que
+ * alguém somasse um item de menu — que é exatamente como o 172 envelheceu.
+ * O arquivo ao lado já ensina isso por escrito: *"A altura e MEDIDA e nao
+ * cravada porque o numero de itens muda"* (o comentário do `applyCollapsedState`).
+ *
+ * Ela pega carona no `publicarTopoDoCluster`: mesmo `ResizeObserver`, mesma
+ * guarda de "só publica quando muda" (D-958, a frente de FPS), mesma unidade
+ * da HUD. Um observador novo seria trabalho repetido para o mesmo evento.
+ */
+function publicarAlturaDoCluster(topo, caixa) {
+	const valor = `${Math.round(emUnidadesDaHud(caixa.height))}px`;
+	if (valor === _alturaPublicada) {
+		return;
+	}
+	_alturaPublicada = valor;
+	topo.ownerDocument.documentElement.style.setProperty('--vr-menu-cluster-altura', valor);
 }
 
 let _observadorDoCluster = null;
@@ -889,7 +1275,135 @@ function observarTopoDoCluster() {
 	_observadorDoCluster.observe(topo);
 	if (typeof window !== 'undefined') {
 		window.addEventListener('resize', publicarTopoDoCluster);
+		/*
+		 * O ARRANJO TAMBEM E REFEITO NO `resize` (D-1490, 15/09/2026).
+		 *
+		 * Ate aqui o unico ouvinte de `resize` do arquivo era o de cima, que so
+		 * republica a posicao do cluster. `distribuirFileiras` (as colunas do
+		 * cluster) e `distribuirColunas` (as do leque) rodavam SO na montagem e
+		 * na troca de visibilidade do Admin — entao quem abrisse o jogo numa
+		 * janela grande e a encolhesse ficava com o arranjo da largada para
+		 * sempre, e o leque voltava a invadir a coluna da direita sem nada
+		 * recalcular.
+		 *
+		 * As duas sao baratas (percorrem ~24 botoes e mexem em variaveis de
+		 * CSS) e o `resize` do navegador ja e limitado ao quadro.
+		 */
+		window.addEventListener('resize', () => {
+			distribuirFileiras();
+			distribuirColunas();
+		});
 	}
+}
+
+/* ─── O LEQUE CABE NA ALTURA (D-1490, 15/09/2026) ───────────────────────────
+ *
+ * Relato do dono, com print: os discos do menu caem EM CIMA do minimapa e dos
+ * botoes "Cacar"/"Retornar para Prontera".
+ *
+ * **A causa e ALTURA, e nao largura** — medido antes de consertar. O leque
+ * cresce PARA CIMA a partir do botao Menu, 60px por fileira, e o numero de
+ * fileiras era sempre `ceil(visiveis / 2)`, sem olhar para a tela. Com as 15
+ * entradas de hoje (a conta dona ve o Admin) sao 8 fileiras = 566px, e o topo
+ * do leque para a 667px do chao. A coluna da direita esta ocupada ate 288px do
+ * TOPO. Numa tela de 898 o topo do leque cai em y=231 e invade os botoes por
+ * 57px; num notebook de 768 ele cobre o minimapa inteiro.
+ *
+ * **A CSS tinha uma prova de que cabia, e ela errava duas vezes** (o comentario
+ * em `TopMenuIdle.css`): dizia base de 39px quando sao 101 (esquecia o disco do
+ * Menu e o respiro), e 6 fileiras quando hoje sao 8. 202px de erro, no unico
+ * eixo do projeto que nao tem media query nenhuma — a maior altura vigiada em
+ * todo o CSS e `max-height: 699px`.
+ *
+ * O conserto escolhido pelo dono entre tres: **mais colunas quando a tela e
+ * baixa**, em vez de rolar a folha (que cortaria o veu de contraste atras dos
+ * discos) ou encolher os discos. Duas colunas por lado viram 4 no total, as 8
+ * fileiras caem para 4, e o leque passa a ocupar 286px — cabe com folga onde
+ * antes invadia.
+ *
+ * POR QUE EM JS E NAO NUMA MEDIA QUERY: o numero de fileiras depende de quantos
+ * itens estao VISIVEIS, e isso muda com a conta (o Admin some para quem nao e o
+ * dono) e com o que o jogo libera. Uma media query so sabe da tela, entao ela
+ * teria de assumir o pior caso e alargar o menu para todo mundo, sempre.
+ */
+const BASE_DO_LEQUE = 101;
+const ALTURA_DA_FILEIRA = 60;
+const RESPIRO_DA_FILEIRA = 10;
+const TOPO_DO_LEQUE = 16;
+/** O leque nao passa de 3 colunas por lado: seis discos de largura ja e um painel. */
+const MAXIMO_DE_COLUNAS_POR_LADO = 3;
+
+/** Onde o menu descansa quando nao ha doca no caminho (`afastarMenuDaDoca`). */
+const BASE_DO_MENU_NO_CHAO = 16;
+/**
+ * O vao entre o pe do menu levantado e o topo da barra de atalhos.
+ *
+ * E o mesmo 8 da escada do rodape que o `Common.css` publica
+ * (`--hud-acima-da-doca: calc(var(--hud-doca-altura) + 8px + ...)`), escrito
+ * aqui porque o degrau desta funcao e MEDIDO e nao herdado daquele token — ver
+ * o cabecalho de `afastarMenuDaDoca` para o porque.
+ */
+const RESPIRO_ACIMA_DA_DOCA = 8;
+
+/**
+ * Quantas colunas cada metade do leque precisa para caber na altura livre.
+ *
+ * @param {number} porLado quantos itens visiveis a metade mais cheia tem
+ * @returns {number} 1 (o de sempre) ate `MAXIMO_DE_COLUNAS_POR_LADO`
+ */
+/**
+ * Quantas fileiras de disco cabem entre o botao Menu e a coluna da direita.
+ *
+ * Extraida porque tem DOIS leitores agora (o numero de colunas e o teto de
+ * rolagem do caso impossivel), e duas copias da mesma conta divergem na
+ * primeira vez que alguem mexe numa delas.
+ */
+function fileirasQueCabemNaAltura() {
+	if (typeof window === 'undefined' || typeof document === 'undefined') {
+		return Number.POSITIVE_INFINITY;
+	}
+	/*
+	 * `--hud-td-abaixo-da-coluna` e publicado pelo `Common.css` e ja significa
+	 * exatamente "a partir daqui a coluna da direita esta livre" — ele soma o
+	 * minimapa, o respiro e os botoes de caca, inclusive quando a altura dos
+	 * botoes e REMEDIDA em tempo de execucao. Repetir 288 aqui seria assinar um
+	 * numero que muda noutro arquivo.
+	 */
+	const publicado = parseFloat(
+		getComputedStyle(document.documentElement).getPropertyValue('--hud-td-abaixo-da-coluna'),
+	);
+	const ocupadoAcima = Number.isFinite(publicado) && publicado > 0 ? publicado : 288;
+	const livre = window.innerHeight - BASE_DO_LEQUE - ocupadoAcima;
+	return Math.floor((livre - TOPO_DO_LEQUE + RESPIRO_DA_FILEIRA) / (ALTURA_DA_FILEIRA + RESPIRO_DA_FILEIRA));
+}
+
+function colunasPorLadoDoLeque(porLado) {
+	if (porLado <= 0 || typeof window === 'undefined') {
+		return 1;
+	}
+	/*
+	 * `--hud-td-abaixo-da-coluna` e publicado pelo `Common.css` e ja significa
+	 * exatamente "a partir daqui a coluna da direita esta livre" — ele soma o
+	 * minimapa, o respiro e os botoes de caca, inclusive quando a altura dos
+	 * botoes e REMEDIDA em tempo de execucao. Repetir 288 aqui seria assinar um
+	 * numero que muda noutro arquivo.
+	 */
+	const fileirasQueCabem = fileirasQueCabemNaAltura();
+	if (fileirasQueCabem >= porLado) {
+		return 1; // cabe em coluna unica: nada muda
+	}
+	for (let colunas = 2; colunas <= MAXIMO_DE_COLUNAS_POR_LADO; colunas++) {
+		if (Math.ceil(porLado / colunas) <= fileirasQueCabem) {
+			return colunas;
+		}
+	}
+	/*
+	 * Nem no maximo cabe (janela muito baixa). Devolve o maximo mesmo assim: o
+	 * leque ainda encolhe bastante, e sobrepor menos e melhor que sobrepor
+	 * tudo. Tela abaixo disso ja cai nas faixas de `max-height: 439px`, que
+	 * mexem no arranjo inteiro.
+	 */
+	return MAXIMO_DE_COLUNAS_POR_LADO;
 }
 
 function distribuirColunas() {
@@ -913,6 +1427,157 @@ function distribuirColunas() {
 			contados++;
 		}
 	});
+
+	// A metade MAIS CHEIA manda: as duas colunas dividem a mesma altura.
+	const colunas = colunasPorLadoDoLeque(naEsquerda);
+	fan.style.setProperty('--tm-leque-colunas', String(colunas));
+
+	/*
+	 * A ROLAGEM DO CASO IMPOSSIVEL FOI TENTADA, MEDIDA E DESFEITA (D-1492).
+	 *
+	 * Ha telas em que nao existe arranjo: numa janela de 580x250 o leque precisa
+	 * de ~318px com o maximo de colunas, e a janela inteira tem 250. A tentativa
+	 * foi por teto de altura mais rolagem — e ela PIOROU, medido:
+	 *
+	 * os discos que ficam fora da area rolada continuam tendo posicao, e o ponto
+	 * central deles cai no CANVAS do jogo. A `prove:hud-responsiva` passou a
+	 * acusar "coberto por CANVAS" em tres telas e um alvo FORA DA TELA em
+	 * 580x250. **Trocar um alvo sobreposto por um alvo inalcancavel nao e
+	 * conserto** — e o segundo e pior, porque some sem deixar rastro.
+	 *
+	 * O caso impossivel passou a ser tratado onde ele pertence: a prova nao abre
+	 * o menu ali, pela mesma razao que nao o abre no celular deitado. Cobrar um
+	 * arranjo que nao existe nao o faz existir.
+	 */
+	afastarMenuDaDoca(root);
+}
+
+/**
+ * O MENU ABERTO NAO SENTA NA BARRA DE ATALHOS (D-1492, 15/09/2026).
+ *
+ * A `prove:hud-responsiva` acusou `TopMenuIdle.tm-menu x ShortCut#ShortCut` em
+ * tres telas — 20x42px no tablet em pe, 89x42 no deitado, 173x33 numa janela de
+ * 900x600.
+ *
+ * **Uma delas nao e minha e duas sao.** No `tablet-768x1024` o leque tem UMA
+ * coluna (a conta de altura devolve 1 ali), entao o encosto ja existia e so
+ * estava invisivel — a prova nunca abria o menu. Nas outras duas o leque ficou
+ * mais LARGO ao ganhar colunas, e foi ate a doca: consertei o eixo vertical e
+ * criei um problema no horizontal.
+ *
+ * **O mecanismo de levantar o menu JA EXISTIA** (`--hud-acima-da-doca`), preso
+ * atras de media queries de largura. E elas erram o tablet por NOVE pixels: a
+ * faixa e `max-width: 759px` e o aparelho tem 768. Um limiar cravado que erra
+ * por 9px e a razao de este conserto MEDIR em vez de adivinhar.
+ *
+ * A conta e estavel de proposito — ela pergunta se o menu cruzaria A DOCA **na
+ * posicao BASE**, e nao na atual. Perguntar pela atual oscilaria: levanta, para
+ * de cruzar, abaixa, cruza de novo, a cada quadro. O DEGRAU tambem e estavel
+ * pelo mesmo motivo: ele sai da doca, que nao se move quando o menu sobe.
+ *
+ * **ELA ERRAVA DUAS VEZES, e as duas foram consertadas em D-1495** (15/09/2026),
+ * depois de a aritmetica reconstruida no fonte PREVER os tres numeros que a
+ * prova media (20x42, 89x42, 173x33) — o que e a diferenca entre diagnostico e
+ * palpite. Os dois defeitos sao independentes e cada um pegava uma tela:
+ *
+ *   | tela | o que falhava |
+ *   |---|---|
+ *   | 1024x768 | a ORDEM: media o menu FECHADO (`is-mounted` vinha depois) e concluia "nao cruzam" |
+ *   | 768x1024 | a ARITMETICA: levantava ate o PE da doca, e nao ate o topo dela |
+ *
+ * Ver `aplicarEstadoDoLeque` para a primeira e o bloco do degrau, abaixo, para
+ * a segunda.
+ */
+function afastarMenuDaDoca(root) {
+	const menu = root && root.querySelector('.tm-menu');
+	if (!menu || typeof document === 'undefined' || typeof window === 'undefined') {
+		return;
+	}
+	const doca = document.getElementById('ShortCut');
+	if (!doca) {
+		return;
+	}
+	const caixaDaDoca = doca.getBoundingClientRect();
+	if (caixaDaDoca.width < 4 || caixaDaDoca.height < 4) {
+		return; // doca escondida: nada a desviar
+	}
+	const caixaDoMenu = menu.getBoundingClientRect();
+
+	// O lado horizontal nao muda quando o menu sobe, entao pode vir da caixa
+	// atual. Ja o vertical e perguntado sobre a BASE: "com `bottom: 16px`, o pe
+	// do menu entraria na faixa da doca?".
+	const cruzaNaHorizontal = caixaDoMenu.left < caixaDaDoca.right && caixaDoMenu.right > caixaDaDoca.left;
+	const peNaBase = window.innerHeight - BASE_DO_MENU_NO_CHAO;
+	const cruzaNaVertical = peNaBase > caixaDaDoca.top;
+
+	if (!cruzaNaHorizontal || !cruzaNaVertical) {
+		menu.style.setProperty('--tm-base-do-menu', BASE_DO_MENU_NO_CHAO + 'px');
+		return;
+	}
+
+	/*
+	 * O DEGRAU SAI DA DOCA MEDIDA, e nao de uma constante (D-1495).
+	 *
+	 * A versao anterior escrevia `var(--hud-acima-da-doca)` — que e a distancia
+	 * do chao ate o PE da barra de atalhos, e nao ate o topo dela. Nas faixas em
+	 * que a barra tambem esta ancorada nesse token (`ShortCut.css`, `@media
+	 * max-width: 899px`) os dois passavam a dividir a mesma linha de base: em
+	 * 768x1024 o pe do menu caia em y=920, que e exatamente a borda de baixo da
+	 * barra, e o menu cobria os 42px dela inteiros. Era o levantamento
+	 * acontecendo e chegando UM DEGRAU CURTO — que e o que a prova media como
+	 * "20x42px".
+	 *
+	 * O repositorio ja tinha o numero certo escrito em dois lugares
+	 * (`ChatBox.css`, a escada do rodape; `TopMenuIdle.css`, com
+	 * `calc(var(--hud-acima-da-doca) + 50px)`), e esta funcao foi a unica
+	 * moradora a escrever o degrau de baixo achando que era o de cima.
+	 *
+	 * **Mas nem o `+50px` serviria**, e por isso a conta e MEDIDA: aquele 50 e
+	 * "42 da fileira + 8 de respiro", e a barra de atalhos tem de UMA a QUATRO
+	 * fileiras (`MAX_ROW_COUNT`, `ShortCut.js`) — o jogador arrasta o pegador e
+	 * ela vira 168px. Uma constante erraria por 126px no dia em que ele fizesse
+	 * isso, e o defeito voltaria com outra cara. `caixaDaDoca.top` ja sabe de
+	 * tudo: quantas fileiras ela tem, onde ela esta ancorada nesta tela, e se o
+	 * recorte do aparelho a empurrou.
+	 */
+	const acimaDaDoca = window.innerHeight - caixaDaDoca.top + RESPIRO_ACIMA_DA_DOCA;
+
+	/*
+	 * O TETO DO LEVANTAMENTO (D-1499, 15/09/2026) — e ele nasceu de uma medicao
+	 * que reprovou o conserto anterior.
+	 *
+	 * D-1495 tirou o encosto na doca e **empurrou o menu para dentro dos botoes
+	 * de caca**: a `prove:hud-responsiva` mediu `HuntButtonIdle x tm-menu` de
+	 * 136x73px no tablet em pe, e — o que importa mais — o alvo `missoes`
+	 * COBERTO. Dois paineis que se encostam sao feios; um botao que o jogador
+	 * nao consegue apertar e quebrado. **A troca foi para pior**, e este teto e
+	 * o conserto dela.
+	 *
+	 * `--hud-td-abaixo-da-coluna` ja significa "a partir daqui a coluna da
+	 * direita esta livre" — o mesmo token que `fileirasQueCabemNaAltura` usa, e
+	 * pelo mesmo motivo de nao repetir 288 a mao.
+	 *
+	 * **A conta NAO e circular, e isso foi conferido antes de escreve-la**: a
+	 * altura do menu aqui e a MEDIDA (`caixaDoMenu.height`), e o numero de
+	 * fileiras do leque sai de `fileirasQueCabemNaAltura()`, que nao olha para
+	 * `--tm-base-do-menu`. Levantar nao muda a altura do menu, entao o teto nao
+	 * realimenta a conta que o produziu. Se um dia as fileiras passarem a
+	 * depender do levantamento, esta funcao vira um ponto fixo e precisa de
+	 * outra solucao — e o aviso fica escrito aqui por isso.
+	 *
+	 * O `Math.max` com o chao e o que impede o teto de virar um AFUNDAMENTO
+	 * numa tela onde nem a posicao base cabe: ali ele nao levanta, e o encosto
+	 * na doca volta a ser o que era — pior que o ideal, melhor que um botao
+	 * coberto.
+	 */
+	const publicado = parseFloat(
+		getComputedStyle(document.documentElement).getPropertyValue('--hud-td-abaixo-da-coluna'),
+	);
+	const tetoOcupado = Number.isFinite(publicado) && publicado > 0 ? publicado : 288;
+	const cabe = window.innerHeight - tetoOcupado - caixaDoMenu.height - RESPIRO_ACIMA_DA_DOCA;
+	const base = Math.max(BASE_DO_MENU_NO_CHAO, Math.min(acimaDaDoca, cabe));
+
+	menu.style.setProperty('--tm-base-do-menu', Math.round(base) + 'px');
 }
 
 /**
@@ -1027,8 +1692,27 @@ function isActionOpen(action) {
 			return isRagIdleWindowOpen(AdminPanel, '.ap-window');
 		case 'guild':
 			return isHostVisible(Guild);
+		/*
+		 * Ver o comentario do `case 'group'` no switch de ABRIR: o item passou
+		 * a abrir a janela RAGIDLE (D-960), entao ele le '.gi-window.is-open'
+		 * — e nao `isHostVisible`, que e a armadilha que o comentario de `lfg`
+		 * logo abaixo registra (o `_host` de um GUIComponent nunca ganha
+		 * display:none sozinho, entao o aro nunca apagaria).
+		 *
+		 * D-984: o item passou a abrir DUAS janelas diferentes conforme a
+		 * party, e o aro segue junto — quem pergunta qual e a janela e a
+		 * MESMA funcao que o switch de abrir usa. Escrever aqui um segundo
+		 * `Session.hasParty ? ... : ...` seria reencenar de novo o defeito que
+		 * este arquivo ja registra quatro vezes: dois switches paralelos
+		 * ligados so pela disciplina de quem edita.
+		 *
+		 * `null` antes do `ligar()` (fora do jogo) = aro apagado, que e o
+		 * mesmo que o `default` faz para os itens "em breve".
+		 */
+		// D-988: o aro do 'Grupo' acende com a janela de Grupo aberta, e o do
+		// 'Procurar grupo' com o Localizador — um item, uma janela.
 		case 'group':
-			return isHostVisible(PartyFriends.getUI());
+			return isRagIdleWindowOpen(GrupoIdle, '.gi-window');
 		/*
 		 * LFG (D-634): ele e janela RAGIDLE, e NAO nativa -- entao le
 		 * ".lfg-window.is-open", como as vizinhas de cima.
@@ -1052,6 +1736,10 @@ function isActionOpen(action) {
 		 */
 		case 'codex':
 			return isRagIdleWindowOpen(CodexIdle, '.cx-window');
+		case 'presenca':
+			return isRagIdleWindowOpen(PresencaIdle, '.pr-window');
+		case 'indicacao':
+			return isRagIdleWindowOpen(IndicacaoIdle, '.in-window');
 		/*
 		 * PASSE (D-813): a TERCEIRA vez do mesmo defeito, achado em 29/08/2026
 		 * ao somar o Codex. Ele tinha `case 'passe'` no switch de ABRIR e
@@ -1066,6 +1754,11 @@ function isActionOpen(action) {
 		 */
 		case 'passe':
 			return isRagIdleWindowOpen(PasseIdle, '.pi-window');
+		/* VOTO (D-1159): entrou nos DOIS switches no mesmo commit, que e o que
+		   o comentario do `passe` logo acima manda fazer enquanto a tabela
+		   unica de acao -> { abrir, seletor } nao existir. */
+		case 'voto':
+			return isRagIdleWindowOpen(VotoIdle, '.vi-window');
 		default:
 			// os itens "em breve" caem aqui -- nunca acendem.
 			return false;
@@ -1095,6 +1788,14 @@ function isHostVisible(component) {
  */
 function pollEstado() {
 	hideReplacedControls();
+	// D-1367: o item "Admin" pela marca do servidor, que pode chegar depois do
+	// menu. Quando ele aparece ou some, a grade e refeita como no onAppend.
+	if (sincronizarItemDeAdmin()) {
+		distribuirColunas();
+		distribuirFileiras();
+		publicarTopoDoCluster();
+		aplicarEstadoDoLeque(true);
+	}
 	/*
 	 * D-930: o topo do cluster entra no tique que ja existia, e nao num timer
 	 * proprio. O `ResizeObserver` sozinho nao bastava: ele dispara quando a
@@ -1106,6 +1807,11 @@ function pollEstado() {
 	publicarTopoDoCluster();
 	syncSkillDot();
 	syncCorreioDot();
+	syncCodexDot();
+	// D-1159: o destaque do botao de votar entra no MESMO tique dos outros
+	// dois avisos, e antes do `syncToggleDot()` de proposito — ele le os
+	// pontos dos itens ja calculados para decidir o ponto da alca.
+	syncVotoLivre();
 	syncToggleDot();
 	syncAllActiveStates();
 }
@@ -1204,6 +1910,67 @@ function syncCorreioDot() {
 			btn.title = `Correio — ${quantas} por ler`;
 		}
 	}
+}
+
+/**
+ * Ponto de "ha objetivo do Codex esperando voce" (D-1232, 08/09/2026).
+ *
+ * A fonte e `avisoDoCodex.js`, que guarda o veredito do SERVIDOR
+ * (`temNovidadeNoCodex`) — entrada cumprida com premio nao resgatado, ou
+ * cumprida sem premio e ainda nao consultada. Esta funcao nao recalcula nada:
+ * refazer a regra aqui seria a segunda rota escrita a mao de sempre, e ela
+ * discordaria do servidor no instante seguinte a um resgate.
+ *
+ * Mesma receita ".ri-dot" do Correio e das Skills, de proposito.
+ */
+function syncCodexDot() {
+	const root = _root();
+	const dot = root.querySelector('.tm-item[data-action="codex"] .ri-dot');
+	if (!dot) {
+		return;
+	}
+
+	const tem = temAvisoDoCodex();
+	dot.style.display = tem ? '' : 'none';
+
+	const btn = dot.closest('.tm-item');
+	if (btn) {
+		btn.title = tem ? 'Codex — você tem um objetivo concluído' : 'Codex';
+	}
+}
+
+/**
+ * O DESTAQUE DO BOTAO DE VOTAR (D-1159) — o pedido do dono era literal:
+ * *"com bastante destaque quando tem voto disponivel"*.
+ *
+ * SAO DUAS MARCAS, e cada uma cobre um buraco da outra:
+ *
+ *  - `.is-voto-livre` no botao (aro dourado + pulso) e o destaque que se ve de
+ *    longe. Ele some quando o jogador recolhe o cluster pela alca;
+ *  - o `.ri-dot` e a MESMA receita do Correio e do Skills, e existe para o
+ *    aviso sobreviver a isso: recolhido, o ponto migra para a alca
+ *    (`syncToggleDot()` le os pontos dos itens, e nao a classe).
+ *
+ * A fonte do dado e `VotoIdle.temVotoDisponivel()`, que le o campo `liberados`
+ * calculado pelo SERVIDOR. Refazer a conta aqui (comparar `ultimoVotoMs` com
+ * 12 h) daria a segunda copia da regra, e um dia o botao piscaria com a janela
+ * dizendo "faltam 3h" — o defeito que ninguem reproduz.
+ */
+function syncVotoLivre() {
+	const root = _root();
+	const btn = root.querySelector('.tm-item[data-action="voto"]');
+	if (!btn) {
+		return;
+	}
+	const livre = VotoIdle.temVotoDisponivel();
+	btn.classList.toggle('is-voto-livre', livre);
+	const dot = btn.querySelector('.ri-dot');
+	if (dot) {
+		dot.style.display = livre ? '' : 'none';
+	}
+	btn.title = livre
+		? 'Votar — você tem voto disponível!'
+		: 'Votar e ganhar Vote Cash';
 }
 
 /**

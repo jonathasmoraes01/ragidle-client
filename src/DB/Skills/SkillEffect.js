@@ -640,7 +640,11 @@ SkillEffect[SK.KN_CHARGEATK] = { beginCastEffectId: 'white_pulse', hitEffectId: 
 SkillEffect[SK.CR_SHRINK] = { effectId: 599 }; //Shrink
 SkillEffect[SK.AS_VENOMKNIFE] = { beforeHitEffectId: 600 }; //Throw Venom Knife
 SkillEffect[SK.RG_CLOSECONFINE] = { effectId: 602, groundEffectId: 604 }; //Close Confine
-SkillEffect[SK.WZ_SIGHTBLASTER] = { effectId: 601 }; //Sight Blaster
+// Sem effectId, como o Sight (MG_SIGHT): a bola do Sight Blaster nasce e morre
+// com o STATUS (Entity.js, o EFST 198). Aqui ela saia em todo pacote da
+// habilidade — inclusive no dano da DETONACAO, e ai girava 12 s em volta do
+// inimigo atingido (D-1359).
+SkillEffect[SK.WZ_SIGHTBLASTER] = {}; //Sight Blaster
 SkillEffect[SK.SA_CREATECON] = {}; //Create Elemental Converter
 SkillEffect[SK.SA_ELEMENTWATER] = { effectId: 256 }; //Elemental Change Water
 SkillEffect[SK.HT_PHANTASMIC] = { beforeHitEffectId: 'ef_arrow_projectile', hitEffectId: 1 }; //Phantasmic Arrow

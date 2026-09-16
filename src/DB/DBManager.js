@@ -11,6 +11,7 @@
 import Client from 'Core/Client.js';
 import Configs from 'Core/Configs.js';
 import TextEncoding from 'Utils/CodepageManager.js';
+import { escaparHtml } from 'Utils/escaparHtml.js'; // D-1308: nome do dono de arma forjada vem cru do pacote (XSS)
 import JobId from './Jobs/JobConst.js';
 import ClassTable from './Jobs/JobNameTable.js';
 import PaletteTable from './Jobs/PalNameTable.js';
@@ -2395,7 +2396,17 @@ class DB {
 					const GID = (item.slot.card4 << 16) + item.slot.card3;
 					name = '<font color="red" class="owner-' + GID + '">Unknown</font>';
 					if (DB.CNameTable[GID] && DB.CNameTable[GID] !== 'Unknown') {
-						name = '<font color="#87cefa" class="owner-' + GID + '">' + DB.CNameTable[GID] + '</font>';
+						// SEGURANCA (D-1308): o nome do dono vem CRU do pacote
+						// (onUpdateOwnerName: CNameTable[GID] = pkt.CName) e este retorno de
+						// getItemName e injetado via innerHTML por sete janelas (Storage,
+						// ItemReform, Laphine). Escapa aqui, num lugar so — o GID e numerico.
+						// O ramo `.owner-<GID>` abaixo ja usa innerText, entao ja era seguro.
+						name =
+							'<font color="#87cefa" class="owner-' +
+							GID +
+							'">' +
+							escaparHtml(DB.CNameTable[GID]) +
+							'</font>';
 					} else {
 						DB.UpdateOwnerName[GID] = function (pkt) {
 							delete DB.UpdateOwnerName[pkt.GID];

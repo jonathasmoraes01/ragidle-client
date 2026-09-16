@@ -170,6 +170,25 @@
 
 	var CONFIG = window.ROConfigLocal || {};
 	var BALCAO = CONFIG.cadastroUrl || '';
+	/*
+	 * INDIQUE & GANHE (D-1164): o `?ref=XXXXXX` do link de convite fica guardado
+	 * por 30 dias e vai junto no POST /cadastrar. O primeiro codigo que chega
+	 * e o que fica. Esta e a copia-fonte do site (o vivo e rag-idle-site).
+	 */
+	var REF = '';
+	try {
+		var refDaUrl = new URLSearchParams(window.location.search).get('ref');
+		if (refDaUrl && /^[A-Za-z0-9]{6}$/.test(refDaUrl) && !window.localStorage.getItem('ri.ref')) {
+			window.localStorage.setItem('ri.ref', refDaUrl.toUpperCase());
+			window.localStorage.setItem('ri.ref.em', String(Date.now()));
+		}
+		var refEm = Number(window.localStorage.getItem('ri.ref.em') || 0);
+		if (Date.now() - refEm < 30 * 24 * 3600 * 1000) {
+			REF = window.localStorage.getItem('ri.ref') || '';
+		}
+	} catch (e) {
+		REF = '';
+	}
 
 	var form = document.getElementById('form');
 	var enviar = document.getElementById('enviar');
@@ -250,7 +269,7 @@
 		fetch(BALCAO + '/cadastrar', {
 			method: 'POST',
 			headers: { 'Content-Type': 'application/json' },
-			body: JSON.stringify({ usuario: usuario, senha: senha, sexo: sexo })
+			body: JSON.stringify(REF ? { usuario: usuario, senha: senha, sexo: sexo, ref: REF } : { usuario: usuario, senha: senha, sexo: sexo })
 		})
 			.then(function (r) { return r.json().then(function (j) { return { ok: r.ok, json: j }; }); })
 			.then(function (resposta) {

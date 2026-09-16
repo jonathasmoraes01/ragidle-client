@@ -97,7 +97,11 @@ self.addEventListener('message', (evento) => {
 	}
 });
 
-/** Isto é estado de jogo ou resposta de API? Se for, o SW não encosta. */
+/**
+ * O SW tem de passar LONGE desta requisição? Sim para estado de jogo e API — o
+ * save é do servidor e nada disso pode ser cacheado —, e sim também para os
+ * dois `Config.*`, pelo motivo F6 abaixo.
+ */
 function ehDoJogo(url) {
 	return (
 		url.pathname.startsWith('/remote-client/') ||
@@ -105,7 +109,19 @@ function ehDoJogo(url) {
 		url.pathname.startsWith('/userconfig') ||
 		url.pathname.startsWith('/emblem') ||
 		url.pathname.startsWith('/saude') ||
-		url.pathname.startsWith('/api/')
+		url.pathname.startsWith('/api/') ||
+		/* F6 — CONFIG.JS E CONFIG.LOCAL.JS NÃO PODEM PASSAR PELO CACHE DO SW.
+		   Diferente dos bundles (`Online.js?v=<carimbo>`), estes dois são pedidos
+		   SEM o `?v=` (ver api.html: os bundles carregam o carimbo, o Config não).
+		   Sem query, a URL é IGUAL entre builds — e no ramo cache-first lá embaixo
+		   "URL igual" quer dizer "devolve a cópia guardada". Ela ficaria presa numa
+		   versão velha: exatamente o que o `Cache-Control: no-cache` do vercel.json
+		   existe para impedir, e a razão de o Config.js poder ser usado como
+		   alavanca de rollback SEM rebuild (documentada no próprio Config.js) — o SW
+		   respondendo antes da rede mataria as duas coisas. Deixando o SW passar
+		   direto, o cache HTTP do navegador honra o `no-cache` e revalida sempre. */
+		url.pathname === '/Config.js' ||
+		url.pathname === '/Config.local.js'
 	);
 }
 
@@ -128,8 +144,18 @@ self.addEventListener('fetch', (evento) => {
 			(async () => {
 				try {
 					const resposta = await fetch(req);
-					const cache = await caches.open(CACHE);
-					cache.put(req, resposta.clone());
+					/* F7 — SÓ NAVEGAÇÃO BOA VIRA REDE DE SEGURANÇA OFFLINE. Sem o
+					   `status === 200`, um 5xx/404 (origem reiniciando, deploy no
+					   meio, tunel caído) era GUARDADO e passava a ser servido como
+					   o "offline" dali em diante — um erro passageiro virava
+					   permanente até a próxima publicação. É a MESMA guarda que o
+					   ramo da casca já aplica logo abaixo; agora as duas combinam.
+					   `type === 'basic'` garante resposta da nossa origem (a
+					   navegação aqui já é same-origin, filtrada no topo do fetch). */
+					if (resposta && resposta.status === 200 && resposta.type === 'basic') {
+						const cache = await caches.open(CACHE);
+						cache.put(req, resposta.clone());
+					}
 					return resposta;
 				} catch (erro) {
 					const cache = await caches.open(CACHE);

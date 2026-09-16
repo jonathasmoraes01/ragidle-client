@@ -9,6 +9,8 @@
  */
 
 import DB from 'DB/DBManager.js';
+import { legendaDeVip } from 'DB/Items/exclusivosDeVip.js'; // 10/09/2026: a regra do item em destaque
+import { linhaDeIdParaAdmin } from 'DB/Items/idParaAdmin.js'; // 11/09/2026, D-1331: o id so para admin
 import ItemType from 'DB/Items/ItemType.js';
 import EquipLocation from 'DB/Items/EquipmentLocation.js';
 import Client from 'Core/Client.js';
@@ -242,11 +244,59 @@ function itemParaLink(item) {
  *
  * @param {object} item
  */
+/**
+ * O PAINEL DE COMPARAÇÃO (08/09/2026, pedido do alfa) — quem escreve aqui é a
+ * MochilaIdle, com o que o SERVIDOR respondeu no `ZC_RAGIDLE_ITEM`. `null`
+ * esconde. O HTML chega PRONTO e já escapado por quem monta (a janela não sabe
+ * comparar, e não deve saber — a régua é a `derivarStats` do servidor).
+ */
+ItemInfo.setComparacao = function setComparacao(html) {
+	const painel = ItemInfo.getRoot().querySelector('.comparacao');
+	if (!painel) {
+		return;
+	}
+	if (!html) {
+		painel.hidden = true;
+		painel.innerHTML = '';
+		return;
+	}
+	painel.innerHTML = html;
+	painel.hidden = false;
+};
+
+/**
+ * O SELO "Equipado — <espaço>", ou `null` para esconder.
+ *
+ * Espelho de `setComparacao`, e pelo mesmo motivo: a janela não sabe o que
+ * está no corpo (a lista de vestidos mora na Equipment) e não deve passar a
+ * saber — quem abre a ficha diz. Texto puro, escapado aqui.
+ */
+ItemInfo.setVestido = function setVestido(texto) {
+	const faixa = ItemInfo.getRoot().querySelector('.vestido');
+	if (!faixa) {
+		return;
+	}
+	if (!texto) {
+		faixa.hidden = true;
+		faixa.textContent = '';
+		return;
+	}
+	faixa.textContent = String(texto);
+	faixa.hidden = false;
+};
+
 ItemInfo.setItem = function setItem(item) {
 	const it = DB.getItemInfo(item.ITID);
 	const root = ItemInfo.getRoot();
 	const cardList = root.querySelector('.cardlist .border');
 	const optionContainer = root.querySelector('.option-container');
+
+	// A ficha TROCOU de item: o veredito da troca anterior não vale para o
+	// novo — quem pedir a comparação nova preenche de novo. Sem esta linha o
+	// painel da espada aparecia sob a poção aberta em seguida.
+	ItemInfo.setComparacao(null);
+	// Idem para o selo: a peça anterior podia estar vestida e esta não.
+	ItemInfo.setVestido(null);
 
 	this.item = it;
 	/*
@@ -310,7 +360,46 @@ ItemInfo.setItem = function setItem(item) {
 	const descInner = root.querySelector('.description-inner');
 	if (descInner) {
 		const rawDesc = item.IsIdentified ? it.identifiedDescriptionName : it.unidentifiedDescriptionName;
-		descInner.innerHTML = DB.formatMsgToHtml(_escapeHTML(rawDesc));
+		/*
+		 * A REGRA DO DONO EM DESTAQUE, na PRIMEIRA linha (10/09/2026).
+		 *
+		 * A descricao desta janela vem do GRF, que nao sabe das regras do dono
+		 * (a Asa de Mosca: 4 s para o jogador comum, sem espera e automatica
+		 * para o VIP). Ate aqui a legenda so aparecia na dica da mochila, e esta
+		 * janela — a descricao de verdade, a que o jogador abre para ler —
+		 * nao dizia nada. Primeira linha porque a caixa e alta: enterrada no
+		 * fim, ela so seria lida por quem ja rolou o texto.
+		 */
+		const legenda = legendaDeVip(item.ITID);
+		/*
+		 * O ID PARA O ADMINISTRADOR (11/09/2026, D-1331 — pedido do dono).
+		 *
+		 * Por ULTIMO, depois da descricao do GRF, e e o oposto da legenda de
+		 * VIP logo acima: aquela briga pela primeira linha porque muda o que o
+		 * jogador PODE fazer; o id e ferramenta de quem atende chamado e nao
+		 * deve competir com o texto do item.
+		 *
+		 * `null` para quem nao e administrador. Quem decide isso e
+		 * `idParaAdmin.js` — o unico lugar do fork que pergunta pela Session
+		 * para desenhar, e a MESMA funcao que a dica da MochilaIdle chama.
+		 * Duas telas, uma regra: escrever `Session.Entity.isAdmin` aqui e la
+		 * seria a segunda rota escrita a mao.
+		 */
+		const idDoItem = linhaDeIdParaAdmin(item.ITID);
+		descInner.innerHTML =
+			(legenda
+				? '<div class="ri-legenda-do-item" style="color:#ff8800;font-weight:bold;margin-bottom:4px">' +
+					_escapeHTML(legenda) +
+					'</div>'
+				: '') +
+				DB.formatMsgToHtml(_escapeHTML(rawDesc)) +
+				(idDoItem
+					? '<div class="ri-id-do-item" style="margin-top:6px;padding-top:4px;' +
+						'border-top:1px solid rgba(0,0,0,0.15);color:#777;font-family:monospace;' +
+						'font-size:10px;user-select:text">' +
+						_escapeHTML(idDoItem) +
+						'</div>'
+					: '');
 	}
 
 	if (item.HireExpireDate) {

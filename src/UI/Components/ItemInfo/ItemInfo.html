@@ -46,6 +46,26 @@
 		`resize()`, que manda na altura de tudo o que mora la (o contrato dos
 		45px esta no topo do ItemInfo.css).
 	-->
+	<!--
+		A COMPARAÇÃO COM O EQUIPADO (08/09/2026 — pedido do alfa).
+
+		Preenchida por ItemInfo.setComparacao() com o que o SERVIDOR calculou
+		(ZC_RAGIDLE_ITEM): quem sai do corpo, e as linhas de diferença da ficha
+		com sinal e cor. A janela nunca recalcula — ver o cabeçalho do pacote em
+		PacketStructure.js. Fora do `.container` pela mesma razão do botão de
+		link: não é a ficha do item, é o veredito de uma TROCA.
+	-->
+	<!--
+		O SELO "Equipado — <espaço>" (08/09/2026, pedido do alfa: *"indique
+		claramente quando o item estiver equipado e em qual espaço"*).
+
+		A dica de hover já dizia isso, e no dedo NÃO HÁ HOVER: no celular esta
+		janela é o único lugar onde a peça vestida se apresenta. Quem preenche é
+		ItemInfo.setVestido(), chamada por quem abriu a ficha — a janela não
+		adivinha o que está no corpo.
+	-->
+	<div class="vestido" hidden></div>
+	<div class="comparacao" hidden></div>
 	<button type="button" class="link-chat" title="Põe o item na barra de digitação do chat">
 		Linkar no chat
 	</button>

@@ -159,7 +159,7 @@ function onClickSend(e) {
 		WriteRodex.receiver == null ||
 		(typeof WriteRodex.receiver === 'string' && WriteRodex.receiver.trim().length === 0)
 	) {
-		ChatBox.addText(DB.getMessage(2611), ChatBox.TYPE.INFO_MAIL, ChatBox.FILTER.PUBLIC_LOG);
+		ChatBox.addText(DB.getMessage(2611), ChatBox.TYPE.MAIL, ChatBox.FILTER.PUBLIC_LOG);
 		return;
 	}
 	const receiver = WriteRodex.receiver;
@@ -169,7 +169,7 @@ function onClickSend(e) {
 	zeny = zeny < 0 ? 0 : zeny;
 
 	if (WriteRodex.tax + zeny > Session.zeny) {
-		ChatBox.addText(DB.getMessage(2643), ChatBox.TYPE.INFO_MAIL, ChatBox.FILTER.PUBLIC_LOG);
+		ChatBox.addText(DB.getMessage(2643), ChatBox.TYPE.MAIL, ChatBox.FILTER.PUBLIC_LOG);
 		return;
 	}
 

@@ -245,20 +245,20 @@ describe('os pacotes do tutorial estao nas QUATRO listas', () => {
 		const fonte = ler('src/Network/PacketStructure.js');
 		expect(fonte).toContain('PACKET.CZ.RAGIDLE_TUTORIAL_ACAO');
 		expect(fonte).toContain('PACKET.ZC.RAGIDLE_TUTORIAL');
-		expect(fonte).toContain('pkt_buf.writeShort(0x0fde)');
+		expect(fonte).toContain('pkt_buf.writeShort(0x0fbe)');
 		expect(fonte).toContain('PACKET.ZC.RAGIDLE_TUTORIAL.size = -1;');
 	});
 
 	it('PacketRegister.js registra SO o ZC (o CZ o cliente escreve, nao le)', () => {
 		const fonte = ler('src/Network/PacketRegister.js');
-		expect(fonte).toContain('0x0fdf: PACKET.ZC.RAGIDLE_TUTORIAL');
-		expect(fonte).not.toContain('0x0fde: PACKET.CZ');
+		expect(fonte).toContain('0x0fbf: PACKET.ZC.RAGIDLE_TUTORIAL');
+		expect(fonte).not.toContain('0x0fbe: PACKET.CZ');
 	});
 
 	it('a tabela de TAMANHOS tem os dois (a lista que sempre falta)', () => {
 		const fonte = ler('src/Network/Packets/packets2021_len_main.js');
-		expect(fonte).toMatch(/length_list\[0x0fde\]\s*=\s*-1;/);
-		expect(fonte).toMatch(/length_list\[0x0fdf\]\s*=\s*-1;/);
+		expect(fonte).toMatch(/length_list\[0x0fbe\]\s*=\s*-1;/);
+		expect(fonte).toMatch(/length_list\[0x0fbf\]\s*=\s*-1;/);
 	});
 
 	it('o componente engancha o ZC dele, e NENHUM pacote de outro dono', () => {
@@ -275,7 +275,7 @@ describe('os pacotes do tutorial estao nas QUATRO listas', () => {
 
 	it('o opcode nao colide com nenhum outro deste cliente', () => {
 		const fonte = ler('src/Network/Packets/packets2021_len_main.js');
-		for (const opcode of ['0x0fde', '0x0fdf']) {
+		for (const opcode of ['0x0fbe', '0x0fbf']) {
 			const ocorrencias = fonte.split(`length_list[${opcode}]`).length - 1;
 			expect(ocorrencias, opcode).toBe(1);
 		}

@@ -13,6 +13,7 @@ import Friends from 'Engine/MapEngine/Friends.js';
 import Network from 'Network/NetworkManager.js';
 import PACKET from 'Network/PacketStructure.js';
 import ChatBox from 'UI/Components/ChatBox/ChatBox.js';
+import { renderFalaSegura, spanDeNickname, escaparHtml } from 'UI/Components/ChatBox/textoSeguroDoChat.js'; // D-1308: nome/corpo de sussurro sao de outro jogador (XSS)
 import WhisperBox from 'UI/Components/WhisperBox/WhisperBox.js';
 import Session from 'Engine/SessionStorage.js';
 import PACKETVER from 'Network/PacketVerManager.js';
@@ -56,17 +57,23 @@ function onPrivateMessage(pkt) {
 	}
 
 	// Fallback to main ChatBox
+	//
+	// D-1308: o nome do remetente (`pkt.sender`) e o corpo (`msg`) vem CRUS de
+	// outro jogador. Monta o apelido clicavel a partir do NOME (spanDeNickname
+	// escapa no atributo `data-nickname` E no texto) e escapa o corpo, expandindo
+	// link de item com seguranca. So entao passa override=true — o HTML foi
+	// montado aqui, nao veio do texto do jogador.
 	ChatBox.addText(
 		'[ ' +
-			prefix +
-			' <span class="nickname-link" data-nickname="' +
-			pkt.sender +
-			'" style="cursor:pointer; text-decoration:underline;">' +
-			pkt.sender +
-			'</span> ] : ' +
-			msg,
+			escaparHtml(prefix) +
+			' ' +
+			spanDeNickname(pkt.sender) +
+			' ] : ' +
+			renderFalaSegura(msg, segmento => escaparHtml(segmento), { cor: '#FFFF63', cursor: true }),
 		ChatBox.TYPE.PRIVATE,
-		ChatBox.FILTER.WHISPER
+		ChatBox.FILTER.WHISPER,
+		null,
+		true
 	);
 	ChatBox.saveNickName(pkt.sender);
 }
@@ -85,15 +92,17 @@ function onPrivateMessageSent(pkt) {
 			if (getShouldOpenWhisperBox(user)) {
 				WhisperBox.addText(user, Session.Entity.display.name + ' : ' + msg, '#ffff00');
 			} else {
+				// D-1308: mesmo cuidado do recebimento — apelido montado do NOME,
+				// corpo escapado, override so depois de montado com seguranca aqui.
 				ChatBox.addText(
-					'[ To <span class="nickname-link" data-nickname="' +
-						user +
-						'" style="cursor:pointer; text-decoration:underline;">' +
-						user +
-						'</span> ] : ' +
-						msg,
+					'[ To ' +
+						spanDeNickname(user) +
+						' ] : ' +
+						renderFalaSegura(msg, segmento => escaparHtml(segmento), { cor: '#FFFF63', cursor: true }),
 					ChatBox.TYPE.PRIVATE,
-					ChatBox.FILTER.WHISPER
+					ChatBox.FILTER.WHISPER,
+					null,
+					true
 				);
 			}
 		}

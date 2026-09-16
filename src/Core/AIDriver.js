@@ -245,32 +245,44 @@ class AIDriver {
 						let closest = 0;
 						let lastDist = 32;
 						const thisentity = EntityManager.get(isHoAI ? Session.homunId : Session.mercId);
-						for (const item of res) {
-							if (
-								item !== 0 &&
-								item !== Session.AID &&
-								item !== Session.homunId &&
-								item !== Session.mercId
-							) {
-								const entity = EntityManager.get(item);
+						/*
+						 * `thisentity` pode nao existir ainda no `EntityManager`
+						 * (janela entre invocar e a entidade ser registrada), e
+						 * `position` nasce `null` ate a primeira atualizacao de
+						 * posicao chegar (`Entity.js`) — "Cannot read properties
+						 * of null (reading '0')" no analytics, 13/09/2026. So
+						 * pula a mira agressiva deste tique — `GetActors` ainda
+						 * PRECISA devolver `res` no fim da funcao.
+						 */
+						if (thisentity && thisentity.position) {
+							for (const item of res) {
 								if (
-									entity &&
-									(entity.objecttype === Session.Entity.constructor.TYPE_MOB ||
-										entity.objecttype === Session.Entity.constructor.TYPE_NPC_ABR ||
-										entity.objecttype === Session.Entity.constructor.TYPE_NPC_BIONIC) &&
-									!entity.isDead() &&
-									entity.action !== entity.ACTION.DIE &&
-									entity.isVisible()
+									item !== 0 &&
+									item !== Session.AID &&
+									item !== Session.homunId &&
+									item !== Session.mercId
 								) {
-									const dist = distance(
-										thisentity.position[0],
-										thisentity.position[1],
-										entity.position[0],
-										entity.position[1]
-									);
-									if (dist < lastDist) {
-										closest = item;
-										lastDist = dist;
+									const entity = EntityManager.get(item);
+									if (
+										entity &&
+										entity.position &&
+										(entity.objecttype === Session.Entity.constructor.TYPE_MOB ||
+											entity.objecttype === Session.Entity.constructor.TYPE_NPC_ABR ||
+											entity.objecttype === Session.Entity.constructor.TYPE_NPC_BIONIC) &&
+										!entity.isDead() &&
+										entity.action !== entity.ACTION.DIE &&
+										entity.isVisible()
+									) {
+										const dist = distance(
+											thisentity.position[0],
+											thisentity.position[1],
+											entity.position[0],
+											entity.position[1]
+										);
+										if (dist < lastDist) {
+											closest = item;
+											lastDist = dist;
+										}
 									}
 								}
 							}

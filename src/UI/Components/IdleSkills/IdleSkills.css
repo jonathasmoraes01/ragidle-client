@@ -628,24 +628,40 @@
 	height: 11px;
 }
 
-/* A seta que PODE ser usada carrega a tinta de "ativa". */
-#IdleSkills .is-seta:not(:disabled) {
+/*
+ * A seta que PODE ser usada carrega a tinta de "ativa".
+ *
+ * `.is-seta--travada` (D-1225) desenha exatamente como `:disabled` e continua
+ * CLICAVEL, para o toque poder perguntar "por que nao?" e receber o motivo em
+ * `showProblemas`. `title=` nao existe no celular, e era so nele que o motivo
+ * viajava.
+ */
+#IdleSkills .is-seta:not(:disabled):not(.is-seta--travada) {
 	background: var(--badge-ativa-bg);
 	color: var(--badge-ativa-ink);
 }
 
-#IdleSkills .is-seta:hover:not(:disabled) {
+#IdleSkills .is-seta:hover:not(:disabled):not(.is-seta--travada) {
 	background: var(--tab-active-fill);
 	color: var(--text-on-accent);
 }
 
-#IdleSkills .is-seta:active:not(:disabled) {
+#IdleSkills .is-seta:active:not(:disabled):not(.is-seta--travada) {
 	transform: var(--press-shift);
 }
 
-#IdleSkills .is-seta:disabled {
+#IdleSkills .is-seta:disabled,
+#IdleSkills .is-seta--travada {
 	opacity: 0.35;
+}
+
+#IdleSkills .is-seta:disabled {
 	cursor: default;
+}
+
+/* Travada, mas viva: o cursor de ajuda avisa que ela responde. */
+#IdleSkills .is-seta--travada {
+	cursor: help;
 }
 
 #IdleSkills .is-no-nivel {
@@ -1060,7 +1076,38 @@
 
 #IdleSkills .is-detail-acoes {
 	display: flex;
+	flex-wrap: wrap;
 	gap: var(--sp-3);
+}
+
+/* O caminho de VOLTA (07/09/2026). Os dois botões são secundários de
+   propósito: eles desfazem, e desfazer nunca compete visualmente com o
+   "Pôr na rotação", que é a ação do dia a dia. */
+#IdleSkills .is-btn-esquecer,
+#IdleSkills .is-btn-desaprender {
+	flex: 0 0 auto;
+	padding: 6px 12px;
+	font-size: 11px;
+}
+
+/* A confirmação do desaprender — mesmo desenho da do correio, e pelo mesmo
+   motivo: a caixa de prompt nativa é de outra pele e abriria por cima. */
+#IdleSkills .is-confirma-esquecer {
+	display: flex;
+	align-items: center;
+	flex-wrap: wrap;
+	gap: var(--sp-2);
+	margin-top: var(--sp-3);
+	padding: var(--sp-3);
+	border-radius: var(--radius-panel);
+	border: 1px solid var(--border-hairline);
+	background: var(--surface-glass);
+}
+
+#IdleSkills .is-confirma-esquecer-texto {
+	flex: 1 1 100%;
+	font: var(--type-label);
+	color: var(--text-body);
 }
 
 #IdleSkills .is-btn-rotacao {
@@ -1306,4 +1353,86 @@
 	content: '';
 	position: absolute;
 	inset: -12px -4px;
+}
+
+/* RAGIDLE (D-1154): a etiqueta da habilidade de QUEST — entra sozinha, sem ponto. */
+#IdleSkills .is-no-quest {
+	display: inline-block;
+	margin-top: 2px;
+	padding: 0 6px;
+	border-radius: 8px;
+	font-size: 10px;
+	line-height: 14px;
+	letter-spacing: 0.02em;
+	color: #2b1d00;
+	background: linear-gradient(180deg, #f4c03e, #d9a020);
+	box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5);
+}
+
+/* RAGIDLE (09/09/2026): a etiqueta que LEVA a missao. Ela e um <button>, entao
+   herda a fonte do agente do usuario e ganha borda e fundo proprios se nada
+   disser o contrario — as tres primeiras linhas sao para ela parecer
+   exatamente a mesma etiqueta de antes, e nao um botao de formulario. */
+#IdleSkills .is-no-quest--link {
+	font: inherit;
+	font-size: 10px;
+	border: 0;
+	cursor: pointer;
+	position: relative;
+}
+
+#IdleSkills .is-no-quest--link:hover,
+#IdleSkills .is-no-quest--link:focus-visible {
+	background: linear-gradient(180deg, #ffd76a, #e8b02c);
+	outline: none;
+}
+
+/* O ALVO TATIL (regra do dono, 08/09/2026): a etiqueta tem 14px de altura, e
+   dedo nao acerta 14px. Mesmo idioma das setas logo acima — uma area invisivel
+   por ::before, que cresce o toque sem mexer no desenho nem empurrar o vizinho.
+   `-15px` na vertical leva os 14px a 44px; nos lados a etiqueta ja e larga. */
+@media (pointer: coarse) {
+	#IdleSkills .is-no-quest--link::before {
+		content: '';
+		position: absolute;
+		inset: -15px -6px;
+	}
+}
+
+/* RAGIDLE (D-1155): a plaqueta da habilidade de QUEST — so o nivel, sem setas. */
+#IdleSkills .is-plaqueta--quest {
+	justify-content: center;
+	border-color: #d9a020;
+	background: linear-gradient(180deg, #fff6dc, #f6e3a8);
+}
+#IdleSkills .is-plaqueta--quest .is-no-nivel {
+	color: #6b4a00;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   CELULAR EM PE: A PLAQUETA ◀ n/m ▶ PARA DE CORTAR (08/09/2026)
+
+   MEDIDO por `scripts/diag-mobile-portrait.ts` em 393x852: a plaqueta tinha
+   **31px de conteudo numa caixa de 19 com `overflow: hidden`** — 12px
+   escondidos, e o que sumia era o proprio "n/m", o numero que diz quantos
+   pontos a habilidade tem. Uma plaqueta de nivel que nao mostra o nivel.
+
+   A altura de 19px e de desktop, onde o texto e menor e cabe. No dedo a
+   fonte da HUD e maior (D-934 nao encolhe em `pointer: coarse`), e o mesmo
+   conteudo passa a nao caber.
+
+   Ela CRESCE em vez de esconder — 26px acomoda o texto e continua abaixo do
+   no de 92x108, sem mexer no arranjo da arvore. As setas ◀ ▶ ja tem area
+   tatil por `::before` desde D-942; isto e so o miolo.
+   ═══════════════════════════════════════════════════════════════════════ */
+@media (pointer: coarse) and (orientation: portrait) {
+	#IdleSkills .is-plaqueta {
+		/* `min-height: 26px` sozinho nao bastou: a caixa cresceu de 19 para 26
+		   e o conteudo de 31 para 38, porque o `overflow: hidden` da regra base
+		   continuava recortando em vez de deixar a caixa seguir o texto. Quem
+		   corta e ele; sem ele, `height: auto` faz o que promete. */
+		height: auto;
+		min-height: 26px;
+		overflow: visible;
+	}
 }

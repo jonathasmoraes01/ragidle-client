@@ -660,3 +660,166 @@
 #CashShop .overlay.grey {
 	color: var(--text-muted);
 }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   CELULAR EM PE: A LOJA CABE NA TELA (08/09/2026, pedido do dono)
+   ═══════════════════════════════════════════════════════════════════════
+   As dimensoes desta janela sao CRAVADAS em px (723x540, colunas 535/185,
+   cartao 172), e o comentario do topo diz por que: o JS de arrasto, magnet e
+   paginacao MEDE o DOM. Isso vale no desktop, e este bloco nao mexe la.
+
+   MEDIDO em 393x852 (`scripts/diag-mobile-portrait.ts`): ela abria com 723px
+   numa tela de 393 — 330px fora do mundo, o "X" em x=704, as abas
+   "Aluguel"/"Equipamento" e metade da grade invisiveis. Registrar a janela na
+   `pilhaDeJanelas` (MapEngine.js) deu a ela a moldura de painel de D-932 e
+   resolveu o HOST; este bloco resolve o INTERIOR.
+
+   ── A PRIMEIRA VERSAO DESTE BLOCO ESTAVA ERRADA, E VALE REGISTRAR ──
+   Ela mirava `.panel-content` — que e a COLUNA da esquerda, nao o container
+   das duas. Quem poe catalogo e carrinho lado a lado e `.panel`
+   (`flex-direction: row`, linha 48). Resultado medido: as colunas
+   continuaram lado a lado e o `height: auto` colapsou a janela para 338px,
+   CORTANDO o conteudo — ficou pior do que antes. So a segunda medicao pegou,
+   porque a primeira mudanca nao foi medida antes de eu seguir em frente.
+   ═══════════════════════════════════════════════════════════════════════ */
+@media (pointer: coarse) and (orientation: portrait) and (max-width: 599px) {
+	:host,
+	#CashShop {
+		width: 100%;
+		max-width: 100%;
+		/*
+		 * `height: auto` colapsava a janela (medido: 338px, conteudo cortado);
+		 * `height: 100%` a fazia transbordar 8px por baixo. O teto e explicito
+		 * aqui porque **`#CashShop` NAO carrega a classe `.ri-window`** — a
+		 * regra de altura de D-932 (Common.css) nomeia `.ri-window`,
+		 * `.mo-window`, `.co-window` e `.ha-window`, e esta janela nativa nao
+		 * esta na lista. Ela e a razao de aquela lista ser explicita: um
+		 * `[class*="window"]` pegaria coisas que nao sao janela.
+		 *
+		 * A conta e a mesma de la: a altura util menos a doca, os recortes de
+		 * tela e o respiro que o host ja tem no topo.
+		 */
+		height: auto;
+		min-height: 0;
+		max-height: calc(
+			100dvh - var(--hud-doca-altura, 96px) - var(--safe-topo, 0px) - var(--safe-baixo, 0px) - 24px
+		);
+		overflow-y: auto;
+		/*
+		 * O DEDO VOLTA A CHEGAR AQUI — e este e o achado mais serio da janela.
+		 *
+		 * A regra de painel de D-932 poe `pointer-events: none !important` no
+		 * HOST (uma janela fechada vira faixa invisivel de largura inteira
+		 * sobre a cena) e DEVOLVE o `auto` no corpo — mas so para os quatro
+		 * nomes que ela lista: `.ri-window`, `.mo-window`, `.co-window` e
+		 * `.ha-window`. **`#CashShop` nao e nenhum deles.**
+		 *
+		 * `pointer-events` e HERDADO, entao o `none` do host descia para a
+		 * loja inteira: MEDIDO em 393x852, dez controles (a paginacao, a busca,
+		 * o Recarregar, os pontos gratis e o Comprar) respondiam
+		 * `canvas.ro-scene` no `elementFromPoint` — o toque atravessava a
+		 * janela e ia parar na CENA, com a loja desenhada por cima. O print
+		 * mostra tudo no lugar; e o tipo de defeito que so a medicao de toque
+		 * pega, e a razao de esta frente medir `elementFromPoint` e nao caixa.
+		 */
+		pointer-events: auto;
+	}
+
+	/* O ornamento de asa do cabecalho e um SVG que se estende sobre o "X".
+	   No mouse ele nunca estorvou (o alvo e 20x20 e o cursor mira fino); no
+	   dedo, com o alvo expandido para 44px, o SVG passou a ganhar o ponto. */
+	#CashShop .titlebar,
+	#CashShop .titlebar .base.close {
+		/* O `pointer-events: auto` do `#CashShop` acima devolve o dedo ao CORPO,
+		   e a barra de titulo continuava sem receber: o "X" respondia
+		   `canvas.ro-scene`. Ela e o unico jeito de FECHAR a loja no celular
+		   (nao ha ESC nem borda para tocar fora), entao ela e nomeada. */
+		pointer-events: auto;
+		position: relative;
+		z-index: 2;
+	}
+
+	/* O container das DUAS colunas. Elas empilham: 535 + 185 nao cabem em
+	   393px, e o carrinho e quem tem `flex-shrink: 0` — era ele quem
+	   empurrava o catalogo para fora. */
+	#CashShop .panel {
+		flex-direction: column;
+		min-height: 0;
+		overflow-y: auto;
+		overscroll-behavior: contain;
+	}
+
+	#CashShop .panel-content,
+	#CashShop .panel-cart {
+		width: 100%;
+		min-width: 0;
+		max-width: 100%;
+		flex: 0 0 auto;
+		height: auto;
+	}
+
+	/* O catalogo e quem cresce; o carrinho vem depois dele e ocupa o que
+	   pedir. */
+	#CashShop .panel-content {
+		flex: 1 1 auto;
+		min-height: 0;
+	}
+
+	/* As NOVE abas nao cabem em 393px e nunca caberao. Elas ja tinham
+	   `overflow-x: auto` — o que faltava era nao deixarem de encolher e
+	   ganharem alvo de dedo. Rolagem HORIZONTAL dentro de uma tira de abas e
+	   o padrao de celular, e nao e a "rolagem horizontal da pagina" que a
+	   `prove:hud-responsiva` reprova: aquela e do documento. */
+	#CashShop .panel-content .panel-menu {
+		flex-wrap: nowrap;
+		scroll-snap-type: x proximity;
+		-webkit-overflow-scrolling: touch;
+	}
+
+	#CashShop .panel-content .panel-menu .tab {
+		flex: 0 0 auto;
+		min-height: 44px;
+		scroll-snap-align: start;
+	}
+
+	/* O cartao de item era 172px fixo numa grade pensada para 535px. Em
+	   coluna estreita ele vira grade de duas colunas que se ajusta sozinha. */
+	#CashShop .panel-content .panel-items {
+		display: grid;
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+		gap: var(--sp-2, 6px);
+		align-content: start;
+	}
+
+	#CashShop .panel-content .panel-items .item {
+		width: auto;
+		min-width: 0;
+	}
+
+	/* A busca saia pela ESQUERDA (x negativo, medido no PNG): a linha era
+	   `justify-content: center` com um campo mais largo que o pai. */
+	#CashShop .panel-content .panel-footer {
+		flex: 0 0 auto;
+		flex-wrap: wrap;
+		justify-content: stretch;
+		gap: var(--sp-2, 6px);
+	}
+
+	#CashShop .cashshop-search {
+		flex: 1 1 auto;
+		min-width: 0;
+	}
+
+	#CashShop .cashshop-search-btn,
+	#CashShop .panel-cart-charge-btn,
+	#CashShop .pagi-handler {
+		min-height: 44px;
+		min-width: 44px;
+	}
+
+	/* O "X" nascia em x=704 numa tela de 393 — desenhado e fora do mundo. */
+	#CashShop .titlebar .base.close {
+		min-width: 44px;
+		min-height: 44px;
+	}
+}

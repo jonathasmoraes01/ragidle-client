@@ -154,34 +154,183 @@ export function ordenarMapas(mapas, chave, nivel) {
 	} else if (chave === 'nivel-recomendado') {
 		arr.sort((a, b) => Math.abs(a.nivelMedio - nivel) - Math.abs(b.nivelMedio - nivel) || porNome(a, b));
 	} else {
-		arr.sort((a, b) => a.nivelMinimo - b.nivelMinimo || a.nivelMedio - b.nivelMedio || porNome(a, b));
+		// A chave 'nivel' ordena pelo MESMO numero que o cartao mostra — a
+		// tranca (`nivelQueAbre`, D-1233) — para a lista nunca contradizer o
+		// rotulo. Era `nivelMinimo` enquanto a tranca era o minimo; a media
+		// desempata, e o nome por ultimo segura a ordem estavel.
+		arr.sort((a, b) => a.nivelQueAbre - b.nivelQueAbre || a.nivelMedio - b.nivelMedio || porNome(a, b));
 	}
 	return arr;
 }
 
 /**
- * Chance de drop em décimos de milésimo (7000 = 70%, contrato do catálogo).
- * A precisão acompanha o tamanho: de 10% para cima é inteiro; entre 1% e 10%
- * uma casa; abaixo de 1% duas casas — o Poring Card é 0,01% e "0,0%" seria
- * mentir que é zero. Zero à direita cai ("3,20" vira "3,2"; "5,00" vira "5").
- * Vírgula decimal: o design system escreve números em pt-BR.
+ * A FAIXA DE EXP que este mapa paga a VOCÊ (D-1338, 12/09/2026 — tarefa 4 do
+ * dono: "adicione um tooltip referente a isso no mapa de caça, para o player
+ * saber quando recebe penalidade/bônus de exp no mapa que deseja caçar").
+ *
+ * O servidor manda a tabela JÁ RESOLVIDA no cabeçalho do catálogo
+ * (`taxaDeExpPorDiferenca`: uma taxa por diferença de nível, monstro menos
+ * jogador). Este arquivo NÃO conhece a regra — nem o bônus pela metade, nem a
+ * caminhada da tabela do rAthena —, ele só lê o número. Fora das pontas vale a
+ * taxa da ponta (o grampo abaixo), e o servidor tem teste cobrando que isso é
+ * exatamente o que o abate paga.
+ *
+ * Percorre cada nível de monstro da faixa do mapa, porque a taxa é por
+ * MONSTRO e não por mapa: num mapa de 20 a 35 um jogador nível 25 ganha bônus
+ * com uns e penalidade com outros — e dizer só um número esconderia isso.
+ *
+ * @param {number} nivel - nível base do jogador
+ * @param {{nivelMinimo: number, nivelMaximo: number}} mapa
+ * @param {{de: number, taxas: number[]}|undefined} tabela - o campo do catálogo
+ * @returns {null|{min: number, max: number, cls: 'bonus'|'penalidade'|'neutro'|'misto'}}
+ *   `null` quando o servidor não mandou a tabela (servidor antigo)
+ */
+export function faixaDeExp(nivel, mapa, tabela) {
+	if (!tabela || !Array.isArray(tabela.taxas) || tabela.taxas.length === 0) {
+		return null;
+	}
+	const ultimo = tabela.taxas.length - 1;
+	const taxa = diferenca => tabela.taxas[Math.min(ultimo, Math.max(0, diferenca - tabela.de))];
+	let min = Infinity;
+	let max = -Infinity;
+	for (let nivelDoMonstro = mapa.nivelMinimo; nivelDoMonstro <= mapa.nivelMaximo; nivelDoMonstro++) {
+		const t = taxa(nivelDoMonstro - nivel);
+		if (t < min) min = t;
+		if (t > max) max = t;
+	}
+	if (min === Infinity) {
+		return null;
+	}
+	let cls = 'misto';
+	if (min === 100 && max === 100) cls = 'neutro';
+	else if (min >= 100) cls = 'bonus';
+	else if (max <= 100) cls = 'penalidade';
+	return { min, max, cls };
+}
+
+/**
+ * O texto curto da faixa: "EXP aqui: 120%" ou "EXP aqui: 95%–110%".
+ *
+ * @param {null|{min: number, max: number}} faixa
+ * @returns {string} vazio quando não há faixa
+ */
+export function textoDaFaixaDeExp(faixa) {
+	if (!faixa) {
+		return '';
+	}
+	return faixa.min === faixa.max ? `EXP aqui: ${faixa.min}%` : `EXP aqui: ${faixa.min}%–${faixa.max}%`;
+}
+
+/**
+ * RARIDADE DE DROP no Atlas (redesenho 08/09/2026): o Atlas parou de mostrar
+ * a % de chance e passou a mostrar uma classificação — Comum / Incomum /
+ * Raro / Lendário. `formatarChance` (a função que vivia aqui) saiu junto:
+ * sem ela, o ladrilho de drop não tinha mais chamador nenhum no cliente.
+ *
+ * A FONTE DA VERDADE É O SERVIDOR: `FichaDeMonstro.drops[].raridade` chega
+ * calculada a partir da chance BASE pela MESMA escada que já classifica item
+ * na Loja (D-919, `raridadeDaChance` do lado do servidor). Este arquivo não
+ * reimplementa aquela regra de negócio — ele só a REPETE como rede de
+ * segurança (`derivarRaridade`), para a janela não quebrar nem ficar vazia
+ * durante a transição, enquanto algum servidor ainda não manda o campo novo.
+ * Quando `raridade` vier no payload, ela SEMPRE vence — o cliente nunca
+ * recalcula por cima do que o servidor já decidiu.
+ */
+
+const RARIDADE_ROTULOS = ['Comum', 'Incomum', 'Raro', 'Lendário'];
+
+/**
+ * A escada de raridade a partir da chance BASE, em décimos de milésimo
+ * (7000 = 70%, o mesmo contrato que `chance` sempre teve no catálogo):
+ * ≤3 → Lendário, ≤100 → Raro, ≤1000 → Incomum, senão Comum. O teto do
+ * Lendário é 0,03% por ordem do dono (08/09/2026: "raro vai até 0,03% e
+ * lendário é 0,03% para baixo" - era 0,05%, acoplado ao limiar do anúncio
+ * global; o anúncio desceu junto na mesma noite, "pode publicar só os
+ * lendários" - só Lendário para o chat). A ordem dos
+ * testes importa — é a mesma escada de cima para baixo do servidor
+ * (`raridadeDaChance`, `game/raridade-de-drop.ts`); ESTA função só existe
+ * para cobrir a transição, enquanto um servidor ainda não manda `raridade`.
  *
  * @param {number} chance
+ * @returns {0|1|2|3}
+ */
+export function derivarRaridade(chance) {
+	const c = chance || 0;
+	if (c <= 3) return 3;
+	if (c <= 100) return 2;
+	if (c <= 1000) return 1;
+	return 0;
+}
+
+/**
+ * A raridade de UM drop: usa `d.raridade` quando o servidor mandou — a
+ * fonte da verdade, e o cliente NUNCA recalcula por cima dela, mesmo que a
+ * chance ali pareça "alta" — e só cai para `derivarRaridade(d.chance)`
+ * quando o campo está ausente (servidor velho).
+ *
+ * @param {{raridade?: number, chance?: number}} d
+ * @returns {0|1|2|3}
+ */
+export function raridadeDoDrop(d) {
+	const r = d && d.raridade;
+	if (Number.isInteger(r) && r >= 0 && r <= 3) {
+		return r;
+	}
+	return derivarRaridade(d && d.chance);
+}
+
+/**
+ * O rótulo em português (com acento) que o jogador lê no selo.
+ *
+ * @param {0|1|2|3} r
  * @returns {string}
  */
-export function formatarChance(chance) {
-	const pct = (chance || 0) / 100;
-	let texto;
-	if (pct >= 10) {
-		texto = String(Math.round(pct));
-	} else if (pct >= 1) {
-		texto = pct.toFixed(1);
-	} else {
-		texto = pct.toFixed(2);
+export function rotuloDeRaridade(r) {
+	return RARIDADE_ROTULOS[r] || RARIDADE_ROTULOS[0];
+}
+
+/**
+ * A classe CSS do selo (`.hm-drop-rarity`, HuntMap.css) — `r0`..`r3`, nunca
+ * um índice fora da tabela (raridade desconhecida cai em Comum/`r0`).
+ *
+ * @param {0|1|2|3} r
+ * @returns {string}
+ */
+export function classeDeRaridade(r) {
+	return RARIDADE_ROTULOS[r] ? `r${r}` : 'r0';
+}
+
+/**
+ * O ELEMENTO RECOMENDADO para causar mais dano (R15/C2-4, 14/09/2026).
+ *
+ * ESPERA um campo NOVO do servidor (`recomendacao: { elemento, multiplicador }`),
+ * ainda NAO publicado hoje — a proposta de contrato foi mandada ao
+ * coordenador para o SENIOR-C publicar em `FichaDeMonstro`, derivada da
+ * tabela elemental REAL do combate (`tools/gamedata/tables/index.ts`,
+ * `ajusteElemental`) — a mesma matriz indexada pelo NIVEL ELEMENTAL DO ALVO
+ * (nao do atacante, a armadilha que o proprio arquivo documenta:
+ * `niveis[nivelDoAlvo-1][elementoDaArma][elementoDoAlvo]`), nunca uma conta
+ * paralela inventada aqui.
+ *
+ * Sem o campo, devolve "sem dado" — a regra 1 do projeto proibe inventar
+ * numero, e elemento DEFENSIVO do mob (o que ja viaja na ficha) nao e o
+ * mesmo dado que elemento de ataque recomendado: um mob Terra nivel 1 nao
+ * necessariamente cai mais rapido para Agua do que para outro elemento, ISSO
+ * depende da tabela inteira, nao so' do proprio elemento.
+ *
+ * `dicionarioDeElemento` e' injetado (em vez de importado) porque este
+ * arquivo e' deliberadamente sem DOM/dependencia — quem chama (HuntMap.js) ja
+ * tem o `ELEMENT_PT` para a mesma tela.
+ *
+ * @param {{elemento?: string, multiplicador?: number}|null|undefined} recomendacao
+ * @param {Record<string, string>} [dicionarioDeElemento] - tradução PT-BR (ex.: ELEMENT_PT)
+ * @returns {string}
+ */
+export function textoDaRecomendacao(recomendacao, dicionarioDeElemento) {
+	if (!recomendacao || typeof recomendacao.elemento !== 'string') {
+		return 'Recomendado: sem dado';
 	}
-	// Só corta zero à direita quando HÁ casa decimal — "70" tem que continuar "70".
-	if (texto.includes('.')) {
-		texto = texto.replace(/\.?0+$/, '');
-	}
-	return texto.replace('.', ',') + '%';
+	const elementoPt = (dicionarioDeElemento && dicionarioDeElemento[recomendacao.elemento]) || recomendacao.elemento;
+	const mult = typeof recomendacao.multiplicador === 'number' ? ` (${recomendacao.multiplicador}%)` : '';
+	return `Recomendado: ${elementoPt}${mult}`;
 }

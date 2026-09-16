@@ -127,7 +127,10 @@ const CommandStore = {
 				this.TYPE.INFO,
 				this.FILTER.PUBLIC_LOG
 			);
-			MapPreferences.aura = MapPreferences.aura ? 0 : 1;
+			// RAGIDLE (12/09/2026): religar volta para a aura COMPLETA, que e o
+			// padrao (Preferences/Map.js). Com `1` quem desligasse e religasse
+			// perderia a aura inteira e ficaria so com as "bolinhas".
+			MapPreferences.aura = MapPreferences.aura ? 0 : 2;
 			MapPreferences.save();
 
 			EntityManager.forEach(function (entity) {

@@ -121,6 +121,12 @@ export function createCharSelect(config) {
 		if (gridLayout) {
 			// Bind buttons
 			root.querySelector('.ok').addEventListener('click', connect);
+			// A VAGA VAZIA NO DEDO (10/09/2026): o mesmo `create()` do duplo
+			// clique, por um botao — ver o comentario em CharSelectV4.html.
+			const criarNaVaga = root.querySelector('.criar-vaga');
+			if (criarNaVaga) {
+				criarNaVaga.addEventListener('click', create);
+			}
 			root.querySelector('.cancel').addEventListener('click', cancel);
 			root.querySelector('.delete').addEventListener('click', reserve);
 			root.querySelector('.canceldelete').addEventListener('click', removedelete);
@@ -1271,6 +1277,7 @@ export function createCharSelect(config) {
 			root.querySelector('.canceldelete').style.display = 'none';
 			root.querySelector('.finaldelete').style.display = 'none';
 			root.querySelector('.ok').style.display = 'none';
+			charinfo.classList.add('vaga-vazia');
 			const countdown = root.querySelector(`.timedelete.slot${_index}`);
 			if (countdown) {
 				countdown.dataset.duration = 0;
@@ -1300,6 +1307,7 @@ export function createCharSelect(config) {
 		}
 
 		root.querySelector('.ok').style.display = 'block';
+		charinfo.classList.remove('vaga-vazia');
 
 		charinfo.querySelector('.map').textContent = DB.getMapName(info.lastMap, '') || '';
 		charinfo.querySelector('.job').textContent = MonsterTable[info.job] || '';

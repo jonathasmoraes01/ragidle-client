@@ -7,6 +7,19 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const isDocker = process.env.RO_PROXY_TARGET === 'docker';
 const webTarget = isDocker ? 'http://rathena-web:8888' : 'http://127.0.0.1:8888';  
+/*
+ * 8010 -> 8000 (07/09/2026, no merge).
+ *
+ * O merge `0dc3f43f` trocou esta porta para 8010, e nenhum dos dois lados a
+ * tinha antes — as duas branches diziam 8000, e o comentario logo abaixo, que
+ * nao foi tocado, continua dizendo `remoteClientTarget -> 127.0.0.1:8000`.
+ *
+ * Quem serve os assets e o `npm run oraculo:assets`, e ele escuta na **8000**
+ * (`PORTAS_DO_DEV.assets`, `scripts/lib/stack-de-dev.ts`) — nos DOIS masters.
+ * Com 8010 o vite devolve 502 em todo asset e o cliente nao passa da tela
+ * preta: medido pela `prove:e2e`, que parou no passo da tela de login com
+ * `ECONNREFUSED 127.0.0.1:8010` repetido para textura, fonte e msgstringtable.
+ */
 const remoteClientTarget = isDocker ? 'http://remote-client-php:80' : 'http://127.0.0.1:8000';  
   
 const _proxy = {  
@@ -30,7 +43,7 @@ const _proxy = {
 	}  
 };  
   
-// Rag Idle / oráculo M0: este proxy era criado SÓ quando RO_PROXY_TARGET=docker,
+// Ragnarok Classic Idle / oráculo M0: este proxy era criado SÓ quando RO_PROXY_TARGET=docker,
 // embora o alvo de fora do Docker já estivesse calculado logo acima
 // (`remoteClientTarget` → 127.0.0.1:8000). Sem ele, rodando o vite no host,
 // `/remote-client/...` cai no servidor estático do próprio vite e devolve 404
@@ -43,12 +56,36 @@ _proxy['/remote-client'] = {
 	rewrite: path => path.replace(/^\/remote-client/, '')
 };
 
-// Rag Idle: o EMBLEMA de guilda (D-350) e HTTP na porta 8888 do servidor de
+// Ragnarok Classic Idle: o EMBLEMA de guilda (D-350) e HTTP na porta 8888 do servidor de
 // jogo -- e o cliente servido por http chama /emblem/* na PROPRIA ORIGEM
 // (Guild.js so usa o webserverAddress em file://). Sem este proxy, o upload
 // pela janela da guilda devolve 404 do proprio vite.
 _proxy['/emblem'] = {
-	target: 'http://127.0.0.1:8888',
+	target: 'http://127.0.0.1:7888',
+	changeOrigin: true,
+	secure: false
+};
+
+/*
+ * Ragnarok Classic Idle (15/09/2026): O RELATO DE FPS E DE ERRO NO DEV.
+ *
+ * `UI/enderecoDoBalcao.js` monta a rota com o `cadastroUrl` da config — que em
+ * producao aponta para `api.roclassicidle.com.br` e no `npm run dev` NAO
+ * EXISTE, entao o caminho fica relativo (`/analytics/desempenho`) e bate no
+ * proprio vite, que devolve 404. O `.catch` do cliente engole, e o relato
+ * some em silencio.
+ *
+ * E o MESMO modo de falha que `enderecoDoBalcao.js` documenta ter acontecido
+ * em producao ("nenhum erro de jogador chegou ao servidor desde 09/09/2026"),
+ * so que do lado de ca. Este proxy o fecha: no dev o relato chega ao balcao.
+ *
+ * 8889 e `PORTA_DE_CADASTRO` (`servidor/index.ts`), e o balcao so sobe com as
+ * contas ligadas — ou seja, `npm run dev:publico` / `npm run dev -- --lan
+ * --publico`. Sem ele o proxy simplesmente nao encontra ninguem, que e o
+ * mesmo 404 de antes e nao piora nada.
+ */
+_proxy['/analytics'] = {
+	target: 'http://127.0.0.1:8889',
 	changeOrigin: true,
 	secure: false
 };
@@ -57,7 +94,7 @@ export default defineConfig({
 	/**
 	 * A RAIZ REDIRECIONA PARA O JOGO (03/09/2026).
 	 *
-	 * O `npm run dev` do Rag Idle imprime a URL completa
+	 * O `npm run dev` do Ragnarok Classic Idle imprime a URL completa
 	 * (`/applications/pwa/index.html`), mas quem digita so `127.0.0.1:3000` — ou
 	 * deixa o navegador completar do historico — cai na RAIZ, e a raiz devolvia
 	 * **404**: este projeto nao tem `index.html` no topo, so
@@ -115,6 +152,26 @@ export default defineConfig({
 	test: {
 		environment: 'jsdom',
 		include: ['tests/**/*.test.js'],
+		/*
+		 * TETO DE 20 s, e nao os 5 s default do vitest (10/09/2026).
+		 *
+		 * Medido nesta maquina numa corrida da suite inteira: 103 arquivos,
+		 * 961 testes, `import 34.83s` — a maior fatia do tempo e o PRIMEIRO
+		 * import de cada arquivo, que arrasta meio cliente (jsdom + os
+		 * módulos de UI + Vendors) antes de o primeiro `it` rodar. Casos que
+		 * passam em ~1 s sozinhos estouram 5 s quando pagam essa entrada com
+		 * a maquina disputada.
+		 *
+		 * O sintoma é traicoeiro: o caso que reprova MUDA de corrida para
+		 * corrida (foi `abaSobreviveAoF5` numa, `wsproxy-nao-morre` noutra),
+		 * porque quem paga o import e quem chegou primeiro. Isso reprovava o
+		 * portao de deploy do cliente por RELOGIO, e nao por regra.
+		 *
+		 * 20 s e folgado para o import e ainda finito: um teste de verdade
+		 * pendurado continua morrendo, so que sem levar junto o vizinho que
+		 * apenas demorou a carregar.
+		 */
+		testTimeout: 20_000,
 		coverage: {  
 			provider: 'v8',  
 			reporter: ['text', 'html'],  

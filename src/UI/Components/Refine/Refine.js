@@ -1,13 +1,66 @@
 /**
  * UI/Components/Refine/Refine.js
  *
- * Refine Window
+ * "Refinar equipamento" — a bancada.
+ *
+ * ===========================================================================
+ * O DEFEITO QUE ESTE ARQUIVO FOI REESCRITO PARA MATAR (07/09/2026)
+ * ===========================================================================
+ * Queixa do dono, com print: *"a gente coloca o item, seleciona o material e
+ * clica, e nao tem o botao de refinar"*. A frase e LITERAL, e o caminho dela
+ * estava todo aqui:
+ *
+ *   1. `.refine_enabled` nascia com `style.display = 'none'` no `init()`;
+ *   2. a UNICA linha que o acendia morava dentro do clique no ladrilho do
+ *      material (`onPopulateMaterials`);
+ *   3. e esse clique comecava com `if (clickedCount === 0) return;` — ou seja,
+ *      **quem nao tinha o minerio clicava e nao acontecia absolutamente nada**.
+ *      Nem botao, nem mensagem, nem cursor diferente.
+ *
+ * Entao o botao "Refinar" nao estava desabilitado: ele NAO EXISTIA na tela ate
+ * o jogador ter o material e acertar o clique num ladrilho de 24px. O jogador
+ * descreve o que ve, e o que se via era uma janela sem botao.
+ *
+ * Havia um QUARTO silencio, do lado do servidor, e ele foi consertado junto:
+ * `CZ_REFINING_SELECT_ITEM` simplesmente RETORNAVA sem responder quando a peca
+ * estava vestida, no teto, ou fora da tabela de refino. A janela ficava
+ * mostrando o degrau da peca ANTERIOR enquanto o jogador achava que tinha
+ * escolhido esta. Hoje a recusa viaja (`ZC_RAGIDLE_REFINO`, 0x0fd3, com
+ * `degrau: null` e o motivo por extenso).
+ *
+ * ===========================================================================
+ * O DESENHO NOVO NAO TEM ESSES DEGRAUS
+ * ===========================================================================
+ *  - a peca entra por CLIQUE numa LISTA do que da para refinar. O arrasto saiu
+ *    inteiro: alem de ser um passo escondido, ele **nao existe no toque**
+ *    (D-938, a mesma cicatriz da barra de atalhos);
+ *  - o material NAO SE ESCOLHE. O degrau tem um so, dito pelo `refine.yml`; a
+ *    janela mostra quanto voce tem contra quanto precisa;
+ *  - o botao esta SEMPRE na tela. Quando esta apagado, o rodape diz por que —
+ *    "Falta 1 x Phracon", "Faltam 6.943 zeny", "Tire a peca para refinar".
+ *
+ * ===========================================================================
+ * QUEM MANDA NOS NUMEROS
+ * ===========================================================================
+ * O SERVIDOR, e so ele. Chance, preco, material, niveis perdidos na falha,
+ * bonus e teto chegam prontos em `ZC_RAGIDLE_REFINO`, tirados do `refine.yml`
+ * (regra 1 do CLAUDE.md). Esta janela **nao calcula nada** — nem o veredito do
+ * botao: o `motivo` que ela mostra e o `podeRefinar` do servidor, a MESMA
+ * funcao que o `CZ_REQ_REFINING` consulta antes de gastar. Uma janela que
+ * decidisse sozinha acabaria discordando do servidor, e a discordancia so
+ * apareceria no dia em que ela dissesse "pode" e o zeny nao saisse.
+ *
+ * O `ZC_REFINING_MATERIAL_LIST` (0x0aa2) continua sendo ouvido: e ele que diz
+ * QUAL peca o servidor entendeu que foi escolhida, e a ficha nova chega logo
+ * atras com o resto.
  *
  * This file is part of ROBrowser, (http://www.robrowser.com/).
  */
 
 import DB from 'DB/DBManager.js';
+import ItemType from 'DB/Items/ItemType.js';
 import Configs from 'Core/Configs.js';
+import Preferences from 'Core/Preferences.js';
 import Network from 'Network/NetworkManager.js';
 import PACKET from 'Network/PacketStructure.js';
 import PACKETVER from 'Network/PacketVerManager.js';
@@ -19,8 +72,8 @@ import Announce from 'UI/Components/Announce/Announce.js';
 import ChatBox from 'UI/Components/ChatBox/ChatBox.js';
 import Equipment from 'UI/Components/Equipment/Equipment.js';
 import Inventory from 'UI/Components/Inventory/Inventory.js';
-import ItemCompare from 'UI/Components/ItemCompare/ItemCompare.js';
 import ItemInfo from 'UI/Components/ItemInfo/ItemInfo.js';
+import { abaLembrada, lembrarAba } from '../memoriaDeAba.js';
 import 'UI/Elements/Elements.js';
 import htmlText from './Refine.html?raw';
 import cssText from './Refine.css?raw';
@@ -29,78 +82,69 @@ import cssText from './Refine.css?raw';
  * Create Component
  */
 const Refine = new GUIComponent('Refine', cssText);
-/* Janela entra/sai com a animacao unica (Fase 3, 01/09/2026). */
+/* Janela nativa entra/sai com a animacao unica (Fase 3, 01/09/2026). */
 Refine.riAnimaJanela = true;
 
 /**
- * Blacksmtith's Blessing ItemID
+ * A aba do filtro e preferencia da PESSOA, e nao dado de personagem — mesma
+ * razao de `memoriaDeAba.js`. Versao 1.0 de proposito: somar chave nova aos
+ * padroes nao exige subir a versao, e subir apagaria a posicao ja salva.
  */
-const BSB_ITID = 6635;
+const _preferences = Preferences.get('Refine', { x: null, y: null, aba: null }, 1.0);
+
+/** As abas que existem hoje — `abaLembrada` recusa o que sair desta lista. */
+const ABAS = ['todos', 'armas', 'armaduras'];
+
+/** De quanto em quanto tempo a lista reconfere a mochila (o padrao da casa). */
+const INTERVALO_DO_POLL_MS = 250;
 
 /**
- * Variables for current Refine Session
+ * O ESTADO DA JANELA, num objeto so.
+ *
+ * A janela anterior tinha DEZESSEIS variaveis de modulo (`refine_item_mat`,
+ * `refine_no_bsb`, `refine_new_mats`...) e nenhuma funcao que as zerasse toda.
+ * Um objeto unico e `zerarEstado()` fazem a limpeza ser uma linha — e a
+ * limpeza esquecida era metade dos estados presos da janela velha.
  */
-let refiningMaterials = [];
-let blacksmithBlessing = 0;
-let refine_item_index = 0;
-let refine_item_mat = 0;
-let refine_fee = 0;
-let refine_bsb = 0;
-let refine_result = 0;
-let refine_result_div = '';
-let refine_can_cont = 0;
-let refine_no_mats = 0;
-let refine_no_zeny = 0;
-let refine_no_bsb = 0;
-let refine_item_broken = 0;
-let refine_new_mats = 0;
-let refine_ongoing = 0;
-let refine_current_chance = 0;
-let refine_current_zeny = 0;
-let initialsuccess;
-let currentLoopHandle;
-Refine.imageLoopTimeout = 0;
-Refine.messageTimeOut = 0;
-Refine.hammer = 0;
-
-/**
- * Mapping for messageID and ItemID for Refine Info
- */
-const itemMessageMapping = {
-	2988: [1000336, 1000355, 1000368, 1000369, 1000370, 1000371],
-	2989: [6225, 6226, 1000331, 1000333],
-	2990: [6223, 6624]
+const estado = {
+	aberta: false,
+	/** O indice NO FIO da peca escolhida (o que o servidor devolveu). */
+	indice: 0,
+	/** A ficha do `ZC_RAGIDLE_REFINO`, crua. `null` = nada escolhido. */
+	ficha: null,
+	/** Enquanto o servidor nao responde o `CZ_REQ_REFINING`. */
+	emCurso: false,
+	/** Assinatura da lista desenhada, para o poll nao redesenhar a toa. */
+	assinatura: null,
+	/** O que dizer no rodape depois de um resultado, ate a proxima escolha. */
+	recado: null,
+	/**
+	 * Enquanto a animacao de sucesso/falha corre no palco.
+	 *
+	 * Ela existe para a ficha nova NAO interromper o quadro do resultado: os
+	 * NUMEROS voltam na hora (ver `onRefineResult`), a ANIMACAO segue ate o
+	 * fim, e as duas coisas deixaram de depender uma da outra.
+	 */
+	mostrandoResultado: false
 };
 
+let filtro = 'todos';
+let pollHandle = null;
+let animHandle = null;
+
 /**
- * Variables for images to play in between phases
+ * Os quadros da fornalha, do GRF. Continuam intactos: o palco e a UNICA peca
+ * de arte desta janela (regra 4 — o que informa e arte, o que delimita e CSS).
  */
-const images = {
+const quadros = {
 	waiting: [
 		'bg_refining_wait_00.bmp',
 		'bg_refining_wait_01.bmp',
 		'bg_refining_wait_02.bmp',
 		'bg_refining_wait_03.bmp'
 	],
-	readya: ['bg_refininga_ready_00.bmp', 'bg_refininga_ready_01.bmp', 'bg_refininga_ready_02.bmp'],
-	readyb: ['bg_refiningb_ready_00.bmp', 'bg_refiningb_ready_01.bmp', 'bg_refiningb_ready_02.bmp'],
-	processa: [
-		'bg_refininga_process_00.bmp',
-		'bg_refininga_process_01.bmp',
-		'bg_refininga_process_02.bmp',
-		'bg_refininga_process_03.bmp',
-		'bg_refininga_process_04.bmp',
-		'bg_refininga_process_05.bmp',
-		'bg_refininga_process_06.bmp',
-		'bg_refininga_process_07.bmp',
-		'bg_refininga_process_08.bmp',
-		'bg_refining_process_09.bmp',
-		'bg_refining_process_10.bmp',
-		'bg_refining_process_11.bmp',
-		'bg_refining_process_12.bmp',
-		'bg_refining_process_13.bmp'
-	],
-	processb: [
+	ready: ['bg_refiningb_ready_00.bmp', 'bg_refiningb_ready_01.bmp', 'bg_refiningb_ready_02.bmp'],
+	process: [
 		'bg_refiningb_process_00.bmp',
 		'bg_refiningb_process_01.bmp',
 		'bg_refiningb_process_02.bmp',
@@ -143,1534 +187,1079 @@ const images = {
 		'bg_refining_fail_12.bmp',
 		'bg_refining_fail_13.bmp',
 		'bg_refining_fail_14.bmp'
-	],
-	success_wait: [
-		'bg_refining_success_09.bmp',
-		'bg_refining_success_10.bmp',
-		'bg_refining_success_11.bmp',
-		'bg_refining_success_12.bmp',
-		'bg_refining_success_13.bmp',
-		'bg_refining_success_14.bmp',
-		'bg_refining_success_15.bmp',
-		'bg_refining_success_16.bmp'
-	],
-	fail_wait: [
-		'bg_refining_fail_15.bmp',
-		'bg_refining_fail_16.bmp',
-		'bg_refining_fail_17.bmp',
-		'bg_refining_fail_18.bmp',
-		'bg_refining_fail_19.bmp'
 	]
 };
 
-/**
- * Helper: query inside shadow root
- */
+/* ═══════════════════════════════════════════════════════════════════════ */
+/* Utilidades                                                              */
+/* ═══════════════════════════════════════════════════════════════════════ */
+
 function _root() {
 	return Refine._shadow || Refine._host;
 }
 
-/**
- * Render HTML
- */
-Refine.render = () => htmlText;
-
-/**
- * PINTA A CHANCE — o numero e a barra, sempre juntos.
- *
- * No redesenho de 01/09/2026 a chance deixou de ser so um texto solto sobre a
- * arte e ganhou medidor. Ela e escrita em quatro momentos diferentes (abrir,
- * escolher material, tirar o item, voltar do resultado) e um deles esquecer a
- * barra deixaria a janela mentindo — dai UMA funcao, e nao quatro trechos.
- *
- * `null` apaga o medidor: e o estado de RESULTADO, em que `.success` ja nao
- * diz porcentagem nenhuma e sim "Refino concluido"/"O refino falhou".
- *
- * @param {number|null} valor - chance em porcento, ou null para esconder.
- */
-function pintarChance(valor) {
+function $(seletor) {
 	const root = _root();
-	const barra = root.querySelector('.chance_bar');
-	const preenchimento = root.querySelector('.chance_bar .fill');
-
-	if (!barra || !preenchimento) {
-		return;
-	}
-
-	if (valor === null) {
-		barra.style.display = 'none';
-		return;
-	}
-
-	const pct = Math.max(0, Math.min(100, Number(valor) || 0));
-	barra.style.display = 'block';
-	preenchimento.style.width = `${pct}%`;
-	/* Faixa, nao gradiente continuo: o jogador precisa decidir "arrisco ou
-	   nao", e tres estados decidem melhor que cem tons. */
-	barra.classList.toggle('esta-alta', pct >= 80);
-	barra.classList.toggle('esta-baixa', pct > 0 && pct < 40);
+	return root ? root.querySelector(seletor) : null;
 }
 
-/**
- * Zeny com separador de milhar. O servidor manda o numero cru e a janela
- * antiga o imprimia cru: "1000000" e ilegivel do lado de um botao.
- */
+/** Zeny com separador de milhar: "1000000" e ilegivel do lado de um botao. */
 function zeny(valor) {
 	const numero = Number(valor);
-	return Number.isFinite(numero) ? numero.toLocaleString('pt-BR') : String(valor ?? '');
+	return Number.isFinite(numero) ? numero.toLocaleString('pt-BR') : '—';
 }
 
 /**
- * Initialize UI
+ * A taxa da grade de 10000 em porcento, com DUAS casas.
+ *
+ * `6000` e 60,00%. A grade e a do `refine.yml` e a do resto do jogo (D-215), e
+ * arredondar para inteiro aqui apagaria a diferenca em degraus onde ela
+ * existe — foi por caber so num byte que o pacote nativo do RO nao serviu.
  */
-Refine.init = function init() {
-	const root = _root();
+function porcento(taxa) {
+	return (Number(taxa) / 100).toLocaleString('pt-BR', {
+		minimumFractionDigits: 2,
+		maximumFractionDigits: 2
+	});
+}
 
-	this._host.style.top = '200px';
-	this._host.style.left = '300px';
-
-	const titlebarBase = root.querySelector('.titlebar .base');
-	if (titlebarBase) {
-		titlebarBase.addEventListener('mousedown', event => {
-			event.stopImmediatePropagation();
-		});
-	}
-
-	const closeBtn = root.querySelector('.titlebar .close');
-	if (closeBtn) {
-		closeBtn.addEventListener('click', onRefineClose);
-	}
-
-	const cancelBtn = root.querySelector('.cancel');
-	if (cancelBtn) {
-		cancelBtn.addEventListener('click', onRefineClose);
-	}
-
-	this.draggable('.titlebar');
-
-	// Chance de sucesso: rotulo proprio em portugues, nao a msgstringtable.
-	//
-	// O `DB.getMessage(3724)` que morava aqui devolve o texto do cliente
-	// coreano/ingles — a mesma tabela que fazia esta janela se chamar "Try
-	// Again" no print do dono (msg 3241). As janelas da Fase 3 (Encantamento,
-	// Sintese) ja tinham trocado ui-text por texto nosso; esta ficou para tras.
-	const successdiv = root.querySelector('.success');
-	initialsuccess = 'Chance de sucesso <span class="number">0</span>%';
-	if (successdiv) {
-		successdiv.innerHTML = initialsuccess;
-		successdiv.style.display = 'block';
-	}
-	pintarChance(0);
-
-	// Item drop/drag on .item_to_refine
-	const itemToRefine = root.querySelector('.item_to_refine');
-	if (itemToRefine) {
-		itemToRefine.addEventListener('drop', onItemDrop);
-		itemToRefine.addEventListener('dragover', event => {
-			event.preventDefault();
-			event.stopImmediatePropagation();
-		});
-		itemToRefine.addEventListener('dragstart', event => {
-			const item = event.target.closest('.item');
-			if (item) {
-				onItemDragStart(event);
-			}
-		});
-		itemToRefine.addEventListener('dragend', event => {
-			const item = event.target.closest('.item');
-			if (item) {
-				onItemDragEnd(event);
-			}
-		});
-		itemToRefine.addEventListener('dblclick', event => {
-			const item = event.target.closest('.item');
-			if (item && refine_ongoing === 0) {
-				onRemoveItem(true);
-			}
-		});
-		itemToRefine.addEventListener('contextmenu', event => {
-			const item = event.target.closest('.item');
-			if (item) {
-				onItemInfo.call(item, event);
-			}
-		});
-	}
-
-	// Materials hover/contextmenu
-	const materials = root.querySelector('.materials');
-	if (materials) {
-		materials.addEventListener('mouseover', event => {
-			const item = event.target.closest('.item');
-			if (item) {
-				onItemOver.call(item, event);
-			}
-		});
-		materials.addEventListener('mouseout', () => {
-			onItemOut();
-		});
-		materials.addEventListener('contextmenu', event => {
-			const item = event.target.closest('.item');
-			if (item) {
-				onItemInfo.call(item, event);
-			}
-		});
-	}
-
-	// Refine_cont hover
-	const refineCont = root.querySelector('.refine_cont');
-	if (refineCont) {
-		refineCont.addEventListener('mouseover', event => {
-			onItemOver.call(refineCont, event);
-		});
-		refineCont.addEventListener('mouseout', () => {
-			onItemOut();
-		});
-	}
-
-	// Refine buttons
-	const refineEnabled = root.querySelector('.refine_enabled');
-	if (refineEnabled) {
-		refineEnabled.addEventListener('click', onRequestRefine);
-	}
-
-	const successContEnabled = root.querySelector('.success_refine_cont_enabled');
-	if (successContEnabled) {
-		successContEnabled.addEventListener('click', onRequestRefine);
-	}
-
-	const failContEnabled = root.querySelector('.fail_refine_cont_enabled');
-	if (failContEnabled) {
-		failContEnabled.addEventListener('click', onRequestRefine);
-	}
-
-	const backButton = root.querySelector('.back_button');
-	if (backButton) {
-		backButton.addEventListener('click', onCancelContRefine);
-	}
-
-	// Hide buttons
-	if (refineEnabled) {
-		refineEnabled.style.display = 'none';
-	}
-
-	const someNotifs = root.querySelector('.some_notifs');
-	if (someNotifs) {
-		someNotifs.style.display = 'none';
-	}
-
-	onHideContRefineButtons();
-};
-
-/**
- * Append to body
- */
-Refine.onAppend = function onAppend() {
-	const root = _root();
-
-	Refine.hammer = 0;
-	const refineButton = root.querySelector('.refine_button');
-	if (refineButton) {
-		refineButton.style.display = 'block';
-	}
-
-	clearTimeout(Refine.imageLoopTimeout);
-	controlPhase('waiting', true, 250);
-};
-
-/**
- * Remove Refine Window (and so clean up items)
- */
-Refine.onRemove = function onRemove() {
-	clearTimeout(Refine.imageLoopTimeout);
-	clearTimeout(currentLoopHandle);
-	onRemoveItem(true);
-	onHideContRefineButtons();
-	clearRefineStates();
-};
-
-/**
- * Completely clean-up variables for refining
- */
-function clearRefineStates() {
-	Refine.hammer = 0;
-	Refine.imageLoopTimeout = 0;
-	Refine.messageTimeOut = 0;
-	currentLoopHandle = null;
-	refiningMaterials = [];
-	blacksmithBlessing = 0;
-	refine_item_index = 0;
-	refine_item_mat = 0;
-	refine_fee = 0;
-	refine_bsb = 0;
-	refine_result = 0;
-	refine_result_div = '';
-	refine_can_cont = 0;
-	refine_no_mats = 0;
-	refine_no_zeny = 0;
-	refine_no_bsb = 0;
-	refine_new_mats = 0;
-	refine_current_chance = 0;
-	refine_current_zeny = 0;
+/** Plural sem gambiarra de `s` solto no meio da frase. */
+function plural(n, um, muitos) {
+	return n === 1 ? um : muitos;
 }
 
 /**
- * Handles packet received from server to open Refine UI
- * PACKET.ZC.OPEN_REFINING_UI
+ * OS ICONES JA CARREGADOS, por nome de recurso.
+ *
+ * Ele nao e otimizacao: e o que faz o icone APARECER. Medido em jogo em
+ * 07/09/2026 — a lista saiu com cinco ladrilhos VAZIOS enquanto o icone do
+ * palco e o do material apareciam normalmente.
+ *
+ * A causa e a corrida entre o `Client.loadFile` (assincrono) e o redesenho da
+ * lista: escolher uma peca dispara DOIS redesenhos em sequencia (o
+ * `ZC_REFINING_MATERIAL_LIST` e a ficha logo atras), e o `<div>` que esperava
+ * o arquivo ja tinha sido descartado com a linha dele quando o arquivo chegou.
+ * Com o cache, todo redesenho depois do primeiro pinta SINCRONO — e a corrida
+ * deixa de existir em vez de ficar mais rara.
  */
-function onOpenRefineUI() {
+const iconesCarregados = new Map();
+
+/**
+ * Poe o icone 24x24 do cliente dentro de um ladrilho.
+ *
+ * O ladrilho fica `is-empty` (sem aro dourado) ate a arte chegar — sem isso um
+ * quadro dourado vazio pisca a cada troca de peca.
+ */
+function pintarIcone(alvo, ITID, identificado) {
+	if (!alvo) {
+		return;
+	}
+	alvo.innerHTML = '';
+	alvo.classList.add('is-empty');
+
+	const info = ITID ? DB.getItemInfo(ITID) : null;
+	if (!info) {
+		return;
+	}
+
+	const nomeDoRecurso = identificado === false ? info.unidentifiedResourceName : info.identifiedResourceName;
+	if (!nomeDoRecurso) {
+		return;
+	}
+
+	const icone = document.createElement('div');
+	icone.className = 'icone';
+	alvo.appendChild(icone);
+
+	const pintar = dados => {
+		icone.style.backgroundImage = 'url(' + dados + ')';
+		alvo.classList.remove('is-empty');
+	};
+
+	const emCache = iconesCarregados.get(nomeDoRecurso);
+	if (emCache) {
+		pintar(emCache);
+		return;
+	}
+
+	Client.loadFile(DB.INTERFACE_PATH + 'item/' + nomeDoRecurso + '.bmp', dados => {
+		iconesCarregados.set(nomeDoRecurso, dados);
+		// A linha pode ter sido descartada por um redesenho enquanto o arquivo
+		// vinha; o cache acima garante que a PROXIMA pinte na hora.
+		if (icone.isConnected) {
+			pintar(dados);
+		}
+	});
+}
+
+/* ═══════════════════════════════════════════════════════════════════════ */
+/* O palco: os quadros da fornalha                                         */
+/* ═══════════════════════════════════════════════════════════════════════ */
+
+/**
+ * Roda uma fase da animacao no palco.
+ *
+ * @param {string} fase        chave de `quadros`
+ * @param {boolean} emLaco     repete do inicio ao terminar
+ * @param {number} intervalo   ms entre quadros
+ * @param {function} [aoFim]   so quando `emLaco` e falso
+ */
+function rodarFase(fase, emLaco, intervalo, aoFim) {
+	const lista = quadros[fase];
+	if (!lista) {
+		return;
+	}
+
+	pararFase();
+	let i = 0;
+
+	function proximo() {
+		Client.loadFile(DB.INTERFACE_PATH + 'refining_renewal/' + lista[i], data => {
+			const palco = $('.rf-palco');
+			if (!palco) {
+				return;
+			}
+			palco.style.backgroundImage = 'url(' + data + ')';
+			i++;
+
+			if (i >= lista.length) {
+				if (!emLaco) {
+					if (typeof aoFim === 'function') {
+						aoFim();
+					}
+					return;
+				}
+				i = 0;
+			}
+
+			animHandle = setTimeout(proximo, intervalo);
+		});
+	}
+
+	proximo();
+}
+
+function pararFase() {
+	if (animHandle) {
+		clearTimeout(animHandle);
+		animHandle = null;
+	}
+}
+
+/* ═══════════════════════════════════════════════════════════════════════ */
+/* O trilho: a lista do que da para refinar                                */
+/* ═══════════════════════════════════════════════════════════════════════ */
+
+/**
+ * O que a janela mostra: arma e armadura da mochila.
+ *
+ * A triagem FINA (acessorio nao refina, `refineable: false` no item_db) e do
+ * SERVIDOR, e ela chega como `motivo: 'nao-refinavel'` quando o jogador
+ * escolhe. Filtrar aqui pelo mesmo criterio seria uma segunda regra a manter,
+ * e uma peca que sumisse da lista sem explicacao e exatamente o tipo de
+ * silencio que esta reescrita existe para acabar.
+ */
+function pecasDaMochila() {
+	const ui = Inventory.getUI();
+	const naMochila = (ui && ui.list) || [];
+
+	/*
+	 * A PECA VESTIDA NAO ESTA NA MOCHILA, e por isso ela vem de outro lugar.
+	 *
+	 * `InventoryCommon.addItemSub` devolve `false` para todo item com
+	 * `WearState` e o entrega a `Equipment` — entao `Inventory.list` NAO
+	 * contem o que o jogador esta usando. Medido em jogo em 07/09/2026: com
+	 * seis peças na ficha, a lista mostrava cinco, e a que faltava era
+	 * justamente a arma na mao.
+	 *
+	 * Deixar a peça vestida FORA seria o pior dos dois mundos num jogo idle,
+	 * onde o equipamento passa a vida inteira vestido: o jogador abriria a
+	 * forja e nao acharia a arma dele. Ela entra apagada, e a bancada explica
+	 * que e preciso tirar — que e a regra do servidor
+	 * (`MOTIVO_DO_REFINO.ESTA_VESTIDA`), dita em portugues.
+	 */
+	const equipamento = Equipment.getUI();
+	const vestidas =
+		equipamento && typeof equipamento.getEquippedList === 'function' ? equipamento.getEquippedList() : [];
+
+	return [...naMochila, ...vestidas].filter(item => item.type === ItemType.WEAPON || item.type === ItemType.ARMOR);
+}
+
+/**
+ * O nome SEM o "+N" que `DB.getItemName` prefixa por padrao.
+ *
+ * A janela ja mostra o refino em coluna propria, e o prefixo fazia duas coisas
+ * ruins ao mesmo tempo: repetia a informacao na linha ("+2 Camisa de Algodao"
+ * ao lado de um selo "+2") e **quebrava a ordenacao alfabetica** — as peças
+ * refinadas subiam para o topo porque a comparacao via o "+". Medido na
+ * primeira foto em jogo de 07/09.
+ */
+function nomeDaPeca(item) {
+	return DB.getItemName(item, { showItemRefine: false });
+}
+
+function passaNoFiltro(item) {
+	if (filtro === 'armas') {
+		return item.type === ItemType.WEAPON;
+	}
+	if (filtro === 'armaduras') {
+		return item.type === ItemType.ARMOR;
+	}
+	return true;
+}
+
+/**
+ * A assinatura da lista desenhada.
+ *
+ * O poll roda 4x por segundo; redesenhar a lista inteira nesse ritmo apagaria
+ * o `:hover` e o foco do teclado a cada quadro. Mesmo recurso (e mesma razao)
+ * do `_lastGradeSig` da Mochila.
+ */
+function assinaturaDaLista(pecas) {
+	return (
+		filtro +
+		'|' +
+		estado.indice +
+		'|' +
+		pecas.map(i => i.index + ':' + i.ITID + ':' + (i.RefiningLevel || 0) + ':' + (i.WearState ? 1 : 0)).join(',')
+	);
+}
+
+function montarLista(forcar) {
+	const lista = $('.rf-lista');
+	const vazia = $('.rf-lista-vazia');
+	const conta = $('.rf-conta');
+	if (!lista) {
+		return;
+	}
+
+	const todas = pecasDaMochila();
+	const pecas = todas.filter(passaNoFiltro).sort(ordenarPecas);
+
+	if (conta) {
+		conta.textContent = String(todas.length);
+	}
+
+	const assinatura = assinaturaDaLista(pecas);
+	if (!forcar && assinatura === estado.assinatura) {
+		return;
+	}
+	estado.assinatura = assinatura;
+
+	lista.innerHTML = '';
+
+	for (const item of pecas) {
+		lista.appendChild(linhaDaPeca(item));
+	}
+
+	if (vazia) {
+		vazia.hidden = pecas.length > 0;
+		vazia.textContent =
+			todas.length === 0 ? 'Nenhuma arma ou armadura na mochila.' : 'Nada nesta aba. Tente "Tudo".';
+	}
+}
+
+/** Vestidas por ULTIMO (nao dao para refinar), depois em ordem alfabetica. */
+function ordenarPecas(a, b) {
+	const va = a.WearState ? 1 : 0;
+	const vb = b.WearState ? 1 : 0;
+	if (va !== vb) {
+		return va - vb;
+	}
+	return nomeDaPeca(a).localeCompare(nomeDaPeca(b), 'pt-BR');
+}
+
+function linhaDaPeca(item) {
+	const li = document.createElement('li');
+	li.className = 'rf-item';
+	li.setAttribute('role', 'option');
+	li.dataset.indice = String(item.index);
+	li.dataset.itid = String(item.ITID);
+
+	const vestida = !!item.WearState;
+	const escolhida = estado.indice === item.index;
+	li.classList.toggle('is-vestida', vestida);
+	li.classList.toggle('is-active', escolhida);
+	li.setAttribute('aria-selected', escolhida ? 'true' : 'false');
+
+	const ladrilho = document.createElement('span');
+	ladrilho.className = 'rf-item-icone ri-tile';
+	li.appendChild(ladrilho);
+	pintarIcone(ladrilho, item.ITID, item.IsIdentified);
+
+	const texto = document.createElement('span');
+	texto.className = 'rf-item-texto';
+
+	const nome = document.createElement('span');
+	nome.className = 'rf-item-nome';
+	nome.textContent = nomeDaPeca(item);
+	texto.appendChild(nome);
+
+	const nota = document.createElement('span');
+	nota.className = 'rf-item-nota';
+	nota.textContent = vestida ? 'Vestida' : item.type === ItemType.WEAPON ? 'Arma' : 'Defesa';
+	texto.appendChild(nota);
+	li.appendChild(texto);
+
+	const refino = document.createElement('span');
+	const nivel = item.RefiningLevel || 0;
+	refino.className = 'rf-item-refino' + (nivel > 0 ? ' esta-refinada' : '');
+	refino.textContent = '+' + nivel;
+	li.appendChild(refino);
+
+	return li;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════ */
+/* A bancada: a peca escolhida                                             */
+/* ═══════════════════════════════════════════════════════════════════════ */
+
+/**
+ * Pede ao servidor a ficha desta peca.
+ *
+ * A peca VESTIDA tambem passa por aqui de proposito: quem responde "nao da" e
+ * o servidor, e a resposta dele vem por escrito. Recusar do lado de ca seria
+ * uma segunda regra dizendo a mesma coisa — e o dia em que as duas
+ * discordassem seria o dia em que a janela mentiria.
+ */
+function escolher(indice) {
+	if (estado.emCurso) {
+		return;
+	}
+	/*
+	 * O RECADO DO RESULTADO NAO SE APAGA AQUI — e isso foi medido em jogo.
+	 *
+	 * Esta funcao tem DOIS chamadores: o clique do jogador e o refresco
+	 * automatico logo depois de um refino (a ficha inteira volta do servidor:
+	 * refino novo, zeny novo, um minerio a menos). Zerar o recado aqui apagava
+	 * "Subiu para +1!" cerca de um segundo depois de ele aparecer — a foto em
+	 * jogo de 07/09 pegou o rodape ja vazio.
+	 *
+	 * Quem limpa e o CLIQUE, porque escolher outra peca e o gesto que diz "ja
+	 * vi o resultado".
+	 */
+	const pkt = new PACKET.CZ.REFINING_SELECT_ITEM();
+	pkt.index = indice;
+	Network.sendPacket(pkt);
+}
+
+/** Desenha a bancada inteira a partir da ficha que chegou do servidor. */
+function pintarBancada() {
+	const ficha = estado.ficha;
+
+	const nome = $('.rf-peca-nome');
+	const tipo = $('.rf-peca-tipo');
+	const peca = $('.rf-peca');
+	const ganho = $('.rf-salto-ganho');
+	const nota = $('.rf-risco-nota');
+
+	if (!ficha) {
+		if (nome) {
+			nome.textContent = 'Escolha uma peça';
+		}
+		if (tipo) {
+			tipo.textContent = 'A lista ao lado mostra o que a forja aceita.';
+		}
+		if (peca) {
+			peca.innerHTML = '';
+			peca.classList.add('is-empty');
+		}
+		if (ganho) {
+			ganho.hidden = true;
+		}
+		if (nota) {
+			nota.textContent = 'Escolha uma peça para ver o degrau.';
+			nota.classList.remove('esta-alerta');
+		}
+		pintarTrilha(0, 0);
+		pintarSalto(0, 0);
+		pintarRisco(null);
+		pintarFatos(null);
+		const vazia = $('.rf-bancada');
+		if (vazia) {
+			vazia.classList.remove('esta-bloqueada');
+		}
+		pintarRodape();
+		return;
+	}
+
+	if (nome) {
+		// O nome LOCALIZADO e do cliente (o servidor manda o dele para o log).
+		const naMochila = pecasDaMochila().find(i => i.index === ficha.indice);
+		nome.textContent = naMochila ? nomeDaPeca(naMochila) : ficha.nome;
+	}
+	if (tipo) {
+		const familia = ficha.grupo === 'Weapon' ? 'Arma' : ficha.grupo === 'Armor' ? 'Defesa' : 'Peça';
+		tipo.textContent = ficha.nivelItem ? familia + ' · nível ' + ficha.nivelItem : familia;
+	}
+	pintarIcone(peca, ficha.itemId, true);
+
+	pintarTrilha(ficha.refino, ficha.teto);
+	pintarSalto(ficha.refino, ficha.degrau ? ficha.refino + 1 : ficha.refino);
+
+	if (ganho) {
+		const d = ficha.degrau;
+		// `bonus` vem em CENTESIMOS, como no refine.yml — e a divisao inteira e
+		// a do proprio emulador (`wa->atk2 += info->bonus / 100`).
+		const de = d ? Math.floor(d.bonusAtual / 100) : 0;
+		const para = d ? Math.floor(d.bonusProximo / 100) : 0;
+		const vale = !!d && para > de;
+		ganho.hidden = !vale;
+		if (vale) {
+			ganho.textContent = d.atributo + ' ' + de + ' → ' + para;
+		}
+	}
+
+	pintarRisco(ficha.degrau);
+	pintarFatos(ficha);
+
+	/*
+	 * O degrau continua na tela quando o servidor recusa — ele e verdade, e e
+	 * o que custaria com a peca guardada —, mas ele passa a LER como previa.
+	 * Sem isto a bancada mostrava "100,00%" e "Custo 50 z" para uma peca
+	 * vestida, e so o rodape discordava.
+	 */
+	const bancada = $('.rf-bancada');
+	if (bancada) {
+		bancada.classList.toggle('esta-bloqueada', ficha.motivo !== 'pode');
+	}
+
+	pintarRodape();
+}
+
+/** Um pino por degrau, do +1 ao teto: quanto ja andou e qual e o proximo. */
+function pintarTrilha(refino, teto) {
+	const trilha = $('.rf-trilha');
+	if (!trilha) {
+		return;
+	}
+	trilha.innerHTML = '';
+	if (!teto) {
+		trilha.setAttribute('aria-label', 'Progresso do refino');
+		return;
+	}
+	for (let n = 1; n <= teto; n++) {
+		const pino = document.createElement('span');
+		pino.className = 'rf-pino' + (n <= refino ? ' esta-feito' : n === refino + 1 ? ' e-o-proximo' : '');
+		trilha.appendChild(pino);
+	}
+	trilha.setAttribute('aria-label', 'Refino +' + refino + ' de ' + teto);
+}
+
+function pintarSalto(de, para) {
+	const elDe = $('.rf-salto-de');
+	const elPara = $('.rf-salto-para');
+	if (elDe) {
+		elDe.textContent = '+' + de;
+	}
+	if (elPara) {
+		elPara.textContent = '+' + para;
+	}
+}
+
+function pintarRisco(degrau) {
+	const valor = $('.rf-risco-valor');
+	const barra = $('.rf-risco-barra');
+	const sucesso = $('.rf-risco-sucesso');
+	const nota = $('.rf-risco-nota');
+
+	if (!degrau) {
+		if (valor) {
+			valor.textContent = '—';
+		}
+		if (sucesso) {
+			sucesso.style.width = '0%';
+		}
+		if (barra) {
+			barra.setAttribute('aria-valuenow', '0');
+		}
+		return;
+	}
+
+	const pct = Math.max(0, Math.min(100, degrau.taxa / 100));
+	if (valor) {
+		valor.textContent = porcento(degrau.taxa) + '%';
+	}
+	if (sucesso) {
+		sucesso.style.width = pct + '%';
+	}
+	if (barra) {
+		barra.setAttribute('aria-valuenow', String(Math.round(pct)));
+	}
+	/*
+	 * A NOTA CARREGA O QUE A FALHA CUSTA.
+	 *
+	 * "40% de subir" so significa alguma coisa junto com "e se nao subir?", e
+	 * ate 07/09 as duas metades moravam em cartoes separados — com 263px de
+	 * bancada os tres cartoes se espremiam a ponto de o nome do minerio virar
+	 * reticencia. Aqui elas sao uma frase so, e ela diz a verdade DESTE
+	 * servidor: ele desce o refino quando `niveisPerdidosNaFalha` e maior que
+	 * zero, e nunca quebra a peca (o `BreakingRate` do rAthena e ignorado de
+	 * proposito, `servidor/refino.ts`).
+	 */
+	if (nota && !estado.recado) {
+		if (pct >= 100) {
+			nota.textContent = 'Degrau garantido: este não tem como falhar.';
+			nota.classList.remove('esta-alerta');
+		} else {
+			const perde = degrau.niveisPerdidosNaFalha;
+			nota.textContent =
+				perde > 0
+					? `Se falhar, a peça cai ${perde} ${plural(perde, 'nível', 'níveis')} — e a tentativa é cobrada.`
+					: 'Se falhar, a peça fica como está — mas a tentativa é cobrada.';
+			nota.classList.add('esta-alerta');
+		}
+	}
+}
+
+function pintarFatos(ficha) {
+	const d = ficha && ficha.degrau;
+
+	const fatoMat = $('.rf-fato--material');
+	const iconeMat = $('.rf-mat-icone');
+	const textoMat = $('.rf-mat-texto');
+	const fatoTaxa = $('.rf-fato--taxa');
+	const taxa = $('.rf-taxa-valor');
+
+	if (!d) {
+		if (iconeMat) {
+			iconeMat.innerHTML = '';
+			iconeMat.classList.add('is-empty');
+		}
+		if (textoMat) {
+			textoMat.textContent = '—';
+		}
+		if (taxa) {
+			taxa.textContent = '—';
+		}
+		if (fatoMat) {
+			fatoMat.classList.remove('esta-faltando');
+		}
+		if (fatoTaxa) {
+			fatoTaxa.classList.remove('esta-faltando');
+		}
+		return;
+	}
+
+	// Degrau SEM material (`Material: null` no refine.yml) existe: ali o custo
+	// e so zeny, e o ladrilho fica vazio em vez de mostrar um item id 0.
+	if (d.materialId) {
+		pintarIcone(iconeMat, d.materialId, true);
+		const info = DB.getItemInfo(d.materialId);
+		const nomeMat = info ? info.identifiedDisplayName : d.materialNome;
+		if (textoMat) {
+			textoMat.textContent = d.materialTem + ' / 1 · ' + nomeMat;
+		}
+		if (fatoMat) {
+			fatoMat.classList.toggle('esta-faltando', d.materialTem < 1);
+		}
+	} else {
+		if (iconeMat) {
+			iconeMat.innerHTML = '';
+			iconeMat.classList.add('is-empty');
+		}
+		if (textoMat) {
+			textoMat.textContent = 'Nenhum';
+		}
+		if (fatoMat) {
+			fatoMat.classList.remove('esta-faltando');
+		}
+	}
+
+	if (taxa) {
+		taxa.textContent = zeny(d.preco) + ' z';
+	}
+	if (fatoTaxa) {
+		fatoTaxa.classList.toggle('esta-faltando', bolso() < d.preco);
+	}
+}
+
+/** O zeny de que a janela dispoe: o do servidor manda, a sessao e a reserva. */
+function bolso() {
+	if (estado.ficha && typeof estado.ficha.zeny === 'number') {
+		return estado.ficha.zeny;
+	}
+	return Number(Session.zeny) || 0;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════ */
+/* O rodape: o botao e o motivo                                            */
+/* ═══════════════════════════════════════════════════════════════════════ */
+
+/**
+ * O VEREDITO, e ele e sempre uma frase.
+ *
+ * Nada aqui inventa regra: `motivo` e o `podeRefinar` do servidor, e as duas
+ * unicas contas locais (falta minerio, falta zeny) sao as MESMAS que o
+ * `CZ_REQ_REFINING` faz antes de gastar. O que esta janela acrescenta e o
+ * texto — porque um botao apagado sem frase e o defeito que ela veio matar.
+ *
+ * @returns {{pode: boolean, texto: string, cor: string}}
+ */
+function veredito() {
+	const ficha = estado.ficha;
+
+	if (estado.emCurso) {
+		return { pode: false, texto: 'Na forja…', cor: '' };
+	}
+	if (!ficha) {
+		return { pode: false, texto: 'Escolha uma peça na lista.', cor: '' };
+	}
+
+	switch (ficha.motivo) {
+		case 'esta-vestida':
+			return { pode: false, texto: 'Tire a peça para poder refinar.', cor: 'esta-vermelho' };
+		case 'no-teto':
+			return { pode: false, texto: 'Esta peça chegou ao topo (+' + ficha.refino + ').', cor: '' };
+		case 'nao-refinavel':
+			return { pode: false, texto: 'Esta peça não aceita refino.', cor: '' };
+		default:
+			break;
+	}
+
+	const d = ficha.degrau;
+	if (!d) {
+		return { pode: false, texto: 'A tabela não cobre o próximo degrau.', cor: '' };
+	}
+	if (d.materialId && d.materialTem < 1) {
+		const info = DB.getItemInfo(d.materialId);
+		const nomeMat = info ? info.identifiedDisplayName : d.materialNome;
+		return { pode: false, texto: 'Falta 1 × ' + nomeMat + '.', cor: 'esta-vermelho' };
+	}
+	if (bolso() < d.preco) {
+		return {
+			pode: false,
+			texto: 'Faltam ' + zeny(d.preco - bolso()) + ' zeny.',
+			cor: 'esta-vermelho'
+		};
+	}
+	return { pode: true, texto: '', cor: '' };
+}
+
+function pintarRodape() {
+	const bolsoEl = $('.rf-bolso-valor');
+	const motivoEl = $('.rf-motivo');
+	const acao = $('.rf-acao');
+
+	if (bolsoEl) {
+		bolsoEl.textContent = zeny(bolso()) + ' z';
+	}
+
+	const v = veredito();
+
+	if (acao) {
+		acao.disabled = !v.pode;
+		acao.classList.toggle('is-disabled', !v.pode);
+		const proximo = estado.ficha && estado.ficha.degrau ? estado.ficha.refino + 1 : null;
+		acao.textContent = proximo === null ? 'Refinar' : 'Refinar +' + proximo;
+	}
+
+	if (motivoEl) {
+		motivoEl.classList.remove('esta-vermelho', 'esta-verde');
+		// O RECADO do ultimo resultado vence o motivo enquanto durar: logo
+		// depois de refinar, "Subiu para +1!" e a informacao que o jogador
+		// esta esperando, e nao "Falta 1 x Phracon" do proximo degrau.
+		const recado = estado.recado;
+		if (recado) {
+			motivoEl.textContent = recado.texto;
+			if (recado.cor) {
+				motivoEl.classList.add(recado.cor);
+			}
+			return;
+		}
+		motivoEl.textContent = v.texto;
+		if (v.cor) {
+			motivoEl.classList.add(v.cor);
+		}
+	}
+}
+
+/* ═══════════════════════════════════════════════════════════════════════ */
+/* Refinar                                                                 */
+/* ═══════════════════════════════════════════════════════════════════════ */
+
+function refinar() {
+	const v = veredito();
+	if (!v.pode || !estado.ficha || !estado.ficha.degrau) {
+		return;
+	}
+
+	estado.emCurso = true;
+	estado.recado = null;
+	pintarRodape();
+
+	rodarFase('process', true, 100);
+
+	const pkt = new PACKET.CZ.REQ_REFINING();
+	pkt.index = estado.ficha.indice;
+	pkt.itemId = estado.ficha.degrau.materialId;
+	pkt.blacksmithBlessing = 0;
+	Network.sendPacket(pkt);
+}
+
+/**
+ * O RESULTADO (`ZC.ACK_ITEMREFINING`, 0x0188).
+ *
+ * `result` e 0 para SUCESSO — invertido em relacao a intuicao, e e a convencao
+ * do cliente que manda (o servidor a segue de proposito, ver o comentario do
+ * `CZ_REQMAKINGITEM` em servidor-mapa.ts).
+ *
+ * Chamada de fora: `Engine/MapEngine/Item.js:424`.
+ */
+Refine.onRefineResult = function onRefineResult(pkt) {
+	if (!pkt || !estado.aberta) {
+		return;
+	}
+
+	estado.emCurso = false;
+	pararFase();
+
+	const deuCerto = pkt.result === 0;
+	const nivel = pkt.RefiningLevel;
+
+	estado.recado = deuCerto
+		? { texto: 'Subiu para +' + nivel + '!', cor: 'esta-verde' }
+		: { texto: 'Falhou. A peça ficou em +' + nivel + '.', cor: 'esta-vermelho' };
+
+	// O indice pode ter ANDADO: consumir o material compacta o inventario
+	// quando a pilha acaba, e o servidor devolve o indice novo no proprio ACK.
+	estado.indice = pkt.itemIndex;
+
+	/*
+	 * OS NUMEROS VOLTAM AGORA; a animacao corre por fora.
+	 *
+	 * Ate 07/09/2026 o pedido da ficha nova ficava no FIM da animacao de
+	 * sucesso — nove quadros do GRF, carregados um a um. No intervalo a janela
+	 * mostrava o degrau que acabou de ser comprado, com o bolso de antes do
+	 * gasto: a prova em jogo pegou "9.950 z / +0" logo depois de um refino que
+	 * ja tinha levado a peca para +1. Enfeite nao pode segurar informacao.
+	 */
+	estado.mostrandoResultado = true;
+	if (estado.aberta) {
+		escolher(estado.indice);
+	}
+
+	rodarFase(deuCerto ? 'success' : 'fail', false, 90, () => {
+		estado.mostrandoResultado = false;
+		rodarFase('ready', true, 250);
+	});
+
+	montarLista(true);
+	pintarRodape();
+};
+
+/* ═══════════════════════════════════════════════════════════════════════ */
+/* Pacotes                                                                 */
+/* ═══════════════════════════════════════════════════════════════════════ */
+
+function janelaLigada() {
 	if (!Configs.get('enableRefineUI') || PACKETVER.value < 20161012) {
 		console.warn('Renewal Refine is enabled in your server. Please enable refine UI in your configs.');
 		return false;
 	}
+	return true;
+}
 
-	Refine.append();
-
-	const isInventoryOpen = Inventory.getUI().ui ? Inventory.getUI().ui.is(':visible') : false;
-
-	if (!isInventoryOpen) {
-		Inventory.getUI().toggle();
+/** `ZC.OPEN_REFINING_UI` (0x0aa0) — o NPC abriu a bancada. */
+function onOpenRefineUI() {
+	if (!janelaLigada()) {
+		return false;
 	}
-
-	const refineRect = Refine._host.getBoundingClientRect();
-	const refineWidth = Refine._host.offsetWidth;
-	const refineHeight = Refine._host.offsetHeight - Inventory.getUI().ui.height();
-
-	Inventory.getUI().ui.css({
-		position: 'absolute',
-		top: refineRect.top ? refineRect.top + refineHeight : 200,
-		left: refineRect.left ? refineRect.left + refineWidth : 300
-	});
-
+	Refine.append();
 	return false;
 }
 
 /**
- * Handles sending request to server to close Refine UI
+ * `ZC.REFINING_MATERIAL_LIST` (0x0aa2) — o pacote NATIVO do RO.
+ *
+ * Aqui ele serve a UMA coisa: dizer qual peca o servidor entendeu que foi
+ * escolhida. Os numeros do degrau vem na ficha (0x0fd3) logo atras, com a
+ * precisao que o bloco de 9 bytes deste nao tem. Ele fica ouvido, e nao
+ * ignorado, porque e ele que o servidor manda primeiro — e um cliente que so
+ * ouvisse a extensao dependeria da ordem de chegada.
  */
-function onRefineClose() {
-	Refine.remove();
-
-	const pkt = new PACKET.CZ.CLOSE_REFINING_UI();
-	Network.sendPacket(pkt);
+function onRefineMaterialList(pkt) {
+	if (!janelaLigada() || !pkt) {
+		return;
+	}
+	/*
+	 * So o INDICE. O redesenho da lista fica para a ficha, que chega logo
+	 * atras: redesenhar aqui tambem descartava as linhas duas vezes em
+	 * sequencia, e era nessa segunda vez que o icone recem-carregado se
+	 * perdia (ver `iconesCarregados`).
+	 */
+	estado.indice = pkt.itemIndex;
 }
 
-/**
- * Function to control phases and image looping
- * @param {string} phase - The phase to control
- * @param {boolean} shouldLoop - Whether the phase should loop
- * @param {number} interval - Interval between image changes in milliseconds
- * @param {function} callback - A callback function to execute after the phase completes
- */
-function controlPhase(phase, shouldLoop, interval, callback) {
-	let currentImageIndex = 0;
-	const imageArray = images[phase];
-
-	if (!imageArray) {
-		console.error('Invalid phase:', phase);
+/** `ZC_RAGIDLE_REFINO` (0x0fd3) — a ficha do degrau, ou a recusa por extenso. */
+function onFichaDeRefino(pkt) {
+	let ficha;
+	try {
+		ficha = JSON.parse(pkt.json);
+	} catch (e) {
+		console.error('Refine: ficha de refino ilegivel', e);
+		return;
+	}
+	if (!ficha || ficha.v !== 1) {
 		return;
 	}
 
-	function showImages() {
-		Client.loadFile(DB.INTERFACE_PATH + 'refining_renewal/' + imageArray[currentImageIndex], function (data) {
-			const container = _root().querySelector('.image-container');
-			if (container) {
-				container.style.backgroundImage = `url(${data})`;
-			}
-			currentImageIndex++;
+	estado.ficha = ficha;
+	estado.indice = ficha.indice;
+	montarLista(true);
+	pintarBancada();
 
-			if (currentImageIndex >= imageArray.length) {
-				if (shouldLoop) {
-					currentImageIndex = 0;
-				} else {
-					if (callback && typeof callback === 'function') {
-						callback();
-					}
-					return;
-				}
-			}
+	// `mostrandoResultado`: a ficha nova chega DURANTE a animacao de sucesso
+	// ou falha (de proposito — ver `onRefineResult`), e trocar de fase aqui
+	// cortaria o quadro do resultado no meio.
+	if (!estado.emCurso && !estado.mostrandoResultado) {
+		rodarFase(ficha.degrau ? 'ready' : 'waiting', true, 250);
+	}
+}
 
-			Refine.imageLoopTimeout = setTimeout(showImages, interval);
+/** O anuncio global de refino (`ZC.BROADCAST_ITEMREFINING_RESULT`). */
+function onBroadcastRefineResult(pkt) {
+	if (!pkt) {
+		return;
+	}
+	const item = DB.getItemInfo(pkt.itemId);
+	const nomeDoItem = item ? item.identifiedDisplayName : String(pkt.itemId);
+	const messageID = pkt.status === 0 ? 3272 : pkt.status === 1 ? 3271 : null;
+	if (messageID === null) {
+		return;
+	}
+	const mensagem = DB.getMessage(messageID)
+		.replace('%s', pkt.charName)
+		.replace('%d', pkt.refineLevel)
+		.replace('%s', nomeDoItem);
+	ChatBox.addText(mensagem, ChatBox.TYPE.ANNOUNCE, ChatBox.FILTER.PUBLIC_CHAT, '#FFB563');
+	Announce.append();
+	Announce.set(mensagem, '#FFB563');
+}
+
+/* ═══════════════════════════════════════════════════════════════════════ */
+/* Ciclo de vida                                                           */
+/* ═══════════════════════════════════════════════════════════════════════ */
+
+Refine.render = () => htmlText;
+
+Refine.init = function init() {
+	const root = _root();
+
+	this._host.style.top = '160px';
+	this._host.style.left = '260px';
+	this.draggable('.rf-header');
+
+	const fechar = root.querySelector('.rf-close');
+	if (fechar) {
+		fechar.addEventListener('click', onRefineClose);
+	}
+
+	const abas = root.querySelector('.rf-abas');
+	if (abas) {
+		abas.addEventListener('click', event => {
+			const botao = event.target.closest('.rf-aba');
+			if (!botao) {
+				return;
+			}
+			event.stopImmediatePropagation();
+			filtro = botao.dataset.aba;
+			lembrarAba(_preferences, filtro);
+			pintarAbas();
+			montarLista(true);
 		});
 	}
 
-	showImages();
-}
-
-/**
- * Drop an item from inventory to Refine UI
- */
-function onItemDrop(event) {
-	let item, data;
-	event.stopImmediatePropagation();
-	event.preventDefault();
-
-	try {
-		data = JSON.parse(event.dataTransfer.getData('Text'));
-		item = data.data;
-	} catch (_e) {
-		return;
-	}
-
-	if (data.type !== 'item' || data.from !== 'Inventory') {
-		return;
-	}
-
-	if (item) {
-		Refine.onRequestItemRefine(item);
-	}
-}
-
-/**
- * Handles sending the server packet request to refine an item
- */
-Refine.onRequestItemRefine = function onRequestItemRefine(item) {
-	const pkt = new PACKET.CZ.REFINING_SELECT_ITEM();
-	pkt.index = item.index;
-	Network.sendPacket(pkt);
-};
-
-/**
- * Handles the packet received from the server
- * @param {pkt} - PACKET.ZC.REFINING_MATERIAL_LIST
- */
-function onRefineUIUpdateMaterials(pkt) {
-	if (!Configs.get('enableRefineUI') || PACKETVER.value < 20161012) {
-		console.warn('Renewal Refine is enabled in your server. Please enable refine UI in your configs.');
-		return false;
-	}
-
-	const root = _root();
-
-	if (pkt && pkt.MaterialInfo.length > 0) {
-		const existingItem = root.querySelector('.item_to_refine .item');
-		if (existingItem) {
-			onRemoveItem(false);
-		}
-
-		refine_item_index = pkt.itemIndex;
-		const item = Inventory.getUI().getItemByIndex(pkt.itemIndex);
-
-		refiningMaterials = pkt.MaterialInfo;
-		blacksmithBlessing = pkt.blacksmithBlessing;
-
-		if (!Refine.hammer) {
-			onPopulateMaterials();
-
-			clearTimeout(Refine.imageLoopTimeout);
-			const isbsbenabled = blacksmithBlessing ? 'a' : 'b';
-			controlPhase(`ready${isbsbenabled}`, false, 250);
-		}
-
-		const it = DB.getItemInfo(item.ITID);
-		const content = root.querySelector('.item_to_refine');
-
-		content.insertAdjacentHTML(
-			'beforeend',
-			`<div class="item" data-index="${item.index}" draggable="true">` +
-				'<div class="icon"></div>' +
-				'<div class="grade"></div>' +
-				'</div>'
-		);
-
-		Client.loadFile(
-			DB.INTERFACE_PATH +
-				'item/' +
-				(item.IsIdentified ? it.identifiedResourceName : it.unidentifiedResourceName) +
-				'.bmp',
-			function (data) {
-				const icon = content.querySelector(`.item[data-index="${item.index}"] .icon`);
-				if (icon) {
-					icon.style.backgroundImage = `url(${data})`;
-				}
+	const lista = root.querySelector('.rf-lista');
+	if (lista) {
+		lista.addEventListener('click', event => {
+			const linha = event.target.closest('.rf-item');
+			if (!linha) {
+				return;
 			}
-		);
-
-		if (item.enchantgrade) {
-			Client.loadFile(DB.INTERFACE_PATH + `grade_enchant/grade_icon${item.enchantgrade}.bmp`, function (data) {
-				const grade = content.querySelector(`.item[data-index="${item.index}"] .grade`);
-				if (grade) {
-					grade.style.backgroundImage = `url(${data})`;
-				}
-			});
-		}
-
-		const itemname = root.querySelector('.item_to_refine_name');
-		if (itemname) {
-			itemname.textContent = DB.getItemName(item);
-		}
-
-		// Select previously selected material if available
-		if (Refine.hammer >= 1 && refine_item_mat) {
-			let materialFound = false;
-			let foundItem, foundMaterial;
-
-			for (let i = 0; i < refiningMaterials.length; i++) {
-				foundMaterial = refiningMaterials[i];
-				if (foundMaterial.itemId === refine_item_mat) {
-					foundItem = Inventory.getUI().getItemById(foundMaterial.itemId);
-					materialFound = true;
-					refine_new_mats = 0;
-					break;
-				}
+			event.stopImmediatePropagation();
+			estado.recado = null;
+			escolher(parseInt(linha.dataset.indice, 10));
+		});
+		/*
+		 * O TECLADO ESCOLHE TAMBEM.
+		 *
+		 * A lista nasceu com `tabindex="0"` e um anel de foco — e sem tecla
+		 * nenhuma ligada, que e pior do que nao ser focavel: quem chega nela
+		 * pelo Tab fica preso num elemento que parece interativo e nao faz
+		 * nada. Setas andam, Enter/Espaco escolhem, e o `role="listbox"` do
+		 * HTML passa a dizer a verdade.
+		 */
+		lista.addEventListener('keydown', event => {
+			const linhas = [...lista.querySelectorAll('.rf-item')];
+			if (linhas.length === 0) {
+				return;
 			}
+			const atual = linhas.findIndex(l => l.classList.contains('is-active'));
+			let alvo = -1;
 
-			if (!materialFound) {
-				refine_new_mats = 1;
-				showMessage(3242, 3, 'error');
-			}
-
-			if (refine_bsb) {
-				if (blacksmithBlessing === 0) {
-					refine_new_mats = 1;
-					showMessage(3242, 3, 'error');
-				}
-				refine_bsb = blacksmithBlessing;
-			}
-
-			selectMaterial(foundMaterial, foundItem);
-		}
-	} else {
-		showMessage(2970, 3, 'error');
-		return false;
-	}
-}
-
-/**
- * Handles populating materials needed for refining
- */
-function onPopulateMaterials() {
-	const root = _root();
-
-	// Clear any existing materials
-	root.querySelectorAll(
-		'.materials .mat_overlay .material_0, .materials .mat_overlay .material_1, .materials .mat_overlay .material_2, .materials .mat_overlay .material_3'
-	).forEach(el => {
-		el.innerHTML = '';
-	});
-	const bsbContainer = root.querySelector('.bsb_overlay .bsb');
-	if (bsbContainer) {
-		bsbContainer.innerHTML = '';
-	}
-
-	// Update materials
-	for (let i = 0; i < refiningMaterials.length; i++) {
-		(function (idx) {
-			const material = refiningMaterials[idx];
-			const it = DB.getItemInfo(material.itemId);
-			const item = Inventory.getUI().getItemById(material.itemId);
-			const materialDiv = root.querySelector(`.material_${idx}`);
-
-			if (!materialDiv) {
+			if (event.key === 'ArrowDown') {
+				alvo = Math.min(linhas.length - 1, atual + 1);
+			} else if (event.key === 'ArrowUp') {
+				alvo = Math.max(0, atual <= 0 ? 0 : atual - 1);
+			} else if (event.key === 'Home') {
+				alvo = 0;
+			} else if (event.key === 'End') {
+				alvo = linhas.length - 1;
+			} else if (event.key === 'Enter' || event.key === ' ') {
+				// Escolher ja aconteceu na seta; aqui Enter/Espaco REFINAM, que
+				// e a acao da janela — e o botao pode estar apagado.
+				event.preventDefault();
+				refinar();
+				return;
+			} else {
 				return;
 			}
 
-			materialDiv.innerHTML = '';
-
-			materialDiv.insertAdjacentHTML(
-				'beforeend',
-				`<div class="item" data-index="${material.itemId}" draggable="false">` +
-					'<div class="icon"></div>' +
-					'<div class="mat_count"></div>' +
-					'</div>'
-			);
-
-			Client.loadFile(
-				DB.INTERFACE_PATH +
-					'item/' +
-					(it.IsIdentified ? it.identifiedResourceName : it.unidentifiedResourceName) +
-					'.bmp',
-				function (data) {
-					const icon = materialDiv.querySelector(`.item[data-index="${material.itemId}"] .icon`);
-					if (icon) {
-						icon.style.backgroundImage = `url(${data})`;
-					}
-				}
-			);
-
-			const count = item ? item.count : 0;
-			const countmsg = materialDiv.querySelector(`.item[data-index="${material.itemId}"] .mat_count`);
-			if (countmsg) {
-				if (count === 0) {
-					countmsg.innerHTML = `<span style="color: #ce1029;">${count}</span>/1`;
-				} else {
-					countmsg.textContent = `${count}/1`;
-				}
+			event.preventDefault();
+			const linha = linhas[alvo];
+			if (linha) {
+				linha.scrollIntoView({ block: 'nearest' });
+				estado.recado = null;
+				escolher(parseInt(linha.dataset.indice, 10));
 			}
+		});
 
-			// Material Selection upon clicking
-			const iconEl = materialDiv.querySelector('.icon');
-			if (iconEl) {
-				iconEl.addEventListener('click', () => {
-					const clickedItemId = material.itemId;
-					const clickedItem = Inventory.getUI().getItemById(clickedItemId);
-					const clickedCount = clickedItem ? clickedItem.count : 0;
-
-					if (clickedCount === 0) {
-						return;
-					}
-
-					// Check if item ID exists in the mapping and show corresponding message
-					for (const messageID in itemMessageMapping) {
-						if (itemMessageMapping[messageID].includes(clickedItemId)) {
-							showMessage(messageID, 0, 'info');
-							break;
-						}
-					}
-
-					root.querySelectorAll('.mat_overlay').forEach(el => el.classList.remove('selected'));
-					materialDiv.closest('.mat_overlay').classList.add('selected');
-
-					// Clone the material and append it to the selected_mat
-					const originalItem = materialDiv.querySelector('.item');
-					const clonedMaterial = originalItem.cloneNode(true);
-					const matCount = clonedMaterial.querySelector('.mat_count');
-					if (matCount) {
-						matCount.remove();
-					}
-
-					const selectedMat = root.querySelector('.selected_mat');
-					selectedMat.innerHTML = '';
-					selectedMat.appendChild(clonedMaterial);
-
-					// Enable refine button
-					const refineEnabled = root.querySelector('.refine_enabled');
-					if (refineEnabled) {
-						refineEnabled.style.display = 'block';
-					}
-
-					// Update success and refining_zeny
-					const numberEl = root.querySelector('.success .number');
-					if (numberEl) {
-						numberEl.textContent = material.chance;
-					}
-					pintarChance(material.chance);
-					const chanceRate = root.querySelector('.chance_rate');
-					if (chanceRate) {
-						chanceRate.textContent = `Próxima tentativa: ${material.chance}%`;
-					}
-					const refineZeny = root.querySelector('.refine_zeny');
-					if (refineZeny) {
-						refineZeny.textContent = zeny(material.zeny);
-					}
-					const refineZenyCont = root.querySelector('.refine_zeny_cont');
-					if (refineZenyCont) {
-						refineZenyCont.textContent = zeny(material.zeny);
-					}
-
-					// Store fresh chance/zeny for re-apply after the result animation
-					refine_current_chance = material.chance;
-					refine_current_zeny = material.zeny;
-
-					// Set the refine_item_mat value to the selected material itemId
-					refine_item_mat = material.itemId;
-					refine_fee = material.zeny;
-
-					const refineCont = root.querySelector('.refine_cont');
-					if (refineCont) {
-						refineCont.classList.add('item');
-						refineCont.setAttribute('data-index', material.itemId);
-					}
-				});
+		// Botao direito na peca: a ficha do item, como em toda lista do jogo.
+		lista.addEventListener('contextmenu', event => {
+			const linha = event.target.closest('.rf-item');
+			if (!linha) {
+				return;
 			}
-		})(i);
+			event.preventDefault();
+			event.stopImmediatePropagation();
+			abrirFichaDoItem(parseInt(linha.dataset.indice, 10));
+		});
 	}
 
-	// Update blacksmith blessing if applicable
-	if (blacksmithBlessing) {
-		const bsbDiv = root.querySelector('.bsb_overlay .bsb');
-		const bsbItem = DB.getItemInfo(BSB_ITID);
-		const item = Inventory.getUI().getItemById(BSB_ITID);
-		bsbDiv.insertAdjacentHTML(
-			'beforeend',
-			`<div class="item" data-index="${BSB_ITID}" draggable="false">` +
-				'<div class="icon"></div>' +
-				'<div class="mat_count"></div>' +
-				'</div>'
-		);
-
-		Client.loadFile(
-			DB.INTERFACE_PATH +
-				'item/' +
-				(bsbItem.IsIdentified ? bsbItem.identifiedResourceName : bsbItem.unidentifiedResourceName) +
-				'.bmp',
-			function (data) {
-				const icon = bsbDiv.querySelector(`.item[data-index="${BSB_ITID}"] .icon`);
-				if (icon) {
-					icon.style.backgroundImage = `url(${data})`;
-				}
-			}
-		);
-
-		const bsbCountOuter = item ? item.count : 0;
-		const bsbcountmsg = bsbDiv.querySelector(`.item[data-index="${BSB_ITID}"] .mat_count`);
-		if (bsbcountmsg) {
-			if (bsbCountOuter === 0) {
-				bsbcountmsg.innerHTML = `<span style="color: #ce1029;">${bsbCountOuter}</span>/${blacksmithBlessing}`;
-			} else {
-				bsbcountmsg.textContent = `${bsbCountOuter}/${blacksmithBlessing}`;
-			}
-		}
-
-		// Add select functionality
-		const bsbIcon = bsbDiv.querySelector('.icon');
-		if (bsbIcon) {
-			bsbIcon.addEventListener('click', () => {
-				const bsbInventoryItem = Inventory.getUI().getItemById(BSB_ITID);
-				const currentBsbCount = bsbInventoryItem ? bsbInventoryItem.count : 0;
-
-				if (currentBsbCount >= blacksmithBlessing) {
-					const bsbOverlay = bsbDiv.closest('.bsb_overlay');
-
-					if (bsbOverlay.classList.contains('selected')) {
-						bsbOverlay.classList.remove('selected');
-						const bsbSelected = root.querySelector('.bsb_selected');
-						if (bsbSelected) {
-							bsbSelected.innerHTML = '';
-						}
-						const someNotifs = root.querySelector('.some_notifs');
-						if (someNotifs) {
-							someNotifs.style.display = 'none';
-						}
-					} else {
-						root.querySelectorAll('.bsb_overlay').forEach(el => el.classList.remove('selected'));
-						bsbOverlay.classList.add('selected');
-
-						// Clone the blacksmith blessing and append it to the selected_mat
-						const originalItem = bsbDiv.querySelector('.item');
-						const clonedBSB = originalItem.cloneNode(true);
-						const matCount = clonedBSB.querySelector('.mat_count');
-						if (matCount) {
-							matCount.remove();
-						}
-
-						const bsbSelected = root.querySelector('.bsb_selected');
-						if (bsbSelected) {
-							bsbSelected.innerHTML = '';
-							bsbSelected.appendChild(clonedBSB);
-						}
-
-						// BSB will be used
-						refine_bsb = blacksmithBlessing;
-
-						// Show Info
-						showMessage(2967, 0, 'info');
-					}
-				} else {
-					showMessage(2969, 3, 'error');
-				}
-			});
-		}
-	}
-}
-
-/**
- * Handles update of variables for UI changes based on Refine result
- */
-function selectMaterial(material, item) {
-	const root = _root();
-	const count = item ? item.count || 0 : 0;
-
-	refine_can_cont = 1;
-
-	if (count) {
-		refine_no_mats = 0;
-	} else {
-		refine_no_mats = 1;
-		refine_can_cont = 0;
+	const acao = root.querySelector('.rf-acao');
+	if (acao) {
+		acao.addEventListener('click', event => {
+			event.stopImmediatePropagation();
+			refinar();
+		});
 	}
 
-	if (refine_bsb) {
-		const bsbinInventory = Inventory.getUI().getItemById(BSB_ITID);
-		const bsbCount = bsbinInventory ? bsbinInventory.count || 0 : 0;
-
-		if (!bsbinInventory || bsbCount < refine_bsb) {
-			refine_no_bsb = 1;
-			refine_can_cont = 0;
-		} else {
-			refine_no_bsb = 0;
-		}
-	}
-
-	refine_fee = material.zeny;
-	if (Session.zeny < material.zeny) {
-		refine_no_zeny = 1;
-		refine_can_cont = 0;
-	}
-
-	if (onCheckItemBroken()) {
-		refine_can_cont = 0;
-	}
-
-	refine_current_chance = material.chance;
-	refine_current_zeny = material.zeny;
-
-	const chanceRate = root.querySelector('.chance_rate');
-	if (chanceRate) {
-		chanceRate.textContent = `Próxima tentativa: ${material.chance}%`;
-	}
-	const refineZenyCont = root.querySelector('.refine_zeny_cont');
-	if (refineZenyCont) {
-		refineZenyCont.textContent = zeny(material.zeny);
-	}
-
-	if (refine_can_cont && !refine_new_mats && !refine_item_broken) {
-		refine_result_div = refine_result ? 'fail_refine_cont_enabled' : 'success_refine_cont_enabled';
-	} else {
-		refine_result_div = refine_result ? 'fail_refine_cont_disabled' : 'success_refine_cont_disabled';
-		const refineCont = root.querySelector('.refine_cont');
-		if (refineCont) {
-			refineCont.classList.remove('item');
-			refineCont.removeAttribute('data-index');
-		}
-	}
-}
-
-/**
- * Show item name when mouse is over
- */
-function onItemOver(event) {
-	const root = _root();
-	const idx = parseInt(this.getAttribute('data-index'), 10);
-	const it = DB.getItemInfo(idx);
-
-	if (!idx) {
-		return;
-	}
-
-	const overlay = root.querySelector('.overlay');
-	if (!overlay) {
-		return;
-	}
-
-	/* A DICA PASSOU A SE MEDIR SOZINHA (redesenho de 01/09/2026).
-	 *
-	 * Antes eram quatro deslocamentos cravados (+30/-39 para os materiais,
-	 * +242/+41 para o botao de repetir) somados a um container intermediario:
-	 * numeros que so faziam sentido dentro do bitmap de 262x301 e que, com a
-	 * janela remontada, jogavam o nome do item para fora dela.
-	 *
-	 * Agora ela se ancora na JANELA (que e o bloco posicionado da dica), fica
-	 * acima da peca sob o cursor, e e presa nas bordas — nao ha mais numero
-	 * para envelhecer quando o leiaute mudar de novo. */
-	overlay.style.display = 'block';
-	overlay.textContent = it.identifiedDisplayName;
-
-	const janela = Refine._host.getBoundingClientRect();
-	const peca = this.getBoundingClientRect();
-	const largura = overlay.offsetWidth;
-	const altura = overlay.offsetHeight;
-
-	const meio = peca.left - janela.left + peca.width / 2 - largura / 2;
-	const left = Math.max(4, Math.min(meio, janela.width - largura - 4));
-	/* Acima da peca; se nao couber, desce para baixo dela. */
-	const acima = peca.top - janela.top - altura - 4;
-	const top = acima >= 4 ? acima : peca.bottom - janela.top + 4;
-
-	overlay.style.left = `${left}px`;
-	overlay.style.top = `${top}px`;
-
-	if (it.IsIdentified) {
-		overlay.classList.remove('grey');
-	} else {
-		overlay.classList.add('grey');
-	}
-}
-
-/**
- * Hide the item name
- */
-function onItemOut() {
-	const root = _root();
-	const overlay = root.querySelector('.overlay');
-	if (overlay) {
-		overlay.style.display = 'none';
-	}
-}
-
-/**
- * Handles clearance of variables and UI components when changing Item
- */
-function onRemoveItem(backtowait) {
-	const root = _root();
-
-	refiningMaterials = [];
-	blacksmithBlessing = 0;
-
-	const itemToRefine = root.querySelector('.item_to_refine');
-	if (itemToRefine) {
-		itemToRefine.innerHTML = '';
-	}
-	const itemToRefineName = root.querySelector('.item_to_refine_name');
-	if (itemToRefineName) {
-		itemToRefineName.textContent = '';
-	}
-
-	const successNumber = root.querySelector('.success .number');
-	if (successNumber) {
-		successNumber.textContent = '0';
-	}
-	pintarChance(0);
-	const refineZeny = root.querySelector('.refine_zeny');
-	if (refineZeny) {
-		refineZeny.innerHTML = '';
-	}
-
-	const selectedMat = root.querySelector('.selected_mat');
-	if (selectedMat) {
-		selectedMat.innerHTML = '';
-	}
-	const bsbSelected = root.querySelector('.bsb_selected');
-	if (bsbSelected) {
-		bsbSelected.innerHTML = '';
-	}
-	root.querySelectorAll('.materials .item').forEach(el => {
-		el.innerHTML = '';
-	});
-	root.querySelectorAll('.bsb .item').forEach(el => {
-		el.innerHTML = '';
-	});
-	root.querySelectorAll('.mat_overlay').forEach(el => el.classList.remove('selected'));
-	root.querySelectorAll('.bsb_overlay').forEach(el => el.classList.remove('selected'));
-
-	if (backtowait === true) {
-		if (currentLoopHandle) {
-			clearTimeout(currentLoopHandle);
-			currentLoopHandle = null;
-		}
-		if (Refine.imageLoopTimeout) {
-			clearTimeout(Refine.imageLoopTimeout);
-			Refine.imageLoopTimeout = null;
-		}
-
-		controlPhase('waiting', true, 250);
-
-		const someNotifs = root.querySelector('.some_notifs');
-		if (someNotifs) {
-			someNotifs.style.display = 'none';
-		}
-		const refineButton = root.querySelector('.refine_button');
-		if (refineButton) {
-			refineButton.style.display = 'block';
-		}
-		const successEl = root.querySelector('.success');
-		if (successEl) {
-			successEl.innerHTML = initialsuccess;
-			successEl.classList.remove('deu-certo', 'deu-errado');
-			successEl.style.display = 'block';
-		}
-		pintarChance(0);
-
-		onHideContRefineButtons();
-		clearRefineStates();
-	}
-}
-
-/**
- * Handles clearing of material components after requesting to refine
- */
-function clearMaterials() {
-	const root = _root();
-
-	const successEl = root.querySelector('.success');
-	if (successEl) {
-		successEl.innerHTML = '';
-		successEl.style.display = 'none';
-	}
-	pintarChance(null);
-	const refineZeny = root.querySelector('.refine_zeny');
-	if (refineZeny) {
-		refineZeny.innerHTML = '';
-	}
-
-	root.querySelectorAll('.materials .item').forEach(el => {
-		el.style.display = 'none';
-	});
-	root.querySelectorAll('.bsb .item').forEach(el => {
-		el.style.display = 'none';
-	});
-
-	const selectedMat = root.querySelector('.selected_mat');
-	if (selectedMat) {
-		selectedMat.innerHTML = '';
-	}
-	const bsbSelected = root.querySelector('.bsb_selected');
-	if (bsbSelected) {
-		bsbSelected.innerHTML = '';
-	}
-
-	root.querySelectorAll('.mat_overlay').forEach(el => el.classList.remove('selected'));
-	root.querySelectorAll('.bsb_overlay').forEach(el => el.classList.remove('selected'));
-
-	const refineButton = root.querySelector('.refine_button');
-	if (refineButton) {
-		refineButton.style.display = 'none';
-	}
-}
-
-/**
- * Show a message in .info_msg
- * @param {number} messageID - The message ID to retrieve from DB
- * @param {number} timeout - The duration to show the message, in seconds (0 for infinite)
- * @param {string} type - The type of message ('error' or 'info')
- */
-function showMessage(messageID, timeout, type) {
-	const root = _root();
-	const message = DB.getMessage(messageID);
-	let messageClass;
-
-	switch (type) {
-		case 'error':
-			messageClass = 'red';
-			break;
-		case 'info':
-			messageClass = 'blue';
-			break;
-		default:
-			messageClass = 'red';
-			break;
-	}
-
-	if (Refine.messageTimeOut) {
-		clearTimeout(Refine.messageTimeOut);
-	}
-
-	const infoMsg = root.querySelector('.info_msg');
-	if (infoMsg) {
-		infoMsg.classList.remove('red', 'blue');
-		infoMsg.textContent = message;
-		infoMsg.classList.add(messageClass);
-	}
-
-	const someNotifs = root.querySelector('.some_notifs');
-	if (someNotifs) {
-		someNotifs.style.display = 'block';
-	}
-
-	if (timeout > 0) {
-		Refine.messageTimeOut = setTimeout(() => {
-			if (infoMsg) {
-				infoMsg.classList.remove(messageClass);
-			}
-			if (someNotifs) {
-				someNotifs.style.display = 'none';
-			}
-		}, timeout * 1000);
-	}
-}
-
-/**
- * Send the server request to refine the item
- */
-function onRequestRefine() {
-	const root = _root();
-	const item = Inventory.getUI().getItemByIndex(refine_item_index);
-	const material = Inventory.getUI().getItemById(refine_item_mat);
-
-	if (!item) {
-		return;
-	}
-
-	if (!material) {
-		return;
-	}
-
-	if (Session.zeny < refine_fee) {
-		showMessage(2968, 3, 'error');
-		return;
-	}
-
-	if (!Refine.hammer) {
-		clearMaterials();
-	}
-
-	Refine.hammer++;
-
-	const refineButton = root.querySelector('.refine_button');
-	if (refineButton) {
-		refineButton.style.display = 'none';
-	}
-
-	const itemToRefineName = root.querySelector('.item_to_refine_name');
-	if (itemToRefineName) {
-		itemToRefineName.style.display = 'none';
-	}
-	const successEl = root.querySelector('.success');
-	if (successEl) {
-		successEl.style.display = 'none';
-	}
-
-	refine_ongoing = 1;
-
-	const pkt = new PACKET.CZ.REQ_REFINING();
-	pkt.index = refine_item_index;
-	pkt.itemId = refine_item_mat;
-	pkt.blacksmithBlessing = refine_bsb;
-	Network.sendPacket(pkt);
-}
-
-/**
- * Handles the received refine result packet
- * @param {pkt} - PACKET.ZC.ACK_ITEMREFINING
- */
-Refine.onRefineResult = function onRefineResult(pkt) {
-	const root = _root();
-
-	if (pkt) {
-		const backButton = root.querySelector('.back_button');
-		if (backButton) {
-			backButton.style.display = 'none';
-		}
-		const refineCont = root.querySelector('.refine_cont');
-		if (refineCont) {
-			refineCont.style.display = 'none';
-		}
-
-		const item = Inventory.getUI().removeItem(pkt.itemIndex, 1);
-		if (item) {
-			item.RefiningLevel = pkt.RefiningLevel;
-			Inventory.getUI().addItem(item);
-		}
-
-		stopCurrentLoop();
-
-		refine_result = pkt.result;
-
-		switch (pkt.result) {
-			case 0:
-				refine_can_cont = 1;
-				onAnimateResult('success', () => {
-					onUpdateRefineUI('success');
-					startLoopingPhase('success_wait');
-				});
-				break;
-			case 1:
-			case 3:
-				onShowFailure(pkt.result);
-				break;
-			case 2:
-				onShowFailure(pkt.result);
-				break;
-		}
-	}
+	filtro = abaLembrada(_preferences, 'todos', ABAS);
+	pintarAbas();
 };
 
-/**
- * Handles animation for failure and pass to UI if downgrade or fail
- */
-function onShowFailure(result) {
-	const showResult = result === 2 ? 'downgrade' : 'fail';
-
-	onAnimateResult('fail', () => {
-		onUpdateRefineUI(showResult);
-		startLoopingPhase('fail_wait');
+function pintarAbas() {
+	const root = _root();
+	if (!root) {
+		return;
+	}
+	root.querySelectorAll('.rf-aba').forEach(botao => {
+		const ativa = botao.dataset.aba === filtro;
+		botao.classList.toggle('is-active', ativa);
+		botao.setAttribute('aria-selected', ativa ? 'true' : 'false');
 	});
 }
 
-/**
- * Handles animation sequences depending on Refine result
- */
-function onAnimateResult(result, callback) {
-	function runSuccessSequence() {
-		if (refine_bsb) {
-			controlPhase('processa', false, 50, () => {
-				controlPhase('success', false, 50, callback);
-			});
-		} else {
-			controlPhase('processb', false, 50, () => {
-				controlPhase('success', false, 50, callback);
-			});
-		}
-	}
-
-	function runFailSequence() {
-		if (refine_bsb) {
-			controlPhase('processa', false, 50, () => {
-				controlPhase('fail', false, 50, callback);
-			});
-		} else {
-			controlPhase('processb', false, 50, () => {
-				controlPhase('fail', false, 50, callback);
-			});
-		}
-	}
-
-	switch (result) {
-		case 'success':
-			runSuccessSequence();
-			break;
-		case 'fail':
-			runFailSequence();
-			break;
-		default:
-			if (callback) {
-				callback();
-			}
-			break;
-	}
-}
-
-/**
- * Store and start phase animation
- */
-function startLoopingPhase(phase) {
-	currentLoopHandle = controlPhase(phase, true, 75);
-}
-
-/**
- * Function to stop current stored on-going phase animation
- */
-function stopCurrentLoop() {
-	if (currentLoopHandle) {
-		clearTimeout(currentLoopHandle);
-		currentLoopHandle = null;
-	}
-	if (Refine.imageLoopTimeout) {
-		clearTimeout(Refine.imageLoopTimeout);
-		Refine.imageLoopTimeout = null;
-	}
-}
-
-/**
- * Handles how the UI changes depending on Refine result
- */
-function onUpdateRefineUI(result) {
-	const root = _root();
-
-	onHideContRefineButtons();
-
-	switch (result) {
-		case 'success': {
-			const backSuccess = root.querySelector('.back_success');
-			if (backSuccess) {
-				backSuccess.style.display = 'block';
-			}
-			const successEl = root.querySelector('.success');
-			if (successEl) {
-				successEl.textContent = 'Refino concluído!';
-				successEl.classList.add('deu-certo');
-				successEl.classList.remove('deu-errado');
-				successEl.style.display = 'block';
-			}
-			pintarChance(null);
-			ChatBox.addText(DB.getMessage(498), ChatBox.TYPE.BLUE, ChatBox.FILTER.PUBLIC_LOG);
-			break;
-		}
-		case 'fail': {
-			onCheckItemBroken();
-			const backFail = root.querySelector('.back_fail');
-			if (backFail) {
-				backFail.style.display = 'block';
-			}
-			const successEl = root.querySelector('.success');
-			if (successEl) {
-				successEl.textContent = 'O refino falhou';
-				successEl.classList.add('deu-errado');
-				successEl.classList.remove('deu-certo');
-				successEl.style.display = 'block';
-			}
-			pintarChance(null);
-			ChatBox.addText(DB.getMessage(499), ChatBox.TYPE.BLUE, ChatBox.FILTER.PUBLIC_LOG);
-			break;
-		}
-		case 'downgrade': {
-			onCheckItemBroken();
-			const backFail = root.querySelector('.back_fail');
-			if (backFail) {
-				backFail.style.display = 'block';
-			}
-			const successEl = root.querySelector('.success');
-			if (successEl) {
-				successEl.textContent = 'Falhou e o refino caiu um nível';
-				successEl.classList.add('deu-errado');
-				successEl.classList.remove('deu-certo');
-				successEl.style.display = 'block';
-			}
-			pintarChance(null);
-			ChatBox.addText(DB.getMessage(1537), ChatBox.TYPE.BLUE, ChatBox.FILTER.PUBLIC_LOG);
-			break;
-		}
-		default:
-			break;
-	}
-
-	const refineTextCont = root.querySelector('.refine_text_cont');
-	if (refineTextCont) {
-		refineTextCont.style.display = 'block';
-	}
-
-	if (refine_result_div) {
-		const resultEl = root.querySelector(`.${refine_result_div}`);
-		if (resultEl) {
-			resultEl.style.display = 'block';
-		}
-	}
-
-	if (refine_can_cont && !refine_new_mats && !refine_item_broken) {
-		const chanceRate = root.querySelector('.chance_rate');
-		if (chanceRate) {
-			chanceRate.textContent = DB.getMessage(3285).replace('%d%', refine_current_chance);
-			chanceRate.style.display = 'block';
-		}
-		const refineZenyCont = root.querySelector('.refine_zeny_cont');
-		if (refineZenyCont) {
-			refineZenyCont.textContent = refine_current_zeny;
-			refineZenyCont.style.display = 'block';
-		}
-	}
-
-	if (refine_no_mats) {
-		showMessage(3243, 3, 'error');
-	}
-	if (refine_no_zeny) {
-		showMessage(3244, 3, 'error');
-	}
-	if (refine_no_bsb) {
-		showMessage(3245, 3, 'error');
-	}
-
-	const backButton = root.querySelector('.back_button');
-	if (backButton) {
-		backButton.style.display = 'block';
-	}
-	const refineCont = root.querySelector('.refine_cont');
-	if (refineCont) {
-		refineCont.style.display = 'block';
-	}
-
-	if (!refine_item_broken) {
-		const refineditem = Inventory.getUI().getItemByIndex(refine_item_index);
-		if (refineditem) {
-			const itemToRefineName = root.querySelector('.item_to_refine_name');
-			if (itemToRefineName) {
-				itemToRefineName.textContent = DB.getItemName(refineditem);
-			}
-		}
-	}
-
-	const itemToRefineName = root.querySelector('.item_to_refine_name');
-	if (itemToRefineName) {
-		itemToRefineName.style.display = 'block';
-	}
-
-	refine_ongoing = 0;
-}
-
-/**
- * Handles hiding all buttons used in Continous Refine
- */
-function onHideContRefineButtons() {
-	const root = _root();
-
-	const backButton = root.querySelector('.back_button');
-	if (backButton) {
-		backButton.style.display = 'none';
-	}
-	const refineCont = root.querySelector('.refine_cont');
-	if (refineCont) {
-		refineCont.style.display = 'none';
-	}
-	const backSuccess = root.querySelector('.back_success');
-	if (backSuccess) {
-		backSuccess.style.display = 'none';
-	}
-	const backFail = root.querySelector('.back_fail');
-	if (backFail) {
-		backFail.style.display = 'none';
-	}
-	const successContEnabled = root.querySelector('.success_refine_cont_enabled');
-	if (successContEnabled) {
-		successContEnabled.style.display = 'none';
-	}
-	const successContDisabled = root.querySelector('.success_refine_cont_disabled');
-	if (successContDisabled) {
-		successContDisabled.style.display = 'none';
-	}
-	const failContEnabled = root.querySelector('.fail_refine_cont_enabled');
-	if (failContEnabled) {
-		failContEnabled.style.display = 'none';
-	}
-	const failContDisabled = root.querySelector('.fail_refine_cont_disabled');
-	if (failContDisabled) {
-		failContDisabled.style.display = 'none';
-	}
-	const refineTextCont = root.querySelector('.refine_text_cont');
-	if (refineTextCont) {
-		refineTextCont.style.display = 'none';
-	}
-	const chanceRate = root.querySelector('.chance_rate');
-	if (chanceRate) {
-		chanceRate.style.display = 'none';
-	}
-	const refineZenyCont = root.querySelector('.refine_zeny_cont');
-	if (refineZenyCont) {
-		refineZenyCont.style.display = 'none';
-		/* Esvaziar, e nao so esconder: a linha de custo escolhe entre
-		   `.refine_zeny` (montagem) e `.refine_zeny_cont` (proxima tentativa)
-		   por `:empty`, e um valor velho aqui dentro fazia o traco de "sem
-		   custo" sumir na janela recem-aberta. */
-		refineZenyCont.textContent = '';
-	}
-}
-
-/**
- * Check if the item being refined is broken
- */
-function onCheckItemBroken() {
-	const root = _root();
-	const refineditem = Inventory.getUI().getItemByIndex(refine_item_index);
-	if (!refineditem) {
-		refine_result_div = 'fail_refine_cont_disabled';
-		const itemToRefineName = root.querySelector('.item_to_refine_name');
-		if (itemToRefineName) {
-			itemToRefineName.textContent = DB.getMessage(3246);
-		}
-		refine_item_broken = 1;
-		return true;
-	} else {
-		refine_item_broken = 0;
-		return false;
-	}
-}
-
-/**
- * Handles event when Back button was pressed during Continous Refine
- */
-function onCancelContRefine() {
-	const root = _root();
-
-	Refine.hammer = 0;
-	onHideContRefineButtons();
-	stopCurrentLoop();
-
-	if (!refine_item_broken) {
-		onPopulateMaterials();
-		const isbsbenabled = blacksmithBlessing ? 'a' : 'b';
-		controlPhase(`ready${isbsbenabled}`, false, 250);
-	} else {
-		onRemoveItem(true);
-	}
-
-	const refineButton = root.querySelector('.refine_button');
-	if (refineButton) {
-		refineButton.style.display = 'block';
-	}
-	const successEl = root.querySelector('.success');
-	if (successEl) {
-		successEl.innerHTML = initialsuccess;
-		successEl.classList.remove('deu-certo', 'deu-errado');
-		successEl.style.display = 'block';
-	}
-	pintarChance(0);
-}
-
-/**
- * Get item info (open description window)
- */
-function onItemInfo(event) {
-	event.stopImmediatePropagation();
-	event.preventDefault();
-
-	const ITID = parseInt(this.getAttribute('data-index'), 10);
-	const item = Inventory.getUI().getItemById(ITID)
-		? Inventory.getUI().getItemById(ITID)
-		: Inventory.getUI().getItemByIndex(ITID);
-
+function abrirFichaDoItem(indice) {
+	const ui = Inventory.getUI();
+	const item = ui && ui.getItemByIndex(indice);
 	if (!item) {
 		return;
 	}
-
-	if (ItemCompare.ui) {
-		ItemCompare.remove();
-	}
-
 	if (ItemInfo.uid === item.ITID) {
 		ItemInfo.remove();
-		if (ItemCompare.ui) {
-			ItemCompare.remove();
-		}
 		return;
 	}
-
 	ItemInfo.append();
 	ItemInfo.uid = item.ITID;
 	ItemInfo.setItem(item);
+}
 
-	const compareItem = Equipment.getUI().isInEquipList(item.location);
+Refine.onAppend = function onAppend() {
+	zerarEstado();
+	estado.aberta = true;
 
-	if (compareItem && Inventory.getUI().itemcomp) {
-		ItemCompare.prepare();
-		ItemCompare.append();
-		ItemCompare.uid = compareItem.ITID;
-		ItemCompare.setItem(compareItem);
+	pintarAbas();
+	montarLista(true);
+	pintarBancada();
+	rodarFase('waiting', true, 250);
+
+	/*
+	 * ABRIR JA COM A PRIMEIRA PECA ESCOLHIDA.
+	 *
+	 * A janela antiga abria vazia e esperava um arrasto. Abrir escolhendo
+	 * poupa o passo mais caro do fluxo e — mais importante — faz a bancada
+	 * chegar com NUMEROS na tela: uma janela que abre util nunca parece
+	 * quebrada. A escolha e a primeira peca que da para refinar; se so houver
+	 * vestidas, escolhe a primeira mesmo assim, e a bancada explica.
+	 */
+	const pecas = pecasDaMochila().filter(passaNoFiltro).sort(ordenarPecas);
+	if (pecas.length > 0) {
+		escolher(pecas[0].index);
 	}
+
+	if (pollHandle === null) {
+		pollHandle = setInterval(() => montarLista(false), INTERVALO_DO_POLL_MS);
+	}
+};
+
+Refine.onRemove = function onRemove() {
+	if (pollHandle !== null) {
+		clearInterval(pollHandle);
+		pollHandle = null;
+	}
+	pararFase();
+	zerarEstado();
+};
+
+/**
+ * Fechar tem de AVISAR o servidor.
+ *
+ * `conexao.estado.refinoAberto` e a guarda que impede um cliente de mandar
+ * `CZ_REQ_REFINING` fora da janela — e deixar de fechar a deixaria aberta para
+ * sempre do lado de la (`servidor/mapa/janela-de-refino.test.ts`).
+ */
+function onRefineClose() {
+	Refine.remove();
+	Network.sendPacket(new PACKET.CZ.CLOSE_REFINING_UI());
+}
+
+function zerarEstado() {
+	estado.aberta = false;
+	estado.indice = 0;
+	estado.ficha = null;
+	estado.emCurso = false;
+	estado.assinatura = null;
+	estado.recado = null;
+	estado.mostrandoResultado = false;
 }
 
 /**
- * Check if Refine UI is open
+ * A porta que a Mochila usa: duplo clique num item com a bancada aberta.
+ *
+ * `Inventory/InventoryCommon.js:938` chama isto. Ela continua existindo — e
+ * hoje e um ATALHO, e nao o unico caminho como era antes.
  */
+Refine.onRequestItemRefine = function onRequestItemRefine(item) {
+	if (!item) {
+		return;
+	}
+	estado.recado = null;
+	escolher(item.index);
+};
+
+/** `InventoryCommon.js` pergunta isto antes de oferecer o atalho acima. */
 Refine.isRefineOpen = function isRefineOpen() {
 	return !!(Refine._host && Refine._host.isConnected);
 };
 
 /**
- * Start dragging an item
- */
-function onItemDragStart(event) {
-	event.dataTransfer.setData('text', event.target.id);
-}
-
-/**
- * End of dragging an item
- */
-function onItemDragEnd(event) {
-	if (refine_ongoing) {
-		return;
-	}
-
-	const rect = Refine._host.getBoundingClientRect();
-	const mouseX = event.clientX;
-	const mouseY = event.clientY;
-
-	if (mouseX < rect.left || mouseX > rect.right || mouseY < rect.top || mouseY > rect.bottom) {
-		onRemoveItem(true);
-	}
-}
-
-/**
- * Refine announcement received
- * @param {object} pkt - PACKET.ZC.BROADCAST_ITEMREFINING_RESULT
- */
-function onBroadcastRefineResult(pkt) {
-	if (pkt) {
-		const item = DB.getItemInfo(pkt.itemId);
-		const itemName = item.identifiedDisplayName;
-		let messageID;
-		switch (pkt.status) {
-			case 0:
-				messageID = 3272;
-				break;
-			case 1:
-				messageID = 3271;
-				break;
-			default:
-				break;
-		}
-
-		const message = DB.getMessage(messageID)
-			.replace('%s', pkt.charName)
-			.replace('%d', pkt.refineLevel)
-			.replace('%s', itemName);
-		ChatBox.addText(message, ChatBox.TYPE.ANNOUNCE, ChatBox.FILTER.PUBLIC_CHAT, '#FFB563');
-		Announce.append();
-		Announce.set(message, '#FFB563');
-	}
-}
-
-/**
  * Packet Hooks to functions
  */
 Network.hookPacket(PACKET.ZC.OPEN_REFINING_UI, onOpenRefineUI);
-Network.hookPacket(PACKET.ZC.REFINING_MATERIAL_LIST, onRefineUIUpdateMaterials);
+Network.hookPacket(PACKET.ZC.REFINING_MATERIAL_LIST, onRefineMaterialList);
+Network.hookPacket(PACKET.ZC.RAGIDLE_REFINO, onFichaDeRefino);
 Network.hookPacket(PACKET.ZC.BROADCAST_ITEMREFINING_RESULT, onBroadcastRefineResult);
 
 /**

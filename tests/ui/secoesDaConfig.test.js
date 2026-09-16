@@ -10,14 +10,41 @@ import {
 	SECOES,
 	TETO_DA_ORDEM,
 	TETO_DE_BUFFS,
+	TETO_DO_FILTRO_DE_COLETA,
 	abaCanonica,
+	alternarColeta,
 	alternarCura,
 	alvoDoBuff,
 	contarAlteracoes,
 	curaNaRotacao,
 	duracaoCurta,
-	resumoDaSecao
+	resumoDaSecao,
+	curaLigada,
+	curaLigadaPara,
 } from '../../src/UI/Components/IdleConfig/secoesDaConfig.js';
+
+describe('alternarColeta: o filtro de coleta é uma lista NEGATIVA (D-1348)', () => {
+	it('desmarcar põe o item na lista; marcar tira', () => {
+		expect(alternarColeta([], 909, false)).toEqual([909]);
+		expect(alternarColeta([909, 512], 909, true)).toEqual([512]);
+	});
+
+	it('sem lista ainda (config de antes do filtro), desmarcar começa uma', () => {
+		expect(alternarColeta(undefined, 909, false)).toEqual([909]);
+		expect(alternarColeta(undefined, 909, true)).toEqual([]);
+	});
+
+	it('desmarcar o que já está fora não repete o item', () => {
+		expect(alternarColeta([909], 909, false)).toEqual([909]);
+	});
+
+	it('no teto de 100, desmarcar mais um não faz nada — o servidor recusaria', () => {
+		const cem = Array.from({ length: 100 }, (_, i) => 20000 + i);
+		expect(TETO_DO_FILTRO_DE_COLETA).toBe(100);
+		expect(alternarColeta(cem, 909, false)).toEqual(cem);
+		expect(alternarColeta(cem, 20000, true)).toHaveLength(99);
+	});
+});
 
 const CTX = {
 	ehCidade: false,
@@ -86,7 +113,12 @@ describe('os resumos do trilho', () => {
 
 	it('Suporte diz buffs e cura — ou "nada mantido"', () => {
 		expect(resumoDaSecao('suporte', CFG, CTX)).toBe('1 buff · cura');
-		expect(resumoDaSecao('suporte', { ...CFG, rotacaoDeBuffs: [], rotacao: [] }, CTX)).toBe('nada mantido');
+		// 08/09/2026: a cura e SUPORTE e nao mora mais na ordem de golpes — tirar
+		// a habilidade da `rotacao` nao a desliga; o interruptor e `cura.ligada`.
+		expect(resumoDaSecao('suporte', { ...CFG, rotacao: [] }, CTX)).toBe('1 buff · cura');
+		expect(
+			resumoDaSecao('suporte', { ...CFG, rotacaoDeBuffs: [], rotacao: [], cura: { ...(CFG.cura || {}), ligada: false } }, CTX)
+		).toBe('nada mantido');
 	});
 
 	it('Sobrevivência lista o que está ligado', () => {
@@ -167,5 +199,27 @@ describe('os dois tetos (D-917)', () => {
 		expect(alternarCura(cheia, CTX, true)).toBeNull();
 		const comVaga = { ...CFG, rotacao: cheia.rotacao.slice(0, TETO_DA_ORDEM - 1) };
 		expect(alternarCura(comVaga, CTX, true)).toHaveLength(TETO_DA_ORDEM);
+	});
+});
+
+describe('a cura e configurada POR HABILIDADE (08/09/2026, ordem do dono)', () => {
+	const DUAS = { skillsDeCura: [{ skillId: 'AL_HEAL', aprendido: 3, custoSp: 21, alcancaGrupo: true }, { skillId: 'NV_FIRSTAID', aprendido: 1, custoSp: 5, alcancaGrupo: false }] };
+
+	it('Primeiros Socorros desligado e Curar ligado: a secao continua com cura', () => {
+		const cfg = { cura: { alvo: 'grupo', curarAbaixoDe: 50, habilidades: { NV_FIRSTAID: { ligada: false }, AL_HEAL: { ligada: true } } } };
+		expect(curaLigadaPara(cfg.cura, 'NV_FIRSTAID')).toBe(false);
+		expect(curaLigadaPara(cfg.cura, 'AL_HEAL')).toBe(true);
+		expect(curaLigada(cfg, DUAS)).toBe(true);
+	});
+
+	it('as duas desligadas: sem cura no resumo', () => {
+		const cfg = { cura: { alvo: 'grupo', curarAbaixoDe: 50, habilidades: { NV_FIRSTAID: { ligada: false }, AL_HEAL: { ligada: false } } } };
+		expect(curaLigada(cfg, DUAS)).toBe(false);
+	});
+
+	it('habilidade sem entrada propria herda o interruptor geral', () => {
+		expect(curaLigadaPara({ alvo: 'eu', curarAbaixoDe: 50, ligada: false }, 'AL_HEAL')).toBe(false);
+		expect(curaLigadaPara({ alvo: 'eu', curarAbaixoDe: 50 }, 'AL_HEAL')).toBe(true);
+		expect(curaLigadaPara(undefined, 'AL_HEAL')).toBe(true);
 	});
 });

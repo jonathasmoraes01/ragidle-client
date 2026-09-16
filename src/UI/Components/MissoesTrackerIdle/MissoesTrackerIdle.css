@@ -237,10 +237,7 @@
    ═══════════════════════════════════════════════════════════════════════ */
 @media (max-height: 439px) {
 	.mt-painel {
-		max-height: max(
-			30px,
-			calc(100dvh - var(--hud-basic-fundo, 328px) - var(--hud-doca-altura, 96px) - 12px)
-		);
+		max-height: max(30px, calc(100dvh - var(--hud-basic-fundo, 328px) - var(--hud-doca-altura, 96px) - 12px));
 		display: flex;
 		flex-direction: column;
 	}
@@ -351,7 +348,12 @@
 	background: transparent;
 	border-radius: 8px 8px 0 0;
 	cursor: pointer;
-	min-height: 30px;
+	/* 30px -> o piso tatil (D-1487). Esta regra e mais ESPECIFICA que a do
+	   bloco coarse do Common.css ((0,2,0) contra (0,1,0)), entao ela VENCE — e
+	   o piso escrito la nao valeria no celular se este numero ficasse. Na
+	   pratica a fileira ja media 44 pelo stretch do vizinho; aqui ele para de
+	   depender disso. */
+	min-height: var(--hit-touch, 44px);
 }
 
 .ri-vertical .mt-aba.is-ativa {
@@ -375,7 +377,10 @@
 	border: 0;
 	margin: 0;
 	padding: 8px 12px;
-	min-height: 36px;
+	/* 36px -> o piso tatil (D-1487): a linha que ABRE a lista de missoes e
+	   alvo de dedo, e 8px faltavam. Mesmo motivo de especificidade da regra da
+	   aba, acima — sem trocar aqui, o Common.css nao alcanca. */
+	min-height: var(--hit-touch, 44px);
 	font-size: 11px;
 	font-weight: var(--fw-bold, 700);
 	color: var(--is-accent, #3b6ea5);
@@ -385,10 +390,122 @@
 	text-align: left;
 }
 
-/* A lista respira menos: o cartao dividir a tela com o jogo e o ponto. */
+/*
+ * A lista respira menos: o cartao dividir a tela com o jogo e o ponto.
+ *
+ * 32dvh -> 22dvh EM 15/09/2026 (relato do dono: *"esta ocupando praticamente
+ * a metade da tela de um usuario que esta jogando na versao mobile"*). Num
+ * 402x714 de iPhone, 32dvh do CORPO sao ~228px — e o corpo nao e o cartao
+ * inteiro: por cima dele vem a fileira de abas (48px, o `min-height` do
+ * recolher) e por baixo o "ver todas" (36px). O cartao passava de 310px numa
+ * tela de 714, que e quase metade dela e bate com a foto.
+ *
+ * 22dvh derruba o corpo para ~157px. O corte veio daqui e do numero de LINHAS
+ * (`MAX_LINHAS`, no .js) de proposito: as duas folgas que nao sao alvo de
+ * dedo. Os alvos tocaveis deste cartao NAO foram encolhidos — e o motivo esta
+ * escrito no .js, junto do `MAX_LINHAS`.
+ */
+/* `box-sizing: border-box` E OS 16px QUE PAGARAM A DIVIDA (15/09/2026, D-1487).
+   Este projeto nao tem `box-sizing` global — o `Common.css` so o declara para
+   `.ri-header` —, entao o `padding: 8px` do `.mt-corpo` ficava FORA do
+   `max-height`, e o cartao era ~16px mais alto do que a propria conta de D-1483
+   dizia (ela somava `157 + 48 + 36` supondo border-box). Uma declaracao devolve
+   os 16px e faz a medida bater com o numero escrito. */
 .ri-vertical .mt-corpo {
-	max-height: 32dvh;
+	box-sizing: border-box;
+	max-height: 22dvh;
 	overflow-y: auto;
 	overscroll-behavior: contain;
 	-webkit-overflow-scrolling: touch;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   RECOLHER AS MISSOES NO CELULAR (08/09/2026, pedido do dono)
+   ═══════════════════════════════════════════════════════════════════════
+   *"Adicione um controle claro para recolher e expandir o painel de missoes.
+   Recolhido, ele deve ocupar pouco espaco e manter uma indicacao da missao
+   atual."*
+
+   MEDIDO antes: na HUD vertical NAO HAVIA como recolher. O botao existia
+   (`.mt-recolher`), mas mora no `.mt-header`, e a vertical esconde o header
+   inteiro — o cartao do mockup nao tem um segundo titulo "Missoes". Um
+   `display: none` de aparencia levou junto uma FUNCAO, e ninguem viu porque
+   quem procurou o botao procurou no HTML, onde ele esta.
+
+   O gemeo `.mt-recolher-v` mora na fileira de abas, a unica faixa de
+   controle que a vertical desenha.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* Fora do celular em pe ele nao existe: la o `.mt-header` aparece e o botao
+   de sempre ja resolve. Dois botoes visiveis para a mesma coisa seria pior. */
+.mt-recolher-v {
+	display: none;
+}
+
+.ri-vertical .mt-recolher-v {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	margin-left: auto;
+	/* 44px de alvo: e um controle, e no dedo controle tem piso (D-935). */
+	min-width: 44px;
+	min-height: 44px;
+	padding: 0;
+	border: 0;
+	background: transparent;
+	color: var(--is-title-ink, #1c2540);
+	cursor: pointer;
+}
+
+.ri-vertical .mt-recolher-v-glifo {
+	display: block;
+	font-size: 16px;
+	line-height: 1;
+	transition: transform 140ms ease-out;
+}
+
+/* O chevron GIRA — o mesmo controle, apontando para o que vai acontecer. */
+.ri-vertical .mt-recolher-v.is-recolhido .mt-recolher-v-glifo {
+	transform: rotate(180deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.ri-vertical .mt-recolher-v-glifo {
+		transition: none;
+	}
+}
+
+/* ── RECOLHIDO: pouco espaco, mas a missao ATUAL continua na tela ────────
+   A regra base (`.mt-painel.is-recolhido .mt-corpo { display: none }`)
+   esconde o corpo INTEIRO — inclusive a missao ativa. No celular isso
+   deixaria um cartao que so diz "Missoes | Grupo", sem informacao nenhuma,
+   e o pedido cobra o contrario por escrito.
+
+   Entao na vertical o corpo VOLTA quando recolhido, e o que some e a LISTA
+   e o rodape. Sobra `.mt-ativa` — o titulo e o passo da missao em curso —,
+   que e exatamente "a indicacao da missao atual". Nenhum elemento novo: a
+   peca ja existia e so mudou quem a esconde. */
+.ri-vertical .mt-painel.is-recolhido .mt-corpo {
+	display: flex;
+}
+
+/* MEDIDO: esconder a LISTA inteira deixava o cartao recolhido MUDO.
+   `.mt-ativa` so tem texto quando ha missao EM EXECUCAO; um jogador com
+   missoes acompanhadas mas nenhuma rodando via so as abas — e a sonda pegou
+   isto no primeiro toque ("recolhido mostra ''").
+
+   Entao some a lista MENOS a primeira linha. Com missao ativa, `.mt-ativa`
+   responde; sem ela, a primeira acompanhada responde. Os dois casos dizem
+   alguma coisa, que e o que o pedido cobra. */
+.ri-vertical .mt-painel.is-recolhido .mt-lista > *:not(:first-child),
+.ri-vertical .mt-painel.is-recolhido .mt-ver-todas {
+	display: none;
+}
+
+/* Recolhido o cartao para de rolar: com uma linha so nao ha o que rolar, e
+   um `overflow: auto` num conteudo curto deixa barra fantasma em alguns
+   navegadores. */
+.ri-vertical .mt-painel.is-recolhido .mt-corpo {
+	max-height: none;
+	overflow: visible;
 }

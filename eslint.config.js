@@ -95,8 +95,12 @@ export default [
         FileReaderSync: 'readonly',  
         importScripts: 'readonly',  
         Buffer: 'readonly',  
-        ROConfig: 'readonly',  
-        SEEK_CUR: 'readonly',  
+        ROConfig: 'readonly',
+        // Global de verdade: `applications/api/api.js` faz
+        // `window.ROBrowser = ROBrowser`. O GrfViewer ja o usa guardado por
+        // `typeof ROBrowser === 'undefined'`; faltava declara-lo aqui.
+        ROBrowser: 'readonly',
+        SEEK_CUR: 'readonly',
         SEEK_SET: 'readonly',  
         SEEK_END: 'readonly'  
       }  

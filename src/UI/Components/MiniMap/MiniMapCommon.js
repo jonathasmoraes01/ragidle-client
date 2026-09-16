@@ -17,6 +17,7 @@ import Altitude from 'Renderer/Map/Altitude.js';
 import KEYS from 'Controls/KeyEventHandler.js';
 import UIManager from 'UI/UIManager.js';
 import GUIComponent from 'UI/GUIComponent.js';
+import { escreverSeMudou, minimapaVisivel } from 'UI/Components/MiniMap/minimapaNoQuadro.js';
 import 'UI/Elements/Elements.js';
 
 /**
@@ -407,12 +408,10 @@ export function createMiniMap({
 			const root = this.getRoot();
 			const coordX = root.querySelector('.coordinates .coord.x');
 			const coordY = root.querySelector('.coordinates .coord.y');
-			if (coordX) {
-				coordX.textContent = Math.floor(x);
-			}
-			if (coordY) {
-				coordY.textContent = Math.floor(y);
-			}
+			// RAGIDLE (13/09/2026): so grava quando MUDA — isto roda todo quadro, e
+			// texto igual regravado ainda e mutacao de DOM. Ver `minimapaNoQuadro.js`.
+			escreverSeMudou(coordX, Math.floor(x));
+			escreverSeMudou(coordY, Math.floor(y));
 		};
 	}
 
@@ -478,6 +477,13 @@ export function createMiniMap({
 			const height = Altitude.height;
 			let i, count;
 			let dot;
+
+			// RAGIDLE (13/09/2026): escondido pela HUD vertical, nao desenha nada.
+			// Ele seguia redesenhando mapa, icones e seta todo quadro para um
+			// elemento invisivel. Ver `minimapaNoQuadro.js`.
+			if (!minimapaVisivel(document, MiniMap.name)) {
+				return;
+			}
 
 			if (!Session.Entity || !Session.Entity.position || !_ctx) {
 				return;

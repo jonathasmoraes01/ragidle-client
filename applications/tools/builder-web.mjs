@@ -565,6 +565,54 @@ window.ROConfigBase = {
  * do fundo escuro do jogo. O `#ff8cb5` que o `createHTML` usa e rosa, e e
  * heranca do template do roBrowser: nunca descreveu a arte deste jogo.
  */
+/*
+ * D-1379 (13/09/2026): O META PIXEL E A GUARDA DA ENTRADA POS-CADASTRO.
+ *
+ * O Pixel e o codigo base que o dono mandou, sem uma virgula mudada, e mora no
+ * `<head>` do `api.html`: e esta a pagina que `play.<dominio>` serve na raiz.
+ * O site (`roclassicidle.com.br`) tem a mesma copia no `index.html` dele.
+ *
+ * A GUARDA vem UMA LINHA ANTES do Pixel, e a razao e seguranca, nao gosto. O
+ * site abre o jogo com `#entrada=<usuario>.<passe>`, e o passe e credencial de
+ * login (uso unico, vence em minutos). O Pixel envia a URL da pagina no
+ * PageView; se ele rodasse com o fragmento ainda na barra, o passe iria para a
+ * Meta. A guarda tira o fragmento com `history.replaceState` e deixa o texto em
+ * `window.RAGIDLE_ENTRADA`, que o `src/Engine/entradaPosCadastro.js` le e apaga.
+ * Ela nao chama rede, nao carrega nada e roda em microssegundos: o Pixel
+ * continua sendo o primeiro script de terceiro a carregar.
+ *
+ * NAO entram no `index.html` do `createHTML`: no pacote publicado a raiz e o
+ * `index.html` do SITE (`oraculo/preparar-deploy.mjs`, passo 5/6), que tem o
+ * Pixel dele; e o `applications/pwa/index.html` e so do desenvolvimento, onde
+ * um PageView por recarga de dev sujaria as metricas de verdade.
+ */
+const GUARDA_DA_ENTRADA = `<script>
+            (function () {
+                var h = location.hash;
+                if (h.indexOf('#entrada=') !== 0) return;
+                window.RAGIDLE_ENTRADA = h.slice(9);
+                history.replaceState(null, '', location.pathname + location.search);
+            })();
+        </script>`;
+
+const META_PIXEL = `<!-- Meta Pixel Code -->
+<script>
+!function(f,b,e,v,n,t,s)
+{if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+n.queue=[];t=b.createElement(e);t.async=!0;
+t.src=v;s=b.getElementsByTagName(e)[0];
+s.parentNode.insertBefore(t,s)}(window, document,'script',
+'https://connect.facebook.net/en_US/fbevents.js');
+fbq('init', '1538906837987135');
+fbq('track', 'PageView');
+</script>
+<noscript><img height="1" width="1" style="display:none"
+src="https://www.facebook.com/tr?id=1538906837987135&ev=PageView&noscript=1"
+/></noscript>
+<!-- End Meta Pixel Code -->`;
+
 function createApiHTML(includeManifest = false) {
 	const manifest = includeManifest ? `<link rel="manifest" href="./manifest.webmanifest">` : ``;
 	/* O registrador anda COM o manifesto: sem manifesto nao ha instalacao, e um
@@ -574,6 +622,8 @@ function createApiHTML(includeManifest = false) {
 <html>
     <head>
         <meta charset="UTF-8">
+        ${GUARDA_DA_ENTRADA}
+${META_PIXEL}
         <title>Ragnarok Classic Idle</title>
         <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
         <meta name="HandheldFriendly" content="true">

@@ -1,6 +1,39 @@
 :host {
 	top: 40px;
 	left: 0px;
+	/*
+	 * A FAIXA NAO PEGA O TOQUE (D-1493, 15/09/2026).
+	 *
+	 * A `prove:hud-responsiva` acusou, em SEIS telas, botoes do menu "cobertos
+	 * por Announce" — `status`, `inventory`, `skills`, `huntmap`, `passe`,
+	 * `correio`, `config`. A faixa e real e visivel: e o anuncio do evento de
+	 * EXP que o servidor manda na entrada do mapa, e ela vivia 20 s — que e
+	 * justamente a janela em que a prova mede. (Hoje vive 10 s, D-1496; a vida
+	 * caiu DEPOIS deste conserto e por outro motivo, ver `Announce.js`.)
+	 *
+	 * **E um defeito de ACERTO DE TOQUE, e nao de camada.** Este componente ja
+	 * declara `MouseMode.CROSS` ("Mouse can cross this UI", `Announce.js`), mas
+	 * `_setupMouseMode()` so usa o modo para o raycast do mundo 3D — ele nunca
+	 * chegou a virar CSS. A promessa estava escrita e nao implementada.
+	 *
+	 * Nada aqui dentro precisa de ponteiro: o componente NAO tem um unico
+	 * `addEventListener` e `needFocus` e `false`. Por isso a regra NAO tem
+	 * contraparte `#Announce { pointer-events: auto }` — ela recriaria o
+	 * defeito.
+	 *
+	 * E o padrao da casa, escrito em `TopMenuIdle.css`: *"`:host` fica
+	 * pointer-events:none e so `.tm-item`/`.tm-toggle`/`.tm-fab` reabrem"*.
+	 *
+	 * DE QUEBRA, conserta uma ZONA MORTA: hoje um clique na faixa nao chega ao
+	 * botao (o `:host` esta no caminho) nem ao mundo (`MapControl` o descarta
+	 * por `dataset.guiComponent`). Ele simplesmente nao fazia nada.
+	 *
+	 * O que isto NAO conserta e a LEGIBILIDADE: por ~20 s a faixa ainda passa
+	 * por cima dos discos. Se isso incomodar, o passo seguinte e o `z-index: 45`
+	 * que o proprio fork ja reservou (ver `ItemObtain.js`) — mas ali ela some
+	 * atras do chat, e isso e escolha de produto.
+	 */
+	pointer-events: none;
 }
 
 #Announce canvas {

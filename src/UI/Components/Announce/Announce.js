@@ -36,9 +36,24 @@ Announce.needFocus = false;
 let _timer = 0;
 
 /**
- * @var {number} how many time the announce is display (20secs)
+ * Quanto tempo a faixa fica na tela.
+ *
+ * ERA 20 s, e caiu para 10 s em 15/09/2026 (D-1496) — pedido do dono:
+ * *"Reduza o tempo dos anuncios de 20 segundos para 10 segundos"*. O que
+ * puxou o assunto foi a `prove:hud-responsiva`: a faixa do evento de EXP que
+ * o servidor manda na ENTRADA do mapa vivia 20 s, que e justamente a janela
+ * em que a prova mede, e ela aparecia em seis telas cobrindo os discos do
+ * menu.
+ *
+ * **O acerto de toque ja foi resolvido em outro lugar, e nao aqui** — a faixa
+ * deixou de pegar o ponteiro em `Announce.css` (D-1493). Este numero e sobre
+ * LEGIBILIDADE: por quanto tempo o anuncio passa por cima do que esta atras
+ * dele. Diminuir a vida sem o `pointer-events` teria sido remendo; com ele,
+ * e so o tempo de leitura.
+ *
+ * @var {number} milissegundos
  */
-const _life = 20 * 1000;
+const _life = 10 * 1000;
 
 Announce.render = () => htmlText;
 
@@ -87,7 +102,12 @@ Announce.set = function set(text, color, options = {}) {
 		targetWidth = opts.width;
 	}
 
-	const maxWidth = targetWidth ? targetWidth - 20 : 500;
+	// RAGIDLE (13/09/2026, D-1376): o teto de 500px nao olhava a TELA. Num
+	// celular em pe (393px) a faixa do anuncio do evento de EXP saia com 514px,
+	// comecando em x=-61 e cortada dos dois lados (medido em `diag-evento-de-exp`).
+	// A quebra de linha abaixo ja existia; faltava o teto caber na tela. No
+	// desktop nada muda: a tela e maior que 520px.
+	const maxWidth = targetWidth ? targetWidth - 20 : Math.max(100, Math.min(500, Renderer.width - 20));
 	const lines = [];
 
 	this.ctx.font = `${fontSize}px Arial`;

@@ -23,6 +23,7 @@ import StatusConst from 'DB/Status/StatusState.js';
 import MountTable from 'DB/Jobs/MountTable.js';
 import AllMountTable from 'DB/Jobs/AllMountTable.js';
 import Session from 'Engine/SessionStorage.js';
+import { corDoEncoberto } from 'Renderer/Entity/corDoEncoberto.js';
 import Emotions from 'DB/Emotions.js';
 
 /**
@@ -433,19 +434,21 @@ function updateEffectState(value) {
 		this._effectStateColor[3] = 0.0;
 	}
 
-	// Cloack / Hide
+	// Cloack / Hide — a cor sai de `corDoEncoberto` (D-1354): a intravisao da a
+	// silhueta preta, o PROPRIO personagem fica meio transparente em vez de sumir
+	// da propria tela, e os outros somem.
 	else if (
 		value &
 		(StatusConst.EffectState.HIDE | StatusConst.EffectState.CLOAK | StatusConst.EffectState.CHASEWALK)
 	) {
-		// Maya purple card
-		if (Session.Entity?.intravision) {
-			this._effectStateColor[0] = 0.0;
-			this._effectStateColor[1] = 0.0;
-			this._effectStateColor[2] = 0.0;
-		} else {
-			this._effectStateColor[3] = 0.0;
-		}
+		const cor = corDoEncoberto({
+			ehOProprio: this === Session.Entity,
+			intravisao: Boolean(Session.Entity?.intravision),
+		});
+		this._effectStateColor[0] = cor.r;
+		this._effectStateColor[1] = cor.g;
+		this._effectStateColor[2] = cor.b;
+		this._effectStateColor[3] = cor.a;
 	}
 
 	// Camouflage / Stealth Field (receiver)

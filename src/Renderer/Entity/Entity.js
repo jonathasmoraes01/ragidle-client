@@ -414,8 +414,8 @@ class Entity {
 			}
 		}
 
-		// Rendering life
-		if (this.life.hp > -1 && this.life.hp_max > -1) {
+		// Rendering life (RAGIDLE 08/09/2026: hp_max 0 e "sem informacao", nao barra vazia)
+		if (this.life.hp > -1 && this.life.hp_max > 0) {
 			this.life.update();
 			this.life.display = true;
 		}

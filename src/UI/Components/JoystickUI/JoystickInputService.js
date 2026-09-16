@@ -13,6 +13,28 @@ import AxisInput from './JoystickAxisInput.js';
 import JoystickUIRenderer from './JoystickUIRenderer.js';
 import ControlsSettings from 'Preferences/Controls.js';
 
+/**
+ * O valor de REPOUSO de cada eixo, colhido quando o dispositivo conecta.
+ *
+ * Volante e pedal descansam LONGE do zero — o curso util de um pedal vai de
+ * um extremo ao outro, entao solto ele reporta +1.0 ou -1.0. Controle de
+ * videogame descansa perto de zero. Guardar a base e o que permite tratar os
+ * dois sem ter de escolher um.
+ */
+let repousoDosEixos = [];
+
+/** Le a base dos eixos do dispositivo que acabou de conectar. */
+function colherRepouso() {
+	const lista = navigator.getGamepads ? navigator.getGamepads() : [];
+	for (let i = 0; i < lista.length; i++) {
+		if (lista[i] && lista[i].axes) {
+			repousoDosEixos = Array.prototype.slice.call(lista[i].axes);
+			return;
+		}
+	}
+	repousoDosEixos = [];
+}
+
 let hideTimeout = false;
 let hideTimeoutHandle = null;
 export default {
@@ -71,7 +93,22 @@ export default {
 		});
 		// Process Axes
 		gp.axes.forEach(function (axis, index) {
-			states.axes[index] = Math.abs(axis) > ControlsSettings.joyDeadline ? axis : 0;
+			/*
+			 * O EIXO E MEDIDO CONTRA O REPOUSO DELE, e nao contra zero.
+			 *
+			 * Relato do alfa (09/09/2026): com volante e pedais ligados, o
+			 * personagem anda sozinho e o cursor puxa para a direita. Pedal SOLTO
+			 * reporta +/-1.0, passa folgado por qualquer zona morta, e vira
+			 * `moveCharacter` — que manda PACOTE DE REDE a cada 100 ms.
+			 *
+			 * Subtrair o repouso resolve o pedal SEM excluir dispositivo nenhum,
+			 * que e o que um filtro por `mapping === "standard"` faria: ele
+			 * derrubaria junto todo controle fora do mapeamento do W3C.
+			 */
+			const repouso = repousoDosEixos[index] || 0;
+			const desvio = axis - repouso;
+			states.axes[index] =
+				Math.abs(desvio) > ControlsSettings.joyDeadline ? desvio : 0;
 		});
 		return states;
 	},
@@ -133,6 +170,8 @@ export default {
 
 	_onConnect: function () {
 		this.active = true;
+		// A base dos eixos e colhida AQUI, com o dispositivo em repouso.
+		colherRepouso();
 		JoystickUIRenderer.show();
 	},
 

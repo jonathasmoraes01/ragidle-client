@@ -63,6 +63,11 @@ import Client from 'Core/Client.js';
 import GUIComponent from 'UI/GUIComponent.js';
 import BasicInfo from 'UI/Components/BasicInfo/BasicInfo.js';
 import IdleConfig from 'UI/Components/IdleConfig/IdleConfig.js';
+import Network from 'Network/NetworkManager.js';
+import PACKET from 'Network/PacketStructure.js';
+import UIManager from 'UI/UIManager.js';
+import StatusIcons from 'UI/Components/StatusIcons/StatusIcons.js';
+import SC from 'DB/Status/StatusConst.js';
 import { atualizarSituacao, estimarMsAteONivel, ler, lerHistorico, zerarCacadaAtual } from './registroDaCaca.js';
 import htmlText from './HuntAnalyzer.html?raw';
 import cssText from './HuntAnalyzer.css?raw';
@@ -90,6 +95,15 @@ const POLL_INTERVAL_MS = 250;
  */
 const OCIOSO_VISIVEL_MS = 15_000;
 
+/**
+ * O "DORMIR" (D-1381, 13/09/2026) — pedido do dono: 10 minutos de caça
+ * contínua NESTE mapa destravam o botão. Este número so decide se o botao
+ * APARECE; a verificacao que VALE e a do servidor (`amostraQualifica`,
+ * `servidor/idle/farm-por-estimativa.ts`) — este e so o palpite do cliente
+ * para nao mostrar um botao que o `iniciar` recusaria na hora.
+ */
+const MS_MINIMOS_PARA_DORMIR = 10 * 60 * 1000;
+
 const HuntAnalyzer = new GUIComponent('HuntAnalyzer', cssText);
 
 HuntAnalyzer.render = () => htmlText;
@@ -105,10 +119,39 @@ const _preferences = Preferences.get(
 		/* A aba escolhida sobrevive ao F5 (portao D-797, memoriaDeAba.js).
 		   Uma aba de historico lembrada sem historico ainda (o F5 apaga as
 		   cacadas arquivadas) cai pra Atual em sincronizarAbas — sem erro. */
-		aba: null
+		aba: null,
+		/* O modo enxuto (08/09/2026) sobrevive ao F5, como o compacto do BasicInfoIdle. */
+		compacto: false
 	},
 	1
 );
+
+/* ─── Modo enxuto (08/09/2026, ordem do dono) ─── */
+function aplicarCompacto() {
+	const root = _root();
+	if (!root) {
+		return;
+	}
+	const compacto = !!_preferences.compacto;
+	// `_root()` e o ShadowRoot (sem classList): a classe vai no #HuntAnalyzer de
+	// dentro e no HOST (a altura de 540px e do :host). Sem as guardas, um
+	// `toggle` em undefined derrubava o init inteiro da HUD (tela preta, 08/09).
+	const raiz = root.querySelector ? root.querySelector('#HuntAnalyzer') : null;
+	if (raiz && raiz.classList) raiz.classList.toggle('is-compact', compacto);
+	const host = HuntAnalyzer._host;
+	if (host && host.classList) host.classList.toggle('is-compact', compacto);
+	const botao = root.querySelector('.ha-minimize');
+	if (botao) {
+		botao.setAttribute('title', compacto ? 'Restaurar' : 'Recolher');
+		botao.setAttribute('aria-label', compacto ? 'Restaurar a janela completa' : 'Recolher para o modo enxuto');
+	}
+}
+
+HuntAnalyzer.alternarCompacto = function alternarCompacto() {
+	_preferences.compacto = !_preferences.compacto;
+	_preferences.save();
+	aplicarCompacto();
+};
 
 let _pollTimer = null;
 /** A aba na tela: 0 = atual, 1 = ultima, 2 = penultima. */
@@ -293,6 +336,108 @@ function desenharEstado(root, r, aoVivo) {
 	const zerar = root.querySelector('.ha-zerar');
 	if (zerar) {
 		zerar.hidden = !aoVivo;
+	}
+
+	sincronizarDormir(root, r, aoVivo);
+}
+
+/**
+ * O botao "Dormir" aparece so quando as DUAS condicoes batem: a caçada esta
+ * ATIVA neste mapa ha pelo menos 10 minutos, e o servidor ja disse que este
+ * mapa e elegivel (`mapaElegivelParaDormir`, D-1381 — `contextoIdleDe`,
+ * servidor-mapa.ts). NENHUMA das duas e a fonte da verdade: o `iniciar` no
+ * servidor confere a MESMA amostra e o MESMO mapa de novo, pela regra 1 do
+ * projeto (nada de decisao de jogo so no cliente).
+ *
+ * O PONTO DE PARTIDA E O RELOGIO DO SERVIDOR (`faltamMsParaDormir`, D-1396,
+ * 14/09/2026), NUNCA UM CONTADO SO AQUI. Ate D-1396 esta janela adivinhava
+ * "desde quando estou neste mapa" pela hora em que ELA MESMA abria pela
+ * primeira vez (`_entrouNoMapaDoSonoEm = Date.now()` no primeiro render) —
+ * quem começava a caçar e só abria o Analyzer minutos depois via o timer
+ * reiniciar do zero, contando de novo a partir da abertura da janela em vez
+ * da caçada. O servidor já guarda a hora real de entrada no mapa
+ * (`amostrasDeSono`, `entradaNoMapaMs`) para o próprio handler de `iniciar`
+ * conferir — bastava servir a mesma conta em vez de o cliente reimplementá-la
+ * (a "segunda rota escrita à mão" de sempre).
+ *
+ * D-1396 TROCOU A ADIVINHACAO POR UM DEFEITO NOVO E OPOSTO (D-1398,
+ * 14/09/2026, relato do dono: "o timer do botão de Dormir não está
+ * funcionando... acredito que ele esteja pausando/congelando"): mostrar
+ * `ctx.faltamMsParaDormir` direto CONGELA o numero na tela, porque o cliente
+ * so pede um contexto novo ao servidor (`CZ_RAGIDLE_PEDIR_CONFIG`) ao trocar
+ * de mapa ou abrir a janela de configuracao (`IdleConfig.js`) — nunca por
+ * intervalo. Um jogador caçando parado no MESMO mapa por minutos via o mesmo
+ * `faltamMsParaDormir` de novo a cada re-render, porque `IdleConfig.contexto`
+ * so muda de objeto quando uma dessas duas coisas acontece. `faltamMsParaDormirAoVivo`
+ * resolve as DUAS pontas: ANCORA no numero do servidor toda vez que chega um
+ * contexto novo (identidade do objeto mudou) e daí CONTA em `Date.now()` local
+ * ate a proxima ancora — nunca inventa o ponto de partida (regra 1), só o
+ * ritmo entre uma atualização do servidor e a próxima.
+ */
+let _ctxDaUltimaAncoraDeSono = null;
+let _faltamMsNaAncoraDeSono = 0;
+let _ancoraDeSonoRecebidaEm = 0;
+function faltamMsParaDormirAoVivo(ctx) {
+	if (!ctx || typeof ctx.faltamMsParaDormir !== 'number') {
+		// Contrato antigo, ou servidor ainda sem amostra para este mapa: trata
+		// como "faltam os 10 minutos inteiros" -- nunca como zero, que
+		// destravaria o botao sem o servidor ter medido nada.
+		_ctxDaUltimaAncoraDeSono = null;
+		return MS_MINIMOS_PARA_DORMIR;
+	}
+	if (ctx !== _ctxDaUltimaAncoraDeSono) {
+		_ctxDaUltimaAncoraDeSono = ctx;
+		_faltamMsNaAncoraDeSono = ctx.faltamMsParaDormir;
+		_ancoraDeSonoRecebidaEm = Date.now();
+	}
+	return Math.max(0, _faltamMsNaAncoraDeSono - (Date.now() - _ancoraDeSonoRecebidaEm));
+}
+
+function sincronizarDormir(root, r, aoVivo) {
+	const botao = root.querySelector('.ha-dormir');
+	const status = root.querySelector('.ha-dormir-status');
+	if (!botao) {
+		return;
+	}
+
+	/* Na aba de HISTÓRICO o botão nem faz sentido (a cacada acabou) -- some
+	   de vez, do mesmo jeito que o Zerar já fazia. Na aba Atual ele fica
+	   SEMPRE visível: sumir com o botão quando a condição não bate foi o
+	   relato do Jhow em produção ("não achei o botão") -- indistinguível de
+	   bug. Ele agora aparece desabilitado, com o motivo escrito. */
+	botao.hidden = !aoVivo;
+	if (status) {
+		status.hidden = !aoVivo;
+	}
+	if (!aoVivo) {
+		return;
+	}
+
+	const ctx = IdleConfig.contextoObsoleto ? null : IdleConfig.contexto;
+	const emCaca = r.fase === 'ativa';
+	const mapaElegivel = !!ctx && ctx.mapaElegivelParaDormir === true;
+	const faltamMs = faltamMsParaDormirAoVivo(ctx);
+	const pronto = emCaca && mapaElegivel && faltamMs <= 0;
+
+	/*
+	 * A ORDEM DOS MOTIVOS é a ordem em que o jogador resolve: primeiro
+	 * precisa estar caçando, depois o mapa precisa servir, só então o
+	 * relógio conta. Mostrar "faltam 3min" com o mapa errado mandaria o
+	 * jogador esperar 3 minutos à toa.
+	 */
+	let motivo = '';
+	if (!emCaca) {
+		motivo = 'comece a caçar';
+	} else if (!mapaElegivel) {
+		motivo = 'só em mapa ≥1 nível abaixo do seu';
+	} else if (faltamMs > 0) {
+		motivo = `disponível em ${duracao(faltamMs)}`;
+	}
+
+	botao.disabled = !pronto;
+	botao.title = pronto ? 'Farm offline de EXP por até 8h' : motivo;
+	if (status) {
+		status.textContent = pronto ? '' : motivo;
 	}
 }
 
@@ -544,6 +689,43 @@ function tique() {
 		atualizarSituacao(gid, situacaoDoMundo());
 	}
 
+	/*
+	 * O DESENHO PARA AQUI COM A JANELA FECHADA (auditoria de desempenho,
+	 * 11/09/2026).
+	 *
+	 * O que vem abaixo e so pintura: `sincronizarAbas` reconstroi a fileira de
+	 * abas e `desenharRetrato` reescreve a tabela inteira. Com a janela fechada
+	 * ninguem ve nada disso, e mesmo assim rodava 4x por segundo, durante a
+	 * cacada toda -- que e exatamente quando o celular tem menos folga (17fps
+	 * medidos com o processador em 1/4, gargalo na thread principal).
+	 *
+	 * **O ciclo ACIMA continua rodando de qualquer jeito**, e a ordem aqui nao
+	 * e arbitraria: e ele que percebe "entrou no mapa de caca" / "morreu" /
+	 * "voltou pra cidade" e faz o registro iniciar, travar e arquivar. Guardar
+	 * o tique INTEIRO atras da janela quebraria a leitura da cacada -- ver o
+	 * cabecalho do arquivo.
+	 *
+	 * E reabrir nao mostra dado velho: `HuntAnalyzer.toggle` chama `tique()`
+	 * no ramo que abre a janela, entao o primeiro quadro dela ja vem pintado.
+	 */
+	/*
+	 * INTERRUPTOR DE MEDICAO (11/09/2026): `window.__ri_hud_guarda = false`
+	 * devolve o comportamento ANTIGO (desenhar de janela fechada).
+	 *
+	 * Irmao do `__ri_culling` do EntityManager e do `__ri_hud_compara` do
+	 * BasicInfoIdle, pela mesma razao escrita la: duas CORRIDAS nao separam o
+	 * efeito da variancia, e o A/B precisa acontecer na mesma cena.
+	 *
+	 * Sem ele, medir o ganho desta guarda exigiria reverter o codigo, rodar, e
+	 * comparar com outra sessao — que e exatamente o que produz numero que anda
+	 * sozinho.
+	 */
+	const guardaLigada = typeof window === 'undefined' || window.__ri_hud_guarda !== false;
+	const win = root.querySelector('.ha-window');
+	if (guardaLigada && (!win || !win.classList.contains('is-open'))) {
+		return;
+	}
+
 	const historico = lerHistorico(gid);
 	sincronizarAbas(root, historico);
 
@@ -557,12 +739,72 @@ function tique() {
 	}
 }
 
+/**
+ * O CLIQUE EM "DORMIR" (D-1381, 13/09/2026 — avisos de UX em D-1386).
+ *
+ * Hoje sao DOIS passos: (1) se um evento de EXP esta ativo agora, avisa e pede
+ * confirmacao — a taxa fica CONGELADA no que o evento rendia no instante do
+ * sono, e o evento pode acabar antes do jogador voltar; (2) o pacote sai. A
+ * tela preta de "Dormindo..." abre quando o servidor confirma.
+ *
+ * ---------------------------------------------------------------------------
+ * A CONTAGEM DE 5 SEGUNDOS SAIU (D-1485, 15/09/2026 — pedido do dono)
+ * ---------------------------------------------------------------------------
+ * *"Ao clicar para dormir tambem esta ruim... poderia entrar na tela preta
+ * direto"*.
+ *
+ * Ela era ESPERA PURA, e o proprio texto dela dizia isso: *"Voce ja pode fechar
+ * esta aba — o sono comeca mesmo assim"*. Nao havia cancelar, entao os 5 s nao
+ * protegiam de clique errado nem davam escolha nenhuma; so adiavam.
+ *
+ * **A frase nao se perdeu, e isso importa** — ela entrou na contagem em D-1386
+ * porque uma auditoria de UX achou que ela so existia num comentario. Hoje ela
+ * vive no rodape da tela preta (`_telaPretaDeEspera`), que e onde o jogador
+ * esta quando a duvida aparece.
+ *
+ * O SERVIDOR CONFERE TUDO DE NOVO — este fluxo e so a experiencia; a decisao
+ * de jogo (10 min, nivel do mapa) mora em `farm-por-estimativa.ts`.
+ */
+function pedirParaDormir() {
+	const eventoAtivo = StatusIcons.estaAtivo(SC.CASH_PLUSEXP);
+
+	function dormir() {
+		const pkt = new PACKET.CZ.RAGIDLE_SONO_ACAO();
+		pkt.json = JSON.stringify({ acao: 'iniciar' });
+		Network.sendPacket(pkt);
+		/*
+		 * A RESPOSTA (`ZC_RAGIDLE_SONO{dormindo:true}`) chega pelo handler
+		 * CENTRAL de `Engine/MapEngine.js` (`onSonoRecebido`) — o MESMO que trata
+		 * o sono encontrado no login. E ele que abre a tela preta.
+		 */
+	}
+
+	if (eventoAtivo) {
+		UIManager.showPromptBox(
+			'Há um evento de EXP ativo agora. A taxa do "Dormir" fica CONGELADA no que ele rendia neste instante ' +
+				'— o evento pode acabar antes de você voltar. Continuar mesmo assim?',
+			'yes',
+			'no',
+			dormir,
+			null
+		);
+	} else {
+		dormir();
+	}
+}
+
 /* ─── Ciclo de vida ────────────────────────────────────────────────────── */
 
 HuntAnalyzer.init = function init() {
 	const root = _root();
 
 	this.draggable(root.querySelector('.ha-header'));
+
+	root.querySelector('.ha-minimize').addEventListener('click', e => {
+		e.stopPropagation();
+		HuntAnalyzer.alternarCompacto();
+	});
+	aplicarCompacto();
 
 	root.querySelector('.ha-close').addEventListener('click', () => {
 		HuntAnalyzer.toggle();
@@ -585,6 +827,15 @@ HuntAnalyzer.init = function init() {
 		}
 	});
 
+	root.querySelector('.ha-dormir').addEventListener('click', e => {
+		// O `disabled` nativo já barra o clique; a guarda é so para o dia em
+		// que o atributo e o estado visual saírem de sincronia (D-1381).
+		if (e.currentTarget.disabled) {
+			return;
+		}
+		pedirParaDormir();
+	});
+
 	/* A aba lembrada (D-797). Restaurada aqui e nao no primeiro tique: o
 	   tique roda a cada 250 ms e re-restaurar a cada giro prenderia o
 	   jogador na aba gravada. */
@@ -594,10 +845,42 @@ HuntAnalyzer.init = function init() {
 	this._host.style.left = Math.max(0, (Renderer.width - WINDOW_WIDTH) / 2) + 'px';
 };
 
+/*
+ * `onAppend` SO REPOSICIONA NA PRIMEIRA VEZ (14/09/2026, relato do dono: "usar
+ * a asa de mosca automatica esta mudando a posicao de algumas janelas, como
+ * a do hunt analyzer").
+ *
+ * A CAUSA: `MapEngine.js` (`onMapChange`) chama `HuntAnalyzer.append()` em
+ * TODO carregamento de mapa — comentario ao lado (D-1385): *"cada
+ * carregamento de mapa (a Asa de Mosca inclusive)"*. E `GUIComponent.append()`
+ * dispara `onAppend()` TODA VEZ que e chamado, sem checar se a janela ja
+ * estava aberta (`GUIComponent.js:308-364` — nenhum guard ali). Resultado: a
+ * cada teleporte — inclusive a Asa automatica, que dispara sozinha e com
+ * frequencia enquanto o jogador caca — a posicao salva (`_preferences`, so
+ * atualizada quando a janela FECHA de vez) sobrescrevia o arrasto que o
+ * jogador tinha acabado de fazer e nunca chegou a salvar. Parecia
+ * "aleatorio" porque na verdade era "a ultima posicao salva, nem sempre a
+ * que o jogador via na tela".
+ *
+ * O CONSERTO fica local a este arquivo, e nao no `GUIComponent` compartilhado
+ * (`.append()` e chamado por ~50 janelas em `onMapChange`; mudar o
+ * comportamento la sem auditar cada uma arriscaria quebrar quem DEPENDE de
+ * `onAppend` rodando a cada mapa — WorldMap e MiniMap, por exemplo, plausivelmente
+ * atualizam dado por mapa desse jeito). Aqui, `_jaAberta` separa as duas
+ * coisas que `onAppend` fazia juntas: reposicionar (so na PRIMEIRA vez que a
+ * janela aparece, ou depois de fechada de vez) e atualizar os numeros
+ * (`tique`/`iniciarPolling`, que continuam corretos a cada carregamento de
+ * mapa — a caçada pode ter avançado nesse meio tempo).
+ */
+let _jaAberta = false;
+
 HuntAnalyzer.onAppend = function onAppend() {
-	if (_preferences.x != null && _preferences.y != null) {
-		this._host.style.top = Math.min(Math.max(0, _preferences.y), Renderer.height - WINDOW_HEIGHT) + 'px';
-		this._host.style.left = Math.min(Math.max(0, _preferences.x), Renderer.width - WINDOW_WIDTH) + 'px';
+	if (!_jaAberta) {
+		if (_preferences.x != null && _preferences.y != null) {
+			this._host.style.top = Math.min(Math.max(0, _preferences.y), Renderer.height - WINDOW_HEIGHT) + 'px';
+			this._host.style.left = Math.min(Math.max(0, _preferences.x), Renderer.width - WINDOW_WIDTH) + 'px';
+		}
+		_jaAberta = true;
 	}
 
 	tique();
@@ -607,6 +890,7 @@ HuntAnalyzer.onAppend = function onAppend() {
 HuntAnalyzer.onRemove = function onRemove() {
 	pararPolling();
 	salvarPosicao();
+	_jaAberta = false;
 };
 
 function salvarPosicao() {
@@ -673,6 +957,20 @@ HuntAnalyzer.limparEstadoDoPersonagem = function limparEstadoDoPersonagem() {
 	_aba = 0;
 	_sigRanking = null;
 	_sigDrops = null;
+	/*
+	 * A ANCORA do "Dormir" (D-1396) é por PERSONAGEM: sem zerar aqui, o
+	 * personagem novo herdaria o "faltam X" medido para o anterior até o
+	 * servidor mandar o primeiro contexto dele.
+	 *
+	 * ATE D-1413 ESTAS TRES LINHAS ZERAVAM `_mapaDoRelogioDeSono` e
+	 * `_entrouNoMapaDoSonoEm`, que D-1396 tinha APAGADO — arquivo ESM é strict
+	 * mode, então aquilo lançava `ReferenceError` e abortava o `for` de
+	 * `cleanGameUI()`, deixando os 11 módulos seguintes sem limpar. Portão:
+	 * `tests/util/semErroDeLint.test.js`.
+	 */
+	_ctxDaUltimaAncoraDeSono = null;
+	_faltamMsNaAncoraDeSono = 0;
+	_ancoraDeSonoRecebidaEm = 0;
 	/*
 	 * ZERAR O DADO NAO BASTA: `GUIComponent.remove()` so DESANEXA o host,
 	 * entao o shadow DOM (com `is-open` e o HTML do personagem anterior)

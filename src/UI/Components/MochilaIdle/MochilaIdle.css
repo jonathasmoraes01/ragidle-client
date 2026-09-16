@@ -522,6 +522,40 @@
 	height: 9px;
 }
 
+/* Selo de TRAVA CONTRA VENDA (R14/C2-3, 14/09/2026): canto SUPERIOR
+   ESQUERDO — o direito e' da fantasia, o inferior esquerdo e' da
+   quantidade/refino. Cinza/neutro de proposito (nao e' premium nem
+   conquista, e' um AVISO de protecao) — a mesma tinta do "trancado" do
+   Mapa de Caca (`.hm-card.fit-locked`, HuntMap.css). */
+.mo-item-trava {
+	position: absolute;
+	top: -4px;
+	left: -4px;
+	width: 15px;
+	height: 15px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	border-radius: 50%;
+	border: 1px solid var(--border-hairline);
+	background: linear-gradient(180deg, var(--white), var(--ink-100, var(--sky-100)));
+	color: var(--text-muted);
+	box-shadow: var(--shadow-card);
+	pointer-events: none;
+}
+
+.mo-item-trava svg {
+	width: 9px;
+	height: 9px;
+}
+
+/* A celula inteira a 85% (nao 55% como o mapa trancado): a peca ainda pode
+   ser usada/equipada/guardada normalmente (a trava e' SO contra venda), um
+   apagamento forte demais leria como "esta peca esta desativada". */
+.mo-item.is-travado {
+	opacity: 0.85;
+}
+
 .mo-rodape {
 	flex: 0 0 auto;
 	display: flex;
@@ -735,6 +769,52 @@
 	font-weight: 700;
 	line-height: 1.3;
 	color: var(--text-title);
+}
+
+/* O selo "Equipado — <espaço>" (08/09/2026, pedido do alfa). Cor de acento e
+   não borda (a regra do texto dourado de D-944 vale pra todo destaque): o selo
+   diz ESTADO, não é botão. */
+/* "Exclusivo para VIPs" (09/09/2026): o selo do item que so VIP usa.
+
+   Dourado e em caixa alta porque ele compete com o nome do item logo acima e
+   precisa perder essa disputa de proposito — quem procura o nome acha o nome,
+   e quem passa o olho ve a faixa. */
+/* O ID do item, so para administrador (11/09/2026, D-1331).
+
+   Discreto de proposito, e ele e o CONTRARIO do selo de VIP logo abaixo: aquele
+   compete pela atencao porque muda o que o jogador pode fazer; este e uma
+   ferramenta de quem atende chamado, e nao pode roubar o olho de ninguem.
+   Monoespacado porque o que se faz com ele e LER e COPIAR um numero. */
+.mo-dica-id {
+	margin-top: 4px;
+	padding-top: 3px;
+	border-top: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.12));
+	color: var(--text-muted, rgba(255, 255, 255, 0.45));
+	font-family: var(--font-mono, ui-monospace, 'Cascadia Mono', 'Consolas', monospace);
+	font-size: 10px;
+	letter-spacing: 0.04em;
+	user-select: text;
+}
+
+.mo-dica-vip {
+	margin-top: 2px;
+	padding: 2px 6px;
+	border: 1px solid var(--border-gold);
+	border-radius: var(--radius-chip, 4px);
+	background: var(--gold-100, rgba(244, 192, 62, 0.12));
+	color: var(--gold-700);
+	font: var(--type-badge);
+	letter-spacing: var(--ls-caps);
+	text-transform: uppercase;
+}
+
+.mo-dica-equipado {
+	margin-top: 2px;
+	font-family: var(--font-ui);
+	font-size: 11px;
+	font-weight: 700;
+	letter-spacing: 0.02em;
+	color: var(--accent);
 }
 
 /* Corpo: SO as linhas de ficha ("Rotulo: valor") da descricao (pipeline de
@@ -961,5 +1041,73 @@
 		   sem orelha, nao ha emenda pra tapar; deixar o pseudo-elemento
 		   vivo desenharia uma barra solta do lado do botao ativo. */
 		content: none;
+	}
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   AS ABAS DE CATEGORIA VOLTAM A APARECER NO CELULAR (08/09/2026)
+   ═══════════════════════════════════════════════════════════════════════
+   RELATO DO DONO: *"existem abas que nao aparecem e, na mochila, nao e
+   possivel trocar de categoria"*.
+
+   MEDIDO antes do conserto (`scripts/diag-hud-seis.ts`, 393x852, no jogo de
+   pe): **0 de 3 abas visiveis**. No deitado e no desktop as tres aparecem.
+
+   ── A CAUSA ─────────────────────────────────────────────────────────────
+   `.mo-abas` e IRMA de `.mo-frame`, e vem DEPOIS dele no HTML — no desktop
+   ela e uma "orelha" em `position: absolute; left: 516px`, pendurada fora da
+   borda direita, e a ordem no DOM nao importa.
+
+   No celular o `@media (max-width: 599px)` a devolve ao fluxo
+   (`position: static`), e ai a ordem passa a importar: ela cai DEPOIS da
+   grade de itens inteira, a y~1500 numa tela de 852. D-932 poe
+   `overflow-y: auto` na `.mo-window`, entao ela existe, tem caixa e e
+   alcancavel rolando ate o fim — e nenhum jogador rola a mochila inteira
+   procurando as categorias que deveriam estar a vista.
+
+   (Foi tambem o que enganou a primeira versao da sonda: ela media
+   visibilidade so na HORIZONTAL e disse "3/3 visiveis".)
+
+   ── O CONSERTO, E POR QUE ESTE E NAO OUTRO ──────────────────────────────
+   `position: sticky; bottom: 0` dentro da propria janela que rola. Ela para
+   de depender da rolagem sem sair do lugar no DOM.
+
+   As duas alternativas descartadas:
+   - **`order: -1`** poria a faixa ACIMA de `.mo-frame` — ou seja, acima da
+     BARRA DE TITULO, que mora dentro do frame. Aba antes do titulo da
+     janela le como outra coisa;
+   - **fixar no topo** (`sticky; top: 0`) colocaria a faixa no lugar mais
+     longe do polegar numa tela de 852px de altura. No pe ela e alcancavel
+     com a mao que ja segura o aparelho.
+   ═══════════════════════════════════════════════════════════════════════ */
+@media (max-width: 599px) {
+	.mo-abas {
+		position: sticky;
+		bottom: 0;
+		z-index: 3;
+		/* Fundo proprio: grudada, ela passa por cima da grade de itens, e
+		   uma fileira translucida sobre ladrilhos seria ilegivel. */
+		background: var(--surface-window, #f4f6fb);
+		box-shadow: 0 -1px 0 var(--border-hairline, #dde3ee);
+
+		/* ── NAVEGACAO HORIZONTAL EVIDENTE, quando nao couberem ──────────
+		   O pedido cobra isto por escrito: *"Quando nao couberem, ofereca
+		   navegacao horizontal evidente."* Hoje sao tres e elas cabem; a
+		   regra existe para a quarta nao reabrir o defeito em silencio.
+
+		   `flex: 1 0 auto` (e nao o `1 1 0` da regra acima): com tres, cada
+		   uma toma um terco; com muitas, elas param de encolher e a fileira
+		   ROLA em vez de espremer rotulo ate ficar ilegivel. */
+		flex-wrap: nowrap;
+		overflow-x: auto;
+		overscroll-behavior-x: contain;
+		-webkit-overflow-scrolling: touch;
+		scroll-snap-type: x proximity;
+	}
+
+	.mo-abas .mo-aba {
+		flex: 1 0 auto;
+		min-width: max-content;
+		scroll-snap-align: start;
 	}
 }

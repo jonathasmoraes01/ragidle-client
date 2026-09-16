@@ -16,7 +16,7 @@
  *    mesmo motivo em ordem diferente dizem frases diferentes para o mesmo
  *    clique.
  *
- * Os dublês abaixo são payloads do contrato v2, escritos à mão. É o certo aqui:
+ * Os dublês abaixo são payloads do contrato v3, escritos à mão. É o certo aqui:
  * a pergunta é sobre a GEOMETRIA e sobre a ORDEM DAS RECUSAS, e as duas se
  * respondem melhor com uma árvore que cabe na cabeça do que com a do Cavaleiro.
  * Quem cobre o dado real é `grau-da-habilidade.test.ts`, no repo do servidor.
@@ -26,6 +26,7 @@ import {
 	COL_W,
 	NO_L,
 	ROW_H,
+	arvoreAbertaNoRascunho,
 	avaliarDescer,
 	avaliarSubir,
 	montarPlano,
@@ -34,7 +35,7 @@ import {
 	pontosNoRascunho
 } from 'UI/Components/IdleSkills/arvoreDeSkills.js';
 
-/** Uma habilidade do contrato v2, com os campos que a árvore lê. */
+/** Uma habilidade do contrato v3, com os campos que a árvore lê. */
 function skill(skillId, extra) {
 	return Object.assign(
 		{
@@ -414,5 +415,165 @@ describe('as contas do rascunho', () => {
 	it('pontosNoRascunho soma tudo o que está comprometido', () => {
 		expect(pontosNoRascunho({ A: 3, B: 2 })).toBe(5);
 		expect(pontosNoRascunho({})).toBe(0);
+	});
+});
+
+/*
+ * O PERDAO DE PRE-REQUISITO (D-1225, 08/09/2026).
+ *
+ * O relato do alfa foi "Contra-Ataque nao permite aumentar o nivel", e o
+ * defeito de verdade estava um no acima: `KN_BOWLINGBASH` (e `CR_DEVOTION`)
+ * exigem uma habilidade que a tranca do motor nunca deixa comprar, e o
+ * servidor JA perdoava esse requisito desde D-442 — so o cliente nao sabia.
+ *
+ * Os dois casos abaixo sao as duas metades da regra, e o segundo e o que
+ * impede o conserto de virar "o cliente aprova tudo": perdao e por REQUISITO,
+ * e o requisito comum ao lado dele continua barrando.
+ */
+describe('o perdão de pré-requisito (D-1225)', () => {
+	it('requisito `perdoado` não barra a seta — o caso KN_BOWLINGBASH', () => {
+		const skills = [
+			skill('KN_AUTOCOUNTER', { nome: 'Contra-Ataque', aceitaPeloMotor: false, portada: false }),
+			skill('KN_BOWLINGBASH', {
+				nome: 'Golpe de Boliche',
+				preRequisitos: [{ skillId: 'KN_AUTOCOUNTER', nivel: 5, perdoado: true }]
+			})
+		];
+		const veredito = avaliarSubir(skills[1], contexto(skills));
+		expect(veredito.ok).toBe(true);
+		expect(veredito.motivo).toBe(null);
+	});
+
+	it('sem o perdão o mesmo requisito continua barrando — o mundo de antes', () => {
+		const skills = [
+			skill('KN_AUTOCOUNTER', { nome: 'Contra-Ataque', aceitaPeloMotor: false }),
+			skill('KN_BOWLINGBASH', {
+				nome: 'Golpe de Boliche',
+				preRequisitos: [{ skillId: 'KN_AUTOCOUNTER', nivel: 5, perdoado: false }]
+			})
+		];
+		const veredito = avaliarSubir(skills[1], contexto(skills));
+		expect(veredito.ok).toBe(false);
+		expect(veredito.motivo).toContain('Contra-Ataque');
+	});
+
+	it('o perdão é POR REQUISITO: o irmão não perdoado continua barrando', () => {
+		const skills = [
+			skill('RECUSADA', { aceitaPeloMotor: false }),
+			skill('COMUM'),
+			skill('FILHA', {
+				preRequisitos: [
+					{ skillId: 'RECUSADA', nivel: 5, perdoado: true },
+					{ skillId: 'COMUM', nivel: 3, perdoado: false }
+				]
+			})
+		];
+		const veredito = avaliarSubir(skills[2], contexto(skills));
+		expect(veredito.ok).toBe(false);
+		expect(veredito.motivo).toContain('COMUM');
+	});
+
+	it('a tranca do motor continua sendo a última da fila, e ela não é perdoável', () => {
+		// O proprio Contra-Ataque: requisitos em dia, ponto na mao, e mesmo
+		// assim recusado — e a recusa e a do MOTOR, e nao a de requisito.
+		const skills = [skill('KN_AUTOCOUNTER', { nome: 'Contra-Ataque', aceitaPeloMotor: false })];
+		const veredito = avaliarSubir(skills[0], contexto(skills));
+		expect(veredito.ok).toBe(false);
+		expect(veredito.motivo).toContain('motor de combate');
+	});
+});
+
+describe('a árvore aberta no rascunho (D-1366)', () => {
+	// Um Cavaleiro que trocou no job 40, depois do Hipnotizador: 9 na Básica e
+	// nada no 1º grau — a árvore aberta é a do Espadachim, e faltam 39.
+	function travaDoCavaleiro(extra) {
+		return Object.assign(
+			{
+				grauAberto: 1,
+				faltam: 39,
+				cotaDoAprendiz: 9,
+				cotaDoPrimeiro: 39,
+				pontosPorGrau: [{ grau: 0, pontos: 9 }],
+				gratis: []
+			},
+			extra || {}
+		);
+	}
+	const GRAUS = [
+		{ grau: 0, classe: 'Novice', nomePt: 'Aprendiz' },
+		{ grau: 1, classe: 'Swordman', nomePt: 'Espadachim' },
+		{ grau: 2, classe: 'Knight', nomePt: 'Cavaleiro' }
+	];
+	function comTrava(skills, trava, extra) {
+		return contexto(skills, Object.assign({ trava: trava, graus: GRAUS, pontos: 60 }, extra || {}));
+	}
+
+	it('habilidade acima da árvore aberta recusa, dizendo qual está aberta e quanto falta', () => {
+		const skills = [skill('KN_PIERCE', { grau: 2 })];
+		const veredito = avaliarSubir(skills[0], comTrava(skills, travaDoCavaleiro()));
+		expect(veredito.ok).toBe(false);
+		expect(veredito.motivo).toContain('Espadachim');
+		expect(veredito.motivo).toContain('faltam 39');
+	});
+
+	it('a do degrau aberto passa', () => {
+		const skills = [skill('SM_BASH', { grau: 1 })];
+		expect(avaliarSubir(skills[0], comTrava(skills, travaDoCavaleiro())).ok).toBe(true);
+	});
+
+	it('o rascunho que completa a cota do 1º grau abre o 2º antes do Aplicar', () => {
+		const skills = [skill('SM_BASH', { grau: 1, nivelMaximo: 40 }), skill('KN_PIERCE', { grau: 2 })];
+		expect(avaliarSubir(skills[1], comTrava(skills, travaDoCavaleiro(), { rascunho: { SM_BASH: 38 } })).ok).toBe(
+			false
+		);
+		expect(avaliarSubir(skills[1], comTrava(skills, travaDoCavaleiro(), { rascunho: { SM_BASH: 39 } })).ok).toBe(
+			true
+		);
+	});
+
+	it('o nível de graça no rascunho não conta para a cota — a mesma conta do servidor', () => {
+		// 38 já pagos no 1º grau; a habilidade de missão tem o nível 1 de graça, e
+		// comprá-lo no rascunho não soma ponto — o 2º é que soma.
+		const skills = [skill('SM_BASH', { grau: 1 }), skill('KN_PIERCE', { grau: 2 })];
+		const trava = travaDoCavaleiro({
+			faltam: 1,
+			pontosPorGrau: [
+				{ grau: 0, pontos: 9 },
+				{ grau: 1, pontos: 38 }
+			],
+			gratis: [{ skillId: 'SM_BASH', nivel: 1 }]
+		});
+		expect(avaliarSubir(skills[1], comTrava(skills, trava, { rascunho: { SM_BASH: 1 } })).ok).toBe(false);
+		expect(avaliarSubir(skills[1], comTrava(skills, trava, { rascunho: { SM_BASH: 2 } })).ok).toBe(true);
+	});
+
+	it('sem a segunda cota (o 1º grau), o Aprendiz satisfeito abre a classe inteira', () => {
+		const skills = [skill('SM_BASH', { grau: 1 })];
+		const trava = travaDoCavaleiro({ faltam: 0, cotaDoPrimeiro: null });
+		expect(avaliarSubir(skills[0], comTrava(skills, trava)).ok).toBe(true);
+	});
+
+	it('abaixo da cota do Aprendiz a árvore aberta é a dele, e a Básica sobe', () => {
+		const skills = [skill('NV_BASIC', { grau: 0, nivelMaximo: 9 }), skill('SM_BASH', { grau: 1 })];
+		const trava = travaDoCavaleiro({ pontosPorGrau: [{ grau: 0, pontos: 5 }] });
+		const veredito = avaliarSubir(skills[1], comTrava(skills, trava));
+		expect(veredito.ok).toBe(false);
+		expect(veredito.motivo).toContain('Aprendiz');
+		expect(veredito.motivo).toContain('faltam 4');
+		expect(avaliarSubir(skills[0], comTrava(skills, trava)).ok).toBe(true);
+	});
+
+	it('a árvore aberta vem ANTES do teto — a mesma ordem do servidor', () => {
+		const skills = [skill('KN_PIERCE', { grau: 2, aprendido: 10, nivelMaximo: 10 })];
+		expect(avaliarSubir(skills[0], comTrava(skills, travaDoCavaleiro())).motivo).toContain('ainda está aberta');
+	});
+
+	it('com a trava ligada, a habilidade sem degrau recusa', () => {
+		const skills = [skill('XX_SEM_DEGRAU', { grau: -1 })];
+		expect(avaliarSubir(skills[0], comTrava(skills, travaDoCavaleiro())).ok).toBe(false);
+	});
+
+	it('sem trava no contexto, a classe inteira está aberta', () => {
+		expect(arvoreAbertaNoRascunho(contexto([])).grau).toBe(Infinity);
 	});
 });

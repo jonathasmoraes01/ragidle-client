@@ -323,16 +323,32 @@ function clampPositionToViewport() {
  * `documentElement` do documento DESTE painel, e nao o da pagina de cima: o
  * jogo roda num iframe, e escrever a propriedade no topo nao alcanca ninguem.
  */
+/** A ultima dupla publicada (ver a guarda em `publicarCaixa`). */
+let _caixaPublicada = null;
+
 function publicarCaixa() {
 	const host = BasicInfoIdle._host;
 	if (!host) return;
 	const r = host.getBoundingClientRect();
 	if (r.height < 1) return;
-	const raiz = host.ownerDocument.documentElement;
 	/* D-934: em unidade da HUD, e nao em pixel de viewport — quem le estes
 	   dois esta dentro de um host com `zoom`, e la o pixel vale menos. */
-	raiz.style.setProperty('--hud-basic-altura', `${Math.round(emUnidadesDaHud(r.height))}px`);
-	raiz.style.setProperty('--hud-basic-fundo', `${Math.round(emUnidadesDaHud(r.bottom))}px`);
+	const altura = `${Math.round(emUnidadesDaHud(r.height))}px`;
+	const fundo = `${Math.round(emUnidadesDaHud(r.bottom))}px`;
+	/*
+	 * SO PUBLICA QUANDO MUDA (07/09/2026, frente de FPS).
+	 *
+	 * As duas escritas caem no `documentElement` e invalidam o estilo de todo
+	 * descendente que use `var()`. Como isto roda no tique de 250 ms, eram 8
+	 * invalidacoes globais por segundo para publicar, quase sempre, o mesmo
+	 * numero. A leitura fica — e ela quem detecta a mudanca; sai a escrita.
+	 */
+	const assinatura = `${altura}|${fundo}`;
+	if (assinatura === _caixaPublicada) return;
+	_caixaPublicada = assinatura;
+	const raiz = host.ownerDocument.documentElement;
+	raiz.style.setProperty('--hud-basic-altura', altura);
+	raiz.style.setProperty('--hud-basic-fundo', fundo);
 }
 
 /**
@@ -370,8 +386,49 @@ function stopPolling() {
 
 function setText(root, selector, text) {
 	const el = root.querySelector(selector);
-	if (el) {
-		el.textContent = text;
+	if (!el) {
+		return;
+	}
+	/*
+	 * COMPARA ANTES DE ESCREVER (auditoria de desempenho, 11/09/2026).
+	 *
+	 * Este painel PESQUISA o estado a cada 250 ms e chama isto DEZ vezes por
+	 * volta, com a janela visivel ou nao. Escrever `textContent` com o MESMO
+	 * texto nao e de graca: o navegador invalida o layout daquele no, e o
+	 * quadro seguinte paga o reflow.
+	 *
+	 * Onde isso doi esta medido: a `sonda:fps` mediu 17fps no celular com o
+	 * processador em 1/4, com os tempos de quadro em multiplos exatos de
+	 * vsync -- o gargalo e CPU da thread principal, e nao GPU. Trabalho de HUD
+	 * desperdicado sai exatamente dai.
+	 *
+	 * Nome, classe, nivel, peso e zeny quase nunca mudam entre duas voltas,
+	 * entao a comparacao corta quase toda a escrita. **O padrao ja estava neste
+	 * arquivo, uma funcao abaixo**: o retrato de classe so troca o `src` quando
+	 * o `dataset.jobId` muda, "pra nao reiniciar a carga da imagem a cada tick
+	 * de 250ms do polling". A regra certa ja morava aqui ao lado.
+	 */
+	/*
+	 * INTERRUPTOR DE MEDICAO (11/09/2026): `window.__ri_hud_compara = false`
+	 * devolve o comportamento ANTIGO (escrever sempre).
+	 *
+	 * Ele existe pelo mesmo motivo do `__ri_culling` do EntityManager, e a
+	 * razao esta escrita la: comparar duas CORRIDAS nao separa o efeito da
+	 * variancia — o personagem esta noutro lugar, com outros bichos, e o numero
+	 * anda sozinho. Com o interruptor a sonda mede A/B **na mesma cena, no
+	 * mesmo minuto**.
+	 *
+	 * Em producao a propriedade nao existe e o teste e um `!== false` por
+	 * chamada — dez por volta de 250 ms, contra as dezenas de milhares de
+	 * operacoes que ele decide evitar.
+	 */
+	const novo = String(text);
+	if (typeof window !== 'undefined' && window.__ri_hud_compara === false) {
+		el.textContent = novo;
+		return;
+	}
+	if (el.textContent !== novo) {
+		el.textContent = novo;
 	}
 }
 
@@ -444,13 +501,38 @@ function updateLifeBar(root, type, val, max) {
 	}
 }
 
-function updateExpBar(root, selector, val, max) {
+/**
+ * A barra de EXP, e opcionalmente a PORCENTAGEM dentro dela.
+ *
+ * `pctSelector` e OPCIONAL de proposito (11/09/2026, pedido do dono: *"adicionar
+ * a porcentagem da EXP de Base/Classe na barra do personagem (pequeno, visivel,
+ * dentro da barra com a cor verde)"*).
+ *
+ * SAO TRES CHAMADORES, e o terceiro nao quer o texto: o rodape do celular em pe
+ * (`sincronizarRodapeVertical`) usa esta mesma funcao e ja escreve o seu proprio
+ * texto, com valor e maximo por extenso — "31.233 / 45.000 (69,4%)", o formato
+ * do mockup de D-939. Escrever sempre duplicaria a porcentagem la; exigir o
+ * parametro quebraria a chamada. Opcional deixa o rodape intocado.
+ *
+ * O texto vai por `setText`, que COMPARA ANTES DE ESCREVER. Este painel
+ * repesquisa o estado a cada 250 ms: `textContent` direto somaria duas
+ * invalidacoes de layout por volta e desfaria, por fora, o achado 5 da auditoria
+ * de desempenho — que tem portao proprio em `hudNaoRedesenhaAToa.test.js`.
+ *
+ * O numero e DERIVADO aqui do que a janela nativa ja tem
+ * (`base_exp`/`base_exp_next`): nao ha campo novo no pacote nem nada a pedir ao
+ * servidor.
+ */
+function updateExpBar(root, selector, val, max, pctSelector) {
 	const el = root.querySelector(selector);
 	if (!el) {
 		return;
 	}
 	const perc = max > 0 ? Math.max(0, Math.min(100, (val / max) * 100)) : 0;
 	el.style.width = perc + '%';
+	if (pctSelector) {
+		setText(root, pctSelector, formatPercent(val, max));
+	}
 }
 
 /**
@@ -488,8 +570,8 @@ function syncFromNativeState() {
 
 	setText(root, '.bi-blvl-value', entity.clevel || 0);
 	setText(root, '.bi-jlvl-value', entity.joblevel || 0);
-	updateExpBar(root, '.bi-bexp-fill', nativeUI.base_exp || 0, nativeUI.base_exp_next || 0);
-	updateExpBar(root, '.bi-jexp-fill', nativeUI.job_exp || 0, nativeUI.job_exp_next || 0);
+	updateExpBar(root, '.bi-bexp-fill', nativeUI.base_exp || 0, nativeUI.base_exp_next || 0, '.bi-bexp-pct');
+	updateExpBar(root, '.bi-jexp-fill', nativeUI.job_exp || 0, nativeUI.job_exp_next || 0, '.bi-jexp-pct');
 
 	// Native BasicInfoCommon.update('weight', ...) divides by 10 before
 	// display (BasicInfoCommon.js:507-512) — mirrored here so the number

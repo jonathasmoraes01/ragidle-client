@@ -61,6 +61,17 @@ const NOMES = new Map([
 	['auction_icon', 'leilao'],
 	['fantasy_shop_icon', 'loja'],
 	['ro_shop_icon', 'ro-shop'],
+	// selo de MVP da lista do Mapa de Caça (07/09/2026): a coroa do pilar "MVP"
+	// do site, o mesmo PNG de origem — nenhum outro arquivo do lote casa "mvp".
+	['mvp', 'mvp'],
+	// lote de 08/09/2026 (pedido do dono): arte para os tres botoes que ainda
+	// eram traco Lucide puro. As chaves sao trechos do nome que o gerador deu
+	// aos arquivos ("Creating_referral_menu_icon", "Criar_icone_de_calendario
+	// _medieval", "votar.png") — nao ha outro arquivo do lote que case com
+	// nenhuma delas.
+	['referral', 'indicacao'],
+	['calend', 'presenca'],
+	['votar', 'voto'],
 ]);
 
 function nomeFinal(arquivo) {

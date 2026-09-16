@@ -68,6 +68,8 @@
 
 import Renderer from 'Renderer/Renderer.js';
 import Preferences from 'Core/Preferences.js';
+import Network from 'Network/NetworkManager.js';
+import PACKET from 'Network/PacketStructure.js';
 import UIManager from 'UI/UIManager.js';
 import GUIComponent from 'UI/GUIComponent.js';
 import Rodex from 'UI/Components/Rodex/Rodex.js';
@@ -76,6 +78,7 @@ import RodexIcon from 'UI/Components/Rodex/RodexIcon.js';
 import htmlText from './CorreioIdle.html?raw';
 import cssText from './CorreioIdle.css?raw';
 import { fecharEEsquecer } from '../limpezaDeJanelaIdle.js';
+import { fraseDaColeta, fraseDoRelatorio } from './relatorioDoLote.js';
 
 /**
  * Mantido em sincronia com ":host"/".co-window"/".co-frame" em
@@ -114,6 +117,34 @@ const AVISO_MS = 3600;
 const MSG_APAGAR_RECUSADO =
 	'Não foi possível apagar: retire o anexo desta mensagem primeiro.';
 
+/** O lote com a caixa vazia: nada a fazer, e dizer isso é melhor que o silêncio. */
+const MSG_SEM_NADA_A_APAGAR = 'A caixa já está vazia.';
+
+/**
+ * A mesma coisa para a coleta — e **é o único caso que a janela pode decidir
+ * sozinha** (D-1494).
+ *
+ * Ela não sabe QUAIS cartas têm anexo: o bloco da lista manda `classe: 0` fixo
+ * (o mesmo motivo pelo qual a confirmação do "apagar todas" diz o total, e não
+ * quantas vão sair). Então "não há anexo a coletar" só é uma afirmação honesta
+ * quando não há CARTA nenhuma. Nos outros casos quem responde é o relatório do
+ * servidor, e adivinhar aqui seria a segunda leitura da regra dele.
+ */
+const MSG_CAIXA_VAZIA_PARA_COLETA = 'A caixa está vazia — não há anexo a coletar.';
+
+/**
+ * Quanto tempo o botão de coleta fica desarmado esperando o relatório.
+ *
+ * Ele é uma REDE, e não o mecanismo: quem o rearma é a chegada do relatório
+ * (ver o `hookPacket`). Isto existe só para o caso em que o relatório não vem —
+ * conexão caída, servidor velho sem o verbo — para o botão não ficar morto até
+ * o jogador fechar e reabrir a janela.
+ */
+const COLETA_DE_LOTE_TIMEOUT_MS = 10000;
+
+/** Quanto tempo o relatório do lote fica na tela — ele é mais longo de ler. */
+const AVISO_DO_LOTE_MS = 8000;
+
 /**
  * Create Component
  */
@@ -148,6 +179,34 @@ let _selecionada = null;
 
 /** @var {string|null} assinatura da ultima lista desenhada. */
 let _sigLista = null;
+/**
+ * Os botoes de coleta ja pedidos e ainda sem resposta (D-950, 07/09/2026).
+ *
+ * O relato do dono: *"fui apagar os e-mails do correio do kit de boas vindas,
+ * deu falha ao retirar o zenny"*. O servidor recusa a SEGUNDA retirada de
+ * proposito — e o que impede o clique repetido de imprimir dinheiro
+ * (`retirarZeny`, `servidor/caixa.ts`) —, mas o botao continuava clicavel ate a
+ * lista voltar (600 ms depois), entao dois cliques seguidos rendiam um
+ * "Falha ao retirar os Zenys" que nao descreve falha nenhuma: o zeny JA estava
+ * na bolsa.
+ *
+ * Chave: `<acao>:<mensagemId>`. Some quando a lista chega com o anexo zerado.
+ */
+const _coletaEmVoo = new Set();
+
+/**
+ * O lote de coleta já pedido e ainda sem relatório (D-1494, 15/09/2026).
+ *
+ * É um booleano e não um Set porque o lote é sobre a CAIXA, e não sobre uma
+ * carta: não há duas coletas de lote concorrentes possíveis. A razão de existir
+ * é a mesma do `_coletaEmVoo` irmão — o segundo clique chegaria ao servidor com
+ * a caixa já esvaziada e voltaria com "Nenhum anexo coletado", que descreve
+ * falha nenhuma e faria o jogador achar que o botão quebrou.
+ */
+let _coletaDeLoteEmVoo = false;
+
+/** @var {number|null} handle da rede de segurança do lote de coleta. */
+let _coletaDeLoteTimer = null;
 
 /** @var {string|null} assinatura do ultimo detalhe desenhado. */
 let _sigDetalhe = null;
@@ -282,6 +341,50 @@ CorreioIdle.init = function init() {
 	root.querySelector('.co-lista').addEventListener('click', onClickLista);
 	root.querySelector('.co-painel-esq').addEventListener('click', onClickAcao);
 	root.querySelector('.co-painel-dir').addEventListener('click', onClickAcao);
+
+	/*
+	 * O RELATÓRIO DO LOTE (07/09/2026).
+	 *
+	 * `hookPacket` SOBRESCREVE, e por isso o cabeçalho desta janela diz que ela
+	 * não fisga nada: fisgar um ACK do correio trocaria em silêncio o handler de
+	 * `Engine/MapEngine/Rodex.js`. Este é a exceção que confirma a regra —
+	 * `ZC_RAGIDLE_CORREIO` é pacote NOSSO, criado nesta rodada, e não tem outro
+	 * dono. É o mesmo arranjo de `GrupoIdle` e `LFGIdle` com os pacotes deles.
+	 */
+	Network.hookPacket(PACKET.ZC.RAGIDLE_CORREIO, function (pkt) {
+		let relatorio;
+		try {
+			relatorio = JSON.parse(pkt.json);
+		} catch (_erro) {
+			return;
+		}
+		if (!relatorio) {
+			return;
+		}
+		/*
+		 * UM `case` POR VERBO (D-1494). Isto era um `if (acao !== 'apagar-todas')
+		 * return`, e o relatorio da coleta caía no chão em silêncio — o defeito
+		 * que este projeto chama de "duas rotas, a 2ª escrita à mão", só que na
+		 * forma mais barata: a 2ª rota nem existia. O `default` continua mudo de
+		 * propósito, porque verbo novo no servidor chega antes do cliente novo.
+		 */
+		switch (relatorio.acao) {
+			case 'apagar-todas':
+				mostrarAviso(fraseDoRelatorio(relatorio), AVISO_DO_LOTE_MS);
+				break;
+
+			case 'coletar-todos':
+				// O botão só volta quando a resposta chega: é ela que diz que o
+				// lote acabou. Ver `coletarTodos`.
+				_coletaDeLoteEmVoo = false;
+				sincronizarBotaoDaColeta();
+				mostrarAviso(fraseDaColeta(relatorio), AVISO_DO_LOTE_MS);
+				break;
+
+			default:
+				break;
+		}
+	});
 
 	this._host.style.top = Math.max(0, (Renderer.height - WINDOW_HEIGHT) / 2) + 'px';
 	this._host.style.left = Math.max(0, (Renderer.width - WINDOW_WIDTH) / 2) + 'px';
@@ -550,15 +653,11 @@ function onClickAcao(e) {
 			break;
 
 		case 'zeny':
-			if (_selecionada != null) {
-				exigirRede('requestZenyFromRodex')(0, _selecionada);
-			}
+			pedirColeta('zeny', 'requestZenyFromRodex', btn);
 			break;
 
 		case 'itens':
-			if (_selecionada != null) {
-				exigirRede('requestItemsFromRodex')(0, _selecionada);
-			}
+			pedirColeta('itens', 'requestItemsFromRodex', btn);
 			break;
 
 		case 'apagar':
@@ -574,9 +673,51 @@ function onClickAcao(e) {
 			esconderConfirmacao();
 			break;
 
+		case 'coletar-todos':
+			coletarTodos();
+			break;
+
+		case 'apagar-todas':
+			mostrarConfirmacaoDeTodas();
+			break;
+
+		case 'apagar-todas-sim':
+			esconderConfirmacaoDeTodas();
+			apagarTodas();
+			break;
+
+		case 'apagar-todas-nao':
+			esconderConfirmacaoDeTodas();
+			break;
+
 		default:
 			break;
 	}
+}
+
+/**
+ * Pede a coleta UMA vez por carta (D-950).
+ *
+ * O botao some assim que o pedido sai, e volta quando a lista chegar dizendo o
+ * que aconteceu — o servidor zera o anexo retirado (`zeny: carta.zenyRetirado ?
+ * 0 : carta.zeny`), entao a carta coletada volta sem botao, e a que falhou de
+ * verdade volta com ele.
+ */
+function pedirColeta(acao, metodo, btn) {
+	if (_selecionada == null) {
+		return;
+	}
+	const chave = `${acao}:${_selecionada}`;
+	if (_coletaEmVoo.has(chave)) {
+		return;
+	}
+	_coletaEmVoo.add(chave);
+	if (btn) {
+		btn.hidden = true;
+	}
+	exigirRede(metodo)(0, _selecionada);
+	setTimeout(repedirLista, REPEDIR_LISTA_MS);
+	setTimeout(() => _coletaEmVoo.delete(chave), RECUSA_DELAY_MS);
 }
 
 function mostrarConfirmacao() {
@@ -612,7 +753,116 @@ function apagarSelecionada() {
 	}, RECUSA_DELAY_MS);
 }
 
-function mostrarAviso(msg) {
+/* ------------------------------------------------------------------ */
+/* COLETAR TODOS OS ITENS (15/09/2026, D-1494 — pedido do dono)         */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Manda o verbo e espera o RELATÓRIO.
+ *
+ * ── O QUE ESTA FUNÇÃO NÃO FAZ, E POR QUÊ ─────────────────────────────────
+ * Ela não decide o que cabe. **Quem decide é `planejarColetaDeAnexos`**, no
+ * servidor, e a razão está escrita lá: o peso ACUMULA ao longo do lote, então
+ * uma segunda conta aqui — cada carta contra o peso de ANTES — aceitaria demais
+ * e deixaria o jogador acima do teto. A janela nem sabe o peso.
+ *
+ * ── A COSTURA COM A LISTA ────────────────────────────────────────────────
+ * O `repedirLista` é o mesmo do `apagarTodas`, e pelo mesmo motivo: quem tira o
+ * anexo da linha na lista NATIVA do roBrowser são os `ZC_ACK_*_FROM_RODEX` que
+ * o servidor manda carta a carta. O relatório é TEXTO, e não estado.
+ */
+function coletarTodos() {
+	if (_coletaDeLoteEmVoo) {
+		return;
+	}
+	if (cartas().length === 0) {
+		mostrarAviso(MSG_CAIXA_VAZIA_PARA_COLETA);
+		return;
+	}
+
+	_coletaDeLoteEmVoo = true;
+	sincronizarBotaoDaColeta();
+
+	const pkt = new PACKET.CZ.RAGIDLE_CORREIO_ACAO();
+	pkt.json = JSON.stringify({ acao: 'coletar-todos' });
+	Network.sendPacket(pkt);
+	setTimeout(repedirLista, REPEDIR_LISTA_MS);
+
+	if (_coletaDeLoteTimer) {
+		clearTimeout(_coletaDeLoteTimer);
+	}
+	_coletaDeLoteTimer = setTimeout(() => {
+		_coletaDeLoteTimer = null;
+		_coletaDeLoteEmVoo = false;
+		sincronizarBotaoDaColeta();
+	}, COLETA_DE_LOTE_TIMEOUT_MS);
+}
+
+/**
+ * O botão desarmado enquanto o lote está no ar.
+ *
+ * `disabled` e não `hidden`: o botão ocupa a fila inteira do rodapé, e
+ * escondê-lo faria o rodapé PULAR de altura no instante do clique — o "Apagar
+ * todas" subiria para debaixo do dedo que acabou de tocar. É o mesmo cuidado
+ * que o irmão avulso não precisa ter, porque lá o botão divide a fila.
+ */
+function sincronizarBotaoDaColeta() {
+	const botao = _root().querySelector('.co-coletar-todos');
+	if (!botao) {
+		return;
+	}
+	botao.disabled = _coletaDeLoteEmVoo;
+	botao.classList.toggle('is-disabled', _coletaDeLoteEmVoo);
+}
+
+/* ------------------------------------------------------------------ */
+/* APAGAR TODAS (07/09/2026 — pedido do dono no alfa)                   */
+/* ------------------------------------------------------------------ */
+
+/**
+ * A confirmação do lote, com o NÚMERO na frase.
+ *
+ * "Apagar todas as mensagens?" sem número é a pergunta que o jogador confirma
+ * sem ler. O número sai da lista que ele está vendo — e ele é o TOTAL, e não
+ * quantas vão sair: a janela não sabe quais têm anexo (o bloco da lista manda
+ * `classe: 0` fixo), e prometer "3 serão apagadas" seria inventar. Quem diz o
+ * que aconteceu é o relatório do servidor, depois.
+ */
+function mostrarConfirmacaoDeTodas() {
+	const root = _root();
+	const quantas = cartas().length;
+	if (quantas === 0) {
+		mostrarAviso(MSG_SEM_NADA_A_APAGAR);
+		return;
+	}
+	root.querySelector('.co-confirma-todas-texto').textContent =
+		quantas === 1
+			? 'Apagar a mensagem da caixa?'
+			: 'Apagar as ' + quantas + ' mensagens da caixa?';
+	root.querySelector('.co-confirma-todas').hidden = false;
+	root.querySelector('.co-rodape').hidden = true;
+}
+
+function esconderConfirmacaoDeTodas() {
+	const root = _root();
+	root.querySelector('.co-confirma-todas').hidden = true;
+	root.querySelector('.co-rodape').hidden = false;
+}
+
+/**
+ * Manda o verbo e espera o RELATÓRIO.
+ *
+ * Repede a lista junto porque quem tira a linha da lista nativa é o
+ * `ZC_ACK_DELETE_RODEX` por carta — o relatório é texto, e não estado.
+ */
+function apagarTodas() {
+	const pkt = new PACKET.CZ.RAGIDLE_CORREIO_ACAO();
+	pkt.json = JSON.stringify({ acao: 'apagar-todas' });
+	Network.sendPacket(pkt);
+	setTimeout(repedirLista, REPEDIR_LISTA_MS);
+}
+
+function mostrarAviso(msg, quantoTempo) {
 	const root = _root();
 	const el = root.querySelector('.co-aviso');
 	if (!el) {
@@ -626,7 +876,7 @@ function mostrarAviso(msg) {
 	_avisoTimer = setTimeout(() => {
 		el.hidden = true;
 		_avisoTimer = null;
-	}, AVISO_MS);
+	}, quantoTempo || AVISO_MS);
 }
 
 /**

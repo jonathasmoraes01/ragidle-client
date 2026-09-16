@@ -115,6 +115,18 @@ CheckAttendance.onShortCut = function onShortCut(key) {
 /**
  * Show/Hide UI
  */
+/**
+ * RAGIDLE (07/09/2026): ha evento de presenca para desenhar? O servidor deste
+ * jogo paga a presenca por CORREIO (D-806) e nunca manda o 0x0ae2 da
+ * janela; o `append()` automatico do carregamento de mapa imprimia
+ * "Nao ha evento de presenca no momento." a cada mapa carregado — inclusive a
+ * cada Asa de Mosca, que recarrega o mesmo mapa. O carregamento agora pergunta
+ * aqui antes de abrir; o atalho do jogador continua abrindo (e avisando).
+ */
+CheckAttendance.temEvento = function temEvento() {
+	return _checkAttendanceData >= 0 && !!(_CheckAttendanceInfo && _CheckAttendanceInfo.Config);
+};
+
 CheckAttendance.toggle = function toggle() {
 	if (this._host.style.display !== 'none') {
 		this.ui.hide();

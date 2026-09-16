@@ -925,6 +925,19 @@ export function createInventory(config) {
 				Component.onUseCard(item.index);
 				break;
 			case ItemType.DELAYCONSUME:
+				/*
+				 * RAGIDLE (D-1150, 06/09/2026) — a ASA DE MOSCA E DE BORBOLETA sao
+				 * `IT_DELAYCONSUME` (type 11, `item_db_usable.yml`), e o roBrowser
+				 * original deixava este ramo VAZIO: o clique em "Usar" nao mandava
+				 * nada. Foi o "a asa nao funciona" do dono — o servidor teleporta
+				 * (prove:asa, 8 de 8), mas o pacote `CZ_USE_ITEM` nunca saia do
+				 * cliente. O rAthena usa o MESMO pacote para os dois tipos
+				 * (clif_parse_UseItem -> pc_useitem, sem olhar o type); quem decide
+				 * o que o item faz e o servidor (`itemskill` da asa, `sc_start` da
+				 * poção). Consumível que o servidor não implementa volta com ack de
+				 * recusa e não some da mochila (prove:asa, o Óculos).
+				 */
+				Component.onUseItem(item.index);
 				break;
 			case ItemType.WEAPON:
 			case ItemType.ARMOR:
@@ -1439,6 +1452,33 @@ export function createInventory(config) {
 			requestFilter();
 		};
 	}
+
+	/**
+	 * TRAVA CONTRA VENDA (R14/C2-3, 14/09/2026) — NAO e' o `itemlock` logo
+	 * abaixo: aquele e' a preferencia nativa do RO "trava contra jogar item
+	 * fora" (um preferencia GLOBAL do jogador, sem estado por item). Esta e'
+	 * NOVA: um cadeado POR PILHA/SLOT que o SERVIDOR decide e manda
+	 * (`ZC_RAGIDLE_TRAVAS`, contrato v1: `{v:1, travados: number[], recusa?}`
+	 * — `travados` sao SLOTS, nao posicoes: a posicao de uma pilha anda
+	 * quando ela esgota, e o cliente NUNCA reindexa por conta propria).
+	 *
+	 * `item.travado` mora no PROPRIO objeto do inventario (mesma casa de
+	 * `PlaceETCTab`) para MochilaIdle e NpcStoreV2/V1 lerem sem precisar de
+	 * outro import — os dois ja leem `Inventory.getUI().list`/`getItemByIndex`
+	 * para tudo o mais.
+	 */
+	Component.aplicarTravas = function aplicarTravas(slotsTravados) {
+		const conjunto = new Set(Array.isArray(slotsTravados) ? slotsTravados : []);
+		for (const item of Component.list) {
+			item.travado = conjunto.has(item.index);
+		}
+		requestFilter();
+	};
+
+	Component.estaTravado = function estaTravado(index) {
+		const item = Component.getItemByIndex(index);
+		return !!(item && item.travado);
+	};
 
 	/**
 	 * Toggle the item drop lock preference

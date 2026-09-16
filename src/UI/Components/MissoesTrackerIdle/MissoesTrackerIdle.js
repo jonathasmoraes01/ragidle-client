@@ -41,8 +41,67 @@ import { emUnidadesDaHud } from 'UI/escalaDaHud.js'; // D-934: geometria medida 
 import LFGIdle from 'UI/Components/LFGIdle/LFGIdle.js'; // D-939: a aba "Grupo" do cartao vertical
 import { ehCelularEmPe } from 'UI/hudVertical.js'; // D-939: na vertical a ancora e do CSS, nao deste polling
 
-/** Quantas missões clicáveis o painel lista (as demais ficam na janela). */
-const MAX_LINHAS = 5;
+/**
+ * Quantas missões clicáveis o painel lista (as demais ficam na janela).
+ *
+ * 5 -> 3 EM 15/09/2026, pelo relato do dono de que o cartão ocupa *"praticamente
+ * a metade da tela"* no celular. Cada linha custa ~30px mais o `gap`, então as
+ * duas que saíram valem ~68px — e elas não somem do jogo: continuam na janela
+ * de Missões, que é onde a lista completa sempre morou.
+ *
+ * ---------------------------------------------------------------------------
+ * POR QUE O CORTE VEIO DAQUI E DO `max-height`, E NÃO DOS BOTÕES
+ * ---------------------------------------------------------------------------
+ * O caminho óbvio para encolher um cartão é apertar padding e altura de linha.
+ * **Aqui isso seria errado, e a medição diz por quê**: os alvos tocáveis deste
+ * componente (`.mt-item`, `.mt-aba`, `.mt-ver-todas`, `.mt-btn-mini`) já estão
+ * ABAIXO do piso de 44px que a regra do dono (D-935) exige, e nenhum deles
+ * aparece no bloco `@media (pointer: coarse)` do `Common.css` que cuida disso
+ * para os outros componentes. Só o `.mt-recolher-v` tem os 44px.
+ *
+ * Ou seja: eles precisam CRESCER, não encolher. Apertá-los para ganhar altura
+ * pioraria uma violação que já existe e trocaria "cartão grande" por "cartão
+ * em que o dedo erra o alvo" — que é o defeito mais caro dos dois.
+ *
+ * ---------------------------------------------------------------------------
+ * A DÍVIDA DOS 44px FOI PAGA — 3 -> 2, e o cartão ENCOLHEU (D-1487, 15/09/2026)
+ * ---------------------------------------------------------------------------
+ * O dono mandou pagar. O parágrafo acima apresentava isso como uma troca — ou
+ * cartão pequeno, ou alvo tocável — e **a troca não existia**: ela vinha de uma
+ * conta errada, e refazê-la resolveu os dois lados.
+ *
+ * O que a conta anterior não viu: `.mt-corpo` é **content-box** (este projeto
+ * não tem `box-sizing` global — o `Common.css` o declara só para `.ri-header`),
+ * então os `8px` de `padding` ficavam FORA do `max-height: 22dvh`. O cartão era
+ * ~16px mais alto do que o próprio comentário de D-1483 calculava. Esses 16px
+ * pagaram quase toda a conta sozinhos.
+ *
+ * O balanço, num 402x714 — `2 + 48 + (157 + 16) + 36` = **~259px** antes:
+ *
+ * | | |
+ * |---|---|
+ * | `box-sizing: border-box` no `.mt-corpo` | **−16px** |
+ * | `MAX_LINHAS` 3 -> 2, com a linha a 44px | **−3px** |
+ * | `.mt-ver-todas` 36 -> 44px | **+8px** |
+ * | | **~248px**, contra ~259px |
+ *
+ * Ou seja: **todo alvo alcançou o piso e o cartão ficou MENOR do que estava.**
+ *
+ * As duas linhas listadas cabem em `2 × 44 + 4 de gap + 16 de padding = 108px`,
+ * contra os `3 × 29 + 8 + 16 = 111px` de antes — e a terceira missão não some
+ * do jogo, pelo mesmo motivo que as duas de D-1483: a lista completa sempre
+ * morou na janela de Missões.
+ *
+ * As regras táteis moram no bloco `@media (pointer: coarse)` do `Common.css`,
+ * e não aqui — é lá que o portão `areaDeToqueAncoraNoBotao` procura, e regra
+ * escrita na folha do componente não seria vigiada por ninguém.
+ *
+ * **O que sobrou na mesa, se o dono quiser mais 36px:** `.mt-ver-todas` pode
+ * virar um ícone dentro da fileira de abas (que já tem 44px de altura e ~56px
+ * livres), apagando a faixa própria dele. Não foi feito aqui porque troca um
+ * botão com texto por um glifo, e isso é escolha de produto, não de layout.
+ */
+const MAX_LINHAS = 2;
 
 const MissoesTrackerIdle = new GUIComponent('MissoesTrackerIdle', cssText);
 
@@ -81,22 +140,71 @@ function mandarAcao(acao, id) {
 	Network.sendPacket(pkt);
 }
 
+/**
+ * Vira o estado de recolhido e repinta os dois botoes.
+ *
+ * A PREFERENCIA ATRAVESSA o redesenho do painel e a troca de mapa sem
+ * esforco: `_recolhido` e estado de MODULO e `render()` nunca toca na classe
+ * do `.mt-painel` — ele reescreve so o conteudo de `.mt-ativa` e `.mt-lista`.
+ * Foi conferido antes de escrever isto, e nao suposto.
+ */
+function alternarRecolhido() {
+	_recolhido = !_recolhido;
+	pintarRecolhido();
+}
+
+/** Poe o estado na tela. Chamada no `init` tambem, para o primeiro quadro. */
+function pintarRecolhido() {
+	const root = _root();
+	if (!root) {
+		return;
+	}
+	const painel = root.querySelector('.mt-painel');
+	if (painel) {
+		painel.classList.toggle('is-recolhido', _recolhido);
+	}
+	const antigo = root.querySelector('.mt-recolher');
+	if (antigo) {
+		antigo.textContent = _recolhido ? '+' : '−';
+	}
+	const vertical = root.querySelector('.mt-recolher-v');
+	if (vertical) {
+		/* O glifo GIRA em vez de trocar de caractere: o chevron apontando
+		   para baixo e "fecha", apontando para cima e "abre", e a rotacao
+		   deixa claro que e o mesmo controle. */
+		vertical.classList.toggle('is-recolhido', _recolhido);
+		vertical.setAttribute('aria-expanded', String(!_recolhido));
+		const rotulo = _recolhido ? 'Expandir missões' : 'Recolher missões';
+		vertical.setAttribute('aria-label', rotulo);
+		vertical.title = rotulo;
+	}
+}
+
 MissoesTrackerIdle.init = function init() {
 	const root = _root();
 	// Guardas pelo motivo de ClassChangeNotice.js:68-88: este init roda dentro
 	// de MapEngine.init e uma exceção aqui derruba o mundo 3D.
-	const recolher = root && root.querySelector('.mt-recolher');
-	if (recolher) {
-		recolher.addEventListener('click', e => {
+	/*
+	 * OS DOIS INTERRUPTORES DA MESMA LUZ (08/09/2026).
+	 *
+	 * `.mt-recolher` e o botao de sempre, no `.mt-header` — que a HUD
+	 * vertical esconde. `.mt-recolher-v` e o gemeo dele na fileira de abas,
+	 * que so a vertical desenha. Os dois chamam `alternarRecolhido()`: um
+	 * estado, dois lugares de tocar nele.
+	 *
+	 * Escrever a troca duas vezes seria a receita do "dois estados que
+	 * dessincronizam" que este projeto ja registrou varias vezes.
+	 */
+	for (const botao of [root && root.querySelector('.mt-recolher'), root && root.querySelector('.mt-recolher-v')]) {
+		if (!botao) {
+			continue;
+		}
+		botao.addEventListener('click', e => {
 			e.stopImmediatePropagation();
-			_recolhido = !_recolhido;
-			const painel = _root().querySelector('.mt-painel');
-			if (painel) {
-				painel.classList.toggle('is-recolhido', _recolhido);
-			}
-			recolher.textContent = _recolhido ? '+' : '−';
+			alternarRecolhido();
 		});
 	}
+	pintarRecolhido();
 	/*
 	 * D-939: as pecas do cartao da HUD vertical. A aba "Grupo" e o rodape
 	 * "Ver todas as missões" sao PORTAS (abrem as janelas que ja existem),
@@ -132,6 +240,9 @@ MissoesTrackerIdle.init = function init() {
 				mandarAcao('iniciar', btn.dataset.id);
 			} else if (acao === 'pausar' || acao === 'retomar') {
 				mandarAcao(acao, null);
+			} else if (acao === 'abandonar' && btn.dataset.id) {
+				// D-1150: abandonar leva o id; o progresso fica no servidor.
+				mandarAcao('abandonar', btn.dataset.id);
 			} else if (acao === 'abrir-janela') {
 				// A Troca de Classe não roda pelo executor: o clique abre a
 				// janela de missões, onde a grade de classes mora (D-609).
@@ -221,7 +332,7 @@ function syncPosition() {
 	 * que torna essa gaveta aceitavel -- o acompanhamento de toda hora e ele.
 	 */
 	const topoDoCluster = parseFloat(
-		getComputedStyle(host.ownerDocument.documentElement).getPropertyValue('--hud-cluster-topo'),
+		getComputedStyle(host.ownerDocument.documentElement).getPropertyValue('--hud-cluster-topo')
 	);
 	const meuTopo = rect.bottom + 8;
 	if (Number.isFinite(topoDoCluster) && topoDoCluster > meuTopo) {
@@ -259,7 +370,7 @@ function syncPosition() {
 	if (meu.height > 0) {
 		host.ownerDocument.documentElement.style.setProperty(
 			'--hud-coluna-fundo',
-			`${Math.round(emUnidadesDaHud(meu.bottom))}px`,
+			`${Math.round(emUnidadesDaHud(meu.bottom))}px`
 		);
 	}
 }
@@ -301,6 +412,7 @@ function render(missoes, execucao) {
 			<div class="mt-ativa-acoes">
 				<span class="mt-eta">${passo.etaMin ? `~${passo.etaMin} min` : ''}</span>
 				<button type="button" class="ri-btn ri-btn--sec mt-btn-mini" data-acao="pausar">Pausar</button>
+				<button type="button" class="ri-btn ri-btn--sec mt-btn-mini" data-acao="abandonar" data-id="${escapeHtml(execucao.ativaId)}" title="O progresso fica guardado">Abandonar</button>
 			</div>`;
 	} else if (execucao && execucao.pausada) {
 		caixaAtiva.dataset.vazia = 'false';
@@ -310,6 +422,7 @@ function render(missoes, execucao) {
 			<div class="mt-ativa-acoes">
 				<span class="mt-eta"></span>
 				<button type="button" class="ri-btn ri-btn--ouro mt-btn-mini" data-acao="retomar">Retomar</button>
+				${execucao.fila && execucao.fila[0] ? `<button type="button" class="ri-btn ri-btn--sec mt-btn-mini" data-acao="abandonar" data-id="${escapeHtml(execucao.fila[0])}" title="O progresso fica guardado">Abandonar</button>` : ''}
 			</div>`;
 	} else {
 		caixaAtiva.dataset.vazia = 'true';
@@ -325,9 +438,7 @@ function render(missoes, execucao) {
 	 * dela não é um Iniciar: é a porta da janela, onde a grade de classes
 	 * mora. `m.classes` só viaja na missão de troca — é a marca dela.
 	 */
-	const trocasAbertas = missoes.filter(
-		m => m.classes && m.classes.length && m.estado === 'disponivel'
-	);
+	const trocasAbertas = missoes.filter(m => m.classes && m.classes.length && m.estado === 'disponivel');
 	const linhasDeTroca = trocasAbertas.map(
 		m => `
 			<li>

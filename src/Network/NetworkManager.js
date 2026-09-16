@@ -19,6 +19,7 @@ import PacketCrypt from './PacketCrypt.js';
 import PacketLength from './PacketLength.js';
 import WebSocket from './SocketHelpers/WebSocket.js';
 import NodeSocket from './SocketHelpers/NodeSocket.js';
+import { contarLoteDeRede, contarPacote } from 'Renderer/fasesDoQuadro.js';
 
 /**
  * Sockets list
@@ -100,6 +101,12 @@ Packets.list = [];
  * @param {number} port
  * @param {function} callback once connected or not
  * @param {boolean} is zone server ?
+ * @return {Socket} the socket instance, synchronously — before it's known to
+ *   have connected. R12 (reconexao automatica, 14/09/2026) needs this: a
+ *   tentativa PENDURADA alem do proprio orcamento de tempo precisa ser
+ *   fechada explicitamente de fora antes de abrir a proxima (ver
+ *   Network/reconexao.js). Callers que nao precisam disso simplesmente
+ *   ignoram o retorno, como sempre.
  */
 function connect(host, port, callback, isZone) {
 	const socket = _socketFactory ? _socketFactory(host, port) : defaultSocketFactory(host, port);
@@ -126,11 +133,30 @@ function connect(host, port, callback, isZone) {
 			if (isZone) {
 				PacketCrypt.init();
 			}
+		} else {
+			/*
+			 * R12 (14/09/2026): uma tentativa que FALHA no proprio connect (o
+			 * `onComplete(false)` so acontece via `onerror`, antes de qualquer
+			 * `onopen`) nunca entrava em `_sockets` nem virava `_socket` — e
+			 * nada chamava `.close()` nela: o socket nativo ficava para tras,
+			 * com os 4 handlers ainda presos (`onopen`/`onerror`/`onmessage`/
+			 * `onclose`), so' se desfazendo quando o navegador decidisse. Uma
+			 * reconexao que tenta de novo a cada 10-60s por uma queda longa
+			 * pode acumular varios desses. Fechar aqui e' o mesmo `close()`
+			 * que qualquer socket bem-sucedido ja recebe ao ser substituido.
+			 */
+			try {
+				socket.close();
+			} catch {
+				/* fechar ja fechado (ou nunca aberto) nao e problema de ninguem */
+			}
 		}
 
 		console.log('%c[Network] ' + msg + ' to connect to ' + host + ':' + port, 'font-weight:bold;color:' + color);
 		callback.call(this, success);
 	};
+
+	return socket;
 }
 
 /**
@@ -230,6 +256,36 @@ read.callback = null;
  * @param {Uint8Array} buffer
  */
 function receive(buf) {
+	const inicioDaRede = performance.now();
+	try {
+		processarPacotes(buf);
+	} finally {
+		// `finally`, e nao uma linha depois da chamada: `processarPacotes` tem
+		// varios `return` (buffer incompleto espera o resto do lote), e sem ele
+		// a medicao perderia justamente os lotes partidos — que sao os grandes.
+		//
+		// `contarLoteDeRede` faz o `registrarFase(FASE.REDE, ...)` por dentro e
+		// ainda SOMA o total da amostra (D-1488) — e o total, dividido pela
+		// contagem de pacotes, e que da o `ms por pacote`.
+		contarLoteDeRede(performance.now() - inicioDaRede);
+	}
+}
+
+function processarPacotes(buf) {
+	/*
+	 * RAGIDLE (15/09/2026): O PROCESSAMENTO DE PACOTE RODA **FORA** DO LACO DE
+	 * QUADRO, e por isso ele e medido.
+	 *
+	 * O contador de FPS mede o intervalo entre carimbos do
+	 * `requestAnimationFrame`. Entre um e o proximo cabe isto: um lote grande
+	 * de pacotes (chegada de mob, lote do mapa, rajada de dano) e atendido
+	 * aqui, e o quadro seguinte "atrasa" sem que nenhuma fase do DESENHO tenha
+	 * demorado.
+	 *
+	 * Sem esta medida, uma travada nascida aqui apareceria como "o desenho
+	 * esta lento" e mandaria a investigacao para o renderizador — o lugar
+	 * errado. Ver `Renderer/fasesDoQuadro.js`.
+	 */
 	let id, packet;
 	let length = 0;
 	let offset = 0;
@@ -287,6 +343,11 @@ function receive(buf) {
 			_save_buffer = new Uint8Array(buffer, offset, fp.length - offset);
 			return;
 		}
+
+		// Daqui para baixo o pacote esta COMPLETO no buffer: as tres saidas por
+		// "faltam bytes" ja passaram. Contar antes seria contar lote partido
+		// duas vezes — uma agora e outra quando o resto chegasse (D-1488).
+		contarPacote();
 
 		if (Packets.list[id]) {
 			packet = Packets.list[id];
@@ -362,8 +423,28 @@ function onClose() {
 			clearInterval(_socket.ping);
 		}
 
+		/*
+		 * R12 (14/09/2026): `_socket` NUNCA era zerado aqui. Isso nao quebrava
+		 * nada sozinho (`send()` ja checa `if (_socket)` e o socket morto
+		 * responde `false` a `this.connected`, entao virava um no-op calado
+		 * em vez de um erro) — mas deixava `_socket` mentindo "ainda conectado"
+		 * para qualquer leitor externo (a reconexao automatica precisa saber
+		 * de verdade se ha socket vivo). Zerar ANTES de notificar tambem
+		 * importa: se `_onDisconnect` chamar `Network.connect()` de novo de
+		 * forma sincrona, o novo socket tem de encontrar `_socket === null`,
+		 * nao o cadaver deste.
+		 */
+		_socket = null;
+
 		if (_onDisconnect) {
-			_onDisconnect();
+			/*
+			 * R12: o motivo do fechamento (codigo/razao do WebSocket, quando o
+			 * socket os capturou — ver SocketHelpers/WebSocket.js) segue junto,
+			 * para quem esta ouvindo (Network/reconexao.js) distinguir "servidor
+			 * fora" de "a PONTE recusou por lotacao" (wsproxy.js, codigo 1013) —
+			 * as duas fecham o socket do mesmo jeito, so' o motivo difere.
+			 */
+			_onDisconnect({ code: this.closeCode ?? null, reason: this.closeReason ?? '' });
 		} else {
 			import('UI/UIManager.js').then(UIManager => {
 				UIManager.default.showErrorBox('Disconnected from Server.');

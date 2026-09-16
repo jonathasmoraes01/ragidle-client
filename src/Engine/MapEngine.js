@@ -16,12 +16,14 @@ import BGM from 'Audio/BGM.js';
 import Events from 'Core/Events.js';
 import Session from 'Engine/SessionStorage.js';
 import Network from 'Network/NetworkManager.js';
+import Reconexao from 'Network/reconexao.js';
 import BackgroundTicker from 'Network/BackgroundTicker.js';
+import { ler as lerRegistroDaCaca } from 'UI/Components/HuntAnalyzer/registroDaCaca.js';
 import PACKETVER from 'Network/PacketVerManager.js';
 import PACKET from 'Network/PacketStructure.js';
 import Renderer from 'Renderer/Renderer.js';
 import Camera from 'Renderer/Camera.js';
-import MapRenderer from 'Renderer/MapRenderer.js';
+import MapRenderer, { stripMapExtension } from 'Renderer/MapRenderer.js';
 import EntityManager from 'Renderer/EntityManager.js';
 import Entity from 'Renderer/Entity/Entity.js';
 import Altitude from 'Renderer/Map/Altitude.js';
@@ -32,6 +34,7 @@ import UIManager from 'UI/UIManager.js';
 import EffectManager from 'Renderer/EffectManager.js';
 import Escape from 'UI/Components/Escape/Escape.js';
 import PilhaDeJanelas from 'UI/pilhaDeJanelas.js'; // RAGIDLE: o dono do ESC e do voltar do Android (D-931)
+import { avisarAoAbrir } from 'UI/aberturaNaPilha.js'; // a tarefa 25: o onAppend embrulhado UMA vez
 import ChatBox from 'UI/Components/ChatBox/ChatBox.js';
 // ChatBoxSettings saiu em 20/08/2026: era o painel de filtros POR ABA das
 // abas dinamicas do chat, que morreram com os tres canais fixos (Global /
@@ -106,7 +109,15 @@ import MissoesIdle from 'UI/Components/MissoesIdle/MissoesIdle.js'; // RAGIDLE: 
 import PasseIdle from 'UI/Components/PasseIdle/PasseIdle.js'; // RAGIDLE: janela do Passe (D-813)
 import CodexIdle from 'UI/Components/CodexIdle/CodexIdle.js'; // RAGIDLE: janela do Codex (D-851)
 import TutorialIdle from 'UI/Components/TutorialIdle/TutorialIdle.js'; // RAGIDLE: a camada guiada do tutorial (frente D da Jornada)
+import VotoIdle from 'UI/Components/VotoIdle/VotoIdle.js'; // RAGIDLE: janela de Voto (D-1159)
+import PresencaIdle from 'UI/Components/PresencaIdle/PresencaIdle.js'; // RAGIDLE: janela de presenca (D-1162)
+import IndicacaoIdle from 'UI/Components/IndicacaoIdle/IndicacaoIdle.js'; // RAGIDLE: Indique & Ganhe (D-1164)
+import RankingIdle from 'UI/Components/RankingIdle/RankingIdle.js'; // RAGIDLE: o Ranking (09/09/2026)
+import PartyHud from 'UI/Components/PartyHud/PartyHud.js'; // RAGIDLE: a HUD de party (09/09/2026)
+import BoasVindasIdle from 'UI/Components/BoasVindasIdle/BoasVindasIdle.js'; // RAGIDLE: caixa de boas-vindas (D-968)
 import LFGIdle from 'UI/Components/LFGIdle/LFGIdle.js'; // RAGIDLE: janela de Procurar Grupo (D-634)
+import GrupoIdle from 'UI/Components/GrupoIdle/GrupoIdle.js'; // RAGIDLE: janela de Grupo (D-960)
+import PortaDoGrupo from 'UI/Components/portaDoGrupo.js'; // RAGIDLE: qual das duas janelas de grupo abre (D-984)
 import MissoesTrackerIdle from 'UI/Components/MissoesTrackerIdle/MissoesTrackerIdle.js'; // RAGIDLE: tracker estilo Origin (D-601)
 import IdleConfig from 'UI/Components/IdleConfig/IdleConfig.js'; // RAGIDLE: "Configuração idle"
 import AdminPanel from 'UI/Components/AdminPanel/AdminPanel.js'; // RAGIDLE: "Painel de admin"
@@ -164,11 +175,21 @@ import RagidleCashEngine from './MapEngine/RagidleCash.js';
 import RagidleConfirmarEngine from './MapEngine/RagidleConfirmar.js'; // RAGIDLE: janela de confirmacao do `#` destrutivo
 import EscalaDaHud from 'UI/escalaDaHud.js'; // RAGIDLE: a HUD diminui junto com a janela (D-934)
 import HudVertical from 'UI/hudVertical.js'; // RAGIDLE: a HUD vertical do celular em pe (D-939)
+import TelaAcesaNoFarm from 'UI/telaAcesaNoFarm.js'; // RAGIDLE: o modo leitura — a tela nao apaga no farm
 
 /**
  * @type {string} mapname
  */
 let _mapName = '';
+
+/**
+ * @type {number|null} raw ip/port passed to init() — os MESMOS argumentos
+ * que uma reconexao (Network/reconexao.js) precisa para re-entrar
+ * (MapEngine.init de novo, o mesmo caminho ja reentrante do onServerChange).
+ * Privados ate o R12 (14/09/2026): expor via `MapEngine.servidorAtual`.
+ */
+let _ip = null;
+let _port = null;
 
 /**
  * @type {boolean} is initialized
@@ -192,14 +213,33 @@ class MapEngine {
 	static needsUIVerUpdate = false;
 
 	/**
+	 * O endereco do servidor de mapa ATUAL (R12, 14/09/2026) — `null` antes da
+	 * primeira entrada. Getter, e nao propriedade solta: `_ip`/`_port`/
+	 * `_mapName` continuam privados ao modulo, so' a LEITURA e' publica.
+	 */
+	static get servidorAtual() {
+		return _ip !== null ? { ip: _ip, port: _port, mapName: _mapName } : null;
+	}
+
+	/**
 	 * Connect to Map Server
 	 *
-	 * @param {number} IP
+	 * @param {number} ip
 	 * @param {number} port
 	 * @param {string} mapName
+	 * @param {function} [aoFalhar] - R12 (14/09/2026): quando fornecida, e'
+	 *   chamada no lugar de `UIManager.showErrorBox` se o connect falhar —
+	 *   e' assim que Network/reconexao.js tenta de novo sem reabrir a caixa
+	 *   de erro generica a cada tentativa. Omitida, o comportamento e' o de
+	 *   sempre.
+	 * @return {Socket} o socket criado (Network.connect ja o devolve
+	 *   sincronamente) — a reconexao guarda essa referencia para poder
+	 *   fechar explicitamente uma tentativa que fique pendurada.
 	 */
-	static init(ip, port, mapName) {
+	static init(ip, port, mapName, aoFalhar) {
 		_mapName = mapName;
+		_ip = ip;
+		_port = port;
 		_exiting = false;
 		_exitTimer = null;
 
@@ -207,7 +247,7 @@ class MapEngine {
 		const forceAddress = Configs.get('forceUseAddress');
 		const server_info = Configs.getServer();
 		const current_ip = forceAddress ? server_info.address : Network.utils.longToIP(ip);
-		Network.connect(
+		const socket = Network.connect(
 			current_ip,
 			port,
 			success => {
@@ -216,7 +256,11 @@ class MapEngine {
 
 				// Fail to connect...
 				if (!success) {
-					UIManager.showErrorBox(DB.getMessage(1));
+					if (typeof aoFalhar === 'function') {
+						aoFalhar();
+					} else {
+						UIManager.showErrorBox(DB.getMessage(1));
+					}
 					return;
 				}
 
@@ -291,7 +335,26 @@ class MapEngine {
 				// the map-server's own resync-on-gap logic kicks in promptly.
 				BackgroundTicker.start(sendKeepAlive);
 
+				/*
+				 * A ECONOMIA DE ENERGIA (D-1389/D-1390, 14/09/2026) — o gatilho
+				 * do cliente pro modo automatico. `visibilitychange` e o MESMO
+				 * evento que o BackgroundTicker ja escuta pra ressincronizar; ele
+				 * nunca e estrangulado por aba escondida (ao contrario de
+				 * setInterval), entao "a aba foi pro fundo" chega ao servidor na
+				 * hora, com o socket ainda respondendo normal.
+				 */
+				document.addEventListener('visibilitychange', onVisibilidadeMudouParaEconomia);
+
 				Session.Playing = true;
+
+				/*
+				 * R12 (14/09/2026): ARMA (ou re-arma) a reconexao automatica
+				 * assim que o SOCKET fica de pe — antes mesmo da confirmacao
+				 * do personagem (ZC_ACCEPT_ENTER*, ver onConnectionAccepted).
+				 * Se o socket cair ANTES dessa confirmacao, ainda queremos
+				 * tentar de novo com o mesmo endereco.
+				 */
+				Reconexao.armar(ip, port, mapName);
 			},
 			true
 		);
@@ -342,6 +405,13 @@ class MapEngine {
 			Network.hookPacket(PACKET.ZC.CONFIG_NOTIFY4, onConfigNotify);
 			Network.hookPacket(PACKET.ZC.CONFIG, onConfig);
 			Network.hookPacket(PACKET.ZC.REFUSE_ENTER, onConnectionRefused);
+			// O "DORMIR" (D-1381): so dispara para quem esta dormindo — nao
+			// muda em nada o caminho normal de entrada. Ver o cabecalho de
+			// onSonoRecebido, abaixo.
+			Network.hookPacket(PACKET.ZC.RAGIDLE_SONO, onSonoRecebido);
+			// A ECONOMIA DE ENERGIA (D-1389/D-1390) — ver o cabecalho de
+			// onEconomiaRecebida, abaixo.
+			Network.hookPacket(PACKET.ZC.RAGIDLE_ECONOMIA, onEconomiaRecebida);
 
 			// hook reassembly packets and map the responses
 			for (let i = 1; i <= 42; i++) {
@@ -406,6 +476,20 @@ class MapEngine {
 					Session: Session,
 					EntityManager: EntityManager,
 					Camera: Camera,
+					// RAGIDLE: acrescentados 07/09/2026 pela prova em jogo da
+					// janela de refino (`scripts/fotografar-refino.ts`), que
+					// precisa CLICAR num NPC sem andar ate ele.
+					//
+					// Ela tentava `await import('/src/Network/...')` e caía numa
+					// armadilha do vite em desenvolvimento: o import dinamico
+					// puxa uma SEGUNDA instancia do modulo (com `?t=` de HMR na
+					// dependencia), e a segunda `PacketVerManager` nasce sem o
+					// `versions` que a primeira ja tinha preenchido —
+					// `TypeError: Cannot set properties of undefined`. Expor as
+					// instancias VIVAS resolve na raiz: a prova usa as mesmas
+					// que o jogo usa, e nao uma copia.
+					Network: Network,
+					PACKET: PACKET,
 					// RAGIDLE: acrescentado 19/08/2026 pra prova Playwright da
 					// MochilaIdle (janela unica de inventario + equipamento) —
 					// injetar itens sinteticos e vestir uma peca pelo caminho
@@ -435,19 +519,27 @@ class MapEngine {
 					// caminho REAL (CZ_CONTACTNPC) sem depender de acertar o
 					// sprite no canvas: o jogador nasce longe do Mestre e a
 					// caca de cliques as cegas nao e um roteiro, e loteria.
-					Network: Network,
 					// RAGIDLE: acrescentado 27/08/2026 pra sonda dos ATALHOS —
 					// inspecionar qual onShortCut esta instalado em cada
 					// componente nativo (UIManager.getComponent(nome)) sem
 					// depender de teclado sintetico acertar o roteamento.
 					UIManager: UIManager,
-					PACKET: PACKET,
 					// RAGIDLE (25/08): o roteiro de fotos do executor le o estado
 					// da janela de missoes para saber quando a ativa concluiu.
 					MissoesIdle: MissoesIdle,
 					PasseIdle: PasseIdle,
 					CodexIdle: CodexIdle,
-					LFGIdle: LFGIdle
+					VotoIdle: VotoIdle,
+					PresencaIdle: PresencaIdle,
+					IndicacaoIdle: IndicacaoIdle,
+					RankingIdle: RankingIdle,
+					PartyHud: PartyHud,
+					// RAGIDLE (D-968): a caixa de boas-vindas. A prova de tela
+					// precisa reabri-la sem relogar — a trava de "uma vez por
+					// entrada" é justamente o que impede repetir a medida.
+					BoasVindasIdle: BoasVindasIdle,
+					LFGIdle: LFGIdle,
+					GrupoIdle: GrupoIdle
 				};
 			}
 
@@ -492,7 +584,14 @@ class MapEngine {
 			PasseIdle.prepare(); // RAGIDLE: janela do Passe (D-813) — idem, só escuta 0x0fe5
 			CodexIdle.prepare(); // RAGIDLE: janela do Codex (D-851) — idem, só escuta 0x0fe3
 			TutorialIdle.prepare(); // RAGIDLE: a camada guiada do tutorial - idem, só escuta 0x0fdf
+			VotoIdle.prepare(); // RAGIDLE: janela de Voto (D-1159) — idem, só escuta 0x0fd5
+			PresencaIdle.prepare(); // RAGIDLE: janela de presenca (D-1162) — escuta 0x0fde e abre sozinha quando o servidor manda
+			IndicacaoIdle.prepare(); // RAGIDLE: Indique & Ganhe (D-1164) — escuta 0x0fdc
+			RankingIdle.prepare(); // RAGIDLE: o Ranking — escuta 0x0fca
+			PartyHud.prepare(); // RAGIDLE: a HUD de party — NAO fisga pacote (ver o cabecalho)
+			BoasVindasIdle.prepare(); // RAGIDLE: caixa de boas-vindas (D-968) — não escuta pacote nenhum: a lista de cartazes é do cliente
 			LFGIdle.prepare(); // RAGIDLE: janela de Procurar Grupo (D-634) — idem: só escuta 0x0fe9/0x0fe8
+			GrupoIdle.prepare(); // RAGIDLE: janela de Grupo (D-960) — idem: só escuta 0x0fcc
 
 			BasicInfoIdle.prepare(); // RAGIDLE: "Informações básicas"
 			StatusIdle.prepare(); // RAGIDLE: "Status"
@@ -596,6 +695,8 @@ class MapEngine {
 			// Avoid zone server change init
 			MapEngine.needsUIVerUpdate = false;
 		}
+
+		return socket;
 	}
 }
 
@@ -700,6 +801,11 @@ function onReceiveAccountID(pkt) {
  * @param {object} pkt - PACKET.ZC.ACCEPT_ENTER
  */
 function onConnectionAccepted(pkt) {
+	// R12 (14/09/2026): entrada confirmada — se isto era uma reconexao em
+	// curso, zera a escalada e avisa "reconectado"; se nao, e' um no-op
+	// seguro (ver Reconexao.aoEntrarComSucesso).
+	Reconexao.aoEntrarComSucesso();
+
 	Session.Entity.onWalkEnd = onWalkEnd;
 
 	if ('sex' in pkt && pkt.sex < 2) {
@@ -710,6 +816,11 @@ function onConnectionAccepted(pkt) {
 	Session.petId = 0;
 	Session.hasParty = false;
 	Session.isPartyLeader = false;
+	/* RAGIDLE (D-984): a porta do grupo anota que a verdade voltou a zero.
+	   Sem isto, a memória de party do personagem ANTERIOR atravessaria a troca
+	   (nada aqui recarrega a página) e o primeiro grupo do personagem novo não
+	   seria uma mudança para ela — a janela de Grupo não abriria sozinha. */
+	PortaDoGrupo.sincronizar();
 	Session.hasGuild = false;
 	Session.guildRight = 0;
 
@@ -753,7 +864,7 @@ function onConnectionAccepted(pkt) {
 		xPos: pkt.PosDir[0],
 		yPos: pkt.PosDir[1],
 		mapName: _mapName
-	});
+	}, true);
 }
 
 /**
@@ -762,7 +873,371 @@ function onConnectionAccepted(pkt) {
  * @param {object} pkt - PACKET.ZC.REFUSE_ENTER
  */
 function onConnectionRefused(pkt) {
+	/*
+	 * R12 (14/09/2026): uma recusa DURANTE um ciclo de reconexao quer dizer
+	 * que a sessao (AuthCode) nao vale mais — nao adianta insistir no mesmo
+	 * endereco. `aoSerRecusado()` so' age (e devolve true) quando havia um
+	 * ciclo em curso; fora disso o comportamento e' o de sempre.
+	 */
+	if (Reconexao.aoSerRecusado()) {
+		return;
+	}
 	UIManager.showErrorBox(DB.getMessage(9)); // MSI_ACCESS_DENIED = Rejected from Server.
+}
+
+/**
+ * O TEXTO DA RECUSA, por codigo (D-1383, 13/09/2026 — o relato do grupo de
+ * teste: a contagem de 5s terminava e o jogo so CONTINUAVA, sem sinal
+ * nenhum de que o "iniciar" tinha sido recusado). `amostra-insuficiente` e a
+ * mais provavel: a amostra do servidor reseta em TODO mapa novo (D-1381),
+ * mas a "Duracao" que o Hunt Analyzer mostra e da CACADA inteira e pode
+ * atravessar varios mapas de caca sem resetar — os dois relogios medem
+ * coisas diferentes de proposito, e essa diferenca e o que engana o botao
+ * quando o jogador troca de mapa de caca no meio da sessao.
+ */
+const TEXTO_DA_RECUSA_DE_SONO = {
+	'amostra-insuficiente':
+		'Ainda não são 10 minutos de caça contínua NESTE mapa — trocar de mapa (mesmo que seja outro mapa de caça) reinicia a contagem.',
+	'nivel-do-mapa': 'Este mapa não é elegível para o "Dormir" — precisa estar pelo menos 1 nível abaixo do seu.',
+	'sem-mundo': 'Não foi possível iniciar o sono agora — você não está numa caçada.'
+};
+
+/**
+ * O tempo que `onSonoRecebido` espera pela resposta do "acordar" antes de
+ * desistir do resumo e reconectar do mesmo jeito (D-1387). So dispara se a
+ * resposta se perder de verdade (rede caiu entre o clique e o pacote voltar)
+ * — o caminho normal responde em milissegundos, no MESMO socket.
+ */
+const MS_DE_ESPERA_PELO_ACORDAR = 8000;
+
+/** A janela "Dormindo.../Acordando..." hoje aberta, se houver (D-1387). */
+let _janelaDoSonoAtiva = null;
+/**
+ * Ja resolvemos o "acordar" desta rodada — pelo ack do servidor ou pelo teto
+ * de seguranca, o que chegar primeiro? Evita reagir duas vezes se a resposta
+ * chegar atrasada, depois do teto ja ter fechado a janela e reconectado.
+ */
+let _acordarResolvido = false;
+
+/**
+ * onSonoRecebido (D-1381, 13/09/2026 — taxas de EXP em D-1386, resumo do
+ * "acordar" em D-1387) — o "Dormir".
+ *
+ * O servidor responde ao MESMO `CZ_ENTER2` que dispara `onConnectionAccepted`
+ * com `ZC_RAGIDLE_SONO{dormindo:true, restanteMs, taxaExpBasePorMs,
+ * taxaExpClassePorMs}` em vez de `ZC_ACCEPT_ENTER2`, quando o personagem
+ * ainda esta dormindo. Isto so chega para quem esta dormindo — o caminho
+ * normal (accept/refuse) nunca muda.
+ *
+ * `UIManager.showDormindo` e a MESMA janela (`WinPopup` clonada) que
+ * `showErrorBox` usa para o boot inteiro — a unica comprovada a renderizar
+ * aqui, antes de `MapEngine` ter entrado em mundo nenhum.
+ *
+ * Uma RECUSA (`dormindo:false` com `recusa`) tambem tem tela. A resposta ao
+ * "acordar" bem-sucedido tambem manda `dormindo:false`, mas SEM `recusa` — e
+ * o ramo novo (D-1387): fecha a janela de espera, mostra o RESUMO do que foi
+ * ganho, e SO NO "Continuar" do resumo reconecta. O relato do Jhow no grupo
+ * de teste ("ficou meio bugado na hora de voltar... aparece essa mensagem")
+ * era exatamente a corrida entre o close do servidor e o reload do cliente —
+ * o reload saia ANTES de esperar esta resposta, entao o dialogo generico de
+ * "Disconnected from Server" (`NetworkManager.js`) as vezes ganhava a corrida
+ * e aparecia por cima. `Network.onDisconnect` suprime esse dialogo soh para
+ * este close deliberado; `LoginEngine.init` reassume o dele proprio assim que
+ * o boot volta a tela de login, entao nao precisa ser desfeito aqui.
+ */
+/**
+ * VOLTAR AO MUNDO DEPOIS DO SONO — SEM PEDIR LOGIN DE NOVO (D-1485, 15/09/2026).
+ *
+ * ---------------------------------------------------------------------------
+ * O RELATO, E ONDE ESTAVA A CULPA
+ * ---------------------------------------------------------------------------
+ * Dono: *"quando o player clicasse em 'acordar agora', que nao precisasse
+ * refazer o login/senha"*.
+ *
+ * O caminho antigo chamava `GameEngine.reload()`, que derruba a sessao inteira
+ * ate a LISTA DE SERVIDORES — e dali o proximo passo e a tela de usuario e
+ * senha. Era o CLIENTE que fazia isso: **o `conexao.encerrar()` do lado do
+ * servidor e deliberado e esta certo**. O comentario dele diz o porque — quem
+ * dormiu SAIU do mundo no `iniciar`, entao reentrar no meio do mesmo socket
+ * duplicaria a sequencia de entrada; fechar faz o cliente refazer o MESMO
+ * `CZ_ENTER2` que a entrada normal usa.
+ *
+ * E esse pacote **nao precisa de senha**: ele leva `AID`/`GID`/`AuthCode`, que
+ * moram em `Session` (memoria), e o passe do servidor vale por uma janela
+ * deslizante de 15 minutos (`servidor/validade-do-passe.ts`) — uma reconexao
+ * imediata cai folgada dentro dela. O servidor ate remove sozinho a sessao
+ * anterior do mesmo personagem ("um personagem, uma sessao"): este caminho foi
+ * desenhado para reconexao.
+ *
+ * ---------------------------------------------------------------------------
+ * POR QUE `MapEngine.init` E NAO UMA PECA NOVA
+ * ---------------------------------------------------------------------------
+ * O merge de 15/09 trouxe a reconexao automatica, e com ela o getter
+ * `MapEngine.servidorAtual` — que estava **sem um unico chamador**, nasceu para
+ * a R12 e ficou esperando. E exatamente a alca que faltava aqui, e reusa-la faz
+ * o "acordar" percorrer o MESMO caminho que uma queda de conexao ja percorre, e
+ * que dois testes ja vigiam (`reconexaoAutomatica`, `reconexaoTransporte`).
+ *
+ * O `reload()` continua existindo como ULTIMO recurso: sem endereco guardado,
+ * ou se a reentrada falhar de verdade (passe vencido, servidor fora do ar), a
+ * tela de login e a resposta honesta.
+ */
+function voltarAoMundoDepoisDoSono() {
+	const aoBoot = () => {
+		import('Engine/GameEngine.js').then(m => m.default.reload());
+	};
+	const servidor = MapEngine.servidorAtual;
+	if (!servidor) {
+		aoBoot();
+		return;
+	}
+	MapEngine.init(servidor.ip, servidor.port, servidor.mapName, aoBoot);
+}
+
+function onSonoRecebido(pkt) {
+	let corpo;
+	try {
+		corpo = JSON.parse(pkt.json);
+	} catch {
+		return;
+	}
+	if (!corpo) {
+		return;
+	}
+
+	if (corpo.dormindo === true) {
+		_acordarResolvido = false;
+		const taxas = {
+			expBasePorMs: Number(corpo.taxaExpBasePorMs) || 0,
+			expClassePorMs: Number(corpo.taxaExpClassePorMs) || 0
+		};
+		_janelaDoSonoAtiva = UIManager.showDormindo(corpo.restanteMs || 0, taxas, () => {
+			const acordar = new PACKET.CZ.RAGIDLE_SONO_ACAO();
+			acordar.json = JSON.stringify({ acao: 'acordar' });
+			/*
+			 * `Reconexao.cancelar()` no lugar de `Network.onDisconnect = () => {}`
+			 * (D-1485). Os dois calam o dialogo de "Disconnected from Server" no
+			 * close deliberado que vem a seguir — mas a atribuicao crua tambem
+			 * DESARMAVA a reconexao automatica pelas costas dela, escrevendo no
+			 * campo que aquele modulo considera seu. `cancelar()` e a porta que
+			 * ele mesmo oferece e deixa o estado dele coerente; quem rearma e o
+			 * `Reconexao.armar()` que roda sozinho quando o socket novo abre.
+			 */
+			Reconexao.cancelar();
+			Network.sendPacket(acordar);
+			setTimeout(() => {
+				if (_acordarResolvido) return;
+				_acordarResolvido = true;
+				if (_janelaDoSonoAtiva) {
+					_janelaDoSonoAtiva.remove();
+					_janelaDoSonoAtiva = null;
+				}
+				// O teto de seguranca: a resposta se perdeu. Mesmo aqui a volta e
+				// pelo mundo, e nao pelo login — so a falha DELA cai no boot.
+				voltarAoMundoDepoisDoSono();
+			}, MS_DE_ESPERA_PELO_ACORDAR);
+		});
+		return;
+	}
+
+	// dormindo === false a partir daqui.
+	if (corpo.recusa) {
+		UIManager.showMessageBox(
+			TEXTO_DA_RECUSA_DE_SONO[corpo.recusa] || 'Não foi possível iniciar o sono agora.',
+			'ok'
+		);
+		return;
+	}
+
+	// O ACK do "acordar": fecha a janela de espera e mostra o resumo.
+	if (_acordarResolvido) return; // o teto de seguranca ja resolveu isto
+	_acordarResolvido = true;
+	if (_janelaDoSonoAtiva) {
+		_janelaDoSonoAtiva.remove();
+		_janelaDoSonoAtiva = null;
+	}
+	const resumo = {
+		expBase: Number(corpo.expBase) || 0,
+		expClasse: Number(corpo.expClasse) || 0,
+		tempoDormidoMs: Number(corpo.tempoDormidoMs) || 0
+	};
+	UIManager.showResumoDoSono(resumo, voltarAoMundoDepoisDoSono);
+}
+
+/* ---------------- A ECONOMIA DE ENERGIA (D-1389/D-1390, 14/09/2026) ---------------- */
+
+/** A tela preta aberta agora, se houver ({atualizar, remove} de UIManager.showEconomiaDeEnergia). */
+let _janelaDaEconomia = null;
+/** O laco de 1s que reatualiza o timer e os numeros ao vivo, enquanto a tela esta aberta. */
+let _tiqueDaEconomia = null;
+/** O retrato de `registroDaCaca` no instante em que entrou — os numeros mostrados sao DELTA contra isto. */
+let _snapshotDaEconomia = null;
+/** O relogio LOCAL, so mostrador — a mesma ressalva de `showDormindo`: a verdade e do servidor. */
+let _restanteDaEconomiaMs = 0;
+/**
+ * O personagem morreu NESTA sessao de economia de energia (D-1398,
+ * 14/09/2026)? Uma vez `true` por `onEconomiaRecebida`, fica `true` ate
+ * `fecharTelaDaEconomia` — o relogio de 1s (`_tiqueDaEconomia`) reusa este
+ * valor em toda repintura, entao o aviso nao precisa de um pacote novo do
+ * servidor a cada segundo pra continuar visivel.
+ */
+let _personagemMorreuEmEconomia = false;
+
+/**
+ * Os numeros da tela preta: o quanto foi ganho DESDE que entrou em economia
+ * de energia, nunca a caçada inteira — por isso o delta contra o snapshot
+ * tirado em `abrirTelaDaEconomia`. Sem personagem ou sem snapshot (corrida
+ * entre a resposta do servidor e `Session.Entity` ainda nao existir), so o
+ * relogio aparece.
+ */
+function statsDaEconomia() {
+	const base = { restanteMs: _restanteDaEconomiaMs, morreu: _personagemMorreuEmEconomia };
+	if (!Session.Entity || !_snapshotDaEconomia) return base;
+	const agora = lerRegistroDaCaca(Session.Entity.GID);
+	return {
+		...base,
+		expBase: Math.max(0, (agora.expBase || 0) - (_snapshotDaEconomia.expBase || 0)),
+		expClasse: Math.max(0, (agora.expClasse || 0) - (_snapshotDaEconomia.expClasse || 0)),
+		abates: Math.max(0, (agora.abatesTotal || 0) - (_snapshotDaEconomia.abatesTotal || 0)),
+		itensTotal: Math.max(0, (agora.itensTotal || 0) - (_snapshotDaEconomia.itensTotal || 0))
+	};
+}
+
+/** Abre a tela preta (idempotente — reentrar com a tela ja aberta so reatualiza o relogio). */
+function abrirTelaDaEconomia(restanteMs) {
+	_restanteDaEconomiaMs = restanteMs;
+	if (_janelaDaEconomia) {
+		_janelaDaEconomia.atualizar(statsDaEconomia());
+		return;
+	}
+	_snapshotDaEconomia = Session.Entity ? lerRegistroDaCaca(Session.Entity.GID) : null;
+	_janelaDaEconomia = UIManager.showEconomiaDeEnergia(restanteMs, sairDaEconomiaDeEnergia);
+	_janelaDaEconomia.atualizar(statsDaEconomia());
+	_tiqueDaEconomia = setInterval(() => {
+		_restanteDaEconomiaMs = Math.max(0, _restanteDaEconomiaMs - 1000);
+		if (_janelaDaEconomia) _janelaDaEconomia.atualizar(statsDaEconomia());
+	}, 1000);
+}
+
+/** Fecha a tela preta, se houver — seguro chamar mesmo sem nenhuma aberta. */
+function fecharTelaDaEconomia() {
+	if (_tiqueDaEconomia) {
+		clearInterval(_tiqueDaEconomia);
+		_tiqueDaEconomia = null;
+	}
+	if (_janelaDaEconomia) {
+		_janelaDaEconomia.remove();
+		_janelaDaEconomia = null;
+	}
+	_snapshotDaEconomia = null;
+	_personagemMorreuEmEconomia = false;
+}
+
+/**
+ * O CLIQUE EM "Voltar a jogar" (D-1392, 14/09/2026, correção do dono).
+ *
+ * Ate aqui `onVisibilidadeMudouParaEconomia` mandava "sair" sozinho assim
+ * que `visibilitychange` via a aba voltar — e um relance rapido na aba (ver
+ * uma notificacao, por exemplo) ja tirava o personagem do modo sem o
+ * jogador ter pedido isso. Agora SAIR e SEMPRE este botao: a tela preta
+ * fica de pe ate o jogador clicar, mesmo com a aba em primeiro plano — ele
+ * pode deliberadamente continuar em economia de energia olhando pra ela.
+ */
+function sairDaEconomiaDeEnergia() {
+	const pkt = new PACKET.CZ.RAGIDLE_ECONOMIA_ACAO();
+	pkt.json = JSON.stringify({ acao: 'sair' });
+	Network.sendPacket(pkt);
+	// Fecha na hora, sem esperar o ack: o jogador ja pediu, e a resposta do
+	// servidor (ativa:false) so confirmaria o que a tela ja fez.
+	fecharTelaDaEconomia();
+}
+
+/**
+ * Quanto esperar, com a aba escondida, antes de avisar o servidor (D-1394,
+ * 14/09/2026) — o suficiente pra distinguir "so foi pro fundo" (alt-tab,
+ * troca de app) de "fechou de vez": se a aba fechar, o JavaScript da pagina
+ * MORRE antes deste atraso disparar, e o aviso nunca sai — nao ha timer
+ * pendurado sobrevivendo ao fechamento, e por isso nao precisa de sinal
+ * nenhum de "beforeunload"/"pagehide" tentando avisar na saida (que nem tem
+ * garantia de chegar a tempo pela rede). Pedido do dono, com as palavras
+ * dele: *"essa economia de energia automática é feita somente caso a pessoa
+ * dê alt tab OU troque de aplicativo no mobile. Se ele FECHAR a aba ou o
+ * aplicativo, deve encerrar."*
+ */
+const MS_DE_ATRASO_ANTES_DE_ENTRAR_NA_ECONOMIA = 3000;
+
+/** O atraso agendado, se houver — cancelado se a aba voltar antes de disparar. */
+let _atrasoDaEconomia = null;
+
+/**
+ * onVisibilidadeMudouParaEconomia (D-1389/D-1390, 14/09/2026 — so 'entrar'
+ * desde D-1392; o atraso de confirmacao desde D-1394) — o gatilho automatico
+ * de ENTRADA. Voltar a aba NAO manda "sair" mais (ver
+ * `sairDaEconomiaDeEnergia`, o unico lugar que manda): `visibilitychange` so
+ * avisa o servidor quando a aba vai pro FUNDO — e so depois de confirmar,
+ * pelo atraso acima, que a pagina continua viva. O SERVIDOR decide se o
+ * pedido de entrar e elegivel (regra 1 — nunca confia no cliente sozinho);
+ * voltar a olhar a aba, sozinho, nao decide nada.
+ */
+function onVisibilidadeMudouParaEconomia() {
+	if (document.visibilityState === 'hidden') {
+		if (_atrasoDaEconomia) return; // ja agendado — nao empilha um segundo
+		_atrasoDaEconomia = setTimeout(() => {
+			_atrasoDaEconomia = null;
+			// Confere de novo: pode ter voltado no instante exato do disparo.
+			if (document.visibilityState !== 'hidden') return;
+			const pkt = new PACKET.CZ.RAGIDLE_ECONOMIA_ACAO();
+			pkt.json = JSON.stringify({ acao: 'entrar' });
+			Network.sendPacket(pkt);
+		}, MS_DE_ATRASO_ANTES_DE_ENTRAR_NA_ECONOMIA);
+	} else if (_atrasoDaEconomia) {
+		// Voltou antes do atraso disparar: cancela — nunca chegou a avisar,
+		// entao nao ha "entrar" pra desfazer.
+		clearTimeout(_atrasoDaEconomia);
+		_atrasoDaEconomia = null;
+	}
+}
+
+/**
+ * onEconomiaRecebida (D-1389/D-1390, 14/09/2026) — a resposta do servidor a
+ * `entrar`/`sair`, e tambem o aviso de "venceu o teto com a conexao viva"
+ * (`expulso:true`), sem pedido nenhum do cliente.
+ *
+ * `ativa:true` abre/reatualiza a tela preta. `ativa:false` fecha — seja o ack
+ * normal de "sair", seja uma recusa silenciosa de "entrar" (ninguem ve a
+ * tela mesmo: o jogador nao esta olhando a aba, entao nao ha erro pra
+ * mostrar). `expulso:true` e o caso especial: o personagem ja saiu do mundo
+ * do lado do servidor, que vai fechar o socket a seguir — o mesmo padrao do
+ * "Acordar agora" do Dormir, reentrando pelo caminho unico de sempre
+ * (CZ_ENTER2) em vez de uma segunda rota escrita a mao.
+ *
+ * `morreu:true` (D-1398, 14/09/2026) chega SEM o cliente ter pedido nada —
+ * o servidor empurra este mesmo pacote na hora em que o personagem morre
+ * dentro de uma sessao de economia. Uma vez visto, o aviso fica marcado ate
+ * a tela fechar (`_personagemMorreuEmEconomia`, nunca sobrescrito de volta
+ * pra `false` por uma resposta SEM o campo — o servidor manda `morreu` em
+ * TODA resposta da sessao depois que ele vira `true` uma vez, mas o cliente
+ * nao depende disso: ele so soma, nunca some com o proprio aviso).
+ */
+function onEconomiaRecebida(pkt) {
+	let corpo;
+	try {
+		corpo = JSON.parse(pkt.json);
+	} catch {
+		return;
+	}
+	if (!corpo) return;
+
+	if (corpo.ativa === true) {
+		if (corpo.morreu === true) _personagemMorreuEmEconomia = true;
+		abrirTelaDaEconomia(Number(corpo.restanteMs) || 0);
+		return;
+	}
+
+	fecharTelaDaEconomia();
+	if (corpo.expulso === true) {
+		import('Engine/GameEngine.js').then(m => m.default.reload());
+	}
 }
 
 /**
@@ -770,7 +1245,57 @@ function onConnectionRefused(pkt) {
  *
  * @param {object} pkt - PACKET.ZC.NPCACK_MAPMOVE
  */
-function onMapChange(pkt) {
+/**
+ * RAGIDLE (09/09/2026): liga um acessorio da HUD sem deixar que ele derrube
+ * o resto da entrada no mapa.
+ *
+ * MEDIDO, e nao suposto. `onMapChange` e um handler de ~460 linhas, e os tres
+ * `ligar()` (escala, HUD vertical, modo leitura) ficam no MEIO dele. Depois
+ * deles, no MESMO bloco, ainda rodam:
+ *
+ *   - `CheckAttendance.append()` — a janela de presenca diaria (D-1162);
+ *   - `PluginManager.init()`;
+ *   - `Network.sendPacket(CZ.NOTIFY_ACTORINIT)` — o estou-pronto ao servidor;
+ *   - o anuncio de taxas e a lista da loja de cash.
+ *
+ * Uma excecao em qualquer um dos tres levava tudo isso junto, em silencio.
+ *
+ * E A PROVA NAO VIA. `npm run prove:e2e` sai 9/9 mesmo com o modulo do modo
+ * leitura lancando de proposito — conferido nas duas direcoes em 09/09/2026 —
+ * porque os nove passos dela terminam ANTES desta linha: a UI de jogo ja
+ * apareceu e o servidor ja sabe do personagem pelo MAPMOVE. "O jogador entra"
+ * e verdade e nao e o bastante.
+ *
+ * O `catch` NAO engole: ele registra no console com o nome de quem falhou.
+ * Acessorio de HUD nao e razao para o jogo nao comecar; e razao para um erro
+ * legivel.
+ */
+function ligarAcessorioDaHud(nome, ligar) {
+	try {
+		ligar();
+	} catch (erro) {
+		console.error('[hud] ' + nome + ' falhou ao ligar — o jogo segue sem ele:', erro);
+	}
+}
+
+/**
+ * @param {boolean} [ehEntradaNoMundo] `true` só quando quem chama é
+ *   `onConnectionAccepted` — login OU RECONEXÃO (`ZC_ACCEPT_ENTER2`/`ENTER3`).
+ *   `false`/ausente é o caminho comum, o hook de `ZC_NPCACK_MAPMOVE`
+ *   (teleporte dentro da MESMA conexão — Asa de Mosca, viagem por menu).
+ */
+function onMapChange(pkt, ehEntradaNoMundo) {
+	/*
+	 * O MAPA ANTES DESTE PACOTE (D-1385, 13/09/2026) — capturado ANTES de
+	 * `MapRenderer.setMap` rodar, porque `setMap` só reatribui
+	 * `MapRenderer.currentMap` quando é uma troca de mapa DE VERDADE
+	 * (`MapRenderer.js`, o teleporte no mesmo mapa nunca toca nele). Um
+	 * `ZC_NPCACK_MAPMOVE` da Asa de Mosca chega aqui do MESMO jeito que uma
+	 * troca real — é o mesmo pacote, o rAthena não distingue os dois — e sem
+	 * este valor não havia como `onLoad` (abaixo) responder "isto mudou de
+	 * mapa mesmo?" sem reescrever a comparação de `setMap` uma terceira vez.
+	 */
+	const mapaAntesDoLoad = MapRenderer.currentMap;
 	MapRenderer.onLoad = () => {
 		/*
 		 * RAGIDLE (B1, 06/09/2026) — A SEGUNDA LIMPEZA, E ELA E O CONSERTO.
@@ -874,7 +1399,10 @@ function onMapChange(pkt) {
 			MapName.setMap(MapRenderer.currentMap);
 			MapName.append();
 		}
-		ChatBox.append();
+		// O chat atravessa a troca de mapa (ver `MapRenderer.setMap`): ele so e
+		// anexado de novo quando saiu — a entrada no jogo. Anexar um host que ja
+		// esta na pagina o MOVE, e mover tira o foco do campo e fecha o teclado.
+		if (!ChatBox.__active) ChatBox.append();
 		BasicInfo.getUI().append();
 		Escape.append();
 		Inventory.getUI().append();
@@ -898,7 +1426,28 @@ function onMapChange(pkt) {
 		MobileUI.append();
 		JoystickUI.append();
 		Navigation.append();
-		Roulette.append();
+		/*
+		 * A ROLETA SAIU DA HUD (D-1480, 15/09/2026 — pedido do dono: *"esse
+		 * icone de poring premiado que esta na HUD, remova isso tambem"*).
+		 *
+		 * `Roulette.append()` nao desenhava so a janela: ela cria um BOTAO
+		 * SOLTO em `document.body` (`addRouletteIcon`), com a arte
+		 * `RoulletteIcon.bmp` — a caixa de porings do RO — e posicao cravada em
+		 * pixel de DESKTOP (`top: 74px; right: 145px`). Num celular de 402px
+		 * isso cai em cima do cartao de missoes, que e onde o dono o
+		 * fotografou.
+		 *
+		 * E ela e um BOTAO MORTO neste jogo: a roleta fala `REQ_OPEN_ROULETTE`,
+		 * `REQ_GENERATE_ROULETTE` e `RECV_ROULETTE_ITEM`, e o servidor deste
+		 * projeto nao conhece NENHUM desses pacotes (conferido em
+		 * `servidor/protocolo/pacotes-mapa.ts`: zero ocorrencias de ROULETTE —
+		 * as citacoes de "roleta" que existem la sao a do PET, outro assunto).
+		 * Clicar abria uma janela que pedia ao servidor algo que ele nunca
+		 * responde.
+		 *
+		 * O componente FICA no repositorio, intocado: se um dia a roleta for
+		 * servida, volta com uma linha. O que sai e so a montagem dela na HUD.
+		 */
 		if (Configs.get('enableAchievements') && PACKETVER.value >= 20150513) {
 			Achievement.append();
 		}
@@ -927,13 +1476,57 @@ function onMapChange(pkt) {
 		MissoesIdle.append(); // RAGIDLE: janela de Missões (D-551)
 		PasseIdle.append(); // RAGIDLE: janela do Passe (D-813)
 		CodexIdle.append(); // RAGIDLE: janela do Codex (D-851)
+		// RAGIDLE (D-1159): a janela de Voto. Anexada SEMPRE, como as vizinhas —
+		// o aviso da entrada chega pelo pacote e precisa de um host de pé.
+		VotoIdle.append(); // RAGIDLE: janela de Voto (D-1159)
+		PresencaIdle.append(); // RAGIDLE: janela de presenca (D-1162)
+		IndicacaoIdle.append(); // RAGIDLE: Indique & Ganhe (D-1164)
+		RankingIdle.append(); // RAGIDLE: o Ranking
+		PartyHud.append(); // RAGIDLE: a HUD de party
+		/*
+		 * RAGIDLE (D-968): a CAIXA DE BOAS-VINDAS — o cartaz que abre sozinho
+		 * ao entrar (hoje, o convite do Discord). Anexada por ÚLTIMO entre as
+		 * janelas: o `append()` termina com `focus()`, e ser a última a deixa
+		 * no topo da pilha de foco. Quem decide se ela aparece é o `onAppend`
+		 * DELA (a trava de "uma vez por entrada" mora no componente).
+		 */
+		BoasVindasIdle.append();
 		LFGIdle.append(); // RAGIDLE: janela de Procurar Grupo (D-634)
+		GrupoIdle.append(); // RAGIDLE: janela de Grupo (D-960)
 		// RAGIDLE: o tracker ancora ABAIXO do BasicInfoIdle por medição — vem
 		// DEPOIS dele no append para o primeiro syncPosition já achar o host.
 		MissoesTrackerIdle.append();
-		// RAGIDLE: pergunta se este mapa e cidade (D-355) para desabilitar o
-		// botao quando nao ha caca. A resposta cai no mesmo handler do pedir.
-		IdleConfig.sondarMapa();
+		/*
+		 * RAGIDLE: pergunta se este mapa e cidade (D-355) para desabilitar o
+		 * botao quando nao ha caca. A resposta cai no mesmo handler do pedir.
+		 *
+		 * SO QUANDO O MAPA MUDOU DE VERDADE (D-1385, 13/09/2026) — sem esta
+		 * checagem, todo teleporte no MESMO mapa (a Asa de Mosca; o `pc_setpos`
+		 * do rAthena chama `clif_changemap` mesmo quando o destino e igual ao
+		 * mapa atual) sondava de novo, marcando `IdleConfig.contextoObsoleto`
+		 * por um instante — e o relato do dono foi exatamente esse instante
+		 * sendo lido como "saiu da cacada": a "Duracao" do Hunt Analyzer
+		 * resetava a cada uso da asa.
+		 *
+		 * ...MAS TAMBEM SEMPRE NUMA ENTRADA NO MUNDO (D-1400, 14/09/2026),
+		 * mesmo se o mapa "nao mudou" pela leitura de `mapaAntesDoLoad` —
+		 * relato do dono: o botao "Dormir" ficava HABILITADO mesmo depois do
+		 * servidor recusar por amostra insuficiente. A causa: o servidor
+		 * reinicia `amostrasDeSono` em TODA entrada no mundo, reconexao
+		 * inclusive (`servidor-mapa.ts`, comentario gemeo de `viajar()`) — e
+		 * uma reconexao (a queda de rede real que a economia de energia
+		 * tolera em segundo plano, D-1389/D-1394, ou qualquer outra) para o
+		 * MESMO mapa nunca mexe em `MapRenderer.currentMap` (a pagina nao
+		 * recarrega), entao o guard acima calava a sondagem justamente
+		 * quando o relogio do servidor tinha acabado de reiniciar sem o
+		 * cliente saber. `ehEntradaNoMundo` distingue as duas origens do
+		 * MESMO pacote (`ZC_NPCACK_MAPMOVE` de teleporte vs `onConnectionAccepted`
+		 * de login/reconexao) — so a segunda forca a sondagem mesmo sem o
+		 * nome do mapa ter mudado.
+		 */
+		if (ehEntradaNoMundo || stripMapExtension(mapaAntesDoLoad) !== stripMapExtension(pkt.mapName)) {
+			IdleConfig.sondarMapa();
+		}
 
 		// RAGIDLE: "Painel de admin" floating button — same unconditional
 		// append() as HuntMap/IdleConfig right above; AdminPanel.onAppend()
@@ -1039,8 +1632,9 @@ function onMapChange(pkt) {
 		 *     jogador abre Mochila e Skills lado a lado de propósito;
 		 *   - a morte (`DeathWindow`) é DECISÃO: cobre tudo, e o ESC não a tira
 		 *     da tela — a única saída é o botão "Voltar para a cidade";
-		 *   - troca, venda, refino e loja de NPC são DECISÃO pela mesma razão:
-		 *     tem alguém do outro lado esperando resposta.
+		 *   - troca, venda e refino são DECISÃO pela mesma razão: tem alguém do
+		 *     outro lado esperando resposta. A loja de NPC SAIU desta linha por
+		 *     ordem do dono (D-1363, 13/09/2026): o ESC a fecha, como fecha as Idle.
 		 */
 		for (const [nome, componente, seletor] of [
 			['personagem', StatusIdle, '.st-window'],
@@ -1049,13 +1643,109 @@ function onMapChange(pkt) {
 			['config', IdleConfig, '.ic-window'],
 			['caca', HuntMap, '.hm-window'],
 			['codex', CodexIdle, '.cx-window'],
+			['presenca', PresencaIdle, '.pr-window'],
+			['indicacao', IndicacaoIdle, '.in-window'],
+			['ranking', RankingIdle, '.rk-window'],
 			['correio', CorreioIdle, '.co-window'],
 			['missoes', MissoesIdle, '.mi-window'],
 			['passe', PasseIdle, '.pi-window'],
+			['voto', VotoIdle, '.vi-window'],
 			['analise', HuntAnalyzer, '.ha-window'],
+			/*
+			 * O PAINEL DE ADMIN entrou em 08/09/2026. Ele tem a mesma forma das
+			 * outras (`.ap-window` + `is-open` + `toggle()`) e só não estava
+			 * aqui porque só a conta dona o vê — e o que não entra na pilha não
+			 * ganha a moldura de painel de tela cheia de D-932.
+			 *
+			 * MEDIDO em 393x852 antes disto (`scripts/diag-mobile-portrait.ts`):
+			 * o Admin nascia em `7,166 380x742` e **transbordava 56px por
+			 * baixo** — a última linha de botões ficava fora da tela. Em 412x915
+			 * eram 58px. Registrado, ele passa pela mesma regra das outras onze.
+			 */
+			['admin', AdminPanel, '.ap-window'],
 		]) {
 			PilhaDeJanelas.registrar({ nome, componente, seletor });
 		}
+
+		/*
+		 * A LOJA DE CASH é NATIVA do roBrowser, e por isso ficou de fora da
+		 * pilha até 08/09/2026 — ela não usa `is-open` num `.xx-window`: ela é
+		 * inserida e REMOVIDA do DOM, e o estado se lê em `CashShop.ui`.
+		 *
+		 * O preço de ficar de fora é medido: em 393x852 ela abria com **723px
+		 * de largura numa tela de 393** e transbordava 330px para a direita —
+		 * as abas "Aluguel"/"Equipamento" e metade da grade de itens ficavam
+		 * fora do mundo, e o título saía cortado ("Loja de Cas..."). Ela é um
+		 * item do menu do celular, então isso é um destino inalcançável.
+		 *
+		 * A marca `.ri-janela` que o registro põe no host é o que a regra de
+		 * painel de D-932 lê. As duas funções abaixo existem porque a forma
+		 * dela é outra — e é exatamente para isso que `registrar()` aceita
+		 * `estaAberta` e `fechar` declarados.
+		 */
+		PilhaDeJanelas.registrar({
+			nome: 'cash',
+			componente: CashShop,
+			estaAberta: () => !!(CashShop.ui && CashShop.ui.is(':visible')),
+			/* `toggle()` e não `remove()`: fechar a loja de cash AVISA o
+			   servidor (`CZ_CASH_SHOP_CLOSE`). Arrancá-la do DOM deixaria o
+			   servidor achando que o jogador ainda está na loja. */
+			fechar: () => CashShop.toggle(),
+		});
+
+		/*
+		 * E ELA PRECISA AVISAR A PILHA POR FORA DO EMBRULHO (08/09/2026).
+		 *
+		 * O embrulho de `registrar()` compara o "aberta?" ANTES e DEPOIS de
+		 * `toggle()`. Isso funciona para as janelas que abrem no mesmo quadro —
+		 * e a loja de cash não é uma delas: `toggle()` só MANDA O PACOTE
+		 * (`CZ_SE_CASHSHOP_OPEN2`), e a janela nasce quando o servidor
+		 * responde. No instante em que o embrulho olha, ela ainda está
+		 * fechada, então `aoAbrir('cash')` nunca era chamado.
+		 *
+		 * A consequência era invisível e específica: a regra de UMA JANELA POR
+		 * VEZ do celular não disparava para ela. Medido em 393x852 — com a
+		 * janela "Votar" aberta antes, **28 controles da loja** respondiam
+		 * `div.vi-*` no `elementFromPoint`. O jogador via a loja e tocava no
+		 * Votar.
+		 *
+		 * `onAppend` é o ponto em que ela ENTRA na tela, seja qual for o
+		 * caminho — é lá que a pilha fica sabendo.
+		 */
+		/* UMA VEZ por componente (a tarefa 25, D-1361): este bloco roda a cada
+		   mapa carregado (`MapRenderer.onLoad`), e o embrulho que estava escrito
+		   aqui se aninhava — cada troca de mapa somava um `aoAbrir('cash')`, e
+		   cada um empilha uma entrada no historico do voltar. */
+		avisarAoAbrir(CashShop, () => PilhaDeJanelas.aoAbrir('cash'));
+
+		/*
+		 * A LOJA DE NPC (a tarefa 25, D-1361). Ela e DECISAO na tabela do dono,
+		 * no topo deste bloco ("troca, venda, refino e loja de NPC"), e ficou
+		 * fora da pilha enquanto fechava sozinha a cada compra — que era, no
+		 * celular em pe, o que tirava o jogador de uma janela de 460px numa tela
+		 * de 393. Agora que ela fica aberta, o registro e o que a encaixa (a marca
+		 * `ri-janela` de D-932) e o que diz a pilha quando ela esta na tela.
+		 *
+		 * `prepare()` ANTES do registro: o host so nasce ali (GUIComponent), e a
+		 * marca vai no host. A versao e a eleita no boot do mapa
+		 * (`NpcStore.selectUIVersion`).
+		 */
+		const lojaDoNpc = NpcStore.getUI();
+		if (typeof lojaDoNpc.prepare === 'function') {
+			lojaDoNpc.prepare();
+		}
+		// JANELA, e nao DECISAO, por ordem do dono (D-1363, 13/09/2026): o ESC e
+		// o voltar do Android fecham a loja, como fecham as Idle. Do outro lado da
+		// loja do NPC nao ha ninguem esperando resposta, e fechar manda o 0x09D4,
+		// que encerra a negociacao no servidor (D-1361).
+		PilhaDeJanelas.registrar({
+			nome: 'loja',
+			componente: lojaDoNpc,
+			tipo: PilhaDeJanelas.TIPO.JANELA,
+			estaAberta: () => !!(lojaDoNpc._host && lojaDoNpc._host.isConnected),
+			fechar: () => lojaDoNpc.remove(),
+		});
+		avisarAoAbrir(lojaDoNpc, () => PilhaDeJanelas.aoAbrir('loja'));
 
 		/* O LFG não usa `toggle()`: ele tem `abrir()`/`fechar()` próprios, por
 		   causa da corrida de troca de mapa que já derrubou o `is-open` dele por
@@ -1066,6 +1756,76 @@ function onMapChange(pkt) {
 			componente: LFGIdle,
 			seletor: '.lfg-window',
 			fechar: () => LFGIdle.fechar(),
+		});
+
+		/* A janela de GRUPO (D-960) tem o mesmo arranjo do LFG, e pela mesma
+		   razao: ela nao usa `toggle()` no ESC porque `fechar()` tambem
+		   DESINSCREVE do empurrao do servidor — fechar pelo embrulho deixaria
+		   o servidor montando estado para uma janela que ninguem esta vendo. */
+		PilhaDeJanelas.registrar({
+			nome: 'grupo',
+			componente: GrupoIdle,
+			seletor: '.gi-window',
+			fechar: () => GrupoIdle.fechar(),
+		});
+
+		/* A PONTE entre as duas janelas de grupo (D-960). Ela mora aqui, e nao
+		   num import cruzado entre os dois componentes: o `MapEngine` ja
+		   conhece os dois, e um import de um componente de UI dentro de outro
+		   prenderia a ordem de carga de um a do outro.
+
+		   O botao "Abrir o Localizador" da janela de Grupo e a materializacao
+		   do pedido do dono de que os DOIS caminhos de entrada convivam. */
+		GrupoIdle.aoPedirLocalizador = () => {
+			GrupoIdle.fechar();
+			LFGIdle.abrir();
+		};
+
+		/* A IRMÃ dela (D-984): "me leve até o líder".
+
+		   O corpo mora no Localizador porque é lá que `{acao:'teleportar'}`
+		   sempre morou, e é lá que o RESULTADO desse pacote sabe ser lido (o
+		   'teleportar' está em `ACOES_QUE_FECHAM`). A janela de Grupo só oferece
+		   o botão; nenhuma linha dela monta pacote de LFG. */
+		GrupoIdle.aoPedirTeleporte = () => {
+			LFGIdle.teleportarParaOLider();
+		};
+
+		/*
+		 * A PORTA DO GRUPO (D-984) — qual das duas janelas o item "Grupo" abre,
+		 * e quem troca de janela quando a party muda.
+		 *
+		 * A ligação mora aqui pela MESMA razão das duas pontes acima: só o
+		 * `MapEngine` conhece as duas janelas, e um import cruzado entre
+		 * componentes de UI prenderia a ordem de carga de um à do outro — de
+		 * quebra, é o que deixa `portaDoGrupo.js` ser provado sem subir
+		 * Renderer, Network e o GRF inteiro.
+		 *
+		 * `estaAberta` lê a flag de MÓDULO das duas janelas, e NÃO a classe
+		 * `is-open`: as duas registram por escrito que o `is-open` já sumiu por
+		 * baixo dos panos numa troca de mapa (a sonda de 03/09/2026, no
+		 * cabeçalho de `LFGIdle.onAppend`). `componente`/`seletor` são para o
+		 * aro do menu, que aí sim quer saber o que está PINTADO na tela.
+		 */
+		PortaDoGrupo.ligar({
+			localizador: {
+				componente: LFGIdle,
+				seletor: '.lfg-window',
+				abrir: () => LFGIdle.abrir(),
+				fechar: () => LFGIdle.fechar(),
+				estaAberta: () => LFGIdle.estavaAberta,
+			},
+			grupo: {
+				componente: GrupoIdle,
+				seletor: '.gi-window',
+				abrir: () => GrupoIdle.abrir(),
+				fechar: () => GrupoIdle.fechar(),
+				estaAberta: () => GrupoIdle.estavaAberta,
+			},
+			// A HUD DE PARTY (09/09/2026): a porta e o unico lugar que sabe QUANDO a
+			// composicao muda, e a HUD precisa disso para pedir o painel — a inscricao
+			// no empurrao morre quando a janela fecha.
+			hud: PartyHud,
 		});
 
 		/* A MORTE é decisão: o ESC não a fecha, e ela também não deixa o ESC
@@ -1098,12 +1858,24 @@ function onMapChange(pkt) {
 
 		/* D-934: e a escala da HUD, ligada DEPOIS do registro — ela varre os
 		   hosts e precisa que todos ja existam. */
-		EscalaDaHud.ligar();
+		ligarAcessorioDaHud('escala da HUD', EscalaDaHud.ligar);
 
 		/* D-939: a HUD vertical do celular em pe — mesma razao de ordem: ela
 		   carimba `ri-vertical` no root interno de cada shadow, entao todos
 		   os hosts precisam ja existir. */
-		HudVertical.ligar();
+		ligarAcessorioDaHud('HUD vertical', HudVertical.ligar);
+
+		/*
+		 * O MODO LEITURA (09/09/2026, pedido do dono): a tela nao apaga
+		 * enquanto o personagem esta em farm automatico.
+		 *
+		 * Ligado AQUI, e nao no `CombatCornerIdle` que ja pesquisa o mesmo
+		 * `cacaAutomatica`: aquele componente e desenho, sai de cena na troca
+		 * de mapa, e o wake lock nao pode piscar a cada viagem. Este e o
+		 * mesmo lugar onde a escala e a HUD vertical se ligam — o que vive
+		 * enquanto a sessao vive mora aqui.
+		 */
+		ligarAcessorioDaHud('modo leitura', TelaAcesaNoFarm.ligar);
 
 		/*
 		 * RAGIDLE: "INTERFACE PRONTA": o gancho de entrada do tutorial guiado.
@@ -1138,7 +1910,11 @@ function onMapChange(pkt) {
 			// CashShopIcon.append();
 		}
 
-		if (Configs.get('enableCheckAttendance') && PACKETVER.value >= 20180307) {
+		// RAGIDLE (07/09/2026): so abre a janela de presenca se HA evento — o
+		// servidor paga a presenca por correio e nao manda o 0x0ae2; sem a
+		// guarda, cada carregamento de mapa (a Asa de Mosca inclusive) imprimia
+		// "Nao ha evento de presenca no momento." no chat.
+		if (Configs.get('enableCheckAttendance') && PACKETVER.value >= 20180307 && CheckAttendance.temEvento()) {
 			CheckAttendance.append();
 		}
 
@@ -1235,6 +2011,7 @@ function cleanGameUI() {
 		IdleSkills,
 		StatusIdle,
 		LFGIdle,
+		GrupoIdle,
 		CorreioIdle,
 		HuntAnalyzer,
 		HuntButtonIdle,
@@ -1242,7 +2019,13 @@ function cleanGameUI() {
 		MochilaIdle,
 		PasseIdle,
 		CodexIdle,
-		TutorialIdle
+		TutorialIdle,
+		PresencaIdle,
+		IndicacaoIdle,
+		RankingIdle,
+		PartyHud,
+		VotoIdle,
+		BoasVindasIdle
 	]) {
 		if (typeof modulo.limparEstadoDoPersonagem === 'function') {
 			modulo.limparEstadoDoPersonagem();
@@ -1313,12 +2096,33 @@ function onExitSuccess() {
 		ShortCut.saveToServer();
 	}
 
+	/*
+	 * O MODO LEITURA SOLTA AQUI (09/09/2026).
+	 *
+	 * Sair do jogo e o unico caminho em que a condicao dele deixa de existir
+	 * sem nunca virar falsa: o `IdleConfig` para de receber resposta, entao
+	 * `cacaAutomatica` congela no ultimo valor e o relogio do modulo seguiria
+	 * renovando o lock numa tela de login. Trocar de MAPA nao passa por aqui,
+	 * e e proposital — o lock nao pode piscar a cada viagem.
+	 */
+	TelaAcesaNoFarm.desligar();
 	GuildEngine.guild_id = 0;
 	cleanGameUI();
 	Session.Achievement = null;
 	Mouse.intersect = false;
 	UIManager.removeComponents();
 	BackgroundTicker.stop();
+	// R12 (14/09/2026): logout voluntario cancela qualquer ciclo de
+	// reconexao em curso (rede de seguranca explicita — `Network.close()`
+	// logo abaixo ja impede o proprio `onDisconnect` de disparar, ver
+	// NetworkManager.js).
+	Reconexao.cancelar();
+	document.removeEventListener('visibilitychange', onVisibilidadeMudouParaEconomia);
+	if (_atrasoDaEconomia) {
+		clearTimeout(_atrasoDaEconomia);
+		_atrasoDaEconomia = null;
+	}
+	fecharTelaDaEconomia();
 	Network.close();
 	Renderer.stop();
 	MapRenderer.free();
@@ -1369,6 +2173,9 @@ function onRestartAnswer(pkt) {
 		Mouse.intersect = false;
 		MapRenderer.free();
 		Renderer.stop();
+		// R12 (14/09/2026): voltar ao char-select e' saida voluntaria da
+		// fase de mapa, mesma razao de onExitSuccess acima.
+		Reconexao.cancelar();
 		onRestart();
 	}
 }

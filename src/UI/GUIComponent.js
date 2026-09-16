@@ -15,6 +15,10 @@ import UIPreferences from 'Preferences/UI.js';
 import Session from 'Engine/SessionStorage.js';
 import Targa from 'Loaders/Targa.js';
 import ClampToViewport from 'UI/ClampToViewport.js';
+import { alvosDaVarredura } from 'UI/alvosDaVarredura.js';
+// D-1489: a barra legada do RO e para MOUSE; no dedo quem rola e o navegador.
+// `escalaDaHud.js` nao importa nada (e folha), entao nao ha ciclo possivel.
+import { ehDedo } from 'UI/escalaDaHud.js';
 
 /**
  * Heavy modules loaded lazily to keep viewer bundles lightweight.
@@ -266,7 +270,7 @@ class GUIComponent {
 		   Trade...). O observador vive enquanto o componente viver — remove()
 		   so desanexa o host, o shadow continua o mesmo. */
 		_blindarArvoreContraAutofill(this._container);
-		this.__autofillObserver = new MutationObserver((mutacoes) => {
+		this.__autofillObserver = new MutationObserver(mutacoes => {
 			for (const m of mutacoes) {
 				for (const no of m.addedNodes) {
 					if (no.nodeType === 1) {
@@ -1010,6 +1014,47 @@ class GUIComponent {
 			if (!this._host || !this._host.parentNode) return;
 
 			const checkScrollbars = el => {
+				/*
+				 * ═══════════════════════════════════════════════════════════
+				 * NO DEDO, A ROLAGEM E A DO NAVEGADOR (D-1489, 15/09/2026).
+				 *
+				 * Relato do dono, no iPhone: *"nao conseguimos descer a janela
+				 * do menu (arrastar para baixo)"*.
+				 *
+				 * **MEDIDO no aparelho emulado (402x714, dedo), com o menu
+				 * aberto:** a folha tinha `scrollHeight 369` contra
+				 * `clientHeight 309` — ou seja, 60px de conteudo escondido,
+				 * sendo o botao "Instalar app" inteiro (top 640, com a caixa
+				 * terminando em 640) — e o `overflow-y` COMPUTADO era
+				 * **`hidden`**, com a folha declarando `auto`.
+				 *
+				 * Quem escreve o `hidden` e `UI/Scrollbar.js:222`, INLINE (por
+				 * isso vence a folha): a barra legada do roBrowser desliga a
+				 * rolagem nativa e desenha um puxador com a arte do RO, feito
+				 * para ser ARRASTADO COM O MOUSE. Num celular nao ha o que
+				 * pegar: o dedo escorrega sobre os botoes e a lista nao anda.
+				 *
+				 * **Isto nao e do menu: e de TODA janela rolavel do jogo**, e a
+				 * varredura acontece aqui, num lugar so. Por isso a guarda e
+				 * aqui, e nao no `TopMenuIdle`.
+				 *
+				 * O precedente e o de baixo, da mesma funcao: o campo editavel
+				 * ja foi excluido em 10/09 porque a mesma barra legada
+				 * atropelava o teclado do celular. E o mesmo defeito, e a
+				 * segunda vez que ele aparece — a diferenca e que agora a
+				 * excecao cobre o APARELHO em vez de um elemento.
+				 *
+				 * A rolagem nativa do celular e melhor aqui de qualquer forma:
+				 * ela tem inercia, barra que some sozinha e o `overscroll` que
+				 * a folha ja pede (`overscroll-behavior: contain`). E varrer
+				 * todos os descendentes a cada quadro tambem sai do caminho, o
+				 * que nao atrapalha o FPS do aparelho mais fraco.
+				 * ═══════════════════════════════════════════════════════════
+				 */
+				if (ehDedo()) {
+					return;
+				}
+
 				// Check the element itself and all descendants
 				const candidates = [el, ...el.querySelectorAll('*')];
 				for (const node of candidates) {
@@ -1021,6 +1066,16 @@ class GUIComponent {
 					// a barra legada do roBrowser com setas grossas montada abaixo. Opt-in
 					// por classe, entao nenhuma janela existente muda de comportamento.
 					if (node.classList && node.classList.contains('ri-scroll')) {
+						continue;
+					}
+
+					// Campo EDITAVEL nunca ganha a barra legada (10/09/2026): ela
+					// injeta um `div.ro-custom-scrollbar` DENTRO do contenteditable
+					// e reescreve o padding dele a cada 300 ms, o que atropela o
+					// teclado que compoe palavras (GBoard, predicao do iOS). Era o
+					// campo do chat no celular, onde o `overflow-x: auto` faz o
+					// `overflow-y` computar `auto`.
+					if (node.isContentEditable) {
 						continue;
 					}
 
@@ -1042,24 +1097,62 @@ class GUIComponent {
 			setTimeout(() => checkScrollbars(root), 150);
 			setTimeout(() => checkScrollbars(root), 500);
 
-			// Re-apply on visibility or content changes
-			const observer = new MutationObserver(mutations => {
-				let needsCheck = false;
-				for (const mutation of mutations) {
-					if (mutation.type === 'childList') {
-						needsCheck = true;
-					} else if (mutation.type === 'attributes') {
-						if (mutation.attributeName === 'style') {
-							const oldVal = mutation.oldValue || '';
-							const wasHidden = oldVal.includes('display: none') || oldVal.includes('display:none');
-							const isHidden = mutation.target.style.display === 'none';
-							if (wasHidden && !isHidden) needsCheck = true;
-						} else if (mutation.attributeName === 'class') {
-							needsCheck = true;
+			/*
+			 * UMA VARREDURA POR QUADRO, NO MAXIMO (07/09/2026, frente de FPS).
+			 *
+			 * `checkScrollbars` percorre TODOS os descendentes e chama
+			 * `getComputedStyle` em cada um — uma leitura que forca recalculo de
+			 * estilo. O observador a disparava por LOTE de mutacoes, e a HUD
+			 * muda o tempo todo (chat, barras, contadores): medido, o jogo fazia
+			 * **~3.000 `getComputedStyle` por segundo**.
+			 *
+			 * Agrupar por `requestAnimationFrame` colapsa todas as mutacoes de
+			 * um quadro numa varredura so, e faz o trabalho cair junto com o
+			 * quadro — o que e o comportamento certo para algo que so importa
+			 * quando a tela vai ser pintada. Nada e perdido: a varredura roda
+			 * depois de todas as mutacoes daquele quadro, e ve o estado final.
+			 */
+			/*
+			 * SO O QUE MUDOU (13/09/2026). A varredura acima percorria o
+			 * componente INTEIRO a cada quadro com mutacao, e o chat guarda ate
+			 * 400 linhas por aba: medido, as leituras de estilo iam de 1.669 a
+			 * 2.273 por segundo conforme o chat enchia. Agora o quadro varre so
+			 * os alvos das mutacoes dele; folha de estilo nova ainda pede o
+			 * componente inteiro. Ver `UI/alvosDaVarredura.js`.
+			 */
+			let varreduraAgendada = 0;
+			let varrerTudo = false;
+			const pendentes = new Set();
+			const agendarVarredura = ({ tudo, alvos }) => {
+				if (tudo) {
+					varrerTudo = true;
+				}
+				for (const el of alvos) {
+					pendentes.add(el);
+				}
+				if ((!varrerTudo && pendentes.size === 0) || varreduraAgendada !== 0) {
+					return;
+				}
+				varreduraAgendada = requestAnimationFrame(() => {
+					varreduraAgendada = 0;
+					if (varrerTudo) {
+						varrerTudo = false;
+						pendentes.clear();
+						checkScrollbars(root);
+						return;
+					}
+					for (const el of pendentes) {
+						if (el.isConnected) {
+							checkScrollbars(el);
 						}
 					}
-				}
-				if (needsCheck) checkScrollbars(root);
+					pendentes.clear();
+				});
+			};
+
+			// Re-apply on visibility or content changes
+			const observer = new MutationObserver(mutations => {
+				agendarVarredura(alvosDaVarredura(mutations));
 			});
 
 			observer.observe(observeTarget, {

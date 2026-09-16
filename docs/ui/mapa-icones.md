@@ -83,6 +83,9 @@ alcança todos os consumidores dela de uma vez.
 | `auto` | `dock-icons/auto.png` | **fica o do GRF** | [DockIdle.html:16](../../src/UI/Components/DockIdle/DockIdle.html#L16), [CombatCornerIdle.html:6](../../src/UI/Components/CombatCornerIdle/CombatCornerIdle.html#L6) | conjunto novo não cobre o conceito |
 | `config` (botão "Idle") | `dock-icons/config.png` (engrenagens) | `idle.webp` | [TopMenuIdle.html:94](../../src/UI/Components/TopMenuIdle/TopMenuIdle.html#L94) | ✅ `[DONO-4]`: engrenagem é do Idle |
 | `amigos` (chave nova) | reusava `grupo` | `amigos.webp` | [TopMenuIdle.html:183](../../src/UI/Components/TopMenuIdle/TopMenuIdle.html#L183) | ✅ `[DONO-5]` confirmou |
+| `presenca` | Lucide (calendar-check) | `presenca.webp` | [TopMenuIdle.html](../../src/UI/Components/TopMenuIdle/TopMenuIdle.html) (leque) | ✅ lote de 08/09/2026 — pergaminho com a gema |
+| `indicacao` | Lucide (user-plus) | `indicacao.webp` | [TopMenuIdle.html](../../src/UI/Components/TopMenuIdle/TopMenuIdle.html) (leque) | ✅ lote de 08/09/2026 — dois aventureiros |
+| `voto` | Lucide (vote) | `voto.webp` | [TopMenuIdle.html](../../src/UI/Components/TopMenuIdle/TopMenuIdle.html) (cluster) | ✅ lote de 08/09/2026 — manopla com o polegar; a nota antiga dizia que este ficaria em traço puro |
 
 **Nota A — o correio resolve-se por código, não por asset.** Hoje existem dois
 PNGs (`correio` e `correioLido`) e o JS troca o `src` conforme houver carta não

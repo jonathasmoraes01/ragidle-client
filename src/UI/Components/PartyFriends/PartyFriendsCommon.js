@@ -116,8 +116,13 @@ export function createPartyFriends(config) {
 	 */
 	function _escapeHTML(text) {
 		const div = document.createElement('div');
-		div.textContent = text;
-		return div.innerHTML;
+		div.textContent = text == null ? '' : String(text);
+		// SEGURANCA (D-1308): o round-trip por textContent NAO escapa aspas, e este
+		// valor tambem vai para ATRIBUTO -- `data-tooltip="${nameTooltip}"` com o
+		// nome do personagem, que e texto de OUTRO jogador. Sem escapar `"`, uma
+		// aspa no nome fecha o atributo e o resto vira HTML. Escapa `"` e `'` tambem;
+		// em contexto de texto (o `<span class="name">`) isso e inocuo.
+		return div.innerHTML.replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 	}
 
 	/**

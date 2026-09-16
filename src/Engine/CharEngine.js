@@ -27,6 +27,7 @@ import JoystickUI from 'UI/Components/JoystickUI/JoystickUI.js';
 import CharSelect from 'UI/Components/CharSelect/CharSelect.js';
 import CharCreate from 'UI/Components/CharCreate/CharCreate.js';
 import Player from 'Renderer/Entity/Player.js';
+import { abrirCriacaoDireto, registrarConversaoDoCadastro } from 'Engine/entradaPosCadastro.js';
 
 // Load modules
 // Version Dependent UIs
@@ -61,6 +62,16 @@ let _resettingPincode = false;
 let _creatingPincode = false;
 
 class CharEngine {
+	/**
+	 * O servidor de personagem ATUAL (R12, 14/09/2026) — `null` antes da
+	 * primeira selecao. Getter, e nao propriedade solta: `_server` continua
+	 * privado ao modulo, so' a LEITURA e' publica (mesmo padrao de
+	 * `MapEngine.servidorAtual`).
+	 */
+	static get servidorAtual() {
+		return _server;
+	}
+
 	/*
 	 * Connect to char server
 	 */
@@ -201,8 +212,36 @@ function onConnectionAccepted(pkt) {
 	ChSel.onDeleteRequest = onDeleteRequest;
 	ChSel.onDeleteReqDelay = onDeleteReqDelay;
 	ChSel.onCancelDeleteRequest = onCancelDeleteRequest;
-	ChSel.append();
+	/*
+	 * A LISTA CHEGA MAIS DE UMA VEZ, e ela nao pode cobrir a criacao aberta
+	 * (D-1379). Nosso char-server manda `HC_ACCEPT_ENTER_NEO_UNION` na entrada
+	 * e de novo em resposta a cada `CH_CHARLIST_REQ` que `onCharListNotify` pede,
+	 * e as duas caem aqui. Com a criacao ja na tela (a entrada pos-cadastro a abre
+	 * na primeira lista), o `append` da segunda punha a selecao por cima dela:
+	 * medido na `prove:entrada-pos-cadastro`, que fotografou "Seus personagens"
+	 * onde devia estar a criacao. A lista continua sendo aplicada, so nao volta
+	 * a tela.
+	 */
+	if (!CharCreate.getUI().__active) {
+		ChSel.append();
+	}
 	ChSel.setInfo(pkt);
+
+	/*
+	 * A ENTRADA POS-CADASTRO (D-1379): quem acabou de criar a conta no site cai
+	 * direto na criacao de personagem, e e AQUI que o Pixel conta a conversao.
+	 *
+	 * So no pacote que TRAZ a lista (`charInfo`), e nao no cabecalho: o servidor
+	 * manda `HC_ACCEPT_ENTER_NEO_UNION_HEADER` e depois `HC_ACCEPT_ENTER_NEO_UNION`,
+	 * e os dois caem nesta funcao. Decidir no cabecalho abriria a criacao e o
+	 * segundo pacote poria a selecao de volta por cima dela.
+	 *
+	 * O slot 0 e o primeiro, e uma conta sem personagem nenhum o tem livre.
+	 */
+	if (Array.isArray(pkt.charInfo) && abrirCriacaoDireto(pkt.charInfo.length)) {
+		onCreateRequest(0);
+		registrarConversaoDoCadastro();
+	}
 
 	/**
 	 * In PACKETVERs < 20180124 that support pincode auth, we're supposed to

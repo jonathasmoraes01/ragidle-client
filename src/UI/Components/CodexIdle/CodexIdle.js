@@ -69,7 +69,7 @@ import Session from 'Engine/SessionStorage.js';
 import MapRenderer from 'Renderer/MapRenderer.js';
 import HuntMap from 'UI/Components/HuntMap/HuntMap.js';
 import MissoesIdle from 'UI/Components/MissoesIdle/MissoesIdle.js';
-import { chipDeEspecieHtml, jornadaHtml } from './jornadaHtml.js';
+import { jornadaHtml } from './jornadaHtml.js';
 import htmlText from './CodexIdle.html?raw';
 import cssText from './CodexIdle.css?raw';
 import { fecharEEsquecer } from '../limpezaDeJanelaIdle.js';
@@ -112,9 +112,17 @@ const MOTIVO_DA_RECUSA = {
 /** O unico eixo cujo bonus e uma PORCENTAGEM, e nao pontos de atributo. */
 const EIXO_DE_EXP = 'exp';
 
-/** As duas abas da janela. `codex` e a de sempre; `jornada` e a nova. */
-const ABAS = ['codex', 'jornada'];
-const ABA_PADRAO = 'codex';
+/**
+ * As tres abas da janela.
+ *
+ * `missoes` e `status` sao a antiga aba unica `codex` DIVIDIDA (08/09/2026,
+ * ordem do dono): as missoes do bestiario (onde os pontos nascem) e os sete
+ * eixos (onde eles se gastam) empilhavam na mesma rolagem, e viraram duas
+ * abas. `jornada` e a Jornada de Midgard, sem equivalente no `codex` de
+ * antes.
+ */
+const ABAS = ['missoes', 'status', 'jornada'];
+const ABA_PADRAO = 'missoes';
 
 /**
  * As telas da aba Jornada.
@@ -169,7 +177,11 @@ const _preferences = Preferences.get(
 	{
 		x: null,
 		y: null,
-		aba: null
+		// A aba lembrada (08/09/2026), pelo contrato de memoriaDeAba.js: chave nova nos
+		// padroes nao exige subir a versao.
+		aba: null,
+		// Ocultar as missoes concluidas (08/09/2026).
+		ocultarConcluidas: false
 	},
 	1.0
 );
@@ -377,11 +389,41 @@ function onClickClose(e) {
  *
  * A ordem importa: o alvo mais especifico primeiro. Um `.cx-jor-alvo` mora
  * DENTRO de uma linha de missao que tambem e clicavel, e `closest` acharia a
- * linha se ela viesse antes.
+ * linha se ela viesse antes. O RESGATE (D-1232) tambem vem cedo pelo mesmo
+ * motivo: e um botao dentro do corpo, e um `closest('.cx-mais')` num clique
+ * nele devolveria `null` - o `return` de baixo engoliria o clique em
+ * silencio.
  */
 function onClickCorpo(e) {
 	const alvo = e.target && e.target.closest ? e.target : null;
 	if (alvo && cliqueDaJornada(e, alvo)) {
+		return;
+	}
+	const resgatar = e.target && e.target.closest && e.target.closest('.cx-resgatar');
+	if (resgatar) {
+		e.stopImmediatePropagation();
+		const id = resgatar.dataset.resgatar;
+		if (!id) {
+			return;
+		}
+		/*
+		 * AQUI O BOTAO TRAVA, ao contrario do "+" logo abaixo — e a diferenca
+		 * e a mesma que o comentario dele explica: dois cliques no "+" QUEREM
+		 * dizer dois pontos, e dois cliques em "Resgatar" querem dizer um
+		 * resgate so. O servidor ja recusa o segundo (`ja-paga`), entao isto e
+		 * conforto e nao seguranca: o botao para de responder ate o retrato
+		 * novo chegar e redesenhar a lista sem ele.
+		 */
+		resgatar.disabled = true;
+		enviarAcao({ acao: 'resgatar', id: id });
+		return;
+	}
+	const ocultar = e.target && e.target.closest && e.target.closest('[data-action="cx-ocultar"]');
+	if (ocultar) {
+		e.stopImmediatePropagation();
+		_preferences.ocultarConcluidas = !!ocultar.checked;
+		_preferences.save();
+		render();
 		return;
 	}
 	const botao = e.target && e.target.closest && e.target.closest('.cx-mais');
@@ -450,14 +492,61 @@ function placarHtml(estado) {
 	);
 }
 
-/** A lista de missoes: monstro, progresso e a marca de cumprida. */
+/**
+ * A lista de missoes: monstro, progresso POR ESPECIE, e o que falta.
+ *
+ * ---------------------------------------------------------------------------
+ * POR QUE A LINHA POR ESPECIE ENTROU (D-1231, 08/09/2026)
+ * ---------------------------------------------------------------------------
+ * Relato do alfa: *"a contagem de monstros nas missoes parece incorreta"*,
+ * comparando o Hunt Analyzer com a entrada "Bichos Barulhentos" e concluindo
+ * que seriam *"75 de cada especie para completar os 150"*.
+ *
+ * A regra cadastrada nao e nenhuma das duas: sao alvos DIFERENTES por especie —
+ * na FONTE, 50 Muka e 100 PecoPeco, somando 150. Esta janela desenhava so a
+ * soma, entao quem matasse 150 PecoPeco e nenhum Muka via `100 / 150` — o
+ * contador de PecoPeco parou no alvo dele — enquanto o Hunt Analyzer, que conta
+ * TODA morte, mostrava 150. Dois numeros verdadeiros sobre coisas diferentes, e
+ * nada na tela dizendo qual era qual.
+ *
+ * **Os numeros da tela hoje sao outros** (colisao 21, 09/09/2026): D-1207/D-1210
+ * escalaram o TOTAL da missao e o repartem na proporcao da fonte, entao esta
+ * entrada pede 333 Muka e 667 PecoPeco. O conserto e o mesmo, e a assimetria
+ * que ele mostra ficou maior.
+ *
+ * A barra somada FICA (ela e o progresso da entrada, e e o que o jogador
+ * reconhece), e embaixo dela vai uma linha por especie com `n / alvo` e o que
+ * falta. `falta` vem do servidor pronto — a janela nao subtrai nada.
+ */
+
+/**
+ * RAGIDLE (08/09/2026, ordem do dono): a lista sai da MENOR quantidade para a
+ * maior (o total da missao; empate pelo titulo), e as concluidas podem ser
+ * ocultadas — o interruptor fica gravado nas preferencias.
+ */
+function ordenarMissoes(missoes) {
+	return missoes.slice().sort((a, b) => (Number(a.alvo) || 0) - (Number(b.alvo) || 0) || String(a.titulo || '').localeCompare(String(b.titulo || ''), 'pt-BR'));
+}
+
 function missoesHtml(estado) {
-	const missoes = Array.isArray(estado.missoes) ? estado.missoes : [];
-	if (missoes.length === 0) {
+	const todas = Array.isArray(estado.missoes) ? estado.missoes : [];
+	if (todas.length === 0) {
 		return '<div class="cx-vazio">Nenhuma missao no catalogo.</div>';
 	}
-
+	const ocultar = !!_preferences.ocultarConcluidas;
+	const concluidas = todas.filter(m => m.cumprida).length;
+	const missoes = ordenarMissoes(ocultar ? todas.filter(m => !m.cumprida) : todas);
+	const barra =
+		'<label class="cx-ocultar"><input type="checkbox" data-action="cx-ocultar"' +
+		(ocultar ? ' checked' : '') +
+		' /> Ocultar concluidas' +
+		(concluidas ? ' <span class="cx-ocultar-n">(' + escapeHtml(concluidas) + ')</span>' : '') +
+		'</label>';
+	if (missoes.length === 0) {
+		return barra + '<div class="cx-vazio">Todas as missoes estao concluidas.</div>';
+	}
 	return (
+		barra +
 		'<div class="cx-missoes">' +
 		missoes
 			.map(m => {
@@ -468,22 +557,51 @@ function missoesHtml(estado) {
 				// da moldura seria defeito visual de um retrato legitimo.
 				const pct = alvo > 0 ? Math.min(100, Math.round((abates / alvo) * 100)) : 0;
 				const marca = m.cumprida ? '<span class="ri-badge ri-badge--verde">Cumprida</span>' : '';
+				// O SELO DE NOVIDADE (D-1232): a mesma informacao que a bolinha
+				// do menu, dentro da janela — sem ele o jogador abriria o Codex
+				// por causa do ponto vermelho e teria de caçar qual entrada
+				// mudou numa lista de 62.
+				const selo = m.novidade ? '<span class="ri-badge ri-badge--ouro cx-selo-novo">Novo</span>' : '';
 				// O NOME é o `titulo` da entrada (D-1110). Ele deixou de ser o
 				// nome de um monstro: uma entrada pode pedir três espécies
 				// ("Família Orc"), e mostrar só a primeira mentiria sobre o que
-				// falta. As espécies vão na linha de baixo, que é onde cabem.
-				/*
-				 * A PONTE ENTRADA -> MISSOES DAQUELA ESPECIE (08/09/2026).
-				 *
-				 * Cada especie da entrada virou BOTAO: ele leva a lista de
-				 * todos os mapas e objetivos da Jornada daquele `mobId`. Uma
-				 * especie que vive em varios mapas tem UMA entrada aqui e
-				 * varias missoes la, e este e o unico caminho que liga as
-				 * duas sem o jogador ter de adivinhar em que capitulo procurar.
-				 */
-				const especies = Array.isArray(m.alvos)
-					? m.alvos.map(a => chipDeEspecieHtml(a.mobId, a.monstro)).join('')
-					: '';
+				// falta. As espécies vão nas linhas de baixo, com o progresso de
+				// cada uma (D-1231) E como BOTAO — a ponte entrada -> missoes
+				// daquela especie (08/09/2026): leva a lista de todos os mapas e
+				// objetivos da Jornada daquele `mobId`. Uma especie que vive em
+				// varios mapas tem UMA entrada aqui e varias missoes la, e este e
+				// o unico caminho que liga as duas sem o jogador ter de adivinhar
+				// em que capitulo procurar. As duas classes convivem no mesmo
+				// elemento (`cx-especie` para o desenho, `cx-ponte-especie` para
+				// o clique em `cliqueDaJornada`) em vez de duplicar a linha.
+				const linhasDeEspecie =
+					Array.isArray(m.alvos) && m.alvos.length > 0
+						? m.alvos
+								.map(a => {
+									const feitos = Number(a.abates) || 0;
+									const meta = Number(a.alvo) || 0;
+									const falta = Number(a.falta) || 0;
+									return (
+										'<button type="button" class="cx-especie cx-ponte-especie' +
+										(a.cumprida ? ' is-ok' : '') +
+										'" data-mobid="' +
+										escapeHtml(a.mobId == null ? '' : a.mobId) +
+										'" title="Ver as missões da Jornada desta espécie">' +
+										'<span class="cx-especie-nome">' +
+										escapeHtml(a.monstro) +
+										'</span>' +
+										'<span class="cx-especie-conta">' +
+										escapeHtml(feitos) +
+										' / ' +
+										escapeHtml(meta) +
+										'</span>' +
+										'<span class="cx-especie-falta">' +
+										(a.cumprida ? 'completo' : 'faltam ' + escapeHtml(falta)) +
+										'</span></button>'
+									);
+								})
+								.join('')
+						: '';
 				// O que a entrada paga ALÉM do ponto — vazio nas oito de D-851.
 				const premio = Array.isArray(m.recompensas)
 					? m.recompensas
@@ -499,9 +617,23 @@ function missoesHtml(estado) {
 							.filter(Boolean)
 							.join(' · ')
 					: '';
+				/*
+				 * O BOTAO DE RESGATE (D-1232) só existe quando o servidor diz
+				 * `aResgatar`. Ele NÃO é derivado de `cumprida && premio`: o
+				 * servidor é quem sabe o que já foi pago (`pagas`), e uma janela
+				 * que decidisse sozinha mostraria o botão de novo depois de um
+				 * resgate que ela ainda não viu.
+				 */
+				const resgate = m.aResgatar
+					? '<button type="button" class="cx-resgatar ri-btn ri-btn--primario" ' +
+						'data-resgatar="' +
+						escapeHtml(m.id) +
+						'">Resgatar</button>'
+					: '';
 				return (
 					'<div class="cx-missao' +
 					(m.cumprida ? ' is-cumprida' : '') +
+					(m.novidade ? ' is-novidade' : '') +
 					'" data-entrada="' +
 					escapeHtml(m.id || '') +
 					'" data-mobids="' +
@@ -511,8 +643,11 @@ function missoesHtml(estado) {
 					escapeHtml(m.titulo || m.monstro || '') +
 					' ' +
 					marca +
+					selo +
 					'</span>' +
-					(especies ? '<span class="cx-missao-especies">' + especies + '</span>' : '') +
+					(linhasDeEspecie
+						? '<div class="cx-especies">' + linhasDeEspecie + '</div>'
+						: '') +
 					(premio ? '<span class="cx-missao-premio">+1 ponto · ' + escapeHtml(premio) + '</span>' : '') +
 					'<span class="cx-missao-progresso">' +
 					escapeHtml(abates) +
@@ -523,6 +658,7 @@ function missoesHtml(estado) {
 					'<div class="fill" style="width:' +
 					pct +
 					'%"></div></div>' +
+					resgate +
 					'</div>'
 				);
 			})
@@ -653,15 +789,15 @@ function render() {
 		return;
 	}
 
+	// Uma aba por vez (08/09/2026): Missoes = onde os pontos nascem; Status =
+	// onde gastar. A aba em si e a barra FIXA de `.cx-tab` do HTML (mesmo
+	// padrao da Jornada), e nao `abasHtml()` gerado aqui — um so jeito de
+	// desenhar aba nesta janela.
 	corpo.innerHTML =
 		placarHtml(estado) +
-		'<div class="cx-secao"><div class="cx-secao-titulo">Onde os pontos nascem</div>' +
-		missoesHtml(estado) +
-		'</div>' +
-		'<div class="ri-divisor"></div>' +
-		'<div class="cx-secao"><div class="cx-secao-titulo">Onde gastar</div>' +
-		eixosHtml(estado) +
-		'</div>';
+		(CodexIdle.aba === 'status'
+			? '<div class="cx-secao"><div class="cx-secao-titulo">Onde gastar</div>' + eixosHtml(estado) + '</div>'
+			: '<div class="cx-secao"><div class="cx-secao-titulo">Onde os pontos nascem</div>' + missoesHtml(estado) + '</div>');
 }
 
 /* ------------------------------------------------------------------ */
@@ -834,8 +970,8 @@ function abrirEntradaDoCodex(mobId) {
 	if (!Number.isFinite(mobId)) {
 		return;
 	}
-	CodexIdle.aba = 'codex';
-	lembrarAba(_preferences, 'codex');
+	CodexIdle.aba = 'missoes';
+	lembrarAba(_preferences, 'missoes');
 	render();
 
 	const root = _root();

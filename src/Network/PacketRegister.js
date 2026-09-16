@@ -994,6 +994,11 @@ export default {
 	0x0fce: PACKET.ZC.RAGIDLE_SALDO_DE_CASH,
 	0x0fd0: PACKET.ZC.RAGIDLE_ADMINS,
 	0x0fd1: PACKET.ZC.RAGIDLE_CONFIRMAR,
+	0x0fd3: PACKET.ZC.RAGIDLE_REFINO,
+	// A janela de Grupo (D-960): so o ZC entra aqui — os dois CZ (0x0fcd e
+	// 0x0fcb) sao ESCRITOS pelo cliente, nunca lidos. Mesma razao de
+	// 0x0ff1/0x0ff4/0x0ff7/0x0ffa/0x0fea acima.
+	0x0fcc: PACKET.ZC.RAGIDLE_GRUPO,
 	0x0fee: PACKET.ZC.RAGIDLE_MUDANCA_DE_CLASSE,
 	0x0ffa: PACKET.ZC.RAGIDLE_SKILLS,
 
@@ -1013,6 +1018,14 @@ export default {
 	// RAGIDLE: a fala do sistema -> canal "Logs" (31/08/2026). Ver o contrato
 	// em PacketStructure.js; o slot sai do TOPO da reserva de D-527.
 	0x0fe2: PACKET.ZC.RAGIDLE_LOG,
+	0x0fc6: PACKET.ZC.RAGIDLE_RESPOSTA_DE_COMANDO,
+	// DORMIR (13/09/2026, D-1381): so o ZC entra aqui — o CZ 0x0fc4 e escrito
+	// pelo cliente, nunca lido. Ele desce respondendo ao pedido e tambem SEM
+	// pedido no login, enquanto o personagem ainda dorme.
+	0x0fc5: PACKET.ZC.RAGIDLE_SONO,
+	// ECONOMIA DE ENERGIA (14/09/2026, D-1389/D-1390): so o ZC entra aqui — o
+	// CZ 0x0fc2 e escrito pelo cliente, nunca lido.
+	0x0fc3: PACKET.ZC.RAGIDLE_ECONOMIA,
 	// LFG (D-634): so os ZC entram aqui — o CZ 0x0fea e escrito pelo cliente,
 	// nao lido. Ver PacketStructure.js para o contrato JSON de cada um.
 	0x0fe9: PACKET.ZC.RAGIDLE_LFG_LISTA,
@@ -1022,12 +1035,34 @@ export default {
 	// retrato desce respondendo aos DOIS verbos, inclusive a um gastar
 	// recusado — nao ha ZC de erro.
 	0x0fe3: PACKET.ZC.RAGIDLE_CODEX,
+	0x0fde: PACKET.ZC.RAGIDLE_PRESENCA,
+	0x0fdc: PACKET.ZC.RAGIDLE_INDICACAO,
+	// FAVORITOS (09/09/2026): so o ZC entra aqui — o CZ 0x0fda e escrito pelo
+	// cliente, nunca lido. Mesma razao dos vizinhos.
+	0x0fdb: PACKET.ZC.RAGIDLE_FAVORITOS,
+	// RANKING (09/09/2026): so o ZC — o CZ 0x0fc9 e escrito, nunca lido.
+	0x0fca: PACKET.ZC.RAGIDLE_RANKING,
+	// COMANDOS (12/09/2026, o autocompletar): so o ZC — o CZ 0x0fc7 e escrito, nunca lido.
+	0x0fc8: PACKET.ZC.RAGIDLE_COMANDOS,
+	// TRAVA CONTRA VENDA (R14/C2-3, 14/09/2026): so o ZC entra aqui — o CZ
+	// 0x0fc0 e escrito pelo cliente, nunca lido. Mesma razao dos vizinhos.
+	0x0fc1: PACKET.ZC.RAGIDLE_TRAVAS,
+	// VOTO (D-1159): so o ZC entra aqui — o CZ 0x0fd4 e escrito pelo cliente,
+	// nao lido. Mesma razao dos vizinhos acima. Ele desce respondendo aos TRES
+	// verbos e tambem na ENTRADA no mapa (com `avisar: true`), sem ZC de erro.
+	0x0fd5: PACKET.ZC.RAGIDLE_VOTO,
+	0x0fd7: PACKET.ZC.RAGIDLE_CORREIO,
+	// COMPARACAO DE EQUIPAMENTO (08/09/2026): so o ZC entra aqui — o CZ 0x0fd8 e
+	// escrito pelo cliente.
+	0x0fd9: PACKET.ZC.RAGIDLE_ITEM,
 
 	// TUTORIAL GUIADO (secao 6 do CONTRATO-JORNADA.md): so o ZC entra aqui, e o
-	// CZ 0x0fde e escrito pelo cliente, nao lido. Mesma razao de
+	// CZ 0x0fbe e escrito pelo cliente, nao lido. Mesma razao de
 	// 0x0ff1/0x0ff4/0x0ff7/0x0ffa/0x0fea/0x0fe3 acima. O retrato desce
 	// respondendo aos QUATRO verbos, inclusive a um avancar recusado.
-	0x0fdf: PACKET.ZC.RAGIDLE_TUTORIAL,
+	// RENUMERADO de 0x0fdf para 0x0fbf em 16/09/2026 — colidia com
+	// ZC_RAGIDLE_PRESENCA (ver a nota completa em PacketStructure.js).
+	0x0fbf: PACKET.ZC.RAGIDLE_TUTORIAL,
 
 	0xb1a: PACKET.ZC.USESKILL_ACK3 // USE SKILL 3
 };

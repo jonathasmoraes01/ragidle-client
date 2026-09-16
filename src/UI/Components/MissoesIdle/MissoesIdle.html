@@ -8,6 +8,24 @@
 		<div class="mi-tabs">
 			<button type="button" class="mi-tab ri-tab is-active" data-tab="principais">Principais</button>
 			<button type="button" class="mi-tab ri-tab" data-tab="opcionais">Opcionais</button>
+			<!-- O INTERRUPTOR DAS CONCLUIDAS (11/09/2026, pedido do dono: "oculte
+			     por padrao todas as missoes que ja foram concluidas").
+
+			     Ele tem classe PROPRIA (`mi-concluidas`) e NAO e um `.mi-tab`: o
+			     portao `abaSobreviveAoF5` conta e liga os `.mi-tab` por
+			     `data-tab`, e um terceiro botao com aquela classe entraria na
+			     conta dele como se fosse aba.
+
+			     E ele existe porque "ocultar" sem "como mostrar" seria esconder
+			     o historico do jogador: missao repetivel fica concluida entre um
+			     ciclo e outro, e sem esta porta ela sumiria da tela. -->
+			<button
+				type="button"
+				class="mi-concluidas ri-btn ri-btn--sec"
+				data-concluidas="alternar"
+				aria-pressed="false"
+				title="Mostrar tambem as missoes ja concluidas"
+			>Concluídas</button>
 		</div>
 
 		<div class="mi-body ri-scroll">

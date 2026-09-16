@@ -8,6 +8,22 @@
 		<div class="mt-abas" role="tablist" aria-label="Missões e grupo">
 			<button type="button" class="mt-aba is-ativa" data-aba="missoes" role="tab" aria-selected="true">Missões</button>
 			<button type="button" class="mt-aba" data-aba="grupo" role="tab" aria-selected="false">Grupo</button>
+			<!-- RECOLHER, NA HUD VERTICAL (08/09/2026, pedido do dono).
+			     .
+			     O botao de recolher de sempre (`.mt-recolher`) mora no
+			     `.mt-header`, e a HUD vertical esconde o header inteiro
+			     (`.ri-vertical .mt-header { display: none }`) porque o cartao do
+			     mockup nao tem um segundo titulo "Missoes". O efeito colateral
+			     nunca foi notado: **no celular nao havia como recolher o
+			     painel** — medido em 393x852.
+			     .
+			     Ele entra AQUI, na fileira de abas, que e a unica faixa de
+			     controle que a vertical desenha. Nao e um segundo estado: ele
+			     chama o MESMO `_recolhido` do outro botao — dois interruptores
+			     para a mesma luz, e nao duas luzes. -->
+			<button type="button" class="mt-recolher-v" aria-expanded="true" aria-label="Recolher missões" title="Recolher">
+				<span class="mt-recolher-v-glifo" aria-hidden="true">⌄</span>
+			</button>
 		</div>
 		<div class="mt-header">
 			<span class="mt-titulo">Missões</span>

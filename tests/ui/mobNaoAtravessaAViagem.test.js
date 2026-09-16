@@ -61,7 +61,7 @@ const MAP_RENDERER = readFileSync('src/Renderer/MapRenderer.js', 'utf8');
 
 /** O corpo de `onMapChange` — o recorte evita casar com o resto do arquivo. */
 const ON_MAP_CHANGE = (() => {
-	const i = MAP_ENGINE.indexOf('function onMapChange(pkt)');
+	const i = MAP_ENGINE.indexOf('function onMapChange(pkt, ehEntradaNoMundo)');
 	const f = MAP_ENGINE.indexOf('function onServerChange', i);
 	expect(i).toBeGreaterThan(0);
 	expect(f).toBeGreaterThan(i);

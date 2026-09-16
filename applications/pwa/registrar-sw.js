@@ -5,8 +5,11 @@
  * Três trabalhos, e nenhum deles depende do jogo estar carregado:
  *
  *   1. registrar o service worker;
- *   2. avisar, DENTRO do jogo, quando existe versão nova — com um botão, e
- *      nunca recarregando sozinho;
+ *   2. avisar, DENTRO do jogo, quando existe versão nova — e recarregar sozinho
+ *      depois de uma contagem de 10 s, que "Depois" cancela (D-1380: até
+ *      13/09/2026 ele nunca recarregava sozinho; o dono pediu a contagem,
+ *      e o personagem de quem estiver caçando segue caçando no servidor pela
+ *      sessão desassistida da D-275, até 8 h);
  *   3. guardar o `beforeinstallprompt` para o botão "Instalar" das
  *      Configurações poder dispará-lo depois.
  *
@@ -47,6 +50,9 @@
 	};
 	window.RagIdlePWA = API;
 
+	/** Quanto o aviso de versão nova espera antes de recarregar sozinho (D-1380). */
+	var SEGUNDOS_ATE_RECARREGAR = 10;
+
 	/* ═════════════════════════════════════════════════════════════════════
 	   O AVISO DE VERSÃO NOVA
 	   ═════════════════════════════════════════════════════════════════════ */
@@ -70,6 +76,15 @@
 		var caixa = document.createElement('div');
 		caixa.id = 'ri-aviso-versao';
 		caixa.setAttribute('role', 'status');
+		/*
+		 * A MARCA DE "ISTO É UI" (13/09/2026, D-1380). Em produção o aviso mora
+		 * no MESMO documento do jogo, e o ouvinte de toque do jogo
+		 * (`src/Core/Mobile.js`) dá `preventDefault` em todo toque que não
+		 * nasceu na UI — o que SUPRIME o clique sintético do toque (D-932). No
+		 * iPhone os dois botões morriam: o dono tocava e nada acontecia. Quem
+		 * responde "nasceu na UI?" é `ehEventoDaUI`, por esta marca.
+		 */
+		caixa.dataset.guiComponent = 'ri-aviso-versao';
 		caixa.style.cssText = [
 			'position:fixed',
 			'left:50%',
@@ -97,13 +112,12 @@
 		].join(';');
 
 		var texto = document.createElement('span');
-		texto.textContent = 'Nova versão do jogo disponível.';
 		/* --text-title: o tom mais escuro, para a mensagem sobressair no claro. */
 		texto.style.cssText = 'flex:1;min-width:0;color:#12294a';
 
 		var recarregar = document.createElement('button');
 		recarregar.type = 'button';
-		recarregar.textContent = 'Recarregar';
+		recarregar.textContent = 'Recarregar agora';
 		/* .ri-btn primário (azul): --tab-active-fill, aro --blue-600, texto
 		   branco. 44px de altura: este botão nasce num celular tanto quanto num
 		   computador, e o piso tátil vale para ele igual. */
@@ -118,7 +132,43 @@
 			'box-shadow:inset 0 1px 0 rgba(255,255,255,0.95),0 1px 2px rgba(12,34,64,0.10)',
 			'cursor:pointer',
 		].join(';');
-		recarregar.addEventListener('click', aoRecarregar);
+		/*
+		 * A CONTAGEM (D-1380). O aviso recarrega sozinho quando ela chega a zero;
+		 * "Recarregar agora" antecipa, "Depois" cancela. `feito` garante UMA
+		 * recarga só — o clique e o fim da contagem podem cair no mesmo segundo.
+		 */
+		var restantes = SEGUNDOS_ATE_RECARREGAR;
+		var relogio = 0;
+		var feito = false;
+		function escreverContagem() {
+			texto.textContent = 'Nova versão do jogo. Recarregando em ' + restantes + ' s.';
+		}
+		function pararContagem() {
+			if (relogio) {
+				clearTimeout(relogio);
+				relogio = 0;
+			}
+		}
+		function acionar() {
+			if (feito) {
+				return;
+			}
+			feito = true;
+			pararContagem();
+			texto.textContent = 'Recarregando…';
+			aoRecarregar();
+		}
+		function passo() {
+			relogio = 0;
+			restantes -= 1;
+			if (restantes <= 0) {
+				acionar();
+				return;
+			}
+			escreverContagem();
+			relogio = setTimeout(passo, 1000);
+		}
+		recarregar.addEventListener('click', acionar);
 
 		var depois = document.createElement('button');
 		depois.type = 'button';
@@ -137,6 +187,8 @@
 			'cursor:pointer',
 		].join(';');
 		depois.addEventListener('click', function () {
+			feito = true;
+			pararContagem();
 			caixa.remove();
 		});
 
@@ -144,7 +196,13 @@
 		caixa.appendChild(recarregar);
 		caixa.appendChild(depois);
 		document.body.appendChild(caixa);
+		escreverContagem();
+		relogio = setTimeout(passo, 1000);
 	}
+
+	/* Exposta para o teste (`tests/ui/avisoDeVersaoNova.test.js`) alcançar o
+	   aviso sem um service worker de verdade. */
+	API.mostrarAvisoDeVersao = mostrarAviso;
 
 	/* ═════════════════════════════════════════════════════════════════════
 	   REGISTRO

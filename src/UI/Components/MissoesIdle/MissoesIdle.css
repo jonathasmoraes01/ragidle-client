@@ -201,3 +201,17 @@
 	color: var(--text-muted);
 	font-size: var(--fs-desc);
 }
+
+/* RAGIDLE (09/09/2026): o cartao para onde `abrirEmMissao` levou o jogador.
+
+   Ela existe porque rolar ate o cartao NAO basta: `scrollIntoView` poe a
+   missao no meio de uma lista de cartoes iguais, e o jogador que veio de um
+   clique na arvore de habilidades nao tem como saber em qual deles clicou.
+
+   O brilho e permanente enquanto a janela ficar aberta naquele render, e nao
+   uma animacao que some: uma marca de 2 s perde quem olhou para o lado. */
+#MissoesIdle .mi-card.is-destacada {
+	border-color: #f4c03e;
+	box-shadow: 0 0 0 1px #f4c03e, 0 0 12px rgba(244, 192, 62, 0.45);
+}
+

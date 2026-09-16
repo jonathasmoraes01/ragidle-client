@@ -69,6 +69,11 @@ import Mouse from 'Controls/MouseEventHandler.js';
 import Cursor from 'UI/CursorManager.js';
 import BattleMode from 'Controls/BattleMode.js';
 import History from './History.js';
+import { comecaComoComando, ehLinhaDeComando, guardarComando, lerComandosGravados, passoDaBusca } from './historicoDeComandos.js'; // a proposta 5 da tarefa 20: o historico so de comandos
+import { ajudaSemONome, sugestoesPara, textoCompletado } from './autocompletarComandos.js'; // a proposta 5 da tarefa 20: o autocompletar
+import { canalDaRespostaDeComando } from './respostaDeComando.js'; // a proposta 1 da tarefa 20: a resposta na aba de quem digitou
+import Network from 'Network/NetworkManager.js';
+import PACKET from 'Network/PacketStructure.js';
 import UIManager from 'UI/UIManager.js';
 import GUIComponent from 'UI/GUIComponent.js';
 import 'UI/Elements/Elements.js';
@@ -80,7 +85,8 @@ import Configs from 'Core/Configs.js';
 import EntityManager from 'Renderer/EntityManager.js';
 import RiIcones from 'UI/ri-icones.js';
 import { emUnidadesDaHud } from 'UI/escalaDaHud.js'; // D-934: geometria medida vira unidade da HUD
-import { cabeNoLimite, markupDoLink, preparoParaLinkar } from './linkDeItemNoChat.js'; // D-946: linkar item no chat
+import { CANAIS_QUE_FALAM_NO_GLOBAL, CANAL_DE_FALA, cabeNoLimite, markupDoLink, preparoParaLinkar } from './linkDeItemNoChat.js'; // D-946: linkar item no chat
+import { renderFalaSegura } from './textoSeguroDoChat.js'; // D-1308: escapa antes de transformar (XSS)
 // O GID do personagem em foco — a preferencia do chat e POR PERSONAGEM
 // (spec §9), e nao por conta.
 import Session from 'Engine/SessionStorage.js';
@@ -101,6 +107,29 @@ const _historyMessage = new History();
  * @var {History} nickname cached in history
  */
 const _historyNickName = new History(true);
+
+/**
+ * O HISTORICO SO DE COMANDOS (a proposta 5 da tarefa 20): gravado por
+ * personagem e lido pelas setas quando o campo comeca com `@` ou `#`. A regra
+ * mora em `historicoDeComandos.js`; aqui fica o estado — a lista e o passo em
+ * curso das setas.
+ */
+let _comandos = [];
+let _buscaDeComando = null;
+/**
+ * A aba em que o ULTIMO comando foi digitado (D-1364): e para ela que a
+ * resposta do servidor vai. Nula ate o primeiro comando da sessao — e ai a
+ * resposta cai no Logs, como antes.
+ */
+let _canalDoUltimoComando = null;
+
+/**
+ * O AUTOCOMPLETAR (a proposta 5 da tarefa 20, a segunda metade): a lista de
+ * comandos que o servidor diz que este personagem pode usar — pedida uma vez,
+ * no primeiro `@` ou `#` digitado, e esquecida na troca de personagem.
+ */
+let _listaDeComandos = null;
+let _pediuListaDeComandos = false;
 
 /**
  * Buffer para acumular mensagens antes de adicionar ao DOM.
@@ -164,7 +193,7 @@ let _envios = Object.assign({}, PADRAO_ENVIOS);
 let _recolhido = { estado: 'aberto' };
 
 /** As chaves que este componente grava, para o "Restaurar padrao" saber apagar. */
-const SUFIXOS = ['Layout', 'Opcoes', 'Envios', 'Recolhido'];
+const SUFIXOS = ['Layout', 'Opcoes', 'Envios', 'Recolhido', 'Comandos'];
 
 function chaveDoPersonagem(sufixo) {
 	// `Session.GID` e o id do personagem em foco. Sem ele (tela de login, ou
@@ -198,7 +227,106 @@ function gravarPreferencia(sufixo, valor) {
 	}
 }
 
-/** Le as quatro do personagem em foco. Chamado em `onAppend`. */
+/**
+ * Uma LISTA gravada do personagem. `lerPreferencia` mescla o gravado sobre um
+ * OBJETO padrao, e a lista de comandos e um array — mescla-la num objeto a
+ * transformaria em `{0: ..., 1: ...}`.
+ */
+function lerListaGravada(sufixo) {
+	try {
+		const bruto = localStorage.getItem(chaveDoPersonagem(sufixo));
+		return bruto ? JSON.parse(bruto) : [];
+	} catch (_e) {
+		// Ver `lerPreferencia`: sem lista, o chat abre do mesmo jeito.
+		return [];
+	}
+}
+
+/**
+ * O AUTOCOMPLETAR NA TELA (a proposta 5 da tarefa 20, a segunda metade). A
+ * regra mora em `autocompletarComandos.js`; aqui ficam a lista chegada do
+ * servidor, o pedido dela e o desenho — sempre por `textContent`: o nome e a
+ * ajuda vem do fio, e HTML vindo do fio e a porta que o `textoSeguroDoChat`
+ * fecha.
+ */
+function pedirListaDeComandos() {
+	if (_listaDeComandos !== null || _pediuListaDeComandos) return;
+	_pediuListaDeComandos = true;
+	const pkt = new PACKET.CZ.RAGIDLE_COMANDOS_ACAO();
+	pkt.json = JSON.stringify({ acao: 'pedir' });
+	Network.sendPacket(pkt);
+}
+
+function esconderSugestoes(root) {
+	const caixa = root && root.querySelector('.cb-sugestoes');
+	if (caixa) caixa.hidden = true;
+}
+
+function atualizarSugestoes(root) {
+	const caixa = root && root.querySelector('.cb-sugestoes');
+	const campo = root && root.querySelector('.input-chatbox');
+	if (!caixa || !campo) return;
+	const texto = campo.textContent || '';
+	if (comecaComoComando(texto)) pedirListaDeComandos();
+	const sugestoes = sugestoesPara(texto, _listaDeComandos);
+	if (sugestoes === null) {
+		caixa.hidden = true;
+		return;
+	}
+	caixa.replaceChildren(
+		...sugestoes.itens.map(item => {
+			const botao = document.createElement('button');
+			botao.type = 'button';
+			botao.className = 'cb-sugestao';
+			botao.setAttribute('role', 'option');
+			botao.dataset.simbolo = sugestoes.simbolo;
+			botao.dataset.nome = item.nome;
+			const nome = document.createElement('span');
+			nome.className = 'cb-sugestao-nome';
+			nome.textContent = `${sugestoes.simbolo}${item.nome}`;
+			const ajuda = document.createElement('span');
+			ajuda.className = 'cb-sugestao-ajuda';
+			ajuda.textContent = ajudaSemONome(item.nome, item.ajuda);
+			botao.append(nome, ajuda);
+			return botao;
+		})
+	);
+	caixa.hidden = false;
+}
+
+/** Escreve a sugestao no campo e devolve o foco a ele — o toque, o clique e o Tab chegam aqui. */
+function escolherSugestao(root, simbolo, nome) {
+	const campo = root.querySelector('.input-chatbox');
+	if (!campo) return;
+	campo.textContent = textoCompletado(simbolo, nome);
+	esconderSugestoes(root);
+	campo.focus();
+	cursorNoFim(campo);
+}
+
+/** O Tab com a lista aberta completa com a primeira. Devolve se completou. */
+function completarPrimeiraSugestao(root) {
+	const caixa = root.querySelector('.cb-sugestoes');
+	const primeira = caixa && !caixa.hidden ? caixa.querySelector('.cb-sugestao') : null;
+	if (!primeira) return false;
+	escolherSugestao(root, primeira.dataset.simbolo, primeira.dataset.nome);
+	return true;
+}
+
+/** A lista chegou do servidor: guarda e redesenha, se o campo ainda pede. */
+function onListaDeComandos(pkt) {
+	let dados;
+	try {
+		dados = JSON.parse(pkt.json);
+	} catch (_e) {
+		return;
+	}
+	if (!dados || dados.v !== 1 || !Array.isArray(dados.comandos)) return;
+	_listaDeComandos = dados.comandos;
+	atualizarSugestoes(_root());
+}
+
+/** Le as preferencias do personagem em foco — as quatro de layout e o historico de comandos. Chamado em `onAppend`. */
 function carregarPreferenciasDoPersonagem() {
 	_layout = lerPreferencia('Layout', PADRAO_LAYOUT);
 	_opcoes = lerPreferencia('Opcoes', PADRAO_OPCOES);
@@ -215,6 +343,12 @@ function carregarPreferenciasDoPersonagem() {
 	if (typeof _recolhido.recolhido === 'boolean' && !_recolhido.estado) {
 		_recolhido.estado = _recolhido.recolhido ? 'recolhido' : 'aberto';
 	}
+	// O historico so de comandos (a proposta 5 da tarefa 20) e do personagem, como o resto.
+	_comandos = lerComandosGravados(lerListaGravada('Comandos'));
+	_buscaDeComando = null;
+	// E a lista do autocompletar e pedida de novo: o grupo pode ser outro.
+	_listaDeComandos = null;
+	_pediuListaDeComandos = false;
 }
 
 /* ===========================================================================
@@ -239,7 +373,12 @@ function medidaDoToken(nome, reserva) {
 
 const LIMITES = {
 	largMin: () => medidaDoToken('--chat-larg-min', 320),
-	largMax: () => medidaDoToken('--chat-larg-max', 640),
+	// A reserva acompanha o token (11/09/2026): ela dizia 640 depois de o teto
+	// subir para 1000, e uma reserva atrasada e um segundo dono do mesmo numero
+	// — o defeito que o proprio `--cb-acrescimo` documenta logo abaixo. Ela so
+	// aparece quando `getComputedStyle` falha, entao divergir aqui produz um
+	// teto diferente em silencio, no caso mais dificil de reproduzir.
+	largMax: () => medidaDoToken('--chat-larg-max', 1000),
 	altMin: () => medidaDoToken('--chat-alt-min', 100),
 	altMax: () => medidaDoToken('--chat-alt-max', 380),
 	margem: () => medidaDoToken('--chat-margem', 10),
@@ -350,6 +489,42 @@ function ehTelaDeToque() {
 }
 
 /**
+ * O TECLADO VIRTUAL, EM PIXELS, AGORA (10/09/2026) — o `--teclado-altura` que
+ * `UI/escalaDaHud.js` publica no `documentElement`, e que vale ZERO sem teclado.
+ *
+ * A posicao que o jogador escolhe e gravada SEM o teclado, e quem a escreve no
+ * painel soma o token por `calc()`: o chat sobe quando o teclado abre e desce
+ * quando ele fecha, sem ninguem reescrever nada. Por isso quem MEDE a caixa (o
+ * inicio do arrasto e `gravarLayout`) desconta este numero — senao a subida do
+ * teclado entraria na posicao gravada e o chat subiria duas vezes.
+ */
+function tecladoAgora() {
+	if (typeof document === 'undefined' || !document.documentElement) return 0;
+	return parseFloat(document.documentElement.style.getPropertyValue('--teclado-altura')) || 0;
+}
+
+/**
+ * O CURSOR NO FIM DO CAMPO, sem apagar o cursor do toque (10/09/2026).
+ *
+ * Era `removeAllRanges` + `addRange` em tres lugares deste arquivo. O campo
+ * mora num shadow root, e a especificacao manda o `addRange` NAO fazer nada
+ * quando o range nao pertence ao documento: o Chromium ignora a regra (por
+ * isso a prova passa), e o WebKit do iPhone pode segui-la — ai o
+ * `removeAllRanges` ja tinha apagado o cursor, e o campo ficava focado SEM
+ * onde escrever. `collapse` no proprio no leva o cursor ao fim onde o
+ * navegador deixa, e onde nao deixa, nao destroi o que o toque nativo pos ali.
+ */
+function cursorNoFim(campo) {
+	const selecao = window.getSelection();
+	if (!selecao) return;
+	try {
+		selecao.collapse(campo, campo.childNodes.length);
+	} catch (_erro) {
+		// nada: o cursor do toque fica onde o navegador o pos
+	}
+}
+
+/**
  * Escreve a posicao, sempre CLAMPADA contra a viewport de agora.
  *
  * O clamp no load e o que cumpre o criterio de aceite "redimensionar a janela
@@ -380,7 +555,10 @@ function aplicarPosicao(root) {
 		Math.max(margem, window.innerHeight - caixa.height - margem),
 	);
 	painel.style.left = `${Math.round(esquerda)}px`;
-	painel.style.bottom = `${Math.round(baixo)}px`;
+	// + o teclado (10/09/2026): sem o token, a posicao que o jogador escolheu
+	// vencia a regra do CSS que ergue o chat acima do teclado, e ele digitava
+	// por tras dele. Ver `tecladoAgora`.
+	painel.style.bottom = `calc(${Math.round(baixo)}px + var(--teclado-altura, 0px))`;
 }
 
 function aplicarLayout(root) {
@@ -397,7 +575,8 @@ function gravarLayout(root) {
 	_layout.largPct = (caixa.width / window.innerWidth) * 100;
 	_layout.altPct = (caixa.height / window.innerHeight) * 100;
 	_layout.esquerdaPct = (caixa.left / window.innerWidth) * 100;
-	_layout.baixoPct = ((window.innerHeight - caixa.bottom) / window.innerHeight) * 100;
+	// Sem o teclado: a caixa medida pode estar erguida por ele (`tecladoAgora`).
+	_layout.baixoPct = ((window.innerHeight - caixa.bottom - tecladoAgora()) / window.innerHeight) * 100;
 
 	gravarPreferencia('Layout', _layout);
 }
@@ -436,7 +615,8 @@ function ligarGesto(root, seletor, aoMover, classe) {
 			larg: caixa.width,
 			alt: caixa.height,
 			esquerda: caixa.left,
-			baixo: window.innerHeight - caixa.bottom,
+			// Sem o teclado, como a posicao gravada (`tecladoAgora`).
+			baixo: window.innerHeight - caixa.bottom - tecladoAgora(),
 		};
 		painel.classList.add(classe);
 		alvo.setPointerCapture(event.pointerId);
@@ -502,7 +682,7 @@ function moverPainel(painel, inicio, dx, dy) {
 	if (maxBaixo - baixo < encaixe) baixo = maxBaixo;
 
 	painel.style.left = `${Math.round(esquerda)}px`;
-	painel.style.bottom = `${Math.round(baixo)}px`;
+	painel.style.bottom = `calc(${Math.round(baixo)}px + var(--teclado-altura, 0px))`;
 }
 
 /**
@@ -659,7 +839,7 @@ function subirUmDegrau(root) {
 	_layout.altPct = ((proximo.altura + cascaDoPainel(root)) / window.innerHeight) * 100;
 	_layout.largPct = (caixa.width / window.innerWidth) * 100;
 	_layout.esquerdaPct = (caixa.left / window.innerWidth) * 100;
-	_layout.baixoPct = ((window.innerHeight - caixa.bottom) / window.innerHeight) * 100;
+	_layout.baixoPct = ((window.innerHeight - caixa.bottom - tecladoAgora()) / window.innerHeight) * 100;
 	gravarPreferencia('Layout', _layout);
 
 	atualizarBotaoDeTamanho(root);
@@ -713,7 +893,7 @@ ChatBox.TYPE = {
  * Os filtros 0..21 sao os do roBrowser/rAthena e NAO podem mudar de numero:
  * cada "ChatBox.addText(..., FILTER.X)" espalhado por Engine/ e UI/ os cita.
  *
- * Os de 22 em diante sao do Rag Idle. Eles existem para o log automatico do
+ * Os de 22 em diante sao do Ragnarok Classic Idle. Eles existem para o log automatico do
  * idle ter uma ORIGEM propria em vez de dividir "FILTER.ITEM" com as
  * mensagens de acao do jogador (equipar, usar, nao conseguir pegar) — sem
  * eles, separar "caiu um item da caca" de "voce nao pode equipar isso" so
@@ -742,23 +922,28 @@ ChatBox.FILTER = {
 	QUEST: 19,
 	BATTLEFIELD: 20,
 	CLAN: 21,
-	// Rag Idle — log automatico da caca
+	// Ragnarok Classic Idle — log automatico da caca
 	FARM_ITEM: 22,
 	FARM_EXP: 23,
 	FARM_ZENY: 24,
 	FARM_NIVEL: 25,
 	FARM_LOG: 26,
-	// Rag Idle — canal de comercio (SEM FONTE no servidor de mapa de hoje)
+	// Ragnarok Classic Idle — canal de comercio (SEM FONTE no servidor de mapa de hoje)
 	TRADE: 27,
 	/*
-	 * Rag Idle — a FALA DO SISTEMA (31/08/2026, pedido do dono).
+	 * Ragnarok Classic Idle — a FALA DO SISTEMA (31/08/2026, pedido do dono).
 	 *
 	 * Missoes, NPCs, respostas de comando, avisos de loja: tudo o que o
 	 * SERVIDOR diz e nao e jogador nem anuncio da staff. Chega pelo opcode
 	 * proprio 0x0fe2 (ZC_RAGIDLE_LOG), e nao pelo 0x008e — que carrega tambem
 	 * o eco da fala do proprio jogador e por isso nao dava para separar.
 	 */
-	SISTEMA: 28
+	SISTEMA: 28,
+	/*
+	 * A RESPOSTA DO COMANDO (D-1364): chega pelo 0x0fc6, e o canal dela nao e
+	 * fixo — e a aba em que o comando foi digitado (`canalDaMensagem`).
+	 */
+	RESPOSTA_DE_COMANDO: 29
 };
 
 /**
@@ -793,26 +978,17 @@ const ROTULO_DO_CANAL = {
  * segundo canal so-leitura, quem o criar acha esta linha em vez de descobrir a
  * regra espalhada pelo arquivo.
  */
-const CANAIS_SO_LEITURA = ['logs'];
-
 /*
- * OS CANAIS EM QUE O ENTER NAO ABRE A CAIXA DE DIGITACAO.
+ * O CANAL EM QUE O ENTER NAO ABRE A CAIXA DE DIGITACAO.
  *
- * DUAS listas, e nao uma — elas respondem perguntas diferentes:
- *
- *  - esta aqui responde *"o Enter abre a caixa neste canal?"*. O Trade entra
- *    por um motivo que NAO e ser so-leitura: ele nao tem canal no servidor de
- *    mapa, e o que fosse digitado sairia como fala publica e cairia no Global
- *    (ver ".cb-inerte" em ChatBox.html);
- *  - `CANAIS_SO_LEITURA` responde *"este texto pode sair?"*, ja dentro do
- *    `submit`, e devolve uma mensagem especifica do Logs. Fundir as duas faria
- *    o Trade receber "o canal Logs e so leitura", que e mentira.
- *
- * CONSERTO de 05/09/2026: esta guarda tinha 'farm' e 'trade' CRAVADOS no `if`,
- * e o 'logs' — que nasceu depois — nunca foi somado. No Logs a caixa ABRIA e so
- * o `submit` recusava, depois de o jogador ter digitado a frase inteira.
+ * So o Trade (08/09/2026): ele nao tem canal no servidor de mapa, e o que
+ * fosse digitado sairia como fala publica (ver ".cb-inerte" em ChatBox.html).
+ * Farm e Logs SAIRAM desta lista por ordem do dono — la o Enter abre a caixa,
+ * mas no Global: digitar nesses dois troca de canal antes de falar
+ * (`CANAIS_QUE_FALAM_NO_GLOBAL`, em linkDeItemNoChat.js, a parte pura). Ate
+ * 08/09 o Logs era so-leitura e recusava a frase DEPOIS de digitada.
  */
-const CANAIS_SEM_DIGITACAO = ['trade', 'farm', 'logs'];
+const CANAIS_SEM_DIGITACAO = ['trade'];
 
 /**
  * FILTRO -> CANAL. Esta tabela E a regra dura: cada filtro pertence a
@@ -859,8 +1035,21 @@ const CANAL_DO_FILTRO = {
  * mesmo criterio do filtro.
  *
  * `ANNOUNCE` fica de FORA: e o anuncio da staff, que o dono quer no Global.
+ *
+ * `MAIL` entrou em 07/09/2026 (D-950), com o print do dono: as tres linhas do
+ * correio ("O item foi movido para o seu inventario", "Falha ao retirar os
+ * Zenys", "A mensagem foi excluida") sairam no GLOBAL, e ele disse que elas
+ * *"deveriam ter aparecido na aba Logs"*. Correio e registro do que aconteceu
+ * com a sua caixa, e nao conversa.
+ *
+ * Elas nao caiam la por um motivo que nao era de roteamento: os 21 sitios que
+ * as emitem citavam `ChatBox.TYPE.INFO_MAIL`, que **nao existe** neste objeto
+ * (ha `INFO` e ha `MAIL`). `undefined` num `&` vira `NaN`, todo teste de tipo
+ * deu falso, e a linha caia no rotulo de ultimo caso — "Global". O ChatBox ja
+ * sabia desenhar correio (rotulo "Correio", cor propria) e nunca recebia o
+ * tipo.
  */
-const TIPOS_DE_LOG = ChatBox.TYPE.ERROR | ChatBox.TYPE.BLUE;
+const TIPOS_DE_LOG = ChatBox.TYPE.ERROR | ChatBox.TYPE.BLUE | ChatBox.TYPE.MAIL;
 
 /**
  * O canal de uma mensagem.
@@ -871,6 +1060,11 @@ const TIPOS_DE_LOG = ChatBox.TYPE.ERROR | ChatBox.TYPE.BLUE;
  * o Farm perderia justamente o log que ele existe para juntar.
  */
 function canalDaMensagem(filterType, colorType) {
+	// A UNICA mensagem sem canal fixo (D-1364): a resposta do comando vai para a
+	// aba em que ele foi digitado. Antes da tabela, porque ela nao esta la.
+	if (filterType === ChatBox.FILTER.RESPOSTA_DE_COMANDO) {
+		return canalDaRespostaDeComando(_canalDoUltimoComando, CANAIS, CANAIS_SEM_DIGITACAO);
+	}
 	const doFiltro = CANAL_DO_FILTRO[filterType];
 	if (doFiltro) return doFiltro;
 
@@ -1002,24 +1196,14 @@ ChatBox.init = function init() {
 		});
 	}
 
-	// Move caret to end of text
+	// Move caret to end of text (`cursorNoFim`, no topo do modulo)
 	if (inputChatbox) {
 		inputChatbox.addEventListener('click', function () {
-			const range = document.createRange();
-			const selection = window.getSelection();
-			range.selectNodeContents(this);
-			range.collapse(false);
-			selection.removeAllRanges();
-			selection.addRange(range);
+			cursorNoFim(this);
 		});
 
 		inputChatbox.addEventListener('focus', function () {
-			const range = document.createRange();
-			const selection = window.getSelection();
-			range.selectNodeContents(this);
-			range.collapse(false);
-			selection.removeAllRanges();
-			selection.addRange(range);
+			cursorNoFim(this);
 		});
 
 		inputChatbox.maxLength = MAX_LENGTH;
@@ -1030,6 +1214,11 @@ ChatBox.init = function init() {
 				event.preventDefault();
 			}
 		});
+
+		// O AUTOCOMPLETAR (a proposta 5 da tarefa 20): a cada tecla, a lista dos
+		// comandos que casam com o que esta no campo — e ela some com o foco.
+		inputChatbox.addEventListener('input', () => atualizarSugestoes(root));
+		inputChatbox.addEventListener('blur', () => esconderSugestoes(root));
 
 		inputChatbox.addEventListener('keydown', event => {
 			const currentText = extractChatMessage(inputChatbox);
@@ -1225,6 +1414,31 @@ ChatBox.init = function init() {
 			const bmEl = root.querySelector('.battlemode');
 			if (inputEl) inputEl.style.display = inputEl.style.display === 'none' ? 'flex' : 'none';
 			if (bmEl) bmEl.style.display = bmEl.style.display === 'none' ? 'flex' : 'none';
+			/*
+			 * A BARRA ABRE JA COM O CAMPO FOCADO (10/09/2026). O "Modo batalha"
+			 * mostrava a barra e parava ali: no celular o jogador precisava de um
+			 * SEGUNDO toque, e certeiro, numa linha de 18px. O `focus()` vai aqui,
+			 * sincrono, dentro do mesmo toque — e so assim o iOS abre o teclado (foco
+			 * fora do gesto do usuario nao abre).
+			 */
+			if (inputEl && inputEl.style.display !== 'none') {
+				const campo = root.querySelector('.input-chatbox');
+				if (campo) campo.focus();
+			}
+		});
+	}
+
+	/*
+	 * O TOQUE NO VAO EM VOLTA DO CAMPO TAMBEM E NO CAMPO (10/09/2026). A linha
+	 * editavel e baixa dentro de uma barra de 44px, e o toque que caia no vao do
+	 * `.wrapper` nao ia a lugar nenhum. So o vao do proprio embrulho: o que tem
+	 * dono ali dentro continua respondendo por si.
+	 */
+	const embrulhoDoCampo = root.querySelector('.input .wrapper');
+	if (embrulhoDoCampo) {
+		embrulhoDoCampo.addEventListener('click', event => {
+			const campo = root.querySelector('.input-chatbox');
+			if (campo && event.target === embrulhoDoCampo) campo.focus();
 		});
 	}
 
@@ -1254,6 +1468,25 @@ ChatBox.init = function init() {
 	ligarBotao('.cb-config', () => alternarPopover(root));
 	ligarBotao('.cb-novas', () => rolarParaOFimSeColado(root));
 	ligarBotao('.cb-enviar', () => ChatBox.submit());
+
+	/*
+	 * O AUTOCOMPLETAR (a proposta 5 da tarefa 20): tocar numa sugestao a escreve
+	 * no campo. O `mousedown` para ali, como no `ligarBotao`: sem isso o toque
+	 * tiraria o foco do campo, e o teclado do celular fecharia no meio do comando.
+	 */
+	const caixaDeSugestoes = root.querySelector('.cb-sugestoes');
+	if (caixaDeSugestoes) {
+		caixaDeSugestoes.addEventListener('mousedown', event => {
+			event.stopImmediatePropagation();
+			event.preventDefault();
+		});
+		caixaDeSugestoes.addEventListener('click', event => {
+			const botao = event.target.closest('.cb-sugestao');
+			if (!botao) return;
+			event.stopImmediatePropagation();
+			escolherSugestao(root, botao.dataset.simbolo, botao.dataset.nome);
+		});
+	}
 
 	/*
 	 * AS OPCOES DO POPOVER, delegadas: um ouvinte no popover em vez de quatro
@@ -1315,6 +1548,12 @@ ChatBox.init = function init() {
 			if (event.key !== 'Tab' || event.ctrlKey || event.altKey) return;
 			event.preventDefault();
 			event.stopImmediatePropagation();
+
+			// O AUTOCOMPLETAR vem antes do canal (a proposta 5 da tarefa 20): com a
+			// lista de comandos aberta, o Tab completa a primeira — no meio de um
+			// nome de comando, trocar de canal nao e o que se quer. O Shift+Tab
+			// continua voltando o canal.
+			if (!event.shiftKey && completarPrimeiraSugestao(root)) return;
 
 			const faladores = CANAIS.filter(c => !CANAIS_SEM_DIGITACAO.includes(c));
 			if (faladores.length === 0) return;
@@ -1395,6 +1634,7 @@ ChatBox.clean = function Clean() {
 
 	const inputChatbox = root.querySelector('.input-chatbox');
 	if (inputChatbox) inputChatbox.innerHTML = '';
+	esconderSugestoes(root);
 
 	const nickBox = root.querySelector('.input .username');
 	if (nickBox) nickBox.value = '';
@@ -1535,8 +1775,31 @@ ChatBox.onAppend = function OnAppend() {
 	 * digitacao fica, e quem entra no celular ainda consegue falar sem reabrir
 	 * nada.
 	 */
-	if (!_recolhido.escolhido && ehTelaDeToque()) {
-		_recolhido.estado = 'recolhido';
+	/*
+	 * ── 08/09/2026: NO CELULAR ELE NASCE MINIMIZADO, E A CADA ENTRADA ──
+	 *
+	 * Ordem do dono, e ela MUDA D-930 em duas coisas de propósito. Palavras
+	 * dele: *"o chat deve começar minimizado a cada entrada no jogo, ocupando
+	 * apenas uma pequena área da HUD"*.
+	 *
+	 *   1. o estado passa de 'recolhido' (a barra de digitação, ~86px) para
+	 *      'minimizado' (só o disco) — é o "apenas uma pequena área";
+	 *   2. **deixa de valer só na primeira vez.** O `escolhido` continua
+	 *      existindo e continua mandando DENTRO da sessão: quem expandir joga
+	 *      com ele expandido até sair. O que não atravessa mais é a ENTRADA.
+	 *
+	 * O parágrafo de D-930 logo acima argumenta contra isto ("um padrão que
+	 * reaparece depois de o jogador ter decidido o contrário não é padrão, é
+	 * teimosia"), e continua sendo o melhor argumento contra — quem for
+	 * desfazer esta ordem começa por ele. A razão de o dono ter decidido
+	 * assim mesmo é que no celular a tela é o recurso escasso, e a prioridade
+	 * declarada é a CENA de caça: entrar e encontrar a tela limpa vale mais
+	 * do que herdar o tamanho da sessão passada.
+	 *
+	 * No MOUSE nada muda: o `ehTelaDeToque()` é a primeira pergunta.
+	 */
+	if (ehTelaDeToque()) {
+		_recolhido.estado = 'minimizado';
 	}
 
 	aplicarLayout(root);
@@ -1713,6 +1976,18 @@ ChatBox.onKeyDown = function OnKeyDown(event) {
 						event.stopImmediatePropagation();
 						return true;
 					}
+					// O historico so de comandos (a proposta 5 da tarefa 20): com o
+					// campo comecando por @ ou #, a seta busca nos comandos gravados,
+					// e escreve TEXTO — a linha volta do localStorage.
+					const digitado = messageBox.textContent || '';
+					if (comecaComoComando(digitado)) {
+						const passo = passoDaBusca(_buscaDeComando, digitado, _comandos, 'cima');
+						_buscaDeComando = passo.busca;
+						messageBox.textContent = passo.texto;
+						cursorNoFim(messageBox);
+						atualizarSugestoes(root);
+						break;
+					}
 					messageBox.innerHTML = _historyMessage.previous();
 					break;
 				}
@@ -1731,6 +2006,16 @@ ChatBox.onKeyDown = function OnKeyDown(event) {
 					if (shouldLetChatInputHandleVerticalArrows(messageBox, 'down')) {
 						event.stopImmediatePropagation();
 						return true;
+					}
+					// Ver a seta para cima: a mesma busca, voltando ate o que foi digitado.
+					const digitado = messageBox.textContent || '';
+					if (comecaComoComando(digitado)) {
+						const passo = passoDaBusca(_buscaDeComando, digitado, _comandos, 'baixo');
+						_buscaDeComando = passo.busca;
+						messageBox.textContent = passo.texto;
+						cursorNoFim(messageBox);
+						atualizarSugestoes(root);
+						break;
 					}
 					messageBox.innerHTML = _historyMessage.next();
 					break;
@@ -1769,17 +2054,12 @@ ChatBox.onKeyDown = function OnKeyDown(event) {
 				return false;
 			}
 
-			// Farm e Logs sao somente leitura, e o Trade nao tem canal no
-			// servidor: em nenhum dos tres o Enter abre digitacao. No Trade isso
-			// e a mesma decisao do ".cb-inerte" (ChatBox.html) — sem esta
-			// guarda, digitar la sairia como fala PUBLICA e a linha apareceria
-			// no Global.
-			//
-			// A LISTA, e nao os nomes cravados: ate 05/09/2026 este `if` dizia
-			// `=== 'farm' || === 'trade'`, e o 'logs' — criado em 31/08 — nunca
-			// entrou aqui. O canal ficava com a caixa abrindo e a recusa
-			// chegando so no `submit`, depois da frase digitada. Nome cravado
-			// nao acompanha canal novo; lista acompanha.
+			// FARM E LOGS FALAM NO GLOBAL (08/09/2026, ordem do dono): o Enter
+			// nesses dois troca para o Global e abre a caixa la. O Trade continua
+			// sem digitacao — nao tem canal no servidor (".cb-inerte", ChatBox.html).
+			if (CANAIS_QUE_FALAM_NO_GLOBAL.includes(this.activeTab)) {
+				this.switchTab(CANAL_DE_FALA);
+			}
 			if (CANAIS_SEM_DIGITACAO.includes(this.activeTab)) {
 				event.stopImmediatePropagation();
 				return false;
@@ -1796,12 +2076,7 @@ ChatBox.onKeyDown = function OnKeyDown(event) {
 			}
 
 			messageBox.focus();
-			const range = document.createRange();
-			const sel = window.getSelection();
-			range.selectNodeContents(messageBox);
-			range.collapse(false);
-			sel.removeAllRanges();
-			sel.addRange(range);
+			cursorNoFim(messageBox);
 			event.stopImmediatePropagation();
 			return false;
 		}
@@ -1842,28 +2117,16 @@ ChatBox.submit = function Submit() {
 	const trimmedText = text.replace(/\u00A0/g, ' ').trim();
 
 	/*
-	 * NO CANAL "Logs" NINGUEM DIGITA (31/08/2026, pedido do dono).
-	 *
-	 * A guarda fica AQUI, e nao no botao de enviar: o Enter chega por
-	 * `onKeyDown` e o clique por outro caminho, e os dois desaguam neste
-	 * `submit`. Barrar so um deixaria o outro passar, e a fala iria para o canal
-	 * errado sem nada avisar.
-	 *
-	 * Depois do `trimmedText`, e nao antes: com o campo VAZIO o Enter alterna o
-	 * modo batalha, e isso continua valendo no Logs \u2014 recolher o campo nao e
-	 * falar.
-	 *
-	 * O texto NAO e apagado: ele fica no campo, entao trocar para o Global e
-	 * apertar Enter manda o que ele escreveu. Limpar seria punir um engano com a
-	 * perda da frase.
+	 * FARM E LOGS FALAM NO GLOBAL (08/09/2026, ordem do dono: "o chat na aba Logs
+	 * e Farm estao disponiveis sim, mas quando o player digita, a mensagem dele
+	 * cai em Global"). Ate aqui o Logs recusava a frase depois de digitada
+	 * (31/08). A guarda fica AQUI porque o Enter e o clique desaguam neste
+	 * `submit`; trocar o canal ANTES de enviar faz o eco do servidor cair na aba
+	 * que o jogador esta vendo. Com o campo VAZIO nada muda: o Enter continua
+	 * alternando o modo batalha, e recolher o campo nao e falar.
 	 */
-	if (trimmedText.length && CANAIS_SO_LEITURA.includes(ChatBox.activeTab)) {
-		ChatBox.addText(
-			'O canal Logs e so leitura \u2014 escolha Global para falar.',
-			ChatBox.TYPE.ERROR,
-			ChatBox.FILTER.SISTEMA
-		);
-		return;
+	if (trimmedText.length && CANAIS_QUE_FALAM_NO_GLOBAL.includes(ChatBox.activeTab)) {
+		ChatBox.switchTab(CANAL_DE_FALA);
 	}
 
 	// Battle mode
@@ -1889,8 +2152,17 @@ ChatBox.submit = function Submit() {
 
 	// Save in history
 	_historyMessage.push(trimmedText);
+	// E o comando entra TAMBEM no historico so de comandos, gravado por
+	// personagem (a proposta 5 da tarefa 20). A busca das setas recomeca.
+	if (ehLinhaDeComando(trimmedText)) {
+		_canalDoUltimoComando = this.activeTab;
+		_comandos = guardarComando(_comandos, trimmedText);
+		gravarPreferencia('Comandos', _comandos);
+	}
+	_buscaDeComando = null;
 
 	$text.innerHTML = '';
+	esconderSugestoes(root);
 
 	// Command
 	if (trimmedText[0] === '/') {
@@ -1927,18 +2199,20 @@ function extractChatMessage(inputEl) {
  * Add text to chatbox
  */
 ChatBox.addText = function addText(text, colorType, filterType, color, override) {
-	text = text.replace(/<ITEMLINK>.*?<\/ITEMLINK>|<ITEML>.*?<\/ITEML>|<ITEM>.*?<\/ITEM>/gi, function (match) {
-		const item = DB.parseItemLink(match);
-		const span = `<span data-item="${match}" class="item-link" style="color:#FFFF63;">&lt;${item.name}&gt;</span>`;
-		override = true;
-		return span;
-	});
-
-	// Auto-detect client-generated HTML (nickname links in whispers)
-	if (!override && /<span\s+class="nickname-link"/.test(text)) {
-		override = true;
-	}
-
+	/*
+	 * SEGURANCA (D-1308): o texto do jogador NUNCA decide se e HTML.
+	 *
+	 * Antes, achar `<ITEM>`/`<ITEML>` ou o literal `<span class="nickname-link"`
+	 * dentro do texto ligava `override`, e o override jogava a mensagem INTEIRA,
+	 * crua, em `innerHTML` (ver flushMessageBuffer). Bastava um jogador DIGITAR
+	 * uma dessas coisas -- ou um `<img onerror>` -- para rodar HTML no navegador
+	 * de quem lesse. O link de item continua funcionando, mas agora ele e
+	 * montado com seguranca na HORA DE DESENHAR (renderFalaSegura), a partir do
+	 * que o parser extrai, e todo o resto da linha e escapado. `override` volta
+	 * a significar so o que o proprio cliente montou com seguranca: o link de
+	 * download (screenshot/historico) e o sussurro de PrivateMessage.js, que ja
+	 * escapa o nome e o corpo antes de passar `true`.
+	 */
 	if (isNaN(filterType)) {
 		filterType = ChatBox.FILTER.PUBLIC_LOG;
 	}
@@ -2032,10 +2306,21 @@ function flushMessageBuffer() {
 			const horaHtml = `<span class="cb-hora">${hh}:${mm}</span> `;
 
 			if (!msg.override) {
-				div.innerHTML = horaHtml + tagHtml + ' ' + highlightMessage(msg.text, msg.colorType);
+				// D-1308: escapa PRIMEIRO, transforma DEPOIS. O texto cru de outro
+				// jogador passa por highlightMessage (que escapa) em cada trecho
+				// fora de um link de item; o link vira um span seguro montado do
+				// que o parser extraiu — nunca do markup que o jogador digitou.
+				div.innerHTML =
+					horaHtml +
+					tagHtml +
+					' ' +
+					renderFalaSegura(msg.text, (segmento, ehPrimeiro) =>
+						highlightMessage(segmento, msg.colorType, ehPrimeiro)
+					);
 			} else {
-				// Override ja e HTML pronto (ITEMLINK, link de historico,
-				// nickname-link) -- so hora e etiqueta sao somadas por cima.
+				// Override e HTML que o PROPRIO cliente montou com seguranca (link de
+				// download; sussurro de PrivateMessage.js com nome e corpo ja
+				// escapados). Nunca vem do texto cru de outro jogador (D-1308).
 				div.innerHTML = horaHtml + tagHtml + ' ' + msg.text;
 			}
 			fragment.appendChild(div);
@@ -2107,6 +2392,18 @@ function marcarNaoLido(canal) {
 }
 
 function getColorForType(colorType) {
+	/*
+	 * A FALA DE GM E AMARELA, e ela decide ANTES de tudo (07/09/2026, pedido
+	 * do dono: a tag "GM" em amarelo).
+	 *
+	 * A ordem importa: `PUBLIC | SELF` (o eco da propria fala) devolveria
+	 * verde e o administrador seria o unico a nao ver o proprio destaque. O
+	 * `TYPE.ADMIN` so e posto por quem sabe que a entidade e GM
+	 * (`Session.AdminList`), entao poe-lo no topo nao muda mais nada.
+	 */
+	if (colorType & ChatBox.TYPE.ADMIN) {
+		return '#FFFF00';
+	}
 	if (colorType & ChatBox.TYPE.PUBLIC && colorType & ChatBox.TYPE.SELF) {
 		return '#00FF00';
 	} else if (colorType & ChatBox.TYPE.PARTY) {
@@ -2161,7 +2458,9 @@ function etiquetaDaLinha(colorType, filterType) {
 	}
 
 	if (colorType & ChatBox.TYPE.ERROR) return { rotulo: 'Erro', variante: 'ouro' };
-	if (colorType & ChatBox.TYPE.ADMIN) return { rotulo: 'Admin', variante: 'ouro' };
+	// "GM" e a palavra que o dono pediu, e a que o jogador reconhece de outros
+	// servidores de RO. "Admin" era o nome interno do tipo, e nao um rotulo.
+	if (colorType & ChatBox.TYPE.ADMIN) return { rotulo: 'GM', variante: 'ouro' };
 	if (colorType & ChatBox.TYPE.MAIL) return { rotulo: 'Correio', variante: 'ouro' };
 	if (colorType & ChatBox.TYPE.CLAN) return { rotulo: 'Clã', variante: 'ouro' };
 	if (colorType & ChatBox.TYPE.GUILD) return { rotulo: 'Guilda', variante: 'ouro' };
@@ -2187,13 +2486,19 @@ function escapeChatHtml(text) {
  *  - o prefixo "Nome : " que o proprio rAthena manda PRONTO dentro de pkt.msg
  *  - numeros (zeny, quantidade, nivel) em qualquer mensagem.
  */
-function highlightMessage(rawText, colorType) {
+function highlightMessage(rawText, colorType, aplicarNome = true) {
 	const escaped = escapeChatHtml(rawText);
 
-	const isSpeech = !!(
-		colorType &
-		(ChatBox.TYPE.PUBLIC | ChatBox.TYPE.PARTY | ChatBox.TYPE.GUILD | ChatBox.TYPE.PRIVATE | ChatBox.TYPE.CLAN)
-	);
+	// `aplicarNome` (D-1308): renderFalaSegura chama isto uma vez por trecho de
+	// texto (os pedacos entre os links de item). O prefixo "Nome : " so existe
+	// no comeco da linha, entao so o PRIMEIRO trecho pode ganha-lo — senao um
+	// trecho depois de um link que comece com "algo : " viraria um nome falso.
+	const isSpeech =
+		aplicarNome &&
+		!!(
+			colorType &
+			(ChatBox.TYPE.PUBLIC | ChatBox.TYPE.PARTY | ChatBox.TYPE.GUILD | ChatBox.TYPE.PRIVATE | ChatBox.TYPE.CLAN)
+		);
 	const withName = isSpeech
 		? escaped.replace(/^(\s*[^\n:]{1,24}?)\s:\s/, '<span class="cb-name">$1</span> : ')
 		: escaped;
@@ -2601,6 +2906,8 @@ function restaurarPadrao() {
 	_opcoes = Object.assign({}, PADRAO_OPCOES);
 	_envios = Object.assign({}, PADRAO_ENVIOS);
 	_recolhido = { estado: 'aberto' };
+	_comandos = [];
+	_buscaDeComando = null;
 
 	const painel = root.querySelector('#chatbox');
 	if (painel) {
@@ -2980,14 +3287,7 @@ ChatBox.inserirLinkDeItem = function inserirLinkDeItem(item) {
 
 	campo.focus();
 	// Cursor no fim, senao ele volta para antes do link que acabou de entrar.
-	const selection = window.getSelection();
-	if (selection) {
-		const range = document.createRange();
-		range.selectNodeContents(campo);
-		range.collapse(false);
-		selection.removeAllRanges();
-		selection.addRange(range);
-	}
+	cursorNoFim(campo);
 
 	return true;
 };
@@ -3003,6 +3303,9 @@ ChatBox.insertText = function (text) {
 
 // Override mouseMode to CROSS since chatbox body is click-through
 ChatBox.mouseMode = GUIComponent.MouseMode.CROSS;
+
+// O AUTOCOMPLETAR (a proposta 5 da tarefa 20): a lista de comandos chega por aqui.
+Network.hookPacket(PACKET.ZC.RAGIDLE_COMANDOS, onListaDeComandos);
 
 /**
  * Create component and export it

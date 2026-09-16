@@ -45,8 +45,6 @@
 
 import Renderer from 'Renderer/Renderer.js';
 import Preferences from 'Core/Preferences.js';
-import Client from 'Core/Client.js';
-import DB from 'DB/DBManager.js';
 import Network from 'Network/NetworkManager.js';
 import PACKET from 'Network/PacketStructure.js';
 import UIManager from 'UI/UIManager.js';
@@ -54,14 +52,20 @@ import ChatBox from 'UI/Components/ChatBox/ChatBox.js';
 import ItemInfo from 'UI/Components/ItemInfo/ItemInfo.js';
 import GUIComponent from 'UI/GUIComponent.js';
 import RiIcones from 'UI/ri-icones.js';
+import { aplicarIconeDoItem as setItemIcon, nomeLocalDoItem } from 'UI/itemNaTela.js';
 import { dropsDoMapa } from './dropsDoMapa.js'; // RAGIDLE: a visao agregada (I6)
 import {
+	classeDeRaridade,
 	encaixeDeNivel,
-	formatarChance,
+	faixaDeExp,
 	medidorDeEncaixe,
+	textoDaFaixaDeExp,
 	motivoDaBusca,
 	ordenarMapas,
-	resumoDoMotivo
+	raridadeDoDrop,
+	resumoDoMotivo,
+	rotuloDeRaridade,
+	textoDaRecomendacao
 } from './atlasDeCaca.js';
 import htmlText from './HuntMap.html?raw';
 import cssText from './HuntMap.css?raw';
@@ -114,7 +118,7 @@ const MOB_STACK_MAX = 5;
 // ...e voltou a 2 (D-1138, adendo): producao sobe servidor e cliente em momentos
 // diferentes, e o 3 fez o cliente novo recusar o servidor v2 do ar. As partes sao
 // aditivas; o contrato fica em 2 e este cliente as acumula.
-const CONTRATO_DO_CATALOGO = 2;
+const CONTRATO_DO_CATALOGO = 3; // 3 (08/09/2026): drop pode vir `raro: true` SEM chance
 
 /**
  * Race translation (PT-BR), fixed dictionary as requested.
@@ -215,6 +219,32 @@ HuntMap.searchTerm = '';
 HuntMap.filterIdealOnly = false;
 
 /**
+ * @var {boolean} o terceiro botao do segmentado: "Favoritos" (09/09/2026).
+ *
+ * Ele e EXCLUSIVO com o "Para mim": os dois sao o mesmo controle, e ligar um
+ * desliga o outro. Dois booleanos em vez de um modo de tres valores e
+ * deliberado — `filterIdealOnly` ja e lido em varios pontos e persistido nas
+ * preferencias, e troca-lo por um enum seria refatorar o que funciona para
+ * caber num campo novo.
+ *
+ * NAO e persistido: "Para mim" e preferencia estavel (o dono pediu que ela
+ * sobrevivesse ao F5), e este e um recorte momentaneo — quem abre a janela
+ * quer ver o Atlas, e nao a lista curta de ontem.
+ */
+HuntMap.filterFavoritos = false;
+
+/**
+ * @var {string[]} os mapas favoritos, na ordem em que foram marcados.
+ *
+ * **A fonte e o SERVIDOR**, e o cliente nunca calcula o proximo estado: ela
+ * chega no cabecalho do catalogo e e substituida INTEIRA pela resposta de
+ * cada clique na estrela (`ZC_RAGIDLE_FAVORITOS`). Calcular localmente seria
+ * a segunda rota que este projeto ja pagou treze vezes — e ela erraria no
+ * caso que importa: o teto de 30, onde o clique e RECUSADO.
+ */
+HuntMap.favoritos = [];
+
+/**
  * @var {string} left-list sort key: 'nivel' | 'nivel-recomendado' | 'nome'
  */
 HuntMap.sortKey = 'nivel';
@@ -263,6 +293,10 @@ HuntMap.limparEstadoDoPersonagem = function limparEstadoDoPersonagem() {
 	HuntMap.fichas = {};
 	HuntMap.selectedMapa = null;
 	HuntMap.selectedMobId = null;
+	// Os favoritos sao do PERSONAGEM: deixa-los atravessar mostraria a lista
+	// de A na janela de B — o mesmo defeito que o `catalog` acima resolve.
+	HuntMap.favoritos = [];
+	HuntMap.filterFavoritos = false;
 	_pendingAutoTravel = false;
 	/*
 	 * ZERAR O DADO NAO BASTA: `GUIComponent.remove()` so DESANEXA o host,
@@ -335,6 +369,10 @@ HuntMap.init = function init() {
 	root.querySelector('.hm-search-clear').addEventListener('click', onClickSearchClear);
 	root.querySelectorAll('.hm-modo .hm-seg-btn').forEach(b => b.addEventListener('click', onClickModo));
 	root.querySelector('.hm-sort').addEventListener('change', onChangeSort);
+	root.querySelector('.hm-voltar').addEventListener('click', e => {
+		e.stopImmediatePropagation();
+		voltarUmPasso();
+	});
 
 	this.draggable(root.querySelector('.hm-titlebar'));
 
@@ -349,6 +387,10 @@ HuntMap.init = function init() {
 	renderTabs();
 	renderList();
 	renderPanel();
+	/* A classe de passo tem de existir desde o primeiro desenho: sem ela o CSS
+	   da vertical nao casa com nada e a janela abriria com as tres faixas
+	   empilhadas — o estado que este desenho existe para tirar. */
+	definirPasso('regioes');
 };
 
 /**
@@ -379,6 +421,70 @@ function savePosition() {
 /**
  * Show/hide the window (button stays visible either way).
  */
+/* ═══════════════════════════════════════════════════════════════════════
+   OS TRÊS PASSOS DO CELULAR EM PÉ (08/09/2026, pedido do dono)
+   ═══════════════════════════════════════════════════════════════════════
+   *"Navegação por categorias e submenus, aproveitando a organização existente
+   dos mapas (...) Lista compacta com informações essenciais (...) Detalhes
+   adicionais acessíveis sem sobrecarregar a lista."*
+
+   A janela já TEM as três peças — trilho de regiões, lista e dossiê. No
+   desktop elas convivem em três colunas; no celular elas se atropelavam. Aqui
+   elas viram três PASSOS do mesmo caminho, e nenhuma peça foi duplicada: o
+   mesmo `renderTabs`/`renderList`/`renderPanel` de sempre desenha os três.
+
+   O estado é UM só, e ele só é lido pelo CSS da vertical. No desktop
+   `definirPasso` continua sendo chamado e a classe continua sendo escrita —
+   e nenhuma regra casa com ela, então lá nada muda. Isso é deliberado: um
+   `if (ehCelularEmPe())` em cada chamador daria quatro lugares para
+   dessincronizar.
+
+   REGRAS DE VIAGEM: nenhuma passa por aqui. Requisito de nível, custo e
+   recusa continuam onde estavam (`onClickTravel` e o servidor). Isto é
+   navegação, não permissão.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+const PASSOS = ['regioes', 'mapas', 'detalhe'];
+let _passo = 'regioes';
+
+/** O rótulo do mapa, para o título do passo. O id cru não serve ao jogador. */
+function nomeDoMapa(id) {
+	const catalog = HuntMap.catalog;
+	if (!id || !catalog || !catalog.mapas) {
+		return '';
+	}
+	const achado = catalog.mapas.find(m => m.mapa === id);
+	return achado ? achado.rotulo : '';
+}
+
+function definirPasso(passo) {
+	_passo = PASSOS.includes(passo) ? passo : 'regioes';
+	const root = _root();
+	const win = root && root.querySelector('.hm-window');
+	if (!win) {
+		return;
+	}
+	for (const p of PASSOS) {
+		win.classList.toggle(`is-passo-${p}`, p === _passo);
+	}
+	const barra = root.querySelector('.hm-passo');
+	if (barra) {
+		/* A barra só existe a partir do 2º passo: no 1º não há para onde
+		   voltar, e um "‹ Voltar" que não volta é pior do que nenhum. */
+		barra.hidden = _passo === 'regioes';
+		const titulo = barra.querySelector('.hm-passo-titulo');
+		if (titulo) {
+			titulo.textContent =
+				_passo === 'mapas' ? HuntMap.activeTab || 'Mapas' : nomeDoMapa(HuntMap.selectedMapa) || 'Detalhes';
+		}
+	}
+}
+
+/** Um passo para trás: dossiê → lista → regiões. */
+function voltarUmPasso() {
+	definirPasso(_passo === 'detalhe' ? 'mapas' : 'regioes');
+}
+
 HuntMap.toggle = function toggle() {
 	const root = _root();
 	const win = root.querySelector('.hm-window');
@@ -386,8 +492,14 @@ HuntMap.toggle = function toggle() {
 		closeWindow();
 	} else {
 		win.classList.add('is-open');
+		/* Abrir sempre recomeça no 1º passo. Reabrir no dossiê de um mapa que
+		   o jogador escolheu na sessão passada seria abrir num lugar que ele
+		   não pediu — o mesmo argumento de D-942 para a folha de detalhe da
+		   árvore ("reabrir mostra a árvore, nunca um detalhe órfão"). */
+		definirPasso('regioes');
 		HuntMap.focus();
 		requestCatalog();
+		pedirFavoritos();
 	}
 };
 
@@ -423,9 +535,22 @@ function onClickSearchClear(e) {
 	campo.focus();
 }
 
+/** Qual dos tres botoes do segmentado esta ligado agora. */
+function modoAtual() {
+	return HuntMap.filterFavoritos ? 'favoritos' : HuntMap.filterIdealOnly ? 'ideais' : 'todos';
+}
+
 function onClickModo(e) {
 	e.stopImmediatePropagation();
-	HuntMap.filterIdealOnly = e.currentTarget.dataset.modo === 'ideais';
+	const modo = e.currentTarget.dataset.modo;
+	HuntMap.filterIdealOnly = modo === 'ideais';
+	HuntMap.filterFavoritos = modo === 'favoritos';
+	/*
+	 * SO "Para mim" e persistido, e nao o modo inteiro. O dono pediu que ele
+	 * sobrevivesse ao F5 (31/08/2026) porque quem caca no que serve ao proprio
+	 * nivel o religava toda sessao; "Favoritos" e um recorte momentaneo, e
+	 * abrir a janela em cima da lista curta de ontem esconderia o Atlas.
+	 */
 	_preferences.soIdeais = HuntMap.filterIdealOnly;
 	_preferences.save();
 	renderModo();
@@ -436,7 +561,7 @@ function renderModo() {
 	_root()
 		.querySelectorAll('.hm-modo .hm-seg-btn')
 		.forEach(b => {
-			const ativo = (b.dataset.modo === 'ideais') === HuntMap.filterIdealOnly;
+			const ativo = b.dataset.modo === modoAtual();
 			b.classList.toggle('is-selected', ativo);
 			b.setAttribute('aria-selected', ativo ? 'true' : 'false');
 		});
@@ -451,6 +576,20 @@ function onChangeSort(e) {
  * Ask the server for the hunting-map catalog.
  * CZ_RAGIDLE_PEDIR_CATALOGO — opcode 0x0ff0, fixed 2 bytes (opcode only).
  */
+/**
+ * Pede so a lista de favoritos (`CZ_RAGIDLE_CACA_ACAO {acao:"pedir"}`).
+ *
+ * Ela tambem chega no cabecalho do catalogo, entao este pedido parece
+ * redundante — e nao e: o catalogo tem 60 kB e vem PAGINADO, e a lista chega
+ * na primeira pagina de um envio que pode levar varias. Pedir a lista sozinha
+ * e alguns bytes, e ela pinta as estrelas na hora em que a janela abre.
+ */
+function pedirFavoritos() {
+	const pkt = new PACKET.CZ.RAGIDLE_CACA_ACAO();
+	pkt.json = JSON.stringify({ acao: 'pedir' });
+	Network.sendPacket(pkt);
+}
+
 function requestCatalog() {
 	setStatus(HuntMap.catalog ? 'Atualizando catálogo...' : 'Carregando mapas de caça...');
 	Network.sendPacket(new PACKET.CZ.RAGIDLE_PEDIR_CATALOGO());
@@ -517,20 +656,6 @@ function onMonstrosReceived(pkt) {
 	if (HuntMap.selectedMapa === data.mapa) {
 		renderPanel();
 	}
-}
-
-/**
- * O nome local de um item pelo id, com o do servidor de reserva: a tabela do
- * cliente devolve "Unknown Item" (ou nada) para id que o GRF não conhece, e
- * nesse caso o nome do rAthena é a única verdade disponível.
- */
-function nomeLocalDoItem(itemId, nomeDoServidor) {
-	const it = DB.getItemInfo(itemId);
-	const local = it && it.identifiedDisplayName;
-	if (!local || /^unknown item$/i.test(String(local).trim())) {
-		return nomeDoServidor;
-	}
-	return local;
 }
 
 function setStatus(text) {
@@ -619,6 +744,10 @@ function onCatalogReceived(pkt) {
 	}
 
 	HuntMap.catalog = data;
+	// Os FAVORITOS chegam no cabecalho do catalogo, ja limpos pelo servidor
+	// (mapa podado nao vira estrela fantasma). `|| []` cobre o servidor
+	// antigo, que nao manda o campo.
+	HuntMap.favoritos = data.favoritos || [];
 
 	// RAGIDLE (D-1133): o indice passou a mandar os drops como itemId — com 126
 	// mapas o catalogo com os NOMES chegou a 68 KB e o pacote u16 para em 65.535.
@@ -723,6 +852,62 @@ function renderTabs() {
 		if (atual) {
 			card.addEventListener('click', onClickVoce);
 		}
+		renderVoltarACacar();
+	}
+}
+
+/**
+ * "VOLTAR A CACAR" — o atalho de um clique para o ultimo mapa de caca.
+ *
+ * O jogador vai a cidade vender, pega uma missao ou morre, e para voltar
+ * precisava reabrir o Atlas, achar a regiao, achar o mapa e clicar. Todo dia,
+ * varias vezes.
+ *
+ * **Quem decide o destino e o SERVIDOR** (`voltarPara`, no cabecalho do
+ * catalogo): o mapa lembrado pode ter saido do catalogo, e o cliente nao tem
+ * como saber disso. Ausente quer dizer "nao ha para onde voltar" — personagem
+ * novo, jogador que ja esta la, ou mapa que saiu. Nesses casos o botao nao
+ * aparece, em vez de aparecer desabilitado: um botao morto na cara do jogador
+ * pede explicacao, e nao ha o que explicar.
+ *
+ * Ele mora ao lado do "Voce esta em" porque e a mesma pergunta lida ao
+ * contrario, e porque esse card fica no TRILHO — que no celular em pe e o
+ * primeiro passo, a primeira coisa que se ve ao abrir a janela.
+ */
+function renderVoltarACacar() {
+	const voceEl = _root().querySelector('.hm-voce');
+	if (!voceEl) {
+		return;
+	}
+	const antigo = voceEl.querySelector('.hm-voltar-caca');
+	if (antigo) {
+		antigo.remove();
+	}
+	const destino = HuntMap.catalog && HuntMap.catalog.voltarPara;
+	if (!destino) {
+		return;
+	}
+	const alvo = HuntMap.catalog.mapas.find(m => m.mapa === destino);
+	const rotulo = alvo ? alvo.rotulo : destino;
+	const botao = document.createElement('button');
+	botao.type = 'button';
+	botao.className = 'hm-voltar-caca';
+	botao.dataset.mapa = destino;
+	botao.title = 'Voltar para ' + rotulo;
+	botao.innerHTML = '<span class="hm-voltar-label">Voltar a cacar</span>' + '<span class="hm-voltar-map"></span>';
+	// `textContent` e nao `innerHTML` no rotulo: ele vem do catalogo, mas o
+	// custo de escapar aqui e zero e o de esquecer nao e.
+	botao.querySelector('.hm-voltar-map').textContent = rotulo;
+	botao.addEventListener('click', onClickVoltarACacar);
+	voceEl.appendChild(botao);
+}
+
+/** O clique: viaja direto. A tranca de nivel e reavaliada pelo servidor. */
+function onClickVoltarACacar(e) {
+	e.stopImmediatePropagation();
+	const mapa = e.currentTarget.dataset.mapa;
+	if (mapa) {
+		sendTravel(mapa);
 	}
 }
 
@@ -732,6 +917,9 @@ function onClickTab(e) {
 	lembrarAba(_preferences, HuntMap.activeTab);
 	renderTabs();
 	renderList();
+	/* Escolher a regiao AVANCA um passo no celular. No desktop a classe e
+	   escrita e nenhuma regra a le — as tres colunas continuam juntas. */
+	definirPasso('mapas');
 }
 
 /**
@@ -811,6 +999,9 @@ function renderList() {
 		if (HuntMap.filterIdealOnly && encaixeDeNivel(catalog.nivel, mapa).cls !== 'ideal') {
 			return false;
 		}
+		if (HuntMap.filterFavoritos && !HuntMap.favoritos.includes(mapa.mapa)) {
+			return false;
+		}
 		motivos.set(mapa.mapa, motivo);
 		return true;
 	});
@@ -828,9 +1019,11 @@ function renderList() {
 
 	if (!mapas.length) {
 		listEl.innerHTML = `<div class="hm-list-empty">${
-			HuntMap.filterIdealOnly && !term
-				? 'Nenhum mapa ideal para o seu nível nesta região. Veja em "Todos".'
-				: 'Nenhum mapa encontrado.'
+			HuntMap.filterFavoritos && !term
+				? 'Você ainda não marcou nenhum mapa. Toque na estrela de um cartão para marcar.'
+				: HuntMap.filterIdealOnly && !term
+					? 'Nenhum mapa ideal para o seu nível nesta região. Veja em "Todos".'
+					: 'Nenhum mapa encontrado.'
 		}</div>`;
 		return;
 	}
@@ -840,6 +1033,7 @@ function renderList() {
 	// O botão de viajar da linha: same travel handler as the dossier's
 	// footer button (onClickTravel) — just a second trigger, no new logic.
 	listEl.querySelectorAll('.hm-card-go').forEach(btn => btn.addEventListener('click', onClickTravel));
+	listEl.querySelectorAll('.hm-card-fav').forEach(btn => btn.addEventListener('click', onClickFavorito));
 }
 
 /**
@@ -856,7 +1050,59 @@ function renderBadge(encaixe) {
 }
 
 function renderThumb(mapa) {
-	return `<span class="hm-thumb-vazio">${RiIcones.mapaVazio}</span><img src="/ragidle/minimapas/${escapeHtml(mapa.mapa)}.webp" alt="" onerror="this.style.display='none'" />`;
+	/*
+	 * `loading="lazy"` (queixa do dono: "lag/travamento de FPS absurdo" ao
+	 * abrir o Mapa de Caça) — com o filtro "Todos", `renderList` monta ATE
+	 * 191 cartões de uma vez (`listEl.innerHTML = mapas.map(...).join('')`),
+	 * e cada um pede esta miniatura. Sem lazy, os 191 `<img>` disparam a
+	 * requisição e o decode JUNTOS no instante do `innerHTML` — o navegador
+	 * decodifica dezenas de imagens fora da tela ao mesmo tempo que o motor
+	 * do jogo tenta desenhar o próximo quadro. Com lazy, só as ~6-8 linhas
+	 * visíveis pedem a imagem; o resto espera rolar até perto da viewport.
+	 */
+	return `<span class="hm-thumb-vazio">${RiIcones.mapaVazio}</span><img src="/ragidle/minimapas/${escapeHtml(mapa.mapa)}.webp" alt="" loading="lazy" onerror="this.style.display='none'" />`;
+}
+
+/**
+ * O SELO DE MVP sobre a miniatura (07/09/2026): a coroa no canto superior
+ * direito de todo mapa que tem chefe. São 25 dos 193 mapas — a marca só
+ * informa porque é MINORIA; um selo em toda linha não diria nada.
+ *
+ * Por que sobre a miniatura e não mais uma etiqueta na linha: o rodapé da
+ * linha já carrega badge de encaixe, medidor, contagem de monstros e o
+ * "encontrado por" da busca. Mais uma palavra ali competiria com o nome do
+ * mapa; a coroa é lida de relance, na varredura vertical da lista, sem
+ * disputar espaço com texto nenhum.
+ *
+ * O `mvp` chega no ÍNDICE do catálogo (servidor/mapa/catalogo.ts, `paraOIndice`),
+ * não só na ficha — então a lista sabe disso sem pedir nada ao servidor.
+ */
+/**
+ * A ESTRELA DE FAVORITO no cartao (09/09/2026).
+ *
+ * Ela fica na LINHA e nao so no dossie porque marcar e um gesto de varredura:
+ * o jogador passa a lista, reconhece os cinco mapas dele e marca. Obriga-lo a
+ * abrir o dossie de cada um transformaria cinco toques em quinze.
+ *
+ * E um `<button>` de verdade, com `aria-pressed`, e nao um `<span>` clicavel —
+ * ele muda estado, e leitor de tela e teclado precisam saber disso.
+ *
+ * O `stopPropagation` do clique mora no handler: o cartao inteiro tambem e
+ * clicavel (seleciona o mapa), e sem isso marcar a estrela selecionaria o mapa
+ * junto.
+ */
+function renderEstrela(mapa) {
+	const marcado = HuntMap.favoritos.includes(mapa.mapa);
+	const titulo = marcado ? 'Tirar dos favoritos' : 'Marcar como favorito';
+	return `<button type="button" class="hm-card-fav${marcado ? ' is-on' : ''}" data-mapa="${escapeHtml(mapa.mapa)}" title="${escapeHtml(titulo)}" aria-label="${escapeHtml(titulo)}" aria-pressed="${marcado ? 'true' : 'false'}">${marcado ? RiIcones.estrelaCheia : RiIcones.estrela}</button>`;
+}
+
+function renderSeloMvp(mapa) {
+	if (!mapa.mvp) {
+		return '';
+	}
+	const titulo = `MVP: ${mapa.mvp.nome}`;
+	return `<span class="hm-card-mvp" title="${escapeHtml(titulo)}" aria-label="${escapeHtml(titulo)}" role="img">${RiIcones.mvp}</span>`;
 }
 
 /**
@@ -864,6 +1110,13 @@ function renderThumb(mapa) {
  * and HTML forbids nesting interactive controls inside a <button> (the
  * parser would silently close the outer button early and break the layout).
  * The wrapper is a <div role="button" tabindex="0">.
+ *
+ * O NIVEL do cartao e a TRANCA (`nivelQueAbre` servido — a media dos tipos
+ * arredondada para baixo, D-1233), e nao mais a faixa "min–max" da
+ * populacao. Ordem do dono de 08/09/2026, dada com o print do celular na
+ * mao: "Nv. 1–6" num cartao Bloqueado para o nivel 1 lia como contradicao.
+ * O unico numero que nao e a media e o do mapa de entrada, que mostra o 1
+ * da excecao — o mesmo numero que o servidor cobra na viagem.
  */
 function renderCard(mapa, motivo) {
 	const catalog = HuntMap.catalog;
@@ -871,11 +1124,14 @@ function renderCard(mapa, motivo) {
 	const isCurrent = mapa.mapa === catalog.mapaAtual;
 	const isSelected = mapa.mapa === HuntMap.selectedMapa;
 	const monstros = allMonstersOf(mapa);
+	// `loading="lazy"` pelo MESMO motivo de `renderThumb`: até 5 destes por
+	// cartão (MOB_STACK_MAX), vezes até 191 cartões, é a rajada de imagens
+	// que travava o FPS ao abrir a janela com "Todos" selecionado.
 	const avatarsHtml = monstros
 		.slice(0, MOB_STACK_MAX)
 		.map(
 			m =>
-				`<img class="hm-mob-avatar" src="/ragidle/mobs/${m.mobId}.png" alt="" onerror="this.style.display='none'" />`
+				`<img class="hm-mob-avatar" src="/ragidle/mobs/${m.mobId}.png" alt="" loading="lazy" onerror="this.style.display='none'" />`
 		)
 		.join('');
 
@@ -893,7 +1149,8 @@ function renderCard(mapa, motivo) {
 
 	return `
 		<div class="hm-card fit-${encaixe.cls}${isCurrent ? ' is-current' : ''}${isSelected ? ' is-selected' : ''}" data-mapa="${escapeHtml(mapa.mapa)}" role="button" tabindex="0" aria-pressed="${isSelected ? 'true' : 'false'}">
-			<div class="hm-card-thumb">${renderThumb(mapa)}</div>
+			<div class="hm-card-thumb">${renderThumb(mapa)}${renderSeloMvp(mapa)}</div>
+	${renderEstrela(mapa)}
 			<div class="hm-card-body">
 				<div class="hm-card-top">
 					<span class="hm-card-name">${escapeHtml(mapa.rotulo)}</span>
@@ -901,7 +1158,7 @@ function renderCard(mapa, motivo) {
 				</div>
 				<div class="hm-meter">
 					${renderMeter(mapa, catalog.nivel)}
-					<span class="hm-meter-text">Nv. ${mapa.nivelMinimo}–${mapa.nivelMaximo}</span>
+					<span class="hm-meter-text">Nv. ${mapa.nivelQueAbre}</span>
 				</div>
 				<div class="hm-card-foot">
 					<span class="hm-mob-stack">${avatarsHtml}</span>
@@ -919,6 +1176,9 @@ function onClickCard(e) {
 	HuntMap.selectedMobId = null;
 	renderList();
 	renderPanel();
+	/* Tocar no cartao abre o DOSSIE como passo 3 — e o "detalhes adicionais
+	   acessiveis sem sobrecarregar a lista" do pedido. */
+	definirPasso('detalhe');
 }
 
 /**
@@ -1001,6 +1261,22 @@ function renderPanel() {
 
 	const { dentro } = medidorDeEncaixe(catalog.nivel, mapa);
 	const veredito = encaixe.cls === 'ideal' ? 'Ideal para você' : dentro ? 'Na faixa' : encaixe.rotulo;
+	/*
+	 * A FAIXA DE EXP DESTE MAPA PARA VOCÊ (D-1338, tarefa 4 do dono: "adicione um
+	 * tooltip referente a isso no mapa de caça, para o player saber quando recebe
+	 * penalidade/bônus de exp").
+	 *
+	 * É TEXTO VISÍVEL, e não só um `title`: no celular não existe hover, e a regra
+	 * do dono de 08/09/2026 exige a versão mobile de toda interface nova. O
+	 * `title` fica como reforço de desktop, com a explicação de onde o número vem.
+	 * Servidor antigo (sem a tabela no cabeçalho) não desenha a linha.
+	 */
+	const faixa = faixaDeExp(catalog.nivel, mapa, catalog.taxaDeExpPorDiferenca);
+	const faixaHtml = faixa
+		? `<div class="hm-fit-row hm-fit-exp-row"><span class="hm-fit-exp exp-${faixa.cls}" title="${escapeHtml(
+				'Monstros acima do seu nível rendem mais EXP, até +20% a 10 níveis acima; muito acima (16+) ou abaixo do seu nível rendem menos.'
+			)}">${escapeHtml(textoDaFaixaDeExp(faixa))}</span></div>`
+		: '';
 
 	scrollEl.innerHTML = `
 		<div class="hm-hero fit-${encaixe.cls}">
@@ -1022,8 +1298,9 @@ function renderPanel() {
 				<div class="hm-meter">${renderMeter(mapa, catalog.nivel)}</div>
 				<div class="hm-fit-row">
 					<span class="hm-fit-verdict">${escapeHtml(veredito)}</span>
-					<span class="hm-fit-range">Mapa Nv. ${mapa.nivelMinimo}–${mapa.nivelMaximo}</span>
+					<span class="hm-fit-range">Mapa Nv. ${mapa.nivelQueAbre}</span>
 				</div>
+				${faixaHtml}
 			</div>
 		</div>
 		<div class="hm-section">
@@ -1081,70 +1358,96 @@ function bindFooter(footerEl) {
 
 /**
  * Uma linha de monstro no dossiê: avatar, nome (+MVP), e — quando a ficha já
- * chegou — nível, raça e elemento. Sem a ficha, só a contagem de drops do
- * índice, que já vem com o catálogo.
+ * chegou — nível, raça, elemento defensivo E o elemento recomendado contra
+ * ele (linha própria, R15/C2-4: a mesma info cabendo numa linha só ficava
+ * ilegível em mapas com várias espécies e no mobile). Sem a ficha, só a
+ * contagem de drops do índice, que já vem com o catálogo.
  */
 function renderMobRow(m, mapa, ficha) {
 	const isMvp = !!(mapa.mvp && m.mobId === mapa.mvp.mobId);
 	const isSelected = String(m.mobId) === String(HuntMap.selectedMobId);
 	const nDrops = (m.drops || []).length;
 	let meta;
+	let recomendacaoHtml = '';
 	if (ficha && m.raca) {
 		const raca = RACE_PT[m.raca] || m.raca;
 		const elemento = ELEMENT_PT[m.elemento] || m.elemento;
 		meta = `<b>Nv. ${m.nivel}</b> · ${escapeHtml(raca)} · ${escapeHtml(elemento)} ${m.nivelDoElemento}`;
+		recomendacaoHtml = `<span class="hm-chip-recomendacao">${escapeHtml(textoDaRecomendacao(m.recomendacao, ELEMENT_PT))}</span>`;
 	} else {
 		meta = `${nDrops} drop${nDrops === 1 ? '' : 's'}`;
 	}
 	return `
 		<button type="button" class="hm-chip${isSelected ? ' is-selected' : ''}${isMvp ? ' is-mvp' : ''}" data-mob-id="${m.mobId}" aria-pressed="${isSelected ? 'true' : 'false'}">
-			<span class="hm-chip-avatar"><img src="/ragidle/mobs/${m.mobId}.png" alt="" onerror="this.style.display='none'" /></span>
+			<span class="hm-chip-avatar"><img src="/ragidle/mobs/${m.mobId}.png" alt="" loading="lazy" onerror="this.style.display='none'" /></span>
 			<span class="hm-chip-text">
 				<span class="hm-chip-name">${escapeHtml(m.nome)}${isMvp ? '<span class="hm-chip-mvp">MVP</span>' : ''}</span>
 				<span class="hm-chip-meta">${meta}</span>
+				${recomendacaoHtml}
 			</span>
 			<span class="hm-chip-drops">${nDrops} ${nDrops === 1 ? 'drop' : 'drops'}</span>
 		</button>`;
 }
 
 /**
- * Um LADRILHO de drop: o ícone real do item (24x24 do cliente), o nome, a
- * chance — e, na visão do mapa, de quantos monstros cai. É um botão: o
- * clique abre a ficha do item (onClickDrop).
+ * Um LADRILHO de drop: o ícone real do item (24x24 do cliente), o nome, o
+ * SELO DE RARIDADE (Comum/Incomum/Raro/Lendário — trocou de lugar com a % de
+ * chance, RAGIDLE 08/09/2026) — e, na visão do mapa, de quantos monstros
+ * cai. É um botão: o clique abre a ficha do item (onClickDrop).
+ *
+ * O selo NUNCA é só cor: o texto do rótulo vai sempre junto (pedido do dono,
+ * acessibilidade — daltonismo não pode deixar o jogador sem saber o que
+ * está vendo). `raridade` já é o valor final (0..3) — quem decide entre o
+ * que o servidor mandou e a escada defensiva é o CHAMADOR (`raridadeDoDrop`).
  */
-function renderDropTile(itemId, nome, chanceTexto, extraHtml, title) {
+function renderDropTile(itemId, nome, raridade, extraHtml, title) {
 	const aberto = ItemInfo.uid === itemId;
 	return `
 		<button type="button" class="hm-drop${aberto ? ' is-open' : ''}" data-item-id="${itemId}" title="${escapeHtml(title || nome)}">
-			<span class="hm-drop-tile ri-tile"><img data-item-id="${itemId}" alt="" /></span>
+			<span class="hm-drop-tile ri-tile"><img data-item-id="${itemId}" alt="" loading="lazy" /></span>
 			<span class="hm-drop-name">${escapeHtml(nome)}</span>
-			<span class="hm-drop-chance">${chanceTexto}</span>
+			<span class="hm-drop-rarity ${classeDeRaridade(raridade)}">${escapeHtml(rotuloDeRaridade(raridade))}</span>
 			${extraHtml || ''}
 		</button>`;
 }
 
 /**
  * Os drops do monstro selecionado, da maior chance para a menor (empate pelo
- * nome, para a grade não dançar).
+ * nome, para a grade não dançar). A ORDEM continua pela chance real (que
+ * ainda chega do servidor) — só a EXIBIÇÃO virou selo de raridade.
  */
+/**
+ * Ordena da maior chance para a menor; o RARO (sem numero) vai por ultimo.
+ *
+ * A ORDEM ainda usa a chance real, que continua chegando do servidor — o que
+ * mudou (D-1234) foi so a EXIBICAO, que virou selo de raridade. O drop marcado
+ * `raro` nao traz numero nenhum (08/09/2026, ordem do dono: a carta de
+ * MVP/mini-chefe sem porcentagem, para a taxa poder ser ajustada no
+ * balanceamento sem os jogadores saberem), entao ele vale -1 aqui e cai para o
+ * fim da lista.
+ *
+ * A funcao `textoDaChance`, que desenhava "RARO" ou a porcentagem, SAIU no
+ * merge de 09/09: o selo de raridade cobre os dois casos (a carta de chefe e
+ * Lendario pela escada) e ela ficou sem chamador — e sem o `formatarChance`
+ * que ela usava, que saiu junto com a % da tela.
+ */
+function chanceParaOrdenar(d) {
+	return d.raro ? -1 : d.chance || 0;
+}
+
 function renderMobDrops(monster) {
 	const nomeDe = d => d.nomeLocal || d.nome;
 	const drops = (monster.drops || [])
 		.slice()
-		.sort((a, b) => b.chance - a.chance || nomeDe(a).localeCompare(nomeDe(b), 'pt-BR'));
+		.sort((a, b) => chanceParaOrdenar(b) - chanceParaOrdenar(a) || nomeDe(a).localeCompare(nomeDe(b), 'pt-BR'));
 	if (!drops.length) {
 		return '<div class="hm-drops-empty">Sem drops conhecidos.</div>';
 	}
 	return `<div class="hm-drops">${drops
-		.map(d =>
-			renderDropTile(
-				d.itemId,
-				nomeDe(d),
-				formatarChance(d.chance),
-				'',
-				`${nomeDe(d)} — ${formatarChance(d.chance)}`
-			)
-		)
+		.map(d => {
+			const raridade = raridadeDoDrop(d);
+			return renderDropTile(d.itemId, nomeDe(d), raridade, '', `${nomeDe(d)} — ${rotuloDeRaridade(raridade)}`);
+		})
 		.join('')}</div>`;
 }
 
@@ -1155,11 +1458,16 @@ function renderMobDrops(monster) {
  * estavel) mora em `dropsDoMapa.js`, num modulo sem imports — e tem teste que a
  * EXECUTA (`servidor/mapa/drops-do-mapa.test.ts`, 11 casos). Aqui so se desenha.
  *
- * A chance mostrada e a MELHOR, e nao "a chance": medido no catalogo, 25 dos
- * 33 mapas tem item que cai de mais de um monstro, e a chance de um item "no
- * mapa" nao existe no rAthena — ela e por monstro. Somar daria numero
- * inventado. Quando ha mais de uma origem, o ladrilho diz de quantas, e o
- * `title` nomeia cada monstro com a chance dele.
+ * O SELO AGREGADO (RAGIDLE 08/09/2026) e a raridade da OCORRENCIA de melhor
+ * chance — a MESMA cuja % era exibida antes da troca (maior chance = menos
+ * raro), e nao um recalculo em cima do numero agregado: `dropsDoMapa` ja
+ * repassa `melhorChanceRaridade` junto de `melhorChance` (mesma atualizacao,
+ * mesma ocorrencia). Medido no catalogo, 25 dos 33 mapas tem item que cai de
+ * mais de um monstro, e a chance de um item "no mapa" nao existe no rAthena
+ * — ela e por monstro; somar daria numero inventado, e isso nao mudou.
+ * Quando ha mais de uma origem, o ladrilho diz de quantas, e o `title`
+ * nomeia cada monstro com a RARIDADE dele (era a chance; o nome do monstro
+ * continua — e detalhe util).
  */
 function renderDropsDoMapa(ficha) {
 	const linhas = dropsDoMapa(ficha);
@@ -1170,40 +1478,15 @@ function renderDropsDoMapa(ficha) {
 		.map(l => {
 			// `dropsDoMapa` devolve o nome do servidor; o ladrilho mostra o local.
 			const nome = nomeLocalDoItem(l.itemId, l.nome);
-			const origem = l.monstros.map(m => `${m.nome} ${formatarChance(m.chance)}`).join(' · ');
+			const raridade = raridadeDoDrop({ chance: l.melhorChance, raridade: l.melhorChanceRaridade });
+			const origem = l.monstros.map(m => `${m.nome} ${rotuloDeRaridade(raridadeDoDrop(m))}`).join(' · ');
 			const extra = l.deQuantosMobs > 1 ? `<span class="hm-drop-origens">${l.deQuantosMobs} mobs</span>` : '';
-			return renderDropTile(l.itemId, nome, formatarChance(l.melhorChance), extra, `${nome} — ${origem}`);
+			return renderDropTile(l.itemId, nome, raridade, extra, `${nome} — ${origem}`);
 		})
 		.join('');
 	return `
-		<div class="hm-drops-legenda">${linhas.length} ${linhas.length === 1 ? 'item' : 'itens'} · a chance é a melhor entre os monstros</div>
+		<div class="hm-drops-legenda">${linhas.length} ${linhas.length === 1 ? 'item' : 'itens'} · a raridade é a do melhor caso entre os monstros</div>
 		<div class="hm-drops">${grade}</div>`;
-}
-
-/**
- * Ícone do item: /ragidle/item/<id>.png (a arte publicada pelo pipeline) com
- * reserva no bitmap do GRF — a mesma receita da Mochila e da loja de NPC V2.
- */
-function setItemIcon(img, itemId) {
-	const it = DB.getItemInfo(itemId);
-	const resName = it && it.identifiedResourceName;
-	img.onerror = () => {
-		img.onerror = null;
-		if (!resName) {
-			img.style.display = 'none';
-			return;
-		}
-		Client.loadFile(
-			DB.INTERFACE_PATH + 'item/' + resName + '.bmp',
-			dataURI => {
-				img.src = dataURI;
-			},
-			() => {
-				img.style.display = 'none';
-			}
-		);
-	};
-	img.src = `/ragidle/item/${itemId}.png`;
 }
 
 function onClickVisao(e) {
@@ -1307,6 +1590,50 @@ function sendTravel(mapName) {
 	closeWindow();
 }
 
+/**
+ * O clique na estrela: pede ao servidor e ESPERA a lista de volta.
+ *
+ * Nada e alterado localmente antes da resposta. Pintar otimista pareceria mais
+ * rapido e mentiria no unico caso que importa — o teto de 30, onde o servidor
+ * RECUSA: a estrela acenderia e apagaria sozinha um instante depois, sem o
+ * jogador saber por que.
+ */
+function onClickFavorito(e) {
+	e.stopImmediatePropagation();
+	const mapa = e.currentTarget.dataset.mapa;
+	if (!mapa) {
+		return;
+	}
+	const pkt = new PACKET.CZ.RAGIDLE_CACA_ACAO();
+	pkt.json = JSON.stringify({ acao: 'alternar-favorito', mapa });
+	Network.sendPacket(pkt);
+}
+
+/**
+ * A lista nova chegou (`ZC_RAGIDLE_FAVORITOS`): substitui INTEIRA e redesenha.
+ *
+ * `recusa` so existe hoje para o teto de 30 e para mapa fora do catalogo. Ela
+ * vai para a barra de estado da janela em vez de um alerta — o jogador esta no
+ * meio de uma varredura, e uma caixa modal a interromperia por um limite que
+ * ele resolve tirando outra estrela.
+ */
+function onFavoritosRecebidos(pkt) {
+	let dados = null;
+	try {
+		dados = JSON.parse(pkt.json);
+	} catch (err) {
+		return;
+	}
+	if (!dados || dados.v !== 1 || !Array.isArray(dados.favoritos)) {
+		return;
+	}
+	HuntMap.favoritos = dados.favoritos;
+	if (dados.recusa) {
+		setStatus(dados.recusa);
+	}
+	renderList();
+}
+
 function onClickTravel(e) {
 	e.stopImmediatePropagation();
 	if (e.currentTarget.disabled) {
@@ -1375,6 +1702,7 @@ HuntMap.aoChegarCatalogo = function aoChegarCatalogo(ouvinte) {
 };
 
 Network.hookPacket(PACKET.ZC.RAGIDLE_CATALOGO, onCatalogReceived);
+Network.hookPacket(PACKET.ZC.RAGIDLE_FAVORITOS, onFavoritosRecebidos);
 Network.hookPacket(PACKET.ZC.RAGIDLE_MONSTROS, onMonstrosReceived);
 
 /**

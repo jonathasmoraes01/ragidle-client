@@ -38,8 +38,8 @@
  *
  * **A ORDEM DAS RECUSAS É COPIADA DE PROPÓSITO**, e é a do emulador
  * (`pc_check_skilltree`, pc.cpp:2802 + `pc_skillup`, pc.cpp:9152), na ordem
- * documentada em `game/progressao.ts`: árvore → teto → nível base → nível de
- * classe → pré-requisitos → pontos → motor. Duas rotas que recusam pelo mesmo
+ * documentada em `game/progressao.ts`: árvore → árvore ABERTA (D-1366) → teto →
+ * nível base → nível de classe → pré-requisitos → pontos → motor. Duas rotas que recusam pelo mesmo
  * motivo mas em ordem diferente dizem frases diferentes para o mesmo clique, e
  * o jogador conserta a coisa errada.
  */
@@ -116,16 +116,110 @@ export function pontosNoRascunho(rascunho) {
 }
 
 /**
+ * A ÁRVORE ABERTA contando o rascunho (D-1366) — a segunda rota de
+ * `arvoreAberta` (`game/arvore-aberta.ts`), pela razão de sempre: o ponto que o
+ * jogador acabou de pôr no rascunho numa habilidade do 1º grau pode abrir o 2º
+ * antes de o servidor ver qualquer coisa.
+ *
+ * Ela só SOMA ao que veio do servidor: os pontos pagos por grau e as duas cotas
+ * chegam prontos em `trava` (o contrato v5), e daqui sai só o que o rascunho
+ * acrescenta — os níveis PAGOS, porque o nível dado de graça não conta, nem lá
+ * nem aqui.
+ *
+ * @param {object} contexto  { porId, rascunho, trava }
+ * @returns {{grau: number, faltam: number}}  `grau: Infinity` = a classe inteira
+ */
+export function arvoreAbertaNoRascunho(contexto) {
+	const trava = contexto.trava;
+	if (!trava) {
+		return { grau: Infinity, faltam: 0 };
+	}
+	const porGrau = new Map();
+	for (const parcela of trava.pontosPorGrau) {
+		porGrau.set(parcela.grau, parcela.pontos);
+	}
+	const gratis = new Map(trava.gratis.map(g => [g.skillId, g.nivel]));
+	const pagos = (nivel, livre) => Math.max(0, nivel - Math.min(nivel, livre));
+	for (const id in contexto.rascunho) {
+		const extra = contexto.rascunho[id] || 0;
+		const alvo = contexto.porId.get(id);
+		if (!extra || !alvo || alvo.grau < 0) {
+			continue;
+		}
+		const livre = gratis.get(id) || 0;
+		const somados = pagos(alvo.aprendido + extra, livre) - pagos(alvo.aprendido, livre);
+		porGrau.set(alvo.grau, (porGrau.get(alvo.grau) || 0) + somados);
+	}
+	const ate = grau => {
+		let soma = 0;
+		porGrau.forEach((pontos, g) => {
+			if (g <= grau) {
+				soma += pontos;
+			}
+		});
+		return soma;
+	};
+	// pc.cpp:2903-2905: abaixo da cota do Aprendiz, a árvore aberta é a dele.
+	const doAprendiz = ate(0);
+	if (doAprendiz < trava.cotaDoAprendiz) {
+		return { grau: 0, faltam: trava.cotaDoAprendiz - doAprendiz };
+	}
+	// pc.cpp:2907 e :2925: a cota do 1º grau conta o que sobra depois da do Aprendiz.
+	if (trava.cotaDoPrimeiro !== null) {
+		const doPrimeiro = ate(1) - trava.cotaDoAprendiz;
+		if (doPrimeiro < trava.cotaDoPrimeiro) {
+			return { grau: 1, faltam: trava.cotaDoPrimeiro - doPrimeiro };
+		}
+	}
+	return { grau: Infinity, faltam: 0 };
+}
+
+/** O nome em português do degrau do grau dado — o mais fundo com esse grau, como a trava lê. */
+function nomeDoDegrau(contexto, grau) {
+	const graus = contexto.graus || [];
+	for (let i = graus.length - 1; i >= 0; i--) {
+		if (graus[i].grau === grau) {
+			return graus[i].nomePt;
+		}
+	}
+	return 'grau ' + grau;
+}
+
+/**
  * Pode somar mais um nível nesta habilidade? E, quando não, por quê?
  *
  * Ver a "REGRA DE OURO" no cabeçalho: a ordem das recusas é a do emulador, e
  * mexer nela é mexer na frase que o jogador lê.
  *
  * @param {object} skill        a habilidade do payload
- * @param {object} contexto     { porId, rascunho, pontos, nivelBase, nivelDeJob }
+ * @param {object} contexto     { porId, rascunho, pontos, nivelBase, nivelDeJob, trava, graus }
  * @returns {{ok: boolean, motivo: string|null}}
  */
 export function avaliarSubir(skill, contexto) {
+	/*
+	 * A ÁRVORE ABERTA (D-1366) vem PRIMEIRO, como no servidor: lá ela é a
+	 * recusa logo depois de "não está na árvore" — e aqui toda habilidade do
+	 * payload está na árvore. Na fonte a árvore normalizada É a árvore
+	 * (pc.cpp:9153), então ela vem antes até do teto.
+	 */
+	if (contexto.trava) {
+		if (skill.grau < 0) {
+			return { ok: false, motivo: 'esta habilidade não tem degrau na carreira' };
+		}
+		const aberta = arvoreAbertaNoRascunho(contexto);
+		if (skill.grau > aberta.grau) {
+			return {
+				ok: false,
+				motivo:
+					'a árvore de ' +
+					nomeDoDegrau(contexto, aberta.grau) +
+					' ainda está aberta: faltam ' +
+					aberta.faltam +
+					' ponto(s) nas habilidades dela'
+			};
+		}
+	}
+
 	const efetivo = nivelEfetivo(skill, contexto.rascunho);
 
 	if (efetivo >= skill.nivelMaximo) {
@@ -149,6 +243,27 @@ export function avaliarSubir(skill, contexto) {
 		};
 	}
 	for (const requisito of skill.preRequisitos) {
+		/*
+		 * O REQUISITO PERDOADO NÃO BARRA (D-1225, 08/09/2026).
+		 *
+		 * `perdoado` vem do servidor (`requisitosNoFio`), e é o mesmo perdão que
+		 * `avaliarAprendizado` aplica desde D-442: um pré-requisito que a NOSSA
+		 * recusa tornou impossível de comprar não pode trancar o filho.
+		 *
+		 * Esta linha não existia, e o preço foi medido nas 20 classes jogáveis:
+		 * `Knight / KN_BOWLINGBASH` e `Crusader / CR_DEVOTION` — as duas
+		 * portadas, com efeito, e ACEITAS pelo servidor — ficavam com a seta
+		 * morta na janela, cobrando um `KN_AUTOCOUNTER` / `CR_TRUST` que a
+		 * tranca do motor nunca deixa comprar. O jogador ia atrás do
+		 * pré-requisito, batia na tranca, e virava o relato do alfa.
+		 *
+		 * Ela é LEITURA, e não uma segunda redação da regra: o cálculo mora no
+		 * servidor porque a cláusula "está na árvore desta classe" pede a árvore
+		 * inteira. Ver `servidor/mapa/requisitos-no-fio.ts`.
+		 */
+		if (requisito.perdoado) {
+			continue;
+		}
 		const tem = nivelEfetivoDe(contexto.porId, contexto.rascunho, requisito.skillId);
 		if (tem < requisito.nivel) {
 			const alvo = contexto.porId.get(requisito.skillId);

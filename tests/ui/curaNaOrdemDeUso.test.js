@@ -32,7 +32,7 @@ const RENDER_ATAQUE = (() => {
 	return FONTE.slice(i, f);
 })();
 
-describe('B3 — a seção diz que cura e golpe dividem as vagas', () => {
+describe('B3 — a seção diz onde a cura mora (desde 08/09 ela NAO divide as vagas)', () => {
 	it('o cartão não se chama mais só "Ordem de golpes"', () => {
 		// "Golpes" no título é o que fazia a Cura ali parecer defeito da janela.
 		expect(RENDER_ATAQUE).toContain('<h3>Ordem de uso</h3>');
@@ -40,7 +40,11 @@ describe('B3 — a seção diz que cura e golpe dividem as vagas', () => {
 	});
 
 	it('a REGRA está escrita, e não só implícita na etiqueta da linha', () => {
-		expect(RENDER_ATAQUE).toContain('Cura e golpe dividem estas');
+		// 08/09/2026 (ordem do dono): a cura NAO divide mais as vagas — ela e suporte,
+		// e a nota diz isso pelo NOME da habilidade e aponta para a secao Suporte.
+		expect(RENDER_ATAQUE).toContain('não ocupa');
+		expect(RENDER_ATAQUE).toContain('habilidade de suporte');
+		expect(RENDER_ATAQUE).not.toContain('Cura e golpe dividem estas');
 		// E ela diz as duas coisas que o jogador precisa saber: quando a cura
 		// sai, e onde se ajusta o que decide isso.
 		expect(RENDER_ATAQUE).toMatch(/abaixo do limiar/);

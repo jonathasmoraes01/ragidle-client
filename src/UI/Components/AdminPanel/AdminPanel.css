@@ -240,3 +240,84 @@
 #AdminPanel .ap-apply {
 	align-self: flex-end;
 }
+
+/* ─── O evento de EXP (D-1376) ─────────────────────────────── */
+
+#AdminPanel .ap-evento-estado {
+	margin: 0 0 10px 0;
+	padding: 8px 10px;
+	border-radius: var(--radius-card);
+	background: var(--surface-inset);
+	color: var(--text-muted);
+	font-size: 11px;
+	line-height: 1.45;
+}
+
+/* Ativo: a faixa dourada a esquerda e o texto na cor de titulo — o mesmo
+   dourado do `.ap-status`, para nao inventar um terceiro tom. */
+#AdminPanel .ap-evento-estado.is-ativo {
+	border-left: 3px solid var(--gold-700);
+	color: var(--text-title);
+}
+
+#AdminPanel .ap-evento-titulo {
+	font-weight: 700;
+}
+
+#AdminPanel .ap-evento-faltam {
+	font-variant-numeric: tabular-nums;
+	font-weight: 700;
+}
+
+/* Os dois bonus lado a lado; no celular em pe a janela e tela cheia e os
+   dois ainda cabem (cada um ~170px). */
+#AdminPanel .ap-evento-bonus {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 8px;
+}
+
+#AdminPanel .ap-chips {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
+	margin-bottom: 4px;
+}
+
+#AdminPanel .ap-chip {
+	padding: 4px 9px;
+	font-size: 11px;
+	cursor: pointer;
+}
+
+#AdminPanel .ap-chip.is-sel {
+	outline: 2px solid var(--gold-700);
+	outline-offset: 1px;
+}
+
+#AdminPanel .ap-evento-acoes {
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: flex-end;
+	gap: 8px;
+	margin-top: 10px;
+}
+
+#AdminPanel .ap-evento-encerrar {
+	/* Encerrar tira o bonus de todo mundo: a cor de perigo do design system,
+	   a mesma familia das mensagens de problema do rodape. */
+	background: var(--red-600);
+	color: var(--white);
+	border: none;
+}
+
+/* No DEDO, os alvos do evento ganham a altura tatil (a regra de 44px da HUD,
+   `--hit-touch` em Common.css) — os atalhos de duracao sao os menores da
+   janela e seriam os primeiros a errar o toque. */
+@media (pointer: coarse) {
+	#AdminPanel .ap-chip,
+	#AdminPanel .ap-evento-acoes .ri-btn,
+	#AdminPanel .ap-evento .ap-input {
+		min-height: var(--hit-touch, 44px);
+	}
+}

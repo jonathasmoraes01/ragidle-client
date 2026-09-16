@@ -4911,6 +4911,26 @@ function init(packetver) {
 	length_list[0x0fd0] = -1; // ZC_RAGIDLE_ADMINS (variavel, JSON)
 	length_list[0x0fd1] = -1; // ZC_RAGIDLE_CONFIRMAR (variavel, JSON)
 	length_list[0x0fd2] = 7; // CZ_RAGIDLE_CONFIRMAR (u16 opcode + u32 id + u8 resposta)
+	length_list[0x0fd3] = -1; // ZC_RAGIDLE_REFINO (variavel, JSON: a ficha do degrau)
+	// RAGIDLE: a JANELA DE VOTO (D-1159, 07/09/2026). Pelo PISO da reserva de
+	// D-527, logo acima do refino (0x0fd3), para o bloco seguir contiguo. O
+	// servidor os declarou no MESMO commit (pacotes-mapa.ts, tamanhos-do-cliente.ts
+	// e faixa-ragidle.test.ts): vaga so e vaga depois das duas pontas.
+	length_list[0x0fd4] = -1; // CZ_RAGIDLE_VOTO_ACAO (variavel, JSON com verbo)
+	length_list[0x0fd5] = -1; // ZC_RAGIDLE_VOTO (variavel, JSON: o retrato do voto)
+	length_list[0x0fd6] = -1; // CZ_RAGIDLE_CORREIO_ACAO (variavel, JSON com verbo)
+	length_list[0x0fd7] = -1; // ZC_RAGIDLE_CORREIO (variavel, JSON: o relatorio do lote)
+	length_list[0x0fd8] = -1; // CZ_RAGIDLE_ITEM_ACAO (variavel, JSON com verbo)
+	length_list[0x0fd9] = -1; // ZC_RAGIDLE_ITEM (variavel, JSON: a comparacao de equipamento)
+
+	// RAGIDLE: a JANELA DE GRUPO (D-960, 07/09/2026). Estes tres ESTENDEM a
+	// faixa para baixo: o menor ocupado era 0x0fce, e eles sao os tres logo
+	// abaixo dele, para o bloco RAGIDLE continuar contiguo. O servidor os
+	// declarou no MESMO commit (servidor/protocolo/pacotes-mapa.ts e
+	// tamanhos-do-cliente.ts) — vaga so e vaga depois das duas pontas.
+	length_list[0x0fcb] = -1; // CZ_RAGIDLE_GRUPO_ACAO (variavel, JSON com verbo)
+	length_list[0x0fcc] = -1; // ZC_RAGIDLE_GRUPO (variavel, JSON: o estado da janela)
+	length_list[0x0fcd] = 2; // CZ_RAGIDLE_PEDIR_GRUPO (so o opcode)
 
 	length_list[0x0ffd] = 2; // CZ_RAGIDLE_RENASCER (opcode only)
 	length_list[0x0ffe] = 2; // CZ_RAGIDLE_DISTRIBUIR (opcode only)
@@ -4965,22 +4985,42 @@ function init(packetver) {
 	// Sao QUATRO pontas para um opcode nosso, e o portao so vigiava tres:
 	// servidor, PacketStructure, PacketRegister e ESTA tabela.
 	length_list[0x0fe2] = -1; // ZC_RAGIDLE_LOG (variable, "<remetente> : <texto>")
-	length_list[0x0fe5] = 2;  // CZ_RAGIDLE_PEDIR_PASSE (so o opcode)
+	length_list[0x0fc6] = -1; // ZC_RAGIDLE_RESPOSTA_DE_COMANDO (variable, "Comando : <texto>") — D-1364
+	length_list[0x0fe5] = 2; // CZ_RAGIDLE_PEDIR_PASSE (so o opcode)
 
 	length_list[0x0fe4] = -1; // CZ_RAGIDLE_CODEX_ACAO (variable, JSON payload)
 	length_list[0x0fe3] = -1; // ZC_RAGIDLE_CODEX (variable, JSON payload)
+	length_list[0x0fdf] = -1; // CZ_RAGIDLE_PRESENCA_ACAO (variable, JSON payload) — D-1162
+	length_list[0x0fde] = -1; // ZC_RAGIDLE_PRESENCA (variable, JSON payload) — D-1162
+	length_list[0x0fdd] = -1; // CZ_RAGIDLE_INDICACAO_ACAO (variable, JSON payload) — D-1164
+	length_list[0x0fdc] = -1; // ZC_RAGIDLE_INDICACAO (variable, JSON payload) — D-1164
+	length_list[0x0fda] = -1; // CZ_RAGIDLE_CACA_ACAO (variable, JSON payload) — favoritos, 09/09/2026
+	length_list[0x0fdb] = -1; // ZC_RAGIDLE_FAVORITOS (variable, JSON payload) — favoritos, 09/09/2026
+	length_list[0x0fc9] = -1; // CZ_RAGIDLE_RANKING_ACAO (variable, JSON payload) — ranking, 09/09/2026
+	length_list[0x0fca] = -1; // ZC_RAGIDLE_RANKING (variable, JSON payload) — ranking, 09/09/2026
+	length_list[0x0fc7] = -1; // CZ_RAGIDLE_COMANDOS_ACAO (variable, JSON payload) — o autocompletar, 12/09/2026
+	length_list[0x0fc8] = -1; // ZC_RAGIDLE_COMANDOS (variable, JSON payload) — o autocompletar, 12/09/2026
+	length_list[0x0fc0] = -1; // CZ_RAGIDLE_TRAVA_ACAO (variable, JSON payload) — trava contra venda, 14/09/2026
+	length_list[0x0fc1] = -1; // ZC_RAGIDLE_TRAVAS (variable, JSON payload) — trava contra venda, 14/09/2026
+	length_list[0x0fc4] = -1; // CZ_RAGIDLE_SONO_ACAO (variable, JSON payload) — o "Dormir", D-1381, 13/09/2026
+	length_list[0x0fc5] = -1; // ZC_RAGIDLE_SONO (variable, JSON payload) — o "Dormir", D-1381, 13/09/2026
+	length_list[0x0fc2] = -1; // CZ_RAGIDLE_ECONOMIA_ACAO (variable, JSON payload) — economia de energia, D-1389/D-1390, 14/09/2026
+	length_list[0x0fc3] = -1; // ZC_RAGIDLE_ECONOMIA (variable, JSON payload) — economia de energia, D-1389/D-1390, 14/09/2026
 
-	// O TUTORIAL GUIADO (secao 6 do CONTRATO-JORNADA.md): os DOIS saem do TOPO
-	// do vao livre da reserva de D-527 (0x0fd3..0x0fdf), porque as branches
-	// irmas desta rodada cunham de baixo para cima. Checado: nenhum outro
-	// length_list[] deste arquivo toca 0x0fdf/0x0fde.
+	// O TUTORIAL GUIADO (secao 6 do CONTRATO-JORNADA.md). RENUMERADO de
+	// 0x0fde/0x0fdf para 0x0fbe/0x0fbf em 16/09/2026, no merge com
+	// origin/master: o vao 0x0fd3..0x0fdf estava CHEIO com os seis pares que a
+	// outra frente cunhou enquanto esta branch nao mesclava (Voto, Correio em
+	// lote, Item, Caca/favoritos, Indicacao e Presenca — esta ultima no MESMO
+	// par 0x0fde/0x0fdf, CZ/ZC trocados). Ver a nota completa em
+	// `PacketStructure.js`, junto de `CZ_RAGIDLE_TUTORIAL_ACAO`.
 	//
 	// A quarta lista e esta, e e a que sempre falta: ver o bloco do Passe e o
 	// do ZC_RAGIDLE_LOG logo acima. Sem a linha o opcode nao tem tamanho, o
 	// fatiamento para no meio do fluxo e TUDO o que vem depois fica invisivel,
 	// sem um erro no console.
-	length_list[0x0fde] = -1; // CZ_RAGIDLE_TUTORIAL_ACAO (variable, JSON payload)
-	length_list[0x0fdf] = -1; // ZC_RAGIDLE_TUTORIAL (variable, JSON payload)
+	length_list[0x0fbe] = -1; // CZ_RAGIDLE_TUTORIAL_ACAO (variable, JSON payload)
+	length_list[0x0fbf] = -1; // ZC_RAGIDLE_TUTORIAL (variable, JSON payload)
 
 	return length_list;
 }

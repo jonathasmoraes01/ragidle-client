@@ -179,7 +179,7 @@ describe('PORTÃO: toda janela RAGIDLE com abas lembra a aba', () => {
 		f => f.codigo.includes('limpezaDeJanelaIdle.js') && MARCAS_DE_ABA.some(marca => f.codigo.includes(marca))
 	);
 
-	it('acha as nove janelas de hoje (controle: o filtro não está vazio)', () => {
+	it('acha as onze janelas de hoje (controle: o filtro não está vazio)', () => {
 		/*
 		 * Sem esta conferência, um filtro que parasse de casar deixaria o portão
 		 * VERDE por não medir nada — a forma mais comum de portão morto.
@@ -192,13 +192,21 @@ describe('PORTÃO: toda janela RAGIDLE com abas lembra a aba', () => {
 		 *
 		 * A oitava é a Análise de Caça (D-943): Atual + as duas últimas.
 		 *
-		 * A NONA é o Códex (08/09/2026): ele ganhou a aba "Missões do Códex", a
-		 * Jornada de Midgard. Foi este caso que reprovou primeiro, e ele fez
-		 * exatamente o que o comentário acima promete - uma janela ganhou abas,
-		 * e o portão cobrou a memória de aba antes de o defeito existir.
+		 * A NONA é a janela de Grupo (D-960, 07/09/2026): Grupo · Postos ·
+		 * Rateio · Ajustes. Ela nasceu com quatro abas de propósito — a
+		 * referência que o dono mandou abre três janelas POR CIMA da
+		 * principal, e a decisão desta entrega foi resolver tudo dentro de uma
+		 * moldura só, alternando por [hidden].
+		 *
+		 * O Códex ganhou abas no mesmo dia (08/09/2026) em DUAS branches
+		 * diferentes: a divisão da aba única em "Missões" (o bestiário) e
+		 * "Status" (os sete eixos) numa, e a aba "Missões do Códex" com a
+		 * Jornada de Midgard na outra. O merge de 16/09/2026 juntou as duas
+		 * — a janela tem hoje três abas, mas conta UMA vez só nesta lista.
 		 */
 		expect(comAbas.map(f => f.rel).sort(), 'a lista de janelas com abas mudou — ver o comentário acima').toEqual([
 			'CodexIdle/CodexIdle.js',
+			'GrupoIdle/GrupoIdle.js',
 			'HuntAnalyzer/HuntAnalyzer.js',
 			'HuntMap/HuntMap.js',
 			'IdleConfig/IdleConfig.js',
@@ -206,7 +214,8 @@ describe('PORTÃO: toda janela RAGIDLE com abas lembra a aba', () => {
 			'LFGIdle/LFGIdle.js',
 			'MissoesIdle/MissoesIdle.js',
 			'MochilaIdle/MochilaIdle.js',
-			'PasseIdle/PasseIdle.js'
+			'PasseIdle/PasseIdle.js',
+			'VotoIdle/VotoIdle.js',
 		]);
 	});
 

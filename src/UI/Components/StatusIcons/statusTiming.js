@@ -94,10 +94,61 @@ export function formatarRelogioDoBuff(restanteMs) {
 	const segundos = total % 60;
 	const minutos = ((total / 60) | 0) % 60;
 	const horas = (total / 3600) | 0;
+	/*
+	 * UM DIA OU MAIS vira `1d18h` (13/09/2026, D-1376 — o evento de EXP dura
+	 * dias). Em `H:MM:SS` sete dias sairiam `168:00:00`: nove caracteres numa
+	 * faixa de 38px, e um numero que ninguem le como uma semana. Segundo nem
+	 * minuto entram: a faixa nao cabe, e a um dia do fim eles nao informam nada.
+	 */
+	if (horas >= 24) {
+		const dias = (horas / 24) | 0;
+		const resto = horas % 24;
+		return resto > 0 ? `${String(dias)}d${String(resto)}h` : `${String(dias)}d`;
+	}
 	const doisDigitos = n => String(n).padStart(2, '0');
 	return horas > 0
 		? `${String(horas)}:${doisDigitos(minutos)}:${doisDigitos(segundos)}`
 		: `${String(minutos)}:${doisDigitos(segundos)}`;
+}
+
+/**
+ * O TEMPO DA DICA, por extenso (13/09/2026, D-1376): "1 dia 23 horas",
+ * "2 horas 5 minutos", "17 minutos 13 segundos".
+ *
+ * Ela morava escrita dentro de `renderStatus` e tinha dois defeitos, que o
+ * evento de EXP de dois dias tornou gritantes (fotografado:
+ * `2878 minutoss 53 segundoss`):
+ *
+ * - so conhecia minuto e segundo, entao dois dias viravam 2878 minutos;
+ * - o plural somava `s` a palavra do `msgstringtable`, e a tabela desta
+ *   instalacao ja a traz no plural — dai o `ss`. Aqui a palavra perde o `s`
+ *   final antes de o plural ser decidido, qualquer que seja a forma que chegou.
+ *
+ * `minuto`/`segundo` entram por parametro porque vem da tabela do cliente
+ * (`DB.getMessage(1807/1808)`), ja passados por `emPortugues`; dia e hora nao
+ * tem entrada la. Trunca como o relogio antigo da dica (`| 0`).
+ */
+export function tempoDaDica(restanteMs, minuto = 'minuto', segundo = 'segundo') {
+	const restante = Number(restanteMs);
+	if (!Number.isFinite(restante) || restante <= 0) {
+		return '';
+	}
+	const nome = (n, palavra) => {
+		const raiz = String(palavra).replace(/s$/, '');
+		return `${n} ${n === 1 ? raiz : `${raiz}s`}`;
+	};
+	const total = (restante / 1000) | 0;
+	const dias = (total / 86400) | 0;
+	const horas = ((total % 86400) / 3600) | 0;
+	const minutos = ((total % 3600) / 60) | 0;
+	const segundos = total % 60;
+	if (dias > 0) {
+		return horas > 0 ? `${nome(dias, 'dia')} ${nome(horas, 'hora')}` : nome(dias, 'dia');
+	}
+	if (horas > 0) {
+		return minutos > 0 ? `${nome(horas, 'hora')} ${nome(minutos, minuto)}` : nome(horas, 'hora');
+	}
+	return minutos > 0 ? `${nome(minutos, minuto)} ${nome(segundos, segundo)}` : nome(segundos, segundo);
 }
 
 /**

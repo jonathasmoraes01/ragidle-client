@@ -64,7 +64,20 @@ function onPlayerMessage(pkt) {
 		return;
 	}
 
-	ChatBox.addText(pkt.msg, ChatBox.TYPE.PUBLIC | ChatBox.TYPE.SELF, ChatBox.FILTER.PUBLIC_CHAT, null, false);
+	/*
+	 * O ECO DA PROPRIA FALA: o proprio GM ve a sua tag (07/09/2026).
+	 *
+	 * Sem isto o administrador seria o unico a nao ver o proprio destaque, e
+	 * nao teria como conferir que ele esta funcionando — que foi exatamente
+	 * como o defeito passou despercebido ate o dono notar pelo chat de outra
+	 * pessoa.
+	 */
+	let tipoDaPropria = ChatBox.TYPE.PUBLIC | ChatBox.TYPE.SELF;
+	if (Session.Entity && Session.Entity.isAdmin) {
+		tipoDaPropria |= ChatBox.TYPE.ADMIN;
+	}
+
+	ChatBox.addText(pkt.msg, tipoDaPropria, ChatBox.FILTER.PUBLIC_CHAT, null, false);
 
 	if (Session.Entity) {
 		pkt.msg = pkt.msg.replace(
@@ -685,6 +698,17 @@ function onFalaDoSistema(pkt) {
 }
 
 /**
+ * A RESPOSTA DO COMANDO (D-1364): o mesmo corpo da fala do sistema, por um
+ * opcode proprio — o ChatBox a desenha na aba em que o comando foi digitado, e
+ * nao no Logs.
+ *
+ * @param {object} pkt - PACKET.ZC.RAGIDLE_RESPOSTA_DE_COMANDO
+ */
+function onRespostaDeComando(pkt) {
+	ChatBox.addText(pkt.msg, ChatBox.TYPE.PUBLIC, ChatBox.FILTER.RESPOSTA_DE_COMANDO);
+}
+
+/**
  * Received announce from server
  *
  * @param {object} pkt - PACKET.ZC.BROADCAST
@@ -1109,6 +1133,7 @@ export default function MainEngine() {
 	Network.hookPacket(PACKET.ZC.USER_COUNT, onPlayerCountAnswer);
 	Network.hookPacket(PACKET.ZC.NOTIFY_PLAYERCHAT, onPlayerMessage);
 	Network.hookPacket(PACKET.ZC.RAGIDLE_LOG, onFalaDoSistema);
+	Network.hookPacket(PACKET.ZC.RAGIDLE_RESPOSTA_DE_COMANDO, onRespostaDeComando);
 	Network.hookPacket(PACKET.ZC.ATTACK_FAILURE_FOR_DISTANCE, onPlayerTooFarToAttack);
 	Network.hookPacket(PACKET.ZC.ACTION_FAILURE, onActionFailure);
 	Network.hookPacket(PACKET.ZC.MSG, onMessage);

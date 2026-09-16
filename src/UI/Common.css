@@ -488,8 +488,7 @@ ui-button {
 	/* O primeiro y LIVRE abaixo de TODA a coluna: minimapa + os DOIS botoes
 	   (I3) + respiro. E aqui que os icones de status se penduram. */
 	--hud-td-abaixo-da-coluna: calc(
-		var(--hud-td-topo) + var(--hud-td-altura-do-minimapa) + 8px +
-			var(--hud-td-altura-dos-botoes) + 12px
+		var(--hud-td-topo) + var(--hud-td-altura-do-minimapa) + 8px + var(--hud-td-altura-dos-botoes) + 12px
 	);
 
 	/* ═══ I1+I2: A HUD SE ADAPTA A RESOLUCAO (dono, 31/08/2026) ══════════
@@ -696,9 +695,28 @@ ui-button {
 	/* Geometria (spec §3). O painel cresce para CIMA e para a DIREITA: as
 	   bordas de baixo e da esquerda nunca se movem, porque o campo de digitacao
 	   tem de ficar no mesmo pixel — o jogador aperta Enter por reflexo. */
-	--chat-larg: 430px;
+	/* O TETO SUBIU EM 11/09/2026 — relato do dono: "a largura do chat pensando
+	   no usuario do desktop esta muito pequena".
+
+	   O defeito NAO era responsividade: o chat ja e redimensionavel por arrasto
+	   e ja grava a largura em FRACAO da viewport, por personagem. Era o TETO —
+	   640px escritos para caber em tela pequena, aplicados tambem onde sobra
+	   espaco. Num monitor de 1920 o painel nascia com 22% da largura e nao
+	   passava de 33% por mais que se arrastasse; num 2560, 25%.
+
+	   ELES TEM DE SER px LITERAL. `ChatBox.js` le estes tokens com
+	   `parseFloat(getComputedStyle(...).getPropertyValue(nome))`, e custom
+	   property NAO e resolvida por `getComputedStyle` — `46vw` viraria o numero
+	   46 (um teto de 46 pixels) e `min(880px, 46vw)` viraria `NaN`, caindo na
+	   reserva e deixando o teto em 640 sem ninguem notar. Conserto inerte e
+	   pior que conserto ausente.
+
+	   O CELULAR NAO SENTE, e isto e do codigo e nao de suposicao: `aplicarTamanho`
+	   ja prende em `Math.min(largMax, innerWidth - margem*2)`, o que num 393px da
+	   373px — abaixo de qualquer teto daqui. */
+	--chat-larg: 520px;
 	--chat-larg-min: 320px;
-	--chat-larg-max: 640px;
+	--chat-larg-max: 1000px;
 	--chat-alt: 190px;
 	--chat-alt-min: 100px;
 	--chat-alt-max: 380px;
@@ -777,6 +795,31 @@ ui-button {
 	--ri-fonte: var(--font-ui);
 	/* ornamento de asa dourada (par do header; o direito espelha com scaleX) */
 	--ri-asa: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 44 16'%3E%3Cg fill='none' stroke='%23c9a353' stroke-width='1.4' stroke-linecap='round'%3E%3Cpath d='M42 8 C34 2, 24 1, 14 4 C8 6, 4 8, 2 8'/%3E%3Cpath d='M42 8 C35 6, 26 6, 18 8'/%3E%3Cpath d='M42 8 C36 11, 28 12, 20 11'/%3E%3C/g%3E%3Ccircle cx='42' cy='8' r='2' fill='%23e9cc8f' stroke='%23c9a353' stroke-width='1'/%3E%3C/svg%3E");
+}
+
+/*
+ * NO TOQUE, SEM DESFOQUE DE FUNDO (13/09/2026, auditoria do iPhone).
+ *
+ * O `backdrop-filter` desfoca o que esta ATRAS do painel — e atras de toda
+ * janela da HUD esta o canvas do mundo, que muda todo quadro. Entao o desfoque
+ * e refeito todo quadro, sobre a area inteira do painel. No celular em pe a
+ * barra do topo, o cartao de Missoes e o chat cobrem mais da metade da tela, e
+ * no iPhone o canvas tem 3x a densidade da tela em CSS. A medicao de 07/09
+ * ("custa 0,2 fps") foi numa placa de desktop e nao descreve isto.
+ *
+ * O desfoque sai pelo PROPRIO token, e nao regra a regra: toda folha le
+ * `var(--blur-glass)`, e zerar o token aqui alcanca os shadow roots de uma vez.
+ * Os dois vidros translucidos ficam mais opacos para devolver a leitura que o
+ * desfoque dava sobre o chao claro de Prontera. A consulta e a mesma de
+ * `ehDedo()` (`UI/escalaDaHud.js`): o criterio de "e um dedo" continua um so.
+ */
+@media (pointer: coarse) {
+	:host {
+		--blur-glass: none;
+		--blur-glass-strong: none;
+		--surface-glass: rgba(244, 248, 253, 0.9);
+		--surface-dark-glass: rgba(18, 41, 74, 0.82);
+	}
 }
 
 /* A janela padrao: moldura dourada fina, respiro claro interno, sombra suave */
@@ -1869,6 +1912,100 @@ ui-button {
 		inset: -7px -8px -17px -16px;
 	}
 
+	/*
+	 * 08/09/2026 — OS QUATRO QUE A VARREDURA DO CELULAR AINDA ACHOU.
+	 *
+	 * Medidos por `scripts/diag-mobile-portrait.ts` nas 18 janelas do menu,
+	 * em 393x852: o "+" do Codex (`cx-mais`), as abas de Missoes
+	 * (`mi-tab`), os campos do painel de Admin (`ap-input`) e o "comprar"
+	 * dos cartoes da Loja de Cash (`add-to-cart`).
+	 *
+	 * Os dois primeiros usam o `::before` das linhas acima — expandem a AREA
+	 * sem mexer no desenho, que e o que mantem o leiaute como esta. Os campos
+	 * de texto e o botao de compra crescem de verdade: campo baixo e
+	 * desconfortavel de mirar mesmo quando a area invisivel acerta, porque o
+	 * cursor de texto precisa CAIR dentro dele.
+	 */
+	.cx-mais::before,
+	.mi-tab::before {
+		content: '';
+		position: absolute;
+		inset: -12px;
+	}
+
+	.cx-mais,
+	.mi-tab {
+		position: relative;
+	}
+
+	.ap-input,
+	#CashShop .add-to-cart {
+		min-height: var(--hit-touch, 44px);
+	}
+
+	/*
+	 * D-1487 (15/09/2026) — O CARTAO DE MISSOES: a divida que D-1483 NOMEOU e
+	 * nao pagou.
+	 *
+	 * Quando o cartao encolheu a pedido do dono (*"veja como esta ocupando
+	 * praticamente a metade da tela"*), ficou escrito que os alvos dele estavam
+	 * ABAIXO do piso e que paga-los faria o cartao CRESCER — e que a escolha
+	 * entre as duas coisas era dele. Ele mandou pagar; e o cartao **nao**
+	 * cresceu, porque a conta foi refeita em vez de aceita (ver o balanco no
+	 * cabecalho de `MissoesTrackerIdle.js`).
+	 *
+	 * Medido antes, num 402x714: `.mt-item` **29px**, `.mt-ver-todas` **36px**,
+	 * `.mt-btn-mini` **18px** (40% do piso) e `.mt-recolher` **14px**. Nenhum
+	 * deles aparecia neste bloco — o cartao inteiro estava fora do mecanismo
+	 * tatil, e `prove:hud-responsiva` tambem nao o varria, entao nada media.
+	 *
+	 * A escolha entre as duas tecnicas segue o criterio ja usado aqui em cima:
+	 *
+	 * - **cresce de verdade** o que o dedo MIRA. `.mt-item` e a linha que
+	 *   comeca uma missao e `.mt-ver-todas` a que abre a lista: uma linha de
+	 *   29px que apenas ACEITA o toque numa area invisivel maior continua
+	 *   PARECENDO pequena demais para ser tocada, e o jogador nao tenta. O
+	 *   mesmo argumento dos `.ap-input` acima;
+	 * - **ganha area invisivel** o que e pequeno por desenho. `.mt-btn-mini`
+	 *   (Pausar/Abandonar) mora dentro do cartao da missao ativa, entre a barra
+	 *   de progresso e a lista — engorda-lo empurraria as duas. Ha 12px de vao
+	 *   acima (a barra e a margem dela) e 14px abaixo (o padding do cartao mais
+	 *   o `gap` do corpo), e `-13px` cabe nos dois sem encostar no `.mt-item`.
+	 *
+	 * `.mt-aba` ja alcanca 44 hoje, e por ACIDENTE: a fileira dela e um flex sem
+	 * `align-items`, entao o `stretch` a estica ate a altura do `.mt-recolher-v`
+	 * (44px) ao lado. O `min-height` aqui nao muda um pixel — ele ESCREVE o
+	 * piso, para a conta parar de depender de um vizinho que alguem pode mover.
+	 *
+	 * `.mt-recolher` (o "−" do cabecalho) cresce de verdade em vez de ganhar
+	 * overlay porque `.mt-painel` tem `overflow: hidden`: uma area invisivel
+	 * subindo seria CORTADA, e descendo os 30px que faltam roubaria o toque da
+	 * primeira missao. Ele e `display: none` no celular em pe, entao quem paga a
+	 * altura e o TABLET — que e exatamente o aparelho que D-935 nomeia ("um
+	 * tablet e DEDO numa tela LARGA") e onde ha espaco de sobra.
+	 */
+	.mt-item,
+	.mt-ver-todas,
+	.mt-aba,
+	.mt-recolher {
+		box-sizing: border-box;
+		min-height: var(--hit-touch, 44px);
+	}
+
+	.mt-recolher {
+		min-width: var(--hit-touch, 44px);
+	}
+
+	.mt-btn-mini::before {
+		content: '';
+		position: absolute;
+		inset: -13px -4px;
+	}
+
+	.mt-btn-mini {
+		position: relative;
+	}
+
 	/* O "+" de distribuir atributo (20x20) e os dois menores da barra de
 	   atalhos (14x14 e 15x15). */
 	.st-stat-up::before,
@@ -1877,6 +2014,24 @@ ui-button {
 		content: '';
 		position: absolute;
 		inset: -12px;
+	}
+
+	/*
+	 * 10/09/2026 — O "+" DO ATRIBUTO NAO ERA POSICIONADO, e o dedo subia o
+	 * atributo ERRADO. Relato do alfa: *"nao da pra colocar os pontos de
+	 * atributo no mobile"*.
+	 *
+	 * `::before` absoluto ancora no ancestral POSICIONADO mais proximo. O
+	 * `.close` e o `.resize` da barra ja sao `position: absolute` (ShortCut.css),
+	 * mas o `.st-stat-up` e a linha dele eram estaticos: a area de toque dos seis
+	 * "+" virava a janela inteira, uma por cima da outra, e quem pintava por
+	 * ultimo ganhava o toque. Medido pela `prove:jogador-no-celular` em 393x852:
+	 * o toque no "+" de STR subiu DEX, o de VIT subiu INT, e os pontos sumiram
+	 * onde o jogador nao pediu. E o mesmo par de `.cx-mais`/`.mi-tab` acima: o
+	 * `::before` que aumenta a area so vale com o proprio botao posicionado.
+	 */
+	.st-stat-up {
+		position: relative;
 	}
 
 	/*
@@ -2019,19 +2174,40 @@ html.ri-hud-classica :host {
 	   heranca — nao ha terceiro lugar. */
 	--vr-margem: 8px;
 	--vr-topo: calc(var(--safe-topo, 0px) + 6px);
-	/* Altura da barra do topo: avatar 40 + respiro. MEDIDA no jogo depois de
-	   montada; o valor daqui e o de nascenca ate o primeiro desenho. */
-	--vr-topo-altura: 56px;
+	/* Altura da barra do topo: a caixa MEDIDA do painel de personagem, que
+	   `BasicInfoIdle.js` publica em `--hud-basic-altura` (publicarCaixa, em
+	   unidade da HUD). Os 56px sao o valor de nascenca, ate o primeiro desenho.
+
+	   Este comentario ja dizia "MEDIDA no jogo" e o token era um numero
+	   cravado: ninguem publicava `--vr-topo-altura`. Os 56 (avatar 40 +
+	   respiro) valiam no dia em que nasceram (D-939, 05/09/2026) e deixaram de
+	   valer em 08/09, quando a faixa de wifi e bateria entrou no topo e a barra
+	   passou a 70px. Tudo o que se pendura em `--vr-abaixo-do-topo` ficou 6px
+	   POR BAIXO dela — o cartao de missoes (236x6px) e o `.tm-top` (8x6px), nas
+	   quatro telas em pe da `prove:hud-responsiva` (D-995, 10/09/2026).
+
+	   Nao ha laco: a altura da barra e a do conteudo dela, e nao le este
+	   token. */
+	--vr-topo-altura: var(--hud-basic-altura, 56px);
 	--vr-abaixo-do-topo: calc(var(--vr-topo) + var(--vr-topo-altura) + 8px);
 	/* O trilho da direita: disco de 48 + rotulo, num passo de 68px. */
 	--vr-trilho-passo: 68px;
 	--vr-trilho-largura: 60px;
-	/* O rodape fino (nivel + EXP) e a barra de atalhos acima dele. */
-	--vr-rodape-altura: 22px;
+	/*
+	 * O RODAPE FINO SAIU (08/09/2026, ordem do dono) — ver o comentario em
+	 * `BasicInfoIdle.html`. Ele mostrava nivel + EXP, que a barra do TOPO ja
+	 * mostra, e cobrava 22px de tela.
+	 *
+	 * O TOKEN FICA, valendo ZERO, e isso nao e preguica: ele e lido por
+	 * `--vr-acima-dos-atalhos` (logo abaixo) e pelo `bottom` da barra de
+	 * atalhos e do chat. Apagar a linha faria os tres caírem no `var(..., X)`
+	 * de reserva de cada um — tres numeros para manter em vez de um. Com ele
+	 * em zero, tudo o que se pendurava no rodape desce 22px sozinho, e
+	 * devolver a faixa e trocar este numero de volta.
+	 */
+	--vr-rodape-altura: 0px;
 	--vr-atalhos-altura: 56px;
-	--vr-acima-dos-atalhos: calc(
-		var(--safe-baixo, 0px) + var(--vr-rodape-altura) + var(--vr-atalhos-altura) + 10px
-	);
+	--vr-acima-dos-atalhos: calc(var(--safe-baixo, 0px) + var(--vr-rodape-altura) + var(--vr-atalhos-altura) + 10px);
 }
 
 /* ─── O MINIMAPA SAI — a unica diferenca que o dono pediu contra o mockup ─── */
@@ -2141,13 +2317,38 @@ html.ri-vertical #ShortCut {
 	max-height: calc(100dvh - var(--vr-acima-dos-atalhos) - var(--vr-topo) - 16px) !important;
 }
 
-/* Os icones de status (buffs) na vertical: descem para baixo da barra do
-   topo, encostados na esquerda do trilho — o lugar que o mockup deixa
-   livre. O host le os tokens da coluna direita (StatusIcons.css); aqui os
-   dois sao recalculados para o arranjo vertical. */
+/* Os icones de status (buffs) na vertical.
+
+   ELES FICAVAM NUM VAO, e nao num canto (09/09/2026, relato do Bob: "no
+   video ta em baixo da barra... tinha que ficar no cantin bonitin").
+
+   A conta, com os numeros medidos pela `prove:hud-vertical` num 393x852: a
+   barra do topo e 325x70 em (8,6); o cartao de missoes vai de x=8 a x=244;
+   o trilho ocupa os 60px da direita, de x=333. Com `top` na altura do
+   cartao e `right: 76`, o icone nascia em x=279..317 — dentro do vao de
+   35px ENTRE o cartao e o trilho, boiando sobre o mundo. Nao e um canto:
+   e o unico pedaco de tela que ninguem reivindicou.
+
+   Agora ele desce para DEPOIS do cartao de missoes e do vao do aviso de
+   item, encostado no trilho. `--vr-item-obtido-topo` e publicada pelo
+   `ItemObtain.js`, que MEDE `#MissoesTrackerIdle` na hora de aparecer —
+   reusar a medida que ja existe evita a segunda conta que envelhece
+   sozinha (foi assim que o 130px cravado apodreceu). Os 44px somados sao
+   uma fileira de aviso, para os dois nao dividirem a mesma linha.
+
+   O anexo continua ancorado a DIREITA de proposito: `StatusIcons.js`
+   empilha por `right: floor(i/porColuna) * PASSO`, entao a segunda coluna
+   cresce para a ESQUERDA. Ancorar pela esquerda mandaria a segunda coluna
+   para fora da tela no dia em que o jogador tivesse buffs demais.
+
+   FOTOGRAFADO com dois icones acesos em 12/09/2026 (`prove:jogador-no-celular`,
+   foto `393x852-17-sobrepeso.png`): o buff de boas-vindas e o icone de
+   sobrepeso de 90% (D-1345) empilhados ao lado do trilho, abaixo do cartao de
+   missoes, dentro da tela. Ate la esta nota dizia que a barra nunca tinha sido
+   fotografada com buff ativo — a `prove:hud-vertical` nao tira print. */
 html.ri-vertical #StatusIcons {
-	top: var(--vr-abaixo-do-topo) !important;
-	right: calc(var(--safe-dir, 0px) + var(--vr-trilho-largura) + 16px) !important;
+	top: calc(var(--vr-item-obtido-topo, calc(var(--vr-abaixo-do-topo) + 130px)) + 44px) !important;
+	right: calc(var(--safe-dir, 0px) + var(--vr-trilho-largura) + var(--vr-margem)) !important;
 }
 
 /* O botao de menu MORAVA ATRAS da barra do topo: os hosts nascem todos com
@@ -2160,9 +2361,20 @@ html.ri-vertical #TopMenuIdle {
 
 /* O aviso de item obtido nascia por cima da barra do topo (top: 50 do
    layout de desktop); na vertical ele desce para o vao livre entre o cartao
-   de missoes e o mundo. */
+   de missoes e o mundo.
+
+   O 130px ERA CRAVADO, e ele envelheceu (07/09/2026). Ele foi escolhido com o
+   cartao de missoes mostrando UMA missao; com duas (mais o "Ver todas as
+   missoes") o cartao passa dos 130 e o aviso do drop nasce EM CIMA dele —
+   medido na foto do celular em `prove:anuncio-de-drop`. O cartao cresce com o
+   numero de missoes, entao nenhum numero fixo serve.
+
+   Quem sabe onde o cartao termina e o navegador: `ItemObtain.js` mede
+   `#MissoesTrackerIdle` na hora de aparecer e publica o resultado nesta
+   variavel. O `calc` continua aqui como valor de NASCENCA — se o cartao nao
+   existir (jogador sem missao), a variavel nao e definida e o fallback vale. */
 html.ri-vertical #ItemObtain {
-	top: calc(var(--vr-abaixo-do-topo) + 130px) !important;
+	top: var(--vr-item-obtido-topo, calc(var(--vr-abaixo-do-topo) + 130px)) !important;
 }
 
 /* ═══════════════════════════════════════════════════════════════════════

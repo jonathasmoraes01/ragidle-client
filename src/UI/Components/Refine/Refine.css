@@ -1,35 +1,69 @@
-/* A FORJA (janela de Refino) — redesenho de 01/09/2026.
-
-   O "disproporcional" do print tinha causa unica: TODA a medida desta janela
-   nascia do bitmap de 262x301 do GRF (ver o cabecalho de `Refine.html`), e o
-   bitmap ja nao era a moldura. Nada aqui e mais posicao absoluta de conteudo:
-   o corpo e uma COLUNA de blocos que se empilham, e os unicos `absolute` que
-   sobraram sao os que precisam mesmo empilhar peles no mesmo lugar (as duas
-   peles do "Refinar", as quatro do "Refinar de novo", as pecas sobre o palco)
-   e a dica flutuante.
-
-   PIXEL CRAVADO, nao porcentagem, no `:host` e no `#Refine`: a cadeia
-   percentual colapsa dentro do Shadow DOM e a janela SOME — a mesma cicatriz
-   de Enchant/EnchantGrade, e a armadilha que matou uma frota inteira em
-   01/09. A altura (414) e a soma MEDIDA dos blocos no arnes de foto, nao um
-   chute — a primeira conta, feita a mao, errou por 12px e o bloco de custo
-   entrava debaixo do rodape:
-   34 (cabecalho) + 13 + 124 (palco) + 26 (nome) + 41 (chance) + 21 (regua)
-   + 13 (secao) + 53 (materiais) + 28 (custo) + 13 + 46 (rodape).
-
-   A largura (292) sai do palco: 262 de arte + 2 de moldura + 2x13 de respiro
-   + 2x1 de borda da janela. A arte manda na largura porque ela e a unica peca
-   que nao pode ser esticada sem borrar. */
+/**
+ * UI/Components/Refine/Refine.css
+ *
+ * "Refinar equipamento" — a bancada (07/09/2026). Ver o cabecalho de
+ * `Refine.html` para o PORQUE do redesenho (o botao que so nascia depois de
+ * um clique que morria calado).
+ *
+ * ---------------------------------------------------------------------------
+ * O DESENHO, e por que ele e este
+ * ---------------------------------------------------------------------------
+ * DUAS zonas, e nao tres colunas: um TRILHO estreito a esquerda (o que voce
+ * tem para refinar) e uma BANCADA a direita que se le de cima para baixo —
+ * a peca na fornalha, onde ela esta na escada do refino, o risco, e os tres
+ * fatos que fecham a decisao. O botao mora no rodape, com o motivo ao lado:
+ * acao e explicacao no mesmo lugar, sempre visiveis.
+ *
+ * A leitura vertical e deliberada. A pergunta desta janela nao e "quais sao os
+ * numeros?" e sim "vale a pena o proximo degrau?" — e essa e uma pergunta com
+ * ORDEM: o que eu tenho, para onde vai, com que risco, por quanto.
+ *
+ * ---------------------------------------------------------------------------
+ * MEDIDAS EM PIXEL CRAVADO, nos dois lugares
+ * ---------------------------------------------------------------------------
+ * `:host` e `#Refine` repetem os numeros de proposito: a cadeia percentual
+ * colapsa dentro do Shadow DOM e a janela SOME (cicatriz de Enchant/
+ * EnchantGrade, e a armadilha que matou uma frota inteira em 01/09/2026).
+ * Quem mexer em UM confere os DOIS — e a media query no fim repete os dois
+ * pela mesma razao.
+ *
+ *   largura 468 = 1 + 178 (trilho) + 1 (fio) + 287 (bancada) + 1
+ *   altura  430 = 1 + 34 (cabecalho) + 348 (corpo) + 46 (rodape) + 1
+ *
+ * A bancada tem 287 porque o recorte da fornalha do GRF tem 262 de largura e
+ * nao pode ser esticado sem borrar (regra 4: a arte manda na medida dela).
+ *
+ * Cor, raio, sombra, fonte e espacamento saem SO de token de `Common.css`.
+ * Nenhum literal novo de cor nesta folha — e o ouro so aparece como ARO,
+ * nunca como palavra (D-944).
+ */
 
 :host {
-	width: 292px;
-	height: 414px;
+	position: absolute;
+	width: 468px;
+	height: 430px;
 }
 
+/*
+ * A MOLDURA E A RECEITA `.ri-window`, TRANSCRITA — e nao a classe.
+ *
+ * Esta janela chegou a carregar `class="ri-window"`, e o arnes de foto pegou
+ * o efeito colateral no mesmo dia: a receita e a chave do PAINEL DE TELA
+ * CHEIA de celular (D-932, `Common.css`), que sob `max-width: 599px` impoe
+ * `position: static !important; width: 100% !important; height: auto
+ * !important` as janelas DE PILHA. Esta nao e uma delas — ela e nativa e nao
+ * passa pela `pilhaDeJanelas` —, entao ela herdaria o corpo esticado sem
+ * herdar o ancoramento do host, e ficaria fora da tela no celular.
+ *
+ * Entao os tokens sao os MESMOS (`--window-fill`, `--window-frame`,
+ * `--window-shadow`, `--rim-light`, `--blur-glass`) e a classe fica de fora —
+ * que e o que ItemReform, LaphineSys e LaphineUpg ja fazem, pelo mesmo
+ * motivo. O portao cobra os tokens, nao o nome da classe.
+ */
 #Refine {
 	position: relative;
-	width: 292px;
-	height: 414px;
+	width: 468px;
+	height: 430px;
 	box-sizing: border-box;
 	display: flex;
 	flex-direction: column;
@@ -38,580 +72,637 @@
 	border-radius: var(--radius-window);
 	box-shadow: var(--window-shadow), var(--rim-light);
 	backdrop-filter: var(--blur-glass);
-	overflow: hidden;
+	-webkit-backdrop-filter: var(--blur-glass);
 	color: var(--text-body);
 	font-family: var(--font-ui);
+	overflow: hidden;
+}
+
+/* O `hidden` tem de vencer os display de layout declarados abaixo. */
+[hidden] {
+	display: none !important;
 }
 
 /* ─── Cabecalho ─────────────────────────────────────────────────────────── */
 
-#Refine .titlebar {
-	flex: 0 0 auto;
+#Refine .rf-header {
+	flex: 0 0 34px;
 }
 
-/* `.base` sobrou so como alca invisivel que o JS ainda escuta (mousedown para
-   nao arrastar duas vezes sob o titulo). Nao pinta nada.
+/* ─── Corpo: trilho | fio | bancada ─────────────────────────────────────── */
 
-   `> div.base`, e nao `.base` (foto do dono, 01/09/2026): o botao de fechar
-   nascia com `class="base close ri-close"` e esta regra tem especificidade
-   MAIOR que `.ri-close` (id + duas classes contra uma classe). Ela ganhava o
-   `position/left/top/width/height` e cuspia o X para o canto SUPERIOR
-   ESQUERDO, esticado na altura do cabecalho. A classe saiu do botao no HTML e
-   o seletor passou a exigir DIV — duas defesas, porque so tirar a classe
-   deixaria a armadilha armada para o proximo que copiar a marcacao.
-   O mesmo par de conserto foi aplicado em ItemReform, LaphineSys e LaphineUpg,
-   que tinham a regra identica, palavra por palavra. */
-#Refine .titlebar > div.base {
-	position: absolute;
-	left: 0;
-	top: 0;
-	width: 20px;
-	height: 100%;
-}
-
-/* ─── Corpo ─────────────────────────────────────────────────────────────── */
-
-#Refine .panel {
-	position: relative;
+#Refine .rf-corpo {
 	flex: 1 1 auto;
 	min-height: 0;
+	display: flex;
+	align-items: stretch;
+}
+
+/* ─── O TRILHO (esquerda) ───────────────────────────────────────────────── */
+
+#Refine .rf-trilho {
+	flex: 0 0 178px;
 	box-sizing: border-box;
-	padding: 13px;
 	display: flex;
 	flex-direction: column;
-	overflow: hidden;
+	min-height: 0;
+	padding: var(--sp-5);
+	gap: var(--sp-3);
+	/* Vidro mais fundo que a janela: o trilho e o movel, a bancada e a mesa de
+	   trabalho. Um fio hairline separa — nunca uma borda grossa. */
+	background: var(--surface-glass);
+	border-right: var(--divider);
 }
 
-/* ─── O palco: a cena do GRF ────────────────────────────────────────────── */
-
-#Refine .rf-palco {
-	position: relative;
-	flex: 0 0 auto;
-	width: 262px;
-	height: 122px;
-	/* O deslocamento medido (ver Refine.html): recorta a faixa que vai dos
-	   sockets do material escolhido ate a bigorna, deixando de fora o painel de
-	   cima e as plaquinhas de botao. O JS so troca `background-image` — posicao
-	   e repeticao moram aqui e sobrevivem a troca de quadro. */
-	background-position: 0 -120px;
-	background-repeat: no-repeat;
-	background-color: #eef4fb;
-	border: 1px solid var(--border-window);
-	border-radius: var(--radius-panel);
-	box-shadow: var(--well-shadow);
-	overflow: hidden;
-}
-
-/* Aro interno: a arte do GRF sangra ate a borda e sem isto o recorte parecia
-   acidente. Tambem e o que separa a cena do vidro da janela. */
-#Refine .rf-palco::after {
-	content: '';
-	position: absolute;
-	inset: 0;
-	pointer-events: none;
-	border-radius: inherit;
-	box-shadow:
-		inset 0 0 0 1px rgba(255, 255, 255, 0.45),
-		inset 0 -14px 22px -12px rgba(12, 34, 64, 0.45);
-}
-
-/* O item do jogador, pousado no encaixe DESENHADO da bigorna.
-   MEDIDO POR PIXEL na arte (varredura de contorno, nao a olho — a leitura a
-   olho errou 20px na fileira de cima): o encaixe branco tem contorno em
-   x 107..154 e y 178..225, ou seja centro (130.5, 201) e lado ~47. Com a
-   faixa comecando em y=120, o centro cai em y=81 no palco: dai `top: 58` com
-   ladrilho de 46. O centro horizontal 130.5 e o meio do palco (262/2), entao
-   `left: 50%` acerta sozinho. */
-#Refine .item_to_refine {
-	position: absolute;
-	left: 50%;
-	top: 58px;
-	transform: translateX(-50%);
-	width: 46px;
-	height: 46px;
-	z-index: 2;
-	cursor: pointer;
-}
-
-/* Slot vazio: o convite mora no proprio ladrilho, tracejado. */
-#Refine .item_to_refine:empty {
-	background: rgba(255, 255, 255, 0.55);
-	border: 1px dashed var(--border-window);
-	box-shadow: none;
-}
-
-#Refine .item_to_refine .item {
+#Refine .rf-trilho-topo {
 	display: flex;
-	align-items: center;
-	justify-content: center;
-	width: 100%;
-	height: 100%;
-	cursor: grab;
-}
-
-#Refine .item_to_refine .icon {
-	width: 24px;
-	height: 24px;
-	background-repeat: no-repeat;
-	background-position: center;
-}
-
-#Refine .item_to_refine .grade {
-	position: absolute;
-	right: 1px;
-	top: 1px;
-	width: 12px;
-	height: 12px;
-	background-repeat: no-repeat;
-	pointer-events: none;
-	z-index: 3;
-}
-
-/* As duas pecas que entram no fogo, nos cantos do palco. Somem sozinhas quando
-   o JS as esvazia (`innerHTML` vazio) — `:empty` em vez de mais uma classe que
-   alguem esqueceria de tirar. */
-#Refine .rf-chip {
-	/* Centros MEDIDOS POR PIXEL na arte: os dois hexagonos desenhados (material
-	   escolhido e bencao) tem contorno em x 72..111 e x 152..191, ambos em
-	   y 122..166 — centros (91.5, 144) e (171.5, 144), 40x44 cada. Com a faixa
-	   comecando em 120, o centro cai em y=24 no palco. A peca senta DENTRO do
-	   hexagono em vez de num canto qualquer, e o desenho vira a moldura dela. */
-	position: absolute;
-	top: 6px;
-	width: 36px;
-	height: 36px;
-	z-index: 2;
-	display: inline-flex;
-	align-items: center;
-	justify-content: center;
-	border-radius: var(--radius-card);
-	background: linear-gradient(180deg, var(--white) 0%, #e6eef8 100%);
-	border: 1px solid var(--border-gold);
-	box-shadow: var(--rim-light), var(--shadow-card);
-}
-
-#Refine .selected_mat {
-	left: 73px;
-}
-
-#Refine .bsb_selected {
-	left: 153px;
-	border-color: #e08a86;
-}
-
-#Refine .rf-chip:empty {
-	display: none;
-}
-
-#Refine .rf-chip .item {
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	width: 100%;
-	height: 100%;
-}
-
-#Refine .rf-chip .icon {
-	width: 24px;
-	height: 24px;
-	background-repeat: no-repeat;
-	background-position: center;
-}
-
-/* A dica so existe enquanto nao ha item. Veu escuro porque o texto cai sobre
-   arte clara — o veu E legibilidade aqui, nao decoracao. */
-#Refine .rf-dica {
-	position: absolute;
-	left: 50%;
-	top: 8px;
-	transform: translateX(-50%);
-	display: none;
-	white-space: nowrap;
-	padding: 3px 10px;
-	border-radius: var(--radius-pill);
-	background: var(--surface-dark-glass);
-	backdrop-filter: var(--blur-glass);
-	-webkit-backdrop-filter: var(--blur-glass);
-	color: var(--white);
-	font: var(--type-desc);
-	text-shadow: 0 1px 2px rgba(8, 22, 40, 0.85);
-	pointer-events: none;
-	z-index: 3;
-}
-
-#Refine .rf-palco:has(.item_to_refine:empty) .rf-dica {
-	display: block;
-}
-
-/* ─── Nome do item ──────────────────────────────────────────────────────── */
-
-#Refine .item_to_refine_name {
-	flex: 0 0 auto;
-	margin-top: 8px;
-	height: 18px;
-	text-align: center;
-	font: var(--type-section);
-	color: var(--text-title);
-	line-height: 18px;
-	overflow: hidden;
-	text-overflow: ellipsis;
-	white-space: nowrap;
-}
-
-/* ─── Chance de sucesso ─────────────────────────────────────────────────── */
-
-#Refine .rf-chance {
-	flex: 0 0 auto;
-	margin-top: 10px;
-}
-
-#Refine .success {
-	height: 16px;
-	line-height: 16px;
-	text-align: center;
-	font: var(--type-label);
-	color: var(--text-muted);
-	letter-spacing: var(--ls-caps);
-	text-transform: uppercase;
-}
-
-/* O veredito depois do martelo. A cor faz o trabalho que a animacao do GRF
-   sozinha nao faz numa janela clara. */
-#Refine .success.deu-certo {
-	color: var(--green-600, #2e7d42);
-}
-
-#Refine .success.deu-errado {
-	color: var(--red-600);
-}
-
-/* O numero e o que o jogador procura: destacado dentro da propria linha. */
-#Refine .success .number {
-	font: var(--type-numeric);
-	font-size: var(--fs-numeric-lg);
-	color: var(--text-title);
-	letter-spacing: 0;
-	vertical-align: -1px;
-}
-
-#Refine .chance_bar {
-	margin-top: 5px;
-	height: 8px;
-}
-
-/* Cor por FAIXA, nao por gosto: verde da EXP quando a chance e alta, ouro no
-   meio, vermelho da vida quando esta baixa — os mesmos tres gradientes que a
-   HUD ja usa, para o jogador ler sem aprender nada novo. */
-#Refine .chance_bar > .fill {
-	width: 0%;
-	background: linear-gradient(180deg, #f0c869 0%, var(--zeny) 100%);
-}
-
-#Refine .chance_bar.esta-alta > .fill {
-	background: var(--exp-fill);
-}
-
-#Refine .chance_bar.esta-baixa > .fill {
-	background: var(--hp-fill);
-}
-
-/* A chance da PROXIMA tentativa: so aparece depois de um resultado (o JS
-   acende), e ocupa o lugar da barra, que sai junto. */
-#Refine .chance_rate {
-	display: none;
-	height: 13px;
-	line-height: 13px;
-	text-align: center;
-	font: var(--type-desc);
-	color: var(--text-muted);
-}
-
-/* ─── Materiais ─────────────────────────────────────────────────────────── */
-
-#Refine .ri-divisor {
-	flex: 0 0 auto;
-	margin: 10px 0;
+	align-items: baseline;
+	justify-content: space-between;
+	gap: var(--sp-2);
 }
 
 #Refine .rf-secao {
-	flex: 0 0 auto;
-	height: 13px;
-	line-height: 13px;
+	margin: 0;
+	font: var(--type-section);
+	font-size: var(--fs-label);
+	color: var(--text-title);
+	letter-spacing: var(--ls-caps);
+	text-transform: uppercase;
+}
+
+#Refine .rf-conta {
+	font: var(--type-numeric);
+	color: var(--text-muted);
+}
+
+#Refine .rf-abas {
+	display: flex;
+	gap: var(--sp-2);
+}
+
+#Refine .rf-aba {
+	position: relative;
+	flex: 1 1 0;
+	padding: 3px 0;
+	font-size: var(--fs-desc);
+}
+
+/* Alvo de toque: 44px nao cabe numa aba de 158px dividida em tres, entao a
+   area cresce por fora sem mexer no desenho — o mesmo recurso que o design
+   system ja usa nas alcas pequenas. */
+#Refine .rf-aba::after {
+	content: '';
+	position: absolute;
+	left: 0;
+	right: 0;
+	top: 50%;
+	height: var(--hit-touch);
+	transform: translateY(-50%);
+}
+
+#Refine .rf-lista {
+	flex: 1 1 auto;
+	min-height: 0;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+	overflow-y: auto;
+	display: flex;
+	flex-direction: column;
+	gap: var(--sp-2);
+}
+
+#Refine .rf-lista:focus-visible {
+	outline: 2px solid var(--accent);
+	outline-offset: 2px;
+}
+
+#Refine .rf-item {
+	display: flex;
+	align-items: center;
+	gap: var(--sp-3);
+	padding: var(--sp-2) var(--sp-3);
+	border-radius: var(--radius-card);
+	background: var(--surface-card);
+	border: 1px solid var(--border-hairline);
+	box-shadow: var(--shadow-card);
+	cursor: pointer;
+	transition:
+		background var(--dur-fast) var(--ease-out),
+		border-color var(--dur-fast) var(--ease-out),
+		box-shadow var(--dur-fast) var(--ease-out);
+}
+
+#Refine .rf-item:hover {
+	background: var(--surface-card-hover);
+	border-color: var(--accent);
+}
+
+/* A peca escolhida: ANEL por box-shadow, nunca `border` — trocar a espessura
+   da borda mexe no layout e a linha inteira pula 1px (D-944). */
+#Refine .rf-item.is-active {
+	background: var(--white);
+	border-color: var(--gold-300);
+	box-shadow: var(--rim-gold), var(--shadow-card);
+}
+
+/* Vestida: ela APARECE, e apagada, porque "cade a minha espada?" e uma
+   pergunta pior do que um item que se explica. O servidor recusa peca vestida
+   (`MOTIVO_DO_REFINO.ESTA_VESTIDA`), e a janela nao promete o que o servidor
+   nao faz. */
+#Refine .rf-item.is-vestida {
+	filter: grayscale(1);
+	opacity: 0.6;
+}
+
+/* Ela continua CLICAVEL: quem responde "nao da" e o servidor, e a resposta
+   aparece por escrito na bancada. Linha morta que nao explica nada seria o
+   mesmo silencio de antes, com outra pele. */
+#Refine .rf-item.is-vestida:hover {
+	opacity: 0.8;
+}
+
+#Refine .rf-item-icone {
+	width: 28px;
+	height: 28px;
+	border-radius: var(--radius-card);
+}
+
+/* O PNG do cliente e 24x24: ampliacao INTEIRA e `pixelated`, sempre (regra 4
+   do CLAUDE.md — o que informa continua sendo arte, nunca CSS). */
+#Refine .rf-item-icone > .icone,
+#Refine .rf-peca > .icone,
+#Refine .rf-mat-icone > .icone {
+	width: 24px;
+	height: 24px;
+	background-repeat: no-repeat;
+	background-position: center;
+	background-size: 24px 24px;
+	image-rendering: pixelated;
+}
+
+#Refine .rf-item-texto {
+	flex: 1 1 auto;
+	min-width: 0;
+	display: flex;
+	flex-direction: column;
+	gap: 1px;
+}
+
+#Refine .rf-item-nome {
 	font: var(--type-label);
+	color: var(--text-body);
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+#Refine .rf-item-nota {
+	font: var(--type-desc);
+	color: var(--text-muted);
+}
+
+#Refine .rf-item-refino {
+	flex: 0 0 auto;
+	font: var(--type-numeric);
+	color: var(--text-muted);
+}
+
+#Refine .rf-item-refino.esta-refinada {
+	color: var(--gold-700);
+}
+
+#Refine .rf-lista-vazia {
+	margin: 0;
+	padding: var(--sp-5) var(--sp-2);
+	font: var(--type-desc);
+	color: var(--text-muted);
+	text-align: center;
+}
+
+/* ─── A BANCADA (direita) ───────────────────────────────────────────────── */
+
+#Refine .rf-bancada {
+	flex: 1 1 auto;
+	box-sizing: border-box;
+	min-width: 0;
+	display: flex;
+	flex-direction: column;
+	padding: var(--sp-6);
+	gap: var(--sp-4);
+}
+
+/*
+ * O PALCO — uma FAIXA da cena do GRF, com a peca pousada em cima.
+ *
+ * Recorte medido nos quadros extraidos (todos 262x301, mesma geometria em
+ * TODAS as fases): `background-position: 0 -120px` com 104px de altura entrega
+ * a fornalha e a bigorna, e deixa de fora o painel de cima (y 0..108) e as
+ * plaquinhas dos botoes (y 245..295), que aqui sao CSS.
+ */
+#Refine .rf-palco {
+	position: relative;
+	flex: 0 0 104px;
+	border-radius: var(--radius-panel);
+	background-color: var(--surface-inset);
+	background-repeat: no-repeat;
+	background-position: 0 -120px;
+	box-shadow: var(--well-shadow), var(--rim-light);
+	overflow: hidden;
+	image-rendering: pixelated;
+}
+
+/* A peca sobre a bigorna, no encaixe DESENHADO do quadro — o mesmo x/y do
+   `.item_to_refine` da janela anterior, que saiu de grade sobre o frame e nao
+   de estimativa. */
+#Refine .rf-peca {
+	position: absolute;
+	left: 116px;
+	top: 54px;
+	width: 30px;
+	height: 30px;
+}
+
+#Refine .rf-ficha {
+	flex: 0 0 auto;
+	min-width: 0;
+}
+
+#Refine .rf-peca-nome {
+	margin: 0;
+	font: var(--type-window-title);
+	font-size: var(--fs-section);
+	color: var(--text-title);
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+#Refine .rf-peca-tipo {
+	margin: 1px 0 0;
+	font: var(--type-desc);
+	color: var(--text-muted);
+}
+
+/*
+ * A TRILHA — um pino por degrau, do +1 ao teto.
+ *
+ * Ela responde de relance o que o numero sozinho nao responde: quanto falta.
+ * Os pinos sao gerados pelo JS, porque o teto vem do SERVIDOR (`REFINO_MAXIMO`
+ * viaja na ficha) e nao pode ser cravado numa folha de estilo.
+ */
+#Refine .rf-trilha {
+	flex: 0 0 10px;
+	display: flex;
+	align-items: center;
+	gap: 2px;
+}
+
+#Refine .rf-pino {
+	flex: 1 1 0;
+	height: 6px;
+	border-radius: var(--radius-bar);
+	/* O trilho do medidor, e nao o `--surface-inset`: com vinte pinos de 4px o
+	   inset quase nao aparecia contra o vidro da janela (medido na foto de
+	   07/09), e a trilha perdia a metade que informa — o quanto FALTA. */
+	background: var(--bar-track);
+	opacity: 0.22;
+}
+
+#Refine .rf-pino.esta-feito,
+#Refine .rf-pino.e-o-proximo {
+	opacity: 1;
+}
+
+#Refine .rf-pino.esta-feito {
+	background: var(--exp-fill);
+}
+
+/* O degrau que este clique compra: ouro como ARO, nao como preenchimento. */
+#Refine .rf-pino.e-o-proximo {
+	background: var(--gold-200);
+	box-shadow: var(--rim-gold);
+}
+
+#Refine .rf-salto {
+	flex: 0 0 auto;
+	display: flex;
+	align-items: center;
+	gap: var(--sp-3);
+}
+
+#Refine .rf-salto-de,
+#Refine .rf-salto-para {
+	font: var(--type-numeric);
+	font-size: var(--fs-numeric-lg);
+	color: var(--text-muted);
+	font-variant-numeric: tabular-nums;
+}
+
+#Refine .rf-salto-para {
+	color: var(--text-title);
+}
+
+#Refine .rf-salto-seta {
+	position: relative;
+	width: 18px;
+	height: 1px;
+	background: var(--border-window);
+}
+
+#Refine .rf-salto-seta::after {
+	content: '';
+	position: absolute;
+	right: 0;
+	top: -2px;
+	width: 5px;
+	height: 5px;
+	border-top: 1px solid var(--border-window);
+	border-right: 1px solid var(--border-window);
+	transform: rotate(45deg);
+}
+
+/* O ganho do degrau (ATQ/DEF). Selo verde: e o unico numero desta janela que
+   e so vantagem, e o design system reserva o verde para isso. */
+#Refine .rf-salto-ganho {
+	margin-left: auto;
+	padding: var(--sp-1) var(--sp-4);
+	border-radius: var(--radius-pill);
+	font: var(--type-badge);
+	background: var(--badge-passiva-bg);
+	color: var(--badge-passiva-ink);
+	border: 1px solid var(--green-300);
+}
+
+/*
+ * PECA BLOQUEADA: os numeros continuam, mas leem como PREVIA.
+ *
+ * Quando o servidor recusa (peca vestida, no teto, nao refinavel) a bancada
+ * ainda mostra o degrau — e ele e verdade: e o que custaria se a peca
+ * estivesse guardada. Sem marca nenhuma, porem, a foto em jogo de 07/09
+ * mostrava "100,00%", "ATQ 0 → 2" e "Custo 50 z" numa peca que nao da para
+ * refinar, e so o rodape dizia o contrario.
+ *
+ * Dessaturar e a receita de "bloqueado" do design system, a mesma do
+ * `.ri-btn:disabled` — e a explicacao continua sendo TEXTO, no rodape.
+ */
+#Refine .rf-bancada.esta-bloqueada .rf-trilha,
+#Refine .rf-bancada.esta-bloqueada .rf-salto,
+#Refine .rf-bancada.esta-bloqueada .rf-risco,
+#Refine .rf-bancada.esta-bloqueada .rf-fatos {
+	filter: grayscale(1);
+	opacity: 0.55;
+}
+
+/* ─── A BARRA DE RISCO ──────────────────────────────────────────────────── */
+
+#Refine .rf-risco {
+	flex: 0 0 auto;
+}
+
+#Refine .rf-risco-topo {
+	display: flex;
+	align-items: baseline;
+	justify-content: space-between;
+	gap: var(--sp-3);
+	margin-bottom: var(--sp-2);
+}
+
+#Refine .rf-risco-rotulo {
+	font: var(--type-label);
+	font-size: var(--fs-desc);
 	color: var(--text-muted);
 	letter-spacing: var(--ls-caps);
 	text-transform: uppercase;
 }
 
-#Refine .materials {
-	flex: 0 0 auto;
-	margin-top: 7px;
-	height: 46px;
-	display: flex;
-	align-items: center;
-	gap: 6px;
-}
-
-#Refine .mat_overlay,
-#Refine .bsb_overlay {
-	position: relative;
-	width: 44px;
-	height: 44px;
-}
-
-/* A regua empurra a Bencao do Ferreiro para a direita: ela nao e "o quinto
-   material", e um consumivel opcional — no bitmap antigo isso era dito pelo
-   hexagono VERMELHO, e continua dito, agora pela separacao e pelo aro. */
-#Refine .rf-sep {
-	margin-left: auto;
-	width: 1px;
-	height: 28px;
-	background: var(--border-hairline);
-}
-
-#Refine .bsb_overlay {
-	border-color: #e08a86;
-}
-
-/* Slot sem material: quase nao existe (a regra do `.ri-tile.is-empty`). Mede
-   `.icon` e nao `.item` de proposito — o `onRemoveItem` esvazia o `.item` mas
-   deixa a casca no lugar. */
-#Refine .mat_overlay:not(:has(.icon)),
-#Refine .bsb_overlay:not(:has(.icon)),
-#Refine .mat_overlay:has(.item[style*='none']),
-#Refine .bsb_overlay:has(.item[style*='none']) {
-	background: var(--surface-inset);
-	border-color: var(--border-hairline);
-	box-shadow: none;
-}
-
-#Refine .materials .item {
-	display: flex;
-	flex-direction: column;
-	align-items: center;
-	justify-content: center;
-	gap: 2px;
-	width: 100%;
-	height: 100%;
-}
-
-#Refine .materials .icon {
-	width: 24px;
-	height: 24px;
-	background-repeat: no-repeat;
-	background-position: center;
-	cursor: pointer;
-}
-
-#Refine .mat_count {
-	font: var(--type-badge);
-	color: var(--text-muted);
-	font-variant-numeric: tabular-nums;
-	pointer-events: none;
-}
-
-/* Escolhido: aro dourado e brilho — o mesmo tratamento de "unico" do sistema,
-   que e o unico lugar onde o ouro vira destaque de estado. */
-#Refine .mat_overlay.selected,
-#Refine .bsb_overlay.selected {
-	border-color: var(--gold-500);
-	box-shadow: var(--glow-gold), var(--rim-light);
-}
-
-/* ─── Custo ─────────────────────────────────────────────────────────────── */
-
-#Refine .rf-custo {
-	flex: 0 0 auto;
-	margin-top: 10px;
-	height: 18px;
-	display: flex;
-	align-items: center;
-	justify-content: space-between;
-	font: var(--type-info);
-	color: var(--text-muted);
-}
-
-/* Flex, e nao texto corrido: o JS acende `.refine_zeny_cont` com
-   `display: block`, e num container inline isso jogava o "Zeny" para a linha
-   seguinte. Como item de flex, o bloco continua ao lado. */
-#Refine .rf-custo-valor {
-	display: inline-flex;
-	align-items: baseline;
-	gap: 0;
-	font-variant-numeric: tabular-nums;
-}
-
-#Refine .refine_zeny,
-#Refine .refine_zeny_cont {
+#Refine .rf-risco-valor {
 	font: var(--type-numeric);
-	color: var(--zeny);
+	font-size: var(--fs-numeric-lg);
+	color: var(--text-title);
+	font-variant-numeric: tabular-nums;
 }
 
-/* Um valor de cada vez: `.refine_zeny` responde pela montagem e
-   `.refine_zeny_cont` pela proxima tentativa; o traco cobre o vao em que
-   nenhum dos dois tem numero. `:empty` faz a escolha sozinho — sem isso, o
-   rodape mostrava "— 20.000" no estado de resultado. */
-#Refine .refine_zeny:empty,
-#Refine .refine_zeny_cont:empty {
-	display: none;
+/*
+ * BIPARTIDA, e nao "preenchida": o trilho E o vermelho.
+ *
+ * Uma barra comum diz "quanto ja andou". Esta diz OUTRA coisa — quanto do dado
+ * e seu e quanto e da casa —, e por isso o que sobra nao pode ser um trilho
+ * neutro. A cor nunca e o unico portador: a porcentagem esta escrita acima e a
+ * consequencia da falha esta escrita na ficha abaixo.
+ */
+#Refine .rf-risco-barra {
+	position: relative;
+	height: 12px;
+	border-radius: var(--radius-pill);
+	overflow: hidden;
+	background: linear-gradient(180deg, var(--red-300) 0%, var(--red-600) 100%);
+	border: 1px solid var(--border-hairline);
+	box-shadow: var(--well-shadow);
 }
 
-#Refine .rf-custo:has(.refine_zeny:not(:empty)) .rf-custo-vazio,
-#Refine .rf-custo:has(.refine_zeny_cont:not(:empty)) .rf-custo-vazio {
-	display: none;
+#Refine .rf-risco-sucesso {
+	height: 100%;
+	width: 0;
+	border-radius: var(--radius-pill);
+	background: var(--exp-fill);
+	transition: width var(--dur-base) var(--ease-out);
 }
 
-#Refine .rf-custo:not(:has(.refine_zeny:not(:empty))):not(:has(.refine_zeny_cont:not(:empty))) .rf-custo-unidade {
-	display: none;
-}
-
-#Refine .rf-custo-vazio {
-	color: var(--text-muted);
-}
-
-#Refine .rf-custo-unidade {
-	margin-left: 3px;
+#Refine .rf-risco-nota {
+	margin: var(--sp-2) 0 0;
+	min-height: 13px;
 	font: var(--type-desc);
 	color: var(--text-muted);
+}
+
+#Refine .rf-risco-nota.esta-alerta {
+	color: var(--amber-600);
+}
+
+/* ─── AS TRES FICHAS ────────────────────────────────────────────────────── */
+
+#Refine .rf-fatos {
+	/* `auto` no topo: as fichas encostam no rodape da bancada, e a folga que
+	   sobrar fica ACIMA delas em vez de esticar a barra de risco. */
+	margin-top: auto;
+	flex: 0 0 auto;
+	display: flex;
+	gap: var(--sp-3);
+}
+
+/* O CUSTO tem largura FIXA (cabe "999.999 z") e o material fica com todo o
+   resto: ele e o unico com duas informacoes mais um icone, e foi ele que
+   truncou nas duas primeiras fotos de 07/09. */
+#Refine .rf-fato--taxa {
+	flex: 0 0 92px;
+}
+
+#Refine .rf-fato {
+	flex: 1 1 0;
+	min-width: 0;
+	box-sizing: border-box;
+	display: flex;
+	flex-direction: column;
+	gap: var(--sp-2);
+	padding: var(--sp-3);
+	border-radius: var(--radius-card);
+	background: var(--surface-card);
+	border: 1px solid var(--border-hairline);
+	box-shadow: var(--shadow-card);
+}
+
+#Refine .rf-fato-rotulo {
+	font: var(--type-desc);
+	color: var(--text-muted);
+	letter-spacing: var(--ls-caps);
+	text-transform: uppercase;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+#Refine .rf-fato-corpo {
+	display: flex;
+	align-items: center;
+	gap: var(--sp-2);
+	min-width: 0;
+	font: var(--type-label);
+	color: var(--text-body);
+}
+
+#Refine .rf-mat-icone {
+	flex: 0 0 auto;
+	width: 26px;
+	height: 26px;
+	border-radius: var(--radius-card);
+}
+
+#Refine .rf-mat-texto,
+#Refine .rf-taxa-valor {
+	min-width: 0;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+/* "Falta o minerio" e "o zeny nao da" sao a MESMA familia de defeito para o
+   jogador: falta recurso. Uma cor so para as duas. */
+#Refine .rf-fato.esta-faltando .rf-fato-corpo {
+	color: var(--red-600);
 }
 
 /* ─── Rodape ────────────────────────────────────────────────────────────── */
 
-#Refine .footer {
+#Refine .rf-rodape {
 	flex: 0 0 46px;
 	box-sizing: border-box;
 	display: flex;
 	align-items: center;
-	gap: 8px;
-	padding: 0 13px;
+	gap: var(--sp-4);
+	padding: 0 var(--sp-6);
 	border-top: var(--divider);
 	background: var(--surface-glass);
 }
 
-#Refine .some_notifs {
+#Refine .rf-bolso {
+	flex: 0 0 auto;
+	display: flex;
+	flex-direction: column;
+	line-height: var(--lh-tight);
+}
+
+#Refine .rf-bolso-rotulo {
+	font: var(--type-desc);
+	color: var(--text-muted);
+	letter-spacing: var(--ls-caps);
+	text-transform: uppercase;
+}
+
+#Refine .rf-bolso-valor {
+	font: var(--type-numeric);
+	color: var(--zeny);
+	font-variant-numeric: tabular-nums;
+}
+
+/* O motivo do botao apagado. Ele e a peca que a janela anterior nao tinha:
+   la o botao NAO EXISTIA ate o material ser escolhido, e "nao tem o botao de
+   refinar" foi a frase do dono. */
+#Refine .rf-motivo {
 	flex: 1 1 auto;
 	min-width: 0;
-}
-
-#Refine .info_msg {
-	display: block;
 	font: var(--type-desc);
-	line-height: 1.2;
+	color: var(--text-muted);
+	text-align: right;
+	white-space: nowrap;
 	overflow: hidden;
+	text-overflow: ellipsis;
 }
 
-#Refine .info_msg.red {
+#Refine .rf-motivo.esta-vermelho {
 	color: var(--red-600);
 }
 
-#Refine .info_msg.blue {
-	color: var(--text-link);
+#Refine .rf-motivo.esta-verde {
+	color: var(--green-600);
 }
 
-#Refine .rf-acoes {
+#Refine .rf-acao {
 	flex: 0 0 auto;
-	margin-left: auto;
-	display: flex;
-	align-items: center;
-	gap: 6px;
-}
-
-/* Os tres grupos de botao dividem o mesmo canto e o JS acende UM por vez
-   (`display: block`), entao eles sao itens de flex que somem sem deixar vao.
-   As larguras somam 254 no estado mais cheio (Cancelar + Voltar + Refinar de
-   novo + 2 folgas), dentro dos 266 uteis do rodape. */
-#Refine .rf-acoes .ri-btn {
-	height: 28px;
-	padding: 0 8px;
-	font-size: var(--fs-desc);
-	/* `line-height` + `text-align` em vez de so `inline-flex`: o JS acende
-	   estes botoes com `style.display = 'block'`, e inline style vence a
-	   folha — sem isto o rotulo colava no topo assim que o botao aparecia. */
-	line-height: 26px;
-	text-align: center;
+	min-width: 126px;
+	height: 30px;
+	padding: 0 var(--sp-6);
+	font-size: var(--fs-info);
 	white-space: nowrap;
 }
 
-#Refine .cancel {
-	flex: 0 0 auto;
-	width: 62px;
-}
+/* ─── Tela estreita (celular em pe) ─────────────────────────────────────── */
 
-#Refine .back_button,
-#Refine .refine_button,
-#Refine .refine_cont {
-	position: relative;
-	height: 28px;
-}
+/*
+ * A janela vira COLUNA e o trilho vira uma faixa curta em cima. O palco SAI:
+ * ele e arte de ambiente, e num aparelho onde a altura e o recurso caro a
+ * decisao (risco, material, custo) vale mais que a fornalha.
+ *
+ * Os numeros voltam a aparecer nos DOIS seletores pela razao do cabecalho.
+ */
+@media (max-width: 520px) {
+	:host {
+		width: calc(100vw - 16px);
+		max-width: 468px;
+		/*
+		 * 470, e nao 418. Com 418 a bancada precisava de 197px e tinha 174: as
+		 * tres fichas subiam POR CIMA do rodape — visivel na foto vertical de
+		 * 07/09, e invisivel para a medida de transbordo, que olhava
+		 * `scrollHeight` e nao a colisao. A conta agora:
+		 *   470 - 34 (cabecalho) - 46 (rodape) - 2 (borda) = 388 de corpo
+		 *   388 - 160 (trilho) = 228 de bancada, 204 uteis contra 197 pedidos.
+		 */
+		height: 470px;
+	}
 
-#Refine .back_button {
-	width: 62px;
-}
+	#Refine {
+		width: 100%;
+		height: 470px;
+	}
 
-#Refine .refine_button {
-	width: 92px;
-}
+	#Refine .rf-corpo {
+		flex-direction: column;
+	}
 
-#Refine .refine_cont {
-	width: 118px;
-}
+	#Refine .rf-trilho {
+		flex: 0 0 160px;
+		border-right: none;
+		border-bottom: var(--divider);
+	}
 
-/* As peles empilham no mesmo lugar; o JS acende a que vale. */
-#Refine .back_button > .ri-btn,
-#Refine .refine_button > .ri-btn,
-#Refine .refine_cont > .ri-btn {
-	position: absolute;
-	inset: 0;
-	width: 100%;
-}
+	#Refine .rf-palco {
+		display: none;
+	}
 
-/* Centraliza por `line-height`, NAO por flex: o JS acende este rotulo com
-   `style.display = 'block'`, e um inline style de display sempre vence a
-   folha — com flex aqui o texto perdia o centro vertical na hora de aparecer.
-   A mesma razao vale para os botoes acima. */
-#Refine .refine_text_cont {
-	position: absolute;
-	inset: 0;
-	font: var(--type-label);
-	font-size: var(--fs-desc);
-	line-height: 28px;
-	text-align: center;
-	color: var(--white);
-	pointer-events: none;
-}
-
-/* Quando a pele acesa e a DESLIGADA o rotulo tem de acompanhar a
-   dessaturacao, senao ficava um texto branco vivo sobre um botao apagado. */
-#Refine .refine_cont:has(.success_refine_cont_disabled[style*='block']) .refine_text_cont,
-#Refine .refine_cont:has(.fail_refine_cont_disabled[style*='block']) .refine_text_cont {
-	color: rgba(255, 255, 255, 0.7);
-}
-
-/* `.refine_cont` recebe a classe `.item` do JS so para carregar o
-   `data-index` da dica — nao e um ladrilho de item, e nao deve herdar nada
-   de `.item`. */
-#Refine .refine_cont.item {
-	display: block;
-}
-
-/* ─── Dica flutuante (nome do item sob o cursor) ────────────────────────── */
-
-#Refine .overlay {
-	position: absolute;
-	display: none;
-	white-space: nowrap;
-	z-index: 900;
-	border-radius: var(--radius-card);
-	padding: var(--sp-2) var(--sp-4);
-	background: var(--surface-dark-glass);
-	backdrop-filter: var(--blur-glass);
-	-webkit-backdrop-filter: var(--blur-glass);
-	color: var(--white);
-	font: var(--type-desc);
-	text-shadow: 0 1px 2px rgba(8, 22, 40, 0.85);
-	pointer-events: none;
-}
-
-#Refine .overlay.grey {
-	color: rgba(255, 255, 255, 0.62);
+	/* A rede de seguranca: um nome de minerio comprido ou uma fonte maior nao
+	   podem devolver a colisao com o rodape. Em aparelho de dedo o TRILHO da
+	   barra some sozinho (D-941), entao isto nao traz barra azul de volta. */
+	#Refine .rf-bancada {
+		overflow-y: auto;
+	}
 }

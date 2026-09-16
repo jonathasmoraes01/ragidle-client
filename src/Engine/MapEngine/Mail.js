@@ -166,7 +166,7 @@ function mailReqOpen(inforMail) {
 function mailDelete(result) {
 	if (!result.Result) {
 		// An auction with at least one bidder cannot be canceled.
-		ChatBox.addText(DB.getMessage(1038), ChatBox.TYPE.INFO_MAIL, ChatBox.FILTER.PUBLIC_LOG);
+		ChatBox.addText(DB.getMessage(1038), ChatBox.TYPE.MAIL, ChatBox.FILTER.PUBLIC_LOG);
 		ReadMail.remove();
 		Mail.parseMailrefreshinbox();
 	}
@@ -228,7 +228,7 @@ function mailSend(result) {
 		// clear zeny and item field
 		Mail.clearFieldsItemZeny();
 	} else {
-		ChatBox.addText(DB.getMessage(1031), ChatBox.TYPE.INFO_MAIL, ChatBox.FILTER.PUBLIC_LOG);
+		ChatBox.addText(DB.getMessage(1031), ChatBox.TYPE.MAIL, ChatBox.FILTER.PUBLIC_LOG);
 		ReadMail.remove();
 	}
 }
@@ -260,7 +260,7 @@ function mailNew(result) {
  */
 function mailReturn(result) {
 	if (result.MailID != 0 && result.Result === 0) {
-		ChatBox.addText(DB.getMessage(1176), ChatBox.TYPE.INFO_MAIL, ChatBox.FILTER.PUBLIC_LOG);
+		ChatBox.addText(DB.getMessage(1176), ChatBox.TYPE.MAIL, ChatBox.FILTER.PUBLIC_LOG);
 		ReadMail.remove();
 		Mail.parseMailrefreshinbox();
 	}

@@ -33,7 +33,7 @@ class UIVersionManager {
 			}
 		}
 
-		// Rag Idle: OVERRIDE por config (uiVersions). O seletor decide so pelo
+		// Ragnarok Classic Idle: OVERRIDE por config (uiVersions). O seletor decide so pelo
 		// packetver, mas a arte da versao nova pode NAO existir no GRF em uso:
 		// o ROLatam daqui nao tem os bitmaps da WinLoginV2 (bt_start_normal,
 		// bg_login.tga...), e a tela vinha invisivel com so o hover aparecendo.

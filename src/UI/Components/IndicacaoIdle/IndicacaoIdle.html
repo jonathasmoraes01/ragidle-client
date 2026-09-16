@@ -1,0 +1,54 @@
+<div id="IndicacaoIdle">
+	<div class="in-window ri-window ri-anima">
+		<div class="in-titlebar ri-header">
+			<span class="in-title ri-title">Indique &amp; Ganhe</span>
+			<button type="button" class="in-close ri-close" title="Fechar">&times;</button>
+		</div>
+
+		<div class="in-body ri-scroll">
+			<p class="in-chamada">
+				Convide amigos e ganhe <strong class="in-taxa">10%</strong> em cash de
+				<strong>tudo que eles gastarem</strong> — pra sempre.
+			</p>
+
+			<!-- O LINK: campo somente leitura + Copiar. O codigo aparece a parte
+			     porque quem esta no celular do amigo prefere ditar seis letras. -->
+			<section class="in-cartao ri-card">
+				<div class="in-rotulo">Seu link de convite</div>
+				<div class="in-link-linha">
+					<input type="text" class="in-link ri-input" readonly value="" aria-label="Link de convite">
+					<button type="button" class="in-copiar ri-btn">Copiar</button>
+				</div>
+				<div class="in-codigo-linha">Código: <strong class="in-codigo">······</strong></div>
+			</section>
+
+			<!-- OS CONTADORES -->
+			<div class="in-contadores">
+				<div class="in-contador ri-card">
+					<div class="in-contador-rotulo">Indicados</div>
+					<div class="in-contador-valor in-indicados-total">0</div>
+				</div>
+				<div class="in-contador ri-card">
+					<div class="in-contador-rotulo">Ganhos</div>
+					<div class="in-contador-valor in-ganhos"><span class="in-cash-glifo" aria-hidden="true">◆</span><span class="in-ganhos-valor">0</span></div>
+				</div>
+			</div>
+
+			<!-- QUEM ME INDICOU — ou o campo para usar um codigo, enquanto a conta e nova. -->
+			<section class="in-indicado-por"></section>
+
+			<!-- A LISTA DOS INDICADOS -->
+			<section class="in-lista">
+				<div class="in-rotulo">Seus indicados <span class="in-lista-total"></span></div>
+				<div class="in-chips"></div>
+			</section>
+
+			<!-- O AVISO DO CONCORRENTE, QUE O DONO QUIS IGUAL -->
+			<p class="in-aviso">
+				<span class="in-aviso-glifo" aria-hidden="true">⚠</span>
+				Este sistema está <strong>em teste</strong>. Estamos avaliando seu impacto
+				na economia do jogo e ele pode ser ajustado ou <strong>removido</strong> no futuro.
+			</p>
+		</div>
+	</div>
+</div>

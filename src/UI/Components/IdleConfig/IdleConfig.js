@@ -65,18 +65,21 @@ import ChatBox from 'UI/Components/ChatBox/ChatBox.js';
 import GUIComponent from 'UI/GUIComponent.js';
 import RiIcones from 'UI/ri-icones.js';
 import { pocoesDoEixo, escolherPocaoPadrao } from './escolhaDePocao.js';
+import { aplicarIconeDoItem, nomeLocalDoItem } from 'UI/itemNaTela.js';
 import {
 	ABAS_ACEITAS,
 	ABA_PADRAO,
 	TETO_DA_ORDEM,
 	TETO_DE_BUFFS,
 	abaCanonica,
+	alternarColeta,
 	alternarCura,
 	alvoDoBuff,
 	contarAlteracoes,
 	curaNaRotacao,
 	duracaoCurta,
-	resumoDaSecao
+	resumoDaSecao,
+	curaLigadaPara
 } from './secoesDaConfig.js';
 import htmlText from './IdleConfig.html?raw';
 import cssText from './IdleConfig.css?raw';
@@ -242,9 +245,43 @@ function setPath(obj, path, value) {
  * desde D-1000, e uma resposta de servidor mais antigo (sem o campo) cai no
  * mesmo padrao que ele usaria — metade da barra, grupo.
  */
-function garantirCura(cfg) {
+/**
+ * A FAIXA DA ASA (11/09/2026) - os MESMOS numeros de `servidor/idle/teleporte.ts`
+ * (`SEGUNDOS_DE_OCIOSIDADE_MIN/MAX`). Divergir faria a barrinha oferecer um
+ * valor que o Aplicar recusa, que e exatamente o defeito que D-1060 registrou
+ * quando o teto de buffs morava em dois lugares.
+ */
+const ASA_MIN_S = 3;
+const ASA_MAX_S = 20;
+
+/**
+ * `setPath` nao cria objeto no meio do caminho, entao o bloco precisa existir
+ * antes de a barrinha escrever nele. O servidor ja desce com `asa` resolvida;
+ * isto cobre a config antiga que ficou no rascunho.
+ */
+function garantirAsa(cfg) {
+	if (!cfg.asa || typeof cfg.asa !== 'object') {
+		cfg.asa = { ligada: true, teleportarApos: 10 };
+	}
+	return cfg.asa;
+}
+
+function garantirCura(cfg, ctx) {
 	if (!cfg.cura || typeof cfg.cura !== 'object') {
 		cfg.cura = { alvo: 'grupo', curarAbaixoDe: 50 };
+	}
+	// 08/09/2026: por habilidade. `setPath` nao cria objeto no meio do caminho,
+	// entao a entrada de cada cura aprendida nasce AQUI, herdando o interruptor e
+	// o alvo gerais — e a escolha unica da manha (`skillId`) sai do contrato.
+	const curas = (ctx && ctx.skillsDeCura) || [];
+	if (curas.length) {
+		if (!cfg.cura.habilidades || typeof cfg.cura.habilidades !== 'object') cfg.cura.habilidades = {};
+		for (const c of curas) {
+			if (!cfg.cura.habilidades[c.skillId]) {
+				cfg.cura.habilidades[c.skillId] = { ligada: cfg.cura.ligada !== false, alvo: cfg.cura.alvo || 'grupo' };
+			}
+		}
+		if ('skillId' in cfg.cura) delete cfg.cura.skillId;
 	}
 	return cfg.cura;
 }
@@ -339,11 +376,11 @@ function ligarInstalar() {
 	const botao = root && root.querySelector('.ic-instalar-btn');
 	if (botao && !botao.__ligado) {
 		botao.__ligado = true;
-		botao.addEventListener('click', (e) => {
+		botao.addEventListener('click', e => {
 			e.stopImmediatePropagation();
 			const ponte = pontePWA();
 			if (!ponte) return;
-			Promise.resolve(ponte.instalar()).then((resultado) => {
+			Promise.resolve(ponte.instalar()).then(resultado => {
 				const sub = _root().querySelector('.ic-instalar-sub');
 				/* Diz o que aconteceu, inclusive quando não deu — recusar a
 				   instalação é uma escolha legítima e o jogo não vai insistir. */
@@ -627,12 +664,30 @@ function onConfigReceived(pkt) {
 	IdleConfig.problemas = rejected ? data.problemas : [];
 
 	if (!rejected) {
-		// Either the initial "pedir" answer, or a successful "aplicar":
-		// adopt the server's config as the new baseline AND the new draft.
+		/*
+		 * A BASE anda sempre; o RASCUNHO so quando nao ha rascunho (07/09/2026).
+		 *
+		 * Desde esta data o servidor EMPURRA a config a cada gravacao — aprender
+		 * skill, promocao, vestir equipamento, o clique na lista de skills. O
+		 * empurrao existe para o `serverConfig` nunca ficar velho: o botao de
+		 * Cacar (`alternarCacaAutomatica`) monta o pedido a partir dele, e uma
+		 * copia velha reenviava a rotacao de antes — foi assim que "Primeiros
+		 * Socorros voltava sozinha" depois de o jogador a tirar pela janela de
+		 * habilidades.
+		 *
+		 * O preco de adotar o pacote inteiro seria APAGAR o rascunho do jogador
+		 * no meio de uma edicao, e agora isso aconteceria varias vezes por
+		 * sessao. Entao: a base adota sempre (e ela que o botao de Cacar usa), e
+		 * o rascunho so e substituido quando nao ha rascunho a perder.
+		 */
 		IdleConfig.serverConfig = data.config;
-		IdleConfig.editConfig = cloneConfig(data.config);
-		garantirCura(IdleConfig.editConfig);
-		IdleConfig.dirty = false;
+		const temRascunho = IdleConfig.dirty && !isApplyResponse;
+		if (!temRascunho) {
+			IdleConfig.editConfig = cloneConfig(data.config);
+			garantirCura(IdleConfig.editConfig);
+			garantirAsa(IdleConfig.editConfig);
+			IdleConfig.dirty = false;
+		}
 		// Em cidade o aviso mora AQUI (D-359): a janela edita normalmente e o
 		// rodape lembra que a caca so comeca fora da cidade.
 		setStatus(
@@ -869,6 +924,32 @@ function bindGenericControls(el) {
 		});
 	});
 
+	/*
+	 * R16/C2-5 (14/09/2026): o modo da poção automática — outro booleano de
+	 * UI mapeado para um ENUM (`modo: 'item_especifico' | 'qualquer'`,
+	 * contrato v1 do jr-C1), pela mesma razão de `data-modo-basico` logo
+	 * abaixo. Desligar (voltar a "item_especifico") reaproveita a MESMA
+	 * escolha de default do toggle geral — sem isso o `<select>` reapareceria
+	 * ainda apontando pro itemId antigo, que pode nem ser mais valido.
+	 */
+	el.querySelectorAll('[data-modo-pocao]').forEach(input => {
+		input.addEventListener('change', () => {
+			const campo = input.dataset.modoPocao;
+			const pocao = IdleConfig.editConfig[campo];
+			pocao.modo = input.checked ? 'qualquer' : 'item_especifico';
+			if (pocao.modo === 'item_especifico') {
+				const disponiveis = pocoesDoEixo(
+					IdleConfig.contexto && IdleConfig.contexto.consumiveisDeCura,
+					campo === 'pocaoDeSp' ? 'curaSp' : 'curaHp'
+				);
+				pocao.itemId = escolherPocaoPadrao(disponiveis, pocao.itemId);
+			}
+			markDirty();
+			renderMaster();
+			renderBody();
+		});
+	});
+
 	// D-342: 'Desligar o golpe básico' mapeia um booleano de UI para o ENUM
 	// modoDeAtaque — por isso não cabe no data-bool genérico. MARCADO =
 	// 'apenas-skills' (D-361).
@@ -891,8 +972,9 @@ function bindGenericControls(el) {
 		const path = range.dataset.range;
 		range.addEventListener('input', () => {
 			setPath(IdleConfig.editConfig, path, Number(range.value));
+			const sufixo = range.dataset.rangeSufixo || '%';
 			el.querySelectorAll(`[data-range-display="${path}"]`).forEach(disp => {
-				disp.textContent = range.value + '%';
+				disp.textContent = range.value + sufixo;
 			});
 			markDirty();
 		});
@@ -940,11 +1022,18 @@ function onSliderSettled(path) {
 
 /* ─── Peças de markup compartilhadas ─────────────────────────────── */
 
-function switchRow(path, checked, label, sub, disabled) {
+/**
+ * @param {string} attrName - R16/C2-5 (14/09/2026): o interruptor de MODO da
+ *   poção automática nao escreve um booleano solto por `data-bool` (o campo
+ *   real é um enum, `modo: 'item_especifico'|'qualquer'`) — precisa do
+ *   proprio handler (`data-modo-pocao`, ver bindGenericControls). Omitido,
+ *   o comportamento é o de sempre.
+ */
+function switchRow(path, checked, label, sub, disabled, attrName = 'data-bool') {
 	return `
 		<label class="ic-switch-row">
 			<span class="ic-switch">
-				<input type="checkbox" data-bool="${path}" ${checked ? 'checked' : ''} ${disabled ? 'disabled' : ''} />
+				<input type="checkbox" ${attrName}="${path}" ${checked ? 'checked' : ''} ${disabled ? 'disabled' : ''} />
 				<span class="ic-switch-track"></span>
 			</span>
 			<span class="ic-switch-text">
@@ -1043,6 +1132,8 @@ function renderCaca() {
 				<span>Recolher o que cai no chão</span>
 			</label>
 			<div class="ic-note">Experiência e zeny entram sempre; só os itens dependem disto.</div>
+			${renderFiltroDeColeta()}
+			${renderAsa()}
 			<div class="ri-divisor"></div>
 			<label class="ic-switch-row">
 				<span class="ic-switch">
@@ -1055,6 +1146,95 @@ function renderCaca() {
 				</span>
 			</label>
 		</div>`;
+}
+
+/**
+ * O FILTRO DE COLETA (D-1348 — a D-1165 do dono: *"fica o filtro de coleta
+ * (lista negativa)"*). Mora em Caçada, logo abaixo da chave que ele refina: a
+ * chave decide SE recolhe; o filtro, O QUE fica de fora. Com a chave desligada
+ * ele aparece desabilitado — não haveria o que filtrar.
+ *
+ * Os chips são os drops DESTE mapa e o que já está na lista (o servidor manda os
+ * dois em `itensDoFiltro`); o nome é o do cliente instalado quando ele o tem,
+ * como no Mapa de Caça. O desenho é o das presas, de propósito: o jogador já
+ * aprendeu que o chip marcado é o que entra.
+ */
+function renderFiltroDeColeta() {
+	const cfg = IdleConfig.editConfig;
+	const ctx = IdleConfig.contexto || {};
+	const itens = ctx.itensDoFiltro || [];
+	if (!itens.length) {
+		return '';
+	}
+	const fora = new Set(cfg.itensNaoColetados || []);
+	const ativo = cfg.coletarItens !== false;
+	const chips = itens
+		.map(it => {
+			const nome = nomeLocalDoItem(it.itemId, it.nome);
+			const desligado = fora.has(it.itemId);
+			const dica = it.caiAqui ? nome : `${nome} — não cai neste mapa`;
+			return `
+			<label class="ic-presa ic-presa--item${desligado ? ' is-off' : ''}" title="${escapeHtml(dica)}">
+				<input type="checkbox" data-item-toggle="${it.itemId}" ${desligado ? '' : 'checked'} ${ativo ? '' : 'disabled'} />
+				<span class="ic-presa-avatar"><img data-item-icon="${it.itemId}" alt="" /></span>
+				<span class="ic-presa-nome">${escapeHtml(nome)}</span>
+				<span class="ic-presa-check">${RiIcones.confere}</span>
+			</label>`;
+		})
+		.join('');
+	return `
+		<div class="ri-divisor"></div>
+		<div class="ic-subsection${ativo ? '' : ' ic-subsection-disabled'}">
+			<div class="ic-field-row">
+				<span>Itens que ele recolhe</span>
+				<span class="ic-card-meta">${fora.size ? `${fora.size} de fora` : 'todos'}</span>
+			</div>
+			<div class="ic-note">Desmarque o que não quer na mochila. O que ninguém desmarcou — inclusive o drop novo — continua entrando.</div>
+			<div class="ic-presas ic-presas--itens">${chips}</div>
+		</div>`;
+}
+
+/**
+ * A ASA DE MOSCA AUTOMATICA (11/09/2026 - ordem do dono: *"preciso que essa asa
+ * de mosca fique visivel no menu, seja possivel ativar e seja possivel
+ * configurar"*).
+ *
+ * Ela mora em **Caçada**, e nao em Consumiveis, porque o que ela decide e PARA
+ * ONDE ir quando o mapa seca - e a pergunta da cacada. O desenho e o mesmo da
+ * cura (interruptor + barrinha) de proposito: o jogador ja aprendeu esse par.
+ *
+ * O gatilho e do passe VIP. Sem passe o controle aparece DESABILITADO em vez de
+ * sumir: esconder faria o jogador comum procurar no menu uma coisa que o post
+ * de patch anunciou - que foi literalmente a primeira pergunta do dono.
+ */
+function renderAsa() {
+	const cfg = IdleConfig.editConfig;
+	const ctx = IdleConfig.contexto;
+	const asa = garantirAsa(cfg);
+	const ehVip = !!(ctx && ctx.ehVip);
+	const asas = (ctx && ctx.asasNaMochila) || 0;
+	const ligada = asa.ligada !== false;
+
+	return `
+		<div class="ri-divisor"></div>
+		${switchRow(
+			'asa.ligada',
+			ligada,
+			'Usar Asa de Mosca sozinho',
+			'Durante a caça, se passar o tempo escolhido sem atacar nenhum monstro, o personagem gasta uma Asa e reaparece noutro canto. Cada ataque zera a contagem.',
+			!ehVip
+		)}
+		<div class="ic-subsection${ehVip && ligada ? '' : ' ic-subsection-disabled'}">
+			<div class="ic-field-row">
+				<span>Teleportar após <span class="ic-inline-value" data-range-display="asa.teleportarApos">${asa.teleportarApos}s</span> sem atacar</span>
+			</div>
+			<input type="range" class="ic-slider" min="${ASA_MIN_S}" max="${ASA_MAX_S}" step="1" value="${asa.teleportarApos}" data-range="asa.teleportarApos" data-range-sufixo="s" ${ehVip && ligada ? '' : 'disabled'} />
+		</div>
+		${
+			ehVip
+				? `<div class="ic-note${asas ? '' : ' ic-note-warn'}">${asas ? `${asas} Asa${asas === 1 ? '' : 's'} de Mosca na mochila — cada viagem gasta uma.` : 'Nenhuma Asa de Mosca na mochila: compre no NPC de itens para o gatilho ter o que usar.'}</div>`
+				: '<div class="ic-note ic-note-warn">O uso automático é do passe VIP. Sem ele a Asa continua sua: use pela mochila, com 4 s de espera entre uma e outra.</div>'
+		}`;
 }
 
 function bindCacaExtra(pane) {
@@ -1086,6 +1266,25 @@ function bindCacaExtra(pane) {
 			renderBody();
 		});
 	}
+
+	pane.querySelectorAll('[data-item-icon]').forEach(img => aplicarIconeDoItem(img, Number(img.dataset.itemIcon)));
+
+	pane.querySelectorAll('[data-item-toggle]').forEach(input => {
+		input.addEventListener('change', () => {
+			const cfg = IdleConfig.editConfig;
+			const nova = alternarColeta(cfg.itensNaoColetados, Number(input.dataset.itemToggle), input.checked);
+			// Lista vazia num servidor que nunca teve o campo e "nada mudou": sem
+			// isto, desmarcar e remarcar o mesmo item contaria uma alteracao.
+			const servidorTem = !!(IdleConfig.serverConfig && 'itensNaoColetados' in IdleConfig.serverConfig);
+			if (nova.length === 0 && !servidorTem) {
+				delete cfg.itensNaoColetados;
+			} else {
+				cfg.itensNaoColetados = nova;
+			}
+			markDirty();
+			renderBody();
+		});
+	});
 
 	pane.querySelectorAll('[data-mob-toggle]').forEach(input => {
 		input.addEventListener('change', () => {
@@ -1225,11 +1424,11 @@ function renderAtaque() {
 	 */
 	const curasAprendidas = (ctx.skillsDeCura || []).length;
 	const curasNaOrdem = rotacao.filter(r => curas.has(r.skillId)).length;
+	// 08/09/2026 (ordem do dono): a cura NAO divide mais estas vagas — ela e
+	// suporte. A nota aponta para onde ela mora, pelo nome da habilidade.
+	const nomesDasCuras = (ctx.skillsDeCura || []).map(c => escapeHtml(c.nome || c.skillId)).join(' e ');
 	const notaDeCura = curasAprendidas
-		? `<div class="ic-note">Cura e golpe dividem estas ${TETO_DA_ORDEM} vagas de propósito: as duas são
-			lançadas na luta, e o personagem escolhe a primeira que puder usar. Uma cura só sai quando a vida
-			cai abaixo do limiar — o limiar e o alvo (você ou o grupo) ficam na seção <strong>Suporte</strong>.
-			${curasNaOrdem ? `Você tem ${curasNaOrdem === 1 ? 'uma cura' : `${curasNaOrdem} curas`} na ordem.` : 'Nenhuma cura na ordem agora.'}</div>`
+		? `<div class="ic-note">${nomesDasCuras} ${curasAprendidas === 1 ? 'é habilidade de suporte e não ocupa' : 'são habilidades de suporte e não ocupam'} vaga aqui: ${curasAprendidas === 1 ? 'ela é usada sozinha' : 'elas são usadas sozinhas'} quando a vida cai abaixo do limiar. O interruptor, o limiar e o alvo (você ou o grupo) ficam na seção <strong>Suporte</strong>.</div>`
 		: '';
 
 	return `
@@ -1421,7 +1620,7 @@ function renderCura() {
 	const cfg = IdleConfig.editConfig;
 	const ctx = IdleConfig.contexto;
 	const curas = ctx.skillsDeCura || [];
-	const cura = garantirCura(cfg);
+	const cura = garantirCura(cfg, ctx);
 
 	if (!curas.length) {
 		return `
@@ -1431,43 +1630,55 @@ function renderCura() {
 		</div>`;
 	}
 
-	const naRotacao = curaNaRotacao(cfg, ctx);
-	const ligada = !!naRotacao;
-	const habilidade = naRotacao ? curas.find(c => c.skillId === naRotacao.skillId) || curas[0] : curas[0];
-	const semVaga = !ligada && (cfg.rotacao || []).length >= TETO_DA_ORDEM;
-	const alcanca = !!(habilidade && habilidade.alcancaGrupo);
+	// 08/09/2026 (ordem do dono): a configuracao e POR HABILIDADE — cada cura
+	// aprendida tem o proprio "Curar automaticamente" e o proprio "Quem curar"
+	// ("nao quero mais usar Primeiros Socorros, mas quero que Curar funcione").
+	// O limiar e UM so, porque o motor tem um portao de HP unico. A cura nao
+	// mora na ordem de golpes (D-1201): o servidor a antepoe sozinho.
+	const ordenadas = curas
+		.slice()
+		.sort((a, b) => (b.custoSp || 0) - (a.custoSp || 0) || (b.aprendido || 0) - (a.aprendido || 0));
+	const ligadas = ordenadas.filter(c => curaLigadaPara(cura, c.skillId));
+	const algumaLigada = ligadas.length > 0;
+	const cartoes = ordenadas
+		.map(c => {
+			const ligada = curaLigadaPara(cura, c.skillId);
+			const alcanca = !!c.alcancaGrupo;
+			const ajuste = (cura.habilidades && cura.habilidades[c.skillId]) || {};
+			const alvo = ajuste.alvo || cura.alvo || 'grupo';
+			return `
+			<div class="ic-cura-item">
+				<label class="ic-switch-row">
+					<span class="ic-switch">
+						<input type="checkbox" data-action="cura-toggle" data-skill="${escapeHtml(c.skillId)}" ${ligada ? 'checked' : ''} />
+						<span class="ic-switch-track"></span>
+					</span>
+					<span class="ic-switch-text">
+						<span class="ic-switch-label">${escapeHtml(c.nome || c.skillId)} <span class="ic-card-meta">Nv ${c.aprendido} · ${c.custoSp} SP</span></span>
+						<span class="ic-switch-sub">${ligada ? 'Usada sozinha quando a barra cair abaixo do limite — não ocupa vaga na ordem de golpes.' : 'Desligada: o personagem não usa esta habilidade sozinho.'}</span>
+					</span>
+				</label>
+				<div class="ic-field-row ic-field-row--seg${ligada ? '' : ' ic-subsection-disabled'}">
+					<span>Quem curar</span>
+					${segmentadoDeAlvo(`cura.habilidades.${c.skillId}.alvo`, alvo, alcanca, 'Quem curar')}
+				</div>
+			</div>`;
+		})
+		.join('');
 
 	return `
 		<div class="ic-card">
 			<div class="ic-card-head">
 				<h3>Cura</h3>
-				<span class="ic-card-meta">${escapeHtml(habilidade.nome || habilidade.skillId)} · Nv ${habilidade.aprendido} · ${habilidade.custoSp} SP</span>
+				<span class="ic-card-meta">${ligadas.length} de ${ordenadas.length} ligada${ordenadas.length === 1 ? '' : 's'}</span>
 			</div>
-			<label class="ic-switch-row">
-				<span class="ic-switch">
-					<input type="checkbox" data-action="cura-toggle" ${ligada ? 'checked' : ''} ${semVaga ? 'disabled' : ''} />
-					<span class="ic-switch-track"></span>
-				</span>
-				<span class="ic-switch-text">
-					<span class="ic-switch-label">Curar automaticamente</span>
-					<span class="ic-switch-sub">${ligada ? 'Ocupa a primeira vaga da ordem de golpes.' : 'Entra na primeira vaga da ordem de golpes.'}</span>
-				</span>
-			</label>
-			${semVaga ? '<div class="ic-note ic-note-warn">As três vagas da ordem de golpes estão ocupadas — tire um golpe na seção Ataque para ligar a cura.</div>' : ''}
-			<div class="ic-subsection${ligada ? '' : ' ic-subsection-disabled'}">
-				<div class="ic-field-row ic-field-row--seg">
-					<span>Quem curar</span>
-					${segmentadoDeAlvo('cura.alvo', cura.alvo, alcanca, 'Quem curar')}
-				</div>
+			${cartoes}
+			<div class="ic-subsection${algumaLigada ? '' : ' ic-subsection-disabled'}">
 				<div class="ic-field-row">
 					<span>Curar quem estiver abaixo de <span class="ic-inline-value" data-range-display="cura.curarAbaixoDe">${cura.curarAbaixoDe}%</span> de HP</span>
 				</div>
-				<input type="range" class="ic-slider" min="1" max="99" step="1" value="${cura.curarAbaixoDe}" data-range="cura.curarAbaixoDe" ${ligada ? '' : 'disabled'} />
-				<div class="ic-note">${
-					cura.alvo === 'grupo' && alcanca
-						? 'No grupo, cura o mais ferido que estiver no alcance da habilidade — mesmo com a sua barra cheia. Fora do grupo, cura você.'
-						: 'Cura você quando a barra cair abaixo do limiar.'
-				}</div>
+				<input type="range" class="ic-slider" min="1" max="99" step="1" value="${cura.curarAbaixoDe}" data-range="cura.curarAbaixoDe" ${algumaLigada ? '' : 'disabled'} />
+				<div class="ic-note">O limite vale para todas as curas ligadas. No grupo, a habilidade cura o mais ferido que estiver no alcance dela — mesmo com a sua barra cheia; fora do grupo, cura você.</div>
 			</div>
 		</div>`;
 }
@@ -1512,21 +1723,23 @@ function bindSuporteExtra(pane) {
 		});
 	}
 
-	const curaToggle = pane.querySelector('[data-action="cura-toggle"]');
-	if (curaToggle) {
+	pane.querySelectorAll('[data-action="cura-toggle"]').forEach(curaToggle => {
 		curaToggle.addEventListener('change', () => {
 			const cfg = IdleConfig.editConfig;
-			const nova = alternarCura(cfg, IdleConfig.contexto, curaToggle.checked);
-			if (nova === null) {
-				// Sem vaga ou sem habilidade: a tela já explica; o rascunho não muda.
-				renderBody();
-				return;
-			}
-			cfg.rotacao = nova;
+			const cura = garantirCura(cfg, IdleConfig.contexto);
+			const skillId = curaToggle.dataset.skill;
+			const atual = cura.habilidades[skillId] || { alvo: cura.alvo || 'grupo' };
+			const habilidades = { ...cura.habilidades, [skillId]: { ...atual, ligada: !!curaToggle.checked } };
+			// O interruptor geral acompanha as individuais (ligado se alguma estiver):
+			// e ele que uma habilidade SEM entrada propria herda no servidor.
+			cfg.cura = { ...cura, habilidades, ligada: Object.values(habilidades).some(h => h.ligada !== false) };
+			// Migracao: a cura que estava na ordem de golpes (o desenho de D-1132)
+			// sai dela — o servidor nao a aceita mais como golpe.
+			cfg.rotacao = alternarCura(cfg, IdleConfig.contexto, false);
 			markDirty();
 			renderBody();
 		});
-	}
+	});
 }
 
 /* ─── Seção: Sobrevivência ───────────────────────────────────────── */
@@ -1537,6 +1750,11 @@ function renderSobrevivencia() {
 	const d = cfg.descanso;
 	const canSentar = !!(ctx.capacidades && ctx.capacidades.sentarParaRecuperar);
 	const canSp = !!(ctx.capacidades && ctx.capacidades.pocaoDeSp);
+	// R16/C2-5 (14/09/2026): o modo "qualquer poção elegível" so' existe
+	// quando o servidor desta build declara a capacidade — sem ela o
+	// controle NAO APARECE (nada de botao que mente), mesmo padrao ja usado
+	// por `pocaoDeSp`/`suporteAoGrupo` no contrato v1.
+	const canAuto = !!(ctx.capacidades && ctx.capacidades.pocaoAutomatica);
 
 	return `
 		<div class="ic-card">
@@ -1582,20 +1800,28 @@ function renderSobrevivencia() {
 			<h3>Poções</h3>
 			<div class="ic-note">Bebidas entre as lutas, do inventário. Escolha o frasco e com quanto de barra beber.</div>
 			<div class="ic-duas">
-				${renderPocao('pocaoDeHp', cfg.pocaoDeHp, ctx.consumiveisDeCura, true, 'HP')}
-				${renderPocao('pocaoDeSp', cfg.pocaoDeSp, ctx.consumiveisDeCura, canSp, 'SP')}
+				${renderPocao('pocaoDeHp', cfg.pocaoDeHp, ctx.consumiveisDeCura, true, 'HP', canAuto)}
+				${renderPocao('pocaoDeSp', cfg.pocaoDeSp, ctx.consumiveisDeCura, canSp, 'SP', canAuto)}
 			</div>
 			${!canSp ? '<div class="ic-note ic-note-warn">Recuperação automática de SP não está disponível.</div>' : ''}
 		</div>`;
 }
 
-function renderPocao(fieldName, pocao, itens, enabled, label) {
+/**
+ * R16/C2-5 (14/09/2026): o eixo agora tem DOIS modos — "item_especifico"
+ * (o de sempre: escolhe UM frasco) e "qualquer" (o servidor troca sozinho
+ * quando o escolhido acabar; contrato v1 do jr-C1, `PocaoDoContrato`). O
+ * modo automático so' aparece com a capacidade `pocaoAutomatica` (parâmetro
+ * `canAuto`) — sem ela esta função desenha exatamente como antes.
+ */
+function renderPocao(fieldName, pocao, itens, enabled, label, canAuto) {
 	const campoDoEixo = fieldName === 'pocaoDeSp' ? 'curaSp' : 'curaHp';
 	const disponiveis = pocoesDoEixo(itens, campoDoEixo);
 	const temPocao = disponiveis.length > 0;
 	// O interruptor só liga se houver o que beber — e a escolha mostrada é a
 	// mesma que vai no payload (escolherPocaoPadrao roda no toggle).
 	const ligavel = enabled && temPocao;
+	const automatico = canAuto && pocao.modo === 'qualquer';
 	const selecionado = escolherPocaoPadrao(disponiveis, pocao.itemId);
 
 	const options = disponiveis
@@ -1608,10 +1834,22 @@ function renderPocao(fieldName, pocao, itens, enabled, label) {
 	return `
 		<div class="ic-eixo ic-pocao${ligavel ? '' : ' ic-subsection-disabled'}">
 			${switchRow(`${fieldName}.ligado`, pocao.ligado, `Poção de ${label}`, '', !ligavel)}
-			<select class="ic-select" data-select="${fieldName}.itemId" data-select-number="1" ${ligavel && pocao.ligado ? '' : 'disabled'}>
+			${
+				canAuto
+					? switchRow(
+							fieldName,
+							automatico,
+							'Automático (qualquer frasco elegível)',
+							'Troca sozinho quando o escolhido acabar, em vez de travar num só.',
+							!(ligavel && pocao.ligado),
+							'data-modo-pocao'
+						)
+					: ''
+			}
+			<select class="ic-select" data-select="${fieldName}.itemId" data-select-number="1" ${ligavel && pocao.ligado && !automatico ? '' : 'disabled'} ${automatico ? 'hidden' : ''}>
 				${options}
 			</select>
-			${!temPocao && enabled ? `<div class="ic-note ic-note-warn">Nenhum frasco que restaure ${label} no inventário.</div>` : ''}
+			${!temPocao && enabled ? `<div class="ic-note ic-note-warn">Nenhum frasco que restaure ${label} no inventário${automatico ? ' — o automático não tem o que escolher' : ''}.</div>` : ''}
 			<div class="ic-field-row">
 				<span>Beber com <span class="ic-inline-value" data-range-display="${fieldName}.usarCom">${pocao.usarCom}%</span> ou menos</span>
 			</div>
