@@ -6,21 +6,29 @@ import uiCssHmrPlugin from './vite/csshotreload.plugin.js';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const isDocker = process.env.RO_PROXY_TARGET === 'docker';
-const webTarget = isDocker ? 'http://rathena-web:8888' : 'http://127.0.0.1:8888';  
+
 /*
- * 8010 -> 8000 (07/09/2026, no merge).
+ * AS DUAS PORTAS SAO SOBRESCRITIVEIS POR AMBIENTE (rodada da Jornada de
+ * Midgard, 16/09/2026).
  *
- * O merge `0dc3f43f` trocou esta porta para 8010, e nenhum dos dois lados a
- * tinha antes — as duas branches diziam 8000, e o comentario logo abaixo, que
- * nao foi tocado, continua dizendo `remoteClientTarget -> 127.0.0.1:8000`.
+ * Duas sessoes de trabalho no mesmo computador nao conseguiam subir duas
+ * pilhas: o `remoteClientTarget` e o `webTarget` estavam cravados em 8000 e
+ * 8888, entao a segunda pilha pedia asset a pilha da primeira e as duas
+ * mediam sujo. Deslocar so a porta do vite (`--port`) nao resolve, porque o
+ * que vaza sao os ALVOS do proxy, e nao a porta de escuta.
  *
+ * O padrao continua sendo o canonico (8000/8888): quem nao define nada nao ve
+ * diferenca — inclusive o remedio de 8010 -> 8000 (07/09/2026, D-<merge
+ * `0dc3f43f`>) continua valendo, porque e exatamente o valor padrao de hoje.
  * Quem serve os assets e o `npm run oraculo:assets`, e ele escuta na **8000**
- * (`PORTAS_DO_DEV.assets`, `scripts/lib/stack-de-dev.ts`) — nos DOIS masters.
- * Com 8010 o vite devolve 502 em todo asset e o cliente nao passa da tela
- * preta: medido pela `prove:e2e`, que parou no passo da tela de login com
- * `ECONNREFUSED 127.0.0.1:8010` repetido para textura, fonte e msgstringtable.
+ * (`PORTAS_DO_DEV.assets`, `scripts/lib/stack-de-dev.ts`).
  */
-const remoteClientTarget = isDocker ? 'http://remote-client-php:80' : 'http://127.0.0.1:8000';  
+const portaDeAssets = process.env.RAG_PORTA_ASSETS ?? '8000';
+const portaDeWeb = process.env.RAG_PORTA_WEB ?? '8888';
+const webTarget = isDocker ? 'http://rathena-web:8888' : `http://127.0.0.1:${portaDeWeb}`;
+const remoteClientTarget = isDocker
+	? 'http://remote-client-php:80'
+	: `http://127.0.0.1:${portaDeAssets}`;
   
 const _proxy = {  
 	'/get': {  

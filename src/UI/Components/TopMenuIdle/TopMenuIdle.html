@@ -342,13 +342,13 @@
 				     e o cliente oficial nao tem candidato em ro_menu_icon para uma
 				     mecanica que e NOSSA (ver a nota da chave em ri-icones.js,
 				     que declara o parentesco com o icone de skills). -->
-				<button type="button" class="tm-item" data-action="codex" title="Codex">
+				<button type="button" class="tm-item" data-action="codex" title="Codex &amp; Missões">
 					<span class="tm-icon-wrap ri-disc"><!--RI_ICONE:codex--></span>
 					<!-- Ponto de "ha objetivo esperando voce" — a MESMA receita
 					     ".ri-dot" do Correio e das Skills (D-1232). O design system
 					     tem UM indicador de notificacao, e este e ele. -->
 					<span class="ri-dot" style="display: none"></span>
-					<span class="tm-label">Codex</span>
+					<span class="tm-label">Codex &amp; Missões</span>
 				</button>
 				<!-- RAGIDLE (D-1162): a presença mensal — a janela que abre sozinha
 				     1x por dia e à meia-noite; aqui fica o caminho manual. -->
@@ -367,34 +367,22 @@
 					<span class="tm-label">Indique</span>
 				</button>
 
-				<!-- MISSOES (D-551) -- 06/09/2026: DESCEU do cluster para o leque, em
-				     troca com o Recompensas (pedido do dono). Ele subiu para o
-				     cluster em 24/08/2026 com o argumento de que a primeira missao
-				     principal e o momento-chave do early game; o que o argumento nao
-				     considerava e que quem acompanha a missao de toda hora e o
-				     RASTREADOR (MissoesTrackerIdle, D-601), sempre visivel abaixo do
-				     painel do personagem. A JANELA e destino ocasional -- abre-se
-				     para escolher a proxima missao e fecha -- que e exatamente o
-				     criterio do leque.
+				<!-- MISSOES (D-551) -- REMOVIDO do leque em 16/09/2026, pedido do
+				     dono. A janela `MissoesIdle` continua existindo (ver o
+				     cabecalho de `missoesGeraisHtml.js`: MapEngine, MissoesTrackerIdle,
+				     LFGIdle, PasseIdle e ChatBox ainda leem o estado dela), mas o
+				     unico CAMINHO ATE ELA agora e a aba "Missões Gerais" dentro do
+				     "Codex & Missões" -- ter duas portas para a mesma tela era
+				     exatamente a duplicacao que a integracao de 16/09 (mais acima,
+				     ver `missoesGeraisHtml.js`) tentava evitar, e o icone sozinho
+				     aqui continuava desfazendo isso. Historico do icone (06/09,
+				     24/08) fica em `git log` deste arquivo, e nao repetido aqui.
 
-				     Ele fica com os FUNCIONAIS, ANTES do bloco "em breve": e a ordem
-				     canonica declarada no cabecalho deste arquivo (quem POE cada
-				     item na sua coluna e distribuirColunas(), no JS -- com 10
-				     visiveis ele cai como ultimo item da coluna da esquerda).
-
-				     A janela nao mudou: o mesmo MissoesIdle.toggle(), que PEDE o
-				     estado ao servidor (0x0fec) ao abrir.
-
-				     ESTE BOTAO FOI REMOVIDO E VOLTOU no merge de 16/09/2026: a
-				     integracao "Codex & Missões" (`feat/tutorial-jornada-midgard`)
-				     tinha absorvido esta janela numa aba e por isso o botao saiu
-				     daqui; o dono REVERTEU essa integracao no mesmo dia
-				     (`258f84a2`), entao a justificativa da remocao deixou de
-				     existir e o botao volta ao lugar de sempre. -->
-				<button type="button" class="tm-item" data-action="missoes" title="Missões">
-					<span class="tm-icon-wrap ri-disc"><!--RI_ICONE:missoes--></span>
-					<span class="tm-label">Missões</span>
-				</button>
+				     ESTE BOTAO SAIU DUAS VEZES NO MESMO DIA: a integracao "Codex &
+				     Missões" o removeu, um revert (258f84a2, 16/09/2026 15:23) o
+				     trouxe de volta, e o revert-do-revert (16/09/2026, pedido do
+				     dono: "trazer de volta") o tira de novo -- a justificativa
+				     desta vez e a mesma da primeira remocao, que voltou a valer. -->
 
 				<!-- REORGANIZACAO DO LEQUE (16/09/2026, pedido do dono: "precisa
 				     organizar esse menu"). RO Shop e Configuracoes MUDARAM DE
@@ -406,9 +394,10 @@
 				     arquivo descreve ("funcionais primeiro... em breve por
 				     ultimo, nunca misturado"). Os dois funcionais vieram para
 				     perto dos outros funcionais (Social -> Progressao ->
-				     Missões -> RO Shop/Configuracoes), e o bloco "em breve" (mais
-				     abaixo) fica inteiro e sozinho no fim: Loja, Troca, Leilao,
-				     Eventos. -->
+				     RO Shop/Configuracoes), e o bloco "em breve" (mais abaixo)
+				     fica inteiro e sozinho no fim: Loja, Troca, Leilao, Eventos.
+				     (Missões nao mora mais aqui: voltou a ser aba dentro do
+				     "Codex & Missões" no revert-do-revert de 16/09/2026.) -->
 				<button type="button" class="tm-item" data-action="roshop" title="RO Shop">
 					<span class="tm-icon-wrap ri-disc"><!--RI_ICONE:roshop--></span>
 					<span class="tm-label">RO Shop</span>
