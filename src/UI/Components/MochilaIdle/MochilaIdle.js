@@ -1325,6 +1325,12 @@ function aoChegarComparacao(pkt) {
 	} catch (_erro) {
 		return;
 	}
+	// O bônus do refino (D-1516) volta no MESMO pacote: a ficha decide se
+	// ainda é a peça aberta.
+	if (dados && dados.acao === 'refino') {
+		ItemInfo.receberRefino(dados);
+		return;
+	}
 	if (!dados || dados.acao !== 'comparar' || dados.indice !== _indiceComparado) {
 		return;
 	}
