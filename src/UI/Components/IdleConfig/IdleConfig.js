@@ -1260,6 +1260,11 @@ function renderAtaque() {
 	const passivas = ctx.skillsPassivas || [];
 	const rotacao = cfg.rotacao || [];
 	const curas = new Set((ctx.skillsDeCura || []).map(s => s.skillId));
+	// A SUBSECAO DEBUFF (16/09/2026, ESPECIFICACAO_MENU_IDLE_INTELIGENTE.md
+	// §1/§4): MESMA lista de ataque, MESMA ordem de golpes — so a etiqueta que
+	// diz "isto aplica algo no inimigo, e nao e dano direto" (o servidor ja
+	// separa por efeito real em `ehDebuff`, e nao por nome/alvo da skill).
+	const debuffs = new Set(ativas.filter(s => s.ehDebuff).map(s => s.skillId));
 
 	let ordem;
 	if (!ativas.length) {
@@ -1276,6 +1281,7 @@ function renderAtaque() {
 					<span class="ic-rot-tags">
 						<span class="ri-badge ri-badge--azul">Nv ${r.nivelDeUso}</span>
 						${curas.has(r.skillId) ? '<span class="ri-badge ri-badge--verde" title="O limiar e o alvo desta cura se ajustam na seção Suporte">cura · ajuste em Suporte</span>' : ''}
+						${debuffs.has(r.skillId) ? '<span class="ri-badge ri-badge--vermelho" title="Aplica algo negativo no inimigo — não é dano direto">Debuff</span>' : ''}
 					</span>
 				</span>
 				<span class="ic-rot-actions">
@@ -1305,7 +1311,7 @@ function renderAtaque() {
 							s =>
 								`<option value="${escapeHtml(s.skillId)}">${escapeHtml(s.nome || s.skillId)} (Nv ${s.aprendido})${
 									curas.has(s.skillId) ? ' — cura' : ''
-								}</option>`
+								}${debuffs.has(s.skillId) ? ' — debuff' : ''}</option>`
 						)
 						.join('')}
 				</select>`;

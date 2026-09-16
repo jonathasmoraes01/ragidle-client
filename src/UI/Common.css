@@ -1154,6 +1154,15 @@ ui-button {
 	color: var(--gold-700);
 	border: 1px solid var(--gold-300);
 }
+/* A SUBSECAO DEBUFF (16/09/2026, ESPECIFICACAO_MENU_IDLE_INTELIGENTE.md §1) —
+   so tem duas escalas de vermelho no design system (--red-300/--red-600), e
+   nao um trio bg/ink/border como as outras tres cores: o bg e o --red-600
+   diluido em rgba, no mesmo espirito das sombras --glow-* deste arquivo. */
+.ri-badge--vermelho {
+	background: rgba(177, 59, 59, 0.16);
+	color: var(--red-600);
+	border: 1px solid var(--red-300);
+}
 /* CONSERTADO em 19/08/2026 (pivo do design system): o ponto de notificacao
    pendurava PRA FORA do circulo (top/right negativos). O DS oficial pede o
    ponto DENTRO do disco, canto superior direito, com gradiente vermelho
