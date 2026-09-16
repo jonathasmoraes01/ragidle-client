@@ -30,11 +30,11 @@
 		},
 		"map": {
 			"entrada": {
-				"total": 738,
+				"total": 739,
 				"semTamanho": 0
 			},
 			"saida": {
-				"total": 556,
+				"total": 557,
 				"semTamanho": 0
 			}
 		}
@@ -42,7 +42,7 @@
 	"comprimentosDoCliente": {
 		"arquivo": "src/Network/Packets/packets2021_len_main.js",
 		"declarados": 1649,
-		"preencheram": 100,
+		"preencheram": 101,
 		"divergencias": [
 			{
 				"opcode": "0x0276",
@@ -8905,6 +8905,13 @@
 					"tamanho": 7,
 					"desde": null
 				},
+				"0x0081": {
+					"nome": "SC_NOTIFY_BAN",
+					"tamanho": 3,
+					"desde": null,
+					"fonteDoTamanho": "excecao",
+					"porque": "PacketStructure.js SC.NOTIFY_BAN size 3; D-1520 (pc_authfail no mapa)"
+				},
 				"0x0083": {
 					"nome": "ZC_ACCEPT_QUIT",
 					"tamanho": 2,
@@ -15476,6 +15483,12 @@
 					"fonteDoTamanho": "cliente"
 				},
 				"0x0fc0": {
+					"nome": "CZ_RAGIDLE_TRAVA_ACAO",
+					"tamanho": -1,
+					"desde": null,
+					"fonteDoTamanho": "cliente"
+				},
+				"0x0fc2": {
 					"nome": "CZ_RAGIDLE_ECONOMIA_ACAO",
 					"tamanho": -1,
 					"desde": null,

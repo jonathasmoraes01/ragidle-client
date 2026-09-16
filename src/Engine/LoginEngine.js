@@ -34,6 +34,7 @@ import { capturarEntrada, loginAceito, loginRecusado, pedidoDeLogin } from 'Engi
 
 // Version Dependent UIs
 import WinLogin from 'UI/Components/WinLogin/WinLogin.js';
+import Reconexao from 'Network/reconexao.js';
 
 /**
  * Creating WinLoading
@@ -879,6 +880,16 @@ function onConnectionRefused(pkt) {
  * @param {object} pkt - PACKET.SC.NOTIFY_BAN
  */
 function onServerClosed(pkt) {
+	/*
+	 * A VOLTA RECUSADA (16/09/2026, D-1520 do servidor). O servidor passou a
+	 * mandar este pacote, com o codigo 0, quando recusa a entrada no mapa — o
+	 * `pc_authfail` do rAthena. Durante um ciclo de reconexao isso quer dizer
+	 * "o passe venceu": a reconexao leva ao login com a mensagem dela, em vez
+	 * de bater na mesma porta ate o teto de tentativas.
+	 */
+	if (Reconexao.aoSerRecusado()) {
+		return;
+	}
 	let msg_id;
 
 	switch (pkt.ErrorCode) {
