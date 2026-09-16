@@ -2260,6 +2260,18 @@ html.ri-vertical #BasicInfoIdle {
 	height: auto !important;
 }
 
+/* O PLACAR DO MVP (D-1533) no celular em pe: abaixo do cartao de missoes, na
+   mesma coluna e largura, sem cobrir o trilho da direita. */
+html.ri-vertical #PlacarMvpIdle {
+	position: fixed !important;
+	z-index: 10 !important;
+	top: calc(var(--vr-abaixo-do-topo) + 176px) !important;
+	left: calc(var(--safe-esq, 0px) + var(--vr-margem)) !important;
+	right: auto !important;
+	bottom: auto !important;
+	transform: none !important;
+}
+
 html.ri-vertical #MissoesTrackerIdle {
 	position: fixed !important;
 	z-index: 10 !important; /* moldura, como a barra do topo */

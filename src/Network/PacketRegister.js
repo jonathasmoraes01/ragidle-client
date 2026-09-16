@@ -1063,6 +1063,8 @@ export default {
 	// RENUMERADO de 0x0fdf para 0x0fbf em 16/09/2026 — colidia com
 	// ZC_RAGIDLE_PRESENCA (ver a nota completa em PacketStructure.js).
 	0x0fbf: PACKET.ZC.RAGIDLE_TUTORIAL,
+	// D-1533 (16/09/2026): o placar ao vivo do MVP; a reserva desceu para 0x0fbb..0x0fbc.
+	0x0fbd: PACKET.ZC.RAGIDLE_PLACAR_MVP,
 
 	0xb1a: PACKET.ZC.USESKILL_ACK3 // USE SKILL 3
 };

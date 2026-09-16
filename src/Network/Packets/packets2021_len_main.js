@@ -5021,6 +5021,7 @@ function init(packetver) {
 	// sem um erro no console.
 	length_list[0x0fbe] = -1; // CZ_RAGIDLE_TUTORIAL_ACAO (variable, JSON payload)
 	length_list[0x0fbf] = -1; // ZC_RAGIDLE_TUTORIAL (variable, JSON payload)
+	length_list[0x0fbd] = -1; // ZC_RAGIDLE_PLACAR_MVP (variable, JSON payload) — o placar ao vivo do MVP, D-1533, 16/09/2026
 
 	return length_list;
 }

@@ -114,6 +114,7 @@ import PresencaIdle from 'UI/Components/PresencaIdle/PresencaIdle.js'; // RAGIDL
 import IndicacaoIdle from 'UI/Components/IndicacaoIdle/IndicacaoIdle.js'; // RAGIDLE: Indique & Ganhe (D-1164)
 import RankingIdle from 'UI/Components/RankingIdle/RankingIdle.js'; // RAGIDLE: o Ranking (09/09/2026)
 import PartyHud from 'UI/Components/PartyHud/PartyHud.js'; // RAGIDLE: a HUD de party (09/09/2026)
+import PlacarMvpIdle from 'UI/Components/PlacarMvpIdle/PlacarMvpIdle.js'; // RAGIDLE: o placar ao vivo do MVP (D-1533)
 import BoasVindasIdle from 'UI/Components/BoasVindasIdle/BoasVindasIdle.js'; // RAGIDLE: caixa de boas-vindas (D-968)
 import LFGIdle from 'UI/Components/LFGIdle/LFGIdle.js'; // RAGIDLE: janela de Procurar Grupo (D-634)
 import GrupoIdle from 'UI/Components/GrupoIdle/GrupoIdle.js'; // RAGIDLE: janela de Grupo (D-960)
@@ -608,6 +609,7 @@ class MapEngine {
 			IndicacaoIdle.prepare(); // RAGIDLE: Indique & Ganhe (D-1164) — escuta 0x0fdc
 			RankingIdle.prepare(); // RAGIDLE: o Ranking — escuta 0x0fca
 			PartyHud.prepare(); // RAGIDLE: a HUD de party — NAO fisga pacote (ver o cabecalho)
+			ligarAcessorioDaHud('placar do MVP', () => PlacarMvpIdle.prepare()); // RAGIDLE: escuta 0x0fbd (D-1533)
 			BoasVindasIdle.prepare(); // RAGIDLE: caixa de boas-vindas (D-968) — não escuta pacote nenhum: a lista de cartazes é do cliente
 			LFGIdle.prepare(); // RAGIDLE: janela de Procurar Grupo (D-634) — idem: só escuta 0x0fe9/0x0fe8
 			GrupoIdle.prepare(); // RAGIDLE: janela de Grupo (D-960) — idem: só escuta 0x0fcc
@@ -1943,6 +1945,10 @@ function onMapChange(pkt, ehEntradaNoMundo) {
 		// Map loaded
 		Network.sendPacket(new PACKET.CZ.NOTIFY_ACTORINIT());
 
+		// D-1533: o placar do MVP e acessorio de HUD — depois do estou-pronto, e
+		// isolado (D-993): uma excecao nele nao pode segurar a entrada no mapa.
+		ligarAcessorioDaHud('placar do MVP', () => PlacarMvpIdle.append());
+
 		// Rates Info
 		if (Session.ratesInfo) {
 			Announce.append();
@@ -2043,6 +2049,7 @@ function cleanGameUI() {
 		IndicacaoIdle,
 		RankingIdle,
 		PartyHud,
+		PlacarMvpIdle,
 		VotoIdle,
 		BoasVindasIdle
 	]) {

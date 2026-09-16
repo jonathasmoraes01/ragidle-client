@@ -1,0 +1,119 @@
+/**
+ * PlacarMvpIdle.css — o placar ao vivo do dano no MVP (D-1533).
+ *
+ * No desktop ele fica no meio, ABAIXO das duas fileiras do menu (medido em
+ * 1280x800: com `top: 104px` ele cobria Recompensas e Correio) — o lugar que
+ * nao disputa com o painel do personagem (esquerda), o minimapa e os botoes de
+ * caca (direita). No celular em pe a posicao e do `Common.css`.
+ */
+
+:host {
+	position: absolute;
+	/* Abaixo das janelas (50) e acima da cena: ele informa, nao interage. */
+	z-index: 20;
+	top: 172px;
+	left: 50%;
+	transform: translateX(-50%);
+	pointer-events: none;
+}
+
+#PlacarMvpIdle .pm-placar {
+	width: 230px;
+	padding: 6px 8px 7px;
+	border: 1px solid var(--border-gold, #c9a24a);
+	border-radius: var(--radius-chip, 6px);
+	background: rgba(18, 20, 32, 0.82);
+	color: #f2f2f2;
+	font-family: 'Figtree', Arial, sans-serif;
+	font-size: 12px;
+	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+}
+
+#PlacarMvpIdle .pm-placar[hidden] {
+	display: none;
+}
+
+#PlacarMvpIdle .pm-titulo {
+	font-weight: 700;
+	color: #f4c03e;
+	text-align: center;
+	margin-bottom: 4px;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+#PlacarMvpIdle .pm-vida {
+	position: relative;
+	height: 10px;
+	border-radius: 5px;
+	background: rgba(255, 255, 255, 0.12);
+	overflow: hidden;
+	margin-bottom: 5px;
+}
+
+#PlacarMvpIdle .pm-vida-fill {
+	position: absolute;
+	inset: 0 auto 0 0;
+	background: linear-gradient(90deg, #b3261e, #e5534b);
+}
+
+#PlacarMvpIdle .pm-vida-num {
+	position: relative;
+	display: block;
+	text-align: center;
+	font-size: 9px;
+	line-height: 10px;
+}
+
+#PlacarMvpIdle .pm-lista {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+}
+
+#PlacarMvpIdle .pm-linha {
+	display: grid;
+	grid-template-columns: 16px 1fr auto 34px;
+	gap: 4px;
+	align-items: center;
+	line-height: 16px;
+}
+
+#PlacarMvpIdle .pm-pos {
+	font-weight: 700;
+	text-align: center;
+}
+
+#PlacarMvpIdle .pm-pos-1 .pm-pos {
+	color: #f4c03e;
+}
+
+#PlacarMvpIdle .pm-pos-2 .pm-pos,
+#PlacarMvpIdle .pm-pos-3 .pm-pos {
+	color: #cfd6e0;
+}
+
+#PlacarMvpIdle .pm-nome {
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+#PlacarMvpIdle .pm-dano,
+#PlacarMvpIdle .pm-fatia {
+	text-align: right;
+	font-variant-numeric: tabular-nums;
+}
+
+#PlacarMvpIdle .pm-fatia {
+	opacity: 0.75;
+}
+
+#PlacarMvpIdle .pm-eu {
+	margin-top: 4px;
+	padding-top: 3px;
+	border-top: 1px solid rgba(255, 255, 255, 0.15);
+	text-align: center;
+	color: #9fd3ff;
+}

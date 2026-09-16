@@ -16940,6 +16940,15 @@ PACKET.ZC.RAGIDLE_ECONOMIA = function PACKET_ZC_RAGIDLE_ECONOMIA(fp, end) {
 };
 PACKET.ZC.RAGIDLE_ECONOMIA.size = -1;
 
+// 0x0fbd - RAGIDLE: ZC_RAGIDLE_PLACAR_MVP (server -> client) — 16/09/2026
+// Variable size: u16 opcode + u16 total length + JSON UTF-8
+// {ativo, mvp?, hp?, top?: [{nome, dano, fatia}], eu?: {posicao, dano}}.
+// O PLACAR AO VIVO DO MVP (D-1533): quem le e `PlacarMvpIdle`, o unico dono.
+PACKET.ZC.RAGIDLE_PLACAR_MVP = function PACKET_ZC_RAGIDLE_PLACAR_MVP(fp, end) {
+	this.json = fp.readString(end - fp.tell());
+};
+PACKET.ZC.RAGIDLE_PLACAR_MVP.size = -1;
+
 // ---------------------------------------------------------------------------
 // O MENU LFG (Looking For Group) — D-634, 25/08/2026.
 //
