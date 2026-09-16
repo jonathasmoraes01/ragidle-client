@@ -28,6 +28,7 @@ import { densidadeDoMundo } from 'Renderer/densidadeDoMundo.js';
 import { AVISO_DE_PERDA_DE_CONTEXTO, agendarRecarga, recarregarAgora } from 'Renderer/perdaDeContexto.js';
 import { registrarQuadro } from 'Renderer/quadrosNoCampo.js';
 import { FASE, fecharQuadro, registrarFase } from 'Renderer/fasesDoQuadro.js';
+import { decidirQuadro } from 'Renderer/limiteDeQuadros.js';
 
 const { mat4 } = glMatrix;
 
@@ -342,24 +343,14 @@ class Renderer {
 			this.frameLimit = GraphicsSettings.fpslimit;
 		}
 
-		// Throttle when frameLimit > 0
-		if (this.frameLimit > 0) {
-			const interval = 1000 / this.frameLimit;
-			const elapsed = now - this._lastFrameTime;
-
-			if (elapsed < interval) {
-				// Not enough time elapsed for next allowed frame — schedule next rAF and exit
-				this.updateId = _requestAnimationFrame(this._renderBound);
-				return;
-			}
-
-			// Advance lastFrameTime preserving alignment (avoid time drift)
-			// keep lastFrameTime at nearest interval boundary
-			this._lastFrameTime = now - (elapsed % interval);
-		} else {
-			// No limit => run every rAF
-			this._lastFrameTime = now;
+		// O limitador com folga (D-1537): o quadro que chega uma fracao de ms
+		// adiantado nao e mais descartado — ver `Renderer/limiteDeQuadros.js`.
+		const quadro = decidirQuadro(this._lastFrameTime, now, this.frameLimit);
+		if (!quadro.desenhar) {
+			this.updateId = _requestAnimationFrame(this._renderBound);
+			return;
 		}
+		this._lastFrameTime = quadro.ultimo;
 
 		// RAGIDLE (13/09/2026): o quadro que o jogo DESENHOU, depois do limitador —
 		// e o FPS que o aparelho do jogador relata. Ver `Renderer/quadrosNoCampo.js`.
