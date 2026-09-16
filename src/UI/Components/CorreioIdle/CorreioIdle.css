@@ -257,6 +257,24 @@
 	color: var(--text-muted);
 }
 
+/*
+ * O RODAPE PASSOU A TER TRES FILAS (15/09/2026, D-1494).
+ *
+ * O "Coletar todos os itens" pega a fila inteira em vez de entrar na divisao
+ * de `.co-rodape > button`, e o motivo esta medido no comentario acima: com
+ * TRES botoes numa fila de ~250px cada um ficaria com ~1/3, e o texto deste e
+ * o mais longo dos tres. O `nowrap` herdado nao salvaria — ele impede a quebra
+ * e nao o transbordo.
+ *
+ * O SELETOR REPETE O PAI de proposito. `.co-coletar-todos` sozinho e (0,1,0)
+ * e PERDERIA para `.co-rodape > button`, que e (0,1,1) — o `flex: 1 1 0` de la
+ * continuaria valendo e o botao voltaria a dividir a fila. Repetindo o pai
+ * este vira (0,2,1) e ganha por especificidade, e nao por ordem no arquivo.
+ */
+.co-rodape > button.co-coletar-todos {
+	flex: 1 0 100%;
+}
+
 .co-atualizar {
 	/* --pad-button (8px 18px) e do botao grande; o do rodape e uma acao
 	   secundaria e cabe num aperto menor, sem mudar nenhum outro traco. */
