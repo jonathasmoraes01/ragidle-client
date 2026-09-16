@@ -18,6 +18,7 @@ import RodexIcon from 'UI/Components/Rodex/RodexIcon.js';
 import Rodex from 'UI/Components/Rodex/Rodex.js';
 import ReadRodex from 'UI/Components/Rodex/ReadRodex.js';
 import WriteRodex from 'UI/Components/Rodex/WriteRodex.js';
+import { loteDoCorreioEmVoo } from './loteDoCorreio.js'; // 16/09/2026: uma linha por lote, e nao por carta
 
 /**
  * Request to Open RodEx Box
@@ -308,7 +309,9 @@ function rodexGetZeny(pkt) {
 			ChatBox.addText(DB.getMessage(2593), ChatBox.TYPE.MAIL, ChatBox.FILTER.PUBLIC_LOG);
 			break;
 		default:
-			ChatBox.addText(DB.getMessage(2591), ChatBox.TYPE.MAIL, ChatBox.FILTER.PUBLIC_LOG);
+			if (!loteDoCorreioEmVoo()) {
+				ChatBox.addText(DB.getMessage(2591), ChatBox.TYPE.MAIL, ChatBox.FILTER.PUBLIC_LOG);
+			}
 			ReadRodex.clearZeny();
 	}
 }
@@ -327,7 +330,9 @@ function rodexGetItem(pkt) {
 			ChatBox.addText(DB.getMessage(2590), ChatBox.TYPE.MAIL, ChatBox.FILTER.PUBLIC_LOG);
 			break;
 		default:
-			ChatBox.addText(DB.getMessage(2588), ChatBox.TYPE.MAIL, ChatBox.FILTER.PUBLIC_LOG);
+			if (!loteDoCorreioEmVoo()) {
+				ChatBox.addText(DB.getMessage(2588), ChatBox.TYPE.MAIL, ChatBox.FILTER.PUBLIC_LOG);
+			}
 			ReadRodex.clearItemList();
 	}
 }
@@ -391,7 +396,9 @@ function rodexSend(pkt) {
  */
 function rodexDelete(pkt) {
 	if (!pkt.result) {
-		ChatBox.addText(DB.getMessage(1038), ChatBox.TYPE.MAIL, ChatBox.FILTER.PUBLIC_LOG);
+		if (!loteDoCorreioEmVoo()) {
+			ChatBox.addText(DB.getMessage(1038), ChatBox.TYPE.MAIL, ChatBox.FILTER.PUBLIC_LOG);
+		}
 		Rodex.updateDeletedMailContent(pkt.openType, pkt.MailID);
 		ReadRodex.close();
 	} else {
