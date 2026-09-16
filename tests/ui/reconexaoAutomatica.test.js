@@ -3,7 +3,7 @@
  *
  * A interpretacao operacional do pedido do dono: esperar 10s pela primeira
  * tentativa; falhas seguintes usam intervalos ENTRE OS INICIOS de 20, 30,
- * 40, 50, 60s, depois 60s fixo (t aproximado: 10, 30, 60, 100, 150, 210).
+ * 30s fixo desde 16/09/2026 (t aproximado: 10, 30, 60, 90, 120, 150).
  * `Math.random` e' fixado em 0 neste arquivo inteiro para o jitter (pequeno
  * e declarado, ver o cabecalho do modulo) nao tornar os tempos do teste
  * imprevisiveis — o jitter em si nao e' o que estes casos medem.
@@ -67,7 +67,7 @@ describe('armar', () => {
 	});
 });
 
-describe('a escalada — t aproximado 10, 30, 60, 100, 150, 210, 270...', () => {
+describe('a escalada — t aproximado 10, 30, 60, 90, 120, 150...', () => {
 	beforeEach(() => {
 		Reconexao.armar('127.0.0.1', 5121, 'prontera');
 	});
@@ -83,7 +83,7 @@ describe('a escalada — t aproximado 10, 30, 60, 100, 150, 210, 270...', () => 
 		expect(mocks.mapEngineInit).toHaveBeenCalledWith('127.0.0.1', 5121, 'prontera', expect.any(Function));
 	});
 
-	it('falhas sucessivas respeitam 20/30/40/50s entre os INICIOS (t=10,30,60,100,150)', async () => {
+	it('falhas sucessivas respeitam 20/30/30/30s entre os INICIOS (t=10,30,60,90,120)', async () => {
 		cair();
 		await vi.advanceTimersByTimeAsync(10000);
 		expect(mocks.mapEngineInit).toHaveBeenCalledTimes(1);
@@ -104,34 +104,35 @@ describe('a escalada — t aproximado 10, 30, 60, 100, 150, 210, 270...', () => 
 		expect(mocks.mapEngineInit).toHaveBeenCalledTimes(3);
 
 		mocks.mapEngineInit.mock.calls[2][3]();
-		await vi.advanceTimersByTimeAsync(40000); // t=100
+		await vi.advanceTimersByTimeAsync(29000);
+		expect(mocks.mapEngineInit, 'o teto de 30s encolheu').toHaveBeenCalledTimes(3);
+		await vi.advanceTimersByTimeAsync(1000); // t=90
 		expect(mocks.mapEngineInit).toHaveBeenCalledTimes(4);
 
 		mocks.mapEngineInit.mock.calls[3][3]();
-		await vi.advanceTimersByTimeAsync(50000); // t=150
+		await vi.advanceTimersByTimeAsync(30000); // t=120
 		expect(mocks.mapEngineInit).toHaveBeenCalledTimes(5);
 	});
 
-	it('depois da escalada esgotar, o intervalo fica FIXO em 60s (nunca cresce mais)', async () => {
+	it('depois da escalada esgotar, o intervalo fica FIXO em 30s (nunca cresce mais)', async () => {
 		cair();
 		await vi.advanceTimersByTimeAsync(10000); // t=10 (tentativa 1)
 		mocks.mapEngineInit.mock.calls[0][3]();
 		await vi.advanceTimersByTimeAsync(20000); // t=30 (2)
 		mocks.mapEngineInit.mock.calls[1][3]();
-		await vi.advanceTimersByTimeAsync(30000); // t=60 (3)
+		await vi.advanceTimersByTimeAsync(30000); // t=60 (3, primeiro no teto de 30s)
 		mocks.mapEngineInit.mock.calls[2][3]();
-		await vi.advanceTimersByTimeAsync(40000); // t=100 (4)
+		await vi.advanceTimersByTimeAsync(30000); // t=90 (4)
 		mocks.mapEngineInit.mock.calls[3][3]();
-		await vi.advanceTimersByTimeAsync(50000); // t=150 (5)
+		await vi.advanceTimersByTimeAsync(30000); // t=120 (5)
+		expect(mocks.mapEngineInit).toHaveBeenCalledTimes(5);
 		mocks.mapEngineInit.mock.calls[4][3]();
-		await vi.advanceTimersByTimeAsync(60000); // t=210 (6, primeiro no teto de 60s)
-		expect(mocks.mapEngineInit).toHaveBeenCalledTimes(6);
-		mocks.mapEngineInit.mock.calls[5][3]();
 
-		await vi.advanceTimersByTimeAsync(59000);
-		expect(mocks.mapEngineInit, 'o teto de 60s encolheu').toHaveBeenCalledTimes(6);
-		await vi.advanceTimersByTimeAsync(1000); // t=270
-		expect(mocks.mapEngineInit).toHaveBeenCalledTimes(7);
+		// O pedido do dono (16/09/2026): nunca mais que 30s entre tentativas.
+		await vi.advanceTimersByTimeAsync(29000);
+		expect(mocks.mapEngineInit, 'o intervalo passou de 30s').toHaveBeenCalledTimes(5);
+		await vi.advanceTimersByTimeAsync(1000); // t=150
+		expect(mocks.mapEngineInit).toHaveBeenCalledTimes(6);
 	});
 });
 
@@ -280,8 +281,8 @@ describe('um so ciclo — sem tentativa duplicada', () => {
  * instavel. A contagem tem de morrer a cada reconexao bem-sucedida.
  */
 describe('o teto de desistencia — a escalada nao e eterna', () => {
-	/** Os intervalos ENTRE INICIOS, em segundos: 10, 20, 30, 40, 50, e 60 fixo. */
-	const GAPS_S = [10, 20, 30, 40, 50, 60, 60, 60, 60, 60, 60, 60];
+	/** Os intervalos ENTRE INICIOS, em segundos: 10, 20, e 30 fixo (era ate 60). */
+	const GAPS_S = [10, 20, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30];
 
 	beforeEach(() => {
 		Reconexao.armar('127.0.0.1', 5121, 'prontera');
