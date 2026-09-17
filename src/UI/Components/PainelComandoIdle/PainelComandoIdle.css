@@ -1,0 +1,163 @@
+/**
+ * O PAINEL DE COMANDO (D-1563/D-1564) — a resposta longa em janela.
+ *
+ * A moldura é a das outras janelas Idle (`ri-window`, `ri-header`, `ri-scroll`);
+ * o que é próprio daqui é a tabela, o selo e o relógio.
+ */
+:host {
+	position: absolute;
+	z-index: 60;
+	top: 96px;
+	left: 96px;
+	/* O HOST não recebe toque: quem recebe é a janela. É o mesmo arranjo das
+	   outras janelas Idle, e é ele que deixa o clique passar para a cena
+	   ao lado da janela. */
+	pointer-events: none;
+}
+
+#PainelComandoIdle .pc-window {
+	pointer-events: auto;
+	width: 460px;
+	max-width: calc(100vw - 16px);
+	display: flex;
+	flex-direction: column;
+	max-height: min(560px, calc(100vh - 120px));
+}
+
+/* A BARRA é a alça do arrasto: `cursor: move` diz isso antes do primeiro
+   gesto, e `touch-action` é escrito pelo JS (o helper o cobra). */
+#PainelComandoIdle .pc-titlebar {
+	cursor: move;
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+
+#PainelComandoIdle .pc-resumo {
+	margin-left: auto;
+	font-size: 11px;
+	opacity: 0.75;
+	white-space: nowrap;
+}
+
+/* Os dois botões não se sobrepõem: 44px de alvo tátil cada (a regra do dono
+   de 08/09), o de fechar na ponta e o de recolher ao lado. */
+#PainelComandoIdle .pc-minimizar {
+	right: 52px;
+}
+
+#PainelComandoIdle .pc-body {
+	flex: 1 1 auto;
+	overflow: auto;
+	min-height: 0;
+}
+
+#PainelComandoIdle .pc-tabela {
+	width: 100%;
+	border-collapse: collapse;
+	font-size: 12px;
+}
+
+#PainelComandoIdle .pc-tabela th {
+	position: sticky;
+	top: 0;
+	background: rgba(24, 26, 34, 0.96);
+	text-align: left;
+	padding: 6px 8px;
+	cursor: pointer;
+	user-select: none;
+	white-space: nowrap;
+}
+
+#PainelComandoIdle .pc-tabela th[data-ordenada='asc']::after { content: ' ▲'; }
+#PainelComandoIdle .pc-tabela th[data-ordenada='desc']::after { content: ' ▼'; }
+
+#PainelComandoIdle .pc-tabela td {
+	padding: 5px 8px;
+	border-top: 1px solid rgba(255, 255, 255, 0.06);
+	white-space: nowrap;
+}
+
+#PainelComandoIdle .pc-tabela td.pc-numero,
+#PainelComandoIdle .pc-tabela td.pc-relogio { text-align: right; font-variant-numeric: tabular-nums; }
+
+/* A ÊNFASE vem do servidor como dado (`destaque`/`apagado`), e não como texto
+   colorido: o cliente não reinterpreta a linha para descobrir o que ela é. */
+#PainelComandoIdle tr.pc-destaque td { color: #9ff0a4; }
+#PainelComandoIdle tr.pc-apagado td { opacity: 0.55; }
+
+#PainelComandoIdle .pc-selo {
+	display: inline-block;
+	min-width: 52px;
+	text-align: center;
+	padding: 1px 6px;
+	border-radius: 999px;
+	font-size: 10px;
+	text-transform: uppercase;
+	background: rgba(255, 255, 255, 0.1);
+}
+#PainelComandoIdle tr.pc-destaque .pc-selo { background: rgba(80, 200, 120, 0.25); }
+
+#PainelComandoIdle .pc-vazio { padding: 16px; opacity: 0.7; font-size: 12px; }
+
+#PainelComandoIdle .pc-rodape {
+	padding: 4px 8px;
+	font-size: 10px;
+	opacity: 0.6;
+	border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* RECOLHIDA: só a barra de título fica. O estado é lembrado, como no
+   HuntAnalyzer — quem recolhe quer a janela recolhida da próxima vez. */
+#PainelComandoIdle .pc-window.is-compact .pc-body,
+#PainelComandoIdle .pc-window.is-compact .pc-rodape { display: none; }
+:host(.is-compact) #PainelComandoIdle .pc-window { max-height: none; }
+
+/* ---------------------------------------------------------------------------
+   CELULAR EM PÉ — a tabela vira CARTÃO (a regra do dono de 08/09/2026).
+   Uma tabela de quatro colunas em 393px ou rola na horizontal ou aperta o nome
+   até ele sumir; o cartão não faz nem uma coisa nem outra.
+   --------------------------------------------------------------------------- */
+:host-context(html.ri-vertical) #PainelComandoIdle .pc-tabela thead { display: none; }
+
+:host-context(html.ri-vertical) #PainelComandoIdle .pc-tabela,
+:host-context(html.ri-vertical) #PainelComandoIdle .pc-tabela tbody,
+:host-context(html.ri-vertical) #PainelComandoIdle .pc-tabela tr,
+:host-context(html.ri-vertical) #PainelComandoIdle .pc-tabela td { display: block; width: auto; }
+
+:host-context(html.ri-vertical) #PainelComandoIdle .pc-tabela tr {
+	border: 1px solid rgba(255, 255, 255, 0.1);
+	border-radius: 8px;
+	margin: 6px;
+	padding: 6px 8px;
+}
+
+:host-context(html.ri-vertical) #PainelComandoIdle .pc-tabela td {
+	border: 0;
+	padding: 2px 0;
+	display: flex;
+	justify-content: space-between;
+	gap: 12px;
+	white-space: normal;
+}
+
+/* No cartão cada célula diz de que coluna ela é — sem o cabeçalho, "prt_sewb4"
+   sozinho não se explica. O rótulo vem do `data-rotulo` que o JS escreve. */
+:host-context(html.ri-vertical) #PainelComandoIdle .pc-tabela td::before {
+	content: attr(data-rotulo);
+	opacity: 0.6;
+	font-size: 10px;
+	text-transform: uppercase;
+}
+:host-context(html.ri-vertical) #PainelComandoIdle .pc-tabela td[data-rotulo='']::before { content: none; }
+:host-context(html.ri-vertical) #PainelComandoIdle .pc-tabela td.pc-relogio { text-align: left; }
+
+/* A ORDEM no celular: os botões viram uma fileira tocável acima da lista. */
+:host-context(html.ri-vertical) #PainelComandoIdle .pc-ordem-vertical { display: flex; }
+#PainelComandoIdle .pc-ordem-vertical { display: none; gap: 6px; padding: 6px; flex-wrap: wrap; }
+#PainelComandoIdle .pc-ordem-vertical button {
+	min-height: 44px;
+	min-width: 44px;
+	padding: 0 12px;
+	border-radius: 8px;
+}

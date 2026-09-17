@@ -16949,6 +16949,19 @@ PACKET.ZC.RAGIDLE_PLACAR_MVP = function PACKET_ZC_RAGIDLE_PLACAR_MVP(fp, end) {
 };
 PACKET.ZC.RAGIDLE_PLACAR_MVP.size = -1;
 
+// 0x0fbc - RAGIDLE: ZC_RAGIDLE_PAINEL (server -> client) — 17/09/2026
+// Variable size: u16 opcode + u16 total length + JSON UTF-8
+// {v, comando, titulo, resumo?, colunas: [{chave, rotulo, tipo}], linhas:
+//  [{valores, enfase?}], ordemInicial?: {chave, direcao}}.
+// O PAINEL DE COMANDO (D-1563): a resposta longa de comando em JANELA, com
+// coluna ordenavel e relogio que conta sozinho. Quem le e `PainelComandoIdle`.
+// O relogio vem como `faltaMs` (distancia), e nao como instante: o relogio do
+// navegador do jogador nao e o do servidor.
+PACKET.ZC.RAGIDLE_PAINEL = function PACKET_ZC_RAGIDLE_PAINEL(fp, end) {
+	this.json = fp.readString(end - fp.tell());
+};
+PACKET.ZC.RAGIDLE_PAINEL.size = -1;
+
 // ---------------------------------------------------------------------------
 // O MENU LFG (Looking For Group) — D-634, 25/08/2026.
 //

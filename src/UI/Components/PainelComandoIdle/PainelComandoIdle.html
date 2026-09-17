@@ -1,0 +1,30 @@
+<div id="PainelComandoIdle">
+	<div class="pc-window ri-window ri-anima">
+		<div class="pc-titlebar ri-header">
+			<span class="pc-title ri-title">Painel</span>
+			<span class="pc-resumo"></span>
+			<button type="button" class="pc-minimizar ri-close" data-action="minimize" title="Recolher"
+				aria-label="Recolher para o modo enxuto">&minus;</button>
+			<button type="button" class="pc-close ri-close" title="Fechar">&times;</button>
+		</div>
+
+		<!-- A TABELA. O cabeçalho é clicável: ordenar é o que a janela faz e o
+		     chat não. No celular em pé a mesma marcação vira cartões, por CSS -
+		     duas marcações seriam duas verdades. -->
+		<!-- A ORDEM NO CELULAR: sem cabeçalho de tabela para tocar, a escolha
+		     vira uma fileira de botões com alvo tátil de 44px. -->
+		<div class="pc-ordem-vertical" role="group" aria-label="Ordenar por"></div>
+
+		<div class="pc-body ri-scroll">
+			<table class="pc-tabela">
+				<thead><tr class="pc-cabecalho"></tr></thead>
+				<tbody class="pc-linhas"></tbody>
+			</table>
+			<div class="pc-vazio" hidden>Nada para mostrar.</div>
+		</div>
+
+		<div class="pc-rodape">
+			<span class="pc-origem"></span>
+		</div>
+	</div>
+</div>

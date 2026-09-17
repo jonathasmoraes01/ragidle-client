@@ -113,6 +113,7 @@ import VotoIdle from 'UI/Components/VotoIdle/VotoIdle.js'; // RAGIDLE: janela de
 import PresencaIdle from 'UI/Components/PresencaIdle/PresencaIdle.js'; // RAGIDLE: janela de presenca (D-1162)
 import IndicacaoIdle from 'UI/Components/IndicacaoIdle/IndicacaoIdle.js'; // RAGIDLE: Indique & Ganhe (D-1164)
 import RankingIdle from 'UI/Components/RankingIdle/RankingIdle.js'; // RAGIDLE: o Ranking (09/09/2026)
+import PainelComandoIdle from 'UI/Components/PainelComandoIdle/PainelComandoIdle.js'; // RAGIDLE: o painel de comando (D-1563)
 import PartyHud from 'UI/Components/PartyHud/PartyHud.js'; // RAGIDLE: a HUD de party (09/09/2026)
 import PlacarMvpIdle from 'UI/Components/PlacarMvpIdle/PlacarMvpIdle.js'; // RAGIDLE: o placar ao vivo do MVP (D-1533)
 import BoasVindasIdle from 'UI/Components/BoasVindasIdle/BoasVindasIdle.js'; // RAGIDLE: caixa de boas-vindas (D-968)
@@ -608,6 +609,7 @@ class MapEngine {
 			PresencaIdle.prepare(); // RAGIDLE: janela de presenca (D-1162) — escuta 0x0fde e abre sozinha quando o servidor manda
 			IndicacaoIdle.prepare(); // RAGIDLE: Indique & Ganhe (D-1164) — escuta 0x0fdc
 			RankingIdle.prepare(); // RAGIDLE: o Ranking — escuta 0x0fca
+			PainelComandoIdle.prepare(); // RAGIDLE: o painel de comando — escuta 0x0fbc e abre SOZINHO quando o servidor manda (D-1563)
 			PartyHud.prepare(); // RAGIDLE: a HUD de party — NAO fisga pacote (ver o cabecalho)
 			ligarAcessorioDaHud('placar do MVP', () => PlacarMvpIdle.prepare()); // RAGIDLE: escuta 0x0fbd (D-1533)
 			BoasVindasIdle.prepare(); // RAGIDLE: caixa de boas-vindas (D-968) — não escuta pacote nenhum: a lista de cartazes é do cliente
@@ -1667,6 +1669,7 @@ function onMapChange(pkt, ehEntradaNoMundo) {
 			['presenca', PresencaIdle, '.pr-window'],
 			['indicacao', IndicacaoIdle, '.in-window'],
 			['ranking', RankingIdle, '.rk-window'],
+			['painel-de-comando', PainelComandoIdle, '.pc-window'],
 			['correio', CorreioIdle, '.co-window'],
 			['missoes', MissoesIdle, '.mi-window'],
 			['passe', PasseIdle, '.pi-window'],
@@ -2048,6 +2051,7 @@ function cleanGameUI() {
 		PresencaIdle,
 		IndicacaoIdle,
 		RankingIdle,
+		PainelComandoIdle,
 		PartyHud,
 		PlacarMvpIdle,
 		VotoIdle,

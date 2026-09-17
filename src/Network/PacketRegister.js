@@ -1065,6 +1065,8 @@ export default {
 	0x0fbf: PACKET.ZC.RAGIDLE_TUTORIAL,
 	// D-1533 (16/09/2026): o placar ao vivo do MVP; a reserva desceu para 0x0fbb..0x0fbc.
 	0x0fbd: PACKET.ZC.RAGIDLE_PLACAR_MVP,
+	// D-1563 (17/09/2026): o painel de comando; a reserva desceu para 0x0fba..0x0fbb.
+	0x0fbc: PACKET.ZC.RAGIDLE_PAINEL,
 
 	0xb1a: PACKET.ZC.USESKILL_ACK3 // USE SKILL 3
 };
