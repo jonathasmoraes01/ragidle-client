@@ -99,7 +99,14 @@ describe('a fiacao do placar (D-1533)', () => {
 		expect(engine).toMatch(/PartyHud,\r?\n\t+PlacarMvpIdle,/);
 	});
 
-	it('no celular em pe ele tem posicao propria', () => {
-		expect(ler('UI/Common.css')).toContain('html.ri-vertical #PlacarMvpIdle {');
+	it('no celular em pe ele tem posicao propria — ate o jogador arrastar (D-1565)', () => {
+		/*
+		 * A regra ganhou `:not([data-movido])` em 17/09/2026, quando o placar
+		 * passou a ser movivel: ela e `!important` e venceria a posicao inline
+		 * do arrasto, e no celular a faixa voltaria sozinha para o canto.
+		 * Enquanto o jogador nao mexe, o desenho da HUD vertical continua
+		 * mandando — que e o que este caso sempre mediu.
+		 */
+		expect(ler('UI/Common.css')).toContain('html.ri-vertical #PlacarMvpIdle:not([data-movido]) {');
 	});
 });

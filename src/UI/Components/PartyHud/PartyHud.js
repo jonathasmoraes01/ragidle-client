@@ -43,8 +43,10 @@
  */
 import Network from 'Network/NetworkManager.js';
 import PACKET from 'Network/PacketStructure.js';
+import Preferences from 'Core/Preferences.js';
 import UIManager from 'UI/UIManager.js';
 import GUIComponent from 'UI/GUIComponent.js';
+import arrastarPorPonteiro, { prenderNaTela } from 'UI/arrastarPorPonteiro.js';
 import EntityManager from 'Renderer/EntityManager.js';
 import DB from 'DB/DBManager.js';
 import GrupoIdle from '../GrupoIdle/GrupoIdle.js';
@@ -106,10 +108,52 @@ function _assidoDesligado() {
 	}
 }
 
+/**
+ * A POSICAO ESCOLHIDA PELO JOGADOR (D-1565).
+ *
+ * Ate aqui a faixa era cravada no canto superior esquerdo pelo CSS. O dono
+ * pediu que ela se mova; quem guarda a escolha e o `Preferences`, como nas
+ * janelas — e ela e do APARELHO, e nao do personagem: o lugar bom na tela do
+ * computador nao e o lugar bom no celular.
+ */
+const _preferences = Preferences.get(
+	'PartyHud',
+	{
+		x: null,
+		y: null
+	},
+	1.0
+);
+
 PartyHud.init = function init() {
 	// A composicao chega pelo gancho da janela — ver a decisao 3 no cabecalho.
 	GrupoIdle.aoAtualizar = desenhar;
 	desenhar();
+	const root = _root();
+	if (root) {
+		arrastarPorPonteiro({
+			alca: root.querySelector('.ph-alca'),
+			painel: PartyHud._host,
+			aoSoltar: ({ left, top }) => {
+				_preferences.x = left;
+				_preferences.y = top;
+				_preferences.save();
+			}
+		});
+	}
+};
+
+PartyHud.onAppend = function onAppend() {
+	if (_preferences.x == null || _preferences.y == null) {
+		return;
+	}
+	const host = PartyHud._host;
+	host.dataset.movido = '1';
+	host.style.left = _preferences.x + 'px';
+	host.style.top = _preferences.y + 'px';
+	// A tela de hoje pode ser menor que a de ontem — a posicao guardada e
+	// prendida antes de valer.
+	prenderNaTela(host);
 };
 
 PartyHud.onRemove = function onRemove() {

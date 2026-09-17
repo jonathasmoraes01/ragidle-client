@@ -2262,7 +2262,12 @@ html.ri-vertical #BasicInfoIdle {
 
 /* O PLACAR DO MVP (D-1533) no celular em pe: abaixo do cartao de missoes, na
    mesma coluna e largura, sem cobrir o trilho da direita. */
-html.ri-vertical #PlacarMvpIdle {
+/* O `:not([data-movido])` entrou em 17/09/2026 (D-1565): estas regras sao
+   `!important` e venceriam a posicao inline que o ARRASTO escreve — no celular
+   o jogador arrastaria a faixa e ela voltaria sozinha para o canto. Enquanto
+   ele nao mexe, o desenho da HUD vertical continua mandando; quando ele mexe, a
+   escolha dele vale. O carimbo e escrito no host pelo proprio componente. */
+html.ri-vertical #PlacarMvpIdle:not([data-movido]) {
 	position: fixed !important;
 	z-index: 10 !important;
 	top: calc(var(--vr-abaixo-do-topo) + 176px) !important;
@@ -2270,6 +2275,21 @@ html.ri-vertical #PlacarMvpIdle {
 	right: auto !important;
 	bottom: auto !important;
 	transform: none !important;
+}
+
+/* A FAIXA DE GRUPO no celular em pe (D-1565) — ela voltou a existir no
+   retrato. Fica abaixo do topo, na margem esquerda, e so aparece com party
+   (o componente a mantem escondida fora dela). */
+html.ri-vertical #PartyHud:not([data-movido]) {
+	position: fixed !important;
+	z-index: 10 !important;
+	/* Abaixo do cartão de missões E do lugar do placar do MVP — os dois medidos
+	   em 393x852: o cartão vai de 84 a 238 (`--vr-abaixo-do-topo` + 154) e o
+	   placar ocupa +176..+345. A faixa começa depois disso. */
+	top: calc(var(--vr-abaixo-do-topo) + 352px) !important;
+	left: calc(var(--safe-esq, 0px) + var(--vr-margem)) !important;
+	right: auto !important;
+	bottom: auto !important;
 }
 
 html.ri-vertical #MissoesTrackerIdle {

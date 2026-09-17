@@ -1,4 +1,14 @@
 <div id="PlacarMvpIdle">
 	<!-- Nasce ESCONDIDO: so aparece com um MVP apanhando no mapa (D-1533). -->
-	<div class="pm-placar" hidden></div>
+	<div class="pm-placar" hidden>
+		<!-- A ALCA e a UNICA parte que recebe toque: o corpo do placar segue
+		     transparente ao clique (`pointer-events: none`), que e o que deixa
+		     o jogador clicar na cena ATRAVES dele. -->
+		<div class="pm-alca">
+			<span class="pm-pegar" aria-hidden="true">⠿</span>
+			<button type="button" class="pm-minimizar" data-action="minimize" title="Recolher"
+				aria-label="Recolher o placar do MVP">&minus;</button>
+		</div>
+		<div class="pm-corpo"></div>
+	</div>
 </div>

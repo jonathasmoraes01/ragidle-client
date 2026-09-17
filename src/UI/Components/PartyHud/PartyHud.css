@@ -10,10 +10,45 @@
 	position: absolute;
 	/* Abaixo das janelas (50) e acima da cena: ela informa, nao interage. */
 	z-index: 20;
-	top: 96px;
+	/* ABAIXO DO PAINEL DO PERSONAGEM, e o numero foi MEDIDO (D-1565): em
+	   1280x800 o `BasicInfoIdle` ocupa {y:12, h:314}, ou seja termina em 326.
+	   O 96px que estava aqui punha a lista DENTRO dele — e ninguem tinha visto
+	   porque a faixa so aparece com grupo, e nenhuma sonda a fotografava. O
+	   cartao de missoes vem logo abaixo ({y:334, h:76}, ate 410), entao o
+	   lugar livre comeca em 418.
+	   Com dez membros ela chega perto do chat; quem quiser outro lugar agora
+	   ARRASTA, que e a entrega desta rodada. */
+	top: 418px;
 	left: 8px;
 	pointer-events: none;
 }
+
+/* ---------------------------------------------------------------------------
+   A ALCA (D-1565) — a faixa passou a ser MOVIVEL, no dedo e no mouse.
+   --------------------------------------------------------------------------- */
+#PartyHud .ph-alca {
+	pointer-events: auto;
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	cursor: move;
+	touch-action: none;
+	font-size: 10px;
+	text-transform: uppercase;
+	letter-spacing: 1px;
+	opacity: 0.5;
+	padding: 2px 4px;
+	/* ALVO TATIL: 44px de area de toque sem engordar a faixa na tela. */
+	position: relative;
+}
+
+#PartyHud .ph-alca::before {
+	content: '';
+	position: absolute;
+	inset: -10px -4px;
+}
+
+#PartyHud .ph-alca:hover { opacity: 0.95; }
 
 #PartyHud .ph-hud {
 	display: flex;
@@ -114,6 +149,18 @@
  * `matchMedia('(pointer: coarse)')` num arquivo novo e como a cicatriz de
  * `--hud-acima-da-doca` (D-929) comecou.
  */
+/* ---------------------------------------------------------------------------
+   CELULAR EM PE (D-1565) — ela DEIXOU de ser escondida.
+   Ate 17/09/2026 a faixa sumia no retrato: o desenho da HUD vertical nao tinha
+   lugar para ela, e uma lista de dez membros no canto cobriria o cartao de
+   missoes. O dono pediu a janela de party MOVIVEL, e janela escondida nao se
+   move — entao ela volta ENXUTA (mais estreita e com fonte menor) e ancorada
+   abaixo do topo, onde nao cruza com o cartao nem com o trilho. Quem joga
+   sozinho continua sem ver nada: a faixa so aparece com grupo.
+   --------------------------------------------------------------------------- */
 :host-context(html.ri-vertical) .ph-hud {
-	display: none !important;
+	width: 132px;
+	font-size: 10px;
 }
+
+:host-context(html.ri-vertical) .ph-alca { opacity: 0.85; }

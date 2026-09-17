@@ -33,6 +33,54 @@
 	display: none;
 }
 
+/* ---------------------------------------------------------------------------
+   A ALCA (D-1565) — o placar passou a ser MOVIVEL e MINIMIZAVEL.
+   Ela e a unica parte com `pointer-events: auto`. O corpo continua sem receber
+   clique: quem joga clica na cena atraves do placar, e a sonda de tela
+   (`diag-placar-mvp-na-tela.ts`) mede exatamente isso no centro dele.
+   --------------------------------------------------------------------------- */
+#PlacarMvpIdle .pm-alca {
+	pointer-events: auto;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 6px;
+	margin: -2px -2px 2px;
+	cursor: move;
+	/* Escrito tambem pelo JS (o helper cobra), e aqui para o gesto ja valer
+	   antes do primeiro `pointerdown`. */
+	touch-action: none;
+	opacity: 0.55;
+}
+
+#PlacarMvpIdle .pm-alca:hover { opacity: 1; }
+
+#PlacarMvpIdle .pm-pegar { font-size: 11px; letter-spacing: 2px; }
+
+#PlacarMvpIdle .pm-minimizar {
+	pointer-events: auto;
+	background: none;
+	border: 0;
+	color: inherit;
+	font-size: 14px;
+	line-height: 1;
+	cursor: pointer;
+	/* ALVO TATIL de 44px sem inchar a faixa: o colchao e invisivel. */
+	position: relative;
+	padding: 2px 6px;
+}
+
+#PlacarMvpIdle .pm-minimizar::before {
+	content: '';
+	position: absolute;
+	inset: -14px;
+}
+
+/* RECOLHIDO: fica so a alca — o placar vira uma pastilha de 3 linhas de
+   altura, e o jogador reabre no mesmo botao. */
+#PlacarMvpIdle .pm-placar.is-compact .pm-corpo { display: none; }
+#PlacarMvpIdle .pm-placar.is-compact { width: auto; }
+
 #PlacarMvpIdle .pm-titulo {
 	font-weight: 700;
 	color: #f4c03e;

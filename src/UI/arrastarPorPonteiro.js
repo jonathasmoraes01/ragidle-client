@@ -108,6 +108,19 @@ export default function arrastarPorPonteiro({ alca, painel, aoSoltar, classe = '
 		}
 		event.preventDefault();
 		const caixa = painel.getBoundingClientRect();
+		/*
+		 * O CARIMBO É O QUE FAZ O ARRASTO VALER NO CELULAR.
+		 *
+		 * As regras do retrato (`Common.css`) são `!important` e venceriam a
+		 * posição inline que este helper escreve: a janela voltaria sozinha
+		 * para o canto no instante em que o dedo soltasse, e o gesto pareceria
+		 * quebrado. As regras cedem a `:not([data-movido])`.
+		 *
+		 * Ele mora AQUI, e não em cada janela: a primeira versão o tinha só no
+		 * placar do MVP, e a sonda de tela achou a faixa de grupo voltando ao
+		 * canto — o mesmo defeito, na segunda janela, no mesmo dia.
+		 */
+		painel.dataset.movido = '1';
 		inicio = { x: event.clientX, y: event.clientY, esquerda: caixa.left, topo: caixa.top };
 		painel.classList.add(classe);
 		alca.setPointerCapture(event.pointerId);
