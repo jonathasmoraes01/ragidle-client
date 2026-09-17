@@ -3254,6 +3254,19 @@ StatusInfo[SC.DRUMBATTLEFIELD] = {
 	descript: [['Battle Theme', COLOR_TITLE_BUFF], ['%s', COLOR_TIME], ["Increase party members' ATK and DEF."]]
 };
 
+/*
+ * RAG IDLE (17/09/2026, D-1551) - a Ring of Nibelungen passou a ser servida. A
+ * arte e o `stateiconimginfo.lub` do data.grf (EFST_RINGNIBELUNGEN ->
+ * RINGNIBELUNGEN.tga, em data/texture/effect/) e o texto e o
+ * `stateiconinfo.lub` ingles do mesmo GRF, como as cancoes acima.
+ */
+StatusInfo[SC.RINGNIBELUNGEN] = {
+	icon: 'ringnibelungen.tga',
+	haveTimeLimit: 1,
+	posTimeLimitStr: 2,
+	descript: [['Harmonic Lick', COLOR_TITLE_BUFF], ['%s', COLOR_TIME], ['Give favorable effects'], ['to party members.']]
+};
+
 StatusInfo[SC.ROKISWEIL] = {
 	icon: 'rokisweil.tga',
 	haveTimeLimit: 1,

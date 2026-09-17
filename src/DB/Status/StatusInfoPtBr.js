@@ -161,6 +161,9 @@ const PT_BR = {
 	'Headgear cannot be worn': 'Não é possível usar elmo',
 
 	/* -------- Bardo / Odalisca: as cancoes, as dancas e os conjuntos (10/09/2026) -------- */
+	'Harmonic Lick': 'Anel dos Nibelungos',
+	'Give favorable effects': 'Sob efeito de',
+	'to party members.': 'bônus aleatório',
 	'Perfect Tablature': 'Assovio',
 	"Increase party member's FLEE": 'Bônus de Esquiva',
 	'Increase perfect dodge.': 'e Esquiva Perfeita',
