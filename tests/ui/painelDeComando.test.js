@@ -183,6 +183,14 @@ describe('o celular em pe (a regra do dono de 08/09/2026)', () => {
 		expect(css).toMatch(/\.pc-ordem-vertical button \{[^}]*min-width:\s*44px/);
 	});
 
+	it('o texto longo QUEBRA a linha; numero e relogio, nao', () => {
+		// A ajuda do `@commands` tem 60 a 90 caracteres: com `nowrap` a tabela
+		// viraria uma rolagem horizontal de 900px, e ler ajuda rolando de lado e
+		// pior que ler no chat.
+		expect(css).toMatch(/td\.pc-texto \{[^}]*white-space:\s*normal/);
+		expect(css).toMatch(/\.pc-tabela td \{[^}]*white-space:\s*nowrap/);
+	});
+
 	it('a janela nao passa da largura da tela', () => {
 		expect(css).toMatch(/max-width:\s*calc\(100vw - 16px\)/);
 	});

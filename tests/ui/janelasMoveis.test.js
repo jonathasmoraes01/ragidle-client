@@ -26,6 +26,21 @@ const partyCss = readFileSync(join(party, 'PartyHud.css'), 'utf8');
 const partyJs = readFileSync(join(party, 'PartyHud.js'), 'utf8');
 const commonCss = readFileSync(join(process.cwd(), 'src/UI/Common.css'), 'utf8');
 
+/**
+ * O bloco `:host { ... }` inteiro.
+ *
+ * Ele e recortado ate a chave de FECHAMENTO na coluna zero, e nao por
+ * `[^}]*`: um comentario dentro do bloco pode ter chave — e teve. A medida que
+ * este arquivo fazia quebrou no dia em que a nota do lugar novo citou
+ * `{y:12, h:314}`, que e a cicatriz "ancora lida com filtro nao existe" na
+ * forma mais literal.
+ */
+function blocoDoHost(css) {
+	const i = css.indexOf(':host {');
+	const fim = css.indexOf('\n}', i);
+	return i < 0 || fim < 0 ? '' : css.slice(i, fim);
+}
+
 describe('o placar do MVP se move e se recolhe', () => {
 	it('a alca existe, e o arrasto dela e por PONTEIRO', () => {
 		expect(placarHtml).toContain('class="pm-alca"');
@@ -41,7 +56,7 @@ describe('o placar do MVP se move e se recolhe', () => {
 		 * do servidor) mede isso no centro do placar, e um `pointer-events:
 		 * auto` no corpo a derrubaria — e derrubaria o jogo junto.
 		 */
-		expect(placarCss).toMatch(/:host \{[^}]*pointer-events:\s*none/);
+		expect(blocoDoHost(placarCss)).toMatch(/pointer-events:\s*none/);
 		expect(placarCss).toMatch(/\.pm-alca \{[^}]*pointer-events:\s*auto/);
 		expect(placarCss).not.toMatch(/\.pm-corpo \{[^}]*pointer-events:\s*auto/);
 	});
@@ -79,7 +94,7 @@ describe('a lista de grupo se move', () => {
 	it('a alca existe e arrasta por ponteiro, com a lista ainda transparente', () => {
 		expect(partyHtml).toContain('class="ph-alca"');
 		expect(partyJs).toContain('arrastarPorPonteiro({');
-		expect(partyCss).toMatch(/:host \{[^}]*pointer-events:\s*none/);
+		expect(blocoDoHost(partyCss)).toMatch(/pointer-events:\s*none/);
 		expect(partyCss).toMatch(/\.ph-alca \{[^}]*pointer-events:\s*auto/);
 	});
 

@@ -78,6 +78,17 @@
 	white-space: nowrap;
 }
 
+/* O TEXTO LONGO QUEBRA A LINHA, e o resto nao (D-1566).
+   A ajuda de comando do `@commands` tem 60 a 90 caracteres: com `nowrap` ela
+   empurraria a tabela para uma rolagem horizontal de 900px, e ler ajuda
+   rolando de lado e pior que ler no chat — que e o que esta janela veio
+   resolver. Numero, relogio e selo seguem numa linha so: quebrar "1h 02m 03s"
+   no meio seria o defeito oposto. */
+#PainelComandoIdle .pc-tabela td.pc-texto {
+	white-space: normal;
+	word-break: break-word;
+}
+
 #PainelComandoIdle .pc-tabela td.pc-numero,
 #PainelComandoIdle .pc-tabela td.pc-relogio { text-align: right; font-variant-numeric: tabular-nums; }
 
