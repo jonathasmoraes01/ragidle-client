@@ -255,6 +255,35 @@ function abaDoCodexAtiva(idDaAba) {
 }
 
 /**
+ * A JANELA DE VOTO (OU O AVISO AUTOMATICO DELA) ESTA NA TELA? (16/09/2026,
+ * relato do dono: "o tutorial buga" quando o voto esta liberado).
+ *
+ * `VotoIdle` abre de dois jeitos que o tutorial nao controla: o jogador clica
+ * "Votar" no TopMenuIdle a qualquer momento (o botao fica aceso e clicavel
+ * durante o tutorial inteiro), OU o servidor manda `avisar:true` no MESMO
+ * pacote de entrada de mapa que dispara a etapa vigente do tutorial
+ * (`servidor-mapa.ts`, handler de CZ_NOTIFY_ACTORINIT) e `VotoIdle.js` abre um
+ * aviso sozinho. Nos dois casos a mascara do tutorial (`z-index: 1900000
+ * !important`, TutorialIdle.css) cobre e bloqueia todo clique fora do furo da
+ * etapa atual - a janela/aviso de voto fica visivel so em parte, ou nem isso,
+ * e sem responder a clique nenhum. E o MESMO defeito que `BoasVindasIdle` ja
+ * causava (ver o cabecalho de `desenhar()` abaixo); aqui o tutorial cede do
+ * mesmo jeito.
+ *
+ * Leitura pura de DOM, sem `import` de `VotoIdle.js`: essa janela carrega
+ * `Renderer/Renderer.js` na propria carga (o mesmo motivo por que
+ * `fecharJanelaDaEtapa` evita importar `CorreioIdle`/`MochilaIdle` acima), e
+ * prender o ciclo de carga do tutorial ao dela so pioraria isso.
+ */
+function votoNaTela() {
+	if (janelaAberta('VotoIdle', '.vi-window')) {
+		return true;
+	}
+	const aviso = acharAlvo({ host: 'VotoIdle', seletor: '.vi-aviso-modal' });
+	return !!(aviso && !aviso.hidden);
+}
+
+/**
  * O componente da Configuracao Idle, SE ele existir.
  *
  * Por REGISTRO e nao por `import`, o mesmo criterio que `IdleConfig.js` usa
@@ -620,9 +649,19 @@ function desenhar() {
 	 * normalmente. `BoasVindasIdle.estaAberta()` e leitura pura de DOM
 	 * (`.bv-modal.is-open`), do mesmo jeito que `janelaAberta()` le as
 	 * janelas RAGIDLE - sem pacote, sem estado novo aqui.
+	 *
+	 * O VOTO CEDE PELO MESMO MOTIVO (16/09/2026, relato do dono: "o
+	 * tutorial buga" com o voto liberado). `votoNaTela()` cobre os dois
+	 * jeitos de `VotoIdle` aparecer sem o tutorial pedir - o botao "Votar"
+	 * sempre clicavel no TopMenuIdle, e o aviso automatico que o servidor
+	 * dispara no MESMO pacote de entrada de mapa que a etapa vigente. Sem
+	 * isto a mascara (`z-index: 1900000`) cobria a janela/aviso de voto e
+	 * bloqueava todo clique nela, fora do furo da etapa atual.
 	 */
 	const etapa =
-		estado && estado.estado === 'em-andamento' && !BoasVindasIdle.estaAberta() ? etapaDe(numero) : null;
+		estado && estado.estado === 'em-andamento' && !BoasVindasIdle.estaAberta() && !votoNaTela()
+			? etapaDe(numero)
+			: null;
 
 	if (!etapa) {
 		camada.classList.remove('is-open');
