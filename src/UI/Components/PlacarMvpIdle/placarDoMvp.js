@@ -46,10 +46,13 @@ export function htmlDoPlacar(dados) {
 	const hp = Math.max(0, Math.min(100, Number(dados.hp) || 0));
 	const linhas = dados.top.slice(0, LINHAS_DO_PLACAR).map(function (p, i) {
 		const posicao = i + 1;
+		// D-1543: quem saiu do mapa continua na vaga (regra B4), mas o premio
+		// ja nao e dele — a linha diz isso.
+		const fora = p.fora === true;
 		return (
-			`<li class="pm-linha pm-pos-${posicao}">` +
+			`<li class="pm-linha pm-pos-${posicao}${fora ? ' pm-fora' : ''}">` +
 			`<span class="pm-pos">${posicao}</span>` +
-			`<span class="pm-nome">${escapar(p.nome)}</span>` +
+			`<span class="pm-nome">${escapar(p.nome)}${fora ? ' <em>(fora do mapa)</em>' : ''}</span>` +
 			`<span class="pm-dano">${formatarDano(p.dano)}</span>` +
 			`<span class="pm-fatia">${Math.max(0, Math.floor(Number(p.fatia) || 0))}%</span>` +
 			'</li>'

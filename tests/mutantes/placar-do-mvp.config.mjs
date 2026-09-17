@@ -12,6 +12,7 @@ const mutantes = {
 	inativoMostra: ['dados.ativo !== true ||', ''],
 	euSempre: ['if (eu && Number(eu.dano) > 0) {', 'if (eu) {'],
 	foraVira1: ["const lugar = eu.posicao ? `${eu.posicao}º` : 'fora do top 10';", 'const lugar = `${eu.posicao}º`;'],
+	foraSome: ["const fora = p.fora === true;", 'const fora = false;'],
 	jsonLanca: ['\t} catch (erro) {\n\t\treturn null;', '\t} catch (erro) {\n\t\tthrow erro;']
 };
 const mutante = mutantes[process.env.RAG_MUTANTE_PLACAR];

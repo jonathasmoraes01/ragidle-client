@@ -58,6 +58,14 @@ describe('o placar do MVP, montado (D-1533)', () => {
 		expect(htmlDoPlacar({ ...DADOS, eu: { posicao: null, dano: 0 } })).not.toContain('pm-eu');
 	});
 
+	it('D-1543: quem saiu do mapa aparece na vaga, apagado e escrito', () => {
+		const html = htmlDoPlacar({ ...DADOS, top: [{ nome: 'Saiu', dano: 9, fatia: 90, fora: true }, { nome: 'Ficou', dano: 1, fatia: 10 }] });
+		expect(html).toContain('pm-pos-1 pm-fora');
+		expect(html).toContain('Saiu <em>(fora do mapa)</em>');
+		expect(html).not.toContain('pm-pos-2 pm-fora');
+		expect(html).toContain('Ficou</span>');
+	});
+
 	it('o nome e escapado e a vida fica entre 0 e 100', () => {
 		const html = htmlDoPlacar({ ...DADOS, mvp: '<b>', hp: 250, top: [{ nome: '<i>', dano: 1, fatia: 100 }] });
 		expect(html).toContain('&lt;b&gt;');

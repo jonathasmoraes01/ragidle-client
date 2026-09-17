@@ -110,6 +110,16 @@
 	opacity: 0.75;
 }
 
+/* D-1543: quem saiu do mapa fica na vaga, apagado — o premio ja nao e dele. */
+#PlacarMvpIdle .pm-fora {
+	opacity: 0.45;
+}
+
+#PlacarMvpIdle .pm-fora em {
+	font-style: normal;
+	font-size: 10px;
+}
+
 #PlacarMvpIdle .pm-eu {
 	margin-top: 4px;
 	padding-top: 3px;
