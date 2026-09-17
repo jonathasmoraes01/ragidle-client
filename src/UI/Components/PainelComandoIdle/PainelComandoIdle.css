@@ -1,134 +1,282 @@
 /**
  * O PAINEL DE COMANDO (D-1563/D-1564) — a resposta longa em janela.
  *
- * A moldura é a das outras janelas Idle (`ri-window`, `ri-header`, `ri-scroll`);
- * o que é próprio daqui é a tabela, o selo e o relógio.
+ * ## A primeira versão era escura, e o jogo é CLARO
+ *
+ * Ela nasceu com painel `rgba(24,26,34)` e texto verde em toda linha, porque
+ * eu escrevi cores à mão em vez de usar o design system. O dono viu e a palavra
+ * dele foi **"parecendo amador"** — e ele estava certo: ao lado das outras
+ * janelas (superfície clara, moldura dourada, sombra AZUL), ela parecia um
+ * `<table>` colado na tela.
+ *
+ * Agora ela é feita dos mesmos tokens de `Common.css` que o Ranking e o
+ * Correio usam: `--window-fill`, `--titlebar-fill`, `--border-gold`,
+ * `--type-*`, `--sp-*`. Cor à mão aqui, hoje, é regressão.
+ *
+ * ## O que carrega a informação
+ *
+ * - o ESTADO é um ponto colorido + palavra curta, e não a linha inteira
+ *   colorida: colorir tudo destrói a hierarquia (era o segundo defeito que ele
+ *   apontou);
+ * - o RELÓGIO é tabular e monoespaçado, para a coluna alinhar dígito com
+ *   dígito enquanto conta;
+ * - a linha ZEBRA e acende no `hover`, que é o que faz uma lista de 27 linhas
+ *   ser legível;
+ * - o resumo do cabeçalho virou duas PASTILHAS (mortos / vivos), e não uma
+ *   frase espremida entre o título e os botões.
  */
+
 :host {
 	position: absolute;
 	z-index: 60;
 	top: 96px;
 	left: 96px;
-	/* O HOST não recebe toque: quem recebe é a janela. É o mesmo arranjo das
-	   outras janelas Idle, e é ele que deixa o clique passar para a cena
-	   ao lado da janela. */
+	/* O HOST não recebe toque: quem recebe é a janela. É o arranjo das outras
+	   janelas Idle, e é ele que deixa o clique passar para a cena ao lado. */
 	pointer-events: none;
 }
 
 #PainelComandoIdle .pc-window {
 	pointer-events: auto;
-	width: 460px;
-	max-width: calc(100vw - 16px);
-	display: flex;
+	display: none;
 	flex-direction: column;
-	max-height: min(560px, calc(100vh - 120px));
+	box-sizing: border-box;
+	width: min(520px, 100vw - 16px);
+	max-height: min(600px, 100vh - 132px);
+	border: var(--window-frame);
+	border-radius: var(--radius-window);
+	background: var(--window-fill);
+	box-shadow: var(--window-shadow);
+	color: var(--text-body);
+	font: var(--type-desc);
 }
 
-/* A BARRA é a alça do arrasto: `cursor: move` diz isso antes do primeiro
-   gesto, e `touch-action` é escrito pelo JS (o helper o cobra). */
+/* O padrão do fork: a janela nasce fechada e o JS abre com `is-open`. Sem esta
+   dupla ela fica com opacidade 0 — foi assim que ela foi a produção invisível
+   (17/09/2026). */
+#PainelComandoIdle .pc-window.is-open {
+	display: flex;
+}
+
+/* ─── Cabeçalho ─────────────────────────────────────────────────────── */
+
 #PainelComandoIdle .pc-titlebar {
-	cursor: move;
+	position: relative;
 	display: flex;
 	align-items: center;
-	gap: 8px;
+	gap: var(--sp-2);
+	padding: var(--sp-2) var(--sp-3);
+	/* Espaço à direita para os DOIS botões, que são absolutos: sem ele o
+	   resumo desliza por baixo deles (visto na foto da sonda). */
+	padding-right: 96px;
+	border-bottom: var(--titlebar-rule);
+	border-radius: var(--radius-window) var(--radius-window) 0 0;
+	background: var(--titlebar-fill);
+	box-shadow: var(--rim-light);
+	cursor: move;
+	/* O JS também escreve isto (o helper cobra); aqui o gesto já vale antes do
+	   primeiro `pointerdown`. */
+	touch-action: none;
 }
 
+#PainelComandoIdle .pc-title {
+	font: var(--type-title);
+	color: var(--text-title);
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+/* As PASTILHAS do resumo. O servidor manda "3 morto(s) · 1 vivo(s)"; o cliente
+   parte no separador e desenha uma pastilha por parte — a primeira acinzentada
+   (o que não está em campo) e a segunda em verde (o que dá para caçar agora). */
 #PainelComandoIdle .pc-resumo {
+	display: flex;
+	gap: var(--sp-2);
 	margin-left: auto;
-	font-size: 11px;
-	opacity: 0.75;
 	white-space: nowrap;
 }
 
-/* Os dois botões não se sobrepõem: 44px de alvo tátil cada (a regra do dono
-   de 08/09), o de fechar na ponta e o de recolher ao lado. */
+#PainelComandoIdle .pc-pastilha {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	padding: 1px 8px;
+	border: 1px solid var(--border-hairline);
+	border-radius: 999px;
+	background: var(--surface-card);
+	font: var(--type-label);
+	color: var(--text-muted);
+}
+
+#PainelComandoIdle .pc-pastilha.is-vivo {
+	border-color: rgba(46, 138, 87, 0.45);
+	background: rgba(46, 138, 87, 0.12);
+	color: #1f6b44;
+}
+
 #PainelComandoIdle .pc-minimizar {
 	right: 52px;
 }
 
+/* ─── Tabela ────────────────────────────────────────────────────────── */
+
 #PainelComandoIdle .pc-body {
 	flex: 1 1 auto;
-	overflow: auto;
 	min-height: 0;
+	overflow: auto;
+	padding: var(--sp-2) var(--sp-3) var(--sp-3);
 }
 
 #PainelComandoIdle .pc-tabela {
 	width: 100%;
 	border-collapse: collapse;
-	font-size: 12px;
+	font: var(--type-desc);
 }
 
 #PainelComandoIdle .pc-tabela th {
 	position: sticky;
 	top: 0;
-	background: rgba(24, 26, 34, 0.96);
+	z-index: 1;
+	padding: var(--sp-2) var(--sp-2);
+	border-bottom: 1px solid var(--border-gold);
+	background: var(--window-fill);
+	color: var(--text-muted);
+	font: var(--type-label);
 	text-align: left;
-	padding: 6px 8px;
+	white-space: nowrap;
 	cursor: pointer;
 	user-select: none;
-	white-space: nowrap;
 }
 
-#PainelComandoIdle .pc-tabela th[data-ordenada='asc']::after { content: ' ▲'; }
-#PainelComandoIdle .pc-tabela th[data-ordenada='desc']::after { content: ' ▼'; }
+#PainelComandoIdle .pc-tabela th:hover { color: var(--text-title); }
+
+/* A seta da ordem: ela some quando a coluna não é a ordenada, em vez de virar
+   um espaço reservado — três setas cinza competindo com a ativa é ruído. */
+#PainelComandoIdle .pc-tabela th[data-ordenada]::after {
+	color: var(--accent-gold);
+	font-size: 9px;
+	margin-left: 4px;
+}
+#PainelComandoIdle .pc-tabela th[data-ordenada='asc']::after { content: '▲'; }
+#PainelComandoIdle .pc-tabela th[data-ordenada='desc']::after { content: '▼'; }
 
 #PainelComandoIdle .pc-tabela td {
-	padding: 5px 8px;
-	border-top: 1px solid rgba(255, 255, 255, 0.06);
+	padding: var(--sp-2);
+	border-bottom: 1px solid var(--border-hairline);
 	white-space: nowrap;
+	vertical-align: middle;
 }
 
-/* O TEXTO LONGO QUEBRA A LINHA, e o resto nao (D-1566).
-   A ajuda de comando do `@commands` tem 60 a 90 caracteres: com `nowrap` ela
-   empurraria a tabela para uma rolagem horizontal de 900px, e ler ajuda
-   rolando de lado e pior que ler no chat — que e o que esta janela veio
-   resolver. Numero, relogio e selo seguem numa linha so: quebrar "1h 02m 03s"
-   no meio seria o defeito oposto. */
+/* ZEBRA + hover: o que torna 27 linhas legíveis sem contar linha com o dedo. */
+#PainelComandoIdle .pc-linhas tr:nth-child(even) { background: var(--surface-inset); }
+#PainelComandoIdle .pc-linhas tr:hover { background: var(--surface-card-hover); }
+
 #PainelComandoIdle .pc-tabela td.pc-texto {
 	white-space: normal;
 	word-break: break-word;
 }
 
 #PainelComandoIdle .pc-tabela td.pc-numero,
-#PainelComandoIdle .pc-tabela td.pc-relogio { text-align: right; font-variant-numeric: tabular-nums; }
-
-/* A ÊNFASE vem do servidor como dado (`destaque`/`apagado`), e não como texto
-   colorido: o cliente não reinterpreta a linha para descobrir o que ela é. */
-#PainelComandoIdle tr.pc-destaque td { color: #9ff0a4; }
-#PainelComandoIdle tr.pc-apagado td { opacity: 0.55; }
-
-#PainelComandoIdle .pc-selo {
-	display: inline-block;
-	min-width: 52px;
-	text-align: center;
-	padding: 1px 6px;
-	border-radius: 999px;
-	font-size: 10px;
-	text-transform: uppercase;
-	background: rgba(255, 255, 255, 0.1);
+#PainelComandoIdle .pc-tabela td.pc-relogio {
+	text-align: right;
+	font-variant-numeric: tabular-nums;
+	font-feature-settings: 'tnum' 1;
 }
-#PainelComandoIdle tr.pc-destaque .pc-selo { background: rgba(80, 200, 120, 0.25); }
 
-#PainelComandoIdle .pc-vazio { padding: 16px; opacity: 0.7; font-size: 12px; }
+/* O RELÓGIO conta na tela: monoespaçado para o número não dançar a cada
+   segundo, e em cor de destaque porque é a resposta da pergunta. */
+#PainelComandoIdle .pc-tabela td.pc-relogio {
+	font-family: 'JetBrains Mono', 'Consolas', monospace;
+	color: var(--text-title);
+	font-weight: 600;
+}
+
+/* A ÊNFASE não pinta a linha inteira (o defeito que o dono apontou): ela vive
+   no selo e num traço à esquerda. O texto continua legível em todas. */
+#PainelComandoIdle .pc-selo {
+	display: inline-flex;
+	align-items: center;
+	gap: 5px;
+	padding: 1px 8px 1px 6px;
+	border: 1px solid var(--border-hairline);
+	border-radius: 999px;
+	background: var(--surface-card);
+	font: var(--type-label);
+	color: var(--text-muted);
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+}
+
+#PainelComandoIdle .pc-selo::before {
+	content: '';
+	width: 6px;
+	height: 6px;
+	border-radius: 50%;
+	background: currentColor;
+	opacity: 0.85;
+}
+
+#PainelComandoIdle tr.pc-destaque .pc-selo {
+	border-color: rgba(46, 138, 87, 0.45);
+	background: rgba(46, 138, 87, 0.14);
+	color: #1f6b44;
+}
+
+#PainelComandoIdle tr.pc-destaque td:first-child { box-shadow: inset 3px 0 0 rgba(46, 138, 87, 0.55); }
+#PainelComandoIdle tr.pc-apagado td { color: var(--text-muted); }
+#PainelComandoIdle tr.pc-apagado .pc-relogio { color: var(--text-muted); font-weight: 400; }
+
+/* O AVATAR do monstro: 32px, sem suavização (a arte é pixel). */
+#PainelComandoIdle .pc-avatar {
+	width: 32px;
+	height: 32px;
+	object-fit: contain;
+	image-rendering: pixelated;
+	vertical-align: middle;
+}
+
+#PainelComandoIdle .pc-tabela td.pc-avatar-celula {
+	width: 40px;
+	padding-right: 0;
+	text-align: center;
+}
+
+:host-context(html.ri-vertical) #PainelComandoIdle .pc-tabela td.pc-avatar-celula { justify-content: flex-start; }
+
+#PainelComandoIdle .pc-vazio {
+	padding: var(--sp-4);
+	color: var(--text-muted);
+	text-align: center;
+}
 
 #PainelComandoIdle .pc-rodape {
-	padding: 4px 8px;
-	font-size: 10px;
-	opacity: 0.6;
-	border-top: 1px solid rgba(255, 255, 255, 0.08);
+	padding: var(--sp-2) var(--sp-3);
+	border-top: var(--divider);
+	background: var(--surface-card);
+	border-radius: 0 0 var(--radius-window) var(--radius-window);
+	color: var(--text-muted);
+	font: var(--type-label);
 }
 
-/* RECOLHIDA: só a barra de título fica. O estado é lembrado, como no
-   HuntAnalyzer — quem recolhe quer a janela recolhida da próxima vez. */
-#PainelComandoIdle .pc-window.is-compact .pc-body,
-#PainelComandoIdle .pc-window.is-compact .pc-rodape { display: none; }
-:host(.is-compact) #PainelComandoIdle .pc-window { max-height: none; }
+/* ─── Recolhida ─────────────────────────────────────────────────────── */
 
-/* ---------------------------------------------------------------------------
-   CELULAR EM PÉ — a tabela vira CARTÃO (a regra do dono de 08/09/2026).
-   Uma tabela de quatro colunas em 393px ou rola na horizontal ou aperta o nome
-   até ele sumir; o cartão não faz nem uma coisa nem outra.
-   --------------------------------------------------------------------------- */
+#PainelComandoIdle .pc-window.is-compact .pc-body,
+#PainelComandoIdle .pc-window.is-compact .pc-ordem-vertical,
+#PainelComandoIdle .pc-window.is-compact .pc-rodape { display: none; }
+
+#PainelComandoIdle .pc-window.is-compact {
+	max-height: none;
+	border-radius: var(--radius-window);
+}
+
+#PainelComandoIdle .pc-window.is-compact .pc-titlebar {
+	border-bottom: 0;
+	border-radius: var(--radius-window);
+}
+
+/* ─── Celular em pé: a tabela vira CARTÃO ───────────────────────────── */
+
 :host-context(html.ri-vertical) #PainelComandoIdle .pc-tabela thead { display: none; }
 
 :host-context(html.ri-vertical) #PainelComandoIdle .pc-tabela,
@@ -136,19 +284,24 @@
 :host-context(html.ri-vertical) #PainelComandoIdle .pc-tabela tr,
 :host-context(html.ri-vertical) #PainelComandoIdle .pc-tabela td { display: block; width: auto; }
 
-:host-context(html.ri-vertical) #PainelComandoIdle .pc-tabela tr {
-	border: 1px solid rgba(255, 255, 255, 0.1);
-	border-radius: 8px;
-	margin: 6px;
-	padding: 6px 8px;
+:host-context(html.ri-vertical) #PainelComandoIdle .pc-linhas tr {
+	margin: var(--sp-2) 0;
+	padding: var(--sp-2) var(--sp-3);
+	border: 1px solid var(--border-hairline);
+	border-radius: var(--radius-card);
+	background: var(--surface-card);
+	box-shadow: var(--shadow-card);
 }
 
+:host-context(html.ri-vertical) #PainelComandoIdle .pc-linhas tr:nth-child(even) { background: var(--surface-card); }
+
 :host-context(html.ri-vertical) #PainelComandoIdle .pc-tabela td {
-	border: 0;
-	padding: 2px 0;
 	display: flex;
 	justify-content: space-between;
-	gap: 12px;
+	align-items: center;
+	gap: var(--sp-3);
+	padding: 2px 0;
+	border: 0;
 	white-space: normal;
 }
 
@@ -156,19 +309,39 @@
    sozinho não se explica. O rótulo vem do `data-rotulo` que o JS escreve. */
 :host-context(html.ri-vertical) #PainelComandoIdle .pc-tabela td::before {
 	content: attr(data-rotulo);
-	opacity: 0.6;
-	font-size: 10px;
+	color: var(--text-muted);
+	font: var(--type-label);
 	text-transform: uppercase;
 }
 :host-context(html.ri-vertical) #PainelComandoIdle .pc-tabela td[data-rotulo='']::before { content: none; }
-:host-context(html.ri-vertical) #PainelComandoIdle .pc-tabela td.pc-relogio { text-align: left; }
+:host-context(html.ri-vertical) #PainelComandoIdle .pc-tabela td.pc-relogio { text-align: right; }
+:host-context(html.ri-vertical) #PainelComandoIdle tr.pc-destaque td:first-child { box-shadow: none; }
 
-/* A ORDEM no celular: os botões viram uma fileira tocável acima da lista. */
+/* A ORDEM no celular: botões tocáveis acima da lista (não há cabeçalho). */
 :host-context(html.ri-vertical) #PainelComandoIdle .pc-ordem-vertical { display: flex; }
-#PainelComandoIdle .pc-ordem-vertical { display: none; gap: 6px; padding: 6px; flex-wrap: wrap; }
+
+#PainelComandoIdle .pc-ordem-vertical {
+	display: none;
+	gap: var(--sp-2);
+	padding: var(--sp-2) var(--sp-3) 0;
+	flex-wrap: wrap;
+}
+
 #PainelComandoIdle .pc-ordem-vertical button {
 	min-height: 44px;
 	min-width: 44px;
-	padding: 0 12px;
-	border-radius: 8px;
+	padding: 0 var(--sp-3);
+	border: 1px solid var(--border-hairline);
+	border-radius: var(--radius-panel);
+	background: var(--surface-card);
+	color: var(--text-body);
+	font: var(--type-label);
+	cursor: pointer;
+}
+
+#PainelComandoIdle .pc-ordem-vertical button[data-ativa='1'] {
+	border-color: var(--border-gold);
+	background: var(--gold-100, rgba(244, 192, 62, 0.18));
+	color: var(--text-title);
+	font-weight: 600;
 }

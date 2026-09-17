@@ -57,6 +57,21 @@
 
 #PlacarMvpIdle .pm-pegar { font-size: 11px; letter-spacing: 2px; }
 
+/* O rotulo do recolhido: escondido enquanto a faixa esta aberta. */
+#PlacarMvpIdle .pm-rotulo {
+	display: none;
+	flex: 1;
+	font-weight: 700;
+	color: #f4c03e;
+	font-size: 11px;
+	white-space: nowrap;
+}
+
+#PlacarMvpIdle .pm-placar.is-compact .pm-rotulo { display: block; }
+
+/* Recolhido a alca fica sempre legivel — ela deixa de ser so uma pega. */
+#PlacarMvpIdle .pm-placar.is-compact .pm-alca { opacity: 1; margin-bottom: 0; }
+
 #PlacarMvpIdle .pm-minimizar {
 	pointer-events: auto;
 	background: none;

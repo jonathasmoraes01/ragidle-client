@@ -106,6 +106,23 @@ export default function arrastarPorPonteiro({ alca, painel, aoSoltar, classe = '
 		if (event.button !== undefined && event.button !== 0) {
 			return;
 		}
+		/*
+		 * BOTÃO DENTRO DA ALÇA NÃO ARRASTA — e sem esta guarda ele também não
+		 * CLICA.
+		 *
+		 * `preventDefault()` num `pointerdown` cancela os eventos de mouse de
+		 * compatibilidade que viriam depois, e o `click` é um deles. O "−" do
+		 * placar do MVP mora dentro da alça: o gesto engolia o clique dele, e o
+		 * minimizar simplesmente não fazia nada — o relato do dono
+		 * (17/09/2026), medido pela sonda de tela depois.
+		 *
+		 * `stopPropagation` no próprio botão NÃO resolveria: o ouvinte de
+		 * arrasto está na alça e roda antes, no `pointerdown`.
+		 */
+		const alvo = event.target;
+		if (alvo && typeof alvo.closest === 'function' && alvo.closest('button')) {
+			return;
+		}
 		event.preventDefault();
 		const caixa = painel.getBoundingClientRect();
 		/*

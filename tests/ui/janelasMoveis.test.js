@@ -78,6 +78,17 @@ describe('o placar do MVP se move e se recolhe', () => {
 		expect(placarCss).toContain('.pm-placar.is-compact .pm-corpo { display: none; }');
 	});
 
+	it('recolhido, sobra um ROTULO legivel — e nao uma barra muda (D-1567)', () => {
+		// Queixa do dono: o "−" "nao esta funcionando, deveria minimizar para
+		// aparecer um icone (ou apenas um titulo: Top Dano - MVP)". O titulo do
+		// placar mora no CORPO, que o recolhido esconde — sem este rotulo a
+		// faixa virava uma barrinha sem nome.
+		expect(placarHtml).toContain('class="pm-rotulo"');
+		expect(placarHtml).toContain('Top Dano');
+		expect(placarCss).toContain('.pm-placar.is-compact .pm-rotulo { display: block; }');
+		expect(placarCss).toMatch(/\.pm-rotulo \{[^}]*display:\s*none/);
+	});
+
 	it('o recolhido e a posicao sao LEMBRADOS entre sessoes', () => {
 		expect(placarJs).toContain("Preferences.get(\n\t'PlacarMvpIdle'");
 		expect(placarJs).toContain('_preferences.save();');

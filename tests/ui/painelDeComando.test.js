@@ -159,6 +159,55 @@ describe('a costura da janela', () => {
 		expect(js).toContain('clearInterval(_tique);');
 	});
 
+	it('a janela ABRE de verdade — `is-open`, e nao so `append()` (D-1567)', () => {
+		/*
+		 * Ela foi a producao INVISIVEL: o padrao do fork e `.ri-anima` com
+		 * `opacity: 0` ate a classe `is-open` entrar, e a marcacao
+		 * `ri-window ri-anima` que eu copiei traz o estado FECHADO junto. A
+		 * janela existia, tinha 27 linhas e nao pintava.
+		 */
+		expect(js).toContain('function abrir()');
+		expect(js).toContain("janela.classList.add('is-open');");
+		expect(js).toContain("janela.classList.remove('is-open');");
+		expect(css).toContain('#PainelComandoIdle .pc-window.is-open {');
+		// E o `receber` ABRE: `append()` sozinho nao pinta nada.
+		expect(js).toMatch(/render\(\);\s*abrir\(\);/);
+	});
+
+	it('o botao dentro da alca CLICA — o arrasto nao engole o gesto (D-1567)', () => {
+		/*
+		 * `preventDefault()` no `pointerdown` cancela os eventos de mouse de
+		 * compatibilidade, e o `click` e um deles: o "−" do placar do MVP
+		 * simplesmente nao fazia nada. A guarda mora no helper, entao vale para
+		 * toda janela que use a alca.
+		 */
+		expect(arrasto).toContain("alvo.closest('button')");
+		const i = arrasto.indexOf("alvo.closest('button')");
+		expect(arrasto.indexOf('event.preventDefault();')).toBeGreaterThan(i);
+	});
+
+	it('a coluna AVATAR desenha o bicho, e some sozinha se faltar arte', () => {
+		expect(js).toContain("if (coluna.tipo === 'avatar')");
+		expect(js).toContain("/ragidle/mobs/");
+		expect(js).toContain("onerror=\"this.style.display='none'\"");
+		expect(css).toMatch(/\.pc-avatar \{[^}]*image-rendering:\s*pixelated/);
+	});
+
+	it('o design usa os TOKENS do jogo, e nao cor escrita a mao', () => {
+		// A primeira versao era um painel escuro com texto verde em toda linha
+		// ("parecendo amador", nas palavras do dono). O sistema do jogo e claro.
+		expect(css).toContain('var(--window-fill)');
+		expect(css).toContain('var(--titlebar-fill)');
+		expect(css).toContain('var(--border-gold)');
+		expect(css).not.toContain('rgba(24, 26, 34');
+	});
+
+	it('o resumo vira PASTILHAS, e nao uma frase espremida', () => {
+		expect(js).toContain("class=\"pc-pastilha");
+		expect(css).toContain('#PainelComandoIdle .pc-pastilha {');
+		expect(css).toContain('.pc-pastilha.is-vivo');
+	});
+
 	it('o conteudo do servidor e ESCAPADO — nome de mapa vem de dado', () => {
 		expect(js).toContain('function escapeHtml(value)');
 		expect(js).toContain('escapeHtml(c.rotulo)');
@@ -168,7 +217,7 @@ describe('a costura da janela', () => {
 describe('o celular em pe (a regra do dono de 08/09/2026)', () => {
 	it('a tabela vira CARTAO, e o cabecalho some', () => {
 		expect(css).toContain(':host-context(html.ri-vertical) #PainelComandoIdle .pc-tabela thead { display: none; }');
-		expect(css).toMatch(/:host-context\(html\.ri-vertical\)[^{]*\.pc-tabela tr \{/);
+		expect(css).toMatch(/:host-context\(html\.ri-vertical\)[^{]*\.pc-linhas tr \{/);
 	});
 
 	it('cada celula do cartao diz de QUE coluna ela e', () => {
@@ -192,6 +241,8 @@ describe('o celular em pe (a regra do dono de 08/09/2026)', () => {
 	});
 
 	it('a janela nao passa da largura da tela', () => {
-		expect(css).toMatch(/max-width:\s*calc\(100vw - 16px\)/);
+		// `width: min(520px, 100vw - 16px)` — a janela cabe na tela do celular
+		// sem `max-width` separado, que era como ela nascia.
+		expect(css).toMatch(/width:\s*min\(520px,\s*100vw - 16px\)/);
 	});
 });

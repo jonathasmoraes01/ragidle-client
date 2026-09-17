@@ -45,6 +45,7 @@ import UIManager from 'UI/UIManager.js';
 import GUIComponent from 'UI/GUIComponent.js';
 import arrastarPorPonteiro, { prenderNaTela } from 'UI/arrastarPorPonteiro.js';
 import { faltaAgora, formatarFalta, ordenarLinhas } from './tabelaDoPainel.js';
+import { fecharEEsquecer } from '../limpezaDeJanelaIdle.js';
 import htmlText from './PainelComandoIdle.html?raw';
 import cssText from './PainelComandoIdle.css?raw';
 
@@ -101,6 +102,22 @@ function celula(coluna, linha, chegouEm, agora) {
 			html: falta === null ? '—' : escapeHtml(formatarFalta(falta))
 		};
 	}
+	if (coluna.tipo === 'avatar') {
+		/*
+		 * O avatar do monstro é `public/ragidle/mobs/<mobId>.png` — o MESMO
+		 * arquivo do Mapa de Caça, do Codex e do Hunt Analyzer. O `onerror`
+		 * esconde a imagem quando a espécie não tem avatar publicado, em vez de
+		 * deixar o retângulo vazio que o `<img>` quebrado desenha.
+		 */
+		const id = Number(valor);
+		return {
+			classe: 'pc-avatar-celula',
+			html:
+				Number.isFinite(id) && id > 0
+					? `<img class="pc-avatar" src="/ragidle/mobs/${String(id)}.png" alt="" onerror="this.style.display='none'" />`
+					: ''
+		};
+	}
 	if (coluna.tipo === 'selo') {
 		return { classe: 'pc-selo-celula', html: `<span class="pc-selo">${escapeHtml(valor ?? '')}</span>` };
 	}
@@ -120,7 +137,26 @@ function render() {
 	const ordem = ordemVigente();
 
 	root.querySelector('.pc-title').textContent = painel.titulo || 'Painel';
-	root.querySelector('.pc-resumo').textContent = painel.resumo || '';
+	/*
+	 * O RESUMO VIRA PASTILHAS (D-1567).
+	 *
+	 * O servidor manda uma frase ("3 morto(s) · 1 vivo(s)"), e ela espremida
+	 * entre o título e os dois botões foi o segundo defeito que o dono apontou
+	 * no design. O cliente parte no separador e desenha uma pastilha por parte;
+	 * a que fala de VIVO ganha a cor, porque é a acionável — dá para ir agora.
+	 *
+	 * Partir texto aqui é leitura de APRESENTAÇÃO, e não regra de jogo: o
+	 * conteúdo continua sendo o que o servidor decidiu.
+	 */
+	root.querySelector('.pc-resumo').innerHTML = (painel.resumo || '')
+		.split('·')
+		.map((parte) => parte.trim())
+		.filter(Boolean)
+		.map((parte) => {
+			const viva = /vivo/i.test(parte);
+			return `<span class="pc-pastilha${viva ? ' is-vivo' : ''}">${escapeHtml(parte)}</span>`;
+		})
+		.join('');
 	root.querySelector('.pc-origem').textContent = `@${painel.comando}`;
 
 	const cabecalho = root.querySelector('.pc-cabecalho');
@@ -255,16 +291,47 @@ PainelComandoIdle.receber = function receber(dados) {
 		PainelComandoIdle.append();
 	}
 	render();
-	PainelComandoIdle.__aberta = true;
+	abrir();
 };
 
+/**
+ * ABRE de verdade — e "de verdade" é a classe `is-open`.
+ *
+ * **Sem ela a janela existe, tem tamanho, tem as 27 linhas e NÃO PINTA.** O
+ * padrão do fork é `.ri-anima { opacity: 0 }` com `.ri-anima.is-open` abrindo
+ * (Common.css): a marcação `ri-window ri-anima` que eu copiei das outras
+ * janelas traz o estado FECHADO junto, e quem abre é o JS de cada uma.
+ *
+ * Isto foi para produção invisível, e o que me enganou foi medir `width > 0`
+ * na sonda — que é a regra 5 do projeto, "contar elemento não prova que dá
+ * para ver", na forma mais literal.
+ */
+function abrir() {
+	const janela = _root() && _root().querySelector('.pc-window');
+	if (janela) {
+		janela.classList.add('is-open');
+	}
+}
+
+/** Fecha sem arrancar do DOM — a pilha de janelas lê `is-open`. */
+function fechar() {
+	const janela = _root() && _root().querySelector('.pc-window');
+	if (janela) {
+		janela.classList.remove('is-open');
+	}
+}
+
 PainelComandoIdle.limparEstadoDoPersonagem = function limparEstadoDoPersonagem() {
+	/*
+	 * A PEÇA COMPARTILHADA, e não uma limpeza própria: trocar de personagem não
+	 * recarrega a página, e o shadow DOM sobrevive — a janela voltaria com
+	 * `is-open` e com as linhas do personagem ANTERIOR escritas por `innerHTML`.
+	 * O portão `janela-idle-esquece-o-desenho` cobra que toda janela Idle use
+	 * esta função (e não uma cópia local que esquece metade).
+	 */
+	fecharEEsquecer(_root(), '.pc-window', { corpo: '.pc-linhas', texto: '' });
 	PainelComandoIdle.estado = null;
 	_ordem = null;
-	const root = _root();
-	if (root) {
-		root.querySelector('.pc-linhas').innerHTML = '';
-	}
 	if (PainelComandoIdle.__appended) {
 		PainelComandoIdle.remove();
 	}
@@ -273,7 +340,10 @@ PainelComandoIdle.limparEstadoDoPersonagem = function limparEstadoDoPersonagem()
 PainelComandoIdle.init = function init() {
 	const root = _root();
 	if (root) {
-		root.querySelector('.pc-close').addEventListener('click', () => PainelComandoIdle.remove());
+		root.querySelector('.pc-close').addEventListener('click', () => {
+			fechar();
+			PainelComandoIdle.remove();
+		});
 		root.querySelector('.pc-minimizar').addEventListener('click', (event) => {
 			// Sem isto o clique no botão sobe para a barra e vira um arrasto de
 			// zero pixel — e a janela "pisca" sem sair do lugar.
@@ -320,6 +390,7 @@ PainelComandoIdle.onRemove = function onRemove() {
 /** O ESC e o VOLTAR do Android fecham, como em toda janela da pilha. */
 PainelComandoIdle.onKeyDown = function onKeyDown(event) {
 	if (event.which === 27) {
+		fechar();
 		PainelComandoIdle.remove();
 		event.stopImmediatePropagation();
 		return false;
