@@ -269,6 +269,20 @@
 	display: none;
 }
 
+/* "N item travado nao aparece aqui" (18/09/2026). Tokens do DS, nunca cor a
+   mao: e' aviso discreto, e nao erro — o jogador travou de proposito. */
+.ns-travados {
+	flex: 0 0 auto;
+	padding: var(--sp-2) var(--sp-3);
+	color: var(--text-muted);
+	font: var(--type-desc);
+}
+
+/* Mesmo cuidado do `.ns-vazio[hidden]`: o `flex` acima ganharia do [hidden]. */
+.ns-travados[hidden] {
+	display: none;
+}
+
 .ns-item {
 	flex: 0 0 auto;
 	display: flex;

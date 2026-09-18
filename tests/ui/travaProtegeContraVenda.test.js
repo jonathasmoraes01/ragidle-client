@@ -113,4 +113,65 @@ describe('a trava por pilha vence a janela de vender, com ou sem o cadeado geral
 
 		expect(NpcStore.getRoot().querySelector(`[data-index="${ITEM_TRAVADO.index}"]`)).not.toBeNull();
 	});
+
+	/*
+	 * A JANELA DIZ QUANTOS ESCONDEU (18/09/2026).
+	 *
+	 * Esconder e' o comportamento certo — os tres casos acima o pinam. O que
+	 * faltava era o jogador SABER: o item travado saia da lista em silencio, e
+	 * quem travou semanas antes procura, nao acha, e conclui que perdeu o item.
+	 */
+	it('a linha de aviso conta quantos a trava escondeu, e some quando nao ha nenhum', () => {
+		mocks.inventoryUI.npcsalelock = false;
+
+		NpcStore.setList([
+			{ index: ITEM_TRAVADO.index, price: 10, overchargeprice: 10 },
+			{ index: ITEM_LIVRE.index, price: 10, overchargeprice: 10 }
+		]);
+
+		const aviso = NpcStore.getRoot().querySelector('.ns-travados');
+		expect(aviso, 'o elemento do aviso nao existe no HTML da janela').not.toBeNull();
+		expect(aviso.hidden, 'havia 1 item travado e o aviso ficou escondido').toBe(false);
+		expect(aviso.textContent).toContain('1 item travado');
+		// O texto tem de MANDAR a acao: "esta escondido" sem "destrave onde"
+		// deixaria o jogador exatamente tao perdido quanto o silencio.
+		expect(aviso.textContent).toContain('Mochila');
+
+		/*
+		 * CONTROLE: sem nenhum travado o aviso SOME. Sem esta metade, um aviso
+		 * cravado em `hidden = false` passaria na de cima.
+		 */
+		mocks.inventoryUI.itens.set(ITEM_TRAVADO.index, { ...ITEM_TRAVADO, travado: false });
+		NpcStore.setList([
+			{ index: ITEM_TRAVADO.index, price: 10, overchargeprice: 10 },
+			{ index: ITEM_LIVRE.index, price: 10, overchargeprice: 10 }
+		]);
+		expect(
+			NpcStore.getRoot().querySelector('.ns-travados').hidden,
+			'nenhum item esta travado e o aviso continuou na tela'
+		).toBe(true);
+	});
+
+	it('o plural sai certo com dois travados', () => {
+		mocks.inventoryUI.itens.set(ITEM_LIVRE.index, { ...ITEM_LIVRE, travado: true });
+
+		NpcStore.setList([
+			{ index: ITEM_TRAVADO.index, price: 10, overchargeprice: 10 },
+			{ index: ITEM_LIVRE.index, price: 10, overchargeprice: 10 }
+		]);
+
+		expect(NpcStore.getRoot().querySelector('.ns-travados').textContent).toContain('2 itens travados');
+	});
+
+	/*
+	 * NA COMPRA O AVISO NUNCA APARECE: a lista e' do NPC, e a trava do jogador
+	 * nao a recorta. Sem este caso, um aviso que ignorasse o tipo de loja
+	 * passaria nos dois de cima — e apareceria mentindo numa vitrine.
+	 */
+	it('a compra nao mostra o aviso, mesmo com item travado na mochila', () => {
+		NpcStore.setType(NpcStore.Type.BUY);
+		NpcStore.setList([{ index: 0, ITID: 700, price: 10, count: 3, IsIdentified: 1 }]);
+
+		expect(NpcStore.getRoot().querySelector('.ns-travados').hidden).toBe(true);
+	});
 });

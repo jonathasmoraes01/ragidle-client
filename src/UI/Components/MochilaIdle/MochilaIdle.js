@@ -1165,10 +1165,17 @@ function abrirMenuDoItem(cell) {
 
 	/*
 	 * TRAVA CONTRA VENDA (R14/C2-3, 14/09/2026). So o ROTULO troca (Travar
-	 * <-> Destravar); a acao de verdade e' `pedirAlternarTrava`, que hoje so
-	 * AVISA (console) em vez de mandar o pacote -- ver o comentario grande
-	 * na funcao, mais abaixo: os opcodes que o servidor publicou colidem com
-	 * um recurso ja em producao.
+	 * <-> Destravar); a acao de verdade e' `pedirAlternarTrava`, logo abaixo.
+	 *
+	 * ESTE COMENTARIO AFIRMAVA O CONTRARIO ATE 18/09/2026, e a frase dele era
+	 * uma armadilha: dizia que `pedirAlternarTrava` *"hoje so AVISA (console)
+	 * em vez de mandar o pacote"* porque os opcodes colidiriam com um recurso
+	 * em producao. Isso descrevia o par ANTIGO (0x0fc7/0x0fc8, que colidia com
+	 * o autocompletar de comandos); o par final 0x0fc0/0x0fc1 entrou, a funcao
+	 * manda o pacote de verdade, e o cadeado esta fiado ponta a ponta — com
+	 * recusa no SERVIDOR (`podeVender`, servidor/itens.ts:1841), nas tres
+	 * portas de venda. O comentario ficou para tras e passou a descrever um
+	 * mundo que nao existe, com a autoridade de estar datado e assinado.
 	 */
 	ContextMenu.addElement(item.travado ? 'Destravar' : 'Travar', () => {
 		pedirAlternarTrava(item.index);

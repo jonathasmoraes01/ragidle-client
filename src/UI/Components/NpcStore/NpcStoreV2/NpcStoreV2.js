@@ -213,6 +213,18 @@ function pesoUnitario(item) {
  */
 let _limiteZeny = -1;
 
+/**
+ * Quantos itens a TRAVA tirou da lista de venda (18/09/2026).
+ *
+ * O filtro de `travado` e' CORRETO e nao muda — o cadeado existe para isso, e o
+ * servidor recusa a venda de qualquer jeito (`podeVender`, servidor/itens.ts).
+ * O que faltava era DIZER: o item simplesmente nao aparecia, e o jogador que
+ * travou o Jellopy semanas antes procura, nao acha, e conclui que perdeu o item.
+ * Contado aqui em vez de recontado na hora de desenhar porque quem sabe o
+ * motivo da exclusao e' o laco do `setList` — depois dele a informacao morreu.
+ */
+let _travadosOcultos = 0;
+
 /* ─── Ciclo de vida ──────────────────────────────────────────────────────── */
 
 NpcStore.init = function init() {
@@ -332,6 +344,7 @@ NpcStore.setList = function setList(items) {
 	_nos.clear();
 	_vitrine = [];
 	_visiveis = [];
+	_travadosOcultos = 0;
 
 	const geracao = ++_geracao;
 
@@ -385,6 +398,13 @@ NpcStore.setList = function setList(items) {
 					InventoryVersion !== 'InventoryV0'
 						? it && !it.travado && (!Inventory.getUI().npcsalelock || (it.PlaceETCTab || 0) < 1)
 						: it && !it.travado;
+				// A trava e' contada SEPARADO do `npcsalelock`: aquele e' uma
+				// preferencia que o jogador acabou de ligar e sabe que ligou;
+				// esta e' por pilha, veio do servidor e pode ser de semanas
+				// atras. Dizer "N oculto" para o cadeado geral seria ruido.
+				if (it && it.travado) {
+					_travadosOcultos += 1;
+				}
 				if (condition) {
 					const item = Object.assign({}, it);
 					item.price = items[i].price;
@@ -417,6 +437,7 @@ NpcStore.setList = function setList(items) {
 	}
 
 	montarControles();
+	atualizarAvisoDeTravados();
 	desenharVista();
 	atualizarResumo();
 
@@ -461,6 +482,43 @@ NpcStore.submit = function submit() {
 		return;
 	}
 
+	/*
+	 * A VENDA PERGUNTA ANTES (18/09/2026, o mesmo relato da `.ns-tudo-lista`).
+	 *
+	 * Ela e' o unico gesto desta janela sem desfazer: comprar troca zeny por
+	 * item e o item fica, vender troca item por zeny e o item some. Tirar a
+	 * `.ns-tudo-lista` da venda fecha a porta pela qual ESTE jogador passou;
+	 * a pergunta e' o que cobre as outras — o "Tudo no máx" com a aba errada,
+	 * o dedo que erra a linha no celular, a quantidade digitada com um zero a
+	 * mais. As DUAS entram juntas de proposito: uma so nao seria garantia.
+	 *
+	 * Ela diz QUANTOS e QUANTO, porque "Confirmar?" sozinho vira um clique
+	 * reflexo e deixa de ser uma pergunta.
+	 */
+	if (eDeVenda()) {
+		const unidades = escolha.reduce((soma, o) => soma + (Number(o.count) || 0), 0);
+		const linhas = escolha.length;
+		UIManager.showPromptBox(
+			`Vender ${linhas === 1 ? '1 item' : `${linhas} itens`} (${unidades} ${unidades === 1 ? 'unidade' : 'unidades'}) por ${prettyZeny(NpcStore.calculateCost())}z?\n\nIsto não tem desfazer.`,
+			'yes',
+			'no',
+			() => enviarEscolha(escolha),
+			() => {}
+		);
+		return;
+	}
+
+	enviarEscolha(escolha);
+};
+
+/**
+ * Manda a escolha ao motor e devolve a janela ao estado vazio.
+ *
+ * Separada do `submit` porque a venda pergunta antes: sem a separacao, o
+ * "Sim" do prompt teria de remontar a escolha de um `_output` que o jogador
+ * pode ter mexido enquanto a pergunta estava na tela.
+ */
+function enviarEscolha(escolha) {
 	NpcStore.onSubmit(escolha);
 
 	for (let i = 0; i < _output.length; ++i) {
@@ -474,7 +532,7 @@ NpcStore.submit = function submit() {
 	});
 	root.querySelectorAll('.ns-item.esta-no-carrinho').forEach(el => el.classList.remove('esta-no-carrinho'));
 	atualizarResumo();
-};
+}
 
 NpcStore.calculateCost = function calculateCost() {
 	let total = 0;
@@ -926,9 +984,24 @@ function atualizarBotaoDeTudo() {
 		? `Zerar a quantidade de ${escopo}`
 		: `Pôr no máximo a quantidade de ${escopo} (${_visiveis.length} ${_visiveis.length === 1 ? 'item' : 'itens'})`;
 
-	// O segundo gesto so faz sentido quando o primeiro NAO ja alcanca tudo.
-	botaoLista.hidden = !comFiltro;
-	if (comFiltro) {
+	/*
+	 * O segundo gesto so faz sentido quando o primeiro NAO ja alcanca tudo.
+	 *
+	 * E ELE NAO EXISTE NA VENDA (18/09/2026, relato de jogador): *"tem que dar
+	 * uma olhada no npc de venda, voce seleciona a aba clica lista inteira vai
+	 * tudo mesmo oq nao estava na lista, vendi minha katar assim"*. O botao
+	 * fazia exatamente o que o `title` dele prometia — ignorar a aba —, e o
+	 * problema e que ele so APARECE quando ha filtro: o jogador acabou de
+	 * escolher uma aba, ve um botao novo nascer ao lado, e le "lista inteira"
+	 * como "a lista que estou vendo". A leitura errada e a natural.
+	 *
+	 * Na COMPRA o estrago tem desfazer — o total esta na tela, e nada sai da
+	 * mochila ate o "Comprar". Na VENDA o item some, e nao ha desfazer. O
+	 * alcance em massa da venda passa a ser SEMPRE o que esta a vista, que e
+	 * o que o jogador consegue conferir antes de clicar.
+	 */
+	botaoLista.hidden = !comFiltro || eDeVenda();
+	if (!botaoLista.hidden) {
 		const totalIndices = totalIndicesDoInput();
 		const cheiaLista = listaInteiraEstaCheia(totalIndices);
 		botaoLista.disabled = totalIndices.length === 0;
@@ -936,6 +1009,29 @@ function atualizarBotaoDeTudo() {
 		botaoLista.title = cheiaLista
 			? 'Zerar a quantidade de TODA a lista (ignora a aba/busca atual)'
 			: `Pôr no máximo a quantidade de TODA a lista (${totalIndices.length} ${totalIndices.length === 1 ? 'item' : 'itens'}, ignora a aba/busca atual)`;
+	}
+}
+
+/**
+ * Escreve (ou apaga) a linha "N item travado nao aparece aqui".
+ *
+ * So na VENDA: na compra a lista e' do NPC e a trava do jogador nao a recorta.
+ * Ela NAO depende de aba nem de busca — o item travado nunca entrou em
+ * `_input`, entao filtrar a vista nao muda o numero, e um aviso que aparecesse
+ * e desaparecesse com a aba faria o jogador achar que o item esta noutra.
+ */
+function atualizarAvisoDeTravados() {
+	const aviso = NpcStore.getRoot().querySelector('.ns-travados');
+	if (!aviso) {
+		return;
+	}
+	const mostra = eDeVenda() && _travadosOcultos > 0;
+	aviso.hidden = !mostra;
+	if (mostra) {
+		aviso.textContent =
+			_travadosOcultos === 1
+				? '1 item travado não aparece aqui. Destrave pela Mochila para vendê-lo.'
+				: `${_travadosOcultos} itens travados não aparecem aqui. Destrave pela Mochila para vendê-los.`;
 	}
 }
 
