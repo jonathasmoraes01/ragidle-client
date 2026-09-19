@@ -2,6 +2,8 @@
 	"sessao": "servidor-m1",
 	"packetver": 20211103,
 	"gravadoPor": "oraculo/gravador-de-pacotes.js",
+	"primeiraDestaCorrida": 95,
+	"corridaEm": 1789661553398,
 	"conexoes": [
 		{
 			"n": 1,
@@ -1782,6 +1784,132 @@
 				"s2c": false
 			},
 			"fechadaEm": 71817978
+		},
+		{
+			"n": 92,
+			"alvo": "127.0.0.1:6900",
+			"servidor": "login",
+			"etiqueta": "92-login",
+			"corridaEm": 1789661426386,
+			"abertaEm": 11837,
+			"pacotes": {
+				"c2s": 1,
+				"s2c": 1
+			},
+			"bytes": {
+				"c2s": 55,
+				"s2c": 224
+			},
+			"travou": {
+				"c2s": false,
+				"s2c": false
+			},
+			"fechadaEm": 11853
+		},
+		{
+			"n": 93,
+			"alvo": "127.0.0.1:6121",
+			"servidor": "char",
+			"etiqueta": "93-char",
+			"corridaEm": 1789661426386,
+			"abertaEm": 11848,
+			"pacotes": {
+				"c2s": 4,
+				"s2c": 6
+			},
+			"bytes": {
+				"c2s": 58,
+				"s2c": 426
+			},
+			"travou": {
+				"c2s": false,
+				"s2c": false
+			},
+			"fechadaEm": 19273
+		},
+		{
+			"n": 94,
+			"alvo": "127.0.0.1:5121",
+			"servidor": "map",
+			"etiqueta": "94-map",
+			"corridaEm": 1789661426386,
+			"abertaEm": 19199,
+			"pacotes": {
+				"c2s": 15,
+				"s2c": 184
+			},
+			"bytes": {
+				"c2s": 103,
+				"s2c": 35412
+			},
+			"travou": {
+				"c2s": false,
+				"s2c": false
+			},
+			"fechadaEm": 43338
+		},
+		{
+			"n": 95,
+			"alvo": "127.0.0.1:6900",
+			"servidor": "login",
+			"etiqueta": "95-login",
+			"corridaEm": 1789661553398,
+			"abertaEm": 11940,
+			"pacotes": {
+				"c2s": 1,
+				"s2c": 1
+			},
+			"bytes": {
+				"c2s": 55,
+				"s2c": 224
+			},
+			"travou": {
+				"c2s": false,
+				"s2c": false
+			},
+			"fechadaEm": 11958
+		},
+		{
+			"n": 96,
+			"alvo": "127.0.0.1:6121",
+			"servidor": "char",
+			"etiqueta": "96-char",
+			"corridaEm": 1789661553398,
+			"abertaEm": 11952,
+			"pacotes": {
+				"c2s": 4,
+				"s2c": 6
+			},
+			"bytes": {
+				"c2s": 58,
+				"s2c": 426
+			},
+			"travou": {
+				"c2s": false,
+				"s2c": false
+			},
+			"fechadaEm": 19427
+		},
+		{
+			"n": 97,
+			"alvo": "127.0.0.1:5121",
+			"servidor": "map",
+			"etiqueta": "97-map",
+			"corridaEm": 1789661553398,
+			"abertaEm": 19350,
+			"pacotes": {
+				"c2s": 17,
+				"s2c": 186
+			},
+			"bytes": {
+				"c2s": 128,
+				"s2c": 35474
+			},
+			"travou": {
+				"c2s": false,
+				"s2c": false
+			},
+			"fechadaEm": 43093
 		}
 	]
 }
