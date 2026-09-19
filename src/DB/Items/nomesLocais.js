@@ -175,6 +175,15 @@ export const NOMES_LOCAIS = {
 	25508: 'Orc Warlord Token', // db/re/item_db_etc.yml:36675 (Token_of_OrcGeneral) — cai do Orc Hero (gef_fild02)
 	28106: 'Crimson Two-Handed Axe', // db/re/item_db_equip.yml:142093 (Scarlet_Twohand_Axe) — cai do Kobold (gef_fild06, gef_fild08)
 	28380: 'Fresh Grass Necklace', // db/re/item_db_equip.yml:145040 (Fresh_G_Necklace) — cai do Kobold (gef_fild06, gef_fild08)
+	// CONVERSAO DE SPAWN PARA O `pre-re` (19/09/2026, no repositorio do jogo): 51
+	// mapas passaram a tirar a populacao do `npc/pre-re`, e DOIS ids novos chegaram
+	// a tela como "Item desconhecido". Nenhum e novo no `item_db` — o que mudou foi
+	// CAIR de bicho que agora nasce, a mesma causa dos tres do paragrafo acima.
+	//
+	// O 28381 FECHA A FAMILIA `_G_Necklace`: 28380 (Fresh) acima, 28382 (Charm) mais
+	// atras, e agora o Pretty. Mesmo sufixo, mesma familia, mesmo veredito de icone.
+	23258: 'Stinky Rotten Meat', // db/re/item_db_usable.yml:62479 (Foul_Rotten_Meat) — cai do Galion (ra_fild03, ra_fild04)
+	28381: 'Cute Grass Necklace', // db/re/item_db_equip.yml:145055 (Pretty_G_Necklace) — cai do Stapo (ra_fild03, ra_fild08, ra_fild12)
 	// As DEZ cartas dos mapas novos (Moscovia, Rock Ridge). Carta sem nome no
 	// GRF e a regra e nao a excecao — o 4545 da Rodada 1 e o mesmo caso.
 	27157: 'Wood Goblin Card', // db/re/item_db_etc.yml:39743 (Wood_Goblin_Card)
