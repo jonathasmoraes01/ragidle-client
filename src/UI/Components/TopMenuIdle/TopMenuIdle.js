@@ -648,7 +648,11 @@ function onClickAction(e) {
 			CodexIdle.toggle();
 			break;
 		case 'presenca':
-			/* D-1162: PresencaIdle.toggle() tambem PEDE o painel ao abrir (0x0fdf) */
+			/* D-1162: PresencaIdle.toggle() tambem PEDE o painel ao abrir (0x0fdf).
+			   D-1589: o botao saiu do menu e o servidor nao responde mais os dois
+			   verbos, entao este ramo nao e mais alcancavel pelo menu. Ele FICA
+			   de proposito: e o que religar custa, e apaga-lo levaria junto o
+			   import e o registro na pilha do ESC. */
 			PresencaIdle.toggle();
 			break;
 		case 'ranking':
