@@ -1,0 +1,59 @@
+<div id="TemporadaIdle">
+	<div class="te-window ri-window ri-anima">
+		<div class="te-titlebar ri-header">
+			<span class="te-carteira" title="Seu saldo de RO Cash">
+				<span class="te-carteira-valor">0</span>
+				<span class="te-carteira-unidade">RO Cash</span>
+				<button type="button" class="te-recarregar" disabled title="Em breve: ainda nao ha pagamento em dinheiro real">Recarregar</button>
+			</span>
+			<span class="te-title ri-title">Temporada</span>
+			<span class="te-selo-vip ri-badge ri-badge--cinza">Sem VIP</span>
+			<button type="button" class="te-close ri-close" title="Fechar">&times;</button>
+		</div>
+
+		<div class="te-tabs">
+			<button type="button" class="te-tab ri-tab is-active" data-tab="destaques">Destaques</button>
+			<button type="button" class="te-tab ri-tab" data-tab="caixas">Caixas</button>
+			<button type="button" class="te-tab ri-tab" data-tab="passe">Passe</button>
+			<button type="button" class="te-tab ri-tab" data-tab="vip">VIP</button>
+		</div>
+
+		<div class="te-body ri-scroll ri-janela-corpo">
+			<div class="te-carregando">Carregando…</div>
+		</div>
+
+		<div class="te-aviso" aria-live="polite"></div>
+	</div>
+
+	<!-- Modal "Ver conteúdo": as 6 recompensas da caixa, com a chance sempre visível. -->
+	<div class="te-modal te-modal--conteudo" hidden>
+		<div class="te-modal-fundo"></div>
+		<div class="te-modal-caixa ri-window">
+			<div class="te-modal-cabecalho ri-header">
+				<span class="te-title ri-title">Conteúdo</span>
+				<button type="button" class="te-modal-fechar ri-close" title="Fechar">&times;</button>
+			</div>
+			<div class="te-modal-corpo ri-scroll"></div>
+		</div>
+	</div>
+
+	<!-- Confirmação antes de gastar RO Cash (comprar caixa / Premium). -->
+	<div class="te-modal te-modal--confirmar" hidden>
+		<div class="te-modal-fundo"></div>
+		<div class="te-modal-caixa ri-window te-modal-caixa--estreita">
+			<div class="te-modal-cabecalho ri-header">
+				<span class="te-title ri-title">Confirmar compra</span>
+			</div>
+			<div class="te-modal-corpo">
+				<p class="te-confirmar-texto"></p>
+				<div class="te-confirmar-acoes">
+					<button type="button" class="te-confirmar-ok ri-btn ri-btn--ouro">Confirmar</button>
+					<button type="button" class="te-confirmar-cancelar ri-btn ri-btn--sec">Cancelar</button>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<!-- Reveal da abertura de uma caixa (resultado.abertura). -->
+	<div class="te-reveal" hidden></div>
+</div>

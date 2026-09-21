@@ -220,6 +220,36 @@ PasseIdle.toggle = function toggle() {
 	}
 };
 
+/**
+ * Abre a janela JÁ na aba pedida — usado pelo card VIP da janela da Temporada
+ * (Season 1, "Luz & Trevas"): a compra do VIP continua sendo esta janela
+ * (0x0fe7 com `{tipo:'vip'}`), a Temporada só abre a porta na aba certa em vez
+ * de reimplementar a vitrine do VIP uma segunda vez.
+ *
+ * NÃO manda pacote quando já está aberta na aba certa: só troca de aba manda
+ * `toggle()`, que pediria o estado de novo à toa.
+ */
+PasseIdle.abrirNaAba = function abrirNaAba(aba) {
+	if (ABAS.indexOf(aba) === -1) {
+		return;
+	}
+	const root = _root();
+	const win = root && root.querySelector('.pi-window');
+	if (!win) {
+		return;
+	}
+	if (PasseIdle.activeTab !== aba) {
+		PasseIdle.activeTab = aba;
+		lembrarAba(_preferences, aba);
+		render();
+	}
+	if (win.classList.contains('is-open')) {
+		PasseIdle.focus();
+	} else {
+		PasseIdle.toggle();
+	}
+};
+
 function closeWindow() {
 	const root = _root();
 	const win = root && root.querySelector('.pi-window');
@@ -456,11 +486,19 @@ function vipHtml() {
 	const vip = (estado && estado.vip) || {};
 	const cash = (estado && estado.cash) || 0;
 
+	/*
+	 * D-season1 (Luz & Trevas): o VIP mudou de conta — +15% em todo item que
+	 * NÃO é carta (antes só "equipamento") e +10% RELATIVO em toda carta
+	 * (antes "carta de MVP", e a conta era outra). O servidor manda as chaves
+	 * NOVAS (`dropComum`/`dropCarta`); o `??` mantém compatibilidade com um
+	 * payload antigo em cache (reconexão no meio de um deploy), que ainda
+	 * mandaria `dropEquipamento`/`dropCartaMvp`.
+	 */
 	const linhas = [
 		[vip.expBase, 'de experiência de base'],
 		[vip.expJob, 'de experiência de classe'],
-		[vip.dropEquipamento, 'de chance de equipamento'],
-		[vip.dropCartaMvp, 'de chance de carta de MVP']
+		[vip.dropComum ?? vip.dropEquipamento, 'de drop de itens comuns'],
+		[vip.dropCarta ?? vip.dropCartaMvp, 'relativo na chance de cartas']
 	]
 		.filter(l => typeof l[0] === 'number')
 		.map(

@@ -1,0 +1,985 @@
+/**
+ * UI/Components/TemporadaIdle/TemporadaIdle.css
+ *
+ * A janela da Temporada (Season 1, "Luz & Trevas: Herdeiros de Midgard").
+ *
+ * A moldura inteira vem do design system (.ri-window/.ri-header/.ri-title/
+ * .ri-close/.ri-tab/.ri-btn/.ri-btn--ouro/.ri-btn--sec/.ri-badge/.ri-card/
+ * .ri-bar/.ri-tile/.ri-scroll/.ri-divisor — UI/Common.css). Nada disso é
+ * redesenhado aqui.
+ *
+ * DUAS CORES NOVAS, e só duas — a tarefa autoriza exatamente estas: o ROXO de
+ * RARE (o sistema já usa azul para "raro" em `.ri-tile.is-rare`, mas aqui as
+ * três raridades do servidor são COMMON/RARE/LEGENDARY, e RARE pede roxo) e o
+ * preto/vermelho do lado TREVAS do banner. As duas vivem em `:host` como
+ * variável, nunca cravadas em cada regra.
+ *
+ * `:host` NÃO fixa largura/altura (mesmo padrão de PainelComandoIdle.css,
+ * D-1564): quem fixa é `.te-window`, com `min()` — é isso que permite a
+ * janela encolher sozinha em telas de 360-430px sem um bloco `@media`
+ * separado só para o tamanho.
+ */
+
+:host {
+	position: absolute;
+	z-index: 60;
+	pointer-events: none;
+	--te-rare: #8a5fd1;
+	--te-rare-glow: 0 0 0 1px rgba(138, 95, 209, 0.55), 0 0 14px rgba(138, 95, 209, 0.4);
+	--te-trevas-preto: #0b0710;
+	--te-trevas-vermelho: #5c1420;
+	--te-trevas-roxo: #341246;
+}
+
+#TemporadaIdle {
+	position: relative;
+	color: var(--text-body);
+	font: var(--type-info);
+	-webkit-font-smoothing: antialiased;
+	text-rendering: optimizeLegibility;
+}
+
+/* ─── Janela ───────────────────────────────────────────────── */
+
+#TemporadaIdle .te-window {
+	pointer-events: auto;
+	display: none;
+	flex-direction: column;
+	box-sizing: border-box;
+	width: min(640px, 100vw - 16px);
+	max-height: min(600px, 100vh - 32px);
+}
+
+#TemporadaIdle .te-window.is-open {
+	display: flex;
+}
+
+#TemporadaIdle .te-titlebar {
+	flex: 0 0 auto;
+	position: relative;
+	touch-action: none;
+}
+
+/* A CARTEIRA mora na barra de título, absoluta à esquerda — espelha o
+   ".ri-close" à direita e não disputa espaço com o título centralizado (o
+   mesmo desenho de PasseIdle.css, com a mesma razão: um "display:flex" com
+   margin-left:auto tira o título do centro e o "X" fica escondido atrás de
+   texto largo). */
+#TemporadaIdle .te-carteira {
+	position: absolute;
+	left: var(--sp-3);
+	top: 50%;
+	transform: translateY(-50%);
+	display: inline-flex;
+	align-items: center;
+	gap: var(--sp-2);
+	padding: var(--sp-1) var(--sp-3);
+	border-radius: var(--radius-pill);
+	background: var(--surface-inset);
+	border: 1px solid var(--border-gold);
+	box-shadow: var(--rim-light);
+	max-width: 46%;
+}
+
+#TemporadaIdle .te-carteira-valor {
+	font: var(--type-numeric);
+	color: var(--gold-700);
+	font-variant-numeric: tabular-nums;
+	white-space: nowrap;
+}
+
+#TemporadaIdle .te-carteira-unidade {
+	font: var(--type-badge);
+	color: var(--text-muted);
+	text-transform: uppercase;
+	letter-spacing: var(--ls-caps);
+	white-space: nowrap;
+}
+
+/* "Em breve": não há pagamento real ainda. Botão DESABILITADO de verdade
+   (a tarefa pede exatamente isto, ao contrário do "em breve" apagado-mas-
+   clicável do leque do TopMenuIdle — aqui não há toast nenhum para mostrar). */
+#TemporadaIdle .te-recarregar {
+	appearance: none;
+	border: 1px solid var(--border-hairline);
+	background: var(--surface-card);
+	color: var(--text-muted);
+	font: var(--type-badge);
+	text-transform: uppercase;
+	letter-spacing: var(--ls-caps);
+	padding: 3px var(--sp-3);
+	border-radius: var(--radius-pill);
+	white-space: nowrap;
+}
+
+#TemporadaIdle .te-recarregar[disabled] {
+	opacity: 0.6;
+	cursor: not-allowed;
+	filter: grayscale(1);
+}
+
+/* O selo VIP, absoluto à direita — antes do "X", nunca em cima dele. */
+#TemporadaIdle .te-selo-vip {
+	position: absolute;
+	right: 34px;
+	top: 50%;
+	transform: translateY(-50%);
+	white-space: nowrap;
+	max-width: 34%;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+#TemporadaIdle .te-tabs {
+	flex: 0 0 auto;
+	display: flex;
+	gap: var(--sp-3);
+	padding: var(--sp-4) var(--sp-5);
+	border-bottom: 1px solid var(--border-hairline);
+	overflow-x: auto;
+}
+
+#TemporadaIdle .te-body {
+	flex: 1 1 auto;
+	overflow-y: auto;
+	padding: var(--sp-6);
+	background: transparent;
+	position: relative;
+}
+
+/* A trava global de clique (a tarefa pede: um clique trava TODOS os botões de
+   ação até a resposta chegar, ou até 10s sem resposta nenhuma). CSS, e não um
+   "disabled" escrito em cada botão — a resposta pode trazer botões novos
+   (troca de raridade, novo prêmio disponível) que também precisam nascer
+   travados enquanto a viagem anterior ainda não voltou. */
+#TemporadaIdle .te-body.is-carregando [data-agir] {
+	pointer-events: none;
+	opacity: 0.55;
+	filter: grayscale(0.4);
+}
+
+#TemporadaIdle .te-carregando {
+	margin-top: var(--sp-8);
+	text-align: center;
+	color: var(--text-muted);
+}
+
+/* ─── O banner da Season — Luz (esquerda) x Trevas (direita), só CSS ──── */
+
+#TemporadaIdle .te-banner {
+	position: relative;
+	overflow: hidden;
+	display: flex;
+	border-radius: var(--radius-card);
+	border: 1px solid var(--border-gold);
+	box-shadow: var(--rim-light), var(--shadow-card);
+	min-height: 96px;
+}
+
+#TemporadaIdle .te-banner-luz {
+	flex: 1 1 50%;
+	background: linear-gradient(120deg, var(--white) 0%, var(--sky-100) 40%, var(--blue-500) 100%);
+}
+
+#TemporadaIdle .te-banner-trevas {
+	flex: 1 1 50%;
+	background: linear-gradient(240deg, var(--te-trevas-preto) 0%, var(--te-trevas-roxo) 55%, var(--te-trevas-vermelho) 100%);
+}
+
+#TemporadaIdle .te-banner-texto {
+	position: absolute;
+	inset: 0;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	gap: 2px;
+	text-align: center;
+	text-shadow: 0 1px 3px rgba(0, 0, 0, 0.55);
+}
+
+#TemporadaIdle .te-banner-linha {
+	font-family: var(--font-display);
+	color: var(--white);
+	letter-spacing: var(--ls-title);
+}
+
+#TemporadaIdle .te-banner-linha--season {
+	font-size: var(--fs-label);
+	letter-spacing: var(--ls-caps);
+	color: var(--gold-300);
+	text-transform: uppercase;
+}
+
+#TemporadaIdle .te-banner-linha--tema {
+	font-size: 22px;
+	font-weight: var(--fw-semibold);
+}
+
+#TemporadaIdle .te-banner-linha--sub {
+	font-size: var(--fs-info);
+	color: var(--gold-200);
+	text-transform: uppercase;
+	letter-spacing: var(--ls-caps);
+}
+
+#TemporadaIdle .te-destaques-resumo {
+	margin-top: var(--sp-7);
+	display: flex;
+	flex-direction: column;
+	gap: var(--sp-4);
+}
+
+#TemporadaIdle .te-destaques-caixas {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+	gap: var(--sp-3);
+}
+
+#TemporadaIdle .te-resumo-caixa {
+	padding: var(--pad-card);
+	text-align: center;
+}
+
+#TemporadaIdle .te-resumo-caixa-nome {
+	font: var(--type-label);
+	color: var(--text-title);
+}
+
+#TemporadaIdle .te-resumo-caixa-fechadas {
+	font: var(--type-desc);
+	color: var(--text-muted);
+}
+
+#TemporadaIdle .te-destaques-passe {
+	padding: var(--sp-5);
+}
+
+/* ─── As caixas ────────────────────────────────────────────── */
+
+#TemporadaIdle .te-caixas-grade {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+	gap: var(--sp-5);
+}
+
+#TemporadaIdle .te-caixa {
+	padding: var(--sp-6);
+	display: flex;
+	flex-direction: column;
+	gap: var(--sp-3);
+}
+
+#TemporadaIdle .te-caixa-cabecalho {
+	display: flex;
+	align-items: center;
+	gap: var(--sp-4);
+}
+
+#TemporadaIdle .te-caixa-info {
+	flex: 1 1 auto;
+	min-width: 0;
+}
+
+#TemporadaIdle .te-caixa-nome {
+	font: var(--type-section);
+	color: var(--text-title);
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+#TemporadaIdle .te-caixa-slot {
+	font: var(--type-desc);
+	color: var(--text-muted);
+}
+
+#TemporadaIdle .te-caixa-preco {
+	flex: 0 0 auto;
+	font: var(--type-numeric);
+	color: var(--gold-700);
+	white-space: nowrap;
+}
+
+#TemporadaIdle .te-caixa-preco--indefinido {
+	font: var(--type-desc);
+	color: var(--text-muted);
+	font-style: italic;
+}
+
+#TemporadaIdle .te-caixa-fechadas {
+	font: var(--type-info);
+	color: var(--text-body);
+}
+
+#TemporadaIdle .te-pity-rotulo {
+	font: var(--type-label);
+	color: var(--text-title);
+	margin-bottom: var(--sp-2);
+}
+
+#TemporadaIdle .te-pity-barra {
+	height: 10px;
+}
+
+#TemporadaIdle .te-pity-barra > .fill {
+	background: var(--exp-fill);
+}
+
+#TemporadaIdle .te-pity-faltam {
+	margin-top: var(--sp-2);
+	font: var(--type-desc);
+	color: var(--amber-600);
+}
+
+#TemporadaIdle .te-pity-garantido {
+	margin-top: var(--sp-2);
+	padding: var(--sp-2) var(--sp-3);
+	border-radius: var(--radius-panel);
+	background: linear-gradient(180deg, var(--gold-300) 0%, var(--gold-500) 100%);
+	color: #4a3812;
+	font: var(--type-label);
+	text-align: center;
+	text-transform: uppercase;
+	letter-spacing: var(--ls-caps);
+	box-shadow: var(--glow-gold);
+}
+
+#TemporadaIdle .te-caixa-nota {
+	font: var(--type-desc);
+	color: var(--text-muted);
+}
+
+#TemporadaIdle .te-caixa-acoes {
+	margin-top: auto;
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--sp-3);
+}
+
+#TemporadaIdle .te-caixa-acoes .ri-btn {
+	flex: 1 1 auto;
+	min-width: 96px;
+	white-space: nowrap;
+}
+
+/* ─── Ícone com fallback de inicial — nunca imagem quebrada ───────────── */
+
+#TemporadaIdle .te-icone {
+	width: 34px;
+	height: 34px;
+	flex: 0 0 auto;
+	font: var(--type-numeric);
+}
+
+#TemporadaIdle .te-icone-fallback {
+	color: var(--blue-600);
+}
+
+#TemporadaIdle .te-icone.is-carregado .te-icone-fallback {
+	display: none;
+}
+
+#TemporadaIdle .te-icone-img {
+	width: 100%;
+	height: 100%;
+	object-fit: contain;
+	image-rendering: pixelated;
+}
+
+/* ─── Raridade — texto SEMPRE, nunca só cor (COMMON/RARE/LEGENDARY) ───── */
+
+#TemporadaIdle .te-raridade {
+	font: var(--type-badge);
+	text-transform: uppercase;
+	letter-spacing: var(--ls-caps);
+	padding: 1px var(--sp-2);
+	border-radius: var(--radius-pill);
+	border: 1px solid var(--border-hairline);
+}
+
+#TemporadaIdle .te-raridade--common {
+	color: var(--blue-600);
+	border-color: var(--sky-200);
+	background: var(--sky-50);
+}
+
+#TemporadaIdle .te-raridade--rare {
+	color: var(--te-rare);
+	border-color: var(--te-rare);
+	background: rgba(138, 95, 209, 0.1);
+}
+
+#TemporadaIdle .te-raridade--legendary {
+	color: var(--gold-700);
+	border-color: var(--gold-500);
+	background: var(--gold-200);
+}
+
+/* O "ri-tile" do ícone também ganha o aro da raridade quando está dentro de
+   uma linha de prêmio — reaproveita o vocabulário existente
+   (.ri-tile.is-unique já é dourado) e soma só o roxo que falta. */
+#TemporadaIdle .te-premio-linha:has(.te-raridade--rare) .te-icone {
+	border-color: var(--te-rare);
+	box-shadow: var(--te-rare-glow);
+}
+
+#TemporadaIdle .te-premio-linha:has(.te-raridade--legendary) .te-icone {
+	border-color: var(--gold-500);
+	box-shadow: var(--glow-gold), var(--rim-light);
+}
+
+/* ─── Modal "Ver conteúdo" e confirmação ───────────────────────────────
+   Cobrem a JANELA inteira (não a tela): são irmãos de ".te-window" dentro de
+   "#TemporadaIdle", que tem a mesma largura/altura dela. */
+
+#TemporadaIdle .te-modal {
+	position: absolute;
+	inset: 0;
+	z-index: 20;
+	display: none;
+	align-items: center;
+	justify-content: center;
+	padding: var(--sp-6);
+	box-sizing: border-box;
+}
+
+#TemporadaIdle .te-modal:not([hidden]) {
+	display: flex;
+}
+
+#TemporadaIdle .te-modal-fundo {
+	position: absolute;
+	inset: 0;
+	background: rgba(12, 20, 34, 0.55);
+	backdrop-filter: var(--blur-glass);
+}
+
+#TemporadaIdle .te-modal-caixa {
+	position: relative;
+	width: min(480px, 100%);
+	max-height: 100%;
+	display: flex;
+	flex-direction: column;
+	box-shadow: var(--window-shadow);
+}
+
+#TemporadaIdle .te-modal-caixa--estreita {
+	width: min(360px, 100%);
+}
+
+#TemporadaIdle .te-modal-cabecalho {
+	flex: 0 0 auto;
+}
+
+#TemporadaIdle .te-modal-corpo {
+	padding: var(--sp-6);
+	overflow-y: auto;
+}
+
+#TemporadaIdle .te-modal-titulo-caixa {
+	font: var(--type-section);
+	color: var(--text-title);
+	margin-bottom: var(--sp-4);
+}
+
+#TemporadaIdle .te-premios {
+	display: flex;
+	flex-direction: column;
+	gap: var(--sp-3);
+}
+
+#TemporadaIdle .te-premio-linha {
+	display: flex;
+	align-items: center;
+	gap: var(--sp-4);
+	padding: var(--sp-3) var(--sp-4);
+	border-radius: var(--radius-card);
+	background: var(--surface-card);
+	border: 1px solid var(--border-hairline);
+}
+
+#TemporadaIdle .te-premio-info {
+	flex: 1 1 auto;
+	min-width: 0;
+}
+
+#TemporadaIdle .te-premio-nome {
+	font: var(--type-info);
+	color: var(--text-body);
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+#TemporadaIdle .te-premio-meta {
+	margin-top: var(--sp-1);
+	display: flex;
+	align-items: center;
+	gap: var(--sp-2);
+	flex-wrap: wrap;
+}
+
+#TemporadaIdle .te-premio-slot,
+#TemporadaIdle .te-premio-animado {
+	font: var(--type-desc);
+	color: var(--text-muted);
+}
+
+#TemporadaIdle .te-premio-chance {
+	flex: 0 0 auto;
+	font: var(--type-numeric);
+	color: var(--text-title);
+	font-variant-numeric: tabular-nums;
+}
+
+#TemporadaIdle .te-confirmar-texto {
+	font: var(--type-info);
+	color: var(--text-body);
+	margin: 0 0 var(--sp-5);
+	text-align: center;
+}
+
+#TemporadaIdle .te-confirmar-acoes {
+	display: flex;
+	gap: var(--sp-3);
+}
+
+#TemporadaIdle .te-confirmar-acoes .ri-btn {
+	flex: 1 1 auto;
+}
+
+/* ─── O Passe: barra de pontos + duas trilhas de 50 níveis ────────────── */
+
+#TemporadaIdle .te-passe-resumo {
+	margin-bottom: var(--sp-6);
+}
+
+#TemporadaIdle .te-passe-nivel {
+	font: var(--type-section);
+	color: var(--text-title);
+	margin-bottom: var(--sp-2);
+}
+
+#TemporadaIdle .te-passe-barra {
+	height: 10px;
+}
+
+#TemporadaIdle .te-passe-barra > .fill {
+	background: var(--sp-fill);
+}
+
+#TemporadaIdle .te-passe-hoje {
+	margin-top: var(--sp-2);
+	font: var(--type-desc);
+	color: var(--text-muted);
+}
+
+#TemporadaIdle .te-passe-trilhas {
+	display: flex;
+	flex-direction: column;
+	gap: var(--sp-6);
+}
+
+#TemporadaIdle .te-passe-linha {
+	display: flex;
+	align-items: center;
+	gap: var(--sp-4);
+}
+
+#TemporadaIdle .te-passe-rotulo {
+	flex: 0 0 auto;
+	width: 64px;
+	font: var(--type-label);
+	color: var(--text-title);
+	text-transform: uppercase;
+	letter-spacing: var(--ls-caps);
+}
+
+/* A ROLAGEM HORIZONTAL confortável que a tarefa pede para o celular — com
+   scroll-snap também no desktop (não custa nada a quem usa mouse, e ganha
+   quem usa trackpad). */
+#TemporadaIdle .te-passe-trilho {
+	display: flex;
+	gap: var(--sp-3);
+	overflow-x: auto;
+	padding: var(--sp-2) var(--sp-1) var(--sp-4);
+	scroll-snap-type: x proximity;
+}
+
+#TemporadaIdle .te-nivel {
+	scroll-snap-align: start;
+	flex: 0 0 auto;
+}
+
+#TemporadaIdle .te-nivel--marca {
+	width: 14px;
+	height: 14px;
+	margin: auto var(--sp-1);
+	border-radius: 50%;
+	background: var(--surface-inset);
+	border: 1px solid var(--border-hairline);
+}
+
+#TemporadaIdle .te-nivel--marca.is-passado {
+	background: var(--accent);
+	border-color: var(--accent-strong);
+}
+
+#TemporadaIdle .te-nivel--marca.is-atual {
+	box-shadow: var(--glow-accent);
+}
+
+#TemporadaIdle .te-nivel--premio {
+	width: 108px;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: var(--sp-2);
+	padding: var(--sp-3);
+	border-radius: var(--radius-card);
+	background: var(--surface-card);
+	border: 1px solid var(--border-hairline);
+	text-align: center;
+}
+
+#TemporadaIdle .te-nivel--premio.is-atual {
+	border-color: var(--accent);
+	box-shadow: var(--glow-accent), var(--rim-light);
+}
+
+#TemporadaIdle .te-nivel--claimed {
+	opacity: 0.68;
+}
+
+#TemporadaIdle .te-nivel--available {
+	border-color: var(--gold-500);
+	background: linear-gradient(180deg, var(--white) 0%, var(--gold-200) 180%);
+	box-shadow: var(--glow-gold);
+}
+
+#TemporadaIdle .te-nivel--locked .te-icone {
+	filter: grayscale(1);
+	opacity: 0.7;
+}
+
+#TemporadaIdle .te-nivel-numero {
+	font: var(--type-badge);
+	color: var(--text-muted);
+}
+
+#TemporadaIdle .te-nivel-nome {
+	font: var(--type-desc);
+	color: var(--text-body);
+	line-height: var(--lh-tight);
+	overflow: hidden;
+	text-overflow: ellipsis;
+	display: -webkit-box;
+	-webkit-line-clamp: 2;
+	-webkit-box-orient: vertical;
+}
+
+#TemporadaIdle .te-nivel-situacao {
+	font: var(--type-desc);
+	color: var(--text-muted);
+}
+
+#TemporadaIdle .te-nivel-resgatar {
+	padding: var(--sp-2) var(--sp-3);
+	font: var(--type-badge);
+	min-height: var(--hit-touch);
+	width: 100%;
+}
+
+#TemporadaIdle .te-passe-premium-bloco {
+	margin-top: var(--sp-7);
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: var(--sp-2);
+}
+
+#TemporadaIdle .te-premium-selo {
+	font-size: var(--fs-info);
+	padding: var(--sp-2) var(--sp-5);
+}
+
+/* ─── VIP ──────────────────────────────────────────────────── */
+
+#TemporadaIdle .te-vip {
+	padding: var(--sp-7);
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: var(--sp-4);
+	text-align: center;
+}
+
+#TemporadaIdle .te-vip-titulo {
+	font: var(--type-hero);
+	color: var(--text-title);
+}
+
+#TemporadaIdle .te-vip-preco {
+	font: var(--type-numeric);
+	font-size: var(--fs-numeric-lg);
+	color: var(--gold-700);
+}
+
+#TemporadaIdle .te-vip-preco-unidade {
+	font: var(--type-desc);
+	color: var(--text-muted);
+}
+
+#TemporadaIdle .te-vip-beneficios {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+	display: flex;
+	flex-direction: column;
+	gap: var(--sp-2);
+	width: 100%;
+	text-align: left;
+}
+
+#TemporadaIdle .te-vip-beneficio {
+	padding: var(--sp-2) var(--sp-4);
+	border-radius: var(--radius-card);
+	background: var(--surface-card);
+	border: 1px solid var(--border-hairline);
+	font: var(--type-info);
+	color: var(--text-body);
+}
+
+#TemporadaIdle .te-vip-beneficio.is-em-breve {
+	opacity: 0.55;
+	font-style: italic;
+}
+
+/* ─── O reveal da abertura ─────────────────────────────────────────────
+   Cobre a JANELA inteira, como os modais — mas por cima deles (z maior). */
+
+#TemporadaIdle .te-reveal {
+	position: absolute;
+	inset: 0;
+	z-index: 30;
+	display: none;
+	align-items: center;
+	justify-content: center;
+	padding: var(--sp-6);
+	box-sizing: border-box;
+	background: rgba(8, 14, 26, 0.72);
+	backdrop-filter: var(--blur-glass-strong);
+}
+
+#TemporadaIdle .te-reveal:not([hidden]) {
+	display: flex;
+}
+
+#TemporadaIdle .te-reveal-caixa {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: var(--sp-3);
+	padding: var(--sp-8);
+	border-radius: var(--radius-window);
+	background: var(--window-fill);
+	border: 1px solid var(--border-hairline);
+	box-shadow: var(--shadow-float);
+	max-width: min(320px, 100%);
+	text-align: center;
+}
+
+#TemporadaIdle .te-reveal-caixa .te-icone {
+	width: 64px;
+	height: 64px;
+	font-size: 20px;
+}
+
+#TemporadaIdle .te-reveal-nome {
+	font: var(--type-section);
+	color: var(--text-title);
+}
+
+#TemporadaIdle .te-reveal-raridade {
+	font: var(--type-badge);
+	text-transform: uppercase;
+	letter-spacing: var(--ls-caps);
+	color: var(--text-muted);
+}
+
+#TemporadaIdle .te-reveal-garantia {
+	font: var(--type-label);
+	color: var(--gold-700);
+}
+
+#TemporadaIdle .te-reveal-correio {
+	font: var(--type-desc);
+	color: var(--text-muted);
+}
+
+/* COMMON: rápido e discreto — sem aro extra, sem brilho. */
+
+/* RARE: brilho roxo intermediário. */
+#TemporadaIdle .te-reveal-caixa.te-raridade--rare,
+#TemporadaIdle .te-reveal-caixa .te-raridade--rare {
+	border-color: var(--te-rare);
+}
+#TemporadaIdle .te-reveal-caixa:has(.te-raridade--rare) {
+	border-color: var(--te-rare);
+	box-shadow: var(--te-rare-glow), var(--shadow-float);
+}
+
+/* LEGENDARY: reveal especial dourado, sem exagero (um brilho, não confete). */
+#TemporadaIdle .te-reveal-caixa:has(.te-raridade--legendary) {
+	border-color: var(--gold-500);
+	box-shadow: var(--glow-gold), var(--shadow-float);
+	background: linear-gradient(180deg, var(--white) 0%, var(--gold-200) 220%);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+	#TemporadaIdle .te-reveal-caixa:has(.te-raridade--legendary) {
+		animation: te-reveal-legendary 900ms var(--ease-out) 1;
+	}
+}
+
+@keyframes te-reveal-legendary {
+	from {
+		transform: scale(0.9);
+		opacity: 0;
+	}
+	to {
+		transform: scale(1);
+		opacity: 1;
+	}
+}
+
+#TemporadaIdle .te-reveal-fechar {
+	margin-top: var(--sp-2);
+}
+
+/* ─── Aviso do rodapé (erro/sucesso de uma ação) ──────────────────────── */
+
+#TemporadaIdle .te-aviso {
+	position: absolute;
+	left: 50%;
+	bottom: var(--sp-5);
+	transform: translateX(-50%) translateY(6px);
+	max-width: 90%;
+	padding: var(--sp-3) var(--sp-6);
+	border-radius: var(--radius-pill);
+	background: var(--surface-dark-glass);
+	backdrop-filter: var(--blur-glass);
+	color: var(--white);
+	font: var(--type-label);
+	text-align: center;
+	box-shadow: var(--shadow-float);
+	opacity: 0;
+	pointer-events: none;
+	z-index: 40;
+	transition: opacity var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-out);
+}
+
+#TemporadaIdle .te-aviso.is-visivel {
+	opacity: 1;
+	transform: translateX(-50%) translateY(0);
+}
+
+#TemporadaIdle .te-aviso.is-erro {
+	background: linear-gradient(180deg, #a33 0%, #7d2626 100%);
+}
+
+/* O CARD DO VISUAL DO VIP (a Astra Blessing). Ele nasceu em 21/09/2026: a
+   prova de tela mostrou o beneficio como linha de lista, sem botao, com o
+   verbo `resgatar-visual-vip` ja vivo no servidor. */
+#TemporadaIdle .te-vip-visual {
+	display: flex;
+	align-items: center;
+	gap: var(--sp-3);
+	margin-top: var(--sp-4);
+	padding: var(--sp-3);
+	text-align: left;
+}
+
+#TemporadaIdle .te-vip-visual-texto {
+	flex: 1 1 auto;
+	min-width: 0;
+}
+
+#TemporadaIdle .te-vip-visual-nome {
+	font-weight: 600;
+}
+
+#TemporadaIdle .te-vip-visual-dica {
+	font-size: var(--fs-sm, 12px);
+	opacity: 0.75;
+}
+
+#TemporadaIdle .te-vip-resgatar {
+	flex: 0 0 auto;
+}
+
+/* ─── Celular (<=599px, a mesma marca de "estreito" que Common.css usa) ─── */
+
+@media (max-width: 599px) {
+	#TemporadaIdle .te-window {
+		width: min(640px, 100vw - 16px);
+		max-height: min(600px, 100dvh - 16px);
+	}
+
+	#TemporadaIdle .te-carteira {
+		max-width: 52%;
+		gap: 3px;
+		padding: 2px var(--sp-2);
+	}
+
+	#TemporadaIdle .te-recarregar {
+		display: none;
+	}
+
+	#TemporadaIdle .te-selo-vip {
+		max-width: 28%;
+		font-size: 8px;
+		padding: 1px var(--sp-2);
+	}
+
+	#TemporadaIdle .te-tabs {
+		padding: var(--sp-3) var(--sp-3);
+		gap: var(--sp-2);
+	}
+
+	#TemporadaIdle .te-body {
+		padding: var(--sp-4);
+	}
+
+	#TemporadaIdle .te-caixas-grade {
+		grid-template-columns: 1fr;
+	}
+
+	#TemporadaIdle .te-banner-linha--tema {
+		font-size: 17px;
+	}
+
+	#TemporadaIdle .te-banner {
+		min-height: 76px;
+	}
+
+	#TemporadaIdle .te-caixa-acoes .ri-btn {
+		min-width: 0;
+		flex-basis: 100%;
+	}
+
+	#TemporadaIdle .te-modal-corpo {
+		padding: var(--sp-4);
+	}
+
+	#TemporadaIdle .te-passe-rotulo {
+		width: 40px;
+		font-size: 9px;
+	}
+
+	#TemporadaIdle .te-nivel--premio {
+		width: 86px;
+		padding: var(--sp-2);
+	}
+}

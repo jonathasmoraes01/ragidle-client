@@ -398,6 +398,23 @@
 				     fica inteiro e sozinho no fim: Loja, Troca, Leilao, Eventos.
 				     (Missões nao mora mais aqui: voltou a ser aba dentro do
 				     "Codex & Missões" no revert-do-revert de 16/09/2026.) -->
+				<!-- TEMPORADA (Season 1, "Luz & Trevas: Herdeiros de Midgard",
+				     21/09/2026). Fica no bloco FUNCIONAL, colada no RO Shop: as duas
+				     sao loja, e a ordem canonica do cabecalho deste arquivo manda
+				     funcional antes de "em breve", nunca misturado.
+
+				     Ela PEDE o estado ao abrir ({acao:"pedir"} em 0x0fba): preco,
+				     pity, chance e o que cada nivel do passe entrega sao do servidor
+				     (ZC_RAGIDLE_TEMPORADA 0x0fbb). A janela so desenha.
+
+				     ATENCAO: o item vive em TRES lugares - este botao, o switch de
+				     ABRIR e o isActionOpen() do TopMenuIdle.js. Ja houve tres casos
+				     de so um dos dois switches ser editado (missoes, lfg, passe). -->
+				<button type="button" class="tm-item" data-action="temporada" title="Temporada: caixas, passe de batalha e VIP">
+					<span class="tm-icon-wrap ri-disc"><!--RI_ICONE:temporada--></span>
+					<span class="tm-label">Temporada</span>
+				</button>
+
 				<button type="button" class="tm-item" data-action="roshop" title="RO Shop">
 					<span class="tm-icon-wrap ri-disc"><!--RI_ICONE:roshop--></span>
 					<span class="tm-label">RO Shop</span>

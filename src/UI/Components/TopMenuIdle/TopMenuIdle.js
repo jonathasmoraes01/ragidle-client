@@ -202,6 +202,7 @@ import HuntMap from 'UI/Components/HuntMap/HuntMap.js';
 import CorreioIdle from 'UI/Components/CorreioIdle/CorreioIdle.js';
 import HuntAnalyzer from 'UI/Components/HuntAnalyzer/HuntAnalyzer.js';
 import PasseIdle from 'UI/Components/PasseIdle/PasseIdle.js';
+import TemporadaIdle from 'UI/Components/TemporadaIdle/TemporadaIdle.js'; // RAGIDLE: a janela da Temporada (Season 1, 21/09/2026)
 import VotoIdle from 'UI/Components/VotoIdle/VotoIdle.js'; // RAGIDLE: janela de Voto (D-1159)
 import CombatCornerIdle from 'UI/Components/CombatCornerIdle/CombatCornerIdle.js'; // RAGIDLE: o aro "Ataque auto" (16/09/2026 — some enquanto o leque esta aberto)
 import CodexIdle from 'UI/Components/CodexIdle/CodexIdle.js'; // RAGIDLE: Codex (D-851)
@@ -666,6 +667,17 @@ function onClickAction(e) {
 		   e 0x0fe5/0x0fe6/0x0fe7 (PacketStructure.js). */
 		case 'passe':
 			PasseIdle.toggle();
+			break;
+		/* A TEMPORADA (Season 1, "Luz & Trevas", 21/09/2026). Ela PEDE o estado
+		   ao abrir ({acao:'pedir'} em 0x0fba): preco, pity, chance e o premio de
+		   uma abertura sao do servidor - a janela nunca calcula saldo, nunca
+		   recalcula chance e nunca manda premio. So desenha o que chegou em
+		   0x0fbb.
+		   ATENCAO: existe um SEGUNDO switch neste arquivo, o isActionOpen() la
+		   embaixo. Este aqui ABRE; o de la acende o aro. Este item entrou nos
+		   DOIS no mesmo commit, que e o que o comentario do `passe` manda. */
+		case 'temporada':
+			TemporadaIdle.toggle();
 			break;
 		/* VOTAR (D-1159). Ele PEDE o estado ao abrir (0x0fd4 com
 		   `{acao:'pedir'}`): saldo, prazo de cada plataforma e preco sao do
@@ -1746,6 +1758,12 @@ function isActionOpen(action) {
 		 */
 		case 'passe':
 			return isRagIdleWindowOpen(PasseIdle, '.pi-window');
+		/* TEMPORADA (Season 1, 21/09/2026): janela RAGIDLE, entao le
+		   '.te-window.is-open' - e nao isHostVisible, que e a armadilha que o
+		   comentario de `lfg` acima registra (o `_host` de um GUIComponent nunca
+		   ganha display:none sozinho, entao o aro nunca apagaria). */
+		case 'temporada':
+			return isRagIdleWindowOpen(TemporadaIdle, '.te-window');
 		/* VOTO (D-1159): entrou nos DOIS switches no mesmo commit, que e o que
 		   o comentario do `passe` logo acima manda fazer enquanto a tabela
 		   unica de acao -> { abrir, seletor } nao existir. */
