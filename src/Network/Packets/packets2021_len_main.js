@@ -5023,6 +5023,8 @@ function init(packetver) {
 	length_list[0x0fbf] = -1; // ZC_RAGIDLE_TUTORIAL (variable, JSON payload)
 	length_list[0x0fbd] = -1; // ZC_RAGIDLE_PLACAR_MVP (variable, JSON payload) — o placar ao vivo do MVP, D-1533, 16/09/2026
 	length_list[0x0fbc] = -1; // ZC_RAGIDLE_PAINEL (variable, JSON payload) — o painel de comando, D-1563, 17/09/2026
+	length_list[0x0fba] = -1; // CZ_RAGIDLE_TEMPORADA_ACAO (variable, JSON payload) - a Temporada, Season 1, 21/09/2026
+	length_list[0x0fbb] = -1; // ZC_RAGIDLE_TEMPORADA (variable, JSON payload) - a Temporada, Season 1, 21/09/2026
 
 	return length_list;
 }

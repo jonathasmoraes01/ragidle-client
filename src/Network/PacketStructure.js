@@ -16963,6 +16963,54 @@ PACKET.ZC.RAGIDLE_PAINEL = function PACKET_ZC_RAGIDLE_PAINEL(fp, end) {
 PACKET.ZC.RAGIDLE_PAINEL.size = -1;
 
 // ---------------------------------------------------------------------------
+// A TEMPORADA (Season 1, "Luz & Trevas: Herdeiros de Midgard") - 21/09/2026.
+//
+// Os DOIS ultimos slots da reserva de D-527: `CZ_RAGIDLE_TEMPORADA` (0x0fba,
+// o verbo) e `ZC_RAGIDLE_TEMPORADA` (0x0fbb, o estado inteiro). A reserva
+// desceu para 0x0fb8..0x0fb9 no mesmo dia, nos dois repositorios (ver
+// servidor/protocolo/faixa-ragidle.test.ts e pacotes-mapa.ts).
+//
+// UM CZ COM VERBO, e nao cinco opcodes: o mesmo padrao do
+// CZ_RAGIDLE_LFG_ACAO / CZ_RAGIDLE_MISSAO_ACAO, numa faixa que ja ficou cheia
+// uma vez. O `0x0fb9` que um grep acha neste repositorio continua sendo a
+// chave do PacketCrypt.js, e nao um opcode.
+// ---------------------------------------------------------------------------
+
+// 0x0fba - RAGIDLE: CZ_RAGIDLE_TEMPORADA_ACAO (client -> server)
+// Variable size: u16 opcode + u16 total length + JSON UTF-8 payload.
+// { acao: 'pedir' | 'comprar-caixa' | 'abrir-caixa' | 'resgatar' |
+//   'comprar-premium', pool?, nivel?, trilha?, chave? }
+// A `chave` e a IDEMPOTENCIA do clique (8-64 chars [A-Za-z0-9_-], gerada em
+// TemporadaIdle/formatoDaTemporada.js): a mesma chave repetida devolve o
+// resultado ja registrado, sem consumir caixa nem cobrar de novo. A janela
+// NUNCA manda preco, premio, raridade, chance, sorte nem pity - quem decide e
+// o servidor (servidor/temporada/loja-da-temporada.ts).
+PACKET.CZ.RAGIDLE_TEMPORADA_ACAO = function PACKET_CZ_RAGIDLE_TEMPORADA_ACAO() {
+	this.json = '{}';
+};
+PACKET.CZ.RAGIDLE_TEMPORADA_ACAO.prototype.build = function () {
+	const bytes = TextEncoding.encode(this.json, 'utf-8');
+	const pkt_len = 2 + 2 + bytes.length;
+	const pkt_buf = new BinaryWriter(pkt_len);
+	pkt_buf.writeShort(0x0fba);
+	pkt_buf.writeUShort(pkt_len);
+	pkt_buf.writeString(this.json);
+	return pkt_buf;
+};
+
+// 0x0fbb - RAGIDLE: ZC_RAGIDLE_TEMPORADA (server -> client)
+// Variable size: u16 opcode + u16 total length + JSON UTF-8 payload.
+// Contrato v1: { v, temporada, moeda, vip, caixas: [...], passe, resultado? }.
+// O ESTADO INTEIRO a cada resposta, e nao um delta: a janela nunca fica "meio
+// atualizada". `resultado`, quando vem, e o veredito do ultimo verbo - compra,
+// abertura (com a raridade revelada), resgate ou Premium. Quem le e
+// `TemporadaIdle`, o unico dono.
+PACKET.ZC.RAGIDLE_TEMPORADA = function PACKET_ZC_RAGIDLE_TEMPORADA(fp, end) {
+	this.json = fp.readString(end - fp.tell());
+};
+PACKET.ZC.RAGIDLE_TEMPORADA.size = -1;
+
+// ---------------------------------------------------------------------------
 // O MENU LFG (Looking For Group) — D-634, 25/08/2026.
 //
 // Tres opcodes da faixa RAGIDLE reservada em D-527. Eles NAO substituem os

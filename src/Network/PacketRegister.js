@@ -1067,6 +1067,10 @@ export default {
 	0x0fbd: PACKET.ZC.RAGIDLE_PLACAR_MVP,
 	// D-1563 (17/09/2026): o painel de comando; a reserva desceu para 0x0fba..0x0fbb.
 	0x0fbc: PACKET.ZC.RAGIDLE_PAINEL,
+	// 21/09/2026 - a TEMPORADA (Season 1, "Luz & Trevas"): o estado inteiro da
+	// janela. O CZ 0x0fba e ESCRITO pelo cliente, nao lido - mesma razao de
+	// 0x0ff1/0x0fea/0x0fe3/0x0fbe acima. A reserva desceu para 0x0fb8..0x0fb9.
+	0x0fbb: PACKET.ZC.RAGIDLE_TEMPORADA,
 
 	0xb1a: PACKET.ZC.USESKILL_ACK3 // USE SKILL 3
 };
