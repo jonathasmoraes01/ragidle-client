@@ -1385,6 +1385,28 @@
 	box-shadow: var(--window-shadow);
 }
 
+/*
+ * A CAIXA DO MODAL FICA POR CIMA DO FUNDO NO CELULAR (RO Shop rodada 2,
+ * 22/09/2026).
+ *
+ * A caixa usa `.ri-window` (a pele da janela), e abaixo de 600px a regra D-932
+ * do Common.css poe todo `.ri-window` em `position: static !important`. Uma
+ * caixa estatica e pintada ANTES do `.te-modal-fundo`, que e absoluto: o veu
+ * escuro ficava por cima da confirmacao de compra. MEDIDO em 360, 390 e 430
+ * (`scripts/foto-temporada-modais.mjs`): o `elementFromPoint` no centro de
+ * "Confirmar" e de "Cancelar" devolvia `te-modal-fundo` - o toque caia no
+ * fundo, e a compra nao era confirmada. O mesmo defeito que a prova de tela
+ * pegou no RO Shop na rodada 1.
+ *
+ * `!important` com o ID na frente: e o unico jeito de vencer um `!important`
+ * de classe. So a POSICAO e a camada mudam; largura, altura e rolagem seguem a
+ * regra D-932, e no desktop nada muda (a regra D-932 nem dispara la).
+ */
+#TemporadaIdle .te-modal-caixa.ri-window {
+	position: relative !important;
+	z-index: 1;
+}
+
 #TemporadaIdle .te-modal-caixa--estreita {
 	width: min(360px, 100%);
 }
