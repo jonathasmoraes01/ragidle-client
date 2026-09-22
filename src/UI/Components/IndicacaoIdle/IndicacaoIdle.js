@@ -26,6 +26,7 @@ import GUIComponent from 'UI/GUIComponent.js';
 import htmlText from './IndicacaoIdle.html?raw';
 import cssText from './IndicacaoIdle.css?raw';
 import { fecharEEsquecer } from '../limpezaDeJanelaIdle.js';
+import { confirmarCopia } from './confirmarCopia.js';
 
 const WINDOW_WIDTH = 520;
 const WINDOW_HEIGHT = 540;
@@ -182,17 +183,11 @@ function onClickCopiar(e) {
 	if (!campo || !campo.value) {
 		return;
 	}
+	// F49: o rotulo original e lembrado uma vez — ver confirmarCopia.js.
 	const confirmar = () => {
-		if (!btn) {
-			return;
+		if (btn) {
+			confirmarCopia(btn);
 		}
-		const antes = btn.textContent;
-		btn.textContent = 'Copiado!';
-		btn.classList.add('is-copiado');
-		setTimeout(() => {
-			btn.textContent = antes;
-			btn.classList.remove('is-copiado');
-		}, 1600);
 	};
 	if (navigator.clipboard && navigator.clipboard.writeText) {
 		navigator.clipboard.writeText(campo.value).then(confirmar, () => {
