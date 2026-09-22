@@ -24,18 +24,18 @@
  * 1. A progressao do passe ENCOLHEU e foi para a aba Destaques
  *    (`renderPasseCompactoHtml`): sao 50 niveis e so 8 tem premio, entao a
  *    trilha de 50 bolinhas em duas linhas virou UMA fileira com os 8 marcos.
- *    O botao "Resgatar" continua em cada marco — a aba "Passe" saiu, o verbo
+ *    O botao "Resgatar" continua em cada marco - a aba "Passe" saiu, o verbo
  *    nao.
  * 2. A janela de Recompensas foi APOSENTADA e o conteudo dela mora aqui: o
  *    Passe Semanal (`renderSemanalHtml`) e a compra do VIP dentro de
  *    `renderVipHtml`. As funcoes vieram de `PasseIdle.js` (vitrine, trilha de
- *    sete dias, veredito do botao) — o DADO continua vindo do pacote do Passe
+ *    sete dias, veredito do botao) - o DADO continua vindo do pacote do Passe
  *    (`ZC_RAGIDLE_PASSE`), que segue tendo o PasseIdle como dono.
  * 3. O visual: a CAIXA ganhou o glifo do slot que ela veste (o mesmo da
  *    Mochila) e a previa das seis recompensas em arte real, em vez de uma
  *    letra; o banner virou um degrade continuo de luz para trevas.
  *
- * Os glifos vem de `UI/ri-icones.js` (strings puras, sem DOM) — nada de SVG
+ * Os glifos vem de `UI/ri-icones.js` (strings puras, sem DOM) - nada de SVG
  * desenhado a mao aqui, que e o que o design system proibe.
  */
 
@@ -59,7 +59,7 @@ export function escapeHtml(value) {
 	});
 }
 
-/** Um glifo do design system, ou string vazia — a janela nunca quebra por icone. */
+/** Um glifo do design system, ou string vazia - a janela nunca quebra por icone. */
 export function glifo(chave) {
 	return (RiIcones && RiIcones[chave]) || '';
 }
@@ -246,7 +246,7 @@ export function iconeFallbackHtml(itemId, texto) {
 }
 
 /**
- * O GLIFO DO SLOT que a caixa veste — o mesmo que a Mochila desenha na vaga
+ * O GLIFO DO SLOT que a caixa veste - o mesmo que a Mochila desenha na vaga
  * vazia de cada peca (MochilaIdle.js: slotChapeu/slotOculos/slotBoca/
  * slotCapa). A caixa nao tem arte de item propria (o `sku` dela e um nome
  * Aegis sem PNG), e a primeira versao desenhava a LETRA inicial do slot: o
@@ -323,7 +323,7 @@ export function renderMarcoHtml(premio, passe) {
 		rodape = `<span class="te-marco-estado is-resgatado">${glifo('confere')}<span>Resgatado</span></span>`;
 	} else {
 		/* Por que esta trancado: ou o nivel nao chegou, ou chegou e falta o
-		   Premium — o jogador precisa saber qual dos dois para agir. */
+		   Premium - o jogador precisa saber qual dos dois para agir. */
 		const motivo = alcancado && semPremium ? 'Premium' : `Nível ${nivel}`;
 		rodape = `<span class="te-marco-estado is-bloqueado">${glifo('cadeado')}<span>${escapeHtml(motivo)}</span></span>`;
 	}
@@ -359,7 +359,7 @@ export function renderPremiumHtml(passe) {
 }
 
 /**
- * A PROGRESSAO COMPACTA do passe — o pedido 1 do dono ("pegar aquela
+ * A PROGRESSAO COMPACTA do passe - o pedido 1 do dono ("pegar aquela
  * progressao, diminuir um pouquinho e encaixar na pagina de destaque").
  * Barra de pontos do nivel, a fileira dos marcos com premio e o Premium.
  */
@@ -563,12 +563,12 @@ export function renderModalConteudoHtml(caixa) {
 }
 
 /* ------------------------------------------------------------------ */
-/* Passe Semanal e VIP — o que veio da janela de Recompensas           */
+/* Passe Semanal e VIP - o que veio da janela de Recompensas           */
 /* ------------------------------------------------------------------ */
 
 /**
  * A VITRINE de um produto pago: nome, o que ele e numa linha, o preco em cash
- * e, se ja tem, a vigencia. Portada de `PasseIdle.js:vitrineHtml` — e o unico
+ * e, se ja tem, a vigencia. Portada de `PasseIdle.js:vitrineHtml` - e o unico
  * bloco com aro dourado permanente, para o ouro continuar significando algo.
  */
 export function renderVitrineHtml(passe, nome, resumo, referencia) {
@@ -601,7 +601,7 @@ export function renderVitrineHtml(passe, nome, resumo, referencia) {
 
 /**
  * O botão de compra de um passe, com o texto e o estado certos. Portado de
- * `PasseIdle.js:acaoHtml` — e o VEREDITO continua vindo do servidor no campo
+ * `PasseIdle.js:acaoHtml` - e o VEREDITO continua vindo do servidor no campo
  * `recusa` (`null` = pode comprar), nunca de um `cash >= preco` daqui.
  */
 export function renderAcaoDoPasseHtml(passe, cash) {
@@ -679,14 +679,14 @@ export function renderSemanalHtml(estadoDoPasse) {
 }
 
 /**
- * A aba VIP — UMA aba para o que eram duas (a da Temporada e a das
+ * A aba VIP - UMA aba para o que eram duas (a da Temporada e a das
  * Recompensas): a vitrine com o preco em cash e a vigencia, os beneficios que
  * o servidor da temporada lista, o visual exclusivo (Astra Blessing) e o
  * botao de comprar/renovar.
  *
  * O VISUAL EXCLUSIVO DO VIP, e ele FALTAVA: a prova de tela de 21/09/2026
  * abriu a aba VIP com o VIP ATIVO e mostrou o beneficio como uma LINHA de
- * lista, sem botao — enquanto o servidor ja tratava `resgatar-visual-vip`
+ * lista, sem botao - enquanto o servidor ja tratava `resgatar-visual-vip`
  * desde o primeiro commit. Quem decide se pode e o SERVIDOR
  * (`vip.visual.pode`/`.texto`): esta funcao nao olha `vip.ativo` para liberar
  * o botao, do mesmo jeito que o card da caixa nao olha saldo.
@@ -758,7 +758,7 @@ export function textoDoSeloVip(vip) {
  * A LINHA DO DESTINO E A FRASE DO SERVIDOR (22/09/2026, decisao do dono: a
  * caixa entrega o visual DIRETO NA MOCHILA, e o correio vira so a excecao de
  * quando nao cabe). Esta funcao dizia "Enviado ao seu correio." por conta
- * propria — uma segunda copia da regra, que mentiria no dia em que o destino
+ * propria - uma segunda copia da regra, que mentiria no dia em que o destino
  * mudasse, que e hoje. Quem sabe para onde o visual foi e o servidor, e ele
  * ja escreve isso em `resultado.texto`; a reserva so entra se a frase vier
  * vazia, e diz o destino NOVO.

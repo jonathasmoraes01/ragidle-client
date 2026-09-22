@@ -28,11 +28,11 @@
  * ESTA JANELA NAO TEM MAIS BOTAO NO MENU (21/09/2026, ordem do dono: "a
  * janela de recompensas nao compensa mais a gente ter ela")
  * ---------------------------------------------------------------------------
- * O conteudo dela — o Passe Semanal e a compra do VIP — mora na janela da
+ * O conteudo dela - o Passe Semanal e a compra do VIP - mora na janela da
  * Temporada (`TemporadaIdle`, abas "Passe Semanal" e "VIP"), e o botao
  * "Recompensas" do cluster virou o botao "Temporada". O MODULO fica, e nao e
  * por preguica: ele continua sendo o DONO do pacote `ZC_RAGIDLE_PASSE`
- * (0x0fe5) — `Network.hookPacket` substitui, nao soma, entao so pode haver
+ * (0x0fe5) - `Network.hookPacket` substitui, nao soma, entao so pode haver
  * UM gancho por opcode no cliente inteiro (portao no servidor:
  * `servidor/protocolo/um-dono-por-pacote.test.ts`). Quem precisa do estado
  * do Passe assina `PasseIdle.aoReceberEstado`, como a Temporada faz. As
@@ -242,7 +242,7 @@ PasseIdle.toggle = function toggle() {
  * `abrirNaAba(aba)` morou aqui de 21/09/2026 (manha) a 21/09/2026 (noite): a
  * Temporada a chamava para abrir ESTA janela na aba VIP em vez de repetir a
  * vitrine. Quando a compra do VIP passou a morar na propria Temporada, a
- * porta ficou sem chamador e saiu — porta sem chamador e a forma de codigo
+ * porta ficou sem chamador e saiu - porta sem chamador e a forma de codigo
  * morto que este projeto mais catalogou (ver `modulo-puro-sem-chamador`).
  */
 

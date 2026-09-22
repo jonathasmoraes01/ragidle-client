@@ -202,9 +202,9 @@ import HuntMap from 'UI/Components/HuntMap/HuntMap.js';
 import CorreioIdle from 'UI/Components/CorreioIdle/CorreioIdle.js';
 import HuntAnalyzer from 'UI/Components/HuntAnalyzer/HuntAnalyzer.js';
 /* PasseIdle NAO e mais importado aqui (21/09/2026): a janela de Recompensas
-   ficou sem botao — o conteudo dela mora na Temporada. O modulo segue vivo
+   ficou sem botao - o conteudo dela mora na Temporada. O modulo segue vivo
    pelo MapEngine, como dono do pacote 0x0fe5. */
-import TemporadaIdle from 'UI/Components/TemporadaIdle/TemporadaIdle.js'; // RAGIDLE: a janela da Temporada (Season 1, 21/09/2026) — no cluster desde a noite do mesmo dia
+import TemporadaIdle from 'UI/Components/TemporadaIdle/TemporadaIdle.js'; // RAGIDLE: a janela da Temporada (Season 1, 21/09/2026) - no cluster desde a noite do mesmo dia
 import VotoIdle from 'UI/Components/VotoIdle/VotoIdle.js'; // RAGIDLE: janela de Voto (D-1159)
 import CombatCornerIdle from 'UI/Components/CombatCornerIdle/CombatCornerIdle.js'; // RAGIDLE: o aro "Ataque auto" (16/09/2026 — some enquanto o leque esta aberto)
 import CodexIdle from 'UI/Components/CodexIdle/CodexIdle.js'; // RAGIDLE: Codex (D-851)
@@ -665,10 +665,10 @@ function onClickAction(e) {
 		   29/08 a 21/09/2026. Saiu por ordem do dono: o Passe Semanal e o VIP
 		   viraram abas da Temporada, e o botao do cluster virou "Temporada".
 		   O modulo PasseIdle continua importado pelo MapEngine (e o dono do
-		   pacote 0x0fe5) — so a PORTA daqui saiu, nos DOIS switches.
+		   pacote 0x0fe5) - so a PORTA daqui saiu, nos DOIS switches.
 
 		   A TEMPORADA (Season 1, "Luz & Trevas", 21/09/2026). Ela PEDE os dois
-		   estados ao abrir: o dela ({acao:'pedir'} em 0x0fba — preco, pity,
+		   estados ao abrir: o dela ({acao:'pedir'} em 0x0fba - preco, pity,
 		   chance e o premio de uma abertura, respondido em 0x0fbb) e o do
 		   Passe (0x0fe6, respondido em 0x0fe5 ao PasseIdle, que a avisa por
 		   `aoReceberEstado`). A janela nunca calcula saldo, nunca recalcula

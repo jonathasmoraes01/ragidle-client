@@ -1,6 +1,6 @@
 /**
  * A METADE PURA da janela da Temporada (formatoDaTemporada.js), medida sem
- * levantar a janela — o mesmo corte de `tabelaDoPainel.js` no Painel de
+ * levantar a janela - o mesmo corte de `tabelaDoPainel.js` no Painel de
  * Comando: entrada -> string, sem DOM, sem rede.
  *
  * Ela nasceu em 22/09/2026 com duas decisoes do dono na mao, e cada uma tem
@@ -8,7 +8,7 @@
  *
  *  1. AS CAIXAS PASSAM A CUSTAR 10 CASH. Enquanto o servidor de hoje ainda
  *     manda `preco: null`, a foto da janela mostra "Preco a definir" e o
- *     Comprar apagado — e nenhuma foto prova o outro lado. Este arquivo prova
+ *     Comprar apagado - e nenhuma foto prova o outro lado. Este arquivo prova
  *     que, chegando `preco: 10` e `compra.pode: true`, o card desenha o preco
  *     e o botao LIGADO, sem a linha de recusa.
  *
@@ -209,7 +209,7 @@ describe('o passe compacto dos Destaques', () => {
 		expect(resgatado).not.toContain('data-agir');
 
 		/* Trancado por NIVEL: diz o nivel. Trancado so por falta do Premium
-		   (nivel ja alcancado): diz "Premium" — o jogador precisa saber qual
+		   (nivel ja alcancado): diz "Premium" - o jogador precisa saber qual
 		   dos dois para agir. */
 		const estadoDe = (html) => html.match(/te-marco-estado is-bloqueado">.*?<span>([^<]*)<\/span>/)[1];
 		expect(estadoDe(renderMarcoHtml({ nivel: 25, trilha: 'free', itemId: 1, nome: 'A', situacao: 'LOCKED' }, p))).toBe('Nível 25');
@@ -259,7 +259,7 @@ describe('o Passe Semanal e o VIP (o que veio da janela de Recompensas)', () => 
 		const html = renderSemanalHtml(estadoDoPasse());
 		expect(html).toContain('7 dias · 20% de cashback no final');
 		/* `te-dia` seguido de espaco ou aspas: `te-dia-num`/`-cash`/`-item` sao
-		   filhos e nao contam — a primeira versao contava 28. */
+		   filhos e nao contam - a primeira versao contava 28. */
 		expect((html.match(/class="te-dia[ "]/g) || []).length).toBe(7);
 		expect(html).toContain('is-premio');
 		expect(html).toContain('data-agir="comprar-passe"');
@@ -337,6 +337,6 @@ describe('as pecas pequenas', () => {
 			renderVipHtml(vip(), null),
 			renderRevealHtml({ ok: true, texto: '', abertura: { itemId: 1, nome: 'X', raridade: 'RARE', rotuloDaRaridade: 'Rara' } })
 		].join('\n');
-		expect(tudo).not.toContain('—');
+		expect(tudo).not.toContain(' - ');
 	});
 });

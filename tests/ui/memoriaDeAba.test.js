@@ -207,7 +207,7 @@ describe('PORTÃO: toda janela RAGIDLE com abas lembra a aba', () => {
 		 * A DÉCIMA SEGUNDA é a Temporada (Season 1, 21/09/2026): Destaques ·
 		 * Caixas · Passe Semanal · VIP. O PasseIdle (Recompensas) CONTINUA na
 		 * lista mesmo sem botão no menu: o módulo vive como dono do pacote
-		 * 0x0fe5, ainda tem as duas abas no HTML e ainda lembra a aba — tirá-lo
+		 * 0x0fe5, ainda tem as duas abas no HTML e ainda lembra a aba - tirá-lo
 		 * daqui exigiria tirar o markup, que a prova que abre a janela por
 		 * comando ainda usa.
 		 */

@@ -5,7 +5,7 @@
  *
  * A moldura inteira vem do design system (.ri-window/.ri-header/.ri-title/
  * .ri-close/.ri-tab/.ri-btn/.ri-btn--ouro/.ri-btn--sec/.ri-badge/.ri-card/
- * .ri-bar/.ri-tile/.ri-disc/.ri-scroll — UI/Common.css). Nada disso é
+ * .ri-bar/.ri-tile/.ri-disc/.ri-scroll - UI/Common.css). Nada disso é
  * redesenhado aqui, e toda cor sai de token.
  *
  * DUAS CORES NOVAS, e só duas — a tarefa autoriza exatamente estas: o ROXO de
@@ -21,7 +21,7 @@
  *
  * ---------------------------------------------------------------------------
  * O REDESENHO DE 21/09/2026 (o dono, sobre a primeira entrega: "ta muito feio
- * o visual") — o que mudou e por que, para quem for mexer de novo:
+ * o visual") - o que mudou e por que, para quem for mexer de novo:
  * ---------------------------------------------------------------------------
  * - O banner era um corte VERTICAL seco (branco | preto). Virou um degrade
  *   continuo de luz para trevas passando pelo azul do sistema, com dois brilhos
@@ -29,7 +29,7 @@
  *   vocabulario do botao que abre a janela.
  * - A caixa desenhava uma LETRA ("T", "M", "B") como retrato. Passou a usar o
  *   glifo do slot que ela veste (o da Mochila) e uma previa das seis
- *   recompensas em arte real — a regra 4: a moldura e CSS, o conteudo e a arte.
+ *   recompensas em arte real - a regra 4: a moldura e CSS, o conteudo e a arte.
  * - A trilha do passe eram 50 bolinhas por linha, com rolagem horizontal. Sao
  *   8 marcos numa fileira (4 por linha no celular), sem rolagem lateral.
  * - Botao empilhado a 100% no celular virou fileira de tres; e todo alvo de
@@ -265,7 +265,7 @@
 	color: var(--text-link-hover);
 }
 
-/* ─── O banner da Season — luz à esquerda, trevas à direita, um degrade só ── */
+/* ─── O banner da Season - luz à esquerda, trevas à direita, um degrade só ── */
 
 #TemporadaIdle .te-banner {
 	position: relative;
@@ -309,7 +309,7 @@
 	background: radial-gradient(ellipse 48% 85% at 86% 72%, rgba(92, 20, 32, 0.8) 0%, rgba(92, 20, 32, 0) 70%);
 }
 
-/* O eclipse do ícone do menu como marca d'água — o vocabulário do botão que
+/* O eclipse do ícone do menu como marca d'água - o vocabulário do botão que
    abre a janela, e não uma ilustração desenhada à mão. */
 #TemporadaIdle .te-banner-eclipse {
 	position: absolute;
@@ -419,7 +419,7 @@
 }
 
 /* O rótulo sobre a barra precisa ler tanto no verde cheio quanto no trilho
-   vazio: a sombra do glifo é o que o design system permite — reforçada. */
+   vazio: a sombra do glifo é o que o design system permite - reforçada. */
 #TemporadaIdle .te-passe-barra > .rotulo {
 	font-size: 10px;
 	text-shadow: 0 0 3px rgba(12, 34, 64, 0.95), 0 1px 2px rgba(12, 34, 64, 0.9);
@@ -439,7 +439,7 @@
 }
 
 /* Os marcos: uma fileira; a largura mínima é a que cabe o ícone + 2 linhas
-   de nome + o botão. Sem rolagem horizontal em lugar nenhum — no celular
+   de nome + o botão. Sem rolagem horizontal em lugar nenhum - no celular
    viram 4 por linha (ver o @media). */
 #TemporadaIdle .te-marcos {
 	display: grid;
@@ -740,7 +740,7 @@
 	gap: var(--sp-4);
 }
 
-/* O glifo do slot como retrato da caixa — o mesmo da vaga vazia da Mochila. */
+/* O glifo do slot como retrato da caixa - o mesmo da vaga vazia da Mochila. */
 #TemporadaIdle .te-caixa-glifo {
 	width: 44px;
 	height: 44px;
@@ -940,7 +940,7 @@
 	padding: var(--sp-3) var(--sp-4);
 }
 
-/* ─── Ícone com fallback de inicial — nunca imagem quebrada ───────────── */
+/* ─── Ícone com fallback de inicial - nunca imagem quebrada ───────────── */
 
 #TemporadaIdle .te-icone {
 	width: 34px;
@@ -960,14 +960,14 @@
 }
 
 /* O PNG fica no tamanho NATURAL (24px) dentro do tile: ampliação só por
-   inteiro, e só no reveal (48px = 2x) — regra 4. */
+   inteiro, e só no reveal (48px = 2x) - regra 4. */
 #TemporadaIdle .te-icone-img {
 	width: 24px;
 	height: 24px;
 	image-rendering: pixelated;
 }
 
-/* ─── Raridade — texto SEMPRE, nunca só cor (COMMON/RARE/LEGENDARY) ───── */
+/* ─── Raridade - texto SEMPRE, nunca só cor (COMMON/RARE/LEGENDARY) ───── */
 
 #TemporadaIdle .te-raridade {
 	font: var(--type-badge);
@@ -1154,7 +1154,7 @@
 }
 
 /* A VITRINE: o cartão de topo que carrega o preço. É o único elemento com
-   aro dourado permanente nestas abas — o resto é a paleta normal, para o
+   aro dourado permanente nestas abas - o resto é a paleta normal, para o
    ouro continuar significando alguma coisa (nota herdada de PasseIdle.css). */
 #TemporadaIdle .te-vitrine {
 	position: relative;
@@ -1275,7 +1275,7 @@
 	text-align: center;
 }
 
-/* Já entregue: o dia sai do caminho visualmente — não é mais uma promessa. */
+/* Já entregue: o dia sai do caminho visualmente - não é mais uma promessa. */
 #TemporadaIdle .te-dia.is-entregue {
 	background: var(--surface-inset);
 	box-shadow: none;
@@ -1288,7 +1288,7 @@
 	box-shadow: var(--glow-accent), var(--rim-light);
 }
 
-/* O sétimo é o prêmio de terminar a semana — ouro, como o botão. */
+/* O sétimo é o prêmio de terminar a semana - ouro, como o botão. */
 #TemporadaIdle .te-dia.is-premio {
 	border-color: var(--gold-500);
 	background: linear-gradient(180deg, var(--white) 0%, var(--gold-200) 180%);
