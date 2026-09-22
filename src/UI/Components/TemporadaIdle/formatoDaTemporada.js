@@ -526,7 +526,7 @@ export function renderAtalhosHtml(vip) {
 	return (
 		'<div class="te-atalhos">' +
 		'<button type="button" class="te-atalho ri-card" data-ir="caixas">' +
-		`<span class="te-atalho-glifo ri-disc">${glifo('pacote')}</span>` +
+		'<span class="te-atalho-glifo te-atalho-glifo--arte"><img src="/ragidle/temporada/icone-caixas.webp" alt="" width="34" height="34"></span>' +
 		'<span class="te-atalho-texto">' +
 		'<span class="te-atalho-nome">Caixas</span>' +
 		'<span class="te-atalho-sub">Visuais exclusivos da temporada</span>' +
@@ -534,7 +534,7 @@ export function renderAtalhosHtml(vip) {
 		`<span class="te-atalho-seta">${glifo('chevronDir')}</span>` +
 		'</button>' +
 		`<button type="button" class="te-atalho te-atalho--vip ri-card${vip && vip.ativo ? ' is-ativo' : ''}" data-ir="vip">` +
-		`<span class="te-atalho-glifo ri-disc">${glifo('estrela')}</span>` +
+		'<span class="te-atalho-glifo te-atalho-glifo--arte"><img src="/ragidle/temporada/icone-atalho-vip.webp" alt="" width="34" height="34"></span>' +
 		'<span class="te-atalho-texto">' +
 		'<span class="te-atalho-nome">VIP</span>' +
 		`<span class="te-atalho-sub">${vipTexto}</span>` +

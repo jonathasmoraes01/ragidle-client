@@ -1015,6 +1015,22 @@
 	background: linear-gradient(180deg, var(--white) 0%, var(--gold-200) 100%);
 }
 
+/* Arte do dono (22/09/2026): o anel dourado ja vem DESENHADO no icone, entao
+   aqui nao ha disco nem borda de CSS - so um miolo claro por baixo, porque o
+   centro da arte e transparente. */
+#TemporadaIdle .te-atalho-glifo--arte,
+#TemporadaIdle .te-atalho--vip .te-atalho-glifo--arte {
+	border: 0;
+	border-radius: 50%;
+	background: radial-gradient(circle, var(--white) 62%, transparent 64%);
+}
+
+#TemporadaIdle .te-atalho-glifo--arte img {
+	display: block;
+	width: 100%;
+	height: 100%;
+}
+
 #TemporadaIdle .te-atalho.is-ativo .te-atalho-sub {
 	color: var(--green-600);
 }
