@@ -1,0 +1,4 @@
+# Os PNG completos (~52 MB por rodada) ficam fora do git; o que viaja e o
+# relatorio.json (medidas) e as folhas de contato em JPEG. Regerar:
+#   node scripts/foto-ro-shop.mjs
+*.png

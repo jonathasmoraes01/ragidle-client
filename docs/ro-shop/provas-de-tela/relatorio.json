@@ -1,0 +1,876 @@
+{
+  "quando": "2026-09-22T21:45:36.592Z",
+  "erros": [],
+  "relatorio": [
+    {
+      "largura": 360,
+      "altura": 740,
+      "foto": "0360-01-destaques-com-carrinho.png",
+      "janela": {
+        "x": 0,
+        "y": 8,
+        "w": 360,
+        "h": 660
+      },
+      "menorFonte": 9,
+      "imagens": 31,
+      "defeitos": []
+    },
+    {
+      "largura": 360,
+      "altura": 740,
+      "foto": "0360-01b-rodape-paginacao-e-temporada.png",
+      "janela": {
+        "x": 0,
+        "y": 8,
+        "w": 360,
+        "h": 660
+      },
+      "menorFonte": 9,
+      "imagens": 31,
+      "defeitos": []
+    },
+    {
+      "largura": 360,
+      "altura": 740,
+      "foto": "0360-02-gaveta-do-carrinho.png",
+      "janela": {
+        "x": 0,
+        "y": 8,
+        "w": 360,
+        "h": 660
+      },
+      "menorFonte": 9,
+      "imagens": 40,
+      "defeitos": []
+    },
+    {
+      "largura": 360,
+      "altura": 740,
+      "foto": "0360-03-detalhes.png",
+      "janela": {
+        "x": 0,
+        "y": 8,
+        "w": 360,
+        "h": 660
+      },
+      "menorFonte": 9,
+      "imagens": 40,
+      "defeitos": []
+    },
+    {
+      "largura": 360,
+      "altura": 740,
+      "foto": "0360-04-confirmar-compra.png",
+      "janela": {
+        "x": 0,
+        "y": 8,
+        "w": 360,
+        "h": 660
+      },
+      "menorFonte": 9,
+      "imagens": 41,
+      "defeitos": []
+    },
+    {
+      "largura": 360,
+      "falhasDeRede": [
+        "404 /ragidle/item/9000105.png",
+        "404 /ragidle/item/9000109.png",
+        "404 /ragidle/item/9000103.png",
+        "404 /ragidle/item/9000104.png",
+        "404 /ragidle/item/9000108.png",
+        "404 /ragidle/item/9000106.png",
+        "404 /ragidle/item/9000100.png",
+        "404 /ragidle/item/9000101.png",
+        "404 /ragidle/item/9000102.png"
+      ]
+    },
+    {
+      "largura": 390,
+      "altura": 844,
+      "foto": "0390-01-destaques-com-carrinho.png",
+      "janela": {
+        "x": 0,
+        "y": 8,
+        "w": 390,
+        "h": 764
+      },
+      "menorFonte": 9,
+      "imagens": 31,
+      "defeitos": []
+    },
+    {
+      "largura": 390,
+      "altura": 844,
+      "foto": "0390-01b-rodape-paginacao-e-temporada.png",
+      "janela": {
+        "x": 0,
+        "y": 8,
+        "w": 390,
+        "h": 764
+      },
+      "menorFonte": 9,
+      "imagens": 31,
+      "defeitos": []
+    },
+    {
+      "largura": 390,
+      "altura": 844,
+      "foto": "0390-02-gaveta-do-carrinho.png",
+      "janela": {
+        "x": 0,
+        "y": 8,
+        "w": 390,
+        "h": 764
+      },
+      "menorFonte": 9,
+      "imagens": 40,
+      "defeitos": []
+    },
+    {
+      "largura": 390,
+      "altura": 844,
+      "foto": "0390-03-detalhes.png",
+      "janela": {
+        "x": 0,
+        "y": 8,
+        "w": 390,
+        "h": 764
+      },
+      "menorFonte": 9,
+      "imagens": 40,
+      "defeitos": []
+    },
+    {
+      "largura": 390,
+      "altura": 844,
+      "foto": "0390-04-confirmar-compra.png",
+      "janela": {
+        "x": 0,
+        "y": 8,
+        "w": 390,
+        "h": 764
+      },
+      "menorFonte": 9,
+      "imagens": 41,
+      "defeitos": []
+    },
+    {
+      "largura": 390,
+      "altura": 844,
+      "foto": "0390-05-processando.png",
+      "janela": {
+        "x": 0,
+        "y": 8,
+        "w": 390,
+        "h": 764
+      },
+      "menorFonte": 9,
+      "imagens": 41,
+      "defeitos": []
+    },
+    {
+      "largura": 390,
+      "altura": 844,
+      "foto": "0390-06-sucesso.png",
+      "janela": {
+        "x": 0,
+        "y": 8,
+        "w": 390,
+        "h": 764
+      },
+      "menorFonte": 9,
+      "imagens": 32,
+      "defeitos": []
+    },
+    {
+      "largura": 390,
+      "altura": 844,
+      "foto": "0390-07-conta-travados-e-carrinho-vazio.png",
+      "janela": {
+        "x": 0,
+        "y": 8,
+        "w": 390,
+        "h": 764
+      },
+      "menorFonte": 9,
+      "imagens": 21,
+      "defeitos": []
+    },
+    {
+      "largura": 390,
+      "altura": 844,
+      "foto": "0390-08-gaveta-vazia.png",
+      "janela": {
+        "x": 0,
+        "y": 8,
+        "w": 390,
+        "h": 764
+      },
+      "menorFonte": 9,
+      "imagens": 25,
+      "defeitos": []
+    },
+    {
+      "largura": 390,
+      "altura": 844,
+      "foto": "0390-09-busca-sem-resultado.png",
+      "janela": {
+        "x": 0,
+        "y": 8,
+        "w": 390,
+        "h": 764
+      },
+      "menorFonte": 9,
+      "imagens": 12,
+      "defeitos": []
+    },
+    {
+      "largura": 390,
+      "altura": 844,
+      "foto": "0390-10-busca-com-paginacao.png",
+      "janela": {
+        "x": 0,
+        "y": 8,
+        "w": 390,
+        "h": 764
+      },
+      "menorFonte": 9,
+      "imagens": 33,
+      "defeitos": []
+    },
+    {
+      "largura": 390,
+      "altura": 844,
+      "foto": "0390-11-saldo-insuficiente.png",
+      "janela": {
+        "x": 0,
+        "y": 8,
+        "w": 390,
+        "h": 764
+      },
+      "menorFonte": 9,
+      "imagens": 38,
+      "defeitos": []
+    },
+    {
+      "largura": 390,
+      "altura": 844,
+      "foto": "0390-12-recusa-do-servidor.png",
+      "janela": {
+        "x": 0,
+        "y": 8,
+        "w": 390,
+        "h": 764
+      },
+      "menorFonte": 9,
+      "imagens": 40,
+      "defeitos": []
+    },
+    {
+      "largura": 390,
+      "altura": 844,
+      "foto": "0390-13-carregando.png",
+      "janela": {
+        "x": 0,
+        "y": 8,
+        "w": 390,
+        "h": 764
+      },
+      "menorFonte": 9,
+      "imagens": 11,
+      "defeitos": []
+    },
+    {
+      "largura": 390,
+      "altura": 844,
+      "foto": "0390-14-erro-de-carga.png",
+      "janela": {
+        "x": 0,
+        "y": 8,
+        "w": 390,
+        "h": 764
+      },
+      "menorFonte": 9,
+      "imagens": 11,
+      "defeitos": []
+    },
+    {
+      "largura": 390,
+      "altura": 844,
+      "foto": "0390-16-utilidades-seus-servicos.png",
+      "janela": {
+        "x": 0,
+        "y": 8,
+        "w": 390,
+        "h": 764
+      },
+      "menorFonte": 9,
+      "imagens": 17,
+      "defeitos": []
+    },
+    {
+      "largura": 390,
+      "altura": 844,
+      "foto": "0390-17-usar-servico.png",
+      "janela": {
+        "x": 0,
+        "y": 8,
+        "w": 390,
+        "h": 764
+      },
+      "menorFonte": 9,
+      "imagens": 17,
+      "defeitos": []
+    },
+    {
+      "largura": 390,
+      "falhasDeRede": [
+        "404 /ragidle/item/9000105.png",
+        "404 /ragidle/item/9000109.png",
+        "404 /ragidle/item/9000103.png",
+        "404 /ragidle/item/9000104.png",
+        "404 /ragidle/item/9000108.png",
+        "404 /ragidle/item/9000106.png",
+        "404 /ragidle/item/9000100.png",
+        "404 /ragidle/item/9000101.png",
+        "404 /ragidle/item/9000102.png",
+        "404 /ragidle/item/9000107.png"
+      ]
+    },
+    {
+      "largura": 430,
+      "altura": 932,
+      "foto": "0430-01-destaques-com-carrinho.png",
+      "janela": {
+        "x": 0,
+        "y": 8,
+        "w": 430,
+        "h": 852
+      },
+      "menorFonte": 9,
+      "imagens": 31,
+      "defeitos": []
+    },
+    {
+      "largura": 430,
+      "altura": 932,
+      "foto": "0430-01b-rodape-paginacao-e-temporada.png",
+      "janela": {
+        "x": 0,
+        "y": 8,
+        "w": 430,
+        "h": 852
+      },
+      "menorFonte": 9,
+      "imagens": 31,
+      "defeitos": []
+    },
+    {
+      "largura": 430,
+      "altura": 932,
+      "foto": "0430-02-gaveta-do-carrinho.png",
+      "janela": {
+        "x": 0,
+        "y": 8,
+        "w": 430,
+        "h": 852
+      },
+      "menorFonte": 9,
+      "imagens": 40,
+      "defeitos": []
+    },
+    {
+      "largura": 430,
+      "altura": 932,
+      "foto": "0430-03-detalhes.png",
+      "janela": {
+        "x": 0,
+        "y": 8,
+        "w": 430,
+        "h": 852
+      },
+      "menorFonte": 9,
+      "imagens": 40,
+      "defeitos": []
+    },
+    {
+      "largura": 430,
+      "altura": 932,
+      "foto": "0430-04-confirmar-compra.png",
+      "janela": {
+        "x": 0,
+        "y": 8,
+        "w": 430,
+        "h": 852
+      },
+      "menorFonte": 9,
+      "imagens": 41,
+      "defeitos": []
+    },
+    {
+      "largura": 430,
+      "falhasDeRede": [
+        "404 /ragidle/item/9000105.png",
+        "404 /ragidle/item/9000109.png",
+        "404 /ragidle/item/9000103.png",
+        "404 /ragidle/item/9000104.png",
+        "404 /ragidle/item/9000108.png",
+        "404 /ragidle/item/9000106.png",
+        "404 /ragidle/item/9000100.png",
+        "404 /ragidle/item/9000101.png",
+        "404 /ragidle/item/9000102.png"
+      ]
+    },
+    {
+      "largura": 768,
+      "altura": 1024,
+      "foto": "0768-01-destaques-com-carrinho.png",
+      "janela": {
+        "x": 8,
+        "y": 162,
+        "w": 752,
+        "h": 700
+      },
+      "menorFonte": 9,
+      "imagens": 37,
+      "defeitos": []
+    },
+    {
+      "largura": 768,
+      "altura": 1024,
+      "foto": "0768-01b-rodape-paginacao-e-temporada.png",
+      "janela": {
+        "x": 8,
+        "y": 162,
+        "w": 752,
+        "h": 700
+      },
+      "menorFonte": 9,
+      "imagens": 37,
+      "defeitos": []
+    },
+    {
+      "largura": 768,
+      "altura": 1024,
+      "foto": "0768-03-detalhes.png",
+      "janela": {
+        "x": 8,
+        "y": 162,
+        "w": 752,
+        "h": 700
+      },
+      "menorFonte": 9,
+      "imagens": 46,
+      "defeitos": []
+    },
+    {
+      "largura": 768,
+      "altura": 1024,
+      "foto": "0768-04-confirmar-compra.png",
+      "janela": {
+        "x": 8,
+        "y": 162,
+        "w": 752,
+        "h": 700
+      },
+      "menorFonte": 9,
+      "imagens": 38,
+      "defeitos": []
+    },
+    {
+      "largura": 768,
+      "falhasDeRede": [
+        "404 /ragidle/item/9000105.png",
+        "404 /ragidle/item/9000109.png",
+        "404 /ragidle/item/9000103.png",
+        "404 /ragidle/item/9000104.png",
+        "404 /ragidle/item/9000108.png",
+        "404 /ragidle/item/9000106.png",
+        "404 /ragidle/item/9000100.png",
+        "404 /ragidle/item/9000101.png",
+        "404 /ragidle/item/9000102.png"
+      ]
+    },
+    {
+      "largura": 1024,
+      "altura": 768,
+      "foto": "1024-01-destaques-com-carrinho.png",
+      "janela": {
+        "x": 8,
+        "y": 34,
+        "w": 1008,
+        "h": 700
+      },
+      "menorFonte": 9,
+      "imagens": 37,
+      "defeitos": []
+    },
+    {
+      "largura": 1024,
+      "altura": 768,
+      "foto": "1024-01b-rodape-paginacao-e-temporada.png",
+      "janela": {
+        "x": 8,
+        "y": 34,
+        "w": 1008,
+        "h": 700
+      },
+      "menorFonte": 9,
+      "imagens": 37,
+      "defeitos": []
+    },
+    {
+      "largura": 1024,
+      "altura": 768,
+      "foto": "1024-03-detalhes.png",
+      "janela": {
+        "x": 8,
+        "y": 34,
+        "w": 1008,
+        "h": 700
+      },
+      "menorFonte": 9,
+      "imagens": 46,
+      "defeitos": []
+    },
+    {
+      "largura": 1024,
+      "altura": 768,
+      "foto": "1024-04-confirmar-compra.png",
+      "janela": {
+        "x": 8,
+        "y": 34,
+        "w": 1008,
+        "h": 700
+      },
+      "menorFonte": 9,
+      "imagens": 38,
+      "defeitos": []
+    },
+    {
+      "largura": 1024,
+      "falhasDeRede": [
+        "404 /ragidle/item/9000105.png",
+        "404 /ragidle/item/9000109.png",
+        "404 /ragidle/item/9000103.png",
+        "404 /ragidle/item/9000104.png",
+        "404 /ragidle/item/9000108.png",
+        "404 /ragidle/item/9000106.png",
+        "404 /ragidle/item/9000100.png",
+        "404 /ragidle/item/9000101.png",
+        "404 /ragidle/item/9000102.png"
+      ]
+    },
+    {
+      "largura": 1440,
+      "altura": 900,
+      "foto": "1440-01-destaques-com-carrinho.png",
+      "janela": {
+        "x": 200,
+        "y": 100,
+        "w": 1040,
+        "h": 700
+      },
+      "menorFonte": 9,
+      "imagens": 37,
+      "defeitos": []
+    },
+    {
+      "largura": 1440,
+      "altura": 900,
+      "foto": "1440-01b-rodape-paginacao-e-temporada.png",
+      "janela": {
+        "x": 200,
+        "y": 100,
+        "w": 1040,
+        "h": 700
+      },
+      "menorFonte": 9,
+      "imagens": 37,
+      "defeitos": []
+    },
+    {
+      "largura": 1440,
+      "altura": 900,
+      "foto": "1440-03-detalhes.png",
+      "janela": {
+        "x": 200,
+        "y": 100,
+        "w": 1040,
+        "h": 700
+      },
+      "menorFonte": 9,
+      "imagens": 46,
+      "defeitos": []
+    },
+    {
+      "largura": 1440,
+      "altura": 900,
+      "foto": "1440-04-confirmar-compra.png",
+      "janela": {
+        "x": 200,
+        "y": 100,
+        "w": 1040,
+        "h": 700
+      },
+      "menorFonte": 9,
+      "imagens": 38,
+      "defeitos": []
+    },
+    {
+      "largura": 1440,
+      "altura": 900,
+      "foto": "1440-05-processando.png",
+      "janela": {
+        "x": 200,
+        "y": 100,
+        "w": 1040,
+        "h": 700
+      },
+      "menorFonte": 9,
+      "imagens": 38,
+      "defeitos": []
+    },
+    {
+      "largura": 1440,
+      "altura": 900,
+      "foto": "1440-06-sucesso.png",
+      "janela": {
+        "x": 200,
+        "y": 100,
+        "w": 1040,
+        "h": 700
+      },
+      "menorFonte": 9,
+      "imagens": 33,
+      "defeitos": []
+    },
+    {
+      "largura": 1440,
+      "altura": 900,
+      "foto": "1440-07-conta-travados-e-carrinho-vazio.png",
+      "janela": {
+        "x": 200,
+        "y": 100,
+        "w": 1040,
+        "h": 700
+      },
+      "menorFonte": 9,
+      "imagens": 22,
+      "defeitos": []
+    },
+    {
+      "largura": 1440,
+      "altura": 900,
+      "foto": "1440-09-busca-sem-resultado.png",
+      "janela": {
+        "x": 200,
+        "y": 100,
+        "w": 1040,
+        "h": 700
+      },
+      "menorFonte": 9,
+      "imagens": 13,
+      "defeitos": []
+    },
+    {
+      "largura": 1440,
+      "altura": 900,
+      "foto": "1440-10-busca-com-paginacao.png",
+      "janela": {
+        "x": 200,
+        "y": 100,
+        "w": 1040,
+        "h": 700
+      },
+      "menorFonte": 9,
+      "imagens": 34,
+      "defeitos": []
+    },
+    {
+      "largura": 1440,
+      "altura": 900,
+      "foto": "1440-11-saldo-insuficiente.png",
+      "janela": {
+        "x": 200,
+        "y": 100,
+        "w": 1040,
+        "h": 700
+      },
+      "menorFonte": 9,
+      "imagens": 35,
+      "defeitos": []
+    },
+    {
+      "largura": 1440,
+      "altura": 900,
+      "foto": "1440-12-recusa-do-servidor.png",
+      "janela": {
+        "x": 200,
+        "y": 100,
+        "w": 1040,
+        "h": 700
+      },
+      "menorFonte": 9,
+      "imagens": 37,
+      "defeitos": []
+    },
+    {
+      "largura": 1440,
+      "altura": 900,
+      "foto": "1440-13-carregando.png",
+      "janela": {
+        "x": 200,
+        "y": 100,
+        "w": 1040,
+        "h": 700
+      },
+      "menorFonte": 9,
+      "imagens": 12,
+      "defeitos": []
+    },
+    {
+      "largura": 1440,
+      "altura": 900,
+      "foto": "1440-14-erro-de-carga.png",
+      "janela": {
+        "x": 200,
+        "y": 100,
+        "w": 1040,
+        "h": 700
+      },
+      "menorFonte": 9,
+      "imagens": 12,
+      "defeitos": []
+    },
+    {
+      "largura": 1440,
+      "altura": 900,
+      "foto": "1440-16-utilidades-seus-servicos.png",
+      "janela": {
+        "x": 200,
+        "y": 100,
+        "w": 1040,
+        "h": 700
+      },
+      "menorFonte": 9,
+      "imagens": 18,
+      "defeitos": []
+    },
+    {
+      "largura": 1440,
+      "altura": 900,
+      "foto": "1440-17-usar-servico.png",
+      "janela": {
+        "x": 200,
+        "y": 100,
+        "w": 1040,
+        "h": 700
+      },
+      "menorFonte": 9,
+      "imagens": 18,
+      "defeitos": []
+    },
+    {
+      "largura": 1440,
+      "altura": 900,
+      "foto": "1440-15-hover-no-adicionar.png",
+      "janela": {
+        "x": 200,
+        "y": 100,
+        "w": 1040,
+        "h": 700
+      },
+      "menorFonte": 9,
+      "imagens": 37,
+      "defeitos": []
+    },
+    {
+      "largura": 1440,
+      "falhasDeRede": [
+        "404 /ragidle/item/9000105.png",
+        "404 /ragidle/item/9000109.png",
+        "404 /ragidle/item/9000103.png",
+        "404 /ragidle/item/9000104.png",
+        "404 /ragidle/item/9000108.png",
+        "404 /ragidle/item/9000106.png",
+        "404 /ragidle/item/9000101.png",
+        "404 /ragidle/item/9000100.png",
+        "404 /ragidle/item/9000102.png",
+        "404 /ragidle/item/9000107.png"
+      ]
+    },
+    {
+      "largura": 1920,
+      "altura": 1080,
+      "foto": "1920-01-destaques-com-carrinho.png",
+      "janela": {
+        "x": 440,
+        "y": 190,
+        "w": 1040,
+        "h": 700
+      },
+      "menorFonte": 9,
+      "imagens": 37,
+      "defeitos": []
+    },
+    {
+      "largura": 1920,
+      "altura": 1080,
+      "foto": "1920-01b-rodape-paginacao-e-temporada.png",
+      "janela": {
+        "x": 440,
+        "y": 190,
+        "w": 1040,
+        "h": 700
+      },
+      "menorFonte": 9,
+      "imagens": 37,
+      "defeitos": []
+    },
+    {
+      "largura": 1920,
+      "altura": 1080,
+      "foto": "1920-03-detalhes.png",
+      "janela": {
+        "x": 440,
+        "y": 190,
+        "w": 1040,
+        "h": 700
+      },
+      "menorFonte": 9,
+      "imagens": 46,
+      "defeitos": []
+    },
+    {
+      "largura": 1920,
+      "altura": 1080,
+      "foto": "1920-04-confirmar-compra.png",
+      "janela": {
+        "x": 440,
+        "y": 190,
+        "w": 1040,
+        "h": 700
+      },
+      "menorFonte": 9,
+      "imagens": 38,
+      "defeitos": []
+    },
+    {
+      "largura": 1920,
+      "falhasDeRede": [
+        "404 /ragidle/item/9000105.png",
+        "404 /ragidle/item/9000109.png",
+        "404 /ragidle/item/9000106.png",
+        "404 /ragidle/item/9000108.png",
+        "404 /ragidle/item/9000104.png",
+        "404 /ragidle/item/9000103.png",
+        "404 /ragidle/item/9000100.png",
+        "404 /ragidle/item/9000101.png",
+        "404 /ragidle/item/9000102.png"
+      ]
+    }
+  ]
+}
