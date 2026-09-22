@@ -159,7 +159,22 @@ describe('"Acordar agora" volta ao mundo, e nao ao login', () => {
 		expect(MOTOR_CRU, 'voltou a atribuicao crua em Network.onDisconnect no caminho do acordar').not.toMatch(
 			/Network\.onDisconnect\s*=\s*\(\)\s*=>\s*\{\}/
 		);
-		expect(MOTOR_CRU).toContain('Reconexao.cancelar()');
+		expect(MOTOR_CRU).toContain('Reconexao.cancelarParaFechamentoDeliberado()');
+	});
+
+	it('o "Acordar agora" NAO usa o `cancelar()` do logout — ele deixa o gancho null e a caixa "Disconnected" abre (F09)', () => {
+		/*
+		 * `cancelar()` poe `Network.onDisconnect = null`, e com null o
+		 * `NetworkManager.onClose` mostra "Disconnected from Server." — o OK dela
+		 * manda ao login. O servidor fecha o socket logo depois do resumo do
+		 * sono, entao o jogador via a caixa inglesa por cima do resumo. Este caso
+		 * dizia o CONTRARIO ate 22/09/2026 (cobrava `Reconexao.cancelar()` aqui)
+		 * e cimentava a regressao de a92d1df6.
+		 */
+		const i = MOTOR_CRU.indexOf('UIManager.showDormindo(');
+		const acordar = MOTOR_CRU.slice(i, i + 1500);
+		expect(acordar).toContain('Reconexao.cancelarParaFechamentoDeliberado()');
+		expect(acordar).not.toMatch(/Reconexao\.cancelar\(\)/);
 	});
 });
 
@@ -174,5 +189,29 @@ describe('clicar em "Dormir" nao espera contagem nenhuma', () => {
 		// A diferenca entre os dois e o ponto: a contagem nao perguntava nada
 		// (nem tinha cancelar); esta pergunta tem consequencia — a taxa congela.
 		expect(ANALISADOR_CRU, 'a confirmacao do evento de EXP foi junto por engano').toContain('showPromptBox');
+	});
+});
+
+describe('reconectar dormindo nao entra em laco nem empilha telas (F10, auditoria de 22/09)', () => {
+	/*
+	 * Quem reconecta dormindo recebe `SONO{dormindo:true}` e NUNCA o
+	 * `ACCEPT_ENTER` — o personagem nao esta no mundo. Sem avisar a reconexao,
+	 * o watchdog de 8 s fechava o socket, ela tentava de novo (ate 12x), e cada
+	 * tentativa somava uma tela preta por cima da anterior; "Acordar" tirava so a
+	 * de cima.
+	 */
+	const i = MOTOR_CRU.indexOf('if (corpo.dormindo === true) {');
+	const ramo = MOTOR_CRU.slice(i, MOTOR_CRU.indexOf('UIManager.showDormindo(', i) + 40);
+
+	it('o ramo dormindo avisa a reconexao que a entrada deu certo', () => {
+		expect(i).toBeGreaterThan(-1);
+		expect(ramo).toContain('Reconexao.aoEntrarComSucesso()');
+	});
+
+	it('e remove a tela anterior ANTES de abrir outra', () => {
+		const remove = ramo.indexOf('_janelaDoSonoAtiva.remove()');
+		const abre = ramo.indexOf('UIManager.showDormindo(');
+		expect(remove, 'a tela anterior nao e removida').toBeGreaterThan(-1);
+		expect(abre).toBeGreaterThan(remove);
 	});
 });

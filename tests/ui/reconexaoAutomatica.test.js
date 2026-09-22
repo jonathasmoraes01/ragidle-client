@@ -173,6 +173,22 @@ describe('cancelar (logout voluntario)', () => {
 	});
 });
 
+describe('cancelarParaFechamentoDeliberado (o "Acordar agora", F09 da auditoria de 22/09)', () => {
+	it('para a escalada E deixa um gancho que nao faz nada — sem ele a caixa "Disconnected" abre', async () => {
+		Reconexao.armar('127.0.0.1', 5121, 'prontera');
+
+		Reconexao.cancelarParaFechamentoDeliberado();
+
+		// `null` faz o NetworkManager.onClose mostrar "Disconnected from Server.":
+		// o gancho tem de EXISTIR, e ser um no-op.
+		expect(typeof mocks.network.onDisconnect, 'o gancho ficou null e a caixa inglesa abre').toBe('function');
+		cair();
+		await vi.advanceTimersByTimeAsync(120000);
+		expect(mocks.mapEngineInit, 'o fechamento deliberado virou tentativa de reconexao').not.toHaveBeenCalled();
+		expect(mocks.gameEngineReload).not.toHaveBeenCalled();
+	});
+});
+
 describe('sessao invalida (REFUSE_ENTER durante o ciclo)', () => {
 	it('so age quando ha ciclo em curso, e conduz ao login depois de avisar', async () => {
 		Reconexao.armar('127.0.0.1', 5121, 'prontera');

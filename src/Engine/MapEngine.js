@@ -1033,6 +1033,18 @@ function onSonoRecebido(pkt) {
 
 	if (corpo.dormindo === true) {
 		_acordarResolvido = false;
+		/*
+		 * RECONECTAR DORMINDO (F10, auditoria de 22/09/2026). Quem volta
+		 * dormindo recebe esta resposta e NUNCA o `ACCEPT_ENTER` — o personagem
+		 * nao esta no mundo. Sem avisar a reconexao, o watchdog fechava o socket,
+		 * ela tentava de novo ate 12x, e cada volta somava uma tela preta por
+		 * cima da anterior. Esta resposta E a entrada bem-sucedida de quem dorme.
+		 */
+		Reconexao.aoEntrarComSucesso();
+		if (_janelaDoSonoAtiva) {
+			_janelaDoSonoAtiva.remove();
+			_janelaDoSonoAtiva = null;
+		}
 		const taxas = {
 			expBasePorMs: Number(corpo.taxaExpBasePorMs) || 0,
 			expClassePorMs: Number(corpo.taxaExpClassePorMs) || 0
@@ -1041,15 +1053,17 @@ function onSonoRecebido(pkt) {
 			const acordar = new PACKET.CZ.RAGIDLE_SONO_ACAO();
 			acordar.json = JSON.stringify({ acao: 'acordar' });
 			/*
-			 * `Reconexao.cancelar()` no lugar de `Network.onDisconnect = () => {}`
-			 * (D-1485). Os dois calam o dialogo de "Disconnected from Server" no
-			 * close deliberado que vem a seguir — mas a atribuicao crua tambem
-			 * DESARMAVA a reconexao automatica pelas costas dela, escrevendo no
-			 * campo que aquele modulo considera seu. `cancelar()` e a porta que
-			 * ele mesmo oferece e deixa o estado dele coerente; quem rearma e o
-			 * `Reconexao.armar()` que roda sozinho quando o socket novo abre.
+			 * A PORTA DO FECHAMENTO DELIBERADO, e nao a do logout (F09,
+			 * auditoria de 22/09/2026). D-1485 trocou a atribuicao crua por
+			 * `Reconexao.cancelar()` achando que os dois calavam o dialogo de
+			 * "Disconnected from Server" — e `cancelar()` deixa o gancho NULL,
+			 * que e exatamente o que abre o dialogo (`NetworkManager.onClose`).
+			 * O servidor fecha o socket logo depois do resumo, e o OK da caixa
+			 * mandava ao login. A porta certa e do proprio modulo da
+			 * reconexao, e deixa um gancho no-op; quem rearma continua sendo o
+			 * `Reconexao.armar()` que roda quando o socket novo abre.
 			 */
-			Reconexao.cancelar();
+			Reconexao.cancelarParaFechamentoDeliberado();
 			Network.sendPacket(acordar);
 			setTimeout(() => {
 				if (_acordarResolvido) return;

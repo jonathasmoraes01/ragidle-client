@@ -232,6 +232,25 @@ function cancelar() {
 }
 
 /**
+ * O FECHAMENTO QUE A GENTE MESMO PROVOCOU (F09, auditoria de 22/09/2026).
+ *
+ * O "Acordar agora" pede ao servidor, e o servidor FECHA o socket logo depois
+ * do resumo. `cancelar()` e a porta do LOGOUT: ela poe o gancho em `null`, e
+ * com `null` o `NetworkManager.onClose` mostra "Disconnected from Server." —
+ * cujo OK manda ao login. Foi a regressao de a92d1df6.
+ *
+ * Aqui o gancho vira um NO-OP, como em `desistirEIrParaOLogin`: o fechamento
+ * esperado nao abre caixa nem vira tentativa. Quem rearma e `armar()`, quando o
+ * socket da volta ao mundo abre. Nao troca o `cancelar()` do logout: la um
+ * no-op calaria uma queda de verdade na tela de login.
+ */
+function cancelarParaFechamentoDeliberado() {
+	limparCiclo();
+	Network.onDisconnect = () => {};
+	importarUI().then(ui => ui.esconder());
+}
+
+/**
  * O servidor recusou a reentrada (ZC_REFUSE_ENTER) DURANTE um ciclo de
  * reconexao — a sessao (AuthCode) nao vale mais. Devolve `true` quando
  * tratou (o MapEngine NAO deve mostrar a caixa de erro generica nesse
@@ -405,6 +424,7 @@ const Reconexao = {
 	armar,
 	aoEntrarComSucesso,
 	cancelar,
+	cancelarParaFechamentoDeliberado,
 	aoSerRecusado
 };
 
