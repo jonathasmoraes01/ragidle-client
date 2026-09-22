@@ -2004,6 +2004,21 @@
 		height: 13px;
 	}
 
+	/*
+	 * Os ornamentos do título (".ri-title::before/::after", Common.css - 44px
+	 * cada lado) somem em telas estreitas (achado na prova de tela de
+	 * 22/09/2026): o título fica CENTRALIZADO na barra inteira, e a carteira
+	 * à esquerda ("1280 RO CASH · Recarregar") já ocupa quase a metade dos
+	 * 390px - medido, o ornamento esquerdo sobrepunha o ícone de Recarregar
+	 * de ponta a ponta. Sem os ornamentos o título encolhe ~104px e volta a
+	 * caber ao lado da carteira sem se tocarem. Não mexe em Common.css - a
+	 * regra é escopada em "#TemporadaIdle .te-title", só este componente.
+	 */
+	#TemporadaIdle .te-title::before,
+	#TemporadaIdle .te-title::after {
+		display: none;
+	}
+
 	#TemporadaIdle .te-selo-vip {
 		max-width: 28%;
 		font-size: 8px;
@@ -2067,7 +2082,16 @@
 		flex-wrap: wrap;
 	}
 
+	/*
+	 * "box-sizing:border-box" é OBRIGATÓRIO aqui (achado na prova de tela de
+	 * 22/09/2026): ".ri-btn" (Common.css) não zera box-sizing (fica
+	 * content-box, o padrão), e ".ri-btn" tem `padding: 8px 18px`. Sem
+	 * border-box, "width:100%" vira 100% + 36px de padding somado por cima -
+	 * o botão furava a borda direita do card, 380px dentro de um card de
+	 * 364px. Com border-box, os 18px de cada lado entram DENTRO dos 100%.
+	 */
 	#TemporadaIdle .te-chamada-passe-botao {
+		box-sizing: border-box;
 		width: 100%;
 		justify-content: center;
 	}
