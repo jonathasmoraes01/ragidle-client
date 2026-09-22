@@ -350,6 +350,19 @@ describe('o banner (a arte ja traz o titulo pintado - achado na prova de tela de
 		expect(encerrada).toContain('Temporada encerrada');
 	});
 
+	it('a fase vem do servidor: "antes" diz quando abre, nunca "encerrada"; o prazo mostra o ULTIMO dia aberto', () => {
+		const inicioMs = Date.UTC(2026, 8, 24, 3);
+		const fimMs = Date.UTC(2026, 9, 24, 3);
+		const antes = formatoDaTemporada.renderBannerHtml({ aberta: false, fase: 'antes', inicioMs, fimMs });
+		expect(antes).toContain(`Abre em ${formatoDaTemporada.dataCurtaDeMs(inicioMs)}`);
+		expect(antes).not.toContain('encerrada');
+		const aberta = formatoDaTemporada.renderBannerHtml({ aberta: true, fase: 'aberta', inicioMs, fimMs });
+		// `fimMs` e o primeiro instante FECHADO
+		expect(aberta).toContain(`Aberta até ${formatoDaTemporada.dataCurtaDeMs(fimMs - 1)}`);
+		const fechada = formatoDaTemporada.renderBannerHtml({ aberta: false, fase: 'encerrada', inicioMs, fimMs });
+		expect(fechada).toContain('Temporada encerrada');
+	});
+
 	it('o banner das Caixas usa a classe propria (a arte "banner-caixas.webp" entra por CSS, `.te-banner--caixas`), sem texto nenhum em HTML', () => {
 		const html = formatoDaTemporada.renderBannerDasCaixasHtml();
 		expect(html).toContain('te-banner--caixas');

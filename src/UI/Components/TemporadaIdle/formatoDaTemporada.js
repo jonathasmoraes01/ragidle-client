@@ -347,10 +347,21 @@ export function renderBannerHtml(temporada) {
 	const subtitulo = t.subtitulo || 'Herdeiros de Midgard';
 	const numero = String(t.id || '').match(/\d+/);
 	const season = numero ? `Season ${numero[0]}` : 'Season 1';
-	const encerrada = t.aberta === false;
-	const prazo = encerrada ? 'Temporada encerrada' : t.fimMs ? `Aberta até ${dataCurtaDeMs(t.fimMs)}` : '';
+	/* `fase` vem do servidor: 'antes' e 'encerrada' chegam os dois com
+	   `aberta: false`. Sem `fase` (servidor antigo), `aberta: false` e encerrada.
+	   `fimMs` e o primeiro instante FECHADO: o ultimo dia aberto e o de
+	   `fimMs - 1`. */
+	const fase = t.fase || (t.aberta === false ? 'encerrada' : 'aberta');
+	let prazo = '';
+	if (fase === 'antes') {
+		prazo = t.inicioMs ? `Abre em ${dataCurtaDeMs(t.inicioMs)}` : 'Em breve';
+	} else if (fase === 'encerrada') {
+		prazo = 'Temporada encerrada';
+	} else if (t.fimMs) {
+		prazo = `Aberta até ${dataCurtaDeMs(Number(t.fimMs) - 1)}`;
+	}
 	return (
-		`<div class="te-banner${encerrada ? ' is-encerrada' : ''}" role="img" aria-label="${escapeHtml(`${season} · ${nome} · ${subtitulo}`)}">` +
+		`<div class="te-banner${fase === 'encerrada' ? ' is-encerrada' : ''}" role="img" aria-label="${escapeHtml(`${season} · ${nome} · ${subtitulo}`)}">` +
 		'<div class="te-banner-arte" aria-hidden="true"></div>' +
 		'<div class="te-banner-veu" aria-hidden="true"></div>' +
 		(prazo ? `<span class="te-banner-prazo">${escapeHtml(prazo)}</span>` : '') +
