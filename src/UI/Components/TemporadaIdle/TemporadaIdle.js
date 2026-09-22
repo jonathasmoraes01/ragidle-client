@@ -666,19 +666,20 @@ Network.hookPacket(PACKET.ZC.RAGIDLE_TEMPORADA, onTemporadaRecebida);
  * confirma uma compra de VIP, e a Temporada está aberta, ela pede o próprio
  * estado de novo — só assim o selo do cabeçalho e o card da aba VIP
  * acompanham o que acabou de mudar, sem duplicar o pacote de compra.
+ *
+ * ELA NAO DA `hookPacket` NO 0x0fe5, E ISSO NAO E ESTILO: `Network.hookPacket`
+ * faz `Packets.list[id].callback = callback` (NetworkManager.js) - o segundo
+ * gancho no mesmo opcode APAGA o primeiro. Enquanto esta janela hookava o
+ * `ZC_RAGIDLE_PASSE`, a janela de Recompensas ficava em "Carregando..." para
+ * sempre, porque o estado dela nunca chegava. Foi para producao em 21/09/2026.
+ * O dono do pacote e o PasseIdle, e ele avisa por `aoReceberEstado`.
  */
-function onPassePacoteChegou(pkt) {
-	let dados;
-	try {
-		dados = JSON.parse(pkt.json);
-	} catch (err) {
-		return;
-	}
+function onPasseMudou(dados) {
 	const comprou = dados && dados.comprou;
 	if (comprou && comprou.ok && comprou.tipo === 'vip' && janelaEstaAberta()) {
 		pedirEstado();
 	}
 }
-Network.hookPacket(PACKET.ZC.RAGIDLE_PASSE, onPassePacoteChegou);
+PasseIdle.aoReceberEstado = onPasseMudou;
 
 export default UIManager.addComponent(TemporadaIdle);

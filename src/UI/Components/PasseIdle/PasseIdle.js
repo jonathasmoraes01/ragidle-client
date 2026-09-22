@@ -590,8 +590,30 @@ function onPasseRecebido(pkt) {
 	} else if (comprou && !comprou.ok) {
 		mostrarAviso(comprou.motivo || 'nao foi possivel comprar', true);
 	}
+
+	/*
+	 * QUEM MAIS SE INTERESSA PELO PASSE E AVISADO AQUI, e nunca por um
+	 * segundo `hookPacket` no mesmo opcode. `Network.hookPacket` faz
+	 * `Packets.list[id].callback = callback` (NetworkManager.js): ele
+	 * SUBSTITUI, nao soma. Um segundo gancho no 0x0fe5 rouba o pacote desta
+	 * janela e ela fica em "Carregando..." para sempre - foi o que a
+	 * TemporadaIdle fez, e foi para producao em 21/09/2026.
+	 *
+	 * O ouvinte vai em try/catch porque ele e de OUTRA janela: uma excecao
+	 * dele nao pode derrubar esta, e no laco de rede do cliente uma excecao
+	 * num handler descarta o resto do quadro.
+	 */
+	if (typeof PasseIdle.aoReceberEstado === 'function') {
+		try {
+			PasseIdle.aoReceberEstado(dados);
+		} catch (err) {
+			console.error('[PasseIdle] ouvinte de estado lancou', err);
+		}
+	}
 }
 
+/* ESTA JANELA E A DONA DO 0x0fe5 - ver o bloco acima antes de somar outro
+ * `hookPacket` neste opcode em qualquer arquivo do cliente. */
 Network.hookPacket(PACKET.ZC.RAGIDLE_PASSE, onPasseRecebido);
 
 export default UIManager.addComponent(PasseIdle);
