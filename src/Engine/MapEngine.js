@@ -1338,6 +1338,26 @@ function onMapChange(pkt, ehEntradaNoMundo) {
 	const mapaAntesDoLoad = MapRenderer.currentMap;
 	MapRenderer.onLoad = () => {
 		/*
+		 * O ESTOU-PRONTO SAI MESMO QUE ALGO ANTES DELE LANCE (F28, auditoria de
+		 * 22/09/2026 — a familia do aviso D-993). O `CZ_NOTIFY_ACTORINIT`
+		 * completa a entrada no mapa, e ele sai la embaixo, depois de dezenas de
+		 * chamadas RAGIDLE. Uma excecao em qualquer uma delas e o pacote nunca
+		 * saia: o servidor ficava com `carregandoMapa` e o tique parava de
+		 * dirigir o jogador — mapa vazio e caca parada.
+		 *
+		 * A rede de seguranca e agendada ANTES de tudo. No caminho normal o
+		 * pacote sai no MESMO ponto de sempre e a rede, quando dispara, ve que
+		 * ja saiu e nao faz nada. Envolver as ~600 linhas num `try/finally`
+		 * teria o mesmo efeito com um diff de reindentacao do handler inteiro.
+		 */
+		let estouProntoSaiu = false;
+		const estouPronto = () => {
+			if (estouProntoSaiu) return;
+			estouProntoSaiu = true;
+			Network.sendPacket(new PACKET.CZ.NOTIFY_ACTORINIT());
+		};
+		setTimeout(estouPronto, 0);
+		/*
 		 * RAGIDLE (B1, 06/09/2026) — A SEGUNDA LIMPEZA, E ELA E O CONSERTO.
 		 *
 		 * Reporte do playtest: *"essa prova de vocacao (...) ta levando pra
@@ -1965,7 +1985,7 @@ function onMapChange(pkt, ehEntradaNoMundo) {
 		PluginManager.init();
 
 		// Map loaded
-		Network.sendPacket(new PACKET.CZ.NOTIFY_ACTORINIT());
+		estouPronto();
 
 		// D-1533: o placar do MVP e acessorio de HUD — depois do estou-pronto, e
 		// isolado (D-993): uma excecao nele nao pode segurar a entrada no mapa.

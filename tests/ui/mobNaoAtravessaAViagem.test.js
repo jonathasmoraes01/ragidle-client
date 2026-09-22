@@ -87,7 +87,10 @@ describe('B1 — nenhuma entidade do mapa velho atravessa a viagem', () => {
 		 * apagaria o que acabou de chegar.
 		 */
 		const limpeza = ON_MAP_CHANGE.indexOf('EntityManager.free()');
-		const actorinit = ON_MAP_CHANGE.indexOf('CZ.NOTIFY_ACTORINIT');
+		// O envio e a CHAMADA `estouPronto()` desde o F28 (22/09/2026): o nome
+		// do pacote aparece antes, na rede de seguranca agendada no topo do
+		// `onLoad`, que so dispara se o envio normal nao tiver saido.
+		const actorinit = ON_MAP_CHANGE.indexOf('estouPronto();');
 		expect(actorinit).toBeGreaterThan(0);
 		expect(actorinit).toBeGreaterThan(limpeza);
 	});

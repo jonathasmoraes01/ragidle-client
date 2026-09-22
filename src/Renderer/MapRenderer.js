@@ -218,8 +218,15 @@ class MapRenderer {
 		// Basic TP
 		Mouse.intersect = false;
 		Background.remove(() => {
-			MapRenderer.onLoad();
-			Sky.setUpCloudData();
+			// A mesma guarda do carregamento normal, mais abaixo (F28, auditoria
+			// de 22/09/2026): sem ela, uma excecao na montagem do teleporte no
+			// mesmo mapa impedia o `render` de recomecar — a tela congelava.
+			try {
+				MapRenderer.onLoad();
+				Sky.setUpCloudData();
+			} catch (erro) {
+				console.error('[MapRenderer] a montagem do teleporte falhou; o jogo segue', erro);
+			}
 
 			Renderer.render(MapRenderer.onRender);
 			Mouse.intersect = true;
