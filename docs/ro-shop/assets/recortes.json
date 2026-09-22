@@ -1,0 +1,325 @@
+[
+ {
+  "origem": "ChatGPT Image 22 de set. de 2026, 17_08_01 (2).png",
+  "idx": 1,
+  "sha1": "2259ecfdad5f",
+  "bbox": [
+   93,
+   56,
+   1156,
+   1144
+  ],
+  "destino": "icons/shop-icon-featured.png",
+  "tamanho": [
+   94,
+   96
+  ],
+  "bytes": 5754
+ },
+ {
+  "origem": "ChatGPT Image 22 de set. de 2026, 17_08_01 (5).png",
+  "idx": 4,
+  "sha1": "f21f18546922",
+  "bbox": [
+   96,
+   66,
+   1216,
+   1151
+  ],
+  "destino": "icons/shop-icon-farm-up.png",
+  "tamanho": [
+   96,
+   93
+  ],
+  "bytes": 5917
+ },
+ {
+  "origem": "ChatGPT Image 22 de set. de 2026, 17_08_02 (8).png",
+  "idx": 8,
+  "sha1": "9da74b98071c",
+  "bbox": [
+   106,
+   75,
+   1148,
+   1183
+  ],
+  "destino": "icons/shop-icon-potions.png",
+  "tamanho": [
+   90,
+   96
+  ],
+  "bytes": 5965
+ },
+ {
+  "origem": "ChatGPT Image 22 de set. de 2026, 17_08_01 (3).png",
+  "idx": 2,
+  "sha1": "1f49b35e277a",
+  "bbox": [
+   59,
+   81,
+   1192,
+   1095
+  ],
+  "destino": "icons/shop-icon-boosts.png",
+  "tamanho": [
+   96,
+   86
+  ],
+  "bytes": 5457
+ },
+ {
+  "origem": "ChatGPT Image 22 de set. de 2026, 17_08_02 (7).png",
+  "idx": 7,
+  "sha1": "d2fd08868fe1",
+  "bbox": [
+   107,
+   130,
+   1203,
+   1136
+  ],
+  "destino": "icons/shop-icon-utilities.png",
+  "tamanho": [
+   96,
+   88
+  ],
+  "bytes": 6175
+ },
+ {
+  "origem": "ChatGPT Image 22 de set. de 2026, 17_08_02 (6).png",
+  "idx": 6,
+  "sha1": "6db606703b2e",
+  "bbox": [
+   123,
+   61,
+   1186,
+   1184
+  ],
+  "destino": "icons/shop-icon-account.png",
+  "tamanho": [
+   91,
+   96
+  ],
+  "bytes": 6327
+ },
+ {
+  "origem": "ChatGPT Image 22 de set. de 2026, 17_14_33 (5).png",
+  "idx": 14,
+  "sha1": "4e0eeb243d7c",
+  "bbox": [
+   101,
+   91,
+   1152,
+   1149
+  ],
+  "destino": "icons/shop-icon-ro-cash.png",
+  "tamanho": [
+   95,
+   96
+  ],
+  "bytes": 7140
+ },
+ {
+  "origem": "ChatGPT Image 22 de set. de 2026, 17_14_33 (4).png",
+  "idx": 13,
+  "sha1": "af909f741a5a",
+  "bbox": [
+   25,
+   27,
+   1230,
+   1211
+  ],
+  "destino": "icons/shop-icon-recharge.png",
+  "tamanho": [
+   64,
+   63
+  ],
+  "bytes": 3363
+ },
+ {
+  "origem": "ChatGPT Image 22 de set. de 2026, 17_08_02 (9).png",
+  "idx": 9,
+  "sha1": "66740b44de74",
+  "bbox": [
+   48,
+   149,
+   1206,
+   1106
+  ],
+  "destino": "icons/shop-icon-cart.png",
+  "tamanho": [
+   96,
+   79
+  ],
+  "bytes": 4409
+ },
+ {
+  "origem": "ChatGPT Image 22 de set. de 2026, 17_14_32 (1).png",
+  "idx": 10,
+  "sha1": "7138a00c3307",
+  "bbox": [
+   84,
+   60,
+   1170,
+   1166
+  ],
+  "destino": "buttons/shop-btn-close.png",
+  "tamanho": [
+   63,
+   64
+  ],
+  "bytes": 3279
+ },
+ {
+  "origem": "ChatGPT Image 22 de set. de 2026, 17_08_02 (10).png",
+  "idx": 5,
+  "sha1": "6f01a577f893",
+  "bbox": [
+   171,
+   132,
+   1115,
+   1123
+  ],
+  "destino": "states/shop-empty-cart.png",
+  "tamanho": [
+   267,
+   280
+  ],
+  "bytes": 20436
+ },
+ {
+  "origem": "ChatGPT Image 22 de set. de 2026, 17_14_33 (7).png",
+  "idx": 16,
+  "sha1": "7dbbd400eb00",
+  "bbox": [
+   76,
+   18,
+   1179,
+   1215
+  ],
+  "destino": "states/shop-item-placeholder.png",
+  "tamanho": [
+   118,
+   128
+  ],
+  "bytes": 8700
+ },
+ {
+  "origem": "ChatGPT Image 22 de set. de 2026, 17_14_34 (10).png",
+  "idx": 18,
+  "sha1": "90b9bc377ddd",
+  "bbox": [
+   43,
+   33,
+   1213,
+   1220
+  ],
+  "destino": "badges/shop-badge-new.png",
+  "tamanho": [
+   47,
+   48
+  ],
+  "bytes": 2782
+ },
+ {
+  "origem": "ChatGPT Image 22 de set. de 2026, 17_08_01 (4).png",
+  "idx": 3,
+  "sha1": "ddf298804c07",
+  "bbox": [
+   88,
+   108,
+   1188,
+   1122
+  ],
+  "destino": "badges/shop-badge-sale.png",
+  "tamanho": [
+   48,
+   44
+  ],
+  "bytes": 2816
+ },
+ {
+  "origem": "ChatGPT Image 22 de set. de 2026, 17_14_33 (8).png",
+  "idx": 17,
+  "sha1": "b014026f3527",
+  "bbox": [
+   10,
+   4,
+   1244,
+   1215
+  ],
+  "destino": "badges/shop-badge-popular.png",
+  "tamanho": [
+   48,
+   47
+  ],
+  "bytes": 2727
+ },
+ {
+  "origem": "ChatGPT Image 22 de set. de 2026, 17_14_32 (2).png",
+  "idx": 11,
+  "sha1": "0281603e19bf",
+  "bbox": [
+   17,
+   141,
+   2154,
+   585
+  ],
+  "destino": "ornaments/shop-divider-horizontal.png",
+  "tamanho": [
+   640,
+   133
+  ],
+  "bytes": 14653
+ },
+ {
+  "origem": "ChatGPT Image 22 de set. de 2026, 17_14_32 (3).png",
+  "idx": 12,
+  "sha1": "64d7f467ab9d",
+  "bbox": [
+   74,
+   71,
+   1223,
+   1162
+  ],
+  "destino": "ornaments/shop-ornament-corner.png",
+  "tamanho": [
+   96,
+   91
+  ],
+  "bytes": 3535
+ },
+ {
+  "origem": "ChatGPT Image 22 de set. de 2026, 17_14_33 (6).png",
+  "idx": 15,
+  "sha1": "5a0c58177cc4",
+  "bbox": [
+   23,
+   63,
+   2148,
+   627
+  ],
+  "destino": "ornaments/shop-header-ornament.png",
+  "tamanho": [
+   560,
+   149
+  ],
+  "bytes": 24405
+ },
+ {
+  "origem": "ChatGPT Image 22 de set. de 2026, 17_07_44.png",
+  "idx": 0,
+  "sha1": "2c1109d4293e",
+  "bbox": [
+   0,
+   0,
+   2172,
+   724
+  ],
+  "destino": "banner/shop-banner-hero.(png|webp)",
+  "tamanho": [
+   1400,
+   467
+  ],
+  "bytes": 257829
+ }
+]
