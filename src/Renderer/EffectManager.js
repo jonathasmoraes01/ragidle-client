@@ -27,6 +27,7 @@ import EntityManager from 'Renderer/EntityManager.js';
 import Renderer from 'Renderer/Renderer.js';
 import Altitude from 'Renderer/Map/Altitude.js';
 import Sound from 'Audio/SoundManager.js';
+import { deveAgendarSom, somAindaVale } from 'Renderer/somDeEfeito.js';
 import Preferences from 'Preferences/Map.js';
 import QuadHorn from 'Renderer/Effects/QuadHorn.js';
 import Session from 'Engine/SessionStorage.js';
@@ -688,8 +689,8 @@ class EffectManager {
 		Params.Inst.repeatEnd = Params.Init.repeatEnd ? Params.Init.repeatEnd : Params.effect.repeatEnd || 0; // Main has priority
 		Params.Inst.repeatDelay = Params.effect.repeatDelay ? Params.effect.repeatDelay : Params.Init.repeatDelay; // Instance has priority
 
-		// Play sound
-		if (Params.effect.wav) {
+		// Play sound — nem com a aba oculta, nem vencido (F47, ver somDeEfeito.js)
+		if (Params.effect.wav && deveAgendarSom(typeof document === 'undefined' ? undefined : document)) {
 			filename = Params.effect.wav;
 
 			if (Params.effect.rand) {
@@ -699,13 +700,15 @@ class EffectManager {
 				);
 			}
 
-			Events.setTimeout(
-				function () {
-					//calculate the sound volume from distance
-					Sound.playPosition(filename + '.wav', Params.Inst.position);
-				},
-				Params.Inst.startTick + (!isNaN(Params.effect.delayWav) ? Params.effect.delayWav : 0) - Renderer.tick
-			);
+			const quandoTocar =
+				Params.Inst.startTick + (!isNaN(Params.effect.delayWav) ? Params.effect.delayWav : 0);
+			Events.setTimeout(function () {
+				if (!somAindaVale(Renderer.tick, quandoTocar)) {
+					return;
+				}
+				//calculate the sound volume from distance
+				Sound.playPosition(filename + '.wav', Params.Inst.position);
+			}, quandoTocar - Renderer.tick);
 		}
 
 		Params.Inst.direction =
