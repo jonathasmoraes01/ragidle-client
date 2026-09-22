@@ -412,17 +412,29 @@
 	height: 16px;
 }
 
+/*
+ * AZUL, não verde (documento §26: preenchimento azul Ragnarok, detalhe
+ * dourado opcional - a primeira versão usava "--exp-fill", que é o verde
+ * que o design system reserva para EXP em OUTRAS janelas; aqui reaproveita
+ * "--sp-fill", o mesmo azul que as barras de SP já usam, sem inventar
+ * token novo).
+ */
 #TemporadaIdle .te-passe-barra > .fill {
-	background: var(--exp-fill);
+	background: var(--sp-fill);
 }
 
-/* O rótulo sobre a barra precisa ler tanto no verde cheio quanto no trilho
-   vazio: a sombra do glifo é o que o design system permite - reforçada. */
-#TemporadaIdle .te-passe-barra > .rotulo {
-	font-size: 10px;
-	text-shadow:
-		0 0 3px rgba(12, 34, 64, 0.95),
-		0 1px 2px rgba(12, 34, 64, 0.9);
+/*
+ * O RÓTULO SAIU DE DENTRO DA BARRA (achado na prova de tela, 22/09/2026): um
+ * texto branco centralizado sobre uma barra pouco preenchida (ex.: "345 /
+ * 1000 XP") lia bem só no trecho colorido - sobre o trilho claro, ilegível
+ * mesmo com sombra. Virou legenda normal, texto escuro, embaixo da barra -
+ * lê em qualquer nível de progresso, cheio ou vazio.
+ */
+#TemporadaIdle .te-passe-barra-legenda {
+	margin-top: var(--sp-1);
+	font: var(--type-desc);
+	color: var(--text-muted);
+	text-align: center;
 }
 
 #TemporadaIdle .te-passe-meta {
@@ -1971,8 +1983,25 @@
 		padding: 2px var(--sp-2);
 	}
 
+	/*
+	 * NAO "display:none" aqui (achado na prova de tela, 22/09/2026): o
+	 * documento §31 permite REORGANIZAR o header no celular, nunca esconder
+	 * uma ação. O texto "Recarregar" sai (a carteira já disputa espaço com
+	 * o selo VIP em 390px), mas o ÍCONE continua visível e clicável -
+	 * "em breve" some do olho, não do alcance do dedo.
+	 */
 	#TemporadaIdle .te-recarregar {
+		padding: 3px;
+		gap: 0;
+	}
+
+	#TemporadaIdle .te-recarregar span {
 		display: none;
+	}
+
+	#TemporadaIdle .te-recarregar-icone {
+		width: 13px;
+		height: 13px;
 	}
 
 	#TemporadaIdle .te-selo-vip {
@@ -2049,9 +2078,19 @@
 		text-align: center;
 	}
 
+	/*
+	 * NAO "align-items:center" aqui (achado na prova de tela, 22/09/2026): a
+	 * intencao era centralizar o TEXTO, mas "align-items" mexe no eixo
+	 * CRUZADO de um flex-column - os filhos deixam de ESTICAR e encolhem
+	 * para o proprio conteudo. A barra de XP (".ri-bar", sem largura
+	 * propria - o preenchimento e "%") nao tem conteudo que force largura
+	 * nenhuma, e encolhia para uma linha fina. "text-align:center" centra
+	 * o TEXTO sem mexer no tamanho da caixa; "align-items" fica no default
+	 * (stretch), que é o que faz a barra ocupar a largura inteira.
+	 */
 	#TemporadaIdle .te-passe-batalha-topo-info {
 		width: 100%;
-		align-items: center;
+		text-align: center;
 	}
 
 	#TemporadaIdle .te-passe-batalha-mascote {

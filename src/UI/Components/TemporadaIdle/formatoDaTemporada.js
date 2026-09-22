@@ -370,6 +370,22 @@ export function renderBannerDasCaixasHtml() {
 /* ------------------------------------------------------------------ */
 
 /**
+ * A BARRA DE NÍVEL (XP) - compartilhada pelos Destaques e pelo cabeçalho do
+ * Passe de Batalha. O rótulo ("345 / 1000 XP para o nível 13") sai de DENTRO
+ * da barra e vira uma legenda embaixo dela (achado na prova de tela de
+ * 22/09/2026: o rótulo branco só lia sobre o trecho PREENCHIDO da barra -
+ * sobre o trilho claro, ilegível. Documento §26 também pede o preenchimento
+ * AZUL, não verde - `--sp-fill` é o azul que o design system já usa nas
+ * barras de SP, reaproveitado aqui em vez de inventar token novo).
+ */
+export function renderBarraDeNivelHtml(pct, rotulo) {
+	return (
+		`<div class="ri-bar te-passe-barra"><div class="fill" style="width:${pct}%"></div></div>` +
+		`<div class="te-passe-barra-legenda">${escapeHtml(rotulo)}</div>`
+	);
+}
+
+/**
  * O RESUMO do progresso nos Destaques (contrato V2): nivel, barra de XP no
  * nivel atual e as DUAS fontes de XP do dia (caca e missoes diarias - o
  * contrato manda os dois separados, `tetoDiarioDeCaca`/`xpDeCacaHoje` de um
@@ -414,7 +430,7 @@ export function renderProgressoDaTemporadaHtml(passe) {
 		`<h3 class="te-secao-titulo">${glifo('estrela')}<span>Progresso da Temporada</span></h3>` +
 		`<span class="te-passe-nivel">Nível <strong>${nivel}</strong><span class="te-passe-de"> / ${niveis}</span></span>` +
 		'</header>' +
-		`<div class="ri-bar te-passe-barra"><div class="fill" style="width:${pctBarra}%"></div><span class="rotulo">${escapeHtml(rotuloBarra)}</span></div>` +
+		renderBarraDeNivelHtml(pctBarra, rotuloBarra) +
 		'<div class="te-passe-meta">' +
 		(notaCaca ? `<span>${notaCaca}</span>` : '') +
 		(notaMissoes ? `<span>${notaMissoes}</span>` : '') +
@@ -964,7 +980,7 @@ export function renderPasseDeBatalhaHtml(passe) {
 		'<div class="te-passe-batalha-topo-info">' +
 		'<h2 class="te-passe-batalha-titulo">Passe de Batalha</h2>' +
 		`<span class="te-passe-nivel">Nível <strong>${nivel}</strong><span class="te-passe-de"> / ${niveis}</span></span>` +
-		`<div class="ri-bar te-passe-barra"><div class="fill" style="width:${pctBarra}%"></div><span class="rotulo">${escapeHtml(rotuloBarra)}</span></div>` +
+		renderBarraDeNivelHtml(pctBarra, rotuloBarra) +
 		(notaDias ? `<span class="te-passe-batalha-dias">${notaDias} de temporada</span>` : '') +
 		'</div>' +
 		'<img class="te-passe-batalha-mascote" src="/ragidle/temporada/mascote-passe.webp" alt="" width="88" height="88">' +
