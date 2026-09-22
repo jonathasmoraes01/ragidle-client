@@ -214,7 +214,7 @@ import IndicacaoIdle from 'UI/Components/IndicacaoIdle/IndicacaoIdle.js'; // RAG
 import RankingIdle from 'UI/Components/RankingIdle/RankingIdle.js'; // RAGIDLE: o Ranking
 import AdminPanel from 'UI/Components/AdminPanel/AdminPanel.js';
 import Escape from 'UI/Components/Escape/Escape.js'; // RAGIDLE: a janela de sistema (D-1416)
-import CashShop from 'UI/Components/CashShop/CashShop.js'; // RAGIDLE: a loja de cash (I5)
+import RoShop from 'UI/Components/RoShop/RoShop.js'; // RAGIDLE: o RO Shop (22/09/2026) - a porta do item "RO Shop" (era a CashShop nativa, I5)
 import RiIcones from 'UI/ri-icones.js';
 import htmlText from './TopMenuIdle.html?raw';
 import cssText from './TopMenuIdle.css?raw';
@@ -691,14 +691,16 @@ function onClickAction(e) {
 			VotoIdle.toggle();
 			break;
 		/*
-		 * A LOJA DE CASH (I5, 31/08/2026 — pedido do dono).
-		 *
-		 * A janela e a `CashShop` NATIVA do roBrowser, a mesma que o
-		 * `CashShopIcon` solto abria — o pedido move a PORTA para o item
-		 * rotulado do menu, e nao troca a loja.
+		 * O RO SHOP (22/09/2026, D-RS-03). Ate hoje esta porta abria a
+		 * `CashShop` NATIVA do roBrowser (I5, 31/08/2026), com o catalogo
+		 * derivado de zeny - uma segunda rota de compra com outro preco. A
+		 * porta agora abre o RO Shop novo (`RoShop`), que pede o estado ao
+		 * servidor em 0x0fb9 e so desenha o que chega em 0x0fb8. A janela e
+		 * RAGIDLE (`.rs-window` + `is-open`), entao o aro la embaixo le
+		 * `isRagIdleWindowOpen` - e entrou nos DOIS switches no mesmo commit.
 		 */
 		case 'roshop':
-			CashShop.toggle();
+			RoShop.toggle();
 			break;
 		default:
 			return;
@@ -1841,6 +1843,10 @@ function isActionOpen(action) {
 		   unica de acao -> { abrir, seletor } nao existir. */
 		case 'voto':
 			return isRagIdleWindowOpen(VotoIdle, '.vi-window');
+		/* RO SHOP (22/09/2026): janela RAGIDLE, le '.rs-window.is-open' - entrou
+		   nos DOIS switches no mesmo commit, como o comentario acima manda. */
+		case 'roshop':
+			return isRagIdleWindowOpen(RoShop, '.rs-window');
 		default:
 			// os itens "em breve" caem aqui -- nunca acendem.
 			return false;

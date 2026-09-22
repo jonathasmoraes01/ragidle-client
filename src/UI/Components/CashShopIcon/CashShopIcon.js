@@ -7,10 +7,7 @@
  *
  */
 
-import CashShop from 'UI/Components/CashShop/CashShop.js';
-import Network from 'Network/NetworkManager.js';
-import PACKETVER from 'Network/PacketVerManager.js';
-import PACKET from 'Network/PacketStructure.js';
+import RoShop from 'UI/Components/RoShop/RoShop.js';
 import UIManager from 'UI/UIManager.js';
 import GUIComponent from 'UI/GUIComponent.js';
 import 'UI/Elements/Elements.js';
@@ -40,10 +37,12 @@ CashShopIcon.init = function init() {
  * Handle click on CashShop icon
  */
 function onClickCashShopIcon() {
-	// A ROTA E UNICA (I5, 31/08/2026): o gesto mora no proprio `CashShop`, e o
-	// item "RO Shop" do menu chama o mesmo. Este icone esta aposentado da tela
-	// (`MapEngine.js`), e o componente fica para quem quiser religa-lo.
-	CashShop.toggle();
+	// A ROTA E UNICA (I5, 31/08/2026): o gesto mora na propria janela, e o item
+	// "RO Shop" do menu chama o mesmo. Desde 22/09/2026 (D-RS-03) a janela e o
+	// RO Shop novo, nao a `CashShop` nativa: a loja nativa deixou de ser caminho
+	// de compra. Este icone esta aposentado da tela (`MapEngine.js`), e o
+	// componente fica para quem quiser religa-lo - abrindo a MESMA porta.
+	RoShop.toggle();
 }
 
 CashShopIcon.needFocus = false;

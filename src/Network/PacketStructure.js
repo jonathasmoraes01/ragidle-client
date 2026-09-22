@@ -17011,6 +17011,46 @@ PACKET.ZC.RAGIDLE_TEMPORADA = function PACKET_ZC_RAGIDLE_TEMPORADA(fp, end) {
 PACKET.ZC.RAGIDLE_TEMPORADA.size = -1;
 
 // ---------------------------------------------------------------------------
+// O RO SHOP (22/09/2026) - `docs/ro-shop/CONTRATO.md` no servidor.
+//
+// O mesmo padrao da Temporada: um CZ com JSON (o verbo) e um ZC com JSON (o
+// estado inteiro, ou o resultado de um verbo seguido do estado). Os dois
+// slots sao os ULTIMOS da reserva de D-527 (0x0fb8..0x0fb9), que a nota da
+// Temporada acima ja registrava como livres. O `0x0fb9` que um grep acha no
+// PacketCrypt.js continua sendo a chave de la, e nao um opcode.
+// ---------------------------------------------------------------------------
+
+// 0x0fb9 - RAGIDLE: CZ_RAGIDLE_ROSHOP (client -> server)
+// Variable size: u16 opcode + u16 total length + JSON UTF-8 payload.
+// { acao: 'estado' } | { acao: 'checkout', chave, itens: [{ sku, quantidade }],
+//   totalEsperadoMinor } | { acao: 'usar-servico', chave, servico, parametros }.
+// NUNCA preco unitario, desconto, saldo, entrega ou item id: o servidor
+// recalcula tudo, e `totalEsperadoMinor` so serve para ele RECUSAR quando o
+// preco mudou entre a tela e o clique (`preco-mudou`).
+PACKET.CZ.RAGIDLE_ROSHOP = function PACKET_CZ_RAGIDLE_ROSHOP() {
+	this.json = '{}';
+};
+PACKET.CZ.RAGIDLE_ROSHOP.prototype.build = function () {
+	const bytes = TextEncoding.encode(this.json, 'utf-8');
+	const pkt_len = 2 + 2 + bytes.length;
+	const pkt_buf = new BinaryWriter(pkt_len);
+	pkt_buf.writeShort(0x0fb9);
+	pkt_buf.writeUShort(pkt_len);
+	pkt_buf.writeString(this.json);
+	return pkt_buf;
+};
+
+// 0x0fb8 - RAGIDLE: ZC_RAGIDLE_ROSHOP (server -> client)
+// Variable size: u16 opcode + u16 total length + JSON UTF-8 payload.
+// { versao: 1, tipo: 'estado', moeda: { saldoMinor }, categorias, produtos,
+//   servicos, temporada, recarga } ou { versao: 1, tipo: 'resultado', acao,
+//   ok, chave, texto, motivo?, pedido? }. Quem le e `RoShop`, o unico dono.
+PACKET.ZC.RAGIDLE_ROSHOP = function PACKET_ZC_RAGIDLE_ROSHOP(fp, end) {
+	this.json = fp.readString(end - fp.tell());
+};
+PACKET.ZC.RAGIDLE_ROSHOP.size = -1;
+
+// ---------------------------------------------------------------------------
 // O MENU LFG (Looking For Group) — D-634, 25/08/2026.
 //
 // Tres opcodes da faixa RAGIDLE reservada em D-527. Eles NAO substituem os

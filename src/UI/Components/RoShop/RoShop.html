@@ -1,0 +1,108 @@
+<div id="RoShop">
+	<!-- TUDO mora DENTRO de .rs-window, de proposito: o :host e
+	     pointer-events:none (janela fechada nao come clique de cena), e a
+	     Temporada ja perdeu tres relatos do dono para modais IRMAOS da janela
+	     que nasciam sem ponteiro (tests/ui/cliqueChegaNosModaisDaTemporada).
+	     Aqui modal, gaveta e aviso sao FILHOS da janela e herdam o ponteiro. -->
+	<div class="rs-window ri-window ri-anima">
+		<div class="rs-titlebar ri-header">
+			<span class="rs-titulo">
+				<span class="rs-titulo-texto">RO Shop</span>
+			</span>
+			<button type="button" class="rs-close" data-rs="fechar" title="Fechar" aria-label="Fechar">
+				<img src="/ragidle/shop/buttons/shop-btn-close.png" alt="" width="24" height="24" draggable="false">
+			</button>
+		</div>
+
+		<div class="rs-corpo">
+			<section class="rs-principal ri-scroll">
+				<div class="rs-banner" role="img" aria-label="RO Shop: mais aventuras para a sua história">
+					<img class="rs-banner-arte" src="/ragidle/shop/banner/shop-banner-hero.png" alt="" draggable="false">
+				</div>
+
+				<!-- A carteira do celular (no desktop ela mora no painel do carrinho). -->
+				<div class="rs-carteira-movel" data-slot="carteira"></div>
+
+				<div class="rs-barra">
+					<nav class="rs-categorias" aria-label="Categorias"></nav>
+					<div class="rs-ferramentas">
+						<div class="rs-grade-titulo"></div>
+						<div class="rs-busca" role="search">
+							<input type="text" class="rs-busca-campo ri-input" placeholder="Buscar no RO Shop" aria-label="Buscar no RO Shop" autocomplete="off" spellcheck="false">
+							<button type="button" class="rs-busca-botao" data-rs="buscar" title="Buscar" aria-label="Buscar"><!--RI_ICONE:busca--></button>
+						</div>
+					</div>
+				</div>
+
+				<!-- Os creditos de servico (Reset de Skills/Status) - so em Utilidades e Conta. -->
+				<div data-slot="servicos"></div>
+
+				<div class="rs-grade" data-estado="carregando"></div>
+
+				<div class="rs-rodape">
+					<div class="rs-paginacao" aria-label="Paginação"></div>
+				</div>
+
+				<div data-slot="temporada"></div>
+			</section>
+
+			<div class="rs-gaveta-fundo" data-rs="fechar-gaveta"></div>
+			<aside class="rs-lateral" aria-label="Carrinho">
+				<header class="rs-lateral-cab">
+					<img class="rs-lateral-icone" src="/ragidle/shop/icons/shop-icon-cart.png" alt="" draggable="false">
+					<h2 class="rs-lateral-titulo">Carrinho</h2>
+					<span class="rs-contagem" data-slot="contagem" hidden>0</span>
+					<button type="button" class="rs-lateral-fechar" data-rs="fechar-gaveta" aria-label="Fechar carrinho" title="Fechar carrinho">&times;</button>
+				</header>
+				<div class="rs-carteira-lateral" data-slot="carteira"></div>
+				<div class="rs-carrinho-corpo ri-scroll"></div>
+			</aside>
+		</div>
+
+		<!-- A barra do carrinho no celular: sempre na tela, abre a gaveta. -->
+		<button type="button" class="rs-barra-carrinho" data-rs="abrir-gaveta">
+			<span class="rs-barra-carrinho-icone">
+				<img src="/ragidle/shop/icons/shop-icon-cart.png" alt="" draggable="false">
+				<span class="rs-contagem" data-slot="contagem" hidden>0</span>
+			</span>
+			<span class="rs-barra-carrinho-texto">
+				<span class="rs-barra-carrinho-rotulo">Carrinho</span>
+				<span class="rs-barra-carrinho-total" data-slot="total-movel">Vazio</span>
+			</span>
+			<span class="rs-barra-carrinho-ver">Ver carrinho</span>
+		</button>
+
+		<div class="rs-modal rs-modal--detalhes" hidden>
+			<div class="rs-modal-fundo"></div>
+			<div class="rs-modal-caixa" role="dialog" aria-modal="true">
+				<div class="rs-modal-cab ri-header">
+					<span class="rs-modal-titulo ri-title">Detalhes</span>
+					<button type="button" class="rs-modal-fechar ri-close" data-rs="fechar-detalhes" title="Fechar" aria-label="Fechar">&times;</button>
+				</div>
+				<div class="rs-modal-corpo ri-scroll"></div>
+			</div>
+		</div>
+
+		<div class="rs-modal rs-modal--checkout" hidden>
+			<div class="rs-modal-fundo"></div>
+			<div class="rs-modal-caixa rs-modal-caixa--estreita" role="dialog" aria-modal="true">
+				<div class="rs-modal-cab ri-header">
+					<span class="rs-modal-titulo ri-title">Confirmar compra</span>
+				</div>
+				<div class="rs-modal-corpo ri-scroll"></div>
+			</div>
+		</div>
+
+		<div class="rs-modal rs-modal--servico" hidden>
+			<div class="rs-modal-fundo"></div>
+			<div class="rs-modal-caixa rs-modal-caixa--estreita" role="dialog" aria-modal="true">
+				<div class="rs-modal-cab ri-header">
+					<span class="rs-modal-titulo ri-title">Usar serviço</span>
+				</div>
+				<div class="rs-modal-corpo ri-scroll"></div>
+			</div>
+		</div>
+
+		<div class="rs-aviso" aria-live="polite"></div>
+	</div>
+</div>

@@ -1,0 +1,1788 @@
+/**
+ * UI/Components/RoShop/RoShop.css
+ *
+ * O RO Shop (22/09/2026). A moldura vem do design system (.ri-window/
+ * .ri-header/.ri-title/.ri-close/.ri-input/.ri-scroll - UI/Common.css) e toda
+ * cor sai de token; as tres cores locais (marfim, marfim escuro e o azul-
+ * marinho do botao ativo) vivem em `:host` como variavel, nunca cravadas em
+ * cada regra.
+ *
+ * O que e ARTE e o que e CSS (prompt premium, secao 39): banner, icones de
+ * categoria, moeda, carrinho, selos, estado vazio e ornamentos sao os PNG de
+ * `public/ragidle/shop/` (ver o MAPA-DOS-ASSETS.md de la); card, botao, chip,
+ * input, paginacao e o painel do carrinho sao CSS, com o texto e o preco
+ * sempre em HTML. O icone do ITEM e o PNG do cliente (24x24) ampliado INTEIRO
+ * (2x no card, 3x nos detalhes) com `image-rendering: pixelated`.
+ *
+ * `:host` nao fixa largura/altura (mesmo padrao de TemporadaIdle.css): quem
+ * fixa e `.rs-window`, com `min()`. No celular (< 760px) o painel do carrinho
+ * vira GAVETA de baixo, e uma barra fixa no rodape da janela a abre.
+ */
+
+:host {
+	position: absolute;
+	z-index: 60;
+	pointer-events: none;
+	--rs-marfim: #fbf8f1;
+	--rs-marfim-2: #f3efe4;
+	--rs-marinho: #173d6b;
+	--rs-ouro-fio: rgba(201, 162, 39, 0.45);
+}
+
+#RoShop {
+	position: relative;
+	color: var(--text-body);
+	font: var(--type-info);
+	-webkit-font-smoothing: antialiased;
+	text-rendering: optimizeLegibility;
+}
+
+/* A arte do dono nao e quadrada (o carrinho e 1,22:1, a chama 1,12:1): toda
+   imagem cabe INTEIRA na caixa, sem esticar - a prova de tela mede isso. So o
+   banner troca para `cover`, de proposito. */
+#RoShop img {
+	-webkit-user-drag: none;
+	user-select: none;
+	object-fit: contain;
+}
+
+/* ─── Janela ───────────────────────────────────────────────── */
+
+#RoShop .rs-window {
+	pointer-events: auto;
+	position: relative;
+	display: none;
+	flex-direction: column;
+	box-sizing: border-box;
+	width: min(1040px, 100vw - 16px);
+	height: min(700px, 100vh - 32px);
+}
+
+#RoShop .rs-window.is-open {
+	display: flex;
+}
+
+/* O titulo: "RO Shop" em serifa, sobre a placa azul-e-ouro do dono
+   (`shop-header-ornament.png`), centralizado; o X a direita. A placa e so o
+   FUNDO do texto - o texto continua HTML. */
+#RoShop .rs-titlebar {
+	flex: 0 0 auto;
+	height: 48px;
+	touch-action: none;
+}
+
+#RoShop .rs-titulo {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 184px;
+	height: 49px;
+	background: url('/ragidle/shop/ornaments/shop-header-ornament.png') center / contain no-repeat;
+	pointer-events: none;
+}
+
+/* A faixa azul da placa NAO e o centro da arte: o brasao dourado ocupa o
+   topo, e a faixa vai de ~37% a ~81% da altura (centro em ~59%). O texto
+   desce 4px para morar DENTRO da faixa - centrado na caixa ele encostava no
+   aro e o brasao cobria o "S" (zoom da prova de tela, 22/09). */
+#RoShop .rs-titulo-texto {
+	font: var(--fw-regular) 15px / 1 var(--font-display);
+	letter-spacing: 0.08em;
+	color: var(--white);
+	text-shadow:
+		0 1px 0 rgba(12, 34, 64, 0.8),
+		0 0 5px rgba(12, 34, 64, 0.6);
+	transform: translateY(4px);
+}
+
+#RoShop .rs-close {
+	position: absolute;
+	right: 10px;
+	top: 50%;
+	transform: translateY(-50%);
+	appearance: none;
+	width: 28px;
+	height: 28px;
+	padding: 0;
+	border: 0;
+	background: transparent;
+	cursor: pointer;
+}
+
+#RoShop .rs-close img {
+	width: 26px;
+	height: 26px;
+	display: block;
+	margin: auto;
+}
+
+#RoShop .rs-close:hover img {
+	filter: brightness(1.08);
+}
+
+#RoShop .rs-close:active {
+	transform: translateY(-50%) var(--press-shift);
+}
+
+/* ─── Corpo: principal + carrinho ──────────────────────────── */
+
+#RoShop .rs-corpo {
+	position: relative;
+	flex: 1 1 auto;
+	min-height: 0;
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) 290px;
+}
+
+#RoShop .rs-principal {
+	min-width: 0;
+	min-height: 0;
+	overflow-y: auto;
+	padding: var(--sp-6) var(--sp-7) var(--sp-7);
+	display: flex;
+	flex-direction: column;
+	gap: var(--sp-6);
+}
+
+/* ─── Banner ───────────────────────────────────────────────── */
+
+#RoShop .rs-banner {
+	flex: 0 0 auto;
+	position: relative;
+	height: clamp(96px, 15vw, 150px);
+	border-radius: var(--radius-panel);
+	overflow: hidden;
+	border: 1px solid var(--border-gold);
+	box-shadow: var(--shadow-card), var(--rim-gold);
+	background: var(--sky-100);
+}
+
+#RoShop .rs-banner-arte {
+	display: block;
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+	object-position: 50% 46%;
+}
+
+/* ─── Carteira (saldo real + Recarregar) ───────────────────── */
+
+/* `flex-wrap`: no painel de 290px o saldo grande e o Recarregar nao cabem na
+   mesma linha, e o botao desce em vez de cobrir o "RO Cash" (achado da prova
+   de tela em 1440). */
+#RoShop .rs-carteira {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: var(--sp-4) var(--sp-5);
+	padding: var(--sp-5) var(--sp-6);
+	border-radius: var(--radius-panel);
+	background: linear-gradient(180deg, var(--white) 0%, var(--rs-marfim) 100%);
+	border: 1px solid var(--rs-ouro-fio);
+	box-shadow: var(--rim-light), var(--shadow-card);
+}
+
+#RoShop .rs-carteira-moeda {
+	width: 30px;
+	height: 30px;
+	flex: 0 0 auto;
+}
+
+#RoShop .rs-carteira-texto {
+	flex: 1 1 auto;
+	min-width: 0;
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+}
+
+#RoShop .rs-carteira-rotulo {
+	font: var(--type-badge);
+	text-transform: uppercase;
+	letter-spacing: var(--ls-caps);
+	color: var(--text-muted);
+}
+
+#RoShop .rs-carteira-valor {
+	white-space: nowrap;
+	color: var(--text-muted);
+	font: var(--type-label);
+}
+
+#RoShop .rs-carteira-valor strong {
+	font: var(--fw-bold) 17px / 1 var(--font-numeric);
+	color: var(--rs-marinho);
+	font-variant-numeric: tabular-nums;
+}
+
+#RoShop .rs-recarregar {
+	appearance: none;
+	flex: 0 0 auto;
+	margin-left: auto;
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	padding: 5px var(--sp-5);
+	border-radius: var(--radius-pill);
+	border: 1px solid var(--border-gold);
+	background: linear-gradient(180deg, var(--white) 0%, var(--gold-200) 100%);
+	color: var(--gold-700);
+	font: var(--type-label);
+	cursor: pointer;
+	white-space: nowrap;
+}
+
+#RoShop .rs-recarregar img {
+	width: 14px;
+	height: 14px;
+}
+
+#RoShop .rs-recarregar:hover:not(:disabled) {
+	box-shadow: var(--glow-gold);
+}
+
+/* Sem gateway (`recarga.disponivel: false`) o botao continua CLICAVEL - o
+   clique mostra o texto do servidor -, so com a pele apagada. */
+#RoShop .rs-recarregar.is-indisponivel {
+	opacity: 0.7;
+	filter: grayscale(0.7);
+}
+
+/* ─── Seus servicos (creditos de Reset) ────────────────────── */
+
+#RoShop .rs-servicos {
+	display: flex;
+	flex-direction: column;
+	gap: var(--sp-4);
+	padding: var(--sp-5) var(--sp-6);
+	border-radius: var(--radius-panel);
+	border: 1px solid var(--rs-ouro-fio);
+	background: linear-gradient(180deg, var(--white) 0%, var(--rs-marfim) 100%);
+	box-shadow: var(--rim-light), var(--shadow-card);
+}
+
+#RoShop .rs-servicos-titulo {
+	margin: 0;
+	font: var(--type-badge);
+	text-transform: uppercase;
+	letter-spacing: var(--ls-caps);
+	color: var(--gold-700);
+}
+
+#RoShop .rs-servicos-lista {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+	display: flex;
+	flex-direction: column;
+	gap: var(--sp-3);
+}
+
+#RoShop .rs-servico {
+	display: flex;
+	align-items: center;
+	gap: var(--sp-5);
+}
+
+#RoShop .rs-servico-texto {
+	flex: 1 1 auto;
+	min-width: 0;
+	display: flex;
+	align-items: baseline;
+	flex-wrap: wrap;
+	gap: 2px var(--sp-4);
+}
+
+#RoShop .rs-servico-nome {
+	font: var(--fw-bold) 12px / 1.2 var(--font-ui);
+	color: var(--ink-900);
+}
+
+#RoShop .rs-servico-creditos {
+	font: var(--fw-medium) 11px / 1.2 var(--font-ui);
+	color: var(--text-muted);
+}
+
+/* A carteira do celular so aparece no celular; no desktop ela mora no painel. */
+#RoShop .rs-carteira-movel {
+	display: none;
+}
+
+/* ─── Categorias ───────────────────────────────────────────── */
+
+#RoShop .rs-barra {
+	display: flex;
+	flex-direction: column;
+	gap: var(--sp-5);
+}
+
+#RoShop .rs-categorias {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--sp-3);
+}
+
+#RoShop .rs-categoria {
+	appearance: none;
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	padding: 5px 12px 5px 6px;
+	border-radius: var(--radius-pill);
+	border: 1px solid var(--sky-200);
+	background: var(--rs-marfim);
+	color: var(--rs-marinho);
+	font: var(--fw-semibold) 12px / 1.1 var(--font-ui);
+	white-space: nowrap;
+	cursor: pointer;
+	transition:
+		background var(--dur-fast) var(--ease-out),
+		border-color var(--dur-fast) var(--ease-out),
+		color var(--dur-fast) var(--ease-out);
+}
+
+#RoShop .rs-categoria-icone {
+	width: 22px;
+	height: 22px;
+	flex: 0 0 auto;
+}
+
+#RoShop .rs-categoria:hover {
+	background: var(--white);
+	border-color: var(--blue-400);
+}
+
+#RoShop .rs-categoria:active {
+	transform: var(--press-shift);
+}
+
+#RoShop .rs-categoria.is-ativa {
+	background: linear-gradient(180deg, #2f6aa8 0%, var(--rs-marinho) 100%);
+	border-color: var(--gold-400);
+	color: var(--white);
+	box-shadow:
+		inset 0 1px 0 rgba(255, 255, 255, 0.28),
+		0 0 0 1px rgba(224, 176, 77, 0.35),
+		var(--shadow-card);
+}
+
+/* ─── Busca + titulo da grade ──────────────────────────────── */
+
+#RoShop .rs-ferramentas {
+	display: flex;
+	align-items: center;
+	gap: var(--sp-6);
+}
+
+#RoShop .rs-grade-titulo {
+	flex: 1 1 auto;
+	min-width: 0;
+	display: flex;
+	align-items: baseline;
+	gap: var(--sp-5);
+	color: var(--text-muted);
+	font: var(--type-label);
+}
+
+#RoShop .rs-grade-titulo h3 {
+	margin: 0;
+	font: var(--fw-regular) 16px / 1.1 var(--font-display);
+	color: var(--rs-marinho);
+	letter-spacing: var(--ls-title);
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+#RoShop .rs-grade-titulo strong {
+	color: var(--rs-marinho);
+}
+
+#RoShop .rs-link {
+	appearance: none;
+	border: 0;
+	padding: 0;
+	background: transparent;
+	color: var(--text-link);
+	font: var(--type-label);
+	text-decoration: underline;
+	cursor: pointer;
+	white-space: nowrap;
+}
+
+#RoShop .rs-busca {
+	flex: 0 1 260px;
+	min-width: 0;
+	position: relative;
+	display: flex;
+}
+
+#RoShop .rs-busca-campo {
+	flex: 1 1 auto;
+	min-width: 0;
+	box-sizing: border-box;
+	height: 32px;
+	padding-right: 38px;
+	border-radius: var(--radius-pill);
+	font: var(--type-info);
+	font-size: 16px;
+	line-height: 1;
+}
+
+@media (min-width: 760px) {
+	#RoShop .rs-busca-campo {
+		font-size: 12px;
+	}
+}
+
+#RoShop .rs-busca-botao {
+	appearance: none;
+	position: absolute;
+	right: 3px;
+	top: 3px;
+	width: 26px;
+	height: 26px;
+	padding: 5px;
+	border-radius: 50%;
+	border: 1px solid var(--blue-600);
+	background: var(--tab-active-fill);
+	color: var(--white);
+	cursor: pointer;
+}
+
+#RoShop .rs-busca-botao svg {
+	width: 100%;
+	height: 100%;
+	display: block;
+}
+
+/* ─── Grade de produtos ────────────────────────────────────── */
+
+#RoShop .rs-grade {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(158px, 1fr));
+	gap: var(--sp-6);
+	align-content: start;
+}
+
+#RoShop .rs-card {
+	position: relative;
+	display: flex;
+	flex-direction: column;
+	min-width: 0;
+	border-radius: var(--radius-panel);
+	border: 1px solid var(--border-hairline);
+	background: linear-gradient(180deg, var(--white) 0%, #f5f8fc 100%);
+	box-shadow: var(--rim-light), var(--shadow-card);
+	transition:
+		border-color var(--dur-fast) var(--ease-out),
+		box-shadow var(--dur-fast) var(--ease-out),
+		transform var(--dur-fast) var(--ease-out);
+}
+
+#RoShop .rs-card:hover {
+	border-color: var(--blue-400);
+	box-shadow: var(--rim-light), var(--shadow-float);
+}
+
+/* O destaque ganha o fio de ouro no TOPO, e so ele: o ouro continua
+   significando alguma coisa. */
+#RoShop .rs-card.is-destaque {
+	border-top: 2px solid var(--gold-400);
+}
+
+#RoShop .rs-card-detalhes {
+	appearance: none;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 4px;
+	/* 28px no topo: o selo e a contagem moram no canto e nao podem encostar no
+	   retrato (achado da prova de tela em 390). */
+	padding: 28px var(--sp-5) var(--sp-4);
+	border: 0;
+	background: transparent;
+	color: inherit;
+	text-align: center;
+	cursor: pointer;
+	min-width: 0;
+}
+
+#RoShop .rs-card-detalhes:focus-visible {
+	outline: 2px solid var(--accent);
+	outline-offset: -2px;
+	border-radius: var(--radius-panel);
+}
+
+/* O retrato: tile marfim-azulado com o PNG do item ampliado 2x inteiro. */
+#RoShop .rs-retrato {
+	position: relative;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	flex: 0 0 auto;
+	width: 64px;
+	height: 64px;
+	margin-bottom: 4px;
+	border-radius: 50%;
+	background: radial-gradient(circle at 50% 42%, var(--white) 0%, var(--sky-100) 62%, var(--sky-200) 100%);
+	border: 1px solid var(--rs-ouro-fio);
+	box-shadow:
+		var(--rim-light),
+		inset 0 -2px 4px rgba(36, 92, 158, 0.12);
+}
+
+#RoShop .rs-retrato-reserva {
+	width: 44px;
+	height: 44px;
+	object-fit: contain;
+}
+
+#RoShop .rs-retrato.is-servico .rs-retrato-reserva {
+	width: 40px;
+	height: 40px;
+}
+
+#RoShop .rs-retrato-arte {
+	width: 48px;
+	height: 48px;
+	image-rendering: pixelated;
+}
+
+#RoShop .rs-retrato--mini {
+	width: 34px;
+	height: 34px;
+	margin: 0;
+}
+
+#RoShop .rs-retrato--mini .rs-retrato-reserva {
+	width: 24px;
+	height: 24px;
+}
+
+#RoShop .rs-retrato--mini .rs-retrato-arte {
+	width: 24px;
+	height: 24px;
+}
+
+#RoShop .rs-retrato--grande {
+	width: 92px;
+	height: 92px;
+	margin: 0;
+}
+
+#RoShop .rs-retrato--grande .rs-retrato-reserva {
+	width: 64px;
+	height: 64px;
+}
+
+#RoShop .rs-retrato--grande .rs-retrato-arte {
+	width: 72px;
+	height: 72px;
+}
+
+#RoShop .rs-card-nome {
+	font: var(--fw-bold) 13px / 1.2 var(--font-ui);
+	color: var(--ink-900);
+	display: -webkit-box;
+	-webkit-line-clamp: 2;
+	-webkit-box-orient: vertical;
+	overflow: hidden;
+}
+
+#RoShop .rs-card-resumo {
+	font: var(--fw-medium) 11px / 1.3 var(--font-ui);
+	color: var(--text-muted);
+	display: -webkit-box;
+	-webkit-line-clamp: 2;
+	-webkit-box-orient: vertical;
+	overflow: hidden;
+	min-height: 2.6em;
+}
+
+#RoShop .rs-card-rodape {
+	margin-top: auto;
+	display: flex;
+	flex-direction: column;
+	align-items: stretch;
+	gap: var(--sp-4);
+	padding: var(--sp-4) var(--sp-5) var(--sp-5);
+	border-top: 1px solid var(--border-hairline);
+}
+
+#RoShop .rs-card-rodape .rs-preco {
+	justify-content: center;
+}
+
+/* O preco: moeda + valor + unidade. */
+#RoShop .rs-preco {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	white-space: nowrap;
+}
+
+#RoShop .rs-moeda {
+	width: 16px;
+	height: 16px;
+	flex: 0 0 auto;
+}
+
+#RoShop .rs-preco-valor {
+	font: var(--fw-bold) 14px / 1 var(--font-numeric);
+	color: var(--rs-marinho);
+	font-variant-numeric: tabular-nums;
+}
+
+#RoShop .rs-preco-unidade {
+	font: var(--type-badge);
+	text-transform: uppercase;
+	letter-spacing: var(--ls-caps);
+	color: var(--gold-700);
+}
+
+#RoShop .rs-preco--total .rs-preco-valor {
+	font-size: 15px;
+}
+
+/* O selo do servidor (Novidade/Oferta/Popular). */
+#RoShop .rs-selo {
+	position: absolute;
+	top: 6px;
+	left: 6px;
+	z-index: 1;
+	display: inline-flex;
+	align-items: center;
+	gap: 3px;
+	padding: 2px 7px 2px 3px;
+	border-radius: var(--radius-pill);
+	font: var(--type-badge);
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+	background: var(--gold-200);
+	color: var(--gold-700);
+	border: 1px solid var(--gold-300);
+}
+
+#RoShop .rs-selo-arte {
+	width: 16px;
+	height: 16px;
+}
+
+#RoShop .rs-selo--novo {
+	background: var(--badge-ativa-bg);
+	color: var(--badge-ativa-ink);
+	border-color: var(--sky-200);
+}
+
+#RoShop .rs-card-no-carrinho {
+	position: absolute;
+	top: 6px;
+	right: 6px;
+	z-index: 1;
+	min-width: 20px;
+	height: 20px;
+	padding: 0 5px;
+	box-sizing: border-box;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	border-radius: var(--radius-pill);
+	background: var(--rs-marinho);
+	color: var(--white);
+	font: var(--type-numeric);
+	font-size: 11px;
+	box-shadow: 0 0 0 2px var(--white);
+}
+
+/* Travado: continua na vitrine, apagado, com o cadeado e o texto do servidor. */
+#RoShop .rs-card.is-indisponivel .rs-retrato,
+#RoShop .rs-card.is-esgotado .rs-retrato {
+	filter: grayscale(1);
+	opacity: 0.6;
+}
+
+#RoShop .rs-card.is-indisponivel .rs-card-nome,
+#RoShop .rs-card.is-esgotado .rs-card-nome,
+#RoShop .rs-card.is-indisponivel .rs-preco,
+#RoShop .rs-card.is-esgotado .rs-preco {
+	opacity: 0.6;
+}
+
+#RoShop .rs-card-trava {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 5px;
+	min-height: 30px;
+	padding: 4px 8px;
+	box-sizing: border-box;
+	border-radius: var(--radius-panel);
+	background: var(--surface-inset);
+	border: 1px dashed var(--border-window);
+	color: var(--text-muted);
+	font: var(--fw-semibold) 11px / 1.2 var(--font-ui);
+	text-align: center;
+}
+
+#RoShop .rs-card.is-esgotado .rs-card-trava {
+	color: var(--amber-600);
+	border-color: rgba(179, 97, 28, 0.4);
+	background: rgba(179, 97, 28, 0.06);
+}
+
+#RoShop .rs-cadeado {
+	display: inline-flex;
+	width: 14px;
+	height: 14px;
+	flex: 0 0 auto;
+}
+
+#RoShop .rs-cadeado svg {
+	width: 100%;
+	height: 100%;
+}
+
+#RoShop .rs-grade-vazia,
+#RoShop .rs-grade-estado {
+	grid-column: 1 / -1;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: var(--sp-5);
+	padding: var(--sp-9) var(--sp-6);
+	text-align: center;
+	color: var(--text-muted);
+}
+
+#RoShop .rs-grade-vazia img {
+	width: 64px;
+	height: auto;
+	opacity: 0.85;
+}
+
+#RoShop .rs-grade-vazia p,
+#RoShop .rs-grade-estado p {
+	margin: 0;
+	font: var(--type-label);
+}
+
+#RoShop .rs-grade-estado--erro p {
+	color: var(--red-600);
+}
+
+#RoShop .rs-girando {
+	width: 28px;
+	height: 28px;
+	border-radius: 50%;
+	border: 3px solid var(--sky-200);
+	border-top-color: var(--blue-600);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+	#RoShop .rs-girando {
+		animation: rs-gira 0.9s linear infinite;
+	}
+}
+
+@keyframes rs-gira {
+	to {
+		transform: rotate(360deg);
+	}
+}
+
+/* ─── Botoes ───────────────────────────────────────────────── */
+
+#RoShop .rs-btn {
+	appearance: none;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 6px;
+	min-height: 30px;
+	padding: 5px 12px;
+	box-sizing: border-box;
+	border-radius: var(--radius-panel);
+	border: 1px solid var(--blue-600);
+	background: var(--tab-active-fill);
+	color: var(--text-on-accent);
+	font: var(--fw-semibold) 12px / 1 var(--font-ui);
+	white-space: nowrap;
+	cursor: pointer;
+	box-shadow:
+		inset 0 1px 0 rgba(255, 255, 255, 0.25),
+		var(--shadow-card);
+}
+
+#RoShop .rs-btn:hover:not(:disabled) {
+	filter: brightness(1.06);
+}
+
+#RoShop .rs-btn:active:not(:disabled) {
+	transform: var(--press-shift);
+	box-shadow: var(--shadow-inset);
+}
+
+#RoShop .rs-btn:focus-visible {
+	outline: 2px solid var(--gold-400);
+	outline-offset: 1px;
+}
+
+#RoShop .rs-btn:disabled {
+	filter: grayscale(1);
+	opacity: 0.55;
+	cursor: default;
+	box-shadow: none;
+}
+
+#RoShop .rs-btn-icone {
+	width: 18px;
+	height: 18px;
+	flex: 0 0 auto;
+	margin: -3px 0;
+}
+
+#RoShop .rs-btn--ouro {
+	background: linear-gradient(180deg, var(--gold-300) 0%, var(--gold-500) 100%);
+	border-color: var(--gold-700);
+	color: #4a3812;
+	text-shadow: 0 1px 0 rgba(255, 255, 255, 0.4);
+}
+
+#RoShop .rs-btn--sec {
+	background: var(--white);
+	border-color: var(--sky-200);
+	color: var(--text-link);
+}
+
+#RoShop .rs-btn--sec:hover:not(:disabled) {
+	border-color: var(--accent);
+	filter: none;
+}
+
+#RoShop .rs-btn--pequeno {
+	min-height: 26px;
+	padding: 4px 10px;
+	font-size: 11px;
+}
+
+#RoShop .rs-btn--largo {
+	width: 100%;
+	min-height: 36px;
+}
+
+/* ─── Paginacao + atalho da Temporada ──────────────────────── */
+
+#RoShop .rs-rodape {
+	display: flex;
+	justify-content: center;
+}
+
+#RoShop .rs-paginacao {
+	display: inline-flex;
+	align-items: center;
+	gap: var(--sp-3);
+}
+
+#RoShop .rs-pagina-btn {
+	appearance: none;
+	width: 28px;
+	height: 28px;
+	padding: 0;
+	border-radius: 50%;
+	border: 1px solid var(--sky-200);
+	background: var(--rs-marfim);
+	color: var(--rs-marinho);
+	font: var(--fw-bold) 15px / 1 var(--font-ui);
+	cursor: pointer;
+}
+
+#RoShop .rs-pagina-btn:hover:not(:disabled) {
+	border-color: var(--blue-400);
+	background: var(--white);
+}
+
+#RoShop .rs-pagina-btn:disabled {
+	opacity: 0.4;
+	cursor: default;
+}
+
+#RoShop .rs-pagina-atual {
+	padding: 0 var(--sp-4);
+	font: var(--type-label);
+	color: var(--text-muted);
+	white-space: nowrap;
+}
+
+#RoShop .rs-pagina-atual strong {
+	color: var(--rs-marinho);
+}
+
+#RoShop .rs-temporada {
+	display: flex;
+	align-items: center;
+	gap: var(--sp-6);
+	padding: var(--sp-5) var(--sp-6);
+	border-radius: var(--radius-panel);
+	border: 1px solid var(--border-hairline);
+	border-left: 3px solid var(--gold-400);
+	background: linear-gradient(90deg, var(--sky-50) 0%, var(--rs-marfim) 100%);
+}
+
+#RoShop .rs-temporada-texto {
+	flex: 1 1 auto;
+	min-width: 0;
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+}
+
+#RoShop .rs-temporada-nome {
+	font: var(--fw-regular) 13px / 1.2 var(--font-display);
+	color: var(--rs-marinho);
+	letter-spacing: var(--ls-title);
+}
+
+#RoShop .rs-temporada-sub {
+	font: var(--fw-medium) 11px / 1.3 var(--font-ui);
+	color: var(--text-muted);
+}
+
+/* ─── Painel do carrinho ───────────────────────────────────── */
+
+#RoShop .rs-lateral {
+	min-height: 0;
+	display: flex;
+	flex-direction: column;
+	gap: var(--sp-5);
+	padding: var(--sp-6);
+	border-left: 1px solid var(--border-hairline);
+	background: linear-gradient(180deg, var(--rs-marfim) 0%, var(--sky-50) 100%);
+	box-shadow: inset 1px 0 0 rgba(255, 255, 255, 0.8);
+}
+
+#RoShop .rs-lateral-cab {
+	flex: 0 0 auto;
+	display: flex;
+	align-items: center;
+	gap: var(--sp-4);
+}
+
+#RoShop .rs-lateral-icone {
+	width: 30px;
+	height: auto;
+}
+
+#RoShop .rs-lateral-titulo {
+	flex: 1 1 auto;
+	margin: 0;
+	font: var(--fw-regular) 17px / 1 var(--font-display);
+	color: var(--rs-marinho);
+	letter-spacing: var(--ls-title);
+}
+
+#RoShop .rs-contagem {
+	min-width: 20px;
+	height: 20px;
+	padding: 0 6px;
+	box-sizing: border-box;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	border-radius: var(--radius-pill);
+	background: var(--gold-400);
+	color: #4a3812;
+	font: var(--type-numeric);
+	font-size: 11px;
+}
+
+#RoShop .rs-contagem[hidden] {
+	display: none;
+}
+
+#RoShop .rs-lateral-fechar {
+	display: none;
+}
+
+#RoShop .rs-carrinho-corpo {
+	flex: 1 1 auto;
+	min-height: 0;
+	display: flex;
+	flex-direction: column;
+	overflow: hidden;
+}
+
+#RoShop .rs-carrinho-vazio {
+	flex: 1 1 auto;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	gap: var(--sp-3);
+	padding: var(--sp-6);
+	text-align: center;
+}
+
+#RoShop .rs-carrinho-vazio img {
+	width: 128px;
+	height: auto;
+	margin-bottom: var(--sp-4);
+}
+
+#RoShop .rs-carrinho-vazio p {
+	margin: 0;
+}
+
+#RoShop .rs-carrinho-vazio-titulo {
+	font: var(--fw-regular) 15px / 1.2 var(--font-display);
+	color: var(--rs-marinho);
+}
+
+#RoShop .rs-carrinho-vazio-sub {
+	font: var(--type-label);
+	color: var(--text-muted);
+}
+
+#RoShop .rs-linhas {
+	flex: 1 1 auto;
+	min-height: 0;
+	overflow-y: auto;
+	list-style: none;
+	margin: 0;
+	padding: 0 2px 0 0;
+	display: flex;
+	flex-direction: column;
+	gap: var(--sp-4);
+}
+
+#RoShop .rs-linha {
+	display: grid;
+	grid-template-columns: 34px minmax(0, 1fr) auto;
+	grid-template-areas:
+		'ret info rem'
+		'ret qtd tot';
+	align-items: center;
+	column-gap: var(--sp-5);
+	row-gap: var(--sp-3);
+	padding: var(--sp-4) var(--sp-5);
+	border-radius: var(--radius-panel);
+	background: var(--white);
+	border: 1px solid var(--border-hairline);
+	box-shadow: var(--shadow-card);
+}
+
+#RoShop .rs-linha .rs-retrato {
+	grid-area: ret;
+	align-self: start;
+}
+
+#RoShop .rs-linha-info {
+	grid-area: info;
+	min-width: 0;
+	display: flex;
+	flex-direction: column;
+	gap: 1px;
+}
+
+#RoShop .rs-linha-nome {
+	font: var(--fw-bold) 12px / 1.2 var(--font-ui);
+	color: var(--ink-900);
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+#RoShop .rs-linha-preco {
+	font: var(--fw-medium) 10px / 1.2 var(--font-ui);
+	color: var(--text-muted);
+}
+
+#RoShop .rs-linha-remover {
+	grid-area: rem;
+	appearance: none;
+	justify-self: end;
+	width: 22px;
+	height: 22px;
+	padding: 0;
+	border-radius: 50%;
+	border: 1px solid var(--border-hairline);
+	background: var(--rs-marfim);
+	color: var(--text-muted);
+	font: var(--fw-bold) 14px / 1 var(--font-ui);
+	cursor: pointer;
+}
+
+#RoShop .rs-linha-remover:hover {
+	color: var(--red-600);
+	border-color: var(--red-300);
+}
+
+#RoShop .rs-qtd {
+	grid-area: qtd;
+	display: inline-flex;
+	align-items: center;
+	justify-self: start;
+	border-radius: var(--radius-pill);
+	border: 1px solid var(--sky-200);
+	background: var(--rs-marfim);
+	overflow: hidden;
+}
+
+#RoShop .rs-qtd-btn {
+	appearance: none;
+	width: 24px;
+	height: 22px;
+	padding: 0;
+	border: 0;
+	background: transparent;
+	color: var(--rs-marinho);
+	font: var(--fw-bold) 14px / 1 var(--font-ui);
+	cursor: pointer;
+}
+
+#RoShop .rs-qtd-btn:hover:not(:disabled) {
+	background: var(--sky-100);
+}
+
+#RoShop .rs-qtd-btn:disabled {
+	opacity: 0.35;
+	cursor: default;
+}
+
+#RoShop .rs-qtd-valor {
+	min-width: 22px;
+	text-align: center;
+	font: var(--type-numeric);
+	color: var(--ink-900);
+}
+
+#RoShop .rs-linha-total {
+	grid-area: tot;
+	justify-self: end;
+	font: var(--fw-bold) 13px / 1 var(--font-numeric);
+	color: var(--rs-marinho);
+	font-variant-numeric: tabular-nums;
+}
+
+#RoShop .rs-totais {
+	flex: 0 0 auto;
+	display: flex;
+	flex-direction: column;
+	gap: 5px;
+	padding-top: var(--sp-3);
+}
+
+#RoShop .rs-totais-divisor {
+	display: block;
+	width: min(78%, 200px);
+	height: auto;
+	margin: 0 auto var(--sp-2);
+	opacity: 0.9;
+}
+
+#RoShop .rs-total-linha {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--sp-5);
+	font: var(--type-label);
+	color: var(--text-muted);
+	font-variant-numeric: tabular-nums;
+}
+
+#RoShop .rs-total-linha > span:last-child {
+	color: var(--ink-700);
+}
+
+#RoShop .rs-total-linha--total {
+	font: var(--fw-bold) 13px / 1.2 var(--font-ui);
+	color: var(--ink-900);
+}
+
+#RoShop .rs-total-linha--apos > span:first-child {
+	color: var(--ink-700);
+}
+
+#RoShop .rs-total-linha--apos.is-negativo,
+#RoShop .rs-total-linha--apos.is-negativo span,
+#RoShop .rs-total-linha--apos.is-negativo .rs-preco-valor {
+	color: var(--red-600);
+}
+
+#RoShop .rs-aviso-saldo {
+	margin: 0;
+	font: var(--type-label);
+	color: var(--red-600);
+	text-align: center;
+}
+
+#RoShop .rs-btn--comprar {
+	margin-top: var(--sp-3);
+	width: 100%;
+	min-height: 38px;
+	font-size: 13px;
+	background: linear-gradient(180deg, var(--gold-300) 0%, var(--gold-500) 100%);
+	border-color: var(--gold-700);
+	color: #4a3812;
+	text-shadow: 0 1px 0 rgba(255, 255, 255, 0.4);
+}
+
+/* A barra do carrinho so existe no celular. */
+#RoShop .rs-barra-carrinho {
+	display: none;
+}
+
+#RoShop .rs-gaveta-fundo {
+	display: none;
+}
+
+/* ─── Modais (FILHOS da janela: herdam o ponteiro) ─────────── */
+
+#RoShop .rs-modal {
+	position: absolute;
+	inset: 0;
+	z-index: 20;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: var(--sp-6);
+	box-sizing: border-box;
+}
+
+#RoShop .rs-modal[hidden] {
+	display: none;
+}
+
+#RoShop .rs-modal-fundo {
+	position: absolute;
+	inset: 0;
+	background: rgba(18, 41, 74, 0.42);
+}
+
+/* A caixa do modal NAO usa `.ri-window`, e isso nao e estilo: abaixo de 600px
+   a regra D-932 do Common.css poe `.ri-window` em `position: static
+   !important`, e a caixa estatica passava a ser pintada POR BAIXO do fundo
+   escuro (absoluto) - a prova de tela de 22/09 fotografou a confirmacao de
+   compra apagada atras do veu. A pele e a mesma da janela, copiada dos tokens. */
+#RoShop .rs-modal-caixa {
+	position: relative;
+	z-index: 1;
+	display: flex;
+	flex-direction: column;
+	width: min(440px, 100%);
+	max-height: 100%;
+	box-sizing: border-box;
+	overflow: hidden;
+	/* OPACO, e nao o vidro de `--window-fill` (94-96%): sobre a propria loja,
+	   o vidro deixava o saldo e os cards de tras aparecendo como fantasma
+	   dentro do modal (prova de tela, 360). */
+	background: linear-gradient(180deg, var(--white) 0%, var(--sky-50) 100%);
+	border: var(--window-frame);
+	border-radius: var(--radius-window);
+	box-shadow: var(--window-shadow), var(--rim-light);
+	color: var(--text-body);
+	font-family: var(--font-ui);
+}
+
+#RoShop .rs-modal-caixa--estreita {
+	width: min(380px, 100%);
+}
+
+#RoShop .rs-modal-cab {
+	flex: 0 0 auto;
+	cursor: default;
+}
+
+#RoShop .rs-modal-corpo {
+	flex: 1 1 auto;
+	min-height: 0;
+	overflow-y: auto;
+	padding: var(--sp-7);
+}
+
+#RoShop .rs-detalhes-topo {
+	display: flex;
+	align-items: center;
+	gap: var(--sp-7);
+}
+
+#RoShop .rs-detalhes-cab {
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
+	gap: 4px;
+	min-width: 0;
+}
+
+#RoShop .rs-detalhes-cab .rs-selo {
+	position: static;
+}
+
+#RoShop .rs-detalhes-nome {
+	margin: 0;
+	font: var(--fw-regular) 19px / 1.15 var(--font-display);
+	color: var(--rs-marinho);
+}
+
+#RoShop .rs-detalhes-resumo {
+	margin: 0;
+	font: var(--type-label);
+	color: var(--text-muted);
+}
+
+#RoShop .rs-detalhes-descricao {
+	margin: var(--sp-6) 0 0;
+	font: var(--fw-regular) 12px / 1.45 var(--font-ui);
+	color: var(--ink-700);
+}
+
+#RoShop .rs-detalhes-sub {
+	margin: var(--sp-7) 0 var(--sp-4);
+	font: var(--type-badge);
+	text-transform: uppercase;
+	letter-spacing: var(--ls-caps);
+	color: var(--gold-700);
+}
+
+#RoShop .rs-conteudo {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+	display: flex;
+	flex-direction: column;
+	gap: var(--sp-3);
+}
+
+#RoShop .rs-conteudo-item {
+	display: flex;
+	align-items: center;
+	gap: var(--sp-5);
+	padding: var(--sp-3) var(--sp-5);
+	border-radius: var(--radius-panel);
+	background: var(--white);
+	border: 1px solid var(--border-hairline);
+}
+
+#RoShop .rs-conteudo-qtd {
+	min-width: 48px;
+	font: var(--fw-bold) 13px / 1 var(--font-numeric);
+	color: var(--rs-marinho);
+	text-align: right;
+}
+
+#RoShop .rs-conteudo-nome {
+	font: var(--fw-semibold) 12px / 1.2 var(--font-ui);
+	color: var(--ink-700);
+}
+
+#RoShop .rs-detalhes-rodape {
+	margin-top: var(--sp-7);
+	padding-top: var(--sp-6);
+	border-top: 1px solid var(--border-hairline);
+	display: flex;
+	flex-direction: column;
+	gap: var(--sp-4);
+}
+
+#RoShop .rs-detalhes-preco {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	font: var(--type-label);
+	color: var(--text-muted);
+}
+
+#RoShop .rs-detalhes-limite {
+	margin: 0;
+	font: var(--fw-medium) 11px / 1.2 var(--font-ui);
+	color: var(--text-muted);
+	text-align: right;
+}
+
+#RoShop .rs-detalhes-trava {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 6px;
+	margin: 0;
+	padding: var(--sp-5);
+	border-radius: var(--radius-panel);
+	background: var(--surface-inset);
+	border: 1px dashed var(--border-window);
+	color: var(--text-muted);
+	font: var(--type-label);
+}
+
+#RoShop .rs-checkout {
+	display: flex;
+	flex-direction: column;
+	gap: var(--sp-6);
+}
+
+#RoShop .rs-checkout-linhas {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+}
+
+#RoShop .rs-checkout-linha {
+	display: flex;
+	justify-content: space-between;
+	gap: var(--sp-5);
+	font: var(--type-info);
+	color: var(--ink-700);
+	font-variant-numeric: tabular-nums;
+}
+
+#RoShop .rs-checkout-conta {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+	padding: var(--sp-6);
+	border-radius: var(--radius-panel);
+	background: linear-gradient(180deg, var(--white) 0%, var(--rs-marfim) 100%);
+	border: 1px solid var(--rs-ouro-fio);
+}
+
+#RoShop .rs-total-linha--compra > span:last-child {
+	color: var(--ink-900);
+	font-weight: var(--fw-bold);
+}
+
+#RoShop .rs-checkout-nota {
+	margin: 0;
+	font: var(--fw-medium) 11px / 1.3 var(--font-ui);
+	color: var(--text-muted);
+	text-align: center;
+}
+
+#RoShop .rs-checkout-acoes {
+	display: flex;
+	justify-content: flex-end;
+	gap: var(--sp-5);
+}
+
+#RoShop .rs-checkout-acoes .rs-btn {
+	min-height: 34px;
+}
+
+#RoShop .rs-checkout--sucesso,
+#RoShop .rs-checkout--erro {
+	align-items: center;
+	text-align: center;
+}
+
+#RoShop .rs-checkout--sucesso .rs-checkout-acoes,
+#RoShop .rs-checkout--erro .rs-checkout-acoes {
+	justify-content: center;
+}
+
+#RoShop .rs-checkout--sucesso .rs-total-linha {
+	width: 100%;
+}
+
+#RoShop .rs-checkout-marca {
+	width: 40px;
+	height: 40px;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	border-radius: 50%;
+	font: var(--fw-bold) 20px / 1 var(--font-ui);
+	color: var(--white);
+	background: var(--green-600);
+	box-shadow: 0 0 0 3px var(--badge-passiva-bg);
+}
+
+#RoShop .rs-checkout--erro .rs-checkout-marca {
+	background: var(--red-600);
+	box-shadow: 0 0 0 3px rgba(177, 59, 59, 0.16);
+}
+
+#RoShop .rs-checkout-texto {
+	margin: 0;
+	font: var(--fw-semibold) 13px / 1.4 var(--font-ui);
+	color: var(--ink-900);
+}
+
+/* ─── Aviso do rodape (sem ponteiro: nunca rouba clique) ───── */
+
+#RoShop .rs-aviso {
+	position: absolute;
+	left: 50%;
+	bottom: var(--sp-7);
+	z-index: 30;
+	max-width: calc(100% - 32px);
+	box-sizing: border-box;
+	transform: translate(-50%, 8px);
+	padding: 7px 14px;
+	border-radius: var(--radius-pill);
+	background: var(--rs-marinho);
+	color: var(--white);
+	font: var(--type-label);
+	text-align: center;
+	box-shadow: var(--shadow-float);
+	opacity: 0;
+	pointer-events: none;
+	transition:
+		opacity var(--dur-base) var(--ease-out),
+		transform var(--dur-base) var(--ease-out);
+}
+
+#RoShop .rs-aviso.is-visivel {
+	opacity: 1;
+	transform: translate(-50%, 0);
+}
+
+#RoShop .rs-aviso[data-tipo='erro'] {
+	background: var(--red-600);
+}
+
+#RoShop .rs-aviso[data-tipo='sucesso'] {
+	background: var(--green-600);
+}
+
+/* ─── Toque: todo alvo com 40px onde ha dedo ───────────────── */
+
+@media (pointer: coarse) {
+	#RoShop .rs-categoria,
+	#RoShop .rs-btn,
+	#RoShop .rs-recarregar {
+		min-height: 40px;
+	}
+
+	#RoShop .rs-pagina-btn,
+	#RoShop .rs-linha-remover {
+		width: 36px;
+		height: 36px;
+	}
+
+	#RoShop .rs-qtd-btn {
+		width: 36px;
+		height: 34px;
+	}
+
+	#RoShop .rs-busca-campo {
+		height: 40px;
+	}
+
+	#RoShop .rs-busca-botao {
+		width: 34px;
+		height: 34px;
+		top: 3px;
+	}
+}
+
+/* ─── Tablet estreito: painel um pouco menor ───────────────── */
+
+@media (max-width: 959px) {
+	#RoShop .rs-corpo {
+		grid-template-columns: minmax(0, 1fr) 262px;
+	}
+
+	#RoShop .rs-grade {
+		grid-template-columns: repeat(auto-fill, minmax(146px, 1fr));
+	}
+}
+
+/* ─── Celular: o carrinho vira GAVETA ──────────────────────── */
+
+@media (max-width: 759px) {
+	#RoShop .rs-window {
+		width: calc(100vw - 16px);
+		height: calc(100vh - 16px);
+	}
+
+	#RoShop .rs-corpo {
+		grid-template-columns: minmax(0, 1fr);
+	}
+
+	#RoShop .rs-principal {
+		padding: var(--sp-5) var(--sp-5) var(--sp-7);
+		gap: var(--sp-5);
+	}
+
+	#RoShop .rs-carteira-movel {
+		display: block;
+	}
+
+	#RoShop .rs-categorias {
+		flex-wrap: nowrap;
+		overflow-x: auto;
+		margin: 0 calc(-1 * var(--sp-5));
+		padding: 2px var(--sp-5) 4px;
+		scrollbar-width: none;
+	}
+
+	#RoShop .rs-categorias::-webkit-scrollbar {
+		display: none;
+	}
+
+	#RoShop .rs-ferramentas {
+		flex-direction: column;
+		align-items: stretch;
+		gap: var(--sp-4);
+	}
+
+	#RoShop .rs-busca {
+		flex: 0 0 auto;
+	}
+
+	#RoShop .rs-grade {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+		gap: var(--sp-5);
+	}
+
+	#RoShop .rs-temporada {
+		flex-direction: column;
+		align-items: stretch;
+		text-align: left;
+	}
+
+	#RoShop .rs-gaveta-fundo {
+		display: block;
+		position: absolute;
+		inset: 0;
+		z-index: 9;
+		background: rgba(18, 41, 74, 0.42);
+		opacity: 0;
+		pointer-events: none;
+		transition: opacity var(--dur-base) var(--ease-out);
+	}
+
+	#RoShop .rs-lateral {
+		position: absolute;
+		left: 0;
+		right: 0;
+		bottom: 0;
+		z-index: 10;
+		max-height: 88%;
+		border-left: 0;
+		border-top: 1px solid var(--border-gold);
+		border-radius: 12px 12px 0 0;
+		box-shadow: 0 -8px 24px rgba(12, 34, 64, 0.25);
+		transform: translateY(105%);
+		visibility: hidden;
+		transition:
+			transform var(--dur-base) var(--ease-out),
+			visibility 0s linear var(--dur-base);
+	}
+
+	#RoShop .rs-window.is-gaveta-aberta .rs-lateral {
+		transform: none;
+		visibility: visible;
+		transition: transform var(--dur-base) var(--ease-out);
+	}
+
+	#RoShop .rs-window.is-gaveta-aberta .rs-gaveta-fundo {
+		opacity: 1;
+		pointer-events: auto;
+	}
+
+	#RoShop .rs-lateral-fechar {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		appearance: none;
+		width: 36px;
+		height: 36px;
+		padding: 0;
+		border-radius: 50%;
+		border: 1px solid var(--border-hairline);
+		background: var(--white);
+		color: var(--text-muted);
+		font: var(--fw-bold) 18px / 1 var(--font-ui);
+		cursor: pointer;
+	}
+
+	#RoShop .rs-carrinho-corpo {
+		min-height: 180px;
+	}
+
+	#RoShop .rs-barra-carrinho {
+		flex: 0 0 auto;
+		appearance: none;
+		display: flex;
+		align-items: center;
+		gap: var(--sp-5);
+		padding: var(--sp-4) var(--sp-6);
+		padding-bottom: calc(var(--sp-4) + var(--safe-baixo, 0px));
+		border: 0;
+		border-top: 1px solid var(--border-gold);
+		background: linear-gradient(180deg, var(--white) 0%, var(--rs-marfim) 100%);
+		text-align: left;
+		cursor: pointer;
+	}
+
+	#RoShop .rs-barra-carrinho-icone {
+		position: relative;
+		flex: 0 0 auto;
+		width: 36px;
+		height: 36px;
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+	}
+
+	#RoShop .rs-barra-carrinho-icone img {
+		width: 34px;
+		height: auto;
+	}
+
+	#RoShop .rs-barra-carrinho-icone .rs-contagem {
+		position: absolute;
+		top: -4px;
+		right: -6px;
+	}
+
+	#RoShop .rs-barra-carrinho-texto {
+		flex: 1 1 auto;
+		min-width: 0;
+		display: flex;
+		flex-direction: column;
+		gap: 2px;
+	}
+
+	#RoShop .rs-barra-carrinho-rotulo {
+		font: var(--type-badge);
+		text-transform: uppercase;
+		letter-spacing: var(--ls-caps);
+		color: var(--text-muted);
+	}
+
+	#RoShop .rs-barra-carrinho-total {
+		font: var(--fw-bold) 14px / 1 var(--font-numeric);
+		color: var(--rs-marinho);
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+	}
+
+	#RoShop .rs-barra-carrinho-ver {
+		flex: 0 0 auto;
+		display: inline-flex;
+		align-items: center;
+		min-height: 36px;
+		padding: 0 14px;
+		border-radius: var(--radius-panel);
+		border: 1px solid var(--blue-600);
+		background: var(--tab-active-fill);
+		color: var(--white);
+		font: var(--fw-semibold) 12px / 1 var(--font-ui);
+	}
+
+	#RoShop .rs-aviso {
+		bottom: 72px;
+	}
+
+	#RoShop .rs-checkout-acoes {
+		flex-direction: column-reverse;
+	}
+
+	#RoShop .rs-checkout-acoes .rs-btn {
+		width: 100%;
+	}
+}
