@@ -116,7 +116,7 @@ describe('a lista aponta so para item que o jogo conhece', () => {
 		).toEqual([]);
 	});
 
-	it('sao exatamente os 61 que sobraram das nove rodadas — crescimento passa por aqui', () => {
+	it('sao exatamente os 61 que sobraram das nove rodadas - crescimento passa por aqui', () => {
 		/*
 		 * Nao e um pino por vaidade: um id somado sem passar pelo cruzamento
 		 * acima (na maquina sem a arvore irma, onde ele PULA) entraria cego.

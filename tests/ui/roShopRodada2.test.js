@@ -675,7 +675,7 @@ describe('os itens do RO Shop (9.000.100-110) tem nome e descricao no cliente', 
 		for (let id = 9000100; id <= 9000110; id++) {
 			expect(NOMES_LOCAIS[id], String(id)).toBeTruthy();
 			expect(DESCRICOES_LOCAIS[id], String(id)).toBeTruthy();
-			expect(`${NOMES_LOCAIS[id]} ${DESCRICOES_LOCAIS[id]}`).not.toMatch(/[–—]/);
+			expect(`${NOMES_LOCAIS[id]} ${DESCRICOES_LOCAIS[id]}`).not.toMatch(/[\u2013\u2014]/);
 		}
 	});
 
