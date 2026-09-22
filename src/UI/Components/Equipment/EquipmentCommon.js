@@ -37,6 +37,7 @@ import WinStats from 'UI/Components/WinStats/WinStats.js';
 import GraphicsSettings from 'Preferences/Graphics.js';
 import Inventory from 'UI/Components/Inventory/Inventory.js';
 import Entity from 'Renderer/Entity/Entity.js';
+import { itemIconUrl, preferirArtePublicada } from 'Utils/ItemArt.js';
 
 function escapeHTML(str) {
 	const div = document.createElement('div');
@@ -609,11 +610,27 @@ export function createEquipment({
 				'</div>';
 		});
 
-		Client.loadFile(DB.INTERFACE_PATH + 'item/' + it.identifiedResourceName + '.bmp', data => {
+		/*
+		 * ARTE PUBLICADA PRIMEIRO, GRF DEPOIS (21/09/2026) -- o mesmo helper
+		 * que InventoryCommon, MochilaIdle, ItemInfo e DockIdle ja usam
+		 * (Utils/ItemArt.js).
+		 *
+		 * Por que aqui tambem: `it.identifiedResourceName` e a tabela do GRF
+		 * por id OFICIAL, e para um id CUSTOM (os 26 visuais da Season 1,
+		 * 9.000.300+) ela devolve o recurso de `unknownItem` -- a MACA. Este
+		 * era o ultimo sitio pelo qual a maca ainda chegava ao jogador: o
+		 * boneco "Personagem" da MochilaIdle COPIA este `backgroundImage`
+		 * (syncEquipSlots), entao o visual vestido aparecia com a maca mesmo
+		 * com o PNG publicado existindo.
+		 */
+		const aplicarIcone = url => {
 			const btns = root.querySelectorAll(`.item[data-index="${item.index}"] button`);
 			btns.forEach(btn => {
-				btn.style.backgroundImage = `url(${data})`;
+				btn.style.backgroundImage = `url(${url})`;
 			});
+		};
+		preferirArtePublicada(itemIconUrl(item.ITID), aplicarIcone, () => {
+			Client.loadFile(DB.INTERFACE_PATH + 'item/' + it.identifiedResourceName + '.bmp', aplicarIcone);
 		});
 
 		if (enchantGrade && item.enchantgrade) {

@@ -148,7 +148,7 @@ import Equipment from 'UI/Components/Equipment/Equipment.js';
 import ItemInfo from 'UI/Components/ItemInfo/ItemInfo.js';
 import ContextMenu from 'UI/Components/ContextMenu/ContextMenu.js';
 import RiIcones from 'UI/ri-icones.js';
-import { carregarArteDeColecao } from 'Utils/ItemArt.js';
+import { carregarArteDeColecao, itemIconUrl, preferirArtePublicada } from 'Utils/ItemArt.js';
 import { escapeHTML, renderRunasHTML } from 'Utils/ItemOptionsView.js';
 import Network from 'Network/NetworkManager.js';
 import PACKET from 'Network/PacketStructure.js';
@@ -824,6 +824,38 @@ function syncEquipSlots() {
 				(refino ? `<span class="mo-slot-refino">+${refino[1]}</span>` : '') +
 				(quantos > 0 ? `<span class="mo-slot-contador">${quantos}</span>` : '') +
 				`<button type="button" class="mo-slot-remover" data-index="${itemDiv.getAttribute('data-index')}" data-dica="Tirar">&times;</button>`;
+
+			/*
+			 * O ICONE DO BONECO NAO PODE DEPENDER SO DA COPIA (21/09/2026).
+			 *
+			 * `iconUrl` acima e o `backgroundImage` que a Equipment nativa ja
+			 * tinha escrito -- e ela o escreve de forma ASSINCRONA, entao o
+			 * boneco pode ser montado antes. Pior: ate hoje ela o resolvia por
+			 * `identifiedResourceName`, que para um id CUSTOM devolve a MACA de
+			 * `unknownItem`, e era assim que o visual da Temporada aparecia com
+			 * maca NO PERSONAGEM mesmo com o PNG publicado existindo (o dono,
+			 * jogando, sobre a Astra Blessing).
+			 *
+			 * Aqui a arte publicada e pedida pelo ITID, com a copia como
+			 * reserva -- a MESMA receita de `setItemIcon` na grade.
+			 */
+			const doInventario2 = Inventory.getUI().getItemByIndex(
+				parseInt(itemDiv.getAttribute('data-index'), 10)
+			);
+			const imgDoSlot = tile.querySelector('.mo-slot-icone');
+			if (imgDoSlot && doInventario2 && doInventario2.ITID) {
+				preferirArtePublicada(
+					itemIconUrl(doInventario2.ITID),
+					url => {
+						imgDoSlot.src = url;
+					},
+					() => {
+						if (iconUrl) {
+							imgDoSlot.src = iconUrl;
+						}
+					}
+				);
+			}
 		} else {
 			tile.classList.add('is-empty');
 			tile.dataset.dica = slot.label + ' (vazio)';
