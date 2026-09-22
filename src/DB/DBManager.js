@@ -2336,8 +2336,22 @@ class DB {
 		 * sem nome nenhum. Era assim que o 4545 (Novice Poring Card, drop do
 		 * Little Poring em prt_fild08) chegava a tela como a string
 		 * "undefined", sem icone e sem descricao. Ver `FichaDoItem.js`.
+		 *
+		 * E O QUE PASSA DAQUI E A LINHA DA TABELA, NUNCA O `unknownItem`
+		 * (22/09/2026). O `item` acima ja caiu no `unknownItem` quando o id
+		 * esta AUSENTE da tabela inteira, e `unknownItem` TEM os dois nomes
+		 * ("Unknown Item") — entao `completarFicha` batia no caminho quente
+		 * ("ficha completa volta como veio") e o ramo `!ficha`, que e o unico
+		 * que consulta `NOMES_LOCAIS`, **nunca rodava por aqui**.
+		 *
+		 * Consequencia medida no jogo vivo: toda a metade de `NOMES_LOCAIS`
+		 * feita para id AUSENTE era INERTE na tela — os 26 visuais custom da
+		 * Season 1 (ids nossos, que tabela nenhuma do GRF pode ter) saiam
+		 * "Unknown Item" na mochila, no boneco, na ficha, no correio e no chat.
+		 * O teste do modulo nao via porque chama `completarFicha(id, null)`
+		 * DIRETO: ele provava a funcao, e nao o fio.
 		 */
-		return completarFicha(itemid, item);
+		return completarFicha(itemid, ItemTable[itemid] ?? null);
 	}
 
 	/**
