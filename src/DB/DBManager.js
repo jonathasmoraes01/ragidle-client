@@ -558,10 +558,8 @@ class DB {
 				);
 			}
 
-			// HatEffect
-			if (PACKETVER.value >= 20150507) {
-				loadHatEffectInfo(onLoad());
-			}
+			// HatEffect: SAIU daqui (RAGIDLE, 21/09/2026). Ver o bloco logo
+			// depois do `else`, fora do portao `loadLua`.
 
 			// LaphineSys
 			if (PACKETVER.value >= 20160601) {
@@ -727,6 +725,34 @@ class DB {
 
 			// Quest
 			loadTable('data/questid2display.txt', '#', 6, parseQuestEntry, onLoad(), true);
+		}
+
+		/*
+		 * RAGIDLE (21/09/2026): O HAT EFFECT SAIU DE DENTRO DE `loadLua`.
+		 *
+		 * `hateffectinfo/` e a tabela que diz QUAL `.str` desenhar para cada
+		 * numero de efeito de chapeu (`DB.getHatResource`). Ela estava no bloco
+		 * `if (Configs.get('loadLua'))`, e o Rag Idle roda com `loadLua: false`
+		 * desde 17/08/2026 - o GRF ROLatam nao tem pasta `System/`, e varios
+		 * carregadores daquele bloco nunca chamam de volta: o cliente empacava
+		 * em 84% com "Failed loading databases" (a medicao esta no comentario
+		 * do proprio `applications/pwa/Config.local.js`).
+		 *
+		 * Consequencia MEDIDA em 21/09/2026, com o jogo de pe: o servidor
+		 * mandava `ZC_EQUIPMENT_EFFECT` (0x0a3b) certo, o byte chegava no fio,
+		 * `onHatEffects` rodava e pedia `DB.getHatResource(175)` - e a tabela
+		 * estava VAZIA (0 entradas de 0 a 300), entao o `if (!hatEffect)
+		 * continue` descartava a aura em silencio. Era a unica camada quebrada
+		 * das cinco, e a aura Astra Blessing do VIP nunca aparecia.
+		 *
+		 * Nada aqui depende de `System/`: os tres arquivos moram em
+		 * `data/luafiles514/lua files/hateffectinfo/` e estao no nosso GRF
+		 * (`hateffectids.lub`, `hateffectinfo.lub`, `footprinteffectinfo.lub`).
+		 * Quem nao os tiver cai no `onerror` do `Client.loadFile`, que e o
+		 * proprio `onEnd` - a conta do `DB.isLoaded` fecha do mesmo jeito.
+		 */
+		if (PACKETVER.value >= 20150507) {
+			loadHatEffectInfo(onLoad());
 		}
 
 		// Load ItemMoveInfo and attach to ItemTable
