@@ -36,15 +36,14 @@ describe('completarFicha', () => {
 
 	it('o estube ganha ICONE e DESCRICAO, e nao so o nome', () => {
 		/*
-		 * A cobaia era o 4545 e mudou de novo (31/08/2026, Rodada 4c): ele
-		 * ganhou icone de carta (o generico, 이름없는카드 — ver
-		 * nomesLocais.test.js), entao nao serve mais pra provar "continua
-		 * maca". A cobaia virou o 28382 (Charm Grass Necklace), o UNICO dos 21
-		 * que ainda nao tem icone local nenhum.
+		 * A cobaia era o 4545, depois o 28382 (31/08/2026); os dois sairam do
+		 * jogo com a virada para pre-renewal (22/09/2026). Hoje e o 12849
+		 * (Combination Kit): estube no ItemTable.js, nome local e NENHUM icone
+		 * local — o mesmo papel que o 28382 fazia.
 		 */
 		// Sem isto o caminho do sprite vira `.../undefined.bmp` e a caixa de
 		// descricao fica vazia — os outros dois tercos da queixa do dono.
-		const ficha = completarFicha(28382, { ClassNum: 0 });
+		const ficha = completarFicha(12849, { ClassNum: 0 });
 		expect(ficha.identifiedResourceName).toBe(unknownItem.identifiedResourceName);
 		expect(ficha.identifiedDescriptionName).toBe('...');
 		expect(ficha.slotCount).toBe(0);
@@ -53,7 +52,7 @@ describe('completarFicha', () => {
 	it('a descricao remendada e STRING, e nao array', () => {
 		// `getItemInfo` junta as linhas ANTES de chamar esta funcao. Devolver
 		// `['...']` aqui poria um array cru na caixa de descricao.
-		expect(Array.isArray(completarFicha(4545, {}).identifiedDescriptionName)).toBe(false);
+		expect(Array.isArray(completarFicha(12849, {}).identifiedDescriptionName)).toBe(false);
 	});
 
 	it('ficha completa volta COMO VEIO — sem copia, e sem tocar em nada', () => {
@@ -72,12 +71,12 @@ describe('completarFicha', () => {
 		// Meia ficha e o caso real de uma tabela do GRF que carregou e outra
 		// que nao: o que chegou tem de sobreviver.
 		const meia = { identifiedDisplayName: 'Nome Que O GRF Trouxe', slotCount: 3 };
-		const ficha = completarFicha(4545, meia);
+		const ficha = completarFicha(12849, meia);
 		expect(ficha.identifiedDisplayName).toBe('Nome Que O GRF Trouxe');
 		expect(ficha.slotCount).toBe(3);
-		// e o lado que faltava ganha o remendo — que para o 4545 e o nome
-		// LOCAL (a frente dos 22), nao mais o generico com id.
-		expect(ficha.unidentifiedDisplayName).toBe('Novice Poring Card');
+		// e o lado que faltava ganha o remendo — que para o 12849 e o nome
+		// LOCAL, nao o generico com id.
+		expect(ficha.unidentifiedDisplayName).toBe('Combination Kit');
 	});
 
 	it('os campos que o remendo nao nomeia sobrevivem inteiros', () => {
@@ -109,7 +108,7 @@ describe('completarFicha', () => {
 		// "Item desconhecido" no `ItemTable` deixaria o nome de verdade sem
 		// onde chegar — e o item ficaria com o nome de emergencia para sempre.
 		const estube = { ClassNum: 0 };
-		completarFicha(4545, estube);
+		completarFicha(12849, estube);
 		expect(estube.identifiedDisplayName).toBeUndefined();
 	});
 });
