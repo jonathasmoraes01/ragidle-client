@@ -37,13 +37,55 @@
  *
  * Os glifos vem de `UI/ri-icones.js` (strings puras, sem DOM) - nada de SVG
  * desenhado a mao aqui, que e o que o design system proibe.
+ *
+ * ## O redesenho premium de 22/09/2026 (contrato V2, `CONTRATO-TEMPORADA-V2.md`)
+ *
+ * Tres mudancas de fundo, e as tres moram aqui:
+ *
+ * 1. O PASSE PREMIUM SAIU DE VEZ (nao so da tela - do contrato). Os campos
+ *    `pontos/pontosPorNivel/pontosNoNivel/tetoDiario/pontosHoje/
+ *    pontosPorAbate/premium/precoPremium/compraPremium` nao existem mais em
+ *    `estado.passe`. `renderPremiumHtml`/`renderPasseCompactoHtml` saem
+ *    inteiras - funcao pura sem chamador fica verde para sempre.
+ * 2. O PASSE DE BATALHA VIRA ABA PROPRIA, com XP (nao mais "pontos"), a
+ *    segunda trilha e o VIP de 30 dias (nao mais Premium comprado), missoes
+ *    diarias e semanais, e uma trilha de recompensas com ATE `niveis` marcos
+ *    por lado (nao mais so os 8 que tinham premio). `renderPasseDeBatalhaHtml`
+ *    e as funcoes que ela usa leem SEMPRE os campos do JSON
+ *    (`passe.niveis`/`passe.xpPorNivel`/...), nunca um numero cravado - o
+ *    documento de redesenho mostra "Nivel X / 50" e "Hoje: X / 200" na secao
+ *    19, e isso e texto de UMA versao anterior do contrato: os numeros certos
+ *    (30 niveis, 1000 XP/nivel, 400 XP de caca/dia) sao os de hoje, mas
+ *    amanha podem nao ser, e o codigo nao pode saber a diferenca.
+ * 3. O PASSE SEMANAL SAI (`renderSemanalHtml` e a funcao que ele chamava
+ *    foram embora com ele - decisao do dono, 22/09/2026: desativar por
+ *    completo). O VIP de 30 dias CONTINUA vendendo pelo mesmo pacote de
+ *    sempre (`ZC_RAGIDLE_PASSE`/`estadoDoPasse`) - so o produto semanal saiu
+ *    do catalogo, a compra do VIP nao mudou de dono nem de forma.
+ *
+ * ## Emenda 1 ao contrato (Team Lead, 22/09, depois da revisao independente)
+ *
+ * Tres correcoes, e as tres moram aqui:
+ *
+ * 1. `passe.diasRestantes` E OS DIAS DA TEMPORADA, nao do VIP (a leitura
+ *    original deste arquivo estava ERRADA - ficou documentado e corrigido
+ *    aqui). Pode vir `null` quando a temporada ainda nao tem data de fim; os
+ *    dias do VIP continuam so em `estado.vip.diasRestantes`. `Number(null)`
+ *    vira `0`, que `Number.isFinite` aceita - por isso a checagem aqui e
+ *    SEMPRE `!= null` ANTES de `Number(...)`, nunca so `Number.isFinite`.
+ * 2. `passe.semanais` PODE VIR `null` (temporada sem data de inicio ainda).
+ *    `renderMissoesSemanaisHtml` devolve string vazia nesse caso - o bloco
+ *    some da tela sem quebrar, nunca desenha "undefined XP".
+ * 3. `concluidas` (diarias e semanais) conta SO as que pagam (no maximo
+ *    `queContam`) - o servidor ja faz essa conta; o cliente so mostra o
+ *    numero pronto, nunca soma `concluido:true` sozinho.
  */
 
 import RiIcones from 'UI/ri-icones.js';
 
 /** Mesmo escape de PasseIdle.js/PainelComandoIdle.js — sem depender de DOM. */
 export function escapeHtml(value) {
-	return String(value == null ? '' : value).replace(/[&<>"']/g, (ch) => {
+	return String(value == null ? '' : value).replace(/[&<>"']/g, ch => {
 		switch (ch) {
 			case '&':
 				return '&amp;';
@@ -64,24 +106,22 @@ export function glifo(chave) {
 	return (RiIcones && RiIcones[chave]) || '';
 }
 
-/**
- * `chance`/`escala` (ex.: 3250/10000) -> "32,5%", em pt-BR e sem zero à toa.
+/*
+ * A PORCENTAGEM DE CADA ITEM SAIU DA TELA (decisao do dono, 22/09/2026, com
+ * estas palavras: *"a porcentagem que aparece ali de cada item que vem na
+ * caixa, a gente vai remover, a gente nao vai mostrar a porcentagem que e de
+ * cada item"*).
  *
- * `escala` é sempre `ESCALA_DA_CHANCE` do servidor (10000 hoje), mas a conta
- * usa o valor que chegou — nunca uma constante local, porque essa constante
- * pertence ao servidor (o mesmo motivo do resto deste módulo).
+ * Havia uma `formatarPorcentagem(chance, escala)` aqui, com dois chamadores: o
+ * `title` da previa do card e a coluna da direita do modal "Ver conteudo". Os
+ * dois sairam, e a funcao foi junto - funcao pura exportada sem chamador passa
+ * a ser testada por ninguem e fica verde para sempre, que e uma armadilha ja
+ * catalogada neste projeto.
+ *
+ * O campo `chance`/`escala` CONTINUA chegando no pacote: quem decide o sorteio
+ * e o servidor, e o contrato v1 do `ZC_RAGIDLE_TEMPORADA` nao muda por uma
+ * decisao de tela. O que mudou e que a janela nao o desenha em lugar nenhum.
  */
-export function formatarPorcentagem(chance, escala) {
-	const pct = (Number(chance) / Number(escala)) * 100;
-	if (!Number.isFinite(pct)) {
-		return '0%';
-	}
-	const arredondado = Math.round(pct * 100) / 100;
-	const comDuasCasas = arredondado.toFixed(2);
-	const semZeroATOA = comDuasCasas.replace(/0+$/, '').replace(/\.$/, '');
-	const texto = semZeroATOA === '' ? '0' : semZeroATOA;
-	return texto.replace('.', ',') + '%';
-}
 
 /**
  * Centavos inteiros (900) -> "R$ 9,00". NUNCA passa por ponto flutuante na
@@ -198,7 +238,9 @@ export function gerarChave(tamanho = 24) {
 	const n = Math.min(32, Math.max(16, Math.trunc(tamanho) || 24));
 	const bytes = new Uint8Array(n);
 	const fonteCripto =
-		typeof globalThis !== 'undefined' && globalThis.crypto && typeof globalThis.crypto.getRandomValues === 'function'
+		typeof globalThis !== 'undefined' &&
+		globalThis.crypto &&
+		typeof globalThis.crypto.getRandomValues === 'function'
 			? globalThis.crypto
 			: null;
 	if (fonteCripto) {
@@ -259,6 +301,24 @@ export function glifoDoSlot(slot) {
 	return glifo(GLIFO_DO_SLOT[slot] || 'pacote');
 }
 
+/**
+ * O ICONE PREMIUM de cada caixa (moldura/categoria - regra 18: ele NUNCA
+ * substitui o sprite real do item, so identifica a caixa no cabecalho e no
+ * resumo). Mapeado pelo `slot`, do mesmo jeito que `glifoDoSlot` - ver
+ * `public/ragidle/temporada/MAPA-DOS-ASSETS.md`.
+ */
+const ICONE_DA_CAIXA = {
+	Topo: 'icone-caixa-topo',
+	Meio: 'icone-caixa-meio',
+	Baixo: 'icone-caixa-baixo',
+	Manto: 'icone-caixa-manto'
+};
+
+export function iconeDaCaixaUrl(slot) {
+	const nome = ICONE_DA_CAIXA[slot];
+	return nome ? `/ragidle/temporada/${nome}.webp` : '';
+}
+
 /** `n` + singular/plural, sem inventar concordancia fora daqui. */
 function plural(n, singular, pluralTexto) {
 	return Number(n) === 1 ? singular : pluralTexto;
@@ -268,7 +328,19 @@ function plural(n, singular, pluralTexto) {
 /* Destaques: banner, passe compacto, caixas em resumo, atalhos        */
 /* ------------------------------------------------------------------ */
 
-/** O banner da Season: o nome e o subtitulo vem do servidor (`temporada`). */
+/**
+ * O banner da Season: o nome e o subtitulo vem do servidor (`temporada`).
+ *
+ * 22/09/2026: a arte real (`banner-luz-trevas.webp`, identificada visualmente
+ * pelo Team Lead - ver `MAPA-DOS-ASSETS.md`) entra como imagem de fundo. A
+ * ARTE JA TRAZ "SEASON 1 · LUZ & TREVAS · HERDEIROS DE MIDGARD" pintada -
+ * a primeira versao desta funcao escrevia o MESMO texto por cima em HTML, e
+ * a prova de tela pegou os dois se sobrepondo, ilegiveis. O texto do
+ * servidor (`nome`/`subtitulo`) continua saindo, so que como texto
+ * ACESSIVEL (leitor de tela), nunca desenhado por cima da arte - so o
+ * `te-banner-prazo` (dinamico, e a arte nao sabe a data de hoje) fica
+ * visivel.
+ */
 export function renderBannerHtml(temporada) {
 	const t = temporada || {};
 	const nome = t.nome || 'Luz & Trevas';
@@ -278,136 +350,121 @@ export function renderBannerHtml(temporada) {
 	const encerrada = t.aberta === false;
 	const prazo = encerrada ? 'Temporada encerrada' : t.fimMs ? `Aberta até ${dataCurtaDeMs(t.fimMs)}` : '';
 	return (
-		`<div class="te-banner${encerrada ? ' is-encerrada' : ''}">` +
-		'<div class="te-banner-luz" aria-hidden="true"></div>' +
-		'<div class="te-banner-trevas" aria-hidden="true"></div>' +
-		`<div class="te-banner-eclipse" aria-hidden="true">${glifo('temporada')}</div>` +
-		'<div class="te-banner-texto">' +
-		`<span class="te-banner-linha te-banner-linha--season">${escapeHtml(season)}</span>` +
-		`<span class="te-banner-linha te-banner-linha--tema">${escapeHtml(nome)}</span>` +
-		`<span class="te-banner-linha te-banner-linha--sub">${escapeHtml(subtitulo)}</span>` +
-		'</div>' +
+		`<div class="te-banner${encerrada ? ' is-encerrada' : ''}" role="img" aria-label="${escapeHtml(`${season} · ${nome} · ${subtitulo}`)}">` +
+		'<div class="te-banner-arte" aria-hidden="true"></div>' +
+		'<div class="te-banner-veu" aria-hidden="true"></div>' +
 		(prazo ? `<span class="te-banner-prazo">${escapeHtml(prazo)}</span>` : '') +
 		'</div>'
 	);
 }
 
-/**
- * Os marcos do passe, na ordem em que o jogador os alcanca: por nivel, e no
- * mesmo nivel o free antes do premium (o 50 tem os dois).
- */
-export function marcosDoPasse(passe) {
-	return [...((passe && passe.premios) || [])].sort((a, b) => {
-		const dn = Number(a.nivel) - Number(b.nivel);
-		if (dn !== 0) {
-			return dn;
-		}
-		return a.trilha === 'free' ? -1 : 1;
-	});
+/** O banner da aba Caixas (`banner-caixas.webp`) - so a moldura; o titulo da
+ * secao continua sendo `te-secao-titulo`, texto de verdade, nunca preso
+ * dentro da imagem. */
+export function renderBannerDasCaixasHtml() {
+	return '<div class="te-banner te-banner--caixas"><div class="te-banner-arte" aria-hidden="true"></div></div>';
 }
 
-/** Um marco da trilha compacta: nivel, trilha, icone, nome e o estado/botao. */
-export function renderMarcoHtml(premio, passe) {
-	const nivel = Number(premio.nivel);
-	const trilha = premio.trilha === 'premium' ? 'premium' : 'free';
-	const situacao = premio.situacao;
-	const alcancado = nivel <= Number(passe.nivel);
-	const semPremium = trilha === 'premium' && !passe.premium;
-
-	let rodape;
-	if (situacao === 'AVAILABLE') {
-		rodape =
-			`<button type="button" class="ri-btn ri-btn--ouro te-marco-resgatar" data-agir="resgatar" data-nivel="${nivel}" data-trilha="${trilha}">` +
-			'Resgatar</button>';
-	} else if (situacao === 'CLAIMED') {
-		rodape = `<span class="te-marco-estado is-resgatado">${glifo('confere')}<span>Resgatado</span></span>`;
-	} else {
-		/* Por que esta trancado: ou o nivel nao chegou, ou chegou e falta o
-		   Premium - o jogador precisa saber qual dos dois para agir. */
-		const motivo = alcancado && semPremium ? 'Premium' : `Nível ${nivel}`;
-		rodape = `<span class="te-marco-estado is-bloqueado">${glifo('cadeado')}<span>${escapeHtml(motivo)}</span></span>`;
-	}
-
-	return (
-		`<div class="te-marco te-marco--${trilha} ${classeDoNivel(situacao)}${alcancado ? ' is-alcancado' : ''}" data-nivel="${nivel}" data-trilha="${trilha}" data-situacao="${escapeHtml(situacao)}">` +
-		'<div class="te-marco-topo">' +
-		`<span class="te-marco-nivel">${nivel}</span>` +
-		`<span class="te-marco-trilha">${trilha === 'premium' ? 'Premium' : 'Free'}</span>` +
-		'</div>' +
-		iconeFallbackHtml(premio.itemId, premio.nome) +
-		`<div class="te-marco-nome" title="${escapeHtml(premio.nome)}">${escapeHtml(premio.nome)}</div>` +
-		rodape +
-		'</div>'
-	);
-}
-
-/** O bloco do Premium: selo se ja tem, botao se esta a venda, aviso se nao. */
-export function renderPremiumHtml(passe) {
-	if (passe.premium) {
-		return `<span class="ri-badge ri-badge--ouro te-premium-selo">${glifo('estrela')}<span>Premium ativo</span></span>`;
-	}
-	const compra = passe.compraPremium || { pode: false, texto: null };
-	const nota = compra.texto ? `<span class="te-nota">${escapeHtml(compra.texto)}</span>` : '';
-	if (passe.precoPremium === null) {
-		return `<span class="ri-badge ri-badge--cinza te-premium-selo">${glifo('relogio')}<span>Premium em breve</span></span>${nota}`;
-	}
-	return (
-		`<button type="button" class="ri-btn ri-btn--ouro te-premium-comprar" data-agir="comprar-premium"${compra.pode ? '' : ' disabled'}>` +
-		`${glifo('estrela')}<span>Comprar Premium · ${escapeHtml(passe.precoPremium)} RO Cash</span></button>` +
-		nota
-	);
-}
+/* ------------------------------------------------------------------ */
+/* Progresso compacto (Destaques) + chamada para a aba Passe de Batalha */
+/* ------------------------------------------------------------------ */
 
 /**
- * A PROGRESSAO COMPACTA do passe - o pedido 1 do dono ("pegar aquela
- * progressao, diminuir um pouquinho e encaixar na pagina de destaque").
- * Barra de pontos do nivel, a fileira dos marcos com premio e o Premium.
+ * O RESUMO do progresso nos Destaques (contrato V2): nivel, barra de XP no
+ * nivel atual e as DUAS fontes de XP do dia (caca e missoes diarias - o
+ * contrato manda os dois separados, `tetoDiarioDeCaca`/`xpDeCacaHoje` de um
+ * lado e `diarias.xpHoje`/`diarias.tetoDeXp` do outro). Nenhum numero e
+ * cravado aqui - se o servidor mandar `niveis: 40`, esta secao desenha 40.
  */
-export function renderPasseCompactoHtml(passe) {
+export function renderProgressoDaTemporadaHtml(passe) {
 	const niveis = Math.max(1, Number(passe.niveis) || 1);
 	const nivel = Math.max(0, Number(passe.nivel) || 0);
-	const pontosPorNivel = Math.max(1, Number(passe.pontosPorNivel) || 1);
-	const pontosNoNivel = Math.max(0, Number(passe.pontosNoNivel) || 0);
+	const xpPorNivel = Math.max(1, Number(passe.xpPorNivel) || 1);
+	const xpNoNivel = Math.max(0, Number(passe.xpNoNivel) || 0);
 	const noTeto = nivel >= niveis;
-	const pctBarra = noTeto ? 100 : Math.min(100, Math.max(0, Math.round((pontosNoNivel / pontosPorNivel) * 100)));
-	const rotuloBarra = noTeto ? 'Nível máximo alcançado' : `${pontosNoNivel} / ${pontosPorNivel} pontos para o nível ${nivel + 1}`;
-	const pontosPorAbate = Number(passe.pontosPorAbate);
-	const porAbate = Number.isFinite(pontosPorAbate) && pontosPorAbate > 0 ? `${pontosPorAbate} ${plural(pontosPorAbate, 'ponto', 'pontos')} por abate` : '';
+	const pctBarra = noTeto ? 100 : Math.min(100, Math.max(0, Math.round((xpNoNivel / xpPorNivel) * 100)));
+	const rotuloBarra = noTeto ? 'Nível máximo alcançado' : `${xpNoNivel} / ${xpPorNivel} XP para o nível ${nivel + 1}`;
+
+	const tetoCaca = Number(passe.tetoDiarioDeCaca);
+	const xpCaca = Number(passe.xpDeCacaHoje);
+	const notaCaca =
+		Number.isFinite(tetoCaca) && tetoCaca > 0
+			? `Caça hoje: <strong>${escapeHtml(xpCaca)}</strong> / ${escapeHtml(tetoCaca)} XP`
+			: '';
+
+	const diarias = passe.diarias || {};
+	const tetoMissoes = Number(diarias.tetoDeXp);
+	const xpMissoes = Number(diarias.xpHoje);
+	const notaMissoes =
+		Number.isFinite(tetoMissoes) && tetoMissoes > 0
+			? `Missões hoje: <strong>${escapeHtml(xpMissoes)}</strong> / ${escapeHtml(tetoMissoes)} XP`
+			: '';
+
+	/* `diasRestantes` pode vir `null` (temporada sem data de fim ainda) -
+	   `Number(null)` vira 0, que `Number.isFinite` aceita, entao a checagem
+	   de "veio mesmo" tem que ser `!= null` ANTES de converter (emenda 1). */
+	const notaDias =
+		passe.diasRestantes != null
+			? `${escapeHtml(passe.diasRestantes)} ${plural(passe.diasRestantes, 'dia restante', 'dias restantes')} de temporada`
+			: '';
 
 	return (
-		'<section class="te-secao te-passe">' +
+		'<section class="te-secao te-progresso">' +
 		'<header class="te-secao-cab">' +
-		`<h3 class="te-secao-titulo">${glifo('estrela')}<span>Passe da Temporada</span></h3>` +
+		`<h3 class="te-secao-titulo">${glifo('estrela')}<span>Progresso da Temporada</span></h3>` +
 		`<span class="te-passe-nivel">Nível <strong>${nivel}</strong><span class="te-passe-de"> / ${niveis}</span></span>` +
 		'</header>' +
 		`<div class="ri-bar te-passe-barra"><div class="fill" style="width:${pctBarra}%"></div><span class="rotulo">${escapeHtml(rotuloBarra)}</span></div>` +
 		'<div class="te-passe-meta">' +
-		`<span>Hoje: <strong>${escapeHtml(passe.pontosHoje)}</strong> / ${escapeHtml(passe.tetoDiario)} pontos</span>` +
-		(porAbate ? `<span>${escapeHtml(porAbate)}</span>` : '') +
+		(notaCaca ? `<span>${notaCaca}</span>` : '') +
+		(notaMissoes ? `<span>${notaMissoes}</span>` : '') +
+		(notaDias ? `<span>${notaDias}</span>` : '') +
 		'</div>' +
-		`<div class="te-marcos">${marcosDoPasse(passe)
-			.map((p) => renderMarcoHtml(p, passe))
-			.join('')}</div>` +
-		`<div class="te-passe-premium">${renderPremiumHtml(passe)}</div>` +
 		'</section>'
 	);
 }
 
-/** As caixas em resumo (Destaques): glifo do slot, nome, fechadas e o lendario. */
+/**
+ * O card de chamada para o Passe de Batalha (documento §16: "não colocar o
+ * Battle Pass completo aqui", só o convite). O mascote é ilustração, não
+ * ícone minúsculo (§C do documento) - por isso vive num card largo, sozinho,
+ * sem disputar espaço com o resto do texto.
+ */
+export function renderChamadaDoPasseHtml() {
+	return (
+		'<button type="button" class="te-chamada-passe ri-card" data-ir="passe">' +
+		'<img class="te-chamada-passe-mascote" src="/ragidle/temporada/mascote-passe.webp" alt="" width="96" height="96">' +
+		'<span class="te-chamada-passe-texto">' +
+		'<span class="te-chamada-passe-titulo">Passe de Batalha</span>' +
+		'<span class="te-chamada-passe-sub">Suba de nível caçando e resgate recompensas nas trilhas Free e VIP.</span>' +
+		'</span>' +
+		`<span class="ri-btn te-chamada-passe-botao">Ver Passe de Batalha${glifo('chevronDir')}</span>` +
+		'</button>'
+	);
+}
+
+/** As caixas em resumo (Destaques): icone da caixa, nome, fechadas e o lendario. */
 export function renderResumoDasCaixasHtml(caixas) {
 	const cards = (caixas || [])
-		.map((c) => {
+		.map(c => {
 			const fechadas = Number(c.fechadas) || 0;
-			const lendaria = (c.recompensas || []).find((r) => String(r.raridade || '').toUpperCase() === 'LEGENDARY');
-			const sub = `${fechadas} ${plural(fechadas, 'fechada', 'fechadas')}` + (lendaria ? ` · ${lendaria.nome}` : '');
+			const lendaria = (c.recompensas || []).find(r => String(r.raridade || '').toUpperCase() === 'LEGENDARY');
+			const sub =
+				`${fechadas} ${plural(fechadas, 'fechada', 'fechadas')}` + (lendaria ? ` · ${lendaria.nome}` : '');
+			const iconeUrl = iconeDaCaixaUrl(c.slot);
+			const glifoImg = iconeUrl
+				? `<img class="te-resumo-caixa-glifo-img" src="${iconeUrl}" alt="" width="20" height="20">`
+				: glifoDoSlot(c.slot);
 			return (
 				`<button type="button" class="te-resumo-caixa ri-card${fechadas > 0 ? ' is-tem' : ''}" data-ir="caixas" data-pool="${escapeHtml(c.pool)}">` +
-				`<span class="te-resumo-caixa-glifo ri-tile">${glifoDoSlot(c.slot)}</span>` +
+				`<span class="te-resumo-caixa-glifo ri-tile">${glifoImg}</span>` +
 				'<span class="te-resumo-caixa-texto">' +
 				`<span class="te-resumo-caixa-nome">${escapeHtml(c.nome)}</span>` +
 				`<span class="te-resumo-caixa-sub">${escapeHtml(sub)}</span>` +
 				'</span>' +
-				(fechadas > 0 ? `<span class="te-resumo-caixa-contagem">${fechadas}</span>` : `<span class="te-resumo-caixa-seta">${glifo('chevronDir')}</span>`) +
+				(fechadas > 0
+					? `<span class="te-resumo-caixa-contagem">${fechadas}</span>`
+					: `<span class="te-resumo-caixa-seta">${glifo('chevronDir')}</span>`) +
 				'</button>'
 			);
 		})
@@ -426,26 +483,26 @@ export function renderResumoDasCaixasHtml(caixas) {
 /** O passe de um tipo ('semanal'/'vip') no estado do Passe, ou null. */
 export function passePorTipo(estadoDoPasse, tipo) {
 	const lista = (estadoDoPasse && estadoDoPasse.passes) || [];
-	return lista.find((p) => p && p.tipo === tipo) || null;
+	return lista.find(p => p && p.tipo === tipo) || null;
 }
 
-/** Os dois atalhos do rodape dos Destaques: Passe Semanal e VIP, com o estado. */
-export function renderAtalhosHtml(vip, estadoDoPasse) {
-	const semanal = passePorTipo(estadoDoPasse, 'semanal');
-	const semanalTexto = !estadoDoPasse
-		? 'Carregando…'
-		: semanal && semanal.ativo
-			? `Ativo · dia ${escapeHtml(semanal.diaDoCiclo)} de ${escapeHtml(semanal.dias)}`
-			: 'Cashback e itens por 7 dias';
+/**
+ * Os atalhos do rodape dos Destaques - depois do Passe Semanal sair
+ * (22/09/2026), sobraram Caixas e VIP (documento §16: "atalhos para Caixas e
+ * VIP").
+ */
+export function renderAtalhosHtml(vip) {
 	const vipTexto =
-		vip && vip.ativo ? `Ativo · ${escapeHtml(vip.diasRestantes)} ${plural(vip.diasRestantes, 'dia', 'dias')}` : 'EXP, drop e visual exclusivo';
+		vip && vip.ativo
+			? `Ativo · ${escapeHtml(vip.diasRestantes)} ${plural(vip.diasRestantes, 'dia', 'dias')}`
+			: 'EXP, drop e visual exclusivo';
 	return (
 		'<div class="te-atalhos">' +
-		`<button type="button" class="te-atalho ri-card${semanal && semanal.ativo ? ' is-ativo' : ''}" data-ir="semanal">` +
-		`<span class="te-atalho-glifo ri-disc">${glifo('relogio')}</span>` +
+		'<button type="button" class="te-atalho ri-card" data-ir="caixas">' +
+		`<span class="te-atalho-glifo ri-disc">${glifo('pacote')}</span>` +
 		'<span class="te-atalho-texto">' +
-		'<span class="te-atalho-nome">Passe Semanal</span>' +
-		`<span class="te-atalho-sub">${semanalTexto}</span>` +
+		'<span class="te-atalho-nome">Caixas</span>' +
+		'<span class="te-atalho-sub">Visuais exclusivos da temporada</span>' +
 		'</span>' +
 		`<span class="te-atalho-seta">${glifo('chevronDir')}</span>` +
 		'</button>' +
@@ -461,13 +518,18 @@ export function renderAtalhosHtml(vip, estadoDoPasse) {
 	);
 }
 
-/** A aba Destaques inteira: banner, passe compacto, caixas em resumo, atalhos. */
-export function renderDestaquesHtml(estado, estadoDoPasse) {
+/** A aba Destaques inteira: banner, progresso, chamada do Passe de Batalha,
+ * caixas em resumo, atalhos (Caixas/VIP). Depois que o Passe Semanal saiu
+ * (22/09/2026), nada nos Destaques depende mais do estado do Passe
+ * (`estadoDoPasse`) - só a aba VIP continua precisando dele, para o botão
+ * de comprar/renovar. */
+export function renderDestaquesHtml(estado) {
 	return (
 		renderBannerHtml(estado.temporada) +
-		renderPasseCompactoHtml(estado.passe) +
+		renderProgressoDaTemporadaHtml(estado.passe) +
+		renderChamadaDoPasseHtml() +
 		renderResumoDasCaixasHtml(estado.caixas) +
-		renderAtalhosHtml(estado.vip, estadoDoPasse || null)
+		renderAtalhosHtml(estado.vip)
 	);
 }
 
@@ -494,8 +556,8 @@ export function renderCaixaHtml(caixa) {
 	const recompensas = caixa.recompensas || [];
 	const previa = recompensas
 		.map(
-			(r) =>
-				`<span class="te-previa-item ${classeDaRaridade(r.raridade)}" title="${escapeHtml(r.nome)} · ${escapeHtml(rotuloDaRaridade(r))} · ${formatarPorcentagem(r.chance, r.escala)}">` +
+			r =>
+				`<span class="te-previa-item ${classeDaRaridade(r.raridade)}" title="${escapeHtml(r.nome)} · ${escapeHtml(rotuloDaRaridade(r))}">` +
 				iconeFallbackHtml(r.itemId, r.nome) +
 				'</span>'
 		)
@@ -504,11 +566,19 @@ export function renderCaixaHtml(caixa) {
 	const fechadas = Number(caixa.fechadas) || 0;
 	const comprarDesabilitado = !caixa.compra.pode;
 	const abrirDesabilitado = !(fechadas > 0);
+	const iconeUrl = iconeDaCaixaUrl(caixa.slot);
+	/* A moldura/identidade da caixa e o icone premium (quando existe um para
+	   o slot); o glifo do slot fica de RESERVA - nunca um card sem retrato
+	   nenhum. Regra 18: isto NUNCA substitui o sprite real dos itens, que
+	   continua na prévia logo abaixo. */
+	const glifoCabecalho = iconeUrl
+		? `<img class="te-caixa-glifo-img" src="${iconeUrl}" alt="" width="28" height="28">`
+		: glifoDoSlot(caixa.slot);
 
 	return (
 		`<article class="te-caixa ri-card" data-pool="${escapeHtml(caixa.pool)}">` +
 		'<header class="te-caixa-cab">' +
-		`<span class="te-caixa-glifo ri-tile">${glifoDoSlot(caixa.slot)}</span>` +
+		`<span class="te-caixa-glifo ri-tile">${glifoCabecalho}</span>` +
 		'<div class="te-caixa-info">' +
 		`<div class="te-caixa-nome">${escapeHtml(caixa.nome)}</div>` +
 		`<div class="te-caixa-slot">Visual de ${escapeHtml(caixa.slot)} · ${recompensas.length} ${plural(recompensas.length, 'possibilidade', 'possibilidades')}</div>` +
@@ -534,36 +604,93 @@ export function renderCaixaHtml(caixa) {
 	);
 }
 
-/** O conteúdo do modal "Ver conteúdo": as 6 recompensas, odds NUNCA escondidas. */
+/**
+ * A ORDEM DOS GRUPOS na tela, da melhor para a mais comum.
+ *
+ * O dono pediu a separacao por categoria em 22/09/2026 e citou duas
+ * ("Rara, Lendaria, etc."), sem cravar a ordem. Ela e a da vitrine: a LENDARIA
+ * e uma so no pool (`COMPOSICAO_DO_POOL`, no servidor: 3/2/1) e e o que o
+ * jogador foi ali ver - abrir a lista pelas tres comuns esconderia a unica
+ * linha que importa atras de rolagem.
+ *
+ * Uma raridade que NAO esteja nesta lista nao some da tela: ela vira um grupo
+ * no fim, na ordem em que o servidor mandou. Quem manda no catalogo de
+ * raridades e o servidor, e uma tela que engole item por nao reconhecer o
+ * token seria a pior forma de descobrir isso.
+ */
+const ORDEM_DAS_RARIDADES = ['LEGENDARY', 'RARE', 'COMMON'];
+
+/** As recompensas em grupos por raridade, na ordem de `ORDEM_DAS_RARIDADES`. */
+export function agruparPorRaridade(recompensas) {
+	const porToken = new Map();
+	(recompensas || []).forEach(r => {
+		const token = String((r && r.raridade) || '').toUpperCase();
+		if (!porToken.has(token)) {
+			porToken.set(token, []);
+		}
+		porToken.get(token).push(r);
+	});
+	const conhecidas = ORDEM_DAS_RARIDADES.filter(t => porToken.has(t));
+	const resto = [...porToken.keys()].filter(t => ORDEM_DAS_RARIDADES.indexOf(t) === -1);
+	return [...conhecidas, ...resto].map(token => ({
+		raridade: token,
+		/* O ROTULO E O DO SERVIDOR, como em todo o resto da janela: ele vem no
+		   primeiro item do grupo, nunca de uma segunda tabela de traducao aqui. */
+		rotulo: rotuloDaRaridade(porToken.get(token)[0]),
+		itens: porToken.get(token)
+	}));
+}
+
+/**
+ * O conteudo do modal "Ver conteudo": as 6 recompensas SEPARADAS POR
+ * CATEGORIA, e sem a porcentagem de nenhuma (as duas decisoes do dono de
+ * 22/09/2026 - ver o bloco no lugar da antiga `formatarPorcentagem`).
+ *
+ * A raridade deixou de aparecer como selo em CADA linha porque agora ela e o
+ * titulo do grupo - dizer a mesma palavra seis vezes embaixo dela nao informa
+ * nada. A regra "raridade e TEXTO, nunca so cor" continua de pe: o titulo do
+ * grupo e o mesmo selo `.te-raridade`, com a mesma palavra do servidor.
+ */
 export function renderModalConteudoHtml(caixa) {
-	const linhas = (caixa.recompensas || [])
-		.map(
-			(r) =>
-				'<div class="te-premio-linha">' +
-				`<div class="te-premio-icone">${iconeFallbackHtml(r.itemId, r.nome)}</div>` +
-				'<div class="te-premio-info">' +
-				`<div class="te-premio-nome">${escapeHtml(r.nome)}</div>` +
-				'<div class="te-premio-meta">' +
-				`<span class="te-raridade ${classeDaRaridade(r.raridade)}">${escapeHtml(rotuloDaRaridade(r))}</span>` +
-				`<span class="te-premio-slot">${escapeHtml(r.slot)}</span>` +
-				(r.animado ? '<span class="te-premio-animado">Animado</span>' : '') +
-				'</div>' +
-				'</div>' +
-				`<div class="te-premio-chance">${formatarPorcentagem(r.chance, r.escala)}</div>` +
-				'</div>'
-		)
+	const grupos = agruparPorRaridade(caixa.recompensas)
+		.map(grupo => {
+			const linhas = grupo.itens
+				.map(
+					r =>
+						'<div class="te-premio-linha">' +
+						`<div class="te-premio-icone">${iconeFallbackHtml(r.itemId, r.nome)}</div>` +
+						'<div class="te-premio-info">' +
+						`<div class="te-premio-nome">${escapeHtml(r.nome)}</div>` +
+						'<div class="te-premio-meta">' +
+						`<span class="te-premio-slot">${escapeHtml(r.slot)}</span>` +
+						(r.animado ? '<span class="te-premio-animado">Animado</span>' : '') +
+						'</div>' +
+						'</div>' +
+						'</div>'
+				)
+				.join('');
+			return (
+				`<section class="te-premio-grupo" data-raridade="${escapeHtml(grupo.raridade)}">` +
+				'<header class="te-premio-grupo-cab">' +
+				`<span class="te-raridade ${classeDaRaridade(grupo.raridade)}">${escapeHtml(grupo.rotulo)}</span>` +
+				`<span class="te-premio-grupo-conta">${grupo.itens.length} ${plural(grupo.itens.length, 'item', 'itens')}</span>` +
+				'</header>' +
+				`<div class="te-premio-grupo-itens">${linhas}</div>` +
+				'</section>'
+			);
+		})
 		.join('');
 	return (
 		'<div class="te-modal-titulo-caixa">' +
 		`<span class="te-modal-titulo-glifo ri-tile">${glifoDoSlot(caixa.slot)}</span>` +
 		`<span>${escapeHtml(caixa.nome)}</span>` +
 		'</div>' +
-		`<div class="te-premios">${linhas}</div>`
+		`<div class="te-premios">${grupos}</div>`
 	);
 }
 
 /* ------------------------------------------------------------------ */
-/* Passe Semanal e VIP - o que veio da janela de Recompensas           */
+/* VIP - a compra veio da janela de Recompensas                        */
 /* ------------------------------------------------------------------ */
 
 /**
@@ -629,51 +756,223 @@ export function renderAcaoDoPasseHtml(passe, cash) {
 	);
 }
 
-/** A aba Passe Semanal: vitrine, a trilha dos sete dias e o botão. */
-export function renderSemanalHtml(estadoDoPasse) {
-	if (!estadoDoPasse) {
-		return '<div class="te-carregando">Carregando…</div>';
+/* ------------------------------------------------------------------ */
+/* Passe de Batalha - aba própria (contrato V2)                        */
+/* ------------------------------------------------------------------ */
+
+/** Uma linha de missão (diária ou semanal): check, texto, progresso e o XP -
+ * `paga` decide se o XP aparece ou fica esmaecido (o servidor já calculou
+ * quais das N contam; o cliente só desenha o veredito). */
+export function renderObjetivoHtml(objetivo, xpPorObjetivo) {
+	const alvo = Math.max(1, Number(objetivo.alvo) || 1);
+	const progresso = Math.max(0, Math.min(alvo, Number(objetivo.progresso) || 0));
+	const concluido = !!objetivo.concluido;
+	const paga = objetivo.paga !== false;
+	const pct = Math.round((progresso / alvo) * 100);
+	const marca = concluido
+		? `<span class="te-objetivo-marca is-concluido">${glifo('confere')}</span>`
+		: '<span class="te-objetivo-marca"></span>';
+	const xpTag = Number.isFinite(Number(xpPorObjetivo))
+		? `<span class="te-objetivo-xp${paga ? '' : ' is-sem-xp'}">${paga ? '+' : ''}${escapeHtml(xpPorObjetivo)} XP${paga ? '' : ' · não conta'}</span>`
+		: '';
+	return (
+		`<li class="te-objetivo${concluido ? ' is-concluido' : ''}${paga ? '' : ' is-sem-xp'}">` +
+		marca +
+		'<span class="te-objetivo-texto">' +
+		`<span class="te-objetivo-titulo">${escapeHtml(objetivo.texto)}</span>` +
+		(concluido
+			? ''
+			: `<span class="te-objetivo-progresso"><span class="ri-bar te-objetivo-barra"><span class="fill" style="width:${pct}%"></span></span><span class="te-objetivo-numero">${escapeHtml(progresso)} / ${escapeHtml(alvo)}</span></span>`) +
+		'</span>' +
+		xpTag +
+		'</li>'
+	);
+}
+
+/** A nota "vale X de Y" + "N concluídas" - compartilhada pelas diárias e
+ * semanais. `concluidas` já vem CONTADA pelo servidor (só as que pagam, no
+ * máximo `queContam` - emenda 1); o cliente nunca refaz essa soma sozinho a
+ * partir de `objetivo.concluido`. */
+function notaDeMissoesHtml(bloco, total) {
+	const queContam = Number(bloco.queContam);
+	const concluidas = Number(bloco.concluidas);
+	const partes = [];
+	if (Number.isFinite(queContam) && queContam > 0 && queContam < total) {
+		partes.push(`Vale ${escapeHtml(queContam)} de ${total}: as demais não somam XP extra.`);
 	}
-	const passe = passePorTipo(estadoDoPasse, 'semanal');
-	const semanal = estadoDoPasse.semanal || { dias: [], cashbackTotal: 0 };
-	const cash = estadoDoPasse.cash || 0;
+	if (Number.isFinite(concluidas) && Number.isFinite(queContam)) {
+		partes.push(`${escapeHtml(concluidas)} de ${escapeHtml(queContam)} concluídas.`);
+	}
+	return partes.join(' ');
+}
 
-	/*
-	 * A PORCENTAGEM E DERIVADA, e nao escrita a mao (a nota veio de PasseIdle):
-	 * o dono ja disse que o preco pode mudar, e um "20%" cravado viraria mentira
-	 * no dia em que o preco ou a tabela mudassem. O servidor manda
-	 * `cashbackTotal` e o preco; a conta sai dos dois.
-	 */
-	const pct = passe && passe.cash > 0 ? Math.round((Number(semanal.cashbackTotal) / Number(passe.cash)) * 100) : 0;
-	const resumo = passe ? `${passe.dias} dias · ${pct}% de cashback no final` : '';
-	const total = (semanal.dias || []).length;
+/** O bloco de missões diárias: os objetivos, quantos pagam XP e o teto do dia. */
+export function renderMissoesDiariasHtml(diarias) {
+	const d = diarias || {};
+	const objetivos = d.objetivos || [];
+	const nota = notaDeMissoesHtml(d, objetivos.length);
+	return (
+		'<section class="te-secao te-missoes">' +
+		'<header class="te-secao-cab">' +
+		`<h3 class="te-secao-titulo">${glifo('confere')}<span>Missões diárias</span></h3>` +
+		`<span class="te-missoes-xp">${escapeHtml(d.xpHoje)} / ${escapeHtml(d.tetoDeXp)} XP hoje</span>` +
+		'</header>' +
+		(nota ? `<p class="te-nota">${escapeHtml(nota)}</p>` : '') +
+		`<ul class="te-objetivos">${objetivos.map(o => renderObjetivoHtml(o, d.xpPorObjetivo)).join('')}</ul>` +
+		'</section>'
+	);
+}
 
-	const dias = (semanal.dias || [])
-		.map((d) => {
-			const entregue = !!(passe && passe.ativo && d.dia <= passe.entregues);
-			const hoje = !!(passe && passe.ativo && d.dia === passe.diaDoCiclo && !entregue);
-			const premio = d.dia === total;
-			const classes = ['te-dia', entregue ? 'is-entregue' : '', hoje ? 'is-hoje' : '', premio ? 'is-premio' : ''].filter(Boolean).join(' ');
-			const itens = (d.itens || []).map((i) => `${escapeHtml(i.quantidade)}× ${escapeHtml(i.nome)}`).join('<br>');
-			return (
-				`<div class="${classes}">` +
-				`<span class="te-dia-num">Dia ${escapeHtml(d.dia)}</span>` +
-				`<span class="te-dia-cash">+${escapeHtml(d.cash)} cash</span>` +
-				`<span class="te-dia-item">${itens}</span>` +
-				(entregue ? `<span class="te-dia-check">${glifo('confere')}</span>` : '') +
+/**
+ * O bloco de missões semanais: mesma forma das diárias, mais o bloco atual
+ * (1..4 - a rotação semanal do servidor) com o ícone de calendário.
+ *
+ * `semanais` PODE VIR `null` (emenda 1: temporada ainda sem data de início) -
+ * a secao inteira some da tela nesse caso, sem erro e sem "undefined" em
+ * lugar nenhum - nunca inventa um bloco vazio para preencher o espaço.
+ */
+export function renderMissoesSemanaisHtml(semanais) {
+	if (!semanais) {
+		return '';
+	}
+	const objetivos = semanais.objetivos || [];
+	const nota = notaDeMissoesHtml(semanais, objetivos.length);
+	return (
+		'<section class="te-secao te-missoes">' +
+		'<header class="te-secao-cab">' +
+		'<h3 class="te-secao-titulo">' +
+		'<img class="te-secao-titulo-icone" src="/ragidle/temporada/icone-missoes-semanais.webp" alt="" width="16" height="16">' +
+		'<span>Missões semanais</span>' +
+		'</h3>' +
+		`<span class="te-missoes-xp">${escapeHtml(semanais.xpNoBloco)} / ${escapeHtml(semanais.tetoDeXp)} XP no bloco</span>` +
+		'</header>' +
+		(nota ? `<p class="te-nota">${escapeHtml(nota)}</p>` : '') +
+		`<ul class="te-objetivos">${objetivos.map(o => renderObjetivoHtml(o, semanais.xpPorObjetivo)).join('')}</ul>` +
+		'</section>'
+	);
+}
+
+/**
+ * Os PRÊMIOS agrupados por nível, cada um com as duas trilhas (free/vip) -
+ * ordenados por nível e, dentro do nível, free antes de vip (mesma ordem do
+ * V1, só o rótulo da segunda trilha mudou).
+ */
+export function niveisDoPasse(passe) {
+	const porNivel = new Map();
+	((passe && passe.premios) || []).forEach(p => {
+		const nivel = Number(p.nivel);
+		if (!porNivel.has(nivel)) {
+			porNivel.set(nivel, { free: null, vip: null });
+		}
+		const par = porNivel.get(nivel);
+		if (p.trilha === 'vip') {
+			par.vip = p;
+		} else {
+			par.free = p;
+		}
+	});
+	return [...porNivel.keys()].sort((a, b) => a - b).map(nivel => ({ nivel, ...porNivel.get(nivel) }));
+}
+
+/** Um card de prêmio da trilha de recompensas (free ou vip). */
+export function renderPremioDaTrilhaHtml(premio, trilha) {
+	if (!premio) {
+		return `<div class="te-premio-card te-premio-card--vazio te-premio-card--${trilha}" aria-hidden="true"></div>`;
+	}
+	const situacao = premio.situacao;
+	const quantidade =
+		Number(premio.quantidade) > 1
+			? `<span class="te-premio-card-qtd">×${escapeHtml(premio.quantidade)}</span>`
+			: '';
+	const estado =
+		situacao === 'CLAIMED'
+			? `<span class="te-premio-card-estado is-resgatado">${glifo('confere')}</span>`
+			: situacao === 'AVAILABLE'
+				? `<button type="button" class="ri-btn ri-btn--ouro te-premio-card-resgatar" data-agir="resgatar" data-nivel="${escapeHtml(premio.nivel)}" data-trilha="${escapeHtml(trilha)}">Resgatar</button>`
+				: `<span class="te-premio-card-estado is-bloqueado">${glifo('cadeado')}</span>`;
+	return (
+		`<div class="te-premio-card te-premio-card--${trilha} ${classeDoNivel(situacao)}" data-nivel="${escapeHtml(premio.nivel)}" data-trilha="${escapeHtml(trilha)}">` +
+		iconeFallbackHtml(premio.itemId, premio.nome) +
+		quantidade +
+		`<div class="te-premio-card-nome" title="${escapeHtml(premio.nome)}">${escapeHtml(premio.nome)}</div>` +
+		estado +
+		'</div>'
+	);
+}
+
+/**
+ * A TRILHA DE RECOMPENSAS: duas fileiras que rolam JUNTAS na horizontal -
+ * FREE em cima (azul/prata), VIP embaixo (creme/dourado) - o mesmo nível
+ * sempre alinhado na mesma coluna (documento §19-20: "lado a lado", "a
+ * diferença deve ser percebida instantaneamente"). A trilha VIP fica
+ * esmaecida quando o jogador não tem VIP nesta temporada (`passe.vip`) -
+ * ainda visível (ele vê o que está perdendo), só sem convidar o clique.
+ */
+export function renderTrilhaDeRecompensasHtml(passe) {
+	const niveis = niveisDoPasse(passe);
+	const semVip = !passe.vip;
+	const colunas = niveis
+		.map(
+			n =>
+				`<div class="te-trilha-coluna" data-nivel="${n.nivel}">` +
+				`<span class="te-trilha-nivel">${n.nivel}</span>` +
+				renderPremioDaTrilhaHtml(n.free, 'free') +
+				renderPremioDaTrilhaHtml(n.vip, 'vip') +
 				'</div>'
-			);
-		})
+		)
 		.join('');
+	return (
+		'<section class="te-secao te-reward-track">' +
+		'<header class="te-secao-cab">' +
+		`<h3 class="te-secao-titulo">${glifo('pacote')}<span>Recompensas por nível</span></h3>` +
+		'<div class="te-reward-legenda">' +
+		'<span class="te-reward-legenda-item te-reward-legenda-item--free">Free</span>' +
+		`<span class="te-reward-legenda-item te-reward-legenda-item--vip${semVip ? ' is-bloqueada' : ''}">VIP</span>` +
+		'</div>' +
+		'</header>' +
+		`<div class="te-reward-scroll ri-scroll${semVip ? ' is-sem-vip' : ''}">${colunas}</div>` +
+		'</section>'
+	);
+}
+
+/**
+ * A ABA PASSE DE BATALHA inteira (documento §19-21, contrato V2): nível/XP
+ * no topo com o emblema da temporada, missões diárias e semanais, e a
+ * trilha de recompensas. O mascote entra numa faixa própria, sem cobrir
+ * nenhuma informação (documento §19: "Não colocar o Poring cobrindo
+ * informações importantes").
+ */
+export function renderPasseDeBatalhaHtml(passe) {
+	const niveis = Math.max(1, Number(passe.niveis) || 1);
+	const nivel = Math.max(0, Number(passe.nivel) || 0);
+	const xpPorNivel = Math.max(1, Number(passe.xpPorNivel) || 1);
+	const xpNoNivel = Math.max(0, Number(passe.xpNoNivel) || 0);
+	const noTeto = nivel >= niveis;
+	const pctBarra = noTeto ? 100 : Math.min(100, Math.max(0, Math.round((xpNoNivel / xpPorNivel) * 100)));
+	const rotuloBarra = noTeto ? 'Nível máximo alcançado' : `${xpNoNivel} / ${xpPorNivel} XP para o nível ${nivel + 1}`;
+	/* Mesma regra da nota acima (emenda 1): `null` e "a temporada nao tem
+	   data de fim ainda", nunca "zero dias". */
+	const notaDias =
+		passe.diasRestantes != null
+			? `${escapeHtml(passe.diasRestantes)} ${plural(passe.diasRestantes, 'dia restante', 'dias restantes')}`
+			: '';
 
 	return (
-		'<section class="te-semanal">' +
-		renderVitrineHtml(passe, 'Passe Semanal', resumo, '') +
-		'<div class="te-secao">' +
-		`<h3 class="te-secao-titulo">${glifo('relogio')}<span>O que chega, dia a dia</span></h3>` +
-		`<div class="te-trilha">${dias}</div>` +
+		'<section class="te-passe-batalha">' +
+		'<div class="te-passe-batalha-topo ri-card">' +
+		'<img class="te-passe-batalha-emblema" src="/ragidle/temporada/emblema-temporada.webp" alt="" width="72" height="72">' +
+		'<div class="te-passe-batalha-topo-info">' +
+		'<h2 class="te-passe-batalha-titulo">Passe de Batalha</h2>' +
+		`<span class="te-passe-nivel">Nível <strong>${nivel}</strong><span class="te-passe-de"> / ${niveis}</span></span>` +
+		`<div class="ri-bar te-passe-barra"><div class="fill" style="width:${pctBarra}%"></div><span class="rotulo">${escapeHtml(rotuloBarra)}</span></div>` +
+		(notaDias ? `<span class="te-passe-batalha-dias">${notaDias} de temporada</span>` : '') +
 		'</div>' +
-		renderAcaoDoPasseHtml(passe, cash) +
+		'<img class="te-passe-batalha-mascote" src="/ragidle/temporada/mascote-passe.webp" alt="" width="88" height="88">' +
+		'</div>' +
+		'<div class="te-ornamento-divisor" aria-hidden="true"></div>' +
+		renderMissoesDiariasHtml(passe.diarias) +
+		renderMissoesSemanaisHtml(passe.semanais) +
+		renderTrilhaDeRecompensasHtml(passe) +
 		'</section>'
 	);
 }
@@ -701,7 +1000,7 @@ export function renderVipHtml(vip, estadoDoPasse) {
 		: '';
 
 	const beneficios = (vip.beneficios || [])
-		.map((b) => {
+		.map(b => {
 			/* "+15% de EXP de base" -> o numero em destaque e o resto como texto;
 			   sem numero ("Selo VIP") entra o glifo de confere, ou o relogio para
 			   o que ainda esta "em breve". */
@@ -715,10 +1014,27 @@ export function renderVipHtml(vip, estadoDoPasse) {
 		.join('');
 
 	const visual = vip.visual;
+	/* O ASTRA BLESSING usa o icone dedicado (identificado visualmente pelo
+	   Team Lead - ver MAPA-DOS-ASSETS.md), nunca o fallback de inicial: e a
+	   UNICA recompensa da janela com arte propria em vez de sprite de item.
+	   O ESTADO (disponivel/resgatado/bloqueado - documento §23) e uma classe
+	   por cima do mesmo icone, nunca um segundo asset. */
+	const estadoDoVisual = !visual
+		? ''
+		: visual.resgatado
+			? 'is-resgatado'
+			: visual.pode
+				? 'is-disponivel'
+				: 'is-bloqueado';
 	const cardDoVisual = !visual
 		? ''
-		: '<div class="te-vip-visual ri-card">' +
-			iconeFallbackHtml(visual.itemId, visual.nome) +
+		: `<div class="te-vip-visual ri-card ${estadoDoVisual}">` +
+			`<span class="te-vip-visual-icone"><img src="/ragidle/temporada/icone-astra-blessing.webp" alt="" width="44" height="44">` +
+			(visual.resgatado ? `<span class="te-vip-visual-selo is-resgatado">${glifo('confere')}</span>` : '') +
+			(!visual.resgatado && !visual.pode
+				? `<span class="te-vip-visual-selo is-bloqueado">${glifo('cadeado')}</span>`
+				: '') +
+			'</span>' +
 			'<div class="te-vip-visual-texto">' +
 			`<div class="te-vip-visual-nome">${escapeHtml(visual.nome)}</div>` +
 			`<div class="te-vip-visual-dica">${escapeHtml(visual.texto || 'Exclusivo de quem tem VIP nesta temporada.')}</div>` +
@@ -729,6 +1045,7 @@ export function renderVipHtml(vip, estadoDoPasse) {
 
 	return (
 		'<section class="te-vip">' +
+		'<img class="te-vip-emblema" src="/ragidle/temporada/vip-emblema.webp" alt="" width="120" height="120">' +
 		renderVitrineHtml(passeVip, 'VIP', resumo, referencia) +
 		'<div class="te-secao">' +
 		`<h3 class="te-secao-titulo">${glifo('estrela')}<span>O que o VIP dá</span></h3>` +

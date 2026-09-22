@@ -3,42 +3,66 @@
  * levantar a janela - o mesmo corte de `tabelaDoPainel.js` no Painel de
  * Comando: entrada -> string, sem DOM, sem rede.
  *
- * Ela nasceu em 22/09/2026 com duas decisoes do dono na mao, e cada uma tem
- * um caso aqui de proposito:
+ * Reescrito em 22/09/2026 para o CONTRATO V2 (`CONTRATO-TEMPORADA-V2.md`) e
+ * o redesign premium. Quatro decisões têm um caso aqui de propósito:
  *
- *  1. AS CAIXAS PASSAM A CUSTAR 10 CASH. Enquanto o servidor de hoje ainda
- *     manda `preco: null`, a foto da janela mostra "Preco a definir" e o
- *     Comprar apagado - e nenhuma foto prova o outro lado. Este arquivo prova
- *     que, chegando `preco: 10` e `compra.pode: true`, o card desenha o preco
- *     e o botao LIGADO, sem a linha de recusa.
+ *  1. O PASSE PREMIUM SAIU DO CONTRATO. `renderPremiumHtml`/
+ *     `renderPasseCompactoHtml`/`renderMarcoHtml`/`marcosDoPasse` não
+ *     existem mais - um teste confirma que o módulo NÃO os exporta (a
+ *     armadilha catalogada: função pura sem chamador fica verde para
+ *     sempre - aqui a garantia é que ela nem existe).
+ *  2. O PASSE DE BATALHA VIRA ABA PRÓPRIA com XP/nível/missões/trilha de
+ *     recompensas - os testes usam um payload montado A PARTIR do exemplo
+ *     do contrato (30 níveis, 1000 XP/nível, 400 XP de caça/dia), e um
+ *     segundo payload com OUTROS números para provar que nada está
+ *     cravado no código de desenho.
+ *  3. A EMENDA 1 AO CONTRATO (22/09, revisão independente): `diasRestantes`
+ *     é da TEMPORADA (não do VIP) e pode vir `null`; `semanais` pode vir
+ *     `null` (temporada sem data de início). Os dois casos têm teste aqui.
+ *  4. O PASSE SEMANAL SAIU: `renderSemanalHtml` não existe mais,
+ *     `renderAtalhosHtml` só tem Caixas/VIP, e `renderDestaquesHtml` não
+ *     recebe mais o estado do Passe (VIP puro por `estado.vip`).
  *
- *  2. A CAIXA ENTREGA O VISUAL DIRETO NA MOCHILA. O reveal dizia "Enviado ao
- *     seu correio." por conta propria; hoje ele imprime a frase do SERVIDOR e,
- *     sem frase, diz o destino novo. Nunca mais "correio" escrito aqui.
- *
- * E o resto: o que a janela decide sozinha (ordem dos marcos, o que cada
- * situacao vira, o veredito do botao de passe que vem do servidor) e o que ela
- * NUNCA pode fazer (imprimir o token cru da raridade, escrever travessao para
- * o jogador).
+ * E o que não mudou: a caixa a R$ 10 cash, o reveal direto na mochila, a
+ * separação por categoria sem porcentagem no "Ver conteúdo" - ver os
+ * comentários de cada bloco.
  */
 
 import { describe, expect, it } from 'vitest';
+import * as formatoDaTemporada from 'UI/Components/TemporadaIdle/formatoDaTemporada.js';
 import {
+	agruparPorRaridade,
 	dataCurta,
-	formatarPorcentagem,
 	formatarPrecoCentavos,
-	marcosDoPasse,
+	niveisDoPasse,
 	renderAcaoDoPasseHtml,
+	renderAtalhosHtml,
 	renderCaixaHtml,
+	renderChamadaDoPasseHtml,
 	renderDestaquesHtml,
-	renderMarcoHtml,
+	renderMissoesDiariasHtml,
+	renderMissoesSemanaisHtml,
 	renderModalConteudoHtml,
-	renderPasseCompactoHtml,
+	renderObjetivoHtml,
+	renderPasseDeBatalhaHtml,
+	renderPremioDaTrilhaHtml,
+	renderProgressoDaTemporadaHtml,
 	renderRevealHtml,
-	renderSemanalHtml,
+	renderTrilhaDeRecompensasHtml,
 	renderVipHtml,
 	textoDoSeloVip
 } from 'UI/Components/TemporadaIdle/formatoDaTemporada.js';
+
+/**
+ * O que o JOGADOR le: o texto entre as tags, mais os `title` (dica de mouse e
+ * tela do mesmo jeito). O `style` fica de fora de proposito - a barra da
+ * Protecao Lendaria e uma largura em `%`, e ela nao e porcentagem de sorteio
+ * nenhuma; foi ela que reprovou a primeira versao deste teste.
+ */
+function textoQueOJogadorLe(html) {
+	const dicas = (html.match(/title="[^"]*"/g) || []).join(' ');
+	return html.replace(/<[^>]*>/g, ' ') + ' ' + dicas;
+}
 
 /** Uma caixa como `estadoParaJanela` a manda (loja-da-temporada.ts). */
 function caixa(extra = {}) {
@@ -59,25 +83,67 @@ function caixa(extra = {}) {
 	};
 }
 
-function passe(extra = {}) {
+/** Um `Objetivo` do contrato V2 (diária ou semanal). */
+function objetivo(extra = {}) {
+	return { id: 'matar-monstros', texto: 'Derrote 150 monstros', alvo: 150, progresso: 37, concluido: false, paga: true, ...extra };
+}
+
+/** Um `Premio` do contrato V2 (`nivel`/`trilha`/`itemId`/`nome`/`quantidade`/`animado`/`situacao`). */
+function premio(extra = {}) {
+	return { nivel: 7, trilha: 'free', itemId: 2254, nome: 'Asas Azuis de Fada', quantidade: 1, animado: false, situacao: 'AVAILABLE', ...extra };
+}
+
+/**
+ * O bloco `passe` EXATAMENTE como o contrato exemplifica (CONTRATO-TEMPORADA-
+ * V2.md) - 30 níveis, 1000 XP/nível, 400 XP de caça/dia. `premios` é gerado
+ * (30 free + 30 vip), não digitado item a item - a forma é a do contrato
+ * (2 trilhas por nível), o conteúdo de cada item não importa para o teste.
+ */
+function passeDoContrato(extra = {}) {
+	const premios = [];
+	for (let nivel = 1; nivel <= 30; nivel++) {
+		premios.push(premio({ nivel, trilha: 'free', itemId: 20000 + nivel, nome: `Prêmio Free ${nivel}`, situacao: nivel <= 12 ? 'CLAIMED' : nivel === 13 ? 'AVAILABLE' : 'LOCKED' }));
+		premios.push(premio({ nivel, trilha: 'vip', itemId: 30000 + nivel, nome: `Prêmio VIP ${nivel}`, situacao: 'LOCKED' }));
+	}
 	return {
-		niveis: 50,
-		pontos: 1200,
+		niveis: 30,
+		xp: 12345,
 		nivel: 12,
-		pontosPorNivel: 100,
-		pontosNoNivel: 0,
-		tetoDiario: 200,
-		pontosHoje: 0,
-		pontosPorAbate: 1,
-		premium: false,
-		precoPremium: null,
-		compraPremium: { pode: false, motivo: 'fora-de-venda', texto: 'O Passe Premium ainda não está à venda.' },
-		premios: [
-			{ nivel: 50, trilha: 'premium', itemId: 9000324, nome: 'Rune-Midgarts Glory', animado: true, situacao: 'LOCKED' },
-			{ nivel: 10, trilha: 'free', itemId: 20511, nome: 'Asas Azuis de Fada', animado: false, situacao: 'AVAILABLE' },
-			{ nivel: 50, trilha: 'free', itemId: 9000320, nome: 'Valkyrie Wings', animado: false, situacao: 'LOCKED' },
-			{ nivel: 15, trilha: 'premium', itemId: 9000321, nome: 'Shining Angel Wings', animado: true, situacao: 'LOCKED' }
-		],
+		xpPorNivel: 1000,
+		xpNoNivel: 345,
+		tetoDiarioDeCaca: 400,
+		xpDeCacaHoje: 120,
+		vip: false,
+		diasRestantes: 18,
+		diarias: {
+			objetivos: [
+				objetivo({ id: 'a', texto: 'Derrote 150 monstros', alvo: 150, progresso: 150, concluido: true, paga: true }),
+				objetivo({ id: 'b', texto: 'Abra 1 caixa', alvo: 1, progresso: 0, concluido: false, paga: true }),
+				objetivo({ id: 'c', texto: 'Venda 10 itens', alvo: 10, progresso: 3, concluido: false, paga: true }),
+				objetivo({ id: 'd', texto: 'Entre em 1 dungeon', alvo: 1, progresso: 1, concluido: true, paga: false })
+			],
+			queContam: 3,
+			xpPorObjetivo: 200,
+			concluidas: 1,
+			xpHoje: 200,
+			tetoDeXp: 600
+		},
+		semanais: {
+			bloco: 2,
+			objetivos: [
+				objetivo({ id: 'e', texto: 'Derrote 1000 monstros', alvo: 1000, progresso: 0 }),
+				objetivo({ id: 'f', texto: 'Abra 10 caixas', alvo: 10, progresso: 0 }),
+				objetivo({ id: 'g', texto: 'Alcance o nível 20', alvo: 20, progresso: 12 }),
+				objetivo({ id: 'h', texto: 'Complete 5 missões', alvo: 5, progresso: 0 }),
+				objetivo({ id: 'i', texto: 'Gaste 100 RO Cash', alvo: 100, progresso: 0 })
+			],
+			queContam: 4,
+			xpPorObjetivo: 500,
+			concluidas: 0,
+			xpNoBloco: 0,
+			tetoDeXp: 2000
+		},
+		premios,
 		...extra
 	};
 }
@@ -86,14 +152,7 @@ function estadoDoPasse(extra = {}) {
 	return {
 		v: 1,
 		cash: 5000,
-		passes: [
-			{ tipo: 'semanal', cash: 50, dias: 7, ativo: false, expiraEm: 0, diasRestantes: 0, entregues: 0, diaDoCiclo: 0, recusa: null },
-			{ tipo: 'vip', cash: 100, dias: 30, ativo: true, expiraEm: 20261021, diasRestantes: 29, entregues: 1, diaDoCiclo: 2, recusa: 'ainda-nao-vence' }
-		],
-		semanal: {
-			cashbackTotal: 10,
-			dias: [1, 2, 3, 4, 5, 6, 7].map((dia) => ({ dia, cash: dia === 7 ? 4 : 1, itens: [{ nome: 'Poção Branca', quantidade: dia === 7 ? 10 : 5 }] }))
-		},
+		passes: [{ tipo: 'vip', cash: 100, dias: 30, ativo: true, expiraEm: 20261021, diasRestantes: 29, entregues: 1, diaDoCiclo: 2, recusa: 'ainda-nao-vence' }],
 		vip: { expBase: 15, expJob: 15, dropComum: 15, dropCarta: 10, comandos: 0 },
 		...extra
 	};
@@ -142,13 +201,24 @@ describe('a caixa a venda (decisao do dono de 22/09/2026: 10 cash)', () => {
 		expect(abrirDe(3)).toMatch(/Abrir \(3\)$/);
 	});
 
-	it('a previa traz as recompensas em ordem, com o aro da raridade e a chance no title', () => {
+	it('o cabecalho traz o icone premium da caixa (moldura), sem tirar o lugar dos sprites reais', () => {
+		const html = renderCaixaHtml(caixa());
+		expect(html).toContain('icone-caixa-topo.webp');
+		/* Regra 18: o icone novo NUNCA substitui o sprite real do item - a
+		   previa continua com `data-item-id`, o retrato real de cada premio. */
+		expect(html).toContain('data-item-id="9000300"');
+	});
+
+	it('a previa traz as recompensas em ordem e com o aro da raridade, SEM a chance no title', () => {
 		const html = renderCaixaHtml(caixa());
 		expect(html).toContain('te-previa-item te-raridade--common');
 		expect(html).toContain('te-previa-item te-raridade--legendary');
-		expect(html).toContain('title="Asas de Anjo · Comum · 32,5%"');
-		expect(html).toContain('title="Máscara do Senhor das Trevas · Lendária · 0,5%"');
+		expect(html).toContain('title="Asas de Anjo · Comum"');
+		expect(html).toContain('title="Máscara do Senhor das Trevas · Lendária"');
 		expect(html.indexOf('data-item-id="9000300"')).toBeLessThan(html.indexOf('data-item-id="9000305"'));
+		/* A decisao de 22/09/2026: a porcentagem nao aparece em lugar nenhum do
+		   card - nem no title, que e tela do mesmo jeito. */
+		expect(textoQueOJogadorLe(html)).not.toContain('%');
 	});
 
 	it('a garantia na proxima vira a faixa dourada; abaixo de 10 aberturas vira o aviso', () => {
@@ -162,10 +232,6 @@ describe('o reveal da abertura (decisao do dono de 22/09/2026: direto na mochila
 	const abertura = { itemId: 9000300, nome: 'Asas de Anjo', raridade: 'COMMON', rotuloDaRaridade: 'Comum', repetida: false, foiGarantia: false };
 
 	it('imprime a frase do SERVIDOR como destino, e nunca decide o destino sozinho', () => {
-		/* A frase e DIFERENTE da reserva de proposito: o servidor e quem sabe
-		   quando a mochila nao coube e o visual foi ao correio (a excecao). A
-		   primeira versao usava a mesma frase da reserva, e o mutante que
-		   ignorava `resultado.texto` sobreviveu. */
 		const html = renderRevealHtml({ ok: true, texto: 'Mochila cheia: Asas de Anjo foi para o seu correio.', abertura });
 		expect(html).toContain('Mochila cheia: Asas de Anjo foi para o seu correio.');
 		expect(html).not.toContain('foi para a sua mochila.');
@@ -191,82 +257,248 @@ describe('o reveal da abertura (decisao do dono de 22/09/2026: direto na mochila
 	});
 });
 
-describe('o passe compacto dos Destaques', () => {
-	it('ordena os marcos por nivel, e no mesmo nivel o free vem antes do premium', () => {
-		const ordem = marcosDoPasse(passe()).map((p) => `${p.nivel}-${p.trilha}`);
-		expect(ordem).toEqual(['10-free', '15-premium', '50-free', '50-premium']);
-	});
-
-	it('cada situacao vira uma coisa diferente na tela', () => {
-		const p = passe();
-		const disponivel = renderMarcoHtml({ nivel: 10, trilha: 'free', itemId: 1, nome: 'A', situacao: 'AVAILABLE' }, p);
-		expect(disponivel).toContain('data-agir="resgatar"');
-		expect(disponivel).toContain('data-nivel="10"');
-		expect(disponivel).toContain('data-trilha="free"');
-
-		const resgatado = renderMarcoHtml({ nivel: 10, trilha: 'free', itemId: 1, nome: 'A', situacao: 'CLAIMED' }, p);
-		expect(resgatado).toContain('Resgatado');
-		expect(resgatado).not.toContain('data-agir');
-
-		/* Trancado por NIVEL: diz o nivel. Trancado so por falta do Premium
-		   (nivel ja alcancado): diz "Premium" - o jogador precisa saber qual
-		   dos dois para agir. */
-		const estadoDe = (html) => html.match(/te-marco-estado is-bloqueado">.*?<span>([^<]*)<\/span>/)[1];
-		expect(estadoDe(renderMarcoHtml({ nivel: 25, trilha: 'free', itemId: 1, nome: 'A', situacao: 'LOCKED' }, p))).toBe('Nível 25');
-		/* `>Premium<` solto casaria o rotulo da TRILHA, e o mutante que nunca
-		   diz "Premium" no estado sobreviveu a primeira versao deste caso. */
-		expect(estadoDe(renderMarcoHtml({ nivel: 10, trilha: 'premium', itemId: 1, nome: 'A', situacao: 'LOCKED' }, p))).toBe('Premium');
-	});
-
-	it('a barra mostra os pontos do nivel, e no teto diz que chegou', () => {
-		expect(renderPasseCompactoHtml(passe({ pontosNoNivel: 25 }))).toContain('width:25%');
-		expect(renderPasseCompactoHtml(passe({ pontosNoNivel: 25 }))).toContain('25 / 100 pontos para o nível 13');
-		const noTeto = renderPasseCompactoHtml(passe({ nivel: 50, pontosNoNivel: 100 }));
+describe('o progresso compacto dos Destaques (contrato V2)', () => {
+	it('a barra mostra o XP do nivel, e no teto diz que chegou - sem numero cravado', () => {
+		const html = renderProgressoDaTemporadaHtml(passeDoContrato({ xpNoNivel: 250 }));
+		expect(html).toContain('width:25%');
+		expect(html).toContain('250 / 1000 XP para o nível 13');
+		const noTeto = renderProgressoDaTemporadaHtml(passeDoContrato({ nivel: 30, xpNoNivel: 1000 }));
 		expect(noTeto).toContain('width:100%');
 		expect(noTeto).toContain('Nível máximo alcançado');
 	});
 
-	it('o Premium: selo se ja tem, "em breve" sem preco, botao com preco a venda', () => {
-		expect(renderPasseCompactoHtml(passe({ premium: true }))).toContain('Premium ativo');
-		expect(renderPasseCompactoHtml(passe())).toContain('Premium em breve');
-		const aVenda = renderPasseCompactoHtml(passe({ precoPremium: 300, compraPremium: { pode: true, motivo: null, texto: null } }));
-		expect(aVenda).toContain('data-agir="comprar-premium"');
-		expect(aVenda).toContain('300 RO Cash');
-		expect(aVenda.match(/<button[^>]*data-agir="comprar-premium"[^>]*>/)[0]).not.toContain('disabled');
+	it('mostra as DUAS fontes de XP do dia - caca e missoes - separadas', () => {
+		const html = renderProgressoDaTemporadaHtml(passeDoContrato());
+		expect(html).toContain('Caça hoje:');
+		expect(html).toContain('120');
+		expect(html).toContain('400');
+		expect(html).toContain('Missões hoje:');
+		expect(html).toContain('200');
+		expect(html).toContain('600');
 	});
 
-	it('os Destaques desenham as quatro partes, e os atalhos so TROCAM DE ABA', () => {
-		const html = renderDestaquesHtml({ temporada: { id: 'S1', nome: 'Luz & Trevas', subtitulo: 'Herdeiros de Midgard', aberta: true, fimMs: 0 }, passe: passe(), caixas: [caixa({ fechadas: 3 })], vip: vip() }, estadoDoPasse());
-		expect(html).toContain('te-banner');
-		expect(html).toContain('Luz &amp; Trevas');
-		expect(html).toContain('Passe da Temporada');
+	it('emenda 1: `diasRestantes` null (temporada sem data de fim) NAO desenha "0 dias"', () => {
+		const comData = renderProgressoDaTemporadaHtml(passeDoContrato({ diasRestantes: 18 }));
+		expect(comData).toContain('18 dias restantes de temporada');
+		const semData = renderProgressoDaTemporadaHtml(passeDoContrato({ diasRestantes: null }));
+		expect(semData).not.toContain('dias restantes');
+		expect(semData).not.toContain('0 dia');
+	});
+
+	it('se o servidor mandar `niveis: 40`, a barra desenha 40 - nada cravado no codigo', () => {
+		const html = renderProgressoDaTemporadaHtml(passeDoContrato({ niveis: 40 }));
+		expect(html).toContain('/ 40');
+		expect(html).not.toContain('/ 30');
+	});
+});
+
+describe('a chamada do Passe de Batalha (Destaques)', () => {
+	it('convida para a aba, com o mascote e sem o passe inteiro', () => {
+		const html = renderChamadaDoPasseHtml();
+		expect(html).toContain('data-ir="passe"');
+		expect(html).toContain('mascote-passe.webp');
+		expect(html).toContain('Ver Passe de Batalha');
+		/* Documento §16: "não colocar o Battle Pass completo aqui" - nenhum
+		   nivel/trilha aparece neste card. */
+		expect(html).not.toContain('data-agir="resgatar"');
+	});
+});
+
+describe('os atalhos dos Destaques (so Caixas e VIP - o Semanal saiu)', () => {
+	it('sao exatamente dois, e nenhum deles e o Passe Semanal', () => {
+		const html = renderAtalhosHtml(vip());
 		expect(html).toContain('data-ir="caixas"');
-		expect(html).toContain('data-ir="semanal"');
 		expect(html).toContain('data-ir="vip"');
-		expect(html).toContain('3 fechadas · Máscara do Senhor das Trevas');
-		expect(html).toContain('Ativo · 29 dias');
-		/* Os atalhos nunca carregam acao: um toque neles nao pode gastar nada. */
+		expect(html).not.toContain('data-ir="semanal"');
+		expect(html).not.toContain('Passe Semanal');
+		expect((html.match(/class="te-atalho /g) || []).length + (html.match(/class="te-atalho ri-card"/g) || []).length).toBeGreaterThan(0);
+	});
+
+	it('o VIP ativo mostra os dias restantes DELE (nao os da temporada)', () => {
+		const html = renderAtalhosHtml(vip({ ativo: true, diasRestantes: 7 }));
+		expect(html).toContain('Ativo · 7 dias');
+	});
+
+	it('os atalhos nunca carregam acao: um toque neles so troca de aba', () => {
+		const html = renderAtalhosHtml(vip());
 		expect(html.match(/data-ir="[a-z]+"[^>]*data-agir/)).toBeNull();
 	});
 });
 
-describe('o Passe Semanal e o VIP (o que veio da janela de Recompensas)', () => {
-	it('sem o estado do Passe, a aba diz que esta carregando', () => {
-		expect(renderSemanalHtml(null)).toContain('Carregando');
+describe('o banner (a arte ja traz o titulo pintado - achado na prova de tela de 22/09/2026)', () => {
+	it('NAO desenha "Season/nome/subtitulo" em HTML por cima da arte - so o prazo, que a arte nao sabe', () => {
+		/* A primeira versao escrevia ".te-banner-texto" com "SEASON 1 · LUZ &
+		   TREVAS · HERDEIROS DE MIDGARD" por cima da imagem `banner-luz-
+		   trevas.webp`, que JA TEM o mesmo texto pintado - a prova de tela
+		   fotografou os dois sobrepostos, ilegiveis. O texto do servidor
+		   continua saindo, so que como `aria-label` (acessivel, nao visivel),
+		   nunca mais como span visivel duplicando a arte. */
+		const html = formatoDaTemporada.renderBannerHtml({ id: 'S1', nome: 'Luz & Trevas', subtitulo: 'Herdeiros de Midgard', aberta: true, fimMs: 0 });
+		expect(html).not.toContain('te-banner-texto');
+		expect(html).not.toContain('te-banner-linha');
+		expect(html).toContain('aria-label="Season 1 · Luz &amp; Trevas · Herdeiros de Midgard"');
+		// A arte "banner-luz-trevas.webp" entra por CSS (`.te-banner-arte`),
+		// nao por um caminho escrito aqui no HTML.
+		expect(html).toContain('te-banner-arte');
 	});
 
-	it('o cashback e DERIVADO do preco e da tabela, nunca escrito a mao', () => {
-		const html = renderSemanalHtml(estadoDoPasse());
-		expect(html).toContain('7 dias · 20% de cashback no final');
-		/* `te-dia` seguido de espaco ou aspas: `te-dia-num`/`-cash`/`-item` sao
-		   filhos e nao contam - a primeira versao contava 28. */
-		expect((html.match(/class="te-dia[ "]/g) || []).length).toBe(7);
-		expect(html).toContain('is-premio');
-		expect(html).toContain('data-agir="comprar-passe"');
-		expect(html).toContain('data-tipo="semanal"');
-		expect(html).toContain('Comprar · 50 cash');
+	it('o prazo (dinamico, a arte nao sabe a data de hoje) continua visivel', () => {
+		const aberta = formatoDaTemporada.renderBannerHtml({ fimMs: Date.UTC(2026, 9, 10) });
+		expect(aberta).toContain('te-banner-prazo');
+		expect(aberta).toContain('Aberta até');
+		const encerrada = formatoDaTemporada.renderBannerHtml({ aberta: false });
+		expect(encerrada).toContain('Temporada encerrada');
 	});
 
+	it('o banner das Caixas usa a classe propria (a arte "banner-caixas.webp" entra por CSS, `.te-banner--caixas`), sem texto nenhum em HTML', () => {
+		const html = formatoDaTemporada.renderBannerDasCaixasHtml();
+		expect(html).toContain('te-banner--caixas');
+		expect(html).not.toContain('te-banner-texto');
+		expect(html).not.toContain('aria-label');
+	});
+});
+
+describe('os Destaques inteiros (contrato V2: sem o estado do Passe)', () => {
+	it('desenha banner, progresso, chamada do Passe de Batalha, caixas e atalhos', () => {
+		const html = renderDestaquesHtml({
+			temporada: { id: 'S1', nome: 'Luz & Trevas', subtitulo: 'Herdeiros de Midgard', aberta: true, fimMs: 0 },
+			passe: passeDoContrato(),
+			caixas: [caixa({ fechadas: 3 })],
+			vip: vip()
+		});
+		expect(html).toContain('te-banner');
+		expect(html).toContain('Luz &amp; Trevas');
+		expect(html).toContain('data-ir="passe"');
+		expect(html).toContain('data-ir="caixas"');
+		expect(html).toContain('data-ir="vip"');
+		expect(html).not.toContain('data-ir="semanal"');
+		expect(html).toContain('3 fechadas · Máscara do Senhor das Trevas');
+	});
+});
+
+describe('as missoes do Passe de Batalha (diarias e semanais)', () => {
+	it('um objetivo concluido mostra o check e some a barra de progresso', () => {
+		const html = renderObjetivoHtml(objetivo({ concluido: true, paga: true }), 200);
+		expect(html).toContain('is-concluido');
+		expect(html).toContain('+200 XP');
+		expect(html).not.toContain('te-objetivo-progresso');
+	});
+
+	it('um objetivo NAO concluido mostra a barra e o numero, sem o check', () => {
+		const html = renderObjetivoHtml(objetivo({ concluido: false, progresso: 37, alvo: 150 }), 200);
+		expect(html).toContain('37 / 150');
+		expect(html).toContain('width:25%');
+		expect(html).not.toContain('is-concluido');
+	});
+
+	it('`paga:false` (o extra que fecha depois do limite) marca "nao conta", nunca some o XP prometido em silencio', () => {
+		const html = renderObjetivoHtml(objetivo({ concluido: true, paga: false }), 200);
+		expect(html).toContain('is-sem-xp');
+		expect(html).toContain('não conta');
+		expect(html).not.toContain('+200 XP');
+	});
+
+	it('as diarias mostram o XP de hoje e a nota de quantas pagam', () => {
+		const html = renderMissoesDiariasHtml(passeDoContrato().diarias);
+		expect(html).toContain('200 / 600 XP hoje');
+		expect(html).toContain('Vale 3 de 4');
+		expect(html).toContain('1 de 3 concluídas.');
+		expect(html.match(/class="te-objetivo/g).length).toBeGreaterThanOrEqual(4);
+	});
+
+	it('as semanais trazem o icone de calendario e o bloco atual', () => {
+		const html = renderMissoesSemanaisHtml(passeDoContrato().semanais);
+		expect(html).toContain('icone-missoes-semanais.webp');
+		expect(html).toContain('0 / 2000 XP no bloco');
+	});
+
+	it('emenda 1: `semanais: null` (temporada sem data de inicio) esconde o bloco, sem "undefined" na tela', () => {
+		const html = renderMissoesSemanaisHtml(null);
+		expect(html).toBe('');
+	});
+
+	it('a aba inteira nao quebra quando `semanais` vem null - so o bloco some', () => {
+		const html = renderPasseDeBatalhaHtml(passeDoContrato({ semanais: null }));
+		expect(html).not.toContain('undefined');
+		expect(html).not.toContain('Missões semanais');
+		expect(html).toContain('Missões diárias');
+	});
+});
+
+describe('a trilha de recompensas (free/vip lado a lado)', () => {
+	it('agrupa os premios por nivel, free e vip juntos na mesma coluna', () => {
+		const passe = passeDoContrato();
+		const niveis = niveisDoPasse(passe);
+		expect(niveis).toHaveLength(30);
+		expect(niveis[0].nivel).toBe(1);
+		expect(niveis[0].free).not.toBeNull();
+		expect(niveis[0].vip).not.toBeNull();
+	});
+
+	it('um nivel sem premio de um lado vira placeholder, nunca quebra a coluna', () => {
+		const niveis = niveisDoPasse({ premios: [premio({ nivel: 5, trilha: 'free' })] });
+		expect(niveis).toHaveLength(1);
+		expect(niveis[0].vip).toBeNull();
+		const html = renderPremioDaTrilhaHtml(niveis[0].vip, 'vip');
+		expect(html).toContain('te-premio-card--vazio');
+	});
+
+	it('CLAIMED vira selo, AVAILABLE vira botao Resgatar, LOCKED vira cadeado', () => {
+		expect(renderPremioDaTrilhaHtml(premio({ situacao: 'CLAIMED' }), 'free')).toContain('is-resgatado');
+		const disponivel = renderPremioDaTrilhaHtml(premio({ situacao: 'AVAILABLE', nivel: 13 }), 'free');
+		expect(disponivel).toContain('data-agir="resgatar"');
+		expect(disponivel).toContain('data-nivel="13"');
+		expect(disponivel).toContain('data-trilha="free"');
+		expect(renderPremioDaTrilhaHtml(premio({ situacao: 'LOCKED' }), 'vip')).toContain('is-bloqueado');
+	});
+
+	it('quantidade > 1 aparece como tag; quantidade 1 nao polui a tela', () => {
+		expect(renderPremioDaTrilhaHtml(premio({ quantidade: 5 }), 'free')).toContain('×5');
+		expect(renderPremioDaTrilhaHtml(premio({ quantidade: 1 }), 'free')).not.toContain('te-premio-card-qtd');
+	});
+
+	it('sem VIP nesta temporada, a legenda/trilha VIP fica marcada como bloqueada - visivel, nunca escondida', () => {
+		const semVip = renderTrilhaDeRecompensasHtml(passeDoContrato({ vip: false }));
+		expect(semVip).toContain('is-bloqueada');
+		expect(semVip).toContain('is-sem-vip');
+		expect(semVip).toContain('te-premio-card--vip');
+		const comVip = renderTrilhaDeRecompensasHtml(passeDoContrato({ vip: true }));
+		expect(comVip).not.toContain('is-bloqueada');
+		expect(comVip).not.toContain('is-sem-vip');
+	});
+});
+
+describe('a aba Passe de Batalha inteira (payload V2 montado a partir do contrato)', () => {
+	it('desenha nivel/XP, dias restantes, as duas missoes e a trilha - tudo do JSON, nada cravado', () => {
+		const html = renderPasseDeBatalhaHtml(passeDoContrato());
+		expect(html).toContain('Nível <strong>12</strong>');
+		expect(html).toContain('/ 30');
+		expect(html).toContain('345 / 1000 XP para o nível 13');
+		expect(html).toContain('18 dias restante');
+		expect(html).toContain('Missões diárias');
+		expect(html).toContain('Missões semanais');
+		expect(html).toContain('emblema-temporada.webp');
+		expect(html).toContain('mascote-passe.webp');
+	});
+
+	it('com OUTROS numeros no payload (nao os do exemplo), a pagina desenha os outros - prova de que nada esta cravado', () => {
+		const outro = passeDoContrato({ niveis: 50, nivel: 3, xpPorNivel: 2000, xpNoNivel: 500, diasRestantes: 41 });
+		const html = renderPasseDeBatalhaHtml(outro);
+		expect(html).toContain('/ 50');
+		expect(html).toContain('500 / 2000 XP para o nível 4');
+		expect(html).toContain('41 dias restante');
+		expect(html).not.toContain('/ 30');
+		expect(html).not.toContain('1000 XP');
+	});
+
+	it('emenda 1: `diasRestantes: null` nao desenha nenhuma contagem de dias', () => {
+		const html = renderPasseDeBatalhaHtml(passeDoContrato({ diasRestantes: null }));
+		expect(html).not.toContain('dia restante');
+		expect(html).not.toContain('0 dia');
+	});
+});
+
+describe('o VIP (a compra veio da janela de Recompensas)', () => {
 	it('o veredito do botao de passe vem do campo `recusa` do servidor', () => {
 		const pode = renderAcaoDoPasseHtml({ tipo: 'vip', cash: 100, dias: 30, ativo: false, recusa: null }, 5000);
 		expect(pode.match(/<button[^>]*>/)[0]).not.toContain('disabled');
@@ -281,6 +513,11 @@ describe('o Passe Semanal e o VIP (o que veio da janela de Recompensas)', () => 
 		expect(aindaVale).toContain('A renovação abre no último dia');
 	});
 
+	it('o emblema grande do VIP entra no topo da aba', () => {
+		const html = renderVipHtml(vip(), estadoDoPasse());
+		expect(html).toContain('vip-emblema.webp');
+	});
+
 	it('a aba VIP junta as duas fontes: os beneficios da temporada e a compra do passe', () => {
 		const html = renderVipHtml(vip(), estadoDoPasse());
 		expect(html).toContain('Equivale a R$ 9,00 por 30 dias');
@@ -293,20 +530,92 @@ describe('o Passe Semanal e o VIP (o que veio da janela de Recompensas)', () => 
 		expect(html).toContain('até 21/10 · 29 dias restantes');
 	});
 
+	it('o Astra Blessing usa o icone dedicado, com o ESTADO certo (disponivel/resgatado/bloqueado)', () => {
+		const disponivel = renderVipHtml(vip({ visual: { itemId: 1, nome: 'Astra', resgatado: false, pode: true, texto: null } }), estadoDoPasse());
+		expect(disponivel).toContain('icone-astra-blessing.webp');
+		expect(disponivel).toContain('is-disponivel');
+
+		const resgatado = renderVipHtml(vip({ visual: { itemId: 1, nome: 'Astra', resgatado: true, pode: false, texto: null } }), estadoDoPasse());
+		expect(resgatado).toContain('is-resgatado');
+		expect(resgatado).toContain('>Resgatado</button>');
+
+		const bloqueado = renderVipHtml(vip({ ativo: false, visual: { itemId: 1, nome: 'Astra', resgatado: false, pode: false, texto: 'Resgate com o VIP ativo.' } }), estadoDoPasse());
+		expect(bloqueado).toContain('is-bloqueado');
+		expect(bloqueado.match(/<button[^>]*data-agir="resgatar-visual-vip"[^>]*>/)[0]).toContain('disabled');
+		expect(bloqueado).toContain('Resgate com o VIP ativo.');
+	});
+
 	it('o visual do VIP so libera o botao pelo veredito do servidor, nunca por `vip.ativo`', () => {
 		const semVip = renderVipHtml(vip({ ativo: false, visual: { itemId: 1, nome: 'Astra', resgatado: false, pode: false, texto: 'Resgate com o VIP ativo.' } }), estadoDoPasse());
 		expect(semVip.match(/<button[^>]*data-agir="resgatar-visual-vip"[^>]*>/)[0]).toContain('disabled');
-		expect(semVip).toContain('Resgate com o VIP ativo.');
 		const comVipMasResgatado = renderVipHtml(vip({ visual: { itemId: 1, nome: 'Astra', resgatado: true, pode: false, texto: 'Já resgatado nesta temporada.' } }), estadoDoPasse());
 		expect(comVipMasResgatado).toContain('>Resgatado</button>');
 	});
 });
 
+describe('o "Ver conteudo" separado por categoria (decisao do dono, 22/09/2026)', () => {
+	/** Um pool inteiro como o servidor o manda: 3 COMMON, 2 RARE, 1 LEGENDARY. */
+	function poolCompleto() {
+		return caixa({
+			recompensas: [
+				{ itemId: 9000300, nome: 'Asas de Anjo', raridade: 'COMMON', rotuloDaRaridade: 'Comum', chance: 3250, escala: 10000, slot: 'Topo', animado: false },
+				{ itemId: 9000301, nome: 'Coroa de Prata', raridade: 'COMMON', rotuloDaRaridade: 'Comum', chance: 3250, escala: 10000, slot: 'Topo', animado: false },
+				{ itemId: 9000302, nome: 'Tiara Simples', raridade: 'COMMON', rotuloDaRaridade: 'Comum', chance: 3250, escala: 10000, slot: 'Topo', animado: false },
+				{ itemId: 9000303, nome: 'Elmo Rúnico', raridade: 'RARE', rotuloDaRaridade: 'Rara', chance: 100, escala: 10000, slot: 'Topo', animado: true },
+				{ itemId: 9000304, nome: 'Auréola Menor', raridade: 'RARE', rotuloDaRaridade: 'Rara', chance: 100, escala: 10000, slot: 'Topo', animado: false },
+				{ itemId: 9000305, nome: 'Máscara do Senhor das Trevas', raridade: 'LEGENDARY', rotuloDaRaridade: 'Lendária', chance: 50, escala: 10000, slot: 'Topo', animado: false }
+			]
+		});
+	}
+
+	it('agrupa as 6 recompensas em 3 categorias, da lendaria para a comum', () => {
+		const grupos = agruparPorRaridade(poolCompleto().recompensas);
+		expect(grupos.map((g) => g.raridade)).toEqual(['LEGENDARY', 'RARE', 'COMMON']);
+		expect(grupos.map((g) => g.itens.length)).toEqual([1, 2, 3]);
+		expect(grupos.map((g) => g.rotulo)).toEqual(['Lendária', 'Rara', 'Comum']);
+	});
+
+	it('uma raridade que o cliente nao conhece vira grupo no fim, e NUNCA some da tela', () => {
+		const inventada = { itemId: 9000399, nome: 'Coisa Nova', raridade: 'MYTHIC', rotuloDaRaridade: 'Mítica', chance: 1, escala: 10000, slot: 'Topo', animado: false };
+		const grupos = agruparPorRaridade([...poolCompleto().recompensas, inventada]);
+		expect(grupos.map((g) => g.raridade)).toEqual(['LEGENDARY', 'RARE', 'COMMON', 'MYTHIC']);
+		expect(renderModalConteudoHtml(caixa({ recompensas: [inventada] }))).toContain('Coisa Nova');
+	});
+
+	it('sem recompensa nenhuma nao inventa grupo', () => {
+		expect(agruparPorRaridade([])).toEqual([]);
+		expect(agruparPorRaridade(undefined)).toEqual([]);
+	});
+
+	it('o modal desenha um grupo por categoria, na ordem, com a contagem de cada um', () => {
+		const html = renderModalConteudoHtml(poolCompleto());
+		expect(html.match(/class="te-premio-grupo"/g)).toHaveLength(3);
+		expect(html).toContain('data-raridade="LEGENDARY"');
+		expect(html).toContain('>1 item<');
+		expect(html).toContain('>2 itens<');
+		expect(html).toContain('>3 itens<');
+		expect(html.indexOf('data-raridade="LEGENDARY"')).toBeLessThan(html.indexOf('data-raridade="RARE"'));
+		expect(html.indexOf('data-raridade="RARE"')).toBeLessThan(html.indexOf('data-raridade="COMMON"'));
+	});
+
+	it('nenhuma porcentagem sobra no modal, e os 6 itens continuam todos na tela', () => {
+		const html = renderModalConteudoHtml(poolCompleto());
+		expect(html).not.toContain('te-premio-chance');
+		expect(textoQueOJogadorLe(html)).not.toContain('%');
+		['Asas de Anjo', 'Coroa de Prata', 'Tiara Simples', 'Elmo Rúnico', 'Auréola Menor', 'Máscara do Senhor das Trevas'].forEach((nome) => {
+			expect(html).toContain(nome);
+		});
+	});
+
+	it('a raridade aparece UMA vez por grupo, e nao repetida em cada linha', () => {
+		const html = renderModalConteudoHtml(poolCompleto());
+		expect(html.match(/>Comum</g)).toHaveLength(1);
+		expect(html.match(/>Rara</g)).toHaveLength(1);
+	});
+});
+
 describe('as pecas pequenas', () => {
-	it('formata porcentagem, preco em centavos, data curta e o selo do VIP', () => {
-		expect(formatarPorcentagem(3250, 10000)).toBe('32,5%');
-		expect(formatarPorcentagem(50, 10000)).toBe('0,5%');
-		expect(formatarPorcentagem(NaN, 10000)).toBe('0%');
+	it('formata preco em centavos, data curta e o selo do VIP', () => {
 		expect(formatarPrecoCentavos(900)).toBe('R$ 9,00');
 		expect(formatarPrecoCentavos(123456)).toMatch(/^R\$ 1\.?234,56$/);
 		expect(dataCurta(20261021)).toBe('21/10');
@@ -316,13 +625,12 @@ describe('as pecas pequenas', () => {
 		expect(textoDoSeloVip(null)).toBe('Sem VIP');
 	});
 
-	it('o modal de conteudo imprime o rotulo do servidor e a chance de cada linha', () => {
+	it('o modal de conteudo imprime o rotulo do servidor, e NUNCA o token cru', () => {
 		const html = renderModalConteudoHtml(caixa());
 		expect(html).toContain('>Comum<');
 		expect(html).toContain('>Lendária<');
-		expect(html).toContain('32,5%');
-		expect(html).toContain('0,5%');
 		expect(html).not.toContain('>COMMON<');
+		expect(html).not.toContain('>LEGENDARY<');
 	});
 
 	it('NENHUM texto que vira tela traz travessao (regra do dono)', () => {
@@ -330,13 +638,23 @@ describe('as pecas pequenas', () => {
 			renderCaixaHtml(caixa({ preco: 10, compra: { pode: true, motivo: null, texto: null } })),
 			renderCaixaHtml(caixa()),
 			renderModalConteudoHtml(caixa()),
-			renderPasseCompactoHtml(passe()),
-			renderDestaquesHtml({ temporada: {}, passe: passe(), caixas: [caixa()], vip: vip() }, null),
-			renderSemanalHtml(estadoDoPasse()),
+			renderProgressoDaTemporadaHtml(passeDoContrato()),
+			renderChamadaDoPasseHtml(),
+			renderAtalhosHtml(vip()),
+			renderDestaquesHtml({ temporada: {}, passe: passeDoContrato(), caixas: [caixa()], vip: vip() }),
+			renderPasseDeBatalhaHtml(passeDoContrato()),
 			renderVipHtml(vip(), estadoDoPasse()),
 			renderVipHtml(vip(), null),
 			renderRevealHtml({ ok: true, texto: '', abertura: { itemId: 1, nome: 'X', raridade: 'RARE', rotuloDaRaridade: 'Rara' } })
 		].join('\n');
 		expect(tudo).not.toContain(' - ');
+	});
+
+	it('as funcoes do Passe Premium/Passe Semanal V1 NAO existem mais no modulo - dead code nao fica verde escondido', () => {
+		expect(formatoDaTemporada.renderPremiumHtml).toBeUndefined();
+		expect(formatoDaTemporada.renderPasseCompactoHtml).toBeUndefined();
+		expect(formatoDaTemporada.renderMarcoHtml).toBeUndefined();
+		expect(formatoDaTemporada.marcosDoPasse).toBeUndefined();
+		expect(formatoDaTemporada.renderSemanalHtml).toBeUndefined();
 	});
 });

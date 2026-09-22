@@ -104,6 +104,14 @@
 	max-width: 46%;
 }
 
+/* O ícone da moeda (`icone-ro-cash.webp`) - identificado visualmente pelo
+   Team Lead, ver MAPA-DOS-ASSETS.md. */
+#TemporadaIdle .te-carteira-icone {
+	width: 18px;
+	height: 18px;
+	flex: 0 0 auto;
+}
+
 #TemporadaIdle .te-carteira-valor {
 	font: var(--type-numeric);
 	color: var(--gold-700);
@@ -124,6 +132,9 @@
    clicável do leque do TopMenuIdle — aqui não há toast nenhum para mostrar). */
 #TemporadaIdle .te-recarregar {
 	appearance: none;
+	display: inline-flex;
+	align-items: center;
+	gap: 3px;
 	border: 1px solid var(--border-hairline);
 	background: var(--surface-card);
 	color: var(--text-muted);
@@ -133,6 +144,12 @@
 	padding: 3px var(--sp-3);
 	border-radius: var(--radius-pill);
 	white-space: nowrap;
+}
+
+#TemporadaIdle .te-recarregar-icone {
+	width: 12px;
+	height: 12px;
+	flex: 0 0 auto;
 }
 
 #TemporadaIdle .te-recarregar[disabled] {
@@ -153,6 +170,28 @@
 	text-overflow: ellipsis;
 }
 
+/* O X vira o `botao-fechar.webp` (disco com borda dourada e X central, já
+   pronto na arte) - o ".ri-close" do design system desenha o MESMO disco em
+   CSS, então aqui ele fica transparente/sem borda: dois discos sobrepostos
+   pareceriam um erro de alinhamento, não intencional. */
+#TemporadaIdle .te-close {
+	background: transparent;
+	border: 0;
+	width: 24px;
+	height: 24px;
+}
+
+#TemporadaIdle .te-close:hover {
+	background: transparent;
+	box-shadow: none;
+	filter: brightness(1.08);
+}
+
+#TemporadaIdle .te-close-icone {
+	width: 22px;
+	height: 22px;
+}
+
 #TemporadaIdle .te-tabs {
 	flex: 0 0 auto;
 	display: flex;
@@ -165,7 +204,20 @@
 
 #TemporadaIdle .te-tab {
 	flex: 0 0 auto;
+	display: inline-flex;
+	align-items: center;
+	gap: 5px;
 	white-space: nowrap;
+}
+
+#TemporadaIdle .te-tab-icone {
+	width: 15px;
+	height: 15px;
+	flex: 0 0 auto;
+}
+
+#TemporadaIdle .te-tab-icone--glifo {
+	color: currentColor;
 }
 
 #TemporadaIdle .te-body {
@@ -265,7 +317,11 @@
 	color: var(--text-link-hover);
 }
 
-/* ─── O banner da Season - luz à esquerda, trevas à direita, um degrade só ── */
+/* ─── O banner da Season - arte real (`banner-luz-trevas.webp`) ──────────
+   22/09/2026: a imagem identificada visualmente pelo Team Lead (ver
+   MAPA-DOS-ASSETS.md) entra como fundo; o degrade CSS que existia antes vira
+   só o véu de legibilidade por baixo do texto (regra 24: a arte é PNG/WebP,
+   a legibilidade é CSS). */
 
 #TemporadaIdle .te-banner {
 	position: relative;
@@ -274,16 +330,7 @@
 	border-radius: var(--radius-panel);
 	border: 1px solid var(--border-gold);
 	box-shadow: var(--rim-gold), var(--shadow-card);
-	/* Do papel ao azul do sistema, e do azul ao roxo e ao preto das trevas: o
-	   meio azul é o que faz a passagem parecer um crepúsculo, e não um corte. */
-	background: linear-gradient(
-		100deg,
-		var(--paper-1) 0%,
-		var(--sky-100) 26%,
-		var(--blue-500) 47%,
-		var(--te-trevas-roxo) 62%,
-		var(--te-trevas-preto) 100%
-	);
+	background: var(--blue-900);
 }
 
 /* O aro interno dourado: a moldura "clássica" de uma placa, só CSS. */
@@ -297,76 +344,24 @@
 	z-index: 1;
 }
 
-#TemporadaIdle .te-banner-luz {
+#TemporadaIdle .te-banner-arte {
 	position: absolute;
 	inset: 0;
-	background: radial-gradient(ellipse 55% 95% at 16% 45%, rgba(255, 255, 255, 0.92) 0%, rgba(255, 255, 255, 0) 70%);
+	background-image: url('/ragidle/temporada/banner-luz-trevas.webp');
+	background-size: cover;
+	background-position: center;
 }
 
-#TemporadaIdle .te-banner-trevas {
+#TemporadaIdle .te-banner--caixas .te-banner-arte {
+	background-image: url('/ragidle/temporada/banner-caixas.webp');
+}
+
+/* O véu: escurece a base da imagem para o texto/prazo sempre lerem, seja
+   qual for o trecho da arte que caiu ali embaixo. */
+#TemporadaIdle .te-banner-veu {
 	position: absolute;
 	inset: 0;
-	background: radial-gradient(ellipse 48% 85% at 86% 72%, rgba(92, 20, 32, 0.8) 0%, rgba(92, 20, 32, 0) 70%);
-}
-
-/* O eclipse do ícone do menu como marca d'água - o vocabulário do botão que
-   abre a janela, e não uma ilustração desenhada à mão. */
-#TemporadaIdle .te-banner-eclipse {
-	position: absolute;
-	right: 22px;
-	top: 50%;
-	transform: translateY(-50%);
-	width: 92px;
-	height: 92px;
-	color: var(--gold-300);
-	opacity: 0.38;
-}
-
-#TemporadaIdle .te-banner-eclipse svg {
-	width: 100%;
-	height: 100%;
-}
-
-#TemporadaIdle .te-banner-texto {
-	position: absolute;
-	inset: 0;
-	z-index: 1;
-	display: flex;
-	flex-direction: column;
-	align-items: center;
-	justify-content: center;
-	gap: 3px;
-	text-align: center;
-	text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6), 0 0 12px rgba(0, 0, 0, 0.35);
-}
-
-#TemporadaIdle .te-banner-linha {
-	font-family: var(--font-display);
-	color: var(--white);
-	letter-spacing: var(--ls-title);
-}
-
-#TemporadaIdle .te-banner-linha--season {
-	font: var(--type-badge);
-	font-size: 10px;
-	letter-spacing: 0.22em;
-	color: var(--gold-300);
-	text-transform: uppercase;
-}
-
-#TemporadaIdle .te-banner-linha--tema {
-	font-size: 26px;
-	font-weight: var(--fw-regular);
-	letter-spacing: 0.06em;
-	text-transform: uppercase;
-}
-
-#TemporadaIdle .te-banner-linha--sub {
-	font: var(--type-label);
-	font-size: 10px;
-	letter-spacing: 0.18em;
-	color: var(--gold-200);
-	text-transform: uppercase;
+	background: linear-gradient(180deg, rgba(11, 20, 36, 0) 45%, rgba(11, 20, 36, 0.55) 100%);
 }
 
 #TemporadaIdle .te-banner-prazo {
@@ -387,9 +382,12 @@
 	filter: saturate(0.4);
 }
 
-/* ─── O passe compacto (Destaques) ─────────────────────────────────────── */
+/* ─── O progresso compacto (Destaques) + chamada do Passe de Batalha ────
+   `.te-passe-nivel`/`.te-passe-barra`/`.te-passe-meta` são compartilhadas com
+   o CABEÇALHO da aba Passe de Batalha (mesma barra, mesmo vocabulário - ver
+   `.te-passe-batalha-topo` mais abaixo). */
 
-#TemporadaIdle .te-passe {
+#TemporadaIdle .te-progresso {
 	padding: var(--sp-5);
 	border-radius: var(--radius-panel);
 	background: var(--surface-card);
@@ -422,7 +420,9 @@
    vazio: a sombra do glifo é o que o design system permite - reforçada. */
 #TemporadaIdle .te-passe-barra > .rotulo {
 	font-size: 10px;
-	text-shadow: 0 0 3px rgba(12, 34, 64, 0.95), 0 1px 2px rgba(12, 34, 64, 0.9);
+	text-shadow:
+		0 0 3px rgba(12, 34, 64, 0.95),
+		0 1px 2px rgba(12, 34, 64, 0.9);
 }
 
 #TemporadaIdle .te-passe-meta {
@@ -438,85 +438,338 @@
 	color: var(--text-body);
 }
 
-/* Os marcos: uma fileira; a largura mínima é a que cabe o ícone + 2 linhas
-   de nome + o botão. Sem rolagem horizontal em lugar nenhum - no celular
-   viram 4 por linha (ver o @media). */
-#TemporadaIdle .te-marcos {
-	display: grid;
-	grid-template-columns: repeat(auto-fit, minmax(72px, 1fr));
+/* ─── A chamada do Passe de Batalha (Destaques) ──────────────────────────
+   Documento §16: card de convite, NUNCA o Battle Pass inteiro aqui. O
+   mascote é ilustração (§C), então o card é largo, não um tile quadrado. */
+#TemporadaIdle .te-chamada-passe {
+	appearance: none;
+	display: flex;
+	align-items: center;
+	gap: var(--sp-5);
+	padding: var(--sp-5);
+	text-align: left;
+	cursor: pointer;
+	color: inherit;
+	font: inherit;
+	width: 100%;
+	box-sizing: border-box;
+	border-color: var(--border-gold);
+	background: linear-gradient(160deg, var(--sky-50) 0%, var(--white) 55%, var(--gold-200) 200%);
+	transition: box-shadow var(--dur-fast) var(--ease-out);
+}
+
+#TemporadaIdle .te-chamada-passe:hover {
+	box-shadow: var(--glow-gold), var(--rim-light), var(--shadow-card);
+}
+
+#TemporadaIdle .te-chamada-passe-mascote {
+	flex: 0 0 auto;
+	width: 64px;
+	height: 64px;
+	object-fit: contain;
+}
+
+#TemporadaIdle .te-chamada-passe-texto {
+	flex: 1 1 auto;
+	min-width: 0;
+	display: flex;
+	flex-direction: column;
+	gap: 3px;
+}
+
+#TemporadaIdle .te-chamada-passe-titulo {
+	font: var(--type-window-title);
+	font-size: 16px;
+	color: var(--text-title);
+}
+
+#TemporadaIdle .te-chamada-passe-sub {
+	font: var(--type-desc);
+	font-size: var(--fs-info);
+	color: var(--text-muted);
+}
+
+#TemporadaIdle .te-chamada-passe-botao {
+	flex: 0 0 auto;
+	pointer-events: none;
+}
+
+#TemporadaIdle .te-chamada-passe-botao svg {
+	width: 13px;
+	height: 13px;
+}
+
+/* ─── Missões (diárias/semanais, aba Passe de Batalha) ──────────────────── */
+
+#TemporadaIdle .te-missoes {
+	padding: var(--sp-5);
+	border-radius: var(--radius-panel);
+	background: var(--surface-card);
+	border: 1px solid var(--border-hairline);
+	box-shadow: var(--shadow-card);
+}
+
+#TemporadaIdle .te-secao-titulo-icone {
+	width: 16px;
+	height: 16px;
+	flex: 0 0 auto;
+}
+
+#TemporadaIdle .te-missoes-xp {
+	font: var(--type-label);
+	color: var(--gold-700);
+	white-space: nowrap;
+}
+
+#TemporadaIdle .te-objetivos {
+	list-style: none;
+	margin: var(--sp-4) 0 0;
+	padding: 0;
+	display: flex;
+	flex-direction: column;
 	gap: var(--sp-3);
 }
 
-#TemporadaIdle .te-marco {
-	position: relative;
+#TemporadaIdle .te-objetivo {
+	display: flex;
+	align-items: center;
+	gap: var(--sp-3);
+	padding: var(--sp-3) var(--sp-4);
+	border-radius: var(--radius-card);
+	background: var(--surface-card-hover);
+	border: 1px solid var(--border-hairline);
+}
+
+#TemporadaIdle .te-objetivo.is-concluido {
+	background: var(--surface-inset);
+	opacity: 0.85;
+}
+
+#TemporadaIdle .te-objetivo-marca {
+	flex: 0 0 auto;
+	width: 20px;
+	height: 20px;
+	border-radius: 50%;
+	border: 1px solid var(--border-hairline);
+	background: var(--surface-inset);
+}
+
+#TemporadaIdle .te-objetivo-marca.is-concluido {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	background: var(--green-600);
+	border-color: var(--green-600);
+	color: var(--white);
+}
+
+#TemporadaIdle .te-objetivo-marca.is-concluido svg {
+	width: 12px;
+	height: 12px;
+}
+
+#TemporadaIdle .te-objetivo-texto {
+	flex: 1 1 auto;
+	min-width: 0;
+	display: flex;
+	flex-direction: column;
+	gap: 3px;
+}
+
+#TemporadaIdle .te-objetivo-titulo {
+	font: var(--type-info);
+	color: var(--text-body);
+}
+
+#TemporadaIdle .te-objetivo.is-concluido .te-objetivo-titulo {
+	color: var(--text-muted);
+	text-decoration: line-through;
+}
+
+#TemporadaIdle .te-objetivo-progresso {
+	display: flex;
+	align-items: center;
+	gap: var(--sp-3);
+}
+
+#TemporadaIdle .te-objetivo-barra {
+	flex: 1 1 auto;
+	height: 6px;
+}
+
+#TemporadaIdle .te-objetivo-barra > .fill {
+	background: var(--sp-fill);
+}
+
+#TemporadaIdle .te-objetivo-numero {
+	flex: 0 0 auto;
+	font: var(--type-desc);
+	color: var(--text-muted);
+	font-variant-numeric: tabular-nums;
+}
+
+#TemporadaIdle .te-objetivo-xp {
+	flex: 0 0 auto;
+	font: var(--type-label);
+	color: var(--gold-700);
+	white-space: nowrap;
+}
+
+#TemporadaIdle .te-objetivo-xp.is-sem-xp {
+	color: var(--text-muted);
+	font-style: italic;
+}
+
+/* ─── A trilha de recompensas (aba Passe de Batalha) ────────────────────
+   Duas fileiras que rolam JUNTAS: FREE em cima (azul/prata), VIP embaixo
+   (creme/dourado) - a diferença precisa ser instantânea (documento §20). */
+
+#TemporadaIdle .te-reward-legenda {
+	display: flex;
+	gap: var(--sp-2);
+}
+
+#TemporadaIdle .te-reward-legenda-item {
+	font: var(--type-badge);
+	text-transform: uppercase;
+	letter-spacing: var(--ls-caps);
+	padding: 2px var(--sp-3);
+	border-radius: var(--radius-pill);
+	border: 1px solid var(--border-hairline);
+}
+
+#TemporadaIdle .te-reward-legenda-item--free {
+	color: var(--blue-700);
+	background: var(--sky-50);
+	border-color: var(--sky-200);
+}
+
+#TemporadaIdle .te-reward-legenda-item--vip {
+	color: var(--gold-700);
+	background: var(--gold-200);
+	border-color: var(--border-gold);
+}
+
+#TemporadaIdle .te-reward-legenda-item--vip.is-bloqueada {
+	color: var(--text-muted);
+	background: var(--surface-inset);
+	border-color: var(--border-hairline);
+	filter: grayscale(1);
+}
+
+#TemporadaIdle .te-reward-scroll {
+	display: flex;
+	gap: var(--sp-3);
+	overflow-x: auto;
+	overflow-y: hidden;
+	padding: var(--sp-2) var(--sp-1) var(--sp-3);
+}
+
+/* `.ri-scroll` (Common.css) so define a espessura da barra VERTICAL
+   (`width`) - aqui a rolagem é horizontal, então a mesma medida entra em
+   `height` para a barra não nascer grossa demais. */
+#TemporadaIdle .te-reward-scroll::-webkit-scrollbar {
+	height: var(--sp-4);
+}
+
+#TemporadaIdle .te-trilha-coluna {
+	flex: 0 0 auto;
+	width: 78px;
 	display: flex;
 	flex-direction: column;
 	align-items: center;
 	gap: var(--sp-2);
+}
+
+#TemporadaIdle .te-trilha-nivel {
+	font: var(--type-badge);
+	color: var(--text-on-accent);
+	background: var(--tab-active-fill);
+	border-radius: var(--radius-pill);
+	padding: 2px var(--sp-3);
+	line-height: 1;
+}
+
+#TemporadaIdle .te-premio-card {
+	position: relative;
+	width: 100%;
+	box-sizing: border-box;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 4px;
 	padding: var(--sp-3) var(--sp-2);
 	border-radius: var(--radius-card);
 	background: var(--surface-card-hover);
 	border: 1px solid var(--border-hairline);
 	box-shadow: var(--shadow-card);
 	text-align: center;
-	min-width: 0;
-	transition: box-shadow var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out);
+	min-height: 108px;
 }
 
-/* Premium: o aro dourado do design system, nunca um efeito novo. */
-#TemporadaIdle .te-marco--premium {
+/*
+ * FREE x VIP - A DIFERENÇA PRECISA SER INSTANTÂNEA (documento §20). A
+ * primeira versão só pintava a trilha VIP (dourada) e deixava a FREE no
+ * cinza neutro do card genérico - a prova de tela mostrou as duas fileiras
+ * quase idênticas, o oposto do que o documento pede. Agora FREE é azul/prata
+ * (o mesmo azul Ragnarok do resto da janela) e VIP é creme/dourado - as duas
+ * cores que já existiam no design system, sem inventar nenhuma nova.
+ */
+#TemporadaIdle .te-premio-card--free {
+	border-color: var(--blue-400);
+	background: linear-gradient(180deg, var(--sky-50) 0%, var(--sky-200) 220%);
+}
+
+#TemporadaIdle .te-premio-card--vip {
 	border-color: var(--border-gold);
-	box-shadow: var(--rim-gold), var(--shadow-card);
 	background: linear-gradient(180deg, var(--white) 0%, var(--gold-200) 220%);
 }
 
-#TemporadaIdle .te-marco--free.is-alcancado {
-	border-color: var(--sky-300);
+/* Um par sem premio (defensivo - o contrato promete os dois lados sempre
+   preenchidos) fica neutro, NUNCA herdando a cor de uma trilha que nao tem
+   conteudo nenhum ali - por isso este bloco vem DEPOIS do free/vip acima. */
+#TemporadaIdle .te-premio-card--vazio {
+	background: var(--surface-inset);
+	border-color: var(--border-hairline);
+	box-shadow: none;
+	border-style: dashed;
 }
 
-#TemporadaIdle .te-marco-topo {
-	display: flex;
-	justify-content: space-between;
-	align-items: center;
-	width: 100%;
-	gap: 2px;
+#TemporadaIdle .te-premio-card.te-nivel--available {
+	border-color: var(--gold-500);
+	box-shadow: var(--glow-gold), var(--rim-light);
 }
 
-#TemporadaIdle .te-marco-nivel {
-	font: var(--type-badge);
-	color: var(--text-on-accent);
-	background: var(--tab-active-fill);
-	border-radius: var(--radius-pill);
-	padding: 2px 6px;
-	min-width: 12px;
-	line-height: 1;
+#TemporadaIdle .te-premio-card.te-nivel--claimed {
+	opacity: 0.7;
 }
 
-#TemporadaIdle .te-marco--premium .te-marco-nivel {
-	background: var(--te-ouro-fill);
-	color: var(--te-ouro-ink);
+#TemporadaIdle .te-premio-card.te-nivel--locked .te-icone {
+	filter: grayscale(1);
+	opacity: 0.6;
 }
 
-#TemporadaIdle .te-marco-trilha {
+#TemporadaIdle .te-premio-card .te-icone {
+	width: 36px;
+	height: 36px;
+}
+
+#TemporadaIdle .te-premio-card-qtd {
+	position: absolute;
+	top: 4px;
+	right: 4px;
 	font: var(--type-badge);
 	font-size: 8px;
-	letter-spacing: var(--ls-caps);
-	text-transform: uppercase;
-	color: var(--text-muted);
+	color: var(--te-ouro-ink);
+	background: var(--te-ouro-fill);
+	border-radius: var(--radius-pill);
+	padding: 1px 5px;
 }
 
-#TemporadaIdle .te-marco--premium .te-marco-trilha {
-	color: var(--gold-700);
-}
-
-#TemporadaIdle .te-marco .te-icone {
-	width: 40px;
-	height: 40px;
-}
-
-#TemporadaIdle .te-marco-nome {
+#TemporadaIdle .te-premio-card-nome {
 	width: 100%;
 	font: var(--type-desc);
+	font-size: 9px;
 	color: var(--text-body);
 	line-height: var(--lh-tight);
 	overflow: hidden;
@@ -524,81 +777,108 @@
 	display: -webkit-box;
 	-webkit-line-clamp: 2;
 	-webkit-box-orient: vertical;
-	/* Duas linhas sempre reservadas: os marcos ficam da mesma altura e o
-	   botão "Resgatar" alinha entre vizinhos. */
 	min-height: calc(var(--fs-desc) * var(--lh-tight) * 2);
 }
 
-#TemporadaIdle .te-marco-estado {
+#TemporadaIdle .te-premio-card-estado {
 	display: inline-flex;
 	align-items: center;
-	gap: 3px;
-	font: var(--type-badge);
-	color: var(--text-muted);
-	padding: 4px 7px;
-	border-radius: var(--radius-pill);
+	justify-content: center;
+	width: 20px;
+	height: 20px;
+	border-radius: 50%;
 	background: var(--surface-inset);
-	white-space: nowrap;
-	max-width: 100%;
-	overflow: hidden;
-	text-overflow: ellipsis;
+	color: var(--text-muted);
 }
 
-#TemporadaIdle .te-marco-estado svg {
+#TemporadaIdle .te-premio-card-estado svg {
 	width: 11px;
 	height: 11px;
-	flex: 0 0 auto;
 }
 
-#TemporadaIdle .te-marco-estado.is-resgatado {
-	color: var(--badge-passiva-ink);
+#TemporadaIdle .te-premio-card-estado.is-resgatado {
 	background: var(--badge-passiva-bg);
+	color: var(--badge-passiva-ink);
 }
 
-#TemporadaIdle .te-marco-resgatar {
+#TemporadaIdle .te-premio-card-resgatar {
 	width: 100%;
-	padding: var(--sp-2) var(--sp-3);
+	padding: 3px var(--sp-2);
 	font: var(--type-badge);
-	font-size: 10px;
-	min-height: 26px;
+	font-size: 9px;
+	min-height: 22px;
 }
 
-/* A situação, decidida pelo servidor: disponível brilha em ouro, resgatado
-   sai do caminho, trancado fica cinza. */
-#TemporadaIdle .te-marco.te-nivel--available {
-	border-color: var(--gold-500);
-	box-shadow: var(--glow-gold), var(--rim-light);
+/* Sem VIP nesta temporada: a fileira de baixo continua visível (o jogador vê
+   o que está perdendo), só esmaecida - nunca escondida (regra 24/25: um
+   disabled não é um card quebrado). */
+#TemporadaIdle .te-reward-scroll.is-sem-vip .te-premio-card--vip {
+	filter: grayscale(0.55);
+	opacity: 0.75;
 }
 
-#TemporadaIdle .te-marco.te-nivel--claimed {
-	opacity: 0.72;
-}
+/* ─── A página Passe de Batalha (aba própria) ───────────────────────────── */
 
-#TemporadaIdle .te-marco.te-nivel--locked .te-icone {
-	filter: grayscale(1);
-	opacity: 0.6;
-}
-
-#TemporadaIdle .te-passe-premium {
+#TemporadaIdle .te-passe-batalha {
 	display: flex;
-	flex-wrap: wrap;
+	flex-direction: column;
+	gap: var(--sp-6);
+}
+
+#TemporadaIdle .te-passe-batalha-topo {
+	display: flex;
 	align-items: center;
-	justify-content: center;
-	gap: var(--sp-3);
-	text-align: center;
+	gap: var(--sp-5);
+	padding: var(--sp-6);
+	border-color: var(--border-gold);
+	background: linear-gradient(160deg, var(--sky-50) 0%, var(--white) 45%, var(--gold-200) 180%);
+	box-shadow: var(--glow-gold), var(--rim-light), var(--shadow-card);
 }
 
-#TemporadaIdle .te-premium-selo {
-	gap: 4px;
-	padding: var(--sp-2) var(--sp-5);
-	font-size: var(--fs-label);
-}
-
-#TemporadaIdle .te-premium-selo svg,
-#TemporadaIdle .te-premium-comprar svg {
-	width: 13px;
-	height: 13px;
+#TemporadaIdle .te-passe-batalha-emblema {
 	flex: 0 0 auto;
+	width: 56px;
+	height: 56px;
+	object-fit: contain;
+}
+
+#TemporadaIdle .te-passe-batalha-topo-info {
+	flex: 1 1 auto;
+	min-width: 0;
+	display: flex;
+	flex-direction: column;
+	gap: var(--sp-2);
+}
+
+#TemporadaIdle .te-passe-batalha-titulo {
+	margin: 0;
+	font: var(--type-hero);
+	font-size: 20px;
+	color: var(--text-title);
+	letter-spacing: var(--ls-title);
+}
+
+#TemporadaIdle .te-passe-batalha-dias {
+	font: var(--type-desc);
+	color: var(--text-muted);
+}
+
+#TemporadaIdle .te-passe-batalha-mascote {
+	flex: 0 0 auto;
+	width: 72px;
+	height: 72px;
+	object-fit: contain;
+}
+
+/* O divisor ornamentado, com parcimônia (documento §30): UMA vez, entre o
+   cabeçalho de progresso e as missões - nunca repetido entre cada seção. */
+#TemporadaIdle .te-ornamento-divisor {
+	height: 20px;
+	background-image: url('/ragidle/temporada/ornamento-divisor.webp');
+	background-repeat: no-repeat;
+	background-position: center;
+	background-size: contain;
+	opacity: 0.85;
 }
 
 /* ─── As caixas em resumo (Destaques) ──────────────────────────────────── */
@@ -621,7 +901,9 @@
 	color: inherit;
 	font: inherit;
 	min-width: 0;
-	transition: background var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out);
+	transition:
+		background var(--dur-fast) var(--ease-out),
+		box-shadow var(--dur-fast) var(--ease-out);
 }
 
 #TemporadaIdle .te-resumo-caixa:hover,
@@ -639,6 +921,12 @@
 #TemporadaIdle .te-resumo-caixa-glifo svg {
 	width: 18px;
 	height: 18px;
+}
+
+#TemporadaIdle .te-resumo-caixa-glifo-img {
+	width: 20px;
+	height: 20px;
+	object-fit: contain;
 }
 
 #TemporadaIdle .te-resumo-caixa-texto,
@@ -750,6 +1038,12 @@
 #TemporadaIdle .te-caixa-glifo svg {
 	width: 22px;
 	height: 22px;
+}
+
+#TemporadaIdle .te-caixa-glifo-img {
+	width: 28px;
+	height: 28px;
+	object-fit: contain;
 }
 
 #TemporadaIdle .te-caixa-info {
@@ -998,13 +1292,18 @@
 
 /* O "ri-tile" do ícone também ganha o aro da raridade quando está dentro de
    uma linha de prêmio — reaproveita o vocabulário existente
-   (.ri-tile.is-unique já é dourado) e soma só o roxo que falta. */
-#TemporadaIdle .te-premio-linha:has(.te-raridade--rare) .te-icone {
+   (.ri-tile.is-unique já é dourado) e soma só o roxo que falta.
+
+   QUEM DIZ A RARIDADE AGORA É O GRUPO (22/09/2026): o selo saiu de dentro da
+   linha e virou o título da categoria, então um ":has(.te-raridade--rare)" na
+   linha não acha mais nada. O aro passa a sair do "data-raridade" da seção -
+   o token do servidor, o mesmo que já viajava no pacote. */
+#TemporadaIdle .te-premio-grupo[data-raridade='RARE'] .te-icone {
 	border-color: var(--te-rare);
 	box-shadow: var(--te-rare-glow);
 }
 
-#TemporadaIdle .te-premio-linha:has(.te-raridade--legendary) .te-icone {
+#TemporadaIdle .te-premio-grupo[data-raridade='LEGENDARY'] .te-icone {
 	border-color: var(--gold-500);
 	box-shadow: var(--glow-gold), var(--rim-light);
 }
@@ -1017,6 +1316,20 @@
 	position: absolute;
 	inset: 0;
 	z-index: 20;
+	/*
+	 * O CLIQUE PRECISA VOLTAR AQUI (relato do dono, 22/09/2026).
+	 *
+	 * O ":host" e "pointer-events: none" para a janela FECHADA nao engolir
+	 * clique de cena, e quem reacende o ponteiro era so o ".te-window". Os
+	 * modais sao IRMAOS dela, nao filhos: nasciam sem ponteiro, apareciam na
+	 * tela e o clique atravessava para a janela ATRAS deles.
+	 *
+	 * Os tres relatos da reuniao eram este um defeito: o "Ver conteudo" abria
+	 * e o X nao fechava, a confirmacao da compra subia sem deixar confirmar, e
+	 * "qualquer janela aberta dentro do passe fica travada" - travada porque o
+	 * clique caia na janela de tras.
+	 */
+	pointer-events: auto;
 	display: none;
 	align-items: center;
 	justify-content: center;
@@ -1081,7 +1394,9 @@
 #TemporadaIdle .te-premios {
 	display: flex;
 	flex-direction: column;
-	gap: var(--sp-3);
+	/* Entre GRUPOS o respiro é maior que entre linhas do mesmo grupo - é o que
+	   faz a separação por categoria ser lida como separação. */
+	gap: var(--sp-6);
 }
 
 #TemporadaIdle .te-premio-linha {
@@ -1121,11 +1436,31 @@
 	color: var(--text-muted);
 }
 
-#TemporadaIdle .te-premio-chance {
-	flex: 0 0 auto;
-	font: var(--type-numeric);
-	color: var(--text-title);
-	font-variant-numeric: tabular-nums;
+/* ─── Os grupos por categoria do "Ver conteúdo" ────────────────────────
+   Substituíram a coluna ".te-premio-chance", que saiu com a porcentagem
+   (decisão do dono, 22/09/2026). */
+
+#TemporadaIdle .te-premio-grupo {
+	display: flex;
+	flex-direction: column;
+	gap: var(--sp-2);
+}
+
+#TemporadaIdle .te-premio-grupo-cab {
+	display: flex;
+	align-items: center;
+	gap: var(--sp-2);
+}
+
+#TemporadaIdle .te-premio-grupo-conta {
+	font: var(--type-desc);
+	color: var(--text-muted);
+}
+
+#TemporadaIdle .te-premio-grupo-itens {
+	display: flex;
+	flex-direction: column;
+	gap: var(--sp-2);
 }
 
 #TemporadaIdle .te-confirmar-texto {
@@ -1144,13 +1479,26 @@
 	flex: 1 1 auto;
 }
 
-/* ─── Passe Semanal e VIP (o que veio da janela de Recompensas) ────────── */
+/* ─── VIP (a compra veio da janela de Recompensas) ──────────────────────── */
 
-#TemporadaIdle .te-semanal,
 #TemporadaIdle .te-vip {
 	display: flex;
 	flex-direction: column;
+	align-items: center;
 	gap: var(--sp-6);
+}
+
+#TemporadaIdle .te-vip > * {
+	width: 100%;
+}
+
+/* O emblema grande no topo (`vip-emblema.webp`) - documento §23: "NÃO deve
+   ser usado como simples ícone de tab... use como elemento de destaque". */
+#TemporadaIdle .te-vip-emblema {
+	width: auto;
+	height: 108px;
+	object-fit: contain;
+	filter: drop-shadow(0 4px 10px rgba(12, 34, 64, 0.25));
 }
 
 /* A VITRINE: o cartão de topo que carrega o preço. É o único elemento com
@@ -1172,7 +1520,12 @@
 	content: '';
 	position: absolute;
 	inset: 0;
-	background: linear-gradient(100deg, rgba(255, 255, 255, 0) 30%, rgba(255, 255, 255, 0.55) 50%, rgba(255, 255, 255, 0) 70%);
+	background: linear-gradient(
+		100deg,
+		rgba(255, 255, 255, 0) 30%,
+		rgba(255, 255, 255, 0.55) 50%,
+		rgba(255, 255, 255, 0) 70%
+	);
 	transform: translateX(-100%);
 	animation: te-brilho 900ms var(--ease-out) 120ms 1;
 	pointer-events: none;
@@ -1252,84 +1605,6 @@
 #TemporadaIdle .te-vitrine-vigencia-texto {
 	font: var(--type-label);
 	color: var(--text-body);
-}
-
-/* A trilha dos sete dias. */
-#TemporadaIdle .te-trilha {
-	display: grid;
-	grid-template-columns: repeat(auto-fit, minmax(82px, 1fr));
-	gap: var(--sp-3);
-}
-
-#TemporadaIdle .te-dia {
-	position: relative;
-	display: flex;
-	flex-direction: column;
-	align-items: center;
-	gap: var(--sp-2);
-	padding: var(--sp-4) var(--sp-2);
-	border-radius: var(--radius-card);
-	background: var(--surface-card);
-	border: 1px solid var(--border-hairline);
-	box-shadow: var(--shadow-card);
-	text-align: center;
-}
-
-/* Já entregue: o dia sai do caminho visualmente - não é mais uma promessa. */
-#TemporadaIdle .te-dia.is-entregue {
-	background: var(--surface-inset);
-	box-shadow: none;
-	opacity: 0.72;
-}
-
-/* Hoje: o único com aro de acento, para o olho achar sem procurar. */
-#TemporadaIdle .te-dia.is-hoje {
-	border-color: var(--accent);
-	box-shadow: var(--glow-accent), var(--rim-light);
-}
-
-/* O sétimo é o prêmio de terminar a semana - ouro, como o botão. */
-#TemporadaIdle .te-dia.is-premio {
-	border-color: var(--gold-500);
-	background: linear-gradient(180deg, var(--white) 0%, var(--gold-200) 180%);
-}
-
-#TemporadaIdle .te-dia-num {
-	font: var(--type-badge);
-	color: var(--text-muted);
-	text-transform: uppercase;
-	letter-spacing: var(--ls-caps);
-}
-
-#TemporadaIdle .te-dia-cash {
-	font: var(--type-numeric);
-	color: var(--gold-700);
-	font-variant-numeric: tabular-nums;
-}
-
-#TemporadaIdle .te-dia-item {
-	font: var(--type-desc);
-	color: var(--text-muted);
-	line-height: var(--lh-tight);
-}
-
-#TemporadaIdle .te-dia-check {
-	position: absolute;
-	top: 4px;
-	right: 4px;
-	width: 16px;
-	height: 16px;
-	border-radius: 50%;
-	background: var(--green-600);
-	color: var(--white);
-	display: inline-flex;
-	align-items: center;
-	justify-content: center;
-}
-
-#TemporadaIdle .te-dia-check svg {
-	width: 10px;
-	height: 10px;
 }
 
 /* O rodapé de compra. Sem saldo o botão continua legível, mas não convida
@@ -1412,7 +1687,9 @@
 
 /* O CARD DO VISUAL DO VIP (a Astra Blessing). Ele nasceu em 21/09/2026: a
    prova de tela mostrou o beneficio como linha de lista, sem botao, com o
-   verbo `resgatar-visual-vip` ja vivo no servidor. */
+   verbo `resgatar-visual-vip` ja vivo no servidor. Desde 22/09/2026 usa o
+   `icone-astra-blessing.webp` dedicado (documento §7/§23), nunca o fallback
+   de inicial - é a única recompensa da janela com arte própria. */
 #TemporadaIdle .te-vip-visual {
 	display: flex;
 	align-items: center;
@@ -1422,9 +1699,58 @@
 	background: linear-gradient(180deg, var(--white) 0%, var(--gold-200) 260%);
 }
 
-#TemporadaIdle .te-vip-visual .te-icone {
+/* Bloqueado: a arte fica dessaturada, do mesmo jeito que um botão desabilita
+   (regra 25) - nunca escondida. */
+#TemporadaIdle .te-vip-visual.is-bloqueado {
+	background: var(--surface-card);
+	border-color: var(--border-hairline);
+}
+
+#TemporadaIdle .te-vip-visual-icone {
+	position: relative;
+	flex: 0 0 auto;
+	display: inline-flex;
+}
+
+#TemporadaIdle .te-vip-visual-icone img {
 	width: 44px;
 	height: 44px;
+	object-fit: contain;
+}
+
+#TemporadaIdle .te-vip-visual.is-bloqueado .te-vip-visual-icone img {
+	filter: grayscale(1);
+	opacity: 0.55;
+}
+
+/* O selo de ESTADO (disponível/resgatado/bloqueado - documento §23), sempre
+   sobre o MESMO ícone - nunca um segundo asset por estado. */
+#TemporadaIdle .te-vip-visual-selo {
+	position: absolute;
+	right: -4px;
+	bottom: -4px;
+	width: 18px;
+	height: 18px;
+	border-radius: 50%;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	border: 2px solid var(--white);
+}
+
+#TemporadaIdle .te-vip-visual-selo svg {
+	width: 10px;
+	height: 10px;
+}
+
+#TemporadaIdle .te-vip-visual-selo.is-resgatado {
+	background: var(--green-600);
+	color: var(--white);
+}
+
+#TemporadaIdle .te-vip-visual-selo.is-bloqueado {
+	background: var(--surface-inset);
+	color: var(--text-muted);
 }
 
 #TemporadaIdle .te-vip-visual-texto {
@@ -1453,6 +1779,9 @@
 	position: absolute;
 	inset: 0;
 	z-index: 30;
+	/* Mesma razao do ".te-modal" logo acima: sem isto o "Fechar" do reveal e o
+	   clique no fundo nao fechavam nada, e so o timer dispensava a tela. */
+	pointer-events: auto;
 	display: none;
 	align-items: center;
 	justify-content: center;
@@ -1597,7 +1926,9 @@
 	opacity: 0;
 	pointer-events: none;
 	z-index: 40;
-	transition: opacity var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-out);
+	transition:
+		opacity var(--dur-fast) var(--ease-out),
+		transform var(--dur-fast) var(--ease-out);
 }
 
 #TemporadaIdle .te-aviso.is-visivel {
@@ -1617,10 +1948,9 @@
 	#TemporadaIdle .te-caixa-acoes .ri-btn,
 	#TemporadaIdle .te-comprar-passe,
 	#TemporadaIdle .te-vip-resgatar,
-	#TemporadaIdle .te-premium-comprar,
-	#TemporadaIdle .te-marco-resgatar,
 	#TemporadaIdle .te-resumo-caixa,
 	#TemporadaIdle .te-atalho,
+	#TemporadaIdle .te-chamada-passe,
 	#TemporadaIdle .te-confirmar-acoes .ri-btn,
 	#TemporadaIdle .te-reveal-fechar {
 		min-height: var(--hit-touch);
@@ -1665,26 +1995,6 @@
 		min-height: 96px;
 	}
 
-	#TemporadaIdle .te-banner-linha--tema {
-		font-size: 20px;
-	}
-
-	#TemporadaIdle .te-banner-eclipse {
-		width: 70px;
-		height: 70px;
-		right: 8px;
-	}
-
-	/* Quatro marcos por linha: os 8 viram duas linhas, sem rolagem lateral. */
-	#TemporadaIdle .te-marcos {
-		grid-template-columns: repeat(4, minmax(0, 1fr));
-		gap: var(--sp-2);
-	}
-
-	#TemporadaIdle .te-marco {
-		padding: var(--sp-2);
-	}
-
 	/* Uma coluna para as caixas em resumo e para os atalhos: em duas, a legenda
 	   "3 fechadas · Máscara do Senhor das Trevas" virava "3 fechadas · Másca..."
 	   (medido na sonda de 22/09/2026, 393px). */
@@ -1709,10 +2019,6 @@
 		grid-template-columns: 1fr;
 	}
 
-	#TemporadaIdle .te-trilha {
-		grid-template-columns: repeat(4, minmax(0, 1fr));
-	}
-
 	#TemporadaIdle .te-modal-corpo {
 		padding: var(--sp-4);
 	}
@@ -1724,5 +2030,43 @@
 	#TemporadaIdle .te-vitrine-nome,
 	#TemporadaIdle .te-vitrine-preco-valor {
 		font-size: 20px;
+	}
+
+	/* A chamada do Passe de Batalha e o topo da propria aba empilham no
+	   celular - o mascote/emblema perde a fileira ao lado do texto. */
+	#TemporadaIdle .te-chamada-passe {
+		flex-wrap: wrap;
+	}
+
+	#TemporadaIdle .te-chamada-passe-botao {
+		width: 100%;
+		justify-content: center;
+	}
+
+	#TemporadaIdle .te-passe-batalha-topo {
+		flex-wrap: wrap;
+		justify-content: center;
+		text-align: center;
+	}
+
+	#TemporadaIdle .te-passe-batalha-topo-info {
+		width: 100%;
+		align-items: center;
+	}
+
+	#TemporadaIdle .te-passe-batalha-mascote {
+		display: none;
+	}
+
+	#TemporadaIdle .te-vip-emblema {
+		height: 84px;
+	}
+
+	#TemporadaIdle .te-trilha-coluna {
+		width: 68px;
+	}
+
+	#TemporadaIdle .te-premio-card {
+		min-height: 92px;
 	}
 }

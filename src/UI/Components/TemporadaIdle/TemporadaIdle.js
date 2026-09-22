@@ -26,10 +26,10 @@
  * no ZC ou em 10s sem resposta)
  * ---------------------------------------------------------------------------
  * `_trava` (criarTrava(), em formatoDaTemporada.js) é UMA trava para TODAS as
- * ações (comprar-caixa/abrir-caixa/resgatar/comprar-premium/resgatar-visual-
- * vip e, desde 21/09/2026, comprar-passe), não uma por botão: dois cliques em
- * botões DIFERENTES enquanto a primeira ação ainda não voltou cobrariam duas
- * vezes do mesmo jeito que dois cliques no mesmo botão cobrariam - o servidor
+ * ações (comprar-caixa/abrir-caixa/resgatar/resgatar-visual-vip e, desde
+ * 21/09/2026, comprar-passe), não uma por botão: dois cliques em botões
+ * DIFERENTES enquanto a primeira ação ainda não voltou cobrariam duas vezes
+ * do mesmo jeito que dois cliques no mesmo botão cobrariam - o servidor
  * aceitaria as duas, e as duas seriam válidas.
  *
  * ---------------------------------------------------------------------------
@@ -49,6 +49,17 @@
  * `ZC_RAGIDLE_PASSE`, a janela de Recompensas ficava em "Carregando..." para
  * sempre, porque o estado dela nunca chegava. Foi para producao em 21/09/2026.
  * Ha portao no servidor: `servidor/protocolo/um-dono-por-pacote.test.ts`.
+ *
+ * ---------------------------------------------------------------------------
+ * O REDESENHO PREMIUM DE 22/09/2026 (contrato V2 - `CONTRATO-TEMPORADA-V2.md`)
+ * ---------------------------------------------------------------------------
+ * O `ZC_RAGIDLE_TEMPORADA` sobe para `v: 2`: o bloco `passe` troca de forma
+ * (XP em vez de pontos, VIP em vez de Premium comprado) e ganha missoes
+ * diarias/semanais. O Passe de Batalha volta a ser ABA PROPRIA (nao mais
+ * encolhido dentro dos Destaques) e o Passe Semanal sai do catalogo por
+ * completo - decisao do dono. `ABAS` e `onTemporadaRecebida` sao os dois
+ * pontos que mudam de forma aqui; o resto (trava, modais, reveal, pacotes de
+ * saida) continua igual.
  *
  * @author RagIdle
  */
@@ -75,11 +86,12 @@ import {
 	dataCurta,
 	gerarChave,
 	passePorTipo,
+	renderBannerDasCaixasHtml,
 	renderCaixaHtml,
 	renderDestaquesHtml,
 	renderModalConteudoHtml,
+	renderPasseDeBatalhaHtml,
 	renderRevealHtml,
-	renderSemanalHtml,
 	renderVipHtml,
 	textoDoSeloVip
 } from './formatoDaTemporada.js';
@@ -101,20 +113,26 @@ TemporadaIdle.render = () => htmlText;
 /** Janela fechada não pode engolir clique de cena. */
 TemporadaIdle.mouseMode = GUIComponent.MouseMode.CROSS;
 
-/** O último estado inteiro que o servidor mandou (contrato v1). */
+/** O último estado inteiro que o servidor mandou (contrato v2). */
 TemporadaIdle.estado = null;
 
 /** O último estado do PASSE (0x0fe5), recebido por `PasseIdle.aoReceberEstado`. */
 TemporadaIdle.estadoDoPasse = null;
 
 /*
- * AS QUATRO ABAS (21/09/2026): Destaques (com o passe compacto), Caixas, o
- * Passe Semanal e o VIP. A aba "Passe" saiu - a progressao mora nos Destaques
- * por ordem do dono - e o VIP e UMA aba onde eram duas (a desta janela e a das
- * Recompensas), porque as duas descreviam o mesmo produto por angulos
+ * AS QUATRO ABAS (22/09/2026, contrato V2 - `CONTRATO-TEMPORADA-V2.md`):
+ * Destaques, Caixas, Passe de Batalha e VIP.
+ *
+ * O Passe Semanal SAIU - decisao do dono, desativada por completo (o
+ * servidor recusa a compra e para de entregar o cashback diario; nada e
+ * apagado do estado do jogador, so deixa de ser honrado). O Passe de
+ * Batalha VOLTOU a ser aba propria - tinha sido fundida nos Destaques em
+ * 21/09/2026, e o documento de redesenho e explicito: nao fundir, nao
+ * esconder. O VIP continua sendo UMA aba onde eram duas (a desta janela e a
+ * das Recompensas) - as duas descreviam o mesmo produto por angulos
  * diferentes: o que ele da, e como se compra.
  */
-const ABAS = ['destaques', 'caixas', 'semanal', 'vip'];
+const ABAS = ['destaques', 'caixas', 'passe', 'vip'];
 const ABA_PADRAO = 'destaques';
 
 TemporadaIdle.activeTab = ABA_PADRAO;
@@ -165,7 +183,7 @@ function melhorarIcones(escopo) {
 	if (!escopo || typeof escopo.querySelectorAll !== 'function') {
 		return;
 	}
-	escopo.querySelectorAll('.te-icone[data-item-id]').forEach((el) => {
+	escopo.querySelectorAll('.te-icone[data-item-id]').forEach(el => {
 		if (el.dataset.melhorado) {
 			return;
 		}
@@ -175,7 +193,7 @@ function melhorarIcones(escopo) {
 			return;
 		}
 
-		const pintar = (url) => {
+		const pintar = url => {
 			if (!url) {
 				return;
 			}
@@ -331,7 +349,7 @@ function fecharModais() {
 	if (!root) {
 		return;
 	}
-	root.querySelectorAll('.te-modal').forEach((modal) => {
+	root.querySelectorAll('.te-modal').forEach(modal => {
 		modal.hidden = true;
 	});
 	_executarAoConfirmar = null;
@@ -339,7 +357,7 @@ function fecharModais() {
 
 function caixaPorPool(pool) {
 	const lista = (TemporadaIdle.estado && TemporadaIdle.estado.caixas) || [];
-	return lista.find((c) => c && c.pool === pool) || null;
+	return lista.find(c => c && c.pool === pool) || null;
 }
 
 function abrirModalConteudo(pool) {
@@ -358,7 +376,7 @@ function abrirModalConteudo(pool) {
 	modal.hidden = false;
 }
 
-/** Confirmação antes de gastar cash - caixa, Premium, Passe Semanal e VIP. */
+/** Confirmação antes de gastar cash - caixa e VIP. */
 function abrirConfirmacao(texto, executar) {
 	const root = _root();
 	const modal = root && root.querySelector('.te-modal--confirmar');
@@ -480,24 +498,19 @@ function onClicarAcao(botao) {
 		enviarAcao({ acao: 'resgatar-visual-vip' });
 		return;
 	}
-	if (agir === 'comprar-premium') {
-		const estado = TemporadaIdle.estado;
-		const preco = estado && estado.passe ? estado.passe.precoPremium : null;
-		abrirConfirmacao(preco === null ? 'Comprar o Passe Premium?' : `Comprar o Passe Premium por ${preco} RO Cash?`, () =>
-			enviarAcao({ acao: 'comprar-premium' })
-		);
-		return;
-	}
 	if (agir === 'comprar-passe') {
+		/* Desde 22/09/2026 so existe UM tipo compravel por este verbo: o VIP
+		   de 30 dias. O Passe Semanal saiu do catalogo (contrato V2) e o
+		   Passe Premium nao existe mais (a segunda trilha do Passe de
+		   Batalha e o proprio VIP). */
 		const tipo = botao.dataset.tipo;
-		if (tipo !== 'vip' && tipo !== 'semanal') {
+		if (tipo !== 'vip') {
 			return;
 		}
 		const passe = passePorTipo(TemporadaIdle.estadoDoPasse, tipo);
-		const nome = tipo === 'vip' ? 'VIP' : 'Passe Semanal';
 		const verbo = passe && passe.ativo ? 'Renovar' : 'Comprar';
 		const preco = passe ? `${passe.cash} cash` : '';
-		abrirConfirmacao(`${verbo} o ${nome}${preco ? ` por ${preco}` : ''}?`, () => enviarCompraDePasse(tipo));
+		abrirConfirmacao(`${verbo} o VIP${preco ? ` por ${preco}` : ''}?`, () => enviarCompraDePasse(tipo));
 	}
 }
 
@@ -517,8 +530,8 @@ function onClickRaiz(e) {
 		return;
 	}
 
-	/* Os atalhos dos Destaques (caixas em resumo, Passe Semanal, VIP) so
-	   TROCAM DE ABA - nunca disparam acao. */
+	/* Os atalhos dos Destaques (chamada do Passe de Batalha, caixas em
+	   resumo, Caixas, VIP) so TROCAM DE ABA - nunca disparam acao. */
 	const ir = e.target.closest('[data-ir]');
 	if (ir) {
 		e.stopImmediatePropagation();
@@ -577,7 +590,7 @@ function render() {
 	const estado = TemporadaIdle.estado;
 	const estadoDoPasse = TemporadaIdle.estadoDoPasse;
 
-	root.querySelectorAll('.te-tab').forEach((btn) => {
+	root.querySelectorAll('.te-tab').forEach(btn => {
 		btn.classList.toggle('is-active', btn.dataset.tab === TemporadaIdle.activeTab);
 	});
 
@@ -608,23 +621,22 @@ function render() {
 	}
 	corpo.dataset.aba = TemporadaIdle.activeTab;
 
-	/* A aba Semanal so depende do estado do PASSE - ela nao espera o da
-	   Temporada para desenhar (e vice-versa nas outras). */
-	if (TemporadaIdle.activeTab === 'semanal') {
-		corpo.innerHTML = renderSemanalHtml(estadoDoPasse);
-		return;
-	}
+	/* Desde que o Passe Semanal saiu (22/09/2026) TODAS as abas dependem do
+	   estado da Temporada (0x0fbb) - so a compra do VIP, dentro da aba VIP,
+	   ainda depende tambem do estado do Passe (0x0fe5). */
 	if (!estado) {
 		corpo.innerHTML = '<div class="te-carregando">Carregando…</div>';
 		return;
 	}
 
 	if (TemporadaIdle.activeTab === 'caixas') {
-		corpo.innerHTML = `<div class="te-caixas-grade">${(estado.caixas || []).map(renderCaixaHtml).join('')}</div>`;
+		corpo.innerHTML = `${renderBannerDasCaixasHtml()}<div class="te-caixas-grade">${(estado.caixas || []).map(renderCaixaHtml).join('')}</div>`;
+	} else if (TemporadaIdle.activeTab === 'passe') {
+		corpo.innerHTML = renderPasseDeBatalhaHtml(estado.passe);
 	} else if (TemporadaIdle.activeTab === 'vip') {
 		corpo.innerHTML = renderVipHtml(estado.vip, estadoDoPasse);
 	} else {
-		corpo.innerHTML = renderDestaquesHtml(estado, estadoDoPasse);
+		corpo.innerHTML = renderDestaquesHtml(estado);
 	}
 	melhorarIcones(corpo);
 }
@@ -729,7 +741,13 @@ function onTemporadaRecebida(pkt) {
 		console.error('[TemporadaIdle] payload nao e JSON valido', err);
 		return;
 	}
-	if (!dados || dados.v !== 1) {
+	/* O contrato sobe para v2 em 22/09/2026 (CONTRATO-TEMPORADA-V2.md): o
+	   bloco `passe` troca de forma (XP em vez de pontos, VIP em vez de
+	   Premium). Um payload de versao diferente e ignorado, do mesmo jeito
+	   que o v1 ja ignorava payload de formato desconhecido - a janela so
+	   redesenha quando o formato bate com o que ela sabe ler, nunca tenta
+	   adivinhar um campo que mudou de nome. */
+	if (!dados || dados.v !== 2) {
 		return;
 	}
 	destravarBotoes();
@@ -770,9 +788,11 @@ function onPasseMudou(dados) {
 
 	const comprou = dados && dados.comprou;
 	if (comprou && comprou.ok) {
+		/* Desde 22/09/2026 o unico tipo que esta janela manda para
+		   `comprar-passe` e 'vip' - o Passe Semanal saiu do catalogo (ver o
+		   cabecalho). */
 		const passe = passePorTipo(dados, comprou.tipo);
-		const nome = comprou.tipo === 'vip' ? 'VIP' : 'Passe Semanal';
-		mostrarAviso(`${nome} ativo até ${dataCurta(passe && passe.expiraEm)}.`, false);
+		mostrarAviso(`VIP ativo até ${dataCurta(passe && passe.expiraEm)}.`, false);
 		if (comprou.tipo === 'vip' && janelaEstaAberta()) {
 			pedirEstado();
 		}
