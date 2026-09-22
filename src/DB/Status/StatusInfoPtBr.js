@@ -238,6 +238,14 @@ const PT_BR = {
 	/* -------- o evento de EXP do servidor (D-1376, 13/09/2026) -------- */
 	'EXP Event': 'Evento de EXP',
 	'Increases acquired EXP': 'Mais EXP de todos os monstros',
+
+	/* -------- os boosts do RO Shop (22/09/2026): Bencao e os dois Manuais -------- */
+	'Fortune Blessing': 'Bênção da Fortuna',
+	'Increases the drop chance of common items': 'Mais chance de drop de itens comuns',
+	'Job EXP Manual': 'Manual de Experiência de Classe',
+	'Increases Job EXP acquired.': 'Mais EXP de classe',
+	'EXP Manual': 'Manual de Experiência',
+	'Increases acquired Base EXP': 'Mais EXP de base'
 };
 
 /**

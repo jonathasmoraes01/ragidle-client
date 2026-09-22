@@ -183,7 +183,58 @@ export const NOMES_LOCAIS = {
 	9000322: 'Ghost Effect', // catalogo-s1.ts, Passe Premium 30
 	9000323: 'Ancient Resonance', // catalogo-s1.ts, Passe Premium 45
 	9000324: 'Rune-Midgarts Glory', // catalogo-s1.ts, Passe Premium 50
-	9000325: 'Astra Blessing' // catalogo-s1.ts, VIP
+	9000325: 'Astra Blessing', // catalogo-s1.ts, VIP
+
+	// --- Rodada 9: os 11 CONSUMIVEIS DO RO SHOP (22/09/2026) ---
+	//
+	// Ids NOSSOS (`game/itens-custom.ts`, faixa 9.000.100-9.000.199 dos
+	// consumiveis de cash), como os visuais da Rodada 8: tabela nenhuma do GRF
+	// os tem. Os dois Manuais ja existiam no jogo e tambem chegavam a mochila
+	// como "Item desconhecido"; os outros nove nasceram com o RO Shop (contrato
+	// do canal, secao 7). Cada nome e o campo `name` de `itens-custom.ts`.
+	//
+	// ATENCAO ao cruzamento de `tests/db/nomesLocais.test.js`: os ids
+	// 9.000.102-110 so existem no `conteudo.json` do jogo DEPOIS de ele ser
+	// regerado com a branch do RO Shop (BLOCKERS B-RS-08 do servidor). Contra
+	// um pacote anterior o cruzamento reprova apontando os nove - e o aviso
+	// certo: o item ainda nao esta no jogo.
+	9000100: 'Manual de Experiência', // itens-custom.ts (Manual_De_Experiencia)
+	9000101: 'Manual de Experiência de Classe', // itens-custom.ts (Manual_De_Experiencia_De_Classe)
+	9000102: 'Bênção da Fortuna', // itens-custom.ts (Bencao_Da_Fortuna)
+	9000103: 'Pack Poção Azul', // itens-custom.ts (Pack_Pocao_Azul)
+	9000104: 'Pack Poção Branca', // itens-custom.ts (Pack_Pocao_Branca)
+	9000105: 'Pack Sobrevivência', // itens-custom.ts (Pack_Sobrevivencia)
+	9000106: 'Pack Viagem', // itens-custom.ts (Pack_Viagem)
+	9000107: 'Pack Farm', // itens-custom.ts (Pack_Farm)
+	9000108: 'Pack Up', // itens-custom.ts (Pack_Up)
+	9000109: 'Pack Completo de Farm', // itens-custom.ts (Pack_Completo_De_Farm)
+	9000110: 'Pack de Treino' // itens-custom.ts (Pack_De_Treino)
+};
+
+/**
+ * AS DESCRICOES DOS CONSUMIVEIS DO RO SHOP (Rodada 9, 22/09/2026).
+ *
+ * O cabecalho deste arquivo deixa a descricao de fora porque "descricao
+ * inventada e pior que '...'". Estas NAO sao inventadas: sao as do documento
+ * do dono do item no servidor (`docs/ro-shop/ITEM_IMPLEMENTATION.md`, secao 3,
+ * do Agente 1; a dos Manuais sai da tabela 2 do mesmo documento), com o fecho
+ * que os Manuais ja usam. So vale onde o GRF nao trouxe a dele
+ * (`completarFicha`).
+ */
+const FECHO_DE_CASH = 'Não pode ser negociado nem vendido a NPCs. Pode ser guardado no armazém.';
+
+export const DESCRICOES_LOCAIS = {
+	9000100: `Aumenta em 25% a EXP de base ganha por 1 hora.\n${FECHO_DE_CASH}`,
+	9000101: `Aumenta em 25% a EXP de classe ganha por 1 hora.\n${FECHO_DE_CASH}`,
+	9000102: `Uma bênção que atrai a sorte. Aumenta em 20% a chance de itens comuns caírem de monstros comuns por 1 hora. Não vale para cartas, MVPs nem monstros raros. Usar outra enquanto ativa estende a duração.\n${FECHO_DE_CASH}`,
+	9000103: `Um pack selado. Ao usar, entrega 1000 Poções Azuis.\n${FECHO_DE_CASH}`,
+	9000104: `Um pack selado. Ao usar, entrega 500 Poções Brancas.\n${FECHO_DE_CASH}`,
+	9000105: `Um pack selado. Ao usar, entrega 1000 Poções Azuis e 500 Poções Brancas.\n${FECHO_DE_CASH}`,
+	9000106: `Um pack selado. Ao usar, entrega 500 Asas de Mosca e 100 Asas de Borboleta.\n${FECHO_DE_CASH}`,
+	9000107: `Um pack selado. Ao usar, entrega 500 Poções Brancas, 1000 Poções Azuis e 1 Bênção da Fortuna.\n${FECHO_DE_CASH}`,
+	9000108: `Um pack selado. Ao usar, entrega 500 Poções Brancas, 1000 Poções Azuis, 1 Manual de Experiência e 1 Manual de Experiência de Classe.\n${FECHO_DE_CASH}`,
+	9000109: `Um pack selado. Ao usar, entrega 500 Poções Brancas, 1000 Poções Azuis, os dois Manuais e 1 Bênção da Fortuna.\n${FECHO_DE_CASH}`,
+	9000110: `Um pack selado. Ao usar, entrega 1 Manual de Experiência, 1 Manual de Experiência de Classe e 1 Bênção da Fortuna.\n${FECHO_DE_CASH}`
 };
 
 /**

@@ -46,7 +46,7 @@
  * que ela passa estao no cabecalho de `ICONES_LOCAIS` (`nomesLocais.js`).
  */
 
-import { ICONES_LOCAIS, NOMES_LOCAIS } from './nomesLocais.js';
+import { DESCRICOES_LOCAIS, ICONES_LOCAIS, NOMES_LOCAIS } from './nomesLocais.js';
 
 /** A ficha de quem nao esta na tabela. `\xbb\xe7\xb0\xfa` e o sprite de sobra do cliente. */
 export const unknownItem = {
@@ -78,10 +78,16 @@ export function completarFicha(itemid, ficha) {
 		const nomeLocal = NOMES_LOCAIS[itemid];
 		if (nomeLocal !== undefined) {
 			const ficheiroDoIcone = ICONES_LOCAIS[itemid];
+			const descricaoLocal = DESCRICOES_LOCAIS[itemid];
 			return {
 				...unknownItem,
 				identifiedDisplayName: nomeLocal,
 				unidentifiedDisplayName: nomeLocal,
+				// A descricao documentada dos consumiveis do RO Shop (Rodada 9).
+				...(descricaoLocal !== undefined && {
+					identifiedDescriptionName: descricaoLocal,
+					unidentifiedDescriptionName: descricaoLocal
+				}),
 				// So o lado IDENTIFICADO: ver o cabecalho de ICONES_LOCAIS —
 				// o icone nao-identificado de todo cosmetico e o capuz
 				// generico, e nao o do item.
@@ -115,8 +121,8 @@ export function completarFicha(itemid, ficha) {
 		// String e nao array: `getItemInfo` ja passou o bloco que junta as
 		// linhas quando esta funcao roda, entao devolver array aqui poria um
 		// `['...']` cru na caixa de descricao.
-		identifiedDescriptionName: ficha.identifiedDescriptionName ?? '...',
-		unidentifiedDescriptionName: ficha.unidentifiedDescriptionName ?? '...',
+		identifiedDescriptionName: ficha.identifiedDescriptionName ?? DESCRICOES_LOCAIS[itemid] ?? '...',
+		unidentifiedDescriptionName: ficha.unidentifiedDescriptionName ?? DESCRICOES_LOCAIS[itemid] ?? '...',
 		slotCount: ficha.slotCount ?? 0
 	};
 }

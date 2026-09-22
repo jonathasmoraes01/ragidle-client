@@ -116,7 +116,7 @@ describe('a lista aponta so para item que o jogo conhece', () => {
 		).toEqual([]);
 	});
 
-	it('sao exatamente os 50 que sobraram das oito rodadas — crescimento passa por aqui', () => {
+	it('sao exatamente os 61 que sobraram das nove rodadas — crescimento passa por aqui', () => {
 		/*
 		 * Nao e um pino por vaidade: um id somado sem passar pelo cruzamento
 		 * acima (na maquina sem a arvore irma, onde ele PULA) entraria cego.
@@ -170,7 +170,13 @@ describe('a lista aponta so para item que o jogo conhece', () => {
 		 * — e o que o paragrafo acima avisa. Sobram as Rodadas 2, 3, 5, 7 e 8:
 		 * 14 + 1 + 5 + 4 + 26.
 		 */
-		expect(Object.keys(NOMES_LOCAIS)).toHaveLength(50);
+		/*
+		 * **Rodada 9 (22/09/2026, RO Shop):** +11, os consumiveis de cash
+		 * 9.000.100-9.000.110 (os dois Manuais que ja existiam e os nove itens
+		 * novos do RO Shop). O cruzamento acima so os aceita com o
+		 * `conteudo.json` regerado pela branch do RO Shop (B-RS-08 do servidor).
+		 */
+		expect(Object.keys(NOMES_LOCAIS)).toHaveLength(61);
 	});
 });
 
