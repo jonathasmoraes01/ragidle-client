@@ -113,14 +113,21 @@
    ═══════════════════════════════════════════════════════════════════════ */
 
 .ri-vertical #HuntButtonIdle {
+	/* Ancora do `.hb-motivo`, que e absoluto (ver la). */
+	position: relative;
 	display: flex;
 	flex-direction: column;
 	align-items: flex-end;
-	gap: 8px;
+	/* D-1673: 8 -> 22px para caber o rotulo sob cada disco sem encostar no
+	   de baixo. A altura real continua sendo MEDIDA e publicada em
+	   `--hud-td-altura-dos-botoes`, entao quem vem abaixo acompanha. */
+	gap: 22px;
 	width: auto;
 }
 
 .ri-vertical .hb-btn {
+	/* D-1673: ancora do rotulo, que agora fica legivel sob o disco. */
+	position: relative;
 	display: flex;
 	align-items: center;
 	justify-content: center;
@@ -131,13 +138,26 @@
 }
 
 .ri-vertical .hb-rotulo {
-	/* O mockup nao rotula os dois discos; o title/aria continua dizendo. */
+	/*
+	 * D-1673 (21/09/2026, ordem do dono): o rotulo VOLTA A SER LEGIVEL no
+	 * celular em pe.
+	 *
+	 * Ate aqui ele era recortado para um ponto invisivel, e os dois viravam
+	 * discos
+	 * mudos: o pedido diz "mantenha dois botoes SEPARADOS e fixos", e dois
+	 * discos sem texto leem como um controle so. O disco fica (a identidade
+	 * visual e dele); o nome passa a aparecer sob ele.
+	 */
 	position: absolute;
-	width: 1px;
-	height: 1px;
-	overflow: hidden;
-	clip-path: inset(50%);
+	top: calc(100% + 1px);
+	right: 0;
+	max-width: 96px;
+	font-size: 10px;
+	line-height: 1.1;
+	text-align: right;
 	white-space: nowrap;
+	text-shadow: 0 1px 2px rgba(0, 0, 0, 0.9);
+	pointer-events: none;
 }
 
 .ri-vertical .hb-glifo {
@@ -158,4 +178,50 @@
 	min-height: 48px;
 	/* alinhado ao centro do grande, como no mockup (a bota entra um pouco) */
 	margin-right: 8px;
+}
+
+/*
+ * O MOTIVO DE UMA ACAO INDISPONIVEL (D-1673), como TEXTO.
+ *
+ * Ele existe porque o pedido do dono diz "explicando estados
+ * indisponiveis", e no celular nao ha hover: um `title` ali e um aviso
+ * que metade dos jogadores nunca le.
+ */
+.hb-motivo {
+	/*
+	 * FORA DO FLUXO, e isto e conserto de regressao MINHA (21/09/2026).
+	 *
+	 * Na primeira versao ele era uma linha normal da coluna. Em Prontera
+	 * (onde "Retornar" fica indisponivel) o motivo APARECE, a coluna cresceu
+	 * ~15px, e o `prove:hud-responsiva` acusou "HuntButtonIdle x
+	 * TopMenuIdle.tm-menu (136x8px)" em tablet-1024x768 e em 768x1024: o
+	 * leque do menu cresce para CIMA a partir do rodape, e a coluna passou a
+	 * encostar nele.
+	 *
+	 * `position: absolute` fecha os dois lados de uma vez: a caixa para de
+	 * empurrar o leiaute E `publicarAltura` volta a medir a mesma altura,
+	 * entao os icones de status abaixo param de dancar conforme o jogador
+	 * entra e sai da cidade.
+	 */
+	position: absolute;
+	top: 100%;
+	right: 0;
+	max-width: 136px;
+	pointer-events: none;
+	margin: 2px 0 0;
+	font-size: 11px;
+	line-height: 1.2;
+	text-align: right;
+	opacity: 0.85;
+	text-shadow: 0 1px 2px rgba(0, 0, 0, 0.9);
+}
+
+.hb-motivo[hidden] {
+	display: none;
+}
+
+.ri-vertical .hb-motivo {
+	max-width: 120px;
+	font-size: 10px;
+	white-space: normal;
 }

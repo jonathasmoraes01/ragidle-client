@@ -51,6 +51,30 @@ export function createSkillList({
 	dragFrom = null,
 	titlebarText = null,
 	containerSelector = null,
+	/**
+	 * A JANELA NUNCA ABRE (D-1671, 21/09/2026 - ordem do dono).
+	 *
+	 * Palavras dele: *"remova completamente a abertura da barra classica de
+	 * skills... nem no primeiro login, nem nos seguintes, apos recarregar,
+	 * reconectar, trocar de mapa, restaurar preferencias ou acionar atalhos"*.
+	 *
+	 * E OPT-IN de proposito: a mesma fabrica monta a `SkillListMH` do
+	 * mercenario, que continua sendo uma janela normal. Um selo global aqui
+	 * fecharia as duas, e o dono pediu uma.
+	 *
+	 * Com ele ligado, quatro portas se fecham de uma vez: `onAppend` esconde
+	 * sempre, `onRemove` nunca grava `show: true`, `toggle`/`onShortCut`
+	 * mandam para a janela Idle, e `onLevelUp` para de jogar o botao de ponto
+	 * de skill no `document.body`.
+	 */
+	nuncaAbre = false,
+	/**
+	 * A versao da preferencia gravada no navegador. Subi-la DESCARTA o que
+	 * esta salvo - e e o unico jeito de alcancar quem ja tem `show: true` de
+	 * antes na propria maquina: o padrao novo nao chega a quem tem valor
+	 * velho guardado.
+	 */
+	versaoDaPreferencia = 1.0,
 	preferenceDefaults = {
 		x: 100,
 		y: 200,
@@ -67,7 +91,29 @@ export function createSkillList({
 	const _dragFrom = dragFrom ?? name;
 	const _containerSelector = containerSelector ?? `#${name}`;
 
-	const _preferences = Preferences.get(name, preferenceDefaults, 1.0);
+	const _preferences = Preferences.get(name, preferenceDefaults, versaoDaPreferencia);
+
+	/*
+	 * O `show: true` JA GRAVADO na maquina de quem jogou antes e apagado aqui,
+	 * em disco, uma vez por carga (D-1671).
+	 *
+	 * Subir `versaoDaPreferencia` faz a LEITURA ignorar o valor velho, mas nao
+	 * o reescreve - e por um defeito de `Core/Preferences.js:43-45`: no ramo
+	 * de versao diferente ele chama `Preferences.save(def)` ANTES de `def._key`
+	 * existir (o `_key` so e atribuido tres linhas depois do callback), entao a
+	 * gravacao do padrao novo nao acontece. Sem este `save` explicito o
+	 * `localStorage` continuaria dizendo "abra", e bastaria alguem voltar uma
+	 * versao do cliente para a janela reaparecer.
+	 *
+	 * Esta e a correcao DESTE componente. O defeito de `Preferences` e maior
+	 * que ele (vale para todo componente que sobe versao) e esta registrado
+	 * para ser tratado em frente propria, com a regressao de todos os que
+	 * dependem dele medida antes.
+	 */
+	if (nuncaAbre) {
+		_preferences.show = false;
+		_preferences.save();
+	}
 
 	const _list = [];
 	let _btnIncSkill;
@@ -307,7 +353,9 @@ export function createSkillList({
 	};
 
 	Component.onAppend = function onAppend() {
-		if (!_preferences.show) {
+		// D-1671: com o selo, a preferencia nao tem voto - a janela nasce
+		// escondida em TODO anexo (e ela e anexada a cada troca de mapa).
+		if (nuncaAbre || !_preferences.show) {
 			this.ui.hide();
 		}
 
@@ -327,7 +375,12 @@ export function createSkillList({
 			_btnLevelUp.remove();
 		}
 
-		_preferences.show = this.ui.is(':visible');
+		/*
+		 * D-1671: esta linha era a porta dos "logins seguintes". Ela gravava o
+		 * que estivesse na tela, entao quem visse a janela uma vez a reabria
+		 * para sempre - inclusive depois de recarregar e de reconectar.
+		 */
+		_preferences.show = nuncaAbre ? false : this.ui.is(':visible');
 		_preferences.y = parseInt(this._host.style.top, 10) || 0;
 		_preferences.x = parseInt(this._host.style.left, 10) || 0;
 
@@ -341,6 +394,16 @@ export function createSkillList({
 	};
 
 	Component.toggle = function toggle() {
+		/*
+		 * D-1671: o atalho e o botao continuam existindo - eles so mudam de
+		 * destino. Engoli-los em silencio deixaria a tecla morta, e tecla que
+		 * nao faz nada e pior que tecla que faz a coisa certa.
+		 */
+		if (nuncaAbre) {
+			this.ui.hide();
+			UIManager.getComponent('IdleSkills').toggle();
+			return;
+		}
 		if (this.ui.is(':visible')) {
 			this.ui.hide();
 			if (_btnLevelUp && _btnLevelUp.parentNode) {
@@ -1058,6 +1121,11 @@ export function createSkillList({
 	};
 
 	Component.onLevelUp = function onLevelUp() {
+		// D-1671: o botao de ponto de skill era jogado no `document.body` e
+		// abria a janela classica no clique - uma porta fora da propria janela.
+		if (nuncaAbre) {
+			return;
+		}
 		if (_btnLevelUp) {
 			document.body.appendChild(_btnLevelUp);
 		}

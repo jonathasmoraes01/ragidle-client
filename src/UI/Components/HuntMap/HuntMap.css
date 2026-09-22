@@ -1482,6 +1482,29 @@
 	border-color: var(--border-gold);
 }
 
+/*
+ * A ORIGEM DE CADA DROP (D-1675): uma linha por monstro, com a raridade DELE.
+ *
+ * O `.hm-drop-origens` acima era o chip "N mobs" — quantos, nunca quais. Ele
+ * fica porque a regra ainda e usada em outro ponto da janela; o que o ladrilho
+ * da visao "Drops do mapa" desenha agora e o par abaixo.
+ */
+#HuntMap .hm-drop-origem {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--sp-2);
+	width: 100%;
+	font: var(--type-badge);
+}
+
+#HuntMap .hm-drop-origem-nome {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	color: var(--text-muted);
+}
+
 #HuntMap .hm-drop-origens {
 	font: var(--type-badge);
 	color: var(--text-muted);
