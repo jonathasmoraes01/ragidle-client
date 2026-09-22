@@ -74,3 +74,22 @@ describe('alvosDaVarredura', () => {
 		expect(alvosDaVarredura([])).toEqual({ tudo: false, alvos: [] });
 	});
 });
+
+describe('muitos alvos de uma vez (F31, auditoria de 22/09/2026)', () => {
+	it('acima do limite, a varredura e do componente inteiro — e nao n^2 comparacoes', async () => {
+		const { alvosDaVarredura, LIMITE_DE_ALVOS } = await import('UI/alvosDaVarredura.js');
+		const pai = document.createElement('div');
+		const linhas = Array.from({ length: LIMITE_DE_ALVOS + 1 }, () => pai.appendChild(document.createElement('div')));
+		const r = alvosDaVarredura([{ type: 'childList', addedNodes: linhas }]);
+		expect(r.tudo).toBe(true);
+	});
+
+	it('no limite, ainda poda por alvo', async () => {
+		const { alvosDaVarredura, LIMITE_DE_ALVOS } = await import('UI/alvosDaVarredura.js');
+		const pai = document.createElement('div');
+		const linhas = Array.from({ length: LIMITE_DE_ALVOS }, () => pai.appendChild(document.createElement('div')));
+		const r = alvosDaVarredura([{ type: 'childList', addedNodes: linhas }]);
+		expect(r.tudo).toBe(false);
+		expect(r.alvos).toHaveLength(LIMITE_DE_ALVOS);
+	});
+});

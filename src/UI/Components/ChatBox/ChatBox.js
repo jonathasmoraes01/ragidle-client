@@ -91,6 +91,7 @@ import { renderFalaSegura } from './textoSeguroDoChat.js'; // D-1308: escapa ant
 // (spec §9), e nao por conta.
 import Session from 'Engine/SessionStorage.js';
 import { alturasDosDegraus, proximoDegrau, degrauAtual, rotuloDoDegrau } from './degrausDeAltura.js';
+import { podarPorCanal } from './podarPorCanal.js';
 
 /**
  * @var {number} max message in the chatbox
@@ -2224,6 +2225,16 @@ ChatBox.addText = function addText(text, colorType, filterType, color, override)
 		color: color,
 		override: override
 	});
+	/*
+	 * COM A ABA OCULTA O BUFFER NAO DRENA (F31, auditoria de 22/09/2026): o
+	 * `requestAnimationFrame` nao roda, e ele crescia sem teto. Cada canal so
+	 * guarda `MAX_MSG` linhas, entao alem disso nada chega a tela — a poda e
+	 * por canal, para o Farm nao expulsar o sussurro. Roda so quando o buffer
+	 * passa do dobro do teto, e nao a cada linha.
+	 */
+	if (_messageBuffer.length > 2 * MAX_MSG) {
+		_messageBuffer = podarPorCanal(_messageBuffer, m => canalDaMensagem(m.filterType, m.colorType), MAX_MSG);
+	}
 
 	if (!_rafScheduled) {
 		_rafScheduled = true;
@@ -2247,7 +2258,8 @@ function flushMessageBuffer() {
 	}
 
 	const root = _root();
-	const messages = _messageBuffer.slice();
+	// F31: a volta da aba nao desenha o que o canal apagaria no mesmo quadro.
+	const messages = podarPorCanal(_messageBuffer, m => canalDaMensagem(m.filterType, m.colorType), MAX_MSG);
 	_messageBuffer = [];
 
 	const porCanal = {};

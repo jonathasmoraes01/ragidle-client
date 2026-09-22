@@ -22,13 +22,16 @@
  * @param {MutationRecord[]} mutations
  * @return {{tudo: boolean, alvos: Element[]}}
  */
+/** Acima disto, varrer o componente inteiro sai mais barato que podar os alvos (F31). */
+export const LIMITE_DE_ALVOS = 64;
+
 export function alvosDaVarredura(mutations) {
-	const alvos = [];
+	// Um `Set` (F31, auditoria de 22/09/2026): `alvos.includes` a cada no
+	// tornava a coleta O(n^2) na volta da aba, com milhares de linhas de uma vez.
+	const alvos = new Set();
 	let tudo = false;
 	const somar = el => {
-		if (!alvos.includes(el)) {
-			alvos.push(el);
-		}
+		alvos.add(el);
 	};
 
 	for (const m of mutations) {
@@ -57,13 +60,20 @@ export function alvosDaVarredura(mutations) {
 		}
 	}
 
-	if (tudo) {
+	/*
+	 * MUITOS ALVOS DE UMA VEZ: varre o componente inteiro, UMA vez (F31). A
+	 * poda abaixo compara cada alvo com todos os outros — n^2 `contains` — e
+	 * com milhares de linhas novas (a volta da aba) isso custava mais que a
+	 * varredura que ela existe para economizar.
+	 */
+	if (tudo || alvos.size > LIMITE_DE_ALVOS) {
 		return { tudo: true, alvos: [] };
 	}
 	// Um alvo dentro de outro ja e varrido junto com o de fora.
+	const lista = [...alvos];
 	const finais = [];
-	for (const el of alvos) {
-		if (!alvos.some(outro => outro !== el && outro.contains(el))) {
+	for (const el of lista) {
+		if (!lista.some(outro => outro !== el && outro.contains(el))) {
 			finais.push(el);
 		}
 	}
