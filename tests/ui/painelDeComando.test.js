@@ -104,7 +104,10 @@ describe('a ordem da tabela', () => {
 describe('a costura da janela', () => {
 	it('fisga o 0x0fbc e abre SOZINHA — quem digitou o comando quer o resultado', () => {
 		expect(js).toContain('Network.hookPacket(PACKET.ZC.RAGIDLE_PAINEL, onPainelRecebido);');
-		expect(js).toContain("if (!PainelComandoIdle.__appended) {\n\t\tPainelComandoIdle.append();");
+		// `__active`, o campo que o GUIComponent escreve. Esta ancora pedia
+		// `__appended` ate 22/09/2026 — um campo que ninguem escrevia, e com
+		// ele a guarda nunca valia (F11).
+		expect(js).toContain("if (!PainelComandoIdle.__active) {\n\t\tPainelComandoIdle.append();");
 		expect(mapEngine).toContain('PainelComandoIdle.prepare();');
 	});
 

@@ -287,7 +287,9 @@ PainelComandoIdle.receber = function receber(dados) {
 	// `@mvptimeall` ao abrir outro comando ordenaria por uma coluna que o
 	// painel novo talvez nem tenha.
 	_ordem = null;
-	if (!PainelComandoIdle.__appended) {
+	// `__active` e o campo que o GUIComponent escreve; `__appended` nao existia
+	// e a guarda nunca valia (F11, auditoria de 22/09/2026).
+	if (!PainelComandoIdle.__active) {
 		PainelComandoIdle.append();
 	}
 	render();
@@ -332,7 +334,7 @@ PainelComandoIdle.limparEstadoDoPersonagem = function limparEstadoDoPersonagem()
 	fecharEEsquecer(_root(), '.pc-window', { corpo: '.pc-linhas', texto: '' });
 	PainelComandoIdle.estado = null;
 	_ordem = null;
-	if (PainelComandoIdle.__appended) {
+	if (PainelComandoIdle.__active) {
 		PainelComandoIdle.remove();
 	}
 };

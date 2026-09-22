@@ -1151,6 +1151,17 @@ class GUIComponent {
 			};
 
 			// Re-apply on visibility or content changes
+			/*
+			 * O ANTERIOR SAI ANTES (F11, auditoria de 22/09/2026). `append()`
+			 * de um componente ja anexado (o `ItemObtain` a cada item pego)
+			 * chegava aqui de novo e sobrescrevia `__scrollbarObserver` sem
+			 * desconectar: um observador vivo por item, todos disparando a cada
+			 * `set()`. `remove()` so alcancava o ultimo.
+			 */
+			if (self.__scrollbarObserver) {
+				self.__scrollbarObserver.disconnect();
+				self.__scrollbarObserver = null;
+			}
 			const observer = new MutationObserver(mutations => {
 				agendarVarredura(alvosDaVarredura(mutations));
 			});
