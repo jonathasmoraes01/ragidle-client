@@ -55,6 +55,31 @@ const MARGEM_DE_CLIP_X = 1.6;
 const MARGEM_DE_CLIP_CIMA = 2.6;
 const MARGEM_DE_CLIP_BAIXO = 1.4;
 
+/**
+ * CONTADORES DO QUADRO (E12, 21/09/2026): quantas entidades `render()`
+ * desenhou e quantas descartou NO ULTIMO QUADRO, separando os DOIS motivos de
+ * descarte que hoje convivem aqui — por DISTANCIA (`viewArea`, so quando
+ * `performanceMode` esta ligado) e por TELA (`foraDaTela`, sempre ligado).
+ *
+ * So CONTAM; nenhum criterio de descarte muda por causa deles. Existem para a
+ * sonda `scripts/sonda-e12-renderizacao.ts` medir com NUMERO, e nao estimar,
+ * o pedido do dono ("amplie a distancia de renderizacao dos monstros") — regra
+ * 1, nada de numero inventado. Zerados a cada `render()`, entao o consumidor
+ * le o quadro mais recente; `zerarContadoresDeQuadro` existe para quem quiser
+ * comecar a amostra num instante escolhido.
+ */
+const _contadoresDeQuadro = { desenhados: 0, descartadosPorTela: 0, descartadosPorDistancia: 0 };
+
+function contadoresDeQuadro() {
+	return { ..._contadoresDeQuadro };
+}
+
+function zerarContadoresDeQuadro() {
+	_contadoresDeQuadro.desenhados = 0;
+	_contadoresDeQuadro.descartadosPorTela = 0;
+	_contadoresDeQuadro.descartadosPorDistancia = 0;
+}
+
 // O(1) GID lookup map
 const _gidMap = new Map();
 
@@ -482,6 +507,11 @@ function render(gl, modelView, projection, fog, renderEffects) {
 	// bastante para pagar (ver `foraDaTela`).
 	glMatrix.mat4.multiply(_cullVP, projection, modelView);
 
+	// Zerado aqui, e nao no chamador: `render()` roda duas vezes por quadro
+	// (entidades normais + `renderEffects`), e o segundo passe so soma os
+	// efeitos — zerar so no passe de entidades perderia a metade.
+	if (!renderEffects) zerarContadoresDeQuadro();
+
 	// Rendering
 	for (i = 0, count = _list.length; i < count; ++i) {
 		if (
@@ -510,12 +540,15 @@ function render(gl, modelView, projection, fog, renderEffects) {
 				const dx = _list[i].position[0] - playerX;
 				const dy = _list[i].position[1] - playerY;
 				if (dx * dx + dy * dy > viewAreaSq) {
+					_contadoresDeQuadro.descartadosPorDistancia++;
 					continue;
 				}
 			}
 			if (foraDaTela(_list[i], meuGID)) {
+				_contadoresDeQuadro.descartadosPorTela++;
 				continue;
 			}
+			_contadoresDeQuadro.desenhados++;
 			_list[i].render(modelView, projection);
 		}
 	}
@@ -766,6 +799,9 @@ const EntityManager = {
 	render: render,
 	intersect: intersect,
 	setSupportPicking: setSupportPicking,
+
+	contadoresDeQuadro: contadoresDeQuadro,
+	zerarContadoresDeQuadro: zerarContadoresDeQuadro,
 
 	pendingTransformations: pendingTransformations,
 	storePendingTransform: storePendingTransform

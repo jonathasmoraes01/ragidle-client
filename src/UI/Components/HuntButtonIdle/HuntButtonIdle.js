@@ -182,6 +182,19 @@ HuntButtonIdle.onRemove = function onRemove() {
 	stopPolling();
 };
 
+/**
+ * Esquece o ultimo estado desenhado (D-1673).
+ *
+ * `syncLabel` so toca o DOM quando o valor MUDA (`_ultimoEmCasa`), que e o que
+ * evita reescrever a caixa a cada volta do polling. Quem troca de personagem —
+ * ou monta o componente de novo do zero — precisa que o proximo `syncLabel`
+ * desenhe mesmo que o valor calculado seja igual ao da sessao anterior, senao
+ * a caixa fica com o estado de outro personagem ate o mapa mudar.
+ */
+HuntButtonIdle.limparEstadoDoPersonagem = function limparEstadoDoPersonagem() {
+	_ultimoEmCasa = null;
+};
+
 function startPolling() {
 	stopPolling();
 	_pollTimer = setInterval(poll, POLL_INTERVAL_MS);
@@ -312,11 +325,30 @@ function syncLabel() {
 	 * O `title` continua avisando ANTES do clique quando voce ja esta em casa —
 	 * dizer e diferente de impedir.
 	 */
-	voltar.disabled = false;
-	voltar.title = emCasa
-		? `Você já está em ${rotuloDaCidade()}`
-		: LABEL_RETORNAR;
+	/*
+	 * D-1673 (21/09/2026) — E ELA REVERTE A DECISAO DE 01/09/2026 ACIMA.
+	 *
+	 * O texto logo acima continua registrado de proposito, porque o argumento
+	 * dele segue bom: botao apagado numa situacao em que a acao FUNCIONA nao
+	 * protege ninguem. O que mudou nao foi esse argumento — foi o caso. A
+	 * ordem nova do dono e *"habilite cada acao conforme sua aplicabilidade,
+	 * explicando estados indisponiveis"*, e "ja estou na cidade do ponto
+	 * salvo" e o unico caso em que a acao NAO funciona: o servidor a recusa em
+	 * silencio (D-388).
+	 *
+	 * A metade que faltava em 01/09 e o "explicando": o motivo sai do `title`
+	 * (que no celular ninguem le, porque nao ha hover) e vira TEXTO na tela.
+	 * Desabilitar SEM dizer por que era o que estava errado; desabilitar
+	 * DIZENDO e o que o dono pediu.
+	 */
+	voltar.disabled = emCasa;
+	voltar.title = emCasa ? `Você já está em ${rotuloDaCidade()}` : LABEL_RETORNAR;
 	cacar.title = LABEL_CACAR;
+	const motivo = root.querySelector('.hb-motivo');
+	if (motivo) {
+		motivo.textContent = emCasa ? `Você já está em ${rotuloDaCidade()}.` : '';
+		motivo.hidden = !emCasa;
+	}
 	// A caixa pode ter mudado de altura (rotulo, quebra de linha): quem vem
 	// abaixo se pendura na medida, e nao num numero escrito no CSS.
 	publicarAltura();

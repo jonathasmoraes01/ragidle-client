@@ -341,7 +341,16 @@
 	   Fixando o piso na largura natural do leque, o botao ocupa a MESMA posicao
 	   aberto ou fechado, e o leque continua sem caixa quando fechado. */
 	align-items: center;
-	min-width: 198px;
+	/* O PISO E MEDIDO, e nao cravado (21/09/2026). O `198px` continua sendo o
+	   padrao, e ele era a largura EXATA do leque de uma coluna por lado. Desde
+	   D-1490 o leque vai a tres colunas em janela baixa e passa dos 198: o
+	   container crescia ao abrir e o `align-items: center` recentrava o botao
+	   na largura nova — que e o "ele sai do canto e vem para o meio" do relato
+	   do dono. Quem escreve `--tm-largura-do-menu` e `fixarLarguraDoMenu()`
+	   (TopMenuIdle.js), medindo o leque montado. O celular e a HUD vertical
+	   zeram este piso mais abaixo, e continuam vencendo: a variavel e o VALOR
+	   desta linha, nao uma regra a mais. */
+	min-width: var(--tm-largura-do-menu, 198px);
 	gap: 10px;
 	/* nao intercepta clique na area vazia; so os botoes reabrem */
 	pointer-events: none;

@@ -357,6 +357,34 @@ function vitrineHtml(passe, nome, resumo) {
 }
 
 /**
+ * QUANDO A RENOVAÇÃO ABRE, em data e hora que o jogador lê (D-1720).
+ *
+ * ---------------------------------------------------------------------------
+ * POR QUE DATA, E NÃO CONTAGEM REGRESSIVA
+ * ---------------------------------------------------------------------------
+ * O servidor manda um INSTANTE absoluto (`renovaEmMs`, epoch em ms). Uma
+ * contagem regressiva ("faltam 5h20") precisaria de `Date.now()` do navegador,
+ * e o relógio torto da máquina do jogador deslocaria o texto inteiro — sem
+ * nada na tela dizendo que está errado.
+ *
+ * Desenhar o instante como data e hora LOCAIS não tem esse problema: ele só
+ * depende do FUSO do navegador, não de o relógio dele estar certo. O jogador
+ * lê "abre dia 22 às 03:00" e compara com o relógio do próprio celular, que é
+ * o mesmo que ele já usa para tudo.
+ *
+ * `null` quando o servidor não mandou o campo (registro velho, ou o botão já
+ * está aberto) — nesse caso a nota cai no texto genérico, como antes.
+ */
+function quandoAbre(renovaEmMs) {
+	if (typeof renovaEmMs !== 'number' || !Number.isFinite(renovaEmMs) || renovaEmMs <= 0) {
+		return null;
+	}
+	const d = new Date(renovaEmMs);
+	const dois = n => String(n).padStart(2, '0');
+	return dois(d.getDate()) + '/' + dois(d.getMonth() + 1) + ' às ' + dois(d.getHours()) + ':' + dois(d.getMinutes());
+}
+
+/**
  * O botão de compra, com o texto e o estado certos.
  *
  * Três estados, e cada um diz uma coisa diferente: sem passe = "Comprar", com
@@ -377,14 +405,28 @@ function acaoHtml(passe, cash) {
 	 *
 	 * O campo `recusa` chega no payload como `null` (pode comprar) ou o motivo.
 	 * É o mesmo desenho do Codex (D-851), e ele ganhou um segundo motivo com o
-	 * pedido do dono: `ainda-nao-vence` — a renovação só abre no último dia.
+	 * pedido do dono: `ainda-nao-vence`. A regra dele MUDOU em D-1640: era "só
+	 * no último dia de calendário" (que abria até quase 48h antes, porque o
+	 * passe vence no FIM do dia) e hoje são as últimas 24 HORAS, medidas no
+	 * relógio do servidor.
 	 */
 	const recusa = passe.recusa || null;
 	const podeComprar = recusa === null;
 	const rotulo = passe.ativo ? 'Renovar' : 'Comprar';
+	/*
+	 * D-1720: a nota passou a DIZER QUANDO. Antes ela nomeava a regra ("abre
+	 * no último dia") e o jogador tinha de voltar amanhã para descobrir se já
+	 * era. A regra mudou junto (D-1640: são as últimas 24 HORAS, e não o
+	 * último dia de calendário), então o texto velho também estava errado.
+	 */
+	const abreEm = quandoAbre(passe.renovaEmMs);
 	const nota =
 		recusa === 'ainda-nao-vence'
-			? 'Seu passe ainda vale. A renovação abre no último dia — assim o cash não fica preso num benefício que você já tem.'
+			? abreEm
+				? 'Seu passe ainda vale. A renovação abre nas últimas 24 horas — dia ' +
+					escapeHtml(abreEm) +
+					'. Assim o cash não fica preso num benefício que você já tem.'
+				: 'Seu passe ainda vale. A renovação abre nas últimas 24 horas — assim o cash não fica preso num benefício que você já tem.'
 			: recusa === 'saldo-insuficiente'
 				? 'Faltam ' + escapeHtml(passe.cash - cash) + ' cash.'
 				: passe.ativo

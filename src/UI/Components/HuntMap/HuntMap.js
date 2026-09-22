@@ -53,7 +53,9 @@ import ItemInfo from 'UI/Components/ItemInfo/ItemInfo.js';
 import GUIComponent from 'UI/GUIComponent.js';
 import RiIcones from 'UI/ri-icones.js';
 import { aplicarIconeDoItem as setItemIcon, nomeLocalDoItem } from 'UI/itemNaTela.js';
-import { dropsDoMapa } from './dropsDoMapa.js'; // RAGIDLE: a visao agregada (I6)
+import { dropsDoMapa } from './dropsDoMapa.js';
+import { estadoDoRodape } from './rodapeDoDossie.js';
+import { ROTULO_DA_VISAO, htmlDasOrigens } from './origensDoDrop.js'; // RAGIDLE: a visao agregada (I6)
 import {
 	classeDeRaridade,
 	encaixeDeNivel,
@@ -1240,14 +1242,14 @@ function renderPanel() {
 	const porMapa = HuntMap.visaoDeDrop === 'mapa';
 	const selectedMonster = monstros.find(m => String(m.mobId) === String(HuntMap.selectedMobId));
 	const tituloDrops = porMapa
-		? 'Drops do mapa'
+		? ROTULO_DA_VISAO.mapa
 		: selectedMonster
 			? `Drops de ${escapeHtml(selectedMonster.nome)}`
 			: 'Drops';
 	const alternadorHtml = `
 		<div class="hm-seg hm-visao" role="tablist" aria-label="Visão dos drops">
-			<button type="button" class="hm-seg-btn${porMapa ? '' : ' is-selected'}" data-visao="mob" role="tab" aria-selected="${porMapa ? 'false' : 'true'}">Do monstro</button>
-			<button type="button" class="hm-seg-btn${porMapa ? ' is-selected' : ''}" data-visao="mapa" role="tab" aria-selected="${porMapa ? 'true' : 'false'}">Do mapa</button>
+			<button type="button" class="hm-seg-btn${porMapa ? '' : ' is-selected'}" data-visao="mob" role="tab" aria-selected="${porMapa ? 'false' : 'true'}">${ROTULO_DA_VISAO.mob}</button>
+			<button type="button" class="hm-seg-btn${porMapa ? ' is-selected' : ''}" data-visao="mapa" role="tab" aria-selected="${porMapa ? 'true' : 'false'}">${ROTULO_DA_VISAO.mapa}</button>
 		</div>`;
 
 	let dropsHtml;
@@ -1329,20 +1331,39 @@ function renderPanel() {
  */
 function renderFooter(mapa, encaixe) {
 	const catalog = HuntMap.catalog;
-	let html = '';
-	if (mapa) {
-		const isCurrent = mapa.mapa === catalog.mapaAtual;
-		if (isCurrent) {
-			html += '<div class="hm-here-note">Você já está neste mapa.</div>';
-		} else if (encaixe.cls === 'locked') {
-			html += `<button type="button" class="hm-btn-go ri-btn" data-mapa="${escapeHtml(mapa.mapa)}" disabled>${RiIcones.cadeado} Abre no Nv. ${mapa.nivelQueAbre}</button>`;
-		} else {
-			html += `<button type="button" class="hm-btn-go ri-btn" data-mapa="${escapeHtml(mapa.mapa)}">Viajar para ${escapeHtml(mapa.rotulo)}</button>`;
-		}
-	}
-	const atCity = catalog.mapaAtual === catalog.cidade.mapa;
-	html += `<button type="button" class="hm-btn-city ri-btn ri-btn--sec" data-mapa="${escapeHtml(catalog.cidade.mapa)}"${atCity ? ' disabled' : ''}>Retornar ao ponto salvo</button>`;
-	return html;
+	/*
+	 * D-1673: a decisao saiu daqui e virou valor (`rodapeDoDossie.js`).
+	 *
+	 * O que este bloco fazia de errado: quando o mapa escolhido era o ATUAL,
+	 * ele trocava o botao "Viajar para X" por uma NOTA. Era o ultimo lugar do
+	 * cliente em que um botao era substituido pelo outro — o defeito que o
+	 * pedido do dono nomeia. Agora os dois estao sempre aqui, cada um com o
+	 * proprio estado e com o motivo LEGIVEL quando nao se aplica.
+	 */
+	const { viajar, retornar } = estadoDoRodape({
+		mapa: mapa ?? null,
+		encaixe: encaixe ?? null,
+		mapaAtual: catalog.mapaAtual,
+		cidade: catalog.cidade,
+	});
+
+	const botao = (cls, estado, extra) =>
+		`<button type="button" class="${cls} ri-btn${extra}" data-mapa="${escapeHtml(estado.mapa ?? '')}"` +
+		`${estado.habilitado ? '' : ' disabled'}` +
+		`${estado.motivo ? ` title="${escapeHtml(estado.motivo)}"` : ''}>` +
+		`${!estado.habilitado && estado.rotulo.startsWith('Abre no Nv.') ? `${RiIcones.cadeado} ` : ''}` +
+		`${escapeHtml(estado.rotulo)}</button>`;
+
+	const motivos = [viajar.motivo, retornar.motivo].filter(Boolean);
+
+	return (
+		botao('hm-btn-go', viajar, '') +
+		botao('hm-btn-city', retornar, ' ri-btn--sec') +
+		// O MOTIVO COMO TEXTO, e nao so no `title`: no celular nao ha hover.
+		(motivos.length > 0
+			? `<div class="hm-here-note">${motivos.map((m) => escapeHtml(m)).join(' ')}</div>`
+			: '')
+	);
 }
 
 function bindFooter(footerEl) {
@@ -1479,9 +1500,15 @@ function renderDropsDoMapa(ficha) {
 			// `dropsDoMapa` devolve o nome do servidor; o ladrilho mostra o local.
 			const nome = nomeLocalDoItem(l.itemId, l.nome);
 			const raridade = raridadeDoDrop({ chance: l.melhorChance, raridade: l.melhorChanceRaridade });
+			/*
+			 * D-1675: a ORIGEM vira texto no ladrilho. Era um chip "N mobs"
+			 * (quantos, nunca quais) mais o `title`, que no celular nao existe.
+			 * `htmlDasOrigens` nomeia cada monstro com a raridade DELE — sem
+			 * media e sem soma, porque chance de item "no mapa" nao existe no
+			 * rAthena.
+			 */
 			const origem = l.monstros.map(m => `${m.nome} ${rotuloDeRaridade(raridadeDoDrop(m))}`).join(' · ');
-			const extra = l.deQuantosMobs > 1 ? `<span class="hm-drop-origens">${l.deQuantosMobs} mobs</span>` : '';
-			return renderDropTile(l.itemId, nome, raridade, extra, `${nome} — ${origem}`);
+			return renderDropTile(l.itemId, nome, raridade, htmlDasOrigens(l.monstros), `${nome} — ${origem}`);
 		})
 		.join('');
 	return `

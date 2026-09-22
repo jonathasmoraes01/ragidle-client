@@ -487,8 +487,22 @@ ui-button {
 	--hud-td-altura-dos-botoes: 80px;
 	/* O primeiro y LIVRE abaixo de TODA a coluna: minimapa + os DOIS botoes
 	   (I3) + respiro. E aqui que os icones de status se penduram. */
+	/* D-1701 (21/09/2026, ordem do dono): *"reposicione os indicadores de
+	   buffs ativos mais ABAIXO na HUD, sem deixa-los sobrepostos a regiao
+	   atual do mapa ou bloqueando outros controles".
+
+	   O respiro e um token SEPARADO de proposito: a soma abaixo descreve a
+	   COLUNA (minimapa + os dois botoes), e misturar nela um ajuste de
+	   gosto do dono faria a proxima pessoa que medisse a coluna achar que
+	   errou a conta.
+
+	   O teto NAO e livre: o leque do menu cresce para CIMA a partir do
+	   rodape, e `prove:hud-responsiva` acusa "StatusIcons x TopMenuIdle"
+	   quando os dois se encontram. */
+	--hud-td-respiro-dos-buffs: 28px;
 	--hud-td-abaixo-da-coluna: calc(
-		var(--hud-td-topo) + var(--hud-td-altura-do-minimapa) + 8px + var(--hud-td-altura-dos-botoes) + 12px
+		var(--hud-td-topo) + var(--hud-td-altura-do-minimapa) + 8px + var(--hud-td-altura-dos-botoes) + 12px +
+			var(--hud-td-respiro-dos-buffs)
 	);
 
 	/* ═══ I1+I2: A HUD SE ADAPTA A RESOLUCAO (dono, 31/08/2026) ══════════
@@ -2388,7 +2402,14 @@ html.ri-vertical #ShortCut {
    missoes, dentro da tela. Ate la esta nota dizia que a barra nunca tinha sido
    fotografada com buff ativo — a `prove:hud-vertical` nao tira print. */
 html.ri-vertical #StatusIcons {
-	top: calc(var(--vr-item-obtido-topo, calc(var(--vr-abaixo-do-topo) + 130px)) + 44px) !important;
+	/* D-1701: mais abaixo tambem no celular em pe. A parcela de 44px era uma
+	   fileira de aviso, para o buff e o aviso de item nao dividirem a mesma
+	   linha; o respiro do dono soma DEPOIS dela, pelo mesmo motivo de o
+	   token do desktop ser separado: cada parcela diz de quem ela e. */
+	top: calc(
+		var(--vr-item-obtido-topo, calc(var(--vr-abaixo-do-topo) + 130px)) + 44px +
+			var(--hud-td-respiro-dos-buffs, 28px)
+	) !important;
 	right: calc(var(--safe-dir, 0px) + var(--vr-trilho-largura) + var(--vr-margem)) !important;
 }
 
