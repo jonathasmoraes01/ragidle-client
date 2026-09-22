@@ -114,7 +114,7 @@ describe('a lista aponta so para item que o jogo conhece', () => {
 		).toEqual([]);
 	});
 
-	it('sao exatamente os 83 das sete rodadas — crescimento passa por aqui', () => {
+	it('sao exatamente os 109 das oito rodadas — crescimento passa por aqui', () => {
 		/*
 		 * Nao e um pino por vaidade: um id somado sem passar pelo cruzamento
 		 * acima (na maquina sem a arvore irma, onde ele PULA) entraria cego.
@@ -153,7 +153,13 @@ describe('a lista aponta so para item que o jogo conhece', () => {
 		 * por onde item chega ao jogador (drop, loja, forja, flecha, Velha Caixa
 		 * e recompensa de missao), com piso por porta para porta muda reprovar.
 		 */
-		expect(Object.keys(NOMES_LOCAIS)).toHaveLength(83);
+		/*
+		 * **Rodada 8 (22/09/2026):** +26, os visuais custom da Season 1
+		 * (9.000.300-9.000.325). Eles sao a primeira leva que NAO vem de um
+		 * buraco do GRF: os ids sao NOSSOS, entao tabela nenhuma do cliente
+		 * podia te-los. Medido no jogo vivo com a Pocao Vermelha de CONTROLE.
+		 */
+		expect(Object.keys(NOMES_LOCAIS)).toHaveLength(109);
 	});
 });
 

@@ -558,10 +558,8 @@ class DB {
 				);
 			}
 
-			// HatEffect
-			if (PACKETVER.value >= 20150507) {
-				loadHatEffectInfo(onLoad());
-			}
+			// HatEffect: SAIU daqui (RAGIDLE, 21/09/2026). Ver o bloco logo
+			// depois do `else`, fora do portao `loadLua`.
 
 			// LaphineSys
 			if (PACKETVER.value >= 20160601) {
@@ -727,6 +725,34 @@ class DB {
 
 			// Quest
 			loadTable('data/questid2display.txt', '#', 6, parseQuestEntry, onLoad(), true);
+		}
+
+		/*
+		 * RAGIDLE (21/09/2026): O HAT EFFECT SAIU DE DENTRO DE `loadLua`.
+		 *
+		 * `hateffectinfo/` e a tabela que diz QUAL `.str` desenhar para cada
+		 * numero de efeito de chapeu (`DB.getHatResource`). Ela estava no bloco
+		 * `if (Configs.get('loadLua'))`, e o Rag Idle roda com `loadLua: false`
+		 * desde 17/08/2026 - o GRF ROLatam nao tem pasta `System/`, e varios
+		 * carregadores daquele bloco nunca chamam de volta: o cliente empacava
+		 * em 84% com "Failed loading databases" (a medicao esta no comentario
+		 * do proprio `applications/pwa/Config.local.js`).
+		 *
+		 * Consequencia MEDIDA em 21/09/2026, com o jogo de pe: o servidor
+		 * mandava `ZC_EQUIPMENT_EFFECT` (0x0a3b) certo, o byte chegava no fio,
+		 * `onHatEffects` rodava e pedia `DB.getHatResource(175)` - e a tabela
+		 * estava VAZIA (0 entradas de 0 a 300), entao o `if (!hatEffect)
+		 * continue` descartava a aura em silencio. Era a unica camada quebrada
+		 * das cinco, e a aura Astra Blessing do VIP nunca aparecia.
+		 *
+		 * Nada aqui depende de `System/`: os tres arquivos moram em
+		 * `data/luafiles514/lua files/hateffectinfo/` e estao no nosso GRF
+		 * (`hateffectids.lub`, `hateffectinfo.lub`, `footprinteffectinfo.lub`).
+		 * Quem nao os tiver cai no `onerror` do `Client.loadFile`, que e o
+		 * proprio `onEnd` - a conta do `DB.isLoaded` fecha do mesmo jeito.
+		 */
+		if (PACKETVER.value >= 20150507) {
+			loadHatEffectInfo(onLoad());
 		}
 
 		// Load ItemMoveInfo and attach to ItemTable
@@ -2310,8 +2336,22 @@ class DB {
 		 * sem nome nenhum. Era assim que o 4545 (Novice Poring Card, drop do
 		 * Little Poring em prt_fild08) chegava a tela como a string
 		 * "undefined", sem icone e sem descricao. Ver `FichaDoItem.js`.
+		 *
+		 * E O QUE PASSA DAQUI E A LINHA DA TABELA, NUNCA O `unknownItem`
+		 * (22/09/2026). O `item` acima ja caiu no `unknownItem` quando o id
+		 * esta AUSENTE da tabela inteira, e `unknownItem` TEM os dois nomes
+		 * ("Unknown Item") — entao `completarFicha` batia no caminho quente
+		 * ("ficha completa volta como veio") e o ramo `!ficha`, que e o unico
+		 * que consulta `NOMES_LOCAIS`, **nunca rodava por aqui**.
+		 *
+		 * Consequencia medida no jogo vivo: toda a metade de `NOMES_LOCAIS`
+		 * feita para id AUSENTE era INERTE na tela — os 26 visuais custom da
+		 * Season 1 (ids nossos, que tabela nenhuma do GRF pode ter) saiam
+		 * "Unknown Item" na mochila, no boneco, na ficha, no correio e no chat.
+		 * O teste do modulo nao via porque chama `completarFicha(id, null)`
+		 * DIRETO: ele provava a funcao, e nao o fio.
 		 */
-		return completarFicha(itemid, item);
+		return completarFicha(itemid, ItemTable[itemid] ?? null);
 	}
 
 	/**

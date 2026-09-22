@@ -427,14 +427,14 @@ function render() {
 		});
 	});
 
-	// O 1-CLIQUE do executor (D-601): Iniciar/Pausar/Retomar mandam a ação e
+	// O 1-CLIQUE do executor (D-601): Iniciar/Teleporte/Retomar mandam a ação e
 	// o SERVIDOR decide — recusa educada chega pelo feed, nunca um alert.
 	body.querySelectorAll('[data-executar]').forEach(btn => {
 		btn.addEventListener('click', e => {
 			e.stopImmediatePropagation();
 			const pkt = new PACKET.CZ.RAGIDLE_MISSAO_ACAO();
 			const acao = btn.dataset.executar;
-			// D-1150: iniciar E abandonar levam o id; pausar/retomar agem na ativa/fila.
+			// D-1150: iniciar E abandonar levam o id; teleporte/retomar agem na ativa/fila.
 			pkt.json = JSON.stringify(
 				acao === 'iniciar' || acao === 'abandonar' ? { acao, id: btn.dataset.id } : { acao }
 			);
@@ -443,6 +443,50 @@ function render() {
 	});
 }
 
+/**
+ * O BOTAO QUE LEVA A PROVA, na oferta de classe BLOQUEADA (21/09/2026 —
+ * ordem do dono, com o print: *"em vez de colocar nas opcionais, a gente vai
+ * colocar um botao ali, que a pessoa clica para ir fazer a quest, e depois, na
+ * hora que ela completa a quest, libera o botao para ela clicar para ir para o
+ * NPC"*).
+ *
+ * A SEGUNDA METADE JA EXISTIA e nao muda: quando a prova fecha, o servidor
+ * manda `bloqueadaPor: null` e o ramo de cima desenha o "Ir até o NPC". O que
+ * faltava era a PRIMEIRA — a frase "Conclua antes a Prova de Vocação: X"
+ * nomeia a missão e não leva a lugar nenhum, e até hoje a prova morava na aba
+ * Opcionais, que o jogador não tem motivo para abrir.
+ *
+ * O BOTAO SO APARECE QUANDO A PROVA REALMENTE COMECA, e quem responde isso e
+ * `podeIniciarMissao` — a MESMA regra do botao "Iniciar" do cartao (I16: uma
+ * regra so, com teste que a executa). Um botao que sempre aparecesse e
+ * respondesse "nao pode" seria pior que a frase que ele substitui.
+ *
+ * ELE ACHA A PROVA NA LISTA PELO `bloqueadaPorId`, e nao pelo titulo. Casar
+ * texto e o defeito que este projeto passa o dia consertando — e a prova SO
+ * esta nesta lista porque ela virou `tipo: 'principal'` no mesmo pedido
+ * (game/missoes-do-jogo.ts). Se um dia ela sair de Principais, a busca falha
+ * e o cartao volta a mostrar so a frase: degrau seguro, e nao tela quebrada.
+ *
+ * O `data-executar`/`data-id` e o contrato que o handler generico de
+ * `render()` ja escuta — nenhum ouvinte novo, nenhuma segunda rota de envio.
+ */
+function botaoDaProva(c, execucao) {
+	const id = c.bloqueadaPorId;
+	if (!id) {
+		return '';
+	}
+	if (execucao && execucao.ativaId === id) {
+		return '<span class="mi-classe-bloqueio">Prova em andamento…</span>';
+	}
+	const prova = (MissoesIdle.missoes || []).find(x => x.id === id);
+	if (!prova || !prova.executavel || !podeIniciarMissao(prova, execucao || {})) {
+		return '';
+	}
+	return (
+		'<button type="button" class="mi-ir ri-btn ri-btn--ouro" data-executar="iniciar"' +
+		' data-id="' + escapeHtml(id) + '">Fazer a prova</button>'
+	);
+}
 function cardDeMissao(m) {
 	const badge = BADGES[m.estado] || BADGES.bloqueada;
 	const execucao = MissoesIdle.execucao || {};
@@ -452,7 +496,10 @@ function cardDeMissao(m) {
 	if (m.executavel) {
 		if (execucao.ativaId === m.id) {
 			botao =
-				`<button type="button" class="ri-btn ri-btn--sec mi-executar" data-executar="pausar">Pausar</button>` +
+				// D-1642: era "Pausar". O botão virou deslocamento e só: ele leva o
+				// personagem ao lugar do passo atual. "Pausar" existia para desfazer
+				// o farm que a missão tomava, e a missão não toma mais nada (D-1641).
+				`<button type="button" class="ri-btn ri-btn--sec mi-executar" data-executar="teleporte" title="Leva você ao lugar do passo atual da missão">Teleporte</button>` +
 				`<button type="button" class="ri-btn ri-btn--sec mi-executar" data-executar="abandonar" data-id="${escapeHtml(m.id)}" title="O progresso fica guardado">Abandonar</button>`;
 		} else if (m.naFila) {
 			// D-1150: a que esta na fila tambem pode ser largada — sem isto uma
@@ -517,7 +564,8 @@ function cardDeMissao(m) {
 							// um ("Prova de Vocação: Espadachim"), e a frase saía com dois
 							// na mesma linha. Olhado no print de fotografar-missoes-idle.
 							c.bloqueadaPor
-								? `<span class="mi-classe-bloqueio">Conclua antes a ${escapeHtml(c.bloqueadaPor)}</span>`
+								? `<span class="mi-classe-bloqueio">Conclua antes a ${escapeHtml(c.bloqueadaPor)}</span>` +
+									botaoDaProva(c, execucao)
 								: m.estado === 'disponivel'
 									? `<button type="button" class="mi-ir ri-btn" data-mapa="${escapeHtml(c.mapa)}">Ir até o NPC</button>`
 									: ''

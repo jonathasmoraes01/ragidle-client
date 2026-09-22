@@ -24,5 +24,12 @@ export default createSkillList({
 	incrementalRemember: true,
 	guardMissingJob: true,
 	readdSkillOnUpdate: true,
-	dragFrom: 'SkillList'
+	dragFrom: 'SkillList',
+	// D-1671 (ordem do dono, 21/09/2026): a barra classica de skills nao abre
+	// mais por caminho nenhum. A janela CONTINUA preparada e recebendo dados -
+	// o ponto de skill do menu e a barra de atalhos leem dela -, ela so nao
+	// aparece. A versao da preferencia sobe junto para descartar o `show: true`
+	// ja gravado na maquina de quem jogou antes.
+	nuncaAbre: true,
+	versaoDaPreferencia: 1.1
 });

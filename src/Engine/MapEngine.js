@@ -114,6 +114,7 @@ import PresencaIdle from 'UI/Components/PresencaIdle/PresencaIdle.js'; // RAGIDL
 import IndicacaoIdle from 'UI/Components/IndicacaoIdle/IndicacaoIdle.js'; // RAGIDLE: Indique & Ganhe (D-1164)
 import RankingIdle from 'UI/Components/RankingIdle/RankingIdle.js'; // RAGIDLE: o Ranking (09/09/2026)
 import PainelComandoIdle from 'UI/Components/PainelComandoIdle/PainelComandoIdle.js'; // RAGIDLE: o painel de comando (D-1563)
+import TemporadaIdle from 'UI/Components/TemporadaIdle/TemporadaIdle.js'; // RAGIDLE: a janela da Temporada (Season 1, 21/09/2026)
 import PartyHud from 'UI/Components/PartyHud/PartyHud.js'; // RAGIDLE: a HUD de party (09/09/2026)
 import PlacarMvpIdle from 'UI/Components/PlacarMvpIdle/PlacarMvpIdle.js'; // RAGIDLE: o placar ao vivo do MVP (D-1533)
 import BoasVindasIdle from 'UI/Components/BoasVindasIdle/BoasVindasIdle.js'; // RAGIDLE: caixa de boas-vindas (D-968)
@@ -549,6 +550,7 @@ class MapEngine {
 					// da janela de missoes para saber quando a ativa concluiu.
 					MissoesIdle: MissoesIdle,
 					PasseIdle: PasseIdle,
+					TemporadaIdle: TemporadaIdle,
 					CodexIdle: CodexIdle,
 					VotoIdle: VotoIdle,
 					PresencaIdle: PresencaIdle,
@@ -610,6 +612,7 @@ class MapEngine {
 			IndicacaoIdle.prepare(); // RAGIDLE: Indique & Ganhe (D-1164) — escuta 0x0fdc
 			RankingIdle.prepare(); // RAGIDLE: o Ranking — escuta 0x0fca
 			PainelComandoIdle.prepare(); // RAGIDLE: o painel de comando — escuta 0x0fbc e abre SOZINHO quando o servidor manda (D-1563)
+			TemporadaIdle.prepare(); // RAGIDLE: a janela da Temporada (Season 1) - idem, so escuta 0x0fbb
 			PartyHud.prepare(); // RAGIDLE: a HUD de party — NAO fisga pacote (ver o cabecalho)
 			ligarAcessorioDaHud('placar do MVP', () => PlacarMvpIdle.prepare()); // RAGIDLE: escuta 0x0fbd (D-1533)
 			BoasVindasIdle.prepare(); // RAGIDLE: caixa de boas-vindas (D-968) — não escuta pacote nenhum: a lista de cartazes é do cliente
@@ -1498,6 +1501,7 @@ function onMapChange(pkt, ehEntradaNoMundo) {
 		ClassChangeNotice.append();
 		MissoesIdle.append(); // RAGIDLE: janela de Missões (D-551)
 		PasseIdle.append(); // RAGIDLE: janela do Passe (D-813)
+		TemporadaIdle.append(); // RAGIDLE: a janela da Temporada (Season 1, 21/09/2026)
 		CodexIdle.append(); // RAGIDLE: janela do Codex (D-851)
 		// RAGIDLE (D-1159): a janela de Voto. Anexada SEMPRE, como as vizinhas —
 		// o aviso da entrada chega pelo pacote e precisa de um host de pé.
@@ -1673,6 +1677,7 @@ function onMapChange(pkt, ehEntradaNoMundo) {
 			['correio', CorreioIdle, '.co-window'],
 			['missoes', MissoesIdle, '.mi-window'],
 			['passe', PasseIdle, '.pi-window'],
+			['temporada', TemporadaIdle, '.te-window'],
 			['voto', VotoIdle, '.vi-window'],
 			['analise', HuntAnalyzer, '.ha-window'],
 			/*
@@ -2046,6 +2051,7 @@ function cleanGameUI() {
 		MissoesTrackerIdle,
 		MochilaIdle,
 		PasseIdle,
+		TemporadaIdle,
 		CodexIdle,
 		TutorialIdle,
 		PresencaIdle,

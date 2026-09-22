@@ -175,15 +175,6 @@ export const NOMES_LOCAIS = {
 	25508: 'Orc Warlord Token', // db/re/item_db_etc.yml:36675 (Token_of_OrcGeneral) — cai do Orc Hero (gef_fild02)
 	28106: 'Crimson Two-Handed Axe', // db/re/item_db_equip.yml:142093 (Scarlet_Twohand_Axe) — cai do Kobold (gef_fild06, gef_fild08)
 	28380: 'Fresh Grass Necklace', // db/re/item_db_equip.yml:145040 (Fresh_G_Necklace) — cai do Kobold (gef_fild06, gef_fild08)
-	// CONVERSAO DE SPAWN PARA O `pre-re` (19/09/2026, no repositorio do jogo): 51
-	// mapas passaram a tirar a populacao do `npc/pre-re`, e DOIS ids novos chegaram
-	// a tela como "Item desconhecido". Nenhum e novo no `item_db` — o que mudou foi
-	// CAIR de bicho que agora nasce, a mesma causa dos tres do paragrafo acima.
-	//
-	// O 28381 FECHA A FAMILIA `_G_Necklace`: 28380 (Fresh) acima, 28382 (Charm) mais
-	// atras, e agora o Pretty. Mesmo sufixo, mesma familia, mesmo veredito de icone.
-	23258: 'Stinky Rotten Meat', // db/re/item_db_usable.yml:62479 (Foul_Rotten_Meat) — cai do Galion (ra_fild03, ra_fild04)
-	28381: 'Cute Grass Necklace', // db/re/item_db_equip.yml:145055 (Pretty_G_Necklace) — cai do Stapo (ra_fild03, ra_fild08, ra_fild12)
 	// As DEZ cartas dos mapas novos (Moscovia, Rock Ridge). Carta sem nome no
 	// GRF e a regra e nao a excecao — o 4545 da Rodada 1 e o mesmo caso.
 	27157: 'Wood Goblin Card', // db/re/item_db_etc.yml:39743 (Wood_Goblin_Card)
@@ -219,7 +210,54 @@ export const NOMES_LOCAIS = {
 	12290: 'Mysterious Can Magic Powder', // db/re/item_db_usable.yml:7997 (Mysterious_Can)
 	12291: 'Mysterious PET Bottle', // db/re/item_db_usable.yml:8011 (Mysterious_PET_Bottle)
 	12376: 'Mysterious Can2', // db/re/item_db_usable.yml:9062 (Mysterious_Can2)
-	12377: 'Mysterious PET Bottle2' // db/re/item_db_usable.yml:9075 (Mysterious_PET_Bottle2)
+	12377: 'Mysterious PET Bottle2', // db/re/item_db_usable.yml:9075 (Mysterious_PET_Bottle2)
+
+	// --- Rodada 8: os 26 VISUAIS CUSTOM da Season 1 (22/09/2026) ---
+	//
+	// Os ids 9.000.300-9.000.325 sao NOSSOS (`game/itens-custom.ts`), entao por
+	// construcao nao existem em tabela nenhuma do GRF: `DB.getItemName` devolve
+	// "Unknown Item" para os 26. **Medido no jogo vivo**, com a Pocao Vermelha
+	// (501) de CONTROLE: 26 de 26 "Unknown Item" com o controle respondendo
+	// "Pocao Vermelha" — sem o controle a medicao nao distinguiria "nao tem
+	// nome" de "a tabela do GRF ainda nao carregou", que e exatamente o erro
+	// que a primeira corrida cometeu (ela media ANTES da carga e dizia que os
+	// SETE oficiais tambem eram "Unknown Item").
+	//
+	// A janela da Temporada ja mostrava o nome certo porque ela o le do
+	// catalogo do dono; fora dela — mochila, boneco, ficha, correio, chat —
+	// o jogador via "Unknown Item" em 26 dos 33 visuais.
+	//
+	// **Nenhum nome e inventado nem traduzido**: cada um e a coluna `nome` de
+	// `servidor/temporada/catalogo-s1.ts`, que sai do pacote do dono
+	// (`RO_CLASSIC_IDLE_AMANHA/04_SEASON1_VISUAL_CATALOG.md`). Por isso estes
+	// 26 saem em PORTUGUES enquanto os 22 drops da rodada 1 saem em ingles: a
+	// regra e a mesma (o nome vem da fonte), e as fontes e que sao duas.
+	9000300: 'Asas de Anjo', // catalogo-s1.ts, Caixa Topo
+	9000301: 'Asas de Demônio', // catalogo-s1.ts, Caixa Topo
+	9000302: 'Elmo do Anjo', // catalogo-s1.ts, Caixa Topo
+	9000303: 'Elmo de Diabolus', // catalogo-s1.ts, Caixa Topo
+	9000304: 'Disfarce de Valquíria', // catalogo-s1.ts, Caixa Topo
+	9000305: 'Máscara do Senhor das Trevas', // catalogo-s1.ts, Caixa Topo
+	9000306: 'Orelhas de Anjo', // catalogo-s1.ts, Caixa Meio
+	9000307: 'Asas Malignas', // catalogo-s1.ts, Caixa Meio
+	9000308: 'Venda Sombria', // catalogo-s1.ts, Caixa Meio
+	9000309: 'Espírito Olímpico', // catalogo-s1.ts, Caixa Meio
+	9000310: 'Penas Ensanguentadas', // catalogo-s1.ts, Caixa Meio
+	9000311: 'Diadema do Grifo', // catalogo-s1.ts, Caixa Meio
+	9000312: 'Estola Angelical', // catalogo-s1.ts, Caixa Baixo
+	9000313: 'Estola do Demônio', // catalogo-s1.ts, Caixa Baixo
+	9000314: "Seraphim's Feather", // catalogo-s1.ts, Caixa Baixo
+	9000315: 'Fallen Angel Valletta', // catalogo-s1.ts, Caixa Baixo
+	9000316: 'Group of Stars', // catalogo-s1.ts, Caixa Baixo
+	9000317: 'Light and Dark Master', // catalogo-s1.ts, Caixa Baixo
+	9000318: "Lucifer's Wings", // catalogo-s1.ts, Caixa Manto
+	9000319: 'Cristal Filosofal', // catalogo-s1.ts, Passe Free 40
+	9000320: 'Valkyrie Wings', // catalogo-s1.ts, Passe Free 50
+	9000321: 'Shining Angel Wings', // catalogo-s1.ts, Passe Premium 15
+	9000322: 'Ghost Effect', // catalogo-s1.ts, Passe Premium 30
+	9000323: 'Ancient Resonance', // catalogo-s1.ts, Passe Premium 45
+	9000324: 'Rune-Midgarts Glory', // catalogo-s1.ts, Passe Premium 50
+	9000325: 'Astra Blessing' // catalogo-s1.ts, VIP
 };
 
 /**

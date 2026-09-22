@@ -201,7 +201,10 @@ import MochilaIdle from 'UI/Components/MochilaIdle/MochilaIdle.js';
 import HuntMap from 'UI/Components/HuntMap/HuntMap.js';
 import CorreioIdle from 'UI/Components/CorreioIdle/CorreioIdle.js';
 import HuntAnalyzer from 'UI/Components/HuntAnalyzer/HuntAnalyzer.js';
-import PasseIdle from 'UI/Components/PasseIdle/PasseIdle.js';
+/* PasseIdle NAO e mais importado aqui (21/09/2026): a janela de Recompensas
+   ficou sem botao - o conteudo dela mora na Temporada. O modulo segue vivo
+   pelo MapEngine, como dono do pacote 0x0fe5. */
+import TemporadaIdle from 'UI/Components/TemporadaIdle/TemporadaIdle.js'; // RAGIDLE: a janela da Temporada (Season 1, 21/09/2026) - no cluster desde a noite do mesmo dia
 import VotoIdle from 'UI/Components/VotoIdle/VotoIdle.js'; // RAGIDLE: janela de Voto (D-1159)
 import CombatCornerIdle from 'UI/Components/CombatCornerIdle/CombatCornerIdle.js'; // RAGIDLE: o aro "Ataque auto" (16/09/2026 — some enquanto o leque esta aberto)
 import CodexIdle from 'UI/Components/CodexIdle/CodexIdle.js'; // RAGIDLE: Codex (D-851)
@@ -662,14 +665,24 @@ function onClickAction(e) {
 			/* D-1164: IndicacaoIdle.toggle() tambem PEDE o painel ao abrir (0x0fdd) */
 			IndicacaoIdle.toggle();
 			break;
-		/* O Passe saiu de "em breve" em D-813. Ele PEDE o estado ao abrir
-		   (0x0fe5): preco, vencimento e o que cada dia entrega sao do
-		   servidor — a janela so desenha.
-		   O opcode aqui dizia 0x0fe4, que e o CZ do CODEX (D-851) — o
-		   comentario apontava o pacote da janela vizinha. O trio do Passe
-		   e 0x0fe5/0x0fe6/0x0fe7 (PacketStructure.js). */
-		case 'passe':
-			PasseIdle.toggle();
+		/* O `case 'passe'` (a janela de Recompensas, D-813) morou aqui de
+		   29/08 a 21/09/2026. Saiu por ordem do dono: o Passe Semanal e o VIP
+		   viraram abas da Temporada, e o botao do cluster virou "Temporada".
+		   O modulo PasseIdle continua importado pelo MapEngine (e o dono do
+		   pacote 0x0fe5) - so a PORTA daqui saiu, nos DOIS switches.
+
+		   A TEMPORADA (Season 1, "Luz & Trevas", 21/09/2026). Ela PEDE os dois
+		   estados ao abrir: o dela ({acao:'pedir'} em 0x0fba - preco, pity,
+		   chance e o premio de uma abertura, respondido em 0x0fbb) e o do
+		   Passe (0x0fe6, respondido em 0x0fe5 ao PasseIdle, que a avisa por
+		   `aoReceberEstado`). A janela nunca calcula saldo, nunca recalcula
+		   chance e nunca manda premio. So desenha o que chegou.
+		   ATENCAO: existe um SEGUNDO switch neste arquivo, o isActionOpen() la
+		   embaixo. Este aqui ABRE; o de la acende o aro. Este item entrou nos
+		   DOIS no mesmo commit, que e o que o comentario do `passe` (hoje no
+		   isActionOpen) manda. */
+		case 'temporada':
+			TemporadaIdle.toggle();
 			break;
 		/* VOTAR (D-1159). Ele PEDE o estado ao abrir (0x0fd4 com
 		   `{acao:'pedir'}`): saldo, prazo de cada plataforma e preco sao do
@@ -1412,6 +1425,68 @@ function colunasPorLadoDoLeque(porLado) {
 	return MAXIMO_DE_COLUNAS_POR_LADO;
 }
 
+/**
+ * O BOTAO MENU FICA NO MESMO LUGAR, ABERTO OU FECHADO (21/09/2026 — relato do
+ * dono, com print: *"quando voce clica no menu, ele sai do canto e vem para o
+ * meio... e quando esta fechado, o botao fica la no canto. Eu quero que esse
+ * botao fique sempre centralizado"*).
+ *
+ * O `.tm-menu` ja tinha `min-width: 198px` EXATAMENTE para isso, e o
+ * comentario dele no CSS diz o que a peca promete: *"o botao ocupa a MESMA
+ * posicao aberto ou fechado"*. Ela cumpria a promessa enquanto o leque tinha
+ * a largura de 24/08/2026 — UMA coluna por lado, os 198px cravados.
+ *
+ * D-1490 (15/09/2026) deu ao leque ate TRES colunas por lado quando a altura
+ * da janela nao comporta a fileira unica, e ai ele passa dos 198. O container
+ * cresce ao abrir, o `align-items: center` recentra o botao na largura NOVA, e
+ * o botao anda. **O piso virou um numero que descreve um arranjo que nao e
+ * mais o unico** — a mesma familia de cicatriz que este projeto registra em
+ * varios lugares: constante que era verdade quando foi escrita.
+ *
+ * Entao o piso passa a ser MEDIDO, e nao cravado. A medicao acontece aqui
+ * porque e aqui que a largura muda: `distribuirColunas` e quem decide o numero
+ * de colunas, e ela ja roda no `onAppend`, no `resize` e quando o item Admin
+ * aparece.
+ *
+ * MEDIR EXIGE MONTAR: fechado o leque e `display:none` e nao tem caixa (e o
+ * `display:none` FICA — o cabecalho do CSS explica por que `opacity:0` seria
+ * pior, e o gate de clique existe por causa disso). Entao a funcao monta,
+ * mede e desmonta no MESMO quadro, sem ceder o fio: nenhuma pintura acontece
+ * no meio, e sem `.is-open` os discos e o veu seguem em `opacity: 0`.
+ *
+ * ELA ESCREVE UMA VARIAVEL, E NUNCA `min-width` INLINE. O celular (`max-width:
+ * 599px`) e a HUD vertical (`.ri-vertical`) zeram o piso de PROPOSITO — la os
+ * 198px comiam metade da tela e o botao caia sobre a barra do chat (I1). Um
+ * `style.minWidth` venceria as duas regras e desfaria aquilo calado; a
+ * variavel respeita o `min-width: 0` delas, que e literal.
+ */
+function fixarLarguraDoMenu() {
+	const root = _root();
+	const menu = root.querySelector('.tm-menu');
+	const fan = root.querySelector('.tm-fan');
+	if (!menu || !fan) {
+		return;
+	}
+
+	const jaMontado = fan.classList.contains('is-mounted');
+	if (!jaMontado) {
+		fan.classList.add('is-mounted');
+	}
+	const largura = Math.ceil(fan.getBoundingClientRect().width);
+	if (!jaMontado) {
+		fan.classList.remove('is-mounted');
+	}
+
+	/*
+	 * Zero quer dizer que o componente ainda nao esta no documento (a medicao
+	 * de elemento desanexado devolve 0). Escrever o zero trocaria o piso de
+	 * 198 por nada; ficar quieto deixa o padrao do CSS valer ate a proxima
+	 * chamada, que vem no `resize` ou no tique do Admin.
+	 */
+	if (largura > 0) {
+		menu.style.setProperty('--tm-largura-do-menu', `${largura}px`);
+	}
+}
 function distribuirColunas() {
 	const root = _root();
 	const fan = root.querySelector('.tm-fan');
@@ -1437,6 +1512,8 @@ function distribuirColunas() {
 	// A metade MAIS CHEIA manda: as duas colunas dividem a mesma altura.
 	const colunas = colunasPorLadoDoLeque(naEsquerda);
 	fan.style.setProperty('--tm-leque-colunas', String(colunas));
+
+	fixarLarguraDoMenu();
 
 	/*
 	 * A ROLAGEM DO CASO IMPOSSIVEL FOI TENTADA, MEDIDA E DESFEITA (D-1492).
@@ -1747,9 +1824,18 @@ function isActionOpen(action) {
 		 * forma errada. Quem for consertar isso de vez faz UMA tabela de
 		 * acao -> { abrir, seletor } e deriva os dois dela; enquanto ela nao
 		 * existe, item novo entra nos DOIS lugares.
+		 *
+		 * O `case 'passe'` que vivia aqui SAIU em 21/09/2026, junto com o do
+		 * switch de ABRIR (a janela de Recompensas ficou sem botao; ver o
+		 * bloco `temporada` de la). A licao acima fica: item que sai tambem
+		 * sai dos DOIS.
 		 */
-		case 'passe':
-			return isRagIdleWindowOpen(PasseIdle, '.pi-window');
+		/* TEMPORADA (Season 1, 21/09/2026): janela RAGIDLE, entao le
+		   '.te-window.is-open' - e nao isHostVisible, que e a armadilha que o
+		   comentario de `lfg` acima registra (o `_host` de um GUIComponent nunca
+		   ganha display:none sozinho, entao o aro nunca apagaria). */
+		case 'temporada':
+			return isRagIdleWindowOpen(TemporadaIdle, '.te-window');
 		/* VOTO (D-1159): entrou nos DOIS switches no mesmo commit, que e o que
 		   o comentario do `passe` logo acima manda fazer enquanto a tabela
 		   unica de acao -> { abrir, seletor } nao existir. */

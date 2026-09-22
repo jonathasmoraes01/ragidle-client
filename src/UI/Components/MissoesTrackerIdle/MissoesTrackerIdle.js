@@ -238,7 +238,7 @@ MissoesTrackerIdle.init = function init() {
 			const acao = btn.dataset.acao;
 			if (acao === 'iniciar' && btn.dataset.fila !== 'true') {
 				mandarAcao('iniciar', btn.dataset.id);
-			} else if (acao === 'pausar' || acao === 'retomar') {
+			} else if (acao === 'teleporte' || acao === 'retomar') {
 				mandarAcao(acao, null);
 			} else if (acao === 'abandonar' && btn.dataset.id) {
 				// D-1150: abandonar leva o id; o progresso fica no servidor.
@@ -411,7 +411,8 @@ function render(missoes, execucao) {
 			${temBarra ? `<div class="mt-barra"><div class="mt-barra-fill" style="width:${pct}%"></div></div>` : ''}
 			<div class="mt-ativa-acoes">
 				<span class="mt-eta">${passo.etaMin ? `~${passo.etaMin} min` : ''}</span>
-				<button type="button" class="ri-btn ri-btn--sec mt-btn-mini" data-acao="pausar">Pausar</button>
+				<!-- D-1642: era "Pausar"; virou deslocamento e só (ver MissoesIdle). -->
+				<button type="button" class="ri-btn ri-btn--sec mt-btn-mini" data-acao="teleporte" title="Leva você ao lugar do passo atual da missão">Teleporte</button>
 				<button type="button" class="ri-btn ri-btn--sec mt-btn-mini" data-acao="abandonar" data-id="${escapeHtml(execucao.ativaId)}" title="O progresso fica guardado">Abandonar</button>
 			</div>`;
 	} else if (execucao && execucao.pausada) {

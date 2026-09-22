@@ -24,10 +24,28 @@
  * 4. **O botão não some quando falta cash.** Ele apaga e explica. Sumir faria
  *    o jogador procurar o que fazer; apagado ele diz "existe, e falta saldo".
  *
- * Entrada na HUD: o botão "Recompensas" do CLUSTER de essenciais
- * (TopMenuIdle), que chama PasseIdle.toggle(). Ele morou no leque até
- * 06/09/2026, quando o dono o trocou de casa com o "Missões" (D-944): o único
- * produto pago do menu deixou de depender de o jogador abrir a gaveta.
+ * ---------------------------------------------------------------------------
+ * ESTA JANELA NAO TEM MAIS BOTAO NO MENU (21/09/2026, ordem do dono: "a
+ * janela de recompensas nao compensa mais a gente ter ela")
+ * ---------------------------------------------------------------------------
+ * O conteudo dela - o Passe Semanal e a compra do VIP - mora na janela da
+ * Temporada (`TemporadaIdle`, abas "Passe Semanal" e "VIP"), e o botao
+ * "Recompensas" do cluster virou o botao "Temporada". O MODULO fica, e nao e
+ * por preguica: ele continua sendo o DONO do pacote `ZC_RAGIDLE_PASSE`
+ * (0x0fe5) - `Network.hookPacket` substitui, nao soma, entao so pode haver
+ * UM gancho por opcode no cliente inteiro (portao no servidor:
+ * `servidor/protocolo/um-dono-por-pacote.test.ts`). Quem precisa do estado
+ * do Passe assina `PasseIdle.aoReceberEstado`, como a Temporada faz. As
+ * funcoes de desenho abaixo continuam vivas para `toggle()` (a pilha de
+ * janelas o embrulha) e para a prova que abre a janela por comando; a copia
+ * delas que o jogador ve esta em `formatoDaTemporada.js`.
+ *
+ * O que segue e a HISTORIA da entrada na HUD, preservada porque o argumento
+ * dela e o que levou a Temporada para o cluster: o botão "Recompensas" do
+ * CLUSTER de essenciais (TopMenuIdle) chamava PasseIdle.toggle(). Ele morou
+ * no leque até 06/09/2026, quando o dono o trocou de casa com o "Missões"
+ * (D-944): o único produto pago do menu deixou de depender de o jogador
+ * abrir a gaveta.
  *
  * **O NOME DE TELA E "Recompensas" e o do CODIGO e "Passe", de propósito.**
  * O dono renomeou o botão em 29/08/2026 e o "Recompensas" que existia em breve
@@ -220,6 +238,14 @@ PasseIdle.toggle = function toggle() {
 	}
 };
 
+/*
+ * `abrirNaAba(aba)` morou aqui de 21/09/2026 (manha) a 21/09/2026 (noite): a
+ * Temporada a chamava para abrir ESTA janela na aba VIP em vez de repetir a
+ * vitrine. Quando a compra do VIP passou a morar na propria Temporada, a
+ * porta ficou sem chamador e saiu - porta sem chamador e a forma de codigo
+ * morto que este projeto mais catalogou (ver `modulo-puro-sem-chamador`).
+ */
+
 function closeWindow() {
 	const root = _root();
 	const win = root && root.querySelector('.pi-window');
@@ -327,6 +353,34 @@ function vitrineHtml(passe, nome, resumo) {
 }
 
 /**
+ * QUANDO A RENOVAÇÃO ABRE, em data e hora que o jogador lê (D-1720).
+ *
+ * ---------------------------------------------------------------------------
+ * POR QUE DATA, E NÃO CONTAGEM REGRESSIVA
+ * ---------------------------------------------------------------------------
+ * O servidor manda um INSTANTE absoluto (`renovaEmMs`, epoch em ms). Uma
+ * contagem regressiva ("faltam 5h20") precisaria de `Date.now()` do navegador,
+ * e o relógio torto da máquina do jogador deslocaria o texto inteiro — sem
+ * nada na tela dizendo que está errado.
+ *
+ * Desenhar o instante como data e hora LOCAIS não tem esse problema: ele só
+ * depende do FUSO do navegador, não de o relógio dele estar certo. O jogador
+ * lê "abre dia 22 às 03:00" e compara com o relógio do próprio celular, que é
+ * o mesmo que ele já usa para tudo.
+ *
+ * `null` quando o servidor não mandou o campo (registro velho, ou o botão já
+ * está aberto) — nesse caso a nota cai no texto genérico, como antes.
+ */
+function quandoAbre(renovaEmMs) {
+	if (typeof renovaEmMs !== 'number' || !Number.isFinite(renovaEmMs) || renovaEmMs <= 0) {
+		return null;
+	}
+	const d = new Date(renovaEmMs);
+	const dois = n => String(n).padStart(2, '0');
+	return dois(d.getDate()) + '/' + dois(d.getMonth() + 1) + ' às ' + dois(d.getHours()) + ':' + dois(d.getMinutes());
+}
+
+/**
  * O botão de compra, com o texto e o estado certos.
  *
  * Três estados, e cada um diz uma coisa diferente: sem passe = "Comprar", com
@@ -347,14 +401,28 @@ function acaoHtml(passe, cash) {
 	 *
 	 * O campo `recusa` chega no payload como `null` (pode comprar) ou o motivo.
 	 * É o mesmo desenho do Codex (D-851), e ele ganhou um segundo motivo com o
-	 * pedido do dono: `ainda-nao-vence` — a renovação só abre no último dia.
+	 * pedido do dono: `ainda-nao-vence`. A regra dele MUDOU em D-1640: era "só
+	 * no último dia de calendário" (que abria até quase 48h antes, porque o
+	 * passe vence no FIM do dia) e hoje são as últimas 24 HORAS, medidas no
+	 * relógio do servidor.
 	 */
 	const recusa = passe.recusa || null;
 	const podeComprar = recusa === null;
 	const rotulo = passe.ativo ? 'Renovar' : 'Comprar';
+	/*
+	 * D-1720: a nota passou a DIZER QUANDO. Antes ela nomeava a regra ("abre
+	 * no último dia") e o jogador tinha de voltar amanhã para descobrir se já
+	 * era. A regra mudou junto (D-1640: são as últimas 24 HORAS, e não o
+	 * último dia de calendário), então o texto velho também estava errado.
+	 */
+	const abreEm = quandoAbre(passe.renovaEmMs);
 	const nota =
 		recusa === 'ainda-nao-vence'
-			? 'Seu passe ainda vale. A renovação abre no último dia — assim o cash não fica preso num benefício que você já tem.'
+			? abreEm
+				? 'Seu passe ainda vale. A renovação abre nas últimas 24 horas — dia ' +
+					escapeHtml(abreEm) +
+					'. Assim o cash não fica preso num benefício que você já tem.'
+				: 'Seu passe ainda vale. A renovação abre nas últimas 24 horas — assim o cash não fica preso num benefício que você já tem.'
 			: recusa === 'saldo-insuficiente'
 				? 'Faltam ' + escapeHtml(passe.cash - cash) + ' cash.'
 				: passe.ativo
@@ -456,11 +524,19 @@ function vipHtml() {
 	const vip = (estado && estado.vip) || {};
 	const cash = (estado && estado.cash) || 0;
 
+	/*
+	 * D-season1 (Luz & Trevas): o VIP mudou de conta — +15% em todo item que
+	 * NÃO é carta (antes só "equipamento") e +10% RELATIVO em toda carta
+	 * (antes "carta de MVP", e a conta era outra). O servidor manda as chaves
+	 * NOVAS (`dropComum`/`dropCarta`); o `??` mantém compatibilidade com um
+	 * payload antigo em cache (reconexão no meio de um deploy), que ainda
+	 * mandaria `dropEquipamento`/`dropCartaMvp`.
+	 */
 	const linhas = [
 		[vip.expBase, 'de experiência de base'],
 		[vip.expJob, 'de experiência de classe'],
-		[vip.dropEquipamento, 'de chance de equipamento'],
-		[vip.dropCartaMvp, 'de chance de carta de MVP']
+		[vip.dropComum ?? vip.dropEquipamento, 'de drop de itens comuns'],
+		[vip.dropCarta ?? vip.dropCartaMvp, 'relativo na chance de cartas']
 	]
 		.filter(l => typeof l[0] === 'number')
 		.map(
@@ -552,8 +628,30 @@ function onPasseRecebido(pkt) {
 	} else if (comprou && !comprou.ok) {
 		mostrarAviso(comprou.motivo || 'nao foi possivel comprar', true);
 	}
+
+	/*
+	 * QUEM MAIS SE INTERESSA PELO PASSE E AVISADO AQUI, e nunca por um
+	 * segundo `hookPacket` no mesmo opcode. `Network.hookPacket` faz
+	 * `Packets.list[id].callback = callback` (NetworkManager.js): ele
+	 * SUBSTITUI, nao soma. Um segundo gancho no 0x0fe5 rouba o pacote desta
+	 * janela e ela fica em "Carregando..." para sempre - foi o que a
+	 * TemporadaIdle fez, e foi para producao em 21/09/2026.
+	 *
+	 * O ouvinte vai em try/catch porque ele e de OUTRA janela: uma excecao
+	 * dele nao pode derrubar esta, e no laco de rede do cliente uma excecao
+	 * num handler descarta o resto do quadro.
+	 */
+	if (typeof PasseIdle.aoReceberEstado === 'function') {
+		try {
+			PasseIdle.aoReceberEstado(dados);
+		} catch (err) {
+			console.error('[PasseIdle] ouvinte de estado lancou', err);
+		}
+	}
 }
 
+/* ESTA JANELA E A DONA DO 0x0fe5 - ver o bloco acima antes de somar outro
+ * `hookPacket` neste opcode em qualquer arquivo do cliente. */
 Network.hookPacket(PACKET.ZC.RAGIDLE_PASSE, onPasseRecebido);
 
 export default UIManager.addComponent(PasseIdle);

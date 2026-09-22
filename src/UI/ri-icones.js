@@ -334,6 +334,14 @@ const RiIcones = {
 		'<path d="M3 9a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2 2 2 0 0 0 0 4 2 2 0 0 1-2 2H5a2 2 0 0 1-2-2 2 2 0 0 0 0-4z"/><path d="M9 7v10" stroke-dasharray="2 2.4"/>'
 	),
 
+	// ── Temporada (Season 1, "Luz & Trevas") — sem candidato no GRF (mecanica
+	// NOSSA, como o Codex): idioma Lucide desenhado do zero, o eclipse
+	// "lua sobre lua" que já é o vocabulario comum pra luz/trevas em par (o
+	// mesmo motivo do roxo de RARE — a tarefa autoriza a metafora). ──────────
+	temporada: svg(
+		'<circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 1 0 0 18c-2.2-1.9-3.6-4.9-3.6-9s1.4-7.1 3.6-9z"/>'
+	),
+
 	// ── Voto — arte ILUSTRADA desde 08/09/2026 (a manopla de placas dando o
 	// polegar para cima), com reserva Lucide "Vote" (a cédula com o visto).
 	//
