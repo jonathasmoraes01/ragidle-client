@@ -832,6 +832,21 @@ function onConnectionAccepted(pkt) {
 	// seguro (ver Reconexao.aoEntrarComSucesso).
 	Reconexao.aoEntrarComSucesso();
 
+	/*
+	 * A ECONOMIA DE ENERGIA NA REENTRADA (F29, auditoria de 22/09/2026). O
+	 * servidor DESARMA a economia em toda entrada no mundo; o cliente seguia
+	 * com a tela preta aberta e sem avisar de novo. Quem reconectava com a aba
+	 * ainda oculta ficava sem economia, e a proxima queda tirava o personagem
+	 * do mundo na hora. Fecha a tela velha e, se a aba continua oculta,
+	 * reagenda o `entrar` pelo MESMO caminho do evento de visibilidade.
+	 */
+	fecharTelaDaEconomia();
+	if (_atrasoDaEconomia) {
+		clearTimeout(_atrasoDaEconomia);
+		_atrasoDaEconomia = null;
+	}
+	if (document.visibilityState === 'hidden') onVisibilidadeMudouParaEconomia();
+
 	Session.Entity.onWalkEnd = onWalkEnd;
 
 	if ('sex' in pkt && pkt.sex < 2) {
