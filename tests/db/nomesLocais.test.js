@@ -24,22 +24,24 @@ import { ICONES_LOCAIS, NOMES_LOCAIS } from 'DB/Items/nomesLocais.js';
 import { completarFicha, unknownItem } from 'DB/Items/FichaDoItem.js';
 
 describe('o nome local chega a ficha', () => {
-	it('o caso do dono: 4545 com estube vira "Novice Poring Card", nao "Item desconhecido"', () => {
-		// O estube real do ItemTable.js que causou o "undefined".
-		const ficha = completarFicha(4545, { ClassNum: 0 });
-		expect(ficha.identifiedDisplayName).toBe('Novice Poring Card');
-		expect(ficha.unidentifiedDisplayName).toBe('Novice Poring Card');
-		// Desde a Rodada 4c (31/08/2026): tambem sai com o icone de carta
-		// generico (o mesmo do 4001) — nao mais a maca.
-		expect(ficha.identifiedResourceName).toBe('\xc0\xcc\xb8\xa7\xbe\xf8\xb4\xc2\xc4\xab\xb5\xe5');
+	it('o estube do ItemTable vira o nome local, e nao "Item desconhecido"', () => {
+		/*
+		 * O caso do dono era o 4545 (Novice Poring Card), que saiu do jogo com a
+		 * virada para pre-renewal (22/09/2026). O mecanismo continua: o 12849
+		 * (Combination Kit) tambem e um estube `{ ClassNum: 0 }` no ItemTable.js,
+		 * e o estube e truthy — sem a tabela local ele voltaria sem nome.
+		 */
+		const ficha = completarFicha(12849, { ClassNum: 0 });
+		expect(ficha.identifiedDisplayName).toBe('Combination Kit');
+		expect(ficha.unidentifiedDisplayName).toBe('Combination Kit');
 	});
 
 	it('id local AUSENTE da tabela inteira tambem sai batizado', () => {
-		// Dos 22, so o 4545 tem estube; os outros 21 caem no caminho !ficha.
-		// 28382 (Charm Grass Necklace) e o UNICO dos 21 que continua sem icone
-		// local (Rodada 4c, 31/08/2026: nenhum candidato achado em CP949).
-		const ficha = completarFicha(28382, null);
-		expect(ficha.identifiedDisplayName).toBe('Charm Grass Necklace');
+		// O 20500 (Archangel Wing) nao esta no ItemTable.js e nao tem icone local
+		// (o `.bmp` derivado nao existe no GRF): cai no caminho !ficha. A cobaia
+		// era o 28382, que saiu do jogo com a virada para pre-renewal.
+		const ficha = completarFicha(20500, null);
+		expect(ficha.identifiedDisplayName).toBe('Archangel Wing');
 		// ...e o resto continua sendo a ficha de sobra (icone de maca, 0 slot).
 		expect(ficha.identifiedResourceName).toBe(unknownItem.identifiedResourceName);
 		expect(ficha.slotCount).toBe(0);
@@ -55,8 +57,8 @@ describe('o nome local chega a ficha', () => {
 			identifiedDisplayName: 'Nome Do GRF',
 			unidentifiedDisplayName: 'Nome Do GRF'
 		};
-		// 4545 esta na tabela local — e mesmo assim o GRF manda.
-		expect(completarFicha(4545, doGrf)).toBe(doGrf);
+		// 12849 esta na tabela local — e mesmo assim o GRF manda.
+		expect(completarFicha(12849, doGrf)).toBe(doGrf);
 	});
 });
 
@@ -114,7 +116,7 @@ describe('a lista aponta so para item que o jogo conhece', () => {
 		).toEqual([]);
 	});
 
-	it('sao exatamente os 109 das oito rodadas — crescimento passa por aqui', () => {
+	it('sao exatamente os 50 que sobraram das oito rodadas — crescimento passa por aqui', () => {
 		/*
 		 * Nao e um pino por vaidade: um id somado sem passar pelo cruzamento
 		 * acima (na maquina sem a arvore irma, onde ele PULA) entraria cego.
@@ -159,7 +161,16 @@ describe('a lista aponta so para item que o jogo conhece', () => {
 		 * buraco do GRF: os ids sao NOSSOS, entao tabela nenhuma do cliente
 		 * podia te-los. Medido no jogo vivo com a Pocao Vermelha de CONTROLE.
 		 */
-		expect(Object.keys(NOMES_LOCAIS)).toHaveLength(109);
+		/*
+		 * **As Rodadas 1 e 6 SAIRAM (22/09/2026): -59, de 109 para 50.** O
+		 * cruzamento acima reprovava apontando os 59 — todos itens do ramo
+		 * renewal (os 22 drops, os 24 dos mapas novos, os 3 de D-1420 e as 10
+		 * cartas), que a virada para pre-renewal tirou do `conteudo.json`. Ele
+		 * passava verde na maquina que nao tem a arvore irma, porque la ele PULA
+		 * — e o que o paragrafo acima avisa. Sobram as Rodadas 2, 3, 5, 7 e 8:
+		 * 14 + 1 + 5 + 4 + 26.
+		 */
+		expect(Object.keys(NOMES_LOCAIS)).toHaveLength(50);
 	});
 });
 
@@ -208,13 +219,6 @@ describe('o icone local (31/08/2026)', () => {
 		}
 	});
 
-	it('28382 (Charm Grass Necklace) e o UNICO dos 21 sem arte comprovavel (Rodada 4c, 31/08/2026)', () => {
-		// Nao e questao de peneira: nenhum candidato foi achado nos 88
-		// arquivos da pasta de colar, nem em transliteracao nem em traducao.
-		expect(ICONES_LOCAIS[28382]).toBeUndefined();
-		expect(completarFicha(28382, null).identifiedResourceName).toBe(unknownItem.identifiedResourceName);
-	});
-
 	it('todo id de ICONES_LOCAIS tem nome em NOMES_LOCAIS', () => {
 		/*
 		 * Icone sem nome seria um item com a arte certa e o rotulo "Item
@@ -224,7 +228,7 @@ describe('o icone local (31/08/2026)', () => {
 		expect(semNome, 'estes ids tem icone local e nenhum nome local').toEqual([]);
 	});
 
-	it('sao exatamente 35: 10 derivados de cosmetico + 1 DESENHADO + 5 ASCII + 10 CP949 (familia unica) + 5 CP949 (icone de familia) + 4 siropes', () => {
+	it('sao exatamente 15: 10 derivados de cosmetico + 1 DESENHADO + 4 siropes', () => {
 		/*
 		 * Os 10 derivados de cosmetico sao 10 e nao 13 porque `View` NAO e
 		 * chave unica (20500/20765 dividem o 1; 20606/20727 dividem o 5). Quem
@@ -236,109 +240,18 @@ describe('o icone local (31/08/2026)', () => {
 		 * FEITO do sprite do item (D-796). Ele nao sai da derivacao e nao entra
 		 * naquela contagem.
 		 *
-		 * Os 5 da Rodada 4 (31/08/2026) tem `.bmp` no GRF sob o proprio
-		 * `AegisName` em ASCII — achado, nao derivado
-		 * (`.tmp-scratch/buscar-recurso-crimson.ts`).
-		 *
-		 * Os 10 da Rodada 4b (a contraprova em CP949, mesma data) sao a
-		 * derivacao 진홍의<tipo>/도람<peca>, dono UNICO cada — ver o cabecalho
-		 * de ICONES_LOCAIS e `.tmp-scratch/gerar-escapes-icones-locais.ts`.
-		 *
-		 * Os 5 da Rodada 4c (correcao de criterio, mesma data) sao icone DE
-		 * FAMILIA — 4 Foxtail dividindo 여우의꼬리 (mesmo recurso, 4 ids
-		 * nossos + 51 outros) + o Novice Poring Card dividindo 이름없는카드
-		 * com o 4001 e mais 110 cartas do elenco.
-		 *
 		 * Os 4 da Rodada 5 (01/09/2026) sao os siropes do Advanced Potion
 		 * Merchant: 상급포션-<cor>, a traducao literal de `High_*Potion`, com
 		 * dono UNICO cada e nenhum id reivindicando o `.bmp` na tabela do GRF
 		 * (`.tmp-scratch/provar-icone-siropes.ts`, no repositorio do jogo).
-		 * Os 21 da Rodada 6 (08/09/2026, D-1226) sao os drops dos mapas novos:
-		 * 9 Crimson pela MESMA derivacao 진홍의<tipo> da Rodada 4b (a familia
-		 * tem 18 arquivos no GRF, os 18 tambem em `collection\`, e ZERO ids da
-		 * tabela de recurso apontam para eles), 2 com nome ASCII proprio
-		 * (white_snake_tear, konts_letter) e 10 cartas no 이름없는카드
-		 * generico — o mesmo caso do 4545. Os outros 13 continuam na maca, e
-		 * estao nomeados no rodape de `ICONES_LOCAIS`.
+		 *
+		 * **Eram 56 ate 22/09/2026.** Os 41 icones das Rodadas 4, 4b, 4c e 6
+		 * (Crimson, Doram, Foxtail, as cartas no 이름없는카드 e os cinco ASCII)
+		 * sairam junto com os nomes deles: eram todos itens do ramo renewal, e a
+		 * virada para pre-renewal os tirou do jogo. A pesquisa de cada derivacao
+		 * continua no historico: `git log -S "진홍의" -- src/DB/Items/nomesLocais.js`.
 		 */
-		expect(Object.keys(ICONES_LOCAIS)).toHaveLength(56);
-	});
-
-	it('os 5 mob-drop com .bmp proprio no GRF, em ASCII (Rodada 4, 31/08/2026)', () => {
-		expect(completarFicha(23256, null).identifiedResourceName).toBe('elixir_bandage');
-		expect(completarFicha(25729, null).identifiedResourceName).toBe('shadowdecon');
-		expect(completarFicha(25731, null).identifiedResourceName).toBe('zelunium');
-		expect(completarFicha(100796, null).identifiedResourceName).toBe('darkness_bible');
-		expect(completarFicha(101331, null).identifiedResourceName).toBe('fruits_set_trap');
-	});
-
-	it('os 7 Crimson/Scarlet com .bmp em CP949 (진홍의<tipo>, Rodada 4b)', () => {
-		// A queixa do dono era exatamente a "Crimson Bible" (28604) — agora com
-		// icone de verdade, e nao mais a maca.
-		const JINHONG_UI = '\xc1\xf8\xc8\xab\xc0\xc7'; // 진홍의 (jinhong-ui, "de carmesim")
-		const casos = {
-			1443: 'Crimson Spear',
-			13127: 'Crimson Revolver',
-			16040: 'Crimson Mace',
-			21015: 'Crimson Two-Handed Sword',
-			28007: 'Crimson Katar',
-			28604: 'Crimson Bible',
-			28705: 'Crimson Dagger'
-		};
-		for (const [id, nome] of Object.entries(casos)) {
-			const ficha = completarFicha(Number(id), null);
-			expect(ficha.identifiedDisplayName).toBe(nome);
-			expect(ficha.identifiedResourceName.startsWith(JINHONG_UI), `${id} deveria comecar com 진홍의`).toBe(true);
-			expect(ficha.identifiedResourceName).not.toBe(unknownItem.identifiedResourceName);
-		}
-	});
-
-	it('os 3 Doram_Only_* com .bmp em CP949 (도람<peca>, Rodada 4b)', () => {
-		const DORAM = '\xb5\xb5\xb6\xf7'; // 도람 (doram)
-		const casos = {
-			15126: 'Private Doram Suits',
-			20788: 'Private Doram Manteau',
-			22083: 'Private Doram Shoes'
-		};
-		for (const [id, nome] of Object.entries(casos)) {
-			const ficha = completarFicha(Number(id), null);
-			expect(ficha.identifiedDisplayName).toBe(nome);
-			expect(ficha.identifiedResourceName.startsWith(DORAM), `${id} deveria comecar com 도람`).toBe(true);
-			expect(ficha.identifiedResourceName).not.toBe(unknownItem.identifiedResourceName);
-		}
-	});
-
-	it('os 4 Foxtail dividem o icone DE FAMILIA (여우의꼬리, Rodada 4c) — nao e disputa de identidade', () => {
-		/*
-		 * Correcao de criterio (31/08/2026): a peneira 2 barra DISPUTA DE
-		 * IDENTIDADE (dois itens DIFERENTES competindo por um `.bmp` que so
-		 * pertence a um — o caso `View` 1 dos cosmeticos), nao icone DE
-		 * FAMILIA compartilhado — o precedente ja aceito e o 20503/20844
-		 * (mesma sacola). Os 4 Foxtail SAO Foxtails: recebem o mesmo `.bmp`
-		 * dos outros 51 AegisNames da familia, de proposito.
-		 */
-		const FOXTAIL = '\xbf\xa9\xbf\xec\xc0\xc7\xb2\xbf\xb8\xae'; // 여우의꼬리
-		const casos = {
-			1690: 'Mysterious Foxtail Staff',
-			1691: 'Strange God Foxtail Staff',
-			1694: 'Foxtail Model',
-			1695: 'Fine Foxtail Replica'
-		};
-		for (const [id, nome] of Object.entries(casos)) {
-			const ficha = completarFicha(Number(id), null);
-			expect(ficha.identifiedDisplayName).toBe(nome);
-			expect(ficha.identifiedResourceName).toBe(FOXTAIL);
-		}
-	});
-
-	it('4545 (Novice Poring Card) recebe o icone generico de carta (이름없는카드, Rodada 4c)', () => {
-		// O mesmo recurso do 4001 (Poring Card oficial) — comportamento
-		// canonico de carta sem ilustracao propria, nao uma brecha.
-		const CARTA_GENERICA = '\xc0\xcc\xb8\xa7\xbe\xf8\xb4\xc2\xc4\xab\xb5\xe5'; // 이름없는카드
-		const ficha = completarFicha(4545, null);
-		expect(ficha.identifiedDisplayName).toBe('Novice Poring Card');
-		expect(ficha.identifiedResourceName).toBe(CARTA_GENERICA);
-		expect(ficha.identifiedResourceName).not.toBe(unknownItem.identifiedResourceName);
+		expect(Object.keys(ICONES_LOCAIS)).toHaveLength(15);
 	});
 });
 
