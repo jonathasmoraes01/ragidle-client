@@ -218,6 +218,12 @@ function addEntity(entity) {
  */
 function free() {
 	_list.forEach(entity => {
+		// A vida do MOB sai com a entidade (F48): o teleporte no mesmo mapa passa
+		// por aqui sem `clearLifeCache`, e a entrada ficava. A de jogador fica —
+		// o grupo le a vida do membro fora da vista.
+		if (entity.objecttype === Entity.TYPE_MOB) {
+			_lifeCache.delete(entity.GID);
+		}
 		releaseGr2(entity);
 		entity.clean();
 	});

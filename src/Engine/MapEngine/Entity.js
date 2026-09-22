@@ -406,6 +406,17 @@ function onEntityVanish(pkt) {
 				}
 		}
 
+		/*
+		 * A VIDA DO MOB SAI COM ELE, em qualquer saida de cena (F48, auditoria
+		 * de 22/09/2026). So a morte a limpava: o mob que saia da vista, era
+		 * teleportado ou saia do mapa deixava a entrada no cache para sempre.
+		 * A de JOGADOR fica: e dela que `GrupoIdle`/`PartyHud` leem a vida do
+		 * membro do grupo fora da vista.
+		 */
+		if (entity.objecttype === Entity.TYPE_MOB) {
+			EntityManager.removeLife(pkt.GID);
+		}
+
 		entity.remove(pkt.type);
 		EntityManager.removeGID(pkt.GID);
 	}
@@ -1319,7 +1330,9 @@ function onEntityLifeUpdate(pkt) {
 	// deixou de lutar com o mob (a barra e so de quem esta na luta, e do grupo
 	// dele). Sem isto a barra ficava pintada ate a entidade sumir.
 	if (!(pkt.maxhp > 0)) {
-		EntityManager.storeLife(pkt.AID, { hp: -1, hp_max: -1 });
+		// Apagar e TIRAR do cache (F48): guardar -1 dava o mesmo efeito na
+		// leitura e deixava uma entrada por mob apagado.
+		EntityManager.removeLife(pkt.AID);
 		const apagada = EntityManager.get(pkt.AID);
 		if (apagada) {
 			apagada.life.hp = -1;
@@ -1329,15 +1342,22 @@ function onEntityLifeUpdate(pkt) {
 		}
 		return;
 	}
-	EntityManager.storeLife(pkt.AID, { hp: pkt.hp, hp_max: pkt.maxhp });
-
+	/*
+	 * MOB QUE NAO ESTA A VISTA NAO ENTRA NO CACHE (F48). O servidor manda a vida
+	 * de quem esta na luta ao GRUPO todo, e o mob que o companheiro caca longe
+	 * nunca aparece aqui — nem o VANISH dele. Cada um virava uma entrada que so
+	 * a troca de mapa limpava. Quando ele entrar na vista, o STANDENTRY ja traz
+	 * a vida.
+	 */
 	const entity = EntityManager.get(pkt.AID);
-	if (entity) {
-		entity.life.hp = pkt.hp;
-		entity.life.hp_max = pkt.maxhp;
-		entity.life.update();
-		entity.life.display = true;
+	if (!entity) {
+		return;
 	}
+	EntityManager.storeLife(pkt.AID, { hp: pkt.hp, hp_max: pkt.maxhp });
+	entity.life.hp = pkt.hp;
+	entity.life.hp_max = pkt.maxhp;
+	entity.life.update();
+	entity.life.display = true;
 }
 
 /**

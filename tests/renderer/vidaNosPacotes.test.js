@@ -245,3 +245,45 @@ describe('vida no caminho real dos pacotes ate o desenho', () => {
 		expect(String(linhasDoChat[0][0])).toContain('300');
 	});
 });
+
+describe('o cache de vida nao guarda mob que saiu de cena (F48)', () => {
+	it('a vida do mob sai em QUALQUER saida de cena, e nao so na morte', () => {
+		for (const tipo of [Entity.VT.OUTOFSIGHT, Entity.VT.EXIT, Entity.VT.TELEPORT]) {
+			nascer();
+			manager.removeLife.mockClear();
+			enviar('NOTIFY_VANISH', { GID: 2, type: tipo });
+			expect(manager.removeLife, `tipo ${tipo}`).toHaveBeenCalledWith(2);
+		}
+	});
+
+	it('a do JOGADOR fica: o grupo le a vida do membro fora da vista', () => {
+		const membro = new Entity();
+		membro.set({ GID: 5, objecttype: Entity.TYPE_PC, job: 0 });
+		entidades.set(5, membro);
+		manager.removeLife.mockClear();
+		enviar('NOTIFY_VANISH', { GID: 5, type: Entity.VT.OUTOFSIGHT });
+		expect(manager.removeLife).not.toHaveBeenCalled();
+	});
+
+	it('a vida de um mob que nunca apareceu nao entra no cache', () => {
+		manager.storeLife.mockClear();
+		enviar('NOTIFY_MONSTER_HP', { AID: 77, hp: 5, maxhp: 10 });
+		expect(manager.storeLife).not.toHaveBeenCalled();
+	});
+
+	it('CONTROLE: a do mob a vista continua entrando', () => {
+		nascer();
+		manager.storeLife.mockClear();
+		enviar('NOTIFY_MONSTER_HP', { AID: 2, hp: 700, maxhp: 1000 });
+		expect(manager.storeLife).toHaveBeenCalledWith(2, { hp: 700, hp_max: 1000 });
+	});
+
+	it('o apagador (maxhp 0) tira a entrada, em vez de gravar -1', () => {
+		nascer();
+		manager.storeLife.mockClear();
+		manager.removeLife.mockClear();
+		enviar('NOTIFY_MONSTER_HP', { AID: 2, hp: 0, maxhp: 0 });
+		expect(manager.removeLife).toHaveBeenCalledWith(2);
+		expect(manager.storeLife).not.toHaveBeenCalled();
+	});
+});
