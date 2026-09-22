@@ -31,6 +31,7 @@ import UIManager from 'UI/UIManager.js';
 import GUIComponent from 'UI/GUIComponent.js';
 import 'UI/Elements/Elements.js';
 import PACKETVER from 'Network/PacketVerManager.js';
+import { aplicarVagas, podeCriarNaVaga, vagaDoCursor, vagasDaConta } from './vagasDaSelecao.js';
 
 export function createCharSelect(config) {
 	const {
@@ -351,9 +352,12 @@ export function createCharSelect(config) {
 	 */
 	Component.setInfo = function setInfo(pkt) {
 		if (gridLayout) {
+			/* O TOTAL DE VAGAS e o que o servidor informa (9 gratis + as
+			   compradas no RO Shop, teto 15 - decisao do dono de 22/09/2026). Ele
+			   entra ANTES de limpar a grade, para a limpeza ja esconder as vagas
+			   que a conta nao tem (vagasDaSelecao.js). */
+			_maxSlots = vagasDaConta(pkt, defaultMaxSlots);
 			Component.clearAllSlots();
-
-			_maxSlots = Math.floor(pkt.TotalSlotNum + pkt.PremiumStartSlot || 15); // default 15 ?
 			_sex = pkt.sex;
 
 			if (pkt.charInfo) {
@@ -698,6 +702,11 @@ export function createCharSelect(config) {
 	 */
 	function create() {
 		if (_disable_UI === false) {
+			/* Na grade, so numa vaga que a conta TEM e que esta livre: a tela
+			   nunca oferece criar onde o servidor vai recusar. */
+			if (gridLayout && !podeCriarNaVaga(_index, _maxSlots, !!_slots[_index])) {
+				return;
+			}
 			Component.onCreateRequest(_index);
 		}
 	}
@@ -1265,7 +1274,9 @@ export function createCharSelect(config) {
 			}
 		}
 
-		const slotIndex = (_index = index > _maxSlots ? _maxSlots : index < 0 ? 0 : index);
+		/* Preso as vagas da CONTA (era `index > _maxSlots ? _maxSlots`, que
+		   deixava o cursor cair uma vaga alem do total). */
+		const slotIndex = (_index = vagaDoCursor(index, _maxSlots, i => !!_slots[i]));
 
 		// Not found, just clean up.
 		entity = _slots[_index];
@@ -1406,6 +1417,10 @@ export function createCharSelect(config) {
 				}
 			}
 		}
+
+		/* As vagas que a conta NAO tem saem da grade (e voltam quando o
+		   servidor informa mais - vagasDaSelecao.js). */
+		aplicarVagas(root, _maxSlots, i => !!_slots[i]);
 	};
 
 	Component.clearAllSlots = function clearAllSlots() {
@@ -1442,11 +1457,11 @@ export function createCharSelect(config) {
 		 * tela, seja qual for a contagem que o servidor mande. No grid os dois
 		 * so coincidiriam se a conta tivesse exatamente quinze vagas.
 		 *
-		 * O que isto NAO resolve: as vagas 9..14 continuam clicaveis mesmo com
-		 * a conta em 9 slots. Elas ficam vazias e o clique so nao seleciona
-		 * nada -- inofensivo, mas e uma divergencia entre o que o servidor
-		 * declara e o que o grid desenha, e o dono decide se o certo e o
-		 * servidor subir para 15 ou o grid esconder as seis.
+		 * O que isto nao resolvia (as vagas 9..14 clicaveis com a conta em 9)
+		 * o dono decidiu em 22/09/2026: 9 gratis + ate 6 compradas no RO Shop.
+		 * A grade agora esconde as vagas alem do total que o servidor informa
+		 * (`aplicarVagas`, vagasDaSelecao.js) e `create()` recusa a vaga que a
+		 * conta nao tem.
 		 */
 		const idx = Math.floor(_index / count) * count;
 
