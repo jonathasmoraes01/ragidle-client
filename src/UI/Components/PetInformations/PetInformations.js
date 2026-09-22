@@ -100,6 +100,10 @@ PetInformations.init = function init() {
 					PetInformations.reqBackToEgg();
 					break;
 
+				case 'soltar':
+					PetInformations.reqSoltarPet();
+					break;
+
 				case 'unequip':
 					PetInformations.reqUnEquipPet();
 					break;
@@ -325,6 +329,7 @@ PetInformations.reqPetAction = function reqPetAction() {};
 PetInformations.reqNameEdit = function reqNameEdit() {};
 PetInformations.reqUnEquipPet = function reqUnEquipPet() {};
 PetInformations.reqBackToEgg = function reqBackToEgg() {};
+PetInformations.reqSoltarPet = function reqSoltarPet() {};
 PetInformations.reqEvolution = function reqEvolution() {};
 PetInformations.onConfigUpdate = function onConfigUpdate(/* type, value*/) {};
 

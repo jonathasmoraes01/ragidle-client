@@ -286,6 +286,20 @@ PetInformations.reqBackToEgg = function reqBackToEgg() {
 };
 
 /**
+ * SOLTAR o pet (F07, auditoria de 22/09/2026) — extensao nossa: o `pet_menu` do
+ * rAthena vai de 0 a 4, e o 5 so este servidor entende. Ele pergunta antes pela
+ * janela de confirmacao (`RagidleConfirmar.js`); a janela do pet fecha ja, como
+ * no "voltar ao ovo", porque o "sim" tira o pet de campo.
+ */
+PetInformations.reqSoltarPet = function reqSoltarPet() {
+	const pkt = new PACKET.CZ.COMMAND_PET();
+	pkt.cSub = 5;
+	Network.sendPacket(pkt);
+
+	PetInformations.remove();
+};
+
+/**
  * UnEquip pet accessory
  */
 PetInformations.reqUnEquipPet = function reqUnEquipPet() {
