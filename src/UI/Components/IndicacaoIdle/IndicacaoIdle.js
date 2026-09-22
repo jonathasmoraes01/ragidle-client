@@ -25,7 +25,8 @@ import UIManager from 'UI/UIManager.js';
 import GUIComponent from 'UI/GUIComponent.js';
 import htmlText from './IndicacaoIdle.html?raw';
 import cssText from './IndicacaoIdle.css?raw';
-import { fecharEEsquecer } from '../limpezaDeJanelaIdle.js';
+import { fecharEEsquecer } from '../limpezaDeJanelaIdle.js';
+import { formatarRoCash, minorDePrimeiro } from 'Utils/roCash.js';
 
 const WINDOW_WIDTH = 520;
 const WINDOW_HEIGHT = 540;
@@ -298,7 +299,7 @@ function render() {
 		link.value = '';
 		codigo.textContent = '······';
 		total.textContent = '0';
-		ganhos.textContent = '0';
+		ganhos.textContent = formatarRoCash(0);
 		indicadoPor.innerHTML = '';
 		chips.innerHTML = '<div class="in-vazio">Carregando…</div>';
 		listaTotal.textContent = '';
@@ -309,7 +310,9 @@ function render() {
 	taxa.textContent = String(estado.taxa || 10) + '%';
 	const indicados = Array.isArray(estado.indicados) ? estado.indicados : [];
 	total.textContent = String(indicados.length);
-	ganhos.textContent = String(estado.ganhos || 0);
+	// Em MINOR desde o RO Shop (22/09/2026): `ganhosMinor` na v2, o inteiro
+	// antigo x100 na v1, e o MESMO formato da HUD e da loja (`formatarRoCash`).
+	ganhos.textContent = formatarRoCash(minorDePrimeiro(estado, ['ganhos']) || 0);
 	indicadoPor.innerHTML = indicadoPorHtml(estado);
 	listaTotal.textContent = '(' + indicados.length + ')';
 	chips.innerHTML = chipsHtml(indicados);
@@ -323,7 +326,9 @@ function onIndicacaoRecebida(pkt) {
 		console.error('[IndicacaoIdle] payload nao e JSON valido', err);
 		return;
 	}
-	if (!dados || dados.v !== 1) {
+	/* `v: 2` desde o RO Shop (22/09/2026): `ganhos` virou `ganhosMinor`
+	   (CONTRATO.md do RO Shop, secao 5). As duas formas sao lidas acima. */
+	if (!dados || (dados.v !== 1 && dados.v !== 2)) {
 		return;
 	}
 	IndicacaoIdle.estado = dados;

@@ -177,12 +177,22 @@ function vip(extra = {}) {
 describe('a caixa a venda (decisao do dono de 22/09/2026: 10 cash)', () => {
 	it('com preco e `compra.pode`, desenha o preco e o Comprar LIGADO, sem a recusa', () => {
 		const html = renderCaixaHtml(caixa({ preco: 10, compra: { pode: true, motivo: null, texto: null } }));
-		expect(html).toContain('<strong>10</strong>');
+		/* RO Shop (22/09/2026): todo RO Cash passa por `formatarRoCash` - o
+		   `preco` inteiro da v2 vira 1000 minor e sai "10,00". */
+		expect(html).toContain('<strong>10,00</strong>');
 		expect(html).toContain('RO Cash');
 		expect(html).not.toContain('Preço a definir');
 		expect(html).not.toContain('ainda não está à venda');
 		const comprar = html.match(/<button[^>]*data-agir="comprar-caixa"[^>]*>/)[0];
 		expect(comprar).not.toContain('disabled');
+	});
+
+	it('contrato em minor (RO Shop): `precoMinor` ganha do `preco` inteiro, e 150 sai "1,50"', () => {
+		const html = renderCaixaHtml(caixa({ preco: 99, precoMinor: 150, compra: { pode: true, motivo: null, texto: null } }));
+		expect(html).toContain('<strong>1,50</strong>');
+		expect(html).not.toContain('99');
+		const semPreco = renderCaixaHtml(caixa({ preco: null, precoMinor: null }));
+		expect(semPreco).toContain('Preço a definir');
 	});
 
 	it('sem preco (o servidor de hoje), o Comprar nasce APAGADO e a recusa e a frase do servidor', () => {
@@ -513,17 +523,37 @@ describe('a aba Passe de Batalha inteira (payload V2 montado a partir do contrat
 
 describe('o VIP (a compra veio da janela de Recompensas)', () => {
 	it('o veredito do botao de passe vem do campo `recusa` do servidor', () => {
-		const pode = renderAcaoDoPasseHtml({ tipo: 'vip', cash: 100, dias: 30, ativo: false, recusa: null }, 5000);
+		/* O segundo argumento e o SALDO EM MINOR desde o RO Shop (22/09/2026);
+		   o `cash` inteiro do passe vira minor x100 (`minorDe`). */
+		const pode = renderAcaoDoPasseHtml({ tipo: 'vip', cash: 100, dias: 30, ativo: false, recusa: null }, 500000);
 		expect(pode.match(/<button[^>]*>/)[0]).not.toContain('disabled');
 		expect(pode).toContain('O valor sai do seu saldo de cash na hora.');
 
-		const semSaldo = renderAcaoDoPasseHtml({ tipo: 'vip', cash: 100, dias: 30, ativo: false, recusa: 'saldo-insuficiente' }, 40);
+		const semSaldo = renderAcaoDoPasseHtml({ tipo: 'vip', cash: 100, dias: 30, ativo: false, recusa: 'saldo-insuficiente' }, 4000);
 		expect(semSaldo.match(/<button[^>]*>/)[0]).toContain('disabled');
-		expect(semSaldo).toContain('Faltam 60 cash.');
+		expect(semSaldo).toContain('Faltam 60,00 RO Cash.');
 
-		const aindaVale = renderAcaoDoPasseHtml({ tipo: 'vip', cash: 100, dias: 30, ativo: true, recusa: 'ainda-nao-vence' }, 5000);
-		expect(aindaVale).toContain('Renovar · 100 cash');
+		const aindaVale = renderAcaoDoPasseHtml({ tipo: 'vip', cash: 100, dias: 30, ativo: true, recusa: 'ainda-nao-vence' }, 500000);
+		expect(aindaVale).toContain('Renovar · 100,00 RO Cash');
+
+		/* O ZC_RAGIDLE_PASSE v2 (CONTRATO.md do RO Shop, secao 5) troca o NOME:
+		   `passes[].cash` vira `precoMinor`, e o novo ganha do antigo. */
+		const emMinor = renderAcaoDoPasseHtml({ tipo: 'vip', cash: 7, precoMinor: 10000, dias: 30, ativo: false, recusa: 'saldo-insuficiente' }, 2550);
+		expect(emMinor).toContain('Comprar · 100,00 RO Cash');
+		expect(emMinor).toContain('Faltam 74,50 RO Cash.');
 		expect(aindaVale).toContain('A renovação abre no último dia');
+	});
+
+	it('o Passe v2 inteiro (`saldoMinor` + `passes[].precoMinor`) chega na aba VIP em minor', () => {
+		const v2 = {
+			v: 2,
+			saldoMinor: 862000,
+			passes: [{ tipo: 'vip', precoMinor: 10000, dias: 30, ativo: false, recusa: null }]
+		};
+		const html = renderVipHtml(vip(), v2);
+		expect(html).toContain('100,00');
+		expect(html).toContain('Comprar · 100,00 RO Cash');
+		expect(html).not.toContain('undefined');
 	});
 
 	it('o emblema grande do VIP entra no topo da aba', () => {

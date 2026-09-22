@@ -78,6 +78,7 @@ import PasseIdle from '../PasseIdle/PasseIdle.js';
 import { itemIconUrl, preferirArtePublicada } from 'Utils/ItemArt.js';
 import { fecharEEsquecer } from '../limpezaDeJanelaIdle.js';
 import { abaLembrada, lembrarAba } from '../memoriaDeAba.js';
+import { formatarRoCash, minorDe, minorDePrimeiro } from 'Utils/roCash.js';
 import htmlText from './TemporadaIdle.html?raw';
 import cssText from './TemporadaIdle.css?raw';
 import {
@@ -476,7 +477,7 @@ function onClicarAcao(botao) {
 		if (!caixa) {
 			return;
 		}
-		abrirConfirmacao(`Comprar ${caixa.nome} por ${caixa.preco} RO Cash?`, () =>
+		abrirConfirmacao(`Comprar ${caixa.nome} por ${formatarRoCash(minorDe(caixa, 'preco') || 0)} RO Cash?`, () =>
 			enviarAcao({ acao: 'comprar-caixa', pool, chave: gerarChave() })
 		);
 		return;
@@ -509,7 +510,10 @@ function onClicarAcao(botao) {
 		}
 		const passe = passePorTipo(TemporadaIdle.estadoDoPasse, tipo);
 		const verbo = passe && passe.ativo ? 'Renovar' : 'Comprar';
-		const preco = passe ? `${passe.cash} cash` : '';
+		const preco =
+			passe && minorDePrimeiro(passe, ['preco', 'cash']) !== null
+				? `${formatarRoCash(minorDePrimeiro(passe, ['preco', 'cash']))} RO Cash`
+				: '';
 		abrirConfirmacao(`${verbo} o VIP${preco ? ` por ${preco}` : ''}?`, () => enviarCompraDePasse(tipo));
 	}
 }
@@ -596,15 +600,14 @@ function render() {
 
 	/* O saldo: o da Temporada quando ja chegou; senao o do Passe, que e o
 	   mesmo cash da mesma conta - os dois pacotes o trazem. */
+	/* Em MINOR desde o RO Shop (22/09/2026): `saldoMinor`/`cashMinor` do
+	   contrato novo, ou o inteiro antigo x100 (`Utils/roCash.js:minorDe`), e o
+	   MESMO `formatarRoCash` do RO Shop e da HUD. */
 	const carteira = root.querySelector('.te-carteira-valor');
 	if (carteira) {
-		const saldo =
-			estado && estado.moeda && typeof estado.moeda.saldo === 'number'
-				? estado.moeda.saldo
-				: estadoDoPasse && typeof estadoDoPasse.cash === 'number'
-					? estadoDoPasse.cash
-					: 0;
-		carteira.textContent = String(saldo);
+		const saldoDaTemporada = minorDe(estado && estado.moeda, 'saldo');
+		const saldo = saldoDaTemporada !== null ? saldoDaTemporada : minorDePrimeiro(estadoDoPasse, ['saldo', 'cash']);
+		carteira.textContent = formatarRoCash(saldo || 0);
 	}
 
 	const selo = root.querySelector('.te-selo-vip');
@@ -747,7 +750,11 @@ function onTemporadaRecebida(pkt) {
 	   que o v1 ja ignorava payload de formato desconhecido - a janela so
 	   redesenha quando o formato bate com o que ela sabe ler, nunca tenta
 	   adivinhar um campo que mudou de nome. */
-	if (!dados || dados.v !== 2) {
+	/* RO Shop (22/09/2026): a `v: 3` do contrato traz o dinheiro em MINOR
+	   (`moeda.saldoMinor`, `caixas[].precoMinor` - CONTRATO.md do RO Shop,
+	   secao 5). O resto do payload e o da v2, e a janela ja le as duas formas
+	   do dinheiro por `minorDe`; versao que ela nao conhece continua ignorada. */
+	if (!dados || (dados.v !== 2 && dados.v !== 3)) {
 		return;
 	}
 	destravarBotoes();

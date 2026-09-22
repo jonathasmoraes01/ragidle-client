@@ -77,6 +77,11 @@ export default {
 	 * Quem o preenche e o `ZC_RAGIDLE_SALDO_DE_CASH` (0x0f00), enganchado em
 	 * UI/Components/BasicInfoIdle. Ate 28/08 nao existia campo nenhum: o saldo
 	 * so aparecia dentro da janela da loja, e o HUD nao tinha de onde ler.
+	 *
+	 * EM MINOR UNITS desde o RO Shop (22/09/2026, CONTRATO.md do RO Shop secao
+	 * 1): 1 RO Cash = 100. Quem escreve na tela passa por
+	 * `Utils/roCash.js:formatarRoCash`; quem compara com preco inteiro antigo
+	 * (a loja de cash de NPC) divide por 100 antes.
 	 */
 	cash: 0,
 

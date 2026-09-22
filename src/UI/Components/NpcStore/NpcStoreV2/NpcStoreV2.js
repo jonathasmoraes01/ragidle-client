@@ -700,7 +700,10 @@ function tetoDoItem(item) {
 	if (!eEscambo()) {
 		const unitario = precoUnitario(item);
 		if (unitario > 0) {
-			const saldo = _type === NpcStore.Type.CASH_SHOP ? Session.cash || 0 : Session.zeny || 0;
+			// `Session.cash` e MINOR desde o RO Shop (22/09/2026); o preco desta
+			// loja nativa de cash e RO Cash inteiro, entao o saldo desce a
+			// inteiro antes de dividir. Quem decide a compra e o servidor.
+			const saldo = _type === NpcStore.Type.CASH_SHOP ? Math.floor((Session.cash || 0) / 100) : Session.zeny || 0;
 			teto = Math.min(teto, Math.max(0, Math.floor(saldo / unitario)));
 		}
 	}

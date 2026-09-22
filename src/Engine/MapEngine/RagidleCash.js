@@ -50,6 +50,12 @@ class RagidleCashEngine {
  * `@cash`, `@darcash`, compra na loja). Guardar sem checar o valor é
  * deliberado: o campo é `u32` e o teto já foi aparado do outro lado
  * (`MAX_CASHPOINT`, common/mmo.hpp:85).
+ *
+ * O NUMERO E MINOR desde o RO Shop (22/09/2026): o contrato do canal
+ * (`docs/ro-shop/CONTRATO.md`, secao 1) move a carteira inteira para minor
+ * units (1 RO Cash = 100), e este pacote junto. O pacote nao tem campo de
+ * versao, entao cliente e servidor desta mudanca SOBEM JUNTOS - um cliente
+ * novo contra um servidor antigo mostraria 5.000 RO Cash como "50,00".
  */
 function onSaldo(pkt) {
 	Session.cash = pkt.saldo;

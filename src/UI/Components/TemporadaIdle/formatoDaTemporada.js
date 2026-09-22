@@ -82,6 +82,7 @@
  */
 
 import RiIcones from 'UI/ri-icones.js';
+import { formatarRoCash, minorDe, minorDePrimeiro } from 'Utils/roCash.js';
 
 /** Mesmo escape de PasseIdle.js/PainelComandoIdle.js — sem depender de DOM. */
 export function escapeHtml(value) {
@@ -566,10 +567,14 @@ export function renderDestaquesHtml(estado) {
 
 /** Um card completo de caixa (Caixas Topo/Meio/Baixo/Manto). */
 export function renderCaixaHtml(caixa) {
+	/* O preco em MINOR (RO Shop, 22/09/2026 - `Utils/roCash.js`): `precoMinor`
+	   do contrato novo ganha sempre; o `preco` inteiro do v2 e multiplicado por
+	   100, a mesma conta da migracao do servidor. Nenhum dos dois = a definir. */
+	const precoMinor = minorDe(caixa, 'preco');
 	const precoHtml =
-		caixa.preco === null
+		precoMinor === null
 			? '<span class="te-caixa-preco te-caixa-preco--indefinido">Preço a definir</span>'
-			: `<span class="te-caixa-preco"><strong>${escapeHtml(caixa.preco)}</strong><span>RO Cash</span></span>`;
+			: `<span class="te-caixa-preco"><strong>${escapeHtml(formatarRoCash(precoMinor))}</strong><span>RO Cash</span></span>`;
 
 	const garantia = Math.max(1, Number(caixa.pity.garantia) || 1);
 	const pctPity = Math.min(100, Math.max(0, Math.round((Number(caixa.pity.contador) / garantia) * 100)));
@@ -726,8 +731,9 @@ export function renderModalConteudoHtml(caixa) {
  * bloco com aro dourado permanente, para o ouro continuar significando algo.
  */
 export function renderVitrineHtml(passe, nome, resumo, referencia) {
+	const precoMinor = minorDePrimeiro(passe, ['preco', 'cash']);
 	const preco = passe
-		? `<div class="te-vitrine-preco"><span class="te-vitrine-preco-valor">${escapeHtml(passe.cash)}</span><span class="te-vitrine-preco-unidade">cash</span></div>`
+		? `<div class="te-vitrine-preco"><span class="te-vitrine-preco-valor">${escapeHtml(precoMinor === null ? '…' : formatarRoCash(precoMinor))}</span><span class="te-vitrine-preco-unidade">RO Cash</span></div>`
 		: '<div class="te-vitrine-preco"><span class="te-vitrine-preco-valor">…</span></div>';
 
 	const vigencia =
@@ -758,7 +764,7 @@ export function renderVitrineHtml(passe, nome, resumo, referencia) {
  * `PasseIdle.js:acaoHtml` - e o VEREDITO continua vindo do servidor no campo
  * `recusa` (`null` = pode comprar), nunca de um `cash >= preco` daqui.
  */
-export function renderAcaoDoPasseHtml(passe, cash) {
+export function renderAcaoDoPasseHtml(passe, saldoMinor) {
 	if (!passe) {
 		return '<div class="te-carregando">Carregando…</div>';
 	}
@@ -769,7 +775,7 @@ export function renderAcaoDoPasseHtml(passe, cash) {
 		recusa === 'ainda-nao-vence'
 			? 'Seu passe ainda vale. A renovação abre no último dia, assim o cash não fica preso num benefício que você já tem.'
 			: recusa === 'saldo-insuficiente'
-				? `Faltam ${escapeHtml(Number(passe.cash) - Number(cash || 0))} cash.`
+				? `Faltam ${escapeHtml(formatarRoCash(Math.max(0, (minorDePrimeiro(passe, ['preco', 'cash']) || 0) - (Number(saldoMinor) || 0))))} RO Cash.`
 				: passe.ativo
 					? `Renovar SOMA ${escapeHtml(passe.dias)} dias ao que falta. Você não perde o que já pagou.`
 					: 'O valor sai do seu saldo de cash na hora.';
@@ -777,7 +783,7 @@ export function renderAcaoDoPasseHtml(passe, cash) {
 	return (
 		'<div class="te-acao">' +
 		`<button type="button" class="te-comprar-passe ri-btn ri-btn--ouro" data-agir="comprar-passe" data-tipo="${escapeHtml(passe.tipo)}"${podeComprar ? '' : ' disabled'}>` +
-		`${escapeHtml(rotulo)} · ${escapeHtml(passe.cash)} cash</button>` +
+		`${escapeHtml(rotulo)} · ${escapeHtml(formatarRoCash(minorDePrimeiro(passe, ['preco', 'cash']) || 0))} RO Cash</button>` +
 		`<div class="te-nota te-nota--centro">${nota}</div>` +
 		'</div>'
 	);
@@ -1019,7 +1025,9 @@ export function renderPasseDeBatalhaHtml(passe) {
  */
 export function renderVipHtml(vip, estadoDoPasse) {
 	const passeVip = passePorTipo(estadoDoPasse, 'vip');
-	const cash = (estadoDoPasse && estadoDoPasse.cash) || 0;
+	/* O saldo do pacote do Passe em MINOR (`cashMinor` novo, ou o `cash`
+	   inteiro antigo x100 - `Utils/roCash.js:minorDe`). */
+	const cash = minorDePrimeiro(estadoDoPasse, ['saldo', 'cash']) || 0;
 	const dias = passeVip ? passeVip.dias : vip.dias;
 	const resumo = `${escapeHtml(dias)} dias de vantagem em tudo o que você caça.`;
 	const referencia = Number.isFinite(Number(vip.precoReferenciaCentavos))

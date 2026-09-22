@@ -76,6 +76,7 @@ import GUIComponent from 'UI/GUIComponent.js';
 import MonsterTable from 'DB/Monsters/MonsterTable.js';
 import BasicInfo from 'UI/Components/BasicInfo/BasicInfo.js';
 import RiIcones from 'UI/ri-icones.js';
+import { formatarRoCash } from 'Utils/roCash.js';
 import htmlText from './BasicInfoIdle.html?raw';
 import cssText from './BasicInfoIdle.css?raw';
 import { emUnidadesDaHud } from 'UI/escalaDaHud.js'; // D-934: geometria medida vira unidade da HUD
@@ -581,9 +582,10 @@ function syncFromNativeState() {
 	setText(root, '.bi-weight', `${weight} / ${weightMax}`);
 
 	setText(root, '.bi-zeny', formatZeny(Session.zeny));
-	// O cash usa o MESMO formatador do zeny: e o mesmo tipo de numero para o
-	// jogador, e dois formatos na mesma faixa so criariam duvida.
-	setText(root, '.bi-cash', formatZeny(Session.cash));
+	// O cash e MINOR desde o RO Shop (22/09/2026) e usa o MESMO formatador do
+	// RO Shop e da Temporada (`formatarRoCash`, "8.620,00"): o jogador ve o
+	// mesmo numero nas tres telas, e um preco de 1,50 nao fica sem casa.
+	setText(root, '.bi-cash', formatarRoCash(Session.cash));
 
 	sincronizarRodapeVertical(root, entity, nativeUI);
 }
