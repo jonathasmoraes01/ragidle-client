@@ -1,6 +1,8 @@
 /**
  * UM ESTADO DE EXEMPLO do RO Shop, FIEL ao contrato v1 CONFIRMADO pelo Agente 1
- * (`docs/ro-shop/CONTRATO.md` do servidor, commit bddee780, secoes 4 e 7) - usado
+ * (`docs/ro-shop/CONTRATO.md` do servidor, commit bddee780, secoes 4 e 7; e o
+ * aditivo da rodada 2, commit 06e5e71c: `limites`, `personagem`, `conta.slots`
+ * e `conta.carga`, os quatro SKUs ativados) - usado
  * pelos testes da janela e pelo arnes de foto (`scripts/foto-ro-shop.mjs`).
  *
  * SKUs, precos, categorias-casa, `ordemNoDestaque`, itemIds de icone, `ativo` e
@@ -117,43 +119,39 @@ export function estadoDeExemplo(sobrescrever = {}) {
 				resumo: 'Devolve todos os pontos de atributo',
 				quantidadeMaxima: 5
 			}),
+			/* Rodada 2 (CONTRATO.md 06e5e71c): os quatro que estavam fora de venda
+			   ATIVARAM. O armazem de exemplo esta no TETO (10 de 10) para a tela ter
+			   um "esgotado" de verdade. */
 			P('SERVICE_RENAME', 'Troca de Nome', 'conta', 500, {
 				ordem: 1,
 				tipoDeEntrega: 'servico',
 				resumo: 'Um novo nome para o personagem',
-				quantidadeMaxima: 1,
-				ativo: false,
-				indisponivel: { motivo: 'aguarda-decisao', texto: 'Em breve.' }
+				quantidadeMaxima: 1
 			}),
 			P('SERVICE_APPEARANCE_CHANGE', 'Alteração Visual/Sexo', 'conta', 300, {
 				ordem: 2,
 				tipoDeEntrega: 'servico',
 				resumo: 'Troca visual ou de sexo do personagem',
-				quantidadeMaxima: 1,
-				ativo: false,
-				indisponivel: { motivo: 'aguarda-decisao', texto: 'Em breve.' }
+				quantidadeMaxima: 1
 			}),
 			P('ACCOUNT_CHARACTER_SLOT', '+1 Slot de Personagem', 'conta', 500, {
 				ordem: 3,
 				tipoDeEntrega: 'conta',
 				resumo: 'Mais um personagem na conta',
-				quantidadeMaxima: 1,
-				ativo: false,
-				indisponivel: { motivo: 'aguarda-cliente', texto: 'Em breve.' }
+				quantidadeMaxima: 1
 			}),
-			P('ACCOUNT_INVENTORY_10', 'Expansão de Inventário +10', 'conta', 200, {
+			P('ACCOUNT_INVENTORY_10', 'Expansão de Carga +5.000', 'conta', 200, {
 				ordem: 4,
 				tipoDeEntrega: 'conta',
-				resumo: '+10 espaços na mochila',
-				quantidadeMaxima: 1,
-				ativo: false,
-				indisponivel: { motivo: 'sem-efeito', texto: 'Indisponível no momento.' }
+				resumo: '+5.000 de capacidade de carga',
+				quantidadeMaxima: 1
 			}),
 			P('ACCOUNT_STORAGE_100', 'Expansão de Armazém +100', 'conta', 300, {
 				ordem: 5,
 				tipoDeEntrega: 'conta',
 				resumo: '+100 espaços no armazém',
 				quantidadeMaxima: 1,
+				ativo: false,
 				indisponivel: { motivo: 'teto-atingido', texto: 'Seu armazém já está no tamanho máximo.' }
 			}),
 			P('TRAVEL_PACK', 'Pack Viagem', 'farm-up', 200, {
@@ -191,19 +189,52 @@ export function estadoDeExemplo(sobrescrever = {}) {
 				selo: 'oferta'
 			})
 		],
+		/* `usavel` = o servico tem efeito E ha credito (rodada 2); `limites` e o
+		   bloco da secao 4 do contrato, com as faixas documentadas. */
 		servicos: [
-			{ servico: 'reset-de-skills', sku: 'SERVICE_SKILL_RESET', nome: 'Reset de Skills', creditos: 1, usavel: true },
-			{ servico: 'reset-de-status', sku: 'SERVICE_STAT_RESET', nome: 'Reset de Status', creditos: 0, usavel: true },
-			{ servico: 'troca-de-nome', sku: 'SERVICE_RENAME', nome: 'Troca de Nome', creditos: 0, usavel: false },
+			{
+				servico: 'reset-de-skills',
+				sku: 'SERVICE_SKILL_RESET',
+				nome: 'Reset de Skills',
+				creditos: 1,
+				usavel: true,
+				limites: null
+			},
+			{
+				servico: 'reset-de-status',
+				sku: 'SERVICE_STAT_RESET',
+				nome: 'Reset de Status',
+				creditos: 0,
+				usavel: false,
+				limites: null
+			},
+			{
+				servico: 'troca-de-nome',
+				sku: 'SERVICE_RENAME',
+				nome: 'Troca de Nome',
+				creditos: 1,
+				usavel: true,
+				limites: { novoNome: { min: 4, max: 23 } }
+			},
 			{
 				servico: 'troca-de-aparencia',
 				sku: 'SERVICE_APPEARANCE_CHANGE',
 				nome: 'Alteração Visual/Sexo',
-				creditos: 0,
-				usavel: false
+				creditos: 1,
+				usavel: true,
+				limites: {
+					sexo: { valores: [0, 1], fixo: false },
+					cabelo: { min: 0, max: 27 },
+					corDoCabelo: { min: 0, max: 8 }
+				}
 			}
 		],
-		conta: { armazem: { expansoes: 4, teto: 4, vagasPorExpansao: 100 } },
+		personagem: { id: 150001, nome: 'Jhow', classe: 4, sexo: 1, cabelo: 5, corDoCabelo: 2 },
+		conta: {
+			armazem: { expansoes: 10, teto: 10, vagasPorExpansao: 100 },
+			slots: { total: 12, gratis: 9, teto: 15 },
+			carga: { expansoes: 1, teto: 5, porExpansao: 5000 }
+		},
 		temporada: { nome: 'Season 1 - Luz & Trevas', fase: 'aberta' },
 		recarga: {
 			disponivel: false,

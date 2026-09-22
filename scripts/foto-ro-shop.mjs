@@ -211,7 +211,7 @@ async function medir(page) {
 			);
 		}
 		const cortaveis =
-			'.rs-card, .rs-linha, .rs-carteira, .rs-btn, .rs-categoria, .rs-temporada, .rs-modal-corpo, .rs-totais, .rs-barra-carrinho, .rs-checkout, .rs-total-linha, .rs-paginacao, .rs-ferramentas, .rs-recarregar, .rs-carteira-texto, .rs-carteira-valor, .rs-linha-info, .rs-card-nome, .rs-card-resumo, .rs-grade-titulo';
+			'.rs-card, .rs-linha, .rs-carteira, .rs-btn, .rs-categoria, .rs-temporada, .rs-modal-corpo, .rs-totais, .rs-barra-carrinho, .rs-checkout, .rs-total-linha, .rs-paginacao, .rs-ferramentas, .rs-recarregar, .rs-carteira-texto, .rs-carteira-valor, .rs-linha-info, .rs-card-nome, .rs-card-resumo, .rs-grade-titulo, .rs-form, .rs-campo, .rs-opcao, .rs-contador, .rs-relog, .rs-desequipados, .rs-servico';
 		sh.querySelectorAll(cortaveis).forEach(el => {
 			if (!visivel(el)) {
 				return;
@@ -248,7 +248,7 @@ async function medir(page) {
 		   o proprio botao no elementFromPoint - um modal pintado por baixo do
 		   fundo escuro passava em todas as medidas acima e nao recebia toque. */
 		const acoes =
-			'[data-rs="confirmar"], [data-rs="comprar"], [data-rs="fechar-detalhes"], [data-rs="fechar-checkout"], .rs-barra-carrinho, .rs-close, .rs-lateral-fechar, [data-rs="adicionar"][data-fecha]';
+			'[data-rs="confirmar"], [data-rs="comprar"], [data-rs="fechar-detalhes"], [data-rs="fechar-checkout"], .rs-barra-carrinho, .rs-close, .rs-lateral-fechar, [data-rs="adicionar"][data-fecha], [data-rs="confirmar-servico"], [data-rs="fechar-servico"], [data-rs="voltar-servico"], [data-rs="aparencia-sexo"], [data-rs-campo]';
 		sh.querySelectorAll(acoes).forEach(el => {
 			if (!visivel(el)) {
 				return;
@@ -315,6 +315,11 @@ async function medir(page) {
 /* ------------------------------------------------------------------ */
 
 const CLIQUE = sel => `document.getElementById('host').shadowRoot.querySelector(${JSON.stringify(sel)}).click()`;
+
+/* Digitar como o navegador: muda o value e dispara o `input` (que o arnes,
+   como o RoShop.js, repassa ao controlador). */
+const DIGITAR = (sel, valor) =>
+	`(() => { const el = document.getElementById('host').shadowRoot.querySelector(${JSON.stringify(sel)}); el.focus(); el.value = ${JSON.stringify(valor)}; el.dispatchEvent(new Event('input', { bubbles: true, composed: true })); })()`;
 
 let vertical = false;
 
@@ -523,6 +528,96 @@ async function principal() {
 				await foto('16-utilidades-seus-servicos');
 				await page.evaluate(CLIQUE('[data-rs="usar-servico"]'));
 				await foto('17-usar-servico');
+
+				/* ---- Rodada 2: os estados novos ---- */
+				await preparar(page, { carrinho: false });
+				await page.evaluate(CLIQUE('[data-categoria="conta"]'));
+				await foto('18-conta-contadores-e-seus-servicos');
+				await page.evaluate(() => {
+					const p = document.getElementById('host').shadowRoot.querySelector('.rs-principal');
+					p.scrollTop = p.scrollHeight;
+				});
+				await foto('18b-conta-fim-da-grade');
+
+				await page.evaluate(CLIQUE('[data-rs="usar-servico"][data-servico="troca-de-nome"]'));
+				await foto('19-troca-de-nome-vazio');
+				await page.evaluate(DIGITAR('[data-rs-campo="novoNome"]', 'Aurora'));
+				await foto('19b-troca-de-nome-preenchido');
+				await page.evaluate(CLIQUE('[data-rs="confirmar-servico"]'));
+				await foto('20-troca-de-nome-processando');
+				await page.evaluate(() =>
+					window.__c.receber({
+						versao: 1,
+						tipo: 'resultado',
+						acao: 'usar-servico',
+						ok: false,
+						chave: 'chave-foto-1',
+						motivo: 'parametros-invalidos',
+						texto: 'Este nome já está em uso. Escolha outro.',
+						parametrosRecusados: { novoNome: 'em-uso' }
+					})
+				);
+				await foto('21-troca-de-nome-recusa');
+				await page.evaluate(CLIQUE('[data-rs="voltar-servico"]'));
+				await foto('21b-troca-de-nome-corrigir');
+				await page.evaluate(DIGITAR('[data-rs-campo="novoNome"]', 'Aurora Boreal'));
+				await page.evaluate(CLIQUE('[data-rs="confirmar-servico"]'));
+				await page.evaluate(() =>
+					window.__c.receber({
+						versao: 1,
+						tipo: 'resultado',
+						acao: 'usar-servico',
+						ok: true,
+						chave: 'chave-foto-2',
+						servico: 'troca-de-nome',
+						repetido: false,
+						texto: 'Seu personagem agora se chama Aurora Boreal.',
+						creditosRestantes: 0,
+						requerRelog: true,
+						desequipados: []
+					})
+				);
+				await foto('22-troca-de-nome-sucesso-relog');
+
+				await preparar(page, { carrinho: false });
+				await page.evaluate(CLIQUE('[data-categoria="conta"]'));
+				await page.evaluate(CLIQUE('[data-rs="usar-servico"][data-servico="troca-de-aparencia"]'));
+				await foto('23-aparencia-vazio');
+				await page.evaluate(CLIQUE('[data-rs="aparencia-sexo"][data-valor="0"]'));
+				await page.evaluate(DIGITAR('[data-rs-campo="cabelo"]', '12'));
+				await page.evaluate(DIGITAR('[data-rs-campo="corDoCabelo"]', '3'));
+				await foto('23b-aparencia-preenchido');
+				await page.evaluate(CLIQUE('[data-rs="confirmar-servico"]'));
+				await page.evaluate(() =>
+					window.__c.receber({
+						versao: 1,
+						tipo: 'resultado',
+						acao: 'usar-servico',
+						ok: true,
+						chave: 'chave-foto-1',
+						servico: 'troca-de-aparencia',
+						repetido: false,
+						texto: 'Aparência trocada: agora feminino, cabelo 12, cor 3.',
+						creditosRestantes: 0,
+						requerRelog: true,
+						desequipados: [
+							{ itemId: 1950, nome: 'Chicote' },
+							{ itemId: 2330, nome: 'Vestido de Seda' }
+						]
+					})
+				);
+				await foto('24-aparencia-sucesso-desequipados');
+
+				const sexoFixo = await page.evaluate(() => {
+					const e = window.__estado();
+					e.servicos[3].limites.sexo.fixo = true;
+					e.personagem = { ...e.personagem, classe: 19 };
+					return e;
+				});
+				await preparar(page, { carrinho: false, estado: sexoFixo });
+				await page.evaluate(CLIQUE('[data-categoria="conta"]'));
+				await page.evaluate(CLIQUE('[data-rs="usar-servico"][data-servico="troca-de-aparencia"]'));
+				await foto('25-aparencia-classe-de-sexo-fixo');
 
 				if (!L.dedo) {
 					await preparar(page);

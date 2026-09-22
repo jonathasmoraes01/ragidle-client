@@ -84,6 +84,25 @@
 import RiIcones from 'UI/ri-icones.js';
 import { formatarRoCash, minorDe, minorDePrimeiro } from 'Utils/roCash.js';
 
+/**
+ * O SALDO QUE A JANELA MOSTRA (RO Shop rodada 2, risco P1-02): o da CONTA
+ * (`Utils/saldoDeCash.js`, o ultimo que qualquer pacote trouxe) quando ja
+ * chegou; senao o da Temporada; senao o do Passe. Sem isto a carteira desta
+ * janela ficava no saldo de antes de uma compra feita no RO Shop.
+ *
+ * @param {object|null} estado - o payload da Temporada
+ * @param {object|null} estadoDoPasse - o payload do Passe
+ * @param {number|null} saldoDaConta - `saldoDeCashConhecido()`
+ * @returns {number|null} minor
+ */
+export function saldoParaMostrar(estado, estadoDoPasse, saldoDaConta) {
+	if (Number.isInteger(saldoDaConta) && saldoDaConta >= 0) {
+		return saldoDaConta;
+	}
+	const daTemporada = minorDe(estado && estado.moeda, 'saldo');
+	return daTemporada !== null ? daTemporada : minorDePrimeiro(estadoDoPasse, ['saldo', 'cash']);
+}
+
 /** Mesmo escape de PasseIdle.js/PainelComandoIdle.js — sem depender de DOM. */
 export function escapeHtml(value) {
 	return String(value == null ? '' : value).replace(/[&<>"']/g, ch => {
@@ -1023,11 +1042,12 @@ export function renderPasseDeBatalhaHtml(passe) {
  * (`vip.visual.pode`/`.texto`): esta funcao nao olha `vip.ativo` para liberar
  * o botao, do mesmo jeito que o card da caixa nao olha saldo.
  */
-export function renderVipHtml(vip, estadoDoPasse) {
+export function renderVipHtml(vip, estadoDoPasse, saldoMinor = null) {
 	const passeVip = passePorTipo(estadoDoPasse, 'vip');
-	/* O saldo do pacote do Passe em MINOR (`cashMinor` novo, ou o `cash`
-	   inteiro antigo x100 - `Utils/roCash.js:minorDe`). */
-	const cash = minorDePrimeiro(estadoDoPasse, ['saldo', 'cash']) || 0;
+	/* O saldo que a janela MOSTRA (`saldoParaMostrar`, a fonte unica da conta
+	   primeiro); sem ele, o do pacote do Passe em MINOR (`cashMinor` novo, ou o
+	   `cash` inteiro antigo x100 - `Utils/roCash.js:minorDe`). */
+	const cash = Number.isInteger(saldoMinor) ? saldoMinor : minorDePrimeiro(estadoDoPasse, ['saldo', 'cash']) || 0;
 	const dias = passeVip ? passeVip.dias : vip.dias;
 	const resumo = `${escapeHtml(dias)} dias de vantagem em tudo o que você caça.`;
 	const referencia = Number.isFinite(Number(vip.precoReferenciaCentavos))

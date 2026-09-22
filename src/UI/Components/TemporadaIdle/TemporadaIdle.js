@@ -79,6 +79,7 @@ import { itemIconUrl, preferirArtePublicada } from 'Utils/ItemArt.js';
 import { fecharEEsquecer } from '../limpezaDeJanelaIdle.js';
 import { abaLembrada, lembrarAba } from '../memoriaDeAba.js';
 import { formatarRoCash, minorDe, minorDePrimeiro } from 'Utils/roCash.js';
+import { assinarSaldoDeCash, publicarSaldoDeCash, saldoDeCashConhecido } from 'Utils/saldoDeCash.js';
 import htmlText from './TemporadaIdle.html?raw';
 import cssText from './TemporadaIdle.css?raw';
 import {
@@ -94,6 +95,7 @@ import {
 	renderPasseDeBatalhaHtml,
 	renderRevealHtml,
 	renderVipHtml,
+	saldoParaMostrar,
 	textoDoSeloVip
 } from './formatoDaTemporada.js';
 
@@ -586,6 +588,20 @@ function onClickRaiz(e) {
 /* O desenho                                                           */
 /* ------------------------------------------------------------------ */
 
+/** O saldo desta janela: a conta primeiro, depois Temporada, depois Passe. */
+function saldoAtual() {
+	return saldoParaMostrar(TemporadaIdle.estado, TemporadaIdle.estadoDoPasse, saldoDeCashConhecido());
+}
+
+/** So a carteira do cabecalho (um saldo novo nao precisa redesenhar a aba). */
+function desenharCarteira() {
+	const root = _root();
+	const carteira = root && root.querySelector('.te-carteira-valor');
+	if (carteira) {
+		carteira.textContent = formatarRoCash(saldoAtual() || 0);
+	}
+}
+
 function render() {
 	const root = _root();
 	if (!root) {
@@ -603,12 +619,10 @@ function render() {
 	/* Em MINOR desde o RO Shop (22/09/2026): `saldoMinor`/`cashMinor` do
 	   contrato novo, ou o inteiro antigo x100 (`Utils/roCash.js:minorDe`), e o
 	   MESMO `formatarRoCash` do RO Shop e da HUD. */
-	const carteira = root.querySelector('.te-carteira-valor');
-	if (carteira) {
-		const saldoDaTemporada = minorDe(estado && estado.moeda, 'saldo');
-		const saldo = saldoDaTemporada !== null ? saldoDaTemporada : minorDePrimeiro(estadoDoPasse, ['saldo', 'cash']);
-		carteira.textContent = formatarRoCash(saldo || 0);
-	}
+	/* Desde a rodada 2 do RO Shop (risco P1-02) o saldo da CONTA vem primeiro
+	   (`Utils/saldoDeCash.js`): uma compra no RO Shop atualiza esta carteira
+	   sem esperar um pacote da Temporada (`saldoParaMostrar`). */
+	desenharCarteira();
 
 	const selo = root.querySelector('.te-selo-vip');
 	if (selo) {
@@ -637,7 +651,7 @@ function render() {
 	} else if (TemporadaIdle.activeTab === 'passe') {
 		corpo.innerHTML = renderPasseDeBatalhaHtml(estado.passe);
 	} else if (TemporadaIdle.activeTab === 'vip') {
-		corpo.innerHTML = renderVipHtml(estado.vip, estadoDoPasse);
+		corpo.innerHTML = renderVipHtml(estado.vip, estadoDoPasse, saldoAtual());
 	} else {
 		corpo.innerHTML = renderDestaquesHtml(estado);
 	}
@@ -759,6 +773,9 @@ function onTemporadaRecebida(pkt) {
 	}
 	destravarBotoes();
 	TemporadaIdle.estado = dados;
+	/* O saldo que este pacote trouxe vai para a fonte unica: o RO Shop e a HUD
+	   concordam com uma compra de caixa sem esperar o pacote deles (P1-02). */
+	publicarSaldoDeCash(minorDe(dados.moeda, 'saldo'));
 	render();
 
 	const resultado = dados.resultado;
@@ -808,5 +825,17 @@ function onPasseMudou(dados) {
 	}
 }
 PasseIdle.aoReceberEstado = onPasseMudou;
+
+/*
+ * Um saldo novo por FORA desta janela (RO Shop, HUD, Passe): a carteira do
+ * cabecalho acompanha, e a aba VIP (que mostra "Faltam X RO Cash") e
+ * redesenhada se estiver na tela. As outras abas nao mostram saldo.
+ */
+assinarSaldoDeCash(() => {
+	desenharCarteira();
+	if (TemporadaIdle.activeTab === 'vip' && janelaEstaAberta()) {
+		render();
+	}
+});
 
 export default UIManager.addComponent(TemporadaIdle);

@@ -598,6 +598,7 @@ export function cardHtml(produto, estado, noCarrinho) {
 		retratoHtml(produto, categoriaDoProduto(estado, produto)) +
 		`<span class="rs-card-nome">${escapeHtml(produto.nome)}</span>` +
 		`<span class="rs-card-resumo">${escapeHtml(produto.resumo || '')}</span>` +
+		contadorDaContaHtml(produto, estado) +
 		'</button>' +
 		`<div class="rs-card-rodape">${precoHtml(produto.precoMinor)}${acao}</div>` +
 		'</article>'
@@ -730,6 +731,7 @@ export function detalhesHtml(produto, estado, noCarrinho) {
 		seloHtml(produto.selo) +
 		`<h3 class="rs-detalhes-nome">${escapeHtml(produto.nome)}</h3>` +
 		(produto.resumo ? `<p class="rs-detalhes-resumo">${escapeHtml(produto.resumo)}</p>` : '') +
+		contadorDaContaHtml(produto, estado) +
 		'</div>' +
 		'</div>' +
 		(produto.descricao ? `<p class="rs-detalhes-descricao">${escapeHtml(produto.descricao)}</p>` : '') +
@@ -846,9 +848,24 @@ export function servicoPorId(estado, id) {
 	return ((estado && estado.servicos) || []).find(s => s && s.servico === id) || null;
 }
 
-/** "Seus servicos": uma linha por credito, com o botao Usar (desligado quando `usavel: false`). */
-export function servicosHtml(estado) {
-	const lista = servicosComCredito(estado);
+/**
+ * A categoria-CASA de um servico: a do produto do SKU dele (os resets moram em
+ * Utilidades, as trocas em Conta - secao 7 do contrato). Sem o produto no
+ * estado, Utilidades.
+ */
+export function categoriaDoServico(estado, servico) {
+	const produto = servico && servico.sku ? produtoPorSku(estado, servico.sku) : null;
+	return normalizar((produto && produto.categoria) || 'utilidades');
+}
+
+/**
+ * "Seus servicos": uma linha por credito, com o botao Usar (desligado quando
+ * `usavel: false`). Com `categoria`, so os servicos que moram nela - o credito
+ * aparece onde o jogador o comprou.
+ */
+export function servicosHtml(estado, categoria = null) {
+	const alvo = categoria ? normalizar(categoria) : null;
+	const lista = servicosComCredito(estado).filter(s => !alvo || categoriaDoServico(estado, s) === alvo);
 	if (!lista.length) {
 		return '';
 	}
@@ -872,12 +889,279 @@ export function servicosHtml(estado) {
 	);
 }
 
+/* ------------------------------------------------------------------ */
+/* Servicos que pedem dados (rodada 2, decisoes do dono de 22/09/2026)  */
+/* ------------------------------------------------------------------ */
+
+export const SERVICO_TROCA_DE_NOME = 'troca-de-nome';
+export const SERVICO_TROCA_DE_APARENCIA = 'troca-de-aparencia';
+
+/**
+ * O SEXO no fio (CONTRATO.md secao 3): 0 feminino, 1 masculino - o mesmo numero
+ * do char-server (`sexo` do CH_MAKE_CHAR3, `Session.Sex`).
+ */
+export const SEXOS = [
+	{ valor: 1, rotulo: 'Masculino' },
+	{ valor: 0, rotulo: 'Feminino' }
+];
+
+/** O aviso fixo da troca de aparencia (as regras da secao 3 do contrato). */
+export const AVISO_DA_APARENCIA =
+	'Bardo, Odalisca, Menestrel e Cigana não trocam de sexo. A peça vestida que o novo sexo não usa é desequipada e fica na mochila.';
+
+/**
+ * As FAIXAS de um servico: as do servidor (`servicos[].limites`, CONTRATO.md
+ * secao 4) e, na falta delas, as que o mesmo contrato documenta (nome 4 a 23,
+ * cabelo 0 a 27, cor 0 a 8, sexo 0/1). Nenhuma faixa daqui e inventada: sao as
+ * duas fontes do contrato, e quem decide de verdade e o servidor.
+ */
+export function limitesDoServico(servico) {
+	const l = (servico && servico.limites) || {};
+	const faixa = (f, min, max) =>
+		f && Number.isInteger(f.min) && Number.isInteger(f.max) && f.min <= f.max
+			? { min: f.min, max: f.max }
+			: { min, max };
+	const sexo = l.sexo && typeof l.sexo === 'object' ? l.sexo : null;
+	const valores = sexo && Array.isArray(sexo.valores) ? sexo.valores : null;
+	return {
+		novoNome: faixa(l.novoNome, 4, 23),
+		cabelo: faixa(l.cabelo, 0, 27),
+		corDoCabelo: faixa(l.corDoCabelo, 0, 8),
+		sexos: valores ? SEXOS.filter(s => valores.indexOf(s.valor) !== -1) : SEXOS,
+		/* A classe do personagem LOGADO nao troca de sexo (Bardo, Odalisca...). */
+		sexoFixo: !!(sexo && sexo.fixo === true)
+	};
+}
+
+/** Os campos de um formulario de servico, vazios (nada escolhido). */
+export function camposIniciaisDoServico(id) {
+	if (id === SERVICO_TROCA_DE_NOME) {
+		return { novoNome: '' };
+	}
+	if (id === SERVICO_TROCA_DE_APARENCIA) {
+		return { sexo: null, cabelo: '', corDoCabelo: '' };
+	}
+	return {};
+}
+
+/**
+ * O nome como o servidor o ve (CONTRATO.md secao 3: "pontas aparadas, espacos
+ * repetidos viram um"). O cliente manda ja normalizado, e conta o tamanho
+ * sobre o mesmo texto que o servidor vai contar.
+ */
+export function normalizarNome(texto) {
+	return String(texto == null ? '' : texto)
+		.trim()
+		.replace(/ {2,}/g, ' ');
+}
+
+/** Quantos CARACTERES (e nao unidades UTF-16) tem um texto. */
+function tamanhoDoTexto(texto) {
+	return [...String(texto)].length;
+}
+
+/** Um campo numerico opcional: '' = manter; senao inteiro >= 0. */
+function lerNumeroOpcional(valor) {
+	const t = String(valor == null ? '' : valor).trim();
+	if (!t) {
+		return { vazio: true };
+	}
+	if (!/^\d+$/.test(t)) {
+		return { invalido: true };
+	}
+	return { numero: Number(t) };
+}
+
+/**
+ * Os `parametros` do pedido `usar-servico`, a partir do que o jogador
+ * preencheu. Devolve `{ ok: true, parametros }` (null para servico sem dados)
+ * ou `{ ok: false, erro }` com a frase para a tela.
+ *
+ * So o BASICO e conferido aqui (tarefa do dono: "valide so o basico no
+ * cliente, o servidor decide"): tamanho do nome e as faixas que o servidor
+ * mandou. Nome em uso, caractere recusado e classe de sexo fixo sao veredito
+ * do servidor, que volta no `texto` e em `parametrosRecusados`.
+ *
+ * O pedido so leva o que o jogador ESCOLHEU: na aparencia, campo vazio e
+ * "manter" e nao entra - o servidor nunca recebe um valor que ninguem pediu.
+ */
+export function parametrosDoServico(id, campos, servico = null) {
+	const c = campos || {};
+	const lim = limitesDoServico(servico);
+	if (id === SERVICO_TROCA_DE_NOME) {
+		const nome = normalizarNome(c.novoNome);
+		const n = tamanhoDoTexto(nome);
+		if (n < lim.novoNome.min || n > lim.novoNome.max) {
+			return {
+				ok: false,
+				erro: `O nome precisa ter de ${lim.novoNome.min} a ${lim.novoNome.max} caracteres.`
+			};
+		}
+		return { ok: true, parametros: { novoNome: nome } };
+	}
+	if (id === SERVICO_TROCA_DE_APARENCIA) {
+		const parametros = {};
+		if (c.sexo !== null && c.sexo !== undefined && c.sexo !== '') {
+			const sexo = Number(c.sexo);
+			if (lim.sexoFixo || !lim.sexos.some(s => s.valor === sexo)) {
+				return { ok: false, erro: 'Este personagem não pode trocar de sexo.' };
+			}
+			parametros.sexo = sexo;
+		}
+		for (const [campo, rotulo] of [
+			['cabelo', 'O estilo de cabelo'],
+			['corDoCabelo', 'A cor do cabelo']
+		]) {
+			const lido = lerNumeroOpcional(c[campo]);
+			const f = lim[campo];
+			if (lido.invalido || (!lido.vazio && (lido.numero < f.min || lido.numero > f.max))) {
+				return { ok: false, erro: `${rotulo} vai de ${f.min} a ${f.max}.` };
+			}
+			if (!lido.vazio) {
+				parametros[campo] = lido.numero;
+			}
+		}
+		if (!Object.keys(parametros).length) {
+			return { ok: false, erro: 'Escolha pelo menos uma mudança.' };
+		}
+		return { ok: true, parametros };
+	}
+	return { ok: true, parametros: null };
+}
+
+/**
+ * A frase de cada motivo de `parametrosRecusados` (CONTRATO.md secao 4), para
+ * mostrar EMBAIXO do campo quando o jogador volta para corrigir. O `texto` do
+ * servidor continua sendo a frase principal da recusa; isto so diz QUAL campo.
+ */
+const FRASE_DO_CAMPO_RECUSADO = {
+	novoNome: {
+		ausente: 'Digite um nome.',
+		vazio: 'Digite um nome.',
+		curto: 'Nome curto demais.',
+		longo: 'Nome longo demais.',
+		'caractere-invalido': 'O nome tem um caractere que não pode ser usado.',
+		'em-uso': 'Este nome já está em uso.',
+		'igual-ao-atual': 'Este já é o nome do personagem.'
+	},
+	sexo: {
+		invalido: 'Escolha Masculino ou Feminino.',
+		'classe-de-sexo-fixo': 'A classe deste personagem não troca de sexo.'
+	},
+	cabelo: { 'fora-da-faixa': 'Fora da faixa permitida.' },
+	corDoCabelo: { 'fora-da-faixa': 'Fora da faixa permitida.' },
+	parametros: { ausente: 'Escolha pelo menos uma mudança.' }
+};
+
+/** A frase do motivo recusado de um campo, ou '' (motivo desconhecido = sem frase inventada). */
+export function fraseDoCampoRecusado(campo, motivo) {
+	const tabela = FRASE_DO_CAMPO_RECUSADO[campo];
+	return (tabela && tabela[String(motivo || '')]) || '';
+}
+
+function erroDoCampoHtml(recusados, campo) {
+	const frase = recusados ? fraseDoCampoRecusado(campo, recusados[campo]) : '';
+	return frase ? `<p class="rs-campo-erro" data-rs-erro="${campo}">${escapeHtml(frase)}</p>` : '';
+}
+
+/**
+ * O formulario do servico (so os que pedem dados; os resets nao tem). O
+ * personagem LOGADO (`estado.personagem`) aparece como referencia: o nome
+ * atual, o sexo marcado "(atual)" e os numeros de cabelo e cor no lugar do
+ * "Manter".
+ */
+function formularioDoServicoHtml(id, extra, enviando) {
+	const c = (extra && extra.campos) || {};
+	const servico = (extra && extra.servico) || null;
+	const personagem = (extra && extra.personagem) || null;
+	const recusados = (extra && extra.recusados) || null;
+	const lim = limitesDoServico(servico);
+	const desliga = enviando ? ' disabled' : '';
+	if (id === SERVICO_TROCA_DE_NOME) {
+		const atual = personagem && typeof personagem.nome === 'string' ? personagem.nome : '';
+		const invalido = recusados && recusados.novoNome ? ' is-invalido' : '';
+		return (
+			'<div class="rs-form">' +
+			(atual ? `<p class="rs-campo-atual">Nome atual: <strong>${escapeHtml(atual)}</strong></p>` : '') +
+			'<label class="rs-campo">' +
+			'<span class="rs-campo-rotulo">Novo nome</span>' +
+			`<input type="text" class="rs-campo-texto ri-input${invalido}" data-rs-campo="novoNome" maxlength="${lim.novoNome.max}" autocomplete="off" autocapitalize="off" spellcheck="false" value="${escapeHtml(c.novoNome || '')}"${desliga}>` +
+			'</label>' +
+			erroDoCampoHtml(recusados, 'novoNome') +
+			`<p class="rs-campo-dica">De ${lim.novoNome.min} a ${lim.novoNome.max} caracteres. O servidor confere se o nome está livre, e um nome recusado não gasta o crédito.</p>` +
+			'</div>'
+		);
+	}
+	if (id === SERVICO_TROCA_DE_APARENCIA) {
+		const sexoAtual = personagem && Number.isInteger(personagem.sexo) ? personagem.sexo : null;
+		/* "Manter" = nada escolhido. Cuidado: `Number(null)` e 0, o FEMININO - a
+		   prova de tela pegou as duas opcoes marcadas juntas. */
+		const semSexo = c.sexo === null || c.sexo === undefined || c.sexo === '';
+		const opcaoDeSexo = (valor, rotulo) => {
+			const ativo = valor === null ? semSexo : !semSexo && Number(c.sexo) === valor;
+			const travada = valor !== null && lim.sexoFixo;
+			/* "atual" numa segunda linha: "Masculino (atual)" nao cabia na
+			   coluna de 1/3 (prova de tela, 390 e 1440 - texto cortado). */
+			const atual = valor !== null && valor === sexoAtual ? '<span class="rs-opcao-atual">atual</span>' : '';
+			return `<button type="button" class="rs-opcao${ativo ? ' is-ativa' : ''}" data-rs="aparencia-sexo" data-valor="${valor === null ? '' : valor}" aria-pressed="${ativo ? 'true' : 'false'}"${enviando || travada ? ' disabled' : ''}><span class="rs-opcao-rotulo">${escapeHtml(rotulo)}</span>${atual}</button>`;
+		};
+		const numero = (campo, rotulo) => {
+			const f = lim[campo];
+			const atual = personagem && Number.isInteger(personagem[campo]) ? personagem[campo] : null;
+			const invalido = recusados && recusados[campo] ? ' is-invalido' : '';
+			return (
+				'<label class="rs-campo rs-campo--numero">' +
+				`<span class="rs-campo-rotulo">${escapeHtml(rotulo)} <span class="rs-campo-faixa">${f.min} a ${f.max}</span></span>` +
+				`<input type="text" inputmode="numeric" pattern="[0-9]*" class="rs-campo-texto ri-input${invalido}" data-rs-campo="${campo}" maxlength="${String(f.max).length}" placeholder="${atual === null ? 'Manter' : `Atual: ${atual}`}" autocomplete="off" value="${escapeHtml(c[campo] == null ? '' : c[campo])}"${desliga}>` +
+				'</label>'
+			);
+		};
+		return (
+			'<div class="rs-form">' +
+			'<div class="rs-campo-grupo" role="group" aria-label="Sexo">' +
+			'<span class="rs-campo-rotulo">Sexo</span>' +
+			'<div class="rs-opcoes">' +
+			opcaoDeSexo(null, 'Manter') +
+			lim.sexos.map(s => opcaoDeSexo(s.valor, s.rotulo)).join('') +
+			'</div>' +
+			(lim.sexoFixo ? '<p class="rs-campo-dica">A classe deste personagem não troca de sexo.</p>' : '') +
+			erroDoCampoHtml(recusados, 'sexo') +
+			'</div>' +
+			'<div class="rs-campos-lado">' +
+			numero('cabelo', 'Estilo de cabelo') +
+			numero('corDoCabelo', 'Cor do cabelo') +
+			'</div>' +
+			erroDoCampoHtml(recusados, 'cabelo') +
+			erroDoCampoHtml(recusados, 'corDoCabelo') +
+			erroDoCampoHtml(recusados, 'parametros') +
+			'<p class="rs-campo-dica">Deixe em branco o que não quiser mudar.</p>' +
+			`<p class="rs-campo-aviso">${escapeHtml(AVISO_DA_APARENCIA)}</p>` +
+			'</div>'
+		);
+	}
+	return '';
+}
+
 /**
  * O modal de USO de um servico: confirmar (o credito vai para o PERSONAGEM
  * LOGADO - o contrato manda assim), enviando, e o `texto` do servidor no fim.
+ *
+ * Troca de Nome e Troca de Aparencia pedem dados antes: o formulario mora
+ * aqui, e o "Usar agora" so acende quando `parametrosDoServico` aceita. No
+ * fim:
+ *  - `requerRelog: true` vira o aviso de que a mudanca aparece ao entrar de
+ *    novo (o nome e o visual sao lidos na entrada do personagem);
+ *  - `desequipados` (a troca de sexo) lista o que saiu do corpo e ficou na
+ *    mochila;
+ *  - uma recusa com formulario oferece "Corrigir e tentar de novo", e o campo
+ *    recusado (`parametrosRecusados`) ganha a frase dele.
+ *
+ * @param {object} [extra] - `{ campos, personagem, recusados }`
  */
-export function usoDeServicoHtml(fase, servico, resultado) {
+export function usoDeServicoHtml(fase, servico, resultado, extra = null) {
 	const nome = (servico && (servico.nome || servico.servico)) || 'serviço';
+	const id = servico && servico.servico;
+	const temFormulario = id === SERVICO_TROCA_DE_NOME || id === SERVICO_TROCA_DE_APARENCIA;
 	if (fase === 'sucesso' || fase === 'erro') {
 		const ok = fase === 'sucesso';
 		const texto =
@@ -885,30 +1169,102 @@ export function usoDeServicoHtml(fase, servico, resultado) {
 			(ok ? `${nome} aplicado.` : 'Não foi possível usar o serviço.');
 		const restantes =
 			resultado && Number.isInteger(resultado.creditosRestantes) ? resultado.creditosRestantes : null;
+		const relog = ok && resultado && resultado.requerRelog === true;
+		const desequipados =
+			ok && resultado && Array.isArray(resultado.desequipados)
+				? resultado.desequipados.filter(d => d && typeof d.nome === 'string' && d.nome)
+				: [];
 		return (
 			`<div class="rs-checkout rs-checkout--${ok ? 'sucesso' : 'erro'}">` +
 			`<span class="rs-checkout-marca" aria-hidden="true">${ok ? '&#10003;' : '!'}</span>` +
 			`<p class="rs-checkout-texto">${escapeHtml(texto)}</p>` +
+			(desequipados.length
+				? '<div class="rs-desequipados"><p class="rs-desequipados-titulo">Guardado na mochila:</p><ul>' +
+					desequipados.map(d => `<li>${escapeHtml(d.nome)}</li>`).join('') +
+					'</ul></div>'
+				: '') +
+			(relog
+				? '<p class="rs-relog" role="status"><strong>A mudança aparece quando você entrar de novo.</strong> Volte à seleção de personagem e entre outra vez com ele.</p>'
+				: '') +
 			(ok && restantes !== null
 				? `<p class="rs-checkout-nota">${escapeHtml(restantes)} ${restantes === 1 ? 'crédito restante' : 'créditos restantes'}</p>`
 				: '') +
 			'<div class="rs-checkout-acoes">' +
 			`<button type="button" class="rs-btn${ok ? '' : ' rs-btn--sec'}" data-rs="fechar-servico">Fechar</button>` +
+			(!ok && temFormulario
+				? '<button type="button" class="rs-btn rs-btn--ouro" data-rs="voltar-servico">Corrigir e tentar de novo</button>'
+				: '') +
 			'</div>' +
 			'</div>'
 		);
 	}
 	const enviando = fase === 'enviando';
+	const campos = extra && extra.campos;
+	const form = formularioDoServicoHtml(id, { ...(extra || {}), servico }, enviando);
+	const valido = parametrosDoServico(id, campos, servico).ok;
 	return (
-		'<div class="rs-checkout">' +
+		`<div class="rs-checkout${form ? ' rs-checkout--form' : ''}">` +
 		`<p class="rs-checkout-texto">Usar 1 crédito de <strong>${escapeHtml(nome)}</strong> no personagem conectado agora?</p>` +
+		form +
 		'<p class="rs-checkout-nota">O serviço vale para o personagem conectado.</p>' +
 		'<div class="rs-checkout-acoes">' +
 		`<button type="button" class="rs-btn rs-btn--sec" data-rs="fechar-servico"${enviando ? ' disabled' : ''}>Cancelar</button>` +
-		`<button type="button" class="rs-btn rs-btn--ouro" data-rs="confirmar-servico"${enviando ? ' disabled' : ''}>${enviando ? 'Processando...' : 'Usar agora'}</button>` +
+		`<button type="button" class="rs-btn rs-btn--ouro" data-rs="confirmar-servico"${enviando || !valido ? ' disabled' : ''}>${enviando ? 'Processando...' : 'Usar agora'}</button>` +
 		'</div>' +
 		'</div>'
 	);
+}
+
+/* ------------------------------------------------------------------ */
+/* Contadores da conta ("X de Y")                                       */
+/* ------------------------------------------------------------------ */
+
+/** Inteiro >= 0 do servidor, ou null (nunca um numero adivinhado). */
+function inteiroDoServidor(v) {
+	return Number.isInteger(v) && v >= 0 ? v : null;
+}
+
+/**
+ * O "X de Y" de uma carta de conta, lido de `estado.conta` (o bloco aditivo
+ * da rodada 2: `armazem`, `slots`, `carga`). SO exibicao: nada aqui e
+ * calculado alem de juntar os dois numeros que o servidor mandou, e sem os
+ * dois a carta fica sem contador.
+ *
+ * O vinculo SKU -> bloco e o da tabela da secao 7 do contrato.
+ */
+export function contadorDaConta(produto, estado) {
+	const conta = (estado && estado.conta) || {};
+	const sku = produto && produto.sku;
+	const par = (bloco, campoX, campoY) => {
+		if (!bloco || typeof bloco !== 'object') {
+			return null;
+		}
+		const x = inteiroDoServidor(bloco[campoX]);
+		const y = inteiroDoServidor(bloco[campoY]);
+		return x === null || y === null || y === 0 ? null : { x, y };
+	};
+	if (sku === 'ACCOUNT_STORAGE_100') {
+		const p = par(conta.armazem, 'expansoes', 'teto');
+		return p ? { ...p, texto: `${p.x} de ${p.y} expansões` } : null;
+	}
+	if (sku === 'ACCOUNT_INVENTORY_10') {
+		const p = par(conta.carga, 'expansoes', 'teto');
+		return p ? { ...p, texto: `${p.x} de ${p.y} expansões` } : null;
+	}
+	if (sku === 'ACCOUNT_CHARACTER_SLOT') {
+		const p = par(conta.slots, 'total', 'teto');
+		return p ? { ...p, texto: `${p.x} de ${p.y} vagas` } : null;
+	}
+	return null;
+}
+
+/** O contador como etiqueta de carta (vazio quando nao ha). */
+export function contadorDaContaHtml(produto, estado, classe = 'rs-contador') {
+	const c = contadorDaConta(produto, estado);
+	if (!c) {
+		return '';
+	}
+	return `<span class="${classe}${c.x >= c.y ? ' is-no-teto' : ''}">${escapeHtml(c.texto)}</span>`;
 }
 
 /** O texto de uma recusa do carrinho (local, antes de falar com o servidor). */

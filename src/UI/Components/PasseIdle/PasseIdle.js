@@ -68,6 +68,7 @@ import cssText from './PasseIdle.css?raw';
 import { fecharEEsquecer } from '../limpezaDeJanelaIdle.js';
 import { abaLembrada, lembrarAba } from '../memoriaDeAba.js';
 import { formatarRoCash, minorDePrimeiro } from 'Utils/roCash.js';
+import { assinarSaldoDeCash, publicarSaldoDeCash, saldoDeCashConhecido } from 'Utils/saldoDeCash.js';
 
 /** Manter em sincronia com o ":host"/".pi-window" do CSS (mesmo papel do
  * WINDOW_WIDTH/HEIGHT de MissoesIdle.js:41-42). */
@@ -331,7 +332,14 @@ function precoMinorDoPasse(passe) {
 	return minorDePrimeiro(passe, ['preco', 'cash']);
 }
 
+/* O saldo da CONTA vem primeiro (`Utils/saldoDeCash.js`, rodada 2 do RO Shop,
+   risco P1-02): o ultimo que qualquer pacote trouxe. O do proprio pacote so
+   vale enquanto nenhum chegou. */
 function saldoMinorDoEstado(estado) {
+	const daConta = saldoDeCashConhecido();
+	if (daConta !== null) {
+		return daConta;
+	}
 	return minorDePrimeiro(estado, ['saldo', 'cash']) || 0;
 }
 
@@ -635,6 +643,7 @@ function onPasseRecebido(pkt) {
 		return;
 	}
 	PasseIdle.estado = dados;
+	publicarSaldoDeCash(minorDePrimeiro(dados, ['saldo', 'cash']));
 	render();
 
 	/*
@@ -677,5 +686,9 @@ function onPasseRecebido(pkt) {
 /* ESTA JANELA E A DONA DO 0x0fe5 - ver o bloco acima antes de somar outro
  * `hookPacket` neste opcode em qualquer arquivo do cliente. */
 Network.hookPacket(PACKET.ZC.RAGIDLE_PASSE, onPasseRecebido);
+
+/* Um saldo novo por fora (RO Shop, Temporada, HUD): a carteira e o "Faltam X"
+   desta janela acompanham. */
+assinarSaldoDeCash(() => render());
 
 export default UIManager.addComponent(PasseIdle);

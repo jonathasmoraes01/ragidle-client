@@ -1,5 +1,5 @@
 {
-  "quando": "2026-09-22T21:45:36.592Z",
+  "quando": "2026-09-22T23:01:58.719Z",
   "erros": [],
   "relatorio": [
     {
@@ -195,7 +195,7 @@
         "h": 764
       },
       "menorFonte": 9,
-      "imagens": 21,
+      "imagens": 25,
       "defeitos": []
     },
     {
@@ -209,7 +209,7 @@
         "h": 764
       },
       "menorFonte": 9,
-      "imagens": 25,
+      "imagens": 29,
       "defeitos": []
     },
     {
@@ -237,7 +237,7 @@
         "h": 764
       },
       "menorFonte": 9,
-      "imagens": 33,
+      "imagens": 35,
       "defeitos": []
     },
     {
@@ -322,6 +322,174 @@
       },
       "menorFonte": 9,
       "imagens": 17,
+      "defeitos": []
+    },
+    {
+      "largura": 390,
+      "altura": 844,
+      "foto": "0390-18-conta-contadores-e-seus-servicos.png",
+      "janela": {
+        "x": 0,
+        "y": 8,
+        "w": 390,
+        "h": 764
+      },
+      "menorFonte": 9,
+      "imagens": 25,
+      "defeitos": []
+    },
+    {
+      "largura": 390,
+      "altura": 844,
+      "foto": "0390-18b-conta-fim-da-grade.png",
+      "janela": {
+        "x": 0,
+        "y": 8,
+        "w": 390,
+        "h": 764
+      },
+      "menorFonte": 9,
+      "imagens": 25,
+      "defeitos": []
+    },
+    {
+      "largura": 390,
+      "altura": 844,
+      "foto": "0390-19-troca-de-nome-vazio.png",
+      "janela": {
+        "x": 0,
+        "y": 8,
+        "w": 390,
+        "h": 764
+      },
+      "menorFonte": 9,
+      "imagens": 25,
+      "defeitos": []
+    },
+    {
+      "largura": 390,
+      "altura": 844,
+      "foto": "0390-19b-troca-de-nome-preenchido.png",
+      "janela": {
+        "x": 0,
+        "y": 8,
+        "w": 390,
+        "h": 764
+      },
+      "menorFonte": 9,
+      "imagens": 25,
+      "defeitos": []
+    },
+    {
+      "largura": 390,
+      "altura": 844,
+      "foto": "0390-20-troca-de-nome-processando.png",
+      "janela": {
+        "x": 0,
+        "y": 8,
+        "w": 390,
+        "h": 764
+      },
+      "menorFonte": 9,
+      "imagens": 25,
+      "defeitos": []
+    },
+    {
+      "largura": 390,
+      "altura": 844,
+      "foto": "0390-21-troca-de-nome-recusa.png",
+      "janela": {
+        "x": 0,
+        "y": 8,
+        "w": 390,
+        "h": 764
+      },
+      "menorFonte": 9,
+      "imagens": 25,
+      "defeitos": []
+    },
+    {
+      "largura": 390,
+      "altura": 844,
+      "foto": "0390-21b-troca-de-nome-corrigir.png",
+      "janela": {
+        "x": 0,
+        "y": 8,
+        "w": 390,
+        "h": 764
+      },
+      "menorFonte": 9,
+      "imagens": 25,
+      "defeitos": []
+    },
+    {
+      "largura": 390,
+      "altura": 844,
+      "foto": "0390-22-troca-de-nome-sucesso-relog.png",
+      "janela": {
+        "x": 0,
+        "y": 8,
+        "w": 390,
+        "h": 764
+      },
+      "menorFonte": 9,
+      "imagens": 25,
+      "defeitos": []
+    },
+    {
+      "largura": 390,
+      "altura": 844,
+      "foto": "0390-23-aparencia-vazio.png",
+      "janela": {
+        "x": 0,
+        "y": 8,
+        "w": 390,
+        "h": 764
+      },
+      "menorFonte": 9,
+      "imagens": 25,
+      "defeitos": []
+    },
+    {
+      "largura": 390,
+      "altura": 844,
+      "foto": "0390-23b-aparencia-preenchido.png",
+      "janela": {
+        "x": 0,
+        "y": 8,
+        "w": 390,
+        "h": 764
+      },
+      "menorFonte": 9,
+      "imagens": 25,
+      "defeitos": []
+    },
+    {
+      "largura": 390,
+      "altura": 844,
+      "foto": "0390-24-aparencia-sucesso-desequipados.png",
+      "janela": {
+        "x": 0,
+        "y": 8,
+        "w": 390,
+        "h": 764
+      },
+      "menorFonte": 9,
+      "imagens": 25,
+      "defeitos": []
+    },
+    {
+      "largura": 390,
+      "altura": 844,
+      "foto": "0390-25-aparencia-classe-de-sexo-fixo.png",
+      "janela": {
+        "x": 0,
+        "y": 8,
+        "w": 390,
+        "h": 764
+      },
+      "menorFonte": 9,
+      "imagens": 25,
       "defeitos": []
     },
     {
@@ -412,9 +580,9 @@
     {
       "largura": 430,
       "falhasDeRede": [
-        "404 /ragidle/item/9000105.png",
         "404 /ragidle/item/9000109.png",
         "404 /ragidle/item/9000103.png",
+        "404 /ragidle/item/9000105.png",
         "404 /ragidle/item/9000104.png",
         "404 /ragidle/item/9000108.png",
         "404 /ragidle/item/9000106.png",
@@ -556,8 +724,8 @@
         "404 /ragidle/item/9000109.png",
         "404 /ragidle/item/9000103.png",
         "404 /ragidle/item/9000104.png",
-        "404 /ragidle/item/9000108.png",
         "404 /ragidle/item/9000106.png",
+        "404 /ragidle/item/9000108.png",
         "404 /ragidle/item/9000100.png",
         "404 /ragidle/item/9000101.png",
         "404 /ragidle/item/9000102.png"
@@ -658,7 +826,7 @@
         "h": 700
       },
       "menorFonte": 9,
-      "imagens": 22,
+      "imagens": 26,
       "defeitos": []
     },
     {
@@ -686,7 +854,7 @@
         "h": 700
       },
       "menorFonte": 9,
-      "imagens": 34,
+      "imagens": 36,
       "defeitos": []
     },
     {
@@ -776,6 +944,174 @@
     {
       "largura": 1440,
       "altura": 900,
+      "foto": "1440-18-conta-contadores-e-seus-servicos.png",
+      "janela": {
+        "x": 200,
+        "y": 100,
+        "w": 1040,
+        "h": 700
+      },
+      "menorFonte": 9,
+      "imagens": 26,
+      "defeitos": []
+    },
+    {
+      "largura": 1440,
+      "altura": 900,
+      "foto": "1440-18b-conta-fim-da-grade.png",
+      "janela": {
+        "x": 200,
+        "y": 100,
+        "w": 1040,
+        "h": 700
+      },
+      "menorFonte": 9,
+      "imagens": 26,
+      "defeitos": []
+    },
+    {
+      "largura": 1440,
+      "altura": 900,
+      "foto": "1440-19-troca-de-nome-vazio.png",
+      "janela": {
+        "x": 200,
+        "y": 100,
+        "w": 1040,
+        "h": 700
+      },
+      "menorFonte": 9,
+      "imagens": 26,
+      "defeitos": []
+    },
+    {
+      "largura": 1440,
+      "altura": 900,
+      "foto": "1440-19b-troca-de-nome-preenchido.png",
+      "janela": {
+        "x": 200,
+        "y": 100,
+        "w": 1040,
+        "h": 700
+      },
+      "menorFonte": 9,
+      "imagens": 26,
+      "defeitos": []
+    },
+    {
+      "largura": 1440,
+      "altura": 900,
+      "foto": "1440-20-troca-de-nome-processando.png",
+      "janela": {
+        "x": 200,
+        "y": 100,
+        "w": 1040,
+        "h": 700
+      },
+      "menorFonte": 9,
+      "imagens": 26,
+      "defeitos": []
+    },
+    {
+      "largura": 1440,
+      "altura": 900,
+      "foto": "1440-21-troca-de-nome-recusa.png",
+      "janela": {
+        "x": 200,
+        "y": 100,
+        "w": 1040,
+        "h": 700
+      },
+      "menorFonte": 9,
+      "imagens": 26,
+      "defeitos": []
+    },
+    {
+      "largura": 1440,
+      "altura": 900,
+      "foto": "1440-21b-troca-de-nome-corrigir.png",
+      "janela": {
+        "x": 200,
+        "y": 100,
+        "w": 1040,
+        "h": 700
+      },
+      "menorFonte": 9,
+      "imagens": 26,
+      "defeitos": []
+    },
+    {
+      "largura": 1440,
+      "altura": 900,
+      "foto": "1440-22-troca-de-nome-sucesso-relog.png",
+      "janela": {
+        "x": 200,
+        "y": 100,
+        "w": 1040,
+        "h": 700
+      },
+      "menorFonte": 9,
+      "imagens": 26,
+      "defeitos": []
+    },
+    {
+      "largura": 1440,
+      "altura": 900,
+      "foto": "1440-23-aparencia-vazio.png",
+      "janela": {
+        "x": 200,
+        "y": 100,
+        "w": 1040,
+        "h": 700
+      },
+      "menorFonte": 9,
+      "imagens": 26,
+      "defeitos": []
+    },
+    {
+      "largura": 1440,
+      "altura": 900,
+      "foto": "1440-23b-aparencia-preenchido.png",
+      "janela": {
+        "x": 200,
+        "y": 100,
+        "w": 1040,
+        "h": 700
+      },
+      "menorFonte": 9,
+      "imagens": 26,
+      "defeitos": []
+    },
+    {
+      "largura": 1440,
+      "altura": 900,
+      "foto": "1440-24-aparencia-sucesso-desequipados.png",
+      "janela": {
+        "x": 200,
+        "y": 100,
+        "w": 1040,
+        "h": 700
+      },
+      "menorFonte": 9,
+      "imagens": 26,
+      "defeitos": []
+    },
+    {
+      "largura": 1440,
+      "altura": 900,
+      "foto": "1440-25-aparencia-classe-de-sexo-fixo.png",
+      "janela": {
+        "x": 200,
+        "y": 100,
+        "w": 1040,
+        "h": 700
+      },
+      "menorFonte": 9,
+      "imagens": 26,
+      "defeitos": []
+    },
+    {
+      "largura": 1440,
+      "altura": 900,
       "foto": "1440-15-hover-no-adicionar.png",
       "janela": {
         "x": 200,
@@ -790,14 +1126,14 @@
     {
       "largura": 1440,
       "falhasDeRede": [
+        "404 /ragidle/item/9000108.png",
         "404 /ragidle/item/9000105.png",
         "404 /ragidle/item/9000109.png",
         "404 /ragidle/item/9000103.png",
         "404 /ragidle/item/9000104.png",
-        "404 /ragidle/item/9000108.png",
         "404 /ragidle/item/9000106.png",
-        "404 /ragidle/item/9000101.png",
         "404 /ragidle/item/9000100.png",
+        "404 /ragidle/item/9000101.png",
         "404 /ragidle/item/9000102.png",
         "404 /ragidle/item/9000107.png"
       ]
@@ -863,10 +1199,10 @@
       "falhasDeRede": [
         "404 /ragidle/item/9000105.png",
         "404 /ragidle/item/9000109.png",
-        "404 /ragidle/item/9000106.png",
-        "404 /ragidle/item/9000108.png",
-        "404 /ragidle/item/9000104.png",
         "404 /ragidle/item/9000103.png",
+        "404 /ragidle/item/9000104.png",
+        "404 /ragidle/item/9000108.png",
+        "404 /ragidle/item/9000106.png",
         "404 /ragidle/item/9000100.png",
         "404 /ragidle/item/9000101.png",
         "404 /ragidle/item/9000102.png"

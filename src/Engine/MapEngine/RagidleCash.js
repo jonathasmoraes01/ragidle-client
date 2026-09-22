@@ -37,7 +37,7 @@
 
 import Network from 'Network/NetworkManager.js';
 import PACKET from 'Network/PacketStructure.js';
-import Session from 'Engine/SessionStorage.js';
+import { publicarSaldoDeCash } from 'Utils/saldoDeCash.js';
 
 class RagidleCashEngine {
 	static init() {
@@ -58,7 +58,11 @@ class RagidleCashEngine {
  * novo contra um servidor antigo mostraria 5.000 RO Cash como "50,00".
  */
 function onSaldo(pkt) {
-	Session.cash = pkt.saldo;
+	/* Pela fonte UNICA (RO Shop rodada 2, risco P1-02): ela escreve o
+	   `Session.cash` que a HUD le e avisa as carteiras abertas (RO Shop,
+	   Temporada, Passe), que assim nunca mostram um saldo mais velho que a
+	   pilula. */
+	publicarSaldoDeCash(pkt.saldo);
 }
 
 export default RagidleCashEngine;

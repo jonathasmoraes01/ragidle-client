@@ -24,6 +24,14 @@
  * Enquanto um checkout esta no fio, `enviando` e verdadeiro e TODO botao que
  * gasta (Confirmar, Comprar) fica desabilitado no HTML e recusado aqui: dois
  * cliques rapidos nunca geram dois pedidos.
+ *
+ * ---------------------------------------------------------------------------
+ * O SALDO E UM SO NA TELA INTEIRA (rodada 2, risco P1-02 da QA)
+ * ---------------------------------------------------------------------------
+ * Todo saldo que chega aqui (o `estado`, o `saldoDepoisMinor` de uma compra)
+ * e PUBLICADO por `opcoes.aoSaldo`, e todo saldo que chega por fora (a HUD, a
+ * Temporada, o Passe) entra por `atualizarSaldo`. Quem liga os dois lados a
+ * `Utils/saldoDeCash.js` e o `RoShop.js`.
  */
 
 import {
@@ -31,6 +39,7 @@ import {
 	assinaturaDoCarrinho,
 	atalhoTemporadaHtml,
 	buscarProdutos,
+	camposIniciaisDoServico,
 	carrinhoHtml,
 	carteiraHtml,
 	categoriasDoEstado,
@@ -42,6 +51,7 @@ import {
 	gradeHtml,
 	paginacaoHtml,
 	paginar,
+	parametrosDoServico,
 	pedidoDeCheckout,
 	produtoPorSku,
 	produtosDaCategoria,
@@ -57,7 +67,7 @@ import {
 	usoDeServicoHtml,
 	POR_PAGINA
 } from './formatoDoRoShop.js';
-import { formatarRoCash } from 'Utils/roCash.js';
+import { ehMinor, formatarRoCash } from 'Utils/roCash.js';
 
 /** A tarefa pede: sem resposta em 10 s, destrava e avisa. */
 export const TIMEOUT_MS = 10000;
@@ -80,11 +90,13 @@ function resolverIconePadrao(id, aoCarregar, aoFalhar) {
  * @param {function():void} [opcoes.abrirTemporada]
  * @param {function():string} opcoes.gerarChave
  * @param {function(number, function(string):void, function():void):void} [opcoes.resolverIcone]
+ * @param {function(number):void} [opcoes.aoSaldo] - um saldo novo do servidor chegou por esta janela
  */
 export function criarControlador(opcoes) {
 	const raiz = opcoes.raiz;
 	const enviar = opcoes.enviar;
 	const abrirTemporada = opcoes.abrirTemporada || (() => {});
+	const aoSaldo = opcoes.aoSaldo || (() => {});
 	const gerarChave = opcoes.gerarChave;
 	const resolverIcone = opcoes.resolverIcone || resolverIconePadrao;
 	const agendar = opcoes.agendar || ((fn, ms) => setTimeout(fn, ms));
@@ -100,8 +112,12 @@ export function criarControlador(opcoes) {
 		gaveta: false,
 		detalhes: null, // sku aberto no modal de detalhes
 		checkout: null, // { fase, chave, assinatura, resultado }
-		servico: null // { fase, id, chave, resultado } - o uso de um credito de servico
+		servico: null // { fase, id, chave, assinatura, campos, recusados, resultado } - o uso de um credito de servico
 	};
+	/* O que o modal de servico tem desenhado: o formulario so e refeito quando
+	   isto muda, para uma re-renderizacao no meio da digitacao (um estado novo,
+	   um saldo novo) nunca apagar o foco nem o cursor do campo de nome. */
+	let _servicoDesenhado = '';
 	let _timerEstado = null;
 	let _timerCheckout = null;
 	let _timerServico = null;
@@ -165,8 +181,21 @@ export function criarControlador(opcoes) {
 		if (!s.servico || enviandoServico() || enviandoCheckout()) {
 			return;
 		}
-		if (!s.servico.chave) {
+		/* Troca de Nome e de Aparencia levam `parametros`; o basico e conferido
+		   aqui e o resto e do servidor. Invalido nao sai do cliente. */
+		const p = parametrosDoServico(s.servico.id, s.servico.campos, servicoPorId(s.estado, s.servico.id));
+		if (!p.ok) {
+			aviso(p.erro, 'erro');
+			return;
+		}
+		/* A chave fica presa aos parametros, como a do checkout fica ao
+		   carrinho: o reenvio do MESMO pedido reusa; um nome diferente depois do
+		   timeout e OUTRO pedido, com chave nova (o servidor recusaria a velha
+		   como `chave-reutilizada`). */
+		const assinatura = JSON.stringify(p.parametros);
+		if (!s.servico.chave || s.servico.assinatura !== assinatura) {
 			s.servico.chave = gerarChave();
+			s.servico.assinatura = assinatura;
 		}
 		s.servico.fase = 'enviando';
 		render();
@@ -181,7 +210,11 @@ export function criarControlador(opcoes) {
 				aviso('Sem resposta do servidor. Confirme de novo para reenviar o mesmo pedido.', 'erro');
 			}
 		}, TIMEOUT_MS);
-		enviar({ acao: 'usar-servico', chave: s.servico.chave, servico: s.servico.id });
+		const corpo = { acao: 'usar-servico', chave: s.servico.chave, servico: s.servico.id };
+		if (p.parametros) {
+			corpo.parametros = p.parametros;
+		}
+		enviar(corpo);
 	}
 
 	/** O checkout: mesma chave enquanto o carrinho nao mudar (reenvio). */
@@ -219,9 +252,17 @@ export function criarControlador(opcoes) {
 	/* Pacotes                                                         */
 	/* -------------------------------------------------------------- */
 
+	/** Um saldo que chegou por ESTA janela vai para a fonte unica. */
+	function publicar(minor) {
+		if (ehMinor(minor) && minor >= 0) {
+			aoSaldo(minor);
+		}
+	}
+
 	function receberEstado(dados) {
 		s.estado = dados;
 		s.carga = 'pronto';
+		publicar(dados && dados.moeda && dados.moeda.saldoMinor);
 		if (_timerEstado) {
 			cancelar(_timerEstado);
 			_timerEstado = null;
@@ -250,10 +291,20 @@ export function criarControlador(opcoes) {
 				cancelar(_timerServico);
 				_timerServico = null;
 			}
+			/* Os campos FICAM: numa recusa ("nome em uso") o jogador corrige e
+			   tenta de novo sem redigitar tudo - e o proximo pedido e outro, com
+			   chave nova. `parametrosRecusados` diz QUAL campo o servidor recusou. */
+			const recusados =
+				dados.ok !== true && dados.parametrosRecusados && typeof dados.parametrosRecusados === 'object'
+					? dados.parametrosRecusados
+					: null;
 			s.servico = {
 				fase: dados.ok === true ? 'sucesso' : 'erro',
 				id: s.servico.id,
 				chave: null,
+				assinatura: '',
+				campos: s.servico.campos,
+				recusados,
 				resultado: dados
 			};
 			render();
@@ -279,6 +330,13 @@ export function criarControlador(opcoes) {
 			_timerCheckout = null;
 		}
 		if (dados.ok === true) {
+			/* O saldo depois da compra entra na fonte unica AGORA: a Temporada e
+			   o Passe abertos nao esperam o pacote deles para concordar. O
+			   replay (`repetido`) nao publica: o saldo dele e o do instante da
+			   compra ORIGINAL, e o `estado` que vem logo atras traz o de agora. */
+			if (dados.pedido && dados.pedido.repetido !== true) {
+				publicar(dados.pedido.saldoDepoisMinor);
+			}
 			s.carrinho = [];
 			s.gaveta = false;
 			s.checkout = { fase: 'sucesso', chave: null, assinatura: '', resultado: dados };
@@ -386,7 +444,7 @@ export function criarControlador(opcoes) {
 			const cat = categoriaAtiva();
 			const chave = cat ? normalizar(cat.id) || normalizar(cat.nome) : '';
 			servicos.innerHTML =
-				!s.busca.trim() && (chave === 'utilidades' || chave === 'conta') ? servicosHtml(s.estado) : '';
+				!s.busca.trim() && (chave === 'utilidades' || chave === 'conta') ? servicosHtml(s.estado, chave) : '';
 		}
 		if (!grade) {
 			return;
@@ -501,11 +559,33 @@ export function criarControlador(opcoes) {
 		}
 		modal.hidden = !s.servico;
 		const corpo = modal.querySelector('.rs-modal-corpo');
+		if (!s.servico) {
+			_servicoDesenhado = '';
+		}
 		if (s.servico && corpo) {
+			/* Refaz o corpo so quando a FORMA muda (fase, servico, sexo escolhido,
+			   um resultado novo). Digitar no campo nao muda a forma: o texto ja
+			   esta no campo, e so o "Usar agora" acende ou apaga. */
+			const forma = [
+				s.servico.fase,
+				s.servico.id,
+				s.servico.campos ? String(s.servico.campos.sexo) : '',
+				s.servico.resultado ? String(s.servico.resultado.chave) : ''
+			].join('|');
+			if (forma === _servicoDesenhado && corpo.firstChild) {
+				atualizarBotaoDoServico();
+				return;
+			}
+			_servicoDesenhado = forma;
 			corpo.innerHTML = usoDeServicoHtml(
 				s.servico.fase,
-				servicoPorId(s.estado, s.servico.id),
-				s.servico.resultado
+				servicoPorId(s.estado, s.servico.id) || { servico: s.servico.id },
+				s.servico.resultado,
+				{
+					campos: s.servico.campos,
+					personagem: (s.estado && s.estado.personagem) || null,
+					recusados: s.servico.recusados || null
+				}
 			);
 			const t = modal.querySelector('.rs-modal-titulo');
 			if (t) {
@@ -517,6 +597,38 @@ export function criarControlador(opcoes) {
 							: 'Usar serviço';
 			}
 		}
+	}
+
+	/** O "Usar agora" acende so com os parametros aceitos (e nunca no fio). */
+	function atualizarBotaoDoServico() {
+		const btn = $('.rs-modal--servico [data-rs="confirmar-servico"]');
+		if (!btn || !s.servico) {
+			return;
+		}
+		btn.disabled =
+			enviandoServico() ||
+			!parametrosDoServico(s.servico.id, s.servico.campos, servicoPorId(s.estado, s.servico.id)).ok;
+	}
+
+	/**
+	 * Um saldo NOVO chegou por fora desta janela (a HUD, a Temporada, o Passe -
+	 * `Utils/saldoDeCash.js`). Ele entra no estado desenhado, e a carteira, o
+	 * "Saldo apos" do carrinho e a confirmacao aberta passam a concordar com a
+	 * pilula da HUD. Sem estado ainda, nada a fazer: o estado que vier traz o
+	 * dele.
+	 */
+	function atualizarSaldo(minor) {
+		if (!s.estado || !ehMinor(minor) || minor < 0) {
+			return;
+		}
+		const moeda = s.estado.moeda || {};
+		if (moeda.saldoMinor === minor) {
+			return;
+		}
+		s.estado = { ...s.estado, moeda: { ...moeda, saldoMinor: minor } };
+		renderCarteiras();
+		renderCarrinho();
+		renderModais();
 	}
 
 	function render() {
@@ -656,11 +768,42 @@ export function criarControlador(opcoes) {
 				if (enviandoCheckout() || enviandoServico()) {
 					break;
 				}
-				s.servico = { fase: 'confirmar', id: alvo.dataset.servico, chave: null, resultado: null };
+				s.servico = {
+					fase: 'confirmar',
+					id: alvo.dataset.servico,
+					chave: null,
+					assinatura: '',
+					campos: camposIniciaisDoServico(alvo.dataset.servico),
+					resultado: null
+				};
 				render();
+				focarPrimeiroCampo();
 				break;
 			case 'confirmar-servico':
 				confirmarServico();
+				break;
+			case 'aparencia-sexo':
+				if (!s.servico || s.servico.fase !== 'confirmar' || !s.servico.campos) {
+					break;
+				}
+				s.servico.campos = {
+					...s.servico.campos,
+					sexo: alvo.dataset.valor === '' ? null : Number(alvo.dataset.valor)
+				};
+				if (s.servico.recusados) {
+					s.servico.recusados = { ...s.servico.recusados, sexo: null, parametros: null };
+				}
+				renderServico();
+				break;
+			case 'voltar-servico':
+				/* Da recusa de volta ao formulario, com o que o jogador ja tinha
+				   escrito; o proximo pedido nasce com chave nova. */
+				if (!s.servico || s.servico.fase !== 'erro') {
+					break;
+				}
+				s.servico = { ...s.servico, fase: 'confirmar', chave: null, assinatura: '', resultado: null };
+				renderServico();
+				focarPrimeiroCampo();
 				break;
 			case 'fechar-servico':
 				if (enviandoServico()) {
@@ -695,8 +838,39 @@ export function criarControlador(opcoes) {
 		}
 	}
 
+	/** O campo de texto do formulario de servico recebe o foco ao abrir. */
+	function focarPrimeiroCampo() {
+		const campo = $('.rs-modal--servico [data-rs-campo]');
+		if (campo && typeof campo.focus === 'function') {
+			try {
+				campo.focus({ preventScroll: true });
+			} catch (_err) {
+				/* jsdom antigo sem opcoes de foco: sem foco, sem dano */
+			}
+		}
+	}
+
 	/** Busca ao digitar (o catalogo tem 18 produtos: filtrar a cada tecla e barato). */
 	function onInput(e) {
+		const campo = e.target && e.target.dataset ? e.target.dataset.rsCampo : null;
+		if (campo) {
+			/* O formulario do servico: guarda o que foi digitado e so acende ou
+			   apaga o "Usar agora" - sem redesenhar (o cursor fica onde esta). */
+			if (s.servico && s.servico.fase === 'confirmar' && s.servico.campos && campo in s.servico.campos) {
+				s.servico.campos = { ...s.servico.campos, [campo]: String(e.target.value || '') };
+				/* Mexeu no campo que o servidor recusou: a frase da recusa sai. */
+				if (s.servico.recusados && s.servico.recusados[campo]) {
+					s.servico.recusados = { ...s.servico.recusados, [campo]: null };
+					const erro = $(`.rs-modal--servico [data-rs-erro="${campo}"]`);
+					if (erro) {
+						erro.remove();
+					}
+					e.target.classList.remove('is-invalido');
+				}
+				atualizarBotaoDoServico();
+			}
+			return;
+		}
 		if (!e.target || !e.target.classList || !e.target.classList.contains('rs-busca-campo')) {
 			return;
 		}
@@ -784,6 +958,7 @@ export function criarControlador(opcoes) {
 		onClick,
 		onInput,
 		fecharModalDoTopo,
+		atualizarSaldo,
 		/** So para teste e para o arnes de foto: o estado interno, somente leitura. */
 		espiar: () => ({ ...s, carrinho: s.carrinho.map(l => ({ ...l })) })
 	};

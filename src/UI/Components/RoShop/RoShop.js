@@ -31,8 +31,9 @@
  * `Network.hookPacket` SUBSTITUI (NetworkManager.js: `callback = cb`): o
  * segundo gancho no mesmo opcode rouba o pacote do primeiro. Este arquivo e o
  * UNICO dono do 0x0fb8. O saldo da HUD continua com o dono dele
- * (`Engine/MapEngine/RagidleCash.js`, 0x0fce) - esta janela so LE o saldo do
- * proprio estado (`moeda.saldoMinor`).
+ * (`Engine/MapEngine/RagidleCash.js`, 0x0fce). Desde a rodada 2 as carteiras
+ * concordam por `Utils/saldoDeCash.js`: o saldo que chega aqui e publicado la,
+ * e o que chega por la (HUD, Temporada, Passe) entra na carteira desta janela.
  *
  * @author RagIdle
  */
@@ -52,6 +53,7 @@ import { itemIconUrl, preferirArtePublicada } from 'Utils/ItemArt.js';
 import { fecharEEsquecer } from '../limpezaDeJanelaIdle.js';
 import { criarControlador } from './controladorDoRoShop.js';
 import { gerarChaveDeCheckout } from './formatoDoRoShop.js';
+import { assinarSaldoDeCash, publicarSaldoDeCash } from 'Utils/saldoDeCash.js';
 import htmlText from './RoShop.html?raw';
 import cssText from './RoShop.css?raw';
 
@@ -129,12 +131,18 @@ function controlador() {
 			enviar,
 			gerarChave: gerarChaveDeCheckout,
 			resolverIcone,
+			aoSaldo: publicarSaldoDeCash,
 			abrirTemporada: () => {
 				if (typeof RoShop.aoIrParaTemporada === 'function') {
 					RoShop.aoIrParaTemporada();
 				}
 			}
 		});
+		/* O saldo que chega por FORA (HUD 0x0fce, Temporada, Passe) entra na
+		   carteira desta janela - aberta ou fechada, para ela nunca reabrir com
+		   um numero mais velho que o da pilula (risco P1-02). */
+		const c = _controlador;
+		assinarSaldoDeCash(minor => c.atualizarSaldo(minor));
 	}
 	return _controlador;
 }

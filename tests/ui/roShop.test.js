@@ -185,7 +185,17 @@ describe('card: travado, selo e retrato', () => {
 		expect(esgotado.textContent).toContain('Seu armazém já está no tamanho máximo.');
 		expect(esgotado.querySelector('[data-rs="adicionar"]')).toBeNull();
 		expect(esgotado.querySelector('.rs-cadeado svg')).not.toBeNull();
-		['SERVICE_RENAME', 'SERVICE_APPEARANCE_CHANGE', 'ACCOUNT_CHARACTER_SLOT', 'ACCOUNT_INVENTORY_10'].forEach(sku => {
+		/* Desde a rodada 2 os quatro estao A VENDA; o estado abaixo os desliga
+		   como o servidor faria (`ativo: false` + `indisponivel`). */
+		const desligar = ['SERVICE_RENAME', 'SERVICE_APPEARANCE_CHANGE', 'ACCOUNT_CHARACTER_SLOT', 'ACCOUNT_INVENTORY_10'];
+		const estado = estadoDeExemplo();
+		estado.produtos = estado.produtos.map(p =>
+			desligar.indexOf(p.sku) === -1
+				? p
+				: { ...p, ativo: false, indisponivel: { motivo: 'aguarda-decisao', texto: 'Em breve.' } }
+		);
+		t.c.receber(estado);
+		desligar.forEach(sku => {
 			const inativo = t.raiz.querySelector(`.rs-card[data-sku="${sku}"]`);
 			expect(inativo.classList.contains('is-indisponivel'), sku).toBe(true);
 			expect(inativo.querySelector('[data-rs="adicionar"]'), sku).toBeNull();
