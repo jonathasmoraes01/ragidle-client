@@ -327,6 +327,10 @@ function processarPacotes(buf) {
 	} else {
 		buffer = buf;
 	}
+	// O resto guardado JA FOI consumido acima (F27, auditoria de 22/09/2026).
+	// Zerar so no fim deixava ele vivo quando um handler lancava no meio, e o
+	// lote seguinte era colado a bytes que ja tinham sido lidos.
+	_save_buffer = null;
 
 	const fp = new BinaryReader(buffer);
 
@@ -392,21 +396,31 @@ function processarPacotes(buf) {
 				);
 			}
 
-			// Parse packet
-			//if (!packet.instance) {
-			packet.instance = new packet.Struct(fp, offset);
-			//}
-			//else {
-			//	packet.Struct.call(packet.instance, fp, offset); //this causes packet conflicts where the same type of packets following eachother copy the previous packet's variables with the previous values
-			//}
+			/*
+			 * UM PACOTE POR VEZ NA SUA GUARDA (F27, auditoria de 22/09/2026). A
+			 * excecao de um handler saia deste laco e levava junto os pacotes
+			 * que vinham depois no mesmo quadro. O tamanho ja foi lido, entao o
+			 * `seek` abaixo continua do lugar certo mesmo quando este falha.
+			 */
+			try {
+				// Parse packet
+				//if (!packet.instance) {
+				packet.instance = new packet.Struct(fp, offset);
+				//}
+				//else {
+				//	packet.Struct.call(packet.instance, fp, offset); //this causes packet conflicts where the same type of packets following eachother copy the previous packet's variables with the previous values
+				//}
 
-			if (packetLog) {
-				console.log('%c[Network] Recv:', 'color:#900090', packet.instance, packet.callback ? '' : '(no callback)');
-			}
+				if (packetLog) {
+					console.log('%c[Network] Recv:', 'color:#900090', packet.instance, packet.callback ? '' : '(no callback)');
+				}
 
-			// Call controller
-			if (packet.callback) {
-				packet.callback(packet.instance);
+				// Call controller
+				if (packet.callback) {
+					packet.callback(packet.instance);
+				}
+			} catch (erro) {
+				console.error('[Network] o handler de "%s" (0x%s) lancou:', packet.name, id.toString(16), erro);
 			}
 		} else {
 			if (packetDump) {
