@@ -204,6 +204,83 @@
 	   aviso sem um service worker de verdade. */
 	API.mostrarAvisoDeVersao = mostrarAviso;
 
+	/**
+	 * A cada quanto a sessão pergunta se há versão nova (F30, auditoria de
+	 * 22/09/2026). Sem isto uma sessão longa — o jogo idle fica aberto por
+	 * horas — nunca descobria o deploy: o navegador só confere o `sw.js` na
+	 * navegação, e aqui ninguém navega.
+	 */
+	var MS_ENTRE_CONFERENCIAS_DE_VERSAO = 30 * 60 * 1000;
+
+	/*
+	 * `installed` COM um controller já ativo = versão nova esperando. Sem
+	 * controller é a PRIMEIRA instalação, e avisar "nova versão" para quem
+	 * acabou de abrir o jogo pela primeira vez seria mentira.
+	 */
+	function estaEsperando(worker) {
+		return !!worker && worker.state === 'installed' && !!navigator.serviceWorker.controller;
+	}
+
+	function avisarDaVersao(worker) {
+		API.versaoNova = worker;
+		mostrarAviso(function () {
+			/* Só a partir daqui a troca de controller é ESPERADA — ver a guarda
+			   do `controllerchange` abaixo. */
+			_trocaPedida = true;
+			worker.postMessage({ tipo: 'ragidle:assumir' });
+		});
+	}
+
+	function acompanharRegistro(registro) {
+		function vigiar(worker) {
+			if (!worker) {
+				return;
+			}
+			/*
+			 * O QUE JÁ ESTÁ ESPERANDO NÃO DISPARA `statechange` (F30). O worker
+			 * que ficou em `installed` numa visita anterior chega aqui em
+			 * `registro.waiting`, e o estado dele não muda mais — o ouvinte
+			 * nunca rodava, e o aviso nunca aparecia.
+			 */
+			if (estaEsperando(worker)) {
+				avisarDaVersao(worker);
+				return;
+			}
+			worker.addEventListener('statechange', function () {
+				if (estaEsperando(worker)) {
+					avisarDaVersao(worker);
+				}
+			});
+		}
+
+		vigiar(registro.waiting);
+		vigiar(registro.installing);
+		registro.addEventListener('updatefound', function () {
+			vigiar(registro.installing);
+		});
+
+		/*
+		 * A SESSÃO LONGA PERGUNTA DE TEMPOS EM TEMPOS (F30) — e ao voltar a aba.
+		 * E o "Depois" deixa de ser para sempre: ele fecha a caixa, o worker
+		 * continua esperando, e a próxima conferência oferece de novo
+		 * (`mostrarAviso` não duplica um aviso aberto).
+		 */
+		function conferir() {
+			var pedido = registro.update && registro.update();
+			if (pedido && pedido.catch) {
+				pedido.catch(function () {});
+			}
+			vigiar(registro.waiting);
+		}
+		setInterval(conferir, MS_ENTRE_CONFERENCIAS_DE_VERSAO);
+		document.addEventListener('visibilitychange', function () {
+			if (document.visibilityState === 'visible') {
+				conferir();
+			}
+		});
+	}
+	API.acompanharRegistro = acompanharRegistro;
+
 	/* ═════════════════════════════════════════════════════════════════════
 	   REGISTRO
 	   ═════════════════════════════════════════════════════════════════════ */
@@ -212,38 +289,7 @@
 		window.addEventListener('load', function () {
 			navigator.serviceWorker
 				.register('./sw.js', { scope: './' })
-				.then(function (registro) {
-					function vigiar(worker) {
-						if (!worker) {
-							return;
-						}
-						worker.addEventListener('statechange', function () {
-							/*
-							 * `installed` COM um controller já ativo = versão
-							 * nova esperando. Sem controller é a PRIMEIRA
-							 * instalação, e avisar "nova versão" para quem
-							 * acabou de abrir o jogo pela primeira vez seria
-							 * mentira.
-							 */
-							if (worker.state === 'installed' && navigator.serviceWorker.controller) {
-								API.versaoNova = worker;
-								mostrarAviso(function () {
-									/* Só a partir daqui a troca de controller é
-									   ESPERADA — ver a guarda do
-									   `controllerchange` abaixo. */
-									_trocaPedida = true;
-									worker.postMessage({ tipo: 'ragidle:assumir' });
-								});
-							}
-						});
-					}
-
-					vigiar(registro.waiting);
-					vigiar(registro.installing);
-					registro.addEventListener('updatefound', function () {
-						vigiar(registro.installing);
-					});
-				})
+				.then(acompanharRegistro)
 				.catch(function (erro) {
 					/* Sem service worker o jogo funciona igual — ele é cache e
 					   instalação, não gameplay. Falhar aqui não pode derrubar

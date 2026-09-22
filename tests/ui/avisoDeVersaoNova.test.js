@@ -125,3 +125,59 @@ describe('o aviso de versao nova', () => {
 		expect(aoRecarregar).toHaveBeenCalledTimes(1);
 	});
 });
+
+describe('a sessao longa descobre a versao nova (F30, auditoria de 22/09/2026)', () => {
+	/*
+	 * Tres lacunas: o worker que JA esperava no carregamento nunca disparava
+	 * `statechange` (o aviso nunca aparecia), nada chamava `registro.update()`
+	 * (uma sessao aberta por horas nunca via o deploy), e o "Depois" sumia com
+	 * o aviso para sempre.
+	 */
+	let sw;
+	beforeEach(() => {
+		sw = navigator.serviceWorker;
+		Object.defineProperty(navigator, 'serviceWorker', { configurable: true, value: { controller: {} } });
+	});
+	afterEach(() => {
+		Object.defineProperty(navigator, 'serviceWorker', { configurable: true, value: sw });
+	});
+
+	function registroFalso(esperando) {
+		return {
+			waiting: esperando ? { state: 'installed', postMessage: vi.fn(), addEventListener: vi.fn() } : null,
+			installing: null,
+			addEventListener: vi.fn(),
+			update: vi.fn(() => Promise.resolve())
+		};
+	}
+
+	it('o worker que ja estava ESPERANDO no carregamento gera o aviso na hora', () => {
+		const pwa = carregarCasca();
+		pwa.acompanharRegistro(registroFalso(true));
+		expect(aviso()).not.toBeNull();
+	});
+
+	it('sem versao esperando, nenhum aviso (CONTROLE)', () => {
+		const pwa = carregarCasca();
+		pwa.acompanharRegistro(registroFalso(false));
+		expect(aviso()).toBeNull();
+	});
+
+	it('pergunta ao servidor a cada 30 min', () => {
+		const pwa = carregarCasca();
+		const registro = registroFalso(false);
+		pwa.acompanharRegistro(registro);
+		vi.advanceTimersByTime(30 * 60 * 1000);
+		expect(registro.update).toHaveBeenCalledTimes(1);
+	});
+
+	it('depois do "Depois", a volta da aba oferece de novo', () => {
+		const pwa = carregarCasca();
+		pwa.acompanharRegistro(registroFalso(true));
+		botao('Depois').click();
+		expect(aviso()).toBeNull();
+		Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => 'visible' });
+		document.dispatchEvent(new Event('visibilitychange'));
+		expect(aviso()).not.toBeNull();
+	});
+});
