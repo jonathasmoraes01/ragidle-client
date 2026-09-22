@@ -25,20 +25,30 @@
  * A TRAVA DE CLIQUE (a tarefa pede: clique -> trava TUDO -> envia -> destrava
  * no ZC ou em 10s sem resposta)
  * ---------------------------------------------------------------------------
- * `_trava` (criarTrava(), em formatoDaTemporada.js) é UMA trava para as
- * QUATRO ações (comprar-caixa/abrir-caixa/resgatar/comprar-premium), não uma
- * por botão: dois cliques em botões DIFERENTES enquanto a primeira ação ainda
- * não voltou cobrariam duas vezes do mesmo jeito que dois cliques no mesmo
- * botão cobrariam — o servidor aceitaria as duas, e as duas seriam válidas.
+ * `_trava` (criarTrava(), em formatoDaTemporada.js) é UMA trava para TODAS as
+ * ações (comprar-caixa/abrir-caixa/resgatar/comprar-premium/resgatar-visual-
+ * vip e, desde 21/09/2026, comprar-passe), não uma por botão: dois cliques em
+ * botões DIFERENTES enquanto a primeira ação ainda não voltou cobrariam duas
+ * vezes do mesmo jeito que dois cliques no mesmo botão cobrariam — o servidor
+ * aceitaria as duas, e as duas seriam válidas.
  *
  * ---------------------------------------------------------------------------
- * O CARD VIP NÃO DUPLICA A COMPRA
+ * AS RECOMPENSAS MORAM AQUI DESDE 21/09/2026 (pedido do dono: "a janela de
+ * recompensas nao compensa mais; vai colocar ela ali na aba da temporada")
  * ---------------------------------------------------------------------------
- * A compra do VIP continua sendo a janela do Passe (`CZ_RAGIDLE_COMPRAR_PASSE`
- * 0x0fe7, `{tipo:'vip'}`) — ver `PasseIdle.abrirNaAba('vip')`. Esta janela só
- * escuta `ZC_RAGIDLE_PASSE` (0x0fe6) para saber quando essa compra terminou e
- * pedir o próprio estado de novo (o selo VIP do cabeçalho e o card da aba VIP
- * dependem do que o Passe acabou de mudar).
+ * O Passe Semanal e a compra do VIP vieram da janela `PasseIdle` (Recompensas),
+ * que ficou SEM BOTAO no menu. O que NAO veio junto foi o pacote: o dono do
+ * `ZC_RAGIDLE_PASSE` (0x0fe5) CONTINUA sendo o PasseIdle, e esta janela so
+ * ASSINA `PasseIdle.aoReceberEstado` para receber o estado dele. Pedir
+ * (`CZ_RAGIDLE_PEDIR_PASSE`) e comprar (`CZ_RAGIDLE_COMPRAR_PASSE`) sao pacotes
+ * de SAIDA, e mandar pacote nao disputa dono com ninguem.
+ *
+ * ELA NAO DA `hookPacket` NO 0x0fe5, E ISSO NAO E ESTILO: `Network.hookPacket`
+ * faz `Packets.list[id].callback = callback` (NetworkManager.js) - o segundo
+ * gancho no mesmo opcode APAGA o primeiro. Enquanto esta janela hookava o
+ * `ZC_RAGIDLE_PASSE`, a janela de Recompensas ficava em "Carregando..." para
+ * sempre, porque o estado dela nunca chegava. Foi para producao em 21/09/2026.
+ * Ha portao no servidor: `servidor/protocolo/um-dono-por-pacote.test.ts`.
  *
  * @author RagIdle
  */
@@ -50,6 +60,7 @@ import PACKET from 'Network/PacketStructure.js';
 import UIManager from 'UI/UIManager.js';
 import GUIComponent from 'UI/GUIComponent.js';
 import DB from 'DB/DBManager.js';
+import { unknownItem } from 'DB/Items/FichaDoItem.js';
 import Client from 'Core/Client.js';
 import arrastarPorPonteiro, { prenderNaTela } from 'UI/arrastarPorPonteiro.js';
 import PasseIdle from '../PasseIdle/PasseIdle.js';
@@ -61,19 +72,21 @@ import cssText from './TemporadaIdle.css?raw';
 import {
 	avisoDoResultado,
 	criarTrava,
+	dataCurta,
 	gerarChave,
+	passePorTipo,
 	renderCaixaHtml,
 	renderDestaquesHtml,
 	renderModalConteudoHtml,
-	renderPasseHtml,
 	renderRevealHtml,
+	renderSemanalHtml,
 	renderVipHtml,
 	textoDoSeloVip
 } from './formatoDaTemporada.js';
 
 /** Manter em sincronia com o ":host"/".te-window" do CSS. */
-const WINDOW_WIDTH = 640;
-const WINDOW_HEIGHT = 600;
+const WINDOW_WIDTH = 680;
+const WINDOW_HEIGHT = 640;
 
 /** Quanto tempo o aviso do rodapé fica na tela. */
 const AVISO_MS = 4200;
@@ -91,7 +104,17 @@ TemporadaIdle.mouseMode = GUIComponent.MouseMode.CROSS;
 /** O último estado inteiro que o servidor mandou (contrato v1). */
 TemporadaIdle.estado = null;
 
-const ABAS = ['destaques', 'caixas', 'passe', 'vip'];
+/** O último estado do PASSE (0x0fe5), recebido por `PasseIdle.aoReceberEstado`. */
+TemporadaIdle.estadoDoPasse = null;
+
+/*
+ * AS QUATRO ABAS (21/09/2026): Destaques (com o passe compacto), Caixas, o
+ * Passe Semanal e o VIP. A aba "Passe" saiu — a progressao mora nos Destaques
+ * por ordem do dono — e o VIP e UMA aba onde eram duas (a desta janela e a das
+ * Recompensas), porque as duas descreviam o mesmo produto por angulos
+ * diferentes: o que ele da, e como se compra.
+ */
+const ABAS = ['destaques', 'caixas', 'semanal', 'vip'];
 const ABA_PADRAO = 'destaques';
 
 TemporadaIdle.activeTab = ABA_PADRAO;
@@ -106,7 +129,7 @@ const _preferences = Preferences.get(
 	1.0
 );
 
-/** Uma trava só, para as quatro ações — ver o cabeçalho. */
+/** Uma trava só, para todas as ações — ver o cabeçalho. */
 const _trava = criarTrava();
 
 let _avisoTimer = null;
@@ -130,8 +153,8 @@ function janelaEstaAberta() {
 /* ------------------------------------------------------------------ */
 
 /**
- * Tenta trocar a inicial pelo ícone de verdade (DB.getItemInfo +
- * Client.loadFile, o mesmo caminho de ItemObtain.js/CorreioIdle.js).
+ * Tenta trocar a inicial pelo ícone de verdade: a arte PUBLICADA por id
+ * primeiro, o GRF depois (o mesmo caminho de ItemObtain.js/CorreioIdle.js).
  *
  * Fora do motor completo (teste vitest, arnês de foto do Playwright) `DB`/
  * `Client` não têm o que ler — o `catch` garante que a inicial já desenhada
@@ -180,11 +203,21 @@ function melhorarIcones(escopo) {
 		 * por ID, e que portanto conhece os custom), e o `.bmp` do GRF so quando
 		 * ele nao existe. Reusar a peca e o conserto; uma terceira rota seria a
 		 * forma 'duas rotas, a 2a escrita a mao' que este projeto ja catalogou.
+		 *
+		 * E QUANDO NEM O PNG EXISTE, A INICIAL FICA. A prova de tela do
+		 * redesenho (21/09/2026) mostrou 4 dos 6 premios da Caixa Topo com a
+		 * POCAO VERMELHA: para todo custom SEM PNG publicado o GRF respondia
+		 * `unknownItem` — um SUCESSO com a arte errada, que `pintar` aceitava.
+		 * Arte errada e pior que inicial; a inicial ao menos nao mente. (Quantos
+		 * custom tem PNG muda a cada publicacao do pipeline; a regra nao.)
 		 */
 		preferirArtePublicada(itemIconUrl(itemId), pintar, () => {
 			try {
 				const info = DB.getItemInfo(itemId);
-				const resource = info && info.identifiedResourceName;
+				if (!info || info === unknownItem) {
+					return;
+				}
+				const resource = info.identifiedResourceName;
 				if (!resource) {
 					return;
 				}
@@ -193,7 +226,8 @@ function melhorarIcones(escopo) {
 				/* DB/Client indisponiveis fora do motor - o fallback da inicial ja
 				   esta na tela, e nada quebra. */
 			}
-		});	});
+		});
+	});
 }
 
 /* ------------------------------------------------------------------ */
@@ -324,7 +358,7 @@ function abrirModalConteudo(pool) {
 	modal.hidden = false;
 }
 
-/** Confirmação antes de gastar RO Cash — comprar caixa e comprar Premium. */
+/** Confirmação antes de gastar cash — caixa, Premium, Passe Semanal e VIP. */
 function abrirConfirmacao(texto, executar) {
 	const root = _root();
 	const modal = root && root.querySelector('.te-modal--confirmar');
@@ -349,7 +383,7 @@ function confirmarPendente() {
 }
 
 /* ------------------------------------------------------------------ */
-/* O pacote de saída                                                   */
+/* Os pacotes de saída                                                 */
 /* ------------------------------------------------------------------ */
 
 function enviarAcao(corpo) {
@@ -368,18 +402,44 @@ function pedirEstado() {
 	Network.sendPacket(pkt);
 }
 
+/** O estado do Passe (semanal/VIP) — a resposta chega por `PasseIdle.aoReceberEstado`. */
+function pedirEstadoDoPasse() {
+	Network.sendPacket(new PACKET.CZ.RAGIDLE_PEDIR_PASSE());
+}
+
+/**
+ * A compra de um passe (semanal/vip) — o MESMO pacote que a janela de
+ * Recompensas mandava (0x0fe7). O botao trava ate a resposta chegar pelo
+ * caminho do PasseIdle, senao dois cliques rapidos mandariam duas compras
+ * e o servidor cobraria as duas (a segunda renova).
+ */
+function enviarCompraDePasse(tipo) {
+	if (_trava.estaTravado()) {
+		return;
+	}
+	travarBotoes();
+	Network.sendPacket(new PACKET.CZ.RAGIDLE_COMPRAR_PASSE(tipo));
+}
+
 /* ------------------------------------------------------------------ */
 /* Cliques                                                             */
 /* ------------------------------------------------------------------ */
 
-function onClickTab(botao) {
-	const aba = botao.dataset.tab;
-	if (!aba || aba === TemporadaIdle.activeTab) {
+function irParaAba(aba) {
+	if (!aba || ABAS.indexOf(aba) === -1 || aba === TemporadaIdle.activeTab) {
 		return;
 	}
 	TemporadaIdle.activeTab = aba;
 	lembrarAba(_preferences, aba);
 	render();
+	const corpo = _root() && _root().querySelector('.te-body');
+	if (corpo) {
+		corpo.scrollTop = 0;
+	}
+}
+
+function onClickTab(botao) {
+	irParaAba(botao.dataset.tab);
 }
 
 /**
@@ -426,6 +486,18 @@ function onClicarAcao(botao) {
 		abrirConfirmacao(preco === null ? 'Comprar o Passe Premium?' : `Comprar o Passe Premium por ${preco} RO Cash?`, () =>
 			enviarAcao({ acao: 'comprar-premium' })
 		);
+		return;
+	}
+	if (agir === 'comprar-passe') {
+		const tipo = botao.dataset.tipo;
+		if (tipo !== 'vip' && tipo !== 'semanal') {
+			return;
+		}
+		const passe = passePorTipo(TemporadaIdle.estadoDoPasse, tipo);
+		const nome = tipo === 'vip' ? 'VIP' : 'Passe Semanal';
+		const verbo = passe && passe.ativo ? 'Renovar' : 'Comprar';
+		const preco = passe ? `${passe.cash} cash` : '';
+		abrirConfirmacao(`${verbo} o ${nome}${preco ? ` por ${preco}` : ''}?`, () => enviarCompraDePasse(tipo));
 	}
 }
 
@@ -442,6 +514,15 @@ function onClickRaiz(e) {
 	if (tab) {
 		e.stopImmediatePropagation();
 		onClickTab(tab);
+		return;
+	}
+
+	/* Os atalhos dos Destaques (caixas em resumo, Passe Semanal, VIP) so
+	   TROCAM DE ABA — nunca disparam acao. */
+	const ir = e.target.closest('[data-ir]');
+	if (ir) {
+		e.stopImmediatePropagation();
+		irParaAba(ir.dataset.ir);
 		return;
 	}
 
@@ -463,15 +544,6 @@ function onClickRaiz(e) {
 	if (confirmarOk) {
 		e.stopImmediatePropagation();
 		confirmarPendente();
-		return;
-	}
-
-	const abrirVip = e.target.closest('.te-abrir-passe-vip');
-	if (abrirVip) {
-		e.stopImmediatePropagation();
-		if (typeof PasseIdle.abrirNaAba === 'function') {
-			PasseIdle.abrirNaAba('vip');
-		}
 		return;
 	}
 
@@ -503,14 +575,23 @@ function render() {
 		return;
 	}
 	const estado = TemporadaIdle.estado;
+	const estadoDoPasse = TemporadaIdle.estadoDoPasse;
 
 	root.querySelectorAll('.te-tab').forEach((btn) => {
 		btn.classList.toggle('is-active', btn.dataset.tab === TemporadaIdle.activeTab);
 	});
 
+	/* O saldo: o da Temporada quando ja chegou; senao o do Passe, que e o
+	   mesmo cash da mesma conta — os dois pacotes o trazem. */
 	const carteira = root.querySelector('.te-carteira-valor');
 	if (carteira) {
-		carteira.textContent = String((estado && estado.moeda && estado.moeda.saldo) ?? 0);
+		const saldo =
+			estado && estado.moeda && typeof estado.moeda.saldo === 'number'
+				? estado.moeda.saldo
+				: estadoDoPasse && typeof estadoDoPasse.cash === 'number'
+					? estadoDoPasse.cash
+					: 0;
+		carteira.textContent = String(saldo);
 	}
 
 	const selo = root.querySelector('.te-selo-vip');
@@ -525,6 +606,14 @@ function render() {
 	if (!corpo) {
 		return;
 	}
+	corpo.dataset.aba = TemporadaIdle.activeTab;
+
+	/* A aba Semanal so depende do estado do PASSE — ela nao espera o da
+	   Temporada para desenhar (e vice-versa nas outras). */
+	if (TemporadaIdle.activeTab === 'semanal') {
+		corpo.innerHTML = renderSemanalHtml(estadoDoPasse);
+		return;
+	}
 	if (!estado) {
 		corpo.innerHTML = '<div class="te-carregando">Carregando…</div>';
 		return;
@@ -532,12 +621,10 @@ function render() {
 
 	if (TemporadaIdle.activeTab === 'caixas') {
 		corpo.innerHTML = `<div class="te-caixas-grade">${(estado.caixas || []).map(renderCaixaHtml).join('')}</div>`;
-	} else if (TemporadaIdle.activeTab === 'passe') {
-		corpo.innerHTML = renderPasseHtml(estado.passe);
 	} else if (TemporadaIdle.activeTab === 'vip') {
-		corpo.innerHTML = renderVipHtml(estado.vip);
+		corpo.innerHTML = renderVipHtml(estado.vip, estadoDoPasse);
 	} else {
-		corpo.innerHTML = renderDestaquesHtml(estado);
+		corpo.innerHTML = renderDestaquesHtml(estado, estadoDoPasse);
 	}
 	melhorarIcones(corpo);
 }
@@ -554,6 +641,7 @@ function savePosition() {
 
 TemporadaIdle.limparEstadoDoPersonagem = function limparEstadoDoPersonagem() {
 	TemporadaIdle.estado = null;
+	TemporadaIdle.estadoDoPasse = null;
 	/* A aba volta para a LEMBRADA, não para a de fábrica — mesma razão de
 	   PasseIdle.js/MissoesIdle.js: é escolha da PESSOA, não do personagem. */
 	TemporadaIdle.activeTab = abaLembrada(_preferences, ABA_PADRAO, ABAS);
@@ -609,7 +697,7 @@ TemporadaIdle.onRemove = function onRemove() {
 	fecharReveal();
 };
 
-/** Abre/fecha; ao abrir, pede o estado inteiro ao servidor. */
+/** Abre/fecha; ao abrir, pede os DOIS estados ao servidor (temporada e passe). */
 TemporadaIdle.toggle = function toggle() {
 	const root = _root();
 	const win = root && root.querySelector('.te-window');
@@ -625,6 +713,7 @@ TemporadaIdle.toggle = function toggle() {
 		win.classList.add('is-open');
 		TemporadaIdle.focus();
 		pedirEstado();
+		pedirEstadoDoPasse();
 	}
 };
 
@@ -662,22 +751,33 @@ function onTemporadaRecebida(pkt) {
 Network.hookPacket(PACKET.ZC.RAGIDLE_TEMPORADA, onTemporadaRecebida);
 
 /*
- * A compra do VIP NÃO é desta janela (ver o cabeçalho). Quando o Passe
- * confirma uma compra de VIP, e a Temporada está aberta, ela pede o próprio
- * estado de novo — só assim o selo do cabeçalho e o card da aba VIP
- * acompanham o que acabou de mudar, sem duplicar o pacote de compra.
+ * O ESTADO DO PASSE chega por AQUI, e nunca por um segundo `hookPacket` no
+ * 0x0fe5 (ver o cabecalho). O PasseIdle continua sendo o dono do pacote e
+ * chama este ouvinte depois de desenhar a propria janela (que hoje nao tem
+ * botao no menu — ver PasseIdle.js).
  *
- * ELA NAO DA `hookPacket` NO 0x0fe5, E ISSO NAO E ESTILO: `Network.hookPacket`
- * faz `Packets.list[id].callback = callback` (NetworkManager.js) - o segundo
- * gancho no mesmo opcode APAGA o primeiro. Enquanto esta janela hookava o
- * `ZC_RAGIDLE_PASSE`, a janela de Recompensas ficava em "Carregando..." para
- * sempre, porque o estado dela nunca chegava. Foi para producao em 21/09/2026.
- * O dono do pacote e o PasseIdle, e ele avisa por `aoReceberEstado`.
+ * Tres coisas acontecem aqui: o estado e guardado e a aba redesenhada; a
+ * trava de clique abre (uma compra de passe foi respondida); e o resultado
+ * da compra vira aviso no rodape desta janela — a de Recompensas, fechada,
+ * mostraria o dela para ninguem. Quando a compra e de VIP e deu certo, o
+ * estado da Temporada e pedido de novo: o selo do cabecalho, o visual do VIP
+ * e os atalhos dos Destaques dependem do que o Passe acabou de mudar.
  */
 function onPasseMudou(dados) {
+	TemporadaIdle.estadoDoPasse = dados;
+	destravarBotoes();
+	render();
+
 	const comprou = dados && dados.comprou;
-	if (comprou && comprou.ok && comprou.tipo === 'vip' && janelaEstaAberta()) {
-		pedirEstado();
+	if (comprou && comprou.ok) {
+		const passe = passePorTipo(dados, comprou.tipo);
+		const nome = comprou.tipo === 'vip' ? 'VIP' : 'Passe Semanal';
+		mostrarAviso(`${nome} ativo até ${dataCurta(passe && passe.expiraEm)}.`, false);
+		if (comprou.tipo === 'vip' && janelaEstaAberta()) {
+			pedirEstado();
+		}
+	} else if (comprou && !comprou.ok) {
+		mostrarAviso(comprou.motivo || 'Não foi possível comprar.', true);
 	}
 }
 PasseIdle.aoReceberEstado = onPasseMudou;

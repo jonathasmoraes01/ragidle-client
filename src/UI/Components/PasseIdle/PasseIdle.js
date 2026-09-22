@@ -24,10 +24,28 @@
  * 4. **O botão não some quando falta cash.** Ele apaga e explica. Sumir faria
  *    o jogador procurar o que fazer; apagado ele diz "existe, e falta saldo".
  *
- * Entrada na HUD: o botão "Recompensas" do CLUSTER de essenciais
- * (TopMenuIdle), que chama PasseIdle.toggle(). Ele morou no leque até
- * 06/09/2026, quando o dono o trocou de casa com o "Missões" (D-944): o único
- * produto pago do menu deixou de depender de o jogador abrir a gaveta.
+ * ---------------------------------------------------------------------------
+ * ESTA JANELA NAO TEM MAIS BOTAO NO MENU (21/09/2026, ordem do dono: "a
+ * janela de recompensas nao compensa mais a gente ter ela")
+ * ---------------------------------------------------------------------------
+ * O conteudo dela — o Passe Semanal e a compra do VIP — mora na janela da
+ * Temporada (`TemporadaIdle`, abas "Passe Semanal" e "VIP"), e o botao
+ * "Recompensas" do cluster virou o botao "Temporada". O MODULO fica, e nao e
+ * por preguica: ele continua sendo o DONO do pacote `ZC_RAGIDLE_PASSE`
+ * (0x0fe5) — `Network.hookPacket` substitui, nao soma, entao so pode haver
+ * UM gancho por opcode no cliente inteiro (portao no servidor:
+ * `servidor/protocolo/um-dono-por-pacote.test.ts`). Quem precisa do estado
+ * do Passe assina `PasseIdle.aoReceberEstado`, como a Temporada faz. As
+ * funcoes de desenho abaixo continuam vivas para `toggle()` (a pilha de
+ * janelas o embrulha) e para a prova que abre a janela por comando; a copia
+ * delas que o jogador ve esta em `formatoDaTemporada.js`.
+ *
+ * O que segue e a HISTORIA da entrada na HUD, preservada porque o argumento
+ * dela e o que levou a Temporada para o cluster: o botão "Recompensas" do
+ * CLUSTER de essenciais (TopMenuIdle) chamava PasseIdle.toggle(). Ele morou
+ * no leque até 06/09/2026, quando o dono o trocou de casa com o "Missões"
+ * (D-944): o único produto pago do menu deixou de depender de o jogador
+ * abrir a gaveta.
  *
  * **O NOME DE TELA E "Recompensas" e o do CODIGO e "Passe", de propósito.**
  * O dono renomeou o botão em 29/08/2026 e o "Recompensas" que existia em breve
@@ -220,35 +238,13 @@ PasseIdle.toggle = function toggle() {
 	}
 };
 
-/**
- * Abre a janela JÁ na aba pedida — usado pelo card VIP da janela da Temporada
- * (Season 1, "Luz & Trevas"): a compra do VIP continua sendo esta janela
- * (0x0fe7 com `{tipo:'vip'}`), a Temporada só abre a porta na aba certa em vez
- * de reimplementar a vitrine do VIP uma segunda vez.
- *
- * NÃO manda pacote quando já está aberta na aba certa: só troca de aba manda
- * `toggle()`, que pediria o estado de novo à toa.
+/*
+ * `abrirNaAba(aba)` morou aqui de 21/09/2026 (manha) a 21/09/2026 (noite): a
+ * Temporada a chamava para abrir ESTA janela na aba VIP em vez de repetir a
+ * vitrine. Quando a compra do VIP passou a morar na propria Temporada, a
+ * porta ficou sem chamador e saiu — porta sem chamador e a forma de codigo
+ * morto que este projeto mais catalogou (ver `modulo-puro-sem-chamador`).
  */
-PasseIdle.abrirNaAba = function abrirNaAba(aba) {
-	if (ABAS.indexOf(aba) === -1) {
-		return;
-	}
-	const root = _root();
-	const win = root && root.querySelector('.pi-window');
-	if (!win) {
-		return;
-	}
-	if (PasseIdle.activeTab !== aba) {
-		PasseIdle.activeTab = aba;
-		lembrarAba(_preferences, aba);
-		render();
-	}
-	if (win.classList.contains('is-open')) {
-		PasseIdle.focus();
-	} else {
-		PasseIdle.toggle();
-	}
-};
 
 function closeWindow() {
 	const root = _root();

@@ -11,10 +11,14 @@
 			<button type="button" class="te-close ri-close" title="Fechar">&times;</button>
 		</div>
 
+		<!-- As QUATRO abas (21/09/2026): a progressao do passe mora nos Destaques
+		     (pedido do dono), e "Semanal" + "VIP" sao o conteudo da antiga janela
+		     de Recompensas, que ficou sem botao no menu. Ver o cabecalho de
+		     TemporadaIdle.js. -->
 		<div class="te-tabs">
 			<button type="button" class="te-tab ri-tab is-active" data-tab="destaques">Destaques</button>
 			<button type="button" class="te-tab ri-tab" data-tab="caixas">Caixas</button>
-			<button type="button" class="te-tab ri-tab" data-tab="passe">Passe</button>
+			<button type="button" class="te-tab ri-tab" data-tab="semanal">Passe Semanal</button>
 			<button type="button" class="te-tab ri-tab" data-tab="vip">VIP</button>
 		</div>
 
@@ -37,7 +41,7 @@
 		</div>
 	</div>
 
-	<!-- Confirmação antes de gastar RO Cash (comprar caixa / Premium). -->
+	<!-- Confirmação antes de gastar cash (caixa, Premium, Passe Semanal, VIP). -->
 	<div class="te-modal te-modal--confirmar" hidden>
 		<div class="te-modal-fundo"></div>
 		<div class="te-modal-caixa ri-window te-modal-caixa--estreita">

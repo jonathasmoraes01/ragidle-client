@@ -179,7 +179,7 @@ describe('PORTÃO: toda janela RAGIDLE com abas lembra a aba', () => {
 		f => f.codigo.includes('limpezaDeJanelaIdle.js') && MARCAS_DE_ABA.some(marca => f.codigo.includes(marca))
 	);
 
-	it('acha as onze janelas de hoje (controle: o filtro não está vazio)', () => {
+	it('acha as doze janelas de hoje (controle: o filtro não está vazio)', () => {
 		/*
 		 * Sem esta conferência, um filtro que parasse de casar deixaria o portão
 		 * VERDE por não medir nada — a forma mais comum de portão morto.
@@ -203,6 +203,13 @@ describe('PORTÃO: toda janela RAGIDLE com abas lembra a aba', () => {
 		 * "Status" (os sete eixos) numa, e a aba "Missões do Códex" com a
 		 * Jornada de Midgard na outra. O merge de 16/09/2026 juntou as duas
 		 * — a janela tem hoje três abas, mas conta UMA vez só nesta lista.
+		 *
+		 * A DÉCIMA SEGUNDA é a Temporada (Season 1, 21/09/2026): Destaques ·
+		 * Caixas · Passe Semanal · VIP. O PasseIdle (Recompensas) CONTINUA na
+		 * lista mesmo sem botão no menu: o módulo vive como dono do pacote
+		 * 0x0fe5, ainda tem as duas abas no HTML e ainda lembra a aba — tirá-lo
+		 * daqui exigiria tirar o markup, que a prova que abre a janela por
+		 * comando ainda usa.
 		 */
 		expect(comAbas.map(f => f.rel).sort(), 'a lista de janelas com abas mudou — ver o comentário acima').toEqual([
 			'CodexIdle/CodexIdle.js',
@@ -215,6 +222,7 @@ describe('PORTÃO: toda janela RAGIDLE com abas lembra a aba', () => {
 			'MissoesIdle/MissoesIdle.js',
 			'MochilaIdle/MochilaIdle.js',
 			'PasseIdle/PasseIdle.js',
+			'TemporadaIdle/TemporadaIdle.js',
 			'VotoIdle/VotoIdle.js',
 		]);
 	});

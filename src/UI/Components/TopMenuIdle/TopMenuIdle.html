@@ -89,10 +89,31 @@
 		     em cima do painel do personagem. Aqui ele passa.
 
 		     QUEM REORDENAR ESTE CLUSTER RE-MEDE. A regra em uma linha: o
-		     rotulo mais longo mora na mesma coluna do segundo mais longo. -->
-		<button type="button" class="tm-item tm-item--destaque" data-action="passe" title="Recompensas">
+		     rotulo mais longo mora na mesma coluna do segundo mais longo.
+
+		     ─── ESTE BOTAO VIROU "TEMPORADA" EM 21/09/2026 ─────────────────
+		     Ordem do dono: "a janela de recompensas nao compensa mais a gente
+		     ter ela; vai colocar ela ali na aba da temporada". O Passe Semanal
+		     e o VIP moram na janela da Temporada (abas proprias), e a janela
+		     PasseIdle ficou sem porta — o modulo continua vivo como dono do
+		     pacote 0x0fe5 (ver o cabecalho dele).
+
+		     A Temporada TOMOU O LUGAR em vez de o buraco ficar: o argumento
+		     de 06/09 acima (o unico produto PAGO do menu nao pode morar numa
+		     gaveta que vive fechada) vale igual para ela — e mais, porque
+		     agora ela e onde TUDO que e pago mora (caixas, passe, VIP). Ela
+		     saiu do leque, que fica com 10 itens. A posicao na grade e a
+		     MESMA, e a medicao de largura acima continua valendo por
+		     construcao: "Temporada" e mais CURTO que "Recompensas", entao a
+		     coluna so pode encolher.
+
+		     O ICONE e o bau ilustrado (`recompensas`, arte do dono) e nao o
+		     eclipse Lucide do item do leque: os vizinhos do cluster sao todos
+		     arte ilustrada, e um traco fino de 2px dentro do disco dourado
+		     de destaque some. O bau tambem e o que a janela vende. -->
+		<button type="button" class="tm-item tm-item--destaque" data-action="temporada" title="Temporada: caixas, passe e VIP">
 			<span class="tm-icon-wrap ri-disc"><!--RI_ICONE:recompensas--></span>
-			<span class="tm-label">Recompensas</span>
+			<span class="tm-label">Temporada</span>
 		</button>
 
 		<!-- Correio: a caixa do SISTEMA (rag-idle-master/servidor/caixa.ts,
@@ -398,22 +419,13 @@
 				     fica inteiro e sozinho no fim: Loja, Troca, Leilao, Eventos.
 				     (Missões nao mora mais aqui: voltou a ser aba dentro do
 				     "Codex & Missões" no revert-do-revert de 16/09/2026.) -->
-				<!-- TEMPORADA (Season 1, "Luz & Trevas: Herdeiros de Midgard",
-				     21/09/2026). Fica no bloco FUNCIONAL, colada no RO Shop: as duas
-				     sao loja, e a ordem canonica do cabecalho deste arquivo manda
-				     funcional antes de "em breve", nunca misturado.
-
-				     Ela PEDE o estado ao abrir ({acao:"pedir"} em 0x0fba): preco,
-				     pity, chance e o que cada nivel do passe entrega sao do servidor
-				     (ZC_RAGIDLE_TEMPORADA 0x0fbb). A janela so desenha.
-
-				     ATENCAO: o item vive em TRES lugares - este botao, o switch de
-				     ABRIR e o isActionOpen() do TopMenuIdle.js. Ja houve tres casos
-				     de so um dos dois switches ser editado (missoes, lfg, passe). -->
-				<button type="button" class="tm-item" data-action="temporada" title="Temporada: caixas, passe de batalha e VIP">
-					<span class="tm-icon-wrap ri-disc"><!--RI_ICONE:temporada--></span>
-					<span class="tm-label">Temporada</span>
-				</button>
+				<!-- A TEMPORADA (Season 1, "Luz & Trevas") morou AQUI, colada no RO
+				     Shop, por um dia (21/09/2026). Ela SUBIU para o cluster no
+				     lugar do "Recompensas" — o argumento de D-944 (produto pago
+				     nao mora em gaveta fechada) vale para ela, e a janela de
+				     Recompensas foi absorvida por ela. Ver o bloco do botao
+				     `data-action="temporada"` no cluster, acima. O leque fica com
+				     10 itens. -->
 
 				<button type="button" class="tm-item" data-action="roshop" title="RO Shop">
 					<span class="tm-icon-wrap ri-disc"><!--RI_ICONE:roshop--></span>

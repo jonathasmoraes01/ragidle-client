@@ -201,8 +201,10 @@ import MochilaIdle from 'UI/Components/MochilaIdle/MochilaIdle.js';
 import HuntMap from 'UI/Components/HuntMap/HuntMap.js';
 import CorreioIdle from 'UI/Components/CorreioIdle/CorreioIdle.js';
 import HuntAnalyzer from 'UI/Components/HuntAnalyzer/HuntAnalyzer.js';
-import PasseIdle from 'UI/Components/PasseIdle/PasseIdle.js';
-import TemporadaIdle from 'UI/Components/TemporadaIdle/TemporadaIdle.js'; // RAGIDLE: a janela da Temporada (Season 1, 21/09/2026)
+/* PasseIdle NAO e mais importado aqui (21/09/2026): a janela de Recompensas
+   ficou sem botao — o conteudo dela mora na Temporada. O modulo segue vivo
+   pelo MapEngine, como dono do pacote 0x0fe5. */
+import TemporadaIdle from 'UI/Components/TemporadaIdle/TemporadaIdle.js'; // RAGIDLE: a janela da Temporada (Season 1, 21/09/2026) — no cluster desde a noite do mesmo dia
 import VotoIdle from 'UI/Components/VotoIdle/VotoIdle.js'; // RAGIDLE: janela de Voto (D-1159)
 import CombatCornerIdle from 'UI/Components/CombatCornerIdle/CombatCornerIdle.js'; // RAGIDLE: o aro "Ataque auto" (16/09/2026 — some enquanto o leque esta aberto)
 import CodexIdle from 'UI/Components/CodexIdle/CodexIdle.js'; // RAGIDLE: Codex (D-851)
@@ -659,23 +661,22 @@ function onClickAction(e) {
 			/* D-1164: IndicacaoIdle.toggle() tambem PEDE o painel ao abrir (0x0fdd) */
 			IndicacaoIdle.toggle();
 			break;
-		/* O Passe saiu de "em breve" em D-813. Ele PEDE o estado ao abrir
-		   (0x0fe5): preco, vencimento e o que cada dia entrega sao do
-		   servidor — a janela so desenha.
-		   O opcode aqui dizia 0x0fe4, que e o CZ do CODEX (D-851) — o
-		   comentario apontava o pacote da janela vizinha. O trio do Passe
-		   e 0x0fe5/0x0fe6/0x0fe7 (PacketStructure.js). */
-		case 'passe':
-			PasseIdle.toggle();
-			break;
-		/* A TEMPORADA (Season 1, "Luz & Trevas", 21/09/2026). Ela PEDE o estado
-		   ao abrir ({acao:'pedir'} em 0x0fba): preco, pity, chance e o premio de
-		   uma abertura sao do servidor - a janela nunca calcula saldo, nunca
-		   recalcula chance e nunca manda premio. So desenha o que chegou em
-		   0x0fbb.
+		/* O `case 'passe'` (a janela de Recompensas, D-813) morou aqui de
+		   29/08 a 21/09/2026. Saiu por ordem do dono: o Passe Semanal e o VIP
+		   viraram abas da Temporada, e o botao do cluster virou "Temporada".
+		   O modulo PasseIdle continua importado pelo MapEngine (e o dono do
+		   pacote 0x0fe5) — so a PORTA daqui saiu, nos DOIS switches.
+
+		   A TEMPORADA (Season 1, "Luz & Trevas", 21/09/2026). Ela PEDE os dois
+		   estados ao abrir: o dela ({acao:'pedir'} em 0x0fba — preco, pity,
+		   chance e o premio de uma abertura, respondido em 0x0fbb) e o do
+		   Passe (0x0fe6, respondido em 0x0fe5 ao PasseIdle, que a avisa por
+		   `aoReceberEstado`). A janela nunca calcula saldo, nunca recalcula
+		   chance e nunca manda premio. So desenha o que chegou.
 		   ATENCAO: existe um SEGUNDO switch neste arquivo, o isActionOpen() la
 		   embaixo. Este aqui ABRE; o de la acende o aro. Este item entrou nos
-		   DOIS no mesmo commit, que e o que o comentario do `passe` manda. */
+		   DOIS no mesmo commit, que e o que o comentario do `passe` (hoje no
+		   isActionOpen) manda. */
 		case 'temporada':
 			TemporadaIdle.toggle();
 			break;
@@ -1755,9 +1756,12 @@ function isActionOpen(action) {
 		 * forma errada. Quem for consertar isso de vez faz UMA tabela de
 		 * acao -> { abrir, seletor } e deriva os dois dela; enquanto ela nao
 		 * existe, item novo entra nos DOIS lugares.
+		 *
+		 * O `case 'passe'` que vivia aqui SAIU em 21/09/2026, junto com o do
+		 * switch de ABRIR (a janela de Recompensas ficou sem botao; ver o
+		 * bloco `temporada` de la). A licao acima fica: item que sai tambem
+		 * sai dos DOIS.
 		 */
-		case 'passe':
-			return isRagIdleWindowOpen(PasseIdle, '.pi-window');
 		/* TEMPORADA (Season 1, 21/09/2026): janela RAGIDLE, entao le
 		   '.te-window.is-open' - e nao isHostVisible, que e a armadilha que o
 		   comentario de `lfg` acima registra (o `_host` de um GUIComponent nunca
