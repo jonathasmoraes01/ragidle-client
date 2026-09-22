@@ -36,3 +36,9 @@ Config.local.js
 !.vscode/*.code-snippets
 .vercel
 .env*
+
+# Worktrees de agente (D-266): pastas locais, nunca versionadas.
+# Entraram por engano num `git add -A` em 21/09/2026 e sairam no commit
+# seguinte — o `git add` de uma pasta com `.git` dentro cria um gitlink
+# que quebra o clone de quem puxar.
+.wt-*/
