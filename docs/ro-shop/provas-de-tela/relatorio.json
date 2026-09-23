@@ -1,5 +1,5 @@
 {
-  "quando": "2026-09-22T23:01:58.719Z",
+  "quando": "2026-09-23T01:40:56.399Z",
   "erros": [],
   "relatorio": [
     {
@@ -12,7 +12,7 @@
         "w": 360,
         "h": 660
       },
-      "menorFonte": 9,
+      "menorFonte": 10,
       "imagens": 31,
       "defeitos": []
     },
@@ -26,7 +26,7 @@
         "w": 360,
         "h": 660
       },
-      "menorFonte": 9,
+      "menorFonte": 10,
       "imagens": 31,
       "defeitos": []
     },
@@ -40,8 +40,8 @@
         "w": 360,
         "h": 660
       },
-      "menorFonte": 9,
-      "imagens": 40,
+      "menorFonte": 10,
+      "imagens": 39,
       "defeitos": []
     },
     {
@@ -54,7 +54,7 @@
         "w": 360,
         "h": 660
       },
-      "menorFonte": 9,
+      "menorFonte": 10,
       "imagens": 40,
       "defeitos": []
     },
@@ -68,8 +68,22 @@
         "w": 360,
         "h": 660
       },
-      "menorFonte": 9,
-      "imagens": 41,
+      "menorFonte": 10,
+      "imagens": 40,
+      "defeitos": []
+    },
+    {
+      "largura": 360,
+      "altura": 740,
+      "foto": "0360-02b-aviso-depois-de-adicionar.png",
+      "janela": {
+        "x": 0,
+        "y": 8,
+        "w": 360,
+        "h": 660
+      },
+      "menorFonte": 10,
+      "imagens": 37,
       "defeitos": []
     },
     {
@@ -96,7 +110,7 @@
         "w": 390,
         "h": 764
       },
-      "menorFonte": 9,
+      "menorFonte": 10,
       "imagens": 31,
       "defeitos": []
     },
@@ -110,7 +124,7 @@
         "w": 390,
         "h": 764
       },
-      "menorFonte": 9,
+      "menorFonte": 10,
       "imagens": 31,
       "defeitos": []
     },
@@ -124,8 +138,8 @@
         "w": 390,
         "h": 764
       },
-      "menorFonte": 9,
-      "imagens": 40,
+      "menorFonte": 10,
+      "imagens": 39,
       "defeitos": []
     },
     {
@@ -138,7 +152,7 @@
         "w": 390,
         "h": 764
       },
-      "menorFonte": 9,
+      "menorFonte": 10,
       "imagens": 40,
       "defeitos": []
     },
@@ -152,8 +166,8 @@
         "w": 390,
         "h": 764
       },
-      "menorFonte": 9,
-      "imagens": 41,
+      "menorFonte": 10,
+      "imagens": 40,
       "defeitos": []
     },
     {
@@ -166,8 +180,8 @@
         "w": 390,
         "h": 764
       },
-      "menorFonte": 9,
-      "imagens": 41,
+      "menorFonte": 10,
+      "imagens": 40,
       "defeitos": []
     },
     {
@@ -180,7 +194,7 @@
         "w": 390,
         "h": 764
       },
-      "menorFonte": 9,
+      "menorFonte": 10,
       "imagens": 32,
       "defeitos": []
     },
@@ -194,7 +208,7 @@
         "w": 390,
         "h": 764
       },
-      "menorFonte": 9,
+      "menorFonte": 10,
       "imagens": 25,
       "defeitos": []
     },
@@ -208,8 +222,8 @@
         "w": 390,
         "h": 764
       },
-      "menorFonte": 9,
-      "imagens": 29,
+      "menorFonte": 10,
+      "imagens": 28,
       "defeitos": []
     },
     {
@@ -222,7 +236,7 @@
         "w": 390,
         "h": 764
       },
-      "menorFonte": 9,
+      "menorFonte": 10,
       "imagens": 12,
       "defeitos": []
     },
@@ -236,7 +250,7 @@
         "w": 390,
         "h": 764
       },
-      "menorFonte": 9,
+      "menorFonte": 10,
       "imagens": 35,
       "defeitos": []
     },
@@ -250,8 +264,8 @@
         "w": 390,
         "h": 764
       },
-      "menorFonte": 9,
-      "imagens": 38,
+      "menorFonte": 10,
+      "imagens": 37,
       "defeitos": []
     },
     {
@@ -264,8 +278,8 @@
         "w": 390,
         "h": 764
       },
-      "menorFonte": 9,
-      "imagens": 40,
+      "menorFonte": 10,
+      "imagens": 39,
       "defeitos": []
     },
     {
@@ -278,7 +292,7 @@
         "w": 390,
         "h": 764
       },
-      "menorFonte": 9,
+      "menorFonte": 10,
       "imagens": 11,
       "defeitos": []
     },
@@ -292,7 +306,7 @@
         "w": 390,
         "h": 764
       },
-      "menorFonte": 9,
+      "menorFonte": 10,
       "imagens": 11,
       "defeitos": []
     },
@@ -306,7 +320,7 @@
         "w": 390,
         "h": 764
       },
-      "menorFonte": 9,
+      "menorFonte": 10,
       "imagens": 17,
       "defeitos": []
     },
@@ -320,7 +334,7 @@
         "w": 390,
         "h": 764
       },
-      "menorFonte": 9,
+      "menorFonte": 10,
       "imagens": 17,
       "defeitos": []
     },
@@ -334,7 +348,7 @@
         "w": 390,
         "h": 764
       },
-      "menorFonte": 9,
+      "menorFonte": 10,
       "imagens": 25,
       "defeitos": []
     },
@@ -348,7 +362,7 @@
         "w": 390,
         "h": 764
       },
-      "menorFonte": 9,
+      "menorFonte": 10,
       "imagens": 25,
       "defeitos": []
     },
@@ -362,7 +376,7 @@
         "w": 390,
         "h": 764
       },
-      "menorFonte": 9,
+      "menorFonte": 10,
       "imagens": 25,
       "defeitos": []
     },
@@ -376,7 +390,7 @@
         "w": 390,
         "h": 764
       },
-      "menorFonte": 9,
+      "menorFonte": 10,
       "imagens": 25,
       "defeitos": []
     },
@@ -390,7 +404,7 @@
         "w": 390,
         "h": 764
       },
-      "menorFonte": 9,
+      "menorFonte": 10,
       "imagens": 25,
       "defeitos": []
     },
@@ -404,7 +418,7 @@
         "w": 390,
         "h": 764
       },
-      "menorFonte": 9,
+      "menorFonte": 10,
       "imagens": 25,
       "defeitos": []
     },
@@ -418,7 +432,7 @@
         "w": 390,
         "h": 764
       },
-      "menorFonte": 9,
+      "menorFonte": 10,
       "imagens": 25,
       "defeitos": []
     },
@@ -432,7 +446,7 @@
         "w": 390,
         "h": 764
       },
-      "menorFonte": 9,
+      "menorFonte": 10,
       "imagens": 25,
       "defeitos": []
     },
@@ -446,7 +460,7 @@
         "w": 390,
         "h": 764
       },
-      "menorFonte": 9,
+      "menorFonte": 10,
       "imagens": 25,
       "defeitos": []
     },
@@ -460,7 +474,7 @@
         "w": 390,
         "h": 764
       },
-      "menorFonte": 9,
+      "menorFonte": 10,
       "imagens": 25,
       "defeitos": []
     },
@@ -474,7 +488,7 @@
         "w": 390,
         "h": 764
       },
-      "menorFonte": 9,
+      "menorFonte": 10,
       "imagens": 25,
       "defeitos": []
     },
@@ -488,8 +502,50 @@
         "w": 390,
         "h": 764
       },
-      "menorFonte": 9,
+      "menorFonte": 10,
       "imagens": 25,
+      "defeitos": []
+    },
+    {
+      "largura": 390,
+      "altura": 844,
+      "foto": "0390-26-no-limite.png",
+      "janela": {
+        "x": 0,
+        "y": 8,
+        "w": 390,
+        "h": 764
+      },
+      "menorFonte": 10,
+      "imagens": 31,
+      "defeitos": []
+    },
+    {
+      "largura": 390,
+      "altura": 844,
+      "foto": "0390-27-pressionado.png",
+      "janela": {
+        "x": 0,
+        "y": 8,
+        "w": 390,
+        "h": 764
+      },
+      "menorFonte": 10,
+      "imagens": 31,
+      "defeitos": []
+    },
+    {
+      "largura": 390,
+      "altura": 844,
+      "foto": "0390-02b-aviso-depois-de-adicionar.png",
+      "janela": {
+        "x": 0,
+        "y": 8,
+        "w": 390,
+        "h": 764
+      },
+      "menorFonte": 10,
+      "imagens": 37,
       "defeitos": []
     },
     {
@@ -517,7 +573,7 @@
         "w": 430,
         "h": 852
       },
-      "menorFonte": 9,
+      "menorFonte": 10,
       "imagens": 31,
       "defeitos": []
     },
@@ -531,7 +587,7 @@
         "w": 430,
         "h": 852
       },
-      "menorFonte": 9,
+      "menorFonte": 10,
       "imagens": 31,
       "defeitos": []
     },
@@ -545,8 +601,8 @@
         "w": 430,
         "h": 852
       },
-      "menorFonte": 9,
-      "imagens": 40,
+      "menorFonte": 10,
+      "imagens": 39,
       "defeitos": []
     },
     {
@@ -559,7 +615,7 @@
         "w": 430,
         "h": 852
       },
-      "menorFonte": 9,
+      "menorFonte": 10,
       "imagens": 40,
       "defeitos": []
     },
@@ -573,16 +629,30 @@
         "w": 430,
         "h": 852
       },
-      "menorFonte": 9,
-      "imagens": 41,
+      "menorFonte": 10,
+      "imagens": 40,
+      "defeitos": []
+    },
+    {
+      "largura": 430,
+      "altura": 932,
+      "foto": "0430-02b-aviso-depois-de-adicionar.png",
+      "janela": {
+        "x": 0,
+        "y": 8,
+        "w": 430,
+        "h": 852
+      },
+      "menorFonte": 10,
+      "imagens": 37,
       "defeitos": []
     },
     {
       "largura": 430,
       "falhasDeRede": [
+        "404 /ragidle/item/9000105.png",
         "404 /ragidle/item/9000109.png",
         "404 /ragidle/item/9000103.png",
-        "404 /ragidle/item/9000105.png",
         "404 /ragidle/item/9000104.png",
         "404 /ragidle/item/9000108.png",
         "404 /ragidle/item/9000106.png",
@@ -601,7 +671,7 @@
         "w": 752,
         "h": 700
       },
-      "menorFonte": 9,
+      "menorFonte": 10,
       "imagens": 37,
       "defeitos": []
     },
@@ -615,7 +685,7 @@
         "w": 752,
         "h": 700
       },
-      "menorFonte": 9,
+      "menorFonte": 10,
       "imagens": 37,
       "defeitos": []
     },
@@ -629,7 +699,7 @@
         "w": 752,
         "h": 700
       },
-      "menorFonte": 9,
+      "menorFonte": 10,
       "imagens": 46,
       "defeitos": []
     },
@@ -643,8 +713,22 @@
         "w": 752,
         "h": 700
       },
-      "menorFonte": 9,
+      "menorFonte": 10,
       "imagens": 38,
+      "defeitos": []
+    },
+    {
+      "largura": 768,
+      "altura": 1024,
+      "foto": "0768-02b-aviso-depois-de-adicionar.png",
+      "janela": {
+        "x": 8,
+        "y": 162,
+        "w": 752,
+        "h": 700
+      },
+      "menorFonte": 10,
+      "imagens": 35,
       "defeitos": []
     },
     {
@@ -671,7 +755,7 @@
         "w": 1008,
         "h": 700
       },
-      "menorFonte": 9,
+      "menorFonte": 10,
       "imagens": 37,
       "defeitos": []
     },
@@ -685,7 +769,7 @@
         "w": 1008,
         "h": 700
       },
-      "menorFonte": 9,
+      "menorFonte": 10,
       "imagens": 37,
       "defeitos": []
     },
@@ -699,7 +783,7 @@
         "w": 1008,
         "h": 700
       },
-      "menorFonte": 9,
+      "menorFonte": 10,
       "imagens": 46,
       "defeitos": []
     },
@@ -713,22 +797,36 @@
         "w": 1008,
         "h": 700
       },
-      "menorFonte": 9,
+      "menorFonte": 10,
       "imagens": 38,
+      "defeitos": []
+    },
+    {
+      "largura": 1024,
+      "altura": 768,
+      "foto": "1024-02b-aviso-depois-de-adicionar.png",
+      "janela": {
+        "x": 8,
+        "y": 34,
+        "w": 1008,
+        "h": 700
+      },
+      "menorFonte": 10,
+      "imagens": 35,
       "defeitos": []
     },
     {
       "largura": 1024,
       "falhasDeRede": [
         "404 /ragidle/item/9000105.png",
-        "404 /ragidle/item/9000109.png",
         "404 /ragidle/item/9000103.png",
+        "404 /ragidle/item/9000109.png",
         "404 /ragidle/item/9000104.png",
-        "404 /ragidle/item/9000106.png",
         "404 /ragidle/item/9000108.png",
+        "404 /ragidle/item/9000106.png",
         "404 /ragidle/item/9000100.png",
-        "404 /ragidle/item/9000101.png",
-        "404 /ragidle/item/9000102.png"
+        "404 /ragidle/item/9000102.png",
+        "404 /ragidle/item/9000101.png"
       ]
     },
     {
@@ -736,12 +834,12 @@
       "altura": 900,
       "foto": "1440-01-destaques-com-carrinho.png",
       "janela": {
-        "x": 200,
-        "y": 100,
-        "w": 1040,
-        "h": 700
+        "x": 120,
+        "y": 50,
+        "w": 1200,
+        "h": 800
       },
-      "menorFonte": 9,
+      "menorFonte": 11,
       "imagens": 37,
       "defeitos": []
     },
@@ -750,12 +848,12 @@
       "altura": 900,
       "foto": "1440-01b-rodape-paginacao-e-temporada.png",
       "janela": {
-        "x": 200,
-        "y": 100,
-        "w": 1040,
-        "h": 700
+        "x": 120,
+        "y": 50,
+        "w": 1200,
+        "h": 800
       },
-      "menorFonte": 9,
+      "menorFonte": 11,
       "imagens": 37,
       "defeitos": []
     },
@@ -764,12 +862,12 @@
       "altura": 900,
       "foto": "1440-03-detalhes.png",
       "janela": {
-        "x": 200,
-        "y": 100,
-        "w": 1040,
-        "h": 700
+        "x": 120,
+        "y": 50,
+        "w": 1200,
+        "h": 800
       },
-      "menorFonte": 9,
+      "menorFonte": 11,
       "imagens": 46,
       "defeitos": []
     },
@@ -778,12 +876,12 @@
       "altura": 900,
       "foto": "1440-04-confirmar-compra.png",
       "janela": {
-        "x": 200,
-        "y": 100,
-        "w": 1040,
-        "h": 700
+        "x": 120,
+        "y": 50,
+        "w": 1200,
+        "h": 800
       },
-      "menorFonte": 9,
+      "menorFonte": 11,
       "imagens": 38,
       "defeitos": []
     },
@@ -792,12 +890,12 @@
       "altura": 900,
       "foto": "1440-05-processando.png",
       "janela": {
-        "x": 200,
-        "y": 100,
-        "w": 1040,
-        "h": 700
+        "x": 120,
+        "y": 50,
+        "w": 1200,
+        "h": 800
       },
-      "menorFonte": 9,
+      "menorFonte": 11,
       "imagens": 38,
       "defeitos": []
     },
@@ -806,12 +904,12 @@
       "altura": 900,
       "foto": "1440-06-sucesso.png",
       "janela": {
-        "x": 200,
-        "y": 100,
-        "w": 1040,
-        "h": 700
+        "x": 120,
+        "y": 50,
+        "w": 1200,
+        "h": 800
       },
-      "menorFonte": 9,
+      "menorFonte": 11,
       "imagens": 33,
       "defeitos": []
     },
@@ -820,12 +918,12 @@
       "altura": 900,
       "foto": "1440-07-conta-travados-e-carrinho-vazio.png",
       "janela": {
-        "x": 200,
-        "y": 100,
-        "w": 1040,
-        "h": 700
+        "x": 120,
+        "y": 50,
+        "w": 1200,
+        "h": 800
       },
-      "menorFonte": 9,
+      "menorFonte": 11,
       "imagens": 26,
       "defeitos": []
     },
@@ -834,12 +932,12 @@
       "altura": 900,
       "foto": "1440-09-busca-sem-resultado.png",
       "janela": {
-        "x": 200,
-        "y": 100,
-        "w": 1040,
-        "h": 700
+        "x": 120,
+        "y": 50,
+        "w": 1200,
+        "h": 800
       },
-      "menorFonte": 9,
+      "menorFonte": 11,
       "imagens": 13,
       "defeitos": []
     },
@@ -848,12 +946,12 @@
       "altura": 900,
       "foto": "1440-10-busca-com-paginacao.png",
       "janela": {
-        "x": 200,
-        "y": 100,
-        "w": 1040,
-        "h": 700
+        "x": 120,
+        "y": 50,
+        "w": 1200,
+        "h": 800
       },
-      "menorFonte": 9,
+      "menorFonte": 11,
       "imagens": 36,
       "defeitos": []
     },
@@ -862,12 +960,12 @@
       "altura": 900,
       "foto": "1440-11-saldo-insuficiente.png",
       "janela": {
-        "x": 200,
-        "y": 100,
-        "w": 1040,
-        "h": 700
+        "x": 120,
+        "y": 50,
+        "w": 1200,
+        "h": 800
       },
-      "menorFonte": 9,
+      "menorFonte": 11,
       "imagens": 35,
       "defeitos": []
     },
@@ -876,12 +974,12 @@
       "altura": 900,
       "foto": "1440-12-recusa-do-servidor.png",
       "janela": {
-        "x": 200,
-        "y": 100,
-        "w": 1040,
-        "h": 700
+        "x": 120,
+        "y": 50,
+        "w": 1200,
+        "h": 800
       },
-      "menorFonte": 9,
+      "menorFonte": 11,
       "imagens": 37,
       "defeitos": []
     },
@@ -890,12 +988,12 @@
       "altura": 900,
       "foto": "1440-13-carregando.png",
       "janela": {
-        "x": 200,
-        "y": 100,
-        "w": 1040,
-        "h": 700
+        "x": 120,
+        "y": 50,
+        "w": 1200,
+        "h": 800
       },
-      "menorFonte": 9,
+      "menorFonte": 11,
       "imagens": 12,
       "defeitos": []
     },
@@ -904,12 +1002,12 @@
       "altura": 900,
       "foto": "1440-14-erro-de-carga.png",
       "janela": {
-        "x": 200,
-        "y": 100,
-        "w": 1040,
-        "h": 700
+        "x": 120,
+        "y": 50,
+        "w": 1200,
+        "h": 800
       },
-      "menorFonte": 9,
+      "menorFonte": 11,
       "imagens": 12,
       "defeitos": []
     },
@@ -918,12 +1016,12 @@
       "altura": 900,
       "foto": "1440-16-utilidades-seus-servicos.png",
       "janela": {
-        "x": 200,
-        "y": 100,
-        "w": 1040,
-        "h": 700
+        "x": 120,
+        "y": 50,
+        "w": 1200,
+        "h": 800
       },
-      "menorFonte": 9,
+      "menorFonte": 11,
       "imagens": 18,
       "defeitos": []
     },
@@ -932,12 +1030,12 @@
       "altura": 900,
       "foto": "1440-17-usar-servico.png",
       "janela": {
-        "x": 200,
-        "y": 100,
-        "w": 1040,
-        "h": 700
+        "x": 120,
+        "y": 50,
+        "w": 1200,
+        "h": 800
       },
-      "menorFonte": 9,
+      "menorFonte": 11,
       "imagens": 18,
       "defeitos": []
     },
@@ -946,12 +1044,12 @@
       "altura": 900,
       "foto": "1440-18-conta-contadores-e-seus-servicos.png",
       "janela": {
-        "x": 200,
-        "y": 100,
-        "w": 1040,
-        "h": 700
+        "x": 120,
+        "y": 50,
+        "w": 1200,
+        "h": 800
       },
-      "menorFonte": 9,
+      "menorFonte": 11,
       "imagens": 26,
       "defeitos": []
     },
@@ -960,12 +1058,12 @@
       "altura": 900,
       "foto": "1440-18b-conta-fim-da-grade.png",
       "janela": {
-        "x": 200,
-        "y": 100,
-        "w": 1040,
-        "h": 700
+        "x": 120,
+        "y": 50,
+        "w": 1200,
+        "h": 800
       },
-      "menorFonte": 9,
+      "menorFonte": 11,
       "imagens": 26,
       "defeitos": []
     },
@@ -974,12 +1072,12 @@
       "altura": 900,
       "foto": "1440-19-troca-de-nome-vazio.png",
       "janela": {
-        "x": 200,
-        "y": 100,
-        "w": 1040,
-        "h": 700
+        "x": 120,
+        "y": 50,
+        "w": 1200,
+        "h": 800
       },
-      "menorFonte": 9,
+      "menorFonte": 11,
       "imagens": 26,
       "defeitos": []
     },
@@ -988,12 +1086,12 @@
       "altura": 900,
       "foto": "1440-19b-troca-de-nome-preenchido.png",
       "janela": {
-        "x": 200,
-        "y": 100,
-        "w": 1040,
-        "h": 700
+        "x": 120,
+        "y": 50,
+        "w": 1200,
+        "h": 800
       },
-      "menorFonte": 9,
+      "menorFonte": 11,
       "imagens": 26,
       "defeitos": []
     },
@@ -1002,12 +1100,12 @@
       "altura": 900,
       "foto": "1440-20-troca-de-nome-processando.png",
       "janela": {
-        "x": 200,
-        "y": 100,
-        "w": 1040,
-        "h": 700
+        "x": 120,
+        "y": 50,
+        "w": 1200,
+        "h": 800
       },
-      "menorFonte": 9,
+      "menorFonte": 11,
       "imagens": 26,
       "defeitos": []
     },
@@ -1016,12 +1114,12 @@
       "altura": 900,
       "foto": "1440-21-troca-de-nome-recusa.png",
       "janela": {
-        "x": 200,
-        "y": 100,
-        "w": 1040,
-        "h": 700
+        "x": 120,
+        "y": 50,
+        "w": 1200,
+        "h": 800
       },
-      "menorFonte": 9,
+      "menorFonte": 11,
       "imagens": 26,
       "defeitos": []
     },
@@ -1030,12 +1128,12 @@
       "altura": 900,
       "foto": "1440-21b-troca-de-nome-corrigir.png",
       "janela": {
-        "x": 200,
-        "y": 100,
-        "w": 1040,
-        "h": 700
+        "x": 120,
+        "y": 50,
+        "w": 1200,
+        "h": 800
       },
-      "menorFonte": 9,
+      "menorFonte": 11,
       "imagens": 26,
       "defeitos": []
     },
@@ -1044,12 +1142,12 @@
       "altura": 900,
       "foto": "1440-22-troca-de-nome-sucesso-relog.png",
       "janela": {
-        "x": 200,
-        "y": 100,
-        "w": 1040,
-        "h": 700
+        "x": 120,
+        "y": 50,
+        "w": 1200,
+        "h": 800
       },
-      "menorFonte": 9,
+      "menorFonte": 11,
       "imagens": 26,
       "defeitos": []
     },
@@ -1058,12 +1156,12 @@
       "altura": 900,
       "foto": "1440-23-aparencia-vazio.png",
       "janela": {
-        "x": 200,
-        "y": 100,
-        "w": 1040,
-        "h": 700
+        "x": 120,
+        "y": 50,
+        "w": 1200,
+        "h": 800
       },
-      "menorFonte": 9,
+      "menorFonte": 11,
       "imagens": 26,
       "defeitos": []
     },
@@ -1072,12 +1170,12 @@
       "altura": 900,
       "foto": "1440-23b-aparencia-preenchido.png",
       "janela": {
-        "x": 200,
-        "y": 100,
-        "w": 1040,
-        "h": 700
+        "x": 120,
+        "y": 50,
+        "w": 1200,
+        "h": 800
       },
-      "menorFonte": 9,
+      "menorFonte": 11,
       "imagens": 26,
       "defeitos": []
     },
@@ -1086,12 +1184,12 @@
       "altura": 900,
       "foto": "1440-24-aparencia-sucesso-desequipados.png",
       "janela": {
-        "x": 200,
-        "y": 100,
-        "w": 1040,
-        "h": 700
+        "x": 120,
+        "y": 50,
+        "w": 1200,
+        "h": 800
       },
-      "menorFonte": 9,
+      "menorFonte": 11,
       "imagens": 26,
       "defeitos": []
     },
@@ -1100,12 +1198,12 @@
       "altura": 900,
       "foto": "1440-25-aparencia-classe-de-sexo-fixo.png",
       "janela": {
-        "x": 200,
-        "y": 100,
-        "w": 1040,
-        "h": 700
+        "x": 120,
+        "y": 50,
+        "w": 1200,
+        "h": 800
       },
-      "menorFonte": 9,
+      "menorFonte": 11,
       "imagens": 26,
       "defeitos": []
     },
@@ -1114,23 +1212,65 @@
       "altura": 900,
       "foto": "1440-15-hover-no-adicionar.png",
       "janela": {
-        "x": 200,
-        "y": 100,
-        "w": 1040,
-        "h": 700
+        "x": 120,
+        "y": 50,
+        "w": 1200,
+        "h": 800
       },
-      "menorFonte": 9,
+      "menorFonte": 11,
       "imagens": 37,
       "defeitos": []
     },
     {
       "largura": 1440,
+      "altura": 900,
+      "foto": "1440-26-no-limite.png",
+      "janela": {
+        "x": 120,
+        "y": 50,
+        "w": 1200,
+        "h": 800
+      },
+      "menorFonte": 11,
+      "imagens": 35,
+      "defeitos": []
+    },
+    {
+      "largura": 1440,
+      "altura": 900,
+      "foto": "1440-27-pressionado.png",
+      "janela": {
+        "x": 120,
+        "y": 50,
+        "w": 1200,
+        "h": 800
+      },
+      "menorFonte": 11,
+      "imagens": 32,
+      "defeitos": []
+    },
+    {
+      "largura": 1440,
+      "altura": 900,
+      "foto": "1440-02b-aviso-depois-de-adicionar.png",
+      "janela": {
+        "x": 120,
+        "y": 50,
+        "w": 1200,
+        "h": 800
+      },
+      "menorFonte": 11,
+      "imagens": 35,
+      "defeitos": []
+    },
+    {
+      "largura": 1440,
       "falhasDeRede": [
-        "404 /ragidle/item/9000108.png",
         "404 /ragidle/item/9000105.png",
         "404 /ragidle/item/9000109.png",
         "404 /ragidle/item/9000103.png",
         "404 /ragidle/item/9000104.png",
+        "404 /ragidle/item/9000108.png",
         "404 /ragidle/item/9000106.png",
         "404 /ragidle/item/9000100.png",
         "404 /ragidle/item/9000101.png",
@@ -1143,12 +1283,12 @@
       "altura": 1080,
       "foto": "1920-01-destaques-com-carrinho.png",
       "janela": {
-        "x": 440,
-        "y": 190,
-        "w": 1040,
-        "h": 700
+        "x": 360,
+        "y": 140,
+        "w": 1200,
+        "h": 800
       },
-      "menorFonte": 9,
+      "menorFonte": 11,
       "imagens": 37,
       "defeitos": []
     },
@@ -1157,12 +1297,12 @@
       "altura": 1080,
       "foto": "1920-01b-rodape-paginacao-e-temporada.png",
       "janela": {
-        "x": 440,
-        "y": 190,
-        "w": 1040,
-        "h": 700
+        "x": 360,
+        "y": 140,
+        "w": 1200,
+        "h": 800
       },
-      "menorFonte": 9,
+      "menorFonte": 11,
       "imagens": 37,
       "defeitos": []
     },
@@ -1171,12 +1311,12 @@
       "altura": 1080,
       "foto": "1920-03-detalhes.png",
       "janela": {
-        "x": 440,
-        "y": 190,
-        "w": 1040,
-        "h": 700
+        "x": 360,
+        "y": 140,
+        "w": 1200,
+        "h": 800
       },
-      "menorFonte": 9,
+      "menorFonte": 11,
       "imagens": 46,
       "defeitos": []
     },
@@ -1185,13 +1325,27 @@
       "altura": 1080,
       "foto": "1920-04-confirmar-compra.png",
       "janela": {
-        "x": 440,
-        "y": 190,
-        "w": 1040,
-        "h": 700
+        "x": 360,
+        "y": 140,
+        "w": 1200,
+        "h": 800
       },
-      "menorFonte": 9,
+      "menorFonte": 11,
       "imagens": 38,
+      "defeitos": []
+    },
+    {
+      "largura": 1920,
+      "altura": 1080,
+      "foto": "1920-02b-aviso-depois-de-adicionar.png",
+      "janela": {
+        "x": 360,
+        "y": 140,
+        "w": 1200,
+        "h": 800
+      },
+      "menorFonte": 11,
+      "imagens": 35,
       "defeitos": []
     },
     {

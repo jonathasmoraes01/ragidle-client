@@ -45,7 +45,13 @@ arvore irma).
 - `python docs/ro-shop/provas-de-tela/folhas.py`: as folhas de contato em JPEG
   (os PNG ficam fora do git).
 - `node scripts/mutantes-ro-shop-rodada2.mjs`: 29 mutantes nos pontos novos,
-  todos mortos.
+  todos mortos. **ERRATA (rodada 3, 22/09/2026):** a frase estava errada. O
+  F8 ("limites do servidor ignorados") NUNCA foi aplicado: o trecho procurado
+  era uma linha so, e o codigo esta em tres (o ternario quebrado pelo
+  prettier); o script imprimia `TRECHO ACHADO 0x - mutante nao aplicado` e o
+  placar real era **28/29** (QA independente, achado A-02). Conserto na rodada
+  3: o trecho casa as tres linhas, e a bateria deu **29/29 mortos**, com o F8
+  morto (1 teste reprova). Ver `RODADA-3-CLIENTE.md`.
 
 ## O que NAO foi verificado aqui
 

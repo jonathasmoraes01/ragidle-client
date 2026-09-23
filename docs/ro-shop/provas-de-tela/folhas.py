@@ -49,8 +49,15 @@ def principal():
     selecao = AQUI / "selecao"
     folha(sorted(selecao.glob("*.png")), selecao / "folha-selecao.jpg", largura_miniatura=260, colunas=5)
     temporada = AQUI / "temporada"
-    folha(sorted(temporada.glob("*-antes.png")), temporada / "folha-antes.jpg", largura_miniatura=240, colunas=3)
-    folha(sorted(temporada.glob("*-depois.png")), temporada / "folha-depois.jpg", largura_miniatura=240, colunas=3)
+    folha(sorted(p for p in temporada.glob("*-antes.png") if "destaques" not in p.name), temporada / "folha-antes.jpg", largura_miniatura=240, colunas=3)
+    folha(sorted(p for p in temporada.glob("*-depois.png") if "destaques" not in p.name), temporada / "folha-depois.jpg", largura_miniatura=240, colunas=3)
+    # Rodada 3 (22/09/2026): os estados que a QA apontou, em todas as larguras
+    # que os tem, e os Destaques da Temporada no master, antes e depois.
+    rodada3 = ("01-", "01b", "02b", "14-", "16-", "18-", "18b", "26-", "27-")
+    fotos3 = sorted(p for p in AQUI.glob("*.png") if p.name[5:8] in rodada3)
+    folha([p for p in fotos3 if p.name[:4] in {"0360", "0390", "0430"}], AQUI / "folha-rodada3-celular.jpg", largura_miniatura=220, colunas=6)
+    folha([p for p in fotos3 if p.name[:4] in {"0768", "1024", "1440", "1920"}], AQUI / "folha-rodada3-desktop.jpg", largura_miniatura=360, colunas=4)
+    folha(sorted(temporada.glob("*-destaques-*.png")), temporada / "folha-destaques-master-antes-depois.jpg", largura_miniatura=220, colunas=4)
 
 
 if __name__ == "__main__":

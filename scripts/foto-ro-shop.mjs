@@ -79,7 +79,7 @@ function paginaDoArnes() {
 <html lang="pt-BR"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Marcellus&family=Figtree:wght@400;500;600;700;800&display=swap">
-<script type="importmap">{ "imports": { "UI/": "/src/UI/", "Utils/": "/src/Utils/" } }</script>
+<script type="importmap">{ "imports": { "UI/": "/src/UI/", "Utils/": "/src/Utils/", "DB/": "/src/DB/" } }</script>
 <style>${commonCss}</style>
 <style>
 html, body { margin: 0; height: 100%; overflow: hidden; }
@@ -91,6 +91,35 @@ body { background: #1d2a3a url('/ragidle/mapa-de-midgard.webp') center / cover n
 import RiIcones from 'UI/ri-icones.js';
 import { criarControlador } from '/src/UI/Components/RoShop/controladorDoRoShop.js';
 import { estadoDeExemplo } from '/tests/fixtures/roShopEstado.js';
+import { criarResolverDeIcone } from '/src/UI/Components/RoShop/iconeDoRoShop.js';
+import { completarFicha, unknownItem } from 'DB/Items/FichaDoItem.js';
+/*
+ * O ICONE COMO NO JOGO (rodada 3, achado A-01): o resolvedor DE VERDADE
+ * (iconeDoRoShop.js), com a ficha DE VERDADE (completarFicha + a tabela de
+ * nomes/icones locais). O arnes nao tem GRF: o "GRF" daqui devolve o PNG
+ * publicado do item que e dono do recurso (Pocao Azul/Branca, Asa de Mosca)
+ * e, para o recurso da MACA, o PNG da Maca (512) - se a guarda deixar passar,
+ * a foto MOSTRA a maca. Cada recurso pedido fica em window.__grf, e a medida
+ * reprova se a maca for pedida.
+ */
+const GRF_FALSO = {
+	'\\xc6\\xc4\\xb6\\xf5\\xc6\\xf7\\xbc\\xc7': 505,
+	'\\xc7\\xcf\\xbe\\xe1\\xc6\\xf7\\xbc\\xc7': 504,
+	'\\xc6\\xc4\\xb8\\xae\\xc0\\xc7\\xb3\\xaf\\xb0\\xb3': 601,
+	[unknownItem.identifiedResourceName]: 512
+};
+window.__grf = [];
+const resolverIcone = criarResolverDeIcone({
+	preferirArtePublicada: (url, ok, falha) => { const i = new Image(); i.onload = () => ok(url); i.onerror = () => falha(); i.src = url; },
+	urlPublicada: id => '/ragidle/item/' + id + '.png',
+	fichaDoItem: id => completarFicha(id, null),
+	carregarDoGrf: (recurso, ok, falha) => {
+		window.__grf.push(recurso === unknownItem.identifiedResourceName ? 'MACA' : recurso);
+		const dono = GRF_FALSO[recurso];
+		if (!dono) { falha(); return; }
+		const i = new Image(); i.onload = () => ok(i.src); i.onerror = () => falha(); i.src = '/ragidle/item/' + dono + '.png';
+	}
+});
 const host = document.getElementById('host');
 const shadow = host.attachShadow({ mode: 'open' });
 const s1 = document.createElement('style'); s1.textContent = ${JSON.stringify(commonCss)}; shadow.appendChild(s1);
@@ -105,6 +134,7 @@ const c = criarControlador({
 	raiz: shadow,
 	enviar: corpo => window.__enviados.push(corpo),
 	gerarChave: () => 'chave-foto-' + (++n),
+	resolverIcone,
 	abrirTemporada: () => window.__enviados.push({ navegou: 'temporada' }),
 	agendar: (fn, ms) => { window.__timers.push({ fn, ms }); return window.__timers.length; },
 	cancelar: () => {}
@@ -194,6 +224,44 @@ async function medir(page) {
 			r.top >= c.top - folga &&
 			r.bottom <= c.bottom + folga;
 		const tela = { left: 0, top: 0, right: vw, bottom: vh };
+		if ((window.__grf || []).includes('MACA')) {
+			defeitos.push('a MACA foi pedida ao GRF (guarda do icone furada, achado A-01)');
+		}
+		/* Carregando e erro nao tem paginacao (A-08). */
+		const estadoDaGrade = sh.querySelector('.rs-grade').dataset.estado;
+		if (estadoDaGrade !== 'pronto' && sh.querySelector('.rs-paginacao').textContent.trim()) {
+			defeitos.push(`paginacao no estado "${estadoDaGrade}"`);
+		}
+		/* Com a gaveta aberta no celular a barra do carrinho sai (A-07). */
+		const winAberta = sh.querySelector('.rs-window');
+		const barra = sh.querySelector('.rs-barra-carrinho');
+		if (winAberta.classList.contains('is-gaveta-aberta') && barra && visivel(barra)) {
+			defeitos.push('barra do carrinho visivel com a gaveta aberta');
+		}
+		/* O aviso visivel nao cobre botao de acao (A-07). */
+		const aviso = sh.querySelector('.rs-aviso.is-visivel');
+		if (aviso) {
+			const ra = aviso.getBoundingClientRect();
+			sh.querySelectorAll('[data-rs="comprar"], [data-rs="confirmar"], .rs-barra-carrinho').forEach(b => {
+				if (!visivel(b)) {
+					return;
+				}
+				const rb = b.getBoundingClientRect();
+				if (ra.left < rb.right && ra.right > rb.left && ra.top < rb.bottom && ra.bottom > rb.top) {
+					defeitos.push(`o aviso cobre ${b.dataset.rs || b.className}`);
+				}
+			});
+		}
+		/* A chip ativa inteira dentro da fita (A-06). */
+		const fita = sh.querySelector('.rs-categorias');
+		const ativa = fita && fita.querySelector('.rs-categoria.is-ativa');
+		if (ativa && visivel(fita)) {
+			const rf = fita.getBoundingClientRect();
+			const rc = ativa.getBoundingClientRect();
+			if (rc.left < rf.left - 1 || rc.right > rf.right + 1) {
+				defeitos.push('a categoria ativa esta fora da vista na fita');
+			}
+		}
 		if (document.documentElement.scrollWidth > vw + 1) {
 			defeitos.push(`pagina transborda na horizontal (${document.documentElement.scrollWidth} > ${vw})`);
 		}
@@ -355,13 +423,18 @@ async function esperarImagens(page) {
 			)
 		);
 	});
-	/* o aviso do rodape some sozinho em 4,2 s no jogo; na foto ele sai ja */
-	await page.evaluate(() => {
-		const a = document.getElementById('host').shadowRoot.querySelector('.rs-aviso');
-		a.classList.remove('is-visivel');
-	});
+	/* o aviso do rodape some sozinho em 4,2 s no jogo; na foto ele sai ja
+	   (menos nas fotos que existem PARA mostrar o aviso) */
+	if (!manterAviso) {
+		await page.evaluate(() => {
+			const a = document.getElementById('host').shadowRoot.querySelector('.rs-aviso');
+			a.classList.remove('is-visivel');
+		});
+	}
 	await page.waitForTimeout(350);
 }
+
+let manterAviso = false;
 
 async function principal() {
 	mkdirSync(SAIDA, { recursive: true });
@@ -629,7 +702,47 @@ async function principal() {
 					await card.asElement().hover();
 					await foto('15-hover-no-adicionar');
 				}
+
+				/* ---- Rodada 3: os estados que a QA pediu ---- */
+
+				/* No limite: o carrinho ja tem o teto do SKU (`quantidadeMaxima`). */
+				const noLimite = await page.evaluate(() => {
+					const e = window.__estado();
+					e.produtos.find(p => p.sku === 'POTION_BLUE_1000').quantidadeMaxima = 1;
+					return e;
+				});
+				await preparar(page, { carrinho: false, estado: noLimite });
+				await page.evaluate(CLIQUE('[data-rs="adicionar"][data-sku="POTION_BLUE_1000"]'));
+				await foto('26-no-limite');
+
+				/* Pressionado: o dedo/mouse EM CIMA do Adicionar, antes de soltar. */
+				await preparar(page, { carrinho: false });
+				const alvo = await page.evaluate(() => {
+					const b = document
+						.getElementById('host')
+						.shadowRoot.querySelector('.rs-card[data-sku="POTION_WHITE_500"] [data-rs="adicionar"]');
+					/* No celular o card mora abaixo da dobra: traz para a vista. */
+					b.scrollIntoView({ block: 'center' });
+					const r = b.getBoundingClientRect();
+					return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+				});
+				await page.mouse.move(alvo.x, alvo.y);
+				await page.mouse.down();
+				await foto('27-pressionado');
+				await page.mouse.up();
 			}
+
+			/* O aviso "X no carrinho." logo depois de adicionar - e, no celular,
+			   com a gaveta aberta em seguida (A-07: ele cobria o Comprar). */
+			await preparar(page, { carrinho: false });
+			await page.evaluate(CLIQUE('[data-rs="adicionar"][data-sku="POTION_WHITE_500"]'));
+			if (L.w < 760) {
+				await page.evaluate(CLIQUE('[data-rs="abrir-gaveta"]'));
+				await page.waitForTimeout(300);
+			}
+			manterAviso = true;
+			await foto('02b-aviso-depois-de-adicionar');
+			manterAviso = false;
 
 			relatorio.push({ largura: L.w, falhasDeRede: [...falhas] });
 			await contexto.close();

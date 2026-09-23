@@ -1,0 +1,200 @@
+{
+  "quando": "2026-09-23T01:33:56.339Z",
+  "raiz": "C:\\Users\\Administrator\\Downloads\\Rag-idle\\ragidle-client\\.claude\\worktrees\\ro-shop",
+  "erros": [],
+  "relatorio": [
+    {
+      "largura": 360,
+      "foto": "0360-destaques-antes.png",
+      "chamada": {
+        "h": 44,
+        "w": 342
+      },
+      "caixas": [
+        {
+          "cls": "te-banner",
+          "top": -28,
+          "bottom": 70,
+          "h": 98,
+          "fundoDoConteudo": 70
+        },
+        {
+          "cls": "te-secao te-progresso",
+          "top": 80,
+          "bottom": 210,
+          "h": 130,
+          "fundoDoConteudo": 210
+        },
+        {
+          "cls": "te-chamada-passe ri-card",
+          "top": 220,
+          "bottom": 264,
+          "h": 44,
+          "fundoDoConteudo": 402
+        },
+        {
+          "cls": "te-secao",
+          "top": 274,
+          "bottom": 552,
+          "h": 278,
+          "fundoDoConteudo": 552
+        },
+        {
+          "cls": "te-atalhos",
+          "top": 562,
+          "bottom": 664,
+          "h": 102,
+          "fundoDoConteudo": 664
+        }
+      ],
+      "defeitos": [
+        "te-chamada-passe ri-card: 44px de altura, o conteudo desce 138px alem",
+        "te-chamada-passe ri-card invade te-secao em 128px"
+      ]
+    },
+    {
+      "largura": 390,
+      "foto": "0390-destaques-antes.png",
+      "chamada": {
+        "h": 44,
+        "w": 372
+      },
+      "caixas": [
+        {
+          "cls": "te-banner",
+          "top": 71,
+          "bottom": 169,
+          "h": 98,
+          "fundoDoConteudo": 169
+        },
+        {
+          "cls": "te-secao te-progresso",
+          "top": 179,
+          "bottom": 309,
+          "h": 130,
+          "fundoDoConteudo": 309
+        },
+        {
+          "cls": "te-chamada-passe ri-card",
+          "top": 319,
+          "bottom": 363,
+          "h": 44,
+          "fundoDoConteudo": 501
+        },
+        {
+          "cls": "te-secao",
+          "top": 373,
+          "bottom": 651,
+          "h": 278,
+          "fundoDoConteudo": 651
+        },
+        {
+          "cls": "te-atalhos",
+          "top": 661,
+          "bottom": 763,
+          "h": 102,
+          "fundoDoConteudo": 763
+        }
+      ],
+      "defeitos": [
+        "te-chamada-passe ri-card: 44px de altura, o conteudo desce 138px alem",
+        "te-chamada-passe ri-card invade te-secao em 128px"
+      ]
+    },
+    {
+      "largura": 430,
+      "foto": "0430-destaques-antes.png",
+      "chamada": {
+        "h": 114,
+        "w": 412
+      },
+      "caixas": [
+        {
+          "cls": "te-banner",
+          "top": 108,
+          "bottom": 206,
+          "h": 98,
+          "fundoDoConteudo": 206
+        },
+        {
+          "cls": "te-secao te-progresso",
+          "top": 216,
+          "bottom": 327,
+          "h": 111,
+          "fundoDoConteudo": 327
+        },
+        {
+          "cls": "te-chamada-passe ri-card",
+          "top": 337,
+          "bottom": 451,
+          "h": 114,
+          "fundoDoConteudo": 503
+        },
+        {
+          "cls": "te-secao",
+          "top": 461,
+          "bottom": 739,
+          "h": 278,
+          "fundoDoConteudo": 739
+        },
+        {
+          "cls": "te-atalhos",
+          "top": 749,
+          "bottom": 851,
+          "h": 102,
+          "fundoDoConteudo": 851
+        }
+      ],
+      "defeitos": [
+        "te-chamada-passe ri-card: 114px de altura, o conteudo desce 52px alem",
+        "te-chamada-passe ri-card invade te-secao em 42px"
+      ]
+    },
+    {
+      "largura": 1440,
+      "foto": "1440-destaques-antes.png",
+      "chamada": {
+        "h": 86,
+        "w": 654
+      },
+      "caixas": [
+        {
+          "cls": "te-banner",
+          "top": 204,
+          "bottom": 324,
+          "h": 120,
+          "fundoDoConteudo": 324
+        },
+        {
+          "cls": "te-secao te-progresso",
+          "top": 336,
+          "bottom": 447,
+          "h": 111,
+          "fundoDoConteudo": 447
+        },
+        {
+          "cls": "te-chamada-passe ri-card",
+          "top": 459,
+          "bottom": 545,
+          "h": 86,
+          "fundoDoConteudo": 545
+        },
+        {
+          "cls": "te-secao",
+          "top": 557,
+          "bottom": 697,
+          "h": 140,
+          "fundoDoConteudo": 697
+        },
+        {
+          "cls": "te-atalhos",
+          "top": 709,
+          "bottom": 757,
+          "h": 48,
+          "fundoDoConteudo": 757
+        }
+      ],
+      "defeitos": []
+    }
+  ]
+}

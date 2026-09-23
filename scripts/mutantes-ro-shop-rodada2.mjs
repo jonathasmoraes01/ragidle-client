@@ -100,7 +100,10 @@ const MUTANTES = [
 	[
 		'F8 limites do servidor ignorados',
 		F,
-		'f && Number.isInteger(f.min) && Number.isInteger(f.max) && f.min <= f.max ? { min: f.min, max: f.max } : { min, max };',
+		/* O trecho de verdade ocupa TRES linhas (o prettier quebra o ternario);
+		   a versao de uma linha so nunca casava, e o F8 saia "nao aplicado"
+		   (QA independente da rodada 2, achado A-02). */
+		'f && Number.isInteger(f.min) && Number.isInteger(f.max) && f.min <= f.max\n\t\t\t? { min: f.min, max: f.max }\n\t\t\t: { min, max };',
 		'({ min, max });'
 	],
 	['V1 personagem alem do total some', V, 'const aparece = i < vagas || tem;', 'const aparece = i < vagas;'],

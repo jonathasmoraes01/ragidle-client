@@ -1,0 +1,191 @@
+{
+  "quando": "2026-09-23T01:34:22.633Z",
+  "raiz": "C:\\Users\\Administrator\\Downloads\\Rag-idle\\ragidle-client\\.claude\\worktrees\\ro-shop",
+  "erros": [],
+  "relatorio": [
+    {
+      "largura": 360,
+      "foto": "0360-destaques-depois.png",
+      "chamada": {
+        "h": 194,
+        "w": 342
+      },
+      "caixas": [
+        {
+          "cls": "te-banner",
+          "top": -28,
+          "bottom": 70,
+          "h": 98,
+          "fundoDoConteudo": 70
+        },
+        {
+          "cls": "te-secao te-progresso",
+          "top": 80,
+          "bottom": 210,
+          "h": 130,
+          "fundoDoConteudo": 210
+        },
+        {
+          "cls": "te-chamada-passe ri-card",
+          "top": 220,
+          "bottom": 413,
+          "h": 194,
+          "fundoDoConteudo": 413
+        },
+        {
+          "cls": "te-secao",
+          "top": 423,
+          "bottom": 701,
+          "h": 278,
+          "fundoDoConteudo": 701
+        },
+        {
+          "cls": "te-atalhos",
+          "top": 711,
+          "bottom": 813,
+          "h": 102,
+          "fundoDoConteudo": 813
+        }
+      ],
+      "defeitos": []
+    },
+    {
+      "largura": 390,
+      "foto": "0390-destaques-depois.png",
+      "chamada": {
+        "h": 194,
+        "w": 372
+      },
+      "caixas": [
+        {
+          "cls": "te-banner",
+          "top": -28,
+          "bottom": 70,
+          "h": 98,
+          "fundoDoConteudo": 70
+        },
+        {
+          "cls": "te-secao te-progresso",
+          "top": 80,
+          "bottom": 210,
+          "h": 130,
+          "fundoDoConteudo": 210
+        },
+        {
+          "cls": "te-chamada-passe ri-card",
+          "top": 220,
+          "bottom": 413,
+          "h": 194,
+          "fundoDoConteudo": 413
+        },
+        {
+          "cls": "te-secao",
+          "top": 423,
+          "bottom": 701,
+          "h": 278,
+          "fundoDoConteudo": 701
+        },
+        {
+          "cls": "te-atalhos",
+          "top": 711,
+          "bottom": 813,
+          "h": 102,
+          "fundoDoConteudo": 813
+        }
+      ],
+      "defeitos": []
+    },
+    {
+      "largura": 430,
+      "foto": "0430-destaques-depois.png",
+      "chamada": {
+        "h": 176,
+        "w": 412
+      },
+      "caixas": [
+        {
+          "cls": "te-banner",
+          "top": 45,
+          "bottom": 143,
+          "h": 98,
+          "fundoDoConteudo": 143
+        },
+        {
+          "cls": "te-secao te-progresso",
+          "top": 153,
+          "bottom": 264,
+          "h": 111,
+          "fundoDoConteudo": 264
+        },
+        {
+          "cls": "te-chamada-passe ri-card",
+          "top": 274,
+          "bottom": 451,
+          "h": 176,
+          "fundoDoConteudo": 451
+        },
+        {
+          "cls": "te-secao",
+          "top": 461,
+          "bottom": 739,
+          "h": 278,
+          "fundoDoConteudo": 739
+        },
+        {
+          "cls": "te-atalhos",
+          "top": 749,
+          "bottom": 851,
+          "h": 102,
+          "fundoDoConteudo": 851
+        }
+      ],
+      "defeitos": []
+    },
+    {
+      "largura": 1440,
+      "foto": "1440-destaques-depois.png",
+      "chamada": {
+        "h": 86,
+        "w": 654
+      },
+      "caixas": [
+        {
+          "cls": "te-banner",
+          "top": 204,
+          "bottom": 324,
+          "h": 120,
+          "fundoDoConteudo": 324
+        },
+        {
+          "cls": "te-secao te-progresso",
+          "top": 336,
+          "bottom": 447,
+          "h": 111,
+          "fundoDoConteudo": 447
+        },
+        {
+          "cls": "te-chamada-passe ri-card",
+          "top": 459,
+          "bottom": 545,
+          "h": 86,
+          "fundoDoConteudo": 545
+        },
+        {
+          "cls": "te-secao",
+          "top": 557,
+          "bottom": 697,
+          "h": 140,
+          "fundoDoConteudo": 697
+        },
+        {
+          "cls": "te-atalhos",
+          "top": 709,
+          "bottom": 757,
+          "h": 48,
+          "fundoDoConteudo": 757
+        }
+      ],
+      "defeitos": []
+    }
+  ]
+}
