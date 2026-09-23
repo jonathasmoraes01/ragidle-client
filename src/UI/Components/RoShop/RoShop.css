@@ -35,6 +35,13 @@
 	font: var(--type-info);
 	-webkit-font-smoothing: antialiased;
 	text-rendering: optimizeLegibility;
+	/* A largura do painel do carrinho mora num token so: a grade usa, e o aviso
+	   do rodape se centraliza na area principal descontando ela (A-07). */
+	--rs-lateral: 290px;
+	/* O PISO DE FONTE (rodada 3, achado A-05 da QA): o selo do design system
+	   e 9px, e nesta janela ele carrega "SEU SALDO", "RO CASH" e "CARRINHO",
+	   rotulos que o jogador LE. Aqui ele sobe para 10px em toda largura. */
+	--type-badge: var(--fw-bold) 10px / 1 var(--font-ui);
 }
 
 /* A arte do dono nao e quadrada (o carrinho e 1,22:1, a chama 1,12:1): toda
@@ -131,7 +138,7 @@
 	flex: 1 1 auto;
 	min-height: 0;
 	display: grid;
-	grid-template-columns: minmax(0, 1fr) 290px;
+	grid-template-columns: minmax(0, 1fr) var(--rs-lateral);
 }
 
 #RoShop .rs-principal {
@@ -937,10 +944,13 @@
 	gap: 2px;
 }
 
+/* "SEASON 1 - LUZ & TREVAS": caixa alta como na arte da Temporada; o texto
+   continua o do servidor (o numero sai do `temporada.id`, rodada 3). */
 #RoShop .rs-temporada-nome {
 	font: var(--fw-regular) 13px / 1.2 var(--font-display);
 	color: var(--rs-marinho);
-	letter-spacing: var(--ls-title);
+	letter-spacing: var(--ls-caps);
+	text-transform: uppercase;
 }
 
 #RoShop .rs-temporada-sub {
@@ -1093,7 +1103,7 @@
 }
 
 #RoShop .rs-linha-preco {
-	font: var(--fw-medium) 10px / 1.2 var(--font-ui);
+	font: var(--fw-medium) 11px / 1.2 var(--font-ui);
 	color: var(--text-muted);
 }
 
@@ -1592,7 +1602,7 @@
 
 /* O sexo ATUAL do personagem logado (`estado.personagem.sexo`). */
 #RoShop .rs-opcao-atual {
-	font: var(--fw-bold) 9px / 1.1 var(--font-ui);
+	font: var(--fw-bold) 10px / 1.1 var(--font-ui);
 	letter-spacing: 0.06em;
 	text-transform: uppercase;
 	opacity: 0.75;
@@ -1732,12 +1742,15 @@
 
 /* ─── Aviso do rodape (sem ponteiro: nunca rouba clique) ───── */
 
+/* No desktop o aviso se centraliza na AREA PRINCIPAL, e nao na janela: um
+   texto longo ("X saiu do carrinho: ...") centrado na janela invadia o painel
+   do carrinho e cobria o Comprar (rodada 3, achado A-07 da QA). */
 #RoShop .rs-aviso {
 	position: absolute;
-	left: 50%;
+	left: calc((100% - var(--rs-lateral)) / 2);
 	bottom: var(--sp-7);
 	z-index: 30;
-	max-width: calc(100% - 32px);
+	max-width: calc(100% - var(--rs-lateral) - 32px);
 	box-sizing: border-box;
 	transform: translate(-50%, 8px);
 	padding: 7px 14px;
@@ -1798,11 +1811,108 @@
 	}
 }
 
+/* ─── Tela grande: janela maior e letra maior ──────────────── */
+
+/*
+ * RODADA 3 (achado A-05 da QA): em 1440 e 1920 a janela ficava presa em
+ * 1040x700 no meio da tela, com texto de 9 a 11px. A HUD do jogo e de tamanho
+ * FIXO no desktop por decisao do design system (`--ui-escala` = 1, Common.css),
+ * e isto nao mexe nela: so esta janela cresce, e so onde SOBRA tela - 1360 de
+ * largura E 860 de altura. Abaixo disso (1024, 768, celular) nada muda.
+ *
+ * Sem `zoom`/`transform`: a arte do item e pixel art ampliada INTEIRA (2x/3x),
+ * e uma escala de 1,15 a deixaria com pixels desiguais. Cresce a CAIXA (1200 x
+ * 800, painel de 320) e a LETRA, pelo token (selo 11, rotulo 12, texto 13) e
+ * pelas poucas regras que cravam px; o piso da janela passa a 11px.
+ */
+@media (min-width: 1360px) and (min-height: 860px) {
+	#RoShop {
+		--rs-lateral: 320px;
+		--type-badge: var(--fw-bold) 11px / 1 var(--font-ui);
+		--type-label: var(--fw-semibold) 12px / var(--lh-ui) var(--font-ui);
+		--type-info: var(--fw-medium) 13px / var(--lh-ui) var(--font-ui);
+		--type-numeric: var(--fw-bold) 13px / 1 var(--font-numeric);
+		font: var(--type-info);
+	}
+
+	#RoShop .rs-window {
+		width: min(1200px, 100vw - 16px);
+		height: min(800px, 100vh - 32px);
+	}
+
+	#RoShop .rs-grade {
+		grid-template-columns: repeat(auto-fill, minmax(176px, 1fr));
+	}
+
+	#RoShop .rs-categoria,
+	#RoShop .rs-btn,
+	#RoShop .rs-servico-nome,
+	#RoShop .rs-linha-nome,
+	#RoShop .rs-conteudo-nome,
+	#RoShop .rs-opcao {
+		font-size: 13px;
+	}
+
+	#RoShop .rs-card-resumo,
+	#RoShop .rs-card-trava,
+	#RoShop .rs-contador,
+	#RoShop .rs-servico-creditos,
+	#RoShop .rs-temporada-sub,
+	#RoShop .rs-linha-preco,
+	#RoShop .rs-detalhes-limite,
+	#RoShop .rs-checkout-nota,
+	#RoShop .rs-campo-rotulo,
+	#RoShop .rs-campo-dica,
+	#RoShop .rs-campo-aviso,
+	#RoShop .rs-campo-erro,
+	#RoShop .rs-desequipados-titulo,
+	#RoShop .rs-card-no-carrinho,
+	#RoShop .rs-contagem,
+	#RoShop .rs-btn--pequeno,
+	#RoShop .rs-opcao-atual {
+		font-size: 12px;
+	}
+
+	#RoShop .rs-card-nome,
+	#RoShop .rs-temporada-nome,
+	#RoShop .rs-linha-total,
+	#RoShop .rs-total-linha--total,
+	#RoShop .rs-detalhes-descricao,
+	#RoShop .rs-conteudo-qtd {
+		font-size: 14px;
+	}
+
+	#RoShop .rs-preco-valor {
+		font-size: 15px;
+	}
+
+	#RoShop .rs-busca-campo {
+		font-size: 13px;
+	}
+
+	#RoShop .rs-grade-titulo h3 {
+		font-size: 18px;
+	}
+
+	#RoShop .rs-busca {
+		flex-basis: 300px;
+	}
+
+	#RoShop .rs-busca-campo {
+		height: 36px;
+	}
+
+	#RoShop .rs-busca-botao {
+		width: 30px;
+		height: 30px;
+	}
+}
+
 /* ─── Tablet estreito: painel um pouco menor ───────────────── */
 
 @media (max-width: 959px) {
-	#RoShop .rs-corpo {
-		grid-template-columns: minmax(0, 1fr) 262px;
+	#RoShop {
+		--rs-lateral: 262px;
 	}
 
 	#RoShop .rs-grade {
@@ -1997,7 +2107,30 @@
 	}
 
 	#RoShop .rs-aviso {
+		left: 50%;
 		bottom: 72px;
+		max-width: calc(100% - 32px);
+	}
+
+	/*
+	 * A GAVETA ABERTA E A TELA INTEIRA (rodada 3, achado A-07 da QA). A barra
+	 * "Carrinho / Ver carrinho" continuava embaixo da gaveta - dois carrinhos
+	 * empilhados, e a barra comia 70px da gaveta. Com a gaveta aberta ela SAI,
+	 * e a gaveta desce ate a borda da janela (com a borda segura do aparelho).
+	 */
+	#RoShop .rs-window.is-gaveta-aberta .rs-barra-carrinho {
+		display: none;
+	}
+
+	#RoShop .rs-lateral {
+		padding-bottom: calc(var(--sp-6) + var(--safe-baixo, 0px));
+	}
+
+	/* E o aviso sobe para o alto da janela, por cima do veu escuro: embaixo ele
+	   cobria o rotulo do Comprar por 4 s ("Pack Pocao Branca no carrinho."). */
+	#RoShop .rs-window.is-gaveta-aberta .rs-aviso {
+		top: 56px;
+		bottom: auto;
 	}
 
 	#RoShop .rs-checkout-acoes {

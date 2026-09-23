@@ -378,6 +378,42 @@ export const ICONES_LOCAIS = {
 	 */
 
 	/*
+	 * RODADA 9b (RO Shop rodada 3, 22/09/2026): os 11 CONSUMIVEIS DO RO SHOP
+	 * ganham um icone de RESERVA DECLARADA - e esta e a unica secao desta
+	 * tabela em que o `.bmp` NAO e o do proprio item, de proposito.
+	 *
+	 * Os ids 9.000.100-110 sao nossos: tabela nenhuma do GRF os tem, e sem esta
+	 * linha a mochila, o aviso "obtido(s)" e o RO Shop mostravam a MACA (QA
+	 * independente, achado A-01). A arte oficial de cada um sai do pipeline do
+	 * servidor (B-RS-08) em `public/ragidle/item/<id>.png`, e quem desenha
+	 * icone de item (mochila, boneco, RO Shop, aviso de obtido) pede ESSE PNG
+	 * primeiro (`Utils/ItemArt.js`): quando ele existir, vence sozinho, e esta
+	 * reserva fica so para o caminho do GRF.
+	 *
+	 * A reserva e o icone do CONTEUDO (o mesmo que o card do RO Shop ja
+	 * mostrava, `RO_SHOP_REQUIRED_ASSETS.md` secao 2) ou, nos boosts, o item
+	 * oficial de mesmo efeito. Nenhum recurso daqui foi deduzido: cada um foi
+	 * LIDO em `data\idnum2itemresnametable.txt` do `data.grf`, com o `.bmp`
+	 * conferido em `texture\...\item\` (sonda `recursos.mts` da rodada 3, com o
+	 * id de controle ao lado):
+	 *
+	 *   505 Pocao Azul       -> 파란포션        504 Pocao Branca -> 하얀포션
+	 *   601 Asa de Mosca     -> 파리의날개      12208 Manual de Combate (e o
+	 *   12210 Goma de Mascar -> 풍선껌          14592, de Classe) -> 전투교범
+	 */
+	9000100: '\xc0\xfc\xc5\xf5\xb1\xb3\xb9\xfc', // Manual de Experiencia -> 12208 Manual de Combate (전투교범)
+	9000101: '\xc0\xfc\xc5\xf5\xb1\xb3\xb9\xfc', // Manual de Exp. de Classe -> 14592 Manual de Combate de Classe (o mesmo .bmp)
+	9000102: '\xc7\xb3\xbc\xb1\xb2\xad', // Bencao da Fortuna -> 12210 Goma de Mascar (풍선껌, o item de drop do kRO)
+	9000103: '\xc6\xc4\xb6\xf5\xc6\xf7\xbc\xc7', // Pack Pocao Azul -> 505 Pocao Azul (파란포션)
+	9000104: '\xc7\xcf\xbe\xe1\xc6\xf7\xbc\xc7', // Pack Pocao Branca -> 504 Pocao Branca (하얀포션)
+	9000105: '\xc6\xc4\xb6\xf5\xc6\xf7\xbc\xc7', // Pack Sobrevivencia -> 505 Pocao Azul
+	9000106: '\xc6\xc4\xb8\xae\xc0\xc7\xb3\xaf\xb0\xb3', // Pack Viagem -> 601 Asa de Mosca (파리의날개)
+	9000107: '\xc7\xcf\xbe\xe1\xc6\xf7\xbc\xc7', // Pack Farm -> 504 Pocao Branca
+	9000108: '\xc7\xcf\xbe\xe1\xc6\xf7\xbc\xc7', // Pack Up -> 504 Pocao Branca
+	9000109: '\xc7\xcf\xbe\xe1\xc6\xf7\xbc\xc7', // Pack Completo de Farm -> 504 Pocao Branca
+	9000110: '\xc0\xfc\xc5\xf5\xb1\xb3\xb9\xfc', // Pack de Treino -> 12208 Manual de Combate
+
+	/*
 	 * O 12849 (Combination Kit) NAO ENTRA: nome sim, icone nao. O GRF
 	 * nao tem `조합`/`합성` (johap/hapseong, "combinacao"/"sintese") em icone
 	 * nenhum, e nao ha ASCII `combination`/`kit` que sirva — os 3 `키트` que

@@ -234,7 +234,7 @@ describe('o icone local (31/08/2026)', () => {
 		expect(semNome, 'estes ids tem icone local e nenhum nome local').toEqual([]);
 	});
 
-	it('sao exatamente 15: 10 derivados de cosmetico + 1 DESENHADO + 4 siropes', () => {
+	it('sao exatamente 26: 10 derivados de cosmetico + 1 DESENHADO + 4 siropes + 11 reservas do RO Shop', () => {
 		/*
 		 * Os 10 derivados de cosmetico sao 10 e nao 13 porque `View` NAO e
 		 * chave unica (20500/20765 dividem o 1; 20606/20727 dividem o 5). Quem
@@ -257,7 +257,15 @@ describe('o icone local (31/08/2026)', () => {
 		 * virada para pre-renewal os tirou do jogo. A pesquisa de cada derivacao
 		 * continua no historico: `git log -S "진홍의" -- src/DB/Items/nomesLocais.js`.
 		 */
-		expect(Object.keys(ICONES_LOCAIS)).toHaveLength(15);
+		/*
+		 * Os 11 da Rodada 9b (RO Shop rodada 3, 22/09/2026) sao de OUTRA
+		 * natureza, e declarada: os consumiveis 9.000.100-110 sao ids nossos,
+		 * e o `.bmp` e o do CONTEUDO (Pocao Azul/Branca, Asa de Mosca) ou do
+		 * item oficial de mesmo efeito (Manual de Combate, Goma de Mascar) - uma
+		 * RESERVA ate o PNG oficial ser publicado, e nao o icone do item. O
+		 * teste dela esta em `tests/ui/roShopRodada3.test.js`.
+		 */
+		expect(Object.keys(ICONES_LOCAIS)).toHaveLength(26);
 	});
 });
 

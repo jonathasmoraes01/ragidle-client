@@ -42,6 +42,7 @@ import {
 	camposIniciaisDoServico,
 	carrinhoHtml,
 	carteiraHtml,
+	deslocamentoParaMostrar,
 	categoriasDoEstado,
 	categoriasHtml,
 	checkoutHtml,
@@ -118,6 +119,8 @@ export function criarControlador(opcoes) {
 	   isto muda, para uma re-renderizacao no meio da digitacao (um estado novo,
 	   um saldo novo) nunca apagar o foco nem o cursor do campo de nome. */
 	let _servicoDesenhado = '';
+	/* A categoria que a fita do celular ja trouxe para a vista (A-06). */
+	let _categoriaMostrada = null;
 	let _timerEstado = null;
 	let _timerCheckout = null;
 	let _timerServico = null;
@@ -419,6 +422,31 @@ export function criarControlador(opcoes) {
 		});
 	}
 
+	/**
+	 * A CHIP ATIVA DENTRO DA VISTA (rodada 3, achado A-06 da QA). No celular a
+	 * barra de categorias e uma fita que rola na horizontal, e "Conta" ativa
+	 * ficava fora da vista - o jogador via a grade de Conta sem saber em que
+	 * aba estava. So a fita rola, e so na HORIZONTAL (`scrollLeft`): um
+	 * `scrollIntoView` tambem rolaria a area principal na vertical. E so quando
+	 * a categoria MUDA ou a janela reabre: um redesenho qualquer (saldo novo,
+	 * item no carrinho) nao puxa de volta a fita que o jogador rolou com o dedo.
+	 */
+	function mostrarCategoriaAtiva(cats) {
+		const chave = s.busca.trim() ? '' : String(s.categoria);
+		if (chave === _categoriaMostrada) {
+			return;
+		}
+		_categoriaMostrada = chave;
+		const chip = cats.querySelector('.rs-categoria.is-ativa');
+		if (!chip || cats.scrollWidth <= cats.clientWidth) {
+			return;
+		}
+		const delta = deslocamentoParaMostrar(cats.getBoundingClientRect(), chip.getBoundingClientRect());
+		if (delta) {
+			cats.scrollLeft += delta;
+		}
+	}
+
 	function renderCarteiras() {
 		raiz.querySelectorAll('[data-slot="carteira"]').forEach(el => {
 			el.innerHTML = carteiraHtml(s.estado);
@@ -433,6 +461,7 @@ export function criarControlador(opcoes) {
 		const temporada = $('[data-slot="temporada"]');
 		if (cats) {
 			cats.innerHTML = categoriasHtml(categoriasDoEstado(s.estado), s.categoria, !!s.busca.trim());
+			mostrarCategoriaAtiva(cats);
 		}
 		if (temporada) {
 			temporada.innerHTML = atalhoTemporadaHtml(s.estado && s.estado.temporada);
@@ -449,12 +478,15 @@ export function criarControlador(opcoes) {
 		if (!grade) {
 			return;
 		}
+		/* Carregando e erro NAO tem paginacao: "Pagina 1 de 1" embaixo de "Nao
+		   foi possivel carregar a loja" dizia que havia uma pagina de produtos
+		   (rodada 3, achado A-08 da QA). */
 		if (s.carga === 'carregando' && !s.estado) {
 			grade.dataset.estado = 'carregando';
 			grade.innerHTML =
 				'<div class="rs-grade-estado"><span class="rs-girando" aria-hidden="true"></span><p>Carregando a loja...</p></div>';
 			if (pag) {
-				pag.innerHTML = paginacaoHtml(1, 1);
+				pag.innerHTML = '';
 			}
 			if (titulo) {
 				titulo.innerHTML = '';
@@ -467,7 +499,10 @@ export function criarControlador(opcoes) {
 				'<div class="rs-grade-estado rs-grade-estado--erro"><p>Não foi possível carregar a loja.</p>' +
 				'<button type="button" class="rs-btn rs-btn--sec" data-rs="tentar-de-novo">Tentar de novo</button></div>';
 			if (pag) {
-				pag.innerHTML = paginacaoHtml(1, 1);
+				pag.innerHTML = '';
+			}
+			if (titulo) {
+				titulo.innerHTML = '';
 			}
 			return;
 		}
@@ -914,6 +949,8 @@ export function criarControlador(opcoes) {
 		if (!s.estado) {
 			s.carga = 'carregando';
 		}
+		/* A janela reabre com a fita no comeco: a chip ativa volta para a vista. */
+		_categoriaMostrada = null;
 		render();
 		pedirEstado();
 	}

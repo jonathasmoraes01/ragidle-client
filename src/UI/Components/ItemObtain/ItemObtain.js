@@ -14,6 +14,7 @@ import Events from 'Core/Events.js';
 import Renderer from 'Renderer/Renderer.js';
 import UIManager from 'UI/UIManager.js';
 import GUIComponent from 'UI/GUIComponent.js';
+import { itemIconUrl, preferirArtePublicada } from 'Utils/ItemArt.js';
 import htmlText from './ItemObtain.html?raw';
 import cssText from './ItemObtain.css?raw';
 
@@ -174,11 +175,21 @@ ItemObtain.set = function set(item) {
 
 	posicionar(this._host, root);
 
-	Client.loadFile(DB.INTERFACE_PATH + 'item/' + resource + '.bmp', url => {
+	const aplicarIcone = url => {
 		const img = root.querySelector(`img.item-${item.ITID}`);
 		if (img) {
 			img.src = url;
 		}
+	};
+	/*
+	 * RAGIDLE (RO Shop rodada 3, 22/09/2026): a arte PUBLICADA primeiro, a
+	 * mesma receita da mochila (`InventoryCommon.js`). Sem isto o aviso so
+	 * conhecia o `.bmp` do GRF, e os itens custom (ids 9.000.xxx, que GRF
+	 * nenhum tem) chegavam aqui com a maca mesmo depois do PNG oficial ser
+	 * publicado em `public/ragidle/item/<id>.png` (QA independente, A-01).
+	 */
+	preferirArtePublicada(itemIconUrl(item.ITID), aplicarIcone, () => {
+		Client.loadFile(DB.INTERFACE_PATH + 'item/' + resource + '.bmp', aplicarIcone);
 	});
 
 	// Start timer

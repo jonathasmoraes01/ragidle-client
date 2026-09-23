@@ -462,6 +462,29 @@ export function idsDoIcone(produto) {
 }
 
 /**
+ * O ICONE DE CADA SERVICO/CONTA (rodada 3, 22/09/2026). O servidor manda
+ * `imagem: null` e `conteudo: []` para os 7 (CONTRATO.md secao 4), e a reserva
+ * era o icone da CATEGORIA: os 5 de Conta saiam todos com o mesmo escudo e
+ * espada, e os 2 de Utilidades com o mesmo pergaminho (QA independente,
+ * achado A-09). O pacote do dono nao tem mais icone de servico (ver o
+ * MAPA-DOS-ASSETS.md), entao cada um usa um icone de item do `data.grf` JA
+ * PUBLICADO em `public/ragidle/item/<id>.png`, escolhido olhando a arte (folha
+ * de contato da rodada 3). E so ARTE, nunca dado: o id nao vai ao servidor, e
+ * o que o jogador recebe continua sendo o nome e o resumo do produto. A tabela
+ * com o motivo de cada um esta no `RO_SHOP_REQUIRED_ASSETS.md`, secao 2. Se o
+ * PNG nao carregar, fica a reserva de sempre (o icone da categoria).
+ */
+export const ICONE_DO_SERVICO = {
+	SERVICE_SKILL_RESET: 1550, // Livro
+	SERVICE_STAT_RESET: 12040, // Pedra do Sabio
+	SERVICE_RENAME: 7015, // Marca-Pagina (a pena de escrever)
+	SERVICE_APPEARANCE_CHANGE: 12368, // Espelho de Mao
+	ACCOUNT_CHARACTER_SLOT: 5141, // Boneca de Marionete (mais um personagem)
+	ACCOUNT_INVENTORY_10: 12130, // Sacola de Biscoitos (a sacola de carga)
+	ACCOUNT_STORAGE_100: 603 // Velha Caixa Azul (o bau do armazem)
+};
+
+/**
  * O RETRATO de um produto. Arte que INFORMA e o PNG do item do cliente
  * (`/ragidle/item/<id>.png`, 24x24) ampliado INTEIRO com
  * `image-rendering: pixelated` - quem troca a reserva pela arte e o
@@ -473,8 +496,11 @@ export function idsDoIcone(produto) {
  * item aqui". Nunca uma imagem quebrada.
  */
 export function retratoHtml(produto, categoria, classe = 'rs-retrato') {
-	const ids = idsDoIcone(produto);
+	let ids = idsDoIcone(produto);
 	const servico = !ids.length && produto && produto.tipoDeEntrega && produto.tipoDeEntrega !== 'item';
+	if (servico && ICONE_DO_SERVICO[produto.sku]) {
+		ids = [ICONE_DO_SERVICO[produto.sku]];
+	}
 	const reserva = servico && categoria ? iconeDaCategoria(categoria) : ASSET.placeholder;
 	const attr = ids.length ? ` data-item-ids="${ids.join(',')}"` : '';
 	return (
@@ -547,6 +573,27 @@ export function carteiraHtml(estado, classeExtra = '') {
 		'</button>' +
 		'</div>'
 	);
+}
+
+/**
+ * Quanto a fita de categorias precisa rolar (em px, na horizontal) para a chip
+ * `chip` caber inteira dentro de `fita`, com `folga` de respiro na borda; 0
+ * quando ela ja cabe. As duas caixas sao `getBoundingClientRect()`. Chip mais
+ * larga que a fita alinha pela esquerda (o comeco do nome e o que se le).
+ */
+export function deslocamentoParaMostrar(fita, chip, folga = 12) {
+	if (!fita || !chip) {
+		return 0;
+	}
+	if (chip.left < fita.left) {
+		return Math.round(chip.left - fita.left - folga);
+	}
+	if (chip.right > fita.right) {
+		const paraADireita = chip.right - fita.right + folga;
+		const ateOComeco = chip.left - fita.left - folga;
+		return Math.round(Math.min(paraADireita, Math.max(0, ateOComeco)));
+	}
+	return 0;
 }
 
 /** As categorias (chips com icone). Busca ativa = nenhuma chip ativa. */
@@ -806,6 +853,20 @@ export function textoDaRecarga(estado) {
 }
 
 /**
+ * "Season 1" a partir do `temporada.id` do servidor ("S1", CONTRATO.md secao 4:
+ * `{ id: "S1", nome: "Luz & Trevas", fase }`, com a nota "o banner 'Season 1 -
+ * Luz & Trevas' monta daqui"). O NUMERO vem do id - a mesma leitura do banner
+ * da janela da Temporada (`formatoDaTemporada.js#renderBannerHtml`) -, e um id
+ * fora do formato `S<n>` devolve vazio: o banner fica so com o nome, e nunca
+ * com um "Season 1" cravado (rodada 3, achado A-04 da QA).
+ */
+export function rotuloDaTemporada(temporada) {
+	const id = String((temporada && temporada.id) || '').trim();
+	const m = id.match(/^S(\d{1,3})$/i);
+	return m ? `Season ${Number(m[1])}` : '';
+}
+
+/**
  * O ATALHO para a Temporada (D-RS-04): um banner discreto que SO navega. O
  * nome vem do servidor (`temporada.nome`); com `temporada: null` o banner
  * SOME (CONTRATO.md secao 6: "esconda quando null") - nunca um nome inventado.
@@ -815,10 +876,13 @@ export function atalhoTemporadaHtml(temporada) {
 	if (!nome) {
 		return '';
 	}
+	const rotulo = rotuloDaTemporada(temporada);
+	/* Um servidor que ja mande "Season 1 - ..." no nome nao ganha dois. */
+	const titulo = rotulo && !/^season\b/i.test(nome) ? `${rotulo} - ${nome}` : nome;
 	return (
 		'<div class="rs-temporada">' +
 		'<span class="rs-temporada-texto">' +
-		`<strong class="rs-temporada-nome">${escapeHtml(nome)}</strong>` +
+		`<strong class="rs-temporada-nome">${escapeHtml(titulo)}</strong>` +
 		'<span class="rs-temporada-sub">Caixas, Battle Pass e VIP estão no menu Temporada.</span>' +
 		'</span>' +
 		'<button type="button" class="rs-btn rs-btn--sec rs-btn--pequeno" data-rs="ir-temporada">Ir para Temporada</button>' +

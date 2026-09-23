@@ -45,13 +45,13 @@ import PACKET from 'Network/PacketStructure.js';
 import UIManager from 'UI/UIManager.js';
 import GUIComponent from 'UI/GUIComponent.js';
 import DB from 'DB/DBManager.js';
-import { unknownItem } from 'DB/Items/FichaDoItem.js';
 import Client from 'Core/Client.js';
 import RiIcones from 'UI/ri-icones.js';
 import arrastarPorPonteiro, { prenderNaTela } from 'UI/arrastarPorPonteiro.js';
 import { itemIconUrl, preferirArtePublicada } from 'Utils/ItemArt.js';
 import { fecharEEsquecer } from '../limpezaDeJanelaIdle.js';
 import { criarControlador } from './controladorDoRoShop.js';
+import { criarResolverDeIcone } from './iconeDoRoShop.js';
 import { gerarChaveDeCheckout } from './formatoDoRoShop.js';
 import { assinarSaldoDeCash, publicarSaldoDeCash } from 'Utils/saldoDeCash.js';
 import htmlText from './RoShop.html?raw';
@@ -95,22 +95,16 @@ function estaAberta() {
 /**
  * O ICONE REAL por item id: a arte PUBLICADA primeiro (`/ragidle/item/<id>.png`,
  * que conhece os custom), o GRF depois - o mesmo caminho da Temporada. Arte
- * errada e pior que a reserva: `unknownItem` (a maca) NUNCA e aceito.
+ * errada e pior que a reserva: a maca NUNCA e aceita, e a pergunta e pelo
+ * CAMPO do recurso, nao pela identidade da ficha (ver `iconeDoRoShop.js`).
  */
-function resolverIcone(itemId, aoCarregar, aoFalhar) {
-	preferirArtePublicada(itemIconUrl(itemId), aoCarregar, () => {
-		try {
-			const info = DB.getItemInfo(itemId);
-			if (!info || info === unknownItem || !info.identifiedResourceName) {
-				aoFalhar();
-				return;
-			}
-			Client.loadFile(DB.INTERFACE_PATH + 'item/' + info.identifiedResourceName + '.bmp', aoCarregar, aoFalhar);
-		} catch (_err) {
-			aoFalhar();
-		}
-	});
-}
+const resolverIcone = criarResolverDeIcone({
+	preferirArtePublicada,
+	urlPublicada: itemIconUrl,
+	fichaDoItem: itemId => DB.getItemInfo(itemId),
+	carregarDoGrf: (recurso, aoCarregar, aoFalhar) =>
+		Client.loadFile(DB.INTERFACE_PATH + 'item/' + recurso + '.bmp', aoCarregar, aoFalhar)
+});
 
 function enviar(corpo) {
 	const pkt = new PACKET.CZ.RAGIDLE_ROSHOP();
@@ -232,6 +226,13 @@ RoShop.toggle = function toggle() {
 		savePosition();
 	} else {
 		win.classList.add('is-open');
+		/* Sem posicao guardada, a janela nasce no CENTRO pelo tamanho que ela
+		   TEM agora: desde a rodada 3 ela cresce em tela grande (A-05), e as
+		   constantes 1040x700 do `init` a punham fora do centro. */
+		if (_preferences.x == null || _preferences.y == null) {
+			RoShop._host.style.left = Math.max(0, Math.round((Renderer.width - win.offsetWidth) / 2)) + 'px';
+			RoShop._host.style.top = Math.max(0, Math.round((Renderer.height - win.offsetHeight) / 2)) + 'px';
+		}
 		RoShop.focus();
 		prenderNaTela(RoShop._host);
 		c.abrir();

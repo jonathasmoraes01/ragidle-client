@@ -235,7 +235,9 @@ export function estadoDeExemplo(sobrescrever = {}) {
 			slots: { total: 12, gratis: 9, teto: 15 },
 			carga: { expansoes: 1, teto: 5, porExpansao: 5000 }
 		},
-		temporada: { nome: 'Season 1 - Luz & Trevas', fase: 'aberta' },
+		/* Fiel ao contrato (secao 4): o servidor manda `id` + `nome`, e o
+		   "Season 1 - " do banner e montado pelo cliente a partir do `id`. */
+		temporada: { id: 'S1', nome: 'Luz & Trevas', fase: 'aberta' },
 		recarga: {
 			disponivel: false,
 			texto: 'A recarga de RO Cash ainda não está disponível. Fique de olho nos avisos do jogo.'

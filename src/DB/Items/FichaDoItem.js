@@ -61,6 +61,25 @@ export const unknownItem = {
 };
 
 /**
+ * A ficha aponta para um icone PROPRIO, e nao para a maca de sobra?
+ *
+ * A pergunta e pelo CAMPO, nunca pela identidade do objeto (RO Shop rodada 3,
+ * 22/09/2026). `completarFicha` devolve uma COPIA de `unknownItem` para todo
+ * id de `NOMES_LOCAIS` ausente da tabela - batizada, mas com o recurso da
+ * maca -, e a guarda `info === unknownItem` do RO Shop nunca disparava: os 11
+ * itens do RO Shop saiam com a maca no card, nos detalhes e no carrinho, no
+ * cliente real (QA independente, achado A-01). Quem quer saber se ha arte de
+ * verdade pergunta aqui.
+ *
+ * @param {object} ficha - o que `DB.getItemInfo` devolveu
+ * @returns {boolean}
+ */
+export function temIconeProprio(ficha) {
+	const recurso = ficha && ficha.identifiedResourceName;
+	return typeof recurso === 'string' && recurso !== '' && recurso !== unknownItem.identifiedResourceName;
+}
+
+/**
  * Completa os campos que faltam numa ficha de item.
  *
  * @param {number} itemid
