@@ -189,7 +189,9 @@ describe('a lista aponta so para item que o jogo conhece', () => {
 		 */
 		// **23/09/2026: 61 -> 63**, as pocoes da conta 9.000.111-112 que os packs
 		// entregam (`game/pocoes-da-conta.ts` do servidor).
-		expect(Object.keys(NOMES_LOCAIS)).toHaveLength(63);
+		// **23/09/2026: 63 -> 70**, os sete tickets do RO Shop 9.000.113-119
+		// (servicos e expansoes de conta que viraram item, ordem do dono).
+		expect(Object.keys(NOMES_LOCAIS)).toHaveLength(70);
 	});
 });
 
@@ -279,7 +281,8 @@ describe('o icone local (31/08/2026)', () => {
 		 * teste dela esta em `tests/ui/roShopRodada3.test.js`.
 		 */
 		// **23/09/2026: 26 -> 28**, as pocoes da conta, com o `.bmp` da Azul/Branca.
-		expect(Object.keys(ICONES_LOCAIS)).toHaveLength(28);
+		// **23/09/2026: 28 -> 35**, os sete tickets, com o recurso de um cupom oficial cada.
+		expect(Object.keys(ICONES_LOCAIS)).toHaveLength(35);
 	});
 });
 

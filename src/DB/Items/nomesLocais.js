@@ -212,7 +212,15 @@ export const NOMES_LOCAIS = {
 	// As pocoes que os packs entregam (23/09/2026, `game/pocoes-da-conta.ts`):
 	// o mesmo efeito da comum, sem venda, troca nem chao.
 	9000111: 'Poção Azul da Conta', // pocoes-da-conta.ts (Blue_Potion_Da_Conta)
-	9000112: 'Poção Branca da Conta' // pocoes-da-conta.ts (White_Potion_Da_Conta)
+	9000112: 'Poção Branca da Conta', // pocoes-da-conta.ts (White_Potion_Da_Conta)
+	// Os sete TICKETS do RO Shop (23/09/2026): servicos e expansoes de conta que viraram item.
+	9000113: 'Ticket de Reset de Skills', // itens-custom.ts (Ticket_Reset_De_Skills)
+	9000114: 'Ticket de Reset de Status', // itens-custom.ts (Ticket_Reset_De_Status)
+	9000115: 'Ticket de Troca de Nome', // itens-custom.ts (Ticket_Troca_De_Nome)
+	9000116: 'Ticket de Alteração Visual', // itens-custom.ts (Ticket_Alteracao_Visual)
+	9000117: 'Ticket de Slot de Personagem', // itens-custom.ts (Ticket_Slot_De_Personagem)
+	9000118: 'Ticket de Expansão de Carga', // itens-custom.ts (Ticket_Expansao_De_Carga)
+	9000119: 'Ticket de Expansão de Armazém' // itens-custom.ts (Ticket_Expansao_De_Armazem)
 };
 
 /**
@@ -242,7 +250,15 @@ export const DESCRICOES_LOCAIS = {
 	// O efeito e o do script da base no `db/pre-re/item_db_usable.yml:117-132`
 	// (`itemheal 0,rand(40,60);` e `itemheal rand(325,405),0;`).
 	9000111: `Uma poção que recupera de 40 a 60 de SP. Vem dos packs do RO Shop.\n${FECHO_DE_CASH}`,
-	9000112: `Uma poção que recupera de 325 a 405 de HP. Vem dos packs do RO Shop.\n${FECHO_DE_CASH}`
+	9000112: `Uma poção que recupera de 325 a 405 de HP. Vem dos packs do RO Shop.\n${FECHO_DE_CASH}`,
+	// Os tickets (23/09/2026). O numero da carga NAO vai aqui: o dono o redefine, e o servidor o diz na loja.
+	9000113: `Ao usar, a conta ganha um crédito de Reset de Skills. Aplique pelo RO Shop, na aba Utilidades.\n${FECHO_DE_CASH}`,
+	9000114: `Ao usar, a conta ganha um crédito de Reset de Status. Aplique pelo RO Shop, na aba Utilidades.\n${FECHO_DE_CASH}`,
+	9000115: `Ao usar, a conta ganha um crédito de Troca de Nome. Aplique pelo RO Shop, na aba Conta.\n${FECHO_DE_CASH}`,
+	9000116: `Ao usar, a conta ganha um crédito de Alteração Visual. Aplique pelo RO Shop, na aba Conta.\n${FECHO_DE_CASH}`,
+	9000117: `Ao usar, a conta ganha mais um espaço de personagem. Permanente. No limite de espaços, o item não é gasto.\n${FECHO_DE_CASH}`,
+	9000118: `Ao usar, todos os personagens da conta ganham mais capacidade de carga. Permanente. No limite de expansões, o item não é gasto.\n${FECHO_DE_CASH}`,
+	9000119: `Ao usar, o armazém da Kafra ganha cem espaços, para toda a conta. Permanente. No limite de expansões, o item não é gasto.\n${FECHO_DE_CASH}`
 };
 
 /**
@@ -422,6 +438,18 @@ export const ICONES_LOCAIS = {
 	9000110: '\xc0\xfc\xc5\xf5\xb1\xb3\xb9\xfc', // Pack de Treino -> 12208 Manual de Combate
 	9000111: '\xc6\xc4\xb6\xf5\xc6\xf7\xbc\xc7', // Pocao Azul da Conta -> 505 Pocao Azul (a mesma arte)
 	9000112: '\xc7\xcf\xbe\xe1\xc6\xf7\xbc\xc7', // Pocao Branca da Conta -> 504 Pocao Branca (a mesma arte)
+	/*
+	 * Os sete tickets (23/09/2026). Os recursos foram LIDOS na tabela do
+	 * `data.grf` pelo servidor (a mesma escolha de
+	 * `tools/item-icon/recursos-que-a-tabela-nao-tem.ts`), um diferente por ticket.
+	 */
+	9000113: '\xbc\xb6\xb1\xa4\xb8\xb7\xb4\xeb', // Reset de Skills -> 12213 Neuralizer (섬광막대)
+	9000114: '\xc4\xed\xc6\xf9\x2d\xb3\xeb\xb8\xd6', // Reset de Status -> 6153 Special_Exchange_Coupon (쿠폰-노멀)
+	9000115: '\xc4\xed\xc6\xf9', // Troca de Nome -> 7623 Name_Change_Coupon (쿠폰)
+	9000116: '\xc4\xfb\xc1\xee\xc2\xfc\xb0\xa1\xb1\xc7', // Alteracao Visual -> 7622 New_Style_Coupon (퀴즈참가권)
+	9000117: '\xc1\xb6\xc1\xf7\xbf\xf8\xc0\xc7\xc1\xf5\xc7\xa5', // Slot de Personagem -> 12786 Change_Slot_Card (조직원의증표)
+	9000118: '\xc4\xb3\xbd\xc3\xbb\xf3\xc0\xda\x5f\xbb\xa1\xb0\xad', // Expansao de Carga -> 12413 PCBang_Coupon_Box2 (캐시상자_빨강)
+	9000119: '\xc4\xab\xc7\xc1\xb6\xf3\xc0\xcc\xbf\xeb\xb1\xc7', // Expansao de Armazem -> 6046 Clothing_Dye_Coupon (카프라이용권)
 
 	/*
 	 * O 12849 (Combination Kit) NAO ENTRA: nome sim, icone nao. O GRF
