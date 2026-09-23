@@ -189,7 +189,9 @@ describe('a lista aponta so para item que o jogo conhece', () => {
 		 */
 		// **23/09/2026: 61 -> 63**, as pocoes da conta 9.000.111-112 que os packs
 		// entregam (`game/pocoes-da-conta.ts` do servidor).
-		expect(Object.keys(NOMES_LOCAIS)).toHaveLength(63);
+		// **23/09/2026: 63 -> 64**, a Aura do Tornado 9.000.326, o visual do VIP
+		// que substituiu a Astra Blessing (a Astra FICA: quem resgatou tem o item).
+		expect(Object.keys(NOMES_LOCAIS)).toHaveLength(64);
 	});
 });
 

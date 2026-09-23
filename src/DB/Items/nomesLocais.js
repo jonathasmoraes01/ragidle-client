@@ -183,7 +183,10 @@ export const NOMES_LOCAIS = {
 	9000322: 'Ghost Effect', // catalogo-s1.ts, Passe Premium 30
 	9000323: 'Ancient Resonance', // catalogo-s1.ts, Passe Premium 45
 	9000324: 'Rune-Midgarts Glory', // catalogo-s1.ts, Passe Premium 50
-	9000325: 'Astra Blessing', // catalogo-s1.ts, VIP
+	9000325: 'Astra Blessing', // catalogo-s1.ts, VIP ate 23/09/2026 (quem resgatou fica com ela)
+	// 23/09/2026: o visual do VIP trocou (pedido do dono). O nome e o campo
+	// `name` de `game/itens-custom.ts` e o `nome` de `catalogo-s1.ts`.
+	9000326: 'Aura do Tornado', // catalogo-s1.ts, VIP desde 23/09/2026
 
 	// --- Rodada 9: os 11 CONSUMIVEIS DO RO SHOP (22/09/2026) ---
 	//
@@ -242,7 +245,15 @@ export const DESCRICOES_LOCAIS = {
 	// O efeito e o do script da base no `db/pre-re/item_db_usable.yml:117-132`
 	// (`itemheal 0,rand(40,60);` e `itemheal rand(325,405),0;`).
 	9000111: `Uma poção que recupera de 40 a 60 de SP. Vem dos packs do RO Shop.\n${FECHO_DE_CASH}`,
-	9000112: `Uma poção que recupera de 325 a 405 de HP. Vem dos packs do RO Shop.\n${FECHO_DE_CASH}`
+	9000112: `Uma poção que recupera de 325 a 405 de HP. Vem dos packs do RO Shop.\n${FECHO_DE_CASH}`,
+	/*
+	 * A AURA DO TORNADO (23/09/2026, o visual do VIP da Temporada Luz & Trevas).
+	 * O pedido do dono trouxe o nome e a descricao em portugues; nao ha numero
+	 * nesta frase, e o que ela afirma sai do item: `game/itens-custom.ts` (sem
+	 * script - nao da atributo; traje de baixo, `EQP_COSTUME_HEAD_LOW`) e
+	 * `loja-da-temporada.ts` (resgate permanente com o VIP ativo).
+	 */
+	9000326: 'Um redemoinho de vento verde que gira em volta de quem o veste. Visual exclusivo do VIP da Temporada Luz & Trevas: é seu para sempre, mesmo depois que o VIP acabar.\nTraje (visual de baixo). Não altera atributos.'
 };
 
 /**
