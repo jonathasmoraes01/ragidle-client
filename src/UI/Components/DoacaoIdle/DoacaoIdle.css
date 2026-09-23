@@ -2,18 +2,24 @@
  * UI/Components/DoacaoIdle/DoacaoIdle.css — a janela "Doacao via PIX"
  * (23/09/2026).
  *
- * O VISUAL E O DA REFERENCIA DO DONO, e nao o claro do design system: painel
- * azul-marinho, fio dourado, titulo em caixa alta dourado em Cinzel. Ele pediu
- * isso explicitamente para a doacao. Para as cores nao se espalharem soltas,
- * TODA cor desta janela mora nas variaveis `--dc-*` do `:host`, derivadas dos
- * tokens do design system (`--gold-*`, `--blue-*`, `UI/Common.css`) onde ha
- * token; o marinho mais fundo e o unico literal, porque o design system nao
- * tem um azul tao escuro (o mais escuro e o `--blue-900`).
+ * A IDENTIDADE VISUAL E A DO JOGO (ordem do dono, 23/09/2026: "traga a nossa
+ * identidade visual para dentro desse modulo de doacao tambem"). A primeira
+ * versao copiava uma referencia externa (marinho escuro + Cinzel dourado); esta
+ * segue o design system como o RO Shop: moldura `.ri-window`, cabecalho
+ * `.ri-header`/`.ri-title` (Marcellus com as asas), painel claro, texto em
+ * tinta escura, o ouro so como FIO/aro e o azul do botao primario.
+ *
+ * Toda cor sai de token do `UI/Common.css`. As tres locais (marfim, marfim
+ * escuro e o marinho do valor) sao as MESMAS do `RoShop.css`, com os mesmos
+ * valores, em `:host` como variavel - a doacao e a recarga do RO Shop, e as
+ * duas janelas tem de parecer a mesma loja.
+ *
+ * A moeda e o PNG oficial do RO Cash (`ASSET.roCash`, formatoDoRoShop.js).
  *
  * A moldura de CELULAR (painel de tela cheia, D-932/D-941) vem do Common.css:
  * o registro da pilha marca o host com `.ri-janela` e o corpo com
  * `.ri-janela-corpo`, e a janela carrega `.ri-window` para entrar na lista
- * daquela regra. Aqui so se sobrescreve a PELE de `.ri-window`.
+ * daquela regra.
  */
 
 :host {
@@ -21,24 +27,10 @@
 	z-index: 60;
 	pointer-events: none;
 
-	--dc-marinho-fundo: #0b1730;
-	--dc-marinho: var(--blue-900);
-	--dc-cartao: rgba(255, 255, 255, 0.045);
-	--dc-cartao-hover: rgba(255, 255, 255, 0.08);
-	--dc-linha: rgba(224, 176, 77, 0.28);
-	--dc-ouro: var(--gold-400);
-	--dc-ouro-claro: var(--gold-300);
-	--dc-ouro-fundo: rgba(224, 176, 77, 0.13);
-	--dc-texto: #e9eef7;
-	--dc-texto-suave: rgba(233, 238, 247, 0.68);
-	--dc-azul: var(--blue-500);
-	--dc-azul-forte: var(--blue-600);
-	--dc-azul-claro: var(--blue-400);
-	--dc-verde: #7fd6a0;
-	--dc-vermelho: #ff9a8f;
-	--dc-alerta-fundo: rgba(255, 154, 143, 0.1);
-	--dc-campo-fundo: rgba(4, 12, 28, 0.55);
-	--dc-titulo-fonte: 'Cinzel', var(--font-display);
+	--rs-marfim: #fbf8f1;
+	--rs-marfim-2: #f3efe4;
+	--rs-marinho: #173d6b;
+	--rs-ouro-fio: rgba(201, 162, 39, 0.45);
 	--dc-alvo: 36px;
 }
 
@@ -51,10 +43,24 @@
 
 #DoacaoIdle {
 	position: relative;
-	color: var(--dc-texto);
+	color: var(--text-body);
 	font: var(--type-info);
 	-webkit-font-smoothing: antialiased;
 	text-rendering: optimizeLegibility;
+}
+
+#DoacaoIdle img {
+	-webkit-user-drag: none;
+	user-select: none;
+	object-fit: contain;
+}
+
+/* A moeda do RO Cash: o mesmo tamanho do preco do RO Shop (`.rs-moeda`). */
+#DoacaoIdle .dc-moeda {
+	width: 16px;
+	height: 16px;
+	flex: 0 0 auto;
+	vertical-align: -3px;
 }
 
 /* ─── Janela ───────────────────────────────────────────────── */
@@ -67,15 +73,6 @@
 	box-sizing: border-box;
 	width: min(560px, 100vw - 16px);
 	height: min(760px, 100vh - 32px);
-	background: linear-gradient(180deg, var(--dc-marinho) 0%, var(--dc-marinho-fundo) 100%);
-	border: 1px solid var(--dc-ouro);
-	border-radius: var(--radius-window, 8px);
-	box-shadow:
-		0 18px 48px rgba(0, 0, 0, 0.55),
-		inset 0 0 0 1px rgba(0, 0, 0, 0.35);
-	color: var(--dc-texto);
-	backdrop-filter: none;
-	overflow: hidden;
 }
 
 #DoacaoIdle .dc-window.is-open {
@@ -84,40 +81,28 @@
 
 #DoacaoIdle .dc-titlebar {
 	flex: 0 0 auto;
-	position: relative;
-	display: flex;
-	align-items: center;
-	min-height: 52px;
-	padding: 0 56px 0 18px;
-	border-bottom: 1px solid var(--dc-linha);
+	height: 44px;
+	padding: 0 52px;
 	touch-action: none;
-	cursor: move;
 }
 
 #DoacaoIdle .dc-title {
-	font-family: var(--dc-titulo-fonte);
-	font-weight: 700;
-	font-size: 17px;
-	letter-spacing: 0.12em;
-	color: var(--dc-ouro);
 	white-space: nowrap;
 	overflow: hidden;
-	text-overflow: ellipsis;
+	max-width: 100%;
 }
 
-#DoacaoIdle .dc-title-gema {
-	letter-spacing: 0;
-	margin-right: 4px;
+#DoacaoIdle .dc-title-moeda {
+	width: 20px;
+	height: 20px;
+	flex: 0 0 auto;
 }
 
 #DoacaoIdle .dc-close {
 	right: 8px;
 	width: var(--dc-alvo);
 	height: var(--dc-alvo);
-	font-size: 22px;
-	border: 0;
-	background: transparent;
-	color: var(--dc-ouro);
+	font-size: 20px;
 }
 
 /* O "X" ja tem o alvo inteiro (44px no dedo): a area invisivel do Common.css
@@ -127,94 +112,103 @@
 	inset: 0;
 }
 
-#DoacaoIdle .dc-close:hover {
-	background: var(--dc-ouro-fundo);
-	box-shadow: none;
-}
-
 #DoacaoIdle .dc-body {
 	flex: 1 1 auto;
 	min-height: 0;
 	overflow-y: auto;
 	overflow-x: hidden;
 	overscroll-behavior: contain;
-	padding: 16px 18px 20px;
+	padding: var(--sp-7) var(--sp-7) var(--sp-8);
 }
 
 #DoacaoIdle .dc-corpo {
 	display: flex;
 	flex-direction: column;
-	gap: 12px;
+	gap: var(--sp-6);
 }
 
 #DoacaoIdle .dc-carregando {
 	padding: 48px 0;
 	text-align: center;
-	color: var(--dc-texto-suave);
+	color: var(--text-muted);
 }
 
-/* ─── Botoes ───────────────────────────────────────────────── */
+/* ─── Botoes (a receita de `.ri-btn`, com o alvo tatil desta janela) ─ */
 
 #DoacaoIdle .dc-btn {
+	appearance: none;
 	display: inline-flex;
 	align-items: center;
 	justify-content: center;
 	gap: 6px;
 	min-height: var(--dc-alvo);
-	padding: 0 14px;
-	border-radius: 8px;
+	padding: 0 var(--sp-7);
+	border-radius: var(--radius-panel);
 	border: 1px solid transparent;
 	font: var(--fw-bold) 14px / 1.2 var(--font-ui);
 	cursor: pointer;
 	transition:
-		background var(--dur-fast, 120ms) ease-out,
-		filter var(--dur-fast, 120ms) ease-out;
+		background var(--dur-fast, 120ms) var(--ease-out),
+		filter var(--dur-fast, 120ms) var(--ease-out);
+}
+
+#DoacaoIdle .dc-btn:hover:not(:disabled) {
+	filter: brightness(1.06);
+}
+
+#DoacaoIdle .dc-btn:active:not(:disabled) {
+	transform: var(--press-shift);
 }
 
 #DoacaoIdle .dc-btn--principal {
 	width: 100%;
 	min-height: 48px;
 	font-size: 16px;
-	color: #fff;
-	background: linear-gradient(180deg, var(--dc-azul) 0%, var(--dc-azul-forte) 100%);
-	border-color: var(--dc-azul-claro);
-	box-shadow: 0 6px 18px rgba(36, 92, 158, 0.35);
-}
-
-#DoacaoIdle .dc-btn--principal:hover:not(:disabled) {
-	filter: brightness(1.08);
+	color: var(--text-on-accent);
+	background: var(--tab-active-fill);
+	border-color: var(--blue-600);
+	box-shadow: var(--rim-light), var(--shadow-card);
 }
 
 #DoacaoIdle .dc-btn:disabled {
 	cursor: not-allowed;
-	opacity: 0.45;
-	filter: grayscale(0.4);
+	opacity: 0.55;
+	filter: grayscale(1);
 	box-shadow: none;
 }
 
 #DoacaoIdle .dc-btn--secundario {
 	width: 100%;
-	color: var(--dc-texto);
-	background: transparent;
-	border-color: var(--dc-linha);
+	color: var(--text-link);
+	background: var(--surface-card-hover);
+	border-color: var(--border-hairline);
+	box-shadow: var(--shadow-card);
 }
 
+#DoacaoIdle .dc-btn--secundario:hover:not(:disabled) {
+	background: var(--white);
+	border-color: var(--accent);
+	filter: none;
+}
+
+/* O dourado e o `.ri-btn--ouro` do design system. */
 #DoacaoIdle .dc-btn--ouro {
-	color: var(--dc-marinho-fundo);
-	background: linear-gradient(180deg, var(--dc-ouro-claro) 0%, var(--dc-ouro) 100%);
-	border-color: var(--dc-ouro);
+	color: #4a3812;
+	background: linear-gradient(180deg, var(--gold-300) 0%, var(--gold-500) 100%);
+	border-color: var(--gold-700);
+	text-shadow: 0 1px 0 rgba(255, 255, 255, 0.4);
 }
 
 #DoacaoIdle .dc-btn--mini {
 	flex: 0 0 auto;
 	font-size: 13px;
-	padding: 0 12px;
+	padding: 0 var(--sp-6);
 }
 
 #DoacaoIdle .dc-btn--mini:not(.dc-btn--ouro) {
-	color: var(--dc-texto);
-	background: var(--dc-azul-forte);
-	border-color: var(--dc-azul-claro);
+	color: var(--text-on-accent);
+	background: var(--tab-active-fill);
+	border-color: var(--blue-600);
 }
 
 /* ─── Topo: divida e codigos abertos ───────────────────────── */
@@ -226,40 +220,40 @@
 #DoacaoIdle .dc-topo {
 	display: flex;
 	flex-direction: column;
-	gap: 10px;
+	gap: var(--sp-5);
 }
 
 #DoacaoIdle .dc-alerta {
-	padding: 10px 12px;
-	border-radius: 8px;
+	padding: var(--sp-5) var(--sp-6);
+	border-radius: var(--radius-panel);
 	font-size: 13px;
 	line-height: 1.4;
-	border: 1px solid var(--dc-vermelho);
-	background: var(--dc-alerta-fundo);
-	color: var(--dc-texto);
+	border: 1px solid var(--red-600);
+	background: rgba(177, 59, 59, 0.07);
+	color: var(--text-body);
 }
 
 #DoacaoIdle .dc-abertos {
-	padding: 10px 12px;
-	border-radius: 8px;
-	border: 1px solid var(--dc-linha);
-	background: var(--dc-cartao);
+	padding: var(--sp-5) var(--sp-6);
+	border-radius: var(--radius-panel);
+	border: 1px solid var(--rs-ouro-fio);
+	background: linear-gradient(180deg, var(--white) 0%, var(--rs-marfim) 100%);
+	box-shadow: var(--rim-light), var(--shadow-card);
 	display: flex;
 	flex-direction: column;
-	gap: 8px;
+	gap: var(--sp-4);
 }
 
 #DoacaoIdle .dc-abertos-titulo {
-	font-weight: 700;
-	font-size: 13px;
-	color: var(--dc-ouro-claro);
+	font: var(--type-section);
+	color: var(--text-title);
 }
 
 #DoacaoIdle .dc-aberto {
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
-	gap: 10px;
+	gap: var(--sp-5);
 }
 
 #DoacaoIdle .dc-aberto-info {
@@ -267,87 +261,89 @@
 	flex-direction: column;
 	min-width: 0;
 	font-size: 13px;
-	color: var(--dc-texto-suave);
+	color: var(--text-muted);
 }
 
 #DoacaoIdle .dc-aberto-info strong {
-	color: var(--dc-texto);
-	font-size: 15px;
+	color: var(--rs-marinho);
+	font: var(--fw-bold) 15px / 1.3 var(--font-numeric);
 }
 
 /* ─── Faixas ───────────────────────────────────────────────── */
 
 #DoacaoIdle .dc-secao {
-	font-family: var(--dc-titulo-fonte);
-	font-weight: 600;
-	font-size: 13px;
-	letter-spacing: 0.08em;
+	font: var(--type-section);
 	text-transform: uppercase;
-	color: var(--dc-ouro-claro);
+	letter-spacing: var(--ls-caps);
+	color: var(--text-title);
 }
 
 #DoacaoIdle .dc-faixas {
 	display: grid;
 	grid-template-columns: repeat(2, minmax(0, 1fr));
-	gap: 8px;
+	gap: var(--sp-4);
 }
 
 #DoacaoIdle .dc-faixa {
+	appearance: none;
 	display: grid;
 	grid-template-columns: auto 1fr;
 	grid-template-rows: auto auto;
 	align-items: center;
-	column-gap: 10px;
+	column-gap: var(--sp-5);
 	row-gap: 2px;
 	min-height: 56px;
-	padding: 8px 12px;
-	border-radius: 8px;
-	border: 1px solid rgba(255, 255, 255, 0.1);
-	background: var(--dc-cartao);
-	color: var(--dc-texto);
+	padding: var(--sp-4) var(--sp-6);
+	border-radius: var(--radius-panel);
+	border: 1px solid var(--rs-ouro-fio);
+	background: linear-gradient(180deg, var(--white) 0%, var(--rs-marfim) 100%);
+	box-shadow: var(--rim-light), var(--shadow-card);
+	color: var(--text-body);
 	text-align: left;
 	cursor: pointer;
 	font: inherit;
+	transition: box-shadow var(--dur-fast, 120ms) var(--ease-out);
 }
 
 #DoacaoIdle .dc-faixa:hover {
-	background: var(--dc-cartao-hover);
+	box-shadow: var(--rim-light), var(--glow-gold);
 }
 
-#DoacaoIdle .dc-faixa .dc-gema {
+#DoacaoIdle .dc-faixa .dc-moeda {
 	grid-row: 1 / span 2;
 	grid-column: 1;
-	font-size: 22px;
-	line-height: 1;
+	width: 24px;
+	height: 24px;
 }
 
 #DoacaoIdle .dc-faixa-rotulo {
 	grid-column: 2;
-	font-weight: 700;
+	font-weight: var(--fw-bold);
 	font-size: 14px;
+	color: var(--text-title);
 	white-space: nowrap;
 }
 
 #DoacaoIdle .dc-faixa-preco {
 	grid-column: 2;
 	font-size: 12px;
-	color: var(--dc-texto-suave);
+	color: var(--text-muted);
 	white-space: nowrap;
 }
 
 #DoacaoIdle .dc-faixa-preco strong {
-	font-size: 14px;
-	color: var(--dc-texto);
+	font: var(--fw-bold) 14px / 1.2 var(--font-numeric);
+	color: var(--rs-marinho);
 }
 
 #DoacaoIdle .dc-faixa.is-melhor .dc-faixa-preco strong {
-	color: var(--dc-ouro);
+	color: var(--green-600);
 }
 
 #DoacaoIdle .dc-faixa.is-atual {
-	border-color: var(--dc-ouro);
-	background: var(--dc-ouro-fundo);
-	box-shadow: 0 0 0 1px var(--dc-ouro) inset;
+	border-color: var(--gold-500);
+	background: linear-gradient(180deg, var(--white) 0%, var(--gold-200) 100%);
+	box-shadow: 0 0 0 1px var(--gold-500) inset, var(--shadow-card);
 }
 
 /* ─── Quantidade ───────────────────────────────────────────── */
@@ -355,21 +351,24 @@
 #DoacaoIdle .dc-quantidade {
 	display: grid;
 	grid-template-columns: 48px 1fr 48px;
-	gap: 8px;
+	gap: var(--sp-4);
 }
 
 #DoacaoIdle .dc-passo {
+	appearance: none;
 	min-height: 44px;
-	border-radius: 8px;
-	border: 1px solid var(--dc-linha);
-	background: var(--dc-cartao);
-	color: var(--dc-ouro);
-	font: 700 22px / 1 var(--font-ui);
+	border-radius: var(--radius-panel);
+	border: 1px solid var(--border-hairline);
+	background: var(--surface-card-hover);
+	box-shadow: var(--rim-light), var(--shadow-card);
+	color: var(--text-link);
+	font: var(--fw-bold) 22px / 1 var(--font-ui);
 	cursor: pointer;
 }
 
 #DoacaoIdle .dc-passo:hover {
-	background: var(--dc-cartao-hover);
+	background: var(--white);
+	border-color: var(--accent);
 }
 
 #DoacaoIdle .dc-qtd,
@@ -378,37 +377,39 @@
 	width: 100%;
 	min-width: 0;
 	min-height: 44px;
-	padding: 0 12px;
-	border-radius: 8px;
-	border: 1px solid rgba(255, 255, 255, 0.16);
-	background: var(--dc-campo-fundo);
-	color: var(--dc-texto);
+	padding: 0 var(--sp-6);
+	border-radius: var(--radius-panel);
+	border: 1px solid var(--border-inset);
+	background: var(--white);
+	box-shadow: var(--shadow-inset);
+	color: var(--text-body);
 	/* 16px: menos que isso o Safari do iPhone da zoom na pagina ao focar. */
-	font: 600 16px / 1.2 var(--font-ui);
+	font: var(--fw-semibold) 16px / 1.2 var(--font-ui);
 	outline: none;
 }
 
 #DoacaoIdle .dc-qtd {
 	text-align: center;
-	font-size: 20px;
-	font-weight: 800;
+	font: var(--fw-black) 20px / 1.2 var(--font-numeric);
+	color: var(--rs-marinho);
 }
 
 #DoacaoIdle .dc-qtd:focus,
 #DoacaoIdle .dc-input:focus {
-	border-color: var(--dc-ouro);
-	box-shadow: 0 0 0 2px var(--dc-ouro-fundo);
+	border-color: var(--accent);
+	box-shadow: var(--glow-accent);
 }
 
 #DoacaoIdle .dc-input::placeholder {
-	color: rgba(233, 238, 247, 0.35);
+	color: var(--text-muted);
+	opacity: 0.7;
 }
 
 #DoacaoIdle .dc-slider {
 	width: 100%;
 	margin: 0;
 	height: 28px;
-	accent-color: var(--dc-ouro);
+	accent-color: var(--blue-600);
 	cursor: pointer;
 }
 
@@ -421,42 +422,46 @@
 #DoacaoIdle .dc-atalhos {
 	display: flex;
 	flex-wrap: wrap;
-	gap: 6px;
+	gap: var(--sp-3);
 }
 
+/* As pilulas sao o `.ri-tab` do design system (inativa clara, ativa azul). */
 #DoacaoIdle .dc-atalho {
+	appearance: none;
 	flex: 1 0 auto;
 	min-width: 52px;
 	min-height: var(--dc-alvo);
-	padding: 0 10px;
-	border-radius: 999px;
-	border: 1px solid var(--dc-linha);
-	background: transparent;
-	color: var(--dc-texto);
-	font: 700 13px / 1 var(--font-ui);
+	padding: 0 var(--sp-5);
+	border-radius: var(--radius-pill);
+	border: 1px solid var(--border-hairline);
+	background: var(--tab-idle-fill);
+	color: var(--tab-idle-text);
+	font: var(--fw-bold) 13px / 1 var(--font-ui);
 	cursor: pointer;
 }
 
 #DoacaoIdle .dc-atalho:hover {
-	background: var(--dc-cartao-hover);
+	border-color: var(--accent);
+	color: var(--text-link);
 }
 
 #DoacaoIdle .dc-atalho.is-ativo {
-	border-color: var(--dc-ouro);
-	background: var(--dc-ouro-fundo);
-	color: var(--dc-ouro-claro);
+	border-color: var(--blue-600);
+	background: var(--tab-active-fill);
+	color: var(--text-on-accent);
 }
 
 /* ─── Resumo ───────────────────────────────────────────────── */
 
 #DoacaoIdle .dc-resumo {
-	padding: 12px 14px;
-	border-radius: 10px;
-	border: 1px solid var(--dc-linha);
-	background: rgba(4, 12, 28, 0.45);
+	padding: var(--sp-6) var(--sp-7);
+	border-radius: var(--radius-panel);
+	border: 1px solid var(--rs-ouro-fio);
+	background: linear-gradient(180deg, var(--white) 0%, var(--rs-marfim) 100%);
+	box-shadow: var(--rim-light), var(--shadow-card);
 	display: flex;
 	flex-direction: column;
-	gap: 6px;
+	gap: var(--sp-3);
 }
 
 #DoacaoIdle .dc-resumo-linha,
@@ -464,55 +469,56 @@
 	display: flex;
 	justify-content: space-between;
 	align-items: baseline;
-	gap: 10px;
+	gap: var(--sp-5);
 }
 
 #DoacaoIdle .dc-resumo-linha span {
-	color: var(--dc-texto-suave);
+	color: var(--text-muted);
 	font-size: 14px;
 }
 
 #DoacaoIdle .dc-resumo-linha strong {
-	font-size: 15px;
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	font: var(--fw-bold) 15px / 1.2 var(--font-numeric);
+	color: var(--rs-marinho);
 	white-space: nowrap;
 }
 
 #DoacaoIdle .dc-resumo-bonus strong {
-	color: var(--dc-verde);
+	color: var(--green-600);
 }
 
 #DoacaoIdle .dc-divisor {
 	height: 1px;
 	margin: 4px 0;
-	background: linear-gradient(90deg, transparent, var(--dc-ouro), transparent);
+	background: linear-gradient(90deg, transparent, var(--gold-500), transparent);
 }
 
 #DoacaoIdle .dc-total span {
-	font-family: var(--dc-titulo-fonte);
-	font-weight: 700;
-	font-size: 16px;
-	letter-spacing: 0.06em;
-	color: var(--dc-ouro-claro);
+	font: var(--fw-regular) 17px / 1.2 var(--font-display);
+	letter-spacing: var(--ls-title);
+	color: var(--text-title);
 }
 
 #DoacaoIdle .dc-total strong {
-	font-size: 26px;
-	font-weight: 800;
-	color: var(--dc-ouro);
+	font: var(--fw-black) 26px / 1.1 var(--font-numeric);
+	color: var(--rs-marinho);
 	white-space: nowrap;
 }
 
 #DoacaoIdle .dc-economia {
 	align-self: flex-end;
 	font-size: 13px;
-	font-weight: 700;
-	color: var(--dc-verde);
+	font-weight: var(--fw-bold);
+	color: var(--green-600);
 }
 
 #DoacaoIdle .dc-resumo-vazio {
-	color: var(--dc-texto-suave);
+	color: var(--text-muted);
 	text-align: center;
-	padding: 8px 0;
+	padding: var(--sp-4) 0;
 }
 
 #DoacaoIdle .dc-dica:empty {
@@ -523,14 +529,14 @@
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
-	gap: 10px;
-	padding: 8px 10px 8px 14px;
-	border-radius: 10px;
-	border: 1px dashed var(--dc-ouro);
-	background: var(--dc-ouro-fundo);
-	font-weight: 700;
+	gap: var(--sp-5);
+	padding: var(--sp-4) var(--sp-5) var(--sp-4) var(--sp-7);
+	border-radius: var(--radius-panel);
+	border: 1px dashed var(--gold-500);
+	background: var(--gold-200);
+	font-weight: var(--fw-bold);
 	font-size: 14px;
-	color: var(--dc-ouro-claro);
+	color: var(--gold-700);
 }
 
 /* ─── Campos ───────────────────────────────────────────────── */
@@ -538,25 +544,25 @@
 #DoacaoIdle .dc-campos {
 	display: flex;
 	flex-direction: column;
-	gap: 10px;
+	gap: var(--sp-5);
 }
 
 #DoacaoIdle .dc-campo {
 	display: flex;
 	flex-direction: column;
-	gap: 6px;
+	gap: var(--sp-3);
 }
 
 #DoacaoIdle .dc-rotulo {
-	font-weight: 700;
+	font-weight: var(--fw-bold);
 	font-size: 13px;
-	color: var(--dc-texto);
+	color: var(--text-title);
 }
 
 #DoacaoIdle .dc-rotulo em {
 	font-style: normal;
-	font-weight: 600;
-	color: var(--dc-ouro);
+	font-weight: var(--fw-semibold);
+	color: var(--text-muted);
 }
 
 #DoacaoIdle .dc-campo-erro:empty,
@@ -567,28 +573,28 @@
 #DoacaoIdle .dc-campo-erro,
 #DoacaoIdle .dc-erro {
 	font-size: 13px;
-	color: var(--dc-vermelho);
+	color: var(--red-600);
 }
 
 #DoacaoIdle .dc-erro {
-	padding: 8px 12px;
-	border-radius: 8px;
-	border: 1px solid var(--dc-vermelho);
-	background: var(--dc-alerta-fundo);
-	color: var(--dc-texto);
+	padding: var(--sp-4) var(--sp-6);
+	border-radius: var(--radius-panel);
+	border: 1px solid var(--red-600);
+	background: rgba(177, 59, 59, 0.07);
+	color: var(--text-body);
 }
 
 #DoacaoIdle .dc-aceite {
 	display: flex;
 	align-items: flex-start;
-	gap: 10px;
-	padding: 12px;
-	border-radius: 8px;
-	border: 1px solid rgba(255, 255, 255, 0.1);
-	background: var(--dc-cartao);
+	gap: var(--sp-5);
+	padding: var(--sp-6);
+	border-radius: var(--radius-panel);
+	border: 1px solid var(--border-hairline);
+	background: var(--surface-card);
 	font-size: 12.5px;
 	line-height: 1.45;
-	color: var(--dc-texto-suave);
+	color: var(--text-body);
 	cursor: pointer;
 }
 
@@ -597,7 +603,7 @@
 	width: 20px;
 	height: 20px;
 	margin: 1px 0 0;
-	accent-color: var(--dc-ouro);
+	accent-color: var(--blue-600);
 	cursor: pointer;
 }
 
@@ -611,7 +617,7 @@
 }
 
 #DoacaoIdle .dc-aceite a {
-	color: var(--dc-ouro-claro);
+	color: var(--text-link);
 	text-decoration: underline;
 }
 
@@ -620,7 +626,7 @@
 #DoacaoIdle .dc-pag {
 	display: flex;
 	flex-direction: column;
-	gap: 12px;
+	gap: var(--sp-6);
 }
 
 #DoacaoIdle .dc-pag-chamada,
@@ -628,14 +634,15 @@
 	margin: 0;
 	font-size: 14px;
 	line-height: 1.45;
-	color: var(--dc-texto-suave);
+	color: var(--text-body);
 }
 
 #DoacaoIdle .dc-nota {
-	padding: 10px 12px;
-	border-radius: 8px;
-	border: 1px solid var(--dc-linha);
-	background: var(--dc-cartao);
+	padding: var(--sp-5) var(--sp-6);
+	border-radius: var(--radius-panel);
+	border: 1px solid var(--border-hairline);
+	background: var(--surface-card);
+	color: var(--text-muted);
 }
 
 #DoacaoIdle .dc-qr-moldura {
@@ -643,9 +650,10 @@
 	width: min(240px, 70vw);
 	aspect-ratio: 1;
 	padding: 10px;
-	border-radius: 10px;
-	background: #fff;
-	border: 2px solid var(--dc-ouro);
+	border-radius: var(--radius-panel);
+	background: var(--white);
+	border: 1px solid var(--border-gold);
+	box-shadow: var(--rim-gold), var(--shadow-card);
 	box-sizing: border-box;
 }
 
@@ -659,7 +667,7 @@
 
 #DoacaoIdle .dc-copia-linha {
 	display: flex;
-	gap: 8px;
+	gap: var(--sp-4);
 }
 
 #DoacaoIdle .dc-copia {
@@ -677,40 +685,44 @@
 #DoacaoIdle .dc-pag-info {
 	display: grid;
 	grid-template-columns: 1fr 1fr;
-	gap: 8px;
+	gap: var(--sp-4);
 }
 
 #DoacaoIdle .dc-pag-info > div {
 	display: flex;
 	flex-direction: column;
 	gap: 2px;
-	padding: 10px 12px;
-	border-radius: 8px;
-	border: 1px solid var(--dc-linha);
-	background: rgba(4, 12, 28, 0.45);
+	padding: var(--sp-5) var(--sp-6);
+	border-radius: var(--radius-panel);
+	border: 1px solid var(--rs-ouro-fio);
+	background: linear-gradient(180deg, var(--white) 0%, var(--rs-marfim) 100%);
+	box-shadow: var(--rim-light), var(--shadow-card);
 	min-width: 0;
 }
 
 #DoacaoIdle .dc-pag-info span {
-	font-size: 12px;
-	color: var(--dc-texto-suave);
+	font: var(--type-badge);
+	font-size: 11px;
+	text-transform: uppercase;
+	letter-spacing: var(--ls-caps);
+	color: var(--text-muted);
 }
 
 #DoacaoIdle .dc-pag-info strong {
-	font-size: 18px;
-	color: var(--dc-ouro);
+	font: var(--fw-bold) 18px / 1.2 var(--font-numeric);
+	color: var(--rs-marinho);
 	overflow-wrap: anywhere;
 }
 
 #DoacaoIdle .dc-expira {
 	text-align: center;
 	font-size: 14px;
-	color: var(--dc-texto-suave);
+	color: var(--text-muted);
 }
 
 #DoacaoIdle .dc-expira strong {
-	font-size: 18px;
-	color: var(--dc-texto);
+	font: var(--fw-bold) 18px / 1.2 var(--font-numeric);
+	color: var(--rs-marinho);
 	font-variant-numeric: tabular-nums;
 }
 
@@ -722,7 +734,7 @@
 	text-align: center;
 	font-size: 13px;
 	line-height: 1.4;
-	color: var(--dc-ouro-claro);
+	color: var(--gold-700);
 }
 
 /* ─── Sucesso, expirado, indisponivel ──────────────────────── */
@@ -731,47 +743,61 @@
 	display: flex;
 	flex-direction: column;
 	align-items: center;
-	gap: 12px;
-	padding: 28px 8px 8px;
+	gap: var(--sp-6);
+	padding: 28px var(--sp-4) var(--sp-4);
 	text-align: center;
 }
 
+/* O icone mora num disco claro com aro de ouro (a receita do `.ri-disc`): a
+   moeda do RO Cash no sucesso, o glifo do design system nos outros. */
 #DoacaoIdle .dc-recado-icone {
-	font-size: 48px;
-	line-height: 1;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 72px;
+	height: 72px;
+	border-radius: 50%;
+	border: 1px solid var(--border-gold);
+	background: linear-gradient(180deg, var(--white) 0%, var(--rs-marfim-2) 100%);
+	box-shadow: var(--rim-gold), var(--shadow-card);
+	color: var(--text-link);
+}
+
+#DoacaoIdle .dc-recado-icone svg {
+	width: 34px;
+	height: 34px;
+}
+
+#DoacaoIdle .dc-recado-icone .dc-moeda--grande {
+	width: 44px;
+	height: 44px;
+	vertical-align: 0;
 }
 
 #DoacaoIdle .dc-sucesso-titulo {
 	margin: 0;
-	font-family: var(--dc-titulo-fonte);
-	font-weight: 700;
-	font-size: 22px;
-	letter-spacing: 0.06em;
-	color: var(--dc-ouro);
+	font: var(--fw-regular) 22px / 1.2 var(--font-display);
+	letter-spacing: var(--ls-title);
+	color: var(--text-title);
 }
 
 #DoacaoIdle .dc-recado-texto {
-	margin: 0 0 8px;
+	margin: 0 0 var(--sp-4);
 	font-size: 16px;
 	line-height: 1.45;
-	color: var(--dc-texto);
+	color: var(--text-body);
 }
 
 #DoacaoIdle .dc-sucesso .dc-recado-texto {
-	font-weight: 700;
-	color: var(--dc-verde);
+	font-weight: var(--fw-bold);
+	color: var(--green-600);
 }
 
 /* ─── Celular ──────────────────────────────────────────────── */
 
 @media (max-width: 599px) {
 	#DoacaoIdle .dc-body {
-		padding: 12px 12px 16px;
-	}
-
-	#DoacaoIdle .dc-title {
-		font-size: 15px;
-		letter-spacing: 0.08em;
+		padding: var(--sp-6) var(--sp-6) var(--sp-7);
 	}
 
 	/* Na HUD vertical a janela inteira rola (Common.css); o corpo nao precisa

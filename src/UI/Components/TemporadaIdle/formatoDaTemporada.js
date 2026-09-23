@@ -1002,7 +1002,8 @@ export function renderCompraDoPasseVipHtml(passe) {
 		'<div class="te-passe-vip-compra-texto">' +
 		'<div class="te-passe-vip-compra-titulo">Passe de Batalha VIP</div>' +
 		`<div class="te-passe-vip-compra-preco">${escapeHtml(preco)}</div>` +
-		`<div class="te-passe-vip-compra-dica">Vendido à parte do VIP.${dica ? ` ${escapeHtml(dica)}` : ''}</div>` +
+		// So o texto do servidor (23/09/2026, dono: tirar o "Vendido a parte do VIP").
+		(dica ? `<div class="te-passe-vip-compra-dica">${escapeHtml(dica)}</div>` : '') +
 		'</div>' +
 		`<button type="button" class="ri-btn ri-btn--ouro te-passe-vip-comprar" data-agir="comprar-passe-vip"${pode ? '' : ' disabled aria-disabled="true"'}>` +
 		`${escapeHtml(rotulo)}</button>` +
