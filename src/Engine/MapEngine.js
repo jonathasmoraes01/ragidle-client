@@ -1234,7 +1234,10 @@ function sairDaEconomiaDeEnergia() {
  * dê alt tab OU troque de aplicativo no mobile. Se ele FECHAR a aba ou o
  * aplicativo, deve encerrar."*
  */
-const MS_DE_ATRASO_ANTES_DE_ENTRAR_NA_ECONOMIA = 3000;
+// 14 s desde 23/09/2026 (era 3 s, ordem do dono no open beta: *"Aumente
+// esse tempo para 14 segundos"*) - um alt-tab curto nao tira mais o jogador
+// da tela do jogo.
+const MS_DE_ATRASO_ANTES_DE_ENTRAR_NA_ECONOMIA = 14000;
 
 /** O atraso agendado, se houver — cancelado se a aba voltar antes de disparar. */
 let _atrasoDaEconomia = null;
