@@ -21,6 +21,8 @@ import Client from 'Core/Client.js';
 import Thread from 'Core/Thread.js';
 import Context from 'Core/Context.js';
 import LoginEngine from 'Engine/LoginEngine.js';
+import MapEngine from 'Engine/MapEngine.js'; // RAGIDLE: toda volta ao login desmonta a sessao de mapa (H07)
+import Session from 'Engine/SessionStorage.js';
 import Network from 'Network/NetworkManager.js';
 import Renderer from 'Renderer/Renderer.js';
 import MapRenderer from 'Renderer/MapRenderer.js';
@@ -254,6 +256,28 @@ class GameEngine {
 
 		UIManager.removeComponents();
 		Network.close();
+		/*
+		 * TODA VOLTA AO LOGIN DESMONTA A SESSAO DE MAPA (H07, auditoria 2 de
+		 * 22/09/2026). O logout desmonta antes de chegar aqui; a reconexao que
+		 * desiste, o OK do `showErrorBox`, o `expulso` da economia e o `aoBoot`
+		 * do sono chegam direto — e o login ficava com a tela acesa pelo modo
+		 * leitura, a tela preta da economia por cima e a HUD de party com o
+		 * grupo do personagem anterior. `Session.Playing` e a marca de que ha
+		 * sessao; no boot e na volta da tela de login para a lista de
+		 * servidores ela e falsa.
+		 *
+		 * Depois de `Network.close()`, para nada da limpeza (a janela de Grupo
+		 * avisa o servidor que fechou) sair por um socket que esta morrendo. E
+		 * num `try`: uma limpeza que lanca nao pode tirar do jogador a tela de
+		 * login, que e justamente para onde ele esta indo.
+		 */
+		if (Session.Playing) {
+			try {
+				MapEngine.desmontarSessao();
+			} catch (erro) {
+				console.error('[GameEngine] a desmontagem da sessao de mapa falhou; o login aparece mesmo assim', erro);
+			}
+		}
 		// Setup background
 		Background.init();
 		Background.resize(Renderer.width, Renderer.height);

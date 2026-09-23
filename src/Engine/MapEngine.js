@@ -225,6 +225,15 @@ class MapEngine {
 	}
 
 	/**
+	 * A desmontagem da sessao de mapa para quem leva ao login sem passar pelo
+	 * logout (H07, auditoria 2 de 22/09/2026): `GameEngine.reload()`. O corpo
+	 * e o mesmo do logout — ver `desmontarSessaoDeMapa`.
+	 */
+	static desmontarSessao() {
+		desmontarSessaoDeMapa();
+	}
+
+	/**
 	 * Connect to Map Server
 	 *
 	 * @param {number} ip
@@ -2162,6 +2171,55 @@ function onExitFail(pkt) {
 }
 
 /**
+ * A DESMONTAGEM DA SESSAO DE MAPA, UMA SO (H07, auditoria 2 de 22/09/2026).
+ *
+ * Morava inteira dentro de `onExitSuccess`, e o logout era a unica porta para o
+ * login que a fazia. A reconexao que desiste (inclusive a manutencao e o
+ * `@kick`), o OK do `showErrorBox`, o `expulso` da economia e o `aoBoot` do
+ * sono chamam so `GameEngine.reload()`: na tela de login o modo leitura seguia
+ * segurando a tela acesa, a tela preta da economia (z-index 2000000) ficava por
+ * cima de tudo, e a HUD de party voltava com o grupo do personagem anterior.
+ * Hoje `GameEngine.reload()` chama esta mesma funcao quando ha sessao
+ * (`MapEngine.desmontarSessao`), e uma porta nova para o login a herda.
+ *
+ * `Session.Playing` e a marca de que ha sessao, e ela cai PRIMEIRO: o logout
+ * desmonta aqui e depois recarrega, e a recarga nao desmonta de novo; e uma
+ * excecao no meio nao faz a proxima recarga tentar outra vez. `cleanGameUI` vem
+ * por ultimo pelo mesmo motivo — e o passo que toca dezenas de componentes, o
+ * que mais pode lancar, e nada acima pode depender dele.
+ */
+function desmontarSessaoDeMapa() {
+	Session.Playing = false;
+
+	/*
+	 * O MODO LEITURA SOLTA AQUI (09/09/2026).
+	 *
+	 * Voltar ao login e o caminho em que a condicao dele deixa de existir sem
+	 * nunca virar falsa: o `IdleConfig` para de receber resposta, entao
+	 * `cacaAutomatica` congela no ultimo valor e o relogio do modulo seguiria
+	 * renovando o lock numa tela de login. Trocar de MAPA nao passa por aqui,
+	 * e e proposital — o lock nao pode piscar a cada viagem.
+	 */
+	TelaAcesaNoFarm.desligar();
+	BackgroundTicker.stop();
+	document.removeEventListener('visibilitychange', onVisibilidadeMudouParaEconomia);
+	if (_atrasoDaEconomia) {
+		clearTimeout(_atrasoDaEconomia);
+		_atrasoDaEconomia = null;
+	}
+	fecharTelaDaEconomia();
+	// A tela do sono e a outra tela preta crua em `document.body`: uma reconexao
+	// que desiste com ela aberta a deixaria por cima do login.
+	if (_janelaDoSonoAtiva) {
+		_janelaDoSonoAtiva.remove();
+		_janelaDoSonoAtiva = null;
+	}
+	GuildEngine.guild_id = 0;
+	Session.Achievement = null;
+	cleanGameUI();
+}
+
+/**
  * Server accept to disconnect us
  *
  * @param {object} pkt - PACKET.ZC.REFUSE_QUIT
@@ -2181,33 +2239,14 @@ function onExitSuccess() {
 		ShortCut.saveToServer();
 	}
 
-	/*
-	 * O MODO LEITURA SOLTA AQUI (09/09/2026).
-	 *
-	 * Sair do jogo e o unico caminho em que a condicao dele deixa de existir
-	 * sem nunca virar falsa: o `IdleConfig` para de receber resposta, entao
-	 * `cacaAutomatica` congela no ultimo valor e o relogio do modulo seguiria
-	 * renovando o lock numa tela de login. Trocar de MAPA nao passa por aqui,
-	 * e e proposital — o lock nao pode piscar a cada viagem.
-	 */
-	TelaAcesaNoFarm.desligar();
-	GuildEngine.guild_id = 0;
-	cleanGameUI();
-	Session.Achievement = null;
+	desmontarSessaoDeMapa();
 	Mouse.intersect = false;
 	UIManager.removeComponents();
-	BackgroundTicker.stop();
 	// R12 (14/09/2026): logout voluntario cancela qualquer ciclo de
 	// reconexao em curso (rede de seguranca explicita — `Network.close()`
 	// logo abaixo ja impede o proprio `onDisconnect` de disparar, ver
 	// NetworkManager.js).
 	Reconexao.cancelar();
-	document.removeEventListener('visibilitychange', onVisibilidadeMudouParaEconomia);
-	if (_atrasoDaEconomia) {
-		clearTimeout(_atrasoDaEconomia);
-		_atrasoDaEconomia = null;
-	}
-	fecharTelaDaEconomia();
 	Network.close();
 	Renderer.stop();
 	MapRenderer.free();
