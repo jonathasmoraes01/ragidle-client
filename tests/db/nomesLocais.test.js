@@ -107,9 +107,20 @@ describe('a lista aponta so para item que o jogo conhece', () => {
 		expect(ids.size).toBeGreaterThan(500);
 		expect(ids.has(501), 'a Pocao Vermelha sumiu do pacote? a leitura quebrou').toBe(true);
 
+		/*
+		 * O LEGADO DECLARADO (23/09/2026): os quatro xaropes e o Combination Kit
+		 * sao itens de RENEWAL que o merge das lojas pre-renewal (D-1591/D-1592
+		 * do servidor) tirou do pacote. Os nomes FICAM: o 12849 e o exemplo dos
+		 * testes do mecanismo de estube (`completarFicha`), e quem comprou xarope
+		 * antes do merge pode te-lo na mochila. Lista FECHADA: id novo que sair
+		 * do elenco continua reprovando aqui.
+		 */
+		const LEGADO_FORA_DO_PACOTE = new Set([11621, 11622, 11623, 11624, 12849]);
 		const orfaos = Object.keys(NOMES_LOCAIS)
 			.map(Number)
-			.filter((id) => !ids.has(id));
+			.filter((id) => !ids.has(id) && !LEGADO_FORA_DO_PACOTE.has(id));
+		// e o legado tem de continuar FORA: se voltar ao pacote, a excecao sai
+		expect([...LEGADO_FORA_DO_PACOTE].filter((id) => ids.has(id))).toEqual([]);
 		expect(
 			orfaos,
 			'estes ids da tabela local nao existem no conteudo do jogo — typo de id, ou o item saiu do elenco'
@@ -176,14 +187,16 @@ describe('a lista aponta so para item que o jogo conhece', () => {
 		 * novos do RO Shop). O cruzamento acima so os aceita com o
 		 * `conteudo.json` regerado pela branch do RO Shop (B-RS-08 do servidor).
 		 */
+		// **23/09/2026: 61 -> 63**, as pocoes da conta 9.000.111-112 que os packs
+		// entregam (`game/pocoes-da-conta.ts` do servidor).
 		/*
-		 * **Rodada 10 (23/09/2026, Recompensas do Alfa):** +3, o Poring Alpha
+		 * **Rodada 10 (23/09/2026, Recompensas do Alfa):** +3 (63 -> 66, somadas as pocoes da conta acima), o Poring Alpha
 		 * Hat (9.002.000), a Coroa do Alfa (9.002.001) e a Aura do Alfa
 		 * (9.002.002, a aura virou item de costume por ordem do dono). O cruzamento acima so
 		 * os aceita com o `conteudo.json` regerado pela branch
 		 * `feat/reset-do-alfa` do servidor.
 		 */
-		expect(Object.keys(NOMES_LOCAIS)).toHaveLength(64);
+		expect(Object.keys(NOMES_LOCAIS)).toHaveLength(66);
 	});
 });
 
@@ -241,7 +254,7 @@ describe('o icone local (31/08/2026)', () => {
 		expect(semNome, 'estes ids tem icone local e nenhum nome local').toEqual([]);
 	});
 
-	it('sao exatamente 26: 10 derivados de cosmetico + 1 DESENHADO + 4 siropes + 11 reservas do RO Shop', () => {
+	it('sao exatamente 28: 10 derivados de cosmetico + 1 DESENHADO + 4 siropes + 13 reservas do RO Shop', () => {
 		/*
 		 * Os 10 derivados de cosmetico sao 10 e nao 13 porque `View` NAO e
 		 * chave unica (20500/20765 dividem o 1; 20606/20727 dividem o 5). Quem
@@ -272,7 +285,8 @@ describe('o icone local (31/08/2026)', () => {
 		 * RESERVA ate o PNG oficial ser publicado, e nao o icone do item. O
 		 * teste dela esta em `tests/ui/roShopRodada3.test.js`.
 		 */
-		expect(Object.keys(ICONES_LOCAIS)).toHaveLength(26);
+		// **23/09/2026: 26 -> 28**, as pocoes da conta, com o `.bmp` da Azul/Branca.
+		expect(Object.keys(ICONES_LOCAIS)).toHaveLength(28);
 	});
 });
 

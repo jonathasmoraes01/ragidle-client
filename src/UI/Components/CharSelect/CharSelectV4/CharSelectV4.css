@@ -651,3 +651,38 @@
 		background: var(--blue-500);
 	}
 }
+
+/* A VAGA BLOQUEADA (23/09/2026): a conta nasce com 4 vagas e as outras 11
+   aparecem com cadeado, para o jogador saber que existem e como liberar.
+   Mora no FIM do arquivo de proposito: a vaga bloqueada tambem e `.is-empty`,
+   e as regras de `.is-empty` acima ("+" e "Criar personagem") tem a mesma
+   especificidade - so a ordem faz o cadeado vencer. */
+#CharSelectV4 .char_canvas.is-bloqueada,
+#CharSelectV4 .char_canvas.is-bloqueada:hover {
+	background: var(--surface-inset);
+	box-shadow: inset 0 0 0 1px var(--border-hairline);
+	cursor: not-allowed;
+	opacity: 0.6;
+}
+#CharSelectV4 .char_canvas.is-bloqueada::before {
+	content: '\1F512';
+	position: absolute;
+	top: 55px;
+	left: 0;
+	width: 100%;
+	text-align: center;
+	font-size: 32px;
+	color: var(--blue-400);
+	pointer-events: none;
+}
+#CharSelectV4 .char_canvas.is-bloqueada::after {
+	content: 'Bloqueada';
+	position: absolute;
+	inset: auto 0;
+	top: 110px;
+	display: block;
+	text-align: center;
+	font: var(--type-info);
+	color: var(--text-link);
+	pointer-events: none;
+}

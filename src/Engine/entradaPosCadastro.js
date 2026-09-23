@@ -111,6 +111,24 @@ export function capturarEntrada(janela = window) {
 }
 
 /**
+ * O cadastro feito DENTRO da tela de login (23/09/2026,
+ * `UI/Components/WinLogin/cadastroNaEntrada.js`) recebe o passe na resposta do
+ * balcao, sem passar por endereco nenhum. Arma o mesmo estado que
+ * `capturarEntrada`, para o login com o passe cair na criacao de personagem e
+ * contar a conversao, igual ao cadastro pelo site.
+ *
+ * @param {string} usuario
+ * @param {string} passe
+ * @returns {{usuario: string, passe: string} | null}
+ */
+export function armarEntrada(usuario, passe) {
+	_entrada = lerEntrada(String(usuario) + '.' + String(passe));
+	_pendente = false;
+	_aceita = false;
+	return _entrada;
+}
+
+/**
  * Todo `CA_LOGIN` passa por aqui. So o login que leva EXATAMENTE o passe
  * capturado arma o estado; qualquer outro o apaga.
  *

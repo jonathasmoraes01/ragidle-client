@@ -89,6 +89,7 @@ function resolverIconePadrao(id, aoCarregar, aoFalhar) {
  * @param {Element|ShadowRoot} opcoes.raiz - onde mora o HTML de RoShop.html
  * @param {function(object):void} opcoes.enviar - manda um corpo JSON ao servidor
  * @param {function():void} [opcoes.abrirTemporada]
+ * @param {function():void} [opcoes.abrirDoacao] - o "Recarregar" com a recarga disponivel
  * @param {function():string} opcoes.gerarChave
  * @param {function(number, function(string):void, function():void):void} [opcoes.resolverIcone]
  * @param {function(number):void} [opcoes.aoSaldo] - um saldo novo do servidor chegou por esta janela
@@ -97,6 +98,7 @@ export function criarControlador(opcoes) {
 	const raiz = opcoes.raiz;
 	const enviar = opcoes.enviar;
 	const abrirTemporada = opcoes.abrirTemporada || (() => {});
+	const abrirDoacao = opcoes.abrirDoacao || null;
 	const aoSaldo = opcoes.aoSaldo || (() => {});
 	const gerarChave = opcoes.gerarChave;
 	const resolverIcone = opcoes.resolverIcone || resolverIconePadrao;
@@ -356,6 +358,13 @@ export function criarControlador(opcoes) {
 	 */
 	function receber(dados) {
 		if (!dados || typeof dados !== 'object') {
+			return;
+		}
+		/* As respostas da janela de DOACAO (23/09/2026) descem neste mesmo
+		   canal com `tipo: 'doacao'` e sem `versao`. Elas sao da DoacaoIdle
+		   (o RoShop.js as repassa antes de chegar aqui); esta janela as
+		   ignora pelo nome, e nao so por acaso da versao. */
+		if (dados.tipo === 'doacao') {
 			return;
 		}
 		if (dados.versao !== 1) {
@@ -796,7 +805,14 @@ export function criarControlador(opcoes) {
 				render();
 				break;
 			case 'recarregar':
-				/* So MOSTRA o texto do servidor - nenhum pacote, nenhum credito. */
+				/* Com a recarga DISPONIVEL (a doacao via PIX, 23/09/2026) o botao
+				   abre a janela de doacao - quem credita e o servidor, depois do
+				   pagamento. Sem ela, so MOSTRA o texto do servidor: nenhum
+				   pacote, nenhum credito. */
+				if (s.estado && s.estado.recarga && s.estado.recarga.disponivel === true && abrirDoacao) {
+					abrirDoacao();
+					break;
+				}
 				aviso(textoDaRecarga(s.estado), 'info');
 				break;
 			case 'usar-servico':

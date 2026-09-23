@@ -1,0 +1,800 @@
+/*
+ * UI/Components/DoacaoIdle/DoacaoIdle.css — a janela "Doacao via PIX"
+ * (23/09/2026).
+ *
+ * O VISUAL E O DA REFERENCIA DO DONO, e nao o claro do design system: painel
+ * azul-marinho, fio dourado, titulo em caixa alta dourado em Cinzel. Ele pediu
+ * isso explicitamente para a doacao. Para as cores nao se espalharem soltas,
+ * TODA cor desta janela mora nas variaveis `--dc-*` do `:host`, derivadas dos
+ * tokens do design system (`--gold-*`, `--blue-*`, `UI/Common.css`) onde ha
+ * token; o marinho mais fundo e o unico literal, porque o design system nao
+ * tem um azul tao escuro (o mais escuro e o `--blue-900`).
+ *
+ * A moldura de CELULAR (painel de tela cheia, D-932/D-941) vem do Common.css:
+ * o registro da pilha marca o host com `.ri-janela` e o corpo com
+ * `.ri-janela-corpo`, e a janela carrega `.ri-window` para entrar na lista
+ * daquela regra. Aqui so se sobrescreve a PELE de `.ri-window`.
+ */
+
+:host {
+	position: absolute;
+	z-index: 60;
+	pointer-events: none;
+
+	--dc-marinho-fundo: #0b1730;
+	--dc-marinho: var(--blue-900);
+	--dc-cartao: rgba(255, 255, 255, 0.045);
+	--dc-cartao-hover: rgba(255, 255, 255, 0.08);
+	--dc-linha: rgba(224, 176, 77, 0.28);
+	--dc-ouro: var(--gold-400);
+	--dc-ouro-claro: var(--gold-300);
+	--dc-ouro-fundo: rgba(224, 176, 77, 0.13);
+	--dc-texto: #e9eef7;
+	--dc-texto-suave: rgba(233, 238, 247, 0.68);
+	--dc-azul: var(--blue-500);
+	--dc-azul-forte: var(--blue-600);
+	--dc-azul-claro: var(--blue-400);
+	--dc-verde: #7fd6a0;
+	--dc-vermelho: #ff9a8f;
+	--dc-alerta-fundo: rgba(255, 154, 143, 0.1);
+	--dc-campo-fundo: rgba(4, 12, 28, 0.55);
+	--dc-titulo-fonte: 'Cinzel', var(--font-display);
+	--dc-alvo: 36px;
+}
+
+/* Dedo: todo alvo com 44px (regra do dono de 08/09/2026). */
+@media (pointer: coarse) {
+	:host {
+		--dc-alvo: var(--hit-touch, 44px);
+	}
+}
+
+#DoacaoIdle {
+	position: relative;
+	color: var(--dc-texto);
+	font: var(--type-info);
+	-webkit-font-smoothing: antialiased;
+	text-rendering: optimizeLegibility;
+}
+
+/* ─── Janela ───────────────────────────────────────────────── */
+
+#DoacaoIdle .dc-window {
+	pointer-events: auto;
+	position: relative;
+	display: none;
+	flex-direction: column;
+	box-sizing: border-box;
+	width: min(560px, 100vw - 16px);
+	height: min(760px, 100vh - 32px);
+	background: linear-gradient(180deg, var(--dc-marinho) 0%, var(--dc-marinho-fundo) 100%);
+	border: 1px solid var(--dc-ouro);
+	border-radius: var(--radius-window, 8px);
+	box-shadow:
+		0 18px 48px rgba(0, 0, 0, 0.55),
+		inset 0 0 0 1px rgba(0, 0, 0, 0.35);
+	color: var(--dc-texto);
+	backdrop-filter: none;
+	overflow: hidden;
+}
+
+#DoacaoIdle .dc-window.is-open {
+	display: flex;
+}
+
+#DoacaoIdle .dc-titlebar {
+	flex: 0 0 auto;
+	position: relative;
+	display: flex;
+	align-items: center;
+	min-height: 52px;
+	padding: 0 56px 0 18px;
+	border-bottom: 1px solid var(--dc-linha);
+	touch-action: none;
+	cursor: move;
+}
+
+#DoacaoIdle .dc-title {
+	font-family: var(--dc-titulo-fonte);
+	font-weight: 700;
+	font-size: 17px;
+	letter-spacing: 0.12em;
+	color: var(--dc-ouro);
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+#DoacaoIdle .dc-title-gema {
+	letter-spacing: 0;
+	margin-right: 4px;
+}
+
+#DoacaoIdle .dc-close {
+	right: 8px;
+	width: var(--dc-alvo);
+	height: var(--dc-alvo);
+	font-size: 22px;
+	border: 0;
+	background: transparent;
+	color: var(--dc-ouro);
+}
+
+/* O "X" ja tem o alvo inteiro (44px no dedo): a area invisivel do Common.css
+   (`.ri-close::before`, inset -12px) passaria da borda da janela e criaria
+   rolagem horizontal de 4px no celular (medido pela foto-doacao). */
+#DoacaoIdle .dc-close::before {
+	inset: 0;
+}
+
+#DoacaoIdle .dc-close:hover {
+	background: var(--dc-ouro-fundo);
+	box-shadow: none;
+}
+
+#DoacaoIdle .dc-body {
+	flex: 1 1 auto;
+	min-height: 0;
+	overflow-y: auto;
+	overflow-x: hidden;
+	overscroll-behavior: contain;
+	padding: 16px 18px 20px;
+}
+
+#DoacaoIdle .dc-corpo {
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+}
+
+#DoacaoIdle .dc-carregando {
+	padding: 48px 0;
+	text-align: center;
+	color: var(--dc-texto-suave);
+}
+
+/* ─── Botoes ───────────────────────────────────────────────── */
+
+#DoacaoIdle .dc-btn {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 6px;
+	min-height: var(--dc-alvo);
+	padding: 0 14px;
+	border-radius: 8px;
+	border: 1px solid transparent;
+	font: var(--fw-bold) 14px / 1.2 var(--font-ui);
+	cursor: pointer;
+	transition:
+		background var(--dur-fast, 120ms) ease-out,
+		filter var(--dur-fast, 120ms) ease-out;
+}
+
+#DoacaoIdle .dc-btn--principal {
+	width: 100%;
+	min-height: 48px;
+	font-size: 16px;
+	color: #fff;
+	background: linear-gradient(180deg, var(--dc-azul) 0%, var(--dc-azul-forte) 100%);
+	border-color: var(--dc-azul-claro);
+	box-shadow: 0 6px 18px rgba(36, 92, 158, 0.35);
+}
+
+#DoacaoIdle .dc-btn--principal:hover:not(:disabled) {
+	filter: brightness(1.08);
+}
+
+#DoacaoIdle .dc-btn:disabled {
+	cursor: not-allowed;
+	opacity: 0.45;
+	filter: grayscale(0.4);
+	box-shadow: none;
+}
+
+#DoacaoIdle .dc-btn--secundario {
+	width: 100%;
+	color: var(--dc-texto);
+	background: transparent;
+	border-color: var(--dc-linha);
+}
+
+#DoacaoIdle .dc-btn--ouro {
+	color: var(--dc-marinho-fundo);
+	background: linear-gradient(180deg, var(--dc-ouro-claro) 0%, var(--dc-ouro) 100%);
+	border-color: var(--dc-ouro);
+}
+
+#DoacaoIdle .dc-btn--mini {
+	flex: 0 0 auto;
+	font-size: 13px;
+	padding: 0 12px;
+}
+
+#DoacaoIdle .dc-btn--mini:not(.dc-btn--ouro) {
+	color: var(--dc-texto);
+	background: var(--dc-azul-forte);
+	border-color: var(--dc-azul-claro);
+}
+
+/* ─── Topo: divida e codigos abertos ───────────────────────── */
+
+#DoacaoIdle .dc-topo:empty {
+	display: none;
+}
+
+#DoacaoIdle .dc-topo {
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+}
+
+#DoacaoIdle .dc-alerta {
+	padding: 10px 12px;
+	border-radius: 8px;
+	font-size: 13px;
+	line-height: 1.4;
+	border: 1px solid var(--dc-vermelho);
+	background: var(--dc-alerta-fundo);
+	color: var(--dc-texto);
+}
+
+#DoacaoIdle .dc-abertos {
+	padding: 10px 12px;
+	border-radius: 8px;
+	border: 1px solid var(--dc-linha);
+	background: var(--dc-cartao);
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+}
+
+#DoacaoIdle .dc-abertos-titulo {
+	font-weight: 700;
+	font-size: 13px;
+	color: var(--dc-ouro-claro);
+}
+
+#DoacaoIdle .dc-aberto {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 10px;
+}
+
+#DoacaoIdle .dc-aberto-info {
+	display: flex;
+	flex-direction: column;
+	min-width: 0;
+	font-size: 13px;
+	color: var(--dc-texto-suave);
+}
+
+#DoacaoIdle .dc-aberto-info strong {
+	color: var(--dc-texto);
+	font-size: 15px;
+}
+
+/* ─── Faixas ───────────────────────────────────────────────── */
+
+#DoacaoIdle .dc-secao {
+	font-family: var(--dc-titulo-fonte);
+	font-weight: 600;
+	font-size: 13px;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+	color: var(--dc-ouro-claro);
+}
+
+#DoacaoIdle .dc-faixas {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 8px;
+}
+
+#DoacaoIdle .dc-faixa {
+	display: grid;
+	grid-template-columns: auto 1fr;
+	grid-template-rows: auto auto;
+	align-items: center;
+	column-gap: 10px;
+	row-gap: 2px;
+	min-height: 56px;
+	padding: 8px 12px;
+	border-radius: 8px;
+	border: 1px solid rgba(255, 255, 255, 0.1);
+	background: var(--dc-cartao);
+	color: var(--dc-texto);
+	text-align: left;
+	cursor: pointer;
+	font: inherit;
+}
+
+#DoacaoIdle .dc-faixa:hover {
+	background: var(--dc-cartao-hover);
+}
+
+#DoacaoIdle .dc-faixa .dc-gema {
+	grid-row: 1 / span 2;
+	grid-column: 1;
+	font-size: 22px;
+	line-height: 1;
+}
+
+#DoacaoIdle .dc-faixa-rotulo {
+	grid-column: 2;
+	font-weight: 700;
+	font-size: 14px;
+	white-space: nowrap;
+}
+
+#DoacaoIdle .dc-faixa-preco {
+	grid-column: 2;
+	font-size: 12px;
+	color: var(--dc-texto-suave);
+	white-space: nowrap;
+}
+
+#DoacaoIdle .dc-faixa-preco strong {
+	font-size: 14px;
+	color: var(--dc-texto);
+}
+
+#DoacaoIdle .dc-faixa.is-melhor .dc-faixa-preco strong {
+	color: var(--dc-ouro);
+}
+
+#DoacaoIdle .dc-faixa.is-atual {
+	border-color: var(--dc-ouro);
+	background: var(--dc-ouro-fundo);
+	box-shadow: 0 0 0 1px var(--dc-ouro) inset;
+}
+
+/* ─── Quantidade ───────────────────────────────────────────── */
+
+#DoacaoIdle .dc-quantidade {
+	display: grid;
+	grid-template-columns: 48px 1fr 48px;
+	gap: 8px;
+}
+
+#DoacaoIdle .dc-passo {
+	min-height: 44px;
+	border-radius: 8px;
+	border: 1px solid var(--dc-linha);
+	background: var(--dc-cartao);
+	color: var(--dc-ouro);
+	font: 700 22px / 1 var(--font-ui);
+	cursor: pointer;
+}
+
+#DoacaoIdle .dc-passo:hover {
+	background: var(--dc-cartao-hover);
+}
+
+#DoacaoIdle .dc-qtd,
+#DoacaoIdle .dc-input {
+	box-sizing: border-box;
+	width: 100%;
+	min-width: 0;
+	min-height: 44px;
+	padding: 0 12px;
+	border-radius: 8px;
+	border: 1px solid rgba(255, 255, 255, 0.16);
+	background: var(--dc-campo-fundo);
+	color: var(--dc-texto);
+	/* 16px: menos que isso o Safari do iPhone da zoom na pagina ao focar. */
+	font: 600 16px / 1.2 var(--font-ui);
+	outline: none;
+}
+
+#DoacaoIdle .dc-qtd {
+	text-align: center;
+	font-size: 20px;
+	font-weight: 800;
+}
+
+#DoacaoIdle .dc-qtd:focus,
+#DoacaoIdle .dc-input:focus {
+	border-color: var(--dc-ouro);
+	box-shadow: 0 0 0 2px var(--dc-ouro-fundo);
+}
+
+#DoacaoIdle .dc-input::placeholder {
+	color: rgba(233, 238, 247, 0.35);
+}
+
+#DoacaoIdle .dc-slider {
+	width: 100%;
+	margin: 0;
+	height: 28px;
+	accent-color: var(--dc-ouro);
+	cursor: pointer;
+}
+
+@media (pointer: coarse) {
+	#DoacaoIdle .dc-slider {
+		height: var(--dc-alvo);
+	}
+}
+
+#DoacaoIdle .dc-atalhos {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 6px;
+}
+
+#DoacaoIdle .dc-atalho {
+	flex: 1 0 auto;
+	min-width: 52px;
+	min-height: var(--dc-alvo);
+	padding: 0 10px;
+	border-radius: 999px;
+	border: 1px solid var(--dc-linha);
+	background: transparent;
+	color: var(--dc-texto);
+	font: 700 13px / 1 var(--font-ui);
+	cursor: pointer;
+}
+
+#DoacaoIdle .dc-atalho:hover {
+	background: var(--dc-cartao-hover);
+}
+
+#DoacaoIdle .dc-atalho.is-ativo {
+	border-color: var(--dc-ouro);
+	background: var(--dc-ouro-fundo);
+	color: var(--dc-ouro-claro);
+}
+
+/* ─── Resumo ───────────────────────────────────────────────── */
+
+#DoacaoIdle .dc-resumo {
+	padding: 12px 14px;
+	border-radius: 10px;
+	border: 1px solid var(--dc-linha);
+	background: rgba(4, 12, 28, 0.45);
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+}
+
+#DoacaoIdle .dc-resumo-linha,
+#DoacaoIdle .dc-total {
+	display: flex;
+	justify-content: space-between;
+	align-items: baseline;
+	gap: 10px;
+}
+
+#DoacaoIdle .dc-resumo-linha span {
+	color: var(--dc-texto-suave);
+	font-size: 14px;
+}
+
+#DoacaoIdle .dc-resumo-linha strong {
+	font-size: 15px;
+	white-space: nowrap;
+}
+
+#DoacaoIdle .dc-resumo-bonus strong {
+	color: var(--dc-verde);
+}
+
+#DoacaoIdle .dc-divisor {
+	height: 1px;
+	margin: 4px 0;
+	background: linear-gradient(90deg, transparent, var(--dc-ouro), transparent);
+}
+
+#DoacaoIdle .dc-total span {
+	font-family: var(--dc-titulo-fonte);
+	font-weight: 700;
+	font-size: 16px;
+	letter-spacing: 0.06em;
+	color: var(--dc-ouro-claro);
+}
+
+#DoacaoIdle .dc-total strong {
+	font-size: 26px;
+	font-weight: 800;
+	color: var(--dc-ouro);
+	white-space: nowrap;
+}
+
+#DoacaoIdle .dc-economia {
+	align-self: flex-end;
+	font-size: 13px;
+	font-weight: 700;
+	color: var(--dc-verde);
+}
+
+#DoacaoIdle .dc-resumo-vazio {
+	color: var(--dc-texto-suave);
+	text-align: center;
+	padding: 8px 0;
+}
+
+#DoacaoIdle .dc-dica:empty {
+	display: none;
+}
+
+#DoacaoIdle .dc-leve {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 10px;
+	padding: 8px 10px 8px 14px;
+	border-radius: 10px;
+	border: 1px dashed var(--dc-ouro);
+	background: var(--dc-ouro-fundo);
+	font-weight: 700;
+	font-size: 14px;
+	color: var(--dc-ouro-claro);
+}
+
+/* ─── Campos ───────────────────────────────────────────────── */
+
+#DoacaoIdle .dc-campos {
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+}
+
+#DoacaoIdle .dc-campo {
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+}
+
+#DoacaoIdle .dc-rotulo {
+	font-weight: 700;
+	font-size: 13px;
+	color: var(--dc-texto);
+}
+
+#DoacaoIdle .dc-rotulo em {
+	font-style: normal;
+	font-weight: 600;
+	color: var(--dc-ouro);
+}
+
+#DoacaoIdle .dc-campo-erro:empty,
+#DoacaoIdle .dc-erro:empty {
+	display: none;
+}
+
+#DoacaoIdle .dc-campo-erro,
+#DoacaoIdle .dc-erro {
+	font-size: 13px;
+	color: var(--dc-vermelho);
+}
+
+#DoacaoIdle .dc-erro {
+	padding: 8px 12px;
+	border-radius: 8px;
+	border: 1px solid var(--dc-vermelho);
+	background: var(--dc-alerta-fundo);
+	color: var(--dc-texto);
+}
+
+#DoacaoIdle .dc-aceite {
+	display: flex;
+	align-items: flex-start;
+	gap: 10px;
+	padding: 12px;
+	border-radius: 8px;
+	border: 1px solid rgba(255, 255, 255, 0.1);
+	background: var(--dc-cartao);
+	font-size: 12.5px;
+	line-height: 1.45;
+	color: var(--dc-texto-suave);
+	cursor: pointer;
+}
+
+#DoacaoIdle .dc-aceite input {
+	flex: 0 0 auto;
+	width: 20px;
+	height: 20px;
+	margin: 1px 0 0;
+	accent-color: var(--dc-ouro);
+	cursor: pointer;
+}
+
+@media (pointer: coarse) {
+	/* A caixinha em si e pequena; o rotulo inteiro ja marca ao toque, mas o
+	   alvo da propria caixa sobe para o piso tatil. */
+	#DoacaoIdle .dc-aceite input {
+		width: 24px;
+		height: 24px;
+	}
+}
+
+#DoacaoIdle .dc-aceite a {
+	color: var(--dc-ouro-claro);
+	text-decoration: underline;
+}
+
+/* ─── Pagamento ────────────────────────────────────────────── */
+
+#DoacaoIdle .dc-pag {
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+}
+
+#DoacaoIdle .dc-pag-chamada,
+#DoacaoIdle .dc-nota {
+	margin: 0;
+	font-size: 14px;
+	line-height: 1.45;
+	color: var(--dc-texto-suave);
+}
+
+#DoacaoIdle .dc-nota {
+	padding: 10px 12px;
+	border-radius: 8px;
+	border: 1px solid var(--dc-linha);
+	background: var(--dc-cartao);
+}
+
+#DoacaoIdle .dc-qr-moldura {
+	align-self: center;
+	width: min(240px, 70vw);
+	aspect-ratio: 1;
+	padding: 10px;
+	border-radius: 10px;
+	background: #fff;
+	border: 2px solid var(--dc-ouro);
+	box-sizing: border-box;
+}
+
+#DoacaoIdle .dc-qr {
+	display: block;
+	width: 100%;
+	height: 100%;
+	object-fit: contain;
+	image-rendering: pixelated;
+}
+
+#DoacaoIdle .dc-copia-linha {
+	display: flex;
+	gap: 8px;
+}
+
+#DoacaoIdle .dc-copia {
+	flex: 1 1 auto;
+	font-size: 13px;
+	font-family: var(--font-mono, monospace);
+	text-overflow: ellipsis;
+}
+
+#DoacaoIdle .dc-copiar {
+	flex: 0 0 auto;
+	min-width: 92px;
+}
+
+#DoacaoIdle .dc-pag-info {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: 8px;
+}
+
+#DoacaoIdle .dc-pag-info > div {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	padding: 10px 12px;
+	border-radius: 8px;
+	border: 1px solid var(--dc-linha);
+	background: rgba(4, 12, 28, 0.45);
+	min-width: 0;
+}
+
+#DoacaoIdle .dc-pag-info span {
+	font-size: 12px;
+	color: var(--dc-texto-suave);
+}
+
+#DoacaoIdle .dc-pag-info strong {
+	font-size: 18px;
+	color: var(--dc-ouro);
+	overflow-wrap: anywhere;
+}
+
+#DoacaoIdle .dc-expira {
+	text-align: center;
+	font-size: 14px;
+	color: var(--dc-texto-suave);
+}
+
+#DoacaoIdle .dc-expira strong {
+	font-size: 18px;
+	color: var(--dc-texto);
+	font-variant-numeric: tabular-nums;
+}
+
+#DoacaoIdle .dc-recado:empty {
+	display: none;
+}
+
+#DoacaoIdle .dc-recado {
+	text-align: center;
+	font-size: 13px;
+	line-height: 1.4;
+	color: var(--dc-ouro-claro);
+}
+
+/* ─── Sucesso, expirado, indisponivel ──────────────────────── */
+
+#DoacaoIdle .dc-recado-tela {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 12px;
+	padding: 28px 8px 8px;
+	text-align: center;
+}
+
+#DoacaoIdle .dc-recado-icone {
+	font-size: 48px;
+	line-height: 1;
+}
+
+#DoacaoIdle .dc-sucesso-titulo {
+	margin: 0;
+	font-family: var(--dc-titulo-fonte);
+	font-weight: 700;
+	font-size: 22px;
+	letter-spacing: 0.06em;
+	color: var(--dc-ouro);
+}
+
+#DoacaoIdle .dc-recado-texto {
+	margin: 0 0 8px;
+	font-size: 16px;
+	line-height: 1.45;
+	color: var(--dc-texto);
+}
+
+#DoacaoIdle .dc-sucesso .dc-recado-texto {
+	font-weight: 700;
+	color: var(--dc-verde);
+}
+
+/* ─── Celular ──────────────────────────────────────────────── */
+
+@media (max-width: 599px) {
+	#DoacaoIdle .dc-body {
+		padding: 12px 12px 16px;
+	}
+
+	#DoacaoIdle .dc-title {
+		font-size: 15px;
+		letter-spacing: 0.08em;
+	}
+
+	/* Na HUD vertical a janela inteira rola (Common.css); o corpo nao precisa
+	   de uma segunda rolagem aninhada dentro dela. */
+	#DoacaoIdle .dc-body {
+		flex: 0 0 auto;
+		overflow: visible;
+	}
+
+	/* Sete pilulas nao cabem numa linha de 360px: 4 + 3 em grade, e nao uma
+	   ultima esticada sozinha na largura inteira. */
+	#DoacaoIdle .dc-atalhos {
+		display: grid;
+		grid-template-columns: repeat(4, minmax(0, 1fr));
+	}
+
+	#DoacaoIdle .dc-atalho {
+		min-width: 0;
+	}
+
+	#DoacaoIdle .dc-leve {
+		flex-direction: column;
+		align-items: stretch;
+		text-align: center;
+	}
+}
