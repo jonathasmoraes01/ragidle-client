@@ -52,6 +52,7 @@ import GUIComponent from 'UI/GUIComponent.js';
 import htmlText from './BoasVindasIdle.html?raw';
 import cssText from './BoasVindasIdle.css?raw';
 import { fecharEEsquecer } from '../limpezaDeJanelaIdle.js';
+import { consumirEntradaPorAtualizacao } from 'Engine/retomadaAposAtualizacao.js';
 
 /**
  * OS CARTAZES, na ordem em que o jogador os vê.
@@ -187,6 +188,11 @@ BoasVindasIdle.onAppend = function onAppend() {
 		return;
 	}
 	_jaMostrouNestaEntrada = true;
+	/* A entrada veio da atualizacao automatica (D-997): o jogador ja estava
+	   online e ja viu este cartaz. Pedido do dono, 23/09/2026. */
+	if (consumirEntradaPorAtualizacao()) {
+		return;
+	}
 	if (estaAdiada()) {
 		return;
 	}

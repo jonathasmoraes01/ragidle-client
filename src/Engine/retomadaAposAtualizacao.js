@@ -136,6 +136,36 @@ export function consumirRetomada(agora, armazenamento = armazenamentoPadrao()) {
 }
 
 /* ═════════════════════════════════════════════════════════════════════
+   A ENTRADA QUE VEIO DE UMA ATUALIZACAO — uma vez so
+   ═════════════════════════════════════════════════════════════════════
+
+   Pedido do dono (23/09/2026): a janela de boas-vindas nao abre quando a
+   entrada vem de uma atualizacao, *"porque isso significa que o player ja
+   estava online e viu essa mesma janela anteriormente"*. A retomada marca, a
+   janela consome na primeira entrada no mapa. Um login DIGITADO apaga a marca:
+   se o passe for recusado e o jogador entrar pela senha, a entrada e nova e a
+   janela aparece como sempre. */
+
+let _entradaPorAtualizacao = false;
+
+/** A retomada vai entrar no jogo (o `LoginEngine` chama). */
+export function marcarEntradaPorAtualizacao() {
+	_entradaPorAtualizacao = true;
+}
+
+/** Login digitado: a proxima entrada NAO veio de atualizacao. */
+export function esquecerEntradaPorAtualizacao() {
+	_entradaPorAtualizacao = false;
+}
+
+/** Esta entrada veio de uma atualizacao? Responde `true` uma vez so. */
+export function consumirEntradaPorAtualizacao() {
+	const veio = _entradaPorAtualizacao;
+	_entradaPorAtualizacao = false;
+	return veio;
+}
+
+/* ═════════════════════════════════════════════════════════════════════
    A SELECAO AUTOMATICA — uma vez so
    ═════════════════════════════════════════════════════════════════════ */
 

@@ -134,6 +134,11 @@ describe('as costuras nos motores', () => {
 		expect(CHAR).toMatch(/_server = server;\r?\n\t\t_escolhido = false;/);
 	});
 
+	it('a retomada marca a entrada, e o login DIGITADO a esquece (a janela de boas-vindas)', () => {
+		expect(LOGIN).toMatch(/function retomarSessao\(retomada\)[\s\S]{0,1200}marcarEntradaPorAtualizacao\(\);/);
+		expect(LOGIN).toMatch(/function onConnectionRequest\(username, password\) \{[\s\S]{0,400}esquecerEntradaPorAtualizacao\(\);/);
+	});
+
 	it('o CharEngine seleciona pelo MESMO onConnectRequest do clique', () => {
 		expect(CHAR).toMatch(/personagemParaSelecionar\(pkt\.charInfo\)[\s\S]{0,120}onConnectRequest\(retomado\)/);
 	});

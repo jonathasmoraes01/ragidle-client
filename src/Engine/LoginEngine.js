@@ -32,7 +32,12 @@ import MD5 from 'Vendors/spark-md5.min.js';
 import Rijndael from 'Utils/Rijndael.js';
 import { capturarEntrada, loginAceito, loginRecusado, pedidoDeLogin } from 'Engine/entradaPosCadastro.js';
 import { esquecerSaldoDeCash } from 'Utils/saldoDeCash.js';
-import { armarSelecao, consumirRetomada } from 'Engine/retomadaAposAtualizacao.js';
+import {
+	armarSelecao,
+	consumirRetomada,
+	esquecerEntradaPorAtualizacao,
+	marcarEntradaPorAtualizacao
+} from 'Engine/retomadaAposAtualizacao.js';
 
 // Version Dependent UIs
 import WinLogin from 'UI/Components/WinLogin/WinLogin.js';
@@ -258,6 +263,8 @@ function onConnectionRequest(username, password) {
 	// Todo login passa aqui: so o que leva o passe capturado arma a entrada
 	// pos-cadastro, e qualquer outro a desarma (ver `entradaPosCadastro.js`).
 	pedidoDeLogin(username, password);
+	// Login digitado e entrada nova: a janela de boas-vindas volta a valer.
+	esquecerEntradaPorAtualizacao();
 
 	// Play "¹öÆ°¼Ò¸®.wav" (possible problem with charset)
 	Sound.play('\xB9\xF6\xC6\xB0\xBC\xD2\xB8\xAE.wav');
@@ -409,6 +416,8 @@ function retomarSessao(retomada) {
 	}
 	Session.ServerName = retomada.ServerName;
 	armarSelecao(retomada.gid);
+	// A janela de boas-vindas nao abre de novo: ele ja a viu antes (D-997).
+	marcarEntradaPorAtualizacao();
 
 	WinLoading.append();
 	Network.onDisconnect = null; // Let CharEngine handle its own disconnects
