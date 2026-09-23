@@ -495,6 +495,22 @@ function onClicarAcao(botao) {
 		enviarAcao({ acao: 'resgatar', nivel, trilha });
 		return;
 	}
+	if (agir === 'comprar-passe-vip') {
+		/* O PASSE DE BATALHA VIP (23/09/2026), vendido a parte do VIP. Hoje o
+		   servidor manda o botao APAGADO ("Em breve") e o `disabled` para o
+		   clique na primeira linha desta funcao; o caminho fica pronto para o
+		   dia em que o dono abrir a venda. O preco sai do estado, nunca daqui. */
+		const passeDaTemporada = TemporadaIdle.estado && TemporadaIdle.estado.passe;
+		const trilhaVip = passeDaTemporada && passeDaTemporada.trilhaVip;
+		if (!trilhaVip || !trilhaVip.compra || trilhaVip.compra.pode !== true) {
+			return;
+		}
+		abrirConfirmacao(
+			`Comprar o Passe de Batalha VIP por ${formatarRoCash(Number(trilhaVip.precoMinor) || 0)} RO Cash?`,
+			() => enviarAcao({ acao: 'comprar-passe-vip', chave: gerarChave() })
+		);
+		return;
+	}
 	if (agir === 'resgatar-visual-vip') {
 		/* Sem confirmação: não gasta cash nenhum — é um resgate, e o servidor
 		   recusa sozinho sem VIP ou já resgatado. */

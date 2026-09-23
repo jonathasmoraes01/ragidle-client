@@ -491,6 +491,58 @@ describe('a trilha de recompensas (free/vip lado a lado)', () => {
 	});
 });
 
+/*
+ * O PASSE DE BATALHA VIP (23/09/2026, ordem do dono): a trilha VIP e liberada
+ * pela COMPRA dele, e nao pelo VIP de 30 dias. O servidor manda
+ * `passe.trilhaVip = {liberada, precoMinor, aVenda, compra: {pode, motivo, texto}}`
+ * e a janela so desenha - hoje a venda esta FECHADA e o botao chega apagado.
+ */
+const TRILHA_FORA_DE_VENDA = {
+	liberada: false,
+	precoMinor: 1500,
+	aVenda: false,
+	compra: { pode: false, motivo: 'fora-de-venda', texto: 'O Passe de Batalha VIP chega nos próximos dias.' }
+};
+
+describe('o Passe de Batalha VIP, separado do VIP', () => {
+	it('fora de venda: o botao aparece APAGADO com "Em breve", o preco "15 RO Cash" e o texto do servidor', () => {
+		const html = formatoDaTemporada.renderCompraDoPasseVipHtml(passeDoContrato({ vip: false, trilhaVip: TRILHA_FORA_DE_VENDA }));
+		expect(html).toContain('data-agir="comprar-passe-vip"');
+		expect(html).toMatch(/<button[^>]*data-agir="comprar-passe-vip"[^>]* disabled/);
+		expect(html).toContain('Em breve');
+		expect(html).toContain('15 RO Cash');
+		expect(html).toContain('O Passe de Batalha VIP chega nos próximos dias.');
+	});
+
+	it('a venda aberta e com saldo: o botao acende e mostra o preco', () => {
+		const trilhaVip = { ...TRILHA_FORA_DE_VENDA, aVenda: true, compra: { pode: true, motivo: null, texto: null } };
+		const html = formatoDaTemporada.renderCompraDoPasseVipHtml(passeDoContrato({ trilhaVip }));
+		expect(html).not.toMatch(/ disabled/);
+		expect(html).toContain('Comprar · 15 RO Cash');
+	});
+
+	it('liberada: o cartao de compra some e a trilha acende - mesmo com `vip` do topo ausente', () => {
+		const trilhaVip = { ...TRILHA_FORA_DE_VENDA, liberada: true, compra: { pode: false, motivo: 'ja-comprado', texto: 'x' } };
+		expect(formatoDaTemporada.renderCompraDoPasseVipHtml(passeDoContrato({ trilhaVip }))).toBe('');
+		const trilha = renderTrilhaDeRecompensasHtml(passeDoContrato({ vip: false, trilhaVip }));
+		expect(trilha).not.toContain('is-sem-vip');
+		expect(trilha).not.toContain('te-passe-vip-compra');
+	});
+
+	it('a trilha obedece `trilhaVip.liberada` (o servidor), e nao um VIP ativo: trancada com o cartao dentro da secao', () => {
+		const trilha = renderTrilhaDeRecompensasHtml(passeDoContrato({ vip: true, trilhaVip: TRILHA_FORA_DE_VENDA }));
+		expect(trilha).toContain('is-sem-vip');
+		expect(trilha).toContain('te-passe-vip-compra');
+		expect(trilha.indexOf('te-passe-vip-compra')).toBeLessThan(trilha.indexOf('te-reward-scroll'));
+	});
+
+	it('servidor sem o bloco novo: sem cartao, e a trilha cai no `passe.vip` de antes', () => {
+		expect(formatoDaTemporada.renderCompraDoPasseVipHtml(passeDoContrato({ vip: true }))).toBe('');
+		expect(formatoDaTemporada.trilhaVipLiberada(passeDoContrato({ vip: true }))).toBe(true);
+		expect(formatoDaTemporada.trilhaVipLiberada(passeDoContrato({ vip: false }))).toBe(false);
+	});
+});
+
 describe('a aba Passe de Batalha inteira (payload V2 montado a partir do contrato)', () => {
 	it('desenha nivel/XP, dias restantes, as duas missoes e a trilha - tudo do JSON, nada cravado', () => {
 		const html = renderPasseDeBatalhaHtml(passeDoContrato());
