@@ -81,7 +81,7 @@
 import { execFileSync } from 'node:child_process';
 import { copyFileSync, cpSync, existsSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { dirname, join, resolve } from 'node:path';
+import { basename, dirname, join, resolve } from 'node:path';
 import { gerarConfigLocalDeProducao } from './gerar-config-de-producao.mjs';
 
 const RAIZ = resolve(dirname(fileURLToPath(import.meta.url)), '..');
@@ -472,6 +472,36 @@ for (const pasta of ['css', 'js', 'assets']) {
  */
 for (const arquivo of readdirSync(SITE, { withFileTypes: true })) {
 	if (!arquivo.isFile() || !arquivo.name.endsWith('.txt')) continue;
+	copyFileSync(join(SITE, arquivo.name), join(DIST, arquivo.name));
+	console.log(`     ${arquivo.name}`);
+}
+/*
+ * AS PAGINAS DE PRIMEIRO NIVEL DO SITE (23/09/2026): o Market (`/market/`,
+ * o marketplace RMT, com o painel em `/market/admin/`), a Wiki (`/wiki/`, o
+ * compendio gerado pelo repo rag-idle-wiki) e as paginas soltas da raiz
+ * (`termos.html`, `privacidade.html`). Antes daqui a lista fixa acima so
+ * levava a home, e uma pasta ou pagina nova no site era commitada, empurrada,
+ * e NAO chegava ao pacote - o mesmo defeito silencioso que os `.txt` tiveram.
+ *
+ * `design-system.html` e `_componentes.html` sao documentacao interna (os
+ * especimes do DS e do RMT) e ficam de fora.
+ */
+const PAGINAS_INTERNAS = new Set(['design-system.html', '_componentes.html']);
+for (const pasta of ['market', 'wiki']) {
+	rmSync(join(DIST, pasta), { recursive: true, force: true });
+	if (!existsSync(join(SITE, pasta))) {
+		console.log(`     ${pasta}/          (AUSENTE no site - pulado)`);
+		continue;
+	}
+	cpSync(join(SITE, pasta), join(DIST, pasta), {
+		recursive: true,
+		filter: (origem) => !PAGINAS_INTERNAS.has(basename(origem)),
+	});
+	console.log(`     ${pasta}/`);
+}
+for (const arquivo of readdirSync(SITE, { withFileTypes: true })) {
+	if (!arquivo.isFile() || !arquivo.name.endsWith('.html')) continue;
+	if (arquivo.name === 'index.html' || PAGINAS_INTERNAS.has(arquivo.name)) continue;
 	copyFileSync(join(SITE, arquivo.name), join(DIST, arquivo.name));
 	console.log(`     ${arquivo.name}`);
 }

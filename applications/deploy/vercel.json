@@ -62,6 +62,27 @@
 			"continue": true
 		},
 		{
+			"src": "^/(market|wiki)$",
+			"status": 308,
+			"headers": {
+				"Location": "/$1/"
+			}
+		},
+		{
+			"src": "^/market/admin$",
+			"status": 308,
+			"headers": {
+				"Location": "/market/admin/"
+			}
+		},
+		{
+			"src": "^/(market|wiki)/(.*\\.html)?$",
+			"headers": {
+				"Cache-Control": "no-cache"
+			},
+			"continue": true
+		},
+		{
 			"handle": "filesystem"
 		}
 	]
