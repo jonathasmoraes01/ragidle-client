@@ -476,6 +476,46 @@ for (const arquivo of readdirSync(SITE, { withFileTypes: true })) {
 	console.log(`     ${arquivo.name}`);
 }
 console.log('     index.html       (a home)');
+/*
+ * A WIKI EM /wiki/ (23/09/2026, ordem do dono: "o link de acesso devera ser
+ * https://roclassicidle.com.br/wiki").
+ *
+ * A wiki e o repo irmao `rag-idle-wiki` (jonathasmoraes01/rag-idle-wiki), um
+ * site estatico sem dependencias. `scripts/build-static.mjs` gera `build/`,
+ * que entra INTEIRO em `dist/Web/wiki/`. A bateria de testes da wiki
+ * (`npm test`) roda do lado dela, antes do push; aqui so se monta o pacote. Os caminhos
+ * da wiki sao todos relativos e a navegacao e por hash, entao ela funciona
+ * dentro de uma subpasta sem nenhuma reescrita; o `vercel.json` so manda
+ * `/wiki` para `/wiki/` (sem a barra, os caminhos relativos resolveriam na
+ * raiz do dominio).
+ *
+ * Mesmo aviso do site: le a pasta NO DISCO, nao o GitHub. Quem atualiza a
+ * pasta na VPS e o `deploy-cliente.sh` (repo rag-idle, ferramentas/).
+ *
+ * A wiki NAO derruba o deploy: se a pasta nao existe ou o build dela reprova,
+ * o pacote sai sem `/wiki` e o jogo e o site seguem. Derrubar o jogo por causa
+ * da wiki trocaria um problema pequeno por um grande.
+ */
+const WIKI = process.env.RAG_WIKI_DIR
+	? resolve(RAIZ, process.env.RAG_WIKI_DIR)
+	: resolve(RAIZ, '..', 'rag-idle-wiki');
+rmSync(join(DIST, 'wiki'), { recursive: true, force: true });
+if (!existsSync(join(WIKI, 'package.json'))) {
+	console.warn(`     AVISO: wiki nao encontrada em ${WIKI} — pacote sai SEM /wiki (aponte RAG_WIKI_DIR ou clone rag-idle-wiki ao lado).`);
+} else {
+	try {
+		rmSync(join(WIKI, 'build'), { recursive: true, force: true });
+		execFileSync(process.execPath, ['scripts/build-static.mjs'], { cwd: WIKI, stdio: 'inherit' });
+		const indice = readFileSync(join(WIKI, 'build', 'index.html'), 'utf8');
+		if (!indice.includes('https://roclassicidle.com.br/wiki/')) throw new Error('build da wiki sem o canonical de /wiki/');
+		cpSync(join(WIKI, 'build'), join(DIST, 'wiki'), { recursive: true });
+		console.log(`     wiki/            (${WIKI})`);
+	} catch (erro) {
+		rmSync(join(DIST, 'wiki'), { recursive: true, force: true });
+		console.warn(`     AVISO: build da wiki reprovou (${erro.message}) — pacote sai SEM /wiki.`);
+	}
+}
+
 
 console.log('\n6/6  conferindo...');
 const faltando = [...OBRIGATORIOS].filter((a) => !existsSync(join(DIST, a)));
