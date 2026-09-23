@@ -190,6 +190,40 @@ describe('o worker em espera, no jogo', () => {
 	});
 });
 
+describe('o aviso ao jogo de versao MAIS NOVA (D-997)', () => {
+	it('so o carimbo do build decide: mais novo sim, anterior e igual nao', () => {
+		const pwa = carregarCasca();
+		expect(pwa.ehMaisNova('2.0.0-20260923120000', '2.0.0-20260923110000')).toBe(true);
+		expect(pwa.ehMaisNova('2.0.0-20260923100000', '2.0.0-20260923110000')).toBe(false);
+		expect(pwa.ehMaisNova('2.0.0-20260923110000', '2.0.0-20260923110000')).toBe(false);
+		expect(pwa.ehMaisNova('outra-versao', '__VERSAO_DO_BUILD__')).toBe(false);
+	});
+
+	it('worker de build MAIS NOVO: o jogo e avisado, e o worker continua esperando', async () => {
+		const pwa = carregarCasca();
+		pwa.versaoDaPagina = '2.0.0-20260923110000';
+		const avisos = [];
+		window.addEventListener('ragidle:versao-nova', e => avisos.push(e.detail.versao));
+		const worker = workerFalso('2.0.0-20260923120000');
+		pwa.acompanharRegistro(registroFalso(worker));
+		await drenar();
+		expect(avisos).toEqual(['2.0.0-20260923120000']);
+		expect(pwa.versaoNovaDisponivel).toBe('2.0.0-20260923120000');
+		expect(worker.recebidas).toEqual(['ragidle:versao']);
+	});
+
+	it('worker de build ANTERIOR (o novo ainda instalando): nenhum aviso — senao o jogo recarregaria para tras', async () => {
+		const pwa = carregarCasca();
+		pwa.versaoDaPagina = '2.0.0-20260923110000';
+		const avisos = [];
+		window.addEventListener('ragidle:versao-nova', e => avisos.push(e.detail.versao));
+		pwa.acompanharRegistro(registroFalso(workerFalso('2.0.0-20260923100000')));
+		await drenar();
+		expect(avisos).toEqual([]);
+		expect(pwa.versaoNovaDisponivel).toBeUndefined();
+	});
+});
+
 describe('nada recarrega a pagina, e nada fica preso no cache', () => {
 	it('o registrador nao tem caminho de recarga (nem aviso)', () => {
 		expect(FONTE).not.toMatch(/location\.reload/);

@@ -28,6 +28,7 @@ import CharSelect from 'UI/Components/CharSelect/CharSelect.js';
 import CharCreate from 'UI/Components/CharCreate/CharCreate.js';
 import Player from 'Renderer/Entity/Player.js';
 import { abrirCriacaoDireto, registrarConversaoDoCadastro } from 'Engine/entradaPosCadastro.js';
+import { personagemParaSelecionar } from 'Engine/retomadaAposAtualizacao.js';
 
 // Load modules
 // Version Dependent UIs
@@ -61,6 +62,20 @@ let _resettingPincode = false;
  */
 let _creatingPincode = false;
 
+/**
+ * O jogador JA ESCOLHEU o personagem nesta sessao do char-server (D-997).
+ *
+ * A lista de personagens chega mais de uma vez (D-1379), e toda chegada zera
+ * `Session.Entity` — que so nasce na escolha (`onConnectRequest`). Uma lista
+ * atrasada que chegasse DEPOIS da escolha apagava o jogador a caminho do mapa:
+ * a camera lia `Session.Entity.position` a cada quadro e a tela ficava preta.
+ * A retomada depois da atualizacao escolhe na PRIMEIRA lista, e a
+ * `prove:atualizacao-sem-deslogar` pegou exatamente isso; um clique humano
+ * rapido cairia no mesmo lugar. A trava cai quando o char-server recomeca
+ * (`init`) ou quando a escolha e recusada.
+ */
+let _escolhido = false;
+
 class CharEngine {
 	/**
 	 * O servidor de personagem ATUAL (R12, 14/09/2026) — `null` antes da
@@ -83,6 +98,7 @@ class CharEngine {
 
 		// Storing variable
 		_server = server;
+		_escolhido = false;
 
 		// Connect to char server
 		const forceAddress = Configs.get('forceUseAddress');
@@ -174,6 +190,11 @@ function onCharacterListChunk(pkt) {
  * @param {object} pkt - PACKET.HC.ACCEPT_ENTER_NEO_UNION
  */
 function onConnectionAccepted(pkt) {
+	// Lista atrasada, chegando depois da escolha: ela nao desfaz o jogador que
+	// ja esta a caminho do mapa (ver `_escolhido`).
+	if (_escolhido) {
+		return;
+	}
 	pkt.sex = Session.Sex;
 
 	// Start sending ping
@@ -243,6 +264,20 @@ function onConnectionAccepted(pkt) {
 		registrarConversaoDoCadastro();
 	}
 
+	/*
+	 * A RETOMADA DEPOIS DA ATUALIZACAO (D-997): a pagina recarregou com o
+	 * jogador em jogo, e a selecao escolhe sozinha o mesmo personagem — pelo
+	 * MESMO `onConnectRequest` do clique, que e quem monta `Session.Entity`.
+	 * So na lista que traz `charInfo`, e uma vez (`personagemParaSelecionar`
+	 * desarma), porque a lista chega mais de uma vez.
+	 */
+	if (Array.isArray(pkt.charInfo)) {
+		const retomado = personagemParaSelecionar(pkt.charInfo);
+		if (retomado) {
+			onConnectRequest(retomado);
+		}
+	}
+
 	/**
 	 * In PACKETVERs < 20180124 that support pincode auth, we're supposed to
 	 * show a button that will ask the server to perform it.
@@ -267,6 +302,7 @@ function onConnectionAccepted(pkt) {
  * @param {object} pkt - PACKET.HC.REFUSE_SELECTCHAR
  */
 function onSelectionRefused(pkt) {
+	_escolhido = false;
 	let msg_id;
 
 	switch (pkt.ErrorCode) {
@@ -336,6 +372,7 @@ function onMapUnavailable(pkt) {
 		DB.getMessage(1811),
 		'ok',
 		() => {
+			_escolhido = false;
 			UIManager.getComponent('WinLoading').remove();
 			CharSelect.getUI().append();
 		},
@@ -830,6 +867,7 @@ function onConnectRequest(entity) {
 	// Done here (instead of on char-list reception) so that characters delivered by
 	// any char-list packet, and freshly created ones, all end up with a Player.
 	Session.Entity = new Player(entity);
+	_escolhido = true;
 	const pkt = new PACKET.CH.SELECT_CHAR();
 	pkt.CharNum = entity.CharNum;
 	Network.sendPacket(pkt);

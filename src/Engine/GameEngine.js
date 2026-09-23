@@ -15,6 +15,7 @@ import Sound from 'Audio/SoundManager.js';
 import BGM from 'Audio/BGM.js';
 import DB from 'DB/DBManager.js';
 import Configs from 'Core/Configs.js';
+import { ligarAtualizacaoAutomatica } from 'UI/atualizacaoAutomatica.js'; // RAGIDLE: D-997
 import { ligarRelatoDeErro } from 'UI/relatoDeErro.js'; // RAGIDLE: a tela preta que ninguem via (09/09/2026)
 import { ligarRelatoDeDesempenho } from 'Renderer/quadrosNoCampo.js'; // RAGIDLE: o FPS do aparelho do jogador (13/09/2026)
 import Client from 'Core/Client.js';
@@ -108,6 +109,13 @@ function loadFiles(callback) {
 	 * depois deixaria justamente o trecho mais fragil sem testemunha.
 	 */
 	ligarRelatoDeErro();
+	// A atualizacao automatica (D-997): so reage a eventos, e dentro de `try`
+	// porque ela nao pode impedir o jogo de abrir.
+	try {
+		ligarAtualizacaoAutomatica();
+	} catch {
+		/* sem atualizacao automatica, o jogo segue na versao que abriu */
+	}
 	// O FPS do aparelho: um relato a cada dois minutos, so em jogo. Dentro de
 	// `try` porque medir nao pode impedir o jogo de abrir.
 	try {

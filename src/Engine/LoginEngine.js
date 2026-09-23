@@ -32,6 +32,7 @@ import MD5 from 'Vendors/spark-md5.min.js';
 import Rijndael from 'Utils/Rijndael.js';
 import { capturarEntrada, loginAceito, loginRecusado, pedidoDeLogin } from 'Engine/entradaPosCadastro.js';
 import { esquecerSaldoDeCash } from 'Utils/saldoDeCash.js';
+import { armarSelecao, consumirRetomada } from 'Engine/retomadaAposAtualizacao.js';
 
 // Version Dependent UIs
 import WinLogin from 'UI/Components/WinLogin/WinLogin.js';
@@ -170,8 +171,20 @@ class LoginEngine {
 		 * `capturarEntrada` so devolve algo uma vez por pagina, entao um
 		 * `LoginEngine.init` repetido (voltar ao login) cai no caminho de sempre.
 		 */
-		const entrada = capturarEntrada();
-		if (entrada) {
+		/*
+		 * A RETOMADA DEPOIS DA ATUALIZACAO (D-997) vem antes de tudo: a pagina
+		 * acabou de ser recarregada pela atualizacao automatica, com o jogador
+		 * logado. Ela entra no char-server com o passe que ja tinha, sem tela de
+		 * login. `consumirRetomada` apaga o registro na leitura, entao um
+		 * `LoginEngine.init` repetido (voltar ao login) cai no caminho de sempre.
+		 */
+		const retomada = consumirRetomada(Date.now());
+		const entrada = retomada ? null : capturarEntrada();
+		if (retomada) {
+			q.add(function () {
+				retomarSessao(retomada);
+			});
+		} else if (entrada) {
 			onConnectionRequest(entrada.usuario, entrada.passe);
 		}
 
@@ -373,6 +386,40 @@ function onExitRequest() {
 	import('Engine/GameEngine.js').then(GameEngine => {
 		GameEngine.default.reload();
 	});
+}
+
+/**
+ * A pagina recarregou pela atualizacao automatica (D-997): a sessao volta da
+ * aba, e a entrada segue como se o login tivesse acabado de aceitar — o mesmo
+ * `CharEngine.init` de `onConnectionAccepted`. Se o servidor recusar o passe,
+ * ele fecha a conexao e o caminho de sempre leva ao login.
+ *
+ * @param {object} retomada o que `consumirRetomada` devolveu
+ */
+function retomarSessao(retomada) {
+	if (Session.AID !== retomada.AID) {
+		esquecerSaldoDeCash();
+	}
+	Session.AuthCode = retomada.AuthCode;
+	Session.AID = retomada.AID;
+	Session.UserLevel = retomada.UserLevel;
+	Session.Sex = retomada.Sex;
+	if (retomada.WebToken) {
+		Session.WebToken = retomada.WebToken;
+	}
+	Session.ServerName = retomada.ServerName;
+	armarSelecao(retomada.gid);
+
+	WinLoading.append();
+	Network.onDisconnect = null; // Let CharEngine handle its own disconnects
+	CharEngine.init(retomada.servidorDeChar);
+
+	// O mesmo que `onConnectionAccepted` faz depois do login.
+	if (PACKETVER.value >= 20170315 && Session.WebToken) {
+		import('UI/Components/ShortCut/ShortCut.js').then(ShortCut => {
+			ShortCut.default.loadFromServer();
+		});
+	}
 }
 
 /**

@@ -68,6 +68,11 @@
 	   jogador pega a versão nova da próxima vez que abrir o jogo, e ninguém é
 	   interrompido no meio de uma caçada.
 
+	   D-997 (23/09/2026): nesse caso o jogo é AVISADO (`ragidle:versao-nova`)
+	   e se atualiza sozinho na próxima VOLTA da aba, com contagem de 5 s e sem
+	   deslogar — ver `src/UI/atualizacaoAutomatica.js`. O worker continua
+	   esperando: quem o faz assumir é a página nova, que já é do build dele.
+
 	   POR QUE A TROCA NÃO ACONTECE com o worker mais novo que a página: o
 	   `activate` apaga o cache da versão anterior, e um `import()` que a página
 	   velha ainda fizesse chegaria ao servidor pedindo um arquivo que o deploy
@@ -101,6 +106,38 @@
 		return versaoDaPagina === versaoDoWorker ? 'assumir' : 'esperar';
 	}
 	API.decidirVersaoNova = decidirVersaoNova;
+
+	/**
+	 * O worker e de um build MAIS NOVO que a pagina? (D-997). Diferente nao
+	 * basta: um worker de build ANTERIOR pode estar esperando enquanto o novo
+	 * ainda instala, e chama-lo de "novo" faria o jogo recarregar para tras —
+	 * em laco. A versao termina no carimbo do build (`AAAAMMDDHHMMSS`, ver
+	 * `copyPwaFiles`), e e ele que se compara. Sem carimbo (o dev), nunca.
+	 */
+	function ehMaisNova(versaoDoWorker, versaoDaPagina) {
+		var doWorker = /(\d{14})$/.exec(versaoDoWorker || '');
+		var daPagina = /(\d{14})$/.exec(versaoDaPagina || '');
+		if (!doWorker || !daPagina) {
+			return false;
+		}
+		return Number(doWorker[1]) > Number(daPagina[1]);
+	}
+	API.ehMaisNova = ehMaisNova;
+
+	/**
+	 * Avisa o jogo que ha versao nova (D-997). Quem decide QUANDO trocar e o
+	 * jogo (`src/UI/atualizacaoAutomatica.js`): so na volta da aba, com
+	 * contagem de 5 s e sem deslogar. A marca em `API` cobre o jogo que liga
+	 * DEPOIS de o evento sair.
+	 */
+	function avisarVersaoNova(versao) {
+		API.versaoNovaDisponivel = versao;
+		try {
+			window.dispatchEvent(new CustomEvent('ragidle:versao-nova', { detail: { versao: versao } }));
+		} catch (erro) {
+			/* navegador sem CustomEvent: a marca em `API` continua valendo */
+		}
+	}
 
 	/**
 	 * Pergunta ao worker de qual build ele é. Worker de antes de 23/09 não
@@ -174,6 +211,9 @@
 					decidir(worker, tentativa + 1);
 				}, MS_ENTRE_TENTATIVAS);
 				return 'perguntar-de-novo';
+			}
+			if (decisao === 'esperar' && ehMaisNova(versaoDoWorker, API.versaoDaPagina)) {
+				avisarVersaoNova(versaoDoWorker);
 			}
 			if (decisao === 'assumir') {
 				/* Sem recarga: a página JÁ É deste build. O `controllerchange`
