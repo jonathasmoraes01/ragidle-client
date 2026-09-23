@@ -60,9 +60,9 @@
  * ─── O BOTÃO VOLTAR DO ANDROID SEGUE A MESMA REGRA ──────────────────────
  *
  * Em `standalone` (o app instalado) não existe barra do navegador: sair sem
- * querer é perder a sessão. Cada janela aberta empilha uma entrada de
- * histórico; o voltar consome essa entrada e cai na regra do ESC. Com nada
- * aberto, o voltar PERGUNTA antes de deixar o jogo.
+ * querer é perder a sessão. O jogo mantém UMA entrada de histórico acima da
+ * base (a sentinela, H10); o voltar a consome, cai na regra do ESC e a devolve.
+ * Com nada aberto, o voltar PERGUNTA antes de deixar o jogo, e o "OK" sai.
  */
 
 import KEYS from 'Controls/KeyEventHandler.js';
@@ -88,8 +88,6 @@ const _registro = new Map();
 const _pilha = [];
 
 let _ligado = false;
-/** Quantas entradas de histórico esta pilha empilhou (só para o voltar). */
-let _entradasNoHistorico = 0;
 let _pedindoConfirmacaoDeSaida = false;
 
 /**
@@ -272,7 +270,6 @@ export function aoAbrir(nome) {
 		_pilha.splice(i, 1);
 	}
 	_pilha.push(nome);
-	empilharHistorico();
 }
 
 /** Avisa a pilha que a janela fechou (o embrulho chama sozinho). */
@@ -350,7 +347,6 @@ export function fecharTodas() {
 		}
 	}
 	abertas();
-	limparHistorico();
 	return fechadas;
 }
 
@@ -445,43 +441,70 @@ function tratarTecla(evento) {
    Em `standalone` o voltar sai do app — e sair do app é perder a sessão de
    quem está jogando.
 
-   Cada janela aberta empilha UMA entrada. O voltar consome a entrada e cai na
-   mesma função do ESC. Com nada aberto, ele PERGUNTA.
+   UMA ENTRADA-SENTINELA, e não uma por janela (H10, auditoria 2 de
+   22/09/2026). O `popstate` só chega quando o voltar atravessa uma entrada do
+   MESMO documento; na entrada-base o voltar sai do jogo e nenhum `popstate`
+   nasce. Com uma entrada por janela aberta, as duas pontas quebravam: sem
+   janela aberta não havia entrada, e o voltar saía SEM perguntar; e fechar pelo
+   X não consumia a entrada, então o "OK" de "Sair do jogo?" consumia uma órfã e
+   o jogo continuava. Agora a pilha mantém uma sentinela acima da base, armada
+   ao ligar: todo voltar a consome e cai na função do ESC; quem fica no jogo a
+   devolve, e o "OK" desce da base e sai.
    ═══════════════════════════════════════════════════════════════════════ */
 
-function empilharHistorico() {
+/**
+ * O tempo que o aviso de saída do navegador (`window.onbeforeunload`) fica
+ * desligado depois do "OK". Se o jogo ainda estiver de pé depois dele, a saída
+ * não aconteceu (o PWA na entrada-base não tem para onde voltar), e o aviso
+ * volta para proteger o fechamento da aba.
+ */
+const MS_ATE_DEVOLVER_O_AVISO_DE_SAIDA = 1500;
+
+/** A entrada do jogo no histórico, a que o voltar consome. */
+function ehSentinela(estado) {
+	return !!(estado && estado.ragidleSentinela === true);
+}
+
+function armarSentinela() {
 	if (!_ligado || typeof history === 'undefined' || !history.pushState) {
 		return;
 	}
 	try {
-		history.pushState({ ragidleJanela: _pilha.length }, '');
-		_entradasNoHistorico++;
+		history.pushState({ ragidleSentinela: true }, '');
 	} catch (erro) {
 		/* Alguns contextos (file://, sandbox restrito) recusam pushState. O
 		   ESC continua funcionando; só o voltar do Android fica de fora. */
 	}
 }
 
-function limparHistorico() {
-	_entradasNoHistorico = 0;
+/**
+ * O "OK" de "Sair do jogo?": o voltar já consumiu a sentinela, então descer
+ * mais uma entrada deixa o documento. O aviso de saída do navegador cala nesse
+ * passo — o jogador acabou de confirmar na nossa pergunta, e a dele seria a
+ * segunda.
+ */
+function sairDoJogo() {
+	const aviso = window.onbeforeunload;
+	window.onbeforeunload = null;
+	history.back();
+	setTimeout(() => {
+		if (window.onbeforeunload === null) {
+			window.onbeforeunload = aviso;
+		}
+	}, MS_ATE_DEVOLVER_O_AVISO_DE_SAIDA);
 }
 
-function tratarVoltar() {
+function tratarVoltar(evento) {
+	/* Chegar NA sentinela (o avançar) não consumiu nada: não é um voltar. */
+	if (ehSentinela(evento && evento.state)) {
+		return;
+	}
 	const resultado = aoEscapar(document);
-	if (resultado === 'desfocou' || resultado === 'fechou') {
-		return;
-	}
-	if (resultado === 'desarmou') {
-		/* Desarmar nao fechou janela nenhuma, entao a entrada de historico que
-		   o navegador acabou de consumir ainda pertence a uma janela aberta —
-		   devolve, ou o proximo voltar sairia do jogo com a mochila na tela. */
-		empilharHistorico();
-		return;
-	}
-	if (resultado === 'decisao') {
-		/* Modal na tela: o voltar não pode levar embora quem ainda precisa
-		   responder. Devolve a entrada que o navegador acabou de consumir. */
-		empilharHistorico();
+	if (resultado !== 'nada') {
+		/* Fechou, desfocou, desarmou ou há um modal esperando resposta: o
+		   jogador fica, e a sentinela que o navegador acabou de consumir volta —
+		   sem ela o próximo voltar sairia do jogo sem perguntar. */
+		armarSentinela();
 		return;
 	}
 	if (_pedindoConfirmacaoDeSaida) {
@@ -490,8 +513,10 @@ function tratarVoltar() {
 	_pedindoConfirmacaoDeSaida = true;
 	try {
 		const sair = window.confirm('Sair do jogo? O seu personagem continua caçando no servidor.');
-		if (!sair) {
-			history.pushState({ ragidleJanela: 0 }, '');
+		if (sair) {
+			sairDoJogo();
+		} else {
+			armarSentinela();
 		}
 	} finally {
 		_pedindoConfirmacaoDeSaida = false;
@@ -513,6 +538,17 @@ export function ligar() {
 	_ligado = true;
 	window.addEventListener('keydown', tratarTecla, true);
 	window.addEventListener('popstate', tratarVoltar);
+	/* A sentinela nasce com a pilha (H10). Um F5 volta a página EM CIMA dela,
+	   e armar outra deixaria uma entrada que nenhum voltar pede. No `try`
+	   porque `ligar` roda na montagem do mapa, antes do ACTORINIT (D-993): o
+	   voltar do Android não vale a entrada no mundo. */
+	try {
+		if (typeof history !== 'undefined' && !ehSentinela(history.state)) {
+			armarSentinela();
+		}
+	} catch (erro) {
+		console.error('[pilhaDeJanelas] a entrada do jogo no historico falhou; o ESC segue', erro);
+	}
 }
 
 export function desligar() {
@@ -523,7 +559,6 @@ export function desligar() {
 	window.removeEventListener('keydown', tratarTecla, true);
 	window.removeEventListener('popstate', tratarVoltar);
 	_pilha.length = 0;
-	limparHistorico();
 }
 
 /** Só para os testes: esquece tudo. */
