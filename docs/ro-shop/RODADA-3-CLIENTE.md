@@ -51,6 +51,14 @@ de contrato foi inventado.
   caixas nas mesmas posicoes). Folha:
   `provas-de-tela/temporada/folha-destaques-master-antes-depois.jpg`.
 
+- Suite do cliente (`vitest run`, 6ec0d849): 1.796 passam, 2 falham, 2
+  pulados (1.800). As 2 falhas (`janelasMoveis`, `painelDeComando`) e os 8
+  "Unhandled Errors" de teardown vindos de
+  `f1-barraClassicaDeSkillsNuncaAbre.test.js` sao IGUAIS no HEAD de antes da
+  rodada (cfd60e60, medido numa worktree destacada temporaria, ja removida:
+  1.775 passam, as mesmas 2 falhas, os mesmos 8 erros). Nenhuma falha nova; os
+  21 testes a mais sao os desta rodada.
+
 ## O que ficou de fora
 
 - O `.bmp` de reserva dos boosts (Manual de Combate, Goma de Mascar) so aparece
