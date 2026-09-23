@@ -5,11 +5,8 @@
  * Três trabalhos, e nenhum deles depende do jogo estar carregado:
  *
  *   1. registrar o service worker;
- *   2. avisar, DENTRO do jogo, quando existe versão nova — e recarregar sozinho
- *      depois de uma contagem de 10 s, que "Depois" cancela (D-1380: até
- *      13/09/2026 ele nunca recarregava sozinho; o dono pediu a contagem,
- *      e o personagem de quem estiver caçando segue caçando no servidor pela
- *      sessão desassistida da D-275, até 8 h);
+ *   2. trocar para a versão nova SEM PERGUNTAR NADA ao jogador (23/09/2026 —
+ *      ver "A VERSÃO NOVA" abaixo);
  *   3. guardar o `beforeinstallprompt` para o botão "Instalar" das
  *      Configurações poder dispará-lo depois.
  *
@@ -17,219 +14,176 @@
  * Este arquivo roda na CASCA, e a casca hospeda o jogo de dois jeitos
  * diferentes: em desenvolvimento o jogo vive num `<iframe>`
  * (`ROBrowser.TYPE.FRAME`), e em produção ele é embutido no mesmo documento.
- * Um aviso que dependesse dos componentes do jogo funcionaria num e não no
- * outro — e o "não no outro" seria justamente produção.
- *
- * Por isso o aviso é um `<dialog>`-menos, montado à mão com estilo embutido:
- * ele aparece igual nos dois, sem importar nada.
+ * Por isso ele não importa nada do jogo.
  *
  * ─── E POR QUE ELE NÃO MEXE NO PROTOCOLO ────────────────────────────────
  * A Fase 4 pedia "compare versão de protocolo no handshake". Isso mudaria o
  * protocolo WebSocket, e a frente tem ordem explícita de NÃO tocar nele sem
- * autorização. O que dá o mesmo resultado sem atravessar essa linha: a casca
- * pergunta ao service worker se existe versão nova do CLIENTE. Se existe, o
- * jogador vê o aviso — e um cliente desatualizado deixa de falar com um
- * servidor novo em silêncio, que era o objetivo.
- *
- * A comparação no handshake fica registrada como decisão pendente do dono.
+ * autorização. A comparação no handshake fica registrada como decisão
+ * pendente do dono.
  */
 (function () {
 	'use strict';
 
-	/* Vira verdadeiro só quando o jogador clica em "Recarregar" no aviso de
-	   versão nova. Sem isso, a troca de controller da PRIMEIRA instalação
-	   recarregaria a página no meio do carregamento do jogo. */
-	var _trocaPedida = false;
-	var _recarregando = false;
-
 	var API = {
 		/** O `beforeinstallprompt` guardado, ou `null`. */
 		promptDeInstalacao: null,
-		/** O worker esperando para assumir, ou `null`. */
-		versaoNova: null,
+		/**
+		 * A versão do BUILD desta página. O build troca o literal (a MESMA
+		 * troca que o `sw.js` recebe, em `copyPwaFiles`); no dev os dois ficam
+		 * com o literal e continuam iguais.
+		 */
+		versaoDaPagina: '__VERSAO_DO_BUILD__',
 	};
 	window.RagIdlePWA = API;
 
-	/** Quanto o aviso de versão nova espera antes de recarregar sozinho (D-1380). */
-	var SEGUNDOS_ATE_RECARREGAR = 10;
-
 	/* ═════════════════════════════════════════════════════════════════════
-	   O AVISO DE VERSÃO NOVA
-	   ═════════════════════════════════════════════════════════════════════ */
+	   A VERSÃO NOVA — sem aviso, sem contagem, sem recarga (23/09/2026, D-996)
+	   ═════════════════════════════════════════════════════════════════════
 
-	function mostrarAviso(aoRecarregar) {
-		if (document.getElementById('ri-aviso-versao')) {
-			return;
-		}
-		/* ─── A PELE VEM DO DESIGN SYSTEM, MAS COMO LITERAL ───────────────────
-		   Os valores abaixo são os tokens oficiais do Common.css (tema CLARO:
-		   chapa de janela + hairline azul + aro dourado + sombra azul, e os dois
-		   botões nas variantes .ri-btn/.ri-btn--sec). Aqui eles são escritos à
-		   mão, e não como `var(--token)`, pela mesma razão que o aviso é
-		   autônomo: ele roda na CASCA, e em desenvolvimento o jogo (e o
-		   Common.css que o UIManager injeta) vive num `<iframe>` — a casca não
-		   herda esses tokens. Literal aqui = mesma cara nos dois hospedeiros.
-		   Fonte da verdade continua sendo o Common.css; quem mudar a paleta lá
-		   atualiza estes espelhos. */
-		var FONTE_UI = "'Figtree',Arial,'Liberation Sans',Arimo,sans-serif";
+	   O relato do dono, com print do iPhone: *"toda vez que eu entro no game
+	   aparece a tela de que a nova versão está disponível... está maçante;
+	   precisa mesmo disso? é eficiente?"*. Não era, e por dois motivos:
 
-		var caixa = document.createElement('div');
-		caixa.id = 'ri-aviso-versao';
-		caixa.setAttribute('role', 'status');
-		/*
-		 * A MARCA DE "ISTO É UI" (13/09/2026, D-1380). Em produção o aviso mora
-		 * no MESMO documento do jogo, e o ouvinte de toque do jogo
-		 * (`src/Core/Mobile.js`) dá `preventDefault` em todo toque que não
-		 * nasceu na UI — o que SUPRIME o clique sintético do toque (D-932). No
-		 * iPhone os dois botões morriam: o dono tocava e nada acontecia. Quem
-		 * responde "nasceu na UI?" é `ehEventoDaUI`, por esta marca.
-		 */
-		caixa.dataset.guiComponent = 'ri-aviso-versao';
-		caixa.style.cssText = [
-			'position:fixed',
-			'left:50%',
-			'transform:translateX(-50%)',
-			/* Em CIMA, e não embaixo: o rodapé do jogo é onde moram a doca, o
-			   chat e a barra de atalhos (D-930), e um aviso ali cobriria o que
-			   o jogador usa. */
-			'top:calc(env(safe-area-inset-top, 0px) + 12px)',
-			'z-index:2147483000',
-			'display:flex',
-			'align-items:center',
-			'gap:12px',
-			'max-width:calc(100vw - 24px)',
-			'padding:10px 14px',
-			/* --radius-window / --border-window / --surface-window */
-			'border-radius:8px',
-			'border:1px solid rgba(36,92,158,0.34)',
-			'background:linear-gradient(180deg,rgba(255,255,255,0.97) 0%,rgba(239,245,252,0.95) 100%)',
-			/* --text-body */
-			'color:#2d3a55',
-			'font:600 13px/1.3 ' + FONTE_UI,
-			/* --shadow-window + --rim-gold (aro dourado interno, a assinatura
-			   das janelas da HUD) */
-			'box-shadow:0 10px 28px rgba(12,34,64,0.28),0 2px 6px rgba(12,34,64,0.16),inset 0 0 0 1px rgba(240,216,155,0.75)',
-		].join(';');
+	   1. ELE PRENDIA O IPHONE NUMA VERSÃO VELHA. Este arquivo era pedido SEM
+	      carimbo (`<script src="./registrar-sw.js">`), e o `sw.js` responde do
+	      cache tudo o que é da casca — então a cópia de 06/09 ficava sendo
+	      servida para sempre. Nela os botões do aviso não recebiam toque no
+	      iPhone (o conserto é o D-1380, de 13/09), a versão nova nunca era
+	      aceita, e a correção nunca chegava porque vinha justamente na versão
+	      nova. O print do dono em 23/09 ainda mostrava o aviso de 06/09. Hoje o
+	      `<script>` leva o `?v=<build>` dos bundles (`builder-web.mjs`), e o
+	      `sw.js` deixou de servir do cache o que não tem carimbo.
 
-		var texto = document.createElement('span');
-		/* --text-title: o tom mais escuro, para a mensagem sobressair no claro. */
-		texto.style.cssText = 'flex:1;min-width:0;color:#12294a';
+	   2. ELE PERGUNTAVA O QUE NÃO PRECISA SER PERGUNTADO. A NAVEGAÇÃO é rede
+	      primeiro (`sw.js`), e todo bundle leva o `?v=<build>` — logo a página
+	      que acabou de abrir JÁ É a versão publicada, com ou sem o worker novo.
+	      O worker em espera só guarda a casca para o modo offline. Trocar para
+	      ele não pede recarga nenhuma, e perguntar ao jogador era um aviso sem
+	      nada para decidir, a cada deploy (e todo commit no `master` é um).
 
-		var recarregar = document.createElement('button');
-		recarregar.type = 'button';
-		recarregar.textContent = 'Recarregar agora';
-		/* .ri-btn primário (azul): --tab-active-fill, aro --blue-600, texto
-		   branco. 44px de altura: este botão nasce num celular tanto quanto num
-		   computador, e o piso tátil vale para ele igual. */
-		recarregar.style.cssText = [
-			'min-height:44px',
-			'padding:0 16px',
-			'border-radius:6px',
-			'border:1px solid #245c9e',
-			'background:linear-gradient(180deg,#4b81b8 0%,#245c9e 100%)',
-			'color:#ffffff',
-			'font:600 13px ' + FONTE_UI,
-			'box-shadow:inset 0 1px 0 rgba(255,255,255,0.95),0 1px 2px rgba(12,34,64,0.10)',
-			'cursor:pointer',
-		].join(';');
-		/*
-		 * A CONTAGEM (D-1380). O aviso recarrega sozinho quando ela chega a zero;
-		 * "Recarregar agora" antecipa, "Depois" cancela. `feito` garante UMA
-		 * recarga só — o clique e o fim da contagem podem cair no mesmo segundo.
-		 */
-		var restantes = SEGUNDOS_ATE_RECARREGAR;
-		var relogio = 0;
-		var feito = false;
-		function escreverContagem() {
-			texto.textContent = 'Nova versão do jogo. Recarregando em ' + restantes + ' s.';
-		}
-		function pararContagem() {
-			if (relogio) {
-				clearTimeout(relogio);
-				relogio = 0;
-			}
-		}
-		function acionar() {
-			if (feito) {
-				return;
-			}
-			feito = true;
-			pararContagem();
-			texto.textContent = 'Recarregando…';
-			aoRecarregar();
-		}
-		function passo() {
-			relogio = 0;
-			restantes -= 1;
-			if (restantes <= 0) {
-				acionar();
-				return;
-			}
-			escreverContagem();
-			relogio = setTimeout(passo, 1000);
-		}
-		recarregar.addEventListener('click', acionar);
+	   A REGRA de agora: o worker em espera assume SOZINHO quando é do MESMO
+	   build que esta página. Quando ele é MAIS NOVO que a página (houve deploy
+	   com o jogo aberto), ele fica esperando e a página continua jogando — o
+	   jogador pega a versão nova da próxima vez que abrir o jogo, e ninguém é
+	   interrompido no meio de uma caçada.
 
-		var depois = document.createElement('button');
-		depois.type = 'button';
-		depois.textContent = 'Depois';
-		depois.setAttribute('aria-label', 'Dispensar o aviso de nova versão');
-		/* .ri-btn--sec: chapa clara, hairline azul, texto --text-link. */
-		depois.style.cssText = [
-			'min-height:44px',
-			'padding:0 12px',
-			'border-radius:6px',
-			'border:1px solid rgba(36,92,158,0.16)',
-			'background:rgba(255,255,255,0.88)',
-			'color:#245c9e',
-			'font:600 13px ' + FONTE_UI,
-			'box-shadow:0 1px 2px rgba(12,34,64,0.10)',
-			'cursor:pointer',
-		].join(';');
-		depois.addEventListener('click', function () {
-			feito = true;
-			pararContagem();
-			caixa.remove();
-		});
+	   POR QUE A TROCA NÃO ACONTECE com o worker mais novo que a página: o
+	   `activate` apaga o cache da versão anterior, e um `import()` que a página
+	   velha ainda fizesse chegaria ao servidor pedindo um arquivo que o deploy
+	   já substituiu — versões misturadas no mesmo documento.
+	*/
 
-		caixa.appendChild(texto);
-		caixa.appendChild(recarregar);
-		caixa.appendChild(depois);
-		document.body.appendChild(caixa);
-		escreverContagem();
-		relogio = setTimeout(passo, 1000);
-	}
-
-	/* Exposta para o teste (`tests/ui/avisoDeVersaoNova.test.js`) alcançar o
-	   aviso sem um service worker de verdade. */
-	API.mostrarAvisoDeVersao = mostrarAviso;
+	/** Quanto se espera a resposta do worker antes de desistir (e esperar). */
+	var MS_ATE_DESISTIR_DA_VERSAO = 3000;
 
 	/**
 	 * A cada quanto a sessão pergunta se há versão nova (F30, auditoria de
 	 * 22/09/2026). Sem isto uma sessão longa — o jogo idle fica aberto por
 	 * horas — nunca descobria o deploy: o navegador só confere o `sw.js` na
-	 * navegação, e aqui ninguém navega.
+	 * navegação, e aqui ninguém navega. Descobrir não interrompe ninguém: o
+	 * worker fica pronto para a próxima abertura.
 	 */
 	var MS_ENTRE_CONFERENCIAS_DE_VERSAO = 30 * 60 * 1000;
 
+	/**
+	 * A decisão, pura. `assumir` só com as duas versões conhecidas e iguais —
+	 * qualquer dúvida (worker antigo que não responde, resposta vazia) é
+	 * `esperar`, porque esperar nunca quebra nada e assumir errado mistura
+	 * versões.
+	 *
+	 * @returns {'assumir'|'esperar'}
+	 */
+	function decidirVersaoNova(versaoDaPagina, versaoDoWorker) {
+		if (!versaoDaPagina || !versaoDoWorker) {
+			return 'esperar';
+		}
+		return versaoDaPagina === versaoDoWorker ? 'assumir' : 'esperar';
+	}
+	API.decidirVersaoNova = decidirVersaoNova;
+
+	/**
+	 * Pergunta ao worker de qual build ele é. Worker de antes de 23/09 não
+	 * conhece a pergunta e nunca responde: aí a promessa resolve `null` pelo
+	 * prazo, e a decisão é esperar.
+	 */
+	function perguntarVersao(worker) {
+		return new Promise(function (resolver) {
+			var respondeu = false;
+			function responder(versao) {
+				if (respondeu) {
+					return;
+				}
+				respondeu = true;
+				resolver(versao || null);
+			}
+			setTimeout(function () {
+				responder(null);
+			}, MS_ATE_DESISTIR_DA_VERSAO);
+			try {
+				var canal = new MessageChannel();
+				canal.port1.onmessage = function (evento) {
+					responder(evento.data && evento.data.versao);
+				};
+				worker.postMessage({ tipo: 'ragidle:versao' }, [canal.port2]);
+			} catch (erro) {
+				responder(null);
+			}
+		});
+	}
+
 	/*
 	 * `installed` COM um controller já ativo = versão nova esperando. Sem
-	 * controller é a PRIMEIRA instalação, e avisar "nova versão" para quem
-	 * acabou de abrir o jogo pela primeira vez seria mentira.
+	 * controller é a PRIMEIRA instalação: o worker ativa sozinho e não há nada
+	 * a decidir.
 	 */
 	function estaEsperando(worker) {
 		return !!worker && worker.state === 'installed' && !!navigator.serviceWorker.controller;
 	}
 
-	function avisarDaVersao(worker) {
-		API.versaoNova = worker;
-		mostrarAviso(function () {
-			/* Só a partir daqui a troca de controller é ESPERADA — ver a guarda
-			   do `controllerchange` abaixo. */
-			_trocaPedida = true;
-			worker.postMessage({ tipo: 'ragidle:assumir' });
+	/* Um worker já decidido não é perguntado de novo a cada conferência. */
+	var _jaDecididos = [];
+
+	/**
+	 * SEM RESPOSTA NÃO É DECISÃO. Um worker parado pelo navegador precisa
+	 * acordar para responder, e com o jogo carregando isso pode passar do
+	 * prazo. A primeira versão marcava o worker como decidido mesmo assim, e a
+	 * `prove:pwa` pegou o efeito numa corrida de três: a página já era a nova,
+	 * e o worker novo ficava esperando até a abertura SEGUINTE. Agora a
+	 * pergunta se repete, algumas vezes, antes de desistir.
+	 */
+	var TENTATIVAS_DE_PERGUNTA = 4;
+	var MS_ENTRE_TENTATIVAS = 5000;
+
+	/** O que foi decidido nesta página, para quem precisar ler (a prova). */
+	API.decisoes = [];
+
+	function decidir(worker, tentativa) {
+		tentativa = tentativa || 1;
+		if (tentativa === 1 && _jaDecididos.indexOf(worker) !== -1) {
+			return Promise.resolve('ja-decidido');
+		}
+		if (tentativa === 1) {
+			_jaDecididos.push(worker);
+		}
+		return perguntarVersao(worker).then(function (versaoDoWorker) {
+			var decisao = decidirVersaoNova(API.versaoDaPagina, versaoDoWorker);
+			API.decisoes.push({ versao: versaoDoWorker, decisao: decisao, tentativa: tentativa });
+			if (versaoDoWorker === null && tentativa < TENTATIVAS_DE_PERGUNTA) {
+				setTimeout(function () {
+					decidir(worker, tentativa + 1);
+				}, MS_ENTRE_TENTATIVAS);
+				return 'perguntar-de-novo';
+			}
+			if (decisao === 'assumir') {
+				/* Sem recarga: a página JÁ É deste build. O `controllerchange`
+				   que vem daqui não tem ouvinte que recarregue. */
+				worker.postMessage({ tipo: 'ragidle:assumir' });
+			}
+			return decisao;
 		});
 	}
+	API.decidir = decidir;
 
 	function acompanharRegistro(registro) {
 		function vigiar(worker) {
@@ -239,16 +193,15 @@
 			/*
 			 * O QUE JÁ ESTÁ ESPERANDO NÃO DISPARA `statechange` (F30). O worker
 			 * que ficou em `installed` numa visita anterior chega aqui em
-			 * `registro.waiting`, e o estado dele não muda mais — o ouvinte
-			 * nunca rodava, e o aviso nunca aparecia.
+			 * `registro.waiting`, e o estado dele não muda mais.
 			 */
 			if (estaEsperando(worker)) {
-				avisarDaVersao(worker);
+				decidir(worker);
 				return;
 			}
 			worker.addEventListener('statechange', function () {
 				if (estaEsperando(worker)) {
-					avisarDaVersao(worker);
+					decidir(worker);
 				}
 			});
 		}
@@ -259,12 +212,6 @@
 			vigiar(registro.installing);
 		});
 
-		/*
-		 * A SESSÃO LONGA PERGUNTA DE TEMPOS EM TEMPOS (F30) — e ao voltar a aba.
-		 * E o "Depois" deixa de ser para sempre: ele fecha a caixa, o worker
-		 * continua esperando, e a próxima conferência oferece de novo
-		 * (`mostrarAviso` não duplica um aviso aberto).
-		 */
 		function conferir() {
 			var pedido = registro.update && registro.update();
 			if (pedido && pedido.catch) {
@@ -283,7 +230,13 @@
 
 	/* ═════════════════════════════════════════════════════════════════════
 	   REGISTRO
-	   ═════════════════════════════════════════════════════════════════════ */
+	   ═════════════════════════════════════════════════════════════════════
+
+	   NÃO HÁ ouvinte de `controllerchange` que recarregue — e é de propósito.
+	   A primeira versão recarregava em qualquer troca de controller, e o
+	   `clients.claim()` do `activate` dispara essa troca JÁ NA PRIMEIRA VISITA
+	   de todo mundo: a página se reiniciava no meio do carregamento do jogo. A
+	   `prove:pwa` cobra que isso não volte. */
 
 	if ('serviceWorker' in navigator) {
 		window.addEventListener('load', function () {
@@ -296,34 +249,6 @@
 					   nada. */
 					console.warn('[PWA] service worker nao registrou:', erro && erro.message);
 				});
-
-			/*
-			 * ═══════════════════════════════════════════════════════════
-			 * RECARREGA SÓ SE O JOGADOR PEDIU — a guarda que faltava
-			 * ═══════════════════════════════════════════════════════════
-			 * A primeira versão recarregava em QUALQUER `controllerchange`, e
-			 * a prova de instalabilidade pegou o defeito na cara: o `sw.js`
-			 * chama `clients.claim()` no `activate`, o que faz o worker assumir
-			 * a página JÁ CARREGADA. Isso dispara `controllerchange` na
-			 * **primeira visita de todo mundo** — e a página recarregava
-			 * sozinha no meio do carregamento de um jogo que leva ~10s para
-			 * abrir.
-			 *
-			 * `_trocaPedida` só vira verdadeiro quando o jogador clica em
-			 * "Recarregar" no aviso de versão nova. Sem clique, a troca de
-			 * controller é a instalação normal e não se faz nada.
-			 *
-			 * `_recarregando` continua ali por outro motivo: algumas versões do
-			 * Chrome disparam este evento uma vez a mais, e duas recargas
-			 * seguidas piscam.
-			 */
-			navigator.serviceWorker.addEventListener('controllerchange', function () {
-				if (!_trocaPedida || _recarregando) {
-					return;
-				}
-				_recarregando = true;
-				window.location.reload();
-			});
 		});
 	}
 

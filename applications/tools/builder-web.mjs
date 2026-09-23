@@ -210,7 +210,7 @@ function createHTML(includeManifest = false, buildArgs = {}, isAllBuild = false)
     
         <link rel="apple-touch-icon" href="./icon.png">    
         ${manifest}
-        ${includeManifest ? `<script src="./registrar-sw.js" defer></script>` : ``}`;
+        ${includeManifest ? `<script src="./registrar-sw.js?v=${startTime}" defer></script>` : ``}`;
 
 	let body;
 
@@ -617,7 +617,7 @@ function createApiHTML(includeManifest = false) {
 	const manifest = includeManifest ? `<link rel="manifest" href="./manifest.webmanifest">` : ``;
 	/* O registrador anda COM o manifesto: sem manifesto nao ha instalacao, e um
 	   service worker sem instalacao seria so cache sem o resto do PWA. */
-	const registrador = includeManifest ? `<script src="./registrar-sw.js" defer></script>` : ``;
+	const registrador = includeManifest ? `<script src="./registrar-sw.js?v=${startTime}" defer></script>` : ``;
 	const apiHtml = `<!DOCTYPE html>
 <html>
     <head>
@@ -680,7 +680,7 @@ ${META_PIXEL}
                 50% { opacity: 1; transform: translateY(-4px); }    
             }    
         </style>    
-        <script src="api.js"></script>    
+        <script src="api.js?v=${startTime}"></script>    
     </head>    
     <body>    
         <div id="ro-preloader">    
@@ -827,7 +827,12 @@ async function copyPwaFiles() {
 	const versaoDoBuild = pkg.version + '-' + buildDate.replace(/[^0-9]/g, '');
 	const sw = fs.readFileSync('./applications/pwa/sw.js', 'utf8').replace('__VERSAO_DO_BUILD__', versaoDoBuild);
 	fs.writeFileSync(destino + '/sw.js', sw, { encoding: 'utf8' });
-	fs.copyFileSync('./applications/pwa/registrar-sw.js', destino + '/registrar-sw.js');
+	/* O REGISTRADOR recebe a MESMA versao do worker (23/09/2026): e comparando
+	   as duas que ele decide, sozinho, se o worker em espera pode assumir. */
+	const registrador = fs
+		.readFileSync('./applications/pwa/registrar-sw.js', 'utf8')
+		.replace('__VERSAO_DO_BUILD__', versaoDoBuild);
+	fs.writeFileSync(destino + '/registrar-sw.js', registrador, { encoding: 'utf8' });
 
 	for (const lado of [192, 512]) {
 		await sharp(origem)

@@ -90,9 +90,24 @@ self.addEventListener('activate', (evento) => {
 	);
 });
 
-/** O jogador aceitou a versão nova: o worker em espera assume agora. */
+/**
+ * Duas mensagens da casca (`registrar-sw.js`):
+ *
+ *   - `ragidle:versao` — de qual build é este worker. A casca só o deixa assumir
+ *     quando ele é do MESMO build da página (23/09/2026); a resposta vai pela
+ *     porta que veio junto.
+ *   - `ragidle:assumir` — o worker em espera assume agora.
+ */
 self.addEventListener('message', (evento) => {
-	if (evento.data && evento.data.tipo === 'ragidle:assumir') {
+	const tipo = evento.data && evento.data.tipo;
+	if (tipo === 'ragidle:versao') {
+		const porta = evento.ports && evento.ports[0];
+		if (porta) {
+			porta.postMessage({ versao: VERSAO });
+		}
+		return;
+	}
+	if (tipo === 'ragidle:assumir') {
 		self.skipWaiting();
 	}
 });
@@ -166,7 +181,35 @@ self.addEventListener('fetch', (evento) => {
 		return;
 	}
 
-	/* RESTO DA CASCA: cache primeiro. A URL carrega o `?v=<carimbo>` do build,
+	/*
+	 * SEM CARIMBO, REDE PRIMEIRO (23/09/2026, D-996). O ramo de cache primeiro logo
+	 * abaixo só é seguro para URL que muda a cada build (o `?v=<carimbo>`). O
+	 * `registrar-sw.js` era pedido sem carimbo, caiu nele, e a cópia de 06/09
+	 * ficou sendo servida a um iPhone por duas semanas — com o aviso de versão
+	 * nova que não aceitava toque e, por isso, nunca deixava a versão nova
+	 * entrar. É a mesma família da F6 (o `Config.js`, ver `ehDoJogo`), e aqui
+	 * ela é fechada pela REGRA, e não por nome: o próximo arquivo sem carimbo
+	 * não repete o defeito. O cache continua como rede de segurança offline.
+	 */
+	if (!url.searchParams.has('v')) {
+		evento.respondWith(
+			(async () => {
+				const cache = await caches.open(CACHE);
+				try {
+					const resposta = await fetch(req);
+					if (resposta && resposta.status === 200 && resposta.type === 'basic') {
+						cache.put(req, resposta.clone());
+					}
+					return resposta;
+				} catch (erro) {
+					return (await cache.match(req)) || Response.error();
+				}
+			})(),
+		);
+		return;
+	}
+
+	/* COM CARIMBO: cache primeiro. A URL carrega o `?v=<carimbo>` do build,
 	   então uma entrada cacheada nunca pertence a outra versão. */
 	evento.respondWith(
 		(async () => {

@@ -185,7 +185,7 @@ describe('5. a guarda do api.html', () => {
 		expect(pixel).toBeGreaterThan(guarda);
 		expect(outroScript === -1 || outroScript > pixel).toBe(true);
 		expect(apiHtml.indexOf('${registrador}')).toBeGreaterThan(pixel);
-		expect(apiHtml.indexOf('<script src="api.js">')).toBeGreaterThan(pixel);
+		expect(apiHtml.indexOf('<script src="api.js?v=')).toBeGreaterThan(pixel);
 	});
 
 	it('o Pixel e o do dono, com o id e os dois eventos de base', () => {
