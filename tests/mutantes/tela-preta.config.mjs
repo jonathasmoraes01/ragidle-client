@@ -12,12 +12,14 @@ const mutantes = {
 		"\t\tUIManager.showErrorBox(error).ui.css('zIndex', 1000);\r\n\t\tatenderMapaPendente();",
 		"\t\tUIManager.showErrorBox(error).ui.css('zIndex', 1000);"
 	],
-	naoEsvazia: ['\tMapRenderer.mapaPendente = null;\r\n\tif (pendente', '\tif (pendente'],
+	naoEsvazia: ['\tMapRenderer.mapaPendente = null;\r\n\tif (outroMapa', '\tif (outroMapa'],
 	semtry: ['\t\t} catch (erro) {\r\n\t\t\tconsole.error', '\t\t} finally {\r\n\t\t\tconsole.error'],
 	recarregaOMesmo: [
-		'if (pendente && stripMapExtension(pendente) !== stripMapExtension(MapRenderer.currentMap)) {',
-		'if (pendente) {'
-	]
+		'return !!pendente && stripMapExtension(pendente) !== stripMapExtension(MapRenderer.currentMap);',
+		'return !!pendente;'
+	],
+	// H08 (auditoria 2 de 22/09/2026): o mapa que vai ser descartado volta a montar e a mandar o ACTORINIT.
+	montaODescartado: ['\t\t\tif (!vaiSerDescartado) {', '\t\t\tif (true) {']
 };
 const mutante = mutantes[process.env.RAG_MUTANTE_TELA_PRETA];
 if (!mutante) throw new Error(`Escolha RAG_MUTANTE_TELA_PRETA: ${Object.keys(mutantes).join(', ')}.`);

@@ -155,6 +155,36 @@ describe('o pedido de mapa durante um carregamento (16/09/2026)', () => {
 		expect(MapRenderer.currentMap).toBe('pay_fild01.gat');
 	});
 
+	/*
+	 * H08 (auditoria 2 de 22/09/2026). O `onLoad` pendurado no fim do
+	 * carregamento ja e o do pacote MAIS NOVO (o `MapEngine` o troca a cada
+	 * `onMapChange`), e ele manda o `CZ_NOTIFY_ACTORINIT`. Rodado sobre o mapa
+	 * que vai ser descartado, o servidor desce o lote do mapa novo e zera o
+	 * `carregandoMapa`; o `setMap` pendente apaga essas entidades, e o segundo
+	 * ACTORINIT nao traz lote nenhum (fiel ao rAthena). O mapa ficava vazio.
+	 */
+	it('OUTRO mapa pendente: o mapa que vai ser descartado nao monta nem avisa o servidor (H08)', () => {
+		MapRenderer.setMap('prontera.gat');
+		MapRenderer.setMap('gef_fild10.gat');
+		terminarCarregamento();
+		expect(MapRenderer.onLoad, 'o estou-pronto saiu para um mapa que o cliente vai descartar').not.toHaveBeenCalled();
+		expect(MapRenderer.currentMap).toBe('gef_fild10.gat');
+		terminarCarregamento();
+		expect(MapRenderer.onLoad, 'o mapa pendente monta uma vez, e so ele').toHaveBeenCalledOnce();
+		expect(MapRenderer.loading).toBe(false);
+		expect(mocks.renderer.show, 'o jogo aparece no mapa de verdade').toHaveBeenCalled();
+	});
+
+	it('varios pedidos durante um carregamento: um ACTORINIT so, o do ultimo mapa (H08)', () => {
+		MapRenderer.setMap('prontera.gat');
+		MapRenderer.setMap('gef_fild10.gat');
+		MapRenderer.setMap('pay_fild01.gat');
+		terminarCarregamento();
+		terminarCarregamento();
+		expect(MapRenderer.onLoad).toHaveBeenCalledOnce();
+		expect(MapRenderer.currentMap).toBe('pay_fild01.gat');
+	});
+
 	it('o carregamento que FALHA tambem atende o pedido guardado', () => {
 		MapRenderer.setMap('prontera.gat');
 		MapRenderer.setMap('gef_fild10.gat');

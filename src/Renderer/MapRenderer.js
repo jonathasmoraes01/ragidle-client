@@ -631,6 +631,21 @@ function onMapComplete(success, error) {
 		MapRenderer.loading = false;
 
 		/*
+		 * OUTRO MAPA PENDENTE: ESTE NAO MONTA (H08, auditoria 2 de 22/09/2026).
+		 *
+		 * O `onLoad` pendurado aqui ja e o do pacote MAIS NOVO (o `MapEngine` o
+		 * troca a cada `onMapChange`), e ele manda o `CZ_NOTIFY_ACTORINIT`.
+		 * Rodado sobre o mapa que o `atenderMapaPendente` logo abaixo vai
+		 * descartar, o servidor descia o lote do mapa novo (NPCs, jogadores,
+		 * mobs) e zerava o `carregandoMapa`; o `setMap` pendente apagava essas
+		 * entidades, e o ACTORINIT do carregamento de verdade chegava a um
+		 * servidor que, fiel ao rAthena (`clif_parse_LoadEndAck` sai cedo com o
+		 * jogador ja no mapa), nao manda lote de novo. O mapa ficava vazio. Quem
+		 * monta e avisa o servidor e o carregamento do mapa pendente.
+		 */
+		const vaiSerDescartado = temOutroMapaPendente();
+
+		/*
 		 * O JOGO APARECE MESMO QUE A MONTAGEM DA HUD FALHE (16/09/2026).
 		 *
 		 * `onLoad` monta a HUD inteira; uma excecao ali abortava este callback
@@ -639,9 +654,11 @@ function onMapComplete(success, error) {
 		 * esconder a tela nao o conserta, so o esconde.
 		 */
 		try {
-			MapRenderer.onLoad();
-			Sky.setUpCloudData();
-			ScreenEffectManager.startMapflagEffect(worldResource);
+			if (!vaiSerDescartado) {
+				MapRenderer.onLoad();
+				Sky.setUpCloudData();
+				ScreenEffectManager.startMapflagEffect(worldResource);
+			}
 		} catch (erro) {
 			console.error('[MapRenderer] a montagem do mapa falhou; o jogo aparece mesmo assim', erro);
 		}
@@ -662,10 +679,20 @@ function onMapComplete(success, error) {
  */
 function atenderMapaPendente() {
 	const pendente = MapRenderer.mapaPendente;
+	const outroMapa = temOutroMapaPendente();
 	MapRenderer.mapaPendente = null;
-	if (pendente && stripMapExtension(pendente) !== stripMapExtension(MapRenderer.currentMap)) {
+	if (outroMapa) {
 		MapRenderer.setMap(pendente);
 	}
+}
+
+/**
+ * Ha um pedido guardado para um mapa DIFERENTE do que acabou de carregar (H08)?
+ * Uma regra so para as duas perguntas: "este mapa monta?" e "carrego outro?".
+ */
+function temOutroMapaPendente() {
+	const pendente = MapRenderer.mapaPendente;
+	return !!pendente && stripMapExtension(pendente) !== stripMapExtension(MapRenderer.currentMap);
 }
 
 /**
