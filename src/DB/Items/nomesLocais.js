@@ -183,7 +183,58 @@ export const NOMES_LOCAIS = {
 	9000322: 'Ghost Effect', // catalogo-s1.ts, Passe Premium 30
 	9000323: 'Ancient Resonance', // catalogo-s1.ts, Passe Premium 45
 	9000324: 'Rune-Midgarts Glory', // catalogo-s1.ts, Passe Premium 50
-	9000325: 'Astra Blessing' // catalogo-s1.ts, VIP
+	9000325: 'Astra Blessing', // catalogo-s1.ts, VIP
+
+	// --- Rodada 9: os 11 CONSUMIVEIS DO RO SHOP (22/09/2026) ---
+	//
+	// Ids NOSSOS (`game/itens-custom.ts`, faixa 9.000.100-9.000.199 dos
+	// consumiveis de cash), como os visuais da Rodada 8: tabela nenhuma do GRF
+	// os tem. Os dois Manuais ja existiam no jogo e tambem chegavam a mochila
+	// como "Item desconhecido"; os outros nove nasceram com o RO Shop (contrato
+	// do canal, secao 7). Cada nome e o campo `name` de `itens-custom.ts`.
+	//
+	// ATENCAO ao cruzamento de `tests/db/nomesLocais.test.js`: os ids
+	// 9.000.102-110 so existem no `conteudo.json` do jogo DEPOIS de ele ser
+	// regerado com a branch do RO Shop (BLOCKERS B-RS-08 do servidor). Contra
+	// um pacote anterior o cruzamento reprova apontando os nove - e o aviso
+	// certo: o item ainda nao esta no jogo.
+	9000100: 'Manual de Experiência', // itens-custom.ts (Manual_De_Experiencia)
+	9000101: 'Manual de Experiência de Classe', // itens-custom.ts (Manual_De_Experiencia_De_Classe)
+	9000102: 'Bênção da Fortuna', // itens-custom.ts (Bencao_Da_Fortuna)
+	9000103: 'Pack Poção Azul', // itens-custom.ts (Pack_Pocao_Azul)
+	9000104: 'Pack Poção Branca', // itens-custom.ts (Pack_Pocao_Branca)
+	9000105: 'Pack Sobrevivência', // itens-custom.ts (Pack_Sobrevivencia)
+	9000106: 'Pack Viagem', // itens-custom.ts (Pack_Viagem)
+	9000107: 'Pack Farm', // itens-custom.ts (Pack_Farm)
+	9000108: 'Pack Up', // itens-custom.ts (Pack_Up)
+	9000109: 'Pack Completo de Farm', // itens-custom.ts (Pack_Completo_De_Farm)
+	9000110: 'Pack de Treino' // itens-custom.ts (Pack_De_Treino)
+};
+
+/**
+ * AS DESCRICOES DOS CONSUMIVEIS DO RO SHOP (Rodada 9, 22/09/2026).
+ *
+ * O cabecalho deste arquivo deixa a descricao de fora porque "descricao
+ * inventada e pior que '...'". Estas NAO sao inventadas: sao as do documento
+ * do dono do item no servidor (`docs/ro-shop/ITEM_IMPLEMENTATION.md`, secao 3,
+ * do Agente 1; a dos Manuais sai da tabela 2 do mesmo documento), com o fecho
+ * que os Manuais ja usam. So vale onde o GRF nao trouxe a dele
+ * (`completarFicha`).
+ */
+const FECHO_DE_CASH = 'Não pode ser negociado nem vendido a NPCs. Pode ser guardado no armazém.';
+
+export const DESCRICOES_LOCAIS = {
+	9000100: `Aumenta em 25% a EXP de base ganha por 1 hora.\n${FECHO_DE_CASH}`,
+	9000101: `Aumenta em 25% a EXP de classe ganha por 1 hora.\n${FECHO_DE_CASH}`,
+	9000102: `Uma bênção que atrai a sorte. Aumenta em 20% a chance de itens comuns caírem de monstros comuns por 1 hora. Não vale para cartas, MVPs nem monstros raros. Usar outra enquanto ativa estende a duração.\n${FECHO_DE_CASH}`,
+	9000103: `Um pack selado. Ao usar, entrega 1000 Poções Azuis.\n${FECHO_DE_CASH}`,
+	9000104: `Um pack selado. Ao usar, entrega 500 Poções Brancas.\n${FECHO_DE_CASH}`,
+	9000105: `Um pack selado. Ao usar, entrega 1000 Poções Azuis e 500 Poções Brancas.\n${FECHO_DE_CASH}`,
+	9000106: `Um pack selado. Ao usar, entrega 500 Asas de Mosca e 100 Asas de Borboleta.\n${FECHO_DE_CASH}`,
+	9000107: `Um pack selado. Ao usar, entrega 500 Poções Brancas, 1000 Poções Azuis e 1 Bênção da Fortuna.\n${FECHO_DE_CASH}`,
+	9000108: `Um pack selado. Ao usar, entrega 500 Poções Brancas, 1000 Poções Azuis, 1 Manual de Experiência e 1 Manual de Experiência de Classe.\n${FECHO_DE_CASH}`,
+	9000109: `Um pack selado. Ao usar, entrega 500 Poções Brancas, 1000 Poções Azuis, os dois Manuais e 1 Bênção da Fortuna.\n${FECHO_DE_CASH}`,
+	9000110: `Um pack selado. Ao usar, entrega 1 Manual de Experiência, 1 Manual de Experiência de Classe e 1 Bênção da Fortuna.\n${FECHO_DE_CASH}`
 };
 
 /**
@@ -325,6 +376,42 @@ export const ICONES_LOCAIS = {
 	 * tabela vazia, e o veredito seria o criterio que passa com zero.
 	 * Sonda: `.tmp-scratch/icone-dos-mysterious.ts`, no repositorio do jogo.
 	 */
+
+	/*
+	 * RODADA 9b (RO Shop rodada 3, 22/09/2026): os 11 CONSUMIVEIS DO RO SHOP
+	 * ganham um icone de RESERVA DECLARADA - e esta e a unica secao desta
+	 * tabela em que o `.bmp` NAO e o do proprio item, de proposito.
+	 *
+	 * Os ids 9.000.100-110 sao nossos: tabela nenhuma do GRF os tem, e sem esta
+	 * linha a mochila, o aviso "obtido(s)" e o RO Shop mostravam a MACA (QA
+	 * independente, achado A-01). A arte oficial de cada um sai do pipeline do
+	 * servidor (B-RS-08) em `public/ragidle/item/<id>.png`, e quem desenha
+	 * icone de item (mochila, boneco, RO Shop, aviso de obtido) pede ESSE PNG
+	 * primeiro (`Utils/ItemArt.js`): quando ele existir, vence sozinho, e esta
+	 * reserva fica so para o caminho do GRF.
+	 *
+	 * A reserva e o icone do CONTEUDO (o mesmo que o card do RO Shop ja
+	 * mostrava, `RO_SHOP_REQUIRED_ASSETS.md` secao 2) ou, nos boosts, o item
+	 * oficial de mesmo efeito. Nenhum recurso daqui foi deduzido: cada um foi
+	 * LIDO em `data\idnum2itemresnametable.txt` do `data.grf`, com o `.bmp`
+	 * conferido em `texture\...\item\` (sonda `recursos.mts` da rodada 3, com o
+	 * id de controle ao lado):
+	 *
+	 *   505 Pocao Azul       -> 파란포션        504 Pocao Branca -> 하얀포션
+	 *   601 Asa de Mosca     -> 파리의날개      12208 Manual de Combate (e o
+	 *   12210 Goma de Mascar -> 풍선껌          14592, de Classe) -> 전투교범
+	 */
+	9000100: '\xc0\xfc\xc5\xf5\xb1\xb3\xb9\xfc', // Manual de Experiencia -> 12208 Manual de Combate (전투교범)
+	9000101: '\xc0\xfc\xc5\xf5\xb1\xb3\xb9\xfc', // Manual de Exp. de Classe -> 14592 Manual de Combate de Classe (o mesmo .bmp)
+	9000102: '\xc7\xb3\xbc\xb1\xb2\xad', // Bencao da Fortuna -> 12210 Goma de Mascar (풍선껌, o item de drop do kRO)
+	9000103: '\xc6\xc4\xb6\xf5\xc6\xf7\xbc\xc7', // Pack Pocao Azul -> 505 Pocao Azul (파란포션)
+	9000104: '\xc7\xcf\xbe\xe1\xc6\xf7\xbc\xc7', // Pack Pocao Branca -> 504 Pocao Branca (하얀포션)
+	9000105: '\xc6\xc4\xb6\xf5\xc6\xf7\xbc\xc7', // Pack Sobrevivencia -> 505 Pocao Azul
+	9000106: '\xc6\xc4\xb8\xae\xc0\xc7\xb3\xaf\xb0\xb3', // Pack Viagem -> 601 Asa de Mosca (파리의날개)
+	9000107: '\xc7\xcf\xbe\xe1\xc6\xf7\xbc\xc7', // Pack Farm -> 504 Pocao Branca
+	9000108: '\xc7\xcf\xbe\xe1\xc6\xf7\xbc\xc7', // Pack Up -> 504 Pocao Branca
+	9000109: '\xc7\xcf\xbe\xe1\xc6\xf7\xbc\xc7', // Pack Completo de Farm -> 504 Pocao Branca
+	9000110: '\xc0\xfc\xc5\xf5\xb1\xb3\xb9\xfc', // Pack de Treino -> 12208 Manual de Combate
 
 	/*
 	 * O 12849 (Combination Kit) NAO ENTRA: nome sim, icone nao. O GRF

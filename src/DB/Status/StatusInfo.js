@@ -554,11 +554,22 @@ StatusInfo[SC.SHOUT] = {
 	descript: [['Loud Exclamation (Crazy Uproar)', COLOR_TITLE_BUFF], ['%s', COLOR_TIME], ['Increases STR']]
 };
 
+/*
+ * RAGIDLE (RO Shop, 22/09/2026): o EFST_CASH_RECEIVEITEM e o icone da BENCAO DA
+ * FORTUNA (item 9000102), que o servidor manda no gole e na entrada do mapa
+ * (CONTRATO.md do RO Shop, secao 5). O texto do upstream ("o drop dobra") era
+ * falso para ela; o titulo diz de onde vem o bonus, e o quanto fica na
+ * descricao do item, que e fixa por id - esta tabela e fixa por EFST.
+ */
 StatusInfo[SC.CASH_RECEIVEITEM] = {
 	icon: 'item.tga',
 	haveTimeLimit: 1,
-	posTimeLimitStr: 1,
-	descript: [['%s', COLOR_TIME], ['When killing monsters'], ['the drop chance is doubled']]
+	posTimeLimitStr: 2,
+	descript: [
+		['Fortune Blessing', COLOR_TITLE_BUFF],
+		['%s', COLOR_TIME],
+		['Increases the drop chance of common items']
+	]
 };
 
 StatusInfo[SC.SPL_DEF] = {
@@ -1023,11 +1034,13 @@ StatusInfo[SC.TRUESIGHT] = {
 	]
 };
 
+/* RAGIDLE (RO Shop, 22/09/2026): o icone do MANUAL DE EXPERIENCIA DE CLASSE
+   (9000101). So ganhou o titulo, como o CASH_PLUSEXP de D-1376. */
 StatusInfo[SC.CASH_PLUSONLYJOBEXP] = {
 	icon: 'job.tga',
 	haveTimeLimit: 1,
-	posTimeLimitStr: 1,
-	descript: [['%s', COLOR_TIME], ['Increases Job EXP acquired.']]
+	posTimeLimitStr: 2,
+	descript: [['Job EXP Manual', COLOR_TITLE_BUFF], ['%s', COLOR_TIME], ['Increases Job EXP acquired.']]
 };
 
 StatusInfo[SC.ARMOR_PROPERTY] = {
@@ -1531,6 +1544,20 @@ StatusInfo[SC.CASH_PLUSEXP] = {
 	haveTimeLimit: 1,
 	posTimeLimitStr: 2,
 	descript: [['EXP Event', COLOR_TITLE_BUFF], ['%s', COLOR_TIME], ['Increases acquired EXP']]
+};
+
+/*
+ * RAGIDLE (RO Shop, 22/09/2026): o MANUAL DE EXPERIENCIA (9000100) usa o
+ * EFST_PERIOD_PLUSEXP (923), e NAO o 250 do evento acima - o fim de um apagaria
+ * o icone do outro (CONTRATO.md do RO Shop, secao 5). O upstream nao tinha
+ * entrada para o 923, e sem ela o icone nao aparecia. A arte e a mesma do
+ * evento de EXP (`exp.tga`, sugestao do contrato); o titulo e que separa.
+ */
+StatusInfo[SC.PERIOD_PLUSEXP] = {
+	icon: 'exp.tga',
+	haveTimeLimit: 1,
+	posTimeLimitStr: 2,
+	descript: [['EXP Manual', COLOR_TITLE_BUFF], ['%s', COLOR_TIME], ['Increases acquired Base EXP']]
 };
 
 StatusInfo[SC.ATTHASTE_POTION2] = {

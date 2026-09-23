@@ -1,0 +1,155 @@
+{
+  "quando": "2026-09-22T22:44:14.399Z",
+  "erros": [],
+  "relatorio": [
+    {
+      "largura": 360,
+      "foto": "0360-ver-conteudo-antes.png",
+      "defeitos": [],
+      "detalhes": {
+        ".te-modal--conteudo .te-modal-fechar": "chega"
+      },
+      "posicaoDaCaixa": "static"
+    },
+    {
+      "largura": 360,
+      "foto": "0360-confirmar-compra-antes.png",
+      "defeitos": [
+        "o clique nao chega em .te-modal--confirmar .te-confirmar-ok: cai em te-modal-fundo",
+        "o clique nao chega em .te-modal--confirmar .te-confirmar-cancelar: cai em te-modal-fundo"
+      ],
+      "detalhes": {
+        ".te-modal--confirmar .te-confirmar-ok": "cai em te-modal-fundo",
+        ".te-modal--confirmar .te-confirmar-cancelar": "cai em te-modal-fundo"
+      },
+      "posicaoDaCaixa": "static"
+    },
+    {
+      "largura": 360,
+      "foto": "0360-reveal-antes.png",
+      "defeitos": [],
+      "detalhes": {
+        ".te-reveal .te-reveal-fechar": "chega"
+      },
+      "posicaoDaCaixa": null
+    },
+    {
+      "largura": 390,
+      "foto": "0390-ver-conteudo-antes.png",
+      "defeitos": [],
+      "detalhes": {
+        ".te-modal--conteudo .te-modal-fechar": "chega"
+      },
+      "posicaoDaCaixa": "static"
+    },
+    {
+      "largura": 390,
+      "foto": "0390-confirmar-compra-antes.png",
+      "defeitos": [
+        "o clique nao chega em .te-modal--confirmar .te-confirmar-ok: cai em te-modal-fundo",
+        "o clique nao chega em .te-modal--confirmar .te-confirmar-cancelar: cai em te-modal-fundo"
+      ],
+      "detalhes": {
+        ".te-modal--confirmar .te-confirmar-ok": "cai em te-modal-fundo",
+        ".te-modal--confirmar .te-confirmar-cancelar": "cai em te-modal-fundo"
+      },
+      "posicaoDaCaixa": "static"
+    },
+    {
+      "largura": 390,
+      "foto": "0390-reveal-antes.png",
+      "defeitos": [],
+      "detalhes": {
+        ".te-reveal .te-reveal-fechar": "chega"
+      },
+      "posicaoDaCaixa": null
+    },
+    {
+      "largura": 430,
+      "foto": "0430-ver-conteudo-antes.png",
+      "defeitos": [],
+      "detalhes": {
+        ".te-modal--conteudo .te-modal-fechar": "chega"
+      },
+      "posicaoDaCaixa": "static"
+    },
+    {
+      "largura": 430,
+      "foto": "0430-confirmar-compra-antes.png",
+      "defeitos": [
+        "o clique nao chega em .te-modal--confirmar .te-confirmar-ok: cai em te-modal-fundo",
+        "o clique nao chega em .te-modal--confirmar .te-confirmar-cancelar: cai em te-modal-fundo"
+      ],
+      "detalhes": {
+        ".te-modal--confirmar .te-confirmar-ok": "cai em te-modal-fundo",
+        ".te-modal--confirmar .te-confirmar-cancelar": "cai em te-modal-fundo"
+      },
+      "posicaoDaCaixa": "static"
+    },
+    {
+      "largura": 430,
+      "foto": "0430-reveal-antes.png",
+      "defeitos": [],
+      "detalhes": {
+        ".te-reveal .te-reveal-fechar": "chega"
+      },
+      "posicaoDaCaixa": null
+    },
+    {
+      "largura": 768,
+      "foto": "0768-ver-conteudo-antes.png",
+      "defeitos": [],
+      "detalhes": {
+        ".te-modal--conteudo .te-modal-fechar": "chega"
+      },
+      "posicaoDaCaixa": "relative"
+    },
+    {
+      "largura": 768,
+      "foto": "0768-confirmar-compra-antes.png",
+      "defeitos": [],
+      "detalhes": {
+        ".te-modal--confirmar .te-confirmar-ok": "chega",
+        ".te-modal--confirmar .te-confirmar-cancelar": "chega"
+      },
+      "posicaoDaCaixa": "relative"
+    },
+    {
+      "largura": 768,
+      "foto": "0768-reveal-antes.png",
+      "defeitos": [],
+      "detalhes": {
+        ".te-reveal .te-reveal-fechar": "chega"
+      },
+      "posicaoDaCaixa": null
+    },
+    {
+      "largura": 1440,
+      "foto": "1440-ver-conteudo-antes.png",
+      "defeitos": [],
+      "detalhes": {
+        ".te-modal--conteudo .te-modal-fechar": "chega"
+      },
+      "posicaoDaCaixa": "relative"
+    },
+    {
+      "largura": 1440,
+      "foto": "1440-confirmar-compra-antes.png",
+      "defeitos": [],
+      "detalhes": {
+        ".te-modal--confirmar .te-confirmar-ok": "chega",
+        ".te-modal--confirmar .te-confirmar-cancelar": "chega"
+      },
+      "posicaoDaCaixa": "relative"
+    },
+    {
+      "largura": 1440,
+      "foto": "1440-reveal-antes.png",
+      "defeitos": [],
+      "detalhes": {
+        ".te-reveal .te-reveal-fechar": "chega"
+      },
+      "posicaoDaCaixa": null
+    }
+  ]
+}

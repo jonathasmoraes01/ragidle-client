@@ -115,6 +115,7 @@ import IndicacaoIdle from 'UI/Components/IndicacaoIdle/IndicacaoIdle.js'; // RAG
 import RankingIdle from 'UI/Components/RankingIdle/RankingIdle.js'; // RAGIDLE: o Ranking (09/09/2026)
 import PainelComandoIdle from 'UI/Components/PainelComandoIdle/PainelComandoIdle.js'; // RAGIDLE: o painel de comando (D-1563)
 import TemporadaIdle from 'UI/Components/TemporadaIdle/TemporadaIdle.js'; // RAGIDLE: a janela da Temporada (Season 1, 21/09/2026)
+import RoShop from 'UI/Components/RoShop/RoShop.js'; // RAGIDLE: o RO Shop (22/09/2026) - a loja de RO Cash que substitui a CashShop nativa como caminho de compra
 import PartyHud from 'UI/Components/PartyHud/PartyHud.js'; // RAGIDLE: a HUD de party (09/09/2026)
 import PlacarMvpIdle from 'UI/Components/PlacarMvpIdle/PlacarMvpIdle.js'; // RAGIDLE: o placar ao vivo do MVP (D-1533)
 import BoasVindasIdle from 'UI/Components/BoasVindasIdle/BoasVindasIdle.js'; // RAGIDLE: caixa de boas-vindas (D-968)
@@ -560,6 +561,7 @@ class MapEngine {
 					MissoesIdle: MissoesIdle,
 					PasseIdle: PasseIdle,
 					TemporadaIdle: TemporadaIdle,
+					RoShop: RoShop,
 					CodexIdle: CodexIdle,
 					VotoIdle: VotoIdle,
 					PresencaIdle: PresencaIdle,
@@ -622,6 +624,7 @@ class MapEngine {
 			RankingIdle.prepare(); // RAGIDLE: o Ranking — escuta 0x0fca
 			PainelComandoIdle.prepare(); // RAGIDLE: o painel de comando — escuta 0x0fbc e abre SOZINHO quando o servidor manda (D-1563)
 			TemporadaIdle.prepare(); // RAGIDLE: a janela da Temporada (Season 1) - idem, so escuta 0x0fbb
+			RoShop.prepare(); // RAGIDLE: o RO Shop (22/09/2026) - idem, so escuta 0x0fb8
 			PartyHud.prepare(); // RAGIDLE: a HUD de party — NAO fisga pacote (ver o cabecalho)
 			ligarAcessorioDaHud('placar do MVP', () => PlacarMvpIdle.prepare()); // RAGIDLE: escuta 0x0fbd (D-1533)
 			BoasVindasIdle.prepare(); // RAGIDLE: caixa de boas-vindas (D-968) — não escuta pacote nenhum: a lista de cartazes é do cliente
@@ -1560,6 +1563,7 @@ function onMapChange(pkt, ehEntradaNoMundo) {
 		MissoesIdle.append(); // RAGIDLE: janela de Missões (D-551)
 		PasseIdle.append(); // RAGIDLE: janela do Passe (D-813)
 		TemporadaIdle.append(); // RAGIDLE: a janela da Temporada (Season 1, 21/09/2026)
+		RoShop.append(); // RAGIDLE: o RO Shop (22/09/2026) - anexado sempre, como as vizinhas; abre por toggle()
 		CodexIdle.append(); // RAGIDLE: janela do Codex (D-851)
 		// RAGIDLE (D-1159): a janela de Voto. Anexada SEMPRE, como as vizinhas —
 		// o aviso da entrada chega pelo pacote e precisa de um host de pé.
@@ -1736,6 +1740,7 @@ function onMapChange(pkt, ehEntradaNoMundo) {
 			['missoes', MissoesIdle, '.mi-window'],
 			['passe', PasseIdle, '.pi-window'],
 			['temporada', TemporadaIdle, '.te-window'],
+			['roshop', RoShop, '.rs-window'],
 			['voto', VotoIdle, '.vi-window'],
 			['analise', HuntAnalyzer, '.ha-window'],
 			/*
@@ -1876,6 +1881,21 @@ function onMapChange(pkt, ehEntradaNoMundo) {
 		   o botão; nenhuma linha dela monta pacote de LFG. */
 		GrupoIdle.aoPedirTeleporte = () => {
 			LFGIdle.teleportarParaOLider();
+		};
+
+		/* A PONTE do RO Shop para a Temporada (22/09/2026, D-RS-04): o botao
+		   "Ir para Temporada" SO NAVEGA - fecha a loja e abre a janela da
+		   Temporada que ja existe. Caixas, Passe e VIP nao moram no RO Shop, e
+		   nenhuma linha dele monta pacote da Temporada. Mora aqui pela mesma
+		   razao das pontes acima: so o MapEngine conhece as duas janelas. */
+		RoShop.aoIrParaTemporada = () => {
+			if (RoShop.estaAberta()) {
+				RoShop.toggle();
+			}
+			const temporada = TemporadaIdle._shadow && TemporadaIdle._shadow.querySelector('.te-window');
+			if (!(temporada && temporada.classList.contains('is-open'))) {
+				TemporadaIdle.toggle();
+			}
 		};
 
 		/*
@@ -2110,6 +2130,7 @@ function cleanGameUI() {
 		MochilaIdle,
 		PasseIdle,
 		TemporadaIdle,
+		RoShop,
 		CodexIdle,
 		TutorialIdle,
 		PresencaIdle,

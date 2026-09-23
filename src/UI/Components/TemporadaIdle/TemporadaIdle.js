@@ -26,10 +26,10 @@
  * no ZC ou em 10s sem resposta)
  * ---------------------------------------------------------------------------
  * `_trava` (criarTrava(), em formatoDaTemporada.js) é UMA trava para TODAS as
- * ações (comprar-caixa/abrir-caixa/resgatar/comprar-premium/resgatar-visual-
- * vip e, desde 21/09/2026, comprar-passe), não uma por botão: dois cliques em
- * botões DIFERENTES enquanto a primeira ação ainda não voltou cobrariam duas
- * vezes do mesmo jeito que dois cliques no mesmo botão cobrariam - o servidor
+ * ações (comprar-caixa/abrir-caixa/resgatar/resgatar-visual-vip e, desde
+ * 21/09/2026, comprar-passe), não uma por botão: dois cliques em botões
+ * DIFERENTES enquanto a primeira ação ainda não voltou cobrariam duas vezes
+ * do mesmo jeito que dois cliques no mesmo botão cobrariam - o servidor
  * aceitaria as duas, e as duas seriam válidas.
  *
  * ---------------------------------------------------------------------------
@@ -50,6 +50,17 @@
  * sempre, porque o estado dela nunca chegava. Foi para producao em 21/09/2026.
  * Ha portao no servidor: `servidor/protocolo/um-dono-por-pacote.test.ts`.
  *
+ * ---------------------------------------------------------------------------
+ * O REDESENHO PREMIUM DE 22/09/2026 (contrato V2 - `CONTRATO-TEMPORADA-V2.md`)
+ * ---------------------------------------------------------------------------
+ * O `ZC_RAGIDLE_TEMPORADA` sobe para `v: 2`: o bloco `passe` troca de forma
+ * (XP em vez de pontos, VIP em vez de Premium comprado) e ganha missoes
+ * diarias/semanais. O Passe de Batalha volta a ser ABA PROPRIA (nao mais
+ * encolhido dentro dos Destaques) e o Passe Semanal sai do catalogo por
+ * completo - decisao do dono. `ABAS` e `onTemporadaRecebida` sao os dois
+ * pontos que mudam de forma aqui; o resto (trava, modais, reveal, pacotes de
+ * saida) continua igual.
+ *
  * @author RagIdle
  */
 
@@ -67,6 +78,8 @@ import PasseIdle from '../PasseIdle/PasseIdle.js';
 import { itemIconUrl, preferirArtePublicada } from 'Utils/ItemArt.js';
 import { fecharEEsquecer } from '../limpezaDeJanelaIdle.js';
 import { abaLembrada, lembrarAba } from '../memoriaDeAba.js';
+import { formatarRoCash, minorDe, minorDePrimeiro } from 'Utils/roCash.js';
+import { assinarSaldoDeCash, publicarSaldoDeCash, saldoDeCashConhecido } from 'Utils/saldoDeCash.js';
 import htmlText from './TemporadaIdle.html?raw';
 import cssText from './TemporadaIdle.css?raw';
 import {
@@ -75,12 +88,14 @@ import {
 	dataCurta,
 	gerarChave,
 	passePorTipo,
+	renderBannerDasCaixasHtml,
 	renderCaixaHtml,
 	renderDestaquesHtml,
 	renderModalConteudoHtml,
+	renderPasseDeBatalhaHtml,
 	renderRevealHtml,
-	renderSemanalHtml,
 	renderVipHtml,
+	saldoParaMostrar,
 	textoDoSeloVip
 } from './formatoDaTemporada.js';
 
@@ -101,20 +116,26 @@ TemporadaIdle.render = () => htmlText;
 /** Janela fechada não pode engolir clique de cena. */
 TemporadaIdle.mouseMode = GUIComponent.MouseMode.CROSS;
 
-/** O último estado inteiro que o servidor mandou (contrato v1). */
+/** O último estado inteiro que o servidor mandou (contrato v2). */
 TemporadaIdle.estado = null;
 
 /** O último estado do PASSE (0x0fe5), recebido por `PasseIdle.aoReceberEstado`. */
 TemporadaIdle.estadoDoPasse = null;
 
 /*
- * AS QUATRO ABAS (21/09/2026): Destaques (com o passe compacto), Caixas, o
- * Passe Semanal e o VIP. A aba "Passe" saiu - a progressao mora nos Destaques
- * por ordem do dono - e o VIP e UMA aba onde eram duas (a desta janela e a das
- * Recompensas), porque as duas descreviam o mesmo produto por angulos
+ * AS QUATRO ABAS (22/09/2026, contrato V2 - `CONTRATO-TEMPORADA-V2.md`):
+ * Destaques, Caixas, Passe de Batalha e VIP.
+ *
+ * O Passe Semanal SAIU - decisao do dono, desativada por completo (o
+ * servidor recusa a compra e para de entregar o cashback diario; nada e
+ * apagado do estado do jogador, so deixa de ser honrado). O Passe de
+ * Batalha VOLTOU a ser aba propria - tinha sido fundida nos Destaques em
+ * 21/09/2026, e o documento de redesenho e explicito: nao fundir, nao
+ * esconder. O VIP continua sendo UMA aba onde eram duas (a desta janela e a
+ * das Recompensas) - as duas descreviam o mesmo produto por angulos
  * diferentes: o que ele da, e como se compra.
  */
-const ABAS = ['destaques', 'caixas', 'semanal', 'vip'];
+const ABAS = ['destaques', 'caixas', 'passe', 'vip'];
 const ABA_PADRAO = 'destaques';
 
 TemporadaIdle.activeTab = ABA_PADRAO;
@@ -165,7 +186,7 @@ function melhorarIcones(escopo) {
 	if (!escopo || typeof escopo.querySelectorAll !== 'function') {
 		return;
 	}
-	escopo.querySelectorAll('.te-icone[data-item-id]').forEach((el) => {
+	escopo.querySelectorAll('.te-icone[data-item-id]').forEach(el => {
 		if (el.dataset.melhorado) {
 			return;
 		}
@@ -175,7 +196,7 @@ function melhorarIcones(escopo) {
 			return;
 		}
 
-		const pintar = (url) => {
+		const pintar = url => {
 			if (!url) {
 				return;
 			}
@@ -331,7 +352,7 @@ function fecharModais() {
 	if (!root) {
 		return;
 	}
-	root.querySelectorAll('.te-modal').forEach((modal) => {
+	root.querySelectorAll('.te-modal').forEach(modal => {
 		modal.hidden = true;
 	});
 	_executarAoConfirmar = null;
@@ -339,7 +360,7 @@ function fecharModais() {
 
 function caixaPorPool(pool) {
 	const lista = (TemporadaIdle.estado && TemporadaIdle.estado.caixas) || [];
-	return lista.find((c) => c && c.pool === pool) || null;
+	return lista.find(c => c && c.pool === pool) || null;
 }
 
 function abrirModalConteudo(pool) {
@@ -358,7 +379,7 @@ function abrirModalConteudo(pool) {
 	modal.hidden = false;
 }
 
-/** Confirmação antes de gastar cash - caixa, Premium, Passe Semanal e VIP. */
+/** Confirmação antes de gastar cash - caixa e VIP. */
 function abrirConfirmacao(texto, executar) {
 	const root = _root();
 	const modal = root && root.querySelector('.te-modal--confirmar');
@@ -458,7 +479,7 @@ function onClicarAcao(botao) {
 		if (!caixa) {
 			return;
 		}
-		abrirConfirmacao(`Comprar ${caixa.nome} por ${caixa.preco} RO Cash?`, () =>
+		abrirConfirmacao(`Comprar ${caixa.nome} por ${formatarRoCash(minorDe(caixa, 'preco') || 0)} RO Cash?`, () =>
 			enviarAcao({ acao: 'comprar-caixa', pool, chave: gerarChave() })
 		);
 		return;
@@ -480,24 +501,22 @@ function onClicarAcao(botao) {
 		enviarAcao({ acao: 'resgatar-visual-vip' });
 		return;
 	}
-	if (agir === 'comprar-premium') {
-		const estado = TemporadaIdle.estado;
-		const preco = estado && estado.passe ? estado.passe.precoPremium : null;
-		abrirConfirmacao(preco === null ? 'Comprar o Passe Premium?' : `Comprar o Passe Premium por ${preco} RO Cash?`, () =>
-			enviarAcao({ acao: 'comprar-premium' })
-		);
-		return;
-	}
 	if (agir === 'comprar-passe') {
+		/* Desde 22/09/2026 so existe UM tipo compravel por este verbo: o VIP
+		   de 30 dias. O Passe Semanal saiu do catalogo (contrato V2) e o
+		   Passe Premium nao existe mais (a segunda trilha do Passe de
+		   Batalha e o proprio VIP). */
 		const tipo = botao.dataset.tipo;
-		if (tipo !== 'vip' && tipo !== 'semanal') {
+		if (tipo !== 'vip') {
 			return;
 		}
 		const passe = passePorTipo(TemporadaIdle.estadoDoPasse, tipo);
-		const nome = tipo === 'vip' ? 'VIP' : 'Passe Semanal';
 		const verbo = passe && passe.ativo ? 'Renovar' : 'Comprar';
-		const preco = passe ? `${passe.cash} cash` : '';
-		abrirConfirmacao(`${verbo} o ${nome}${preco ? ` por ${preco}` : ''}?`, () => enviarCompraDePasse(tipo));
+		const preco =
+			passe && minorDePrimeiro(passe, ['preco', 'cash']) !== null
+				? `${formatarRoCash(minorDePrimeiro(passe, ['preco', 'cash']))} RO Cash`
+				: '';
+		abrirConfirmacao(`${verbo} o VIP${preco ? ` por ${preco}` : ''}?`, () => enviarCompraDePasse(tipo));
 	}
 }
 
@@ -517,8 +536,8 @@ function onClickRaiz(e) {
 		return;
 	}
 
-	/* Os atalhos dos Destaques (caixas em resumo, Passe Semanal, VIP) so
-	   TROCAM DE ABA - nunca disparam acao. */
+	/* Os atalhos dos Destaques (chamada do Passe de Batalha, caixas em
+	   resumo, Caixas, VIP) so TROCAM DE ABA - nunca disparam acao. */
 	const ir = e.target.closest('[data-ir]');
 	if (ir) {
 		e.stopImmediatePropagation();
@@ -569,6 +588,20 @@ function onClickRaiz(e) {
 /* O desenho                                                           */
 /* ------------------------------------------------------------------ */
 
+/** O saldo desta janela: a conta primeiro, depois Temporada, depois Passe. */
+function saldoAtual() {
+	return saldoParaMostrar(TemporadaIdle.estado, TemporadaIdle.estadoDoPasse, saldoDeCashConhecido());
+}
+
+/** So a carteira do cabecalho (um saldo novo nao precisa redesenhar a aba). */
+function desenharCarteira() {
+	const root = _root();
+	const carteira = root && root.querySelector('.te-carteira-valor');
+	if (carteira) {
+		carteira.textContent = formatarRoCash(saldoAtual() || 0);
+	}
+}
+
 function render() {
 	const root = _root();
 	if (!root) {
@@ -577,22 +610,19 @@ function render() {
 	const estado = TemporadaIdle.estado;
 	const estadoDoPasse = TemporadaIdle.estadoDoPasse;
 
-	root.querySelectorAll('.te-tab').forEach((btn) => {
+	root.querySelectorAll('.te-tab').forEach(btn => {
 		btn.classList.toggle('is-active', btn.dataset.tab === TemporadaIdle.activeTab);
 	});
 
 	/* O saldo: o da Temporada quando ja chegou; senao o do Passe, que e o
 	   mesmo cash da mesma conta - os dois pacotes o trazem. */
-	const carteira = root.querySelector('.te-carteira-valor');
-	if (carteira) {
-		const saldo =
-			estado && estado.moeda && typeof estado.moeda.saldo === 'number'
-				? estado.moeda.saldo
-				: estadoDoPasse && typeof estadoDoPasse.cash === 'number'
-					? estadoDoPasse.cash
-					: 0;
-		carteira.textContent = String(saldo);
-	}
+	/* Em MINOR desde o RO Shop (22/09/2026): `saldoMinor`/`cashMinor` do
+	   contrato novo, ou o inteiro antigo x100 (`Utils/roCash.js:minorDe`), e o
+	   MESMO `formatarRoCash` do RO Shop e da HUD. */
+	/* Desde a rodada 2 do RO Shop (risco P1-02) o saldo da CONTA vem primeiro
+	   (`Utils/saldoDeCash.js`): uma compra no RO Shop atualiza esta carteira
+	   sem esperar um pacote da Temporada (`saldoParaMostrar`). */
+	desenharCarteira();
 
 	const selo = root.querySelector('.te-selo-vip');
 	if (selo) {
@@ -608,23 +638,22 @@ function render() {
 	}
 	corpo.dataset.aba = TemporadaIdle.activeTab;
 
-	/* A aba Semanal so depende do estado do PASSE - ela nao espera o da
-	   Temporada para desenhar (e vice-versa nas outras). */
-	if (TemporadaIdle.activeTab === 'semanal') {
-		corpo.innerHTML = renderSemanalHtml(estadoDoPasse);
-		return;
-	}
+	/* Desde que o Passe Semanal saiu (22/09/2026) TODAS as abas dependem do
+	   estado da Temporada (0x0fbb) - so a compra do VIP, dentro da aba VIP,
+	   ainda depende tambem do estado do Passe (0x0fe5). */
 	if (!estado) {
 		corpo.innerHTML = '<div class="te-carregando">Carregando…</div>';
 		return;
 	}
 
 	if (TemporadaIdle.activeTab === 'caixas') {
-		corpo.innerHTML = `<div class="te-caixas-grade">${(estado.caixas || []).map(renderCaixaHtml).join('')}</div>`;
+		corpo.innerHTML = `${renderBannerDasCaixasHtml()}<div class="te-caixas-grade">${(estado.caixas || []).map(renderCaixaHtml).join('')}</div>`;
+	} else if (TemporadaIdle.activeTab === 'passe') {
+		corpo.innerHTML = renderPasseDeBatalhaHtml(estado.passe);
 	} else if (TemporadaIdle.activeTab === 'vip') {
-		corpo.innerHTML = renderVipHtml(estado.vip, estadoDoPasse);
+		corpo.innerHTML = renderVipHtml(estado.vip, estadoDoPasse, saldoAtual());
 	} else {
-		corpo.innerHTML = renderDestaquesHtml(estado, estadoDoPasse);
+		corpo.innerHTML = renderDestaquesHtml(estado);
 	}
 	melhorarIcones(corpo);
 }
@@ -729,11 +758,24 @@ function onTemporadaRecebida(pkt) {
 		console.error('[TemporadaIdle] payload nao e JSON valido', err);
 		return;
 	}
-	if (!dados || dados.v !== 1) {
+	/* O contrato sobe para v2 em 22/09/2026 (CONTRATO-TEMPORADA-V2.md): o
+	   bloco `passe` troca de forma (XP em vez de pontos, VIP em vez de
+	   Premium). Um payload de versao diferente e ignorado, do mesmo jeito
+	   que o v1 ja ignorava payload de formato desconhecido - a janela so
+	   redesenha quando o formato bate com o que ela sabe ler, nunca tenta
+	   adivinhar um campo que mudou de nome. */
+	/* RO Shop (22/09/2026): a `v: 3` do contrato traz o dinheiro em MINOR
+	   (`moeda.saldoMinor`, `caixas[].precoMinor` - CONTRATO.md do RO Shop,
+	   secao 5). O resto do payload e o da v2, e a janela ja le as duas formas
+	   do dinheiro por `minorDe`; versao que ela nao conhece continua ignorada. */
+	if (!dados || (dados.v !== 2 && dados.v !== 3)) {
 		return;
 	}
 	destravarBotoes();
 	TemporadaIdle.estado = dados;
+	/* O saldo que este pacote trouxe vai para a fonte unica: o RO Shop e a HUD
+	   concordam com uma compra de caixa sem esperar o pacote deles (P1-02). */
+	publicarSaldoDeCash(minorDe(dados.moeda, 'saldo'));
 	render();
 
 	const resultado = dados.resultado;
@@ -770,9 +812,11 @@ function onPasseMudou(dados) {
 
 	const comprou = dados && dados.comprou;
 	if (comprou && comprou.ok) {
+		/* Desde 22/09/2026 o unico tipo que esta janela manda para
+		   `comprar-passe` e 'vip' - o Passe Semanal saiu do catalogo (ver o
+		   cabecalho). */
 		const passe = passePorTipo(dados, comprou.tipo);
-		const nome = comprou.tipo === 'vip' ? 'VIP' : 'Passe Semanal';
-		mostrarAviso(`${nome} ativo até ${dataCurta(passe && passe.expiraEm)}.`, false);
+		mostrarAviso(`VIP ativo até ${dataCurta(passe && passe.expiraEm)}.`, false);
 		if (comprou.tipo === 'vip' && janelaEstaAberta()) {
 			pedirEstado();
 		}
@@ -781,5 +825,17 @@ function onPasseMudou(dados) {
 	}
 }
 PasseIdle.aoReceberEstado = onPasseMudou;
+
+/*
+ * Um saldo novo por FORA desta janela (RO Shop, HUD, Passe): a carteira do
+ * cabecalho acompanha, e a aba VIP (que mostra "Faltam X RO Cash") e
+ * redesenhada se estiver na tela. As outras abas nao mostram saldo.
+ */
+assinarSaldoDeCash(() => {
+	desenharCarteira();
+	if (TemporadaIdle.activeTab === 'vip' && janelaEstaAberta()) {
+		render();
+	}
+});
 
 export default UIManager.addComponent(TemporadaIdle);

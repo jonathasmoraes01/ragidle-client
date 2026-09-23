@@ -2,24 +2,45 @@
 	<div class="te-window ri-window ri-anima">
 		<div class="te-titlebar ri-header">
 			<span class="te-carteira" title="Seu saldo de RO Cash">
+				<img class="te-carteira-icone" src="/ragidle/temporada/icone-ro-cash.webp" alt="" width="18" height="18">
 				<span class="te-carteira-valor">0</span>
 				<span class="te-carteira-unidade">RO Cash</span>
-				<button type="button" class="te-recarregar" disabled title="Em breve: ainda nao ha pagamento em dinheiro real">Recarregar</button>
+				<button type="button" class="te-recarregar" disabled title="Em breve: ainda nao ha pagamento em dinheiro real">
+					<img class="te-recarregar-icone" src="/ragidle/temporada/icone-recarregar.webp" alt="" width="14" height="14">
+					<span>Recarregar</span>
+				</button>
 			</span>
 			<span class="te-title ri-title">Temporada</span>
 			<span class="te-selo-vip ri-badge ri-badge--cinza">Sem VIP</span>
-			<button type="button" class="te-close ri-close" title="Fechar">&times;</button>
+			<button type="button" class="te-close ri-close" title="Fechar">
+				<img class="te-close-icone" src="/ragidle/temporada/botao-fechar.webp" alt="Fechar" width="22" height="22">
+			</button>
 		</div>
 
-		<!-- As QUATRO abas (21/09/2026): a progressao do passe mora nos Destaques
-		     (pedido do dono), e "Semanal" + "VIP" sao o conteudo da antiga janela
-		     de Recompensas, que ficou sem botao no menu. Ver o cabecalho de
-		     TemporadaIdle.js. -->
+		<!-- As QUATRO abas (22/09/2026, contrato V2 do servidor): o Passe Semanal
+		     SAIU - decisao do dono, desativado por completo - e o Passe de Batalha
+		     VOLTOU a ser aba propria: tinha sido fundida nos Destaques em 21/09, e
+		     o documento de redesenho e explicito: nao fundir, nao esconder. Ver o
+		     cabecalho de TemporadaIdle.js e CONTRATO-TEMPORADA-V2.md. -->
 		<div class="te-tabs">
-			<button type="button" class="te-tab ri-tab is-active" data-tab="destaques">Destaques</button>
-			<button type="button" class="te-tab ri-tab" data-tab="caixas">Caixas</button>
-			<button type="button" class="te-tab ri-tab" data-tab="semanal">Passe Semanal</button>
-			<button type="button" class="te-tab ri-tab" data-tab="vip">VIP</button>
+			<button type="button" class="te-tab ri-tab is-active" data-tab="destaques">
+				<img class="te-tab-icone" src="/ragidle/temporada/icone-destaques.webp" alt="" width="16" height="16">
+				<span>Destaques</span>
+			</button>
+			<button type="button" class="te-tab ri-tab" data-tab="caixas">
+				<!-- Icone proprio desde 22/09/2026 (arte do dono): o mesmo do atalho
+				     "Caixas" dos Destaques. -->
+				<img class="te-tab-icone" src="/ragidle/temporada/icone-caixas.webp" alt="" width="16" height="16">
+				<span>Caixas</span>
+			</button>
+			<button type="button" class="te-tab ri-tab" data-tab="passe">
+				<img class="te-tab-icone" src="/ragidle/temporada/icone-passe-de-batalha.webp" alt="" width="16" height="16">
+				<span>Passe de Batalha</span>
+			</button>
+			<button type="button" class="te-tab ri-tab" data-tab="vip">
+				<img class="te-tab-icone" src="/ragidle/temporada/icone-vip.webp" alt="" width="16" height="16">
+				<span>VIP</span>
+			</button>
 		</div>
 
 		<div class="te-body ri-scroll ri-janela-corpo">
@@ -29,7 +50,7 @@
 		<div class="te-aviso" aria-live="polite"></div>
 	</div>
 
-	<!-- Modal "Ver conteúdo": as 6 recompensas da caixa, com a chance sempre visível. -->
+	<!-- Modal "Ver conteúdo": as 6 recompensas da caixa, separadas por categoria. -->
 	<div class="te-modal te-modal--conteudo" hidden>
 		<div class="te-modal-fundo"></div>
 		<div class="te-modal-caixa ri-window">
@@ -41,7 +62,7 @@
 		</div>
 	</div>
 
-	<!-- Confirmação antes de gastar cash (caixa, Premium, Passe Semanal, VIP). -->
+	<!-- Confirmação antes de gastar cash (caixa e VIP). -->
 	<div class="te-modal te-modal--confirmar" hidden>
 		<div class="te-modal-fundo"></div>
 		<div class="te-modal-caixa ri-window te-modal-caixa--estreita">

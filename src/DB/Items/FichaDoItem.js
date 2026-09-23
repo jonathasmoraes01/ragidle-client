@@ -46,7 +46,7 @@
  * que ela passa estao no cabecalho de `ICONES_LOCAIS` (`nomesLocais.js`).
  */
 
-import { ICONES_LOCAIS, NOMES_LOCAIS } from './nomesLocais.js';
+import { DESCRICOES_LOCAIS, ICONES_LOCAIS, NOMES_LOCAIS } from './nomesLocais.js';
 
 /** A ficha de quem nao esta na tabela. `\xbb\xe7\xb0\xfa` e o sprite de sobra do cliente. */
 export const unknownItem = {
@@ -59,6 +59,25 @@ export const unknownItem = {
 	slotCount: 0,
 	ClassNum: 0
 };
+
+/**
+ * A ficha aponta para um icone PROPRIO, e nao para a maca de sobra?
+ *
+ * A pergunta e pelo CAMPO, nunca pela identidade do objeto (RO Shop rodada 3,
+ * 22/09/2026). `completarFicha` devolve uma COPIA de `unknownItem` para todo
+ * id de `NOMES_LOCAIS` ausente da tabela - batizada, mas com o recurso da
+ * maca -, e a guarda `info === unknownItem` do RO Shop nunca disparava: os 11
+ * itens do RO Shop saiam com a maca no card, nos detalhes e no carrinho, no
+ * cliente real (QA independente, achado A-01). Quem quer saber se ha arte de
+ * verdade pergunta aqui.
+ *
+ * @param {object} ficha - o que `DB.getItemInfo` devolveu
+ * @returns {boolean}
+ */
+export function temIconeProprio(ficha) {
+	const recurso = ficha && ficha.identifiedResourceName;
+	return typeof recurso === 'string' && recurso !== '' && recurso !== unknownItem.identifiedResourceName;
+}
 
 /**
  * Completa os campos que faltam numa ficha de item.
@@ -78,10 +97,16 @@ export function completarFicha(itemid, ficha) {
 		const nomeLocal = NOMES_LOCAIS[itemid];
 		if (nomeLocal !== undefined) {
 			const ficheiroDoIcone = ICONES_LOCAIS[itemid];
+			const descricaoLocal = DESCRICOES_LOCAIS[itemid];
 			return {
 				...unknownItem,
 				identifiedDisplayName: nomeLocal,
 				unidentifiedDisplayName: nomeLocal,
+				// A descricao documentada dos consumiveis do RO Shop (Rodada 9).
+				...(descricaoLocal !== undefined && {
+					identifiedDescriptionName: descricaoLocal,
+					unidentifiedDescriptionName: descricaoLocal
+				}),
 				// So o lado IDENTIFICADO: ver o cabecalho de ICONES_LOCAIS —
 				// o icone nao-identificado de todo cosmetico e o capuz
 				// generico, e nao o do item.
@@ -115,8 +140,8 @@ export function completarFicha(itemid, ficha) {
 		// String e nao array: `getItemInfo` ja passou o bloco que junta as
 		// linhas quando esta funcao roda, entao devolver array aqui poria um
 		// `['...']` cru na caixa de descricao.
-		identifiedDescriptionName: ficha.identifiedDescriptionName ?? '...',
-		unidentifiedDescriptionName: ficha.unidentifiedDescriptionName ?? '...',
+		identifiedDescriptionName: ficha.identifiedDescriptionName ?? DESCRICOES_LOCAIS[itemid] ?? '...',
+		unidentifiedDescriptionName: ficha.unidentifiedDescriptionName ?? DESCRICOES_LOCAIS[itemid] ?? '...',
 		slotCount: ficha.slotCount ?? 0
 	};
 }

@@ -61,6 +61,21 @@
 #CharSelectV4 .cs-close {
 	cursor: pointer;
 }
+/* "3 de 12 vagas em uso": o total e o do servidor (vagasDaSelecao.js). Fica
+   visivel tambem no celular, onde o subtitulo some (PreGamePremium.css). */
+#CharSelectV4 .cs-vagas {
+	display: inline-block;
+	margin: var(--sp-4) 0 0;
+	padding: 2px var(--sp-5);
+	border-radius: var(--radius-pill);
+	background: var(--sky-50);
+	box-shadow: inset 0 0 0 1px var(--border-hairline);
+	font: var(--type-label);
+	color: var(--text-body);
+}
+#CharSelectV4 .cs-vagas:empty {
+	display: none;
+}
 
 #CharSelectV4 .cs-body {
 	display: flex;
@@ -105,6 +120,12 @@
 		inset 0 0 0 1px var(--accent),
 		var(--shadow-card);
 	cursor: pointer;
+}
+/* A VAGA QUE A CONTA NAO TEM (RO Shop, 22/09/2026): fora da grade. O
+   `hidden` sozinho perderia para o `display` das regras de layout abaixo
+   (grid/flex nos cartoes), por isso o `!important` aqui. */
+#CharSelectV4 .char_canvas[hidden] {
+	display: none !important;
 }
 /* Slot vazio: quase nao existe, so hairline + "+" central -- troca o glifo
    "+" que antes vinha pintado em select_character_ver3/img_slot2_normal.bmp. */

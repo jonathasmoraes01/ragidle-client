@@ -1,0 +1,306 @@
+{
+  "quando": "2026-09-22T22:41:43.192Z",
+  "erros": [],
+  "relatorio": [
+    {
+      "largura": 360,
+      "altura": 740,
+      "foto": "0360-15-vagas.png",
+      "vagas": 15,
+      "vagasNaTela": 15,
+      "contador": "4 de 15 vagas em uso",
+      "painel": {
+        "x": 8,
+        "y": 107,
+        "w": 344,
+        "h": 620
+      },
+      "defeitos": []
+    },
+    {
+      "largura": 360,
+      "altura": 740,
+      "foto": "0360-15-vagas-fim-da-grade.png",
+      "vagas": 15,
+      "vagasNaTela": 15,
+      "contador": "4 de 15 vagas em uso",
+      "painel": {
+        "x": 8,
+        "y": 107,
+        "w": 344,
+        "h": 620
+      },
+      "defeitos": []
+    },
+    {
+      "largura": 390,
+      "altura": 844,
+      "foto": "0390-15-vagas.png",
+      "vagas": 15,
+      "vagasNaTela": 15,
+      "contador": "4 de 15 vagas em uso",
+      "painel": {
+        "x": 8,
+        "y": 107,
+        "w": 374,
+        "h": 724
+      },
+      "defeitos": []
+    },
+    {
+      "largura": 390,
+      "altura": 844,
+      "foto": "0390-15-vagas-fim-da-grade.png",
+      "vagas": 15,
+      "vagasNaTela": 15,
+      "contador": "4 de 15 vagas em uso",
+      "painel": {
+        "x": 8,
+        "y": 107,
+        "w": 374,
+        "h": 724
+      },
+      "defeitos": []
+    },
+    {
+      "largura": 390,
+      "altura": 844,
+      "foto": "0390-12-vagas.png",
+      "vagas": 12,
+      "vagasNaTela": 12,
+      "contador": "4 de 12 vagas em uso",
+      "painel": {
+        "x": 8,
+        "y": 107,
+        "w": 374,
+        "h": 724
+      },
+      "defeitos": []
+    },
+    {
+      "largura": 390,
+      "altura": 844,
+      "foto": "0390-09-vagas.png",
+      "vagas": 9,
+      "vagasNaTela": 9,
+      "contador": "3 de 9 vagas em uso",
+      "painel": {
+        "x": 8,
+        "y": 107,
+        "w": 374,
+        "h": 724
+      },
+      "defeitos": []
+    },
+    {
+      "largura": 390,
+      "altura": 844,
+      "foto": "0390-12-vagas-vaga-livre-comprada.png",
+      "vagas": 12,
+      "vagasNaTela": 12,
+      "contador": "4 de 12 vagas em uso",
+      "painel": {
+        "x": 8,
+        "y": 166,
+        "w": 374,
+        "h": 606
+      },
+      "defeitos": []
+    },
+    {
+      "largura": 430,
+      "altura": 932,
+      "foto": "0430-15-vagas.png",
+      "vagas": 15,
+      "vagasNaTela": 15,
+      "contador": "4 de 15 vagas em uso",
+      "painel": {
+        "x": 8,
+        "y": 107,
+        "w": 414,
+        "h": 812
+      },
+      "defeitos": []
+    },
+    {
+      "largura": 430,
+      "altura": 932,
+      "foto": "0430-15-vagas-fim-da-grade.png",
+      "vagas": 15,
+      "vagasNaTela": 15,
+      "contador": "4 de 15 vagas em uso",
+      "painel": {
+        "x": 8,
+        "y": 107,
+        "w": 414,
+        "h": 812
+      },
+      "defeitos": []
+    },
+    {
+      "largura": 768,
+      "altura": 1024,
+      "foto": "0768-15-vagas.png",
+      "vagas": 15,
+      "vagasNaTela": 15,
+      "contador": "4 de 15 vagas em uso",
+      "painel": {
+        "x": 16,
+        "y": 269,
+        "w": 736,
+        "h": 608
+      },
+      "defeitos": []
+    },
+    {
+      "largura": 768,
+      "altura": 1024,
+      "foto": "0768-15-vagas-fim-da-grade.png",
+      "vagas": 15,
+      "vagasNaTela": 15,
+      "contador": "4 de 15 vagas em uso",
+      "painel": {
+        "x": 16,
+        "y": 269,
+        "w": 736,
+        "h": 608
+      },
+      "defeitos": []
+    },
+    {
+      "largura": 1024,
+      "altura": 768,
+      "foto": "1024-15-vagas.png",
+      "vagas": 15,
+      "vagasNaTela": 15,
+      "contador": "4 de 15 vagas em uso",
+      "painel": {
+        "x": 16,
+        "y": 154,
+        "w": 992,
+        "h": 559
+      },
+      "defeitos": []
+    },
+    {
+      "largura": 1024,
+      "altura": 768,
+      "foto": "1024-15-vagas-fim-da-grade.png",
+      "vagas": 15,
+      "vagasNaTela": 15,
+      "contador": "4 de 15 vagas em uso",
+      "painel": {
+        "x": 16,
+        "y": 154,
+        "w": 992,
+        "h": 559
+      },
+      "defeitos": []
+    },
+    {
+      "largura": 1440,
+      "altura": 900,
+      "foto": "1440-15-vagas.png",
+      "vagas": 15,
+      "vagasNaTela": 15,
+      "contador": "4 de 15 vagas em uso",
+      "painel": {
+        "x": 170,
+        "y": 211,
+        "w": 1100,
+        "h": 600
+      },
+      "defeitos": []
+    },
+    {
+      "largura": 1440,
+      "altura": 900,
+      "foto": "1440-15-vagas-fim-da-grade.png",
+      "vagas": 15,
+      "vagasNaTela": 15,
+      "contador": "4 de 15 vagas em uso",
+      "painel": {
+        "x": 170,
+        "y": 211,
+        "w": 1100,
+        "h": 600
+      },
+      "defeitos": []
+    },
+    {
+      "largura": 1440,
+      "altura": 900,
+      "foto": "1440-12-vagas.png",
+      "vagas": 12,
+      "vagasNaTela": 12,
+      "contador": "4 de 12 vagas em uso",
+      "painel": {
+        "x": 170,
+        "y": 211,
+        "w": 1100,
+        "h": 600
+      },
+      "defeitos": []
+    },
+    {
+      "largura": 1440,
+      "altura": 900,
+      "foto": "1440-09-vagas.png",
+      "vagas": 9,
+      "vagasNaTela": 9,
+      "contador": "3 de 9 vagas em uso",
+      "painel": {
+        "x": 170,
+        "y": 211,
+        "w": 1100,
+        "h": 600
+      },
+      "defeitos": []
+    },
+    {
+      "largura": 1440,
+      "altura": 900,
+      "foto": "1440-12-vagas-vaga-livre-comprada.png",
+      "vagas": 12,
+      "vagasNaTela": 12,
+      "contador": "4 de 12 vagas em uso",
+      "painel": {
+        "x": 170,
+        "y": 212,
+        "w": 1100,
+        "h": 598
+      },
+      "defeitos": []
+    },
+    {
+      "largura": 1920,
+      "altura": 1080,
+      "foto": "1920-15-vagas.png",
+      "vagas": 15,
+      "vagasNaTela": 15,
+      "contador": "4 de 15 vagas em uso",
+      "painel": {
+        "x": 410,
+        "y": 301,
+        "w": 1100,
+        "h": 600
+      },
+      "defeitos": []
+    },
+    {
+      "largura": 1920,
+      "altura": 1080,
+      "foto": "1920-15-vagas-fim-da-grade.png",
+      "vagas": 15,
+      "vagasNaTela": 15,
+      "contador": "4 de 15 vagas em uso",
+      "painel": {
+        "x": 410,
+        "y": 301,
+        "w": 1100,
+        "h": 600
+      },
+      "defeitos": []
+    }
+  ]
+}

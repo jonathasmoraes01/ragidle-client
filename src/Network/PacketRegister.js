@@ -1071,6 +1071,9 @@ export default {
 	// janela. O CZ 0x0fba e ESCRITO pelo cliente, nao lido - mesma razao de
 	// 0x0ff1/0x0fea/0x0fe3/0x0fbe acima. A reserva desceu para 0x0fb8..0x0fb9.
 	0x0fbb: PACKET.ZC.RAGIDLE_TEMPORADA,
+	// 22/09/2026 - o RO SHOP: o estado da loja e o resultado do checkout. O CZ
+	// 0x0fb9 e ESCRITO pelo cliente, nao lido. Os dois ultimos slots da reserva.
+	0x0fb8: PACKET.ZC.RAGIDLE_ROSHOP,
 
 	0xb1a: PACKET.ZC.USESKILL_ACK3 // USE SKILL 3
 };

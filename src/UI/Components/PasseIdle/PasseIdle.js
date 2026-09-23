@@ -67,6 +67,8 @@ import htmlText from './PasseIdle.html?raw';
 import cssText from './PasseIdle.css?raw';
 import { fecharEEsquecer } from '../limpezaDeJanelaIdle.js';
 import { abaLembrada, lembrarAba } from '../memoriaDeAba.js';
+import { formatarRoCash, minorDePrimeiro } from 'Utils/roCash.js';
+import { assinarSaldoDeCash, publicarSaldoDeCash, saldoDeCashConhecido } from 'Utils/saldoDeCash.js';
 
 /** Manter em sincronia com o ":host"/".pi-window" do CSS (mesmo papel do
  * WINDOW_WIDTH/HEIGHT de MissoesIdle.js:41-42). */
@@ -318,12 +320,36 @@ function passePorTipo(tipo) {
 	return lista.find(p => p && p.tipo === tipo) || null;
 }
 
-/** A vitrine: nome, resumo e — conforme o estado — preço ou vigência. */
+/*
+ * O DINHEIRO EM MINOR (RO Shop, 22/09/2026 - CONTRATO.md secao 5). O pacote
+ * sobe para `v: 2` e troca o NOME dos campos: `passes[].cash` -> `precoMinor`,
+ * `cash` -> `saldoMinor`, `semanal.cashbackTotal` -> `cashbackTotalMinor`,
+ * `semanal.dias[].cash` -> `cashMinor`. As duas leituras abaixo aceitam as duas
+ * formas (o inteiro antigo e x100, a conta da migracao) e todo numero sai por
+ * `formatarRoCash`, o mesmo formato do RO Shop, da HUD e da Temporada.
+ */
+function precoMinorDoPasse(passe) {
+	return minorDePrimeiro(passe, ['preco', 'cash']);
+}
+
+/* O saldo da CONTA vem primeiro (`Utils/saldoDeCash.js`, rodada 2 do RO Shop,
+   risco P1-02): o ultimo que qualquer pacote trouxe. O do proprio pacote so
+   vale enquanto nenhum chegou. */
+function saldoMinorDoEstado(estado) {
+	const daConta = saldoDeCashConhecido();
+	if (daConta !== null) {
+		return daConta;
+	}
+	return minorDePrimeiro(estado, ['saldo', 'cash']) || 0;
+}
+
+/** A vitrine: nome, resumo e, conforme o estado, preco ou vigencia. */
 function vitrineHtml(passe, nome, resumo) {
+	const precoMinor = precoMinorDoPasse(passe);
 	const preco = passe
 		? '<div class="pi-preco"><span class="pi-preco-valor">' +
-			escapeHtml(passe.cash) +
-			'</span><span class="pi-preco-unidade">cash</span></div>'
+			escapeHtml(precoMinor === null ? '…' : formatarRoCash(precoMinor)) +
+			'</span><span class="pi-preco-unidade">RO Cash</span></div>'
 		: '';
 
 	const vigencia = passe && passe.ativo
@@ -387,10 +413,11 @@ function quandoAbre(renovaEmMs) {
  * passe = "Renovar" (e a renovação SOMA os dias, o que a nota abaixo explica),
  * sem cash = apagado, dizendo quanto falta.
  */
-function acaoHtml(passe, cash) {
+function acaoHtml(passe, saldoMinor) {
 	if (!passe) {
 		return '';
 	}
+	const precoMinor = precoMinorDoPasse(passe) || 0;
 	/*
 	 * O VEREDITO DO BOTÃO VEM DO SERVIDOR (30/08/2026), e a janela só o desenha.
 	 *
@@ -424,7 +451,7 @@ function acaoHtml(passe, cash) {
 					'. Assim o cash não fica preso num benefício que você já tem.'
 				: 'Seu passe ainda vale. A renovação abre nas últimas 24 horas — assim o cash não fica preso num benefício que você já tem.'
 			: recusa === 'saldo-insuficiente'
-				? 'Faltam ' + escapeHtml(passe.cash - cash) + ' cash.'
+				? 'Faltam ' + escapeHtml(formatarRoCash(Math.max(0, precoMinor - saldoMinor))) + ' RO Cash.'
 				: passe.ativo
 					? 'Renovar SOMA ' + escapeHtml(passe.dias) + ' dias ao que falta — você não perde o que já pagou.'
 					: 'O valor sai do seu saldo de cash na hora.';
@@ -437,9 +464,9 @@ function acaoHtml(passe, cash) {
 		(podeComprar ? '' : ' disabled') +
 		'>' +
 		escapeHtml(rotulo) +
-		' — ' +
-		escapeHtml(passe.cash) +
-		' cash</button>' +
+		' · ' +
+		escapeHtml(formatarRoCash(precoMinor)) +
+		' RO Cash</button>' +
 		'<div class="pi-nota">' +
 		nota +
 		'</div>' +
@@ -452,7 +479,7 @@ function semanalHtml() {
 	const estado = PasseIdle.estado;
 	const passe = passePorTipo('semanal');
 	const semanal = (estado && estado.semanal) || { dias: [], cashbackTotal: 0 };
-	const cash = (estado && estado.cash) || 0;
+	const cash = saldoMinorDoEstado(estado);
 
 	/*
 	 * A PORCENTAGEM E DERIVADA, e nao escrita a mao.
@@ -465,8 +492,9 @@ function semanalHtml() {
 	 * O servidor manda `cashbackTotal` (a soma da tabela) e o preco; a conta
 	 * sai dos dois, entao ela acompanha sozinha.
 	 */
-	const pct = passe && passe.cash > 0
-		? Math.round((semanal.cashbackTotal / passe.cash) * 100)
+	const precoDoSemanal = precoMinorDoPasse(passe) || 0;
+	const pct = passe && precoDoSemanal > 0
+		? Math.round(((minorDePrimeiro(semanal, ['cashbackTotal']) || 0) / precoDoSemanal) * 100)
 		: 0;
 	const resumo = passe
 		? passe.dias + ' dias · ' + pct + '% de cashback no final'
@@ -495,8 +523,8 @@ function semanalHtml() {
 				escapeHtml(d.dia) +
 				'</span>' +
 				'<span class="pi-dia-cash">+' +
-				escapeHtml(d.cash) +
-				' cash</span>' +
+				escapeHtml(formatarRoCash(minorDePrimeiro(d, ['cash']) || 0)) +
+				' RO Cash</span>' +
 				'<span class="pi-dia-item">' +
 				itens +
 				'</span>' +
@@ -522,7 +550,7 @@ function vipHtml() {
 	const estado = PasseIdle.estado;
 	const passe = passePorTipo('vip');
 	const vip = (estado && estado.vip) || {};
-	const cash = (estado && estado.cash) || 0;
+	const cash = saldoMinorDoEstado(estado);
 
 	/*
 	 * D-season1 (Luz & Trevas): o VIP mudou de conta — +15% em todo item que
@@ -577,7 +605,7 @@ function render() {
 
 	const carteira = root.querySelector('.pi-carteira-valor');
 	if (carteira) {
-		carteira.textContent = String((PasseIdle.estado && PasseIdle.estado.cash) || 0);
+		carteira.textContent = formatarRoCash(saldoMinorDoEstado(PasseIdle.estado));
 	}
 
 	root.querySelectorAll('.pi-tab').forEach(btn => {
@@ -607,10 +635,15 @@ function onPasseRecebido(pkt) {
 		console.error('[PasseIdle] payload nao e JSON valido', err);
 		return;
 	}
-	if (!dados || dados.v !== 1) {
+	/* `v: 2` desde o RO Shop (22/09/2026): o dinheiro em MINOR com nome novo
+	   (CONTRATO.md do RO Shop, secao 5). Esta janela e a DONA do 0x0fe5 e
+	   repassa o estado para a Temporada logo abaixo - recusar a v2 aqui deixaria
+	   a aba VIP da Temporada em "Carregando..." para sempre. */
+	if (!dados || (dados.v !== 1 && dados.v !== 2)) {
 		return;
 	}
 	PasseIdle.estado = dados;
+	publicarSaldoDeCash(minorDePrimeiro(dados, ['saldo', 'cash']));
 	render();
 
 	/*
@@ -653,5 +686,9 @@ function onPasseRecebido(pkt) {
 /* ESTA JANELA E A DONA DO 0x0fe5 - ver o bloco acima antes de somar outro
  * `hookPacket` neste opcode em qualquer arquivo do cliente. */
 Network.hookPacket(PACKET.ZC.RAGIDLE_PASSE, onPasseRecebido);
+
+/* Um saldo novo por fora (RO Shop, Temporada, HUD): a carteira e o "Faltam X"
+   desta janela acompanham. */
+assinarSaldoDeCash(() => render());
 
 export default UIManager.addComponent(PasseIdle);

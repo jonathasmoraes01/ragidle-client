@@ -37,7 +37,7 @@
 
 import Network from 'Network/NetworkManager.js';
 import PACKET from 'Network/PacketStructure.js';
-import Session from 'Engine/SessionStorage.js';
+import { publicarSaldoDeCash } from 'Utils/saldoDeCash.js';
 
 class RagidleCashEngine {
 	static init() {
@@ -50,9 +50,19 @@ class RagidleCashEngine {
  * `@cash`, `@darcash`, compra na loja). Guardar sem checar o valor é
  * deliberado: o campo é `u32` e o teto já foi aparado do outro lado
  * (`MAX_CASHPOINT`, common/mmo.hpp:85).
+ *
+ * O NUMERO E MINOR desde o RO Shop (22/09/2026): o contrato do canal
+ * (`docs/ro-shop/CONTRATO.md`, secao 1) move a carteira inteira para minor
+ * units (1 RO Cash = 100), e este pacote junto. O pacote nao tem campo de
+ * versao, entao cliente e servidor desta mudanca SOBEM JUNTOS - um cliente
+ * novo contra um servidor antigo mostraria 5.000 RO Cash como "50,00".
  */
 function onSaldo(pkt) {
-	Session.cash = pkt.saldo;
+	/* Pela fonte UNICA (RO Shop rodada 2, risco P1-02): ela escreve o
+	   `Session.cash` que a HUD le e avisa as carteiras abertas (RO Shop,
+	   Temporada, Passe), que assim nunca mostram um saldo mais velho que a
+	   pilula. */
+	publicarSaldoDeCash(pkt.saldo);
 }
 
 export default RagidleCashEngine;

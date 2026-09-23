@@ -1,0 +1,146 @@
+{
+  "quando": "2026-09-22T22:45:00.849Z",
+  "erros": [],
+  "relatorio": [
+    {
+      "largura": 360,
+      "foto": "0360-ver-conteudo-depois.png",
+      "defeitos": [],
+      "detalhes": {
+        ".te-modal--conteudo .te-modal-fechar": "chega"
+      },
+      "posicaoDaCaixa": "relative"
+    },
+    {
+      "largura": 360,
+      "foto": "0360-confirmar-compra-depois.png",
+      "defeitos": [],
+      "detalhes": {
+        ".te-modal--confirmar .te-confirmar-ok": "chega",
+        ".te-modal--confirmar .te-confirmar-cancelar": "chega"
+      },
+      "posicaoDaCaixa": "relative"
+    },
+    {
+      "largura": 360,
+      "foto": "0360-reveal-depois.png",
+      "defeitos": [],
+      "detalhes": {
+        ".te-reveal .te-reveal-fechar": "chega"
+      },
+      "posicaoDaCaixa": null
+    },
+    {
+      "largura": 390,
+      "foto": "0390-ver-conteudo-depois.png",
+      "defeitos": [],
+      "detalhes": {
+        ".te-modal--conteudo .te-modal-fechar": "chega"
+      },
+      "posicaoDaCaixa": "relative"
+    },
+    {
+      "largura": 390,
+      "foto": "0390-confirmar-compra-depois.png",
+      "defeitos": [],
+      "detalhes": {
+        ".te-modal--confirmar .te-confirmar-ok": "chega",
+        ".te-modal--confirmar .te-confirmar-cancelar": "chega"
+      },
+      "posicaoDaCaixa": "relative"
+    },
+    {
+      "largura": 390,
+      "foto": "0390-reveal-depois.png",
+      "defeitos": [],
+      "detalhes": {
+        ".te-reveal .te-reveal-fechar": "chega"
+      },
+      "posicaoDaCaixa": null
+    },
+    {
+      "largura": 430,
+      "foto": "0430-ver-conteudo-depois.png",
+      "defeitos": [],
+      "detalhes": {
+        ".te-modal--conteudo .te-modal-fechar": "chega"
+      },
+      "posicaoDaCaixa": "relative"
+    },
+    {
+      "largura": 430,
+      "foto": "0430-confirmar-compra-depois.png",
+      "defeitos": [],
+      "detalhes": {
+        ".te-modal--confirmar .te-confirmar-ok": "chega",
+        ".te-modal--confirmar .te-confirmar-cancelar": "chega"
+      },
+      "posicaoDaCaixa": "relative"
+    },
+    {
+      "largura": 430,
+      "foto": "0430-reveal-depois.png",
+      "defeitos": [],
+      "detalhes": {
+        ".te-reveal .te-reveal-fechar": "chega"
+      },
+      "posicaoDaCaixa": null
+    },
+    {
+      "largura": 768,
+      "foto": "0768-ver-conteudo-depois.png",
+      "defeitos": [],
+      "detalhes": {
+        ".te-modal--conteudo .te-modal-fechar": "chega"
+      },
+      "posicaoDaCaixa": "relative"
+    },
+    {
+      "largura": 768,
+      "foto": "0768-confirmar-compra-depois.png",
+      "defeitos": [],
+      "detalhes": {
+        ".te-modal--confirmar .te-confirmar-ok": "chega",
+        ".te-modal--confirmar .te-confirmar-cancelar": "chega"
+      },
+      "posicaoDaCaixa": "relative"
+    },
+    {
+      "largura": 768,
+      "foto": "0768-reveal-depois.png",
+      "defeitos": [],
+      "detalhes": {
+        ".te-reveal .te-reveal-fechar": "chega"
+      },
+      "posicaoDaCaixa": null
+    },
+    {
+      "largura": 1440,
+      "foto": "1440-ver-conteudo-depois.png",
+      "defeitos": [],
+      "detalhes": {
+        ".te-modal--conteudo .te-modal-fechar": "chega"
+      },
+      "posicaoDaCaixa": "relative"
+    },
+    {
+      "largura": 1440,
+      "foto": "1440-confirmar-compra-depois.png",
+      "defeitos": [],
+      "detalhes": {
+        ".te-modal--confirmar .te-confirmar-ok": "chega",
+        ".te-modal--confirmar .te-confirmar-cancelar": "chega"
+      },
+      "posicaoDaCaixa": "relative"
+    },
+    {
+      "largura": 1440,
+      "foto": "1440-reveal-depois.png",
+      "defeitos": [],
+      "detalhes": {
+        ".te-reveal .te-reveal-fechar": "chega"
+      },
+      "posicaoDaCaixa": null
+    }
+  ]
+}

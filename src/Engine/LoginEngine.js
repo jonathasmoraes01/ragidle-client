@@ -31,6 +31,7 @@ import Background from 'UI/Background.js';
 import MD5 from 'Vendors/spark-md5.min.js';
 import Rijndael from 'Utils/Rijndael.js';
 import { capturarEntrada, loginAceito, loginRecusado, pedidoDeLogin } from 'Engine/entradaPosCadastro.js';
+import { esquecerSaldoDeCash } from 'Utils/saldoDeCash.js';
 
 // Version Dependent UIs
 import WinLogin from 'UI/Components/WinLogin/WinLogin.js';
@@ -406,6 +407,11 @@ function onConnectionAccepted(pkt) {
 		WinLogin.getUI().lembrarUsuario?.(usuarioDaEntrada);
 	}
 
+	// Outra conta: o saldo de RO Cash da anterior nao vale ate o 0x0fce desta
+	// chegar (Utils/saldoDeCash.js).
+	if (Session.AID !== pkt.AID) {
+		esquecerSaldoDeCash();
+	}
 	Session.AuthCode = pkt.AuthCode;
 	Session.AID = pkt.AID;
 	Session.UserLevel = pkt.userLevel;
