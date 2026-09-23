@@ -76,6 +76,16 @@ RoShop.mouseMode = GUIComponent.MouseMode.CROSS;
  */
 RoShop.aoIrParaTemporada = null;
 
+/**
+ * As pontes da DOACAO VIA PIX (23/09/2026), ligadas no `MapEngine` pela mesma
+ * razao da Temporada: `aoAbrirDoacao` e o "Recarregar" com a recarga
+ * disponivel; `aoDoacao` recebe as mensagens `tipo: 'doacao'` que descem no
+ * 0x0fb8 - este arquivo e o UNICO dono do pacote, entao a janela de doacao so
+ * as ve por aqui.
+ */
+RoShop.aoAbrirDoacao = null;
+RoShop.aoDoacao = null;
+
 const _preferences = Preferences.get('RoShop', { x: null, y: null }, 1.0);
 
 function _root() {
@@ -129,6 +139,11 @@ function controlador() {
 			abrirTemporada: () => {
 				if (typeof RoShop.aoIrParaTemporada === 'function') {
 					RoShop.aoIrParaTemporada();
+				}
+			},
+			abrirDoacao: () => {
+				if (typeof RoShop.aoAbrirDoacao === 'function') {
+					RoShop.aoAbrirDoacao();
 				}
 			}
 		});
@@ -260,6 +275,18 @@ function onRoShopRecebido(pkt) {
 		dados = JSON.parse(pkt.json);
 	} catch (err) {
 		console.error('[RoShop] payload nao e JSON valido', err);
+		return;
+	}
+	/* A doacao via PIX fala neste mesmo pacote: o que e dela vai para ela, e
+	   so. Chega aqui mesmo com a loja fechada (o `doacao-confirmada`). */
+	if (dados && dados.tipo === 'doacao') {
+		try {
+			if (typeof RoShop.aoDoacao === 'function') {
+				RoShop.aoDoacao(dados);
+			}
+		} catch (err) {
+			console.error('[RoShop] falha ao repassar a doacao', err);
+		}
 		return;
 	}
 	try {

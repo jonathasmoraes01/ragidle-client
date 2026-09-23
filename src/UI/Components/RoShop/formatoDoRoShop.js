@@ -551,9 +551,9 @@ export function seloHtml(selo) {
  * secao 6: "o botao Recarregar mostra `estado.recarga.texto`"). O botao fica
  * CLICAVEL mesmo sem gateway (`disponivel: false`), so com a pele apagada: um
  * botao desabilitado nao explica nada no celular, onde nao ha dica de mouse.
- * O clique mostra o `texto` do servidor e nao manda pacote - a acao
- * `recarregar` do contrato e sempre recusada hoje, e inventar URL de
- * pagamento seria improvisar gateway.
+ * Sem gateway o clique mostra o `texto` do servidor e nao manda pacote; com
+ * `disponivel: true` (a doacao via PIX, 23/09/2026) ele abre a janela
+ * DoacaoIdle - quem decide isso e o controlador, nao este HTML.
  */
 export function carteiraHtml(estado, classeExtra = '') {
 	const saldo = saldoDoEstado(estado);
