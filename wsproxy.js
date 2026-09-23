@@ -333,6 +333,32 @@ function ultimoValorDoCabecalho(valor) {
  * cada conexao derrubaria o teto por IP inteiro. O ultimo e o que o salto mais
  * proximo escreveu.
  */
+/**
+ * O IP DO JOGADOR PARA O SERVIDOR (H23, auditoria 2 de 22/09/2026).
+ *
+ * O servidor so ve esta ponte, e a ponte abre todo socket a partir da propria
+ * maquina: para ele todo jogador era `127.0.0.1`, e a tranca de senha tinha
+ * de ser por CONTA — qualquer estranho mantinha a conta de outra pessoa
+ * trancada errando a senha dela. Com esta linha a ponte diz quem e o jogador,
+ * no formato do PROXY protocol v1 (o do HAProxy), e o servidor tranca por IP,
+ * como o rAthena.
+ *
+ * **DESLIGADA POR PADRAO, e a ordem de deploy e a razao:** o servidor antigo
+ * nao entende a linha e nao responde a quem abre com ela. Primeiro sobe o
+ * servidor que a le (ele so a aceita vinda da propria maquina); so depois esta
+ * ponte roda com `WSPROXY_DECLARAR_IP=1`.
+ */
+const declararIpAoServidor = process.env.WSPROXY_DECLARAR_IP === '1';
+
+const IPV4_DA_LINHA = /^(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(\.(25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}$/;
+
+/** A linha `PROXY` para este jogador, ou a `UNKNOWN` quando nao se sabe quem e. */
+function linhaProxy(ip, portaDoDestino) {
+	if (IPV4_DA_LINHA.test(ip)) return `PROXY TCP4 ${ip} 127.0.0.1 0 ${portaDoDestino}\r\n`;
+	if (ip.includes(':') && /^[0-9a-fA-F:.]{2,45}$/.test(ip)) return `PROXY TCP6 ${ip} ::1 0 ${portaDoDestino}\r\n`;
+	return 'PROXY UNKNOWN\r\n';
+}
+
 function ipDoCliente(req) {
 	const cabecalhos = (req && req.headers) || {};
 	if (confiarNoCabecalhoDeIp) {
@@ -716,6 +742,9 @@ function aceitarConexao(ws, req) {
 	});
 
 	tcp.setNoDelay(true);
+	// H23: a primeira coisa que o servidor le e quem e o jogador. Escrita
+	// antes de qualquer mensagem do WebSocket — o socket preserva a ordem.
+	if (declararIpAoServidor) tcp.write(linhaProxy(from, targetPort));
 
 	/*
 	 * BACKPRESSURE NAS DUAS DIRECOES (27/08/2026, auditoria).
