@@ -17,7 +17,8 @@ apagado.
 | `mascote-passe.webp` | Poring rosa com mochila e baú, pergaminho, ursinho alado em cima | `12_43_50 (2)` |
 | `vip-emblema.webp` | brasão azul grande, **coroa** dourada, louros, asas laterais | `12_43_50 (3)` |
 | `emblema-temporada.webp` | brasão redondo, **estrela** de quatro pontas, louros, fita azul | `12_43_50 (10)` |
-| `icone-astra-blessing.webp` | emblema circular celestial, estrela grande, cristais, brilho astral | `12_43_50 (4)` |
+| `icone-astra-blessing.webp` | emblema circular celestial, estrela grande, cristais, brilho astral (o visual do VIP até 23/09/2026) | `12_43_50 (4)` |
+| `icone-aura-do-tornado.webp` | redemoinho de vento verde-claro (o visual do VIP desde 23/09/2026) | ilustração OFICIAL do item 31803 (`collection/c_cons_of_wind.bmp` do GRF, publicada em `/ragidle/collection/9000326.png`): o fundo branco ligado à borda tirado, ampliada 2x por pixel e centrada em 200x200 transparente. Não é arte gerada: a troca do prêmio veio sem arte própria da temporada |
 | `icone-caixa-topo.webp` | chapéu de mago (headgear) | `12_43_50 (6)` |
 | `icone-caixa-meio.webp` | óculos com asas (eyewear) | `12_43_50 (7)` |
 | `icone-caixa-baixo.webp` | máscara estilizada (acessório inferior) | `12_43_50 (8)` |

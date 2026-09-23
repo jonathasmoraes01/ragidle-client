@@ -196,7 +196,9 @@ describe('a lista aponta so para item que o jogo conhece', () => {
 		 * os aceita com o `conteudo.json` regerado pela branch
 		 * `feat/reset-do-alfa` do servidor.
 		 */
-		expect(Object.keys(NOMES_LOCAIS)).toHaveLength(66);
+		// **23/09/2026: 66 -> 67**, a Aura do Tornado 9.000.326, o visual do VIP
+		// que substituiu a Astra Blessing (a Astra FICA: quem resgatou tem o item).
+		expect(Object.keys(NOMES_LOCAIS)).toHaveLength(67);
 	});
 });
 
