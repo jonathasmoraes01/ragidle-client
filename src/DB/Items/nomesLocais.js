@@ -208,7 +208,11 @@ export const NOMES_LOCAIS = {
 	9000107: 'Pack Farm', // itens-custom.ts (Pack_Farm)
 	9000108: 'Pack Up', // itens-custom.ts (Pack_Up)
 	9000109: 'Pack Completo de Farm', // itens-custom.ts (Pack_Completo_De_Farm)
-	9000110: 'Pack de Treino' // itens-custom.ts (Pack_De_Treino)
+	9000110: 'Pack de Treino', // itens-custom.ts (Pack_De_Treino)
+	// As pocoes que os packs entregam (23/09/2026, `game/pocoes-da-conta.ts`):
+	// o mesmo efeito da comum, sem venda, troca nem chao.
+	9000111: 'Poção Azul da Conta', // pocoes-da-conta.ts (Blue_Potion_Da_Conta)
+	9000112: 'Poção Branca da Conta' // pocoes-da-conta.ts (White_Potion_Da_Conta)
 };
 
 /**
@@ -227,14 +231,18 @@ export const DESCRICOES_LOCAIS = {
 	9000100: `Aumenta em 25% a EXP de base ganha por 1 hora.\n${FECHO_DE_CASH}`,
 	9000101: `Aumenta em 25% a EXP de classe ganha por 1 hora.\n${FECHO_DE_CASH}`,
 	9000102: `Uma bênção que atrai a sorte. Aumenta em 20% a chance de itens comuns caírem de monstros comuns por 1 hora. Não vale para cartas, MVPs nem monstros raros. Usar outra enquanto ativa estende a duração.\n${FECHO_DE_CASH}`,
-	9000103: `Um pack selado. Ao usar, entrega 1000 Poções Azuis.\n${FECHO_DE_CASH}`,
-	9000104: `Um pack selado. Ao usar, entrega 500 Poções Brancas.\n${FECHO_DE_CASH}`,
-	9000105: `Um pack selado. Ao usar, entrega 1000 Poções Azuis e 500 Poções Brancas.\n${FECHO_DE_CASH}`,
+	9000103: `Um pack selado. Ao usar, entrega 1000 Poções Azuis da Conta.\n${FECHO_DE_CASH}`,
+	9000104: `Um pack selado. Ao usar, entrega 500 Poções Brancas da Conta.\n${FECHO_DE_CASH}`,
+	9000105: `Um pack selado. Ao usar, entrega 1000 Poções Azuis da Conta e 500 Poções Brancas da Conta.\n${FECHO_DE_CASH}`,
 	9000106: `Um pack selado. Ao usar, entrega 500 Asas de Mosca e 100 Asas de Borboleta.\n${FECHO_DE_CASH}`,
-	9000107: `Um pack selado. Ao usar, entrega 500 Poções Brancas, 1000 Poções Azuis e 1 Bênção da Fortuna.\n${FECHO_DE_CASH}`,
-	9000108: `Um pack selado. Ao usar, entrega 500 Poções Brancas, 1000 Poções Azuis, 1 Manual de Experiência e 1 Manual de Experiência de Classe.\n${FECHO_DE_CASH}`,
-	9000109: `Um pack selado. Ao usar, entrega 500 Poções Brancas, 1000 Poções Azuis, os dois Manuais e 1 Bênção da Fortuna.\n${FECHO_DE_CASH}`,
-	9000110: `Um pack selado. Ao usar, entrega 1 Manual de Experiência, 1 Manual de Experiência de Classe e 1 Bênção da Fortuna.\n${FECHO_DE_CASH}`
+	9000107: `Um pack selado. Ao usar, entrega 500 Poções Brancas da Conta, 1000 Poções Azuis da Conta e 1 Bênção da Fortuna.\n${FECHO_DE_CASH}`,
+	9000108: `Um pack selado. Ao usar, entrega 500 Poções Brancas da Conta, 1000 Poções Azuis da Conta, 1 Manual de Experiência e 1 Manual de Experiência de Classe.\n${FECHO_DE_CASH}`,
+	9000109: `Um pack selado. Ao usar, entrega 500 Poções Brancas da Conta, 1000 Poções Azuis da Conta, os dois Manuais e 1 Bênção da Fortuna.\n${FECHO_DE_CASH}`,
+	9000110: `Um pack selado. Ao usar, entrega 1 Manual de Experiência, 1 Manual de Experiência de Classe e 1 Bênção da Fortuna.\n${FECHO_DE_CASH}`,
+	// O efeito e o do script da base no `db/pre-re/item_db_usable.yml:117-132`
+	// (`itemheal 0,rand(40,60);` e `itemheal rand(325,405),0;`).
+	9000111: `Uma poção que recupera de 40 a 60 de SP. Vem dos packs do RO Shop.\n${FECHO_DE_CASH}`,
+	9000112: `Uma poção que recupera de 325 a 405 de HP. Vem dos packs do RO Shop.\n${FECHO_DE_CASH}`
 };
 
 /**
@@ -412,6 +420,8 @@ export const ICONES_LOCAIS = {
 	9000108: '\xc7\xcf\xbe\xe1\xc6\xf7\xbc\xc7', // Pack Up -> 504 Pocao Branca
 	9000109: '\xc7\xcf\xbe\xe1\xc6\xf7\xbc\xc7', // Pack Completo de Farm -> 504 Pocao Branca
 	9000110: '\xc0\xfc\xc5\xf5\xb1\xb3\xb9\xfc', // Pack de Treino -> 12208 Manual de Combate
+	9000111: '\xc6\xc4\xb6\xf5\xc6\xf7\xbc\xc7', // Pocao Azul da Conta -> 505 Pocao Azul (a mesma arte)
+	9000112: '\xc7\xcf\xbe\xe1\xc6\xf7\xbc\xc7', // Pocao Branca da Conta -> 504 Pocao Branca (a mesma arte)
 
 	/*
 	 * O 12849 (Combination Kit) NAO ENTRA: nome sim, icone nao. O GRF
