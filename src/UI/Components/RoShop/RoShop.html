@@ -48,13 +48,15 @@
 
 			<div class="rs-gaveta-fundo" data-rs="fechar-gaveta"></div>
 			<aside class="rs-lateral" aria-label="Carrinho">
+				<!-- O saldo fica ACIMA do "Carrinho" e separado por um fio: embaixo do
+				     titulo ele parecia um item do carrinho (relato do cliente, 23/09). -->
+				<div class="rs-carteira-lateral" data-slot="carteira"></div>
 				<header class="rs-lateral-cab">
 					<img class="rs-lateral-icone" src="/ragidle/shop/icons/shop-icon-cart.png" alt="" draggable="false">
 					<h2 class="rs-lateral-titulo">Carrinho</h2>
 					<span class="rs-contagem" data-slot="contagem" hidden>0</span>
 					<button type="button" class="rs-lateral-fechar" data-rs="fechar-gaveta" aria-label="Fechar carrinho" title="Fechar carrinho">&times;</button>
 				</header>
-				<div class="rs-carteira-lateral" data-slot="carteira"></div>
 				<div class="rs-carrinho-corpo ri-scroll"></div>
 			</aside>
 		</div>
