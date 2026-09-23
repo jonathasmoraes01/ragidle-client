@@ -4,7 +4,8 @@
  *
  *   node scripts/foto-selecao-de-personagem.mjs
  *
- * O dono decidiu 9 vagas gratis + ate 6 compradas (teto 15). Esta prova sobe um
+ * O dono decidiu 4 vagas gratis + ate 11 compradas (teto 15; eram 9 + 6 ate
+ * 23/09/2026), e as vagas alem do total aparecem BLOQUEADAS. Esta prova sobe um
  * servidor estatico PROPRIO (porta 7362, nunca as do jogo), monta a selecao V4
  * como o `GUIComponent` monta (host absoluto -> Shadow DOM -> Common.css ->
  * PreGamePremium.css + CharSelectV4.css -> `.ui-component-root` ->
@@ -242,9 +243,29 @@ async function medir(page, esperadas) {
 		};
 		const vagas = [...sh.querySelectorAll('.char_canvas')];
 		const naTela = vagas.filter(visivel);
-		if (naTela.length !== esperadas) {
-			defeitos.push(`vagas na grade: ${naTela.length}, esperado ${esperadas}`);
+		/* 23/09/2026: as 15 vagas aparecem sempre; as alem do total da conta
+		   ficam BLOQUEADAS, com cadeado (decisao do dono: 4 gratis e "mostrar o
+		   restante bloqueado"). Ate aqui elas saiam da tela. */
+		if (naTela.length !== vagas.length) {
+			defeitos.push(`vagas na grade: ${naTela.length}, esperado ${vagas.length} (todas, as extras bloqueadas)`);
 		}
+		const liberadas = vagas.filter(v => !v.classList.contains('is-bloqueada'));
+		if (liberadas.length !== esperadas) {
+			defeitos.push(`vagas liberadas: ${liberadas.length}, esperado ${esperadas}`);
+		}
+		vagas.forEach((v, i) => {
+			if (!v.classList.contains('is-bloqueada')) {
+				return;
+			}
+			const cadeado = getComputedStyle(v, '::before').content;
+			const rotulo = getComputedStyle(v, '::after').content;
+			if (!cadeado.includes('\u{1F512}') && !cadeado.includes(String.fromCodePoint(0x1f512))) {
+				defeitos.push(`vaga ${i} bloqueada sem cadeado (::before = ${cadeado})`);
+			}
+			if (!rotulo.includes('Bloqueada')) {
+				defeitos.push(`vaga ${i} bloqueada diz ${rotulo}, e nao "Bloqueada"`);
+			}
+		});
 		if (document.documentElement.scrollWidth > vw + 1) {
 			defeitos.push(`pagina transborda na horizontal (${document.documentElement.scrollWidth} > ${vw})`);
 		}
@@ -283,6 +304,7 @@ async function medir(page, esperadas) {
 		});
 		return {
 			vagasNaTela: naTela.length,
+			vagasLiberadas: liberadas.length,
 			contador: (sh.querySelector('.cs-vagas') || {}).textContent || '',
 			painel: {
 				x: Math.round(rp.left),
@@ -331,7 +353,7 @@ async function principal() {
 			const casos = [{ total: 15, comprada: true, sel: 0 }];
 			if (L.w === 390 || L.w === 1440) {
 				casos.push({ total: 12, comprada: true, sel: 0 });
-				casos.push({ total: 9, comprada: false, sel: 0 });
+				casos.push({ total: 4, comprada: false, sel: 0 });
 				casos.push({ total: 12, comprada: true, sel: 11, nome: 'vaga-livre-comprada' });
 			}
 			for (const caso of casos) {

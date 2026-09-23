@@ -605,24 +605,41 @@ describe('selecao de personagem: as vagas que o servidor informa', () => {
 		document.body.appendChild(raiz);
 		const vagas = vagasDaConta({ TotalSlotNum: total, PremiumStartSlot: 0, PremiumEndSlot: 0 }, 15);
 		const visiveis = aplicarVagas(raiz, vagas, i => ocupadas.indexOf(i) !== -1);
-		const naTela = [...raiz.querySelectorAll('.char_canvas')].filter(el => !el.hidden).length;
-		return { raiz, vagas, visiveis, naTela };
+		const cartoes = [...raiz.querySelectorAll('.char_canvas')];
+		const naTela = cartoes.filter(el => !el.hidden).length;
+		const bloqueadas = cartoes.filter(el => el.classList.contains('is-bloqueada')).length;
+		return { raiz, vagas, visiveis, naTela, bloqueadas };
 	}
 
-	it('9, 12 e 15: a grade desenha exatamente o total, e o contador diz "X de Y"', () => {
-		for (const total of [9, 12, 15]) {
+	/*
+	 * 4 GRATIS E O RESTO BLOQUEADO (23/09/2026, decisao do dono). Ate aqui a
+	 * vaga que a conta nao tinha saia da tela; agora ela aparece com cadeado,
+	 * para o jogador saber que existe e como liberar.
+	 */
+	it('4, 9 e 15: as 15 vagas aparecem, as alem do total ficam BLOQUEADAS, e o contador diz "X de Y"', () => {
+		for (const total of [4, 9, 15]) {
 			const g = grade(total, [0, 1, 2]);
-			expect(g.naTela, String(total)).toBe(total);
+			expect(g.naTela, String(total)).toBe(VAGAS_DESENHAVEIS);
+			expect(g.bloqueadas, String(total)).toBe(VAGAS_DESENHAVEIS - total);
 			expect(g.visiveis).toBe(total);
 			expect(g.raiz.querySelector('.cs-vagas').textContent).toBe(`3 de ${total} vagas em uso`);
 		}
 	});
 
-	it('personagem numa vaga ALEM do total continua na tela (nunca some um personagem)', () => {
-		const g = grade(9, [0, 10]);
-		expect(g.naTela).toBe(10);
-		expect(g.raiz.querySelector('#slot10').closest('.char_canvas').hidden).toBe(false);
-		expect(g.raiz.querySelector('#slot11').closest('.char_canvas').hidden).toBe(true);
+	it('a vaga bloqueada explica como liberar, e a liberada nao tem o aviso', () => {
+		const g = grade(4, [0]);
+		const bloqueada = g.raiz.querySelector('#slot4').closest('.char_canvas');
+		const liberada = g.raiz.querySelector('#slot3').closest('.char_canvas');
+		expect(bloqueada.getAttribute('title')).toContain('+1 Slot de Personagem');
+		expect(liberada.hasAttribute('title')).toBe(false);
+		expect(liberada.classList.contains('is-bloqueada')).toBe(false);
+	});
+
+	it('personagem numa vaga ALEM do total continua jogavel (nunca some nem tranca um personagem)', () => {
+		const g = grade(4, [0, 10]);
+		expect(g.visiveis).toBe(5);
+		expect(g.raiz.querySelector('#slot10').closest('.char_canvas').classList.contains('is-bloqueada')).toBe(false);
+		expect(g.raiz.querySelector('#slot11').closest('.char_canvas').classList.contains('is-bloqueada')).toBe(true);
 	});
 
 	it('vagasDaConta: soma do pacote, reserva sem campo, teto na grade', () => {
@@ -658,6 +675,17 @@ describe('selecao de personagem: as vagas que o servidor informa', () => {
 		expect(comum).toMatch(/_index = vagaDoCursor\(index, _maxSlots/);
 		const css = ler('UI/Components/CharSelect/CharSelectV4/CharSelectV4.css');
 		expect(css).toMatch(/\.char_canvas\[hidden\]\s*\{\s*display:\s*none\s*!important/);
+	});
+
+	it('o cadeado vence o "Criar personagem": a regra da vaga bloqueada vem DEPOIS da ultima de `.is-empty`', () => {
+		// As duas tem a mesma especificidade e a vaga bloqueada tambem e
+		// `.is-empty`: se a ordem inverter, ela volta a convidar a criar.
+		const css = ler('UI/Components/CharSelect/CharSelectV4/CharSelectV4.css');
+		const ultimaVazia = css.lastIndexOf('.char_canvas.is-empty::after');
+		const bloqueada = css.lastIndexOf('.char_canvas.is-bloqueada::after');
+		expect(ultimaVazia).toBeGreaterThan(-1);
+		expect(bloqueada).toBeGreaterThan(ultimaVazia);
+		expect(css).toMatch(/\.is-bloqueada::before\s*\{[^}]*content:\s*'\\1F512'/);
 	});
 });
 

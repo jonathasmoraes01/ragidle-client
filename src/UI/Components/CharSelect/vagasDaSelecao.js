@@ -6,7 +6,8 @@
  * ---------------------------------------------------------------------------
  * O QUE MUDOU
  * ---------------------------------------------------------------------------
- * O dono decidiu: 9 vagas gratis e ate 6 compradas no RO Shop ("+1 Slot de
+ * O dono decidiu: 9 vagas gratis e ate 6 compradas no RO Shop (hoje 4 gratis
+ * e ate 11 compradas, 23/09/2026) ("+1 Slot de
  * Personagem"), teto 15. A grade da V4 (a do nosso PACKETVER 20211103) tem 15
  * canvas FIXOS no HTML e desenhava os 15 sempre - com a conta em 9, as vagas
  * 9..14 apareciam como "Criar personagem" e o servidor recusava a criacao
@@ -76,10 +77,20 @@ export function textoDasVagas(ocupadas, vagas) {
 	return `${ocupadas} de ${vagas} ${vagas === 1 ? 'vaga' : 'vagas'} em uso`;
 }
 
+/** O que a vaga bloqueada diz a quem passa o mouse ou toca nela. */
+export const TEXTO_DA_VAGA_BLOQUEADA = 'Vaga bloqueada. Libere com "+1 Slot de Personagem" na RO Shop, dentro do jogo.';
+
 /**
  * APLICA as vagas na grade: cada `.char_canvas` alem do total da conta e sem
- * personagem sai da tela (`hidden`), e o contador do cabecalho (`.cs-vagas`)
- * diz "X de Y". Devolve quantas vagas ficaram visiveis.
+ * personagem fica BLOQUEADA (`is-bloqueada`, com cadeado), e o contador do
+ * cabecalho (`.cs-vagas`) diz "X de Y". Devolve quantas vagas a conta USA
+ * (as liberadas mais as ocupadas alem delas).
+ *
+ * A VAGA BLOQUEADA APARECE (23/09/2026, decisao do dono: 4 gratis e "mostrar
+ * o restante bloqueado"). Ate aqui ela saia da tela (`hidden`), e o jogador
+ * nao tinha como saber que existiam mais vagas para liberar. O clique nela
+ * continua recusado por `podeCriarNaVaga`, e o cursor continua preso por
+ * `vagaDoCursor`: so o desenho mudou.
  *
  * @param {Element|ShadowRoot} raiz
  * @param {number} vagas - `vagasDaConta(pkt)`
@@ -93,10 +104,16 @@ export function aplicarVagas(raiz, vagas, ocupada) {
 	let ocupadas = 0;
 	raiz.querySelectorAll('.char_canvas').forEach((el, i) => {
 		const tem = !!(ocupada && ocupada(i));
-		const aparece = i < vagas || tem;
-		el.hidden = !aparece;
-		el.classList.toggle('is-fora-da-conta', !aparece);
-		if (aparece) {
+		const liberada = i < vagas || tem;
+		el.hidden = false;
+		el.classList.remove('is-fora-da-conta');
+		el.classList.toggle('is-bloqueada', !liberada);
+		if (liberada) {
+			el.removeAttribute('title');
+		} else {
+			el.setAttribute('title', TEXTO_DA_VAGA_BLOQUEADA);
+		}
+		if (liberada) {
 			visiveis += 1;
 		}
 		if (tem) {
