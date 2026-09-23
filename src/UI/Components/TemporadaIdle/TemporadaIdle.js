@@ -545,6 +545,20 @@ function onClickRaiz(e) {
 		return;
 	}
 
+	/* O "Recarregar" (23/09/2026, relato do dono: "esse botao de recarregar
+	   nao esta funcionando"): ele nascia `disabled` no HTML, de antes da
+	   doacao via PIX existir. Hoje abre a janela de doacao, pela ponte que o
+	   MapEngine liga - a mesma do Recarregar do RO Shop. Quem diz se a doacao
+	   esta disponivel e a propria janela, com o estado do servidor. */
+	const recarregar = e.target.closest('.te-recarregar');
+	if (recarregar) {
+		e.stopImmediatePropagation();
+		if (typeof TemporadaIdle.aoAbrirDoacao === 'function') {
+			TemporadaIdle.aoAbrirDoacao();
+		}
+		return;
+	}
+
 	const tab = e.target.closest('.te-tab');
 	if (tab) {
 		e.stopImmediatePropagation();
@@ -725,6 +739,9 @@ TemporadaIdle.init = function init() {
 
 	render();
 };
+
+/** A ponte para a janela de doacao, ligada no `MapEngine` (o Recarregar). */
+TemporadaIdle.aoAbrirDoacao = null;
 
 TemporadaIdle.onAppend = function onAppend() {
 	if (_preferences.x != null && _preferences.y != null) {

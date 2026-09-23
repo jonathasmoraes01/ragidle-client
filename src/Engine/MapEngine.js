@@ -1898,6 +1898,7 @@ function onMapChange(pkt, ehEntradaNoMundo) {
 		   pilha fecha a de baixo sozinha, uma janela por vez), e as mensagens
 		   `tipo: 'doacao'` que o RoShop.js recebe no 0x0fb8 vao para ela. */
 		RoShop.aoAbrirDoacao = () => DoacaoIdle.abrir();
+		TemporadaIdle.aoAbrirDoacao = () => DoacaoIdle.abrir();
 		RoShop.aoDoacao = dados => DoacaoIdle.receber(dados);
 
 		RoShop.aoIrParaTemporada = () => {
