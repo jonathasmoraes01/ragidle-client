@@ -904,6 +904,17 @@ class DB {
 		return TitleTable[titleID] || '';
 	}
 
+	/**
+	 * RAGIDLE (23/09/2026): registra o texto de um titulo do JOGO (90001+),
+	 * que o servidor manda no 0x0fb6 - a `titletable.lub` do GRF so tem os
+	 * oficiais. O servidor e a fonte do texto.
+	 */
+	static registrarTitulo(titleID, nome) {
+		if (Number.isInteger(titleID) && titleID > 0 && typeof nome === 'string' && nome) {
+			TitleTable[titleID] = nome;
+		}
+	}
+
 	static getSkillName(skillID) {
 		return (SkillInfo[skillID] && SkillInfo[skillID].SkillName) || '';
 	}

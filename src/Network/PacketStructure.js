@@ -17051,6 +17051,41 @@ PACKET.ZC.RAGIDLE_ROSHOP = function PACKET_ZC_RAGIDLE_ROSHOP(fp, end) {
 PACKET.ZC.RAGIDLE_ROSHOP.size = -1;
 
 // ---------------------------------------------------------------------------
+// TITULOS E AURA DA CONTA - Recompensas do Alfa, 23/09/2026.
+//
+// Contrato: `docs/CONTRATO-ALFA.md` secao 4 (repositorio do servidor). A
+// reserva desceu para 0x0fb4..0x0fb5 nos dois repositorios. Os titulos em si
+// viajam nos NATIVOS 0x0a2e/0x0a2f/0x0a30; estes dois so carregam a LISTA do
+// que a conta tem (titulos e auras) e os verbos da aura.
+// ---------------------------------------------------------------------------
+
+// 0x0fb7 - RAGIDLE: CZ_RAGIDLE_TITULOS_E_AURA (client -> server)
+// Variable size: u16 opcode + u16 total length + JSON UTF-8 payload (<= 256 bytes).
+// { acao: 'pedir' } | { acao: 'aura', aura: 'AURA_DO_ALFA' | null }.
+PACKET.CZ.RAGIDLE_TITULOS_E_AURA = function PACKET_CZ_RAGIDLE_TITULOS_E_AURA() {
+	this.json = '{}';
+};
+PACKET.CZ.RAGIDLE_TITULOS_E_AURA.prototype.build = function () {
+	const bytes = TextEncoding.encode(this.json, 'utf-8');
+	const pkt_len = 2 + 2 + bytes.length;
+	const pkt_buf = new BinaryWriter(pkt_len);
+	pkt_buf.writeShort(0x0fb7);
+	pkt_buf.writeUShort(pkt_len);
+	pkt_buf.writeString(this.json);
+	return pkt_buf;
+};
+
+// 0x0fb6 - RAGIDLE: ZC_RAGIDLE_TITULOS_E_AURA (server -> client)
+// Variable size: u16 opcode + u16 total length + JSON UTF-8 payload.
+// { v: 1, titulos: { definicoes, desbloqueados, equipado }, auras: {
+//   definicoes, desbloqueadas, ativa }, resultado? }. Quem le e
+// `UI/Components/StatusIdle/titulosDaConta.js`, o unico dono.
+PACKET.ZC.RAGIDLE_TITULOS_E_AURA = function PACKET_ZC_RAGIDLE_TITULOS_E_AURA(fp, end) {
+	this.json = fp.readString(end - fp.tell());
+};
+PACKET.ZC.RAGIDLE_TITULOS_E_AURA.size = -1;
+
+// ---------------------------------------------------------------------------
 // O MENU LFG (Looking For Group) — D-634, 25/08/2026.
 //
 // Tres opcodes da faixa RAGIDLE reservada em D-527. Eles NAO substituem os

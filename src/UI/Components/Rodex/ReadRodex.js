@@ -11,6 +11,7 @@ import DB from 'DB/DBManager.js';
 import Preferences from 'Core/Preferences.js';
 import Renderer from 'Renderer/Renderer.js';
 import Client from 'Core/Client.js';
+import { itemIconUrl, preferirArtePublicada } from 'Utils/ItemArt.js';
 import UIManager from 'UI/UIManager.js';
 import GUIComponent from 'UI/GUIComponent.js';
 import htmlText from './ReadRodex.html?raw';
@@ -116,12 +117,23 @@ ReadRodex.initData = function initData(data, mail) {
 				`<div class="amount"><span class="count">${item.count || 1}</span></div>` +
 				'</div>'
 		);
-		Client.loadFile(`${DB.INTERFACE_PATH}item/${it.identifiedResourceName}.bmp`, url => {
+		/*
+		 * RAGIDLE (23/09/2026): a arte PUBLICADA pelo ITID primeiro, e o GRF so
+		 * de reserva - a MESMA receita da Mochila (`preferirArtePublicada`). Um
+		 * item CUSTOM (as recompensas do Alfa, os visuais da Temporada) nao tem
+		 * `identifiedResourceName` proprio no GRF e caia na MACA do
+		 * `unknownItem`; o `CorreioIdle` copia este `backgroundImage`, entao o
+		 * anexo da carta aparecia com a maca (relato do dono na prova de tela).
+		 */
+		const pintar = url => {
 			const icon = root.querySelector(`.item[data-index="${i}"] .icon`);
 			if (icon) {
 				icon.style.backgroundImage = `url(${url})`;
 			}
-		});
+		};
+		preferirArtePublicada(itemIconUrl(item.ITID), pintar, () =>
+			Client.loadFile(`${DB.INTERFACE_PATH}item/${it.identifiedResourceName}.bmp`, pintar)
+		);
 	}
 
 	const getContentBtn = root.querySelector('.get-content');

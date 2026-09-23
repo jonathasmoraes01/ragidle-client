@@ -220,7 +220,16 @@ export const NOMES_LOCAIS = {
 	9000116: 'Ticket de Alteração Visual', // itens-custom.ts (Ticket_Alteracao_Visual)
 	9000117: 'Ticket de Slot de Personagem', // itens-custom.ts (Ticket_Slot_De_Personagem)
 	9000118: 'Ticket de Expansão de Carga', // itens-custom.ts (Ticket_Expansao_De_Carga)
-	9000119: 'Ticket de Expansão de Armazém' // itens-custom.ts (Ticket_Expansao_De_Armazem)
+	9000119: 'Ticket de Expansão de Armazém', // itens-custom.ts (Ticket_Expansao_De_Armazem)
+
+	// --- Rodada 10: as RECOMPENSAS DO ALFA (23/09/2026) ---
+	//
+	// Ids NOSSOS, sub-faixa 9.002.000-9.002.099 (`docs/cash-shop/ITEM_ID_REGISTRY.md`
+	// e `docs/CONTRATO-ALFA.md` secao 4.7 do servidor). O visual e o oficial do
+	// GRF (View 340 e View 33); so o nome e a descricao sao nossos.
+	9002000: 'Poring Alpha Hat', // itens-custom.ts (Poring_Alpha_Hat), View 340
+	9002001: 'Coroa do Alfa', // itens-custom.ts (Coroa_Do_Alfa), View 33
+	9002002: 'Aura do Alfa' // itens-custom.ts (Aura_Do_Alfa), costume de capa com o HAT_EF 132 do Costume Magic Heir
 };
 
 /**
@@ -235,7 +244,13 @@ export const NOMES_LOCAIS = {
  */
 const FECHO_DE_CASH = 'Não pode ser negociado nem vendido a NPCs. Pode ser guardado no armazém.';
 
+const FECHO_DO_ALFA =
+	'Recompensa do Alfa do Ragnarok Classic Idle. Visual, sem atributos. Não pode ser negociado nem vendido a NPCs.';
+
 export const DESCRICOES_LOCAIS = {
+	9002000: FECHO_DO_ALFA,
+	9002001: FECHO_DO_ALFA,
+	9002002: FECHO_DO_ALFA,
 	9000100: `Aumenta em 25% a EXP de base ganha por 1 hora.\n${FECHO_DE_CASH}`,
 	9000101: `Aumenta em 25% a EXP de classe ganha por 1 hora.\n${FECHO_DE_CASH}`,
 	9000102: `Uma bênção que atrai a sorte. Aumenta em 20% a chance de itens comuns caírem de monstros comuns por 1 hora. Não vale para cartas, MVPs nem monstros raros. Usar outra enquanto ativa estende a duração.\n${FECHO_DE_CASH}`,
