@@ -303,20 +303,17 @@
 	text-overflow: ellipsis;
 }
 
-/* ─── Titulo e aura da conta (Recompensas do Alfa, 23/09/2026) ─ */
-.st-titulo-row,
-.st-aura-row {
+/* ─── Titulo da conta (Recompensas do Alfa, 23/09/2026) ─ */
+.st-titulo-row {
 	align-items: center;
 	cursor: pointer;
 }
 
-.st-titulo-row[hidden],
-.st-aura-row[hidden] {
+.st-titulo-row[hidden] {
 	display: none;
 }
 
-.st-titulo-select,
-.st-aura-select {
+.st-titulo-select {
 	flex: 0 1 60%;
 	min-width: 0;
 	min-height: 26px;

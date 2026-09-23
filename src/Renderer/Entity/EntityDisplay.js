@@ -357,8 +357,13 @@ class Display {
 		ctx.font = fontSizeTitulo + 'px Arial';
 		ctx.textBaseline = 'top';
 		const x = start_x + (larguraDoTexto - ctx.measureText(titulo).width) / 2;
-		ctx.fillStyle = 'black';
-		ctx.outlineText(titulo, x, y);
+		// Contorno GROSSO (3 px) e nao o `outlineText` de 1 px das outras linhas:
+		// medido na prova de tela de 23/09/2026, o dourado em fonte menor sumia
+		// sobre o calcamento claro de Prontera.
+		ctx.lineJoin = 'round';
+		ctx.lineWidth = 3;
+		ctx.strokeStyle = 'rgba(0, 0, 0, 0.9)';
+		ctx.strokeText(titulo, x, y);
 		ctx.fillStyle = '#ffd97a';
 		ctx.fillText(titulo, x, y);
 	}

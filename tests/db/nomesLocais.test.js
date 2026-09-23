@@ -177,12 +177,13 @@ describe('a lista aponta so para item que o jogo conhece', () => {
 		 * `conteudo.json` regerado pela branch do RO Shop (B-RS-08 do servidor).
 		 */
 		/*
-		 * **Rodada 10 (23/09/2026, Recompensas do Alfa):** +2, o Poring Alpha
-		 * Hat (9.002.000) e a Coroa do Alfa (9.002.001). O cruzamento acima so
+		 * **Rodada 10 (23/09/2026, Recompensas do Alfa):** +3, o Poring Alpha
+		 * Hat (9.002.000), a Coroa do Alfa (9.002.001) e a Aura do Alfa
+		 * (9.002.002, a aura virou item de costume por ordem do dono). O cruzamento acima so
 		 * os aceita com o `conteudo.json` regerado pela branch
 		 * `feat/reset-do-alfa` do servidor.
 		 */
-		expect(Object.keys(NOMES_LOCAIS)).toHaveLength(63);
+		expect(Object.keys(NOMES_LOCAIS)).toHaveLength(64);
 	});
 });
 

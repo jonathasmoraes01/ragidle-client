@@ -216,7 +216,8 @@ export const NOMES_LOCAIS = {
 	// e `docs/CONTRATO-ALFA.md` secao 4.7 do servidor). O visual e o oficial do
 	// GRF (View 340 e View 33); so o nome e a descricao sao nossos.
 	9002000: 'Poring Alpha Hat', // itens-custom.ts (Poring_Alpha_Hat), View 340
-	9002001: 'Coroa do Alfa' // itens-custom.ts (Coroa_Do_Alfa), View 33
+	9002001: 'Coroa do Alfa', // itens-custom.ts (Coroa_Do_Alfa), View 33
+	9002002: 'Aura do Alfa' // itens-custom.ts (Aura_Do_Alfa), costume de capa com o HAT_EF 132 do Costume Magic Heir
 };
 
 /**
@@ -237,6 +238,7 @@ const FECHO_DO_ALFA =
 export const DESCRICOES_LOCAIS = {
 	9002000: FECHO_DO_ALFA,
 	9002001: FECHO_DO_ALFA,
+	9002002: FECHO_DO_ALFA,
 	9000100: `Aumenta em 25% a EXP de base ganha por 1 hora.\n${FECHO_DE_CASH}`,
 	9000101: `Aumenta em 25% a EXP de classe ganha por 1 hora.\n${FECHO_DE_CASH}`,
 	9000102: `Uma bênção que atrai a sorte. Aumenta em 20% a chance de itens comuns caírem de monstros comuns por 1 hora. Não vale para cartas, MVPs nem monstros raros. Usar outra enquanto ativa estende a duração.\n${FECHO_DE_CASH}`,

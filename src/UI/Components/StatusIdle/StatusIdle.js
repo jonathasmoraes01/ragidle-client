@@ -299,13 +299,10 @@ StatusIdle.init = function init() {
 		btn.addEventListener('click', onClickStatUp);
 	});
 
-	// Titulo e aura (Recompensas do Alfa): o seletor so PEDE; quem muda o
+	// Titulo (Recompensas do Alfa): o seletor so PEDE; quem muda o
 	// equipado e o 0x0fb6 que o servidor reenvia depois de validar.
 	root.querySelector('.st-titulo-select').addEventListener('change', e => {
 		TitulosDaConta.equipar(parseInt(e.target.value, 10) || 0);
-	});
-	root.querySelector('.st-aura-select').addEventListener('change', e => {
-		TitulosDaConta.definirAura(e.target.value || null);
 	});
 	TitulosDaConta.assinar(renderTitulos);
 	renderTitulos(TitulosDaConta.estado());
@@ -362,9 +359,10 @@ StatusIdle.toggle = function toggle() {
 };
 
 /**
- * Desenha as opcoes de titulo e aura a partir do estado que o SERVIDOR mandou
+ * Desenha as opcoes de titulo a partir do estado que o SERVIDOR mandou
  * (0x0fb6). Nada aqui decide posse: sem titulo desbloqueado o seletor fica
- * desabilitado, e a linha da aura so aparece se a conta tiver alguma.
+ * desabilitado. A aura NAO mora aqui: desde 23/09/2026 (ordem do dono) ela e
+ * um ITEM de costume equipado pela mochila (Aura do Alfa, 9002002).
  */
 function renderTitulos(estado) {
 	const root = _root();
@@ -380,17 +378,6 @@ function renderTitulos(estado) {
 	}
 	selTitulo.value = estado.desbloqueados.includes(estado.equipado) ? String(estado.equipado) : '0';
 	selTitulo.disabled = estado.desbloqueados.length === 0;
-
-	const linhaAura = root.querySelector('.st-aura-row');
-	const selAura = root.querySelector('.st-aura-select');
-	const nomesDeAura = new Map(estado.auras.map(a => [a.codigo, a.nome]));
-	selAura.textContent = '';
-	selAura.appendChild(new Option('Desligada', ''));
-	for (const codigo of estado.aurasDesbloqueadas) {
-		selAura.appendChild(new Option(nomesDeAura.get(codigo), codigo));
-	}
-	selAura.value = estado.auraAtiva || '';
-	linhaAura.hidden = estado.aurasDesbloqueadas.length === 0;
 
 	root.querySelector('.st-titulo-aviso').textContent = fraseDaRecusa(estado.resultado);
 }

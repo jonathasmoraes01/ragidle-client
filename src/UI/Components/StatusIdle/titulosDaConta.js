@@ -12,7 +12,8 @@
  * - reaplica o texto nos letreiros que ja receberam o 0x0a30 ANTES da tabela
  *   chegar (o id fica em `display.title_id`, ver Engine/MapEngine/Entity.js);
  * - manda os tres verbos do contrato: pedir o estado, equipar/remover titulo
- *   (o nativo 0x0a2e) e ligar/desligar a aura.
+ *   (o nativo 0x0a2e). A aura virou ITEM de costume em 23/09/2026 e nao passa
+ *   por aqui.
  *
  * O cliente nao decide posse: o seletor lista o que o servidor diz que a conta
  * tem, e mesmo assim o servidor revalida cada pedido.
@@ -101,11 +102,6 @@ const TitulosDaConta = {
 		const pkt = new PACKET.CZ.REQ_CHANGE_TITLE();
 		pkt.title_id = Number.isInteger(tituloId) && tituloId > 0 ? tituloId : 0;
 		Network.sendPacket(pkt);
-	},
-
-	/** `null` desliga. */
-	definirAura(codigo) {
-		enviar({ acao: 'aura', aura: typeof codigo === 'string' && codigo ? codigo : null });
 	},
 
 	/** Troca de personagem: o proximo estado vem do servidor na entrada no mapa. */
