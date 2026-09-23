@@ -680,6 +680,41 @@
 	filter: grayscale(1);
 }
 
+/* O cartão de compra do Passe de Batalha VIP (23/09/2026): dentro da seção
+   da trilha, acima das fileiras. Quebra em coluna no celular (ver o bloco
+   max-width:599px) para o botão caber sem rolagem horizontal. */
+#TemporadaIdle .te-passe-vip-compra {
+	display: flex;
+	align-items: center;
+	gap: var(--sp-3);
+	padding: var(--sp-2) var(--sp-3);
+	margin-bottom: var(--sp-2);
+	border-color: var(--border-gold);
+}
+
+#TemporadaIdle .te-passe-vip-compra-texto {
+	flex: 1 1 auto;
+	min-width: 0;
+}
+
+#TemporadaIdle .te-passe-vip-compra-titulo {
+	font-weight: 700;
+	color: var(--gold-700);
+}
+
+#TemporadaIdle .te-passe-vip-compra-preco {
+	font-weight: 600;
+}
+
+#TemporadaIdle .te-passe-vip-compra-dica {
+	font: var(--type-desc);
+	color: var(--text-muted);
+}
+
+#TemporadaIdle .te-passe-vip-comprar {
+	flex: 0 0 auto;
+}
+
 #TemporadaIdle .te-reward-scroll {
 	display: flex;
 	gap: var(--sp-3);
@@ -2009,6 +2044,7 @@
 	#TemporadaIdle .te-caixa-acoes .ri-btn,
 	#TemporadaIdle .te-comprar-passe,
 	#TemporadaIdle .te-vip-resgatar,
+	#TemporadaIdle .te-passe-vip-comprar,
 	#TemporadaIdle .te-resumo-caixa,
 	#TemporadaIdle .te-atalho,
 	#TemporadaIdle .te-chamada-passe,
@@ -2021,6 +2057,16 @@
 /* ─── Celular (<=599px, a mesma marca de "estreito" que Common.css usa) ─── */
 
 @media (max-width: 599px) {
+	#TemporadaIdle .te-passe-vip-compra {
+		flex-direction: column;
+		align-items: stretch;
+	}
+
+	#TemporadaIdle .te-passe-vip-comprar {
+		width: 100%;
+		min-height: var(--hit-touch);
+	}
+
 	#TemporadaIdle .te-window {
 		width: min(680px, 100vw - 16px);
 		max-height: min(640px, 100dvh - 16px);

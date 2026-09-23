@@ -957,12 +957,62 @@ export function renderPremioDaTrilhaHtml(premio, trilha) {
  * FREE em cima (azul/prata), VIP embaixo (creme/dourado) - o mesmo nível
  * sempre alinhado na mesma coluna (documento §19-20: "lado a lado", "a
  * diferença deve ser percebida instantaneamente"). A trilha VIP fica
- * esmaecida quando o jogador não tem VIP nesta temporada (`passe.vip`) -
- * ainda visível (ele vê o que está perdendo), só sem convidar o clique.
+ * esmaecida enquanto ela não está LIBERADA - ainda visível (ele vê o que
+ * está perdendo), só sem convidar o clique.
+ *
+ * LIBERADA É A COMPRA DO PASSE DE BATALHA VIP, e não o VIP de 30 dias
+ * (23/09/2026, ordem do dono: "são sistemas separados"). Quem decide é o
+ * servidor (`passe.trilhaVip.liberada`); `passe.vip` diz a MESMA coisa desde
+ * então e fica como reserva para um servidor anterior ao campo novo.
  */
+export function trilhaVipLiberada(passe) {
+	if (passe && passe.trilhaVip && typeof passe.trilhaVip.liberada === 'boolean') {
+		return passe.trilhaVip.liberada;
+	}
+	return !!(passe && passe.vip);
+}
+
+/**
+ * O CARTÃO DE COMPRA DO PASSE DE BATALHA VIP, dentro da trilha de
+ * recompensas. O botão chega JÁ DECIDIDO pelo servidor
+ * (`passe.trilhaVip.compra.pode`/`.texto`) - a janela não adivinha se pode
+ * comprar. Enquanto a venda está fechada o botão aparece APAGADO com
+ * "Em breve" e o preço, para o jogador saber o que vem e quanto custa.
+ *
+ * Some quando a trilha já está liberada, e quando o servidor não manda o
+ * bloco (servidor anterior a 23/09/2026).
+ */
+export function renderCompraDoPasseVipHtml(passe) {
+	const t = passe && passe.trilhaVip;
+	if (!t || t.liberada) {
+		return '';
+	}
+	const compra = t.compra || {};
+	const pode = compra.pode === true;
+	/* "15 RO Cash", e nao "15,00": o preco do passe e redondo, e e assim que o
+	   dono o escreveu. Centavo so aparece se o servidor mandar um. */
+	const precoMinor = Math.max(0, Math.trunc(Number(t.precoMinor) || 0));
+	const preco = `${precoMinor % 100 === 0 ? String(precoMinor / 100) : formatarRoCash(precoMinor)} RO Cash`;
+	const rotulo = pode ? `Comprar · ${preco}` : t.aVenda ? preco : 'Em breve';
+	const dica =
+		compra.texto ||
+		(pode ? 'Libera todos os prêmios da trilha VIP desta temporada.' : '');
+	return (
+		'<div class="te-passe-vip-compra ri-card">' +
+		'<div class="te-passe-vip-compra-texto">' +
+		'<div class="te-passe-vip-compra-titulo">Passe de Batalha VIP</div>' +
+		`<div class="te-passe-vip-compra-preco">${escapeHtml(preco)}</div>` +
+		`<div class="te-passe-vip-compra-dica">Vendido à parte do VIP.${dica ? ` ${escapeHtml(dica)}` : ''}</div>` +
+		'</div>' +
+		`<button type="button" class="ri-btn ri-btn--ouro te-passe-vip-comprar" data-agir="comprar-passe-vip"${pode ? '' : ' disabled aria-disabled="true"'}>` +
+		`${escapeHtml(rotulo)}</button>` +
+		'</div>'
+	);
+}
+
 export function renderTrilhaDeRecompensasHtml(passe) {
 	const niveis = niveisDoPasse(passe);
-	const semVip = !passe.vip;
+	const semVip = !trilhaVipLiberada(passe);
 	const colunas = niveis
 		.map(
 			n =>
@@ -982,6 +1032,7 @@ export function renderTrilhaDeRecompensasHtml(passe) {
 		`<span class="te-reward-legenda-item te-reward-legenda-item--vip${semVip ? ' is-bloqueada' : ''}">VIP</span>` +
 		'</div>' +
 		'</header>' +
+		renderCompraDoPasseVipHtml(passe) +
 		`<div class="te-reward-scroll ri-scroll${semVip ? ' is-sem-vip' : ''}">${colunas}</div>` +
 		'</section>'
 	);
