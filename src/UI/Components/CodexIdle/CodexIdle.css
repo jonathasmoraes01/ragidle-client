@@ -418,6 +418,28 @@
 	filter: saturate(0.4);
 }
 
+/* OS ATRIBUTOS EM ALTERACAO (23/09/2026, ordem do dono). O "+" fica cinza e
+   nao reage a nada — nem ao hover do `.ri-btn` (que clareia por filtro) nem ao
+   clique: `pointer-events: none` tira o botao do caminho do ponteiro, e o
+   aviso acima das linhas diz o porque. O servidor recusa de qualquer jeito. */
+#CodexIdle .cx-eixo.is-em-alteracao .cx-mais {
+	opacity: 0.35;
+	filter: grayscale(1);
+	pointer-events: none;
+	cursor: default;
+}
+
+#CodexIdle .cx-aviso-atributos {
+	margin: 0 0 var(--sp-3);
+	padding: var(--sp-4) var(--sp-5);
+	border-radius: var(--radius-card);
+	background: var(--surface-inset);
+	font: var(--type-desc);
+	color: var(--text-title);
+	line-height: 1.35;
+	overflow-wrap: anywhere;
+}
+
 /* ═════════════════════════════════════════════════════════════════════
    A JORNADA DE MIDGARD - a aba "Missoes do Codex" (08/09/2026)
    ═════════════════════════════════════════════════════════════════════
