@@ -5027,6 +5027,8 @@ function init(packetver) {
 	length_list[0x0fbb] = -1; // ZC_RAGIDLE_TEMPORADA (variable, JSON payload) - a Temporada, Season 1, 21/09/2026
 	length_list[0x0fb9] = -1; // CZ_RAGIDLE_ROSHOP (variable, JSON payload) - o RO Shop, 22/09/2026
 	length_list[0x0fb8] = -1; // ZC_RAGIDLE_ROSHOP (variable, JSON payload) - o RO Shop, 22/09/2026
+	length_list[0x0fb7] = -1; // CZ_RAGIDLE_TITULOS_E_AURA (variable, JSON payload) - Recompensas do Alfa, 23/09/2026
+	length_list[0x0fb6] = -1; // ZC_RAGIDLE_TITULOS_E_AURA (variable, JSON payload) - Recompensas do Alfa, 23/09/2026
 
 	return length_list;
 }

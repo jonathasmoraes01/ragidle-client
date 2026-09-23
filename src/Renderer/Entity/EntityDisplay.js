@@ -240,27 +240,39 @@ class Display {
 			lines[1] = this.guild_rank;
 		}
 
-		// Add Title name
-		// when title is set client render title in line[0] and name/fakename in line[1]
-		if (
-			MapPreferences.showname &&
-			this.title_name.length &&
-			(style === this.STYLE.DEFAULT ||
-				style === this.STYLE.ADMIN ||
-				style === this.STYLE.MOB ||
-				style === this.STYLE.NPC)
-		) {
-			lines[0] = '[' + this.title_name + '] ' + lines[0];
-		}
+		/*
+		 * RAGIDLE (23/09/2026): o TITULO vai numa linha PROPRIA, abaixo do nome
+		 * e acima da guilda, em fonte menor. O nativo o prefixava no nome
+		 * ("[Titulo] Nome") e so com /showname ligado; aqui ele aparece sempre
+		 * que o jogador tem um titulo, e so para jogador (o titulo e do servidor,
+		 * pelo 0x0a30 - ver TitulosIdle.js).
+		 */
+		const titulo =
+			this.title_name.length && (style === this.STYLE.DEFAULT || style === this.STYLE.ADMIN)
+				? this.title_name
+				: '';
+		const fontSizeTitulo = 10 * dpr;
+		const alturaDaLinha = fontSize * 1.2;
+		const alturaDoTitulo = titulo ? fontSizeTitulo * 1.25 : 0;
 
 		// Setup the canvas
 		const fontBold = MapPreferences.showname ? 'bold ' : '';
 		ctx.font = fontBold + fontSize + 'px Arial';
+		let larguraDoTexto = Math.max(ctx.measureText(lines[0]).width, ctx.measureText(lines[1]).width);
+		if (titulo) {
+			ctx.font = fontSizeTitulo + 'px Arial';
+			larguraDoTexto = Math.max(larguraDoTexto, ctx.measureText(titulo).width);
+		}
 
-		const width = Math.max(ctx.measureText(lines[0]).width, ctx.measureText(lines[1]).width) + start_x + 5;
-		const height = fontSize * 3 * (lines[1].length ? 2 : 1) + paddingTop;
+		const width = larguraDoTexto + start_x + 5;
+		const height = fontSize * 3 * (lines[1].length ? 2 : 1) + paddingTop + alturaDoTitulo;
 		ctx.canvas.width = width;
 		ctx.canvas.height = height;
+
+		// y de cada linha: nome, titulo (se houver), guilda.
+		const yNome = paddingTop;
+		const yTitulo = paddingTop + alturaDaLinha;
+		const yGuilda = paddingTop + alturaDaLinha + alturaDoTitulo;
 
 		// Draw emblem
 		if (
@@ -306,28 +318,49 @@ class Display {
 			multiShadow(ctx, lines[0], start_x, paddingTop, 0, 1, 0);
 			multiShadow(ctx, lines[0], start_x, paddingTop, -1, 0, 0);
 			multiShadow(ctx, lines[0], start_x, paddingTop, 1, 0, 0);
-			multiShadow(ctx, lines[1], start_x, fontSize * 1.2 + paddingTop, 0, -1, 0);
-			multiShadow(ctx, lines[1], start_x, fontSize * 1.2 + paddingTop, 0, 1, 0);
-			multiShadow(ctx, lines[1], start_x, fontSize * 1.2 + paddingTop, -1, 0, 0);
-			multiShadow(ctx, lines[1], start_x, fontSize * 1.2 + paddingTop, 1, 0, 0);
+			multiShadow(ctx, lines[1], start_x, yGuilda, 0, -1, 0);
+			multiShadow(ctx, lines[1], start_x, yGuilda, 0, 1, 0);
+			multiShadow(ctx, lines[1], start_x, yGuilda, -1, 0, 0);
+			multiShadow(ctx, lines[1], start_x, yGuilda, 1, 0, 0);
 			ctx.fillStyle = color;
 			ctx.strokeStyle = 'black';
-			ctx.strokeText(lines[0], start_x, 0 + paddingTop);
-			ctx.fillText(lines[0], start_x, paddingTop);
-			ctx.strokeText(lines[1], start_x, fontSize * 1.2 + paddingTop);
-			ctx.fillText(lines[1], start_x, fontSize * 1.2 + paddingTop);
+			ctx.strokeText(lines[0], start_x, yNome);
+			ctx.fillText(lines[0], start_x, yNome);
+			ctx.strokeText(lines[1], start_x, yGuilda);
+			ctx.fillText(lines[1], start_x, yGuilda);
 		}
 
 		// fillText renderer
 		else {
 			ctx.translate(0.5, 0.5);
 			ctx.fillStyle = 'black';
-			ctx.outlineText(lines[0], start_x, paddingTop);
-			ctx.outlineText(lines[1], start_x, fontSize * 1.2 + paddingTop);
+			ctx.outlineText(lines[0], start_x, yNome);
+			ctx.outlineText(lines[1], start_x, yGuilda);
 			ctx.fillStyle = color;
-			ctx.fillText(lines[0], start_x, paddingTop);
-			ctx.fillText(lines[1], start_x, fontSize * 1.2 + paddingTop);
+			ctx.fillText(lines[0], start_x, yNome);
+			ctx.fillText(lines[1], start_x, yGuilda);
 		}
+
+		if (titulo) {
+			this.desenharTitulo(ctx, titulo, fontSizeTitulo, start_x, larguraDoTexto, yTitulo);
+		}
+	}
+
+	/**
+	 * RAGIDLE: a linha do titulo, centrada sob o nome, menor e dourada, com o
+	 * mesmo contorno preto das outras linhas (legivel sobre qualquer chao).
+	 */
+	desenharTitulo(ctx, titulo, fontSizeTitulo, start_x, larguraDoTexto, y) {
+		ctx.shadowBlur = 0;
+		ctx.shadowOffsetX = 0;
+		ctx.shadowOffsetY = 0;
+		ctx.font = fontSizeTitulo + 'px Arial';
+		ctx.textBaseline = 'top';
+		const x = start_x + (larguraDoTexto - ctx.measureText(titulo).width) / 2;
+		ctx.fillStyle = 'black';
+		ctx.outlineText(titulo, x, y);
+		ctx.fillStyle = '#ffd97a';
+		ctx.fillText(titulo, x, y);
 	}
 
 	/**

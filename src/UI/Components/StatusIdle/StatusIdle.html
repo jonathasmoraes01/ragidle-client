@@ -46,6 +46,22 @@
 						<div class="st-char-stat"><span class="st-char-label">Job Lv.</span><span class="st-char-value st-char-jlvl">1</span></div>
 					</div>
 					<div class="st-char-stat st-char-stat--full"><span class="st-char-label">Guild</span><span class="st-char-value st-guild">—</span></div>
+					<!-- TITULO E AURA (Recompensas do Alfa, 23/09/2026). As opcoes sao
+					     o que o SERVIDOR diz que a conta tem (0x0fb6); cada troca e
+					     revalidada la. Ver titulosDaConta.js. -->
+					<label class="st-char-stat st-char-stat--full st-titulo-row">
+						<span class="st-char-label">Título</span>
+						<select class="st-titulo-select" aria-label="Título equipado" disabled>
+							<option value="0">Nenhum título</option>
+						</select>
+					</label>
+					<label class="st-char-stat st-char-stat--full st-aura-row" hidden>
+						<span class="st-char-label">Aura</span>
+						<select class="st-aura-select" aria-label="Aura da conta">
+							<option value="">Desligada</option>
+						</select>
+					</label>
+					<div class="st-titulo-aviso" role="status"></div>
 					<div class="st-char-pair">
 						<div class="st-char-stat"><span class="st-char-label">Zeny</span><span class="st-char-value st-char-zeny">0</span></div>
 						<div class="st-char-stat"><span class="st-char-label">Peso</span><span class="st-char-value st-char-weight">0 / 0</span></div>

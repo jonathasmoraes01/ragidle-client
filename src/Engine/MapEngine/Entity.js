@@ -1188,10 +1188,14 @@ function onEntityIdentity(pkt) {
 		entity.display.name = pkt.CName;
 		entity.display.fakename = '';
 
+		// RAGIDLE (23/09/2026): o id fica guardado no letreiro porque o TEXTO
+		// dos titulos do jogo (90001+) chega pelo 0x0fb6, que pode vir DEPOIS
+		// deste 0x0a30; TitulosIdle.js reaplica o texto quando a tabela chega.
 		if (PACKETVER.value >= 20170208 && pkt.TitleID > 0) {
-			const titleText = DB.getTitleString(pkt.TitleID);
-			entity.display.title_name = titleText;
+			entity.display.title_id = pkt.TitleID;
+			entity.display.title_name = DB.getTitleString(pkt.TitleID);
 		} else {
+			entity.display.title_id = 0;
 			entity.display.title_name = '';
 		}
 
@@ -1317,6 +1321,11 @@ function onTitleChangeAck(pkt) {
 		if (comp && typeof comp.setTitle === 'function') {
 			comp.setTitle(pkt.title_id);
 		}
+	} else {
+		// RAGIDLE (23/09/2026): recusa do servidor (titulo que a conta nao tem).
+		// O seletor volta sozinho com o 0x0fb6 que o servidor reenvia; aqui so
+		// o aviso.
+		StatusIdle.aoRecusarTitulo();
 	}
 }
 

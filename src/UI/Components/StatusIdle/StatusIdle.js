@@ -143,6 +143,8 @@ import htmlText from './StatusIdle.html?raw';
 import cssText from './StatusIdle.css?raw';
 import { fecharEEsquecer } from '../limpezaDeJanelaIdle.js';
 import { METADES, lerMetades } from './metadesDaDerivada.js';
+import TitulosDaConta from './titulosDaConta.js';
+import { fraseDaRecusa } from './formatoDosTitulos.js';
 
 /**
  * Keep in sync with the ":host"/".st-window" size in StatusIdle.css — same
@@ -297,6 +299,17 @@ StatusIdle.init = function init() {
 		btn.addEventListener('click', onClickStatUp);
 	});
 
+	// Titulo e aura (Recompensas do Alfa): o seletor so PEDE; quem muda o
+	// equipado e o 0x0fb6 que o servidor reenvia depois de validar.
+	root.querySelector('.st-titulo-select').addEventListener('change', e => {
+		TitulosDaConta.equipar(parseInt(e.target.value, 10) || 0);
+	});
+	root.querySelector('.st-aura-select').addEventListener('change', e => {
+		TitulosDaConta.definirAura(e.target.value || null);
+	});
+	TitulosDaConta.assinar(renderTitulos);
+	renderTitulos(TitulosDaConta.estado());
+
 	// Default centered position, may be overridden by saved preferences in
 	// onAppend() below (same approach as HuntMap.js:191-193).
 	this._host.style.top = Math.max(0, (Renderer.height - WINDOW_HEIGHT) / 2) + 'px';
@@ -344,6 +357,50 @@ StatusIdle.toggle = function toggle() {
 		StatusIdle.focus();
 		requestFicha();
 		syncCharacterInfo();
+		TitulosDaConta.pedir();
+	}
+};
+
+/**
+ * Desenha as opcoes de titulo e aura a partir do estado que o SERVIDOR mandou
+ * (0x0fb6). Nada aqui decide posse: sem titulo desbloqueado o seletor fica
+ * desabilitado, e a linha da aura so aparece se a conta tiver alguma.
+ */
+function renderTitulos(estado) {
+	const root = _root();
+	const selTitulo = root && root.querySelector('.st-titulo-select');
+	if (!selTitulo) {
+		return;
+	}
+	const nomes = new Map(estado.definicoes.map(d => [d.id, d.nome]));
+	selTitulo.textContent = '';
+	selTitulo.appendChild(new Option(estado.desbloqueados.length ? 'Nenhum' : 'Nenhum título', '0'));
+	for (const id of estado.desbloqueados) {
+		selTitulo.appendChild(new Option(nomes.get(id), String(id)));
+	}
+	selTitulo.value = estado.desbloqueados.includes(estado.equipado) ? String(estado.equipado) : '0';
+	selTitulo.disabled = estado.desbloqueados.length === 0;
+
+	const linhaAura = root.querySelector('.st-aura-row');
+	const selAura = root.querySelector('.st-aura-select');
+	const nomesDeAura = new Map(estado.auras.map(a => [a.codigo, a.nome]));
+	selAura.textContent = '';
+	selAura.appendChild(new Option('Desligada', ''));
+	for (const codigo of estado.aurasDesbloqueadas) {
+		selAura.appendChild(new Option(nomesDeAura.get(codigo), codigo));
+	}
+	selAura.value = estado.auraAtiva || '';
+	linhaAura.hidden = estado.aurasDesbloqueadas.length === 0;
+
+	root.querySelector('.st-titulo-aviso').textContent = fraseDaRecusa(estado.resultado);
+}
+
+/** 0x0a2f com result 1: o servidor recusou o titulo (Engine/MapEngine/Entity.js). */
+StatusIdle.aoRecusarTitulo = function aoRecusarTitulo() {
+	const root = _root();
+	const aviso = root && root.querySelector('.st-titulo-aviso');
+	if (aviso) {
+		aviso.textContent = 'Sua conta não possui este título.';
 	}
 };
 
@@ -858,6 +915,8 @@ StatusIdle.aoMudarStatus = function aoMudarStatus() {
 
 StatusIdle.limparEstadoDoPersonagem = function limparEstadoDoPersonagem() {
 	StatusIdle.ficha = null;
+	// O titulo equipado e do PERSONAGEM: o proximo chega no 0x0fb6 da entrada.
+	TitulosDaConta.limpar();
 	/*
 	 * A peca compartilhada, e nao o miolo a mao (auditoria de 30/08/2026).
 	 *

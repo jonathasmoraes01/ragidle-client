@@ -1074,6 +1074,9 @@ export default {
 	// 22/09/2026 - o RO SHOP: o estado da loja e o resultado do checkout. O CZ
 	// 0x0fb9 e ESCRITO pelo cliente, nao lido. Os dois ultimos slots da reserva.
 	0x0fb8: PACKET.ZC.RAGIDLE_ROSHOP,
+	// 23/09/2026 - TITULOS E AURA DA CONTA (Recompensas do Alfa). O CZ 0x0fb7 e
+	// ESCRITO pelo cliente, nao lido. A reserva desceu para 0x0fb4..0x0fb5.
+	0x0fb6: PACKET.ZC.RAGIDLE_TITULOS_E_AURA,
 
 	0xb1a: PACKET.ZC.USESKILL_ACK3 // USE SKILL 3
 };
