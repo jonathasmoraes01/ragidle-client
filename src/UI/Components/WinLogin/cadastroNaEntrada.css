@@ -1,0 +1,478 @@
+/* A JANELA DE CADASTRO DENTRO DA TELA DE LOGIN (23/09/2026).
+ * Copia visual do `#pre-modal` do site (rag-idle-site/css/components.css e
+ * sections.css, "Rune UI"). Os tokens do site nao existem no Common.css do
+ * cliente, entao moram aqui, presos em `.cad`, com os MESMOS valores. */
+.cad {
+	--cad-painel: rgba(10, 18, 52, 0.9);
+	--cad-fundo-campo: rgba(3, 6, 20, 0.72);
+	--cad-barra-1: #273d80;
+	--cad-barra-2: #1c2e66;
+	--cad-ouro: #e0b04d;
+	--cad-ouro-hi: #f0d89b;
+	--cad-ouro-palido: #f6e9c4;
+	--cad-ouro-fundo: #c9a227;
+	--cad-ouro-tinta: #2a1e05;
+	--cad-ouro-35: rgba(201, 162, 39, 0.35);
+	--cad-ouro-15: rgba(201, 162, 39, 0.15);
+	--cad-texto: #eae7dd;
+	--cad-texto-suave: #cfd6e6;
+	--cad-apagado: #97a6cc;
+	--cad-sumido: #63719c;
+	--cad-perigo: #b13b3b;
+	--cad-perigo-texto: #f0a08e;
+	--cad-epico: 'Marcellus', 'Palatino Linotype', Georgia, serif;
+	--cad-ui: 'Figtree', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+	--cad-ease: cubic-bezier(0.22, 0.61, 0.36, 1);
+
+	position: absolute;
+	inset: 0;
+	z-index: 10;
+	display: grid;
+	place-items: center;
+	padding: 16px;
+	box-sizing: border-box;
+	font-family: var(--cad-ui);
+	color: var(--cad-texto);
+}
+.cad[hidden] {
+	display: none;
+}
+.cad *,
+.cad *::before,
+.cad *::after {
+	box-sizing: border-box;
+}
+
+.cad-fundo {
+	position: absolute;
+	inset: 0;
+	background: rgba(3, 5, 12, 0.82);
+	backdrop-filter: blur(6px);
+	-webkit-backdrop-filter: blur(6px);
+	opacity: 0;
+	transition: opacity 0.22s var(--cad-ease);
+}
+.cad.is-open .cad-fundo {
+	opacity: 1;
+}
+
+/* A moldura: fundo azul-noite, borda de ouro a 35% e os quatro cantos em L. */
+.cad-janela {
+	position: relative;
+	width: min(520px, 100%);
+	max-height: min(94%, 880px);
+	display: flex;
+	flex-direction: column;
+	overflow: hidden;
+	background: var(--cad-painel);
+	border: 1px solid var(--cad-ouro-35);
+	border-radius: 6px;
+	box-shadow:
+		inset 0 0 0 1px rgba(0, 0, 0, 0.55),
+		inset 0 1px 0 rgba(255, 255, 255, 0.06),
+		0 6px 18px rgba(12, 34, 64, 0.55);
+	backdrop-filter: blur(8px);
+	-webkit-backdrop-filter: blur(8px);
+	opacity: 0;
+	transform: translateY(18px) scale(0.97);
+	transition:
+		opacity 0.22s var(--cad-ease),
+		transform 0.22s cubic-bezier(0.34, 1.4, 0.64, 1);
+}
+.cad.is-open .cad-janela {
+	opacity: 1;
+	transform: none;
+}
+.cad-janela::before {
+	content: '';
+	position: absolute;
+	inset: -1px;
+	z-index: 1;
+	pointer-events: none;
+	border-radius: inherit;
+	--c: var(--cad-ouro);
+	--len: 16px;
+	--thk: 2px;
+	background:
+		linear-gradient(var(--c), var(--c)) 0 0 / var(--thk) var(--len) no-repeat,
+		linear-gradient(var(--c), var(--c)) 0 0 / var(--len) var(--thk) no-repeat,
+		linear-gradient(var(--c), var(--c)) 100% 0 / var(--thk) var(--len) no-repeat,
+		linear-gradient(var(--c), var(--c)) 100% 0 / var(--len) var(--thk) no-repeat,
+		linear-gradient(var(--c), var(--c)) 0 100% / var(--thk) var(--len) no-repeat,
+		linear-gradient(var(--c), var(--c)) 0 100% / var(--len) var(--thk) no-repeat,
+		linear-gradient(var(--c), var(--c)) 100% 100% / var(--thk) var(--len) no-repeat,
+		linear-gradient(var(--c), var(--c)) 100% 100% / var(--len) var(--thk) no-repeat;
+	filter: drop-shadow(0 0 4px var(--cad-ouro-35));
+}
+
+/* A barra de titulo, citacao da janela classica de RO. */
+.cad-barra {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	padding: 12px 16px;
+	flex: 0 0 auto;
+	background: linear-gradient(180deg, var(--cad-barra-1), var(--cad-barra-2));
+	border-bottom: 1px solid var(--cad-ouro-35);
+	box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12);
+}
+.cad-gema {
+	width: 9px;
+	height: 9px;
+	flex: 0 0 auto;
+	transform: rotate(45deg);
+	border-radius: 2px;
+	background: linear-gradient(135deg, var(--cad-ouro-hi), var(--cad-ouro) 45%, #8a6a18);
+	box-shadow:
+		0 0 10px var(--cad-ouro-35),
+		inset 0 0 4px rgba(255, 255, 255, 0.6);
+}
+.cad-barra-titulo {
+	flex: 1;
+	margin: 0;
+	font-family: var(--cad-epico);
+	font-size: 0.9rem;
+	font-weight: 400;
+	letter-spacing: 0.06em;
+	color: var(--cad-ouro-hi);
+	text-shadow: 0 2px 0 rgba(0, 0, 0, 0.6);
+}
+.cad-fechar {
+	display: grid;
+	place-items: center;
+	width: 26px;
+	height: 26px;
+	padding: 0;
+	color: var(--cad-apagado);
+	border: 1px solid rgba(255, 255, 255, 0.14);
+	border-radius: 4px;
+	background: rgba(0, 0, 0, 0.25);
+	cursor: pointer;
+	transition:
+		color 0.15s var(--cad-ease),
+		background-color 0.15s var(--cad-ease),
+		border-color 0.15s var(--cad-ease);
+}
+.cad-fechar:hover {
+	color: #fff;
+	background: var(--cad-perigo);
+	border-color: var(--cad-perigo);
+}
+
+/* O corpo e quem rola: a barra e os cantos ficam parados. */
+.cad-corpo {
+	overflow-y: auto;
+	overscroll-behavior: contain;
+	padding: 16px 20px 20px;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 12px;
+	scrollbar-width: thin;
+	scrollbar-color: rgba(232, 193, 79, 0.28) transparent;
+}
+.cad-logo {
+	width: min(140px, 38%);
+	height: auto;
+	filter: drop-shadow(0 4px 20px rgba(0, 0, 0, 0.6));
+	pointer-events: none;
+}
+.cad-chamada {
+	margin: 0;
+	font-family: var(--cad-epico);
+	font-size: 1.05rem;
+	font-weight: 700;
+	letter-spacing: 0.04em;
+	color: var(--cad-ouro-hi);
+	text-align: center;
+}
+
+/* O formulario em grade: uma coluna no celular, duas a partir de 560px. */
+.cad-form {
+	width: 100%;
+	display: grid;
+	grid-template-columns: 1fr;
+	gap: 12px;
+	margin: 0;
+}
+@media (min-width: 560px) {
+	.cad-form {
+		grid-template-columns: 1fr 1fr;
+		column-gap: 16px;
+	}
+	.cad-inteira {
+		grid-column: 1 / -1;
+	}
+}
+
+.cad-campo {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	min-width: 0;
+}
+.cad-rotulo {
+	font-size: 0.78rem;
+	font-weight: 600;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+	color: var(--cad-apagado);
+}
+.cad-caixa {
+	position: relative;
+	display: flex;
+	align-items: center;
+}
+.cad-icone {
+	position: absolute;
+	left: 14px;
+	width: 18px;
+	height: 18px;
+	color: var(--cad-sumido);
+	pointer-events: none;
+	transition: color 0.15s var(--cad-ease);
+}
+.cad-caixa:focus-within .cad-icone {
+	color: var(--cad-ouro);
+}
+.cad-input {
+	width: 100%;
+	min-height: 42px;
+	padding: 8px 16px 8px 44px;
+	background: var(--cad-fundo-campo);
+	border: 1px solid rgba(255, 255, 255, 0.1);
+	border-radius: 4px;
+	color: var(--cad-texto);
+	font-family: var(--cad-ui);
+	font-size: 1rem;
+	box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.55);
+	transition:
+		border-color 0.22s var(--cad-ease),
+		box-shadow 0.22s var(--cad-ease);
+}
+.cad-input::placeholder {
+	color: var(--cad-sumido);
+}
+.cad-input:focus {
+	outline: none;
+	border-color: var(--cad-ouro);
+	box-shadow:
+		inset 0 2px 6px rgba(0, 0, 0, 0.55),
+		0 0 0 3px var(--cad-ouro-15);
+}
+.cad-input--acao {
+	padding-right: 46px;
+}
+.cad-olho {
+	position: absolute;
+	right: 8px;
+	display: grid;
+	place-items: center;
+	width: 34px;
+	height: 34px;
+	padding: 0;
+	border: 0;
+	border-radius: 4px;
+	background: transparent;
+	color: var(--cad-apagado);
+	cursor: pointer;
+}
+.cad-olho:hover {
+	color: var(--cad-ouro);
+	background: var(--cad-ouro-15);
+}
+.cad-olho-fechado,
+.cad-olho.is-revelado .cad-olho-aberto {
+	display: none;
+}
+.cad-olho.is-revelado .cad-olho-fechado {
+	display: block;
+}
+.cad-dica {
+	font-size: 0.78rem;
+	line-height: 1.4;
+	color: var(--cad-sumido);
+}
+
+.cad-divisor {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	width: 100%;
+	margin: 0;
+	font-size: 0.78rem;
+	letter-spacing: 0.16em;
+	text-transform: uppercase;
+	color: var(--cad-sumido);
+	white-space: nowrap;
+}
+.cad-divisor::before,
+.cad-divisor::after {
+	content: '';
+	flex: 1;
+	height: 1px;
+	background: linear-gradient(90deg, transparent, var(--cad-ouro-35));
+}
+.cad-divisor::after {
+	background: linear-gradient(90deg, var(--cad-ouro-35), transparent);
+}
+
+.cad-sexos {
+	border: 0;
+	padding: 0;
+	margin: 0;
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px;
+	min-width: 0;
+}
+.cad-sexos legend {
+	width: 100%;
+	padding: 0;
+	margin-bottom: 4px;
+}
+.cad-sexos label {
+	position: relative;
+	flex: 1;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	min-height: 42px;
+	padding: 8px 12px;
+	background: var(--cad-fundo-campo);
+	border: 1px solid rgba(255, 255, 255, 0.1);
+	border-radius: 4px;
+	font-size: 0.9rem;
+	cursor: pointer;
+	transition:
+		border-color 0.22s var(--cad-ease),
+		color 0.22s var(--cad-ease);
+}
+.cad-sexos input {
+	position: absolute;
+	opacity: 0;
+	width: 0;
+	height: 0;
+}
+.cad-sexos label:has(input:checked) {
+	border-color: var(--cad-ouro);
+	color: var(--cad-ouro-hi);
+	box-shadow: inset 0 0 0 1px var(--cad-ouro-35);
+}
+.cad-sexos label:has(input:focus-visible) {
+	outline: 2px solid var(--cad-ouro);
+	outline-offset: 2px;
+}
+
+.cad-recado {
+	margin: 0;
+	padding: 12px;
+	border-radius: 4px;
+	font-size: 0.8rem;
+	line-height: 1.5;
+	border: 1px solid var(--cad-perigo);
+	background: rgba(0, 0, 0, 0.35);
+	color: var(--cad-perigo-texto);
+}
+.cad-recado[hidden] {
+	display: none;
+}
+
+/* O botao emoldurado do site: borda dupla com vao escuro, serifado. */
+.cad-enviar {
+	position: relative;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 100%;
+	min-height: 52px;
+	padding: 16px 24px;
+	font-family: var(--cad-epico);
+	font-size: 1rem;
+	font-weight: 700;
+	letter-spacing: 0.14em;
+	text-transform: uppercase;
+	border-radius: 4px;
+	background: linear-gradient(180deg, var(--cad-ouro-hi), var(--cad-ouro) 52%, var(--cad-ouro-fundo));
+	color: var(--cad-ouro-tinta);
+	border: 1px solid var(--cad-ouro-hi);
+	box-shadow:
+		inset 0 0 0 3px rgba(42, 30, 5, 0.45),
+		inset 0 0 0 4px rgba(247, 227, 154, 0.55),
+		inset 0 1px 0 rgba(255, 255, 255, 0.5),
+		0 8px 24px rgba(232, 193, 79, 0.22);
+	cursor: pointer;
+	transition:
+		transform 0.15s var(--cad-ease),
+		box-shadow 0.22s var(--cad-ease);
+}
+.cad-enviar:hover {
+	background: linear-gradient(180deg, var(--cad-ouro-palido), var(--cad-ouro-hi) 52%, var(--cad-ouro));
+	box-shadow:
+		inset 0 0 0 3px rgba(42, 30, 5, 0.4),
+		inset 0 0 0 4px rgba(255, 246, 214, 0.7),
+		inset 0 1px 0 rgba(255, 255, 255, 0.6),
+		0 10px 34px rgba(232, 193, 79, 0.45);
+	transform: translateY(-2px);
+}
+.cad-enviar:active {
+	transform: translateY(1px);
+}
+.cad-enviar.is-loading {
+	pointer-events: none;
+	color: transparent;
+}
+.cad-enviar.is-loading::after {
+	content: '';
+	position: absolute;
+	width: 18px;
+	height: 18px;
+	border: 2px solid var(--cad-ouro-tinta);
+	border-top-color: transparent;
+	border-radius: 50%;
+	animation: cad-giro 0.7s linear infinite;
+}
+@keyframes cad-giro {
+	to {
+		transform: rotate(360deg);
+	}
+}
+
+.cad-ja {
+	justify-self: center;
+	min-height: 38px;
+	padding: 8px 12px;
+	border: 0;
+	background: transparent;
+	color: var(--cad-apagado);
+	font-family: var(--cad-ui);
+	font-size: 0.9rem;
+	font-weight: 500;
+	text-decoration: underline;
+	text-underline-offset: 4px;
+	text-decoration-color: var(--cad-ouro-35);
+	cursor: pointer;
+}
+.cad-ja:hover {
+	color: var(--cad-ouro-hi);
+}
+.cad-nota {
+	margin: 0;
+	font-size: 0.78rem;
+	line-height: 1.5;
+	color: var(--cad-sumido);
+	text-align: center;
+}
+
+.cad button:focus-visible {
+	outline: 2px solid var(--cad-ouro);
+	outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.cad-fundo,
+	.cad-janela,
+	.cad-enviar {
+		transition: none;
+	}
+}

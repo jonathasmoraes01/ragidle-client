@@ -6,18 +6,22 @@
  * @author AoShinHo
  */
 
-import DB from 'DB/DBManager.js';
 import Configs from 'Core/Configs.js';
 import Preferences from 'Core/Preferences.js';
 import KEYS from 'Controls/KeyEventHandler.js';
 import UIManager from 'UI/UIManager.js';
 import GUIComponent from 'UI/GUIComponent.js';
 import { montarOfertaNaEntrada, sincronizar as sincronizarOferta } from './ofertaNaEntrada.js';
+import { enderecoDoCadastro } from 'UI/enderecoDoCadastro.js';
+import { montarCadastroNaEntrada } from './cadastroNaEntrada.js';
+import cadastroHtml from './cadastroNaEntrada.html?raw';
+import cadastroCss from './cadastroNaEntrada.css?raw';
 import 'UI/Elements/Elements.js';
 
 export function createWinLogin({ name, htmlText, cssText }) {
-	const Component = new GUIComponent(name, cssText);
-	Component.render = () => htmlText;
+	// A janela de cadastro (23/09/2026) vem junto em toda versao do login.
+	const Component = new GUIComponent(name, `${cssText}\n${cadastroCss}`);
+	Component.render = () => htmlText + cadastroHtml;
 	Component.needFocus = false;
 
 	const _preferences = Preferences.get('WinLogin', { saveID: true, ID: '' }, 1.0);
@@ -25,6 +29,7 @@ export function createWinLogin({ name, htmlText, cssText }) {
 	let _inputUsername;
 	let _inputPassword;
 	let _buttonSave;
+	let _cadastro = null;
 
 	Component.init = function init() {
 		// SEM this.draggable() de proposito (19/08/2026): GUIComponent#
@@ -61,6 +66,13 @@ export function createWinLogin({ name, htmlText, cssText }) {
 		root.querySelector('.signup').addEventListener('click', signup);
 		root.querySelector('.connect').addEventListener('click', connect);
 		root.querySelector('.exit').addEventListener('click', exit);
+
+		_cadastro = montarCadastroNaEntrada(root, {
+			aoEntrar(usuario, senha) {
+				_inputUsername.value = usuario;
+				Component.onConnectionRequest(usuario, senha);
+			}
+		});
 
 		// A OFERTA DE INSTALACAO (D-945, 06/09/2026). A casca cala o banner do
 		// proprio navegador (`preventDefault` no `beforeinstallprompt`, D-933) e
@@ -127,20 +139,26 @@ export function createWinLogin({ name, htmlText, cssText }) {
 	Component.onKeyDown = function onKeyDown(event) {
 		if (this._host.style.display === 'none') return true;
 
+		const noCadastro = _cadastro !== null && _cadastro.aberta();
+
 		switch (event.which) {
 			case KEYS.ENTER:
 				if (this._shadow.activeElement?.tagName === 'BUTTON') {
 					return true;
 				}
-				connect();
+				if (noCadastro) _cadastro.enviar();
+				else connect();
 				event.stopImmediatePropagation();
 				return false;
 			case KEYS.ESCAPE:
-				exit();
+				if (noCadastro) _cadastro.fechar();
+				else exit();
 				event.stopImmediatePropagation();
 				return false;
 			case KEYS.TAB: {
-				const controls = [...this.getRoot().querySelectorAll('input:not([type="file"]), button')].filter(
+				// Com o cadastro aberto, o Tab gira so dentro dele.
+				const escopo = noCadastro ? _cadastro.janela : this.getRoot();
+				const controls = [...escopo.querySelectorAll('input:not([type="file"]), button')].filter(
 					el => !el.disabled && el.getClientRects().length
 				);
 				const index = controls.indexOf(this._shadow.activeElement);
@@ -196,23 +214,20 @@ export function createWinLogin({ name, htmlText, cssText }) {
 	}
 
 	function signup() {
-		let url = Configs.get('registrationweb');
+		// A janela de cadastro mora nesta tela (ver `cadastroNaEntrada.js`).
+		if (_cadastro) {
+			_cadastro.abrir();
+			return;
+		}
+		// Reserva: um template sem a janela vai ao site com o cadastro aberto
+		// (ver `UI/enderecoDoCadastro.js`).
+		const url = enderecoDoCadastro(
+			Configs.get('registrationweb'),
+			Configs.get('codigoDeIndicacao'),
+			window.location
+		);
 		if (url) {
-			// INDIQUE & GANHE (D-1164): o codigo guardado pela casca (`?ref=`) segue
-			// para o formulario do site, que o manda no POST /cadastrar.
-			const ref = Configs.get('codigoDeIndicacao');
-			if (ref && /^[A-Za-z0-9]{6}$/.test(String(ref))) {
-				url += (url.indexOf('?') === -1 ? '?' : '&') + 'ref=' + encodeURIComponent(String(ref).toUpperCase());
-			}
-			UIManager.showPromptBox(
-				DB.getMessage(662),
-				'ok',
-				'cancel',
-				() => {
-					window.open(url);
-				},
-				null
-			);
+			window.location.assign(url);
 		} else {
 			UIManager.showPromptBox(
 				'No registration URL was provided.\nIf this server uses simplified registration, then input your new:\n - Username followed by _M for Male and _F for Female account (Eg: MyUser_M)\n - Password.',
