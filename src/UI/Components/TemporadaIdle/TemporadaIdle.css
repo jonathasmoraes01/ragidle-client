@@ -1781,11 +1781,11 @@
 	color: var(--text-muted);
 }
 
-/* O CARD DO VISUAL DO VIP (a Astra Blessing). Ele nasceu em 21/09/2026: a
-   prova de tela mostrou o beneficio como linha de lista, sem botao, com o
-   verbo `resgatar-visual-vip` ja vivo no servidor. Desde 22/09/2026 usa o
-   `icone-astra-blessing.webp` dedicado (documento §7/§23), nunca o fallback
-   de inicial - é a única recompensa da janela com arte própria. */
+/* O CARD DO VISUAL DO VIP (a Aura do Tornado desde 23/09/2026; era a Astra
+   Blessing). Ele nasceu em 21/09/2026: a prova de tela mostrou o beneficio
+   como linha de lista, sem botao, com o verbo `resgatar-visual-vip` ja vivo
+   no servidor. Usa um icone dedicado por item (`iconeDoVisualDoVip`,
+   documento §7/§23), nunca o fallback de inicial. */
 #TemporadaIdle .te-vip-visual {
 	display: flex;
 	align-items: center;

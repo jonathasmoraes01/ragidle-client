@@ -978,6 +978,13 @@
 	gap: var(--sp-4);
 }
 
+/* O fio entre o saldo (em cima) e o carrinho: o saldo e da CONTA, nao do
+   carrinho. */
+#RoShop .rs-carteira-lateral + .rs-lateral-cab {
+	padding-top: var(--sp-5);
+	border-top: 1px solid var(--border-hairline);
+}
+
 #RoShop .rs-lateral-icone {
 	width: 30px;
 	height: auto;
@@ -2028,6 +2035,17 @@
 		color: var(--text-muted);
 		font: var(--fw-bold) 18px / 1 var(--font-ui);
 		cursor: pointer;
+	}
+
+	/* Na gaveta o saldo ja mora no alto da tela principal (`.rs-carteira-movel`);
+	   aqui o cabecalho com o X volta para o topo e o saldo fica sob ele. */
+	#RoShop .rs-lateral-cab {
+		order: -1;
+	}
+
+	#RoShop .rs-carteira-lateral + .rs-lateral-cab {
+		padding-top: 0;
+		border-top: 0;
 	}
 
 	#RoShop .rs-carrinho-corpo {

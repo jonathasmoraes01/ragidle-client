@@ -189,9 +189,9 @@ describe('a lista aponta so para item que o jogo conhece', () => {
 		 */
 		// **23/09/2026: 61 -> 63**, as pocoes da conta 9.000.111-112 que os packs
 		// entregam (`game/pocoes-da-conta.ts` do servidor).
-		// **23/09/2026: 73** = 63 + os sete tickets do RO Shop (9.000.113-119) + os tres
-		// premios do alfa (9.002.000-002), das duas frentes mescladas no mesmo dia.
-		expect(Object.keys(NOMES_LOCAIS)).toHaveLength(73);
+		// **23/09/2026: 74** = 63 + os sete tickets do RO Shop (9.000.113-119) + os tres
+		// premios do alfa (9.002.000-002) + a Aura do Tornado (9.000.326), das frentes mescladas no mesmo dia.
+		expect(Object.keys(NOMES_LOCAIS)).toHaveLength(74);
 	});
 });
 

@@ -1081,9 +1081,33 @@ export function renderPasseDeBatalhaHtml(passe) {
 }
 
 /**
+ * O ICONE DEDICADO DE CADA VISUAL DO VIP, por `itemId` (23/09/2026).
+ *
+ * - 9.000.326, a Aura do Tornado (o visual do VIP desde 23/09/2026): a
+ *   ilustracao OFICIAL do item (`collection/c_cons_of_wind.bmp` do GRF, arte
+ *   do 31803), ampliada 2x por pixel e centrada num quadrado transparente -
+ *   ver MAPA-DOS-ASSETS.md.
+ * - 9.000.325, a Astra Blessing (o visual do VIP ate 23/09/2026): o emblema
+ *   da arte da temporada. Fica na tabela porque um servidor antigo ainda
+ *   pode mandar este id.
+ *
+ * Um id sem linha aqui cai na ilustracao publicada do proprio item, e nao na
+ * arte de OUTRO item: icone errado e pior que icone generico.
+ */
+export const ICONES_DOS_VISUAIS_DO_VIP = Object.freeze({
+	9000326: '/ragidle/temporada/icone-aura-do-tornado.webp',
+	9000325: '/ragidle/temporada/icone-astra-blessing.webp'
+});
+
+export function iconeDoVisualDoVip(itemId) {
+	return ICONES_DOS_VISUAIS_DO_VIP[itemId] ?? `/ragidle/collection/${Number(itemId)}.png`;
+}
+
+/**
  * A aba VIP - UMA aba para o que eram duas (a da Temporada e a das
  * Recompensas): a vitrine com o preco em cash e a vigencia, os beneficios que
- * o servidor da temporada lista, o visual exclusivo (Astra Blessing) e o
+ * o servidor da temporada lista, o visual exclusivo (a Aura do Tornado desde
+ * 23/09/2026; era a Astra Blessing) e o
  * botao de comprar/renovar.
  *
  * O VISUAL EXCLUSIVO DO VIP, e ele FALTAVA: a prova de tela de 21/09/2026
@@ -1120,9 +1144,11 @@ export function renderVipHtml(vip, estadoDoPasse, saldoMinor = null) {
 		.join('');
 
 	const visual = vip.visual;
-	/* O ASTRA BLESSING usa o icone dedicado (identificado visualmente pelo
-	   Team Lead - ver MAPA-DOS-ASSETS.md), nunca o fallback de inicial: e a
-	   UNICA recompensa da janela com arte propria em vez de sprite de item.
+	/* O VISUAL DO VIP usa um icone dedicado, escolhido pelo `itemId` que o
+	   SERVIDOR manda (`iconeDoVisualDoVip`), nunca o fallback de inicial.
+	   Ate 23/09/2026 o icone era cravado no Astra Blessing; com a troca do
+	   premio pela Aura do Tornado ele passou a seguir o item - senao o card
+	   mostraria o orbe azul da Astra ao lado do nome "Aura do Tornado".
 	   O ESTADO (disponivel/resgatado/bloqueado - documento §23) e uma classe
 	   por cima do mesmo icone, nunca um segundo asset. */
 	const estadoDoVisual = !visual
@@ -1135,7 +1161,7 @@ export function renderVipHtml(vip, estadoDoPasse, saldoMinor = null) {
 	const cardDoVisual = !visual
 		? ''
 		: `<div class="te-vip-visual ri-card ${estadoDoVisual}">` +
-			`<span class="te-vip-visual-icone"><img src="/ragidle/temporada/icone-astra-blessing.webp" alt="" width="44" height="44">` +
+			`<span class="te-vip-visual-icone"><img src="${escapeHtml(iconeDoVisualDoVip(visual.itemId))}" alt="" width="44" height="44">` +
 			(visual.resgatado ? `<span class="te-vip-visual-selo is-resgatado">${glifo('confere')}</span>` : '') +
 			(!visual.resgatado && !visual.pode
 				? `<span class="te-vip-visual-selo is-bloqueado">${glifo('cadeado')}</span>`

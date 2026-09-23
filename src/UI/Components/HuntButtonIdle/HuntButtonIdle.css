@@ -99,8 +99,47 @@
 	}
 }
 
+/*
+ * A ARTE DOS DOIS BOTOES (23/09/2026, pedido do dono): no desktop cada botao
+ * VIRA a imagem (408x101, recortada a 3x da coluna de 136px). O texto fica no
+ * DOM, escondido so da vista: leitor de tela e o `title` continuam dizendo o
+ * nome. A HUD vertical do celular reverte tudo isto mais abaixo (discos).
+ */
+.hb-btn.hb-cacar,
+.hb-btn.hb-voltar {
+	aspect-ratio: 408 / 101;
+	height: auto;
+	padding: 0;
+	border: 0;
+	border-radius: 0;
+	box-shadow: none;
+	background: center / contain no-repeat;
+}
+
+.hb-btn.hb-cacar {
+	background-image: url('/ragidle/hud/botoes/hud-btn-cacar.png');
+}
+
+.hb-btn.hb-voltar {
+	background-image: url('/ragidle/hud/botoes/hud-btn-voltar.png');
+}
+
+.hb-btn.hb-cacar:active,
+.hb-btn.hb-voltar:active {
+	box-shadow: none;
+}
+
+.hb-rotulo {
+	position: absolute;
+	width: 1px;
+	height: 1px;
+	overflow: hidden;
+	clip: rect(0 0 0 0);
+	white-space: nowrap;
+}
+
 /* O glifo dos botoes (D-939) so existe na HUD vertical; no desktop os
-   botoes continuam sendo texto puro, como sempre foram. */
+   botoes sao a arte acima. */
 .hb-glifo {
 	display: none;
 }
@@ -135,6 +174,12 @@
 	margin: 0;
 	border-radius: 50%;
 	width: auto;
+	/* O disco volta a ser o `.ri-btn` azul: a arte de 4:1 do desktop nao cabe
+	   num circulo. */
+	aspect-ratio: auto;
+	border: 1px solid var(--blue-600);
+	background: var(--tab-active-fill);
+	box-shadow: var(--rim-light), var(--shadow-card);
 }
 
 .ri-vertical .hb-rotulo {
@@ -158,6 +203,11 @@
 	white-space: nowrap;
 	text-shadow: 0 1px 2px rgba(0, 0, 0, 0.9);
 	pointer-events: none;
+	/* desfaz o "so para leitor de tela" do desktop */
+	width: auto;
+	height: auto;
+	overflow: visible;
+	clip: auto;
 }
 
 .ri-vertical .hb-glifo {

@@ -62,6 +62,20 @@
 			"continue": true
 		},
 		{
+			"src": "^/wiki$",
+			"status": 308,
+			"headers": {
+				"Location": "/wiki/"
+			}
+		},
+		{
+			"src": "^/wiki/(index\\.html)?$",
+			"headers": {
+				"Cache-Control": "no-cache"
+			},
+			"continue": true
+		},
+		{
 			"handle": "filesystem"
 		}
 	]

@@ -34,6 +34,7 @@ import {
 	agruparPorRaridade,
 	dataCurta,
 	formatarPrecoCentavos,
+	iconeDoVisualDoVip,
 	niveisDoPasse,
 	renderAcaoDoPasseHtml,
 	renderAtalhosHtml,
@@ -169,7 +170,7 @@ function vip(extra = {}) {
 			{ texto: 'Selo VIP', ativo: true },
 			{ texto: 'Recompensa diária VIP (em breve)', ativo: false }
 		],
-		visual: { itemId: 9000325, nome: 'Astra Blessing', resgatado: false, pode: true, texto: null },
+		visual: { itemId: 9000326, nome: 'Aura do Tornado', resgatado: false, pode: true, texto: null },
 		...extra
 	};
 }
@@ -625,9 +626,27 @@ describe('o VIP (a compra veio da janela de Recompensas)', () => {
 		expect(html).toContain('até 21/10 · 29 dias restantes');
 	});
 
-	it('o Astra Blessing usa o icone dedicado, com o ESTADO certo (disponivel/resgatado/bloqueado)', () => {
-		const disponivel = renderVipHtml(vip({ visual: { itemId: 1, nome: 'Astra', resgatado: false, pode: true, texto: null } }), estadoDoPasse());
-		expect(disponivel).toContain('icone-astra-blessing.webp');
+	/*
+	 * O ICONE SEGUE O ITEM (23/09/2026). Ate a troca do premio ele era cravado
+	 * no Astra Blessing, e o card da Aura do Tornado sairia com o orbe azul da
+	 * Astra ao lado do nome novo.
+	 */
+	it('o icone do card e o do ITEM que o servidor manda: Tornado, Astra, e o id sem icone dedicado cai na arte do proprio item', () => {
+		const tornado = renderVipHtml(vip(), estadoDoPasse());
+		expect(tornado).toContain('src="/ragidle/temporada/icone-aura-do-tornado.webp"');
+		expect(tornado).not.toContain('icone-astra-blessing.webp');
+		expect(tornado).toContain('Aura do Tornado');
+
+		const astra = renderVipHtml(vip({ visual: { itemId: 9000325, nome: 'Astra Blessing', resgatado: true, pode: false, texto: null } }), estadoDoPasse());
+		expect(astra).toContain('src="/ragidle/temporada/icone-astra-blessing.webp"');
+
+		expect(iconeDoVisualDoVip(9000326)).toBe('/ragidle/temporada/icone-aura-do-tornado.webp');
+		expect(iconeDoVisualDoVip(9000399)).toBe('/ragidle/collection/9000399.png');
+	});
+
+	it('o visual do VIP usa o icone dedicado, com o ESTADO certo (disponivel/resgatado/bloqueado)', () => {
+		const disponivel = renderVipHtml(vip({ visual: { itemId: 9000326, nome: 'Aura do Tornado', resgatado: false, pode: true, texto: null } }), estadoDoPasse());
+		expect(disponivel).toContain('icone-aura-do-tornado.webp');
 		expect(disponivel).toContain('is-disponivel');
 
 		const resgatado = renderVipHtml(vip({ visual: { itemId: 1, nome: 'Astra', resgatado: true, pode: false, texto: null } }), estadoDoPasse());
