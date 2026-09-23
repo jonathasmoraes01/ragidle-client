@@ -453,8 +453,19 @@
 /* ─── A chamada do Passe de Batalha (Destaques) ──────────────────────────
    Documento §16: card de convite, NUNCA o Battle Pass inteiro aqui. O
    mascote é ilustração (§C), então o card é largo, não um tile quadrado. */
+/*
+ * `flex-shrink: 0` (RO Shop rodada 3, achado A-03 da QA, 22/09/2026): o card e
+ * filho direto do `.te-body`, uma COLUNA flex que rola. Filho de coluna flex
+ * so nao encolhe abaixo do conteudo por causa do `min-height: auto`, e onde ha
+ * dedo a regra dos 44px (`min-height: var(--hit-touch)`, abaixo) TROCA esse
+ * piso automatico por 44px. Com a aba mais alta que a janela, o card encolhia
+ * ate 44px em 360/390 (114px em 430) e o mascote, o texto e o botao desciam
+ * 138px por cima de Caixa Topo e Caixa Meio. MEDIDO igual no master 72bf04d6
+ * (defeito anterior ao RO Shop): `scripts/foto-temporada-destaques.mjs`.
+ */
 #TemporadaIdle .te-chamada-passe {
 	appearance: none;
+	flex-shrink: 0;
 	display: flex;
 	align-items: center;
 	gap: var(--sp-5);
