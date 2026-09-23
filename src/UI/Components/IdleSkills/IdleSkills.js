@@ -169,6 +169,17 @@ IdleSkills.rascunho = {};
  */
 IdleSkills._esperandoAplicar = false;
 
+/**
+ * @var {number|null} o prazo de seguranca do "Aplicar" no ar (H09).
+ *
+ * Com um lote no ar o botao fica apagado e um segundo clique nao sai; se a
+ * resposta se perder, este prazo devolve o botao — sem ele, uma queda no meio
+ * deixaria o "Aplicar" preso ate o jogador mexer no rascunho. O mesmo teto de
+ * 10 s da trava da `TemporadaIdle`.
+ */
+let _prazoDoAplicar = null;
+const MS_ATE_SOLTAR_O_APLICAR = 10000;
+
 /** @var {number} o degrau (grau) da aba acesa. */
 IdleSkills.grauAtivo = 0;
 
@@ -448,16 +459,44 @@ function requestSkills() {
  * meia build comprada.
  */
 function sendAplicar() {
+	/*
+	 * UM LOTE NO AR POR VEZ (H09, auditoria 2 de 22/09/2026). O lote leva
+	 * `niveis` como DELTA do rascunho, e o servidor o aplica por cima do nivel
+	 * ATUAL, sem chave de idempotencia; o rascunho so zera quando a resposta
+	 * chega. Dois toques dentro do RTT mandavam o mesmo lote duas vezes, e com
+	 * pontos livres para o dobro a habilidade subia o dobro. O botao apagado nao
+	 * basta sozinho — o toque e o clique sintetizado do celular chegam os dois —,
+	 * entao quem decide e a marca, e o botao so a mostra.
+	 */
+	if (IdleSkills._esperandoAplicar) {
+		return;
+	}
 	const lote = ordemDoLote(indicePorId(), IdleSkills.rascunho);
 	if (!lote.length) {
 		return;
 	}
 	setStatus('Aplicando…');
 	IdleSkills._esperandoAplicar = true;
+	_prazoDoAplicar = setTimeout(() => {
+		_prazoDoAplicar = null;
+		IdleSkills._esperandoAplicar = false;
+		setStatus('Sem resposta do servidor.');
+		renderFooter();
+	}, MS_ATE_SOLTAR_O_APLICAR);
+	renderFooter();
 
 	const pkt = new PACKET.CZ.RAGIDLE_APRENDER();
 	pkt.json = JSON.stringify({ lote: lote });
 	Network.sendPacket(pkt);
+}
+
+/** A resposta chegou (ou o personagem trocou): o "Aplicar" pode sair de novo. */
+function soltarOAplicar() {
+	IdleSkills._esperandoAplicar = false;
+	if (_prazoDoAplicar !== null) {
+		clearTimeout(_prazoDoAplicar);
+		_prazoDoAplicar = null;
+	}
 }
 
 /**
@@ -532,7 +571,7 @@ function onSkillsReceived(pkt) {
 	} catch (e) {
 		console.error('[IdleSkills] Falha ao interpretar os dados de habilidades recebidos:', e, pkt.json);
 		setStatus('Dados incompatíveis.');
-		IdleSkills._esperandoAplicar = false;
+		soltarOAplicar();
 		return;
 	}
 
@@ -562,7 +601,7 @@ function onSkillsReceived(pkt) {
 			data
 		);
 		setStatus('Dados incompatíveis — servidor e cliente em versões diferentes.');
-		IdleSkills._esperandoAplicar = false;
+		soltarOAplicar();
 		return;
 	}
 
@@ -581,7 +620,7 @@ function onSkillsReceived(pkt) {
 	if (IdleSkills._esperandoAplicar && isApplyResponse && data.aplicado === true) {
 		IdleSkills.rascunho = {};
 	}
-	IdleSkills._esperandoAplicar = false;
+	soltarOAplicar();
 
 	// Mantém a seleção se ela ainda existe; senão cai na primeira do DEGRAU
 	// ABERTO — `data.skills[0]` é a primeira da árvore inteira, e ela costuma
@@ -2040,7 +2079,9 @@ function renderFooter() {
 		pillEl.innerHTML =
 			'Pontos de habilidade: ' + livres + (gastos ? ' <em>(−' + gastos + ' no rascunho)</em>' : '');
 
-		btnAplicar.disabled = gastos === 0;
+		// Com um lote no ar o botao apaga (H09): o rascunho ainda e o mesmo, e
+		// aplica-lo de novo gastaria os pontos duas vezes.
+		btnAplicar.disabled = gastos === 0 || IdleSkills._esperandoAplicar;
 		btnResetar.disabled = gastos === 0;
 		// Com rascunho aberto o Aplicar ACENDE (brilho de acento): é a única
 		// ação da janela com consequência, e o olho tem de achá-la sem ler.
@@ -2074,7 +2115,7 @@ IdleSkills.limparEstadoDoPersonagem = function limparEstadoDoPersonagem() {
 	IdleSkills.selectedSkillId = null;
 	IdleSkills.problemas = [];
 	IdleSkills.rascunho = {};
-	IdleSkills._esperandoAplicar = false;
+	soltarOAplicar();
 	/*
 	 * ZERAR O DADO NÃO BASTA: `GUIComponent.remove()` só DESANEXA o host, então
 	 * o shadow DOM (com `is-open` e o HTML do personagem anterior) atravessa a
