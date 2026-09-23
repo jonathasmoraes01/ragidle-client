@@ -703,10 +703,15 @@ function pintarRisco(degrau) {
 			nota.classList.remove('esta-alerta');
 		} else {
 			const perde = degrau.niveisPerdidosNaFalha;
+			// R43 (23/09/2026): na falha, a peça pode cair 1 nível, com a
+			// chance que o servidor manda (35% a 90% a partir do +4).
+			const cai = Math.round((degrau.chanceDeRegredir || 0) / 100);
 			nota.textContent =
 				perde > 0
 					? `Se falhar, a peça cai ${perde} ${plural(perde, 'nível', 'níveis')} — e a tentativa é cobrada.`
-					: 'Se falhar, a peça fica como está — mas a tentativa é cobrada.';
+					: cai > 0
+						? `Se falhar, ${cai}% de chance de a peça cair 1 nível — e a tentativa é cobrada.`
+						: 'Se falhar, a peça fica como está — mas a tentativa é cobrada.';
 			nota.classList.add('esta-alerta');
 		}
 	}
@@ -747,11 +752,13 @@ function pintarFatos(ficha) {
 		pintarIcone(iconeMat, d.materialId, true);
 		const info = DB.getItemInfo(d.materialId);
 		const nomeMat = info ? info.identifiedDisplayName : d.materialNome;
+		// R43: Elunium e Oridecon custam 2 por tentativa; o servidor diz quanto.
+		const precisa = d.materialPrecisa || 1;
 		if (textoMat) {
-			textoMat.textContent = d.materialTem + ' / 1 · ' + nomeMat;
+			textoMat.textContent = d.materialTem + ' / ' + precisa + ' · ' + nomeMat;
 		}
 		if (fatoMat) {
-			fatoMat.classList.toggle('esta-faltando', d.materialTem < 1);
+			fatoMat.classList.toggle('esta-faltando', d.materialTem < precisa);
 		}
 	} else {
 		if (iconeMat) {
@@ -821,10 +828,12 @@ function veredito() {
 	if (!d) {
 		return { pode: false, texto: 'A tabela não cobre o próximo degrau.', cor: '' };
 	}
-	if (d.materialId && d.materialTem < 1) {
+	const precisa = d.materialPrecisa || 1;
+	if (d.materialId && d.materialTem < precisa) {
 		const info = DB.getItemInfo(d.materialId);
 		const nomeMat = info ? info.identifiedDisplayName : d.materialNome;
-		return { pode: false, texto: 'Falta 1 × ' + nomeMat + '.', cor: 'esta-vermelho' };
+		const falta = precisa - d.materialTem;
+		return { pode: false, texto: 'Falta ' + falta + ' × ' + nomeMat + '.', cor: 'esta-vermelho' };
 	}
 	if (bolso() < d.preco) {
 		return {
