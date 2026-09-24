@@ -100,6 +100,9 @@ window.ROConfigBase = {
 	 * estava medidamente quebrado — desliga-las devolveria o defeito.
 	 */
 	enableHudAdaptavel: true,
+	/* O MODO CLASSICO (24/09/2026, ordem do dono): sem a interface do idle,
+	   so o ataque original do roBrowser. `false` volta o idle (src/UI/modoClassico.js). */
+	modoClassico: true,
 	enableCashShop: true,
 	enableCheckAttendance: false,
 	enableDmgSuffix: false,

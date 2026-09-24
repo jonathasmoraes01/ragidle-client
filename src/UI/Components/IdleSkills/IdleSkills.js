@@ -88,6 +88,7 @@ import {
 	pontosNoRascunho
 } from './arvoreDeSkills.js';
 import { linhaDaMissaoNoRequisito } from './requisitoDeMissao.js';
+import { modoClassicoLigado } from 'UI/modoClassico.js'; // o modo classico (24/09/2026): sem a rotacao
 
 /**
  * A versão do contrato que esta janela sabe ler.
@@ -982,7 +983,8 @@ function renderNo(no, contexto) {
 	}
 
 	const selo = [];
-	if (typeof skill.naRotacao === 'number') {
+	// O MODO CLASSICO nao tem rotacao automatica: sem o selo de lugar na rotacao.
+	if (typeof skill.naRotacao === 'number' && !modoClassicoLigado()) {
 		selo.push(
 			'<span class="is-no-selo is-no-selo--rotacao" title="Rotação de ataque, ' +
 				skill.naRotacao +
@@ -1732,8 +1734,10 @@ function renderDetail() {
 	 */
 	const naRotacao = typeof skill.naRotacao === 'number';
 	const podeRotacionar = naRotacao || !skill.motivoDaRotacao;
-	const rotacaoHtml =
-		'<button type="button" class="is-btn-rotacao ri-btn ri-btn--sec' +
+	// O MODO CLASSICO nao tem rotacao automatica: o botao de por/tirar nao aparece.
+	const rotacaoHtml = modoClassicoLigado()
+		? ''
+		: '<button type="button" class="is-btn-rotacao ri-btn ri-btn--sec' +
 		(naRotacao ? ' is-btn-rotacao--dentro' : '') +
 		'" data-skill-rotacao="' +
 		escapeHtml(skill.skillId) +

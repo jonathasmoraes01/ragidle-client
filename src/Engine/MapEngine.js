@@ -142,6 +142,7 @@ import MochilaIdle from 'UI/Components/MochilaIdle/MochilaIdle.js'; // RAGIDLE: 
 // skills. CombatCornerIdle voltou somente como o botao de ataque automatico
 // no canto inferior direito, sem segunda barra/rotacao.
 import CombatCornerIdle from 'UI/Components/CombatCornerIdle/CombatCornerIdle.js';
+import { modoClassicoLigado } from 'UI/modoClassico.js'; // RAGIDLE: o modo classico (24/09/2026) - sem a interface do idle
 import DeathWindow from 'UI/Components/DeathWindow/DeathWindow.js'; // RAGIDLE: "Você morreu"
 import TopMenuIdle from 'UI/Components/TopMenuIdle/TopMenuIdle.js'; // RAGIDLE: "Menu superior direito (constelação)"
 import CorreioIdle from 'UI/Components/CorreioIdle/CorreioIdle.js'; // RAGIDLE: "Correio" (a caixa do sistema, D-366)
@@ -1271,6 +1272,9 @@ let _atrasoDaEconomia = null;
  * voltar a olhar a aba, sozinho, nao decide nada.
  */
 function onVisibilidadeMudouParaEconomia() {
+	/* O MODO CLASSICO nao tem economia de energia: o personagem nao joga sem o
+	   jogador, entao a aba escondida nao pede nada ao servidor. */
+	if (modoClassicoLigado()) return;
 	/* A economia AUTOMATICA desligada nas Configuracoes de Video (23/09/2026):
 	   a aba escondida nao pede nada ao servidor. Um atraso ja agendado cai. */
 	if (GraphicsSettings.economiaDeEnergiaAutomatica === false) {
@@ -1589,7 +1593,8 @@ function onMapChange(pkt, ehEntradaNoMundo) {
 		// RAGIDLE: "Configuração idle" floating button — same unconditional
 		// append() as HuntMap right above.
 		IdleConfig.append();
-		CombatCornerIdle.append(); // RAGIDLE: controle persistente do ataque automatico
+		// O MODO CLASSICO nao tem ataque automatico: o botao "Ataque auto" nao entra na tela.
+		if (!modoClassicoLigado()) CombatCornerIdle.append(); // RAGIDLE: controle persistente do ataque automatico
 
 		// RAGIDLE (D-410): o aviso de evolução de classe. Ele nasce ESCONDIDO —
 		// quem o mostra é o servidor, mandando ZC_RAGIDLE_MUDANCA_DE_CLASSE com

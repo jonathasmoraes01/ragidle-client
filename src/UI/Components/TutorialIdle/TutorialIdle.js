@@ -80,6 +80,7 @@ import MissoesIdle from 'UI/Components/MissoesIdle/MissoesIdle.js';
 import BoasVindasIdle from 'UI/Components/BoasVindasIdle/BoasVindasIdle.js';
 import Inventory from 'UI/Components/Inventory/Inventory.js';
 import ItemType from 'DB/Items/ItemType.js';
+import { modoClassicoLigado } from 'UI/modoClassico.js'; // o modo classico (24/09/2026): sem o tutorial da caca automatica
 import { ler as lerRegistroDaCaca } from 'UI/Components/HuntAnalyzer/registroDaCaca.js';
 import { fecharEEsquecer } from '../limpezaDeJanelaIdle.js';
 import htmlText from './TutorialIdle.html?raw';
@@ -942,6 +943,9 @@ TutorialIdle.onAppend = function onAppend() {
  */
 TutorialIdle.interfacePronta = function interfacePronta() {
 	_comecoPedido = false;
+	// O MODO CLASSICO nao pede o tutorial: as etapas ensinam a caca automatica,
+	// a pocao automatica e a missao que dirige, e nenhuma delas existe nele.
+	if (modoClassicoLigado()) return;
 	TutorialIdle.pedirAoServidor();
 };
 
@@ -977,6 +981,8 @@ function aoRolar() {
 /* ------------------------------------------------------------------ */
 
 function onTutorialRecebido(pkt) {
+	// O MODO CLASSICO nao desenha o tutorial, nem o que o servidor mandar sozinho.
+	if (modoClassicoLigado()) return;
 	let dados;
 	try {
 		dados = JSON.parse(pkt.json);
