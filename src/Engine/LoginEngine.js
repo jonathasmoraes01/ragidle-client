@@ -936,6 +936,13 @@ function onConnectionRefused(pkt) {
 	Network.close();
 }
 
+/** O codigo do `SC_NOTIFY_BAN` para o limite de contas por IP (servidor). */
+export const CODIGO_DE_LIMITE_POR_IP = 106;
+
+/** O que o jogador le quando a rede dele ja tem contas demais no jogo. */
+export const TEXTO_DO_LIMITE_POR_IP =
+	'Limite de contas conectadas pela mesma rede atingido. Saia do jogo em uma das outras contas e tente de novo.';
+
 /**
  * Received closed connection from server
  *
@@ -952,6 +959,26 @@ function onServerClosed(pkt) {
 	// So o codigo 0 e "sessao invalida" (o `pc_authfail`); os outros seguem o
 	// caminho de sempre.
 	if (pkt.ErrorCode === 0 && Reconexao.aoSerRecusado()) {
+		return;
+	}
+	/*
+	 * O LIMITE DE CONTAS POR IP (23/09/2026, servidor `limite-por-ip.ts`). O
+	 * codigo e o do protocolo (106, MSI_BAN_PC_IP_LIMIT_ACCESS), mas a frase e
+	 * nossa, em portugues e dizendo o que fazer. E a reconexao automatica PARA:
+	 * sem isso ela bateria na mesma porta a cada 30 s, abrindo a caixa de novo.
+	 */
+	if (pkt.ErrorCode === CODIGO_DE_LIMITE_POR_IP) {
+		Reconexao.cancelarParaFechamentoDeliberado();
+		UIManager.showMessageBox(
+			TEXTO_DO_LIMITE_POR_IP,
+			'ok',
+			() => {
+				UIManager.removeComponents();
+				WinLogin.getUI().append();
+			},
+			true
+		);
+		Network.close();
 		return;
 	}
 	let msg_id;

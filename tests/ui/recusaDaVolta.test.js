@@ -16,7 +16,7 @@ describe('a recusa da volta', () => {
 	it('o tratador do SC_NOTIFY_BAN consulta a reconexao primeiro', () => {
 		const inicio = login.indexOf('function onServerClosed(pkt) {');
 		expect(inicio).toBeGreaterThan(0);
-		const corpo = login.slice(inicio, login.indexOf('UIManager.showMessageBox(', inicio));
+		const corpo = login.slice(inicio, login.indexOf('switch (pkt.ErrorCode)', inicio));
 		expect(corpo).toContain('if (pkt.ErrorCode === 0 && Reconexao.aoSerRecusado()) {');
 		expect(corpo.indexOf('Reconexao.aoSerRecusado()')).toBeLessThan(corpo.indexOf('let msg_id;'));
 	});
@@ -24,5 +24,18 @@ describe('a recusa da volta', () => {
 	it('o gancho do 0x81 continua sendo o onServerClosed', () => {
 		expect(login).toContain('Network.hookPacket(PACKET.SC.NOTIFY_BAN, onServerClosed);');
 		expect(login).toContain("import Reconexao from 'Network/reconexao.js';");
+	});
+
+	it('o limite por IP (106) para a reconexao ANTES da caixa, e tem frase propria', () => {
+		const inicio = login.indexOf('function onServerClosed(pkt) {');
+		const corpo = login.slice(inicio, login.indexOf('switch (pkt.ErrorCode)', inicio));
+		const ramo = corpo.slice(corpo.indexOf('if (pkt.ErrorCode === CODIGO_DE_LIMITE_POR_IP) {'));
+		expect(ramo.length).toBeGreaterThan(0);
+		expect(ramo.indexOf('Reconexao.cancelarParaFechamentoDeliberado();')).toBeGreaterThan(0);
+		expect(ramo.indexOf('Reconexao.cancelarParaFechamentoDeliberado();')).toBeLessThan(ramo.indexOf('UIManager.showMessageBox('));
+		expect(ramo).toContain('TEXTO_DO_LIMITE_POR_IP');
+		expect(ramo).toContain('Network.close();');
+		// O mesmo numero do servidor (`servidor/mapa/limite-por-ip.ts`).
+		expect(login).toContain('export const CODIGO_DE_LIMITE_POR_IP = 106;');
 	});
 });
