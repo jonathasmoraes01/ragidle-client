@@ -192,7 +192,8 @@ describe('a lista aponta so para item que o jogo conhece', () => {
 		// **23/09/2026: 74** = 63 + os sete tickets do RO Shop (9.000.113-119) + os tres
 		// premios do alfa (9.002.000-002) + a Aura do Tornado (9.000.326), das frentes mescladas no mesmo dia.
 		// **23/09/2026: 76** = 74 + a Pocao Vermelha e a Faca da Conta do kit inicial (9.000.120-121).
-		expect(Object.keys(NOMES_LOCAIS)).toHaveLength(76);
+		// **24/09/2026: 77** = 76 + o Pack Pocao Azul de 500 (9.000.122) do RO Shop.
+		expect(Object.keys(NOMES_LOCAIS)).toHaveLength(77);
 	});
 });
 
@@ -284,7 +285,8 @@ describe('o icone local (31/08/2026)', () => {
 		// **23/09/2026: 26 -> 28**, as pocoes da conta, com o `.bmp` da Azul/Branca.
 		// **23/09/2026: 28 -> 35**, os sete tickets, com o recurso de um cupom oficial cada.
 		// **23/09/2026: 35 -> 37**, a Vermelha e a Faca da Conta do kit inicial.
-		expect(Object.keys(ICONES_LOCAIS)).toHaveLength(37);
+		// **24/09/2026: 37 -> 38**, o Pack Pocao Azul de 500, com o `.bmp` da Azul (o mesmo do de 1000).
+		expect(Object.keys(ICONES_LOCAIS)).toHaveLength(38);
 	});
 });
 

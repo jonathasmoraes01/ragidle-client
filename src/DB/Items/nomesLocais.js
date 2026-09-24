@@ -205,6 +205,7 @@ export const NOMES_LOCAIS = {
 	9000101: 'Manual de Experiência de Classe', // itens-custom.ts (Manual_De_Experiencia_De_Classe)
 	9000102: 'Bênção da Fortuna', // itens-custom.ts (Bencao_Da_Fortuna)
 	9000103: 'Pack Poção Azul', // itens-custom.ts (Pack_Pocao_Azul)
+	9000122: 'Pack Poção Azul (500)', // itens-custom.ts (Pack_Pocao_Azul_500), 24/09/2026: o de 1000 saiu de venda
 	9000104: 'Pack Poção Branca', // itens-custom.ts (Pack_Pocao_Branca)
 	9000105: 'Pack Sobrevivência', // itens-custom.ts (Pack_Sobrevivencia)
 	9000106: 'Pack Viagem', // itens-custom.ts (Pack_Viagem)
@@ -260,6 +261,7 @@ export const DESCRICOES_LOCAIS = {
 	9000101: `Aumenta em 25% a EXP de classe ganha por 1 hora.\n${FECHO_DE_CASH}`,
 	9000102: `Uma bênção que atrai a sorte. Aumenta em 20% a chance de itens comuns caírem de monstros comuns por 1 hora. Não vale para cartas, MVPs nem monstros raros. Usar outra enquanto ativa estende a duração.\n${FECHO_DE_CASH}`,
 	9000103: `Um pack selado. Ao usar, entrega 1000 Poções Azuis da Conta.\n${FECHO_DE_CASH}`,
+	9000122: `Um pack selado. Ao usar, entrega 500 Poções Azuis da Conta.\n${FECHO_DE_CASH}`,
 	9000104: `Um pack selado. Ao usar, entrega 500 Poções Brancas da Conta.\n${FECHO_DE_CASH}`,
 	9000105: `Um pack selado. Ao usar, entrega 1000 Poções Azuis da Conta e 500 Poções Brancas da Conta.\n${FECHO_DE_CASH}`,
 	9000106: `Um pack selado. Ao usar, entrega 500 Asas de Mosca e 100 Asas de Borboleta.\n${FECHO_DE_CASH}`,
@@ -459,6 +461,7 @@ export const ICONES_LOCAIS = {
 	9000101: '\xc0\xfc\xc5\xf5\xb1\xb3\xb9\xfc', // Manual de Exp. de Classe -> 14592 Manual de Combate de Classe (o mesmo .bmp)
 	9000102: '\xc7\xb3\xbc\xb1\xb2\xad', // Bencao da Fortuna -> 12210 Goma de Mascar (풍선껌, o item de drop do kRO)
 	9000103: '\xc6\xc4\xb6\xf5\xc6\xf7\xbc\xc7', // Pack Pocao Azul -> 505 Pocao Azul (파란포션)
+	9000122: '\xc6\xc4\xb6\xf5\xc6\xf7\xbc\xc7', // Pack Pocao Azul (500) -> 505 Pocao Azul (a mesma arte do de 1000)
 	9000104: '\xc7\xcf\xbe\xe1\xc6\xf7\xbc\xc7', // Pack Pocao Branca -> 504 Pocao Branca (하얀포션)
 	9000105: '\xc6\xc4\xb6\xf5\xc6\xf7\xbc\xc7', // Pack Sobrevivencia -> 505 Pocao Azul
 	9000106: '\xc6\xc4\xb8\xae\xc0\xc7\xb3\xaf\xb0\xb3', // Pack Viagem -> 601 Asa de Mosca (파리의날개)
