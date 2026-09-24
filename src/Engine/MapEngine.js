@@ -1001,7 +1001,9 @@ const TEXTO_DA_RECUSA_DE_SONO = {
 	'amostra-insuficiente':
 		'Ainda não são 10 minutos de caça contínua NESTE mapa — trocar de mapa (mesmo que seja outro mapa de caça) reinicia a contagem.',
 	'nivel-do-mapa': 'Este mapa não é elegível para o "Dormir" — precisa estar pelo menos 1 nível abaixo do seu.',
-	'sem-mundo': 'Não foi possível iniciar o sono agora — você não está numa caçada.'
+	'sem-mundo': 'Não foi possível iniciar o sono agora — você não está numa caçada.',
+	// RAGIDLE (24/09/2026, ordem do dono): um sono por conta.
+	'outro-personagem-dormindo': 'Só um personagem por conta pode dormir por vez.'
 };
 
 /**
@@ -1158,10 +1160,12 @@ function onSonoRecebido(pkt) {
 
 	// dormindo === false a partir daqui.
 	if (corpo.recusa) {
-		UIManager.showMessageBox(
-			TEXTO_DA_RECUSA_DE_SONO[corpo.recusa] || 'Não foi possível iniciar o sono agora.',
-			'ok'
-		);
+		let texto = TEXTO_DA_RECUSA_DE_SONO[corpo.recusa] || 'Não foi possível iniciar o sono agora.';
+		// Quem ja dorme na conta, pelo nome (24/09/2026).
+		if (corpo.recusa === 'outro-personagem-dormindo' && corpo.outroPersonagem) {
+			texto += ` "${String(corpo.outroPersonagem)}" já está dormindo — acorde-o antes.`;
+		}
+		UIManager.showMessageBox(texto, 'ok');
 		return;
 	}
 

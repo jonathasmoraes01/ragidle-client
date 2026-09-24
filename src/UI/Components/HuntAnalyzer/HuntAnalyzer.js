@@ -766,7 +766,15 @@ function tique() {
  * de jogo (10 min, nivel do mapa) mora em `farm-por-estimativa.ts`.
  */
 function pedirParaDormir() {
-	const eventoAtivo = StatusIcons.estaAtivo(SC.CASH_PLUSEXP);
+	/*
+	 * OS BONUS TEMPORARIOS NAO ENTRAM NO SONO (24/09/2026, ordem do dono): a
+	 * taxa do "Dormir" e medida SEM o Manual de EXP, o cartao de voto e o
+	 * evento de EXP. A lista vem do SERVIDOR (`bonusTemporariosAtivos` no
+	 * contexto), as mesmas funcoes que o abate consulta.
+	 */
+	const ctx = IdleConfig.contextoObsoleto ? null : IdleConfig.contexto;
+	const temporarios = ctx && Array.isArray(ctx.bonusTemporariosAtivos) ? ctx.bonusTemporariosAtivos : [];
+	const eventoAtivo = temporarios.length === 0 && StatusIcons.estaAtivo(SC.CASH_PLUSEXP);
 
 	function dormir() {
 		const pkt = new PACKET.CZ.RAGIDLE_SONO_ACAO();
@@ -779,10 +787,19 @@ function pedirParaDormir() {
 		 */
 	}
 
-	if (eventoAtivo) {
+	if (temporarios.length > 0) {
 		UIManager.showPromptBox(
-			'Há um evento de EXP ativo agora. A taxa do "Dormir" fica CONGELADA no que ele rendia neste instante ' +
-				'— o evento pode acabar antes de você voltar. Continuar mesmo assim?',
+			'Você está com bônus temporário de EXP (' + temporarios.join(', ') + '). ' +
+				'Dormindo, eles NÃO contam: a EXP do sono é calculada sem eles. Dormir mesmo assim?',
+			'yes',
+			'no',
+			dormir,
+			null
+		);
+	} else if (eventoAtivo) {
+		UIManager.showPromptBox(
+			'Há um evento de EXP ativo agora. Dormindo, ele NÃO conta: a EXP do sono é calculada sem ele. ' +
+				'Dormir mesmo assim?',
 			'yes',
 			'no',
 			dormir,
