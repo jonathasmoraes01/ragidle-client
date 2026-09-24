@@ -114,6 +114,7 @@ import PresencaIdle from 'UI/Components/PresencaIdle/PresencaIdle.js'; // RAGIDL
 import IndicacaoIdle from 'UI/Components/IndicacaoIdle/IndicacaoIdle.js'; // RAGIDLE: Indique & Ganhe (D-1164)
 import RankingIdle from 'UI/Components/RankingIdle/RankingIdle.js'; // RAGIDLE: o Ranking (09/09/2026)
 import PainelComandoIdle from 'UI/Components/PainelComandoIdle/PainelComandoIdle.js'; // RAGIDLE: o painel de comando (D-1563)
+import GraphicsSettings from 'Preferences/Graphics.js'; // RAGIDLE: a economia automatica pode ser desligada (23/09/2026)
 import { medidorDePing } from 'Network/medidorDePing.js'; // RAGIDLE: o ping real (23/09/2026)
 import TemporadaIdle from 'UI/Components/TemporadaIdle/TemporadaIdle.js'; // RAGIDLE: a janela da Temporada (Season 1, 21/09/2026)
 import RoShop from 'UI/Components/RoShop/RoShop.js'; // RAGIDLE: o RO Shop (22/09/2026) - a loja de RO Cash que substitui a CashShop nativa como caminho de compra
@@ -1270,12 +1271,23 @@ let _atrasoDaEconomia = null;
  * voltar a olhar a aba, sozinho, nao decide nada.
  */
 function onVisibilidadeMudouParaEconomia() {
+	/* A economia AUTOMATICA desligada nas Configuracoes de Video (23/09/2026):
+	   a aba escondida nao pede nada ao servidor. Um atraso ja agendado cai. */
+	if (GraphicsSettings.economiaDeEnergiaAutomatica === false) {
+		if (_atrasoDaEconomia) {
+			clearTimeout(_atrasoDaEconomia);
+			_atrasoDaEconomia = null;
+		}
+		return;
+	}
 	if (document.visibilityState === 'hidden') {
 		if (_atrasoDaEconomia) return; // ja agendado — nao empilha um segundo
 		_atrasoDaEconomia = setTimeout(() => {
 			_atrasoDaEconomia = null;
-			// Confere de novo: pode ter voltado no instante exato do disparo.
+			// Confere de novo: pode ter voltado no instante exato do disparo, ou o
+			// jogador pode ter desligado a economia automatica nesse meio tempo.
 			if (document.visibilityState !== 'hidden') return;
+			if (GraphicsSettings.economiaDeEnergiaAutomatica === false) return;
 			const pkt = new PACKET.CZ.RAGIDLE_ECONOMIA_ACAO();
 			pkt.json = JSON.stringify({ acao: 'entrar' });
 			Network.sendPacket(pkt);
