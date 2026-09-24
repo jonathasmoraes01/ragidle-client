@@ -35,7 +35,10 @@ describe('a cura e configurada por habilidade', () => {
 
 	it('garantirCura cria a entrada de cada cura (setPath nao cria objeto no caminho) e apaga o skillId antigo', () => {
 		const g = JS.slice(JS.indexOf('function garantirCura(cfg, ctx)'), JS.indexOf('IdleConfig.init = function init()'));
-		expect(g).toContain('cfg.cura.habilidades[c.skillId] = { ligada: cfg.cura.ligada !== false, alvo: cfg.cura.alvo || ');
+		// A entrada nasce pela regra POR HABILIDADE: os Primeiros Socorros nascem
+		// desligados (23/09/2026), e o interruptor geral os religaria.
+		expect(g).toContain('ligada: curaLigadaPara(cfg.cura, c.skillId),');
+		expect(g).not.toContain('ligada: cfg.cura.ligada !== false');
 		expect(g).toContain('delete cfg.cura.skillId');
 	});
 

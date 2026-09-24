@@ -278,7 +278,13 @@ function garantirCura(cfg, ctx) {
 		if (!cfg.cura.habilidades || typeof cfg.cura.habilidades !== 'object') cfg.cura.habilidades = {};
 		for (const c of curas) {
 			if (!cfg.cura.habilidades[c.skillId]) {
-				cfg.cura.habilidades[c.skillId] = { ligada: cfg.cura.ligada !== false, alvo: cfg.cura.alvo || 'grupo' };
+				// `curaLigadaPara` e nao o interruptor geral: os Primeiros Socorros
+				// nascem DESLIGADOS (23/09/2026), e materializar a entrada com o
+				// geral os religaria no primeiro "Aplicar".
+				cfg.cura.habilidades[c.skillId] = {
+					ligada: curaLigadaPara(cfg.cura, c.skillId),
+					alvo: cfg.cura.alvo || 'grupo'
+				};
 			}
 		}
 		if ('skillId' in cfg.cura) delete cfg.cura.skillId;
@@ -1887,8 +1893,10 @@ function renderConsumiveis() {
 				</span>
 			</label>
 			${
+				// A nota de desenvolvimento ("Servidos hoje (D-360)...") saiu em
+				// 23/09/2026, pedido do dono: nota interna nao vai para o jogador.
 				enabled
-					? '<div class="ic-note">Servidos hoje (D-360): as poções de ASPD — Concentração (645) e Despertar (656, nível 40+), à venda no Tool Dealer. O bônus entra na próxima luta e dura 30 min.</div>'
+					? ''
 					: '<div class="ic-note ic-note-warn">Nenhum consumível de buff existe no jogo ainda — o interruptor guarda sua escolha para quando existir.</div>'
 			}
 		</div>

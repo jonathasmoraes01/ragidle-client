@@ -136,8 +136,14 @@ export function alternarCura(cfg, ctx, ligar) {
 export function curaLigadaPara(cura, skillId) {
 	const propria = cura && cura.habilidades && cura.habilidades[skillId];
 	if (propria && typeof propria === 'object') return propria.ligada !== false;
+	// Os Primeiros Socorros nascem DESLIGADOS (23/09/2026, ordem do dono) -
+	// espelho de `CURAS_DESLIGADAS_DE_FABRICA` (servidor/idle/cura-automatica.ts).
+	if (CURAS_DESLIGADAS_DE_FABRICA.indexOf(skillId) !== -1) return false;
 	return !(cura && cura.ligada === false);
 }
+
+/** As curas que so curam sozinhas se o jogador as ligar (espelho do servidor). */
+export const CURAS_DESLIGADAS_DE_FABRICA = ['NV_FIRSTAID'];
 
 export function curaLigada(cfg, ctx) {
 	const curas = (ctx && ctx.skillsDeCura) || [];
