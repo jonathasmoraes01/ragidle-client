@@ -33,6 +33,7 @@ import Altitude from 'Renderer/Map/Altitude.js';
 import Renderer from 'Renderer/Renderer.js';
 import EntityManager from 'Renderer/EntityManager.js';
 import NomesDosJogadores from './NomesDosJogadores.js'; // RAGIDLE: nome/guilda sempre visiveis
+import { deveEncolherAoApanhar, acoesDeAtaqueDa } from './encolherAoApanhar.js'; // RAGIDLE (24/09/2026): o flinch nao corta o golpe do jogador
 import Entity from 'Renderer/Entity/Entity.js';
 import EffectManager from 'Renderer/EffectManager.js';
 import Damage from 'Renderer/Effects/Damage.js';
@@ -3020,6 +3021,23 @@ function onEntityWillBeHitSub(pkt, dstEntity) {
 
 		function impendingAttack() {
 			// Get hurt when attack happens
+			//
+			// RAGIDLE (24/09/2026, decisao do dono): o golpe do monstro nao corta o
+			// golpe do proprio jogador — sem isto o HURT trocava o balanco do
+			// ataque pela dor e so o numero de dano subia. A decisao e lida AQUI,
+			// no instante do impacto (e nao ao agendar), porque o jogador pode
+			// comecar a golpear entre o pacote e o impacto. Ver encolherAoApanhar.js.
+			const ehOJogadorLocal = !!(Session.Entity && dstEntity.GID === Session.Entity.GID);
+			if (
+				!deveEncolherAoApanhar({
+					ehOJogadorLocal,
+					acaoAtual: dstEntity.action,
+					animacaoAcabou: !dstEntity.animation || dstEntity.animation.play === false,
+					acoesDeAtaque: acoesDeAtaqueDa(dstEntity.ACTION)
+				})
+			) {
+				return;
+			}
 			if (dstEntity.action !== dstEntity.ACTION.DIE) {
 				dstEntity.setAction({
 					action: dstEntity.ACTION.HURT,
