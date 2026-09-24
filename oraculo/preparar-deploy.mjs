@@ -530,8 +530,25 @@ const WIKI = process.env.RAG_WIKI_DIR
 	? resolve(RAIZ, process.env.RAG_WIKI_DIR)
 	: resolve(RAIZ, '..', 'rag-idle-wiki');
 rmSync(join(DIST, 'wiki'), { recursive: true, force: true });
+/*
+ * A RESERVA (23/09/2026): o repo da wiki e PRIVADO e a VPS ainda nao tem a
+ * chave dele, entao a pasta irma nao existe la e o pacote saia sem /wiki -
+ * com o botao "Wiki" da home ja no ar apontando para um 404. Sem a pasta (ou
+ * com o build reprovado), vale a copia do build que o SITE carrega em
+ * `wiki/`, que a VPS ja baixa. Quando a pasta irma existir, ela manda.
+ */
+const WIKI_DO_SITE = join(SITE, 'wiki');
+function usarWikiDoSite(motivo) {
+	rmSync(join(DIST, 'wiki'), { recursive: true, force: true });
+	if (existsSync(join(WIKI_DO_SITE, 'index.html'))) {
+		cpSync(WIKI_DO_SITE, join(DIST, 'wiki'), { recursive: true });
+		console.warn(`     wiki/            (RESERVA: a copia do site, porque ${motivo})`);
+	} else {
+		console.warn(`     AVISO: ${motivo}, e o site nao traz wiki/ — pacote sai SEM /wiki.`);
+	}
+}
 if (!existsSync(join(WIKI, 'package.json'))) {
-	console.warn(`     AVISO: wiki nao encontrada em ${WIKI} — pacote sai SEM /wiki (aponte RAG_WIKI_DIR ou clone rag-idle-wiki ao lado).`);
+	usarWikiDoSite(`a wiki nao esta em ${WIKI} (aponte RAG_WIKI_DIR ou clone rag-idle-wiki ao lado)`);
 } else {
 	try {
 		rmSync(join(WIKI, 'build'), { recursive: true, force: true });
@@ -541,8 +558,7 @@ if (!existsSync(join(WIKI, 'package.json'))) {
 		cpSync(join(WIKI, 'build'), join(DIST, 'wiki'), { recursive: true });
 		console.log(`     wiki/            (${WIKI})`);
 	} catch (erro) {
-		rmSync(join(DIST, 'wiki'), { recursive: true, force: true });
-		console.warn(`     AVISO: build da wiki reprovou (${erro.message}) — pacote sai SEM /wiki.`);
+		usarWikiDoSite(`o build da wiki reprovou (${erro.message})`);
 	}
 }
 
