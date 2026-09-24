@@ -69,6 +69,18 @@ let _save_buffer = null;
 let _onDisconnect = null;
 
 /**
+ * A HORA DO ULTIMO PACOTE QUE CHEGOU (lacuna 1 da auditoria da reconexao,
+ * 24/09/2026). E o que a vigia de silencio (`Network/vigiaDeSilencio.js`) le
+ * para descobrir uma conexao que morreu sem fechar — wifi que vira 4G, notebook
+ * que dorme, NAT que esquece. Qualquer pacote conta, e nao so o pong: numa caca
+ * chegam dezenas por segundo, e todos provam que o caminho ate o servidor vive.
+ * A hora do `connect` bem-sucedido entra como o primeiro valor, para o socket
+ * novo nao herdar o silencio do anterior.
+ * @type {number|null}
+ */
+let _ultimoRecebidoEm = null;
+
+/**
  * Defines if dump packets as hex string
  * @const {boolean}
  */
@@ -153,6 +165,7 @@ function connect(host, port, callback, isZone) {
 
 			socket.onMessage = receive;
 			_sockets.push((_socket = socket));
+			_ultimoRecebidoEm = Date.now();
 
 			// Map server encryption
 			if (isZone) {
@@ -283,6 +296,7 @@ read.callback = null;
  * @param {Uint8Array} buffer
  */
 function receive(buf) {
+	_ultimoRecebidoEm = Date.now();
 	const inicioDaRede = performance.now();
 	try {
 		processarPacotes(buf);
@@ -501,6 +515,53 @@ function onClose() {
 }
 
 /**
+ * DERRUBA A CONEXAO DE MAPA QUE MORREU CALADA (lacuna 1, 24/09/2026).
+ *
+ * Nao pode ser o `close()` logo abaixo: ele zera `_socket` ANTES de fechar,
+ * justamente para um fechamento pedido por nos NAO virar `_onDisconnect` (e o
+ * que faz o logout nao abrir a reconexao). Aqui queremos o contrario — que a
+ * queda percorra o MESMO caminho de uma queda de verdade, e que a reconexao
+ * (`Network/reconexao.js`) comece sozinha.
+ *
+ * Tambem nao basta chamar o `close()` do socket e esperar o `onclose` nativo:
+ * numa conexao que morreu em silencio o navegador manda o quadro de fechamento
+ * e ESPERA a resposta que nunca vem, e o evento pode levar muito tempo — o
+ * jogador continuaria olhando o mundo congelado. Entao o `onClose` roda aqui,
+ * na hora. O evento nativo que chegar depois (se chegar) ja nao notificaria de
+ * novo — `onClose` so age quando `this === _socket`, e `_socket` ja nao e este —
+ * mas o gancho do socket e desligado mesmo assim: e uma linha, e nao deixa a
+ * garantia depender de ninguem mexer naquela comparacao.
+ *
+ * So age no socket de MAPA: login e selecao de personagem tem os proprios
+ * fluxos, e a vigia so existe no mapa.
+ *
+ * @return {boolean} true quando havia socket de mapa e ele foi derrubado
+ */
+function derrubarPorSilencio() {
+	const s = _socket;
+	if (!s || !s.isZone) {
+		return false;
+	}
+
+	s.onClose = null;
+	s.closeCode = null;
+	s.closeReason = 'silencio';
+
+	// Um pacote partido ao meio pela queda nao pode ser colado no primeiro
+	// lote da conexao nova — os bytes dele nunca vao chegar.
+	_save_buffer = null;
+
+	onClose.call(s);
+
+	try {
+		s.close();
+	} catch {
+		/* fechar socket ja morto nao e problema de ninguem */
+	}
+	return true;
+}
+
+/**
  * Close connection with server
  * Is this needed ?
  */
@@ -621,6 +682,10 @@ const Network = (function network() {
 		get onDisconnect() {
 			return _onDisconnect;
 		},
+		get ultimoRecebidoEm() {
+			return _ultimoRecebidoEm;
+		},
+		derrubarPorSilencio: derrubarPorSilencio,
 		setSocketFactory: setSocketFactory,
 		defaultSocketFactory: defaultSocketFactory,
 		registerPacket: registerPacket,

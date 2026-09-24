@@ -27,12 +27,15 @@
  *  - So' existe UM timer de agenda (`_timerDeTick`) e UM watchdog
  *    (`_watchdogDaTentativa`) vivos por vez; `limparTimers()` sempre roda
  *    antes de criar um novo.
- *  - `Network.onDisconnect` e' a UNICA porta de entrada — nao ha
- *    `visibilitychange`/`online` hookado aqui (de proposito: o pedido do
- *    dono especificamente pede para essas voltas NAO disparar varias
- *    tentativas de uma vez, e o jeito mais seguro de garantir isso e' nao
- *    escutar esses eventos, deixando o AGENDAMENTO por horario absoluto
- *    (`_proximoHorario`) ser a UNICA fonte de verdade sobre quando tentar).
+ *  - `Network.onDisconnect` e' a UNICA porta de ENTRADA no ciclo. Ate
+ *    24/09/2026 era tambem a unica coisa escutada, sem `visibilitychange`
+ *    nem `online` (de proposito: o pedido do dono especificamente pede para
+ *    essas voltas NAO disparar varias tentativas de uma vez). Desde a lacuna
+ *    5 da auditoria da reconexao, os dois eventos sao escutados SO DENTRO de
+ *    um ciclo (ligados em `iniciarCiclo`, desligados em `limparCiclo`) e so
+ *    adiantam a tentativa quando nao ha nenhuma em voo — ver
+ *    `deveTentarAgoraNaVolta`. A promessa de "uma tentativa por vez" segue
+ *    inteira; o que mudou e que a volta da rede nao espera mais ate 30 s.
  *
  * A CONTA DO ORCAMENTO ("timeout e espera nunca se somam"): cada tentativa,
  * ao COMECAR, ja calcula e agenda a PROXIMA pelo horario fixo (nunca espera
@@ -102,6 +105,49 @@ const VIDA_DO_AVISO_DE_SUCESSO_MS = 1800;
  */
 const TENTATIVAS_ANTES_DE_DESISTIR = 12;
 
+/**
+ * SO CONTA PARA O TETO A TENTATIVA QUE PODIA DAR CERTO (lacuna 5 da auditoria
+ * da reconexao, 24/09/2026).
+ *
+ * O teto acima existe para a hipotese "o servidor nao volta" se esgotar. Mas
+ * tentativa feita SEM REDE (`navigator.onLine === false`) ou com a ABA
+ * ESCONDIDA nao testa essa hipotese: sem rede ela falha por causa do aparelho,
+ * e escondida o navegador estrangula os timers e a tentativa nem chega a
+ * acontecer no horario. Contando as duas, quem fechava o notebook no metro
+ * voltava para o LOGIN depois de ~5 min — com o servidor ainda segurando o
+ * personagem na economia de energia (4 h). Aqui a tentativa ainda sai (nao
+ * custa nada, e `onLine` pode mentir para o lado de "sem rede"), so nao conta.
+ *
+ * @param {{ online: boolean, visivel: boolean }} ambiente
+ * @return {boolean}
+ */
+export function tentativaConta(ambiente) {
+	return !!(ambiente && ambiente.online && ambiente.visivel);
+}
+
+/**
+ * A REDE VOLTOU (evento `online`) OU A ABA VOLTOU: tenta agora? (lacuna 5)
+ *
+ * So dentro de um ciclo, e so sem tentativa em voo — `online` e
+ * `visibilitychange` costumam chegar JUNTOS quando o notebook acorda, e duas
+ * tentativas simultaneas abririam dois sockets para o mesmo personagem. A
+ * tentativa em voo, se houver, ja tem o proprio watchdog; a volta so espera
+ * por ela.
+ *
+ * @param {{ emCiclo: boolean, tentativaEmAndamento: boolean }} estado
+ * @return {boolean}
+ */
+export function deveTentarAgoraNaVolta(estado) {
+	return !!(estado && estado.emCiclo && !estado.tentativaEmAndamento);
+}
+
+/** O ambiente de agora, lido com defesa: fora do navegador, conta como visivel e online. */
+function ambienteAtual() {
+	const online = typeof navigator === 'undefined' || navigator.onLine !== false;
+	const visivel = typeof document === 'undefined' || document.visibilityState !== 'hidden';
+	return { online, visivel };
+}
+
 /** Cadencia de atualizacao da contagem regressiva mostrada na tela. */
 const INTERVALO_DO_TICK_MS = 1000;
 
@@ -117,6 +163,8 @@ let _emCiclo = false;
 let _tentativaEmAndamento = false;
 let _motivoAtual = 'servidor-fora';
 let _indice = 0; // quantas tentativas ja comecaram nesta escalada
+let _tentativasContadas = 0; // so as que contam para o teto — ver `tentativaConta`
+let _escutandoVolta = false;
 let _proximoHorario = 0; // Date.now() absoluto da proxima tentativa agendada
 let _geracao = 0;
 let _timerDeTick = null;
@@ -174,12 +222,57 @@ function limparTimers() {
 	_tickAtivo = false;
 }
 
+/**
+ * A volta da rede ou da aba, DURANTE um ciclo (lacuna 5). Zera o teto — o
+ * aparelho acabou de mudar, e as tentativas de antes nao diziam nada sobre o
+ * servidor — e tenta ja, se nao houver outra em voo.
+ */
+function aoVoltarRedeOuAba() {
+	if (!ambienteAtual().visivel) {
+		return; // o `visibilitychange` que ESCONDE a aba nao e volta
+	}
+	if (!deveTentarAgoraNaVolta({ emCiclo: _emCiclo, tentativaEmAndamento: _tentativaEmAndamento })) {
+		return;
+	}
+	_tentativasContadas = 0;
+	_indice = 0;
+	iniciarTentativa();
+}
+
+function escutarVolta() {
+	if (_escutandoVolta) {
+		return;
+	}
+	_escutandoVolta = true;
+	if (typeof window !== 'undefined') {
+		window.addEventListener('online', aoVoltarRedeOuAba);
+	}
+	if (typeof document !== 'undefined') {
+		document.addEventListener('visibilitychange', aoVoltarRedeOuAba);
+	}
+}
+
+function pararDeEscutarVolta() {
+	if (!_escutandoVolta) {
+		return;
+	}
+	_escutandoVolta = false;
+	if (typeof window !== 'undefined') {
+		window.removeEventListener('online', aoVoltarRedeOuAba);
+	}
+	if (typeof document !== 'undefined') {
+		document.removeEventListener('visibilitychange', aoVoltarRedeOuAba);
+	}
+}
+
 /** Encerra o ciclo por completo — sucesso, cancelamento ou sessão inválida. */
 function limparCiclo() {
 	limparTimers();
+	pararDeEscutarVolta();
 	_emCiclo = false;
 	_tentativaEmAndamento = false;
 	_indice = 0;
+	_tentativasContadas = 0;
 	_geracao++;
 }
 
@@ -337,8 +430,10 @@ function iniciarCiclo(motivo) {
 	_emCiclo = true;
 	_tentativaEmAndamento = false;
 	_indice = 0;
+	_tentativasContadas = 0;
 	_motivoAtual = motivo;
 	_proximoHorario = Date.now() + esperaParaAIndice(0) + jitter();
+	escutarVolta();
 
 	if (!_tickAtivo) {
 		_tickAtivo = true;
@@ -381,7 +476,7 @@ function iniciarTentativa() {
 	 * Reusa `desistirEIrParaOLogin`, que e o mesmo caminho de
 	 * `aoSerRecusado()` — um lugar so sabe como sair daqui.
 	 */
-	if (_indice >= TENTATIVAS_ANTES_DE_DESISTIR) {
+	if (_tentativasContadas >= TENTATIVAS_ANTES_DE_DESISTIR) {
 		desistirEIrParaOLogin();
 		return;
 	}
@@ -389,6 +484,12 @@ function iniciarTentativa() {
 	_tentativaEmAndamento = true;
 	_geracao++;
 	const minhaGeracao = _geracao;
+
+	// Sem rede ou com a aba escondida a tentativa sai, mas nao gasta o teto
+	// (lacuna 5, ver `tentativaConta`).
+	if (tentativaConta(ambienteAtual())) {
+		_tentativasContadas++;
+	}
 
 	// O intervalo e' ENTRE INICIOS: a proxima tentativa ja fica agendada
 	// pelo horario fixo, sem esperar esta terminar (a regra do orcamento).

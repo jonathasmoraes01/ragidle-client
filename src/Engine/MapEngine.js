@@ -18,6 +18,7 @@ import Session from 'Engine/SessionStorage.js';
 import Network from 'Network/NetworkManager.js';
 import Reconexao from 'Network/reconexao.js';
 import BackgroundTicker from 'Network/BackgroundTicker.js';
+import { criarVigiaDeSilencio } from 'Network/vigiaDeSilencio.js';
 import { ler as lerRegistroDaCaca } from 'UI/Components/HuntAnalyzer/registroDaCaca.js';
 import PACKETVER from 'Network/PacketVerManager.js';
 import PACKET from 'Network/PacketStructure.js';
@@ -341,11 +342,38 @@ class MapEngine {
 				}
 				const startTick = Date.now();
 
+				/*
+				 * A VIGIA DE SILENCIO (lacuna 1 da auditoria da reconexao,
+				 * 24/09/2026) — uma por conexao de mapa. Ela confere no MESMO
+				 * relogio do keepalive, e nao num timer proprio, porque e esse
+				 * relogio que ja sobrevive a aba escondida (o Worker do
+				 * BackgroundTicker) e que ja dispara na volta da aba: a conexao
+				 * que morreu calada com o jogador fora e descoberta no instante
+				 * em que ele volta, sem mais um `visibilitychange` para cuidar.
+				 * Ver `Network/vigiaDeSilencio.js` para o porque dos prazos.
+				 */
+				const vigiaDeSilencio = criarVigiaDeSilencio();
+
 				// Shared by Network.setPing's own setInterval AND BackgroundTicker
 				// below, so there is exactly one place that builds/sends the
 				// keepalive. Duplicate calls in the same ~second are harmless:
 				// the server only reads a timestamp off the packet.
 				const sendKeepAlive = () => {
+					// A conexao morreu sem fechar: derruba pelo caminho de uma
+					// queda de verdade, e a reconexao automatica assume. O
+					// keepalive nao sai — nao ha para onde mandar. Em try/catch
+					// porque este corpo roda num Worker tick e no setInterval,
+					// e um erro aqui nao pode calar o keepalive de uma conexao
+					// que esta viva.
+					try {
+						if (vigiaDeSilencio.conferir(Network.ultimoRecebidoEm, Date.now()) && Network.derrubarPorSilencio()) {
+							console.warn('[Network] conexao de mapa calada ha tempo demais; derrubada para reconectar');
+							return;
+						}
+					} catch (err) {
+						console.error('[Network] vigia de silencio falhou', err);
+					}
+
 					if (is_sec_hbt) {
 						Network.sendPacket(hbt);
 					}
