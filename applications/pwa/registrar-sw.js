@@ -89,7 +89,10 @@
 	 * navegação, e aqui ninguém navega. Descobrir não interrompe ninguém: o
 	 * worker fica pronto para a próxima abertura.
 	 */
-	var MS_ENTRE_CONFERENCIAS_DE_VERSAO = 30 * 60 * 1000;
+	/* 5 min desde 23/09/2026 (era 30): com a atualizacao forcada o que importa e
+	   DESCOBRIR cedo. A conferencia e um pedido condicional do `sw.js` (poucos
+	   bytes) e nao interrompe ninguem. */
+	var MS_ENTRE_CONFERENCIAS_DE_VERSAO = 5 * 60 * 1000;
 
 	/**
 	 * A decisão, pura. `assumir` só com as duas versões conhecidas e iguais —
@@ -260,6 +263,8 @@
 			vigiar(registro.waiting);
 		}
 		setInterval(conferir, MS_ENTRE_CONFERENCIAS_DE_VERSAO);
+		/* O jogo pede uma conferencia na hora certa (a volta da reconexao). */
+		API.conferirVersao = conferir;
 		document.addEventListener('visibilitychange', function () {
 			if (document.visibilityState === 'visible') {
 				conferir();

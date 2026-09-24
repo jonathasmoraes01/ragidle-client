@@ -12,13 +12,16 @@
  * modulo decide QUANDO trocar e o faz sem deslogar ninguem.
  *
  * ---------------------------------------------------------------------------
- * SO NA VOLTA DA ABA — a regra que o dono aprovou
+ * COM A ABA VISIVEL, SEMPRE — a regra de 23/09/2026 (ordem do dono)
  * ---------------------------------------------------------------------------
- * A contagem so comeca quando a aba ACABOU de voltar a ficar visivel
- * (`MS_DA_JANELA_DA_VOLTA`). Com a aba em segundo plano nada acontece; com o
- * jogador olhando a tela ha tempo, tambem nao — a versao espera a proxima
- * volta. A razao e o jogo idle: quem volta ao jogo le "Atualizando em 5 s" e
- * entende; quem esta no meio de uma janela aberta nao e interrompido.
+ * *"quando o player que ja esta online receba uma atualizacao, que ele tambem
+ * atualize a pagina... tem players que estao ficando com a versao
+ * desatualizada"*. A regra anterior (so na VOLTA da aba, `MS_DA_JANELA_DA_VOLTA`)
+ * deixava para tras quem joga com a aba sempre na frente — o idle no segundo
+ * monitor — e esse jogador nunca voltava a aba. Hoje a contagem comeca assim
+ * que a versao nova e conhecida E a aba esta visivel; com a aba em segundo
+ * plano ela espera a volta, porque recarregar com ninguem olhando nao explica
+ * nada. A contagem de 5 s e a retomada sem login continuam as mesmas.
  *
  * ---------------------------------------------------------------------------
  * SEM DESLOGAR
@@ -48,9 +51,6 @@ import { janelaDaCasca, pontePWA } from 'UI/ofertaDeInstalacao.js';
 /** A contagem que o dono pediu. */
 export const SEGUNDOS_DA_CONTAGEM = 5;
 
-/** Quanto depois da volta da aba a contagem ainda pode comecar. */
-export const MS_DA_JANELA_DA_VOLTA = 60_000;
-
 /** A mesma versao nao e tentada de novo dentro deste prazo. */
 export const MS_SEM_REPETIR_A_MESMA_VERSAO = 10 * 60_000;
 
@@ -59,16 +59,13 @@ export const CHAVE_DA_ULTIMA_ATUALIZACAO = 'ragidle:ultima-atualizacao';
 /**
  * A decisao, pura.
  *
- * @param {{versaoPendente: string|null, visivel: boolean, msDesdeAVolta: number|null,
+ * @param {{versaoPendente: string|null, visivel: boolean,
  *          ultimaTentativa: {versao: string, em: number}|null, agora: number}} estado
  * @returns {boolean}
  */
 export function deveComecarAContagem(estado) {
-	const { versaoPendente, visivel, msDesdeAVolta, ultimaTentativa, agora } = estado;
+	const { versaoPendente, visivel, ultimaTentativa, agora } = estado;
 	if (!versaoPendente || !visivel) {
-		return false;
-	}
-	if (msDesdeAVolta === null || msDesdeAVolta < 0 || msDesdeAVolta > MS_DA_JANELA_DA_VOLTA) {
 		return false;
 	}
 	if (
@@ -163,7 +160,6 @@ function montarCaixa(aoAtualizarAgora) {
 
 let _ligado = false;
 let _versaoPendente = null;
-let _ultimaVoltaEm = null;
 let _contagem = null; // { caixa, texto, relogio, restantes, feito }
 
 /* Recarrega a ABA inteira (a casca), e nao so o documento do jogo: e a casca
@@ -254,7 +250,6 @@ function avaliar() {
 	const decide = deveComecarAContagem({
 		versaoPendente: _versaoPendente,
 		visivel: visivel(),
-		msDesdeAVolta: _ultimaVoltaEm === null ? null : agora - _ultimaVoltaEm,
 		ultimaTentativa: lerUltimaTentativa(),
 		agora
 	});
@@ -287,7 +282,6 @@ export function ligarAtualizacaoAutomatica() {
 
 	document.addEventListener('visibilitychange', () => {
 		if (visivel()) {
-			_ultimaVoltaEm = Date.now();
 			avaliar();
 		} else {
 			/* A aba saiu no meio da contagem: ela para, e volta na proxima
@@ -300,6 +294,24 @@ export function ligarAtualizacaoAutomatica() {
 	const ponte = pontePWA();
 	if (ponte && typeof ponte.versaoNovaDisponivel === 'string') {
 		_versaoPendente = ponte.versaoNovaDisponivel;
+		avaliar();
+	}
+}
+
+/**
+ * PERGUNTA A CASCA SE HA VERSAO NOVA AGORA (23/09/2026). Chamado quando a
+ * reconexao automatica volta: o deploy reinicia o servidor, entao voltar de
+ * uma queda e exatamente o momento em que a versao nova acabou de sair. Sem
+ * isto o jogador so a descobria na proxima conferencia periodica.
+ */
+export function conferirVersaoAgora() {
+	try {
+		const ponte = pontePWA();
+		if (ponte && typeof ponte.conferirVersao === 'function') {
+			ponte.conferirVersao();
+		}
+	} catch {
+		/* sem casca PWA (dev), nada a conferir */
 	}
 }
 
@@ -313,5 +325,4 @@ export function _reiniciarParaTeste() {
 	cancelarContagem();
 	_ligado = false;
 	_versaoPendente = null;
-	_ultimaVoltaEm = null;
 }

@@ -206,6 +206,14 @@ function aoEntrarComSucesso() {
 	const estavaEmCiclo = _emCiclo;
 	limparCiclo();
 
+	/* A VOLTA DE UMA QUEDA e o momento de conferir a versao (23/09/2026): o
+	   deploy reinicia o servidor, e a versao nova do cliente sai junto. */
+	if (estavaEmCiclo) {
+		import('UI/atualizacaoAutomatica.js')
+			.then(m => m.conferirVersaoAgora())
+			.catch(() => {});
+	}
+
 	importarUI().then(ui => {
 		if (estavaEmCiclo) {
 			ui.mostrar({ titulo: 'Reconectado', texto: 'A conexão com o servidor voltou.' });

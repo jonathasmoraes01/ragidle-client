@@ -174,9 +174,9 @@ describe('o worker em espera, no jogo', () => {
 		const registro = registroFalso(worker);
 		pwa.acompanharRegistro(registro);
 		await drenar();
-		vi.advanceTimersByTime(30 * 60 * 1000);
+		vi.advanceTimersByTime(5 * 60 * 1000);
 		await drenar();
-		expect(registro.update).toHaveBeenCalledTimes(1);
+		expect(registro.update).toHaveBeenCalledTimes(1); // 5 min desde 23/09/2026 (era 30)
 		expect(worker.recebidas).toEqual(['ragidle:versao']);
 	});
 

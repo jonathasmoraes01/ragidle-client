@@ -12,7 +12,6 @@ const cancelar = vi.fn();
 vi.mock('Network/reconexao.js', () => ({ default: { cancelarParaFechamentoDeliberado: cancelar } }));
 
 const {
-	MS_DA_JANELA_DA_VOLTA,
 	MS_SEM_REPETIR_A_MESMA_VERSAO,
 	CHAVE_DA_ULTIMA_ATUALIZACAO,
 	_definirRecargaParaTeste,
@@ -22,21 +21,20 @@ const {
 } = await import('UI/atualizacaoAutomatica.js');
 const { CHAVE_DA_RETOMADA } = await import('Engine/retomadaAposAtualizacao.js');
 
-const BASE = { versaoPendente: '2.0.0-20260923120000', visivel: true, msDesdeAVolta: 1000, ultimaTentativa: null, agora: 1e9 };
+const BASE = { versaoPendente: '2.0.0-20260923120000', visivel: true, ultimaTentativa: null, agora: 1e9 };
 
 describe('a decisao, pura', () => {
-	it('versao nova + aba que ACABOU de voltar: comeca', () => {
+	it('versao nova + aba visivel: comeca', () => {
 		expect(deveComecarAContagem(BASE)).toBe(true);
 	});
 	it('aba em segundo plano: nunca', () => {
 		expect(deveComecarAContagem({ ...BASE, visivel: false })).toBe(false);
 	});
-	it('sem volta registrada (o jogador olhando desde que abriu): espera a proxima volta', () => {
-		expect(deveComecarAContagem({ ...BASE, msDesdeAVolta: null })).toBe(false);
-	});
-	it('volta velha demais: espera', () => {
-		expect(deveComecarAContagem({ ...BASE, msDesdeAVolta: MS_DA_JANELA_DA_VOLTA + 1 })).toBe(false);
-		expect(deveComecarAContagem({ ...BASE, msDesdeAVolta: MS_DA_JANELA_DA_VOLTA })).toBe(true);
+	it('o jogador OLHANDO desde que abriu tambem atualiza (23/09/2026, ordem do dono)', () => {
+		// Ate 23/09 a regra pedia a VOLTA da aba; um campo de volta velha ou
+		// ausente nao pode mais segurar a atualizacao.
+		expect(deveComecarAContagem({ ...BASE, msDesdeAVolta: null })).toBe(true);
+		expect(deveComecarAContagem({ ...BASE, msDesdeAVolta: 10 * 60_000 })).toBe(true);
 	});
 	it('sem versao pendente: nada', () => {
 		expect(deveComecarAContagem({ ...BASE, versaoPendente: null })).toBe(false);
@@ -93,9 +91,20 @@ describe('no jogo', () => {
 		vi.useRealTimers();
 	});
 
-	it('versao nova com o jogador olhando ha tempo: nada acontece (CONTROLE)', () => {
+	it('versao nova com o jogador OLHANDO: a contagem aparece (23/09/2026)', () => {
+		versaoNova();
+		expect(caixa().textContent).toContain('Atualizando em 5 s');
+	});
+
+	it('CONTROLE: com a aba ESCONDIDA nada aparece, e a contagem que corria para', () => {
+		mudarVisibilidade('hidden');
 		versaoNova();
 		expect(caixa()).toBeNull();
+		mudarVisibilidade('visible');
+		expect(caixa().textContent).toContain('Atualizando em 5 s');
+		mudarVisibilidade('hidden');
+		expect(caixa()).toBeNull();
+		expect(recargas).toBe(0);
 	});
 
 	it('na VOLTA da aba: a contagem aparece, desce de 5 e recarrega', async () => {
