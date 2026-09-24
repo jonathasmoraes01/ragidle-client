@@ -63,6 +63,7 @@ import MiniMap from 'UI/Components/MiniMap/MiniMap.js';
 import PartyFriends from 'UI/Components/PartyFriends/PartyFriends.js';
 import Equipment from 'UI/Components/Equipment/Equipment.js';
 import ScreenEffectManager from 'Renderer/ScreenEffectManager.js';
+import { falaDeGm } from './falaDeGm.js'; // RAGIDLE: a tag [GM] de quem fala de outro mapa
 
 // Excludes for skill name display
 const SkillNameDisplayExclude = [
@@ -1109,13 +1110,14 @@ function onEntityTalk(pkt) {
 	 * A decisao subiu para ANTES da escrita. O balao sobre a cabeca continua
 	 * como era.
 	 */
-	if (entity) {
-		if (entity === Session.Entity) {
-			type |= ChatBox.TYPE.SELF;
-		}
-		if (entity.isAdmin) {
-			type |= ChatBox.TYPE.ADMIN;
-		}
+	if (entity && entity === Session.Entity) {
+		type |= ChatBox.TYPE.SELF;
+	}
+	// A tag [GM] nao depende de a entidade estar na tela: o chat e GLOBAL, e
+	// o administrador de outro mapa saia como "[Global]" (24/09/2026, o caso
+	// do Urso). A regra inteira esta em `falaDeGm.js`.
+	if (falaDeGm(pkt.GID, entity, Session.AdminList)) {
+		type |= ChatBox.TYPE.ADMIN;
 	}
 
 	ChatBox.addText(pkt.msg, type, ChatBox.FILTER.PUBLIC_CHAT, null, false);
