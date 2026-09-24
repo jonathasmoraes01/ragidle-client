@@ -446,10 +446,20 @@ class Display {
 		_pos[0] = _size[0] + Math.round(_size[0] * (_pos[0] * z));
 		_pos[1] = _size[1] - Math.round(_size[1] * (_pos[1] * z));
 
-		canvas.style.top = ((_pos[1] + 13) | 0) + 'px';
-		canvas.style.left = ((_pos[0] - canvas.width / dpr / 2) | 0) + 'px';
-		canvas.style.width = canvas.width / dpr + 'px';
-		canvas.style.height = canvas.height / dpr + 'px';
+		/*
+		 * RAGIDLE (24/09/2026): so ESCREVE o estilo que mudou. Desde que o nome
+		 * do monstro ficou sempre visivel sao ate ~130 letreiros por quadro, e
+		 * quatro escritas de estilo por letreiro por quadro - largura e altura
+		 * quase nunca mudam, e o bicho parado nao muda nada.
+		 */
+		const top = ((_pos[1] + 13) | 0) + 'px';
+		const left = ((_pos[0] - canvas.width / dpr / 2) | 0) + 'px';
+		const width = canvas.width / dpr + 'px';
+		const height = canvas.height / dpr + 'px';
+		if (this._top !== top) canvas.style.top = this._top = top;
+		if (this._left !== left) canvas.style.left = this._left = left;
+		if (this._width !== width) canvas.style.width = this._width = width;
+		if (this._height !== height) canvas.style.height = this._height = height;
 
 		// Append to the clipped overlay layer
 		EntityOverlay.append(canvas);

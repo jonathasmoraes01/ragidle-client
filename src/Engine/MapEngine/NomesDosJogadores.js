@@ -45,6 +45,11 @@
  * servidor e um mural em cima do jogo. Jogador num mapa deste servidor e uma
  * ordem de grandeza menos.
  *
+ * **O MOB ENTROU EM 24/09/2026, por pedido do dono** (os bichos mostravam so a
+ * barra de HP). O argumento acima era sobre os PEDIDOS, e o mob nao pede nada:
+ * o nome dele viaja no pacote de entrada - ver `letreiroFixo.js`. O "mural" foi
+ * a escolha do dono. NPC continua por hover.
+ *
  * Este arquivo e parte do fork ragidle do ROBrowser.
  */
 
@@ -54,6 +59,7 @@ import PACKETVER from 'Network/PacketVerManager.js';
 import Entity from 'Renderer/Entity/Entity.js';
 import EntityManager from 'Renderer/EntityManager.js';
 import GraphicsSettings from 'Preferences/Graphics.js';
+import { letreiroFixo } from './letreiroFixo.js';
 
 /** O jogador quer ver os nomes? A opcao vive nas Configuracoes de video. */
 function ligado() {
@@ -89,17 +95,23 @@ function pedirNome(entity) {
 /**
  * Liga (ou desliga) o letreiro de UMA entidade, pela regra de hoje.
  *
- * Chamada no spawn e na chegada do nome. Ela NAO decide sobre mob e NPC: para
- * eles a funcao nao faz nada, e quem manda continua sendo o hover.
+ * Chamada no spawn e na chegada do nome. Quem tem letreiro fixo e decidido em
+ * `letreiroFixo.js`: o JOGADOR pela opcao de video, e o MONSTRO sempre (desde
+ * 24/09/2026). NPC continua por hover.
  */
 function aplicar(entity) {
-	if (!entity || !ehJogador(entity)) {
+	if (!entity || !letreiroFixo(entity.objecttype, Entity, GraphicsSettings)) {
 		return;
 	}
-	if (!ligado()) {
-		return;
+	/*
+	 * O MONSTRO (24/09/2026) so pede o nome se o pacote de entrada veio sem
+	 * ele: o nome do mob viaja no STANDENTRY e nao ha guilda a buscar - ver
+	 * `letreiroFixo.js`. Pedir para todo mob seria um CZ_REQNAME2 por bicho na
+	 * tela (133 medidos em alguns mapas) para receber o que ja chegou.
+	 */
+	if (ehJogador(entity) || !entity.display.name) {
+		pedirNome(entity);
 	}
-	pedirNome(entity);
 	// A MARCA que o hover le (`Controls/EntityControl.js`): ela mora no display
 	// para aquele arquivo nao precisar importar este — ver o comentario de la.
 	entity.display.fixo = true;

@@ -393,9 +393,14 @@ class EntityControl {
 				}
 		}
 
-		// Stop displaying name
-		this.display.display = false;
-		this.display.remove();
+		// Stop displaying name - menos o letreiro FIXO (RAGIDLE, 24/09/2026):
+		// o nome do monstro e do jogador fica sempre na tela, e perder o foco
+		// (trocar de alvo, o fim da luta) apagava o do bicho que acabou de
+		// apanhar. Mesma marca que o `onMouseOut` acima ja respeita.
+		if (!this.display.fixo) {
+			this.display.display = false;
+			this.display.remove();
+		}
 
 		// Stop rendering t he lock on arrow
 		this.attachments.remove('lockon');
