@@ -17,6 +17,7 @@ import Sprite from 'Loaders/Sprite.js';
 import Action from 'Loaders/Action.js';
 import Str from 'Loaders/Str.js';
 import FileSystem from 'Core/FileSystem.js';
+import { devoTentarDeNovo, esperaAntesDaTentativa } from 'Core/tentativasDeArquivo.js';
 
 // Load dependencies
 /* global process */
@@ -265,27 +266,52 @@ class FileManager {
 
 		// Use Fetch API for better performance and HTTP/2 multiplexing support
 		if (typeof fetch !== 'undefined') {
-			fetch(url)
-				.then(function (response) {
-					if (!response.ok) {
-						throw new Error('HTTP ' + response.status);
-					}
+			/*
+			 * A NOVA TENTATIVA (23/09/2026): falha PASSAGEIRA (rede, 408, 429,
+			 * 5xx) tenta de novo antes de desistir - ver `tentativasDeArquivo.js`.
+			 * Sem isto um soluco de rede no meio da troca de mapa virava
+			 * "Can't find file" com o arquivo existindo no servidor.
+			 */
+			const tentar = feitas => {
+				let status = null;
+				// Quem ja recebeu o arquivo nao recebe de novo: um erro DENTRO do
+				// `callback` tambem cai no `catch`, e sem esta marca ele viraria
+				// "a rede falhou" e o arquivo seria entregue duas vezes.
+				let entregue = false;
+				fetch(url)
+					.then(function (response) {
+						if (!response.ok) {
+							status = response.status;
+							throw new Error('HTTP ' + response.status);
+						}
 
-					// Detect HTML error pages returned with 200 status
-					const contentType = response.headers.get('content-type') || '';
-					if (contentType.indexOf('text/html') !== -1) {
-						throw new Error('Received HTML instead of binary data (likely 404 page)');
-					}
+						// Detect HTML error pages returned with 200 status
+						const contentType = response.headers.get('content-type') || '';
+						if (contentType.indexOf('text/html') !== -1) {
+							status = 404;
+							throw new Error('Received HTML instead of binary data (likely 404 page)');
+						}
 
-					return response.arrayBuffer();
-				})
-				.then(buffer => {
-					callback(buffer);
-					FileSystem.saveFile(filename, buffer);
-				})
-				.catch(() => {
-					callback(null, "Can't get file");
-				});
+						return response.arrayBuffer();
+					})
+					.then(buffer => {
+						entregue = true;
+						callback(buffer);
+						FileSystem.saveFile(filename, buffer);
+					})
+					.catch(err => {
+						if (entregue) {
+							console.error('[FileManager] erro depois de entregar ' + filename, err);
+							return;
+						}
+						if (devoTentarDeNovo(status, feitas)) {
+							setTimeout(() => tentar(feitas + 1), esperaAntesDaTentativa(feitas));
+							return;
+						}
+						callback(null, "Can't get file");
+					});
+			};
+			tentar(0);
 			return;
 		}
 
