@@ -90,8 +90,41 @@ export function fraseDaColeta(relatorio) {
 	if (!mantidas.length) {
 		return comZeny + '.';
 	}
-	const quantas = mantidas.length === 1 ? '1 não coube' : mantidas.length + ' não couberam';
+	/*
+	 * O MOTIVO DE CADA CARTA vem do servidor (24/09/2026). Até esta data a
+	 * frase cravava "no peso" para toda carta mantida, e o dono leu "2 não
+	 * couberam no peso" com a mochila leve. Um grupo por motivo, na ordem em
+	 * que aparece; motivo que esta janela não conhece é nomeado sem razão
+	 * inventada ("ficou no correio"), em vez de virar "peso" de novo.
+	 */
+	const grupos = [];
+	for (const m of mantidas) {
+		const motivo = Object.prototype.hasOwnProperty.call(MOTIVO_DA_COLETA, m.motivo) ? m.motivo : '';
+		let grupo = grupos.find(g => g.motivo === motivo);
+		if (!grupo) {
+			grupo = { motivo: motivo, titulos: [] };
+			grupos.push(grupo);
+		}
+		grupo.titulos.push(m.titulo);
+	}
 	return (
-		comZeny + '; ' + quantas + ' no peso: ' + mantidas.map(m => m.titulo).join(', ') + '.'
+		comZeny +
+		'; ' +
+		grupos
+			.map(g => {
+				const um = g.titulos.length === 1;
+				const verbo = g.motivo
+					? (um ? '1 não coube ' : g.titulos.length + ' não couberam ') + MOTIVO_DA_COLETA[g.motivo]
+					: um ? '1 ficou no correio' : g.titulos.length + ' ficaram no correio';
+				return verbo + ': ' + g.titulos.join(', ');
+			})
+			.join('; ') +
+		'.'
 	);
 }
+
+/** Os motivos que o servidor manda no "coletar todos" (`MotivoDeNaoColetar`). */
+const MOTIVO_DA_COLETA = {
+	peso: 'no peso',
+	zeny: 'no limite de zeny'
+};

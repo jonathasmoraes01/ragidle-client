@@ -74,6 +74,35 @@ describe('a frase da coleta', () => {
 		).toBe('Nenhum anexo coletado; 1 não coube no peso: Kit.');
 	});
 
+	it('o MOTIVO vem do servidor: a carta barrada pelo ZENY não diz "peso" (24/09/2026)', () => {
+		/*
+		 * O relato do dono: "2 não couberam no peso" com a mochila leve. A frase
+		 * cravava "no peso" para toda carta mantida, qualquer que fosse o motivo
+		 * do servidor. Hoje ele manda 'peso' ou 'zeny' (F12: o zeny que passaria
+		 * de 2.147.483.647 fica na carta).
+		 */
+		expect(
+			fraseDaColeta({ coletadas: 0, zenyTotal: 0, mantidas: [{ id: 1, titulo: 'Prêmio', motivo: 'zeny' }] })
+		).toBe('Nenhum anexo coletado; 1 não coube no limite de zeny: Prêmio.');
+		expect(
+			fraseDaColeta({
+				coletadas: 1,
+				zenyTotal: 0,
+				mantidas: [
+					{ id: 2, titulo: 'A', motivo: 'zeny' },
+					{ id: 3, titulo: 'B', motivo: 'peso' },
+					{ id: 4, titulo: 'C', motivo: 'zeny' }
+				]
+			})
+		).toBe('Anexo de 1 mensagem coletado; 2 não couberam no limite de zeny: A, C; 1 não coube no peso: B.');
+	});
+
+	it('motivo que a janela não conhece não vira "peso": a carta é nomeada sem inventar razão', () => {
+		expect(
+			fraseDaColeta({ coletadas: 0, zenyTotal: 0, mantidas: [{ id: 1, titulo: 'X', motivo: 'algo-novo' }, { id: 2, titulo: 'Y' }] })
+		).toBe('Nenhum anexo coletado; 2 ficaram no correio: X, Y.');
+	});
+
 	it('relatório vazio não estoura', () => {
 		expect(fraseDaColeta(null)).toBe('Nenhum anexo coletado.');
 		expect(fraseDaColeta({})).toBe('Nenhum anexo coletado.');
