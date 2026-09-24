@@ -60,6 +60,8 @@ import {
 	textoDaRecusa
 } from './formatoDaDoacao.js';
 import { formatarRoCash } from 'Utils/roCash.js';
+import RiIcones from 'UI/ri-icones.js';
+import { ASSET } from '../RoShop/formatoDoRoShop.js';
 
 /** Sem resposta do `doacao-gerar` em 15 s, a trava abre e avisa. */
 export const TIMEOUT_DO_GERAR_MS = 15000;
@@ -67,7 +69,12 @@ export const TIMEOUT_DO_GERAR_MS = 15000;
 /** A quantidade com que a janela nasce (presa aos limites do servidor). */
 export const QUANTIDADE_INICIAL = 100;
 
-const GEMA = '<span class="dc-gema" aria-hidden="true">💎</span>';
+/*
+ * A moeda e o icone OFICIAL do RO Cash, o mesmo PNG do RO Shop (ordem do dono,
+ * 23/09/2026: "troque o icone de diamante pelo nosso icone do RO Cash"). O
+ * caminho vem de `ASSET.roCash` para as duas janelas nunca divergirem.
+ */
+const MOEDA = `<img class="dc-moeda" src="${ASSET.roCash}" alt="" aria-hidden="true" draggable="false">`;
 
 /**
  * @param {object} opcoes
@@ -107,6 +114,13 @@ export function criarControladorDaDoacao(opcoes) {
 	let _timerTrava = null;
 
 	const $ = sel => raiz.querySelector(sel);
+
+	// O titulo (HTML estatico) recebe a moeda daqui, para o caminho morar num
+	// lugar so (`ASSET.roCash`).
+	const moedaDoTitulo = raiz.querySelector('.dc-title-moeda');
+	if (moedaDoTitulo) {
+		moedaDoTitulo.setAttribute('src', ASSET.roCash);
+	}
 
 	/* -------------------------------------------------------------- */
 	/* Regras                                                          */
@@ -164,12 +178,12 @@ export function criarControladorDaDoacao(opcoes) {
 			return;
 		}
 		if (s.tela === 'expirado') {
-			el.innerHTML = telaDeRecado('⌛', 'O código expirou. Gere um novo.', 'Gerar um novo código', 'nova-doacao');
+			el.innerHTML = telaDeRecado(RiIcones.relogio, 'O código expirou. Gere um novo.', 'Gerar um novo código', 'nova-doacao');
 			return;
 		}
 		if (s.tela === 'indisponivel') {
 			el.innerHTML = telaDeRecado(
-				'💤',
+				RiIcones.alerta,
 				'A doação via PIX está indisponível no momento. Tente mais tarde.',
 				'Fechar',
 				'fechar'
@@ -300,7 +314,7 @@ export function criarControladorDaDoacao(opcoes) {
 				return (
 					`<button type="button" class="${classes.join(' ')}" data-dc="faixa" data-quantidade="${f.aPartirDe}"${i === atual ? ' aria-pressed="true"' : ''}>` +
 					`<span class="dc-faixa-rotulo">${escapeHtml(rotuloDaFaixa(faixas, i, l.maximo))}</span>` +
-					GEMA +
+					MOEDA +
 					`<span class="dc-faixa-preco"><strong>${escapeHtml(formatarReais(f.precoPorCashCentavos))}</strong> /un</span>` +
 					'</button>'
 				);
@@ -317,7 +331,7 @@ export function criarControladorDaDoacao(opcoes) {
 		const rotulo = rotuloDaFaixa(faixas, c.indice, l.maximo).replace(' – ', '–');
 		let html =
 			'<div class="dc-resumo-linha"><span>Quantidade</span>' +
-			`<strong>${escapeHtml(formatarInteiro(c.quantidade))} ${GEMA}</strong></div>` +
+			`<strong>${escapeHtml(formatarInteiro(c.quantidade))} ${MOEDA}</strong></div>` +
 			`<div class="dc-resumo-linha"><span>Faixa (${escapeHtml(rotulo)})</span>` +
 			`<strong>${escapeHtml(formatarReais(c.precoPorCashCentavos))}/un</strong></div>`;
 		if (l.bonusPercent > 0) {
@@ -440,7 +454,7 @@ export function criarControladorDaDoacao(opcoes) {
 		const credito = Number.isSafeInteger(r.creditoMinor) ? r.creditoMinor : creditoMinor(r.quantidade || 0);
 		return (
 			'<div class="dc-recado-tela dc-sucesso">' +
-			'<div class="dc-recado-icone" aria-hidden="true">💎</div>' +
+			`<div class="dc-recado-icone" aria-hidden="true"><img class="dc-moeda dc-moeda--grande" src="${ASSET.roCash}" alt="" draggable="false"></div>` +
 			'<p class="dc-sucesso-titulo">Obrigado pelo apoio!</p>' +
 			`<p class="dc-recado-texto">+${escapeHtml(formatarRoCash(credito))} RO Cash na sua carteira.</p>` +
 			'<button type="button" class="dc-btn dc-btn--principal" data-dc="fechar">Fechar</button>' +

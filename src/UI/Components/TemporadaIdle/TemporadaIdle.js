@@ -495,6 +495,22 @@ function onClicarAcao(botao) {
 		enviarAcao({ acao: 'resgatar', nivel, trilha });
 		return;
 	}
+	if (agir === 'comprar-passe-vip') {
+		/* O PASSE DE BATALHA VIP (23/09/2026), vendido a parte do VIP. Hoje o
+		   servidor manda o botao APAGADO ("Em breve") e o `disabled` para o
+		   clique na primeira linha desta funcao; o caminho fica pronto para o
+		   dia em que o dono abrir a venda. O preco sai do estado, nunca daqui. */
+		const passeDaTemporada = TemporadaIdle.estado && TemporadaIdle.estado.passe;
+		const trilhaVip = passeDaTemporada && passeDaTemporada.trilhaVip;
+		if (!trilhaVip || !trilhaVip.compra || trilhaVip.compra.pode !== true) {
+			return;
+		}
+		abrirConfirmacao(
+			`Comprar o Passe de Batalha VIP por ${formatarRoCash(Number(trilhaVip.precoMinor) || 0)} RO Cash?`,
+			() => enviarAcao({ acao: 'comprar-passe-vip', chave: gerarChave() })
+		);
+		return;
+	}
 	if (agir === 'resgatar-visual-vip') {
 		/* Sem confirmação: não gasta cash nenhum — é um resgate, e o servidor
 		   recusa sozinho sem VIP ou já resgatado. */
@@ -526,6 +542,20 @@ function onClickRaiz(e) {
 	if (fechar) {
 		e.stopImmediatePropagation();
 		TemporadaIdle.toggle();
+		return;
+	}
+
+	/* O "Recarregar" (23/09/2026, relato do dono: "esse botao de recarregar
+	   nao esta funcionando"): ele nascia `disabled` no HTML, de antes da
+	   doacao via PIX existir. Hoje abre a janela de doacao, pela ponte que o
+	   MapEngine liga - a mesma do Recarregar do RO Shop. Quem diz se a doacao
+	   esta disponivel e a propria janela, com o estado do servidor. */
+	const recarregar = e.target.closest('.te-recarregar');
+	if (recarregar) {
+		e.stopImmediatePropagation();
+		if (typeof TemporadaIdle.aoAbrirDoacao === 'function') {
+			TemporadaIdle.aoAbrirDoacao();
+		}
 		return;
 	}
 
@@ -709,6 +739,9 @@ TemporadaIdle.init = function init() {
 
 	render();
 };
+
+/** A ponte para a janela de doacao, ligada no `MapEngine` (o Recarregar). */
+TemporadaIdle.aoAbrirDoacao = null;
 
 TemporadaIdle.onAppend = function onAppend() {
 	if (_preferences.x != null && _preferences.y != null) {

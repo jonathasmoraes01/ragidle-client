@@ -114,6 +114,7 @@ import PresencaIdle from 'UI/Components/PresencaIdle/PresencaIdle.js'; // RAGIDL
 import IndicacaoIdle from 'UI/Components/IndicacaoIdle/IndicacaoIdle.js'; // RAGIDLE: Indique & Ganhe (D-1164)
 import RankingIdle from 'UI/Components/RankingIdle/RankingIdle.js'; // RAGIDLE: o Ranking (09/09/2026)
 import PainelComandoIdle from 'UI/Components/PainelComandoIdle/PainelComandoIdle.js'; // RAGIDLE: o painel de comando (D-1563)
+import { medidorDePing } from 'Network/medidorDePing.js'; // RAGIDLE: o ping real (23/09/2026)
 import TemporadaIdle from 'UI/Components/TemporadaIdle/TemporadaIdle.js'; // RAGIDLE: a janela da Temporada (Season 1, 21/09/2026)
 import RoShop from 'UI/Components/RoShop/RoShop.js'; // RAGIDLE: o RO Shop (22/09/2026) - a loja de RO Cash que substitui a CashShop nativa como caminho de compra
 import DoacaoIdle from 'UI/Components/DoacaoIdle/DoacaoIdle.js'; // RAGIDLE: a doacao via PIX (23/09/2026) - o "Recarregar" do RO Shop a abre
@@ -357,9 +358,22 @@ class MapEngine {
 					SP.returned = false;
 
 					Network.sendPacket(ping);
+					// RAGIDLE (23/09/2026): o relogio do medidor de ping.
+					medidorDePing.enviou(Date.now());
 				};
 
 				Network.setPing(sendKeepAlive);
+				// RAGIDLE (23/09/2026): a PRIMEIRA medida de ping sai logo, e nao
+				// depois dos 10 s do intervalo - a HUD mostrava "— ms" ate la.
+				// Em `setTimeout` e com try/catch: nada disto pode tocar a
+				// entrada no mapa (o aviso de D-993).
+				setTimeout(() => {
+					try {
+						sendKeepAlive();
+					} catch (err) {
+						console.error('[ping] primeira medida falhou', err);
+					}
+				}, 1500);
 
 				// Background tabs throttle setInterval to ~once/min and rAF to
 				// ~0fps, starving the setPing above. BackgroundTicker runs the
@@ -749,8 +763,11 @@ function onPong(pkt) {
 	const SP = Session.ping;
 
 	SP.returned = true;
-	SP.pongTime = 0;
-	SP.value = SP.pongTime - SP.pingTime;
+	// RAGIDLE (23/09/2026): o `pongTime` era zerado a mao e o ping saia
+	// negativo. Agora e o tempo REAL de ida e volta (`medidorDePing.js`).
+	const rtt = medidorDePing.respondeu(Date.now());
+	SP.pongTime = SP.pingTime + (rtt ?? 0);
+	SP.value = rtt ?? 0;
 
 	Session.serverTick = pkt.time + SP.value / 2; // Adjust with half ping
 }
@@ -1234,7 +1251,10 @@ function sairDaEconomiaDeEnergia() {
  * dê alt tab OU troque de aplicativo no mobile. Se ele FECHAR a aba ou o
  * aplicativo, deve encerrar."*
  */
-const MS_DE_ATRASO_ANTES_DE_ENTRAR_NA_ECONOMIA = 3000;
+// 14 s desde 23/09/2026 (era 3 s, ordem do dono no open beta: *"Aumente
+// esse tempo para 14 segundos"*) - um alt-tab curto nao tira mais o jogador
+// da tela do jogo.
+const MS_DE_ATRASO_ANTES_DE_ENTRAR_NA_ECONOMIA = 14000;
 
 /** O atraso agendado, se houver — cancelado se a aba voltar antes de disparar. */
 let _atrasoDaEconomia = null;
@@ -1898,6 +1918,7 @@ function onMapChange(pkt, ehEntradaNoMundo) {
 		   pilha fecha a de baixo sozinha, uma janela por vez), e as mensagens
 		   `tipo: 'doacao'` que o RoShop.js recebe no 0x0fb8 vao para ela. */
 		RoShop.aoAbrirDoacao = () => DoacaoIdle.abrir();
+		TemporadaIdle.aoAbrirDoacao = () => DoacaoIdle.abrir();
 		RoShop.aoDoacao = dados => DoacaoIdle.receber(dados);
 
 		RoShop.aoIrParaTemporada = () => {

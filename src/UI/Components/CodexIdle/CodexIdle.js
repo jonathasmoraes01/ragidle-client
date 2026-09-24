@@ -72,6 +72,7 @@ import MissoesIdle from 'UI/Components/MissoesIdle/MissoesIdle.js';
 // Quem responde "isto e um celular em pe?" no projeto inteiro (D-929).
 import { ehCelularEmPe } from 'UI/hudVertical.js';
 import { jornadaHtml } from './jornadaHtml.js';
+import { avisoDosAtributos, eixoEmAlteracao, AVISO_PADRAO_DOS_ATRIBUTOS } from './atributosEmAlteracao.js';
 import { missoesGeraisHtml, cliqueDeMissoesGerais, SUBABA_PADRAO } from './missoesGeraisHtml.js';
 import htmlText from './CodexIdle.html?raw';
 import cssText from './CodexIdle.css?raw';
@@ -115,7 +116,8 @@ const NOME_DO_EIXO = {
  */
 const MOTIVO_DA_RECUSA = {
 	'eixo-no-teto': 'Este eixo ja esta no teto',
-	'sem-ponto': 'Voce nao tem ponto para gastar'
+	'sem-ponto': 'Voce nao tem ponto para gastar',
+	'atributos-em-alteracao': AVISO_PADRAO_DOS_ATRIBUTOS
 };
 
 /** O unico eixo cujo bonus e uma PORCENTAGEM, e nao pontos de atributo. */
@@ -788,6 +790,9 @@ function eixosHtml(estado) {
 		 */
 		const recusa = recusas[eixo] || null;
 		const noTeto = recusa === 'eixo-no-teto';
+		// 23/09/2026: os atributos em alteracao — a linha apaga inteira e o "+"
+		// nao reage nem ao passar o mouse (CSS `.is-em-alteracao`).
+		const emAlteracao = eixoEmAlteracao(estado, eixo);
 		const bloqueado = semVeredito || recusa !== null;
 		const bonus = bonusDoEixo(estado, eixo);
 		const titulo = semVeredito
@@ -797,6 +802,7 @@ function eixosHtml(estado) {
 		return (
 			'<div class="cx-eixo' +
 			(noTeto ? ' is-no-teto' : '') +
+			(emAlteracao ? ' is-em-alteracao' : '') +
 			'">' +
 			'<span class="cx-eixo-sigla">' +
 			escapeHtml(eixo) +
@@ -829,7 +835,15 @@ function eixosHtml(estado) {
 		return '<div class="cx-vazio">O retrato do servidor nao trouxe eixo nenhum.</div>';
 	}
 
-	return '<div class="cx-eixos">' + linhas.join('') + '</div>';
+	/*
+	 * O AVISO DOS ATRIBUTOS (23/09/2026, ordem do dono) vem ACIMA das linhas:
+	 * no celular em pe e a primeira coisa lida ao rolar ate "Onde gastar", e o
+	 * jogador entende por que os "+" estao apagados antes de tentar clicar.
+	 */
+	const aviso = avisoDosAtributos(estado);
+	const faixa = aviso ? '<div class="cx-aviso-atributos" role="status">' + escapeHtml(aviso) + '</div>' : '';
+
+	return faixa + '<div class="cx-eixos">' + linhas.join('') + '</div>';
 }
 
 function render() {

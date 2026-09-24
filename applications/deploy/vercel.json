@@ -62,10 +62,24 @@
 			"continue": true
 		},
 		{
-			"src": "^/(market|wiki)$",
+			"src": "^/wiki$",
 			"status": 308,
 			"headers": {
-				"Location": "/$1/"
+				"Location": "/wiki/"
+			}
+		},
+		{
+			"src": "^/wiki/(index\\.html)?$",
+			"headers": {
+				"Cache-Control": "no-cache"
+			},
+			"continue": true
+		},
+		{
+			"src": "^/market$",
+			"status": 308,
+			"headers": {
+				"Location": "/market/"
 			}
 		},
 		{
@@ -76,7 +90,7 @@
 			}
 		},
 		{
-			"src": "^/(market|wiki)/(.*\\.html)?$",
+			"src": "^/market/(.*\\.html)?$",
 			"headers": {
 				"Cache-Control": "no-cache"
 			},

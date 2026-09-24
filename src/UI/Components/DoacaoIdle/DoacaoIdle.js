@@ -71,22 +71,6 @@ function enviar(corpo) {
 	Network.sendPacket(pkt);
 }
 
-/**
- * O titulo e em Cinzel, como na referencia do dono. A tela de login ja a
- * carrega (Intro.js); quem entra direto no mapa (a retomada sem login, D-997)
- * nao passa por la, entao a janela confere e pede - com a MESMA guarda, para
- * nunca haver duas folhas da mesma fonte.
- */
-function garantirFonteDoTitulo() {
-	if (typeof document === 'undefined' || document.querySelector('link[href*="Cinzel"]')) {
-		return;
-	}
-	const link = document.createElement('link');
-	link.rel = 'stylesheet';
-	link.href = 'https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&display=swap';
-	document.head.appendChild(link);
-}
-
 let _controlador = null;
 
 function controlador() {
@@ -193,7 +177,6 @@ DoacaoIdle.toggle = function toggle() {
 		savePosition();
 		return;
 	}
-	garantirFonteDoTitulo();
 	win.classList.add('is-open');
 	if (_preferences.x == null || _preferences.y == null) {
 		DoacaoIdle._host.style.left = Math.max(0, Math.round((Renderer.width - win.offsetWidth) / 2)) + 'px';

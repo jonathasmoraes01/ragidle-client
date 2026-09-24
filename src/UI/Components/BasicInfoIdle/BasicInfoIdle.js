@@ -68,6 +68,7 @@
  * @author RagIdle
  */
 
+import { faixaDoPing, medidorDePing } from 'Network/medidorDePing.js';
 import Renderer from 'Renderer/Renderer.js';
 import Preferences from 'Core/Preferences.js';
 import Session from 'Engine/SessionStorage.js';
@@ -194,6 +195,7 @@ BasicInfoIdle.init = function init() {
 	/* D-939: o rodape da HUD vertical mostra wifi e bateria. Ligado no init
 	   (uma vez por vida do componente), e nao no polling. */
 	ligarBateriaEWifi();
+	ligarPing();
 };
 
 /**
@@ -630,6 +632,30 @@ function sincronizarRodapeVertical(root, entity, nativeUI) {
  *   - o wifi e `navigator.onLine`: um booleano honesto (conectado ou nao),
  *     sem fingir medir intensidade de sinal.
  */
+/**
+ * O PING NA HUD (23/09/2026): le o medidor da sessao a cada 2 s. O keepalive sai
+ * a cada 10 s, entao o numero anda na mesma cadencia; ler mais vezes so garante
+ * que ele aparece logo depois da primeira resposta.
+ */
+let _relogioDoPing = null;
+function ligarPing() {
+	if (_relogioDoPing) clearInterval(_relogioDoPing);
+	const pintar = () => {
+		const root = BasicInfoIdle._shadow || BasicInfoIdle._host;
+		if (!root) return;
+		const ms = medidorDePing.valor();
+		const faixa = faixaDoPing(ms);
+		for (const el of root.querySelectorAll('.bi-ping')) {
+			el.textContent = ms === null ? '— ms' : `${ms} ms`;
+			el.classList.toggle('is-bom', faixa === 'bom');
+			el.classList.toggle('is-medio', faixa === 'medio');
+			el.classList.toggle('is-ruim', faixa === 'ruim');
+		}
+	};
+	pintar();
+	_relogioDoPing = setInterval(pintar, 2000);
+}
+
 function ligarBateriaEWifi() {
 	const root = _root();
 	const wifi = root.querySelector('.bi-rodape-wifi');

@@ -189,16 +189,9 @@ describe('a lista aponta so para item que o jogo conhece', () => {
 		 */
 		// **23/09/2026: 61 -> 63**, as pocoes da conta 9.000.111-112 que os packs
 		// entregam (`game/pocoes-da-conta.ts` do servidor).
-		/*
-		 * **Rodada 10 (23/09/2026, Recompensas do Alfa):** +3 (63 -> 66, somadas as pocoes da conta acima), o Poring Alpha
-		 * Hat (9.002.000), a Coroa do Alfa (9.002.001) e a Aura do Alfa
-		 * (9.002.002, a aura virou item de costume por ordem do dono). O cruzamento acima so
-		 * os aceita com o `conteudo.json` regerado pela branch
-		 * `feat/reset-do-alfa` do servidor.
-		 */
-		// **23/09/2026: 66 -> 67**, a Aura do Tornado 9.000.326, o visual do VIP
-		// que substituiu a Astra Blessing (a Astra FICA: quem resgatou tem o item).
-		expect(Object.keys(NOMES_LOCAIS)).toHaveLength(67);
+		// **23/09/2026: 74** = 63 + os sete tickets do RO Shop (9.000.113-119) + os tres
+		// premios do alfa (9.002.000-002) + a Aura do Tornado (9.000.326), das frentes mescladas no mesmo dia.
+		expect(Object.keys(NOMES_LOCAIS)).toHaveLength(74);
 	});
 });
 
@@ -288,7 +281,8 @@ describe('o icone local (31/08/2026)', () => {
 		 * teste dela esta em `tests/ui/roShopRodada3.test.js`.
 		 */
 		// **23/09/2026: 26 -> 28**, as pocoes da conta, com o `.bmp` da Azul/Branca.
-		expect(Object.keys(ICONES_LOCAIS)).toHaveLength(28);
+		// **23/09/2026: 28 -> 35**, os sete tickets, com o recurso de um cupom oficial cada.
+		expect(Object.keys(ICONES_LOCAIS)).toHaveLength(35);
 	});
 });
 
