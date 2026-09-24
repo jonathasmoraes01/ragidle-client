@@ -923,8 +923,15 @@ function onConnectionRefused(pkt) {
 			break;
 	}
 
+	/*
+	 * O MOTIVO 6 E A MANUTENCAO (servidor D-1590 - o unico uso dele la). A
+	 * frase do RO para o 6 e a 449, "Seu acesso esta bloqueado... consulte a
+	 * lista de punidos", e um jogador que acabava de criar a conta achou que
+	 * tinha sido banido (relato de 23/09/2026). A frase e nossa.
+	 */
+	const texto = pkt.ErrorCode === 6 ? TEXTO_DA_MANUTENCAO : DB.getMessage(error).replace('%s', pkt.blockDate);
 	UIManager.showMessageBox(
-		DB.getMessage(error).replace('%s', pkt.blockDate),
+		texto,
 		'ok',
 		() => {
 			UIManager.removeComponents();
@@ -935,6 +942,10 @@ function onConnectionRefused(pkt) {
 
 	Network.close();
 }
+
+/** O que o jogador le quando o login e recusado pela MANUTENCAO (motivo 6). */
+export const TEXTO_DA_MANUTENCAO =
+	'O servidor está em manutenção neste momento. Sua conta está normal e nada foi perdido: volte em alguns minutos e acompanhe os avisos no nosso Discord.';
 
 /** O codigo do `SC_NOTIFY_BAN` para o limite de contas por IP (servidor). */
 export const CODIGO_DE_LIMITE_POR_IP = 106;
