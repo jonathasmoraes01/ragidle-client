@@ -435,7 +435,7 @@ function sincronizarDormir(root, r, aoVivo) {
 	}
 
 	botao.disabled = !pronto;
-	botao.title = pronto ? 'Farm offline de EXP por até 8h' : motivo;
+	botao.title = pronto ? 'Pode fechar o jogo: dormindo, o personagem não luta nem morre e ganha só EXP, até 8 h. Loot e zeny só caçando online.' : motivo;
 	if (status) {
 		status.textContent = pronto ? '' : motivo;
 	}

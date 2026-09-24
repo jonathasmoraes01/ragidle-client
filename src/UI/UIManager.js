@@ -609,7 +609,10 @@ class UIManager {
 
 		const tela = _telaPretaDeEspera({
 			titulo: 'DORMINDO',
-			rodape: 'Pode fechar esta aba com segurança — o sono continua sem ela.',
+			// RAGIDLE (24/09/2026, pedido do dono): as quatro duvidas que os jogadores fazem, respondidas na tela.
+			rodape:
+				'Pode fechar o jogo com segurança — o sono continua sem ele. Dormindo, o personagem não luta nem morre ' +
+				'e ganha só EXP (base e classe), até 8 h. Loot e zeny só caçando online.',
 			textoDoBotao: 'Acordar agora',
 			onBotao: () => {
 				/*

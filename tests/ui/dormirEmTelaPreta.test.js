@@ -88,7 +88,7 @@ describe('a tela do "Dormindo..." e preta e cobre o jogo', () => {
 		const texto = document.body.lastElementChild.textContent;
 		expect(texto, 'o relogio nao aparece').toContain('02:00:00');
 		expect(texto, 'a EXP projetada sumiu').toMatch(/EXP base/);
-		expect(texto, 'o aviso de que da pra fechar a aba sumiu').toMatch(/fechar esta aba/i);
+		expect(texto, 'o aviso de que da pra fechar a aba sumiu').toMatch(/fechar o jogo/i);
 
 		tela.remove();
 	});
