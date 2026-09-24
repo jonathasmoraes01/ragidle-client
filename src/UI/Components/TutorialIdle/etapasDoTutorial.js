@@ -1,7 +1,7 @@
 /**
  * UI/Components/TutorialIdle/etapasDoTutorial.js
  *
- * A REGRA PURA DO TUTORIAL GUIADO: a tabela das onze etapas e a geometria da
+ * A REGRA PURA DO TUTORIAL GUIADO: a tabela das doze etapas e a geometria da
  * camada (recorte, mascara, mao, balao). Zero DOM, zero import.
  *
  * Ele mora fora do componente pelo mesmo motivo que `secoesDaConfig.js` mora
@@ -49,7 +49,7 @@
 
 /** Quantas etapas o tutorial tem. O servidor manda `total` no retrato; este
  *  numero e o que o cliente desenha quando o retrato ainda nao chegou. */
-export const TOTAL_DE_ETAPAS = 11;
+export const TOTAL_DE_ETAPAS = 12;
 
 /**
  * Quem guia. E a Kafra da praca de Prontera, com o nome que o jogador ja le
@@ -62,11 +62,12 @@ export const TOTAL_DE_ETAPAS = 11;
 export const QUEM_GUIA = 'Funcionária Kafra';
 
 /**
- * AS ONZE ETAPAS (secao 7 do CONTRATO-JORNADA.md, mais o Correio e as
- * poções - achados faltando/fora de ordem em 15/09/2026).
+ * AS DOZE ETAPAS (secao 7 do CONTRATO-JORNADA.md, mais o Correio e as
+ * poções - achados faltando/fora de ordem em 15/09/2026 - e a economia de
+ * energia, somada ao fim em 24/09/2026).
  *
  * Campos de cada uma:
- *   numero      1..11, o que o servidor guarda em `etapa`.
+ *   numero      1..12, o que o servidor guarda em `etapa`.
  *   rotulo      o texto do controle, EXATAMENTE como ele aparece na tela.
  *               E o que vai entre aspas na frase.
  *   frase       imperativo, uma acao so, com `{acao}` onde entra o verbo do
@@ -395,10 +396,112 @@ export const ETAPAS = Object.freeze([
 			})
 		]),
 		avancaPor: 'aba-da-jornada-ativa'
+	}),
+	/*
+	 * A ECONOMIA DE ENERGIA (24/09/2026, pedido do dono: "quero que ensine
+	 * dentro do nosso tutorial a como desativa-lo tambem").
+	 *
+	 * Ela liga SOZINHA quando a aba fica 14 s em segundo plano
+	 * (`MapEngine.js`, `onVisibilidadeMudouParaEconomia`), e a unica porta
+	 * para desliga-la e a caixa "Economia de energia" das Configuracoes de
+	 * Video (`GraphicsOption.html`, `.economia-automatica`). O caminho ate la
+	 * e Menu -> "Configurações" (a janela de sistema, `Escape`) ->
+	 * "Configurações de Vídeo" -> a caixa - quatro gestos, e por isso a cadeia
+	 * de alcances abaixo tem cinco degraus.
+	 *
+	 * O TUTORIAL ENSINA, NAO OBRIGA. A etapa fecha quando o jogador MEXE na
+	 * caixa ou FECHA a janela de Video depois de ve-la (`passoDaEconomia`,
+	 * abaixo). Deixar marcada e resposta valida (poupa bateria), e a frase
+	 * diz as duas saidas. Avancar so por "a caixa apareceu" foi descartado:
+	 * a camada sumiria no mesmo tique (250 ms) em que a janela abre, e a frase
+	 * que explica o que a caixa faz nunca chegaria a ser lida.
+	 *
+	 * O FURO E A JANELA DE VIDEO INTEIRA, e nao so a caixa - o mesmo arranjo
+	 * das etapas 4, 5 e 6: o "X" que fecha a janela (uma das duas saidas) e a
+	 * aba "Basic" (onde a caixa mora, se o jogador deixou a janela lembrando
+	 * a "Advanced") ficam fora de um furo estreito. A MAO segue `maoEm`: a
+	 * caixa quando ela esta na tela, a aba "Basic" quando nao esta.
+	 *
+	 * O CODEX PODE ESTAR ABERTO NA CHEGADA, e isso e desejado: a etapa 11 fecha
+	 * no instante em que a aba da Jornada acende, e fechar a janela ali
+	 * tiraria a Jornada da frente de quem acabou de chegar nela. Entao o
+	 * terceiro degrau e a propria janela do Codex, inteira (o jogador explora
+	 * a Jornada a vontade), pedindo para fecha-la quando terminar - sem isso o
+	 * furo iria para o botao "Menu" com o Codex por cima dele no celular.
+	 */
+	Object.freeze({
+		numero: 12,
+		rotulo: 'Economia de energia',
+		frase: 'Desmarque {rotulo} para caçar em segundo plano, ou feche e poupe bateria.',
+		alvos: Object.freeze([
+			Object.freeze({ host: 'GraphicsOption', seletor: '.ri-window' }),
+			Object.freeze({
+				host: 'Escape',
+				seletor: '.graphics',
+				frase: '{acao} "Configurações de Vídeo". Tem um ajuste de bateria lá.'
+			}),
+			Object.freeze({
+				host: 'CodexIdle',
+				seletor: '.cx-window.is-open',
+				frase: 'Veja a Jornada à vontade e feche esta janela. Falta um último ajuste.'
+			}),
+			Object.freeze({
+				host: 'TopMenuIdle',
+				seletor: '.tm-item[data-action="sistema"]',
+				frase: '{acao} "Configurações". Falta um último ajuste.'
+			}),
+			Object.freeze({
+				host: 'TopMenuIdle',
+				seletor: '.tm-fab',
+				frase: 'Abra o "Menu" e toque em "Configurações". Falta um último ajuste.'
+			})
+		]),
+		maoEm: Object.freeze([
+			Object.freeze({ host: 'GraphicsOption', seletor: '.economia-automatica' }),
+			Object.freeze({ host: 'GraphicsOption', seletor: '.tab-button[data-tab="basic"]' }),
+			/* O "X" do Codex, quando o furo e o Codex (o terceiro alcance):
+			   sem ele a mao ficava no canto de baixo da janela, apontando o
+			   nada (visto na foto da sonda, 24/09/2026). */
+			Object.freeze({ host: 'CodexIdle', seletor: '.cx-close' })
+		]),
+		avancaPor: 'economia-de-energia-vista'
 	})
 ]);
 
-/** A etapa de numero `n`, ou `null`. Fora de 1..11 devolve `null` de proposito:
+/**
+ * A ETAPA 12 FECHOU? A regra da economia de energia, sem DOM.
+ *
+ * Ela precisa de MEMORIA, e por isso nao cabe num `return` de uma linha como
+ * as outras: "o jogador mexeu na caixa" so tem sentido contra o valor que ela
+ * tinha quando ele a VIU, e "fechou a janela" so conta depois de ele te-la
+ * visto aberta (senao a etapa fecharia sozinha no primeiro tique, com a janela
+ * de Video ainda por abrir). Quem chama guarda `visto` entre um tique e outro
+ * e devolve o que esta funcao entregar.
+ *
+ * @param {boolean|null} visto   o valor da caixa na primeira vez que ela
+ *        apareceu na tela, ou `null` se ela ainda nao apareceu.
+ * @param {{caixaNaTela:boolean, marcada:(boolean|null), janelaAberta:boolean}} leitura
+ *        `marcada` e `null` quando a caixa nem existe (janela fechada).
+ * @returns {{visto:(boolean|null), cumprida:boolean}}
+ */
+export function passoDaEconomia(visto, leitura) {
+	if (visto === null) {
+		/* Ainda nao viu: a primeira aparicao so ANOTA, e nunca fecha. */
+		if (leitura.caixaNaTela && typeof leitura.marcada === 'boolean') {
+			return { visto: leitura.marcada, cumprida: false };
+		}
+		return { visto: null, cumprida: false };
+	}
+	/* Mexeu: vale mesmo com a caixa fora da tela (trocou para "Advanced"
+	   logo depois de clicar), porque o que conta e o valor, nao a caixa. */
+	if (typeof leitura.marcada === 'boolean' && leitura.marcada !== visto) {
+		return { visto, cumprida: true };
+	}
+	/* Viu e fechou a janela sem mexer: deixou marcada de proposito. */
+	return { visto, cumprida: !leitura.janelaAberta };
+}
+
+/** A etapa de numero `n`, ou `null`. Fora de 1..12 devolve `null` de proposito:
  *  um retrato de servidor mais novo (mais etapas) nao pode desenhar lixo. */
 export function etapaDe(numero) {
 	return ETAPAS.find(e => e.numero === numero) || null;
@@ -421,6 +524,25 @@ export function fraseDaEtapa(etapa, temDedo, frase) {
 /* ------------------------------------------------------------------ */
 /* A GEOMETRIA                                                         */
 /* ------------------------------------------------------------------ */
+
+/**
+ * O SUB-ALVO DA MAO ESTA DENTRO DO FURO? (24/09/2026)
+ *
+ * `maoEm` era lido como "o primeiro candidato com caixa", e isso bastava
+ * enquanto todos moravam na mesma janela do furo (etapas 4 e 6). A etapa 12
+ * tem candidatos em DUAS janelas (a de Video e o Codex), e as duas podem estar
+ * abertas ao mesmo tempo: sem esta conta a mao apontaria um controle que a
+ * mascara escurece e desliga. Vale o CENTRO do sub-alvo, a mesma leitura que
+ * o jogador faz: o que ele toca e o meio do controle.
+ */
+export function dentroDoFuro(sub, furo) {
+	if (!sub || !furo) {
+		return false;
+	}
+	const cx = sub.x + sub.w / 2;
+	const cy = sub.y + sub.h / 2;
+	return cx >= furo.x && cx <= furo.x + furo.w && cy >= furo.y && cy <= furo.y + furo.h;
+}
 /*
  * TUDO AQUI ESTA EM PIXEL DE VIEWPORT, e essa e a escolha da armadilha 1 do
  * contrato (o `zoom` de `escalaDaHud.js:172-176`).

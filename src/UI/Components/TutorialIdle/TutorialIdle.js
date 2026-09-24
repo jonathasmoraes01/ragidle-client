@@ -90,7 +90,9 @@ import {
 	TOTAL_DE_ETAPAS,
 	casaDoBalao,
 	etapaDe,
+	dentroDoFuro,
 	fraseDaEtapa,
+	passoDaEconomia,
 	posicaoDaMao,
 	recorteDoAlvo,
 	retangulosDaMascara
@@ -355,7 +357,34 @@ function marcoDaEtapa(numero) {
 		   do par que o caso 5 confere - a outra metade e `Inventory.getUI().
 		   list` (a ARMA em si), lida direto na hora, sem marco: presenca de
 		   item nao precisa de "antes/depois", so precisa existir agora. */
-		zeny: Session.zeny || 0
+		zeny: Session.zeny || 0,
+		/* Etapa 12: o valor da caixa "Economia de energia" na primeira vez que
+		   ela apareceu na tela, ou `null` enquanto nao apareceu. E o UNICO
+		   campo do marco que muda depois de criado - ver `passoDaEconomia`
+		   (etapasDoTutorial.js), que diz por que a etapa precisa lembrar. */
+		economiaVista: null
+	};
+}
+
+/**
+ * A LEITURA DA JANELA DE VIDEO para a etapa 12, em DOM puro.
+ *
+ * `GraphicsOption` nao usa `is-open`: ela e inserida e REMOVIDA do DOM
+ * (`Escape.js`, `onToggleGraphicUI`), entao "aberta" e "o host existe e a
+ * janela tem caixa". A caixa da economia mora na aba "Basic": com a janela
+ * lembrando a aba "Advanced", ela existe mas mede 0x0 - e isso e "fora da
+ * tela", e nao "fechada".
+ */
+function leituraDaJanelaDeVideo() {
+	const janela = acharAlvo({ host: 'GraphicsOption', seletor: '.ri-window' });
+	const caixaDaJanela = janela ? janela.getBoundingClientRect() : null;
+	const janelaAberta = !!(caixaDaJanela && caixaDaJanela.width > 0 && caixaDaJanela.height > 0);
+	const caixa = janelaAberta ? acharAlvo({ host: 'GraphicsOption', seletor: '.economia-automatica' }) : null;
+	const r = caixa ? caixa.getBoundingClientRect() : null;
+	return {
+		janelaAberta,
+		caixaNaTela: !!(r && r.width > 0 && r.height > 0),
+		marcada: caixa ? !!caixa.checked : null
 	};
 }
 
@@ -471,6 +500,18 @@ function etapaCumprida(numero) {
 			   janela esta aberta" (16/09/2026): ela ja esta aberta desde a
 			   etapa 2, na aba "Missões Gerais". */
 			return abaDoCodexAtiva('jornada');
+		case 12: {
+			/* A caixa "Economia de energia" foi VISTA, e depois o jogador
+			   mexeu nela ou fechou a janela de Video (24/09/2026). A regra
+			   mora em `passoDaEconomia`; aqui so se le a tela e se guarda o
+			   que ela devolveu. */
+			if (!_marco) {
+				return false;
+			}
+			const passo = passoDaEconomia(_marco.economiaVista, leituraDaJanelaDeVideo());
+			_marco.economiaVista = passo.visto;
+			return passo.cumprida;
+		}
 		default:
 			return false;
 	}
@@ -737,7 +778,9 @@ function desenhar() {
 	if (recorte && Array.isArray(etapa.maoEm)) {
 		for (const candidato of etapa.maoEm) {
 			const r = medirRecorte(acharAlvo(candidato), tela);
-			if (r) {
+			/* So vale o sub-alvo que mora DENTRO do furo desta hora (ver
+			   `dentroDoFuro`): a etapa 12 tem candidatos em duas janelas. */
+			if (r && dentroDoFuro(r, recorte)) {
 				recorteDaMao = r;
 				break;
 			}

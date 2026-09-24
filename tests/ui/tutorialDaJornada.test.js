@@ -15,8 +15,10 @@ import {
 	QUEM_GUIA,
 	TOTAL_DE_ETAPAS,
 	casaDoBalao,
+	dentroDoFuro,
 	etapaDe,
 	fraseDaEtapa,
+	passoDaEconomia,
 	posicaoDaMao,
 	recorteDoAlvo,
 	retangulosDaMascara
@@ -25,10 +27,11 @@ import {
 const TELA = { largura: 1600, altura: 900 };
 const MAO = { largura: 100, altura: 100, pontaX: 10, pontaY: 12 };
 
-describe('as onze etapas', () => {
-	it('são onze, numeradas de 1 a 11, sem buraco', () => {
+describe('as doze etapas', () => {
+	it('são doze, numeradas de 1 a 12, sem buraco', () => {
+		expect(TOTAL_DE_ETAPAS).toBe(12);
 		expect(ETAPAS).toHaveLength(TOTAL_DE_ETAPAS);
-		expect(ETAPAS.map(e => e.numero)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]);
+		expect(ETAPAS.map(e => e.numero)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
 	});
 
 	it('cada etapa avança por um RESULTADO nomeado, e nenhum deles é um clique em "Próximo"', () => {
@@ -91,7 +94,7 @@ describe('as onze etapas', () => {
 		   "tem caminho de volta": o par `alvo`/`quandoSumir` de sempre, ou a
 		   lista `alvos` (16/09/2026) para quem tem TRES estados reais, e não
 		   dois — o alcance de topo mais um ou mais candidatos de fallback. */
-		for (const numero of [2, 3, 4, 5, 6, 7, 8, 11]) {
+		for (const numero of [2, 3, 4, 5, 6, 7, 8, 11, 12]) {
 			const etapa = etapaDe(numero);
 			if (Array.isArray(etapa.alvos)) {
 				expect(etapa.alvos.length, `etapa ${numero}`).toBeGreaterThan(1);
@@ -128,7 +131,7 @@ describe('as onze etapas', () => {
 
 	it('etapa fora da faixa não desenha nada', () => {
 		expect(etapaDe(0)).toBeNull();
-		expect(etapaDe(12)).toBeNull();
+		expect(etapaDe(13)).toBeNull();
 		expect(etapaDe(undefined)).toBeNull();
 	});
 });
@@ -304,5 +307,124 @@ describe('os pacotes do tutorial estao nas QUATRO listas', () => {
 			const ocorrencias = fonte.split(`length_list[${opcode}]`).length - 1;
 			expect(ocorrencias, opcode).toBe(1);
 		}
+	});
+});
+
+/**
+ * A ETAPA 12: onde desligar a economia de energia (24/09/2026, pedido do
+ * dono). O que se prova aqui e o CAMINHO declarado e a REGRA de fechar; que o
+ * jogador de fato ve a caixa com o furo em cima dela e prova de tela.
+ */
+describe('a etapa 12 ensina a desligar a economia de energia', () => {
+	const etapa = etapaDe(12);
+
+	it('é a última, e o furo final é a janela de Vídeo onde a caixa mora', () => {
+		expect(etapa.numero).toBe(TOTAL_DE_ETAPAS);
+		expect(etapa.alvos[0]).toMatchObject({ host: 'GraphicsOption', seletor: '.ri-window' });
+		/* A mão mira a caixa de verdade: o mesmo seletor que o
+		   GraphicsOption.js liga ao `onToggleEconomiaAutomatica`. */
+		expect(etapa.maoEm[0]).toMatchObject({ host: 'GraphicsOption', seletor: '.economia-automatica' });
+		const html = readFileSync(
+			resolve(process.cwd(), 'src/UI/Components/GraphicsOption/GraphicsOption.html'),
+			'utf-8'
+		);
+		expect(html).toContain('class="economia-automatica"');
+		/* A caixa mora na aba "Basic" (o segundo alvo da mão). Se ela mudar
+		   de aba, a mão aponta a aba errada e este caso reprova. */
+		const basic = html.slice(html.indexOf('id="basic"'), html.indexOf('id="advanced"'));
+		expect(basic).toContain('economia-automatica');
+		expect(etapa.maoEm[1].seletor).toContain('data-tab="basic"');
+	});
+
+	it('o caminho de volta é o que o jogador de fato percorre: Vídeo, sistema, Codex, leque, Menu', () => {
+		expect(etapa.alvos.map(a => `${a.host} ${a.seletor}`)).toEqual([
+			'GraphicsOption .ri-window',
+			'Escape .graphics',
+			'CodexIdle .cx-window.is-open',
+			'TopMenuIdle .tm-item[data-action="sistema"]',
+			'TopMenuIdle .tm-fab'
+		]);
+		/* Os seletores existem nos fontes: um nome errado deixaria o degrau
+		   sem caixa para sempre, e a mão pularia para o seguinte em silêncio. */
+		const ler = c => readFileSync(resolve(process.cwd(), c), 'utf-8');
+		expect(ler('src/UI/Components/Escape/Escape.html')).toMatch(/class="graphics /);
+		expect(ler('src/UI/Components/TopMenuIdle/TopMenuIdle.html')).toContain('data-action="sistema"');
+		expect(ler('src/UI/Components/Escape/Escape.js')).toContain("root.querySelector('.graphics').addEventListener('click', onToggleGraphicUI)");
+	});
+
+	it('a frase diz as DUAS saídas: desmarcar, ou fechar e poupar bateria', () => {
+		for (const temDedo of [false, true]) {
+			const frase = fraseDaEtapa(etapa, temDedo);
+			expect(frase).toContain('"Economia de energia"');
+			expect(frase).toMatch(/Desmarque/);
+			expect(frase).toMatch(/feche/);
+			expect(frase).toMatch(/bateria/);
+		}
+		expect(fraseDaEtapa(etapa, true, etapa.alvos[1].frase)).toContain('Toque em "Configurações de Vídeo"');
+		expect(fraseDaEtapa(etapa, false, etapa.alvos[1].frase)).toContain('Clique em "Configurações de Vídeo"');
+	});
+});
+
+describe('dentroDoFuro: a mão só aponta o que a máscara deixa tocar', () => {
+	const furo = { x: 100, y: 100, w: 200, h: 100 };
+
+	it('o sub-alvo no meio do furo vale', () => {
+		expect(dentroDoFuro({ x: 150, y: 120, w: 20, h: 20 }, furo)).toBe(true);
+	});
+
+	it('o sub-alvo em OUTRA janela, fora do furo, não vale', () => {
+		expect(dentroDoFuro({ x: 400, y: 120, w: 20, h: 20 }, furo)).toBe(false);
+		expect(dentroDoFuro({ x: 150, y: 300, w: 20, h: 20 }, furo)).toBe(false);
+	});
+
+	it('vale o CENTRO: um controle que só encosta na borda não vale', () => {
+		expect(dentroDoFuro({ x: 290, y: 120, w: 40, h: 20 }, furo)).toBe(false);
+		expect(dentroDoFuro({ x: 280, y: 120, w: 40, h: 20 }, furo)).toBe(true);
+	});
+
+	it('sem furo ou sem sub-alvo, não vale', () => {
+		expect(dentroDoFuro(null, furo)).toBe(false);
+		expect(dentroDoFuro({ x: 150, y: 120, w: 20, h: 20 }, null)).toBe(false);
+	});
+});
+
+describe('passoDaEconomia: ensina, não obriga', () => {
+	const fechada = { janelaAberta: false, caixaNaTela: false, marcada: null };
+	const marcadaNaTela = { janelaAberta: true, caixaNaTela: true, marcada: true };
+	const desmarcadaNaTela = { janelaAberta: true, caixaNaTela: true, marcada: false };
+
+	it('antes de ver a caixa nada fecha, nem com a janela fechada', () => {
+		expect(passoDaEconomia(null, fechada)).toEqual({ visto: null, cumprida: false });
+	});
+
+	it('a caixa fora da tela (aba "Advanced") não conta como vista', () => {
+		const advanced = { janelaAberta: true, caixaNaTela: false, marcada: true };
+		expect(passoDaEconomia(null, advanced)).toEqual({ visto: null, cumprida: false });
+	});
+
+	it('a primeira aparição só ANOTA o valor, e não fecha no mesmo tique', () => {
+		expect(passoDaEconomia(null, marcadaNaTela)).toEqual({ visto: true, cumprida: false });
+		expect(passoDaEconomia(null, desmarcadaNaTela)).toEqual({ visto: false, cumprida: false });
+	});
+
+	it('vista e parada, a etapa espera', () => {
+		expect(passoDaEconomia(true, marcadaNaTela)).toEqual({ visto: true, cumprida: false });
+	});
+
+	it('DESMARCAR fecha a etapa', () => {
+		expect(passoDaEconomia(true, desmarcadaNaTela)).toEqual({ visto: true, cumprida: true });
+	});
+
+	it('marcar de novo também conta: o que vale é mexer, em qualquer direção', () => {
+		expect(passoDaEconomia(false, marcadaNaTela).cumprida).toBe(true);
+	});
+
+	it('mexer e trocar de aba logo depois ainda conta', () => {
+		const mexeuEFoiPraAdvanced = { janelaAberta: true, caixaNaTela: false, marcada: false };
+		expect(passoDaEconomia(true, mexeuEFoiPraAdvanced).cumprida).toBe(true);
+	});
+
+	it('FECHAR a janela sem mexer fecha a etapa: deixar marcada é resposta válida', () => {
+		expect(passoDaEconomia(true, fechada)).toEqual({ visto: true, cumprida: true });
 	});
 });
