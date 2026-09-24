@@ -34,6 +34,7 @@ import Renderer from 'Renderer/Renderer.js';
 import EntityManager from 'Renderer/EntityManager.js';
 import NomesDosJogadores from './NomesDosJogadores.js'; // RAGIDLE: nome/guilda sempre visiveis
 import { deveEncolherAoApanhar, acoesDeAtaqueDa } from './encolherAoApanhar.js'; // RAGIDLE (24/09/2026): o flinch nao corta o golpe do jogador
+import { apanharInterrompeACaminhada } from './apanharAndando.js'; // RAGIDLE (24/09/2026, J6): apanhar andando nao apaga a rota
 import Entity from 'Renderer/Entity/Entity.js';
 import EffectManager from 'Renderer/EffectManager.js';
 import Damage from 'Renderer/Effects/Damage.js';
@@ -3038,7 +3039,9 @@ function onEntityWillBeHitSub(pkt, dstEntity) {
 			) {
 				return;
 			}
-			if (dstEntity.action !== dstEntity.ACTION.DIE) {
+			// RAGIDLE (J6): quem apanha ANDANDO com rota viva nao encolhe - o HURT
+			// sairia de WALK e apagaria a rota (ver apanharAndando.js).
+			if (dstEntity.action !== dstEntity.ACTION.DIE && apanharInterrompeACaminhada(dstEntity)) {
 				dstEntity.setAction({
 					action: dstEntity.ACTION.HURT,
 					frame: 0,
