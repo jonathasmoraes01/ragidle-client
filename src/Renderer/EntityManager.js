@@ -371,6 +371,26 @@ function sortByPriority(a, b) {
 }
 
 /**
+ * O DESCARTADO CONTINUA ANDANDO (RAGIDLE, 24/09/2026 - passo 14 da auditoria
+ * do cerco, achado J10). A base e o `seguirAndandoSemDesenhar` do Jhow (branch
+ * `feat/modo-classico`, commit 76bdcc03), sem o interruptor de modo.
+ *
+ * Os dois descartes de `render` (distancia e tela) pulam o `render()` da
+ * entidade inteiro, e a posicao so anda dentro dele (`walkProcess`,
+ * `EntityRender.js`): quem saia da tela ficava parado no ponto velho e, ao
+ * voltar a ser desenhado, escorregava de la - as vezes para tras. Andar sem
+ * desenhar custa umas contas por entidade; o que o descarte economiza e o
+ * desenho, e ele continua economizando.
+ *
+ * @param {Entity} entity
+ */
+export function seguirAndandoSemDesenhar(entity) {
+	if (entity.walk && entity.walk.total > 0 && typeof entity.walkProcess === 'function') {
+		entity.walkProcess();
+	}
+}
+
+/**
  * Render all entities (picking or not)
  *
  * A entidade projeta FORA da tela? (07/09/2026, frente de FPS)
@@ -547,11 +567,13 @@ function render(gl, modelView, projection, fog, renderEffects) {
 				const dy = _list[i].position[1] - playerY;
 				if (dx * dx + dy * dy > viewAreaSq) {
 					_contadoresDeQuadro.descartadosPorDistancia++;
+					seguirAndandoSemDesenhar(_list[i]);
 					continue;
 				}
 			}
 			if (foraDaTela(_list[i], meuGID)) {
 				_contadoresDeQuadro.descartadosPorTela++;
+				seguirAndandoSemDesenhar(_list[i]);
 				continue;
 			}
 			_contadoresDeQuadro.desenhados++;
