@@ -1078,6 +1078,39 @@
 	overflow: hidden;
 }
 
+/* O PING (23/09/2026). No computador ele mora na faixa do Cash, a direita; no
+   celular em pe a faixa e estreita, e ele vai para junto do wifi. */
+.bi-ping {
+	margin-left: auto;
+	padding-left: 8px;
+	font: var(--type-numeric);
+	font-size: 11px;
+	white-space: nowrap;
+	color: var(--text-muted, #6b7897);
+}
+
+.bi-ping.is-bom {
+	color: var(--ri-verde, #2e8b57);
+}
+
+.bi-ping.is-medio {
+	color: var(--ri-dourado, #b8860b);
+}
+
+.bi-ping.is-ruim {
+	color: var(--red-600, #c0392b);
+}
+
+.ri-vertical .bi-moeda .bi-ping {
+	display: none;
+}
+
+.ri-vertical .bi-aparelho .bi-ping {
+	margin-left: 0;
+	padding-left: 0;
+	font-size: 10px;
+}
+
 .ri-vertical .bi-zeny,
 .ri-vertical .bi-cash {
 	overflow: hidden;

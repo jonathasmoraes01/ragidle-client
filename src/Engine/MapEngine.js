@@ -114,6 +114,7 @@ import PresencaIdle from 'UI/Components/PresencaIdle/PresencaIdle.js'; // RAGIDL
 import IndicacaoIdle from 'UI/Components/IndicacaoIdle/IndicacaoIdle.js'; // RAGIDLE: Indique & Ganhe (D-1164)
 import RankingIdle from 'UI/Components/RankingIdle/RankingIdle.js'; // RAGIDLE: o Ranking (09/09/2026)
 import PainelComandoIdle from 'UI/Components/PainelComandoIdle/PainelComandoIdle.js'; // RAGIDLE: o painel de comando (D-1563)
+import { medidorDePing } from 'Network/medidorDePing.js'; // RAGIDLE: o ping real (23/09/2026)
 import TemporadaIdle from 'UI/Components/TemporadaIdle/TemporadaIdle.js'; // RAGIDLE: a janela da Temporada (Season 1, 21/09/2026)
 import RoShop from 'UI/Components/RoShop/RoShop.js'; // RAGIDLE: o RO Shop (22/09/2026) - a loja de RO Cash que substitui a CashShop nativa como caminho de compra
 import DoacaoIdle from 'UI/Components/DoacaoIdle/DoacaoIdle.js'; // RAGIDLE: a doacao via PIX (23/09/2026) - o "Recarregar" do RO Shop a abre
@@ -357,9 +358,22 @@ class MapEngine {
 					SP.returned = false;
 
 					Network.sendPacket(ping);
+					// RAGIDLE (23/09/2026): o relogio do medidor de ping.
+					medidorDePing.enviou(Date.now());
 				};
 
 				Network.setPing(sendKeepAlive);
+				// RAGIDLE (23/09/2026): a PRIMEIRA medida de ping sai logo, e nao
+				// depois dos 10 s do intervalo - a HUD mostrava "— ms" ate la.
+				// Em `setTimeout` e com try/catch: nada disto pode tocar a
+				// entrada no mapa (o aviso de D-993).
+				setTimeout(() => {
+					try {
+						sendKeepAlive();
+					} catch (err) {
+						console.error('[ping] primeira medida falhou', err);
+					}
+				}, 1500);
 
 				// Background tabs throttle setInterval to ~once/min and rAF to
 				// ~0fps, starving the setPing above. BackgroundTicker runs the
@@ -749,8 +763,11 @@ function onPong(pkt) {
 	const SP = Session.ping;
 
 	SP.returned = true;
-	SP.pongTime = 0;
-	SP.value = SP.pongTime - SP.pingTime;
+	// RAGIDLE (23/09/2026): o `pongTime` era zerado a mao e o ping saia
+	// negativo. Agora e o tempo REAL de ida e volta (`medidorDePing.js`).
+	const rtt = medidorDePing.respondeu(Date.now());
+	SP.pongTime = SP.pingTime + (rtt ?? 0);
+	SP.value = rtt ?? 0;
 
 	Session.serverTick = pkt.time + SP.value / 2; // Adjust with half ping
 }
