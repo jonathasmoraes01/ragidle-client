@@ -66,6 +66,9 @@ function blocoDaRegra(classe) {
 	return fim === -1 ? null : CSS.slice(i + cabeca.length, fim);
 }
 
+/** As camadas que so DESCREVEM, e por isso nunca recebem clique. */
+const DICAS_SEM_PONTEIRO = ['te-dica'];
+
 describe('toda camada por cima da janela reacende o ponteiro', () => {
 	it('o `:host` continua apagando o ponteiro (a janela fechada nao come clique de cena)', () => {
 		const i = CSS.indexOf(':host {');
@@ -87,6 +90,10 @@ describe('toda camada por cima da janela reacende o ponteiro', () => {
 		const semPonteiro = [];
 		for (const classe of camadas) {
 			if (classe === 'te-window') continue;
+			/* A DICA do premio do passe e a UNICA camada que NAO pode ter
+			   ponteiro: ela fica sob o mouse e roubaria o clique do card que
+			   descreve. Tem caso proprio, abaixo. */
+			if (DICAS_SEM_PONTEIRO.includes(classe)) continue;
 			const bloco = blocoDaRegra(classe);
 			if (bloco === null) {
 				semPonteiro.push(`${classe}: nao tem regra propria no CSS`);
@@ -95,6 +102,11 @@ describe('toda camada por cima da janela reacende o ponteiro', () => {
 			}
 		}
 		expect(semPonteiro).toEqual([]);
+	});
+
+	it('a dica do premio do passe e irma da janela e fica SEM ponteiro (23/09/2026)', () => {
+		expect(camadasDoHtml()).toContain('te-dica');
+		expect(blocoDaRegra('te-dica')).toContain('pointer-events: none');
 	});
 
 	it('o aviso do rodape continua SEM ponteiro (ele nao pode roubar clique)', () => {

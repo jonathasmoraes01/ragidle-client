@@ -75,6 +75,8 @@ import { unknownItem } from 'DB/Items/FichaDoItem.js';
 import Client from 'Core/Client.js';
 import arrastarPorPonteiro, { prenderNaTela } from 'UI/arrastarPorPonteiro.js';
 import PasseIdle from '../PasseIdle/PasseIdle.js';
+import ItemInfo from 'UI/Components/ItemInfo/ItemInfo.js';
+import { emUnidadesDaHud } from 'UI/escalaDaHud.js';
 import { itemIconUrl, preferirArtePublicada } from 'Utils/ItemArt.js';
 import { fecharEEsquecer } from '../limpezaDeJanelaIdle.js';
 import { abaLembrada, lembrarAba } from '../memoriaDeAba.js';
@@ -87,7 +89,9 @@ import {
 	criarTrava,
 	dataCurta,
 	gerarChave,
+	linhasDaDescricaoDoItem,
 	passePorTipo,
+	renderDicaDoPremioHtml,
 	renderBannerDasCaixasHtml,
 	renderCaixaHtml,
 	renderDestaquesHtml,
@@ -625,7 +629,121 @@ function onClickRaiz(e) {
 	if (botaoAcao) {
 		e.stopImmediatePropagation();
 		onClicarAcao(botaoAcao);
+		return;
 	}
+
+	/* O CLIQUE NO PREMIO DO PASSE abre a janela de detalhes (23/09/2026,
+	   pedido do dono). Vem DEPOIS do `[data-agir]`: o "Resgatar" mora dentro
+	   do card e continua sendo so o resgate. */
+	const cardDoPremio = e.target.closest('.te-premio-card[data-item-id]');
+	if (cardDoPremio) {
+		e.stopImmediatePropagation();
+		esconderDicaDoPremio();
+		abrirDetalhesDoItem(Number(cardDoPremio.dataset.itemId));
+	}
+}
+
+/* ------------------------------------------------------------------ */
+/* A descricao dos premios do Passe de Batalha                         */
+/* ------------------------------------------------------------------ */
+
+/**
+ * A JANELA DE DETALHES de um item por id - a mesma `ItemInfo` da Mochila e da
+ * Loja de Cash, e a mesma regra de abrir/fechar (clicar de novo no mesmo item
+ * fecha). A ficha vai COPIADA: a Loja de Cash escreve `ITID` no objeto que
+ * `DB.getItemInfo` guarda, e a copia nao suja a tabela do jogo.
+ */
+function abrirDetalhesDoItem(itemId) {
+	if (!Number.isFinite(itemId) || itemId <= 0) {
+		return;
+	}
+	if (ItemInfo.uid === itemId) {
+		ItemInfo.remove();
+		return;
+	}
+	try {
+		const ficha = Object.assign({}, DB.getItemInfo(itemId), { ITID: itemId, IsIdentified: true });
+		ItemInfo.append();
+		ItemInfo.uid = itemId;
+		ItemInfo.setItem(ficha);
+	} catch (err) {
+		/* DB/ItemInfo indisponiveis fora do motor (teste, arnes de foto). */
+	}
+}
+
+/** O card sob o mouse agora - o `mouseover` borbulha de cada filho do card. */
+let _cardDaDica = null;
+
+function esconderDicaDoPremio() {
+	_cardDaDica = null;
+	const root = _root();
+	const dica = root && root.querySelector('.te-dica');
+	if (dica) {
+		dica.hidden = true;
+	}
+}
+
+/**
+ * A DICA DO PREMIO: o nome e a descricao do item ao passar o mouse (23/09/2026,
+ * pedido do dono). A descricao sai da mesma ficha que a janela de detalhes le
+ * (`DB.getItemInfo(id).identifiedDescriptionName`); o nome e o do servidor,
+ * que ja vem em portugues para os visuais custom da Season.
+ *
+ * `position: fixed` e medido em pixel de VIEWPORT, e dentro de um host com
+ * `zoom` o `style` e lido em unidade LOCAL - a conversao e a de D-934
+ * (`emUnidadesDaHud`), a mesma da dica da barra de atalhos.
+ */
+function mostrarDicaDoPremio(card) {
+	const root = _root();
+	const dica = root && root.querySelector('.te-dica');
+	if (!dica) {
+		return;
+	}
+	const itemId = Number(card.dataset.itemId);
+	const nomeEl = card.querySelector('.te-premio-card-nome');
+	const nome = nomeEl ? nomeEl.textContent : '';
+	let bruta = '';
+	try {
+		const info = DB.getItemInfo(itemId);
+		bruta = info && info !== unknownItem ? info.identifiedDescriptionName : '';
+	} catch (err) {
+		bruta = '';
+	}
+	dica.innerHTML = renderDicaDoPremioHtml(nome, linhasDaDescricaoDoItem(bruta));
+	dica.hidden = false;
+
+	const r = card.getBoundingClientRect();
+	const d = dica.getBoundingClientRect();
+	const larguraTela = window.innerWidth || 0;
+	const alturaTela = window.innerHeight || 0;
+	let left = r.left + r.width / 2 - d.width / 2;
+	left = Math.max(4, Math.min(left, larguraTela - d.width - 4));
+	/* Acima do card quando cabe; senao embaixo. */
+	let top = r.top - d.height - 6;
+	if (top < 4) {
+		top = Math.min(r.bottom + 6, alturaTela - d.height - 4);
+	}
+	dica.style.left = `${emUnidadesDaHud(left)}px`;
+	dica.style.top = `${emUnidadesDaHud(top)}px`;
+}
+
+function onMouseOverRaiz(e) {
+	const card = e.target.closest && e.target.closest('.te-premio-card[data-item-id]');
+	if (!card) {
+		if (_cardDaDica) {
+			esconderDicaDoPremio();
+		}
+		return;
+	}
+	if (card === _cardDaDica) {
+		return;
+	}
+	_cardDaDica = card;
+	mostrarDicaDoPremio(card);
+}
+
+function onMouseLeaveRaiz() {
+	esconderDicaDoPremio();
 }
 
 /* ------------------------------------------------------------------ */
@@ -651,6 +769,8 @@ function render() {
 	if (!root) {
 		return;
 	}
+	/* O redesenho troca os cards: a dica de um card que sumiu nao fica. */
+	esconderDicaDoPremio();
 	const estado = TemporadaIdle.estado;
 	const estadoDoPasse = TemporadaIdle.estadoDoPasse;
 
@@ -734,6 +854,8 @@ TemporadaIdle.init = function init() {
 	const container = root && root.querySelector('#TemporadaIdle');
 	if (container) {
 		container.addEventListener('click', onClickRaiz);
+		container.addEventListener('mouseover', onMouseOverRaiz);
+		container.addEventListener('mouseleave', onMouseLeaveRaiz);
 	}
 	const titulo = root && root.querySelector('.te-titlebar');
 	if (titulo) {
@@ -782,6 +904,7 @@ TemporadaIdle.toggle = function toggle() {
 	}
 	if (win.classList.contains('is-open')) {
 		win.classList.remove('is-open');
+		esconderDicaDoPremio();
 		fecharModais();
 		fecharReveal();
 		savePosition();

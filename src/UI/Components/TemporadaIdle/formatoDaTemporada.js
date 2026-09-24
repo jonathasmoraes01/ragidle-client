@@ -966,13 +966,57 @@ export function renderPremioDaTrilhaHtml(premio, trilha) {
 			: situacao === 'AVAILABLE'
 				? `<button type="button" class="ri-btn ri-btn--ouro te-premio-card-resgatar" data-agir="resgatar" data-nivel="${escapeHtml(premio.nivel)}" data-trilha="${escapeHtml(trilha)}">Resgatar</button>`
 				: `<span class="te-premio-card-estado is-bloqueado">${glifo('cadeado')}</span>`;
+	/* O `data-item-id` NO CARD (23/09/2026, pedido do dono): e por ele que o
+	   mouse em cima mostra a descricao e o clique abre a janela de detalhes
+	   (`TemporadaIdle.js`, `mostrarDicaDoPremio`/`abrirDetalhesDoItem`). */
+	const idNumero = Number(premio.itemId);
+	const idAttr = Number.isFinite(idNumero) && idNumero > 0 ? ` data-item-id="${idNumero}"` : '';
 	return (
-		`<div class="te-premio-card te-premio-card--${trilha} ${classeDoNivel(situacao)}" data-nivel="${escapeHtml(premio.nivel)}" data-trilha="${escapeHtml(trilha)}">` +
+		`<div class="te-premio-card te-premio-card--${trilha} ${classeDoNivel(situacao)}" data-nivel="${escapeHtml(premio.nivel)}" data-trilha="${escapeHtml(trilha)}"${idAttr}>` +
 		iconeFallbackHtml(premio.itemId, premio.nome) +
 		quantidade +
 		`<div class="te-premio-card-nome" title="${escapeHtml(premio.nome)}">${escapeHtml(premio.nome)}</div>` +
 		estado +
 		'</div>'
+	);
+}
+
+/** Quantas linhas da descricao cabem na dica - a mesma medida da Mochila. */
+export const MAX_LINHAS_DA_DICA_DO_PREMIO = 14;
+
+/**
+ * As LINHAS da descricao de um item, prontas para a dica: sem as marcas
+ * `^RRGGBB` do cliente nativo (viram lixo fora dele), sem linha vazia, e
+ * cortadas em `MAX_LINHAS_DA_DICA_DO_PREMIO` com reticencias. Ao contrario da
+ * dica da Mochila, o texto corrido FICA: aqui a descricao e o que o jogador
+ * quer ver antes de ganhar o item.
+ */
+export function linhasDaDescricaoDoItem(bruta) {
+	if (!bruta) {
+		return [];
+	}
+	const linhas = String(bruta)
+		.replace(/\^[0-9a-fA-F]{6}/g, '')
+		.split('\n')
+		.map(l => l.trim())
+		/* A linha de PESO sai: o texto e o do cliente original, e o peso de
+		   hoje pode ser outro (a Pocao Vermelha diz 7 e pesa 5, R30). A janela
+		   de detalhes mostra o peso certo; a dica nao repete um numero velho. */
+		.filter(l => l.length > 0 && !/^(peso|weight)\s*:/i.test(l));
+	if (linhas.length <= MAX_LINHAS_DA_DICA_DO_PREMIO) {
+		return linhas;
+	}
+	return [...linhas.slice(0, MAX_LINHAS_DA_DICA_DO_PREMIO), '...'];
+}
+
+/** O conteudo da dica de um premio do passe: o nome, a descricao e o convite
+ * ao clique (que abre a janela de detalhes). Tudo escapado. */
+export function renderDicaDoPremioHtml(nome, linhas) {
+	const corpo = (linhas || []).map(l => `<div class="te-dica-linha">${escapeHtml(l)}</div>`).join('');
+	return (
+		`<div class="te-dica-nome">${escapeHtml(nome || 'Item')}</div>` +
+		(corpo ? `<div class="te-dica-corpo">${corpo}</div>` : '') +
+		'<div class="te-dica-rodape">Clique para ver os detalhes</div>'
 	);
 }
 

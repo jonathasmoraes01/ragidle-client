@@ -2261,3 +2261,50 @@
 		min-height: 92px;
 	}
 }
+
+/* ─── Dica do premio do Passe de Batalha (23/09/2026, pedido do dono) ── */
+
+#TemporadaIdle .te-premio-card[data-item-id] {
+	cursor: pointer;
+}
+
+#TemporadaIdle .te-premio-card[data-item-id]:hover {
+	border-color: var(--gold-500);
+}
+
+#TemporadaIdle .te-dica {
+	position: fixed;
+	z-index: 70;
+	max-width: 240px;
+	padding: var(--sp-3) var(--sp-4);
+	border-radius: var(--radius-card);
+	background: var(--surface-dark-glass);
+	backdrop-filter: var(--blur-glass);
+	color: var(--white);
+	box-shadow: var(--shadow-float);
+	pointer-events: none;
+	text-align: left;
+}
+
+#TemporadaIdle .te-dica[hidden] {
+	display: none;
+}
+
+#TemporadaIdle .te-dica-nome {
+	font: var(--type-label);
+	color: var(--gold-200);
+	margin-bottom: 4px;
+}
+
+#TemporadaIdle .te-dica-linha {
+	font: var(--type-desc);
+	font-size: 10px;
+	line-height: var(--lh-tight);
+}
+
+#TemporadaIdle .te-dica-rodape {
+	margin-top: 6px;
+	font: var(--type-desc);
+	font-size: 9px;
+	opacity: 0.7;
+}

@@ -45,6 +45,9 @@ import {
 	renderMissoesSemanaisHtml,
 	renderModalConteudoHtml,
 	renderObjetivoHtml,
+	linhasDaDescricaoDoItem,
+	MAX_LINHAS_DA_DICA_DO_PREMIO,
+	renderDicaDoPremioHtml,
 	renderPasseDeBatalhaHtml,
 	renderPremioDaTrilhaHtml,
 	renderProgressoDaTemporadaHtml,
@@ -474,6 +477,31 @@ describe('a trilha de recompensas (free/vip lado a lado)', () => {
 		expect(disponivel).toContain('data-nivel="13"');
 		expect(disponivel).toContain('data-trilha="free"');
 		expect(renderPremioDaTrilhaHtml(premio({ situacao: 'LOCKED' }), 'vip')).toContain('is-bloqueado');
+	});
+
+	it('o card do premio leva o data-item-id (a dica e o clique de detalhes leem dele)', () => {
+		expect(renderPremioDaTrilhaHtml(premio({ itemId: 2254 }), 'free')).toMatch(/class="te-premio-card [^"]*"[^>]*data-item-id="2254"/);
+		expect(renderPremioDaTrilhaHtml(premio({ itemId: 0 }), 'free')).not.toMatch(/te-premio-card [^>]*data-item-id/);
+	});
+
+	it('a descricao da dica: sem as cores do cliente, sem linha vazia, cortada com reticencias', () => {
+		expect(linhasDaDescricaoDoItem('^ff0000Asas^000000 de fada.\n\n  Peso: 10  ')).toEqual(['Asas de fada.']);
+		expect(linhasDaDescricaoDoItem('')).toEqual([]);
+		expect(linhasDaDescricaoDoItem(undefined)).toEqual([]);
+		const muitas = Array.from({ length: MAX_LINHAS_DA_DICA_DO_PREMIO + 3 }, (_, i) => `linha ${i}`).join('\n');
+		const cortadas = linhasDaDescricaoDoItem(muitas);
+		expect(cortadas).toHaveLength(MAX_LINHAS_DA_DICA_DO_PREMIO + 1);
+		expect(cortadas[cortadas.length - 1]).toBe('...');
+		const exatas = Array.from({ length: MAX_LINHAS_DA_DICA_DO_PREMIO }, (_, i) => `l${i}`).join('\n');
+		expect(linhasDaDescricaoDoItem(exatas)).not.toContain('...');
+	});
+
+	it('a dica mostra o nome, a descricao escapada e o convite ao clique', () => {
+		const html = renderDicaDoPremioHtml('Asas <Azuis>', ['Linha & um']);
+		expect(html).toContain('Asas &lt;Azuis&gt;');
+		expect(html).toContain('Linha &amp; um');
+		expect(html).toContain('Clique para ver os detalhes');
+		expect(renderDicaDoPremioHtml('Asas', [])).not.toContain('te-dica-corpo');
 	});
 
 	it('quantidade > 1 aparece como tag; quantidade 1 nao polui a tela', () => {
