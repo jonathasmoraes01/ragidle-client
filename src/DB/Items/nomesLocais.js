@@ -216,6 +216,8 @@ export const NOMES_LOCAIS = {
 	// o mesmo efeito da comum, sem venda, troca nem chao.
 	9000111: 'Poção Azul da Conta', // pocoes-da-conta.ts (Blue_Potion_Da_Conta)
 	9000112: 'Poção Branca da Conta', // pocoes-da-conta.ts (White_Potion_Da_Conta)
+	9000120: 'Poção Vermelha da Conta', // pocoes-da-conta.ts (Red_Potion_Da_Conta), o kit inicial
+	9000121: 'Faca da Conta', // pocoes-da-conta.ts (Knife_Da_Conta), o kit inicial
 	// Os sete TICKETS do RO Shop (23/09/2026): servicos e expansoes de conta que viraram item.
 	9000113: 'Ticket de Reset de Skills', // itens-custom.ts (Ticket_Reset_De_Skills)
 	9000114: 'Ticket de Reset de Status', // itens-custom.ts (Ticket_Reset_De_Status)
@@ -268,6 +270,8 @@ export const DESCRICOES_LOCAIS = {
 	// O efeito e o do script da base no `db/pre-re/item_db_usable.yml:117-132`
 	// (`itemheal 0,rand(40,60);` e `itemheal rand(325,405),0;`).
 	9000111: `Uma poção que recupera de 40 a 60 de SP. Vem dos packs do RO Shop.\n${FECHO_DE_CASH}`,
+	9000120: 'Uma poção que recupera HP. Vem do kit de boas-vindas.\nNão pode ser negociada nem vendida a NPCs.',
+	9000121: 'Uma faca simples, a primeira arma do aventureiro. Vem do kit de boas-vindas.\nNão pode ser negociada nem vendida a NPCs.',
 	9000112: `Uma poção que recupera de 325 a 405 de HP. Vem dos packs do RO Shop.\n${FECHO_DE_CASH}`,
 	// Os tickets (23/09/2026). O numero da carga NAO vai aqui: o dono o redefine, e o servidor o diz na loja.
 	9000113: `Ao usar, a conta ganha um crédito de Reset de Skills. Aplique pelo RO Shop, na aba Utilidades.\n${FECHO_DE_CASH}`,
@@ -464,6 +468,8 @@ export const ICONES_LOCAIS = {
 	9000110: '\xc0\xfc\xc5\xf5\xb1\xb3\xb9\xfc', // Pack de Treino -> 12208 Manual de Combate
 	9000111: '\xc6\xc4\xb6\xf5\xc6\xf7\xbc\xc7', // Pocao Azul da Conta -> 505 Pocao Azul (a mesma arte)
 	9000112: '\xc7\xcf\xbe\xe1\xc6\xf7\xbc\xc7', // Pocao Branca da Conta -> 504 Pocao Branca (a mesma arte)
+	9000120: '\xbb\xa1\xb0\xa3\xc6\xf7\xbc\xc7', // Pocao Vermelha da Conta -> 501 Pocao Vermelha (a mesma arte)
+	9000121: '\xb3\xaa\xc0\xcc\xc7\xc1', // Faca da Conta -> 1201 Faca (a mesma arte)
 	/*
 	 * Os sete tickets (23/09/2026). Os recursos foram LIDOS na tabela do
 	 * `data.grf` pelo servidor (a mesma escolha de

@@ -1973,6 +1973,13 @@ class DB {
 			return id;
 		}
 
+		// RAGIDLE (23/09/2026): a Faca da Conta do kit inicial (9000121) e a
+		// Faca (1201) com as travas de troca; ela nao esta na tabela do GRF nem
+		// na faixa de ids das facas, e sem isto a arma nao era desenhada.
+		if (id === 9000121) {
+			return WeaponType.SHORTSWORD;
+		}
+
 		// look for classnum in ItemTable
 		if (id in ItemTable && 'ClassNum' in ItemTable[id]) {
 			const classNum = ItemTable[id].ClassNum;
