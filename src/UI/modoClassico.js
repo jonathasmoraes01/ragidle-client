@@ -40,3 +40,21 @@ export function esconderNoModoClassico(raiz, seletores) {
 		for (const el of achados) el.style.setProperty('display', 'none', 'important');
 	}
 }
+
+/**
+ * Quem APANHA ANDANDO toca a animacao de dano? No modo classico, NAO.
+ *
+ * A animacao de dano e um `setAction` que sai de WALK, e sair de WALK apaga a
+ * rota na tela (`EntityAction.js`, o conserto upstream #607). O `resumeWalk`
+ * que deveria retomar exige `walk.index < walk.total` - os dois ja zerados -
+ * entao o boneco parava a cada golpe e ficava parado, enquanto o servidor
+ * (que no modo classico nao interrompe a caminhada por dano) seguia andando.
+ * Era o "perto de mob fica todo travado" do dono (24/09). O numero de dano
+ * continua aparecendo; so o boneco nao congela.
+ */
+export function apanharInterrompeACaminhada(entidade) {
+	if (!modoClassicoLigado()) return true;
+	if (!entidade || !entidade.ACTION || entidade.action !== entidade.ACTION.WALK) return true;
+	const walk = entidade.walk;
+	return !(walk && walk.index < walk.total);
+}

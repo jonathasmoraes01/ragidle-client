@@ -10,7 +10,7 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { modoClassicoLigado } from '../../src/UI/modoClassico.js';
+import { apanharInterrompeACaminhada, modoClassicoLigado } from '../../src/UI/modoClassico.js';
 
 const raiz = join(__dirname, '..', '..');
 const ler = (p) => readFileSync(join(raiz, p), 'utf8');
@@ -60,5 +60,27 @@ describe('modo classico: os cortes consultam a MESMA chave', () => {
 	});
 	it('o ataque original do roBrowser segue intacto: clique no mob manda a acao 7', () => {
 		expect(ler('src/Controls/EntityControl.js')).toMatch(/pkt\.action\s*=\s*7/);
+	});
+});
+
+describe('modo classico: apanhar andando nao congela o boneco', () => {
+	const ACTION = { WALK: 1, IDLE: 0 };
+	const andando = () => ({ ACTION, action: ACTION.WALK, walk: { index: 2, total: 8 } });
+	it('andando com rota viva, o golpe NAO toca o HURT', () => {
+		expect(apanharInterrompeACaminhada(andando())).toBe(false);
+	});
+	it('parado, ou no fim da rota, o golpe toca o HURT como sempre', () => {
+		expect(apanharInterrompeACaminhada({ ACTION, action: ACTION.IDLE, walk: { index: 0, total: 0 } })).toBe(true);
+		expect(apanharInterrompeACaminhada({ ACTION, action: ACTION.WALK, walk: { index: 8, total: 8 } })).toBe(true);
+		// Parado com resto de rota na memoria (o cliente nem sempre a zera): e parado.
+		expect(apanharInterrompeACaminhada({ ACTION, action: ACTION.IDLE, walk: { index: 2, total: 8 } })).toBe(true);
+	});
+	it('CONTROLE: sem o modo classico, andando tambem toca o HURT', () => {
+		globalThis.window.ROConfig = { modoClassico: false };
+		expect(apanharInterrompeACaminhada(andando())).toBe(true);
+	});
+	it('o golpe recebido consulta a decisao antes do HURT', () => {
+		const fonte = ler('src/Engine/MapEngine/Entity.js');
+		expect(fonte).toMatch(/dstEntity\.action !== dstEntity\.ACTION\.DIE && apanharInterrompeACaminhada\(dstEntity\)/);
 	});
 });

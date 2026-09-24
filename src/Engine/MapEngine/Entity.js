@@ -41,6 +41,7 @@ import LockOnTarget from 'Renderer/Effects/LockOnTarget.js';
 import MagicRing from 'Renderer/Effects/MagicRing.js';
 import BasicInfo from 'UI/Components/BasicInfo/BasicInfo.js';
 import ChatBox from 'UI/Components/ChatBox/ChatBox.js';
+import { apanharInterrompeACaminhada } from 'UI/modoClassico.js'; // RAGIDLE: o modo classico
 /*
  * O Hunt Analyzer NAO fisga pacote: `Network.hookPacket()` guarda UM callback
  * por pacote (Network/NetworkManager.js:210), entao fisgar VANISH ou
@@ -3020,7 +3021,8 @@ function onEntityWillBeHitSub(pkt, dstEntity) {
 
 		function impendingAttack() {
 			// Get hurt when attack happens
-			if (dstEntity.action !== dstEntity.ACTION.DIE) {
+			// RAGIDLE (modo classico): quem apanha ANDANDO nao congela a rota.
+			if (dstEntity.action !== dstEntity.ACTION.DIE && apanharInterrompeACaminhada(dstEntity)) {
 				dstEntity.setAction({
 					action: dstEntity.ACTION.HURT,
 					frame: 0,
