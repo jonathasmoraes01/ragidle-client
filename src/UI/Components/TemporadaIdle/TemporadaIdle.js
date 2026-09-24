@@ -484,6 +484,20 @@ function onClicarAcao(botao) {
 		);
 		return;
 	}
+	if (agir === 'comprar-pacote') {
+		/* O PACOTE 10 + 1 (23/09/2026): a mesma acao da compra, com `pacote`. */
+		const pool = botao.dataset.pool;
+		const caixa = caixaPorPool(pool);
+		if (!caixa || !caixa.pacote) {
+			return;
+		}
+		const p = caixa.pacote;
+		abrirConfirmacao(
+			`Comprar ${p.recebidas} ${caixa.nome} (${p.pagas} + ${p.recebidas - p.pagas} grátis) por ${formatarRoCash(Number(p.precoMinor) || 0)} RO Cash?`,
+			() => enviarAcao({ acao: 'comprar-caixa', pool, pacote: true, chave: gerarChave() })
+		);
+		return;
+	}
 	if (agir === 'abrir-caixa') {
 		const pool = botao.dataset.pool;
 		enviarAcao({ acao: 'abrir-caixa', pool, chave: gerarChave() });

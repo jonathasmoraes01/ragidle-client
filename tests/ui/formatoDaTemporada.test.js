@@ -772,3 +772,25 @@ describe('as pecas pequenas', () => {
 		expect(formatoDaTemporada.renderSemanalHtml).toBeUndefined();
 	});
 });
+
+describe('o pacote 10 + 1 no card da caixa (23/09/2026)', () => {
+	const caixa = {
+		pool: 'TOP',
+		nome: 'Caixa do Topo',
+		pacote: { precoMinor: 2000, pagas: 10, recebidas: 11, pode: true, motivo: null }
+	};
+
+	it('o botao diz o bonus com todas as letras e o preco do pacote', () => {
+		const html = formatoDaTemporada.renderPacoteHtml(caixa);
+		expect(html).toContain('+1 GRÁTIS');
+		expect(html).toContain('11 caixas pelo preço de 10');
+		expect(html).toContain('20,00');
+		expect(html).toContain('data-agir="comprar-pacote"');
+		expect(html).not.toContain(' disabled');
+	});
+
+	it('sem saldo o botao vem desligado, e sem pacote no contrato nada aparece', () => {
+		expect(formatoDaTemporada.renderPacoteHtml({ ...caixa, pacote: { ...caixa.pacote, pode: false } })).toContain(' disabled');
+		expect(formatoDaTemporada.renderPacoteHtml({ pool: 'TOP', nome: 'x' })).toBe('');
+	});
+});

@@ -584,6 +584,29 @@ export function renderDestaquesHtml(estado) {
 /* Caixas                                                              */
 /* ------------------------------------------------------------------ */
 
+/**
+ * O PACOTE 10 + 1 (23/09/2026, ordem do dono no open beta): paga 10, leva 11.
+ * *"Isso precisa ficar explicito para incentivar o player a comprar"* - o
+ * botao diz o bonus com todas as letras. Sem `pacote` no contrato (servidor
+ * antigo), nada aparece.
+ */
+export function renderPacoteHtml(caixa) {
+	const pacote = caixa && caixa.pacote;
+	if (!pacote || !(Number(pacote.precoMinor) > 0)) {
+		return '';
+	}
+	const pagas = Number(pacote.pagas) || 10;
+	const recebidas = Number(pacote.recebidas) || 11;
+	const bonus = recebidas - pagas;
+	return (
+		`<button type="button" class="te-pacote ri-btn ri-btn--ouro" data-agir="comprar-pacote" data-pool="${escapeHtml(caixa.pool)}"${pacote.pode ? '' : ' disabled'}>` +
+		`<span class="te-pacote-selo">+${escapeHtml(bonus)} GRÁTIS</span>` +
+		`<span class="te-pacote-texto">Pacote: ${escapeHtml(recebidas)} caixas pelo preço de ${escapeHtml(pagas)}</span>` +
+		`<span class="te-pacote-preco"><strong>${escapeHtml(formatarRoCash(Number(pacote.precoMinor)))}</strong> RO Cash</span>` +
+		'</button>'
+	);
+}
+
 /** Um card completo de caixa (Caixas Topo/Meio/Baixo/Manto). */
 export function renderCaixaHtml(caixa) {
 	/* O preco em MINOR (RO Shop, 22/09/2026 - `Utils/roCash.js`): `precoMinor`
@@ -646,6 +669,7 @@ export function renderCaixaHtml(caixa) {
 		'</div>' +
 		notaPity +
 		(caixa.compra.texto ? `<div class="te-nota">${escapeHtml(caixa.compra.texto)}</div>` : '') +
+		renderPacoteHtml(caixa) +
 		'<div class="te-caixa-acoes">' +
 		`<button type="button" class="te-ver-conteudo ri-btn ri-btn--sec" data-pool="${escapeHtml(caixa.pool)}">Ver conteúdo</button>` +
 		`<button type="button" class="ri-btn ri-btn--ouro" data-agir="comprar-caixa" data-pool="${escapeHtml(caixa.pool)}"${comprarDesabilitado ? ' disabled' : ''}>Comprar</button>` +

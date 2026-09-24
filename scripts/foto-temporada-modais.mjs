@@ -110,6 +110,7 @@ const recompensas = [
 const caixa = {
 	pool: 'TOP', sku: 'VISUAL_TOP_BOX_S1', nome: 'Caixa Topo', slot: 'Topo', precoMinor: 200, fechadas: 2,
 	compra: { pode: true, motivo: null, texto: '' },
+	pacote: { precoMinor: 2000, pagas: 10, recebidas: 11, pode: true, motivo: null },
 	pity: { contador: 3, garantia: 40, faltam: 37, garantidoNaProxima: false },
 	recompensas
 };
@@ -258,6 +259,21 @@ async function principal() {
 				const m = await medir(page, caso.botoes);
 				relatorio.push({ largura: L.w, foto: arquivo, ...m });
 			}
+			/* O PACOTE 10 + 1 (23/09/2026): o card com o botao do pacote a vista. */
+			await page.evaluate(() => window.__fecharTudo());
+			const pacoteOk = await page.evaluate(() => {
+				const raiz = document.getElementById('host').shadowRoot;
+				const b = raiz.querySelector('.te-pacote');
+				if (!b) return 'sem botao';
+				b.scrollIntoView({ block: 'center' });
+				const r = b.getBoundingClientRect();
+				const alvo = raiz.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+				return alvo && b.contains(alvo) && r.right <= window.innerWidth && r.left >= 0 ? 'ok' : 'nao recebe o toque ou sai da tela';
+			});
+			await page.waitForTimeout(200);
+			const arquivoDoPacote = `${String(L.w).padStart(4, '0')}-pacote${ROTULO ? '-' + ROTULO : ''}.png`;
+			await page.screenshot({ path: join(SAIDA, arquivoDoPacote) });
+			relatorio.push({ largura: L.w, foto: arquivoDoPacote, posicaoDaCaixa: '-', defeitos: pacoteOk === 'ok' ? [] : [`pacote: ${pacoteOk}`] });
 			await contexto.close();
 		}
 	} finally {
