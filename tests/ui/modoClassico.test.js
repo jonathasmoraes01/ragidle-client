@@ -84,3 +84,26 @@ describe('modo classico: apanhar andando nao congela o boneco', () => {
 		expect(fonte).toMatch(/dstEntity\.action !== dstEntity\.ACTION\.DIE && apanharInterrompeACaminhada\(dstEntity\)/);
 	});
 });
+
+describe('modo classico: a tela anda como no roBrowser puro', () => {
+	it('a caminhada nova nao e adiantada pela latencia (o roBrowser puro nunca adianta)', () => {
+		const fonte = ler('src/Renderer/Entity/EntityWalk.js');
+		const corpo = fonte.slice(fonte.indexOf('function computeWalkStartTick'));
+		const guarda = corpo.indexOf('if (modoClassicoLigado()) {');
+		expect(guarda, 'a guarda sumiu').toBeGreaterThan(0);
+		expect(guarda, 'a guarda vem depois da conta do serverTick').toBeLessThan(corpo.indexOf('Session.serverTick'));
+		expect(corpo.slice(guarda, guarda + 80)).toMatch(/return nowTick;/);
+	});
+	it('quem sai da tela continua andando: os dois descartes chamam o walk antes de pular o desenho', () => {
+		const fonte = ler('src/Renderer/EntityManager.js');
+		for (const contador of ['descartadosPorDistancia++', 'descartadosPorTela++']) {
+			const i = fonte.indexOf(contador);
+			expect(i, contador).toBeGreaterThan(0);
+			const ate = fonte.indexOf('continue;', i);
+			expect(fonte.slice(i, ate), contador).toMatch(/seguirAndandoSemDesenhar\(_list\[i\]\)/);
+		}
+		const helper = fonte.slice(fonte.indexOf('function seguirAndandoSemDesenhar'));
+		expect(helper.slice(0, 220)).toMatch(/entity\.walk\.total > 0/);
+		expect(helper.slice(0, 220)).toMatch(/entity\.walkProcess\(\);/);
+	});
+});

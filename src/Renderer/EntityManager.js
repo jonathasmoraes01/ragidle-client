@@ -387,6 +387,22 @@ function sortByPriority(a, b) {
  * @param {number|string|null} meuGID o GID do jogador — nunca descartado
  * @returns {boolean}
  */
+/**
+ * O DESCARTADO CONTINUA ANDANDO (24/09/2026, modo classico). O descarte pula o
+ * `render()` inteiro, e a posicao so anda dentro dele (`walkProcess`): quem
+ * saia da tela ficava parado no ponto velho, e o MOVE seguinte partia dali -
+ * ao voltar a ser desenhado ele escorregava do ponto velho, as vezes para
+ * tras. Andar sem desenhar custa umas contas por entidade; o que o descarte
+ * economiza e o desenho.
+ *
+ * @param {Entity} entity
+ */
+function seguirAndandoSemDesenhar(entity) {
+	if (entity.walk && entity.walk.total > 0 && typeof entity.walkProcess === 'function') {
+		entity.walkProcess();
+	}
+}
+
 function foraDaTela(entity, meuGID) {
 	/*
 	 * INTERRUPTOR DE MEDICAO (07/09/2026): `window.__ri_culling = false`
@@ -547,11 +563,13 @@ function render(gl, modelView, projection, fog, renderEffects) {
 				const dy = _list[i].position[1] - playerY;
 				if (dx * dx + dy * dy > viewAreaSq) {
 					_contadoresDeQuadro.descartadosPorDistancia++;
+					seguirAndandoSemDesenhar(_list[i]);
 					continue;
 				}
 			}
 			if (foraDaTela(_list[i], meuGID)) {
 				_contadoresDeQuadro.descartadosPorTela++;
+				seguirAndandoSemDesenhar(_list[i]);
 				continue;
 			}
 			_contadoresDeQuadro.desenhados++;
