@@ -152,6 +152,17 @@
 	grid-row: 1;
 }
 
+/*
+ * O RO SHOP NA VAGA DE BAIXO (24/09/2026, pedido do dono: sempre visivel,
+ * abaixo do "Votar"). E o decimo botao no DOM; com cinco colunas ele ocupa a
+ * coluna 5 da segunda fileira, a vaga que o "Votar" deixou. Com quatro (ou
+ * tres, deitado) ele segue o fluxo automatico, logo depois do "Votar".
+ */
+.tm-top[data-colunas='5'] .tm-item--roshop {
+	grid-column: 5;
+	grid-row: 2;
+}
+
 .tm-top .tm-toggle {
 	grid-column: -2 / -1;
 	/* "span 2", e NAO "1 / -1". O `-1` conta a ultima linha da grade EXPLICITA,
@@ -1308,9 +1319,14 @@
 	display: none !important;
 }
 
+/* O RO Shop entra no trilho como QUINTO degrau (24/09/2026, pedido do dono:
+   sempre visivel, sem abrir o Menu). Pela CLASSE e nao pelo `data-action`:
+   o item do leque tem o mesmo `data-action="roshop"`, e so o do cluster
+   (`.tm-item--roshop`) mora no trilho. */
 .ri-vertical .tm-top .tm-item[data-action='inventory'],
 .ri-vertical .tm-top .tm-item[data-action='skills'],
-.ri-vertical .tm-top .tm-item[data-action='config'] {
+.ri-vertical .tm-top .tm-item[data-action='config'],
+.ri-vertical .tm-top .tm-item--roshop {
 	display: flex !important;
 	box-sizing: border-box;
 	min-height: var(--vr-trilho-passo, 72px);

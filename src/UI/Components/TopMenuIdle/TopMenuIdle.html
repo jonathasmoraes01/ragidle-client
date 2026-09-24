@@ -237,6 +237,29 @@
 			<span class="tm-label">Votar</span>
 		</button>
 
+		<!-- RO SHOP NO CLUSTER (24/09/2026, pedido do dono: "o RO Shop fica
+		     no menu, que so aparece com o Menu aberto, e os jogadores nao o
+		     acham - coloque-o sempre visivel, abaixo do Votar").
+
+		     Ele ocupa a VAGA que o dono reservou em 08/09 ao mover o "Votar"
+		     (coluna 5 da segunda fileira, ao lado do "Analise"): e o DECIMO
+		     `<button>` e quem o poe la e uma regra de grade de uma linha
+		     (TopMenuIdle.css, `.tm-item--roshop`), pelo mesmo motivo do Votar -
+		     reordenar o DOM mudaria as colunas do arranjo de quatro.
+
+		     O item do LEQUE continua (mais abaixo): e a mesma porta, o mesmo
+		     icone, o mesmo `data-action` e o mesmo `RoShop.toggle()`; os dois
+		     handlers sao ligados botao a botao em `TopMenuIdle.init`, entao a
+		     duplicata nao confunde o clique nem o aro de "janela aberta".
+
+		     No celular em pe ele entra no TRILHO, no quinto degrau, abaixo do
+		     "Config." (TopMenuIdle.css, bloco `.ri-vertical`): o trilho e o
+		     que fica na tela com o menu fechado. -->
+		<button type="button" class="tm-item tm-item--roshop" data-action="roshop" title="RO Shop">
+			<span class="tm-icon-wrap ri-disc"><!--RI_ICONE:roshop--></span>
+			<span class="tm-label">RO Shop</span>
+		</button>
+
 		<!-- Alca de recolher o CLUSTER (os 5 acima). Fica FORA do que ela
 		     esconde, de proposito: nunca some, senao o jogador se tranca fora
 		     dos essenciais. Recolhido, e o unico pixel que sobra deste canto.
