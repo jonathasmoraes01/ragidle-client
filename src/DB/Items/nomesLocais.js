@@ -250,6 +250,11 @@ export const NOMES_LOCAIS = {
  */
 const FECHO_DE_CASH = 'Não pode ser negociado nem vendido a NPCs. Pode ser guardado no armazém.';
 
+// Os itens UNIQUE (24/09/2026, ordem do dono): os da conta - o kit inicial e as
+// pocoes dos packs. A categoria e o que o jogador le; a trava mora no servidor
+// (Trade.NoSell/NoTrade, `game/pocoes-da-conta.ts`).
+const FECHO_UNIQUE = '[Unique] Não pode ser vendido a NPCs nem negociado. Pode ser guardado no armazém.';
+
 const FECHO_DO_ALFA =
 	'Recompensa do Alfa do Ragnarok Classic Idle. Visual, sem atributos. Não pode ser negociado nem vendido a NPCs.';
 
@@ -271,10 +276,10 @@ export const DESCRICOES_LOCAIS = {
 	9000110: `Um pack selado. Ao usar, entrega 1 Manual de Experiência, 1 Manual de Experiência de Classe e 1 Bênção da Fortuna.\n${FECHO_DE_CASH}`,
 	// O efeito e o do script da base no `db/pre-re/item_db_usable.yml:117-132`
 	// (`itemheal 0,rand(40,60);` e `itemheal rand(325,405),0;`).
-	9000111: `Uma poção que recupera de 40 a 60 de SP. Vem dos packs do RO Shop.\n${FECHO_DE_CASH}`,
-	9000120: 'Uma poção que recupera HP. Vem do kit de boas-vindas.\nNão pode ser negociada nem vendida a NPCs.',
-	9000121: 'Uma faca simples, a primeira arma do aventureiro. Vem do kit de boas-vindas.\nNão pode ser negociada nem vendida a NPCs.',
-	9000112: `Uma poção que recupera de 325 a 405 de HP. Vem dos packs do RO Shop.\n${FECHO_DE_CASH}`,
+	9000111: `Uma poção que recupera de 40 a 60 de SP. Vem dos packs do RO Shop e do kit de boas-vindas.\n${FECHO_UNIQUE}`,
+	9000120: `Uma poção que recupera HP. Vem do kit de boas-vindas.\n${FECHO_UNIQUE}`,
+	9000121: `Uma faca simples, a primeira arma do aventureiro. Vem do kit de boas-vindas.\n${FECHO_UNIQUE}`,
+	9000112: `Uma poção que recupera de 325 a 405 de HP. Vem dos packs do RO Shop.\n${FECHO_UNIQUE}`,
 	// Os tickets (23/09/2026). O numero da carga NAO vai aqui: o dono o redefine, e o servidor o diz na loja.
 	9000113: `Ao usar, a conta ganha um crédito de Reset de Skills. Aplique pelo RO Shop, na aba Utilidades.\n${FECHO_DE_CASH}`,
 	9000114: `Ao usar, a conta ganha um crédito de Reset de Status. Aplique pelo RO Shop, na aba Utilidades.\n${FECHO_DE_CASH}`,
