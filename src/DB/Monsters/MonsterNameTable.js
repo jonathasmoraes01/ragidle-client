@@ -2462,5 +2462,12 @@ export default {
 	21392: 'Gutsy Giearth',
 	21393: 'Gutsy Familiar',
 	21394: 'Diligent Vitata',
-	21395: 'Silent Maya'
+	21395: 'Silent Maya',
+	// A ZONA DE ZENY (25/09/2026).
+	31001: '[ZENY] Santa Poring',
+	31002: '[ZENY] Metaling',
+	31003: '[ZENY] Magmaring',
+	31004: '[ZENY] Angeling',
+	31005: '[ZENY] Deviling',
+	31006: '[ZENY] Ghostring'
 };

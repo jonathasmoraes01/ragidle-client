@@ -219,6 +219,12 @@ export const NOMES_LOCAIS = {
 	9000112: 'Poção Branca da Conta', // pocoes-da-conta.ts (White_Potion_Da_Conta)
 	9000120: 'Poção Vermelha da Conta', // pocoes-da-conta.ts (Red_Potion_Da_Conta), o kit inicial
 	9000121: 'Faca da Conta', // pocoes-da-conta.ts (Knife_Da_Conta), o kit inicial
+	// A ZONA DE ZENY (25/09/2026): as recompensas e o bilhete (itens-custom.ts).
+	9003000: 'Moeda de Poring',
+	9003001: 'Bolsa de Moedas de Poring',
+	9003002: 'Barra de Midgard',
+	9003003: 'Baú Secreto do Rei Poring',
+	9003010: 'Bilhete da Zona de Zeny',
 	// Os sete TICKETS do RO Shop (23/09/2026): servicos e expansoes de conta que viraram item.
 	9000113: 'Ticket de Reset de Skills', // itens-custom.ts (Ticket_Reset_De_Skills)
 	9000114: 'Ticket de Reset de Status', // itens-custom.ts (Ticket_Reset_De_Status)
@@ -279,6 +285,11 @@ export const DESCRICOES_LOCAIS = {
 	9000111: `Uma poção que recupera de 40 a 60 de SP. Vem dos packs do RO Shop e do kit de boas-vindas.\n${FECHO_UNIQUE}`,
 	9000120: `Uma poção que recupera HP. Vem do kit de boas-vindas.\n${FECHO_UNIQUE}`,
 	9000121: `Uma faca simples, a primeira arma do aventureiro. Vem do kit de boas-vindas.\n${FECHO_UNIQUE}`,
+	9003000: `Uma moeda com a cara de um Poring. Cai dos monstros [ZENY] da Zona de Zeny. Vale zeny no NPC. Não pode ser negociado.`,
+	9003001: `Uma bolsinha cheia de Moedas de Poring. Cai dos monstros [ZENY] da Zona de Zeny. Vale zeny no NPC. Não pode ser negociado.`,
+	9003002: `Uma barra de ouro forjada em Midgard. Cai dos monstros [ZENY] da Zona de Zeny. Vale zeny no NPC. Não pode ser negociado.`,
+	9003003: `O tesouro guardado pelo Rei Poring em pessoa. Cai dos monstros [ZENY] da Zona de Zeny. Vale zeny no NPC. Não pode ser negociado.`,
+	9003010: `Mais 30 minutos na Zona de Zeny. Oferecido na entrada quando o seu tempo do dia acabou; os minutos do bilhete não expiram. Não pode ser negociado nem vendido.`,
 	9000112: `Uma poção que recupera de 325 a 405 de HP. Vem dos packs do RO Shop.\n${FECHO_UNIQUE}`,
 	// Os tickets (23/09/2026). O numero da carga NAO vai aqui: o dono o redefine, e o servidor o diz na loja.
 	9000113: `Ao usar, a conta ganha um crédito de Reset de Skills. Aplique pelo RO Shop, na aba Utilidades.\n${FECHO_DE_CASH}`,

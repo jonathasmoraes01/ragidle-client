@@ -3745,5 +3745,12 @@ export default {
 	10250: '4_woodbox',
 	10251: '4_m_popfesta',
 	10252: '4_bonfire',
-	10253: 'clear_npc'
+	10253: 'clear_npc',
+	// A ZONA DE ZENY (25/09/2026, `game/zona-de-zeny.ts` do servidor): o sprite do monstro base.
+	31001: 'Poring_',
+	31002: 'METALING',
+	31003: 'MAGMARING',
+	31004: 'ANGELING',
+	31005: 'DEVILING',
+	31006: 'GHOSTRING'
 };

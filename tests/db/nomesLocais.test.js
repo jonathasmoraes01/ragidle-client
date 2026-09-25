@@ -193,7 +193,8 @@ describe('a lista aponta so para item que o jogo conhece', () => {
 		// premios do alfa (9.002.000-002) + a Aura do Tornado (9.000.326), das frentes mescladas no mesmo dia.
 		// **23/09/2026: 76** = 74 + a Pocao Vermelha e a Faca da Conta do kit inicial (9.000.120-121).
 		// **24/09/2026: 77** = 76 + o Pack Pocao Azul de 500 (9.000.122) do RO Shop.
-		expect(Object.keys(NOMES_LOCAIS)).toHaveLength(77);
+		// **25/09/2026: 82** = 77 + os cinco da Zona de Zeny (9.003.000-003 e o bilhete 9.003.010).
+		expect(Object.keys(NOMES_LOCAIS)).toHaveLength(82);
 	});
 });
 
