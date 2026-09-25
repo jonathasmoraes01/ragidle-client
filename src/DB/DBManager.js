@@ -26,7 +26,7 @@ import MonsterNameTable from './Monsters/MonsterNameTable.js';
 import PetIllustration from './Pets/PetIllustration.js';
 import PetAction from './Pets/PetAction.js';
 import ItemTable from './Items/ItemTable.js';
-import { completarFicha, unknownItem } from './Items/FichaDoItem.js';
+import { comDescricaoLocal, completarFicha, unknownItem } from './Items/FichaDoItem.js';
 import HatTable from './Items/HatTable.js';
 import ShieldTable from './Items/ShieldTable.js';
 import WeaponTable from './Items/WeaponTable.js';
@@ -2341,6 +2341,12 @@ class DB {
 		 * servidor, uma vez por valor — a ficha chega assincrona, entao a troca
 		 * acontece na primeira chamada depois dela.
 		 */
+		// A frase do item nosso em cima dos dados do servidor (`comDescricaoLocal`).
+		if (item !== unknownItem) {
+			item.identifiedDescriptionName = comDescricaoLocal(Number(itemid), item.identifiedDescriptionName);
+			item.unidentifiedDescriptionName = comDescricaoLocal(Number(itemid), item.unidentifiedDescriptionName);
+		}
+
 		const pesoDaFicha = pesoDeItem(Number(itemid));
 		if (item !== unknownItem && pesoDaFicha !== null && item._pesoNaDescricao !== pesoDaFicha) {
 			item.identifiedDescriptionName = comPesoDaFicha(item.identifiedDescriptionName, pesoDaFicha);

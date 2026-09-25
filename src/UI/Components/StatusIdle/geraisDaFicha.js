@@ -116,9 +116,23 @@ function segundos(ms) {
 	return formatarNumero(ms / 1000) + ' s';
 }
 
-/** O title da linha: a dica, os canais de recuperacao e o que nao deu para medir. */
+/**
+ * O title da linha: o valor, a parte do Codex, a dica, os canais de recuperacao
+ * e o que nao deu para medir.
+ *
+ * A PARTE DO CODEX MORA AQUI desde 25/09/2026 (pedido do dono): ela era uma
+ * segunda linha SEMPRE visivel embaixo do numero, e passou a ser DETALHE, como
+ * a quebra por fonte dos Atributos -- no computador aparece ao passar o mouse
+ * (este title), no celular ao tocar na linha (StatusIdle.js). Ela vem logo
+ * depois do valor porque e a pergunta que o jogador foi fazer ao parar ali.
+ */
 export function tituloDaLinha(linha, def) {
-	const partes = [def.rotulo + ': ' + textoDoValor(linha, def), def.dica];
+	const partes = [def.rotulo + ': ' + textoDoValor(linha, def)];
+	const codex = textoDoCodex(linha);
+	if (codex) {
+		partes.push(codex);
+	}
+	partes.push(def.dica);
 	const recurso = linha.chave === 'regenSp' ? 'SP' : 'HP';
 	if (Array.isArray(linha.canais)) {
 		for (const c of linha.canais) {
@@ -146,12 +160,16 @@ export function linhasParaDesenhar(gerais) {
 		const def = Object.prototype.hasOwnProperty.call(ROTULOS, linha.chave) ? ROTULOS[linha.chave] : null;
 		if (!def) continue; // chave de um servidor mais novo: pula so ela
 		if (!UNIDADES.includes(linha.unidade) || !Number.isFinite(linha.valor)) continue;
+		const titulo = tituloDaLinha(linha, def);
 		saida.push({
 			chave: linha.chave,
 			rotulo: def.rotulo,
 			valor: textoDoValor(linha, def),
 			codex: textoDoCodex(linha),
-			titulo: tituloDaLinha(linha, def)
+			titulo,
+			// O que abre EMBAIXO da linha (linhaGeral.js): o title sem a
+			// primeira linha ("Rotulo: valor"), que a propria linha ja mostra.
+			detalhe: titulo.split('\n').slice(1)
 		});
 	}
 	return saida;
@@ -181,6 +199,26 @@ export function estaRecolhida(recolhidas, secao) {
 	return lerRecolhidas(recolhidas).includes(secao);
 }
 
+/* ── O detalhe do Codex aberto por toque ──────────────────────────────────
+ *
+ * No toque nao existe "passar o mouse": o title nativo nunca aparece. A linha
+ * que TEM parte do Codex vira um botao, e tocar nela abre (ou fecha) o detalhe
+ * embaixo do numero. As abertas sao guardadas pela CHAVE da linha, e nao pelo
+ * elemento: a ficha e redesenhada a cada status que entra ou sai, e um detalhe
+ * que fechasse sozinho no meio da leitura seria pior que nenhum.
+ */
+
+/** Abre a linha fechada e fecha a aberta. Nao muta a lista recebida. */
+export function alternarDetalhe(abertas, chave) {
+	const atual = Array.isArray(abertas) ? abertas.filter(c => typeof c === 'string') : [];
+	if (typeof chave !== 'string' || chave === '') return atual;
+	return atual.includes(chave) ? atual.filter(c => c !== chave) : atual.concat(chave);
+}
+
+export function detalheAberto(abertas, chave) {
+	return Array.isArray(abertas) && abertas.includes(chave);
+}
+
 export default {
 	SECOES_RECOLHIVEIS,
 	ROTULOS,
@@ -191,5 +229,7 @@ export default {
 	linhasParaDesenhar,
 	lerRecolhidas,
 	alternarSecao,
-	estaRecolhida
+	estaRecolhida,
+	alternarDetalhe,
+	detalheAberto
 };

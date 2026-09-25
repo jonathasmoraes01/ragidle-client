@@ -48,6 +48,32 @@
 
 import { DESCRICOES_LOCAIS, ICONES_LOCAIS, NOMES_LOCAIS } from './nomesLocais.js';
 
+/**
+ * A FRASE DO ITEM NOSSO EM CIMA DOS DADOS (25/09/2026, o dono: a Moeda de
+ * Poring, a Bolsa e a Barra de Midgard abriam so com Tipo/Peso/Nivel).
+ *
+ * Todo item nosso esta no pacote do jogo, e o servidor de assets
+ * (`tabelaDeDescricoesCompletada`) lhe da uma descricao SO DE DADOS. Essa
+ * descricao chega na ficha e o `??` de `completarFicha` nunca alcanca
+ * `DESCRICOES_LOCAIS` - a frase escrita aqui ficava invisivel para todos os
+ * 32 ids locais, e nao so para os tres do relato. A frase vai EM CIMA, e os
+ * dados do servidor ficam embaixo. Idempotente: `getItemInfo` roda a cada
+ * desenho.
+ */
+export function comDescricaoLocal(itemid, descricao) {
+	const local = DESCRICOES_LOCAIS[itemid];
+	if (local === undefined || typeof descricao !== 'string') {
+		return descricao;
+	}
+	if (descricao.startsWith(local)) {
+		return descricao;
+	}
+	if (descricao.trim() === '' || descricao.trim() === '...') {
+		return local;
+	}
+	return local + '\n' + descricao;
+}
+
 /** A ficha de quem nao esta na tabela. `\xbb\xe7\xb0\xfa` e o sprite de sobra do cliente. */
 export const unknownItem = {
 	unidentifiedDisplayName: 'Unknown Item',

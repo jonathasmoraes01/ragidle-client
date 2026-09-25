@@ -19,11 +19,16 @@ const BAU = 9003003;
 describe('a descricao do Bau Secreto diz as chances', () => {
 	it('as quatro linhas do dono, na ordem', () => {
 		expect(linhasDasChancesDoBau()).toEqual([
-			'80% - 30.000 zeny',
-			'15% - 50.000 zeny',
-			'4,5% - 100.000 zeny',
-			'0,5% - 300.000 zeny',
+			'30.000 zeny: 80%',
+			'50.000 zeny: 15%',
+			'100.000 zeny: 4,5%',
+			'300.000 zeny: 0,5%',
 		]);
+	});
+
+	it('toda linha de chance aparece na dica da Mochila (o filtro rotulo: valor)', () => {
+		const RE_LINHA_FICHA = /^([^:]{1,28}):\s(.+)$/;
+		for (const linha of linhasDasChancesDoBau()) expect(linha).toMatch(RE_LINHA_FICHA);
 	});
 
 	it('os pesos fecham em 1000', () => {

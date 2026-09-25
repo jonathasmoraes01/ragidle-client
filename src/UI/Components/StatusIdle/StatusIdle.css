@@ -637,8 +637,20 @@
 
    Uma coluna, e nao as duas de "Estatisticas": os rotulos aqui sao frases
    ("Redução de dano mágico"), e em duas colunas de 344px eles quebrariam em
-   tres linhas. A parte do Codex vai EMBAIXO do numero, menor, para o numero
-   continuar alinhado a direita em toda linha. */
+   tres linhas.
+
+   O DETALHE SE ANUNCIA (25/09/2026, o dono: "e impossivel o player saber que
+   ele pode clicar ali ou colocar o mouse em cima"): a linha que tem o que
+   explicar leva um "i" visivel, o realce de linha clicavel no hover e o
+   ponteiro de mao; o clique/toque abre o detalhe EMBAIXO dela, dentro da
+   janela. O balao nativo (title) saiu. Ver linhaGeral.js. */
+
+.st-gerais-dica {
+	margin: 0;
+	padding: 6px 12px 2px;
+	font: var(--type-label);
+	color: var(--text-muted);
+}
 
 .st-gerais-lista {
 	display: flex;
@@ -648,23 +660,24 @@
 
 .st-geral-row {
 	display: flex;
+	flex-wrap: wrap;
 	align-items: center;
 	justify-content: space-between;
-	gap: 8px;
+	column-gap: 8px;
 	padding: 4px 12px;
-	cursor: help;
 }
 
 .st-geral-label {
 	font: var(--type-label);
 	color: var(--text-muted);
 	min-width: 0;
+	flex: 1 1 0;
 }
 
 .st-geral-direita {
 	display: flex;
-	flex-direction: column;
-	align-items: flex-end;
+	align-items: center;
+	gap: 6px;
 	flex: 0 0 auto;
 }
 
@@ -674,13 +687,100 @@
 	white-space: nowrap;
 }
 
-.st-geral-codex {
-	margin-top: 2px;
-	/* O degrau de texto pequeno do design system (--fs-desc, 10px), com o
-	   peso medio: e nota ao lado do numero, e nao outro numero. */
-	font: var(--fw-medium) var(--fs-desc) / 1.2 var(--font-ui);
+/* A linha COM detalhe e um <button> (linhaGeral.js): tira do botao o que o
+   navegador poe (fundo, borda, fonte, centro) para ele ler igual as linhas de
+   texto vizinhas -- e poe o que diz "da para clicar": a mao, o realce e o "i". */
+button.st-geral-row {
+	width: 100%;
+	margin: 0;
+	border: 0;
+	background: none;
+	font: inherit;
+	color: inherit;
+	text-align: left;
+	cursor: pointer;
+	border-radius: 6px;
+	-webkit-tap-highlight-color: transparent;
+	transition: background-color var(--dur-fast) ease;
+}
+
+@media (hover: hover) {
+	.st-geral-row--detalhe:hover {
+		background: var(--sky-50);
+	}
+
+	.st-geral-row--detalhe:hover .st-geral-info {
+		color: var(--blue-600);
+		border-color: var(--blue-600);
+	}
+}
+
+.st-geral-row--detalhe.is-aberta {
+	background: var(--sky-50);
+}
+
+.st-geral-row--detalhe:focus-visible {
+	outline: 2px solid var(--blue-600);
+	outline-offset: -2px;
+}
+
+/* O "i": moldura em CSS (regra 4), na cor muda do rotulo para nao competir com
+   o numero; acende em azul no hover e com a linha aberta. */
+.st-geral-info {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	flex: 0 0 auto;
+	width: 14px;
+	height: 14px;
+	border: 1.5px solid var(--text-muted);
+	border-radius: 50%;
+	color: var(--text-muted);
+	font: var(--fw-medium) 9px / 1 var(--font-ui);
+	font-style: italic;
+	transition:
+		color var(--dur-fast) ease,
+		border-color var(--dur-fast) ease;
+}
+
+.st-geral-row--detalhe.is-aberta .st-geral-info {
 	color: var(--blue-600);
-	white-space: nowrap;
+	border-color: var(--blue-600);
+}
+
+/* DEDO: a linha com detalhe e alvo de toque, e 44px e o minimo do projeto
+   para alvo tatil -- a mesma regra do titulo das secoes. */
+@media (pointer: coarse) {
+	.st-geral-row--detalhe {
+		min-height: 44px;
+	}
+}
+
+/* O DETALHE, embaixo da linha, na largura inteira dela; so com a linha ABERTA. */
+.st-geral-detalhe {
+	display: none;
+}
+
+.st-geral-row.is-aberta .st-geral-detalhe {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	flex: 1 0 100%;
+	margin-top: 4px;
+	padding: 6px 0 2px;
+	border-top: 1px solid var(--divider);
+}
+
+.st-geral-detalhe-linha {
+	font: var(--fw-regular) var(--fs-desc) / 1.3 var(--font-ui);
+	color: var(--text-body);
+	white-space: normal;
+}
+
+/* A parte do Codex em destaque: e a pergunta que trouxe o jogador ate aqui. */
+.st-geral-detalhe-linha.st-geral-codex {
+	font-weight: var(--fw-medium);
+	color: var(--blue-600);
 }
 
 /* Builder de polimento (18/08/2026), responsividade 1366x768: 688px de

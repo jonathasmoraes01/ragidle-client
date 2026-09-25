@@ -17,7 +17,8 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { completarFicha, unknownItem } from 'DB/Items/FichaDoItem.js';
+import { comDescricaoLocal, completarFicha, unknownItem } from 'DB/Items/FichaDoItem.js';
+import { DESCRICOES_LOCAIS } from 'DB/Items/nomesLocais.js';
 
 describe('completarFicha', () => {
 	it('o estube SEM nome local vira nome legivel COM o id', () => {
@@ -110,5 +111,43 @@ describe('completarFicha', () => {
 		const estube = { ClassNum: 0 };
 		completarFicha(12849, estube);
 		expect(estube.identifiedDisplayName).toBeUndefined();
+	});
+});
+
+/*
+ * A FRASE DO ITEM NOSSO (25/09/2026): o servidor de assets descreve todo item
+ * do pacote so com DADOS (Tipo/Peso/Nivel), e essa descricao escondia a frase
+ * de `DESCRICOES_LOCAIS`. Agora a frase vai em cima e os dados embaixo.
+ */
+describe('a descricao local de um item nosso', () => {
+	const DADOS = 'Tipo: ^777777Diverso^000000\nPeso: ^7777770^000000';
+
+	it('a Barra de Midgard ganha a frase em cima dos dados do servidor', () => {
+		const texto = comDescricaoLocal(9003002, DADOS);
+		expect(texto.startsWith(DESCRICOES_LOCAIS[9003002])).toBe(true);
+		expect(texto.endsWith(DADOS)).toBe(true);
+	});
+
+	it('as tres recompensas da Praca tem frase propria, sem porcentagem de drop', () => {
+		for (const id of [9003000, 9003001, 9003002]) {
+			expect(DESCRICOES_LOCAIS[id]).toBeTruthy();
+			expect(DESCRICOES_LOCAIS[id]).not.toMatch(/%/);
+			expect(DESCRICOES_LOCAIS[id]).toContain('NPC');
+		}
+	});
+
+	it('e idempotente: rodar de novo nao repete a frase', () => {
+		const uma = comDescricaoLocal(9003000, DADOS);
+		expect(comDescricaoLocal(9003000, uma)).toBe(uma);
+	});
+
+	it('sem dados (vazio ou reticencias), so a frase', () => {
+		expect(comDescricaoLocal(9003001, '...')).toBe(DESCRICOES_LOCAIS[9003001]);
+		expect(comDescricaoLocal(9003001, '')).toBe(DESCRICOES_LOCAIS[9003001]);
+	});
+
+	it('CONTROLE: item oficial (sem frase local) fica como veio', () => {
+		expect(comDescricaoLocal(501, DADOS)).toBe(DADOS);
+		expect(comDescricaoLocal(9003002, undefined)).toBeUndefined();
 	});
 });

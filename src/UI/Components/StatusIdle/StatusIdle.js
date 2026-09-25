@@ -148,7 +148,15 @@ import htmlText from './StatusIdle.html?raw';
 import cssText from './StatusIdle.css?raw';
 import { fecharEEsquecer } from '../limpezaDeJanelaIdle.js';
 import { METADES, lerMetades } from './metadesDaDerivada.js';
-import { linhasParaDesenhar, lerRecolhidas, alternarSecao, estaRecolhida } from './geraisDaFicha.js';
+import {
+	linhasParaDesenhar,
+	lerRecolhidas,
+	alternarSecao,
+	estaRecolhida,
+	alternarDetalhe,
+	detalheAberto
+} from './geraisDaFicha.js';
+import { montarLinhaGeral, marcarLinhaAberta, linhaComDetalheDoEvento } from './linhaGeral.js';
 import TitulosDaConta from './titulosDaConta.js';
 import { fraseDaRecusa } from './formatoDosTitulos.js';
 
@@ -326,6 +334,10 @@ StatusIdle.init = function init() {
 		btn.addEventListener('click', onClickSecao);
 	});
 	aplicarRecolhidas(root);
+
+	// O detalhe do Codex nas linhas de "Gerais": UM ouvinte na lista, e nao um
+	// por linha, porque as linhas sao refeitas a cada ficha que chega.
+	root.querySelector('.st-gerais-lista').addEventListener('click', onClickGeral);
 
 	// Default centered position, may be overridden by saved preferences in
 	// onAppend() below (same approach as HuntMap.js:191-193).
@@ -682,32 +694,32 @@ function renderGerais(root, gerais) {
 		return;
 	}
 	for (const linha of linhas) {
-		const row = document.createElement('div');
-		row.className = 'st-geral-row';
-		row.dataset.geral = linha.chave;
-		row.title = linha.titulo;
-
-		const label = document.createElement('span');
-		label.className = 'st-geral-label';
-		label.textContent = linha.rotulo;
-
-		const direita = document.createElement('span');
-		direita.className = 'st-geral-direita';
-		const valor = document.createElement('span');
-		valor.className = 'st-geral-value';
-		valor.textContent = linha.valor;
-		direita.appendChild(valor);
-		if (linha.codex) {
-			const codex = document.createElement('span');
-			codex.className = 'st-geral-codex';
-			codex.textContent = linha.codex;
-			direita.appendChild(codex);
-		}
-
-		row.appendChild(label);
-		row.appendChild(direita);
-		lista.appendChild(row);
+		// A linha e o toque nela moram em linhaGeral.js (medidos no jsdom): o
+		// detalhe (Codex + o que o numero quer dizer) abre por clique/toque, e
+		// o "i" na linha avisa que ele existe.
+		lista.appendChild(montarLinhaGeral(document, linha, detalheAberto(_geraisAbertas, linha.chave)));
 	}
+}
+
+/**
+ * As linhas de "Gerais" com o detalhe do Codex aberto, pela chave. Estado de
+ * TELA e de sessao (nao vai para a Preferences): abrir e uma consulta, e nao
+ * uma preferencia que o jogador espere reencontrar amanha.
+ */
+let _geraisAbertas = [];
+
+/**
+ * Toque/clique numa linha de "Gerais" com Codex: abre ou fecha o detalhe. So a
+ * classe e o `aria-expanded` mudam -- a linha nao e refeita, entao o foco de
+ * teclado fica onde estava.
+ */
+function onClickGeral(e) {
+	const row = linhaComDetalheDoEvento(e);
+	if (!row) {
+		return;
+	}
+	_geraisAbertas = alternarDetalhe(_geraisAbertas, row.dataset.geral);
+	marcarLinhaAberta(row, detalheAberto(_geraisAbertas, row.dataset.geral));
 }
 
 /**
@@ -1008,6 +1020,8 @@ StatusIdle.aoMudarStatus = function aoMudarStatus() {
 
 StatusIdle.limparEstadoDoPersonagem = function limparEstadoDoPersonagem() {
 	StatusIdle.ficha = null;
+	// O detalhe do Codex aberto era do personagem anterior: o proximo abre fechado.
+	_geraisAbertas = [];
 	// O titulo equipado e do PERSONAGEM: o proximo chega no 0x0fb6 da entrada.
 	TitulosDaConta.limpar();
 	/*

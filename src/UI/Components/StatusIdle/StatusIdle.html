@@ -160,7 +160,9 @@
 
 			<!-- GERAIS (25/09/2026): os derivados gerais do motor -- recuperacao por
 			     segundo, dano e reducao em %, HP/SP maximo, ataques por segundo --,
-			     cada um com a parte do Codex ao lado. As linhas sao montadas por
+			     cada um com um DETALHE que abre embaixo da linha por clique/toque (a parte
+			     do Codex, o que o numero quer dizer); o "i" e a dica abaixo avisam que ele
+			     existe (linhaGeral.js). As linhas sao montadas por
 			     StatusIdle.js a partir de `ficha.gerais` (texto em geraisDaFicha.js).
 			     O card nasce ESCONDIDO (`hidden`) e so aparece quando o servidor manda
 			     a secao: servidor antigo nao a manda, e um "Gerais" vazio leria como
@@ -168,6 +170,7 @@
 			<div class="st-card ri-card st-card--gerais" data-secao="gerais" hidden>
 				<button type="button" class="st-card-title st-card-toggle" aria-expanded="true" aria-controls="st-secao-gerais">Gerais</button>
 				<div class="st-card-body" id="st-secao-gerais">
+					<p class="st-gerais-dica">Clique ou toque numa linha para ver de onde vem o número.</p>
 					<div class="st-gerais-lista"></div>
 				</div>
 			</div>

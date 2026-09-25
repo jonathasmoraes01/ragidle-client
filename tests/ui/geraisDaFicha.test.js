@@ -9,7 +9,9 @@ import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
 import {
 	SECOES_RECOLHIVEIS,
+	alternarDetalhe,
 	alternarSecao,
+	detalheAberto,
 	estaRecolhida,
 	formatarNumero,
 	lerRecolhidas,
@@ -79,6 +81,16 @@ describe('linhasParaDesenhar', () => {
 		expect(l.spMaximo.codex).toBe('');
 	});
 
+	it('a parte do Codex esta no title, logo depois do valor (o mouse a mostra)', () => {
+		// 25/09/2026: a linha "Codex +x%" sempre visivel saiu; o detalhe e o title.
+		expect(l.regenHp.titulo.split(String.fromCharCode(10)).slice(0, 2)).toEqual(['Recuperação de HP: 2,17/s', 'Codex +0,67/s (+60%)']);
+		expect(l.hpMaximo.titulo).toContain('Codex +26 (+0,5%)');
+		expect(l.ataquesPorSegundo.titulo).toContain('Codex +0,2%');
+		// sem Codex: o title nao ganha linha de Codex nenhuma
+		expect(l.esquivaPerfeita.titulo).not.toMatch(/^Codex /m);
+		expect(l.spMaximo.titulo).not.toMatch(/^Codex /m);
+	});
+
 	it('o title explica os canais de recuperacao', () => {
 		expect(l.regenHp.titulo).toContain('Natural: 7 HP a cada 6 s');
 		expect(l.regenHp.titulo).toContain('Habilidade: 10 HP a cada 10 s');
@@ -145,6 +157,27 @@ describe('as secoes recolhidas', () => {
 		const antes = ['gerais'];
 		alternarSecao(antes, 'atributos');
 		expect(antes).toEqual(['gerais']);
+	});
+});
+
+describe('o detalhe do Codex aberto por toque', () => {
+	it('alternar abre a fechada e fecha a aberta, pela chave', () => {
+		const uma = alternarDetalhe([], 'hpMaximo');
+		expect(uma).toEqual(['hpMaximo']);
+		expect(detalheAberto(uma, 'hpMaximo')).toBe(true);
+		expect(detalheAberto(uma, 'spMaximo')).toBe(false);
+		const duas = alternarDetalhe(uma, 'regenHp');
+		expect(duas).toEqual(['hpMaximo', 'regenHp']);
+		expect(alternarDetalhe(duas, 'hpMaximo')).toEqual(['regenHp']);
+	});
+
+	it('lixo nao entra e a lista recebida nao e mutada', () => {
+		const antes = ['hpMaximo'];
+		alternarDetalhe(antes, 'regenHp');
+		expect(antes).toEqual(['hpMaximo']);
+		expect(alternarDetalhe(undefined, 'hpMaximo')).toEqual(['hpMaximo']);
+		expect(alternarDetalhe(['hpMaximo', 7, null], '')).toEqual(['hpMaximo']);
+		expect(detalheAberto(undefined, 'hpMaximo')).toBe(false);
 	});
 });
 

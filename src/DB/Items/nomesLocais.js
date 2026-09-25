@@ -284,10 +284,14 @@ function porcentagemDoPeso(peso) {
 	return resto === 0 ? `${inteiro}%` : `${inteiro},${resto}%`;
 }
 
-/** As linhas das chances, geradas da tabela: `80% - 30.000 zeny`. */
+/**
+ * As linhas das chances, geradas da tabela: `30.000 zeny: 80%`. O formato e
+ * `rotulo: valor` porque a dica da Mochila so mostra linhas assim
+ * (`RE_LINHA_FICHA`, `MochilaIdle.js`) - o `80% - 30.000 zeny` de antes sumia.
+ */
 export function linhasDasChancesDoBau() {
 	return PREMIOS_DO_BAU_SECRETO.map(
-		p => `${porcentagemDoPeso(p.peso)} - ${String(p.zeny).replace(/\B(?=(\d{3})+(?!\d))/g, '.')} zeny`
+		p => `${String(p.zeny).replace(/\B(?=(\d{3})+(?!\d))/g, '.')} zeny: ${porcentagemDoPeso(p.peso)}`
 	);
 }
 
@@ -315,9 +319,9 @@ export const DESCRICOES_LOCAIS = {
 	9000111: `Uma poção que recupera de 40 a 60 de SP. Vem dos packs do RO Shop e do kit de boas-vindas.\n${FECHO_UNIQUE}`,
 	9000120: `Uma poção que recupera HP. Vem do kit de boas-vindas.\n${FECHO_UNIQUE}`,
 	9000121: `Uma faca simples, a primeira arma do aventureiro. Vem do kit de boas-vindas.\n${FECHO_UNIQUE}`,
-	9003000: `Uma moeda com a cara de um Poring. Cai dos monstros [ZENY] da Praça de Zeny. Vale zeny no NPC. Não pode ser negociado.`,
-	9003001: `Uma bolsinha cheia de Moedas de Poring. Cai dos monstros [ZENY] da Praça de Zeny. Vale zeny no NPC. Não pode ser negociado.`,
-	9003002: `Uma barra de ouro forjada em Midgard. Cai dos monstros [ZENY] da Praça de Zeny. Vale zeny no NPC. Não pode ser negociado.`,
+	9003000: `Uma moeda dourada cunhada com o rosto de um Poring. Os Porings da Praça de Zeny guardam essas moedas como se fossem o maior tesouro do mundo.\nPode ser vendida a qualquer NPC comerciante em troca de zeny.\nNão pode ser negociada.`,
+	9003001: `Uma bolsinha de couro recheada de Moedas de Poring, bem mais pesada no bolso que uma moeda solta.\nPode ser vendida a qualquer NPC comerciante em troca de zeny.\nNão pode ser negociada.`,
+	9003002: `Uma barra de ouro maciço forjada em Midgard, cobiçada por mercadores de todo o reino. Um dos tesouros mais valiosos que os Porings da Praça de Zeny escondem.\nPode ser vendida a qualquer NPC comerciante em troca de zeny.\nNão pode ser negociada.`,
 	9003003: `O tesouro guardado pelo Rei Poring em pessoa. Cai dos monstros [ZENY] da Praça de Zeny. Use para abrir e ganhar zeny. Chances a cada baú aberto:\n${linhasDasChancesDoBau().join('\n')}\nNão pode ser negociado nem vendido a NPCs.`,
 	9003010: `Mais 30 minutos na Praça de Zeny. Oferecido na entrada quando o seu tempo do dia acabou; os minutos do bilhete não expiram. Não pode ser negociado nem vendido.`,
 	9000112: `Uma poção que recupera de 325 a 405 de HP. Vem dos packs do RO Shop.\n${FECHO_UNIQUE}`,
