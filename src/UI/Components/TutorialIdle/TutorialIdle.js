@@ -401,6 +401,11 @@ function abatesAgora() {
 	}
 }
 
+/** Ha arma na mochila (`ItemType.WEAPON`, o criterio de `getItemTab()` em `MochilaIdle.js`). */
+function temArmaDoKitNaMochila() {
+	return Inventory.getUI().list.some((item) => item.type === ItemType.WEAPON);
+}
+
 /**
  * A etapa `numero` foi cumprida DE VERDADE?
  *
@@ -423,7 +428,10 @@ function etapaCumprida(numero) {
 			/* A janela do Correio abriu (`CorreioIdle.js`, `.co-window` ganha
 			   `is-open` no toggle). So abrir - retirar o kit de dentro dela e a
 			   etapa 4, com alvo na janela inteira (dois gestos, um furo so). */
-			return janelaAberta('CorreioIdle', '.co-window');
+			/* 25/09/2026: o servidor retira o kit SOZINHO na entrada no mapa
+			   (`prepararAEntrada`, ordem do dono), entao quem chega aqui ja tem
+			   a arma na mochila - o Correio nao tem mais o que ensinar. */
+			return janelaAberta('CorreioIdle', '.co-window') || temArmaDoKitNaMochila();
 		case 4: {
 			/*
 			 * O KIT RETIRADO POR INTEIRO, e nao so a metade dele.
@@ -449,9 +457,16 @@ function etapaCumprida(numero) {
 			 * nao existe. `ItemType.WEAPON` e o mesmo criterio de
 			 * `getItemTab()` em `MochilaIdle.js`, nao uma copia solta.
 			 */
-			const zenySubiu = Session.zeny > (_marco ? _marco.zeny : 0);
-			const temArmaNaMochila = Inventory.getUI().list.some((item) => item.type === ItemType.WEAPON);
-			return zenySubiu && temArmaNaMochila;
+			/*
+			 * 25/09/2026: o KIT E RETIRADO PELO SERVIDOR na entrada no mapa
+			 * (`prepararAEntrada`, `servidor-mapa.ts`, ordem do dono), ANTES de
+			 * esta etapa comecar. Exigir que o zeny SUBISSE depois do marco
+			 * travava o tutorial para sempre: o zeny ja tinha subido. Os dois
+			 * botoes que a regra acima protegia nao existem mais para o kit (o
+			 * servidor retira zeny e itens juntos), entao a arma na mochila e
+			 * o resultado inteiro.
+			 */
+			return temArmaDoKitNaMochila();
 		}
 		case 5: {
 			/* A peca vestida CONFIRMADA: `Session.Entity.weapon` so muda quando
