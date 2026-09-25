@@ -16234,10 +16234,11 @@ PACKET.CZ.RAGIDLE_CODEX_ACAO.prototype.build = function () {
 
 // 0x0fe3 - RAGIDLE: ZC_RAGIDLE_CODEX (server -> client)
 // Variable size: u16 opcode + u16 total length + JSON UTF-8 payload.
-// Contrato v1 (D-851): { v, pontosDisponiveis, pontosGanhos, tetoPorEixo,
-// gastos: {str,agi,vit,int,dex,luk,exp}, bonusDeAtributo: {str..luk},
-// bonusDeExpEmPorcento, missoes: [{ id, monstro, mobId, abates, alvo,
-// cumprida }] }.
+// Contrato v2 (Codex em %, 25/09/2026): { v: 2, pontos: { dasEntradas, doNivel,
+// dosDesafios, devolvidos, ganhos, gastos, disponiveis }, tetoDeNivel,
+// eixos: [{ eixo, nivel, bonus, porNivel, custoDoProximo, recusa }],
+// desafios: { diario, semanal }, temNovidade, missoes: [...] }. O bonus e em
+// centesimos de ponto percentual (50 = 0,5%). O v1 (D-851) comprava atributo.
 //
 // UM pacote de resposta para os DOIS verbos, inclusive para um `gastar`
 // RECUSADO, que desce o retrato inalterado em vez de um pacote de erro.

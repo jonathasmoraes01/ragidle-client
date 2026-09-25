@@ -1,9 +1,10 @@
 /**
  * UI/Components/CodexIdle/CodexIdle.js
  *
- * A JANELA DO CODEX (D-851): o bestiario que vira ponto de atributo. Matar N
- * de uma especie cumpre uma missao, cada missao cumprida vale 1 ponto, e o
- * ponto se gasta num dos sete eixos (os seis atributos e a experiencia).
+ * A JANELA DO CODEX (D-851; reforma em % de 25/09/2026): o bestiario que vira
+ * ponto. Os pontos nascem das missoes, do nivel de base e dos desafios diario e
+ * semanal, e se gastam em NOVE eixos percentuais, com custo crescente por nivel
+ * (o desenho mora em `eixosDoCodex.js`).
  *
  * Quatro escolhas de desenho, nenhuma estetica:
  *
@@ -72,7 +73,7 @@ import MissoesIdle from 'UI/Components/MissoesIdle/MissoesIdle.js';
 // Quem responde "isto e um celular em pe?" no projeto inteiro (D-929).
 import { ehCelularEmPe } from 'UI/hudVertical.js';
 import { jornadaHtml } from './jornadaHtml.js';
-import { avisoDosAtributos, eixoEmAlteracao, AVISO_PADRAO_DOS_ATRIBUTOS } from './atributosEmAlteracao.js';
+import { placarHtml, eixosHtml, desafiosHtml } from './eixosDoCodex.js';
 import { missoesGeraisHtml, cliqueDeMissoesGerais, SUBABA_PADRAO } from './missoesGeraisHtml.js';
 import htmlText from './CodexIdle.html?raw';
 import cssText from './CodexIdle.css?raw';
@@ -89,39 +90,6 @@ import { abaLembrada, lembrarAba } from '../memoriaDeAba.js';
  */
 const WINDOW_WIDTH = 572;
 const WINDOW_HEIGHT = 660;
-
-/**
- * O rotulo de cada eixo. SO o rotulo — a ordem e a existencia de cada um vem
- * do retrato (escolha 4 do cabecalho). Chave que nao estiver aqui e desenhada
- * com a propria sigla, porque um eixo novo do servidor tem de APARECER,
- * mesmo feio, em vez de sumir sem sinal nenhum.
- */
-const NOME_DO_EIXO = {
-	str: 'Forca',
-	agi: 'Agilidade',
-	vit: 'Vitalidade',
-	int: 'Inteligencia',
-	dex: 'Destreza',
-	luk: 'Sorte',
-	exp: 'Experiencia'
-};
-
-/**
- * A frase de cada codigo de recusa que o servidor manda em `recusaPorEixo`.
- *
- * O CODIGO e do servidor (`RecusaDeGasto`); a FRASE e daqui. Um codigo novo
- * que a janela nao conheca cai no titulo comum "Gastar 1 ponto em X" — o botao
- * continua apagado, porque quem decide isso e `recusa !== null`, e nao esta
- * tabela.
- */
-const MOTIVO_DA_RECUSA = {
-	'eixo-no-teto': 'Este eixo ja esta no teto',
-	'sem-ponto': 'Voce nao tem ponto para gastar',
-	'atributos-em-alteracao': AVISO_PADRAO_DOS_ATRIBUTOS
-};
-
-/** O unico eixo cujo bonus e uma PORCENTAGEM, e nao pontos de atributo. */
-const EIXO_DE_EXP = 'exp';
 
 /**
  * As tres abas da janela.
@@ -531,42 +499,6 @@ function onClickCorpo(e) {
 /* O desenho                                                           */
 /* ------------------------------------------------------------------ */
 
-/** O placar: quanto sobrou, de quanto foi ganho. */
-function placarHtml(estado) {
-	const disponiveis = Number(estado.pontosDisponiveis) || 0;
-	const ganhos = Number(estado.pontosGanhos) || 0;
-	/*
-	 * `pontosGastos` VEM DO SERVIDOR desde 30/08 — a janela nao deriva mais.
-	 *
-	 * O comentario aqui dizia que `ganhos - disponiveis` "nao inventa nada" e
-	 * prometia que a linha sumiria "se um dia o contrato ganhar pontosGastos".
-	 * A auditoria mostrou que a identidade e FALSA exatamente no ramo que o
-	 * piso-zero de `pontosDisponiveis` existe para cobrir: com o catalogo
-	 * encolhido, ganhos pode ser 0 com gastos 3, e o placar imprimia "0 de 0 ja
-	 * aplicados" ao lado de uma linha de STR com 3 pontos e +3 de bonus.
-	 *
-	 * O contrato ganhou o campo. A linha sumiu.
-	 */
-	const gastos = Number(estado.pontosGastos) || 0;
-
-	const texto = disponiveis === 1 ? 'ponto para gastar' : 'pontos para gastar';
-
-	return (
-		'<div class="cx-placar">' +
-		'<span class="cx-placar-numero">' +
-		escapeHtml(disponiveis) +
-		'</span>' +
-		'<span><div class="cx-placar-texto">' +
-		texto +
-		'</div><div class="cx-placar-sub">' +
-		escapeHtml(gastos) +
-		' de ' +
-		escapeHtml(ganhos) +
-		' ja aplicados · cada missao cumprida vale 1 ponto' +
-		'</div></span>' +
-		'</div>'
-	);
-}
 
 /**
  * A lista de missoes: monstro, progresso POR ESPECIE, e o que falta.
@@ -743,108 +675,6 @@ function missoesHtml(estado) {
 	);
 }
 
-/** O bonus que o eixo entrega HOJE, ja formatado (o `exp` e porcentagem). */
-function bonusDoEixo(estado, eixo) {
-	if (eixo === EIXO_DE_EXP) {
-		const pct = Number(estado.bonusDeExpEmPorcento) || 0;
-		return { valor: pct, texto: '+' + pct + '%' };
-	}
-	const atributo = (estado.bonusDeAtributo || {})[eixo];
-	const valor = Number(atributo) || 0;
-	return { valor: valor, texto: '+' + valor };
-}
-
-/** As linhas de eixo, na ordem em que o servidor mandou `gastos`. */
-function eixosHtml(estado) {
-	const gastos = estado.gastos || {};
-	const teto = Number(estado.tetoPorEixo) || 0;
-	/*
-	 * O retrato ANTIGO nao tem `recusaPorEixo`, e a resposta certa e BLOQUEAR.
-	 *
-	 * Sem esta guarda, um servidor sem o campo daria `{}` e TODOS os botoes
-	 * apareceriam clicaveis. O servidor recusaria em silencio (item 2 do
-	 * cabecalho: nao ha pacote de erro), e o jogador clicaria num "+" que nunca
-	 * faz nada — o pior dos dois mundos, porque a janela estaria afirmando que
-	 * da, com confianca.
-	 *
-	 * Recusar tudo com a frase explicita e a postura do projeto: recusa
-	 * explicita em vez de aproximacao.
-	 */
-	const semVeredito = !estado.recusaPorEixo;
-	const recusas = estado.recusaPorEixo || {};
-
-	const linhas = Object.keys(gastos).map(eixo => {
-		const gasto = Number(gastos[eixo]) || 0;
-		/*
-		 * O VEREDITO E DO SERVIDOR (achado da auditoria de 30/08/2026).
-		 *
-		 * Aqui estavam as duas condicoes reescritas a mao — `gasto >= teto ||
-		 * disponiveis <= 0` — com um comentario declarando que estavam "na
-		 * mesma ordem" da regra de la. Era a segunda rota escrita a mao que o
-		 * item 4 do cabecalho deste arquivo proibe, acertando por coincidencia
-		 * enquanto teto e saldo forem as unicas condicoes que existem.
-		 *
-		 * Hoje o retrato traz `recusaPorEixo`, que E o retorno de
-		 * `motivoDaRecusa` — o mesmo que `gastarPonto` consulta. O que continua
-		 * local e so o ROTULO: traduzir codigo em frase e trabalho de janela.
-		 */
-		const recusa = recusas[eixo] || null;
-		const noTeto = recusa === 'eixo-no-teto';
-		// 23/09/2026: os atributos em alteracao — a linha apaga inteira e o "+"
-		// nao reage nem ao passar o mouse (CSS `.is-em-alteracao`).
-		const emAlteracao = eixoEmAlteracao(estado, eixo);
-		const bloqueado = semVeredito || recusa !== null;
-		const bonus = bonusDoEixo(estado, eixo);
-		const titulo = semVeredito
-			? 'Este servidor nao diz se o gasto e possivel — atualize o cliente'
-			: MOTIVO_DA_RECUSA[recusa] || 'Gastar 1 ponto em ' + (NOME_DO_EIXO[eixo] || eixo);
-
-		return (
-			'<div class="cx-eixo' +
-			(noTeto ? ' is-no-teto' : '') +
-			(emAlteracao ? ' is-em-alteracao' : '') +
-			'">' +
-			'<span class="cx-eixo-sigla">' +
-			escapeHtml(eixo) +
-			'</span>' +
-			'<span class="cx-eixo-nome">' +
-			escapeHtml(NOME_DO_EIXO[eixo] || eixo) +
-			'</span>' +
-			'<span class="cx-eixo-bonus' +
-			(bonus.valor === 0 ? ' is-zero' : '') +
-			'">' +
-			escapeHtml(bonus.texto) +
-			'</span>' +
-			'<span class="cx-eixo-teto">' +
-			escapeHtml(gasto) +
-			'/' +
-			escapeHtml(teto) +
-			'</span>' +
-			'<button type="button" class="cx-mais ri-btn" data-eixo="' +
-			escapeHtml(eixo) +
-			'" title="' +
-			escapeHtml(titulo) +
-			'"' +
-			(bloqueado ? ' disabled' : '') +
-			'>+</button>' +
-			'</div>'
-		);
-	});
-
-	if (linhas.length === 0) {
-		return '<div class="cx-vazio">O retrato do servidor nao trouxe eixo nenhum.</div>';
-	}
-
-	/*
-	 * O AVISO DOS ATRIBUTOS (23/09/2026, ordem do dono) vem ACIMA das linhas:
-	 * no celular em pe e a primeira coisa lida ao rolar ate "Onde gastar", e o
-	 * jogador entende por que os "+" estao apagados antes de tentar clicar.
-	 */
-	const aviso = avisoDosAtributos(estado);
-	const faixa = aviso ? '<div class="cx-aviso-atributos" role="status">' + escapeHtml(aviso) + '</div>' : '';
-
-	return faixa + '<div class="cx-eixos">' + linhas.join('') + '</div>';
-}
 
 function render() {
 	const root = _root();
@@ -856,7 +686,7 @@ function render() {
 
 	const saldo = root.querySelector('.cx-saldo-valor');
 	if (saldo) {
-		saldo.textContent = String((estado && estado.pontosDisponiveis) || 0);
+		saldo.textContent = String((estado && estado.pontos && estado.pontos.disponiveis) || 0);
 	}
 
 	root.querySelectorAll('.cx-tab').forEach(btn => {
@@ -900,6 +730,10 @@ function render() {
 		placarHtml(estado) +
 		'<div class="cx-secao"><div class="cx-secao-titulo">Onde os pontos nascem</div>' +
 		missoesHtml(estado) +
+		'</div>' +
+		'<div class="ri-divisor"></div>' +
+		'<div class="cx-secao"><div class="cx-secao-titulo">Desafios (pontos todo dia e toda semana)</div>' +
+		desafiosHtml(estado) +
 		'</div>' +
 		'<div class="ri-divisor"></div>' +
 		'<div class="cx-secao"><div class="cx-secao-titulo">Onde gastar</div>' +

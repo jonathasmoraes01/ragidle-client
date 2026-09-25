@@ -357,20 +357,79 @@
 	opacity: 0.78;
 }
 
-#CodexIdle .cx-eixo-sigla {
-	flex: 0 0 auto;
-	min-width: 34px;
-	font: var(--type-numeric);
-	font-size: var(--fs-numeric-lg);
-	color: var(--text-title);
-	text-transform: uppercase;
-	letter-spacing: var(--ls-caps);
-}
-
 #CodexIdle .cx-eixo-nome {
 	flex: 1 1 auto;
 	font: var(--type-desc);
 	color: var(--text-muted);
+}
+
+/* "+0,5% por nivel": o passo do eixo, abaixo do nome (Codex em %, 25/09/2026). */
+#CodexIdle .cx-eixo-por-nivel {
+	display: block;
+	font: var(--type-badge);
+	color: var(--text-muted);
+	opacity: 0.8;
+}
+
+/* O custo do PROXIMO nivel: a curva do dono (1, 2, 4, ... 18, 21, ...). */
+#CodexIdle .cx-eixo-custo {
+	flex: 0 0 auto;
+	min-width: 48px;
+	text-align: right;
+	font: var(--type-badge);
+	color: var(--text-title);
+	font-variant-numeric: tabular-nums;
+}
+
+/* ─── Os desafios diario e semanal ─────────────────────────── */
+
+#CodexIdle .cx-desafios {
+	display: flex;
+	flex-direction: column;
+	gap: var(--sp-3);
+}
+
+#CodexIdle .cx-desafio {
+	display: flex;
+	align-items: center;
+	flex-wrap: wrap;
+	gap: var(--sp-3) var(--sp-5);
+	padding: var(--sp-4) var(--sp-5);
+	border-radius: var(--radius-card);
+	background: var(--surface-card);
+	border: 1px solid var(--border-hairline);
+}
+
+#CodexIdle .cx-desafio-titulo {
+	flex: 1 1 140px;
+	font: var(--type-desc);
+	color: var(--text-title);
+}
+
+#CodexIdle .cx-desafio-barra {
+	flex: 1 1 120px;
+	height: 8px;
+	border-radius: 999px;
+	background: var(--surface-inset);
+	overflow: hidden;
+}
+
+#CodexIdle .cx-desafio-barra > span {
+	display: block;
+	height: 100%;
+	background: var(--green-600);
+}
+
+#CodexIdle .cx-desafio-conta,
+#CodexIdle .cx-desafio-premio {
+	flex: 0 0 auto;
+	font: var(--type-badge);
+	color: var(--text-muted);
+	font-variant-numeric: tabular-nums;
+}
+
+#CodexIdle .cx-desafio.is-cumprido .cx-desafio-premio {
+	color: var(--green-600);
 }
 
 /* O BONUS e o numero que o jogador comprou — e o unico que ele acompanha
@@ -416,28 +475,6 @@
 	opacity: 0.45;
 	cursor: not-allowed;
 	filter: saturate(0.4);
-}
-
-/* OS ATRIBUTOS EM ALTERACAO (23/09/2026, ordem do dono). O "+" fica cinza e
-   nao reage a nada — nem ao hover do `.ri-btn` (que clareia por filtro) nem ao
-   clique: `pointer-events: none` tira o botao do caminho do ponteiro, e o
-   aviso acima das linhas diz o porque. O servidor recusa de qualquer jeito. */
-#CodexIdle .cx-eixo.is-em-alteracao .cx-mais {
-	opacity: 0.35;
-	filter: grayscale(1);
-	pointer-events: none;
-	cursor: default;
-}
-
-#CodexIdle .cx-aviso-atributos {
-	margin: 0 0 var(--sp-3);
-	padding: var(--sp-4) var(--sp-5);
-	border-radius: var(--radius-card);
-	background: var(--surface-inset);
-	font: var(--type-desc);
-	color: var(--text-title);
-	line-height: 1.35;
-	overflow-wrap: anywhere;
 }
 
 /* ═════════════════════════════════════════════════════════════════════
