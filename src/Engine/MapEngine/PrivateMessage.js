@@ -15,6 +15,7 @@ import PACKET from 'Network/PacketStructure.js';
 import ChatBox from 'UI/Components/ChatBox/ChatBox.js';
 import { renderFalaSegura, spanDeNickname, escaparHtml } from 'UI/Components/ChatBox/textoSeguroDoChat.js'; // D-1308: nome/corpo de sussurro sao de outro jogador (XSS)
 import WhisperBox from 'UI/Components/WhisperBox/WhisperBox.js';
+import { bitsDaMarca, comMarcaNoNome, marcaDaFala, nomeNaLista } from 'UI/Components/ChatBox/marcaNoNome.js'; // RAGIDLE (25/09/2026): as marcas de GM e de VIP no sussurro recebido
 import Session from 'Engine/SessionStorage.js';
 import PACKETVER from 'Network/PacketVerManager.js';
 
@@ -63,14 +64,21 @@ function onPrivateMessage(pkt) {
 	// escapa no atributo `data-nickname` E no texto) e escapa o corpo, expandindo
 	// link de item com seguranca. So entao passa override=true — o HTML foi
 	// montado aqui, nao veio do texto do jogador.
+	//
+	// As marcas de GM e de VIP (25/09/2026): o sussurro so traz o NOME de quem
+	// mandou, e o servidor manda os nomes dos admins e dos VIPs no 0x0fd0 por
+	// isso (marcaNoNome.js). O GM vence.
+	const marca = marcaDaFala(nomeNaLista(pkt.sender, Session.AdminNomes), nomeNaLista(pkt.sender, Session.VipNomes));
 	ChatBox.addText(
 		'[ ' +
 			escaparHtml(prefix) +
 			' ' +
-			spanDeNickname(pkt.sender) +
+			comMarcaNoNome(spanDeNickname(pkt.sender), marca) +
 			' ] : ' +
 			renderFalaSegura(msg, segmento => escaparHtml(segmento), { cor: '#FFFF63', cursor: true }),
-		ChatBox.TYPE.PRIVATE,
+		// Os bits da marca vao junto para a linha inteira ganhar a cor do nome,
+		// como na fala global (classeDaLinha, 25/09/2026).
+		ChatBox.TYPE.PRIVATE | bitsDaMarca(marca, ChatBox.TYPE),
 		ChatBox.FILTER.WHISPER,
 		null,
 		true

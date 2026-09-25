@@ -564,6 +564,125 @@
    fica REGISTRADA aqui e nao no arquivo: deixar seletor morto no CSS e o tipo
    de sujeira que a proxima pessoa nao consegue distinguir de "esqueceram". */
 
+/* ─── Secoes recolhiveis (25/09/2026) ─────────────────────────
+
+   O titulo virou <button> (ver o comentario no .html). Estas regras tiram a
+   roupa de botao do navegador e deixam ele com a MESMA cara do ".st-card-title"
+   de antes -- a unica diferenca visivel e a seta a direita, que diz que ele
+   abre e fecha. A seta e desenhada com borda (um "V" girado), e nao com um
+   caractere, para nao depender da fonte ter o glifo. */
+
+.st-card-toggle {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	width: 100%;
+	margin: 0;
+	border-top: 0;
+	border-left: 0;
+	border-right: 0;
+	text-align: left;
+	cursor: pointer;
+	-webkit-tap-highlight-color: transparent;
+}
+
+.st-card-toggle::after {
+	content: '';
+	flex: 0 0 auto;
+	width: 6px;
+	height: 6px;
+	margin-left: 8px;
+	border-right: 2px solid currentColor;
+	border-bottom: 2px solid currentColor;
+	transform: rotate(45deg);
+	transition: transform var(--dur-fast) ease;
+}
+
+.st-card-toggle:focus-visible {
+	outline: 2px solid var(--blue-600);
+	outline-offset: -2px;
+}
+
+.st-card.is-recolhida .st-card-toggle::after {
+	transform: rotate(-45deg);
+}
+
+/* Recolhida, a faixa do titulo e o card inteiro: sem a linha de baixo, e com
+   os quatro cantos arredondados. */
+.st-card.is-recolhida .st-card-toggle {
+	border-bottom: 0;
+	border-radius: var(--radius-card);
+}
+
+.st-card.is-recolhida .st-card-body {
+	display: none;
+}
+
+/* O `hidden` do card "Gerais" (servidor sem a secao) precisa vencer o
+   `display` que o ".ri-card" possa ter: o `[hidden]` do navegador perde para
+   qualquer regra de autor. */
+.st-card[hidden] {
+	display: none;
+}
+
+/* DEDO: o titulo e o alvo de toque da secao, e 25px de faixa nao se acerta com
+   o polegar. 44px e o minimo do projeto para alvo tatil (ver Common.css). */
+@media (pointer: coarse) {
+	.st-card-toggle {
+		min-height: 44px;
+	}
+}
+
+/* ─── Card "Gerais": uma coluna, rotulo a esquerda ─────────────
+
+   Uma coluna, e nao as duas de "Estatisticas": os rotulos aqui sao frases
+   ("Redução de dano mágico"), e em duas colunas de 344px eles quebrariam em
+   tres linhas. A parte do Codex vai EMBAIXO do numero, menor, para o numero
+   continuar alinhado a direita em toda linha. */
+
+.st-gerais-lista {
+	display: flex;
+	flex-direction: column;
+	padding: 2px 0;
+}
+
+.st-geral-row {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px;
+	padding: 4px 12px;
+	cursor: help;
+}
+
+.st-geral-label {
+	font: var(--type-label);
+	color: var(--text-muted);
+	min-width: 0;
+}
+
+.st-geral-direita {
+	display: flex;
+	flex-direction: column;
+	align-items: flex-end;
+	flex: 0 0 auto;
+}
+
+.st-geral-value {
+	font: var(--type-numeric);
+	color: var(--text-body);
+	white-space: nowrap;
+}
+
+.st-geral-codex {
+	margin-top: 2px;
+	/* O degrau de texto pequeno do design system (--fs-desc, 10px), com o
+	   peso medio: e nota ao lado do numero, e nao outro numero. */
+	font: var(--fw-medium) var(--fs-desc) / 1.2 var(--font-ui);
+	color: var(--blue-600);
+	white-space: nowrap;
+}
+
 /* Builder de polimento (18/08/2026), responsividade 1366x768: 688px de
    janela + a barra ~78px do DockIdle nao cabem nos 768px do piso (medido
    com Playwright: janela centralizada ia ate y:730, dock comecava em

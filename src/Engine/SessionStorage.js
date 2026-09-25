@@ -32,6 +32,14 @@ export default {
 
 	AdminList: [],
 
+	// RAGIDLE (25/09/2026): as marcas do chat, pelo servidor, no mesmo 0x0fd0
+	// da AdminList - contas VIP (fala global, grupo, eco) e os NOMES dos VIPs e
+	// dos admins (sussurro e guilda, que nao levam conta). So desenho: o selo
+	// de GM, o icone do RO Cash e a cor no nome (ChatBox/marcaNoNome.js).
+	VipList: [],
+	VipNomes: [],
+	AdminNomes: [],
+
 	underAutoCounter: false,
 
 	moveAction: null,

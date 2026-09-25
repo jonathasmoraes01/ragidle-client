@@ -162,13 +162,23 @@ describe('Troca de Nome', () => {
 	it('so acende com 4 a 23 caracteres, e manda o nome NORMALIZADO em `parametros`', () => {
 		t.digitar('[data-rs-campo="novoNome"]', 'Abc');
 		expect(usarBotao(t).disabled).toBe(true);
-		t.digitar('[data-rs-campo="novoNome"]', '  Novo   Nome  ');
+		t.digitar('[data-rs-campo="novoNome"]', '  NovoNome  ');
 		expect(usarBotao(t).disabled).toBe(false);
 		t.clicar('[data-rs="confirmar-servico"]');
 		t.clicar('[data-rs="confirmar-servico"]'); // clique duplo
 		expect(t.enviados).toEqual([
-			{ acao: 'usar-servico', chave: 'chave-1', servico: 'troca-de-nome', parametros: { novoNome: 'Novo Nome' } }
+			{ acao: 'usar-servico', chave: 'chave-1', servico: 'troca-de-nome', parametros: { novoNome: 'NovoNome' } }
 		]);
+	});
+
+	it('nome com espaco (ordem do dono, 25/09/2026) nao acende o Usar e, forcado, diz o motivo', () => {
+		t.digitar('[data-rs-campo="novoNome"]', 'Testem an');
+		const btn = usarBotao(t);
+		expect(btn.disabled).toBe(true);
+		btn.disabled = false;
+		t.clicar(btn);
+		expect(t.enviados).toEqual([]);
+		expect(t.$('.rs-aviso').textContent).toContain('O nome não pode ter espaços.');
 	});
 
 	it('com o botao ligado por fora (DOM defasado), nome invalido AINDA nao sai: o controlador confere', () => {
@@ -196,12 +206,12 @@ describe('Troca de Nome', () => {
 		t.relogio.disparar(TIMEOUT_MS);
 		t.clicar('[data-rs="confirmar-servico"]');
 		t.relogio.disparar(TIMEOUT_MS);
-		t.digitar('[data-rs-campo="novoNome"]', 'Aurora Boreal');
+		t.digitar('[data-rs-campo="novoNome"]', 'AuroraBoreal');
 		t.clicar('[data-rs="confirmar-servico"]');
 		expect(t.enviados.map(e => [e.chave, e.parametros.novoNome])).toEqual([
 			['chave-1', 'Aurora'],
 			['chave-1', 'Aurora'],
-			['chave-2', 'Aurora Boreal']
+			['chave-2', 'AuroraBoreal']
 		]);
 	});
 

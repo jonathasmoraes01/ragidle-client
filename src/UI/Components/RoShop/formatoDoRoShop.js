@@ -29,6 +29,7 @@
 
 import RiIcones from 'UI/ri-icones.js';
 import { formatarRoCash, ehMinor } from 'Utils/roCash.js';
+import { ESPACO_NO_NOME, MENSAGEM_NOME_COM_ESPACO } from 'UI/Components/CharCreate/nomeDoPersonagem.js';
 
 /** O cadeado do design system (glifo Lucide de UI/ri-icones.js), ou vazio. */
 function cadeado() {
@@ -1061,6 +1062,10 @@ export function parametrosDoServico(id, campos, servico = null) {
 				erro: `O nome precisa ter de ${lim.novoNome.min} a ${lim.novoNome.max} caracteres.`
 			};
 		}
+		// Ordem do dono (25/09/2026): nome com espaco e recusa, como na criacao.
+		if (ESPACO_NO_NOME.test(nome)) {
+			return { ok: false, erro: MENSAGEM_NOME_COM_ESPACO };
+		}
 		return { ok: true, parametros: { novoNome: nome } };
 	}
 	if (id === SERVICO_TROCA_DE_APARENCIA) {
@@ -1152,7 +1157,7 @@ function formularioDoServicoHtml(id, extra, enviando) {
 			`<input type="text" class="rs-campo-texto ri-input${invalido}" data-rs-campo="novoNome" maxlength="${lim.novoNome.max}" autocomplete="off" autocapitalize="off" spellcheck="false" value="${escapeHtml(c.novoNome || '')}"${desliga}>` +
 			'</label>' +
 			erroDoCampoHtml(recusados, 'novoNome') +
-			`<p class="rs-campo-dica">De ${lim.novoNome.min} a ${lim.novoNome.max} caracteres. O servidor confere se o nome está livre, e um nome recusado não gasta o crédito.</p>` +
+			`<p class="rs-campo-dica">De ${lim.novoNome.min} a ${lim.novoNome.max} caracteres, sem espaços. O servidor confere se o nome está livre, e um nome recusado não gasta o crédito.</p>` +
 			'</div>'
 		);
 	}

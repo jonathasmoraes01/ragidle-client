@@ -104,6 +104,11 @@
  *     Somar `esquerda + direita` para exibir no lugar deles seria comparar
  *     grandezas diferentes — ver renderMetades() abaixo.
  *
+ * `gerais` (25/09/2026) e ADITIVO dentro da v2: uma lista de linhas
+ * `{ chave, unidade, valor, codex, codexPorcento?, canais? }` que a secao
+ * "Gerais" desenha. Servidor antigo nao o manda e o card some; a versao NAO
+ * subiu por isso (ver o cabecalho de geraisDaFicha.js).
+ *
  * `nivel`/`nivelDeJob` continuam sem leitor aqui — o Base Lv./Job Lv. do
  * card "Personagem" vem do Session.Entity (syncCharacterInfo() abaixo),
  * mesmo campo vivo que o BasicInfoIdle.js mostra do outro lado da tela.
@@ -143,6 +148,7 @@ import htmlText from './StatusIdle.html?raw';
 import cssText from './StatusIdle.css?raw';
 import { fecharEEsquecer } from '../limpezaDeJanelaIdle.js';
 import { METADES, lerMetades } from './metadesDaDerivada.js';
+import { linhasParaDesenhar, lerRecolhidas, alternarSecao, estaRecolhida } from './geraisDaFicha.js';
 import TitulosDaConta from './titulosDaConta.js';
 import { fraseDaRecusa } from './formatoDosTitulos.js';
 
@@ -276,7 +282,14 @@ const _preferences = Preferences.get(
 	'StatusIdle',
 	{
 		x: null,
-		y: null
+		y: null,
+		/*
+		 * As secoes RECOLHIDAS (25/09/2026). Mesma chave e mesma versao da
+		 * posicao: `Preferences.get` so copia as chaves que EXISTEM no
+		 * armazenamento, entao quem ja tinha a posicao salva ganha esta com o
+		 * padrao (tudo aberto) sem perder a posicao -- subir a versao apagaria.
+		 */
+		recolhidas: []
 	},
 	1.0
 );
@@ -306,6 +319,13 @@ StatusIdle.init = function init() {
 	});
 	TitulosDaConta.assinar(renderTitulos);
 	renderTitulos(TitulosDaConta.estado());
+
+	// As secoes recolhiveis: o titulo e um <button>, entao clique, toque, Enter
+	// e Espaco chegam todos aqui pelo mesmo `click`.
+	root.querySelectorAll('.st-card-toggle').forEach(btn => {
+		btn.addEventListener('click', onClickSecao);
+	});
+	aplicarRecolhidas(root);
 
 	// Default centered position, may be overridden by saved preferences in
 	// onAppend() below (same approach as HuntMap.js:191-193).
@@ -634,10 +654,96 @@ function renderFicha() {
 	setText(root, '.st-cri', derivados.crit || 0);
 	setText(root, '.st-flee', derivados.flee || 0);
 	setText(root, '.st-aspd', derivados.aspd || 0);
+	renderGerais(root, ficha.gerais);
 	setText(root, '.st-points', pontos);
 	// Guild/name/class/level/zeny/peso aren't part of the ficha contract —
 	// those live in the "Personagem" card, synced separately by
 	// syncCharacterInfo() (see file header).
+}
+
+/**
+ * A secao "Gerais" (25/09/2026). O texto de cada linha sai de
+ * `linhasParaDesenhar` (geraisDaFicha.js); aqui so se monta o DOM, com
+ * `textContent` -- nada da ficha vira HTML.
+ *
+ * Sem `gerais` na ficha (servidor anterior a esta secao) o card inteiro some:
+ * o campo e ADITIVO na ficha v2, e a ausencia dele nao e ficha quebrada.
+ */
+function renderGerais(root, gerais) {
+	const card = root.querySelector('.st-card--gerais');
+	const lista = root.querySelector('.st-gerais-lista');
+	if (!card || !lista) {
+		return;
+	}
+	const linhas = linhasParaDesenhar(gerais);
+	card.hidden = linhas === null;
+	lista.textContent = '';
+	if (linhas === null) {
+		return;
+	}
+	for (const linha of linhas) {
+		const row = document.createElement('div');
+		row.className = 'st-geral-row';
+		row.dataset.geral = linha.chave;
+		row.title = linha.titulo;
+
+		const label = document.createElement('span');
+		label.className = 'st-geral-label';
+		label.textContent = linha.rotulo;
+
+		const direita = document.createElement('span');
+		direita.className = 'st-geral-direita';
+		const valor = document.createElement('span');
+		valor.className = 'st-geral-value';
+		valor.textContent = linha.valor;
+		direita.appendChild(valor);
+		if (linha.codex) {
+			const codex = document.createElement('span');
+			codex.className = 'st-geral-codex';
+			codex.textContent = linha.codex;
+			direita.appendChild(codex);
+		}
+
+		row.appendChild(label);
+		row.appendChild(direita);
+		lista.appendChild(row);
+	}
+}
+
+/**
+ * Recolhe ou abre a secao do titulo clicado, e lembra (por aparelho). A regra
+ * de alternar mora em geraisDaFicha.js; aqui so se le a secao e se grava.
+ */
+function onClickSecao(e) {
+	const card = e.currentTarget.closest('.st-card[data-secao]');
+	if (!card) {
+		return;
+	}
+	_preferences.recolhidas = alternarSecao(_preferences.recolhidas, card.dataset.secao);
+	aplicarRecolhidas(_root());
+	try {
+		_preferences.save();
+	} catch (erro) {
+		// Armazenamento bloqueado (aba anonima, cota): a secao recolhe do mesmo
+		// jeito, so nao e lembrada na proxima vez.
+		console.warn('[StatusIdle] nao consegui guardar as secoes recolhidas:', erro);
+	}
+}
+
+/** Pinta o estado guardado: classe no card e `aria-expanded` no titulo. */
+function aplicarRecolhidas(root) {
+	if (!root) {
+		return;
+	}
+	const recolhidas = lerRecolhidas(_preferences.recolhidas);
+	root.querySelectorAll('.st-card[data-secao]').forEach(card => {
+		const fechada = estaRecolhida(recolhidas, card.dataset.secao);
+		card.classList.toggle('is-recolhida', fechada);
+		const btn = card.querySelector('.st-card-toggle');
+		if (btn) {
+			btn.setAttribute('aria-expanded', fechada ? 'false' : 'true');
+		}
+	});
 }
 
 /**

@@ -261,6 +261,36 @@ const FECHO_DE_CASH = 'Não pode ser negociado nem vendido a NPCs. Pode ser guar
 // (Trade.NoSell/NoTrade, `game/pocoes-da-conta.ts`).
 const FECHO_UNIQUE = '[Unique] Não pode ser vendido a NPCs nem negociado. Pode ser guardado no armazém.';
 
+/**
+ * O BAU SECRETO DO REI PORING (25/09/2026, ordem do dono): um gacha de zeny.
+ * Ao usar, o servidor sorteia um premio desta tabela - peso inteiro sobre 1000.
+ *
+ * A tabela que DECIDE e a do servidor (`PREMIOS_DO_BAU_SECRETO`,
+ * `servidor/zona-de-zeny/bau-secreto.ts` no repositorio do jogo); esta copia so
+ * existe para a descricao, e `tests/db/bauSecreto.test.js` a cruza com a de la
+ * para as duas nunca divergirem em silencio.
+ */
+export const PREMIOS_DO_BAU_SECRETO = [
+	{ zeny: 30000, peso: 800 },
+	{ zeny: 50000, peso: 150 },
+	{ zeny: 100000, peso: 45 },
+	{ zeny: 300000, peso: 5 },
+];
+
+/** `800` -> `80%`, `45` -> `4,5%` (peso sobre 1000). */
+function porcentagemDoPeso(peso) {
+	const inteiro = Math.trunc(peso / 10);
+	const resto = peso % 10;
+	return resto === 0 ? `${inteiro}%` : `${inteiro},${resto}%`;
+}
+
+/** As linhas das chances, geradas da tabela: `80% - 30.000 zeny`. */
+export function linhasDasChancesDoBau() {
+	return PREMIOS_DO_BAU_SECRETO.map(
+		p => `${porcentagemDoPeso(p.peso)} - ${String(p.zeny).replace(/\B(?=(\d{3})+(?!\d))/g, '.')} zeny`
+	);
+}
+
 const FECHO_DO_ALFA =
 	'Recompensa do Alfa do Ragnarok Classic Idle. Visual, sem atributos. Não pode ser negociado nem vendido a NPCs.';
 
@@ -288,7 +318,7 @@ export const DESCRICOES_LOCAIS = {
 	9003000: `Uma moeda com a cara de um Poring. Cai dos monstros [ZENY] da Praça de Zeny. Vale zeny no NPC. Não pode ser negociado.`,
 	9003001: `Uma bolsinha cheia de Moedas de Poring. Cai dos monstros [ZENY] da Praça de Zeny. Vale zeny no NPC. Não pode ser negociado.`,
 	9003002: `Uma barra de ouro forjada em Midgard. Cai dos monstros [ZENY] da Praça de Zeny. Vale zeny no NPC. Não pode ser negociado.`,
-	9003003: `O tesouro guardado pelo Rei Poring em pessoa. Cai dos monstros [ZENY] da Praça de Zeny. Vale zeny no NPC. Não pode ser negociado.`,
+	9003003: `O tesouro guardado pelo Rei Poring em pessoa. Cai dos monstros [ZENY] da Praça de Zeny. Use para abrir e ganhar zeny. Chances a cada baú aberto:\n${linhasDasChancesDoBau().join('\n')}\nNão pode ser negociado nem vendido a NPCs.`,
 	9003010: `Mais 30 minutos na Praça de Zeny. Oferecido na entrada quando o seu tempo do dia acabou; os minutos do bilhete não expiram. Não pode ser negociado nem vendido.`,
 	9000112: `Uma poção que recupera de 325 a 405 de HP. Vem dos packs do RO Shop.\n${FECHO_UNIQUE}`,
 	// Os tickets (23/09/2026). O numero da carga NAO vai aqui: o dono o redefine, e o servidor o diz na loja.

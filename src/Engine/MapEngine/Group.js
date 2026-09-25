@@ -38,6 +38,8 @@ import PartyFriends from 'UI/Components/PartyFriends/PartyFriends.js';
  * abrir a janela na segunda seria roubar a tela de quem so entrou no jogo.
  */
 import PortaDoGrupo from 'UI/Components/portaDoGrupo.js';
+import { contaNaLista } from 'UI/Components/ChatBox/marcaNoNome.js'; // RAGIDLE (25/09/2026): a marca de VIP na fala do grupo
+import { falaDeGm } from './falaDeGm.js'; // RAGIDLE (25/09/2026): a marca de GM na fala do grupo
 
 /**
  * @var {string} temporary variable to store party name
@@ -465,7 +467,17 @@ function onMemberTalk(pkt) {
 		entity.dialog.set(pkt.msg);
 	}
 
-	ChatBox.addText(pkt.msg, ChatBox.TYPE.PARTY, ChatBox.FILTER.PARTY);
+	// As marcas de GM e de VIP (25/09/2026): o 0x0109 leva a CONTA de quem
+	// falou (`contaId` no servidor), a mesma chave das listas do 0x0fd0. O GM
+	// pela MESMA regra da fala global (`falaDeGm`), e nao uma segunda.
+	let tipo = ChatBox.TYPE.PARTY;
+	if (falaDeGm(pkt.AID, entity, Session.AdminList)) {
+		tipo |= ChatBox.TYPE.ADMIN;
+	}
+	if (contaNaLista(pkt.AID, Session.VipList)) {
+		tipo |= ChatBox.TYPE.VIP;
+	}
+	ChatBox.addText(pkt.msg, tipo, ChatBox.FILTER.PARTY);
 }
 
 /**

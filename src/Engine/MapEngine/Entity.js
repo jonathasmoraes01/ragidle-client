@@ -64,6 +64,7 @@ import PartyFriends from 'UI/Components/PartyFriends/PartyFriends.js';
 import Equipment from 'UI/Components/Equipment/Equipment.js';
 import ScreenEffectManager from 'Renderer/ScreenEffectManager.js';
 import { falaDeGm } from './falaDeGm.js'; // RAGIDLE: a tag [GM] de quem fala de outro mapa
+import { contaNaLista, lerMarcasDoChat } from 'UI/Components/ChatBox/marcaNoNome.js'; // RAGIDLE: as marcas de GM e de VIP no nome de quem fala
 
 // Excludes for skill name display
 const SkillNameDisplayExclude = [
@@ -1119,6 +1120,13 @@ function onEntityTalk(pkt) {
 	if (falaDeGm(pkt.GID, entity, Session.AdminList)) {
 		type |= ChatBox.TYPE.ADMIN;
 	}
+	// O VIP pela conta, como a tag [GM]: o GID da fala global e o contaId, e a
+	// lista do servidor e por conta (marcaNoNome.js). Com a entidade na tela,
+	// so JOGADOR: um mob ou NPC cujo GID coincida com uma conta nunca vira VIP.
+	// Quem e GM e VIP mostra so o GM - quem decide e o desenho (marcaDaFala).
+	if ((!entity || entity.objecttype === Entity.TYPE_PC) && contaNaLista(pkt.GID, Session.VipList)) {
+		type |= ChatBox.TYPE.VIP;
+	}
 
 	ChatBox.addText(pkt.msg, type, ChatBox.FILTER.PUBLIC_CHAT, null, false);
 
@@ -1302,6 +1310,15 @@ function onAdminList(pkt) {
 	const nova = Array.isArray(dados && dados.admins) ? dados.admins : [];
 	const antiga = Session.AdminList || [];
 	Session.AdminList = nova;
+
+	// As marcas do chat viajam no mesmo corpo (25/09/2026): as contas VIP e os
+	// NOMES dos VIPs e dos admins (o sussurro e a guilda nao levam conta). So
+	// o chat as le, e so nas linhas NOVAS: nao ha entidade a remontar, entao
+	// guardar basta.
+	const marcas = lerMarcasDoChat(dados);
+	Session.VipList = marcas.vips;
+	Session.VipNomes = marcas.nomesVip;
+	Session.AdminNomes = marcas.nomesAdmin;
 
 	// So mexe em quem MUDOU de lado: remontar o corpo de todo mundo a cada
 	// lista custaria um reload de sprite por entidade, e a lista chega tambem

@@ -690,6 +690,19 @@ ui-button {
 
 	--chat-text: #dce4ef;
 	--chat-text-name: #ffffff;
+	/* O NOME DO VIP (25/09/2026, pedido do dono: o icone do RO Cash e cor no
+	   nome). Ouro, a cor do aro do icone - e NAO o amarelo puro #FFFF00, que e
+	   a linha inteira do GM. Sobre `--chat-bg` composto passa de 9:1. */
+	--chat-text-name-vip: #ffc94a;
+	/* A MARCA DE GM (25/09/2026, pedido do dono: "marca de GM + cor vermelho
+	   escuro"). O vermelho ESCURO mora no SELO (fundo), com o "GM" em branco
+	   (9,5:1). O NOME nao pode ser o mesmo vermelho escuro: #8b0000 sobre esta
+	   chapa azul da 1,2:1 e some. O nome e o vermelho mais escuro que ainda
+	   passa o piso de 4,5:1 aqui (4,6:1) - medido, e nao escolhido de olho. */
+	--chat-gm-selo-bg: #8b1414;
+	--chat-gm-selo-borda: #c43c3c;
+	--chat-gm-selo-texto: #ffffff;
+	--chat-text-name-gm: #ff7373;
 	--chat-text-muted: #7c8fa8;
 	--chat-text-tab: #a9bbd1;
 	--chat-text-time: #5a6e8c;
@@ -777,6 +790,12 @@ ui-button {
 	--chat-cl-text-tab: #c4bba8;
 	--chat-cl-text-time: #857c6e;
 	--chat-cl-text-on-accent: #fff6e2;
+	/* O nome do VIP na HUD classica: o mesmo ouro, um tom mais quente para
+	   conversar com o ambar desta paleta, sobre o preto da chapa (> 10:1). */
+	--chat-cl-text-name-vip: #f5c04a;
+	/* O nome do GM na HUD classica: sobre o preto da chapa um vermelho BEM mais
+	   escuro ja passa (4,9:1), entao ele fica mais perto do que o dono pediu. */
+	--chat-cl-text-name-gm: #e04848;
 
 	/* ------------------------------------------------------------------
 	   CAMADA DE COMPATIBILIDADE. Os componentes construidos em 18/08 usam

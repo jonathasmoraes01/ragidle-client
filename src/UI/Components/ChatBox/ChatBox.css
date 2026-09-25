@@ -107,6 +107,8 @@
 	--chat-text-tab: var(--chat-cl-text-tab);
 	--chat-text-time: var(--chat-cl-text-time);
 	--chat-text-on-accent: var(--chat-cl-text-on-accent);
+	--chat-text-name-vip: var(--chat-cl-text-name-vip);
+	--chat-text-name-gm: var(--chat-cl-text-name-gm);
 	/* Cantos vivos e sem desfoque: a UI de 2002 nao tinha nem raio nem vidro,
 	   e sao esses dois detalhes que fazem o painel "parecer moderno" mesmo
 	   depois de trocada a cor. */
@@ -548,6 +550,72 @@
 
 #chatbox .cb-name {
 	color: var(--chat-text-name);
+}
+
+/* O VIP (25/09/2026, pedido do dono): o icone do RO Cash antes do nome e o
+   nome em ouro. O icone e a marca que vale para quem nao separa bem as cores;
+   a cor e o reforco. `.cb-name-vip` tambem envolve o apelido clicavel do
+   sussurro (`.nickname-link`), que nao tem cor propria e a herda daqui.
+
+   O tamanho e em `em`, e nao em px: o log muda de fonte entre o desktop e o
+   celular (e entre os degraus da HUD), e o icone acompanha a linha sem uma
+   regra por tela. A descida de 0.2em assenta o circulo na linha de base do
+   texto sem empurrar a altura da linha. */
+#chatbox .cb-name-vip,
+#chatbox .cb-name.cb-name-vip {
+	color: var(--chat-text-name-vip);
+	font-weight: 600;
+}
+
+/* O GM (25/09/2026, pedido do dono: "marca de GM + cor vermelho escuro"). A
+   MESMA marca "GM" de antes - que trocava a etiqueta do canal e pintava a
+   linha de amarelo - agora ao lado do nome, como a do VIP, em todo canal. O
+   selo e TEXTO ("GM"), entao le sem cor; o vermelho escuro e o fundo dele. */
+#chatbox .cb-name-gm,
+#chatbox .cb-name.cb-name-gm {
+	color: var(--chat-text-name-gm);
+	font-weight: 600;
+}
+
+#chatbox .cb-gm-selo {
+	display: inline-block;
+	margin: 0 0.3em 0 0;
+	padding: 0 0.35em;
+	border: 1px solid var(--chat-gm-selo-borda);
+	border-radius: 0.3em;
+	background: var(--chat-gm-selo-bg);
+	color: var(--chat-gm-selo-texto);
+	font-size: 0.8em;
+	font-weight: 700;
+	line-height: 1.35;
+	letter-spacing: 0.04em;
+	vertical-align: 0.08em;
+	pointer-events: none;
+	user-select: none;
+}
+
+/* A LINHA INTEIRA na cor do nome (25/09/2026, segundo pedido do dono: "ate
+   mesmo o texto do que o GM digitar, que fique na mesma cor do nome dele").
+   O MESMO token do nome, entao nome e fala nunca divergem, e ele troca com a
+   HUD classica pelo remapeamento de `#chatbox.is-classico`. Contraste medido:
+   moderna 7,9:1 (VIP) e 4,6:1 (GM); classica 11,8:1 e 4,9:1. */
+#chatbox .cb-linha-vip {
+	color: var(--chat-text-name-vip);
+}
+
+#chatbox .cb-linha-gm {
+	color: var(--chat-text-name-gm);
+}
+
+#chatbox .cb-vip-icone {
+	display: inline-block;
+	width: 1.15em;
+	height: 1.15em;
+	margin: 0 0.25em 0 0;
+	vertical-align: -0.2em;
+	object-fit: contain;
+	pointer-events: none;
+	user-select: none;
 }
 
 /* A etiqueta do canal e TEXTO, e nao so cor (spec §10): coral e dourado ficam

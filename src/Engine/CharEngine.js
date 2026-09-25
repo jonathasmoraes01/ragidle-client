@@ -29,6 +29,7 @@ import CharCreate from 'UI/Components/CharCreate/CharCreate.js';
 import Player from 'Renderer/Entity/Player.js';
 import { abrirCriacaoDireto, registrarConversaoDoCadastro } from 'Engine/entradaPosCadastro.js';
 import { personagemParaSelecionar } from 'Engine/retomadaAposAtualizacao.js';
+import { textoDaRecusaDeCriacao } from 'UI/Components/CharCreate/nomeDoPersonagem.js';
 
 // Load modules
 // Version Dependent UIs
@@ -648,28 +649,13 @@ function onCreationSuccess(pkt) {
  * @param {object} pkt - PACKET.HC.REFUSE_MAKECHAR
  */
 function onCreationFail(pkt) {
-	let msg_id;
-
-	switch (pkt.ErrorCode) {
-		case 0x00:
-			msg_id = 10;
-			break; // 'Charname already exists'
-		case 0x01:
-			msg_id = 298;
-			break; // 'You are underaged'
-		case 0x02:
-			msg_id = 1272;
-			break; // 'Symbols in Character Names are forbidden'
-		case 0x03:
-			msg_id = 1355;
-			break; // 'You are not elegible to open the Character Slot.'
-		default:
-		case 0xff:
-			msg_id = 11;
-			break; // 'Char creation denied'
-	}
-
-	UIManager.showMessageBox(DB.getMessage(msg_id), 'ok');
+	/*
+	 * RAGIDLE (25/09/2026): o codigo vira texto em `textoDaRecusaDeCriacao`
+	 * (`nomeDoPersonagem.js`), que tem teste. O `0x02` deixou de ser a frase
+	 * generica de simbolo: neste servidor ele e o nome com ESPACO (ordem do dono),
+	 * e a caixa diz "O nome não pode ter espaços."
+	 */
+	UIManager.showMessageBox(textoDaRecusaDeCriacao(pkt.ErrorCode, id => DB.getMessage(id)), 'ok');
 }
 
 /*function sendPincodeRequest() {

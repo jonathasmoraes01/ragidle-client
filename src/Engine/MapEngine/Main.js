@@ -36,6 +36,7 @@ import BasicInfo from 'UI/Components/BasicInfo/BasicInfo.js';
 import SkillList from 'UI/Components/SkillList/SkillList.js';
 import WinStats from 'UI/Components/WinStats/WinStats.js';
 import RankingTypes from 'DB/Jobs/RankingTypes.js';
+import { contaNaLista } from 'UI/Components/ChatBox/marcaNoNome.js'; // RAGIDLE (25/09/2026): a marca de VIP no eco da propria fala
 
 /**
  * Move main player to the position specify
@@ -75,6 +76,11 @@ function onPlayerMessage(pkt) {
 	let tipoDaPropria = ChatBox.TYPE.PUBLIC | ChatBox.TYPE.SELF;
 	if (Session.Entity && Session.Entity.isAdmin) {
 		tipoDaPropria |= ChatBox.TYPE.ADMIN;
+	}
+	// E o proprio VIP ve a propria marca (25/09/2026), pela conta da sessao -
+	// a mesma chave da lista que o servidor manda (marcaNoNome.js).
+	if (contaNaLista(Session.AID, Session.VipList)) {
+		tipoDaPropria |= ChatBox.TYPE.VIP;
 	}
 
 	ChatBox.addText(pkt.msg, tipoDaPropria, ChatBox.FILTER.PUBLIC_CHAT, null, false);

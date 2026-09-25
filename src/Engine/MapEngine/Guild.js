@@ -26,6 +26,7 @@ import GuildCompanion from 'UI/Components/GuildCompanion/GuildCompanion.js';
 import UIManager from 'UI/UIManager.js';
 import Configs from 'Core/Configs.js';
 import MiniMap from 'UI/Components/MiniMap/MiniMap.js';
+import { nomeDaLinha, nomeNaLista } from 'UI/Components/ChatBox/marcaNoNome.js'; // RAGIDLE (25/09/2026): as marcas de GM e de VIP na fala da guilda
 
 /**
  * @var {Object} emblem list
@@ -518,7 +519,19 @@ function adler32(data) {
  * @param {object} pkt - PACKET.ZC.NOTIFY_HP_TO_GROUPM
  */
 function onMemberTalk(pkt) {
-	ChatBox.addText(pkt.msg, ChatBox.TYPE.GUILD, ChatBox.FILTER.GUILD);
+	// As marcas de GM e de VIP (25/09/2026): o ZC_GUILD_CHAT nao leva conta,
+	// so o texto "Nome : fala" (com o apelido, se houver). O servidor manda os
+	// nomes e apelidos dos admins e dos VIPs justamente por isso, e o recorte
+	// do nome e o MESMO que o chat usa para pinta-lo (marcaNoNome.js).
+	const nome = nomeDaLinha(pkt.msg);
+	let tipo = ChatBox.TYPE.GUILD;
+	if (nomeNaLista(nome, Session.AdminNomes)) {
+		tipo |= ChatBox.TYPE.ADMIN;
+	}
+	if (nomeNaLista(nome, Session.VipNomes)) {
+		tipo |= ChatBox.TYPE.VIP;
+	}
+	ChatBox.addText(pkt.msg, tipo, ChatBox.FILTER.GUILD);
 }
 
 /**

@@ -72,8 +72,16 @@
 			     WinStatsCommon.js:346 — string vazia quando val === 0).
 			     O texto do title (a dobra por fonte) tambem e escrito por
 			     renderFicha(), na linha ".st-stat-row" inteira. -->
-			<div class="st-card ri-card">
-				<div class="st-card-title">Atributos</div>
+			<!-- AS SECOES RECOLHEM (25/09/2026, pedido do dono: "para reduzir essa UI
+			     que vai ficar enorme"). O titulo e um <button> de verdade, e nao uma
+			     div com clique: Enter/Espaco e o foco de teclado vem de graca, e o
+			     leitor de tela anuncia aberto/fechado pelo `aria-expanded`. Quem
+			     alterna e lembra (por aparelho, Preferences) e StatusIdle.js, com a
+			     regra em geraisDaFicha.js. "Personagem" nao recolhe: e o cabecalho
+			     da ficha, e o jogador nao pediu. -->
+			<div class="st-card ri-card" data-secao="atributos">
+				<button type="button" class="st-card-title st-card-toggle" aria-expanded="true" aria-controls="st-secao-atributos">Atributos</button>
+				<div class="st-card-body" id="st-secao-atributos">
 				<div class="st-stat-row" data-stat="forca">
 					<span class="st-stat-label">STR</span>
 					<span class="st-stat-right">
@@ -122,6 +130,7 @@
 						<button type="button" class="st-stat-up" data-status-id="18" title="Aumentar LUK">+</button>
 					</span>
 				</div>
+				</div>
 			</div>
 
 			<!-- ATK/MATK/DEF/MDEF sao as QUATRO que o RO escreve em duas metades
@@ -133,8 +142,9 @@
 			     A metade da direita ("...2", nome herdado do atak2/def2/mdef2 do
 			     cliente nativo) e SEMPRE escrita, inclusive quando vale zero —
 			     ao contrario do bonus de atributo. Ver WinStatsCommon.js:302-312. -->
-			<div class="st-card ri-card">
-				<div class="st-card-title">Estatísticas</div>
+			<div class="st-card ri-card" data-secao="estatisticas">
+				<button type="button" class="st-card-title st-card-toggle" aria-expanded="true" aria-controls="st-secao-estatisticas">Estatísticas</button>
+				<div class="st-card-body" id="st-secao-estatisticas">
 				<div class="st-info-grid">
 					<div class="st-info-row st-info-row--metades" data-derivado="atk"><span class="st-info-label">ATK</span><span class="st-info-value"><span class="st-atk">0</span><span class="st-atk2 st-bonus"></span></span></div>
 					<div class="st-info-row st-info-row--metades" data-derivado="matk"><span class="st-info-label">MATK</span><span class="st-info-value"><span class="st-matk">0</span><span class="st-matk2 st-bonus"></span></span></div>
@@ -144,6 +154,21 @@
 					<div class="st-info-row st-info-row--metades" data-derivado="mdef"><span class="st-info-label">MDEF</span><span class="st-info-value"><span class="st-mdef">0</span><span class="st-mdef2 st-bonus"></span></span></div>
 					<div class="st-info-row"><span class="st-info-label">FLEE</span><span class="st-info-value st-flee">0</span></div>
 					<div class="st-info-row"><span class="st-info-label">ASPD</span><span class="st-info-value st-aspd">0</span></div>
+				</div>
+				</div>
+			</div>
+
+			<!-- GERAIS (25/09/2026): os derivados gerais do motor -- recuperacao por
+			     segundo, dano e reducao em %, HP/SP maximo, ataques por segundo --,
+			     cada um com a parte do Codex ao lado. As linhas sao montadas por
+			     StatusIdle.js a partir de `ficha.gerais` (texto em geraisDaFicha.js).
+			     O card nasce ESCONDIDO (`hidden`) e so aparece quando o servidor manda
+			     a secao: servidor antigo nao a manda, e um "Gerais" vazio leria como
+			     defeito. -->
+			<div class="st-card ri-card st-card--gerais" data-secao="gerais" hidden>
+				<button type="button" class="st-card-title st-card-toggle" aria-expanded="true" aria-controls="st-secao-gerais">Gerais</button>
+				<div class="st-card-body" id="st-secao-gerais">
+					<div class="st-gerais-lista"></div>
 				</div>
 			</div>
 		</div>

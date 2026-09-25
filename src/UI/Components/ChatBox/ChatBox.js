@@ -92,6 +92,7 @@ import { renderFalaSegura } from './textoSeguroDoChat.js'; // D-1308: escapa ant
 import Session from 'Engine/SessionStorage.js';
 import { alturasDosDegraus, proximoDegrau, degrauAtual, rotuloDoDegrau } from './degrausDeAltura.js';
 import { podarPorCanal } from './podarPorCanal.js';
+import { PREFIXO_DO_NOME, classeDaLinha, htmlDoNomeDaFala, linhaDeAdminSemNome, marcaDoTipo } from './marcaNoNome.js'; // 25/09/2026: a marca de GM e a de VIP no nome de quem fala
 
 /**
  * @var {number} max message in the chatbox
@@ -887,7 +888,11 @@ ChatBox.TYPE = {
 	BLUE: 1 << 8,
 	ADMIN: 1 << 9,
 	MAIL: 1 << 10,
-	CLAN: 1 << 11
+	CLAN: 1 << 11,
+	// RAGIDLE (25/09/2026): quem falou e VIP - o icone do RO Cash e a cor no
+	// nome (marcaNoNome.js). NAO e canal nem cor de linha: so muda o nome, e
+	// `canalDaMensagem` nunca olha este bit.
+	VIP: 1 << 12
 };
 
 /**
@@ -2290,7 +2295,15 @@ function flushMessageBuffer() {
 		porCanal[canal].forEach(msg => {
 			const color = msg.color || getColorForType(msg.colorType);
 			const div = document.createElement('div');
-			div.style.color = color;
+			// A fala de GM e de VIP e pintada INTEIRA com a cor do nome (25/09/2026,
+			// pedido do dono), por CLASSE e nao por cor inline: o token muda com a
+			// HUD (moderna/classica), e um `style.color` fixo nao acompanharia.
+			const classeDaMarca = classeDaLinha(msg.colorType, ChatBox.TYPE);
+			if (classeDaMarca) {
+				div.classList.add(classeDaMarca);
+			} else {
+				div.style.color = color;
+			}
 
 			/*
 			 * A ETIQUETA E TEXTO, e a cor e reforco (spec §10).
@@ -2412,8 +2425,14 @@ function getColorForType(colorType) {
 	 * verde e o administrador seria o unico a nao ver o proprio destaque. O
 	 * `TYPE.ADMIN` so e posto por quem sabe que a entidade e GM
 	 * (`Session.AdminList`), entao poe-lo no topo nao muda mais nada.
+	 *
+	 * DESDE 25/09/2026 SO EM LINHA QUE NAO E FALA (pedido do dono: "marca de GM
+	 * + cor vermelho escuro"). Na fala, a marca de GM mora no NOME (o selo e a
+	 * cor, `marcaNoNome.js`) e a linha INTEIRA ganha o vermelho do nome por
+	 * classe (`classeDaLinha`, no desenho da linha). O amarelo segue no texto
+	 * de quest, que usa `TYPE.ADMIN` so por ele (`QuestCommon.js`).
 	 */
-	if (colorType & ChatBox.TYPE.ADMIN) {
+	if (linhaDeAdminSemNome(colorType, ChatBox.TYPE)) {
 		return '#FFFF00';
 	}
 	if (colorType & ChatBox.TYPE.PUBLIC && colorType & ChatBox.TYPE.SELF) {
@@ -2430,8 +2449,9 @@ function getColorForType(colorType) {
 		return '#FFFF63';
 	} else if (colorType & ChatBox.TYPE.BLUE) {
 		return '#00FFFF';
-	} else if (colorType & ChatBox.TYPE.ADMIN) {
-		return '#FFFF00';
+	// (O ramo de ADMIN que morava aqui saiu em 25/09/2026: a linha de admin que
+	// nao e fala ja saiu amarela no topo, e a fala de admin tem a cor do canal -
+	// com ele, a fala global de um GM ainda cairia aqui e sairia amarela.)
 	} else if (colorType & ChatBox.TYPE.MAIL) {
 		return '#FFFFFF';
 	}
@@ -2472,7 +2492,10 @@ function etiquetaDaLinha(colorType, filterType) {
 	if (colorType & ChatBox.TYPE.ERROR) return { rotulo: 'Erro', variante: 'ouro' };
 	// "GM" e a palavra que o dono pediu, e a que o jogador reconhece de outros
 	// servidores de RO. "Admin" era o nome interno do tipo, e nao um rotulo.
-	if (colorType & ChatBox.TYPE.ADMIN) return { rotulo: 'GM', variante: 'ouro' };
+	// Na FALA o "GM" mora no nome desde 25/09/2026 (marcaNoNome.js) e a
+	// etiqueta volta a dizer o canal; so a linha de admin que nao e fala (o
+	// texto de quest) segue com ela.
+	if (linhaDeAdminSemNome(colorType, ChatBox.TYPE)) return { rotulo: 'GM', variante: 'ouro' };
 	if (colorType & ChatBox.TYPE.MAIL) return { rotulo: 'Correio', variante: 'ouro' };
 	if (colorType & ChatBox.TYPE.CLAN) return { rotulo: 'Clã', variante: 'ouro' };
 	if (colorType & ChatBox.TYPE.GUILD) return { rotulo: 'Guilda', variante: 'ouro' };
@@ -2511,8 +2534,13 @@ function highlightMessage(rawText, colorType, aplicarNome = true) {
 			colorType &
 			(ChatBox.TYPE.PUBLIC | ChatBox.TYPE.PARTY | ChatBox.TYPE.GUILD | ChatBox.TYPE.PRIVATE | ChatBox.TYPE.CLAN)
 		);
+	// A MARCA NO NOME (25/09/2026): o selo "GM" em vermelho escuro ou o icone
+	// do RO Cash do VIP, o GM vencendo (marcaNoNome.js). O recorte do nome e o
+	// de `marcaNoNome.js` (PREFIXO_DO_NOME), o mesmo que a guilda usa para
+	// perguntar pelo nome: um so recorte para as duas.
+	const marca = marcaDoTipo(colorType, ChatBox.TYPE);
 	const withName = isSpeech
-		? escaped.replace(/^(\s*[^\n:]{1,24}?)\s:\s/, '<span class="cb-name">$1</span> : ')
+		? escaped.replace(PREFIXO_DO_NOME, (_m, nome) => htmlDoNomeDaFala(nome, marca) + ' : ')
 		: escaped;
 
 	return withName.replace(/\b\d+(?:[.,]\d+)*\b/g, match => `<span class="cb-num">${match}</span>`);
