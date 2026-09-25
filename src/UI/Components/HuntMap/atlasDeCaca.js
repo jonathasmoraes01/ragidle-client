@@ -14,17 +14,36 @@
  */
 
 /**
+ * A aba dos COVIS DOS CHEFES (24/09/2026, ordem do dono). É a região que o
+ * servidor manda para os três mapas dos mini-chefes (`game/regioes.ts`), e é
+ * por ela que a janela reconhece o covil: o cliente não tem lista própria.
+ */
+export const REGIAO_DO_COVIL = 'Covil dos Chefes';
+
+/** @param {{regiao?: string}} mapa */
+export function ehCovil(mapa) {
+	return mapa.regiao === REGIAO_DO_COVIL;
+}
+
+/**
  * Como o mapa se encaixa no nível do jogador. As quatro classes são as do
  * design system (selecionado/bloqueado/etc. são estados; estas são de
  * conteúdo) e a ordem de teste importa: a tranca vem antes de tudo.
  *
  * @param {number} nivel - nível base do jogador
  * @param {{nivelQueAbre: number, nivelMinimo: number, nivelMaximo: number}} mapa
- * @returns {{cls: 'locked'|'easy'|'ideal'|'challenge', rotulo: string, curto: string}}
+ * @returns {{cls: 'locked'|'covil'|'easy'|'ideal'|'challenge', rotulo: string, curto: string}}
  */
 export function encaixeDeNivel(nivel, mapa) {
 	if (nivel < mapa.nivelQueAbre) {
 		return { cls: 'locked', rotulo: `Abre no Nv. ${mapa.nivelQueAbre}`, curto: 'Bloqueado' };
+	}
+	// O COVIL tem selo próprio, e ele vem ANTES do encaixe por nível: a população
+	// dele é só de mini-chefes (Nv. 2 a 82), e `nivel >= nivelMinimo` o chamaria
+	// de "Ideal" quase sempre - o mesmo engano que mandava o jogador para o mapa
+	// forte. A caça automática também nunca vai para lá (servidor).
+	if (ehCovil(mapa)) {
+		return { cls: 'covil', rotulo: 'Covil dos Chefes: só mini-chefes', curto: 'Covil' };
 	}
 	if (nivel > mapa.nivelMaximo) {
 		return { cls: 'easy', rotulo: 'Abaixo do seu nível', curto: 'Fácil' };

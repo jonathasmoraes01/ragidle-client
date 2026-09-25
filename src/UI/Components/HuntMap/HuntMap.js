@@ -58,7 +58,9 @@ import { estadoDoRodape } from './rodapeDoDossie.js';
 import { ROTULO_DA_VISAO, htmlDasOrigens } from './origensDoDrop.js'; // RAGIDLE: a visao agregada (I6)
 import {
 	classeDeRaridade,
+	ehCovil,
 	encaixeDeNivel,
+	REGIAO_DO_COVIL,
 	faixaDeExp,
 	medidorDeEncaixe,
 	textoDaFaixaDeExp,
@@ -828,12 +830,18 @@ function renderTabs() {
 	const voceEl = root.querySelector('.hm-voce');
 	const catalog = HuntMap.catalog;
 	const allMapas = (catalog && catalog.mapas) || [];
-	const regions = [ABA_PADRAO].concat((catalog && catalog.regioes) || []);
+	// O COVIL DOS CHEFES (24/09/2026, ordem do dono) sobe para logo depois de
+	// "Todas" e ganha aba em destaque: e o unico lugar do jogo com mini-chefe.
+	const doServidor = (catalog && catalog.regioes) || [];
+	const regions = [ABA_PADRAO]
+		.concat(doServidor.filter(r => r === REGIAO_DO_COVIL))
+		.concat(doServidor.filter(r => r !== REGIAO_DO_COVIL));
 
 	tabsEl.innerHTML = regions
 		.map(region => {
 			const count = region === ABA_PADRAO ? allMapas.length : allMapas.filter(m => m.regiao === region).length;
-			return `<button type="button" class="hm-tab${region === HuntMap.activeTab ? ' is-active' : ''}" data-region="${escapeHtml(region)}"><span class="hm-tab-name">${escapeHtml(region)}</span><span class="hm-tab-count">${count}</span></button>`;
+			const covil = region === REGIAO_DO_COVIL;
+			return `<button type="button" class="hm-tab${covil ? ' hm-tab--covil' : ''}${region === HuntMap.activeTab ? ' is-active' : ''}" data-region="${escapeHtml(region)}"><span class="hm-tab-name">${covil ? `<span class="hm-tab-icone" aria-hidden="true">${RiIcones.mvp}</span>` : ''}${escapeHtml(region)}</span><span class="hm-tab-count">${count}</span></button>`;
 		})
 		.join('');
 
@@ -1030,7 +1038,12 @@ function renderList() {
 		return;
 	}
 
-	listEl.innerHTML = mapas.map(mapa => renderCard(mapa, motivos.get(mapa.mapa))).join('');
+	// O aviso do covil: o que o jogador encontra la, antes de ele viajar.
+	const avisoDoCovil =
+		HuntMap.activeTab === REGIAO_DO_COVIL
+			? `<div class="hm-covil-aviso"><span class="hm-covil-aviso-icone" aria-hidden="true">${RiIcones.mvp}</span><span><strong>Covil dos Chefes</strong>: só mini-chefes, 2 de cada. Eles voltam de 10 a 20 minutos depois de caídos e soltam itens com metade da chance.</span></div>`
+			: '';
+	listEl.innerHTML = avisoDoCovil + mapas.map(mapa => renderCard(mapa, motivos.get(mapa.mapa))).join('');
 	listEl.querySelectorAll('.hm-card').forEach(card => card.addEventListener('click', onClickCard));
 	// O botão de viajar da linha: same travel handler as the dossier's
 	// footer button (onClickTravel) — just a second trigger, no new logic.
@@ -1151,7 +1164,7 @@ function renderCard(mapa, motivo) {
 
 	return `
 		<div class="hm-card fit-${encaixe.cls}${isCurrent ? ' is-current' : ''}${isSelected ? ' is-selected' : ''}" data-mapa="${escapeHtml(mapa.mapa)}" role="button" tabindex="0" aria-pressed="${isSelected ? 'true' : 'false'}">
-			<div class="hm-card-thumb">${renderThumb(mapa)}${renderSeloMvp(mapa)}</div>
+			<div class="hm-card-thumb">${renderThumb(mapa)}${renderSeloMvp(mapa)}${ehCovil(mapa) ? '<span class="hm-card-covil">Covil dos Chefes</span>' : ''}</div>
 	${renderEstrela(mapa)}
 			<div class="hm-card-body">
 				<div class="hm-card-top">
