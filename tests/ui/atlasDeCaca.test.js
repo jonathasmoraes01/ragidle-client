@@ -5,7 +5,7 @@
  */
 import fs from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import {
+import { ehCovil, REGIAO_DO_COVIL,
 	classeDeRaridade,
 	derivarRaridade,
 	encaixeDeNivel,
@@ -279,5 +279,26 @@ describe('.hm-chip-recomendacao — legibilidade movel (nao trunca com ellipsis 
 		expect(bloco, 'a recomendacao pode voltar a ser cortada com ellipsis num nome de elemento longo').toContain(
 			'white-space: normal'
 		);
+	});
+});
+
+describe('encaixeDeNivel — o Covil dos Chefes (24/09/2026)', () => {
+	const covil = { mapa: 'pay_d03_i', regiao: REGIAO_DO_COVIL, nivelQueAbre: 15, nivelMinimo: 2, nivelMaximo: 34 };
+
+	it('o covil tem selo proprio, e NUNCA e "Ideal" - a populacao dele e so de mini-chefes', () => {
+		expect(ehCovil(covil)).toBe(true);
+		for (const nivel of [15, 20, 34, 99]) {
+			expect(encaixeDeNivel(nivel, covil).cls).toBe('covil');
+		}
+	});
+
+	it('a tranca continua vindo antes do selo do covil', () => {
+		expect(encaixeDeNivel(14, covil)).toEqual({ cls: 'locked', rotulo: 'Abre no Nv. 15', curto: 'Bloqueado' });
+	});
+
+	it('CONTROLE: mapa comum com a mesma faixa continua "Ideal"', () => {
+		const comum = { ...covil, mapa: 'pay_dun03', regiao: 'Payon' };
+		expect(ehCovil(comum)).toBe(false);
+		expect(encaixeDeNivel(20, comum).cls).toBe('ideal');
 	});
 });

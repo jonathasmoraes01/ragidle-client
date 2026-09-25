@@ -810,14 +810,15 @@ const MapInfo = {
 		notifyEnter: true,
 		displayName: 'Richard Castle'
 	},
+	// Covil dos Chefes (24/09/2026, ordem do dono): mapa dos mini-chefes, ver COVIS_DOS_CHEFES no servidor.
 	'gef_d01_i.rsw': {
 		backgroundBmp: 'dungeon',
 		signName: {
-			mainTitle: '250 Pages',
-			subTitle: 'Illusion'
+			mainTitle: 'Covil dos Chefes II',
+			subTitle: 'Masmorra de Geffen'
 		},
 		notifyEnter: true,
-		displayName: '250 Pages'
+		displayName: 'Covil dos Chefes II'
 	},
 	've_fild07.rsw': {
 		backgroundBmp: 'field_s2',
@@ -4851,14 +4852,15 @@ const MapInfo = {
 		notifyEnter: true,
 		displayName: "Snake God's Warmth 2nd Floor"
 	},
+	// Covil dos Chefes (24/09/2026, ordem do dono): mapa dos mini-chefes, ver COVIS_DOS_CHEFES no servidor.
 	'gl_chyard_.rsw': {
 		backgroundBmp: 'dungeon',
 		signName: {
-			mainTitle: 'Monastery Churchyard',
-			subTitle: 'Glastheim'
+			mainTitle: 'Covil dos Chefes III',
+			subTitle: 'Glast Heim'
 		},
 		notifyEnter: true,
-		displayName: 'Monastery Churchyard'
+		displayName: 'Covil dos Chefes III'
 	},
 	'ecl_in04.rsw': {
 		displayName: 'Eclage Indoor'
@@ -7466,14 +7468,15 @@ const MapInfo = {
 		notifyEnter: true,
 		displayName: 'Ancient Shrine Maze'
 	},
+	// Covil dos Chefes (24/09/2026, ordem do dono): mapa dos mini-chefes, ver COVIS_DOS_CHEFES no servidor.
 	'pay_d03_i.rsw': {
 		backgroundBmp: 'dungeon',
 		signName: {
-			mainTitle: 'Nightmare of Moonlight',
-			subTitle: 'Illusion'
+			mainTitle: 'Covil dos Chefes I',
+			subTitle: 'Caverna de Payon'
 		},
 		notifyEnter: true,
-		displayName: 'Nightmare of Moonlight'
+		displayName: 'Covil dos Chefes I'
 	},
 	'yuno_fild08.rsw': {
 		backgroundBmp: 'field_s2',
