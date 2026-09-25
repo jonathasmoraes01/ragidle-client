@@ -159,17 +159,24 @@ export const ETAPAS = Object.freeze([
 	 * esse botao abre: a mascara escurece e desliga tudo fora do furo, por
 	 * desenho.
 	 */
+	/*
+	 * 25/09/2026 (decisao 1d do dono): o servidor RETIRA o kit sozinho na
+	 * entrada no mapa e liga os bots de pocao, entao o Correio deixou de ser
+	 * gesto obrigatorio. A etapa 3 passa a mostrar ONDE o kit ficou (a
+	 * Mochila), e a 4 se cumpre sozinha com a arma ja la. A numeracao fica: o
+	 * progresso salvo de quem esta no meio do tutorial e um numero de etapa.
+	 */
 	Object.freeze({
 		numero: 3,
-		rotulo: 'Correio',
-		frase: '{acao} {rotulo}. O seu kit inicial chegou lá dentro.',
-		alvo: Object.freeze({ host: 'TopMenuIdle', seletor: '.tm-item[data-action="correio"]' }),
+		rotulo: 'Mochila',
+		frase: '{acao} {rotulo}. O seu kit inicial já está lá: arma, poções e zeny.',
+		alvo: Object.freeze({ host: 'TopMenuIdle', seletor: '.tm-item[data-action="inventory"]' }),
 		quandoSumir: Object.freeze({
 			host: 'TopMenuIdle',
 			seletor: '.tm-fab',
-			frase: 'Abra o "Menu" de novo. O "Correio" mora lá dentro.'
+			frase: 'Abra o "Menu" de novo. A "Mochila" mora lá dentro.'
 		}),
-		avancaPor: 'correio-aberto'
+		avancaPor: 'mochila-aberta'
 	}),
 	Object.freeze({
 		numero: 4,
@@ -178,12 +185,14 @@ export const ETAPAS = Object.freeze([
 		   selecionar a carta na LISTA (esquerda) e depois clicar em "retirar"
 		   no PAINEL de detalhe (direita) - dois lugares dentro da mesma
 		   janela, que um furo em volta de um botao so nao cobriria. */
-		frase: 'Abra a carta e retire TUDO dela: o zeny e os itens. Ele é seu, pode usar sem dó.',
+		/* Cumpre-se sozinha (a arma do kit ja esta na mochila): a frase so
+		   aparece se, por algum motivo, o kit nao coube e ficou no Correio. */
+		frase: 'Parte do seu kit ficou no Correio: abra a carta e retire o que falta.',
 		alvo: Object.freeze({ host: 'CorreioIdle', seletor: '.co-window' }),
 		quandoSumir: Object.freeze({
 			host: 'TopMenuIdle',
 			seletor: '.tm-item[data-action="correio"]',
-			frase: 'A janela do "Correio" fechou. Abra-a de novo para retirar o kit.'
+			frase: 'Abra o "Correio": parte do seu kit ficou lá.'
 		}),
 		/*
 		 * A MAO segue o GESTO, e nao mais so o canto do furo (16/09/2026,
@@ -242,12 +251,15 @@ export const ETAPAS = Object.freeze([
 	Object.freeze({
 		numero: 6,
 		rotulo: null,
-		frase: 'Na aba "Sobrevivência", ligue as duas poções e arraste a barra até 50%.',
+		/* 25/09/2026 (decisao 1d): os bots ja nascem ligados; a etapa MOSTRA
+		   onde eles moram, e se cumpre quando a janela recebe a config com as
+		   duas pocoes ligadas - sem pedir gesto nenhum. */
+		frase: 'Seus bots de poção de HP e SP já estão ligados na aba "Sobrevivência".',
 		alvo: Object.freeze({ host: 'IdleConfig', seletor: '.ic-window' }),
 		quandoSumir: Object.freeze({
 			host: 'TopMenuIdle',
 			seletor: '.tm-item[data-action="config"]',
-			frase: 'Abra o "Menu" e toque em "Configurações" para ligar as poções.'
+			frase: 'Abra o "Menu" e toque em "Configurações": seus bots de poção já estão ligados lá.'
 		}),
 		/*
 		 * A MAO segue os TRES gestos em ordem (16/09/2026, relato do dono:

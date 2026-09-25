@@ -428,10 +428,9 @@ function etapaCumprida(numero) {
 			/* A janela do Correio abriu (`CorreioIdle.js`, `.co-window` ganha
 			   `is-open` no toggle). So abrir - retirar o kit de dentro dela e a
 			   etapa 4, com alvo na janela inteira (dois gestos, um furo so). */
-			/* 25/09/2026: o servidor retira o kit SOZINHO na entrada no mapa
-			   (`prepararAEntrada`, ordem do dono), entao quem chega aqui ja tem
-			   a arma na mochila - o Correio nao tem mais o que ensinar. */
-			return janelaAberta('CorreioIdle', '.co-window') || temArmaDoKitNaMochila();
+			/* 25/09/2026 (decisao 1d): a etapa 3 mostra a MOCHILA, onde o kit
+			   ja esta (o servidor o retira sozinho na entrada no mapa). */
+			return janelaAberta('MochilaIdle', '.mo-window');
 		case 4: {
 			/*
 			 * O KIT RETIRADO POR INTEIRO, e nao so a metade dele.
