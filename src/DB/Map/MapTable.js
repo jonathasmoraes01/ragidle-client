@@ -3957,14 +3957,15 @@ const MapInfo = {
 		notifyEnter: true,
 		displayName: 'El Mes Plateau'
 	},
+	// Covil dos Chefes IV (25/09/2026, ordem do dono): as Incarnation of Morocc.
 	'moc_fild22b.rsw': {
 		backgroundBmp: 'field2',
 		signName: {
-			mainTitle: 'Dimension Crack',
-			subTitle: 'Sograt Desert'
+			mainTitle: 'Covil dos Chefes IV',
+			subTitle: 'Deserto de Sograt'
 		},
 		notifyEnter: true,
-		displayName: 'Dimension Crack in Sograt Desert'
+		displayName: 'Covil dos Chefes IV'
 	},
 	'hu_fild05.rsw': {
 		backgroundBmp: 'field_s2',
