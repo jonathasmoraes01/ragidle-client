@@ -229,6 +229,9 @@ export const ETAPAS = Object.freeze([
 		 * (`1 << 1`, `src/DB/Items/EquipmentLocation.js:13`), o mesmo bitmask
 		 * que MochilaIdle carimba em cada ladrilho (MochilaIdle.js:775) - fica
 		 * so na frase agora, ja que o furo nao aponta mais so pra ele.
+		 *
+		 * A MAO nao usa `maoEm` fixo: quem diz onde ela aponta (a aba
+		 * "Equipar", depois a arma na grade) e `maoDaEtapaDaArma`, abaixo.
 		 */
 		alvo: Object.freeze({ host: 'MochilaIdle', seletor: '.mo-window' }),
 		quandoSumir: Object.freeze({
@@ -511,6 +514,44 @@ export function passoDaEconomia(visto, leitura) {
 	}
 	/* Viu e fechou a janela sem mexer: deixou marcada de proposito. */
 	return { visto, cumprida: !leitura.janelaAberta };
+}
+
+/**
+ * ONDE A MAO APONTA NA ETAPA 5 (25/09/2026, relato do dono com print: a mao
+ * apontava uma celula VAZIA da grade com a Mochila na aba "Consumíveis", e a
+ * faca do kit mora na aba "Equipar" - o jogador nem via a arma).
+ *
+ * A etapa tem DOIS gestos dentro do mesmo furo (a janela inteira): trocar
+ * para a aba das armas e so entao pegar a arma. Um `maoEm` fixo nao serve,
+ * por dois motivos: a celula da arma so e achada pelo `data-index` do item
+ * (numero que muda de personagem para personagem, e a faca pode estar em
+ * qualquer celula), e sem ele o seletor casaria QUALQUER peca da aba
+ * "Equipar" (armadura, ovo de pet). Por isso a lista e montada aqui, a cada
+ * tique, a partir do que a Mochila mostra agora.
+ *
+ * A ORDEM IMPORTA, e e a do gesto: fora da aba das armas, a mao vai SO para a
+ * aba (a celula da arma nem existe na grade - `syncGrade` so desenha a aba
+ * ativa); na aba certa, vai para as armas, na ordem da mochila. Lista vazia
+ * devolve a mao ao canto do furo, o comportamento de sempre (arma nenhuma na
+ * mochila: ela ja esta vestida, e a etapa fecha no mesmo tique).
+ *
+ * @param {{abaAtiva:(number|null), abaDasArmas:number, indicesDasArmas:number[]}} leitura
+ *        `abaAtiva` e o `data-tab` do `.mo-aba.is-active` (null com a Mochila
+ *        fechada); `abaDasArmas` e o `TAB.EQUIP` do Inventory, passado por
+ *        quem chama para o numero nao ser copiado para ca.
+ * @returns {Array<{host:string, seletor:string}>} candidatos no formato de `maoEm`
+ */
+export function maoDaEtapaDaArma(leitura) {
+	if (!leitura || typeof leitura.abaDasArmas !== 'number') {
+		return [];
+	}
+	if (leitura.abaAtiva !== leitura.abaDasArmas) {
+		return [{ host: 'MochilaIdle', seletor: `.mo-aba[data-tab="${leitura.abaDasArmas}"]` }];
+	}
+	return (leitura.indicesDasArmas || []).map(indice => ({
+		host: 'MochilaIdle',
+		seletor: `.mo-item[data-index="${indice}"]`
+	}));
 }
 
 /** A etapa de numero `n`, ou `null`. Fora de 1..12 devolve `null` de proposito:

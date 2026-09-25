@@ -18,6 +18,7 @@ import {
 	dentroDoFuro,
 	etapaDe,
 	fraseDaEtapa,
+	maoDaEtapaDaArma,
 	passoDaEconomia,
 	posicaoDaMao,
 	recorteDoAlvo,
@@ -426,5 +427,55 @@ describe('passoDaEconomia: ensina, não obriga', () => {
 
 	it('FECHAR a janela sem mexer fecha a etapa: deixar marcada é resposta válida', () => {
 		expect(passoDaEconomia(true, fechada)).toEqual({ visto: true, cumprida: true });
+	});
+});
+
+describe('maoDaEtapaDaArma: primeiro a aba "Equipar", depois a arma', () => {
+	/* Os numeros de aba sao os do Inventory (TAB.USABLE 0, TAB.EQUIP 1,
+	   TAB.ETC 2); a regra os recebe de quem chama e nao os conhece. */
+	const EQUIP = 1;
+
+	it('na aba "Consumíveis" (o print do dono) a mão vai para a aba das armas, e não para a grade', () => {
+		const lista = maoDaEtapaDaArma({ abaAtiva: 0, abaDasArmas: EQUIP, indicesDasArmas: [7] });
+		expect(lista).toEqual([{ host: 'MochilaIdle', seletor: '.mo-aba[data-tab="1"]' }]);
+	});
+
+	it('na aba "Diversos" também, e com a Mochila fechada (sem aba acesa) idem', () => {
+		expect(maoDaEtapaDaArma({ abaAtiva: 2, abaDasArmas: EQUIP, indicesDasArmas: [7] })[0].seletor).toBe(
+			'.mo-aba[data-tab="1"]'
+		);
+		expect(maoDaEtapaDaArma({ abaAtiva: null, abaDasArmas: EQUIP, indicesDasArmas: [7] })[0].seletor).toBe(
+			'.mo-aba[data-tab="1"]'
+		);
+	});
+
+	it('na aba "Equipar" a mão vai para a CÉLULA da arma, qualquer que seja o índice dela', () => {
+		expect(maoDaEtapaDaArma({ abaAtiva: EQUIP, abaDasArmas: EQUIP, indicesDasArmas: [42] })).toEqual([
+			{ host: 'MochilaIdle', seletor: '.mo-item[data-index="42"]' }
+		]);
+	});
+
+	it('com mais de uma arma, todas viram candidatas, na ordem da mochila', () => {
+		const lista = maoDaEtapaDaArma({ abaAtiva: EQUIP, abaDasArmas: EQUIP, indicesDasArmas: [9, 3] });
+		expect(lista.map(c => c.seletor)).toEqual(['.mo-item[data-index="9"]', '.mo-item[data-index="3"]']);
+	});
+
+	it('na aba certa e sem arma na mochila, nenhum candidato: a mão volta ao canto do furo', () => {
+		expect(maoDaEtapaDaArma({ abaAtiva: EQUIP, abaDasArmas: EQUIP, indicesDasArmas: [] })).toEqual([]);
+	});
+
+	it('leitura sem a aba das armas não inventa alvo', () => {
+		expect(maoDaEtapaDaArma(null)).toEqual([]);
+		expect(maoDaEtapaDaArma({ abaAtiva: 0, indicesDasArmas: [7] })).toEqual([]);
+	});
+
+	it('o componente usa esta regra na etapa 5 (a da arma), e só nela', () => {
+		const fonte = readFileSync(
+			resolve(process.cwd(), 'src/UI/Components/TutorialIdle/TutorialIdle.js'),
+			'utf8'
+		);
+		expect(fonte).toContain('maoDaEtapaDaArma(leituraDaMochila())');
+		expect(etapaDe(5).avancaPor).toBe('arma-vestida-confirmada');
+		expect(fonte).toContain("etapa.avancaPor === 'arma-vestida-confirmada'");
 	});
 });

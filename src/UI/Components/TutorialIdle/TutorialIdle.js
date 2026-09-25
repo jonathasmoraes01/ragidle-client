@@ -92,6 +92,7 @@ import {
 	etapaDe,
 	dentroDoFuro,
 	fraseDaEtapa,
+	maoDaEtapaDaArma,
 	passoDaEconomia,
 	posicaoDaMao,
 	recorteDoAlvo,
@@ -404,6 +405,36 @@ function abatesAgora() {
 /** Ha arma na mochila (`ItemType.WEAPON`, o criterio de `getItemTab()` em `MochilaIdle.js`). */
 function temArmaDoKitNaMochila() {
 	return Inventory.getUI().list.some((item) => item.type === ItemType.WEAPON);
+}
+
+/**
+ * O QUE A MOCHILA MOSTRA AGORA, para `maoDaEtapaDaArma` (etapa 5). Leitura de
+ * DOM pura, como `abaDoCodexAtiva`: a aba acesa e a `.mo-aba.is-active` que
+ * `syncAbasAtivas` (MochilaIdle.js) marca. As armas saem da MESMA lista que a
+ * grade desenha (`Inventory.getUI().list`), e o `index` delas e o `data-index`
+ * que `syncGrade` carimba em cada celula.
+ */
+function leituraDaMochila() {
+	const ativa = acharAlvo({ host: 'MochilaIdle', seletor: '.mo-aba.is-active' });
+	/* `getAttribute` e nao o `dataset` do atributo: o portao de
+	   `tests/ui/memoriaDeAba.test.js` reconhece "janela com abas" por esse
+	   texto no fonte, e o tutorial so LE a aba de outra janela, nao tem abas. */
+	const aba = ativa ? parseInt(ativa.getAttribute('data-tab'), 10) : NaN;
+	const ui = Inventory.getUI();
+	return {
+		abaAtiva: Number.isFinite(aba) ? aba : null,
+		abaDasArmas: ui.TAB.EQUIP,
+		indicesDasArmas: ui.list.filter((item) => item.type === ItemType.WEAPON).map((item) => item.index)
+	};
+}
+
+/** Os candidatos da mao da etapa: a lista fixa `maoEm` ou, na etapa 5, a que
+ *  depende da aba acesa da Mochila (ver `maoDaEtapaDaArma`). */
+function candidatosDaMao(etapa) {
+	if (etapa.avancaPor === 'arma-vestida-confirmada') {
+		return maoDaEtapaDaArma(leituraDaMochila());
+	}
+	return etapa.maoEm;
 }
 
 /**
@@ -789,8 +820,9 @@ function desenhar() {
 	 * ao canto do furo inteiro, o comportamento de sempre.
 	 */
 	let recorteDaMao = recorte;
-	if (recorte && Array.isArray(etapa.maoEm)) {
-		for (const candidato of etapa.maoEm) {
+	const candidatos = recorte ? candidatosDaMao(etapa) : null;
+	if (Array.isArray(candidatos)) {
+		for (const candidato of candidatos) {
 			const r = medirRecorte(acharAlvo(candidato), tela);
 			/* So vale o sub-alvo que mora DENTRO do furo desta hora (ver
 			   `dentroDoFuro`): a etapa 12 tem candidatos em duas janelas. */
