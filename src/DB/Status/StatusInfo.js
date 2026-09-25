@@ -3375,4 +3375,20 @@ StatusInfo[SC.MAGICPOWER] = {
 	descript: [['Magic Amplification', COLOR_TITLE_BUFF], ['%s', COLOR_TIME], ['MATK Amplified']]
 };
 
+/**
+ * O CRONOMETRO DA PRACA DE ZENY (25/09/2026, pedido do dono no teste). O EFST
+ * e do servidor (`EFST_DO_RELOGIO_DA_PRACA = 1900`,
+ * servidor/zona-de-zeny/icone-do-relogio.ts), acima do enum oficial (1450):
+ * dono unico, nenhum buff apaga o outro. A arte e a Moeda de Poring publicada
+ * pelo proprio jogo (caminho com "/": `StatusIcons` a carrega por URL, e nao
+ * do GRF).
+ */
+export const EFST_DO_RELOGIO_DA_PRACA = 1900;
+StatusInfo[EFST_DO_RELOGIO_DA_PRACA] = {
+	icon: '/ragidle/item/9003000.png',
+	haveTimeLimit: 1,
+	posTimeLimitStr: 2,
+	descript: [['Praça de Zeny', COLOR_TITLE_BUFF], ['%s', COLOR_TIME], ['Tempo restante na praça hoje.']]
+};
+
 export default StatusInfo;

@@ -182,12 +182,31 @@ StatusIcons.update = function update(index, state, life) {
 	ScreenEffectManager.parseStatus(index);
 };
 
+/** O icone e uma arte publicada pelo jogo (URL absoluta), e nao um arquivo do GRF? */
+export function iconeDePublicacao(nome) {
+	return typeof nome === 'string' && nome.startsWith('/');
+}
+
 function loadStatusIcon(index) {
 	const isTKM = Session.Entity && DB.isTaeKwon(Session.Entity._job);
 	const tkmVariant = (isTKM && TKM_ICON_OVERRIDE[index]) || null;
 	const iconName = tkmVariant || StatusTable[index].icon;
 	_status[index].tkmVariant = tkmVariant;
 	_status[index].loading = true;
+	// ARTE PUBLICADA PELO JOGO (caminho com "/", ex.: o cronometro da Praca de
+	// Zeny): vem por URL, e nao do GRF, que nao a tem.
+	if (iconeDePublicacao(iconName)) {
+		const img = new Image();
+		img.onload = () => {
+			if (_status[index] && !_status[index].img) {
+				_status[index].loading = false;
+				addResizedStatusIcon(img, index);
+			}
+		};
+		img.onerror = () => addFallbackStatusIcon(index);
+		img.src = iconName;
+		return;
+	}
 	Client.loadFile(
 		`data/texture/effect/${iconName}`,
 		data => {
