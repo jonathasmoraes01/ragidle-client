@@ -120,3 +120,60 @@ describe('FileManager.getHTTP com a nova tentativa', () => {
 		erro.mockRestore();
 	});
 });
+
+/*
+ * O ARQUIVO QUE VEIO E NAO ABRE (25/09/2026, relato "Can't find file
+ * pay_fild01.gnd" com o arquivo servido normalmente): a copia e apagada do
+ * cache e baixada de novo UMA vez; o que nao existe (404) nao repete.
+ */
+describe('FileManager.load com o arquivo que nao abre', () => {
+	const lixo = () => ({
+		ok: true,
+		status: 200,
+		headers: { get: () => 'application/octet-stream' },
+		arrayBuffer: () => Promise.resolve(new ArrayBuffer(8))
+	});
+
+	beforeEach(() => {
+		vi.useFakeTimers();
+	});
+	afterEach(() => {
+		vi.useRealTimers();
+		vi.unstubAllGlobals();
+	});
+
+	async function esvaziar() {
+		for (let i = 0; i < 20; i++) {
+			await vi.advanceTimersByTimeAsync(1000);
+		}
+	}
+
+	it('o .gnd corrompido e baixado de novo UMA vez, e o erro chega uma vez so', async () => {
+		const fetch = vi.fn().mockImplementation(() => Promise.resolve(lixo()));
+		vi.stubGlobal('fetch', fetch);
+		const callback = vi.fn();
+		FileManager.load('data/pay_fild01.gnd', callback);
+		await esvaziar();
+		expect(fetch).toHaveBeenCalledTimes(2);
+		expect(callback).toHaveBeenCalledTimes(1);
+		expect(callback.mock.calls[0][0]).toBeNull();
+	});
+
+	it('CONTROLE: o que nao existe (404) nao e baixado de novo', async () => {
+		const fetch = vi.fn().mockResolvedValue({ ok: false, status: 404, headers: { get: () => '' } });
+		vi.stubGlobal('fetch', fetch);
+		const callback = vi.fn();
+		FileManager.load('data/sprite/nao_existe.spr', callback);
+		await esvaziar();
+		expect(fetch).toHaveBeenCalledTimes(1);
+		expect(callback).toHaveBeenCalledTimes(1);
+	});
+
+	it('a regra: so quem veio com bytes, nao abriu, e ainda nao foi rebaixado', async () => {
+		const { devoBaixarDeNovo } = await import('Core/tentativasDeArquivo.js');
+		expect(devoBaixarDeNovo({ tinhaBytes: true, abriu: false, jaRefez: false })).toBe(true);
+		expect(devoBaixarDeNovo({ tinhaBytes: true, abriu: false, jaRefez: true })).toBe(false);
+		expect(devoBaixarDeNovo({ tinhaBytes: true, abriu: true, jaRefez: false })).toBe(false);
+		expect(devoBaixarDeNovo({ tinhaBytes: false, abriu: false, jaRefez: false })).toBe(false);
+	});
+});

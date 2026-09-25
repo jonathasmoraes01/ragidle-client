@@ -356,6 +356,35 @@ class FileSystem {
 	}
 
 	/**
+	 * Apaga UM arquivo do cache local (25/09/2026): a copia que nao abre e
+	 * baixada de novo, e sem apagar a velha a proxima leitura acharia a mesma
+	 * copia quebrada. Melhor esforco: sem cache, ou sem o arquivo, nada acontece.
+	 *
+	 * @param {string} filePath
+	 */
+	static removeFile(filePath) {
+		if (!_available) {
+			return;
+		}
+		const filename = filePath.replace(/\\/g, '/');
+		try {
+			if (_fs_sync) {
+				_fs_sync.root.getFile(filename, { create: false }).remove();
+				return;
+			}
+		} catch (e) {
+			// sem o arquivo no cache: nada a apagar
+		}
+		try {
+			if (_fs) {
+				_fs.root.getFile(filename, { create: false }, entry => entry.remove(() => {}, () => {}), () => {});
+			}
+		} catch (e) {
+			// idem
+		}
+	}
+
+	/**
 	 * Search a file from FileSystem using a regex
 	 *
 	 * @param {RegExp|string} to match the filename

@@ -17,7 +17,7 @@ import Sprite from 'Loaders/Sprite.js';
 import Action from 'Loaders/Action.js';
 import Str from 'Loaders/Str.js';
 import FileSystem from 'Core/FileSystem.js';
-import { devoTentarDeNovo, esperaAntesDaTentativa } from 'Core/tentativasDeArquivo.js';
+import { devoBaixarDeNovo, devoTentarDeNovo, esperaAntesDaTentativa } from 'Core/tentativasDeArquivo.js';
 
 // Load dependencies
 /* global process */
@@ -413,7 +413,15 @@ class FileManager {
 
 		filename = filename.replace(/^\s+|\s+$/g, '');
 
-		FileManager.get(filename, (buffer, error) => {
+		/*
+		 * O ARQUIVO QUE VEIO E NAO ABRE (25/09/2026, relato do open beta: um
+		 * jogador preso em "Can't find file pay_fild01.gnd", com o arquivo
+		 * servido normalmente). Uma copia CORROMPIDA no cache local do aparelho
+		 * e lida a cada tentativa e nunca abre - a nova tentativa de rede nem
+		 * chega a acontecer. Quem veio com bytes e nao abriu tem a copia local
+		 * APAGADA e e baixado de novo do servidor, uma vez so (`jaRefez`).
+		 */
+		const tratar = (buffer, error, jaRefez) => {
 			const ext = filename
 				.match(/.[^.]+$/)
 				.toString()
@@ -508,8 +516,15 @@ class FileManager {
 				error = e.message;
 			}
 
+			if (devoBaixarDeNovo({ tinhaBytes: true, abriu: error === null, jaRefez })) {
+				FileSystem.removeFile(filename);
+				FileManager.getHTTP(filename, (novo, erroNovo) => tratar(novo, erroNovo, true));
+				return;
+			}
+
 			callback(result, error);
-		});
+		};
+		FileManager.get(filename, (buffer, error) => tratar(buffer, error, false));
 	}
 }
 /**

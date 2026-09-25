@@ -38,6 +38,21 @@ export function devoTentarDeNovo(status, feitas) {
 }
 
 /**
+ * O arquivo chegou, NAO abriu, e deve ser baixado de novo? (25/09/2026)
+ *
+ * So quem veio COM bytes e falhou ao abrir: e a copia corrompida (no cache local
+ * do aparelho ou num download estranho). O arquivo que nao existe (vazio, 404)
+ * nao repete - senao cada sprite ausente viraria dois pedidos. E uma vez so:
+ * o que foi rebaixado e nao abriu esta quebrado no servidor, e insistir nao muda.
+ *
+ * @param {{ tinhaBytes: boolean, abriu: boolean, jaRefez: boolean }} p
+ * @returns {boolean}
+ */
+export function devoBaixarDeNovo(p) {
+	return p.tinhaBytes && !p.abriu && !p.jaRefez;
+}
+
+/**
  * Quanto esperar antes da nova tentativa número `feitas` (0 = a primeira nova).
  *
  * @param {number} feitas
