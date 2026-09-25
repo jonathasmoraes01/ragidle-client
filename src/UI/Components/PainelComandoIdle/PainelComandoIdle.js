@@ -44,7 +44,7 @@ import PACKET from 'Network/PacketStructure.js';
 import UIManager from 'UI/UIManager.js';
 import GUIComponent from 'UI/GUIComponent.js';
 import arrastarPorPonteiro, { prenderNaTela } from 'UI/arrastarPorPonteiro.js';
-import { faltaAgora, formatarFalta, ordenarLinhas } from './tabelaDoPainel.js';
+import { faltaAgora, filtrarLinhas, formatarFalta, ordenarLinhas } from './tabelaDoPainel.js';
 import { fecharEEsquecer } from '../limpezaDeJanelaIdle.js';
 import htmlText from './PainelComandoIdle.html?raw';
 import cssText from './PainelComandoIdle.css?raw';
@@ -73,6 +73,13 @@ const _preferences = Preferences.get(
 
 /** A coluna pela qual o jogador ordenou NESTA sessão (`null` = a do servidor). */
 let _ordem = null;
+/** O termo da pesquisa (25/09/2026). Fica enquanto o MESMO painel e atualizado. */
+let _busca = '';
+
+/** As linhas que a tela mostra: pesquisadas e na ordem escolhida. */
+function linhasVisiveis(painel, ordem) {
+	return filtrarLinhas(ordenarLinhas(painel, ordem), _busca);
+}
 
 let _tique = null;
 
@@ -179,7 +186,7 @@ function render() {
 		.join('');
 	fileira.querySelectorAll('button').forEach((b) => b.addEventListener('click', onClickColuna));
 
-	const linhas = ordenarLinhas(painel, ordem);
+	const linhas = linhasVisiveis(painel, ordem);
 	const corpo = root.querySelector('.pc-linhas');
 	corpo.innerHTML = linhas
 		.map((linha) => {
@@ -216,7 +223,7 @@ function tiquearRelogios() {
 	if (indices.length === 0) {
 		return;
 	}
-	const linhas = ordenarLinhas(painel, ordemVigente());
+	const linhas = linhasVisiveis(painel, ordemVigente());
 	root.querySelectorAll('.pc-linhas tr').forEach((tr, l) => {
 		const dados = linhas[l];
 		if (!dados) {
@@ -282,6 +289,14 @@ PainelComandoIdle.receber = function receber(dados) {
 	if (!dados || dados.v !== 1 || !Array.isArray(dados.colunas) || !Array.isArray(dados.linhas)) {
 		return;
 	}
+	// A pesquisa fica quando o MESMO comando e atualizado; outro painel limpa.
+	if (!PainelComandoIdle.estado || PainelComandoIdle.estado.comando !== dados.comando) {
+		_busca = '';
+		const campo = _root() && _root().querySelector('.pc-busca');
+		if (campo) {
+			campo.value = '';
+		}
+	}
 	PainelComandoIdle.estado = { ...dados, chegouEm: Date.now() };
 	// A ordem do jogador é por PAINEL: manter a coluna escolhida no
 	// `@mvptimeall` ao abrir outro comando ordenaria por uma coluna que o
@@ -334,6 +349,7 @@ PainelComandoIdle.limparEstadoDoPersonagem = function limparEstadoDoPersonagem()
 	fecharEEsquecer(_root(), '.pc-window', { corpo: '.pc-linhas', texto: '' });
 	PainelComandoIdle.estado = null;
 	_ordem = null;
+	_busca = '';
 	if (PainelComandoIdle.__active) {
 		PainelComandoIdle.remove();
 	}
@@ -351,6 +367,17 @@ PainelComandoIdle.init = function init() {
 			// zero pixel — e a janela "pisca" sem sair do lugar.
 			event.stopPropagation();
 			PainelComandoIdle.alternarCompacto();
+		});
+		const campo = root.querySelector('.pc-busca');
+		campo.addEventListener('input', () => {
+			_busca = campo.value;
+			render();
+		});
+		// Digitar aqui nao pode virar atalho do jogo (o ESC continua fechando).
+		campo.addEventListener('keydown', (event) => {
+			if (event.which !== 27) {
+				event.stopPropagation();
+			}
 		});
 		arrastarPorPonteiro({
 			alca: root.querySelector('.pc-titlebar'),

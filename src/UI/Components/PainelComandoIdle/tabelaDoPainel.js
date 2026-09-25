@@ -42,6 +42,29 @@ export function faltaAgora(faltaMs, chegouEm, agora) {
 	return Math.max(0, faltaMs - (agora - chegouEm));
 }
 
+/** Texto comparavel: sem caixa e sem acento ("Jose" acha "José"). */
+function normalizar(texto) {
+	return String(texto ?? '')
+		.normalize('NFD')
+		.replace(/\p{M}/gu, '')
+		.toLowerCase();
+}
+
+/**
+ * A PESQUISA DO PAINEL (25/09/2026, pedido do dono para o `@who`): so as linhas
+ * em que ALGUMA coluna contem o termo. Termo vazio devolve tudo.
+ *
+ * @param {Array<{valores: Object}>} linhas
+ * @param {string} termo
+ */
+export function filtrarLinhas(linhas, termo) {
+	const t = normalizar(termo).trim();
+	if (t === '') {
+		return linhas;
+	}
+	return linhas.filter((linha) => Object.values(linha.valores || {}).some((v) => normalizar(v).includes(t)));
+}
+
 /**
  * A lista na ordem da tela.
  *

@@ -259,9 +259,31 @@
 	font: var(--type-label);
 }
 
+/* ─── A pesquisa (25/09/2026) ──────────────────────────────────────── */
+
+#PainelComandoIdle .pc-busca-linha {
+	padding: var(--sp-3) var(--sp-4) 0;
+}
+
+#PainelComandoIdle .pc-busca {
+	width: 100%;
+	box-sizing: border-box;
+	min-height: 32px;
+	padding: 0 var(--sp-3);
+	border: 1px solid var(--border-hairline);
+	border-radius: var(--radius-card);
+	background: var(--surface-card);
+	color: var(--text-title);
+	font: var(--type-desc);
+}
+
+/* No dedo o campo tem alvo tatil de 44px. */
+:host-context(html.ri-vertical) #PainelComandoIdle .pc-busca { min-height: 44px; }
+
 /* ─── Recolhida ─────────────────────────────────────────────────────── */
 
 #PainelComandoIdle .pc-window.is-compact .pc-body,
+#PainelComandoIdle .pc-window.is-compact .pc-busca-linha,
 #PainelComandoIdle .pc-window.is-compact .pc-ordem-vertical,
 #PainelComandoIdle .pc-window.is-compact .pc-rodape { display: none; }
 
