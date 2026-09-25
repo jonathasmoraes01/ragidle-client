@@ -33,6 +33,19 @@ export const MOTIVO_DA_RECUSA = {
 	'sem-ponto': 'Você não tem pontos para o próximo nível'
 };
 
+/**
+ * A versao do retrato que esta janela sabe desenhar (`retratoDoCodex`,
+ * servidor/codex.ts, devolve `v: 2` desde o Codex em percentual). Um retrato
+ * de outra versao e IGNORADO em vez de desenhado meio errado — e por isso esta
+ * guarda e costura: a janela antiga (`v !== 1` cravado) descartava o v2 calada
+ * e ficava em "Carregando..." para sempre.
+ */
+export const VERSAO_DO_RETRATO_DO_CODEX = 2;
+
+export function retratoDoCodexAceito(dados) {
+	return !!dados && dados.v === VERSAO_DO_RETRATO_DO_CODEX;
+}
+
 function escapeHtml(v) {
 	return String(v).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 }

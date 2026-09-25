@@ -73,7 +73,7 @@ import MissoesIdle from 'UI/Components/MissoesIdle/MissoesIdle.js';
 // Quem responde "isto e um celular em pe?" no projeto inteiro (D-929).
 import { ehCelularEmPe } from 'UI/hudVertical.js';
 import { jornadaHtml } from './jornadaHtml.js';
-import { placarHtml, eixosHtml, desafiosHtml } from './eixosDoCodex.js';
+import { placarHtml, eixosHtml, desafiosHtml, retratoDoCodexAceito } from './eixosDoCodex.js';
 import { missoesGeraisHtml, cliqueDeMissoesGerais, SUBABA_PADRAO } from './missoesGeraisHtml.js';
 import htmlText from './CodexIdle.html?raw';
 import cssText from './CodexIdle.css?raw';
@@ -1070,8 +1070,10 @@ function onCodexRecebido(pkt) {
 		return;
 	}
 	// Guarda de versao, como em PasseIdle/MissoesIdle: um retrato de contrato
-	// futuro e IGNORADO em vez de desenhado meio errado.
-	if (!dados || dados.v !== 1) {
+	// futuro e IGNORADO em vez de desenhado meio errado. A versao aceita mora
+	// em `eixosDoCodex.js` (era `!== 1` cravado aqui, e o Codex em percentual,
+	// que o servidor manda como v2, ficava em "Carregando..." para sempre).
+	if (!retratoDoCodexAceito(dados)) {
 		return;
 	}
 	CodexIdle.estado = dados;

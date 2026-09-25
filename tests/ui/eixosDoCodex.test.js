@@ -9,7 +9,7 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 
-import { desafiosHtml, eixosHtml, formatarPorcento, placarHtml } from 'UI/Components/CodexIdle/eixosDoCodex.js';
+import { desafiosHtml, eixosHtml, formatarPorcento, placarHtml, retratoDoCodexAceito } from 'UI/Components/CodexIdle/eixosDoCodex.js';
 
 const CODEX_CODIGO = readFileSync('src/UI/Components/CodexIdle/CodexIdle.js', 'utf8')
 	.replace(/\/\*[\s\S]*?\*\//g, ' ')
@@ -79,6 +79,21 @@ describe('os desafios', () => {
 		expect(html).toContain('is-cumprido');
 		expect(html).toContain('Feito');
 	});
+});
+
+describe('a versao do retrato (a janela que ficava em "Carregando..." para sempre)', () => {
+	it('aceita o v2 que o servidor manda, e ignora o v1 antigo e o que nao e retrato', () => {
+		expect(retratoDoCodexAceito({ v: 2 })).toBe(true);
+		expect(retratoDoCodexAceito({ v: 1 })).toBe(false);
+		expect(retratoDoCodexAceito({ v: 3 })).toBe(false);
+		expect(retratoDoCodexAceito(null)).toBe(false);
+	});
+
+	it('a janela passa pela guarda do modulo, e nao por uma versao cravada', () => {
+		expect(CODEX_CODIGO).toContain('if (!retratoDoCodexAceito(dados)) {');
+		expect(CODEX_CODIGO).not.toMatch(/dados\.v !== \d/);
+	});
+
 });
 
 describe('a janela usa o modulo, e nao uma segunda rota', () => {
