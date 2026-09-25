@@ -90,7 +90,8 @@ describe('o placar do MVP se move e se recolhe', () => {
 	});
 
 	it('o recolhido e a posicao sao LEMBRADOS entre sessoes', () => {
-		expect(placarJs).toContain("Preferences.get(\n\t'PlacarMvpIdle'");
+		// O .gitattributes entrega o fonte em CRLF (eol=crlf): a ancora compara com LF.
+		expect(placarJs.replace(/\r\n/g, '\n')).toContain("Preferences.get(\n\t'PlacarMvpIdle'");
 		expect(placarJs).toContain('_preferences.save();');
 		expect(placarJs).toContain('PlacarMvpIdle.onAppend = function onAppend()');
 		expect(placarJs).toContain('prenderNaTela(host);');

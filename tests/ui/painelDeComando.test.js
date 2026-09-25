@@ -107,7 +107,8 @@ describe('a costura da janela', () => {
 		// `__active`, o campo que o GUIComponent escreve. Esta ancora pedia
 		// `__appended` ate 22/09/2026 — um campo que ninguem escrevia, e com
 		// ele a guarda nunca valia (F11).
-		expect(js).toContain("if (!PainelComandoIdle.__active) {\n\t\tPainelComandoIdle.append();");
+		// O .gitattributes entrega o fonte em CRLF (eol=crlf): a ancora compara com LF.
+		expect(js.replace(/\r\n/g, '\n')).toContain("if (!PainelComandoIdle.__active) {\n\t\tPainelComandoIdle.append();");
 		expect(mapEngine).toContain('PainelComandoIdle.prepare();');
 	});
 
