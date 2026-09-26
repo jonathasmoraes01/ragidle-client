@@ -57,7 +57,11 @@ window.ROConfigLocal = {
 			address: '127.0.0.1',
 			port: 6900,
 			packetver: 20211103,
-			renewal: true,
+			// PRE-RENEWAL (26/09/2026): a producao ficou em `true` depois da virada
+			// de 20/09, que so trocou o Config.local.js do dev. O unico efeito medido
+			// (ver o comentario la) e o MATK da janela nativa: `~ N` (faixa, o certo
+			// para este motor) em vez do `+ N` do renewal.
+			renewal: false,
 			version: 55,
 			langtype: 12,
 			packetKeys: false,

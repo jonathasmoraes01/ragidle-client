@@ -55,14 +55,25 @@
  * e exatamente ATK e MATK. Em DEF/MDEF a soma na tela ja E o total, e repeti-la
  * no title seria ruido.
  */
+/*
+ * ── AS LEGENDAS SAO AS DO PRE-RENEWAL (26/09/2026) ───────────────────────
+ * O jogo e pre-renewal desde 20/09, e o servidor ja mandava os lados na ordem
+ * do `#else` de `pc.hpp:1255-1274`. So as LEGENDAS continuavam as do renewal:
+ * o title do DEF dizia "esquerda = de status" com a esquerda sendo o
+ * equipamento, e o MATK saia "50 + 80" -- o jogador lia 130, e os dois numeros
+ * sao o MINIMO e o MAXIMO da faixa. `separador: '~'` escreve a faixa como o RO
+ * pre-renewal escreve ("50 ~ 80"), sem sinal: a direita nao e parcela.
+ */
 export const METADES = [
 	{
 		chave: 'atk',
 		rotulo: 'ATK',
 		alvo: '.st-atk',
 		alvoDaDireita: '.st-atk2',
-		daEsquerda: 'de status',
-		daDireita: 'de arma e equipamento',
+		// pc_leftside_atk = batk + rhw.atk + lhw.atk; pc_rightside_atk = o refino.
+		daEsquerda: 'de status e arma',
+		daDireita: 'de refino',
+		separador: '+',
 		totalDoMotor: 'atk',
 		legado: null
 	},
@@ -71,9 +82,10 @@ export const METADES = [
 		rotulo: 'MATK',
 		alvo: '.st-matk',
 		alvoDaDireita: '.st-matk2',
-		daEsquerda: 'de status',
-		daDireita: 'de equipamento',
-		totalDoMotor: 'matk',
+		daEsquerda: 'minimo',
+		daDireita: 'maximo',
+		separador: '~',
+		totalDoMotor: null,
 		legado: null
 	},
 	{
@@ -81,8 +93,10 @@ export const METADES = [
 		rotulo: 'DEF',
 		alvo: '.st-def',
 		alvoDaDireita: '.st-def2',
-		daEsquerda: 'de status',
-		daDireita: 'de equipamento',
+		// pc_leftside_def = def (equipamento); pc_rightside_def = def2 (VIT).
+		daEsquerda: 'de equipamento',
+		daDireita: 'de VIT',
+		separador: '+',
 		totalDoMotor: null,
 		legado: { esquerda: 'defDeStatus', direita: 'def' }
 	},
@@ -91,8 +105,10 @@ export const METADES = [
 		rotulo: 'MDEF',
 		alvo: '.st-mdef',
 		alvoDaDireita: '.st-mdef2',
-		daEsquerda: 'de status',
-		daDireita: 'de equipamento',
+		// pc_leftside_mdef = mdef (equipamento); pc_rightside_mdef = mdef2 - vit/2.
+		daEsquerda: 'de equipamento',
+		daDireita: 'de INT',
+		separador: '+',
 		totalDoMotor: null,
 		legado: { esquerda: 'mdefDeStatus', direita: 'mdef' }
 	}
@@ -137,4 +153,25 @@ export function lerMetades(metade, derivados, def) {
 	};
 }
 
-export default { METADES, lerMetades };
+/**
+ * O texto da metade da direita ao lado do numero: "+ 10" / "- 3" nas parcelas,
+ * "~ 80" na faixa do MATK. Estado puro, para o teste executar a regra.
+ */
+export function textoDaDireita(def, valor) {
+	if (def.separador === '~') return '~ ' + valor;
+	return valor < 0 ? '- ' + -valor : '+ ' + valor;
+}
+
+/**
+ * A nota do total do motor no title so entra quando ele DIFERE da soma das
+ * metades: no pre-renewal o ATK do motor e a propria soma, e a nota antiga
+ * ("nao e a soma acima") afirmava o contrario do que a tela mostrava.
+ */
+export function notaDoTotal(def, par, derivados) {
+	if (!def.totalDoMotor) return null;
+	const total = Number(derivados[def.totalDoMotor]) || 0;
+	if (total === par.esquerda + par.direita) return null;
+	return `Total no motor: ${total} (inclui variancia e bonus de atributo, entao nao e a soma acima).`;
+}
+
+export default { METADES, lerMetades, textoDaDireita, notaDoTotal };

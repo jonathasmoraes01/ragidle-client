@@ -147,7 +147,7 @@ import BasicInfo from 'UI/Components/BasicInfo/BasicInfo.js';
 import htmlText from './StatusIdle.html?raw';
 import cssText from './StatusIdle.css?raw';
 import { fecharEEsquecer } from '../limpezaDeJanelaIdle.js';
-import { METADES, lerMetades } from './metadesDaDerivada.js';
+import { METADES, lerMetades, notaDoTotal, textoDaDireita } from './metadesDaDerivada.js';
 import {
 	linhasParaDesenhar,
 	lerRecolhidas,
@@ -665,6 +665,12 @@ function renderFicha() {
 	setText(root, '.st-hit', derivados.hit || 0);
 	setText(root, '.st-cri', derivados.crit || 0);
 	setText(root, '.st-flee', derivados.flee || 0);
+	// A esquiva perfeita ao lado do FLEE (26/09/2026), como o RO escreve
+	// ("120 + 5"). Servidor antigo nao manda: fica vazio, nunca "+ 0" inventado.
+	const flee2El = root.querySelector('.st-flee2');
+	if (flee2El) {
+		flee2El.textContent = derivados.fleePerfeita > 0 ? '+ ' + derivados.fleePerfeita : '';
+	}
 	setText(root, '.st-aspd', derivados.aspd || 0);
 	renderGerais(root, ficha.gerais);
 	setText(root, '.st-points', pontos);
@@ -818,8 +824,9 @@ function renderMetades(root, derivados) {
 			// Ao contrario do bonus de atributo, a metade da direita e escrita
 			// mesmo valendo zero: ela e ESTRUTURAL (o RO sempre mostra os dois
 			// lados), e some so quando o servidor nao souber diz-la.
-			direitaEl.textContent = par.temDireita ? textoDaParcela(par.direita) : '';
-			tintaDaParcela(direitaEl, par.direita);
+			direitaEl.textContent = par.temDireita ? textoDaDireita(def, par.direita) : '';
+			// A faixa do MATK nao e parcela: sem a tinta de negativo.
+			if (def.separador !== '~') tintaDaParcela(direitaEl, par.direita);
 		}
 
 		const row = root.querySelector(`.st-info-row[data-derivado="${def.chave}"]`);
@@ -874,17 +881,15 @@ function titleDoAtributo(sigla, base, bonus, info) {
  * compare os dois numeros sem esta linha vai abrir um defeito que nao existe.
  */
 function titleDaMetade(def, par, derivados) {
-	const cabecalho = def.rotulo + ' ' + par.esquerda + (par.temDireita ? ' ' + textoDaParcela(par.direita) : '');
+	const cabecalho = def.rotulo + ' ' + par.esquerda + (par.temDireita ? ' ' + textoDaDireita(def, par.direita) : '');
 
 	const linhas = [cabecalho, '  ' + par.esquerda + '  ' + def.daEsquerda];
 	if (par.temDireita) {
 		linhas.push('  ' + par.direita + '  ' + def.daDireita);
 	}
 
-	if (def.totalDoMotor) {
-		const total = Number(derivados[def.totalDoMotor]) || 0;
-		linhas.push(`Total no motor: ${total} (inclui variancia e bonus de atributo, entao nao e a soma acima).`);
-	}
+	const nota = notaDoTotal(def, par, derivados);
+	if (nota) linhas.push(nota);
 
 	return linhas.join('\n');
 }
