@@ -13,29 +13,29 @@ import { textoDoRefino } from 'UI/Components/ItemInfo/linhaDoRefino.js';
 const ler = rel => readFileSync(join(process.cwd(), rel), 'utf8');
 
 describe('textoDoRefino', () => {
-	it('arma: ATQ e MATQ', () => {
-		expect(textoDoRefino({ nivel: 7, atributo: 'ATQ', valor: 14, matq: 14, sobreRefinoMaximo: 0 })).toBe(
-			'Bônus do refino +7: ATQ +14 · MATQ +14'
+	it('arma: só ATQ — o refino não dá MATK no pré-renewal', () => {
+		expect(textoDoRefino({ nivel: 7, atributo: 'ATQ', valor: 14, sobreRefinoMaximo: 0 })).toBe(
+			'Bônus do refino +7: ATQ +14'
 		);
 	});
 
-	it('arco: sem MATQ', () => {
-		expect(textoDoRefino({ nivel: 7, atributo: 'ATQ', valor: 14, matq: 0, sobreRefinoMaximo: 0 })).toBe(
+	it('um servidor antigo que ainda mande `matq` não traz o MATQ de volta', () => {
+		expect(textoDoRefino({ nivel: 7, atributo: 'ATQ', valor: 14, matq: 14, sobreRefinoMaximo: 0 })).toBe(
 			'Bônus do refino +7: ATQ +14'
 		);
 	});
 
 	it('sobre-refino aparece com o teto', () => {
-		expect(textoDoRefino({ nivel: 7, atributo: 'ATQ', valor: 49, matq: 49, sobreRefinoMaximo: 42 })).toContain(
-			'sobre-refino: +1 a +42 de dano por golpe'
+		expect(textoDoRefino({ nivel: 7, atributo: 'ATQ', valor: 49, sobreRefinoMaximo: 39 })).toContain(
+			'sobre-refino: +1 a +39 de dano por golpe'
 		);
 	});
 
 	it('armadura: centésimos viram DEF com vírgula', () => {
-		expect(textoDoRefino({ nivel: 7, atributo: 'DEF', valor: 840, matq: 0, sobreRefinoMaximo: 0 })).toBe(
+		expect(textoDoRefino({ nivel: 7, atributo: 'DEF', valor: 840, sobreRefinoMaximo: 0 })).toBe(
 			'Bônus do refino +7: DEF +8,4'
 		);
-		expect(textoDoRefino({ nivel: 4, atributo: 'DEF', valor: 400, matq: 0, sobreRefinoMaximo: 0 })).toBe(
+		expect(textoDoRefino({ nivel: 4, atributo: 'DEF', valor: 400, sobreRefinoMaximo: 0 })).toBe(
 			'Bônus do refino +4: DEF +4'
 		);
 	});

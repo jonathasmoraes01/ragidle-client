@@ -9,7 +9,11 @@
  * só se escreve o texto. A armadura chega em CENTÉSIMOS porque o emulador soma
  * as peças antes de arredondar — por peça, o número honesto tem casa decimal.
  *
- * @param {{nivel:number, atributo:'ATQ'|'DEF', valor:number, matq:number, sobreRefinoMaximo:number}|null} r
+ * Sem MATQ: o refino so da MATK no renewal (status.cpp:3977, dentro do
+ * `#ifdef RENEWAL`), e o jogo e pré-renewal. Até 26/09/2026 esta linha
+ * mostrava "MATQ +N" em toda arma refinada que não fosse arco.
+ *
+ * @param {{nivel:number, atributo:'ATQ'|'DEF', valor:number, sobreRefinoMaximo:number}|null} r
  * @returns {string|null}
  */
 export function textoDoRefino(r) {
@@ -24,9 +28,6 @@ export function textoDoRefino(r) {
 		return null;
 	}
 	let texto = `Bônus do refino +${r.nivel}: ATQ +${r.valor}`;
-	if (r.matq > 0) {
-		texto += ` · MATQ +${r.matq}`;
-	}
 	if (r.sobreRefinoMaximo > 0) {
 		texto += ` · sobre-refino: +1 a +${r.sobreRefinoMaximo} de dano por golpe`;
 	}
