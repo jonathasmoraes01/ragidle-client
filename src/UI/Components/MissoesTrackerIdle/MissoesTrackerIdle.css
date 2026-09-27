@@ -475,37 +475,20 @@
 	}
 }
 
-/* ── RECOLHIDO: pouco espaco, mas a missao ATUAL continua na tela ────────
-   A regra base (`.mt-painel.is-recolhido .mt-corpo { display: none }`)
-   esconde o corpo INTEIRO — inclusive a missao ativa. No celular isso
-   deixaria um cartao que so diz "Missoes | Grupo", sem informacao nenhuma,
-   e o pedido cobra o contrario por escrito.
+/* ── RECOLHIDO: SO A FAIXA DAS ABAS, como o cabecalho no computador ──────
+   (26/09/2026, relato de jogadores trazido pelo dono: "ainda nao estao
+   conseguindo minimizar por completo essa janela de missao, assim como eles
+   fazem na UI"). No computador o recolher deixa so o cabecalho; aqui ele
+   deixa so a faixa "Missoes | Grupo | ⌄", que e o cabecalho da vertical. O
+   corpo some pela regra base (`.mt-painel.is-recolhido .mt-corpo`), e o
+   rodape "Ver todas as missoes" some junto.
 
-   Entao na vertical o corpo VOLTA quando recolhido, e o que some e a LISTA
-   e o rodape. Sobra `.mt-ativa` — o titulo e o passo da missao em curso —,
-   que e exatamente "a indicacao da missao atual". Nenhum elemento novo: a
-   peca ja existia e so mudou quem a esconde. */
-.ri-vertical .mt-painel.is-recolhido .mt-corpo {
-	display: flex;
-}
-
-/* MEDIDO: esconder a LISTA inteira deixava o cartao recolhido MUDO.
-   `.mt-ativa` so tem texto quando ha missao EM EXECUCAO; um jogador com
-   missoes acompanhadas mas nenhuma rodando via so as abas — e a sonda pegou
-   isto no primeiro toque ("recolhido mostra ''").
-
-   Entao some a lista MENOS a primeira linha. Com missao ativa, `.mt-ativa`
-   responde; sem ela, a primeira acompanhada responde. Os dois casos dizem
-   alguma coisa, que e o que o pedido cobra. */
-.ri-vertical .mt-painel.is-recolhido .mt-lista > *:not(:first-child),
+   HISTORIA: de 08/09 a 26/09/2026 o recolhido da vertical MANTINHA a missao
+   em curso e a primeira linha da lista (pedido do dono na epoca: "pouco
+   espaco, mas a missao atual continua na tela"). Na pratica o cartao
+   recolhido continuava ocupando tres linhas da tela, e e isso que os
+   jogadores relatam como "nao minimiza". A missao atual continua a um toque
+   (o proprio "⌄"). */
 .ri-vertical .mt-painel.is-recolhido .mt-ver-todas {
 	display: none;
-}
-
-/* Recolhido o cartao para de rolar: com uma linha so nao ha o que rolar, e
-   um `overflow: auto` num conteudo curto deixa barra fantasma em alguns
-   navegadores. */
-.ri-vertical .mt-painel.is-recolhido .mt-corpo {
-	max-height: none;
-	overflow: visible;
 }
