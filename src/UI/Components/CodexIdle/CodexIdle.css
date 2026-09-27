@@ -516,6 +516,17 @@
 	flex: 1 1 auto;
 }
 
+/* No DEDO, as tres abas tem o piso tatil de 44px (26/09/2026). O `.ri-tab` do
+   design system tem ~23px de altura, bom para o cursor e pequeno para o dedo:
+   a sonda `diag-onde-cai-na-janela` mediu a aba "Missões Gerais" com 23px no
+   celular. O criterio e o PONTEIRO, e nao a largura da tela (D-935) — o mesmo
+   de `#GrupoIdle .gi-tabs .ri-tab`. O mouse continua vendo as mesmas abas. */
+@media (pointer: coarse) {
+	#CodexIdle .cx-tab {
+		min-height: var(--hit-touch, 44px);
+	}
+}
+
 /* --- A ponte: a entrada do Codex leva as missoes da especie ---- */
 
 #CodexIdle .cx-ponte-especie {
