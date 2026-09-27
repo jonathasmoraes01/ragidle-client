@@ -41,13 +41,18 @@ import cssText from './MissoesIdle.css?raw';
 import { fecharEEsquecer } from '../limpezaDeJanelaIdle.js';
 import { abaLembrada, lembrarAba } from '../memoriaDeAba.js';
 import { anotarAvisoDoCodex, limparAvisoDoCodex } from '../avisoDoCodex.js'; // D-1232
+// O "IR AO MAPA" (26/09/2026): a linha do objetivo e o fluxo da escolha sao
+// os MESMOS da aba "Missoes Gerais" do Codex — ver `escolhaDeMapa.js`.
+import { linhaDoCaiDe } from './ondeCaiHtml.js';
+import { fecharEscolha, pedirOndeCai, receberOndeCai } from './escolhaDeMapa.js';
+import escolhaCss from './escolhaDeMapa.css?raw';
 
 /** Manter em sincronia com o ":host"/".mi-window" do CSS (mesmo papel do
  * WINDOW_WIDTH/HEIGHT de IdleConfig.js:47-48). */
 const WINDOW_WIDTH = 560;
 const WINDOW_HEIGHT = 520;
 
-const MissoesIdle = new GUIComponent('MissoesIdle', cssText);
+const MissoesIdle = new GUIComponent('MissoesIdle', cssText + '\n' + escolhaCss);
 
 MissoesIdle.render = () => htmlText;
 
@@ -302,8 +307,23 @@ function closeWindow() {
 	if (win) {
 		win.classList.remove('is-open');
 	}
+	// A escolha de mapa mora ao lado da janela: fecha junto, senao ficava
+	// sozinha na tela com a janela fechada atras (26/09/2026).
+	fecharEscolha(JANELA_DE_MISSOES);
 	savePosition();
 }
+
+/** Esta janela para o fluxo do "Ir ao mapa" — a escolha nasce DENTRO da
+ * `.mi-window`, a caixa que o jogador ve (ver `escolhaDeMapa.js`). */
+const JANELA_DE_MISSOES = {
+	container() {
+		const root = _root();
+		return root ? root.querySelector('.mi-window') : null;
+	},
+	fecharJanela() {
+		closeWindow();
+	}
+};
 
 function onClickClose(e) {
 	e.stopImmediatePropagation();
@@ -427,6 +447,16 @@ function render() {
 		});
 	});
 
+	// "IR AO MAPA" (26/09/2026): pede ao servidor onde o item cai. A resposta
+	// volta no proprio pacote das missoes (`ondeCai`), e e ela que decide se vai
+	// direto (um mapa so) ou abre a escolha — ver `escolhaDeMapa.js`.
+	body.querySelectorAll('[data-onde-cai]').forEach(btn => {
+		btn.addEventListener('click', e => {
+			e.stopImmediatePropagation();
+			pedirOndeCai(btn.dataset.ondeCai, btn.dataset.missaoId || null, JANELA_DE_MISSOES);
+		});
+	});
+
 	// O 1-CLIQUE do executor (D-601): Iniciar/Teleporte/Retomar mandam a ação e
 	// o SERVIDOR decide — recusa educada chega pelo feed, nunca um alert.
 	body.querySelectorAll('[data-executar]').forEach(btn => {
@@ -530,7 +560,7 @@ function cardDeMissao(m) {
 			<div class="mi-objetivo">
 				<span>${escapeHtml(o.descricao)}</span>
 				<span class="mi-objetivo-conta">${escapeHtml(o.progresso)}/${escapeHtml(o.alvo)}</span>
-			</div>`
+			</div>${linhaDoCaiDe(o, m)}`
 		)
 		.join('');
 
@@ -620,6 +650,15 @@ function onMissoesRecebidas(pkt) {
 	anotarAvisoDoCodex(dados.codexComNovidade === true);
 	MissoesIdle.recebeuAlgumaVez = true;
 	render();
+	/*
+	 * A RESPOSTA DO "IR AO MAPA" (26/09/2026). Quem decide se ela responde ao
+	 * clique (o pacote e empurrado a toda hora, e uma lista velha nao pode
+	 * reabrir a escolha sozinha) e o fluxo compartilhado com o Codex — este e o
+	 * UNICO lugar que ouve o pacote, entao ele entrega a lista para os dois.
+	 */
+	if (dados.ondeCai) {
+		receberOndeCai(dados.ondeCai);
+	}
 }
 
 Network.hookPacket(PACKET.ZC.RAGIDLE_MISSOES, onMissoesRecebidas);

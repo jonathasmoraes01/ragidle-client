@@ -51,6 +51,10 @@
 
 import RiIcones from 'UI/ri-icones.js';
 import { podeIniciarMissao } from 'UI/Components/MissoesIdle/podeIniciarMissao.js'; // RAGIDLE: I16
+// A linha "Cai de" do objetivo de coleta (26/09/2026): a MESMA da janela de
+// Missoes — esta aba e a porta do menu, e sem ela o botao so existia na
+// janela que o jogador abre pelo rastreador.
+import { linhaDoCaiDe } from 'UI/Components/MissoesIdle/ondeCaiHtml.js';
 
 /** O contexto da renderização em curso — mesmo idioma de `jornadaHtml.js`. */
 let _ctx = {};
@@ -275,7 +279,8 @@ function telaDaMissaoHtml(id) {
 				' de ' +
 				escapeHtml(o.alvo) +
 				'</span>' +
-				'</div>'
+				'</div>' +
+				linhaDoCaiDe(o, m)
 		)
 		.join('');
 
@@ -401,6 +406,14 @@ export function cliqueDeMissoesGerais(e, alvo, ganchos) {
 	if (viajar) {
 		e.stopImmediatePropagation();
 		ganchos.viajar(viajar.dataset.mgViajar);
+		return true;
+	}
+
+	// O "Ir ao mapa" da linha "Cai de" (26/09/2026).
+	const ondeCai = alvo.closest('[data-onde-cai]');
+	if (ondeCai) {
+		e.stopImmediatePropagation();
+		ganchos.ondeCai(ondeCai.dataset.ondeCai, ondeCai.dataset.missaoId || null);
 		return true;
 	}
 

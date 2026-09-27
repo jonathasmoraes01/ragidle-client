@@ -90,32 +90,39 @@ export function medidorDeEncaixe(nivel, mapa) {
  * NOMES, na ficha é lista de objetos com `nome` — e, quando o cliente já
  * traduziu o item, `nomeLocal`).
  *
- * O NOME DO SERVIDOR É INGLÊS (rAthena: "Tree Root"); o do cliente é o que o
- * jogador lê na Mochila ("Raiz de Árvore"). A busca aceita os DOIS, e o
- * motivo devolve o local quando houver — o jogador digitou o que vê na tela.
+ * O NOME DO SERVIDOR JÁ É O PORTUGUÊS desde D-911 (a mesma tabela de exibição
+ * da Mochila); este comentário dizia que era inglês, e isso deixou de ser
+ * verdade. A busca continua aceitando os DOIS (o do servidor e o `nomeLocal`),
+ * e o motivo devolve o local quando houver — o jogador digitou o que vê na tela.
+ * Os dois lados passam por `semAcento` (26/09/2026).
  *
  * @param {{rotulo: string, mapa: string}} mapa
  * @param {Array<{nome: string, drops?: Array<string|{nome: string, nomeLocal?: string}>}>} monstros
- * @param {string} termo - já em minúsculas e sem espaços nas pontas
+ * @param {string} termo - o que o jogador digitou (a função dobra acento e caixa)
  * @returns {null|{peloNome: boolean, monstros: string[], drops: Array<{item: string, monstro: string}>}}
  */
 export function motivoDaBusca(mapa, monstros, termo) {
+	/* SEM ACENTO E SEM CAIXA (26/09/2026, pedido do dono: "o item em português
+	   também possa ser buscado na UI do Mapa de Caça"). Os nomes sao os do jogo,
+	   com acento ("Pó de Borboleta", "Geléia Real"), e o jogador digita sem —
+	   num teclado de celular, quase sempre. Os dois lados passam pela mesma
+	   dobra, entao "po de borboleta" e "PÓ DE BORBOLETA" acham o mesmo item. */
+	termo = semAcento(termo || '');
 	if (!termo) {
 		return { peloNome: true, monstros: [], drops: [] };
 	}
-	const peloNome = mapa.rotulo.toLowerCase().includes(termo) || mapa.mapa.toLowerCase().includes(termo);
+	const casaCom = texto => Boolean(texto) && semAcento(texto).includes(termo);
+	const peloNome = casaCom(mapa.rotulo) || casaCom(mapa.mapa);
 	const porMonstro = [];
 	const porDrop = [];
 	for (const m of monstros) {
-		if (m.nome.toLowerCase().includes(termo)) {
+		if (casaCom(m.nome)) {
 			porMonstro.push(m.nome);
 		}
 		for (const d of m.drops || []) {
 			const nomeDoServidor = typeof d === 'string' ? d : d.nome;
 			const nomeLocal = typeof d === 'string' ? '' : d.nomeLocal || '';
-			const casa =
-				(nomeDoServidor && nomeDoServidor.toLowerCase().includes(termo)) ||
-				(nomeLocal && nomeLocal.toLowerCase().includes(termo));
+			const casa = casaCom(nomeDoServidor) || casaCom(nomeLocal);
 			if (casa) {
 				porDrop.push({ item: nomeLocal || nomeDoServidor, monstro: m.nome });
 			}
@@ -352,4 +359,16 @@ export function textoDaRecomendacao(recomendacao, dicionarioDeElemento) {
 	const elementoPt = (dicionarioDeElemento && dicionarioDeElemento[recomendacao.elemento]) || recomendacao.elemento;
 	const mult = typeof recomendacao.multiplicador === 'number' ? ` (${recomendacao.multiplicador}%)` : '';
 	return `Recomendado: ${elementoPt}${mult}`;
+}
+
+/**
+ * O texto dobrado para a busca (26/09/2026): sem acento — as marcas
+ * combinantes do NFD saem — e em minusculas. "Pó de Borboleta" vira
+ * "po de borboleta".
+ *
+ * @param {string} texto
+ * @returns {string}
+ */
+export function semAcento(texto) {
+	return String(texto).normalize('NFD').replace(/\p{M}/gu, '').toLowerCase().trim();
 }

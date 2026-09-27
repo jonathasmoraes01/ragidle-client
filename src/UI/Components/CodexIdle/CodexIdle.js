@@ -77,6 +77,10 @@ import { placarHtml, eixosHtml, desafiosHtml, retratoDoCodexAceito } from './eix
 import { missoesGeraisHtml, cliqueDeMissoesGerais, SUBABA_PADRAO } from './missoesGeraisHtml.js';
 import htmlText from './CodexIdle.html?raw';
 import cssText from './CodexIdle.css?raw';
+// O "IR AO MAPA" da aba Missoes Gerais (26/09/2026) — o fluxo e o desenho sao
+// os mesmos da janela de Missoes.
+import { fecharEscolha, pedirOndeCai } from '../MissoesIdle/escolhaDeMapa.js';
+import escolhaCss from '../MissoesIdle/escolhaDeMapa.css?raw';
 import { fecharEEsquecer } from '../limpezaDeJanelaIdle.js';
 import { abaLembrada, lembrarAba } from '../memoriaDeAba.js';
 
@@ -119,7 +123,7 @@ const ABA_PADRAO = 'codex';
  */
 const VISTA_PADRAO = 'mapa';
 
-const CodexIdle = new GUIComponent('CodexIdle', cssText);
+const CodexIdle = new GUIComponent('CodexIdle', cssText + '\n' + escolhaCss);
 
 CodexIdle.render = () => htmlText;
 
@@ -415,6 +419,8 @@ function closeWindow() {
 	if (win) {
 		win.classList.remove('is-open');
 	}
+	// A escolha de mapa mora ao lado da janela: fecha junto (26/09/2026).
+	fecharEscolha(JANELA_DO_CODEX);
 	savePosition();
 }
 
@@ -866,6 +872,24 @@ const GANCHOS_DE_MISSOES = {
 	// ter clicado.
 	viajar(mapa) {
 		viajarPara(mapa);
+	},
+	// O "IR AO MAPA" do objetivo de coleta (26/09/2026): o MESMO fluxo da
+	// janela de Missoes — ver `MissoesIdle/escolhaDeMapa.js`.
+	ondeCai(itemId, missaoId) {
+		pedirOndeCai(itemId, missaoId, JANELA_DO_CODEX);
+	}
+};
+
+/** Esta janela para o fluxo do "Ir ao mapa" — a escolha nasce DENTRO da
+ * `.cx-window` (e nao do `#CodexIdle`, que mede 0x0 no computador — ver o
+ * cabecalho de `escolhaDeMapa.js`). */
+const JANELA_DO_CODEX = {
+	container() {
+		const root = _root();
+		return root ? root.querySelector('.cx-window') : null;
+	},
+	fecharJanela() {
+		closeWindow();
 	}
 };
 
@@ -877,9 +901,18 @@ function renderMissoesSeMudou() {
 	if (!win || !win.classList.contains('is-open') || CodexIdle.aba !== 'missoes') {
 		return;
 	}
+	// O PROGRESSO dos objetivos entra na assinatura (26/09/2026): sem ele a tela
+	// da missao ficava no "3 de 8" enquanto o servidor ja contava mais, e o
+	// "Ir ao mapa" continuava oferecido depois de o objetivo fechar.
 	const assinatura = JSON.stringify([
 		MissoesIdle.execucao,
-		(MissoesIdle.missoes || []).map(m => [m.id, m.estado, m.cooldownS, m.naFila])
+		(MissoesIdle.missoes || []).map(m => [
+			m.id,
+			m.estado,
+			m.cooldownS,
+			m.naFila,
+			(m.objetivos || []).map(o => o.progresso)
+		])
 	]);
 	if (assinatura === _assinaturaDeMissoes) {
 		return;

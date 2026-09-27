@@ -15,6 +15,7 @@ import { ehCovil, REGIAO_DO_COVIL,
 	raridadeDoDrop,
 	resumoDoMotivo,
 	rotuloDeRaridade,
+	semAcento,
 	textoDaRecomendacao
 } from '../../src/UI/Components/HuntMap/atlasDeCaca.js';
 
@@ -79,6 +80,23 @@ describe('motivoDaBusca', () => {
 		expect(motivoDaBusca(campo, [willow], 'raiz').drops).toEqual([{ item: 'Raiz de Árvore', monstro: 'Willow' }]);
 		expect(motivoDaBusca(campo, [willow], 'tree root').drops).toEqual([{ item: 'Raiz de Árvore', monstro: 'Willow' }]);
 		expect(motivoDaBusca(campo, [willow], 'jellopy')).toBeNull();
+	});
+	it('SEM ACENTO e SEM CAIXA (26/09/2026): "maca" acha a Maçã, "PO DE BORBO" acha o Pó de Borboleta', () => {
+		expect(motivoDaBusca(campo, [poring], 'maca').drops).toEqual([{ item: 'Maçã', monstro: 'Poring' }]);
+		const creamy = { nome: 'Creamy', drops: [{ nome: 'Pó de Borboleta' }] };
+		expect(motivoDaBusca(campo, [creamy], 'PO DE BORBO').drops).toEqual([{ item: 'Pó de Borboleta', monstro: 'Creamy' }]);
+		// E o contrario: digitar COM acento acha o nome escrito sem.
+		expect(motivoDaBusca(campo, [lunatic], 'cenóura').drops).toEqual([{ item: 'Cenoura', monstro: 'Lunatic' }]);
+		// O monstro e o mapa tambem passam pela dobra.
+		const lunatico = { nome: 'Lunático', drops: [] };
+		expect(motivoDaBusca(campo, [lunatico], 'lunatico').monstros).toEqual(['Lunático']);
+		// CONTROLE: o que nao casa continua nao casando.
+		expect(motivoDaBusca(campo, [creamy], 'po de ouro')).toBeNull();
+	});
+	it('semAcento dobra acento, cedilha e caixa, e apara as pontas', () => {
+		expect(semAcento('  Geléia Real ')).toBe('geleia real');
+		expect(semAcento('Asas de Traça')).toBe('asas de traca');
+		expect(semAcento('ÁRVORE')).toBe('arvore');
 	});
 	it('o resumo diz quem trouxe o mapa e corta em três', () => {
 		const motivo = motivoDaBusca(campo, [poring, lunatic], 'jell');

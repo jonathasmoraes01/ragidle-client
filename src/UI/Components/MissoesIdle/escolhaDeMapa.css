@@ -1,0 +1,219 @@
+/**
+ * UI/Components/MissoesIdle/escolhaDeMapa.css
+ *
+ * O desenho do "IR AO MAPA" (26/09/2026, pedido do dono): a linha "Cai de"
+ * embaixo do objetivo de coleta e a janela de escolha de mapa. UM arquivo so,
+ * somado ao CSS das duas janelas que desenham missao (a de Missoes e a aba
+ * "Missoes Gerais" do Codex) — ver o cabecalho de `escolhaDeMapa.js`.
+ *
+ * As cores, raios e sombras sao os tokens do design system (Common.css):
+ * nenhuma cor escrita a mao aqui, a nao ser o veu do fundo, que e o mesmo
+ * valor do modal da Temporada.
+ */
+
+/* ─── A linha "Cai de" ─────────────────────────────────────── */
+
+.oc-cai-de {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px;
+	margin: 2px 0 6px 0;
+	padding: 6px 8px;
+	background: var(--surface-inset);
+	border: 1px solid var(--border-hairline);
+	border-radius: var(--radius-card);
+	font-size: var(--fs-desc);
+	color: var(--text-muted);
+}
+
+.oc-cai-de b {
+	color: var(--text-body);
+}
+
+.oc-cai-de-mais {
+	white-space: nowrap;
+}
+
+.oc-ir-mapa {
+	flex: 0 0 auto;
+}
+
+/* ─── A janela de escolha ───────────────────────────────────
+   Ela cobre a JANELA que pediu (e, no celular, o painel de tela cheia): nasce
+   dentro do elemento raiz dela, que tem `position: relative`. O mesmo desenho
+   do modal da Temporada. */
+
+.oc-modal {
+	position: absolute;
+	inset: 0;
+	z-index: 20;
+	/* O ":host" das janelas e pointer-events:none; sem isto o toque atravessava
+	   o modal para a janela de tras (o defeito que a Temporada ja teve). */
+	pointer-events: auto;
+	display: none;
+	align-items: center;
+	justify-content: center;
+	padding: var(--sp-6);
+	box-sizing: border-box;
+}
+
+.oc-modal:not([hidden]) {
+	display: flex;
+}
+
+.oc-modal-fundo {
+	position: absolute;
+	inset: 0;
+	background: rgba(12, 20, 34, 0.55);
+	backdrop-filter: var(--blur-glass);
+}
+
+.oc-modal-caixa {
+	width: min(460px, 100%);
+	max-height: 100%;
+	display: flex;
+	flex-direction: column;
+	box-shadow: var(--window-shadow);
+}
+
+/* A caixa por cima do veu, no celular tambem: a D-932 poe todo `.ri-window`
+   em `position: static !important` abaixo de 600px, e a caixa estatica seria
+   pintada ANTES do fundo absoluto — o veu cobria os botoes (medido na
+   Temporada em 360/390/430). Duas classes vencem a uma da D-932. */
+.oc-modal-caixa.ri-window {
+	position: relative !important;
+	z-index: 1;
+}
+
+.oc-modal-cabecalho {
+	flex: 0 0 auto;
+}
+
+/* O corpo ganha uma SEGUNDA camada do vidro da janela: a escolha abre por
+   cima de uma janela cheia de texto, e no toque o design system desliga o
+   desfoque (`--blur-glass: none`, pelo custo no celular) — com uma camada so
+   (~95%), o texto da janela de tras aparecia entre os cartoes (medido na foto
+   do celular, 26/09/2026). Duas camadas dao ~99,7%, com o mesmo token. */
+.oc-modal-corpo {
+	padding: var(--sp-5);
+	overflow-y: auto;
+	background: var(--window-fill);
+}
+
+.oc-escolha-intro {
+	margin: 0 0 10px 0;
+	font-size: var(--fs-desc);
+	color: var(--text-muted);
+}
+
+.oc-escolha-intro b {
+	color: var(--text-body);
+}
+
+.oc-escolha-lista {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+}
+
+.oc-escolha-mapa {
+	background: var(--surface-inset);
+	border: 1px solid var(--border-hairline);
+	border-radius: var(--radius-card);
+	padding: 8px 10px;
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+}
+
+.oc-escolha-mapa.is-melhor {
+	border-color: var(--amber-600);
+}
+
+.oc-escolha-mapa.is-indisponivel {
+	opacity: 0.7;
+}
+
+.oc-escolha-topo {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	flex-wrap: wrap;
+}
+
+.oc-escolha-nome {
+	font-weight: 700;
+	margin-right: auto;
+}
+
+.oc-escolha-monstros {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 4px 10px;
+	font-size: var(--fs-desc);
+	color: var(--text-muted);
+}
+
+.oc-escolha-monstro b {
+	color: var(--text-body);
+}
+
+.oc-escolha-rodape {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px;
+}
+
+.oc-escolha-abates {
+	font-size: var(--fs-desc);
+	color: var(--text-muted);
+}
+
+.oc-escolha-motivo {
+	color: var(--amber-600);
+	font-size: var(--fs-desc);
+}
+
+.oc-escolha-mais {
+	margin: 8px 0 0 0;
+	font-size: var(--fs-desc);
+	color: var(--text-muted);
+}
+
+.oc-escolha-ver-todos {
+	margin-top: 10px;
+	width: 100%;
+}
+
+/* No toque, os tres botoes novos tem o piso de 44px (a regra do dono para
+   toda janela; o `.ri-close` do modal ja e coberto pelo Common.css). */
+@media (pointer: coarse) {
+	.oc-ir-mapa,
+	.oc-escolha-ir,
+	.oc-escolha-ver-todos {
+		min-height: var(--hit-touch, 44px);
+		min-width: var(--hit-touch, 44px);
+	}
+}
+
+/* No celular a linha "Cai de" empilha: o texto em cima, o botao embaixo e
+   largo — um alvo de dedo no fim de uma frase longa fica apertado. */
+@media (max-width: 599px) {
+	.oc-cai-de {
+		flex-direction: column;
+		align-items: stretch;
+	}
+
+	.oc-modal {
+		padding: var(--sp-3);
+	}
+
+	.oc-modal-corpo {
+		padding: var(--sp-4);
+	}
+}

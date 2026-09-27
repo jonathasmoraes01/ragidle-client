@@ -69,6 +69,7 @@ import {
 	raridadeDoDrop,
 	resumoDoMotivo,
 	rotuloDeRaridade,
+	semAcento,
 	textoDaRecomendacao
 } from './atlasDeCaca.js';
 import htmlText from './HuntMap.html?raw';
@@ -526,6 +527,12 @@ function onClickClose(e) {
 function onSearchInput(e) {
 	HuntMap.searchTerm = e.target.value;
 	_root().querySelector('.hm-search-clear').hidden = !HuntMap.searchTerm;
+	/* No celular em pe a lista so aparece no passo "mapas" (a janela abre em
+	   "regioes"): quem digitava nao via resultado nenhum, e a busca parecia
+	   quebrada (26/09/2026). Com termo, a lista vem para a frente. */
+	if (HuntMap.searchTerm.trim() && _passo === 'regioes') {
+		definirPasso('mapas');
+	}
 	renderList();
 }
 
@@ -996,20 +1003,25 @@ function renderList() {
 		return;
 	}
 
-	const term = HuntMap.searchTerm.trim().toLowerCase();
+	const term = semAcento(HuntMap.searchTerm);
 	const motivos = new Map();
+	/* A BUSCA PROCURA NO JOGO INTEIRO (26/09/2026). Com termo, a aba de regiao,
+	   o "Para mim" e os Favoritos deixam de cortar a lista: o item que so cai
+	   fora da faixa do jogador, ou noutra regiao, "nao existia" — e o vazio
+	   dizia so "Nenhum mapa encontrado", sem culpar filtro nenhum. */
+	const buscando = Boolean(term);
 	let mapas = catalog.mapas.filter(mapa => {
-		if (HuntMap.activeTab !== ABA_PADRAO && mapa.regiao !== HuntMap.activeTab) {
+		if (!buscando && HuntMap.activeTab !== ABA_PADRAO && mapa.regiao !== HuntMap.activeTab) {
 			return false;
 		}
 		const motivo = motivoDaBusca(mapa, allMonstersOf(mapa), term);
 		if (!motivo) {
 			return false;
 		}
-		if (HuntMap.filterIdealOnly && encaixeDeNivel(catalog.nivel, mapa).cls !== 'ideal') {
+		if (!buscando && HuntMap.filterIdealOnly && encaixeDeNivel(catalog.nivel, mapa).cls !== 'ideal') {
 			return false;
 		}
-		if (HuntMap.filterFavoritos && !HuntMap.favoritos.includes(mapa.mapa)) {
+		if (!buscando && HuntMap.filterFavoritos && !HuntMap.favoritos.includes(mapa.mapa)) {
 			return false;
 		}
 		motivos.set(mapa.mapa, motivo);
@@ -1719,6 +1731,35 @@ HuntMap.travelToCity = function travelToCity() {
 const _ouvintesDoCatalogo = [];
 
 /** O registro de um mapa no catalogo, ou `null` se ele ainda nao chegou. */
+/**
+ * ABRE O MAPA DE CACA JA BUSCANDO (26/09/2026, o "Ver todos no Mapa de Caca"
+ * da janela de missoes): abre a janela se estiver fechada, escreve o termo no
+ * campo e mostra a lista — no celular, no passo "mapas".
+ *
+ * @param {string} termo - o nome do item, como o jogador o le
+ */
+HuntMap.abrirComBusca = function abrirComBusca(termo) {
+	const root = _root();
+	const win = root && root.querySelector('.hm-window');
+	if (!win) {
+		return;
+	}
+	if (!win.classList.contains('is-open')) {
+		HuntMap.toggle();
+	}
+	HuntMap.searchTerm = String(termo || '');
+	const campo = root.querySelector('.hm-search');
+	if (campo) {
+		campo.value = HuntMap.searchTerm;
+	}
+	const limpar = root.querySelector('.hm-search-clear');
+	if (limpar) {
+		limpar.hidden = !HuntMap.searchTerm;
+	}
+	definirPasso('mapas');
+	renderList();
+};
+
 HuntMap.mapaDoCatalogo = function mapaDoCatalogo(nome) {
 	if (!nome || !HuntMap.catalog || !Array.isArray(HuntMap.catalog.mapas)) {
 		return null;
