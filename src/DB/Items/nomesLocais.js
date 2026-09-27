@@ -204,6 +204,7 @@ export const NOMES_LOCAIS = {
 	9000100: 'Manual de Experiência', // itens-custom.ts (Manual_De_Experiencia)
 	9000101: 'Manual de Experiência de Classe', // itens-custom.ts (Manual_De_Experiencia_De_Classe)
 	9000102: 'Bênção da Fortuna', // itens-custom.ts (Bencao_Da_Fortuna)
+	9000123: 'Goma de Mascar', // itens-custom.ts (Goma_De_Mascar), 27/09/2026: a Goma no RO Shop
 	9000103: 'Pack Poção Azul', // itens-custom.ts (Pack_Pocao_Azul)
 	9000122: 'Pack Poção Azul (500)', // itens-custom.ts (Pack_Pocao_Azul_500), 24/09/2026: o de 1000 saiu de venda
 	9000104: 'Pack Poção Branca', // itens-custom.ts (Pack_Pocao_Branca)
@@ -302,9 +303,10 @@ export const DESCRICOES_LOCAIS = {
 	9002000: FECHO_DO_ALFA,
 	9002001: FECHO_DO_ALFA,
 	9002002: FECHO_DO_ALFA,
-	9000100: `Aumenta em 25% a EXP de base ganha por 1 hora.\n${FECHO_DE_CASH}`,
-	9000101: `Aumenta em 25% a EXP de classe ganha por 1 hora.\n${FECHO_DE_CASH}`,
-	9000102: `Uma bênção que atrai a sorte. Aumenta em 20% a chance de itens comuns caírem de monstros comuns por 1 hora. Não vale para cartas, MVPs nem monstros raros. Usar outra enquanto ativa estende a duração.\n${FECHO_DE_CASH}`,
+	9000100: `Aumenta em 50% a EXP de base ganha por 1 hora. Usar outro enquanto ativo estende a duração.\n${FECHO_DE_CASH}`,
+	9000101: `Aumenta em 50% a EXP de classe ganha por 1 hora. Usar outro enquanto ativo estende a duração.\n${FECHO_DE_CASH}`,
+	9000102: `Uma bênção que atrai a sorte. Aumenta em 100% a chance de todos os itens caírem de monstros, cartas incluídas, por 1 hora. A chance é relativa: um item de 10% passa a 20%. Soma com a Goma de Mascar. Usar outra enquanto ativa estende a duração.\n${FECHO_DE_CASH}`,
+	9000123: `Aumenta em 100% a chance de todos os itens caírem de monstros, cartas incluídas, por 30 minutos. A chance é relativa: um item de 10% passa a 20%. Usar outra enquanto ativa estende a duração.\n${FECHO_DE_CASH}`,
 	9000103: `Um pack selado. Ao usar, entrega 1000 Poções Azuis da Conta.\n${FECHO_DE_CASH}`,
 	9000122: `Um pack selado. Ao usar, entrega 500 Poções Azuis da Conta.\n${FECHO_DE_CASH}`,
 	9000104: `Um pack selado. Ao usar, entrega 500 Poções Brancas da Conta.\n${FECHO_DE_CASH}`,
@@ -509,7 +511,12 @@ export const ICONES_LOCAIS = {
 	 */
 	9000100: '\xc0\xfc\xc5\xf5\xb1\xb3\xb9\xfc', // Manual de Experiencia -> 12208 Manual de Combate (전투교범)
 	9000101: '\xc0\xfc\xc5\xf5\xb1\xb3\xb9\xfc', // Manual de Exp. de Classe -> 14592 Manual de Combate de Classe (o mesmo .bmp)
-	9000102: '\xc7\xb3\xbc\xb1\xb2\xad', // Bencao da Fortuna -> 12210 Goma de Mascar (풍선껌, o item de drop do kRO)
+	// A Bencao usou a arte da Goma ate 27/09/2026. Com a Goma no RO Shop, as duas
+	// ficariam iguais na mochila: a Bencao passou para o pergaminho de Bencao
+	// (12215), que e o que o icone da loja ja mostrava (servidor,
+	// recursos-que-a-tabela-nao-tem.ts). Recurso lido no data.grf em 27/09/2026.
+	9000102: '\xba\xfb\xc0\xc7\xc1\xd6\xb9\xae\xbc\xad', // Bencao da Fortuna -> 12215 Blessing_10_Scroll
+	9000123: '\xc7\xb3\xbc\xb1\xb2\xad', // Goma de Mascar -> 12210 Goma de Mascar (풍선껌)
 	9000103: '\xc6\xc4\xb6\xf5\xc6\xf7\xbc\xc7', // Pack Pocao Azul -> 505 Pocao Azul (파란포션)
 	9000122: '\xc6\xc4\xb6\xf5\xc6\xf7\xbc\xc7', // Pack Pocao Azul (500) -> 505 Pocao Azul (a mesma arte do de 1000)
 	9000104: '\xc7\xcf\xbe\xe1\xc6\xf7\xbc\xc7', // Pack Pocao Branca -> 504 Pocao Branca (하얀포션)

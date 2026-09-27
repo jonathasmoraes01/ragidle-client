@@ -22,7 +22,16 @@ import { join } from 'node:path';
 
 const js = readFileSync(join(process.cwd(), 'src/UI/Components/IdleSkills/IdleSkills.js'), 'utf8');
 
-describe('a janela oferece o caminho de volta', () => {
+describe('27/09/2026: o desaprender DESLIGADO (ordem do dono)', () => {
+	it('os dois botões só existem com `desaprender: true` do servidor, e ausente é desligado', () => {
+		const corpo = js.slice(js.indexOf('function esquecerHtml(skill)'), js.indexOf('function confirmacaoDeEsquecerHtml'));
+		const guarda = corpo.indexOf('IdleSkills.serverData.desaprender !== true');
+		expect(guarda, 'a guarda do interruptor sumiu').toBeGreaterThan(-1);
+		expect(guarda).toBeLessThan(corpo.indexOf('is-btn-esquecer'));
+	});
+});
+
+describe('a janela oferece o caminho de volta (quando o servidor liga)', () => {
 	it('há um botão de UM NÍVEL e um de DESAPRENDER', () => {
 		expect(js).toContain('is-btn-esquecer');
 		expect(js).toContain('is-btn-desaprender');

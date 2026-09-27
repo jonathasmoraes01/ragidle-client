@@ -50,6 +50,7 @@ import htmlText from './VotoIdle.html?raw';
 import cssText from './VotoIdle.css?raw';
 import { fecharEEsquecer } from '../limpezaDeJanelaIdle.js';
 import { abaLembrada, lembrarAba } from '../memoriaDeAba.js';
+import { abrirEmAbaNova } from 'UI/abrirEmAbaNova.js';
 
 /** Manter em sincronia com o ":host"/".vi-window" do CSS. */
 const WINDOW_WIDTH = 480;
@@ -70,6 +71,19 @@ VotoIdle.mouseMode = GUIComponent.MouseMode.CROSS;
 
 /** O último estado que o servidor mandou. `null` = nada chegou ainda. */
 VotoIdle.estado = null;
+
+/**
+ * O ÚLTIMO LINK DE VOTO que o servidor mandou, por plataforma (27/09/2026).
+ *
+ * A abertura de `aoReceberVoto` roda na CHEGADA do pacote, e não no toque do
+ * jogador: o Safari do iPhone bloqueia janela aberta fora do gesto. Até esta
+ * data ela era um `window.open` com `noopener`, que devolve `null` sempre, e o
+ * jogo não sabia se tinha aberto. Sem este link o jogador lia "Confirme o voto na página que abriu" com
+ * nada aberto, ia votar pelo site da plataforma - e voto feito lá, sem o
+ * `player` do link, chega ao servidor sem dono e não credita (`sem-jogador`).
+ * O link fica no cartão da plataforma: tocar nele É um gesto do jogador.
+ */
+VotoIdle.linkPorPlataforma = {};
 
 /** As abas que existem, na ordem do HTML. */
 const ABAS = ['votar', 'loja'];
@@ -156,6 +170,7 @@ function faltam(ms) {
  */
 VotoIdle.limparEstadoDoPersonagem = function limparEstadoDoPersonagem() {
 	VotoIdle.estado = null;
+	VotoIdle.linkPorPlataforma = {};
 	VotoIdle.activeTab = abaLembrada(_preferences, ABA_PADRAO, ABAS);
 	pararTique();
 	esconderAviso();
@@ -324,6 +339,18 @@ function onClickTab(e) {
 
 /** Delegação: o corpo trata dois cliques — votar numa plataforma, e comprar. */
 function onClickCorpo(e) {
+	/*
+	 * O LINK DE RESERVA (27/09/2026): o toque do jogador abre pela casca, como o
+	 * cartaz de boas-vindas. Se o navegador barrar, o `<a>` segue sozinho.
+	 */
+	const link = e.target && e.target.closest ? e.target.closest('a.vi-plat-link') : null;
+	if (link) {
+		if (abrirEmAbaNova(link.href)) {
+			e.preventDefault();
+		}
+		e.stopImmediatePropagation();
+		return;
+	}
 	const alvo = e.target && e.target.closest ? e.target.closest('button[data-acao]') : null;
 	if (!alvo || alvo.disabled) {
 		return;
@@ -527,7 +554,9 @@ function aoTique() {
 	}
 	const agora = Date.now();
 	const venceu = estado.plataformas.some(p => p.ligada && !p.liberado && p.proximoEm > 0 && p.proximoEm <= agora);
-	const impulsoVenceu = estado.impulso.ativo && estado.impulso.ateMs <= agora;
+	const drop = estado.impulsoDeDrop;
+	const impulsoVenceu =
+		(estado.impulso.ativo && estado.impulso.ateMs <= agora) || (!!drop && drop.ativo && drop.ateMs <= agora);
 	if (venceu || impulsoVenceu) {
 		/*
 		 * COM FREIO. O relógio que decide aqui é o da MÁQUINA DO JOGADOR, e o
@@ -581,10 +610,10 @@ function atualizarRelogios(agora) {
 		const proximo = Number(el.dataset.proximo) || 0;
 		el.textContent = proximo <= 0 ? 'Disponível agora' : 'Volta em ' + faltam(proximo - agora);
 	});
-	const tempo = root.querySelector('.vi-impulso-tempo[data-ate]');
-	if (tempo) {
+	// Dois cartoes podem estar ativos ao mesmo tempo (EXP e Drop, 27/09/2026).
+	root.querySelectorAll('.vi-impulso-tempo[data-ate]').forEach(tempo => {
 		tempo.textContent = faltam((Number(tempo.dataset.ate) || 0) - agora);
-	}
+	});
 }
 
 /* ------------------------------------------------------------------ */
@@ -618,13 +647,25 @@ VotoIdle.aoReceberVoto = function aoReceberVoto(pkt) {
 	 * recebe `window.opener` e pode navegar a aba do JOGO para onde quiser.
 	 */
 	if (dados.abrir && dados.abrir.url) {
-		window.open(dados.abrir.url, '_blank', 'noopener,noreferrer');
-		mostrarNota('Confirme o voto na página que abriu. O prêmio chega sozinho.', false);
+		VotoIdle.linkPorPlataforma[dados.abrir.plataforma] = dados.abrir.url;
+		/*
+		 * Pela casca e SABENDO se abriu (`abrirEmAbaNova`): o `window.open` com
+		 * `noopener` devolvia `null` sempre, e a nota dizia "na página que abriu"
+		 * mesmo quando o navegador tinha barrado a janela.
+		 */
+		const abriu = abrirEmAbaNova(dados.abrir.url);
+		mostrarNota(
+			abriu
+				? 'Confirme o voto na página que abriu. O prêmio chega sozinho.'
+				: 'O navegador barrou a página de voto. Toque em "Abrir a página de voto".',
+			!abriu
+		);
 	}
 
 	if (dados.comprou) {
+		/* O texto de quem comprou vem do servidor: cartao ativado ou ticket no correio. */
 		mostrarNota(
-			dados.comprou.ok ? 'Cartão ativado! Bom proveito.' : dados.comprou.motivo,
+			dados.comprou.ok ? dados.comprou.texto || 'Compra feita! Bom proveito.' : dados.comprou.motivo,
 			!dados.comprou.ok
 		);
 	}
@@ -695,11 +736,25 @@ function cartaoDePlataforma(plat, agora) {
 		'>' +
 		(livre ? 'Votar no ' + escapeHtml(plat.nome) : 'Já votado neste ciclo') +
 		'</button>' +
+		linkDeReserva(plat) +
 		'<div class="vi-plat-rodape">' +
 		escapeHtml(String(plat.votos)) +
 		(plat.votos === 1 ? ' voto confirmado' : ' votos confirmados') +
 		'</div>' +
 		'</div>'
+	);
+}
+
+/** O link de verdade, para o toque do jogador abrir o que o `window.open` não abriu. */
+function linkDeReserva(plat) {
+	const url = VotoIdle.linkPorPlataforma[plat.id];
+	if (!plat.liberado || typeof url !== 'string' || url.length === 0) {
+		return '';
+	}
+	return (
+		'<a class="vi-plat-link ri-btn ri-btn--sec" target="_blank" rel="noopener noreferrer" href="' +
+		escapeHtml(url) +
+		'">Abrir a página de voto</a>'
 	);
 }
 
@@ -709,7 +764,8 @@ function abaVotarHtml(estado, agora) {
 		cartoes +
 		'<div class="vi-secao">Como funciona</div>' +
 		'<ol class="vi-passos">' +
-		'<li>Clique em votar. A página da plataforma abre numa aba nova.</li>' +
+		'<li>Clique em votar. A página da plataforma abre numa aba nova (se não abrir, toque em "Abrir a página de voto").</li>' +
+		'<li><strong>Vote sempre por este botão.</strong> Voto feito direto no site da plataforma chega sem o seu nome e não tem como ser creditado.</li>' +
 		'<li>Confirme o voto por lá (a plataforma pede um login próprio).</li>' +
 		'<li>O prêmio chega sozinho, em segundos — não precisa recarregar o jogo.</li>' +
 		'<li>Cada voto confirmado entrega <strong>+1 ' +
@@ -720,19 +776,34 @@ function abaVotarHtml(estado, agora) {
 	);
 }
 
+function faixaDeImpulso(texto, ateMs, agora) {
+	return (
+		'<div class="vi-impulso">' +
+		'<span class="vi-impulso-texto">' +
+		escapeHtml(texto) +
+		'</span>' +
+		'<span class="vi-impulso-tempo" data-ate="' +
+		escapeHtml(ateMs) +
+		'">' +
+		escapeHtml(faltam(ateMs - agora)) +
+		'</span>' +
+		'</div>'
+	);
+}
+
 function abaLojaHtml(estado, agora) {
-	const impulso = estado.impulso.ativo
-		? '<div class="vi-impulso">' +
-			'<span class="vi-impulso-texto">Cartão de EXP ativo · +' +
-			escapeHtml(String(estado.impulso.base)) +
-			'% base e classe</span>' +
-			'<span class="vi-impulso-tempo" data-ate="' +
-			escapeHtml(estado.impulso.ateMs) +
-			'">' +
-			escapeHtml(faltam(estado.impulso.ateMs - agora)) +
-			'</span>' +
-			'</div>'
-		: '';
+	const drop = estado.impulsoDeDrop;
+	const impulso =
+		(estado.impulso.ativo
+			? faixaDeImpulso(
+					'Cartão de EXP ativo · +' + String(estado.impulso.base) + '% base e classe',
+					estado.impulso.ateMs,
+					agora
+				)
+			: '') +
+		(drop && drop.ativo
+			? faixaDeImpulso('Cartão de Drop ativo · +' + String(drop.drop) + '% de drop', drop.ateMs, agora)
+			: '');
 
 	const ofertas = estado.loja
 		.map(o => {
@@ -774,7 +845,7 @@ function abaLojaHtml(estado, agora) {
 		impulso +
 		'<div class="vi-secao">Loja de votação</div>' +
 		ofertas +
-		'<div class="vi-plat-rodape">Comprar de novo com o cartão ativo SOMA o tempo — nada do que você pagou é perdido.</div>'
+		'<div class="vi-plat-rodape">Comprar de novo com o cartão ativo SOMA o tempo — nada do que você pagou é perdido. Os tickets de reset chegam pelo correio.</div>'
 	);
 }
 

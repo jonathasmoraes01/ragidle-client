@@ -1928,6 +1928,16 @@ function esquecerHtml(skill) {
 	if (!skill || skill.aprendido <= 0 || niveisPagosDe(skill) <= 0) {
 		return '';
 	}
+	/*
+	 * DESLIGADO em 27/09/2026 (ordem do dono): o desaprender virou reset de
+	 * graça. Quem liga é o servidor (`desaprender` no payload, ver
+	 * `servidor/desaprender-pela-janela.ts`), e AUSENTE é desligado - um
+	 * servidor velho que ainda aceitasse o pedido só perderia o botão, que é o
+	 * lado seguro. O caminho pago é o Ticket de Reset de Skills ou o Hipnotizador.
+	 */
+	if (!IdleSkills.serverData || IdleSkills.serverData.desaprender !== true) {
+		return '';
+	}
 	return (
 		'<button type="button" class="is-btn-esquecer ri-btn ri-btn--sec" data-esquecer="' +
 		escapeHtml(skill.skillId) +

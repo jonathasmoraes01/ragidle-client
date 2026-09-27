@@ -555,21 +555,31 @@ StatusInfo[SC.SHOUT] = {
 };
 
 /*
- * RAGIDLE (RO Shop, 22/09/2026): o EFST_CASH_RECEIVEITEM e o icone da BENCAO DA
+ * RAGIDLE (RO Shop, 22 a 27/09/2026 - HISTORIA, ver o bloco seguinte): o
+ * EFST_CASH_RECEIVEITEM foi o icone da BENCAO DA
  * FORTUNA (item 9000102), que o servidor manda no gole e na entrada do mapa
  * (CONTRATO.md do RO Shop, secao 5). O texto do upstream ("o drop dobra") era
  * falso para ela; o titulo diz de onde vem o bonus, e o quanto fica na
  * descricao do item, que e fixa por id - esta tabela e fixa por EFST.
  */
+/*
+ * 27/09/2026: o 252 voltou a ser da GOMA DE MASCAR, que e o dono oficial dele
+ * (SC_ITEMBOOST) e entrou no RO Shop (9000123). A Bencao foi para o
+ * EFST_PERIOD_RECEIVEITEM_2ND (1084), abaixo: com as duas ativas no mesmo
+ * EFST, o fim de uma apagaria o icone da outra.
+ */
 StatusInfo[SC.CASH_RECEIVEITEM] = {
 	icon: 'item.tga',
 	haveTimeLimit: 1,
 	posTimeLimitStr: 2,
-	descript: [
-		['Fortune Blessing', COLOR_TITLE_BUFF],
-		['%s', COLOR_TIME],
-		['Increases the drop chance of common items']
-	]
+	descript: [['Bubble Gum', COLOR_TITLE_BUFF], ['%s', COLOR_TIME], ['Increases the drop chance of all items']]
+};
+
+StatusInfo[SC.PERIOD_RECEIVEITEM_2ND] = {
+	icon: 'item.tga',
+	haveTimeLimit: 1,
+	posTimeLimitStr: 2,
+	descript: [['Fortune Blessing', COLOR_TITLE_BUFF], ['%s', COLOR_TIME], ['Increases the drop chance of all items']]
 };
 
 StatusInfo[SC.SPL_DEF] = {
