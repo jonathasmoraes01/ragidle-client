@@ -221,6 +221,38 @@
 	line-height: 1.6;
 }
 
+/*
+ * O "X" JÁ DESENHADO NA ARTE (`xNaArte` no JS). O botão continua existindo
+ * (clique, ESC, leitor de tela), mas sem pintura própria: ele vira um alvo
+ * redondo e transparente exatamente sobre o desenho. O diâmetro em % é da
+ * LARGURA do palco, e `aspect-ratio` mantém o alvo redondo; o piso de 44px
+ * garante o dedo no celular, onde 6,6% de 360px dariam só 24px.
+ */
+.bv-palco.is-x-na-arte .bv-x {
+	top: var(--bv-x-centro-y);
+	left: var(--bv-x-centro-x);
+	right: auto;
+	width: max(var(--bv-x-diametro), var(--hit-touch, 44px));
+	height: auto;
+	aspect-ratio: 1;
+	transform: translate(-50%, -50%);
+	background: transparent;
+	backdrop-filter: none;
+	border: 0;
+	box-shadow: none;
+	color: transparent;
+	font-size: 0;
+}
+
+.bv-palco.is-x-na-arte .bv-x:hover {
+	background: rgba(255, 255, 255, 0.12);
+}
+
+.bv-palco.is-x-na-arte .bv-x:focus-visible {
+	outline: 2px solid var(--gold-300);
+	outline-offset: 2px;
+}
+
 /* ─── O rodapé (permanente) ──────────────────────────────────────────── */
 
 .bv-rodape {
