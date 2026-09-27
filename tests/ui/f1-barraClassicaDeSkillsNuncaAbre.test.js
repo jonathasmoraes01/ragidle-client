@@ -42,6 +42,22 @@ vi.mock('UI/Components/SkillTargetSelection/SkillTargetSelection.js', () => ({
 }));
 vi.mock('DB/Skills/SkillTreeView.js', () => ({ default: {} }));
 vi.mock('UI/escalaDaHud.js', () => ({ ehDedo: () => false, emUnidadesDaHud: (x) => x, default: {} }));
+/*
+ * AS TRES DEPENDENCIAS PESADAS QUE O `GUIComponent` CARREGA EM SEGUNDO PLANO
+ * (26/09/2026). `_loadHeavyDeps` faz um `Promise.all` de `import()` que
+ * ninguem espera, e cada cenario deste arquivo recarrega os modulos
+ * (`vi.resetModules`). Sem estes mocks o `EntityManager` puxava o renderizador
+ * inteiro (Entity -> Altitude -> os shaders `?raw`), e sob a carga da suite
+ * completa essa carga terminava DEPOIS de o arquivo acabar: eram os 8
+ * `EnvironmentTeardownError` que deixavam o `npx vitest run` do cliente com
+ * saida 1 com todos os casos verdes. Sozinho o arquivo nao dava erro nenhum.
+ * Os tres objetos tem so o que o `GUIComponent` chama.
+ */
+vi.mock('Renderer/EntityManager.js', () => ({ default: { setOverEntity: vi.fn() } }));
+vi.mock('UI/CursorManager.js', () => ({
+	default: { ACTION: {}, getActualType: vi.fn(), setType: vi.fn() }
+}));
+vi.mock('UI/Scrollbar.js', () => ({ default: { applyDOMScrollbar: vi.fn() } }));
 vi.mock('UI/UIManager.js', () => ({
 	default: {
 		addComponent: (c) => c,
