@@ -292,8 +292,23 @@ export function createStorage(config) {
 
 		if (this.addItemSub(item)) {
 			_list.push(item);
+			atualizarContagem(this.getRoot());
 		}
 	};
+
+	/*
+	 * O "N/600" do rodape e o numero de PILHAS do armazem (o `amount` do
+	 * rAthena). Ele so era escrito na abertura (`setItemInfo`), entao guardar e
+	 * retirar deixavam o rodape parado — "0/600" com a pocao guardada na
+	 * janela, fotografado pela sonda do armazem em 26/09/2026. A lista e a
+	 * mesma que a janela desenha: o tamanho dela e a contagem.
+	 */
+	function atualizarContagem(root) {
+		const currentEl = root && root.querySelector('.footer .current');
+		if (currentEl) {
+			currentEl.textContent = _list.length;
+		}
+	}
 
 	Component.addItemSub = function addItemSub(item) {
 		const tab = getItemTab(item);
@@ -376,6 +391,7 @@ export function createStorage(config) {
 
 		const item = _list[i];
 		_list.splice(i, 1);
+		atualizarContagem(root);
 		const el = root.querySelector(`.item[data-index="${index}"]`);
 		if (el) {
 			el.remove();

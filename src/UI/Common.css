@@ -2515,3 +2515,34 @@ html.ri-vertical .ri-janela {
 	   arrastaveis de desktop e nao para folhas de tela cheia. */
 	z-index: 60 !important;
 }
+
+/* O ARMAZEM NO CELULAR EM PE (26/09/2026, relato de jogadores: "nao
+   conseguem usar o storage no mobile"). Ele e a janela NATIVA, fora da
+   pilha, e o sistema de foco o punha em 99 — ACIMA dos paineis cravados em
+   60: medido (`scripts/diag-armazem-no-celular.ts`, no rag-idle), a Mochila
+   de tela cheia abria com o armazem por cima de metade da grade, e o menu do
+   item ficava por baixo dele. Em 55 ele fica acima da moldura (50) e ABAIXO
+   dos paineis: com a Mochila aberta, e ela que o jogador toca (e guarda pelo
+   menu); fechada, o armazem volta a frente para retirar. O armazem continua
+   ABERTO atras dela — e so aparencia, a sessao no servidor nao muda.
+
+   E ELE PARA ANTES DA BARRA DE ATALHOS, como os paineis param (`.ri-janela-
+   corpo` desconta a mesma `--vr-acima-dos-atalhos`): em 55 a barra passou a
+   cobrir o rodape dele — o "fechar", a busca e os filtros —, medido na foto
+   da primeira corrida depois do conserto. A posicao salva do computador
+   (`top`/`left` inline) nao serve num celular em pe, entao aqui ela e
+   ancorada embaixo, encostada na margem direita.
+
+   OS +30px: a janela de dentro e `position: absolute` e TRANSBORDA o host.
+   `resizeHeight` (StorageCommon.js) poe o host em `31 + 19 + 32 x linhas` e
+   o rodape mede 49, e nao 19 — medido: host 306, janela 336. A diferenca e
+   uma constante (nao depende das linhas), e sem ela o "fechar" ficava 30px
+   debaixo da barra. `height: auto` no host nao serve: com a janela absoluta,
+   ele colapsa para zero (medido tambem). */
+html.ri-vertical #Storage {
+	z-index: 55 !important;
+	top: auto !important;
+	left: auto !important;
+	bottom: calc(var(--vr-acima-dos-atalhos, 92px) + 4px + 30px) !important;
+	right: calc(var(--safe-dir, 0px) + 8px) !important;
+}

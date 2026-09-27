@@ -162,8 +162,10 @@ import { pegar } from 'UI/toqueParaAtalho.js';
 import Storage from 'UI/Components/Storage/Storage.js';
 import InputBox from 'UI/Components/InputBox/InputBox.js';
 import {
+	armazemAberto,
 	ehArrastoDoArmazem,
 	quantidadeDaRetirada,
+	quantidadeDoDeposito,
 	quantidadePadraoDaRetirada,
 	tetoPeloPeso
 } from 'UI/Components/Storage/retiradaDoArmazem.js';
@@ -1135,6 +1137,18 @@ function abrirMenuDoItem(cell) {
 	ContextMenu.remove();
 	ContextMenu.append();
 
+	/*
+	 * "GUARDAR NO ARMAZEM" (26/09/2026) — o caminho por menu do deposito, que
+	 * so existia por arrasto (ver o bloco "O SENTIDO CONTRARIO" em
+	 * `retiradaDoArmazem.js`). Aparece so com o armazem aberto, em primeiro
+	 * lugar porque e o que a pessoa veio fazer, nos DOIS caminhos (mouse e
+	 * toque), como o "Retirar" do outro lado.
+	 */
+	if (armazemAberto(Storage.getUI())) {
+		ContextMenu.addElement('Guardar no armazém', () => pedirDeposito(item));
+		ContextMenu.nextGroup();
+	}
+
 	if (tab === TAB.EQUIP) {
 		ContextMenu.addElement('Equipar', () => {
 			const location = 'location' in item ? item.location : item.WearState;
@@ -1217,6 +1231,28 @@ function abrirMenuDoItem(cell) {
 	ContextMenu.addElement('Detalhes', () => {
 		abrirDetalhes(item);
 	});
+}
+
+/**
+ * Guardar no armazem — o MESMO pedido do arrasto (`reqAddItem`, o `onDrop` de
+ * StorageCommon.js), com a MESMA caixa de quantidade. A pilha abre preenchida
+ * com o total: confirmar direto guarda tudo, que e o gesto mais comum.
+ */
+function pedirDeposito(item) {
+	const total = item.count || 1;
+	if (total > 1) {
+		InputBox.append();
+		InputBox.setType('number', false, total);
+		InputBox.onSubmitRequest = function OnSubmitRequest(count) {
+			InputBox.remove();
+			const quantos = quantidadeDoDeposito(count, total);
+			if (quantos !== null) {
+				Storage.reqAddItem(item.index, quantos);
+			}
+		};
+		return;
+	}
+	Storage.reqAddItem(item.index, 1);
 }
 
 /**

@@ -42,9 +42,11 @@ import { join } from 'node:path';
 import {
 	CARRINHO,
 	CORPO,
+	armazemAberto,
 	destinoDaRetirada,
 	ehArrastoDoArmazem,
 	quantidadeDaRetirada,
+	quantidadeDoDeposito,
 	quantidadePadraoDaRetirada,
 	tetoPeloPeso
 } from 'UI/Components/Storage/retiradaDoArmazem.js';
@@ -190,5 +192,87 @@ describe('quantidadePadraoDaRetirada (R17/C2-6, 14/09/2026 — o valor que o Inp
 
 	it('capacidade ja atingida (teto 0) preenche 0, nao a pilha inteira', () => {
 		expect(quantidadePadraoDaRetirada(50, 0)).toBe(0);
+	});
+});
+
+/*
+ * GUARDAR NO ARMAZEM (26/09/2026, relato de jogadores: "nao conseguem usar o
+ * storage no mobile"). O deposito so existia por arrasto, e arrasto HTML5 nao
+ * existe no toque. A sonda do jogo (`scripts/diag-armazem-no-celular.ts`, no
+ * rag-idle) mediu o menu da Mochila sem a opcao, e o armazem POR CIMA da
+ * Mochila de tela cheia no celular em pe.
+ */
+describe('armazemAberto', () => {
+	it('aberto = carregado E ativo, a mesma pergunta da engine', () => {
+		expect(armazemAberto({ __loaded: true, __active: true })).toBe(true);
+	});
+
+	it('carregado mas fechado nao oferece guardar', () => {
+		expect(armazemAberto({ __loaded: true, __active: false })).toBe(false);
+	});
+
+	it('ativo sem ter carregado nao oferece guardar', () => {
+		expect(armazemAberto({ __loaded: false, __active: true })).toBe(false);
+	});
+
+	it('sem janela (nulo) nao explode e nao oferece', () => {
+		expect(armazemAberto(null)).toBe(false);
+		expect(armazemAberto(undefined)).toBe(false);
+	});
+
+	it('so `true` de verdade conta — um valor qualquer nao abre o menu', () => {
+		expect(armazemAberto({ __loaded: 1, __active: 'sim' })).toBe(false);
+	});
+});
+
+describe('quantidadeDoDeposito', () => {
+	it('guarda o que foi digitado, dentro da pilha', () => {
+		expect(quantidadeDoDeposito('4', 10)).toBe(4);
+	});
+
+	it('a pilha inteira vale', () => {
+		expect(quantidadeDoDeposito('10', 10)).toBe(10);
+	});
+
+	it('acima da pilha e recusa (null), e nao a pilha', () => {
+		expect(quantidadeDoDeposito('11', 10)).toBeNull();
+	});
+
+	it('zero, negativo e texto sao recusa', () => {
+		expect(quantidadeDoDeposito('0', 10)).toBeNull();
+		expect(quantidadeDoDeposito('-3', 10)).toBeNull();
+		expect(quantidadeDoDeposito('abc', 10)).toBeNull();
+	});
+
+	it('nao tem teto de peso: guardar tira peso, nao poe', () => {
+		expect(quantidadeDoDeposito('500', 500)).toBe(500);
+	});
+});
+
+describe('as costuras do deposito no jogo', () => {
+	const mochila = ler('UI/Components/MochilaIdle/MochilaIdle.js');
+	const armazem = ler('UI/Components/Storage/StorageCommon.js');
+	const comum = ler('UI/Common.css');
+
+	it('a Mochila oferece "Guardar no armazém" so com o armazem aberto', () => {
+		expect(mochila).toMatch(/if \(armazemAberto\(Storage\.getUI\(\)\)\) \{\s*ContextMenu\.addElement\('Guardar no armazém'/);
+	});
+
+	it('o deposito e o MESMO pedido do arrasto (reqAddItem) com a regra da quantidade', () => {
+		expect(mochila).toContain('const quantos = quantidadeDoDeposito(count, total);');
+		expect(mochila).toContain('Storage.reqAddItem(item.index, quantos);');
+	});
+
+	it('no celular em pe o armazem fica ABAIXO dos paineis (60) e acima da moldura (50)', () => {
+		expect(comum).toMatch(/html\.ri-vertical #Storage \{\s*z-index: 55 !important;/);
+	});
+
+	it('e para ANTES da barra de atalhos, com os 30px que o rodape transborda', () => {
+		expect(comum).toContain('bottom: calc(var(--vr-acima-dos-atalhos, 92px) + 4px + 30px) !important;');
+	});
+
+	it('o contador de pilhas anda ao guardar e ao retirar', () => {
+		expect(armazem).toMatch(/_list\.push\(item\);\s*atualizarContagem\(this\.getRoot\(\)\);/);
+		expect(armazem).toMatch(/_list\.splice\(i, 1\);\s*atualizarContagem\(root\);/);
 	});
 });

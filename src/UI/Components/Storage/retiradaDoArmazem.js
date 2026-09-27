@@ -155,3 +155,41 @@ export function quantidadePadraoDaRetirada(total, tetoDoPeso) {
 	}
 	return Math.max(0, Math.min(tetoDaPilha, Math.floor(tetoDoPeso)));
 }
+
+/*
+ * ── O SENTIDO CONTRARIO: GUARDAR (26/09/2026) ───────────────────────────
+ * Relato de jogadores trazido pelo dono: *"nao conseguem usar o storage
+ * (arrastar/colocar/retirar item) usando o mobile"*. A retirada ganhou menu
+ * por toque em D-991; o DEPOSITO continuava so por arrasto (Mochila ->
+ * janela do armazem, o `onDrop` de StorageCommon.js), e arrasto HTML5 nao
+ * existe no toque. Medido no jogo (`scripts/diag-armazem-no-celular.ts`, no
+ * rag-idle): o menu do item na Mochila oferecia "Usar | Por na barra | Travar
+ * | Detalhes" com o armazem aberto, nos dois aparelhos.
+ */
+
+/**
+ * O armazem esta aberto AGORA? E a mesma pergunta que a engine faz antes de
+ * reabrir a janela (`__loaded && __active`, MapEngine/Storage.js), e nao a
+ * visibilidade: no celular em pe a janela pode estar ATRAS da Mochila, e o
+ * armazem continua aberto no servidor — e exatamente ai que o jogador guarda.
+ *
+ * @param {{__loaded?: boolean, __active?: boolean}|null|undefined} ui
+ * @returns {boolean}
+ */
+export function armazemAberto(ui) {
+	return !!ui && ui.__loaded === true && ui.__active === true;
+}
+
+/**
+ * Quantas unidades o deposito pede. A MESMA regra da retirada sem teto de
+ * peso (guardar tira peso, nao poe): de 1 ate o tamanho da pilha, e `null`
+ * — recusa, e nao zero — para o resto, pelo motivo escrito em
+ * `quantidadeDaRetirada`.
+ *
+ * @param {unknown} entrada - o texto do InputBox (ou um numero)
+ * @param {number} total - o tamanho da pilha na Mochila
+ * @returns {number|null}
+ */
+export function quantidadeDoDeposito(entrada, total) {
+	return quantidadeDaRetirada(entrada, total, null);
+}
