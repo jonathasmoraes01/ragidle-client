@@ -998,8 +998,12 @@ function onConnectionRefused(pkt) {
  * quando o jogador troca de mapa de caca no meio da sessao.
  */
 const TEXTO_DA_RECUSA_DE_SONO = {
+	// 28/09/2026: o sono GASTA os 10 minutos (item 4b do backlog de seguranca de
+	// 23/09) - quem acorda caca de novo antes de dormir de novo.
 	'amostra-insuficiente':
-		'Ainda não são 10 minutos de caça contínua NESTE mapa — trocar de mapa (mesmo que seja outro mapa de caça) reinicia a contagem.',
+		'Ainda não são 10 minutos de caça NESTE mapa — trocar de mapa reinicia a contagem, e depois de acordar é preciso caçar 10 minutos de novo.',
+	// 28/09/2026: morto nao dorme (item 4a do backlog de seguranca de 23/09).
+	morto: 'Não dá para dormir morto — volte à caçada primeiro.',
 	'nivel-do-mapa': 'Este mapa não é elegível para o "Dormir" — precisa estar pelo menos 1 nível abaixo do seu.',
 	'sem-mundo': 'Não foi possível iniciar o sono agora — você não está numa caçada.',
 	// RAGIDLE (24/09/2026, ordem do dono): um sono por conta.
