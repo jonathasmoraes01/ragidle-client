@@ -24,6 +24,7 @@ import EffectManager from 'Renderer/EffectManager.js';
 import Altitude from 'Renderer/Map/Altitude.js';
 import ShortCut from 'UI/Components/ShortCut/ShortCut.js';
 import ChatBox from 'UI/Components/ChatBox/ChatBox.js';
+import { ehFaltaDeItem, textoDeFaltaDeItem } from './faltaDeItemNaSkill.js';
 import SkillTargetSelection from 'UI/Components/SkillTargetSelection/SkillTargetSelection.js';
 import Guild from 'UI/Components/Guild/Guild.js';
 import SkillListMH from 'UI/Components/SkillListMH/SkillListMH.js';
@@ -150,6 +151,14 @@ function onSkillToGround(pkt) {
 function onSkillResult(pkt) {
 	// Yeah success !
 	if (pkt.result) {
+		return;
+	}
+
+	// USESKILL_FAIL_NEED_ITEM (71): falta o catalisador - diga qual (faltaDeItemNaSkill.js).
+	if (ehFaltaDeItem(pkt.cause)) {
+		const info = pkt.itemId ? DB.getItemInfo(pkt.itemId) : null;
+		const nome = info ? info.identifiedDisplayName : '';
+		ChatBox.addText(textoDeFaltaDeItem(nome, pkt.NUM), ChatBox.TYPE.ERROR, ChatBox.FILTER.SKILL_FAIL);
 		return;
 	}
 
