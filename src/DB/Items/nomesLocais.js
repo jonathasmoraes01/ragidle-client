@@ -220,6 +220,17 @@ export const NOMES_LOCAIS = {
 	9000112: 'Poção Branca da Conta', // pocoes-da-conta.ts (White_Potion_Da_Conta)
 	9000120: 'Poção Vermelha da Conta', // pocoes-da-conta.ts (Red_Potion_Da_Conta), o kit inicial
 	9000121: 'Faca da Conta', // pocoes-da-conta.ts (Knife_Da_Conta), o kit inicial
+	// O REFINO NO RO SHOP (28/09/2026, L13): os minerios da conta e os quatro packs.
+	9000124: 'Oridecon da Conta', // pocoes-da-conta.ts (Oridecon_Da_Conta)
+	9000125: 'Elunium da Conta', // pocoes-da-conta.ts (Elunium_Da_Conta)
+	9000126: 'Pack Oridecon da Conta (30)', // itens-custom.ts (Pack_Oridecon_Da_Conta_30)
+	9000127: 'Pack Elunium da Conta (30)', // itens-custom.ts (Pack_Elunium_Da_Conta_30)
+	9000128: 'Pack Oridecon da Conta (100)', // itens-custom.ts (Pack_Oridecon_Da_Conta_100)
+	9000129: 'Pack Elunium da Conta (100)', // itens-custom.ts (Pack_Elunium_Da_Conta_100)
+	// AS FLECHAS INFINITAS (28/09/2026, L14): o aluguel da conta.
+	9000130: 'Flechas Infinitas (7 dias)', // itens-custom.ts (Aluguel_Flecha_Infinita_7)
+	9000131: 'Flechas Infinitas (14 dias)', // itens-custom.ts (Aluguel_Flecha_Infinita_14)
+	9000132: 'Flechas Infinitas (30 dias)', // itens-custom.ts (Aluguel_Flecha_Infinita_30)
 	// A ZONA DE ZENY (25/09/2026): as recompensas e o bilhete (itens-custom.ts).
 	9003000: 'Moeda de Poring',
 	9003001: 'Bolsa de Moedas de Poring',
@@ -321,6 +332,18 @@ export const DESCRICOES_LOCAIS = {
 	9000111: `Uma poção que recupera de 40 a 60 de SP. Vem dos packs do RO Shop e do kit de boas-vindas.\n${FECHO_UNIQUE}`,
 	9000120: `Uma poção que recupera HP. Vem do kit de boas-vindas.\n${FECHO_UNIQUE}`,
 	9000121: `Uma faca simples, a primeira arma do aventureiro. Vem do kit de boas-vindas.\n${FECHO_UNIQUE}`,
+	// O refino no RO Shop (28/09/2026, L13): o refino gasta o minerio da conta antes do comum
+	// (servidor/material-do-refino.ts), e a tentativa pode misturar os dois.
+	9000124: `Um Oridecon preso à conta: serve para refinar armas, como o Oridecon comum, e o refino o gasta primeiro. Vem dos packs do RO Shop.\n${FECHO_UNIQUE}`,
+	9000125: `Um Elunium preso à conta: serve para refinar armaduras, como o Elunium comum, e o refino o gasta primeiro. Vem dos packs do RO Shop.\n${FECHO_UNIQUE}`,
+	9000126: `Um pack selado. Ao usar, entrega 30 Oridecons da Conta.\n${FECHO_DE_CASH}`,
+	9000127: `Um pack selado. Ao usar, entrega 30 Eluniuns da Conta.\n${FECHO_DE_CASH}`,
+	9000128: `Um pack selado. Ao usar, entrega 100 Oridecons da Conta.\n${FECHO_DE_CASH}`,
+	9000129: `Um pack selado. Ao usar, entrega 100 Eluniuns da Conta.\n${FECHO_DE_CASH}`,
+	// As Flechas Infinitas (28/09/2026, L14): servidor/ro-shop/aluguel-de-flecha.ts.
+	9000130: `Ao usar, ativa as Flechas Infinitas por 7 dias para todos os personagens da conta: a flecha equipada não é gasta. Mantenha ao menos uma flecha equipada. Usar outro enquanto ativo soma os dias.\n${FECHO_DE_CASH}`,
+	9000131: `Ao usar, ativa as Flechas Infinitas por 14 dias para todos os personagens da conta: a flecha equipada não é gasta. Mantenha ao menos uma flecha equipada. Usar outro enquanto ativo soma os dias.\n${FECHO_DE_CASH}`,
+	9000132: `Ao usar, ativa as Flechas Infinitas por 30 dias para todos os personagens da conta: a flecha equipada não é gasta. Mantenha ao menos uma flecha equipada. Usar outro enquanto ativo soma os dias.\n${FECHO_DE_CASH}`,
 	9003000: `Uma moeda dourada cunhada com o rosto de um Poring. Os Porings da Praça de Zeny guardam essas moedas como se fossem o maior tesouro do mundo.\nPode ser vendida a qualquer NPC comerciante em troca de zeny.\nNão pode ser negociada.`,
 	9003001: `Uma bolsinha de couro recheada de Moedas de Poring, bem mais pesada no bolso que uma moeda solta.\nPode ser vendida a qualquer NPC comerciante em troca de zeny.\nNão pode ser negociada.`,
 	9003002: `Uma barra de ouro maciço forjada em Midgard, cobiçada por mercadores de todo o reino. Um dos tesouros mais valiosos que os Porings da Praça de Zeny escondem.\nPode ser vendida a qualquer NPC comerciante em troca de zeny.\nNão pode ser negociada.`,
@@ -530,6 +553,17 @@ export const ICONES_LOCAIS = {
 	9000112: '\xc7\xcf\xbe\xe1\xc6\xf7\xbc\xc7', // Pocao Branca da Conta -> 504 Pocao Branca (a mesma arte)
 	9000120: '\xbb\xa1\xb0\xa3\xc6\xf7\xbc\xc7', // Pocao Vermelha da Conta -> 501 Pocao Vermelha (a mesma arte)
 	9000121: '\xb3\xaa\xc0\xcc\xc7\xc1', // Faca da Conta -> 1201 Faca (a mesma arte)
+	// O refino no RO Shop (L13) e as Flechas Infinitas (L14), 28/09/2026: os recursos que o
+	// servidor declarou em tools/item-icon/recursos-que-a-tabela-nao-tem.ts, lidos no data.grf.
+	9000124: '\xbf\xc0\xb8\xae\xb5\xa5\xbf\xc0\xc4\xdc', // Oridecon da Conta -> 984 Oridecon (a mesma arte)
+	9000125: '\xbf\xa1\xb8\xa3\xb4\xbd', // Elunium da Conta -> 985 Elunium (a mesma arte)
+	9000126: '\xba\xad\xb6\xf4\xc0\xc7\xbb\xf3\xc0\xda', // Pack Oridecon (30) -> 12998 Oridecon_Box
+	9000127: '\xc3\xb6\xbb\xf3\xc0\xda', // Pack Elunium (30) -> 13889 Elunium_Box_
+	9000128: '\xc4\xb3\xbd\xc3\xbb\xf3\xc0\xda_\xb3\xec\xbb\xf6', // Pack Oridecon (100) -> 16548 Sagittarius_Crown_Box
+	9000129: '\xc4\xb3\xbd\xc3\xbb\xf3\xc0\xda_\xb0\xcb\xc1\xa4', // Pack Elunium (100) -> 16396 HD_Elu_Box10
+	9000130: '\xc8\xad\xbb\xec\xc5\xeb', // Flechas Infinitas (7 dias) -> 12004 Arrow_Container
+	9000131: '\xb9\xd9\xb6\xf7\xc8\xad\xbb\xec\xc5\xeb', // Flechas Infinitas (14 dias) -> 12010 Wind_Arrow_Container
+	9000132: '\xb0\xad\xc3\xb6\xc8\xad\xbb\xec\xc5\xeb', // Flechas Infinitas (30 dias) -> 12006 Steel_Arrow_Container
 	/*
 	 * Os sete tickets (23/09/2026). Os recursos foram LIDOS na tabela do
 	 * `data.grf` pelo servidor (a mesma escolha de

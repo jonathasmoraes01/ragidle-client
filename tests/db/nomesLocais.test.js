@@ -195,7 +195,8 @@ describe('a lista aponta so para item que o jogo conhece', () => {
 		// **24/09/2026: 77** = 76 + o Pack Pocao Azul de 500 (9.000.122) do RO Shop.
 		// **25/09/2026: 82** = 77 + os cinco da Zona de Zeny (9.003.000-003 e o bilhete 9.003.010).
 		// **27/09/2026: 83** = 82 + a Goma de Mascar do RO Shop (9.000.123).
-		expect(Object.keys(NOMES_LOCAIS)).toHaveLength(83);
+		// **28/09/2026: 92** = 83 + os 9 do refino e das flechas no RO Shop (9.000.124-132, L13 e L14).
+		expect(Object.keys(NOMES_LOCAIS)).toHaveLength(92);
 	});
 });
 
@@ -289,7 +290,9 @@ describe('o icone local (31/08/2026)', () => {
 		// **23/09/2026: 35 -> 37**, a Vermelha e a Faca da Conta do kit inicial.
 		// **24/09/2026: 37 -> 38**, o Pack Pocao Azul de 500, com o `.bmp` da Azul (o mesmo do de 1000).
 		// **27/09/2026: 38 -> 39**, a Goma de Mascar do RO Shop, com o `.bmp` da Goma oficial (12210).
-		expect(Object.keys(ICONES_LOCAIS)).toHaveLength(39);
+		// **28/09/2026: 39 -> 48**, os 9 do refino e das flechas (L13 e L14), com o `.bmp` do oficial
+		// que o servidor declara em `tools/item-icon/recursos-que-a-tabela-nao-tem.ts`.
+		expect(Object.keys(ICONES_LOCAIS)).toHaveLength(48);
 	});
 });
 

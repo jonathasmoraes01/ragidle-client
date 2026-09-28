@@ -3401,4 +3401,18 @@ StatusInfo[EFST_DO_RELOGIO_DA_PRACA] = {
 	descript: [['Praça de Zeny', COLOR_TITLE_BUFF], ['%s', COLOR_TIME], ['Tempo restante na praça hoje.']]
 };
 
+/**
+ * O CRONOMETRO DA PRACA DE EXP (28/09/2026, L15). O mesmo molde do da Zeny,
+ * com o EFST e o saldo DELA (`EFST_DO_RELOGIO_DA_PRACA_DE_EXP = 1901`,
+ * servidor/zona-de-zeny/icone-do-relogio.ts). A arte e o Manual de
+ * Experiencia publicado pelo proprio jogo.
+ */
+export const EFST_DO_RELOGIO_DA_PRACA_DE_EXP = 1901;
+StatusInfo[EFST_DO_RELOGIO_DA_PRACA_DE_EXP] = {
+	icon: '/ragidle/item/9000100.png',
+	haveTimeLimit: 1,
+	posTimeLimitStr: 2,
+	descript: [['Praça de EXP', COLOR_TITLE_BUFF], ['%s', COLOR_TIME], ['Tempo restante na praça hoje.']]
+};
+
 export default StatusInfo;
