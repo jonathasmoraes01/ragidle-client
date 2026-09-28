@@ -86,16 +86,16 @@ export const NOMES_LOCAIS = {
 	// 20765) o GRF nomeia em portugues e nao entram aqui — nome do GRF vence.
 	20500: 'Archangel Wing', // db/re/item_db_equip.yml:109916 (T_Archangel_Wing)
 	20501: 'Costume Mechanic Wing', // db/re/item_db_equip.yml:109925 (C_Mechanic_Wing)
-	20502: 'Costume Little Devil Wings', // db/re/item_db_equip.yml:109933 (C_Devil_Wing)
+	20502: 'Asinhas de Diabinho', // db/re/item_db_equip.yml:109933 (C_Devil_Wing)
 	20503: 'Costume Candy Pouch Bag', // db/re/item_db_equip.yml:109942 (C_Bag_Of_Antonio)
 	20505: 'Costume Cupid Wing Skyblue', // db/re/item_db_equip.yml:109959 (C_Cupid_Wing_Skyblue)
 	20509: 'Costume Wings of Uriel', // db/re/item_db_equip.yml:110000 (C_Wings_of_Uriel)
 	20510: 'Costume Sword Wing', // db/re/item_db_equip.yml:110009 (C_SwordWing)
 	20512: "Costume Adventurer's Backpack", // db/re/item_db_equip.yml:110027 (C_Bravery_Bag)
-	20587: 'Wings of Light and Darkness', // db/re/item_db_equip.yml:110796 (C_Light_Darkness_Wing)
+	20587: 'Asas de Luz e Trevas', // db/re/item_db_equip.yml:110796 (C_Light_Darkness_Wing)
 	20606: 'Costume Golden Angel Wing', // db/re/item_db_equip.yml:110964 (C_Golden_Angel_Wing)
 	20737: 'Costume Kirin Wing', // db/re/item_db_equip.yml:112075 (C_Kirin_Wing)
-	20762: 'Costume Great Devil Wings', // db/re/item_db_equip.yml:112312 (C_GreatDevilWing)
+	20762: 'Grandes Asas de Demônio', // db/re/item_db_equip.yml:112312 (C_GreatDevilWing)
 	20763: 'Costume Amistr Bag', // db/re/item_db_equip.yml:112321 (C_Amistr_Bag)
 	400171: 'Costume Angel feather', // db/re/item_db_equip.yml:166992 (C_Angel_feather)
 
@@ -172,18 +172,18 @@ export const NOMES_LOCAIS = {
 	9000311: 'Diadema do Grifo', // catalogo-s1.ts, Caixa Meio
 	9000312: 'Estola Angelical', // catalogo-s1.ts, Caixa Baixo
 	9000313: 'Estola do Demônio', // catalogo-s1.ts, Caixa Baixo
-	9000314: "Seraphim's Feather", // catalogo-s1.ts, Caixa Baixo
-	9000315: 'Fallen Angel Valletta', // catalogo-s1.ts, Caixa Baixo
-	9000316: 'Group of Stars', // catalogo-s1.ts, Caixa Baixo
-	9000317: 'Light and Dark Master', // catalogo-s1.ts, Caixa Baixo
-	9000318: "Lucifer's Wings", // catalogo-s1.ts, Caixa Manto
+	9000314: 'Pena de Serafim', // catalogo-s1.ts, Caixa Baixo (nome em portugues desde 28/09/2026, item 30)
+	9000315: 'Valletta, o Anjo Caído', // catalogo-s1.ts, Caixa Baixo
+	9000316: 'Chuva de Estrelas', // catalogo-s1.ts, Caixa Baixo
+	9000317: 'Mestre da Luz e das Trevas', // catalogo-s1.ts, Caixa Baixo
+	9000318: 'Asas de Lúcifer', // catalogo-s1.ts, Caixa Manto (nome em portugues desde 28/09/2026, item 30)
 	9000319: 'Cristal Filosofal', // catalogo-s1.ts, Passe Free 40
-	9000320: 'Valkyrie Wings', // catalogo-s1.ts, Passe Free 50
-	9000321: 'Shining Angel Wings', // catalogo-s1.ts, Passe Premium 15
-	9000322: 'Ghost Effect', // catalogo-s1.ts, Passe Premium 30
-	9000323: 'Ancient Resonance', // catalogo-s1.ts, Passe Premium 45
-	9000324: 'Rune-Midgarts Glory', // catalogo-s1.ts, Passe Premium 50
-	9000325: 'Astra Blessing', // catalogo-s1.ts, VIP ate 23/09/2026 (quem resgatou fica com ela)
+	9000320: 'Asas de Valquíria', // catalogo-s1.ts, Passe Free 50
+	9000321: 'Asas Reluzentes de Anjo', // catalogo-s1.ts, Passe Premium 15
+	9000322: 'Aura Fantasma', // catalogo-s1.ts, Passe Premium 30
+	9000323: 'Ressonância Ancestral', // catalogo-s1.ts, Passe Premium 45
+	9000324: 'Glória de Rune-Midgard', // catalogo-s1.ts, Passe Premium 50
+	9000325: 'Bênção Astral', // catalogo-s1.ts, VIP ate 23/09/2026 (quem resgatou fica com ela)
 	// 23/09/2026: o visual do VIP trocou (pedido do dono). O nome e o campo
 	// `name` de `game/itens-custom.ts` e o `nome` de `catalogo-s1.ts`.
 	9000326: 'Aura do Tornado', // catalogo-s1.ts, VIP desde 23/09/2026
@@ -396,13 +396,73 @@ export const DESCRICOES_LOCAIS = {
 	9000118: `Ao usar, todos os personagens da conta ganham mais capacidade de carga. Permanente. No limite de expansões, o item não é gasto.\n${FECHO_DE_CASH}`,
 	9000119: `Ao usar, o armazém da Kafra ganha cem espaços, para toda a conta. Permanente. No limite de expansões, o item não é gasto.\n${FECHO_DE_CASH}`,
 	/*
-	 * A AURA DO TORNADO (23/09/2026, o visual do VIP da Temporada Luz & Trevas).
-	 * O pedido do dono trouxe o nome e a descricao em portugues; nao ha numero
-	 * nesta frase, e o que ela afirma sai do item: `game/itens-custom.ts` (sem
-	 * script - nao da atributo; traje de baixo, `EQP_COSTUME_HEAD_LOW`) e
-	 * `loja-da-temporada.ts` (resgate permanente com o VIP ativo).
+	 * OS 62 VISUAIS DA TEMPORADA LUZ & TREVAS (28/09/2026, item 30): textos
+	 * escritos e aprovados pelo dono. O nome mora em NOMES_LOCAIS.
+	 * A frase da Aura do Tornado (9000326) veio do proprio pedido do dono em
+	 * 23/09/2026 e ficou igual; so a linha tecnica do fim passou a ser a do grupo.
 	 */
-	9000326: 'Um redemoinho de vento verde que gira em volta de quem o veste. Visual exclusivo do VIP da Temporada Luz & Trevas: é seu para sempre, mesmo depois que o VIP acabar.\nTraje (visual de baixo). Não altera atributos.'
+	9000300: 'Duas asinhas brancas presas à cabeça, leves como uma prece.\nVisual da Temporada Luz & Trevas.\nTraje (visual de topo). Não altera atributos.',
+	9000301: 'Asinhas negras de morcego que despontam do cabelo.\nVisual da Temporada Luz & Trevas.\nTraje (visual de topo). Não altera atributos.',
+	9000302: 'Um elmo alado que lembra os guardiões do céu de Midgard.\nVisual da Temporada Luz & Trevas.\nTraje (visual de topo). Não altera atributos.',
+	9000327: 'Orelhas de coelho de pé, para quem caça com leveza.\nVisual da Temporada Luz & Trevas.\nTraje (visual de topo). Não altera atributos.',
+	9000328: 'Um Angeling inteiro descansando na sua cabeça. Ele não se importa.\nVisual da Temporada Luz & Trevas.\nTraje (visual de topo). Não altera atributos.',
+	9000329: 'O capuz do diabinho mais travesso dos calabouços.\nVisual da Temporada Luz & Trevas.\nTraje (visual de topo). Não altera atributos.',
+	9000330: 'Chifres curvos de quem prefere as sombras.\nVisual da Temporada Luz & Trevas.\nTraje (visual de topo). Não altera atributos.',
+	9000331: 'Um pequeno Angeling preso ao cabelo, sempre de olho em você.\nVisual da Temporada Luz & Trevas.\nTraje (visual de topo). Não altera atributos.',
+	9000332: 'A boina clássica dos artistas e viajantes de Prontera.\nVisual da Temporada Luz & Trevas.\nTraje (visual de topo). Não altera atributos.',
+	9000333: 'Chifres elegantes, para um visual encantadoramente perigoso.\nVisual da Temporada Luz & Trevas.\nTraje (visual de topo). Não altera atributos.',
+	9000303: 'O elmo dos cavaleiros de Diabolus, forjado em escuridão.\nVisual da Temporada Luz & Trevas.\nTraje (visual de topo). Não altera atributos.',
+	9000304: 'O elmo alado das Valquírias que escolhem os heróis de Midgard.\nVisual da Temporada Luz & Trevas.\nTraje (visual de topo). Não altera atributos.',
+	9000305: 'A máscara do Senhor das Trevas. Poucos a viram de perto e voltaram para contar.\nVisual da Temporada Luz & Trevas.\nTraje (visual de topo). Não altera atributos.',
+	9000306: 'Pequenas asas brancas no lugar das orelhas.\nVisual da Temporada Luz & Trevas.\nTraje (visual do meio). Não altera atributos.',
+	9000307: 'Asinhas escuras que batem ao lado do rosto.\nVisual da Temporada Luz & Trevas.\nTraje (visual do meio). Não altera atributos.',
+	9000308: 'Uma venda escura para quem enxerga além dos olhos.\nVisual da Temporada Luz & Trevas.\nTraje (visual do meio). Não altera atributos.',
+	9000334: 'Meia máscara branca, digna de um baile em Juno.\nVisual da Temporada Luz & Trevas.\nTraje (visual do meio). Não altera atributos.',
+	9000335: 'Um rubor que não passa, nem depois da caçada.\nVisual da Temporada Luz & Trevas.\nTraje (visual do meio). Não altera atributos.',
+	9000336: 'Óculos sérios, de estudioso da Academia.\nVisual da Temporada Luz & Trevas.\nTraje (visual do meio). Não altera atributos.',
+	9000337: 'Armação vermelha, para quem gosta de ser notado.\nVisual da Temporada Luz & Trevas.\nTraje (visual do meio). Não altera atributos.',
+	9000338: 'Óculos pequeninos, apoiados na ponta do nariz.\nVisual da Temporada Luz & Trevas.\nTraje (visual do meio). Não altera atributos.',
+	9000339: 'Um tapa-olho de pirata, com um coração no lugar da caveira.\nVisual da Temporada Luz & Trevas.\nTraje (visual do meio). Não altera atributos.',
+	9000340: 'Para o sol de Morroc e para parecer tranquilo.\nVisual da Temporada Luz & Trevas.\nTraje (visual do meio). Não altera atributos.',
+	9000309: 'Um espírito luminoso que acompanha os campeões.\nVisual da Temporada Luz & Trevas.\nTraje (visual do meio). Não altera atributos.',
+	9000310: 'Penas manchadas de vermelho, lembrança de uma batalha antiga.\nVisual da Temporada Luz & Trevas.\nTraje (visual do meio). Não altera atributos.',
+	9000311: 'O diadema dos senhores do grifo, com penas de ouro.\nVisual da Temporada Luz & Trevas.\nTraje (visual do meio). Não altera atributos.',
+	9000312: 'Uma estola branca e macia, bordada com penas.\nVisual da Temporada Luz & Trevas.\nTraje (visual de baixo). Não altera atributos.',
+	9000313: 'Uma estola escura com asas de morcego nas pontas.\nVisual da Temporada Luz & Trevas.\nTraje (visual de baixo). Não altera atributos.',
+	9000314: 'Uma pena caída das asas de um serafim, que ainda brilha.\nVisual da Temporada Luz & Trevas.\nTraje (visual de baixo). Não altera atributos.',
+	9000341: 'Uma flor branca entre os dentes, para ocasiões especiais.\nVisual da Temporada Luz & Trevas.\nTraje (visual de baixo). Não altera atributos.',
+	9000342: 'A rosa vermelha dos galanteadores de Midgard.\nVisual da Temporada Luz & Trevas.\nTraje (visual de baixo). Não altera atributos.',
+	9000343: 'Um lenço amarrado no rosto, estilo fora da lei.\nVisual da Temporada Luz & Trevas.\nTraje (visual de baixo). Não altera atributos.',
+	9000344: 'Uma adaga entre os dentes. Só para impressionar.\nVisual da Temporada Luz & Trevas.\nTraje (visual de baixo). Não altera atributos.',
+	9000345: 'Todo herói já foi um bebê. Alguns não esqueceram.\nVisual da Temporada Luz & Trevas.\nTraje (visual de baixo). Não altera atributos.',
+	9000346: 'Uma barbicha pontuda, de sábio ou de vilão.\nVisual da Temporada Luz & Trevas.\nTraje (visual de baixo). Não altera atributos.',
+	9000347: 'Uma bola de chiclete que nunca estoura.\nVisual da Temporada Luz & Trevas.\nTraje (visual de baixo). Não altera atributos.',
+	9000315: 'Valletta, o anjo caído, flutua ao seu lado.\nVisual da Temporada Luz & Trevas.\nTraje (visual de baixo). Não altera atributos.',
+	9000316: 'Pequenas estrelas que giram em volta de quem as veste.\nVisual da Temporada Luz & Trevas.\nTraje (visual de baixo). Não altera atributos.',
+	9000317: 'Duas forças opostas em equilíbrio, girando ao seu redor.\nVisual da Temporada Luz & Trevas.\nTraje (visual de baixo). Não altera atributos.',
+	20765: 'Asas brancas e imensas, sem uma pena fora do lugar.\nVisual da Temporada Luz & Trevas.\nTraje (visual de manto). Não altera atributos.',
+	20764: 'As asas de um arcanjo que escolheu a escuridão.\nVisual da Temporada Luz & Trevas.\nTraje (visual de manto). Não altera atributos.',
+	20727: 'Asas de ouro, para quem luta pelo que é certo.\nVisual da Temporada Luz & Trevas.\nTraje (visual de manto). Não altera atributos.',
+	9000348: 'Um laço enorme nas costas, impossível de passar despercebido.\nVisual da Temporada Luz & Trevas.\nTraje (visual de manto). Não altera atributos.',
+	9000349: 'Um laço branco e delicado nas costas.\nVisual da Temporada Luz & Trevas.\nTraje (visual de manto). Não altera atributos.',
+	9000350: 'Uma capa com orelhas de coelho, quentinha e fofa.\nVisual da Temporada Luz & Trevas.\nTraje (visual de manto). Não altera atributos.',
+	9000351: 'O casaco tradicional das terras do leste.\nVisual da Temporada Luz & Trevas.\nTraje (visual de manto). Não altera atributos.',
+	9000352: 'A mochila escolar de quem nunca faltou a uma aula da Academia.\nVisual da Temporada Luz & Trevas.\nTraje (visual de manto). Não altera atributos.',
+	9000353: 'Uma cauda de raposa que balança a cada passo.\nVisual da Temporada Luz & Trevas.\nTraje (visual de manto). Não altera atributos.',
+	9000354: 'A mochila vermelha mais famosa do recreio.\nVisual da Temporada Luz & Trevas.\nTraje (visual de manto). Não altera atributos.',
+	20762: 'Asas de demônio, grandes e escuras, que cobrem as costas inteiras.\nVisual da Temporada Luz & Trevas.\nTraje (visual de manto). Não altera atributos.',
+	20587: 'Uma asa de luz e outra de sombra, em perfeito equilíbrio.\nVisual da Temporada Luz & Trevas.\nTraje (visual de manto). Não altera atributos.',
+	9000318: 'As asas do anjo mais belo, antes da queda.\nVisual da Temporada Luz & Trevas.\nTraje (visual de manto). Não altera atributos.',
+	20511: 'Asas de fada azuis e transparentes.\nVisual da Temporada Luz & Trevas.\nTraje (visual de manto). Não altera atributos.',
+	9000321: 'Asas de anjo que brilham como a primeira luz do dia.\nVisual da Temporada Luz & Trevas.\nTraje com efeito de aura. Não altera atributos.',
+	20502: 'Asinhas de diabinho, pequenas e atrevidas.\nVisual da Temporada Luz & Trevas.\nTraje (visual de manto). Não altera atributos.',
+	9000322: 'Um véu fantasmagórico que paira sobre quem o veste.\nVisual da Temporada Luz & Trevas.\nTraje com efeito de aura. Não altera atributos.',
+	9000319: 'Um cristal que flutua ao seu lado, cheio de sabedoria.\nVisual da Temporada Luz & Trevas.\nTraje (visual do meio). Não altera atributos.',
+	9000323: 'O eco de um poder antigo, que vibra em volta de você.\nVisual da Temporada Luz & Trevas.\nTraje com efeito de aura. Não altera atributos.',
+	9000320: 'As asas das Valquírias. A recompensa principal da trilha Free.\nVisual da Temporada Luz & Trevas.\nTraje (visual de manto). Não altera atributos.',
+	9000324: 'A glória do reino de Rune-Midgard. A recompensa principal da trilha VIP.\nVisual da Temporada Luz & Trevas.\nTraje com efeito de aura. Não altera atributos.',
+	9000326: 'Um redemoinho de vento verde que gira em volta de quem o veste. Visual exclusivo do VIP da Temporada Luz & Trevas: é seu para sempre, mesmo depois que o VIP acabar.\nTraje com efeito de aura. Não altera atributos.',
+	9000325: 'Uma bênção das estrelas, dos primeiros VIPs da Temporada Luz & Trevas.\nVisual da Temporada Luz & Trevas.\nTraje com efeito de aura. Não altera atributos.',
 };
 
 /**

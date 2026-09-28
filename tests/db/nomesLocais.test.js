@@ -20,7 +20,7 @@
 import { describe, expect, it } from 'vitest';
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { ICONES_LOCAIS, NOMES_LOCAIS } from 'DB/Items/nomesLocais.js';
+import { DESCRICOES_LOCAIS, ICONES_LOCAIS, NOMES_LOCAIS } from 'DB/Items/nomesLocais.js';
 import { completarFicha, unknownItem } from 'DB/Items/FichaDoItem.js';
 
 describe('o nome local chega a ficha', () => {
@@ -387,5 +387,36 @@ describe('o cosmetico de cabeca que o dono pediu (420010, D-796)', () => {
 		// arte oficial aparecer, ninguem precisa lembrar de apagar nada.
 		const doGrf = { identifiedResourceName: 'oQueOGrfTrouxe' };
 		expect(completarFicha(420010, doGrf).identifiedResourceName).toBe('oQueOGrfTrouxe');
+	});
+});
+
+/*
+ * OS TEXTOS DA TEMPORADA (28/09/2026, item 30 do dono: aprovados como estavam
+ * na pagina de revisao). Os 55 custom (9.000.300-354) e os 7 oficiais das
+ * caixas e do passe tem descricao; nenhum dos 14 nomes em ingles volta.
+ */
+describe('os 62 visuais da Temporada Luz & Trevas', () => {
+	const CUSTOM = Array.from({ length: 55 }, (_, i) => 9000300 + i);
+	const OFICIAIS = [20765, 20764, 20727, 20762, 20587, 20511, 20502];
+
+	it('CONTROLE: sao 62 ids', () => {
+		expect(CUSTOM.length + OFICIAIS.length).toBe(62);
+	});
+
+	it('todo visual tem descricao, terminando na linha de que nao altera atributos', () => {
+		const sem = [...CUSTOM, ...OFICIAIS].filter(id => !String(DESCRICOES_LOCAIS[id] || '').endsWith('Não altera atributos.'));
+		expect(sem).toEqual([]);
+	});
+
+	it('todo custom tem nome em portugues, e nenhum dos 14 nomes em ingles voltou', () => {
+		const INGLES = [
+			"Seraphim's Feather", 'Fallen Angel Valletta', 'Group of Stars', 'Light and Dark Master',
+			'Great Devil Wings', 'Wings of Light and Darkness', "Lucifer's Wings", 'Little Devil Wings',
+			'Valkyrie Wings', 'Shining Angel Wings', 'Ghost Effect', 'Ancient Resonance',
+			'Rune-Midgarts Glory', 'Astra Blessing'
+		];
+		expect(CUSTOM.filter(id => !NOMES_LOCAIS[id])).toEqual([]);
+		const nomes = Object.values(NOMES_LOCAIS).join('|');
+		expect(INGLES.filter(n => nomes.includes(n))).toEqual([]);
 	});
 });
