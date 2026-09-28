@@ -223,13 +223,15 @@ describe('a caixa a venda (decisao do dono de 22/09/2026: 10 cash)', () => {
 		expect(html).toContain('data-item-id="9000300"');
 	});
 
-	it('a previa traz as recompensas em ordem e com o aro da raridade, SEM a chance no title', () => {
+	it('a previa traz as recompensas POR RARIDADE (o lendario primeiro) e com o aro, SEM a chance no title', () => {
 		const html = renderCaixaHtml(caixa());
 		expect(html).toContain('te-previa-item te-raridade--common');
 		expect(html).toContain('te-previa-item te-raridade--legendary');
 		expect(html).toContain('title="Asas de Anjo · Comum"');
 		expect(html).toContain('title="Máscara do Senhor das Trevas · Lendária"');
-		expect(html.indexOf('data-item-id="9000300"')).toBeLessThan(html.indexOf('data-item-id="9000305"'));
+		// 28/09/2026: o lendario (9000305) vem ANTES dos comuns - com 13 premios, na ordem
+		// do servidor ele caia para o fim da previa.
+		expect(html.indexOf('data-item-id="9000305"')).toBeLessThan(html.indexOf('data-item-id="9000300"'));
 		/* A decisao de 22/09/2026: a porcentagem nao aparece em lugar nenhum do
 		   card - nem no title, que e tela do mesmo jeito. */
 		expect(textoQueOJogadorLe(html)).not.toContain('%');

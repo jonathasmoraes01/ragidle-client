@@ -187,6 +187,36 @@ export const NOMES_LOCAIS = {
 	// 23/09/2026: o visual do VIP trocou (pedido do dono). O nome e o campo
 	// `name` de `game/itens-custom.ts` e o `nome` de `catalogo-s1.ts`.
 	9000326: 'Aura do Tornado', // catalogo-s1.ts, VIP desde 23/09/2026
+	// 28/09/2026 (item 17 do dono: 10 comuns por caixa): os 28 comuns novos.
+	// O nome e o `nome` de `catalogo-s1.ts`, e o icone e o PNG publicado.
+	9000327: 'Tiara de Coelho', // catalogo-s1.ts, Caixa Topo
+	9000328: 'Chapéu de Angeling', // catalogo-s1.ts, Caixa Topo
+	9000329: 'Chapéu de Deviruchi', // catalogo-s1.ts, Caixa Topo
+	9000330: 'Chifres de Íncubo', // catalogo-s1.ts, Caixa Topo
+	9000331: 'Presilha de Angeling', // catalogo-s1.ts, Caixa Topo
+	9000332: 'Boina', // catalogo-s1.ts, Caixa Topo
+	9000333: 'Chifres de Súcubo', // catalogo-s1.ts, Caixa Topo
+	9000334: 'Máscara da Ópera', // catalogo-s1.ts, Caixa Meio
+	9000335: 'Bochechas Coradas', // catalogo-s1.ts, Caixa Meio
+	9000336: 'Óculos de Aro Preto', // catalogo-s1.ts, Caixa Meio
+	9000337: 'Óculos Vermelhos', // catalogo-s1.ts, Caixa Meio
+	9000338: 'Mini Óculos', // catalogo-s1.ts, Caixa Meio
+	9000339: 'Tapa-olho de Coração', // catalogo-s1.ts, Caixa Meio
+	9000340: 'Óculos de Sol', // catalogo-s1.ts, Caixa Meio
+	9000341: 'Flor Branca na Boca', // catalogo-s1.ts, Caixa Baixo
+	9000342: 'Rosa Escarlate na Boca', // catalogo-s1.ts, Caixa Baixo
+	9000343: 'Lenço de Gangue', // catalogo-s1.ts, Caixa Baixo
+	9000344: 'Adaga na Boca', // catalogo-s1.ts, Caixa Baixo
+	9000345: 'Chupeta', // catalogo-s1.ts, Caixa Baixo
+	9000346: 'Barbicha', // catalogo-s1.ts, Caixa Baixo
+	9000347: 'Chiclete na Boca', // catalogo-s1.ts, Caixa Baixo
+	9000348: 'Manto de Laço Grande', // catalogo-s1.ts, Caixa Manto
+	9000349: 'Manto de Laço Branco', // catalogo-s1.ts, Caixa Manto
+	9000350: 'Capa de Coelhinho', // catalogo-s1.ts, Caixa Manto
+	9000351: 'Casaco Haori', // catalogo-s1.ts, Caixa Manto
+	9000352: 'Mochila Preta', // catalogo-s1.ts, Caixa Manto
+	9000353: 'Cauda de Raposa', // catalogo-s1.ts, Caixa Manto
+	9000354: 'Mochila Vermelha', // catalogo-s1.ts, Caixa Manto
 
 	// --- Rodada 9: os 11 CONSUMIVEIS DO RO SHOP (22/09/2026) ---
 	//

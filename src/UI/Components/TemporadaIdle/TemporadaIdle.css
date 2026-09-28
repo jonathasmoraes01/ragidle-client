@@ -1200,9 +1200,12 @@
 	font-style: italic;
 }
 
-/* A prévia: as seis recompensas em arte real, com o aro da raridade. */
+/* A prévia: as recompensas em arte real, com o aro da raridade. Desde
+   28/09/2026 são 13 por caixa, e elas QUEBRAM LINHA: com uma linha só e
+   `overflow: hidden`, metade sumia sem aviso. */
 #TemporadaIdle .te-caixa-previa {
 	display: flex;
+	flex-wrap: wrap;
 	gap: var(--sp-2);
 	padding: var(--sp-2);
 	border-radius: var(--radius-card);

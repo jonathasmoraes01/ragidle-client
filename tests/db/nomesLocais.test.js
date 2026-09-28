@@ -197,7 +197,8 @@ describe('a lista aponta so para item que o jogo conhece', () => {
 		// **27/09/2026: 83** = 82 + a Goma de Mascar do RO Shop (9.000.123).
 		// **28/09/2026: 92** = 83 + os 9 do refino e das flechas no RO Shop (9.000.124-132, L13 e L14).
 		// **28/09/2026: 94** = 92 + as Asas de Mosca e de Borboleta da Conta (9.000.133-134) do Pack Viagem.
-		expect(Object.keys(NOMES_LOCAIS)).toHaveLength(94);
+		// **28/09/2026: 122** = 94 + os 28 comuns novos das caixas da Season 1 (9.000.327-354, item 17).
+		expect(Object.keys(NOMES_LOCAIS)).toHaveLength(122);
 	});
 });
 

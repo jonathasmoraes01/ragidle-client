@@ -628,7 +628,12 @@ export function renderCaixaHtml(caixa) {
 			: '';
 
 	const recompensas = caixa.recompensas || [];
-	const previa = recompensas
+	/* A PREVIA VAI POR RARIDADE, o lendario primeiro (28/09/2026). Desde o item
+	   17 do dono cada caixa tem 13 premios (10 comuns), e o servidor os manda
+	   com os comuns na frente: na ordem dele, o raro e o lendario - o que faz o
+	   jogador comprar - eram os que caiam para a segunda linha. */
+	const previa = agruparPorRaridade(recompensas)
+		.flatMap(grupo => grupo.itens)
 		.map(
 			r =>
 				`<span class="te-previa-item ${classeDaRaridade(r.raridade)}" title="${escapeHtml(r.nome)} · ${escapeHtml(rotuloDaRaridade(r))}">` +
