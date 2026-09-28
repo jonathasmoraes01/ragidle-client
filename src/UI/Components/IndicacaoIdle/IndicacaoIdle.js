@@ -3,7 +3,7 @@
  *
  * RAGIDLE: INDIQUE & GANHE (D-1164, 07/09/2026) — o sistema de indicacao,
  * no molde do Poke Idle World e com a nossa identidade visual: link com
- * codigo, 10% em cash de tudo que o indicado gastar (para sempre), contadores
+ * codigo, 10% em cash de toda doacao do indicado (para sempre; D-1593), contadores
  * de indicados e de ganhos, "voce foi indicado por X", a lista dos indicados e
  * o aviso de que o sistema esta em teste.
  *
@@ -337,7 +337,7 @@ function indicadoPorHtml(estado) {
 			'<div class="in-recado' +
 			(recusaDoCodigo ? ' is-erro' : '') +
 			'">' +
-			escapeHtml(recusaDoCodigo ? RECUSAS[recusaDoCodigo] || 'Não foi possível usar esse código.' : 'Vale só para contas novas. Quem te indicou passa a ganhar 10% do que você gastar.') +
+			escapeHtml(recusaDoCodigo ? RECUSAS[recusaDoCodigo] || 'Não foi possível usar esse código.' : 'Vale só para contas novas. Quem te indicou passa a ganhar 10% das suas doações.') +
 			'</div>'
 		);
 	}
