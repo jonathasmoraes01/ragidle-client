@@ -65,12 +65,21 @@ import { consumirEntradaPorAtualizacao } from 'Engine/retomadaAposAtualizacao.js
  */
 const CARTAZES = [
 	{
-		id: 'discord',
-		imagem: '/ragidle/boas-vindas/discord.webp',
-		largura: 1448,
-		altura: 1086,
+		/* Pedido do dono, 27/09/2026: a arte "2 novidades em 1 dia" (Covil dos
+		   Chefes e Praça de Zeny) SUBSTITUI a do alfa. Um cartaz só, e não dois:
+		   a do alfa agradecia um teste que já acabou. */
+		id: 'novidades-2609',
+		imagem: '/ragidle/boas-vindas/novidades-2609.webp',
+		largura: 1122,
+		altura: 1402,
 		url: 'https://discord.gg/BJGgQK2mQK',
-		alt: 'Obrigado por ajudar no alfa! Entre no nosso Discord para enviar feedback e acompanhar as novidades.'
+		alt: '2 novidades em 1 dia: Covil dos Chefes, 4 novos mapas com mini-chefes, e Praça de Zeny, sua instância para farmar zeny a partir do nível 25. Entre no nosso Discord.',
+		/* Esta arte traz o "X" DESENHADO no canto. Sem isto a caixa mostraria
+		   dois "X" lado a lado; com isto o botão de verdade fica invisível por
+		   cima do desenhado. Centro e diâmetro em % da arte, medidos no
+		   original 1122x1402: centro (1063, 88), diâmetro 74 px. Trocar a arte
+		   exige medir de novo. */
+		xNaArte: { centroX: 94.8, centroY: 6.3, diametro: 6.6 }
 	}
 ];
 
@@ -350,6 +359,20 @@ function render() {
 	}
 
 	const varios = CARTAZES.length > 1;
+
+	/* O "X" desenhado na arte (ver `xNaArte` em `CARTAZES`): o botão de
+	   verdade vira um alvo transparente por cima dele. As posições em % seguem
+	   a arte em qualquer tamanho de tela. */
+	const palco = root.querySelector('.bv-palco');
+	if (palco) {
+		const x = cartaz.xNaArte;
+		palco.classList.toggle('is-x-na-arte', !!x);
+		if (x) {
+			palco.style.setProperty('--bv-x-centro-x', x.centroX + '%');
+			palco.style.setProperty('--bv-x-centro-y', x.centroY + '%');
+			palco.style.setProperty('--bv-x-diametro', x.diametro + '%');
+		}
+	}
 
 	/* A proporção da arte e a altura do rodapé viram os dois tetos do tamanho
 	   do cartaz (ver o `min()` de `.bv-card` no CSS). O host é quem carrega as
