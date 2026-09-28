@@ -605,18 +605,26 @@ window.ROConfigBase = {
  * Pixel dele; e o `applications/pwa/index.html` e so do desenvolvimento, onde
  * um PageView por recarga de dev sujaria as metricas de verdade.
  */
-const GUARDA_DA_ENTRADA = `<script>
-            (function () {
-                var h = location.hash;
-                if (h.indexOf('#entrada=') !== 0) return;
-                window.RAGIDLE_ENTRADA = h.slice(9);
-                history.replaceState(null, '', location.pathname + location.search);
-            })();
-        </script>`;
+/*
+ * OS SCRIPTS DO api.html SAO ARQUIVOS (28/09/2026, D-1648 do servidor).
+ *
+ * A CSP do jogo esta em modo relatorio, e o dia de liga-la em BLOQUEIO exige
+ * que a pagina nao tenha `<script>` embutido: a politica (`script-src 'self'`)
+ * proibe codigo inline, e com os quatro blocos que moravam aqui o jogo abriria
+ * com TELA PRETA. Cada um virou um arquivo gerado pelo build, carregado na
+ * MESMA ordem e de forma sincrona (sem `defer`/`async`), entao a guarda ainda
+ * tira o passe da URL antes de o Pixel nascer. O codigo nao mudou.
+ */
+const GUARDA_DA_ENTRADA_JS = `(function () {
+    var h = location.hash;
+    if (h.indexOf('#entrada=') !== 0) return;
+    window.RAGIDLE_ENTRADA = h.slice(9);
+    history.replaceState(null, '', location.pathname + location.search);
+})();
+`;
+const GUARDA_DA_ENTRADA = `<script src="./guarda-da-entrada.js?v=${startTime}"></script>`;
 
-const META_PIXEL = `<!-- Meta Pixel Code -->
-<script>
-!function(f,b,e,v,n,t,s)
+const META_PIXEL_JS = `!function(f,b,e,v,n,t,s)
 {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
 n.callMethod.apply(n,arguments):n.queue.push(arguments)};
 if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
@@ -626,11 +634,86 @@ s.parentNode.insertBefore(t,s)}(window, document,'script',
 'https://connect.facebook.net/en_US/fbevents.js');
 fbq('init', '1538906837987135');
 fbq('track', 'PageView');
-</script>
+`;
+const META_PIXEL = `<!-- Meta Pixel Code -->
+<script src="./meta-pixel.js?v=${startTime}"></script>
 <noscript><img height="1" width="1" style="display:none"
 src="https://www.facebook.com/tr?id=1538906837987135&ev=PageView&noscript=1"
 /></noscript>
 <!-- End Meta Pixel Code -->`;
+
+/** A espera do `Config.local.js` e o carregador do jogo (D-1648): eram os dois `<script>` do fim do api.html. */
+const CARREGAR_JOGO_JS = `            window.ROConfigLocalReady = new Promise(function(resolve) {
+                var script = document.createElement('script');    
+                script.src = 'Config.local.js';    
+                script.onload = resolve;
+                script.onerror = function() {    
+                    console.log('Config.local.js not found, using defaults from Config.js');    
+                    resolve();
+                };    
+                document.head.appendChild(script);    
+            });
+            function deepMerge(target, source) {    
+                for (var key in source) {    
+                    if (source.hasOwnProperty(key)) {    
+                        if (source[key] && typeof source[key] === 'object' && !Array.isArray(source[key])) {    
+                            target[key] = deepMerge(target[key] || {}, source[key]);    
+                        } else {    
+                            target[key] = source[key];    
+                        }    
+                    }    
+                }    
+                return target;    
+            }    
+    
+            var APP_SCRIPTS = {    
+                ONLINE: 'Online.js',    
+                MAPVIEWER: 'MapViewer.js',    
+                GRFVIEWER: 'GrfViewer.js',    
+                MODELVIEWER: 'ModelViewer.js',    
+                STRVIEWER: 'StrViewer.js',    
+                GRANNYMODELVIEWER: 'GrannyModelViewer.js',    
+                EFFECTVIEWER: 'EffectViewer.js'    
+            };    
+            var APP_IDS = { 1: 'ONLINE', 2: 'MAPVIEWER', 3: 'GRFVIEWER', 4: 'MODELVIEWER', 5: 'STRVIEWER', 6: 'GRANNYMODELVIEWER', 7: 'EFFECTVIEWER' };    
+    
+            function loadApp(appName, extraConfig) {    
+                var scriptFile = APP_SCRIPTS[appName] || 'Online.js';    
+                var config = deepMerge({}, window.ROConfigBase || {});    
+                if (window.ROConfigLocal) { config = deepMerge(config, window.ROConfigLocal); }    
+                if (extraConfig) { config = deepMerge(config, extraConfig); }    
+                window.ROConfig = config;    
+                // ?v=<build> — o BUSTER DE CACHE. Os bundles tem nome fixo
+                // (Online.js), entao um navegador que guardou o arquivo antigo
+                // continuaria servindo ele; a query muda a URL e forca a busca.
+                // Isto resgata quem JA ficou preso: o api.html e no-cache e
+                // sempre rebaixa, entao o ?v novo chega mesmo a esses.
+                import('./' + scriptFile + '?v=${startTime}').then(function() {
+                    var preloader = document.getElementById('ro-preloader');    
+                    if (preloader) { preloader.remove(); }    
+                }).catch(function(err) { console.error('Failed to load app:', scriptFile, err); });    
+            }    
+    
+            window.addEventListener('load', async function() {
+                await window.ROConfigLocalReady;
+                var params = new URLSearchParams(window.location.search);    
+                // Sem ?app= numa pagina de topo, sobe ONLINE: o jogo abre na RAIZ de play.<dominio>
+                // (antes era um remendo de texto no preparar-deploy; D-1648 o trouxe para ca).
+                var appName = params.get('app') || (window.top === window.self ? 'ONLINE' : null);    
+                if (appName) {    
+                    loadApp(appName, null);    
+                } else {    
+                    window.addEventListener('message', function onMsg(event) {    
+                        if (!event.data || typeof event.data !== 'object') return;    
+                        if (!event.data.application) return;    
+                        window.removeEventListener('message', onMsg, false);    
+                        var name = APP_IDS[event.data.application] || 'ONLINE';    
+                        loadApp(name, event.data);    
+                        if (event.source) { event.source.postMessage('ready', '*'); }    
+                    }, false);    
+                }    
+            });    
+`;
 
 function createApiHTML(includeManifest = false) {
 	const manifest = includeManifest ? `<link rel="manifest" href="./manifest.webmanifest">` : ``;
@@ -710,82 +793,15 @@ ${META_PIXEL}
         </div>    
     
         <script src="Config.js"></script>    
-        <script>    
-            window.ROConfigLocalReady = new Promise(function(resolve) {
-                var script = document.createElement('script');    
-                script.src = 'Config.local.js';    
-                script.onload = resolve;
-                script.onerror = function() {    
-                    console.log('Config.local.js not found, using defaults from Config.js');    
-                    resolve();
-                };    
-                document.head.appendChild(script);    
-            });
-        </script>    
-        <script>    
-            function deepMerge(target, source) {    
-                for (var key in source) {    
-                    if (source.hasOwnProperty(key)) {    
-                        if (source[key] && typeof source[key] === 'object' && !Array.isArray(source[key])) {    
-                            target[key] = deepMerge(target[key] || {}, source[key]);    
-                        } else {    
-                            target[key] = source[key];    
-                        }    
-                    }    
-                }    
-                return target;    
-            }    
-    
-            var APP_SCRIPTS = {    
-                ONLINE: 'Online.js',    
-                MAPVIEWER: 'MapViewer.js',    
-                GRFVIEWER: 'GrfViewer.js',    
-                MODELVIEWER: 'ModelViewer.js',    
-                STRVIEWER: 'StrViewer.js',    
-                GRANNYMODELVIEWER: 'GrannyModelViewer.js',    
-                EFFECTVIEWER: 'EffectViewer.js'    
-            };    
-            var APP_IDS = { 1: 'ONLINE', 2: 'MAPVIEWER', 3: 'GRFVIEWER', 4: 'MODELVIEWER', 5: 'STRVIEWER', 6: 'GRANNYMODELVIEWER', 7: 'EFFECTVIEWER' };    
-    
-            function loadApp(appName, extraConfig) {    
-                var scriptFile = APP_SCRIPTS[appName] || 'Online.js';    
-                var config = deepMerge({}, window.ROConfigBase || {});    
-                if (window.ROConfigLocal) { config = deepMerge(config, window.ROConfigLocal); }    
-                if (extraConfig) { config = deepMerge(config, extraConfig); }    
-                window.ROConfig = config;    
-                // ?v=<build> — o BUSTER DE CACHE. Os bundles tem nome fixo
-                // (Online.js), entao um navegador que guardou o arquivo antigo
-                // continuaria servindo ele; a query muda a URL e forca a busca.
-                // Isto resgata quem JA ficou preso: o api.html e no-cache e
-                // sempre rebaixa, entao o ?v novo chega mesmo a esses.
-                import('./' + scriptFile + '?v=${startTime}').then(function() {
-                    var preloader = document.getElementById('ro-preloader');    
-                    if (preloader) { preloader.remove(); }    
-                }).catch(function(err) { console.error('Failed to load app:', scriptFile, err); });    
-            }    
-    
-            window.addEventListener('load', async function() {
-                await window.ROConfigLocalReady;
-                var params = new URLSearchParams(window.location.search);    
-                var appName = params.get('app');    
-                if (appName) {    
-                    loadApp(appName, null);    
-                } else {    
-                    window.addEventListener('message', function onMsg(event) {    
-                        if (!event.data || typeof event.data !== 'object') return;    
-                        if (!event.data.application) return;    
-                        window.removeEventListener('message', onMsg, false);    
-                        var name = APP_IDS[event.data.application] || 'ONLINE';    
-                        loadApp(name, event.data);    
-                        if (event.source) { event.source.postMessage('ready', '*'); }    
-                    }, false);    
-                }    
-            });    
-        </script>    
+        <script src="./carregar-jogo.js?v=${startTime}"></script>
     </body>    
 </html>    
 `;
 	fs.writeFileSync(dist + platform + '/api.html', apiHtml, { encoding: 'utf8' });
+	// Os scripts da pagina, gerados ao lado dela (D-1648): nada de codigo embutido.
+	fs.writeFileSync(dist + platform + '/guarda-da-entrada.js', GUARDA_DA_ENTRADA_JS, { encoding: 'utf8' });
+	fs.writeFileSync(dist + platform + '/meta-pixel.js', META_PIXEL_JS, { encoding: 'utf8' });
+	fs.writeFileSync(dist + platform + '/carregar-jogo.js', CARREGAR_JOGO_JS, { encoding: 'utf8' });
 	fs.copyFileSync('./applications/api/api.js', dist + platform + '/api.js');
 }
 

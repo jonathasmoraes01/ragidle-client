@@ -255,16 +255,22 @@ if (dominio) {
  * — e o sintoma seria o jogo travando no "LOADING..." em producao, longe
  * daqui. Melhor o build quebrar aqui, alto, do que o deploy sair quieto.
  */
+/*
+ * DESDE 28/09/2026 (D-1648 do servidor) O PADRAO NASCE NO BUILD: o carregador
+ * saiu do api.html para `carregar-jogo.js` (a CSP em bloqueio proibe script
+ * embutido), e o `builder-web.mjs` ja o escreve com o padrao. Aqui so se
+ * CONFERE - e o `throw` continua, pelo mesmo motivo de antes: sem o padrao o
+ * jogo trava no "LOADING..." em producao, longe daqui.
+ */
 const CAMINHO_API = join(DIST, 'api.html');
-const ALVO_DO_APP = "var appName = params.get('app');";
-const apiHtml = readFileSync(CAMINHO_API, 'utf8');
-if (!apiHtml.includes(ALVO_DO_APP)) {
+const CAMINHO_DO_CARREGADOR = join(DIST, 'carregar-jogo.js');
+const PADRAO_DO_APP = "var appName = params.get('app') || (window.top === window.self ? 'ONLINE' : null);";
+const carregador = existsSync(CAMINHO_DO_CARREGADOR) ? readFileSync(CAMINHO_DO_CARREGADOR, 'utf8') : '';
+if (!carregador.includes(PADRAO_DO_APP)) {
 	throw new Error(
-		`preparar-deploy: nao achei ${ALVO_DO_APP} em api.html.
-` +
-			'O build do roBrowser mudou a forma dessa linha. Sem este remendo o jogo ' +
-			'NAO abre na raiz de play.<dominio> (fica no "LOADING..." para sempre). ' +
-			'Ajuste ALVO_DO_APP em oraculo/preparar-deploy.mjs.',
+		`preparar-deploy: nao achei o padrao app=ONLINE em carregar-jogo.js.\n` +
+			'Sem ele o jogo NAO abre na raiz de play.<dominio> (fica no "LOADING..." para sempre). ' +
+			'Confira CARREGAR_JOGO_JS em applications/tools/builder-web.mjs.',
 	);
 }
 /*
@@ -273,14 +279,7 @@ if (!apiHtml.includes(ALVO_DO_APP)) {
  * num iframe. Um padrao incondicional mataria esse caminho em silencio, e o
  * sintoma seria um embed que abre o jogo errado em vez de esperar o pedido.
  */
-writeFileSync(
-	CAMINHO_API,
-	apiHtml.replace(
-		ALVO_DO_APP,
-		"var appName = params.get('app') || (window.top === window.self ? 'ONLINE' : null);",
-	),
-);
-console.log("     api.html         (padrao app=ONLINE quando nao vem na URL)");
+console.log('     carregar-jogo.js (padrao app=ONLINE quando nao vem na URL: conferido)');
 /*
  * O CARTAO DE LINK DO JOGO (04/09/2026).
  *
