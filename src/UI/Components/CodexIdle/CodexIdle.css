@@ -63,6 +63,28 @@
 	display: flex;
 }
 
+/*
+ * NO CELULAR EM PE, A JANELA E OPACA (28/09/2026, D-1640 — item 27 do dono).
+ *
+ * O relato: a janela do Codex translucida, com o jogo aparecendo por tras e
+ * atrapalhando a leitura. A causa nao e desta folha: `.ri-window` pinta
+ * `--window-fill` (vidro de 94-96%) com `backdrop-filter`, e no dedo o
+ * desfoque SAI (`--blur-glass: none`, Common.css, auditoria do iPhone de
+ * 13/09). Sem o desfoque, os 4-6% que passam desenham o chao, o trilho da
+ * direita e o cartao de missoes atras do texto — medido na foto
+ * `celular-02-codex-missao.png` da sonda `diag-onde-cai-na-janela`. O Codex
+ * sente mais que as outras porque tem mais area vazia (a aba "Missoes
+ * Gerais" com uma missao so deixa meia janela de fundo).
+ *
+ * `.ri-vertical` e a marca de `ehCelularEmPe()` (UI/hudVertical.js), posta
+ * tambem no root do shadow: o desktop e o celular deitado nao mudam. A cor e
+ * o token `--surface-window-opaca` (as mesmas duas cores da janela, sem
+ * alfa), e nao uma cor escrita aqui.
+ */
+.ri-vertical #CodexIdle .cx-window {
+	background: var(--surface-window-opaca);
+}
+
 #CodexIdle .cx-titlebar {
 	flex: 0 0 auto;
 }
