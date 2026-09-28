@@ -1661,6 +1661,16 @@ function renderCura() {
 			const alcanca = !!c.alcancaGrupo;
 			const ajuste = (cura.habilidades && cura.habilidades[c.skillId]) || {};
 			const alvo = ajuste.alvo || cura.alvo || 'grupo';
+			// A Aid Potion (D-1641) gasta uma pocao da mochila a cada uso: a linha
+			// diz o custo, e o que ela faz sozinha. No clique ela funciona sempre.
+			const custo = c.gastaPocao ? `${c.custoSp} SP + 1 poção` : `${c.custoSp} SP`;
+			const explicacao = c.gastaPocao
+				? ligada
+					? 'Joga sozinha a poção de HP mais forte da mochila (até o nível aprendido) quando a barra cair abaixo do limite. Gasta a poção e 1 SP a cada uso.'
+					: 'Desligada: o personagem não joga poção sozinho. No clique ela funciona sempre.'
+				: ligada
+					? 'Usada sozinha quando a barra cair abaixo do limite — não ocupa vaga na ordem de golpes.'
+					: 'Desligada: o personagem não usa esta habilidade sozinho.';
 			return `
 			<div class="ic-cura-item">
 				<label class="ic-switch-row">
@@ -1669,8 +1679,8 @@ function renderCura() {
 						<span class="ic-switch-track"></span>
 					</span>
 					<span class="ic-switch-text">
-						<span class="ic-switch-label">${escapeHtml(c.nome || c.skillId)} <span class="ic-card-meta">Nv ${c.aprendido} · ${c.custoSp} SP</span></span>
-						<span class="ic-switch-sub">${ligada ? 'Usada sozinha quando a barra cair abaixo do limite — não ocupa vaga na ordem de golpes.' : 'Desligada: o personagem não usa esta habilidade sozinho.'}</span>
+						<span class="ic-switch-label">${escapeHtml(c.nome || c.skillId)} <span class="ic-card-meta">Nv ${c.aprendido} · ${custo}</span></span>
+						<span class="ic-switch-sub">${explicacao}</span>
 					</span>
 				</label>
 				<div class="ic-field-row ic-field-row--seg${ligada ? '' : ' ic-subsection-disabled'}">
