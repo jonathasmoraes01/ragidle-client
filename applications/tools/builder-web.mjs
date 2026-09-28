@@ -851,6 +851,15 @@ async function copyPwaFiles() {
 		.readFileSync('./applications/pwa/registrar-sw.js', 'utf8')
 		.replace('__VERSAO_DO_BUILD__', versaoDoBuild);
 	fs.writeFileSync(destino + '/registrar-sw.js', registrador, { encoding: 'utf8' });
+	/* A VERSAO PUBLICADA (28/09/2026, D-1646 do servidor): o servidor le este
+	   arquivo e usa o `login` como minimo do login, e o jogo sem service worker o
+	   le para descobrir que ha versao nova. O numero e o MESMO do `CA_LOGIN`
+	   (`versaoDoCarimbo`), e a Vercel o serve sem cache (`vercel.json`). */
+	fs.writeFileSync(
+		destino + '/versao-do-cliente.json',
+		JSON.stringify({ versao: versaoDoBuild, login: versaoDoCarimbo(versaoDoBuild) }) + '\n',
+		{ encoding: 'utf8' }
+	);
 
 	for (const lado of [192, 512]) {
 		await sharp(origem)

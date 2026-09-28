@@ -34,7 +34,7 @@
 			"continue": true
 		},
 		{
-			"src": "^/(index\\.html|api\\.html|Config\\.js|Config\\.local\\.js)$",
+			"src": "^/(index\\.html|api\\.html|Config\\.js|Config\\.local\\.js|versao-do-cliente\\.json)$",
 			"headers": {
 				"Cache-Control": "no-cache"
 			},
