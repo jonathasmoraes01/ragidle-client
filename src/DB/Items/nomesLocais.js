@@ -231,6 +231,9 @@ export const NOMES_LOCAIS = {
 	9000130: 'Flechas Infinitas (7 dias)', // itens-custom.ts (Aluguel_Flecha_Infinita_7)
 	9000131: 'Flechas Infinitas (14 dias)', // itens-custom.ts (Aluguel_Flecha_Infinita_14)
 	9000132: 'Flechas Infinitas (30 dias)', // itens-custom.ts (Aluguel_Flecha_Infinita_30)
+	// AS ASAS DA CONTA (28/09/2026): o que o Pack Viagem entrega.
+	9000133: 'Asa de Mosca da Conta', // pocoes-da-conta.ts (Wing_Of_Fly_Da_Conta)
+	9000134: 'Asa de Borboleta da Conta', // pocoes-da-conta.ts (Wing_Of_Butterfly_Da_Conta)
 	// A ZONA DE ZENY (25/09/2026): as recompensas e o bilhete (itens-custom.ts).
 	9003000: 'Moeda de Poring',
 	9003001: 'Bolsa de Moedas de Poring',
@@ -322,7 +325,7 @@ export const DESCRICOES_LOCAIS = {
 	9000122: `Um pack selado. Ao usar, entrega 500 Poções Azuis da Conta.\n${FECHO_DE_CASH}`,
 	9000104: `Um pack selado. Ao usar, entrega 500 Poções Brancas da Conta.\n${FECHO_DE_CASH}`,
 	9000105: `Um pack selado. Ao usar, entrega 1000 Poções Azuis da Conta e 500 Poções Brancas da Conta.\n${FECHO_DE_CASH}`,
-	9000106: `Um pack selado. Ao usar, entrega 500 Asas de Mosca e 100 Asas de Borboleta.\n${FECHO_DE_CASH}`,
+	9000106: `Um pack selado. Ao usar, entrega 500 Asas de Mosca da Conta e 100 Asas de Borboleta da Conta.\n${FECHO_DE_CASH}`,
 	9000107: `Um pack selado. Ao usar, entrega 500 Poções Brancas da Conta, 1000 Poções Azuis da Conta e 1 Bênção da Fortuna.\n${FECHO_DE_CASH}`,
 	9000108: `Um pack selado. Ao usar, entrega 500 Poções Brancas da Conta, 1000 Poções Azuis da Conta, 1 Manual de Experiência e 1 Manual de Experiência de Classe.\n${FECHO_DE_CASH}`,
 	9000109: `Um pack selado. Ao usar, entrega 500 Poções Brancas da Conta, 1000 Poções Azuis da Conta, os dois Manuais e 1 Bênção da Fortuna.\n${FECHO_DE_CASH}`,
@@ -344,6 +347,10 @@ export const DESCRICOES_LOCAIS = {
 	9000130: `Ao usar, ativa as Flechas Infinitas por 7 dias para todos os personagens da conta: a flecha equipada não é gasta. Mantenha ao menos uma flecha equipada. Usar outro enquanto ativo soma os dias.\n${FECHO_DE_CASH}`,
 	9000131: `Ao usar, ativa as Flechas Infinitas por 14 dias para todos os personagens da conta: a flecha equipada não é gasta. Mantenha ao menos uma flecha equipada. Usar outro enquanto ativo soma os dias.\n${FECHO_DE_CASH}`,
 	9000132: `Ao usar, ativa as Flechas Infinitas por 30 dias para todos os personagens da conta: a flecha equipada não é gasta. Mantenha ao menos uma flecha equipada. Usar outro enquanto ativo soma os dias.\n${FECHO_DE_CASH}`,
+	// As asas da conta (28/09/2026, servidor game/pocoes-da-conta.ts): o Pack Viagem as entrega
+	// no lugar das comuns, que vendiam no NPC. O teleporte e o da Asa comum.
+	9000133: `Teleporta você para um lugar aleatório do mapa. Vem do Pack Viagem do RO Shop.\n${FECHO_UNIQUE}`,
+	9000134: `Leva você de volta ao seu ponto salvo. Vem do Pack Viagem do RO Shop.\n${FECHO_UNIQUE}`,
 	9003000: `Uma moeda dourada cunhada com o rosto de um Poring. Os Porings da Praça de Zeny guardam essas moedas como se fossem o maior tesouro do mundo.\nPode ser vendida a qualquer NPC comerciante em troca de zeny.\nNão pode ser negociada.`,
 	9003001: `Uma bolsinha de couro recheada de Moedas de Poring, bem mais pesada no bolso que uma moeda solta.\nPode ser vendida a qualquer NPC comerciante em troca de zeny.\nNão pode ser negociada.`,
 	9003002: `Uma barra de ouro maciço forjada em Midgard, cobiçada por mercadores de todo o reino. Um dos tesouros mais valiosos que os Porings da Praça de Zeny escondem.\nPode ser vendida a qualquer NPC comerciante em troca de zeny.\nNão pode ser negociada.`,
@@ -564,6 +571,9 @@ export const ICONES_LOCAIS = {
 	9000130: '\xc8\xad\xbb\xec\xc5\xeb', // Flechas Infinitas (7 dias) -> 12004 Arrow_Container
 	9000131: '\xb9\xd9\xb6\xf7\xc8\xad\xbb\xec\xc5\xeb', // Flechas Infinitas (14 dias) -> 12010 Wind_Arrow_Container
 	9000132: '\xb0\xad\xc3\xb6\xc8\xad\xbb\xec\xc5\xeb', // Flechas Infinitas (30 dias) -> 12006 Steel_Arrow_Container
+	// As asas da conta (28/09/2026): a mesma arte da Asa comum de que derivam.
+	9000133: '\xc6\xc4\xb8\xae\xc0\xc7\xb3\xaf\xb0\xb3', // Asa de Mosca da Conta -> 601 Asa de Mosca (a mesma arte)
+	9000134: '\xb3\xaa\xba\xf1\xc0\xc7\xb3\xaf\xb0\xb3', // Asa de Borboleta da Conta -> 602 Asa de Borboleta (a mesma arte)
 	/*
 	 * Os sete tickets (23/09/2026). Os recursos foram LIDOS na tabela do
 	 * `data.grf` pelo servidor (a mesma escolha de

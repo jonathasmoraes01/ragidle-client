@@ -196,7 +196,8 @@ describe('a lista aponta so para item que o jogo conhece', () => {
 		// **25/09/2026: 82** = 77 + os cinco da Zona de Zeny (9.003.000-003 e o bilhete 9.003.010).
 		// **27/09/2026: 83** = 82 + a Goma de Mascar do RO Shop (9.000.123).
 		// **28/09/2026: 92** = 83 + os 9 do refino e das flechas no RO Shop (9.000.124-132, L13 e L14).
-		expect(Object.keys(NOMES_LOCAIS)).toHaveLength(92);
+		// **28/09/2026: 94** = 92 + as Asas de Mosca e de Borboleta da Conta (9.000.133-134) do Pack Viagem.
+		expect(Object.keys(NOMES_LOCAIS)).toHaveLength(94);
 	});
 });
 
@@ -292,7 +293,8 @@ describe('o icone local (31/08/2026)', () => {
 		// **27/09/2026: 38 -> 39**, a Goma de Mascar do RO Shop, com o `.bmp` da Goma oficial (12210).
 		// **28/09/2026: 39 -> 48**, os 9 do refino e das flechas (L13 e L14), com o `.bmp` do oficial
 		// que o servidor declara em `tools/item-icon/recursos-que-a-tabela-nao-tem.ts`.
-		expect(Object.keys(ICONES_LOCAIS)).toHaveLength(48);
+		// **28/09/2026: 48 -> 50**, as Asas da Conta do Pack Viagem, com o `.bmp` da Asa comum (601/602).
+		expect(Object.keys(ICONES_LOCAIS)).toHaveLength(50);
 	});
 });
 

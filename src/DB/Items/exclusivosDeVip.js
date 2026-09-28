@@ -53,7 +53,10 @@ export const EXCLUSIVOS_DE_VIP = {
 	// A COPIA do servidor (`LEGENDA_DO_VIP`, game/asa-de-mosca-do-dono.ts)
 	// tem o mesmo texto sem acento e com a cor do RO; o teste de la compara
 	// as duas. Mudou uma, mude a outra.
-	601: 'Jogador comum: 4 s de espera entre usos · VIP: sem espera e uso automático no idle'
+	601: 'Jogador comum: 4 s de espera entre usos · VIP: sem espera e uso automático no idle',
+	// A Asa de Mosca DA CONTA (28/09/2026, o Pack Viagem): a mesma espera e o mesmo
+	// gatilho da comum (`ehAsaDeMosca` no servidor), entao a mesma legenda.
+	9000133: 'Jogador comum: 4 s de espera entre usos · VIP: sem espera e uso automático no idle'
 };
 
 /** A legenda deste item, ou `null` quando ele nao e exclusivo. */
