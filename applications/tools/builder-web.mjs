@@ -3,6 +3,7 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { createRequire } from 'module';
+import { versaoDoCarimbo } from '../../src/Core/versaoDoCliente.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -13,6 +14,14 @@ const startTime = Date.now();
 const args = getArgs();
 
 const buildDate = new Date().toISOString().replace(/T/, ' ').replace(/\..+/, '');
+/*
+ * A VERSAO DO BUILD, num lugar so: `<versao do package>-AAAAMMDDHHMMSS`, os
+ * dois numeros que o `<title>` ja mostra. Ela vai para o service worker e o
+ * registrador (`copyPwaFiles`) e, desde D-1635 (28/09/2026), para o JOGO pelo
+ * `define` do vite (`__RAGIDLE_VERSAO_DO_BUILD__`): e dela que
+ * `src/Core/versaoDoCliente.js` tira o numero que o login manda ao servidor.
+ */
+const versaoDoBuild = pkg.version + '-' + buildDate.replace(/[^0-9]/g, '');
 const dist = './dist/';
 const platform = 'Web';
 
@@ -116,6 +125,10 @@ async function compile(appName, isMinify) {
 			resolve: {
 				alias: aliases
 			},
+			// A versao do build no jogo (D-1635): o login a manda ao servidor.
+			define: {
+				__RAGIDLE_VERSAO_DO_BUILD__: JSON.stringify(versaoDoBuild)
+			},
 			worker: {
 				rollupOptions: {
 					output: {
@@ -158,6 +171,12 @@ async function compile(appName, isMinify) {
 		});
 
 		console.log(appName + '.js has been created in', Date.now() - startTime, 'ms.');
+		if (appName === 'Online') {
+			/* O numero que este build manda no login (D-1635). E ESTE que vai no
+			   RAG_VERSAO_MINIMA_DO_CLIENTE do servidor quando o dono quiser
+			   exigir este build - nunca antes de ele estar no ar. */
+			console.log('Versao do cliente no login (CA_LOGIN):', versaoDoCarimbo(versaoDoBuild));
+		}
 	} catch (err) {
 		console.error('Error building ' + appName + ':', err);
 	}
@@ -822,10 +841,9 @@ async function copyPwaFiles() {
 	 * velho para sempre.
 	 *
 	 * A versao e `<versao do package> + carimbo do build`, os dois numeros que
-	 * o `createHTML` ja usa no `<title>`.
+	 * o `createHTML` ja usa no `<title>` - `versaoDoBuild`, no topo do arquivo.
 	 */
-	const versaoDoBuild = pkg.version + '-' + buildDate.replace(/[^0-9]/g, '');
-	const sw = fs.readFileSync('./applications/pwa/sw.js', 'utf8').replace('__VERSAO_DO_BUILD__', versaoDoBuild);
+	const sw =fs.readFileSync('./applications/pwa/sw.js', 'utf8').replace('__VERSAO_DO_BUILD__', versaoDoBuild);
 	fs.writeFileSync(destino + '/sw.js', sw, { encoding: 'utf8' });
 	/* O REGISTRADOR recebe a MESMA versao do worker (23/09/2026): e comparando
 	   as duas que ele decide, sozinho, se o worker em espera pode assumir. */
