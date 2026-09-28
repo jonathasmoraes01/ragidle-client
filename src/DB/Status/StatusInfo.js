@@ -3415,4 +3415,34 @@ StatusInfo[EFST_DO_RELOGIO_DA_PRACA_DE_EXP] = {
 	descript: [['Praça de EXP', COLOR_TITLE_BUFF], ['%s', COLOR_TIME], ['Tempo restante na praça hoje.']]
 };
 
+/**
+ * O VIP E AS FLECHAS INFINITAS NA BARRA DE STATUS (28/09/2026, pedido do dono:
+ * "faca um icone com contagem, como o do VIP e que ambos precisam aparecer na
+ * tela"). Os EFSTs sao do servidor (`EFST_DO_VIP = 1902` e
+ * `EFST_DAS_FLECHAS_INFINITAS = 1903`, servidor/mapa/icone-dos-passes.ts), na
+ * faixa das pracas: dono unico. O relogio vem ate o fim do ultimo dia do passe,
+ * e passa de 24 h, entao a celula mostra dias (`formatarRelogioDoBuff`). A arte
+ * do VIP e a mesma da marca do VIP no chat (`ICONE_DO_VIP`); a das Flechas e a
+ * aljava do aluguel de 7 dias, publicada pelo proprio jogo.
+ */
+export const EFST_DO_VIP = 1902;
+StatusInfo[EFST_DO_VIP] = {
+	icon: '/ragidle/shop/icons/shop-icon-ro-cash.png',
+	haveTimeLimit: 1,
+	posTimeLimitStr: 2,
+	descript: [['VIP', COLOR_TITLE_BUFF], ['%s', COLOR_TIME], ['Tempo restante do seu VIP.']]
+};
+
+export const EFST_DAS_FLECHAS_INFINITAS = 1903;
+StatusInfo[EFST_DAS_FLECHAS_INFINITAS] = {
+	icon: '/ragidle/item/9000130.png',
+	haveTimeLimit: 1,
+	posTimeLimitStr: 2,
+	descript: [
+		['Flechas Infinitas', COLOR_TITLE_BUFF],
+		['%s', COLOR_TIME],
+		['A flecha equipada não é gasta. Mantenha ao menos uma equipada.']
+	]
+};
+
 export default StatusInfo;
