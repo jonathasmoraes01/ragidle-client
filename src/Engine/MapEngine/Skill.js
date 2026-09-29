@@ -26,6 +26,7 @@ import ShortCut from 'UI/Components/ShortCut/ShortCut.js';
 import ChatBox from 'UI/Components/ChatBox/ChatBox.js';
 import { ehFaltaDeItem, textoDeFaltaDeItem } from './faltaDeItemNaSkill.js';
 import { criarPedidoAdiado } from './pedidoAdiadoPeloGolpe.js';
+import { raioDaBuscaDoChao } from './alcanceDaSkillNoChao.js';
 import { TEXTO_GERAL, textoDaCausaSemMensagem } from './textoDaFalhaDeSkill.js';
 
 // C32 (29/09/2026): o pedido dentro da janela do golpe espera, em vez de sumir.
@@ -773,10 +774,11 @@ SkillTargetSelection.onUseSkillToPos = function onUseSkillToPos(id, level, x, y)
 	const skill = SkillWindow.getUI().getSkillById(id);
 	const out = [];
 
+	// C23: para onde a regua CIRCULAR da fonte aceita a celula (ver alcanceDaSkillNoChao.js).
 	if (skill) {
-		range = skill.attackRange + 1;
+		range = raioDaBuscaDoChao(skill.attackRange);
 	} else if (SkillInfo[id]) {
-		range = SkillInfo[id].AttackRange[level - 1] + 1;
+		range = raioDaBuscaDoChao(SkillInfo[id].AttackRange[level - 1]);
 	} else {
 		range = entity.attack_range;
 	}
