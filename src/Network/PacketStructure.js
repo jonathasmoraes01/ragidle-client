@@ -17090,9 +17090,10 @@ PACKET.ZC.RAGIDLE_TITULOS_E_AURA.size = -1;
 // A CACA MEDIDA E O EXPLORAR - 28/09/2026.
 //
 // Contrato: `docs/CONTRATO-CACA-MEDIDA.md` secao 4 (repositorio do servidor).
-// Os dois ultimos slots da reserva RAGIDLE. A janela e "Seus mapas"
-// (`UI/Components/CacaMedidaIdle`), aberta pelo comando `@cacamedida`, que so
-// o administrador alcanca enquanto a janela estiver em teste.
+// Os dois ultimos slots da reserva RAGIDLE. Desde a v2 (29/09/2026, secoes 7
+// a 10) quem fala por eles e o Mapa de Caca (`UI/Components/HuntMap`): a
+// janela separada "Seus mapas" saiu, e o comando `@cacamedida` abre o Mapa de
+// Caca na aba "Seus mapas". So o administrador alcanca enquanto em teste.
 // ---------------------------------------------------------------------------
 
 // 0x0fb4 - RAGIDLE: CZ_RAGIDLE_CACA_MEDIDA (client -> server)
@@ -17114,7 +17115,8 @@ PACKET.CZ.RAGIDLE_CACA_MEDIDA.prototype.build = function () {
 // 0x0fb5 - RAGIDLE: ZC_RAGIDLE_CACA_MEDIDA (server -> client)
 // Variable size: u16 opcode + u16 total length + JSON UTF-8 payload.
 // { v: 1, abrir?, mapaAtual, sugestaoDaEscada, mapas, explorar, resultado? }.
-// Quem le e `UI/Components/CacaMedidaIdle/CacaMedidaIdle.js`, o unico dono.
+// Quem le e `UI/Components/HuntMap/HuntMap.js`, o unico dono (o Explorar, o
+// risco que ficou pronto e o `abrir` do `@cacamedida`).
 PACKET.ZC.RAGIDLE_CACA_MEDIDA = function PACKET_ZC_RAGIDLE_CACA_MEDIDA(fp, end) {
 	this.json = fp.readString(end - fp.tell());
 };

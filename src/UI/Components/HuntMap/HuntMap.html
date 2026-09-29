@@ -21,6 +21,10 @@
 			</label>
 			<div class="hm-seg hm-modo" role="tablist" aria-label="Quais mapas mostrar">
 				<button type="button" class="hm-seg-btn" data-modo="ideais" role="tab">Para mim</button>
+				<!-- "Seus mapas" (Caca Medida v2, 29/09/2026): so aparece com o bloco
+				     `cacaMedida` no catalogo (hoje, o administrador). Sem ele fica
+				     `hidden` e a barra e a de sempre. -->
+				<button type="button" class="hm-seg-btn" data-modo="seus" role="tab" hidden>Seus mapas</button>
 				<button type="button" class="hm-seg-btn" data-modo="todos" role="tab">Todos</button>
 				<button type="button" class="hm-seg-btn" data-modo="favoritos" role="tab">Favoritos</button>
 			</div>
@@ -32,6 +36,16 @@
 					<option value="nome">Nome</option>
 				</select>
 			</div>
+			<!-- O Explorar (Caca Medida v2): o servidor testa ate 3 mapas do nivel,
+			     10 min cada, e fica no de maior EXP/h sem mortes. So com o bloco. -->
+			<button
+				type="button"
+				class="hm-explorar ri-btn"
+				title="Testa até 3 mapas do seu nível, 10 minutos cada, e fica no que der mais EXP sem morrer."
+				hidden
+			>
+				Explorar
+			</button>
 		</div>
 
 		<!-- A BARRA DE PASSO — só do celular em pé (08/09/2026).
@@ -67,6 +81,10 @@
 			</nav>
 
 			<section class="hm-list-wrap">
+				<!-- A faixa do Explorar: "Explorando 2 de 3 — <mapa> · 6 de 10 min
+				     [Cancelar]", e no fim "Você ficou em <mapa>". Vazia e `hidden`
+				     fora do Explorar. -->
+				<div class="hm-explorar-faixa" role="status" aria-live="polite" hidden></div>
 				<div class="hm-count"></div>
 				<div class="hm-list ri-scroll"></div>
 			</section>

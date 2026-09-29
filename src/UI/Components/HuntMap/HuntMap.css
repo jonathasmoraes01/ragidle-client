@@ -1896,3 +1896,217 @@
 	height: 18px;
 	color: var(--red-600);
 }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   A CAÇA MEDIDA DENTRO DO MAPA DE CAÇA (v2, 29/09/2026)
+   ═══════════════════════════════════════════════════════════════════════
+   Tudo daqui só aparece com o bloco `cacaMedida` no catálogo (hoje, o
+   administrador). O que ENTRA se soma à janela de hoje e nada sai nem
+   encolhe: o botão "Seus mapas", o Explorar, a faixa acima da lista, a linha
+   a mais do cartão e a linha "Sua caça aqui" do quadro VOCÊ. As cores são as
+   do encaixe e do design system, e não novas: verde = seguro, ouro = cuidado
+   e o Explorar, vermelho = arriscado (o mesmo do covil). */
+
+/* `hidden` não vence um `display` de autor: sem isto o botão "Seus mapas" e o
+   Explorar apareceriam para todo mundo. */
+#HuntMap .hm-seg-btn[hidden],
+#HuntMap .hm-explorar[hidden],
+#HuntMap .hm-explorar-faixa[hidden] {
+	display: none;
+}
+
+#HuntMap .hm-explorar {
+	flex: 0 0 auto;
+	white-space: nowrap;
+}
+
+/* A faixa do Explorar: fora da rolagem da lista, então fica parada no topo
+   dela enquanto os cartões rolam — no desktop e no celular. */
+#HuntMap .hm-explorar-faixa {
+	flex: 0 0 auto;
+	display: flex;
+	align-items: center;
+	gap: var(--sp-4);
+	margin: var(--sp-3) var(--sp-6) 0;
+	padding: var(--sp-3) var(--sp-5);
+	border: 1px solid var(--border-gold);
+	border-left: 3px solid var(--gold-500);
+	border-radius: var(--radius-panel);
+	background: color-mix(in srgb, var(--gold-400) 14%, var(--surface-card));
+	font: var(--type-label);
+	color: var(--text-body);
+}
+
+#HuntMap .hm-explorar-faixa.is-concluido {
+	border-color: color-mix(in srgb, var(--green-600) 40%, transparent);
+	border-left-color: var(--green-600);
+	background: color-mix(in srgb, var(--green-600) 10%, var(--surface-card));
+}
+
+#HuntMap .hm-explorar-texto {
+	flex: 1 1 auto;
+	min-width: 0;
+	font-variant-numeric: tabular-nums;
+}
+
+#HuntMap .hm-explorar-texto strong {
+	color: var(--text-title);
+}
+
+#HuntMap .hm-explorar-cancelar {
+	flex: 0 0 auto;
+}
+
+#HuntMap .hm-explorar-dispensar {
+	appearance: none;
+	flex: 0 0 auto;
+	width: 24px;
+	height: 24px;
+	padding: 0;
+	border: none;
+	border-radius: 50%;
+	background: transparent;
+	color: var(--text-muted);
+	font-size: 18px;
+	line-height: 1;
+	cursor: pointer;
+}
+
+#HuntMap .hm-explorar-dispensar:hover {
+	color: var(--text-title);
+	background: var(--surface-inset);
+}
+
+/* Os cartões candidatos: borda dourada, e o filete de encaixe à esquerda
+   continua o dele (a mesma regra do selecionado) — o Explorar não apaga a
+   informação de nível. */
+#HuntMap .hm-card.is-candidato {
+	border-color: var(--gold-500);
+	border-left-color: var(--hm-fit);
+}
+
+#HuntMap .hm-card.is-cacando,
+#HuntMap .hm-card.is-escolhido {
+	box-shadow: var(--glow-gold);
+}
+
+#HuntMap .hm-card.is-escolhido {
+	background: color-mix(in srgb, var(--gold-400) 16%, var(--surface-card));
+}
+
+/* A linha a mais do cartão: o selo do Explorar, o "▸ Você: ..." e o selo de
+   golpes. Quebra em duas linhas se não couber, nunca corta o número. */
+#HuntMap .hm-card-medida {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 4px var(--sp-3);
+	min-width: 0;
+	margin-top: 1px;
+	font: var(--type-desc);
+}
+
+#HuntMap .hm-voce-caca {
+	color: var(--text-title);
+	font: var(--type-label);
+	font-variant-numeric: tabular-nums;
+	white-space: nowrap;
+}
+
+#HuntMap .hm-risco,
+#HuntMap .hm-exp-selo {
+	display: inline-flex;
+	align-items: center;
+	gap: 3px;
+	padding: 2px 7px;
+	border: 1px solid transparent;
+	border-radius: var(--radius-pill);
+	font: var(--type-badge);
+	white-space: nowrap;
+}
+
+#HuntMap .hm-risco b {
+	font-weight: inherit;
+	text-transform: uppercase;
+	letter-spacing: var(--ls-caps);
+}
+
+#HuntMap .hm-risco--seguro,
+#HuntMap .hm-exp-selo--medido {
+	color: var(--green-600);
+	background: color-mix(in srgb, var(--green-600) 12%, var(--white));
+	border-color: color-mix(in srgb, var(--green-600) 40%, transparent);
+}
+
+#HuntMap .hm-risco--cuidado {
+	color: var(--gold-700);
+	background: color-mix(in srgb, var(--gold-400) 18%, var(--white));
+	border-color: var(--border-gold);
+}
+
+#HuntMap .hm-risco--arriscado,
+#HuntMap .hm-exp-selo--arriscado {
+	color: var(--red-600);
+	background: color-mix(in srgb, var(--red-600) 10%, var(--white));
+	border-color: color-mix(in srgb, var(--red-600) 40%, transparent);
+}
+
+#HuntMap .hm-exp-selo--medindo,
+#HuntMap .hm-exp-selo--escolhido {
+	color: var(--ink-900);
+	background: linear-gradient(180deg, var(--gold-300), var(--gold-400));
+	border-color: var(--gold-500);
+}
+
+#HuntMap .hm-exp-selo--esperando {
+	color: var(--text-muted);
+	background: var(--surface-inset);
+	border-color: var(--border-hairline);
+}
+
+/* "Sua caça aqui" no quadro VOCÊ do dossiê. */
+#HuntMap .hm-fit-caca-row {
+	justify-content: flex-start;
+	margin-top: var(--sp-2);
+}
+
+#HuntMap .hm-fit-caca {
+	color: var(--text-title);
+	font-variant-numeric: tabular-nums;
+}
+
+/* Celular: os alvos novos com 44px, a regra tátil do dono (08/09/2026). A
+   faixa já fica parada no topo da lista (ela mora fora da rolagem). */
+@media (max-width: 599px) {
+	#HuntMap .hm-explorar,
+	#HuntMap .hm-explorar-cancelar {
+		min-height: 44px;
+	}
+
+	#HuntMap .hm-explorar-dispensar {
+		width: 44px;
+		height: 44px;
+	}
+}
+
+.ri-vertical #HuntMap .hm-explorar,
+.ri-vertical #HuntMap .hm-explorar-cancelar {
+	min-height: 44px;
+}
+
+.ri-vertical #HuntMap .hm-explorar {
+	flex: 1 1 auto;
+}
+
+.ri-vertical #HuntMap .hm-explorar-dispensar {
+	width: 44px;
+	height: 44px;
+}
+
+.ri-vertical #HuntMap .hm-explorar-faixa {
+	margin: 6px 8px 0;
+}
+
+.ri-vertical #HuntMap .hm-window.is-passo-detalhe .hm-explorar-faixa {
+	display: none;
+}

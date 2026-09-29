@@ -1,7 +1,6 @@
 /**
- * A BANCADA DE DESEMPENHO da janela "Seus mapas" contra o Mapa de Caca
- * (contrato da Caca Medida, secao 6: *"abrir e desenhar em menos tempo que o
- * Mapa de Caca"*).
+ * A BANCADA DE DESEMPENHO DO MAPA DE CACA (contrato da Caca Medida, secao 10:
+ * *"o Mapa de Caca abre MAIS RAPIDO que hoje"*).
  *
  * Ela so roda com o catalogo REAL na mao, e por isso pula na suite normal:
  *
@@ -10,18 +9,22 @@
  * `<paginas.json>` e um array com as strings JSON das paginas do
  * `ZC_RAGIDLE_CATALOGO`, como o servidor as manda (`paginarCatalogo` sobre o
  * `montarCatalogo` do `conteudo.json`). Com `RAG_BENCH_SAIDA=<pasta>` ela
- * tambem grava o HTML final das duas janelas, para a medicao no Chromium.
+ * tambem grava o HTML da janela em dois instantes — logo depois do trecho
+ * sincrono da abertura e com a lista completa —, para a medicao no Chromium.
+ *
+ * O MESMO arquivo mede o codigo de antes e o de depois: ele so usa o que as
+ * duas versoes tem (`toggle`, `limparEstadoDoPersonagem`, o gancho do
+ * catalogo) e, quando existe, `_terminarLista()` — que na versao de antes nao
+ * existe porque la a lista inteira saia no mesmo `innerHTML`.
  *
  * O INSTRUMENTO e `performance.now()` no **jsdom**: ele mede o trabalho de JS
  * e de construcao do DOM (ler o pacote, filtrar, ordenar, montar a string, o
  * `innerHTML`), e NAO mede estilo, leiaute nem pintura — o jsdom nao tem
- * nenhum dos tres. Numero daqui nao descreve o celular; descreve o custo de JS
- * das duas janelas na mesma maquina, lado a lado.
+ * nenhum dos tres. Numero daqui nao descreve o celular.
  */
 import { describe, expect, it, vi } from 'vitest';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { estadoComNMapas } from '../fixtures/cacaMedidaEstado.js';
 
 const CATALOGO = process.env.RAG_BENCH_CATALOGO;
 const SAIDA = process.env.RAG_BENCH_SAIDA;
@@ -52,80 +55,141 @@ function estatistica(amostras) {
 	return { mediana: q(0.5), p95: q(0.95), min: o[0], n: o.length };
 }
 
-const fmt = s => `mediana ${s.mediana.toFixed(3)} ms · p95 ${s.p95.toFixed(3)} ms · min ${s.min.toFixed(3)} ms (n=${s.n})`;
+const fmt = s => `mediana ${s.mediana.toFixed(2)} ms · p95 ${s.p95.toFixed(2)} ms · min ${s.min.toFixed(2)} ms (n=${s.n})`;
 
-describe.skipIf(!ligada)('bancada: Seus mapas contra o Mapa de Caca (jsdom)', () => {
-	it('mede as duas janelas com o mesmo relogio', async () => {
+/**
+ * O bloco `cacaMedida` que um ADMINISTRADOR recebe (secao 9), sintetico sobre
+ * o catalogo real: 30 mapas medidos e o risco de todos. As paginas de fora
+ * nao mudam — o bloco entra so na primeira, que e onde o servidor o poe.
+ */
+function paginasDeAdmin(paginas) {
+	const todos = paginas.flatMap(p => JSON.parse(p).mapas || []);
+	const medida = {};
+	todos.slice(0, 30).forEach((m, i) => {
+		medida[m.mapa] = {
+			minutos: 12 + i,
+			medido: true,
+			fichaAtual: true,
+			expBasePorHora: 1000 + i * 137,
+			expClassePorHora: 700 + i * 91,
+			zenyPorHora: 5000 + i * 311,
+			pocoesPorHora: 40 + i,
+			mortes: i % 4,
+			mortesPorHora: i % 4,
+			abatesPorHora: 120 + i
+		};
+	});
+	const risco = {};
+	todos.forEach((m, i) => {
+		const golpes = 1 + (i % 12);
+		risco[m.mapa] = [golpes, golpes >= 7 ? 's' : golpes >= 4 ? 'c' : 'a', i % 5 === 0 ? 1 : 0];
+	});
+	const primeira = JSON.parse(paginas[0]);
+	primeira.cacaMedida = { v: 2, limites: { seguro: 7, cuidado: 4 }, medida, risco, explorar: { estado: 'parado' } };
+	return [JSON.stringify(primeira)].concat(paginas.slice(1));
+}
+
+describe.skipIf(!ligada)('bancada: abrir o Mapa de Caca (jsdom)', () => {
+	it('mede a abertura, a lista completa e a reabertura', async () => {
 		const paginas = JSON.parse(readFileSync(CATALOGO, 'utf8'));
+		const deAdmin = paginasDeAdmin(paginas);
 		const { default: PACKET } = await import('Network/PacketStructure.js');
-
-		/* --- o Mapa de Caca, com o HTML e o codigo de verdade --- */
 		const { default: HuntMap } = await import('UI/Components/HuntMap/HuntMap.js');
 		const { default: htmlDoMapa } = await import('UI/Components/HuntMap/HuntMap.html?raw');
 		HuntMap._host = document.createElement('div');
 		HuntMap._host.innerHTML = htmlDoMapa;
 		HuntMap._shadow = null;
+		HuntMap.focus = () => {};
+		HuntMap.draggable = () => {};
+		HuntMap.init();
 		const catalogo = mocks.hooks.find(h => h.pkt === PACKET.ZC.RAGIDLE_CATALOGO).cb;
-		const chegarCatalogo = () => {
-			for (const json of paginas) {
+		const terminar = () => (typeof HuntMap._terminarLista === 'function' ? HuntMap._terminarLista() : undefined);
+		const cartoes = () => HuntMap._host.querySelectorAll('.hm-card').length;
+
+		function abrirDoZero(pags) {
+			HuntMap.limparEstadoDoPersonagem(); // fecha e esquece: a proxima abertura e a primeira
+			const t0 = performance.now();
+			HuntMap.toggle();
+			for (const json of pags) {
 				catalogo({ json });
 			}
-		};
-
-		/* --- a janela nova, com o HTML e o codigo de verdade --- */
-		const { default: CacaMedidaIdle } = await import('UI/Components/CacaMedidaIdle/CacaMedidaIdle.js');
-		const { default: htmlDaJanela } = await import('UI/Components/CacaMedidaIdle/CacaMedidaIdle.html?raw');
-		CacaMedidaIdle._host = document.createElement('div');
-		CacaMedidaIdle._host.innerHTML = htmlDaJanela;
-		CacaMedidaIdle._shadow = null;
-		CacaMedidaIdle.__active = true;
-		CacaMedidaIdle.focus = () => {};
-		const pacote = mocks.hooks.find(h => h.pkt === PACKET.ZC.RAGIDLE_CACA_MEDIDA).cb;
-		const json30 = JSON.stringify({ ...estadoComNMapas(30), abrir: true });
-		const abrirJanela = () => {
-			CacaMedidaIdle.limparEstadoDoPersonagem(); // fecha: a proxima chegada ABRE
-			pacote({ json: json30 });
-		};
-
-		/* aquecimento, que o JIT nao entra na conta */
-		for (let i = 0; i < 20; i++) {
-			chegarCatalogo();
-			abrirJanela();
+			const t1 = performance.now();
+			const noPrimeiroQuadro = cartoes();
+			terminar();
+			const t2 = performance.now();
+			return { sincrono: t1 - t0, completo: t2 - t0, noPrimeiroQuadro, total: cartoes() };
+		}
+		function reabrir(pags) {
+			HuntMap.toggle(); // fecha
+			const t0 = performance.now();
+			HuntMap.toggle(); // abre
+			for (const json of pags) {
+				catalogo({ json });
+			}
+			const t1 = performance.now();
+			terminar();
+			return performance.now() - t0 + 0 * t1;
 		}
 
-		/* intercalado: a mesma carga de maquina pega as duas */
-		const mapa = [];
-		const nova = [];
-		for (let i = 0; i < 100; i++) {
-			let t = performance.now();
-			chegarCatalogo();
-			mapa.push(performance.now() - t);
-			t = performance.now();
-			abrirJanela();
-			nova.push(performance.now() - t);
+		for (let i = 0; i < 10; i++) {
+			abrirDoZero(paginas);
+			reabrir(paginas);
+			abrirDoZero(deAdmin);
 		}
-		const sMapa = estatistica(mapa);
-		const sNova = estatistica(nova);
 
-		const bytesCatalogo = paginas.reduce((s, p) => s + Buffer.byteLength(p, 'utf8'), 0);
-		const cartoesDoMapa = HuntMap._host.querySelectorAll('.hm-card').length;
-		const cartoesDaNova = CacaMedidaIdle._host.querySelectorAll('.cm-cartao').length;
-		console.log(
-			`\n[bancada jsdom] Mapa de Caca (${paginas.length} paginas, ${bytesCatalogo} bytes, ${cartoesDoMapa} cartoes): ${fmt(sMapa)}` +
-				`\n[bancada jsdom] Seus mapas   (1 pacote, ${Buffer.byteLength(json30, 'utf8')} bytes, ${cartoesDaNova} cartoes): ${fmt(sNova)}` +
-				`\n[bancada jsdom] razao das medianas: ${(sMapa.mediana / sNova.mediana).toFixed(1)}x`
+		const sinc = [];
+		const comp = [];
+		const reab = [];
+		const sincAdmin = [];
+		const compAdmin = [];
+		let ultimo = null;
+		let ultimoAdmin = null;
+		for (let i = 0; i < 40; i++) {
+			ultimo = abrirDoZero(paginas);
+			sinc.push(ultimo.sincrono);
+			comp.push(ultimo.completo);
+			reab.push(reabrir(paginas));
+			ultimoAdmin = abrirDoZero(deAdmin);
+			sincAdmin.push(ultimoAdmin.sincrono);
+			compAdmin.push(ultimoAdmin.completo);
+		}
+
+		const texto = (
+			`\n[bancada jsdom] abrir (1a vez, jogador): cartoes no 1o quadro ${ultimo.noPrimeiroQuadro} de ${ultimo.total}` +
+				`\n  trecho sincrono (ate o 1o quadro): ${fmt(estatistica(sinc))}` +
+				`\n  ate a lista completa:              ${fmt(estatistica(comp))}` +
+				`\n[bancada jsdom] reabrir com o MESMO catalogo:   ${fmt(estatistica(reab))}` +
+				`\n[bancada jsdom] abrir (1a vez, admin c/ cacaMedida): cartoes no 1o quadro ${ultimoAdmin.noPrimeiroQuadro} de ${ultimoAdmin.total}` +
+				`\n  trecho sincrono (ate o 1o quadro): ${fmt(estatistica(sincAdmin))}` +
+				`\n  ate a lista completa:              ${fmt(estatistica(compAdmin))}\n`
 		);
+		// O reporter do vitest engole o `console.log` de caso que passa: o
+		// resultado vai direto ao stdout, e a um arquivo quando ha pasta.
+		process.stdout.write(texto);
 
 		if (SAIDA) {
 			mkdirSync(SAIDA, { recursive: true });
-			writeFileSync(join(SAIDA, 'mapa-de-caca.html'), HuntMap._host.innerHTML);
-			writeFileSync(join(SAIDA, 'seus-mapas.html'), CacaMedidaIdle._host.innerHTML);
+			writeFileSync(join(SAIDA, 'resultado.txt'), texto);
+			HuntMap.limparEstadoDoPersonagem();
+			HuntMap.toggle();
+			for (const json of paginas) {
+				catalogo({ json });
+			}
+			writeFileSync(join(SAIDA, 'mapa-de-caca-primeiro-quadro.html'), HuntMap._host.innerHTML);
+			terminar();
+			writeFileSync(join(SAIDA, 'mapa-de-caca-completo.html'), HuntMap._host.innerHTML);
+			HuntMap.limparEstadoDoPersonagem();
+			HuntMap.toggle();
+			for (const json of deAdmin) {
+				catalogo({ json });
+			}
+			terminar();
+			writeFileSync(join(SAIDA, 'mapa-de-caca-admin-completo.html'), HuntMap._host.innerHTML);
 		}
 
-		// CONTROLE: as duas desenharam de verdade — tempo de janela vazia nao
+		// CONTROLE: a janela desenhou de verdade — tempo de janela vazia nao
 		// mede nada ("criterio que passa com zero").
-		expect(cartoesDoMapa).toBeGreaterThan(100);
-		expect(cartoesDaNova).toBe(30);
-		expect(sNova.mediana).toBeLessThan(sMapa.mediana);
-	}, 180_000);
+		expect(ultimo.total).toBeGreaterThan(100);
+		expect(ultimoAdmin.total).toBeGreaterThan(100);
+	}, 300_000);
 });
