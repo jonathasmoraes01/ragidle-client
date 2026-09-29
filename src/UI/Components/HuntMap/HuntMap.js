@@ -531,6 +531,14 @@ HuntMap.onAppend = function onAppend() {
 	// A troca de mapa (o proprio Explorar viaja) remove e reanexa: quem estava
 	// aberta volta aberta, e o relogio do Explorar volta junto.
 	sincronizarRelogioDoExplorar();
+	// Aberta na troca de mapa (Explorar, warp, morte): volta para a FRENTE (o
+	// painel do personagem reanexado a cobria) e pede o catalogo de novo (o
+	// dossie dizia "Voce ja esta em Prontera" depois de viajar). Catalogo igual
+	// nao redesenha. Auditoria pre-push B, 29/09/2026.
+	if (estaAberta()) {
+		HuntMap.focus();
+		requestCatalog();
+	}
 };
 
 /**
