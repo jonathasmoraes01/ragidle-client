@@ -1,0 +1,18 @@
+<div id="CacaMedidaIdle">
+	<div class="cm-window ri-window ri-anima" role="dialog" aria-label="Seus mapas">
+		<div class="cm-titlebar ri-header">
+			<span class="cm-title ri-title">Seus mapas</span>
+			<button type="button" class="cm-close ri-close" title="Fechar" aria-label="Fechar">&times;</button>
+		</div>
+
+		<!-- O SELETOR. Ele e estatico de proposito: o corpo e redesenhado a
+		     cada pacote, e o seletor nao — so troca a classe. -->
+		<div class="cm-seletor" role="group" aria-label="Ordenar por">
+			<button type="button" class="cm-criterio ri-tab" data-criterio="exp" aria-pressed="true">Mais EXP</button>
+			<button type="button" class="cm-criterio ri-tab" data-criterio="zeny" aria-pressed="false">Mais zeny</button>
+		</div>
+
+		<!-- O CORPO: um innerHTML por pacote (formatoDaCacaMedida.js). -->
+		<div class="cm-corpo ri-scroll"><div class="cm-carregando">Carregando…</div></div>
+	</div>
+</div>

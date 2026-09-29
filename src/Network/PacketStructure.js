@@ -17087,6 +17087,40 @@ PACKET.ZC.RAGIDLE_TITULOS_E_AURA = function PACKET_ZC_RAGIDLE_TITULOS_E_AURA(fp,
 PACKET.ZC.RAGIDLE_TITULOS_E_AURA.size = -1;
 
 // ---------------------------------------------------------------------------
+// A CACA MEDIDA E O EXPLORAR - 28/09/2026.
+//
+// Contrato: `docs/CONTRATO-CACA-MEDIDA.md` secao 4 (repositorio do servidor).
+// Os dois ultimos slots da reserva RAGIDLE. A janela e "Seus mapas"
+// (`UI/Components/CacaMedidaIdle`), aberta pelo comando `@cacamedida`, que so
+// o administrador alcanca enquanto a janela estiver em teste.
+// ---------------------------------------------------------------------------
+
+// 0x0fb4 - RAGIDLE: CZ_RAGIDLE_CACA_MEDIDA (client -> server)
+// Variable size: u16 opcode + u16 total length + JSON UTF-8 payload.
+// { acao: 'pedir' } | { acao: 'explorar' } | { acao: 'cancelar' }.
+PACKET.CZ.RAGIDLE_CACA_MEDIDA = function PACKET_CZ_RAGIDLE_CACA_MEDIDA() {
+	this.json = '{}';
+};
+PACKET.CZ.RAGIDLE_CACA_MEDIDA.prototype.build = function () {
+	const bytes = TextEncoding.encode(this.json, 'utf-8');
+	const pkt_len = 2 + 2 + bytes.length;
+	const pkt_buf = new BinaryWriter(pkt_len);
+	pkt_buf.writeShort(0x0fb4);
+	pkt_buf.writeUShort(pkt_len);
+	pkt_buf.writeString(this.json);
+	return pkt_buf;
+};
+
+// 0x0fb5 - RAGIDLE: ZC_RAGIDLE_CACA_MEDIDA (server -> client)
+// Variable size: u16 opcode + u16 total length + JSON UTF-8 payload.
+// { v: 1, abrir?, mapaAtual, sugestaoDaEscada, mapas, explorar, resultado? }.
+// Quem le e `UI/Components/CacaMedidaIdle/CacaMedidaIdle.js`, o unico dono.
+PACKET.ZC.RAGIDLE_CACA_MEDIDA = function PACKET_ZC_RAGIDLE_CACA_MEDIDA(fp, end) {
+	this.json = fp.readString(end - fp.tell());
+};
+PACKET.ZC.RAGIDLE_CACA_MEDIDA.size = -1;
+
+// ---------------------------------------------------------------------------
 // O MENU LFG (Looking For Group) — D-634, 25/08/2026.
 //
 // Tres opcodes da faixa RAGIDLE reservada em D-527. Eles NAO substituem os
