@@ -572,7 +572,7 @@ StatusInfo[SC.CASH_RECEIVEITEM] = {
 	icon: 'item.tga',
 	haveTimeLimit: 1,
 	posTimeLimitStr: 2,
-	descript: [['Bubble Gum', COLOR_TITLE_BUFF], ['%s', COLOR_TIME], ['Increases the drop chance of all items']]
+	descript: [['Drop Bonus', COLOR_TITLE_BUFF], ['%s', COLOR_TIME], ['Increases the drop chance of all items']]
 };
 
 StatusInfo[SC.PERIOD_RECEIVEITEM_2ND] = {
