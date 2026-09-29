@@ -27,6 +27,7 @@ import ChatBox from 'UI/Components/ChatBox/ChatBox.js';
 import { ehFaltaDeItem, textoDeFaltaDeItem } from './faltaDeItemNaSkill.js';
 import { criarPedidoAdiado } from './pedidoAdiadoPeloGolpe.js';
 import { TEXTO_GERAL, textoDaCausaSemMensagem } from './textoDaFalhaDeSkill.js';
+import { TEXTO_LONGE_DEMAIS, caminhoCabeNoTetoDoServidor } from './tetoDaCaminhadaDaSkill.js';
 
 // C32 (29/09/2026): o pedido dentro da janela do golpe espera, em vez de sumir.
 const _pedidoNoGolpe = criarPedidoAdiado({
@@ -625,6 +626,29 @@ Guild.onIncreaseSkill =
 		onIncreaseSkill;
 
 /**
+ * C19 (auditoria de tela, 29/09/2026): o caminho ate o alcance cabe no teto
+ * que o servidor anda (unit.cpp:855-869, 17 passos; 14 sem a reta livre)? Se
+ * nao cabe, a skill nao e armada em `Session.moveAction` (o servidor recusaria
+ * o andar calado e ela nunca sairia) e o jogador e avisado no chat. Ver
+ * tetoDaCaminhadaDaSkill.js.
+ *
+ * @param {Array} pos - posicao de quem anda
+ * @param {Array} out - o caminho do PathFinding.search
+ * @param {number} count - o que o PathFinding.search devolveu
+ * @returns {boolean}
+ */
+function caminhoDaSkillCabe(pos, out, count) {
+	const origem = { x: pos[0] | 0, y: pos[1] | 0 };
+	const destino = { x: out[(count - 1) * 2 + 0], y: out[(count - 1) * 2 + 1] };
+	const naoAndavel = (x, y) => !(Altitude.getCellType(x, y) & Altitude.TYPE.WALKABLE);
+	if (caminhoCabeNoTetoDoServidor(count, origem, destino, naoAndavel)) {
+		return true;
+	}
+	ChatBox.addText(TEXTO_LONGE_DEMAIS, ChatBox.TYPE.ERROR, ChatBox.FILTER.SKILL_FAIL);
+	return false;
+}
+
+/**
  * Cast a skill on someone
  *
  * @param {number} skill id
@@ -705,6 +729,12 @@ function onUseSkill(id, level, targetID) {
 	// In range
 	if (count < 2 || target === entity) {
 		Network.sendPacket(pkt);
+		return;
+	}
+
+	// C19: o jogador so anda o que o servidor aceita (o homunculo e o
+	// mercenario andam por outro pacote, CZ_REQUEST_MOVENPC).
+	if (!isHomun && !isMerc && !caminhoDaSkillCabe(entity.position, out, count)) {
 		return;
 	}
 
@@ -807,6 +837,11 @@ SkillTargetSelection.onUseSkillToPos = function onUseSkillToPos(id, level, x, y)
 	// In range
 	if (count < 2) {
 		Network.sendPacket(pkt);
+		return;
+	}
+
+	// C19: o mesmo teto da skill no alvo (ver caminhoDaSkillCabe).
+	if (!isHomun && !caminhoDaSkillCabe(pos, out, count)) {
 		return;
 	}
 
