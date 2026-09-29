@@ -78,6 +78,8 @@ import {
 	INTERVALO_DO_PEDIDO_MS,
 	ORDEM_DA_MEDIDA,
 	ROTULO_DA_ORDEM,
+	candidatosEmSeusMapas,
+	candidatosNaFrente,
 	classesDoCandidato,
 	ehMapaMedido,
 	fundirPacote,
@@ -88,6 +90,7 @@ import {
 	mapasQueMudaram,
 	medidaMexeNaLista,
 	ordenarPorMedida,
+	seusMapasMudaram,
 	textoDaCacaNoPainel
 } from './cacaMedidaNoMapa.js'; // RAGIDLE: a Caca Medida dentro do Mapa de Caca (v2, 29/09/2026)
 import { fecharEEsquecer } from '../limpezaDeJanelaIdle.js';
@@ -984,16 +987,19 @@ function onCacaMedidaRecebida(pkt) {
 	 * conjunto de "Seus mapas").
 	 */
 	const medidaMudou = pacote.medida ? mapasQueMudaram(antes && antes.medida, pacote.medida) : new Set();
+	/*
+	 * Em "Seus mapas" quem decide redesenhar e o CONJUNTO da aba (candidatos do
+	 * Explorar + medidos), e nao so o medido: o candidato que fica medido ja
+	 * estava na lista (so o cartao dele troca), e o Explorar que comeca, muda
+	 * de candidatos ou para mexe na lista sem nenhuma medida mudar. Por isso o
+	 * `soSeus` de `medidaMexeNaLista` vai `false` aqui: a pergunta dele virou
+	 * `seusMapasMudaram`.
+	 */
 	const mudouLista =
 		('risco' in pacote && JSON.stringify(pacote.risco) !== JSON.stringify(antes ? antes.risco : null)) ||
 		(!!pacote.limites && JSON.stringify(pacote.limites) !== JSON.stringify(antes ? antes.limites : null)) ||
-		medidaMexeNaLista(
-			antes && antes.medida,
-			depois.medida,
-			medidaMudou,
-			HuntMap.sortKey,
-			HuntMap.filterSeus
-		);
+		(HuntMap.filterSeus && seusMapasMudaram(antes, depois)) ||
+		medidaMexeNaLista(antes && antes.medida, depois.medida, medidaMudou, HuntMap.sortKey, false);
 	HuntMap.cacaMedida = depois;
 	// O desenho passa a refletir o pacote, e nao so o catalogo cru: o proximo
 	// catalogo, mesmo igual ao anterior, redesenha (regra 2).
@@ -1533,6 +1539,9 @@ function renderList() {
 	const bloco = HuntMap.cacaMedida;
 	// "Seus mapas" so vale com o bloco: sem ele o botao nem aparece.
 	const soSeus = !!bloco && HuntMap.filterSeus;
+	// Os candidatos do Explorar em curso ou concluido tambem sao "seus" (a aba
+	// nao fica vazia enquanto nenhum tem os 10 minutos). `[]` parado.
+	const candidatos = soSeus ? candidatosEmSeusMapas(bloco) : [];
 	/* A BUSCA PROCURA NO JOGO INTEIRO (26/09/2026). Com termo, a aba de regiao,
 	   o "Para mim" e os Favoritos deixam de cortar a lista: o item que so cai
 	   fora da faixa do jogador, ou noutra regiao, "nao existia" — e o vazio
@@ -1552,7 +1561,7 @@ function renderList() {
 		if (!buscando && HuntMap.filterFavoritos && !HuntMap.favoritos.includes(mapa.mapa)) {
 			return false;
 		}
-		if (!buscando && soSeus && !ehMapaMedido(bloco, mapa.mapa)) {
+		if (!buscando && soSeus && !ehMapaMedido(bloco, mapa.mapa) && !candidatos.includes(mapa.mapa)) {
 			return false;
 		}
 		motivos.set(mapa.mapa, motivo);
@@ -1564,6 +1573,11 @@ function renderList() {
 		mapas = ordenarPorMedida(ordenarMapas(mapas, 'nivel', catalog.nivel), bloco, HuntMap.sortKey);
 	} else {
 		mapas = ordenarMapas(mapas, HuntMap.sortKey, catalog.nivel);
+	}
+	if (!buscando && candidatos.length) {
+		// Os candidatos na frente, na ordem da exploracao; os medidos depois,
+		// na ordem do seletor.
+		mapas = candidatosNaFrente(mapas, candidatos);
 	}
 
 	if (countEl) {

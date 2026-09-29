@@ -22,6 +22,9 @@ import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { catalogoPequeno, blocoDaCacaMedida, explorarEmCurso, explorarConcluido } from '../fixtures/huntMapCatalogo.js';
 import {
+	candidatosEmSeusMapas,
+	candidatosNaFrente,
+	chaveDeSeusMapas,
 	fundirPacote,
 	formatarNumero,
 	htmlDaFaixaDoExplorar,
@@ -32,6 +35,7 @@ import {
 	medidaMexeNaLista,
 	ordenarPorMedida,
 	seloDoRisco,
+	seusMapasMudaram,
 	textoDaCacaNoPainel,
 	textoDosGolpes
 } from 'UI/Components/HuntMap/cacaMedidaNoMapa.js';
@@ -236,6 +240,55 @@ describe('selos, ordem e textos', () => {
 	it('escapa o rotulo que vem do servidor', () => {
 		const explorar = { estado: 'explorando', indice: 0, candidatos: [{ mapa: 'x', rotulo: '<img onerror=1>', estado: 'medindo', minutos: 1 }] };
 		expect(htmlDaFaixaDoExplorar(explorar, () => '')).not.toContain('<img');
+	});
+});
+
+describe('os candidatos do Explorar em "Seus mapas" (29/09/2026)', () => {
+	const ler = extra => lerBlocoDaCacaMedida(blocoDaCacaMedida(extra));
+
+	it('explorando e concluido: os candidatos na ordem da exploracao; parado e sem bloco: nenhum', () => {
+		expect(candidatosEmSeusMapas(ler({ explorar: explorarEmCurso() }))).toEqual(['prt_fild02', 'pay_fild01', 'prt_sewb4']);
+		expect(candidatosEmSeusMapas(ler({ explorar: explorarConcluido() }))).toEqual(['prt_fild02', 'pay_fild01', 'prt_sewb4']);
+		expect(candidatosEmSeusMapas(ler({ explorar: explorarConcluido(null) }))).toEqual(['prt_fild02', 'pay_fild01', 'prt_sewb4']);
+		expect(candidatosEmSeusMapas(ler())).toEqual([]);
+		expect(candidatosEmSeusMapas(null)).toEqual([]);
+	});
+
+	it('o candidato repetido entra uma vez so, na primeira posicao', () => {
+		const explorar = explorarEmCurso();
+		explorar.candidatos.push({ ...explorar.candidatos[0] });
+		expect(candidatosEmSeusMapas(ler({ explorar }))).toEqual(['prt_fild02', 'pay_fild01', 'prt_sewb4']);
+	});
+
+	it('candidatosNaFrente: candidatos na ordem da exploracao, o resto na ordem que chegou', () => {
+		const mapas = ['a', 'gef_fild10', 'pay_fild01', 'b', 'prt_fild02'].map(mapa => ({ mapa }));
+		expect(candidatosNaFrente(mapas, ['prt_fild02', 'pay_fild01', 'prt_sewb4']).map(m => m.mapa)).toEqual([
+			'prt_fild02',
+			'pay_fild01',
+			'a',
+			'gef_fild10',
+			'b'
+		]);
+		// Sem candidato, a MESMA lista (nem copia).
+		expect(candidatosNaFrente(mapas, [])).toBe(mapas);
+	});
+
+	it('seusMapasMudaram: o Explorar que comeca ou para muda; o candidato que fica medido e o minuto que anda nao', () => {
+		const parado = ler({ medida: {} });
+		const emCurso = ler({ medida: {}, explorar: explorarEmCurso() });
+		expect(seusMapasMudaram(parado, emCurso)).toBe(true);
+		expect(seusMapasMudaram(emCurso, parado)).toBe(true);
+		// O minuto andou e o candidato fechou os 10 minutos: MESMO conjunto.
+		const depois = JSON.parse(JSON.stringify(emCurso));
+		depois.explorar.candidatos[1].minutos = 10;
+		depois.medida.pay_fild01 = { minutos: 10, medido: true, expBasePorHora: 7740, zenyPorHora: 1 };
+		expect(seusMapasMudaram(emCurso, depois)).toBe(false);
+		// Um mapa medido FORA dos candidatos entra: muda.
+		depois.medida.gef_fild10 = { minutos: 12, medido: true, expBasePorHora: 1, zenyPorHora: 1 };
+		expect(seusMapasMudaram(emCurso, depois)).toBe(true);
+		// Parado, o conjunto e so o dos medidos, e a entrada ainda medindo nao conta.
+		expect(chaveDeSeusMapas(ler())).toBe('|pay_fild01,prt_fild02');
+		expect(chaveDeSeusMapas(ler({ medida: { x: { medido: false } } }))).toBe('|');
 	});
 });
 
@@ -549,6 +602,143 @@ describe('o Explorar', () => {
 	});
 });
 
+describe('"Seus mapas" durante o Explorar: os cartoes dos candidatos (29/09/2026)', () => {
+	beforeEach(montar);
+
+	const seus = () => clicar(q('.hm-seg-btn[data-modo="seus"]'));
+	const naLista = () => qq('.hm-card').map(c => c.dataset.mapa);
+	const buscar = termo => {
+		const campo = q('.hm-search');
+		campo.value = termo;
+		campo.dispatchEvent(new Event('input'));
+		HuntMap._terminarLista();
+	};
+
+	it('EXPLORANDO sem nenhum medido: os tres candidatos, na ordem da exploracao, com a borda e o selo — e nao o vazio', () => {
+		abrirCom(catalogoPequeno({ cacaMedida: blocoDaCacaMedida({ medida: {}, explorar: explorarEmCurso() }) }));
+		seus();
+		HuntMap._terminarLista();
+		expect(q('.hm-list-empty')).toBeNull();
+		expect(naLista()).toEqual(['prt_fild02', 'pay_fild01', 'prt_sewb4']);
+		expect(q('.hm-count').textContent).toContain('3 mapas');
+		expect(qq('.hm-card.is-candidato')).toHaveLength(3);
+		expect(q('.hm-card[data-mapa="pay_fild01"]').classList.contains('is-cacando')).toBe(true);
+		expect(q('.hm-card[data-mapa="pay_fild01"] .hm-exp-selo').textContent).toBe('caçando agora');
+		expect(q('.hm-card[data-mapa="prt_sewb4"] .hm-exp-selo').textContent).toBe('na fila');
+		expect(q('.hm-card[data-mapa="prt_fild02"] .hm-exp-selo').textContent).toBe('morreu aqui');
+	});
+
+	it('CONTROLE: parado e sem medido, "Seus mapas" continua com o vazio de hoje', () => {
+		abrirCom(catalogoPequeno({ cacaMedida: blocoDaCacaMedida({ medida: {} }) }));
+		seus();
+		expect(naLista()).toEqual([]);
+		expect(q('.hm-list-empty').textContent).toContain('Nenhum mapa medido ainda');
+	});
+
+	it('CONTROLE: parado com medidos, so os medidos (nenhum candidato)', () => {
+		abrirCom(catalogoPequeno({ cacaMedida: blocoDaCacaMedida() }));
+		seus();
+		expect(naLista().sort()).toEqual(['pay_fild01', 'prt_fild02']);
+		expect(qq('.hm-card.is-candidato')).toHaveLength(0);
+	});
+
+	it('os candidatos vem ANTES dos medidos, tambem com a ordem "Sua EXP/h"', () => {
+		const medida = blocoDaCacaMedida().medida;
+		medida.gef_fild10 = { minutos: 20, medido: true, expBasePorHora: 99999, zenyPorHora: 99999, mortes: 0 };
+		abrirCom(catalogoPequeno({ cacaMedida: blocoDaCacaMedida({ medida, explorar: explorarEmCurso() }) }));
+		seus();
+		HuntMap._terminarLista();
+		expect(naLista()).toEqual(['prt_fild02', 'pay_fild01', 'prt_sewb4', 'gef_fild10']);
+		const sort = q('.hm-sort');
+		sort.value = 'exp-medida';
+		sort.dispatchEvent(new Event('change'));
+		HuntMap._terminarLista();
+		// gef_fild10 tem a maior EXP/h e mesmo assim fica depois dos candidatos.
+		expect(naLista()).toEqual(['prt_fild02', 'pay_fild01', 'prt_sewb4', 'gef_fild10']);
+	});
+
+	it('CONCLUIDO: os candidatos continuam, e o escolhido e o cartao destacado', () => {
+		abrirCom(catalogoPequeno({ cacaMedida: blocoDaCacaMedida({ medida: {}, explorar: explorarConcluido() }) }));
+		seus();
+		expect(naLista()).toEqual(['prt_fild02', 'pay_fild01', 'prt_sewb4']);
+		const escolhido = q('.hm-card[data-mapa="pay_fild01"]');
+		expect(escolhido.classList.contains('is-escolhido')).toBe(true);
+		expect(escolhido.querySelector('.hm-exp-selo').textContent).toBe('Você ficou aqui');
+		expect(qq('.hm-card.is-escolhido')).toHaveLength(1);
+	});
+
+	it('o Explorar que COMECA com a aba aberta poe os candidatos; o que PARA os tira e volta ao vazio', () => {
+		abrirCom(catalogoPequeno({ cacaMedida: blocoDaCacaMedida({ medida: {} }) }));
+		seus();
+		expect(q('.hm-list-empty')).not.toBeNull();
+		chegarCacaMedida({ v: 1, explorar: explorarEmCurso() });
+		HuntMap._terminarLista();
+		expect(naLista()).toEqual(['prt_fild02', 'pay_fild01', 'prt_sewb4']);
+		chegarCacaMedida({ v: 1, explorar: { estado: 'parado' } });
+		expect(naLista()).toEqual([]);
+		expect(q('.hm-list-empty').textContent).toContain('Nenhum mapa medido ainda');
+	});
+
+	it('DESEMPENHO: o pedir de 30 s e o candidato que fecha os 10 min NAO redesenham a lista; so trocam os cartoes', () => {
+		const bloco = blocoDaCacaMedida({ medida: {}, explorar: explorarEmCurso() });
+		abrirCom(catalogoPequeno({ cacaMedida: bloco }));
+		seus();
+		HuntMap._terminarLista();
+		const nos = qq('.hm-card');
+		// So o minuto andou.
+		const minuto = JSON.parse(JSON.stringify(bloco));
+		minuto.explorar.candidatos[1].minutos = 7;
+		chegarCacaMedida({ v: 1, explorar: minuto.explorar, cacaMedida: minuto });
+		expect(qq('.hm-card')).toEqual(nos);
+		// pay_fild01 fechou os 10 minutos: medido, e o proximo candidato comeca.
+		const medido = JSON.parse(JSON.stringify(minuto));
+		medido.explorar.indice = 2;
+		medido.explorar.candidatos[1] = { ...medido.explorar.candidatos[1], estado: 'medido', minutos: 10, expBasePorHora: 7740 };
+		medido.explorar.candidatos[2].estado = 'medindo';
+		medido.medida.pay_fild01 = { minutos: 10, medido: true, expBasePorHora: 7740, zenyPorHora: 21500, mortes: 0 };
+		chegarCacaMedida({ v: 1, explorar: medido.explorar, cacaMedida: medido });
+		expect(qq('.hm-card')).toEqual(nos);
+		expect(q('.hm-card[data-mapa="pay_fild01"] .hm-exp-selo').textContent).toBe('sem mortes: 7.740 EXP/h');
+		expect(q('.hm-card[data-mapa="pay_fild01"] .hm-voce-caca').textContent).toContain('7.740 EXP/h');
+		expect(q('.hm-card[data-mapa="prt_sewb4"]').classList.contains('is-cacando')).toBe(true);
+	});
+
+	it('FORA de "Seus mapas" nada muda: o Explorar que comeca em "Todos" nao redesenha a lista', () => {
+		abrirCom(catalogoPequeno({ cacaMedida: blocoDaCacaMedida({ medida: {} }) }));
+		const nos = qq('.hm-card');
+		chegarCacaMedida({ v: 1, explorar: explorarEmCurso() });
+		expect(qq('.hm-card')).toEqual(nos);
+		expect(qq('.hm-card.is-candidato')).toHaveLength(3);
+	});
+
+	it('FORA de "Seus mapas" nada muda: em "Todos" os candidatos NAO vao para a frente', async () => {
+		abrirCom(catalogoPequeno({ cacaMedida: blocoDaCacaMedida({ medida: {} }) }));
+		const semExplorar = naLista();
+		await montar();
+		abrirCom(catalogoPequeno({ cacaMedida: blocoDaCacaMedida({ medida: {}, explorar: explorarEmCurso() }) }));
+		expect(naLista()).toEqual(semExplorar);
+		// Controle de que o caso mede algo: a ordem de sempre NAO comeca pelos candidatos.
+		expect(semExplorar.slice(0, 3)).not.toEqual(['prt_fild02', 'pay_fild01', 'prt_sewb4']);
+	});
+
+	it('a busca continua procurando no jogo inteiro, na ordem de sempre (os candidatos nao vao para a frente)', async () => {
+		// Controle: a ordem da busca SEM Explorar.
+		abrirCom(catalogoPequeno({ cacaMedida: blocoDaCacaMedida({ medida: {} }) }));
+		seus();
+		buscar('Campo');
+		const semExplorar = naLista();
+		expect(semExplorar.length).toBeGreaterThan(1);
+		await montar();
+		abrirCom(catalogoPequeno({ cacaMedida: blocoDaCacaMedida({ medida: {}, explorar: explorarEmCurso() }) }));
+		seus();
+		buscar('Campo');
+		expect(naLista()).toEqual(semExplorar);
+		// E o que nao e candidato nem medido aparece (a busca ignora a aba).
+		buscar('Geffen');
+		expect(naLista()).toEqual(['gef_fild10']);
+	});
+});
+
 /* ═════════════════════════ 3. DESEMPENHO ═════════════════════════ */
 
 /** Um catalogo com N mapas (clones do pequeno), para a lista passar do 1o lote. */
@@ -693,6 +883,12 @@ describe('CSS: escondido esconde, e o dedo tem 44 px', () => {
 	it('no celular em pe o Explorar e o Cancelar tem 44 px, e o × tambem', () => {
 		expect(CSS).toMatch(/\.ri-vertical #HuntMap \.hm-explorar,\n\.ri-vertical #HuntMap \.hm-explorar-cancelar \{\n\tmin-height: 44px;/);
 		expect(CSS).toMatch(/\.ri-vertical #HuntMap \.hm-explorar-dispensar \{\n\twidth: 44px;\n\theight: 44px;/);
+	});
+
+	it('no celular em pe o botao "Seus mapas" (onde os candidatos aparecem) tem 44 px, e o cartao passa disso', () => {
+		expect(CSS).toMatch(/\.ri-vertical #HuntMap \.hm-seg-btn,\n\.ri-vertical #HuntMap \.hm-sort \{\n\tmin-height: 44px;/);
+		// O cartao do candidato e o cartao de sempre.
+		expect(CSS).toMatch(/#HuntMap \.hm-card \{\n\tposition: relative;\n\tdisplay: flex;[^}]*min-height: 100px;/);
 	});
 
 	it('a faixa mora FORA da rolagem da lista (fica parada no topo dela)', () => {

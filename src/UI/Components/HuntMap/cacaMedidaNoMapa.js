@@ -395,6 +395,76 @@ export function htmlDaLinhaDoCartao(bloco, mapa) {
 	return partes.length ? `<div class="hm-card-medida">${partes.join('')}</div>` : '';
 }
 
+/*
+ * OS CANDIDATOS DO EXPLORAR EM "SEUS MAPAS" (29/09/2026, recomendacao
+ * aprovada). Visto na tela: durante o Explorar a aba "Seus mapas" ficava
+ * VAZIA ("0 mapas · Nenhum mapa medido ainda..."), porque nenhum candidato
+ * tinha os 10 minutos ainda — e a faixa dizia "Explorando 1 de 3 — X" sem o
+ * jogador ver o cartao de X. Enquanto o Explorar corre, e no resultado
+ * `concluido`, "Seus mapas" mostra tambem os cartoes dos CANDIDATOS, antes dos
+ * medidos e na ordem da exploracao. Com o Explorar parado, nada muda.
+ */
+
+/**
+ * Os mapas candidatos que "Seus mapas" mostra, na ORDEM DA EXPLORACAO. `[]`
+ * com o Explorar parado (ou sem bloco): ai a aba e so a dos medidos.
+ */
+export function candidatosEmSeusMapas(bloco) {
+	const explorar = bloco && bloco.explorar;
+	if (!explorar || (explorar.estado !== 'explorando' && explorar.estado !== 'concluido')) {
+		return [];
+	}
+	const saida = [];
+	for (const c of explorar.candidatos || []) {
+		if (c && typeof c.mapa === 'string' && c.mapa && !saida.includes(c.mapa)) {
+			saida.push(c.mapa);
+		}
+	}
+	return saida;
+}
+
+/**
+ * A lista de "Seus mapas" com os candidatos NA FRENTE, na ordem da
+ * exploracao; o resto (os medidos) fica na ordem em que chegou — quem chama
+ * ja a ordenou pelo seletor.
+ *
+ * @param {Array<{mapa: string}>} mapas
+ * @param {string[]} candidatos  `candidatosEmSeusMapas(bloco)`
+ */
+export function candidatosNaFrente(mapas, candidatos) {
+	if (!candidatos || !candidatos.length) {
+		return mapas;
+	}
+	const posicao = new Map(candidatos.map((mapa, i) => [mapa, i]));
+	const frente = mapas.filter(m => posicao.has(m.mapa)).sort((a, b) => posicao.get(a.mapa) - posicao.get(b.mapa));
+	return frente.concat(mapas.filter(m => !posicao.has(m.mapa)));
+}
+
+/**
+ * O CONJUNTO de "Seus mapas" como texto comparavel: os candidatos na ordem da
+ * exploracao e os medidos em ordem alfabetica. Duas chaves iguais = a aba
+ * mostra os mesmos mapas na mesma posicao relativa dos candidatos, e o
+ * `0x0fb5` so troca os cartoes (o candidato que fica medido ja estava na
+ * lista, e nao entra de novo).
+ */
+export function chaveDeSeusMapas(bloco) {
+	const candidatos = candidatosEmSeusMapas(bloco);
+	const medidos = [];
+	const medida = (bloco && bloco.medida) || {};
+	for (const mapa of Object.keys(medida)) {
+		if (medida[mapa] && medida[mapa].medido === true && !candidatos.includes(mapa)) {
+			medidos.push(mapa);
+		}
+	}
+	medidos.sort();
+	return candidatos.join(',') + '|' + medidos.join(',');
+}
+
+/** "Seus mapas" mudou de conjunto (entrou ou saiu candidato ou medido)? */
+export function seusMapasMudaram(antes, depois) {
+	return chaveDeSeusMapas(antes) !== chaveDeSeusMapas(depois);
+}
+
 /** As classes a mais do cartao candidato do Explorar ('' fora dele). */
 export function classesDoCandidato(bloco, mapa) {
 	const candidato = bloco ? candidatoDoMapa(bloco.explorar, mapa) : null;
