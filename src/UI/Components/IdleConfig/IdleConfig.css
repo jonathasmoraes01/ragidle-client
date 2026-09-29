@@ -235,32 +235,48 @@
 	white-space: nowrap;
 }
 
-/* ─── PERFIS (Fase V2, 29/09/2026) ───────────────────────────────────────
-   Mesma receita de ".ic-instalar"/".ic-tutorial" logo abaixo (aro dourado,
-   fundo de poço) — sem inventar um segundo desenho para a mesma forma de
-   "linha discreta fora das cinco seções". A diferença: nasce SEMPRE visível
-   (nunca [hidden]) e tem duas fileiras em vez de uma, porque "escolher um
-   perfil salvo" e "salvar o rascunho atual" são dois gestos, não um. */
+/* ─── PERFIS (Fase V2, 29/09/2026; RECOLHIDO por padrão desde 29/09/2026 —
+   achado do orquestrador: aberto sempre, o bloco comia ~160px de altura no
+   celular e empurrava o cabeçalho). Uma PÍLULA discreta ("Perfis" / "Perfis
+   · N/5") fica sempre visível; o corpo (escolher/carregar/excluir; nome +
+   salvar) só existe no DOM quando expandido — mesma receita de
+   ".ic-instalar"/".ic-tutorial" logo abaixo (aro dourado, fundo de poço)
+   para o CORPO, mas a pílula em si não carrega essa moldura grande: ela é o
+   chip pequeno que o pedido descreveu. */
 #IdleConfig .ic-perfis {
 	display: flex;
 	flex-direction: column;
 	gap: var(--sp-2);
 	margin: 0 var(--sp-6) var(--sp-4);
-	padding: 10px 12px;
-	border: 1px solid var(--border-gold);
-	border-radius: var(--radius-panel);
-	background: var(--surface-inset);
 }
 
 #IdleConfig .ic-perfis:empty {
 	display: none;
 }
 
-#IdleConfig .ic-perfis-linha {
-	display: flex;
+#IdleConfig .ic-perfis-pilula {
+	appearance: none;
+	align-self: flex-start;
+	display: inline-flex;
 	align-items: center;
 	gap: var(--sp-2);
-	flex-wrap: wrap;
+	min-height: var(--hit-touch, 44px);
+	padding: 0 var(--sp-4);
+	border: 1px solid var(--border-gold);
+	border-radius: var(--radius-pill);
+	background: var(--surface-inset);
+	color: var(--text-body);
+	font: var(--type-label);
+	font-weight: var(--fw-semibold);
+	cursor: pointer;
+	transition:
+		background var(--dur-fast) var(--ease-out),
+		border-color var(--dur-fast) var(--ease-out);
+}
+
+#IdleConfig .ic-perfis-pilula:hover {
+	background: var(--surface-card-hover);
+	border-color: var(--accent);
 }
 
 #IdleConfig .ic-perfis-icon {
@@ -272,6 +288,34 @@
 #IdleConfig .ic-perfis-icon svg {
 	width: 16px;
 	height: 16px;
+}
+
+#IdleConfig .ic-perfis-seta {
+	flex: 0 0 auto;
+	display: inline-flex;
+	color: var(--text-muted);
+}
+
+#IdleConfig .ic-perfis-seta svg {
+	width: 14px;
+	height: 14px;
+}
+
+#IdleConfig .ic-perfis-corpo {
+	display: flex;
+	flex-direction: column;
+	gap: var(--sp-2);
+	padding: 10px 12px;
+	border: 1px solid var(--border-gold);
+	border-radius: var(--radius-panel);
+	background: var(--surface-inset);
+}
+
+#IdleConfig .ic-perfis-linha {
+	display: flex;
+	align-items: center;
+	gap: var(--sp-2);
+	flex-wrap: wrap;
 }
 
 /* ".ic-select" já vem com "width:100%"; dentro da fileira ele precisa
@@ -1601,11 +1645,14 @@
 	#IdleConfig .ic-select,
 	#IdleConfig .ic-add-skill,
 	#IdleConfig .ic-master-switch,
-	/* Perfis (Fase V2, 29/09/2026): mesma régua — "Carregar"/"Salvar atual
-	   como" são ".ri-btn" (que sozinho não garante 44px) e o campo de nome é
-	   ".ri-input" (mesmo caso). O "x" de excluir é ".ic-icon-btn--remover",
-	   que já cresce para 34px + aro invisível de 7px mais abaixo neste MESMO
-	   bloco — não precisa entrar aqui de novo. */
+	/* Perfis (Fase V2, 29/09/2026): mesma régua — a PÍLULA é um botão sem
+	   classe genérica (".ic-perfis-pilula" já tem "min-height" na regra
+	   base, mas ganha a mesma folga de arredondamento aqui). "Carregar"/
+	   "Salvar atual como" são ".ri-btn" (que sozinho não garante 44px) e o
+	   campo de nome é ".ri-input" (mesmo caso). O "x" de excluir é
+	   ".ic-icon-btn--remover", que já cresce para 34px + aro invisível de
+	   7px mais abaixo neste MESMO bloco — não precisa entrar aqui de novo. */
+	#IdleConfig .ic-perfis-pilula,
 	#IdleConfig .ic-perfis-carregar,
 	#IdleConfig .ic-perfis-salvar,
 	#IdleConfig .ic-perfis-nome {

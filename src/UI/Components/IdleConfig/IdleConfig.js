@@ -219,6 +219,15 @@ let _perfilNomeDigitado = '';
 let _perfilSelecionado = '';
 
 /**
+ * @var {boolean} o bloco de Perfis está expandido? Recolhido por padrão
+ *      (rodada de 29/09/2026: aberto sempre, ele comia ~160px de altura no
+ *      celular e empurrava o cabeçalho) — uma pílula sempre visível abre/
+ *      fecha o corpo. Só DESENHO: não precisa sobreviver a um F5, zera junto
+ *      com o resto ao trocar de personagem.
+ */
+let _perfisAberto = false;
+
+/**
  * @var {Preferences} posicao da janela (x/y sao null ate o jogador mover) E a
  *      secao em que ele estava (`aba`, null ate ele trocar a primeira vez).
  *      A versao continua 1.0 DE PROPOSITO: somar chave nova aos padroes nao
@@ -924,12 +933,19 @@ function renderMaster() {
 }
 
 /**
- * O BLOCO DE PERFIS (Fase V2, 29/09/2026) — discreto, fora das cinco seções
- * (ver o comentário em IdleConfig.html sobre o portão de `SECOES`). Sempre
- * visível: uma linha para escolher/carregar/excluir um perfil salvo, outra
- * para salvar o rascunho atual sob um nome novo. Nenhum campo daqui é lido
- * pelo motor — só `IdleConfig.editConfig.perfis`, que o Aplicar valida e
- * grava como qualquer outro campo do contrato.
+ * O BLOCO DE PERFIS (Fase V2, 29/09/2026; RECOLHIDO por padrão desde a
+ * rodada de 29/09/2026 — achado do orquestrador: aberto sempre, o bloco
+ * comia ~160px de altura no celular e empurrava o resto do cabeçalho). Fora
+ * das cinco seções (ver o comentário em IdleConfig.html sobre o portão de
+ * `SECOES`). Nenhum campo daqui é lido pelo motor — só
+ * `IdleConfig.editConfig.perfis`, que o Aplicar valida e grava como qualquer
+ * outro campo do contrato.
+ *
+ * Uma PÍLULA sempre visível ("Perfis" ou "Perfis · N/5") abre/fecha o corpo
+ * (escolher/carregar/excluir; nome + salvar) logo abaixo dela. O estado
+ * aberto/fechado é só de DESENHO (`_perfisAberto`, memória do módulo) — não
+ * precisa sobreviver a um F5, e zera junto com o resto ao trocar de
+ * personagem (`limparEstadoDoPersonagem`).
  */
 function renderPerfis() {
 	const root = _root();
@@ -946,6 +962,26 @@ function renderPerfis() {
 	if (!perfis.some(p => p.nome === _perfilSelecionado)) {
 		_perfilSelecionado = perfis.length ? perfis[0].nome : '';
 	}
+
+	const rotuloPilula = perfis.length ? `Perfis · ${perfis.length}/${TETO_DE_PERFIS}` : 'Perfis';
+	const pilula = `
+		<button
+			type="button"
+			class="ic-perfis-pilula"
+			aria-expanded="${_perfisAberto ? 'true' : 'false'}"
+			title="${_perfisAberto ? 'Fechar' : 'Abrir'} os perfis salvos"
+		>
+			<span class="ic-perfis-icon" aria-hidden="true">${RiIcones.marcador}</span>
+			<span>${escapeHtml(rotuloPilula)}</span>
+			<span class="ic-perfis-seta" aria-hidden="true">${_perfisAberto ? RiIcones.setaCima : RiIcones.setaBaixo}</span>
+		</button>`;
+
+	if (!_perfisAberto) {
+		el.innerHTML = pilula;
+		bindPerfis(el);
+		return;
+	}
+
 	const opcoes = perfis.length
 		? perfis
 				.map(p => `<option value="${escapeHtml(p.nome)}" ${p.nome === _perfilSelecionado ? 'selected' : ''}>${escapeHtml(p.nome)}</option>`)
@@ -959,28 +995,42 @@ function renderPerfis() {
 	const mostrarMotivo = !!motivo && (nomeTrim.length > 0 || perfis.length >= TETO_DE_PERFIS);
 
 	el.innerHTML = `
-		<div class="ic-perfis-linha">
-			<span class="ic-perfis-icon" aria-hidden="true">${RiIcones.pin}</span>
-			<select class="ic-select ic-perfis-select" aria-label="Perfil salvo" ${perfis.length ? '' : 'disabled'}>${opcoes}</select>
-			<button type="button" class="ri-btn ri-btn--sec ic-perfis-carregar" ${perfis.length ? '' : 'disabled'} title="Carregar este perfil por cima do rascunho — o Aplicar ainda é necessário">Carregar</button>
-			<button type="button" class="ic-icon-btn ic-icon-btn--remover ic-perfis-excluir" ${perfis.length ? '' : 'disabled'} title="Excluir este perfil">${RiIcones.fechar}</button>
-		</div>
-		<div class="ic-perfis-linha">
-			<input
-				type="text"
-				class="ri-input ic-perfis-nome"
-				placeholder="Nome do perfil..."
-				aria-label="Nome do novo perfil"
-				maxlength="${TAMANHO_MAXIMO_DO_NOME_DE_PERFIL}"
-				value="${escapeHtml(_perfilNomeDigitado)}"
-			/>
-			<button type="button" class="ri-btn ic-perfis-salvar" ${motivo ? 'disabled' : ''} title="${escapeHtml(motivo || 'Salvar a configuração atual com este nome')}">Salvar atual como</button>
-		</div>
-		<div class="ic-perfis-meta">${perfis.length}/${TETO_DE_PERFIS} perfis${mostrarMotivo ? ` · ${escapeHtml(motivo)}` : ''}</div>`;
+		${pilula}
+		<div class="ic-perfis-corpo">
+			<div class="ic-perfis-linha">
+				<select class="ic-select ic-perfis-select" aria-label="Perfil salvo" ${perfis.length ? '' : 'disabled'}>${opcoes}</select>
+				<button type="button" class="ri-btn ri-btn--sec ic-perfis-carregar" ${perfis.length ? '' : 'disabled'} title="Carregar este perfil por cima do rascunho — o Aplicar ainda é necessário">Carregar</button>
+				<button type="button" class="ic-icon-btn ic-icon-btn--remover ic-perfis-excluir" ${perfis.length ? '' : 'disabled'} title="Excluir este perfil">${RiIcones.fechar}</button>
+			</div>
+			<div class="ic-perfis-linha">
+				<input
+					type="text"
+					class="ri-input ic-perfis-nome"
+					placeholder="Nome do perfil..."
+					aria-label="Nome do novo perfil"
+					maxlength="${TAMANHO_MAXIMO_DO_NOME_DE_PERFIL}"
+					value="${escapeHtml(_perfilNomeDigitado)}"
+				/>
+				<button type="button" class="ri-btn ic-perfis-salvar" ${motivo ? 'disabled' : ''} title="${escapeHtml(motivo || 'Salvar a configuração atual com este nome')}">Salvar atual como</button>
+			</div>
+			<div class="ic-perfis-meta">${perfis.length}/${TETO_DE_PERFIS} perfis${mostrarMotivo ? ` · ${escapeHtml(motivo)}` : ''}</div>
+		</div>`;
 	bindPerfis(el);
 }
 
 function bindPerfis(el) {
+	const pilula = el.querySelector('.ic-perfis-pilula');
+	if (pilula) {
+		pilula.addEventListener('click', e => {
+			e.stopImmediatePropagation();
+			_perfisAberto = !_perfisAberto;
+			renderPerfis();
+		});
+	}
+	if (!_perfisAberto) {
+		return;
+	}
+
 	const select = el.querySelector('.ic-perfis-select');
 	const nomeInput = el.querySelector('.ic-perfis-nome');
 	const salvarBtn = el.querySelector('.ic-perfis-salvar');
@@ -2273,6 +2323,7 @@ IdleConfig.limparEstadoDoPersonagem = function limparEstadoDoPersonagem() {
 	// que a rotação e o resto do rascunho.
 	_perfilNomeDigitado = '';
 	_perfilSelecionado = '';
+	_perfisAberto = false;
 	/*
 	 * ZERAR O DADO NAO BASTA: `GUIComponent.remove()` so DESANEXA o host,
 	 * entao o shadow DOM (com `is-open` e o HTML do personagem anterior)

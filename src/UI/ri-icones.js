@@ -386,6 +386,14 @@ const RiIcones = {
 	// ── Pin — Lucide "MapPin" (uso generico). ────────────────────────────────
 	pin: svg('<path d="M12 22s7-7.5 7-12a7 7 0 1 0-14 0c0 4.5 7 12 7 12z"/><circle cx="12" cy="10" r="2.5"/>'),
 
+	// ── Marcador — Lucide "Bookmark" (uso generico: algo GUARDADO/salvo numa
+	// colecao — perfil de configuracao, item favoritado etc. Path oficial
+	// Lucide, nao "idioma": o rotulo da laca de bandeira e reconhecido, ao
+	// contrario de "Pin", que e um marcador de LUGAR/mapa e nao de item
+	// guardado — os Perfis da config idle (29/09/2026) trocaram de "pin" para
+	// este por causa dessa distincao de significado). ───────────────────────
+	marcador: svg('<path d="m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/>'),
+
 	// ── Mais — Lucide "Plus" (uso generico). ─────────────────────────────────
 	mais: svg('<path d="M12 5v14M5 12h14"/>'),
 

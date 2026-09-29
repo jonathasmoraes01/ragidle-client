@@ -272,21 +272,49 @@ novo - `perfis` é um campo aditivo dentro do MESMO JSON de sempre
 de novo, transacionalmente, no Aplicar (`servidor/idle/config-idle.ts`,
 `validarConfigIdle`). Perfil é memória, não comportamento: carregar um copia o
 `config` salvo por cima do rascunho, mas só passa a valer quando o jogador
-aperta Aplicar.
+aperta Aplicar. **A config interna do perfil NÃO é validada contra o
+personagem de agora** (conserto de bloqueador, 29/09/2026, achado do
+orquestrador): um perfil salvo com uma skill que o jogador depois perdeu (reset
+de habilidades) não trava mais o Aplicar da config principal — só a forma
+(objeto, sem `perfis` aninhado) é checada; a coerência só importa quando o
+jogador carrega aquele perfil específico. Ver o commit do servidor
+(`servidor/idle/config-idle.ts`, worktree `idle-perfis`).
 
-**Onde**: no cabeçalho (`.ic-perfis`), logo abaixo da faixa-mestre e ACIMA de
-".ic-instalar"/".ic-tutorial" - mesma receita visual (aro dourado, fundo de
-poço), mas sempre visível (as outras duas nascem `hidden`). Ficou fora das
-cinco seções do trilho de propósito: elas se organizam pelo que o autômato
-FAZ (Caçada/Ataque/Suporte/Sobrevivência/Consumíveis), e Perfis não é
+### Recolhido por padrão (rodada de 29/09/2026)
+
+A primeira versão desta entrega deixava o bloco SEMPRE aberto (duas fileiras +
+rodapé, ~160px de altura) — achado do orquestrador: no celular isso empurrava
+o cabeçalho inteiro e competia por espaço com a faixa-mestre. Virou uma
+**pílula discreta** sempre visível ("Perfis" com 0 salvos, "Perfis · N/5" com
+1+) que abre/fecha o corpo por baixo dela com um toque/clique — o mesmo
+`<select>` + Carregar + Excluir, e o campo de nome + Salvar de antes, agora só
+no DOM quando expandido. O estado aberto/fechado é só de DESENHO
+(`_perfisAberto`, memória do módulo IdleConfig.js) — não precisa sobreviver a
+um F5, e zera junto com o resto do rascunho ao trocar de personagem.
+
+**O glifo**: trocou de "MapPin" (`RiIcones.pin`) para um novo "Bookmark"
+(`RiIcones.marcador`, path oficial Lucide) — achado do orquestrador: um
+alfinete de MAPA não comunica "algo guardado numa coleção". O RiIcones não
+tinha bookmark; foi adicionado no MESMO idioma do resto do arquivo (traço
+2px, round, `currentColor`, sem preenchimento) — nenhum SVG ilustrado. A seta
+da pílula (`RiIcones.setaCima`/`setaBaixo`, já existentes) indica
+aberto/fechado, o mesmo par que outros controles expansíveis do jogo já usam.
+
+**Onde**: no cabeçalho, logo abaixo da faixa-mestre e ACIMA de
+".ic-instalar"/".ic-tutorial". A pílula em si não carrega a moldura grande
+(aro dourado, fundo de poço) — só o CORPO, quando expandido, usa essa receita
+(a mesma de ".ic-instalar"/".ic-tutorial"). Perfis continua fora das cinco
+seções do trilho de propósito: elas se organizam pelo que o autômato FAZ
+(Caçada/Ataque/Suporte/Sobrevivência/Consumíveis), e Perfis não é
 comportamento nenhum - é gestão de memória. Um `SECOES` de seis também
 quebraria o portão que já protege a lista
 (`tests/ui/secoesDaConfig.test.js:77`, comentário no próprio
 `IdleConfig.html` explica a mesma razão para `.ic-tutorial`).
 
-**Layout**: duas fileiras dentro do bloco. A primeira tem um `<select>` com os
-perfis salvos + "Carregar" + um "x" para excluir (o mesmo `.ic-icon-btn--remover`
-usado nas linhas de rotação/buff). A segunda tem um campo de texto ("Nome do
+**Layout do corpo** (inalterado desde a rodada anterior, só a moldura externa
+mudou): duas fileiras. A primeira tem um `<select>` com os perfis salvos +
+"Carregar" + um "x" para excluir (o mesmo `.ic-icon-btn--remover` usado nas
+linhas de rotação/buff). A segunda tem um campo de texto ("Nome do
 perfil...") + "Salvar atual como". Uma linha de rodapé mostra "N/5 perfis" e,
 quando há motivo concreto para o botão "Salvar" estar desabilitado (nome
 inválido já digitado, ou teto de 5 atingido), o motivo aparece por escrito -
@@ -306,39 +334,46 @@ feedback antes do clique, a mesma disciplina de toda a janela.
 
 Mesmo método do resto deste relatório (Shadow DOM real, `Common.css` +
 `IdleConfig.css` + `IdleConfig.html` reais, ícones do `RiIcones` real), com um
-arnês novo e também descartável (não commitado, apagado no fim da sessão) -
-o desta rodada portou à mão só `renderPerfis()` (a função inteira que este
-trabalho escreveu, texto idêntico ao de `IdleConfig.js`), e importou
-`perfisDaConfig.js` DIRETO (sem porte, é puro). A marca `.ri-janela` foi
-adicionada a mão no host para o mobile ativar a regra de
-`Common.css` que faz a janela virar painel de largura inteira (a mesma
-armadilha #2 do método original: sem isso o `.ic-window` mediria 760px fixo
-dentro de uma viewport de 390px).
+arnês novo e também descartável (não commitado, apagado no fim da sessão).
+Desta vez a JANELA INTEIRA foi fotografada (não só o bloco) — pedido do
+orquestrador, para confirmar que a pílula não empurra o resto do cabeçalho de
+forma estranha. Portados à mão: `renderMaster()`, `renderCaca()` +
+`renderFiltroDeColeta()`/`renderAsa()`/`switchRow()`/`garantirAsa()` (a seção
+Caçada, ativa por padrão no HTML estático) e `renderPerfis()` (texto idêntico
+ao de `IdleConfig.js` desta rodada); `secoesDaConfig.js` (`resumoDaSecao`,
+`secaoPendente`) e `perfisDaConfig.js` foram importados DIRETO, sem porte, por
+serem puros. A marca `.ri-janela` foi adicionada a mão no host para o mobile
+ativar a regra de `Common.css` que faz a janela virar painel de largura
+inteira (a mesma armadilha #2 do método original). O botão flutuante
+(`.ic-button`, `position: fixed`) foi escondido no arnês — em produção o
+DockIdle o cobre; sem o Dock montado ele vazava atrás da janela no recorte do
+`.ic-window`, um artefato do arnês e não da funcionalidade.
 
-Três cenários, dois tamanhos (1440×900 e 390×844, `deviceScaleFactor: 2`):
+Quatro fotos (dois tamanhos × dois estados da pílula), seção Caçada ativa:
 
-| Cenário | O que mostra |
+| Arquivo | O que mostra |
 |---|---|
-| `normal` | 2 perfis salvos, "Carregar"/"Excluir" habilitados |
-| `vazio` | 0 perfis - `<select>` mostra "Nenhum perfil salvo", os três controles da primeira fileira desabilitados (dessaturado, nunca cinza chapado) |
-| `teto` | 5/5 perfis, nome novo digitado - "Salvar atual como" desabilitado E o motivo por escrito no rodapé ("máximo de 5 perfis — exclua um para salvar outro") |
+| `1440x900--perfis-recolhido.png` | Pílula "Perfis · 2/5" fechada, logo abaixo da faixa-mestre |
+| `1440x900--perfis-aberto.png` | Corpo expandido (select + Carregar + Excluir; nome + Salvar), empurrando o trilho/painel para baixo — comportamento normal de fluxo, não overlay |
+| `390x844--perfis-recolhido.png` | Mesmo recolhido, celular — cabeçalho empilhado (rodada 3 anterior) + pílula sem disputar espaço |
+| `390x844--perfis-aberto.png` | Mesmo aberto, celular — corpo cabe na largura inteira, sem overflow |
 
 Medido (não só fotografado): `document.documentElement.scrollWidth >
-clientWidth` ficou `false` nos 6 casos (sem overflow horizontal). Os alvos de
-toque a 390px: `.ic-perfis-select` 208×46, `.ic-perfis-carregar` 68×46,
-`.ic-perfis-nome` 213×60, `.ic-perfis-salvar` 121×46 - todos ≥44px de altura;
-`.ic-perfis-excluir` mede 34×34 visualmente, mas é o MESMO `.ic-icon-btn` que
-o resto da janela já usa para remover linha de rotação/buff, com o mesmo aro
-invisível de 7px por lado que o leva a 48×48 de área clicável (regra existente
-de `IdleConfig.css`, não uma exceção nova).
-
-Fotos: `1440x900--perfis-{normal,vazio,teto}.png`,
-`390x844--perfis-{normal,vazio,teto}.png`.
+clientWidth` ficou `false` nos 4 casos (recolhido/aberto × 2 tamanhos), sem
+overflow horizontal. Os alvos de toque a 390px: `.ic-perfis-pilula` 112×46,
+`.ic-perfis-select` 228×46, `.ic-perfis-carregar` 68×46, `.ic-perfis-nome`
+213×60, `.ic-perfis-salvar` 121×46 - todos ≥44px de altura; `.ic-perfis-excluir`
+mede 34×34 visualmente, mas é o MESMO `.ic-icon-btn` que o resto da janela já
+usa para remover linha de rotação/buff, com o mesmo aro invisível de 7px por
+lado que o leva a 48×48 de área clicável (regra existente de `IdleConfig.css`,
+não uma exceção nova).
 
 **O que NÃO foi validado**: não abri o jogo de verdade (mesma ressalva do
-resto deste relatório) - o arnês usa um `perfis` de exemplo, não uma sessão
-contra o servidor. A ida e volta pelo pacote de verdade (Aplicar grava,
-`ZC_RAGIDLE_CONFIG` ecoa, recusa é transacional) está provada do lado do
-servidor, no fio de verdade
-(`servidor/mapa/perfis-da-config-idle-no-fio.test.ts`, worktree
+resto deste relatório) - o arnês usa um `cfg`/`ctx` de exemplo, não uma sessão
+contra o servidor; o mapa/monstros/asa mostrados na seção Caçada são fixture,
+não uma resposta real de `contextoIdleDe`. A ida e volta pelo pacote de
+verdade (Aplicar grava, `ZC_RAGIDLE_CONFIG` ecoa, recusa é transacional, e
+agora também "perfil com skill perdida é aceito mas a config principal com a
+mesma skill continua recusada") está provada do lado do servidor, no fio de
+verdade (`servidor/mapa/perfis-da-config-idle-no-fio.test.ts`, worktree
 `idle-perfis`), não neste arnês visual.
