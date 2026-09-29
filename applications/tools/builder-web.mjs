@@ -4,6 +4,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { createRequire } from 'module';
 import { versaoDoCarimbo } from '../../src/Core/versaoDoCliente.js';
+import { apagarVersaoPublicada, escreverVersaoPublicada } from './versaoPublicada.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -116,6 +117,13 @@ async function compile(appName, isMinify) {
 	const entry = path.resolve(projectRoot, entryMap[appName]);
 	const outDir = path.resolve(projectRoot, dist + platform);
 
+	/* D-1822 do servidor: a versao publicada nasce e morre com o Online.js. Antes
+	   de compilar, a de antes sai; se a compilacao falhar, o dist fica sem
+	   versao publicada, e nao com um numero que ninguem sabe se esta no ar. */
+	if (appName === 'Online') {
+		apagarVersaoPublicada(outDir);
+	}
+
 	try {
 		await build({
 			configFile: false,
@@ -176,6 +184,17 @@ async function compile(appName, isMinify) {
 			   RAG_VERSAO_MINIMA_DO_CLIENTE do servidor quando o dono quiser
 			   exigir este build - nunca antes de ele estar no ar. */
 			console.log('Versao do cliente no login (CA_LOGIN):', versaoDoCarimbo(versaoDoBuild));
+			/* A VERSAO PUBLICADA (D-1646 do servidor), e desde D-1822 so AQUI: no
+			   passo que compilou o jogo, com o carimbo conferido DENTRO dele. O
+			   build parcial da casca (`--PWA` sem `-O`) nao a escreve mais - era
+			   ele que publicava um carimbo sem o jogo, e o servidor trancava todo
+			   login dez minutos depois (o achado #13). */
+			try {
+				escreverVersaoPublicada(outDir, versaoDoBuild);
+			} catch (erro) {
+				process.exitCode = 1;
+				throw erro;
+			}
 		}
 	} catch (err) {
 		console.error('Error building ' + appName + ':', err);
@@ -867,15 +886,10 @@ async function copyPwaFiles() {
 		.readFileSync('./applications/pwa/registrar-sw.js', 'utf8')
 		.replace('__VERSAO_DO_BUILD__', versaoDoBuild);
 	fs.writeFileSync(destino + '/registrar-sw.js', registrador, { encoding: 'utf8' });
-	/* A VERSAO PUBLICADA (28/09/2026, D-1646 do servidor): o servidor le este
-	   arquivo e usa o `login` como minimo do login, e o jogo sem service worker o
-	   le para descobrir que ha versao nova. O numero e o MESMO do `CA_LOGIN`
-	   (`versaoDoCarimbo`), e a Vercel o serve sem cache (`vercel.json`). */
-	fs.writeFileSync(
-		destino + '/versao-do-cliente.json',
-		JSON.stringify({ versao: versaoDoBuild, login: versaoDoCarimbo(versaoDoBuild) }) + '\n',
-		{ encoding: 'utf8' }
-	);
+	/* A VERSAO PUBLICADA (`versao-do-cliente.json`) NAO e escrita aqui desde
+	   29/09/2026 (D-1822 do servidor): ela sai do passo que compila o Online.js
+	   (`compile`, `escreverVersaoPublicada`). Escrita aqui, um build so da casca
+	   publicava um carimbo sem o jogo dele. */
 
 	for (const lado of [192, 512]) {
 		await sharp(origem)

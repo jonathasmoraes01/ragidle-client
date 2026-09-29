@@ -34,8 +34,12 @@ describe('o que o build publica e onde o jogo le', () => {
 	const VERCEL = JSON.parse(readFileSync('applications/deploy/vercel.json', 'utf8'));
 
 	it('o build escreve o arquivo com a versao e o numero do login', () => {
-		expect(BUILDER).toContain("'/versao-do-cliente.json'");
-		expect(BUILDER).toMatch(/versao: versaoDoBuild, login: versaoDoCarimbo\(versaoDoBuild\)/);
+		// Desde 29/09/2026 (D-1822 do servidor) quem escreve e `versaoPublicada.mjs`,
+		// chamado no passo que compila o Online.js - ver versaoPublicadaSoComOJogo.test.js.
+		const PUBLICADOR = readFileSync('applications/tools/versaoPublicada.mjs', 'utf8');
+		expect(PUBLICADOR).toContain("export const ARQUIVO_DA_VERSAO = 'versao-do-cliente.json';");
+		expect(PUBLICADOR).toMatch(/const conteudo = \{ versao: versaoDoBuild, login \};/);
+		expect(BUILDER).toContain('escreverVersaoPublicada(outDir, versaoDoBuild);');
 		expect(ARQUIVO_DA_VERSAO_PUBLICADA).toBe('/versao-do-cliente.json');
 	});
 
