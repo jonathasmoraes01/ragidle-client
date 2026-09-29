@@ -40,11 +40,15 @@ describe('alcance da skill de chao (C23)', () => {
 		expect(Math.sqrt(101) <= 9 + 1).toBe(false);
 	});
 
-	it('onUseSkillToPos mede com o raio da fonte, e onUseSkill fica como estava', () => {
+	it('onUseSkillToPos (C23) e onUseSkill (C37) medem com o raio da fonte', () => {
 		const src = fs.readFileSync('src/Engine/MapEngine/Skill.js', 'utf8');
-		const doChao = src.slice(src.indexOf('SkillTargetSelection.onUseSkillToPos = function'));
-		expect(doChao).toMatch(/range = raioDaBuscaDoChao\(skill\.attackRange\);/);
-		expect(doChao).toMatch(/range = raioDaBuscaDoChao\(SkillInfo\[id\]\.AttackRange\[level - 1\]\);/);
-		expect(src.match(/raioDaBuscaDoChao\(/g)).toHaveLength(2);
+		const inicioDoChao = src.indexOf('SkillTargetSelection.onUseSkillToPos = function');
+		const noAlvo = src.slice(src.indexOf('function onUseSkill(id, level, targetID)'), inicioDoChao);
+		const doChao = src.slice(inicioDoChao);
+		for (const trecho of [noAlvo, doChao]) {
+			expect(trecho).toMatch(/range = raioDaBuscaDoChao\(skill\.attackRange\);/);
+			expect(trecho).toMatch(/range = raioDaBuscaDoChao\(SkillInfo\[id\]\.AttackRange\[level - 1\]\);/);
+		}
+		expect(src.match(/raioDaBuscaDoChao\(/g)).toHaveLength(4);
 	});
 });

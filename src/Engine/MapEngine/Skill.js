@@ -665,10 +665,12 @@ function onUseSkill(id, level, targetID) {
 	const skill = SkillWindow.getUI().getSkillById(id);
 	const out = [];
 
+	// C37: a skill no alvo mede com a MESMA regua circular da fonte que a de
+	// chao (battle_check_range, rAthena battle.cpp:8224-8229; ver alcanceDaSkillNoChao.js).
 	if (skill) {
-		range = skill.attackRange + 1;
+		range = raioDaBuscaDoChao(skill.attackRange);
 	} else if (SkillInfo[id]) {
-		range = SkillInfo[id].AttackRange[level - 1] + 1;
+		range = raioDaBuscaDoChao(SkillInfo[id].AttackRange[level - 1]);
 	} else {
 		range = entity.attack_range;
 	}
