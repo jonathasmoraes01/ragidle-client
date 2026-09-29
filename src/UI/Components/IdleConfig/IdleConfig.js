@@ -82,6 +82,15 @@ import {
 	curaLigadaPara,
 	secaoPendente
 } from './secoesDaConfig.js';
+import {
+	TETO_DE_PERFIS,
+	TAMANHO_MAXIMO_DO_NOME_DE_PERFIL,
+	perfisDe,
+	motivoParaNaoSalvar,
+	salvarPerfilComo,
+	carregarPerfil,
+	excluirPerfil
+} from './perfisDaConfig.js';
 import htmlText from './IdleConfig.html?raw';
 import cssText from './IdleConfig.css?raw';
 import { fecharEEsquecer } from '../limpezaDeJanelaIdle.js';
@@ -193,6 +202,21 @@ IdleConfig.applyState = 'idle';
  *      deixar dois `setTimeout` brigando pelo mesmo estado.
  */
 let _applyStateTimer = null;
+
+/**
+ * @var {string} o nome ainda sendo digitado no campo "Salvar atual como" do
+ *      bloco de Perfis (Fase V2, 29/09/2026) — sobrevive a um re-render
+ *      alheio (ex.: mexer noutro campo da janela) para o jogador não perder o
+ *      que já tinha escrito. Zerado ao salvar e ao trocar de personagem.
+ */
+let _perfilNomeDigitado = '';
+
+/**
+ * @var {string} o nome selecionado no `<select>` de perfis salvos — usado por
+ *      "Carregar"/"Excluir" para saber QUAL perfil, sem depender do DOM ainda
+ *      existir no momento do clique.
+ */
+let _perfilSelecionado = '';
 
 /**
  * @var {Preferences} posicao da janela (x/y sao null ate o jogador mover) E a
@@ -820,6 +844,7 @@ function onConfigReceived(pkt) {
 function renderAll() {
 	renderTabs();
 	renderMaster();
+	renderPerfis();
 	renderBody();
 	renderProblemas();
 	updateFooter();
@@ -896,6 +921,157 @@ function renderMaster() {
 			<span class="ic-master-mapa-nome">${escapeHtml(ctx.rotuloDoMapa || ctx.mapa || '')}</span>
 		</div>`;
 	bindGenericControls(el);
+}
+
+/**
+ * O BLOCO DE PERFIS (Fase V2, 29/09/2026) — discreto, fora das cinco seções
+ * (ver o comentário em IdleConfig.html sobre o portão de `SECOES`). Sempre
+ * visível: uma linha para escolher/carregar/excluir um perfil salvo, outra
+ * para salvar o rascunho atual sob um nome novo. Nenhum campo daqui é lido
+ * pelo motor — só `IdleConfig.editConfig.perfis`, que o Aplicar valida e
+ * grava como qualquer outro campo do contrato.
+ */
+function renderPerfis() {
+	const root = _root();
+	const el = root.querySelector('.ic-perfis');
+	if (!el) {
+		return;
+	}
+	const cfg = IdleConfig.editConfig;
+	if (!cfg) {
+		el.innerHTML = '';
+		return;
+	}
+	const perfis = perfisDe(cfg);
+	if (!perfis.some(p => p.nome === _perfilSelecionado)) {
+		_perfilSelecionado = perfis.length ? perfis[0].nome : '';
+	}
+	const opcoes = perfis.length
+		? perfis
+				.map(p => `<option value="${escapeHtml(p.nome)}" ${p.nome === _perfilSelecionado ? 'selected' : ''}>${escapeHtml(p.nome)}</option>`)
+				.join('')
+		: '<option value="">Nenhum perfil salvo</option>';
+	const nomeTrim = _perfilNomeDigitado.trim();
+	const motivo = motivoParaNaoSalvar(perfis, _perfilNomeDigitado);
+	// A nota só aparece quando o jogador já digitou algo (recusa concreta) ou
+	// quando o teto está cheio (vale a pena avisar antes de ele digitar, para
+	// não descobrir só depois de escrever o nome inteiro).
+	const mostrarMotivo = !!motivo && (nomeTrim.length > 0 || perfis.length >= TETO_DE_PERFIS);
+
+	el.innerHTML = `
+		<div class="ic-perfis-linha">
+			<span class="ic-perfis-icon" aria-hidden="true">${RiIcones.pin}</span>
+			<select class="ic-select ic-perfis-select" aria-label="Perfil salvo" ${perfis.length ? '' : 'disabled'}>${opcoes}</select>
+			<button type="button" class="ri-btn ri-btn--sec ic-perfis-carregar" ${perfis.length ? '' : 'disabled'} title="Carregar este perfil por cima do rascunho — o Aplicar ainda é necessário">Carregar</button>
+			<button type="button" class="ic-icon-btn ic-icon-btn--remover ic-perfis-excluir" ${perfis.length ? '' : 'disabled'} title="Excluir este perfil">${RiIcones.fechar}</button>
+		</div>
+		<div class="ic-perfis-linha">
+			<input
+				type="text"
+				class="ri-input ic-perfis-nome"
+				placeholder="Nome do perfil..."
+				aria-label="Nome do novo perfil"
+				maxlength="${TAMANHO_MAXIMO_DO_NOME_DE_PERFIL}"
+				value="${escapeHtml(_perfilNomeDigitado)}"
+			/>
+			<button type="button" class="ri-btn ic-perfis-salvar" ${motivo ? 'disabled' : ''} title="${escapeHtml(motivo || 'Salvar a configuração atual com este nome')}">Salvar atual como</button>
+		</div>
+		<div class="ic-perfis-meta">${perfis.length}/${TETO_DE_PERFIS} perfis${mostrarMotivo ? ` · ${escapeHtml(motivo)}` : ''}</div>`;
+	bindPerfis(el);
+}
+
+function bindPerfis(el) {
+	const select = el.querySelector('.ic-perfis-select');
+	const nomeInput = el.querySelector('.ic-perfis-nome');
+	const salvarBtn = el.querySelector('.ic-perfis-salvar');
+	const carregarBtn = el.querySelector('.ic-perfis-carregar');
+	const excluirBtn = el.querySelector('.ic-perfis-excluir');
+
+	if (select) {
+		select.addEventListener('change', () => {
+			_perfilSelecionado = select.value;
+		});
+	}
+
+	if (nomeInput) {
+		// Só o botão/nota reagem por digitação — nada de `renderPerfis()`
+		// aqui, que reconstruiria o próprio campo e derrubaria o cursor a
+		// cada tecla.
+		nomeInput.addEventListener('input', () => {
+			_perfilNomeDigitado = nomeInput.value;
+			const perfis = perfisDe(IdleConfig.editConfig);
+			const motivo = motivoParaNaoSalvar(perfis, _perfilNomeDigitado);
+			if (salvarBtn) {
+				salvarBtn.disabled = !!motivo;
+				salvarBtn.title = motivo || 'Salvar a configuração atual com este nome';
+			}
+			const meta = el.querySelector('.ic-perfis-meta');
+			if (meta) {
+				const nomeTrim = _perfilNomeDigitado.trim();
+				const mostrar = !!motivo && (nomeTrim.length > 0 || perfis.length >= TETO_DE_PERFIS);
+				meta.textContent = `${perfis.length}/${TETO_DE_PERFIS} perfis${mostrar ? ` · ${motivo}` : ''}`;
+			}
+		});
+	}
+
+	if (salvarBtn) {
+		salvarBtn.addEventListener('click', e => {
+			e.stopImmediatePropagation();
+			if (salvarBtn.disabled || !IdleConfig.editConfig) {
+				return;
+			}
+			const nomeSalvo = _perfilNomeDigitado.trim();
+			IdleConfig.editConfig = salvarPerfilComo(IdleConfig.editConfig, _perfilNomeDigitado);
+			_perfilNomeDigitado = '';
+			_perfilSelecionado = nomeSalvo;
+			markDirty();
+			renderPerfis();
+		});
+	}
+
+	if (carregarBtn) {
+		carregarBtn.addEventListener('click', e => {
+			e.stopImmediatePropagation();
+			if (carregarBtn.disabled || !IdleConfig.editConfig || !select) {
+				return;
+			}
+			const nome = select.value;
+			if (!nome) {
+				return;
+			}
+			const carregado = carregarPerfil(IdleConfig.editConfig, nome);
+			if (!carregado) {
+				return;
+			}
+			IdleConfig.editConfig = carregado;
+			garantirCura(IdleConfig.editConfig);
+			garantirAsa(IdleConfig.editConfig);
+			markDirty();
+			renderMaster();
+			renderBody();
+			renderPerfis();
+			setStatus(`Perfil "${nome}" carregado no rascunho — clique em Aplicar para valer.`);
+		});
+	}
+
+	if (excluirBtn) {
+		excluirBtn.addEventListener('click', e => {
+			e.stopImmediatePropagation();
+			if (excluirBtn.disabled || !IdleConfig.editConfig || !select) {
+				return;
+			}
+			const nome = select.value;
+			if (!nome) {
+				return;
+			}
+			IdleConfig.editConfig = excluirPerfil(IdleConfig.editConfig, nome);
+			if (_perfilSelecionado === nome) {
+				_perfilSelecionado = '';
+			}
+			markDirty();
+			renderPerfis();
+		});
+	}
 }
 
 /**
@@ -2092,6 +2268,11 @@ IdleConfig.limparEstadoDoPersonagem = function limparEstadoDoPersonagem() {
 		_applyStateTimer = null;
 	}
 	IdleConfig.applyState = 'idle';
+	// Perfis (Fase V2, 29/09/2026): o nome digitado/selecionado é do
+	// personagem anterior — o próximo abre com o bloco limpo, do mesmo jeito
+	// que a rotação e o resto do rascunho.
+	_perfilNomeDigitado = '';
+	_perfilSelecionado = '';
 	/*
 	 * ZERAR O DADO NAO BASTA: `GUIComponent.remove()` so DESANEXA o host,
 	 * entao o shadow DOM (com `is-open` e o HTML do personagem anterior)
@@ -2101,6 +2282,10 @@ IdleConfig.limparEstadoDoPersonagem = function limparEstadoDoPersonagem() {
 	const master = _root().querySelector('.ic-master');
 	if (master) {
 		master.innerHTML = '';
+	}
+	const perfis = _root().querySelector('.ic-perfis');
+	if (perfis) {
+		perfis.innerHTML = '';
 	}
 	renderTabs();
 	updateFooter();

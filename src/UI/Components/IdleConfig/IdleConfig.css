@@ -235,6 +235,76 @@
 	white-space: nowrap;
 }
 
+/* ─── PERFIS (Fase V2, 29/09/2026) ───────────────────────────────────────
+   Mesma receita de ".ic-instalar"/".ic-tutorial" logo abaixo (aro dourado,
+   fundo de poço) — sem inventar um segundo desenho para a mesma forma de
+   "linha discreta fora das cinco seções". A diferença: nasce SEMPRE visível
+   (nunca [hidden]) e tem duas fileiras em vez de uma, porque "escolher um
+   perfil salvo" e "salvar o rascunho atual" são dois gestos, não um. */
+#IdleConfig .ic-perfis {
+	display: flex;
+	flex-direction: column;
+	gap: var(--sp-2);
+	margin: 0 var(--sp-6) var(--sp-4);
+	padding: 10px 12px;
+	border: 1px solid var(--border-gold);
+	border-radius: var(--radius-panel);
+	background: var(--surface-inset);
+}
+
+#IdleConfig .ic-perfis:empty {
+	display: none;
+}
+
+#IdleConfig .ic-perfis-linha {
+	display: flex;
+	align-items: center;
+	gap: var(--sp-2);
+	flex-wrap: wrap;
+}
+
+#IdleConfig .ic-perfis-icon {
+	flex: 0 0 auto;
+	display: inline-flex;
+	color: var(--gold-700);
+}
+
+#IdleConfig .ic-perfis-icon svg {
+	width: 16px;
+	height: 16px;
+}
+
+/* ".ic-select" já vem com "width:100%"; dentro da fileira ele precisa
+   encolher (o "min-width:0" é o que deixa o texto elidir em vez de
+   empurrar os botões pra fora da janela). */
+#IdleConfig .ic-perfis-select {
+	flex: 1 1 140px;
+	min-width: 0;
+	margin: 0;
+}
+
+#IdleConfig .ic-perfis-carregar {
+	flex: 0 0 auto;
+	padding: 0 var(--sp-4);
+}
+
+#IdleConfig .ic-perfis-nome {
+	flex: 1 1 140px;
+	min-width: 0;
+	margin: 0;
+}
+
+#IdleConfig .ic-perfis-salvar {
+	flex: 0 0 auto;
+	padding: 0 var(--sp-4);
+	white-space: nowrap;
+}
+
+#IdleConfig .ic-perfis-meta {
+	font: var(--type-info);
+	color: var(--text-muted);
+}
+
 /* Linha de status: só ocupa altura quando tem texto. */
 #IdleConfig .ic-status {
 	flex: 0 0 auto;
@@ -1530,7 +1600,15 @@
 	#IdleConfig .ic-seg-btn,
 	#IdleConfig .ic-select,
 	#IdleConfig .ic-add-skill,
-	#IdleConfig .ic-master-switch {
+	#IdleConfig .ic-master-switch,
+	/* Perfis (Fase V2, 29/09/2026): mesma régua — "Carregar"/"Salvar atual
+	   como" são ".ri-btn" (que sozinho não garante 44px) e o campo de nome é
+	   ".ri-input" (mesmo caso). O "x" de excluir é ".ic-icon-btn--remover",
+	   que já cresce para 34px + aro invisível de 7px mais abaixo neste MESMO
+	   bloco — não precisa entrar aqui de novo. */
+	#IdleConfig .ic-perfis-carregar,
+	#IdleConfig .ic-perfis-salvar,
+	#IdleConfig .ic-perfis-nome {
 		min-height: calc(var(--hit-touch, 44px) + 2px);
 	}
 

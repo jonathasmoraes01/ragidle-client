@@ -9,6 +9,18 @@
 
 		<div class="ic-master"></div>
 
+		<!-- PERFIS (Fase V2, 29/09/2026): até 5 configurações nomeadas que o
+		     jogador salva e recarrega por cima do rascunho — memória, nunca o
+		     que decide o autômato (isso continua sendo só a config principal,
+		     abaixo). Fica fora das cinco SEÇÕES de propósito (mesma razão do
+		     ".ic-tutorial" logo abaixo): elas descrevem o que o autômato FAZ, e
+		     um `SECOES` de seis quebraria o portão que as pina
+		     (`tests/ui/secoesDaConfig.test.js`) por uma feature que não é
+		     comportamento nenhum. Sempre visível (ao contrário de
+		     ".ic-instalar"/".ic-tutorial", que nascem `hidden`): mesmo com zero
+		     perfis salvos, "Salvar atual como..." precisa estar à vista. -->
+		<div class="ic-perfis"></div>
+
 		<!-- D-933: instalar o jogo. Nasce ESCONDIDO e so aparece quando ha o que
 		     fazer — no Chrome/Android quando o navegador oferece a instalacao, no
 		     Safari do iPhone com a instrucao (la nao existe evento nenhum). Quem

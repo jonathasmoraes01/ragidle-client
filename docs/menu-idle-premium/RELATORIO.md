@@ -262,3 +262,83 @@ Todas da rodada 4 (a confirmação, depois dos consertos de celular e texto):
 Screenshots das rodadas 1-3 (com os defeitos, antes de cada conserto) não foram
 commitadas - ficaram no scratchpad da sessão, e o texto acima descreve
 exatamente o que cada uma mostrava.
+
+## Perfis (Fase V2, 29/09/2026)
+
+Bloco novo, não parte do redesenho premium original: até 5 configurações
+nomeadas que o jogador salva e recarrega por cima do rascunho. Nenhum pacote
+novo - `perfis` é um campo aditivo dentro do MESMO JSON de sempre
+(`CZ_RAGIDLE_APLICAR_CONFIG` / `ZC_RAGIDLE_CONFIG`), e o servidor valida tudo
+de novo, transacionalmente, no Aplicar (`servidor/idle/config-idle.ts`,
+`validarConfigIdle`). Perfil é memória, não comportamento: carregar um copia o
+`config` salvo por cima do rascunho, mas só passa a valer quando o jogador
+aperta Aplicar.
+
+**Onde**: no cabeçalho (`.ic-perfis`), logo abaixo da faixa-mestre e ACIMA de
+".ic-instalar"/".ic-tutorial" - mesma receita visual (aro dourado, fundo de
+poço), mas sempre visível (as outras duas nascem `hidden`). Ficou fora das
+cinco seções do trilho de propósito: elas se organizam pelo que o autômato
+FAZ (Caçada/Ataque/Suporte/Sobrevivência/Consumíveis), e Perfis não é
+comportamento nenhum - é gestão de memória. Um `SECOES` de seis também
+quebraria o portão que já protege a lista
+(`tests/ui/secoesDaConfig.test.js:77`, comentário no próprio
+`IdleConfig.html` explica a mesma razão para `.ic-tutorial`).
+
+**Layout**: duas fileiras dentro do bloco. A primeira tem um `<select>` com os
+perfis salvos + "Carregar" + um "x" para excluir (o mesmo `.ic-icon-btn--remover`
+usado nas linhas de rotação/buff). A segunda tem um campo de texto ("Nome do
+perfil...") + "Salvar atual como". Uma linha de rodapé mostra "N/5 perfis" e,
+quando há motivo concreto para o botão "Salvar" estar desabilitado (nome
+inválido já digitado, ou teto de 5 atingido), o motivo aparece por escrito -
+não só no `title` do botão (que não existe no toque).
+
+**Regras espelhadas do servidor** (`perfisDaConfig.js`, testado em
+`tests/ui/perfisDaConfig.test.js`, 18 casos): nome de 1 a 24 caracteres, sem
+caractere de controle; nomes únicos SEM diferenciar maiúscula/minúscula -
+salvar com um nome já usado SUBSTITUI o perfil existente em vez de duplicar
+(decisão de UX: mais previsível que recusar com "nome repetido" quando a
+intenção mais comum é "atualizar o que eu já tinha salvo"); teto de 5, que só
+vale para nome NOVO (sobrescrever não gasta vaga). A validação real e final
+continua sendo do servidor (`validarConfigIdle`) - o que roda aqui é só
+feedback antes do clique, a mesma disciplina de toda a janela.
+
+### Prova visual
+
+Mesmo método do resto deste relatório (Shadow DOM real, `Common.css` +
+`IdleConfig.css` + `IdleConfig.html` reais, ícones do `RiIcones` real), com um
+arnês novo e também descartável (não commitado, apagado no fim da sessão) -
+o desta rodada portou à mão só `renderPerfis()` (a função inteira que este
+trabalho escreveu, texto idêntico ao de `IdleConfig.js`), e importou
+`perfisDaConfig.js` DIRETO (sem porte, é puro). A marca `.ri-janela` foi
+adicionada a mão no host para o mobile ativar a regra de
+`Common.css` que faz a janela virar painel de largura inteira (a mesma
+armadilha #2 do método original: sem isso o `.ic-window` mediria 760px fixo
+dentro de uma viewport de 390px).
+
+Três cenários, dois tamanhos (1440×900 e 390×844, `deviceScaleFactor: 2`):
+
+| Cenário | O que mostra |
+|---|---|
+| `normal` | 2 perfis salvos, "Carregar"/"Excluir" habilitados |
+| `vazio` | 0 perfis - `<select>` mostra "Nenhum perfil salvo", os três controles da primeira fileira desabilitados (dessaturado, nunca cinza chapado) |
+| `teto` | 5/5 perfis, nome novo digitado - "Salvar atual como" desabilitado E o motivo por escrito no rodapé ("máximo de 5 perfis — exclua um para salvar outro") |
+
+Medido (não só fotografado): `document.documentElement.scrollWidth >
+clientWidth` ficou `false` nos 6 casos (sem overflow horizontal). Os alvos de
+toque a 390px: `.ic-perfis-select` 208×46, `.ic-perfis-carregar` 68×46,
+`.ic-perfis-nome` 213×60, `.ic-perfis-salvar` 121×46 - todos ≥44px de altura;
+`.ic-perfis-excluir` mede 34×34 visualmente, mas é o MESMO `.ic-icon-btn` que
+o resto da janela já usa para remover linha de rotação/buff, com o mesmo aro
+invisível de 7px por lado que o leva a 48×48 de área clicável (regra existente
+de `IdleConfig.css`, não uma exceção nova).
+
+Fotos: `1440x900--perfis-{normal,vazio,teto}.png`,
+`390x844--perfis-{normal,vazio,teto}.png`.
+
+**O que NÃO foi validado**: não abri o jogo de verdade (mesma ressalva do
+resto deste relatório) - o arnês usa um `perfis` de exemplo, não uma sessão
+contra o servidor. A ida e volta pelo pacote de verdade (Aplicar grava,
+`ZC_RAGIDLE_CONFIG` ecoa, recusa é transacional) está provada do lado do
+servidor, no fio de verdade
+(`servidor/mapa/perfis-da-config-idle-no-fio.test.ts`, worktree
+`idle-perfis`), não neste arnês visual.
