@@ -79,7 +79,8 @@ import {
 	curaNaRotacao,
 	duracaoCurta,
 	resumoDaSecao,
-	curaLigadaPara
+	curaLigadaPara,
+	secaoPendente
 } from './secoesDaConfig.js';
 import htmlText from './IdleConfig.html?raw';
 import cssText from './IdleConfig.css?raw';
@@ -170,6 +171,28 @@ IdleConfig.dirty = false;
  *      server-side).
  */
 IdleConfig.problemas = [];
+
+/**
+ * @var {'idle'|'saving'|'success'|'error'} o ESTADO VISUAL do botão Aplicar
+ *      (redesenho premium, 29/09/2026, pedido do dono: "salvando / salvo com
+ *      sucesso / erro ao aplicar"). Não é um pacote novo nem um protocolo
+ *      novo - é leitura do MESMO fluxo que já existia (enviarConfig() manda,
+ *      onConfigReceived() responde pelo único opcode 0x0ff4): 'saving' entre
+ *      o envio e a resposta, 'success'/'error' por alguns segundos depois de
+ *      uma resposta de aplicar (a distinção 'aplicado'/'problemas' que o
+ *      contrato já manda), e 'idle' no resto do tempo - quando o rótulo do
+ *      botão volta a ser só "Aplicar", ligado/desligado por `dirty` como
+ *      sempre foi.
+ */
+IdleConfig.applyState = 'idle';
+
+/**
+ * @var {number|null} o timer que devolve `applyState` a 'idle' depois do
+ *      flash de sucesso/erro. Precisa de um dono só (limparApplyStateTimer
+ *      abaixo) - dois cliques em "Aplicar" batendo um no outro não podem
+ *      deixar dois `setTimeout` brigando pelo mesmo estado.
+ */
+let _applyStateTimer = null;
 
 /**
  * @var {Preferences} posicao da janela (x/y sao null ate o jogador mover) E a
@@ -591,10 +614,35 @@ function enviarConfig(config) {
 	setStatus('Aplicando...');
 	IdleConfig.problemas = [];
 	renderProblemas();
+	definirApplyState('saving');
 
 	const pkt = new PACKET.CZ.RAGIDLE_APLICAR_CONFIG();
 	pkt.json = JSON.stringify(config);
 	Network.sendPacket(pkt);
+}
+
+/**
+ * Troca o ESTADO VISUAL do botão Aplicar (ver IdleConfig.applyState) e
+ * redesenha o rodapé. `autoRevertMs`, quando dado, agenda a volta a 'idle' -
+ * o flash de sucesso/erro é TRANSITÓRIO, o botão não fica preso dizendo
+ * "Aplicado" para sempre. Um timer novo sempre cancela o anterior: dois
+ * cliques em sequência não podem deixar dois `setTimeout` brigando pelo
+ * mesmo rótulo.
+ */
+function definirApplyState(state, autoRevertMs) {
+	if (_applyStateTimer) {
+		clearTimeout(_applyStateTimer);
+		_applyStateTimer = null;
+	}
+	IdleConfig.applyState = state;
+	updateFooter();
+	if (autoRevertMs) {
+		_applyStateTimer = setTimeout(() => {
+			_applyStateTimer = null;
+			IdleConfig.applyState = 'idle';
+			updateFooter();
+		}, autoRevertMs);
+	}
 }
 
 function applyConfig() {
@@ -703,6 +751,12 @@ function onConfigReceived(pkt) {
 					? 'Voce esta na cidade — a caca comeca quando voce viajar.'
 					: ''
 		);
+		// O flash "Aplicado" no botão (ver definirApplyState acima) - só numa
+		// resposta de APLICAR; uma config empurrada sozinha (aprender skill,
+		// trocar de mapa) não é um clique do jogador e não merece o flash.
+		if (isApplyResponse) {
+			definirApplyState('success', 1800);
+		}
 	} else {
 		// Transactional refusal (contract: "NÃO-vazio = recusado
 		// transacionalmente (nada mudou)"). Deliberately do NOT touch
@@ -710,6 +764,7 @@ function onConfigReceived(pkt) {
 		// they can see what they tried and fix it; IdleConfig.dirty is left
 		// as-is so "Aplicar" stays enabled for a retry.
 		setStatus('');
+		definirApplyState('error', 2600);
 
 		/*
 		 * COM A JANELA FECHADA, A RECUSA ERA MUDA (27/08/2026, auditoria).
@@ -750,7 +805,21 @@ function renderAll() {
 function renderTabs() {
 	const root = _root();
 	root.querySelectorAll('.ic-tab').forEach(btn => {
-		btn.classList.toggle('is-active', btn.dataset.tab === IdleConfig.activeTab);
+		const id = btn.dataset.tab;
+		btn.classList.toggle('is-active', id === IdleConfig.activeTab);
+		// O PONTO DE PENDÊNCIA POR SEÇÃO (redesenho premium, 29/09/2026): a
+		// seção pisca quando o CAMPO DELA (secoesDaConfig.js, CAMPOS_DA_SECAO)
+		// diverge do que o servidor aceitou - não quando o rascunho inteiro
+		// mudou, senão as cinco piscariam juntas por uma presa marcada em
+		// Caçada. `title` é o eco por teclado/leitor de tela: o ponto é só
+		// CSS (".ic-tab.tem-pendencia", ver IdleConfig.css).
+		const pendente = secaoPendente(id, IdleConfig.serverConfig, IdleConfig.editConfig);
+		btn.classList.toggle('tem-pendencia', pendente);
+		if (pendente) {
+			btn.title = 'Alteração pendente nesta seção - falta aplicar.';
+		} else {
+			btn.removeAttribute('title');
+		}
 	});
 	root.querySelectorAll('[data-resumo]').forEach(el => {
 		el.textContent = resumoDaSecao(el.dataset.resumo, IdleConfig.editConfig, IdleConfig.contexto);
@@ -783,7 +852,10 @@ function renderMaster() {
 				<span class="ic-switch-track"></span>
 			</span>
 			<span class="ic-switch-text">
-				<span class="ic-master-label">Caça automática</span>
+				<span class="ic-master-label">
+					Caça automática
+					<span class="ic-master-badge ${ligada ? 'is-on' : 'is-off'}">${ligada ? 'Ativo' : 'Parado'}</span>
+				</span>
 				<span class="ic-master-sub">${
 					ligada
 						? 'O personagem caça sozinho neste mapa.'
@@ -802,11 +874,39 @@ function renderMaster() {
  * Enable/disable the "Aplicar" footer button based on IdleConfig.dirty, and
  * say how many fields changed.
  */
+/**
+ * O botão Aplicar (redesenho premium, 29/09/2026): quatro CARAS para o
+ * MESMO fluxo de sempre - pendente/salvando/salvo/erro (IdleConfig.applyState,
+ * ver definirApplyState). Nenhum estado novo de DADO, só de DESENHO: quem
+ * decide o que aconteceu continua sendo `dirty` + a resposta do servidor.
+ */
 function updateFooter() {
 	const root = _root();
 	const btn = root.querySelector('.ic-apply');
+	const estado = IdleConfig.applyState || 'idle';
 	if (btn) {
-		btn.disabled = !(IdleConfig.editConfig && IdleConfig.dirty);
+		btn.classList.remove('is-saving', 'is-success', 'is-error', 'tem-pendencia');
+		if (estado === 'saving') {
+			btn.disabled = true;
+			btn.classList.add('is-saving');
+			btn.innerHTML = '<span class="ic-apply-spinner" aria-hidden="true"></span><span>Aplicando…</span>';
+		} else if (estado === 'success') {
+			btn.disabled = !(IdleConfig.editConfig && IdleConfig.dirty);
+			btn.classList.add('is-success');
+			btn.innerHTML = `${RiIcones.confere}<span>Aplicado</span>`;
+		} else if (estado === 'error') {
+			// O rascunho não muda numa recusa (comentário em onConfigReceived) -
+			// o botão continua clicável para o jogador corrigir e tentar de novo
+			// sem esperar o flash sumir.
+			btn.disabled = false;
+			btn.classList.add('is-error');
+			btn.innerHTML = `${RiIcones.alerta}<span>Tentar de novo</span>`;
+		} else {
+			const pendente = !!(IdleConfig.editConfig && IdleConfig.dirty);
+			btn.disabled = !pendente;
+			btn.classList.toggle('tem-pendencia', pendente);
+			btn.textContent = 'Aplicar';
+		}
 	}
 	const pendentes = root.querySelector('.ic-pendentes');
 	if (pendentes) {
@@ -1930,6 +2030,13 @@ IdleConfig.limparEstadoDoPersonagem = function limparEstadoDoPersonagem() {
 	IdleConfig.contextoObsoleto = false;
 	IdleConfig.dirty = false;
 	IdleConfig.problemas = [];
+	// O flash "Aplicado"/"Erro" de um personagem não pode sobreviver para o
+	// próximo - o timer é DELE, não da janela.
+	if (_applyStateTimer) {
+		clearTimeout(_applyStateTimer);
+		_applyStateTimer = null;
+	}
+	IdleConfig.applyState = 'idle';
 	/*
 	 * ZERAR O DADO NAO BASTA: `GUIComponent.remove()` so DESANEXA o host,
 	 * entao o shadow DOM (com `is-open` e o HTML do personagem anterior)

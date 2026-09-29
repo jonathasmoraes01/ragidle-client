@@ -21,6 +21,8 @@ import {
 	resumoDaSecao,
 	curaLigada,
 	curaLigadaPara,
+	CAMPOS_DA_SECAO,
+	secaoPendente,
 } from '../../src/UI/Components/IdleConfig/secoesDaConfig.js';
 
 describe('alternarColeta: o filtro de coleta é uma lista NEGATIVA (D-1348)', () => {
@@ -205,6 +207,45 @@ describe('miúdos', () => {
 		expect(duracaoCurta(120000)).toBe('2 min');
 		expect(duracaoCurta(10000)).toBe('10 s');
 		expect(duracaoCurta(0)).toBe('');
+	});
+});
+
+describe('secaoPendente: o ponto no trilho (redesenho premium, 29/09/2026)', () => {
+	it('toda seção tem campos mapeados, e só os das SECOES existem', () => {
+		expect(Object.keys(CAMPOS_DA_SECAO).sort()).toEqual(SECOES.map(s => s.id).sort());
+	});
+
+	it('sem servidor ou sem rascunho, nenhuma seção pisca (nada para comparar)', () => {
+		expect(secaoPendente('caca', null, CFG)).toBe(false);
+		expect(secaoPendente('caca', CFG, null)).toBe(false);
+	});
+
+	it('igual ao servidor, nenhuma seção pisca', () => {
+		SECOES.forEach(s => expect(secaoPendente(s.id, CFG, CFG)).toBe(false));
+	});
+
+	it('mexer nas presas acende só Caçada', () => {
+		const rascunho = { ...CFG, alvosDesabilitados: [] };
+		expect(secaoPendente('caca', CFG, rascunho)).toBe(true);
+		expect(secaoPendente('ataque', CFG, rascunho)).toBe(false);
+		expect(secaoPendente('suporte', CFG, rascunho)).toBe(false);
+	});
+
+	it('marcar e desmarcar a mesma presa não acende nada - mesma régua de contarAlteracoes', () => {
+		const rascunho = { ...CFG, alvosDesabilitados: [...CFG.alvosDesabilitados] };
+		expect(secaoPendente('caca', CFG, rascunho)).toBe(false);
+	});
+
+	it('a rotação pertence às DUAS seções: um golpe novo acende Ataque, e a cura embutida nela acende também Suporte', () => {
+		const rascunho = { ...CFG, rotacao: [...CFG.rotacao, { skillId: 'AL_HEAL', nivelDeUso: 5 }] };
+		expect(secaoPendente('ataque', CFG, rascunho)).toBe(true);
+		expect(secaoPendente('suporte', CFG, rascunho)).toBe(true);
+	});
+
+	it('mexer no limiar da cura acende só Suporte', () => {
+		const rascunho = { ...CFG, cura: { ...CFG.cura, curarAbaixoDe: 30 } };
+		expect(secaoPendente('suporte', CFG, rascunho)).toBe(true);
+		expect(secaoPendente('ataque', CFG, rascunho)).toBe(false);
 	});
 });
 

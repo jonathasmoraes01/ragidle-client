@@ -253,3 +253,43 @@ export function duracaoCurta(ms) {
 	}
 	return ms >= 60000 ? `${Math.round(ms / 60000)} min` : `${Math.round(ms / 1000)} s`;
 }
+
+/**
+ * A PENDÊNCIA POR SEÇÃO (redesenho premium, 29/09/2026, pedido do dono: "marca
+ * de alteração pendente por seção" no trilho). Cada seção só "sabe" mudou o
+ * que ELA escreve - não o rascunho inteiro, que é o que `contarAlteracoes` já
+ * soma para o rodapé. Os campos aqui são os MESMOS que os `render*`/`bind*`
+ * de IdleConfig.js leem e gravam por seção (ver o cabeçalho de cada `render`):
+ * Caçada mexe nas presas, no filtro de coleta e na asa; Ataque na ordem de
+ * golpes e no interruptor do básico; Suporte nos buffs mantidos e na cura -
+ * e a cura ESCREVE em `rotacao` (ela mora lá, D-673/D-1201), então esse campo
+ * pertence às DUAS seções: um toggle de cura na aba Suporte tem de acender o
+ * ponto ali, não só em Ataque.
+ *
+ * Divergir desta lista não quebra nada visível na hora - só o ponto no
+ * trilho, que apontaria para a seção errada (ou nenhuma). Não há portão de
+ * servidor para isto porque não é contrato de rede, é leitura de UI.
+ */
+export const CAMPOS_DA_SECAO = {
+	caca: ['alvosDesabilitados', 'atacarTodosNaMissao', 'coletarItens', 'itensNaoColetados', 'asa'],
+	ataque: ['rotacao', 'modoDeAtaque'],
+	suporte: ['rotacaoDeBuffs', 'cura', 'rotacao'],
+	sobrevivencia: ['descanso', 'pocaoDeHp', 'pocaoDeSp'],
+	consumiveis: ['usarBuffsDeItem']
+};
+
+/**
+ * Esta seção tem campo diferente entre o servidor e o rascunho? Por CAMPO
+ * (JSON.stringify), a mesma régua de `contarAlteracoes` - marcar e desmarcar
+ * a mesma presa não acende o ponto.
+ */
+export function secaoPendente(id, servidor, rascunho) {
+	if (!servidor || !rascunho) {
+		return false;
+	}
+	const campos = CAMPOS_DA_SECAO[id];
+	if (!campos) {
+		return false;
+	}
+	return campos.some(campo => JSON.stringify(servidor[campo]) !== JSON.stringify(rascunho[campo]));
+}

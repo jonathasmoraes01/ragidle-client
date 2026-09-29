@@ -1,0 +1,1676 @@
+[
+  {
+    "tamanho": "1366x768",
+    "secao": "caca",
+    "arquivo": "1366x768--caca.png",
+    "overflowX": false,
+    "hostRect": {
+      "w": 760,
+      "h": 556
+    },
+    "apply": {
+      "w": 138,
+      "h": 34,
+      "efetivoW": 138,
+      "efetivoH": 34,
+      "dentroDaTela": true,
+      "visivel": true
+    },
+    "primeiraTab": {
+      "w": 133,
+      "h": 45,
+      "efetivoW": 133,
+      "efetivoH": 45,
+      "dentroDaTela": true,
+      "visivel": true
+    },
+    "icone": null,
+    "btnMini": {
+      "w": 48,
+      "h": 17,
+      "efetivoW": 48,
+      "efetivoH": 17,
+      "dentroDaTela": true,
+      "visivel": true
+    },
+    "presa": {
+      "w": 279,
+      "h": 44,
+      "efetivoW": 279,
+      "efetivoH": 44,
+      "dentroDaTela": true,
+      "visivel": true
+    },
+    "checkboxRow": {
+      "w": 562,
+      "h": 13,
+      "efetivoW": 562,
+      "efetivoH": 13,
+      "dentroDaTela": true,
+      "visivel": true
+    },
+    "close": {
+      "w": 20,
+      "h": 20,
+      "efetivoW": 20,
+      "efetivoH": 20,
+      "dentroDaTela": true,
+      "visivel": true
+    },
+    "masterSwitch": {
+      "w": 237,
+      "h": 31,
+      "efetivoW": 237,
+      "efetivoH": 31,
+      "dentroDaTela": true,
+      "visivel": true
+    }
+  },
+  {
+    "tamanho": "1366x768",
+    "secao": "ataque",
+    "arquivo": "1366x768--ataque.png",
+    "overflowX": false,
+    "hostRect": {
+      "w": 760,
+      "h": 556
+    },
+    "apply": {
+      "w": 136,
+      "h": 33,
+      "efetivoW": 136,
+      "efetivoH": 33,
+      "dentroDaTela": true,
+      "visivel": true
+    },
+    "primeiraTab": {
+      "w": 131,
+      "h": 44,
+      "efetivoW": 131,
+      "efetivoH": 44,
+      "dentroDaTela": true,
+      "visivel": true
+    },
+    "icone": {
+      "w": 22,
+      "h": 22,
+      "efetivoW": 22,
+      "efetivoH": 22,
+      "dentroDaTela": true,
+      "visivel": true
+    },
+    "btnMini": null,
+    "presa": null,
+    "checkboxRow": {
+      "w": 553,
+      "h": 13,
+      "efetivoW": 553,
+      "efetivoH": 13,
+      "dentroDaTela": true,
+      "visivel": true
+    },
+    "close": {
+      "w": 20,
+      "h": 20,
+      "efetivoW": 20,
+      "efetivoH": 20,
+      "dentroDaTela": true,
+      "visivel": true
+    },
+    "masterSwitch": {
+      "w": 233,
+      "h": 31,
+      "efetivoW": 233,
+      "efetivoH": 31,
+      "dentroDaTela": true,
+      "visivel": true
+    }
+  },
+  {
+    "tamanho": "1366x768",
+    "secao": "suporte",
+    "arquivo": "1366x768--suporte.png",
+    "overflowX": false,
+    "hostRect": {
+      "w": 760,
+      "h": 556
+    },
+    "apply": {
+      "w": 135,
+      "h": 33,
+      "efetivoW": 135,
+      "efetivoH": 33,
+      "dentroDaTela": true,
+      "visivel": true
+    },
+    "primeiraTab": {
+      "w": 130,
+      "h": 44,
+      "efetivoW": 130,
+      "efetivoH": 44,
+      "dentroDaTela": true,
+      "visivel": true
+    },
+    "icone": {
+      "w": 22,
+      "h": 22,
+      "efetivoW": 22,
+      "efetivoH": 22,
+      "dentroDaTela": true,
+      "visivel": true
+    },
+    "btnMini": null,
+    "presa": null,
+    "checkboxRow": null,
+    "close": {
+      "w": 20,
+      "h": 20,
+      "efetivoW": 20,
+      "efetivoH": 20,
+      "dentroDaTela": true,
+      "visivel": true
+    },
+    "masterSwitch": {
+      "w": 232,
+      "h": 30,
+      "efetivoW": 232,
+      "efetivoH": 30,
+      "dentroDaTela": true,
+      "visivel": true
+    }
+  },
+  {
+    "tamanho": "1366x768",
+    "secao": "sobrevivencia",
+    "arquivo": "1366x768--sobrevivencia.png",
+    "overflowX": false,
+    "hostRect": {
+      "w": 760,
+      "h": 556
+    },
+    "apply": {
+      "w": 137,
+      "h": 34,
+      "efetivoW": 137,
+      "efetivoH": 34,
+      "dentroDaTela": true,
+      "visivel": true
+    },
+    "primeiraTab": {
+      "w": 132,
+      "h": 44,
+      "efetivoW": 132,
+      "efetivoH": 44,
+      "dentroDaTela": true,
+      "visivel": true
+    },
+    "icone": null,
+    "btnMini": null,
+    "presa": null,
+    "checkboxRow": {
+      "w": 268,
+      "h": 13,
+      "efetivoW": 268,
+      "efetivoH": 13,
+      "dentroDaTela": true,
+      "visivel": true
+    },
+    "close": {
+      "w": 20,
+      "h": 20,
+      "efetivoW": 20,
+      "efetivoH": 20,
+      "dentroDaTela": true,
+      "visivel": true
+    },
+    "masterSwitch": {
+      "w": 235,
+      "h": 31,
+      "efetivoW": 235,
+      "efetivoH": 31,
+      "dentroDaTela": true,
+      "visivel": true
+    }
+  },
+  {
+    "tamanho": "1366x768",
+    "secao": "consumiveis",
+    "arquivo": "1366x768--consumiveis.png",
+    "overflowX": false,
+    "hostRect": {
+      "w": 760,
+      "h": 556
+    },
+    "apply": {
+      "w": 135,
+      "h": 33,
+      "efetivoW": 135,
+      "efetivoH": 33,
+      "dentroDaTela": true,
+      "visivel": true
+    },
+    "primeiraTab": {
+      "w": 130,
+      "h": 44,
+      "efetivoW": 130,
+      "efetivoH": 44,
+      "dentroDaTela": true,
+      "visivel": true
+    },
+    "icone": null,
+    "btnMini": null,
+    "presa": null,
+    "checkboxRow": null,
+    "close": {
+      "w": 20,
+      "h": 20,
+      "efetivoW": 20,
+      "efetivoH": 20,
+      "dentroDaTela": true,
+      "visivel": true
+    },
+    "masterSwitch": {
+      "w": 232,
+      "h": 30,
+      "efetivoW": 232,
+      "efetivoH": 30,
+      "dentroDaTela": true,
+      "visivel": true
+    }
+  },
+  {
+    "tamanho": "1440x900",
+    "secao": "caca",
+    "arquivo": "1440x900--caca.png",
+    "overflowX": false,
+    "hostRect": {
+      "w": 760,
+      "h": 580
+    },
+    "apply": {
+      "w": 135,
+      "h": 33,
+      "efetivoW": 135,
+      "efetivoH": 33,
+      "dentroDaTela": true,
+      "visivel": true
+    },
+    "primeiraTab": {
+      "w": 130,
+      "h": 44,
+      "efetivoW": 130,
+      "efetivoH": 44,
+      "dentroDaTela": true,
+      "visivel": true
+    },
+    "icone": null,
+    "btnMini": {
+      "w": 47,
+      "h": 17,
+      "efetivoW": 47,
+      "efetivoH": 17,
+      "dentroDaTela": true,
+      "visivel": true
+    },
+    "presa": {
+      "w": 273,
+      "h": 43,
+      "efetivoW": 273,
+      "efetivoH": 43,
+      "dentroDaTela": true,
+      "visivel": true
+    },
+    "checkboxRow": {
+      "w": 551,
+      "h": 13,
+      "efetivoW": 551,
+      "efetivoH": 13,
+      "dentroDaTela": true,
+      "visivel": true
+    },
+    "close": {
+      "w": 20,
+      "h": 20,
+      "efetivoW": 20,
+      "efetivoH": 20,
+      "dentroDaTela": true,
+      "visivel": true
+    },
+    "masterSwitch": {
+      "w": 232,
+      "h": 30,
+      "efetivoW": 232,
+      "efetivoH": 30,
+      "dentroDaTela": true,
+      "visivel": true
+    }
+  },
+  {
+    "tamanho": "1440x900",
+    "secao": "ataque",
+    "arquivo": "1440x900--ataque.png",
+    "overflowX": false,
+    "hostRect": {
+      "w": 760,
+      "h": 580
+    },
+    "apply": {
+      "w": 135,
+      "h": 33,
+      "efetivoW": 135,
+      "efetivoH": 33,
+      "dentroDaTela": true,
+      "visivel": true
+    },
+    "primeiraTab": {
+      "w": 130,
+      "h": 44,
+      "efetivoW": 130,
+      "efetivoH": 44,
+      "dentroDaTela": true,
+      "visivel": true
+    },
+    "icone": {
+      "w": 22,
+      "h": 22,
+      "efetivoW": 22,
+      "efetivoH": 22,
+      "dentroDaTela": true,
+      "visivel": true
+    },
+    "btnMini": null,
+    "presa": null,
+    "checkboxRow": {
+      "w": 551,
+      "h": 13,
+      "efetivoW": 551,
+      "efetivoH": 13,
+      "dentroDaTela": true,
+      "visivel": true
+    },
+    "close": {
+      "w": 20,
+      "h": 20,
+      "efetivoW": 20,
+      "efetivoH": 20,
+      "dentroDaTela": true,
+      "visivel": true
+    },
+    "masterSwitch": {
+      "w": 232,
+      "h": 30,
+      "efetivoW": 232,
+      "efetivoH": 30,
+      "dentroDaTela": true,
+      "visivel": true
+    }
+  },
+  {
+    "tamanho": "1440x900",
+    "secao": "suporte",
+    "arquivo": "1440x900--suporte.png",
+    "overflowX": false,
+    "hostRect": {
+      "w": 760,
+      "h": 580
+    },
+    "apply": {
+      "w": 135,
+      "h": 33,
+      "efetivoW": 135,
+      "efetivoH": 33,
+      "dentroDaTela": true,
+      "visivel": true
+    },
+    "primeiraTab": {
+      "w": 130,
+      "h": 44,
+      "efetivoW": 130,
+      "efetivoH": 44,
+      "dentroDaTela": true,
+      "visivel": true
+    },
+    "icone": {
+      "w": 22,
+      "h": 22,
+      "efetivoW": 22,
+      "efetivoH": 22,
+      "dentroDaTela": true,
+      "visivel": true
+    },
+    "btnMini": null,
+    "presa": null,
+    "checkboxRow": null,
+    "close": {
+      "w": 20,
+      "h": 20,
+      "efetivoW": 20,
+      "efetivoH": 20,
+      "dentroDaTela": true,
+      "visivel": true
+    },
+    "masterSwitch": {
+      "w": 232,
+      "h": 30,
+      "efetivoW": 232,
+      "efetivoH": 30,
+      "dentroDaTela": true,
+      "visivel": true
+    }
+  },
+  {
+    "tamanho": "1440x900",
+    "secao": "sobrevivencia",
+    "arquivo": "1440x900--sobrevivencia.png",
+    "overflowX": false,
+    "hostRect": {
+      "w": 760,
+      "h": 580
+    },
+    "apply": {
+      "w": 135,
+      "h": 33,
+      "efetivoW": 135,
+      "efetivoH": 33,
+      "dentroDaTela": true,
+      "visivel": true
+    },
+    "primeiraTab": {
+      "w": 130,
+      "h": 44,
+      "efetivoW": 130,
+      "efetivoH": 44,
+      "dentroDaTela": true,
+      "visivel": true
+    },
+    "icone": null,
+    "btnMini": null,
+    "presa": null,
+    "checkboxRow": {
+      "w": 266,
+      "h": 13,
+      "efetivoW": 266,
+      "efetivoH": 13,
+      "dentroDaTela": true,
+      "visivel": true
+    },
+    "close": {
+      "w": 20,
+      "h": 20,
+      "efetivoW": 20,
+      "efetivoH": 20,
+      "dentroDaTela": true,
+      "visivel": true
+    },
+    "masterSwitch": {
+      "w": 232,
+      "h": 30,
+      "efetivoW": 232,
+      "efetivoH": 30,
+      "dentroDaTela": true,
+      "visivel": true
+    }
+  },
+  {
+    "tamanho": "1440x900",
+    "secao": "consumiveis",
+    "arquivo": "1440x900--consumiveis.png",
+    "overflowX": false,
+    "hostRect": {
+      "w": 760,
+      "h": 580
+    },
+    "apply": {
+      "w": 135,
+      "h": 33,
+      "efetivoW": 135,
+      "efetivoH": 33,
+      "dentroDaTela": true,
+      "visivel": true
+    },
+    "primeiraTab": {
+      "w": 130,
+      "h": 44,
+      "efetivoW": 130,
+      "efetivoH": 44,
+      "dentroDaTela": true,
+      "visivel": true
+    },
+    "icone": null,
+    "btnMini": null,
+    "presa": null,
+    "checkboxRow": null,
+    "close": {
+      "w": 20,
+      "h": 20,
+      "efetivoW": 20,
+      "efetivoH": 20,
+      "dentroDaTela": true,
+      "visivel": true
+    },
+    "masterSwitch": {
+      "w": 232,
+      "h": 30,
+      "efetivoW": 232,
+      "efetivoH": 30,
+      "dentroDaTela": true,
+      "visivel": true
+    }
+  },
+  {
+    "tamanho": "1920x1080",
+    "secao": "caca",
+    "arquivo": "1920x1080--caca.png",
+    "overflowX": false,
+    "hostRect": {
+      "w": 760,
+      "h": 580
+    },
+    "apply": {
+      "w": 135,
+      "h": 33,
+      "efetivoW": 135,
+      "efetivoH": 33,
+      "dentroDaTela": true,
+      "visivel": true
+    },
+    "primeiraTab": {
+      "w": 130,
+      "h": 44,
+      "efetivoW": 130,
+      "efetivoH": 44,
+      "dentroDaTela": true,
+      "visivel": true
+    },
+    "icone": null,
+    "btnMini": {
+      "w": 47,
+      "h": 17,
+      "efetivoW": 47,
+      "efetivoH": 17,
+      "dentroDaTela": true,
+      "visivel": true
+    },
+    "presa": {
+      "w": 273,
+      "h": 43,
+      "efetivoW": 273,
+      "efetivoH": 43,
+      "dentroDaTela": true,
+      "visivel": true
+    },
+    "checkboxRow": {
+      "w": 551,
+      "h": 13,
+      "efetivoW": 551,
+      "efetivoH": 13,
+      "dentroDaTela": true,
+      "visivel": true
+    },
+    "close": {
+      "w": 20,
+      "h": 20,
+      "efetivoW": 20,
+      "efetivoH": 20,
+      "dentroDaTela": true,
+      "visivel": true
+    },
+    "masterSwitch": {
+      "w": 232,
+      "h": 30,
+      "efetivoW": 232,
+      "efetivoH": 30,
+      "dentroDaTela": true,
+      "visivel": true
+    }
+  },
+  {
+    "tamanho": "1920x1080",
+    "secao": "ataque",
+    "arquivo": "1920x1080--ataque.png",
+    "overflowX": false,
+    "hostRect": {
+      "w": 760,
+      "h": 580
+    },
+    "apply": {
+      "w": 135,
+      "h": 33,
+      "efetivoW": 135,
+      "efetivoH": 33,
+      "dentroDaTela": true,
+      "visivel": true
+    },
+    "primeiraTab": {
+      "w": 130,
+      "h": 44,
+      "efetivoW": 130,
+      "efetivoH": 44,
+      "dentroDaTela": true,
+      "visivel": true
+    },
+    "icone": {
+      "w": 22,
+      "h": 22,
+      "efetivoW": 22,
+      "efetivoH": 22,
+      "dentroDaTela": true,
+      "visivel": true
+    },
+    "btnMini": null,
+    "presa": null,
+    "checkboxRow": {
+      "w": 551,
+      "h": 13,
+      "efetivoW": 551,
+      "efetivoH": 13,
+      "dentroDaTela": true,
+      "visivel": true
+    },
+    "close": {
+      "w": 20,
+      "h": 20,
+      "efetivoW": 20,
+      "efetivoH": 20,
+      "dentroDaTela": true,
+      "visivel": true
+    },
+    "masterSwitch": {
+      "w": 232,
+      "h": 30,
+      "efetivoW": 232,
+      "efetivoH": 30,
+      "dentroDaTela": true,
+      "visivel": true
+    }
+  },
+  {
+    "tamanho": "1920x1080",
+    "secao": "suporte",
+    "arquivo": "1920x1080--suporte.png",
+    "overflowX": false,
+    "hostRect": {
+      "w": 760,
+      "h": 580
+    },
+    "apply": {
+      "w": 136,
+      "h": 34,
+      "efetivoW": 136,
+      "efetivoH": 34,
+      "dentroDaTela": true,
+      "visivel": true
+    },
+    "primeiraTab": {
+      "w": 131,
+      "h": 44,
+      "efetivoW": 131,
+      "efetivoH": 44,
+      "dentroDaTela": true,
+      "visivel": true
+    },
+    "icone": {
+      "w": 22,
+      "h": 22,
+      "efetivoW": 22,
+      "efetivoH": 22,
+      "dentroDaTela": true,
+      "visivel": true
+    },
+    "btnMini": null,
+    "presa": null,
+    "checkboxRow": null,
+    "close": {
+      "w": 20,
+      "h": 20,
+      "efetivoW": 20,
+      "efetivoH": 20,
+      "dentroDaTela": true,
+      "visivel": true
+    },
+    "masterSwitch": {
+      "w": 234,
+      "h": 31,
+      "efetivoW": 234,
+      "efetivoH": 31,
+      "dentroDaTela": true,
+      "visivel": true
+    }
+  },
+  {
+    "tamanho": "1920x1080",
+    "secao": "sobrevivencia",
+    "arquivo": "1920x1080--sobrevivencia.png",
+    "overflowX": false,
+    "hostRect": {
+      "w": 760,
+      "h": 580
+    },
+    "apply": {
+      "w": 135,
+      "h": 33,
+      "efetivoW": 135,
+      "efetivoH": 33,
+      "dentroDaTela": true,
+      "visivel": true
+    },
+    "primeiraTab": {
+      "w": 130,
+      "h": 44,
+      "efetivoW": 130,
+      "efetivoH": 44,
+      "dentroDaTela": true,
+      "visivel": true
+    },
+    "icone": null,
+    "btnMini": null,
+    "presa": null,
+    "checkboxRow": {
+      "w": 266,
+      "h": 13,
+      "efetivoW": 266,
+      "efetivoH": 13,
+      "dentroDaTela": true,
+      "visivel": true
+    },
+    "close": {
+      "w": 20,
+      "h": 20,
+      "efetivoW": 20,
+      "efetivoH": 20,
+      "dentroDaTela": true,
+      "visivel": true
+    },
+    "masterSwitch": {
+      "w": 232,
+      "h": 30,
+      "efetivoW": 232,
+      "efetivoH": 30,
+      "dentroDaTela": true,
+      "visivel": true
+    }
+  },
+  {
+    "tamanho": "1920x1080",
+    "secao": "consumiveis",
+    "arquivo": "1920x1080--consumiveis.png",
+    "overflowX": false,
+    "hostRect": {
+      "w": 760,
+      "h": 580
+    },
+    "apply": {
+      "w": 135,
+      "h": 33,
+      "efetivoW": 135,
+      "efetivoH": 33,
+      "dentroDaTela": true,
+      "visivel": true
+    },
+    "primeiraTab": {
+      "w": 130,
+      "h": 44,
+      "efetivoW": 130,
+      "efetivoH": 44,
+      "dentroDaTela": true,
+      "visivel": true
+    },
+    "icone": null,
+    "btnMini": null,
+    "presa": null,
+    "checkboxRow": null,
+    "close": {
+      "w": 20,
+      "h": 20,
+      "efetivoW": 20,
+      "efetivoH": 20,
+      "dentroDaTela": true,
+      "visivel": true
+    },
+    "masterSwitch": {
+      "w": 232,
+      "h": 30,
+      "efetivoW": 232,
+      "efetivoH": 30,
+      "dentroDaTela": true,
+      "visivel": true
+    }
+  },
+  {
+    "tamanho": "360x800",
+    "secao": "caca",
+    "arquivo": "360x800--caca.png",
+    "overflowX": false,
+    "hostRect": {
+      "w": 360,
+      "h": 556
+    },
+    "apply": {
+      "w": 135,
+      "h": 45,
+      "efetivoW": 135,
+      "efetivoH": 45,
+      "dentroDaTela": true,
+      "visivel": true
+    },
+    "primeiraTab": {
+      "w": 130,
+      "h": 45,
+      "efetivoW": 130,
+      "efetivoH": 45,
+      "dentroDaTela": true,
+      "visivel": true
+    },
+    "icone": null,
+    "btnMini": {
+      "w": 47,
+      "h": 45,
+      "efetivoW": 47,
+      "efetivoH": 45,
+      "dentroDaTela": true,
+      "visivel": true
+    },
+    "presa": {
+      "w": 159,
+      "h": 57,
+      "efetivoW": 159,
+      "efetivoH": 57,
+      "dentroDaTela": true,
+      "visivel": true
+    },
+    "checkboxRow": {
+      "w": 159,
+      "h": 45,
+      "efetivoW": 159,
+      "efetivoH": 45,
+      "dentroDaTela": true,
+      "visivel": true
+    },
+    "close": {
+      "w": 20,
+      "h": 20,
+      "efetivoW": 44,
+      "efetivoH": 44,
+      "dentroDaTela": true,
+      "visivel": true
+    },
+    "masterSwitch": {
+      "w": 194,
+      "h": 60,
+      "efetivoW": 194,
+      "efetivoH": 60,
+      "dentroDaTela": true,
+      "visivel": true
+    }
+  },
+  {
+    "tamanho": "360x800",
+    "secao": "ataque",
+    "arquivo": "360x800--ataque.png",
+    "overflowX": false,
+    "hostRect": {
+      "w": 360,
+      "h": 556
+    },
+    "apply": {
+      "w": 135,
+      "h": 45,
+      "efetivoW": 135,
+      "efetivoH": 45,
+      "dentroDaTela": true,
+      "visivel": true
+    },
+    "primeiraTab": {
+      "w": 130,
+      "h": 45,
+      "efetivoW": 130,
+      "efetivoH": 45,
+      "dentroDaTela": true,
+      "visivel": true
+    },
+    "icone": {
+      "w": 33,
+      "h": 33,
+      "efetivoW": 47,
+      "efetivoH": 47,
+      "dentroDaTela": true,
+      "visivel": true
+    },
+    "btnMini": null,
+    "presa": null,
+    "checkboxRow": {
+      "w": 159,
+      "h": 45,
+      "efetivoW": 159,
+      "efetivoH": 45,
+      "dentroDaTela": true,
+      "visivel": true
+    },
+    "close": {
+      "w": 20,
+      "h": 20,
+      "efetivoW": 44,
+      "efetivoH": 44,
+      "dentroDaTela": true,
+      "visivel": true
+    },
+    "masterSwitch": {
+      "w": 194,
+      "h": 60,
+      "efetivoW": 194,
+      "efetivoH": 60,
+      "dentroDaTela": true,
+      "visivel": true
+    }
+  },
+  {
+    "tamanho": "360x800",
+    "secao": "suporte",
+    "arquivo": "360x800--suporte.png",
+    "overflowX": false,
+    "hostRect": {
+      "w": 360,
+      "h": 556
+    },
+    "apply": {
+      "w": 135,
+      "h": 45,
+      "efetivoW": 135,
+      "efetivoH": 45,
+      "dentroDaTela": true,
+      "visivel": true
+    },
+    "primeiraTab": {
+      "w": 130,
+      "h": 45,
+      "efetivoW": 130,
+      "efetivoH": 45,
+      "dentroDaTela": true,
+      "visivel": true
+    },
+    "icone": {
+      "w": 33,
+      "h": 33,
+      "efetivoW": 47,
+      "efetivoH": 47,
+      "dentroDaTela": true,
+      "visivel": true
+    },
+    "btnMini": null,
+    "presa": null,
+    "checkboxRow": null,
+    "close": {
+      "w": 20,
+      "h": 20,
+      "efetivoW": 44,
+      "efetivoH": 44,
+      "dentroDaTela": true,
+      "visivel": true
+    },
+    "masterSwitch": {
+      "w": 194,
+      "h": 60,
+      "efetivoW": 194,
+      "efetivoH": 60,
+      "dentroDaTela": true,
+      "visivel": true
+    }
+  },
+  {
+    "tamanho": "360x800",
+    "secao": "sobrevivencia",
+    "arquivo": "360x800--sobrevivencia.png",
+    "overflowX": false,
+    "hostRect": {
+      "w": 360,
+      "h": 556
+    },
+    "apply": {
+      "w": 137,
+      "h": 46,
+      "efetivoW": 137,
+      "efetivoH": 46,
+      "dentroDaTela": true,
+      "visivel": true
+    },
+    "primeiraTab": {
+      "w": 132,
+      "h": 46,
+      "efetivoW": 132,
+      "efetivoH": 46,
+      "dentroDaTela": true,
+      "visivel": true
+    },
+    "icone": null,
+    "btnMini": null,
+    "presa": null,
+    "checkboxRow": {
+      "w": 151,
+      "h": 46,
+      "efetivoW": 151,
+      "efetivoH": 46,
+      "dentroDaTela": true,
+      "visivel": true
+    },
+    "close": {
+      "w": 20,
+      "h": 20,
+      "efetivoW": 44,
+      "efetivoH": 44,
+      "dentroDaTela": true,
+      "visivel": true
+    },
+    "masterSwitch": {
+      "w": 196,
+      "h": 61,
+      "efetivoW": 196,
+      "efetivoH": 61,
+      "dentroDaTela": true,
+      "visivel": true
+    }
+  },
+  {
+    "tamanho": "360x800",
+    "secao": "consumiveis",
+    "arquivo": "360x800--consumiveis.png",
+    "overflowX": false,
+    "hostRect": {
+      "w": 360,
+      "h": 556
+    },
+    "apply": {
+      "w": 135,
+      "h": 45,
+      "efetivoW": 135,
+      "efetivoH": 45,
+      "dentroDaTela": true,
+      "visivel": true
+    },
+    "primeiraTab": {
+      "w": 130,
+      "h": 45,
+      "efetivoW": 130,
+      "efetivoH": 45,
+      "dentroDaTela": true,
+      "visivel": true
+    },
+    "icone": null,
+    "btnMini": null,
+    "presa": null,
+    "checkboxRow": null,
+    "close": {
+      "w": 20,
+      "h": 20,
+      "efetivoW": 44,
+      "efetivoH": 44,
+      "dentroDaTela": true,
+      "visivel": true
+    },
+    "masterSwitch": {
+      "w": 194,
+      "h": 60,
+      "efetivoW": 194,
+      "efetivoH": 60,
+      "dentroDaTela": true,
+      "visivel": true
+    }
+  },
+  {
+    "tamanho": "390x844",
+    "secao": "caca",
+    "arquivo": "390x844--caca.png",
+    "overflowX": false,
+    "hostRect": {
+      "w": 390,
+      "h": 580
+    },
+    "apply": {
+      "w": 135,
+      "h": 45,
+      "efetivoW": 135,
+      "efetivoH": 45,
+      "dentroDaTela": true,
+      "visivel": true
+    },
+    "primeiraTab": {
+      "w": 130,
+      "h": 45,
+      "efetivoW": 130,
+      "efetivoH": 45,
+      "dentroDaTela": true,
+      "visivel": true
+    },
+    "icone": null,
+    "btnMini": {
+      "w": 47,
+      "h": 45,
+      "efetivoW": 47,
+      "efetivoH": 45,
+      "dentroDaTela": true,
+      "visivel": true
+    },
+    "presa": {
+      "w": 188,
+      "h": 57,
+      "efetivoW": 188,
+      "efetivoH": 57,
+      "dentroDaTela": true,
+      "visivel": true
+    },
+    "checkboxRow": {
+      "w": 188,
+      "h": 45,
+      "efetivoW": 188,
+      "efetivoH": 45,
+      "dentroDaTela": true,
+      "visivel": true
+    },
+    "close": {
+      "w": 20,
+      "h": 20,
+      "efetivoW": 44,
+      "efetivoH": 44,
+      "dentroDaTela": true,
+      "visivel": true
+    },
+    "masterSwitch": {
+      "w": 224,
+      "h": 45,
+      "efetivoW": 224,
+      "efetivoH": 45,
+      "dentroDaTela": true,
+      "visivel": true
+    }
+  },
+  {
+    "tamanho": "390x844",
+    "secao": "ataque",
+    "arquivo": "390x844--ataque.png",
+    "overflowX": false,
+    "hostRect": {
+      "w": 390,
+      "h": 580
+    },
+    "apply": {
+      "w": 135,
+      "h": 45,
+      "efetivoW": 135,
+      "efetivoH": 45,
+      "dentroDaTela": true,
+      "visivel": true
+    },
+    "primeiraTab": {
+      "w": 130,
+      "h": 45,
+      "efetivoW": 130,
+      "efetivoH": 45,
+      "dentroDaTela": true,
+      "visivel": true
+    },
+    "icone": {
+      "w": 33,
+      "h": 33,
+      "efetivoW": 47,
+      "efetivoH": 47,
+      "dentroDaTela": true,
+      "visivel": true
+    },
+    "btnMini": null,
+    "presa": null,
+    "checkboxRow": {
+      "w": 188,
+      "h": 45,
+      "efetivoW": 188,
+      "efetivoH": 45,
+      "dentroDaTela": true,
+      "visivel": true
+    },
+    "close": {
+      "w": 20,
+      "h": 20,
+      "efetivoW": 44,
+      "efetivoH": 44,
+      "dentroDaTela": true,
+      "visivel": true
+    },
+    "masterSwitch": {
+      "w": 224,
+      "h": 45,
+      "efetivoW": 224,
+      "efetivoH": 45,
+      "dentroDaTela": true,
+      "visivel": true
+    }
+  },
+  {
+    "tamanho": "390x844",
+    "secao": "suporte",
+    "arquivo": "390x844--suporte.png",
+    "overflowX": false,
+    "hostRect": {
+      "w": 390,
+      "h": 580
+    },
+    "apply": {
+      "w": 135,
+      "h": 45,
+      "efetivoW": 135,
+      "efetivoH": 45,
+      "dentroDaTela": true,
+      "visivel": true
+    },
+    "primeiraTab": {
+      "w": 130,
+      "h": 45,
+      "efetivoW": 130,
+      "efetivoH": 45,
+      "dentroDaTela": true,
+      "visivel": true
+    },
+    "icone": {
+      "w": 33,
+      "h": 33,
+      "efetivoW": 47,
+      "efetivoH": 47,
+      "dentroDaTela": true,
+      "visivel": true
+    },
+    "btnMini": null,
+    "presa": null,
+    "checkboxRow": null,
+    "close": {
+      "w": 20,
+      "h": 20,
+      "efetivoW": 44,
+      "efetivoH": 44,
+      "dentroDaTela": true,
+      "visivel": true
+    },
+    "masterSwitch": {
+      "w": 224,
+      "h": 45,
+      "efetivoW": 224,
+      "efetivoH": 45,
+      "dentroDaTela": true,
+      "visivel": true
+    }
+  },
+  {
+    "tamanho": "390x844",
+    "secao": "sobrevivencia",
+    "arquivo": "390x844--sobrevivencia.png",
+    "overflowX": false,
+    "hostRect": {
+      "w": 390,
+      "h": 580
+    },
+    "apply": {
+      "w": 135,
+      "h": 45,
+      "efetivoW": 135,
+      "efetivoH": 45,
+      "dentroDaTela": true,
+      "visivel": true
+    },
+    "primeiraTab": {
+      "w": 130,
+      "h": 45,
+      "efetivoW": 130,
+      "efetivoH": 45,
+      "dentroDaTela": true,
+      "visivel": true
+    },
+    "icone": null,
+    "btnMini": null,
+    "presa": null,
+    "checkboxRow": {
+      "w": 178,
+      "h": 45,
+      "efetivoW": 178,
+      "efetivoH": 45,
+      "dentroDaTela": true,
+      "visivel": true
+    },
+    "close": {
+      "w": 20,
+      "h": 20,
+      "efetivoW": 44,
+      "efetivoH": 44,
+      "dentroDaTela": true,
+      "visivel": true
+    },
+    "masterSwitch": {
+      "w": 224,
+      "h": 45,
+      "efetivoW": 224,
+      "efetivoH": 45,
+      "dentroDaTela": true,
+      "visivel": true
+    }
+  },
+  {
+    "tamanho": "390x844",
+    "secao": "consumiveis",
+    "arquivo": "390x844--consumiveis.png",
+    "overflowX": false,
+    "hostRect": {
+      "w": 390,
+      "h": 580
+    },
+    "apply": {
+      "w": 136,
+      "h": 45,
+      "efetivoW": 136,
+      "efetivoH": 45,
+      "dentroDaTela": true,
+      "visivel": true
+    },
+    "primeiraTab": {
+      "w": 131,
+      "h": 45,
+      "efetivoW": 131,
+      "efetivoH": 45,
+      "dentroDaTela": true,
+      "visivel": true
+    },
+    "icone": null,
+    "btnMini": null,
+    "presa": null,
+    "checkboxRow": null,
+    "close": {
+      "w": 20,
+      "h": 20,
+      "efetivoW": 44,
+      "efetivoH": 44,
+      "dentroDaTela": true,
+      "visivel": true
+    },
+    "masterSwitch": {
+      "w": 225,
+      "h": 45,
+      "efetivoW": 225,
+      "efetivoH": 45,
+      "dentroDaTela": true,
+      "visivel": true
+    }
+  },
+  {
+    "tamanho": "430x932",
+    "secao": "caca",
+    "arquivo": "430x932--caca.png",
+    "overflowX": false,
+    "hostRect": {
+      "w": 430,
+      "h": 580
+    },
+    "apply": {
+      "w": 135,
+      "h": 45,
+      "efetivoW": 135,
+      "efetivoH": 45,
+      "dentroDaTela": true,
+      "visivel": true
+    },
+    "primeiraTab": {
+      "w": 130,
+      "h": 45,
+      "efetivoW": 130,
+      "efetivoH": 45,
+      "dentroDaTela": true,
+      "visivel": true
+    },
+    "icone": null,
+    "btnMini": {
+      "w": 47,
+      "h": 45,
+      "efetivoW": 47,
+      "efetivoH": 45,
+      "dentroDaTela": true,
+      "visivel": true
+    },
+    "presa": {
+      "w": 227,
+      "h": 57,
+      "efetivoW": 227,
+      "efetivoH": 57,
+      "dentroDaTela": true,
+      "visivel": true
+    },
+    "checkboxRow": {
+      "w": 227,
+      "h": 45,
+      "efetivoW": 227,
+      "efetivoH": 45,
+      "dentroDaTela": true,
+      "visivel": true
+    },
+    "close": {
+      "w": 20,
+      "h": 20,
+      "efetivoW": 44,
+      "efetivoH": 44,
+      "dentroDaTela": true,
+      "visivel": true
+    },
+    "masterSwitch": {
+      "w": 232,
+      "h": 45,
+      "efetivoW": 232,
+      "efetivoH": 45,
+      "dentroDaTela": true,
+      "visivel": true
+    }
+  },
+  {
+    "tamanho": "430x932",
+    "secao": "ataque",
+    "arquivo": "430x932--ataque.png",
+    "overflowX": false,
+    "hostRect": {
+      "w": 430,
+      "h": 580
+    },
+    "apply": {
+      "w": 135,
+      "h": 45,
+      "efetivoW": 135,
+      "efetivoH": 45,
+      "dentroDaTela": true,
+      "visivel": true
+    },
+    "primeiraTab": {
+      "w": 130,
+      "h": 45,
+      "efetivoW": 130,
+      "efetivoH": 45,
+      "dentroDaTela": true,
+      "visivel": true
+    },
+    "icone": {
+      "w": 33,
+      "h": 33,
+      "efetivoW": 47,
+      "efetivoH": 47,
+      "dentroDaTela": true,
+      "visivel": true
+    },
+    "btnMini": null,
+    "presa": null,
+    "checkboxRow": {
+      "w": 227,
+      "h": 45,
+      "efetivoW": 227,
+      "efetivoH": 45,
+      "dentroDaTela": true,
+      "visivel": true
+    },
+    "close": {
+      "w": 20,
+      "h": 20,
+      "efetivoW": 44,
+      "efetivoH": 44,
+      "dentroDaTela": true,
+      "visivel": true
+    },
+    "masterSwitch": {
+      "w": 232,
+      "h": 45,
+      "efetivoW": 232,
+      "efetivoH": 45,
+      "dentroDaTela": true,
+      "visivel": true
+    }
+  },
+  {
+    "tamanho": "430x932",
+    "secao": "suporte",
+    "arquivo": "430x932--suporte.png",
+    "overflowX": false,
+    "hostRect": {
+      "w": 430,
+      "h": 580
+    },
+    "apply": {
+      "w": 135,
+      "h": 45,
+      "efetivoW": 135,
+      "efetivoH": 45,
+      "dentroDaTela": true,
+      "visivel": true
+    },
+    "primeiraTab": {
+      "w": 130,
+      "h": 45,
+      "efetivoW": 130,
+      "efetivoH": 45,
+      "dentroDaTela": true,
+      "visivel": true
+    },
+    "icone": {
+      "w": 33,
+      "h": 33,
+      "efetivoW": 47,
+      "efetivoH": 47,
+      "dentroDaTela": true,
+      "visivel": true
+    },
+    "btnMini": null,
+    "presa": null,
+    "checkboxRow": null,
+    "close": {
+      "w": 20,
+      "h": 20,
+      "efetivoW": 44,
+      "efetivoH": 44,
+      "dentroDaTela": true,
+      "visivel": true
+    },
+    "masterSwitch": {
+      "w": 232,
+      "h": 45,
+      "efetivoW": 232,
+      "efetivoH": 45,
+      "dentroDaTela": true,
+      "visivel": true
+    }
+  },
+  {
+    "tamanho": "430x932",
+    "secao": "sobrevivencia",
+    "arquivo": "430x932--sobrevivencia.png",
+    "overflowX": false,
+    "hostRect": {
+      "w": 430,
+      "h": 580
+    },
+    "apply": {
+      "w": 135,
+      "h": 45,
+      "efetivoW": 135,
+      "efetivoH": 45,
+      "dentroDaTela": true,
+      "visivel": true
+    },
+    "primeiraTab": {
+      "w": 130,
+      "h": 45,
+      "efetivoW": 130,
+      "efetivoH": 45,
+      "dentroDaTela": true,
+      "visivel": true
+    },
+    "icone": null,
+    "btnMini": null,
+    "presa": null,
+    "checkboxRow": {
+      "w": 218,
+      "h": 45,
+      "efetivoW": 218,
+      "efetivoH": 45,
+      "dentroDaTela": true,
+      "visivel": true
+    },
+    "close": {
+      "w": 20,
+      "h": 20,
+      "efetivoW": 44,
+      "efetivoH": 44,
+      "dentroDaTela": true,
+      "visivel": true
+    },
+    "masterSwitch": {
+      "w": 232,
+      "h": 45,
+      "efetivoW": 232,
+      "efetivoH": 45,
+      "dentroDaTela": true,
+      "visivel": true
+    }
+  },
+  {
+    "tamanho": "430x932",
+    "secao": "consumiveis",
+    "arquivo": "430x932--consumiveis.png",
+    "overflowX": false,
+    "hostRect": {
+      "w": 430,
+      "h": 580
+    },
+    "apply": {
+      "w": 135,
+      "h": 45,
+      "efetivoW": 135,
+      "efetivoH": 45,
+      "dentroDaTela": true,
+      "visivel": true
+    },
+    "primeiraTab": {
+      "w": 130,
+      "h": 45,
+      "efetivoW": 130,
+      "efetivoH": 45,
+      "dentroDaTela": true,
+      "visivel": true
+    },
+    "icone": null,
+    "btnMini": null,
+    "presa": null,
+    "checkboxRow": null,
+    "close": {
+      "w": 20,
+      "h": 20,
+      "efetivoW": 44,
+      "efetivoH": 44,
+      "dentroDaTela": true,
+      "visivel": true
+    },
+    "masterSwitch": {
+      "w": 232,
+      "h": 45,
+      "efetivoW": 232,
+      "efetivoH": 45,
+      "dentroDaTela": true,
+      "visivel": true
+    }
+  }
+]

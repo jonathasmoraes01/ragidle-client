@@ -153,6 +153,9 @@
 }
 
 #IdleConfig .ic-master-label {
+	display: inline-flex;
+	align-items: center;
+	gap: var(--sp-2);
 	font: var(--type-section);
 	color: var(--text-title);
 }
@@ -160,6 +163,44 @@
 #IdleConfig .ic-master-sub {
 	font: var(--type-desc);
 	color: var(--text-muted);
+}
+
+/* ─── "Auto ligado/desligado bem visível" (pedido explícito) ─────────────
+ * Selo textual ao lado do rótulo - o interruptor já diz a posição, o selo
+ * diz a PALAVRA, para quem lê rápido sem parar no formato do toggle.
+ * "Ativo" usa OURO, não verde: é a MESMA cor do orbe aceso do "Auto" na
+ * doca (DockIdle.css, ".dk-auto.is-on") - as duas telas falam da MESMA
+ * coisa (cacaAutomatica) e usam o MESMO aceso, de propósito. */
+#IdleConfig .ic-master-badge {
+	display: inline-flex;
+	align-items: center;
+	gap: 5px;
+	padding: 1px 8px;
+	border-radius: var(--radius-pill);
+	font: var(--type-badge);
+	letter-spacing: var(--ls-caps);
+	text-transform: uppercase;
+}
+
+#IdleConfig .ic-master-badge::before {
+	content: '';
+	width: 6px;
+	height: 6px;
+	border-radius: 50%;
+	background: currentColor;
+}
+
+#IdleConfig .ic-master-badge.is-on {
+	color: var(--gold-700);
+	background: linear-gradient(180deg, var(--gold-200) 0%, var(--gold-300) 100%);
+	border: 1px solid var(--gold-500);
+	box-shadow: var(--glow-gold);
+}
+
+#IdleConfig .ic-master-badge.is-off {
+	color: var(--text-muted);
+	background: var(--surface-inset);
+	border: 1px solid var(--border-hairline);
 }
 
 #IdleConfig .ic-master-mapa {
@@ -236,6 +277,7 @@
 
 #IdleConfig .ic-tab {
 	appearance: none;
+	position: relative;
 	display: flex;
 	align-items: center;
 	gap: var(--sp-3);
@@ -251,6 +293,8 @@
 	cursor: pointer;
 	transition:
 		background var(--dur-fast) var(--ease-out),
+		border-color var(--dur-fast) var(--ease-out),
+		box-shadow var(--dur-fast) var(--ease-out),
 		color var(--dur-fast) var(--ease-out);
 }
 
@@ -269,6 +313,9 @@
 	background: var(--surface-inset);
 	color: var(--blue-600);
 	box-shadow: var(--well-shadow);
+	transition:
+		background var(--dur-fast) var(--ease-out),
+		box-shadow var(--dur-fast) var(--ease-out);
 }
 
 #IdleConfig .ic-tab-icon svg {
@@ -284,6 +331,8 @@
 }
 
 #IdleConfig .ic-tab-name {
+	display: flex;
+	align-items: center;
 	font: var(--type-label);
 	color: var(--text-title);
 	white-space: nowrap;
@@ -301,24 +350,57 @@
 	display: none;
 }
 
+/* ─── A seção ATIVA (redesenho premium, 29/09/2026) ──────────────────────
+ * Pedido explícito: "destaque elegante, não apenas um azul chapado simples".
+ * Em toda outra parte do jogo ".tab-active-fill" pinta uma CRACHÁ pequena
+ * (chip, selo, botão segmentado) - nesta faixa vertical de 150px de largura
+ * a mesma chapa vira um retângulo azul sólido do tamanho de um cartão, e é
+ * isso que lê como "admin de SaaS". Aqui o azul recua para um ACENTO (o
+ * filete à esquerda + o medalhão do glifo) e o miolo vira vidro claro com um
+ * fio de ouro - a MESMA dupla do resto da janela (hairline azul por fora,
+ * aro dourado por dentro), só em escala de card. */
 #IdleConfig .ic-tab.is-active {
-	background: var(--tab-active-fill);
-	box-shadow: var(--shadow-card);
+	background: linear-gradient(
+		135deg,
+		color-mix(in srgb, var(--sky-100) 75%, var(--white)) 0%,
+		color-mix(in srgb, var(--gold-200) 45%, var(--white)) 100%
+	);
+	border-color: var(--border-gold);
+	box-shadow:
+		inset 3px 0 0 var(--blue-500),
+		var(--shadow-card);
 }
 
-#IdleConfig .ic-tab.is-active .ic-tab-name,
-#IdleConfig .ic-tab.is-active .ic-tab-sum {
-	color: var(--tab-active-text);
+#IdleConfig .ic-tab.is-active .ic-tab-name {
+	color: var(--text-title);
+	font-weight: var(--fw-bold);
 }
 
 #IdleConfig .ic-tab.is-active .ic-tab-sum {
-	opacity: 0.85;
+	color: var(--blue-600);
 }
 
 #IdleConfig .ic-tab.is-active .ic-tab-icon {
-	background: color-mix(in srgb, var(--white) 22%, transparent);
-	color: var(--tab-active-text);
-	box-shadow: none;
+	background: linear-gradient(180deg, var(--blue-400) 0%, var(--blue-600) 100%);
+	color: var(--white);
+	box-shadow: var(--rim-light), var(--shadow-card);
+}
+
+/* ─── O PONTO DE PENDÊNCIA POR SEÇÃO ("marca de alteração pendente por
+ * seção" - pedido do dono, redesenho premium 29/09/2026). Ouro/âmbar, a
+ * MESMA cor que já diz "sem aplicar" no rodapé (".ic-pendentes") e nas notas
+ * de aviso - o jogador não aprende uma segunda cor para o mesmo aviso. Vive
+ * no ".ic-tab-name" (não no ícone) para nunca colidir com o medalhão do
+ * glifo, ativo ou não. */
+#IdleConfig .ic-tab.tem-pendencia .ic-tab-name::after {
+	content: '';
+	flex: 0 0 auto;
+	width: 6px;
+	height: 6px;
+	margin-left: var(--sp-2);
+	border-radius: 50%;
+	background: var(--amber-600);
+	box-shadow: 0 0 0 2px color-mix(in srgb, var(--gold-300) 55%, transparent);
 }
 
 #IdleConfig .ic-rail-foot {
@@ -355,8 +437,15 @@
 	margin-bottom: 0;
 }
 
+/* Fio de ouro sob o título do cartão - o mesmo par hairline-azul/aro-dourado
+ * da janela inteira, só em escala de card (redesenho premium, 29/09/2026:
+ * "melhor hierarquia visual" era pedido explícito). ".ic-card-head" já é
+ * flex-row (título + meta + ações); o fio vai NELE quando ele existe, e no
+ * <h3> sozinho quando não - nunca os dois, para não dobrar a linha. */
 #IdleConfig .ic-card h3 {
 	margin: 0 0 var(--sp-2) 0;
+	padding-bottom: var(--sp-2);
+	border-bottom: 1px solid var(--border-gold);
 	font: var(--type-section);
 	color: var(--text-title);
 }
@@ -366,10 +455,17 @@
 	align-items: center;
 	gap: var(--sp-3);
 	margin-bottom: var(--sp-2);
+	padding-bottom: var(--sp-2);
+	border-bottom: 1px solid var(--border-gold);
 }
 
 #IdleConfig .ic-card-head h3 {
 	margin: 0;
+	/* O fio dourado mora no ".ic-card-head" (a fileira inteira), não no <h3>
+	   sozinho - senão a borda nasce só embaixo do título, mais alta que o
+	   meta/ações ao lado (align-items:center desalinharia as três caixas). */
+	padding-bottom: 0;
+	border-bottom: none;
 	flex: 0 0 auto;
 }
 
@@ -701,6 +797,7 @@
 
 #IdleConfig .ic-icon-btn {
 	appearance: none;
+	position: relative;
 	display: inline-flex;
 	align-items: center;
 	justify-content: center;
@@ -1111,6 +1208,127 @@
 	display: none;
 }
 
+/* ─── O BOTÃO APLICAR (redesenho premium, 29/09/2026) ────────────────────
+ * "Mais bonito, mais evidente, claramente clicável" + quatro estados
+ * visuais: pendente / salvando / salvo / erro. A FORMA (".ri-btn", azul de
+ * ação, Common.css) não muda - é o botão primário do jogo inteiro, e um
+ * segundo azul inventado aqui quebraria a consistência que o resto da UI já
+ * tem. `min-width` trava a largura entre os quatro rótulos ("Aplicar" /
+ * "Aplicando…" / "Aplicado" / "Tentar de novo") para o rodapé não pular.
+ */
+#IdleConfig .ic-apply {
+	min-width: 138px;
+	padding: 9px 20px;
+	font-size: var(--fs-info);
+}
+
+/* Pendente-mas-parado (dirty, ainda sem clicar): um respiro de vida no
+ * botão para ele não se confundir com decoração - pulso suave e discreto,
+ * nunca um flash. Desliga sozinho em `prefers-reduced-motion`. */
+@media (prefers-reduced-motion: no-preference) {
+	#IdleConfig .ic-apply.tem-pendencia {
+		animation: ic-apply-respiro 2.4s var(--ease-in-out) infinite;
+	}
+}
+
+@keyframes ic-apply-respiro {
+	0%,
+	100% {
+		box-shadow: var(--rim-light), var(--shadow-card);
+	}
+	50% {
+		box-shadow: var(--rim-light), var(--glow-accent);
+	}
+}
+
+/* Os três estados de resposta ficam coloridos mesmo quando `disabled` é
+ * true (salvando sempre é; salvo geralmente é, porque aplicar zera `dirty`)
+ * - sem isto ".ri-btn:disabled" (Common.css) dessatura o verde/vermelho e o
+ * flash de "Aplicado"/erro nasceria cinza, ilegível. */
+#IdleConfig .ic-apply.is-saving,
+#IdleConfig .ic-apply.is-success,
+#IdleConfig .ic-apply.is-error {
+	filter: none;
+	opacity: 1;
+}
+
+#IdleConfig .ic-apply.is-saving {
+	cursor: wait;
+}
+
+#IdleConfig .ic-apply-spinner {
+	width: 13px;
+	height: 13px;
+	border-radius: 50%;
+	border: 2px solid color-mix(in srgb, var(--white) 40%, transparent);
+	border-top-color: var(--white);
+	flex: 0 0 auto;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+	#IdleConfig .ic-apply-spinner {
+		animation: ic-apply-girar 700ms linear infinite;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	/* Sem giro, o anel some (metade transparente) - ainda comunica "ocupado"
+	   pelo cursor `wait` e pelo texto "Aplicando…", nunca só pela animação. */
+	#IdleConfig .ic-apply-spinner {
+		opacity: 0.7;
+	}
+}
+
+@keyframes ic-apply-girar {
+	to {
+		transform: rotate(360deg);
+	}
+}
+
+/* Salvo - o mesmo verde que os selos "vale a pena" da aba Ataque
+ * (".ri-badge--verde"), nunca um verde novo. */
+#IdleConfig .ic-apply.is-success {
+	background: linear-gradient(180deg, var(--green-300) 0%, var(--green-600) 100%);
+	border-color: var(--green-600);
+}
+
+#IdleConfig .ic-apply.is-success svg {
+	width: 14px;
+	height: 14px;
+}
+
+/* Erro - o MESMO vermelho da lista de problemas logo à esquerda
+ * (".ic-problemas-list", var(--ri-hp)): o botão e a explicação falam a
+ * mesma cor. */
+#IdleConfig .ic-apply.is-error {
+	background: linear-gradient(180deg, var(--red-300) 0%, var(--ri-hp) 100%);
+	border-color: var(--ri-hp);
+}
+
+#IdleConfig .ic-apply.is-error svg {
+	width: 14px;
+	height: 14px;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+	#IdleConfig .ic-apply.is-error {
+		animation: ic-apply-tremor 380ms var(--ease-out);
+	}
+}
+
+@keyframes ic-apply-tremor {
+	0%,
+	100% {
+		transform: none;
+	}
+	25% {
+		transform: translateX(-3px);
+	}
+	75% {
+		transform: translateX(3px);
+	}
+}
+
 /* ─── Telha estreita (D-932, Lote 3) ─────────────────────────────────────
  *
  * ".ic-card-head" e flex ROW (linha 364-369): h3 (titulo) e
@@ -1131,8 +1349,25 @@
 	   jogador precisa saber QUAL item está tirando da coleta. O corte é o
 	   deste bloco: a janela vive num Shadow DOM, e a primeira versão, que
 	   partia do `html.ri-vertical`, nunca a alcançou — a prova do celular
-	   mediu, e a foto mostrou as duas colunas. */
-	#IdleConfig .ic-presas.ic-presas--itens {
+	   mediu, e a foto mostrou as duas colunas.
+
+	   O MESMO DEFEITO ATINGIA A GRADE DE PRESAS (redesenho premium,
+	   29/09/2026 - a prova do arnês Playwright mediu: a 360px o nome do
+	   monstro sumia por completo, nem "…" sobrava, só avatar e marca). A
+	   regra de antes só cobria ".ic-presas--itens" (o filtro de coleta);
+	   ".ic-presas" sozinha (a grade de monstros) ficava de fora e continuava
+	   em duas colunas - o MESMO corte, num lugar que ninguém tinha
+	   fotografado ainda. */
+	#IdleConfig .ic-presas {
+		grid-template-columns: minmax(0, 1fr);
+	}
+
+	/* ".ic-duas" (Sobrevivência: sentar|levantar, poção HP|SP) - a mesma
+	   família de defeito das duas grades acima, achada na mesma prova: a
+	   360px cada coluna sobra ~145px, e "HP abaixo de 60%" quebra em três
+	   linhas com o <select> "Com os dois marcados" mostrando só "basta…".
+	   Uma coluna só devolve a largura inteira para cada metade. */
+	#IdleConfig .ic-duas {
 		grid-template-columns: minmax(0, 1fr);
 	}
 
@@ -1143,6 +1378,96 @@
 	#IdleConfig .ic-card-actions {
 		flex: 1 1 100%;
 		justify-content: flex-end;
+	}
+
+	/* ─── Alvo de toque: nada abaixo de 44px no celular (redesenho premium,
+	   29/09/2026 - proibição explícita do briefing). Os controles em texto
+	   corrido (rótulo + interruptor de uma linha só, botão de pílula) só
+	   precisavam de altura mínima - a largura já é generosa. "+2px" de
+	   folga: o arnês de prova (Playwright, deviceScaleFactor 2) mediu 43px
+	   cravados em cima de "min-height: var(--hit-touch, 44px)" - 1px de
+	   sobra do arredondamento do layout, não do CSS. A folga cobre a
+	   diferença sem depender de descobrir POR QUE o navegador arredonda um
+	   px pra baixo. */
+	#IdleConfig .ic-tab,
+	#IdleConfig .ic-apply,
+	#IdleConfig .ic-checkbox-row,
+	#IdleConfig .ic-presa,
+	#IdleConfig .ic-btn-mini,
+	#IdleConfig .ic-seg-btn,
+	#IdleConfig .ic-select,
+	#IdleConfig .ic-add-skill,
+	#IdleConfig .ic-master-switch {
+		min-height: calc(var(--hit-touch, 44px) + 2px);
+	}
+
+	/* A faixa-mestre (".ic-master-switch", achado da prova em 430px): o
+	   rótulo cabe numa linha só em telas mais largas ("Caça automática" +
+	   selo, sem quebrar) e a etiqueta encolhia para ~30px - abaixo do piso,
+	   mesmo que a MESMA etiqueta em 360px (onde o texto quebra em duas
+	   linhas) já passasse dele por acidente. O "min-height" acima cobre os
+	   dois casos com a mesma régua. */
+
+	/* A LINHA DE ROTAÇÃO/BUFF EMPILHAVA POR CIMA DE SI MESMA (achado da
+	   prova em 390px, seção Suporte): medalhão + nome + selos + segmentado
+	   "Só eu/Grupo" + botão de remover são CINCO filhos de uma fileira sem
+	   quebra - no desktop cabem lado a lado, a 390px o nome sumia atrás do
+	   segmentado e o "x" de remover ficava meio pra fora do cartão. Aqui a
+	   fileira quebra: medalhão+nome na primeira linha, o resto (segmentado/
+	   "só em você" + ações) cai pra uma segunda linha, à direita - o mesmo
+	   recurso que ".ic-card-actions" já usa. */
+	#IdleConfig .ic-rot-row,
+	#IdleConfig .ic-buff-row {
+		flex-wrap: wrap;
+		row-gap: var(--sp-2);
+	}
+
+	#IdleConfig .ic-rot-row .ic-rot-actions,
+	#IdleConfig .ic-buff-row .ic-seg,
+	#IdleConfig .ic-buff-row .ic-rot-actions {
+		flex: 1 1 100%;
+		justify-content: flex-end;
+	}
+
+	/* ".ic-so-eu" não é um flex container por dentro (é um <span> com texto
+	   solto) - "justify-content" nele não alinha nada; quem empurra o texto
+	   pra direita da linha cheia é "text-align". */
+	#IdleConfig .ic-buff-row .ic-so-eu {
+		flex: 1 1 100%;
+		text-align: right;
+	}
+
+	/* ".ic-btn-mini" é um <button> sem "display:flex" na regra base - só o
+	   "min-height" deixaria o texto colado no topo da caixa mais alta (a
+	   mesma ressalva que ".hm-btn-go" já documenta em HuntMap.css). */
+	#IdleConfig .ic-btn-mini {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+	}
+
+	/* O trio de ícone (mover pra cima/baixo, tirar da ordem): três círculos
+	   de 44px colados empurrariam o cartão e destoariam do glifo de 12px que
+	   carregam - em vez disso eles crescem um pouco (22px → 34px) e ganham
+	   respiro entre si; o aro invisível (::before, position:relative na
+	   regra base) completa a conta ATÉ PASSAR de 44px sem inflar o desenho
+	   (34 + 2×7 = 48, a mesma folga de segurança do bloco acima). A folga de
+	   10px entre orbes de 34px deixa os aros vizinhos se tocando por ~4px no
+	   meio, não os 19px que um aro maior sobre um vão menor causaria - dois
+	   irmãos disputando um triz no meio, nunca a metade do alvo. */
+	#IdleConfig .ic-rot-actions {
+		gap: 10px;
+	}
+
+	#IdleConfig .ic-icon-btn {
+		width: 34px;
+		height: 34px;
+	}
+
+	#IdleConfig .ic-icon-btn::before {
+		content: '';
+		position: absolute;
+		inset: -7px;
 	}
 }
 
