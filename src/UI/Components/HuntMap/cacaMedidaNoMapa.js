@@ -283,8 +283,12 @@ export function ehMapaMedido(bloco, mapa) {
 }
 
 /**
- * O selo de GOLPES de um mapa (secao 8): a letra que o servidor mandou, os
- * golpes e a marca "usa habilidade". `null` sem risco daquele mapa.
+ * O selo de GOLPES de um mapa (secao 8): a letra que o servidor mandou e os
+ * golpes. `null` sem risco daquele mapa.
+ *
+ * A marca "usa habilidade" SAIU em 29/09/2026 (decisao do dono, D-1730): ela
+ * acendia em 185 de 189 mapas, e aviso que aparece em tudo o jogador para de
+ * ler. Um servidor antigo ainda manda o terceiro valor da tupla; ele e ignorado.
  */
 export function seloDoRisco(bloco, mapa) {
 	const entrada = bloco && bloco.risco ? bloco.risco[mapa] : null;
@@ -298,8 +302,7 @@ export function seloDoRisco(bloco, mapa) {
 	return {
 		chave: selo.chave,
 		rotulo: selo.rotulo,
-		golpes: Math.max(0, Math.floor(numeroOuZero(entrada[0]))),
-		usaHabilidade: entrada[2] === 1 || entrada[2] === true
+		golpes: Math.max(0, Math.floor(numeroOuZero(entrada[0])))
 	};
 }
 
@@ -383,10 +386,10 @@ export function htmlDaLinhaDoCartao(bloco, mapa) {
 	}
 	const selo = seloDoRisco(bloco, mapa);
 	if (selo) {
-		const titulo = `${textoDosGolpes(selo.golpes)} do pior monstro deste mapa${selo.usaHabilidade ? ', sem contar o dano de habilidade' : ''}.`;
+		const titulo = `${textoDosGolpes(selo.golpes)} do pior monstro deste mapa.`;
 		partes.push(
 			`<span class="hm-risco hm-risco--${selo.chave}" title="${escapeHtml(titulo)}">` +
-				`<b>${selo.rotulo}</b> · ${textoDosGolpes(selo.golpes)}${selo.usaHabilidade ? ' · usa habilidade' : ''}</span>`
+				`<b>${selo.rotulo}</b> · ${textoDosGolpes(selo.golpes)}</span>`
 		);
 	}
 	return partes.length ? `<div class="hm-card-medida">${partes.join('')}</div>` : '';

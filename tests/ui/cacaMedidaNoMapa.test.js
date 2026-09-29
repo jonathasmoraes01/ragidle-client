@@ -163,9 +163,10 @@ describe('lerPacoteDaCacaMedida e fundirPacote', () => {
 describe('selos, ordem e textos', () => {
 	const bloco = lerBlocoDaCacaMedida(blocoDaCacaMedida());
 
-	it('o selo e a LETRA do servidor, com os golpes e a marca de habilidade', () => {
-		expect(seloDoRisco(bloco, 'pay_fild01')).toEqual({ chave: 'seguro', rotulo: 'Seguro', golpes: 9, usaHabilidade: false });
-		expect(seloDoRisco(bloco, 'prt_fild02')).toEqual({ chave: 'cuidado', rotulo: 'Cuidado', golpes: 5, usaHabilidade: true });
+	it('o selo e a LETRA do servidor, com os golpes (a marca de habilidade saiu, D-1730)', () => {
+		expect(seloDoRisco(bloco, 'pay_fild01')).toEqual({ chave: 'seguro', rotulo: 'Seguro', golpes: 9 });
+		// O fixture ainda traz o terceiro valor (um servidor antigo): ele e ignorado.
+		expect(seloDoRisco(bloco, 'prt_fild02')).toEqual({ chave: 'cuidado', rotulo: 'Cuidado', golpes: 5 });
 		expect(seloDoRisco(bloco, 'prt_sewb4').chave).toBe('arriscado');
 		expect(seloDoRisco(bloco, 'pay_d03_i')).toBeNull();
 		expect(seloDoRisco(lerBlocoDaCacaMedida(blocoDaCacaMedida({ risco: null })), 'pay_fild01')).toBeNull();
@@ -213,7 +214,9 @@ describe('selos, ordem e textos', () => {
 		expect(linha).toContain('hm-risco--seguro');
 		expect(linha).toContain('Aguenta ~9 golpes');
 		expect(linha).not.toContain('usa habilidade');
-		expect(htmlDaLinhaDoCartao(bloco, 'prt_fild02')).toContain(' · usa habilidade');
+		// Mesmo com o terceiro valor aceso no pacote (servidor antigo), a marca nao volta.
+		expect(htmlDaLinhaDoCartao(bloco, 'prt_fild02')).not.toContain('usa habilidade');
+		expect(htmlDaLinhaDoCartao(bloco, 'prt_fild02')).toContain('Aguenta ~5 golpes');
 		// Sem medida e com risco: so o selo.
 		expect(htmlDaLinhaDoCartao(bloco, 'gef_fild10')).not.toContain('Você:');
 	});
@@ -343,7 +346,7 @@ describe('COM o bloco: o que entra', () => {
 		const payon = q('.hm-card[data-mapa="pay_fild01"] .hm-card-medida');
 		expect(payon.textContent).toContain('▸ Você: 7.740 EXP/h · 21.500 z/h');
 		expect(payon.querySelector('.hm-risco--seguro').textContent).toBe('Seguro · Aguenta ~9 golpes');
-		expect(q('.hm-card[data-mapa="gef_fild10"] .hm-risco--arriscado').textContent).toBe('Arriscado · Aguenta ~1 golpe · usa habilidade');
+		expect(q('.hm-card[data-mapa="gef_fild10"] .hm-risco--arriscado').textContent).toBe('Arriscado · Aguenta ~1 golpe');
 		expect(q('.hm-card[data-mapa="gef_fild10"] .hm-voce-caca')).toBeNull();
 		expect(q('.hm-card[data-mapa="pay_d03_i"] .hm-card-medida')).toBeNull();
 	});
