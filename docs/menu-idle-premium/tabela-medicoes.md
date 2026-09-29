@@ -1,32 +1,32 @@
-| Tamanho | Seção | overflowX | Aplicar visível | Aplicar h (px) | menor alvo mobile (px) |
-|---|---|---|---|---|---|
-| 1366x768 | caca | não | sim | 34 | - |
-| 1366x768 | ataque | não | sim | 33 | - |
-| 1366x768 | suporte | não | sim | 33 | - |
-| 1366x768 | sobrevivencia | não | sim | 34 | - |
-| 1366x768 | consumiveis | não | sim | 33 | - |
-| 1440x900 | caca | não | sim | 33 | - |
-| 1440x900 | ataque | não | sim | 33 | - |
-| 1440x900 | suporte | não | sim | 33 | - |
-| 1440x900 | sobrevivencia | não | sim | 33 | - |
-| 1440x900 | consumiveis | não | sim | 33 | - |
-| 1920x1080 | caca | não | sim | 33 | - |
-| 1920x1080 | ataque | não | sim | 33 | - |
-| 1920x1080 | suporte | não | sim | 34 | - |
-| 1920x1080 | sobrevivencia | não | sim | 33 | - |
-| 1920x1080 | consumiveis | não | sim | 33 | - |
-| 360x800 | caca | não | sim | 45 | 44 |
-| 360x800 | ataque | não | sim | 45 | 44 |
-| 360x800 | suporte | não | sim | 45 | 44 |
-| 360x800 | sobrevivencia | não | sim | 46 | 44 |
-| 360x800 | consumiveis | não | sim | 45 | 44 |
-| 390x844 | caca | não | sim | 45 | 44 |
-| 390x844 | ataque | não | sim | 45 | 44 |
-| 390x844 | suporte | não | sim | 45 | 44 |
-| 390x844 | sobrevivencia | não | sim | 45 | 44 |
-| 390x844 | consumiveis | não | sim | 45 | 44 |
-| 430x932 | caca | não | sim | 45 | 44 |
-| 430x932 | ataque | não | sim | 45 | 44 |
-| 430x932 | suporte | não | sim | 45 | 44 |
-| 430x932 | sobrevivencia | não | sim | 45 | 44 |
-| 430x932 | consumiveis | não | sim | 45 | 44 |
+| Tamanho | Seção | overflow (página) | faixa rola por dentro | Aplicar visível | Aplicar h (px) | Todas/Nenhuma (px) | menor alvo mobile (px) |
+|---|---|---|---|---|---|---|---|
+| 1366x768 | caca | não | - | sim | 33 | 47x17 | - |
+| 1366x768 | ataque | não | - | sim | 34 | - | - |
+| 1366x768 | suporte | não | - | sim | 33 | - | - |
+| 1366x768 | sobrevivencia | não | - | sim | 33 | - | - |
+| 1366x768 | consumiveis | não | - | sim | 33 | - | - |
+| 1440x900 | caca | não | - | sim | 33 | 47x17 | - |
+| 1440x900 | ataque | não | - | sim | 33 | - | - |
+| 1440x900 | suporte | não | - | sim | 33 | - | - |
+| 1440x900 | sobrevivencia | não | - | sim | 33 | - | - |
+| 1440x900 | consumiveis | não | - | sim | 33 | - | - |
+| 1920x1080 | caca | não | - | sim | 33 | 47x17 | - |
+| 1920x1080 | ataque | não | - | sim | 33 | - | - |
+| 1920x1080 | suporte | não | - | sim | 33 | - | - |
+| 1920x1080 | sobrevivencia | não | - | sim | 33 | - | - |
+| 1920x1080 | consumiveis | não | - | sim | 33 | - | - |
+| 360x800 | caca | não | sim | sim | 45 | 67x44 | 44 |
+| 360x800 | ataque | não | sim | sim | 45 | - | 44 |
+| 360x800 | suporte | não | sim | sim | 45 | - | 44 |
+| 360x800 | sobrevivencia | não | sim | sim | 45 | - | 44 |
+| 360x800 | consumiveis | não | sim | sim | 45 | - | 44 |
+| 390x844 | caca | não | sim | sim | 45 | 67x44 | 44 |
+| 390x844 | ataque | não | sim | sim | 45 | - | 44 |
+| 390x844 | suporte | não | sim | sim | 45 | - | 44 |
+| 390x844 | sobrevivencia | não | sim | sim | 45 | - | 44 |
+| 390x844 | consumiveis | não | sim | sim | 45 | - | 44 |
+| 430x932 | caca | não | sim | sim | 45 | 66x44 | 44 |
+| 430x932 | ataque | não | sim | sim | 45 | - | 44 |
+| 430x932 | suporte | não | sim | sim | 45 | - | 44 |
+| 430x932 | sobrevivencia | não | sim | sim | 45 | - | 44 |
+| 430x932 | consumiveis | não | sim | sim | 45 | - | 44 |

@@ -155,6 +155,8 @@
 #IdleConfig .ic-master-label {
 	display: inline-flex;
 	align-items: center;
+	flex-wrap: wrap;
+	row-gap: 2px;
 	gap: var(--sp-2);
 	font: var(--type-section);
 	color: var(--text-title);
@@ -497,6 +499,35 @@
 
 #IdleConfig .ic-note-warn {
 	color: var(--amber-600);
+}
+
+/* "So funciona com a Caca automatica ligada" (rodada 2 do redesenho
+   premium): o aviso mora FORA do trecho apagado (precisa continuar legivel
+   pra explicar o motivo) e usa o mesmo par branco/dourado da placa do mapa
+   (".ic-master-mapa") - a mesma familia visual de "aviso contextual" da
+   janela inteira, nao uma cor nova. */
+#IdleConfig .ic-nota-automatico {
+	display: flex;
+	align-items: center;
+	gap: var(--sp-3);
+	margin-bottom: var(--sp-4);
+	padding: var(--sp-3) var(--sp-5);
+	border: 1px solid var(--border-gold);
+	border-radius: var(--radius-card);
+	background: linear-gradient(180deg, var(--white) 0%, var(--gold-200) 100%);
+	color: var(--gold-700);
+	font: var(--type-label);
+}
+
+/* O trecho apagado em si: grayscale + 55% (regra do design system -
+   "desabilitado nunca e cinza chapado"), nunca "opacity" sozinho (que
+   deixaria a cor viva por baixo, lendo como card colorido e nao como
+   card PARADO). Os campos continuam sem "disabled" a mais - so a PINTURA
+   diz que nao vale agora; o jogador ainda prepara a secao pra quando
+   ligar o Auto. */
+#IdleConfig .ic-secao-parada {
+	filter: grayscale(1);
+	opacity: 0.55;
 }
 
 #IdleConfig .ic-subtitle {
@@ -1344,6 +1375,109 @@
  * "pequeno" (112px), sozinho cabe folgado em 393px.
  */
 @media (max-width: 599px) {
+	/* CABEÇALHO NO CELULAR (rodada 2 do redesenho premium): "Caça
+	   automática" e a placa do mapa disputavam a MESMA fileira estreita -
+	   "Você está em / Campos de Prontera" espremia o interruptor até
+	   quebrar o rótulo em duas linhas. Aqui os dois empilham, cada um com a
+	   largura inteira: o interruptor nunca mais perde espaço para a placa. */
+	#IdleConfig .ic-master {
+		flex-wrap: wrap;
+		row-gap: var(--sp-3);
+	}
+
+	#IdleConfig .ic-master-switch {
+		flex: 1 1 100%;
+	}
+
+	/* A placa era alinhada à DIREITA para conviver ao lado do interruptor
+	   (compacta, no canto). Empilhada e com a largura inteira, alinhar à
+	   direita a deixaria flutuando longe do resto - aqui ela encosta na
+	   esquerda, na mesma coluna do interruptor acima. */
+	#IdleConfig .ic-master-mapa {
+		flex: 1 1 100%;
+		align-items: flex-start;
+		max-width: none;
+	}
+
+	/* ─── O TRILHO VIRA FAIXA HORIZONTAL DE CHIPS (rodada 2 do redesenho
+	   premium, achado do dono: "o trilho lateral ocupa ~42% da tela e
+	   espreme o conteúdo numa coluna estreita - é o sidebar inútil que o
+	   plano proíbe"). Continua sendo o MESMO ".ic-rail" (mesmos elementos,
+	   mesmo JS, mesmo `data-tab`) - só a DIREÇÃO muda: de coluna presa à
+	   esquerda para uma fileira presa ao topo, que rola por dentro dela
+	   mesma (nunca a página - `overflow-x` fica só aqui, `.ic-body` não
+	   ganha largura maior que a tela). O conteúdo (".ic-pane") passa a
+	   ocupar a largura inteira, empilhado embaixo da fileira. */
+	#IdleConfig .ic-body {
+		flex-direction: column;
+		min-height: 0;
+	}
+
+	#IdleConfig .ic-rail {
+		flex: 0 0 auto;
+		flex-direction: row;
+		align-items: stretch;
+		width: 100%;
+		max-width: 100%;
+		box-sizing: border-box;
+		overflow-x: auto;
+		overflow-y: hidden;
+		overscroll-behavior-x: contain;
+		-webkit-overflow-scrolling: touch;
+		padding: var(--sp-3) var(--sp-4);
+		border-right: none;
+		border-bottom: var(--divider);
+	}
+
+	/* "Seções" (o rótulo da coluna) e o espaçador que empurrava o rodapé pra
+	   baixo (".ic-rail-foot", "margin-top:auto") só faziam sentido numa
+	   coluna - numa fileira horizontal não têm o que fazer. */
+	#IdleConfig .ic-rail-label,
+	#IdleConfig .ic-rail-foot {
+		display: none;
+	}
+
+	/* Cada seção vira um CHIP: largura pelo próprio conteúdo (não mais
+	   "width:100%" da versão em coluna), nome numa linha só, sem quebrar -
+	   é uma fileira que rola, não uma lista que estica. O resumo de uma
+	   linha (".ic-tab-sum", "5/6 presas") sai: não há altura sobrando numa
+	   fileira de 44px pra uma segunda linha de texto, e o glifo + nome já
+	   bastam pra identificar a seção numa faixa que já é, por natureza,
+	   menos detalhada que a coluna. O ponto âmbar de pendência continua -
+	   é CSS puro (".ic-tab.tem-pendencia .ic-tab-name::after"), não lê
+	   ".ic-tab-sum" pra nada. */
+	#IdleConfig .ic-tab {
+		flex: 0 0 auto;
+		width: auto;
+	}
+
+	#IdleConfig .ic-tab-text {
+		flex-direction: row;
+		align-items: center;
+	}
+
+	#IdleConfig .ic-tab-name {
+		white-space: nowrap;
+	}
+
+	#IdleConfig .ic-tab-sum {
+		display: none;
+	}
+
+	/* O acento do item ativo era um filete na borda ESQUERDA (faz sentido
+	   numa lista vertical, onde os vizinhos ficam em cima/embaixo). Numa
+	   fileira horizontal o vizinho fica dos LADOS - o acento desce pra
+	   embaixo, a gramática universal de aba/chip ativo. */
+	#IdleConfig .ic-tab.is-active {
+		box-shadow:
+			inset 0 -3px 0 var(--blue-500),
+			var(--shadow-card);
+	}
+
+	#IdleConfig .ic-pane {
+		width: 100%;
+	}
+
 	/* A grade de ITENS tem UMA coluna aqui (D-1348): em duas, ao lado da lista
 	   de seções, o nome ficava em uma letra ("J…", e três "M…" iguais), e o
 	   jogador precisa saber QUAL item está tirando da coleta. O corte é o
@@ -1393,7 +1527,6 @@
 	#IdleConfig .ic-apply,
 	#IdleConfig .ic-checkbox-row,
 	#IdleConfig .ic-presa,
-	#IdleConfig .ic-btn-mini,
 	#IdleConfig .ic-seg-btn,
 	#IdleConfig .ic-select,
 	#IdleConfig .ic-add-skill,
@@ -1437,13 +1570,31 @@
 		text-align: right;
 	}
 
-	/* ".ic-btn-mini" é um <button> sem "display:flex" na regra base - só o
-	   "min-height" deixaria o texto colado no topo da caixa mais alta (a
-	   mesma ressalva que ".hm-btn-go" já documenta em HuntMap.css). */
+	/* "Todas"/"Nenhuma" viraram OVAIS no celular (achado da rodada 2): o
+	   "min-height" do grupo genérico acima deixa a caixa alta (46px) com a
+	   largura estreita de sempre (padding 3px 10px) - um retângulo quase
+	   quadrado com "border-radius:999px" lê como ovo, não como pílula. Aqui
+	   ganham receita própria: altura EXATA de 44px (não +2 - a largura
+	   generosa já resolve a forma, sem precisar da folga de arredondamento)
+	   e padding horizontal bem maior, então a caixa fica LARGA relativo à
+	   altura - a proporção que faz um botão redondo ler como pílula.
+	   "flex-shrink:0" e "white-space:nowrap" garantem que as duas fiquem
+	   lado a lado, cada uma do tamanho do próprio texto, sem quebrar entre
+	   si (só o PAR quebra pra a própria linha, via ".ic-card-actions"). */
 	#IdleConfig .ic-btn-mini {
 		display: inline-flex;
 		align-items: center;
 		justify-content: center;
+		flex: 0 0 auto;
+		/* "+1px": o mesmo arredondamento de layout registrado no bloco de
+		   alvo de toque acima (medido: "min-height:44px" cru rende 43px). */
+		min-height: calc(var(--hit-touch, 44px) + 1px);
+		padding: 0 20px;
+		white-space: nowrap;
+	}
+
+	#IdleConfig .ic-card-actions {
+		flex-wrap: nowrap;
 	}
 
 	/* O trio de ícone (mover pra cima/baixo, tirar da ordem): três círculos

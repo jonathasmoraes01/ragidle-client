@@ -465,6 +465,12 @@ IdleConfig.toggle = function toggle() {
 		sincronizarRetomarTutorial();
 		IdleConfig.focus();
 		requestConfig();
+		// No celular o trilho é a faixa horizontal que rola (ver
+		// IdleConfig.css) - se a última seção lembrada foi "Consumíveis" (a
+		// última da fileira), o chip dela nasceria fora da faixa visível.
+		// Sem animação: a janela está abrindo agora, não é uma troca que o
+		// jogador precisa VER acontecer.
+		scrollTabAtivaParaVista(false);
 	}
 };
 
@@ -562,6 +568,28 @@ function onClickTab(e) {
 	lembrarAba(_preferences, IdleConfig.activeTab);
 	renderTabs();
 	renderBody();
+	scrollTabAtivaParaVista();
+}
+
+/**
+ * No celular o trilho virou uma FAIXA HORIZONTAL que rola (redesenho
+ * premium, rodada 2 - ver IdleConfig.css, "@media (max-width: 599px)").
+ * Clicar numa seção perto da ponta pode deixar o próprio chip clicado
+ * parcialmente fora da faixa visível; isto o traz pra dentro. Só roda na
+ * TROCA de seção (aqui e em `abrirNaAba`), nunca dentro de `renderTabs()` -
+ * essa função também é chamada por qualquer edição de campo
+ * (`markDirty`/`renderAll`), e rolar a faixa a cada tecla digitada
+ * arrancaria o jogador de onde ele estava olhando. No desktop o trilho é
+ * vertical e os 5 itens sempre cabem - `scrollIntoView({block:'nearest'})`
+ * não move nada quando o alvo já está visível, então esta chamada é
+ * inofensiva lá.
+ */
+function scrollTabAtivaParaVista(comAnimacao = true) {
+	const root = _root();
+	const btn = root.querySelector(`.ic-tab[data-tab="${IdleConfig.activeTab}"]`);
+	if (btn && typeof btn.scrollIntoView === 'function') {
+		btn.scrollIntoView({ inline: 'nearest', block: 'nearest', behavior: comAnimacao ? 'smooth' : 'auto' });
+	}
 }
 
 function onClickApply(e) {
@@ -858,8 +886,8 @@ function renderMaster() {
 				</span>
 				<span class="ic-master-sub">${
 					ligada
-						? 'O personagem caça sozinho neste mapa.'
-						: 'Parada — o personagem só se defende até você ligar.'
+						? 'O personagem caça, cura, bebe poção, descansa e usa buffs sozinho.'
+						: 'Parado - nada age sozinho: nem poção, nem descanso, nem buff, nem coleta.'
 				}</span>
 			</span>
 		</label>
@@ -1228,7 +1256,7 @@ function renderCaca() {
 					<button type="button" class="ic-btn-mini" data-action="alvos-limpar" ${mobs.length ? '' : 'disabled'}>Nenhuma</button>
 				</span>
 			</div>
-			<div class="ic-note">Só as presas marcadas são caçadas. A desmarcada continua agressiva: o personagem se defende dela, mas não vai atrás.</div>
+			<div class="ic-note">Só as marcadas são caçadas. A desmarcada nunca é atacada sozinha, nem se ela atacar você - só o seu clique ataca.</div>
 			${presas}
 		</div>
 		<div class="ic-card">
@@ -1859,6 +1887,27 @@ function bindSuporteExtra(pane) {
 
 /* ─── Seção: Sobrevivência ───────────────────────────────────────── */
 
+/**
+ * "So funciona com a Caca automatica ligada" (rodada 2 do redesenho
+ * premium, pedido do dono - o servidor mudou de regra na mesma entrega:
+ * com "cacaAutomatica" desligado, NADA age sozinho - nem cacar, nem curar,
+ * nem beber pocao, nem descansar, nem beber buff, nem recolher). Sobrevivencia
+ * e Consumiveis ficam com a mesma pinta de "desabilitado por contexto" do
+ * resto do design system (grayscale + 55%, nunca cinza chapado) mais um
+ * aviso curto acima - os controles continuam EDITAVEIS (nenhum "disabled"
+ * a mais nos campos deles): o jogador prepara a secao agora e ela passa a
+ * valer assim que ligar o Auto, o mesmo espirito de D-359 (a config edita
+ * normal na cidade, antes de a caca comecar).
+ */
+function envolverSeAutoDesligado(cfg, html) {
+	if (cfg.cacaAutomatica) {
+		return html;
+	}
+	return `
+		<div class="ic-nota-automatico">Só funciona com a Caça automática ligada.</div>
+		<div class="ic-secao-parada">${html}</div>`;
+}
+
 function renderSobrevivencia() {
 	const cfg = IdleConfig.editConfig;
 	const ctx = IdleConfig.contexto;
@@ -1871,13 +1920,15 @@ function renderSobrevivencia() {
 	// por `pocaoDeSp`/`suporteAoGrupo` no contrato v1.
 	const canAuto = !!(ctx.capacidades && ctx.capacidades.pocaoAutomatica);
 
-	return `
+	return envolverSeAutoDesligado(
+		cfg,
+		`
 		<div class="ic-card">
 			<div class="ic-card-head">
 				<h3>Descanso</h3>
 			</div>
 			${!canSentar ? '<div class="ic-note ic-note-warn">Sentar para recuperar não está disponível neste personagem/mapa.</div>' : ''}
-			${switchRow('descanso.ligado', d.ligado, 'Sentar para recuperar', 'A caça pausa depois da luta em curso; um monstro agressivo interrompe o descanso para a autodefesa.', !canSentar)}
+			${switchRow('descanso.ligado', d.ligado, 'Sentar para recuperar', 'A caça pausa depois da luta em curso; um monstro marcado que ataca interrompe o descanso para a autodefesa.', !canSentar)}
 
 			<div class="ic-subsection${d.ligado ? '' : ' ic-subsection-disabled'}">
 				<div class="ic-duas">
@@ -1919,7 +1970,8 @@ function renderSobrevivencia() {
 				${renderPocao('pocaoDeSp', cfg.pocaoDeSp, ctx.consumiveisDeCura, canSp, 'SP', canAuto)}
 			</div>
 			${!canSp ? '<div class="ic-note ic-note-warn">Recuperação automática de SP não está disponível.</div>' : ''}
-		</div>`;
+		</div>`
+	);
 }
 
 /**
@@ -1979,7 +2031,9 @@ function renderConsumiveis() {
 	const ctx = IdleConfig.contexto;
 	const enabled = !!(ctx.capacidades && ctx.capacidades.buffsAutomaticos);
 
-	return `
+	return envolverSeAutoDesligado(
+		cfg,
+		`
 		<div class="ic-card">
 			<h3>Buffs de item</h3>
 			<label class="ic-switch-row">
@@ -2003,7 +2057,8 @@ function renderConsumiveis() {
 		<div class="ic-card ic-card--tip">
 			<h3>Em breve</h3>
 			<div class="ic-note">Escolher quais frascos beber e em que ordem.</div>
-		</div>`;
+		</div>`
+	);
 }
 
 Network.hookPacket(PACKET.ZC.RAGIDLE_CONFIG, onConfigReceived);
@@ -2074,6 +2129,7 @@ IdleConfig.abrirNaAba = function abrirNaAba(tab) {
 	lembrarAba(_preferences, IdleConfig.activeTab);
 	renderTabs();
 	renderBody();
+	scrollTabAtivaParaVista();
 };
 
 /**

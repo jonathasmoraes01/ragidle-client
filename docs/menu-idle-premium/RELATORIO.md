@@ -41,7 +41,7 @@ de verdade:
 Com as duas corrigidas, o modo D-932 ligou de verdade e a prova passou a medir o
 que o celular vê, não uma janela de desktop encolhida por engano.
 
-## Duas rodadas (a exigida pelo briefing)
+## Rodadas 1-2 (a dupla exigida pelo briefing original)
 
 **Rodada 1** (30 fotos: 5 seções × 6 tamanhos) achou CINCO defeitos reais, todos
 antes de qualquer coisa deste redesenho existir - o trilho de pendência e os
@@ -63,12 +63,52 @@ tinha acontecido ali uma vez - só não tinha sido visto na grade de monstros ne
 em 360-430px antes). Os itens 4 e 5 são alvo de toque, exigência explícita deste
 redesenho.
 
-**Rodada 2** (as mesmas 30 fotos + as 4 do botão Aplicar) confirmou: **zero
-problemas** - sem *overflow* horizontal em nenhum tamanho, Aplicar sempre visível,
-todo alvo de toque no celular ≥ 44px (medido: 44-46px), nenhum elemento cortado.
-Tabela completa em [`tabela-medicoes.md`](tabela-medicoes.md) (gerada dos números
-crus, não escrita à mão) e os números crus em
-[`medicoes-rodada2.json`](medicoes-rodada2.json).
+**Rodada 2 (a primeira desta dupla)** repetiu as mesmas 30 fotos + as 4 do botão
+Aplicar e confirmou: zero problemas nos cinco defeitos da tabela acima. Essa rodada
+foi revisada pelo dono, que aprovou o desktop e pediu uma TERCEIRA rodada, descrita
+abaixo, só para o celular e para o texto.
+
+## Rodada 3 (celular: a barra lateral vira faixa; texto corrigido)
+
+O dono aprovou o desktop ("bonito, coeso, fiel ao HUD") e devolveu quatro achados
+novos, todos do celular, mais uma rodada de texto: o servidor mudou de regra na
+mesma entrega (presa desmarcada não leva mais golpe nenhum, nem de autodefesa; o
+interruptor-mestre passou a governar TODA ação automática, não só a caçada), e a
+tela tinha frases que descreviam o comportamento ANTIGO.
+
+| # | Onde | O que o dono apontou | Conserto |
+|---|---|---|---|
+| 6 | Celular inteiro | O trilho lateral ocupava ~42% da tela (150px em 360px) e espremia o conteúdo numa coluna estreita - "o sidebar inútil que o plano proíbe" | O MESMO `.ic-rail` (mesmos elementos, mesmo `data-tab`) vira uma faixa HORIZONTAL de chips abaixo do cabeçalho, com rolagem própria (nunca a página) e o chip ativo entrando em vista sozinho na troca |
+| 7 | Caçada, celular | "Todas"/"Nenhuma" viraram ovais grandes (a régua genérica de `min-height:46px` numa caixa estreita) | Receita própria: altura 44-45px, padding horizontal generoso (a forma de pílula vem da LARGURA, não da altura) |
+| 8 | Cabeçalho, celular | "Caça automática" quebrava em duas linhas, o selo "ATIVO" ficava solto, e a placa do mapa espremia o interruptor | `.ic-master` empilha (interruptor em cima, placa embaixo, cada um com a largura inteira) e `.ic-master-label` ganhou `flex-wrap` pro selo cair numa linha própria em vez de espremer o texto |
+| 9 | Texto (Caçada, interruptor-mestre, Descanso) | Frases prometiam autodefesa contra presa desmarcada e "caça sozinha" sem dizer que TUDO depende do interruptor - o servidor mudou de regra na mesma entrega | Ver a tabela de texto abaixo |
+
+**A tabela de texto** (`d` do pedido do dono):
+
+| Onde | Antes | Depois |
+|---|---|---|
+| Nota das presas (Caçada) | "A desmarcada continua agressiva: o personagem se defende dela, mas não vai atrás." (FALSO: virou "nunca leva golpe nenhum") | "Só as marcadas são caçadas. A desmarcada nunca é atacada sozinha, nem se ela atacar você - só o seu clique ataca." |
+| Interruptor-mestre, ligado | "O personagem caça sozinho neste mapa." | "O personagem caça, cura, bebe poção, descansa e usa buffs sozinho." |
+| Interruptor-mestre, desligado | "Parada - o personagem só se defende até você ligar." (também falso: nem defesa sobra) | "Parado - nada age sozinho: nem poção, nem descanso, nem buff, nem coleta." |
+| Descanso | "um monstro agressivo interrompe o descanso" (vale só pra presa MARCADA, não pra qualquer agressivo) | "um monstro marcado que ataca interrompe o descanso" |
+| Sobrevivência e Consumíveis | (nada dizia que dependiam do interruptor) | Nota "Só funciona com a Caça automática ligada." + o conteúdo da seção em `grayscale(1)`/55% quando o interruptor está desligado - os campos continuam editáveis, só a pintura avisa que não vale AGORA |
+
+Busquei outras frases do arquivo com "agressiv", "autodefesa", "sozinho", "se
+defende" (`grep` no arquivo inteiro) - as demais (cura por habilidade, poção
+automática, "Usar Asa de Mosca sozinho") descrevem o que a PRÓPRIA função faz
+quando ativa, não prometem nada sobre presa desmarcada nem escondem a dependência
+do interruptor-mestre (essa dependência agora está coberta pela nota de seção em
+Sobrevivência/Consumíveis - Ataque e Suporte não pediram a mesma nota porque já
+são, pelo próprio nome, o conteúdo da caçada/do que ela sustenta).
+
+**Rodada 4 (confirmação da 3)**: as mesmas 30 fotos + as 2 extras de "interruptor
+desligado" (Sobrevivência e Consumíveis apagados) mediram, de novo, **zero
+problemas** - a faixa horizontal rola por dentro dela mesma em TODOS os tamanhos
+móveis (`railOverflow: true` nos quinze casos, `overflow` de página `false` nos
+trinta), "Todas"/"Nenhuma" em 44px de altura com largura pelo texto, cabeçalho sem
+quebra de linha, todo alvo de toque ≥ 44px. Tabela em
+[`tabela-medicoes.md`](tabela-medicoes.md), números crus em
+[`medicoes-rodada2b.json`](medicoes-rodada2b.json).
 
 ## Decisões de design
 
@@ -110,6 +150,37 @@ crus, não escrita à mão) e os números crus em
 - **Nenhum ícone desenhado à mão**: os únicos glifos novos (spinner de "salvando" é
   um anel CSS puro, sem SVG; check/alerta do Aplicar são `RiIcones.confere`/
   `RiIcones.alerta`, já existentes) - nada de emoji, nada de ilustração nova.
+- **Trilho vira faixa horizontal SÓ no celular (rodada 3)**: o MESMO `.ic-rail`
+  (mesmo HTML, mesmo `data-tab`, mesmo JS) muda de direção via `flex-direction`
+  dentro do `@media (max-width: 599px)` - não é um segundo componente, é o mesmo
+  com uma direção diferente. O resumo de uma linha (`.ic-tab-sum`) sai da faixa:
+  não sobra altura pra uma segunda linha de texto numa fileira de 44px, e o glifo
+  + nome já identificam a seção. O acento do item ativo migra da borda ESQUERDA
+  (gramática de lista vertical) pra embaixo (gramática universal de aba/chip
+  horizontal) - mesma cor, mesma técnica (`box-shadow: inset`), só o lado muda.
+  O chip ativo entra em vista sozinho na troca de seção
+  (`scrollTabAtivaParaVista()`, `Element.scrollIntoView`) - sem animação na
+  abertura da janela (o `.ic-window` ainda nem apareceu), com animação suave no
+  clique/no medalhão do canto de combate.
+- **"Todas"/"Nenhuma" ganharam receita própria no celular**: a régua genérica de
+  alvo de toque (`min-height` numa caixa estreita) virava ovo - largura e altura
+  quase iguais com `border-radius:999px` lê como oval, não pílula. Largura pelo
+  texto + padding horizontal generoso resolve a FORMA; a altura continua no piso
+  de 44px.
+- **Cabeçalho empilha no celular**: o interruptor-mestre e a placa do mapa
+  dividiam uma fileira só e brigavam por espaço. Empilhados (cada um com a
+  largura inteira), nenhum dos dois aperta o outro - e o rótulo "Caça automática"
+  ganhou `flex-wrap` pra o selo "Ativo/Parado" cair numa linha própria em vez de
+  espremer o texto do título.
+- **"Só funciona com a Caça automática ligada" (Sobrevivência/Consumíveis)**: o
+  servidor mudou de regra nesta mesma entrega - com o interruptor desligado, NADA
+  age sozinho (nem poção, nem descanso, nem buff, nem coleta). Em vez de esconder
+  as seções ou travar os campos, elas ficam com a pintura "desabilitado por
+  contexto" do design system (`grayscale(1)` + 55%, nunca cinza chapado) e uma
+  nota curta explica o motivo. Os CAMPOS continuam editáveis (nenhum `disabled` a
+  mais neles) - o jogador prepara a seção agora e ela passa a valer quando ligar
+  o Auto, o mesmo espírito de D-359 (a config edita normal na cidade, antes da
+  caçada começar).
 
 ## O que NÃO foi validado, e por quê
 
@@ -138,28 +209,56 @@ crus, não escrita à mão) e os números crus em
 
 ## Testes
 
-`npx vitest run` na worktree: **235 arquivos, 2274 testes passando, 0 falhando, 3
-pulados** (pré-existentes e ambientais - `bauSecreto`/`nomesLocais`/
-`iconeDoPwaEDoJogo`, ligados a assets gerados ausentes nesta worktree, nada deste
-trabalho). Comparado com a base (`fdd7896d`) via `git diff --stat fdd7896d --
-tests/`: **o único teste tocado foi `tests/ui/secoesDaConfig.test.js`, só com
-inserções** (41 linhas, 25→32 blocos `it()` - as 7 novas cobrem `secaoPendente`/
-`CAMPOS_DA_SECAO`). Nenhum teste existente foi alterado ou removido; os 235
-arquivos de teste são os mesmos da base.
+Rodei `npx vitest run` QUATRO vezes depois do trabalho das rodadas 3-4 (a
+máquina está com dezenas de sessões concorrentes - `tasklist` mediu de 20 a 50
+`node.exe` simultâneos ao longo da tarde). As quatro bateram testes
+CRONOMETRADOS em timeout, e em NENHUMA o arquivo era `secoesDaConfig.test.js`
+ou qualquer coisa deste trabalho - a lista variava a cada rodada
+(`dormirEmTelaPreta.test.js`, `missoesConcluidasOcultas.test.js`,
+`semErroDeLint.test.js` - este último tem um timeout de 60s CRAVADO no próprio
+`it(..., 60_000)`, e roda ESLint sobre `src/` inteiro, um dos testes mais
+sensíveis a CPU concorrente da suite - e outros, nunca os mesmos duas vezes
+seguidas). A melhor rodada (com `--testTimeout=60000`) fechou em **234 arquivos
+passando, 1 falhando** (só o `semErroDeLint`); a última, sem essa folga, voltou
+a **229 passando, 6 falhando**. TODOS os arquivos que falharam em qualquer
+rodada, rodados DE NOVO sozinhos (sem o arnês Playwright, sem as outras três
+rodadas competindo por CPU), passaram limpos - inclusive o `semErroDeLint`
+(57,26s contra o teto de 60s dele). Contagem sempre igual: **235 arquivos**,
+**2274 testes** (fora os 3 pulados de sempre, ambientais -
+`bauSecreto`/`nomesLocais`/`iconeDoPwaEDoJogo`, nada deste trabalho), a
+diferença entre rodadas é só QUANTOS batem o próprio relógio antes de terminar
+num instante de pico. Não é regressão de código: é contenção de CPU desta
+máquina compartilhada, e a prova disso é a MESMA suite passando inteira quando
+tem a CPU para si.
+
+Comparado com a base (`fdd7896d`) via `git diff --stat fdd7896d -- tests/`: **o
+único teste tocado continua sendo `tests/ui/secoesDaConfig.test.js`, só com
+inserções** (25→32 blocos `it()`). Nenhum teste existente foi alterado ou
+removido; os 235 arquivos de teste são os mesmos da base.
 
 ## Fotos incluídas nesta pasta
 
+Todas da rodada 4 (a confirmação, depois dos consertos de celular e texto):
+
 - `caca`: os 6 tamanhos (1366×768, 1440×900, 1920×1080, 360×800, 390×844, 430×932) -
-  a seção padrão, cobrindo a faixa inteira.
-- `ataque`, `suporte`: 1440×900 (desktop) + o(s) tamanho(s) móvel(is) que registraram
-  o achado #3 (a fileira de rotação/buff), para comparar com o texto do relatório.
-- `sobrevivencia`: 1440×900 + 360×800 (achado #2, `.ic-duas`).
-- `consumiveis`: 1366×768 + 360×800 (estado "em breve" + o painel encaixado acima da
-  doca, mundo visível atrás).
+  a seção padrão, cobrindo a faixa inteira. Nos três móveis dá pra ver a faixa
+  horizontal de chips (achado #6) com o chip ativo em destaque e o ponto âmbar de
+  pendência.
+- `ataque`, `suporte`: 1440×900 (desktop) + 390×844 (celular, mostra a faixa
+  horizontal + a fileira de rotação/buff sem sobreposição, achado #3 da rodada 3).
+- `sobrevivencia`: 1440×900 + 360×800 (com o interruptor ligado) +
+  `390x844--sobrevivencia--auto-desligado.png` (interruptor DESLIGADO: nota "Só
+  funciona com a Caça automática ligada" + conteúdo em grayscale/55%, achado #9).
+- `consumiveis`: 1366×768 + 360×800 (interruptor ligado) +
+  `390x844--consumiveis--auto-desligado.png` (interruptor desligado, mesmo
+  tratamento; dá pra ver o rodapé com o Aplicar encaixado acima da doca e o mundo
+  atrás).
 - `botao-aplicar--{pendente,salvando,salvo,erro}.png`: os quatro estados, recorte
   só do rodapé, 1440×900.
-- `medicoes-rodada2.json` / `tabela-medicoes.md`: os números crus da rodada final
-  (as 30 combinações + o botão), gerados pelo arnês - nenhum editado à mão.
+- `medicoes-rodada2b.json` / `tabela-medicoes.md`: os números crus da rodada final
+  (as 30 combinações + a faixa rolando por dentro + o "Todas"/"Nenhuma"), gerados
+  pelo arnês - nenhum editado à mão.
 
-Screenshots da rodada 1 (com os 5 defeitos) não foram commitadas - ficaram no
-scratchpad da sessão, e o texto acima descreve exatamente o que cada uma mostrava.
+Screenshots das rodadas 1-3 (com os defeitos, antes de cada conserto) não foram
+commitadas - ficaram no scratchpad da sessão, e o texto acima descreve
+exatamente o que cada uma mostrava.

@@ -8,73 +8,7 @@
       "w": 760,
       "h": 556
     },
-    "apply": {
-      "w": 138,
-      "h": 34,
-      "efetivoW": 138,
-      "efetivoH": 34,
-      "dentroDaTela": true,
-      "visivel": true
-    },
-    "primeiraTab": {
-      "w": 133,
-      "h": 45,
-      "efetivoW": 133,
-      "efetivoH": 45,
-      "dentroDaTela": true,
-      "visivel": true
-    },
-    "icone": null,
-    "btnMini": {
-      "w": 48,
-      "h": 17,
-      "efetivoW": 48,
-      "efetivoH": 17,
-      "dentroDaTela": true,
-      "visivel": true
-    },
-    "presa": {
-      "w": 279,
-      "h": 44,
-      "efetivoW": 279,
-      "efetivoH": 44,
-      "dentroDaTela": true,
-      "visivel": true
-    },
-    "checkboxRow": {
-      "w": 562,
-      "h": 13,
-      "efetivoW": 562,
-      "efetivoH": 13,
-      "dentroDaTela": true,
-      "visivel": true
-    },
-    "close": {
-      "w": 20,
-      "h": 20,
-      "efetivoW": 20,
-      "efetivoH": 20,
-      "dentroDaTela": true,
-      "visivel": true
-    },
-    "masterSwitch": {
-      "w": 237,
-      "h": 31,
-      "efetivoW": 237,
-      "efetivoH": 31,
-      "dentroDaTela": true,
-      "visivel": true
-    }
-  },
-  {
-    "tamanho": "1366x768",
-    "secao": "ataque",
-    "arquivo": "1366x768--ataque.png",
-    "overflowX": false,
-    "hostRect": {
-      "w": 760,
-      "h": 556
-    },
+    "railOverflow": false,
     "apply": {
       "w": 136,
       "h": 33,
@@ -91,16 +25,22 @@
       "dentroDaTela": true,
       "visivel": true
     },
-    "icone": {
-      "w": 22,
-      "h": 22,
-      "efetivoW": 22,
-      "efetivoH": 22,
+    "btnMini": {
+      "w": 47,
+      "h": 17,
+      "efetivoW": 47,
+      "efetivoH": 17,
       "dentroDaTela": true,
       "visivel": true
     },
-    "btnMini": null,
-    "presa": null,
+    "presa": {
+      "w": 274,
+      "h": 43,
+      "efetivoW": 274,
+      "efetivoH": 43,
+      "dentroDaTela": true,
+      "visivel": true
+    },
     "checkboxRow": {
       "w": 553,
       "h": 13,
@@ -118,9 +58,62 @@
       "visivel": true
     },
     "masterSwitch": {
-      "w": 233,
+      "w": 359,
       "h": 31,
-      "efetivoW": 233,
+      "efetivoW": 359,
+      "efetivoH": 31,
+      "dentroDaTela": true,
+      "visivel": true
+    }
+  },
+  {
+    "tamanho": "1366x768",
+    "secao": "ataque",
+    "arquivo": "1366x768--ataque.png",
+    "overflowX": false,
+    "hostRect": {
+      "w": 760,
+      "h": 556
+    },
+    "railOverflow": false,
+    "apply": {
+      "w": 136,
+      "h": 34,
+      "efetivoW": 136,
+      "efetivoH": 34,
+      "dentroDaTela": true,
+      "visivel": true
+    },
+    "primeiraTab": {
+      "w": 131,
+      "h": 44,
+      "efetivoW": 131,
+      "efetivoH": 44,
+      "dentroDaTela": true,
+      "visivel": true
+    },
+    "btnMini": null,
+    "presa": null,
+    "checkboxRow": {
+      "w": 555,
+      "h": 13,
+      "efetivoW": 555,
+      "efetivoH": 13,
+      "dentroDaTela": true,
+      "visivel": true
+    },
+    "close": {
+      "w": 20,
+      "h": 20,
+      "efetivoW": 20,
+      "efetivoH": 20,
+      "dentroDaTela": true,
+      "visivel": true
+    },
+    "masterSwitch": {
+      "w": 360,
+      "h": 31,
+      "efetivoW": 360,
       "efetivoH": 31,
       "dentroDaTela": true,
       "visivel": true
@@ -135,6 +128,7 @@
       "w": 760,
       "h": 556
     },
+    "railOverflow": false,
     "apply": {
       "w": 135,
       "h": 33,
@@ -151,14 +145,6 @@
       "dentroDaTela": true,
       "visivel": true
     },
-    "icone": {
-      "w": 22,
-      "h": 22,
-      "efetivoW": 22,
-      "efetivoH": 22,
-      "dentroDaTela": true,
-      "visivel": true
-    },
     "btnMini": null,
     "presa": null,
     "checkboxRow": null,
@@ -171,9 +157,9 @@
       "visivel": true
     },
     "masterSwitch": {
-      "w": 232,
+      "w": 358,
       "h": 30,
-      "efetivoW": 232,
+      "efetivoW": 358,
       "efetivoH": 30,
       "dentroDaTela": true,
       "visivel": true
@@ -188,59 +174,7 @@
       "w": 760,
       "h": 556
     },
-    "apply": {
-      "w": 137,
-      "h": 34,
-      "efetivoW": 137,
-      "efetivoH": 34,
-      "dentroDaTela": true,
-      "visivel": true
-    },
-    "primeiraTab": {
-      "w": 132,
-      "h": 44,
-      "efetivoW": 132,
-      "efetivoH": 44,
-      "dentroDaTela": true,
-      "visivel": true
-    },
-    "icone": null,
-    "btnMini": null,
-    "presa": null,
-    "checkboxRow": {
-      "w": 268,
-      "h": 13,
-      "efetivoW": 268,
-      "efetivoH": 13,
-      "dentroDaTela": true,
-      "visivel": true
-    },
-    "close": {
-      "w": 20,
-      "h": 20,
-      "efetivoW": 20,
-      "efetivoH": 20,
-      "dentroDaTela": true,
-      "visivel": true
-    },
-    "masterSwitch": {
-      "w": 235,
-      "h": 31,
-      "efetivoW": 235,
-      "efetivoH": 31,
-      "dentroDaTela": true,
-      "visivel": true
-    }
-  },
-  {
-    "tamanho": "1366x768",
-    "secao": "consumiveis",
-    "arquivo": "1366x768--consumiveis.png",
-    "overflowX": false,
-    "hostRect": {
-      "w": 760,
-      "h": 556
-    },
+    "railOverflow": false,
     "apply": {
       "w": 135,
       "h": 33,
@@ -257,7 +191,59 @@
       "dentroDaTela": true,
       "visivel": true
     },
-    "icone": null,
+    "btnMini": null,
+    "presa": null,
+    "checkboxRow": {
+      "w": 266,
+      "h": 13,
+      "efetivoW": 266,
+      "efetivoH": 13,
+      "dentroDaTela": true,
+      "visivel": true
+    },
+    "close": {
+      "w": 20,
+      "h": 20,
+      "efetivoW": 20,
+      "efetivoH": 20,
+      "dentroDaTela": true,
+      "visivel": true
+    },
+    "masterSwitch": {
+      "w": 358,
+      "h": 30,
+      "efetivoW": 358,
+      "efetivoH": 30,
+      "dentroDaTela": true,
+      "visivel": true
+    }
+  },
+  {
+    "tamanho": "1366x768",
+    "secao": "consumiveis",
+    "arquivo": "1366x768--consumiveis.png",
+    "overflowX": false,
+    "hostRect": {
+      "w": 760,
+      "h": 556
+    },
+    "railOverflow": false,
+    "apply": {
+      "w": 135,
+      "h": 33,
+      "efetivoW": 135,
+      "efetivoH": 33,
+      "dentroDaTela": true,
+      "visivel": true
+    },
+    "primeiraTab": {
+      "w": 130,
+      "h": 44,
+      "efetivoW": 130,
+      "efetivoH": 44,
+      "dentroDaTela": true,
+      "visivel": true
+    },
     "btnMini": null,
     "presa": null,
     "checkboxRow": null,
@@ -270,9 +256,9 @@
       "visivel": true
     },
     "masterSwitch": {
-      "w": 232,
+      "w": 358,
       "h": 30,
-      "efetivoW": 232,
+      "efetivoW": 358,
       "efetivoH": 30,
       "dentroDaTela": true,
       "visivel": true
@@ -287,6 +273,7 @@
       "w": 760,
       "h": 580
     },
+    "railOverflow": false,
     "apply": {
       "w": 135,
       "h": 33,
@@ -303,7 +290,6 @@
       "dentroDaTela": true,
       "visivel": true
     },
-    "icone": null,
     "btnMini": {
       "w": 47,
       "h": 17,
@@ -337,9 +323,9 @@
       "visivel": true
     },
     "masterSwitch": {
-      "w": 232,
+      "w": 358,
       "h": 30,
-      "efetivoW": 232,
+      "efetivoW": 358,
       "efetivoH": 30,
       "dentroDaTela": true,
       "visivel": true
@@ -354,6 +340,7 @@
       "w": 760,
       "h": 580
     },
+    "railOverflow": false,
     "apply": {
       "w": 135,
       "h": 33,
@@ -367,14 +354,6 @@
       "h": 44,
       "efetivoW": 130,
       "efetivoH": 44,
-      "dentroDaTela": true,
-      "visivel": true
-    },
-    "icone": {
-      "w": 22,
-      "h": 22,
-      "efetivoW": 22,
-      "efetivoH": 22,
       "dentroDaTela": true,
       "visivel": true
     },
@@ -397,9 +376,9 @@
       "visivel": true
     },
     "masterSwitch": {
-      "w": 232,
+      "w": 358,
       "h": 30,
-      "efetivoW": 232,
+      "efetivoW": 358,
       "efetivoH": 30,
       "dentroDaTela": true,
       "visivel": true
@@ -414,27 +393,20 @@
       "w": 760,
       "h": 580
     },
+    "railOverflow": false,
     "apply": {
-      "w": 135,
+      "w": 136,
       "h": 33,
-      "efetivoW": 135,
+      "efetivoW": 136,
       "efetivoH": 33,
       "dentroDaTela": true,
       "visivel": true
     },
     "primeiraTab": {
-      "w": 130,
+      "w": 131,
       "h": 44,
-      "efetivoW": 130,
+      "efetivoW": 131,
       "efetivoH": 44,
-      "dentroDaTela": true,
-      "visivel": true
-    },
-    "icone": {
-      "w": 22,
-      "h": 22,
-      "efetivoW": 22,
-      "efetivoH": 22,
       "dentroDaTela": true,
       "visivel": true
     },
@@ -450,10 +422,10 @@
       "visivel": true
     },
     "masterSwitch": {
-      "w": 232,
-      "h": 30,
-      "efetivoW": 232,
-      "efetivoH": 30,
+      "w": 359,
+      "h": 31,
+      "efetivoW": 359,
+      "efetivoH": 31,
       "dentroDaTela": true,
       "visivel": true
     }
@@ -467,29 +439,29 @@
       "w": 760,
       "h": 580
     },
+    "railOverflow": false,
     "apply": {
-      "w": 135,
+      "w": 136,
       "h": 33,
-      "efetivoW": 135,
+      "efetivoW": 136,
       "efetivoH": 33,
       "dentroDaTela": true,
       "visivel": true
     },
     "primeiraTab": {
-      "w": 130,
+      "w": 131,
       "h": 44,
-      "efetivoW": 130,
+      "efetivoW": 131,
       "efetivoH": 44,
       "dentroDaTela": true,
       "visivel": true
     },
-    "icone": null,
     "btnMini": null,
     "presa": null,
     "checkboxRow": {
-      "w": 266,
+      "w": 267,
       "h": 13,
-      "efetivoW": 266,
+      "efetivoW": 267,
       "efetivoH": 13,
       "dentroDaTela": true,
       "visivel": true
@@ -503,10 +475,10 @@
       "visivel": true
     },
     "masterSwitch": {
-      "w": 232,
-      "h": 30,
-      "efetivoW": 232,
-      "efetivoH": 30,
+      "w": 359,
+      "h": 31,
+      "efetivoW": 359,
+      "efetivoH": 31,
       "dentroDaTela": true,
       "visivel": true
     }
@@ -520,23 +492,23 @@
       "w": 760,
       "h": 580
     },
+    "railOverflow": false,
     "apply": {
-      "w": 135,
+      "w": 136,
       "h": 33,
-      "efetivoW": 135,
+      "efetivoW": 136,
       "efetivoH": 33,
       "dentroDaTela": true,
       "visivel": true
     },
     "primeiraTab": {
-      "w": 130,
+      "w": 131,
       "h": 44,
-      "efetivoW": 130,
+      "efetivoW": 131,
       "efetivoH": 44,
       "dentroDaTela": true,
       "visivel": true
     },
-    "icone": null,
     "btnMini": null,
     "presa": null,
     "checkboxRow": null,
@@ -549,10 +521,10 @@
       "visivel": true
     },
     "masterSwitch": {
-      "w": 232,
-      "h": 30,
-      "efetivoW": 232,
-      "efetivoH": 30,
+      "w": 359,
+      "h": 31,
+      "efetivoW": 359,
+      "efetivoH": 31,
       "dentroDaTela": true,
       "visivel": true
     }
@@ -566,23 +538,23 @@
       "w": 760,
       "h": 580
     },
+    "railOverflow": false,
     "apply": {
-      "w": 135,
+      "w": 136,
       "h": 33,
-      "efetivoW": 135,
+      "efetivoW": 136,
       "efetivoH": 33,
       "dentroDaTela": true,
       "visivel": true
     },
     "primeiraTab": {
-      "w": 130,
+      "w": 131,
       "h": 44,
-      "efetivoW": 130,
+      "efetivoW": 131,
       "efetivoH": 44,
       "dentroDaTela": true,
       "visivel": true
     },
-    "icone": null,
     "btnMini": {
       "w": 47,
       "h": 17,
@@ -592,17 +564,17 @@
       "visivel": true
     },
     "presa": {
-      "w": 273,
+      "w": 274,
       "h": 43,
-      "efetivoW": 273,
+      "efetivoW": 274,
       "efetivoH": 43,
       "dentroDaTela": true,
       "visivel": true
     },
     "checkboxRow": {
-      "w": 551,
+      "w": 553,
       "h": 13,
-      "efetivoW": 551,
+      "efetivoW": 553,
       "efetivoH": 13,
       "dentroDaTela": true,
       "visivel": true
@@ -616,10 +588,10 @@
       "visivel": true
     },
     "masterSwitch": {
-      "w": 232,
-      "h": 30,
-      "efetivoW": 232,
-      "efetivoH": 30,
+      "w": 359,
+      "h": 31,
+      "efetivoW": 359,
+      "efetivoH": 31,
       "dentroDaTela": true,
       "visivel": true
     }
@@ -633,6 +605,7 @@
       "w": 760,
       "h": 580
     },
+    "railOverflow": false,
     "apply": {
       "w": 135,
       "h": 33,
@@ -646,14 +619,6 @@
       "h": 44,
       "efetivoW": 130,
       "efetivoH": 44,
-      "dentroDaTela": true,
-      "visivel": true
-    },
-    "icone": {
-      "w": 22,
-      "h": 22,
-      "efetivoW": 22,
-      "efetivoH": 22,
       "dentroDaTela": true,
       "visivel": true
     },
@@ -676,9 +641,9 @@
       "visivel": true
     },
     "masterSwitch": {
-      "w": 232,
+      "w": 358,
       "h": 30,
-      "efetivoW": 232,
+      "efetivoW": 358,
       "efetivoH": 30,
       "dentroDaTela": true,
       "visivel": true
@@ -693,11 +658,12 @@
       "w": 760,
       "h": 580
     },
+    "railOverflow": false,
     "apply": {
       "w": 136,
-      "h": 34,
+      "h": 33,
       "efetivoW": 136,
-      "efetivoH": 34,
+      "efetivoH": 33,
       "dentroDaTela": true,
       "visivel": true
     },
@@ -706,14 +672,6 @@
       "h": 44,
       "efetivoW": 131,
       "efetivoH": 44,
-      "dentroDaTela": true,
-      "visivel": true
-    },
-    "icone": {
-      "w": 22,
-      "h": 22,
-      "efetivoW": 22,
-      "efetivoH": 22,
       "dentroDaTela": true,
       "visivel": true
     },
@@ -729,9 +687,9 @@
       "visivel": true
     },
     "masterSwitch": {
-      "w": 234,
+      "w": 359,
       "h": 31,
-      "efetivoW": 234,
+      "efetivoW": 359,
       "efetivoH": 31,
       "dentroDaTela": true,
       "visivel": true
@@ -746,29 +704,29 @@
       "w": 760,
       "h": 580
     },
+    "railOverflow": false,
     "apply": {
-      "w": 135,
+      "w": 136,
       "h": 33,
-      "efetivoW": 135,
+      "efetivoW": 136,
       "efetivoH": 33,
       "dentroDaTela": true,
       "visivel": true
     },
     "primeiraTab": {
-      "w": 130,
+      "w": 131,
       "h": 44,
-      "efetivoW": 130,
+      "efetivoW": 131,
       "efetivoH": 44,
       "dentroDaTela": true,
       "visivel": true
     },
-    "icone": null,
     "btnMini": null,
     "presa": null,
     "checkboxRow": {
-      "w": 266,
+      "w": 267,
       "h": 13,
-      "efetivoW": 266,
+      "efetivoW": 267,
       "efetivoH": 13,
       "dentroDaTela": true,
       "visivel": true
@@ -782,10 +740,10 @@
       "visivel": true
     },
     "masterSwitch": {
-      "w": 232,
-      "h": 30,
-      "efetivoW": 232,
-      "efetivoH": 30,
+      "w": 359,
+      "h": 31,
+      "efetivoW": 359,
+      "efetivoH": 31,
       "dentroDaTela": true,
       "visivel": true
     }
@@ -799,6 +757,7 @@
       "w": 760,
       "h": 580
     },
+    "railOverflow": false,
     "apply": {
       "w": 135,
       "h": 33,
@@ -815,7 +774,6 @@
       "dentroDaTela": true,
       "visivel": true
     },
-    "icone": null,
     "btnMini": null,
     "presa": null,
     "checkboxRow": null,
@@ -828,9 +786,9 @@
       "visivel": true
     },
     "masterSwitch": {
-      "w": 232,
+      "w": 358,
       "h": 30,
-      "efetivoW": 232,
+      "efetivoW": 358,
       "efetivoH": 30,
       "dentroDaTela": true,
       "visivel": true
@@ -845,43 +803,43 @@
       "w": 360,
       "h": 556
     },
+    "railOverflow": true,
     "apply": {
-      "w": 135,
+      "w": 136,
       "h": 45,
-      "efetivoW": 135,
+      "efetivoW": 136,
       "efetivoH": 45,
       "dentroDaTela": true,
       "visivel": true
     },
     "primeiraTab": {
-      "w": 130,
+      "w": 94,
       "h": 45,
-      "efetivoW": 130,
+      "efetivoW": 94,
       "efetivoH": 45,
       "dentroDaTela": true,
       "visivel": true
     },
-    "icone": null,
     "btnMini": {
-      "w": 47,
-      "h": 45,
-      "efetivoW": 47,
-      "efetivoH": 45,
+      "w": 67,
+      "h": 44,
+      "efetivoW": 67,
+      "efetivoH": 44,
       "dentroDaTela": true,
       "visivel": true
     },
     "presa": {
-      "w": 159,
+      "w": 307,
       "h": 57,
-      "efetivoW": 159,
+      "efetivoW": 307,
       "efetivoH": 57,
       "dentroDaTela": true,
       "visivel": true
     },
     "checkboxRow": {
-      "w": 159,
+      "w": 307,
       "h": 45,
-      "efetivoW": 159,
+      "efetivoW": 307,
       "efetivoH": 45,
       "dentroDaTela": true,
       "visivel": true
@@ -895,10 +853,10 @@
       "visivel": true
     },
     "masterSwitch": {
-      "w": 194,
-      "h": 60,
-      "efetivoW": 194,
-      "efetivoH": 60,
+      "w": 329,
+      "h": 45,
+      "efetivoW": 329,
+      "efetivoH": 45,
       "dentroDaTela": true,
       "visivel": true
     }
@@ -912,36 +870,29 @@
       "w": 360,
       "h": 556
     },
+    "railOverflow": true,
     "apply": {
-      "w": 135,
+      "w": 136,
       "h": 45,
-      "efetivoW": 135,
+      "efetivoW": 136,
       "efetivoH": 45,
       "dentroDaTela": true,
       "visivel": true
     },
     "primeiraTab": {
-      "w": 130,
+      "w": 94,
       "h": 45,
-      "efetivoW": 130,
+      "efetivoW": 94,
       "efetivoH": 45,
-      "dentroDaTela": true,
-      "visivel": true
-    },
-    "icone": {
-      "w": 33,
-      "h": 33,
-      "efetivoW": 47,
-      "efetivoH": 47,
       "dentroDaTela": true,
       "visivel": true
     },
     "btnMini": null,
     "presa": null,
     "checkboxRow": {
-      "w": 159,
+      "w": 307,
       "h": 45,
-      "efetivoW": 159,
+      "efetivoW": 307,
       "efetivoH": 45,
       "dentroDaTela": true,
       "visivel": true
@@ -955,10 +906,10 @@
       "visivel": true
     },
     "masterSwitch": {
-      "w": 194,
-      "h": 60,
-      "efetivoW": 194,
-      "efetivoH": 60,
+      "w": 329,
+      "h": 45,
+      "efetivoW": 329,
+      "efetivoH": 45,
       "dentroDaTela": true,
       "visivel": true
     }
@@ -972,27 +923,20 @@
       "w": 360,
       "h": 556
     },
+    "railOverflow": true,
     "apply": {
-      "w": 135,
+      "w": 136,
       "h": 45,
-      "efetivoW": 135,
+      "efetivoW": 136,
       "efetivoH": 45,
       "dentroDaTela": true,
       "visivel": true
     },
     "primeiraTab": {
-      "w": 130,
+      "w": 94,
       "h": 45,
-      "efetivoW": 130,
+      "efetivoW": 94,
       "efetivoH": 45,
-      "dentroDaTela": true,
-      "visivel": true
-    },
-    "icone": {
-      "w": 33,
-      "h": 33,
-      "efetivoW": 47,
-      "efetivoH": 47,
       "dentroDaTela": true,
       "visivel": true
     },
@@ -1008,10 +952,10 @@
       "visivel": true
     },
     "masterSwitch": {
-      "w": 194,
-      "h": 60,
-      "efetivoW": 194,
-      "efetivoH": 60,
+      "w": 329,
+      "h": 45,
+      "efetivoW": 329,
+      "efetivoH": 45,
       "dentroDaTela": true,
       "visivel": true
     }
@@ -1025,30 +969,30 @@
       "w": 360,
       "h": 556
     },
+    "railOverflow": true,
     "apply": {
-      "w": 137,
-      "h": 46,
-      "efetivoW": 137,
-      "efetivoH": 46,
+      "w": 135,
+      "h": 45,
+      "efetivoW": 135,
+      "efetivoH": 45,
       "dentroDaTela": true,
       "visivel": true
     },
     "primeiraTab": {
-      "w": 132,
-      "h": 46,
-      "efetivoW": 132,
-      "efetivoH": 46,
-      "dentroDaTela": true,
+      "w": 93,
+      "h": 45,
+      "efetivoW": 93,
+      "efetivoH": 45,
+      "dentroDaTela": false,
       "visivel": true
     },
-    "icone": null,
     "btnMini": null,
     "presa": null,
     "checkboxRow": {
-      "w": 151,
-      "h": 46,
-      "efetivoW": 151,
-      "efetivoH": 46,
+      "w": 296,
+      "h": 45,
+      "efetivoW": 296,
+      "efetivoH": 45,
       "dentroDaTela": true,
       "visivel": true
     },
@@ -1061,10 +1005,10 @@
       "visivel": true
     },
     "masterSwitch": {
-      "w": 196,
-      "h": 61,
-      "efetivoW": 196,
-      "efetivoH": 61,
+      "w": 327,
+      "h": 45,
+      "efetivoW": 327,
+      "efetivoH": 45,
       "dentroDaTela": true,
       "visivel": true
     }
@@ -1078,23 +1022,23 @@
       "w": 360,
       "h": 556
     },
+    "railOverflow": true,
     "apply": {
-      "w": 135,
+      "w": 136,
       "h": 45,
-      "efetivoW": 135,
+      "efetivoW": 136,
       "efetivoH": 45,
       "dentroDaTela": true,
       "visivel": true
     },
     "primeiraTab": {
-      "w": 130,
+      "w": 94,
       "h": 45,
-      "efetivoW": 130,
+      "efetivoW": 94,
       "efetivoH": 45,
-      "dentroDaTela": true,
+      "dentroDaTela": false,
       "visivel": true
     },
-    "icone": null,
     "btnMini": null,
     "presa": null,
     "checkboxRow": null,
@@ -1107,10 +1051,10 @@
       "visivel": true
     },
     "masterSwitch": {
-      "w": 194,
-      "h": 60,
-      "efetivoW": 194,
-      "efetivoH": 60,
+      "w": 329,
+      "h": 45,
+      "efetivoW": 329,
+      "efetivoH": 45,
       "dentroDaTela": true,
       "visivel": true
     }
@@ -1124,43 +1068,43 @@
       "w": 390,
       "h": 580
     },
+    "railOverflow": true,
     "apply": {
-      "w": 135,
+      "w": 136,
       "h": 45,
-      "efetivoW": 135,
+      "efetivoW": 136,
       "efetivoH": 45,
       "dentroDaTela": true,
       "visivel": true
     },
     "primeiraTab": {
-      "w": 130,
+      "w": 94,
       "h": 45,
-      "efetivoW": 130,
+      "efetivoW": 94,
       "efetivoH": 45,
       "dentroDaTela": true,
       "visivel": true
     },
-    "icone": null,
     "btnMini": {
-      "w": 47,
-      "h": 45,
-      "efetivoW": 47,
-      "efetivoH": 45,
+      "w": 67,
+      "h": 44,
+      "efetivoW": 67,
+      "efetivoH": 44,
       "dentroDaTela": true,
       "visivel": true
     },
     "presa": {
-      "w": 188,
+      "w": 336,
       "h": 57,
-      "efetivoW": 188,
+      "efetivoW": 336,
       "efetivoH": 57,
       "dentroDaTela": true,
       "visivel": true
     },
     "checkboxRow": {
-      "w": 188,
+      "w": 336,
       "h": 45,
-      "efetivoW": 188,
+      "efetivoW": 336,
       "efetivoH": 45,
       "dentroDaTela": true,
       "visivel": true
@@ -1174,9 +1118,9 @@
       "visivel": true
     },
     "masterSwitch": {
-      "w": 224,
+      "w": 358,
       "h": 45,
-      "efetivoW": 224,
+      "efetivoW": 358,
       "efetivoH": 45,
       "dentroDaTela": true,
       "visivel": true
@@ -1191,6 +1135,7 @@
       "w": 390,
       "h": 580
     },
+    "railOverflow": true,
     "apply": {
       "w": 135,
       "h": 45,
@@ -1200,27 +1145,19 @@
       "visivel": true
     },
     "primeiraTab": {
-      "w": 130,
+      "w": 93,
       "h": 45,
-      "efetivoW": 130,
+      "efetivoW": 93,
       "efetivoH": 45,
-      "dentroDaTela": true,
-      "visivel": true
-    },
-    "icone": {
-      "w": 33,
-      "h": 33,
-      "efetivoW": 47,
-      "efetivoH": 47,
       "dentroDaTela": true,
       "visivel": true
     },
     "btnMini": null,
     "presa": null,
     "checkboxRow": {
-      "w": 188,
+      "w": 335,
       "h": 45,
-      "efetivoW": 188,
+      "efetivoW": 335,
       "efetivoH": 45,
       "dentroDaTela": true,
       "visivel": true
@@ -1234,9 +1171,9 @@
       "visivel": true
     },
     "masterSwitch": {
-      "w": 224,
+      "w": 357,
       "h": 45,
-      "efetivoW": 224,
+      "efetivoW": 357,
       "efetivoH": 45,
       "dentroDaTela": true,
       "visivel": true
@@ -1251,6 +1188,7 @@
       "w": 390,
       "h": 580
     },
+    "railOverflow": true,
     "apply": {
       "w": 135,
       "h": 45,
@@ -1260,18 +1198,10 @@
       "visivel": true
     },
     "primeiraTab": {
-      "w": 130,
+      "w": 93,
       "h": 45,
-      "efetivoW": 130,
+      "efetivoW": 93,
       "efetivoH": 45,
-      "dentroDaTela": true,
-      "visivel": true
-    },
-    "icone": {
-      "w": 33,
-      "h": 33,
-      "efetivoW": 47,
-      "efetivoH": 47,
       "dentroDaTela": true,
       "visivel": true
     },
@@ -1287,9 +1217,9 @@
       "visivel": true
     },
     "masterSwitch": {
-      "w": 224,
+      "w": 357,
       "h": 45,
-      "efetivoW": 224,
+      "efetivoW": 357,
       "efetivoH": 45,
       "dentroDaTela": true,
       "visivel": true
@@ -1304,29 +1234,29 @@
       "w": 390,
       "h": 580
     },
+    "railOverflow": true,
     "apply": {
-      "w": 135,
+      "w": 136,
       "h": 45,
-      "efetivoW": 135,
+      "efetivoW": 136,
       "efetivoH": 45,
       "dentroDaTela": true,
       "visivel": true
     },
     "primeiraTab": {
-      "w": 130,
+      "w": 94,
       "h": 45,
-      "efetivoW": 130,
+      "efetivoW": 94,
       "efetivoH": 45,
-      "dentroDaTela": true,
+      "dentroDaTela": false,
       "visivel": true
     },
-    "icone": null,
     "btnMini": null,
     "presa": null,
     "checkboxRow": {
-      "w": 178,
+      "w": 327,
       "h": 45,
-      "efetivoW": 178,
+      "efetivoW": 327,
       "efetivoH": 45,
       "dentroDaTela": true,
       "visivel": true
@@ -1340,9 +1270,9 @@
       "visivel": true
     },
     "masterSwitch": {
-      "w": 224,
+      "w": 358,
       "h": 45,
-      "efetivoW": 224,
+      "efetivoW": 358,
       "efetivoH": 45,
       "dentroDaTela": true,
       "visivel": true
@@ -1357,6 +1287,7 @@
       "w": 390,
       "h": 580
     },
+    "railOverflow": true,
     "apply": {
       "w": 136,
       "h": 45,
@@ -1366,14 +1297,13 @@
       "visivel": true
     },
     "primeiraTab": {
-      "w": 131,
+      "w": 94,
       "h": 45,
-      "efetivoW": 131,
+      "efetivoW": 94,
       "efetivoH": 45,
-      "dentroDaTela": true,
+      "dentroDaTela": false,
       "visivel": true
     },
-    "icone": null,
     "btnMini": null,
     "presa": null,
     "checkboxRow": null,
@@ -1386,9 +1316,9 @@
       "visivel": true
     },
     "masterSwitch": {
-      "w": 225,
+      "w": 358,
       "h": 45,
-      "efetivoW": 225,
+      "efetivoW": 358,
       "efetivoH": 45,
       "dentroDaTela": true,
       "visivel": true
@@ -1403,6 +1333,7 @@
       "w": 430,
       "h": 580
     },
+    "railOverflow": true,
     "apply": {
       "w": 135,
       "h": 45,
@@ -1412,34 +1343,33 @@
       "visivel": true
     },
     "primeiraTab": {
-      "w": 130,
+      "w": 93,
       "h": 45,
-      "efetivoW": 130,
+      "efetivoW": 93,
       "efetivoH": 45,
       "dentroDaTela": true,
       "visivel": true
     },
-    "icone": null,
     "btnMini": {
-      "w": 47,
-      "h": 45,
-      "efetivoW": 47,
-      "efetivoH": 45,
+      "w": 66,
+      "h": 44,
+      "efetivoW": 66,
+      "efetivoH": 44,
       "dentroDaTela": true,
       "visivel": true
     },
     "presa": {
-      "w": 227,
+      "w": 374,
       "h": 57,
-      "efetivoW": 227,
+      "efetivoW": 374,
       "efetivoH": 57,
       "dentroDaTela": true,
       "visivel": true
     },
     "checkboxRow": {
-      "w": 227,
+      "w": 374,
       "h": 45,
-      "efetivoW": 227,
+      "efetivoW": 374,
       "efetivoH": 45,
       "dentroDaTela": true,
       "visivel": true
@@ -1453,9 +1383,9 @@
       "visivel": true
     },
     "masterSwitch": {
-      "w": 232,
+      "w": 396,
       "h": 45,
-      "efetivoW": 232,
+      "efetivoW": 396,
       "efetivoH": 45,
       "dentroDaTela": true,
       "visivel": true
@@ -1470,6 +1400,7 @@
       "w": 430,
       "h": 580
     },
+    "railOverflow": true,
     "apply": {
       "w": 135,
       "h": 45,
@@ -1479,27 +1410,19 @@
       "visivel": true
     },
     "primeiraTab": {
-      "w": 130,
+      "w": 93,
       "h": 45,
-      "efetivoW": 130,
+      "efetivoW": 93,
       "efetivoH": 45,
-      "dentroDaTela": true,
-      "visivel": true
-    },
-    "icone": {
-      "w": 33,
-      "h": 33,
-      "efetivoW": 47,
-      "efetivoH": 47,
       "dentroDaTela": true,
       "visivel": true
     },
     "btnMini": null,
     "presa": null,
     "checkboxRow": {
-      "w": 227,
+      "w": 374,
       "h": 45,
-      "efetivoW": 227,
+      "efetivoW": 374,
       "efetivoH": 45,
       "dentroDaTela": true,
       "visivel": true
@@ -1513,9 +1436,9 @@
       "visivel": true
     },
     "masterSwitch": {
-      "w": 232,
+      "w": 396,
       "h": 45,
-      "efetivoW": 232,
+      "efetivoW": 396,
       "efetivoH": 45,
       "dentroDaTela": true,
       "visivel": true
@@ -1530,6 +1453,7 @@
       "w": 430,
       "h": 580
     },
+    "railOverflow": true,
     "apply": {
       "w": 135,
       "h": 45,
@@ -1539,18 +1463,10 @@
       "visivel": true
     },
     "primeiraTab": {
-      "w": 130,
+      "w": 93,
       "h": 45,
-      "efetivoW": 130,
+      "efetivoW": 93,
       "efetivoH": 45,
-      "dentroDaTela": true,
-      "visivel": true
-    },
-    "icone": {
-      "w": 33,
-      "h": 33,
-      "efetivoW": 47,
-      "efetivoH": 47,
       "dentroDaTela": true,
       "visivel": true
     },
@@ -1566,9 +1482,9 @@
       "visivel": true
     },
     "masterSwitch": {
-      "w": 232,
+      "w": 396,
       "h": 45,
-      "efetivoW": 232,
+      "efetivoW": 396,
       "efetivoH": 45,
       "dentroDaTela": true,
       "visivel": true
@@ -1583,29 +1499,29 @@
       "w": 430,
       "h": 580
     },
+    "railOverflow": true,
     "apply": {
-      "w": 135,
+      "w": 136,
       "h": 45,
-      "efetivoW": 135,
+      "efetivoW": 136,
       "efetivoH": 45,
       "dentroDaTela": true,
       "visivel": true
     },
     "primeiraTab": {
-      "w": 130,
+      "w": 94,
       "h": 45,
-      "efetivoW": 130,
+      "efetivoW": 94,
       "efetivoH": 45,
       "dentroDaTela": true,
       "visivel": true
     },
-    "icone": null,
     "btnMini": null,
     "presa": null,
     "checkboxRow": {
-      "w": 218,
+      "w": 366,
       "h": 45,
-      "efetivoW": 218,
+      "efetivoW": 366,
       "efetivoH": 45,
       "dentroDaTela": true,
       "visivel": true
@@ -1619,9 +1535,9 @@
       "visivel": true
     },
     "masterSwitch": {
-      "w": 232,
+      "w": 397,
       "h": 45,
-      "efetivoW": 232,
+      "efetivoW": 397,
       "efetivoH": 45,
       "dentroDaTela": true,
       "visivel": true
@@ -1636,6 +1552,7 @@
       "w": 430,
       "h": 580
     },
+    "railOverflow": true,
     "apply": {
       "w": 135,
       "h": 45,
@@ -1645,14 +1562,13 @@
       "visivel": true
     },
     "primeiraTab": {
-      "w": 130,
+      "w": 93,
       "h": 45,
-      "efetivoW": 130,
+      "efetivoW": 93,
       "efetivoH": 45,
-      "dentroDaTela": true,
+      "dentroDaTela": false,
       "visivel": true
     },
-    "icone": null,
     "btnMini": null,
     "presa": null,
     "checkboxRow": null,
@@ -1665,9 +1581,9 @@
       "visivel": true
     },
     "masterSwitch": {
-      "w": 232,
+      "w": 396,
       "h": 45,
-      "efetivoW": 232,
+      "efetivoW": 396,
       "efetivoH": 45,
       "dentroDaTela": true,
       "visivel": true
