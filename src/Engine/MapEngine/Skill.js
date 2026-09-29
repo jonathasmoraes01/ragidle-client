@@ -25,6 +25,13 @@ import Altitude from 'Renderer/Map/Altitude.js';
 import ShortCut from 'UI/Components/ShortCut/ShortCut.js';
 import ChatBox from 'UI/Components/ChatBox/ChatBox.js';
 import { ehFaltaDeItem, textoDeFaltaDeItem } from './faltaDeItemNaSkill.js';
+import { criarPedidoAdiado } from './pedidoAdiadoPeloGolpe.js';
+
+// C32 (29/09/2026): o pedido dentro da janela do golpe espera, em vez de sumir.
+const _pedidoNoGolpe = criarPedidoAdiado({
+	agendar: (fn, ms) => setTimeout(fn, ms),
+	cancelar: id => clearTimeout(id)
+});
 import SkillTargetSelection from 'UI/Components/SkillTargetSelection/SkillTargetSelection.js';
 import Guild from 'UI/Components/Guild/Guild.js';
 import SkillListMH from 'UI/Components/SkillListMH/SkillListMH.js';
@@ -635,9 +642,9 @@ function onUseSkill(id, level, targetID) {
 			}*/
 	}
 
-	// Client side minimum delay
-	if (entity && entity.amotionTick > Renderer.tick) {
-		// Can't spam skills faster than amotion
+	// Client side minimum delay. C32: o pedido espera a janela vencer e sai,
+	// em vez de sumir calado (ver pedidoAdiadoPeloGolpe.js).
+	if (entity && _pedidoNoGolpe.adiarSeNaJanela(entity.amotionTick, Renderer.tick, () => onUseSkill(id, level, targetID))) {
 		return;
 	}
 
@@ -740,9 +747,13 @@ SkillTargetSelection.onUseSkillToPos = function onUseSkillToPos(id, level, x, y)
 		}
 	}
 
-	// Client side minimum delay
-	if (entity && entity.amotionTick > Renderer.tick) {
-		// Can't spam skills faster than amotion
+	// Client side minimum delay. C32: espera e sai (ver pedidoAdiadoPeloGolpe.js).
+	if (
+		entity &&
+		_pedidoNoGolpe.adiarSeNaJanela(entity.amotionTick, Renderer.tick, () =>
+			SkillTargetSelection.onUseSkillToPos(id, level, x, y)
+		)
+	) {
 		return;
 	}
 
