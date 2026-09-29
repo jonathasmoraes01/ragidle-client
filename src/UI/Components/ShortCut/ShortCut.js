@@ -11,6 +11,7 @@
 import DB from 'DB/DBManager.js';
 import ItemType from 'DB/Items/ItemType.js';
 import SkillInfo from 'DB/Skills/SkillInfo.js';
+import { nomeDaHabilidadeParaOJogador } from 'DB/Skills/SkillNamePtBr.js'; // RAGIDLE (29/09/2026): dica da barra em portugues (C1)
 import Client from 'Core/Client.js';
 import Preferences from 'Core/Preferences.js';
 import Session from 'Engine/SessionStorage.js';
@@ -569,7 +570,7 @@ ShortCut.updateAllTooltips = function updateAllTooltips() {
 		else if (_list[i] && (_list[i].isSkill || _list[i].ID)) {
 			let name = '';
 			if (_list[i].isSkill && SkillInfo[_list[i].ID]) {
-				name = SkillInfo[_list[i].ID].SkillName;
+				name = nomeDaHabilidadeParaOJogador(_list[i].ID);
 			} else if (_list[i].ID) {
 				const item = Inventory.getUI().getItemById(_list[i].ID);
 				if (item) {
@@ -809,7 +810,7 @@ ShortCut.addElement = function addElement(index, isSkill, ID, count) {
 		} else {
 			_list[index].count = count;
 			file = SkillInfo[ID].Name;
-			name = SkillInfo[ID].SkillName;
+			name = nomeDaHabilidadeParaOJogador(ID);
 		}
 	} else {
 		_list[index].count = count;

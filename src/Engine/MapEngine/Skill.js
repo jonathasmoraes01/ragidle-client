@@ -25,6 +25,14 @@ import Altitude from 'Renderer/Map/Altitude.js';
 import ShortCut from 'UI/Components/ShortCut/ShortCut.js';
 import ChatBox from 'UI/Components/ChatBox/ChatBox.js';
 import { ehFaltaDeItem, textoDeFaltaDeItem } from './faltaDeItemNaSkill.js';
+import { criarPedidoAdiado } from './pedidoAdiadoPeloGolpe.js';
+import { TEXTO_GERAL, textoDaCausaSemMensagem } from './textoDaFalhaDeSkill.js';
+
+// C32 (29/09/2026): o pedido dentro da janela do golpe espera, em vez de sumir.
+const _pedidoNoGolpe = criarPedidoAdiado({
+	agendar: (fn, ms) => setTimeout(fn, ms),
+	cancelar: id => clearTimeout(id)
+});
 import SkillTargetSelection from 'UI/Components/SkillTargetSelection/SkillTargetSelection.js';
 import Guild from 'UI/Components/Guild/Guild.js';
 import SkillListMH from 'UI/Components/SkillListMH/SkillListMH.js';
@@ -162,6 +170,14 @@ function onSkillResult(pkt) {
 		return;
 	}
 
+	// C3B: as causas que o switch abaixo nao cobre (0, 11, 57, 74) - ver
+	// textoDaFalhaDeSkill.js. O CG_TAROTCARD fica no ramo proprio dele.
+	const textoProprio = pkt.SKID == SkillId.CG_TAROTCARD ? null : textoDaCausaSemMensagem(pkt.cause, pkt.NUM);
+	if (textoProprio !== null) {
+		ChatBox.addText(textoProprio, ChatBox.TYPE.ERROR, ChatBox.FILTER.SKILL_FAIL);
+		return;
+	}
+
 	let error = 0;
 	/*var entity = Session.Entity;
 		let srcEntity = EntityManager.get(entity.GID);*/
@@ -233,7 +249,7 @@ function onSkillResult(pkt) {
 	}
 
 	if (error) {
-		ChatBox.addText(DB.getMessage(error), ChatBox.TYPE.ERROR, ChatBox.FILTER.SKILL_FAIL);
+		ChatBox.addText(DB.getMessage(error, TEXTO_GERAL), ChatBox.TYPE.ERROR, ChatBox.FILTER.SKILL_FAIL);
 		// all skills fails that i tested not executed skill action
 		// maybe there is some edge case that i missed
 		// so i'm commenting out for now
@@ -249,6 +265,9 @@ function onSkillResult(pkt) {
 		//		srcEntity.setAction(SkillActionTable['DEFAULT'](srcEntity, Renderer.tick));
 		//	}
 		//}
+	} else {
+		// C3B: causa sem texto nenhum nao sai muda.
+		ChatBox.addText(TEXTO_GERAL, ChatBox.TYPE.ERROR, ChatBox.FILTER.SKILL_FAIL);
 	}
 }
 
@@ -635,9 +654,9 @@ function onUseSkill(id, level, targetID) {
 			}*/
 	}
 
-	// Client side minimum delay
-	if (entity && entity.amotionTick > Renderer.tick) {
-		// Can't spam skills faster than amotion
+	// Client side minimum delay. C32: o pedido espera a janela vencer e sai,
+	// em vez de sumir calado (ver pedidoAdiadoPeloGolpe.js).
+	if (entity && _pedidoNoGolpe.adiarSeNaJanela(entity.amotionTick, Renderer.tick, () => onUseSkill(id, level, targetID))) {
 		return;
 	}
 
@@ -740,9 +759,13 @@ SkillTargetSelection.onUseSkillToPos = function onUseSkillToPos(id, level, x, y)
 		}
 	}
 
-	// Client side minimum delay
-	if (entity && entity.amotionTick > Renderer.tick) {
-		// Can't spam skills faster than amotion
+	// Client side minimum delay. C32: espera e sai (ver pedidoAdiadoPeloGolpe.js).
+	if (
+		entity &&
+		_pedidoNoGolpe.adiarSeNaJanela(entity.amotionTick, Renderer.tick, () =>
+			SkillTargetSelection.onUseSkillToPos(id, level, x, y)
+		)
+	) {
 		return;
 	}
 
