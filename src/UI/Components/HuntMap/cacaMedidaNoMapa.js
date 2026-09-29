@@ -222,6 +222,25 @@ export function lerPacoteDaCacaMedida(json) {
 		return null;
 	}
 	const pacote = { abrir: dados.abrir === true || dados.abrir === 'mapa-de-caca' };
+	if (dados.resultado && typeof dados.resultado === 'object' && typeof dados.resultado.texto === 'string') {
+		pacote.resultado = { ok: dados.resultado.ok === true, texto: dados.resultado.texto };
+	}
+	/*
+	 * O BLOCO v2 DENTRO DO PACOTE. O servidor manda o `0x0fb5` da v1 (mapas,
+	 * explorar) com o MESMO bloco do cabecalho do catalogo aninhado em
+	 * `cacaMedida` (`comBlocoNoPayload`, servidor). Quando ele vem, e ele que
+	 * vale — inteiro, com o risco (pronto ou `null`), a medida e o Explorar. O
+	 * `mapas` da v1 nao e lido: a medida do bloco e a mesma, na forma do
+	 * catalogo.
+	 */
+	const bloco = lerBlocoDaCacaMedida(dados.cacaMedida);
+	if (bloco) {
+		pacote.explorar = bloco.explorar;
+		pacote.risco = bloco.risco;
+		pacote.medida = bloco.medida;
+		pacote.limites = bloco.limites;
+		return pacote;
+	}
 	if ('explorar' in dados) {
 		pacote.explorar = lerExplorar(dados.explorar);
 	}
@@ -233,9 +252,6 @@ export function lerPacoteDaCacaMedida(json) {
 	}
 	if (ehObjeto(dados.limites)) {
 		pacote.limites = lerLimites(dados.limites);
-	}
-	if (ehObjeto(dados.resultado) && typeof dados.resultado.texto === 'string') {
-		pacote.resultado = { ok: dados.resultado.ok === true, texto: dados.resultado.texto };
 	}
 	return pacote;
 }
@@ -443,4 +459,44 @@ export function htmlDaFaixaDoExplorar(explorar, rotuloDe) {
 		`<span class="hm-explorar-texto">${fim}</span>` +
 		'<button type="button" class="hm-explorar-dispensar" data-acao="dispensar" aria-label="Fechar aviso" title="Fechar aviso">&times;</button>'
 	);
+}
+
+/**
+ * Os mapas cuja entrada de medida MUDOU de um bloco para o outro (entrou,
+ * saiu ou mudou algum numero). E o que deixa o `0x0fb5` de cada 30 s
+ * atualizar so os cartoes daqueles mapas, e nao a lista inteira.
+ */
+export function mapasQueMudaram(antes, depois) {
+	const a = antes || {};
+	const d = depois || {};
+	const mudaram = new Set();
+	for (const mapa of new Set(Object.keys(a).concat(Object.keys(d)))) {
+		if (JSON.stringify(a[mapa]) !== JSON.stringify(d[mapa])) {
+			mudaram.add(mapa);
+		}
+	}
+	return mudaram;
+}
+
+/**
+ * A mudanca de medida MEXE NA LISTA (quem aparece ou em que ordem)? So quando
+ * a ordem e por medida e o numero da ordem mudou, ou quando o filtro e "Seus
+ * mapas" e um mapa entrou ou saiu do conjunto medido. Fora disso, o minuto
+ * que anda nao reordena nada: basta trocar a linha dos cartoes que mudaram.
+ */
+export function medidaMexeNaLista(antes, depois, mapas, ordem, soSeus) {
+	const campo = ORDEM_DA_MEDIDA[ordem];
+	for (const mapa of mapas) {
+		const a = (antes && antes[mapa]) || null;
+		const d = (depois && depois[mapa]) || null;
+		const medidoA = !!(a && a.medido === true);
+		const medidoD = !!(d && d.medido === true);
+		if (soSeus && medidoA !== medidoD) {
+			return true;
+		}
+		if (campo && (medidoA !== medidoD || (medidoD && a[campo] !== d[campo]))) {
+			return true;
+		}
+	}
+	return false;
 }

@@ -28,6 +28,8 @@ import {
 	htmlDaLinhaDoCartao,
 	lerBlocoDaCacaMedida,
 	lerPacoteDaCacaMedida,
+	mapasQueMudaram,
+	medidaMexeNaLista,
 	ordenarPorMedida,
 	seloDoRisco,
 	textoDaCacaNoPainel,
@@ -106,6 +108,48 @@ describe('lerPacoteDaCacaMedida e fundirPacote', () => {
 		expect(lerPacoteDaCacaMedida('{"abrir":"mapa-de-caca"}').abrir).toBe(true);
 		expect(lerPacoteDaCacaMedida('{"abrir":"outra"}').abrir).toBe(false);
 		expect(lerPacoteDaCacaMedida('{nao e json')).toBeNull();
+	});
+
+	it('a forma do SERVIDOR: o 0x0fb5 da v1 com o bloco v2 aninhado em `cacaMedida` — e o bloco que vale', () => {
+		const pacote = lerPacoteDaCacaMedida(
+			JSON.stringify({
+				v: 1,
+				abrir: 'mapa-de-caca',
+				mapaAtual: 'pay_fild01',
+				mapas: [{ mapa: 'ignorado', medido: true, expBasePorHora: 1 }],
+				explorar: { estado: 'parado' },
+				resultado: { ok: false, texto: 'recusa' },
+				cacaMedida: blocoDaCacaMedida({ risco: { prt_fild08: [8, 's', 0] }, explorar: explorarEmCurso() })
+			})
+		);
+		expect(pacote.abrir).toBe(true);
+		expect(pacote.risco).toEqual({ prt_fild08: [8, 's', 0] });
+		expect(Object.keys(pacote.medida).sort()).toEqual(['pay_fild01', 'prt_fild02']);
+		expect(pacote.explorar.estado).toBe('explorando');
+		expect(pacote.resultado).toEqual({ ok: false, texto: 'recusa' });
+	});
+
+	it('o bloco aninhado com risco null (a defesa mudou e a conta nao terminou) apaga os selos', () => {
+		const pacote = lerPacoteDaCacaMedida(JSON.stringify({ v: 1, cacaMedida: blocoDaCacaMedida({ risco: null }) }));
+		expect('risco' in pacote).toBe(true);
+		expect(fundirPacote(lerBlocoDaCacaMedida(blocoDaCacaMedida()), pacote).risco).toBeNull();
+	});
+
+	it('mapasQueMudaram e medidaMexeNaLista: o minuto que anda nao mexe na lista', () => {
+		const a = blocoDaCacaMedida().medida;
+		const d = JSON.parse(JSON.stringify(a));
+		d.pay_fild01.minutos = 33;
+		const mudaram = mapasQueMudaram(a, d);
+		expect([...mudaram]).toEqual(['pay_fild01']);
+		expect(medidaMexeNaLista(a, d, mudaram, 'nivel', false)).toBe(false);
+		expect(medidaMexeNaLista(a, d, mudaram, 'exp-medida', true)).toBe(false);
+		d.pay_fild01.expBasePorHora = 1;
+		expect(medidaMexeNaLista(a, d, mudaram, 'exp-medida', false)).toBe(true);
+		expect(medidaMexeNaLista(a, d, mudaram, 'zeny-medida', false)).toBe(false);
+		d.novo = { minutos: 10, medido: true, expBasePorHora: 5 };
+		const comNovo = mapasQueMudaram(a, d);
+		expect(medidaMexeNaLista(a, d, comNovo, 'nivel', true)).toBe(true);
+		expect(medidaMexeNaLista(a, d, comNovo, 'nivel', false)).toBe(false);
 	});
 
 	it('sem bloco anterior nasce um bloco so com o que veio (o Explorar funciona antes do catalogo)', () => {
@@ -420,6 +464,47 @@ describe('o Explorar', () => {
 		expect(qq('.hm-card.is-candidato')).toHaveLength(0);
 		expect(qq('.hm-exp-selo')).toHaveLength(0);
 		expect(q('.hm-explorar').disabled).toBe(false);
+	});
+
+	it('a forma do servidor: o risco pronto chega aninhado e os selos aparecem', () => {
+		abrirCom(catalogoPequeno({ cacaMedida: blocoDaCacaMedida({ risco: null }) }));
+		expect(qq('.hm-risco')).toHaveLength(0);
+		chegarCacaMedida({ v: 1, mapas: [], explorar: { estado: 'parado' }, cacaMedida: blocoDaCacaMedida() });
+		HuntMap._terminarLista();
+		expect(qq('.hm-risco')).toHaveLength(5);
+	});
+
+	it('o pedir de 30 s em que so o minuto andou NAO redesenha a lista: troca so o cartao que mudou', () => {
+		// Explorar PARADO de proposito: se pay_fild01 fosse candidato, o cartao
+		// dele seria trocado pelo caminho do Explorar, e o caso nao mediria o
+		// caminho da medida (o mutante M31 sobreviveu assim).
+		const bloco = blocoDaCacaMedida();
+		abrirCom(catalogoPequeno({ cacaMedida: bloco }));
+		const outro = q('.hm-card[data-mapa="prt_fild08"]');
+		const payon = q('.hm-card[data-mapa="pay_fild01"]');
+		const depois = JSON.parse(JSON.stringify(bloco));
+		depois.medida.pay_fild01.minutos = 40;
+		depois.medida.pay_fild01.zenyPorHora = 30000;
+		chegarCacaMedida({ v: 1, explorar: depois.explorar, cacaMedida: depois });
+		expect(q('.hm-card[data-mapa="prt_fild08"]')).toBe(outro);
+		expect(q('.hm-card[data-mapa="pay_fild01"]')).toBe(payon);
+		expect(payon.querySelector('.hm-voce-caca').textContent).toBe('▸ Você: 7.740 EXP/h · 30.000 z/h');
+		// O dossie do mapa selecionado (o atual, pay_fild01) acompanha.
+		expect(q('.hm-fit-caca').textContent).toContain('(40 min)');
+	});
+
+	it('com a ordem por EXP/h, a EXP/h que muda reordena a lista', () => {
+		abrirCom(catalogoPequeno({ cacaMedida: blocoDaCacaMedida() }));
+		const sort = q('.hm-sort');
+		sort.value = 'exp-medida';
+		sort.dispatchEvent(new Event('change'));
+		HuntMap._terminarLista();
+		expect(qq('.hm-card')[0].dataset.mapa).toBe('prt_fild02');
+		const depois = blocoDaCacaMedida();
+		depois.medida.pay_fild01.expBasePorHora = 99000;
+		chegarCacaMedida({ v: 1, explorar: { estado: 'parado' }, cacaMedida: depois });
+		HuntMap._terminarLista();
+		expect(qq('.hm-card')[0].dataset.mapa).toBe('pay_fild01');
 	});
 
 	it('a recusa do servidor vai para a linha de estado', () => {

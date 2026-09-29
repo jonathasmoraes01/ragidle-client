@@ -85,6 +85,8 @@ import {
 	htmlDaLinhaDoCartao,
 	lerBlocoDaCacaMedida,
 	lerPacoteDaCacaMedida,
+	mapasQueMudaram,
+	medidaMexeNaLista,
 	ordenarPorMedida,
 	textoDaCacaNoPainel
 } from './cacaMedidaNoMapa.js'; // RAGIDLE: a Caca Medida dentro do Mapa de Caca (v2, 29/09/2026)
@@ -914,18 +916,23 @@ function sincronizarRelogioDoExplorar() {
 	}
 }
 
-/**
- * Os cartoes JA DESENHADOS que mudaram com o Explorar: as classes de
- * candidato e a linha a mais. O cartao que ainda nao saiu (lote pendente)
- * nasce certo sozinho, porque o HTML dele e montado na hora do lote.
- */
-function atualizarCandidatosNaLista(antes, depois) {
+/** Os mapas candidatos de um ou outro estado do Explorar. */
+function candidatosDe(...estados) {
 	const mapas = new Set();
-	for (const explorar of [antes, depois]) {
+	for (const explorar of estados) {
 		for (const c of (explorar && explorar.candidatos) || []) {
 			mapas.add(c.mapa);
 		}
 	}
+	return mapas;
+}
+
+/**
+ * Os cartoes JA DESENHADOS destes mapas: as classes de candidato e a linha a
+ * mais. O cartao que ainda nao saiu (lote pendente) nasce certo sozinho,
+ * porque o HTML dele e montado na hora do lote.
+ */
+function atualizarCartoesNaLista(mapas) {
 	if (!mapas.size) {
 		return;
 	}
@@ -967,10 +974,26 @@ function onCacaMedidaRecebida(pkt) {
 	}
 	const antes = HuntMap.cacaMedida;
 	const depois = fundirPacote(antes, pacote);
+	/*
+	 * O QUE O PACOTE MUDOU, para a atualizacao ser a menor que basta. O
+	 * servidor manda o bloco inteiro em todo `0x0fb5` — inclusive no `pedir`
+	 * de 30 s do Explorar, em que so o minuto andou. Redesenhar a lista por
+	 * isso seria a lista inteira a cada 30 s; aqui so os cartoes dos mapas que
+	 * mudaram trocam de linha, e a lista so e redesenhada quando QUEM aparece
+	 * ou a ORDEM mudou (o risco que ficou pronto, a ordem por medida, o
+	 * conjunto de "Seus mapas").
+	 */
+	const medidaMudou = pacote.medida ? mapasQueMudaram(antes && antes.medida, pacote.medida) : new Set();
 	const mudouLista =
 		('risco' in pacote && JSON.stringify(pacote.risco) !== JSON.stringify(antes ? antes.risco : null)) ||
-		(!!pacote.medida && JSON.stringify(pacote.medida) !== JSON.stringify(antes ? antes.medida : null)) ||
-		(!!pacote.limites && JSON.stringify(pacote.limites) !== JSON.stringify(antes ? antes.limites : null));
+		(!!pacote.limites && JSON.stringify(pacote.limites) !== JSON.stringify(antes ? antes.limites : null)) ||
+		medidaMexeNaLista(
+			antes && antes.medida,
+			depois.medida,
+			medidaMudou,
+			HuntMap.sortKey,
+			HuntMap.filterSeus
+		);
 	HuntMap.cacaMedida = depois;
 	// O desenho passa a refletir o pacote, e nao so o catalogo cru: o proximo
 	// catalogo, mesmo igual ao anterior, redesenha (regra 2).
@@ -997,8 +1020,15 @@ function onCacaMedidaRecebida(pkt) {
 	if (mudouLista) {
 		renderList();
 		renderPanel();
-	} else if (pacote.explorar) {
-		atualizarCandidatosNaLista(antes && antes.explorar, depois.explorar);
+	} else {
+		const mapas = candidatosDe(antes && antes.explorar, depois.explorar);
+		for (const mapa of medidaMudou) {
+			mapas.add(mapa);
+		}
+		atualizarCartoesNaLista(mapas);
+		if (medidaMudou.has(HuntMap.selectedMapa)) {
+			renderPanel();
+		}
 	}
 	sincronizarRelogioDoExplorar();
 }
