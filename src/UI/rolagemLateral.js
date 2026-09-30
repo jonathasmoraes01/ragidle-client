@@ -114,15 +114,18 @@ export function ligarRolagemLateral(el, setas = null) {
 		gesto = null;
 		el.classList.remove('is-arrastando');
 		if (arrastou) {
-			/* O clique que fecha o arrasto nao e um clique num premio. */
-			el.addEventListener(
-				'click',
-				e => {
-					e.stopPropagation();
-					e.preventDefault();
-				},
-				{ capture: true, once: true }
-			);
+			/* O clique que fecha o arrasto nao e um clique num premio. Ele sai na
+			   MESMA tarefa do pointerup; se o navegador nao o mandar para esta
+			   lista (soltou fora dela, ou foi pointercancel), o engolidor NAO pode
+			   ficar armado esperando o proximo clique de verdade do jogador
+			   (auditoria pre-push, 30/09/2026) — por isso ele sai na tarefa
+			   seguinte, tenha comido um clique ou nao. */
+			const engolir = e => {
+				e.stopPropagation();
+				e.preventDefault();
+			};
+			el.addEventListener('click', engolir, { capture: true, once: true });
+			setTimeout(() => el.removeEventListener('click', engolir, { capture: true }), 0);
 		}
 	};
 	el.addEventListener('pointerup', soltar);

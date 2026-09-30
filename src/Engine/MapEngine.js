@@ -2257,7 +2257,8 @@ function cleanGameUI() {
 		PartyHud,
 		PlacarMvpIdle,
 		VotoIdle,
-		BoasVindasIdle
+		BoasVindasIdle,
+		TopMenuIdle
 	]) {
 		if (typeof modulo.limparEstadoDoPersonagem === 'function') {
 			modulo.limparEstadoDoPersonagem();

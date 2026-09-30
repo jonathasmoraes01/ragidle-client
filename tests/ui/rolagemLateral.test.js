@@ -5,7 +5,7 @@
  * O jsdom nao faz layout, entao a largura e a posicao sao declaradas no
  * elemento: 300 px visiveis de 1000 px de conteudo.
  */
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { atualizarSetas, ligarRolagemLateral } from '../../src/UI/rolagemLateral.js';
 
 function lista({ visivel = 300, total = 1000 } = {}) {
@@ -77,5 +77,33 @@ describe('rolagem lateral', () => {
 		ponteiro('pointerdown', 200, 'touch');
 		ponteiro('pointermove', 50, 'touch');
 		expect(el.scrollLeft).toBe(0);
+	});
+
+	it('o clique que fecha o arrasto some, e o engolidor nao sobra para o clique seguinte', () => {
+		vi.useFakeTimers();
+		try {
+			const el = lista();
+			ligarRolagemLateral(el);
+			const ponteiro = (tipo, x) =>
+				el.dispatchEvent(new PointerEvent(tipo, { clientX: x, button: 0, pointerId: 1, pointerType: 'mouse', cancelable: true }));
+			const clicar = () => {
+				const e = new MouseEvent('click', { bubbles: true, cancelable: true });
+				el.dispatchEvent(e);
+				return e.defaultPrevented;
+			};
+			// Arrasto com o clique na mesma tarefa: ele e engolido.
+			ponteiro('pointerdown', 200);
+			ponteiro('pointermove', 50);
+			ponteiro('pointerup', 50);
+			expect(clicar()).toBe(true);
+			// Arrasto SEM clique (soltou fora): na tarefa seguinte o engolidor saiu.
+			ponteiro('pointerdown', 200);
+			ponteiro('pointermove', 50);
+			ponteiro('pointercancel', 50);
+			vi.runAllTimers();
+			expect(clicar(), 'o clique de verdade seguinte foi engolido').toBe(false);
+		} finally {
+			vi.useRealTimers();
+		}
 	});
 });

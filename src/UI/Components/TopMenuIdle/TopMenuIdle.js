@@ -497,6 +497,16 @@ function aoClicarInstalar(evento) {
  * temporizador pendente quando o componente sai de cena (troca de mapa) -
  * mesmo cuidado de DockIdle.js.
  */
+/**
+ * A TROCA DE PERSONAGEM (auditoria pre-push, 30/09/2026): o relogio do pedido
+ * da Temporada e da CONTA de 5 min, e nao do personagem. Sem zera-lo, o
+ * personagem novo herdava o "ja pedi" do anterior e a bolinha ficava ate 5
+ * minutos com o veredito velho.
+ */
+TopMenuIdle.limparEstadoDoPersonagem = function limparEstadoDoPersonagem() {
+	_temporadaPedidaEm = 0;
+};
+
 TopMenuIdle.onRemove = function onRemove() {
 	stopPolling();
 	desligarFechamentoExterno();
