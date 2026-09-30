@@ -41,6 +41,7 @@ import cssText from './MissoesIdle.css?raw';
 import { fecharEEsquecer } from '../limpezaDeJanelaIdle.js';
 import { abaLembrada, lembrarAba } from '../memoriaDeAba.js';
 import { anotarAvisoDoCodex, limparAvisoDoCodex } from '../avisoDoCodex.js'; // D-1232
+import { anotarRastreadorDoCodex, limparRastreadorDoCodex } from '../rastreadorDoCodex.js'; // D-1839
 // O "IR AO MAPA" (26/09/2026): a linha do objetivo e o fluxo da escolha sao
 // os MESMOS da aba "Missoes Gerais" do Codex — ver `escolhaDeMapa.js`.
 import { linhaDoCaiDe } from './ondeCaiHtml.js';
@@ -181,6 +182,8 @@ MissoesIdle.limparEstadoDoPersonagem = function limparEstadoDoPersonagem() {
 	// O Codex é DO PERSONAGEM: a bolinha do anterior falaria de um progresso
 	// que este não tem. Ela volta no primeiro pacote da sessão nova (D-1232).
 	limparAvisoDoCodex();
+	// D-1839: o rastreador do Codex tambem e do personagem.
+	limparRastreadorDoCodex();
 	// O personagem novo ainda nao respondeu nada — sem isto a aba "Missões
 	// Gerais" do Codex mostraria as missões do personagem ANTERIOR ate o
 	// primeiro pacote chegar (o mesmo defeito que `fecharEEsquecer` existe
@@ -648,6 +651,9 @@ function onMissoesRecebidas(pkt) {
 	 * Codex abre, e a bolinha precisa aparecer antes disso.
 	 */
 	anotarAvisoDoCodex(dados.codexComNovidade === true);
+	// O RASTREADOR DO CODEX pega a mesma carona (D-1839): as entradas marcadas,
+	// com o contador, para o cartao da HUD (MissoesTrackerIdle) desenhar.
+	anotarRastreadorDoCodex(dados.codexRastreado);
 	MissoesIdle.recebeuAlgumaVez = true;
 	render();
 	/*

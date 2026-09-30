@@ -75,6 +75,7 @@ import { ehCelularEmPe } from 'UI/hudVertical.js';
 import { jornadaHtml } from './jornadaHtml.js';
 import { placarHtml, eixosHtml, desafiosHtml, retratoDoCodexAceito } from './eixosDoCodex.js';
 import { missoesGeraisHtml, cliqueDeMissoesGerais, SUBABA_PADRAO } from './missoesGeraisHtml.js';
+import { estrelaDoCodexHtml, faixaDeMarcacaoHtml, marcadasDoRetrato } from './marcacaoDoCodex.js'; // D-1839
 import htmlText from './CodexIdle.html?raw';
 import cssText from './CodexIdle.css?raw';
 // O "IR AO MAPA" da aba Missoes Gerais (26/09/2026) — o fluxo e o desenho sao
@@ -421,6 +422,9 @@ function closeWindow() {
 	}
 	// A escolha de mapa mora ao lado da janela: fecha junto (26/09/2026).
 	fecharEscolha(JANELA_DO_CODEX);
+	// D-1839: o realce vindo do rastreador vale so para esta abertura.
+	_entradaRealcada = null;
+	_entradaARealcar = null;
 	savePosition();
 }
 
@@ -443,6 +447,20 @@ function onClickClose(e) {
  */
 function onClickCorpo(e) {
 	const alvo = e.target && e.target.closest ? e.target : null;
+	/*
+	 * A ESTRELA (D-1839) vem PRIMEIRO: ela mora dentro da linha da entrada, e
+	 * os outros ganchos de clique procuram pela linha. O servidor decide o teto
+	 * e responde com o retrato (a estrela acende) ou com o motivo da recusa.
+	 */
+	const estrela = alvo && alvo.closest('.cx-marcar');
+	if (estrela) {
+		e.stopImmediatePropagation();
+		const id = estrela.dataset.marcar;
+		if (id) {
+			enviarAcao({ acao: 'marcar', id: id });
+		}
+		return;
+	}
 	if (alvo && cliqueDeMissoesGerais(e, alvo, GANCHOS_DE_MISSOES)) {
 		return;
 	}
@@ -549,6 +567,8 @@ function missoesHtml(estado) {
 	}
 	const ocultar = !!_preferences.ocultarConcluidas;
 	const concluidas = todas.filter(m => m.cumprida).length;
+	// D-1839: as entradas que o jogador acompanha no rastreador da HUD.
+	const marcadas = new Set(marcadasDoRetrato(estado));
 	const missoes = ordenarMissoes(ocultar ? todas.filter(m => !m.cumprida) : todas);
 	const barra =
 		'<label class="cx-ocultar"><input type="checkbox" data-action="cx-ocultar"' +
@@ -560,6 +580,7 @@ function missoesHtml(estado) {
 		return barra + '<div class="cx-vazio">Todas as missoes estao concluidas.</div>';
 	}
 	return (
+		faixaDeMarcacaoHtml(estado) +
 		barra +
 		'<div class="cx-missoes">' +
 		missoes
@@ -654,6 +675,10 @@ function missoesHtml(estado) {
 					escapeHtml((Array.isArray(m.alvos) ? m.alvos : []).map(a => a.mobId).join(',')) +
 					'">' +
 					'<span class="cx-missao-nome">' +
+					// A estrela nao aparece na entrada ja encerrada (cumprida e
+					// sem premio pendente): nao ha o que acompanhar, e o servidor
+					// recusaria a marcacao.
+					(m.cumprida && !m.aResgatar ? '' : estrelaDoCodexHtml(m.id, marcadas.has(m.id))) +
 					escapeHtml(m.titulo || m.monstro || '') +
 					' ' +
 					marca +
@@ -745,6 +770,7 @@ function render() {
 		'<div class="cx-secao"><div class="cx-secao-titulo">Onde gastar</div>' +
 		eixosHtml(estado) +
 		'</div>';
+	realcarEntradaPedida(corpo);
 }
 
 /* ------------------------------------------------------------------ */
@@ -1075,6 +1101,59 @@ function abrirEntradaDoCodex(mobId) {
 }
 
 /**
+ * A PONTE RASTREADOR -> ENTRADA (D-1839): o clique numa linha do rastreador
+ * da HUD abre esta janela na aba do Codex e acende a entrada.
+ *
+ * O retrato pode ainda nao ter chegado (a janela pede ao abrir), entao o id
+ * fica guardado e `realcarEntradaPedida` roda no fim de todo `render` da aba -
+ * acende quando a linha existir, e esquece depois.
+ */
+let _entradaARealcar = null;
+/*
+ * A entrada ACESA fica acesa ate a janela fechar: o retrato que chega logo
+ * depois do clique (a janela pede ao abrir) redesenha o corpo inteiro, e um
+ * realce so no no antigo sumia - medido na primeira foto do desktop, onde a
+ * janela ja tinha retrato e o clique acendia a linha um instante antes de o
+ * retrato novo apaga-la. `_entradaARealcar` e so o "rolar ate ela", que vale ate
+ * o retrato novo chegar.
+ */
+let _entradaRealcada = null;
+
+CodexIdle.abrirNaEntrada = function abrirNaEntrada(id) {
+	const root = _root();
+	const win = root && root.querySelector('.cx-window');
+	if (!win) {
+		return;
+	}
+	CodexIdle.aba = 'codex';
+	lembrarAba(_preferences, 'codex');
+	// Sem id (o rodape "Abrir o Codex" do cartao) so abre na aba.
+	_entradaARealcar = typeof id === 'string' && id ? id : null;
+	_entradaRealcada = _entradaARealcar;
+	if (!win.classList.contains('is-open')) {
+		CodexIdle.toggle();
+	}
+	render();
+};
+
+function realcarEntradaPedida(corpo) {
+	if (!_entradaRealcada || !corpo) {
+		return;
+	}
+	const linha = Array.prototype.find.call(
+		corpo.querySelectorAll('.cx-missao[data-entrada]'),
+		el => el.dataset.entrada === _entradaRealcada
+	);
+	if (!linha) {
+		return;
+	}
+	linha.classList.add('is-realce');
+	if (_entradaARealcar && typeof linha.scrollIntoView === 'function') {
+		linha.scrollIntoView({ block: 'center' });
+	}
+}
+
+/**
  * A viagem. MESMO pacote que o Mapa de Caca e a janela de Missoes mandam
  * (`CZ_RAGIDLE_VIAJAR`, 0x0ff2) - nenhum caminho novo, so um segundo gatilho.
  * A janela FECHA porque o servidor responde com o mapmove e o cliente recarrega
@@ -1112,6 +1191,8 @@ function onCodexRecebido(pkt) {
 	CodexIdle.estado = dados;
 	acumularMissoesDaJornada(dados);
 	render();
+	// D-1839: o retrato novo ja foi desenhado com a entrada pedida no centro.
+	_entradaARealcar = null;
 	seguirVarredura();
 }
 

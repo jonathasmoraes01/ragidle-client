@@ -1864,3 +1864,62 @@
 #CodexIdle .cx-ocultar-n {
 	opacity: 0.7;
 }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   D-1839 (29/09/2026) — A ESTRELA: acompanhar a entrada no rastreador da HUD
+
+   Um glifo, e nao um botao com texto: ele mora no comeco do nome da entrada,
+   numa lista de 62, e um rotulo por linha seria ruido. O estado vai no
+   `aria-pressed` e no `title` (marcacaoDoCodex.js). No dedo o alvo cresce
+   para o piso de 44px pelo bloco `pointer: coarse` do Common.css.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+#CodexIdle .cx-marcar {
+	appearance: none;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	/* Sem `min-width`/`min-height` aqui DE PROPOSITO: este seletor tem ID e
+	   venceria o piso de 44px do bloco `pointer: coarse` do Common.css. O
+	   tamanho no mouse sai do padding e do glifo (~22px). */
+	margin: 0 4px 0 0;
+	padding: 3px 4px;
+	border: 0;
+	border-radius: var(--radius-card);
+	background: transparent;
+	color: var(--text-muted);
+	font-size: 15px;
+	line-height: 1;
+	vertical-align: middle;
+	cursor: pointer;
+}
+
+#CodexIdle .cx-marcar:hover {
+	color: var(--gold-500);
+	background: var(--surface-card-hover);
+}
+
+#CodexIdle .cx-marcar.is-marcada {
+	color: var(--gold-500);
+}
+
+#CodexIdle .cx-marcacao {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	margin: 0 0 var(--sp-3);
+}
+
+#CodexIdle .cx-marcacao-conta {
+	font-size: var(--fs-desc);
+	color: var(--text-muted);
+}
+
+#CodexIdle .cx-marcacao-aviso {
+	padding: 6px 8px;
+	border-radius: var(--radius-card);
+	border: 1px solid var(--gold-500);
+	background: var(--surface-inset);
+	color: var(--text-body);
+	font-size: var(--fs-desc);
+}

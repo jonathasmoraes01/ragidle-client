@@ -2044,9 +2044,17 @@ ui-button {
 	.mt-item,
 	.mt-ver-todas,
 	.mt-aba,
-	.mt-recolher {
+	.mt-recolher,
+	/* D-1839: a linha do rastreador do Codex (abre a entrada) e a estrela da
+	   janela do Codex (marca/desmarca). As duas sao alvo de dedo. */
+	.mt-cx-item,
+	.cx-marcar {
 		box-sizing: border-box;
 		min-height: var(--hit-touch, 44px);
+	}
+
+	.cx-marcar {
+		min-width: var(--hit-touch, 44px);
 	}
 
 	.mt-recolher {

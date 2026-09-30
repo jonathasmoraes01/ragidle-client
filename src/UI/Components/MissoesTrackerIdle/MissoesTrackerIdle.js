@@ -40,6 +40,8 @@ import cssText from './MissoesTrackerIdle.css?raw';
 import { emUnidadesDaHud } from 'UI/escalaDaHud.js'; // D-934: geometria medida vira unidade da HUD
 import LFGIdle from 'UI/Components/LFGIdle/LFGIdle.js'; // D-939: a aba "Grupo" do cartao vertical
 import { ehCelularEmPe } from 'UI/hudVertical.js'; // D-939: na vertical a ancora e do CSS, nao deste polling
+import CodexIdle from 'UI/Components/CodexIdle/CodexIdle.js'; // D-1839: o clique numa linha do rastreador
+import { rastreadorDoCodexAtual, rastreadorDoCodexHtml } from '../rastreadorDoCodex.js'; // D-1839
 
 /**
  * Quantas missões clicáveis o painel lista (as demais ficam na janela).
@@ -112,6 +114,16 @@ MissoesTrackerIdle.needFocus = false;
 let _timer = null;
 let _recolhido = false;
 let _assinatura = '';
+/*
+ * A ABA DO CARTAO NO CELULAR EM PE (D-1839): 'missoes' ou 'codex'.
+ *
+ * Fora da vertical ela nao existe (a secao do Codex aparece embaixo das
+ * missoes). Na vertical o cartao nao tem altura para as duas - o corpo e
+ * `max-height: 22dvh` por ordem do dono (D-1483) -, e a aba troca uma pela
+ * outra. E preferencia de quem joga, como `_recolhido`: a troca de
+ * personagem NAO a zera.
+ */
+let _abaVertical = 'missoes';
 
 function _root() {
 	return MissoesTrackerIdle._shadow || MissoesTrackerIdle._host;
@@ -206,6 +218,22 @@ MissoesTrackerIdle.init = function init() {
 	}
 	pintarRecolhido();
 	/*
+	 * D-1839: as abas "Missões" e "Codex" do cartao vertical trocam o que
+	 * o corpo mostra. "Grupo" continua sendo uma PORTA (abre o LFG).
+	 */
+	for (const aba of ['missoes', 'codex']) {
+		const botao = root && root.querySelector(`.mt-aba[data-aba="${aba}"]`);
+		if (!botao) {
+			continue;
+		}
+		botao.addEventListener('click', e => {
+			e.stopImmediatePropagation();
+			_abaVertical = aba;
+			pintarAba();
+		});
+	}
+	pintarAba();
+	/*
 	 * D-939: as pecas do cartao da HUD vertical. A aba "Grupo" e o rodape
 	 * "Ver todas as missões" sao PORTAS (abrem as janelas que ja existem),
 	 * nao telas novas — e fora da vertical nenhum dos dois aparece.
@@ -221,6 +249,11 @@ MissoesTrackerIdle.init = function init() {
 	if (verTodas) {
 		verTodas.addEventListener('click', e => {
 			e.stopImmediatePropagation();
+			// Na aba do Codex o rodape abre o Codex (D-1839).
+			if (_abaVertical === 'codex') {
+				CodexIdle.abrirNaEntrada(null);
+				return;
+			}
 			MissoesIdle.toggle();
 		});
 	}
@@ -243,6 +276,9 @@ MissoesTrackerIdle.init = function init() {
 			} else if (acao === 'abandonar' && btn.dataset.id) {
 				// D-1150: abandonar leva o id; o progresso fica no servidor.
 				mandarAcao('abandonar', btn.dataset.id);
+			} else if (acao === 'codex-abrir') {
+				// D-1839: a linha do rastreador abre o Codex naquela entrada.
+				CodexIdle.abrirNaEntrada(btn.dataset.entrada || null);
 			} else if (acao === 'abrir-janela') {
 				// A Troca de Classe não roda pelo executor: o clique abre a
 				// janela de missões, onde a grade de classes mora (D-609).
@@ -378,12 +414,56 @@ function syncPosition() {
 function renderSeMudou() {
 	const missoes = MissoesIdle.missoes || [];
 	const execucao = MissoesIdle.execucao || null;
-	const assinatura = JSON.stringify([execucao, missoes.map(m => [m.id, m.estado, m.cooldownS, m.naFila])]);
+	const codex = rastreadorDoCodexAtual();
+	const assinatura = JSON.stringify([execucao, missoes.map(m => [m.id, m.estado, m.cooldownS, m.naFila]), codex]);
 	if (assinatura === _assinatura) {
 		return;
 	}
 	_assinatura = assinatura;
 	render(missoes, execucao);
+	renderCodex(codex);
+}
+
+/**
+ * O RASTREADOR DO CODEX (D-1839): as entradas marcadas, com o contador. O
+ * desenho mora em `rastreadorDoCodex.js` (testavel sem a janela); aqui so
+ * a caixa: fora da vertical a secao some quando nada esta marcado, e o
+ * numero da aba "Codex" do cartao vertical diz quantas estao marcadas.
+ */
+function renderCodex(codex) {
+	const root = _root();
+	const caixa = root && root.querySelector('.mt-codex');
+	const lista = root && root.querySelector('.mt-codex-lista');
+	if (!caixa || !lista) {
+		return;
+	}
+	caixa.dataset.vazia = codex.length === 0 ? 'true' : 'false';
+	lista.innerHTML = rastreadorDoCodexHtml(codex);
+	const n = root.querySelector('.mt-aba[data-aba="codex"] .mt-aba-n');
+	if (n) {
+		n.textContent = codex.length > 0 ? String(codex.length) : '';
+	}
+}
+
+/** Poe a aba do cartao vertical na tela (D-1839). */
+function pintarAba() {
+	const root = _root();
+	const painel = root && root.querySelector('.mt-painel');
+	if (!painel) {
+		return;
+	}
+	painel.dataset.aba = _abaVertical;
+	for (const aba of ['missoes', 'codex']) {
+		const botao = root.querySelector(`.mt-aba[data-aba="${aba}"]`);
+		if (botao) {
+			botao.classList.toggle('is-ativa', aba === _abaVertical);
+			botao.setAttribute('aria-selected', String(aba === _abaVertical));
+		}
+	}
+	const verTodas = root.querySelector('.mt-ver-todas');
+	if (verTodas) {
+		verTodas.firstChild.textContent = _abaVertical === 'codex' ? 'Abrir o Codex ' : 'Ver todas as missões ';
+	}
 }
 
 function render(missoes, execucao) {

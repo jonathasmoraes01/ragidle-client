@@ -492,3 +492,153 @@
 .ri-vertical .mt-painel.is-recolhido .mt-ver-todas {
 	display: none;
 }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   D-1839 (29/09/2026) — O RASTREADOR DO CODEX
+
+   Pedido do dono: *"marcar o codex e aparecer um contador na tela, ao inves
+   de ter que ficar abrindo o codex"*. As entradas marcadas (a estrela na
+   janela do Codex, ate 5) aparecem aqui com `abates/alvo` e uma barra fina.
+
+   COMPUTADOR: uma secao embaixo das missoes, compacta — o cartao ja mora na
+   coluna do personagem, e cada linha a mais e altura tirada do jogo. Some
+   quando nada esta marcado (`data-vazia`).
+
+   CELULAR EM PE: a aba "Codex" do cartao troca as missoes pelo rastreador
+   (`.mt-painel[data-aba]`, escrito pelo .js). O cartao nao cresce: o corpo
+   continua no `max-height: 22dvh` de D-1483, e o que nao couber rola por
+   dentro. Com a aba aberta e nada marcado aparece a dica de como marcar.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.mt-codex[data-vazia='true'] {
+	display: none;
+}
+
+.mt-codex-titulo {
+	font-size: var(--fs-desc);
+	font-weight: 700;
+	color: var(--text-muted);
+	margin: 2px 0 3px;
+}
+
+.mt-codex-lista {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+	display: flex;
+	flex-direction: column;
+	gap: 3px;
+}
+
+.mt-cx-item {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) auto;
+	align-items: center;
+	column-gap: 8px;
+	row-gap: 3px;
+	width: 100%;
+	padding: 4px 8px;
+	border-radius: var(--radius-card);
+	border: 1px solid var(--border-hairline);
+	background: var(--surface-card);
+	color: var(--text-body);
+	font: inherit;
+	text-align: left;
+	cursor: pointer;
+	transition:
+		background var(--dur-fast),
+		border-color var(--dur-fast);
+}
+
+.mt-cx-item:hover {
+	background: var(--surface-card-hover);
+	border-color: var(--accent);
+}
+
+.mt-cx-nome {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.mt-cx-conta {
+	color: var(--text-muted);
+	font-size: var(--fs-desc);
+	font-variant-numeric: tabular-nums;
+}
+
+/* O premio pendente e o que falta fazer: ouro de detalhe, nunca superficie. */
+.mt-cx-conta.is-resgatar {
+	color: var(--gold-500);
+	font-weight: 700;
+}
+
+.mt-cx-item.is-resgatar {
+	border-color: var(--gold-500);
+}
+
+.mt-cx-barra {
+	grid-column: 1 / -1;
+	display: block;
+	height: 3px;
+	border-radius: 999px;
+	background: var(--well-fill, rgba(0, 0, 0, 0.12));
+	overflow: hidden;
+}
+
+.mt-cx-fill {
+	display: block;
+	height: 100%;
+	border-radius: 999px;
+	background: var(--gold-500);
+	transition: width 300ms ease-out;
+}
+
+.mt-aba-n:empty {
+	display: none;
+}
+
+.mt-aba-n {
+	display: inline-block;
+	min-width: 14px;
+	margin-left: 2px;
+	padding: 0 4px;
+	border-radius: 999px;
+	background: var(--is-accent, #3b6ea5);
+	color: #fff;
+	font-size: 10px;
+	line-height: 14px;
+	text-align: center;
+}
+
+/* Fora da vertical a dica de "como marcar" nao aparece: a secao inteira ja
+   some com a lista vazia. */
+.mt-cx-vazio {
+	padding: 6px 4px;
+}
+
+/* ── o cartao vertical: a aba escolhe o que o corpo mostra ─────────────── */
+.ri-vertical .mt-painel[data-aba='codex'] .mt-ativa,
+.ri-vertical .mt-painel[data-aba='codex'] .mt-lista {
+	display: none;
+}
+
+.ri-vertical .mt-painel[data-aba='missoes'] .mt-codex {
+	display: none;
+}
+
+/* Na aba do Codex a secao aparece mesmo vazia: ali a dica e o conteudo. */
+.ri-vertical .mt-painel[data-aba='codex'] .mt-codex[data-vazia='true'] {
+	display: block;
+}
+
+/* O titulo "Codex" sobra: a aba ja diz o que e. */
+.ri-vertical .mt-codex-titulo {
+	display: none;
+}
+
+/* A fileira de abas ganhou uma terceira: as tres dividem a largura sem
+   empurrar o recolher para fora (ele e `margin-left: auto`). */
+.ri-vertical .mt-aba {
+	padding: 6px 9px;
+}
