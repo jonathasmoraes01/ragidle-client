@@ -401,7 +401,13 @@ function onEntityVanish(pkt) {
 					 * "Unknown" no ranking.
 					 */
 					if (entity.objecttype === Entity.TYPE_MOB && Session.Entity) {
-						const nome = DB.getMonsterName(entity.job);
+						/* O nome que o SERVIDOR mandou na entrada vem primeiro
+						   (30/09/2026): e o distinto do homonimo ("Goblin
+						   (Vento)", D-1870), o mesmo do chat de dano, e a tabela
+						   do cliente diz so "Goblin" para os cinco, que o ranking
+						   somava numa linha. A tabela fica de reserva. */
+						const doServidor = entity.display && entity.display.name ? entity.display.name : '';
+						const nome = doServidor || DB.getMonsterName(entity.job);
 						/* O job vai junto (D-943): e o mobId do avatar em
 						   /ragidle/mobs/<id>.png, o mesmo do Mapa de Caca. */
 						registrarAbate(Session.Entity.GID, nome === 'Unknown' ? '' : nome, entity.job);
