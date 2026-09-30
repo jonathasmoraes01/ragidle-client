@@ -1,7 +1,8 @@
 /**
  * UI/Components/HuntMap/cacaMedidaNoMapa.js
  *
- * A CACA MEDIDA DENTRO DO MAPA DE CACA (v2, 29/09/2026) — a metade PURA.
+ * A CACA MEDIDA DENTRO DO MAPA DE CACA (v2, 29/09/2026; forma enxuta v3 do
+ * bloco em 30/09/2026) — a metade PURA.
  *
  * Contrato: `docs/CONTRATO-CACA-MEDIDA.md` (repositorio do servidor), secoes
  * 7 a 10. Decisao do dono de 29/09/2026: a medicao da caca real vai para
@@ -32,8 +33,30 @@
  * This file is part of the ragidle fork of ROBrowser.
  */
 
-/** A versao do bloco `cacaMedida` que este cliente entende (secao 9). */
-export const VERSAO_DO_BLOCO = 2;
+/**
+ * A versao do bloco `cacaMedida` que este cliente entende (secao 11). A v3
+ * (30/09/2026, D-1842 no servidor) e a forma ENXUTA: a `medida` numa tupla de
+ * inteiros e o `risco` ALINHADO A ORDEM do catalogo, sem o nome de cada mapa.
+ * Um bloco de outra versao e `null` — a tela de hoje, sem quebrar a janela.
+ */
+export const VERSAO_DO_BLOCO = 3;
+
+/**
+ * A ORDEM dos valores da tupla de `medida` (a mesma de `CAMPOS_DA_MEDIDA` no
+ * servidor, `servidor/caca-medida/bloco-do-catalogo.ts`). So os mapas MEDIDOS
+ * descem, entao o cartao lido sai com `medido: true`; `fichaAtual` vem 1/0.
+ */
+export const CAMPOS_DA_MEDIDA = Object.freeze([
+	'minutos',
+	'fichaAtual',
+	'expBasePorHora',
+	'expClassePorHora',
+	'zenyPorHora',
+	'pocoesPorHora',
+	'mortes',
+	'mortesPorHora',
+	'abatesPorHora'
+]);
 
 /** "Medido" = pelo menos isto de caca viva no mapa (contrato, secao 1). */
 export const MINUTOS_PARA_MEDIR = 10;
@@ -130,33 +153,57 @@ function lerExplorar(bruto) {
 	};
 }
 
-/** So as entradas de medida que tem mapa e numero; o resto some. */
+/**
+ * A `medida` v3: cada mapa MEDIDO e uma tupla na ordem de `CAMPOS_DA_MEDIDA`.
+ * Vira o cartao de sempre (`{ minutos, medido: true, fichaAtual, ... }`), para
+ * o resto do cliente nao mudar. Tupla curta ou com valor nao numerico some.
+ */
 function lerMedida(bruto) {
 	const medida = {};
 	if (!ehObjeto(bruto)) {
 		return medida;
 	}
-	for (const [mapa, entrada] of Object.entries(bruto)) {
-		if (ehObjeto(entrada)) {
-			medida[mapa] = entrada;
+	for (const [mapa, tupla] of Object.entries(bruto)) {
+		if (!Array.isArray(tupla) || tupla.length < CAMPOS_DA_MEDIDA.length || !tupla.every(n => Number.isFinite(n))) {
+			continue;
 		}
+		const cartao = { medido: true };
+		CAMPOS_DA_MEDIDA.forEach((campo, i) => {
+			cartao[campo] = tupla[i];
+		});
+		cartao.fichaAtual = tupla[1] === 1;
+		medida[mapa] = cartao;
 	}
 	return medida;
 }
 
 /**
- * O `risco`: `null` quer dizer "a conta ainda nao terminou" (secao 9) e e
- * DIFERENTE de `{}` ("terminou e nao ha mapa com risco"). Entrada ilegivel
- * some da tabela — o cartao dela fica sem selo, como o de hoje.
+ * O `risco` v3, ALINHADO A ORDEM do catalogo: `{ n, g: [golpes...], l: "sca-" }`,
+ * onde o i-esimo valor e do i-esimo mapa das partes do catalogo, concatenadas.
+ * Vira `{ mapa: [golpes, letra] }`, como antes.
+ *
+ * `null` quer dizer "a conta ainda nao terminou" (secao 9) e e DIFERENTE de
+ * `{}`. Quando a ordem nao bate (sem catalogo, ou `n` diferente do numero de
+ * mapas que o cliente tem), o risco INTEIRO vira `null`: sem selo, e nunca o
+ * selo de outro mapa. Letra `-` (mapa fora do plano) ou ilegivel: sem selo.
+ *
+ * @param {*} bruto
+ * @param {Array<{mapa: string}>|null} mapas  os mapas do catalogo, na ordem em que chegaram
  */
-function lerRisco(bruto) {
-	if (!ehObjeto(bruto)) {
+function lerRisco(bruto, mapas) {
+	if (!ehObjeto(bruto) || !Array.isArray(mapas) || !Array.isArray(bruto.g) || typeof bruto.l !== 'string') {
+		return null;
+	}
+	if (bruto.n !== mapas.length || bruto.g.length !== mapas.length || bruto.l.length !== mapas.length) {
 		return null;
 	}
 	const risco = {};
-	for (const [mapa, entrada] of Object.entries(bruto)) {
-		if (Array.isArray(entrada) && Number.isFinite(Number(entrada[0])) && SELO_DA_LETRA[entrada[1]]) {
-			risco[mapa] = entrada;
+	for (let i = 0; i < mapas.length; i++) {
+		const letra = bruto.l[i];
+		const golpes = bruto.g[i];
+		const mapa = mapas[i] && mapas[i].mapa;
+		if (typeof mapa === 'string' && SELO_DA_LETRA[letra] && Number.isFinite(golpes)) {
+			risco[mapa] = [golpes, letra];
 		}
 	}
 	return risco;
@@ -182,36 +229,38 @@ function lerLimites(bruto) {
  * Um servidor que ainda nao manda o bloco nao pode quebrar a janela.
  *
  * @param {*} bruto  `catalogo.cacaMedida`
+ * @param {Array<{mapa: string}>|null} mapas  os mapas do catalogo, NA ORDEM das partes (o risco e alinhado a ela)
  * @returns {null|{limites, medida, risco, explorar}}
  */
-export function lerBlocoDaCacaMedida(bruto) {
+export function lerBlocoDaCacaMedida(bruto, mapas) {
 	if (!ehObjeto(bruto) || bruto.v !== VERSAO_DO_BLOCO) {
 		return null;
 	}
 	return {
 		limites: lerLimites(bruto.limites),
 		medida: lerMedida(bruto.medida),
-		risco: lerRisco(bruto.risco),
+		risco: lerRisco(bruto.risco, mapas),
 		explorar: lerExplorar(bruto.explorar)
 	};
 }
 
 /**
- * Le o `0x0fb5` (o Explorar e o risco que ficou pronto, secoes 4 e 9).
+ * Le o `0x0fb5` (o Explorar e o risco que ficou pronto, secoes 4, 9 e 11).
  *
- * So entram no resultado os campos que o pacote TRAZ: um `0x0fb5` do Explorar
- * nao traz `risco`, e isso nao pode apagar o risco que o catalogo mandou. A
- * versao nao e conferida por igualdade — o pacote nasceu v1 (a janela antiga)
- * e a v2 o reaproveita; o que se confere e a FORMA de cada campo.
+ * Desde a v2 do pacote (D-1842) ele traz SO `abrir`, `resultado` e o bloco
+ * `cacaMedida` inteiro — a lista `mapas` da v1 saiu. Sem bloco (so `abrir` ou
+ * `resultado`), o resultado nao traz medida, risco nem Explorar, e
+ * `fundirPacote` mantem os do bloco anterior.
  *
  * `abrir` (o `@cacamedida`) vale para `true` e para `'mapa-de-caca'`: a frente
  * do servidor define o sinal exato, e os dois querem dizer "abra o Mapa de
  * Caca na aba Seus mapas".
  *
  * @param {string} json
+ * @param {Array<{mapa: string}>|null} mapas  os mapas do catalogo que o cliente tem, na ordem (para o risco)
  * @returns {null|object}
  */
-export function lerPacoteDaCacaMedida(json) {
+export function lerPacoteDaCacaMedida(json, mapas) {
 	let dados;
 	try {
 		dados = JSON.parse(json);
@@ -226,14 +275,14 @@ export function lerPacoteDaCacaMedida(json) {
 		pacote.resultado = { ok: dados.resultado.ok === true, texto: dados.resultado.texto };
 	}
 	/*
-	 * O BLOCO v2 DENTRO DO PACOTE. O servidor manda o `0x0fb5` da v1 (mapas,
-	 * explorar) com o MESMO bloco do cabecalho do catalogo aninhado em
-	 * `cacaMedida` (`comBlocoNoPayload`, servidor). Quando ele vem, e ele que
-	 * vale — inteiro, com o risco (pronto ou `null`), a medida e o Explorar. O
-	 * `mapas` da v1 nao e lido: a medida do bloco e a mesma, na forma do
-	 * catalogo.
+	 * O BLOCO DENTRO DO PACOTE: o MESMO do cabecalho do catalogo, aninhado em
+	 * `cacaMedida`. Quando ele vem, e ele que vale — inteiro, com o risco
+	 * (pronto ou `null`), a medida e o Explorar. Das chaves soltas da v1 so o
+	 * `explorar` ainda e lido (um pacote que so mexe no Explorar nao apaga o
+	 * risco nem a medida); `mapas`, `risco` e `medida` soltos nao existem mais
+	 * no fio desde D-1842.
 	 */
-	const bloco = lerBlocoDaCacaMedida(dados.cacaMedida);
+	const bloco = lerBlocoDaCacaMedida(dados.cacaMedida, mapas);
 	if (bloco) {
 		pacote.explorar = bloco.explorar;
 		pacote.risco = bloco.risco;
@@ -243,15 +292,6 @@ export function lerPacoteDaCacaMedida(json) {
 	}
 	if ('explorar' in dados) {
 		pacote.explorar = lerExplorar(dados.explorar);
-	}
-	if ('risco' in dados) {
-		pacote.risco = lerRisco(dados.risco);
-	}
-	if (ehObjeto(dados.medida)) {
-		pacote.medida = lerMedida(dados.medida);
-	}
-	if (ehObjeto(dados.limites)) {
-		pacote.limites = lerLimites(dados.limites);
 	}
 	return pacote;
 }

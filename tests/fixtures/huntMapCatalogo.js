@@ -106,10 +106,14 @@ export function catalogoPequeno(extra = {}) {
 	};
 }
 
-/** O bloco `cacaMedida` (secao 9): dois mapas medidos, risco de quase todos. */
+/**
+ * O bloco `cacaMedida` na forma LEGIVEL (a do cliente depois de ler): dois
+ * mapas medidos, risco de quase todos. O que desce no FIO e a forma enxuta v3
+ * (secao 11) — `blocoNoFio` a monta daqui, como o servidor.
+ */
 export function blocoDaCacaMedida(extra = {}) {
 	return {
-		v: 2,
+		v: 3,
 		limites: { seguro: 7, cuidado: 4 },
 		medida: {
 			pay_fild01: {
@@ -173,4 +177,59 @@ export function explorarConcluido(escolhido = 'pay_fild01') {
 			{ mapa: 'prt_sewb4', rotulo: 'Esgoto de Prontera (F4)', estado: 'medido', minutos: 10, expBasePorHora: 3100, mortes: 0 }
 		]
 	};
+}
+
+/** A ordem dos valores da tupla de `medida` no fio (secao 11). */
+const CAMPOS_NO_FIO = [
+	'minutos',
+	'fichaAtual',
+	'expBasePorHora',
+	'expClassePorHora',
+	'zenyPorHora',
+	'pocoesPorHora',
+	'mortes',
+	'mortesPorHora',
+	'abatesPorHora'
+];
+
+/**
+ * O bloco LEGIVEL na forma do FIO (v3, D-1842 no servidor), como
+ * `blocoDaCacaMedidaComoJson` o monta: so os mapas MEDIDOS, cada um numa tupla
+ * de inteiros (`fichaAtual` 1/0), e o risco ALINHADO a ordem dos `mapas` do
+ * catalogo (`{ n, g, l }`, `0` e `-` no mapa sem risco). O que nao e objeto
+ * passa como veio (o teste do "ilegivel").
+ *
+ * @param {*} bloco  a forma legivel
+ * @param {Array<{mapa: string}>} mapas  a ordem do catalogo (padrao: a do `catalogoPequeno`)
+ */
+export function blocoNoFio(bloco, mapas = catalogoPequeno().mapas) {
+	if (!bloco || typeof bloco !== 'object') {
+		return bloco;
+	}
+	const medida = {};
+	for (const [mapa, c] of Object.entries(bloco.medida || {})) {
+		if (Array.isArray(c)) {
+			medida[mapa] = c; // ja esta na forma do fio
+			continue;
+		}
+		if (!c || c.medido !== true) {
+			continue;
+		}
+		medida[mapa] = CAMPOS_NO_FIO.map(k => (k === 'fichaAtual' ? (c.fichaAtual === false ? 0 : 1) : Number(c[k] || 0)));
+	}
+	let risco = bloco.risco;
+	if (risco && typeof risco === 'object' && !('n' in risco)) {
+		const legivel = risco;
+		risco = {
+			n: mapas.length,
+			g: mapas.map(m => (legivel[m.mapa] ? legivel[m.mapa][0] : 0)),
+			l: mapas.map(m => (legivel[m.mapa] ? legivel[m.mapa][1] : '-')).join('')
+		};
+	}
+	return { ...bloco, medida, risco };
+}
+
+/** O `0x0fb5` (ou o catalogo) com o `cacaMedida` na forma do fio. */
+export function comBlocoNoFio(dados, mapas) {
+	return dados && dados.cacaMedida ? { ...dados, cacaMedida: blocoNoFio(dados.cacaMedida, mapas) } : dados;
 }

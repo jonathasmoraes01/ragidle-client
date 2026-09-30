@@ -978,7 +978,8 @@ function atualizarCartoesNaLista(mapas) {
  * nenhuma com a janela fechada (so a marca de que a abertura redesenha).
  */
 function onCacaMedidaRecebida(pkt) {
-	const pacote = lerPacoteDaCacaMedida(pkt.json);
+	// O risco vem alinhado a ORDEM do catalogo (bloco v3): le pela lista que a janela tem.
+	const pacote = lerPacoteDaCacaMedida(pkt.json, HuntMap.catalog ? HuntMap.catalog.mapas : null);
 	if (!pacote) {
 		console.error('[HuntMap] 0x0fb5 ilegivel');
 		return;
@@ -1273,7 +1274,8 @@ function onCatalogReceived(pkt) {
 	// A CACA MEDIDA (v2): ausente, de outra versao ou ilegivel e `null`, e
 	// `null` e a tela de hoje. So quem tem a funcionalidade ligada a recebe.
 	if (!mesmoCatalogo) {
-		HuntMap.cacaMedida = lerBlocoDaCacaMedida(data.cacaMedida);
+		// O risco v3 e alinhado a ORDEM das partes (os `mapas` ja concatenados).
+		HuntMap.cacaMedida = lerBlocoDaCacaMedida(data.cacaMedida, data.mapas);
 	}
 
 	// RAGIDLE (D-1133): o indice passou a mandar os drops como itemId — com 126

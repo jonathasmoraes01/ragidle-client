@@ -58,34 +58,27 @@ function estatistica(amostras) {
 const fmt = s => `mediana ${s.mediana.toFixed(2)} ms · p95 ${s.p95.toFixed(2)} ms · min ${s.min.toFixed(2)} ms (n=${s.n})`;
 
 /**
- * O bloco `cacaMedida` que um ADMINISTRADOR recebe (secao 9), sintetico sobre
- * o catalogo real: 30 mapas medidos e o risco de todos. As paginas de fora
- * nao mudam — o bloco entra so na primeira, que e onde o servidor o poe.
+ * O bloco `cacaMedida` que um ADMINISTRADOR recebe, na forma do FIO (v3,
+ * secao 11 — D-1842 no servidor), sintetico sobre o catalogo real: 30 mapas
+ * medidos em tupla e o risco de todos ALINHADO a ordem das paginas. As paginas
+ * de fora nao mudam — o bloco entra so na primeira, que e onde o servidor o poe.
  */
 function paginasDeAdmin(paginas) {
 	const todos = paginas.flatMap(p => JSON.parse(p).mapas || []);
 	const medida = {};
 	todos.slice(0, 30).forEach((m, i) => {
-		medida[m.mapa] = {
-			minutos: 12 + i,
-			medido: true,
-			fichaAtual: true,
-			expBasePorHora: 1000 + i * 137,
-			expClassePorHora: 700 + i * 91,
-			zenyPorHora: 5000 + i * 311,
-			pocoesPorHora: 40 + i,
-			mortes: i % 4,
-			mortesPorHora: i % 4,
-			abatesPorHora: 120 + i
-		};
+		medida[m.mapa] = [12 + i, 1, 1000 + i * 137, 700 + i * 91, 5000 + i * 311, 40 + i, i % 4, i % 4, 120 + i];
 	});
-	const risco = {};
-	todos.forEach((m, i) => {
-		const golpes = 1 + (i % 12);
-		risco[m.mapa] = [golpes, golpes >= 7 ? 's' : golpes >= 4 ? 'c' : 'a', i % 5 === 0 ? 1 : 0];
-	});
+	const g = todos.map((m, i) => 1 + (i % 12));
+	const l = g.map(golpes => (golpes >= 7 ? 's' : golpes >= 4 ? 'c' : 'a')).join('');
 	const primeira = JSON.parse(paginas[0]);
-	primeira.cacaMedida = { v: 2, limites: { seguro: 7, cuidado: 4 }, medida, risco, explorar: { estado: 'parado' } };
+	primeira.cacaMedida = {
+		v: 3,
+		limites: { seguro: 7, cuidado: 4 },
+		medida,
+		risco: { n: todos.length, g, l },
+		explorar: { estado: 'parado' }
+	};
 	return [JSON.stringify(primeira)].concat(paginas.slice(1));
 }
 
