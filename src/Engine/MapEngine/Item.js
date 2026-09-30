@@ -28,6 +28,7 @@ import IdleConfig from 'UI/Components/IdleConfig/IdleConfig.js';
 import ItemSelection from 'UI/Components/ItemSelection/ItemSelection.js';
 import Inventory from 'UI/Components/Inventory/Inventory.js';
 import CartItems from 'UI/Components/CartItems/CartItems.js';
+import { textoDaGuardaRecusada, textoDaRetiradaRecusada } from 'UI/Components/CartItems/transferenciaDoCarrinho.js';
 import Equipment from 'UI/Components/Equipment/Equipment.js';
 import PlayerViewEquip from 'UI/Components/PlayerViewEquip/PlayerViewEquip.js';
 import SwitchEquip from 'UI/Components/SwitchEquip/SwitchEquip.js';
@@ -80,6 +81,15 @@ function onItemPickAnswer(pkt) {
 	// Fail
 	if (pkt.result !== 0) {
 		ChatBox.addText(DB.getMessage(53), ChatBox.TYPE.ERROR, ChatBox.FILTER.ITEM);
+		/*
+		 * D-1848: a mesma recusa responde o "Por na mochila" do carrinho (o
+		 * `clif_additem` de `pc_getitemfromcart`). Com o carrinho na tela, o
+		 * aviso aparece nele — no celular o chat nasce minimizado, e a linha
+		 * acima sozinha seria uma recusa que ninguem ve.
+		 */
+		if (CartItems.estaAberto && CartItems.estaAberto()) {
+			CartItems.avisar(textoDaRetiradaRecusada(pkt.result));
+		}
 		return;
 	}
 
@@ -548,6 +558,21 @@ function onAckAddItemToCart(pkt) {
 		case 1:
 			ChatBox.addText(DB.getMessage(221), ChatBox.TYPE.ERROR, ChatBox.FILTER.ITEM);
 			break;
+	}
+
+	/*
+	 * D-1848: a recusa tambem aparece na JANELA onde o jogador tocou — a
+	 * Mochila ("Por no carrinho") ou o proprio carrinho (o arrasto ate ele).
+	 * Cada uma so mostra se estiver aberta; no celular em pe e uma de cada vez.
+	 */
+	const texto = textoDaGuardaRecusada(pkt.result);
+	if (texto) {
+		CartItems.avisar(texto);
+		// A Mochila chega pela ponte do MapEngine: importa-la aqui puxaria o
+		// renderizador inteiro para todo teste que carrega este arquivo.
+		if (typeof CartItems.avisarNaMochila === 'function') {
+			CartItems.avisarNaMochila(texto);
+		}
 	}
 }
 

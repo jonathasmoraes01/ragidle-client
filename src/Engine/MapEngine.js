@@ -573,6 +573,9 @@ class MapEngine {
 					// Equipment.getUI().equip(...)) sem precisar de um NPC/
 					// servidor de verdade so pra fotografar a janela.
 					Inventory: Inventory,
+					// RAGIDLE: acrescentado 30/09/2026 pela `prove:carrinho` (D-1848):
+					// ler a carga do carrinho pelo ITID, que a janela nao desenha.
+					CartItems: CartItems,
 					Equipment: Equipment,
 					DB: DB,
 					MochilaIdle: MochilaIdle,
@@ -1911,6 +1914,38 @@ function onMapChange(pkt, ehEntradaNoMundo) {
 			fechar: () => lojaDoNpc.remove(),
 		});
 		avisarAoAbrir(lojaDoNpc, () => PilhaDeJanelas.aoAbrir('loja'));
+
+		/*
+		 * O CARRINHO DO MERCADOR (D-1848, 30/09/2026). Ele e a janela NATIVA do
+		 * roBrowser — nao usa `is-open`: aberto e o host no documento sem
+		 * `display:none` — e por isso entra com a leitura e o fechamento
+		 * declarados, como a loja de cash. Registrado, ele ganha o que uma
+		 * janela precisa no celular: a marca `ri-janela` (painel de tela cheia,
+		 * D-932), o corpo encaixado ate a barra de atalhos (o `seletor`, D-941),
+		 * o ESC e o voltar do Android, e a regra de uma janela por vez. O
+		 * `CartItems.toggle()` (a porta da Mochila e o Alt+W) e embrulhado pelo
+		 * registro, e e isso que avisa a pilha.
+		 */
+		PilhaDeJanelas.registrar({
+			nome: 'carrinho',
+			componente: CartItems,
+			seletor: '#cartitems',
+			estaAberta: () => CartItems.estaAberto(),
+			fechar: () => CartItems.fechar(),
+		});
+
+		/* A PONTE de volta do carrinho para a Mochila (D-1848): o botao
+		   "Mochila" do rodape do carrinho, o caminho do celular, onde abrir uma
+		   janela fecha a outra. Mora aqui pela razao das outras pontes: so o
+		   MapEngine conhece as duas, e a Mochila ja importa o carrinho. */
+		// E a recusa do carrinho que chega do servidor aparece na Mochila aberta.
+		CartItems.avisarNaMochila = texto => MochilaIdle.avisar(texto);
+		CartItems.aoPedirMochila = () => {
+			const mochila = MochilaIdle._shadow && MochilaIdle._shadow.querySelector('.mo-window');
+			if (!(mochila && mochila.classList.contains('is-open'))) {
+				MochilaIdle.toggle();
+			}
+		};
 
 		/* O LFG não usa `toggle()`: ele tem `abrir()`/`fechar()` próprios, por
 		   causa da corrida de troca de mapa que já derrubou o `is-open` dele por

@@ -170,6 +170,13 @@ import {
 	tetoPeloPeso
 } from 'UI/Components/Storage/retiradaDoArmazem.js';
 import { pesoDeItem } from 'DB/Items/fichasDeItem.js';
+import CartItems from 'UI/Components/CartItems/CartItems.js';
+import {
+	ehArrastoDoCarrinho,
+	pesoLivreDoCarrinho,
+	temCarrinho,
+	textoDaQuantidadeRecusada
+} from 'UI/Components/CartItems/transferenciaDoCarrinho.js';
 
 /**
  * Mantido em sincronia com ":host"/".mo-window"/".mo-frame" em
@@ -368,6 +375,25 @@ MochilaIdle.init = function init() {
 	this.draggable(root.querySelector('.mo-topo'));
 
 	root.querySelector('.mo-close').addEventListener('click', onClickClose);
+
+	/*
+	 * A PORTA DO CARRINHO (D-1848, 30/09/2026). Ate hoje o carrinho do Mercador
+	 * so abria pelo Alt+W nativo — que ninguem conhece e que nao existe no
+	 * celular. A porta mora AQUI, e nao no Menu, porque o carrinho e uma
+	 * extensao da mochila: e daqui que o jogador tira o que vai por nele, e e
+	 * aqui que o RO original tambem o poe (o botao "Cart" da janela de
+	 * equipamento, EquipmentCommon.js, que neste fork mora dentro da Mochila).
+	 * O Menu tem a grade de colunas contada pelos itens visiveis; um item que
+	 * aparece e some por personagem mexeria no desenho dele para todo mundo.
+	 * Visivel so para quem TEM carrinho (`syncBotaoDoCarrinho`).
+	 */
+	const botaoDoCarrinho = root.querySelector('.mo-carrinho');
+	if (botaoDoCarrinho) {
+		botaoDoCarrinho.addEventListener('click', e => {
+			e.stopImmediatePropagation();
+			CartItems.toggle();
+		});
+	}
 
 	// A resposta da comparação de equipamento (08/09/2026) — ver abrirDetalhes.
 	Network.hookPacket(PACKET.ZC.RAGIDLE_ITEM, aoChegarComparacao);
@@ -583,6 +609,24 @@ function syncAll() {
 	syncEquipSlots();
 	syncGrade();
 	syncRodape();
+	syncBotaoDoCarrinho();
+}
+
+/**
+ * O botao "Carrinho" do rodape aparece so para quem TEM carrinho (D-1848). O
+ * `hasCart` chega depois da janela (o EFST `ON_PUSH_CART` do lote de entrada)
+ * e muda sem relogar (a Kafra aluga, o `@cart` do administrador), por isso o
+ * laco de 250 ms confere de novo a cada tique com a janela aberta.
+ */
+function syncBotaoDoCarrinho() {
+	const botao = _root().querySelector('.mo-carrinho');
+	if (!botao) {
+		return;
+	}
+	const esconder = !temCarrinho(Session.Entity);
+	if (botao.hidden !== esconder) {
+		botao.hidden = esconder;
+	}
 }
 
 function isOpen() {
@@ -1149,6 +1193,20 @@ function abrirMenuDoItem(cell) {
 		ContextMenu.nextGroup();
 	}
 
+	/*
+	 * "POR NO CARRINHO" (D-1848) — o caminho por menu da guarda no carrinho,
+	 * que so existia por arrasto (e o arrasto estava morto, ver
+	 * `transferenciaDoCarrinho.js`). Aparece SEMPRE que o personagem tem
+	 * carrinho, e nao so com a janela dele aberta: no celular em pe e uma
+	 * janela por vez, entao exigir o carrinho aberto tornaria o gesto
+	 * impossivel justamente la. Peca vestida nao mora na grade, e o servidor
+	 * recusa de todo jeito (`item.equip`).
+	 */
+	if (temCarrinho(Session.Entity)) {
+		ContextMenu.addElement('Pôr no carrinho', () => pedirParaCarrinho(item));
+		ContextMenu.nextGroup();
+	}
+
 	if (tab === TAB.EQUIP) {
 		ContextMenu.addElement('Equipar', () => {
 			const location = 'location' in item ? item.location : item.WearState;
@@ -1231,6 +1289,38 @@ function abrirMenuDoItem(cell) {
 	ContextMenu.addElement('Detalhes', () => {
 		abrirDetalhes(item);
 	});
+}
+
+/**
+ * Por no carrinho (D-1848) — o MESMO pedido do arrasto ate a janela do
+ * carrinho (`reqMoveItemToCart`, o `onDrop` de CartItems.js), com a MESMA
+ * caixa de quantidade. A pilha abre com o maximo que cabe no peso livre do
+ * CARRINHO (a regra R17/C2-6 da retirada do armazem, com o teto de quem
+ * recebe), e digitar mais do que cabe AVISA em vez de sumir calado.
+ */
+function pedirParaCarrinho(item) {
+	const total = item.count || 1;
+	if (total > 1) {
+		const pesoUnit = typeof item.weight === 'number' ? item.weight : pesoDeItem(item.ITID);
+		const livre = pesoLivreDoCarrinho(CartItems.info);
+		const tetoDoPeso = livre === null ? null : tetoPeloPeso(livre, pesoUnit);
+		const padrao = quantidadePadraoDaRetirada(total, tetoDoPeso);
+
+		InputBox.append();
+		InputBox.setType('number', false, padrao);
+		InputBox.onSubmitRequest = function OnSubmitRequest(count) {
+			InputBox.remove();
+			const quantos = quantidadeDaRetirada(count, total, tetoDoPeso);
+			if (quantos === null) {
+				const teto = tetoDoPeso === null ? total : Math.min(total, tetoDoPeso);
+				mostrarAviso(textoDaQuantidadeRecusada(teto, 'carrinho'));
+				return;
+			}
+			Inventory.getUI().reqMoveItemToCart(item.index, quantos);
+		};
+		return;
+	}
+	Inventory.getUI().reqMoveItemToCart(item.index, 1);
 }
 
 /**
@@ -1587,7 +1677,7 @@ function onSlotDragEnd() {
 }
 
 function onGradeDragOver(e) {
-	if (_dragUnequipIndex == null && !ehArrastoVindoDoArmazem()) {
+	if (_dragUnequipIndex == null && !ehArrastoVindoDoArmazem() && !ehArrastoDoCarrinho(window._OBJ_DRAG_)) {
 		return;
 	}
 	e.preventDefault();
@@ -1609,6 +1699,19 @@ function onGradeDrop(e) {
 	 * -- o MESMO que a janela nativa lia. Nada de novo no fio.
 	 */
 	if (_dragUnequipIndex == null) {
+		/*
+		 * ── Carrinho -> grade (tirar), D-1848 ───────────────────────────────
+		 * A mesma pedra do armazem: a janela nativa de inventario, o unico
+		 * alvo que o carrinho conhecia, fica escondida para sempre. O payload
+		 * e o `_OBJ_DRAG_` que o `dragstart` do carrinho escreve.
+		 */
+		const doCarrinho = itemDoArrastoDoCarrinho(e);
+		if (doCarrinho) {
+			e.preventDefault();
+			e.stopImmediatePropagation();
+			CartItems.pedirParaMochila(doCarrinho);
+			return;
+		}
 		const doArmazem = itemDoArrastoDoArmazem(e);
 		if (!doArmazem) {
 			return;
@@ -1635,6 +1738,17 @@ function onGradeDrop(e) {
  */
 function ehArrastoVindoDoArmazem() {
 	return ehArrastoDoArmazem(window._OBJ_DRAG_);
+}
+
+/** O item do carrinho que caiu na grade, ou null se o drop foi de outra coisa. */
+function itemDoArrastoDoCarrinho(e) {
+	let data;
+	try {
+		data = JSON.parse(e.dataTransfer.getData('Text'));
+	} catch (_e) {
+		return null;
+	}
+	return ehArrastoDoCarrinho(data) ? data.data : null;
 }
 
 /** O item do armazem que caiu na grade, ou null se o drop foi de outra coisa. */
@@ -2055,6 +2169,17 @@ function esconderDica() {
 		dica.hidden = true;
 	}
 }
+
+/**
+ * O aviso da Mochila, para quem esta FORA dela avisar o jogador onde ele tocou
+ * (D-1848: a recusa do carrinho que chega do servidor). So com a janela
+ * aberta — aviso numa janela fechada e aviso que ninguem ve.
+ */
+MochilaIdle.avisar = function avisar(msg) {
+	if (msg && isOpen()) {
+		mostrarAviso(msg);
+	}
+};
 
 function mostrarAviso(msg) {
 	const root = _root();
