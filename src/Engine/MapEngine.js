@@ -67,6 +67,7 @@ import Guild from 'UI/Components/Guild/Guild.js';
 import WorldMap from 'UI/Components/WorldMap/WorldMap.js';
 import SkillListMH from 'UI/Components/SkillListMH/SkillListMH.js';
 import MobileUI from 'UI/Components/MobileUI/MobileUI.js';
+import { decidirNoFimDaCaminhada } from 'Engine/MapEngine/alcanceNoFimDaCaminhada.js';
 import CashShop from 'UI/Components/CashShop/CashShop.js';
 import Bank from 'UI/Components/Bank/Bank.js';
 import ItemReform from 'UI/Components/ItemReform/ItemReform.js';
@@ -2685,8 +2686,35 @@ function onWalkEnd() {
 		// performing an action
 		Events.setTimeout(() => {
 			if (Session.moveAction) {
+				/*
+				 * Lote 5 (resto do C23): a skill guardada re-confere o alcance
+				 * com a regua da fonte onde o boneco PAROU (rAthena
+				 * battle_check_range, unit.cpp:2362 e :2695) - ver
+				 * alcanceNoFimDaCaminhada.js.
+				 */
+				const pendente = Session.moveActionAlcance;
+				if (pendente && pendente.pacote === Session.moveAction && Session.Entity) {
+					const decisao = decidirNoFimDaCaminhada({
+						pos: Session.Entity.position,
+						alvo: pendente.alvo(),
+						alcance: pendente.alcance,
+						repeticoes: pendente.repeticoes
+					});
+					if (decisao === 'andar') {
+						pendente.repeticoes++;
+						if (pendente.andar()) {
+							return;
+						}
+					}
+					if (decisao !== 'soltar') {
+						Session.moveAction = null;
+						Session.moveActionAlcance = null;
+						return;
+					}
+				}
 				Network.sendPacket(Session.moveAction);
 				Session.moveAction = null;
+				Session.moveActionAlcance = null;
 			}
 		}, 50);
 	}

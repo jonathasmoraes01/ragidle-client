@@ -638,6 +638,50 @@ Guild.onIncreaseSkill =
  * @param {number} count - o que o PathFinding.search devolveu
  * @returns {boolean}
  */
+/**
+ * Lote 5 (resto do C23): guarda, junto do `Session.moveAction`, o alcance e o
+ * alvo da skill - o `onWalkEnd` (MapEngine.js) re-confere com a regua da fonte
+ * (alcanceNoFimDaCaminhada.js) e, se o boneco parou fora, anda mais uma vez por
+ * `andar()`. So o jogador: homunculo e mercenario andam por outro pacote.
+ *
+ * @param {object} pacote - o pacote guardado em Session.moveAction
+ * @param {number} alcance - o alcance da skill (a regua, e nao o raio da busca)
+ * @param {() => ({x: number, y: number} | null)} alvo - onde o alvo esta agora
+ */
+function armarAlcanceNoFim(pacote, alcance, alvo) {
+	Session.moveActionAlcance = {
+		pacote,
+		alcance,
+		alvo,
+		repeticoes: 0,
+		andar() {
+			const onde = alvo();
+			const ent = Session.Entity;
+			if (!onde || !ent) {
+				return false;
+			}
+			const out = [];
+			const count = PathFinding.search(
+				ent.position[0] | 0,
+				ent.position[1] | 0,
+				onde.x,
+				onde.y,
+				raioDaBuscaDoChao(alcance),
+				out,
+				Altitude.TYPE.WALKABLE
+			);
+			if (count < 2 || !caminhoDaSkillCabe(ent.position, out, count)) {
+				return false;
+			}
+			const mover = PACKETVER.value >= 20180307 ? new PACKET.CZ.REQUEST_MOVE2() : new PACKET.CZ.REQUEST_MOVE();
+			mover.dest[0] = out[(count - 1) * 2 + 0];
+			mover.dest[1] = out[(count - 1) * 2 + 1];
+			Network.sendPacket(mover);
+			return true;
+		}
+	};
+}
+
 function caminhoDaSkillCabe(pos, out, count) {
 	const origem = { x: pos[0] | 0, y: pos[1] | 0 };
 	const destino = { x: out[(count - 1) * 2 + 0], y: out[(count - 1) * 2 + 1] };
@@ -691,11 +735,15 @@ function onUseSkill(id, level, targetID) {
 
 	// C37: a skill no alvo mede com a MESMA regua circular da fonte que a de
 	// chao (battle_check_range, rAthena battle.cpp:8224-8229; ver alcanceDaSkillNoChao.js).
+	let alcanceDaRegua;
 	if (skill) {
+		alcanceDaRegua = skill.attackRange;
 		range = raioDaBuscaDoChao(skill.attackRange);
 	} else if (SkillInfo[id]) {
+		alcanceDaRegua = SkillInfo[id].AttackRange[level - 1];
 		range = raioDaBuscaDoChao(SkillInfo[id].AttackRange[level - 1]);
 	} else {
+		alcanceDaRegua = entity.attack_range;
 		range = entity.attack_range;
 	}
 
@@ -743,6 +791,13 @@ function onUseSkill(id, level, targetID) {
 
 	// Save the packet
 	Session.moveAction = pkt;
+	Session.moveActionAlcance = null;
+	if (!isHomun && !isMerc) {
+		armarAlcanceNoFim(pkt, alcanceDaRegua, () => {
+			const alvoAgora = EntityManager.get(targetID);
+			return alvoAgora ? { x: Math.round(alvoAgora.position[0]), y: Math.round(alvoAgora.position[1]) } : null;
+		});
+	}
 
 	// Move to position
 	if (isHomun) {
@@ -807,11 +862,15 @@ SkillTargetSelection.onUseSkillToPos = function onUseSkillToPos(id, level, x, y)
 	const out = [];
 
 	// C23: para onde a regua CIRCULAR da fonte aceita a celula (ver alcanceDaSkillNoChao.js).
+	let alcanceDaRegua;
 	if (skill) {
+		alcanceDaRegua = skill.attackRange;
 		range = raioDaBuscaDoChao(skill.attackRange);
 	} else if (SkillInfo[id]) {
+		alcanceDaRegua = SkillInfo[id].AttackRange[level - 1];
 		range = raioDaBuscaDoChao(SkillInfo[id].AttackRange[level - 1]);
 	} else {
+		alcanceDaRegua = entity.attack_range;
 		range = entity.attack_range;
 	}
 
@@ -851,6 +910,10 @@ SkillTargetSelection.onUseSkillToPos = function onUseSkillToPos(id, level, x, y)
 
 	// Save the packet
 	Session.moveAction = pkt;
+	Session.moveActionAlcance = null;
+	if (!isHomun) {
+		armarAlcanceNoFim(pkt, alcanceDaRegua, () => ({ x: x | 0, y: y | 0 }));
+	}
 
 	// Move to the position
 	if (isHomun) {
