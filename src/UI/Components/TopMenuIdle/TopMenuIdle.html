@@ -112,7 +112,10 @@
 		     arte ilustrada, e um traco fino de 2px dentro do disco dourado
 		     de destaque some. O bau tambem e o que a janela vende. -->
 		<button type="button" class="tm-item tm-item--destaque" data-action="temporada" title="Temporada: caixas, passe e VIP">
-			<span class="tm-icon-wrap ri-disc"><!--RI_ICONE:recompensas--></span>
+			<span class="tm-icon-wrap ri-disc"><!--RI_ICONE:recompensas-->
+				<!-- Ponto de "recompensa pronta para resgatar" (29/09/2026). -->
+				<span class="ri-dot" style="display: none"></span>
+			</span>
 			<span class="tm-label">Temporada</span>
 		</button>
 
@@ -557,7 +560,12 @@
 		     porta, nao um item. Rotulo SEMPRE visivel — e agora os do leque
 		     tambem tem o seu, permanente (ver ".tm-fan .tm-label" no CSS). -->
 		<button type="button" class="tm-fab" title="Menu" aria-label="Menu" aria-expanded="false" aria-controls="tm-fan">
-			<span class="tm-fab-wrap ri-disc"><!--RI_ICONE:menu--></span>
+			<span class="tm-fab-wrap ri-disc"><!--RI_ICONE:menu-->
+				<!-- Acende quando ha ponto aceso num item que o jogador NAO esta
+				     vendo: dentro do leque, ou no cluster escondido pelo layout
+				     (o celular em pe). Ver `syncMenuDot()`. -->
+				<span class="ri-dot" style="display: none"></span>
+			</span>
 			<span class="tm-label">Menu</span>
 		</button>
 	</div>

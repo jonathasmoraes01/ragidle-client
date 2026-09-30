@@ -204,6 +204,8 @@ import HuntAnalyzer from 'UI/Components/HuntAnalyzer/HuntAnalyzer.js';
 /* PasseIdle NAO e mais importado aqui (21/09/2026): a janela de Recompensas
    ficou sem botao - o conteudo dela mora na Temporada. O modulo segue vivo
    pelo MapEngine, como dono do pacote 0x0fe5. */
+import { temRecompensaParaResgatar } from 'UI/Components/TemporadaIdle/formatoDaTemporada.js'; // a bolinha da Temporada (29/09/2026)
+import { pontoDoMenuAceso } from './pontoDoMenu.js'; // a bolinha do botao Menu (29/09/2026)
 import TemporadaIdle from 'UI/Components/TemporadaIdle/TemporadaIdle.js'; // RAGIDLE: a janela da Temporada (Season 1, 21/09/2026) - no cluster desde a noite do mesmo dia
 import VotoIdle from 'UI/Components/VotoIdle/VotoIdle.js'; // RAGIDLE: janela de Voto (D-1159)
 import CombatCornerIdle from 'UI/Components/CombatCornerIdle/CombatCornerIdle.js'; // RAGIDLE: o aro "Ataque auto" (16/09/2026 — some enquanto o leque esta aberto)
@@ -294,6 +296,11 @@ let _lequeTimer = null;
  * @var {number|null} setInterval handle do polling do ponto de skill.
  */
 let _pollTimer = null;
+
+/* O estado da Temporada so chegava ao abrir a janela; para a bolinha, o menu o
+   pede sozinho de tempos em tempos (29/09/2026). */
+const PEDIDO_DA_TEMPORADA_MS = 5 * 60 * 1000;
+let _temporadaPedidaEm = 0;
 
 /**
  * @var {number|null} setTimeout handle do toast "Em breve" em exibicao.
@@ -1893,14 +1900,18 @@ function pollEstado() {
 	 * em 360x640, exatamente a diferenca de um quadro.
 	 */
 	publicarTopoDoCluster();
+	pedirTemporadaSeVenceu();
 	syncSkillDot();
 	syncCorreioDot();
 	syncCodexDot();
+	syncTemporadaDot();
 	// D-1159: o destaque do botao de votar entra no MESMO tique dos outros
 	// dois avisos, e antes do `syncToggleDot()` de proposito — ele le os
 	// pontos dos itens ja calculados para decidir o ponto da alca.
 	syncVotoLivre();
 	syncToggleDot();
+	// Por ULTIMO: le os pontos de todos os itens ja calculados neste tique.
+	syncMenuDot();
 	syncAllActiveStates();
 }
 
@@ -2087,6 +2098,60 @@ function syncVotoLivre() {
 	btn.title = livre
 		? 'Votar — você tem voto disponível!'
 		: 'Votar e ganhar Vote Cash';
+}
+
+/**
+ * Pede o estado da Temporada sem a janela aberta, no maximo a cada 5 min.
+ */
+function pedirTemporadaSeVenceu() {
+	const agora = Date.now();
+	if (agora - _temporadaPedidaEm < PEDIDO_DA_TEMPORADA_MS) {
+		return;
+	}
+	_temporadaPedidaEm = agora;
+	try {
+		TemporadaIdle.pedirEstadoEmSegundoPlano();
+	} catch {
+		// sem rede ainda: o proximo tique tenta de novo
+		_temporadaPedidaEm = 0;
+	}
+}
+
+/**
+ * Ponto de "recompensa pronta" na Temporada (29/09/2026, pedido do dono). O
+ * veredito e do servidor (`temRecompensaParaResgatar` so le a situacao que
+ * ele mandou).
+ */
+function syncTemporadaDot() {
+	const root = _root();
+	const dot = root.querySelector('.tm-item[data-action="temporada"] .ri-dot');
+	if (!dot) {
+		return;
+	}
+	const tem = temRecompensaParaResgatar(TemporadaIdle.estado);
+	dot.style.display = tem ? '' : 'none';
+	const btn = dot.closest('.tm-item');
+	if (btn) {
+		btn.title = tem ? 'Temporada — você tem recompensa para resgatar' : 'Temporada: caixas, passe e VIP';
+	}
+}
+
+/**
+ * O PONTO DO BOTAO "MENU" (29/09/2026, pedido do dono). Um aviso que o jogador
+ * nao ve nao e aviso: o Codex mora dentro do leque, e no celular em pe o
+ * Correio, o Votar e a Temporada saem do trilho. O "Menu" acende quando algum
+ * ponto JA CALCULADO esta aceso num item que o jogador nao esta vendo:
+ *  - qualquer item do leque (`.tm-fan`), aberto ou nao;
+ *  - item do cluster que o LAYOUT escondeu (`display: none` computado). Com o
+ *    cluster recolhido pela alca quem avisa e a alca, e ele fica de fora.
+ */
+function syncMenuDot() {
+	const root = _root();
+	const dot = root.querySelector('.tm-fab .ri-dot');
+	if (!dot) {
+		return;
+	}
+	dot.style.display = pontoDoMenuAceso(root, !!_preferences.collapsed) ? '' : 'none';
 }
 
 /**

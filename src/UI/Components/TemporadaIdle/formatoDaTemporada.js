@@ -938,6 +938,24 @@ export function renderMissoesSemanaisHtml(semanais) {
  * ordenados por nível e, dentro do nível, free antes de vip (mesma ordem do
  * V1, só o rótulo da segunda trilha mudou).
  */
+/**
+ * HA RECOMPENSA ESPERANDO O JOGADOR NA TEMPORADA? (29/09/2026, a bolinha do
+ * botao "Temporada", pedido do dono.) Le so o que o SERVIDOR ja decidiu: um
+ * premio da trilha em `AVAILABLE` (o mesmo estado que desenha o botao
+ * "Resgatar") ou o visual do VIP que `pode` e ainda nao foi `resgatado`.
+ */
+export function temRecompensaParaResgatar(estado) {
+	if (!estado) {
+		return false;
+	}
+	const premios = (estado.passe && estado.passe.premios) || [];
+	if (premios.some(p => p && p.situacao === 'AVAILABLE')) {
+		return true;
+	}
+	const visual = estado.vip && estado.vip.visual;
+	return !!(visual && visual.pode && !visual.resgatado);
+}
+
 export function niveisDoPasse(passe) {
 	const porNivel = new Map();
 	((passe && passe.premios) || []).forEach(p => {

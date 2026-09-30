@@ -428,6 +428,10 @@ function pedirEstado() {
 	Network.sendPacket(pkt);
 }
 
+/* O menu pede o estado sem a janela aberta, para a bolinha do botao
+   "Temporada" (29/09/2026): sem isto ele so chegava ao abrir a janela. */
+TemporadaIdle.pedirEstadoEmSegundoPlano = pedirEstado;
+
 /** O estado do Passe (semanal/VIP) - a resposta chega por `PasseIdle.aoReceberEstado`. */
 function pedirEstadoDoPasse() {
 	Network.sendPacket(new PACKET.CZ.RAGIDLE_PEDIR_PASSE());
