@@ -49,6 +49,6 @@ describe('alcance da skill de chao (C23)', () => {
 			expect(trecho).toMatch(/range = raioDaBuscaDoChao\(skill\.attackRange\);/);
 			expect(trecho).toMatch(/range = raioDaBuscaDoChao\(SkillInfo\[id\]\.AttackRange\[level - 1\]\);/);
 		}
-		expect(src.match(/raioDaBuscaDoChao\(/g)).toHaveLength(4);
+		expect(src.match(/raioDaBuscaDoChao\(/g)).toHaveLength(5); // + a caminhada extra do lote 5 (armarAlcanceNoFim)
 	});
 });

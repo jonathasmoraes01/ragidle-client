@@ -36,6 +36,13 @@ export default {
 
 	moveAction: null,
 
+	/**
+	 * Lote 5 (resto do C23): o alcance da skill guardada em `moveAction` - o
+	 * `onWalkEnd` re-confere com a regua da fonte antes de soltar. Ver
+	 * MapEngine/alcanceNoFimDaCaminhada.js e `armarAlcanceNoFim` (Skill.js).
+	 */
+	moveActionAlcance: null,
+
 	// weight and max_weight now live on the player entity (Session.Entity)
 
 	/**
