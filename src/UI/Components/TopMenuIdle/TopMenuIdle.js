@@ -220,6 +220,7 @@ import htmlText from './TopMenuIdle.html?raw';
 import cssText from './TopMenuIdle.css?raw';
 import { emUnidadesDaHud } from 'UI/escalaDaHud.js'; // D-934: geometria medida vira unidade da HUD
 import { souAdmin } from 'DB/Items/idParaAdmin.js'; // D-1367: quem ve o item "Admin"
+import { esconderNoModoClassico } from 'UI/modoClassico.js'; // o modo classico (24/09/2026): sem os itens do idle
 
 /**
  * Mesmo intervalo de polling leve que DockIdle.js/BasicInfoIdle.js.
@@ -368,6 +369,10 @@ TopMenuIdle.init = function init() {
  */
 TopMenuIdle.onAppend = function onAppend() {
 	hideReplacedControls();
+	// O MODO CLASSICO tira do menu a configuracao idle e o Hunt Analyzer (que
+	// carrega o "Dormir"). ANTES de distribuir as colunas, que contam so os
+	// itens visiveis.
+	esconderNoModoClassico(_root(), ['.tm-item[data-action="config"]', '.tm-item[data-action="analyzer"]']);
 	applyCollapsedState();
 
 	// Admin: so quem o servidor marcou como administrador ve o item (D-1367).

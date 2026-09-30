@@ -73,6 +73,7 @@ import htmlText from './HuntAnalyzer.html?raw';
 import cssText from './HuntAnalyzer.css?raw';
 import { fecharEEsquecer } from '../limpezaDeJanelaIdle.js';
 import { abaLembrada, lembrarAba } from '../memoriaDeAba.js';
+import { esconderNoModoClassico } from 'UI/modoClassico.js'; // o modo classico (24/09/2026): sem o Dormir
 
 /*
  * Estes DOIS numeros repetem os de HuntAnalyzer.css (":host" e ".ha-window").
@@ -394,6 +395,8 @@ function faltamMsParaDormirAoVivo(ctx) {
 }
 
 function sincronizarDormir(root, r, aoVivo) {
+	// O MODO CLASSICO nao tem farm offline: o botao Dormir some.
+	esconderNoModoClassico(root, ['.ha-dormir', '.ha-dormir-status']);
 	const botao = root.querySelector('.ha-dormir');
 	const status = root.querySelector('.ha-dormir-status');
 	if (!botao) {

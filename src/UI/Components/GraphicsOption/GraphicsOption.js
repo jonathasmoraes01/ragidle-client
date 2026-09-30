@@ -23,6 +23,7 @@ import { abaLembrada, lembrarAba } from '../memoriaDeAba.js'; // RAGIDLE
 
 import MemoryManager from 'Core/MemoryManager.js';
 import ChatBox from 'UI/Components/ChatBox/ChatBox.js';
+import { modoClassicoLigado } from 'UI/modoClassico.js'; // o modo classico (24/09/2026): sem a economia de energia
 
 /**
  * Create Component
@@ -171,6 +172,11 @@ GraphicsOption.onAppend = function onAppend() {
 	// gravada ANTES desta opcao existir nao tem o campo, e o padrao e LIGADO.
 	root.querySelector('.player-names').checked = GraphicsSettings.showPlayerNames !== false;
 	root.querySelector('.economia-automatica').checked = GraphicsSettings.economiaDeEnergiaAutomatica !== false;
+	// O MODO CLASSICO nao tem economia de energia: a linha inteira da opcao some.
+	if (modoClassicoLigado()) {
+		const linha = root.querySelector('.economia-automatica')?.closest('tr');
+		if (linha) linha.style.setProperty('display', 'none', 'important');
+	}
 	root.querySelector('.cursor-option').checked = GraphicsSettings.cursor;
 	root.querySelector('.fpslimit').value = GraphicsSettings.fpslimit;
 	root.querySelector('.fps').checked = FPS._host ? FPS._host.style.display !== 'none' : false;

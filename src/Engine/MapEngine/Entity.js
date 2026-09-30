@@ -18,6 +18,7 @@ import StatusState from 'DB/Status/StatusState.js';
 import Emotions from 'DB/Emotions.js';
 import SkillEffect from 'DB/Skills/SkillEffect.js';
 import SkillActionTable from 'DB/Skills/SkillAction.js';
+import SkillUnitConst from 'DB/Skills/SkillUnitConst.js';
 import EffectConst from 'DB/Effects/EffectConst.js';
 import PetMessageConst from 'DB/Pets/PetMessageConst.js';
 import JobId from 'DB/Jobs/JobConst.js';
@@ -1735,6 +1736,34 @@ function onEntityUseSkill(pkt) {
  */
 function onSkillAppear(pkt) {
 	EffectManager.spamSkillZone(pkt.job, pkt.xPos, pkt.yPos, pkt.AID, pkt.creatorAID);
+
+	/*
+	 * RAGIDLE (28/09/2026): RG_GRAFFITI (UNT_GRAFFITI) nao tem sprite de efeito
+	 * (SkillUnit[UNT_GRAFFITI] = EF_NONE, DB/Skills/SkillUnit.js) -- entao o
+	 * spamSkillZone acima e um no-op: sua guarda `effectId in EffectDB` falha
+	 * ANTES de criar a Entity, e o texto do grafite (pkt.msg, so existe no
+	 * PACKET.ZC.SKILL_ENTRY5) nunca chegava a lugar nenhum.
+	 *
+	 * Aqui reaproveitamos o MESMO balao de fala que ja desenha o nome da skill
+	 * acima do personagem (`entity.dialog`, Renderer/Entity/EntityDialog.js,
+	 * usado poucas linhas abaixo em onEntityUseSkillToAttack) -- so para este
+	 * unit type, sem tocar no EF_NONE nem no spamSkillZone. Como o AID do
+	 * grafite e o mesmo GID usado por onSkillDisapear, a Entity criada aqui e
+	 * removida do jeito normal quando o servidor manda o SKILL_DISAPPEAR.
+	 */
+	if (pkt.job === SkillUnitConst.UNT_GRAFFITI && pkt.msg) {
+		let entity = EntityManager.get(pkt.AID);
+		if (!entity) {
+			entity = new Entity();
+			entity.GID = pkt.AID;
+			entity.position = [pkt.xPos, pkt.yPos, Altitude.getCellHeight(pkt.xPos, pkt.yPos)];
+			entity.hideShadow = true;
+			entity.objecttype = Entity.TYPE_EFFECT;
+			entity.creatorGID = pkt.creatorAID;
+			EntityManager.add(entity);
+		}
+		entity.dialog.set(pkt.msg);
+	}
 }
 
 /**

@@ -24,6 +24,17 @@ import EffectManager from 'Renderer/EffectManager.js';
 import Altitude from 'Renderer/Map/Altitude.js';
 import ShortCut from 'UI/Components/ShortCut/ShortCut.js';
 import ChatBox from 'UI/Components/ChatBox/ChatBox.js';
+import { ehFaltaDeItem, textoDeFaltaDeItem } from './faltaDeItemNaSkill.js';
+import { criarPedidoAdiado } from './pedidoAdiadoPeloGolpe.js';
+import { raioDaBuscaDoChao } from './alcanceDaSkillNoChao.js';
+import { TEXTO_GERAL, textoDaCausaSemMensagem } from './textoDaFalhaDeSkill.js';
+import { TEXTO_LONGE_DEMAIS, caminhoCabeNoTetoDoServidor } from './tetoDaCaminhadaDaSkill.js';
+
+// C32 (29/09/2026): o pedido dentro da janela do golpe espera, em vez de sumir.
+const _pedidoNoGolpe = criarPedidoAdiado({
+	agendar: (fn, ms) => setTimeout(fn, ms),
+	cancelar: id => clearTimeout(id)
+});
 import SkillTargetSelection from 'UI/Components/SkillTargetSelection/SkillTargetSelection.js';
 import Guild from 'UI/Components/Guild/Guild.js';
 import SkillListMH from 'UI/Components/SkillListMH/SkillListMH.js';
@@ -153,6 +164,22 @@ function onSkillResult(pkt) {
 		return;
 	}
 
+	// USESKILL_FAIL_NEED_ITEM (71): falta o catalisador - diga qual (faltaDeItemNaSkill.js).
+	if (ehFaltaDeItem(pkt.cause)) {
+		const info = pkt.itemId ? DB.getItemInfo(pkt.itemId) : null;
+		const nome = info ? info.identifiedDisplayName : '';
+		ChatBox.addText(textoDeFaltaDeItem(nome, pkt.NUM), ChatBox.TYPE.ERROR, ChatBox.FILTER.SKILL_FAIL);
+		return;
+	}
+
+	// C3B: as causas que o switch abaixo nao cobre (0, 11, 57, 74) - ver
+	// textoDaFalhaDeSkill.js. O CG_TAROTCARD fica no ramo proprio dele.
+	const textoProprio = pkt.SKID == SkillId.CG_TAROTCARD ? null : textoDaCausaSemMensagem(pkt.cause, pkt.NUM);
+	if (textoProprio !== null) {
+		ChatBox.addText(textoProprio, ChatBox.TYPE.ERROR, ChatBox.FILTER.SKILL_FAIL);
+		return;
+	}
+
 	let error = 0;
 	/*var entity = Session.Entity;
 		let srcEntity = EntityManager.get(entity.GID);*/
@@ -224,7 +251,7 @@ function onSkillResult(pkt) {
 	}
 
 	if (error) {
-		ChatBox.addText(DB.getMessage(error), ChatBox.TYPE.ERROR, ChatBox.FILTER.SKILL_FAIL);
+		ChatBox.addText(DB.getMessage(error, TEXTO_GERAL), ChatBox.TYPE.ERROR, ChatBox.FILTER.SKILL_FAIL);
 		// all skills fails that i tested not executed skill action
 		// maybe there is some edge case that i missed
 		// so i'm commenting out for now
@@ -240,6 +267,9 @@ function onSkillResult(pkt) {
 		//		srcEntity.setAction(SkillActionTable['DEFAULT'](srcEntity, Renderer.tick));
 		//	}
 		//}
+	} else {
+		// C3B: causa sem texto nenhum nao sai muda.
+		ChatBox.addText(TEXTO_GERAL, ChatBox.TYPE.ERROR, ChatBox.FILTER.SKILL_FAIL);
 	}
 }
 
@@ -597,6 +627,29 @@ Guild.onIncreaseSkill =
 		onIncreaseSkill;
 
 /**
+ * C19 (auditoria de tela, 29/09/2026): o caminho ate o alcance cabe no teto
+ * que o servidor anda (unit.cpp:855-869, 17 passos; 14 sem a reta livre)? Se
+ * nao cabe, a skill nao e armada em `Session.moveAction` (o servidor recusaria
+ * o andar calado e ela nunca sairia) e o jogador e avisado no chat. Ver
+ * tetoDaCaminhadaDaSkill.js.
+ *
+ * @param {Array} pos - posicao de quem anda
+ * @param {Array} out - o caminho do PathFinding.search
+ * @param {number} count - o que o PathFinding.search devolveu
+ * @returns {boolean}
+ */
+function caminhoDaSkillCabe(pos, out, count) {
+	const origem = { x: pos[0] | 0, y: pos[1] | 0 };
+	const destino = { x: out[(count - 1) * 2 + 0], y: out[(count - 1) * 2 + 1] };
+	const naoAndavel = (x, y) => !(Altitude.getCellType(x, y) & Altitude.TYPE.WALKABLE);
+	if (caminhoCabeNoTetoDoServidor(count, origem, destino, naoAndavel)) {
+		return true;
+	}
+	ChatBox.addText(TEXTO_LONGE_DEMAIS, ChatBox.TYPE.ERROR, ChatBox.FILTER.SKILL_FAIL);
+	return false;
+}
+
+/**
  * Cast a skill on someone
  *
  * @param {number} skill id
@@ -626,9 +679,9 @@ function onUseSkill(id, level, targetID) {
 			}*/
 	}
 
-	// Client side minimum delay
-	if (entity && entity.amotionTick > Renderer.tick) {
-		// Can't spam skills faster than amotion
+	// Client side minimum delay. C32: o pedido espera a janela vencer e sai,
+	// em vez de sumir calado (ver pedidoAdiadoPeloGolpe.js).
+	if (entity && _pedidoNoGolpe.adiarSeNaJanela(entity.amotionTick, Renderer.tick, () => onUseSkill(id, level, targetID))) {
 		return;
 	}
 
@@ -636,10 +689,12 @@ function onUseSkill(id, level, targetID) {
 	const skill = SkillWindow.getUI().getSkillById(id);
 	const out = [];
 
+	// C37: a skill no alvo mede com a MESMA regua circular da fonte que a de
+	// chao (battle_check_range, rAthena battle.cpp:8224-8229; ver alcanceDaSkillNoChao.js).
 	if (skill) {
-		range = skill.attackRange + 1;
+		range = raioDaBuscaDoChao(skill.attackRange);
 	} else if (SkillInfo[id]) {
-		range = SkillInfo[id].AttackRange[level - 1] + 1;
+		range = raioDaBuscaDoChao(SkillInfo[id].AttackRange[level - 1]);
 	} else {
 		range = entity.attack_range;
 	}
@@ -677,6 +732,12 @@ function onUseSkill(id, level, targetID) {
 	// In range
 	if (count < 2 || target === entity) {
 		Network.sendPacket(pkt);
+		return;
+	}
+
+	// C19: o jogador so anda o que o servidor aceita (o homunculo e o
+	// mercenario andam por outro pacote, CZ_REQUEST_MOVENPC).
+	if (!isHomun && !isMerc && !caminhoDaSkillCabe(entity.position, out, count)) {
 		return;
 	}
 
@@ -731,9 +792,13 @@ SkillTargetSelection.onUseSkillToPos = function onUseSkillToPos(id, level, x, y)
 		}
 	}
 
-	// Client side minimum delay
-	if (entity && entity.amotionTick > Renderer.tick) {
-		// Can't spam skills faster than amotion
+	// Client side minimum delay. C32: espera e sai (ver pedidoAdiadoPeloGolpe.js).
+	if (
+		entity &&
+		_pedidoNoGolpe.adiarSeNaJanela(entity.amotionTick, Renderer.tick, () =>
+			SkillTargetSelection.onUseSkillToPos(id, level, x, y)
+		)
+	) {
 		return;
 	}
 
@@ -741,10 +806,11 @@ SkillTargetSelection.onUseSkillToPos = function onUseSkillToPos(id, level, x, y)
 	const skill = SkillWindow.getUI().getSkillById(id);
 	const out = [];
 
+	// C23: para onde a regua CIRCULAR da fonte aceita a celula (ver alcanceDaSkillNoChao.js).
 	if (skill) {
-		range = skill.attackRange + 1;
+		range = raioDaBuscaDoChao(skill.attackRange);
 	} else if (SkillInfo[id]) {
-		range = SkillInfo[id].AttackRange[level - 1] + 1;
+		range = raioDaBuscaDoChao(SkillInfo[id].AttackRange[level - 1]);
 	} else {
 		range = entity.attack_range;
 	}
@@ -775,6 +841,11 @@ SkillTargetSelection.onUseSkillToPos = function onUseSkillToPos(id, level, x, y)
 	// In range
 	if (count < 2) {
 		Network.sendPacket(pkt);
+		return;
+	}
+
+	// C19: o mesmo teto da skill no alvo (ver caminhoDaSkillCabe).
+	if (!isHomun && !caminhoDaSkillCabe(pos, out, count)) {
 		return;
 	}
 

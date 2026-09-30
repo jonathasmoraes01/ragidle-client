@@ -11,6 +11,7 @@
 import PathFinding from 'Utils/PathFinding.js';
 import Altitude from 'Renderer/Map/Altitude.js';
 import Session from 'Engine/SessionStorage.js';
+import { modoClassicoLigado } from 'UI/modoClassico.js';
 
 /**
  * Direction look up table
@@ -76,6 +77,13 @@ function estimatePathDuration(path, total, baseSpeed, startPos) {
  * the walk based on latency.
  */
 function computeWalkStartTick(nowTick, moveStartTime, pathDuration, maxClamp) {
+	// RAGIDLE (modo classico): o roBrowser puro nunca adianta - o serverTick dele
+	// fica segundos atrasado e o `elapsed` sai sempre <= 0. Com o ping real
+	// (b0bdbfd6) o adiantamento passou a rodar, e uma estimativa acima do
+	// servidor punha o boneco A FRENTE dele: a rota seguinte o puxava para tras.
+	if (modoClassicoLigado()) {
+		return nowTick;
+	}
 	if (!moveStartTime || !Session || !Session.serverTick) {
 		return nowTick;
 	}

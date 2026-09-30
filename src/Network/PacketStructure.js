@@ -10013,11 +10013,11 @@ PACKET.ZC.FAILED_TRADE_BUYING_STORE_TO_BUYER.size = 4;
 
 // 0x81b
 PACKET.ZC.UPDATE_ITEM_FROM_BUYING_STORE = function PACKET_ZC_UPDATE_ITEM_FROM_BUYING_STORE(fp, end) {
-	this.ITID = fp.readUShort();
+	this.ITID = PACKETVER.value >= 20181121 ? fp.readULong() : fp.readUShort();
 	this.count = fp.readShort();
 	this.limitZeny = fp.readLong();
 };
-PACKET.ZC.UPDATE_ITEM_FROM_BUYING_STORE.size = 10;
+PACKET.ZC.UPDATE_ITEM_FROM_BUYING_STORE.size = PACKETVER.value >= 20181121 ? 12 : 10;
 
 // 0x81c
 PACKET.ZC.ITEM_DELETE_BUYING_STORE = function PACKET_ZC_ITEM_DELETE_BUYING_STORE(fp, end) {
@@ -10074,9 +10074,9 @@ PACKET.AC.OTP_AUTH_ACK.size = 6;
 // 0x824
 PACKET.ZC.FAILED_TRADE_BUYING_STORE_TO_SELLER = function PACKET_ZC_FAILED_TRADE_BUYING_STORE_TO_SELLER(fp, end) {
 	this.Result = fp.readShort();
-	this.ITID = fp.readUShort();
+	this.ITID = PACKETVER.value >= 20181121 ? fp.readULong() : fp.readUShort();
 };
-PACKET.ZC.FAILED_TRADE_BUYING_STORE_TO_SELLER.size = 6;
+PACKET.ZC.FAILED_TRADE_BUYING_STORE_TO_SELLER.size = PACKETVER.value >= 20181121 ? 8 : 6;
 
 // 0x826
 PACKET.AC.SSO_LOGIN_ACK = function PACKET_AC_SSO_LOGIN_ACK(fp, end) {
