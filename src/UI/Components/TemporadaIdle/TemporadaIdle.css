@@ -748,6 +748,39 @@
 	flex: 0 0 auto;
 }
 
+/* A trilha com as setas nas pontas (29/09/2026). A seta tem 44px de altura:
+   e alvo de dedo tambem, e nao so de mouse. */
+#TemporadaIdle .te-reward-rolagem {
+	display: flex;
+	align-items: center;
+	gap: var(--sp-2);
+}
+
+#TemporadaIdle .te-reward-rolagem .te-reward-scroll {
+	flex: 1 1 auto;
+	min-width: 0;
+	cursor: grab;
+	overscroll-behavior-x: contain;
+}
+
+#TemporadaIdle .te-reward-scroll.is-arrastando {
+	cursor: grabbing;
+	user-select: none;
+}
+
+#TemporadaIdle .te-reward-seta {
+	flex: 0 0 auto;
+	width: 28px;
+	min-height: 44px;
+	padding: 0;
+	font-size: 20px;
+	line-height: 1;
+}
+
+#TemporadaIdle .te-reward-seta[hidden] {
+	display: none;
+}
+
 #TemporadaIdle .te-reward-scroll {
 	display: flex;
 	gap: var(--sp-3);

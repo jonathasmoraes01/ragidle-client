@@ -1107,7 +1107,15 @@ export function renderTrilhaDeRecompensasHtml(passe) {
 		'</div>' +
 		'</header>' +
 		renderCompraDoPasseVipHtml(passe) +
+		/* As SETAS (29/09/2026, relato do dono: "os players nao estao conseguindo
+		   visualizar todos os itens arrastando para o lado"): a trilha rola para o
+		   lado, e no mouse isso so andava pela barrinha. `UI/rolagemLateral.js`
+		   liga o arrasto, a roda e as duas setas. */
+		'<div class="te-reward-rolagem">' +
+		'<button type="button" class="te-reward-seta te-reward-seta--esq ri-btn ri-btn--sec" aria-label="Recompensas anteriores">‹</button>' +
 		`<div class="te-reward-scroll ri-scroll${semVip ? ' is-sem-vip' : ''}">${colunas}</div>` +
+		'<button type="button" class="te-reward-seta te-reward-seta--dir ri-btn ri-btn--sec" aria-label="Próximas recompensas">›</button>' +
+		'</div>' +
 		'</section>'
 	);
 }

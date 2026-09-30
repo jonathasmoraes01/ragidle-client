@@ -77,6 +77,7 @@ import arrastarPorPonteiro, { prenderNaTela } from 'UI/arrastarPorPonteiro.js';
 import PasseIdle from '../PasseIdle/PasseIdle.js';
 import ItemInfo from 'UI/Components/ItemInfo/ItemInfo.js';
 import { emUnidadesDaHud } from 'UI/escalaDaHud.js';
+import { ligarRolagemLateral } from 'UI/rolagemLateral.js';
 import { itemIconUrl, preferirArtePublicada } from 'Utils/ItemArt.js';
 import { fecharEEsquecer } from '../limpezaDeJanelaIdle.js';
 import { abaLembrada, lembrarAba } from '../memoriaDeAba.js';
@@ -820,6 +821,13 @@ function render() {
 		corpo.innerHTML = renderDestaquesHtml(estado);
 	}
 	melhorarIcones(corpo);
+	/* A trilha rola para o lado com mouse, roda e setas (29/09/2026). */
+	corpo.querySelectorAll('.te-reward-rolagem').forEach(caixa => {
+		ligarRolagemLateral(caixa.querySelector('.te-reward-scroll'), {
+			esquerda: caixa.querySelector('.te-reward-seta--esq'),
+			direita: caixa.querySelector('.te-reward-seta--dir'),
+		});
+	});
 }
 
 /* ------------------------------------------------------------------ */
