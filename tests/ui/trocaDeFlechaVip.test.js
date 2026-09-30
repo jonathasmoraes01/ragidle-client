@@ -8,6 +8,8 @@
  */
 import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
+import JobId from 'DB/Jobs/JobConst.js';
+import { ehDaLinhaDoArqueiro } from '../../src/UI/Components/IdleConfig/linhaDoArqueiro.js';
 
 const semComentario = t => t.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^[ \t]*\/\/.*$/gm, '');
 const JS = semComentario(readFileSync('src/UI/Components/IdleConfig/IdleConfig.js', 'utf8'));
@@ -49,5 +51,31 @@ describe('a Asa segue o mesmo criterio, e os textos da cidade seguem a regra (30
 		for (const linha of fonte.split('\n').filter(l => l.includes('Você está na cidade'))) {
 			expect(/[\u2013\u2014]/.test(linha)).toBe(false);
 		}
+	});
+});
+
+describe('so a linha do Arqueiro e a do Arruaceiro veem o interruptor (30/09/2026, ordem do dono)', () => {
+	it('a guarda e a PRIMEIRA coisa do render: fora da linha, nada (nem o divisor)', () => {
+		const inicio = corpo.slice(corpo.indexOf('{') + 1).trimStart();
+		expect(inicio.startsWith("if (!ehDaLinhaDoArqueiro(Session.Entity && Session.Entity._job)) return '';")).toBe(true);
+	});
+
+	it('Arqueiro, Cacador, Bardo, Odalisca, Arruaceiro e Desordeiro entram; Gatuno, Mercenario, Aprendiz e Sumo Sacerdote nao', () => {
+		for (const job of [
+			JobId.ARCHER, JobId.HUNTER, JobId.BARD, JobId.DANCER, JobId.HUNTER_H, JobId.RANGER, JobId.OSTRICH_ARCHER,
+			JobId.ROGUE, JobId.ROGUE_H, JobId.SHADOW_CHASER, JobId.DOG_ROGUE,
+		]) {
+			expect(ehDaLinhaDoArqueiro(job), `job ${job}`).toBe(true);
+		}
+		for (const job of [JobId.NOVICE, JobId.THIEF, JobId.ASSASSIN, JobId.ASSASSIN_H, JobId.SWORDMAN, JobId.ARCHBISHOP, JobId.ARCH_MAGE, undefined, null]) {
+			expect(ehDaLinhaDoArqueiro(job), `job ${job}`).toBe(false);
+		}
+		// O id chega do fio como numero; texto numerico tambem vale.
+		expect(ehDaLinhaDoArqueiro('11')).toBe(true);
+	});
+
+	it('os 20 ids do jogo: so os cinco que usam arco (Arqueiro 3, Cacador 11, Arruaceiro 17, Bardo 19, Odalisca 20)', () => {
+		const doJogo = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 14, 15, 16, 17, 18, 19, 20];
+		expect(doJogo.filter(ehDaLinhaDoArqueiro)).toEqual([3, 11, 17, 19, 20]);
 	});
 });
