@@ -51,6 +51,8 @@ import cssText from './VotoIdle.css?raw';
 import { fecharEEsquecer } from '../limpezaDeJanelaIdle.js';
 import { abaLembrada, lembrarAba } from '../memoriaDeAba.js';
 import { abrirEmAbaNova } from 'UI/abrirEmAbaNova.js';
+import Session from 'Engine/SessionStorage.js';
+import { comAsVistas, temAvisoNovo } from './avisoDoVoto.js';
 
 /** Manter em sincronia com o ":host"/".vi-window" do CSS. */
 const WINDOW_WIDTH = 480;
@@ -113,7 +115,9 @@ const _preferences = Preferences.get(
 	{
 		x: null,
 		y: null,
-		aba: null
+		aba: null,
+		// As liberacoes cujo aviso este aparelho ja mostrou (`avisoDoVoto.js`).
+		avisosVistos: []
 	},
 	1.0
 );
@@ -675,11 +679,19 @@ VotoIdle.aoReceberVoto = function aoReceberVoto(pkt) {
 	/*
 	 * O AVISO por último, e só com `avisar: true`.
 	 *
-	 * Quem decide é o servidor — ele manda o campo uma vez por conexão, e só
-	 * quando há voto liberado. A janela não tem como saber se é login ou
-	 * viagem; `CZ_NOTIFY_ACTORINIT` chega nas duas.
+	 * Quem decide se HÁ voto é o servidor — ele manda o campo uma vez por
+	 * conexão, e só quando há voto liberado. A janela não tem como saber se é
+	 * login ou viagem; `CZ_NOTIFY_ACTORINIT` chega nas duas.
+	 *
+	 * Desde 30/09/2026 o modal abre UMA VEZ POR LIBERAÇÃO neste aparelho
+	 * (`avisoDoVoto.js`): conexão nova acontece a toda reconexão, recarga e
+	 * volta ao app, e o aviso repetido virou o "spam" que os jogadores
+	 * reclamaram. O botão "Votar" continua aceso enquanto houver voto.
 	 */
-	if (dados.avisar && dados.liberados > 0) {
+	const vistos = _preferences.avisosVistos;
+	if (dados.avisar && dados.liberados > 0 && temAvisoNovo(Session.AID, dados.plataformas, vistos)) {
+		_preferences.avisosVistos = comAsVistas(Session.AID, dados.plataformas, vistos);
+		_preferences.save();
 		mostrarAviso(dados.liberados);
 		comecarTique();
 	}
