@@ -1140,6 +1140,7 @@ function renderCaca() {
 			<div class="ic-note">Experiência e zeny entram sempre; só os itens dependem disto.</div>
 			${renderFiltroDeColeta()}
 			${renderAsa()}
+			${renderFlechaQueFere()}
 			<div class="ri-divisor"></div>
 			<label class="ic-switch-row">
 				<span class="ic-switch">
@@ -1241,6 +1242,34 @@ function renderAsa() {
 				? `<div class="ic-note${asas ? '' : ' ic-note-warn'}">${asas ? `${asas} Asa${asas === 1 ? '' : 's'} de Mosca na mochila — cada viagem gasta uma.` : 'Nenhuma Asa de Mosca na mochila: compre no NPC de itens para o gatilho ter o que usar.'}</div>`
 				: '<div class="ic-note ic-note-warn">O uso automático é do passe VIP. Sem ele a Asa continua sua: use pela mochila, com 4 s de espera entre uma e outra.</div>'
 		}`;
+}
+
+/**
+ * A TROCA INTELIGENTE DE FLECHA (D-1866, 30/09/2026) - ordem do dono: *"Trocar
+ * flecha automatico = VIP"* e *"coloca la no menu idle tbm"*.
+ *
+ * Quando as flechas acabam no meio da luta, o VIP com este interruptor ligado
+ * veste a flecha simples (ate 4z) que FERE o monstro; desligado, ou sem VIP, a
+ * mais barata da mochila (a troca de sempre, que continua para todos). Quem
+ * decide e o servidor (`trocaInteligenteDeFlecha`); aqui so o desenho. Mesmo
+ * molde da Asa: sem VIP o controle aparece DESABILITADO, com a explicacao, em
+ * vez de sumir. Ausente na config = ligado.
+ */
+function renderFlechaQueFere() {
+	const cfg = IdleConfig.editConfig;
+	const ctx = IdleConfig.contexto;
+	const ehVip = !!(ctx && ctx.ehVip);
+	const ligada = cfg.trocaDeFlechaQueFere !== false;
+	return `
+		<div class="ri-divisor"></div>
+		${switchRow(
+			'trocaDeFlechaQueFere',
+			ehVip && ligada,
+			'Trocar para a flecha que fere',
+			'Quando as flechas acabam no meio da luta, o personagem veste uma flecha simples (até 4z) que fere o monstro, em vez da mais barata. As especiais continuam sendo escolha sua.',
+			!ehVip
+		)}
+		${ehVip ? '' : '<div class="ic-note ic-note-warn">A troca inteligente é do passe VIP. Sem ele, quando as flechas acabam, o jogo veste a mais barata da mochila.</div>'}`;
 }
 
 function bindCacaExtra(pane) {
