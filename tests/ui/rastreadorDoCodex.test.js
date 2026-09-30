@@ -22,6 +22,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
 	anotarRastreadorDoCodex,
+	ehCorpoParcialDoRastreador,
 	limparRastreadorDoCodex,
 	numeroDoRastreador,
 	rastreadorDoCodexAtual,
@@ -201,5 +202,29 @@ describe('as ligações nas janelas (portões de fonte)', () => {
 		const coarse = COMMON.slice(COMMON.indexOf('@media (pointer: coarse)'));
 		expect(coarse).toMatch(/\.mt-cx-item,\s*\.cx-marcar \{\s*box-sizing: border-box;\s*min-height: var\(--hit-touch, 44px\);/);
 		expect(coarse).toMatch(/\.cx-marcar \{\s*min-width: var\(--hit-touch, 44px\);/);
+	});
+});
+
+describe('o corpo PARCIAL do rastreador (D-1853): o contador anda sem a lista de missões', () => {
+	it('reconhece só `{v: 2, parcial: "codexRastreado"}`; o corpo inteiro (v 1) e lixo não', () => {
+		expect(ehCorpoParcialDoRastreador({ v: 2, parcial: 'codexRastreado', codexRastreado: [] })).toBe(true);
+		expect(ehCorpoParcialDoRastreador({ v: 1, missoes: [], codexRastreado: [] })).toBe(false);
+		expect(ehCorpoParcialDoRastreador({ v: 2 })).toBe(false);
+		expect(ehCorpoParcialDoRastreador(null)).toBe(false);
+	});
+
+	it('a janela trata o parcial ANTES do `v !== 1` e sai sem trocar a lista nem desenhar', () => {
+		const inicio = MISSOES.indexOf('function onMissoesRecebidas');
+		expect(inicio).toBeGreaterThan(0);
+		const corpo = MISSOES.slice(inicio, MISSOES.indexOf('Network.hookPacket', inicio));
+		const parcial = corpo.indexOf('if (ehCorpoParcialDoRastreador(dados))');
+		expect(parcial).toBeGreaterThan(0);
+		expect(parcial).toBeLessThan(corpo.indexOf('dados.v !== 1'));
+		// O ramo do parcial: anota e retorna, sem `MissoesIdle.missoes =` nem `render()`.
+		const ramo = corpo.slice(parcial, corpo.indexOf('}', parcial) + 1);
+		expect(ramo).toContain('anotarRastreadorDoCodex(dados.codexRastreado)');
+		expect(ramo).toContain('return');
+		expect(ramo).not.toContain('render(');
+		expect(ramo).not.toContain('MissoesIdle.missoes');
 	});
 });

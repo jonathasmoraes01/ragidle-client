@@ -32,6 +32,20 @@ export function anotarRastreadorDoCodex(valor) {
 	lista = Array.isArray(valor) ? valor.filter(l => l && typeof l.id === 'string') : [];
 }
 
+/**
+ * O CORPO PARCIAL do `ZC_RAGIDLE_MISSOES` (D-1853, 30/09/2026): só o
+ * rastreador, sem a lista de missões.
+ *
+ * O contador anda a cada abate, e antes a lista inteira (~17 KB) descia junto,
+ * com um `render()` da janela de missões por abate. Agora o servidor manda
+ * `{v: 2, parcial: 'codexRastreado', codexRastreado}` quando SÓ o rastreador
+ * mudou. `v: 2` de propósito: o cliente de antes lia `v !== 1` e ignora o
+ * parcial, em vez de trocar a lista por uma vazia.
+ */
+export function ehCorpoParcialDoRastreador(dados) {
+	return !!dados && dados.v === 2 && dados.parcial === 'codexRastreado';
+}
+
 /** As entradas acompanhadas agora, na ordem em que foram marcadas. */
 export function rastreadorDoCodexAtual() {
 	return lista;

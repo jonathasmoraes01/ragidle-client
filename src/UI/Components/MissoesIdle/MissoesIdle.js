@@ -41,7 +41,7 @@ import cssText from './MissoesIdle.css?raw';
 import { fecharEEsquecer } from '../limpezaDeJanelaIdle.js';
 import { abaLembrada, lembrarAba } from '../memoriaDeAba.js';
 import { anotarAvisoDoCodex, limparAvisoDoCodex } from '../avisoDoCodex.js'; // D-1232
-import { anotarRastreadorDoCodex, limparRastreadorDoCodex } from '../rastreadorDoCodex.js'; // D-1839
+import { anotarRastreadorDoCodex, ehCorpoParcialDoRastreador, limparRastreadorDoCodex } from '../rastreadorDoCodex.js'; // D-1839, D-1853
 // O "IR AO MAPA" (26/09/2026): a linha do objetivo e o fluxo da escolha sao
 // os MESMOS da aba "Missoes Gerais" do Codex — ver `escolhaDeMapa.js`.
 import { linhaDoCaiDe } from './ondeCaiHtml.js';
@@ -634,6 +634,16 @@ function onMissoesRecebidas(pkt) {
 		dados = JSON.parse(pkt.json);
 	} catch (err) {
 		console.error('[MissoesIdle] payload nao e JSON valido', err);
+		return;
+	}
+	/*
+	 * O PARCIAL DO RASTREADOR (D-1853): quando so o contador do Codex andou, o
+	 * servidor manda so ele. Ele atualiza o rastreador e para aqui: a lista de
+	 * missoes nao mudou, entao nada de `render()` (a janela nem precisa estar
+	 * aberta; o cartao da HUD le o rastreador no proprio polling).
+	 */
+	if (ehCorpoParcialDoRastreador(dados)) {
+		anotarRastreadorDoCodex(dados.codexRastreado);
 		return;
 	}
 	if (!dados || dados.v !== 1) {
