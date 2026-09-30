@@ -31,6 +31,7 @@ import Altitude from 'Renderer/Map/Altitude.js';
 import ChatBox from 'UI/Components/ChatBox/ChatBox.js';
 import {
 	TEXTO_LONGE_DEMAIS_PARA_ATACAR,
+	TEXTO_LONGE_DEMAIS_PARA_PEGAR,
 	caminhoDoPathFindingCabe
 } from 'Engine/MapEngine/tetoDaCaminhadaDaSkill.js';
 import Equipment from 'UI/Components/Equipment/Equipment.js';
@@ -190,6 +191,22 @@ class EntityControl {
 
 				// Too far, walking to it
 				if (vec2.distance(Session.Entity.position, this.position) > 2) {
+					// Lote 5: a coleta so anda o que o servidor aceita (unit.cpp:855-869) -
+					// o caminho ate a celula clicada, a mesma do CZ_REQUEST_MOVE abaixo.
+					const caminho = [];
+					const passos = PathFinding.search(
+						Session.Entity.position[0] | 0,
+						Session.Entity.position[1] | 0,
+						Mouse.world.x | 0,
+						Mouse.world.y | 0,
+						0,
+						caminho
+					);
+					if (passos && !caminhoDoPathFindingCabe(Session.Entity.position, caminho, passos, naoAndavelNoMapa)) {
+						ChatBox.addText(TEXTO_LONGE_DEMAIS_PARA_PEGAR, ChatBox.TYPE.ERROR, ChatBox.FILTER.PUBLIC_LOG);
+						return true;
+					}
+
 					Session.moveAction = pkt;
 
 					if (PACKETVER.value >= 20180307) {

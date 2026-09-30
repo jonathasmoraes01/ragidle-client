@@ -113,6 +113,15 @@ export function caminhoCabeNoTetoDoServidor(count, origem, destino, naoAndavel) 
 export const TEXTO_LONGE_DEMAIS_PARA_ATACAR = 'O alvo está longe demais para andar até ele. Chegue mais perto para atacar.';
 
 /**
+ * A COLETA tambem (lote 5, segunda rodada): o clique no item longe guarda o
+ * CZ_ITEM_PICKUP em `Session.moveAction` e manda o CZ_REQUEST_MOVE para a
+ * celula clicada (EntityControl.onMouseDown). O mesmo teto do servidor vale
+ * (unit.cpp:855-869), e o oficial tambem fica calado quando o andar e
+ * recusado: nao armar e avisar, como no ataque.
+ */
+export const TEXTO_LONGE_DEMAIS_PARA_PEGAR = 'O item está longe demais para andar até ele. Chegue mais perto para pegá-lo.';
+
+/**
  * O caminho que o `PathFinding.search` devolveu (`out`, `count`) a partir de
  * `pos` cabe no teto do servidor? A ultima celula de `out` e o destino.
  *
