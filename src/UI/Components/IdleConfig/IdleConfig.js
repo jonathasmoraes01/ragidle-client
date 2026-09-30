@@ -66,6 +66,7 @@ import GUIComponent from 'UI/GUIComponent.js';
 import RiIcones from 'UI/ri-icones.js';
 import { pocoesDoEixo, escolherPocaoPadrao } from './escolhaDePocao.js';
 import { ehDaLinhaDoArqueiro } from './linhaDoArqueiro.js';
+import { rolagemAoRedesenhar } from './rolagemDaSecao.js';
 import Session from 'Engine/SessionStorage.js';
 import { aplicarIconeDoItem, nomeLocalDoItem } from 'UI/itemNaTela.js';
 import {
@@ -438,6 +439,8 @@ IdleConfig.toggle = function toggle() {
 		closeWindow();
 	} else {
 		win.classList.add('is-open');
+		// A janela que reabre comeca do topo (`rolagemDaSecao.js`).
+		_secaoDoUltimoDesenho = null;
 		ligarInstalar();
 		sincronizarInstalar();
 		ligarRetomarTutorial();
@@ -850,6 +853,13 @@ function renderProblemas() {
 /**
  * Render the active section into .ic-pane, then wire up its controls.
  */
+/**
+ * A secao do ultimo desenho do painel: o redesenho da MESMA secao mantem a
+ * rolagem, e a troca de secao (ou a janela que reabre, que zera isto) volta ao
+ * topo. Ver `rolagemDaSecao.js`.
+ */
+let _secaoDoUltimoDesenho = null;
+
 function renderBody() {
 	const root = _root();
 	const pane = root.querySelector('.ic-pane');
@@ -859,8 +869,10 @@ function renderBody() {
 
 	if (!IdleConfig.editConfig || !IdleConfig.contexto) {
 		pane.innerHTML = '<div class="ic-empty">Abra a configuração idle para carregar.</div>';
+		_secaoDoUltimoDesenho = null;
 		return;
 	}
+	const rolagem = rolagemAoRedesenhar(_secaoDoUltimoDesenho, IdleConfig.activeTab, pane.scrollTop);
 	garantirCura(IdleConfig.editConfig);
 
 	switch (IdleConfig.activeTab) {
@@ -892,7 +904,8 @@ function renderBody() {
 	if (IdleConfig.activeTab === 'suporte') {
 		bindSuporteExtra(pane);
 	}
-	pane.scrollTop = 0;
+	pane.scrollTop = rolagem;
+	_secaoDoUltimoDesenho = IdleConfig.activeTab;
 }
 
 /**
