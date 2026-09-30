@@ -54,6 +54,7 @@ import GUIComponent from 'UI/GUIComponent.js';
 import RiIcones from 'UI/ri-icones.js';
 import { aplicarIconeDoItem as setItemIcon, nomeLocalDoItem } from 'UI/itemNaTela.js';
 import { dropsDoMapa } from './dropsDoMapa.js';
+import { armazenamentoDoNavegador, criarCacheDoCatalogo, ehRespostaLeve, identidadeDoCatalogo } from './catalogoEmCache.js'; // D-1850
 import { estadoDoRodape } from './rodapeDoDossie.js';
 import { ROTULO_DA_VISAO, htmlDasOrigens } from './origensDoDrop.js'; // RAGIDLE: a visao agregada (I6)
 import {
@@ -344,6 +345,27 @@ let _catalogoParcial = null;
  *      `tests/ui/cacaMedidaNoMapa.test.js`).
  */
 
+/*
+ * O CATALOGO LEVE (D-1850, 30/09/2026 - pedido do dono: *"Em relacao ao Mapa
+ * de Caca, podemos otimiza-lo tambem? Tanto em rede/cpu?"*). Os `mapas` do
+ * catalogo (~87 KB dos ~88 KB de cada abertura) sao iguais para todo jogador:
+ * o servidor manda a impressao deles (`fixo`), este cliente os guarda
+ * (`catalogoEmCache.js`) e a abertura seguinte pede so o cabecalho. Regra 4:
+ *
+ *   4. OS MAPAS NAO DESCEM DE NOVO. Com a impressao na mao, o pedido e
+ *      `CZ_RAGIDLE_CACA_ACAO {acao:'catalogo', fixo}`; sem ela, o
+ *      `CZ_RAGIDLE_PEDIR_CATALOGO` de sempre. Um servidor que nao conhece o
+ *      verbo (antes do deploy, ou um rollback) nao manda catalogo nenhum: o
+ *      prazo abaixo vence e o pedido cheio sai, e ate uma resposta cheia com
+ *      impressao chegar esta pagina nao tenta o leve de novo.
+ */
+const _cacheDoCatalogo = criarCacheDoCatalogo(armazenamentoDoNavegador());
+const PRAZO_DO_PEDIDO_LEVE_MS = 3000;
+let _prazoDoLeve = null;
+let _servidorSemLeve = false;
+/** Os `mapas` cujos nomes de drop ja foram resolvidos (a lista guardada volta resolvida). */
+let _mapasResolvidos = null;
+
 /** As paginas cruas do catalogo em montagem (regra 2). */
 let _brutoParcial = [];
 
@@ -415,6 +437,12 @@ HuntMap.limparEstadoDoPersonagem = function limparEstadoDoPersonagem() {
 	// de B chegar.
 	_precisaDesenhar = true;
 	_pendingAutoTravel = false;
+	// O pedido leve em voo era do personagem anterior: o prazo dele nao vale
+	// para este. Os MAPAS guardados ficam (D-1850): sao do servidor, nao dele.
+	if (_prazoDoLeve) {
+		clearTimeout(_prazoDoLeve);
+		_prazoDoLeve = null;
+	}
 	/*
 	 * ZERAR O DADO NAO BASTA: `GUIComponent.remove()` so DESANEXA o host,
 	 * entao o shadow DOM (com `is-open` e o HTML do personagem anterior)
@@ -1095,6 +1123,30 @@ function pedirFavoritos() {
 
 function requestCatalog() {
 	setStatus(HuntMap.catalog ? 'Atualizando catálogo...' : 'Carregando mapas de caça...');
+	// Regra 4 (D-1850): com os mapas guardados, pede so o cabecalho.
+	const fixo = _servidorSemLeve ? null : _cacheDoCatalogo.impressao();
+	if (!fixo) {
+		pedirCatalogoCheio();
+		return;
+	}
+	const pkt = new PACKET.CZ.RAGIDLE_CACA_ACAO();
+	pkt.json = JSON.stringify({ acao: 'catalogo', fixo });
+	Network.sendPacket(pkt);
+	if (_prazoDoLeve) {
+		clearTimeout(_prazoDoLeve);
+	}
+	_prazoDoLeve = setTimeout(() => {
+		// Nenhum catalogo no prazo: o servidor nao conhece o verbo (ou freou o
+		// pedido). O cheio sai, e esta pagina so volta ao leve quando uma
+		// resposta cheia trouxer a impressao.
+		_prazoDoLeve = null;
+		_servidorSemLeve = true;
+		pedirCatalogoCheio();
+	}, PRAZO_DO_PEDIDO_LEVE_MS);
+}
+
+/** O `CZ_RAGIDLE_PEDIR_CATALOGO` de sempre: a resposta traz os mapas inteiros. */
+function pedirCatalogoCheio() {
 	Network.sendPacket(new PACKET.CZ.RAGIDLE_PEDIR_CATALOGO());
 }
 
@@ -1212,6 +1264,11 @@ function onCatalogReceived(pkt) {
 	 */
 	const viagemPendente = _pendingAutoTravel;
 	_pendingAutoTravel = false;
+	// Chegou catalogo: o prazo do pedido leve nao tem mais o que vigiar.
+	if (_prazoDoLeve) {
+		clearTimeout(_prazoDoLeve);
+		_prazoDoLeve = null;
+	}
 
 	let data;
 	try {
@@ -1234,7 +1291,24 @@ function onCatalogReceived(pkt) {
 	// servidor manda `parte`/`partes` e aqui os `mapas` sao acumulados ate a
 	// ultima parte. Um servidor antigo (sem `partes`) segue pelo caminho de sempre.
 	let bruto;
-	if (data.partes && data.partes > 1) {
+	const veioLeve = ehRespostaLeve(data);
+	if (veioLeve) {
+		/*
+		 * A RESPOSTA LEVE (D-1850): o cabecalho inteiro, SEM `mapas` - eles
+		 * saem do que este cliente guardou com a mesma impressao. Sem eles
+		 * (armazenamento limpo no meio da sessao), o pedido cheio sai e a
+		 * viagem pendente espera por ele.
+		 */
+		const mapas = _cacheDoCatalogo.mapasDe(data.fixo);
+		if (!mapas) {
+			_cacheDoCatalogo.esquecer();
+			_pendingAutoTravel = viagemPendente;
+			pedirCatalogoCheio();
+			return;
+		}
+		data = Object.assign({}, data, { mapas });
+		bruto = pkt.json;
+	} else if (data.partes && data.partes > 1) {
 		if (data.parte === 1 || !_catalogoParcial || _catalogoParcial.partes !== data.partes) {
 			_catalogoParcial = Object.assign({}, data, { mapas: [] });
 			_brutoParcial = [];
@@ -1259,12 +1333,32 @@ function onCatalogReceived(pkt) {
 	 * lido (com os nomes de drop resolvidos) continua valendo, e o desenho que
 	 * esta na tela tambem. Os ouvintes e a viagem pendente seguem o caminho de
 	 * sempre — eles nao dependem de desenho.
+	 *
+	 * Com a impressao (D-1850) a comparacao e pela IDENTIDADE (a impressao e o
+	 * cabecalho), e nao pelas paginas cruas: o cheio e o leve do mesmo catalogo
+	 * para o mesmo jogador sao o mesmo desenho, e a primeira reabertura leve
+	 * depois de uma abertura cheia nao redesenha a lista inteira a toa.
 	 */
-	const mesmoCatalogo = bruto === _ultimoBruto && !!HuntMap.catalog;
+	const identidade = identidadeDoCatalogo(data) || bruto;
+	const mesmoCatalogo = identidade === _ultimoBruto && !!HuntMap.catalog;
 	if (mesmoCatalogo) {
 		data = HuntMap.catalog;
 	}
-	_ultimoBruto = bruto;
+	_ultimoBruto = identidade;
+
+	/*
+	 * A RESPOSTA CHEIA COM IMPRESSAO (D-1850): os mapas dela viram o cache, e a
+	 * proxima abertura ja pede o leve. O armazenamento so e regravado quando a
+	 * impressao MUDA (conteudo novo no servidor), e fora do caminho do desenho.
+	 */
+	if (!veioLeve && typeof data.fixo === 'string' && Array.isArray(data.mapas)) {
+		_servidorSemLeve = false;
+		const mudou = _cacheDoCatalogo.impressao() !== data.fixo;
+		const texto = _cacheDoCatalogo.guardar(data.fixo, data.mapas, mesmoCatalogo ? null : bruto);
+		if (mudou && texto) {
+			setTimeout(() => _cacheDoCatalogo.gravar(texto), 0);
+		}
+	}
 
 	HuntMap.catalog = data;
 	// Os FAVORITOS chegam no cabecalho do catalogo, ja limpos pelo servidor
@@ -1282,11 +1376,14 @@ function onCatalogReceived(pkt) {
 	// mapas o catalogo com os NOMES chegou a 68 KB e o pacote u16 para em 65.535.
 	// Resolvidos aqui, UMA vez, com o mesmo nomeLocalDoItem da ficha; a busca do
 	// atlas e a contagem de drops seguem lendo strings, como antes.
-	for (const mapa of mesmoCatalogo ? [] : data.mapas || []) {
+	// A lista guardada (D-1850) volta JA resolvida: nao se percorre de novo.
+	const jaResolvidos = mesmoCatalogo || data.mapas === _mapasResolvidos;
+	for (const mapa of jaResolvidos ? [] : data.mapas || []) {
 		for (const m of (mapa.monstros || []).concat(mapa.mvp ? [mapa.mvp] : [])) {
 			m.drops = (m.drops || []).map(d => (typeof d === 'number' ? nomeLocalDoItem(d, `#${d}`) : d));
 		}
 	}
+	_mapasResolvidos = data.mapas;
 
 	/*
 	 * RAGIDLE (08/09/2026): QUEM MAIS ESPERA O CATALOGO.

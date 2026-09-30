@@ -130,6 +130,73 @@ describe.skipIf(!ligada)('bancada: abrir o Mapa de Caca (jsdom)', () => {
 			abrirDoZero(deAdmin);
 		}
 
+		/*
+		 * A REABERTURA COM CABECALHO NOVO (D-1850): o jogador subiu de nivel ou
+		 * trocou de mapa, entao o catalogo NAO e o mesmo byte a byte e a regra 2
+		 * nao o salva. Cheio: as paginas inteiras de novo. Leve (so com
+		 * `RAG_BENCH_LEVE=1` e paginas com `fixo`): uma pagina so de cabecalho.
+		 */
+		let nivelDaVez = 0;
+		const comNivel = (json, nivel) => {
+			const p = JSON.parse(json);
+			p.nivel = nivel;
+			return JSON.stringify(p);
+		};
+		function reabrirCabecalhoNovo(pags) {
+			nivelDaVez += 1;
+			const novas = pags.map(j => comNivel(j, 1 + (nivelDaVez % 98)));
+			HuntMap.toggle();
+			const t0 = performance.now();
+			HuntMap.toggle();
+			for (const json of novas) {
+				catalogo({ json });
+			}
+			terminar();
+			return performance.now() - t0;
+		}
+		const leve = process.env.RAG_BENCH_LEVE === '1' && !!JSON.parse(paginas[0]).fixo;
+		const paginaLeve = nivel => {
+			const p = JSON.parse(paginas[0]);
+			delete p.mapas;
+			p.partes = 1;
+			p.nivel = nivel;
+			return JSON.stringify(p);
+		};
+		function reabrirLeve() {
+			nivelDaVez += 1;
+			const json = paginaLeve(1 + (nivelDaVez % 98));
+			HuntMap.toggle();
+			const t0 = performance.now();
+			HuntMap.toggle();
+			catalogo({ json });
+			terminar();
+			return performance.now() - t0;
+		}
+		const cabecalhoNovo = [];
+		const reabLeve = [];
+		abrirDoZero(paginas);
+		for (let i = 0; i < 10; i++) {
+			reabrirCabecalhoNovo(paginas);
+			if (leve) {
+				reabrirLeve();
+			}
+		}
+		for (let i = 0; i < 40; i++) {
+			cabecalhoNovo.push(reabrirCabecalhoNovo(paginas));
+			if (leve) {
+				reabLeve.push(reabrirLeve());
+			}
+		}
+		const parseDaParte = paginas.map(json => {
+			const t = [];
+			for (let i = 0; i < 200; i++) {
+				const t0 = performance.now();
+				JSON.parse(json);
+				t.push(performance.now() - t0);
+			}
+			return estatistica(t);
+		});
+
 		const sinc = [];
 		const comp = [];
 		const reab = [];
@@ -154,7 +221,10 @@ describe.skipIf(!ligada)('bancada: abrir o Mapa de Caca (jsdom)', () => {
 				`\n[bancada jsdom] reabrir com o MESMO catalogo:   ${fmt(estatistica(reab))}` +
 				`\n[bancada jsdom] abrir (1a vez, admin c/ cacaMedida): cartoes no 1o quadro ${ultimoAdmin.noPrimeiroQuadro} de ${ultimoAdmin.total}` +
 				`\n  trecho sincrono (ate o 1o quadro): ${fmt(estatistica(sincAdmin))}` +
-				`\n  ate a lista completa:              ${fmt(estatistica(compAdmin))}\n`
+				`\n  ate a lista completa:              ${fmt(estatistica(compAdmin))}` +
+				`\n[bancada jsdom] reabrir com cabecalho NOVO, cheio: ${fmt(estatistica(cabecalhoNovo))}` +
+				(leve ? `\n[bancada jsdom] reabrir com cabecalho NOVO, LEVE: ${fmt(estatistica(reabLeve))}` : '') +
+				`\n[bancada jsdom] JSON.parse por parte: ${parseDaParte.map((e, i) => `parte ${i + 1} ${e.mediana.toFixed(3)} ms`).join(' · ')}\n`
 		);
 		// O reporter do vitest engole o `console.log` de caso que passa: o
 		// resultado vai direto ao stdout, e a um arquivo quando ha pasta.
