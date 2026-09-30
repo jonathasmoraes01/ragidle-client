@@ -1898,8 +1898,8 @@ function renderConsumiveis() {
 					<span class="ic-switch-track"></span>
 				</span>
 				<span class="ic-switch-text">
-					<span class="ic-switch-label">Beber os consumíveis de buff do inventário</span>
-					<span class="ic-switch-sub">O personagem bebe sozinho o que houver, e só bebe de novo quando o efeito expira.</span>
+					<span class="ic-switch-label">Beber as poções de ASPD do inventário</span>
+					<span class="ic-switch-sub">Concentração, Despertar e Fúria Selvagem: bebe sozinho e repete quando o efeito acaba. Itens do RO Shop só são usados quando você clica.</span>
 				</span>
 			</label>
 			${
