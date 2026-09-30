@@ -205,6 +205,7 @@ import HuntAnalyzer from 'UI/Components/HuntAnalyzer/HuntAnalyzer.js';
    ficou sem botao - o conteudo dela mora na Temporada. O modulo segue vivo
    pelo MapEngine, como dono do pacote 0x0fe5. */
 import { temRecompensaParaResgatar } from 'UI/Components/TemporadaIdle/formatoDaTemporada.js'; // a bolinha da Temporada (29/09/2026)
+import { fecharEEsquecer } from '../limpezaDeJanelaIdle.js'; // a troca de personagem fecha a gaveta (auditoria pre-push, 30/09/2026)
 import { pontoDoMenuAceso } from './pontoDoMenu.js'; // a bolinha do botao Menu (29/09/2026)
 import TemporadaIdle from 'UI/Components/TemporadaIdle/TemporadaIdle.js'; // RAGIDLE: a janela da Temporada (Season 1, 21/09/2026) - no cluster desde a noite do mesmo dia
 import VotoIdle from 'UI/Components/VotoIdle/VotoIdle.js'; // RAGIDLE: janela de Voto (D-1159)
@@ -505,6 +506,11 @@ function aoClicarInstalar(evento) {
  */
 TopMenuIdle.limparEstadoDoPersonagem = function limparEstadoDoPersonagem() {
 	_temporadaPedidaEm = 0;
+	// A gaveta do menu e a unica coisa com `is-open` aqui: o `onAppend` ja a
+	// fecha ao voltar, e isto a fecha tambem no instante da troca, pela peca
+	// compartilhada (portao `janela-idle-esquece-o-desenho`, repo do servidor).
+	_lequeAberto = false;
+	fecharEEsquecer(_root(), '.tm-fan');
 };
 
 TopMenuIdle.onRemove = function onRemove() {
