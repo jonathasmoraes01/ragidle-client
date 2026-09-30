@@ -1008,6 +1008,8 @@ const TEXTO_DA_RECUSA_DE_SONO = {
 	// 28/09/2026: morto nao dorme (item 4a do backlog de seguranca de 23/09).
 	morto: 'Não dá para dormir morto — volte à caçada primeiro.',
 	'nivel-do-mapa': 'Este mapa não é elegível para o "Dormir" — precisa estar pelo menos 1 nível abaixo do seu.',
+	// RAGIDLE (30/09/2026, ordem do dono): praca nunca dorme - o tempo dela e contado por dia.
+	praca: 'Nas Praças não dá para dormir: o tempo delas é contado por dia. Durma num mapa de caça.',
 	'sem-mundo': 'Não foi possível iniciar o sono agora — você não está numa caçada.',
 	// RAGIDLE (24/09/2026, ordem do dono): um sono por conta.
 	'outro-personagem-dormindo': 'Só um personagem por conta pode dormir por vez.'
