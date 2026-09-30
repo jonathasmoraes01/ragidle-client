@@ -794,6 +794,10 @@
 	display: block;
 }
 
+/* O nome quebra em ATE DUAS linhas antes das reticencias (30/09/2026): o
+   homonimo ganhou a propriedade no nome (D-1870), e "Incarnation of Morocc
+   (Fantasma 3)" numa linha so perdia justamente o que o distingue das outras
+   tres. Nome curto continua numa linha, como antes. */
 #IdleConfig .ic-presa-nome {
 	flex: 1 1 auto;
 	min-width: 0;
@@ -801,7 +805,12 @@
 	color: var(--text-body);
 	overflow: hidden;
 	text-overflow: ellipsis;
-	white-space: nowrap;
+	white-space: normal;
+	overflow-wrap: anywhere;
+	display: -webkit-box;
+	-webkit-box-orient: vertical;
+	-webkit-line-clamp: 2;
+	line-clamp: 2;
 }
 
 #IdleConfig .ic-presa-check {
@@ -1133,6 +1142,14 @@
 	   partia do `html.ri-vertical`, nunca a alcançou — a prova do celular
 	   mediu, e a foto mostrou as duas colunas. */
 	#IdleConfig .ic-presas.ic-presas--itens {
+		grid-template-columns: minmax(0, 1fr);
+	}
+
+	/* E a grade de MONSTROS tambem (30/09/2026): o mesmo defeito, que a D-1348
+	   deixou de fora. Em duas colunas o nome tinha 18 px ("G...", "G...",
+	   "R..."), medido pela sonda de tela em Arredores de Geffen, e os cinco
+	   Goblin ficavam iguais justo depois de ganharem o nome distinto. */
+	#IdleConfig .ic-presas {
 		grid-template-columns: minmax(0, 1fr);
 	}
 
