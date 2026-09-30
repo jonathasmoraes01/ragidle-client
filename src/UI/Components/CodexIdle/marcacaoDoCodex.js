@@ -101,3 +101,13 @@ export function entradasVisiveis(todas, ocultar, pedida) {
 	const lista = Array.isArray(todas) ? todas : [];
 	return ocultar ? lista.filter(m => !entradaOcultavel(m, pedida)) : lista;
 }
+
+/**
+ * O PEDIDO DA ESTRELA (D-1853): leva o estado que ela vai ASSUMIR, e não um
+ * "alterne". O duplo clique (ou a retransmissão) antes de o retrato voltar lê a
+ * estrela ainda apagada duas vezes e manda `marcada: true` duas vezes — o
+ * servidor deixa marcada, em vez de marcar e desmarcar.
+ */
+export function pedidoDaEstrela(id, acesa) {
+	return { acao: 'marcar', id: id, marcada: !acesa };
+}

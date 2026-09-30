@@ -33,7 +33,8 @@ import {
 	entradasVisiveis,
 	estrelaDoCodexHtml,
 	faixaDeMarcacaoHtml,
-	marcadasDoRetrato
+	marcadasDoRetrato,
+	pedidoDaEstrela
 } from '../../src/UI/Components/CodexIdle/marcacaoDoCodex.js';
 
 const semComentarios = src => src.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/\/\/[^\n]*/g, ' ');
@@ -174,7 +175,8 @@ describe('as ligações nas janelas (portões de fonte)', () => {
 	});
 
 	it('a janela do Codex manda o verbo `marcar`, e a estrela vem ANTES dos outros ganchos de clique', () => {
-		expect(CODEX).toContain("enviarAcao({ acao: 'marcar', id: id })");
+		// O verbo `marcar` sai por `pedidoDaEstrela` desde D-1853 (com o estado desejado).
+		expect(CODEX).toContain('enviarAcao(pedidoDaEstrela(id,');
 		const estrela = CODEX.indexOf("closest('.cx-marcar')");
 		expect(estrela).toBeGreaterThan(0);
 		expect(estrela).toBeLessThan(CODEX.indexOf('cliqueDeMissoesGerais(e, alvo'));
@@ -251,5 +253,20 @@ describe('"Ocultar concluídas" não esconde a entrada com prêmio a resgatar (D
 	it('a janela usa o recorte do módulo (e não o filtro antigo por `cumprida`)', () => {
 		expect(CODEX).toContain('entradasVisiveis(todas, ocultar, _entradaRealcada)');
 		expect(CODEX).not.toContain('todas.filter(m => !m.cumprida)');
+	});
+});
+
+describe('a estrela pede o estado que vai assumir (D-1853)', () => {
+	it('apagada pede `marcada: true`; acesa pede `marcada: false`', () => {
+		expect(pedidoDaEstrela('codex-x', false)).toEqual({ acao: 'marcar', id: 'codex-x', marcada: true });
+		expect(pedidoDaEstrela('codex-x', true)).toEqual({ acao: 'marcar', id: 'codex-x', marcada: false });
+	});
+
+	it('o clique lê o `aria-pressed` da própria estrela, que o retrato desenha', () => {
+		expect(CODEX).toContain("enviarAcao(pedidoDaEstrela(id, estrela.getAttribute('aria-pressed') === 'true'))");
+		expect(CODEX).not.toContain("enviarAcao({ acao: 'marcar', id: id })");
+		const ul = document.createElement('div');
+		ul.innerHTML = estrelaDoCodexHtml('codex-x', true);
+		expect(ul.querySelector('.cx-marcar').getAttribute('aria-pressed')).toBe('true');
 	});
 });

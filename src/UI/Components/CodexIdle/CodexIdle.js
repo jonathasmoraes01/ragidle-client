@@ -75,7 +75,7 @@ import { ehCelularEmPe } from 'UI/hudVertical.js';
 import { jornadaHtml } from './jornadaHtml.js';
 import { placarHtml, eixosHtml, desafiosHtml, retratoDoCodexAceito } from './eixosDoCodex.js';
 import { missoesGeraisHtml, cliqueDeMissoesGerais, SUBABA_PADRAO } from './missoesGeraisHtml.js';
-import { entradaOcultavel, entradasVisiveis, estrelaDoCodexHtml, faixaDeMarcacaoHtml, marcadasDoRetrato } from './marcacaoDoCodex.js'; // D-1839, D-1853
+import { entradaOcultavel, entradasVisiveis, estrelaDoCodexHtml, faixaDeMarcacaoHtml, marcadasDoRetrato, pedidoDaEstrela } from './marcacaoDoCodex.js'; // D-1839, D-1853
 import htmlText from './CodexIdle.html?raw';
 import cssText from './CodexIdle.css?raw';
 // O "IR AO MAPA" da aba Missoes Gerais (26/09/2026) — o fluxo e o desenho sao
@@ -457,7 +457,8 @@ function onClickCorpo(e) {
 		e.stopImmediatePropagation();
 		const id = estrela.dataset.marcar;
 		if (id) {
-			enviarAcao({ acao: 'marcar', id: id });
+			// D-1853: o estado que a estrela vai assumir (idempotente no servidor).
+			enviarAcao(pedidoDaEstrela(id, estrela.getAttribute('aria-pressed') === 'true'));
 		}
 		return;
 	}
