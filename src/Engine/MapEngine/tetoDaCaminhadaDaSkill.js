@@ -99,3 +99,31 @@ export function caminhoCabeNoTetoDoServidor(count, origem, destino, naoAndavel) 
 	}
 	return true;
 }
+
+/**
+ * O ATAQUE tambem (lote 5, 30/09/2026): o clique no monstro longe guarda o
+ * CZ_REQUEST_ACT em `Session.moveAction` com o mesmo caminho de ate 32 celulas
+ * do `PathFinding.search` (EntityControl.onFocus, MobileUI.attackTargeted e o
+ * JoystickCharacterControl.attack). O servidor anda como o rAthena e recusa
+ * calado o caminho acima do teto (`unit_walktoxy`, unit.cpp:855-869): o boneco
+ * ficava parado com o ataque prometido. O rAthena tambem nao diz nada ao
+ * cliente oficial nesse caso (o CZ_REQUEST_MOVE recusado nao tem resposta), e
+ * a decisao da C19 vale igual aqui: nao armar e avisar.
+ */
+export const TEXTO_LONGE_DEMAIS_PARA_ATACAR = 'O alvo está longe demais para andar até ele. Chegue mais perto para atacar.';
+
+/**
+ * O caminho que o `PathFinding.search` devolveu (`out`, `count`) a partir de
+ * `pos` cabe no teto do servidor? A ultima celula de `out` e o destino.
+ *
+ * @param {Array|Float32Array} pos - a posicao de quem anda
+ * @param {Array} out - o caminho do PathFinding.search
+ * @param {number} count - o que o PathFinding.search devolveu
+ * @param {(x: number, y: number) => boolean} naoAndavel - o `CELL_CHKNOPASS`
+ * @returns {boolean}
+ */
+export function caminhoDoPathFindingCabe(pos, out, count, naoAndavel) {
+	const origem = { x: pos[0] | 0, y: pos[1] | 0 };
+	const destino = { x: out[(count - 1) * 2 + 0], y: out[(count - 1) * 2 + 1] };
+	return caminhoCabeNoTetoDoServidor(count, origem, destino, naoAndavel);
+}

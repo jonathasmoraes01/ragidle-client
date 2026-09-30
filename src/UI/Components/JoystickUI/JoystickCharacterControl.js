@@ -16,7 +16,16 @@ import PACKETVER from 'Network/PacketVerManager.js';
 import glMatrix from 'Vendors/gl-matrix.js';
 import Camera from 'Renderer/Camera.js';
 import PathFinding from 'Utils/PathFinding.js';
+import Altitude from 'Renderer/Map/Altitude.js';
+import ChatBox from 'UI/Components/ChatBox/ChatBox.js';
+import {
+	TEXTO_LONGE_DEMAIS_PARA_ATACAR,
+	caminhoDoPathFindingCabe
+} from 'Engine/MapEngine/tetoDaCaminhadaDaSkill.js';
 import Target from './JoystickTargetService.js';
+
+/** `CELL_CHKNOPASS` do mapa carregado, para o teto do andar (lote 5). */
+const naoAndavelNoMapa = (x, y) => !(Altitude.getCellType(x, y) & Altitude.TYPE.WALKABLE);
 
 const direction = glMatrix.vec2.create();
 const rotate = glMatrix.mat2.create();
@@ -88,6 +97,13 @@ function attack() {
 
 	if (count < Player.attack_range + 1) {
 		Network.sendPacket(pkt);
+		return true;
+	}
+
+	// Lote 5: o ataque so anda o que o servidor aceita (unit.cpp:855-869) -
+	// ver tetoDaCaminhadaDaSkill.js.
+	if (!caminhoDoPathFindingCabe(Player.position, out, count, naoAndavelNoMapa)) {
+		ChatBox.addText(TEXTO_LONGE_DEMAIS_PARA_ATACAR, ChatBox.TYPE.ERROR, ChatBox.FILTER.PUBLIC_LOG);
 		return true;
 	}
 

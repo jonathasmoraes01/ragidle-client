@@ -29,6 +29,10 @@ import Trade from 'UI/Components/Trade/Trade.js';
 import NpcBox from 'UI/Components/NpcBox/NpcBox.js';
 import Altitude from 'Renderer/Map/Altitude.js';
 import ChatBox from 'UI/Components/ChatBox/ChatBox.js';
+import {
+	TEXTO_LONGE_DEMAIS_PARA_ATACAR,
+	caminhoDoPathFindingCabe
+} from 'Engine/MapEngine/tetoDaCaminhadaDaSkill.js';
 import Equipment from 'UI/Components/Equipment/Equipment.js';
 import CaptchaSelector from 'UI/Components/Captcha/CaptchaSelector.js';
 import Guild from 'Engine/MapEngine/Guild.js';
@@ -36,6 +40,9 @@ import PartyFriends from 'UI/Components/PartyFriends/PartyFriends.js';
 import Group from 'Engine/MapEngine/Group.js';
 import HomunInformations from 'UI/Components/HomunInformations/HomunInformations.js';
 import MercenaryInformations from 'UI/Components/MercenaryInformations/MercenaryInformations.js';
+
+/** `CELL_CHKNOPASS` do mapa carregado, para o teto do andar (lote 5). */
+const naoAndavelNoMapa = (x, y) => !(Altitude.getCellType(x, y) & Altitude.TYPE.WALKABLE);
 
 /**
  * Import
@@ -352,6 +359,13 @@ class EntityControl {
 					// in range send packet
 					if (count < 2) {
 						Network.sendPacket(pkt);
+						return true;
+					}
+
+					// Lote 5: o ataque so anda o que o servidor aceita (unit.cpp:855-869,
+					// 17 passos; 14 sem a reta livre) - ver tetoDaCaminhadaDaSkill.js.
+					if (!caminhoDoPathFindingCabe(main.position, out, count, naoAndavelNoMapa)) {
+						ChatBox.addText(TEXTO_LONGE_DEMAIS_PARA_ATACAR, ChatBox.TYPE.ERROR, ChatBox.FILTER.PUBLIC_LOG);
 						return true;
 					}
 
