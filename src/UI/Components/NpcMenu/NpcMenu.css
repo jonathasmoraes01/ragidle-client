@@ -99,6 +99,18 @@
 	box-shadow: var(--rim-light);
 }
 
+/* A COR QUE O SERVIDOR PINTA numa opcao (o `^RRGGBB` do RO, que o `setMenu`
+   vira <span style="color">; D-1858, o bonus da Praca de EXP) le no fundo
+   claro e some no azul da selecao, com contraste de ~1,2:1. E a PRIMEIRA
+   opcao ja nasce selecionada - justo a que o servidor pinta de verde. Por isso
+   a linha selecionada nao apaga a cor: poe o trecho pintado numa pilula clara,
+   onde o verde e o ambar do tema continuam legiveis. */
+#NpcMenu .content div.selected span {
+	background: var(--white);
+	border-radius: var(--radius-pill, 999px);
+	padding: 0 4px;
+}
+
 /* Rodape de verdade (Fase 3): os botoes deixaram o posicionamento absoluto
    sobre a lista e ganharam a propria fileira, dentro da caixa. */
 #NpcMenu .nm-acoes {
