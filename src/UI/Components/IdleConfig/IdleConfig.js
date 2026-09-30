@@ -1899,7 +1899,7 @@ function renderConsumiveis() {
 				</span>
 				<span class="ic-switch-text">
 					<span class="ic-switch-label">Beber as poções de ASPD do inventário</span>
-					<span class="ic-switch-sub">Concentração, Despertar e Fúria Selvagem: bebe sozinho e repete quando o efeito acaba. Itens do RO Shop só são usados quando você clica.</span>
+					<span class="ic-switch-sub">Concentração, Despertar e Fúria Selvagem: bebe sozinho e repete quando o efeito acaba. Manuais e Bênção da Fortuna só são usados quando você clica.</span>
 				</span>
 			</label>
 			${

@@ -51,8 +51,11 @@ describe('o aviso de voto uma vez por liberacao', () => {
 	it('a janela usa a peca: o modal so abre com aviso novo, e grava o que mostrou', () => {
 		const semComentario = t => t.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^[ \t]*\/\/.*$/gm, '');
 		const js = semComentario(readFileSync('src/UI/Components/VotoIdle/VotoIdle.js', 'utf8'));
-		expect(js).toContain('dados.avisar && dados.liberados > 0 && temAvisoNovo(Session.AID, dados.plataformas, vistos)');
-		expect(js).toContain('_preferences.avisosVistos = comAsVistas(Session.AID, dados.plataformas, vistos);');
-		expect(js).toContain('_preferences.save();');
+		expect(js).toContain('dados.avisar && dados.liberados > 0 && temAvisoNovo(Session.AID, dados.plataformas, _preferences.avisosVistos)');
+		expect(js).toContain('_preferences.avisosVistos = comAsVistas(Session.AID, dados.plataformas, _preferences.avisosVistos);');
+		// A marca e gravada quando o modal ABRE, e nao quando o pacote chega.
+		expect(js.indexOf('if (aoMostrar) aoMostrar();')).toBeGreaterThan(0);
+		expect(js.indexOf('if (aoMostrar) aoMostrar();')).toBeLessThan(js.indexOf('modal.hidden = false;'));
+		expect(js).toContain('setTimeout(() => mostrarAviso(quantos, tentativa + 1, aoMostrar), 500);');
 	});
 });

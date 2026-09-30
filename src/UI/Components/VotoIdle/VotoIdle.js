@@ -457,7 +457,7 @@ function cartazDeBoasVindasNaTela() {
 /** Quantas vezes o aviso espera o cartaz sair, antes de desistir e aparecer. */
 const ESPERAS_PELO_CARTAZ = 60;
 
-function mostrarAviso(quantos, tentativa = 0) {
+function mostrarAviso(quantos, tentativa = 0, aoMostrar = null) {
 	const root = _root();
 	const modal = root && root.querySelector('.vi-aviso-modal');
 	if (!modal) {
@@ -482,7 +482,7 @@ function mostrarAviso(quantos, tentativa = 0) {
 	 * ele aparece assim mesmo, atrás — que é melhor que nunca aparecer.
 	 */
 	if (cartazDeBoasVindasNaTela() && tentativa < ESPERAS_PELO_CARTAZ) {
-		setTimeout(() => mostrarAviso(quantos, tentativa + 1), 500);
+		setTimeout(() => mostrarAviso(quantos, tentativa + 1, aoMostrar), 500);
 		return;
 	}
 	const linha = root.querySelector('.vi-aviso-quantos');
@@ -508,6 +508,10 @@ function mostrarAviso(quantos, tentativa = 0) {
 	 * visibilidade por essa propriedade. Misturar as duas rotas é como nasce
 	 * "escondi e continuou aparecendo".
 	 */
+	// A liberacao so conta como VISTA quando o modal abre de fato: a espera pelo
+	// cartaz pode durar ~30 s, e uma recarga nela perderia o aviso (auditoria de
+	// 30/09/2026).
+	if (aoMostrar) aoMostrar();
 	modal.hidden = false;
 	VotoIdle.focus();
 }
@@ -688,11 +692,15 @@ VotoIdle.aoReceberVoto = function aoReceberVoto(pkt) {
 	 * volta ao app, e o aviso repetido virou o "spam" que os jogadores
 	 * reclamaram. O botão "Votar" continua aceso enquanto houver voto.
 	 */
-	const vistos = _preferences.avisosVistos;
-	if (dados.avisar && dados.liberados > 0 && temAvisoNovo(Session.AID, dados.plataformas, vistos)) {
-		_preferences.avisosVistos = comAsVistas(Session.AID, dados.plataformas, vistos);
-		_preferences.save();
-		mostrarAviso(dados.liberados);
+	if (dados.avisar && dados.liberados > 0 && temAvisoNovo(Session.AID, dados.plataformas, _preferences.avisosVistos)) {
+		mostrarAviso(dados.liberados, 0, () => {
+			_preferences.avisosVistos = comAsVistas(Session.AID, dados.plataformas, _preferences.avisosVistos);
+			try {
+				_preferences.save();
+			} catch (e) {
+				// localStorage cheio ou bloqueado: o aviso aparece, so nao fica lembrado.
+			}
+		});
 		comecarTique();
 	}
 };
