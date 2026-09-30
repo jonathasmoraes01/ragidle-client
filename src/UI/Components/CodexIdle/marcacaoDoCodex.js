@@ -82,3 +82,22 @@ export function faixaDeMarcacaoHtml(estado) {
 		'</div>'
 	);
 }
+
+/**
+ * O QUE O "OCULTAR CONCLUÍDAS" ESCONDE (D-1853, 30/09/2026).
+ *
+ * Só a entrada ENCERRADA: cumprida e sem prêmio a resgatar. A cumprida com
+ * prêmio pendente (`aResgatar`) continua na lista — é a que o jogador precisa
+ * ver, e é para ela que a linha "Resgatar!" do rastreador leva; escondê-la
+ * deixava o clique abrir a janela sem nada para acender. A entrada pedida pelo
+ * rastreador (`pedida`) também nunca some, pelo mesmo motivo.
+ */
+export function entradaOcultavel(m, pedida) {
+	return !!m && m.cumprida === true && m.aResgatar !== true && m.id !== pedida;
+}
+
+/** A lista que a janela desenha: com `ocultar`, sem as encerradas. */
+export function entradasVisiveis(todas, ocultar, pedida) {
+	const lista = Array.isArray(todas) ? todas : [];
+	return ocultar ? lista.filter(m => !entradaOcultavel(m, pedida)) : lista;
+}

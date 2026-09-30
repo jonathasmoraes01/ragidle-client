@@ -75,7 +75,7 @@ import { ehCelularEmPe } from 'UI/hudVertical.js';
 import { jornadaHtml } from './jornadaHtml.js';
 import { placarHtml, eixosHtml, desafiosHtml, retratoDoCodexAceito } from './eixosDoCodex.js';
 import { missoesGeraisHtml, cliqueDeMissoesGerais, SUBABA_PADRAO } from './missoesGeraisHtml.js';
-import { estrelaDoCodexHtml, faixaDeMarcacaoHtml, marcadasDoRetrato } from './marcacaoDoCodex.js'; // D-1839
+import { entradaOcultavel, entradasVisiveis, estrelaDoCodexHtml, faixaDeMarcacaoHtml, marcadasDoRetrato } from './marcacaoDoCodex.js'; // D-1839, D-1853
 import htmlText from './CodexIdle.html?raw';
 import cssText from './CodexIdle.css?raw';
 // O "IR AO MAPA" da aba Missoes Gerais (26/09/2026) — o fluxo e o desenho sao
@@ -566,10 +566,12 @@ function missoesHtml(estado) {
 		return '<div class="cx-vazio">Nenhuma missao no catalogo.</div>';
 	}
 	const ocultar = !!_preferences.ocultarConcluidas;
-	const concluidas = todas.filter(m => m.cumprida).length;
+	// D-1853: o numero ao lado do interruptor e o que ele esconde - a cumprida
+	// com premio a resgatar fica na lista (o "Resgatar!" do rastreador leva a ela).
+	const concluidas = todas.filter(m => entradaOcultavel(m, _entradaRealcada)).length;
 	// D-1839: as entradas que o jogador acompanha no rastreador da HUD.
 	const marcadas = new Set(marcadasDoRetrato(estado));
-	const missoes = ordenarMissoes(ocultar ? todas.filter(m => !m.cumprida) : todas);
+	const missoes = ordenarMissoes(entradasVisiveis(todas, ocultar, _entradaRealcada));
 	const barra =
 		'<label class="cx-ocultar"><input type="checkbox" data-action="cx-ocultar"' +
 		(ocultar ? ' checked' : '') +

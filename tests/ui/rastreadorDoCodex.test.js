@@ -29,6 +29,8 @@ import {
 	rastreadorDoCodexHtml
 } from '../../src/UI/Components/rastreadorDoCodex.js';
 import {
+	entradaOcultavel,
+	entradasVisiveis,
 	estrelaDoCodexHtml,
 	faixaDeMarcacaoHtml,
 	marcadasDoRetrato
@@ -226,5 +228,28 @@ describe('o corpo PARCIAL do rastreador (D-1853): o contador anda sem a lista de
 		expect(ramo).toContain('return');
 		expect(ramo).not.toContain('render(');
 		expect(ramo).not.toContain('MissoesIdle.missoes');
+	});
+});
+
+describe('"Ocultar concluídas" não esconde a entrada com prêmio a resgatar (D-1853)', () => {
+	const aberta = { id: 'aberta', cumprida: false, aResgatar: false };
+	const aResgatar = { id: 'premio', cumprida: true, aResgatar: true };
+	const paga = { id: 'paga', cumprida: true, aResgatar: false };
+
+	it('esconde só a encerrada; a do "Resgatar!" fica', () => {
+		expect(entradasVisiveis([aberta, aResgatar, paga], true, null).map(m => m.id)).toEqual(['aberta', 'premio']);
+		// CONTROLE: com o interruptor desligado, nada some.
+		expect(entradasVisiveis([aberta, aResgatar, paga], false, null)).toHaveLength(3);
+	});
+
+	it('a entrada pedida pelo rastreador nunca some, nem encerrada', () => {
+		expect(entradaOcultavel(paga, 'paga')).toBe(false);
+		expect(entradaOcultavel(paga, 'outra')).toBe(true);
+		expect(entradasVisiveis([paga], true, 'paga').map(m => m.id)).toEqual(['paga']);
+	});
+
+	it('a janela usa o recorte do módulo (e não o filtro antigo por `cumprida`)', () => {
+		expect(CODEX).toContain('entradasVisiveis(todas, ocultar, _entradaRealcada)');
+		expect(CODEX).not.toContain('todas.filter(m => !m.cumprida)');
 	});
 });
