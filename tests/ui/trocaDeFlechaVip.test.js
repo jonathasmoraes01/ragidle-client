@@ -34,3 +34,20 @@ describe('o interruptor VIP da troca de flecha (D-1866)', () => {
 		expect(/[\u2013\u2014]/.test(corpo)).toBe(false);
 	});
 });
+
+describe('a Asa segue o mesmo criterio, e os textos da cidade seguem a regra (30/09/2026)', () => {
+	it('a Asa travada sem VIP aparece desligada, como a troca de flecha', () => {
+		const i = JS.indexOf('function renderAsa()');
+		const asa = JS.slice(i, JS.indexOf('\nfunction ', i + 10));
+		expect(asa).toMatch(/switchRow\(\s*'asa\.ligada',\s*ehVip && ligada,/);
+	});
+
+	it('os avisos da cidade tem acento e nao tem travessao', () => {
+		const fonte = readFileSync('src/UI/Components/IdleConfig/IdleConfig.js', 'utf8');
+		expect(fonte).toContain("'Você está na cidade. A caça começa quando você viajar.'");
+		expect(fonte).not.toContain('Voce esta na cidade');
+		for (const linha of fonte.split('\n').filter(l => l.includes('Você está na cidade'))) {
+			expect(/[\u2013\u2014]/.test(linha)).toBe(false);
+		}
+	});
+});

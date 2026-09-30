@@ -562,8 +562,8 @@ function aplicarEstadoDeCidade() {
 	btn.disabled = false;
 	btn.classList.toggle('ic-button-cidade', ehCidade);
 	btn.title = ehCidade
-		? 'Voce esta na cidade — de para editar a configuracao; a caca comeca quando viajar.'
-		: 'Configuracao idle';
+		? 'Você está na cidade: dá para editar a configuração, e a caça começa quando você viajar.'
+		: 'Configuração idle';
 }
 
 /**
@@ -700,7 +700,7 @@ function onConfigReceived(pkt) {
 			isApplyResponse
 				? 'Aplicado.'
 				: data.contexto.ehCidade
-					? 'Voce esta na cidade — a caca comeca quando voce viajar.'
+					? 'Você está na cidade. A caça começa quando você viajar.'
 					: ''
 		);
 	} else {
@@ -1101,7 +1101,7 @@ function renderCaca() {
 	let presas;
 	if (ctx.ehCidade) {
 		presas =
-			'<div class="ic-empty">Você está na cidade. As presas se escolhem num mapa de caça — viaje e volte aqui.</div>';
+			'<div class="ic-empty">Você está na cidade. As presas se escolhem num mapa de caça: viaje e volte aqui.</div>';
 	} else if (!mobs.length) {
 		presas = '<div class="ic-empty">Nenhum monstro conhecido neste mapa.</div>';
 	} else {
@@ -1226,7 +1226,10 @@ function renderAsa() {
 		<div class="ri-divisor"></div>
 		${switchRow(
 			'asa.ligada',
-			ligada,
+			// Travada sem VIP, ela aparece DESLIGADA (30/09/2026), como a troca de
+			// flecha logo abaixo: mostrar "ligada" num controle que nao age mentia.
+			// O valor gravado nao muda: o controle desabilitado nao escreve nada.
+			ehVip && ligada,
 			'Usar Asa de Mosca sozinho',
 			'Durante a caça, se passar o tempo escolhido sem atacar nenhum monstro, o personagem gasta uma Asa e reaparece noutro canto. Cada ataque zera a contagem.',
 			!ehVip
