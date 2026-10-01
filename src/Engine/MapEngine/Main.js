@@ -36,6 +36,7 @@ import BasicInfo from 'UI/Components/BasicInfo/BasicInfo.js';
 import SkillList from 'UI/Components/SkillList/SkillList.js';
 import WinStats from 'UI/Components/WinStats/WinStats.js';
 import RankingTypes from 'DB/Jobs/RankingTypes.js';
+import { confirmarPeloServidor } from './confirmacaoDaCaminhada.js';
 
 /**
  * Move main player to the position specify
@@ -43,6 +44,9 @@ import RankingTypes from 'DB/Jobs/RankingTypes.js';
  * @param {object} pkt - PACKET.ZC.NOTIFY_PLAYERMOVE
  */
 function onPlayerMove(pkt) {
+	// C47: a caminhada que o servidor mandou e a do pedido guardado (ver
+	// confirmacaoDaCaminhada.js); o fim de uma caminhada anterior nao solta a skill.
+	confirmarPeloServidor(Session);
 	Session.Entity.walkTo(
 		pkt.MoveData[0],
 		pkt.MoveData[1],

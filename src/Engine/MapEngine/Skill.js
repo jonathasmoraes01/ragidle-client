@@ -25,16 +25,22 @@ import Altitude from 'Renderer/Map/Altitude.js';
 import ShortCut from 'UI/Components/ShortCut/ShortCut.js';
 import ChatBox from 'UI/Components/ChatBox/ChatBox.js';
 import { ehFaltaDeItem, textoDeFaltaDeItem } from './faltaDeItemNaSkill.js';
-import { criarPedidoAdiado } from './pedidoAdiadoPeloGolpe.js';
+import { pedidoNoGolpe } from './pedidoGuardado.js';
 import { raioDaBuscaDoChao } from './alcanceDaSkillNoChao.js';
 import { TEXTO_GERAL, textoDaCausaSemMensagem } from './textoDaFalhaDeSkill.js';
 import { TEXTO_LONGE_DEMAIS, caminhoCabeNoTetoDoServidor } from './tetoDaCaminhadaDaSkill.js';
+import {
+	ESPERA_DA_CONFIRMACAO_MS,
+	TEXTO_CAMINHADA_RECUSADA,
+	armarEspera,
+	vencerEspera
+} from './confirmacaoDaCaminhada.js';
+import Events from 'Core/Events.js';
 
 // C32 (29/09/2026): o pedido dentro da janela do golpe espera, em vez de sumir.
-const _pedidoNoGolpe = criarPedidoAdiado({
-	agendar: (fn, ms) => setTimeout(fn, ms),
-	cancelar: id => clearTimeout(id)
-});
+// C47 (C-1): o singleton mora em pedidoGuardado.js, para o clique de andar, a
+// troca de mapa e a morte poderem cancelar o pedido que espera.
+const _pedidoNoGolpe = pedidoNoGolpe;
 import SkillTargetSelection from 'UI/Components/SkillTargetSelection/SkillTargetSelection.js';
 import Guild from 'UI/Components/Guild/Guild.js';
 import SkillListMH from 'UI/Components/SkillListMH/SkillListMH.js';
@@ -677,9 +683,27 @@ function armarAlcanceNoFim(pacote, alcance, alvo) {
 			mover.dest[0] = out[(count - 1) * 2 + 0];
 			mover.dest[1] = out[(count - 1) * 2 + 1];
 			Network.sendPacket(mover);
+			esperarConfirmacao(pacote);
 			return true;
 		}
 	};
+}
+
+/**
+ * C47 (auditoria de tela, 30/09/2026): a skill guardada so sai no fim da
+ * caminhada que o servidor CONFIRMOU (`ZC_NOTIFY_PLAYERMOVE` depois do
+ * pedido); sem confirmacao no prazo, o pedido e descartado e o jogador e
+ * avisado. Ver confirmacaoDaCaminhada.js.
+ *
+ * @param {object} pacote - o pacote guardado em Session.moveAction
+ */
+function esperarConfirmacao(pacote) {
+	const espera = armarEspera(Session, pacote);
+	Events.setTimeout(() => {
+		if (vencerEspera(Session, espera)) {
+			ChatBox.addText(TEXTO_CAMINHADA_RECUSADA, ChatBox.TYPE.ERROR, ChatBox.FILTER.SKILL_FAIL);
+		}
+	}, ESPERA_DA_CONFIRMACAO_MS);
 }
 
 function caminhoDaSkillCabe(pos, out, count) {
@@ -816,6 +840,9 @@ function onUseSkill(id, level, targetID) {
 	pkt.dest[0] = out[(count - 1) * 2 + 0];
 	pkt.dest[1] = out[(count - 1) * 2 + 1];
 	Network.sendPacket(pkt);
+	if (!isHomun && !isMerc) {
+		esperarConfirmacao(Session.moveAction);
+	}
 }
 Guild.onUseSkill =
 	SkillListMH.homunculus.onUseSkill =
@@ -929,6 +956,9 @@ SkillTargetSelection.onUseSkillToPos = function onUseSkillToPos(id, level, x, y)
 	pkt.dest[0] = out[(count - 1) * 2 + 0];
 	pkt.dest[1] = out[(count - 1) * 2 + 1];
 	Network.sendPacket(pkt);
+	if (!isHomun) {
+		esperarConfirmacao(Session.moveAction);
+	}
 };
 
 function onSpiritSphere(pkt) {

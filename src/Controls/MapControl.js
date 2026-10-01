@@ -23,6 +23,7 @@ import Renderer from 'Renderer/Renderer.js';
 import Camera from 'Renderer/Camera.js';
 import EntityManager from 'Renderer/EntityManager.js';
 import Session from 'Engine/SessionStorage.js';
+import { descartarPedidoGuardado } from 'Engine/MapEngine/pedidoGuardado.js';
 import Preferences from 'Preferences/Controls.js';
 import KEYS from 'Controls/KeyEventHandler.js';
 import AIDriver from 'Core/AIDriver.js';
@@ -144,7 +145,8 @@ function onMouseDown(event) {
 					AIDriver.setmsg(Session.mercId, '1,' + Mouse.world.x + ',' + Mouse.world.y);
 				}
 			} else {
-				Session.moveAction = null;
+				// C47 (C-1): o clique de andar/mirar desiste do pedido de skill guardado.
+				descartarPedidoGuardado(Session);
 				Session.autoFollow = false;
 
 				let stop = false;
