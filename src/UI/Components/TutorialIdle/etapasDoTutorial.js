@@ -561,6 +561,35 @@ export function etapaDe(numero) {
 }
 
 /**
+ * O MAPA DE REFERENCIA da etapa que comeca (01/10/2026, D-1925).
+ *
+ * A etapa 8 ("Escolha um mapa e viaje") cumpre quando o mapa carregado deixa
+ * de ser o de referencia. Ate D-1925 a referencia era o mapa de quando a 8
+ * comecava, e a missao so levava o personagem ao campo segundos DEPOIS (o
+ * executor de passos), entao a 8 fechava sozinha. Desde D-1925 o proprio
+ * ACEITE da etapa 7 leva ao mapa da caca, ANTES de a 8 comecar: com a
+ * referencia antiga, a 8 pedia uma SEGUNDA viagem a quem ja estava no campo,
+ * e quem escolhia o mesmo campo no seletor era recusado pelo servidor (mesmo
+ * mapa) - a etapa nunca fechava (medido na tela,
+ * `scripts/diag-tutorial-da-missao-na-tela.ts` do servidor).
+ *
+ * A regra: a 8 que nasce logo depois da 7 herda o mapa de quando a 7
+ * comecou; qualquer outra etapa (ou a 8 sem a 7 antes, como depois de
+ * relogar) usa o mapa de agora.
+ *
+ * @param {number} numero a etapa que comeca
+ * @param {{numero: number, mapa: string}|null} anterior o marco da etapa que acabou
+ * @param {string} mapaAgora
+ * @returns {string}
+ */
+export function mapaDeReferenciaDaEtapa(numero, anterior, mapaAgora) {
+	if (numero === 8 && anterior && anterior.numero === 7 && typeof anterior.mapa === 'string') {
+		return anterior.mapa;
+	}
+	return mapaAgora;
+}
+
+/**
  * A frase pronta para a tela.
  *
  * @param {object} etapa      uma entrada de ETAPAS

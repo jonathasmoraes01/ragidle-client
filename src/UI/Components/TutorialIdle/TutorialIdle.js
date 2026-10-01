@@ -97,6 +97,7 @@ import {
 	dentroDoFuro,
 	fraseDaEtapa,
 	maoDaEtapaDaArma,
+	mapaDeReferenciaDaEtapa,
 	passoDaEconomia,
 	posicaoDaMao,
 	recorteDoAlvo,
@@ -157,6 +158,10 @@ let _assinatura = '';
 let _avancoMandado = 0;
 /** O que a etapa vigente viu quando comecou (mapa, arma, abates, contador). */
 let _marco = null;
+/* O marco da etapa que ACABOU, guardado por uma volta: o retrato da etapa nova
+   zera `_marco` (onTutorialRecebido), e a 8 precisa do mapa da 7 (ver
+   `mapaDeReferenciaDaEtapa`). */
+let _marcoAnterior = null;
 /** Ja pedi ao servidor para COMECAR? Sem esta guarda, um retrato repetido de
  *  'nao-iniciado' viraria um laco de `retomar`. */
 let _comecoPedido = false;
@@ -214,6 +219,7 @@ TutorialIdle.limparEstadoDoPersonagem = function limparEstadoDoPersonagem() {
 	_assinatura = '';
 	_avancoMandado = 0;
 	_marco = null;
+	_marcoAnterior = null;
 	_comecoPedido = false;
 	desobservar();
 	// A peca compartilhada (limpezaDeJanelaIdle.js): tirar o `is-open` a mao
@@ -960,7 +966,10 @@ function tique() {
 
 	const numero = estado.etapa;
 	if (!_marco || _marco.numero !== numero) {
+		const anterior = _marco || _marcoAnterior;
 		_marco = marcoDaEtapa(numero);
+		_marco.mapa = mapaDeReferenciaDaEtapa(numero, anterior, _marco.mapa);
+		_marcoAnterior = null;
 	}
 
 	if (_avancoMandado !== numero && etapaCumprida(numero)) {
@@ -1094,7 +1103,9 @@ function onTutorialRecebido(pkt) {
 	TutorialIdle.estado = dados;
 	if (mudouDeEtapa) {
 		/* Etapa nova: o marco de "antes" e o avanco pendente valem para a
-		   anterior, e carregar qualquer um deles adiantaria a proxima. */
+		   anterior, e carregar qualquer um deles adiantaria a proxima. O marco
+		   que sai fica UMA volta em `_marcoAnterior`, so para o mapa da 8. */
+		_marcoAnterior = _marco;
 		_marco = null;
 		_avancoMandado = 0;
 	}
