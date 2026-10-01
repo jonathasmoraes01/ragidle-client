@@ -1283,9 +1283,62 @@
 /* No celular em pe os botoes do seletor tem 44px (Common.css, `pointer:
    coarse`), e a linha da habilidade ja carrega numero, nome e acoes: o
    seletor desce para uma linha propria dentro dela, e os outros selos
-   (Debuff, cura) vem depois. Na mesma linha ele espremeria o nome. */
+   (Debuff, cura) vem depois. Na mesma linha ele espremeria o nome.
+
+   E a linha propria precisa ser da LARGURA DA LINHA, e nao da coluna do nome
+   (01/10/2026, D-1916). Dentro do `.ic-rot-main` o seletor so tinha o que
+   sobrava entre o numero e os tres botoes de ordem: a 393px a coluna de
+   conteudo, ao lado das secoes, deixa uns 90px para ele, e os dois discos de
+   44px mais "Nv 10/10 · 30 SP" pedem uns 220. Medido no jogo
+   (`scripts/diag-nivel-de-uso-na-tela.ts`): o nome cortado em "Lanças de F...",
+   o selo "máx" fora do cartao e o "+" embaixo do "X", sem toque. Agora a
+   coluna do nome se desfaz (`display: contents`) e a linha quebra: numero,
+   nome e acoes em cima; os selos, com o seletor primeiro, numa linha inteira
+   embaixo; e o alvo do buff (eu/grupo) depois deles. */
 @media (max-width: 599px) {
+	#IdleConfig .ic-rot-row,
+	#IdleConfig .ic-buff-row {
+		flex-wrap: wrap;
+		row-gap: var(--sp-2);
+	}
+
+	#IdleConfig .ic-rot-row .ic-rot-main,
+	#IdleConfig .ic-buff-row .ic-rot-main {
+		display: contents;
+	}
+
+	#IdleConfig .ic-rot-row .ic-rot-name,
+	#IdleConfig .ic-buff-row .ic-rot-name {
+		flex: 1 1 0;
+		min-width: 0;
+	}
+
+	#IdleConfig .ic-rot-row .ic-rot-tags,
+	#IdleConfig .ic-buff-row .ic-rot-tags {
+		order: 10;
+		flex: 1 1 100%;
+	}
+
+	#IdleConfig .ic-buff-row > .ic-seg,
+	#IdleConfig .ic-buff-row > .ic-so-eu {
+		order: 11;
+	}
+
+	/* E a 360px nem a linha inteira basta (a coluna fica com ~165px, e os
+	   dois discos de 44px com o texto pedem ~190): o TEXTO encolhe e quebra
+	   em duas linhas ("Nv 10/10 ·" / "30 SP"), e o selo "fixo"/"máx" desce
+	   quando nao cabe. Os discos nunca encolhem (44px, a regra do toque), e
+	   o texto cresce para ocupar o meio: "−" a esquerda, "+" a direita. */
 	#IdleConfig .ic-rot-tags .ri-nivel {
 		flex: 1 1 100%;
+		flex-wrap: wrap;
+		row-gap: var(--sp-1);
+	}
+
+	#IdleConfig .ic-rot-tags .ri-nivel-valor {
+		flex: 1 1 4.5em;
+		min-width: 0;
+		white-space: normal;
+		text-align: center;
 	}
 }
