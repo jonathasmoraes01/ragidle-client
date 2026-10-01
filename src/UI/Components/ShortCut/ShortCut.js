@@ -31,7 +31,7 @@ import KEYS from 'Controls/KeyEventHandler.js';
 import Configs from 'Core/Configs.js';
 import PACKETVER from 'Network/PacketVerManager.js';
 import SkillWindow from 'UI/Components/SkillList/SkillList.js';
-import { dicaDoAtalho, fecharSeletorDeNivel, spLembrado } from 'UI/nivelDeUso.js';
+import { aoLembrarNomes, dicaDoAtalho, fecharSeletorDeNivel, nomeNaBarra, spLembrado } from 'UI/nivelDeUso.js';
 import { criarSeletorDeNivelDaBarra } from './seletorDeNivelDaBarra.js';
 import htmlText from './ShortCut.html?raw';
 import cssText from './ShortCut.css?raw';
@@ -60,7 +60,8 @@ const _seletorDeNivel = criarSeletorDeNivelDaBarra({
 		const skill = ShortCut.getSkillById(ID);
 		return skill && skill.level ? skill.level : 0;
 	},
-	nome: ID => (SkillInfo[ID] ? SkillInfo[ID].SkillName : String(ID)),
+	// O nome das janelas ("Lancas de Fogo"), e nao o da tabela do cliente (`nomeNaBarra`).
+	nome: ID => nomeNaBarra(SkillInfo[ID], ID),
 	nomeNoBanco: ID => (SkillInfo[ID] ? SkillInfo[ID].Name : ''),
 	regravar: (indice, ID, nivel) => {
 		ShortCut.addElement(indice, true, ID, nivel);
@@ -80,7 +81,7 @@ function dicaDaHabilidade(hotkey, ID, nivel) {
 	const info = SkillInfo[ID];
 	return dicaDoAtalho({
 		hotkey,
-		nome: info ? info.SkillName : String(ID),
+		nome: nomeNaBarra(info, ID),
 		nivel,
 		sp: info ? spLembrado(info.Name, nivel) : null
 	});
@@ -639,6 +640,15 @@ ShortCut.updateAllTooltips = function updateAllTooltips() {
 		}
 	}
 };
+
+/*
+ * O NOME DAS JANELAS CHEGOU (01/10/2026): a Configuracao idle e sondada a cada
+ * entrada no mapa, depois de a barra ja ter montado as dicas com o nome da
+ * tabela do cliente. Refaz as dicas com o nome novo (`nomeNaBarra`). Antes de
+ * a barra existir nao ha raiz, e o `addElement` de quando ela nascer ja le o
+ * nome lembrado.
+ */
+aoLembrarNomes(() => ShortCut.__loaded && ShortCut.updateAllTooltips());
 
 /**
  * Get hotkey string for shortcut index

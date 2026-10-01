@@ -263,6 +263,64 @@ export function spLembrado(nomeDaSkill, nivel) {
 	return spDoNivel(_spPorNivel.get(nomeDaSkill), nivel);
 }
 
+/*
+ * O NOME QUE AS JANELAS JA MOSTRAM, por habilidade (01/10/2026). O balao e a
+ * dica do slot liam o `SkillName` do `SkillInfo` (a tabela do cliente, "Fire
+ * Bolt"), e a janela de Habilidades e a Configuracao idle mostram o `nome` que
+ * o servidor manda ("Lancas de Fogo", o `skillinfoz1` do GRF). A barra nao tem
+ * pacote com o nome; as duas janelas o registram aqui, como o SP acima. A
+ * Configuracao idle e sondada a cada entrada no mapa (`IdleConfig.sondarMapa`),
+ * entao o nome chega sem o jogador abrir janela nenhuma — e a barra, avisada,
+ * refaz as dicas.
+ */
+const _nomePorSkill = new Map();
+const _aoLembrarNomes = new Set();
+
+/**
+ * Guarda o nome de exibicao de cada `{ skillId, nome }` da lista e avisa quem
+ * escuta UMA vez, se algum mudou. O servidor sem traducao manda o proprio id
+ * como `nome` (`nomes.get(...) ?? skillId`): esse nao e lembrado, para nao
+ * trocar "Fire Bolt" por "MG_FIREBOLT".
+ */
+export function lembrarNomesDasHabilidades(lista) {
+	let mudou = false;
+	for (const s of lista || []) {
+		if (!s || typeof s.skillId !== 'string' || typeof s.nome !== 'string') {
+			continue;
+		}
+		if (s.nome === '' || s.nome === s.skillId || _nomePorSkill.get(s.skillId) === s.nome) {
+			continue;
+		}
+		_nomePorSkill.set(s.skillId, s.nome);
+		mudou = true;
+	}
+	if (mudou) {
+		_aoLembrarNomes.forEach(fn => fn());
+	}
+}
+
+/** O nome que as janelas mostram para a habilidade, ou `null`. */
+export function nomeLembrado(nomeDaSkill) {
+	return _nomePorSkill.get(nomeDaSkill) ?? null;
+}
+
+/** Escuta os nomes novos. Devolve a funcao que para de escutar. */
+export function aoLembrarNomes(fn) {
+	_aoLembrarNomes.add(fn);
+	return () => _aoLembrarNomes.delete(fn);
+}
+
+/**
+ * O nome que a BARRA desenha para a habilidade `ID`: o das janelas quando ja
+ * chegou; senao o da tabela do cliente; sem tabela, o proprio id.
+ */
+export function nomeNaBarra(info, ID) {
+	if (!info) {
+		return String(ID);
+	}
+	return nomeLembrado(info.Name) || info.SkillName;
+}
+
 /* ═══════════════════════════════════════════════════════════════════════
    O FECHAMENTO DO SELETOR DA BARRA (o ESC e o voltar do Android)
    ═══════════════════════════════════════════════════════════════════════ */

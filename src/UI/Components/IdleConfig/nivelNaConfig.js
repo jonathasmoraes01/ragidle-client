@@ -18,6 +18,7 @@ import {
 	ajusteDaCuraComNivel,
 	entradaComNivel,
 	htmlDoSeletorDeNivel,
+	lembrarNomesDasHabilidades,
 	lembrarSpPorNivel,
 	nivelDaCura,
 	nivelEfetivoDaEntrada,
@@ -155,9 +156,13 @@ export function lembrarSpDoContexto(ctx) {
 	if (!ctx) {
 		return;
 	}
-	for (const lista of [ctx.skillsAtivas, ctx.skillsDeBuff, ctx.skillsDeCura]) {
+	const listas = [ctx.skillsAtivas, ctx.skillsDeBuff, ctx.skillsDeCura];
+	for (const lista of listas) {
 		for (const s of lista || []) {
 			lembrarSpPorNivel(s.skillId, s.custoSpPorNivel);
 		}
 	}
+	// O nome que a Config mostra, para a barra dizer o mesmo (`nomeNaBarra`).
+	// Num lote so: a barra refaz as dicas uma vez por contexto, e nao uma por lista.
+	lembrarNomesDasHabilidades([].concat(...listas.map(l => l || [])));
 }

@@ -1934,6 +1934,14 @@ ui-button {
 		width: 100% !important;
 		min-width: 0 !important;
 		max-width: 100% !important;
+		/*
+		 * A BORDA DENTRO DOS 100% (01/10/2026). `.ri-window` tem 1px de moldura
+		 * (`--window-frame`), e sem `border-box` a caixa mede 100% + 2px: a
+		 * `diag-mobile-portrait` media 395 de 393 em Personagem, Codex, Indique,
+		 * Votar e Admin, que nao declaram `box-sizing` na propria folha (as que
+		 * declaram, como Habilidades e Config Idle, ja cabiam).
+		 */
+		box-sizing: border-box !important;
 		height: auto !important;
 		/* A doca continua alcançável por baixo do painel: ela é a barra de
 		   ação do jogo, e cobri-la trocaria uma janela por outra. */

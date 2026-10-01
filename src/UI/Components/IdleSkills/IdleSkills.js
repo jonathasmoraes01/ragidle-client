@@ -78,7 +78,7 @@ import cssText from './IdleSkills.css?raw';
 import { fecharEEsquecer } from '../limpezaDeJanelaIdle.js';
 import { abaLembrada, lembrarAba } from '../memoriaDeAba.js';
 import { pegar, pendente, assinar } from 'UI/toqueParaAtalho.js';
-import { lembrarSpPorNivel, lerPassoDoSeletor } from 'UI/nivelDeUso.js';
+import { lembrarNomesDasHabilidades, lembrarSpPorNivel, lerPassoDoSeletor } from 'UI/nivelDeUso.js';
 import { escolhasComPasso, htmlDoNivelParaABarra, nivelParaABarra, spPorNivelDaMecanica } from './nivelParaABarra.js';
 import {
 	NO_L,
@@ -623,6 +623,8 @@ function onSkillsReceived(pkt) {
 	IdleSkills.serverData = data;
 	// D-1908: o SP de cada nivel fica lembrado para a dica da barra de atalhos.
 	data.skills.forEach(s => lembrarSpPorNivel(s.skillId, spPorNivelDaMecanica(s)));
+	// E o nome que esta janela mostra, para a barra dizer o mesmo (`nomeNaBarra`).
+	lembrarNomesDasHabilidades(data.skills);
 
 	/*
 	 * O RASCUNHO só morre quando foi ELE que virou pacote e o pacote passou.
