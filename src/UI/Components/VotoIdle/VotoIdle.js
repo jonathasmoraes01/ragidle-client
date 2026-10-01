@@ -2,7 +2,7 @@
  * UI/Components/VotoIdle/VotoIdle.js
  *
  * "VOTE E GANHE" (D-1159) — a janela de votação, a loja da moeda de voto, e o
- * aviso que aparece ao entrar quando o último voto foi há mais de 12h.
+ * aviso que aparece ao entrar quando o último voto foi há mais de 24h (12h até 30/09/2026; D-1875).
  *
  * Pedido do dono, 07/09/2026: *"cada voto ele irá ganhar 1 vote cash. Esse vote
  * cash será uma loja... por enquanto nessa loja de votação, deve ter apenas 1
@@ -737,7 +737,7 @@ function cartaoDePlataforma(plat, agora) {
 		'<div class="vi-plat-topo">' +
 		'<div><div class="vi-plat-nome">' +
 		escapeHtml(plat.nome) +
-		'</div><div class="vi-plat-ciclo">Ciclo de 12 horas</div></div>' +
+		'</div><div class="vi-plat-ciclo">Ciclo de 24 horas</div></div>' +
 		selo +
 		'</div>' +
 		// `data-proximo` carrega o instante-alvo para o tique reescrever SÓ este
@@ -791,7 +791,7 @@ function abaVotarHtml(estado, agora) {
 		'<li>Cada voto confirmado entrega <strong>+1 ' +
 		escapeHtml(estado.moeda) +
 		'</strong>, que você gasta na aba Loja.</li>' +
-		'<li>Cada plataforma tem o próprio ciclo de 12 horas e volta sozinha.</li>' +
+		'<li>Cada plataforma tem o próprio ciclo de 24 horas e volta sozinha.</li>' +
 		'</ol>'
 	);
 }
