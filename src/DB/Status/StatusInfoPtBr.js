@@ -245,6 +245,8 @@ const PT_BR = {
 		'Mais chance de drop nos itens dos monstros, menos cartas, caixas e MVPs',
 	'Respawn Event': 'Evento de Respawn',
 	'Monsters respawn faster': 'Os monstros renascem mais rápido (menos MVPs e o Covil)',
+	'Gacha Event': 'Evento de Gacha',
+	'Better odds in one Season box': 'Mais chance de prêmio raro numa caixa da temporada (veja o selo na loja)',
 
 	/* -------- os boosts do RO Shop (22/09/2026): Bencao e os dois Manuais -------- */
 	'Fortune Blessing': 'Bênção da Fortuna',

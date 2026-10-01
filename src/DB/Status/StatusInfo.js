@@ -3462,6 +3462,22 @@ StatusInfo[EFST_DO_EVENTO_DE_RESPAWN] = {
 	descript: [['Respawn Event', COLOR_TITLE_BUFF], ['%s', COLOR_TIME], ['Monsters respawn faster']]
 };
 
+/**
+ * O EVENTO DE GACHA DA EQUIPE (D-1900, 01/10/2026). O EFST e do servidor
+ * (`EFST_DO_EVENTO_DE_GACHA`, servidor/temporada/evento-de-gacha.ts), o
+ * proximo livre depois do drop e do respawn. A arte e do GRF (regra 4):
+ * `efst_hidden_card.tga`, a carta virada com moldura dourada — o premio que
+ * ainda nao se ve —, que nenhum outro status usa. QUAL caixa e QUANTO o icone
+ * nao diz: dizem o anuncio da equipe e o selo da caixa na loja.
+ */
+export const EFST_DO_EVENTO_DE_GACHA = 1906;
+StatusInfo[EFST_DO_EVENTO_DE_GACHA] = {
+	icon: 'efst_hidden_card.tga',
+	haveTimeLimit: 1,
+	posTimeLimitStr: 2,
+	descript: [['Gacha Event', COLOR_TITLE_BUFF], ['%s', COLOR_TIME], ['Better odds in one Season box']]
+};
+
 export const EFST_DAS_FLECHAS_INFINITAS = 1903;
 StatusInfo[EFST_DAS_FLECHAS_INFINITAS] = {
 	icon: '/ragidle/item/9000130.png',
