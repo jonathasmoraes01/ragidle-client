@@ -311,6 +311,40 @@
 	border: none;
 }
 
+/* ─── Os eventos de drop e respawn (D-1880) ───────────────── */
+/* Os controles reusam as classes do evento de EXP acima (e a regra de 44px do
+   dedo logo abaixo os alcanca pelo `.ap-evento` da secao); aqui so o que e
+   PROPRIO: a divisao entre os dois blocos e o botao de encerrar, com a mesma
+   cor de perigo do de EXP. */
+
+#AdminPanel .ap-evento-da-equipe {
+	margin-top: 10px;
+	padding-top: 10px;
+	border-top: 1px solid var(--border-hairline);
+}
+
+#AdminPanel .ap-evento-da-equipe h4 {
+	margin: 0 0 6px 0;
+	font-size: 12px;
+	color: var(--text-title);
+}
+
+/* A faixa do campo ("1–500%") nao parte no meio — fotografado em 393x852. */
+#AdminPanel .ap-equipe-faixa {
+	white-space: nowrap;
+}
+
+#AdminPanel .ap-equipe-faltam {
+	font-variant-numeric: tabular-nums;
+	font-weight: 700;
+}
+
+#AdminPanel .ap-equipe-encerrar {
+	background: var(--red-600);
+	color: var(--white);
+	border: none;
+}
+
 /* No DEDO, os alvos do evento ganham a altura tatil (a regra de 44px da HUD,
    `--hit-touch` em Common.css) — os atalhos de duracao sao os menores da
    janela e seriam os primeiros a errar o toque. */
