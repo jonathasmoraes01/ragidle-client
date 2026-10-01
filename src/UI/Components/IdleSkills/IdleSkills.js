@@ -65,6 +65,7 @@
 import Renderer from 'Renderer/Renderer.js';
 import Preferences from 'Core/Preferences.js';
 import SkillInfo from 'DB/Skills/SkillInfo.js';
+import { montarMapaNomeParaId } from 'DB/Skills/apelidosDoServidor.js'; // N4 da auditoria de tela
 import Network from 'Network/NetworkManager.js';
 import PACKET from 'Network/PacketStructure.js';
 import UIManager from 'UI/UIManager.js';
@@ -100,11 +101,9 @@ import { modoClassicoLigado } from 'UI/modoClassico.js'; // o modo classico (24/
  */
 const VERSAO_DO_CONTRATO = 5;
 
-const NUMERIC_SKILL_ID_BY_NAME = new Map(
-	Object.entries(SkillInfo)
-		.filter(([, info]) => info && info.Name)
-		.map(([numericId, info]) => [info.Name, Number(numericId)])
-);
+// N4 da auditoria de tela: o servidor manda o nome do rAthena (BA_FROSTJOKER) e o
+// `SkillInfo.Name` do cliente e BA_FROSTJOKE; sem o apelido a skill nao ia a barra.
+const NUMERIC_SKILL_ID_BY_NAME = montarMapaNomeParaId(SkillInfo);
 
 /**
  * Mantenha em sincronia com o ":host" / ".is-window" do IdleSkills.css e com

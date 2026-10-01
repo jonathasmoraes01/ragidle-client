@@ -27,6 +27,7 @@ import Sound from 'Audio/SoundManager.js';
 import Events from 'Core/Events.js';
 import Guild from 'Engine/MapEngine/Guild.js';
 import Session from 'Engine/SessionStorage.js';
+import { descartarPedidoGuardado } from './pedidoGuardado.js';
 import Network from 'Network/NetworkManager.js';
 import PACKETVER from 'Network/PacketVerManager.js';
 import PACKET from 'Network/PacketStructure.js';
@@ -315,6 +316,8 @@ function onEntityVanish(pkt) {
 	}
 	if (entity) {
 		if (entity.objecttype === Entity.TYPE_PC && pkt.GID === Session.meuGID) {
+			// C47 (C-1): morto nao solta o pedido de skill que esperava.
+			descartarPedidoGuardado(Session);
 			//death animation only for myself
 			const EF_Init_Par = {
 				effectId: EffectConst.EF_DEVIL,

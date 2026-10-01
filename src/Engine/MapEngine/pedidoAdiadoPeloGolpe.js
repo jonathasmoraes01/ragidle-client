@@ -40,6 +40,18 @@ export function criarPedidoAdiado(relogio) {
 			}, fimDaJanela - agora + MARGEM_MS);
 			return true;
 		},
+		/**
+		 * C47 (C-1): descarta o pedido que espera, se ha. O clique de andar, a
+		 * troca de mapa e a morte chamam: o pedido velho nao pode sair depois
+		 * deles (arrastava o boneco de volta, ou saia no mapa novo com o x,y do
+		 * velho).
+		 */
+		cancelar() {
+			if (pendente !== null) {
+				relogio.cancelar(pendente);
+				pendente = null;
+			}
+		},
 		/** Ha pedido esperando? (para teste e diagnostico) */
 		temPendente() {
 			return pendente !== null;

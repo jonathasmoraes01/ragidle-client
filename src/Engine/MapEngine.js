@@ -68,6 +68,8 @@ import WorldMap from 'UI/Components/WorldMap/WorldMap.js';
 import SkillListMH from 'UI/Components/SkillListMH/SkillListMH.js';
 import MobileUI from 'UI/Components/MobileUI/MobileUI.js';
 import { decidirNoFimDaCaminhada } from 'Engine/MapEngine/alcanceNoFimDaCaminhada.js';
+import { fimDaCaminhadaEhDoPedido, TEXTO_FORA_DO_ALCANCE } from 'Engine/MapEngine/confirmacaoDaCaminhada.js';
+import { descartarPedidoGuardado } from 'Engine/MapEngine/pedidoGuardado.js';
 import CashShop from 'UI/Components/CashShop/CashShop.js';
 import Bank from 'UI/Components/Bank/Bank.js';
 import ItemReform from 'UI/Components/ItemReform/ItemReform.js';
@@ -1424,6 +1426,8 @@ function ligarAcessorioDaHud(nome, ligar) {
  *   (teleporte dentro da MESMA conexão — Asa de Mosca, viagem por menu).
  */
 function onMapChange(pkt, ehEntradaNoMundo) {
+	// C47 (C-1): o pedido de skill guardado e do mapa de antes (x,y velhos).
+	descartarPedidoGuardado(Session);
 	/*
 	 * O MAPA ANTES DESTE PACOTE (D-1385, 13/09/2026) — capturado ANTES de
 	 * `MapRenderer.setMap` rodar, porque `setMap` só reatribui
@@ -2678,6 +2682,11 @@ function isFreeCell(x, y) {
  * If the character moved to attack, once it finished to move ask to attack
  */
 function onWalkEnd() {
+	// C47: a caminhada que terminou e mais velha que o pedido guardado (o
+	// servidor ainda nao confirmou a dele) - ver confirmacaoDaCaminhada.js.
+	if (!fimDaCaminhadaEhDoPedido(Session)) {
+		return;
+	}
 	// No action to do ?
 	if (Session.moveAction) {
 		// Not sure why, but there is a synchronization error with the
@@ -2709,12 +2718,19 @@ function onWalkEnd() {
 					if (decisao !== 'soltar') {
 						Session.moveAction = null;
 						Session.moveActionAlcance = null;
+						Session.moveActionEspera = null;
+						// C47 (C-2): desistir avisa, como a C19 (o `andar()` que nao
+						// coube no teto ja avisou por conta propria).
+						if (decisao === 'desistir') {
+							ChatBox.addText(TEXTO_FORA_DO_ALCANCE, ChatBox.TYPE.ERROR, ChatBox.FILTER.SKILL_FAIL);
+						}
 						return;
 					}
 				}
 				Network.sendPacket(Session.moveAction);
 				Session.moveAction = null;
 				Session.moveActionAlcance = null;
+				Session.moveActionEspera = null;
 			}
 		}, 50);
 	}
