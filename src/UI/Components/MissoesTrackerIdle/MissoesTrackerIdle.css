@@ -80,22 +80,62 @@
 	display: none;
 }
 
-/* ─── A missão ATIVA (o que está acontecendo AGORA) ─────────── */
+/* ─── As missões ACEITAS (até 3, andando juntas — 01/10/2026) ──
+   Uma por bloco, na ordem de aceite. Era UMA caixa (`.mt-ativa`), a da missão
+   ativa; com três ao mesmo tempo cada uma ganhou a sua, e `.mt-ativa` ficou como
+   a marca da PRIMEIRA (o alvo da etapa 10 do tutorial). O desenho do bloco é o
+   da caixa de antes, só um pouco mais justo: são até três. */
 
-.mt-ativa {
+.mt-aceitas {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+}
+
+.mt-aceitas[data-vazia='true'] {
+	display: none;
+}
+
+.mt-bloco {
 	border: 1px solid var(--accent);
 	border-radius: var(--radius-card);
 	background: var(--surface-inset);
-	padding: 8px;
+	padding: 6px 8px;
 }
 
-.mt-ativa[data-vazia='true'] {
-	display: none;
+/* Pronta para finalizar: ouro de DETALHE (a borda), nunca superfície — a regra
+   do design system, a mesma do `.mt-item--troca`. */
+.mt-bloco.is-pronta {
+	border-color: var(--gold-500);
+}
+
+.mt-bloco-topo {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	margin-bottom: 2px;
 }
 
 .mt-ativa-titulo {
 	font-weight: 700;
 	margin-bottom: 2px;
+}
+
+.mt-bloco-topo .mt-ativa-titulo {
+	flex: 1 1 auto;
+	min-width: 0;
+	margin-bottom: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.mt-bloco.is-pronta .mt-ativa-passo {
+	color: var(--gold-700, #8a6d1a);
+	font-weight: 700;
 }
 
 .mt-ativa-passo {
@@ -127,9 +167,20 @@
 	justify-content: space-between;
 }
 
+/* O nome do mapa ao lado do "Ir caçar": corta com reticências em vez de
+   empurrar o botão para fora do cartão estreito (236px no celular). */
 .mt-eta {
+	flex: 1 1 auto;
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
 	color: var(--text-muted);
 	font-size: var(--fs-desc);
+}
+
+.mt-ativa-acoes .mt-btn-mini {
+	flex: 0 0 auto;
 }
 
 .mt-btn-mini {
@@ -186,9 +237,17 @@
 	font-size: var(--fs-desc);
 }
 
-.mt-item[data-fila='true'] {
-	opacity: 0.75;
-	cursor: default;
+/* A linha de "Iniciar" com o "(i)" ao lado (01/10/2026): o botão da linha e o
+   "(i)" são IRMÃOS no `<li>` — botão dentro de botão não existe em HTML. */
+.mt-linha {
+	display: flex;
+	align-items: center;
+	gap: 4px;
+}
+
+.mt-linha .mt-item {
+	flex: 1 1 auto;
+	min-width: 0;
 }
 
 .mt-vazio {
@@ -618,7 +677,7 @@
 }
 
 /* ── o cartao vertical: a aba escolhe o que o corpo mostra ─────────────── */
-.ri-vertical .mt-painel[data-aba='codex'] .mt-ativa,
+.ri-vertical .mt-painel[data-aba='codex'] .mt-aceitas,
 .ri-vertical .mt-painel[data-aba='codex'] .mt-lista {
 	display: none;
 }

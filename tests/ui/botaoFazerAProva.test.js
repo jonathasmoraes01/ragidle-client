@@ -157,6 +157,17 @@ describe('a oferta bloqueada leva a pessoa ate a prova', () => {
 		expect(textoDaLista(ui)).toContain('Prova em andamento');
 	});
 
+	it('...e com o pacote de ate tres aceitas (01/10/2026): a prova ACEITA tambem diz isso', async () => {
+		// O pacote novo nao manda `ativaId`: a prova esta em `execucao.aceitas`
+		// e traz `aceita: true`. A leitura e a mesma das outras telas.
+		const ui = await montar([trocaDeClasse([ofertaBloqueada()]), { ...PROVA, estado: 'em-andamento', aceita: true }], {
+			aceitas: ['prova-arqueiro'],
+			maximo: 3
+		});
+		expect(botaoDaProva(ui)).toBeNull();
+		expect(textoDaLista(ui)).toContain('Prova em andamento');
+	});
+
 	it('A SEGUNDA METADE: prova concluida libera o "Ir ate o NPC"', async () => {
 		// `bloqueadaPor: null` e o que o servidor manda quando a prova fecha.
 		// Este caso e o que impede um conserto da primeira metade de quebrar a

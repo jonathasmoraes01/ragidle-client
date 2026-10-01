@@ -47,13 +47,29 @@ import { anotarRastreadorDoCodex, ehCorpoParcialDoRastreador, limparRastreadorDo
 import { linhaDoCaiDe } from './ondeCaiHtml.js';
 import { fecharEscolha, pedirOndeCai, receberOndeCai } from './escolhaDeMapa.js';
 import escolhaCss from './escolhaDeMapa.css?raw';
+// ATE TRES MISSOES AO MESMO TEMPO e o "(i)" (01/10/2026): as regras puras das
+// aceitas, o parcial de progresso (`v: 3`) e o painel de informacoes.
+import { missaoAceita, textoDoLimiteDeMissoes } from './podeIniciarMissao.js';
+import {
+	acoesDaMissaoAceita,
+	aplicarProgressoParcial,
+	ehCorpoParcialDeProgresso,
+	estadoParaOJogador
+} from './missoesAceitas.js';
+import {
+	alternarInfoDaMissao,
+	botaoDeInfoHtml,
+	fecharInfoDaMissao,
+	redesenharInfoDaMissao
+} from './infoDaMissao.js';
+import infoCss from './infoDaMissao.css?raw';
 
 /** Manter em sincronia com o ":host"/".mi-window" do CSS (mesmo papel do
  * WINDOW_WIDTH/HEIGHT de IdleConfig.js:47-48). */
 const WINDOW_WIDTH = 560;
 const WINDOW_HEIGHT = 520;
 
-const MissoesIdle = new GUIComponent('MissoesIdle', cssText + '\n' + escolhaCss);
+const MissoesIdle = new GUIComponent('MissoesIdle', cssText + '\n' + escolhaCss + '\n' + infoCss);
 
 MissoesIdle.render = () => htmlText;
 
@@ -74,9 +90,21 @@ MissoesIdle.missoes = [];
  */
 MissoesIdle.recebeuAlgumaVez = false;
 
-/** O retrato do EXECUTOR (D-601): {ativaId, tituloAtiva, passo, fila, pausada}.
- * O tracker (MissoesTrackerIdle) LÊ daqui — uma fonte só, um hook só. */
+/** O retrato do EXECUTOR: `{aceitas, maximo}` desde 01/10/2026 (ate tres
+ * missoes ao mesmo tempo, na ordem de aceite; antes era `{ativaId, passo, fila,
+ * pausada}`, D-601). O tracker (MissoesTrackerIdle) LÊ daqui — uma fonte só, um
+ * hook só. */
 MissoesIdle.execucao = null;
+
+/**
+ * JA PEDIMOS A LISTA INTEIRA por causa de um parcial que nao casou?
+ *
+ * O parcial de progresso (`v: 3`) indexa os objetivos pela POSICAO na ultima
+ * lista inteira. Se ele nao casa (outro numero de objetivos, missao que a lista
+ * nao tem), a lista daqui esta velha, e a resposta e pedir a inteira — UMA vez
+ * ate ela chegar, e nao uma por abate.
+ */
+let _pediuAListaInteira = false;
 
 /** As abas que existem, na ordem do HTML — a lista que valida o que veio do
  * `localStorage` (ver memoriaDeAba.js). */
@@ -166,6 +194,8 @@ const BADGES = {
 	bloqueada: { classe: 'ri-badge--cinza', rotulo: 'Bloqueada' },
 	disponivel: { classe: 'ri-badge--azul', rotulo: 'Disponível' },
 	'em-andamento': { classe: 'ri-badge--ouro', rotulo: 'Em andamento' },
+	// 01/10/2026: aceita e com tudo cumprido — o "Finalizar" esta aceso.
+	pronta: { classe: 'ri-badge--verde', rotulo: 'Pronta' },
 	concluida: { classe: 'ri-badge--verde', rotulo: 'Concluída' }
 };
 
@@ -179,6 +209,10 @@ MissoesIdle.limparEstadoDoPersonagem = function limparEstadoDoPersonagem() {
 	_missaoADestacar = null;
 	_jaRolouAteODestaque = false;
 	MissoesIdle.execucao = null;
+	_pediuAListaInteira = false;
+	// O painel "(i)" aberto por esta janela fala de uma missao do personagem
+	// anterior (01/10/2026).
+	fecharInfoDaMissao(conteinerDoInfo());
 	// O Codex é DO PERSONAGEM: a bolinha do anterior falaria de um progresso
 	// que este não tem. Ela volta no primeiro pacote da sessão nova (D-1232).
 	limparAvisoDoCodex();
@@ -267,6 +301,10 @@ MissoesIdle.toggle = function toggle() {
 	} else {
 		win.classList.add('is-open');
 		MissoesIdle.focus();
+		/* 01/10/2026: o parcial de progresso (`v: 3`) nao redesenha a janela
+		   FECHADA (ele chega a cada abate). Abrir desenha o que esta em memoria
+		   AGORA, e o pedido logo abaixo traz a lista inteira por cima. */
+		render();
 		Network.sendPacket(new PACKET.CZ.RAGIDLE_PEDIR_MISSOES());
 	}
 };
@@ -313,7 +351,64 @@ function closeWindow() {
 	// A escolha de mapa mora ao lado da janela: fecha junto, senao ficava
 	// sozinha na tela com a janela fechada atras (26/09/2026).
 	fecharEscolha(JANELA_DE_MISSOES);
+	// O painel "(i)" aberto POR ESTA janela tambem (01/10/2026). O do cartao da
+	// HUD, nao: `fecharInfoDaMissao` so fecha o painel deste conteiner.
+	fecharInfoDaMissao(conteinerDoInfo());
 	savePosition();
+}
+
+/** A janela esta aberta agora? */
+function janelaAberta() {
+	const root = _root();
+	const win = root && root.querySelector('.mi-window');
+	return !!(win && win.classList.contains('is-open'));
+}
+
+/**
+ * Onde o painel "(i)" desta janela mora: a RAIZ `#MissoesIdle`, e nao a
+ * `.mi-window` — o vidro da janela (`backdrop-filter`) prenderia o
+ * `position: fixed` do painel dentro dela (ver `infoDaMissao.css`).
+ */
+function conteinerDoInfo() {
+	const root = _root();
+	return root ? root.querySelector('#MissoesIdle') : null;
+}
+
+/**
+ * Manda uma acao de missao. TODA acao leva o id desde 01/10/2026: com ate
+ * tres aceitas nao ha "a ativa" para o servidor adivinhar — o "Ir caçar" leva
+ * ao objetivo DESTA missao, e o "Finalizar" entrega ESTA.
+ */
+function mandarAcaoDeMissao(acao, id) {
+	const pkt = new PACKET.CZ.RAGIDLE_MISSAO_ACAO();
+	pkt.json = JSON.stringify(id ? { acao, id } : { acao });
+	Network.sendPacket(pkt);
+	// O "Ir caçar" troca de mapa: a janela fecha para nao cobrir a chegada,
+	// como no "Ir até o NPC".
+	if (acao === 'teleporte') {
+		closeWindow();
+	}
+}
+
+/** O gesto do "(i)" de um cartao: abre o painel da missao; de novo, fecha. */
+function alternarInfo(id) {
+	const conteiner = conteinerDoInfo();
+	if (!conteiner || !id) {
+		return;
+	}
+	alternarInfoDaMissao({
+		id,
+		conteiner,
+		host: MissoesIdle._host,
+		ancora: () => {
+			const root = _root();
+			const botoes = root ? root.querySelectorAll('.mi-body [data-info]') : [];
+			return Array.from(botoes).find(b => b.getAttribute('data-info') === id) || null;
+		},
+		dados: () => ({ missoes: MissoesIdle.missoes || [], execucao: MissoesIdle.execucao || null }),
+		agir: mandarAcaoDeMissao
+		// Sem `verNaJanela`: o painel ja foi aberto DE DENTRO da janela.
+	});
 }
 
 /** Esta janela para o fluxo do "Ir ao mapa" — a escolha nasce DENTRO da
@@ -460,18 +555,27 @@ function render() {
 		});
 	});
 
-	// O 1-CLIQUE do executor (D-601): Iniciar/Teleporte/Retomar mandam a ação e
-	// o SERVIDOR decide — recusa educada chega pelo feed, nunca um alert.
+	// O 1-CLIQUE do executor (D-601): Iniciar/Finalizar/Ir caçar/Abandonar
+	// mandam a ação e o SERVIDOR decide — recusa educada chega pelo feed, nunca
+	// um alert. Desde 01/10/2026 TODAS levam o id (ver `mandarAcaoDeMissao`).
 	body.querySelectorAll('[data-executar]').forEach(btn => {
 		btn.addEventListener('click', e => {
 			e.stopImmediatePropagation();
-			const pkt = new PACKET.CZ.RAGIDLE_MISSAO_ACAO();
-			const acao = btn.dataset.executar;
-			// D-1150: iniciar E abandonar levam o id; teleporte/retomar agem na ativa/fila.
-			pkt.json = JSON.stringify(
-				acao === 'iniciar' || acao === 'abandonar' ? { acao, id: btn.dataset.id } : { acao }
-			);
-			Network.sendPacket(pkt);
+			// O "Finalizar" apagado (objetivos por cumprir) e o "3 de 3" nao
+			// mandam nada: o navegador ja nao dispara clique em botao desabilitado,
+			// e esta guarda cobre quem o dispare por fora.
+			if (btn.disabled) {
+				return;
+			}
+			mandarAcaoDeMissao(btn.dataset.executar, btn.dataset.id || null);
+		});
+	});
+
+	// O "(i)" (01/10/2026): abre o painel com tudo da missao; de novo, fecha.
+	body.querySelectorAll('[data-info]').forEach(btn => {
+		btn.addEventListener('click', e => {
+			e.stopImmediatePropagation();
+			alternarInfo(btn.getAttribute('data-info'));
 		});
 	});
 }
@@ -508,10 +612,12 @@ function botaoDaProva(c, execucao) {
 	if (!id) {
 		return '';
 	}
-	if (execucao && execucao.ativaId === id) {
+	const prova = (MissoesIdle.missoes || []).find(x => x.id === id);
+	// ACEITA e "em andamento" (01/10/2026: ate tres juntas, sem "a ativa"); a
+	// leitura e a mesma das outras telas (`missaoAceita`).
+	if (missaoAceita(prova || { id }, execucao)) {
 		return '<span class="mi-classe-bloqueio">Prova em andamento…</span>';
 	}
-	const prova = (MissoesIdle.missoes || []).find(x => x.id === id);
 	if (!prova || !prova.executavel || !podeIniciarMissao(prova, execucao || {})) {
 		return '';
 	}
@@ -520,26 +626,41 @@ function botaoDaProva(c, execucao) {
 		' data-id="' + escapeHtml(id) + '">Fazer a prova</button>'
 	);
 }
+/**
+ * OS BOTOES DE UMA MISSAO ACEITA (01/10/2026): Finalizar (aceso so com
+ * `pronta`), Ir caçar (so com destino), Abandonar e o "(i)". O QUE aparece e
+ * quando acende e de `acoesDaMissaoAceita` — a mesma resposta do painel "(i)".
+ */
+function botoesDaAceita(m) {
+	const id = escapeHtml(m.id);
+	return (
+		botaoDeInfoHtml(m, 'mi-info') +
+		acoesDaMissaoAceita(m)
+			.map(
+				a =>
+					`<button type="button" class="ri-btn ${a.destaque ? 'ri-btn--ouro' : 'ri-btn--sec'} mi-executar"` +
+					` data-executar="${a.acao}" data-id="${id}"${a.habilitado ? '' : ' disabled'}` +
+					` title="${escapeHtml(a.titulo)}">${escapeHtml(a.rotulo)}</button>`
+			)
+			.join('')
+	);
+}
+
 function cardDeMissao(m) {
-	const badge = BADGES[m.estado] || BADGES.bloqueada;
 	const execucao = MissoesIdle.execucao || {};
+	// O selo e o estado como o JOGADOR o le (01/10/2026): aceita = "Em
+	// andamento" (ou "Pronta"); a abandonada com progresso guardado volta a ser
+	// "Disponível", porque nada anda nela ate ele aceitar de novo.
+	const badge = BADGES[estadoParaOJogador(m, execucao)] || BADGES.bloqueada;
 
 	// O botão do executor (D-601): um clique, nenhuma pergunta.
 	let botao = '';
 	if (m.executavel) {
-		if (execucao.ativaId === m.id) {
-			botao =
-				// D-1642: era "Pausar". O botão virou deslocamento e só: ele leva o
-				// personagem ao lugar do passo atual. "Pausar" existia para desfazer
-				// o farm que a missão tomava, e a missão não toma mais nada (D-1641).
-				`<button type="button" class="ri-btn ri-btn--sec mi-executar" data-executar="teleporte" title="Leva você ao lugar do passo atual da missão">Teleporte</button>` +
-				`<button type="button" class="ri-btn ri-btn--sec mi-executar" data-executar="abandonar" data-id="${escapeHtml(m.id)}" title="O progresso fica guardado">Abandonar</button>`;
-		} else if (m.naFila) {
-			// D-1150: a que esta na fila tambem pode ser largada — sem isto uma
-			// missao que nao andasse ficava na fila para sempre.
-			botao =
-				`<span class="mi-fila-aviso">Na fila…</span>` +
-				`<button type="button" class="ri-btn ri-btn--sec mi-executar" data-executar="abandonar" data-id="${escapeHtml(m.id)}" title="O progresso fica guardado">Abandonar</button>`;
+		if (missaoAceita(m, execucao)) {
+			// 01/10/2026: era "Teleporte" + "Abandonar" na unica ativa, e "Na
+			// fila…" nas outras. Com ate tres aceitas ao mesmo tempo, cada uma
+			// tem os proprios botoes, e a fila deixou de existir.
+			botao = botoesDaAceita(m);
 		} else if (podeIniciarMissao(m, execucao)) {
 			/* A REGRA MORA EM `podeIniciarMissao.js` (I16, 31/08/2026).
 			   O teste que estava aqui — `estado === 'disponivel' || (concluida
@@ -548,6 +669,11 @@ function cardDeMissao(m) {
 			   fica). O rastreador tinha o mesmo esquecimento, escrito separado.
 			   Uma regra so, com teste que a executa. */
 			botao = `<button type="button" class="ri-btn ri-btn--ouro mi-executar" data-executar="iniciar" data-id="${escapeHtml(m.id)}">Iniciar</button>`;
+		} else if (podeIniciarMissao(m, execucao, { ignorarLimite: true })) {
+			/* O TETO (01/10/2026): ela comecaria, se nao fossem as tres aceitas.
+			   O botao fica no lugar, APAGADO, dizendo por que — sumir com ele
+			   deixaria o jogador procurando o "Iniciar" que sempre esteve ali. */
+			botao = `<button type="button" class="ri-btn ri-btn--sec mi-executar mi-limite" disabled title="Finalize ou abandone uma missão para aceitar outra">${escapeHtml(textoDoLimiteDeMissoes(execucao))}</button>`;
 		} else if (m.cooldownS > 0) {
 			botao = `<span class="mi-fila-aviso">Recarrega em ${Math.ceil(m.cooldownS / 60)} min</span>`;
 		}
@@ -646,11 +772,24 @@ function onMissoesRecebidas(pkt) {
 		anotarRastreadorDoCodex(dados.codexRastreado);
 		return;
 	}
+	/*
+	 * O PARCIAL DE PROGRESSO (`v: 3`, 01/10/2026): na maioria dos abates e das
+	 * mudancas de mochila o servidor manda so o progresso das missoes que
+	 * andaram e a lista das prontas, no lugar da lista inteira (~17 KB). Ele e
+	 * FUNDIDO na lista que a ultima inteira trouxe, sem jogar fora o resto —
+	 * e o cartao da HUD e o Codex, que leem este estado por polling, veem a
+	 * mudanca pela assinatura.
+	 */
+	if (ehCorpoParcialDeProgresso(dados)) {
+		fundirProgressoParcial(dados);
+		return;
+	}
 	if (!dados || dados.v !== 1) {
 		return;
 	}
 	MissoesIdle.missoes = Array.isArray(dados.missoes) ? dados.missoes : [];
 	MissoesIdle.execucao = dados.execucao && typeof dados.execucao === 'object' ? dados.execucao : null;
+	_pediuAListaInteira = false;
 	/*
 	 * A BOLINHA DO CODEX PEGA CARONA NESTE PACOTE (D-1232).
 	 *
@@ -666,6 +805,8 @@ function onMissoesRecebidas(pkt) {
 	anotarRastreadorDoCodex(dados.codexRastreado);
 	MissoesIdle.recebeuAlgumaVez = true;
 	render();
+	// O painel "(i)" aberto acompanha a lista nova (ou fecha, se a missao saiu).
+	redesenharInfoDaMissao();
 	/*
 	 * A RESPOSTA DO "IR AO MAPA" (26/09/2026). Quem decide se ela responde ao
 	 * clique (o pacote e empurrado a toda hora, e uma lista velha nao pode
@@ -675,6 +816,37 @@ function onMissoesRecebidas(pkt) {
 	if (dados.ondeCai) {
 		receberOndeCai(dados.ondeCai);
 	}
+}
+
+/**
+ * Funde o parcial de progresso (`v: 3`) no estado. A regra da fusao e pura
+ * (`aplicarProgressoParcial`, `missoesAceitas.js`); aqui fica o laco com o
+ * resto: pedir a lista inteira quando o parcial nao casa, e redesenhar.
+ *
+ * - SEM LISTA AINDA (`recebeuAlgumaVez` falso), nao ha onde fundir: o parcial
+ *   e descartado, e a lista inteira que a entrada no mapa forca traz tudo.
+ * - A JANELA FECHADA NAO REDESENHA: o parcial chega a cada abate, e o
+ *   `toggle` desenha ao abrir. O cartao da HUD e o Codex leem o estado por
+ *   polling, e o painel "(i)" aberto e redesenhado aqui.
+ */
+function fundirProgressoParcial(dados) {
+	if (!MissoesIdle.recebeuAlgumaVez) {
+		return;
+	}
+	const r = aplicarProgressoParcial(MissoesIdle.missoes, dados);
+	if (r.divergentes.length && !_pediuAListaInteira) {
+		_pediuAListaInteira = true;
+		console.warn('[MissoesIdle] o parcial de progresso nao casa com a lista; pedindo a lista inteira:', r.divergentes);
+		Network.sendPacket(new PACKET.CZ.RAGIDLE_PEDIR_MISSOES());
+	}
+	if (!r.mudou) {
+		return;
+	}
+	MissoesIdle.missoes = r.missoes;
+	if (janelaAberta()) {
+		render();
+	}
+	redesenharInfoDaMissao();
 }
 
 Network.hookPacket(PACKET.ZC.RAGIDLE_MISSOES, onMissoesRecebidas);
