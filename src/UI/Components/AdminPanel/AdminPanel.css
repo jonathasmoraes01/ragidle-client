@@ -345,6 +345,24 @@
 	border: none;
 }
 
+/* ─── O evento de gacha (D-1900) ─────────────────────────── */
+/* Os controles reusam as classes do evento de EXP (e a regra do dedo abaixo os
+   alcanca pelo `.ap-evento` da secao); aqui so o botao de encerrar, com a mesma
+   cor de perigo dos outros. As quatro caixas sao chips que quebram linha
+   (`.ap-chips`), e os dois multiplicadores lado a lado (`.ap-evento-bonus`). */
+
+#AdminPanel .ap-gacha-encerrar {
+	background: var(--red-600);
+	color: var(--white);
+	border: none;
+}
+
+/* A dica dos multiplicadores separa os dois campos da duracao (fotografado em
+   393x852: sem a margem, ela colava no rotulo "Duracao"). */
+#AdminPanel .ap-gacha-dica {
+	margin: 4px 0 10px 0;
+}
+
 /* No DEDO, os alvos do evento ganham a altura tatil (a regra de 44px da HUD,
    `--hit-touch` em Common.css) — os atalhos de duracao sao os menores da
    janela e seriam os primeiros a errar o toque. */

@@ -62,6 +62,7 @@ import {
 	pedidoDeIniciarDaEquipe,
 	rascunhoInicialDaEquipe
 } from './eventosDaEquipe.js';
+import { htmlDoEventoDeGacha, pedidoDeEncerrarDoGacha, pedidoDeIniciarDoGacha, rascunhoDoGacha } from './eventoDeGacha.js';
 import htmlText from './AdminPanel.html?raw';
 import cssText from './AdminPanel.css?raw';
 
@@ -176,6 +177,19 @@ AdminPanel.eventosDaEquipeFimLocal = { drop: 0, respawn: 0 };
 
 /** @var {{drop:boolean, respawn:boolean}} o pedido do retrato novo no fim ja saiu — um por evento. */
 AdminPanel._equipePediuFim = { drop: false, respawn: false };
+
+/**
+ * @var {{pool:string,lendario:number,raro:number,horas:number}|null} o rascunho
+ *      do EVENTO DE GACHA (D-1900) — nasce na primeira resposta do servidor,
+ *      que e quem diz quais caixas existem (`rascunhoDoGacha`).
+ */
+AdminPanel.gachaDraft = null;
+
+/** @var {number} o fim do evento de gacha no relogio desta maquina (0 = sem). */
+AdminPanel.gachaFimLocal = 0;
+
+/** @var {boolean} o pedido do retrato novo no fim do gacha ja saiu — um por evento. */
+AdminPanel._gachaPediuFim = false;
 
 /**
  * @var {Preferences} window position (x/y are null until the player moves it)
@@ -474,6 +488,11 @@ function onAdminReceived(pkt) {
 			AdminPanel.eventosDaEquipeFimLocal[tipo] = fimLocalDaEquipe(data.eventosDoAdmin[tipo], agoraLocal);
 			AdminPanel._equipePediuFim[tipo] = false;
 		});
+		// O de GACHA (D-1900): o mesmo relogio local, e o rascunho conferido
+		// contra as caixas que o servidor oferece agora.
+		AdminPanel.gachaFimLocal = fimLocalDaEquipe(data.eventosDoAdmin.gacha, agoraLocal);
+		AdminPanel._gachaPediuFim = false;
+		AdminPanel.gachaDraft = rascunhoDoGacha(AdminPanel.gachaDraft, data.eventosDoAdmin.gacha);
 		if (rejected && AdminPanel.serverData) {
 			AdminPanel.serverData.eventosDoAdmin = data.eventosDoAdmin;
 		}
@@ -574,6 +593,7 @@ function renderBody() {
 	bodyEl.innerHTML = `
 		${renderEvento()}
 		${renderEventosDaEquipe()}
+		${renderEventoDeGacha()}
 		<div class="ap-section ri-card">
 			<h3>Personagem</h3>
 			<div class="ap-field-row">
@@ -619,6 +639,7 @@ function renderBody() {
 	bindFieldControls(bodyEl);
 	bindEventoControls(bodyEl);
 	bindEventosDaEquipe(bodyEl);
+	bindEventoDeGacha(bodyEl);
 }
 
 /**
@@ -856,6 +877,7 @@ function iniciarRelogioDoEvento() {
 	AdminPanel._eventoTimer = setInterval(() => {
 		atualizarRelogioDoEvento();
 		atualizarRelogiosDaEquipe();
+		atualizarRelogioDoGacha();
 	}, 1000);
 }
 
@@ -988,6 +1010,105 @@ function atualizarRelogiosDaEquipe() {
 			setTimeout(requestAdmin, 1500);
 		}
 	});
+}
+
+/* ─── O EVENTO DE GACHA (D-1900) ──────────────────────────── */
+/*
+ * O pedido, o rascunho e o HTML moram em `eventoDeGacha.js` (puro, com teste);
+ * aqui so a costura com a janela, no molde do drop e do respawn logo acima. Os
+ * seletores sao proprios — ver o cabecalho daquele arquivo.
+ */
+
+function renderEventoDeGacha() {
+	const retrato = AdminPanel.serverData && AdminPanel.serverData.eventosDoAdmin && AdminPanel.serverData.eventosDoAdmin.gacha;
+	if (!retrato || !AdminPanel.gachaDraft) {
+		return '';
+	}
+	return htmlDoEventoDeGacha({
+		retrato,
+		rascunho: AdminPanel.gachaDraft,
+		fimLocal: AdminPanel.gachaFimLocal,
+		agoraLocal: Date.now(),
+		ajuda: { escapeHtml, rotuloDeHoras, faltamPorExtenso, formatarFim: formatarFimDoEvento }
+	});
+}
+
+function bindEventoDeGacha(bodyEl) {
+	const rascunho = AdminPanel.gachaDraft;
+	if (!rascunho) {
+		return;
+	}
+	bodyEl.querySelectorAll('[data-gacha-campo]').forEach(campo => {
+		campo.addEventListener('input', () => {
+			rascunho[campo.dataset.gachaCampo] = Number(campo.value);
+			if (campo.dataset.gachaCampo === 'horas') {
+				marcarChipsDoGacha(bodyEl, 'data-gacha-horas', String(rascunho.horas));
+			}
+		});
+	});
+	bodyEl.querySelectorAll('.ap-chip[data-gacha-caixa]').forEach(chip => {
+		chip.addEventListener('click', e => {
+			e.stopImmediatePropagation();
+			rascunho.pool = chip.dataset.gachaCaixa;
+			marcarChipsDoGacha(bodyEl, 'data-gacha-caixa', rascunho.pool);
+		});
+	});
+	bodyEl.querySelectorAll('.ap-chip[data-gacha-horas]').forEach(chip => {
+		chip.addEventListener('click', e => {
+			e.stopImmediatePropagation();
+			rascunho.horas = Number(chip.dataset.gachaHoras);
+			const campo = bodyEl.querySelector('[data-gacha-campo="horas"]');
+			if (campo) {
+				campo.value = String(rascunho.horas);
+			}
+			marcarChipsDoGacha(bodyEl, 'data-gacha-horas', String(rascunho.horas));
+		});
+	});
+	const retrato = AdminPanel.serverData.eventosDoAdmin.gacha;
+	const iniciar = bodyEl.querySelector('.ap-gacha-iniciar');
+	if (iniciar) {
+		iniciar.addEventListener('click', e => {
+			e.stopImmediatePropagation();
+			const enviar = () => enviarPatchDoEvento(pedidoDeIniciarDoGacha(AdminPanel.gachaDraft), 'Iniciando evento...');
+			// Substituir o que esta valendo pede o segundo toque, como nos outros.
+			if (retrato.ativo) {
+				comConfirmacao(iniciar, enviar);
+			} else {
+				enviar();
+			}
+		});
+	}
+	const encerrar = bodyEl.querySelector('.ap-gacha-encerrar');
+	if (encerrar) {
+		encerrar.addEventListener('click', e => {
+			e.stopImmediatePropagation();
+			comConfirmacao(encerrar, () => enviarPatchDoEvento(pedidoDeEncerrarDoGacha(), 'Encerrando evento...'));
+		});
+	}
+}
+
+/** Marca o chip escolhido de UM grupo (a caixa ou a duracao). */
+function marcarChipsDoGacha(bodyEl, atributo, valor) {
+	bodyEl.querySelectorAll(`.ap-chip[${atributo}]`).forEach(chip => {
+		chip.classList.toggle('is-sel', chip.getAttribute(atributo) === valor);
+	});
+}
+
+function atualizarRelogioDoGacha() {
+	const retrato = AdminPanel.serverData && AdminPanel.serverData.eventosDoAdmin && AdminPanel.serverData.eventosDoAdmin.gacha;
+	if (!retrato || !retrato.ativo) {
+		return;
+	}
+	const restante = AdminPanel.gachaFimLocal - Date.now();
+	const el = _root().querySelector('[data-faltam-do-gacha]');
+	if (el) {
+		el.textContent = faltamPorExtenso(restante);
+	}
+	// Quem encerra e o tique do servidor; aqui so se pede o retrato novo, uma vez.
+	if (restante <= 0 && !AdminPanel._gachaPediuFim) {
+		AdminPanel._gachaPediuFim = true;
+		setTimeout(requestAdmin, 1500);
+	}
 }
 
 Network.hookPacket(PACKET.ZC.RAGIDLE_ADMIN, onAdminReceived);
