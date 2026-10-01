@@ -1201,6 +1201,68 @@ ui-button {
 	color: var(--gold-700);
 	border: 1px solid var(--gold-300);
 }
+
+/* ─── O SELETOR DE NIVEL DE USO (D-1906) ─────────────────────────────────
+   `[−] Nv 7/10 · 22 SP [+]` + o selo "fixo"/"max". O HTML sai de um lugar so
+   (`UI/nivelDeUso.js`, `htmlDoSeletorDeNivel`) e o estilo tambem: este
+   arquivo e replicado em todo Shadow DOM, entao a Configuracao idle, a janela
+   de Habilidades e a barra de atalhos desenham o MESMO seletor. Os botoes sao
+   o disco de 22px do `.ic-icon-btn` (o mouse acerta sem esforco); no dedo eles
+   viram 44x44 (o bloco `pointer: coarse` logo abaixo). */
+.ri-nivel {
+	display: inline-flex;
+	align-items: center;
+	gap: var(--sp-1);
+	flex-wrap: nowrap;
+	min-width: 0;
+}
+.ri-nivel-btn {
+	appearance: none;
+	flex: 0 0 auto;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	box-sizing: border-box;
+	width: 22px;
+	height: 22px;
+	padding: 0;
+	border-radius: 50%;
+	border: 1px solid var(--border-hairline);
+	background: var(--white);
+	color: var(--blue-600);
+	font-family: var(--font-ui);
+	font-size: var(--fs-section);
+	font-weight: var(--fw-bold);
+	line-height: 1;
+	cursor: pointer;
+	transition:
+		background var(--dur-fast),
+		border-color var(--dur-fast);
+}
+.ri-nivel-btn:hover:not(:disabled) {
+	background: var(--surface-card-hover);
+	border-color: var(--accent);
+}
+.ri-nivel-btn:disabled {
+	opacity: 0.3;
+	cursor: not-allowed;
+}
+.ri-nivel-valor {
+	font: var(--type-badge);
+	font-weight: var(--fw-semibold);
+	color: var(--text-title);
+	white-space: nowrap;
+	font-variant-numeric: tabular-nums;
+}
+.ri-nivel-selo {
+	flex: 0 0 auto;
+}
+@media (pointer: coarse) {
+	.ri-nivel-btn {
+		width: var(--hit-touch, 44px);
+		height: var(--hit-touch, 44px);
+	}
+}
 /* A SUBSECAO DEBUFF (16/09/2026, ESPECIFICACAO_MENU_IDLE_INTELIGENTE.md §1) —
    so tem duas escalas de vermelho no design system (--red-300/--red-600), e
    nao um trio bg/ink/border como as outras tres cores: o bg e o --red-600

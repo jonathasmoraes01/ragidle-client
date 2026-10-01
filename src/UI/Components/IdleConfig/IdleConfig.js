@@ -84,6 +84,8 @@ import {
 	resumoDaSecao,
 	curaLigadaPara
 } from './secoesDaConfig.js';
+import { aplicarPassoDeNivel, lembrarSpDoContexto, nivelEscolhidoServido, seletorDaCura, seletorDaEntrada } from './nivelNaConfig.js';
+import { lerPassoDoSeletor } from 'UI/nivelDeUso.js';
 import htmlText from './IdleConfig.html?raw';
 import cssText from './IdleConfig.css?raw';
 import { fecharEEsquecer } from '../limpezaDeJanelaIdle.js';
@@ -671,6 +673,8 @@ function onConfigReceived(pkt) {
 
 	IdleConfig.contexto = data.contexto;
 	IdleConfig.contextoObsoleto = false;
+	// D-1906: o SP por nivel fica lembrado para a dica da barra de atalhos.
+	lembrarSpDoContexto(data.contexto);
 	aplicarEstadoDeCidade();
 	IdleConfig.problemas = rejected ? data.problemas : [];
 
@@ -1409,7 +1413,7 @@ function renderAtaque() {
 				<span class="ic-rot-main">
 					<span class="ic-rot-name" title="${escapeHtml(r.skillId)}">${escapeHtml(nomeDaSkill(r.skillId))}</span>
 					<span class="ic-rot-tags">
-						<span class="ri-badge ri-badge--azul">Nv ${r.nivelDeUso}</span>
+						${seletorDaEntrada({ chave: `rotacao.${i}`, entrada: r, info: ativas.find(s => s.skillId === r.skillId), capaz: nivelEscolhidoServido(ctx), nome: nomeDaSkill(r.skillId) })}
 						${curas.has(r.skillId) ? '<span class="ri-badge ri-badge--verde" title="O limiar e o alvo desta cura se ajustam na seção Suporte">cura · ajuste em Suporte</span>' : ''}
 						${debuffs.has(r.skillId) ? '<span class="ri-badge ri-badge--vermelho" title="Aplica algo negativo no inimigo (não é dano direto)">Debuff</span>' : ''}
 					</span>
@@ -1523,7 +1527,29 @@ function renderAtaque() {
 		</div>`;
 }
 
+/**
+ * O "−"/"+" do NIVEL DE USO (D-1906), nas tres listas. Um ouvinte por
+ * seletor desenhado (o painel e redesenhado inteiro a cada mudanca, entao um
+ * ouvinte no painel se acumularia); quem decide o que o passo muda e
+ * `aplicarPassoDeNivel` (`nivelNaConfig.js`).
+ */
+function bindNiveis(pane) {
+	pane.querySelectorAll('[data-nivel-chave]').forEach(seletor => {
+		seletor.addEventListener('click', e => {
+			const passo = lerPassoDoSeletor(e.target);
+			if (!passo) {
+				return;
+			}
+			if (aplicarPassoDeNivel(IdleConfig.editConfig, IdleConfig.contexto, passo.chave, passo.passo)) {
+				markDirty();
+				renderBody();
+			}
+		});
+	});
+}
+
 function bindAtaqueExtra(pane) {
+	bindNiveis(pane);
 	pane.querySelectorAll('[data-rot-action]').forEach(btn => {
 		btn.addEventListener('click', () => {
 			const idx = Number(btn.dataset.rotIndex);
@@ -1626,15 +1652,20 @@ function renderBuffsMantidos() {
 					const info = infoDe(b.skillId);
 					const alcanca = !!(info && info.alcancaGrupo);
 					const alvo = alvoDoBuff(b);
+					// D-1906: com o seletor, o SP mora nele (o do nivel ESCOLHIDO). A
+					// duracao que o servidor manda e a do nivel APRENDIDO, entao ela so
+					// aparece quando o buff acompanha o aprendido — fixado abaixo, ela
+					// seria um numero de outro nivel.
+					const comSeletor = nivelEscolhidoServido(ctx) && !!info;
 					return `
 			<div class="ic-buff-row">
 				<span class="ic-rot-num">${i + 1}</span>
 				<span class="ic-rot-main">
 					<span class="ic-rot-name" title="${escapeHtml(b.skillId)}">${escapeHtml(nomeDaSkill(b.skillId))}</span>
 					<span class="ic-rot-tags">
-						<span class="ri-badge ri-badge--azul">Nv ${b.nivelDeUso}</span>
-						${info ? `<span class="ri-badge ri-badge--cinza ic-badge-relogio" title="Renovado assim que cair">${RiIcones.relogio}${duracaoCurta(info.duracaoMs)}</span>` : ''}
-						${info ? `<span class="ri-badge ri-badge--cinza">${info.custoSp} SP</span>` : ''}
+						${seletorDaEntrada({ chave: `rotacaoDeBuffs.${i}`, entrada: b, info, capaz: nivelEscolhidoServido(ctx), nome: nomeDaSkill(b.skillId) })}
+						${info && b.nivelFixo !== true ? `<span class="ri-badge ri-badge--cinza ic-badge-relogio" title="Renovado assim que cair">${RiIcones.relogio}${duracaoCurta(info.duracaoMs)}</span>` : ''}
+						${info && !comSeletor ? `<span class="ri-badge ri-badge--cinza">${info.custoSp} SP</span>` : ''}
 					</span>
 				</span>
 				${
@@ -1721,6 +1752,15 @@ function renderCura() {
 				: ligada
 					? 'Usada sozinha quando a barra cair abaixo do limite, sem ocupar vaga na ordem de golpes.'
 					: 'Desligada: o personagem não usa esta habilidade sozinho.';
+			// D-1906: o nivel em que ESTA cura sai (Curar no 5 gasta menos SP que
+			// no 10). Com o seletor, o nivel e o SP moram nele; sem ele (a Aid
+			// Potion, a de um nivel so, servidor antigo), a meta de sempre.
+			const seletor = seletorDaCura({
+				cura: c,
+				ajuste,
+				capaz: nivelEscolhidoServido(ctx),
+				nome: c.nome || c.skillId
+			});
 			return `
 			<div class="ic-cura-item">
 				<label class="ic-switch-row">
@@ -1729,10 +1769,11 @@ function renderCura() {
 						<span class="ic-switch-track"></span>
 					</span>
 					<span class="ic-switch-text">
-						<span class="ic-switch-label">${escapeHtml(c.nome || c.skillId)} <span class="ic-card-meta">Nv ${c.aprendido} · ${custo}</span></span>
+						<span class="ic-switch-label">${escapeHtml(c.nome || c.skillId)}${seletor ? '' : ` <span class="ic-card-meta">Nv ${c.aprendido} · ${custo}</span>`}</span>
 						<span class="ic-switch-sub">${explicacao}</span>
 					</span>
 				</label>
+				${seletor ? `<div class="ic-nivel-cura${ligada ? '' : ' is-desligada'}">${seletor}</div>` : ''}
 				<div class="ic-field-row ic-field-row--seg${ligada ? '' : ' ic-subsection-disabled'}">
 					<span>Quem curar</span>
 					${segmentadoDeAlvo(`cura.habilidades.${c.skillId}.alvo`, alvo, alcanca, 'Quem curar')}
@@ -1759,6 +1800,7 @@ function renderCura() {
 }
 
 function bindSuporteExtra(pane) {
+	bindNiveis(pane);
 	pane.querySelectorAll('[data-buff-action]').forEach(btn => {
 		btn.addEventListener('click', () => {
 			const idx = Number(btn.dataset.buffIndex);

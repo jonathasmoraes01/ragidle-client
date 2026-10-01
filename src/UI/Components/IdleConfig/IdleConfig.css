@@ -1263,3 +1263,29 @@
 /* 08/09/2026: um bloco por habilidade de cura (interruptor + alvo proprios) */
 .ic-cura-item { padding: 4px 0 6px; border-top: 1px solid rgba(255, 255, 255, 0.06); }
 .ic-cura-item:first-of-type { border-top: 0; }
+
+/* ─── D-1906: o NIVEL DE USO nas linhas da ordem de golpes, dos buffs e da
+   cura. O seletor em si (`.ri-nivel`) e do `Common.css`; aqui so o encaixe
+   dele nesta janela. A cura desligada continua mexivel — a escolha fica
+   guardada para quando ligar —, so esmaece como o "Quem curar" ao lado. */
+#IdleConfig .ic-nivel-cura {
+	margin-top: var(--sp-2);
+}
+
+#IdleConfig .ic-nivel-cura.is-desligada {
+	opacity: 0.5;
+}
+
+#IdleConfig .ic-nivel-linha {
+	margin: 0;
+}
+
+/* No celular em pe os botoes do seletor tem 44px (Common.css, `pointer:
+   coarse`), e a linha da habilidade ja carrega numero, nome e acoes: o
+   seletor desce para uma linha propria dentro dela, e os outros selos
+   (Debuff, cura) vem depois. Na mesma linha ele espremeria o nome. */
+@media (max-width: 599px) {
+	#IdleConfig .ic-rot-tags .ri-nivel {
+		flex: 1 1 100%;
+	}
+}
