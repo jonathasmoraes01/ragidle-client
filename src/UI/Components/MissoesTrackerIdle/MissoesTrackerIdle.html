@@ -34,7 +34,10 @@
 			<button type="button" class="mt-recolher" title="Recolher">−</button>
 		</div>
 		<div class="mt-corpo">
-			<div class="mt-ativa" data-vazia="true"></div>
+			<!-- 01/10/2026: as missoes ACEITAS (ate 3, todas andando juntas), uma
+			     por bloco. A primeira ganha tambem `.mt-ativa`, que e onde a
+			     etapa 10 do tutorial aponta ("este e o seu objetivo"). -->
+			<ul class="mt-aceitas" data-vazia="true"></ul>
 			<ul class="mt-lista"></ul>
 			<!-- D-1839: o RASTREADOR DO CODEX - as entradas marcadas (estrela) na
 			     janela do Codex, com o contador. Some quando nao ha nada marcado. -->

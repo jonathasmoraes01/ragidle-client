@@ -187,8 +187,18 @@
 
 #MissoesIdle .mi-card-rodape {
 	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
 	justify-content: flex-end;
+	gap: 6px;
 	margin-top: 8px;
+}
+
+/* O "(i)" da missao aceita (01/10/2026) fica na ponta ESQUERDA do rodape, longe
+   dos botoes de acao: e informacao, e nao mais uma acao na fila delas. A pele
+   e a de `infoDaMissao.css`. */
+#MissoesIdle .mi-card-rodape .mi-info {
+	margin-right: auto;
 }
 
 #MissoesIdle .mi-card-badges {

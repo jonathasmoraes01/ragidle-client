@@ -1757,6 +1757,11 @@
 
 #CodexIdle .cx-mg-rodape {
 	display: flex;
+	/* 01/10/2026: a missao aceita tem ate tres botoes (Finalizar, Ir caçar,
+	   Abandonar). No celular de 350px eles quebram linha em vez de sair da
+	   janela. */
+	flex-wrap: wrap;
+	gap: var(--sp-3);
 	justify-content: flex-end;
 	margin-top: var(--sp-5);
 }

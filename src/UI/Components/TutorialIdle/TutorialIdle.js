@@ -77,6 +77,10 @@ import GUIComponent from 'UI/GUIComponent.js';
 import Cursor from 'UI/CursorManager.js';
 import RiIcones from 'UI/ri-icones.js';
 import MissoesIdle from 'UI/Components/MissoesIdle/MissoesIdle.js';
+// 01/10/2026: sem "a ativa" (ate tres aceitas), as etapas 7 e 10 perguntam a
+// PRIMEIRA aceita — a mesma que o cartao da HUD marca com `.mt-ativa`.
+import { quantasAceitas, missaoAceita } from 'UI/Components/MissoesIdle/podeIniciarMissao.js';
+import { progressoDaPrimeiraAceita } from 'UI/Components/MissoesIdle/missoesAceitas.js';
 import BoasVindasIdle from 'UI/Components/BoasVindasIdle/BoasVindasIdle.js';
 import Inventory from 'UI/Components/Inventory/Inventory.js';
 import ItemType from 'DB/Items/ItemType.js';
@@ -350,7 +354,9 @@ function marcoDaEtapa(numero) {
 		mapa: MapRenderer.currentMap || '',
 		arma: (Session.Entity && Session.Entity.weapon) || 0,
 		abates: abatesAgora(),
-		progresso: execucao && execucao.passo ? execucao.passo.progresso || 0 : 0,
+		/* O contador da PRIMEIRA aceita (01/10/2026; era o passo da unica
+		   ativa). Ver `progressoDaPrimeiraAceita`, que diz por que e a soma. */
+		progresso: progressoDaPrimeiraAceita(MissoesIdle.missoes, execucao),
 		/* `Session.zeny` (Engine/SessionStorage.js) e o MESMO getter que a HUD
 		   le para desenhar o saldo (BasicInfoIdle.js:501) - o personagem novo
 		   nasce com `zeny: 0` (servidor/char/servidor-char.ts) e so ganha o do
@@ -526,9 +532,14 @@ function etapaCumprida(numero) {
 			return !!(cfg && cfg.pocaoDeHp && cfg.pocaoDeHp.ligado && cfg.pocaoDeSp && cfg.pocaoDeSp.ligado);
 		}
 		case 7:
-			/* O SERVIDOR marcou a missao ativa. `execucao` vem do
-			   ZC_RAGIDLE_MISSOES, que a janela de Missoes recebe e guarda. */
-			return !!(execucao && execucao.ativaId);
+			/* O SERVIDOR aceitou a missao. `execucao` vem do ZC_RAGIDLE_MISSOES,
+			   que a janela de Missoes recebe e guarda. Desde 01/10/2026 ele manda
+			   `{aceitas, maximo}` (ate tres juntas) no lugar da unica `ativaId`:
+			   a etapa cumpre com QUALQUER aceita — a lista ou o `aceita` da
+			   propria missao, a mesma leitura das telas (`missaoAceita`). */
+			return (
+				quantasAceitas(execucao) > 0 || (MissoesIdle.missoes || []).some(m => missaoAceita(m, execucao))
+			);
 		case 8:
 			/* Chegou: o mapa carregado nao e mais o de quando a etapa comecou. */
 			return !!(_marco && MapRenderer.currentMap && MapRenderer.currentMap !== _marco.mapa);
@@ -536,8 +547,9 @@ function etapaCumprida(numero) {
 			/* O primeiro abate depois que a etapa comecou. */
 			return abatesAgora() > (_marco ? _marco.abates : 0);
 		case 10: {
-			/* O contador do objetivo andou. */
-			const agora = execucao && execucao.passo ? execucao.passo.progresso || 0 : 0;
+			/* O contador do objetivo andou — o da PRIMEIRA aceita, o bloco
+			   `.mt-ativa` do cartao que esta etapa aponta (01/10/2026). */
+			const agora = progressoDaPrimeiraAceita(MissoesIdle.missoes, execucao);
 			return agora > (_marco ? _marco.progresso : 0);
 		}
 		case 11:

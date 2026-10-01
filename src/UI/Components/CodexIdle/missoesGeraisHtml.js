@@ -50,7 +50,14 @@
  */
 
 import RiIcones from 'UI/ri-icones.js';
-import { podeIniciarMissao } from 'UI/Components/MissoesIdle/podeIniciarMissao.js'; // RAGIDLE: I16
+import {
+	missaoAceita,
+	podeIniciarMissao,
+	textoDoLimiteDeMissoes
+} from 'UI/Components/MissoesIdle/podeIniciarMissao.js'; // RAGIDLE: I16
+// ATE TRES MISSOES AO MESMO TEMPO (01/10/2026): os botoes da aceita e o estado
+// como o jogador o le saem das MESMAS regras puras da janela e do cartao.
+import { acoesDaMissaoAceita, estadoParaOJogador } from 'UI/Components/MissoesIdle/missoesAceitas.js';
 // A linha "Cai de" do objetivo de coleta (26/09/2026): a MESMA da janela de
 // Missoes — esta aba e a porta do menu, e sem ela o botao so existia na
 // janela que o jogador abre pelo rastreador.
@@ -89,12 +96,20 @@ function glifo(chave) {
 const ESTADO_DA_MISSAO = {
 	concluida: { rotulo: 'Concluída', glifo: 'confere', classe: 'is-concluido' },
 	'em-andamento': { rotulo: 'Em andamento', glifo: 'espadas', classe: 'is-andamento' },
+	// 01/10/2026: aceita e com tudo cumprido — falta so o "Finalizar". O glifo
+	// e o da andamento (ela ainda nao foi entregue).
+	pronta: { rotulo: 'Pronta para finalizar', glifo: 'espadas', classe: 'is-andamento' },
 	disponivel: { rotulo: 'Disponível', glifo: 'alvo', classe: 'is-disponivel' },
 	bloqueada: { rotulo: 'Bloqueada', glifo: 'cadeado', classe: 'is-bloqueado' }
 };
 
-function estadoDaMissao(estado) {
-	return ESTADO_DA_MISSAO[estado] || ESTADO_DA_MISSAO.bloqueada;
+/**
+ * O estado de uma linha, como o JOGADOR o le (`estadoParaOJogador`, 01/10/2026):
+ * a aceita esta "Em andamento" (ou "Pronta"), e a abandonada com o progresso
+ * guardado volta a "Disponível" — nada anda nela ate ele aceitar de novo.
+ */
+function estadoDaMissao(m, execucao) {
+	return ESTADO_DA_MISSAO[estadoParaOJogador(m, execucao)] || ESTADO_DA_MISSAO.bloqueada;
 }
 
 /** Progresso 0..100, sem nunca passar de 100 (a mesma guarda de `porcentagem`
@@ -112,17 +127,21 @@ function porcentagem(feitos, meta) {
  * recarga mostrava "0 de 10" em vez de "5 min", porque o progresso do
  * objetivo era olhado ANTES da recarga).
  *
- * A ordem e a MESMA de `podeIniciarMissao`: fila e recarga dizem PORQUE o
- * jogador nao pode agir agora, e isso e mais util do que um progresso que
- * nao vai mudar sozinho. So quando nenhum dos dois trava e que o progresso
- * do (unico) objetivo aparece.
+ * A ordem e a de `podeIniciarMissao`: a recarga diz PORQUE o jogador nao pode
+ * agir agora, e isso e mais util do que um progresso que nao vai mudar
+ * sozinho. So quando ela nao trava e que o progresso do (unico) objetivo
+ * aparece.
  *
- * @param {{naFila?: boolean, cooldownS?: number, objetivos?: Array}} missao
+ * 01/10/2026: a FILA saiu ("Na fila" nao existe mais — ate tres missoes andam
+ * juntas), e a missao PRONTA para finalizar diz "Pronta" antes de tudo: e a
+ * acao que o jogador tem a fazer, e o "8 de 8" nao a nomeia.
+ *
+ * @param {{pronta?: boolean, cooldownS?: number, objetivos?: Array}} missao
  * @returns {{texto: string} | null}
  */
 export function contadorDaLinha(missao) {
-	if (missao.naFila) {
-		return { texto: 'Na fila' };
+	if (missao.pronta === true) {
+		return { texto: 'Pronta' };
 	}
 	if (missao.cooldownS > 0) {
 		return { texto: Math.ceil(missao.cooldownS / 60) + ' min' };
@@ -197,21 +216,21 @@ function telaDaListaHtml(missoes) {
 		'<div class="cx-jor-capitulos">' +
 		daAba
 			.map((m, i) => {
-				const s = estadoDaMissao(m.estado);
-				const ativa = execucao.ativaId === m.id;
+				const s = estadoDaMissao(m, execucao);
+				// ACEITA, e nao "a ativa" (01/10/2026): ate tres andam juntas, e
+				// todas ganham o destaque e a fita.
+				const aceita = missaoAceita(m, execucao);
 				const objetivoUnico = Array.isArray(m.objetivos) && m.objetivos.length === 1 ? m.objetivos[0] : null;
 				const contador = contadorDaLinha(m);
 				// O FIO so mede o objetivo quando ele e quem manda no contador — em
-				// fila ou recarga a barra nao avanca sozinha, e desenha-la mesmo
-				// assim prometeria um progresso que nao esta rolando.
+				// recarga a barra nao avanca sozinha, e desenha-la mesmo assim
+				// prometeria um progresso que nao esta rolando.
 				const pct =
-					objetivoUnico && !m.naFila && !(m.cooldownS > 0)
-						? porcentagem(objetivoUnico.progresso, objetivoUnico.alvo)
-						: 0;
+					objetivoUnico && !(m.cooldownS > 0) ? porcentagem(objetivoUnico.progresso, objetivoUnico.alvo) : 0;
 				return (
 					'<button type="button" class="cx-jor-capitulo ' +
 					escapeHtml(s.classe) +
-					(ativa ? ' is-proximo' : '') +
+					(aceita ? ' is-proximo' : '') +
 					'" data-mg-missao="' +
 					escapeHtml(m.id || '') +
 					'" title="' +
@@ -222,7 +241,7 @@ function telaDaListaHtml(missoes) {
 					'</span>' +
 					'<span class="cx-jor-capitulo-texto">' +
 					'<span class="cx-jor-capitulo-nome">' +
-					(ativa ? '<span class="cx-jor-fita">Em curso</span>' : '') +
+					(aceita ? '<span class="cx-jor-fita">Em andamento</span>' : '') +
 					escapeHtml(m.titulo || m.id) +
 					'</span>' +
 					(m.descricao ? '<span class="cx-jor-capitulo-abertura">' + escapeHtml(m.descricao) + '</span>' : '') +
@@ -265,7 +284,7 @@ function telaDaMissaoHtml(id) {
 		return voltarHtml() + '<div class="cx-vazio">Esta missão não está no retrato do servidor.</div>';
 	}
 	const execucao = _ctx.execucao || {};
-	const s = estadoDaMissao(m.estado);
+	const s = estadoDaMissao(m, execucao);
 
 	const objetivos = (m.objetivos || [])
 		.map(
@@ -326,18 +345,47 @@ function telaDaMissaoHtml(id) {
 			: '';
 
 	// O botão do executor: MESMA regra de `MissoesIdle.js:cardDeMissao`, aqui
-	// como uma unica funcao pura (`podeIniciarMissao`) em vez de reescrita.
+	// como as mesmas funcoes puras (`podeIniciarMissao`, `acoesDaMissaoAceita`)
+	// em vez de reescritas.
+	//
+	// 01/10/2026: o "Pausar" que morava aqui estava MORTO desde que o servidor
+	// tirou o verbo `pausar` (ele virou o `teleporte`, D-1642) — o botao existia
+	// e nao fazia nada. Com ate tres aceitas, cada uma tem Finalizar (aceso so
+	// quando `pronta`), Ir caçar e Abandonar, todos com o id da missao; a fila
+	// ("Na fila…") deixou de existir.
 	let acao = '';
 	if (m.executavel) {
-		if (execucao.ativaId === m.id) {
-			acao = '<button type="button" class="ri-btn ri-btn--sec" data-mg-executar="pausar">Pausar</button>';
-		} else if (m.naFila) {
-			acao = '<span class="cx-jor-contador">Na fila…</span>';
+		if (missaoAceita(m, execucao)) {
+			acao = acoesDaMissaoAceita(m)
+				.map(
+					a =>
+						'<button type="button" class="ri-btn ' +
+						(a.destaque ? 'ri-btn--ouro' : 'ri-btn--sec') +
+						'" data-mg-executar="' +
+						a.acao +
+						'" data-mg-id="' +
+						escapeHtml(m.id) +
+						'"' +
+						(a.habilitado ? '' : ' disabled') +
+						' title="' +
+						escapeHtml(a.titulo) +
+						'">' +
+						escapeHtml(a.rotulo) +
+						'</button>'
+				)
+				.join('');
 		} else if (podeIniciarMissao(m, execucao)) {
 			acao =
 				'<button type="button" class="ri-btn ri-btn--ouro" data-mg-executar="iniciar" data-mg-id="' +
 				escapeHtml(m.id) +
 				'">Iniciar</button>';
+		} else if (podeIniciarMissao(m, execucao, { ignorarLimite: true })) {
+			// O TETO: comecaria, se nao fossem as tres aceitas. O botao fica,
+			// apagado, dizendo por que (a mesma escolha da janela de Missoes).
+			acao =
+				'<button type="button" class="ri-btn ri-btn--sec cx-mg-limite" disabled title="Finalize ou abandone uma missão para aceitar outra">' +
+				escapeHtml(textoDoLimiteDeMissoes(execucao)) +
+				'</button>';
 		} else if (m.cooldownS > 0) {
 			acao = '<span class="cx-jor-contador">Recarrega em ' + Math.ceil(m.cooldownS / 60) + ' min</span>';
 		}
@@ -398,6 +446,12 @@ export function cliqueDeMissoesGerais(e, alvo, ganchos) {
 	const executar = alvo.closest('[data-mg-executar]');
 	if (executar) {
 		e.stopImmediatePropagation();
+		// O "Finalizar" apagado e o "3 de 3" nao mandam nada (o navegador ja nao
+		// dispara clique em botao desabilitado; esta guarda cobre quem o dispare
+		// por fora). O clique continua TRATADO: nao vaza para a linha de baixo.
+		if (executar.disabled) {
+			return true;
+		}
 		ganchos.executar(executar.dataset.mgExecutar, executar.dataset.mgId || null);
 		return true;
 	}

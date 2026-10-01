@@ -891,10 +891,19 @@ const GANCHOS_DE_MISSOES = {
 	},
 	// MESMO pacote e MESMA logica que `MissoesIdle.js` e
 	// `MissoesTrackerIdle.js` ja mandam — nenhum caminho novo.
+	//
+	// 01/10/2026: TODA acao leva o id. Ate aqui so o `iniciar` levava, e o
+	// `abandonar`/`teleporte` desta aba sairiam sem dizer QUAL missao — com
+	// ate tres aceitas, o servidor nao tem "a ativa" para adivinhar.
 	executar(acao, id) {
 		const pkt = new PACKET.CZ.RAGIDLE_MISSAO_ACAO();
-		pkt.json = JSON.stringify(acao === 'iniciar' ? { acao, id } : { acao });
+		pkt.json = JSON.stringify(id ? { acao, id } : { acao });
 		Network.sendPacket(pkt);
+		// O "Ir caçar" troca de mapa: a janela fecha, como no "Ir até o NPC"
+		// (`viajar`, logo abaixo) — o mapa que chega e o motivo de ter clicado.
+		if (acao === 'teleporte') {
+			closeWindow();
+		}
 	},
 	// MESMA viagem que a Jornada ja manda (`viajarPara`, `CZ_RAGIDLE_VIAJAR`)
 	// — a janela fecha, porque o mapa que chega por baixo dela e o motivo de
@@ -933,13 +942,17 @@ function renderMissoesSeMudou() {
 	// O PROGRESSO dos objetivos entra na assinatura (26/09/2026): sem ele a tela
 	// da missao ficava no "3 de 8" enquanto o servidor ja contava mais, e o
 	// "Ir ao mapa" continuava oferecido depois de o objetivo fechar.
+	// 01/10/2026: `aceita` e `pronta` no lugar da `naFila` (a fila saiu). O
+	// parcial de progresso (`v: 3`) muda so o progresso e o `pronta`, e os dois
+	// estao aqui — sem eles o "Finalizar" nao acenderia com a aba aberta.
 	const assinatura = JSON.stringify([
 		MissoesIdle.execucao,
 		(MissoesIdle.missoes || []).map(m => [
 			m.id,
 			m.estado,
 			m.cooldownS,
-			m.naFila,
+			m.aceita,
+			m.pronta,
 			(m.objetivos || []).map(o => o.progresso)
 		])
 	]);

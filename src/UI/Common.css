@@ -2141,6 +2141,38 @@ ui-button {
 		position: relative;
 	}
 
+	/*
+	 * 01/10/2026 — O "(i)" DE CADA MISSAO (o cartao da HUD e a janela de
+	 * Missoes; a pele mora em `MissoesIdle/infoDaMissao.css`). Ele e AREA, e nao
+	 * caixa, pelo mesmo motivo do `.mt-btn-mini`: um circulo de 44px em cada
+	 * missao do cartao dobraria a altura dele no celular, que o dono ja mandou
+	 * encolher (D-1483). No dedo o desenho vai a 24px, e `-10px` de cada lado
+	 * fecham os 44. O vizinho de cima (o "Ir caçar" da missao anterior) tem a
+	 * area dele terminando antes: o `gap` e o `padding` do bloco separam as duas.
+	 */
+	.im-i::before {
+		content: '';
+		position: absolute;
+		inset: -10px;
+	}
+
+	.im-i {
+		position: relative;
+	}
+
+	/*
+	 * 01/10/2026 — OS BOTOES DA MISSAO na janela de Missoes e na aba "Missões
+	 * Gerais" do Codex (Iniciar, Finalizar, Ir caçar, Abandonar e o "3 de 3"
+	 * apagado). A aceita passou a ter TRES lado a lado, e o `.ri-btn` de sempre
+	 * mede ~34px. Eles crescem de verdade, como os `.ap-input` acima: no celular
+	 * as duas janelas sao painel de tela cheia, ha espaco, e o rodape quebra
+	 * linha (`flex-wrap`) em vez de apertar.
+	 */
+	.mi-executar,
+	.cx-mg-rodape .ri-btn {
+		min-height: var(--hit-touch, 44px);
+	}
+
 	/* O "+" de distribuir atributo (20x20) e os dois menores da barra de
 	   atalhos (14x14 e 15x15). */
 	.st-stat-up::before,
@@ -2426,6 +2458,20 @@ html.ri-vertical #MissoesTrackerIdle {
 	right: auto !important;
 	bottom: auto !important;
 	width: min(236px, calc(100vw - var(--vr-trilho-largura) - 32px)) !important;
+}
+
+/* O PAINEL "(i)" DE UMA MISSAO ABERTO PELO CARTAO (01/10/2026). Ele mora DENTRO
+   do host do cartao (`MissoesIdle/infoDaMissao.js`), e o host e um contexto de
+   empilhamento: no z 10 da moldura, a barra do topo, o trilho e o menu (50/55)
+   pintariam POR CIMA do painel, que no celular ocupa a largura da tela. Enquanto
+   ele esta aberto, o host sobe para 58 — acima da moldura e do menu, ABAIXO das
+   janelas de pilha (60) e da folha do menu (90): abrir qualquer uma delas ja
+   fecha o painel (toque fora). Fechado o painel, o atributo sai e o cartao volta
+   ao plano dele. No computador o host nasce com 50 inline (GUIComponent) e as
+   janelas focadas sobem acima disso, entao o mesmo 58 serve. */
+#MissoesTrackerIdle[data-info-da-missao],
+html.ri-vertical #MissoesTrackerIdle[data-info-da-missao] {
+	z-index: 58 !important;
 }
 
 /* O menu inteiro (fab + trilho + leque) posiciona os FILHOS por `fixed`;
