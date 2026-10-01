@@ -239,6 +239,13 @@ const PT_BR = {
 	'EXP Event': 'Evento de EXP',
 	'Increases acquired EXP': 'Mais EXP de todos os monstros',
 
+	/* -------- os eventos de drop e respawn da equipe (D-1880, 01/10/2026) -------- */
+	'Drop Event': 'Evento de Drop',
+	'Increases the drop chance of items except cards':
+		'Mais chance de drop nos itens dos monstros, menos cartas, caixas e MVPs',
+	'Respawn Event': 'Evento de Respawn',
+	'Monsters respawn faster': 'Os monstros renascem mais rápido (menos MVPs e o Covil)',
+
 	/* -------- os boosts do RO Shop (22/09/2026): Bencao e os dois Manuais -------- */
 	'Fortune Blessing': 'Bênção da Fortuna',
 	'Bubble Gum': 'Goma de Mascar',

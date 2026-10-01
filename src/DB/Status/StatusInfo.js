@@ -3433,6 +3433,35 @@ StatusInfo[EFST_DO_VIP] = {
 	descript: [['VIP', COLOR_TITLE_BUFF], ['%s', COLOR_TIME], ['Tempo restante do seu VIP.']]
 };
 
+/**
+ * OS EVENTOS DE DROP E RESPAWN DA EQUIPE (D-1880, 01/10/2026). Os EFSTs sao do
+ * servidor (`EFST_DOS_EVENTOS_DO_ADMIN`, servidor/eventos-do-admin.ts), na
+ * faixa das pracas e dos passes: dono unico. O relogio e o do evento (ate 720 h,
+ * a celula mostra dias). A arte e do GRF, como a do evento de EXP (regra 4):
+ * `item_g.tga` e o "ITEM" verde (o dourado `item.tga` ja e o da Goma e da
+ * Bencao), e `essenceoftime.tga` e o relogio. Os textos em ingles tem a traducao
+ * em `StatusInfoPtBr.js`, como o `CASH_PLUSEXP` do evento de EXP.
+ */
+export const EFST_DO_EVENTO_DE_DROP = 1904;
+StatusInfo[EFST_DO_EVENTO_DE_DROP] = {
+	icon: 'item_g.tga',
+	haveTimeLimit: 1,
+	posTimeLimitStr: 2,
+	descript: [
+		['Drop Event', COLOR_TITLE_BUFF],
+		['%s', COLOR_TIME],
+		['Increases the drop chance of items except cards']
+	]
+};
+
+export const EFST_DO_EVENTO_DE_RESPAWN = 1905;
+StatusInfo[EFST_DO_EVENTO_DE_RESPAWN] = {
+	icon: 'essenceoftime.tga',
+	haveTimeLimit: 1,
+	posTimeLimitStr: 2,
+	descript: [['Respawn Event', COLOR_TITLE_BUFF], ['%s', COLOR_TIME], ['Monsters respawn faster']]
+};
+
 export const EFST_DAS_FLECHAS_INFINITAS = 1903;
 StatusInfo[EFST_DAS_FLECHAS_INFINITAS] = {
 	icon: '/ragidle/item/9000130.png',
