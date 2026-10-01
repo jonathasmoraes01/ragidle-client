@@ -141,6 +141,7 @@ import IdleSkills from 'UI/Components/IdleSkills/IdleSkills.js';
 import Inventory from 'UI/Components/Inventory/Inventory.js';
 import DB from 'DB/DBManager.js';
 import SK from 'DB/Skills/SkillConst.js';
+import { nomeNoServidor } from 'DB/Skills/apelidosDoServidor.js'; // N4 da auditoria de tela
 import Client from 'Core/Client.js';
 import { itemIconUrl, preferirArtePublicada } from 'Utils/ItemArt.js';
 import RiIcones from 'UI/ri-icones.js';
@@ -424,7 +425,9 @@ function nomeDoIdNumerico(skid) {
 	if (!_nomePorIdNumerico) {
 		_nomePorIdNumerico = {};
 		for (const nome in SK) {
-			_nomePorIdNumerico[SK[nome]] = nome;
+			// N4 da auditoria de tela: a rotacao guarda o nome do SERVIDOR
+			// (BA_FROSTJOKER), nao o do SkillConst (BA_FROSTJOKE).
+			_nomePorIdNumerico[SK[nome]] = nomeNoServidor(nome);
 		}
 	}
 	return _nomePorIdNumerico[skid] || null;
