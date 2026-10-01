@@ -1018,6 +1018,41 @@ export function niveisDoPasse(passe) {
 	return [...porNivel.keys()].sort((a, b) => a - b).map(nivel => ({ nivel, ...porNivel.get(nivel) }));
 }
 
+/**
+ * A CAIXA COMO PREMIO DO PASSE (01/10/2026, o Passe de Batalha VIP da S1).
+ *
+ * A caixa da temporada NAO e item: e um contador na conta (`caixas[pool]`), e
+ * o resgate soma +1 nele, sem correio. O servidor manda o premio com
+ * `itemId: null` e `caixa: {pool, slot}`; o premio de item vem com
+ * `caixa: null`, e um servidor anterior ao campo nem o manda. Devolve a caixa
+ * (`{pool, slot}`) ou `null` - e `null` quer dizer "premio de item, desenhe
+ * como sempre".
+ */
+export function caixaDoPremio(premio) {
+	const caixa = premio && premio.caixa;
+	if (!caixa || typeof caixa !== 'object' || typeof caixa.pool !== 'string' || caixa.pool === '') {
+		return null;
+	}
+	return caixa;
+}
+
+/** O que a dica diz de um premio que e caixa: para onde ela vai. */
+export const TEXTO_DA_DICA_DA_CAIXA = 'Vai para as suas caixas da temporada: abra na aba Caixas.';
+
+/**
+ * O retrato da caixa no card do premio: o MESMO icone premium do card da caixa
+ * e do resumo dos Destaques (`iconeDaCaixaUrl`), e o glifo do slot de reserva.
+ * SEM `data-item-id`: nao ha item para `melhorarIcones` buscar arte, nem para
+ * a janela de detalhes abrir.
+ */
+function iconeDaCaixaDoPremioHtml(caixa) {
+	const url = iconeDaCaixaUrl(caixa.slot);
+	const retrato = url
+		? `<img class="te-premio-caixa-img" src="${url}" alt="" width="28" height="28">`
+		: glifoDoSlot(caixa.slot);
+	return `<span class="te-icone te-icone--caixa ri-tile">${retrato}</span>`;
+}
+
 /** Um card de prêmio da trilha de recompensas (free ou vip). */
 export function renderPremioDaTrilhaHtml(premio, trilha) {
 	if (!premio) {
@@ -1036,12 +1071,22 @@ export function renderPremioDaTrilhaHtml(premio, trilha) {
 				: `<span class="te-premio-card-estado is-bloqueado">${glifo('cadeado')}</span>`;
 	/* O `data-item-id` NO CARD (23/09/2026, pedido do dono): e por ele que o
 	   mouse em cima mostra a descricao e o clique abre a janela de detalhes
-	   (`TemporadaIdle.js`, `mostrarDicaDoPremio`/`abrirDetalhesDoItem`). */
+	   (`TemporadaIdle.js`, `mostrarDicaDoPremio`/`abrirDetalhesDoItem`).
+	   A CAIXA (01/10/2026) troca as duas pecas que dependem do item: o retrato
+	   e a marca. Ela leva `data-caixa` no lugar do `data-item-id` - a dica le a
+	   marca e diz para onde a caixa vai, e o clique nao abre detalhe de item
+	   nenhum. O resto do card (quantidade, estado, nome) e o mesmo. */
+	const caixa = caixaDoPremio(premio);
 	const idNumero = Number(premio.itemId);
-	const idAttr = Number.isFinite(idNumero) && idNumero > 0 ? ` data-item-id="${idNumero}"` : '';
+	const marca = caixa
+		? ` data-caixa="${escapeHtml(caixa.pool)}"`
+		: Number.isFinite(idNumero) && idNumero > 0
+			? ` data-item-id="${idNumero}"`
+			: '';
+	const retrato = caixa ? iconeDaCaixaDoPremioHtml(caixa) : iconeFallbackHtml(premio.itemId, premio.nome);
 	return (
-		`<div class="te-premio-card te-premio-card--${trilha} ${classeDoNivel(situacao)}" data-nivel="${escapeHtml(premio.nivel)}" data-trilha="${escapeHtml(trilha)}"${idAttr}>` +
-		iconeFallbackHtml(premio.itemId, premio.nome) +
+		`<div class="te-premio-card te-premio-card--${trilha} ${classeDoNivel(situacao)}" data-nivel="${escapeHtml(premio.nivel)}" data-trilha="${escapeHtml(trilha)}"${marca}>` +
+		retrato +
 		quantidade +
 		`<div class="te-premio-card-nome" title="${escapeHtml(premio.nome)}">${escapeHtml(premio.nome)}</div>` +
 		estado +
@@ -1078,14 +1123,22 @@ export function linhasDaDescricaoDoItem(bruta) {
 }
 
 /** O conteudo da dica de um premio do passe: o nome, a descricao e o convite
- * ao clique (que abre a janela de detalhes). Tudo escapado. */
-export function renderDicaDoPremioHtml(nome, linhas) {
+ * ao clique (que abre a janela de detalhes). Tudo escapado. Sem `rodape`
+ * (a caixa, que nao tem janela de detalhes), o convite nao aparece. */
+export function renderDicaDoPremioHtml(nome, linhas, rodape = 'Clique para ver os detalhes') {
 	const corpo = (linhas || []).map(l => `<div class="te-dica-linha">${escapeHtml(l)}</div>`).join('');
 	return (
 		`<div class="te-dica-nome">${escapeHtml(nome || 'Item')}</div>` +
 		(corpo ? `<div class="te-dica-corpo">${corpo}</div>` : '') +
-		'<div class="te-dica-rodape">Clique para ver os detalhes</div>'
+		(rodape ? `<div class="te-dica-rodape">${escapeHtml(rodape)}</div>` : '')
 	);
+}
+
+/** A dica de um premio que e CAIXA (01/10/2026): o nome e para onde ela vai.
+ * Sem o "Clique para ver os detalhes" - a caixa nao e item, e o clique no card
+ * dela nao abre janela nenhuma. */
+export function renderDicaDaCaixaDoPremioHtml(nome) {
+	return renderDicaDoPremioHtml(nome || 'Caixa', [TEXTO_DA_DICA_DA_CAIXA], null);
 }
 
 /**
