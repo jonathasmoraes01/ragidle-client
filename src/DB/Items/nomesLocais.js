@@ -264,6 +264,8 @@ export const NOMES_LOCAIS = {
 	// AS ASAS DA CONTA (28/09/2026): o que o Pack Viagem entrega.
 	9000133: 'Asa de Mosca da Conta', // pocoes-da-conta.ts (Wing_Of_Fly_Da_Conta)
 	9000134: 'Asa de Borboleta da Conta', // pocoes-da-conta.ts (Wing_Of_Butterfly_Da_Conta)
+	// O FRUTO DA CONTA (01/10/2026): o que a trilha VIP do Passe de Batalha da S1 entrega.
+	9000135: 'Fruto de Yggdrasil da Conta', // Yggdrasil_Berry_Da_Conta (servidor; a copia do 607 presa a conta)
 	// A ZONA DE ZENY (25/09/2026): as recompensas e o bilhete (itens-custom.ts).
 	9003000: 'Moeda de Poring',
 	9003001: 'Bolsa de Moedas de Poring',
@@ -381,6 +383,9 @@ export const DESCRICOES_LOCAIS = {
 	// no lugar das comuns, que vendiam no NPC. O teleporte e o da Asa comum.
 	9000133: `Teleporta você para um lugar aleatório do mapa. Vem do Pack Viagem do RO Shop.\n${FECHO_UNIQUE}`,
 	9000134: `Leva você de volta ao seu ponto salvo. Vem do Pack Viagem do RO Shop.\n${FECHO_UNIQUE}`,
+	// O fruto da conta (01/10/2026): o efeito e o do Fruto de Yggdrasil (607), `percentheal 100,100;`
+	// no `db/pre-re/item_db_usable.yml`. Como os outros da conta, nao vai ao chao (noDrop).
+	9000135: `Um fruto da Árvore Yggdrasil que recupera 100% do HP e do SP. Vem do Passe de Batalha VIP da temporada. Não pode ser jogado no chão.\n${FECHO_UNIQUE}`,
 	9003000: `Uma moeda dourada cunhada com o rosto de um Poring. Os Porings da Praça de Zeny guardam essas moedas como se fossem o maior tesouro do mundo.\nPode ser vendida a qualquer NPC comerciante em troca de zeny.\nNão pode ser negociada.`,
 	9003001: `Uma bolsinha de couro recheada de Moedas de Poring, bem mais pesada no bolso que uma moeda solta.\nPode ser vendida a qualquer NPC comerciante em troca de zeny.\nNão pode ser negociada.`,
 	9003002: `Uma barra de ouro maciço forjada em Midgard, cobiçada por mercadores de todo o reino. Um dos tesouros mais valiosos que os Porings da Praça de Zeny escondem.\nPode ser vendida a qualquer NPC comerciante em troca de zeny.\nNão pode ser negociada.`,
@@ -664,6 +669,9 @@ export const ICONES_LOCAIS = {
 	// As asas da conta (28/09/2026): a mesma arte da Asa comum de que derivam.
 	9000133: '\xc6\xc4\xb8\xae\xc0\xc7\xb3\xaf\xb0\xb3', // Asa de Mosca da Conta -> 601 Asa de Mosca (a mesma arte)
 	9000134: '\xb3\xaa\xba\xf1\xc0\xc7\xb3\xaf\xb0\xb3', // Asa de Borboleta da Conta -> 602 Asa de Borboleta (a mesma arte)
+	// O fruto da conta (01/10/2026): o recurso do 607, LIDO em `data\idnum2itemresnametable.txt`
+	// do data.grf, com o 601 e o 602 de controle (bateram com as duas linhas acima).
+	9000135: '\xc0\xcc\xb1\xd7\xb5\xe5\xb6\xf3\xbd\xc7\xbf\xad\xb8\xc5', // Fruto de Yggdrasil da Conta -> 607 Fruto de Yggdrasil (a mesma arte)
 	/*
 	 * Os sete tickets (23/09/2026). Os recursos foram LIDOS na tabela do
 	 * `data.grf` pelo servidor (a mesma escolha de

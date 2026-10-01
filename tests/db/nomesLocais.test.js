@@ -198,7 +198,8 @@ describe('a lista aponta so para item que o jogo conhece', () => {
 		// **28/09/2026: 92** = 83 + os 9 do refino e das flechas no RO Shop (9.000.124-132, L13 e L14).
 		// **28/09/2026: 94** = 92 + as Asas de Mosca e de Borboleta da Conta (9.000.133-134) do Pack Viagem.
 		// **28/09/2026: 122** = 94 + os 28 comuns novos das caixas da Season 1 (9.000.327-354, item 17).
-		expect(Object.keys(NOMES_LOCAIS)).toHaveLength(122);
+		// **01/10/2026: 123** = 122 + o Fruto de Yggdrasil da Conta (9.000.135) da trilha VIP do Passe.
+		expect(Object.keys(NOMES_LOCAIS)).toHaveLength(123);
 	});
 });
 
@@ -295,7 +296,8 @@ describe('o icone local (31/08/2026)', () => {
 		// **28/09/2026: 39 -> 48**, os 9 do refino e das flechas (L13 e L14), com o `.bmp` do oficial
 		// que o servidor declara em `tools/item-icon/recursos-que-a-tabela-nao-tem.ts`.
 		// **28/09/2026: 48 -> 50**, as Asas da Conta do Pack Viagem, com o `.bmp` da Asa comum (601/602).
-		expect(Object.keys(ICONES_LOCAIS)).toHaveLength(50);
+		// **01/10/2026: 50 -> 51**, o Fruto de Yggdrasil da Conta, com o `.bmp` do Fruto comum (607).
+		expect(Object.keys(ICONES_LOCAIS)).toHaveLength(51);
 	});
 });
 
@@ -418,5 +420,40 @@ describe('os 62 visuais da Temporada Luz & Trevas', () => {
 		expect(CUSTOM.filter(id => !NOMES_LOCAIS[id])).toEqual([]);
 		const nomes = Object.values(NOMES_LOCAIS).join('|');
 		expect(INGLES.filter(n => nomes.includes(n))).toEqual([]);
+	});
+});
+
+/*
+ * O FRUTO DE YGGDRASIL DA CONTA (01/10/2026): a copia do 607 presa a conta, que
+ * a trilha VIP do Passe de Batalha da S1 entrega. O molde e o das Asas da Conta
+ * (9.000.133-134): nome, descricao, o `.bmp` do item de que deriva e a mesma
+ * arte publicada, byte a byte.
+ */
+describe('o Fruto de Yggdrasil da Conta (9.000.135)', () => {
+	const FRUTO = 9000135;
+	/** 이그드라실열매: o recurso do 607, lido em `data\idnum2itemresnametable.txt` do data.grf. */
+	const RECURSO_DO_607 = '\xc0\xcc\xb1\xd7\xb5\xe5\xb6\xf3\xbd\xc7\xbf\xad\xb8\xc5';
+
+	it('sai nomeado e com o icone do Fruto comum, e nao com a maca', () => {
+		const ficha = completarFicha(FRUTO, null);
+		expect(ficha.identifiedDisplayName).toBe('Fruto de Yggdrasil da Conta');
+		expect(ficha.identifiedResourceName).toBe(RECURSO_DO_607);
+	});
+
+	it('a descricao diz o efeito do 607 (100% de HP e de SP) e as tres travas: venda, troca e chao', () => {
+		const descricao = DESCRICOES_LOCAIS[FRUTO];
+		expect(descricao).toContain('100% do HP e do SP');
+		expect(descricao).toContain('Não pode ser vendido a NPCs nem negociado');
+		expect(descricao).toContain('Não pode ser jogado no chão');
+		expect(completarFicha(FRUTO, null).identifiedDescriptionName).toContain('100% do HP e do SP');
+	});
+
+	it('a arte publicada e a do 607 byte a byte, no icone e na ilustracao', () => {
+		for (const pasta of ['item', 'collection']) {
+			const dir = join(process.cwd(), 'public', 'ragidle', pasta);
+			const copia = readFileSync(join(dir, `${FRUTO}.png`));
+			expect(copia.length, `${pasta}/${FRUTO}.png vazio`).toBeGreaterThan(0);
+			expect(copia.equals(readFileSync(join(dir, '607.png'))), `${pasta}/${FRUTO}.png difere do 607`).toBe(true);
+		}
 	});
 });

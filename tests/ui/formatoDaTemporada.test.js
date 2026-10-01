@@ -525,10 +525,118 @@ describe('a trilha de recompensas (free/vip lado a lado)', () => {
 });
 
 /*
+ * A CAIXA COMO PREMIO DO PASSE (01/10/2026, o Passe de Batalha VIP da S1). A
+ * caixa nao e item: o resgate soma +1 no contador da conta (`caixas[pool]`),
+ * sem correio. O servidor manda `itemId: null` e `caixa: {pool, slot}`; o
+ * premio de item vem com `caixa: null` (e um servidor anterior nem manda o
+ * campo) e tem de sair EXATAMENTE como antes.
+ */
+function premioCaixa(extra = {}) {
+	return premio({
+		nivel: 10,
+		trilha: 'vip',
+		itemId: null,
+		caixa: { pool: 'TOP', slot: 'Topo' },
+		nome: 'Caixa Topo',
+		quantidade: 1,
+		situacao: 'AVAILABLE',
+		...extra
+	});
+}
+
+/** O card de item de HOJE, letra por letra (conferido contra a versao anterior a caixa). */
+const CARD_DE_ITEM_DE_ANTES =
+	'<div class="te-premio-card te-premio-card--free te-nivel--available" data-nivel="7" data-trilha="free" data-item-id="2254">' +
+	'<span class="te-icone ri-tile" data-item-id="2254"><span class="te-icone-fallback">A</span></span>' +
+	'<div class="te-premio-card-nome" title="Asas Azuis de Fada">Asas Azuis de Fada</div>' +
+	'<button type="button" class="ri-btn ri-btn--ouro te-premio-card-resgatar" data-agir="resgatar" data-nivel="7" data-trilha="free">Resgatar</button>' +
+	'</div>';
+
+describe('a caixa como premio do passe (01/10/2026)', () => {
+	it('o card da caixa desenha a arte da caixa, o nome, e NAO leva data-item-id', () => {
+		const html = renderPremioDaTrilhaHtml(premioCaixa(), 'vip');
+		expect(html).toContain('src="/ragidle/temporada/icone-caixa-topo.webp"');
+		expect(html).toContain('te-icone--caixa');
+		expect(html).toContain('data-caixa="TOP"');
+		expect(html).toContain('>Caixa Topo</div>');
+		expect(html).not.toContain('data-item-id');
+		/* sem item, sem a inicial de reserva da arte de item */
+		expect(html).not.toContain('te-icone-fallback');
+		/* o resgate continua sendo o de sempre: nivel e trilha */
+		expect(html).toContain('data-agir="resgatar"');
+		expect(html).toContain('data-nivel="10"');
+		expect(html).toContain('data-trilha="vip"');
+	});
+
+	it('cada slot tem a SUA arte, a mesma do card da caixa', () => {
+		for (const [pool, slot] of [['TOP', 'Topo'], ['MID', 'Meio'], ['LOW', 'Baixo'], ['GARMENT', 'Manto']]) {
+			const html = renderPremioDaTrilhaHtml(premioCaixa({ caixa: { pool, slot }, nome: `Caixa ${slot}` }), 'vip');
+			const url = formatoDaTemporada.iconeDaCaixaUrl(slot);
+			expect(url).not.toBe('');
+			expect(html, slot).toContain(`src="${url}"`);
+			expect(html, slot).toContain(`data-caixa="${pool}"`);
+		}
+	});
+
+	it('slot sem arte cai no glifo do slot, nunca num retrato quebrado', () => {
+		const html = renderPremioDaTrilhaHtml(premioCaixa({ caixa: { pool: 'XYZ', slot: 'Sapato' } }), 'vip');
+		expect(html).not.toContain('<img');
+		expect(formatoDaTemporada.glifoDoSlot('Sapato')).not.toBe('');
+		expect(html).toContain(formatoDaTemporada.glifoDoSlot('Sapato'));
+	});
+
+	it('a regra da quantidade nao muda: 1 nao polui, mais de 1 vira tag', () => {
+		expect(renderPremioDaTrilhaHtml(premioCaixa({ quantidade: 1 }), 'vip')).not.toContain('te-premio-card-qtd');
+		expect(renderPremioDaTrilhaHtml(premioCaixa({ quantidade: 2 }), 'vip')).toContain('×2');
+	});
+
+	it('a situacao da caixa segue a do item: resgatada vira selo, trancada vira cadeado', () => {
+		expect(renderPremioDaTrilhaHtml(premioCaixa({ situacao: 'CLAIMED' }), 'vip')).toContain('is-resgatado');
+		expect(renderPremioDaTrilhaHtml(premioCaixa({ situacao: 'LOCKED' }), 'vip')).toContain('is-bloqueado');
+	});
+
+	it('o premio de ITEM sai exatamente como antes - com `caixa: null` e sem o campo (servidor anterior)', () => {
+		expect(renderPremioDaTrilhaHtml(premio(), 'free')).toBe(CARD_DE_ITEM_DE_ANTES);
+		expect(renderPremioDaTrilhaHtml(premio({ caixa: null }), 'free')).toBe(CARD_DE_ITEM_DE_ANTES);
+	});
+
+	it('so `caixa` com pool vira caixa: null, texto solto ou pool vazio continuam item', () => {
+		expect(formatoDaTemporada.caixaDoPremio(premioCaixa())).toEqual({ pool: 'TOP', slot: 'Topo' });
+		expect(formatoDaTemporada.caixaDoPremio(premio({ caixa: null }))).toBeNull();
+		expect(formatoDaTemporada.caixaDoPremio(premio())).toBeNull();
+		expect(formatoDaTemporada.caixaDoPremio(premio({ caixa: 'TOP' }))).toBeNull();
+		expect(formatoDaTemporada.caixaDoPremio(premio({ caixa: { pool: '', slot: 'Topo' } }))).toBeNull();
+		expect(formatoDaTemporada.caixaDoPremio(null)).toBeNull();
+	});
+
+	it('a dica da caixa diz para onde ela vai e NAO convida ao clique de detalhes', () => {
+		const html = formatoDaTemporada.renderDicaDaCaixaDoPremioHtml('Caixa <Topo>');
+		expect(html).toContain('Caixa &lt;Topo&gt;');
+		expect(html).toContain(formatoDaTemporada.TEXTO_DA_DICA_DA_CAIXA);
+		expect(formatoDaTemporada.TEXTO_DA_DICA_DA_CAIXA).toMatch(/caixas da temporada/);
+		expect(html).not.toContain('Clique para ver os detalhes');
+		expect(html).not.toContain('te-dica-rodape');
+		/* ...e a dica do ITEM continua com o convite */
+		expect(renderDicaDoPremioHtml('Asas', ['x'])).toContain('Clique para ver os detalhes');
+	});
+
+	it('na trilha inteira, a caixa da VIP mora na mesma coluna do item da Free', () => {
+		const passe = passeDoContrato({
+			premios: [premio({ nivel: 10, trilha: 'free', itemId: 2254 }), premioCaixa({ nivel: 10 })]
+		});
+		const html = renderTrilhaDeRecompensasHtml(passe);
+		const coluna = html.slice(html.indexOf('data-nivel="10"'));
+		expect(coluna).toContain('data-item-id="2254"');
+		expect(coluna).toContain('data-caixa="TOP"');
+	});
+});
+
+/*
  * O PASSE DE BATALHA VIP (23/09/2026, ordem do dono): a trilha VIP e liberada
  * pela COMPRA dele, e nao pelo VIP de 30 dias. O servidor manda
  * `passe.trilhaVip = {liberada, precoMinor, aVenda, compra: {pode, motivo, texto}}`
- * e a janela so desenha - hoje a venda esta FECHADA e o botao chega apagado.
+ * e a janela so desenha - com a venda FECHADA (ate 01/10/2026) o botao chega
+ * apagado; com ela aberta, acende so quando o servidor diz `compra.pode`.
  */
 const TRILHA_FORA_DE_VENDA = {
 	liberada: false,

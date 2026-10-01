@@ -2365,6 +2365,24 @@
 	border-color: var(--gold-500);
 }
 
+/* A CAIXA COMO PREMIO DO PASSE (01/10/2026): o icone premium da caixa no
+   lugar da arte de item - a mesma peca do card da caixa (".te-caixa-glifo-img",
+   28px) -, e a dica no hover. Sem "cursor: pointer": o clique nao abre nada. */
+#TemporadaIdle .te-premio-card[data-caixa]:hover {
+	border-color: var(--gold-500);
+}
+
+#TemporadaIdle .te-premio-caixa-img {
+	width: 28px;
+	height: 28px;
+	object-fit: contain;
+}
+
+#TemporadaIdle .te-icone--caixa svg {
+	width: 18px;
+	height: 18px;
+}
+
 #TemporadaIdle .te-dica {
 	position: fixed;
 	z-index: 70;

@@ -92,6 +92,7 @@ import {
 	gerarChave,
 	linhasDaDescricaoDoItem,
 	passePorTipo,
+	renderDicaDaCaixaDoPremioHtml,
 	renderDicaDoPremioHtml,
 	renderBannerDasCaixasHtml,
 	renderCaixaHtml,
@@ -519,10 +520,10 @@ function onClicarAcao(botao) {
 		return;
 	}
 	if (agir === 'comprar-passe-vip') {
-		/* O PASSE DE BATALHA VIP (23/09/2026), vendido a parte do VIP. Hoje o
-		   servidor manda o botao APAGADO ("Em breve") e o `disabled` para o
-		   clique na primeira linha desta funcao; o caminho fica pronto para o
-		   dia em que o dono abrir a venda. O preco sai do estado, nunca daqui. */
+		/* O PASSE DE BATALHA VIP (23/09/2026), vendido a parte do VIP. Quem
+		   acende o botao e o servidor (`trilhaVip.compra.pode`): com a venda
+		   fechada ou sem saldo ele chega APAGADO e o `disabled` para o clique na
+		   primeira linha desta funcao. O preco sai do estado, nunca daqui. */
 		const passeDaTemporada = TemporadaIdle.estado && TemporadaIdle.estado.passe;
 		const trilhaVip = passeDaTemporada && passeDaTemporada.trilhaVip;
 		if (!trilhaVip || !trilhaVip.compra || trilhaVip.compra.pode !== true) {
@@ -704,17 +705,23 @@ function mostrarDicaDoPremio(card) {
 	if (!dica) {
 		return;
 	}
-	const itemId = Number(card.dataset.itemId);
 	const nomeEl = card.querySelector('.te-premio-card-nome');
 	const nome = nomeEl ? nomeEl.textContent : '';
-	let bruta = '';
-	try {
-		const info = DB.getItemInfo(itemId);
-		bruta = info && info !== unknownItem ? info.identifiedDescriptionName : '';
-	} catch (err) {
-		bruta = '';
+	if (card.dataset.caixa) {
+		/* A CAIXA (01/10/2026) nao e item: nao ha ficha para ler. A dica diz
+		   para onde ela vai (o contador de caixas da conta). */
+		dica.innerHTML = renderDicaDaCaixaDoPremioHtml(nome);
+	} else {
+		const itemId = Number(card.dataset.itemId);
+		let bruta = '';
+		try {
+			const info = DB.getItemInfo(itemId);
+			bruta = info && info !== unknownItem ? info.identifiedDescriptionName : '';
+		} catch (err) {
+			bruta = '';
+		}
+		dica.innerHTML = renderDicaDoPremioHtml(nome, linhasDaDescricaoDoItem(bruta));
 	}
-	dica.innerHTML = renderDicaDoPremioHtml(nome, linhasDaDescricaoDoItem(bruta));
 	dica.hidden = false;
 
 	const r = card.getBoundingClientRect();
@@ -732,8 +739,12 @@ function mostrarDicaDoPremio(card) {
 	dica.style.top = `${emUnidadesDaHud(top)}px`;
 }
 
+/* O card com dica: o de item (`data-item-id`) e, desde 01/10/2026, o de caixa
+   (`data-caixa`). So o de item abre detalhes no clique (`onClickRaiz`). */
+const CARD_COM_DICA = '.te-premio-card[data-item-id], .te-premio-card[data-caixa]';
+
 function onMouseOverRaiz(e) {
-	const card = e.target.closest && e.target.closest('.te-premio-card[data-item-id]');
+	const card = e.target.closest && e.target.closest(CARD_COM_DICA);
 	if (!card) {
 		if (_cardDaDica) {
 			esconderDicaDoPremio();
