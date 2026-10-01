@@ -1341,6 +1341,63 @@
 	color: var(--amber-600);
 }
 
+/* O SELO DO EVENTO DE GACHA (D-1901): a faixa de uma linha logo abaixo do
+   cabecalho da caixa. A cor e a do perigo do design system (`--red-600`), a
+   mesma familia do vermelho do anuncio "[Equipe]" (0xFF6060) — o jogador liga
+   o selo ao recado da equipe. Quebra linha em vez de rolar: no celular em pe o
+   "ate 02/10, 14:00" desce para a linha de baixo. */
+#TemporadaIdle .te-caixa-evento {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: var(--sp-2) var(--sp-3);
+	min-width: 0;
+	padding: var(--sp-2) var(--sp-3);
+	border-radius: var(--radius-card);
+	border-left: 3px solid var(--red-600);
+	background: var(--surface-inset);
+}
+
+#TemporadaIdle .te-caixa-evento-selo {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	padding: 2px 8px;
+	border-radius: 999px;
+	background: var(--red-600);
+	color: var(--white, #fff);
+	font: var(--type-badge);
+	text-transform: uppercase;
+	letter-spacing: var(--ls-caps);
+}
+
+#TemporadaIdle .te-caixa-evento-selo svg {
+	width: 12px;
+	height: 12px;
+	flex: 0 0 auto;
+}
+
+#TemporadaIdle .te-caixa-evento-rotulo {
+	font: var(--type-label);
+	color: var(--text-title);
+}
+
+#TemporadaIdle .te-caixa-evento-fim {
+	font: var(--type-desc);
+	color: var(--text-muted);
+	white-space: nowrap;
+}
+
+#TemporadaIdle .te-resumo-caixa-evento {
+	font: var(--type-badge);
+	color: var(--red-600);
+	text-transform: uppercase;
+	letter-spacing: var(--ls-caps);
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
 #TemporadaIdle .te-pity-garantido {
 	display: flex;
 	align-items: center;

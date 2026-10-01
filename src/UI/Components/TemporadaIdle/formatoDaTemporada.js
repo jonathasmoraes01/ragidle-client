@@ -185,6 +185,44 @@ export function dataCurtaDeMs(ms) {
 	return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}`;
 }
 
+/** Um instante em ms -> `dd/mm, hh:mm` no fuso desta maquina (o fim do evento de gacha). */
+export function dataEHoraCurtaDeMs(ms) {
+	const d = new Date(Number(ms));
+	if (!Number.isFinite(d.getTime())) {
+		return '';
+	}
+	return `${dataCurtaDeMs(ms)}, ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+}
+
+/**
+ * O SELO DO EVENTO DE GACHA no card da caixa (D-1901): "Evento · Lendário 2x ·
+ * até 02/10, 14:00" — o pedido do dono: "que todos no servidor entendam que se
+ * trata de um buff dado por nos".
+ *
+ * SEM porcentagem: a decisao de 22/09/2026 (a janela nao mostra a chance de
+ * item nenhum) continua. O selo diz o MULTIPLICADOR, que e o que o anuncio da
+ * equipe diz, e vem PRONTO do servidor (`caixa.evento.rotulo`, de
+ * `seloDoEventoDeGacha`) — quem decide se a caixa tem evento e o mesmo
+ * veredito da abertura. O fim e o `fimMs` do servidor, um instante absoluto: a
+ * hora local sai certa em qualquer fuso, e um "ate 14:00" nao sente a
+ * diferenca de segundos entre os dois relogios. Sem `evento` (sem evento, ou
+ * servidor anterior a D-1900), nada.
+ */
+export function renderSeloDoEventoHtml(caixa) {
+	const evento = caixa && caixa.evento;
+	if (!evento || !evento.rotulo) {
+		return '';
+	}
+	const fim = dataEHoraCurtaDeMs(evento.fimMs);
+	return (
+		'<div class="te-caixa-evento">' +
+		`<span class="te-caixa-evento-selo">${glifo('brilhos')}<span>Evento</span></span>` +
+		`<strong class="te-caixa-evento-rotulo">${escapeHtml(evento.rotulo)}</strong>` +
+		(fim ? `<span class="te-caixa-evento-fim">até ${escapeHtml(fim)}</span>` : '') +
+		'</div>'
+	);
+}
+
 /**
  * O TEXTO da raridade, e ele vem do SERVIDOR.
  *
@@ -502,12 +540,18 @@ export function renderResumoDasCaixasHtml(caixas) {
 			const glifoImg = iconeUrl
 				? `<img class="te-resumo-caixa-glifo-img" src="${iconeUrl}" alt="" width="20" height="20">`
 				: glifoDoSlot(c.slot);
+			// O EVENTO DE GACHA (D-1901) tambem no resumo: a linha propria, e nao
+			// colada no `sub`, que corta com reticencias no celular.
+			const evento = c.evento && c.evento.rotulo
+				? `<span class="te-resumo-caixa-evento">Evento: ${escapeHtml(c.evento.rotulo)}</span>`
+				: '';
 			return (
 				`<button type="button" class="te-resumo-caixa ri-card${fechadas > 0 ? ' is-tem' : ''}" data-ir="caixas" data-pool="${escapeHtml(c.pool)}">` +
 				`<span class="te-resumo-caixa-glifo ri-tile">${glifoImg}</span>` +
 				'<span class="te-resumo-caixa-texto">' +
 				`<span class="te-resumo-caixa-nome">${escapeHtml(c.nome)}</span>` +
 				`<span class="te-resumo-caixa-sub">${escapeHtml(sub)}</span>` +
+				evento +
 				'</span>' +
 				(fechadas > 0
 					? `<span class="te-resumo-caixa-contagem">${fechadas}</span>`
@@ -664,6 +708,7 @@ export function renderCaixaHtml(caixa) {
 		'</div>' +
 		precoHtml +
 		'</header>' +
+		renderSeloDoEventoHtml(caixa) +
 		`<div class="te-caixa-previa">${previa}</div>` +
 		'<div class="te-caixa-estado">' +
 		`<span class="te-caixa-fechadas${fechadas > 0 ? ' is-tem' : ''}">${glifo('pacote')}<strong>${fechadas}</strong><span>${plural(fechadas, 'fechada', 'fechadas')}</span></span>` +

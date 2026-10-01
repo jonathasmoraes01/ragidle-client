@@ -28,6 +28,8 @@
  * comentários de cada bloco.
  */
 
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import * as formatoDaTemporada from 'UI/Components/TemporadaIdle/formatoDaTemporada.js';
 import {
@@ -822,5 +824,66 @@ describe('o pacote 10 + 1 no card da caixa (23/09/2026)', () => {
 	it('sem saldo o botao vem desligado, e sem pacote no contrato nada aparece', () => {
 		expect(formatoDaTemporada.renderPacoteHtml({ ...caixa, pacote: { ...caixa.pacote, pode: false } })).toContain(' disabled');
 		expect(formatoDaTemporada.renderPacoteHtml({ pool: 'TOP', nome: 'x' })).toBe('');
+	});
+});
+
+/*
+ * O SELO DO EVENTO DE GACHA (D-1901, 01/10/2026 — "que todos no servidor
+ * entendam que se trata de um buff dado por nos"). O servidor manda
+ * `caixa.evento = { rotulo, fimMs, restanteMs }` so na caixa em evento
+ * (`seloDoEventoDeGacha`); a janela desenha o multiplicador e o fim, e NUNCA
+ * uma porcentagem — a decisao de 22/09/2026 continua.
+ */
+describe('o selo do evento de gacha no card da caixa (D-1901)', () => {
+	// Minuto DIFERENTE de zero: com 17:00 o "00" do minuto passaria por qualquer coisa.
+	const FIM = Date.UTC(2026, 9, 2, 17, 25);
+	const comEvento = caixa({ evento: { rotulo: 'Lendário 2x', fimMs: FIM, restanteMs: 3 * 3600000 } });
+	const d = new Date(FIM);
+	const doisDigitos = n => String(n).padStart(2, '0');
+	const fimLocal = `${doisDigitos(d.getDate())}/${doisDigitos(d.getMonth() + 1)}, ${doisDigitos(d.getHours())}:${doisDigitos(d.getMinutes())}`;
+
+	it('diz EVENTO, o multiplicador e o fim no fuso desta maquina — sem porcentagem', () => {
+		const selo = formatoDaTemporada.renderSeloDoEventoHtml(comEvento);
+		expect(selo).toContain('<span>Evento</span>');
+		expect(selo).toContain('<strong class="te-caixa-evento-rotulo">Lendário 2x</strong>');
+		expect(selo).toContain(`até ${fimLocal}`);
+		expect(formatoDaTemporada.dataEHoraCurtaDeMs(FIM)).toBe(fimLocal);
+		expect(selo).not.toContain('%');
+	});
+
+	it('sem evento (ou servidor anterior a D-1900), nada', () => {
+		expect(formatoDaTemporada.renderSeloDoEventoHtml(caixa())).toBe('');
+		expect(formatoDaTemporada.renderSeloDoEventoHtml(caixa({ evento: null }))).toBe('');
+		expect(formatoDaTemporada.renderSeloDoEventoHtml(undefined)).toBe('');
+		expect(formatoDaTemporada.dataEHoraCurtaDeMs('x')).toBe('');
+	});
+
+	it('o rotulo vem do servidor e e ESCAPADO', () => {
+		const selo = formatoDaTemporada.renderSeloDoEventoHtml(caixa({ evento: { rotulo: '<b>x</b>', fimMs: FIM, restanteMs: 1 } }));
+		expect(selo).not.toContain('<b>x</b>');
+		expect(selo).toContain('&lt;b&gt;x&lt;/b&gt;');
+	});
+
+	it('o card leva o selo logo abaixo do cabecalho, antes da previa; sem evento, nao', () => {
+		const html = renderCaixaHtml(comEvento);
+		const posSelo = html.indexOf('class="te-caixa-evento"');
+		expect(posSelo).toBeGreaterThan(html.indexOf('</header>'));
+		expect(posSelo).toBeLessThan(html.indexOf('class="te-caixa-previa"'));
+		expect(renderCaixaHtml(caixa())).not.toContain('te-caixa-evento');
+	});
+
+	it('o resumo dos Destaques tambem diz o evento, numa linha propria', () => {
+		const html = formatoDaTemporada.renderResumoDasCaixasHtml([comEvento, caixa({ pool: 'MID', nome: 'Caixa Meio' })]);
+		expect(html).toContain('<span class="te-resumo-caixa-evento">Evento: Lendário 2x</span>');
+		expect(html.match(/te-resumo-caixa-evento/g)).toHaveLength(1);
+	});
+
+	it('no celular em pe o selo QUEBRA LINHA em vez de rolar para o lado', () => {
+		const css = readFileSync(join(process.cwd(), 'src/UI/Components/TemporadaIdle/TemporadaIdle.css'), 'utf8').replace(/\r\n/g, '\n');
+		const regra = /#TemporadaIdle \.te-caixa-evento \{([^}]*)\}/.exec(css);
+		expect(regra, 'a regra do selo sumiu do CSS').not.toBeNull();
+		expect(regra[1]).toContain('flex-wrap: wrap;');
+		expect(regra[1]).toContain('min-width: 0;');
+		expect(css).toMatch(/#TemporadaIdle \.te-caixa-evento-fim \{[^}]*white-space: nowrap;/);
 	});
 });
