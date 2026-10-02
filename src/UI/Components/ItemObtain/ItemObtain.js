@@ -11,6 +11,7 @@
 import DB from 'DB/DBManager.js';
 import Client from 'Core/Client.js';
 import Events from 'Core/Events.js';
+import { traducaoDe } from 'Core/Traducao.js';
 import Renderer from 'Renderer/Renderer.js';
 import UIManager from 'UI/UIManager.js';
 import GUIComponent from 'UI/GUIComponent.js';
@@ -170,7 +171,7 @@ ItemObtain.set = function set(item) {
 			// GRF ("- %d obtained.") porque a versao PT nao existe no formato
 			// que o loader entende — o texto fixo segue o padrao dos demais
 			// componentes RAGIDLE ate a troca de idioma existir.
-			_sanitizeHtml(`${display} - ${item.count || 1} obtido(s).`);
+			_sanitizeHtml(`${display} - ${item.count || 1} ${traducaoDe('obtido(s).') ?? 'obtido(s).'}`);
 	}
 
 	posicionar(this._host, root);
