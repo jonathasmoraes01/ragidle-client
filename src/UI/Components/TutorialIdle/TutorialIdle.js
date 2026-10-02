@@ -83,6 +83,9 @@ import { quantasAceitas, missaoAceita } from 'UI/Components/MissoesIdle/podeInic
 import { progressoDaPrimeiraAceita } from 'UI/Components/MissoesIdle/missoesAceitas.js';
 import BoasVindasIdle from 'UI/Components/BoasVindasIdle/BoasVindasIdle.js';
 import IdiomaIdle from 'UI/Components/IdiomaIdle/IdiomaIdle.js';
+import { decidir as decidirIdiomaDaConta, enviarIdiomaDaConta } from 'Core/idiomaDaConta.js';
+import { definirIdioma, idiomaAtual, idiomaFoiEscolhido } from 'Core/Idioma.js';
+import { recarregarMantendoASessao } from 'UI/recargaMantendoASessao.js';
 import Inventory from 'UI/Components/Inventory/Inventory.js';
 import ItemType from 'DB/Items/ItemType.js';
 import { ler as lerRegistroDaCaca } from 'UI/Components/HuntAnalyzer/registroDaCaca.js';
@@ -1116,6 +1119,17 @@ function onTutorialRecebido(pkt) {
 	   contrato futuro e IGNORADO em vez de desenhado meio errado. */
 	if (!dados || dados.v !== 1) {
 		return;
+	}
+	/* A conta manda depois do login: idioma diferente do aparelho grava e recarrega
+	   UMA vez (depois dela os dois concordam); conta sem idioma recebe o do aparelho. */
+	const rumo = decidirIdiomaDaConta(dados.idioma, idiomaAtual(), idiomaFoiEscolhido());
+	if (rumo === 'aplicar') {
+		definirIdioma(dados.idioma);
+		recarregarMantendoASessao();
+		return;
+	}
+	if (rumo === 'subir') {
+		enviarIdiomaDaConta(idiomaAtual());
 	}
 	const mudouDeEtapa = !TutorialIdle.estado || TutorialIdle.estado.etapa !== dados.etapa;
 	TutorialIdle.estado = dados;

@@ -195,3 +195,66 @@
 .ri-vertical .ii-card {
 	width: 100%;
 }
+
+/*
+ * A primeira impressao (D-1929): so transform e opacity, que a placa de video
+ * anima sem repintar nada; nenhuma imagem nova e nenhum laco infinito.
+ */
+@keyframes ii-fundo-entra {
+	from { opacity: 0; }
+	to { opacity: 1; }
+}
+
+@keyframes ii-card-sobe {
+	from { opacity: 0; transform: translateY(18px) scale(0.96); }
+	to { opacity: 1; transform: none; }
+}
+
+@keyframes ii-opcao-entra {
+	from { opacity: 0; transform: translateX(-14px); }
+	to { opacity: 1; transform: none; }
+}
+
+@keyframes ii-brilho {
+	from { opacity: 0.55; }
+	to { opacity: 1; }
+}
+
+.ii-modal.is-open {
+	animation: ii-fundo-entra 220ms ease-out both;
+}
+
+.ii-modal.is-open .ii-card {
+	animation: ii-card-sobe 380ms cubic-bezier(0.2, 0.9, 0.3, 1.2) 60ms both;
+}
+
+.ii-modal.is-open .ii-opcao {
+	animation: ii-opcao-entra 320ms ease-out both;
+}
+
+.ii-modal.is-open .ii-opcao:nth-child(1) { animation-delay: 240ms; }
+.ii-modal.is-open .ii-opcao:nth-child(2) { animation-delay: 330ms; }
+.ii-modal.is-open .ii-opcao:nth-child(n + 3) { animation-delay: 420ms; }
+
+.ii-modal.is-open .ii-titulo-pt {
+	animation: ii-brilho 900ms ease-in-out 2 alternate both;
+}
+
+@media (hover: hover) {
+	.ii-opcao {
+		transition: transform 140ms ease-out, border-color 140ms, background-color 140ms;
+	}
+
+	.ii-opcao:hover {
+		transform: translateX(4px);
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.ii-modal.is-open,
+	.ii-modal.is-open .ii-card,
+	.ii-modal.is-open .ii-opcao,
+	.ii-modal.is-open .ii-titulo-pt {
+		animation: none;
+	}
+}

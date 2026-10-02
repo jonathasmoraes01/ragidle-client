@@ -29,6 +29,7 @@ import UIManager from 'UI/UIManager.js';
 import htmlText from './IdiomaIdle.html?raw';
 import cssText from './IdiomaIdle.css?raw';
 import { IDIOMAS, definirIdioma, idiomaAtual, idiomaFoiEscolhido } from 'Core/Idioma.js';
+import { enviarIdiomaDaConta } from 'Core/idiomaDaConta.js';
 import { recarregarMantendoASessao } from 'UI/recargaMantendoASessao.js';
 import { janelaDaCasca } from 'UI/ofertaDeInstalacao.js';
 
@@ -47,7 +48,8 @@ let _contexto = 'jogo';
 let _aoFechar = null;
 
 /** Injetaveis no teste: o que acontece depois de escolher um idioma diferente. */
-let _recarregarNoJogo = () => recarregarMantendoASessao();
+/* A recarga espera o pacote da conta sair do soquete antes de derrubar a pagina. */
+let _recarregarNoJogo = () => setTimeout(() => recarregarMantendoASessao(), 250);
 let _recarregarNoLogin = () => janelaDaCasca().location.reload();
 
 function _root() {
@@ -192,6 +194,9 @@ IdiomaIdle.passoZero = function passoZero(aoFechar) {
 
 function escolher(codigo) {
 	const mudou = definirIdioma(codigo);
+	if (_contexto !== 'login') {
+		enviarIdiomaDaConta(codigo);
+	}
 	IdiomaIdle.fechar();
 	if (!mudou) {
 		avisarFechou();
@@ -208,6 +213,9 @@ function escolher(codigo) {
 function fecharSemEscolher() {
 	if (!idiomaFoiEscolhido()) {
 		definirIdioma(idiomaAtual());
+		if (_contexto !== 'login') {
+			enviarIdiomaDaConta(idiomaAtual());
+		}
 	}
 	IdiomaIdle.fechar();
 	avisarFechou();
