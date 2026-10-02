@@ -54,6 +54,7 @@ import HuntMap from 'UI/Components/HuntMap/HuntMap.js';
 import IdleConfig from 'UI/Components/IdleConfig/IdleConfig.js';
 import AdminPanel from 'UI/Components/AdminPanel/AdminPanel.js';
 import ChatBox from 'UI/Components/ChatBox/ChatBox.js';
+import { emIngles } from 'Core/Idioma.js';
 import htmlText from './HuntButtonIdle.html?raw';
 import cssText from './HuntButtonIdle.css?raw';
 import { emUnidadesDaHud } from 'UI/escalaDaHud.js'; // D-934: geometria medida vira unidade da HUD
@@ -167,6 +168,10 @@ function publicarAltura() {
  * Engine/MapEngine.js).
  */
 HuntButtonIdle.onAppend = function onAppend() {
+	const raiz = _root().querySelector('#HuntButtonIdle');
+	if (raiz) {
+		raiz.classList.toggle('hb-en', emIngles());
+	}
 	hideAdminButton();
 	publicarAltura();
 	_ultimoEmCasa = null;

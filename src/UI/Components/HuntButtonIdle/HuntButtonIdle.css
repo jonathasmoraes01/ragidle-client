@@ -275,3 +275,64 @@
 	font-size: 10px;
 	white-space: normal;
 }
+
+/*
+ * IDIOMA (D-1929): o rotulo "Caçar"/"Retornar para Prontera" e PIXEL dentro da
+ * arte do botao, e o tradutor so enxerga texto do DOM. Em ingles o fundo vira a
+ * arte SEM o texto e o rotulo do DOM (ja traduzido) e desenhado por cima, entre
+ * o icone e o ornamento da direita. So o desktop: a HUD vertical usa discos e
+ * o rotulo proprio dela (reposto logo abaixo).
+ */
+#HuntButtonIdle.hb-en .hb-btn.hb-cacar {
+	background-image: url('/ragidle/hud/botoes/hud-btn-cacar-sem-texto.png');
+}
+
+#HuntButtonIdle.hb-en .hb-btn.hb-voltar {
+	background-image: url('/ragidle/hud/botoes/hud-btn-voltar-sem-texto.png');
+}
+
+#HuntButtonIdle.hb-en .hb-btn .hb-rotulo {
+	position: absolute;
+	top: 0;
+	bottom: 0;
+	left: 33%;
+	right: 12%;
+	width: auto;
+	height: auto;
+	overflow: hidden;
+	clip: auto;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	text-align: center;
+	white-space: normal;
+	line-height: 1.05;
+	font-weight: 700;
+	font-size: 13px;
+	color: #fff;
+	text-shadow: 0 1px 2px rgba(0, 20, 80, 0.95), 0 0 4px rgba(0, 20, 80, 0.7);
+	pointer-events: none;
+}
+
+#HuntButtonIdle.hb-en .hb-btn {
+	position: relative;
+}
+
+.ri-vertical #HuntButtonIdle.hb-en .hb-btn .hb-rotulo {
+	position: absolute;
+	top: calc(100% + 1px);
+	bottom: auto;
+	left: auto;
+	right: 0;
+	display: block;
+	text-align: right;
+	white-space: nowrap;
+	overflow: visible;
+	font-size: 10px;
+	font-weight: inherit;
+}
+
+.ri-vertical #HuntButtonIdle.hb-en .hb-btn.hb-cacar,
+.ri-vertical #HuntButtonIdle.hb-en .hb-btn.hb-voltar {
+	background: var(--tab-active-fill);
+}
