@@ -13,6 +13,7 @@ import { comPesoDaFicha } from 'DB/Items/pesoNaDescricao.js';
 import Client from 'Core/Client.js';
 import Configs from 'Core/Configs.js';
 import TextEncoding from 'Utils/CodepageManager.js';
+import { caminhoDaTabela } from 'DB/tabelasNoIdioma.js';
 import { escaparHtml } from 'Utils/escaparHtml.js'; // D-1308: nome do dono de arma forjada vem cru do pacote (XSS)
 import JobId from './Jobs/JobConst.js';
 import ClassTable from './Jobs/JobNameTable.js';
@@ -4177,35 +4178,37 @@ function getSystemAliases(basePath) {
  * @param {function} onEnd to run once the file is loaded
  */
 function loadTable(filename, separator, size, callback, onEnd, useCharPage = false) {
-	Client.loadFile(
-		filename,
-		function (buffer) {
-			console.log('Loading file "' + filename + '"...');
+	// O jogo em ingles (D-1929): a tabela traduzida mora sob data/english/; se
+	// ela falhar, cai na portuguesa (nome em portugues e melhor que nenhum).
+	const caminho = caminhoDaTabela(filename);
+	const aoFalhar = caminho === filename ? onEnd : () => Client.loadFile(filename, aoCarregar, onEnd);
+	Client.loadFile(caminho, aoCarregar, aoFalhar);
 
-			let data = buffer instanceof ArrayBuffer ? new Uint8Array(buffer) : buffer;
-			data = TextEncoding.decode(data, useCharPage ? userCharpage : null);
+	function aoCarregar(buffer) {
+		console.log('Loading file "' + filename + '"...');
 
-			// Remove commented lines
-			const content = ('\n' + data).replace(/\n(\/\/[^\n]+)/g, '');
-			const elements = content.split(separator);
-			const count = elements.length;
-			const args = new Array(size + 1);
+		let data = buffer instanceof ArrayBuffer ? new Uint8Array(buffer) : buffer;
+		data = TextEncoding.decode(data, useCharPage ? userCharpage : null);
 
-			for (let i = 0; i < count; i++) {
-				if (i % size === 0) {
-					if (i) {
-						callback.apply(null, args);
-					}
-					args[i % size] = i;
+		// Remove commented lines
+		const content = ('\n' + data).replace(/\n(\/\/[^\n]+)/g, '');
+		const elements = content.split(separator);
+		const count = elements.length;
+		const args = new Array(size + 1);
+
+		for (let i = 0; i < count; i++) {
+			if (i % size === 0) {
+				if (i) {
+					callback.apply(null, args);
 				}
-
-				args[(i % size) + 1] = elements[i].replace(/^\s+|\s+$/g, ''); // trim
+				args[i % size] = i;
 			}
 
-			onEnd();
-		},
-		onEnd
-	);
+			args[(i % size) + 1] = elements[i].replace(/^\s+|\s+$/g, ''); // trim
+		}
+
+		onEnd();
+	}
 }
 
 /**
@@ -4218,56 +4221,57 @@ function loadTable(filename, separator, size, callback, onEnd, useCharPage = fal
  * @param {function} onEnd - callback when done
  */
 function loadCSV(filename, targetTable, keyIndex, valueIndex, onEnd) {
-	Client.loadFile(
-		filename,
-		function (data) {
-			console.log('Loading file "' + filename + '"...');
+	// O jogo em ingles (D-1929): o mesmo desvio de `loadTable`.
+	const caminho = caminhoDaTabela(filename);
+	const aoFalhar = caminho === filename ? onEnd : () => Client.loadFile(filename, aoCarregar, onEnd);
+	Client.loadFile(caminho, aoCarregar, aoFalhar);
 
-			const bytes = data instanceof ArrayBuffer ? new Uint8Array(data) : data;
-			let text = '';
-			let isBase64 = true;
+	function aoCarregar(data) {
+		console.log('Loading file "' + filename + '"...');
 
-			// Convert buffer to a raw "binary string".
-			// This prevents atob() from throwing "outside latin1 range" errors.
-			for (let i = 0, count = bytes.length; i < count; i++) {
-				text += String.fromCharCode(bytes[i]);
+		const bytes = data instanceof ArrayBuffer ? new Uint8Array(data) : data;
+		let text = '';
+		let isBase64 = true;
+
+		// Convert buffer to a raw "binary string".
+		// This prevents atob() from throwing "outside latin1 range" errors.
+		for (let i = 0, count = bytes.length; i < count; i++) {
+			text += String.fromCharCode(bytes[i]);
+		}
+
+		// Check if the file is Base64 encoded
+		if (!text.trimEnd().endsWith('=')) {
+			text = TextEncoding.decode(bytes, 'utf-8');
+			isBase64 = false;
+		}
+
+		// Split lines
+		const lines = text.split(/\r?\n/);
+		let index = 0;
+		for (let i = 0; i < lines.length; i++) {
+			const line = lines[i].trim();
+			if (!line || line.startsWith('//')) {
+				continue;
 			}
 
-			// Check if the file is Base64 encoded
-			if (!text.trimEnd().endsWith('=')) {
-				text = TextEncoding.decode(bytes, 'utf-8');
-				isBase64 = false;
+			const parts = isBase64 ? line.split(',') : line.split('\t');
+			if (parts.length <= Math.max(keyIndex, valueIndex)) {
+				continue;
 			}
 
-			// Split lines
-			const lines = text.split(/\r?\n/);
-			let index = 0;
-			for (let i = 0; i < lines.length; i++) {
-				const line = lines[i].trim();
-				if (!line || line.startsWith('//')) {
-					continue;
-				}
-
-				const parts = isBase64 ? line.split(',') : line.split('\t');
-				if (parts.length <= Math.max(keyIndex, valueIndex)) {
-					continue;
-				}
-
-				try {
-					// Decode columns from Base64
-					const value = isBase64 ? base64DecodeUtf8(parts[valueIndex].trim()) : parts[valueIndex].trim();
-					targetTable[index] = value;
-					index++;
-				} catch (e) {
-					console.error('Base64 decode failed on line', i + 1, ':', line, e);
-				}
+			try {
+				// Decode columns from Base64
+				const value = isBase64 ? base64DecodeUtf8(parts[valueIndex].trim()) : parts[valueIndex].trim();
+				targetTable[index] = value;
+				index++;
+			} catch (e) {
+				console.error('Base64 decode failed on line', i + 1, ':', line, e);
 			}
-			if (typeof onEnd === 'function') {
-				onEnd();
-			}
-		},
-		onEnd
-	);
+		}
+		if (typeof onEnd === 'function') {
+			onEnd();
+		}
+	}
 }
 
 /**

@@ -19,6 +19,7 @@ import { alvosDaVarredura } from 'UI/alvosDaVarredura.js';
 // D-1489: a barra legada do RO e para MOUSE; no dedo quem rola e o navegador.
 // `escalaDaHud.js` nao importa nada (e folha), entao nao ha ciclo possivel.
 import { ehDedo } from 'UI/escalaDaHud.js';
+import { observarRaiz } from 'UI/traducaoDaInterface.js';
 
 /**
  * Heavy modules loaded lazily to keep viewer bundles lightweight.
@@ -283,6 +284,11 @@ class GUIComponent {
 
 		// Process legacy data-* attributes (background, hover, down, text, etc.)
 		this._processAllDataAttrs();
+
+		/* O jogo em ingles (D-1929): a raiz da janela passa a ser traduzida, o que
+		   ja esta nela e o que o componente escrever depois. Em portugues e um
+		   registro sem efeito. */
+		observarRaiz(this._shadow);
 
 		// Create jQuery compatibility proxy
 		this._createUIProxy();

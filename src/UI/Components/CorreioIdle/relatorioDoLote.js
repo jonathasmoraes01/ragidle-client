@@ -22,6 +22,8 @@
  * O campo viaja no pacote para o dia em que houver uma segunda.
  */
 
+import { localeDoIdioma } from 'Core/Idioma.js';
+
 /**
  * O relatório do lote em uma frase.
  *
@@ -85,7 +87,7 @@ export function fraseDaColeta(relatorio) {
 				: 'Anexos de ' + coletadas + ' mensagens coletados';
 	// O zeny só aparece quando existe: "(0 zeny)" é ruído em toda coleta que
 	// não tinha dinheiro nenhum, que é a maioria delas.
-	const comZeny = zeny > 0 ? veio + ' (' + zeny.toLocaleString('pt-BR') + ' zeny)' : veio;
+	const comZeny = zeny > 0 ? veio + ' (' + zeny.toLocaleString(localeDoIdioma()) + ' zeny)' : veio;
 
 	if (!mantidas.length) {
 		return comZeny + '.';

@@ -56,6 +56,7 @@
  */
 
 import Renderer from 'Renderer/Renderer.js';
+import { localeDoIdioma } from 'Core/Idioma.js';
 import Preferences from 'Core/Preferences.js';
 import Session from 'Engine/SessionStorage.js';
 import DB from 'DB/DBManager.js';
@@ -178,7 +179,7 @@ function numero(valor) {
 	if (valor === null || valor === undefined || !isFinite(valor)) {
 		return TRACO;
 	}
-	return Math.round(valor).toLocaleString('pt-BR');
+	return Math.round(valor).toLocaleString(localeDoIdioma());
 }
 
 /** O cronometro do Midgard: HH:MM:SS, sempre com as tres casas. */
@@ -223,7 +224,7 @@ function totalComPct(total, teto) {
 	if (!teto || teto <= 0 || !total) {
 		return base;
 	}
-	const pct = ((total * 100) / teto).toLocaleString('pt-BR', {
+	const pct = ((total * 100) / teto).toLocaleString(localeDoIdioma(), {
 		minimumFractionDigits: 1,
 		maximumFractionDigits: 1
 	});
@@ -631,7 +632,7 @@ function desenharRetrato(root, r, aoVivo) {
 	texto(
 		root,
 		'.ha-itens-100',
-		r.itensPor100Abates === null ? TRACO : r.itensPor100Abates.toLocaleString('pt-BR', { maximumFractionDigits: 1 })
+		r.itensPor100Abates === null ? TRACO : r.itensPor100Abates.toLocaleString(localeDoIdioma(), { maximumFractionDigits: 1 })
 	);
 
 	desenharMonstros(root, r.ranking);

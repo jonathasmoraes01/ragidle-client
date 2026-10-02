@@ -11,6 +11,7 @@
  * NAO EDITE A MAO: regenere quando o pacote mudar (D-974).
  */
 import SkillInfo from './SkillInfo.js';
+import { emIngles } from 'Core/Idioma.js';
 
 const NOME_PT_POR_CONSTANTE = {
 	"AC_CHARGEARROW": "Disparo Violento",
@@ -376,6 +377,10 @@ export function nomeDaHabilidadeParaOJogador(skillId) {
 	const info = SkillInfo[skillId];
 	if (!info) {
 		return 'Unknown Skill';
+	}
+	// O jogo em ingles (D-1929): o `SkillName` do SkillInfo JA e o nome ingles.
+	if (emIngles()) {
+		return info.SkillName || 'Unknown Skill';
 	}
 	return NOME_PT_POR_CONSTANTE[info.Name] || info.SkillName || 'Unknown Skill';
 }

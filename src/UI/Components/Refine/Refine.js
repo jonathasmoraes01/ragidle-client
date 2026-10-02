@@ -58,6 +58,7 @@
  */
 
 import DB from 'DB/DBManager.js';
+import { localeDoIdioma } from 'Core/Idioma.js';
 import ItemType from 'DB/Items/ItemType.js';
 import Configs from 'Core/Configs.js';
 import Preferences from 'Core/Preferences.js';
@@ -206,7 +207,7 @@ function $(seletor) {
 /** Zeny com separador de milhar: "1000000" e ilegivel do lado de um botao. */
 function zeny(valor) {
 	const numero = Number(valor);
-	return Number.isFinite(numero) ? numero.toLocaleString('pt-BR') : '—';
+	return Number.isFinite(numero) ? numero.toLocaleString(localeDoIdioma()) : '—';
 }
 
 /**
@@ -217,7 +218,7 @@ function zeny(valor) {
  * existe — foi por caber so num byte que o pacote nativo do RO nao serviu.
  */
 function porcento(taxa) {
-	return (Number(taxa) / 100).toLocaleString('pt-BR', {
+	return (Number(taxa) / 100).toLocaleString(localeDoIdioma(), {
 		minimumFractionDigits: 2,
 		maximumFractionDigits: 2
 	});

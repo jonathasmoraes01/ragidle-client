@@ -57,6 +57,7 @@
  */
 
 import DB from 'DB/DBManager.js';
+import { localeDoIdioma } from 'Core/Idioma.js';
 import Client from 'Core/Client.js';
 import Session from 'Engine/SessionStorage.js';
 import Network from 'Network/NetworkManager.js';
@@ -175,7 +176,7 @@ const eEscambo = () => _type === NpcStore.Type.BARTER_MARKET || _type === NpcSto
 
 /** "1.234.567" — separador PT-BR, mesmo formato do resto do jogo. */
 function prettyZeny(val) {
-	return (Number(val) || 0).toLocaleString('pt-BR');
+	return (Number(val) || 0).toLocaleString(localeDoIdioma());
 }
 
 /**
@@ -185,7 +186,7 @@ function prettyZeny(val) {
  * Red Potion pesar "70" numa tela e "7" na outra.
  */
 function prettyPeso(decigramas) {
-	return (Number(decigramas) / 10).toLocaleString('pt-BR', { maximumFractionDigits: 1 });
+	return (Number(decigramas) / 10).toLocaleString(localeDoIdioma(), { maximumFractionDigits: 1 });
 }
 
 function precoUnitario(item) {

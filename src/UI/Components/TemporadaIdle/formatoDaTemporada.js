@@ -82,6 +82,7 @@
  */
 
 import RiIcones from 'UI/ri-icones.js';
+import { localeDoIdioma } from 'Core/Idioma.js';
 import { formatarRoCash, minorDe, minorDePrimeiro } from 'Utils/roCash.js';
 
 /**
@@ -154,7 +155,7 @@ export function formatarPrecoCentavos(centavos) {
 	const resto = String(n % 100).padStart(2, '0');
 	let reaisTexto;
 	try {
-		reaisTexto = reais.toLocaleString('pt-BR');
+		reaisTexto = reais.toLocaleString(localeDoIdioma());
 	} catch (err) {
 		reaisTexto = String(reais);
 	}

@@ -47,6 +47,7 @@
  */
 
 import Renderer from 'Renderer/Renderer.js';
+import { localeDoIdioma } from 'Core/Idioma.js';
 import Preferences from 'Core/Preferences.js';
 import Network from 'Network/NetworkManager.js';
 import PACKET from 'Network/PacketStructure.js';
@@ -728,7 +729,7 @@ function renderEvento() {
 		? `<div class="ap-evento-estado is-ativo">
 				<div class="ap-evento-titulo">Evento ativo · ${escapeHtml(bonusPorExtenso(ev.base, ev.job))}</div>
 				<div>Termina ${escapeHtml(
-					new Date(AdminPanel.eventoFimLocal).toLocaleString('pt-BR', {
+					new Date(AdminPanel.eventoFimLocal).toLocaleString(localeDoIdioma(), {
 						weekday: 'short',
 						day: '2-digit',
 						month: '2-digit',
@@ -915,7 +916,7 @@ function atualizarRelogioDoEvento() {
 
 /** O "Termina ter., 02/10, 14:00" de um fim no relogio local — o mesmo formato do evento de EXP. */
 function formatarFimDoEvento(fimLocal) {
-	return new Date(fimLocal).toLocaleString('pt-BR', {
+	return new Date(fimLocal).toLocaleString(localeDoIdioma(), {
 		weekday: 'short',
 		day: '2-digit',
 		month: '2-digit',

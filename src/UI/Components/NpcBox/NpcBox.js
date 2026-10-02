@@ -9,6 +9,7 @@
  */
 
 import KEYS from 'Controls/KeyEventHandler.js';
+import { traducaoDe } from 'Core/Traducao.js';
 import Renderer from 'Renderer/Renderer.js';
 import UIManager from 'UI/UIManager.js';
 import GUIComponent from 'UI/GUIComponent.js';
@@ -262,6 +263,9 @@ NpcBox.onKeyDown = function onKeyDown(event) {
  * @param {string} text to display
  * @param {number} gid - npc id
  */
+/** As linhas cruas da pagina atual do dialogo (para traduzir a pagina inteira, D-1929). */
+let _linhasDaPagina = [];
+
 NpcBox.setText = function setText(text, gid) {
 	const root = NpcBox.getRoot();
 	const content = root.querySelector('.content');
@@ -270,11 +274,32 @@ NpcBox.setText = function setText(text, gid) {
 	if (_needCleanUp) {
 		_needCleanUp = false;
 		content.textContent = '';
+		_linhasDaPagina = [];
 	}
 
 	const div = document.createElement('div');
 	div.innerHTML = processText(text);
 	content.appendChild(div);
+
+	/*
+	 * O JOGO EM INGLES (D-1929): o servidor quebra a fala em linhas de 116
+	 * caracteres, e a traducao e da PAGINA. A cada linha nova, o texto cru da
+	 * pagina inteira e tentado no catalogo; casando, as linhas dao lugar a UM
+	 * bloco com a traducao (a caixa quebra sozinha). O bloco traduzido leva
+	 * `translate="no"` para o observador nao tentar traduzir o ingles de novo.
+	 */
+	_linhasDaPagina.push({ texto: text, div });
+	const traduzida = traducaoDe(_linhasDaPagina.map(l => l.texto).join(' '));
+	if (traduzida !== null) {
+		for (const linha of _linhasDaPagina) {
+			linha.div.remove();
+		}
+		const bloco = document.createElement('div');
+		bloco.setAttribute('translate', 'no');
+		bloco.innerHTML = processText(traduzida);
+		content.appendChild(bloco);
+		_linhasDaPagina = [{ texto: _linhasDaPagina.map(l => l.texto).join(' '), div: bloco }];
+	}
 };
 
 /**

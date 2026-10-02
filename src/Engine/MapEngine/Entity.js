@@ -10,6 +10,7 @@
  * Load dependencies
  */
 import DB from 'DB/DBManager.js';
+import { localeDoIdioma } from 'Core/Idioma.js';
 import SkillId from 'DB/Skills/SkillConst.js';
 import SkillInfo from 'DB/Skills/SkillInfo.js';
 import { nomeDaHabilidadeParaOJogador } from 'DB/Skills/SkillNamePtBr.js'; // RAGIDLE (08/09/2026): o balao em portugues
@@ -1698,7 +1699,7 @@ function onEntityUseSkill(pkt) {
 			// (Roubar Moeda, do Gatuno) e o personagem da prova e Espadachim.
 			// Ela esta escrita, e nao foi vista rodar.
 			ChatBox.addText(
-				`Você roubou ${Number(pkt.level || 0).toLocaleString('pt-BR')} Zeny.`,
+				`Você roubou ${Number(pkt.level || 0).toLocaleString(localeDoIdioma())} Zeny.`,
 				ChatBox.TYPE.BLUE,
 				ChatBox.FILTER.FARM_ZENY
 			);
@@ -2942,7 +2943,7 @@ function onNotifyExp(pkt) {
 	// o apostrofo orfao do "%d'" da tabela, que parecia defeito de renderizacao
 	// dentro de uma HUD em portugues. As duas mensagens NAO tem outro consumidor
 	// no cliente (conferido com grep em src/: sao estes dois usos).
-	const ganho = Number(pkt.amount || 0).toLocaleString('pt-BR');
+	const ganho = Number(pkt.amount || 0).toLocaleString(localeDoIdioma());
 	switch (pkt.expType) {
 		case 0:
 			/*

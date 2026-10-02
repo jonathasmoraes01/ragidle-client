@@ -29,6 +29,8 @@
  * servidor nao os envia, e traduzi-los seria trabalho que ninguem le.
  */
 
+import { emIngles } from 'Core/Idioma.js';
+
 /**
  * As frases, exatamente como aparecem em `StatusInfo.js`.
  *
@@ -269,6 +271,11 @@ const PT_BR = {
  * quebrar a tela nao e opcao.
  */
 export function emPortugues(frase) {
+	// O jogo em ingles (D-1929): o original JA e ingles (o `stateiconinfo` ingles
+	// do GRF), entao a camada portuguesa simplesmente nao entra.
+	if (emIngles()) {
+		return frase;
+	}
 	return Object.prototype.hasOwnProperty.call(PT_BR, frase) ? PT_BR[frase] : frase;
 }
 

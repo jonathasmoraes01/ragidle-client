@@ -62,6 +62,7 @@
  */
 
 import DB from 'DB/DBManager.js';
+import { falaDeJogador } from './falaDeJogador.js';
 import Events from 'Core/Events.js';
 import Preferences from 'Core/Preferences.js';
 import KEYS from 'Controls/KeyEventHandler.js';
@@ -2330,6 +2331,12 @@ function flushMessageBuffer() {
 			const mm = String(agora.getMinutes()).padStart(2, '0');
 			const horaHtml = `<span class="cb-hora">${hh}:${mm}</span> `;
 
+			// O jogo em ingles (D-1929): o que o JOGADOR digitou nao se traduz -
+			// o corpo da linha vai num `translate="no"`; a etiqueta traduz.
+			const doJogador = falaDeJogador(msg.filterType, msg.colorType, ChatBox);
+			const abre = doJogador ? '<span translate="no">' : '';
+			const fecha = doJogador ? '</span>' : '';
+
 			if (!msg.override) {
 				// D-1308: escapa PRIMEIRO, transforma DEPOIS. O texto cru de outro
 				// jogador passa por highlightMessage (que escapa) em cada trecho
@@ -2339,14 +2346,16 @@ function flushMessageBuffer() {
 					horaHtml +
 					tagHtml +
 					' ' +
+					abre +
 					renderFalaSegura(msg.text, (segmento, ehPrimeiro) =>
 						highlightMessage(segmento, msg.colorType, ehPrimeiro)
-					);
+					) +
+					fecha;
 			} else {
 				// Override e HTML que o PROPRIO cliente montou com seguranca (link de
 				// download; sussurro de PrivateMessage.js com nome e corpo ja
 				// escapados). Nunca vem do texto cru de outro jogador (D-1308).
-				div.innerHTML = horaHtml + tagHtml + ' ' + msg.text;
+				div.innerHTML = horaHtml + tagHtml + ' ' + abre + msg.text + fecha;
 			}
 			fragment.appendChild(div);
 		});
