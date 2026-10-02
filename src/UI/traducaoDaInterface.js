@@ -23,8 +23,23 @@
 
 import { traduzir, traducaoLigada } from 'Core/Traducao.js';
 
-/** Os atributos que o jogador LE. */
-const ATRIBUTOS_VISIVEIS = ['title', 'placeholder', 'aria-label', 'alt'];
+/**
+ * Os atributos que o jogador LE. Os `data-*` viram tooltip ou `content: attr(...)`
+ * (a extracao os traz, docs/PLANO-IDIOMA-INGLES.md secao 3.2); quem os le no
+ * codigo so os mostra — o `data-title` numerico do Equipment nao tem letra e
+ * passa intocado.
+ */
+const ATRIBUTOS_VISIVEIS = [
+	'title',
+	'placeholder',
+	'aria-label',
+	'alt',
+	'data-tooltip',
+	'data-dica',
+	'data-rotulo',
+	'data-placeholder',
+	'data-title'
+];
 
 /** Elementos cujo texto nunca e nosso para traduzir. */
 const ELEMENTOS_PULADOS = new Set(['SCRIPT', 'STYLE', 'TEXTAREA', 'CODE', 'PRE']);
@@ -180,10 +195,44 @@ export function observarRaiz(raiz) {
 	ligarObservador(raiz);
 }
 
+/**
+ * O TEXTO QUE MORA NO CSS: `content: "Nenhuma mensagem"` num pseudo-elemento
+ * nao esta no DOM, e o observador nao o ve. O estilo da janela e texto dentro
+ * de `<style>` na propria raiz, entao a traducao reescreve a string do
+ * `content` ali (uma vez por estilo).
+ *
+ * @param {Node} raiz
+ */
+export function traduzirEstilos(raiz) {
+	if (!traducaoLigada() || !raiz || typeof raiz.querySelectorAll !== 'function') {
+		return;
+	}
+	for (const estilo of raiz.querySelectorAll('style')) {
+		const css = estilo.textContent || '';
+		if (!css.includes('content') || _escrito.get(estilo) === css) {
+			continue;
+		}
+		const traduzido = css.replace(/(content\s*:\s*)(['"])((?:\\.|(?!\2)[^\\])*)\2/g, (tudo, antes, aspa, miolo) => {
+			const texto = miolo.replace(/\\(.)/g, '$1');
+			const emIngles = traduzir(texto);
+			if (emIngles === texto) {
+				return tudo;
+			}
+			const escapado = emIngles.replace(/\\/g, '\\\\').split(aspa).join('\\' + aspa);
+			return antes + aspa + escapado + aspa;
+		});
+		if (traduzido !== css) {
+			estilo.textContent = traduzido;
+		}
+		_escrito.set(estilo, estilo.textContent);
+	}
+}
+
 function ligarObservador(raiz) {
 	if (_observadores.has(raiz)) {
 		return;
 	}
+	traduzirEstilos(raiz);
 	const observador = new MutationObserver(aoMudar);
 	observador.observe(raiz, {
 		subtree: true,

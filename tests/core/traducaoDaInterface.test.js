@@ -82,6 +82,28 @@ describe('o observador', () => {
 		expect(raiz.querySelector('p').textContent).toBe('Close');
 	});
 
+	it('o tooltip em data-dica/data-tooltip e traduzido (o codigo so o mostra)', () => {
+		absorverCatalogo(CATALOGO);
+		const { sombra, raiz } = janela('<span data-dica="Fechar" data-tooltip="Comprar" data-title="42">x</span>');
+		observarRaiz(sombra);
+		const el = raiz.querySelector('span');
+		expect(el.getAttribute('data-dica')).toBe('Close');
+		expect(el.getAttribute('data-tooltip')).toBe('Buy');
+		expect(el.getAttribute('data-title')).toBe('42');
+	});
+
+	it('o texto do `content:` do CSS da janela e traduzido, com aspas escapadas', () => {
+		absorverCatalogo({ ...CATALOGO, exatos: { ...CATALOGO.exatos, 'Nenhuma mensagem': 'No "new" messages' } });
+		const host = document.createElement('div');
+		document.body.appendChild(host);
+		const sombra = host.attachShadow({ mode: 'open' });
+		const estilo = document.createElement('style');
+		estilo.textContent = '.vazio::after { content: "Nenhuma mensagem"; } .x::before { content: "\\25B8"; }';
+		sombra.appendChild(estilo);
+		observarRaiz(sombra);
+		expect(estilo.textContent).toBe('.vazio::after { content: "No \\"new\\" messages"; } .x::before { content: "\\25B8"; }');
+	});
+
 	it('<style> e <textarea> nao sao tocados', () => {
 		absorverCatalogo(CATALOGO);
 		const { sombra, raiz } = janela('<style>.Fechar{}</style><textarea>Fechar</textarea>');

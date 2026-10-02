@@ -47,6 +47,8 @@
  * gravacao.
  */
 
+import { traduzir } from 'Core/Traducao.js';
+
 /** Quantas etapas o tutorial tem. O servidor manda `total` no retrato; este
  *  numero e o que o cliente desenha quando o retrato ainda nao chegou. */
 export const TOTAL_DE_ETAPAS = 12;
@@ -597,9 +599,13 @@ export function mapaDeReferenciaDaEtapa(numero, anterior, mapaAgora) {
  * @param {string} [frase]    troca a frase da etapa (o caminho de volta)
  */
 export function fraseDaEtapa(etapa, temDedo, frase) {
-	const texto = frase || (etapa && etapa.frase) || '';
-	const acao = temDedo ? 'Toque em' : 'Clique em';
-	const rotulo = etapa && etapa.rotulo ? `"${etapa.rotulo}"` : '';
+	/* O jogo em ingles (D-1929): a frase e um MODELO com {acao}/{rotulo}, e a
+	   tela mostra a frase JA preenchida, que o catalogo nao conhece. Entao o
+	   modelo, o verbo e o nome do botao sao traduzidos ANTES de preencher. Em
+	   portugues o tradutor devolve o mesmo texto. */
+	const texto = traduzir(frase || (etapa && etapa.frase) || '');
+	const acao = traduzir(temDedo ? 'Toque em' : 'Clique em');
+	const rotulo = etapa && etapa.rotulo ? `"${traduzir(etapa.rotulo)}"` : '';
 	return texto.replace('{acao}', acao).replace('{rotulo}', rotulo).replace(/\s+/g, ' ').trim();
 }
 
