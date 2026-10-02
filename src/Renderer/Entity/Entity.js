@@ -9,6 +9,7 @@
  */
 
 import Altitude from 'Renderer/Map/Altitude.js';
+import { traduzir } from 'Core/Traducao.js';
 import Session from 'Engine/SessionStorage.js';
 import Client from 'Core/Client.js';
 import glMatrix from 'Utils/gl-matrix.js';
@@ -338,7 +339,10 @@ class Entity {
 					break;
 
 				case 'name':
-					this.display.name = unit.name;
+					// O jogo em ingles (D-1929): o nome de monstro e de NPC vem do
+					// servidor em portugues e e desenhado no canvas, fora do alcance
+					// do tradutor das janelas. Nome de JOGADOR nunca se traduz.
+					this.display.name = this.objecttype === Entity.TYPE_PC ? unit.name : traduzir(unit.name);
 					if (this.display.name.length == 0) {
 						this.display.load = this.display.TYPE.NONE;
 					}

@@ -10,6 +10,7 @@
  * Load dependencies
  */
 import DB from 'DB/DBManager.js';
+import { traduzir } from 'Core/Traducao.js';
 import { localeDoIdioma } from 'Core/Idioma.js';
 import SkillId from 'DB/Skills/SkillConst.js';
 import SkillInfo from 'DB/Skills/SkillInfo.js';
@@ -1204,7 +1205,8 @@ function onEntityIdentity(pkt) {
 		 * O disfarce de verdade deste servidor e o `@fakename`, que vem por
 		 * outro caminho; este aqui e so a resposta de "qual e o nome deste GID".
 		 */
-		entity.display.name = pkt.CName;
+		// O jogo em ingles (D-1929): monstro e NPC traduzem; jogador, nunca.
+		entity.display.name = entity.objecttype === Entity.TYPE_PC ? pkt.CName : traduzir(pkt.CName);
 		entity.display.fakename = '';
 
 		// RAGIDLE (23/09/2026): o id fica guardado no letreiro porque o TEXTO
