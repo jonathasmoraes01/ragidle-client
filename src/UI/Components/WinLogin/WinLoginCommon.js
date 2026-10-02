@@ -67,11 +67,6 @@ export function createWinLogin({ name, htmlText, cssText }) {
 		root.querySelector('.signup').addEventListener('click', signup);
 		root.querySelector('.connect').addEventListener('click', connect);
 		root.querySelector('.exit').addEventListener('click', exit);
-		// O jogo em ingles (D-1929): so a versao do login que tem o botao o liga.
-		const idioma = root.querySelector('.idioma');
-		if (idioma) {
-			idioma.addEventListener('click', () => IdiomaIdle.mostrar({ contexto: 'login' }));
-		}
 
 		_cadastro = montarCadastroNaEntrada(root, {
 			aoEntrar(usuario, senha) {
@@ -117,6 +112,9 @@ export function createWinLogin({ name, htmlText, cssText }) {
 	};
 
 	Component.onAppend = function onAppend() {
+		// O jogo em ingles (D-1929): o botao do idioma flutua sobre QUALQUER
+		// versao da tela de login (a classica e a moderna), enquanto ela estiver.
+		IdiomaIdle.mostrarAtalho();
 		_inputUsername.value = _preferences.saveID ? _preferences.ID : '';
 		_inputPassword.value = '';
 
@@ -264,6 +262,10 @@ export function createWinLogin({ name, htmlText, cssText }) {
 
 	Component.onConnectionRequest = function onConnectionRequest() {};
 	Component.onExitRequest = function onExitRequest() {};
+
+	Component.onRemove = function onRemove() {
+		IdiomaIdle.esconderAtalho();
+	};
 
 	return UIManager.addComponent(Component);
 }

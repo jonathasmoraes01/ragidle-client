@@ -81,6 +81,10 @@ IdiomaIdle.init = function init() {
 			opcoes.appendChild(botao);
 		}
 	}
+	const atalho = root.querySelector('.ii-atalho');
+	if (atalho) {
+		atalho.addEventListener('click', () => IdiomaIdle.mostrar({ contexto: 'login' }));
+	}
 	const x = root.querySelector('.ii-x');
 	if (x) {
 		x.addEventListener('click', fecharSemEscolher);
@@ -134,6 +138,27 @@ IdiomaIdle.mostrar = function mostrar(opcoes = {}) {
 	marcarAtual();
 	modal.classList.add('is-open');
 	IdiomaIdle.focus();
+};
+
+/** O botao flutuante da tela de login (WinLoginCommon liga ao abrir o login e desliga ao sair). */
+IdiomaIdle.mostrarAtalho = function mostrarAtalho() {
+	if (!IdiomaIdle.__loaded) {
+		IdiomaIdle.prepare();
+	}
+	if (!IdiomaIdle.__active) {
+		IdiomaIdle.append();
+	}
+	const atalho = _root() && _root().querySelector('.ii-atalho');
+	if (atalho) {
+		atalho.classList.add('is-visivel');
+	}
+};
+
+IdiomaIdle.esconderAtalho = function esconderAtalho() {
+	const atalho = _root() && _root().querySelector('.ii-atalho');
+	if (atalho) {
+		atalho.classList.remove('is-visivel');
+	}
 };
 
 IdiomaIdle.estaAberta = function estaAberta() {

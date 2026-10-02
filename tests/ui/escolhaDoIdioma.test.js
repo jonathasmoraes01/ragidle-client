@@ -127,6 +127,18 @@ describe('as outras portas', () => {
 		expect(botao('en').querySelector('.ii-marca').textContent).toBe('current');
 	});
 
+	it('o ATALHO do login aparece e some (WinLoginCommon o liga ao abrir o login), e abre a janela no contexto do login', () => {
+		IdiomaIdle.mostrarAtalho();
+		const atalho = IdiomaIdle._shadow.querySelector('.ii-atalho');
+		expect(atalho.classList.contains('is-visivel')).toBe(true);
+		atalho.click();
+		expect(IdiomaIdle.estaAberta()).toBe(true);
+		botao('en').click();
+		expect(recargas).toEqual(['login']);
+		IdiomaIdle.esconderAtalho();
+		expect(atalho.classList.contains('is-visivel')).toBe(false);
+	});
+
 	it('a janela inteira e translate="no" (ela e bilingue de proposito)', () => {
 		IdiomaIdle.mostrar();
 		expect(IdiomaIdle._shadow.querySelector('#IdiomaIdle').getAttribute('translate')).toBe('no');

@@ -26,6 +26,38 @@
 	height: 100%;
 }
 
+/* O atalho do login: canto de cima, alvo de toque folgado. */
+.ii-atalho {
+	display: none;
+	position: fixed;
+	top: var(--sp-4);
+	right: var(--sp-4);
+	align-items: center;
+	gap: var(--sp-2);
+	min-height: 44px;
+	padding: var(--sp-2) var(--sp-4);
+	border: 1px solid var(--border-gold);
+	border-radius: var(--radius-pill);
+	background: var(--surface-window);
+	color: var(--text-body);
+	font: inherit;
+	font-size: var(--fs-label);
+	box-shadow: var(--shadow-float);
+	cursor: pointer;
+	pointer-events: auto;
+}
+
+.ii-atalho.is-visivel {
+	display: inline-flex;
+}
+
+.ii-atalho-bandeira {
+	width: 21px;
+	height: 15px;
+	border-radius: 2px;
+	box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.18);
+}
+
 .ii-modal {
 	display: none;
 	position: fixed;

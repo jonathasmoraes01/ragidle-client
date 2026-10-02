@@ -11,7 +11,7 @@
  */
 
 import { emIngles, idiomaAtual } from 'Core/Idioma.js';
-import { carregarCatalogo } from 'Core/Traducao.js';
+import { carregarCatalogo, faltasDeTraducao } from 'Core/Traducao.js';
 import { retraduzirTudo } from 'UI/traducaoDaInterface.js';
 
 /** @type {Promise<boolean>|null} */
@@ -33,6 +33,9 @@ export function iniciarIdioma() {
 		_partida = Promise.resolve(false);
 		return _partida;
 	}
+	/* A sonda em tela (`scripts/diag-ingles-na-tela.ts` no repositorio do jogo)
+	   le o que o tradutor nao achou por aqui. So existe em ingles. */
+	window.ragidleIdioma = { faltas: faltasDeTraducao };
 	_partida = carregarCatalogo('en').then(ligou => {
 		if (ligou) {
 			retraduzirTudo();
