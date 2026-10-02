@@ -307,6 +307,16 @@ NpcBox.setText = function setText(text, gid) {
  *
  * @param {number} gid - npc id
  */
+/**
+ * O MENU COMECA UMA PAGINA NOVA para a traducao (D-1929). A caixa nao limpa
+ * o texto depois da escolha — a resposta e escrita embaixo da introducao —,
+ * mas a traducao e da PAGINA, e o catalogo tem a introducao e cada resposta
+ * separadas. O que ja esta na tela fica; so o acumulador recomeca.
+ */
+NpcBox.novaPaginaDeTraducao = function novaPaginaDeTraducao() {
+	_linhasDaPagina = [];
+};
+
 NpcBox.addNext = function addNext(gid) {
 	NpcBox.ownerID = gid;
 	const root = NpcBox.getRoot();

@@ -106,6 +106,8 @@ function onDynamicNPCCreateRequest(pkt) {
  * @param {object} pkt - PACKET.ZC.MENU_LIST
  */
 function onMenuAppear(pkt) {
+	// O jogo em ingles (D-1929): a resposta que vem depois do menu e outra pagina.
+	NpcBox.novaPaginaDeTraducao();
 	NpcMenu.append();
 	NpcMenu.setMenu(pkt.msg, pkt.NAID);
 
