@@ -11,10 +11,13 @@
  * O cliente oficial nao guarda pedido nenhum (anda e usa pelo que o servidor
  * mandou), entao descartar ao desistir e a forma fiel.
  */
-import { criarPedidoAdiado } from './pedidoAdiadoPeloGolpe.js';
+import { criarPedidosPorAtor } from './pedidoAdiadoPeloGolpe.js';
 
-/** C32 (29/09/2026): o pedido dentro da janela do golpe espera, em vez de sumir. */
-export const pedidoNoGolpe = criarPedidoAdiado({
+/**
+ * C32 (29/09/2026): o pedido dentro da janela do golpe espera, em vez de sumir.
+ * Lote 8 (C-4): um pedido POR ATOR, para o homunculo nao cancelar o do jogador.
+ */
+export const pedidoNoGolpe = criarPedidosPorAtor({
 	agendar: (fn, ms) => setTimeout(fn, ms),
 	cancelar: id => clearTimeout(id)
 });
@@ -23,10 +26,12 @@ export const pedidoNoGolpe = criarPedidoAdiado({
  * Descarta tudo o que esta guardado para soltar uma skill depois.
  *
  * @param {{ moveAction: object|null, moveActionAlcance: object|null, moveActionEspera: object|null }} sessao
- * @param {{ cancelar: () => void }} [adiado] - o pedido da janela do golpe (teste injeta)
+ * @param {{ cancelar: (ator?: unknown) => void }} [adiado] - o pedido da janela do golpe (teste injeta)
+ * @param {unknown} [ator] - lote 8 (C-4): so o pedido deste ator cai (o `entity.GID` do jogador, no
+ *   clique de andar); sem ele cai o de todos (troca de mapa, morte)
  */
-export function descartarPedidoGuardado(sessao, adiado = pedidoNoGolpe) {
-	adiado.cancelar();
+export function descartarPedidoGuardado(sessao, adiado = pedidoNoGolpe, ator = undefined) {
+	adiado.cancelar(ator);
 	sessao.moveAction = null;
 	sessao.moveActionAlcance = null;
 	sessao.moveActionEspera = null;
@@ -72,7 +77,8 @@ export function criarGestoDeAndar() {
 /**
  * O jogador mandou o personagem andar por conta propria: o pedido de skill
  * guardado cai (a skill nao sai no fim dessa caminhada nem puxa o boneco de
- * volta ao alvo).
+ * volta ao alvo). Lote 8 (C-4): cai o do PERSONAGEM; o pedido que o homunculo
+ * ou o mercenario guardaram na janela do golpe deles e ordem deles e sai.
  *
  * Num gesto CONTINUO (`gesto`, de `criarGestoDeAndar`) so o inicio descarta:
  * a skill pedida depois, com o stick ainda segurado, e o pedido mais novo do
@@ -80,7 +86,7 @@ export function criarGestoDeAndar() {
  * (500 ms) tambem nao chama isto a cada tique - so quem o LIGA.
  *
  * @param {{ moveAction: object|null, moveActionAlcance: object|null, moveActionEspera: object|null }} sessao
- * @param {{ gesto?: { ultimoEm: number|null }, agora?: number, adiado?: { cancelar: () => void } }} [opcoes]
+ * @param {{ gesto?: { ultimoEm: number|null }, agora?: number, adiado?: { cancelar: (ator?: unknown) => void } }} [opcoes]
  * @returns {boolean} `true` quando descartou (inicio de gesto ou andar avulso)
  */
 export function jogadorPediuParaAndar(sessao, { gesto = null, agora = Date.now(), adiado = pedidoNoGolpe } = {}) {
@@ -91,6 +97,6 @@ export function jogadorPediuParaAndar(sessao, { gesto = null, agora = Date.now()
 			return false;
 		}
 	}
-	descartarPedidoGuardado(sessao, adiado);
+	descartarPedidoGuardado(sessao, adiado, sessao.Entity ? sessao.Entity.GID : undefined);
 	return true;
 }

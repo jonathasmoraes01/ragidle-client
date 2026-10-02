@@ -40,6 +40,8 @@ import Events from 'Core/Events.js';
 // C32 (29/09/2026): o pedido dentro da janela do golpe espera, em vez de sumir.
 // C47 (C-1): o singleton mora em pedidoGuardado.js, para o clique de andar, a
 // troca de mapa e a morte poderem cancelar o pedido que espera.
+// Lote 8 (C-4): um slot POR ATOR (`entity.GID`); cada unidade tem a janela e o
+// delay dela (rAthena clif.cpp:12937, :12776 e :12833: `ud.canact_tick`).
 const _pedidoNoGolpe = pedidoNoGolpe;
 import SkillTargetSelection from 'UI/Components/SkillTargetSelection/SkillTargetSelection.js';
 import Guild from 'UI/Components/Guild/Guild.js';
@@ -633,18 +635,6 @@ Guild.onIncreaseSkill =
 		onIncreaseSkill;
 
 /**
- * C19 (auditoria de tela, 29/09/2026): o caminho ate o alcance cabe no teto
- * que o servidor anda (unit.cpp:855-869, 17 passos; 14 sem a reta livre)? Se
- * nao cabe, a skill nao e armada em `Session.moveAction` (o servidor recusaria
- * o andar calado e ela nunca sairia) e o jogador e avisado no chat. Ver
- * tetoDaCaminhadaDaSkill.js.
- *
- * @param {Array} pos - posicao de quem anda
- * @param {Array} out - o caminho do PathFinding.search
- * @param {number} count - o que o PathFinding.search devolveu
- * @returns {boolean}
- */
-/**
  * Lote 5 (resto do C23): guarda, junto do `Session.moveAction`, o alcance e o
  * alvo da skill - o `onWalkEnd` (MapEngine.js) re-confere com a regua da fonte
  * (alcanceNoFimDaCaminhada.js) e, se o boneco parou fora, anda mais uma vez por
@@ -706,6 +696,18 @@ function esperarConfirmacao(pacote) {
 	}, ESPERA_DA_CONFIRMACAO_MS);
 }
 
+/**
+ * C19 (auditoria de tela, 29/09/2026): o caminho ate o alcance cabe no teto
+ * que o servidor anda (unit.cpp:855-869, 17 passos; 14 sem a reta livre)? Se
+ * nao cabe, a skill nao e armada em `Session.moveAction` (o servidor recusaria
+ * o andar calado e ela nunca sairia) e o jogador e avisado no chat. Ver
+ * tetoDaCaminhadaDaSkill.js.
+ *
+ * @param {Array} pos - posicao de quem anda
+ * @param {Array} out - o caminho do PathFinding.search
+ * @param {number} count - o que o PathFinding.search devolveu
+ * @returns {boolean}
+ */
 function caminhoDaSkillCabe(pos, out, count) {
 	const origem = { x: pos[0] | 0, y: pos[1] | 0 };
 	const destino = { x: out[(count - 1) * 2 + 0], y: out[(count - 1) * 2 + 1] };
@@ -749,7 +751,12 @@ function onUseSkill(id, level, targetID) {
 
 	// Client side minimum delay. C32: o pedido espera a janela vencer e sai,
 	// em vez de sumir calado (ver pedidoAdiadoPeloGolpe.js).
-	if (entity && _pedidoNoGolpe.adiarSeNaJanela(entity.amotionTick, Renderer.tick, () => onUseSkill(id, level, targetID))) {
+	if (
+		entity &&
+		_pedidoNoGolpe.adiarSeNaJanela(entity.GID, entity.amotionTick, Renderer.tick, () =>
+			onUseSkill(id, level, targetID)
+		)
+	) {
 		return;
 	}
 
@@ -877,7 +884,7 @@ SkillTargetSelection.onUseSkillToPos = function onUseSkillToPos(id, level, x, y)
 	// Client side minimum delay. C32: espera e sai (ver pedidoAdiadoPeloGolpe.js).
 	if (
 		entity &&
-		_pedidoNoGolpe.adiarSeNaJanela(entity.amotionTick, Renderer.tick, () =>
+		_pedidoNoGolpe.adiarSeNaJanela(entity.GID, entity.amotionTick, Renderer.tick, () =>
 			SkillTargetSelection.onUseSkillToPos(id, level, x, y)
 		)
 	) {
