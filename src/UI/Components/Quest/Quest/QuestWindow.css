@@ -1,6 +1,10 @@
 :host {
 	right: 50px;
 	top: 250px;
+	/* So texto, sem nada clicavel: no celular a faixa vazia dele (230x5 em
+	   113,250) engolia o toque de quem estivesse embaixo, como o nome do
+	   cartao do Mapa de Caca (auditoria pre-push B, 29/09/2026). */
+	pointer-events: none;
 }
 
 #QuestWindow {

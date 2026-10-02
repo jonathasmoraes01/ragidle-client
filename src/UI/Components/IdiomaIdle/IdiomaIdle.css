@@ -1,0 +1,260 @@
+/*
+ * A ESCOLHA DO IDIOMA (D-1929). Moldura em CSS, como toda janela do jogo
+ * (regra 4); a bandeira e uma imagem pequena (public/ragidle/idioma/).
+ *
+ * Por cima de tudo, inclusive do tutorial (1900000) e da caixa de
+ * boas-vindas: no passo zero ela vem ANTES de qualquer outra coisa.
+ */
+
+:host {
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 100vw;
+	height: 100vh;
+	pointer-events: none;
+	font-family: var(--font-ui);
+	z-index: 1900010 !important;
+	/* A escala da HUD (escalaDaHud.js) escreve `zoom` no host; a janela de
+	   tela cheia nao pode encolher com ela. */
+	zoom: 1 !important;
+}
+
+#IdiomaIdle {
+	position: relative;
+	width: 100%;
+	height: 100%;
+}
+
+/* O atalho do login: canto de cima, alvo de toque folgado. */
+.ii-atalho {
+	display: none;
+	position: fixed;
+	top: var(--sp-4);
+	right: var(--sp-4);
+	align-items: center;
+	gap: var(--sp-2);
+	min-height: 44px;
+	padding: var(--sp-2) var(--sp-4);
+	border: 1px solid var(--border-gold);
+	border-radius: var(--radius-pill);
+	background: var(--surface-window);
+	color: var(--text-body);
+	font: inherit;
+	font-size: var(--fs-label);
+	box-shadow: var(--shadow-float);
+	cursor: pointer;
+	pointer-events: auto;
+}
+
+.ii-atalho.is-visivel {
+	display: inline-flex;
+}
+
+.ii-atalho-bandeira {
+	width: 21px;
+	height: 15px;
+	border-radius: 2px;
+	box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.18);
+}
+
+.ii-modal {
+	display: none;
+	position: fixed;
+	inset: 0;
+	align-items: center;
+	justify-content: center;
+	padding: var(--sp-6);
+	box-sizing: border-box;
+	background: rgba(18, 41, 74, 0.62);
+	pointer-events: none;
+}
+
+.ii-modal.is-open {
+	display: flex;
+	pointer-events: auto;
+}
+
+.ii-card {
+	position: relative;
+	width: min(420px, 100%);
+	box-sizing: border-box;
+	padding: var(--sp-7) var(--sp-6) var(--sp-6);
+	display: flex;
+	flex-direction: column;
+	gap: var(--sp-5);
+	box-shadow: var(--shadow-window), var(--glow-gold);
+}
+
+.ii-x {
+	position: absolute;
+	top: var(--sp-3);
+	right: var(--sp-3);
+}
+
+.ii-titulo {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: var(--sp-1);
+	text-align: center;
+}
+
+.ii-titulo-pt {
+	font-family: var(--font-display);
+	font-size: var(--fs-section);
+	color: var(--text-title);
+}
+
+.ii-titulo-en {
+	font-size: var(--fs-info);
+	color: var(--text-muted);
+}
+
+.ii-opcoes {
+	display: flex;
+	flex-direction: column;
+	gap: var(--sp-3);
+}
+
+/* Cada idioma e um botao grande: alvo de toque folgado (>= 44px, a regra
+   do celular) e a bandeira ao lado do nome escrito no proprio idioma. */
+.ii-opcao {
+	display: flex;
+	align-items: center;
+	gap: var(--sp-4);
+	min-height: 52px;
+	padding: var(--sp-3) var(--sp-5);
+	border: 1px solid var(--border-hairline);
+	border-radius: var(--radius-card);
+	background: var(--surface-card);
+	color: var(--text-body);
+	font: inherit;
+	font-size: var(--fs-label);
+	text-align: left;
+	cursor: pointer;
+	-webkit-tap-highlight-color: transparent;
+}
+
+@media (hover: hover) {
+	.ii-opcao:hover {
+		background: var(--surface-card-hover);
+		border-color: var(--border-gold);
+	}
+}
+
+.ii-opcao:active {
+	transform: var(--press-shift);
+}
+
+.ii-opcao.is-atual {
+	border-color: var(--border-gold);
+	box-shadow: var(--glow-gold);
+}
+
+.ii-opcao:focus-visible {
+	outline: 2px solid var(--accent-gold);
+	outline-offset: 2px;
+}
+
+.ii-bandeira {
+	width: 36px;
+	height: 25px;
+	flex: 0 0 auto;
+	border-radius: 3px;
+	box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.18);
+	object-fit: cover;
+}
+
+.ii-nome {
+	flex: 1 1 auto;
+	font-weight: 600;
+}
+
+.ii-marca {
+	font-size: var(--fs-badge);
+	color: var(--text-muted);
+}
+
+.ii-nota {
+	margin: 0;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 2px;
+	font-size: var(--fs-desc);
+	color: var(--text-muted);
+	text-align: center;
+}
+
+/* Celular em pe: a janela ocupa a largura toda, com respiro nas bordas. */
+.ri-vertical .ii-modal {
+	padding: var(--sp-4);
+}
+
+.ri-vertical .ii-card {
+	width: 100%;
+}
+
+/*
+ * A primeira impressao (D-1929): so transform e opacity, que a placa de video
+ * anima sem repintar nada; nenhuma imagem nova e nenhum laco infinito.
+ */
+@keyframes ii-fundo-entra {
+	from { opacity: 0; }
+	to { opacity: 1; }
+}
+
+@keyframes ii-card-sobe {
+	from { opacity: 0; transform: translateY(18px) scale(0.96); }
+	to { opacity: 1; transform: none; }
+}
+
+@keyframes ii-opcao-entra {
+	from { opacity: 0; transform: translateX(-14px); }
+	to { opacity: 1; transform: none; }
+}
+
+@keyframes ii-brilho {
+	from { opacity: 0.55; }
+	to { opacity: 1; }
+}
+
+.ii-modal.is-open {
+	animation: ii-fundo-entra 220ms ease-out both;
+}
+
+.ii-modal.is-open .ii-card {
+	animation: ii-card-sobe 380ms cubic-bezier(0.2, 0.9, 0.3, 1.2) 60ms both;
+}
+
+.ii-modal.is-open .ii-opcao {
+	animation: ii-opcao-entra 320ms ease-out both;
+}
+
+.ii-modal.is-open .ii-opcao:nth-child(1) { animation-delay: 240ms; }
+.ii-modal.is-open .ii-opcao:nth-child(2) { animation-delay: 330ms; }
+.ii-modal.is-open .ii-opcao:nth-child(n + 3) { animation-delay: 420ms; }
+
+.ii-modal.is-open .ii-titulo-pt {
+	animation: ii-brilho 900ms ease-in-out 2 alternate both;
+}
+
+@media (hover: hover) {
+	.ii-opcao {
+		transition: transform 140ms ease-out, border-color 140ms, background-color 140ms;
+	}
+
+	.ii-opcao:hover {
+		transform: translateX(4px);
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.ii-modal.is-open,
+	.ii-modal.is-open .ii-card,
+	.ii-modal.is-open .ii-opcao,
+	.ii-modal.is-open .ii-titulo-pt {
+		animation: none;
+	}
+}

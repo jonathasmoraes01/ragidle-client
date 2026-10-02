@@ -44,6 +44,9 @@ const POCAO_BRANCA = '\xc7\xcf\xbe\xe1\xc6\xf7\xbc\xc7';
 const ASA_DE_MOSCA = '\xc6\xc4\xb8\xae\xc0\xc7\xb3\xaf\xb0\xb3';
 const MANUAL_DE_COMBATE = '\xc0\xfc\xc5\xf5\xb1\xb3\xb9\xfc';
 const GOMA_DE_MASCAR = '\xc7\xb3\xbc\xb1\xb2\xad';
+/* 12215 Blessing_10_Scroll: a arte da Bencao desde 27/09/2026, quando a Goma
+   entrou no RO Shop com a arte dela (lido no data.grf). */
+const PERGAMINHO_DE_BENCAO = '\xba\xfb\xc0\xc7\xc1\xd6\xb9\xae\xbc\xad';
 
 function relogio() {
 	let id = 0;
@@ -146,7 +149,7 @@ describe('A-01: a maca nunca e o icone de um item do RO Shop', () => {
 		const esperado = {
 			9000100: MANUAL_DE_COMBATE,
 			9000101: MANUAL_DE_COMBATE,
-			9000102: GOMA_DE_MASCAR,
+			9000102: PERGAMINHO_DE_BENCAO,
 			9000103: POCAO_AZUL,
 			9000104: POCAO_BRANCA,
 			9000105: POCAO_AZUL,

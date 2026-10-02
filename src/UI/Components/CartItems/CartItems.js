@@ -29,6 +29,22 @@ import cssText from './CartItems.css?raw';
 import Storage from 'UI/Components/Storage/Storage.js';
 import Inventory from 'UI/Components/Inventory/Inventory.js';
 import Equipment from 'UI/Components/Equipment/Equipment.js';
+import ContextMenu from 'UI/Components/ContextMenu/ContextMenu.js';
+import { ehDedo } from 'UI/escalaDaHud.js';
+import { pesoDeItem } from 'DB/Items/fichasDeItem.js';
+import {
+	armazemAberto,
+	quantidadeDaRetirada,
+	quantidadePadraoDaRetirada,
+	tetoPeloPeso
+} from 'UI/Components/Storage/retiradaDoArmazem.js';
+import {
+	PARA_O_ARMAZEM,
+	carrinhoNaTela,
+	destinoDaSaidaDoCarrinho,
+	temCarrinho,
+	textoDaQuantidadeRecusada
+} from './transferenciaDoCarrinho.js';
 
 /**
  * Create Component
@@ -44,6 +60,13 @@ CartItems.render = () => htmlText;
  * Store inventory items
  */
 CartItems.list = [];
+
+/**
+ * Os contadores do `ZC_NOTIFY_CARTITEM_COUNTINFO`, em numero (D-1848).
+ * `null` ate o servidor mandar - e `pesoLivreDoCarrinho` le `null` como "sem
+ * teto", nunca como zero.
+ */
+CartItems.info = null;
 
 /**
  * @var {number} used to remember the window height
@@ -91,13 +114,39 @@ CartItems.init = function Init() {
 	const closeBtn = root.querySelector('.titlebar .close');
 	if (closeBtn) {
 		closeBtn.addEventListener('click', () => {
-			CartItems._host.style.display = 'none';
+			CartItems.fechar();
+		});
+	}
+
+	/*
+	 * "MOCHILA" NO RODAPE (D-1848): o caminho de volta do celular. La e uma
+	 * janela por vez (pilhaDeJanelas), entao abrir o carrinho fecha a Mochila -
+	 * e quem quer POR mais coisa precisa voltar a ela sem cacar o menu. Quem
+	 * abre e o `MapEngine` (`aoPedirMochila`), que conhece as duas janelas: um
+	 * import da MochilaIdle aqui fecharia um ciclo, porque ela importa este
+	 * arquivo.
+	 */
+	const mochilaBtn = root.querySelector('.footer .ir-mochila');
+	if (mochilaBtn) {
+		mochilaBtn.addEventListener('click', () => {
+			if (typeof CartItems.aoPedirMochila === 'function') {
+				CartItems.aoPedirMochila();
+			}
 		});
 	}
 
 	// on drop item
 	this._host.addEventListener('drop', onDrop);
-	this._host.addEventListener('dragover', e => e.stopImmediatePropagation());
+	/*
+	 * O `preventDefault` e o que torna o carrinho ALVO de soltar (D-1848). Sem
+	 * ele o navegador nunca dispara o `drop`: o arrasto da Mochila (e do
+	 * armazem) ate aqui voltava sem fazer nada. O original em jQuery fazia
+	 * `return false`, que sao as duas coisas; o porte guardou so a metade.
+	 */
+	this._host.addEventListener('dragover', e => {
+		e.stopImmediatePropagation();
+		e.preventDefault();
+	});
 
 	// Items event (delegation)
 	const content = root.querySelector('.container .content');
@@ -132,6 +181,23 @@ CartItems.init = function Init() {
 			const item = e.target.closest('.item');
 			if (item) {
 				onItemInfo.call(item, e);
+			}
+		});
+		/*
+		 * TOQUE (D-1848, a licao de D-938/D-991): um toque simples abre o MESMO
+		 * menu do botao direito - o dedo nao tem botao direito e o arrasto HTML5
+		 * nao existe no toque. So no dedo: no mouse o clique simples segue sem
+		 * fazer nada.
+		 */
+		content.addEventListener('click', e => {
+			if (!ehDedo()) {
+				return;
+			}
+			const item = e.target.closest('.item');
+			if (item) {
+				e.preventDefault();
+				e.stopImmediatePropagation();
+				abrirMenuDoItem(item);
 			}
 		});
 		content.addEventListener('dblclick', e => {
@@ -208,15 +274,47 @@ CartItems.onShortCut = function onShurtCut(key) {
 
 	switch (key.cmd) {
 		case 'TOGGLE':
-			if (this._host.style.display === 'none') {
-				this._host.style.display = '';
-				this.focus();
-			} else {
-				this._host.style.display = 'none';
-				this._host.dispatchEvent(new Event('mouseleave'));
-			}
+			// Pelo `toggle()`, para a pilha de janelas saber (D-1848).
+			this.toggle();
 			break;
 	}
+};
+
+/**
+ * A janela esta na tela? (o criterio da pilha de janelas e do botao da Mochila)
+ */
+CartItems.estaAberto = function estaAberto() {
+	return carrinhoNaTela(this._host);
+};
+
+/**
+ * ABRE OU FECHA O CARRINHO (D-1848). A porta nova e o botao "Carrinho" da
+ * Mochila; o Alt+W nativo passa por aqui tambem. So abre para quem TEM
+ * carrinho - o servidor nao aceitaria nada de quem nao tem, e a janela vazia
+ * de um carrinho que nao existe seria a pior resposta.
+ *
+ * A `pilhaDeJanelas` embrulha esta funcao (`MapEngine.js`): e assim que o ESC
+ * e o voltar do Android a fecham, e que o celular em pe fecha a janela de
+ * baixo (uma por vez).
+ */
+CartItems.toggle = function toggle() {
+	if (this.estaAberto()) {
+		this.fechar();
+		return;
+	}
+	if (!temCarrinho(Session.Entity) || !this._host) {
+		return;
+	}
+	this._host.style.display = '';
+	this.focus();
+};
+
+CartItems.fechar = function fechar() {
+	if (!this._host) {
+		return;
+	}
+	this._host.style.display = 'none';
+	this._host.dispatchEvent(new Event('mouseleave'));
 };
 
 CartItems.onKeyDown = function onKeyDown(event) {
@@ -295,6 +393,8 @@ CartItems.setItems = function SetItems(items) {
 };
 
 CartItems.setCartInfo = function SetCartInfo(curCount, maxCount, curWeight, maxWeight) {
+	// Guardados em numero (D-1848): o teto de peso do "Por no carrinho" le daqui.
+	CartItems.info = { pesoAtual: curWeight, pesoMaximo: maxWeight, itens: curCount, itensMaximo: maxCount };
 	const root = this.getRoot();
 	const ncnt = root.querySelector('.ncnt');
 	const mcnt = root.querySelector('.mcnt');
@@ -744,6 +844,103 @@ function onItemInfo(event) {
 		return false;
 	}
 
+	/*
+	 * O BOTAO DIREITO ABRE O MENU, e a ficha mora dentro dele (D-1848) - o mesmo
+	 * desenho do armazem (D-991) e da Mochila. Antes ele ia direto na ficha, e
+	 * tirar do carrinho nao tinha porta visivel nenhuma.
+	 */
+	abrirMenuDoItem(this);
+	return false;
+}
+
+/**
+ * O menu de um item do carrinho - chamado pelos DOIS caminhos que abrem o
+ * MESMO menu (botao direito no mouse, toque simples no dedo).
+ */
+function abrirMenuDoItem(itemEl) {
+	const index = parseInt(itemEl.getAttribute('data-index'), 10);
+	const item = CartItems.getItemByIndex(index);
+	if (!item) {
+		return;
+	}
+
+	onItemOut();
+	ContextMenu.remove();
+	ContextMenu.append();
+
+	ContextMenu.addElement('Pôr na mochila', () => CartItems.pedirParaMochila(item));
+	if (armazemAberto(Storage.getUI())) {
+		ContextMenu.addElement('Guardar no armazém', () => {
+			Storage.reqAddItemFromCart(item.index, item.count || 1);
+		});
+	}
+	ContextMenu.nextGroup();
+	ContextMenu.addElement('Detalhes', () => abrirFicha(item));
+}
+
+/**
+ * Tirar do carrinho para a MOCHILA (D-1848). Pilha de mais de um pergunta
+ * quanto, pelo MESMO InputBox do armazem, e ja abre com o maximo que cabe no
+ * peso livre do corpo (a regra R17/C2-6 da retirada do armazem). Digitar mais
+ * do que cabe AVISA, em vez de sumir calado.
+ *
+ * Publico porque a grade da Mochila chama tambem, no arrasto do carrinho ate
+ * ela.
+ */
+CartItems.pedirParaMochila = function pedirParaMochila(item) {
+	const total = item.count || 1;
+	if (total > 1) {
+		const pesoUnit = typeof item.weight === 'number' ? item.weight : pesoDeItem(item.ITID);
+		const pesoLivre = Session.Entity ? (Session.Entity.max_weight || 0) - (Session.Entity.weight || 0) : 0;
+		const tetoDoPeso = tetoPeloPeso(pesoLivre, pesoUnit);
+		const padrao = quantidadePadraoDaRetirada(total, tetoDoPeso);
+
+		InputBox.append();
+		InputBox.setType('number', false, padrao);
+		InputBox.onSubmitRequest = function OnSubmitRequest(count) {
+			InputBox.remove();
+			const quantos = quantidadeDaRetirada(count, total, tetoDoPeso);
+			if (quantos === null) {
+				const teto = tetoDoPeso === null ? total : Math.min(total, tetoDoPeso);
+				CartItems.avisar(textoDaQuantidadeRecusada(teto, 'mochila'));
+				return;
+			}
+			CartItems.reqRemoveItem(item.index, quantos);
+		};
+		return;
+	}
+	CartItems.reqRemoveItem(item.index, 1);
+};
+
+/**
+ * O AVISO NA JANELA (D-1848): a recusa do servidor aparece onde o jogador
+ * tocou. No celular o chat nasce minimizado, e a linha dele sozinha seria uma
+ * recusa que ninguem ve.
+ */
+let _avisoTimer = null;
+CartItems.avisar = function avisar(texto) {
+	if (!texto || !this.estaAberto()) {
+		return;
+	}
+	const el = this.getRoot().querySelector('.aviso');
+	if (!el) {
+		return;
+	}
+	el.textContent = texto;
+	el.hidden = false;
+	if (_avisoTimer) {
+		clearTimeout(_avisoTimer);
+	}
+	_avisoTimer = setTimeout(() => {
+		el.hidden = true;
+		_avisoTimer = null;
+	}, 3200);
+};
+
+/**
+ * A ficha do item (o que o botao direito fazia antes de D-1848).
+ */
+function abrirFicha(item) {
 	// Don't add the same UI twice, remove it
 	if (ItemInfo.uid === item.ITID) {
 		ItemInfo.remove();
@@ -773,28 +970,27 @@ function onItemInfo(event) {
 		ItemCompare.uid = compareItem.ITID;
 		ItemCompare.setItem(compareItem);
 	}
-
-	return false;
 }
 
 /**
  * Alt Right Click Request Transfer
  */
 function transferItemToOtherUI(item) {
-	const storageUI = Storage.getUI();
-	const inventoryUI = Inventory.getUI();
-	const isStorageOpen = storageUI._host ? storageUI._host.style.display !== 'none' : false;
-	const isInventoryOpen = inventoryUI._host ? inventoryUI._host.style.display !== 'none' : false;
-
 	if (!item) {
 		return false;
 	}
 
 	const count = item.count || 1;
 
-	if (isStorageOpen) {
+	/*
+	 * O CORPO E O PADRAO (D-1848), como na retirada do armazem (D-991). O
+	 * teste antigo pedia o host NATIVO de inventario sem `display:none`, e a
+	 * MochilaIdle o mantem escondido para sempre: o gesto terminava sem pedir
+	 * nada.
+	 */
+	if (destinoDaSaidaDoCarrinho({ armazemAberto: armazemAberto(Storage.getUI()) }) === PARA_O_ARMAZEM) {
 		Storage.reqAddItemFromCart(item.index, count);
-	} else if (isInventoryOpen) {
+	} else {
 		CartItems.reqRemoveItem(item.index, count);
 	}
 
@@ -808,9 +1004,14 @@ function onItemUsed(event) {
 	const index = parseInt(this.getAttribute('data-index'), 10);
 	const item = CartItems.getItemByIndex(index);
 
+	/*
+	 * O duplo clique chamava `CartItems.useItem`, que NAO EXISTE neste fork -
+	 * TypeError a cada duplo clique (medido em 30/09/2026). Item de carrinho nao
+	 * se usa dali; o gesto passa a ser o de tirar para a Mochila (D-1848).
+	 */
 	if (item) {
-		CartItems.useItem(item);
 		onItemOut();
+		CartItems.pedirParaMochila(item);
 	}
 
 	event.stopImmediatePropagation();

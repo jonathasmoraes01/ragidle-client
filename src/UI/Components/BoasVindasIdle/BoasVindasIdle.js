@@ -28,7 +28,7 @@
  *    `target`, ele mediu o Discord abrindo *"na mesma aba (saindo do jogo)"*. O
  *    cliente vive num `<iframe>` e, na casca instalada, quem decide o destino
  *    de `_blank` é o navegador — e reusar a janela do app custa a SESSÃO de
- *    quem clicou. Ver `abrirEmAbaNova`, mais abaixo, para as duas escolhas que
+ *    quem clicou. Ver `abrirEmAbaNova` (`UI/abrirEmAbaNova.js`) para as duas escolhas que
  *    fazem isso funcionar (abrir pela casca, e cortar o `opener` depois em vez
  *    de pedir `noopener`).
  *
@@ -52,6 +52,7 @@ import GUIComponent from 'UI/GUIComponent.js';
 import htmlText from './BoasVindasIdle.html?raw';
 import cssText from './BoasVindasIdle.css?raw';
 import { fecharEEsquecer } from '../limpezaDeJanelaIdle.js';
+import { abrirEmAbaNova } from 'UI/abrirEmAbaNova.js';
 import { consumirEntradaPorAtualizacao } from 'Engine/retomadaAposAtualizacao.js';
 
 /**
@@ -324,54 +325,6 @@ function aoClicarNaArte(evento) {
 		evento.preventDefault();
 	}
 	avancar();
-}
-
-/**
- * Abre `url` numa aba/janela separada. Devolve se conseguiu.
- *
- * Duas escolhas que parecem detalhe e não são:
- *
- * 1. **`window.top` primeiro.** O componente roda dentro do `<iframe>` do
- *    cliente; abrir a partir da CASCA é o que dá uma aba irmã da do jogo em vez
- *    de algo pendurado no quadro de dentro. O `try` cobre o dia em que a casca
- *    for de outra origem — hoje ela não é (mesmo host do `vite`).
- *
- * 2. **Sem `noopener` na string de opções, e `opener = null` depois.** Por
- *    especificação, `window.open(..., 'noopener')` devolve `null` SEMPRE — e aí
- *    não há como distinguir "abriu" de "o navegador barrou", que é justamente o
- *    que decide se o `<a>` deve ou não continuar. Cortar o `opener` logo em
- *    seguida dá a mesma proteção (a página aberta não navega a aba do jogo) e
- *    mantém a resposta.
- */
-function abrirEmAbaNova(url) {
-	for (const dona of [janelaDaCasca(), window]) {
-		if (!dona) {
-			continue;
-		}
-		try {
-			const nova = dona.open(url, '_blank');
-			if (nova) {
-				try {
-					nova.opener = null;
-				} catch {
-					/* já é de outra origem — o navegador cortou por nós. */
-				}
-				return true;
-			}
-		} catch {
-			/* janela inacessível: tenta a próxima da lista. */
-		}
-	}
-	return false;
-}
-
-/** A janela da casca, quando o jogo está num iframe de mesma origem. */
-function janelaDaCasca() {
-	try {
-		return window.top && window.top !== window ? window.top : null;
-	} catch {
-		return null;
-	}
 }
 
 /** Vai para o próximo cartaz; no último, fecha. */

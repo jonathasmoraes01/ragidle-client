@@ -18,14 +18,19 @@ describe('contadorDaLinha: o que a linha da lista mostra ao lado do glifo', () =
 		expect(contadorDaLinha(missao)).toEqual({ texto: '5 min' });
 	});
 
-	it('na fila, mostra "Na fila" — mesma prioridade sobre o objetivo', () => {
-		const missao = { cooldownS: 0, naFila: true, objetivos: [{ progresso: 3, alvo: 10 }] };
-		expect(contadorDaLinha(missao)).toEqual({ texto: 'Na fila' });
+	/*
+	 * 01/10/2026: a FILA saiu (até três missões andam juntas) — "Na fila" não
+	 * existe mais. No lugar dela, a PRONTA diz "Pronta": é a ação que o jogador
+	 * tem a fazer, e o "8 de 8" do objetivo não a nomeia.
+	 */
+	it('pronta para finalizar, mostra "Pronta" — antes do progresso do objetivo', () => {
+		const missao = { cooldownS: 0, pronta: true, objetivos: [{ progresso: 8, alvo: 8 }] };
+		expect(contadorDaLinha(missao)).toEqual({ texto: 'Pronta' });
 	});
 
-	it('a fila vem ANTES da recarga — as duas travas juntas não escondem uma a outra', () => {
-		const missao = { cooldownS: 120, naFila: true, objetivos: [] };
-		expect(contadorDaLinha(missao)).toEqual({ texto: 'Na fila' });
+	it('o `naFila` de um pacote antigo não pinta mais "Na fila"', () => {
+		const missao = { cooldownS: 0, naFila: true, objetivos: [{ progresso: 3, alvo: 10 }] };
+		expect(contadorDaLinha(missao)).toEqual({ texto: '3 de 10' });
 	});
 
 	it('sem trava nenhuma, mostra o progresso do objetivo único', () => {
@@ -92,12 +97,35 @@ describe('cliqueDeMissoesGerais: a delegação de clique', () => {
 		expect(chamadas).toEqual([['abrir', 'primeiros-passos']]);
 	});
 
-	it('o botão Iniciar/Pausar manda "executar" com a ação e o id', () => {
+	it('o botão de ação manda "executar" com a ação e o id', () => {
+		// 01/10/2026: o "Pausar" daqui estava morto (o servidor tirou o verbo);
+		// virou "Ir caçar" (`teleporte`), e TODA ação leva o id da missão.
 		const chamadas = [];
-		cliqueDeMissoesGerais(evento(), elementoComAtributo('data-mg-executar', 'pausar'), {
-			executar: (acao, id) => chamadas.push([acao, id])
-		});
-		expect(chamadas).toEqual([['pausar', null]]);
+		const alvo = {
+			closest(seletor) {
+				return seletor === '[data-mg-executar]'
+					? { disabled: false, dataset: { mgExecutar: 'teleporte', mgId: 'primeiros-passos' } }
+					: null;
+			}
+		};
+		cliqueDeMissoesGerais(evento(), alvo, { executar: (acao, id) => chamadas.push([acao, id]) });
+		expect(chamadas).toEqual([['teleporte', 'primeiros-passos']]);
+	});
+
+	it('o botão APAGADO ("Finalizar" sem os objetivos, o "3 de 3") não manda nada, mas o clique é tratado', () => {
+		const chamadas = [];
+		const e = evento();
+		const alvo = {
+			closest(seletor) {
+				return seletor === '[data-mg-executar]'
+					? { disabled: true, dataset: { mgExecutar: 'finalizar', mgId: 'primeiros-passos' } }
+					: null;
+			}
+		};
+		const tratado = cliqueDeMissoesGerais(e, alvo, { executar: (acao, id) => chamadas.push([acao, id]) });
+		expect(chamadas).toEqual([]);
+		expect(tratado).toBe(true);
+		expect(e.parado).toBe(true);
 	});
 
 	it('um alvo que não bate com nenhum gancho não é tratado (falso), e a propagação segue', () => {

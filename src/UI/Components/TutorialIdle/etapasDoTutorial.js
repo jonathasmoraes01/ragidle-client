@@ -47,6 +47,8 @@
  * gravacao.
  */
 
+import { traduzir } from 'Core/Traducao.js';
+
 /** Quantas etapas o tutorial tem. O servidor manda `total` no retrato; este
  *  numero e o que o cliente desenha quando o retrato ainda nao chegou. */
 export const TOTAL_DE_ETAPAS = 12;
@@ -561,6 +563,35 @@ export function etapaDe(numero) {
 }
 
 /**
+ * O MAPA DE REFERENCIA da etapa que comeca (01/10/2026, D-1925).
+ *
+ * A etapa 8 ("Escolha um mapa e viaje") cumpre quando o mapa carregado deixa
+ * de ser o de referencia. Ate D-1925 a referencia era o mapa de quando a 8
+ * comecava, e a missao so levava o personagem ao campo segundos DEPOIS (o
+ * executor de passos), entao a 8 fechava sozinha. Desde D-1925 o proprio
+ * ACEITE da etapa 7 leva ao mapa da caca, ANTES de a 8 comecar: com a
+ * referencia antiga, a 8 pedia uma SEGUNDA viagem a quem ja estava no campo,
+ * e quem escolhia o mesmo campo no seletor era recusado pelo servidor (mesmo
+ * mapa) - a etapa nunca fechava (medido na tela,
+ * `scripts/diag-tutorial-da-missao-na-tela.ts` do servidor).
+ *
+ * A regra: a 8 que nasce logo depois da 7 herda o mapa de quando a 7
+ * comecou; qualquer outra etapa (ou a 8 sem a 7 antes, como depois de
+ * relogar) usa o mapa de agora.
+ *
+ * @param {number} numero a etapa que comeca
+ * @param {{numero: number, mapa: string}|null} anterior o marco da etapa que acabou
+ * @param {string} mapaAgora
+ * @returns {string}
+ */
+export function mapaDeReferenciaDaEtapa(numero, anterior, mapaAgora) {
+	if (numero === 8 && anterior && anterior.numero === 7 && typeof anterior.mapa === 'string') {
+		return anterior.mapa;
+	}
+	return mapaAgora;
+}
+
+/**
  * A frase pronta para a tela.
  *
  * @param {object} etapa      uma entrada de ETAPAS
@@ -568,10 +599,21 @@ export function etapaDe(numero) {
  * @param {string} [frase]    troca a frase da etapa (o caminho de volta)
  */
 export function fraseDaEtapa(etapa, temDedo, frase) {
-	const texto = frase || (etapa && etapa.frase) || '';
-	const acao = temDedo ? 'Toque em' : 'Clique em';
-	const rotulo = etapa && etapa.rotulo ? `"${etapa.rotulo}"` : '';
-	return texto.replace('{acao}', acao).replace('{rotulo}', rotulo).replace(/\s+/g, ' ').trim();
+	/* O jogo em ingles (D-1929): a frase e um MODELO com {acao}/{rotulo}, e a
+	   tela mostra a frase JA preenchida, que o catalogo nao conhece. Entao o
+	   modelo, o verbo e o nome do botao sao traduzidos ANTES de preencher. Em
+	   portugues o tradutor devolve o mesmo texto. */
+	const texto = traduzir(frase || (etapa && etapa.frase) || '');
+	const acao = traduzir(temDedo ? 'Toque em' : 'Clique em');
+	const rotulo = etapa && etapa.rotulo ? `"${traduzir(etapa.rotulo)}"` : '';
+	/* A frase que JA traz as aspas ('a aba "{rotulo}"') nao ganha outro par: o
+	   jogador via ""Missoes Gerais"" (achado da traducao, 01/10/2026). */
+	return texto
+		.replace('{acao}', acao)
+		.replace('"{rotulo}"', rotulo)
+		.replace('{rotulo}', rotulo)
+		.replace(/\s+/g, ' ')
+		.trim();
 }
 
 /* ------------------------------------------------------------------ */

@@ -32,6 +32,15 @@ import MD5 from 'Vendors/spark-md5.min.js';
 import Rijndael from 'Utils/Rijndael.js';
 import { capturarEntrada, loginAceito, loginRecusado, pedidoDeLogin } from 'Engine/entradaPosCadastro.js';
 import { esquecerSaldoDeCash } from 'Utils/saldoDeCash.js';
+import { versaoParaOLogin } from 'Core/versaoDoCliente.js';
+import {
+	MOTIVO_DE_CLIENTE_DESATUALIZADO,
+	TEXTO_DE_ORIENTAR,
+	acaoDoClienteDesatualizado,
+	decidirERecarregar,
+	lerUltimaRecarga,
+	textoDoClienteDesatualizado
+} from 'Engine/clienteDesatualizado.js';
 import {
 	armarSelecao,
 	consumirRetomada,
@@ -367,7 +376,7 @@ function onConnectionRequest(username, password) {
 				pkt = new PACKET.CA.LOGIN_HAN();
 				pkt.ID = username;
 				pkt.Passwd = String.fromCharCode(...encryptedPassword);
-				pkt.Version = parseInt(_server.version, 10);
+				pkt.Version = versaoParaOLogin(_server.version);
 				pkt.clienttype = parseInt(_server.langtype, 10);
 				pkt.m_szIP = '192.168.0.1'; // dummy
 				pkt.m_szMacAddr = '00:1A:2B:3C:4D:5E'; // dummy
@@ -378,7 +387,9 @@ function onConnectionRequest(username, password) {
 				pkt = new PACKET.CA.LOGIN();
 				pkt.ID = username;
 				pkt.Passwd = password;
-				pkt.Version = parseInt(_server.version, 10);
+				// A versao do BUILD (D-1635): o servidor recusa a mais velha que o
+				// minimo dele. Sem build (o dev), o `version` da config, como antes.
+				pkt.Version = versaoParaOLogin(_server.version);
 				pkt.clienttype = parseInt(_server.langtype, 10);
 				Network.sendPacket(pkt);
 			}
@@ -710,6 +721,17 @@ function onInternationalConnectionRefused(pkt) {
  */
 function onConnectionRefused(pkt) {
 	/*
+	 * O MOTIVO 5 E O CLIENTE DESATUALIZADO (servidor D-1635): a frase do RO
+	 * (a 310, "O seu arquivo .EXE do jogo nao e a ultima versao") da lugar a
+	 * nossa, e o "Ok" atualiza a pagina - ver `Engine/clienteDesatualizado.js`.
+	 * O estado da entrada pos-cadastro se apaga igual a qualquer recusa.
+	 */
+	if (pkt.ErrorCode === MOTIVO_DE_CLIENTE_DESATUALIZADO) {
+		loginRecusado();
+		tratarClienteDesatualizado();
+		return;
+	}
+	/*
 	 * O PASSE NAO VALEU (D-1379): vencido, ja gasto ou perdido num restart do
 	 * servidor. O servidor so ve uma senha errada, e a mensagem padrao diria
 	 * isso a quem nao digitou senha nenhuma. A conta existe: o que resolve e
@@ -940,6 +962,36 @@ function onConnectionRefused(pkt) {
 		true
 	);
 
+	Network.close();
+}
+
+/**
+ * O login recusado por VERSAO (D-1635). Na primeira vez o "Ok" recarrega a
+ * pagina (que ja vem na versao publicada); se ela recarregou ha pouco e ainda
+ * e recusada, ou se a aba nao consegue lembrar que recarregou, a caixa diz o
+ * que fazer e volta ao login - nunca um laco de recargas.
+ */
+function tratarClienteDesatualizado() {
+	const acao = acaoDoClienteDesatualizado(lerUltimaRecarga(), Date.now());
+	const voltarAoLogin = () => {
+		UIManager.removeComponents();
+		WinLogin.getUI().append();
+	};
+	UIManager.showMessageBox(
+		textoDoClienteDesatualizado(acao),
+		'ok',
+		() => {
+			if (acao !== 'recarregar') {
+				voltarAoLogin();
+				return;
+			}
+			if (decidirERecarregar(Date.now()) === 'recarregar') {
+				return;
+			}
+			UIManager.showMessageBox(TEXTO_DE_ORIENTAR, 'ok', voltarAoLogin, true);
+		},
+		true
+	);
 	Network.close();
 }
 

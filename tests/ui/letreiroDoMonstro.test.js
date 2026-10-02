@@ -10,7 +10,7 @@ import { letreiroFixo } from '../../src/Engine/MapEngine/letreiroFixo.js';
  * Que o nome APARECE e legivel no mapa e medido na tela (fotos da prova); aqui
  * ficam a regra de quem ganha o letreiro e os dois fios que a fazem valer.
  */
-const TIPOS = { TYPE_PC: 0, TYPE_MOB: 5, TYPE_NPC: 6 };
+const TIPOS = { TYPE_PC: 0, TYPE_MOB: 5, TYPE_NPC: 6, TYPE_NPC2: 12, TYPE_WARP: -1 };
 
 describe('letreiroFixo', () => {
 	it('monstro tem letreiro sempre, com ou sem a opcao dos jogadores', () => {
@@ -24,8 +24,18 @@ describe('letreiroFixo', () => {
 		expect(letreiroFixo(TIPOS.TYPE_PC, TIPOS, { showPlayerNames: false })).toBe(false);
 	});
 
-	it('NPC continua por hover', () => {
-		expect(letreiroFixo(TIPOS.TYPE_NPC, TIPOS, {})).toBe(false);
+	it('NPC tem letreiro sempre (30/09/2026, pedido do dono), inclusive o que anda', () => {
+		expect(letreiroFixo(TIPOS.TYPE_NPC, TIPOS, {}, 86)).toBe(true);
+		expect(letreiroFixo(TIPOS.TYPE_NPC2, TIPOS, {}, 86)).toBe(true);
+		// a opcao dos jogadores nao apaga o NPC
+		expect(letreiroFixo(TIPOS.TYPE_NPC, TIPOS, { showPlayerNames: false }, 86)).toBe(true);
+	});
+
+	it('NPC invisivel e portal ficam sem letreiro (controles)', () => {
+		for (const job of [111, 139, 32767]) {
+			expect(letreiroFixo(TIPOS.TYPE_NPC, TIPOS, {}, job), `job ${job}`).toBe(false);
+		}
+		expect(letreiroFixo(TIPOS.TYPE_WARP, TIPOS, {}, 45)).toBe(false);
 	});
 });
 
@@ -35,8 +45,8 @@ describe('os fios do letreiro do monstro', () => {
 	it('aplicar() decide por letreiroFixo e o monstro so pede o nome se veio sem ele', () => {
 		const fonte = ler('Engine/MapEngine/NomesDosJogadores.js');
 		const corpo = fonte.slice(fonte.indexOf('function aplicar('), fonte.indexOf('function reaplicarEmTodos('));
-		expect(corpo).toContain('letreiroFixo(entity.objecttype, Entity, GraphicsSettings)');
-		expect(corpo).toContain('if (ehJogador(entity) || !entity.display.name) {');
+		expect(corpo).toContain('letreiroFixo(entity.objecttype, Entity, GraphicsSettings, entity.job)');
+		expect(corpo).toContain('if (ehJogador(entity) || (entity.objecttype === Entity.TYPE_MOB && !entity.display.name)) {');
 		expect(corpo).toContain('entity.display.fixo = true;');
 		expect(corpo).toContain('entity.display.add();');
 	});

@@ -3,7 +3,7 @@
  *
  * RAGIDLE: INDIQUE & GANHE (D-1164, 07/09/2026) — o sistema de indicacao,
  * no molde do Poke Idle World e com a nossa identidade visual: link com
- * codigo, 10% em cash de tudo que o indicado gastar (para sempre), contadores
+ * codigo, 10% em cash de toda doacao do indicado (para sempre; D-1593), contadores
  * de indicados e de ganhos, "voce foi indicado por X", a lista dos indicados e
  * o aviso de que o sistema esta em teste.
  *
@@ -28,6 +28,8 @@ import cssText from './IndicacaoIdle.css?raw';
 import { fecharEEsquecer } from '../limpezaDeJanelaIdle.js';
 import { formatarRoCash, minorDePrimeiro } from 'Utils/roCash.js';
 import { confirmarCopia } from './confirmarCopia.js';
+import { cpfHtml, ehRecusaDeCpf, passoDoCadastro } from './cpfDoIndicador.js';
+import { mascararCpf } from '../DoacaoIdle/formatoDaDoacao.js';
 
 const WINDOW_WIDTH = 520;
 const WINDOW_HEIGHT = 540;
@@ -63,6 +65,14 @@ IndicacaoIdle.mouseMode = GUIComponent.MouseMode.CROSS;
 /** O ultimo painel que o servidor mandou. */
 IndicacaoIdle.estado = null;
 
+/*
+ * O CPF DO INDICADOR ESPERANDO O "CONFIRMAR" (D-1634). Os 11 digitos e a
+ * forma mascarada, so entre o clique em "Cadastrar CPF" e o envio. Zerado no
+ * envio, no "Corrigir", ao fechar a janela e na troca de personagem: o CPF
+ * nunca fica guardado no cliente.
+ */
+let _cpfEmConfirmacao = null;
+
 const _preferences = Preferences.get(
 	'IndicacaoIdle',
 	{
@@ -86,6 +96,7 @@ function escapeHtml(value) {
 
 IndicacaoIdle.limparEstadoDoPersonagem = function limparEstadoDoPersonagem() {
 	IndicacaoIdle.estado = null;
+	_cpfEmConfirmacao = null;
 	fecharEEsquecer(_root(), '.in-window', { corpo: '.in-chips', texto: '' });
 };
 
@@ -110,6 +121,8 @@ IndicacaoIdle.init = function init() {
 			corpo.addEventListener('click', onClickCorpo);
 			// Digitar no campo do codigo nao pode virar tecla de jogo.
 			corpo.addEventListener('keydown', e => e.stopPropagation());
+			// A mascara do CPF (D-1634), a mesma da janela de doacao.
+			corpo.addEventListener('input', onInputCorpo);
 		}
 	}
 	this._host.style.top = Math.max(0, (Renderer.height - alturaNaTela()) / 2) + 'px';
@@ -163,6 +176,11 @@ function closeWindow() {
 	if (win) {
 		win.classList.remove('is-open');
 	}
+	// O CPF esperando confirmacao nao sobrevive a janela fechada (D-1634).
+	if (_cpfEmConfirmacao !== null) {
+		_cpfEmConfirmacao = null;
+		render();
+	}
 	savePosition();
 }
 
@@ -203,7 +221,76 @@ function onClickCopiar(e) {
 	}
 }
 
+function onInputCorpo(e) {
+	const campo = e.target;
+	if (!campo || !campo.classList || !campo.classList.contains('in-cpf-campo')) {
+		return;
+	}
+	const mascarado = mascararCpf(campo.value);
+	if (campo.value !== mascarado) {
+		campo.value = mascarado;
+	}
+}
+
+function recadoDoCpf(texto, classe) {
+	const root = _root();
+	const recado = root && root.querySelector('.in-cpf-recado');
+	if (!recado) {
+		return;
+	}
+	recado.textContent = texto;
+	recado.className = 'in-recado in-cpf-recado' + (classe ? ' ' + classe : '');
+}
+
+/**
+ * Os tres botoes do CPF (D-1634): "Cadastrar CPF" abre a confirmacao,
+ * "Corrigir" volta ao campo (com o que foi digitado) e "Confirmar" envia e
+ * esquece. Devolve `true` se o clique era de um deles.
+ */
+function onClickCpf(e) {
+	const alvo = e.target && e.target.closest ? e.target.closest('.in-cpf-cadastrar, .in-cpf-confirmar, .in-cpf-corrigir') : null;
+	if (!alvo) {
+		return false;
+	}
+	e.stopImmediatePropagation();
+	const root = _root();
+	if (alvo.classList.contains('in-cpf-cadastrar')) {
+		const campo = root && root.querySelector('.in-cpf-campo');
+		const passo = passoDoCadastro(campo ? campo.value : '');
+		if (!passo.ok) {
+			recadoDoCpf(passo.recado, 'is-erro');
+			return true;
+		}
+		_cpfEmConfirmacao = { digitos: passo.digitos, mascarado: passo.mascarado };
+		render();
+		return true;
+	}
+	if (alvo.classList.contains('in-cpf-corrigir')) {
+		const antes = _cpfEmConfirmacao;
+		_cpfEmConfirmacao = null;
+		render();
+		const campo = root && root.querySelector('.in-cpf-campo');
+		if (campo && antes) {
+			campo.value = antes.mascarado;
+		}
+		return true;
+	}
+	// Confirmar: envia e esquece na hora; a resposta e o painel inteiro.
+	const envio = _cpfEmConfirmacao;
+	_cpfEmConfirmacao = null;
+	if (!envio) {
+		render();
+		return true;
+	}
+	alvo.disabled = true;
+	enviarAcao({ acao: 'cpf', cpf: envio.digitos });
+	return true;
+}
+
 function onClickCorpo(e) {
+	if (onClickCpf(e)) {
+		return;
+	}
 	const alvo = e.target && e.target.closest ? e.target.closest('.in-usar') : null;
 	if (!alvo) {
 		return;
@@ -239,6 +326,8 @@ function indicadoPorHtml(estado) {
 		);
 	}
 	if (estado.podeUsarCodigo) {
+		// A recusa do CPF (D-1634) mora na secao dela, e nao aqui.
+		const recusaDoCodigo = estado.recusa && !ehRecusaDeCpf(estado.recusa) ? estado.recusa : null;
 		return (
 			'<div class="in-rotulo">Alguém te indicou?</div>' +
 			'<div class="in-usar-linha">' +
@@ -246,9 +335,9 @@ function indicadoPorHtml(estado) {
 			'<button type="button" class="in-usar ri-btn ri-btn--sec">Usar código</button>' +
 			'</div>' +
 			'<div class="in-recado' +
-			(estado.recusa ? ' is-erro' : '') +
+			(recusaDoCodigo ? ' is-erro' : '') +
 			'">' +
-			escapeHtml(estado.recusa ? RECUSAS[estado.recusa] || 'Não foi possível usar esse código.' : 'Vale só para contas novas. Quem te indicou passa a ganhar 10% do que você gastar.') +
+			escapeHtml(recusaDoCodigo ? RECUSAS[recusaDoCodigo] || 'Não foi possível usar esse código.' : 'Vale só para contas novas. Quem te indicou passa a ganhar 10% das suas doações.') +
 			'</div>'
 		);
 	}
@@ -289,6 +378,11 @@ function render() {
 	const listaTotal = root.querySelector('.in-lista-total');
 	if (!link || !codigo || !taxa || !total || !ganhos || !indicadoPor || !chips || !listaTotal) {
 		return;
+	}
+	// O CPF do indicador (D-1634): sem o sal no servidor, a secao fica vazia.
+	const cpf = root.querySelector('.in-cpf');
+	if (cpf) {
+		cpf.innerHTML = cpfHtml(estado, _cpfEmConfirmacao ? _cpfEmConfirmacao.mascarado : null);
 	}
 	if (!estado) {
 		link.value = '';

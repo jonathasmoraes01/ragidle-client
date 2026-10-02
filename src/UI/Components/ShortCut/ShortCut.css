@@ -619,3 +619,67 @@
 	background: var(--is-accent, #3b6ea5);
 	opacity: 1;
 }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   D-1908 — O SELETOR DE NIVEL DE UM SLOT (botao direito no desktop, tocar e
+   segurar no celular). Um BALAO, e nao uma janela da pilha (ver o cabecalho
+   de `seletorDeNivelDaBarra.js`). E FIXO pelo mesmo motivo da dica e do
+   rotulo de toque: `:host` e `#ShortCut` tem `overflow: hidden`, e so um
+   elemento fixo escapa da caixa da barra. A posicao (acima do slot, presa a
+   tela) e escrita em JS. A moldura e a de janela do design system; o
+   seletor dentro dele e o `.ri-nivel` do Common.css, com os botoes de 44px
+   no dedo.
+   ═══════════════════════════════════════════════════════════════════════ */
+.shortcut-nivel {
+	display: none;
+	position: fixed;
+	z-index: 10001;
+	box-sizing: border-box;
+	max-width: min(320px, calc(100vw - 16px));
+	padding: var(--sp-4) var(--sp-5);
+	background: var(--surface-window);
+	border: 1px solid var(--border-window);
+	border-radius: var(--radius-window);
+	box-shadow: var(--shadow-window);
+	font-family: var(--font-ui);
+	color: var(--text-body);
+	text-shadow: none;
+}
+
+.shortcut-nivel.show {
+	display: flex;
+	flex-direction: column;
+	gap: var(--sp-3);
+}
+
+.shortcut-nivel-titulo {
+	font: var(--type-label);
+	font-weight: var(--fw-bold);
+	color: var(--text-title);
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.shortcut-nivel-aviso {
+	font-size: var(--fs-info);
+	color: var(--text-muted);
+}
+
+.shortcut-nivel-acoes {
+	display: flex;
+	justify-content: flex-end;
+	gap: var(--sp-3);
+}
+
+.shortcut-nivel-acao {
+	padding: 4px 10px;
+	font-size: var(--fs-label);
+}
+
+@media (pointer: coarse) {
+	.shortcut-nivel-acao {
+		min-height: var(--hit-touch, 44px);
+		padding: 0 14px;
+	}
+}

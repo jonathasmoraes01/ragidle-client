@@ -1020,6 +1020,30 @@
 	background: color-mix(in srgb, var(--accent) 8%, var(--white));
 }
 
+/* D-1908: o NIVEL DE USO escolhido para a barra — o que aquele nivel faz,
+   lido sem contar linhas. Um contorno, e nao um fundo: o fundo dourado e o
+   do nivel atual, e as duas marcas podem cair na MESMA linha (sem escolha,
+   o nivel de uso e o aprendido). */
+#IdleSkills .is-mecanica-row--uso {
+	outline: 2px solid var(--accent);
+	outline-offset: -2px;
+}
+
+/* D-1908: "Nivel de uso [−] Nv 7/10 · 22 SP [+]" acima das acoes. O seletor e
+   o do Common.css (`.ri-nivel`); no dedo os botoes ja tem 44px. */
+#IdleSkills .is-nivel-uso {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	flex-wrap: wrap;
+	gap: var(--sp-3);
+}
+
+#IdleSkills .is-nivel-uso-rotulo {
+	font: var(--type-label);
+	color: var(--text-muted);
+}
+
 #IdleSkills .is-mecanica-nivel {
 	flex: 0 0 40px;
 	font: var(--type-numeric);

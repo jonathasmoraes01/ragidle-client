@@ -206,3 +206,164 @@
 	z-index: 2;
 	top: 12px;
 }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   D-1848 (30/09/2026) — O CARRINHO QUE O JOGADOR ALCANCA
+   ═══════════════════════════════════════════════════════════════════════
+   O aviso de recusa (CartItems.avisar) e o botao "Mochila" do rodape. No
+   desktop o botao some: la as duas janelas convivem, e o rodape de 27px e do
+   contador e da alca de redimensionar. */
+#cartitems .aviso {
+	position: absolute;
+	top: 22px;
+	left: 50%;
+	transform: translateX(-50%);
+	max-width: 90%;
+	padding: var(--sp-3) var(--sp-6);
+	box-sizing: border-box;
+	border-radius: var(--radius-pill);
+	background: var(--surface-dark-glass);
+	backdrop-filter: var(--blur-glass);
+	border: 1px solid var(--border-gold);
+	box-shadow: var(--shadow-float);
+	font: var(--type-desc);
+	color: var(--white);
+	text-align: center;
+	z-index: 950;
+	pointer-events: none;
+}
+#cartitems .aviso[hidden] {
+	display: none;
+}
+#cartitems .footer .ir-mochila {
+	display: none;
+}
+
+/* ─── NO CELULAR EM PE: painel de tela cheia, alvo de dedo ─────────────────
+   A REGRA DO DONO de 08/09/2026: toda janela nasce com versao mobile. O
+   carrinho e a janela NATIVA (slot de 24px, "X" de 12px, janela de 311px
+   arrastavel); registrado na pilha (`MapEngine.js`), o host ja vira painel
+   pela regra `.ri-janela` de D-932 — e isto encaixa o que mora DENTRO dele.
+
+   O esqueleto em pixel do desktop (a tabela, os 40px de padding, o `.hide`,
+   a largura/altura inline que `CartItems.resize` escreve) NAO serve aqui, e
+   por isso a tabela vira bloco e o inline perde para `!important` — o mesmo
+   adversario do `left/top` que Common.css explica. O icone do item sobe 2x
+   (24 -> 48), inteiro e `pixelated`, pela regra 4 do projeto: o que INFORMA
+   continua sendo o PNG do cliente. */
+@media (max-width: 599px) {
+	:host {
+		height: auto !important;
+	}
+
+	#cartitems .titlebar {
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		height: 52px;
+		padding: 0 4px 0 14px;
+		cursor: default;
+	}
+	#cartitems .titlebar .left,
+	#cartitems .titlebar .right {
+		float: none;
+		margin: 0;
+		display: flex;
+		align-items: center;
+	}
+	#cartitems .titlebar .left .base,
+	#cartitems .titlebar .mini,
+	#cartitems .titlebar .clear {
+		display: none;
+	}
+	#cartitems .titlebar .text {
+		width: auto;
+		height: auto;
+		font-size: 16px;
+	}
+	#cartitems .titlebar .right .close {
+		width: 44px;
+		height: 44px;
+		font-size: 22px;
+		line-height: 40px;
+	}
+
+	#cartitems table,
+	#cartitems tbody,
+	#cartitems tr,
+	#cartitems td {
+		display: block;
+		width: 100%;
+		box-sizing: border-box;
+	}
+	#cartitems .container {
+		padding-left: 0;
+		border-right: none;
+	}
+	#cartitems .hide {
+		display: none !important;
+	}
+	#cartitems .content {
+		width: 100% !important;
+		height: auto !important;
+		min-height: 120px;
+		padding: 8px;
+		box-sizing: border-box;
+		overflow: visible;
+		display: grid;
+		grid-template-columns: repeat(auto-fill, minmax(56px, 1fr));
+		justify-items: center;
+	}
+	/* O ladrilho aparece no celular: no desktop o slot de 24px dispensa moldura,
+	   mas um alvo de 48px sem borda nao diz ao dedo onde tocar (foto da prova). */
+	#cartitems .content .item {
+		float: none;
+		/* 50 com a borda de 1px por dentro: sobram os 48 do icone em 2x. */
+		width: 50px;
+		height: 50px;
+		margin: 3px;
+		background: var(--surface-card);
+		border: 1px solid var(--border-hairline);
+		box-sizing: border-box;
+	}
+	#cartitems .content .item .icon {
+		width: 48px;
+		height: 48px;
+		background-size: 48px 48px;
+		image-rendering: pixelated;
+	}
+	#cartitems .content .item .amount {
+		bottom: 14px;
+		font-size: 12px;
+	}
+
+	#cartitems .footer {
+		display: flex;
+		align-items: center;
+		gap: 12px;
+		height: auto;
+		padding: 8px 12px;
+		border-right: none;
+	}
+	#cartitems .footer .cnt,
+	#cartitems .footer .wt {
+		position: static;
+		font-size: 13px;
+	}
+	#cartitems .footer .extend {
+		display: none;
+	}
+	#cartitems .footer .ir-mochila {
+		display: inline-flex;
+		position: static;
+		width: auto;
+		height: auto;
+		min-width: 44px;
+		min-height: 44px;
+		margin-left: auto;
+		padding: 0 18px;
+		font-size: 14px;
+		line-height: normal;
+		color: var(--text-link);
+	}
+}

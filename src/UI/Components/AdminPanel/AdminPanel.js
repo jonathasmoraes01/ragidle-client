@@ -47,6 +47,7 @@
  */
 
 import Renderer from 'Renderer/Renderer.js';
+import { localeDoIdioma } from 'Core/Idioma.js';
 import Preferences from 'Core/Preferences.js';
 import Network from 'Network/NetworkManager.js';
 import PACKET from 'Network/PacketStructure.js';
@@ -54,6 +55,15 @@ import Session from 'Engine/SessionStorage.js';
 import { souAdmin } from 'DB/Items/idParaAdmin.js';
 import UIManager from 'UI/UIManager.js';
 import GUIComponent from 'UI/GUIComponent.js';
+import {
+	TIPOS_DE_EVENTO_DA_EQUIPE,
+	fimLocalDaEquipe,
+	htmlDosEventosDaEquipe,
+	pedidoDeEncerrarDaEquipe,
+	pedidoDeIniciarDaEquipe,
+	rascunhoInicialDaEquipe
+} from './eventosDaEquipe.js';
+import { htmlDoEventoDeGacha, pedidoDeEncerrarDoGacha, pedidoDeIniciarDoGacha, rascunhoDoGacha } from './eventoDeGacha.js';
 import htmlText from './AdminPanel.html?raw';
 import cssText from './AdminPanel.css?raw';
 
@@ -155,6 +165,32 @@ AdminPanel._eventoTimer = null;
 
 /** @var {boolean} o pedido de atualizacao do fim ja saiu — um so por evento. */
 AdminPanel._eventoPediuFim = false;
+
+/**
+ * @var {{drop:{porcento:number,horas:number}, respawn:{porcento:number,horas:number}}}
+ *      o rascunho dos EVENTOS DE DROP E RESPAWN (D-1880) — fora de `draft` pela
+ *      mesma razao do de EXP: sao do servidor, e saem pelo proprio botao.
+ */
+AdminPanel.eventosDaEquipeDraft = rascunhoInicialDaEquipe();
+
+/** @var {{drop:number, respawn:number}} o fim de cada um no relogio desta maquina (0 = sem). */
+AdminPanel.eventosDaEquipeFimLocal = { drop: 0, respawn: 0 };
+
+/** @var {{drop:boolean, respawn:boolean}} o pedido do retrato novo no fim ja saiu — um por evento. */
+AdminPanel._equipePediuFim = { drop: false, respawn: false };
+
+/**
+ * @var {{pool:string,lendario:number,raro:number,horas:number}|null} o rascunho
+ *      do EVENTO DE GACHA (D-1900) — nasce na primeira resposta do servidor,
+ *      que e quem diz quais caixas existem (`rascunhoDoGacha`).
+ */
+AdminPanel.gachaDraft = null;
+
+/** @var {number} o fim do evento de gacha no relogio desta maquina (0 = sem). */
+AdminPanel.gachaFimLocal = 0;
+
+/** @var {boolean} o pedido do retrato novo no fim do gacha ja saiu — um por evento. */
+AdminPanel._gachaPediuFim = false;
 
 /**
  * @var {Preferences} window position (x/y are null until the player moves it)
@@ -446,6 +482,22 @@ function onAdminReceived(pkt) {
 			AdminPanel.serverData.eventoDeExp = data.eventoDeExp;
 		}
 	}
+	// Os eventos de DROP e RESPAWN (D-1880): o mesmo trato do de EXP, por tipo.
+	if (data.eventosDoAdmin) {
+		const agoraLocal = Date.now();
+		TIPOS_DE_EVENTO_DA_EQUIPE.forEach(tipo => {
+			AdminPanel.eventosDaEquipeFimLocal[tipo] = fimLocalDaEquipe(data.eventosDoAdmin[tipo], agoraLocal);
+			AdminPanel._equipePediuFim[tipo] = false;
+		});
+		// O de GACHA (D-1900): o mesmo relogio local, e o rascunho conferido
+		// contra as caixas que o servidor oferece agora.
+		AdminPanel.gachaFimLocal = fimLocalDaEquipe(data.eventosDoAdmin.gacha, agoraLocal);
+		AdminPanel._gachaPediuFim = false;
+		AdminPanel.gachaDraft = rascunhoDoGacha(AdminPanel.gachaDraft, data.eventosDoAdmin.gacha);
+		if (rejected && AdminPanel.serverData) {
+			AdminPanel.serverData.eventosDoAdmin = data.eventosDoAdmin;
+		}
+	}
 
 	if (!rejected) {
 		// Either the initial "pedir" answer, or a successful "aplicar":
@@ -541,6 +593,8 @@ function renderBody() {
 	// inteiro, e o dono pediu que o administrador o veja ao abrir o painel.
 	bodyEl.innerHTML = `
 		${renderEvento()}
+		${renderEventosDaEquipe()}
+		${renderEventoDeGacha()}
 		<div class="ap-section ri-card">
 			<h3>Personagem</h3>
 			<div class="ap-field-row">
@@ -585,6 +639,8 @@ function renderBody() {
 
 	bindFieldControls(bodyEl);
 	bindEventoControls(bodyEl);
+	bindEventosDaEquipe(bodyEl);
+	bindEventoDeGacha(bodyEl);
 }
 
 /**
@@ -673,7 +729,7 @@ function renderEvento() {
 		? `<div class="ap-evento-estado is-ativo">
 				<div class="ap-evento-titulo">Evento ativo · ${escapeHtml(bonusPorExtenso(ev.base, ev.job))}</div>
 				<div>Termina ${escapeHtml(
-					new Date(AdminPanel.eventoFimLocal).toLocaleString('pt-BR', {
+					new Date(AdminPanel.eventoFimLocal).toLocaleString(localeDoIdioma(), {
 						weekday: 'short',
 						day: '2-digit',
 						month: '2-digit',
@@ -816,10 +872,14 @@ function encerrarEvento() {
 	enviarPatchDoEvento({ v: 1, eventoDeExp: { encerrar: true } }, 'Encerrando evento...');
 }
 
-/** A contagem regressiva do "faltam", so com a janela aberta. */
+/** A contagem regressiva do "faltam", so com a janela aberta — a do EXP e as da equipe. */
 function iniciarRelogioDoEvento() {
 	pararRelogioDoEvento();
-	AdminPanel._eventoTimer = setInterval(atualizarRelogioDoEvento, 1000);
+	AdminPanel._eventoTimer = setInterval(() => {
+		atualizarRelogioDoEvento();
+		atualizarRelogiosDaEquipe();
+		atualizarRelogioDoGacha();
+	}, 1000);
 }
 
 function pararRelogioDoEvento() {
@@ -843,6 +903,211 @@ function atualizarRelogioDoEvento() {
 	// aqui so se pede o retrato novo, uma vez, logo depois.
 	if (restante <= 0 && !AdminPanel._eventoPediuFim) {
 		AdminPanel._eventoPediuFim = true;
+		setTimeout(requestAdmin, 1500);
+	}
+}
+
+/* ─── OS EVENTOS DE DROP E RESPAWN (D-1880) ─────────────────── */
+/*
+ * O pedido, o fim no relogio local e o HTML moram em `eventosDaEquipe.js` (puro,
+ * com teste); aqui so a costura com a janela. Os seletores sao proprios — ver o
+ * cabecalho daquele arquivo para o porque.
+ */
+
+/** O "Termina ter., 02/10, 14:00" de um fim no relogio local — o mesmo formato do evento de EXP. */
+function formatarFimDoEvento(fimLocal) {
+	return new Date(fimLocal).toLocaleString(localeDoIdioma(), {
+		weekday: 'short',
+		day: '2-digit',
+		month: '2-digit',
+		hour: '2-digit',
+		minute: '2-digit'
+	});
+}
+
+function renderEventosDaEquipe() {
+	return htmlDosEventosDaEquipe({
+		retrato: AdminPanel.serverData && AdminPanel.serverData.eventosDoAdmin,
+		rascunho: AdminPanel.eventosDaEquipeDraft,
+		fimLocal: AdminPanel.eventosDaEquipeFimLocal,
+		agoraLocal: Date.now(),
+		ajuda: { escapeHtml, rotuloDeHoras, faltamPorExtenso, formatarFim: formatarFimDoEvento }
+	});
+}
+
+function bindEventosDaEquipe(bodyEl) {
+	bodyEl.querySelectorAll('[data-evento-da-equipe]').forEach(campo => {
+		campo.addEventListener('input', () => {
+			const tipo = campo.dataset.eventoDaEquipe;
+			AdminPanel.eventosDaEquipeDraft[tipo][campo.dataset.campo] = Number(campo.value);
+			if (campo.dataset.campo === 'horas') {
+				marcarAtalhoDaEquipe(bodyEl, tipo);
+			}
+		});
+	});
+	bodyEl.querySelectorAll('.ap-chip[data-horas-do-evento]').forEach(chip => {
+		chip.addEventListener('click', e => {
+			e.stopImmediatePropagation();
+			const tipo = chip.dataset.horasDoEvento;
+			AdminPanel.eventosDaEquipeDraft[tipo].horas = Number(chip.dataset.valor);
+			const campo = bodyEl.querySelector(`[data-evento-da-equipe="${tipo}"][data-campo="horas"]`);
+			if (campo) {
+				campo.value = String(AdminPanel.eventosDaEquipeDraft[tipo].horas);
+			}
+			marcarAtalhoDaEquipe(bodyEl, tipo);
+		});
+	});
+	bodyEl.querySelectorAll('.ap-equipe-iniciar[data-tipo]').forEach(botao => {
+		const tipo = botao.dataset.tipo;
+		const retrato = AdminPanel.serverData.eventosDoAdmin;
+		const ativo = !!(retrato && retrato[tipo] && retrato[tipo].ativo);
+		botao.addEventListener('click', e => {
+			e.stopImmediatePropagation();
+			const enviar = () =>
+				enviarPatchDoEvento(
+					pedidoDeIniciarDaEquipe(tipo, AdminPanel.eventosDaEquipeDraft[tipo]),
+					'Iniciando evento...'
+				);
+			// Substituir o que esta valendo pede o segundo toque, como no de EXP.
+			if (ativo) {
+				comConfirmacao(botao, enviar);
+			} else {
+				enviar();
+			}
+		});
+	});
+	bodyEl.querySelectorAll('.ap-equipe-encerrar[data-tipo]').forEach(botao => {
+		const tipo = botao.dataset.tipo;
+		botao.addEventListener('click', e => {
+			e.stopImmediatePropagation();
+			comConfirmacao(botao, () => enviarPatchDoEvento(pedidoDeEncerrarDaEquipe(tipo), 'Encerrando evento...'));
+		});
+	});
+}
+
+function marcarAtalhoDaEquipe(bodyEl, tipo) {
+	bodyEl.querySelectorAll(`.ap-chip[data-horas-do-evento="${tipo}"]`).forEach(chip => {
+		chip.classList.toggle('is-sel', Number(chip.dataset.valor) === AdminPanel.eventosDaEquipeDraft[tipo].horas);
+	});
+}
+
+function atualizarRelogiosDaEquipe() {
+	const retrato = AdminPanel.serverData && AdminPanel.serverData.eventosDoAdmin;
+	if (!retrato) {
+		return;
+	}
+	TIPOS_DE_EVENTO_DA_EQUIPE.forEach(tipo => {
+		if (!retrato[tipo] || !retrato[tipo].ativo) {
+			return;
+		}
+		const restante = AdminPanel.eventosDaEquipeFimLocal[tipo] - Date.now();
+		const el = _root().querySelector(`[data-faltam-do-evento="${tipo}"]`);
+		if (el) {
+			el.textContent = faltamPorExtenso(restante);
+		}
+		// Quem encerra e o tique do servidor; aqui so se pede o retrato novo, uma vez.
+		if (restante <= 0 && !AdminPanel._equipePediuFim[tipo]) {
+			AdminPanel._equipePediuFim[tipo] = true;
+			setTimeout(requestAdmin, 1500);
+		}
+	});
+}
+
+/* ─── O EVENTO DE GACHA (D-1900) ──────────────────────────── */
+/*
+ * O pedido, o rascunho e o HTML moram em `eventoDeGacha.js` (puro, com teste);
+ * aqui so a costura com a janela, no molde do drop e do respawn logo acima. Os
+ * seletores sao proprios — ver o cabecalho daquele arquivo.
+ */
+
+function renderEventoDeGacha() {
+	const retrato = AdminPanel.serverData && AdminPanel.serverData.eventosDoAdmin && AdminPanel.serverData.eventosDoAdmin.gacha;
+	if (!retrato || !AdminPanel.gachaDraft) {
+		return '';
+	}
+	return htmlDoEventoDeGacha({
+		retrato,
+		rascunho: AdminPanel.gachaDraft,
+		fimLocal: AdminPanel.gachaFimLocal,
+		agoraLocal: Date.now(),
+		ajuda: { escapeHtml, rotuloDeHoras, faltamPorExtenso, formatarFim: formatarFimDoEvento }
+	});
+}
+
+function bindEventoDeGacha(bodyEl) {
+	const rascunho = AdminPanel.gachaDraft;
+	if (!rascunho) {
+		return;
+	}
+	bodyEl.querySelectorAll('[data-gacha-campo]').forEach(campo => {
+		campo.addEventListener('input', () => {
+			rascunho[campo.dataset.gachaCampo] = Number(campo.value);
+			if (campo.dataset.gachaCampo === 'horas') {
+				marcarChipsDoGacha(bodyEl, 'data-gacha-horas', String(rascunho.horas));
+			}
+		});
+	});
+	bodyEl.querySelectorAll('.ap-chip[data-gacha-caixa]').forEach(chip => {
+		chip.addEventListener('click', e => {
+			e.stopImmediatePropagation();
+			rascunho.pool = chip.dataset.gachaCaixa;
+			marcarChipsDoGacha(bodyEl, 'data-gacha-caixa', rascunho.pool);
+		});
+	});
+	bodyEl.querySelectorAll('.ap-chip[data-gacha-horas]').forEach(chip => {
+		chip.addEventListener('click', e => {
+			e.stopImmediatePropagation();
+			rascunho.horas = Number(chip.dataset.gachaHoras);
+			const campo = bodyEl.querySelector('[data-gacha-campo="horas"]');
+			if (campo) {
+				campo.value = String(rascunho.horas);
+			}
+			marcarChipsDoGacha(bodyEl, 'data-gacha-horas', String(rascunho.horas));
+		});
+	});
+	const retrato = AdminPanel.serverData.eventosDoAdmin.gacha;
+	const iniciar = bodyEl.querySelector('.ap-gacha-iniciar');
+	if (iniciar) {
+		iniciar.addEventListener('click', e => {
+			e.stopImmediatePropagation();
+			const enviar = () => enviarPatchDoEvento(pedidoDeIniciarDoGacha(AdminPanel.gachaDraft), 'Iniciando evento...');
+			// Substituir o que esta valendo pede o segundo toque, como nos outros.
+			if (retrato.ativo) {
+				comConfirmacao(iniciar, enviar);
+			} else {
+				enviar();
+			}
+		});
+	}
+	const encerrar = bodyEl.querySelector('.ap-gacha-encerrar');
+	if (encerrar) {
+		encerrar.addEventListener('click', e => {
+			e.stopImmediatePropagation();
+			comConfirmacao(encerrar, () => enviarPatchDoEvento(pedidoDeEncerrarDoGacha(), 'Encerrando evento...'));
+		});
+	}
+}
+
+/** Marca o chip escolhido de UM grupo (a caixa ou a duracao). */
+function marcarChipsDoGacha(bodyEl, atributo, valor) {
+	bodyEl.querySelectorAll(`.ap-chip[${atributo}]`).forEach(chip => {
+		chip.classList.toggle('is-sel', chip.getAttribute(atributo) === valor);
+	});
+}
+
+function atualizarRelogioDoGacha() {
+	const retrato = AdminPanel.serverData && AdminPanel.serverData.eventosDoAdmin && AdminPanel.serverData.eventosDoAdmin.gacha;
+	if (!retrato || !retrato.ativo) {
+		return;
+	}
+	const restante = AdminPanel.gachaFimLocal - Date.now();
+	const el = _root().querySelector('[data-faltam-do-gacha]');
+	if (el) {
+		el.textContent = faltamPorExtenso(restante);
+	}
+	// Quem encerra e o tique do servidor; aqui so se pede o retrato novo, uma vez.
+	if (restante <= 0 && !AdminPanel._gachaPediuFim) {
+		AdminPanel._gachaPediuFim = true;
 		setTimeout(requestAdmin, 1500);
 	}
 }

@@ -29,6 +29,8 @@
  * servidor nao os envia, e traduzi-los seria trabalho que ninguem le.
  */
 
+import { emIngles } from 'Core/Idioma.js';
+
 /**
  * As frases, exatamente como aparecem em `StatusInfo.js`.
  *
@@ -239,11 +241,25 @@ const PT_BR = {
 	'EXP Event': 'Evento de EXP',
 	'Increases acquired EXP': 'Mais EXP de todos os monstros',
 
+	/* -------- os eventos de drop e respawn da equipe (D-1880, 01/10/2026) -------- */
+	'Drop Event': 'Evento de Drop',
+	'Increases the drop chance of items except cards':
+		'Mais chance de drop nos itens dos monstros, menos cartas, caixas e MVPs',
+	'Respawn Event': 'Evento de Respawn',
+	'Monsters respawn faster': 'Os monstros renascem mais rápido (menos MVPs e o Covil)',
+	'Gacha Event': 'Evento de Gacha',
+	'Better odds in one Season box': 'Mais chance de prêmio raro numa caixa da temporada (veja o selo na loja)',
+
 	/* -------- os boosts do RO Shop (22/09/2026): Bencao e os dois Manuais -------- */
-	'Fortune Blessing': 'Bênção da Fortuna',
-	'Increases the drop chance of common items': 'Mais chance de drop de itens comuns',
-	'Job EXP Manual': 'Manual de Experiência de Classe',
+	'Blessing of Fortune': 'Bênção da Fortuna',
+	'Bubble Gum': 'Goma de Mascar',
+	// R76 (28/09/2026): Goma e Bencao sao um bonus so, no icone 252 (o titulo
+	// nao pode dizer Goma quando quem esta ativa e a Bencao).
+	'Drop Bonus': 'Bônus de Drop (Goma ou Bênção)',
+	'Increases the drop chance of all items': 'Mais chance de drop de todos os itens',
+	'Job Experience Manual': 'Manual de Experiência de Classe',
 	'Increases Job EXP acquired.': 'Mais EXP de classe',
+	'Experience Manual': 'Manual de Experiência',
 	'EXP Manual': 'Manual de Experiência',
 	'Increases acquired Base EXP': 'Mais EXP de base',
 
@@ -317,6 +333,11 @@ const PT_BR = {
  * quebrar a tela nao e opcao.
  */
 export function emPortugues(frase) {
+	// O jogo em ingles (D-1929): o original JA e ingles (o `stateiconinfo` ingles
+	// do GRF), entao a camada portuguesa simplesmente nao entra.
+	if (emIngles()) {
+		return frase;
+	}
 	return Object.prototype.hasOwnProperty.call(PT_BR, frase) ? PT_BR[frase] : frase;
 }
 

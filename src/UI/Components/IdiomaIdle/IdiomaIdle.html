@@ -1,0 +1,31 @@
+<div id="IdiomaIdle" translate="no">
+	<!-- A ESCOLHA DO IDIOMA (D-1929).
+
+	     A janela inteira e `translate="no"`: ela e BILINGUE de proposito (quem
+	     ainda nao escolheu precisa entender o titulo nos dois idiomas), e o
+	     tradutor na borda nao pode "traduzir" o portugues dela.
+
+	     Os botoes de idioma sao montados pelo JS a partir de `IDIOMAS`
+	     (Core/Idioma.js): idioma novo e uma linha la, e nao uma copia aqui. -->
+	<!-- O ATALHO DO LOGIN: flutua no canto enquanto a tela de login estiver
+	     aberta, em qualquer versao dela (WinLoginCommon liga e desliga). -->
+	<button type="button" class="ii-atalho" title="Idioma · Language">
+		<img class="ii-atalho-bandeira" src="/ragidle/idioma/br.svg" alt="" />
+		<img class="ii-atalho-bandeira" src="/ragidle/idioma/us.svg" alt="" />
+		<span>Idioma · Language</span>
+	</button>
+	<div class="ii-modal" role="dialog" aria-modal="true" aria-labelledby="ii-titulo">
+		<div class="ii-card ri-window">
+			<button type="button" class="ii-x ri-close" title="Fechar · Close">&times;</button>
+			<div class="ii-titulo" id="ii-titulo">
+				<span class="ii-titulo-pt">Escolha o idioma</span>
+				<span class="ii-titulo-en">Choose your language</span>
+			</div>
+			<div class="ii-opcoes"></div>
+			<p class="ii-nota">
+				<span>Dá para trocar depois em Configurações.</span>
+				<span>You can change it later in Settings.</span>
+			</p>
+		</div>
+	</div>
+</div>

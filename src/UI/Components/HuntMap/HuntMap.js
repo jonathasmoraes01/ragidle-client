@@ -54,6 +54,7 @@ import GUIComponent from 'UI/GUIComponent.js';
 import RiIcones from 'UI/ri-icones.js';
 import { aplicarIconeDoItem as setItemIcon, nomeLocalDoItem } from 'UI/itemNaTela.js';
 import { dropsDoMapa } from './dropsDoMapa.js';
+import { armazenamentoDoNavegador, criarCacheDoCatalogo, ehRespostaLeve, identidadeDoCatalogo } from './catalogoEmCache.js'; // D-1850
 import { estadoDoRodape } from './rodapeDoDossie.js';
 import { ROTULO_DA_VISAO, htmlDasOrigens } from './origensDoDrop.js'; // RAGIDLE: a visao agregada (I6)
 import {
@@ -74,8 +75,28 @@ import {
 } from './atlasDeCaca.js';
 import htmlText from './HuntMap.html?raw';
 import cssText from './HuntMap.css?raw';
+import {
+	INTERVALO_DO_PEDIDO_MS,
+	ORDEM_DA_MEDIDA,
+	ROTULO_DA_ORDEM,
+	candidatosEmSeusMapas,
+	candidatosNaFrente,
+	classesDoCandidato,
+	ehMapaMedido,
+	fundirPacote,
+	htmlDaFaixaDoExplorar,
+	htmlDaLinhaDoCartao,
+	lerBlocoDaCacaMedida,
+	lerPacoteDaCacaMedida,
+	mapasQueMudaram,
+	medidaMexeNaLista,
+	ordenarPorMedida,
+	seusMapasMudaram,
+	textoDaCacaNoPainel
+} from './cacaMedidaNoMapa.js'; // RAGIDLE: a Caca Medida dentro do Mapa de Caca (v2, 29/09/2026)
 import { fecharEEsquecer } from '../limpezaDeJanelaIdle.js';
 import { abaLembrada, lembrarAba } from '../memoriaDeAba.js';
+import { traduzir } from 'Core/Traducao.js';
 
 /**
  * Keep in sync with the ":host" / ".hm-window" size in HuntMap.css — used
@@ -250,6 +271,26 @@ HuntMap.filterFavoritos = false;
 HuntMap.favoritos = [];
 
 /**
+ * @var {object|null} A CACA MEDIDA (v2, 29/09/2026 — `docs/CONTRATO-CACA-
+ *      MEDIDA.md`, secoes 7 a 10): o bloco `cacaMedida` do cabecalho do
+ *      catalogo, ja lido por `lerBlocoDaCacaMedida`, com o que o `0x0fb5`
+ *      trouxe depois fundido por cima.
+ *
+ * `null` e a TELA DE HOJE: o bloco so chega para quem tem a funcionalidade
+ * ligada (hoje, o administrador), e sem ele nao aparece filtro, ordem, botao
+ * nem linha nova. O cartao sai byte a byte igual ao de 28/09 (portao em
+ * `tests/ui/cacaMedidaNoMapa.test.js`).
+ */
+HuntMap.cacaMedida = null;
+
+/**
+ * @var {boolean} o quarto botao do segmentado: "Seus mapas" (so os mapas
+ *      com a caca MEDIDA). Exclusivo com os outros tres, como o "Favoritos",
+ *      e NAO persistido pelo mesmo motivo: e um recorte momentaneo.
+ */
+HuntMap.filterSeus = false;
+
+/**
  * @var {string} left-list sort key: 'nivel' | 'nivel-recomendado' | 'nome'
  */
 HuntMap.sortKey = 'nivel';
@@ -269,7 +310,7 @@ HuntMap.visaoDeDrop = 'mob';
  * @var {number|string|null} mobId selected in the dossier's monster list
  *      (drives the drop grid below it). Reset to null whenever the selected
  *      map changes so the panel falls back to the first monster of the new
- *      map (see onClickCard/renderPanel).
+ *      map (see selecionarCartao/renderPanel).
  */
 HuntMap.selectedMobId = null;
 
@@ -282,6 +323,84 @@ HuntMap.selectedMobId = null;
 let _pendingAutoTravel = false;
 // RAGIDLE (D-1134): o catalogo chega em PARTES (parte/partes) quando nao cabe num pacote.
 let _catalogoParcial = null;
+
+/*
+ * O DESEMPENHO DA ABERTURA (29/09/2026, ordem do dono: *"quero que estruture
+ * de forma que o desempenho seja MUITO bom e eficiente (...) hoje ja estamos
+ * sofrendo com lag e temos apenas 60 players"*). Tres regras, cada uma com
+ * o estado dela logo abaixo:
+ *
+ *   1. NADA COM A JANELA FECHADA. O catalogo que chega com ela fechada (o
+ *      Codex pede o catalogo so para ler `nivelQueAbre`) e o favorito que
+ *      muda nao desenham: marcam `_precisaDesenhar`, e quem desenha e a
+ *      proxima abertura. Ate 28/09 o catalogo do Codex montava os ~189
+ *      cartoes numa janela que ninguem via.
+ *   2. O MESMO CATALOGO NAO DESENHA DE NOVO. Reabrir a janela sem nada ter
+ *      mudado (mesmo nivel, mesmo mapa) traz o catalogo BYTE A BYTE igual ao
+ *      que ja esta desenhado: comparar as paginas cruas custa uma comparacao
+ *      de string, e desenhar de novo custava a lista inteira.
+ *   3. A LISTA SAI EM LOTES. O primeiro lote (o que cabe na tela e um pouco
+ *      mais) sai no mesmo instante; o resto entra um lote por quadro, com o
+ *      HTML de cada cartao montado SO na hora do lote dele. O DOM final e
+ *      identico ao de um `innerHTML` so (portao em
+ *      `tests/ui/cacaMedidaNoMapa.test.js`).
+ */
+
+/*
+ * O CATALOGO LEVE (D-1850, 30/09/2026 - pedido do dono: *"Em relacao ao Mapa
+ * de Caca, podemos otimiza-lo tambem? Tanto em rede/cpu?"*). Os `mapas` do
+ * catalogo (~87 KB dos ~88 KB de cada abertura) sao iguais para todo jogador:
+ * o servidor manda a impressao deles (`fixo`), este cliente os guarda
+ * (`catalogoEmCache.js`) e a abertura seguinte pede so o cabecalho. Regra 4:
+ *
+ *   4. OS MAPAS NAO DESCEM DE NOVO. Com a impressao na mao, o pedido e
+ *      `CZ_RAGIDLE_CACA_ACAO {acao:'catalogo', fixo}`; sem ela, o
+ *      `CZ_RAGIDLE_PEDIR_CATALOGO` de sempre. Um servidor que nao conhece o
+ *      verbo (antes do deploy, ou um rollback) nao manda catalogo nenhum: o
+ *      prazo abaixo vence e o pedido cheio sai, e ate uma resposta cheia com
+ *      impressao chegar esta pagina nao tenta o leve de novo.
+ */
+const _cacheDoCatalogo = criarCacheDoCatalogo(armazenamentoDoNavegador());
+const PRAZO_DO_PEDIDO_LEVE_MS = 3000;
+let _prazoDoLeve = null;
+let _servidorSemLeve = false;
+/** Os `mapas` cujos nomes de drop ja foram resolvidos (a lista guardada volta resolvida). */
+let _mapasResolvidos = null;
+
+/** As paginas cruas do catalogo em montagem (regra 2). */
+let _brutoParcial = [];
+
+/** As paginas cruas do catalogo que esta DESENHADO, ou `null` (regra 2). */
+let _ultimoBruto = null;
+
+/** O DOM da janela esta atras do estado e a proxima abertura redesenha (regra 1). */
+let _precisaDesenhar = false;
+
+/**
+ * Os cartoes que ainda nao sairam (regra 3): a lista ja filtrada e ordenada,
+ * os motivos da busca e onde o proximo lote comeca. `_geracaoDaLista` sobe a
+ * cada `renderList`, e o lote agendado de uma geracao velha morre calado — a
+ * busca digitada letra a letra nao empilha lotes de listas que ja sairam.
+ */
+const PRIMEIRO_LOTE = 12;
+/*
+ * 12 por quadro, e nao 24 (medido no Chromium, celular 393x852 com o
+ * processador 4x mais lento, lista visivel): o lote de 24 custava ate 51 ms
+ * de estilo + leiaute num quadro so, o de 12 ate 35 ms, e o de 8 ate 29 ms —
+ * cada lote paga um custo fixo de leiaute, entao lote menor espalha melhor
+ * mas soma mais (330, 400 e 480 ms no total). 12 e o meio. No desktop os
+ * tres ficam abaixo de 8 ms.
+ */
+const LOTE = 12;
+let _pendentes = null;
+let _geracaoDaLista = 0;
+let _loteAgendado = null;
+
+/** O relogio do `pedir` do Explorar: so com a janela aberta E o Explorar em curso. */
+let _relogioDoExplorar = null;
+
+/** O jogador fechou o aviso de "Você ficou em X": ele so volta num Explorar novo. */
+let _fimDoExplorarDispensado = false;
 
 /**
  * ESQUECE O PERSONAGEM ANTERIOR — ver a nota gemea em IdleConfig.js
@@ -302,7 +421,29 @@ HuntMap.limparEstadoDoPersonagem = function limparEstadoDoPersonagem() {
 	// de A na janela de B — o mesmo defeito que o `catalog` acima resolve.
 	HuntMap.favoritos = [];
 	HuntMap.filterFavoritos = false;
+	// A caca medida e do PERSONAGEM (§1): os numeros de A na janela de B
+	// seriam mentira, e o relogio do Explorar de A pediria o estado de B.
+	HuntMap.cacaMedida = null;
+	HuntMap.filterSeus = false;
+	if (ORDEM_DA_MEDIDA[HuntMap.sortKey]) {
+		HuntMap.sortKey = 'nivel';
+	}
+	pararRelogioDoExplorar();
+	cancelarLotes();
+	_fimDoExplorarDispensado = false;
+	_brutoParcial = [];
+	_ultimoBruto = null;
+	// O shadow DOM guarda o desenho do personagem anterior: a proxima
+	// abertura redesenha, em vez de mostrar os mapas de A ate o catalogo
+	// de B chegar.
+	_precisaDesenhar = true;
 	_pendingAutoTravel = false;
+	// O pedido leve em voo era do personagem anterior: o prazo dele nao vale
+	// para este. Os MAPAS guardados ficam (D-1850): sao do servidor, nao dele.
+	if (_prazoDoLeve) {
+		clearTimeout(_prazoDoLeve);
+		_prazoDoLeve = null;
+	}
 	/*
 	 * ZERAR O DADO NAO BASTA: `GUIComponent.remove()` so DESANEXA o host,
 	 * entao o shadow DOM (com `is-open` e o HTML do personagem anterior)
@@ -374,6 +515,15 @@ HuntMap.init = function init() {
 	root.querySelector('.hm-search-clear').addEventListener('click', onClickSearchClear);
 	root.querySelectorAll('.hm-modo .hm-seg-btn').forEach(b => b.addEventListener('click', onClickModo));
 	root.querySelector('.hm-sort').addEventListener('change', onChangeSort);
+	/*
+	 * UM ouvinte por AREA, e nao tres por cartao (29/09/2026): a lista era
+	 * redesenhada a cada tecla da busca e a cada clique, e cada desenho
+	 * religava ate 3 x 189 ouvintes. Delegado, redesenhar nao religa nada — e
+	 * o cartao que chega num lote posterior ja nasce clicavel.
+	 */
+	root.querySelector('.hm-list').addEventListener('click', onClickNaLista);
+	root.querySelector('.hm-explorar-faixa').addEventListener('click', onClickNaFaixa);
+	root.querySelector('.hm-explorar').addEventListener('click', onClickExplorar);
 	root.querySelector('.hm-voltar').addEventListener('click', e => {
 		e.stopImmediatePropagation();
 		voltarUmPasso();
@@ -383,6 +533,7 @@ HuntMap.init = function init() {
 
 	// O controle "Para mim / Todos" nasce sem selecao no HTML: sem isto ele
 	// DIRIA "todos" enquanto a lista mostra so os ideais.
+	renderControlesDaCacaMedida();
 	renderModo();
 
 	// Default centered position, may be overridden by saved preferences in onAppend()
@@ -406,6 +557,17 @@ HuntMap.onAppend = function onAppend() {
 		this._host.style.top = Math.min(Math.max(0, _preferences.y), Renderer.height - WINDOW_HEIGHT) + 'px';
 		this._host.style.left = Math.min(Math.max(0, _preferences.x), Renderer.width - WINDOW_WIDTH) + 'px';
 	}
+	// A troca de mapa (o proprio Explorar viaja) remove e reanexa: quem estava
+	// aberta volta aberta, e o relogio do Explorar volta junto.
+	sincronizarRelogioDoExplorar();
+	// Aberta na troca de mapa (Explorar, warp, morte): volta para a FRENTE (o
+	// painel do personagem reanexado a cobria) e pede o catalogo de novo (o
+	// dossie dizia "Voce ja esta em Prontera" depois de viajar). Catalogo igual
+	// nao redesenha. Auditoria pre-push B, 29/09/2026.
+	if (estaAberta()) {
+		HuntMap.focus();
+		requestCatalog();
+	}
 };
 
 /**
@@ -414,6 +576,12 @@ HuntMap.onAppend = function onAppend() {
  * same as CashShopIcon/ChatBox/etc, see Engine/MapEngine.js).
  */
 HuntMap.onRemove = function onRemove() {
+	// Fora do DOM nao ha quem veja: nem relogio, nem lote pendente.
+	pararRelogioDoExplorar();
+	if (_pendentes) {
+		cancelarLotes();
+		_precisaDesenhar = true;
+	}
 	savePosition();
 };
 
@@ -503,14 +671,48 @@ HuntMap.toggle = function toggle() {
 		   árvore ("reabrir mostra a árvore, nunca um detalhe órfão"). */
 		definirPasso('regioes');
 		HuntMap.focus();
+		/*
+		 * O que mudou com a janela fechada sai AGORA, do que ja esta na mao —
+		 * e nao depois da ida e volta do catalogo. Quando o catalogo novo
+		 * chegar igual a este, ele nao redesenha (regra 2).
+		 */
+		desenharSeFicouParaTras();
 		requestCatalog();
 		pedirFavoritos();
+		sincronizarRelogioDoExplorar();
 	}
 };
+
+function estaAberta() {
+	const root = _root();
+	const win = root && root.querySelector('.hm-window');
+	return !!(win && win.classList.contains('is-open'));
+}
+
+/** A regra 1: o que ficou para tras com a janela fechada, desenhado na abertura. */
+function desenharSeFicouParaTras() {
+	if (!_precisaDesenhar) {
+		return;
+	}
+	_precisaDesenhar = false;
+	renderControlesDaCacaMedida();
+	renderModo();
+	renderTabs();
+	renderFaixaDoExplorar();
+	renderList();
+	renderPanel();
+}
 
 function closeWindow() {
 	const root = _root();
 	root.querySelector('.hm-window').classList.remove('is-open');
+	// Lote pendente com a janela fechada e trabalho para ninguem (regra 1):
+	// ele morre aqui, e a proxima abertura redesenha a lista inteira.
+	if (_pendentes) {
+		cancelarLotes();
+		_precisaDesenhar = true;
+	}
+	pararRelogioDoExplorar();
 	savePosition();
 }
 
@@ -548,6 +750,9 @@ function onClickSearchClear(e) {
 
 /** Qual dos tres botoes do segmentado esta ligado agora. */
 function modoAtual() {
+	if (HuntMap.filterSeus && HuntMap.cacaMedida) {
+		return 'seus';
+	}
 	return HuntMap.filterFavoritos ? 'favoritos' : HuntMap.filterIdealOnly ? 'ideais' : 'todos';
 }
 
@@ -556,6 +761,7 @@ function onClickModo(e) {
 	const modo = e.currentTarget.dataset.modo;
 	HuntMap.filterIdealOnly = modo === 'ideais';
 	HuntMap.filterFavoritos = modo === 'favoritos';
+	HuntMap.filterSeus = modo === 'seus';
 	/*
 	 * SO "Para mim" e persistido, e nao o modo inteiro. O dono pediu que ele
 	 * sobrevivesse ao F5 (31/08/2026) porque quem caca no que serve ao proprio
@@ -583,6 +789,321 @@ function onChangeSort(e) {
 	renderList();
 }
 
+/* ═══════════════════════════════════════════════════════════════════════
+   A CAÇA MEDIDA DENTRO DO MAPA DE CAÇA (v2, 29/09/2026)
+   ═══════════════════════════════════════════════════════════════════════
+   Decisão do dono de 29/09/2026: a medição da caça real entra AQUI, sem tirar
+   nada da tela de hoje, e a janela separada "Seus mapas" (CacaMedidaIdle)
+   saiu. O que entra, e só com o bloco `cacaMedida` no catálogo:
+     - o filtro "Seus mapas", entre "Para mim" e "Todos";
+     - as ordens "Sua EXP/h" e "Seu zeny/h";
+     - a linha a mais do cartão (candidato do Explorar, "▸ Você: ..." e o selo
+       de golpes) e a linha "Sua caça aqui" no quadro VOCÊ do dossiê;
+     - o botão Explorar e a faixa dele acima da lista.
+   As decisões puras (ler, ordenar, textos, selos) moram em
+   `cacaMedidaNoMapa.js`; aqui só a costura com o DOM e a rede.
+
+   O `0x0fb5` tem UM dono, e é este arquivo: `Network.hookPacket` guarda um
+   callback só por opcode, e a janela antiga ficou de fora junto com o gancho
+   dela.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/** O verbo ao servidor (`CZ_RAGIDLE_CACA_MEDIDA`, 0x0fb4). */
+function enviarCacaMedida(acao) {
+	const pkt = new PACKET.CZ.RAGIDLE_CACA_MEDIDA();
+	pkt.json = JSON.stringify({ acao });
+	Network.sendPacket(pkt);
+}
+
+/**
+ * Os controles da barra que só existem com o bloco: o botão "Seus mapas", o
+ * Explorar e as duas ordens novas. Sem o bloco eles SOMEM (e não ficam
+ * desabilitados): a barra de quem não tem a funcionalidade é a de hoje.
+ *
+ * As ordens entram e saem do `<select>` por código, e não com `hidden` no
+ * HTML: `<option hidden>` não esconde nada no Safari do iPhone.
+ */
+function renderControlesDaCacaMedida() {
+	const root = _root();
+	if (!root) {
+		return;
+	}
+	const bloco = HuntMap.cacaMedida;
+	const ligada = !!bloco;
+	if (!ligada) {
+		HuntMap.filterSeus = false;
+	}
+	const seus = root.querySelector('.hm-seg-btn[data-modo="seus"]');
+	if (seus) {
+		seus.hidden = !ligada;
+	}
+	const explorar = root.querySelector('.hm-explorar');
+	if (explorar) {
+		explorar.hidden = !ligada;
+		// Durante a exploracao o botao fica de pe, apagado: o Cancelar mora
+		// na faixa, e um segundo Explorar nao teria o que fazer.
+		explorar.disabled = ligada && bloco.explorar.estado === 'explorando';
+	}
+	const sort = root.querySelector('.hm-sort');
+	if (sort) {
+		for (const chave of Object.keys(ORDEM_DA_MEDIDA)) {
+			const opcao = sort.querySelector(`option[value="${chave}"]`);
+			if (ligada && !opcao) {
+				const nova = document.createElement('option');
+				nova.value = chave;
+				nova.textContent = ROTULO_DA_ORDEM[chave];
+				sort.appendChild(nova);
+			} else if (!ligada && opcao) {
+				opcao.remove();
+			}
+		}
+		if (!ligada && ORDEM_DA_MEDIDA[HuntMap.sortKey]) {
+			HuntMap.sortKey = 'nivel';
+		}
+		if (sort.value !== HuntMap.sortKey) {
+			sort.value = HuntMap.sortKey;
+		}
+	}
+}
+
+/** A string escrita por ultimo na faixa: reescrever o mesmo texto e trabalho a toa. */
+let _faixaEscrita = null;
+
+/** A faixa do Explorar acima da lista (item 4 do desenho aprovado). */
+function renderFaixaDoExplorar() {
+	const faixa = _root().querySelector('.hm-explorar-faixa');
+	if (!faixa) {
+		return;
+	}
+	const explorar = HuntMap.cacaMedida ? HuntMap.cacaMedida.explorar : null;
+	const dispensada = explorar && explorar.estado === 'concluido' && _fimDoExplorarDispensado;
+	const html = explorar && !dispensada ? htmlDaFaixaDoExplorar(explorar, nomeDoMapa) : '';
+	if (html === _faixaEscrita) {
+		return;
+	}
+	_faixaEscrita = html;
+	faixa.innerHTML = html;
+	faixa.hidden = !html;
+	faixa.classList.toggle('is-concluido', !!explorar && explorar.estado === 'concluido');
+}
+
+function onClickExplorar(e) {
+	e.stopImmediatePropagation();
+	const botao = e.currentTarget;
+	if (botao.disabled) {
+		return;
+	}
+	// Apagado ate o servidor responder: um segundo toque nao manda o verbo
+	// duas vezes. O proximo `0x0fb5` o acende (ou o deixa apagado, se o
+	// Explorar comecou).
+	botao.disabled = true;
+	_fimDoExplorarDispensado = false;
+	enviarCacaMedida('explorar');
+	// No celular em pe a faixa do Explorar mora no passo da LISTA: quem tocou
+	// no botao no passo das regioes nao veria a exploracao comecar.
+	if (_passo === 'regioes') {
+		definirPasso('mapas');
+	}
+}
+
+function onClickNaFaixa(e) {
+	const alvo = e.target && e.target.closest ? e.target.closest('[data-acao]') : null;
+	if (!alvo || alvo.disabled) {
+		return;
+	}
+	e.stopImmediatePropagation();
+	if (alvo.dataset.acao === 'cancelar') {
+		alvo.disabled = true;
+		enviarCacaMedida('cancelar');
+	} else if (alvo.dataset.acao === 'dispensar') {
+		_fimDoExplorarDispensado = true;
+		renderFaixaDoExplorar();
+	}
+}
+
+function pararRelogioDoExplorar() {
+	if (_relogioDoExplorar !== null) {
+		clearInterval(_relogioDoExplorar);
+		_relogioDoExplorar = null;
+	}
+}
+
+function explorando() {
+	return !!(HuntMap.cacaMedida && HuntMap.cacaMedida.explorar.estado === 'explorando');
+}
+
+/**
+ * O `pedir` periodico: so com a janela ABERTA e o Explorar EM CURSO. Fora
+ * disso nao ha relogio nenhum — nem com a janela fechada, nem para o
+ * administrador que nunca explorou.
+ */
+function sincronizarRelogioDoExplorar() {
+	if (!estaAberta() || !explorando()) {
+		pararRelogioDoExplorar();
+		return;
+	}
+	if (_relogioDoExplorar === null) {
+		_relogioDoExplorar = setInterval(() => {
+			// A guarda repetida no tique: se a janela fechou por fora (sem
+			// passar pelo closeWindow), o relogio se desliga em vez de pedir
+			// para ninguem.
+			if (!estaAberta() || !explorando()) {
+				pararRelogioDoExplorar();
+				return;
+			}
+			enviarCacaMedida('pedir');
+		}, INTERVALO_DO_PEDIDO_MS);
+	}
+}
+
+/** Os mapas candidatos de um ou outro estado do Explorar. */
+function candidatosDe(...estados) {
+	const mapas = new Set();
+	for (const explorar of estados) {
+		for (const c of (explorar && explorar.candidatos) || []) {
+			mapas.add(c.mapa);
+		}
+	}
+	return mapas;
+}
+
+/**
+ * Os cartoes JA DESENHADOS destes mapas: as classes de candidato e a linha a
+ * mais. O cartao que ainda nao saiu (lote pendente) nasce certo sozinho,
+ * porque o HTML dele e montado na hora do lote.
+ */
+function atualizarCartoesNaLista(mapas) {
+	if (!mapas.size) {
+		return;
+	}
+	const bloco = HuntMap.cacaMedida;
+	_root()
+		.querySelectorAll('.hm-list .hm-card')
+		.forEach(card => {
+			const mapa = card.dataset.mapa;
+			if (!mapas.has(mapa)) {
+				return;
+			}
+			card.classList.remove('is-candidato', 'is-cacando', 'is-escolhido');
+			const extra = classesDoCandidato(bloco, mapa).trim();
+			if (extra) {
+				card.classList.add(...extra.split(' '));
+			}
+			const velha = card.querySelector('.hm-card-medida');
+			if (velha) {
+				velha.remove();
+			}
+			const linha = htmlDaLinhaDoCartao(bloco, mapa);
+			const corpo = card.querySelector('.hm-card-body');
+			if (linha && corpo) {
+				corpo.insertAdjacentHTML('beforeend', linha);
+			}
+		});
+}
+
+/**
+ * O `0x0fb5` (ZC_RAGIDLE_CACA_MEDIDA): o Explorar mudou, o risco ficou pronto
+ * ou o `@cacamedida` pediu para abrir. UMA atualizacao de DOM por pacote, e
+ * nenhuma com a janela fechada (so a marca de que a abertura redesenha).
+ */
+function onCacaMedidaRecebida(pkt) {
+	// O risco vem alinhado a ORDEM do catalogo (bloco v3): le pela lista que a janela tem.
+	const pacote = lerPacoteDaCacaMedida(pkt.json, HuntMap.catalog ? HuntMap.catalog.mapas : null);
+	if (!pacote) {
+		console.error('[HuntMap] 0x0fb5 ilegivel');
+		return;
+	}
+	const antes = HuntMap.cacaMedida;
+	const depois = fundirPacote(antes, pacote);
+	/*
+	 * O QUE O PACOTE MUDOU, para a atualizacao ser a menor que basta. O
+	 * servidor manda o bloco inteiro em todo `0x0fb5` — inclusive no `pedir`
+	 * de 30 s do Explorar, em que so o minuto andou. Redesenhar a lista por
+	 * isso seria a lista inteira a cada 30 s; aqui so os cartoes dos mapas que
+	 * mudaram trocam de linha, e a lista so e redesenhada quando QUEM aparece
+	 * ou a ORDEM mudou (o risco que ficou pronto, a ordem por medida, o
+	 * conjunto de "Seus mapas").
+	 */
+	const medidaMudou = pacote.medida ? mapasQueMudaram(antes && antes.medida, pacote.medida) : new Set();
+	/*
+	 * Em "Seus mapas" quem decide redesenhar e o CONJUNTO da aba (candidatos do
+	 * Explorar + medidos), e nao so o medido: o candidato que fica medido ja
+	 * estava na lista (so o cartao dele troca), e o Explorar que comeca, muda
+	 * de candidatos ou para mexe na lista sem nenhuma medida mudar. Por isso o
+	 * `soSeus` de `medidaMexeNaLista` vai `false` aqui: a pergunta dele virou
+	 * `seusMapasMudaram`.
+	 */
+	const mudouLista =
+		('risco' in pacote && JSON.stringify(pacote.risco) !== JSON.stringify(antes ? antes.risco : null)) ||
+		(!!pacote.limites && JSON.stringify(pacote.limites) !== JSON.stringify(antes ? antes.limites : null)) ||
+		(HuntMap.filterSeus && seusMapasMudaram(antes, depois)) ||
+		medidaMexeNaLista(antes && antes.medida, depois.medida, medidaMudou, HuntMap.sortKey, false);
+	HuntMap.cacaMedida = depois;
+	// O desenho passa a refletir o pacote, e nao so o catalogo cru: o proximo
+	// catalogo, mesmo igual ao anterior, redesenha (regra 2).
+	_ultimoBruto = null;
+	if (pacote.explorar && pacote.explorar.estado === 'explorando') {
+		_fimDoExplorarDispensado = false;
+	}
+	if (pacote.resultado && !pacote.resultado.ok) {
+		// A recusa (missao ativa, nenhum mapa seguro...) vai para a linha de
+		// estado da janela, onde o jogador clicou.
+		setStatus(pacote.resultado.texto);
+	}
+	if (pacote.abrir) {
+		HuntMap.abrirSeusMapas();
+		return;
+	}
+	if (!estaAberta()) {
+		_precisaDesenhar = true;
+		return;
+	}
+	renderControlesDaCacaMedida();
+	renderModo();
+	renderFaixaDoExplorar();
+	if (mudouLista) {
+		renderList();
+		renderPanel();
+	} else {
+		const mapas = candidatosDe(antes && antes.explorar, depois.explorar);
+		for (const mapa of medidaMudou) {
+			mapas.add(mapa);
+		}
+		atualizarCartoesNaLista(mapas);
+		if (medidaMudou.has(HuntMap.selectedMapa)) {
+			renderPanel();
+		}
+	}
+	sincronizarRelogioDoExplorar();
+}
+
+/**
+ * ABRE O MAPA DE CACA NA ABA "SEUS MAPAS" — o `@cacamedida` (secao 7).
+ *
+ * Abre pelo `toggle()`, e nao tirando a classe na mao: a pilha de janelas
+ * embrulha o `toggle()` para saber o que esta aberto (ESC, voltar do
+ * Android, uma janela por vez no celular em pe).
+ */
+HuntMap.abrirSeusMapas = function abrirSeusMapas() {
+	if (!_root() || !_root().querySelector('.hm-window')) {
+		return;
+	}
+	HuntMap.filterSeus = true;
+	HuntMap.filterFavoritos = false;
+	HuntMap.filterIdealOnly = false;
+	if (!estaAberta()) {
+		_precisaDesenhar = true;
+		HuntMap.toggle();
+	} else {
+		renderControlesDaCacaMedida();
+		renderModo();
+		renderFaixaDoExplorar();
+		renderList();
+		sincronizarRelogioDoExplorar();
+	}
+	definirPasso('mapas');
+};
+
 /**
  * Ask the server for the hunting-map catalog.
  * CZ_RAGIDLE_PEDIR_CATALOGO — opcode 0x0ff0, fixed 2 bytes (opcode only).
@@ -603,6 +1124,30 @@ function pedirFavoritos() {
 
 function requestCatalog() {
 	setStatus(HuntMap.catalog ? 'Atualizando catálogo...' : 'Carregando mapas de caça...');
+	// Regra 4 (D-1850): com os mapas guardados, pede so o cabecalho.
+	const fixo = _servidorSemLeve ? null : _cacheDoCatalogo.impressao();
+	if (!fixo) {
+		pedirCatalogoCheio();
+		return;
+	}
+	const pkt = new PACKET.CZ.RAGIDLE_CACA_ACAO();
+	pkt.json = JSON.stringify({ acao: 'catalogo', fixo });
+	Network.sendPacket(pkt);
+	if (_prazoDoLeve) {
+		clearTimeout(_prazoDoLeve);
+	}
+	_prazoDoLeve = setTimeout(() => {
+		// Nenhum catalogo no prazo: o servidor nao conhece o verbo (ou freou o
+		// pedido). O cheio sai, e esta pagina so volta ao leve quando uma
+		// resposta cheia trouxer a impressao.
+		_prazoDoLeve = null;
+		_servidorSemLeve = true;
+		pedirCatalogoCheio();
+	}, PRAZO_DO_PEDIDO_LEVE_MS);
+}
+
+/** O `CZ_RAGIDLE_PEDIR_CATALOGO` de sempre: a resposta traz os mapas inteiros. */
+function pedirCatalogoCheio() {
 	Network.sendPacket(new PACKET.CZ.RAGIDLE_PEDIR_CATALOGO());
 }
 
@@ -720,6 +1265,11 @@ function onCatalogReceived(pkt) {
 	 */
 	const viagemPendente = _pendingAutoTravel;
 	_pendingAutoTravel = false;
+	// Chegou catalogo: o prazo do pedido leve nao tem mais o que vigiar.
+	if (_prazoDoLeve) {
+		clearTimeout(_prazoDoLeve);
+		_prazoDoLeve = null;
+	}
 
 	let data;
 	try {
@@ -741,17 +1291,74 @@ function onCatalogReceived(pkt) {
 	// RAGIDLE (D-1134): com 200+ mapas o catalogo nao cabe num pacote u16; o
 	// servidor manda `parte`/`partes` e aqui os `mapas` sao acumulados ate a
 	// ultima parte. Um servidor antigo (sem `partes`) segue pelo caminho de sempre.
-	if (data.partes && data.partes > 1) {
+	let bruto;
+	const veioLeve = ehRespostaLeve(data);
+	if (veioLeve) {
+		/*
+		 * A RESPOSTA LEVE (D-1850): o cabecalho inteiro, SEM `mapas` - eles
+		 * saem do que este cliente guardou com a mesma impressao. Sem eles
+		 * (armazenamento limpo no meio da sessao), o pedido cheio sai e a
+		 * viagem pendente espera por ele.
+		 */
+		const mapas = _cacheDoCatalogo.mapasDe(data.fixo);
+		if (!mapas) {
+			_cacheDoCatalogo.esquecer();
+			_pendingAutoTravel = viagemPendente;
+			pedirCatalogoCheio();
+			return;
+		}
+		data = Object.assign({}, data, { mapas });
+		bruto = pkt.json;
+	} else if (data.partes && data.partes > 1) {
 		if (data.parte === 1 || !_catalogoParcial || _catalogoParcial.partes !== data.partes) {
 			_catalogoParcial = Object.assign({}, data, { mapas: [] });
+			_brutoParcial = [];
 		}
 		_catalogoParcial.mapas = _catalogoParcial.mapas.concat(data.mapas || []);
+		_brutoParcial.push(pkt.json);
 		if (data.parte < data.partes) {
 			_pendingAutoTravel = viagemPendente;
 			return;
 		}
 		data = _catalogoParcial;
 		_catalogoParcial = null;
+		bruto = _brutoParcial.join('\n');
+		_brutoParcial = [];
+	} else {
+		bruto = pkt.json;
+	}
+
+	/*
+	 * O MESMO CATALOGO NAO DESENHA DE NOVO (regra 2 do topo). Reabrir a janela
+	 * sem nada ter mudado traz as MESMAS paginas, byte a byte: o catalogo ja
+	 * lido (com os nomes de drop resolvidos) continua valendo, e o desenho que
+	 * esta na tela tambem. Os ouvintes e a viagem pendente seguem o caminho de
+	 * sempre — eles nao dependem de desenho.
+	 *
+	 * Com a impressao (D-1850) a comparacao e pela IDENTIDADE (a impressao e o
+	 * cabecalho), e nao pelas paginas cruas: o cheio e o leve do mesmo catalogo
+	 * para o mesmo jogador sao o mesmo desenho, e a primeira reabertura leve
+	 * depois de uma abertura cheia nao redesenha a lista inteira a toa.
+	 */
+	const identidade = identidadeDoCatalogo(data) || bruto;
+	const mesmoCatalogo = identidade === _ultimoBruto && !!HuntMap.catalog;
+	if (mesmoCatalogo) {
+		data = HuntMap.catalog;
+	}
+	_ultimoBruto = identidade;
+
+	/*
+	 * A RESPOSTA CHEIA COM IMPRESSAO (D-1850): os mapas dela viram o cache, e a
+	 * proxima abertura ja pede o leve. O armazenamento so e regravado quando a
+	 * impressao MUDA (conteudo novo no servidor), e fora do caminho do desenho.
+	 */
+	if (!veioLeve && typeof data.fixo === 'string' && Array.isArray(data.mapas)) {
+		_servidorSemLeve = false;
+		const mudou = _cacheDoCatalogo.impressao() !== data.fixo;
+		const texto = _cacheDoCatalogo.guardar(data.fixo, data.mapas, mesmoCatalogo ? null : bruto);
+		if (mudou && texto) {
+			setTimeout(() => _cacheDoCatalogo.gravar(texto), 0);
+		}
 	}
 
 	HuntMap.catalog = data;
@@ -759,16 +1366,25 @@ function onCatalogReceived(pkt) {
 	// (mapa podado nao vira estrela fantasma). `|| []` cobre o servidor
 	// antigo, que nao manda o campo.
 	HuntMap.favoritos = data.favoritos || [];
+	// A CACA MEDIDA (v2): ausente, de outra versao ou ilegivel e `null`, e
+	// `null` e a tela de hoje. So quem tem a funcionalidade ligada a recebe.
+	if (!mesmoCatalogo) {
+		// O risco v3 e alinhado a ORDEM das partes (os `mapas` ja concatenados).
+		HuntMap.cacaMedida = lerBlocoDaCacaMedida(data.cacaMedida, data.mapas);
+	}
 
 	// RAGIDLE (D-1133): o indice passou a mandar os drops como itemId — com 126
 	// mapas o catalogo com os NOMES chegou a 68 KB e o pacote u16 para em 65.535.
 	// Resolvidos aqui, UMA vez, com o mesmo nomeLocalDoItem da ficha; a busca do
 	// atlas e a contagem de drops seguem lendo strings, como antes.
-	for (const mapa of data.mapas || []) {
+	// A lista guardada (D-1850) volta JA resolvida: nao se percorre de novo.
+	const jaResolvidos = mesmoCatalogo || data.mapas === _mapasResolvidos;
+	for (const mapa of jaResolvidos ? [] : data.mapas || []) {
 		for (const m of (mapa.monstros || []).concat(mapa.mvp ? [mapa.mvp] : [])) {
 			m.drops = (m.drops || []).map(d => (typeof d === 'number' ? nomeLocalDoItem(d, `#${d}`) : d));
 		}
 	}
+	_mapasResolvidos = data.mapas;
 
 	/*
 	 * RAGIDLE (08/09/2026): QUEM MAIS ESPERA O CATALOGO.
@@ -817,9 +1433,26 @@ function onCatalogReceived(pkt) {
 	}
 
 	setStatus('');
+	/*
+	 * NADA COM A JANELA FECHADA (regra 1 do topo): o catalogo que o Codex pede
+	 * so para ler `nivelQueAbre` chega com ela fechada, e ate 28/09 montava os
+	 * ~189 cartoes para ninguem. Agora fica marcado, e a abertura desenha.
+	 */
+	if (!estaAberta()) {
+		_precisaDesenhar = true;
+		return;
+	}
+	if (mesmoCatalogo && !_precisaDesenhar) {
+		return;
+	}
+	_precisaDesenhar = false;
+	renderControlesDaCacaMedida();
+	renderModo();
 	renderTabs();
+	renderFaixaDoExplorar();
 	renderList();
 	renderPanel();
+	sincronizarRelogioDoExplorar();
 }
 
 /**
@@ -959,6 +1592,9 @@ function onClickVoce(e) {
 	}
 	renderList();
 	renderPanel();
+	// A lista sai em lotes: o cartao do mapa atual pode estar num lote que
+	// ainda nao saiu, e rolar ate ele exige que ele exista.
+	terminarLista(mapa);
 	const linha = _root().querySelector(`.hm-card[data-mapa="${CSS.escape(mapa)}"]`);
 	if (linha && linha.scrollIntoView) {
 		linha.scrollIntoView({ block: 'nearest' });
@@ -995,6 +1631,9 @@ function renderList() {
 	const countEl = root.querySelector('.hm-count');
 	const catalog = HuntMap.catalog;
 
+	// Toda lista nova mata os lotes da anterior (regra 3 do topo).
+	cancelarLotes();
+
 	if (!catalog) {
 		listEl.innerHTML = '';
 		if (countEl) {
@@ -1005,6 +1644,12 @@ function renderList() {
 
 	const term = semAcento(HuntMap.searchTerm);
 	const motivos = new Map();
+	const bloco = HuntMap.cacaMedida;
+	// "Seus mapas" so vale com o bloco: sem ele o botao nem aparece.
+	const soSeus = !!bloco && HuntMap.filterSeus;
+	// Os candidatos do Explorar em curso ou concluido tambem sao "seus" (a aba
+	// nao fica vazia enquanto nenhum tem os 10 minutos). `[]` parado.
+	const candidatos = soSeus ? candidatosEmSeusMapas(bloco) : [];
 	/* A BUSCA PROCURA NO JOGO INTEIRO (26/09/2026). Com termo, a aba de regiao,
 	   o "Para mim" e os Favoritos deixam de cortar a lista: o item que so cai
 	   fora da faixa do jogador, ou noutra regiao, "nao existia" — e o vazio
@@ -1024,10 +1669,24 @@ function renderList() {
 		if (!buscando && HuntMap.filterFavoritos && !HuntMap.favoritos.includes(mapa.mapa)) {
 			return false;
 		}
+		if (!buscando && soSeus && !ehMapaMedido(bloco, mapa.mapa) && !candidatos.includes(mapa.mapa)) {
+			return false;
+		}
 		motivos.set(mapa.mapa, motivo);
 		return true;
 	});
-	mapas = ordenarMapas(mapas, HuntMap.sortKey, catalog.nivel);
+	if (ORDEM_DA_MEDIDA[HuntMap.sortKey]) {
+		// "Sua EXP/h" / "Seu zeny/h": os medidos primeiro, do maior para o
+		// menor; os outros depois, na ordem de nivel de sempre.
+		mapas = ordenarPorMedida(ordenarMapas(mapas, 'nivel', catalog.nivel), bloco, HuntMap.sortKey);
+	} else {
+		mapas = ordenarMapas(mapas, HuntMap.sortKey, catalog.nivel);
+	}
+	if (!buscando && candidatos.length) {
+		// Os candidatos na frente, na ordem da exploracao; os medidos depois,
+		// na ordem do seletor.
+		mapas = candidatosNaFrente(mapas, candidatos);
+	}
 
 	if (countEl) {
 		const ideais = mapas.filter(m => encaixeDeNivel(catalog.nivel, m).cls === 'ideal').length;
@@ -1041,11 +1700,13 @@ function renderList() {
 
 	if (!mapas.length) {
 		listEl.innerHTML = `<div class="hm-list-empty">${
-			HuntMap.filterFavoritos && !term
-				? 'Você ainda não marcou nenhum mapa. Toque na estrela de um cartão para marcar.'
-				: HuntMap.filterIdealOnly && !term
-					? 'Nenhum mapa ideal para o seu nível nesta região. Veja em "Todos".'
-					: 'Nenhum mapa encontrado.'
+			soSeus && !term
+				? 'Nenhum mapa medido ainda. Cace 10 minutos num mapa, ou use o Explorar, e os números dele aparecem aqui.'
+				: HuntMap.filterFavoritos && !term
+					? 'Você ainda não marcou nenhum mapa. Toque na estrela de um cartão para marcar.'
+					: HuntMap.filterIdealOnly && !term
+						? 'Nenhum mapa ideal para o seu nível nesta região. Veja em "Todos".'
+						: 'Nenhum mapa encontrado.'
 		}</div>`;
 		return;
 	}
@@ -1055,12 +1716,143 @@ function renderList() {
 		HuntMap.activeTab === REGIAO_DO_COVIL
 			? `<div class="hm-covil-aviso"><span class="hm-covil-aviso-icone" aria-hidden="true">${RiIcones.mvp}</span><span><strong>Covil dos Chefes</strong>: só mini-chefes, 2 de cada. Eles voltam de 10 a 20 minutos depois de caídos e soltam itens com metade da chance.</span></div>`
 			: '';
-	listEl.innerHTML = avisoDoCovil + mapas.map(mapa => renderCard(mapa, motivos.get(mapa.mapa))).join('');
-	listEl.querySelectorAll('.hm-card').forEach(card => card.addEventListener('click', onClickCard));
-	// O botão de viajar da linha: same travel handler as the dossier's
-	// footer button (onClickTravel) — just a second trigger, no new logic.
-	listEl.querySelectorAll('.hm-card-go').forEach(btn => btn.addEventListener('click', onClickTravel));
-	listEl.querySelectorAll('.hm-card-fav').forEach(btn => btn.addEventListener('click', onClickFavorito));
+	/*
+	 * EM LOTES (regra 3 do topo). O primeiro lote sai AGORA, no mesmo
+	 * `innerHTML` que ja existia; o resto entra um lote por quadro, e o HTML de
+	 * cada cartao so e montado na hora do lote dele — entao o cartao que sai
+	 * depois de um favorito, de um clique ou de um pacote do Explorar ja nasce
+	 * com o estado de agora. Os cliques dos cartoes sao delegados na lista
+	 * (`onClickNaLista`): o cartao de lote tardio nao precisa de ouvinte.
+	 */
+	const primeiro = mapas.slice(0, PRIMEIRO_LOTE);
+	listEl.innerHTML = avisoDoCovil + primeiro.map(mapa => renderCard(mapa, motivos.get(mapa.mapa))).join('');
+	if (mapas.length > PRIMEIRO_LOTE) {
+		_pendentes = { listEl, mapas, motivos, proximo: PRIMEIRO_LOTE, geracao: _geracaoDaLista };
+		agendarLote();
+	}
+}
+
+/** Um lote de cartoes no fim da lista. Devolve `false` quando nao sobra nada. */
+function desenharUmLote() {
+	const p = _pendentes;
+	if (!p || p.geracao !== _geracaoDaLista) {
+		_pendentes = null;
+		return false;
+	}
+	const fatia = p.mapas.slice(p.proximo, p.proximo + LOTE);
+	if (!fatia.length) {
+		// Lote vazio com a lista por terminar nao pode acontecer — e se um dia
+		// acontecer, `terminarLista` rodaria para sempre. Para aqui.
+		_pendentes = null;
+		return false;
+	}
+	p.proximo += fatia.length;
+	p.listEl.insertAdjacentHTML('beforeend', fatia.map(mapa => renderCard(mapa, p.motivos.get(mapa.mapa))).join(''));
+	if (p.proximo >= p.mapas.length) {
+		_pendentes = null;
+		return false;
+	}
+	return true;
+}
+
+/**
+ * Um lote por QUADRO (`requestAnimationFrame`): o navegador pinta o que ja
+ * saiu entre um lote e outro, e nenhum quadro carrega a lista inteira. Sem
+ * `requestAnimationFrame`, o proximo tique serve.
+ */
+function agendarLote() {
+	if (_loteAgendado !== null) {
+		return;
+	}
+	const passo = () => {
+		_loteAgendado = null;
+		if (desenharUmLote()) {
+			agendarLote();
+		}
+	};
+	_loteAgendado =
+		typeof requestAnimationFrame === 'function'
+			? { raf: requestAnimationFrame(passo) }
+			: { timeout: setTimeout(passo, 16) };
+}
+
+/** Desliga o proximo lote agendado, sem mexer no que falta desenhar. */
+function desagendarLote() {
+	if (_loteAgendado === null) {
+		return;
+	}
+	if (_loteAgendado.raf !== undefined && typeof cancelAnimationFrame === 'function') {
+		cancelAnimationFrame(_loteAgendado.raf);
+	} else if (_loteAgendado.timeout !== undefined) {
+		clearTimeout(_loteAgendado.timeout);
+	}
+	_loteAgendado = null;
+}
+
+/** Mata os lotes pendentes (lista nova, janela fechada, troca de personagem). */
+function cancelarLotes() {
+	_geracaoDaLista += 1;
+	_pendentes = null;
+	desagendarLote();
+}
+
+/**
+ * Termina a lista AGORA, sem esperar quadro. Serve a quem precisa do cartao
+ * no DOM na hora (o "Você está em", que rola ate ele) e ao teste e a bancada,
+ * que medem a lista inteira.
+ *
+ * @param {string} [ate]  para assim que o cartao deste mapa estiver no DOM
+ */
+function terminarLista(ate) {
+	while (_pendentes) {
+		if (ate && _pendentes.listEl.querySelector(`.hm-card[data-mapa="${String(ate).replace(/["\\]/g, '\\$&')}"]`)) {
+			return;
+		}
+		if (!desenharUmLote()) {
+			break;
+		}
+	}
+	if (!_pendentes) {
+		desagendarLote();
+	}
+}
+
+/** Para o teste e a bancada: a lista inteira no DOM, sem esperar quadro. */
+HuntMap._terminarLista = function _terminarLista() {
+	terminarLista();
+};
+
+/**
+ * O CLIQUE NA LISTA, delegado (29/09/2026): a estrela, a seta de viajar e o
+ * cartao. A ordem importa — a estrela e a seta moram DENTRO do cartao, e o
+ * clique nelas nao pode selecionar o mapa junto (era o
+ * `stopImmediatePropagation` de cada handler que garantia isso quando cada um
+ * tinha o proprio ouvinte).
+ */
+function onClickNaLista(e) {
+	const alvo = e.target && e.target.closest ? e.target : null;
+	if (!alvo) {
+		return;
+	}
+	const estrela = alvo.closest('.hm-card-fav');
+	if (estrela) {
+		e.stopImmediatePropagation();
+		alternarFavorito(estrela.dataset.mapa);
+		return;
+	}
+	const seta = alvo.closest('.hm-card-go');
+	if (seta) {
+		e.stopImmediatePropagation();
+		if (!seta.disabled) {
+			sendTravel(seta.dataset.mapa);
+		}
+		return;
+	}
+	const cartao = alvo.closest('.hm-card');
+	if (cartao) {
+		e.stopImmediatePropagation();
+		selecionarCartao(cartao.dataset.mapa);
+	}
 }
 
 /**
@@ -1175,7 +1967,7 @@ function renderCard(mapa, motivo) {
 	}
 
 	return `
-		<div class="hm-card fit-${encaixe.cls}${isCurrent ? ' is-current' : ''}${isSelected ? ' is-selected' : ''}" data-mapa="${escapeHtml(mapa.mapa)}" role="button" tabindex="0" aria-pressed="${isSelected ? 'true' : 'false'}">
+		<div class="hm-card fit-${encaixe.cls}${isCurrent ? ' is-current' : ''}${isSelected ? ' is-selected' : ''}${classesDoCandidato(HuntMap.cacaMedida, mapa.mapa)}" data-mapa="${escapeHtml(mapa.mapa)}" role="button" tabindex="0" aria-pressed="${isSelected ? 'true' : 'false'}">
 			<div class="hm-card-thumb">${renderThumb(mapa)}${renderSeloMvp(mapa)}${ehCovil(mapa) ? '<span class="hm-card-covil">Covil dos Chefes</span>' : ''}</div>
 	${renderEstrela(mapa)}
 			<div class="hm-card-body">
@@ -1191,17 +1983,30 @@ function renderCard(mapa, motivo) {
 					<span class="hm-mob-stack">${avatarsHtml}</span>
 					<span class="hm-card-mob-count">${monstros.length} monstro${monstros.length === 1 ? '' : 's'}</span>
 					${motivoTexto ? `<span class="hm-card-hit" title="${escapeHtml(motivoTexto)}">${escapeHtml(motivoTexto)}</span>` : ''}
-				</div>
+				</div>${htmlDaLinhaDoCartao(HuntMap.cacaMedida, mapa.mapa)}
 			</div>
 			${caudaHtml}
 		</div>`;
 }
 
-function onClickCard(e) {
-	e.stopImmediatePropagation();
-	HuntMap.selectedMapa = e.currentTarget.dataset.mapa;
+/**
+ * O cartao escolhido (29/09/2026): so os DOIS cartoes que mudam trocam de
+ * marca, e nao a lista inteira. Ate 28/09 cada toque num cartao redesenhava
+ * os ~189 — o clique mais comum da janela era tambem o mais caro. O cartao de
+ * lote pendente nasce com a marca certa sozinho (`renderCard` le o estado).
+ */
+function selecionarCartao(mapa) {
+	HuntMap.selectedMapa = mapa;
 	HuntMap.selectedMobId = null;
-	renderList();
+	_root()
+		.querySelectorAll('.hm-list .hm-card')
+		.forEach(card => {
+			const escolhido = card.dataset.mapa === mapa;
+			if (card.classList.contains('is-selected') !== escolhido) {
+				card.classList.toggle('is-selected', escolhido);
+				card.setAttribute('aria-pressed', escolhido ? 'true' : 'false');
+			}
+		});
 	renderPanel();
 	/* Tocar no cartao abre o DOSSIE como passo 3 — e o "detalhes adicionais
 	   acessiveis sem sobrecarregar a lista" do pedido. */
@@ -1304,6 +2109,15 @@ function renderPanel() {
 				'Monstros acima do seu nível rendem mais EXP, até +20% a 10 níveis acima; muito acima (16+) ou abaixo do seu nível rendem menos.'
 			)}">${escapeHtml(textoDaFaixaDeExp(faixa))}</span></div>`
 		: '';
+	/*
+	 * A SUA CACA AQUI (v2, 29/09/2026, item 3 do desenho aprovado): o que o
+	 * jogador RENDEU neste mapa, dentro do quadro "VOCÊ". So com o bloco e so
+	 * com entrada deste mapa; sem isso o quadro e o de hoje.
+	 */
+	const textoDaCaca = textoDaCacaNoPainel(HuntMap.cacaMedida, mapa.mapa);
+	const cacaHtml = textoDaCaca
+		? `<div class="hm-fit-row hm-fit-caca-row"><span class="hm-fit-caca">${escapeHtml(textoDaCaca)}</span></div>`
+		: '';
 
 	scrollEl.innerHTML = `
 		<div class="hm-hero fit-${encaixe.cls}">
@@ -1327,7 +2141,7 @@ function renderPanel() {
 					<span class="hm-fit-verdict">${escapeHtml(veredito)}</span>
 					<span class="hm-fit-range">Mapa Nv. ${mapa.nivelQueAbre}</span>
 				</div>
-				${faixaHtml}
+				${faixaHtml}${cacaHtml}
 			</div>
 		</div>
 		<div class="hm-section">
@@ -1492,7 +2306,7 @@ function renderMobDrops(monster) {
 	return `<div class="hm-drops">${drops
 		.map(d => {
 			const raridade = raridadeDoDrop(d);
-			return renderDropTile(d.itemId, nomeDe(d), raridade, '', `${nomeDe(d)} — ${rotuloDeRaridade(raridade)}`);
+			return renderDropTile(d.itemId, nomeDe(d), raridade, '', `${nomeDe(d)} — ${traduzir(rotuloDeRaridade(raridade))}`);
 		})
 		.join('')}</div>`;
 }
@@ -1650,9 +2464,7 @@ function sendTravel(mapName) {
  * RECUSA: a estrela acenderia e apagaria sozinha um instante depois, sem o
  * jogador saber por que.
  */
-function onClickFavorito(e) {
-	e.stopImmediatePropagation();
-	const mapa = e.currentTarget.dataset.mapa;
+function alternarFavorito(mapa) {
 	if (!mapa) {
 		return;
 	}
@@ -1679,11 +2491,48 @@ function onFavoritosRecebidos(pkt) {
 	if (!dados || dados.v !== 1 || !Array.isArray(dados.favoritos)) {
 		return;
 	}
-	HuntMap.favoritos = dados.favoritos;
 	if (dados.recusa) {
 		setStatus(dados.recusa);
 	}
-	renderList();
+	/*
+	 * A MESMA LISTA NAO REDESENHA (29/09/2026). Toda abertura pede os
+	 * favoritos (`pedirFavoritos`), e a resposta quase sempre e a lista que ja
+	 * esta na tela — redesenhar os ~189 cartoes por ela era a metade do custo
+	 * de abrir a janela.
+	 */
+	const antes = HuntMap.favoritos;
+	const mudou =
+		dados.favoritos.length !== antes.length || dados.favoritos.some((m, i) => m !== antes[i]);
+	HuntMap.favoritos = dados.favoritos;
+	if (!mudou) {
+		return;
+	}
+	// O desenho passa a refletir este pacote: o proximo catalogo redesenha.
+	_ultimoBruto = null;
+	if (!estaAberta()) {
+		_precisaDesenhar = true;
+		return;
+	}
+	if (HuntMap.filterFavoritos) {
+		// No recorte "Favoritos" a estrela tira ou poe o cartao da lista.
+		renderList();
+		return;
+	}
+	// Fora dele so a estrela muda, e so a dos mapas que entraram ou sairam:
+	// o cartao de lote pendente ja nasce certo.
+	const trocados = new Set(
+		antes.concat(dados.favoritos).filter(m => antes.includes(m) !== dados.favoritos.includes(m))
+	);
+	_root()
+		.querySelectorAll('.hm-list .hm-card-fav')
+		.forEach(botao => {
+			if (!trocados.has(botao.dataset.mapa)) {
+				return;
+			}
+			const molde = document.createElement('div');
+			molde.innerHTML = renderEstrela({ mapa: botao.dataset.mapa });
+			botao.replaceWith(molde.firstChild);
+		});
 }
 
 function onClickTravel(e) {
@@ -1785,6 +2634,10 @@ HuntMap.aoChegarCatalogo = function aoChegarCatalogo(ouvinte) {
 Network.hookPacket(PACKET.ZC.RAGIDLE_CATALOGO, onCatalogReceived);
 Network.hookPacket(PACKET.ZC.RAGIDLE_FAVORITOS, onFavoritosRecebidos);
 Network.hookPacket(PACKET.ZC.RAGIDLE_MONSTROS, onMonstrosReceived);
+// A Caca Medida (v2, 29/09/2026): o Explorar, o risco que ficou pronto e o
+// `@cacamedida`. UM dono deste opcode — a janela antiga saiu junto com o
+// gancho dela.
+Network.hookPacket(PACKET.ZC.RAGIDLE_CACA_MEDIDA, onCacaMedidaRecebida);
 
 /**
  * Create component and export it

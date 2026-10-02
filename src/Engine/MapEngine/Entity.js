@@ -10,6 +10,8 @@
  * Load dependencies
  */
 import DB from 'DB/DBManager.js';
+import { traduzir } from 'Core/Traducao.js';
+import { localeDoIdioma } from 'Core/Idioma.js';
 import SkillId from 'DB/Skills/SkillConst.js';
 import SkillInfo from 'DB/Skills/SkillInfo.js';
 import { nomeDaHabilidadeParaOJogador } from 'DB/Skills/SkillNamePtBr.js'; // RAGIDLE (08/09/2026): o balao em portugues
@@ -405,7 +407,13 @@ function onEntityVanish(pkt) {
 					 * "Unknown" no ranking.
 					 */
 					if (entity.objecttype === Entity.TYPE_MOB && Session.Entity) {
-						const nome = DB.getMonsterName(entity.job);
+						/* O nome que o SERVIDOR mandou na entrada vem primeiro
+						   (30/09/2026): e o distinto do homonimo ("Goblin
+						   (Vento)", D-1870), o mesmo do chat de dano, e a tabela
+						   do cliente diz so "Goblin" para os cinco, que o ranking
+						   somava numa linha. A tabela fica de reserva. */
+						const doServidor = entity.display && entity.display.name ? entity.display.name : '';
+						const nome = doServidor || DB.getMonsterName(entity.job);
 						/* O job vai junto (D-943): e o mobId do avatar em
 						   /ragidle/mobs/<id>.png, o mesmo do Mapa de Caca. */
 						registrarAbate(Session.Entity.GID, nome === 'Unknown' ? '' : nome, entity.job);
@@ -1201,7 +1209,8 @@ function onEntityIdentity(pkt) {
 		 * O disfarce de verdade deste servidor e o `@fakename`, que vem por
 		 * outro caminho; este aqui e so a resposta de "qual e o nome deste GID".
 		 */
-		entity.display.name = pkt.CName;
+		// O jogo em ingles (D-1929): monstro e NPC traduzem; jogador, nunca.
+		entity.display.name = entity.objecttype === Entity.TYPE_PC ? pkt.CName : traduzir(pkt.CName);
 		entity.display.fakename = '';
 
 		// RAGIDLE (23/09/2026): o id fica guardado no letreiro porque o TEXTO
@@ -1696,7 +1705,7 @@ function onEntityUseSkill(pkt) {
 			// (Roubar Moeda, do Gatuno) e o personagem da prova e Espadachim.
 			// Ela esta escrita, e nao foi vista rodar.
 			ChatBox.addText(
-				`Você roubou ${Number(pkt.level || 0).toLocaleString('pt-BR')} Zeny.`,
+				`Você roubou ${Number(pkt.level || 0).toLocaleString(localeDoIdioma())} Zeny.`,
 				ChatBox.TYPE.BLUE,
 				ChatBox.FILTER.FARM_ZENY
 			);
@@ -2968,7 +2977,7 @@ function onNotifyExp(pkt) {
 	// o apostrofo orfao do "%d'" da tabela, que parecia defeito de renderizacao
 	// dentro de uma HUD em portugues. As duas mensagens NAO tem outro consumidor
 	// no cliente (conferido com grep em src/: sao estes dois usos).
-	const ganho = Number(pkt.amount || 0).toLocaleString('pt-BR');
+	const ganho = Number(pkt.amount || 0).toLocaleString(localeDoIdioma());
 	switch (pkt.expType) {
 		case 0:
 			/*

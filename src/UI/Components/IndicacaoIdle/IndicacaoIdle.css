@@ -202,6 +202,75 @@
 	color: var(--green-600);
 }
 
+/*
+ * ---- o CPF do indicador (28/09/2026, D-1634) ----
+ * Vazia (sem o sal no servidor), a secao nao ocupa espaco. O cartao verde
+ * reusa o do "voce foi indicado por", e o campo e a linha de botoes reusam
+ * `.in-usar-linha`: nenhuma cor nova, so tokens.
+ */
+#IndicacaoIdle .in-cpf:empty {
+	display: none;
+}
+#IndicacaoIdle .in-cpf {
+	margin-bottom: var(--sp-5);
+}
+#IndicacaoIdle .in-cpf .in-cartao-verde {
+	padding: var(--pad-card);
+	background: var(--surface-inset);
+	border: 1px solid var(--green-300);
+	border-radius: var(--radius-card);
+	font: var(--type-info);
+}
+#IndicacaoIdle .in-cpf-explica {
+	margin: 0 0 var(--sp-3);
+	font: var(--type-desc);
+	color: var(--text-body);
+}
+#IndicacaoIdle .in-cpf-retida,
+#IndicacaoIdle .in-cpf-confirma {
+	margin-bottom: var(--sp-3);
+	padding: var(--sp-3) var(--sp-4);
+	background: var(--surface-inset);
+	border: 1px solid var(--amber-600);
+	border-radius: var(--radius-card);
+	font: var(--type-desc);
+	color: var(--text-body);
+}
+#IndicacaoIdle .in-cpf-retida strong,
+#IndicacaoIdle .in-cpf-confirma strong {
+	color: var(--text-title);
+}
+#IndicacaoIdle .in-cpf-campo {
+	flex: 1 1 auto;
+	min-width: 0;
+	font-family: var(--font-mono);
+	letter-spacing: 0.06em;
+}
+#IndicacaoIdle .in-cpf-cadastrar,
+#IndicacaoIdle .in-cpf-confirmar,
+#IndicacaoIdle .in-cpf-corrigir {
+	flex: 0 0 auto;
+}
+
+/*
+ * NO DEDO (celular em pe, tablet): o campo e os tres botoes do CPF sobem ao
+ * piso tatil de 44px - o mesmo criterio (`pointer: coarse`) de `ehDedo()` e do
+ * `Common.css`. No mouse nada muda.
+ */
+@media (pointer: coarse) {
+	#IndicacaoIdle .in-cpf-campo,
+	#IndicacaoIdle .in-cpf-cadastrar,
+	#IndicacaoIdle .in-cpf-confirmar,
+	#IndicacaoIdle .in-cpf-corrigir {
+		min-height: var(--hit-touch, 44px);
+	}
+	/* O campo do CPF abre o teclado numerico (inputmode); 16px evita o zoom
+	   automatico do iOS ao focar. */
+	#IndicacaoIdle .in-cpf-campo {
+		font-size: 16px;
+	}
+}
+
 /* ---- a lista de chips ---- */
 #IndicacaoIdle .in-lista {
 	margin-bottom: var(--sp-5);

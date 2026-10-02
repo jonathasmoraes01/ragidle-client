@@ -725,9 +725,12 @@ describe('os itens do RO Shop (9.000.100-110) tem nome e descricao no cliente', 
 });
 
 describe('os icones de buff dos boosts do RO Shop (CONTRATO.md secao 5)', () => {
-	it('252 Bencao, 312 Manual de Job e 923 Manual de EXP tem icone, relogio e titulo em portugues', () => {
+	it('252 Goma, 1084 Bencao, 312 Manual de Job e 923 Manual de EXP tem icone, relogio e titulo em portugues', () => {
+		/* 27/09/2026: a Bencao saiu do 252 para o 1084, e o 252 voltou a Goma. */
 		const casos = [
-			[252, 'item.tga', 'Bênção da Fortuna'],
+			/* R76 (28/09): o 252 e o bonus unico da Goma e da Bencao. */
+			[252, 'item.tga', 'Bônus de Drop (Goma ou Bênção)'],
+			[1084, 'item.tga', 'Bênção da Fortuna'],
 			[312, 'job.tga', 'Manual de Experiência de Classe'],
 			[923, 'exp.tga', 'Manual de Experiência']
 		];

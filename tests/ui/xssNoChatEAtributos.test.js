@@ -135,7 +135,9 @@ describe('os sinks foram reescritos', () => {
 		expect(js).not.toMatch(/override = true;/);
 		expect(js).not.toContain('class="nickname-link"/.test');
 		expect(js).toContain("import { renderFalaSegura } from './textoSeguroDoChat.js'");
-		expect(js).toContain('renderFalaSegura(msg.text');
+		expect(js).toContain('renderFalaSegura(textoDaLinha');
+		// ...e textoDaLinha e o texto do proprio jogador, intocado, ou a linha do servidor traduzida.
+		expect(js).toContain('doJogador ? msg.text : linhaNoIdioma(msg.text)');
 	});
 
 	it('WhisperBox.addText escapa e nao tem mais o ramo override', () => {

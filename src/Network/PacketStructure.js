@@ -15986,7 +15986,7 @@ PACKET.CZ.RAGIDLE_APLICAR_CONFIG.prototype.build = function () {
 
 	pkt_buf.writeShort(0x0ff5);
 	pkt_buf.writeUShort(pkt_len);
-	pkt_buf.writeString(this.json);
+	pkt_buf.writeString(this.json, bytes.length);
 	return pkt_buf;
 };
 
@@ -16039,7 +16039,7 @@ PACKET.CZ.RAGIDLE_APLICAR_ADMIN.prototype.build = function () {
 
 	pkt_buf.writeShort(0x0ff8);
 	pkt_buf.writeUShort(pkt_len);
-	pkt_buf.writeString(this.json);
+	pkt_buf.writeString(this.json, bytes.length);
 	return pkt_buf;
 };
 // 0x0ffc - RAGIDLE: ZC_RAGIDLE_RELATORIO_OFFLINE (server -> client)
@@ -16228,7 +16228,7 @@ PACKET.CZ.RAGIDLE_CODEX_ACAO.prototype.build = function () {
 	const pkt_buf = new BinaryWriter(pkt_len);
 	pkt_buf.writeShort(0x0fe4);
 	pkt_buf.writeUShort(pkt_len);
-	pkt_buf.writeString(this.json);
+	pkt_buf.writeString(this.json, bytes.length);
 	return pkt_buf;
 };
 
@@ -16308,7 +16308,7 @@ PACKET.CZ.RAGIDLE_TUTORIAL_ACAO.prototype.build = function () {
 	const pkt_buf = new BinaryWriter(pkt_len);
 	pkt_buf.writeShort(0x0fbe);
 	pkt_buf.writeUShort(pkt_len);
-	pkt_buf.writeString(this.json);
+	pkt_buf.writeString(this.json, bytes.length);
 	return pkt_buf;
 };
 
@@ -16325,7 +16325,7 @@ PACKET.CZ.RAGIDLE_PRESENCA_ACAO.prototype.build = function () {
 	const pkt_buf = new BinaryWriter(pkt_len);
 	pkt_buf.writeShort(0x0fdf);
 	pkt_buf.writeUShort(pkt_len);
-	pkt_buf.writeString(this.json);
+	pkt_buf.writeString(this.json, bytes.length);
 	return pkt_buf;
 };
 
@@ -16388,7 +16388,7 @@ PACKET.CZ.RAGIDLE_CORREIO_ACAO.prototype.build = function () {
 	const pkt_buf = new BinaryWriter(pkt_len);
 	pkt_buf.writeShort(0x0fd6);
 	pkt_buf.writeUShort(pkt_len);
-	pkt_buf.writeString(this.json);
+	pkt_buf.writeString(this.json, bytes.length);
 	return pkt_buf;
 };
 
@@ -16437,7 +16437,7 @@ PACKET.CZ.RAGIDLE_VOTO_ACAO.prototype.build = function () {
 	const pkt_buf = new BinaryWriter(pkt_len);
 	pkt_buf.writeShort(0x0fd4);
 	pkt_buf.writeUShort(pkt_len);
-	pkt_buf.writeString(this.json);
+	pkt_buf.writeString(this.json, bytes.length);
 	return pkt_buf;
 };
 
@@ -16492,7 +16492,7 @@ PACKET.CZ.RAGIDLE_ITEM_ACAO.prototype.build = function () {
 	const pkt_buf = new BinaryWriter(pkt_len);
 	pkt_buf.writeShort(0x0fd8);
 	pkt_buf.writeUShort(pkt_len);
-	pkt_buf.writeString(this.json);
+	pkt_buf.writeString(this.json, bytes.length);
 	return pkt_buf;
 };
 
@@ -16535,7 +16535,7 @@ PACKET.CZ.RAGIDLE_INDICACAO_ACAO.prototype.build = function () {
 	const pkt_buf = new BinaryWriter(pkt_len);
 	pkt_buf.writeShort(0x0fdd);
 	pkt_buf.writeUShort(pkt_len);
-	pkt_buf.writeString(this.json);
+	pkt_buf.writeString(this.json, bytes.length);
 	return pkt_buf;
 };
 
@@ -16562,7 +16562,7 @@ PACKET.CZ.RAGIDLE_RANKING_ACAO.prototype.build = function () {
 	const pkt_buf = new BinaryWriter(pkt_len);
 	pkt_buf.writeShort(0x0fc9);
 	pkt_buf.writeUShort(pkt_len);
-	pkt_buf.writeString(this.json);
+	pkt_buf.writeString(this.json, bytes.length);
 	return pkt_buf;
 };
 
@@ -16590,7 +16590,7 @@ PACKET.CZ.RAGIDLE_COMANDOS_ACAO.prototype.build = function () {
 	const pkt_buf = new BinaryWriter(pkt_len);
 	pkt_buf.writeShort(0x0fc7);
 	pkt_buf.writeUShort(pkt_len);
-	pkt_buf.writeString(this.json);
+	pkt_buf.writeString(this.json, bytes.length);
 	return pkt_buf;
 };
 
@@ -16618,7 +16618,7 @@ PACKET.CZ.RAGIDLE_CACA_ACAO.prototype.build = function () {
 	const pkt_buf = new BinaryWriter(pkt_len);
 	pkt_buf.writeShort(0x0fda);
 	pkt_buf.writeUShort(pkt_len);
-	pkt_buf.writeString(this.json);
+	pkt_buf.writeString(this.json, bytes.length);
 	return pkt_buf;
 };
 
@@ -16653,7 +16653,7 @@ PACKET.CZ.RAGIDLE_TRAVA_ACAO.prototype.build = function () {
 	const pkt_buf = new BinaryWriter(pkt_len);
 	pkt_buf.writeShort(0x0fc0);
 	pkt_buf.writeUShort(pkt_len);
-	pkt_buf.writeString(this.json);
+	pkt_buf.writeString(this.json, bytes.length);
 	return pkt_buf;
 };
 
@@ -16833,7 +16833,7 @@ PACKET.CZ.RAGIDLE_GRUPO_ACAO.prototype.build = function build() {
 	const pkt_buf = new BinaryWriter(pkt_len);
 	pkt_buf.writeShort(0x0fcb);
 	pkt_buf.writeUShort(pkt_len);
-	pkt_buf.writeString(this.json);
+	pkt_buf.writeString(this.json, bytes.length);
 	return pkt_buf;
 };
 
@@ -16896,7 +16896,7 @@ PACKET.CZ.RAGIDLE_SONO_ACAO.prototype.build = function () {
 	const pkt_buf = new BinaryWriter(pkt_len);
 	pkt_buf.writeShort(0x0fc4);
 	pkt_buf.writeUShort(pkt_len);
-	pkt_buf.writeString(this.json);
+	pkt_buf.writeString(this.json, bytes.length);
 	return pkt_buf;
 };
 
@@ -16926,7 +16926,7 @@ PACKET.CZ.RAGIDLE_ECONOMIA_ACAO.prototype.build = function () {
 	const pkt_buf = new BinaryWriter(pkt_len);
 	pkt_buf.writeShort(0x0fc2);
 	pkt_buf.writeUShort(pkt_len);
-	pkt_buf.writeString(this.json);
+	pkt_buf.writeString(this.json, bytes.length);
 	return pkt_buf;
 };
 
@@ -16995,7 +16995,7 @@ PACKET.CZ.RAGIDLE_TEMPORADA_ACAO.prototype.build = function () {
 	const pkt_buf = new BinaryWriter(pkt_len);
 	pkt_buf.writeShort(0x0fba);
 	pkt_buf.writeUShort(pkt_len);
-	pkt_buf.writeString(this.json);
+	pkt_buf.writeString(this.json, bytes.length);
 	return pkt_buf;
 };
 
@@ -17037,7 +17037,7 @@ PACKET.CZ.RAGIDLE_ROSHOP.prototype.build = function () {
 	const pkt_buf = new BinaryWriter(pkt_len);
 	pkt_buf.writeShort(0x0fb9);
 	pkt_buf.writeUShort(pkt_len);
-	pkt_buf.writeString(this.json);
+	pkt_buf.writeString(this.json, bytes.length);
 	return pkt_buf;
 };
 
@@ -17072,7 +17072,7 @@ PACKET.CZ.RAGIDLE_TITULOS_E_AURA.prototype.build = function () {
 	const pkt_buf = new BinaryWriter(pkt_len);
 	pkt_buf.writeShort(0x0fb7);
 	pkt_buf.writeUShort(pkt_len);
-	pkt_buf.writeString(this.json);
+	pkt_buf.writeString(this.json, bytes.length);
 	return pkt_buf;
 };
 
@@ -17085,6 +17085,80 @@ PACKET.ZC.RAGIDLE_TITULOS_E_AURA = function PACKET_ZC_RAGIDLE_TITULOS_E_AURA(fp,
 	this.json = fp.readString(end - fp.tell());
 };
 PACKET.ZC.RAGIDLE_TITULOS_E_AURA.size = -1;
+
+// ---------------------------------------------------------------------------
+// A CACA MEDIDA E O EXPLORAR - 28/09/2026.
+//
+// Contrato: `docs/CONTRATO-CACA-MEDIDA.md` secao 4 (repositorio do servidor).
+// Os dois ultimos slots da reserva RAGIDLE. Desde a v2 (29/09/2026, secoes 7
+// a 10) quem fala por eles e o Mapa de Caca (`UI/Components/HuntMap`): a
+// janela separada "Seus mapas" saiu, e o comando `@cacamedida` abre o Mapa de
+// Caca na aba "Seus mapas". So o administrador alcanca enquanto em teste.
+// ---------------------------------------------------------------------------
+
+// 0x0fb4 - RAGIDLE: CZ_RAGIDLE_CACA_MEDIDA (client -> server)
+// Variable size: u16 opcode + u16 total length + JSON UTF-8 payload.
+// { acao: 'pedir' } | { acao: 'explorar' } | { acao: 'cancelar' }.
+PACKET.CZ.RAGIDLE_CACA_MEDIDA = function PACKET_CZ_RAGIDLE_CACA_MEDIDA() {
+	this.json = '{}';
+};
+PACKET.CZ.RAGIDLE_CACA_MEDIDA.prototype.build = function () {
+	const bytes = TextEncoding.encode(this.json, 'utf-8');
+	const pkt_len = 2 + 2 + bytes.length;
+	const pkt_buf = new BinaryWriter(pkt_len);
+	pkt_buf.writeShort(0x0fb4);
+	pkt_buf.writeUShort(pkt_len);
+	pkt_buf.writeString(this.json, bytes.length);
+	return pkt_buf;
+};
+
+// 0x0fb5 - RAGIDLE: ZC_RAGIDLE_CACA_MEDIDA (server -> client)
+// Variable size: u16 opcode + u16 total length + JSON UTF-8 payload.
+// { v: 1, abrir?, mapaAtual, sugestaoDaEscada, mapas, explorar, resultado? }.
+// Quem le e `UI/Components/HuntMap/HuntMap.js`, o unico dono (o Explorar, o
+// risco que ficou pronto e o `abrir` do `@cacamedida`).
+PACKET.ZC.RAGIDLE_CACA_MEDIDA = function PACKET_ZC_RAGIDLE_CACA_MEDIDA(fp, end) {
+	this.json = fp.readString(end - fp.tell());
+};
+PACKET.ZC.RAGIDLE_CACA_MEDIDA.size = -1;
+
+// ---------------------------------------------------------------------------
+// A TROCA PELO NOME - 02/10/2026 (pedido do dono).
+//
+// A janela "Trade" do menu (`UI/Components/TrocaIdle`): o nome do jogador e
+// "Confirmar". O servidor confere o VIP dos dois, o mesmo mapa e as 2 celulas
+// do rAthena (`servidor/mapa/troca-pelo-nome.ts`) e, aceito, segue pelo pedido
+// NATIVO de troca. Os dois ultimos slots da reserva RAGIDLE (0x0fb2/0x0fb3).
+// ---------------------------------------------------------------------------
+
+// 0x0fb2 - RAGIDLE: CZ_RAGIDLE_TROCA_ACAO (client -> server)
+// Variable size: u16 opcode + u16 total length + JSON UTF-8 payload.
+// { acao: 'pedir', nome }. O comprimento vai PASSADO ao `writeString`: sem
+// ele o `writeString` aumenta o buffer de novo pela diferenca bytes -
+// caracteres, e nome com acento chegava ao servidor com zeros depois do JSON
+// (o defeito do PIX de 02/10/2026).
+PACKET.CZ.RAGIDLE_TROCA_ACAO = function PACKET_CZ_RAGIDLE_TROCA_ACAO() {
+	this.json = '{}';
+};
+PACKET.CZ.RAGIDLE_TROCA_ACAO.prototype.build = function () {
+	const bytes = TextEncoding.encode(this.json, 'utf-8');
+	const pkt_len = 2 + 2 + bytes.length;
+	const pkt_buf = new BinaryWriter(pkt_len);
+	pkt_buf.writeShort(0x0fb2);
+	pkt_buf.writeUShort(pkt_len);
+	pkt_buf.writeString(this.json, bytes.length);
+	return pkt_buf;
+};
+
+// 0x0fb3 - RAGIDLE: ZC_RAGIDLE_TROCA (server -> client)
+// Variable size: u16 opcode + u16 total length + JSON UTF-8 payload.
+// { v: 1, acao: 'pedir', ok, motivo, texto, nome } - a resposta de TODO
+// pedido, inclusive a recusa, com a frase do motivo. Quem le e
+// `UI/Components/TrocaIdle/TrocaIdle.js`, o unico dono.
+PACKET.ZC.RAGIDLE_TROCA = function PACKET_ZC_RAGIDLE_TROCA(fp, end) {
+	this.json = fp.readString(end - fp.tell());
+};
+PACKET.ZC.RAGIDLE_TROCA.size = -1;
 
 // ---------------------------------------------------------------------------
 // O MENU LFG (Looking For Group) — D-634, 25/08/2026.
@@ -17114,7 +17188,7 @@ PACKET.CZ.RAGIDLE_LFG_ACAO.prototype.build = function () {
 	const pkt_buf = new BinaryWriter(pkt_len);
 	pkt_buf.writeShort(0x0fea);
 	pkt_buf.writeUShort(pkt_len);
-	pkt_buf.writeString(this.json);
+	pkt_buf.writeString(this.json, bytes.length);
 	return pkt_buf;
 };
 
@@ -17153,7 +17227,7 @@ PACKET.CZ.RAGIDLE_MISSAO_ACAO.prototype.build = function () {
 	const pkt_buf = new BinaryWriter(pkt_len);
 	pkt_buf.writeShort(0x0feb);
 	pkt_buf.writeUShort(pkt_len);
-	pkt_buf.writeString(this.json);
+	pkt_buf.writeString(this.json, bytes.length);
 	return pkt_buf;
 };
 
@@ -17176,7 +17250,7 @@ PACKET.CZ.RAGIDLE_PRIORIZAR.prototype.build = function () {
 	const pkt_buf = new BinaryWriter(pkt_len);
 	pkt_buf.writeShort(0x0fcf);
 	pkt_buf.writeUShort(pkt_len);
-	pkt_buf.writeString(this.json);
+	pkt_buf.writeString(this.json, bytes.length);
 	return pkt_buf;
 };
 
@@ -17198,7 +17272,7 @@ PACKET.CZ.RAGIDLE_APRENDER.prototype.build = function () {
 
 	pkt_buf.writeShort(0x0ffb);
 	pkt_buf.writeUShort(pkt_len);
-	pkt_buf.writeString(this.json);
+	pkt_buf.writeString(this.json, bytes.length);
 	return pkt_buf;
 };
 

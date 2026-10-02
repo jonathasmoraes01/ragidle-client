@@ -1111,3 +1111,43 @@
 		scroll-snap-align: start;
 	}
 }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   D-1848 (30/09/2026) — A PORTA DO CARRINHO NO CABECALHO
+   ═══════════════════════════════════════════════════════════════════════
+   Aparece so para quem tem carrinho (`syncBotaoDoCarrinho`). Ela nasceu no
+   rodape e SAIU de la na primeira corrida da `prove:carrinho`: no celular as
+   abas grudadas (`.mo-abas`, sticky) cobrem o rodape, e o toque caia nelas.
+   No cabecalho ela esta a vista sem rolar, nos dois aparelhos, do lado oposto
+   ao "X".
+
+   O `[hidden]` explicito e necessario: `.ri-btn` declara `display:
+   inline-flex`, e isso venceria o `hidden` do navegador.
+
+   O ALVO DE 44px e a tecnica do "X" (Common.css, D-931): um `::before`
+   transparente aumenta so a AREA do toque. Crescer a caixa de verdade
+   estouraria o cabecalho de 32px. Com o mouse a area fica do desenho: uma
+   area invisivel ali roubaria o arraste da barra de titulo. */
+.mo-carrinho {
+	position: absolute;
+	left: 8px;
+	top: 50%;
+	transform: translateY(-50%);
+	margin: 0;
+	padding: 2px 10px;
+	min-height: 24px;
+	font-size: 12px;
+}
+.mo-carrinho[hidden] {
+	display: none;
+}
+@media (pointer: coarse) {
+	/* -12px e nao -10px: a Mochila e desenhada ESCALADA no celular (~0,96,
+	   medido: a caixa de 24px mede 23), e 24 + 10 + 10 = 44 virava 42 de area
+	   de verdade — a primeira corrida da prova reprovou exatamente ai. */
+	.mo-carrinho::before {
+		content: '';
+		position: absolute;
+		inset: -12px -6px;
+	}
+}

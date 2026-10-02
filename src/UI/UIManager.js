@@ -9,6 +9,7 @@
  */
 
 import GUIComponent from 'UI/GUIComponent.js';
+import { localeDoIdioma } from 'Core/Idioma.js';
 import CommonCSS from 'UI/Common.css?raw';
 import UIVersionManager from 'UI/UIVersionManager.js';
 import KEYS from 'Controls/KeyEventHandler.js';
@@ -641,8 +642,8 @@ class UIManager {
 
 		function desenhar() {
 			tela.timer.textContent = _relogioDeEspera(restante);
-			const expBase = Math.round(expBasePorMs * restante).toLocaleString('pt-BR');
-			const expClasse = Math.round(expClassePorMs * restante).toLocaleString('pt-BR');
+			const expBase = Math.round(expBasePorMs * restante).toLocaleString(localeDoIdioma());
+			const expClasse = Math.round(expClassePorMs * restante).toLocaleString(localeDoIdioma());
 			tela.resumo.textContent = `~${expBase} EXP base · ~${expClasse} EXP classe pela frente`;
 		}
 
@@ -700,8 +701,8 @@ class UIManager {
 			const h = Math.floor(totalMin / 60);
 			const m = totalMin % 60;
 			const tempo = h > 0 ? `Você dormiu ${h}h ${m}min e ganhou:` : `Você dormiu ${m}min e ganhou:`;
-			const expBase = Math.round(Number(resumo?.expBase) || 0).toLocaleString('pt-BR');
-			const expClasse = Math.round(Number(resumo?.expClasse) || 0).toLocaleString('pt-BR');
+			const expBase = Math.round(Number(resumo?.expBase) || 0).toLocaleString(localeDoIdioma());
+			const expClasse = Math.round(Number(resumo?.expClasse) || 0).toLocaleString(localeDoIdioma());
 			return `${tempo}\n${expBase} EXP base · ${expClasse} EXP classe`;
 		}
 
@@ -788,10 +789,10 @@ class UIManager {
 		function atualizar(stats) {
 			tela.timer.textContent = _relogioDeEspera(stats?.restanteMs);
 			tela.aviso.hidden = stats?.morreu !== true;
-			const expBase = Math.round(Number(stats?.expBase) || 0).toLocaleString('pt-BR');
-			const expClasse = Math.round(Number(stats?.expClasse) || 0).toLocaleString('pt-BR');
-			const abates = Math.round(Number(stats?.abates) || 0).toLocaleString('pt-BR');
-			const itens = Math.round(Number(stats?.itensTotal) || 0).toLocaleString('pt-BR');
+			const expBase = Math.round(Number(stats?.expBase) || 0).toLocaleString(localeDoIdioma());
+			const expClasse = Math.round(Number(stats?.expClasse) || 0).toLocaleString(localeDoIdioma());
+			const abates = Math.round(Number(stats?.abates) || 0).toLocaleString(localeDoIdioma());
+			const itens = Math.round(Number(stats?.itensTotal) || 0).toLocaleString(localeDoIdioma());
 			tela.resumo.textContent = `EXP base +${expBase} · EXP classe +${expClasse} · Mobs mortos: ${abates} · Itens: ${itens}`;
 		}
 

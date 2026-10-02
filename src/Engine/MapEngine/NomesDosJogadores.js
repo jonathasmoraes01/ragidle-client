@@ -48,7 +48,8 @@
  * **O MOB ENTROU EM 24/09/2026, por pedido do dono** (os bichos mostravam so a
  * barra de HP). O argumento acima era sobre os PEDIDOS, e o mob nao pede nada:
  * o nome dele viaja no pacote de entrada - ver `letreiroFixo.js`. O "mural" foi
- * a escolha do dono. NPC continua por hover.
+ * a escolha do dono. **O NPC entrou em 30/09/2026**, tambem por pedido do dono, e
+ * tambem sem pedido ao servidor: o nome dele viaja na entrada.
  *
  * Este arquivo e parte do fork ragidle do ROBrowser.
  */
@@ -69,7 +70,7 @@ function ligado() {
 	return GraphicsSettings.showPlayerNames !== false;
 }
 
-/** A entidade e um JOGADOR? Mob e NPC seguem por hover. */
+/** A entidade e um JOGADOR? So ele pede o nome (a guilda); mob e NPC acendem pela regra de `letreiroFixo`. */
 function ehJogador(entity) {
 	return entity.objecttype === Entity.TYPE_PC;
 }
@@ -97,10 +98,10 @@ function pedirNome(entity) {
  *
  * Chamada no spawn e na chegada do nome. Quem tem letreiro fixo e decidido em
  * `letreiroFixo.js`: o JOGADOR pela opcao de video, e o MONSTRO sempre (desde
- * 24/09/2026). NPC continua por hover.
+ * 24/09/2026), e o NPC visivel desde 30/09/2026.
  */
 function aplicar(entity) {
-	if (!entity || !letreiroFixo(entity.objecttype, Entity, GraphicsSettings)) {
+	if (!entity || !letreiroFixo(entity.objecttype, Entity, GraphicsSettings, entity.job)) {
 		return;
 	}
 	/*
@@ -109,7 +110,9 @@ function aplicar(entity) {
 	 * `letreiroFixo.js`. Pedir para todo mob seria um CZ_REQNAME2 por bicho na
 	 * tela (133 medidos em alguns mapas) para receber o que ja chegou.
 	 */
-	if (ehJogador(entity) || !entity.display.name) {
+	// O NPC (30/09/2026) nunca pede: o nome dele tambem viaja na entrada, e
+	// NPC sem nome visivel (so a parte depois do `#`) fica sem letreiro.
+	if (ehJogador(entity) || (entity.objecttype === Entity.TYPE_MOB && !entity.display.name)) {
 		pedirNome(entity);
 	}
 	// A MARCA que o hover le (`Controls/EntityControl.js`): ela mora no display

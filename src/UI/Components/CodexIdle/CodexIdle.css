@@ -63,6 +63,28 @@
 	display: flex;
 }
 
+/*
+ * NO CELULAR EM PE, A JANELA E OPACA (28/09/2026, D-1640 — item 27 do dono).
+ *
+ * O relato: a janela do Codex translucida, com o jogo aparecendo por tras e
+ * atrapalhando a leitura. A causa nao e desta folha: `.ri-window` pinta
+ * `--window-fill` (vidro de 94-96%) com `backdrop-filter`, e no dedo o
+ * desfoque SAI (`--blur-glass: none`, Common.css, auditoria do iPhone de
+ * 13/09). Sem o desfoque, os 4-6% que passam desenham o chao, o trilho da
+ * direita e o cartao de missoes atras do texto — medido na foto
+ * `celular-02-codex-missao.png` da sonda `diag-onde-cai-na-janela`. O Codex
+ * sente mais que as outras porque tem mais area vazia (a aba "Missoes
+ * Gerais" com uma missao so deixa meia janela de fundo).
+ *
+ * `.ri-vertical` e a marca de `ehCelularEmPe()` (UI/hudVertical.js), posta
+ * tambem no root do shadow: o desktop e o celular deitado nao mudam. A cor e
+ * o token `--surface-window-opaca` (as mesmas duas cores da janela, sem
+ * alfa), e nao uma cor escrita aqui.
+ */
+.ri-vertical #CodexIdle .cx-window {
+	background: var(--surface-window-opaca);
+}
+
 #CodexIdle .cx-titlebar {
 	flex: 0 0 auto;
 }
@@ -1735,6 +1757,11 @@
 
 #CodexIdle .cx-mg-rodape {
 	display: flex;
+	/* 01/10/2026: a missao aceita tem ate tres botoes (Finalizar, Ir caçar,
+	   Abandonar). No celular de 350px eles quebram linha em vez de sair da
+	   janela. */
+	flex-wrap: wrap;
+	gap: var(--sp-3);
 	justify-content: flex-end;
 	margin-top: var(--sp-5);
 }
@@ -1841,4 +1868,63 @@
 
 #CodexIdle .cx-ocultar-n {
 	opacity: 0.7;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   D-1839 (29/09/2026) — A ESTRELA: acompanhar a entrada no rastreador da HUD
+
+   Um glifo, e nao um botao com texto: ele mora no comeco do nome da entrada,
+   numa lista de 62, e um rotulo por linha seria ruido. O estado vai no
+   `aria-pressed` e no `title` (marcacaoDoCodex.js). No dedo o alvo cresce
+   para o piso de 44px pelo bloco `pointer: coarse` do Common.css.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+#CodexIdle .cx-marcar {
+	appearance: none;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	/* Sem `min-width`/`min-height` aqui DE PROPOSITO: este seletor tem ID e
+	   venceria o piso de 44px do bloco `pointer: coarse` do Common.css. O
+	   tamanho no mouse sai do padding e do glifo (~22px). */
+	margin: 0 4px 0 0;
+	padding: 3px 4px;
+	border: 0;
+	border-radius: var(--radius-card);
+	background: transparent;
+	color: var(--text-muted);
+	font-size: 15px;
+	line-height: 1;
+	vertical-align: middle;
+	cursor: pointer;
+}
+
+#CodexIdle .cx-marcar:hover {
+	color: var(--gold-500);
+	background: var(--surface-card-hover);
+}
+
+#CodexIdle .cx-marcar.is-marcada {
+	color: var(--gold-500);
+}
+
+#CodexIdle .cx-marcacao {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	margin: 0 0 var(--sp-3);
+}
+
+#CodexIdle .cx-marcacao-conta {
+	font-size: var(--fs-desc);
+	color: var(--text-muted);
+}
+
+#CodexIdle .cx-marcacao-aviso {
+	padding: 6px 8px;
+	border-radius: var(--radius-card);
+	border: 1px solid var(--gold-500);
+	background: var(--surface-inset);
+	color: var(--text-body);
+	font-size: var(--fs-desc);
 }

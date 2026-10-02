@@ -77,7 +77,15 @@ import GUIComponent from 'UI/GUIComponent.js';
 import Cursor from 'UI/CursorManager.js';
 import RiIcones from 'UI/ri-icones.js';
 import MissoesIdle from 'UI/Components/MissoesIdle/MissoesIdle.js';
+// 01/10/2026: sem "a ativa" (ate tres aceitas), as etapas 7 e 10 perguntam a
+// PRIMEIRA aceita — a mesma que o cartao da HUD marca com `.mt-ativa`.
+import { quantasAceitas, missaoAceita } from 'UI/Components/MissoesIdle/podeIniciarMissao.js';
+import { progressoDaPrimeiraAceita } from 'UI/Components/MissoesIdle/missoesAceitas.js';
 import BoasVindasIdle from 'UI/Components/BoasVindasIdle/BoasVindasIdle.js';
+import IdiomaIdle from 'UI/Components/IdiomaIdle/IdiomaIdle.js';
+import { decidir as decidirIdiomaDaConta, enviarIdiomaDaConta } from 'Core/idiomaDaConta.js';
+import { definirIdioma, idiomaAtual, idiomaFoiEscolhido } from 'Core/Idioma.js';
+import { recarregarMantendoASessao } from 'UI/recargaMantendoASessao.js';
 import Inventory from 'UI/Components/Inventory/Inventory.js';
 import ItemType from 'DB/Items/ItemType.js';
 import { modoClassicoLigado } from 'UI/modoClassico.js'; // o modo classico (24/09/2026): sem o tutorial da caca automatica
@@ -94,6 +102,7 @@ import {
 	dentroDoFuro,
 	fraseDaEtapa,
 	maoDaEtapaDaArma,
+	mapaDeReferenciaDaEtapa,
 	passoDaEconomia,
 	posicaoDaMao,
 	recorteDoAlvo,
@@ -154,6 +163,10 @@ let _assinatura = '';
 let _avancoMandado = 0;
 /** O que a etapa vigente viu quando comecou (mapa, arma, abates, contador). */
 let _marco = null;
+/* O marco da etapa que ACABOU, guardado por uma volta: o retrato da etapa nova
+   zera `_marco` (onTutorialRecebido), e a 8 precisa do mapa da 7 (ver
+   `mapaDeReferenciaDaEtapa`). */
+let _marcoAnterior = null;
 /** Ja pedi ao servidor para COMECAR? Sem esta guarda, um retrato repetido de
  *  'nao-iniciado' viraria um laco de `retomar`. */
 let _comecoPedido = false;
@@ -211,6 +224,7 @@ TutorialIdle.limparEstadoDoPersonagem = function limparEstadoDoPersonagem() {
 	_assinatura = '';
 	_avancoMandado = 0;
 	_marco = null;
+	_marcoAnterior = null;
 	_comecoPedido = false;
 	desobservar();
 	// A peca compartilhada (limpezaDeJanelaIdle.js): tirar o `is-open` a mao
@@ -351,7 +365,9 @@ function marcoDaEtapa(numero) {
 		mapa: MapRenderer.currentMap || '',
 		arma: (Session.Entity && Session.Entity.weapon) || 0,
 		abates: abatesAgora(),
-		progresso: execucao && execucao.passo ? execucao.passo.progresso || 0 : 0,
+		/* O contador da PRIMEIRA aceita (01/10/2026; era o passo da unica
+		   ativa). Ver `progressoDaPrimeiraAceita`, que diz por que e a soma. */
+		progresso: progressoDaPrimeiraAceita(MissoesIdle.missoes, execucao),
 		/* `Session.zeny` (Engine/SessionStorage.js) e o MESMO getter que a HUD
 		   le para desenhar o saldo (BasicInfoIdle.js:501) - o personagem novo
 		   nasce com `zeny: 0` (servidor/char/servidor-char.ts) e so ganha o do
@@ -527,9 +543,14 @@ function etapaCumprida(numero) {
 			return !!(cfg && cfg.pocaoDeHp && cfg.pocaoDeHp.ligado && cfg.pocaoDeSp && cfg.pocaoDeSp.ligado);
 		}
 		case 7:
-			/* O SERVIDOR marcou a missao ativa. `execucao` vem do
-			   ZC_RAGIDLE_MISSOES, que a janela de Missoes recebe e guarda. */
-			return !!(execucao && execucao.ativaId);
+			/* O SERVIDOR aceitou a missao. `execucao` vem do ZC_RAGIDLE_MISSOES,
+			   que a janela de Missoes recebe e guarda. Desde 01/10/2026 ele manda
+			   `{aceitas, maximo}` (ate tres juntas) no lugar da unica `ativaId`:
+			   a etapa cumpre com QUALQUER aceita — a lista ou o `aceita` da
+			   propria missao, a mesma leitura das telas (`missaoAceita`). */
+			return (
+				quantasAceitas(execucao) > 0 || (MissoesIdle.missoes || []).some(m => missaoAceita(m, execucao))
+			);
 		case 8:
 			/* Chegou: o mapa carregado nao e mais o de quando a etapa comecou. */
 			return !!(_marco && MapRenderer.currentMap && MapRenderer.currentMap !== _marco.mapa);
@@ -537,8 +558,9 @@ function etapaCumprida(numero) {
 			/* O primeiro abate depois que a etapa comecou. */
 			return abatesAgora() > (_marco ? _marco.abates : 0);
 		case 10: {
-			/* O contador do objetivo andou. */
-			const agora = execucao && execucao.passo ? execucao.passo.progresso || 0 : 0;
+			/* O contador do objetivo andou — o da PRIMEIRA aceita, o bloco
+			   `.mt-ativa` do cartao que esta etapa aponta (01/10/2026). */
+			const agora = progressoDaPrimeiraAceita(MissoesIdle.missoes, execucao);
 			return agora > (_marco ? _marco.progresso : 0);
 		}
 		case 11:
@@ -745,8 +767,25 @@ function desenhar() {
 	 * isto a mascara (`z-index: 1900000`) cobria a janela/aviso de voto e
 	 * bloqueava todo clique nela, fora do furo da etapa atual.
 	 */
+	/*
+	 * O PASSO ZERO (D-1929, o jogo em ingles): o jogador novo, na etapa 1, que
+	 * nunca escolheu idioma ve a escolha ANTES da primeira etapa. A janela fica
+	 * por cima de tudo (inclusive da caixa de boas-vindas), e o tutorial cede
+	 * enquanto ela esta aberta; fechando sem recarregar, ele redesenha.
+	 */
+	if (estado && estado.estado === 'em-andamento' && Number(numero) === 1) {
+		IdiomaIdle.passoZero(() => {
+			_assinatura = '';
+			desenhar();
+		});
+	}
+
 	const etapa =
-		estado && estado.estado === 'em-andamento' && !BoasVindasIdle.estaAberta() && !votoNaTela()
+		estado &&
+		estado.estado === 'em-andamento' &&
+		!BoasVindasIdle.estaAberta() &&
+		!IdiomaIdle.estaAberta() &&
+		!votoNaTela()
 			? etapaDe(numero)
 			: null;
 
@@ -949,7 +988,10 @@ function tique() {
 
 	const numero = estado.etapa;
 	if (!_marco || _marco.numero !== numero) {
+		const anterior = _marco || _marcoAnterior;
 		_marco = marcoDaEtapa(numero);
+		_marco.mapa = mapaDeReferenciaDaEtapa(numero, anterior, _marco.mapa);
+		_marcoAnterior = null;
 	}
 
 	if (_avancoMandado !== numero && etapaCumprida(numero)) {
@@ -1084,11 +1126,24 @@ function onTutorialRecebido(pkt) {
 	if (!dados || dados.v !== 1) {
 		return;
 	}
+	/* A conta manda depois do login: idioma diferente do aparelho grava e recarrega
+	   UMA vez (depois dela os dois concordam); conta sem idioma recebe o do aparelho. */
+	const rumo = decidirIdiomaDaConta(dados.idioma, idiomaAtual(), idiomaFoiEscolhido());
+	if (rumo === 'aplicar') {
+		definirIdioma(dados.idioma);
+		recarregarMantendoASessao();
+		return;
+	}
+	if (rumo === 'subir') {
+		enviarIdiomaDaConta(idiomaAtual());
+	}
 	const mudouDeEtapa = !TutorialIdle.estado || TutorialIdle.estado.etapa !== dados.etapa;
 	TutorialIdle.estado = dados;
 	if (mudouDeEtapa) {
 		/* Etapa nova: o marco de "antes" e o avanco pendente valem para a
-		   anterior, e carregar qualquer um deles adiantaria a proxima. */
+		   anterior, e carregar qualquer um deles adiantaria a proxima. O marco
+		   que sai fica UMA volta em `_marcoAnterior`, so para o mapa da 8. */
+		_marcoAnterior = _marco;
 		_marco = null;
 		_avancoMandado = 0;
 	}

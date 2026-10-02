@@ -32,6 +32,8 @@ import KEYS from 'Controls/KeyEventHandler.js';
 import Configs from 'Core/Configs.js';
 import PACKETVER from 'Network/PacketVerManager.js';
 import SkillWindow from 'UI/Components/SkillList/SkillList.js';
+import { aoLembrarNomes, dicaDoAtalho, fecharSeletorDeNivel, nomeNaBarra, spLembrado } from 'UI/nivelDeUso.js';
+import { criarSeletorDeNivelDaBarra } from './seletorDeNivelDaBarra.js';
 import htmlText from './ShortCut.html?raw';
 import cssText from './ShortCut.css?raw';
 
@@ -45,6 +47,46 @@ ShortCut.render = () => htmlText;
  * @var {Array} ShortCut list
  */
 const _list = [];
+
+/**
+ * O SELETOR DE NIVEL DE UM SLOT (D-1908): botao direito no desktop, tocar e
+ * segurar no celular. A regra e o desenho moram em `seletorDeNivelDaBarra.js`;
+ * aqui so o que ele le e escreve da barra. Regravar e o caminho de sempre do
+ * slot (`addElement` + `onChange` -> `CZ_SHORTCUT_KEY_CHANGE2`).
+ */
+const _seletorDeNivel = criarSeletorDeNivelDaBarra({
+	conteiner: () => ShortCut.getRoot().querySelector('#ShortCut'),
+	slot: indice => _list[indice],
+	aprendido: ID => {
+		const skill = ShortCut.getSkillById(ID);
+		return skill && skill.level ? skill.level : 0;
+	},
+	// O nome das janelas ("Lancas de Fogo"), e nao o da tabela do cliente (`nomeNaBarra`).
+	nome: ID => nomeNaBarra(SkillInfo[ID], ID),
+	nomeNoBanco: ID => (SkillInfo[ID] ? SkillInfo[ID].Name : ''),
+	regravar: (indice, ID, nivel) => {
+		ShortCut.addElement(indice, true, ID, nivel);
+		ShortCut.onChange(indice, true, ID, nivel);
+	},
+	descricao: ID => mostrarDescricaoDaHabilidade(ID),
+	ancora: indice => ShortCut.getRoot().querySelector(`.container[data-index="${indice}"]`),
+	emUnidadesDaHud
+});
+
+/**
+ * A DICA de um slot de HABILIDADE (D-1908): "[ F3 ] Fire Bolt · Nv 7 · 22 SP".
+ * O SP sai do que a janela de Habilidades ou a Configuracao idle ja
+ * receberam do servidor (`spLembrado`); sem ele, a dica sai sem SP.
+ */
+function dicaDaHabilidade(hotkey, ID, nivel) {
+	const info = SkillInfo[ID];
+	return dicaDoAtalho({
+		hotkey,
+		nome: nomeNaBarra(info, ID),
+		nivel,
+		sp: info ? spLembrado(info.Name, nivel) : null
+	});
+}
 
 /**
  * @var {number} max number of rows
@@ -177,6 +219,9 @@ ShortCut.init = function init() {
 	}
 
 	const container = root.querySelector('#ShortCut');
+
+	// D-1908: tocar e segurar um slot de habilidade abre o seletor de nivel.
+	_seletorDeNivel.ligarSegurar(container);
 
 	/*
 	 * TOQUE: rotulo "algo na mao" (D-938) — criado aqui em JS, e nao em
@@ -396,6 +441,10 @@ function persistirPosicao() {
  * When removed, clean up
  */
 ShortCut.onRemove = function onRemove() {
+	// D-1908: o seletor de nivel nao sobrevive a barra fora da tela.
+	_seletorDeNivel.cancelarSegurar();
+	fecharSeletorDeNivel();
+
 	// Hide tooltip
 	const root = ShortCut.getRoot();
 	const tooltip = root.querySelector('.shortcut-tooltip');
@@ -525,6 +574,9 @@ ShortCut.setList = function setList(list) {
 			ShortCut.addElement(i, list[i].isSkill, list[i].ID, list[i].count);
 		}
 	}
+	// D-1908: a lista nova (o slot no maximo que acompanhou a subida, D-1907)
+	// chega com o seletor aberto — ele passa a mostrar o nivel de agora.
+	_seletorDeNivel.redesenharSeAberto();
 };
 
 /**
@@ -579,12 +631,25 @@ ShortCut.updateAllTooltips = function updateAllTooltips() {
 			}
 
 			if (name) {
-				const tooltipText = hotkey ? `[ ${hotkey} ] ${name}` : name;
+				const tooltipText = _list[i].isSkill
+					? dicaDaHabilidade(hotkey, _list[i].ID, _list[i].count)
+					: hotkey
+						? `[ ${hotkey} ] ${name}`
+						: name;
 				container.setAttribute('data-tooltip', tooltipText);
 			}
 		}
 	}
 };
+
+/*
+ * O NOME DAS JANELAS CHEGOU (01/10/2026): a Configuracao idle e sondada a cada
+ * entrada no mapa, depois de a barra ja ter montado as dicas com o nome da
+ * tabela do cliente. Refaz as dicas com o nome novo (`nomeNaBarra`). Antes de
+ * a barra existir nao ha raiz, e o `addElement` de quando ela nascer ja le o
+ * nome lembrado.
+ */
+aoLembrarNomes(() => ShortCut.__loaded && ShortCut.updateAllTooltips());
 
 /**
  * Get hotkey string for shortcut index
@@ -672,6 +737,14 @@ function getHotKeyString(index) {
  */
 function onContainerMouseEnter(event) {
 	const container = event.currentTarget;
+	// D-1908: a dica da habilidade e refeita aqui, e nao so ao por o slot — o
+	// SP de cada nivel pode ter chegado depois (a janela de Habilidades aberta
+	// mais tarde), e a dica velha diria o nivel sem o custo.
+	const indice = parseInt(container.getAttribute('data-index'), 10);
+	const slot = _list[indice];
+	if (slot && slot.isSkill && slot.ID && slot.count) {
+		container.setAttribute('data-tooltip', dicaDaHabilidade(getHotKeyString(indice), slot.ID, slot.count));
+	}
 	const tooltipText = container.getAttribute('data-tooltip');
 
 	if (tooltipText) {
@@ -842,7 +915,8 @@ ShortCut.addElement = function addElement(index, isSkill, ID, count) {
 
 	// Get hotkey for this slot
 	const hotkey = getHotKeyString(index);
-	const tooltipText = hotkey ? `[ ${hotkey} ] ${name}` : name;
+	// D-1908: a habilidade diz o nivel (e o SP) em que o slot conjura.
+	const tooltipText = isSkill ? dicaDaHabilidade(hotkey, ID, count) : hotkey ? `[ ${hotkey} ] ${name}` : name;
 
 	Client.loadFile(`${DB.INTERFACE_PATH}item/${file}.bmp`, url => {
 		ui.innerHTML = '<div draggable="true" class="icon"><div class="img"></div><div class="amount"></div></div>';
@@ -1166,14 +1240,14 @@ function onElementInfo(event, icon) {
 	event.stopImmediatePropagation();
 	event.preventDefault();
 
-	// Display skill informations
+	/*
+	 * D-1908: o botao direito numa HABILIDADE abre o seletor de nivel do slot
+	 * (no Android o tocar e segurar tambem chega aqui, como `contextmenu`). A
+	 * descricao, que era o que este gesto fazia, continua a um clique: o
+	 * botao "Descricao" do seletor.
+	 */
 	if (element.isSkill) {
-		if (SkillDescription.uid === _list[index].ID) {
-			SkillDescription.remove();
-		} else {
-			SkillDescription.append();
-			SkillDescription.setSkill(_list[index].ID);
-		}
+		_seletorDeNivel.abrir(index);
 	}
 	// Display item informations
 	else {
@@ -1185,6 +1259,16 @@ function onElementInfo(event, icon) {
 		ItemInfo.append();
 		ItemInfo.uid = _list[index].ID;
 		ItemInfo.setItem(Inventory.getUI().getItemById(_list[index].ID));
+	}
+}
+
+/** A descricao da habilidade (o que o botao direito fazia ate D-1908). */
+function mostrarDescricaoDaHabilidade(ID) {
+	if (SkillDescription.uid === ID) {
+		SkillDescription.remove();
+	} else {
+		SkillDescription.append();
+		SkillDescription.setSkill(ID);
 	}
 }
 

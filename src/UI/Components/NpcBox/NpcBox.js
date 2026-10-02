@@ -9,6 +9,7 @@
  */
 
 import KEYS from 'Controls/KeyEventHandler.js';
+import { trechoTraduzido } from './trechoDaFala.js';
 import Renderer from 'Renderer/Renderer.js';
 import UIManager from 'UI/UIManager.js';
 import GUIComponent from 'UI/GUIComponent.js';
@@ -262,6 +263,9 @@ NpcBox.onKeyDown = function onKeyDown(event) {
  * @param {string} text to display
  * @param {number} gid - npc id
  */
+/** As linhas cruas da pagina atual do dialogo (para traduzir a pagina inteira, D-1929). */
+let _linhasDaPagina = [];
+
 NpcBox.setText = function setText(text, gid) {
 	const root = NpcBox.getRoot();
 	const content = root.querySelector('.content');
@@ -270,11 +274,36 @@ NpcBox.setText = function setText(text, gid) {
 	if (_needCleanUp) {
 		_needCleanUp = false;
 		content.textContent = '';
+		_linhasDaPagina = [];
 	}
 
 	const div = document.createElement('div');
 	div.innerHTML = processText(text);
 	content.appendChild(div);
+
+	/*
+	 * O JOGO EM INGLES (D-1929): o servidor quebra a fala em linhas de 116
+	 * caracteres, e a traducao e da PAGINA. A cada linha nova, o texto cru da
+	 * pagina inteira e tentado no catalogo; casando, as linhas dao lugar a UM
+	 * bloco com a traducao (a caixa quebra sozinha). O bloco traduzido leva
+	 * `translate="no"` para o observador nao tentar traduzir o ingles de novo.
+	 */
+	_linhasDaPagina.push({ texto: text, div });
+	/* O TRECHO MAIS RECENTE, e nao so a pagina inteira (achado da frente D2):
+	   o titulo "[Guardia da Praca]" casa sozinho na primeira linha, e dai em
+	   diante "titulo + fala" nunca casaria. Tenta do inicio da pagina ate a
+	   linha nova, o mais longo primeiro; o que ja estava traduzido fica. */
+	const achado = trechoTraduzido(_linhasDaPagina.map(l => l.texto));
+	if (achado !== null) {
+		for (const linha of _linhasDaPagina.slice(achado.inicio)) {
+			linha.div.remove();
+		}
+		const bloco = document.createElement('div');
+		bloco.setAttribute('translate', 'no');
+		bloco.innerHTML = processText(achado.traducao);
+		content.appendChild(bloco);
+		_linhasDaPagina = [..._linhasDaPagina.slice(0, achado.inicio), { texto: achado.texto, div: bloco }];
+	}
 };
 
 /**
@@ -282,6 +311,16 @@ NpcBox.setText = function setText(text, gid) {
  *
  * @param {number} gid - npc id
  */
+/**
+ * O MENU COMECA UMA PAGINA NOVA para a traducao (D-1929). A caixa nao limpa
+ * o texto depois da escolha — a resposta e escrita embaixo da introducao —,
+ * mas a traducao e da PAGINA, e o catalogo tem a introducao e cada resposta
+ * separadas. O que ja esta na tela fica; so o acumulador recomeca.
+ */
+NpcBox.novaPaginaDeTraducao = function novaPaginaDeTraducao() {
+	_linhasDaPagina = [];
+};
+
 NpcBox.addNext = function addNext(gid) {
 	NpcBox.ownerID = gid;
 	const root = NpcBox.getRoot();

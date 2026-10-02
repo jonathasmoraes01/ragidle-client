@@ -75,6 +75,7 @@ import Session from 'Engine/SessionStorage.js';
 import UIManager from 'UI/UIManager.js';
 import GUIComponent from 'UI/GUIComponent.js';
 import MonsterTable from 'DB/Monsters/MonsterTable.js';
+import { caminhoDoRetrato } from 'UI/retratoDeClasse.js';
 import BasicInfo from 'UI/Components/BasicInfo/BasicInfo.js';
 import RiIcones from 'UI/ri-icones.js';
 import { formatarRoCash } from 'Utils/roCash.js';
@@ -458,7 +459,7 @@ function syncAvatarPortrait(root, jobId) {
 	img.classList.remove('is-loaded');
 	img.onload = () => img.classList.add('is-loaded');
 	img.onerror = () => img.classList.remove('is-loaded');
-	img.src = `/ragidle/classes/${jobId}.png`;
+	img.src = caminhoDoRetrato(jobId); // montado (Peco) usa o retrato da base
 }
 
 /**

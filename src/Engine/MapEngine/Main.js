@@ -12,6 +12,7 @@
  * Load dependencies
  */
 import DB from 'DB/DBManager.js';
+import { localeDoIdioma } from 'Core/Idioma.js';
 import StatusProperty from 'DB/Status/StatusProperty.js';
 import EffectConst from 'DB/Effects/EffectConst.js';
 import Session from 'Engine/SessionStorage.js';
@@ -450,7 +451,7 @@ function onParameterChange(pkt) {
 			progressoDaCaca(
 				'zeny',
 				amount,
-				(_valor, ganho) => `Zeny +${ganho.toLocaleString('pt-BR')}`,
+				(_valor, ganho) => `Zeny +${ganho.toLocaleString(localeDoIdioma())}`,
 				ChatBox.FILTER.FARM_ZENY
 			);
 			BasicInfo.getUI().update('zeny', amount);

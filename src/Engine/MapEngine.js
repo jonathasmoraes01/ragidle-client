@@ -116,6 +116,7 @@ import TutorialIdle from 'UI/Components/TutorialIdle/TutorialIdle.js'; // RAGIDL
 import VotoIdle from 'UI/Components/VotoIdle/VotoIdle.js'; // RAGIDLE: janela de Voto (D-1159)
 import PresencaIdle from 'UI/Components/PresencaIdle/PresencaIdle.js'; // RAGIDLE: janela de presenca (D-1162)
 import IndicacaoIdle from 'UI/Components/IndicacaoIdle/IndicacaoIdle.js'; // RAGIDLE: Indique & Ganhe (D-1164)
+import TrocaIdle from 'UI/Components/TrocaIdle/TrocaIdle.js'; // RAGIDLE: a janela "Trade" do menu (02/10/2026)
 import RankingIdle from 'UI/Components/RankingIdle/RankingIdle.js'; // RAGIDLE: o Ranking (09/09/2026)
 import PainelComandoIdle from 'UI/Components/PainelComandoIdle/PainelComandoIdle.js'; // RAGIDLE: o painel de comando (D-1563)
 import GraphicsSettings from 'Preferences/Graphics.js'; // RAGIDLE: a economia automatica pode ser desligada (23/09/2026)
@@ -577,6 +578,9 @@ class MapEngine {
 					// Equipment.getUI().equip(...)) sem precisar de um NPC/
 					// servidor de verdade so pra fotografar a janela.
 					Inventory: Inventory,
+					// RAGIDLE: acrescentado 30/09/2026 pela `prove:carrinho` (D-1848):
+					// ler a carga do carrinho pelo ITID, que a janela nao desenha.
+					CartItems: CartItems,
 					Equipment: Equipment,
 					DB: DB,
 					MochilaIdle: MochilaIdle,
@@ -615,6 +619,7 @@ class MapEngine {
 					VotoIdle: VotoIdle,
 					PresencaIdle: PresencaIdle,
 					IndicacaoIdle: IndicacaoIdle,
+					TrocaIdle: TrocaIdle,
 					RankingIdle: RankingIdle,
 					PartyHud: PartyHud,
 					// RAGIDLE (D-968): a caixa de boas-vindas. A prova de tela
@@ -670,6 +675,7 @@ class MapEngine {
 			VotoIdle.prepare(); // RAGIDLE: janela de Voto (D-1159) — idem, só escuta 0x0fd5
 			PresencaIdle.prepare(); // RAGIDLE: janela de presenca (D-1162) — escuta 0x0fde e abre sozinha quando o servidor manda
 			IndicacaoIdle.prepare(); // RAGIDLE: Indique & Ganhe (D-1164) — escuta 0x0fdc
+			TrocaIdle.prepare(); // RAGIDLE: a janela "Trade" (02/10/2026) - escuta 0x0fb3
 			RankingIdle.prepare(); // RAGIDLE: o Ranking — escuta 0x0fca
 			PainelComandoIdle.prepare(); // RAGIDLE: o painel de comando — escuta 0x0fbc e abre SOZINHO quando o servidor manda (D-1563)
 			TemporadaIdle.prepare(); // RAGIDLE: a janela da Temporada (Season 1) - idem, so escuta 0x0fbb
@@ -1002,9 +1008,15 @@ function onConnectionRefused(pkt) {
  * quando o jogador troca de mapa de caca no meio da sessao.
  */
 const TEXTO_DA_RECUSA_DE_SONO = {
+	// 28/09/2026: o sono GASTA os 10 minutos (item 4b do backlog de seguranca de
+	// 23/09) - quem acorda caca de novo antes de dormir de novo.
 	'amostra-insuficiente':
-		'Ainda não são 10 minutos de caça contínua NESTE mapa — trocar de mapa (mesmo que seja outro mapa de caça) reinicia a contagem.',
+		'Ainda não são 10 minutos de caça NESTE mapa — trocar de mapa reinicia a contagem, e depois de acordar é preciso caçar 10 minutos de novo.',
+	// 28/09/2026: morto nao dorme (item 4a do backlog de seguranca de 23/09).
+	morto: 'Não dá para dormir morto — volte à caçada primeiro.',
 	'nivel-do-mapa': 'Este mapa não é elegível para o "Dormir" — precisa estar pelo menos 1 nível abaixo do seu.',
+	// RAGIDLE (30/09/2026, ordem do dono): praca nunca dorme - o tempo dela e contado por dia.
+	praca: 'Nas Praças não dá para dormir: o tempo delas é contado por dia. Durma num mapa de caça.',
 	'sem-mundo': 'Não foi possível iniciar o sono agora — você não está numa caçada.',
 	// RAGIDLE (24/09/2026, ordem do dono): um sono por conta.
 	'outro-personagem-dormindo': 'Só um personagem por conta pode dormir por vez.'
@@ -1648,6 +1660,7 @@ function onMapChange(pkt, ehEntradaNoMundo) {
 		VotoIdle.append(); // RAGIDLE: janela de Voto (D-1159)
 		PresencaIdle.append(); // RAGIDLE: janela de presenca (D-1162)
 		IndicacaoIdle.append(); // RAGIDLE: Indique & Ganhe (D-1164)
+		TrocaIdle.append(); // RAGIDLE: a janela "Trade" (02/10/2026) - anexada sempre, fechada
 		RankingIdle.append(); // RAGIDLE: o Ranking
 		PartyHud.append(); // RAGIDLE: a HUD de party
 		/*
@@ -1812,6 +1825,8 @@ function onMapChange(pkt, ehEntradaNoMundo) {
 			['codex', CodexIdle, '.cx-window'],
 			['presenca', PresencaIdle, '.pr-window'],
 			['indicacao', IndicacaoIdle, '.in-window'],
+			// 02/10/2026 - a janela "Trade": toggle() + `.tr-window`/`is-open`, a forma das outras.
+			['troca', TrocaIdle, '.tr-window'],
 			['ranking', RankingIdle, '.rk-window'],
 			['painel-de-comando', PainelComandoIdle, '.pc-window'],
 			['correio', CorreioIdle, '.co-window'],
@@ -1917,6 +1932,38 @@ function onMapChange(pkt, ehEntradaNoMundo) {
 			fechar: () => lojaDoNpc.remove(),
 		});
 		avisarAoAbrir(lojaDoNpc, () => PilhaDeJanelas.aoAbrir('loja'));
+
+		/*
+		 * O CARRINHO DO MERCADOR (D-1848, 30/09/2026). Ele e a janela NATIVA do
+		 * roBrowser — nao usa `is-open`: aberto e o host no documento sem
+		 * `display:none` — e por isso entra com a leitura e o fechamento
+		 * declarados, como a loja de cash. Registrado, ele ganha o que uma
+		 * janela precisa no celular: a marca `ri-janela` (painel de tela cheia,
+		 * D-932), o corpo encaixado ate a barra de atalhos (o `seletor`, D-941),
+		 * o ESC e o voltar do Android, e a regra de uma janela por vez. O
+		 * `CartItems.toggle()` (a porta da Mochila e o Alt+W) e embrulhado pelo
+		 * registro, e e isso que avisa a pilha.
+		 */
+		PilhaDeJanelas.registrar({
+			nome: 'carrinho',
+			componente: CartItems,
+			seletor: '#cartitems',
+			estaAberta: () => CartItems.estaAberto(),
+			fechar: () => CartItems.fechar(),
+		});
+
+		/* A PONTE de volta do carrinho para a Mochila (D-1848): o botao
+		   "Mochila" do rodape do carrinho, o caminho do celular, onde abrir uma
+		   janela fecha a outra. Mora aqui pela razao das outras pontes: so o
+		   MapEngine conhece as duas, e a Mochila ja importa o carrinho. */
+		// E a recusa do carrinho que chega do servidor aparece na Mochila aberta.
+		CartItems.avisarNaMochila = texto => MochilaIdle.avisar(texto);
+		CartItems.aoPedirMochila = () => {
+			const mochila = MochilaIdle._shadow && MochilaIdle._shadow.querySelector('.mo-window');
+			if (!(mochila && mochila.classList.contains('is-open'))) {
+				MochilaIdle.toggle();
+			}
+		};
 
 		/* O LFG não usa `toggle()`: ele tem `abrir()`/`fechar()` próprios, por
 		   causa da corrida de troca de mapa que já derrubou o `is-open` dele por
@@ -2223,12 +2270,14 @@ function cleanGameUI() {
 		TutorialIdle,
 		PresencaIdle,
 		IndicacaoIdle,
+		TrocaIdle,
 		RankingIdle,
 		PainelComandoIdle,
 		PartyHud,
 		PlacarMvpIdle,
 		VotoIdle,
-		BoasVindasIdle
+		BoasVindasIdle,
+		TopMenuIdle
 	]) {
 		if (typeof modulo.limparEstadoDoPersonagem === 'function') {
 			modulo.limparEstadoDoPersonagem();

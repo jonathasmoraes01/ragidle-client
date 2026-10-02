@@ -70,14 +70,15 @@ export default function buildResumo(skill) {
 	const prosa = [];
 
 	// The marker, with the text that may already be on the same line.
-	const iMarcador = linhas.findIndex(l => /^descri[çc][ãa]o\s*:/i.test(l));
+	// "Descricao:" em portugues, "Description:" na caixa inglesa (D-1929).
+	const iMarcador = linhas.findIndex(l => /^(?:descri[çc][ãa]o|description)\s*:/i.test(l));
 	if (iMarcador >= 0) {
-		const naMesmaLinha = linhas[iMarcador].replace(/^descri[çc][ãa]o\s*:\s*/i, '');
+		const naMesmaLinha = linhas[iMarcador].replace(/^(?:descri[çc][ãa]o|description)\s*:\s*/i, '');
 		if (naMesmaLinha) {
 			prosa.push(naMesmaLinha);
 		}
 		for (let i = iMarcador + 1; i < linhas.length; i++) {
-			if (/^\[Nv/i.test(linhas[i])) {
+			if (/^\[(?:Nv|Lv)/i.test(linhas[i])) {
 				break;
 			}
 			if (linhas[i]) {
@@ -101,7 +102,7 @@ export default function buildResumo(skill) {
 	// Unreached by all 239 playable-tree entries as of 21/08/2026 — it exists
 	// for description shapes this measurement has not seen.
 	const first = linhas[0];
-	if (/^\[Nv/i.test(first)) {
+	if (/^\[(?:Nv|Lv)/i.test(first)) {
 		return null;
 	}
 	return first;

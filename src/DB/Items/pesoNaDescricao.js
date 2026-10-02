@@ -9,7 +9,8 @@
  * no servidor: 63 itens do recorte tinham o texto diferente do peso real.
  */
 
-const LINHA_DE_PESO = /(Peso\s*:\s*(?:\^[0-9a-fA-F]{6})?\s*)([\d.,]+)/i;
+// "Weight" e a linha da descricao inglesa (o jogo em ingles, D-1929: o kRO.lua do iRO).
+const LINHA_DE_PESO = /((?:Peso|Weight)\s*:\s*(?:\^[0-9a-fA-F]{6})?\s*)([\d.,]+)/i;
 
 /** 70 -> "7", 1 -> "0.1" — o formato do proprio texto. */
 export function pesoComoNaDescricao(decigramas) {

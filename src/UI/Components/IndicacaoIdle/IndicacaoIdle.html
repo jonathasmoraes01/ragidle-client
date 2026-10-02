@@ -7,8 +7,9 @@
 
 		<div class="in-body ri-scroll">
 			<p class="in-chamada">
+				<!-- 28/09/2026, ordem do dono: a comissao e sobre as DOACOES, somente (D-1593). -->
 				Convide amigos e ganhe <strong class="in-taxa">10%</strong> em cash de
-				<strong>tudo que eles gastarem</strong> — pra sempre.
+				<strong>todas as doações que eles fizerem</strong> — pra sempre.
 			</p>
 
 			<!-- O LINK: campo somente leitura + Copiar. O codigo aparece a parte
@@ -33,6 +34,10 @@
 					<div class="in-contador-valor in-ganhos"><span class="in-cash-glifo" aria-hidden="true">◆</span><span class="in-ganhos-valor">0</span></div>
 				</div>
 			</div>
+
+			<!-- O CPF DO INDICADOR (D-1634): cadastrado uma vez so; sem ele a comissao
+			     fica retida. `cpfDoIndicador.js` desenha; vazio sem o sal no servidor. -->
+			<section class="in-cpf"></section>
 
 			<!-- QUEM ME INDICOU — ou o campo para usar um codigo, enquanto a conta e nova. -->
 			<section class="in-indicado-por"></section>

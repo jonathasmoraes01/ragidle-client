@@ -255,6 +255,14 @@ ui-button {
 	--text-link-hover: var(--blue-500);
 
 	--surface-window: linear-gradient(180deg, rgba(255, 255, 255, 0.96) 0%, rgba(239, 245, 252, 0.94) 100%);
+	/* A MESMA janela, sem vidro (28/09/2026, D-1640). As duas cores de
+	   `--surface-window` com alfa 1. Existe porque no dedo o desfoque sai
+	   (o bloco `pointer: coarse` abaixo zera `--blur-glass`), e sem ele os
+	   4-6% que o vidro deixa passar mostram o mundo, o trilho e o cartao de
+	   missoes atras do texto - o relato do dono foi o Codex no celular em pe.
+	   Quem a usa hoje: toda janela no dedo (o bloco `pointer: coarse` abaixo,
+	   28/09/2026) e `.ri-vertical #CodexIdle .cx-window`. */
+	--surface-window-opaca: linear-gradient(180deg, rgb(255, 255, 255) 0%, rgb(239, 245, 252) 100%);
 	--surface-titlebar: linear-gradient(180deg, #f7fbff 0%, #dfe8f6 55%, #cddcef 100%);
 	--surface-card: rgba(255, 255, 255, 0.66);
 	--surface-card-hover: rgba(255, 255, 255, 0.88);
@@ -852,6 +860,13 @@ ui-button {
 		--blur-glass-strong: none;
 		--surface-glass: rgba(244, 248, 253, 0.9);
 		--surface-dark-glass: rgba(18, 41, 74, 0.82);
+		/* TODA JANELA OPACA NO DEDO (28/09/2026, ordem do dono: "estender o
+		   fundo opaco a todas"). Sem o desfoque, os 4-6% que o vidro de
+		   `--surface-window` deixa passar mostram o mundo atras do texto; o
+		   Codex (D-1640) era so o caso mais visivel. Trocar o token no mesmo
+		   `:host` alcanca `--window-fill` e `--ri-janela-bg`, que o leem, e
+		   toda folha que pinta `var(--surface-window)`. O desktop nao muda. */
+		--surface-window: var(--surface-window-opaca);
 	}
 }
 
@@ -1185,6 +1200,68 @@ ui-button {
 	background: var(--gold-200);
 	color: var(--gold-700);
 	border: 1px solid var(--gold-300);
+}
+
+/* ─── O SELETOR DE NIVEL DE USO (D-1906) ─────────────────────────────────
+   `[−] Nv 7/10 · 22 SP [+]` + o selo "fixo"/"max". O HTML sai de um lugar so
+   (`UI/nivelDeUso.js`, `htmlDoSeletorDeNivel`) e o estilo tambem: este
+   arquivo e replicado em todo Shadow DOM, entao a Configuracao idle, a janela
+   de Habilidades e a barra de atalhos desenham o MESMO seletor. Os botoes sao
+   o disco de 22px do `.ic-icon-btn` (o mouse acerta sem esforco); no dedo eles
+   viram 44x44 (o bloco `pointer: coarse` logo abaixo). */
+.ri-nivel {
+	display: inline-flex;
+	align-items: center;
+	gap: var(--sp-1);
+	flex-wrap: nowrap;
+	min-width: 0;
+}
+.ri-nivel-btn {
+	appearance: none;
+	flex: 0 0 auto;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	box-sizing: border-box;
+	width: 22px;
+	height: 22px;
+	padding: 0;
+	border-radius: 50%;
+	border: 1px solid var(--border-hairline);
+	background: var(--white);
+	color: var(--blue-600);
+	font-family: var(--font-ui);
+	font-size: var(--fs-section);
+	font-weight: var(--fw-bold);
+	line-height: 1;
+	cursor: pointer;
+	transition:
+		background var(--dur-fast),
+		border-color var(--dur-fast);
+}
+.ri-nivel-btn:hover:not(:disabled) {
+	background: var(--surface-card-hover);
+	border-color: var(--accent);
+}
+.ri-nivel-btn:disabled {
+	opacity: 0.3;
+	cursor: not-allowed;
+}
+.ri-nivel-valor {
+	font: var(--type-badge);
+	font-weight: var(--fw-semibold);
+	color: var(--text-title);
+	white-space: nowrap;
+	font-variant-numeric: tabular-nums;
+}
+.ri-nivel-selo {
+	flex: 0 0 auto;
+}
+@media (pointer: coarse) {
+	.ri-nivel-btn {
+		width: var(--hit-touch, 44px);
+		height: var(--hit-touch, 44px);
+	}
 }
 /* A SUBSECAO DEBUFF (16/09/2026, ESPECIFICACAO_MENU_IDLE_INTELIGENTE.md §1) —
    so tem duas escalas de vermelho no design system (--red-300/--red-600), e
@@ -1857,6 +1934,14 @@ ui-button {
 		width: 100% !important;
 		min-width: 0 !important;
 		max-width: 100% !important;
+		/*
+		 * A BORDA DENTRO DOS 100% (01/10/2026). `.ri-window` tem 1px de moldura
+		 * (`--window-frame`), e sem `border-box` a caixa mede 100% + 2px: a
+		 * `diag-mobile-portrait` media 395 de 393 em Personagem, Codex, Indique,
+		 * Votar e Admin, que nao declaram `box-sizing` na propria folha (as que
+		 * declaram, como Habilidades e Config Idle, ja cabiam).
+		 */
+		box-sizing: border-box !important;
 		height: auto !important;
 		/* A doca continua alcançável por baixo do painel: ela é a barra de
 		   ação do jogo, e cobri-la trocaria uma janela por outra. */
@@ -2029,9 +2114,17 @@ ui-button {
 	.mt-item,
 	.mt-ver-todas,
 	.mt-aba,
-	.mt-recolher {
+	.mt-recolher,
+	/* D-1839: a linha do rastreador do Codex (abre a entrada) e a estrela da
+	   janela do Codex (marca/desmarca). As duas sao alvo de dedo. */
+	.mt-cx-item,
+	.cx-marcar {
 		box-sizing: border-box;
 		min-height: var(--hit-touch, 44px);
+	}
+
+	.cx-marcar {
+		min-width: var(--hit-touch, 44px);
 	}
 
 	.mt-recolher {
@@ -2046,6 +2139,38 @@ ui-button {
 
 	.mt-btn-mini {
 		position: relative;
+	}
+
+	/*
+	 * 01/10/2026 — O "(i)" DE CADA MISSAO (o cartao da HUD e a janela de
+	 * Missoes; a pele mora em `MissoesIdle/infoDaMissao.css`). Ele e AREA, e nao
+	 * caixa, pelo mesmo motivo do `.mt-btn-mini`: um circulo de 44px em cada
+	 * missao do cartao dobraria a altura dele no celular, que o dono ja mandou
+	 * encolher (D-1483). No dedo o desenho vai a 24px, e `-10px` de cada lado
+	 * fecham os 44. O vizinho de cima (o "Ir caçar" da missao anterior) tem a
+	 * area dele terminando antes: o `gap` e o `padding` do bloco separam as duas.
+	 */
+	.im-i::before {
+		content: '';
+		position: absolute;
+		inset: -10px;
+	}
+
+	.im-i {
+		position: relative;
+	}
+
+	/*
+	 * 01/10/2026 — OS BOTOES DA MISSAO na janela de Missoes e na aba "Missões
+	 * Gerais" do Codex (Iniciar, Finalizar, Ir caçar, Abandonar e o "3 de 3"
+	 * apagado). A aceita passou a ter TRES lado a lado, e o `.ri-btn` de sempre
+	 * mede ~34px. Eles crescem de verdade, como os `.ap-input` acima: no celular
+	 * as duas janelas sao painel de tela cheia, ha espaco, e o rodape quebra
+	 * linha (`flex-wrap`) em vez de apertar.
+	 */
+	.mi-executar,
+	.cx-mg-rodape .ri-btn {
+		min-height: var(--hit-touch, 44px);
 	}
 
 	/* O "+" de distribuir atributo (20x20) e os dois menores da barra de
@@ -2335,6 +2460,20 @@ html.ri-vertical #MissoesTrackerIdle {
 	width: min(236px, calc(100vw - var(--vr-trilho-largura) - 32px)) !important;
 }
 
+/* O PAINEL "(i)" DE UMA MISSAO ABERTO PELO CARTAO (01/10/2026). Ele mora DENTRO
+   do host do cartao (`MissoesIdle/infoDaMissao.js`), e o host e um contexto de
+   empilhamento: no z 10 da moldura, a barra do topo, o trilho e o menu (50/55)
+   pintariam POR CIMA do painel, que no celular ocupa a largura da tela. Enquanto
+   ele esta aberto, o host sobe para 58 — acima da moldura e do menu, ABAIXO das
+   janelas de pilha (60) e da folha do menu (90): abrir qualquer uma delas ja
+   fecha o painel (toque fora). Fechado o painel, o atributo sai e o cartao volta
+   ao plano dele. No computador o host nasce com 50 inline (GUIComponent) e as
+   janelas focadas sobem acima disso, entao o mesmo 58 serve. */
+#MissoesTrackerIdle[data-info-da-missao],
+html.ri-vertical #MissoesTrackerIdle[data-info-da-missao] {
+	z-index: 58 !important;
+}
+
 /* O menu inteiro (fab + trilho + leque) posiciona os FILHOS por `fixed`;
    o host vira um ponto sem caixa para nao cobrir nada. */
 html.ri-vertical #TopMenuIdle {
@@ -2363,7 +2502,9 @@ html.ri-vertical #HuntButtonIdle {
 	top: auto !important;
 	left: auto !important;
 	right: calc(var(--safe-dir, 0px) + var(--vr-margem) + 4px) !important;
-	bottom: calc(var(--vr-acima-dos-atalhos) + 6px) !important;
+	/* +14px: o rotulo do disco de baixo pende para fora do host (top: 100%) e
+	   ficava por baixo da barra de atalhos. */
+	bottom: calc(var(--vr-acima-dos-atalhos) + 20px) !important;
 	width: auto !important;
 	height: auto !important;
 }

@@ -130,7 +130,8 @@
  * volta, o lugar barato e uma linha dentro da propria Configuracao idle.
  *
  * ─── EM BREVE (contado no HTML em 06/09/2026: Loja, Troca, Leilao e
- * Eventos -- os quatro com `data-em-breve`): a funcao ainda nao existe no
+ * Eventos -- os quatro com `data-em-breve`; desde 02/10/2026 a Troca LIGOU e
+ * abre a janela "Trade", e sobram tres): a funcao ainda nao existe no
  * jogo. A lista escrita aqui ja dizia sete, e tres deles LIGARAM desde
  * entao (RO Shop em I5, Recompensas/Passe em D-813, que sao o mesmo botao):
  * numero escrito a mao em comentario nao acompanha a pasta, e a fonte de
@@ -204,6 +205,9 @@ import HuntAnalyzer from 'UI/Components/HuntAnalyzer/HuntAnalyzer.js';
 /* PasseIdle NAO e mais importado aqui (21/09/2026): a janela de Recompensas
    ficou sem botao - o conteudo dela mora na Temporada. O modulo segue vivo
    pelo MapEngine, como dono do pacote 0x0fe5. */
+import { temRecompensaParaResgatar } from 'UI/Components/TemporadaIdle/formatoDaTemporada.js'; // a bolinha da Temporada (29/09/2026)
+import { fecharEEsquecer } from '../limpezaDeJanelaIdle.js'; // a troca de personagem fecha a gaveta (auditoria pre-push, 30/09/2026)
+import { pontoDoMenuAceso } from './pontoDoMenu.js'; // a bolinha do botao Menu (29/09/2026)
 import TemporadaIdle from 'UI/Components/TemporadaIdle/TemporadaIdle.js'; // RAGIDLE: a janela da Temporada (Season 1, 21/09/2026) - no cluster desde a noite do mesmo dia
 import VotoIdle from 'UI/Components/VotoIdle/VotoIdle.js'; // RAGIDLE: janela de Voto (D-1159)
 import CombatCornerIdle from 'UI/Components/CombatCornerIdle/CombatCornerIdle.js'; // RAGIDLE: o aro "Ataque auto" (16/09/2026 — some enquanto o leque esta aberto)
@@ -212,6 +216,7 @@ import { temAvisoDoCodex } from 'UI/Components/avisoDoCodex.js'; // D-1232
 import PresencaIdle from 'UI/Components/PresencaIdle/PresencaIdle.js'; // RAGIDLE: Presenca (D-1162)
 import IndicacaoIdle from 'UI/Components/IndicacaoIdle/IndicacaoIdle.js'; // RAGIDLE: Indique & Ganhe (D-1164)
 import RankingIdle from 'UI/Components/RankingIdle/RankingIdle.js'; // RAGIDLE: o Ranking
+import TrocaIdle from 'UI/Components/TrocaIdle/TrocaIdle.js'; // RAGIDLE: a janela "Trade" (02/10/2026)
 import AdminPanel from 'UI/Components/AdminPanel/AdminPanel.js';
 import Escape from 'UI/Components/Escape/Escape.js'; // RAGIDLE: a janela de sistema (D-1416)
 import RoShop from 'UI/Components/RoShop/RoShop.js'; // RAGIDLE: o RO Shop (22/09/2026) - a porta do item "RO Shop" (era a CashShop nativa, I5)
@@ -295,6 +300,11 @@ let _lequeTimer = null;
  * @var {number|null} setInterval handle do polling do ponto de skill.
  */
 let _pollTimer = null;
+
+/* O estado da Temporada so chegava ao abrir a janela; para a bolinha, o menu o
+   pede sozinho de tempos em tempos (29/09/2026). */
+const PEDIDO_DA_TEMPORADA_MS = 5 * 60 * 1000;
+let _temporadaPedidaEm = 0;
 
 /**
  * @var {number|null} setTimeout handle do toast "Em breve" em exibicao.
@@ -495,6 +505,21 @@ function aoClicarInstalar(evento) {
  * temporizador pendente quando o componente sai de cena (troca de mapa) -
  * mesmo cuidado de DockIdle.js.
  */
+/**
+ * A TROCA DE PERSONAGEM (auditoria pre-push, 30/09/2026): o relogio do pedido
+ * da Temporada e da CONTA de 5 min, e nao do personagem. Sem zera-lo, o
+ * personagem novo herdava o "ja pedi" do anterior e a bolinha ficava ate 5
+ * minutos com o veredito velho.
+ */
+TopMenuIdle.limparEstadoDoPersonagem = function limparEstadoDoPersonagem() {
+	_temporadaPedidaEm = 0;
+	// A gaveta do menu e a unica coisa com `is-open` aqui: o `onAppend` ja a
+	// fecha ao voltar, e isto a fecha tambem no instante da troca, pela peca
+	// compartilhada (portao `janela-idle-esquece-o-desenho`, repo do servidor).
+	_lequeAberto = false;
+	fecharEEsquecer(_root(), '.tm-fan');
+};
+
 TopMenuIdle.onRemove = function onRemove() {
 	stopPolling();
 	desligarFechamentoExterno();
@@ -669,6 +694,10 @@ function onClickAction(e) {
 		case 'indicacao':
 			/* D-1164: IndicacaoIdle.toggle() tambem PEDE o painel ao abrir (0x0fdd) */
 			IndicacaoIdle.toggle();
+			break;
+		case 'troca':
+			/* 02/10/2026: a janela "Trade" - o nome do jogador e "Confirmar". */
+			TrocaIdle.toggle();
 			break;
 		/* O `case 'passe'` (a janela de Recompensas, D-813) morou aqui de
 		   29/08 a 21/09/2026. Saiu por ordem do dono: o Passe Semanal e o VIP
@@ -1820,6 +1849,8 @@ function isActionOpen(action) {
 			return isRagIdleWindowOpen(PresencaIdle, '.pr-window');
 		case 'indicacao':
 			return isRagIdleWindowOpen(IndicacaoIdle, '.in-window');
+		case 'troca':
+			return isRagIdleWindowOpen(TrocaIdle, '.tr-window');
 		/*
 		 * PASSE (D-813): a TERCEIRA vez do mesmo defeito, achado em 29/08/2026
 		 * ao somar o Codex. Ele tinha `case 'passe'` no switch de ABRIR e
@@ -1898,14 +1929,18 @@ function pollEstado() {
 	 * em 360x640, exatamente a diferenca de um quadro.
 	 */
 	publicarTopoDoCluster();
+	pedirTemporadaSeVenceu();
 	syncSkillDot();
 	syncCorreioDot();
 	syncCodexDot();
+	syncTemporadaDot();
 	// D-1159: o destaque do botao de votar entra no MESMO tique dos outros
 	// dois avisos, e antes do `syncToggleDot()` de proposito — ele le os
 	// pontos dos itens ja calculados para decidir o ponto da alca.
 	syncVotoLivre();
 	syncToggleDot();
+	// Por ULTIMO: le os pontos de todos os itens ja calculados neste tique.
+	syncMenuDot();
 	syncAllActiveStates();
 }
 
@@ -2092,6 +2127,60 @@ function syncVotoLivre() {
 	btn.title = livre
 		? 'Votar — você tem voto disponível!'
 		: 'Votar e ganhar Vote Cash';
+}
+
+/**
+ * Pede o estado da Temporada sem a janela aberta, no maximo a cada 5 min.
+ */
+function pedirTemporadaSeVenceu() {
+	const agora = Date.now();
+	if (agora - _temporadaPedidaEm < PEDIDO_DA_TEMPORADA_MS) {
+		return;
+	}
+	_temporadaPedidaEm = agora;
+	try {
+		TemporadaIdle.pedirEstadoEmSegundoPlano();
+	} catch {
+		// sem rede ainda: o proximo tique tenta de novo
+		_temporadaPedidaEm = 0;
+	}
+}
+
+/**
+ * Ponto de "recompensa pronta" na Temporada (29/09/2026, pedido do dono). O
+ * veredito e do servidor (`temRecompensaParaResgatar` so le a situacao que
+ * ele mandou).
+ */
+function syncTemporadaDot() {
+	const root = _root();
+	const dot = root.querySelector('.tm-item[data-action="temporada"] .ri-dot');
+	if (!dot) {
+		return;
+	}
+	const tem = temRecompensaParaResgatar(TemporadaIdle.estado);
+	dot.style.display = tem ? '' : 'none';
+	const btn = dot.closest('.tm-item');
+	if (btn) {
+		btn.title = tem ? 'Temporada — você tem recompensa para resgatar' : 'Temporada: caixas, passe e VIP';
+	}
+}
+
+/**
+ * O PONTO DO BOTAO "MENU" (29/09/2026, pedido do dono). Um aviso que o jogador
+ * nao ve nao e aviso: o Codex mora dentro do leque, e no celular em pe o
+ * Correio, o Votar e a Temporada saem do trilho. O "Menu" acende quando algum
+ * ponto JA CALCULADO esta aceso num item que o jogador nao esta vendo:
+ *  - qualquer item do leque (`.tm-fan`), aberto ou nao;
+ *  - item do cluster que o LAYOUT escondeu (`display: none` computado). Com o
+ *    cluster recolhido pela alca quem avisa e a alca, e ele fica de fora.
+ */
+function syncMenuDot() {
+	const root = _root();
+	const dot = root.querySelector('.tm-fab .ri-dot');
+	if (!dot) {
+		return;
+	}
+	dot.style.display = pontoDoMenuAceso(root, !!_preferences.collapsed) ? '' : 'none';
 }
 
 /**

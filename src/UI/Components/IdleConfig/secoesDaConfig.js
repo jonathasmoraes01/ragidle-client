@@ -142,8 +142,11 @@ export function curaLigadaPara(cura, skillId) {
 	return !(cura && cura.ligada === false);
 }
 
-/** As curas que so curam sozinhas se o jogador as ligar (espelho do servidor). */
-export const CURAS_DESLIGADAS_DE_FABRICA = ['NV_FIRSTAID'];
+/**
+ * As curas que so curam sozinhas se o jogador as ligar (espelho do servidor).
+ * A Aid Potion entrou em 28/09/2026 (D-1641): ela gasta uma pocao por uso.
+ */
+export const CURAS_DESLIGADAS_DE_FABRICA = ['NV_FIRSTAID', 'AM_POTIONPITCHER'];
 
 export function curaLigada(cfg, ctx) {
 	const curas = (ctx && ctx.skillsDeCura) || [];

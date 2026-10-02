@@ -197,6 +197,15 @@
 	width: 100%;
 }
 
+/* O link de reserva (27/09/2026): um <a>, para o toque ser gesto do jogador. */
+#VotoIdle .vi-plat-link {
+	display: block;
+	width: 100%;
+	text-align: center;
+	text-decoration: none;
+	box-sizing: border-box;
+}
+
 #VotoIdle .vi-plat-rodape {
 	font: var(--type-desc);
 	color: var(--text-muted);

@@ -25,6 +25,15 @@
  *    confirmação: a recusa educada do servidor é mais barata que um "tem
  *    certeza?" para quem tem 5 anos.
  *
+ * 4. **Até três missões ao mesmo tempo (01/10/2026, pedido do dono).** Não há
+ *    mais "a ativa", fila nem pausa: cada missão ACEITA vira um bloco, na ordem
+ *    de aceite, com o objetivo que falta, a barra, "Finalizar" (só quando o
+ *    servidor diz `pronta`) ou "Ir caçar", e o "(i)" que abre o painel com tudo
+ *    da missão (`MissoesIdle/infoDaMissao.js`). No celular em pé o corpo NÃO
+ *    cresce por causa disso: ele continua no teto de D-1483 e rola por dentro
+ *    (o `Common.css` posiciona a faixa de grupo contando com o cartão de 84 a
+ *    238px).
+ *
  * @author RagIdle
  */
 
@@ -35,11 +44,27 @@ import GUIComponent from 'UI/GUIComponent.js';
 import BasicInfoIdle from 'UI/Components/BasicInfoIdle/BasicInfoIdle.js';
 import MissoesIdle from 'UI/Components/MissoesIdle/MissoesIdle.js';
 import { podeIniciarMissao } from 'UI/Components/MissoesIdle/podeIniciarMissao.js'; // RAGIDLE: I16
+// 01/10/2026: as aceitas (ate 3) e o painel "(i)" — regras puras e o painel
+// moram ao lado da janela de Missoes, que e quem recebe o pacote.
+import {
+	destinoDeCaca,
+	missoesAceitasEmOrdem,
+	passoDaMissaoAceita,
+	porcentagemDoObjetivo
+} from 'UI/Components/MissoesIdle/missoesAceitas.js';
+import {
+	alternarInfoDaMissao,
+	botaoDeInfoHtml,
+	fecharInfoDaMissao
+} from 'UI/Components/MissoesIdle/infoDaMissao.js';
+import infoCss from 'UI/Components/MissoesIdle/infoDaMissao.css?raw';
 import htmlText from './MissoesTrackerIdle.html?raw';
 import cssText from './MissoesTrackerIdle.css?raw';
 import { emUnidadesDaHud } from 'UI/escalaDaHud.js'; // D-934: geometria medida vira unidade da HUD
 import LFGIdle from 'UI/Components/LFGIdle/LFGIdle.js'; // D-939: a aba "Grupo" do cartao vertical
 import { ehCelularEmPe } from 'UI/hudVertical.js'; // D-939: na vertical a ancora e do CSS, nao deste polling
+import CodexIdle from 'UI/Components/CodexIdle/CodexIdle.js'; // D-1839: o clique numa linha do rastreador
+import { rastreadorDoCodexAtual, rastreadorDoCodexHtml } from '../rastreadorDoCodex.js'; // D-1839
 
 /**
  * Quantas missões clicáveis o painel lista (as demais ficam na janela).
@@ -103,7 +128,9 @@ import { ehCelularEmPe } from 'UI/hudVertical.js'; // D-939: na vertical a ancor
  */
 const MAX_LINHAS = 2;
 
-const MissoesTrackerIdle = new GUIComponent('MissoesTrackerIdle', cssText);
+// A folha do "(i)" e do painel vai junto: o painel mora DENTRO deste shadow
+// (ver o cabecalho de `infoDaMissao.css`).
+const MissoesTrackerIdle = new GUIComponent('MissoesTrackerIdle', cssText + '\n' + infoCss);
 
 MissoesTrackerIdle.render = () => htmlText;
 MissoesTrackerIdle.mouseMode = GUIComponent.MouseMode.CROSS;
@@ -112,6 +139,16 @@ MissoesTrackerIdle.needFocus = false;
 let _timer = null;
 let _recolhido = false;
 let _assinatura = '';
+/*
+ * A ABA DO CARTAO NO CELULAR EM PE (D-1839): 'missoes' ou 'codex'.
+ *
+ * Fora da vertical ela nao existe (a secao do Codex aparece embaixo das
+ * missoes). Na vertical o cartao nao tem altura para as duas - o corpo e
+ * `max-height: 22dvh` por ordem do dono (D-1483) -, e a aba troca uma pela
+ * outra. E preferencia de quem joga, como `_recolhido`: a troca de
+ * personagem NAO a zera.
+ */
+let _abaVertical = 'missoes';
 
 function _root() {
 	return MissoesTrackerIdle._shadow || MissoesTrackerIdle._host;
@@ -140,12 +177,50 @@ function mandarAcao(acao, id) {
 	Network.sendPacket(pkt);
 }
 
+/** O "(i)" de uma missao na tela agora — a lista e redesenhada por innerHTML,
+ * entao o botao de quando o painel abriu pode nem existir mais. */
+function ancoraDoInfo(id) {
+	const root = _root();
+	if (!root) {
+		return null;
+	}
+	return Array.from(root.querySelectorAll('.mt-corpo [data-info]')).find(b => b.getAttribute('data-info') === id) || null;
+}
+
+/** Onde o painel "(i)" mora: a raiz do cartao, fora do `.mt-painel` (que tem
+ * `overflow: hidden`). */
+function conteinerDoInfo() {
+	const root = _root();
+	return root ? root.querySelector('#MissoesTrackerIdle') : null;
+}
+
+/**
+ * O GESTO DO "(i)" (01/10/2026): abre o painel da missao, e o mesmo "(i)" de
+ * novo o fecha. O painel LE o estado da janela de Missoes (a fonte unica) e
+ * manda as acoes pelo mesmo pacote dos botoes do cartao.
+ */
+function alternarInfo(id) {
+	const conteiner = conteinerDoInfo();
+	if (!conteiner || !id) {
+		return;
+	}
+	alternarInfoDaMissao({
+		id,
+		conteiner,
+		host: MissoesTrackerIdle._host,
+		ancora: () => ancoraDoInfo(id),
+		dados: () => ({ missoes: MissoesIdle.missoes || [], execucao: MissoesIdle.execucao || null }),
+		agir: (acao, missaoId) => mandarAcao(acao, missaoId),
+		verNaJanela: (missaoId, tipo) => MissoesIdle.abrirEmMissao(missaoId, tipo)
+	});
+}
+
 /**
  * Vira o estado de recolhido e repinta os dois botoes.
  *
  * A PREFERENCIA ATRAVESSA o redesenho do painel e a troca de mapa sem
  * esforco: `_recolhido` e estado de MODULO e `render()` nunca toca na classe
- * do `.mt-painel` — ele reescreve so o conteudo de `.mt-ativa` e `.mt-lista`.
+ * do `.mt-painel` — ele reescreve so o conteudo de `.mt-aceitas` e `.mt-lista`.
  * Foi conferido antes de escrever isto, e nao suposto.
  */
 function alternarRecolhido() {
@@ -206,6 +281,22 @@ MissoesTrackerIdle.init = function init() {
 	}
 	pintarRecolhido();
 	/*
+	 * D-1839: as abas "Missões" e "Codex" do cartao vertical trocam o que
+	 * o corpo mostra. "Grupo" continua sendo uma PORTA (abre o LFG).
+	 */
+	for (const aba of ['missoes', 'codex']) {
+		const botao = root && root.querySelector(`.mt-aba[data-aba="${aba}"]`);
+		if (!botao) {
+			continue;
+		}
+		botao.addEventListener('click', e => {
+			e.stopImmediatePropagation();
+			_abaVertical = aba;
+			pintarAba();
+		});
+	}
+	pintarAba();
+	/*
 	 * D-939: as pecas do cartao da HUD vertical. A aba "Grupo" e o rodape
 	 * "Ver todas as missões" sao PORTAS (abrem as janelas que ja existem),
 	 * nao telas novas — e fora da vertical nenhum dos dois aparece.
@@ -221,6 +312,11 @@ MissoesTrackerIdle.init = function init() {
 	if (verTodas) {
 		verTodas.addEventListener('click', e => {
 			e.stopImmediatePropagation();
+			// Na aba do Codex o rodape abre o Codex (D-1839).
+			if (_abaVertical === 'codex') {
+				CodexIdle.abrirNaEntrada(null);
+				return;
+			}
 			MissoesIdle.toggle();
 		});
 	}
@@ -230,19 +326,31 @@ MissoesTrackerIdle.init = function init() {
 	const corpo = root && root.querySelector('.mt-corpo');
 	if (corpo) {
 		corpo.addEventListener('click', e => {
+			/* O "(i)" vem PRIMEIRO e e IRMAO da linha, nunca filho dela: a linha
+			   de "Iniciar" e ela mesma um `<button>`, e botao dentro de botao e
+			   HTML invalido (o navegador o desmonta). */
+			const info = e.target.closest('[data-info]');
+			if (info) {
+				e.stopImmediatePropagation();
+				alternarInfo(info.getAttribute('data-info'));
+				return;
+			}
 			const btn = e.target.closest('[data-acao]');
 			if (!btn) {
 				return;
 			}
 			e.stopImmediatePropagation();
 			const acao = btn.dataset.acao;
-			if (acao === 'iniciar' && btn.dataset.fila !== 'true') {
+			if (acao === 'iniciar' && btn.dataset.id) {
 				mandarAcao('iniciar', btn.dataset.id);
-			} else if (acao === 'teleporte' || acao === 'retomar') {
-				mandarAcao(acao, null);
-			} else if (acao === 'abandonar' && btn.dataset.id) {
-				// D-1150: abandonar leva o id; o progresso fica no servidor.
-				mandarAcao('abandonar', btn.dataset.id);
+			} else if ((acao === 'finalizar' || acao === 'teleporte' || acao === 'abandonar') && btn.dataset.id) {
+				// 01/10/2026: toda acao leva o id. Com ate tres aceitas nao ha
+				// "a ativa" para o servidor adivinhar: o "Ir caçar" leva ao
+				// objetivo DESTA missao, e o "Finalizar" entrega ESTA.
+				mandarAcao(acao, btn.dataset.id);
+			} else if (acao === 'codex-abrir') {
+				// D-1839: a linha do rastreador abre o Codex naquela entrada.
+				CodexIdle.abrirNaEntrada(btn.dataset.entrada || null);
 			} else if (acao === 'abrir-janela') {
 				// A Troca de Classe não roda pelo executor: o clique abre a
 				// janela de missões, onde a grade de classes mora (D-609).
@@ -269,6 +377,9 @@ MissoesTrackerIdle.onRemove = function onRemove() {
 		clearInterval(_timer);
 		_timer = null;
 	}
+	// O cartao sai da tela (troca de mapa, inclusive pelo "Ir caçar"): o painel
+	// "(i)" que ele abriu sai junto, em vez de voltar aberto e fora do lugar.
+	fecharInfoDaMissao(conteinerDoInfo());
 };
 
 /** Cola o painel logo abaixo do cartão do personagem, na mesma coluna. */
@@ -378,12 +489,97 @@ function syncPosition() {
 function renderSeMudou() {
 	const missoes = MissoesIdle.missoes || [];
 	const execucao = MissoesIdle.execucao || null;
-	const assinatura = JSON.stringify([execucao, missoes.map(m => [m.id, m.estado, m.cooldownS, m.naFila])]);
+	const codex = rastreadorDoCodexAtual();
+	/* 01/10/2026: o PROGRESSO de cada objetivo, `aceita` e `pronta` entram na
+	   assinatura. O parcial de progresso (`v: 3`) muda so esses campos, e sem
+	   eles o cartao ficaria parado no "12/25" com o servidor contando mais. */
+	const assinatura = JSON.stringify([execucao, missoes.map(m => [m.id, m.estado, m.cooldownS, m.aceita, m.pronta, (m.objetivos || []).map(o => o.progresso)]), codex]);
 	if (assinatura === _assinatura) {
 		return;
 	}
 	_assinatura = assinatura;
 	render(missoes, execucao);
+	renderCodex(codex);
+}
+
+/**
+ * O RASTREADOR DO CODEX (D-1839): as entradas marcadas, com o contador. O
+ * desenho mora em `rastreadorDoCodex.js` (testavel sem a janela); aqui so
+ * a caixa: fora da vertical a secao some quando nada esta marcado, e o
+ * numero da aba "Codex" do cartao vertical diz quantas estao marcadas.
+ */
+function renderCodex(codex) {
+	const root = _root();
+	const caixa = root && root.querySelector('.mt-codex');
+	const lista = root && root.querySelector('.mt-codex-lista');
+	if (!caixa || !lista) {
+		return;
+	}
+	caixa.dataset.vazia = codex.length === 0 ? 'true' : 'false';
+	lista.innerHTML = rastreadorDoCodexHtml(codex);
+	const n = root.querySelector('.mt-aba[data-aba="codex"] .mt-aba-n');
+	if (n) {
+		n.textContent = codex.length > 0 ? String(codex.length) : '';
+	}
+}
+
+/** Poe a aba do cartao vertical na tela (D-1839). */
+function pintarAba() {
+	const root = _root();
+	const painel = root && root.querySelector('.mt-painel');
+	if (!painel) {
+		return;
+	}
+	painel.dataset.aba = _abaVertical;
+	for (const aba of ['missoes', 'codex']) {
+		const botao = root.querySelector(`.mt-aba[data-aba="${aba}"]`);
+		if (botao) {
+			botao.classList.toggle('is-ativa', aba === _abaVertical);
+			botao.setAttribute('aria-selected', String(aba === _abaVertical));
+		}
+	}
+	const verTodas = root.querySelector('.mt-ver-todas');
+	if (verTodas) {
+		verTodas.firstChild.textContent = _abaVertical === 'codex' ? 'Abrir o Codex ' : 'Ver todas as missões ';
+	}
+}
+
+/**
+ * O BLOCO de uma missao aceita (01/10/2026): titulo e "(i)", o objetivo que
+ * falta com a barra e `progresso/alvo`, e UM botao — "Finalizar" quando o
+ * servidor diz `pronta`, senao "Ir caçar" quando ha para onde ir. "Abandonar"
+ * mora no painel "(i)" e na janela: no cartao, que divide a tela com o jogo,
+ * um terceiro botao por missao seria o primeiro a ser tocado sem querer.
+ *
+ * A PRIMEIRA aceita leva tambem `.mt-ativa`: e para la que a etapa 10 do
+ * tutorial aponta (`etapasDoTutorial.js`), e o contador que ela confere e o
+ * desta mesma missao (`progressoDaPrimeiraAceita`).
+ */
+function blocoDaAceita(m, primeira) {
+	const pronta = m.pronta === true;
+	const passo = passoDaMissaoAceita(m);
+	const temBarra = passo.progresso !== null && passo.alvo !== null;
+	const pct = temBarra ? porcentagemDoObjetivo(passo.progresso, passo.alvo) : 0;
+	const destino = destinoDeCaca(m);
+	const id = escapeHtml(m.id);
+	const botao = pronta
+		? `<button type="button" class="ri-btn ri-btn--ouro mt-btn-mini" data-acao="finalizar" data-id="${id}" title="Entrega a missão e recebe a recompensa">Finalizar</button>`
+		: destino
+			? `<button type="button" class="ri-btn ri-btn--sec mt-btn-mini" data-acao="teleporte" data-id="${id}" title="Leva você a ${escapeHtml(destino.rotulo)}">Ir caçar</button>`
+			: '';
+	// O nome do mapa ao lado do "Ir caçar" diz para ONDE ele leva — no dedo nao
+	// ha `title` para ler.
+	const onde = !pronta && destino ? escapeHtml(destino.rotulo) : '';
+	return `
+		<li class="mt-bloco${primeira ? ' mt-ativa' : ''}${pronta ? ' is-pronta' : ''}" data-missao="${id}">
+			<div class="mt-bloco-topo">
+				<span class="mt-ativa-titulo">${escapeHtml(m.titulo || m.id)}</span>
+				${botaoDeInfoHtml(m, 'mt-info')}
+			</div>
+			<div class="mt-ativa-passo">${escapeHtml(passo.texto)}${temBarra ? ` — ${passo.progresso}/${passo.alvo}` : ''}</div>
+			${temBarra ? `<div class="mt-barra"><div class="mt-barra-fill" style="width:${pct}%"></div></div>` : ''}
+			${botao ? `<div class="mt-ativa-acoes"><span class="mt-eta">${onde}</span>${botao}</div>` : ''}
+		</li>`;
 }
 
 function render(missoes, execucao) {
@@ -391,47 +587,19 @@ function render(missoes, execucao) {
 	if (!root) {
 		return;
 	}
-	const caixaAtiva = root.querySelector('.mt-ativa');
+	const caixaDasAceitas = root.querySelector('.mt-aceitas');
 	const lista = root.querySelector('.mt-lista');
-	if (!caixaAtiva || !lista) {
+	if (!caixaDasAceitas || !lista) {
 		return;
 	}
 
-	/* A ATIVA (ou o estado pausado) no topo. */
-	if (execucao && execucao.ativaId) {
-		const passo = execucao.passo || {};
-		const temBarra = typeof passo.progresso === 'number' && typeof passo.alvo === 'number' && passo.alvo > 0;
-		const pct = temBarra ? Math.round((passo.progresso / passo.alvo) * 100) : 0;
-		caixaAtiva.dataset.vazia = 'false';
-		caixaAtiva.innerHTML = `
-			<div class="mt-ativa-titulo">${escapeHtml(execucao.tituloAtiva || execucao.ativaId)}</div>
-			<div class="mt-ativa-passo">${escapeHtml(passo.texto || 'Trabalhando...')}${
-				temBarra ? ` — ${passo.progresso}/${passo.alvo}` : ''
-			}</div>
-			${temBarra ? `<div class="mt-barra"><div class="mt-barra-fill" style="width:${pct}%"></div></div>` : ''}
-			<div class="mt-ativa-acoes">
-				<span class="mt-eta">${passo.etaMin ? `~${passo.etaMin} min` : ''}</span>
-				<!-- D-1642: era "Pausar"; virou deslocamento e só (ver MissoesIdle). -->
-				<button type="button" class="ri-btn ri-btn--sec mt-btn-mini" data-acao="teleporte" title="Leva você ao lugar do passo atual da missão">Teleporte</button>
-				<button type="button" class="ri-btn ri-btn--sec mt-btn-mini" data-acao="abandonar" data-id="${escapeHtml(execucao.ativaId)}" title="O progresso fica guardado">Abandonar</button>
-			</div>`;
-	} else if (execucao && execucao.pausada) {
-		caixaAtiva.dataset.vazia = 'false';
-		caixaAtiva.innerHTML = `
-			<div class="mt-ativa-titulo">Missões pausadas</div>
-			<div class="mt-ativa-passo">${execucao.fila.length} na fila esperando você.</div>
-			<div class="mt-ativa-acoes">
-				<span class="mt-eta"></span>
-				<button type="button" class="ri-btn ri-btn--ouro mt-btn-mini" data-acao="retomar">Retomar</button>
-				${execucao.fila && execucao.fila[0] ? `<button type="button" class="ri-btn ri-btn--sec mt-btn-mini" data-acao="abandonar" data-id="${escapeHtml(execucao.fila[0])}" title="O progresso fica guardado">Abandonar</button>` : ''}
-			</div>`;
-	} else {
-		caixaAtiva.dataset.vazia = 'true';
-		caixaAtiva.innerHTML = '';
-	}
+	/* AS ACEITAS no topo, na ordem de aceite — TODAS, inclusive as de um
+	   personagem antigo com mais de tres (herdadas da fila de antes). No
+	   celular o corpo rola por dentro; o cartao nao cresce. */
+	const aceitas = missoesAceitasEmOrdem(missoes, execucao);
+	caixaDasAceitas.dataset.vazia = aceitas.length ? 'false' : 'true';
+	caixaDasAceitas.innerHTML = aceitas.map((m, i) => blocoDaAceita(m, i === 0)).join('');
 
-	/* A lista de 1-clique: disponíveis executáveis primeiro, depois a fila. */
-	const naFila = new Set((execucao && execucao.fila) || []);
 	/*
 	 * A TROCA DE CLASSE entra no TOPO quando abre (D-609, pedido do dono:
 	 * "ao chegar no nível de classe 10 a missão deve aparecer na janela de
@@ -464,28 +632,33 @@ function render(missoes, execucao) {
 	 * jogador lia "Nenhuma missao disponivel agora — suba de nivel!" com a
 	 * missao dele parada no meio.
 	 *
-	 * A `naFila` continua entrando (ela aparece marcada "na fila"), e por isso
-	 * o `||` fica: a regra decide o BOTAO, e a fila e uma linha informativa.
+	 * O TETO DE TRES (01/10/2026) tambem mora na regra: com tres aceitas,
+	 * `podeIniciarMissao` responde "nao" para todas, e as linhas de "Iniciar"
+	 * somem do cartao — a janela de Missoes e quem explica o "3 de 3 em
+	 * andamento". A fila de antes nao existe mais, e com ela a linha "na fila".
+	 *
+	 * A ORDEM poe primeiro a que ja tem progresso guardado (`em-andamento` sem
+	 * aceite: o jogador a abandonou no meio) — retomar e o convite mais util.
 	 */
 	const clicaveis = missoes
-		.filter(m => podeIniciarMissao(m, execucao) || (m.executavel && naFila.has(m.id)))
-		.sort((a, b) => (naFila.has(b.id) ? 1 : 0) - (naFila.has(a.id) ? 1 : 0));
-	const linhas = clicaveis.slice(0, MAX_LINHAS).map(m => {
-		const fila = naFila.has(m.id);
-		return `
-			<li>
-				<button type="button" class="mt-item" data-acao="iniciar" data-id="${escapeHtml(m.id)}" data-fila="${fila}">
-					<span class="mt-item-seta">${fila ? '…' : '▶'}</span>
+		.filter(m => podeIniciarMissao(m, execucao))
+		.sort((a, b) => (b.estado === 'em-andamento' ? 1 : 0) - (a.estado === 'em-andamento' ? 1 : 0));
+	/* O "(i)" e IRMAO do botao da linha, dentro do `<li>`: a linha inteira ja e
+	   um `<button>` (o "Iniciar"), e botao dentro de botao nao existe em HTML. */
+	const linhas = clicaveis.slice(0, MAX_LINHAS).map(
+		m => `
+			<li class="mt-linha">
+				<button type="button" class="mt-item" data-acao="iniciar" data-id="${escapeHtml(m.id)}">
+					<span class="mt-item-seta">▶</span>
 					<span class="mt-item-nome">${escapeHtml(m.titulo)}</span>
-					<span class="mt-item-nivel">${fila ? 'na fila' : escapeHtml(m.dificuldade || '')}</span>
+					<span class="mt-item-nivel">${escapeHtml(m.dificuldade || '')}</span>
 				</button>
-			</li>`;
-	});
+				${botaoDeInfoHtml(m, 'mt-info')}
+			</li>`
+	);
 	lista.innerHTML =
 		linhasDeTroca.join('') + linhas.join('') ||
-		(execucao && execucao.ativaId
-			? ''
-			: '<li class="mt-vazio">Nenhuma missão disponível agora — suba de nível!</li>');
+		(aceitas.length ? '' : '<li class="mt-vazio">Nenhuma missão disponível agora — suba de nível!</li>');
 }
 
 /**
@@ -506,6 +679,8 @@ function render(missoes, execucao) {
  */
 MissoesTrackerIdle.limparEstadoDoPersonagem = function limparEstadoDoPersonagem() {
 	_assinatura = '';
+	// O painel "(i)" fala de uma missao do personagem anterior (01/10/2026).
+	fecharInfoDaMissao(conteinerDoInfo());
 };
 
 export default UIManager.addComponent(MissoesTrackerIdle);

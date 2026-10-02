@@ -7,6 +7,10 @@
 		     nao uma segunda tela de party. -->
 		<div class="mt-abas" role="tablist" aria-label="Missões e grupo">
 			<button type="button" class="mt-aba is-ativa" data-aba="missoes" role="tab" aria-selected="true">Missões</button>
+			<!-- D-1839: a aba do rastreador do Codex. Fora da HUD vertical a secao
+			     `.mt-codex` aparece embaixo das missoes; no celular em pe o cartao
+			     nao tem altura para as duas, e a aba troca uma pela outra. -->
+			<button type="button" class="mt-aba" data-aba="codex" role="tab" aria-selected="false">Codex <span class="mt-aba-n"></span></button>
 			<button type="button" class="mt-aba" data-aba="grupo" role="tab" aria-selected="false">Grupo</button>
 			<!-- RECOLHER, NA HUD VERTICAL (08/09/2026, pedido do dono).
 			     .
@@ -30,8 +34,17 @@
 			<button type="button" class="mt-recolher" title="Recolher">−</button>
 		</div>
 		<div class="mt-corpo">
-			<div class="mt-ativa" data-vazia="true"></div>
+			<!-- 01/10/2026: as missoes ACEITAS (ate 3, todas andando juntas), uma
+			     por bloco. A primeira ganha tambem `.mt-ativa`, que e onde a
+			     etapa 10 do tutorial aponta ("este e o seu objetivo"). -->
+			<ul class="mt-aceitas" data-vazia="true"></ul>
 			<ul class="mt-lista"></ul>
+			<!-- D-1839: o RASTREADOR DO CODEX - as entradas marcadas (estrela) na
+			     janela do Codex, com o contador. Some quando nao ha nada marcado. -->
+			<div class="mt-codex" data-vazia="true">
+				<div class="mt-codex-titulo">Codex</div>
+				<ul class="mt-codex-lista"></ul>
+			</div>
 		</div>
 		<!-- D-939: o rodape do cartao ("Ver todas as missões >") — mesmo
 		     destino do clique na Troca de Classe: a janela de Missões. -->

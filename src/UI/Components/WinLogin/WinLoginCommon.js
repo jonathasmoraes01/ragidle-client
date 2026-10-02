@@ -14,6 +14,7 @@ import GUIComponent from 'UI/GUIComponent.js';
 import { montarOfertaNaEntrada, sincronizar as sincronizarOferta } from './ofertaNaEntrada.js';
 import { enderecoDoCadastro } from 'UI/enderecoDoCadastro.js';
 import { montarCadastroNaEntrada } from './cadastroNaEntrada.js';
+import IdiomaIdle from 'UI/Components/IdiomaIdle/IdiomaIdle.js';
 import cadastroHtml from './cadastroNaEntrada.html?raw';
 import cadastroCss from './cadastroNaEntrada.css?raw';
 import 'UI/Elements/Elements.js';
@@ -111,6 +112,9 @@ export function createWinLogin({ name, htmlText, cssText }) {
 	};
 
 	Component.onAppend = function onAppend() {
+		// O jogo em ingles (D-1929): o botao do idioma flutua sobre QUALQUER
+		// versao da tela de login (a classica e a moderna), enquanto ela estiver.
+		IdiomaIdle.mostrarAtalho();
 		_inputUsername.value = _preferences.saveID ? _preferences.ID : '';
 		_inputPassword.value = '';
 
@@ -258,6 +262,10 @@ export function createWinLogin({ name, htmlText, cssText }) {
 
 	Component.onConnectionRequest = function onConnectionRequest() {};
 	Component.onExitRequest = function onExitRequest() {};
+
+	Component.onRemove = function onRemove() {
+		IdiomaIdle.esconderAtalho();
+	};
 
 	return UIManager.addComponent(Component);
 }

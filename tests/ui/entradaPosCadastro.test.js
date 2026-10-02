@@ -196,8 +196,9 @@ describe('5. a guarda do api.html', () => {
 	});
 
 	it('executada, a guarda tira o passe da URL antes de o Pixel poder le-la', () => {
-		const inicio = builder.indexOf('const GUARDA_DA_ENTRADA = `<script>') + 'const GUARDA_DA_ENTRADA = `<script>'.length;
-		const codigo = builder.slice(inicio, builder.indexOf('</script>`;', inicio));
+		// D-1648: a guarda virou arquivo gerado (`guarda-da-entrada.js`), e o codigo mora em GUARDA_DA_ENTRADA_JS.
+		const inicio = builder.indexOf('const GUARDA_DA_ENTRADA_JS = `') + 'const GUARDA_DA_ENTRADA_JS = `'.length;
+		const codigo = builder.slice(inicio, builder.indexOf('`;', inicio));
 		window.history.replaceState(null, '', `/${PREFIXO_DO_FRAGMENTO}novato.${PASSE}`);
 
 		new Function(codigo)();

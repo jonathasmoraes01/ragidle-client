@@ -28,6 +28,8 @@
  * comentários de cada bloco.
  */
 
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import * as formatoDaTemporada from 'UI/Components/TemporadaIdle/formatoDaTemporada.js';
 import {
@@ -223,13 +225,15 @@ describe('a caixa a venda (decisao do dono de 22/09/2026: 10 cash)', () => {
 		expect(html).toContain('data-item-id="9000300"');
 	});
 
-	it('a previa traz as recompensas em ordem e com o aro da raridade, SEM a chance no title', () => {
+	it('a previa traz as recompensas POR RARIDADE (o lendario primeiro) e com o aro, SEM a chance no title', () => {
 		const html = renderCaixaHtml(caixa());
 		expect(html).toContain('te-previa-item te-raridade--common');
 		expect(html).toContain('te-previa-item te-raridade--legendary');
 		expect(html).toContain('title="Asas de Anjo · Comum"');
 		expect(html).toContain('title="Máscara do Senhor das Trevas · Lendária"');
-		expect(html.indexOf('data-item-id="9000300"')).toBeLessThan(html.indexOf('data-item-id="9000305"'));
+		// 28/09/2026: o lendario (9000305) vem ANTES dos comuns - com 13 premios, na ordem
+		// do servidor ele caia para o fim da previa.
+		expect(html.indexOf('data-item-id="9000305"')).toBeLessThan(html.indexOf('data-item-id="9000300"'));
 		/* A decisao de 22/09/2026: a porcentagem nao aparece em lugar nenhum do
 		   card - nem no title, que e tela do mesmo jeito. */
 		expect(textoQueOJogadorLe(html)).not.toContain('%');
@@ -521,10 +525,118 @@ describe('a trilha de recompensas (free/vip lado a lado)', () => {
 });
 
 /*
+ * A CAIXA COMO PREMIO DO PASSE (01/10/2026, o Passe de Batalha VIP da S1). A
+ * caixa nao e item: o resgate soma +1 no contador da conta (`caixas[pool]`),
+ * sem correio. O servidor manda `itemId: null` e `caixa: {pool, slot}`; o
+ * premio de item vem com `caixa: null` (e um servidor anterior nem manda o
+ * campo) e tem de sair EXATAMENTE como antes.
+ */
+function premioCaixa(extra = {}) {
+	return premio({
+		nivel: 10,
+		trilha: 'vip',
+		itemId: null,
+		caixa: { pool: 'TOP', slot: 'Topo' },
+		nome: 'Caixa Topo',
+		quantidade: 1,
+		situacao: 'AVAILABLE',
+		...extra
+	});
+}
+
+/** O card de item de HOJE, letra por letra (conferido contra a versao anterior a caixa). */
+const CARD_DE_ITEM_DE_ANTES =
+	'<div class="te-premio-card te-premio-card--free te-nivel--available" data-nivel="7" data-trilha="free" data-item-id="2254">' +
+	'<span class="te-icone ri-tile" data-item-id="2254"><span class="te-icone-fallback">A</span></span>' +
+	'<div class="te-premio-card-nome" title="Asas Azuis de Fada">Asas Azuis de Fada</div>' +
+	'<button type="button" class="ri-btn ri-btn--ouro te-premio-card-resgatar" data-agir="resgatar" data-nivel="7" data-trilha="free">Resgatar</button>' +
+	'</div>';
+
+describe('a caixa como premio do passe (01/10/2026)', () => {
+	it('o card da caixa desenha a arte da caixa, o nome, e NAO leva data-item-id', () => {
+		const html = renderPremioDaTrilhaHtml(premioCaixa(), 'vip');
+		expect(html).toContain('src="/ragidle/temporada/icone-caixa-topo.webp"');
+		expect(html).toContain('te-icone--caixa');
+		expect(html).toContain('data-caixa="TOP"');
+		expect(html).toContain('>Caixa Topo</div>');
+		expect(html).not.toContain('data-item-id');
+		/* sem item, sem a inicial de reserva da arte de item */
+		expect(html).not.toContain('te-icone-fallback');
+		/* o resgate continua sendo o de sempre: nivel e trilha */
+		expect(html).toContain('data-agir="resgatar"');
+		expect(html).toContain('data-nivel="10"');
+		expect(html).toContain('data-trilha="vip"');
+	});
+
+	it('cada slot tem a SUA arte, a mesma do card da caixa', () => {
+		for (const [pool, slot] of [['TOP', 'Topo'], ['MID', 'Meio'], ['LOW', 'Baixo'], ['GARMENT', 'Manto']]) {
+			const html = renderPremioDaTrilhaHtml(premioCaixa({ caixa: { pool, slot }, nome: `Caixa ${slot}` }), 'vip');
+			const url = formatoDaTemporada.iconeDaCaixaUrl(slot);
+			expect(url).not.toBe('');
+			expect(html, slot).toContain(`src="${url}"`);
+			expect(html, slot).toContain(`data-caixa="${pool}"`);
+		}
+	});
+
+	it('slot sem arte cai no glifo do slot, nunca num retrato quebrado', () => {
+		const html = renderPremioDaTrilhaHtml(premioCaixa({ caixa: { pool: 'XYZ', slot: 'Sapato' } }), 'vip');
+		expect(html).not.toContain('<img');
+		expect(formatoDaTemporada.glifoDoSlot('Sapato')).not.toBe('');
+		expect(html).toContain(formatoDaTemporada.glifoDoSlot('Sapato'));
+	});
+
+	it('a regra da quantidade nao muda: 1 nao polui, mais de 1 vira tag', () => {
+		expect(renderPremioDaTrilhaHtml(premioCaixa({ quantidade: 1 }), 'vip')).not.toContain('te-premio-card-qtd');
+		expect(renderPremioDaTrilhaHtml(premioCaixa({ quantidade: 2 }), 'vip')).toContain('×2');
+	});
+
+	it('a situacao da caixa segue a do item: resgatada vira selo, trancada vira cadeado', () => {
+		expect(renderPremioDaTrilhaHtml(premioCaixa({ situacao: 'CLAIMED' }), 'vip')).toContain('is-resgatado');
+		expect(renderPremioDaTrilhaHtml(premioCaixa({ situacao: 'LOCKED' }), 'vip')).toContain('is-bloqueado');
+	});
+
+	it('o premio de ITEM sai exatamente como antes - com `caixa: null` e sem o campo (servidor anterior)', () => {
+		expect(renderPremioDaTrilhaHtml(premio(), 'free')).toBe(CARD_DE_ITEM_DE_ANTES);
+		expect(renderPremioDaTrilhaHtml(premio({ caixa: null }), 'free')).toBe(CARD_DE_ITEM_DE_ANTES);
+	});
+
+	it('so `caixa` com pool vira caixa: null, texto solto ou pool vazio continuam item', () => {
+		expect(formatoDaTemporada.caixaDoPremio(premioCaixa())).toEqual({ pool: 'TOP', slot: 'Topo' });
+		expect(formatoDaTemporada.caixaDoPremio(premio({ caixa: null }))).toBeNull();
+		expect(formatoDaTemporada.caixaDoPremio(premio())).toBeNull();
+		expect(formatoDaTemporada.caixaDoPremio(premio({ caixa: 'TOP' }))).toBeNull();
+		expect(formatoDaTemporada.caixaDoPremio(premio({ caixa: { pool: '', slot: 'Topo' } }))).toBeNull();
+		expect(formatoDaTemporada.caixaDoPremio(null)).toBeNull();
+	});
+
+	it('a dica da caixa diz para onde ela vai e NAO convida ao clique de detalhes', () => {
+		const html = formatoDaTemporada.renderDicaDaCaixaDoPremioHtml('Caixa <Topo>');
+		expect(html).toContain('Caixa &lt;Topo&gt;');
+		expect(html).toContain(formatoDaTemporada.TEXTO_DA_DICA_DA_CAIXA);
+		expect(formatoDaTemporada.TEXTO_DA_DICA_DA_CAIXA).toMatch(/caixas da temporada/);
+		expect(html).not.toContain('Clique para ver os detalhes');
+		expect(html).not.toContain('te-dica-rodape');
+		/* ...e a dica do ITEM continua com o convite */
+		expect(renderDicaDoPremioHtml('Asas', ['x'])).toContain('Clique para ver os detalhes');
+	});
+
+	it('na trilha inteira, a caixa da VIP mora na mesma coluna do item da Free', () => {
+		const passe = passeDoContrato({
+			premios: [premio({ nivel: 10, trilha: 'free', itemId: 2254 }), premioCaixa({ nivel: 10 })]
+		});
+		const html = renderTrilhaDeRecompensasHtml(passe);
+		const coluna = html.slice(html.indexOf('data-nivel="10"'));
+		expect(coluna).toContain('data-item-id="2254"');
+		expect(coluna).toContain('data-caixa="TOP"');
+	});
+});
+
+/*
  * O PASSE DE BATALHA VIP (23/09/2026, ordem do dono): a trilha VIP e liberada
  * pela COMPRA dele, e nao pelo VIP de 30 dias. O servidor manda
  * `passe.trilhaVip = {liberada, precoMinor, aVenda, compra: {pode, motivo, texto}}`
- * e a janela so desenha - hoje a venda esta FECHADA e o botao chega apagado.
+ * e a janela so desenha - com a venda FECHADA (ate 01/10/2026) o botao chega
+ * apagado; com ela aberta, acende so quando o servidor diz `compra.pode`.
  */
 const TRILHA_FORA_DE_VENDA = {
 	liberada: false,
@@ -820,5 +932,66 @@ describe('o pacote 10 + 1 no card da caixa (23/09/2026)', () => {
 	it('sem saldo o botao vem desligado, e sem pacote no contrato nada aparece', () => {
 		expect(formatoDaTemporada.renderPacoteHtml({ ...caixa, pacote: { ...caixa.pacote, pode: false } })).toContain(' disabled');
 		expect(formatoDaTemporada.renderPacoteHtml({ pool: 'TOP', nome: 'x' })).toBe('');
+	});
+});
+
+/*
+ * O SELO DO EVENTO DE GACHA (D-1901, 01/10/2026 — "que todos no servidor
+ * entendam que se trata de um buff dado por nos"). O servidor manda
+ * `caixa.evento = { rotulo, fimMs, restanteMs }` so na caixa em evento
+ * (`seloDoEventoDeGacha`); a janela desenha o multiplicador e o fim, e NUNCA
+ * uma porcentagem — a decisao de 22/09/2026 continua.
+ */
+describe('o selo do evento de gacha no card da caixa (D-1901)', () => {
+	// Minuto DIFERENTE de zero: com 17:00 o "00" do minuto passaria por qualquer coisa.
+	const FIM = Date.UTC(2026, 9, 2, 17, 25);
+	const comEvento = caixa({ evento: { rotulo: 'Lendário 2x', fimMs: FIM, restanteMs: 3 * 3600000 } });
+	const d = new Date(FIM);
+	const doisDigitos = n => String(n).padStart(2, '0');
+	const fimLocal = `${doisDigitos(d.getDate())}/${doisDigitos(d.getMonth() + 1)}, ${doisDigitos(d.getHours())}:${doisDigitos(d.getMinutes())}`;
+
+	it('diz EVENTO, o multiplicador e o fim no fuso desta maquina — sem porcentagem', () => {
+		const selo = formatoDaTemporada.renderSeloDoEventoHtml(comEvento);
+		expect(selo).toContain('<span>Evento</span>');
+		expect(selo).toContain('<strong class="te-caixa-evento-rotulo">Lendário 2x</strong>');
+		expect(selo).toContain(`até ${fimLocal}`);
+		expect(formatoDaTemporada.dataEHoraCurtaDeMs(FIM)).toBe(fimLocal);
+		expect(selo).not.toContain('%');
+	});
+
+	it('sem evento (ou servidor anterior a D-1900), nada', () => {
+		expect(formatoDaTemporada.renderSeloDoEventoHtml(caixa())).toBe('');
+		expect(formatoDaTemporada.renderSeloDoEventoHtml(caixa({ evento: null }))).toBe('');
+		expect(formatoDaTemporada.renderSeloDoEventoHtml(undefined)).toBe('');
+		expect(formatoDaTemporada.dataEHoraCurtaDeMs('x')).toBe('');
+	});
+
+	it('o rotulo vem do servidor e e ESCAPADO', () => {
+		const selo = formatoDaTemporada.renderSeloDoEventoHtml(caixa({ evento: { rotulo: '<b>x</b>', fimMs: FIM, restanteMs: 1 } }));
+		expect(selo).not.toContain('<b>x</b>');
+		expect(selo).toContain('&lt;b&gt;x&lt;/b&gt;');
+	});
+
+	it('o card leva o selo logo abaixo do cabecalho, antes da previa; sem evento, nao', () => {
+		const html = renderCaixaHtml(comEvento);
+		const posSelo = html.indexOf('class="te-caixa-evento"');
+		expect(posSelo).toBeGreaterThan(html.indexOf('</header>'));
+		expect(posSelo).toBeLessThan(html.indexOf('class="te-caixa-previa"'));
+		expect(renderCaixaHtml(caixa())).not.toContain('te-caixa-evento');
+	});
+
+	it('o resumo dos Destaques tambem diz o evento, numa linha propria', () => {
+		const html = formatoDaTemporada.renderResumoDasCaixasHtml([comEvento, caixa({ pool: 'MID', nome: 'Caixa Meio' })]);
+		expect(html).toContain('<span class="te-resumo-caixa-evento">Evento: Lendário 2x</span>');
+		expect(html.match(/te-resumo-caixa-evento/g)).toHaveLength(1);
+	});
+
+	it('no celular em pe o selo QUEBRA LINHA em vez de rolar para o lado', () => {
+		const css = readFileSync(join(process.cwd(), 'src/UI/Components/TemporadaIdle/TemporadaIdle.css'), 'utf8').replace(/\r\n/g, '\n');
+		const regra = /#TemporadaIdle \.te-caixa-evento \{([^}]*)\}/.exec(css);
+		expect(regra, 'a regra do selo sumiu do CSS').not.toBeNull();
+		expect(regra[1]).toContain('flex-wrap: wrap;');
+		expect(regra[1]).toContain('min-width: 0;');
+		expect(css).toMatch(/#TemporadaIdle \.te-caixa-evento-fim \{[^}]*white-space: nowrap;/);
 	});
 });

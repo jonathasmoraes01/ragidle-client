@@ -67,7 +67,7 @@ describe('B3 — a seção diz onde a cura mora (desde 08/09 ela NAO divide as v
 	it('o seletor não promete só golpe, e marca a cura na própria lista', () => {
 		expect(RENDER_ATAQUE).toContain('+ Pôr uma habilidade na ordem');
 		expect(RENDER_ATAQUE).not.toContain('+ Pôr um golpe na ordem');
-		expect(RENDER_ATAQUE).toContain("curas.has(s.skillId) ? ' — cura' : ''");
+		expect(RENDER_ATAQUE).toContain("curas.has(s.skillId) ? ' (cura)' : ''");
 	});
 
 	it('as duas frases de vaga cheia falam de HABILIDADE, e não de golpe', () => {

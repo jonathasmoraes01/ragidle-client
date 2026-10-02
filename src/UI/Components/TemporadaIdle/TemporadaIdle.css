@@ -748,6 +748,39 @@
 	flex: 0 0 auto;
 }
 
+/* A trilha com as setas nas pontas (29/09/2026). A seta tem 44px de altura:
+   e alvo de dedo tambem, e nao so de mouse. */
+#TemporadaIdle .te-reward-rolagem {
+	display: flex;
+	align-items: center;
+	gap: var(--sp-2);
+}
+
+#TemporadaIdle .te-reward-rolagem .te-reward-scroll {
+	flex: 1 1 auto;
+	min-width: 0;
+	cursor: grab;
+	overscroll-behavior-x: contain;
+}
+
+#TemporadaIdle .te-reward-scroll.is-arrastando {
+	cursor: grabbing;
+	user-select: none;
+}
+
+#TemporadaIdle .te-reward-seta {
+	flex: 0 0 auto;
+	width: 28px;
+	min-height: 44px;
+	padding: 0;
+	font-size: 20px;
+	line-height: 1;
+}
+
+#TemporadaIdle .te-reward-seta[hidden] {
+	display: none;
+}
+
 #TemporadaIdle .te-reward-scroll {
 	display: flex;
 	gap: var(--sp-3);
@@ -1200,9 +1233,12 @@
 	font-style: italic;
 }
 
-/* A prévia: as seis recompensas em arte real, com o aro da raridade. */
+/* A prévia: as recompensas em arte real, com o aro da raridade. Desde
+   28/09/2026 são 13 por caixa, e elas QUEBRAM LINHA: com uma linha só e
+   `overflow: hidden`, metade sumia sem aviso. */
 #TemporadaIdle .te-caixa-previa {
 	display: flex;
+	flex-wrap: wrap;
 	gap: var(--sp-2);
 	padding: var(--sp-2);
 	border-radius: var(--radius-card);
@@ -1303,6 +1339,63 @@
 #TemporadaIdle .te-pity-faltam {
 	font: var(--type-desc);
 	color: var(--amber-600);
+}
+
+/* O SELO DO EVENTO DE GACHA (D-1901): a faixa de uma linha logo abaixo do
+   cabecalho da caixa. A cor e a do perigo do design system (`--red-600`), a
+   mesma familia do vermelho do anuncio "[Equipe]" (0xFF6060) — o jogador liga
+   o selo ao recado da equipe. Quebra linha em vez de rolar: no celular em pe o
+   "ate 02/10, 14:00" desce para a linha de baixo. */
+#TemporadaIdle .te-caixa-evento {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: var(--sp-2) var(--sp-3);
+	min-width: 0;
+	padding: var(--sp-2) var(--sp-3);
+	border-radius: var(--radius-card);
+	border-left: 3px solid var(--red-600);
+	background: var(--surface-inset);
+}
+
+#TemporadaIdle .te-caixa-evento-selo {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	padding: 2px 8px;
+	border-radius: 999px;
+	background: var(--red-600);
+	color: var(--white, #fff);
+	font: var(--type-badge);
+	text-transform: uppercase;
+	letter-spacing: var(--ls-caps);
+}
+
+#TemporadaIdle .te-caixa-evento-selo svg {
+	width: 12px;
+	height: 12px;
+	flex: 0 0 auto;
+}
+
+#TemporadaIdle .te-caixa-evento-rotulo {
+	font: var(--type-label);
+	color: var(--text-title);
+}
+
+#TemporadaIdle .te-caixa-evento-fim {
+	font: var(--type-desc);
+	color: var(--text-muted);
+	white-space: nowrap;
+}
+
+#TemporadaIdle .te-resumo-caixa-evento {
+	font: var(--type-badge);
+	color: var(--red-600);
+	text-transform: uppercase;
+	letter-spacing: var(--ls-caps);
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
 }
 
 #TemporadaIdle .te-pity-garantido {
@@ -2270,6 +2363,24 @@
 
 #TemporadaIdle .te-premio-card[data-item-id]:hover {
 	border-color: var(--gold-500);
+}
+
+/* A CAIXA COMO PREMIO DO PASSE (01/10/2026): o icone premium da caixa no
+   lugar da arte de item - a mesma peca do card da caixa (".te-caixa-glifo-img",
+   28px) -, e a dica no hover. Sem "cursor: pointer": o clique nao abre nada. */
+#TemporadaIdle .te-premio-card[data-caixa]:hover {
+	border-color: var(--gold-500);
+}
+
+#TemporadaIdle .te-premio-caixa-img {
+	width: 28px;
+	height: 28px;
+	object-fit: contain;
+}
+
+#TemporadaIdle .te-icone--caixa svg {
+	width: 18px;
+	height: 18px;
 }
 
 #TemporadaIdle .te-dica {

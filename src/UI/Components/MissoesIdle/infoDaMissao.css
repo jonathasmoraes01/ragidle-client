@@ -1,0 +1,329 @@
+/**
+ * UI/Components/MissoesIdle/infoDaMissao.css
+ *
+ * O "(i)" DE UMA MISSAO E O PAINEL QUE ELE ABRE (01/10/2026, pedido do dono).
+ *
+ * Esta folha e SOMADA a de quem desenha o "(i)" (o cartao da HUD e a janela de
+ * Missoes), do mesmo jeito que `escolhaDeMapa.css` e somada as duas janelas
+ * que tem o "Ir ao mapa": o painel mora dentro do Shadow DOM de quem o abriu,
+ * e so a folha DAQUELE shadow o alcanca.
+ *
+ * O PAINEL E FIXO (`position: fixed`) pelo motivo do seletor de nivel da barra:
+ * o cartao de missoes tem `overflow: hidden`, e so um elemento fixo escapa da
+ * caixa dele. Por isso o painel nasce na RAIZ do componente (`#MissoesTrackerIdle`,
+ * `#MissoesIdle`), e nunca dentro da `.ri-window`: o vidro dela
+ * (`backdrop-filter`) faria do `fixed` um `absolute` preso na janela.
+ *
+ * A posicao e escrita pelo JS (`posicionar`, em `infoDaMissao.js`). No celular
+ * em pe (`is-celular`, a decisao de `ehCelularEmPe()`), a LARGURA e daqui: 16px
+ * de cada lado, e o que nao couber na altura rola por dentro de `.im-corpo`.
+ */
+
+/* ─── O "(i)" ─────────────────────────────────────────────────────────── */
+
+.im-i {
+	/* Posicionado: no dedo o `::before` do Common.css aumenta a AREA dele para
+	   44px, e um `::before` absoluto ancora no ancestral posicionado mais
+	   proximo (o portao `areaDeToqueAncoraNoBotao` cobra isto). */
+	position: relative;
+	flex: 0 0 auto;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	box-sizing: border-box;
+	width: 18px;
+	height: 18px;
+	margin: 0;
+	padding: 0;
+	border-radius: 50%;
+	border: 1px solid var(--accent);
+	background: var(--surface-card);
+	color: var(--accent);
+	font-family: Georgia, 'Times New Roman', serif;
+	font-size: 12px;
+	font-style: italic;
+	font-weight: 700;
+	line-height: 1;
+	cursor: pointer;
+	transition:
+		background var(--dur-fast),
+		color var(--dur-fast);
+}
+
+.im-i:hover,
+.im-i:focus-visible {
+	background: var(--accent);
+	color: var(--text-on-accent, #fff);
+}
+
+/* ─── O painel ────────────────────────────────────────────────────────── */
+
+.im-painel {
+	display: none;
+	position: fixed;
+	z-index: 10002;
+	box-sizing: border-box;
+	width: 300px;
+	max-width: calc(100vw - 16px);
+	max-height: calc(100dvh - 16px);
+	flex-direction: column;
+	overflow: hidden;
+	/* O host dos componentes e `pointer-events: none` (a janela fechada nao
+	   pode engolir clique de cena); o painel opta de volta. */
+	pointer-events: auto;
+	background: var(--surface-window);
+	border: 1px solid var(--border-window);
+	border-radius: var(--radius-window);
+	box-shadow: var(--shadow-window);
+	font-family: var(--font-ui);
+	font-size: var(--fs-info);
+	color: var(--text-body);
+	text-align: left;
+	text-shadow: none;
+	white-space: normal;
+}
+
+.im-painel.is-aberto {
+	display: flex;
+}
+
+.im-topo {
+	flex: 0 0 auto;
+	display: flex;
+	align-items: flex-start;
+	gap: 8px;
+	padding: 10px 8px 8px 12px;
+	border-bottom: 1px solid var(--border-hairline);
+}
+
+.im-cabeca {
+	flex: 1 1 auto;
+	min-width: 0;
+}
+
+.im-titulo {
+	font-weight: 700;
+	color: var(--text-title);
+	overflow-wrap: anywhere;
+}
+
+.im-sub {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 4px 8px;
+	margin-top: 4px;
+	font-size: var(--fs-desc);
+	color: var(--text-muted);
+}
+
+.im-fechar {
+	flex: 0 0 auto;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	box-sizing: border-box;
+	width: 22px;
+	height: 22px;
+	margin: 0;
+	padding: 0;
+	border-radius: 50%;
+	border: 1px solid var(--border-hairline);
+	background: var(--surface-card);
+	color: var(--text-muted);
+	font-size: 15px;
+	line-height: 1;
+	cursor: pointer;
+}
+
+.im-fechar:hover {
+	border-color: var(--accent);
+	color: var(--text-body);
+}
+
+/* O corpo e QUEM ROLA: o titulo e o fechar ficam sempre a vista, e os botoes
+   tambem (o rodape e outra faixa, fora do corpo). */
+.im-corpo {
+	flex: 1 1 auto;
+	min-height: 0;
+	overflow-y: auto;
+	overflow-x: hidden;
+	overscroll-behavior: contain;
+	-webkit-overflow-scrolling: touch;
+	padding: 8px 12px 10px;
+}
+
+.im-estado {
+	margin: 0 0 6px;
+	font-size: var(--fs-desc);
+	font-weight: 700;
+	color: var(--text-muted);
+}
+
+.im-estado[data-estado='em-andamento'] {
+	color: var(--gold-700, #8a6d1a);
+}
+
+.im-estado[data-estado='pronta'] {
+	color: var(--green-600);
+}
+
+.im-estado[data-estado='bloqueada'] {
+	color: var(--amber-600);
+}
+
+.im-desc {
+	margin: 0 0 8px;
+	font-size: var(--fs-desc);
+	color: var(--text-muted);
+	overflow-wrap: anywhere;
+}
+
+.im-secao {
+	margin: 8px 0 4px;
+	font-size: var(--fs-desc);
+	font-weight: 700;
+	text-transform: uppercase;
+	letter-spacing: 0.06em;
+	color: var(--text-muted);
+}
+
+.im-objetivos,
+.im-recompensas {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+}
+
+.im-objetivo-linha {
+	display: flex;
+	align-items: baseline;
+	justify-content: space-between;
+	gap: 8px;
+}
+
+.im-objetivo-desc {
+	min-width: 0;
+	overflow-wrap: anywhere;
+}
+
+.im-conta {
+	flex: 0 0 auto;
+	font-weight: 700;
+	font-variant-numeric: tabular-nums;
+}
+
+.im-objetivo.is-completo .im-conta {
+	color: var(--green-600);
+}
+
+/* A mesma mini-barra dourada do cartao da HUD. */
+.im-barra {
+	height: 5px;
+	margin-top: 3px;
+	border-radius: 999px;
+	background: var(--well-fill, rgba(0, 0, 0, 0.12));
+	overflow: hidden;
+}
+
+.im-barra-fill {
+	height: 100%;
+	border-radius: 999px;
+	background: var(--gold-500);
+	transition: width 300ms ease-out;
+}
+
+.im-objetivo.is-completo .im-barra-fill {
+	background: var(--green-600);
+}
+
+.im-onde {
+	margin-top: 2px;
+	font-size: var(--fs-desc);
+	color: var(--text-muted);
+	overflow-wrap: anywhere;
+}
+
+.im-recompensas {
+	gap: 2px;
+	font-size: var(--fs-desc);
+}
+
+.im-recompensas li::before {
+	content: '• ';
+	color: var(--gold-500);
+}
+
+.im-acoes {
+	flex: 0 0 auto;
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: flex-end;
+	align-items: center;
+	gap: 6px;
+	padding: 8px 12px 10px;
+	border-top: 1px solid var(--border-hairline);
+}
+
+.im-acao {
+	padding: 4px 10px;
+	font-size: var(--fs-desc);
+}
+
+.im-ver {
+	appearance: none;
+	margin: 0 auto 0 0;
+	padding: 4px 0;
+	border: 0;
+	background: transparent;
+	color: var(--text-link);
+	font: inherit;
+	font-size: var(--fs-desc);
+	text-decoration: underline;
+	cursor: pointer;
+}
+
+/* ─── CELULAR EM PE: a largura da tela, 16px de respiro de cada lado ───── */
+
+.im-painel.is-celular {
+	left: calc(var(--safe-esq, 0px) + 16px);
+	right: calc(var(--safe-dir, 0px) + 16px);
+	width: auto;
+	max-width: none;
+	max-height: calc(100dvh - var(--safe-topo, 0px) - var(--safe-baixo, 0px) - 16px);
+}
+
+/* ─── NO DEDO: os alvos chegam ao piso tatil (D-935) ───────────────────── */
+@media (pointer: coarse) {
+	/* O "(i)" cresce um pouco no desenho e o resto e AREA (o `::before` do
+	   Common.css): um circulo de 44px em cada missao do cartao dobraria a
+	   altura dele, que o dono ja mandou encolher (D-1483). */
+	.im-i {
+		width: 24px;
+		height: 24px;
+		font-size: 14px;
+	}
+
+	/* O fechar e os botoes do painel crescem de VERDADE: sao os alvos que o
+	   dedo mira dentro de um painel que ja esta aberto, e nao ha vizinho
+	   para empurrar. */
+	.im-fechar {
+		width: var(--hit-touch, 44px);
+		height: var(--hit-touch, 44px);
+		margin: -8px -4px -8px 0;
+		font-size: 20px;
+	}
+
+	.im-acao,
+	.im-ver {
+		min-height: var(--hit-touch, 44px);
+		padding: 0 14px;
+	}
+
+	.im-ver {
+		padding: 0;
+	}
+}

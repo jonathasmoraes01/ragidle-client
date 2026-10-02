@@ -555,21 +555,31 @@ StatusInfo[SC.SHOUT] = {
 };
 
 /*
- * RAGIDLE (RO Shop, 22/09/2026): o EFST_CASH_RECEIVEITEM e o icone da BENCAO DA
+ * RAGIDLE (RO Shop, 22 a 27/09/2026 - HISTORIA, ver o bloco seguinte): o
+ * EFST_CASH_RECEIVEITEM foi o icone da BENCAO DA
  * FORTUNA (item 9000102), que o servidor manda no gole e na entrada do mapa
  * (CONTRATO.md do RO Shop, secao 5). O texto do upstream ("o drop dobra") era
  * falso para ela; o titulo diz de onde vem o bonus, e o quanto fica na
  * descricao do item, que e fixa por id - esta tabela e fixa por EFST.
  */
+/*
+ * 27/09/2026: o 252 voltou a ser da GOMA DE MASCAR, que e o dono oficial dele
+ * (SC_ITEMBOOST) e entrou no RO Shop (9000123). A Bencao foi para o
+ * EFST_PERIOD_RECEIVEITEM_2ND (1084), abaixo: com as duas ativas no mesmo
+ * EFST, o fim de uma apagaria o icone da outra.
+ */
 StatusInfo[SC.CASH_RECEIVEITEM] = {
 	icon: 'item.tga',
 	haveTimeLimit: 1,
 	posTimeLimitStr: 2,
-	descript: [
-		['Fortune Blessing', COLOR_TITLE_BUFF],
-		['%s', COLOR_TIME],
-		['Increases the drop chance of common items']
-	]
+	descript: [['Drop Bonus', COLOR_TITLE_BUFF], ['%s', COLOR_TIME], ['Increases the drop chance of all items']]
+};
+
+StatusInfo[SC.PERIOD_RECEIVEITEM_2ND] = {
+	icon: 'item.tga',
+	haveTimeLimit: 1,
+	posTimeLimitStr: 2,
+	descript: [['Blessing of Fortune', COLOR_TITLE_BUFF], ['%s', COLOR_TIME], ['Increases the drop chance of all items']]
 };
 
 StatusInfo[SC.SPL_DEF] = {
@@ -1040,7 +1050,7 @@ StatusInfo[SC.CASH_PLUSONLYJOBEXP] = {
 	icon: 'job.tga',
 	haveTimeLimit: 1,
 	posTimeLimitStr: 2,
-	descript: [['Job EXP Manual', COLOR_TITLE_BUFF], ['%s', COLOR_TIME], ['Increases Job EXP acquired.']]
+	descript: [['Job Experience Manual', COLOR_TITLE_BUFF], ['%s', COLOR_TIME], ['Increases Job EXP acquired.']]
 };
 
 StatusInfo[SC.ARMOR_PROPERTY] = {
@@ -1570,7 +1580,7 @@ StatusInfo[SC.PERIOD_PLUSEXP] = {
 	icon: 'exp.tga',
 	haveTimeLimit: 1,
 	posTimeLimitStr: 2,
-	descript: [['EXP Manual', COLOR_TITLE_BUFF], ['%s', COLOR_TIME], ['Increases acquired Base EXP']]
+	descript: [['Experience Manual', COLOR_TITLE_BUFF], ['%s', COLOR_TIME], ['Increases acquired Base EXP']]
 };
 
 StatusInfo[SC.ATTHASTE_POTION2] = {
@@ -3415,6 +3425,95 @@ StatusInfo[EFST_DO_RELOGIO_DA_PRACA] = {
 	haveTimeLimit: 1,
 	posTimeLimitStr: 2,
 	descript: [['Praça de Zeny', COLOR_TITLE_BUFF], ['%s', COLOR_TIME], ['Tempo restante na praça hoje.']]
+};
+
+/**
+ * O CRONOMETRO DA PRACA DE EXP (28/09/2026, L15). O mesmo molde do da Zeny,
+ * com o EFST e o saldo DELA (`EFST_DO_RELOGIO_DA_PRACA_DE_EXP = 1901`,
+ * servidor/zona-de-zeny/icone-do-relogio.ts). A arte e o Manual de
+ * Experiencia publicado pelo proprio jogo.
+ */
+export const EFST_DO_RELOGIO_DA_PRACA_DE_EXP = 1901;
+StatusInfo[EFST_DO_RELOGIO_DA_PRACA_DE_EXP] = {
+	icon: '/ragidle/item/9000100.png',
+	haveTimeLimit: 1,
+	posTimeLimitStr: 2,
+	descript: [['Praça de EXP', COLOR_TITLE_BUFF], ['%s', COLOR_TIME], ['Tempo restante na praça hoje.']]
+};
+
+/**
+ * O VIP E AS FLECHAS INFINITAS NA BARRA DE STATUS (28/09/2026, pedido do dono:
+ * "faca um icone com contagem, como o do VIP e que ambos precisam aparecer na
+ * tela"). Os EFSTs sao do servidor (`EFST_DO_VIP = 1902` e
+ * `EFST_DAS_FLECHAS_INFINITAS = 1903`, servidor/mapa/icone-dos-passes.ts), na
+ * faixa das pracas: dono unico. O relogio vem ate o fim do ultimo dia do passe,
+ * e passa de 24 h, entao a celula mostra dias (`formatarRelogioDoBuff`). A arte
+ * do VIP e a mesma da marca do VIP no chat (`ICONE_DO_VIP`); a das Flechas e a
+ * aljava do aluguel de 7 dias, publicada pelo proprio jogo.
+ */
+export const EFST_DO_VIP = 1902;
+StatusInfo[EFST_DO_VIP] = {
+	icon: '/ragidle/shop/icons/shop-icon-ro-cash.png',
+	haveTimeLimit: 1,
+	posTimeLimitStr: 2,
+	descript: [['VIP', COLOR_TITLE_BUFF], ['%s', COLOR_TIME], ['Tempo restante do seu VIP.']]
+};
+
+/**
+ * OS EVENTOS DE DROP E RESPAWN DA EQUIPE (D-1880, 01/10/2026). Os EFSTs sao do
+ * servidor (`EFST_DOS_EVENTOS_DO_ADMIN`, servidor/eventos-do-admin.ts), na
+ * faixa das pracas e dos passes: dono unico. O relogio e o do evento (ate 720 h,
+ * a celula mostra dias). A arte e do GRF, como a do evento de EXP (regra 4):
+ * `item_g.tga` e o "ITEM" verde (o dourado `item.tga` ja e o da Goma e da
+ * Bencao), e `essenceoftime.tga` e o relogio. Os textos em ingles tem a traducao
+ * em `StatusInfoPtBr.js`, como o `CASH_PLUSEXP` do evento de EXP.
+ */
+export const EFST_DO_EVENTO_DE_DROP = 1904;
+StatusInfo[EFST_DO_EVENTO_DE_DROP] = {
+	icon: 'item_g.tga',
+	haveTimeLimit: 1,
+	posTimeLimitStr: 2,
+	descript: [
+		['Drop Event', COLOR_TITLE_BUFF],
+		['%s', COLOR_TIME],
+		['Increases the drop chance of items except cards']
+	]
+};
+
+export const EFST_DO_EVENTO_DE_RESPAWN = 1905;
+StatusInfo[EFST_DO_EVENTO_DE_RESPAWN] = {
+	icon: 'essenceoftime.tga',
+	haveTimeLimit: 1,
+	posTimeLimitStr: 2,
+	descript: [['Respawn Event', COLOR_TITLE_BUFF], ['%s', COLOR_TIME], ['Monsters respawn faster']]
+};
+
+/**
+ * O EVENTO DE GACHA DA EQUIPE (D-1900, 01/10/2026). O EFST e do servidor
+ * (`EFST_DO_EVENTO_DE_GACHA`, servidor/temporada/evento-de-gacha.ts), o
+ * proximo livre depois do drop e do respawn. A arte e do GRF (regra 4):
+ * `efst_hidden_card.tga`, a carta virada com moldura dourada — o premio que
+ * ainda nao se ve —, que nenhum outro status usa. QUAL caixa e QUANTO o icone
+ * nao diz: dizem o anuncio da equipe e o selo da caixa na loja.
+ */
+export const EFST_DO_EVENTO_DE_GACHA = 1906;
+StatusInfo[EFST_DO_EVENTO_DE_GACHA] = {
+	icon: 'efst_hidden_card.tga',
+	haveTimeLimit: 1,
+	posTimeLimitStr: 2,
+	descript: [['Gacha Event', COLOR_TITLE_BUFF], ['%s', COLOR_TIME], ['Better odds in one Season box']]
+};
+
+export const EFST_DAS_FLECHAS_INFINITAS = 1903;
+StatusInfo[EFST_DAS_FLECHAS_INFINITAS] = {
+	icon: '/ragidle/item/9000130.png',
+	haveTimeLimit: 1,
+	posTimeLimitStr: 2,
+	descript: [
+		['Flechas Infinitas', COLOR_TITLE_BUFF],
+		['%s', COLOR_TIME],
+		['A flecha equipada não é gasta. Mantenha ao menos uma equipada.']
+	]
 };
 
 export default StatusInfo;

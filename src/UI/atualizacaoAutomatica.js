@@ -45,6 +45,7 @@
  */
 
 import Session from 'Engine/SessionStorage.js';
+import { VERSAO_DO_BUILD, versaoDoCarimbo } from 'Core/versaoDoCliente.js';
 import { guardarRetomada } from 'Engine/retomadaAposAtualizacao.js';
 import { janelaDaCasca, pontePWA } from 'UI/ofertaDeInstalacao.js';
 
@@ -77,6 +78,64 @@ export function deveComecarAContagem(estado) {
 	}
 	return true;
 }
+
+/**
+ * A VERSAO PUBLICADA E MAIS NOVA QUE ESTA PAGINA? (28/09/2026, D-1646 do
+ * servidor). O navegador SEM service worker (aba anonima do Firefox, varios
+ * navegadores de dentro de aplicativo) nunca recebe o `ragidle:versao-nova` da
+ * casca: ele le o `versao-do-cliente.json` que o build publica e compara o
+ * carimbo com o dele. Devolve a versao publicada quando ela e mais nova, e
+ * `null` em qualquer outro caso (sem build, arquivo torto, mesma versao ou mais
+ * velha - um rollback nunca recarrega a pagina "para tras").
+ *
+ * @param {unknown} publicado o JSON do arquivo
+ * @param {string} daPagina `VERSAO_DO_BUILD` desta pagina
+ * @returns {string|null}
+ */
+export function versaoPublicadaMaisNova(publicado, daPagina) {
+	const minha = versaoDoCarimbo(daPagina);
+	if (minha <= 0 || !publicado || typeof publicado !== 'object') {
+		return null;
+	}
+	const versao = publicado.versao;
+	if (typeof versao !== 'string') {
+		return null;
+	}
+	return versaoDoCarimbo(versao) > minha ? versao : null;
+}
+
+/** O endereco do arquivo, relativo a origem do jogo. */
+export const ARQUIVO_DA_VERSAO_PUBLICADA = '/versao-do-cliente.json';
+
+/**
+ * Le a versao publicada e, se for mais nova, a poe na fila da contagem - o
+ * MESMO caminho do aviso da casca. Falha de rede e silenciosa: tenta de novo na
+ * proxima conferencia.
+ */
+function conferirVersaoPublicada() {
+	if (!VERSAO_DO_BUILD || typeof fetch !== 'function') {
+		return Promise.resolve();
+	}
+	return fetch(ARQUIVO_DA_VERSAO_PUBLICADA, { cache: 'no-store' })
+		.then(r => (r.ok ? r.json() : null))
+		.then(publicado => {
+			const nova = versaoPublicadaMaisNova(publicado, VERSAO_DO_BUILD);
+			if (nova) {
+				_versaoPendente = nova;
+				avaliar();
+			}
+		})
+		.catch(() => {});
+}
+
+/** A casca tem service worker que confere a versao? Sem ele, o jogo confere. */
+function temCascaQueConfere() {
+	const ponte = pontePWA();
+	return Boolean(ponte && typeof ponte.conferirVersao === 'function');
+}
+
+/** A mesma cadencia da casca (`registrar-sw.js`): 5 minutos. */
+const MS_ENTRE_CONFERENCIAS_SEM_CASCA = 5 * 60 * 1000;
 
 function lerUltimaTentativa() {
 	try {
@@ -283,12 +342,26 @@ export function ligarAtualizacaoAutomatica() {
 	document.addEventListener('visibilitychange', () => {
 		if (visivel()) {
 			avaliar();
+			if (!temCascaQueConfere()) {
+				conferirVersaoPublicada();
+			}
 		} else {
 			/* A aba saiu no meio da contagem: ela para, e volta na proxima
 			   volta. Recarregar com ninguem olhando nao explicaria nada. */
 			cancelarContagem();
 		}
 	});
+
+	/* SEM SERVICE WORKER, o jogo confere sozinho (D-1646): na mesma cadencia da
+	   casca, e agora. */
+	if (!temCascaQueConfere() && VERSAO_DO_BUILD) {
+		conferirVersaoPublicada();
+		setInterval(() => {
+			if (!temCascaQueConfere()) {
+				conferirVersaoPublicada();
+			}
+		}, MS_ENTRE_CONFERENCIAS_SEM_CASCA);
+	}
 
 	/* A casca pode ter descoberto a versao ANTES de o jogo ligar. */
 	const ponte = pontePWA();
@@ -309,6 +382,10 @@ export function conferirVersaoAgora() {
 		const ponte = pontePWA();
 		if (ponte && typeof ponte.conferirVersao === 'function') {
 			ponte.conferirVersao();
+		} else {
+			/* Sem service worker (D-1646): a volta da reconexao confere pelo
+			   arquivo publicado. */
+			conferirVersaoPublicada();
 		}
 	} catch {
 		/* sem casca PWA (dev), nada a conferir */

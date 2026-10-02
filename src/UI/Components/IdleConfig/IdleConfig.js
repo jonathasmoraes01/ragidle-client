@@ -65,6 +65,9 @@ import ChatBox from 'UI/Components/ChatBox/ChatBox.js';
 import GUIComponent from 'UI/GUIComponent.js';
 import RiIcones from 'UI/ri-icones.js';
 import { pocoesDoEixo, escolherPocaoPadrao } from './escolhaDePocao.js';
+import { ehDaLinhaDoArqueiro } from './linhaDoArqueiro.js';
+import { rolagemAoRedesenhar } from './rolagemDaSecao.js';
+import Session from 'Engine/SessionStorage.js';
 import { aplicarIconeDoItem, nomeLocalDoItem } from 'UI/itemNaTela.js';
 import {
 	ABAS_ACEITAS,
@@ -81,6 +84,8 @@ import {
 	resumoDaSecao,
 	curaLigadaPara
 } from './secoesDaConfig.js';
+import { aplicarPassoDeNivel, duracaoDaEntrada, lembrarSpDoContexto, nivelEscolhidoServido, seletorDaCura, seletorDaEntrada } from './nivelNaConfig.js';
+import { lerPassoDoSeletor } from 'UI/nivelDeUso.js';
 import htmlText from './IdleConfig.html?raw';
 import cssText from './IdleConfig.css?raw';
 import { fecharEEsquecer } from '../limpezaDeJanelaIdle.js';
@@ -436,6 +441,8 @@ IdleConfig.toggle = function toggle() {
 		closeWindow();
 	} else {
 		win.classList.add('is-open');
+		// A janela que reabre comeca do topo (`rolagemDaSecao.js`).
+		_secaoDoUltimoDesenho = null;
 		ligarInstalar();
 		sincronizarInstalar();
 		ligarRetomarTutorial();
@@ -562,8 +569,8 @@ function aplicarEstadoDeCidade() {
 	btn.disabled = false;
 	btn.classList.toggle('ic-button-cidade', ehCidade);
 	btn.title = ehCidade
-		? 'Voce esta na cidade — de para editar a configuracao; a caca comeca quando viajar.'
-		: 'Configuracao idle';
+		? 'Você está na cidade: dá para editar a configuração, e a caça começa quando você viajar.'
+		: 'Configuração idle';
 }
 
 /**
@@ -666,6 +673,8 @@ function onConfigReceived(pkt) {
 
 	IdleConfig.contexto = data.contexto;
 	IdleConfig.contextoObsoleto = false;
+	// D-1906: o SP por nivel fica lembrado para a dica da barra de atalhos.
+	lembrarSpDoContexto(data.contexto);
 	aplicarEstadoDeCidade();
 	IdleConfig.problemas = rejected ? data.problemas : [];
 
@@ -700,7 +709,7 @@ function onConfigReceived(pkt) {
 			isApplyResponse
 				? 'Aplicado.'
 				: data.contexto.ehCidade
-					? 'Voce esta na cidade — a caca comeca quando voce viajar.'
+					? 'Você está na cidade. A caça começa quando você viajar.'
 					: ''
 		);
 	} else {
@@ -787,7 +796,7 @@ function renderMaster() {
 				<span class="ic-master-sub">${
 					ligada
 						? 'O personagem caça sozinho neste mapa.'
-						: 'Parada — o personagem só se defende até você ligar.'
+						: 'Parada: o personagem só se defende até você ligar.'
 				}</span>
 			</span>
 		</label>
@@ -848,6 +857,13 @@ function renderProblemas() {
 /**
  * Render the active section into .ic-pane, then wire up its controls.
  */
+/**
+ * A secao do ultimo desenho do painel: o redesenho da MESMA secao mantem a
+ * rolagem, e a troca de secao (ou a janela que reabre, que zera isto) volta ao
+ * topo. Ver `rolagemDaSecao.js`.
+ */
+let _secaoDoUltimoDesenho = null;
+
 function renderBody() {
 	const root = _root();
 	const pane = root.querySelector('.ic-pane');
@@ -857,8 +873,10 @@ function renderBody() {
 
 	if (!IdleConfig.editConfig || !IdleConfig.contexto) {
 		pane.innerHTML = '<div class="ic-empty">Abra a configuração idle para carregar.</div>';
+		_secaoDoUltimoDesenho = null;
 		return;
 	}
+	const rolagem = rolagemAoRedesenhar(_secaoDoUltimoDesenho, IdleConfig.activeTab, pane.scrollTop);
 	garantirCura(IdleConfig.editConfig);
 
 	switch (IdleConfig.activeTab) {
@@ -890,7 +908,8 @@ function renderBody() {
 	if (IdleConfig.activeTab === 'suporte') {
 		bindSuporteExtra(pane);
 	}
-	pane.scrollTop = 0;
+	pane.scrollTop = rolagem;
+	_secaoDoUltimoDesenho = IdleConfig.activeTab;
 }
 
 /**
@@ -1101,7 +1120,7 @@ function renderCaca() {
 	let presas;
 	if (ctx.ehCidade) {
 		presas =
-			'<div class="ic-empty">Você está na cidade. As presas se escolhem num mapa de caça — viaje e volte aqui.</div>';
+			'<div class="ic-empty">Você está na cidade. As presas se escolhem num mapa de caça: viaje e volte aqui.</div>';
 	} else if (!mobs.length) {
 		presas = '<div class="ic-empty">Nenhum monstro conhecido neste mapa.</div>';
 	} else {
@@ -1140,6 +1159,7 @@ function renderCaca() {
 			<div class="ic-note">Experiência e zeny entram sempre; só os itens dependem disto.</div>
 			${renderFiltroDeColeta()}
 			${renderAsa()}
+			${renderFlechaQueFere()}
 			<div class="ri-divisor"></div>
 			<label class="ic-switch-row">
 				<span class="ic-switch">
@@ -1178,7 +1198,7 @@ function renderFiltroDeColeta() {
 		.map(it => {
 			const nome = nomeLocalDoItem(it.itemId, it.nome);
 			const desligado = fora.has(it.itemId);
-			const dica = it.caiAqui ? nome : `${nome} — não cai neste mapa`;
+			const dica = it.caiAqui ? nome : `${nome} (não cai neste mapa)`;
 			return `
 			<label class="ic-presa ic-presa--item${desligado ? ' is-off' : ''}" title="${escapeHtml(dica)}">
 				<input type="checkbox" data-item-toggle="${it.itemId}" ${desligado ? '' : 'checked'} ${ativo ? '' : 'disabled'} />
@@ -1195,7 +1215,7 @@ function renderFiltroDeColeta() {
 				<span>Itens que ele recolhe</span>
 				<span class="ic-card-meta">${fora.size ? `${fora.size} de fora` : 'todos'}</span>
 			</div>
-			<div class="ic-note">Desmarque o que não quer na mochila. O que ninguém desmarcou — inclusive o drop novo — continua entrando.</div>
+			<div class="ic-note">Desmarque o que não quer na mochila. O que ninguém desmarcou, inclusive o drop novo, continua entrando.</div>
 			<div class="ic-presas ic-presas--itens">${chips}</div>
 		</div>`;
 }
@@ -1225,7 +1245,10 @@ function renderAsa() {
 		<div class="ri-divisor"></div>
 		${switchRow(
 			'asa.ligada',
-			ligada,
+			// Travada sem VIP, ela aparece DESLIGADA (30/09/2026), como a troca de
+			// flecha logo abaixo: mostrar "ligada" num controle que nao age mentia.
+			// O valor gravado nao muda: o controle desabilitado nao escreve nada.
+			ehVip && ligada,
 			'Usar Asa de Mosca sozinho',
 			'Durante a caça, se passar o tempo escolhido sem atacar nenhum monstro, o personagem gasta uma Asa e reaparece noutro canto. Cada ataque zera a contagem.',
 			!ehVip
@@ -1238,9 +1261,40 @@ function renderAsa() {
 		</div>
 		${
 			ehVip
-				? `<div class="ic-note${asas ? '' : ' ic-note-warn'}">${asas ? `${asas} Asa${asas === 1 ? '' : 's'} de Mosca na mochila — cada viagem gasta uma.` : 'Nenhuma Asa de Mosca na mochila: compre no NPC de itens para o gatilho ter o que usar.'}</div>`
+				? `<div class="ic-note${asas ? '' : ' ic-note-warn'}">${asas ? `${asas} Asa${asas === 1 ? '' : 's'} de Mosca na mochila. Cada viagem gasta uma.` : 'Nenhuma Asa de Mosca na mochila: compre no NPC de itens para o gatilho ter o que usar.'}</div>`
 				: '<div class="ic-note ic-note-warn">O uso automático é do passe VIP. Sem ele a Asa continua sua: use pela mochila, com 4 s de espera entre uma e outra.</div>'
 		}`;
+}
+
+/**
+ * A TROCA INTELIGENTE DE FLECHA (D-1866, 30/09/2026) - ordem do dono: *"Trocar
+ * flecha automatico = VIP"* e *"coloca la no menu idle tbm"*.
+ *
+ * Quando as flechas acabam no meio da luta, o VIP com este interruptor ligado
+ * veste a flecha simples (ate 4z) que FERE o monstro; desligado, ou sem VIP, a
+ * mais barata da mochila (a troca de sempre, que continua para todos). Quem
+ * decide e o servidor (`trocaInteligenteDeFlecha`); aqui so o desenho. Mesmo
+ * molde da Asa: sem VIP o controle aparece DESABILITADO, com a explicacao, em
+ * vez de sumir. Ausente na config = ligado.
+ */
+function renderFlechaQueFere() {
+	// So a linha do Arqueiro e a do Arruaceiro veem o interruptor (30/09/2026,
+	// ordem do dono: as classes que usam arco); ver `linhaDoArqueiro.js`.
+	if (!ehDaLinhaDoArqueiro(Session.Entity && Session.Entity._job)) return '';
+	const cfg = IdleConfig.editConfig;
+	const ctx = IdleConfig.contexto;
+	const ehVip = !!(ctx && ctx.ehVip);
+	const ligada = cfg.trocaDeFlechaQueFere !== false;
+	return `
+		<div class="ri-divisor"></div>
+		${switchRow(
+			'trocaDeFlechaQueFere',
+			ehVip && ligada,
+			'Trocar para a flecha que fere',
+			'Quando as flechas acabam no meio da luta, o personagem veste uma flecha simples (até 4z) que fere o monstro, em vez da mais barata. As especiais continuam sendo escolha sua.',
+			!ehVip
+		)}
+		${ehVip ? '' : '<div class="ic-note ic-note-warn">A troca inteligente é do passe VIP. Sem ele, quando as flechas acabam, o jogo veste a mais barata da mochila.</div>'}`;
 }
 
 function bindCacaExtra(pane) {
@@ -1319,17 +1373,17 @@ const SELO_DE_PASSIVA = {
 	'passiva-que-vale': {
 		classe: 'ri-badge--verde',
 		texto: 'vale sozinha',
-		ajuda: 'Ela vale so de estar aprendida — muda numero na ficha.'
+		ajuda: 'Ela vale só de estar aprendida: muda número na ficha.'
 	},
 	'sem-efeito-de-combate': {
 		classe: 'ri-badge--cinza',
 		texto: 'fora da luta',
-		ajuda: 'O motor executa, mas o efeito e fora da luta (deslocamento, carga, pre-requisito).'
+		ajuda: 'O motor executa, mas o efeito é fora da luta (deslocamento, carga, pré-requisito).'
 	},
 	'nao-portada': {
 		classe: 'ri-badge--ouro',
 		texto: 'ainda não implementada',
-		ajuda: 'O motor de combate ainda nao executa esta habilidade.'
+		ajuda: 'O motor de combate ainda não executa esta habilidade.'
 	}
 };
 
@@ -1359,9 +1413,9 @@ function renderAtaque() {
 				<span class="ic-rot-main">
 					<span class="ic-rot-name" title="${escapeHtml(r.skillId)}">${escapeHtml(nomeDaSkill(r.skillId))}</span>
 					<span class="ic-rot-tags">
-						<span class="ri-badge ri-badge--azul">Nv ${r.nivelDeUso}</span>
+						${seletorDaEntrada({ chave: `rotacao.${i}`, entrada: r, info: ativas.find(s => s.skillId === r.skillId), capaz: nivelEscolhidoServido(ctx), nome: nomeDaSkill(r.skillId) })}
 						${curas.has(r.skillId) ? '<span class="ri-badge ri-badge--verde" title="O limiar e o alvo desta cura se ajustam na seção Suporte">cura · ajuste em Suporte</span>' : ''}
-						${debuffs.has(r.skillId) ? '<span class="ri-badge ri-badge--vermelho" title="Aplica algo negativo no inimigo — não é dano direto">Debuff</span>' : ''}
+						${debuffs.has(r.skillId) ? '<span class="ri-badge ri-badge--vermelho" title="Aplica algo negativo no inimigo (não é dano direto)">Debuff</span>' : ''}
 					</span>
 				</span>
 				<span class="ic-rot-actions">
@@ -1372,7 +1426,7 @@ function renderAtaque() {
 			</div>`
 					)
 					.join('')
-			: '<div class="ic-empty">Nenhum golpe na ordem — o personagem só dá o golpe básico.</div>';
+			: '<div class="ic-empty">Nenhum golpe na ordem: o personagem só dá o golpe básico.</div>';
 
 		const usados = new Set(rotacao.map(r => r.skillId));
 		const livres = ativas.filter(s => !usados.has(s.skillId));
@@ -1388,7 +1442,7 @@ function renderAtaque() {
 			// mesmas 3 vagas no motor), o agrupamento é só para escolher.
 			const opcao = s =>
 				`<option value="${escapeHtml(s.skillId)}">${escapeHtml(s.nome || s.skillId)} (Nv ${s.aprendido})${
-					curas.has(s.skillId) ? ' — cura' : ''
+					curas.has(s.skillId) ? ' (cura)' : ''
 				}</option>`;
 			const livresAtaque = livres.filter(s => !debuffs.has(s.skillId));
 			const livresDebuff = livres.filter(s => debuffs.has(s.skillId));
@@ -1460,20 +1514,42 @@ function renderAtaque() {
 			<h3>Golpe básico</h3>
 			<label class="ic-checkbox-row">
 				<input type="checkbox" data-modo-basico ${cfg.modoDeAtaque === 'apenas-skills' ? 'checked' : ''} ${!podeDesligarBasico || semGolpe ? 'disabled' : ''} />
-				<span>Nunca dar o golpe básico — só habilidades</span>
+				<span>Nunca dar o golpe básico, só habilidades</span>
 			</label>
 			<div class="ic-note">Marcado, o personagem conjura à distância e espera o SP voltar em vez de bater. Desmarcado, bate quando nenhuma habilidade estiver disponível.</div>
 			${!podeDesligarBasico ? '<div class="ic-note ic-note-warn">Este servidor não sabe lutar sem o golpe básico.</div>' : ''}
-			${podeDesligarBasico && semGolpe ? '<div class="ic-note ic-note-warn">Ponha ao menos um golpe na ordem para poder desligar o básico — sem ele o personagem ficaria sem ataque nenhum, e o servidor recusa.</div>' : ''}
+			${podeDesligarBasico && semGolpe ? '<div class="ic-note ic-note-warn">Ponha ao menos um golpe na ordem para poder desligar o básico: sem ele, o personagem ficaria sem ataque nenhum, e o servidor recusa.</div>' : ''}
 		</div>
 		<div class="ic-card">
 			<h3>Passivas</h3>
-			<div class="ic-note">Valem só de estarem aprendidas — não entram em ordem nenhuma.</div>
+			<div class="ic-note">Valem só de estarem aprendidas e não entram em ordem nenhuma.</div>
 			<div class="ic-passivas">${passivasHtml}</div>
 		</div>`;
 }
 
+/**
+ * O "−"/"+" do NIVEL DE USO (D-1906), nas tres listas. Um ouvinte por
+ * seletor desenhado (o painel e redesenhado inteiro a cada mudanca, entao um
+ * ouvinte no painel se acumularia); quem decide o que o passo muda e
+ * `aplicarPassoDeNivel` (`nivelNaConfig.js`).
+ */
+function bindNiveis(pane) {
+	pane.querySelectorAll('[data-nivel-chave]').forEach(seletor => {
+		seletor.addEventListener('click', e => {
+			const passo = lerPassoDoSeletor(e.target);
+			if (!passo) {
+				return;
+			}
+			if (aplicarPassoDeNivel(IdleConfig.editConfig, IdleConfig.contexto, passo.chave, passo.passo)) {
+				markDirty();
+				renderBody();
+			}
+		});
+	});
+}
+
 function bindAtaqueExtra(pane) {
+	bindNiveis(pane);
 	pane.querySelectorAll('[data-rot-action]').forEach(btn => {
 		btn.addEventListener('click', () => {
 			const idx = Number(btn.dataset.rotIndex);
@@ -1525,10 +1601,10 @@ function renderSuporte() {
 
 	const banner = grupo.emGrupo
 		? `<div class="ic-grupo is-on">${RiIcones.usuarios}<span><strong>Você está num grupo de ${grupo.membros}.</strong> O que estiver marcado "Grupo" vale para cada membro que estiver no alcance e lutando.</span></div>`
-		: `<div class="ic-grupo">${RiIcones.usuarios}<span><strong>Você não está em grupo.</strong> O que marcar "Grupo" passa a valer quando entrar num — até lá, só em você.</span></div>`;
+		: `<div class="ic-grupo">${RiIcones.usuarios}<span><strong>Você não está em grupo.</strong> O que marcar "Grupo" passa a valer quando entrar num. Até lá, vale só em você.</span></div>`;
 
 	return `
-		${!serve ? '<div class="ic-note ic-note-warn">Este servidor ainda não cruza cura e buffs para o grupo — as escolhas abaixo ficam guardadas para quando cruzar.</div>' : ''}
+		${!serve ? '<div class="ic-note ic-note-warn">Este servidor ainda não cruza cura e buffs para o grupo. As escolhas abaixo ficam guardadas para quando cruzar.</div>' : ''}
 		${banner}
 		${renderBuffsMantidos()}
 		${renderCura()}`;
@@ -1576,15 +1652,17 @@ function renderBuffsMantidos() {
 					const info = infoDe(b.skillId);
 					const alcanca = !!(info && info.alcancaGrupo);
 					const alvo = alvoDoBuff(b);
+					// D-1906: com o seletor, o SP mora nele (o do nivel ESCOLHIDO); o relogio e a duracao do mesmo nivel (D-1929).
+					const comSeletor = nivelEscolhidoServido(ctx) && !!info;
 					return `
 			<div class="ic-buff-row">
 				<span class="ic-rot-num">${i + 1}</span>
 				<span class="ic-rot-main">
 					<span class="ic-rot-name" title="${escapeHtml(b.skillId)}">${escapeHtml(nomeDaSkill(b.skillId))}</span>
 					<span class="ic-rot-tags">
-						<span class="ri-badge ri-badge--azul">Nv ${b.nivelDeUso}</span>
-						${info ? `<span class="ri-badge ri-badge--cinza ic-badge-relogio" title="Renovado assim que cair">${RiIcones.relogio}${duracaoCurta(info.duracaoMs)}</span>` : ''}
-						${info ? `<span class="ri-badge ri-badge--cinza">${info.custoSp} SP</span>` : ''}
+						${seletorDaEntrada({ chave: `rotacaoDeBuffs.${i}`, entrada: b, info, capaz: nivelEscolhidoServido(ctx), nome: nomeDaSkill(b.skillId) })}
+						${info ? `<span class="ri-badge ri-badge--cinza ic-badge-relogio" title="Renovado assim que cair">${RiIcones.relogio}${duracaoCurta(duracaoDaEntrada(b, info))}</span>` : ''}
+						${info && !comSeletor ? `<span class="ri-badge ri-badge--cinza">${info.custoSp} SP</span>` : ''}
 					</span>
 				</span>
 				${
@@ -1624,7 +1702,7 @@ function renderBuffsMantidos() {
 				<h3>Buffs mantidos</h3>
 				<span class="ic-card-meta">${lista.length}/${TETO_DE_BUFFS} vagas</span>
 			</div>
-			<div class="ic-note">Conjurados antes do primeiro golpe e renovados assim que caem — em você e, no que estiver marcado "Grupo", em cada membro que ficar sem.</div>
+			<div class="ic-note">Conjurados antes do primeiro golpe e renovados assim que caem: em você e, no que estiver marcado "Grupo", em cada membro que ficar sem.</div>
 			<div class="ic-rot-list">${linhas}</div>
 			${adicionar}
 			${notaPontual}
@@ -1661,6 +1739,25 @@ function renderCura() {
 			const alcanca = !!c.alcancaGrupo;
 			const ajuste = (cura.habilidades && cura.habilidades[c.skillId]) || {};
 			const alvo = ajuste.alvo || cura.alvo || 'grupo';
+			// A Aid Potion (D-1641) gasta uma pocao da mochila a cada uso: a linha
+			// diz o custo, e o que ela faz sozinha. No clique ela funciona sempre.
+			const custo = c.gastaPocao ? `${c.custoSp} SP + 1 poção` : `${c.custoSp} SP`;
+			const explicacao = c.gastaPocao
+				? ligada
+					? 'Joga sozinha a poção de HP mais forte da mochila (até o nível aprendido) quando a barra cair abaixo do limite. Gasta a poção e 1 SP a cada uso.'
+					: 'Desligada: o personagem não joga poção sozinho. No clique ela funciona sempre.'
+				: ligada
+					? 'Usada sozinha quando a barra cair abaixo do limite, sem ocupar vaga na ordem de golpes.'
+					: 'Desligada: o personagem não usa esta habilidade sozinho.';
+			// D-1906: o nivel em que ESTA cura sai (Curar no 5 gasta menos SP que
+			// no 10). Com o seletor, o nivel e o SP moram nele; sem ele (a Aid
+			// Potion, a de um nivel so, servidor antigo), a meta de sempre.
+			const seletor = seletorDaCura({
+				cura: c,
+				ajuste,
+				capaz: nivelEscolhidoServido(ctx),
+				nome: c.nome || c.skillId
+			});
 			return `
 			<div class="ic-cura-item">
 				<label class="ic-switch-row">
@@ -1669,10 +1766,11 @@ function renderCura() {
 						<span class="ic-switch-track"></span>
 					</span>
 					<span class="ic-switch-text">
-						<span class="ic-switch-label">${escapeHtml(c.nome || c.skillId)} <span class="ic-card-meta">Nv ${c.aprendido} · ${c.custoSp} SP</span></span>
-						<span class="ic-switch-sub">${ligada ? 'Usada sozinha quando a barra cair abaixo do limite — não ocupa vaga na ordem de golpes.' : 'Desligada: o personagem não usa esta habilidade sozinho.'}</span>
+						<span class="ic-switch-label">${escapeHtml(c.nome || c.skillId)}${seletor ? '' : ` <span class="ic-card-meta">Nv ${c.aprendido} · ${custo}</span>`}</span>
+						<span class="ic-switch-sub">${explicacao}</span>
 					</span>
 				</label>
+				${seletor ? `<div class="ic-nivel-cura${ligada ? '' : ' is-desligada'}">${seletor}</div>` : ''}
 				<div class="ic-field-row ic-field-row--seg${ligada ? '' : ' ic-subsection-disabled'}">
 					<span>Quem curar</span>
 					${segmentadoDeAlvo(`cura.habilidades.${c.skillId}.alvo`, alvo, alcanca, 'Quem curar')}
@@ -1693,12 +1791,13 @@ function renderCura() {
 					<span>Curar quem estiver abaixo de <span class="ic-inline-value" data-range-display="cura.curarAbaixoDe">${cura.curarAbaixoDe}%</span> de HP</span>
 				</div>
 				<input type="range" class="ic-slider" min="1" max="99" step="1" value="${cura.curarAbaixoDe}" data-range="cura.curarAbaixoDe" ${algumaLigada ? '' : 'disabled'} />
-				<div class="ic-note">O limite vale para todas as curas ligadas. No grupo, a habilidade cura o mais ferido que estiver no alcance dela — mesmo com a sua barra cheia; fora do grupo, cura você.</div>
+				<div class="ic-note">O limite vale para todas as curas ligadas. No grupo, a habilidade cura o mais ferido que estiver no alcance dela, mesmo com a sua barra cheia. Fora do grupo, cura você.</div>
 			</div>
 		</div>`;
 }
 
 function bindSuporteExtra(pane) {
+	bindNiveis(pane);
 	pane.querySelectorAll('[data-buff-action]').forEach(btn => {
 		btn.addEventListener('click', () => {
 			const idx = Number(btn.dataset.buffIndex);
@@ -1805,7 +1904,7 @@ function renderSobrevivencia() {
 						<input type="range" class="ic-slider ic-slider--hp" min="1" max="100" step="1" value="${d.levantarHp}" data-range="descanso.levantarHp" ${d.ligado ? '' : 'disabled'} />
 						<div class="ic-field-row"><span>SP em <span class="ic-inline-value" data-range-display="descanso.levantarSp">${d.levantarSp}%</span></span></div>
 						<input type="range" class="ic-slider ic-slider--sp" min="1" max="100" step="1" value="${d.levantarSp}" data-range="descanso.levantarSp" ${d.ligado ? '' : 'disabled'} />
-						<div class="ic-note">Levantar sempre acima de sentar — senão ele senta e levanta no mesmo instante.</div>
+						<div class="ic-note">Levantar sempre acima de sentar; senão ele senta e levanta no mesmo instante.</div>
 					</div>
 				</div>
 			</div>
@@ -1842,7 +1941,7 @@ function renderPocao(fieldName, pocao, itens, enabled, label, canAuto) {
 	const options = disponiveis
 		.map(
 			it =>
-				`<option value="${it.itemId}" ${selecionado === it.itemId ? 'selected' : ''}>${escapeHtml(it.nome)} — ${it.estoque} no inventário</option>`
+				`<option value="${it.itemId}" ${selecionado === it.itemId ? 'selected' : ''}>${escapeHtml(it.nome)} (${it.estoque} no inventário)</option>`
 		)
 		.join('');
 
@@ -1864,7 +1963,7 @@ function renderPocao(fieldName, pocao, itens, enabled, label, canAuto) {
 			<select class="ic-select" data-select="${fieldName}.itemId" data-select-number="1" ${ligavel && pocao.ligado && !automatico ? '' : 'disabled'} ${automatico ? 'hidden' : ''}>
 				${options}
 			</select>
-			${!temPocao && enabled ? `<div class="ic-note ic-note-warn">Nenhum frasco que restaure ${label} no inventário${automatico ? ' — o automático não tem o que escolher' : ''}.</div>` : ''}
+			${!temPocao && enabled ? `<div class="ic-note ic-note-warn">Nenhum frasco que restaure ${label} no inventário${automatico ? ': o automático não tem o que escolher' : ''}.</div>` : ''}
 			<div class="ic-field-row">
 				<span>Beber com <span class="ic-inline-value" data-range-display="${fieldName}.usarCom">${pocao.usarCom}%</span> ou menos</span>
 			</div>
@@ -1888,8 +1987,8 @@ function renderConsumiveis() {
 					<span class="ic-switch-track"></span>
 				</span>
 				<span class="ic-switch-text">
-					<span class="ic-switch-label">Beber os consumíveis de buff do inventário</span>
-					<span class="ic-switch-sub">O personagem bebe sozinho o que houver, e só bebe de novo quando o efeito expira.</span>
+					<span class="ic-switch-label">Beber as poções de ASPD do inventário</span>
+					<span class="ic-switch-sub">Concentração, Despertar e Fúria Selvagem: bebe sozinho e repete quando o efeito acaba. Manuais e Bênção da Fortuna só são usados quando você clica.</span>
 				</span>
 			</label>
 			${
@@ -1897,7 +1996,7 @@ function renderConsumiveis() {
 				// 23/09/2026, pedido do dono: nota interna nao vai para o jogador.
 				enabled
 					? ''
-					: '<div class="ic-note ic-note-warn">Nenhum consumível de buff existe no jogo ainda — o interruptor guarda sua escolha para quando existir.</div>'
+					: '<div class="ic-note ic-note-warn">Nenhum consumível de buff existe no jogo ainda. O interruptor guarda sua escolha para quando existir.</div>'
 			}
 		</div>
 		<div class="ic-card ic-card--tip">

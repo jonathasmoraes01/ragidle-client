@@ -28,6 +28,7 @@
  *    sabe quem esta conectado, e o relato existe para consertar codigo.
  */
 import { rotaDoBalcao } from 'UI/enderecoDoBalcao.js';
+import { VERSAO_DO_BUILD } from 'Core/versaoDoCliente.js';
 
 // O caminho no BALCAO do servidor. Ate 13/09/2026 ele ia relativo, ao site
 // estatico da Vercel, e nenhum relato chegava — ver `UI/enderecoDoBalcao.js`.
@@ -36,13 +37,14 @@ var TETO_POR_SESSAO = 10;
 var jaVistos = {};
 var enviados = 0;
 
+/*
+ * A versao do build (28/09/2026): a mesma `VERSAO_DO_BUILD` que o login e o
+ * `versao-do-cliente.json` usam (D-1635/D-1646 do servidor). Ate aqui ela lia
+ * uma `<meta name="ragidle-versao">` que nenhum build gera, e todo relato
+ * chegava sem versao. Sem build (o dev), `undefined`, como antes.
+ */
 export function versaoDoBuild() {
-	try {
-		var meta = document.querySelector('meta[name="ragidle-versao"]');
-		return meta ? meta.getAttribute('content') : undefined;
-	} catch (e) {
-		return undefined;
-	}
+	return VERSAO_DO_BUILD || undefined;
 }
 
 function telaAtual() {

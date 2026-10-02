@@ -20,7 +20,7 @@
 import { describe, expect, it } from 'vitest';
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { ICONES_LOCAIS, NOMES_LOCAIS } from 'DB/Items/nomesLocais.js';
+import { DESCRICOES_LOCAIS, ICONES_LOCAIS, NOMES_LOCAIS } from 'DB/Items/nomesLocais.js';
 import { completarFicha, unknownItem } from 'DB/Items/FichaDoItem.js';
 
 describe('o nome local chega a ficha', () => {
@@ -194,7 +194,12 @@ describe('a lista aponta so para item que o jogo conhece', () => {
 		// **23/09/2026: 76** = 74 + a Pocao Vermelha e a Faca da Conta do kit inicial (9.000.120-121).
 		// **24/09/2026: 77** = 76 + o Pack Pocao Azul de 500 (9.000.122) do RO Shop.
 		// **25/09/2026: 82** = 77 + os cinco da Zona de Zeny (9.003.000-003 e o bilhete 9.003.010).
-		expect(Object.keys(NOMES_LOCAIS)).toHaveLength(82);
+		// **27/09/2026: 83** = 82 + a Goma de Mascar do RO Shop (9.000.123).
+		// **28/09/2026: 92** = 83 + os 9 do refino e das flechas no RO Shop (9.000.124-132, L13 e L14).
+		// **28/09/2026: 94** = 92 + as Asas de Mosca e de Borboleta da Conta (9.000.133-134) do Pack Viagem.
+		// **28/09/2026: 122** = 94 + os 28 comuns novos das caixas da Season 1 (9.000.327-354, item 17).
+		// **01/10/2026: 123** = 122 + o Fruto de Yggdrasil da Conta (9.000.135) da trilha VIP do Passe.
+		expect(Object.keys(NOMES_LOCAIS)).toHaveLength(123);
 	});
 });
 
@@ -287,7 +292,12 @@ describe('o icone local (31/08/2026)', () => {
 		// **23/09/2026: 28 -> 35**, os sete tickets, com o recurso de um cupom oficial cada.
 		// **23/09/2026: 35 -> 37**, a Vermelha e a Faca da Conta do kit inicial.
 		// **24/09/2026: 37 -> 38**, o Pack Pocao Azul de 500, com o `.bmp` da Azul (o mesmo do de 1000).
-		expect(Object.keys(ICONES_LOCAIS)).toHaveLength(38);
+		// **27/09/2026: 38 -> 39**, a Goma de Mascar do RO Shop, com o `.bmp` da Goma oficial (12210).
+		// **28/09/2026: 39 -> 48**, os 9 do refino e das flechas (L13 e L14), com o `.bmp` do oficial
+		// que o servidor declara em `tools/item-icon/recursos-que-a-tabela-nao-tem.ts`.
+		// **28/09/2026: 48 -> 50**, as Asas da Conta do Pack Viagem, com o `.bmp` da Asa comum (601/602).
+		// **01/10/2026: 50 -> 51**, o Fruto de Yggdrasil da Conta, com o `.bmp` do Fruto comum (607).
+		expect(Object.keys(ICONES_LOCAIS)).toHaveLength(51);
 	});
 });
 
@@ -379,5 +389,71 @@ describe('o cosmetico de cabeca que o dono pediu (420010, D-796)', () => {
 		// arte oficial aparecer, ninguem precisa lembrar de apagar nada.
 		const doGrf = { identifiedResourceName: 'oQueOGrfTrouxe' };
 		expect(completarFicha(420010, doGrf).identifiedResourceName).toBe('oQueOGrfTrouxe');
+	});
+});
+
+/*
+ * OS TEXTOS DA TEMPORADA (28/09/2026, item 30 do dono: aprovados como estavam
+ * na pagina de revisao). Os 55 custom (9.000.300-354) e os 7 oficiais das
+ * caixas e do passe tem descricao; nenhum dos 14 nomes em ingles volta.
+ */
+describe('os 62 visuais da Temporada Luz & Trevas', () => {
+	const CUSTOM = Array.from({ length: 55 }, (_, i) => 9000300 + i);
+	const OFICIAIS = [20765, 20764, 20727, 20762, 20587, 20511, 20502];
+
+	it('CONTROLE: sao 62 ids', () => {
+		expect(CUSTOM.length + OFICIAIS.length).toBe(62);
+	});
+
+	it('todo visual tem descricao, terminando na linha de que nao altera atributos', () => {
+		const sem = [...CUSTOM, ...OFICIAIS].filter(id => !String(DESCRICOES_LOCAIS[id] || '').endsWith('Não altera atributos.'));
+		expect(sem).toEqual([]);
+	});
+
+	it('todo custom tem nome em portugues, e nenhum dos 14 nomes em ingles voltou', () => {
+		const INGLES = [
+			"Seraphim's Feather", 'Fallen Angel Valletta', 'Group of Stars', 'Light and Dark Master',
+			'Great Devil Wings', 'Wings of Light and Darkness', "Lucifer's Wings", 'Little Devil Wings',
+			'Valkyrie Wings', 'Shining Angel Wings', 'Ghost Effect', 'Ancient Resonance',
+			'Rune-Midgarts Glory', 'Astra Blessing'
+		];
+		expect(CUSTOM.filter(id => !NOMES_LOCAIS[id])).toEqual([]);
+		const nomes = Object.values(NOMES_LOCAIS).join('|');
+		expect(INGLES.filter(n => nomes.includes(n))).toEqual([]);
+	});
+});
+
+/*
+ * O FRUTO DE YGGDRASIL DA CONTA (01/10/2026): a copia do 607 presa a conta, que
+ * a trilha VIP do Passe de Batalha da S1 entrega. O molde e o das Asas da Conta
+ * (9.000.133-134): nome, descricao, o `.bmp` do item de que deriva e a mesma
+ * arte publicada, byte a byte.
+ */
+describe('o Fruto de Yggdrasil da Conta (9.000.135)', () => {
+	const FRUTO = 9000135;
+	/** 이그드라실열매: o recurso do 607, lido em `data\idnum2itemresnametable.txt` do data.grf. */
+	const RECURSO_DO_607 = '\xc0\xcc\xb1\xd7\xb5\xe5\xb6\xf3\xbd\xc7\xbf\xad\xb8\xc5';
+
+	it('sai nomeado e com o icone do Fruto comum, e nao com a maca', () => {
+		const ficha = completarFicha(FRUTO, null);
+		expect(ficha.identifiedDisplayName).toBe('Fruto de Yggdrasil da Conta');
+		expect(ficha.identifiedResourceName).toBe(RECURSO_DO_607);
+	});
+
+	it('a descricao diz o efeito do 607 (100% de HP e de SP) e as tres travas: venda, troca e chao', () => {
+		const descricao = DESCRICOES_LOCAIS[FRUTO];
+		expect(descricao).toContain('100% do HP e do SP');
+		expect(descricao).toContain('Não pode ser vendido a NPCs nem negociado');
+		expect(descricao).toContain('Não pode ser jogado no chão');
+		expect(completarFicha(FRUTO, null).identifiedDescriptionName).toContain('100% do HP e do SP');
+	});
+
+	it('a arte publicada e a do 607 byte a byte, no icone e na ilustracao', () => {
+		for (const pasta of ['item', 'collection']) {
+			const dir = join(process.cwd(), 'public', 'ragidle', pasta);
+			const copia = readFileSync(join(dir, `${FRUTO}.png`));
+			expect(copia.length, `${pasta}/${FRUTO}.png vazio`).toBeGreaterThan(0);
+			expect(copia.equals(readFileSync(join(dir, '607.png'))), `${pasta}/${FRUTO}.png difere do 607`).toBe(true);
+		}
 	});
 });

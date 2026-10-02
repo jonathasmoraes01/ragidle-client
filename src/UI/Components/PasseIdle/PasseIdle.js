@@ -563,7 +563,7 @@ function vipHtml() {
 	const linhas = [
 		[vip.expBase, 'de experiência de base'],
 		[vip.expJob, 'de experiência de classe'],
-		[vip.dropComum ?? vip.dropEquipamento, 'de drop de itens comuns'],
+		[vip.dropComum ?? vip.dropEquipamento, 'de drop de itens comuns e equipamentos'],
 		[vip.dropCarta ?? vip.dropCartaMvp, 'relativo na chance de cartas']
 	]
 		.filter(l => typeof l[0] === 'number')

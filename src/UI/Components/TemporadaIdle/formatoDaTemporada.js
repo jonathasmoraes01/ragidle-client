@@ -82,6 +82,7 @@
  */
 
 import RiIcones from 'UI/ri-icones.js';
+import { localeDoIdioma } from 'Core/Idioma.js';
 import { formatarRoCash, minorDe, minorDePrimeiro } from 'Utils/roCash.js';
 
 /**
@@ -154,7 +155,7 @@ export function formatarPrecoCentavos(centavos) {
 	const resto = String(n % 100).padStart(2, '0');
 	let reaisTexto;
 	try {
-		reaisTexto = reais.toLocaleString('pt-BR');
+		reaisTexto = reais.toLocaleString(localeDoIdioma());
 	} catch (err) {
 		reaisTexto = String(reais);
 	}
@@ -183,6 +184,44 @@ export function dataCurtaDeMs(ms) {
 		return '';
 	}
 	return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}`;
+}
+
+/** Um instante em ms -> `dd/mm, hh:mm` no fuso desta maquina (o fim do evento de gacha). */
+export function dataEHoraCurtaDeMs(ms) {
+	const d = new Date(Number(ms));
+	if (!Number.isFinite(d.getTime())) {
+		return '';
+	}
+	return `${dataCurtaDeMs(ms)}, ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+}
+
+/**
+ * O SELO DO EVENTO DE GACHA no card da caixa (D-1901): "Evento · Lendário 2x ·
+ * até 02/10, 14:00" — o pedido do dono: "que todos no servidor entendam que se
+ * trata de um buff dado por nos".
+ *
+ * SEM porcentagem: a decisao de 22/09/2026 (a janela nao mostra a chance de
+ * item nenhum) continua. O selo diz o MULTIPLICADOR, que e o que o anuncio da
+ * equipe diz, e vem PRONTO do servidor (`caixa.evento.rotulo`, de
+ * `seloDoEventoDeGacha`) — quem decide se a caixa tem evento e o mesmo
+ * veredito da abertura. O fim e o `fimMs` do servidor, um instante absoluto: a
+ * hora local sai certa em qualquer fuso, e um "ate 14:00" nao sente a
+ * diferenca de segundos entre os dois relogios. Sem `evento` (sem evento, ou
+ * servidor anterior a D-1900), nada.
+ */
+export function renderSeloDoEventoHtml(caixa) {
+	const evento = caixa && caixa.evento;
+	if (!evento || !evento.rotulo) {
+		return '';
+	}
+	const fim = dataEHoraCurtaDeMs(evento.fimMs);
+	return (
+		'<div class="te-caixa-evento">' +
+		`<span class="te-caixa-evento-selo">${glifo('brilhos')}<span>Evento</span></span>` +
+		`<strong class="te-caixa-evento-rotulo">${escapeHtml(evento.rotulo)}</strong>` +
+		(fim ? `<span class="te-caixa-evento-fim">até ${escapeHtml(fim)}</span>` : '') +
+		'</div>'
+	);
 }
 
 /**
@@ -502,12 +541,18 @@ export function renderResumoDasCaixasHtml(caixas) {
 			const glifoImg = iconeUrl
 				? `<img class="te-resumo-caixa-glifo-img" src="${iconeUrl}" alt="" width="20" height="20">`
 				: glifoDoSlot(c.slot);
+			// O EVENTO DE GACHA (D-1901) tambem no resumo: a linha propria, e nao
+			// colada no `sub`, que corta com reticencias no celular.
+			const evento = c.evento && c.evento.rotulo
+				? `<span class="te-resumo-caixa-evento">Evento: ${escapeHtml(c.evento.rotulo)}</span>`
+				: '';
 			return (
 				`<button type="button" class="te-resumo-caixa ri-card${fechadas > 0 ? ' is-tem' : ''}" data-ir="caixas" data-pool="${escapeHtml(c.pool)}">` +
 				`<span class="te-resumo-caixa-glifo ri-tile">${glifoImg}</span>` +
 				'<span class="te-resumo-caixa-texto">' +
 				`<span class="te-resumo-caixa-nome">${escapeHtml(c.nome)}</span>` +
 				`<span class="te-resumo-caixa-sub">${escapeHtml(sub)}</span>` +
+				evento +
 				'</span>' +
 				(fechadas > 0
 					? `<span class="te-resumo-caixa-contagem">${fechadas}</span>`
@@ -628,7 +673,12 @@ export function renderCaixaHtml(caixa) {
 			: '';
 
 	const recompensas = caixa.recompensas || [];
-	const previa = recompensas
+	/* A PREVIA VAI POR RARIDADE, o lendario primeiro (28/09/2026). Desde o item
+	   17 do dono cada caixa tem 13 premios (10 comuns), e o servidor os manda
+	   com os comuns na frente: na ordem dele, o raro e o lendario - o que faz o
+	   jogador comprar - eram os que caiam para a segunda linha. */
+	const previa = agruparPorRaridade(recompensas)
+		.flatMap(grupo => grupo.itens)
 		.map(
 			r =>
 				`<span class="te-previa-item ${classeDaRaridade(r.raridade)}" title="${escapeHtml(r.nome)} · ${escapeHtml(rotuloDaRaridade(r))}">` +
@@ -659,6 +709,7 @@ export function renderCaixaHtml(caixa) {
 		'</div>' +
 		precoHtml +
 		'</header>' +
+		renderSeloDoEventoHtml(caixa) +
 		`<div class="te-caixa-previa">${previa}</div>` +
 		'<div class="te-caixa-estado">' +
 		`<span class="te-caixa-fechadas${fechadas > 0 ? ' is-tem' : ''}">${glifo('pacote')}<strong>${fechadas}</strong><span>${plural(fechadas, 'fechada', 'fechadas')}</span></span>` +
@@ -933,6 +984,24 @@ export function renderMissoesSemanaisHtml(semanais) {
  * ordenados por nível e, dentro do nível, free antes de vip (mesma ordem do
  * V1, só o rótulo da segunda trilha mudou).
  */
+/**
+ * HA RECOMPENSA ESPERANDO O JOGADOR NA TEMPORADA? (29/09/2026, a bolinha do
+ * botao "Temporada", pedido do dono.) Le so o que o SERVIDOR ja decidiu: um
+ * premio da trilha em `AVAILABLE` (o mesmo estado que desenha o botao
+ * "Resgatar") ou o visual do VIP que `pode` e ainda nao foi `resgatado`.
+ */
+export function temRecompensaParaResgatar(estado) {
+	if (!estado) {
+		return false;
+	}
+	const premios = (estado.passe && estado.passe.premios) || [];
+	if (premios.some(p => p && p.situacao === 'AVAILABLE')) {
+		return true;
+	}
+	const visual = estado.vip && estado.vip.visual;
+	return !!(visual && visual.pode && !visual.resgatado);
+}
+
 export function niveisDoPasse(passe) {
 	const porNivel = new Map();
 	((passe && passe.premios) || []).forEach(p => {
@@ -948,6 +1017,41 @@ export function niveisDoPasse(passe) {
 		}
 	});
 	return [...porNivel.keys()].sort((a, b) => a - b).map(nivel => ({ nivel, ...porNivel.get(nivel) }));
+}
+
+/**
+ * A CAIXA COMO PREMIO DO PASSE (01/10/2026, o Passe de Batalha VIP da S1).
+ *
+ * A caixa da temporada NAO e item: e um contador na conta (`caixas[pool]`), e
+ * o resgate soma +1 nele, sem correio. O servidor manda o premio com
+ * `itemId: null` e `caixa: {pool, slot}`; o premio de item vem com
+ * `caixa: null`, e um servidor anterior ao campo nem o manda. Devolve a caixa
+ * (`{pool, slot}`) ou `null` - e `null` quer dizer "premio de item, desenhe
+ * como sempre".
+ */
+export function caixaDoPremio(premio) {
+	const caixa = premio && premio.caixa;
+	if (!caixa || typeof caixa !== 'object' || typeof caixa.pool !== 'string' || caixa.pool === '') {
+		return null;
+	}
+	return caixa;
+}
+
+/** O que a dica diz de um premio que e caixa: para onde ela vai. */
+export const TEXTO_DA_DICA_DA_CAIXA = 'Vai para as suas caixas da temporada: abra na aba Caixas.';
+
+/**
+ * O retrato da caixa no card do premio: o MESMO icone premium do card da caixa
+ * e do resumo dos Destaques (`iconeDaCaixaUrl`), e o glifo do slot de reserva.
+ * SEM `data-item-id`: nao ha item para `melhorarIcones` buscar arte, nem para
+ * a janela de detalhes abrir.
+ */
+function iconeDaCaixaDoPremioHtml(caixa) {
+	const url = iconeDaCaixaUrl(caixa.slot);
+	const retrato = url
+		? `<img class="te-premio-caixa-img" src="${url}" alt="" width="28" height="28">`
+		: glifoDoSlot(caixa.slot);
+	return `<span class="te-icone te-icone--caixa ri-tile">${retrato}</span>`;
 }
 
 /** Um card de prêmio da trilha de recompensas (free ou vip). */
@@ -968,12 +1072,22 @@ export function renderPremioDaTrilhaHtml(premio, trilha) {
 				: `<span class="te-premio-card-estado is-bloqueado">${glifo('cadeado')}</span>`;
 	/* O `data-item-id` NO CARD (23/09/2026, pedido do dono): e por ele que o
 	   mouse em cima mostra a descricao e o clique abre a janela de detalhes
-	   (`TemporadaIdle.js`, `mostrarDicaDoPremio`/`abrirDetalhesDoItem`). */
+	   (`TemporadaIdle.js`, `mostrarDicaDoPremio`/`abrirDetalhesDoItem`).
+	   A CAIXA (01/10/2026) troca as duas pecas que dependem do item: o retrato
+	   e a marca. Ela leva `data-caixa` no lugar do `data-item-id` - a dica le a
+	   marca e diz para onde a caixa vai, e o clique nao abre detalhe de item
+	   nenhum. O resto do card (quantidade, estado, nome) e o mesmo. */
+	const caixa = caixaDoPremio(premio);
 	const idNumero = Number(premio.itemId);
-	const idAttr = Number.isFinite(idNumero) && idNumero > 0 ? ` data-item-id="${idNumero}"` : '';
+	const marca = caixa
+		? ` data-caixa="${escapeHtml(caixa.pool)}"`
+		: Number.isFinite(idNumero) && idNumero > 0
+			? ` data-item-id="${idNumero}"`
+			: '';
+	const retrato = caixa ? iconeDaCaixaDoPremioHtml(caixa) : iconeFallbackHtml(premio.itemId, premio.nome);
 	return (
-		`<div class="te-premio-card te-premio-card--${trilha} ${classeDoNivel(situacao)}" data-nivel="${escapeHtml(premio.nivel)}" data-trilha="${escapeHtml(trilha)}"${idAttr}>` +
-		iconeFallbackHtml(premio.itemId, premio.nome) +
+		`<div class="te-premio-card te-premio-card--${trilha} ${classeDoNivel(situacao)}" data-nivel="${escapeHtml(premio.nivel)}" data-trilha="${escapeHtml(trilha)}"${marca}>` +
+		retrato +
 		quantidade +
 		`<div class="te-premio-card-nome" title="${escapeHtml(premio.nome)}">${escapeHtml(premio.nome)}</div>` +
 		estado +
@@ -1010,14 +1124,22 @@ export function linhasDaDescricaoDoItem(bruta) {
 }
 
 /** O conteudo da dica de um premio do passe: o nome, a descricao e o convite
- * ao clique (que abre a janela de detalhes). Tudo escapado. */
-export function renderDicaDoPremioHtml(nome, linhas) {
+ * ao clique (que abre a janela de detalhes). Tudo escapado. Sem `rodape`
+ * (a caixa, que nao tem janela de detalhes), o convite nao aparece. */
+export function renderDicaDoPremioHtml(nome, linhas, rodape = 'Clique para ver os detalhes') {
 	const corpo = (linhas || []).map(l => `<div class="te-dica-linha">${escapeHtml(l)}</div>`).join('');
 	return (
 		`<div class="te-dica-nome">${escapeHtml(nome || 'Item')}</div>` +
 		(corpo ? `<div class="te-dica-corpo">${corpo}</div>` : '') +
-		'<div class="te-dica-rodape">Clique para ver os detalhes</div>'
+		(rodape ? `<div class="te-dica-rodape">${escapeHtml(rodape)}</div>` : '')
 	);
+}
+
+/** A dica de um premio que e CAIXA (01/10/2026): o nome e para onde ela vai.
+ * Sem o "Clique para ver os detalhes" - a caixa nao e item, e o clique no card
+ * dela nao abre janela nenhuma. */
+export function renderDicaDaCaixaDoPremioHtml(nome) {
+	return renderDicaDoPremioHtml(nome || 'Caixa', [TEXTO_DA_DICA_DA_CAIXA], null);
 }
 
 /**
@@ -1102,7 +1224,15 @@ export function renderTrilhaDeRecompensasHtml(passe) {
 		'</div>' +
 		'</header>' +
 		renderCompraDoPasseVipHtml(passe) +
+		/* As SETAS (29/09/2026, relato do dono: "os players nao estao conseguindo
+		   visualizar todos os itens arrastando para o lado"): a trilha rola para o
+		   lado, e no mouse isso so andava pela barrinha. `UI/rolagemLateral.js`
+		   liga o arrasto, a roda e as duas setas. */
+		'<div class="te-reward-rolagem">' +
+		'<button type="button" class="te-reward-seta te-reward-seta--esq ri-btn ri-btn--sec" aria-label="Recompensas anteriores">‹</button>' +
 		`<div class="te-reward-scroll ri-scroll${semVip ? ' is-sem-vip' : ''}">${colunas}</div>` +
+		'<button type="button" class="te-reward-seta te-reward-seta--dir ri-btn ri-btn--sec" aria-label="Próximas recompensas">›</button>' +
+		'</div>' +
 		'</section>'
 	);
 }

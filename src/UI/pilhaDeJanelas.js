@@ -67,6 +67,15 @@
 
 import KEYS from 'Controls/KeyEventHandler.js';
 import { aoEscapar as desarmarAtalhoPendente } from 'UI/toqueParaAtalho.js';
+/* D-1908: o seletor de nivel de um slot da barra e um balao, e nao uma janela
+   desta pilha (ver `UI/Components/ShortCut/seletorDeNivelDaBarra.js`); o ESC
+   e o voltar o fecham PRIMEIRO. `nivelDeUso.js` nao importa nada: sem ciclo. */
+import { fecharSeletorDeNivel } from 'UI/nivelDeUso.js';
+/* 01/10/2026: os outros baloes da HUD (o painel de informacoes da missao, o
+   "(i)" do cartao de missoes) fecham no ESC pelo mesmo motivo do seletor, mas
+   numa lista PROPRIA — ver o cabecalho de `balaoDaHud.js`, que nao importa
+   nada: sem ciclo. */
+import { fecharBalaoDaHud } from 'UI/balaoDaHud.js';
 /* `hudVertical` importa só `escalaDaHud`, que não importa nada — não há ciclo
    por este caminho (conferido em 08/09/2026). */
 import { ehCelularEmPe } from 'UI/hudVertical.js';
@@ -397,6 +406,25 @@ export function aoEscapar(doc) {
 	 * nao tem nada na mao.
 	 */
 	if (desarmarAtalhoPendente()) {
+		return 'desarmou';
+	}
+	/*
+	 * O SELETOR DE NIVEL DA BARRA FECHA ANTES DAS JANELAS (D-1908), pelo mesmo
+	 * argumento do "algo na mao" acima: ele e um gesto em curso sobre um slot,
+	 * e o ESC desiste DELE. Sem esta linha, o voltar do Android com o balao
+	 * aberto e nenhuma janela perguntaria se o jogador quer sair do jogo.
+	 */
+	if (fecharSeletorDeNivel()) {
+		return 'desarmou';
+	}
+	/*
+	 * OS OUTROS BALOES DA HUD (01/10/2026) — o painel "(i)" de uma missao. Mesmo
+	 * argumento do seletor logo acima: o balao e o gesto mais recente, e o ESC
+	 * desiste DELE antes de fechar as janelas de baixo. Sem esta linha, o voltar
+	 * do Android com o painel aberto e nenhuma janela perguntaria se o jogador
+	 * quer sair do jogo.
+	 */
+	if (fecharBalaoDaHud()) {
 		return 'desarmou';
 	}
 	if (temDecisaoAberta()) {

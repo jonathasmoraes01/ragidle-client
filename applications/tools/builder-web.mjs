@@ -3,6 +3,8 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { createRequire } from 'module';
+import { versaoDoCarimbo } from '../../src/Core/versaoDoCliente.js';
+import { apagarVersaoPublicada, escreverVersaoPublicada } from './versaoPublicada.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -13,6 +15,14 @@ const startTime = Date.now();
 const args = getArgs();
 
 const buildDate = new Date().toISOString().replace(/T/, ' ').replace(/\..+/, '');
+/*
+ * A VERSAO DO BUILD, num lugar so: `<versao do package>-AAAAMMDDHHMMSS`, os
+ * dois numeros que o `<title>` ja mostra. Ela vai para o service worker e o
+ * registrador (`copyPwaFiles`) e, desde D-1635 (28/09/2026), para o JOGO pelo
+ * `define` do vite (`__RAGIDLE_VERSAO_DO_BUILD__`): e dela que
+ * `src/Core/versaoDoCliente.js` tira o numero que o login manda ao servidor.
+ */
+const versaoDoBuild = pkg.version + '-' + buildDate.replace(/[^0-9]/g, '');
 const dist = './dist/';
 const platform = 'Web';
 
@@ -107,6 +117,13 @@ async function compile(appName, isMinify) {
 	const entry = path.resolve(projectRoot, entryMap[appName]);
 	const outDir = path.resolve(projectRoot, dist + platform);
 
+	/* D-1822 do servidor: a versao publicada nasce e morre com o Online.js. Antes
+	   de compilar, a de antes sai; se a compilacao falhar, o dist fica sem
+	   versao publicada, e nao com um numero que ninguem sabe se esta no ar. */
+	if (appName === 'Online') {
+		apagarVersaoPublicada(outDir);
+	}
+
 	try {
 		await build({
 			configFile: false,
@@ -115,6 +132,10 @@ async function compile(appName, isMinify) {
 			logLevel: 'warn',
 			resolve: {
 				alias: aliases
+			},
+			// A versao do build no jogo (D-1635): o login a manda ao servidor.
+			define: {
+				__RAGIDLE_VERSAO_DO_BUILD__: JSON.stringify(versaoDoBuild)
 			},
 			worker: {
 				rollupOptions: {
@@ -158,6 +179,23 @@ async function compile(appName, isMinify) {
 		});
 
 		console.log(appName + '.js has been created in', Date.now() - startTime, 'ms.');
+		if (appName === 'Online') {
+			/* O numero que este build manda no login (D-1635). E ESTE que vai no
+			   RAG_VERSAO_MINIMA_DO_CLIENTE do servidor quando o dono quiser
+			   exigir este build - nunca antes de ele estar no ar. */
+			console.log('Versao do cliente no login (CA_LOGIN):', versaoDoCarimbo(versaoDoBuild));
+			/* A VERSAO PUBLICADA (D-1646 do servidor), e desde D-1822 so AQUI: no
+			   passo que compilou o jogo, com o carimbo conferido DENTRO dele. O
+			   build parcial da casca (`--PWA` sem `-O`) nao a escreve mais - era
+			   ele que publicava um carimbo sem o jogo, e o servidor trancava todo
+			   login dez minutos depois (o achado #13). */
+			try {
+				escreverVersaoPublicada(outDir, versaoDoBuild);
+			} catch (erro) {
+				process.exitCode = 1;
+				throw erro;
+			}
+		}
 	} catch (err) {
 		console.error('Error building ' + appName + ':', err);
 	}
@@ -586,18 +624,26 @@ window.ROConfigBase = {
  * Pixel dele; e o `applications/pwa/index.html` e so do desenvolvimento, onde
  * um PageView por recarga de dev sujaria as metricas de verdade.
  */
-const GUARDA_DA_ENTRADA = `<script>
-            (function () {
-                var h = location.hash;
-                if (h.indexOf('#entrada=') !== 0) return;
-                window.RAGIDLE_ENTRADA = h.slice(9);
-                history.replaceState(null, '', location.pathname + location.search);
-            })();
-        </script>`;
+/*
+ * OS SCRIPTS DO api.html SAO ARQUIVOS (28/09/2026, D-1648 do servidor).
+ *
+ * A CSP do jogo esta em modo relatorio, e o dia de liga-la em BLOQUEIO exige
+ * que a pagina nao tenha `<script>` embutido: a politica (`script-src 'self'`)
+ * proibe codigo inline, e com os quatro blocos que moravam aqui o jogo abriria
+ * com TELA PRETA. Cada um virou um arquivo gerado pelo build, carregado na
+ * MESMA ordem e de forma sincrona (sem `defer`/`async`), entao a guarda ainda
+ * tira o passe da URL antes de o Pixel nascer. O codigo nao mudou.
+ */
+const GUARDA_DA_ENTRADA_JS = `(function () {
+    var h = location.hash;
+    if (h.indexOf('#entrada=') !== 0) return;
+    window.RAGIDLE_ENTRADA = h.slice(9);
+    history.replaceState(null, '', location.pathname + location.search);
+})();
+`;
+const GUARDA_DA_ENTRADA = `<script src="./guarda-da-entrada.js?v=${startTime}"></script>`;
 
-const META_PIXEL = `<!-- Meta Pixel Code -->
-<script>
-!function(f,b,e,v,n,t,s)
+const META_PIXEL_JS = `!function(f,b,e,v,n,t,s)
 {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
 n.callMethod.apply(n,arguments):n.queue.push(arguments)};
 if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
@@ -607,11 +653,86 @@ s.parentNode.insertBefore(t,s)}(window, document,'script',
 'https://connect.facebook.net/en_US/fbevents.js');
 fbq('init', '1538906837987135');
 fbq('track', 'PageView');
-</script>
+`;
+const META_PIXEL = `<!-- Meta Pixel Code -->
+<script src="./meta-pixel.js?v=${startTime}"></script>
 <noscript><img height="1" width="1" style="display:none"
 src="https://www.facebook.com/tr?id=1538906837987135&ev=PageView&noscript=1"
 /></noscript>
 <!-- End Meta Pixel Code -->`;
+
+/** A espera do `Config.local.js` e o carregador do jogo (D-1648): eram os dois `<script>` do fim do api.html. */
+const CARREGAR_JOGO_JS = `            window.ROConfigLocalReady = new Promise(function(resolve) {
+                var script = document.createElement('script');    
+                script.src = 'Config.local.js';    
+                script.onload = resolve;
+                script.onerror = function() {    
+                    console.log('Config.local.js not found, using defaults from Config.js');    
+                    resolve();
+                };    
+                document.head.appendChild(script);    
+            });
+            function deepMerge(target, source) {    
+                for (var key in source) {    
+                    if (source.hasOwnProperty(key)) {    
+                        if (source[key] && typeof source[key] === 'object' && !Array.isArray(source[key])) {    
+                            target[key] = deepMerge(target[key] || {}, source[key]);    
+                        } else {    
+                            target[key] = source[key];    
+                        }    
+                    }    
+                }    
+                return target;    
+            }    
+    
+            var APP_SCRIPTS = {    
+                ONLINE: 'Online.js',    
+                MAPVIEWER: 'MapViewer.js',    
+                GRFVIEWER: 'GrfViewer.js',    
+                MODELVIEWER: 'ModelViewer.js',    
+                STRVIEWER: 'StrViewer.js',    
+                GRANNYMODELVIEWER: 'GrannyModelViewer.js',    
+                EFFECTVIEWER: 'EffectViewer.js'    
+            };    
+            var APP_IDS = { 1: 'ONLINE', 2: 'MAPVIEWER', 3: 'GRFVIEWER', 4: 'MODELVIEWER', 5: 'STRVIEWER', 6: 'GRANNYMODELVIEWER', 7: 'EFFECTVIEWER' };    
+    
+            function loadApp(appName, extraConfig) {    
+                var scriptFile = APP_SCRIPTS[appName] || 'Online.js';    
+                var config = deepMerge({}, window.ROConfigBase || {});    
+                if (window.ROConfigLocal) { config = deepMerge(config, window.ROConfigLocal); }    
+                if (extraConfig) { config = deepMerge(config, extraConfig); }    
+                window.ROConfig = config;    
+                // ?v=<build> — o BUSTER DE CACHE. Os bundles tem nome fixo
+                // (Online.js), entao um navegador que guardou o arquivo antigo
+                // continuaria servindo ele; a query muda a URL e forca a busca.
+                // Isto resgata quem JA ficou preso: o api.html e no-cache e
+                // sempre rebaixa, entao o ?v novo chega mesmo a esses.
+                import('./' + scriptFile + '?v=${startTime}').then(function() {
+                    var preloader = document.getElementById('ro-preloader');    
+                    if (preloader) { preloader.remove(); }    
+                }).catch(function(err) { console.error('Failed to load app:', scriptFile, err); });    
+            }    
+    
+            window.addEventListener('load', async function() {
+                await window.ROConfigLocalReady;
+                var params = new URLSearchParams(window.location.search);    
+                // Sem ?app= numa pagina de topo, sobe ONLINE: o jogo abre na RAIZ de play.<dominio>
+                // (antes era um remendo de texto no preparar-deploy; D-1648 o trouxe para ca).
+                var appName = params.get('app') || (window.top === window.self ? 'ONLINE' : null);    
+                if (appName) {    
+                    loadApp(appName, null);    
+                } else {    
+                    window.addEventListener('message', function onMsg(event) {    
+                        if (!event.data || typeof event.data !== 'object') return;    
+                        if (!event.data.application) return;    
+                        window.removeEventListener('message', onMsg, false);    
+                        var name = APP_IDS[event.data.application] || 'ONLINE';    
+                        loadApp(name, event.data);    
+                        if (event.source) { event.source.postMessage('ready', '*'); }    
+                    }, false);    
+                }    
+            });    
+`;
 
 function createApiHTML(includeManifest = false) {
 	const manifest = includeManifest ? `<link rel="manifest" href="./manifest.webmanifest">` : ``;
@@ -691,82 +812,15 @@ ${META_PIXEL}
         </div>    
     
         <script src="Config.js"></script>    
-        <script>    
-            window.ROConfigLocalReady = new Promise(function(resolve) {
-                var script = document.createElement('script');    
-                script.src = 'Config.local.js';    
-                script.onload = resolve;
-                script.onerror = function() {    
-                    console.log('Config.local.js not found, using defaults from Config.js');    
-                    resolve();
-                };    
-                document.head.appendChild(script);    
-            });
-        </script>    
-        <script>    
-            function deepMerge(target, source) {    
-                for (var key in source) {    
-                    if (source.hasOwnProperty(key)) {    
-                        if (source[key] && typeof source[key] === 'object' && !Array.isArray(source[key])) {    
-                            target[key] = deepMerge(target[key] || {}, source[key]);    
-                        } else {    
-                            target[key] = source[key];    
-                        }    
-                    }    
-                }    
-                return target;    
-            }    
-    
-            var APP_SCRIPTS = {    
-                ONLINE: 'Online.js',    
-                MAPVIEWER: 'MapViewer.js',    
-                GRFVIEWER: 'GrfViewer.js',    
-                MODELVIEWER: 'ModelViewer.js',    
-                STRVIEWER: 'StrViewer.js',    
-                GRANNYMODELVIEWER: 'GrannyModelViewer.js',    
-                EFFECTVIEWER: 'EffectViewer.js'    
-            };    
-            var APP_IDS = { 1: 'ONLINE', 2: 'MAPVIEWER', 3: 'GRFVIEWER', 4: 'MODELVIEWER', 5: 'STRVIEWER', 6: 'GRANNYMODELVIEWER', 7: 'EFFECTVIEWER' };    
-    
-            function loadApp(appName, extraConfig) {    
-                var scriptFile = APP_SCRIPTS[appName] || 'Online.js';    
-                var config = deepMerge({}, window.ROConfigBase || {});    
-                if (window.ROConfigLocal) { config = deepMerge(config, window.ROConfigLocal); }    
-                if (extraConfig) { config = deepMerge(config, extraConfig); }    
-                window.ROConfig = config;    
-                // ?v=<build> — o BUSTER DE CACHE. Os bundles tem nome fixo
-                // (Online.js), entao um navegador que guardou o arquivo antigo
-                // continuaria servindo ele; a query muda a URL e forca a busca.
-                // Isto resgata quem JA ficou preso: o api.html e no-cache e
-                // sempre rebaixa, entao o ?v novo chega mesmo a esses.
-                import('./' + scriptFile + '?v=${startTime}').then(function() {
-                    var preloader = document.getElementById('ro-preloader');    
-                    if (preloader) { preloader.remove(); }    
-                }).catch(function(err) { console.error('Failed to load app:', scriptFile, err); });    
-            }    
-    
-            window.addEventListener('load', async function() {
-                await window.ROConfigLocalReady;
-                var params = new URLSearchParams(window.location.search);    
-                var appName = params.get('app');    
-                if (appName) {    
-                    loadApp(appName, null);    
-                } else {    
-                    window.addEventListener('message', function onMsg(event) {    
-                        if (!event.data || typeof event.data !== 'object') return;    
-                        if (!event.data.application) return;    
-                        window.removeEventListener('message', onMsg, false);    
-                        var name = APP_IDS[event.data.application] || 'ONLINE';    
-                        loadApp(name, event.data);    
-                        if (event.source) { event.source.postMessage('ready', '*'); }    
-                    }, false);    
-                }    
-            });    
-        </script>    
+        <script src="./carregar-jogo.js?v=${startTime}"></script>
     </body>    
 </html>    
 `;
 	fs.writeFileSync(dist + platform + '/api.html', apiHtml, { encoding: 'utf8' });
+	// Os scripts da pagina, gerados ao lado dela (D-1648): nada de codigo embutido.
+	fs.writeFileSync(dist + platform + '/guarda-da-entrada.js', GUARDA_DA_ENTRADA_JS, { encoding: 'utf8' });
+	fs.writeFileSync(dist + platform + '/meta-pixel.js', META_PIXEL_JS, { encoding: 'utf8' });
+	fs.writeFileSync(dist + platform + '/carregar-jogo.js', CARREGAR_JOGO_JS, { encoding: 'utf8' });
 	fs.copyFileSync('./applications/api/api.js', dist + platform + '/api.js');
 }
 
@@ -822,10 +876,9 @@ async function copyPwaFiles() {
 	 * velho para sempre.
 	 *
 	 * A versao e `<versao do package> + carimbo do build`, os dois numeros que
-	 * o `createHTML` ja usa no `<title>`.
+	 * o `createHTML` ja usa no `<title>` - `versaoDoBuild`, no topo do arquivo.
 	 */
-	const versaoDoBuild = pkg.version + '-' + buildDate.replace(/[^0-9]/g, '');
-	const sw = fs.readFileSync('./applications/pwa/sw.js', 'utf8').replace('__VERSAO_DO_BUILD__', versaoDoBuild);
+	const sw =fs.readFileSync('./applications/pwa/sw.js', 'utf8').replace('__VERSAO_DO_BUILD__', versaoDoBuild);
 	fs.writeFileSync(destino + '/sw.js', sw, { encoding: 'utf8' });
 	/* O REGISTRADOR recebe a MESMA versao do worker (23/09/2026): e comparando
 	   as duas que ele decide, sozinho, se o worker em espera pode assumir. */
@@ -833,6 +886,10 @@ async function copyPwaFiles() {
 		.readFileSync('./applications/pwa/registrar-sw.js', 'utf8')
 		.replace('__VERSAO_DO_BUILD__', versaoDoBuild);
 	fs.writeFileSync(destino + '/registrar-sw.js', registrador, { encoding: 'utf8' });
+	/* A VERSAO PUBLICADA (`versao-do-cliente.json`) NAO e escrita aqui desde
+	   29/09/2026 (D-1822 do servidor): ela sai do passo que compila o Online.js
+	   (`compile`, `escreverVersaoPublicada`). Escrita aqui, um build so da casca
+	   publicava um carimbo sem o jogo dele. */
 
 	for (const lado of [192, 512]) {
 		await sharp(origem)

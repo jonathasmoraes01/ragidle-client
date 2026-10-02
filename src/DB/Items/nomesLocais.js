@@ -86,16 +86,16 @@ export const NOMES_LOCAIS = {
 	// 20765) o GRF nomeia em portugues e nao entram aqui — nome do GRF vence.
 	20500: 'Archangel Wing', // db/re/item_db_equip.yml:109916 (T_Archangel_Wing)
 	20501: 'Costume Mechanic Wing', // db/re/item_db_equip.yml:109925 (C_Mechanic_Wing)
-	20502: 'Costume Little Devil Wings', // db/re/item_db_equip.yml:109933 (C_Devil_Wing)
+	20502: 'Asinhas de Diabinho', // db/re/item_db_equip.yml:109933 (C_Devil_Wing)
 	20503: 'Costume Candy Pouch Bag', // db/re/item_db_equip.yml:109942 (C_Bag_Of_Antonio)
 	20505: 'Costume Cupid Wing Skyblue', // db/re/item_db_equip.yml:109959 (C_Cupid_Wing_Skyblue)
 	20509: 'Costume Wings of Uriel', // db/re/item_db_equip.yml:110000 (C_Wings_of_Uriel)
 	20510: 'Costume Sword Wing', // db/re/item_db_equip.yml:110009 (C_SwordWing)
 	20512: "Costume Adventurer's Backpack", // db/re/item_db_equip.yml:110027 (C_Bravery_Bag)
-	20587: 'Wings of Light and Darkness', // db/re/item_db_equip.yml:110796 (C_Light_Darkness_Wing)
+	20587: 'Asas de Luz e Trevas', // db/re/item_db_equip.yml:110796 (C_Light_Darkness_Wing)
 	20606: 'Costume Golden Angel Wing', // db/re/item_db_equip.yml:110964 (C_Golden_Angel_Wing)
 	20737: 'Costume Kirin Wing', // db/re/item_db_equip.yml:112075 (C_Kirin_Wing)
-	20762: 'Costume Great Devil Wings', // db/re/item_db_equip.yml:112312 (C_GreatDevilWing)
+	20762: 'Grandes Asas de Demônio', // db/re/item_db_equip.yml:112312 (C_GreatDevilWing)
 	20763: 'Costume Amistr Bag', // db/re/item_db_equip.yml:112321 (C_Amistr_Bag)
 	400171: 'Costume Angel feather', // db/re/item_db_equip.yml:166992 (C_Angel_feather)
 
@@ -172,21 +172,51 @@ export const NOMES_LOCAIS = {
 	9000311: 'Diadema do Grifo', // catalogo-s1.ts, Caixa Meio
 	9000312: 'Estola Angelical', // catalogo-s1.ts, Caixa Baixo
 	9000313: 'Estola do Demônio', // catalogo-s1.ts, Caixa Baixo
-	9000314: "Seraphim's Feather", // catalogo-s1.ts, Caixa Baixo
-	9000315: 'Fallen Angel Valletta', // catalogo-s1.ts, Caixa Baixo
-	9000316: 'Group of Stars', // catalogo-s1.ts, Caixa Baixo
-	9000317: 'Light and Dark Master', // catalogo-s1.ts, Caixa Baixo
-	9000318: "Lucifer's Wings", // catalogo-s1.ts, Caixa Manto
+	9000314: 'Pena de Serafim', // catalogo-s1.ts, Caixa Baixo (nome em portugues desde 28/09/2026, item 30)
+	9000315: 'Valletta, o Anjo Caído', // catalogo-s1.ts, Caixa Baixo
+	9000316: 'Chuva de Estrelas', // catalogo-s1.ts, Caixa Baixo
+	9000317: 'Mestre da Luz e das Trevas', // catalogo-s1.ts, Caixa Baixo
+	9000318: 'Asas de Lúcifer', // catalogo-s1.ts, Caixa Manto (nome em portugues desde 28/09/2026, item 30)
 	9000319: 'Cristal Filosofal', // catalogo-s1.ts, Passe Free 40
-	9000320: 'Valkyrie Wings', // catalogo-s1.ts, Passe Free 50
-	9000321: 'Shining Angel Wings', // catalogo-s1.ts, Passe Premium 15
-	9000322: 'Ghost Effect', // catalogo-s1.ts, Passe Premium 30
-	9000323: 'Ancient Resonance', // catalogo-s1.ts, Passe Premium 45
-	9000324: 'Rune-Midgarts Glory', // catalogo-s1.ts, Passe Premium 50
-	9000325: 'Astra Blessing', // catalogo-s1.ts, VIP ate 23/09/2026 (quem resgatou fica com ela)
+	9000320: 'Asas de Valquíria', // catalogo-s1.ts, Passe Free 50
+	9000321: 'Asas Reluzentes de Anjo', // catalogo-s1.ts, Passe Premium 15
+	9000322: 'Aura Fantasma', // catalogo-s1.ts, Passe Premium 30
+	9000323: 'Ressonância Ancestral', // catalogo-s1.ts, Passe Premium 45
+	9000324: 'Glória de Rune-Midgard', // catalogo-s1.ts, Passe Premium 50
+	9000325: 'Bênção Astral', // catalogo-s1.ts, VIP ate 23/09/2026 (quem resgatou fica com ela)
 	// 23/09/2026: o visual do VIP trocou (pedido do dono). O nome e o campo
 	// `name` de `game/itens-custom.ts` e o `nome` de `catalogo-s1.ts`.
 	9000326: 'Aura do Tornado', // catalogo-s1.ts, VIP desde 23/09/2026
+	// 28/09/2026 (item 17 do dono: 10 comuns por caixa): os 28 comuns novos.
+	// O nome e o `nome` de `catalogo-s1.ts`, e o icone e o PNG publicado.
+	9000327: 'Tiara de Coelho', // catalogo-s1.ts, Caixa Topo
+	9000328: 'Chapéu de Angeling', // catalogo-s1.ts, Caixa Topo
+	9000329: 'Chapéu de Deviruchi', // catalogo-s1.ts, Caixa Topo
+	9000330: 'Chifres de Íncubo', // catalogo-s1.ts, Caixa Topo
+	9000331: 'Presilha de Angeling', // catalogo-s1.ts, Caixa Topo
+	9000332: 'Boina', // catalogo-s1.ts, Caixa Topo
+	9000333: 'Chifres de Súcubo', // catalogo-s1.ts, Caixa Topo
+	9000334: 'Máscara da Ópera', // catalogo-s1.ts, Caixa Meio
+	9000335: 'Bochechas Coradas', // catalogo-s1.ts, Caixa Meio
+	9000336: 'Óculos de Aro Preto', // catalogo-s1.ts, Caixa Meio
+	9000337: 'Óculos Vermelhos', // catalogo-s1.ts, Caixa Meio
+	9000338: 'Mini Óculos', // catalogo-s1.ts, Caixa Meio
+	9000339: 'Tapa-olho de Coração', // catalogo-s1.ts, Caixa Meio
+	9000340: 'Óculos de Sol', // catalogo-s1.ts, Caixa Meio
+	9000341: 'Flor Branca na Boca', // catalogo-s1.ts, Caixa Baixo
+	9000342: 'Rosa Escarlate na Boca', // catalogo-s1.ts, Caixa Baixo
+	9000343: 'Lenço de Gangue', // catalogo-s1.ts, Caixa Baixo
+	9000344: 'Adaga na Boca', // catalogo-s1.ts, Caixa Baixo
+	9000345: 'Chupeta', // catalogo-s1.ts, Caixa Baixo
+	9000346: 'Barbicha', // catalogo-s1.ts, Caixa Baixo
+	9000347: 'Chiclete na Boca', // catalogo-s1.ts, Caixa Baixo
+	9000348: 'Manto de Laço Grande', // catalogo-s1.ts, Caixa Manto
+	9000349: 'Manto de Laço Branco', // catalogo-s1.ts, Caixa Manto
+	9000350: 'Capa de Coelhinho', // catalogo-s1.ts, Caixa Manto
+	9000351: 'Casaco Haori', // catalogo-s1.ts, Caixa Manto
+	9000352: 'Mochila Preta', // catalogo-s1.ts, Caixa Manto
+	9000353: 'Cauda de Raposa', // catalogo-s1.ts, Caixa Manto
+	9000354: 'Mochila Vermelha', // catalogo-s1.ts, Caixa Manto
 
 	// --- Rodada 9: os 11 CONSUMIVEIS DO RO SHOP (22/09/2026) ---
 	//
@@ -204,6 +234,7 @@ export const NOMES_LOCAIS = {
 	9000100: 'Manual de Experiência', // itens-custom.ts (Manual_De_Experiencia)
 	9000101: 'Manual de Experiência de Classe', // itens-custom.ts (Manual_De_Experiencia_De_Classe)
 	9000102: 'Bênção da Fortuna', // itens-custom.ts (Bencao_Da_Fortuna)
+	9000123: 'Goma de Mascar', // itens-custom.ts (Goma_De_Mascar), 27/09/2026: a Goma no RO Shop
 	9000103: 'Pack Poção Azul', // itens-custom.ts (Pack_Pocao_Azul)
 	9000122: 'Pack Poção Azul (500)', // itens-custom.ts (Pack_Pocao_Azul_500), 24/09/2026: o de 1000 saiu de venda
 	9000104: 'Pack Poção Branca', // itens-custom.ts (Pack_Pocao_Branca)
@@ -219,6 +250,22 @@ export const NOMES_LOCAIS = {
 	9000112: 'Poção Branca da Conta', // pocoes-da-conta.ts (White_Potion_Da_Conta)
 	9000120: 'Poção Vermelha da Conta', // pocoes-da-conta.ts (Red_Potion_Da_Conta), o kit inicial
 	9000121: 'Faca da Conta', // pocoes-da-conta.ts (Knife_Da_Conta), o kit inicial
+	// O REFINO NO RO SHOP (28/09/2026, L13): os minerios da conta e os quatro packs.
+	9000124: 'Oridecon da Conta', // pocoes-da-conta.ts (Oridecon_Da_Conta)
+	9000125: 'Elunium da Conta', // pocoes-da-conta.ts (Elunium_Da_Conta)
+	9000126: 'Pack Oridecon da Conta (30)', // itens-custom.ts (Pack_Oridecon_Da_Conta_30)
+	9000127: 'Pack Elunium da Conta (30)', // itens-custom.ts (Pack_Elunium_Da_Conta_30)
+	9000128: 'Pack Oridecon da Conta (100)', // itens-custom.ts (Pack_Oridecon_Da_Conta_100)
+	9000129: 'Pack Elunium da Conta (100)', // itens-custom.ts (Pack_Elunium_Da_Conta_100)
+	// AS FLECHAS INFINITAS (28/09/2026, L14): o aluguel da conta.
+	9000130: 'Flechas Infinitas (7 dias)', // itens-custom.ts (Aluguel_Flecha_Infinita_7)
+	9000131: 'Flechas Infinitas (14 dias)', // itens-custom.ts (Aluguel_Flecha_Infinita_14)
+	9000132: 'Flechas Infinitas (30 dias)', // itens-custom.ts (Aluguel_Flecha_Infinita_30)
+	// AS ASAS DA CONTA (28/09/2026): o que o Pack Viagem entrega.
+	9000133: 'Asa de Mosca da Conta', // pocoes-da-conta.ts (Wing_Of_Fly_Da_Conta)
+	9000134: 'Asa de Borboleta da Conta', // pocoes-da-conta.ts (Wing_Of_Butterfly_Da_Conta)
+	// O FRUTO DA CONTA (01/10/2026): o que a trilha VIP do Passe de Batalha da S1 entrega.
+	9000135: 'Fruto de Yggdrasil da Conta', // Yggdrasil_Berry_Da_Conta (servidor; a copia do 607 presa a conta)
 	// A ZONA DE ZENY (25/09/2026): as recompensas e o bilhete (itens-custom.ts).
 	9003000: 'Moeda de Poring',
 	9003001: 'Bolsa de Moedas de Poring',
@@ -302,14 +349,15 @@ export const DESCRICOES_LOCAIS = {
 	9002000: FECHO_DO_ALFA,
 	9002001: FECHO_DO_ALFA,
 	9002002: FECHO_DO_ALFA,
-	9000100: `Aumenta em 25% a EXP de base ganha por 1 hora.\n${FECHO_DE_CASH}`,
-	9000101: `Aumenta em 25% a EXP de classe ganha por 1 hora.\n${FECHO_DE_CASH}`,
-	9000102: `Uma bênção que atrai a sorte. Aumenta em 20% a chance de itens comuns caírem de monstros comuns por 1 hora. Não vale para cartas, MVPs nem monstros raros. Usar outra enquanto ativa estende a duração.\n${FECHO_DE_CASH}`,
+	9000100: `Aumenta em 50% a EXP de base ganha por 1 hora. Usar outro enquanto ativo estende a duração.\n${FECHO_DE_CASH}`,
+	9000101: `Aumenta em 50% a EXP de classe ganha por 1 hora. Usar outro enquanto ativo estende a duração.\n${FECHO_DE_CASH}`,
+	9000102: `Uma bênção que atrai a sorte. Aumenta em 100% a chance de todos os itens caírem de monstros, cartas incluídas, por 1 hora. A chance é relativa: um item de 10% passa a 20%. É o mesmo bônus da Goma de Mascar: não soma com ela, e usar uma com a outra ativa estende a duração.\n${FECHO_DE_CASH}`,
+	9000123: `Aumenta em 100% a chance de todos os itens caírem de monstros, cartas incluídas, por 30 minutos. A chance é relativa: um item de 10% passa a 20%. É o mesmo bônus da Bênção da Fortuna: não soma com ela, e usar uma com a outra ativa estende a duração.\n${FECHO_DE_CASH}`,
 	9000103: `Um pack selado. Ao usar, entrega 1000 Poções Azuis da Conta.\n${FECHO_DE_CASH}`,
 	9000122: `Um pack selado. Ao usar, entrega 500 Poções Azuis da Conta.\n${FECHO_DE_CASH}`,
 	9000104: `Um pack selado. Ao usar, entrega 500 Poções Brancas da Conta.\n${FECHO_DE_CASH}`,
 	9000105: `Um pack selado. Ao usar, entrega 1000 Poções Azuis da Conta e 500 Poções Brancas da Conta.\n${FECHO_DE_CASH}`,
-	9000106: `Um pack selado. Ao usar, entrega 500 Asas de Mosca e 100 Asas de Borboleta.\n${FECHO_DE_CASH}`,
+	9000106: `Um pack selado. Ao usar, entrega 500 Asas de Mosca da Conta e 100 Asas de Borboleta da Conta.\n${FECHO_DE_CASH}`,
 	9000107: `Um pack selado. Ao usar, entrega 500 Poções Brancas da Conta, 1000 Poções Azuis da Conta e 1 Bênção da Fortuna.\n${FECHO_DE_CASH}`,
 	9000108: `Um pack selado. Ao usar, entrega 500 Poções Brancas da Conta, 1000 Poções Azuis da Conta, 1 Manual de Experiência e 1 Manual de Experiência de Classe.\n${FECHO_DE_CASH}`,
 	9000109: `Um pack selado. Ao usar, entrega 500 Poções Brancas da Conta, 1000 Poções Azuis da Conta, os dois Manuais e 1 Bênção da Fortuna.\n${FECHO_DE_CASH}`,
@@ -319,6 +367,25 @@ export const DESCRICOES_LOCAIS = {
 	9000111: `Uma poção que recupera de 40 a 60 de SP. Vem dos packs do RO Shop e do kit de boas-vindas.\n${FECHO_UNIQUE}`,
 	9000120: `Uma poção que recupera HP. Vem do kit de boas-vindas.\n${FECHO_UNIQUE}`,
 	9000121: `Uma faca simples, a primeira arma do aventureiro. Vem do kit de boas-vindas.\n${FECHO_UNIQUE}`,
+	// O refino no RO Shop (28/09/2026, L13): o refino gasta o minerio da conta antes do comum
+	// (servidor/material-do-refino.ts), e a tentativa pode misturar os dois.
+	9000124: `Um Oridecon preso à conta: serve para refinar armas, como o Oridecon comum, e o refino o gasta primeiro. Vem dos packs do RO Shop.\n${FECHO_UNIQUE}`,
+	9000125: `Um Elunium preso à conta: serve para refinar armaduras, como o Elunium comum, e o refino o gasta primeiro. Vem dos packs do RO Shop.\n${FECHO_UNIQUE}`,
+	9000126: `Um pack selado. Ao usar, entrega 30 Oridecons da Conta.\n${FECHO_DE_CASH}`,
+	9000127: `Um pack selado. Ao usar, entrega 30 Eluniuns da Conta.\n${FECHO_DE_CASH}`,
+	9000128: `Um pack selado. Ao usar, entrega 100 Oridecons da Conta.\n${FECHO_DE_CASH}`,
+	9000129: `Um pack selado. Ao usar, entrega 100 Eluniuns da Conta.\n${FECHO_DE_CASH}`,
+	// As Flechas Infinitas (28/09/2026, L14): servidor/ro-shop/aluguel-de-flecha.ts.
+	9000130: `Ao usar, ativa as Flechas Infinitas por 7 dias para todos os personagens da conta: a flecha equipada não é gasta. Mantenha ao menos uma flecha equipada. Usar outro enquanto ativo soma os dias.\n${FECHO_DE_CASH}`,
+	9000131: `Ao usar, ativa as Flechas Infinitas por 14 dias para todos os personagens da conta: a flecha equipada não é gasta. Mantenha ao menos uma flecha equipada. Usar outro enquanto ativo soma os dias.\n${FECHO_DE_CASH}`,
+	9000132: `Ao usar, ativa as Flechas Infinitas por 30 dias para todos os personagens da conta: a flecha equipada não é gasta. Mantenha ao menos uma flecha equipada. Usar outro enquanto ativo soma os dias.\n${FECHO_DE_CASH}`,
+	// As asas da conta (28/09/2026, servidor game/pocoes-da-conta.ts): o Pack Viagem as entrega
+	// no lugar das comuns, que vendiam no NPC. O teleporte e o da Asa comum.
+	9000133: `Teleporta você para um lugar aleatório do mapa. Vem do Pack Viagem do RO Shop.\n${FECHO_UNIQUE}`,
+	9000134: `Leva você de volta ao seu ponto salvo. Vem do Pack Viagem do RO Shop.\n${FECHO_UNIQUE}`,
+	// O fruto da conta (01/10/2026): o efeito e o do Fruto de Yggdrasil (607), `percentheal 100,100;`
+	// no `db/pre-re/item_db_usable.yml`. Como os outros da conta, nao vai ao chao (noDrop).
+	9000135: `Um fruto da Árvore Yggdrasil que recupera 100% do HP e do SP. Vem do Passe de Batalha VIP da temporada. Não pode ser jogado no chão.\n${FECHO_UNIQUE}`,
 	9003000: `Uma moeda dourada cunhada com o rosto de um Poring. Os Porings da Praça de Zeny guardam essas moedas como se fossem o maior tesouro do mundo.\nPode ser vendida a qualquer NPC comerciante em troca de zeny.\nNão pode ser negociada.`,
 	9003001: `Uma bolsinha de couro recheada de Moedas de Poring, bem mais pesada no bolso que uma moeda solta.\nPode ser vendida a qualquer NPC comerciante em troca de zeny.\nNão pode ser negociada.`,
 	9003002: `Uma barra de ouro maciço forjada em Midgard, cobiçada por mercadores de todo o reino. Um dos tesouros mais valiosos que os Porings da Praça de Zeny escondem.\nPode ser vendida a qualquer NPC comerciante em troca de zeny.\nNão pode ser negociada.`,
@@ -334,13 +401,73 @@ export const DESCRICOES_LOCAIS = {
 	9000118: `Ao usar, todos os personagens da conta ganham mais capacidade de carga. Permanente. No limite de expansões, o item não é gasto.\n${FECHO_DE_CASH}`,
 	9000119: `Ao usar, o armazém da Kafra ganha cem espaços, para toda a conta. Permanente. No limite de expansões, o item não é gasto.\n${FECHO_DE_CASH}`,
 	/*
-	 * A AURA DO TORNADO (23/09/2026, o visual do VIP da Temporada Luz & Trevas).
-	 * O pedido do dono trouxe o nome e a descricao em portugues; nao ha numero
-	 * nesta frase, e o que ela afirma sai do item: `game/itens-custom.ts` (sem
-	 * script - nao da atributo; traje de baixo, `EQP_COSTUME_HEAD_LOW`) e
-	 * `loja-da-temporada.ts` (resgate permanente com o VIP ativo).
+	 * OS 62 VISUAIS DA TEMPORADA LUZ & TREVAS (28/09/2026, item 30): textos
+	 * escritos e aprovados pelo dono. O nome mora em NOMES_LOCAIS.
+	 * A frase da Aura do Tornado (9000326) veio do proprio pedido do dono em
+	 * 23/09/2026 e ficou igual; so a linha tecnica do fim passou a ser a do grupo.
 	 */
-	9000326: 'Um redemoinho de vento verde que gira em volta de quem o veste. Visual exclusivo do VIP da Temporada Luz & Trevas: é seu para sempre, mesmo depois que o VIP acabar.\nTraje (visual de baixo). Não altera atributos.'
+	9000300: 'Duas asinhas brancas presas à cabeça, leves como uma prece.\nVisual da Temporada Luz & Trevas.\nTraje (visual de topo). Não altera atributos.',
+	9000301: 'Asinhas negras de morcego que despontam do cabelo.\nVisual da Temporada Luz & Trevas.\nTraje (visual de topo). Não altera atributos.',
+	9000302: 'Um elmo alado que lembra os guardiões do céu de Midgard.\nVisual da Temporada Luz & Trevas.\nTraje (visual de topo). Não altera atributos.',
+	9000327: 'Orelhas de coelho de pé, para quem caça com leveza.\nVisual da Temporada Luz & Trevas.\nTraje (visual de topo). Não altera atributos.',
+	9000328: 'Um Angeling inteiro descansando na sua cabeça. Ele não se importa.\nVisual da Temporada Luz & Trevas.\nTraje (visual de topo). Não altera atributos.',
+	9000329: 'O capuz do diabinho mais travesso dos calabouços.\nVisual da Temporada Luz & Trevas.\nTraje (visual de topo). Não altera atributos.',
+	9000330: 'Chifres curvos de quem prefere as sombras.\nVisual da Temporada Luz & Trevas.\nTraje (visual de topo). Não altera atributos.',
+	9000331: 'Um pequeno Angeling preso ao cabelo, sempre de olho em você.\nVisual da Temporada Luz & Trevas.\nTraje (visual de topo). Não altera atributos.',
+	9000332: 'A boina clássica dos artistas e viajantes de Prontera.\nVisual da Temporada Luz & Trevas.\nTraje (visual de topo). Não altera atributos.',
+	9000333: 'Chifres elegantes, para um visual encantadoramente perigoso.\nVisual da Temporada Luz & Trevas.\nTraje (visual de topo). Não altera atributos.',
+	9000303: 'O elmo dos cavaleiros de Diabolus, forjado em escuridão.\nVisual da Temporada Luz & Trevas.\nTraje (visual de topo). Não altera atributos.',
+	9000304: 'O elmo alado das Valquírias que escolhem os heróis de Midgard.\nVisual da Temporada Luz & Trevas.\nTraje (visual de topo). Não altera atributos.',
+	9000305: 'A máscara do Senhor das Trevas. Poucos a viram de perto e voltaram para contar.\nVisual da Temporada Luz & Trevas.\nTraje (visual de topo). Não altera atributos.',
+	9000306: 'Pequenas asas brancas no lugar das orelhas.\nVisual da Temporada Luz & Trevas.\nTraje (visual do meio). Não altera atributos.',
+	9000307: 'Asinhas escuras que batem ao lado do rosto.\nVisual da Temporada Luz & Trevas.\nTraje (visual do meio). Não altera atributos.',
+	9000308: 'Uma venda escura para quem enxerga além dos olhos.\nVisual da Temporada Luz & Trevas.\nTraje (visual do meio). Não altera atributos.',
+	9000334: 'Meia máscara branca, digna de um baile em Juno.\nVisual da Temporada Luz & Trevas.\nTraje (visual do meio). Não altera atributos.',
+	9000335: 'Um rubor que não passa, nem depois da caçada.\nVisual da Temporada Luz & Trevas.\nTraje (visual do meio). Não altera atributos.',
+	9000336: 'Óculos sérios, de estudioso da Academia.\nVisual da Temporada Luz & Trevas.\nTraje (visual do meio). Não altera atributos.',
+	9000337: 'Armação vermelha, para quem gosta de ser notado.\nVisual da Temporada Luz & Trevas.\nTraje (visual do meio). Não altera atributos.',
+	9000338: 'Óculos pequeninos, apoiados na ponta do nariz.\nVisual da Temporada Luz & Trevas.\nTraje (visual do meio). Não altera atributos.',
+	9000339: 'Um tapa-olho de pirata, com um coração no lugar da caveira.\nVisual da Temporada Luz & Trevas.\nTraje (visual do meio). Não altera atributos.',
+	9000340: 'Para o sol de Morroc e para parecer tranquilo.\nVisual da Temporada Luz & Trevas.\nTraje (visual do meio). Não altera atributos.',
+	9000309: 'Um espírito luminoso que acompanha os campeões.\nVisual da Temporada Luz & Trevas.\nTraje (visual do meio). Não altera atributos.',
+	9000310: 'Penas manchadas de vermelho, lembrança de uma batalha antiga.\nVisual da Temporada Luz & Trevas.\nTraje (visual do meio). Não altera atributos.',
+	9000311: 'O diadema dos senhores do grifo, com penas de ouro.\nVisual da Temporada Luz & Trevas.\nTraje (visual do meio). Não altera atributos.',
+	9000312: 'Uma estola branca e macia, bordada com penas.\nVisual da Temporada Luz & Trevas.\nTraje (visual de baixo). Não altera atributos.',
+	9000313: 'Uma estola escura com asas de morcego nas pontas.\nVisual da Temporada Luz & Trevas.\nTraje (visual de baixo). Não altera atributos.',
+	9000314: 'Uma pena caída das asas de um serafim, que ainda brilha.\nVisual da Temporada Luz & Trevas.\nTraje (visual de baixo). Não altera atributos.',
+	9000341: 'Uma flor branca entre os dentes, para ocasiões especiais.\nVisual da Temporada Luz & Trevas.\nTraje (visual de baixo). Não altera atributos.',
+	9000342: 'A rosa vermelha dos galanteadores de Midgard.\nVisual da Temporada Luz & Trevas.\nTraje (visual de baixo). Não altera atributos.',
+	9000343: 'Um lenço amarrado no rosto, estilo fora da lei.\nVisual da Temporada Luz & Trevas.\nTraje (visual de baixo). Não altera atributos.',
+	9000344: 'Uma adaga entre os dentes. Só para impressionar.\nVisual da Temporada Luz & Trevas.\nTraje (visual de baixo). Não altera atributos.',
+	9000345: 'Todo herói já foi um bebê. Alguns não esqueceram.\nVisual da Temporada Luz & Trevas.\nTraje (visual de baixo). Não altera atributos.',
+	9000346: 'Uma barbicha pontuda, de sábio ou de vilão.\nVisual da Temporada Luz & Trevas.\nTraje (visual de baixo). Não altera atributos.',
+	9000347: 'Uma bola de chiclete que nunca estoura.\nVisual da Temporada Luz & Trevas.\nTraje (visual de baixo). Não altera atributos.',
+	9000315: 'Valletta, o anjo caído, flutua ao seu lado.\nVisual da Temporada Luz & Trevas.\nTraje (visual de baixo). Não altera atributos.',
+	9000316: 'Pequenas estrelas que giram em volta de quem as veste.\nVisual da Temporada Luz & Trevas.\nTraje (visual de baixo). Não altera atributos.',
+	9000317: 'Duas forças opostas em equilíbrio, girando ao seu redor.\nVisual da Temporada Luz & Trevas.\nTraje (visual de baixo). Não altera atributos.',
+	20765: 'Asas brancas e imensas, sem uma pena fora do lugar.\nVisual da Temporada Luz & Trevas.\nTraje (visual de manto). Não altera atributos.',
+	20764: 'As asas de um arcanjo que escolheu a escuridão.\nVisual da Temporada Luz & Trevas.\nTraje (visual de manto). Não altera atributos.',
+	20727: 'Asas de ouro, para quem luta pelo que é certo.\nVisual da Temporada Luz & Trevas.\nTraje (visual de manto). Não altera atributos.',
+	9000348: 'Um laço enorme nas costas, impossível de passar despercebido.\nVisual da Temporada Luz & Trevas.\nTraje (visual de manto). Não altera atributos.',
+	9000349: 'Um laço branco e delicado nas costas.\nVisual da Temporada Luz & Trevas.\nTraje (visual de manto). Não altera atributos.',
+	9000350: 'Uma capa com orelhas de coelho, quentinha e fofa.\nVisual da Temporada Luz & Trevas.\nTraje (visual de manto). Não altera atributos.',
+	9000351: 'O casaco tradicional das terras do leste.\nVisual da Temporada Luz & Trevas.\nTraje (visual de manto). Não altera atributos.',
+	9000352: 'A mochila escolar de quem nunca faltou a uma aula da Academia.\nVisual da Temporada Luz & Trevas.\nTraje (visual de manto). Não altera atributos.',
+	9000353: 'Uma cauda de raposa que balança a cada passo.\nVisual da Temporada Luz & Trevas.\nTraje (visual de manto). Não altera atributos.',
+	9000354: 'A mochila vermelha mais famosa do recreio.\nVisual da Temporada Luz & Trevas.\nTraje (visual de manto). Não altera atributos.',
+	20762: 'Asas de demônio, grandes e escuras, que cobrem as costas inteiras.\nVisual da Temporada Luz & Trevas.\nTraje (visual de manto). Não altera atributos.',
+	20587: 'Uma asa de luz e outra de sombra, em perfeito equilíbrio.\nVisual da Temporada Luz & Trevas.\nTraje (visual de manto). Não altera atributos.',
+	9000318: 'As asas do anjo mais belo, antes da queda.\nVisual da Temporada Luz & Trevas.\nTraje (visual de manto). Não altera atributos.',
+	20511: 'Asas de fada azuis e transparentes.\nVisual da Temporada Luz & Trevas.\nTraje (visual de manto). Não altera atributos.',
+	9000321: 'Asas de anjo que brilham como a primeira luz do dia.\nVisual da Temporada Luz & Trevas.\nTraje com efeito de aura. Não altera atributos.',
+	20502: 'Asinhas de diabinho, pequenas e atrevidas.\nVisual da Temporada Luz & Trevas.\nTraje (visual de manto). Não altera atributos.',
+	9000322: 'Um véu fantasmagórico que paira sobre quem o veste.\nVisual da Temporada Luz & Trevas.\nTraje com efeito de aura. Não altera atributos.',
+	9000319: 'Um cristal que flutua ao seu lado, cheio de sabedoria.\nVisual da Temporada Luz & Trevas.\nTraje (visual do meio). Não altera atributos.',
+	9000323: 'O eco de um poder antigo, que vibra em volta de você.\nVisual da Temporada Luz & Trevas.\nTraje com efeito de aura. Não altera atributos.',
+	9000320: 'As asas das Valquírias. A recompensa principal da trilha Free.\nVisual da Temporada Luz & Trevas.\nTraje (visual de manto). Não altera atributos.',
+	9000324: 'A glória do reino de Rune-Midgard. A recompensa principal da trilha VIP.\nVisual da Temporada Luz & Trevas.\nTraje com efeito de aura. Não altera atributos.',
+	9000326: 'Um redemoinho de vento verde que gira em volta de quem o veste. Visual exclusivo do VIP da Temporada Luz & Trevas: é seu para sempre, mesmo depois que o VIP acabar.\nTraje com efeito de aura. Não altera atributos.',
+	9000325: 'Uma bênção das estrelas, dos primeiros VIPs da Temporada Luz & Trevas.\nVisual da Temporada Luz & Trevas.\nTraje com efeito de aura. Não altera atributos.',
 };
 
 /**
@@ -509,7 +636,12 @@ export const ICONES_LOCAIS = {
 	 */
 	9000100: '\xc0\xfc\xc5\xf5\xb1\xb3\xb9\xfc', // Manual de Experiencia -> 12208 Manual de Combate (전투교범)
 	9000101: '\xc0\xfc\xc5\xf5\xb1\xb3\xb9\xfc', // Manual de Exp. de Classe -> 14592 Manual de Combate de Classe (o mesmo .bmp)
-	9000102: '\xc7\xb3\xbc\xb1\xb2\xad', // Bencao da Fortuna -> 12210 Goma de Mascar (풍선껌, o item de drop do kRO)
+	// A Bencao usou a arte da Goma ate 27/09/2026. Com a Goma no RO Shop, as duas
+	// ficariam iguais na mochila: a Bencao passou para o pergaminho de Bencao
+	// (12215), que e o que o icone da loja ja mostrava (servidor,
+	// recursos-que-a-tabela-nao-tem.ts). Recurso lido no data.grf em 27/09/2026.
+	9000102: '\xba\xfb\xc0\xc7\xc1\xd6\xb9\xae\xbc\xad', // Bencao da Fortuna -> 12215 Blessing_10_Scroll
+	9000123: '\xc7\xb3\xbc\xb1\xb2\xad', // Goma de Mascar -> 12210 Goma de Mascar (풍선껌)
 	9000103: '\xc6\xc4\xb6\xf5\xc6\xf7\xbc\xc7', // Pack Pocao Azul -> 505 Pocao Azul (파란포션)
 	9000122: '\xc6\xc4\xb6\xf5\xc6\xf7\xbc\xc7', // Pack Pocao Azul (500) -> 505 Pocao Azul (a mesma arte do de 1000)
 	9000104: '\xc7\xcf\xbe\xe1\xc6\xf7\xbc\xc7', // Pack Pocao Branca -> 504 Pocao Branca (하얀포션)
@@ -523,6 +655,23 @@ export const ICONES_LOCAIS = {
 	9000112: '\xc7\xcf\xbe\xe1\xc6\xf7\xbc\xc7', // Pocao Branca da Conta -> 504 Pocao Branca (a mesma arte)
 	9000120: '\xbb\xa1\xb0\xa3\xc6\xf7\xbc\xc7', // Pocao Vermelha da Conta -> 501 Pocao Vermelha (a mesma arte)
 	9000121: '\xb3\xaa\xc0\xcc\xc7\xc1', // Faca da Conta -> 1201 Faca (a mesma arte)
+	// O refino no RO Shop (L13) e as Flechas Infinitas (L14), 28/09/2026: os recursos que o
+	// servidor declarou em tools/item-icon/recursos-que-a-tabela-nao-tem.ts, lidos no data.grf.
+	9000124: '\xbf\xc0\xb8\xae\xb5\xa5\xbf\xc0\xc4\xdc', // Oridecon da Conta -> 984 Oridecon (a mesma arte)
+	9000125: '\xbf\xa1\xb8\xa3\xb4\xbd', // Elunium da Conta -> 985 Elunium (a mesma arte)
+	9000126: '\xba\xad\xb6\xf4\xc0\xc7\xbb\xf3\xc0\xda', // Pack Oridecon (30) -> 12998 Oridecon_Box
+	9000127: '\xc3\xb6\xbb\xf3\xc0\xda', // Pack Elunium (30) -> 13889 Elunium_Box_
+	9000128: '\xc4\xb3\xbd\xc3\xbb\xf3\xc0\xda_\xb3\xec\xbb\xf6', // Pack Oridecon (100) -> 16548 Sagittarius_Crown_Box
+	9000129: '\xc4\xb3\xbd\xc3\xbb\xf3\xc0\xda_\xb0\xcb\xc1\xa4', // Pack Elunium (100) -> 16396 HD_Elu_Box10
+	9000130: '\xc8\xad\xbb\xec\xc5\xeb', // Flechas Infinitas (7 dias) -> 12004 Arrow_Container
+	9000131: '\xb9\xd9\xb6\xf7\xc8\xad\xbb\xec\xc5\xeb', // Flechas Infinitas (14 dias) -> 12010 Wind_Arrow_Container
+	9000132: '\xb0\xad\xc3\xb6\xc8\xad\xbb\xec\xc5\xeb', // Flechas Infinitas (30 dias) -> 12006 Steel_Arrow_Container
+	// As asas da conta (28/09/2026): a mesma arte da Asa comum de que derivam.
+	9000133: '\xc6\xc4\xb8\xae\xc0\xc7\xb3\xaf\xb0\xb3', // Asa de Mosca da Conta -> 601 Asa de Mosca (a mesma arte)
+	9000134: '\xb3\xaa\xba\xf1\xc0\xc7\xb3\xaf\xb0\xb3', // Asa de Borboleta da Conta -> 602 Asa de Borboleta (a mesma arte)
+	// O fruto da conta (01/10/2026): o recurso do 607, LIDO em `data\idnum2itemresnametable.txt`
+	// do data.grf, com o 601 e o 602 de controle (bateram com as duas linhas acima).
+	9000135: '\xc0\xcc\xb1\xd7\xb5\xe5\xb6\xf3\xbd\xc7\xbf\xad\xb8\xc5', // Fruto de Yggdrasil da Conta -> 607 Fruto de Yggdrasil (a mesma arte)
 	/*
 	 * Os sete tickets (23/09/2026). Os recursos foram LIDOS na tabela do
 	 * `data.grf` pelo servidor (a mesma escolha de

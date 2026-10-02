@@ -63,6 +63,8 @@
  */
 
 import Renderer from 'Renderer/Renderer.js';
+import { habilidadesNoIdioma } from './habilidadesNoIdioma.js';
+import { traduzir } from 'Core/Traducao.js';
 import Preferences from 'Core/Preferences.js';
 import SkillInfo from 'DB/Skills/SkillInfo.js';
 import { montarMapaNomeParaId } from 'DB/Skills/apelidosDoServidor.js'; // N4 da auditoria de tela
@@ -79,6 +81,8 @@ import cssText from './IdleSkills.css?raw';
 import { fecharEEsquecer } from '../limpezaDeJanelaIdle.js';
 import { abaLembrada, lembrarAba } from '../memoriaDeAba.js';
 import { pegar, pendente, assinar } from 'UI/toqueParaAtalho.js';
+import { lembrarNomesDasHabilidades, lembrarSpPorNivel, lerPassoDoSeletor } from 'UI/nivelDeUso.js';
+import { escolhasComPasso, htmlDoNivelParaABarra, nivelParaABarra, spPorNivelDaMecanica } from './nivelParaABarra.js';
 import {
 	NO_L,
 	avaliarDescer,
@@ -159,6 +163,14 @@ IdleSkills.selectedSkillId = null;
  *      uma recusa seria punir duas vezes.
  */
 IdleSkills.rascunho = {};
+
+/**
+ * @var {Record<string, number>} O NIVEL DE USO que a proxima colocacao na
+ *      barra leva, por skillId (D-1908). Ausente = o maximo, que acompanha a
+ *      habilidade quando ela sobe. E escolha de TELA: o servidor guarda o
+ *      nivel no slot, e nao aqui. Ver `nivelParaABarra.js`.
+ */
+IdleSkills.nivelParaBarra = {};
 
 /**
  * @var {boolean} há um "Aplicar" no ar esperando resposta?
@@ -605,12 +617,20 @@ function onSkillsReceived(pkt) {
 		return;
 	}
 
+	// O jogo em ingles (D-1929): nome e caixa de descricao traduzidos na CHEGADA,
+	// inteiros, antes de a janela partir a caixa em pedacos.
+	habilidadesNoIdioma(data.skills);
+
 	const isApplyResponse = Object.prototype.hasOwnProperty.call(data, 'aplicado');
 	const problemas = Array.isArray(data.problemas) ? data.problemas : [];
 
 	// O contrato garante que este payload É o estado corrente completo, responda
 	// ele a um "pedir" ou a uma ação. Adotado por inteiro, sempre.
 	IdleSkills.serverData = data;
+	// D-1908: o SP de cada nivel fica lembrado para a dica da barra de atalhos.
+	data.skills.forEach(s => lembrarSpPorNivel(s.skillId, spPorNivelDaMecanica(s)));
+	// E o nome que esta janela mostra, para a barra dizer o mesmo (`nomeNaBarra`).
+	lembrarNomesDasHabilidades(data.skills);
 
 	/*
 	 * O RASCUNHO só morre quando foi ELE que virou pacote e o pacote passou.
@@ -1029,8 +1049,8 @@ function renderNo(no, contexto) {
 		escapeHtml(
 			skill.nome +
 				(skill.aprendido > 0
-					? ' — arraste para a barra de atalhos'
-					: ' — aprenda a habilidade para poder pô-la na barra de atalhos')
+					? ' ' + traduzir('— arraste para a barra de atalhos')
+					: ' ' + traduzir('— aprenda a habilidade para poder pô-la na barra de atalhos'))
 		) +
 		'">' +
 		'<img src="/ragidle/skills/' +
@@ -1327,7 +1347,10 @@ function payloadDaHabilidade(skill, numericId) {
 		data: {
 			SKID: numericId,
 			level: skill.aprendido,
-			selectedLevel: skill.aprendido
+			// D-1908: o nivel de USO escolhido no detalhe ("Nivel de uso"), ou o
+			// aprendido sem escolha. `aplicarNoSlot` (ShortCut.js) le
+			// `selectedLevel` antes de `level`.
+			selectedLevel: nivelParaABarra(IdleSkills.nivelParaBarra, skill)
 		}
 	};
 }
@@ -1532,7 +1555,8 @@ function buildMecanicaRows(skill) {
 
 	const textByLevel = {};
 	descricao.forEach(line => {
-		const achado = /^\[Nv\s*(\d+)\]:\s*(.*)$/i.exec(String(line || '').trim());
+		// "[Nv 3]:" em portugues, "[Lv 3]:" na caixa inglesa (D-1929).
+		const achado = /^\[(?:Nv|Lv)\s*(\d+)\]:\s*(.*)$/i.exec(String(line || '').trim());
 		if (achado) {
 			const lvl = Number(achado[1]);
 			textByLevel[lvl] = textByLevel[lvl] ? textByLevel[lvl] + ' ' + achado[2] : achado[2];
@@ -1697,6 +1721,16 @@ function renderDetail() {
 	const resumo = buildResumo(skill);
 	const mecanicaRows = buildMecanicaRows(skill);
 	/*
+	 * D-1908: o NIVEL DE USO que vai para a barra. O bloco so existe quando a
+	 * habilidade serve para a barra (a mesma condicao do arrasto e do "Por na
+	 * barra") e tem mais de um nivel; com ele, a linha da mecanica daquele
+	 * nivel ganha a marca `--uso`, para o jogador ler o que o nivel escolhido
+	 * faz sem contar linhas.
+	 */
+	const serveParaABarra = idNumericoParaAtalho(skill) !== null;
+	const nivelUsoHtml = htmlDoNivelParaABarra(skill, IdleSkills.nivelParaBarra, serveParaABarra);
+	const nivelDeUso = nivelUsoHtml ? nivelParaABarra(IdleSkills.nivelParaBarra, skill) : null;
+	/*
 	 * Duas linhas acesas, e as duas dizem algo (D-902): a do nivel ATUAL
 	 * (contando o rascunho) em ouro — "voce esta aqui" — e a PROXIMA
 	 * contornada em acento — e o que o proximo ponto compra, e e por isso
@@ -1709,6 +1743,7 @@ function renderDetail() {
 						'<div class="is-mecanica-row' +
 						(linha.nivel === efetivo ? ' is-mecanica-row--atual' : '') +
 						(!noTeto && linha.nivel === efetivo + 1 ? ' is-mecanica-row--proxima' : '') +
+						(nivelDeUso !== null && linha.nivel === nivelDeUso ? ' is-mecanica-row--uso' : '') +
 						'">' +
 						'<span class="is-mecanica-nivel">Nv. ' +
 						linha.nivel +
@@ -1834,6 +1869,7 @@ function renderDetail() {
 
 	footerEl.innerHTML =
 		acaoHtml +
+		nivelUsoHtml +
 		'<div class="is-detail-acoes">' +
 		rotacaoHtml +
 		atalhoHtml +
@@ -1841,6 +1877,10 @@ function renderDetail() {
 		'</div>' +
 		confirmacaoDeEsquecerHtml(skill);
 
+	const seletorDeUso = footerEl.querySelector('[data-nivel-chave]');
+	if (seletorDeUso) {
+		seletorDeUso.addEventListener('click', e => onPassoDoNivelDeUso(e, skill));
+	}
 	const btnRot = footerEl.querySelector('[data-skill-rotacao]');
 	if (btnRot) {
 		btnRot.addEventListener('click', onClickRotacao);
@@ -1931,6 +1971,16 @@ function esquecerHtml(skill) {
 	if (!skill || skill.aprendido <= 0 || niveisPagosDe(skill) <= 0) {
 		return '';
 	}
+	/*
+	 * DESLIGADO em 27/09/2026 (ordem do dono): o desaprender virou reset de
+	 * graça. Quem liga é o servidor (`desaprender` no payload, ver
+	 * `servidor/desaprender-pela-janela.ts`), e AUSENTE é desligado - um
+	 * servidor velho que ainda aceitasse o pedido só perderia o botão, que é o
+	 * lado seguro. O caminho pago é o Ticket de Reset de Skills ou o Hipnotizador.
+	 */
+	if (!IdleSkills.serverData || IdleSkills.serverData.desaprender !== true) {
+		return '';
+	}
 	return (
 		'<button type="button" class="is-btn-esquecer ri-btn ri-btn--sec" data-esquecer="' +
 		escapeHtml(skill.skillId) +
@@ -2013,6 +2063,27 @@ function onClickRotacao(e) {
  * Tocar de novo na MESMA habilidade não precisa de um `if` aqui: o próprio
  * `pegar()` compara a chave do que já está na mão e desarma sozinho.
  */
+/**
+ * O "−"/"+" do NIVEL DE USO (D-1908). Muda a escolha da tela e, se a MESMA
+ * habilidade ja esta na mao (o "Por na barra" do toque esperando um slot),
+ * a mao passa a levar o nivel novo — trocar o nivel depois de pegar e o gesto
+ * natural de quem viu o SP so depois de tocar.
+ */
+function onPassoDoNivelDeUso(e, skill) {
+	const passo = lerPassoDoSeletor(e.target);
+	if (!passo) {
+		return;
+	}
+	e.stopImmediatePropagation();
+	IdleSkills.nivelParaBarra = escolhasComPasso(IdleSkills.nivelParaBarra, skill, passo.passo);
+	const numericId = idNumericoParaAtalho(skill);
+	const naMao = pendente();
+	if (numericId !== null && naMao && naMao.from === 'IdleSkills' && naMaoEstaHabilidade(numericId)) {
+		naMao.data.selectedLevel = nivelParaABarra(IdleSkills.nivelParaBarra, skill);
+	}
+	renderDetail();
+}
+
 function onClickPorNaBarra(e) {
 	e.stopImmediatePropagation();
 	const skillId = e.currentTarget.dataset.skillAtalho;
@@ -2118,6 +2189,7 @@ IdleSkills.limparEstadoDoPersonagem = function limparEstadoDoPersonagem() {
 	IdleSkills.selectedSkillId = null;
 	IdleSkills.problemas = [];
 	IdleSkills.rascunho = {};
+	IdleSkills.nivelParaBarra = {};
 	soltarOAplicar();
 	/*
 	 * ZERAR O DADO NÃO BASTA: `GUIComponent.remove()` só DESANEXA o host, então
