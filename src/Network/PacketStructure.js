@@ -17123,6 +17123,44 @@ PACKET.ZC.RAGIDLE_CACA_MEDIDA = function PACKET_ZC_RAGIDLE_CACA_MEDIDA(fp, end) 
 PACKET.ZC.RAGIDLE_CACA_MEDIDA.size = -1;
 
 // ---------------------------------------------------------------------------
+// A TROCA PELO NOME - 02/10/2026 (pedido do dono).
+//
+// A janela "Trade" do menu (`UI/Components/TrocaIdle`): o nome do jogador e
+// "Confirmar". O servidor confere o VIP dos dois, o mesmo mapa e as 2 celulas
+// do rAthena (`servidor/mapa/troca-pelo-nome.ts`) e, aceito, segue pelo pedido
+// NATIVO de troca. Os dois ultimos slots da reserva RAGIDLE (0x0fb2/0x0fb3).
+// ---------------------------------------------------------------------------
+
+// 0x0fb2 - RAGIDLE: CZ_RAGIDLE_TROCA_ACAO (client -> server)
+// Variable size: u16 opcode + u16 total length + JSON UTF-8 payload.
+// { acao: 'pedir', nome }. O comprimento vai PASSADO ao `writeString`: sem
+// ele o `writeString` aumenta o buffer de novo pela diferenca bytes -
+// caracteres, e nome com acento chegava ao servidor com zeros depois do JSON
+// (o defeito do PIX de 02/10/2026).
+PACKET.CZ.RAGIDLE_TROCA_ACAO = function PACKET_CZ_RAGIDLE_TROCA_ACAO() {
+	this.json = '{}';
+};
+PACKET.CZ.RAGIDLE_TROCA_ACAO.prototype.build = function () {
+	const bytes = TextEncoding.encode(this.json, 'utf-8');
+	const pkt_len = 2 + 2 + bytes.length;
+	const pkt_buf = new BinaryWriter(pkt_len);
+	pkt_buf.writeShort(0x0fb2);
+	pkt_buf.writeUShort(pkt_len);
+	pkt_buf.writeString(this.json, bytes.length);
+	return pkt_buf;
+};
+
+// 0x0fb3 - RAGIDLE: ZC_RAGIDLE_TROCA (server -> client)
+// Variable size: u16 opcode + u16 total length + JSON UTF-8 payload.
+// { v: 1, acao: 'pedir', ok, motivo, texto, nome } - a resposta de TODO
+// pedido, inclusive a recusa, com a frase do motivo. Quem le e
+// `UI/Components/TrocaIdle/TrocaIdle.js`, o unico dono.
+PACKET.ZC.RAGIDLE_TROCA = function PACKET_ZC_RAGIDLE_TROCA(fp, end) {
+	this.json = fp.readString(end - fp.tell());
+};
+PACKET.ZC.RAGIDLE_TROCA.size = -1;
+
+// ---------------------------------------------------------------------------
 // O MENU LFG (Looking For Group) — D-634, 25/08/2026.
 //
 // Tres opcodes da faixa RAGIDLE reservada em D-527. Eles NAO substituem os
