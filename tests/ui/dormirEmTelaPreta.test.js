@@ -115,6 +115,43 @@ describe('a tela do "Dormindo..." e preta e cobre o jogo', () => {
 		tela.remove();
 	});
 
+	it('o clique de um toque que comecou ANTES da tela nao acorda (o "Sim" do Dormir, 02/10/2026)', async () => {
+		const { default: UIManager } = await import('UI/UIManager.js');
+		let agora = 1_000_000;
+		vi.spyOn(Date, 'now').mockImplementation(() => agora);
+		// O toque no "Sim" da caixa, antes de a tela de sono existir.
+		document.body.dispatchEvent(new Event('touchstart', { bubbles: true }));
+		agora += 50;
+		let pedidos = 0;
+		const tela = UIManager.showDormindo(1000, {}, () => {
+			pedidos++;
+		});
+		const botao = document.body.lastElementChild.querySelector('button');
+		// O `click` que o navegador sintetiza daquele toque cai aqui.
+		agora += 100;
+		botao.dispatchEvent(new Event('click', { cancelable: true }));
+		expect(pedidos, 'o clique fantasma acordou o personagem').toBe(0);
+		// Um clique de verdade, passada a guarda, acorda.
+		agora += 1000;
+		botao.dispatchEvent(new Event('click', { cancelable: true }));
+		expect(pedidos).toBe(1);
+		tela.remove();
+	});
+
+	it('o toque no botao acorda e cancela o clique que o navegador sintetizaria', async () => {
+		const { default: UIManager } = await import('UI/UIManager.js');
+		let pedidos = 0;
+		const tela = UIManager.showDormindo(1000, {}, () => {
+			pedidos++;
+		});
+		const botao = document.body.lastElementChild.querySelector('button');
+		const toque = new Event('touchstart', { bubbles: true, cancelable: true });
+		botao.dispatchEvent(toque);
+		expect(pedidos).toBe(1);
+		expect(toque.defaultPrevented, 'o toque nao cancelou o clique sintetizado').toBe(true);
+		tela.remove();
+	});
+
 	it('o botao alcanca o piso tatil — ele e a UNICA saida da tela cheia', async () => {
 		const { default: UIManager } = await import('UI/UIManager.js');
 		const tela = UIManager.showDormindo(1000, {}, () => {});
