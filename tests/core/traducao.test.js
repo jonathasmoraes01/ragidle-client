@@ -7,7 +7,7 @@
  * brasileiro, segmentos tudo-ou-nada, e o texto intacto quando falta.
  */
 
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import {
 	absorverCatalogo,
 	carregarCatalogo,
@@ -239,5 +239,37 @@ describe('carregarCatalogo', () => {
 		});
 		expect(ligou).toBe(false);
 		expect(buscou).toBe(false);
+	});
+});
+
+describe('lista (virgula, " + " e " - ")', () => {
+	beforeEach(() => {
+		absorverCatalogo({
+			v: 1,
+			exatos: { 'Poção Vermelha': 'Red Potion', 'Bebê Selvagem': 'Savage Babe', Iniciante: 'Beginner' },
+			modelos: [
+				{ pt: '{0} de EXP de base', en: '{0} Base EXP' },
+				{ pt: 'Recompensas: {0}', en: 'Rewards: {0}' },
+			],
+		});
+	});
+
+	it('traduz cada pedaco e guarda a quantidade "5x"', () => {
+		expect(traduzir('Recompensas: 120 de EXP de base, 5x Poção Vermelha')).toBe('Rewards: 120 Base EXP, 5x Red Potion');
+	});
+
+	it('o hifen separado por espacos separa nome e nivel', () => {
+		expect(traduzir('Bebê Selvagem - Iniciante')).toBe('Savage Babe - Beginner');
+	});
+
+	it('tudo ou nada: um pedaco sem traducao deixa a lista em portugues', () => {
+		expect(traduzir('5x Poção Vermelha + 2x Item Desconhecido')).toBe('5x Poção Vermelha + 2x Item Desconhecido');
+	});
+});
+
+describe('quantidade sozinha ("500x Item")', () => {
+	it('traduz o item e guarda o prefixo', () => {
+		absorverCatalogo({ v: 1, exatos: { 'Poção Azul da Conta': 'Account-bound Blue Potion' }, modelos: [] });
+		expect(traduzir('500x Poção Azul da Conta')).toBe('500x Account-bound Blue Potion');
 	});
 });

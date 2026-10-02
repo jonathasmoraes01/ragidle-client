@@ -299,6 +299,46 @@ function porSegmentos(texto, profundidade) {
 }
 
 /**
+ * A LISTA: pedacos juntados por virgula, " + " ou " - " ("120 de EXP de base,
+ * 5x Pocao Vermelha", "Bebe Selvagem - Iniciante"). Cada pedaco passa pela
+ * busca inteira (exato, modelo, segmentos) e o prefixo "5x " fica. Tudo ou nada.
+ */
+function porLista(texto, profundidade) {
+	if (profundidade > PROFUNDIDADE_MAXIMA) {
+		return null;
+	}
+	const pedacos = texto.split(/(,\s+|\s+[+-]\s+)/);
+	if (pedacos.length < 3 && !/^\d[\d.,]*x\s+/.test(texto)) {
+		return null;
+	}
+	const saida = [];
+	for (let i = 0; i < pedacos.length; i++) {
+		const pedaco = pedacos[i];
+		if (i % 2 === 1) {
+			saida.push(pedaco);
+			continue;
+		}
+		const miolo = pedaco.trim();
+		if (miolo === '') {
+			return null;
+		}
+		const comQuantidade = /^(\d[\d.,]*x\s+)([\s\S]+)$/.exec(miolo);
+		const prefixo = comQuantidade ? comQuantidade[1] : '';
+		const resto = comQuantidade ? comQuantidade[2] : miolo;
+		if (!LETRA.test(resto)) {
+			saida.push(pedaco);
+			continue;
+		}
+		const r = buscar(normalizar(resto), profundidade + 1);
+		if (r === null) {
+			return null;
+		}
+		saida.push(prefixo + r);
+	}
+	return saida.join('');
+}
+
+/**
  * A busca, sobre o texto JA normalizado.
  *
  * @returns {string|null} a traducao, ou null quando falta
@@ -317,7 +357,7 @@ function buscar(n, profundidade) {
 			return preencher(modelo, casamento, profundidade);
 		}
 	}
-	return porSegmentos(n, profundidade);
+	return porSegmentos(n, profundidade) ?? porLista(n, profundidade);
 }
 
 /**
