@@ -44,6 +44,9 @@ const TETO_DAS_FALTAS = 5000;
 
 const LETRA = /[A-Za-zÀ-ÖØ-öø-ÿ]/;
 
+/** Um nome proprio sem acento: palavras que comecam com maiuscula ("Orc Warrior", "Baphomet"). */
+const NOME_PROPRIO = /^[A-Z][A-Za-z'’.-]*(?: [A-Z][A-Za-z'’.-]*)*$/;
+
 /** @type {Map<string, string>} */
 const _exatos = new Map();
 /** @type {Array<{pt: string, en: string, cru: Set<number>, ordem: number[], regex: RegExp, ancora: string, letras: number}>} */
@@ -243,6 +246,15 @@ function porSegmentos(texto, profundidade) {
 		}
 		const exato = _exatos.get(normalizar(miolo));
 		if (exato === undefined) {
+			/* NOME PROPRIO IGUAL NOS DOIS IDIOMAS ("Baphomet", "Orc Warrior"): os
+			   geradores de dados nao gravam a identidade, e sem isto "MVP ·
+			   Baphomet" nunca traduzia. Passa intocado o pedaco que e so palavras
+			   com MAIUSCULA e sem acento — frase portuguesa (minuscula, ou com
+			   acento) continua derrubando o texto inteiro. */
+			if (NOME_PROPRIO.test(miolo)) {
+				saida.push(pedaco);
+				continue;
+			}
 			return null;
 		}
 		traduziuAlgum = true;

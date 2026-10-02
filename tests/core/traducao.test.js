@@ -140,6 +140,20 @@ describe('segmentos (tudo ou nada)', () => {
 		expect(traduzir('Peso: 1.250')).toBe('Weight: 1,250');
 	});
 
+	it('nome proprio igual nos dois idiomas passa intocado se o resto traduziu ("MVP · Baphomet")', () => {
+		absorverCatalogo({ ...CATALOGO, exatos: { ...CATALOGO.exatos, há: 'ago', min: 'min' } });
+		expect(traduzir('Prontera · Baphomet')).toBe('Prontera · Baphomet');
+		expect(traduzir('Orc Warrior · há 5min')).toBe('Orc Warrior · ago 5min');
+		// So nome sem nada traduzido: continua falta (nada mudou de verdade).
+		expect(traduzir('Orc Warrior · Baphomet')).toBe('Orc Warrior · Baphomet');
+	});
+
+	it('pedaco portugues minusculo ou com acento NAO passa por nome proprio', () => {
+		absorverCatalogo(CATALOGO);
+		expect(traduzir('3 missões · coisa nova')).toBe('3 missões · coisa nova');
+		expect(traduzir('Nível 10 · Proteção')).toBe('Nível 10 · Proteção');
+	});
+
 	it('um pedaco sem traducao = o texto inteiro intacto, e anotado como falta', () => {
 		absorverCatalogo(CATALOGO);
 		expect(traduzir('3 coisas novas')).toBe('3 coisas novas');

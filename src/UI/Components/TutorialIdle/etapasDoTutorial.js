@@ -606,7 +606,14 @@ export function fraseDaEtapa(etapa, temDedo, frase) {
 	const texto = traduzir(frase || (etapa && etapa.frase) || '');
 	const acao = traduzir(temDedo ? 'Toque em' : 'Clique em');
 	const rotulo = etapa && etapa.rotulo ? `"${traduzir(etapa.rotulo)}"` : '';
-	return texto.replace('{acao}', acao).replace('{rotulo}', rotulo).replace(/\s+/g, ' ').trim();
+	/* A frase que JA traz as aspas ('a aba "{rotulo}"') nao ganha outro par: o
+	   jogador via ""Missoes Gerais"" (achado da traducao, 01/10/2026). */
+	return texto
+		.replace('{acao}', acao)
+		.replace('"{rotulo}"', rotulo)
+		.replace('{rotulo}', rotulo)
+		.replace(/\s+/g, ' ')
+		.trim();
 }
 
 /* ------------------------------------------------------------------ */
