@@ -82,6 +82,7 @@ import MissoesIdle from 'UI/Components/MissoesIdle/MissoesIdle.js';
 import { quantasAceitas, missaoAceita } from 'UI/Components/MissoesIdle/podeIniciarMissao.js';
 import { progressoDaPrimeiraAceita } from 'UI/Components/MissoesIdle/missoesAceitas.js';
 import BoasVindasIdle from 'UI/Components/BoasVindasIdle/BoasVindasIdle.js';
+import IdiomaIdle from 'UI/Components/IdiomaIdle/IdiomaIdle.js';
 import Inventory from 'UI/Components/Inventory/Inventory.js';
 import ItemType from 'DB/Items/ItemType.js';
 import { ler as lerRegistroDaCaca } from 'UI/Components/HuntAnalyzer/registroDaCaca.js';
@@ -762,8 +763,25 @@ function desenhar() {
 	 * isto a mascara (`z-index: 1900000`) cobria a janela/aviso de voto e
 	 * bloqueava todo clique nela, fora do furo da etapa atual.
 	 */
+	/*
+	 * O PASSO ZERO (D-1929, o jogo em ingles): o jogador novo, na etapa 1, que
+	 * nunca escolheu idioma ve a escolha ANTES da primeira etapa. A janela fica
+	 * por cima de tudo (inclusive da caixa de boas-vindas), e o tutorial cede
+	 * enquanto ela esta aberta; fechando sem recarregar, ele redesenha.
+	 */
+	if (estado && estado.estado === 'em-andamento' && Number(numero) === 1) {
+		IdiomaIdle.passoZero(() => {
+			_assinatura = '';
+			desenhar();
+		});
+	}
+
 	const etapa =
-		estado && estado.estado === 'em-andamento' && !BoasVindasIdle.estaAberta() && !votoNaTela()
+		estado &&
+		estado.estado === 'em-andamento' &&
+		!BoasVindasIdle.estaAberta() &&
+		!IdiomaIdle.estaAberta() &&
+		!votoNaTela()
 			? etapaDe(numero)
 			: null;
 

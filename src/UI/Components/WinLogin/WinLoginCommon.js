@@ -14,6 +14,7 @@ import GUIComponent from 'UI/GUIComponent.js';
 import { montarOfertaNaEntrada, sincronizar as sincronizarOferta } from './ofertaNaEntrada.js';
 import { enderecoDoCadastro } from 'UI/enderecoDoCadastro.js';
 import { montarCadastroNaEntrada } from './cadastroNaEntrada.js';
+import IdiomaIdle from 'UI/Components/IdiomaIdle/IdiomaIdle.js';
 import cadastroHtml from './cadastroNaEntrada.html?raw';
 import cadastroCss from './cadastroNaEntrada.css?raw';
 import 'UI/Elements/Elements.js';
@@ -66,6 +67,11 @@ export function createWinLogin({ name, htmlText, cssText }) {
 		root.querySelector('.signup').addEventListener('click', signup);
 		root.querySelector('.connect').addEventListener('click', connect);
 		root.querySelector('.exit').addEventListener('click', exit);
+		// O jogo em ingles (D-1929): so a versao do login que tem o botao o liga.
+		const idioma = root.querySelector('.idioma');
+		if (idioma) {
+			idioma.addEventListener('click', () => IdiomaIdle.mostrar({ contexto: 'login' }));
+		}
 
 		_cadastro = montarCadastroNaEntrada(root, {
 			aoEntrar(usuario, senha) {

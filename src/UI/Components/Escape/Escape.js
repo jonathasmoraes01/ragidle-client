@@ -15,6 +15,7 @@ import GUIComponent from 'UI/GUIComponent.js';
 import SoundOption from 'UI/Components/SoundOption/SoundOption.js';
 import GraphicsOption from 'UI/Components/GraphicsOption/GraphicsOption.js';
 import ShortCutOption from 'UI/Components/ShortCutOption/ShortCutOption.js';
+import IdiomaIdle from 'UI/Components/IdiomaIdle/IdiomaIdle.js';
 import DeathWindow from 'UI/Components/DeathWindow/DeathWindow.js';
 import htmlText from './Escape.html?raw';
 import cssText from './Escape.css?raw';
@@ -67,6 +68,11 @@ Escape.init = function init() {
 		Escape.onCharSelectionRequest();
 	});
 	root.querySelector('.hotkey').addEventListener('click', onToggleShortcutUI);
+	root.querySelector('.idioma').addEventListener('click', function () {
+		// O jogo em ingles (D-1929): a mesma janela do passo zero e do login.
+		Escape._host.style.display = 'none';
+		IdiomaIdle.mostrar({ contexto: 'jogo' });
+	});
 	root.querySelector('.exit').addEventListener('click', function () {
 		Escape.onExitRequest();
 	});
@@ -95,7 +101,7 @@ Escape.onRemove = function onRemove() {
 	root.querySelectorAll('.resurection, .savepoint').forEach(function (el) {
 		el.style.display = 'none';
 	});
-	root.querySelectorAll('.graphics, .sound, .hotkey').forEach(function (el) {
+	root.querySelectorAll('.graphics, .sound, .hotkey, .idioma').forEach(function (el) {
 		el.style.display = '';
 	});
 };
@@ -201,7 +207,7 @@ Escape.showDeathMenu = function showDeathMenu(hasSiegfried) {
 	if (hasSiegfried) {
 		root.querySelector('.resurection').style.display = '';
 	}
-	root.querySelectorAll('.graphics, .sound, .hotkey').forEach(function (el) {
+	root.querySelectorAll('.graphics, .sound, .hotkey, .idioma').forEach(function (el) {
 		el.style.display = 'none';
 	});
 };
@@ -215,7 +221,7 @@ Escape.resetMenu = function resetMenu() {
 	root.querySelectorAll('.resurection, .savepoint').forEach(function (el) {
 		el.style.display = 'none';
 	});
-	root.querySelectorAll('.graphics, .sound, .hotkey').forEach(function (el) {
+	root.querySelectorAll('.graphics, .sound, .hotkey, .idioma').forEach(function (el) {
 		el.style.display = '';
 	});
 };

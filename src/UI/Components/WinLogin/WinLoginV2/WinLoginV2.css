@@ -269,6 +269,22 @@
 	font: var(--type-info);
 	margin-top: calc(-1 * var(--sp-6));
 }
+/* O jogo em ingles (D-1929): a porta da escolha do idioma no login. */
+.wl-idioma {
+	align-self: center;
+	display: inline-flex;
+	align-items: center;
+	gap: var(--sp-2);
+	min-height: var(--hit-touch);
+	font: var(--type-info);
+	margin-top: calc(-1 * var(--sp-4));
+}
+.wl-bandeira {
+	width: 21px;
+	height: 15px;
+	border-radius: 2px;
+	box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.18);
+}
 button:focus-visible,
 input:focus-visible {
 	outline: 2px solid var(--blue-600);
