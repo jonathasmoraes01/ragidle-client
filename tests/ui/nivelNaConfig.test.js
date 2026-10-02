@@ -9,6 +9,7 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import {
 	aplicarPassoDeNivel,
+	duracaoDaEntrada,
 	lembrarSpDoContexto,
 	nivelEscolhidoServido,
 	seletorDaCura,
@@ -144,5 +145,19 @@ describe('o SP por nivel chega a barra', () => {
 		expect(spLembrado('MG_FIREBOLT', 7)).toBe(24);
 		expect(spLembrado('AL_BLESSING', 1)).toBe(28);
 		expect(spLembrado('AL_HEAL', 10)).toBe(40);
+	});
+});
+
+describe('o relogio do buff e o do nivel que ele conjura (D-1929)', () => {
+	const info = { aprendido: 10, duracaoMs: 240000, duracaoMsPorNivel: [60000, 80000, 100000, 120000, 140000, 160000, 180000, 200000, 220000, 240000] };
+	it('acompanhando o aprendido, vale a duracao do maximo', () => {
+		expect(duracaoDaEntrada({ skillId: 'AL_BLESSING', nivelDeUso: 10 }, info)).toBe(240000);
+	});
+	it('fixado abaixo do maximo, vale a duracao do nivel fixado', () => {
+		expect(duracaoDaEntrada({ skillId: 'AL_BLESSING', nivelDeUso: 3, nivelFixo: true }, info)).toBe(100000);
+	});
+	it('sem a lista por nivel (servidor antigo), cai na duracao do aprendido; sem info, null', () => {
+		expect(duracaoDaEntrada({ skillId: 'X', nivelDeUso: 3, nivelFixo: true }, { aprendido: 10, duracaoMs: 5000 })).toBe(5000);
+		expect(duracaoDaEntrada({ skillId: 'X', nivelDeUso: 3 }, undefined)).toBeNull();
 	});
 });

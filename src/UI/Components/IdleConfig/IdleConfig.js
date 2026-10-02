@@ -84,7 +84,7 @@ import {
 	resumoDaSecao,
 	curaLigadaPara
 } from './secoesDaConfig.js';
-import { aplicarPassoDeNivel, lembrarSpDoContexto, nivelEscolhidoServido, seletorDaCura, seletorDaEntrada } from './nivelNaConfig.js';
+import { aplicarPassoDeNivel, duracaoDaEntrada, lembrarSpDoContexto, nivelEscolhidoServido, seletorDaCura, seletorDaEntrada } from './nivelNaConfig.js';
 import { lerPassoDoSeletor } from 'UI/nivelDeUso.js';
 import htmlText from './IdleConfig.html?raw';
 import cssText from './IdleConfig.css?raw';
@@ -1652,10 +1652,7 @@ function renderBuffsMantidos() {
 					const info = infoDe(b.skillId);
 					const alcanca = !!(info && info.alcancaGrupo);
 					const alvo = alvoDoBuff(b);
-					// D-1906: com o seletor, o SP mora nele (o do nivel ESCOLHIDO). A
-					// duracao que o servidor manda e a do nivel APRENDIDO, entao ela so
-					// aparece quando o buff acompanha o aprendido — fixado abaixo, ela
-					// seria um numero de outro nivel.
+					// D-1906: com o seletor, o SP mora nele (o do nivel ESCOLHIDO); o relogio e a duracao do mesmo nivel (D-1929).
 					const comSeletor = nivelEscolhidoServido(ctx) && !!info;
 					return `
 			<div class="ic-buff-row">
@@ -1664,7 +1661,7 @@ function renderBuffsMantidos() {
 					<span class="ic-rot-name" title="${escapeHtml(b.skillId)}">${escapeHtml(nomeDaSkill(b.skillId))}</span>
 					<span class="ic-rot-tags">
 						${seletorDaEntrada({ chave: `rotacaoDeBuffs.${i}`, entrada: b, info, capaz: nivelEscolhidoServido(ctx), nome: nomeDaSkill(b.skillId) })}
-						${info && b.nivelFixo !== true ? `<span class="ri-badge ri-badge--cinza ic-badge-relogio" title="Renovado assim que cair">${RiIcones.relogio}${duracaoCurta(info.duracaoMs)}</span>` : ''}
+						${info ? `<span class="ri-badge ri-badge--cinza ic-badge-relogio" title="Renovado assim que cair">${RiIcones.relogio}${duracaoCurta(duracaoDaEntrada(b, info))}</span>` : ''}
 						${info && !comSeletor ? `<span class="ri-badge ri-badge--cinza">${info.custoSp} SP</span>` : ''}
 					</span>
 				</span>

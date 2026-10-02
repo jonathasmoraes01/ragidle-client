@@ -73,6 +73,19 @@ export function seletorDaEntrada({ chave, entrada, info, capaz, nome }) {
 }
 
 /**
+ * A duracao do buff NO NIVEL que ele conjura (o fixado, ou o aprendido), em ms;
+ * null quando o servidor nao mandou a duracao por nivel.
+ */
+export function duracaoDaEntrada(entrada, info) {
+	if (!info) {
+		return null;
+	}
+	const nivel = nivelEfetivoDaEntrada(entrada, info.aprendido);
+	const porNivel = spDoNivel(info.duracaoMsPorNivel, nivel);
+	return porNivel === null ? info.duracaoMs : porNivel;
+}
+
+/**
  * O seletor de uma CURA, numa linha propria ("Nivel de uso"), ou '' quando a
  * cura nao tem nivel escolhido: a que gasta pocao (o nivel da Aid Potion e a
  * pocao, e no automatico a mochila escolhe — o servidor recusa o campo nela) e
