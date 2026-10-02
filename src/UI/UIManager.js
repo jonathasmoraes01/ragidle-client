@@ -97,6 +97,31 @@ function _createButton(name, onClick, label) {
 const MS_DE_GUARDA_DO_TOQUE = 750;
 
 /**
+ * O CLIQUE QUE NASCEU DE UM TOQUE ANTERIOR AO BOTAO (02/10/2026).
+ *
+ * Relato de jogador: com o evento de EXP ativo, confirmou o "Dormir" e nao
+ * dormiu. So com bonus ativo o "Dormir" pergunta antes, e o "Sim" age no
+ * `touchstart` e some; o `click` que o navegador sintetiza depois cai no que
+ * estiver no ponto. MEDIDO (`scripts/diag-dormir-toque-fantasma.ts`): no
+ * celular em pe o centro do "Sim" fica DENTRO do "Acordar agora" da tela de
+ * sono que abre em seguida - se ela ja estiver na tela quando o clique chega,
+ * o personagem acorda no ato. No Chromium o clique chegou antes da tela (nao
+ * reproduziu); o tempo do Safari e outro. A guarda e barata e so engole o
+ * clique cujo toque comecou ANTES de o botao existir: esse clique nao era
+ * para ele.
+ */
+let _ultimoToqueMs = -Infinity;
+if (typeof document !== 'undefined') {
+	document.addEventListener(
+		'touchstart',
+		() => {
+			_ultimoToqueMs = Date.now();
+		},
+		{ capture: true, passive: true }
+	);
+}
+
+/**
  * LIGA UM BOTAO DE TELA CHEIA AO DEDO **E** AO MOUSE (15/09/2026).
  *
  * ---------------------------------------------------------------------------
@@ -124,6 +149,7 @@ const MS_DE_GUARDA_DO_TOQUE = 750;
 function ligarAoDedoEAoMouse(botao, aoAcionar) {
 	let peloToque = false;
 	let soltar = null;
+	const nascidoEm = Date.now();
 
 	const limpar = () => {
 		if (soltar !== null) {
@@ -148,6 +174,12 @@ function ligarAoDedoEAoMouse(botao, aoAcionar) {
 			evento.stopImmediatePropagation();
 			return;
 		}
+		// O clique de um toque que comecou antes deste botao existir.
+		if (_ultimoToqueMs <= nascidoEm && Date.now() - _ultimoToqueMs < MS_DE_GUARDA_DO_TOQUE) {
+			evento.preventDefault();
+			evento.stopImmediatePropagation();
+			return;
+		}
 		aoAcionar();
 	});
 	botao.addEventListener('touchstart', evento => {
@@ -155,6 +187,10 @@ function ligarAoDedoEAoMouse(botao, aoAcionar) {
 		limpar();
 		// Sem isto o toque tambem vira gesto da cena atras da tela cheia.
 		evento.stopImmediatePropagation();
+		// O toque ja acionou: o `click` que o navegador sintetizaria nao nasce.
+		if (evento.cancelable) {
+			evento.preventDefault();
+		}
 		aoAcionar();
 	});
 	botao.addEventListener('touchend', armarSoltura);
