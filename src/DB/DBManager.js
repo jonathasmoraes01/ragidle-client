@@ -14,6 +14,7 @@ import Client from 'Core/Client.js';
 import Configs from 'Core/Configs.js';
 import TextEncoding from 'Utils/CodepageManager.js';
 import { caminhoDaTabela } from 'DB/tabelasNoIdioma.js';
+import { emIngles } from 'Core/Idioma.js';
 import { escaparHtml } from 'Utils/escaparHtml.js'; // D-1308: nome do dono de arma forjada vem cru do pacote (XSS)
 import JobId from './Jobs/JobConst.js';
 import ClassTable from './Jobs/JobNameTable.js';
@@ -4698,7 +4699,10 @@ function loadWorldMapInfo(basePath, onEnd) {
 			return;
 		}
 
-		const fullPath = dirPath + files[index];
+		// Em ingles (D-1929) os nomes vem do `worldviewdata_enus.lub` do GRF (mesma pasta, mesmo
+		// formato do `_language`); ele e montado COM O NOME do `_language`, que e o que o resto espera.
+		const doIngles = index === 0 && emIngles();
+		const fullPath = dirPath + (doIngles ? 'worldviewdata_enus.lub' : files[index]);
 		console.log('Loading file "' + fullPath + '"...');
 
 		Client.loadFile(
@@ -4708,6 +4712,22 @@ function loadWorldMapInfo(basePath, onEnd) {
 				loadNext(index + 1);
 			},
 			function () {
+				if (doIngles) {
+					Client.loadFile(
+						dirPath + files[index],
+						function (data) {
+							loadedBuffers.push({ name: files[index], data: data });
+							loadNext(index + 1);
+						},
+						function () {
+							console.error('[loadWorldMapInfo] - Failed to load ' + fullPath);
+							if (onEnd) {
+								onEnd();
+							}
+						}
+					);
+					return;
+				}
 				console.error('[loadWorldMapInfo] - Failed to load ' + fullPath);
 				// If a file fails, we might not be able to generate the map, but we continue to avoid hanging
 				if (onEnd) {

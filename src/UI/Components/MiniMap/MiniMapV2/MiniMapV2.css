@@ -72,6 +72,11 @@
 	color: var(--text-title);
 }
 
+.mm-mapname.mm-mapname-longo {
+	font-size: 8px;
+	letter-spacing: 0;
+}
+
 /* ─── Corpo: mapa com cantos suaves + filete claro; icones de
    toggle (object/viewon) viram overlay discreto nos cantos ─────── */
 

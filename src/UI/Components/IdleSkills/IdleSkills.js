@@ -64,6 +64,7 @@
 
 import Renderer from 'Renderer/Renderer.js';
 import { habilidadesNoIdioma } from './habilidadesNoIdioma.js';
+import { traduzir } from 'Core/Traducao.js';
 import Preferences from 'Core/Preferences.js';
 import SkillInfo from 'DB/Skills/SkillInfo.js';
 import Network from 'Network/NetworkManager.js';
@@ -1047,8 +1048,8 @@ function renderNo(no, contexto) {
 		escapeHtml(
 			skill.nome +
 				(skill.aprendido > 0
-					? ' — arraste para a barra de atalhos'
-					: ' — aprenda a habilidade para poder pô-la na barra de atalhos')
+					? ' ' + traduzir('— arraste para a barra de atalhos')
+					: ' ' + traduzir('— aprenda a habilidade para poder pô-la na barra de atalhos'))
 		) +
 		'">' +
 		'<img src="/ragidle/skills/' +

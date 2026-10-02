@@ -234,7 +234,11 @@ export function createMiniMap({
 		// querySelector abaixo fica null e nada acontece.
 		const mapNameEl = this.getRoot().querySelector('.mm-mapname');
 		if (mapNameEl) {
-			mapNameEl.textContent = DB.getMapName(mapname, '');
+			const nomeDoMapa = DB.getMapName(mapname, '');
+			mapNameEl.textContent = nomeDoMapa;
+			mapNameEl.title = nomeDoMapa;
+			// Nome longo (comum em ingles) encolhe em vez de cortar cedo.
+			mapNameEl.classList.toggle('mm-mapname-longo', nomeDoMapa.length > 16);
 		}
 
 		_towninfo = DB.getTownInfo(mapname.replace(/\..*/, ''));

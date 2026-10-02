@@ -2502,7 +2502,9 @@ html.ri-vertical #HuntButtonIdle {
 	top: auto !important;
 	left: auto !important;
 	right: calc(var(--safe-dir, 0px) + var(--vr-margem) + 4px) !important;
-	bottom: calc(var(--vr-acima-dos-atalhos) + 6px) !important;
+	/* +14px: o rotulo do disco de baixo pende para fora do host (top: 100%) e
+	   ficava por baixo da barra de atalhos. */
+	bottom: calc(var(--vr-acima-dos-atalhos) + 20px) !important;
 	width: auto !important;
 	height: auto !important;
 }

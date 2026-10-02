@@ -96,6 +96,7 @@ import {
 } from './cacaMedidaNoMapa.js'; // RAGIDLE: a Caca Medida dentro do Mapa de Caca (v2, 29/09/2026)
 import { fecharEEsquecer } from '../limpezaDeJanelaIdle.js';
 import { abaLembrada, lembrarAba } from '../memoriaDeAba.js';
+import { traduzir } from 'Core/Traducao.js';
 
 /**
  * Keep in sync with the ":host" / ".hm-window" size in HuntMap.css — used
@@ -2305,7 +2306,7 @@ function renderMobDrops(monster) {
 	return `<div class="hm-drops">${drops
 		.map(d => {
 			const raridade = raridadeDoDrop(d);
-			return renderDropTile(d.itemId, nomeDe(d), raridade, '', `${nomeDe(d)} — ${rotuloDeRaridade(raridade)}`);
+			return renderDropTile(d.itemId, nomeDe(d), raridade, '', `${nomeDe(d)} — ${traduzir(rotuloDeRaridade(raridade))}`);
 		})
 		.join('')}</div>`;
 }
