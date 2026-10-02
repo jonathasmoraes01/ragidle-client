@@ -113,6 +113,7 @@ import TutorialIdle from 'UI/Components/TutorialIdle/TutorialIdle.js'; // RAGIDL
 import VotoIdle from 'UI/Components/VotoIdle/VotoIdle.js'; // RAGIDLE: janela de Voto (D-1159)
 import PresencaIdle from 'UI/Components/PresencaIdle/PresencaIdle.js'; // RAGIDLE: janela de presenca (D-1162)
 import IndicacaoIdle from 'UI/Components/IndicacaoIdle/IndicacaoIdle.js'; // RAGIDLE: Indique & Ganhe (D-1164)
+import TrocaIdle from 'UI/Components/TrocaIdle/TrocaIdle.js'; // RAGIDLE: a janela "Trade" do menu (02/10/2026)
 import RankingIdle from 'UI/Components/RankingIdle/RankingIdle.js'; // RAGIDLE: o Ranking (09/09/2026)
 import PainelComandoIdle from 'UI/Components/PainelComandoIdle/PainelComandoIdle.js'; // RAGIDLE: o painel de comando (D-1563)
 import GraphicsSettings from 'Preferences/Graphics.js'; // RAGIDLE: a economia automatica pode ser desligada (23/09/2026)
@@ -614,6 +615,7 @@ class MapEngine {
 					VotoIdle: VotoIdle,
 					PresencaIdle: PresencaIdle,
 					IndicacaoIdle: IndicacaoIdle,
+					TrocaIdle: TrocaIdle,
 					RankingIdle: RankingIdle,
 					PartyHud: PartyHud,
 					// RAGIDLE (D-968): a caixa de boas-vindas. A prova de tela
@@ -669,6 +671,7 @@ class MapEngine {
 			VotoIdle.prepare(); // RAGIDLE: janela de Voto (D-1159) — idem, só escuta 0x0fd5
 			PresencaIdle.prepare(); // RAGIDLE: janela de presenca (D-1162) — escuta 0x0fde e abre sozinha quando o servidor manda
 			IndicacaoIdle.prepare(); // RAGIDLE: Indique & Ganhe (D-1164) — escuta 0x0fdc
+			TrocaIdle.prepare(); // RAGIDLE: a janela "Trade" (02/10/2026) - escuta 0x0fb3
 			RankingIdle.prepare(); // RAGIDLE: o Ranking — escuta 0x0fca
 			PainelComandoIdle.prepare(); // RAGIDLE: o painel de comando — escuta 0x0fbc e abre SOZINHO quando o servidor manda (D-1563)
 			TemporadaIdle.prepare(); // RAGIDLE: a janela da Temporada (Season 1) - idem, so escuta 0x0fbb
@@ -1647,6 +1650,7 @@ function onMapChange(pkt, ehEntradaNoMundo) {
 		VotoIdle.append(); // RAGIDLE: janela de Voto (D-1159)
 		PresencaIdle.append(); // RAGIDLE: janela de presenca (D-1162)
 		IndicacaoIdle.append(); // RAGIDLE: Indique & Ganhe (D-1164)
+		TrocaIdle.append(); // RAGIDLE: a janela "Trade" (02/10/2026) - anexada sempre, fechada
 		RankingIdle.append(); // RAGIDLE: o Ranking
 		PartyHud.append(); // RAGIDLE: a HUD de party
 		/*
@@ -1811,6 +1815,8 @@ function onMapChange(pkt, ehEntradaNoMundo) {
 			['codex', CodexIdle, '.cx-window'],
 			['presenca', PresencaIdle, '.pr-window'],
 			['indicacao', IndicacaoIdle, '.in-window'],
+			// 02/10/2026 - a janela "Trade": toggle() + `.tr-window`/`is-open`, a forma das outras.
+			['troca', TrocaIdle, '.tr-window'],
 			['ranking', RankingIdle, '.rk-window'],
 			['painel-de-comando', PainelComandoIdle, '.pc-window'],
 			['correio', CorreioIdle, '.co-window'],
@@ -2254,6 +2260,7 @@ function cleanGameUI() {
 		TutorialIdle,
 		PresencaIdle,
 		IndicacaoIdle,
+		TrocaIdle,
 		RankingIdle,
 		PainelComandoIdle,
 		PartyHud,

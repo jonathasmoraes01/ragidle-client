@@ -41,6 +41,31 @@ function tradeGIDEncoding(GID) {
 }
 
 /**
+ * RAGIDLE (02/10/2026): quem quer saber da resposta a um pedido de troca - a
+ * janela "Trade" do menu (`TrocaIdle`), que sai da frente quando a troca abre
+ * - assina AQUI, no dono do pacote. `Network.hookPacket` SUBSTITUI o gancho
+ * anterior: um segundo gancho no `ZC_ACK_EXCHANGE_ITEM` roubaria o pacote
+ * deste arquivo e a janela de troca nunca mais abriria.
+ */
+const _ouvintesDaResposta = new Set();
+
+export function aoResponderPedidoDeTroca(funcao) {
+	_ouvintesDaResposta.add(funcao);
+	return () => _ouvintesDaResposta.delete(funcao);
+}
+
+/* Cada ouvinte em `try`: uma excecao aqui abortaria o laco de rede do cliente. */
+function avisarOuvintesDaResposta(resultado) {
+	for (const funcao of _ouvintesDaResposta) {
+		try {
+			funcao(resultado);
+		} catch (err) {
+			console.error('[Trade] ouvinte da resposta ao pedido falhou', err);
+		}
+	}
+}
+
+/**
  * Someone ask to start a trade
  * @param {object} pkt - PACKET.ZC.REQ_EXCHANGE_ITEM
  */
@@ -95,6 +120,7 @@ function onTradeRequestAnswer(pkt) {
 		case 5: // AFK ?
 			break;
 	}
+	avisarOuvintesDaResposta(pkt.result);
 }
 
 /**
