@@ -130,7 +130,8 @@
  * volta, o lugar barato e uma linha dentro da propria Configuracao idle.
  *
  * ─── EM BREVE (contado no HTML em 06/09/2026: Loja, Troca, Leilao e
- * Eventos -- os quatro com `data-em-breve`): a funcao ainda nao existe no
+ * Eventos -- os quatro com `data-em-breve`; desde 02/10/2026 a Troca LIGOU e
+ * abre a janela "Trade", e sobram tres): a funcao ainda nao existe no
  * jogo. A lista escrita aqui ja dizia sete, e tres deles LIGARAM desde
  * entao (RO Shop em I5, Recompensas/Passe em D-813, que sao o mesmo botao):
  * numero escrito a mao em comentario nao acompanha a pasta, e a fonte de
@@ -215,6 +216,7 @@ import { temAvisoDoCodex } from 'UI/Components/avisoDoCodex.js'; // D-1232
 import PresencaIdle from 'UI/Components/PresencaIdle/PresencaIdle.js'; // RAGIDLE: Presenca (D-1162)
 import IndicacaoIdle from 'UI/Components/IndicacaoIdle/IndicacaoIdle.js'; // RAGIDLE: Indique & Ganhe (D-1164)
 import RankingIdle from 'UI/Components/RankingIdle/RankingIdle.js'; // RAGIDLE: o Ranking
+import TrocaIdle from 'UI/Components/TrocaIdle/TrocaIdle.js'; // RAGIDLE: a janela "Trade" (02/10/2026)
 import AdminPanel from 'UI/Components/AdminPanel/AdminPanel.js';
 import Escape from 'UI/Components/Escape/Escape.js'; // RAGIDLE: a janela de sistema (D-1416)
 import RoShop from 'UI/Components/RoShop/RoShop.js'; // RAGIDLE: o RO Shop (22/09/2026) - a porta do item "RO Shop" (era a CashShop nativa, I5)
@@ -687,6 +689,10 @@ function onClickAction(e) {
 		case 'indicacao':
 			/* D-1164: IndicacaoIdle.toggle() tambem PEDE o painel ao abrir (0x0fdd) */
 			IndicacaoIdle.toggle();
+			break;
+		case 'troca':
+			/* 02/10/2026: a janela "Trade" - o nome do jogador e "Confirmar". */
+			TrocaIdle.toggle();
 			break;
 		/* O `case 'passe'` (a janela de Recompensas, D-813) morou aqui de
 		   29/08 a 21/09/2026. Saiu por ordem do dono: o Passe Semanal e o VIP
@@ -1838,6 +1844,8 @@ function isActionOpen(action) {
 			return isRagIdleWindowOpen(PresencaIdle, '.pr-window');
 		case 'indicacao':
 			return isRagIdleWindowOpen(IndicacaoIdle, '.in-window');
+		case 'troca':
+			return isRagIdleWindowOpen(TrocaIdle, '.tr-window');
 		/*
 		 * PASSE (D-813): a TERCEIRA vez do mesmo defeito, achado em 29/08/2026
 		 * ao somar o Codex. Ele tinha `case 'passe'` no switch de ABRIR e

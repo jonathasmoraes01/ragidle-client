@@ -1081,6 +1081,9 @@ export default {
 	// lido. Os dois ultimos slots da reserva. Desde a v2 (29/09/2026) quem os
 	// fala e o Mapa de Caca (a janela separada "Seus mapas" saiu).
 	0x0fb5: PACKET.ZC.RAGIDLE_CACA_MEDIDA,
+	// 02/10/2026 - a TROCA PELO NOME (a janela "Trade" do menu). O CZ 0x0fb2 e
+	// ESCRITO pelo cliente, nao lido. Os dois ultimos slots da reserva.
+	0x0fb3: PACKET.ZC.RAGIDLE_TROCA,
 
 	0xb1a: PACKET.ZC.USESKILL_ACK3 // USE SKILL 3
 };

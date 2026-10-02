@@ -1,0 +1,30 @@
+<div id="TrocaIdle">
+	<div class="tr-window ri-window ri-anima" role="dialog" aria-labelledby="tr-titulo">
+		<div class="tr-titlebar ri-header">
+			<span class="tr-title ri-title" id="tr-titulo">Trade</span>
+			<button type="button" class="tr-close ri-close" title="Fechar">&times;</button>
+		</div>
+
+		<!-- UM campo e o "Confirmar" (pedido do dono, 02/10/2026). Quem decide e o
+		     servidor (servidor/mapa/troca-pelo-nome.ts); a frase do motivo cai em
+		     ".tr-recado". O form da o Enter de graca ao teclado do celular. -->
+		<form class="tr-body" novalidate>
+			<label class="tr-rotulo" for="tr-nome">Nome do jogador</label>
+			<input
+				type="text"
+				id="tr-nome"
+				class="tr-nome ri-input"
+				maxlength="23"
+				autocomplete="off"
+				autocapitalize="off"
+				autocorrect="off"
+				spellcheck="false"
+				enterkeyhint="send"
+				placeholder="Nome do personagem"
+			>
+			<p class="tr-dica">A troca é só entre VIPs, com os dois no mesmo mapa, a até 2 células um do outro.</p>
+			<p class="tr-recado" role="status" aria-live="polite"></p>
+			<button type="submit" class="tr-confirmar ri-btn">Confirmar</button>
+		</form>
+	</div>
+</div>
