@@ -2159,3 +2159,30 @@
 		width: 100%;
 	}
 }
+
+/* ─── Uso do ticket no inventario (02/10/2026) ─────────────────
+   A janela nasce SO como a caixa do servico: sem a loja atras, sem o veu. */
+#RoShop .rs-window.rs-window--ticket {
+	width: min(440px, calc(100vw - 16px));
+	height: auto;
+	min-height: 0;
+}
+
+#RoShop .rs-window.rs-window--ticket .rs-corpo {
+	display: none;
+}
+
+#RoShop .rs-window.rs-window--ticket .rs-modal {
+	position: static;
+	padding: var(--sp-3);
+}
+
+#RoShop .rs-window.rs-window--ticket .rs-modal-fundo {
+	display: none;
+}
+
+/* A faixa do carrinho (celular) tambem fica de fora: quem usou um item nao
+   esta comprando, e no celular ela aparecia acima da caixa. */
+#RoShop .rs-window.rs-window--ticket .rs-barra-carrinho {
+	display: none;
+}
