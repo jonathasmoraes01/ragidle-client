@@ -635,18 +635,6 @@ Guild.onIncreaseSkill =
 		onIncreaseSkill;
 
 /**
- * C19 (auditoria de tela, 29/09/2026): o caminho ate o alcance cabe no teto
- * que o servidor anda (unit.cpp:855-869, 17 passos; 14 sem a reta livre)? Se
- * nao cabe, a skill nao e armada em `Session.moveAction` (o servidor recusaria
- * o andar calado e ela nunca sairia) e o jogador e avisado no chat. Ver
- * tetoDaCaminhadaDaSkill.js.
- *
- * @param {Array} pos - posicao de quem anda
- * @param {Array} out - o caminho do PathFinding.search
- * @param {number} count - o que o PathFinding.search devolveu
- * @returns {boolean}
- */
-/**
  * Lote 5 (resto do C23): guarda, junto do `Session.moveAction`, o alcance e o
  * alvo da skill - o `onWalkEnd` (MapEngine.js) re-confere com a regua da fonte
  * (alcanceNoFimDaCaminhada.js) e, se o boneco parou fora, anda mais uma vez por
@@ -708,6 +696,18 @@ function esperarConfirmacao(pacote) {
 	}, ESPERA_DA_CONFIRMACAO_MS);
 }
 
+/**
+ * C19 (auditoria de tela, 29/09/2026): o caminho ate o alcance cabe no teto
+ * que o servidor anda (unit.cpp:855-869, 17 passos; 14 sem a reta livre)? Se
+ * nao cabe, a skill nao e armada em `Session.moveAction` (o servidor recusaria
+ * o andar calado e ela nunca sairia) e o jogador e avisado no chat. Ver
+ * tetoDaCaminhadaDaSkill.js.
+ *
+ * @param {Array} pos - posicao de quem anda
+ * @param {Array} out - o caminho do PathFinding.search
+ * @param {number} count - o que o PathFinding.search devolveu
+ * @returns {boolean}
+ */
 function caminhoDaSkillCabe(pos, out, count) {
 	const origem = { x: pos[0] | 0, y: pos[1] | 0 };
 	const destino = { x: out[(count - 1) * 2 + 0], y: out[(count - 1) * 2 + 1] };
