@@ -24,6 +24,7 @@ import {
 	TEXTO_LONGE_DEMAIS_PARA_ATACAR,
 	caminhoDoPathFindingCabe
 } from 'Engine/MapEngine/tetoDaCaminhadaDaSkill.js';
+import { criarGestoDeAndar, jogadorPediuParaAndar } from 'Engine/MapEngine/pedidoGuardado.js';
 import Events from 'Core/Events.js';
 import htmlText from './MobileUI.html?raw';
 import cssText from './MobileUI.css?raw';
@@ -82,6 +83,9 @@ let normalizedY = 0;
 // Joystick element references (captured in setupJoystick)
 let _joystickBase = null;
 let _joystickThumb = null;
+
+/** Lote 7, achados #6 e #29: o joystick segurado manda um andar a cada 100 ms; so o inicio do gesto descarta. */
+const _gestoDoJoystick = criarGestoDeAndar();
 
 /**
  * Helper to bind click+touchstart on an element
@@ -510,6 +514,9 @@ function toggleAutoFollow() {
 		const entityFocus = EntityManager.getFocusEntity();
 		if (entityFocus) {
 			root.querySelector('#toggleAutoFollowButton').classList.add('active');
+			// Lote 7, achado #29: ligar o seguir e pedir para andar - desiste da skill guardada
+			// (o laco onAutoFollow, a cada 500 ms, NAO descarta: seguir + skill continua valendo).
+			jogadorPediuParaAndar(Session);
 			Session.autoFollow = true;
 			Session.autoFollowTarget = entityFocus;
 			onAutoFollow();
@@ -696,6 +703,8 @@ function pickUpItem() {
 		const dest = [0, 0];
 
 		if (checkFreeCell(Math.round(closestItem.position[0]), Math.round(closestItem.position[1]), 1, dest)) {
+			// Lote 7, achado #29: andar ate o item e pedir para andar - desiste da skill guardada.
+			jogadorPediuParaAndar(Session);
 			let pkt;
 			if (PACKETVER.value >= 20180307) {
 				pkt = new PACKET.CZ.REQUEST_MOVE2();
@@ -789,6 +798,9 @@ function stopDrag() {
 	document.removeEventListener('mouseup', stopDrag);
 	document.removeEventListener('touchmove', moveJoystick);
 	document.removeEventListener('touchend', stopDrag);
+
+	// Soltou o joystick: o proximo toque e gesto novo (lote 7, achado #29).
+	_gestoDoJoystick.encerrar();
 }
 
 function startMovement() {
@@ -828,6 +840,12 @@ function moveCharacter(x, y, tileSize) {
 	if (!player) {
 		return;
 	}
+
+	// Lote 7, achado #29: empurrar o joystick desiste da skill guardada (o PLAYERMOVE
+	// dele confirmaria o pedido velho e a skill sairia no fim da fuga, ou puxaria o
+	// boneco de volta ao alvo). Descartar a cada tique de 100 ms mataria a skill
+	// pedida com o joystick segurado: so o inicio do gesto conta.
+	jogadorPediuParaAndar(Session, { gesto: _gestoDoJoystick });
 
 	direction[0] = x;
 	direction[1] = y;

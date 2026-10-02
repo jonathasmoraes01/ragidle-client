@@ -22,6 +22,7 @@ import {
 	TEXTO_LONGE_DEMAIS_PARA_ATACAR,
 	caminhoDoPathFindingCabe
 } from 'Engine/MapEngine/tetoDaCaminhadaDaSkill.js';
+import { criarGestoDeAndar, jogadorPediuParaAndar } from 'Engine/MapEngine/pedidoGuardado.js';
 import Target from './JoystickTargetService.js';
 
 /** `CELL_CHKNOPASS` do mapa carregado, para o teto do andar (lote 5). */
@@ -30,11 +31,18 @@ const naoAndavelNoMapa = (x, y) => !(Altitude.getCellType(x, y) & Altitude.TYPE.
 const direction = glMatrix.vec2.create();
 const rotate = glMatrix.mat2.create();
 
+/** O stick segurado manda um andar a cada 100 ms: so o inicio do gesto descarta. */
+const _gestoDoStick = criarGestoDeAndar();
+
 function move(x, y) {
 	const player = Session.Entity;
 	if (!player) {
 		return;
 	}
+
+	// Lote 7, achado #6: empurrar o stick desiste da skill guardada (o PLAYERMOVE
+	// dele confirmaria o pedido velho e a skill sairia no fim da fuga).
+	jogadorPediuParaAndar(Session, { gesto: _gestoDoStick });
 
 	direction[0] = x;
 	direction[1] = y;

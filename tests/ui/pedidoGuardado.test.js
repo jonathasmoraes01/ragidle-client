@@ -74,7 +74,8 @@ describe('a costura: quem desiste chama o descarte', () => {
 
 	it('o clique de andar no MapControl descarta (no lugar do `moveAction = null` solto)', () => {
 		const src = semTabs('src/Controls/MapControl.js');
-		expect(src.indexOf('descartarPedidoGuardado(Session);\nSession.autoFollow = false;')).toBeGreaterThan(-1);
+		// Lote 7: o clique passa pela funcao unica de todo gesto de andar (ver jogadorPediuParaAndar.test.js).
+		expect(src.indexOf('jogadorPediuParaAndar(Session);\nSession.autoFollow = false;')).toBeGreaterThan(-1);
 		expect(src.indexOf('Session.moveAction = null;')).toBe(-1);
 	});
 
