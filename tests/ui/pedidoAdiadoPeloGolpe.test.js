@@ -48,7 +48,8 @@ describe('pedido de skill na janela do golpe (C32)', () => {
 		const src = fs.readFileSync('src/Engine/MapEngine/Skill.js', 'utf8');
 		expect(src).not.toMatch(/amotionTick > Renderer\.tick\)\s*\{\s*\/\/ Can't spam skills faster than amotion\s*return;/);
 		expect(src.match(/_pedidoNoGolpe\.adiarSeNaJanela\(/g)).toHaveLength(2);
-		expect(src).toMatch(/adiarSeNaJanela\(entity\.amotionTick, Renderer\.tick, \(\) => onUseSkill\(id, level, targetID\)\)/);
+		// lote 8 (C-4): o slot e POR ATOR, a chamada passa o `entity.GID` na frente
+		expect(src).toMatch(/adiarSeNaJanela\(entity\.GID, entity\.amotionTick, Renderer\.tick, \(\) =>\s*onUseSkill\(id, level, targetID\)/);
 		expect(src).toMatch(/SkillTargetSelection\.onUseSkillToPos\(id, level, x, y\)/);
 	});
 });
