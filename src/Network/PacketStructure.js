@@ -15986,7 +15986,7 @@ PACKET.CZ.RAGIDLE_APLICAR_CONFIG.prototype.build = function () {
 
 	pkt_buf.writeShort(0x0ff5);
 	pkt_buf.writeUShort(pkt_len);
-	pkt_buf.writeString(this.json);
+	pkt_buf.writeString(this.json, bytes.length);
 	return pkt_buf;
 };
 
@@ -16039,7 +16039,7 @@ PACKET.CZ.RAGIDLE_APLICAR_ADMIN.prototype.build = function () {
 
 	pkt_buf.writeShort(0x0ff8);
 	pkt_buf.writeUShort(pkt_len);
-	pkt_buf.writeString(this.json);
+	pkt_buf.writeString(this.json, bytes.length);
 	return pkt_buf;
 };
 // 0x0ffc - RAGIDLE: ZC_RAGIDLE_RELATORIO_OFFLINE (server -> client)
@@ -16228,7 +16228,7 @@ PACKET.CZ.RAGIDLE_CODEX_ACAO.prototype.build = function () {
 	const pkt_buf = new BinaryWriter(pkt_len);
 	pkt_buf.writeShort(0x0fe4);
 	pkt_buf.writeUShort(pkt_len);
-	pkt_buf.writeString(this.json);
+	pkt_buf.writeString(this.json, bytes.length);
 	return pkt_buf;
 };
 
@@ -16308,7 +16308,7 @@ PACKET.CZ.RAGIDLE_TUTORIAL_ACAO.prototype.build = function () {
 	const pkt_buf = new BinaryWriter(pkt_len);
 	pkt_buf.writeShort(0x0fbe);
 	pkt_buf.writeUShort(pkt_len);
-	pkt_buf.writeString(this.json);
+	pkt_buf.writeString(this.json, bytes.length);
 	return pkt_buf;
 };
 
@@ -16325,7 +16325,7 @@ PACKET.CZ.RAGIDLE_PRESENCA_ACAO.prototype.build = function () {
 	const pkt_buf = new BinaryWriter(pkt_len);
 	pkt_buf.writeShort(0x0fdf);
 	pkt_buf.writeUShort(pkt_len);
-	pkt_buf.writeString(this.json);
+	pkt_buf.writeString(this.json, bytes.length);
 	return pkt_buf;
 };
 
@@ -16388,7 +16388,7 @@ PACKET.CZ.RAGIDLE_CORREIO_ACAO.prototype.build = function () {
 	const pkt_buf = new BinaryWriter(pkt_len);
 	pkt_buf.writeShort(0x0fd6);
 	pkt_buf.writeUShort(pkt_len);
-	pkt_buf.writeString(this.json);
+	pkt_buf.writeString(this.json, bytes.length);
 	return pkt_buf;
 };
 
@@ -16437,7 +16437,7 @@ PACKET.CZ.RAGIDLE_VOTO_ACAO.prototype.build = function () {
 	const pkt_buf = new BinaryWriter(pkt_len);
 	pkt_buf.writeShort(0x0fd4);
 	pkt_buf.writeUShort(pkt_len);
-	pkt_buf.writeString(this.json);
+	pkt_buf.writeString(this.json, bytes.length);
 	return pkt_buf;
 };
 
@@ -16492,7 +16492,7 @@ PACKET.CZ.RAGIDLE_ITEM_ACAO.prototype.build = function () {
 	const pkt_buf = new BinaryWriter(pkt_len);
 	pkt_buf.writeShort(0x0fd8);
 	pkt_buf.writeUShort(pkt_len);
-	pkt_buf.writeString(this.json);
+	pkt_buf.writeString(this.json, bytes.length);
 	return pkt_buf;
 };
 
@@ -16535,7 +16535,7 @@ PACKET.CZ.RAGIDLE_INDICACAO_ACAO.prototype.build = function () {
 	const pkt_buf = new BinaryWriter(pkt_len);
 	pkt_buf.writeShort(0x0fdd);
 	pkt_buf.writeUShort(pkt_len);
-	pkt_buf.writeString(this.json);
+	pkt_buf.writeString(this.json, bytes.length);
 	return pkt_buf;
 };
 
@@ -16562,7 +16562,7 @@ PACKET.CZ.RAGIDLE_RANKING_ACAO.prototype.build = function () {
 	const pkt_buf = new BinaryWriter(pkt_len);
 	pkt_buf.writeShort(0x0fc9);
 	pkt_buf.writeUShort(pkt_len);
-	pkt_buf.writeString(this.json);
+	pkt_buf.writeString(this.json, bytes.length);
 	return pkt_buf;
 };
 
@@ -16590,7 +16590,7 @@ PACKET.CZ.RAGIDLE_COMANDOS_ACAO.prototype.build = function () {
 	const pkt_buf = new BinaryWriter(pkt_len);
 	pkt_buf.writeShort(0x0fc7);
 	pkt_buf.writeUShort(pkt_len);
-	pkt_buf.writeString(this.json);
+	pkt_buf.writeString(this.json, bytes.length);
 	return pkt_buf;
 };
 
@@ -16618,7 +16618,7 @@ PACKET.CZ.RAGIDLE_CACA_ACAO.prototype.build = function () {
 	const pkt_buf = new BinaryWriter(pkt_len);
 	pkt_buf.writeShort(0x0fda);
 	pkt_buf.writeUShort(pkt_len);
-	pkt_buf.writeString(this.json);
+	pkt_buf.writeString(this.json, bytes.length);
 	return pkt_buf;
 };
 
@@ -16653,7 +16653,7 @@ PACKET.CZ.RAGIDLE_TRAVA_ACAO.prototype.build = function () {
 	const pkt_buf = new BinaryWriter(pkt_len);
 	pkt_buf.writeShort(0x0fc0);
 	pkt_buf.writeUShort(pkt_len);
-	pkt_buf.writeString(this.json);
+	pkt_buf.writeString(this.json, bytes.length);
 	return pkt_buf;
 };
 
@@ -16833,7 +16833,7 @@ PACKET.CZ.RAGIDLE_GRUPO_ACAO.prototype.build = function build() {
 	const pkt_buf = new BinaryWriter(pkt_len);
 	pkt_buf.writeShort(0x0fcb);
 	pkt_buf.writeUShort(pkt_len);
-	pkt_buf.writeString(this.json);
+	pkt_buf.writeString(this.json, bytes.length);
 	return pkt_buf;
 };
 
@@ -16896,7 +16896,7 @@ PACKET.CZ.RAGIDLE_SONO_ACAO.prototype.build = function () {
 	const pkt_buf = new BinaryWriter(pkt_len);
 	pkt_buf.writeShort(0x0fc4);
 	pkt_buf.writeUShort(pkt_len);
-	pkt_buf.writeString(this.json);
+	pkt_buf.writeString(this.json, bytes.length);
 	return pkt_buf;
 };
 
@@ -16926,7 +16926,7 @@ PACKET.CZ.RAGIDLE_ECONOMIA_ACAO.prototype.build = function () {
 	const pkt_buf = new BinaryWriter(pkt_len);
 	pkt_buf.writeShort(0x0fc2);
 	pkt_buf.writeUShort(pkt_len);
-	pkt_buf.writeString(this.json);
+	pkt_buf.writeString(this.json, bytes.length);
 	return pkt_buf;
 };
 
@@ -16995,7 +16995,7 @@ PACKET.CZ.RAGIDLE_TEMPORADA_ACAO.prototype.build = function () {
 	const pkt_buf = new BinaryWriter(pkt_len);
 	pkt_buf.writeShort(0x0fba);
 	pkt_buf.writeUShort(pkt_len);
-	pkt_buf.writeString(this.json);
+	pkt_buf.writeString(this.json, bytes.length);
 	return pkt_buf;
 };
 
@@ -17037,7 +17037,7 @@ PACKET.CZ.RAGIDLE_ROSHOP.prototype.build = function () {
 	const pkt_buf = new BinaryWriter(pkt_len);
 	pkt_buf.writeShort(0x0fb9);
 	pkt_buf.writeUShort(pkt_len);
-	pkt_buf.writeString(this.json);
+	pkt_buf.writeString(this.json, bytes.length);
 	return pkt_buf;
 };
 
@@ -17072,7 +17072,7 @@ PACKET.CZ.RAGIDLE_TITULOS_E_AURA.prototype.build = function () {
 	const pkt_buf = new BinaryWriter(pkt_len);
 	pkt_buf.writeShort(0x0fb7);
 	pkt_buf.writeUShort(pkt_len);
-	pkt_buf.writeString(this.json);
+	pkt_buf.writeString(this.json, bytes.length);
 	return pkt_buf;
 };
 
@@ -17108,7 +17108,7 @@ PACKET.CZ.RAGIDLE_CACA_MEDIDA.prototype.build = function () {
 	const pkt_buf = new BinaryWriter(pkt_len);
 	pkt_buf.writeShort(0x0fb4);
 	pkt_buf.writeUShort(pkt_len);
-	pkt_buf.writeString(this.json);
+	pkt_buf.writeString(this.json, bytes.length);
 	return pkt_buf;
 };
 
@@ -17150,7 +17150,7 @@ PACKET.CZ.RAGIDLE_LFG_ACAO.prototype.build = function () {
 	const pkt_buf = new BinaryWriter(pkt_len);
 	pkt_buf.writeShort(0x0fea);
 	pkt_buf.writeUShort(pkt_len);
-	pkt_buf.writeString(this.json);
+	pkt_buf.writeString(this.json, bytes.length);
 	return pkt_buf;
 };
 
@@ -17189,7 +17189,7 @@ PACKET.CZ.RAGIDLE_MISSAO_ACAO.prototype.build = function () {
 	const pkt_buf = new BinaryWriter(pkt_len);
 	pkt_buf.writeShort(0x0feb);
 	pkt_buf.writeUShort(pkt_len);
-	pkt_buf.writeString(this.json);
+	pkt_buf.writeString(this.json, bytes.length);
 	return pkt_buf;
 };
 
@@ -17212,7 +17212,7 @@ PACKET.CZ.RAGIDLE_PRIORIZAR.prototype.build = function () {
 	const pkt_buf = new BinaryWriter(pkt_len);
 	pkt_buf.writeShort(0x0fcf);
 	pkt_buf.writeUShort(pkt_len);
-	pkt_buf.writeString(this.json);
+	pkt_buf.writeString(this.json, bytes.length);
 	return pkt_buf;
 };
 
@@ -17234,7 +17234,7 @@ PACKET.CZ.RAGIDLE_APRENDER.prototype.build = function () {
 
 	pkt_buf.writeShort(0x0ffb);
 	pkt_buf.writeUShort(pkt_len);
-	pkt_buf.writeString(this.json);
+	pkt_buf.writeString(this.json, bytes.length);
 	return pkt_buf;
 };
 
