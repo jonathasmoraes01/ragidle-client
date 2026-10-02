@@ -579,7 +579,7 @@ StatusInfo[SC.PERIOD_RECEIVEITEM_2ND] = {
 	icon: 'item.tga',
 	haveTimeLimit: 1,
 	posTimeLimitStr: 2,
-	descript: [['Fortune Blessing', COLOR_TITLE_BUFF], ['%s', COLOR_TIME], ['Increases the drop chance of all items']]
+	descript: [['Blessing of Fortune', COLOR_TITLE_BUFF], ['%s', COLOR_TIME], ['Increases the drop chance of all items']]
 };
 
 StatusInfo[SC.SPL_DEF] = {
@@ -1050,7 +1050,7 @@ StatusInfo[SC.CASH_PLUSONLYJOBEXP] = {
 	icon: 'job.tga',
 	haveTimeLimit: 1,
 	posTimeLimitStr: 2,
-	descript: [['Job EXP Manual', COLOR_TITLE_BUFF], ['%s', COLOR_TIME], ['Increases Job EXP acquired.']]
+	descript: [['Job Experience Manual', COLOR_TITLE_BUFF], ['%s', COLOR_TIME], ['Increases Job EXP acquired.']]
 };
 
 StatusInfo[SC.ARMOR_PROPERTY] = {
@@ -1567,7 +1567,7 @@ StatusInfo[SC.PERIOD_PLUSEXP] = {
 	icon: 'exp.tga',
 	haveTimeLimit: 1,
 	posTimeLimitStr: 2,
-	descript: [['EXP Manual', COLOR_TITLE_BUFF], ['%s', COLOR_TIME], ['Increases acquired Base EXP']]
+	descript: [['Experience Manual', COLOR_TITLE_BUFF], ['%s', COLOR_TIME], ['Increases acquired Base EXP']]
 };
 
 StatusInfo[SC.ATTHASTE_POTION2] = {

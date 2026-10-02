@@ -251,15 +251,15 @@ const PT_BR = {
 	'Better odds in one Season box': 'Mais chance de prêmio raro numa caixa da temporada (veja o selo na loja)',
 
 	/* -------- os boosts do RO Shop (22/09/2026): Bencao e os dois Manuais -------- */
-	'Fortune Blessing': 'Bênção da Fortuna',
+	'Blessing of Fortune': 'Bênção da Fortuna',
 	'Bubble Gum': 'Goma de Mascar',
 	// R76 (28/09/2026): Goma e Bencao sao um bonus so, no icone 252 (o titulo
 	// nao pode dizer Goma quando quem esta ativa e a Bencao).
 	'Drop Bonus': 'Bônus de Drop (Goma ou Bênção)',
 	'Increases the drop chance of all items': 'Mais chance de drop de todos os itens',
-	'Job EXP Manual': 'Manual de Experiência de Classe',
+	'Job Experience Manual': 'Manual de Experiência de Classe',
 	'Increases Job EXP acquired.': 'Mais EXP de classe',
-	'EXP Manual': 'Manual de Experiência',
+	'Experience Manual': 'Manual de Experiência',
 	'Increases acquired Base EXP': 'Mais EXP de base'
 };
 
