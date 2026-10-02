@@ -419,6 +419,16 @@
 	text-shadow: 0 1px 0 var(--white);
 }
 
+/* O refino da unidade anexada (02/10/2026: o anexo e a unidade inteira). */
+.co-anexo-item-refino {
+	position: absolute;
+	left: 1px;
+	top: 0;
+	font: var(--type-badge);
+	color: var(--text-title);
+	text-shadow: 0 1px 0 var(--white);
+}
+
 .co-acoes {
 	flex: 0 0 auto;
 	display: flex;
