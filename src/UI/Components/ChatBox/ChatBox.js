@@ -63,6 +63,7 @@
 
 import DB from 'DB/DBManager.js';
 import { falaDeJogador } from './falaDeJogador.js';
+import { linhaNoIdioma } from './linhaNoIdioma.js';
 import Events from 'Core/Events.js';
 import Preferences from 'Core/Preferences.js';
 import KEYS from 'Controls/KeyEventHandler.js';
@@ -2335,6 +2336,8 @@ function flushMessageBuffer() {
 			// o corpo da linha vai num `translate="no"`; a etiqueta traduz.
 			const doJogador = falaDeJogador(msg.filterType, msg.colorType, ChatBox);
 			const abre = doJogador ? '<span translate="no">' : '';
+			// A linha do SERVIDOR e traduzida inteira antes de virar pedacos (linhaNoIdioma.js).
+			const textoDaLinha = doJogador ? msg.text : linhaNoIdioma(msg.text);
 			const fecha = doJogador ? '</span>' : '';
 
 			if (!msg.override) {
@@ -2347,7 +2350,7 @@ function flushMessageBuffer() {
 					tagHtml +
 					' ' +
 					abre +
-					renderFalaSegura(msg.text, (segmento, ehPrimeiro) =>
+					renderFalaSegura(textoDaLinha, (segmento, ehPrimeiro) =>
 						highlightMessage(segmento, msg.colorType, ehPrimeiro)
 					) +
 					fecha;

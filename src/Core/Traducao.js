@@ -102,15 +102,36 @@ export function compilarModelo(bruto) {
 	// pedacos: [literal, indice, literal, indice, ..., literal]
 	const literais = [];
 	const ordem = [];
+	/*
+	 * GRUPOS DE LACUNAS: lacunas COLADAS ("{0}{1}") viram UM grupo de captura —
+	 * a expressao nao tem como saber onde uma acaba e a outra comeca, e partir
+	 * no primeiro caractere (o que o `(.+?)` fazia) traduzia meio nome. O valor
+	 * inteiro vai na primeira lacuna do grupo, e as outras saem vazias.
+	 */
+	const grupos = [];
 	let fonte = '^';
 	for (let i = 0; i < pedacos.length; i++) {
 		if (i % 2 === 0) {
 			literais.push(pedacos[i]);
 			fonte += escaparRegex(pedacos[i]);
-		} else {
-			ordem.push(parseInt(pedacos[i], 10));
-			fonte += '(.+?)';
+			continue;
 		}
+		const indice = parseInt(pedacos[i], 10);
+		ordem.push(indice);
+		const antes = pedacos[i - 1];
+		if (antes === '' && i > 1) {
+			grupos[grupos.length - 1].push(indice);
+			continue;
+		}
+		grupos.push([indice]);
+		/*
+		 * A LACUNA COLADA NUMA PALAVRA PODE SAIR VAZIA: "falta{0}" e o plural
+		 * ("falta"/"faltam"), "ligada{2}" e um sufixo opcional. Lacuna entre
+		 * espacos continua exigindo pelo menos um caractere.
+		 */
+		const depois = pedacos[i + 1] || '';
+		const colada = /\S$/.test(antes) || /^\S/.test(depois);
+		fonte += colada ? '(.*?)' : '(.+?)';
 	}
 	fonte += '$';
 	if (ordem.length === 0) {
@@ -131,6 +152,7 @@ export function compilarModelo(bruto) {
 		en: bruto.en,
 		cru: new Set(Array.isArray(bruto.cru) ? bruto.cru : []),
 		ordem,
+		grupos,
 		regex: new RegExp(fonte),
 		ancora,
 		letras
@@ -157,8 +179,9 @@ export function absorverCatalogo(dados) {
 		}
 	}
 	_modelos = dados.modelos.map(compilarModelo);
-	// O de mais letras primeiro: o primeiro que casa ja e o mais especifico.
-	_modelos.sort((a, b) => b.letras - a.letras);
+	// O de mais letras primeiro: o primeiro que casa ja e o mais especifico. No
+	// empate, o mais longo ("Tamanho do chat: {0}. {1}" antes de "...: {0}").
+	_modelos.sort((a, b) => b.letras - a.letras || b.pt.length - a.pt.length);
 	_ativo = true;
 	return { exatos: _exatos.size, modelos: _modelos.length };
 }
@@ -186,10 +209,12 @@ export function traducaoLigada() {
  * @returns {string|null} null quando nao e numero brasileiro
  */
 export function numeroParaIngles(texto) {
-	if (!/^[-+]?\d{1,3}(\.\d{3})+(,\d+)?$|^[-+]?\d+,\d+$/.test(texto)) {
+	// O sinal e o "%" ficam onde estao ("+0,5%" -> "+0.5%").
+	const partes = /^([-+]?)(\d{1,3}(?:\.\d{3})+(?:,\d+)?|\d+,\d+)(%?)$/.exec(texto);
+	if (!partes) {
 		return null;
 	}
-	return texto.replace(/[.,]/g, c => (c === '.' ? ',' : '.'));
+	return partes[1] + partes[2].replace(/[.,]/g, c => (c === '.' ? ',' : '.')) + partes[3];
 }
 
 function anotarFalta(texto) {
@@ -199,20 +224,30 @@ function anotarFalta(texto) {
 }
 
 function traduzirLacuna(valor, profundidade) {
-	const numero = numeroParaIngles(valor);
-	if (numero !== null) {
-		return numero;
-	}
-	if (profundidade > PROFUNDIDADE_MAXIMA || !LETRA.test(valor)) {
+	// O espaco das PONTAS fica: em "o VIP{1}" a lacuna vale " ativo", e a
+	// traducao sem o espaco colava "VIPactive".
+	const pontas = /^(\s*)([\s\S]*?)(\s*)$/.exec(valor);
+	const miolo = pontas[2];
+	if (!miolo) {
 		return valor;
 	}
-	const r = buscar(normalizar(valor), profundidade);
-	return r === null ? valor : r;
+	const numero = numeroParaIngles(miolo);
+	if (numero !== null) {
+		return pontas[1] + numero + pontas[3];
+	}
+	if (profundidade > PROFUNDIDADE_MAXIMA || !LETRA.test(miolo)) {
+		return valor;
+	}
+	const r = buscar(normalizar(miolo), profundidade);
+	return r === null ? valor : pontas[1] + r + pontas[3];
 }
 
 function preencher(modelo, casamento, profundidade) {
 	const porIndice = new Map();
-	modelo.ordem.forEach((indice, k) => porIndice.set(indice, casamento[k + 1]));
+	modelo.grupos.forEach((grupo, k) => {
+		// O valor do grupo vai inteiro na PRIMEIRA lacuna; as coladas nela, vazias.
+		grupo.forEach((indice, j) => porIndice.set(indice, j === 0 ? casamento[k + 1] : ''));
+	});
 	return modelo.en.replace(/\{(\d+)\}/g, (_, d) => {
 		const indice = parseInt(d, 10);
 		const valor = porIndice.get(indice);

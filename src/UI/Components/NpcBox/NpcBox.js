@@ -9,7 +9,7 @@
  */
 
 import KEYS from 'Controls/KeyEventHandler.js';
-import { traducaoDe } from 'Core/Traducao.js';
+import { trechoTraduzido } from './trechoDaFala.js';
 import Renderer from 'Renderer/Renderer.js';
 import UIManager from 'UI/UIManager.js';
 import GUIComponent from 'UI/GUIComponent.js';
@@ -289,16 +289,20 @@ NpcBox.setText = function setText(text, gid) {
 	 * `translate="no"` para o observador nao tentar traduzir o ingles de novo.
 	 */
 	_linhasDaPagina.push({ texto: text, div });
-	const traduzida = traducaoDe(_linhasDaPagina.map(l => l.texto).join(' '));
-	if (traduzida !== null) {
-		for (const linha of _linhasDaPagina) {
+	/* O TRECHO MAIS RECENTE, e nao so a pagina inteira (achado da frente D2):
+	   o titulo "[Guardia da Praca]" casa sozinho na primeira linha, e dai em
+	   diante "titulo + fala" nunca casaria. Tenta do inicio da pagina ate a
+	   linha nova, o mais longo primeiro; o que ja estava traduzido fica. */
+	const achado = trechoTraduzido(_linhasDaPagina.map(l => l.texto));
+	if (achado !== null) {
+		for (const linha of _linhasDaPagina.slice(achado.inicio)) {
 			linha.div.remove();
 		}
 		const bloco = document.createElement('div');
 		bloco.setAttribute('translate', 'no');
-		bloco.innerHTML = processText(traduzida);
+		bloco.innerHTML = processText(achado.traducao);
 		content.appendChild(bloco);
-		_linhasDaPagina = [{ texto: _linhasDaPagina.map(l => l.texto).join(' '), div: bloco }];
+		_linhasDaPagina = [..._linhasDaPagina.slice(0, achado.inicio), { texto: achado.texto, div: bloco }];
 	}
 };
 

@@ -110,6 +110,56 @@ describe('modelo', () => {
 	});
 });
 
+describe('lacunas especiais (achados das frentes de traducao, 01/10/2026)', () => {
+	it('lacuna COLADA numa palavra pode sair vazia (o plural "falta{0}")', () => {
+		absorverCatalogo({
+			v: 1,
+			exatos: { nível: 'level' },
+			modelos: [{ pt: 'falta{0} {1} {2} de base', en: '{1} more base {2}' }]
+		});
+		expect(traduzir('falta 1 nível de base')).toBe('1 more base level');
+		expect(traduzir('faltam 3 nível de base')).toBe('3 more base level');
+	});
+
+	it('lacuna entre espacos continua exigindo conteudo', () => {
+		absorverCatalogo({ v: 1, exatos: {}, modelos: [{ pt: 'Custa {0} zeny', en: 'Costs {0} zeny' }] });
+		expect(traduzir('Custa  zeny')).toBe('Custa  zeny');
+	});
+
+	it('o espaco da ponta da lacuna fica ("o VIP{1}" com " ativo")', () => {
+		absorverCatalogo({ v: 1, exatos: { ativo: 'active' }, modelos: [{ pt: 'Com o VIP{0}', en: 'With VIP{0}' }] });
+		expect(traduzir('Com o VIP ativo')).toBe('With VIP active');
+		expect(traduzir('Com o VIP')).toBe('With VIP');
+	});
+
+	it('lacunas coladas ("{0}{1}") sao UM grupo: o valor vai inteiro na primeira', () => {
+		absorverCatalogo({
+			v: 1,
+			exatos: { 'Lobo Selvagem': 'Wild Wolf' },
+			modelos: [{ pt: 'Cai de: {0}{1}', en: 'Drops from: {0}{1}' }]
+		});
+		expect(traduzir('Cai de: Lobo Selvagem')).toBe('Drops from: Wild Wolf');
+	});
+
+	it('no empate de letras vence o modelo mais longo', () => {
+		absorverCatalogo({
+			v: 1,
+			exatos: {},
+			modelos: [
+				{ pt: 'Tamanho: {0}', en: 'CURTO {0}' },
+				{ pt: 'Tamanho: {0}. {1}', en: 'Size: {0}. {1}' }
+			]
+		});
+		expect(traduzir('Tamanho: 2x. 3x')).toBe('Size: 2x. 3x');
+	});
+
+	it('numero com sinal e porcento tambem vira ingles', () => {
+		expect(numeroParaIngles('+0,5%')).toBe('+0.5%');
+		expect(numeroParaIngles('-1.250,75')).toBe('-1,250.75');
+		expect(numeroParaIngles('12%')).toBeNull();
+	});
+});
+
 describe('compilarModelo recusa o malformado (a falha e alta)', () => {
 	it('lacuna no ingles que nao existe no portugues', () => {
 		expect(() => compilarModelo({ pt: 'Custa {0} zeny', en: 'Costs {1}' })).toThrow(/\{1\}/);
