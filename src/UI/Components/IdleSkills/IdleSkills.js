@@ -63,6 +63,7 @@
  */
 
 import Renderer from 'Renderer/Renderer.js';
+import { habilidadesNoIdioma } from './habilidadesNoIdioma.js';
 import Preferences from 'Core/Preferences.js';
 import SkillInfo from 'DB/Skills/SkillInfo.js';
 import Network from 'Network/NetworkManager.js';
@@ -614,6 +615,10 @@ function onSkillsReceived(pkt) {
 		soltarOAplicar();
 		return;
 	}
+
+	// O jogo em ingles (D-1929): nome e caixa de descricao traduzidos na CHEGADA,
+	// inteiros, antes de a janela partir a caixa em pedacos.
+	habilidadesNoIdioma(data.skills);
 
 	const isApplyResponse = Object.prototype.hasOwnProperty.call(data, 'aplicado');
 	const problemas = Array.isArray(data.problemas) ? data.problemas : [];
@@ -1548,7 +1553,8 @@ function buildMecanicaRows(skill) {
 
 	const textByLevel = {};
 	descricao.forEach(line => {
-		const achado = /^\[Nv\s*(\d+)\]:\s*(.*)$/i.exec(String(line || '').trim());
+		// "[Nv 3]:" em portugues, "[Lv 3]:" na caixa inglesa (D-1929).
+		const achado = /^\[(?:Nv|Lv)\s*(\d+)\]:\s*(.*)$/i.exec(String(line || '').trim());
 		if (achado) {
 			const lvl = Number(achado[1]);
 			textByLevel[lvl] = textByLevel[lvl] ? textByLevel[lvl] + ' ' + achado[2] : achado[2];

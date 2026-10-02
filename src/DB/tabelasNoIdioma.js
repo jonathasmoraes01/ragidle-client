@@ -18,10 +18,13 @@
 
 import { emIngles } from 'Core/Idioma.js';
 
-/** As tabelas que tem versao inglesa. As outras (sprites, recursos) nao dependem de idioma. */
+/**
+ * As tabelas que tem versao inglesa. As outras (sprites, recursos) nao dependem de idioma.
+ * O `msgstringtable.txt` NAO entra: no GRF ele e vazio e as mensagens vem do `.csv`
+ * (a rota inglesa serve a coluna 2 dele; pedir o .txt em ingles seria um 404 a toa).
+ */
 export const TABELAS_TRADUZIDAS = Object.freeze([
 	'data/mapnametable.txt',
-	'data/msgstringtable.txt',
 	'data/msgstringtable.csv',
 	'data/num2itemdisplaynametable.txt',
 	'data/num2itemdesctable.txt',

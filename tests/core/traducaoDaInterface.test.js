@@ -171,7 +171,8 @@ describe('as tabelas do GRF no idioma', () => {
 		expect(caminhoDaTabela('data/idnum2itemdisplaynametable.txt', true)).toBe('data/english/idnum2itemdisplaynametable.txt');
 		expect(caminhoDaTabela('data/msgstringtable.csv', true)).toBe('data/english/msgstringtable.csv');
 		expect(caminhoDaTabela('data/resnametable.txt', true)).toBe('data/resnametable.txt');
-		expect(TABELAS_TRADUZIDAS).toHaveLength(7);
+		expect(TABELAS_TRADUZIDAS).toHaveLength(6);
+		expect(TABELAS_TRADUZIDAS).not.toContain('data/msgstringtable.txt');
 	});
 
 	it('em portugues, todo caminho fica como sempre foi', () => {
