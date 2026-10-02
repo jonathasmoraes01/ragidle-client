@@ -118,6 +118,18 @@ ReadRodex.initData = function initData(data, mail) {
 				'</div>'
 		);
 		/*
+		 * RAGIDLE (02/10/2026): o anexo e a UNIDADE inteira (o servidor manda
+		 * refino, cartas e runas no 0x09eb desde que o Marketplace entrega pelo
+		 * correio). O refino e o nome completo ("+7 Katana" com as cartas) ficam
+		 * no DOM, para o CorreioIdle mostrar - sem isso a carta de uma arma
+		 * encartada parecia a arma limpa.
+		 */
+		const tile = content.querySelector(`.item[data-index="${i}"]`);
+		if (tile) {
+			tile.setAttribute('data-refino', String(Number(item.RefiningLevel) || 0));
+			tile.title = String(DB.getItemName(item) || '').replace(/<[^>]*>/g, '');
+		}
+		/*
 		 * RAGIDLE (23/09/2026): a arte PUBLICADA pelo ITID primeiro, e o GRF so
 		 * de reserva - a MESMA receita da Mochila (`preferirArtePublicada`). Um
 		 * item CUSTOM (as recompensas do Alfa, os visuais da Temporada) nao tem
