@@ -346,6 +346,13 @@ function botaoExpulsar(m, ctx) {
 	);
 }
 
+/** Coroa e X lado a lado num grupo so: no celular a coluna da direita
+ * empilha, e sem o embrulho cada botao ganhava uma linha propria. */
+function acoesDoLider(m, ctx) {
+	const botoes = botaoTransferir(m, ctx) + botaoExpulsar(m, ctx);
+	return botoes ? '<span class="gi-membro-acoes">' + botoes + '</span>' : '';
+}
+
 function linhaDeMembro(m, ctx) {
 	const fracao = m.hpMaximo > 0 ? Math.max(0, Math.min(1, m.hp / m.hpMaximo)) : 0;
 	const classeEstado = !m.online ? '' : m.vivo ? ' is-vivo' : ' is-morto';
@@ -432,8 +439,7 @@ function linhaDeMembro(m, ctx) {
 		'<span class="gi-membro-posto">' +
 		escapeHtml(m.postoNome) +
 		'</span>' +
-		botaoTransferir(m, ctx) +
-		botaoExpulsar(m, ctx) +
+		acoesDoLider(m, ctx) +
 		'</div>' +
 		'</div>'
 	);
