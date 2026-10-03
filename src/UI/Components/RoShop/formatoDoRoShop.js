@@ -1157,7 +1157,7 @@ function formularioDoServicoHtml(id, extra, enviando) {
 			`<input type="text" class="rs-campo-texto ri-input${invalido}" data-rs-campo="novoNome" maxlength="${lim.novoNome.max}" autocomplete="off" autocapitalize="off" spellcheck="false" value="${escapeHtml(c.novoNome || '')}"${desliga}>` +
 			'</label>' +
 			erroDoCampoHtml(recusados, 'novoNome') +
-			`<p class="rs-campo-dica">De ${lim.novoNome.min} a ${lim.novoNome.max} caracteres, sem espaços. O servidor confere se o nome está livre, e um nome recusado não gasta o crédito.</p>` +
+			`<p class="rs-campo-dica">De ${lim.novoNome.min} a ${lim.novoNome.max} caracteres, sem espaços. O servidor confere se o nome está livre, e um nome recusado não gasta ${extra && extra.ticket ? 'o item' : 'o crédito'}.</p>` +
 			'</div>'
 		);
 	}
@@ -1225,7 +1225,7 @@ function formularioDoServicoHtml(id, extra, enviando) {
  *  - uma recusa com formulario oferece "Corrigir e tentar de novo", e o campo
  *    recusado (`parametrosRecusados`) ganha a frase dele.
  *
- * @param {object} [extra] - `{ campos, personagem, recusados }`
+ * @param {object} [extra] - `{ campos, personagem, recusados, ticket }` (`ticket`: o uso veio do item no inventario)
  */
 export function usoDeServicoHtml(fase, servico, resultado, extra = null) {
 	const nome = (servico && (servico.nome || servico.servico)) || 'serviço';
@@ -1255,7 +1255,8 @@ export function usoDeServicoHtml(fase, servico, resultado, extra = null) {
 			(relog
 				? '<p class="rs-relog" role="status"><strong>A mudança aparece quando você entrar de novo.</strong> Volte à seleção de personagem e entre outra vez com ele.</p>'
 				: '') +
-			(ok && restantes !== null
+			/* Quem usou o ITEM nao gastou credito: o contador so confundiria. */
+			(ok && restantes !== null && !(extra && extra.ticket)
 				? `<p class="rs-checkout-nota">${escapeHtml(restantes)} ${restantes === 1 ? 'crédito restante' : 'créditos restantes'}</p>`
 				: '') +
 			'<div class="rs-checkout-acoes">' +
@@ -1273,7 +1274,9 @@ export function usoDeServicoHtml(fase, servico, resultado, extra = null) {
 	const valido = parametrosDoServico(id, campos, servico).ok;
 	return (
 		`<div class="rs-checkout${form ? ' rs-checkout--form' : ''}">` +
-		`<p class="rs-checkout-texto">Usar 1 crédito de <strong>${escapeHtml(nome)}</strong> no personagem conectado agora?</p>` +
+		(extra && extra.ticket
+			? `<p class="rs-checkout-texto">Usar o item <strong>${escapeHtml(nome)}</strong> no personagem conectado agora?</p>`
+			: `<p class="rs-checkout-texto">Usar 1 crédito de <strong>${escapeHtml(nome)}</strong> no personagem conectado agora?</p>`) +
 		form +
 		'<p class="rs-checkout-nota">O serviço vale para o personagem conectado.</p>' +
 		'<div class="rs-checkout-acoes">' +

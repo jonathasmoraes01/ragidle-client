@@ -177,6 +177,37 @@ export function criarControlador(opcoes) {
 		return !!(s.servico && s.servico.fase === 'enviando');
 	}
 
+	const NOMES_DOS_SERVICOS = {
+		'reset-de-skills': 'Reset de Skills',
+		'reset-de-status': 'Reset de Status',
+		'troca-de-nome': 'Troca de Nome',
+		'troca-de-aparencia': 'Alteração Visual'
+	};
+
+	/**
+	 * O jogador USOU o ticket no inventario: o servico abre ja na confirmacao,
+	 * preso a posicao do item (o servidor releia o item e gasta o ticket so
+	 * quando o servico se aplica). Nao interrompe um pedido em voo.
+	 */
+	function abrirTicket(dados, opc) {
+		if (!dados || typeof dados.servico !== 'string' || enviandoCheckout() || enviandoServico()) {
+			return;
+		}
+		s.checkout = null;
+		s.servico = {
+			fase: 'confirmar',
+			id: dados.servico,
+			chave: null,
+			assinatura: '',
+			campos: camposIniciaisDoServico(dados.servico),
+			recusados: null,
+			resultado: null,
+			ticket: { posicao: dados.posicao, soTicket: !!(opc && opc.soTicket) }
+		};
+		render();
+		focarPrimeiroCampo();
+	}
+
 	/**
 	 * O uso de um credito de servico (`usar-servico`). Mesma disciplina do
 	 * checkout: a `chave` nasce no primeiro "Usar agora" e e REUSADA no reenvio
@@ -215,7 +246,9 @@ export function criarControlador(opcoes) {
 				aviso('Sem resposta do servidor. Confirme de novo para reenviar o mesmo pedido.', 'erro');
 			}
 		}, TIMEOUT_MS);
-		const corpo = { acao: 'usar-servico', chave: s.servico.chave, servico: s.servico.id };
+		const corpo = s.servico.ticket
+			? { acao: 'usar-ticket', chave: s.servico.chave, posicao: s.servico.ticket.posicao }
+			: { acao: 'usar-servico', chave: s.servico.chave, servico: s.servico.id };
 		if (p.parametros) {
 			corpo.parametros = p.parametros;
 		}
@@ -310,7 +343,8 @@ export function criarControlador(opcoes) {
 				assinatura: '',
 				campos: s.servico.campos,
 				recusados,
-				resultado: dados
+				resultado: dados,
+				ticket: s.servico.ticket
 			};
 			render();
 			return;
@@ -623,9 +657,13 @@ export function criarControlador(opcoes) {
 			_servicoDesenhado = forma;
 			corpo.innerHTML = usoDeServicoHtml(
 				s.servico.fase,
-				servicoPorId(s.estado, s.servico.id) || { servico: s.servico.id },
+				servicoPorId(s.estado, s.servico.id) || {
+					servico: s.servico.id,
+					nome: NOMES_DOS_SERVICOS[s.servico.id] || s.servico.id
+				},
 				s.servico.resultado,
 				{
+					ticket: !!s.servico.ticket,
 					campos: s.servico.campos,
 					personagem: (s.estado && s.estado.personagem) || null,
 					recusados: s.servico.recusados || null
@@ -638,7 +676,9 @@ export function criarControlador(opcoes) {
 						? 'Serviço aplicado'
 						: s.servico.fase === 'erro'
 							? 'Serviço não aplicado'
-							: 'Usar serviço';
+							: s.servico.ticket
+								? 'Usar item'
+								: 'Usar serviço';
 			}
 		}
 	}
@@ -713,7 +753,11 @@ export function criarControlador(opcoes) {
 		const alvo = e.target && e.target.closest ? e.target.closest('[data-rs]') : null;
 		if (!alvo) {
 			if (e.target && e.target.classList && e.target.classList.contains('rs-modal-fundo')) {
+				const fecharTudo = soTicketAberto();
 				fecharModalDoTopo();
+				if (fecharTudo) {
+					return 'fechar';
+				}
 			}
 			return false;
 		}
@@ -856,13 +900,18 @@ export function criarControlador(opcoes) {
 				renderServico();
 				focarPrimeiroCampo();
 				break;
-			case 'fechar-servico':
+			case 'fechar-servico': {
 				if (enviandoServico()) {
 					break;
 				}
+				const fecharTudo = soTicketAberto();
 				s.servico = null;
 				render();
+				if (fecharTudo) {
+					return 'fechar';
+				}
 				break;
+			}
 			case 'ir-temporada':
 				abrirTemporada();
 				break;
@@ -928,6 +977,11 @@ export function criarControlador(opcoes) {
 		s.busca = String(e.target.value || '');
 		s.pagina = 1;
 		renderPrincipal();
+	}
+
+	/** A janela nasceu so para o ticket (a loja nao estava aberta): fechar a caixa fecha a janela. */
+	function soTicketAberto() {
+		return !!(s.servico && s.servico.ticket && s.servico.ticket.soTicket);
 	}
 
 	/** O ESC fecha o que esta por cima; devolve true se fechou algo. */
@@ -1011,6 +1065,7 @@ export function criarControlador(opcoes) {
 		onClick,
 		onInput,
 		fecharModalDoTopo,
+		abrirTicket,
 		atualizarSaldo,
 		/** So para teste e para o arnes de foto: o estado interno, somente leitura. */
 		espiar: () => ({ ...s, carrinho: s.carrinho.map(l => ({ ...l })) })

@@ -44,6 +44,7 @@ import Network from 'Network/NetworkManager.js';
 import PACKET from 'Network/PacketStructure.js';
 import UIManager from 'UI/UIManager.js';
 import GUIComponent from 'UI/GUIComponent.js';
+import PilhaDeJanelas from 'UI/pilhaDeJanelas.js';
 import DB from 'DB/DBManager.js';
 import Client from 'Core/Client.js';
 import RiIcones from 'UI/ri-icones.js';
@@ -237,9 +238,11 @@ RoShop.toggle = function toggle() {
 	}
 	if (win.classList.contains('is-open')) {
 		win.classList.remove('is-open');
+		win.classList.remove('rs-window--ticket');
 		c.fechar();
 		savePosition();
 	} else {
+		win.classList.remove('rs-window--ticket');
 		win.classList.add('is-open');
 		/* Sem posicao guardada, a janela nasce no CENTRO pelo tamanho que ela
 		   TEM agora: desde a rodada 3 ela cresce em tela grande (A-05), e as
@@ -255,6 +258,39 @@ RoShop.toggle = function toggle() {
 };
 
 RoShop.estaAberta = estaAberta;
+
+/**
+ * O USO DO TICKET DE SERVICO NO INVENTARIO (02/10/2026). O servidor manda
+ * `abrir-ticket` quando o jogador usa o item (reset, troca de nome, aparencia):
+ * o servico abre NA HORA, sem passar pela loja. Com a janela fechada ela nasce
+ * so como a caixa do servico (`rs-window--ticket`); com a loja aberta, o
+ * modal sobrepoe a loja como qualquer outro.
+ */
+function abrirTicket(dados) {
+	const win = janela();
+	const c = controlador();
+	if (!win || !c) {
+		return;
+	}
+	const estavaAberta = win.classList.contains('is-open');
+	if (!estavaAberta) {
+		win.classList.add('rs-window--ticket');
+		win.classList.add('is-open');
+		if (_preferences.x == null || _preferences.y == null) {
+			RoShop._host.style.left = Math.max(0, Math.round((Renderer.width - win.offsetWidth) / 2)) + 'px';
+			RoShop._host.style.top = Math.max(0, Math.round((Renderer.height - win.offsetHeight) / 2)) + 'px';
+		}
+		RoShop.focus();
+		prenderNaTela(RoShop._host);
+		c.abrir();
+	}
+	/* A pilha so ve quem abre pelo `toggle()` que ela embrulha; este caminho
+	   nao passa por ele. Sem o aviso, no celular em pe a Mochila (de onde o
+	   item foi usado) ficava POR CIMA da caixa e tomava o toque do "Usar
+	   agora" - medido na `prove:tickets-de-servico`, 02/10/2026. */
+	PilhaDeJanelas.aoAbrir('roshop');
+	c.abrirTicket(dados, { soTicket: !estavaAberta });
+}
 
 /** Troca de personagem: carrinho, estado e desenho do anterior saem. */
 RoShop.limparEstadoDoPersonagem = function limparEstadoDoPersonagem() {
@@ -286,6 +322,14 @@ function onRoShopRecebido(pkt) {
 			}
 		} catch (err) {
 			console.error('[RoShop] falha ao repassar a doacao', err);
+		}
+		return;
+	}
+	if (dados && dados.tipo === 'abrir-ticket') {
+		try {
+			abrirTicket(dados);
+		} catch (err) {
+			console.error('[RoShop] falha ao abrir o ticket', err);
 		}
 		return;
 	}
