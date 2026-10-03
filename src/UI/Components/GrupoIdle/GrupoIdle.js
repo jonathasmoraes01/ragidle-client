@@ -117,6 +117,7 @@ GrupoIdle.estavaAberta = false;
 /** true durante o segundo passo de "Desfazer o grupo" — o mesmo padrao de
  * dois passos sem `window.confirm` que o LFGIdle ja usa. */
 GrupoIdle.confirmarDesfazer = false;
+GrupoIdle.acaoPendente = null;
 
 const ABAS = ['grupo', 'postos', 'rateio', 'ajustes'];
 const ABA_PADRAO = 'grupo';
@@ -172,6 +173,7 @@ function carregarArteDeClasse(escopo) {
 	escopo.querySelectorAll('[data-coroa]').forEach(function (el) {
 		Client.loadFile(DB.INTERFACE_PATH + 'renewalparty/ico_partycrown.bmp', function (url) {
 			el.style.backgroundImage = 'url(' + url + ')';
+			el.dataset.ok = '1';
 		});
 	});
 }
@@ -320,9 +322,27 @@ function botaoTransferir(m, ctx) {
 		(desabilitado ? ' disabled aria-disabled="true"' : '') +
 		' title="' +
 		motivo +
-		'">' +
-		'<span class="gi-coroa" aria-hidden="true" data-coroa></span>' +
-		'</button>'
+		'"></button>'
+	);
+}
+
+/**
+ * O botao "Retirar do grupo": so o LIDER ve, em qualquer linha menos a propria
+ * (o lider sai pelo `.gi-sair`). Nao depende de online nem de mapa — o lider
+ * pode retirar qualquer um. O servidor recusa de novo quem nao for lider.
+ */
+function botaoExpulsar(m, ctx) {
+	if (!ctx.souLider || m.souEu) {
+		return '';
+	}
+	return (
+		'<button type="button" class="gi-expulsar" data-conta-expulsar="' +
+		escapeHtml(m.contaId) +
+		'" title="Retirar ' +
+		escapeHtml(m.nome) +
+		' do grupo." aria-label="Retirar ' +
+		escapeHtml(m.nome) +
+		' do grupo"></button>'
 	);
 }
 
@@ -413,6 +433,7 @@ function linhaDeMembro(m, ctx) {
 		escapeHtml(m.postoNome) +
 		'</span>' +
 		botaoTransferir(m, ctx) +
+		botaoExpulsar(m, ctx) +
 		'</div>' +
 		'</div>'
 	);
@@ -476,6 +497,7 @@ function desenharMembros(e) {
 		.join('');
 	carregarArteDeClasse(lista);
 	ligarBotoesDeTransferir(lista);
+	ligarBotoesDeExpulsar(lista);
 }
 
 /**
@@ -529,9 +551,70 @@ function ligarBotoesDeTransferir(lista) {
 			 * `CZ_RAGIDLE_GRUPO_ACAO` para a mesma pergunta que o nativo ja
 			 * responde.
 			 */
-			const pkt = new PACKET.CZ.CHANGE_GROUP_MASTER();
-			pkt.AID = contaId;
-			Network.sendPacket(pkt);
+			pedirConfirmacao({
+				tipo: 'transferir',
+				titulo: 'Transferir a lideranca?',
+				texto:
+					alvo.nome +
+					' passa a ser o lider do grupo e voce perde o comando: so o novo lider podera convidar, retirar membros e desfazer o grupo.',
+				rotuloSim: 'Sim, transferir',
+				aoConfirmar: function () {
+					const agora = membroAtual(contaId);
+					const euAgora = GrupoIdle.estado.grupo.membros.filter(function (x) {
+						return x.souEu;
+					})[0];
+					if (!agora || !agora.online || (euAgora && agora.mapa !== euAgora.mapa)) {
+						mostrarRecado('O grupo mudou: a lideranca nao foi transferida.', true);
+						return;
+					}
+					const pkt = new PACKET.CZ.CHANGE_GROUP_MASTER();
+					pkt.AID = contaId;
+					Network.sendPacket(pkt);
+				}
+			});
+		});
+	});
+}
+
+/**
+ * RELIGA os cliques de "Retirar do grupo" (o `innerHTML` mata o listener
+ * anterior). Relê `GrupoIdle.estado` na hora do clique e confirma antes de
+ * mandar o pacote nativo `CZ_REQ_EXPEL_GROUP_MEMBER` (0x0103).
+ */
+function ligarBotoesDeExpulsar(lista) {
+	lista.querySelectorAll('.gi-expulsar').forEach(function (botao) {
+		botao.addEventListener('click', function () {
+			const atual = GrupoIdle.estado;
+			const grupo = atual && atual.grupo;
+			const eu = atual && atual.eu;
+			if (!eu || !eu.souLider || !grupo) {
+				return;
+			}
+			const contaId = Number(botao.dataset.contaExpulsar);
+			const alvo = grupo.membros.filter(function (x) {
+				return x.contaId === contaId;
+			})[0];
+			if (!alvo || alvo.souEu) {
+				return;
+			}
+			pedirConfirmacao({
+				tipo: 'expulsar',
+				titulo: 'Retirar do grupo?',
+				texto:
+					alvo.nome +
+					' sera expulso do grupo e deixa de dividir cacada, rateio e postos com voce. Para voltar, precisara de um novo convite.',
+				rotuloSim: 'Sim, retirar',
+				aoConfirmar: function () {
+					if (!membroAtual(contaId)) {
+						mostrarRecado('O grupo mudou: ninguem foi retirado.', true);
+						return;
+					}
+					const pkt = new PACKET.CZ.REQ_EXPEL_GROUP_MEMBER();
+					pkt.AID = contaId;
+					pkt.characterName = alvo.nome;
+					Network.sendPacket(pkt);
+				}
+			});
 		});
 	});
 }
@@ -960,6 +1043,44 @@ function desenharTudo() {
 	marcarRolagem();
 }
 
+/**
+ * A JANELA DE CONFIRMACAO (transferir lideranca / retirar membro): cobre a
+ * janela do grupo, descreve a acao e so manda o pacote no "Sim". Cancelar,
+ * Esc e clique fora fecham sem mandar nada. Cada `aoConfirmar` RELE o estado
+ * (`membroAtual`): se o grupo mudou com a caixa aberta (perdi a coroa, o alvo
+ * saiu, ficou offline ou mudou de mapa), o pacote nao sai e o recado explica.
+ */
+function membroAtual(contaId) {
+	const atual = GrupoIdle.estado;
+	const grupo = atual && atual.grupo;
+	const eu = atual && atual.eu;
+	if (!eu || !eu.souLider || !grupo) {
+		return null;
+	}
+	return (
+		grupo.membros.filter(function (x) {
+			return x.contaId === contaId && !x.souEu;
+		})[0] || null
+	);
+}
+
+function fecharConfirmacao() {
+	const m = raiz().querySelector('.gi-modal');
+	m.hidden = true;
+	GrupoIdle.acaoPendente = null;
+}
+
+function pedirConfirmacao(opcoes) {
+	const m = raiz().querySelector('.gi-modal');
+	m.querySelector('.gi-modal-titulo').textContent = opcoes.titulo;
+	m.querySelector('.gi-modal-texto').textContent = opcoes.texto;
+	m.querySelector('.gi-modal-sim').textContent = opcoes.rotuloSim;
+	m.dataset.tipo = opcoes.tipo || '';
+	GrupoIdle.acaoPendente = opcoes.aoConfirmar;
+	m.hidden = false;
+	m.querySelector('.gi-modal-nao').focus();
+}
+
 function mostrarRecado(texto, ehProblema) {
 	const el = raiz().querySelector('.gi-recado');
 	el.textContent = texto || '';
@@ -1090,6 +1211,28 @@ function ligarEventos(r) {
 		mandar({ acao: 'regras', itens: valor });
 	});
 
+	// ─── Confirmacao de transferir / retirar ──────────────────────────────
+	const modal = r.querySelector('.gi-modal');
+	r.querySelector('.gi-modal-nao').addEventListener('click', fecharConfirmacao);
+	r.querySelector('.gi-modal-sim').addEventListener('click', function () {
+		const acao = GrupoIdle.acaoPendente;
+		fecharConfirmacao();
+		if (acao) {
+			acao();
+		}
+	});
+	modal.addEventListener('click', function (ev) {
+		if (ev.target === modal) {
+			fecharConfirmacao();
+		}
+	});
+	modal.addEventListener('keydown', function (ev) {
+		if (ev.key === 'Escape') {
+			ev.stopPropagation();
+			fecharConfirmacao();
+		}
+	});
+
 	// ─── Sair / desfazer: os pacotes que JA existiam ──────────────────────
 	r.querySelector('.gi-sair').addEventListener('click', function () {
 		// `CZ_REQ_LEAVE_GROUP` (0x0100) — a MESMA rota do botao nativo. O
@@ -1201,6 +1344,7 @@ GrupoIdle.fechar = function fechar() {
 	desligarVidaAoVivo();
 	if (win.classList.contains('is-open')) {
 		win.classList.remove('is-open');
+		fecharConfirmacao();
 		mandar({ acao: 'fechar' });
 	}
 };

@@ -519,6 +519,18 @@
 	image-rendering: pixelated;
 }
 
+/* Reserva: enquanto o BMP da coroa nao chegou do GRF (ou se falhar), um
+   glifo ocupa o lugar — o botao de transferir nunca fica um circulo vazio. */
+#GrupoIdle .gi-coroa:not([data-ok])::after {
+	content: '\265B';
+	display: block;
+	font-size: 12px;
+	line-height: 1;
+	text-align: center;
+	color: var(--amber-600, #b7791f);
+	image-rendering: auto;
+}
+
 #GrupoIdle .gi-membro-onde {
 	grid-column: 2;
 	display: flex;
@@ -644,40 +656,150 @@
  * Desabilitado usa a MESMA receita do `.ri-btn:disabled` (dessaturar, nao
  * apagar) — o design system pede consistencia entre botao grande e pequeno.
  */
-#GrupoIdle .gi-transferir {
+/* Coroa (transferir) e X (retirar): medalhoes redondos com aro dourado,
+   a mesma moldura da arte. A arte enche o circulo (recortada por ele); o
+   hover acende o aro na cor da acao — ouro para passar a coroa, vermelho
+   para retirar. */
+#GrupoIdle .gi-transferir,
+#GrupoIdle .gi-expulsar {
 	appearance: none;
 	flex: 0 0 auto;
-	display: inline-flex;
-	align-items: center;
-	justify-content: center;
-	width: 18px;
-	height: 18px;
+	position: relative;
+	width: 22px;
+	height: 22px;
 	padding: 0;
-	border-radius: var(--radius-pill);
-	border: 1px solid var(--border-hairline);
-	background: var(--surface-card-hover);
+	border-radius: 50%;
+	border: 1.5px solid var(--gold-400);
+	background-color: var(--gold-200);
+	background-image: radial-gradient(circle at 50% 35%, var(--white), var(--gold-200) 70%);
+	background-repeat: no-repeat;
+	background-position: center;
+	background-size: cover;
+	box-shadow:
+		0 0 0 1px var(--gold-700),
+		inset 0 1px 0 rgba(255, 255, 255, 0.8),
+		0 2px 4px rgba(40, 30, 10, 0.35);
 	cursor: pointer;
-	box-shadow: var(--shadow-card);
+	overflow: hidden;
 	transition:
-		background var(--dur-fast) var(--ease-out),
-		transform var(--dur-instant) var(--ease-out);
+		transform var(--dur-fast) var(--ease-out),
+		box-shadow var(--dur-fast) var(--ease-out),
+		border-color var(--dur-fast) var(--ease-out);
+}
+#GrupoIdle .gi-transferir {
+	background-image:
+		url('/ragidle/grupo/grupo-transferir-coroa.png'),
+		radial-gradient(circle at 50% 35%, var(--white), var(--gold-200) 70%);
+	background-size: 78%, cover;
+	background-position: 50% 55%, center;
+}
+#GrupoIdle .gi-expulsar {
+	background-image:
+		url('/ragidle/grupo/grupo-expulsar-x.png'),
+		radial-gradient(circle at 50% 35%, var(--white), var(--gold-200) 70%);
+	background-size: 100%, cover;
+	background-position: center, center;
 }
 #GrupoIdle .gi-transferir:hover:not(:disabled) {
-	background: var(--white);
-	border-color: var(--accent);
+	transform: translateY(-1px) scale(1.08);
+	border-color: var(--gold-300);
+	box-shadow:
+		0 0 0 1px var(--gold-700),
+		0 0 8px 2px rgba(224, 176, 77, 0.75),
+		0 3px 6px rgba(40, 30, 10, 0.35);
 }
-#GrupoIdle .gi-transferir:active:not(:disabled) {
-	transform: var(--press-shift);
+#GrupoIdle .gi-expulsar:hover {
+	transform: translateY(-1px) scale(1.08);
+	border-color: var(--red-300);
+	box-shadow:
+		0 0 0 1px var(--red-600),
+		0 0 8px 2px rgba(255, 90, 90, 0.6),
+		0 3px 6px rgba(40, 30, 10, 0.35);
+}
+#GrupoIdle .gi-transferir:active:not(:disabled),
+#GrupoIdle .gi-expulsar:active {
+	transform: translateY(0) scale(0.96);
+}
+#GrupoIdle .gi-transferir:focus-visible,
+#GrupoIdle .gi-expulsar:focus-visible {
+	outline: 2px solid var(--accent);
+	outline-offset: 2px;
 }
 #GrupoIdle .gi-transferir:disabled {
 	filter: grayscale(1);
-	opacity: 0.45;
+	opacity: 0.4;
 	cursor: default;
-	box-shadow: none;
+	box-shadow: 0 0 0 1px var(--border-hairline);
+	border-color: var(--border-hairline);
 }
-#GrupoIdle .gi-transferir .gi-coroa {
-	width: 12px;
-	height: 12px;
+
+/* A janela de confirmacao: cobre a janela do grupo, fica acima de tudo. */
+#GrupoIdle .gi-window {
+	position: relative;
+}
+#GrupoIdle .gi-modal:not([hidden]) {
+	position: absolute;
+	inset: 0;
+	z-index: 20;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	background: rgba(20, 30, 50, 0.45);
+}
+#GrupoIdle .gi-modal-caixa {
+	width: min(380px, 90%);
+	padding: var(--sp-7, 20px);
+	border-radius: var(--radius-panel);
+	background: #fff;
+	box-shadow: var(--rim-light), var(--shadow-card);
+}
+#GrupoIdle .gi-modal-caixa {
+	text-align: center;
+}
+#GrupoIdle .gi-modal-icone {
+	display: block;
+	width: 64px;
+	height: 64px;
+	margin: 0 auto var(--sp-4);
+	border-radius: 50%;
+	border: 2px solid var(--gold-400);
+	box-shadow: 0 0 0 1px var(--gold-700), 0 3px 8px rgba(40, 30, 10, 0.3);
+	background: radial-gradient(circle at 50% 35%, var(--white), var(--gold-200) 70%);
+	background-repeat: no-repeat;
+	background-position: center;
+}
+#GrupoIdle .gi-modal[data-tipo='transferir'] .gi-modal-icone {
+	background-image:
+		url('/ragidle/grupo/grupo-transferir-coroa.png'),
+		radial-gradient(circle at 50% 35%, var(--white), var(--gold-200) 70%);
+	background-size: 78%, cover;
+	background-position: 50% 55%, center;
+}
+#GrupoIdle .gi-modal[data-tipo='expulsar'] .gi-modal-icone {
+	background-image:
+		url('/ragidle/grupo/grupo-expulsar-x.png'),
+		radial-gradient(circle at 50% 35%, var(--white), var(--gold-200) 70%);
+	background-size: 100%, cover;
+}
+#GrupoIdle .gi-modal[data-tipo='expulsar'] .gi-modal-sim {
+	background: linear-gradient(180deg, var(--red-300), var(--red-600));
+	border-color: var(--red-600);
+	color: var(--white);
+}
+#GrupoIdle .gi-modal-titulo {
+	margin: 0 0 var(--sp-4);
+	font: var(--type-section);
+	color: var(--text-title);
+}
+#GrupoIdle .gi-modal-texto {
+	margin: 0 0 var(--sp-6);
+	font: var(--type-desc);
+	color: var(--text-body);
+}
+#GrupoIdle .gi-modal-botoes {
+	display: flex;
+	justify-content: center;
+	gap: var(--sp-3);
 }
 
 /* ─── Os cartoes da coluna lateral ──────────────────────────────────────── */
