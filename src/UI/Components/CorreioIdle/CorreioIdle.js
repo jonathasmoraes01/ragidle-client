@@ -1075,8 +1075,11 @@ function sincronizarDetalhe() {
 	for (const item of lido.itens) {
 		const tile = document.createElement('div');
 		tile.className = 'ri-tile co-anexo-item';
-		// Sem `title` com nome: o ITID nao chega ao DOM da ReadRodex (ver o
-		// cabecalho do arquivo). Quantidade e icone sao reais; nome nao ha.
+		// O nome completo (com refino e cartas) que a ReadRodex grava desde
+		// 02/10/2026; carta antiga sem ele fica sem title, como antes.
+		if (item.nome) {
+			tile.title = item.nome;
+		}
 		const icone = document.createElement('span');
 		icone.className = 'co-anexo-item-icone';
 		if (item.icone) {
@@ -1087,6 +1090,13 @@ function sincronizarDetalhe() {
 		qtd.textContent = item.quantidade;
 		tile.appendChild(icone);
 		tile.appendChild(qtd);
+		// O refino da unidade anexada: "+7" no canto, como na Mochila.
+		if (item.refino > 0) {
+			const refino = document.createElement('span');
+			refino.className = 'co-anexo-item-refino';
+			refino.textContent = '+' + item.refino;
+			tile.appendChild(refino);
+		}
 		caixaDeItens.appendChild(tile);
 	}
 }
@@ -1115,7 +1125,10 @@ function lerDaReadRodex() {
 		const conta = el.querySelector('.count');
 		return {
 			icone: icone ? icone.style.backgroundImage : '',
-			quantidade: conta ? (conta.textContent || '1').trim() : '1'
+			quantidade: conta ? (conta.textContent || '1').trim() : '1',
+			// O refino e o nome completo que a ReadRodex grava (02/10/2026).
+			refino: Number(el.getAttribute('data-refino')) || 0,
+			nome: el.title || ''
 		};
 	});
 
