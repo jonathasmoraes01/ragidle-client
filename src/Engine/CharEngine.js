@@ -23,6 +23,7 @@ import UIManager from 'UI/UIManager.js';
 import Background from 'UI/Background.js';
 import PincodeWindow from 'UI/Components/PincodeWindow/PincodeWindow.js';
 import InputBox from 'UI/Components/InputBox/InputBox.js';
+import { TEXTOS_DA_EXCLUSAO } from 'UI/Components/CharSelect/textosDaExclusao.js';
 import JoystickUI from 'UI/Components/JoystickUI/JoystickUI.js';
 import CharSelect from 'UI/Components/CharSelect/CharSelect.js';
 import CharCreate from 'UI/Components/CharCreate/CharCreate.js';
@@ -416,10 +417,25 @@ function onDeleteReqDelay(charID) {
 		return;
 	}
 
-	const pkt = new PACKET.CH.DELETE_CHAR3_RESERVED();
-	pkt.GID = charID;
-	Network.sendPacket(pkt);
+	/*
+	 * O AVISO ANTES DE RESERVAR (D-1945, 03/10/2026). O pedido saia no clique,
+	 * sem dizer o que acontece: o personagem fica travado por 24 horas (nao
+	 * entra no jogo) e so depois a exclusao pode ser confirmada. O "Cancelar"
+	 * devolve o teclado a tela, como a resposta 0 do servidor.
+	 */
+	UIManager.showPromptBox(
+		TEXTOS_DA_EXCLUSAO.reserva,
+		'ok',
+		'cancel',
+		() => {
+			const pkt = new PACKET.CH.DELETE_CHAR3_RESERVED();
+			pkt.GID = charID;
+			Network.sendPacket(pkt);
+		},
+		() => onRequestCharDel({ Result: 0 })
+	);
 }
+
 
 /**
  * User want to delete a character
@@ -458,28 +474,34 @@ function onDeleteRequest(charID) {
 		onDeleteAnswer({ ErrorCode: -2 });
 	}
 
-	// Ask the mail/birthdate
+	/*
+	 * A SEGUNDA CONFIRMACAO NO LUGAR DA DATA DE NASCIMENTO (D-1945, ordem do
+	 * dono de 03/10/2026: "aviso + segunda confirmacao"). Nossas contas nao
+	 * guardam data de nascimento, e o rAthena aceita o codigo VAZIO de quem nao
+	 * a tem (`chclif_delchar_check`, char_clif.cpp:683-692) — entao o pedido vai
+	 * vazio. As 24 horas de trava ja passaram quando este botao aparece; os dois
+	 * avisos sao o ultimo "tem certeza?".
+	 */
 	function onOk() {
-		InputBox.append();
-		if (PACKETVER.value >= 20100803) {
-			InputBox.setType('birthdate', true);
-		} else {
-			InputBox.setType('mail', true);
-		}
-		InputBox.onSubmitRequest = onSubmit;
-		_ui_box._host.style.zIndex = '50'; // ui same zIndex bg
-		_overlay.style.zIndex = '51'; // overlay same zIndex input
-		_ui_box.append(); // don't remove message box
+		// A primeira caixa ja se fechou sozinha (`showPromptBox`).
+		_ui_box = UIManager.showPromptBox(
+			TEXTOS_DA_EXCLUSAO.segundaConfirmacao,
+			'ok',
+			'cancel',
+			() => onSubmit(''),
+			onCancel
+		);
 	}
 
 	// Display prompt message
-	_ui_box = UIManager.showPromptBox(DB.getMessage(19), 'ok', 'cancel', onOk, onCancel);
+	_ui_box = UIManager.showPromptBox(TEXTOS_DA_EXCLUSAO.confirmacao, 'ok', 'cancel', onOk, onCancel);
 	const _overlay = document.createElement('div');
 	_overlay.className = 'win_popup_overlay';
 	document.body.appendChild(_overlay);
 
 	// Submit the mail/birthdate
 	function onSubmit(input) {
+		// Vazio na segunda confirmacao: `substring(2)` da '' e os 6 bytes vao zerados.
 		_inputValue = input;
 		InputBox.remove();
 		_ui_box.remove();

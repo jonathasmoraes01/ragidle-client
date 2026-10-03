@@ -293,16 +293,24 @@
 
 /* Contagem regressiva de exclusao: cinta sobre o retrato, dentro do
    ".char_canvas" (que ja e position:relative acima). */
+/* O CONTADOR DA EXCLUSAO (D-1945): no TOPO do cartao. Em `bottom: 26px` ele
+   cobria o nome do personagem — o nome some justo no cartao que o jogador
+   esta decidindo excluir. As cores sao do sistema (o JS pintava `red`/`blue`
+   a mao sobre o vidro escuro): esperando = vermelho claro, liberado = verde. */
 #CharSelectV4 .timedelete {
 	position: absolute;
 	left: 0;
 	right: 0;
-	bottom: 26px;
+	top: 0;
 	text-align: center;
 	padding: var(--sp-1) var(--sp-2);
 	background: var(--surface-dark-glass);
-	color: var(--white);
+	color: var(--red-300);
 	font: var(--type-badge);
+}
+
+#CharSelectV4 .timedelete.is-liberado {
+	color: var(--green-300);
 }
 
 #CharSelectV4 .hidden {

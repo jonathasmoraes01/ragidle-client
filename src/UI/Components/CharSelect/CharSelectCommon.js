@@ -33,6 +33,8 @@ import 'UI/Elements/Elements.js';
 import PACKETVER from 'Network/PacketVerManager.js';
 import { aplicarVagas, podeCriarNaVaga, vagaDoCursor, vagasDaConta } from './vagasDaSelecao.js';
 
+import { TEXTOS_DA_EXCLUSAO, textoDoContador } from './textosDaExclusao.js';
+
 export function createCharSelect(config) {
 	const {
 		name,
@@ -441,18 +443,20 @@ export function createCharSelect(config) {
 
 				default: // Others error ?
 				case 0:
-				case 2: // 2: Due to system settings can not be deleted.
 				case 6: // 6: Name does not match.
-					UIManager.showMessageBox(DB.getMessage(1821), 'ok');
+					UIManager.showMessageBox(TEXTOS_DA_EXCLUSAO.falhou, 'ok');
+					return;
+				case 2: // 2: o nosso servidor: em grupo, em guilda ou conectado (D-1945)
+					UIManager.showMessageBox(TEXTOS_DA_EXCLUSAO.preso, 'ok');
 					return;
 				case 3: // 3: A database error occurred.
-					UIManager.showMessageBox(DB.getMessage(1817), 'ok');
+					UIManager.showMessageBox(TEXTOS_DA_EXCLUSAO.erro, 'ok');
 					return;
 				case 4: // 4: Deleting not yet possible time.
-					UIManager.showMessageBox(DB.getMessage(1820), 'ok');
+					UIManager.showMessageBox(TEXTOS_DA_EXCLUSAO.cedo, 'ok');
 					return;
 				case 5: // 5: Date of birth do not match.
-					UIManager.showMessageBox(DB.getMessage(1822), 'ok');
+					UIManager.showMessageBox(TEXTOS_DA_EXCLUSAO.codigo, 'ok');
 					return;
 				case 7: // 7: Character Deletion has failed because you have entered an incorrect e-mail address.
 					UIManager.showMessageBox(DB.getMessage(301), 'ok');
@@ -496,18 +500,20 @@ export function createCharSelect(config) {
 
 				default: // Others error ?
 				case 0:
-				case 2: // 2: Due to system settings can not be deleted.
 				case 6: // 6: Name does not match.
-					UIManager.showMessageBox(DB.getMessage(1821), 'ok');
+					UIManager.showMessageBox(TEXTOS_DA_EXCLUSAO.falhou, 'ok');
+					return;
+				case 2: // 2: o nosso servidor: em grupo, em guilda ou conectado (D-1945)
+					UIManager.showMessageBox(TEXTOS_DA_EXCLUSAO.preso, 'ok');
 					return;
 				case 3: // 3: A database error occurred.
-					UIManager.showMessageBox(DB.getMessage(1817), 'ok');
+					UIManager.showMessageBox(TEXTOS_DA_EXCLUSAO.erro, 'ok');
 					return;
 				case 4: // 4: Deleting not yet possible time.
-					UIManager.showMessageBox(DB.getMessage(1820), 'ok');
+					UIManager.showMessageBox(TEXTOS_DA_EXCLUSAO.cedo, 'ok');
 					return;
 				case 5: // 5: Date of birth do not match.
-					UIManager.showMessageBox(DB.getMessage(1822), 'ok');
+					UIManager.showMessageBox(TEXTOS_DA_EXCLUSAO.codigo, 'ok');
 					return;
 				case 7: // 7: Character Deletion has failed because you have entered an incorrect e-mail address.
 					UIManager.showMessageBox(DB.getMessage(301), 'ok');
@@ -778,8 +784,14 @@ export function createCharSelect(config) {
 
 						case 1: {
 							// 1: none/success
-							const now = Math.floor(Date.now() / 1000);
-							info.DeleteDate = deleteReservedDate + now;
+							/*
+							 * SEGUNDOS QUE FALTAM, e nao epoch (D-1945). No grid o
+							 * `DeleteDate` da lista e lido como duracao
+							 * (`updateCharSlot` -> `countdown.dataset.duration`);
+							 * somar `now` aqui fazia o proximo redesenho do slot
+							 * mostrar um contador de ~490 mil horas.
+							 */
+							info.DeleteDate = deleteReservedDate;
 							requestdelete(_index, deleteReservedDate);
 							break;
 						}
@@ -788,10 +800,10 @@ export function createCharSelect(config) {
 							return;
 
 						case 4: // 4: To delete a character you must withdraw from the guild.
-							UIManager.showMessageBox(DB.getMessage(1818), 'ok');
+							UIManager.showMessageBox(TEXTOS_DA_EXCLUSAO.guilda, 'ok');
 							break;
 						case 5: // 5: To delete a character you must withdraw from the party.
-							UIManager.showMessageBox(DB.getMessage(1819), 'ok');
+							UIManager.showMessageBox(TEXTOS_DA_EXCLUSAO.grupo, 'ok');
 							break;
 
 						default:
@@ -1197,16 +1209,8 @@ export function createCharSelect(config) {
 	 * Format delay duration (V4)
 	 */
 	function formatDuration(seconds) {
-		const hours = Math.floor(seconds / 3600);
-		const minutes = Math.floor((seconds % 3600) / 60);
-		const remainingSeconds = seconds % 60;
-
-		const replacer = DB.getMessage(3349).includes('%d') ? '%d' : '%02d';
-
-		return DB.getMessage(3349)
-			.replace(replacer, hours.toString().padStart(2, '0'))
-			.replace(replacer, minutes.toString().padStart(2, '0'))
-			.replace(replacer, remainingSeconds.toString().padStart(2, '0'));
+		// Era a msg 3349 do GRF (em ingles, ou "NO MSG"); D-1945.
+		return textoDoContador(seconds);
 	}
 
 	/**
@@ -1221,11 +1225,8 @@ export function createCharSelect(config) {
 			const updatedDuration = Math.max(0, deleteReservedDuration - 1);
 
 			countdownDiv.textContent = formatDuration(updatedDuration);
-			if (updatedDuration > 0) {
-				countdownDiv.style.color = 'red';
-			} else {
-				countdownDiv.style.color = 'blue';
-			}
+			// A cor vem do CSS (D-1945): a classe diz se o prazo ja passou.
+			countdownDiv.classList.toggle('is-liberado', updatedDuration <= 0);
 
 			countdownDiv.dataset.duration = updatedDuration.toString();
 		});
