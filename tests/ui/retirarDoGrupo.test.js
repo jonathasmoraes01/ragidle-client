@@ -38,7 +38,8 @@ describe('o X só existe para o líder, e vale para qualquer membro', () => {
 	});
 
 	it('a linha do membro desenha o X e a lista religa o clique', () => {
-		expect(corpoDaFuncao('linhaDeMembro')).toContain('botaoExpulsar(m, ctx)');
+		expect(corpoDaFuncao('linhaDeMembro')).toContain('acoesDoLider(m, ctx)');
+		expect(corpoDaFuncao('acoesDoLider')).toContain('botaoTransferir(m, ctx) + botaoExpulsar(m, ctx)');
 		expect(corpoDaFuncao('desenharMembros')).toContain('ligarBotoesDeExpulsar(lista)');
 	});
 });
