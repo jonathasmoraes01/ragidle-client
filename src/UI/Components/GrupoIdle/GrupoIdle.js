@@ -559,6 +559,14 @@ function ligarBotoesDeTransferir(lista) {
 					' passa a ser o lider do grupo e voce perde o comando: so o novo lider podera convidar, retirar membros e desfazer o grupo.',
 				rotuloSim: 'Sim, transferir',
 				aoConfirmar: function () {
+					const agora = membroAtual(contaId);
+					const euAgora = GrupoIdle.estado.grupo.membros.filter(function (x) {
+						return x.souEu;
+					})[0];
+					if (!agora || !agora.online || (euAgora && agora.mapa !== euAgora.mapa)) {
+						mostrarRecado('O grupo mudou: a lideranca nao foi transferida.', true);
+						return;
+					}
 					const pkt = new PACKET.CZ.CHANGE_GROUP_MASTER();
 					pkt.AID = contaId;
 					Network.sendPacket(pkt);
@@ -597,6 +605,10 @@ function ligarBotoesDeExpulsar(lista) {
 					' sera expulso do grupo e deixa de dividir cacada, rateio e postos com voce. Para voltar, precisara de um novo convite.',
 				rotuloSim: 'Sim, retirar',
 				aoConfirmar: function () {
+					if (!membroAtual(contaId)) {
+						mostrarRecado('O grupo mudou: ninguem foi retirado.', true);
+						return;
+					}
 					const pkt = new PACKET.CZ.REQ_EXPEL_GROUP_MEMBER();
 					pkt.AID = contaId;
 					pkt.characterName = alvo.nome;
@@ -1034,9 +1046,24 @@ function desenharTudo() {
 /**
  * A JANELA DE CONFIRMACAO (transferir lideranca / retirar membro): cobre a
  * janela do grupo, descreve a acao e so manda o pacote no "Sim". Cancelar,
- * Esc e clique fora fecham sem mandar nada. `aoConfirmar` RELE o estado: se
- * o grupo mudou enquanto a caixa estava aberta, `pedirConfirmacao` fecha.
+ * Esc e clique fora fecham sem mandar nada. Cada `aoConfirmar` RELE o estado
+ * (`membroAtual`): se o grupo mudou com a caixa aberta (perdi a coroa, o alvo
+ * saiu, ficou offline ou mudou de mapa), o pacote nao sai e o recado explica.
  */
+function membroAtual(contaId) {
+	const atual = GrupoIdle.estado;
+	const grupo = atual && atual.grupo;
+	const eu = atual && atual.eu;
+	if (!eu || !eu.souLider || !grupo) {
+		return null;
+	}
+	return (
+		grupo.membros.filter(function (x) {
+			return x.contaId === contaId && !x.souEu;
+		})[0] || null
+	);
+}
+
 function fecharConfirmacao() {
 	const m = raiz().querySelector('.gi-modal');
 	m.hidden = true;
