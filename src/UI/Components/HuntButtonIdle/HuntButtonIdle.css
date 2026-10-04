@@ -138,6 +138,12 @@
 	white-space: nowrap;
 }
 
+/* SENTAR (04/10/2026) so existe no celular em pe: no desktop a tecla Insert
+   faz o mesmo e a coluna fica como o dono a desenhou (as duas artes). */
+.hb-btn.hb-sentar {
+	display: none;
+}
+
 /* O glifo dos botoes (D-939) so existe na HUD vertical; no desktop os
    botoes sao a arte acima. */
 .hb-glifo {
@@ -220,6 +226,19 @@
 	width: 64px;
 	height: 64px;
 	min-height: 64px;
+}
+
+.ri-vertical .hb-btn.hb-sentar {
+	display: flex;
+	width: 48px;
+	height: 48px;
+	min-height: 48px;
+	margin-right: 8px;
+}
+
+.ri-vertical .hb-btn.hb-sentar.is-sentado {
+	background: var(--blue-600);
+	color: #fff;
 }
 
 .ri-vertical .hb-voltar {
