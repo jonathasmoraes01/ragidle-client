@@ -54,6 +54,8 @@ import HuntMap from 'UI/Components/HuntMap/HuntMap.js';
 import IdleConfig from 'UI/Components/IdleConfig/IdleConfig.js';
 import AdminPanel from 'UI/Components/AdminPanel/AdminPanel.js';
 import ChatBox from 'UI/Components/ChatBox/ChatBox.js';
+import ProcessCommand from 'Controls/ProcessCommand.js';
+import Session from 'Engine/SessionStorage.js';
 import { emIngles } from 'Core/Idioma.js';
 import htmlText from './HuntButtonIdle.html?raw';
 import cssText from './HuntButtonIdle.css?raw';
@@ -119,6 +121,7 @@ HuntButtonIdle.init = function init() {
 	 */
 	root.querySelector('.hb-cacar').addEventListener('click', onClickCacar);
 	root.querySelector('.hb-voltar').addEventListener('click', onClickVoltar);
+	root.querySelector('.hb-sentar').addEventListener('click', onClickSentar);
 };
 
 /**
@@ -215,6 +218,7 @@ function stopPolling() {
 function poll() {
 	hideAdminButton();
 	syncLabel();
+	syncSentar();
 }
 
 /**
@@ -365,6 +369,39 @@ function onClickCacar(e) {
 	// ja lista tudo por regiao/nivel/nome. Mesmo metodo publico que o item
 	// "Caça" do DockIdle ja usa (DockIdle.js:266-268).
 	HuntMap.toggle();
+}
+
+/*
+ * SENTAR/LEVANTAR (04/10/2026). O MESMO caminho da tecla Insert do desktop
+ * (ShortCuts.Sit -> o comando `/sit` de ProcessCommand.js), e nao um pacote
+ * montado aqui: quem decide entre sentar (acao 2) e levantar (acao 3) e o
+ * comando, olhando a postura da propria entidade. O servidor atende os dois
+ * (CZ_REQUEST_ACT2, com freio), inclusive na cidade.
+ */
+function onClickSentar(e) {
+	e.stopImmediatePropagation();
+	ProcessCommand.processCommand.call(ChatBox, 'sit');
+}
+
+/** O rotulo e a cor seguem a postura que o servidor confirmou (ZC_NOTIFY_ACT). */
+function syncSentar() {
+	const root = _root();
+	const btn = root && root.querySelector('.hb-sentar');
+	const ent = Session.Entity;
+	if (!btn || !ent) {
+		return;
+	}
+	const sentado = ent.action === ent.ACTION.SIT;
+	if (btn.classList.contains('is-sentado') === sentado) {
+		return;
+	}
+	btn.classList.toggle('is-sentado', sentado);
+	const rotulo = sentado ? 'Levantar' : 'Sentar';
+	btn.title = rotulo;
+	const span = btn.querySelector('.hb-rotulo');
+	if (span) {
+		span.textContent = rotulo;
+	}
 }
 
 function onClickVoltar(e) {

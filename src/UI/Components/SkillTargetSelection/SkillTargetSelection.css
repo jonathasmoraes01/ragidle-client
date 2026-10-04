@@ -53,3 +53,14 @@
 	   que o design system pede em vez de faixa solida atras do texto. */
 	filter: drop-shadow(0 1px 2px rgba(12, 34, 64, 0.55));
 }
+
+/* EM TELA ESTREITA O AVISO SOBE ACIMA DA DOCA (04/10/2026). Os 60px de baixo
+   sao da doca no celular em pe: o "Selecione um alvo." nascia meio coberto pela
+   barra de atalhos (medido na doma, scripts/diag-relatos-do-celular-na-tela.ts).
+   O mesmo token do chat (ChatBox.css), para os dois subirem juntos se a doca
+   mudar de altura. */
+@media (max-width: 899px) {
+	.skill-description {
+		bottom: var(--hud-acima-da-doca, 104px);
+	}
+}

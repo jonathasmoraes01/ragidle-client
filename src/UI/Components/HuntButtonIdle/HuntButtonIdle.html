@@ -26,6 +26,21 @@
 		</span>
 		<span class="hb-rotulo">Retornar para Prontera</span>
 	</button>
+	<!-- SENTAR/LEVANTAR (04/10/2026, relato de 03/10: "botao de sentar nao
+	     responde" no celular). No desktop sentar e a tecla Insert (ShortCuts.Sit
+	     -> /sit); o dedo nao tinha caminho nenhum. So aparece na HUD vertical do
+	     celular em pe; no desktop o botao e display:none e nada muda. -->
+	<button type="button" class="hb-btn hb-sentar ri-btn" data-action="hb-sentar" title="Sentar">
+		<span class="hb-glifo" aria-hidden="true">
+			<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+				<circle cx="9" cy="4.5" r="2"></circle>
+				<path d="M9 7.5 L9 13 L15 13 L17 20"></path>
+				<path d="M9 10 L13 10"></path>
+				<path d="M6 11 C5 14 6 17 9 18 L12 18"></path>
+			</svg>
+		</span>
+		<span class="hb-rotulo">Sentar</span>
+	</button>
 	<!-- D-1673 (21/09/2026, ordem do dono): "explicando estados indisponiveis".
 	     O motivo vive aqui como TEXTO, e nao no `title`: no celular nao ha
 	     hover, entao um `title` e um aviso que metade dos jogadores nunca le.

@@ -52,7 +52,7 @@ function onStartCapture(pkt) {
 	}
 
 	SkillTargetSelection.append();
-	SkillTargetSelection.set(fakeSkill, SkillTargetSelection.TYPE.PET, 'Capture Monster');
+	SkillTargetSelection.set(fakeSkill, SkillTargetSelection.TYPE.PET, 'Domar monstro');
 	SkillTargetSelection.onPetSelected = function onPetSelected(gid) {
 		SlotMachine.append();
 		SlotMachine.onTry = function onTry() {
