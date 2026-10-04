@@ -1264,6 +1264,28 @@
 .ic-cura-item { padding: 4px 0 6px; border-top: 1px solid rgba(255, 255, 255, 0.06); }
 .ic-cura-item:first-of-type { border-top: 0; }
 
+/* D-1963: "Usar como ataque contra morto-vivo", dentro do bloco da cura. A
+   cura desligada esmaece e trava o interruptor (o ataque so sai com ela
+   ligada). A linha inteira e o rotulo do interruptor, e no dedo ela tem pelo
+   menos a altura de toque. */
+#IdleConfig .ic-ataque-da-cura {
+	margin-top: var(--sp-2);
+}
+
+#IdleConfig .ic-ataque-da-cura.is-desligada {
+	opacity: 0.5;
+}
+
+#IdleConfig .ic-ataque-da-cura.is-desligada .ic-switch-row {
+	cursor: default;
+}
+
+@media (pointer: coarse) {
+	#IdleConfig .ic-ataque-da-cura .ic-switch-row {
+		min-height: var(--hit-touch, 44px);
+	}
+}
+
 /* ─── D-1906: o NIVEL DE USO nas linhas da ordem de golpes, dos buffs e da
    cura. O seletor em si (`.ri-nivel`) e do `Common.css`; aqui so o encaixe
    dele nesta janela. A cura desligada continua mexivel — a escolha fica

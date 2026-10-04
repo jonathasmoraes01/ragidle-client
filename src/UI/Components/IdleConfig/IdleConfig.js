@@ -85,6 +85,7 @@ import {
 	curaLigadaPara
 } from './secoesDaConfig.js';
 import { aplicarPassoDeNivel, duracaoDaEntrada, lembrarSpDoContexto, nivelEscolhidoServido, seletorDaCura, seletorDaEntrada } from './nivelNaConfig.js';
+import { comAtaqueDaCura, htmlDoAtaqueDaCura } from './curaComoAtaque.js';
 import { lerPassoDoSeletor } from 'UI/nivelDeUso.js';
 import htmlText from './IdleConfig.html?raw';
 import cssText from './IdleConfig.css?raw';
@@ -1775,6 +1776,7 @@ function renderCura() {
 					<span>Quem curar</span>
 					${segmentadoDeAlvo(`cura.habilidades.${c.skillId}.alvo`, alvo, alcanca, 'Quem curar')}
 				</div>
+				${htmlDoAtaqueDaCura({ cura: c, ajuste, ligada, ctx, escapar: escapeHtml })}
 			</div>`;
 		})
 		.join('');
@@ -1836,6 +1838,26 @@ function bindSuporteExtra(pane) {
 			}
 		});
 	}
+
+	// D-1963: "Usar como ataque contra morto-vivo", por habilidade. Desligar
+	// apaga a marca (`comAtaqueDaCura`): ausente e o desligado do servidor.
+	pane.querySelectorAll('[data-action="cura-ataque-toggle"]').forEach(ataqueToggle => {
+		ataqueToggle.addEventListener('change', () => {
+			const cfg = IdleConfig.editConfig;
+			const cura = garantirCura(cfg, IdleConfig.contexto);
+			const skillId = ataqueToggle.dataset.skill;
+			const atual = cura.habilidades[skillId] || {
+				ligada: curaLigadaPara(cura, skillId),
+				alvo: cura.alvo || 'grupo'
+			};
+			cfg.cura = {
+				...cura,
+				habilidades: { ...cura.habilidades, [skillId]: comAtaqueDaCura(atual, !!ataqueToggle.checked) }
+			};
+			markDirty();
+			renderBody();
+		});
+	});
 
 	pane.querySelectorAll('[data-action="cura-toggle"]').forEach(curaToggle => {
 		curaToggle.addEventListener('change', () => {
