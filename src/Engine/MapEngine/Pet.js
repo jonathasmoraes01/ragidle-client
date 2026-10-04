@@ -22,6 +22,8 @@ import SlotMachine from 'UI/Components/SlotMachine/SlotMachine.js';
 import SkillTargetSelection from 'UI/Components/SkillTargetSelection/SkillTargetSelection.js';
 import ItemSelection from 'UI/Components/ItemSelection/ItemSelection.js';
 import ChatBox from 'UI/Components/ChatBox/ChatBox.js';
+import { fecharTodas as fecharJanelasComuns } from 'UI/pilhaDeJanelas.js';
+import { ehDedo } from 'UI/escalaDaHud.js';
 import PetInformations from 'UI/Components/PetInformations/PetInformations.js';
 import Emotions from 'DB/Emotions.js';
 import PetMessageConst from 'DB/Pets/PetMessageConst.js';
@@ -34,6 +36,20 @@ import PetEvolution from 'UI/Components/PetEvolution/PetEvolution.js';
  */
 function onStartCapture(pkt) {
 	const fakeSkill = { SKID: -10, level: 0 };
+
+	/*
+	 * RAGIDLE (04/10/2026, relato de 03/10: "itens de domesticar pet nao estao
+	 * funcionando" no celular). A doma ABRIA no servidor e a maca saia da
+	 * mochila, mas o "Selecione um alvo" nascia ATRAS da Mochila: no dedo ela e
+	 * painel de TELA CHEIA (D-932) e cobre o mapa inteiro, entao nao havia
+	 * monstro para tocar e a tentativa morria calada. O mesmo motivo que fez o
+	 * "Por na barra" fechar a Mochila no dedo (MochilaIdle.js). Fecha as janelas
+	 * COMUNS da pilha (modal de decisao fica), e so no dedo: no mouse a janela
+	 * nao cobre o mapa e fechar seria surpresa.
+	 */
+	if (ehDedo()) {
+		fecharJanelasComuns();
+	}
 
 	SkillTargetSelection.append();
 	SkillTargetSelection.set(fakeSkill, SkillTargetSelection.TYPE.PET, 'Capture Monster');

@@ -1218,6 +1218,26 @@ function abrirMenuDoItem(cell) {
 			Inventory.getUI().useItem(item);
 		});
 		ContextMenu.nextGroup();
+	} else if (item.type === ItemType.CARD) {
+		/*
+		 * "ENCAIXAR EM..." (04/10/2026, relato de 03/10: "nem a opcao de por carta
+		 * no item" no celular). O UNICO caminho ate o encaixe era o DUPLO-CLIQUE
+		 * (onDblClickItem -> useItem -> onUseCard), e no dedo o toque abre este
+		 * menu, que para carta so tinha "Por na barra"/"Detalhes". O item e o
+		 * MESMO useItem do duplo-clique: o servidor manda a lista so das pecas
+		 * que aceitam a carta (slot livre, tipo certo, guardada) e explica a
+		 * recusa quando nao ha nenhuma.
+		 *
+		 * No dedo a Mochila fecha antes, pelo motivo do "Por na barra" abaixo: ela
+		 * e painel de tela cheia (D-932) e a janela de escolha nasceria ATRAS dela.
+		 */
+		ContextMenu.addElement('Encaixar em…', () => {
+			if (ehToque()) {
+				MochilaIdle.toggle();
+			}
+			Inventory.getUI().useItem(item);
+		});
+		ContextMenu.nextGroup();
 	}
 
 	/*
