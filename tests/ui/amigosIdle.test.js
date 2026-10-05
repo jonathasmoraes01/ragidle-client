@@ -141,10 +141,35 @@ describe('a janela "Amigos": mensagem e convite', () => {
 		expect(t.recado()).toBe('Só o líder do grupo pode convidar.');
 	});
 
-	it('o amigo ja esta no MEU grupo: recusa visivel, nada sai', () => {
+	it('o amigo ja esta no MEU grupo: no lugar do Convidar, a etiqueta "No grupo"', () => {
 		const t = montar({ membros: ['Ana'] });
+		t.c.receberLista([ANA, DUDA]);
+		expect(t.botao(ANA.GID, 'convidar')).toBeNull();
+		expect(t.$(`.am-linha[data-gid="${ANA.GID}"] .am-etiqueta`).textContent).toBe('No grupo');
+		expect(t.botao(DUDA.GID, 'convidar')).not.toBeNull();
+	});
+
+	it('o aceite (resposta 2) troca o botao do amigo pela etiqueta, e a saida dele devolve o botao', () => {
+		const membros = [];
+		const t = montar({ membros });
 		t.c.receberLista([ANA]);
 		t.c.clicar(t.botao(ANA.GID, 'convidar'));
+		membros.push('Ana'); // o grupo ja mudou no motor quando o aceite chega
+		t.c.receberRespostaDoConvite(2, 'Ana');
+		expect(t.botao(ANA.GID, 'convidar')).toBeNull();
+		expect(t.$('.am-etiqueta')).not.toBeNull();
+		membros.length = 0;
+		t.c.grupoMudou();
+		expect(t.botao(ANA.GID, 'convidar')).not.toBeNull();
+	});
+
+	it('o botao que sobrou de antes de o amigo entrar no grupo: recusa visivel, nada sai', () => {
+		const membros = [];
+		const t = montar({ membros });
+		t.c.receberLista([ANA]);
+		const velho = t.botao(ANA.GID, 'convidar');
+		membros.push('Ana');
+		t.c.clicar(velho);
 		expect(t.chamadas).toEqual([]);
 		expect(t.recado()).toBe('Ana já está no seu grupo.');
 	});
@@ -338,7 +363,11 @@ describe('a costura da janela "Amigos"', () => {
 		// as cinco mudancas da lista avisam (lista, estado, entrou, saiu, free)
 		expect(friends.match(/avisarOuvintesDaLista\(\);/g)).toHaveLength(5);
 		expect(friends).toContain('avisarOuvintesDoResultado(pkt.Result, pkt.Name);');
-		expect(ler('src/Engine/MapEngine/Group.js')).toContain('funcao(pkt.answer, pkt.characterName);');
+		const grupo = ler('src/Engine/MapEngine/Group.js');
+		expect(grupo).toContain('funcao(pkt.answer, pkt.characterName);');
+		// criado, lista, entrou, saiu: as quatro mudancas do grupo avisam
+		expect(grupo.match(/avisarQueOGrupoMudou\(\);/g)).toHaveLength(4);
+		expect(JANELA).toContain('aoMudarGrupo(');
 		expect(ler('src/Engine/MapEngine/Main.js')).toContain('repassarFalaDoSistema(pkt.msg);');
 	});
 

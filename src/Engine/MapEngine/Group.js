@@ -64,6 +64,33 @@ export function aoResponderConvite(funcao) {
 	return () => _ouvintesDoConvite.delete(funcao);
 }
 
+/*
+ * E quem quer saber que o GRUPO MUDOU (criado, lista nova, membro entrou ou
+ * saiu): a janela "Amigos" troca o "Convidar" pela etiqueta "No grupo" de
+ * quem ja esta dentro.
+ */
+const _ouvintesDoGrupo = new Set();
+
+/**
+ * @param {() => void} funcao
+ * @returns {() => void} desassinar
+ */
+export function aoMudarGrupo(funcao) {
+	_ouvintesDoGrupo.add(funcao);
+	return () => _ouvintesDoGrupo.delete(funcao);
+}
+
+/* Cada ouvinte em `try`: uma excecao aqui abortaria o laco de rede do cliente. */
+function avisarQueOGrupoMudou() {
+	for (const funcao of _ouvintesDoGrupo) {
+		try {
+			funcao();
+		} catch (err) {
+			console.error('[Group] ouvinte do grupo falhou', err);
+		}
+	}
+}
+
 /**
  * Party namespace
  */
@@ -274,6 +301,7 @@ function onPartyCreate(pkt) {
 			}
 
 			PartyFriends.getUI().setParty(_partyName, [memberData]);
+			avisarQueOGrupoMudou();
 			/* RAGIDLE (D-984): RETRATO, e nao evento. Criar um grupo tambem
 			   liga `hasParty`, mas o Localizador ja trata o 'criar' de um jeito
 			   escolhido (ele nao esta em `ACOES_QUE_FECHAM`, e a aba volta para
@@ -338,6 +366,7 @@ function onPartyList(pkt) {
 
 	PartyFriends.getUI().setParty(pkt.groupName, pkt.groupInfo);
 	WorldMap.updatePartyMembers(pkt);
+	avisarQueOGrupoMudou();
 
 	/*
 	 * RAGIDLE (D-984): RETRATO. Esta e a lista INTEIRA, e ela chega nas duas
@@ -379,6 +408,7 @@ function onPartyMemberJoin(pkt) {
 	}
 	PartyUI.setOptions(pkt.expOption, pkt.ItemPickupRule, pkt.ItemDivisionRule);
 	PartyUI.addPartyMember(pkt);
+	avisarQueOGrupoMudou();
 
 	/*
 	 * RAGIDLE (D-984): EVENTO — "eu ENTREI num grupo agora".
@@ -437,6 +467,7 @@ function onPartyMemberLeave(pkt) {
 	}
 
 	PartyFriends.getUI().removePartyMember(pkt.AID, pkt.characterName);
+	avisarQueOGrupoMudou();
 
 	/*
 	 * RAGIDLE (D-984): EVENTO — "eu SAI do grupo agora".

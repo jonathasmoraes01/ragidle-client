@@ -206,9 +206,18 @@ export function criarControladorDosAmigos(ctx) {
 				'</li>'
 			);
 		}
+		/*
+		 * QUEM JA ESTA NO MEU GRUPO nao ganha "Convidar" (achado no print de
+		 * 05/10: o amigo aceitou e o botao continuava la, convidando de novo quem
+		 * acabou de entrar). A etiqueta "No grupo" ocupa o lugar dele.
+		 */
+		const noMeuGrupo = online && ctx.ehDoMeuGrupo(amigo.Name);
+		const convite = noMeuGrupo
+			? '<span class="am-etiqueta">No grupo</span>'
+			: `<button type="button" class="am-btn ri-btn" data-acao="convidar" data-gid="${gid}" title="Convidar para o grupo">Convidar</button>`;
 		const acoesOnline = online
 			? `<button type="button" class="am-btn ri-btn" data-acao="mensagem" data-gid="${gid}" title="Mandar mensagem privada">Mensagem</button>` +
-				`<button type="button" class="am-btn ri-btn" data-acao="convidar" data-gid="${gid}" title="Convidar para o grupo">Convidar</button>`
+				convite
 			: '';
 		return (
 			`<li class="am-linha${online ? ' is-online' : ''}" data-gid="${gid}">` +
@@ -356,7 +365,13 @@ export function criarControladorDosAmigos(ctx) {
 			}
 			_conviteNoAr = null;
 			recado(r.texto, r.tom);
+			// "Entrou" troca o botao pela etiqueta "No grupo".
+			desenhar();
 			return true;
+		},
+		/** O grupo mudou (alguem entrou ou saiu): as etiquetas "No grupo" se refazem. */
+		grupoMudou() {
+			desenhar();
 		},
 		/** O resultado do pedido de amizade (0x0209). Vale tambem para o pedido que CHEGOU e foi aceito. */
 		receberResultadoDeAmizade(resultado, nome) {

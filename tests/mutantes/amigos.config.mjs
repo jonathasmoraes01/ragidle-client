@@ -38,6 +38,10 @@ export const mutantes = {
 	cliqueVelho: [ALVO, "\t\t\tcase 'convidar':\n\t\t\t\tif (!estaOnline(amigo)) {\n\t\t\t\t\treturn null;\n\t\t\t\t}\n", "\t\t\tcase 'convidar':\n"],
 	// a mensagem a quem saiu
 	mensagemAoOffline: [ALVO, "\t\t\tcase 'mensagem':\n\t\t\t\tif (!estaOnline(amigo)) {\n\t\t\t\t\treturn null;\n\t\t\t\t}\n", "\t\t\tcase 'mensagem':\n"],
+	// quem ja esta no grupo ganha "Convidar" de novo
+	semEtiqueta: [ALVO, '\t\tconst noMeuGrupo = online && ctx.ehDoMeuGrupo(amigo.Name);', '\t\tconst noMeuGrupo = false;'],
+	// o aceite nao redesenha
+	aceiteSemRedesenho: [ALVO, '\t\t\t// "Entrou" troca o botao pela etiqueta "No grupo".\n\t\t\tdesenhar();', '\t\t\t// "Entrou" troca o botao pela etiqueta "No grupo".'],
 	// remover sem perguntar
 	removerSemConfirmar: [ALVO, "\t\t\tcase 'remover':\n\t\t\t\t_confirmando = amigo.GID;", "\t\t\tcase 'remover':\n\t\t\t\tctx.removerAmigo(amigo);\n\t\t\t\t_confirmando = amigo.GID;"],
 	// pedir amizade a si mesmo sai (o servidor responderia com silencio)
