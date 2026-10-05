@@ -65,12 +65,24 @@ function dentroDeNaoTraduzir(elemento) {
 	return elemento.closest('[translate="no"]') !== null;
 }
 
+/**
+ * A AREA EDITAVEL e do JOGADOR (05/10/2026, relato do dono: digitou "aa" no
+ * chat e saiu "aato"). A caixa do chat e um `contenteditable`, e o observador
+ * via cada letra digitada como texto novo da pagina: o catalogo tem "a" -> "to"
+ * (a preposicao), entao o primeiro "a" virava "to" debaixo do dedo — e ia junto
+ * no envio. O mesmo valia para "de" -> "of" e qualquer palavra do catalogo.
+ */
+function editavel(e) {
+	const ce = typeof e.getAttribute === 'function' ? e.getAttribute('contenteditable') : null;
+	return ce !== null && ce !== 'false';
+}
+
 function pulavel(elemento) {
 	if (!elemento) {
 		return true;
 	}
 	for (let e = elemento; e; e = e.parentElement) {
-		if (ELEMENTOS_PULADOS.has(e.tagName)) {
+		if (ELEMENTOS_PULADOS.has(e.tagName) || editavel(e)) {
 			return true;
 		}
 	}
