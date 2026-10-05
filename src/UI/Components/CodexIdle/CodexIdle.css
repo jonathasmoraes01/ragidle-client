@@ -1653,6 +1653,22 @@
 	flex: 0 0 auto;
 }
 
+/* No mapa certo a resposta e de CONFIRMACAO (04/10/2026): verde, sem o
+   glifo de alerta, porque quem esta aqui esta fazendo a coisa certa. */
+#CodexIdle .cx-jor-aqui {
+	display: inline-flex;
+	align-items: center;
+	gap: var(--sp-2);
+	font: var(--type-desc);
+	color: var(--ri-verde);
+}
+
+#CodexIdle .cx-jor-aqui svg {
+	width: 12px;
+	height: 12px;
+	flex: 0 0 auto;
+}
+
 #CodexIdle .cx-jor-fecho {
 	margin-top: var(--sp-5);
 	padding: var(--sp-4) var(--sp-5);

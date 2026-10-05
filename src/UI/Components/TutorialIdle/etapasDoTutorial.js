@@ -390,7 +390,7 @@ export const ETAPAS = Object.freeze([
 	 * esta aberta desde a 2, so que na aba "Missões Gerais".
 	 *
 	 * TRES ALCANCES, NAO DOIS (mesmo achado da etapa 2, ver o cabeçalho
-	 * dela): a aba "Missões do Códex" quando o Codex esta aberto, o
+	 * dela): a aba "Jornada de Midgard" quando o Codex esta aberto, o
 	 * icone "Codex & Missões" quando so o leque esta aberto, e o
 	 * `.tm-fab` quando os dois estao fechados. Um `quandoSumir` so
 	 * cobria dois desses tres estados.
@@ -398,18 +398,18 @@ export const ETAPAS = Object.freeze([
 	Object.freeze({
 		numero: 11,
 		rotulo: 'Jornada de Midgard',
-		frase: '{acao} a aba "Missões do Códex". A {rotulo} te espera lá dentro.',
+		frase: '{acao} a aba "{rotulo}": ela te espera lá dentro.',
 		alvos: Object.freeze([
 			Object.freeze({ host: 'CodexIdle', seletor: '.cx-tab[data-aba="jornada"]' }),
 			Object.freeze({
 				host: 'TopMenuIdle',
 				seletor: '.tm-item[data-action="codex"]',
-				frase: '{acao} "Codex & Missões" de novo. A aba "Missões do Códex" é o último passo.'
+				frase: '{acao} "Codex & Missões" de novo. A aba "Jornada de Midgard" é o último passo.'
 			}),
 			Object.freeze({
 				host: 'TopMenuIdle',
 				seletor: '.tm-fab',
-				frase: 'Abra o "Menu" e toque em "Codex & Missões". A aba "Missões do Códex" é o último passo.'
+				frase: 'Abra o "Menu" e toque em "Codex & Missões". A aba "Jornada de Midgard" é o último passo.'
 			})
 		]),
 		avancaPor: 'aba-da-jornada-ativa'

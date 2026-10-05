@@ -40,6 +40,9 @@ vi.mock('UI/Components/AdminPanel/AdminPanel.js', () => ({ default: { getRoot: (
 vi.mock('UI/Components/ChatBox/ChatBox.js', () => ({
 	default: { addText: (t) => mocks.avisos.push(t), TYPE: { ERROR: 1 }, FILTER: { PUBLIC_LOG: 1 } }
 }));
+// O botao de sentar do celular (04/10/2026) le a postura e manda o /sit: fora do teste.
+vi.mock('Controls/ProcessCommand.js', () => ({ default: { processCommand: () => {} } }));
+vi.mock('Engine/SessionStorage.js', () => ({ default: {} }));
 vi.mock('UI/escalaDaHud.js', () => ({ emUnidadesDaHud: (x) => x, ehDedo: () => false, default: {} }));
 
 const { default: htmlDoBotao } = await import('UI/Components/HuntButtonIdle/HuntButtonIdle.html?raw');

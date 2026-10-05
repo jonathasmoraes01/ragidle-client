@@ -177,6 +177,20 @@ function acaoDeViagemHtml(missao) {
 		nivelQueAbre: typeof _ctx.nivelQueAbre === 'function' ? _ctx.nivelQueAbre(mapa) : null
 	});
 
+	/*
+	 * NO MAPA CERTO, A FRASE E DE CONFIRMACAO, e nao de erro (04/10/2026, relato
+	 * de 30/09: "por mais que eu mate (...) as kills nao sao contabilizadas").
+	 * O botao apagado com o glifo de ALERTA e "Voce ja esta neste mapa." lia como
+	 * bloqueio justamente para quem estava fazendo a coisa certa.
+	 */
+	if (motivo && motivo.codigo === 'ja-esta-aqui') {
+		return (
+			'<span class="cx-jor-aqui">' +
+			glifo('pin') +
+			'<span>Você está neste mapa: cada abate conta.</span></span>'
+		);
+	}
+
 	if (!motivo) {
 		return (
 			'<button type="button" class="cx-jor-ir ri-btn" data-viajar="' +
