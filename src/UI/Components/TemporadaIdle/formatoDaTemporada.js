@@ -539,7 +539,7 @@ export function renderResumoDasCaixasHtml(caixas) {
 				`${fechadas} ${plural(fechadas, 'fechada', 'fechadas')}` + (lendaria ? ` · ${lendaria.nome}` : '');
 			const iconeUrl = iconeDaCaixaUrl(c.slot);
 			const glifoImg = iconeUrl
-				? `<img class="te-resumo-caixa-glifo-img" src="${iconeUrl}" alt="" width="20" height="20">`
+				? `<img class="te-resumo-caixa-glifo-img" src="${iconeUrl}" alt="" width="20" height="20" data-slot="${escapeHtml(c.slot)}">`
 				: glifoDoSlot(c.slot);
 			// O EVENTO DE GACHA (D-1901) tambem no resumo: a linha propria, e nao
 			// colada no `sub`, que corta com reticencias no celular.
@@ -696,7 +696,7 @@ export function renderCaixaHtml(caixa) {
 	   nenhum. Regra 18: isto NUNCA substitui o sprite real dos itens, que
 	   continua na prévia logo abaixo. */
 	const glifoCabecalho = iconeUrl
-		? `<img class="te-caixa-glifo-img" src="${iconeUrl}" alt="" width="28" height="28">`
+		? `<img class="te-caixa-glifo-img" src="${iconeUrl}" alt="" width="28" height="28" data-slot="${escapeHtml(caixa.slot)}">`
 		: glifoDoSlot(caixa.slot);
 
 	return (
@@ -725,6 +725,9 @@ export function renderCaixaHtml(caixa) {
 		`<button type="button" class="te-ver-conteudo ri-btn ri-btn--sec" data-pool="${escapeHtml(caixa.pool)}">Ver conteúdo</button>` +
 		`<button type="button" class="ri-btn ri-btn--ouro" data-agir="comprar-caixa" data-pool="${escapeHtml(caixa.pool)}"${comprarDesabilitado ? ' disabled' : ''}>Comprar</button>` +
 		`<button type="button" class="ri-btn" data-agir="abrir-caixa" data-pool="${escapeHtml(caixa.pool)}"${abrirDesabilitado ? ' disabled' : ''}>Abrir${fechadas > 0 ? ` (${fechadas})` : ''}</button>` +
+		(fechadas >= MINIMO_PARA_ABRIR_TODOS
+			? `<button type="button" class="ri-btn ri-btn--ouro te-abrir-todas" data-agir="abrir-todas" data-pool="${escapeHtml(caixa.pool)}">Abrir todos (${fechadas})</button>`
+			: '') +
 		'</div>' +
 		'</article>'
 	);
@@ -1049,7 +1052,7 @@ export const TEXTO_DA_DICA_DA_CAIXA = 'Vai para as suas caixas da temporada: abr
 function iconeDaCaixaDoPremioHtml(caixa) {
 	const url = iconeDaCaixaUrl(caixa.slot);
 	const retrato = url
-		? `<img class="te-premio-caixa-img" src="${url}" alt="" width="28" height="28">`
+		? `<img class="te-premio-caixa-img" src="${url}" alt="" width="28" height="28" data-slot="${escapeHtml(caixa.slot)}">`
 		: glifoDoSlot(caixa.slot);
 	return `<span class="te-icone te-icone--caixa ri-tile">${retrato}</span>`;
 }
@@ -1421,6 +1424,7 @@ export function renderRevealHtml(resultado) {
 	const linhaDestino = `<div class="te-reveal-destino">${escapeHtml(destino)}</div>`;
 	return (
 		`<div class="te-reveal-caixa ${raridadeClasse}${abertura.repetida ? ' te-reveal--repetida' : ''}">` +
+		'<div class="te-reveal-raios" aria-hidden="true"></div>' +
 		`<div class="te-reveal-brilho" aria-hidden="true">${glifo('brilhos')}</div>` +
 		iconeFallbackHtml(abertura.itemId, abertura.nome) +
 		`<div class="te-reveal-nome">${escapeHtml(abertura.nome)}</div>` +
@@ -1430,4 +1434,172 @@ export function renderRevealHtml(resultado) {
 		'<button type="button" class="te-reveal-fechar ri-btn ri-btn--sec">Fechar</button>' +
 		'</div>'
 	);
+}
+
+/* ------------------------------------------------------------------ */
+/* O "Abrir todos" (05/10/2026, pedido do dono)                        */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Quantas caixas UM pedido do lote abre no servidor - o espelho de
+ * `TETO_DO_LOTE_DE_ABERTURA` (`servidor/temporada/caixas.ts`). O servidor
+ * corta sozinho o que passar disto; o numero aqui so decide quanto PEDIR.
+ */
+export const TETO_DO_LOTE = 10;
+
+/** O botao "Abrir todos" so aparece com DUAS ou mais fechadas: com uma, e o "Abrir". */
+export const MINIMO_PARA_ABRIR_TODOS = 2;
+
+/** Quantas pedir no proximo pedido do lote: as fechadas, ate o teto; nada torto passa de 0. */
+export function quantidadeDoProximoLote(fechadas) {
+	const n = Math.trunc(Number(fechadas));
+	if (!Number.isFinite(n) || n <= 0) {
+		return 0;
+	}
+	return Math.min(n, TETO_DO_LOTE);
+}
+
+/**
+ * O lote PEDE MAIS? So quando o pedido anterior deu certo, abriu alguma caixa
+ * nova, nao parou por motivo (mochila e correio cheios), o jogador nao fechou
+ * a janela e ainda ha caixa fechada no estado que acabou de chegar.
+ *
+ * Um reenvio que so devolveu repetidas tambem para: pedir de novo com chave
+ * nova abriria caixa que o jogador nao viu sair.
+ */
+export function deveSeguirOLote(resultado, fechadasAgora, cancelado) {
+	if (cancelado) {
+		return false;
+	}
+	if (!resultado || resultado.ok !== true || resultado.parada) {
+		return false;
+	}
+	const aberturas = Array.isArray(resultado.aberturas) ? resultado.aberturas : [];
+	if (!aberturas.some(a => a && !a.repetida)) {
+		return false;
+	}
+	return quantidadeDoProximoLote(fechadasAgora) > 0;
+}
+
+/**
+ * Quantas de cada raridade o lote trouxe, na ordem da vitrine (lendaria
+ * primeiro), com o ROTULO do servidor - a janela nunca traduz o token.
+ */
+export function contagemDoLote(aberturas) {
+	return agruparPorRaridade((aberturas || []).filter(a => a && !a.repetida)).map(g => ({
+		raridade: g.raridade,
+		rotulo: g.rotulo,
+		quantidade: g.itens.length
+	}));
+}
+
+/** A barra e o "12 de 25" do lote. */
+export function renderProgressoDoLoteHtml(lote) {
+	const total = Math.max(0, Number(lote && lote.total) || 0);
+	const abertas = ((lote && lote.aberturas) || []).filter(a => a && !a.repetida).length;
+	const pct = total > 0 ? Math.min(100, Math.round((abertas / total) * 100)) : 0;
+	const rotulo = lote && lote.pronto ? 'Abertas' : 'Abrindo';
+	return (
+		`<div class="te-lote-progresso-rotulo"><span>${rotulo}</span><strong>${escapeHtml(abertas)} de ${escapeHtml(total)}</strong></div>` +
+		`<div class="ri-bar te-lote-barra"><div class="fill" style="width:${pct}%"></div></div>`
+	);
+}
+
+/** Os selos "Lendário 1 · Raro 3 · Comum 21" (so as raridades que vieram). */
+export function renderContagemDoLoteHtml(aberturas) {
+	return contagemDoLote(aberturas)
+		.map(
+			c =>
+				`<span class="te-raridade ${classeDaRaridade(c.raridade)}">${escapeHtml(c.rotulo)} <strong>${escapeHtml(c.quantidade)}</strong></span>`
+		)
+		.join('');
+}
+
+/**
+ * Os premios do lote a partir de `inicio` (a janela ACRESCENTA a cada
+ * resposta, e nao redesenha: a animacao de quem ja estava nao recomeca). O
+ * atraso da animacao e pelo indice DENTRO do pedido, para cada leva entrar em
+ * cascata curta (no maximo 10 x 45 ms) e nao a lista inteira de novo.
+ */
+export function renderItensDoLoteHtml(aberturas, inicio = 0) {
+	return (aberturas || [])
+		.slice(inicio)
+		.map((a, i) => {
+			const classe = classeDaRaridade(a.raridade);
+			const destino = a.destino === 'correio' ? '<span class="te-lote-item-destino">Correio</span>' : '';
+			return (
+				`<div class="te-lote-item ${classe}${a.foiGarantia ? ' is-garantia' : ''}" style="--i:${i}" title="${escapeHtml(a.nome)} · ${escapeHtml(rotuloDaRaridade(a))}">` +
+				iconeFallbackHtml(a.itemId, a.nome) +
+				`<span class="te-lote-item-nome">${escapeHtml(a.nome)}</span>` +
+				`<span class="te-lote-item-raridade te-raridade ${classe}">${escapeHtml(rotuloDaRaridade(a))}</span>` +
+				destino +
+				'</div>'
+			);
+		})
+		.join('');
+}
+
+/**
+ * A CASCA da janela do lote: o cabecalho com o retrato da caixa, o progresso,
+ * a contagem, a lista (vazia ate a primeira resposta), o resumo e o Fechar. Os
+ * pedacos que mudam a cada resposta tem classe propria para a janela os
+ * reescrever sem tocar na lista.
+ */
+export function renderLoteHtml(lote) {
+	const nome = (lote && lote.nome) || 'Caixa';
+	const url = iconeDaCaixaUrl(lote && lote.slot);
+	const retrato = url
+		? `<img class="te-lote-retrato-img" src="${url}" alt="" width="40" height="40" data-slot="${escapeHtml(lote.slot)}">`
+		: glifoDoSlot(lote && lote.slot);
+	return (
+		'<div class="te-lote-fundo"></div>' +
+		'<div class="te-lote-caixa" role="dialog" aria-modal="true">' +
+		'<header class="te-lote-cabecalho">' +
+		`<span class="te-lote-retrato ri-tile">${retrato}</span>` +
+		`<div class="te-lote-titulo"><span class="te-lote-titulo-rotulo">Abrir todos</span><strong>${escapeHtml(nome)}</strong></div>` +
+		'<button type="button" class="te-lote-fechar te-lote-x ri-close" title="Fechar">&times;</button>' +
+		'</header>' +
+		`<div class="te-lote-progresso">${renderProgressoDoLoteHtml(lote)}</div>` +
+		`<div class="te-lote-contagem">${renderContagemDoLoteHtml(lote && lote.aberturas)}</div>` +
+		`<div class="te-lote-lista ri-scroll">${renderItensDoLoteHtml(lote && lote.aberturas)}</div>` +
+		'<div class="te-lote-resumo" aria-live="polite"></div>' +
+		'<div class="te-lote-acoes"><button type="button" class="te-lote-fechar ri-btn ri-btn--sec">Fechar</button></div>' +
+		'</div>'
+	);
+}
+
+/**
+ * A FRASE DO FIM do lote, montada da lista INTEIRA (o texto de cada resposta
+ * do servidor fala so do pedido dele - "5 caixas abertas" no ultimo de tres).
+ * O que o servidor diz da PARADA (mochila e correio cheios) e do ERRO vem
+ * dele, palavra por palavra (`textoDaParada`, `texto` da recusa).
+ *
+ * `fim`: 'concluido' | 'cancelado' | 'sem-resposta'.
+ */
+export function resumoDoLote(aberturas, ultimo, fim) {
+	const novas = (aberturas || []).filter(a => a && !a.repetida);
+	const partes = [];
+	if (novas.length > 0) {
+		partes.push(`${novas.length} ${plural(novas.length, 'caixa aberta', 'caixas abertas')}.`);
+		const noCorreio = novas.filter(a => a.destino === 'correio').length;
+		if (noCorreio > 0) {
+			partes.push(`${noCorreio} ${plural(noCorreio, 'visual foi', 'visuais foram')} para o correio (a mochila não coube).`);
+		}
+		if (novas.some(a => a.foiGarantia)) {
+			partes.push('Lendário garantido pela Proteção Lendária!');
+		}
+	}
+	if (fim === 'cancelado') {
+		partes.push('Você fechou antes do fim: as caixas que faltam continuam fechadas.');
+	} else if (fim === 'sem-resposta') {
+		partes.push('Sem resposta do servidor. O que já saiu está com você.');
+	} else if (ultimo && ultimo.ok === false && ultimo.texto) {
+		partes.push(String(ultimo.texto));
+	} else if (ultimo && ultimo.textoDaParada) {
+		partes.push(`Parou: ${ultimo.textoDaParada}`);
+	}
+	return {
+		texto: partes.join(' ') || 'Nenhuma caixa foi aberta.',
+		ehErro: novas.length === 0 || fim === 'sem-resposta' || !!(ultimo && (ultimo.ok === false || ultimo.parada))
+	};
 }

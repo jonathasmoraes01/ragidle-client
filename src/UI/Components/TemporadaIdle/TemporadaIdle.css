@@ -2108,25 +2108,447 @@
 	opacity: 0.6;
 }
 
+#TemporadaIdle .te-reveal-fechar {
+	margin-top: var(--sp-2);
+}
+
+/* ─── A revelação da abertura: o efeito (05/10/2026, pedido do dono) ─────
+   Só `transform` e `opacity` (o compositor anima sem refazer layout, e o
+   celular não trava). A cor de cada raridade mora numa variável: comum azul
+   claro, raro roxo, lendário dourado. Sem movimento para quem pediu menos
+   movimento no sistema. */
+
+#TemporadaIdle .te-reveal-caixa {
+	--te-cor-da-raridade: rgba(90, 150, 220, 0.55);
+}
+
+#TemporadaIdle .te-reveal-caixa.te-raridade--rare {
+	--te-cor-da-raridade: rgba(138, 95, 209, 0.7);
+}
+
+#TemporadaIdle .te-reveal-caixa.te-raridade--legendary {
+	--te-cor-da-raridade: rgba(244, 192, 62, 0.85);
+}
+
+/* Os RAIOS atrás do prêmio: um leque cônico na cor da raridade. */
+#TemporadaIdle .te-reveal-raios {
+	position: absolute;
+	top: calc(var(--sp-8) + 36px);
+	left: 50%;
+	width: 240px;
+	height: 240px;
+	margin: -120px 0 0 -120px;
+	border-radius: 50%;
+	background: repeating-conic-gradient(from 0deg, var(--te-cor-da-raridade) 0deg 10deg, transparent 10deg 30deg);
+	-webkit-mask: radial-gradient(circle, #000 0%, #000 30%, transparent 70%);
+	mask: radial-gradient(circle, #000 0%, #000 30%, transparent 70%);
+	opacity: 0.35;
+	pointer-events: none;
+}
+
+#TemporadaIdle .te-reveal-caixa.te-raridade--common .te-reveal-raios {
+	opacity: 0.18;
+}
+
+#TemporadaIdle .te-reveal-caixa.te-raridade--legendary .te-reveal-raios {
+	opacity: 0.6;
+}
+
+#TemporadaIdle .te-reveal-caixa > :not(.te-reveal-raios):not(.te-reveal-brilho) {
+	position: relative;
+}
+
 @media (prefers-reduced-motion: no-preference) {
+	/* A caixa "chega": cresce de leve e assenta (todas as raridades). */
+	#TemporadaIdle .te-reveal-caixa {
+		animation: te-revelar-caixa 420ms var(--ease-out) 1 both;
+	}
+
+	/* O prêmio salta de dentro dela, um instante depois. */
+	#TemporadaIdle .te-reveal-caixa .te-icone {
+		animation: te-revelar-premio 520ms var(--ease-out) 160ms 1 both;
+	}
+
+	#TemporadaIdle .te-reveal-nome,
+	#TemporadaIdle .te-reveal-raridade {
+		animation: te-revelar-texto 360ms var(--ease-out) 380ms 1 both;
+	}
+
+	#TemporadaIdle .te-reveal-raios {
+		animation:
+			te-raios-abrir 600ms var(--ease-out) 120ms 1 both,
+			te-raios-girar 9s linear 700ms infinite;
+	}
+
+	/* O lendário ganha mais: a moldura pulsa em ouro e os raios giram mais rápido. */
 	#TemporadaIdle .te-reveal-caixa.te-raridade--legendary {
-		animation: te-reveal-legendary 900ms var(--ease-out) 1;
+		animation:
+			te-revelar-caixa 420ms var(--ease-out) 1 both,
+			te-pulso-lendario 1.6s ease-in-out 600ms 3;
+	}
+
+	#TemporadaIdle .te-reveal-caixa.te-raridade--legendary .te-reveal-raios {
+		animation:
+			te-raios-abrir 600ms var(--ease-out) 120ms 1 both,
+			te-raios-girar 5s linear 700ms infinite;
+	}
+
+	#TemporadaIdle .te-reveal-caixa.te-raridade--rare .te-icone,
+	#TemporadaIdle .te-reveal-caixa.te-raridade--legendary .te-icone {
+		animation: te-revelar-premio-forte 640ms var(--ease-out) 160ms 1 both;
 	}
 }
 
-@keyframes te-reveal-legendary {
-	from {
-		transform: scale(0.9);
+@keyframes te-revelar-caixa {
+	0% {
+		transform: scale(0.82);
 		opacity: 0;
 	}
-	to {
+	60% {
+		transform: scale(1.04);
+		opacity: 1;
+	}
+	100% {
 		transform: scale(1);
 		opacity: 1;
 	}
 }
 
-#TemporadaIdle .te-reveal-fechar {
-	margin-top: var(--sp-2);
+@keyframes te-revelar-premio {
+	0% {
+		transform: scale(0.3);
+		opacity: 0;
+	}
+	70% {
+		transform: scale(1.12);
+		opacity: 1;
+	}
+	100% {
+		transform: scale(1);
+		opacity: 1;
+	}
+}
+
+@keyframes te-revelar-premio-forte {
+	0% {
+		transform: scale(0.2) rotate(-14deg);
+		opacity: 0;
+	}
+	55% {
+		transform: scale(1.22) rotate(6deg);
+		opacity: 1;
+	}
+	80% {
+		transform: scale(0.96) rotate(-2deg);
+	}
+	100% {
+		transform: scale(1) rotate(0deg);
+		opacity: 1;
+	}
+}
+
+@keyframes te-revelar-texto {
+	from {
+		transform: translateY(6px);
+		opacity: 0;
+	}
+	to {
+		transform: translateY(0);
+		opacity: 1;
+	}
+}
+
+@keyframes te-raios-abrir {
+	from {
+		transform: scale(0.2);
+		opacity: 0;
+	}
+}
+
+@keyframes te-raios-girar {
+	to {
+		transform: rotate(360deg);
+	}
+}
+
+@keyframes te-pulso-lendario {
+	0%,
+	100% {
+		box-shadow: var(--glow-gold), var(--shadow-float);
+	}
+	50% {
+		box-shadow:
+			0 0 0 2px var(--gold-300),
+			0 0 34px rgba(244, 192, 62, 0.75),
+			var(--shadow-float);
+	}
+}
+
+/* ─── O "Abrir todos": a janela com TODOS os prêmios do lote ──────────────
+   Cobre a janela inteira, como o reveal, e fica POR CIMA dele. A lista rola
+   por DENTRO; o cabeçalho, a contagem e o Fechar ficam sempre à vista. */
+
+#TemporadaIdle .te-lote {
+	position: absolute;
+	inset: 0;
+	z-index: 35;
+	pointer-events: auto;
+	display: none;
+	align-items: center;
+	justify-content: center;
+	padding: var(--sp-6);
+	box-sizing: border-box;
+}
+
+#TemporadaIdle .te-lote:not([hidden]) {
+	display: flex;
+}
+
+#TemporadaIdle .te-lote-fundo {
+	position: absolute;
+	inset: 0;
+	background: rgba(8, 14, 26, 0.72);
+	backdrop-filter: var(--blur-glass-strong);
+}
+
+#TemporadaIdle .te-lote-caixa {
+	position: relative;
+	z-index: 1;
+	width: min(560px, 100%);
+	max-height: 100%;
+	box-sizing: border-box;
+	display: flex;
+	flex-direction: column;
+	gap: var(--sp-4);
+	padding: var(--sp-6);
+	border-radius: var(--radius-window);
+	background: var(--window-fill);
+	border: 1px solid var(--border-hairline);
+	box-shadow: var(--shadow-float);
+}
+
+#TemporadaIdle .te-lote-cabecalho {
+	flex: 0 0 auto;
+	/* O X (`.ri-close`, absoluto) se ancora AQUI, e nao na lista de baixo. */
+	position: relative;
+	padding-right: 52px;
+	display: flex;
+	align-items: center;
+	gap: var(--sp-4);
+}
+
+#TemporadaIdle .te-lote-retrato {
+	flex: 0 0 auto;
+	width: 44px;
+	height: 44px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+#TemporadaIdle .te-lote-retrato-img {
+	width: 40px;
+	height: 40px;
+	object-fit: contain;
+}
+
+#TemporadaIdle .te-retrato-reserva svg,
+#TemporadaIdle .te-lote-retrato svg {
+	width: 20px;
+	height: 20px;
+}
+
+#TemporadaIdle .te-lote-titulo {
+	flex: 1 1 auto;
+	min-width: 0;
+	display: flex;
+	flex-direction: column;
+}
+
+#TemporadaIdle .te-lote-titulo-rotulo {
+	font: var(--type-label);
+	color: var(--text-muted);
+}
+
+#TemporadaIdle .te-lote-titulo strong {
+	font: var(--type-window-title);
+	font-size: 16px;
+	color: var(--text-title);
+}
+
+#TemporadaIdle .te-lote-x {
+	flex: 0 0 auto;
+}
+
+#TemporadaIdle .te-lote-progresso {
+	flex: 0 0 auto;
+}
+
+#TemporadaIdle .te-lote-progresso-rotulo {
+	display: flex;
+	justify-content: space-between;
+	font: var(--type-label);
+	color: var(--text-muted);
+	margin-bottom: 4px;
+}
+
+#TemporadaIdle .te-lote-progresso-rotulo strong {
+	color: var(--text-title);
+}
+
+#TemporadaIdle .te-lote-contagem {
+	flex: 0 0 auto;
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--sp-2);
+	min-height: 18px;
+}
+
+#TemporadaIdle .te-lote-lista {
+	flex: 1 1 auto;
+	min-height: 0;
+	overflow-y: auto;
+	overflow-x: hidden;
+	overscroll-behavior: contain;
+	-webkit-overflow-scrolling: touch;
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(92px, 1fr));
+	/* `max-content`: sem isto a linha ENCOLHE para caber (o item com
+	   `overflow: hidden` tem minimo 0) e a lista nunca rola - medido no
+	   celular, o nome sumia e a raridade saia cortada. */
+	grid-auto-rows: max-content;
+	gap: var(--sp-3);
+	align-content: start;
+	padding: 2px;
+}
+
+#TemporadaIdle .te-lote-item {
+	position: relative;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 4px;
+	padding: var(--sp-3) var(--sp-2);
+	border-radius: var(--radius-card);
+	border: 1px solid var(--border-hairline);
+	background: var(--white);
+	text-align: center;
+	min-width: 0;
+	overflow: hidden;
+}
+
+#TemporadaIdle .te-lote-item.te-raridade--rare {
+	border-color: var(--te-rare);
+	box-shadow: var(--te-rare-glow);
+}
+
+#TemporadaIdle .te-lote-item.te-raridade--legendary {
+	border-color: var(--gold-500);
+	box-shadow: var(--glow-gold);
+	background: linear-gradient(180deg, var(--white) 0%, var(--gold-200) 160%);
+}
+
+#TemporadaIdle .te-lote-item-nome {
+	font: var(--type-desc);
+	font-size: 10px;
+	line-height: var(--lh-tight);
+	color: var(--text-title);
+	max-width: 100%;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	display: -webkit-box;
+	-webkit-line-clamp: 2;
+	-webkit-box-orient: vertical;
+}
+
+#TemporadaIdle .te-lote-item-raridade {
+	font-size: 9px;
+}
+
+#TemporadaIdle .te-lote-item-destino {
+	font: var(--type-desc);
+	font-size: 9px;
+	color: var(--text-muted);
+}
+
+#TemporadaIdle .te-lote-resumo {
+	flex: 0 0 auto;
+	font: var(--type-desc);
+	color: var(--text-muted);
+	text-align: center;
+	min-height: 1em;
+}
+
+#TemporadaIdle .te-lote.is-erro .te-lote-resumo {
+	color: #a33;
+}
+
+#TemporadaIdle .te-lote-acoes {
+	flex: 0 0 auto;
+	display: flex;
+	justify-content: center;
+}
+
+#TemporadaIdle .te-lote-acoes .ri-btn {
+	min-width: 140px;
+}
+
+/* O botão "Abrir todos" ocupa a linha inteira das ações do cartão. */
+#TemporadaIdle .te-caixa-acoes .te-abrir-todas {
+	flex: 1 1 100%;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+	/* Cada prêmio da leva entra em cascata curta (45 ms entre um e outro). */
+	#TemporadaIdle .te-lote-item {
+		animation: te-lote-entra 380ms var(--ease-out) calc(var(--i, 0) * 45ms) 1 both;
+	}
+
+	#TemporadaIdle .te-lote-item.te-raridade--legendary {
+		animation:
+			te-lote-entra 380ms var(--ease-out) calc(var(--i, 0) * 45ms) 1 both,
+			te-pulso-lendario 1.6s ease-in-out calc(var(--i, 0) * 45ms + 400ms) 2;
+	}
+}
+
+@keyframes te-lote-entra {
+	from {
+		transform: scale(0.6) translateY(8px);
+		opacity: 0;
+	}
+	to {
+		transform: scale(1) translateY(0);
+		opacity: 1;
+	}
+}
+
+@media (pointer: coarse) {
+	#TemporadaIdle .te-lote-fechar {
+		min-height: var(--hit-touch);
+		min-width: var(--hit-touch);
+	}
+}
+
+@media (max-width: 599px) {
+	#TemporadaIdle .te-lote {
+		padding: var(--sp-3);
+	}
+
+	#TemporadaIdle .te-lote-caixa {
+		padding: var(--sp-4);
+		gap: var(--sp-3);
+	}
+
+	#TemporadaIdle .te-lote-lista {
+		grid-template-columns: repeat(3, minmax(0, 1fr));
+		gap: var(--sp-2);
+	}
+
+	#TemporadaIdle .te-reveal-raios {
+		width: 200px;
+		height: 200px;
+		margin: -100px 0 0 -100px;
+	}
 }
 
 /* ─── Aviso do rodapé (erro/sucesso de uma ação) ──────────────────────── */

@@ -71,7 +71,8 @@ import PACKET from 'Network/PacketStructure.js';
 import UIManager from 'UI/UIManager.js';
 import GUIComponent from 'UI/GUIComponent.js';
 import DB from 'DB/DBManager.js';
-import { unknownItem } from 'DB/Items/FichaDoItem.js';
+import { temIconeProprio, unknownItem } from 'DB/Items/FichaDoItem.js';
+import { abrirBalao, esquecerBalao } from 'UI/balaoDaHud.js';
 import Client from 'Core/Client.js';
 import arrastarPorPonteiro, { prenderNaTela } from 'UI/arrastarPorPonteiro.js';
 import PasseIdle from '../PasseIdle/PasseIdle.js';
@@ -89,18 +90,26 @@ import {
 	avisoDoResultado,
 	criarTrava,
 	dataCurta,
+	deveSeguirOLote,
 	gerarChave,
+	glifoDoSlot,
 	linhasDaDescricaoDoItem,
 	passePorTipo,
+	quantidadeDoProximoLote,
 	renderDicaDaCaixaDoPremioHtml,
 	renderDicaDoPremioHtml,
 	renderBannerDasCaixasHtml,
 	renderCaixaHtml,
+	renderContagemDoLoteHtml,
 	renderDestaquesHtml,
+	renderItensDoLoteHtml,
+	renderLoteHtml,
 	renderModalConteudoHtml,
 	renderPasseDeBatalhaHtml,
+	renderProgressoDoLoteHtml,
 	renderRevealHtml,
 	renderVipHtml,
+	resumoDoLote,
 	saldoParaMostrar,
 	textoDoSeloVip
 } from './formatoDaTemporada.js';
@@ -241,7 +250,13 @@ function melhorarIcones(escopo) {
 		preferirArtePublicada(itemIconUrl(itemId), pintar, () => {
 			try {
 				const info = DB.getItemInfo(itemId);
-				if (!info || info === unknownItem) {
+				/* A PERGUNTA E PELO CAMPO, e nao pela identidade (05/10/2026, relato
+				   do dono: a MACA na grade das caixas). `completarFicha` devolve uma
+				   COPIA batizada de `unknownItem` para id de `NOMES_LOCAIS` fora da
+				   tabela - com o recurso da maca -, e o `info === unknownItem` daqui
+				   deixava essa copia passar: o GRF desenhava a maca no lugar do
+				   visual. `temIconeProprio` e a guarda que o RO Shop ja usa. */
+				if (!temIconeProprio(info)) {
 					return;
 				}
 				const resource = info.identifiedResourceName;
@@ -293,6 +308,9 @@ function travarBotoes() {
 		_timeoutSemResposta = null;
 		destravarBotoes();
 		mostrarAviso('Sem resposta do servidor.', true);
+		if (_lote) {
+			terminarLote(null, 'sem-resposta');
+		}
 	}, TIMEOUT_SEM_RESPOSTA_MS);
 }
 
@@ -314,6 +332,7 @@ function destravarBotoes() {
 /* ------------------------------------------------------------------ */
 
 function fecharReveal() {
+	esquecerBalao(BALAO_DA_REVELACAO);
 	const root = _root();
 	const el = root && root.querySelector('.te-reveal');
 	if (el) {
@@ -335,6 +354,8 @@ function mostrarReveal(resultado) {
 	el.innerHTML = renderRevealHtml(resultado);
 	melhorarIcones(el);
 	el.hidden = false;
+	/* O ESC (e o voltar do Android) fecham a revelacao ANTES da janela. */
+	abrirBalao(BALAO_DA_REVELACAO, fecharReveal);
 	if (_revealTimer) {
 		clearTimeout(_revealTimer);
 	}
@@ -347,6 +368,179 @@ function mostrarReveal(resultado) {
 	const raridade = String(resultado.abertura.raridade || '').toUpperCase();
 	const duracao = raridade === 'LEGENDARY' ? 7000 : raridade === 'RARE' ? 5000 : 3200;
 	_revealTimer = setTimeout(fecharReveal, duracao);
+}
+
+/* ------------------------------------------------------------------ */
+/* O retrato da caixa nunca fica quebrado                              */
+/* ------------------------------------------------------------------ */
+
+/**
+ * O RETRATO DA CAIXA (o icone premium do slot, `/ragidle/temporada/...`) com
+ * reserva: se a imagem nao carregar, entra o glifo do slot - o mesmo que o
+ * cartao usaria sem icone premium. O relato do dono de 05/10/2026 era o
+ * retrato do topo do cartao "quebrado": um `<img>` sem reserva desenha o
+ * icone de imagem partida do navegador, que e a pior das tres opcoes.
+ */
+function protegerRetratos(escopo) {
+	if (!escopo || typeof escopo.querySelectorAll !== 'function') {
+		return;
+	}
+	escopo
+		.querySelectorAll('img.te-caixa-glifo-img, img.te-resumo-caixa-glifo-img, img.te-premio-caixa-img, img.te-lote-retrato-img')
+		.forEach(img => {
+			const trocar = () => {
+				const pai = img.parentNode;
+				if (!pai) {
+					return;
+				}
+				const reserva = document.createElement('span');
+				reserva.className = 'te-retrato-reserva';
+				reserva.innerHTML = glifoDoSlot(img.dataset.slot);
+				pai.replaceChild(reserva, img);
+			};
+			if (img.complete && img.naturalWidth === 0 && img.getAttribute('src')) {
+				trocar();
+				return;
+			}
+			img.addEventListener('error', trocar, { once: true });
+		});
+}
+
+/* ------------------------------------------------------------------ */
+/* O "Abrir todos" (05/10/2026, pedido do dono)                        */
+/* ------------------------------------------------------------------ */
+
+/** O nome do lote na lista de baloes que o ESC fecha primeiro (`UI/balaoDaHud.js`). */
+const BALAO_DO_LOTE = 'temporada-lote';
+const BALAO_DA_REVELACAO = 'temporada-revelacao';
+
+/**
+ * A pausa entre um pedido e o proximo: a leva que acabou de chegar entra em
+ * cascata (no maximo 10 x 45 ms) antes de a proxima comecar. Nao e regra de
+ * jogo - o servidor aceitaria o proximo na hora.
+ */
+const PAUSA_ENTRE_LOTES_MS = 450;
+
+/**
+ * O lote em curso: o pool, o total de fechadas quando o jogador apertou, o que
+ * ja saiu, e se ele fechou a janela (o pedido em voo ainda volta, mas o
+ * proximo nao sai).
+ */
+let _lote = null;
+let _loteTimer = null;
+
+function elementoDoLote() {
+	const root = _root();
+	return root && root.querySelector('.te-lote');
+}
+
+function redesenharCabecaDoLote() {
+	const el = elementoDoLote();
+	if (!el || !_lote) {
+		return;
+	}
+	const progresso = el.querySelector('.te-lote-progresso');
+	if (progresso) {
+		progresso.innerHTML = renderProgressoDoLoteHtml(_lote);
+	}
+	const contagem = el.querySelector('.te-lote-contagem');
+	if (contagem) {
+		contagem.innerHTML = renderContagemDoLoteHtml(_lote.aberturas);
+	}
+}
+
+function iniciarLote(pool) {
+	const caixa = caixaPorPool(pool);
+	const el = elementoDoLote();
+	if (!caixa || !el || _trava.estaTravado()) {
+		return;
+	}
+	const fechadas = Number(caixa.fechadas) || 0;
+	const quantidade = quantidadeDoProximoLote(fechadas);
+	if (quantidade <= 0) {
+		return;
+	}
+	fecharReveal();
+	_lote = { pool, nome: caixa.nome, slot: caixa.slot, total: fechadas, aberturas: [], pronto: false, cancelado: false };
+	el.innerHTML = renderLoteHtml(_lote);
+	el.classList.remove('is-pronto', 'is-erro');
+	protegerRetratos(el);
+	el.hidden = false;
+	abrirBalao(BALAO_DO_LOTE, fecharLote);
+	pedirLote(quantidade);
+}
+
+function pedirLote(quantidade) {
+	if (!_lote || _lote.cancelado) {
+		return;
+	}
+	enviarAcao({ acao: 'abrir-caixas', pool: _lote.pool, quantidade, chave: gerarChave() });
+}
+
+function terminarLote(ultimo, fim) {
+	const el = elementoDoLote();
+	if (!_lote || !el) {
+		return;
+	}
+	_lote.pronto = true;
+	redesenharCabecaDoLote();
+	const resumo = resumoDoLote(_lote.aberturas, ultimo, fim);
+	const alvo = el.querySelector('.te-lote-resumo');
+	if (alvo) {
+		alvo.textContent = resumo.texto;
+	}
+	el.classList.add('is-pronto');
+	el.classList.toggle('is-erro', resumo.ehErro);
+}
+
+/** Uma resposta do `abrir-caixas` chegou: soma a leva e decide se pede a proxima. */
+function receberLote(resultado) {
+	const el = elementoDoLote();
+	if (!_lote || !el || _lote.pronto) {
+		return;
+	}
+	const novas = resultado.ok && Array.isArray(resultado.aberturas) ? resultado.aberturas : [];
+	const inicio = _lote.aberturas.length;
+	_lote.aberturas = _lote.aberturas.concat(novas);
+	const lista = el.querySelector('.te-lote-lista');
+	if (lista && novas.length > 0) {
+		lista.insertAdjacentHTML('beforeend', renderItensDoLoteHtml(_lote.aberturas, inicio));
+		melhorarIcones(lista);
+		lista.scrollTop = lista.scrollHeight;
+	}
+	redesenharCabecaDoLote();
+	const caixa = caixaPorPool(_lote.pool);
+	const fechadasAgora = caixa ? Number(caixa.fechadas) || 0 : 0;
+	if (deveSeguirOLote(resultado, fechadasAgora, _lote.cancelado)) {
+		if (_loteTimer) {
+			clearTimeout(_loteTimer);
+		}
+		_loteTimer = setTimeout(() => {
+			_loteTimer = null;
+			pedirLote(quantidadeDoProximoLote(fechadasAgora));
+		}, PAUSA_ENTRE_LOTES_MS);
+		return;
+	}
+	terminarLote(resultado, 'concluido');
+}
+
+/** Fechar no meio para o encadeamento: o que ja saiu fica, o resto continua fechado. */
+function fecharLote() {
+	if (_loteTimer) {
+		clearTimeout(_loteTimer);
+		_loteTimer = null;
+	}
+	if (_lote) {
+		_lote.cancelado = true;
+	}
+	_lote = null;
+	esquecerBalao(BALAO_DO_LOTE);
+	const el = elementoDoLote();
+	if (el) {
+		el.hidden = true;
+		el.innerHTML = '';
+		el.classList.remove('is-pronto', 'is-erro');
+	}
 }
 
 /* ------------------------------------------------------------------ */
@@ -513,6 +707,13 @@ function onClicarAcao(botao) {
 		enviarAcao({ acao: 'abrir-caixa', pool, chave: gerarChave() });
 		return;
 	}
+	if (agir === 'abrir-todas') {
+		/* O "ABRIR TODOS" (05/10/2026): sem confirmacao, como o "Abrir" - nao
+		   gasta cash, so abre o que o jogador ja tem. Os pedidos (`abrir-caixas`,
+		   ate 10 por vez) saem de `pedirLote`. */
+		iniciarLote(botao.dataset.pool);
+		return;
+	}
 	if (agir === 'resgatar') {
 		const nivel = Number(botao.dataset.nivel);
 		const trilha = botao.dataset.trilha;
@@ -617,6 +818,13 @@ function onClickRaiz(e) {
 	if (confirmarOk) {
 		e.stopImmediatePropagation();
 		confirmarPendente();
+		return;
+	}
+
+	const loteFechar = e.target.closest('.te-lote-fechar, .te-lote-fundo');
+	if (loteFechar) {
+		e.stopImmediatePropagation();
+		fecharLote();
 		return;
 	}
 
@@ -836,6 +1044,7 @@ function render() {
 		corpo.innerHTML = renderDestaquesHtml(estado);
 	}
 	melhorarIcones(corpo);
+	protegerRetratos(corpo);
 	/* A trilha rola para o lado com mouse, roda e setas (29/09/2026). */
 	corpo.querySelectorAll('.te-reward-rolagem').forEach(caixa => {
 		ligarRolagemLateral(caixa.querySelector('.te-reward-scroll'), {
@@ -862,6 +1071,7 @@ TemporadaIdle.limparEstadoDoPersonagem = function limparEstadoDoPersonagem() {
 	   PasseIdle.js/MissoesIdle.js: é escolha da PESSOA, não do personagem. */
 	TemporadaIdle.activeTab = abaLembrada(_preferences, ABA_PADRAO, ABAS);
 	destravarBotoes();
+	fecharLote();
 	fecharReveal();
 	fecharModais();
 	fecharEEsquecer(_root(), '.te-window');
@@ -915,6 +1125,7 @@ TemporadaIdle.onAppend = function onAppend() {
 TemporadaIdle.onRemove = function onRemove() {
 	savePosition();
 	destravarBotoes();
+	fecharLote();
 	fecharReveal();
 };
 
@@ -929,6 +1140,7 @@ TemporadaIdle.toggle = function toggle() {
 		win.classList.remove('is-open');
 		esconderDicaDoPremio();
 		fecharModais();
+		fecharLote();
 		fecharReveal();
 		savePosition();
 	} else {
@@ -972,6 +1184,12 @@ function onTemporadaRecebida(pkt) {
 	render();
 
 	const resultado = dados.resultado;
+	if (resultado && resultado.acao === 'abrir-caixas' && _lote) {
+		/* O lote fala na janela DELE (a lista e o resumo), e nao no aviso do
+		   rodape: dez avisos seguidos taparia o que importa. */
+		receberLote(resultado);
+		return;
+	}
 	if (resultado) {
 		const aviso = avisoDoResultado(resultado);
 		if (aviso && aviso.texto) {
