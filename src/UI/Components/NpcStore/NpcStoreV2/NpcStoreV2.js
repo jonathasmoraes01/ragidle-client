@@ -87,6 +87,7 @@ import {
 	ordensDaVitrine,
 	tipoEfetivo
 } from './vitrine.js';
+import { PERCENTUAL_PARA_CACAR, atalhosDaLinha } from './quantidadeDeCompra.js';
 import htmlText from './NpcStoreV2.html?raw';
 import cssText from './NpcStoreV2.css?raw';
 
@@ -713,6 +714,89 @@ function tetoDoItem(item) {
 }
 
 /**
+ * A janela oferece o atalho "70%"? So onde o jogador vai CARREGAR o item e a
+ * janela conhece o peso: compra de NPC, mercado, loja de jogador e loja de
+ * pontos. Vender alivia a mochila, e o escambo nao mostra peso (`atualizarPeso`).
+ */
+function ofereceAtalhoDePeso() {
+	return !eDeVenda() && !eEscambo();
+}
+
+/**
+ * O peso e o custo das OUTRAS linhas ja escolhidas — o "resto da compra" dos
+ * atalhos (`quantidadeDeCompra.js`). Peso `null` quando alguma delas nao tem
+ * peso conhecido: a conta do atalho nao inventa.
+ */
+function restoDaCompra(index) {
+	let peso = 0;
+	let custo = 0;
+	for (let i = 0; i < _output.length; ++i) {
+		const o = _output[i];
+		if (i === index || !o || !(o.count > 0)) {
+			continue;
+		}
+		custo += precoUnitario(o) * o.count;
+		const unitario = pesoUnitario(o);
+		if (unitario === null) {
+			peso = null;
+		} else if (peso !== null) {
+			peso += unitario * o.count;
+		}
+	}
+	return { peso, custo };
+}
+
+/**
+ * Os dois atalhos de quantidade de UMA linha ("70%" e "Máx"), com o resto da
+ * compra na conta. A regra mora em `quantidadeDeCompra.js`; aqui so o estado.
+ */
+function atalhosDoItem(index) {
+	const item = _input[index];
+	const tetoDaLinha = tetoDoItem(item);
+	if (!ofereceAtalhoDePeso()) {
+		return { maximo: tetoDaLinha, ateParaCacar: null };
+	}
+	const entidade = Session.Entity;
+	const resto = restoDaCompra(index);
+	const saldo = _type === NpcStore.Type.CASH_SHOP ? Math.floor((Session.cash || 0) / 100) : Session.zeny || 0;
+	return atalhosDaLinha({
+		tetoDaLinha,
+		pesoAtual: entidade ? entidade.weight || 0 : 0,
+		pesoMaximo: entidade ? entidade.max_weight || 0 : 0,
+		pesoDoItem: pesoUnitario(item),
+		pesoDoResto: resto.peso,
+		saldo,
+		preco: precoUnitario(item),
+		custoDoResto: resto.custo
+	});
+}
+
+/**
+ * O estado do botao "70%" de cada linha: apagado quando a conta nao tem dado
+ * (peso desconhecido) ou da zero (a mochila ja esta no degrau) — e o `title`
+ * diz qual dos dois. Botao que nao faz nada ao toque e o pior controle.
+ */
+function atualizarAtalhosDePeso() {
+	if (!ofereceAtalhoDePeso()) {
+		return;
+	}
+	for (const [index, linha] of _nos) {
+		const botao = linha.querySelector('.ns-cacar');
+		if (!botao) {
+			continue;
+		}
+		const { ateParaCacar } = atalhosDoItem(index);
+		botao.disabled = !(ateParaCacar > 0);
+		botao.title =
+			ateParaCacar === null
+				? 'Peso deste item desconhecido'
+				: ateParaCacar > 0
+					? `Até ${PERCENTUAL_PARA_CACAR}% do peso: a regeneração natural continua`
+					: `A mochila já chega a ${PERCENTUAL_PARA_CACAR}% do peso com esta compra`;
+	}
+}
+
+/**
  * O item em forma de DADO — o que `vitrine.js` filtra, agrupa e ordena. Nada
  * de DOM aqui: e a fronteira entre a regra (testavel) e o desenho.
  */
@@ -772,7 +856,16 @@ function montarLinha(item) {
 		`<button type="button" class="ns-menos" aria-label="Menos um" disabled>&minus;</button>` +
 		`<input class="ns-qtd-in ri-input" type="text" inputmode="numeric" value="0" aria-label="Quantidade de ${nome.replace(/"/g, '&quot;')}">` +
 		`<button type="button" class="ns-mais" aria-label="Mais um">+</button>` +
-		`<button type="button" class="ns-max">Máx</button>` +
+		/*
+		 * "70%" (05/10/2026, sugestao de jogador): o atalho de quem vai cacar —
+		 * a maior quantidade que deixa a mochila abaixo de 70%, onde a
+		 * regeneracao natural para (`quantidadeDeCompra.js`). O "Máx" ao lado e
+		 * o "sem limite": o que o zeny e o peso deixam, ate o teto do servidor.
+		 */
+		(ofereceAtalhoDePeso()
+			? `<button type="button" class="ns-cacar" aria-label="Até ${PERCENTUAL_PARA_CACAR}% do peso" disabled>${PERCENTUAL_PARA_CACAR}%</button>`
+			: '') +
+		`<button type="button" class="ns-max" aria-label="Máximo que dá para ${eDeVenda() ? 'vender' : 'comprar'}">Máx</button>` +
 		`</div>`;
 
 	// textContent para o nome: item de jogador (vending) e texto hostil.
@@ -1130,8 +1223,10 @@ function onCliqueNaLista(e) {
 		mudarQuantidade(index, -1);
 	} else if (e.target.closest('.ns-mais')) {
 		mudarQuantidade(index, +1);
+	} else if (e.target.closest('.ns-cacar')) {
+		definirQuantidade(index, atalhosDoItem(index).ateParaCacar || 0);
 	} else if (e.target.closest('.ns-max')) {
-		definirQuantidade(index, tetoDoItem(item));
+		definirQuantidade(index, atalhosDoItem(index).maximo);
 	}
 }
 
@@ -1225,6 +1320,7 @@ function atualizarResumo() {
 	}
 
 	const pesado = atualizarPeso();
+	atualizarAtalhosDePeso();
 
 	const agir = root.querySelector('.ns-agir');
 	agir.disabled = linhas === 0 || semSaldo || pesado;

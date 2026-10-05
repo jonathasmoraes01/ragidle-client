@@ -488,7 +488,8 @@
 	font-variant-numeric: tabular-nums;
 }
 
-.ns-max {
+.ns-max,
+.ns-cacar {
 	appearance: none;
 	height: 24px;
 	padding: 0 var(--sp-3);
@@ -501,8 +502,22 @@
 	transition: background var(--dur-fast) var(--ease-out);
 }
 
-.ns-max:hover {
+.ns-max:hover,
+.ns-cacar:hover:not(:disabled) {
 	background: var(--surface-inset);
+}
+
+/* O "70%" (05/10/2026): o atalho de quem vai cacar, ao lado do "Máx". Apagado
+   quando nao ha o que pedir (a mochila ja chega ao degrau, ou o peso do item e
+   desconhecido) — o motivo vai no `title`. */
+.ns-cacar {
+	padding: 0 var(--sp-2);
+	font-variant-numeric: tabular-nums;
+}
+
+.ns-cacar:disabled {
+	opacity: 0.45;
+	cursor: default;
 }
 
 /* ─── Rodape: total vivo + a unica acao primaria ───────────────────────── */
