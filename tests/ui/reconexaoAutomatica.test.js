@@ -21,6 +21,10 @@ const mocks = vi.hoisted(() => ({
 vi.mock('Network/NetworkManager.js', () => ({ default: mocks.network }));
 vi.mock('Engine/MapEngine.js', () => ({ default: { init: (...args) => mocks.mapEngineInit(...args) } }));
 vi.mock('Engine/GameEngine.js', () => ({ default: { reload: (...args) => mocks.gameEngineReload(...args) } }));
+// A volta de uma queda confere a versao por um `import()` que ninguem espera
+// (reconexao.js). Sem o mock ele puxa o grafo da UI inteira e, sob a carga da
+// suite cheia, termina depois do fim do ambiente (EnvironmentTeardownError).
+vi.mock('UI/atualizacaoAutomatica.js', () => ({ conferirVersaoAgora: () => {} }));
 vi.mock('UI/Components/Reconexao/Reconexao.js', () => ({
 	default: {
 		mostrar: (...args) => mocks.uiMostrar(...args),
