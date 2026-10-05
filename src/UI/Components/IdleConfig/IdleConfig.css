@@ -1272,6 +1272,16 @@
 	margin-top: var(--sp-2);
 }
 
+/* D-1990: o mesmo interruptor na aba Ataque, com o nome da cura em cima. */
+#IdleConfig .ic-cura-no-ataque + .ic-cura-no-ataque {
+	margin-top: var(--sp-3);
+}
+
+#IdleConfig .ic-cura-no-ataque-nome {
+	font-weight: 600;
+	margin-top: var(--sp-2);
+}
+
 #IdleConfig .ic-ataque-da-cura.is-desligada {
 	opacity: 0.5;
 }

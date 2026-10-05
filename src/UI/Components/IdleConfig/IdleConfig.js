@@ -85,7 +85,7 @@ import {
 	curaLigadaPara
 } from './secoesDaConfig.js';
 import { aplicarPassoDeNivel, duracaoDaEntrada, lembrarSpDoContexto, nivelEscolhidoServido, seletorDaCura, seletorDaEntrada } from './nivelNaConfig.js';
-import { comAtaqueDaCura, htmlDoAtaqueDaCura } from './curaComoAtaque.js';
+import { curaComAtaqueAlterado, htmlDaCuraNaAbaAtaque, htmlDoAtaqueDaCura } from './curaComoAtaque.js';
 import { lerPassoDoSeletor } from 'UI/nivelDeUso.js';
 import htmlText from './IdleConfig.html?raw';
 import cssText from './IdleConfig.css?raw';
@@ -1540,6 +1540,7 @@ function renderAtaque() {
 			${notaDeCura}
 			${ordem}
 		</div>
+		${htmlDaCuraNaAbaAtaque({ curas: ctx.skillsDeCura, cura: garantirCura(cfg, ctx), ctx, escapar: escapeHtml })}
 		<div class="ic-card">
 			<h3>Golpe básico</h3>
 			<label class="ic-checkbox-row">
@@ -1580,6 +1581,7 @@ function bindNiveis(pane) {
 
 function bindAtaqueExtra(pane) {
 	bindNiveis(pane);
+	bindAtaqueDaCura(pane);
 	pane.querySelectorAll('[data-rot-action]').forEach(btn => {
 		btn.addEventListener('click', () => {
 			const idx = Number(btn.dataset.rotIndex);
@@ -1827,6 +1829,24 @@ function renderCura() {
 		</div>`;
 }
 
+/**
+ * D-1963: "Usar como ataque contra morto-vivo", por habilidade. Desligar apaga
+ * a marca (`comAtaqueDaCura`): ausente e o desligado do servidor. D-1990: o
+ * interruptor aparece nas abas Suporte E Ataque, e as duas chamam ESTE
+ * handler, que grava em `cfg.cura` — nao ha estado por aba, entao mudar numa
+ * aparece na outra no proximo desenho.
+ */
+function bindAtaqueDaCura(pane) {
+	pane.querySelectorAll('[data-action="cura-ataque-toggle"]').forEach(ataqueToggle => {
+		ataqueToggle.addEventListener('change', () => {
+			const cfg = IdleConfig.editConfig;
+			cfg.cura = curaComAtaqueAlterado(garantirCura(cfg, IdleConfig.contexto), ataqueToggle.dataset.skill, !!ataqueToggle.checked);
+			markDirty();
+			renderBody();
+		});
+	});
+}
+
 function bindSuporteExtra(pane) {
 	bindNiveis(pane);
 	pane.querySelectorAll('[data-buff-action]').forEach(btn => {
@@ -1868,25 +1888,7 @@ function bindSuporteExtra(pane) {
 		});
 	}
 
-	// D-1963: "Usar como ataque contra morto-vivo", por habilidade. Desligar
-	// apaga a marca (`comAtaqueDaCura`): ausente e o desligado do servidor.
-	pane.querySelectorAll('[data-action="cura-ataque-toggle"]').forEach(ataqueToggle => {
-		ataqueToggle.addEventListener('change', () => {
-			const cfg = IdleConfig.editConfig;
-			const cura = garantirCura(cfg, IdleConfig.contexto);
-			const skillId = ataqueToggle.dataset.skill;
-			const atual = cura.habilidades[skillId] || {
-				ligada: curaLigadaPara(cura, skillId),
-				alvo: cura.alvo || 'grupo'
-			};
-			cfg.cura = {
-				...cura,
-				habilidades: { ...cura.habilidades, [skillId]: comAtaqueDaCura(atual, !!ataqueToggle.checked) }
-			};
-			markDirty();
-			renderBody();
-		});
-	});
+	bindAtaqueDaCura(pane);
 
 	pane.querySelectorAll('[data-action="cura-toggle"]').forEach(curaToggle => {
 		curaToggle.addEventListener('change', () => {

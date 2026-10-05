@@ -88,7 +88,8 @@ describe('a costura no IdleConfig', () => {
 
 	it('o handler grava a marca POR habilidade, pela funcao pura', () => {
 		expect(JS).toContain("pane.querySelectorAll('[data-action=\"cura-ataque-toggle\"]').forEach(ataqueToggle =>");
-		expect(JS).toContain('[skillId]: comAtaqueDaCura(atual, !!ataqueToggle.checked)');
+		// D-1990: a gravacao saiu para `curaComAtaqueAlterado` (uma funcao, as duas abas).
+		expect(JS).toContain('cfg.cura = curaComAtaqueAlterado(garantirCura(cfg, IdleConfig.contexto), ataqueToggle.dataset.skill, !!ataqueToggle.checked);');
 	});
 
 	it('no dedo, a linha do interruptor tem a altura de toque', () => {
