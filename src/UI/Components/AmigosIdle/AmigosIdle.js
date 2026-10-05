@@ -30,7 +30,7 @@ import GUIComponent from 'UI/GUIComponent.js';
 import ChatBox from 'UI/Components/ChatBox/ChatBox.js';
 import PartyFriends from 'UI/Components/PartyFriends/PartyFriends.js';
 import FriendEngine, { aoMudarAmigos, aoResultadoDeAmizade } from 'Engine/MapEngine/Friends.js';
-import GroupEngine, { aoResponderConvite } from 'Engine/MapEngine/Group.js';
+import GroupEngine, { aoMudarGrupo, aoResponderConvite } from 'Engine/MapEngine/Group.js';
 import { ehCelularEmPe } from 'UI/hudVertical.js';
 import htmlText from './AmigosIdle.html?raw';
 import cssText from './AmigosIdle.css?raw';
@@ -228,7 +228,7 @@ function onSubmit(e) {
 	}
 }
 
-/* As tres assinaturas — a janela so desenha o que os donos dos pacotes contam. */
+/* As quatro assinaturas — a janela so desenha o que os donos dos pacotes contam. */
 aoMudarAmigos(lista => {
 	_ultimaLista = lista;
 	if (_controlador) {
@@ -245,6 +245,12 @@ aoResultadoDeAmizade((resultado, nome) => {
 aoResponderConvite((resposta, nome) => {
 	if (_controlador) {
 		_controlador.receberRespostaDoConvite(resposta, nome);
+	}
+});
+
+aoMudarGrupo(() => {
+	if (_controlador) {
+		_controlador.grupoMudou();
 	}
 });
 
