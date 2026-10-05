@@ -18,11 +18,12 @@
  *   pc.cpp:3026-3030). Entao a regra e `floor(peso * 100 / teto) < 70`, que
  *   e o mesmo que `peso * 100 < 70 * teto` — sem divisao, sem arredondamento.
  *
- * - **"Máx"** — o maximo que o servidor ACEITA: a compra so e recusada quando
- *   `peso atual + peso da compra > teto` (`servidor/itens.ts`, a trava de
- *   peso da compra; o FAIL_WEIGHT do `npc_buylist`). Nao ha degrau de 90% na
- *   compra: 90% (`major_overweight_rate`) desliga ataque e habilidade, mas o
- *   balcao vende ate 100%. O rodape ja pinta de ambar a partir de 90%.
+ * - **"Máx"** — TRAVADO ABAIXO DE 90% (ordem do dono, 05/10/2026: "trava em
+ *   89%"). O servidor aceita compra ate 100% (so recusa `peso atual + peso da
+ *   compra > teto`, `servidor/itens.ts`), mas a partir de 90%
+ *   (`major_overweight_rate`) o personagem nao ataca nem usa habilidade - num
+ *   jogo idle, apertar "Máx" e parar de cacar sem entender por que. A conta e a
+ *   mesma do "70%", com o degrau de 90: o percentual truncado fica em 89.
  *
  * Os dois olham o RESTO DA COMPRA: o peso e o zeny das outras linhas ja
  * escolhidas entram na conta. Antes o "Máx" de cada linha olhava so a mochila,
@@ -34,6 +35,9 @@
 
 /** `natural_heal_weight_rate` — o degrau em que a regeneracao natural para. */
 export const PERCENTUAL_PARA_CACAR = 70;
+
+/** `major_overweight_rate` — o degrau em que ataque e habilidade param; o "Máx" fica abaixo dele. */
+export const PERCENTUAL_DO_MAXIMO = 90;
 
 /**
  * Quantas unidades cabem no PESO sem passar do teto que o servidor aceita.
@@ -115,15 +119,29 @@ export function atalhosDaLinha(p) {
 
 	// Sem o peso do resto, o "Máx" volta ao teto da linha (a conta de antes);
 	// inventar zero para o resto deixaria passar uma compra que o servidor recusa.
-	const peso =
-		resto === null || !(p.pesoMaximo > 0)
-			? Infinity
-			: cabeNoPeso({
+	// O teto do servidor (100%) segue valendo; o degrau de 90% fica por cima dele.
+	const abaixoDoDegrau =
+		resto === null
+			? null
+			: cabeAtePercentual({
 					pesoAtual: p.pesoAtual,
 					pesoMaximo: p.pesoMaximo,
 					pesoDoItem: p.pesoDoItem,
-					pesoDoResto: resto
+					pesoDoResto: resto,
+					percentual: PERCENTUAL_DO_MAXIMO
 				});
+	const peso =
+		resto === null || !(p.pesoMaximo > 0)
+			? Infinity
+			: Math.min(
+					cabeNoPeso({
+						pesoAtual: p.pesoAtual,
+						pesoMaximo: p.pesoMaximo,
+						pesoDoItem: p.pesoDoItem,
+						pesoDoResto: resto
+					}),
+					abaixoDoDegrau === null ? Infinity : abaixoDoDegrau
+				);
 	const maximo = Math.max(0, Math.min(p.tetoDaLinha, peso, dinheiro));
 
 	const ate =

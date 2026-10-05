@@ -91,7 +91,7 @@ describe('a conta dos atalhos (sem DOM)', () => {
 
 	it('a linha: o 70% nunca passa do Máx, e o Máx nunca passa do teto da linha', () => {
 		const base = { pesoAtual: 0, pesoMaximo: 1000, pesoDoItem: 10, pesoDoResto: 0, preco: 1, custoDoResto: 0 };
-		expect(atalhosDaLinha({ ...base, tetoDaLinha: 9999, saldo: 100000 })).toEqual({ maximo: 100, ateParaCacar: 69 });
+		expect(atalhosDaLinha({ ...base, tetoDaLinha: 9999, saldo: 100000 })).toEqual({ maximo: 89, ateParaCacar: 69 });
 		expect(atalhosDaLinha({ ...base, tetoDaLinha: 9999, saldo: 30 })).toEqual({ maximo: 30, ateParaCacar: 30 });
 		expect(atalhosDaLinha({ ...base, tetoDaLinha: 5, saldo: 100000 })).toEqual({ maximo: 5, ateParaCacar: 5 });
 	});
@@ -121,7 +121,7 @@ describe('a conta dos atalhos (sem DOM)', () => {
 			preco: 50,
 			custoDoResto: 0
 		};
-		expect(atalhosDaLinha(p).maximo).toBe(100);
+		expect(atalhosDaLinha(p).maximo).toBe(89);
 	});
 });
 
@@ -160,11 +160,11 @@ describe('os atalhos na janela de compra (BUY)', () => {
 		expect(qtd(0)).toBe(99);
 	});
 
-	it('"Máx" e o sem limite: vai ate o teto do servidor', () => {
+	it('"Máx" trava abaixo de 90% (ordem do dono: 89%), onde ataque e habilidade param', () => {
 		NpcStore.setList([{ index: 0, ITID: 501, price: 15, count: 9999 }]);
 		botao(0, 'ns-max').click();
-		// (10000 - 2000) / 50 = 160 -> 10000, igual ao teto, que o servidor aceita.
-		expect(qtd(0)).toBe(160);
+		// 2000 + 139 * 50 = 8950 (89%); 140 seriam 9000 (90%). O servidor aceitaria 160.
+		expect(qtd(0)).toBe(139);
 	});
 
 	it('a segunda linha desconta a primeira (peso e zeny), e o Comprar nao trava', () => {
@@ -179,17 +179,17 @@ describe('os atalhos na janela de compra (BUY)', () => {
 		botao(1, 'ns-cacar').click();
 		expect(qtd(1)).toBe(0);
 		botao(1, 'ns-max').click();
-		// 2000 + 99*50 = 6950; sobram 3050 / 50 = 61.
-		expect(qtd(1)).toBe(61);
+		// 2000 + 99*50 = 6950; abaixo de 9000 (90%) cabem 40 (8950).
+		expect(qtd(1)).toBe(40);
 		expect(NpcStore.getRoot().querySelector('.ns-agir').disabled).toBe(false);
 	});
 
-	it('a propria linha nao entra no resto: 70% e depois Máx na MESMA linha vai ao teto', () => {
+	it('a propria linha nao entra no resto: 70% e depois Máx na MESMA linha vai ao degrau de 89%', () => {
 		NpcStore.setList([{ index: 0, ITID: 501, price: 15, count: 9999 }]);
 		botao(0, 'ns-cacar').click();
 		expect(qtd(0)).toBe(99);
 		botao(0, 'ns-max').click();
-		expect(qtd(0)).toBe(160);
+		expect(qtd(0)).toBe(139);
 		botao(0, 'ns-cacar').click();
 		expect(qtd(0)).toBe(99);
 	});
