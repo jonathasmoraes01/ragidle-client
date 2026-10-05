@@ -407,6 +407,43 @@ export function seguirAndandoSemDesenhar(entity) {
 }
 
 /**
+ * QUEM E DESCARTADO NAO DEIXA O LETREIRO NA TELA (05/10/2026, relato do dono:
+ * "dei alt tab por uns 5 minutos, quando voltei, o nome/HP desses monstros
+ * aparecendo na tela, quando na verdade eles nao estao ali - e acompanhando a
+ * tela").
+ *
+ * O nome, a barra de HP, o emblema, o balao e a barra de conjuracao sao canvas
+ * na camada `position: fixed` do `EntityOverlay`, e SO o render da entidade
+ * reescreve a posicao deles. Os dois descartes daqui pulam esse render: o
+ * canvas ficava pregado no ultimo pixel calculado, sem sprite, parado enquanto
+ * a camera andava. Na volta da aba escondida o mundo pula de uma vez (a rota
+ * anda pelo relogio de parede), e quem estava no meio da tela sai dela num
+ * quadro so - os letreiros ficavam no meio da tela.
+ *
+ * Tira o canvas da camada SEM mexer nos interruptores `display`: quando a
+ * entidade volta a ser desenhada, o render a reanexa (`EntityOverlay.append`
+ * confere o `parentNode`). Quem ja esta fora nao custa nada a cada quadro.
+ *
+ * @param {Entity} entity
+ */
+export function esconderLetreirosDoDescartado(entity) {
+	// Peca a peca, sem montar lista: roda por entidade descartada em TODO quadro,
+	// e um array novo a cada chamada seria lixo para o coletor.
+	tirarDaCamada(entity.life);
+	tirarDaCamada(entity.emblem);
+	tirarDaCamada(entity.display);
+	tirarDaCamada(entity.dialog);
+	tirarDaCamada(entity.cast);
+}
+
+function tirarDaCamada(peca) {
+	const canvas = peca && peca.canvas;
+	if (canvas && canvas.parentNode) {
+		canvas.remove();
+	}
+}
+
+/**
  * Render all entities (picking or not)
  *
  * A entidade projeta FORA da tela? (07/09/2026, frente de FPS)
@@ -593,12 +630,14 @@ function render(gl, modelView, projection, fog, renderEffects) {
 				if (dx * dx + dy * dy > viewAreaSq) {
 					_contadoresDeQuadro.descartadosPorDistancia++;
 					seguirAndandoSemDesenhar(_list[i]);
+					esconderLetreirosDoDescartado(_list[i]);
 					continue;
 				}
 			}
 			if (foraDaTela(_list[i], meuGID)) {
 				_contadoresDeQuadro.descartadosPorTela++;
 				seguirAndandoSemDesenhar(_list[i]);
+				esconderLetreirosDoDescartado(_list[i]);
 				continue;
 			}
 			_contadoresDeQuadro.desenhados++;
