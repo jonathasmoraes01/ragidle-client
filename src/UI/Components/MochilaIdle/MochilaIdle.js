@@ -161,6 +161,7 @@ import { abaLembrada, lembrarAba } from '../memoriaDeAba.js';
 import { pegar } from 'UI/toqueParaAtalho.js';
 import Storage from 'UI/Components/Storage/Storage.js';
 import InputBox from 'UI/Components/InputBox/InputBox.js';
+import { consumirMotivoRecente } from './recusaDoServidor.js';
 import {
 	armazemAberto,
 	ehArrastoDoArmazem,
@@ -2272,7 +2273,9 @@ function verificarRecusa(ctx) {
 		// mudou nada -- provavel recusa (nao so refino/carta: nivel/classe
 		// tambem passam por aqui, por isso a mensagem generica).
 		if (Inventory.getUI().getItemByIndex(ctx.indice)) {
-			mostrarAviso(MSG_FALHA_EQUIPAR);
+			// O motivo do SERVIDOR, quando ele deu um (04/10/2026, recusaDoServidor.js).
+			const motivo = consumirMotivoRecente(Date.now());
+			mostrarAviso(motivo ? 'Não foi possível equipar: ' + motivo : MSG_FALHA_EQUIPAR);
 		}
 	} else if (ctx.tipo === 'tirar') {
 		const equipRoot = Equipment.getUI().getRoot();

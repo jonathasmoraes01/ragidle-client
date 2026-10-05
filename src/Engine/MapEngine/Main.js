@@ -25,6 +25,7 @@ import Renderer from 'Renderer/Renderer.js';
 import Damage from 'Renderer/Effects/Damage.js';
 import Altitude from 'Renderer/Map/Altitude.js';
 import ChatBox from 'UI/Components/ChatBox/ChatBox.js';
+import { anotarFalaDoSistema } from 'UI/Components/MochilaIdle/recusaDoServidor.js';
 import ChatRoom from 'UI/Components/ChatRoom/ChatRoom.js';
 import Announce from 'UI/Components/Announce/Announce.js';
 import AvisoDeAtualizacao from 'UI/Components/AvisoDeAtualizacao/AvisoDeAtualizacao.js';
@@ -701,6 +702,8 @@ function onParameterChange(pkt) {
  * @param {object} pkt - PACKET.ZC.RAGIDLE_LOG
  */
 function onFalaDoSistema(pkt) {
+	// A recusa de vestir tambem vai ao aviso da Mochila (recusaDoServidor.js).
+	anotarFalaDoSistema(pkt.msg, Date.now());
 	ChatBox.addText(pkt.msg, ChatBox.TYPE.PUBLIC, ChatBox.FILTER.SISTEMA);
 }
 
