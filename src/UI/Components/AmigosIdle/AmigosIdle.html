@@ -1,0 +1,47 @@
+<div id="AmigosIdle">
+	<div class="am-window ri-window ri-anima" role="dialog" aria-labelledby="am-titulo">
+		<div class="am-titlebar ri-header">
+			<span class="am-title ri-title" id="am-titulo">Amigos</span>
+			<span class="am-total" title="Amigos na lista / limite"></span>
+			<button type="button" class="am-close ri-close" title="Fechar">&times;</button>
+		</div>
+
+		<div class="am-body ri-scroll">
+			<!-- ADICIONAR POR NOME. O pedido so chega a quem esta online (o servidor
+			     procura entre os conectados, `map_nick2sd`), e a resposta volta ao
+			     ".am-recado". O form da o Enter de graca ao teclado do celular. -->
+			<form class="am-adicionar" novalidate>
+				<input
+					type="text"
+					class="am-campo ri-input"
+					maxlength="23"
+					autocomplete="off"
+					autocapitalize="off"
+					autocorrect="off"
+					spellcheck="false"
+					enterkeyhint="send"
+					placeholder="Nome do personagem"
+					aria-label="Nome do personagem"
+				>
+				<button type="submit" class="am-btn am-btn--adicionar ri-btn">Adicionar</button>
+			</form>
+			<p class="am-recado" role="status" aria-live="polite"></p>
+
+			<section class="am-secao am-secao--online">
+				<h3 class="am-cabecalho">
+					<span class="am-cabecalho-rotulo">Online</span>
+					<span class="am-contagem am-contagem-online">0</span>
+				</h3>
+				<ul class="am-lista am-lista-online"></ul>
+			</section>
+
+			<section class="am-secao am-secao--offline">
+				<h3 class="am-cabecalho">
+					<span class="am-cabecalho-rotulo">Offline</span>
+					<span class="am-contagem am-contagem-offline">0</span>
+				</h3>
+				<ul class="am-lista am-lista-offline"></ul>
+			</section>
+		</div>
+	</div>
+</div>

@@ -3344,6 +3344,57 @@ ChatBox.inserirLinkDeItem = function inserirLinkDeItem(item) {
 	return true;
 };
 
+/**
+ * SUSSURRAR PARA UM NOME (05/10/2026, a janela "Amigos"): o botao "Mensagem"
+ * de um amigo online poe o nome no campo de sussurro e o cursor na barra.
+ *
+ * Neste chat o sussurro e o NOME NO CAMPO (`.input .username`):
+ * `ChatBox.submit()` manda como sussurro sempre que ha nome la, e
+ * `definirEtiquetaDeDestino` troca a pilula para "Sussurro". O preparo da barra
+ * e o MESMO do link de item (`preparoParaLinkar`): sair do Logs/Farm, que nao
+ * digitam, desfazer o recolhido e mostrar a barra — sem marcar a escolha do
+ * jogador sobre o tamanho do chat (D-946).
+ *
+ * @param {string} nome
+ * @returns {boolean} `false` quando o chat nao esta montado ou o nome e vazio
+ */
+ChatBox.sussurrarPara = function sussurrarPara(nome) {
+	const root = _root();
+	const alvo = String(nome == null ? '' : nome).trim();
+	if (!root || !alvo) {
+		return false;
+	}
+	const nick = root.querySelector('.input .username');
+	const campo = root.querySelector('.input-chatbox');
+	if (!nick || !campo) {
+		return false;
+	}
+
+	const barra = root.querySelector('.input');
+	const modoBatalha = root.querySelector('.battlemode');
+	const preparo = preparoParaLinkar({
+		recolhido: estaFechado(),
+		canal: ChatBox.activeTab,
+		barraVisivel: !!barra && barra.style.display !== 'none'
+	});
+	if (preparo.trocarPara) {
+		ChatBox.switchTab(preparo.trocarPara);
+	}
+	if (preparo.expandir) {
+		definirRecolhido(false, false);
+	}
+	if (preparo.abrirBarra) {
+		if (barra) barra.style.display = 'flex';
+		if (modoBatalha) modoBatalha.style.display = 'none';
+	}
+
+	nick.value = alvo;
+	definirEtiquetaDeDestino();
+	campo.focus();
+	cursorNoFim(campo);
+	return true;
+};
+
 ChatBox.insertText = function (text) {
 	const root = _root();
 	const input = root.querySelector('.input-chatbox');

@@ -118,6 +118,7 @@ import IndicacaoIdle from 'UI/Components/IndicacaoIdle/IndicacaoIdle.js'; // RAG
 import TrocaIdle from 'UI/Components/TrocaIdle/TrocaIdle.js'; // RAGIDLE: a janela "Trade" do menu (02/10/2026)
 import BotMenu from 'UI/Components/BotMenu/BotMenu.js'; // RAGIDLE: o menu do Bot novo (07/10/2026)
 import RankingIdle from 'UI/Components/RankingIdle/RankingIdle.js'; // RAGIDLE: o Ranking (09/09/2026)
+import AmigosIdle from 'UI/Components/AmigosIdle/AmigosIdle.js'; // RAGIDLE: a janela Amigos (05/10/2026)
 import PainelComandoIdle from 'UI/Components/PainelComandoIdle/PainelComandoIdle.js'; // RAGIDLE: o painel de comando (D-1563)
 import { medidorDePing } from 'Network/medidorDePing.js'; // RAGIDLE: o ping real (23/09/2026)
 import TemporadaIdle from 'UI/Components/TemporadaIdle/TemporadaIdle.js'; // RAGIDLE: a janela da Temporada (Season 1, 21/09/2026)
@@ -609,6 +610,7 @@ class MapEngine {
 					TrocaIdle: TrocaIdle,
 					BotMenu: BotMenu,
 					RankingIdle: RankingIdle,
+					AmigosIdle: AmigosIdle,
 					PartyHud: PartyHud,
 					// RAGIDLE (D-968): a caixa de boas-vindas. A prova de tela
 					// precisa reabri-la sem relogar — a trava de "uma vez por
@@ -664,6 +666,7 @@ class MapEngine {
 			TrocaIdle.prepare(); // RAGIDLE: a janela "Trade" (02/10/2026) - escuta 0x0fb3
 			BotMenu.prepare(); // RAGIDLE: o menu do Bot novo (07/10/2026) - escuta 0x0fb1
 			RankingIdle.prepare(); // RAGIDLE: o Ranking — escuta 0x0fca
+			AmigosIdle.prepare(); // RAGIDLE: a janela Amigos (05/10/2026) - ouve Friends.js/Group.js, nenhum pacote proprio
 			PainelComandoIdle.prepare(); // RAGIDLE: o painel de comando — escuta 0x0fbc e abre SOZINHO quando o servidor manda (D-1563)
 			TemporadaIdle.prepare(); // RAGIDLE: a janela da Temporada (Season 1) - idem, so escuta 0x0fbb
 			RoShop.prepare(); // RAGIDLE: o RO Shop (22/09/2026) - idem, so escuta 0x0fb8
@@ -1475,6 +1478,7 @@ function onMapChange(pkt, ehEntradaNoMundo) {
 		TrocaIdle.append(); // RAGIDLE: a janela "Trade" (02/10/2026) - anexada sempre, fechada
 		BotMenu.append(); // RAGIDLE: o menu do Bot novo (07/10/2026) - anexada sempre, fechada; pede o estado ao servidor
 		RankingIdle.append(); // RAGIDLE: o Ranking
+		AmigosIdle.append(); // RAGIDLE: a janela Amigos (05/10/2026) - anexada sempre, fechada
 		PartyHud.append(); // RAGIDLE: a HUD de party
 		/*
 		 * RAGIDLE (D-968): a CAIXA DE BOAS-VINDAS — o cartaz que abre sozinho
@@ -1617,6 +1621,8 @@ function onMapChange(pkt, ehEntradaNoMundo) {
 			// 07/10/2026 - o menu do Bot novo: toggle() + `.bm-window`/`is-open`, a forma das outras.
 			['bot', BotMenu, '.bm-window'],
 			['ranking', RankingIdle, '.rk-window'],
+			// 05/10/2026 - a janela Amigos: toggle() + `.am-window`/`is-open`, a forma das outras.
+			['amigos', AmigosIdle, '.am-window'],
 			['painel-de-comando', PainelComandoIdle, '.pc-window'],
 			['correio', CorreioIdle, '.co-window'],
 			['missoes', MissoesIdle, '.mi-window'],
@@ -2062,6 +2068,7 @@ function cleanGameUI() {
 		RankingIdle,
 		BotMenu,
 		PainelComandoIdle,
+		AmigosIdle,
 		PartyHud,
 		PlacarMvpIdle,
 		VotoIdle,

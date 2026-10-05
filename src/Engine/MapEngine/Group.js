@@ -46,6 +46,24 @@ import { falaDeGm } from './falaDeGm.js'; // RAGIDLE (25/09/2026): a marca de GM
  */
 let _partyName = '';
 
+/*
+ * RAGIDLE (05/10/2026): QUEM MAIS QUER SABER A RESPOSTA DO CONVITE — a janela
+ * "Amigos" (AmigosIdle) convida pelo caminho classico e precisa dizer, NELA, o
+ * que o servidor respondeu (grupo cheio, ja esta noutro, recusou). O
+ * `ZC_PARTY_JOIN_REQ_ACK` tem um dono so, este arquivo; a janela ouve por
+ * aqui, como a "Trade" ouve o `Trade.js`.
+ */
+const _ouvintesDoConvite = new Set();
+
+/**
+ * @param {(resposta: number, nome: string) => void} funcao
+ * @returns {() => void} desassinar
+ */
+export function aoResponderConvite(funcao) {
+	_ouvintesDoConvite.add(funcao);
+	return () => _ouvintesDoConvite.delete(funcao);
+}
+
 /**
  * Party namespace
  */
@@ -598,6 +616,15 @@ function onPartyInvitationAnswer(pkt) {
 	}
 
 	ChatBox.addText(DB.getMessage(id).replace('%s', pkt.characterName), color, ChatBox.FILTER.PARTY_SETUP);
+
+	// Cada ouvinte em `try`: uma excecao aqui abortaria o laco de rede do cliente.
+	for (const funcao of _ouvintesDoConvite) {
+		try {
+			funcao(pkt.answer, pkt.characterName);
+		} catch (err) {
+			console.error('[Group] ouvinte da resposta ao convite falhou', err);
+		}
+	}
 }
 
 /**

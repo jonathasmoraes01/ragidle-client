@@ -215,6 +215,7 @@ import { temAvisoDoCodex } from 'UI/Components/avisoDoCodex.js'; // D-1232
 import PresencaIdle from 'UI/Components/PresencaIdle/PresencaIdle.js'; // RAGIDLE: Presenca (D-1162)
 import IndicacaoIdle from 'UI/Components/IndicacaoIdle/IndicacaoIdle.js'; // RAGIDLE: Indique & Ganhe (D-1164)
 import RankingIdle from 'UI/Components/RankingIdle/RankingIdle.js'; // RAGIDLE: o Ranking
+import AmigosIdle from 'UI/Components/AmigosIdle/AmigosIdle.js'; // RAGIDLE: a janela Amigos (05/10/2026)
 import TrocaIdle from 'UI/Components/TrocaIdle/TrocaIdle.js'; // RAGIDLE: a janela "Trade" (02/10/2026)
 import BotMenu from 'UI/Components/BotMenu/BotMenu.js'; // RAGIDLE: o menu do Bot novo (07/10/2026)
 import AdminPanel from 'UI/Components/AdminPanel/AdminPanel.js';
@@ -633,6 +634,11 @@ function onClickAction(e) {
 			break;
 		case 'guild':
 			Guild.toggle();
+			break;
+		/* A JANELA AMIGOS (05/10/2026, sugestao de jogador): online/offline,
+		   mensagem e convite. Entrou nos DOIS switches no mesmo commit. */
+		case 'amigos':
+			AmigosIdle.toggle();
 			break;
 		/*
 		 * "Grupo" passou a abrir a NOSSA janela (D-960, 07/09/2026).
@@ -1816,6 +1822,8 @@ function isActionOpen(action) {
 			return isRagIdleWindowOpen(AdminPanel, '.ap-window');
 		case 'guild':
 			return isHostVisible(Guild);
+		case 'amigos':
+			return isRagIdleWindowOpen(AmigosIdle, '.am-window');
 		/*
 		 * Ver o comentario do `case 'group'` no switch de ABRIR: o item passou
 		 * a abrir a janela RAGIDLE (D-960), entao ele le '.gi-window.is-open'
