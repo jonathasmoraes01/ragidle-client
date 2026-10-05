@@ -73,6 +73,8 @@ import MissoesIdle from 'UI/Components/MissoesIdle/MissoesIdle.js';
 // Quem responde "isto e um celular em pe?" no projeto inteiro (D-929).
 import { ehCelularEmPe } from 'UI/hudVertical.js';
 import { jornadaHtml } from './jornadaHtml.js';
+// D-1986: o parcial ao vivo e a validade do cache de capitulos.
+import { aplicarParcialDoCodex, ehParcialDoCodex, juntarPaginaDoCapitulo, pedidoDeAbertura, pedidoDeFechamento, precisaPedirCapitulo } from './codexAoVivo.js';
 import { placarHtml, eixosHtml, desafiosHtml, retratoDoCodexAceito } from './eixosDoCodex.js';
 import { missoesGeraisHtml, cliqueDeMissoesGerais, SUBABA_PADRAO } from './missoesGeraisHtml.js';
 import { entradaOcultavel, entradasVisiveis, estrelaDoCodexHtml, faixaDeMarcacaoHtml, marcadasDoRetrato, pedidoDaEstrela } from './marcacaoDoCodex.js'; // D-1839, D-1853
@@ -172,6 +174,10 @@ let _capituloEmVoo = null;
 
 /** A fila da varredura por especie (os capitulos que faltam carregar). */
 let _filaDaVarredura = [];
+
+/** D-1986: o dedo esta apertado no corpo, e um parcial chegou no meio. */
+let _apertadoNoCorpo = false;
+let _desenhoAdiado = false;
 
 /**
  * A ASSINATURA de `MissoesIdle.missoes`/`.execucao` NO ULTIMO REDESENHO desta
@@ -297,6 +303,29 @@ CodexIdle.init = function init() {
 		const corpo = root.querySelector('.cx-body');
 		if (corpo) {
 			corpo.addEventListener('click', onClickCorpo);
+			/*
+			 * D-1986: O PARCIAL NAO REDESENHA DEBAIXO DO DEDO. Com a janela
+			 * aberta o corpo renasce a cada ~1,5 s enquanto o jogador caca; um
+			 * redesenho entre o apertar e o soltar trocaria o botao por outro
+			 * no e o clique se perderia. Com o dedo (ou o mouse) apertado no
+			 * corpo, o parcial so guarda o dado, e o desenho sai no soltar.
+			 */
+			corpo.addEventListener('pointerdown', () => {
+				_apertadoNoCorpo = true;
+			});
+			const soltar = () => {
+				if (!_apertadoNoCorpo) {
+					return;
+				}
+				_apertadoNoCorpo = false;
+				if (_desenhoAdiado) {
+					_desenhoAdiado = false;
+					// Depois do `click` que vem logo atras do soltar.
+					setTimeout(render, 0);
+				}
+			};
+			window.addEventListener('pointerup', soltar, true);
+			window.addEventListener('pointercancel', soltar, true);
 		}
 		// As duas abas sao FIXAS no HTML (nao renascem a cada retrato), entao
 		// aqui o listener pode ser por botao.
@@ -364,7 +393,17 @@ CodexIdle.toggle = function toggle() {
 	} else {
 		win.classList.add('is-open');
 		CodexIdle.focus();
-		enviarAcao({ acao: 'pedir' });
+		/*
+		 * D-1986: ABRIR E VER O NUMERO DE AGORA. As missoes de capitulo
+		 * guardadas na abertura anterior sao do passado - o relato era "so
+		 * atualiza quando desloga e loga". O indice recomeca vazio, e o
+		 * `pedir` leva `aberta: true`: com a janela aberta o servidor empurra
+		 * o que muda (o parcial `v: 3`) ate o `fechar` de `closeWindow`.
+		 */
+		CodexIdle.missoesPorCapitulo = {};
+		_capituloEmVoo = null;
+		_filaDaVarredura = [];
+		enviarAcao(pedidoDeAbertura());
 		aoEntrarNaAba();
 	}
 };
@@ -398,7 +437,12 @@ function aoEntrarNaAba() {
 		HuntMap.pedirCatalogoSeFaltar();
 	}
 	if (CodexIdle.vista === 'capitulo' && CodexIdle.capituloAberto) {
-		pedirCapitulo(CodexIdle.capituloAberto);
+		pedirCapitulo(CodexIdle.capituloAberto, true);
+	}
+	// A ponte por especie le TODOS os capitulos: a varredura recomeca pelo que
+	// falta (depois da abertura, todos).
+	if (CodexIdle.vista === 'especie' && Number.isFinite(CodexIdle.especieAberta)) {
+		abrirEspecie(CodexIdle.especieAberta);
 	}
 }
 
@@ -418,6 +462,10 @@ function closeWindow() {
 	const root = _root();
 	const win = root && root.querySelector('.cx-window');
 	if (win) {
+		// D-1986: so quem estava aberta avisa (o servidor para o ao vivo).
+		if (win.classList.contains('is-open')) {
+			enviarAcao(pedidoDeFechamento());
+		}
 		win.classList.remove('is-open');
 	}
 	// A escolha de mapa mora ao lado da janela: fecha junto (26/09/2026).
@@ -1029,9 +1077,13 @@ function cliqueDaJornada(e, alvo) {
 	return false;
 }
 
-/** Pede as missoes de um capitulo, uma vez por capitulo. */
-function pedirCapitulo(id) {
-	if (!id || Object.prototype.hasOwnProperty.call(CodexIdle.missoesPorCapitulo, id)) {
+/**
+ * Pede as missoes de um capitulo. `forcar` (D-1986) repede o que ja esta
+ * guardado - quem ABRE o capitulo ve o numero de agora; a varredura por
+ * especie (sem `forcar`) so pede o que falta.
+ */
+function pedirCapitulo(id, forcar) {
+	if (!precisaPedirCapitulo(id, CodexIdle.missoesPorCapitulo, forcar)) {
 		return;
 	}
 	_capituloEmVoo = id;
@@ -1045,7 +1097,7 @@ function abrirCapitulo(id) {
 	CodexIdle.vista = 'capitulo';
 	CodexIdle.capituloAberto = id;
 	CodexIdle.especieAberta = null;
-	pedirCapitulo(id);
+	pedirCapitulo(id, true);
 	render();
 }
 
@@ -1197,6 +1249,23 @@ function onCodexRecebido(pkt) {
 		console.error('[CodexIdle] payload nao e JSON valido', err);
 		return;
 	}
+	/*
+	 * O PARCIAL AO VIVO (D-1986): so as pecas que mudaram, empurradas pelo
+	 * servidor enquanto a janela esta aberta. Ele vem ANTES da guarda de
+	 * versao porque e `v: 3` de proposito - a guarda do retrato inteiro o
+	 * recusaria, e e isso que protege o cliente antigo.
+	 */
+	if (ehParcialDoCodex(dados)) {
+		const r = aplicarParcialDoCodex(CodexIdle.estado, dados, CodexIdle.missoesPorCapitulo);
+		CodexIdle.estado = r.estado;
+		CodexIdle.missoesPorCapitulo = r.missoesPorCapitulo;
+		if (_apertadoNoCorpo) {
+			_desenhoAdiado = true;
+		} else {
+			render();
+		}
+		return;
+	}
 	// Guarda de versao, como em PasseIdle/MissoesIdle: um retrato de contrato
 	// futuro e IGNORADO em vez de desenhado meio errado. A versao aceita mora
 	// em `eixosDoCodex.js` (era `!== 1` cravado aqui, e o Codex em percentual,
@@ -1245,8 +1314,11 @@ function acumularMissoesDaJornada(dados) {
 		porCapitulo[pedido] = [];
 	}
 	for (const id of Object.keys(porCapitulo)) {
-		porCapitulo[id].sort((a, b) => (Number(a.ordem) || 0) - (Number(b.ordem) || 0));
-		CodexIdle.missoesPorCapitulo[id] = porCapitulo[id];
+		// D-1986: as paginas de um capitulo pesado se SOMAM (a segunda nao
+		// apaga a primeira) - ver `juntarPaginaDoCapitulo`.
+		const juntas = juntarPaginaDoCapitulo(CodexIdle.missoesPorCapitulo[id], porCapitulo[id], dados.parte);
+		juntas.sort((a, b) => (Number(a.ordem) || 0) - (Number(b.ordem) || 0));
+		CodexIdle.missoesPorCapitulo[id] = juntas;
 	}
 	_filaDaVarredura = _filaDaVarredura.filter(
 		id => !Object.prototype.hasOwnProperty.call(CodexIdle.missoesPorCapitulo, id)
