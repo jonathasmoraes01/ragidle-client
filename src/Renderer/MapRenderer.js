@@ -56,6 +56,7 @@ import Blind from 'Renderer/Effects/Shaders/Blind.js';
 
 import Upsampling from 'Renderer/Effects/Shaders/Upsampling.js';
 import WebGL from 'Utils/WebGL.js';
+import { relatarErro } from 'UI/relatoDeErro.js';
 
 const mat4 = glMatrix.mat4;
 const _pos = new Uint16Array(2);
@@ -226,6 +227,9 @@ class MapRenderer {
 				Sky.setUpCloudData();
 			} catch (erro) {
 				console.error('[MapRenderer] a montagem do teleporte falhou; o jogo segue', erro);
+				// O `console.error` do jogador nunca chega a ninguem (05/10/2026): a pilha
+				// vai ao `/analytics/erro`, que e onde se descobre o que parou a entrada.
+				relatarErro('[MapRenderer] montagem: ' + (erro && erro.message), erro && erro.stack);
 			}
 
 			Renderer.render(MapRenderer.onRender);
@@ -661,6 +665,9 @@ function onMapComplete(success, error) {
 			}
 		} catch (erro) {
 			console.error('[MapRenderer] a montagem do mapa falhou; o jogo aparece mesmo assim', erro);
+			// O `console.error` do jogador nunca chega a ninguem (05/10/2026): a pilha
+			// vai ao `/analytics/erro`, que e onde se descobre o que parou a entrada.
+			relatarErro('[MapRenderer] montagem: ' + (erro && erro.message), erro && erro.stack);
 		}
 
 		// Display game

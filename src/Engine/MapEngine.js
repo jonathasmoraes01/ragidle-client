@@ -148,6 +148,8 @@ import MochilaIdle from 'UI/Components/MochilaIdle/MochilaIdle.js'; // RAGIDLE: 
 // UI/contextoDoMapa.js.
 import DeathWindow from 'UI/Components/DeathWindow/DeathWindow.js'; // RAGIDLE: "Você morreu"
 import TopMenuIdle from 'UI/Components/TopMenuIdle/TopMenuIdle.js'; // RAGIDLE: "Menu superior direito (constelação)"
+import { agendarRedeDaHud } from 'Engine/redeDaHud.js'; // RAGIDLE: a HUD que a entrada interrompida deixava de fora (05/10/2026)
+import { relatarErro } from 'UI/relatoDeErro.js';
 import CorreioIdle from 'UI/Components/CorreioIdle/CorreioIdle.js'; // RAGIDLE: "Correio" (a caixa do sistema, D-366)
 import HuntAnalyzer from 'UI/Components/HuntAnalyzer/HuntAnalyzer.js'; // RAGIDLE: "Hunt Analyzer" (a leitura da cacada em curso)
 import { religarAtalhosParaUiNova, religarAtalhoDoBasicInfo } from 'UI/atalhos-da-ui-nova.js'; // RAGIDLE: Alt+A/E/S/Q/U/V -> janelas novas
@@ -1276,6 +1278,17 @@ function onMapChange(pkt, ehEntradaNoMundo) {
 			Network.sendPacket(new PACKET.CZ.NOTIFY_ACTORINIT());
 		};
 		setTimeout(estouPronto, 0);
+		/*
+		 * A REDE DA HUD (05/10/2026, os botoes "Caçar"/"Retornar" que sumiam na
+		 * Floresta Encantada 2 e so voltavam relogando). Mesmo desenho da rede
+		 * acima: agendada ANTES da lista de `append()`, roda depois dela e, no
+		 * caminho normal, ve todos ativos e nao faz nada. Se algo na lista lancar,
+		 * ela anexa os controles que o jogador nao tem como reabrir e RELATA o que
+		 * parou a lista. O porque inteiro esta em `Engine/redeDaHud.js`.
+		 */
+		agendarRedeDaHud([BasicInfoIdle, CombatCornerIdle, DeathWindow, MissoesTrackerIdle, TopMenuIdle, HuntButtonIdle], {
+			relatar: relatarErro
+		});
 		/*
 		 * RAGIDLE (B1, 06/09/2026) — A SEGUNDA LIMPEZA, E ELA E O CONSERTO.
 		 *
