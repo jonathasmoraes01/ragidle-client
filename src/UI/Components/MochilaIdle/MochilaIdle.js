@@ -163,6 +163,15 @@ import Storage from 'UI/Components/Storage/Storage.js';
 import InputBox from 'UI/Components/InputBox/InputBox.js';
 import { consumirMotivoRecente } from './recusaDoServidor.js';
 import {
+	acaoPrincipalDoItem,
+	assinaturasDaGrade,
+	atualizarQuantidadesNaGrade,
+	mascaraDaMunicao,
+	municaoVestiuOIndice,
+	oQueRefazerNaGrade,
+	vestidoEmParaADica
+} from './municaoNaMochila.js';
+import {
 	armazemAberto,
 	ehArrastoDoArmazem,
 	quantidadeDaRetirada,
@@ -1007,12 +1016,22 @@ function syncGrade() {
 	const root = _root();
 	const lista = Inventory.getUI().list.filter(item => getItemTab(item) === _abaAtiva);
 
-	const sig =
-		_abaAtiva + '|' + lista.map(it => it.index + ':' + (it.count || 1) + ':' + (it.IsIdentified ? 1 : 0)).join(',');
-	if (sig === _lastGradeSig) {
+	/*
+	 * SO A QUANTIDADE MUDOU -> o numero muda NO LUGAR (05/10/2026, relato das
+	 * flechas no celular; ver `municaoNaMochila.js`, item 3). Refazer a grade a
+	 * cada flecha disparada trocava a celula debaixo do dedo entre o toque e o
+	 * `click`, e o toque se perdia.
+	 */
+	const sig = assinaturasDaGrade(_abaAtiva, lista);
+	const refazer = oQueRefazerNaGrade(_lastGradeSig, sig);
+	if (refazer === 'nada') {
 		return;
 	}
 	_lastGradeSig = sig;
+	if (refazer === 'quantidade') {
+		atualizarQuantidadesNaGrade(root.querySelector('.mo-grade'), lista);
+		return;
+	}
 
 	// A celula sob o cursor esta prestes a deixar de existir: a dica ancorada
 	// nela sai junto. O `mouseover` da celula NOVA a traz de volta no mesmo
@@ -1208,18 +1227,31 @@ function abrirMenuDoItem(cell) {
 		ContextMenu.nextGroup();
 	}
 
-	if (tab === TAB.EQUIP) {
+	const acao = acaoPrincipalDoItem(item, tab, TAB, mascaraVestidaDoIndice(String(item.index)));
+	if (acao === 'equipar') {
 		ContextMenu.addElement('Equipar', () => {
 			const location = 'location' in item ? item.location : item.WearState;
 			tentarEquipar(item, location);
 		});
 		ContextMenu.nextGroup();
-	} else if (tab === TAB.USABLE) {
+	} else if (acao === 'equipar-municao') {
+		/*
+		 * A FLECHA GANHA O "EQUIPAR" DE UM TOQUE (05/10/2026, relato de jogador:
+		 * *"poderia ter so uma opcao de 'equipar' igual os equips normais"*). A
+		 * municao mora na aba Diversos, e ate aqui so a aba Equipar tinha o
+		 * rotulo; no dedo o unico caminho era o duplo toque, que o proprio menu
+		 * engolia. O porque inteiro esta em `municaoNaMochila.js`.
+		 */
+		ContextMenu.addElement('Equipar', () => {
+			tentarEquipar(item, mascaraDaMunicao(item));
+		});
+		ContextMenu.nextGroup();
+	} else if (acao === 'usar') {
 		ContextMenu.addElement('Usar', () => {
 			Inventory.getUI().useItem(item);
 		});
 		ContextMenu.nextGroup();
-	} else if (item.type === ItemType.CARD) {
+	} else if (acao === 'encaixar') {
 		/*
 		 * "ENCAIXAR EM..." (04/10/2026, relato de 03/10: "nem a opcao de por carta
 		 * no item" no celular). O UNICO caminho ate o encaixe era o DUPLO-CLIQUE
@@ -2095,12 +2127,7 @@ function mostrarDicaItem(alvoEl, item, vestidoEmForcado) {
 	 * `WearState` do objeto vale para a lista do login, e nao para a peca que
 	 * o jogador acabou de vestir nesta sessao.
 	 */
-	const vestidoEm =
-		typeof vestidoEmForcado === 'number' && vestidoEmForcado > 0
-			? vestidoEmForcado
-			: typeof item.WearState === 'number'
-				? item.WearState
-				: 0;
+	const vestidoEm = vestidoEmParaADica(item, vestidoEmForcado, () => mascaraVestidaDoIndice(String(item.index)));
 	const espaco = rotuloDoEspacoEquipado(vestidoEm, EQUIP_SLOTS);
 
 	/*
@@ -2243,7 +2270,12 @@ function tentarEquipar(item, location) {
 		mostrarAviso(MSG_REFINO);
 		return;
 	}
-	agendarChecagemDeRecusa({ tipo: 'equipar', indice: item.index });
+	// A municao vestida NAO sai da mochila: a pergunta da recusa e outra (ver
+	// `municaoNaMochila.js`, item 2). Vale para o menu e para o arrasto.
+	agendarChecagemDeRecusa({
+		tipo: item.type === ItemType.AMMO ? 'equipar-municao' : 'equipar',
+		indice: item.index
+	});
 }
 
 /**
@@ -2274,6 +2306,11 @@ function verificarRecusa(ctx) {
 		// tambem passam por aqui, por isso a mensagem generica).
 		if (Inventory.getUI().getItemByIndex(ctx.indice)) {
 			// O motivo do SERVIDOR, quando ele deu um (04/10/2026, recusaDoServidor.js).
+			const motivo = consumirMotivoRecente(Date.now());
+			mostrarAviso(motivo ? 'Não foi possível equipar: ' + motivo : MSG_FALHA_EQUIPAR);
+		}
+	} else if (ctx.tipo === 'equipar-municao') {
+		if (!municaoVestiuOIndice(mascaraVestidaDoIndice(String(ctx.indice)))) {
 			const motivo = consumirMotivoRecente(Date.now());
 			mostrarAviso(motivo ? 'Não foi possível equipar: ' + motivo : MSG_FALHA_EQUIPAR);
 		}
