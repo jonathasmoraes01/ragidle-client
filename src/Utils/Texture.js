@@ -12,6 +12,7 @@
 
 import Targa from 'Loaders/Targa.js';
 import GIF from 'Vendors/libgif.js';
+import { decodificarBmpComChave, ehMagenta } from 'Utils/bmpComChave.js';
 
 /**
  * Namespace
@@ -52,7 +53,81 @@ Texture.load = function load(data, oncomplete) {
 		return;
 	}
 
-	// Regular images
+	/*
+	 * BMP: o magenta sai pelos BYTES do arquivo (D-1988, `Utils/bmpComChave.js`).
+	 * O caminho de baixo decide DEPOIS de o aparelho decodificar e devolver os
+	 * pixels, e um aparelho que desloca a cor nessa ida e volta (gestao de cor,
+	 * ruido anti-impressao-digital) deixa o magenta inteiro na GPU. Todo BMP do
+	 * jogo chega aqui como `blob:` (`FileManager`); o que o decodificador recusa
+	 * (outro formato, BMP comprimido) cai no caminho antigo, intacto.
+	 */
+	if (typeof data === 'string' && data.startsWith('blob:') && typeof fetch === 'function') {
+		fetch(data)
+			.then(function (resposta) {
+				return resposta.arrayBuffer();
+			})
+			.then(
+				function (buffer) {
+					let pronto = null;
+					try {
+						pronto = canvasDoBmp(buffer);
+					} catch (_e) {
+						pronto = null;
+					}
+					if (!pronto) {
+						carregarPelaImagem(data, oncomplete, args);
+						return;
+					}
+					URL.revokeObjectURL(data);
+					args.unshift(true);
+					try {
+						oncomplete.apply(pronto, args);
+					} catch (e) {
+						// Fora da promessa: o erro de quem chamou continua chegando ao
+						// `window.onerror` (e ao relato), como no caminho do `img.onload`.
+						setTimeout(function () {
+							throw e;
+						});
+					}
+				},
+				function () {
+					carregarPelaImagem(data, oncomplete, args);
+				}
+			);
+		return;
+	}
+
+	carregarPelaImagem(data, oncomplete, args);
+};
+
+/**
+ * O canvas do BMP com o magenta ja transparente, ou `null` se o arquivo nao e um
+ * BMP que o decodificador aceita.
+ *
+ * @param {ArrayBuffer} buffer
+ * @return {HTMLCanvasElement|null}
+ */
+function canvasDoBmp(buffer) {
+	const imagem = decodificarBmpComChave(buffer);
+	if (!imagem) {
+		return null;
+	}
+	const canvas = document.createElement('canvas');
+	canvas.width = imagem.width;
+	canvas.height = imagem.height;
+	const ctx = canvas.getContext('2d');
+	const dados = ctx.createImageData(imagem.width, imagem.height);
+	dados.data.set(imagem.data);
+	ctx.putImageData(dados, 0, 0);
+	return canvas;
+}
+
+/**
+ * O caminho de sempre: o navegador decodifica, e o magenta sai pela leitura do
+ * canvas (`removeMagenta`). Fica para PNG, JPG, GIF e o BMP que o decodificador
+ * proprio recusa.
+ */
+function carregarPelaImagem(data, oncomplete, args) {
 	const img = new Image();
 	img.decoding = 'async';
 	img.src = data;
@@ -74,7 +149,7 @@ Texture.load = function load(data, oncomplete) {
 		args.unshift(true);
 		oncomplete.apply(canvas, args);
 	};
-};
+}
 
 // Creates a canvas spritesheet with gif metadata to animate in guild display
 Texture.processGifToSpriteSheet = function processGifToSpriteSheet(buffer, callback) {
@@ -169,7 +244,7 @@ Texture.removeMagenta = function removeMagenta(canvas) {
 	const data = imageData.data;
 
 	for (let i = 0; i < data.length; i += 4) {
-		if (data[i] > 230 && data[i + 1] < 20 && data[i + 2] > 230) {
+		if (ehMagenta(data[i], data[i + 1], data[i + 2])) {
 			data[i] = data[i + 1] = data[i + 2] = data[i + 3] = 0;
 		}
 	}
