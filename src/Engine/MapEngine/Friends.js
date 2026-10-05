@@ -23,6 +23,74 @@ import PartyFriends from 'UI/Components/PartyFriends/PartyFriends.js';
  */
 let _friends = [];
 
+/*
+ * RAGIDLE (05/10/2026): OS OUVINTES DA LISTA — a janela "Amigos" (AmigosIdle).
+ *
+ * Os cinco pacotes de amizade tem UM dono, este arquivo: um segundo
+ * `hookPacket` no mesmo opcode roubaria o pacote (NetworkManager guarda um
+ * callback so — a cicatriz da sonda que desligou a janela). A janela nova ouve
+ * por aqui, como a "Trade" ouve o `Trade.js` (`aoResponderPedidoDeTroca`).
+ */
+const _ouvintesDaLista = new Set();
+const _ouvintesDoResultado = new Set();
+
+/** A lista como a janela a recebe: copia rasa, para ninguem mexer na do motor. */
+function copiaDaLista() {
+	return _friends.map(f => ({ AID: f.AID, GID: f.GID, Name: f.Name, State: f.State }));
+}
+
+/* Cada ouvinte em `try`: uma excecao aqui abortaria o laco de rede do cliente. */
+function avisarOuvintesDaLista() {
+	const lista = copiaDaLista();
+	for (const funcao of _ouvintesDaLista) {
+		try {
+			funcao(lista);
+		} catch (err) {
+			console.error('[Friends] ouvinte da lista falhou', err);
+		}
+	}
+}
+
+function avisarOuvintesDoResultado(resultado, nome) {
+	for (const funcao of _ouvintesDoResultado) {
+		try {
+			funcao(resultado, nome);
+		} catch (err) {
+			console.error('[Friends] ouvinte do resultado falhou', err);
+		}
+	}
+}
+
+/**
+ * Assina a lista de amigos: a funcao recebe a lista inteira a cada mudanca
+ * (a lista do login, um amigo que entra ou sai, um amigo novo, um removido) e
+ * UMA vez na hora, com o que ja se sabe.
+ *
+ * @param {(lista: Array<{AID:number,GID:number,Name:string,State?:number}>) => void} funcao
+ * @returns {() => void} desassinar
+ */
+export function aoMudarAmigos(funcao) {
+	_ouvintesDaLista.add(funcao);
+	try {
+		funcao(copiaDaLista());
+	} catch (err) {
+		console.error('[Friends] ouvinte da lista falhou', err);
+	}
+	return () => _ouvintesDaLista.delete(funcao);
+}
+
+/**
+ * Assina o resultado de um pedido de amizade (0x0209: 0 = viraram amigos,
+ * 1 = recusou, 2 = minha lista cheia, 3 = a lista dele cheia).
+ *
+ * @param {(resultado: number, nome: string) => void} funcao
+ * @returns {() => void}
+ */
+export function aoResultadoDeAmizade(funcao) {
+	_ouvintesDoResultado.add(funcao);
+	return () => _ouvintesDoResultado.delete(funcao);
+}
+
 /**
  * Create namespace
  */
@@ -51,6 +119,7 @@ class FriendEngine {
 	 */
 	static free() {
 		_friends.length = 0;
+		avisarOuvintesDaLista();
 	}
 
 	/**
@@ -140,6 +209,7 @@ function onFriendList(pkt) {
 	_friends = pkt.friendList;
 
 	PartyFriends.getUI().setFriends(_friends);
+	avisarOuvintesDaLista();
 }
 
 /**
@@ -154,6 +224,7 @@ function onFriendUpdate(pkt) {
 		_friends[idx].State = pkt.State;
 
 		PartyFriends.getUI().updateFriendState(idx, pkt.State);
+		avisarOuvintesDaLista();
 	}
 }
 
@@ -205,6 +276,7 @@ function onFriendAdded(pkt) {
 			_friends[idx].State = 0;
 
 			PartyFriends.getUI().updateFriend(idx, _friends[idx]);
+			avisarOuvintesDaLista();
 			break;
 
 		case 1: // "(%s) does not want to be friends with you."
@@ -219,6 +291,8 @@ function onFriendAdded(pkt) {
 			ChatBox.addText(DB.getMessage(820).replace('%s', pkt.Name), ChatBox.TYPE.ERROR, ChatBox.FILTER.PUBLIC_LOG);
 			break;
 	}
+
+	avisarOuvintesDoResultado(pkt.Result, pkt.Name);
 }
 
 /**
@@ -232,6 +306,7 @@ function onFriendRemoved(pkt) {
 	if (idx > -1) {
 		_friends.splice(idx, 1);
 		PartyFriends.getUI().removeFriend(idx);
+		avisarOuvintesDaLista();
 	}
 }
 

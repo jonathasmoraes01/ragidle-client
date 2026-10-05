@@ -26,6 +26,7 @@ import Damage from 'Renderer/Effects/Damage.js';
 import Altitude from 'Renderer/Map/Altitude.js';
 import ChatBox from 'UI/Components/ChatBox/ChatBox.js';
 import { anotarFalaDoSistema } from 'UI/Components/MochilaIdle/recusaDoServidor.js';
+import { repassarFalaDoSistema } from 'UI/Components/AmigosIdle/ouvidoDaFala.js'; // RAGIDLE: a janela Amigos (05/10/2026)
 import ChatRoom from 'UI/Components/ChatRoom/ChatRoom.js';
 import Announce from 'UI/Components/Announce/Announce.js';
 import AvisoDeAtualizacao from 'UI/Components/AvisoDeAtualizacao/AvisoDeAtualizacao.js';
@@ -704,6 +705,8 @@ function onParameterChange(pkt) {
 function onFalaDoSistema(pkt) {
 	// A recusa de vestir tambem vai ao aviso da Mochila (recusaDoServidor.js).
 	anotarFalaDoSistema(pkt.msg, Date.now());
+	// A resposta do /friend (nome que nao existe, ja amigos) vai tambem a janela "Amigos".
+	repassarFalaDoSistema(pkt.msg);
 	ChatBox.addText(pkt.msg, ChatBox.TYPE.PUBLIC, ChatBox.FILTER.SISTEMA);
 }
 
