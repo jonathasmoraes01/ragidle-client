@@ -66,13 +66,15 @@ describe('o Máx da compra respeita o peso livre (BUY)', () => {
 		NpcStore.setType(NpcStore.Type.BUY);
 	});
 
-	it('peso 100 (decigramas) e 1000 livres -> Máx = 10, mesmo com estoque/zeny maiores', () => {
+	it('peso 100 (decigramas) e 1000 livres -> Máx = 8 (abaixo de 90%, ordem do dono de 05/10/2026), mesmo com estoque/zeny maiores', () => {
 		mocks.pesos[900] = 100;
 		NpcStore.setList([{ index: 0, ITID: 900, price: 1, count: 9999 }]);
 
 		clicarMax(0);
 
-		expect(qtd(0)).toBe(10);
+		// 8 * 100 = 800 (80%); a nona levaria a 900, exatamente 90%, onde ataque e
+		// habilidade param. O servidor aceitaria 10 (D-1981).
+		expect(qtd(0)).toBe(8);
 	});
 
 	it('capacidade ja quase cheia (50 livres, peso 100) trava em 0 — nunca negativo', () => {
