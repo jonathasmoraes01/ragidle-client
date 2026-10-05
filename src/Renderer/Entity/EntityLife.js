@@ -60,7 +60,9 @@ class Life {
 			() => Renderer.tick,
 			Events.setTimeout,
 			Events.clearTimeout,
-			() => this.update()
+			() => this.update(),
+			// A aba escondida (relato de 03/10, ver VidaNoImpacto): ninguem ve o impacto.
+			() => typeof document !== 'undefined' && document.hidden === true
 		);
 	}
 

@@ -110,3 +110,43 @@ describe('a barra do mob acompanha o impacto, nao a chegada do pacote', () => {
 		expect(exibido).toBe(700);
 	});
 });
+
+describe('com a aba escondida ninguem ve o impacto (relato de 03/10)', () => {
+	let oculta;
+	beforeEach(() => {
+		oculta = true;
+		vida = new VidaNoImpacto(() => agora, Events.setTimeout, Events.clearTimeout, () => receber(hp), () => oculta);
+		receber(1000);
+	});
+	it('o dano entra na barra na hora, sem agendar nada', () => {
+		vida.registrar([1400]);
+		receber(700);
+		expect(exibido).toBe(700);
+	});
+	it('a morte nao e adiada ate um impacto que ninguem ve', () => {
+		vida.registrar([1400]);
+		receber(0);
+		let removido = 0;
+		expect(vida.adiarMorte(() => removido++)).toBe(false);
+		avancar(5000);
+		expect(removido).toBe(0);
+	});
+	it('o golpe veio com a aba a vista e a aba sumiu antes da morte: a morte nao espera', () => {
+		oculta = false;
+		vida.registrar([1400]);
+		receber(300);
+		oculta = true;
+		receber(0);
+		let removido = 0;
+		expect(vida.adiarMorte(() => removido++)).toBe(false);
+	});
+	it('CONTROLE: com a aba a vista, a morte ainda espera o impacto', () => {
+		oculta = false;
+		vida.registrar([1400]);
+		receber(0);
+		let removido = 0;
+		expect(vida.adiarMorte(() => removido++)).toBe(true);
+		avancar(1400);
+		expect(removido).toBe(1);
+	});
+});

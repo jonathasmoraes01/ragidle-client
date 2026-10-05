@@ -246,6 +246,22 @@ function removeGID(gid) {
 }
 
 /**
+ * Tira o GID do mapa SO se ele ainda aponta para esta entidade (04/10/2026).
+ * Um GID liberado por `removeGID` pode ja ser de outra entidade (o renascido),
+ * e o corpo que sai depois nao pode leva-lo junto.
+ *
+ * @param {Entity} entity
+ * @returns {boolean} se soltou
+ */
+export function soltarOGidSeForDela(entity) {
+	if (_gidMap.get(entity.GID) !== entity) {
+		return false;
+	}
+	_gidMap.delete(entity.GID);
+	return true;
+}
+
+/**
  * Remove an entity
  * @param {number} gid
  */
@@ -546,14 +562,23 @@ function render(gl, modelView, projection, fog, renderEffects) {
 		) {
 			// Remove from list
 			if (_list[i].remove_tick && _list[i].remove_tick + _list[i].remove_delay < tick) {
-				// Remove focus
+				/*
+				 * O CORPO SO SOLTA O QUE AINDA E DELE (04/10/2026, relato de 03/10:
+				 * a aba esquecida enchia a tela de mobs "vivos" que nao andavam nem
+				 * sumiam). O `VANISH` ja liberou o GID (`removeGID`) para reuso; se
+				 * o mob renasceu com o mesmo GID antes desta faxina, o GID e o foco
+				 * sao do RENASCIDO, e apaga-los o deixava na tela sem ninguem
+				 * conseguir acha-lo. Com a aba escondida o render para e todo
+				 * renascimento cai nesta janela. A pergunta e de IDENTIDADE, e nao
+				 * de numero (tests/renderer/corpoNaoApagaORenascido.test.js).
+				 */
 				const entityFocus = getFocusEntity();
-				if (entityFocus && entityFocus.GID === _list[i].GID) {
+				if (entityFocus === _list[i]) {
 					entityFocus.onFocusEnd();
 					setFocusEntity(null);
 				}
 
-				_gidMap.delete(_list[i].GID);
+				soltarOGidSeForDela(_list[i]);
 				releaseGr2(_list[i]);
 				_list[i].clean();
 				_list.splice(i, 1);

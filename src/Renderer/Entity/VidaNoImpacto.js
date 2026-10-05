@@ -1,7 +1,16 @@
-/** A vida do servidor fica intacta; so a barra espera o impacto visual. */
+/**
+ * A vida do servidor fica intacta; so a barra espera o impacto visual.
+ *
+ * `ninguemVe` (04/10/2026, relato de 03/10: a aba esquecida voltava cheia de
+ * mobs mortos de pe): com a aba escondida o render para, e `agora` (o relogio
+ * dele) para junto. Esperar um impacto que ninguem ve adiava CADA morte ate a
+ * aba voltar, e a volta pagava todas de uma vez no orcamento de 8 ms por quadro
+ * do `Events`. Sem quem veja, o dano entra na barra na hora e a morte nao espera.
+ */
 export default class VidaNoImpacto {
-	constructor(agora, agendar, cancelar, redesenhar) {
+	constructor(agora, agendar, cancelar, redesenhar, ninguemVe = () => false) {
 		this.agora = agora;
+		this.ninguemVe = ninguemVe;
 		this.agendar = agendar;
 		this.cancelar = cancelar;
 		this.redesenhar = redesenhar;
@@ -38,6 +47,10 @@ export default class VidaNoImpacto {
 		const delta = hp - this.hpRecebido;
 		this.hpRecebido = hp;
 		const impactos = delta < 0 ? this.impactos.shift() : null;
+		if (impactos?.length && this.ninguemVe()) {
+			this.hpVisual += delta;
+			return Math.max(0, Math.min(maximo, this.hpVisual));
+		}
 		if (impactos?.length) {
 			let aplicado = 0;
 			let pesoAcumulado = 0;
@@ -69,6 +82,7 @@ export default class VidaNoImpacto {
 
 	adiarMorte(remover) {
 		if (this.mortePendente) return true;
+		if (this.ninguemVe()) return false;
 		if (this.ultimoImpacto <= this.agora()) return false;
 		this.mortePendente = true;
 		this.depois(this.ultimoImpacto, () => {
