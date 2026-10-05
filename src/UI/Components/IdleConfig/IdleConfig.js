@@ -1148,7 +1148,7 @@ function renderCaca() {
 					<button type="button" class="ic-btn-mini" data-action="alvos-limpar" ${mobs.length ? '' : 'disabled'}>Nenhuma</button>
 				</span>
 			</div>
-			<div class="ic-note">Só as presas marcadas são caçadas. A desmarcada continua agressiva: o personagem se defende dela, mas não vai atrás.</div>
+			<div class="ic-note">Só as presas marcadas são caçadas. A desmarcada é evitada: se ela atacar, o personagem não revida e segue para as marcadas (ou se afasta). Para lutar com ela, clique nela.</div>
 			${presas}
 		</div>
 		<div class="ic-card">
@@ -1161,6 +1161,7 @@ function renderCaca() {
 			${renderFiltroDeColeta()}
 			${renderAsa()}
 			${renderFlechaQueFere()}
+			${renderAsaContraEvitado()}
 			<div class="ri-divisor"></div>
 			<label class="ic-switch-row">
 				<span class="ic-switch">
@@ -1296,6 +1297,34 @@ function renderFlechaQueFere() {
 			!ehVip
 		)}
 		${ehVip ? '' : '<div class="ic-note ic-note-warn">A troca inteligente é do passe VIP. Sem ele, quando as flechas acabam, o jogo veste a mais barata da mochila.</div>'}`;
+}
+
+/**
+ * A ASA CONTRA O MONSTRO EVITADO (D-1983, R103, 05/10/2026) - sugestao de
+ * jogador que o dono mandou fazer: *"seja possivel passar reto e/ou programar
+ * uma asa de mosca"* contra o monstro agressivo que ele desmarcou em Presas.
+ *
+ * Passar reto e de todos (o servidor evita a presa desmarcada com a caca
+ * ligada). A Asa e um gatilho AUTOMATICO, e o gatilho automatico da Asa e do
+ * passe VIP (R20): sem VIP o controle aparece DESABILITADO com a explicacao, no
+ * molde da Asa e da troca de flecha. Quem decide e o servidor
+ * (`decidirAsaContraEvitado`); aqui so o desenho. Ausente na config = desligado.
+ */
+function renderAsaContraEvitado() {
+	const cfg = IdleConfig.editConfig;
+	const ctx = IdleConfig.contexto;
+	const ehVip = !!(ctx && ctx.ehVip);
+	const ligada = cfg.asaAoSerAtacadoPorEvitado === true;
+	return `
+		<div class="ri-divisor"></div>
+		${switchRow(
+			'asaAoSerAtacadoPorEvitado',
+			ehVip && ligada,
+			'Asa de Mosca ao ser atacado por presa desmarcada',
+			'Se um monstro que você desmarcou em Presas atacar o personagem durante a caça, ele gasta uma Asa e reaparece noutro canto do mapa.',
+			!ehVip
+		)}
+		${ehVip ? '' : '<div class="ic-note ic-note-warn">O uso automático da Asa é do passe VIP. Sem ele, o personagem continua sem revidar a presa desmarcada e segue para as marcadas.</div>'}`;
 }
 
 function bindCacaExtra(pane) {
