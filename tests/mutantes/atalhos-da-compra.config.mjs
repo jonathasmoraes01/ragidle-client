@@ -27,6 +27,12 @@ const mutantes = {
 	semPisoNoDegrau: [CONTA, '\tif (folga <= 0) {\n\t\treturn 0;\n\t}\n', ''],
 	// peso desconhecido vira zero (inventa)
 	pesoDesconhecidoInventa: [CONTA, "\tif (typeof pesoDoItem !== 'number' || !(pesoMaximo > 0)) {\n\t\treturn null;", "\tif (!(pesoMaximo > 0)) {\n\t\treturn null;"],
+	// o Max volta a ir ate 100% (ordem do dono: trava em 89%)
+	maxSemDegrau: [CONTA, 'abaixoDoDegrau === null ? Infinity : abaixoDoDegrau', 'Infinity'],
+	// o degrau do Max vira 100
+	degrauDoMax100: [CONTA, 'export const PERCENTUAL_DO_MAXIMO = 90;', 'export const PERCENTUAL_DO_MAXIMO = 100;'],
+	// o degrau do Max esquece o resto da compra
+	degrauSemResto: [CONTA, '\t\t\t\t\tpesoDoResto: resto,\n\t\t\t\t\tpercentual: PERCENTUAL_DO_MAXIMO', '\t\t\t\t\tpesoDoResto: 0,\n\t\t\t\t\tpercentual: PERCENTUAL_DO_MAXIMO'],
 	// o Máx esquece o resto da compra
 	maxSemResto: [CONTA, 'const livre = pesoMaximo - pesoAtual - pesoDoResto;', 'const livre = pesoMaximo - pesoAtual;'],
 	// o Máx para um abaixo do teto (o servidor aceita o igual)
