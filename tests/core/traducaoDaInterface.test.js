@@ -181,3 +181,29 @@ describe('as tabelas do GRF no idioma', () => {
 		}
 	});
 });
+
+describe('o que o jogador DIGITA nunca e traduzido (05/10/2026, relato do dono)', () => {
+	it('o "a" digitado na caixa do chat (contenteditable) continua "a", e nao vira "to"', async () => {
+		absorverCatalogo({ v: 1, exatos: { a: 'to', de: 'of', Fechar: 'Close' }, modelos: [] });
+		const { sombra, raiz } = janela('<div class="wrapper"><div contenteditable="true" class="message"></div></div><span>Fechar</span>');
+		observarRaiz(sombra);
+		const caixa = raiz.querySelector('.message');
+		caixa.appendChild(document.createTextNode('a'));
+		await microtarefa();
+		expect(caixa.textContent).toBe('a');
+		caixa.firstChild.nodeValue = 'de';
+		await microtarefa();
+		expect(caixa.textContent).toBe('de');
+		// CONTROLE: o texto da janela ao lado continua traduzido.
+		expect(raiz.querySelector('span').textContent).toBe('Close');
+	});
+	it('o valor digitado num input de texto nao e traduzido', async () => {
+		absorverCatalogo({ v: 1, exatos: { a: 'to' }, modelos: [] });
+		const { sombra, raiz } = janela('<input type="text" class="username">');
+		observarRaiz(sombra);
+		const campo = raiz.querySelector('input');
+		campo.setAttribute('value', 'a');
+		await microtarefa();
+		expect(campo.getAttribute('value')).toBe('a');
+	});
+});
