@@ -1640,6 +1640,19 @@ function onNPCViewChange(pkt) {
 function onEntityUseSkill(pkt) {
 	const srcEntity = EntityManager.get(pkt.srcAID);
 	const dstEntity = EntityManager.get(pkt.targetAID);
+	/*
+	 * A CURA DE UMA UNIDADE DE CHAO (D-2036, 06/10/2026). O tique do Santuario e
+	 * da Macada de Idun chega como AL_HEAL com a UNIDADE como origem, como no
+	 * emulador (`clif_skill_nodamage(unit, *bl, AL_HEAL, heal)`, skill.cpp:6941).
+	 * A unidade desenhada e entidade aqui (`spamSkillZone`), e ela nao tem pose
+	 * nem rosto: sem esta guarda o efeito ganhava uma `setAction` por tique. O
+	 * numero verde, o som e a luz no ALVO seguem abaixo, como os da Cura.
+	 */
+	const origemEhUnidadeDeChao =
+		!!srcEntity &&
+		(srcEntity.objecttype === Entity.TYPE_EFFECT ||
+			srcEntity.objecttype === Entity.TYPE_UNIT ||
+			srcEntity.objecttype === Entity.TYPE_TRAP);
 
 	// Don't display skill names for mobs and hiding skills
 	if (
@@ -1659,8 +1672,8 @@ function onEntityUseSkill(pkt) {
 		}
 	}
 
-	//Action handling
-	if (srcEntity) {
+	//Action handling (a unidade de chao nao tem pose)
+	if (srcEntity && !origemEhUnidadeDeChao) {
 		if (srcEntity.action !== srcEntity.ACTION.DIE && srcEntity.action !== srcEntity.ACTION.SIT) {
 			if (pkt.SKID in SkillActionTable) {
 				const action = SkillActionTable[pkt.SKID];
@@ -1678,7 +1691,7 @@ function onEntityUseSkill(pkt) {
 	}
 
 	if (dstEntity) {
-		if (srcEntity && dstEntity !== srcEntity) {
+		if (srcEntity && dstEntity !== srcEntity && !origemEhUnidadeDeChao) {
 			srcEntity.lookTo(dstEntity.position[0], dstEntity.position[1]);
 		}
 
