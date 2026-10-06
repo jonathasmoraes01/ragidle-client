@@ -118,11 +118,15 @@ describe('a cascata do programa do sprite', () => {
 		const lancando = escolherProgramaDoSprite({}, {
 			variantes: VARIANTES,
 			criarPrograma,
-			sondar: () => {
-				throw new Error('readPixels');
+			// so a sonda do principal lanca; as reservas desenhariam. Se "lancou"
+			// virasse "nao desenhou", a sem-correcao tomaria o lugar.
+			sondar: (gl, p) => {
+				if (p.vs === 'VS-P') throw new Error('readPixels');
+				return { desenhou: true };
 			}
 		});
 		expect(lancando.variante).toBe('principal');
+		expect(lancando.falhas).toEqual([]);
 		const semSaber = escolherProgramaDoSprite({}, { variantes: VARIANTES, criarPrograma, sondar: () => ({ desenhou: null }) });
 		expect(semSaber.variante).toBe('principal');
 	});
