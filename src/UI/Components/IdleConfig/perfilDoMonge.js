@@ -36,7 +36,7 @@ export const ROTULO_DO_PERFIL = {
 export const DESCRICAO_DO_PERFIL = {
 	automatico: 'Usa o Chefe contra MVP e chefe, e o Farm no resto. É o que recomendamos.',
 	farm: 'Combo Triplo, Combo Quádruplo e O Último Dragão, mantendo as esferas. Sem Asura e sem Fúria: o SP dura a caçada.',
-	chefe: 'Fúria antes, e a corrente até o Asura. O Asura só sai contra MVP ou chefe, com as 5 esferas, e não sai quando o golpe passaria muito da vida que falta ao alvo.'
+	chefe: 'Fúria antes, e a corrente até o Asura. Contra MVP e chefe, guarda SP para o Asura: os outros golpes e buffs só saem com o SP que sobra. O Asura só sai contra MVP ou chefe, com as 5 esferas, e não sai quando o golpe passaria muito da vida que falta ao alvo.'
 };
 
 /** Por que o perfil de agora e este (o `motivo` do servidor). */

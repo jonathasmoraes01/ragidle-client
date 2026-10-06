@@ -96,6 +96,8 @@ describe('o seletor e o que cada perfil faz', () => {
 		expect(html).toContain('<strong>Automático</strong> <span class="ri-badge ri-badge--verde">Recomendado</span>');
 		expect(DESCRICAO_DO_PERFIL.farm).toContain('Sem Asura e sem Fúria');
 		expect(DESCRICAO_DO_PERFIL.chefe).toContain('Asura só sai contra MVP ou chefe');
+		// a reserva de SP do perfil chefe (06/10/2026): o jogador ve que ele guarda SP para o Asura
+		expect(DESCRICAO_DO_PERFIL.chefe).toContain('guarda SP para o Asura: os outros golpes e buffs só saem com o SP que sobra');
 	});
 });
 
