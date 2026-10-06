@@ -441,8 +441,11 @@ function onTeleportList(pkt) {
 			mapNames[i] = DB.getMapName(pkt.mapName[i], pkt.mapName[i]);
 		}
 
-		NpcMenu.setMenu(mapNames.join(':') + ':Cancel', pkt.SKID);
+		/* O titulo ANTES das opcoes (D-2047): o `setMenu` mede a janela para
+		   decidir quantas linhas mostrar, e um titulo escrito depois cresceria a
+		   janela por baixo da conta. */
 		NpcMenu.ui.find('.title').text(DB.getMessage(213));
+		NpcMenu.setMenu(mapNames.join(':') + ':Cancel', pkt.SKID);
 	};
 
 	NpcMenu.append();
