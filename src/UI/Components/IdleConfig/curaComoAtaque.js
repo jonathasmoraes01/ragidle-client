@@ -24,6 +24,24 @@
 import { curaLigadaPara } from './secoesDaConfig.js';
 
 /** O servidor entende a marca? */
+/**
+ * OS NOMES DAS CURAS NA NOTA DA ABA ATAQUE, no idioma do jogador (05/10/2026).
+ *
+ * A nota juntava "Primeiros Socorros e Curar" num texto so, e o tradutor da
+ * janela nao conhece esse composto: em ingles saia "Primeiros Socorros e Curar
+ * are support skills". Cada nome passa pelo tradutor sozinho, e a conjuncao
+ * segue o idioma. Pura: `traduzir` e `emIngles` entram por parametro.
+ *
+ * @param {Array<{nome?: string, skillId?: string|number}>} curas
+ * @param {(texto: string) => string} traduzir
+ * @param {boolean} emIngles
+ * @returns {string} texto cru (quem desenha escapa)
+ */
+export function nomesDasCurasNoIdioma(curas, traduzir, emIngles) {
+	const nomes = (curas || []).map(c => traduzir(String(c.nome || c.skillId)));
+	return nomes.join(emIngles ? ' and ' : ' e ');
+}
+
 export function curaComoAtaqueServida(ctx) {
 	return !!(ctx && ctx.capacidades && ctx.capacidades.curaComoAtaque === true);
 }

@@ -85,7 +85,8 @@ import {
 	curaLigadaPara
 } from './secoesDaConfig.js';
 import { aplicarPassoDeNivel, duracaoDaEntrada, lembrarSpDoContexto, nivelEscolhidoServido, seletorDaCura, seletorDaEntrada } from './nivelNaConfig.js';
-import { curaComAtaqueAlterado, htmlDaCuraNaAbaAtaque, htmlDoAtaqueDaCura } from './curaComoAtaque.js';
+import { curaComAtaqueAlterado, htmlDaCuraNaAbaAtaque, htmlDoAtaqueDaCura, nomesDasCurasNoIdioma } from './curaComoAtaque.js';
+import { traducaoLigada, traduzir } from 'Core/Traducao.js';
 import { lerPassoDoSeletor } from 'UI/nivelDeUso.js';
 import htmlText from './IdleConfig.html?raw';
 import cssText from './IdleConfig.css?raw';
@@ -1525,7 +1526,8 @@ function renderAtaque() {
 	const curasNaOrdem = rotacao.filter(r => curas.has(r.skillId)).length;
 	// 08/09/2026 (ordem do dono): a cura NAO divide mais estas vagas — ela e
 	// suporte. A nota aponta para onde ela mora, pelo nome da habilidade.
-	const nomesDasCuras = (ctx.skillsDeCura || []).map(c => escapeHtml(c.nome || c.skillId)).join(' e ');
+	// Cada nome traduzido sozinho, e o "e" no idioma (05/10/2026): o composto nao casa no catalogo.
+	const nomesDasCuras = escapeHtml(nomesDasCurasNoIdioma(ctx.skillsDeCura, traduzir, traducaoLigada()));
 	const notaDeCura = curasAprendidas
 		? `<div class="ic-note">${nomesDasCuras} ${curasAprendidas === 1 ? 'é habilidade de suporte e não ocupa' : 'são habilidades de suporte e não ocupam'} vaga aqui: ${curasAprendidas === 1 ? 'ela é usada sozinha' : 'elas são usadas sozinhas'} quando a vida cai abaixo do limiar. O interruptor, o limiar e o alvo (você ou o grupo) ficam na seção <strong>Suporte</strong>.</div>`
 		: '';
