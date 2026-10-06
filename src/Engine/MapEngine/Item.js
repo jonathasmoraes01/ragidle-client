@@ -545,6 +545,23 @@ Inventory.reqMoveItemToWriteRodex = function reqMoveItemToWriteRodex(index, coun
 	Network.sendPacket(pkt);
 };
 
+/**
+ * O CARRINHO SAIU (R110, D-2044) - o `ZC_CARTOFF` (o `clif_clearcart` da
+ * fonte, clif.cpp:3303). A carga continua guardada no servidor.
+ */
+function onCartOff() {
+	CartItems.aoPerderCarrinho();
+}
+
+/**
+ * PEDIR A DEVOLUCAO (R110): o botao "Devolver" do carrinho manda o
+ * `CZ_REQ_CARTOFF` (0x012a) - o mesmo pacote do "off" da janela de
+ * equipamento -, e o servidor responde com a pergunta ("Sim, quero devolver").
+ */
+CartItems.pedirDevolucao = function pedirDevolucao() {
+	Network.sendPacket(new PACKET.CZ.REQ_CARTOFF());
+};
+
 function onCartItemAdded(pkt) {
 	CartItems.addItem(pkt);
 }
@@ -882,6 +899,8 @@ export default function ItemEngine() {
 	Network.hookPacket(PACKET.ZC.MAKABLEITEMLIST, onMakeitemList);
 	Network.hookPacket(PACKET.ZC.MAKINGITEM_LIST, onMakeitem_List);
 	Network.hookPacket(PACKET.ZC.ACK_ADDITEM_TO_CART, onAckAddItemToCart);
+	// R110: o carrinho saiu (`clif_clearcart`) - a janela fecha e se esvazia.
+	Network.hookPacket(PACKET.ZC.CARTOFF, onCartOff);
 	Network.hookPacket(PACKET.ZC.ITEMLISTWIN_OPEN, onListWinItem);
 	Network.hookPacket(PACKET.ZC.EXTEND_BODYITEM_SIZE, onBodyItemSize);
 	Network.hookPacket(PACKET.ZC.RECOVER_PENALTY_OVERWEIGHT, onRecoverPenaltyOverweight);
