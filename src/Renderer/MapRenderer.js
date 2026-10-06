@@ -57,6 +57,7 @@ import Blind from 'Renderer/Effects/Shaders/Blind.js';
 import Upsampling from 'Renderer/Effects/Shaders/Upsampling.js';
 import WebGL from 'Utils/WebGL.js';
 import { relatarErro } from 'UI/relatoDeErro.js';
+import { relatarEscolhaDoSprite } from 'Renderer/programaDoSprite.js';
 
 const mat4 = glMatrix.mat4;
 const _pos = new Uint16Array(2);
@@ -668,6 +669,24 @@ function onMapComplete(success, error) {
 			// O `console.error` do jogador nunca chega a ninguem (05/10/2026): a pilha
 			// vai ao `/analytics/erro`, que e onde se descobre o que parou a entrada.
 			relatarErro('[MapRenderer] montagem: ' + (erro && erro.message), erro && erro.stack);
+		}
+
+		/*
+		 * O RELATO DO PROGRAMA DO SPRITE SAI DEPOIS DO ESTOU-PRONTO (D-2048).
+		 * A cascata roda no `SpriteRenderer.init` la em cima, ANTES do aperto
+		 * de mao; o envio fica para depois dele (D-993). O `onLoad` agenda o
+		 * `CZ_NOTIFY_ACTORINIT` num `setTimeout(0)` logo na primeira linha, e
+		 * este relogio, mais longo e agendado depois, nunca passa na frente.
+		 * O relato sai uma vez por pagina, e so quando ha o que dizer.
+		 */
+		if (!vaiSerDescartado) {
+			setTimeout(() => {
+				try {
+					relatarEscolhaDoSprite(relatarErro);
+				} catch (_e) {
+					/* relato nao e caminho critico */
+				}
+			}, 1000);
 		}
 
 		// Display game

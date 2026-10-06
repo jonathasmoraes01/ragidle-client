@@ -74,6 +74,20 @@ export function getContext(canvas, parameters) {
 }
 
 /**
+ * O contexto foi perdido? Nunca lanca: e chamado de dentro de um erro.
+ *
+ * @param {object} gl context
+ * @return {boolean|null} `null` quando nao da para saber
+ */
+function contextoPerdido(gl) {
+	try {
+		return typeof gl.isContextLost === 'function' ? !!gl.isContextLost() : null;
+	} catch (_e) {
+		return null;
+	}
+}
+
+/**
  * Compile Webgl shader (fragment and vertex)
  *
  * @param {object} gl context
@@ -101,7 +115,18 @@ export function compileShader(gl, source, type) {
 
 		// More descriptive error
 		const typeStr = type === gl.VERTEX_SHADER ? 'Vertex' : 'Fragment';
-		throw new Error('WebGL::CompileShader() - Fail to compile ' + typeStr + ' shader: ' + error);
+		const falha = new Error('WebGL::CompileShader() - Fail to compile ' + typeStr + ' shader: ' + error);
+		/*
+		 * RAGIDLE (06/10/2026, D-2048): o relato do programa reserva do sprite
+		 * (`Renderer/programaDoSprite.js`) precisa saber QUAL shader falhou e o
+		 * log CRU. A mensagem acima junta os dois num texto, e um log `null` (o
+		 * que o navegador devolve com o contexto perdido) vira a palavra "null"
+		 * igual a um log que dissesse isso. A mensagem fica como era.
+		 */
+		falha.etapaDoShader = typeStr === 'Vertex' ? 'compilar-vertex' : 'compilar-fragment';
+		falha.logDoShader = error;
+		falha.contextoPerdido = contextoPerdido(gl);
+		throw falha;
 	}
 
 	return shader;
@@ -134,7 +159,11 @@ export function createShaderProgram(gl, vertexShader, fragmentShader) {
 			gl.deleteShader(vs);
 			gl.deleteShader(fs);
 
-			throw new Error('WebGL::CreateShaderProgram() - Fail to link shaders : ' + error);
+			const falha = new Error('WebGL::CreateShaderProgram() - Fail to link shaders : ' + error);
+			falha.etapaDoShader = 'link';
+			falha.logDoShader = error;
+			falha.contextoPerdido = contextoPerdido(gl);
+			throw falha;
 		}
 	} catch (e) {
 		console.error('Critical WebGL Shader Error:', e);

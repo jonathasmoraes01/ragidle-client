@@ -1,6 +1,18 @@
 #version 300 es
 precision highp float;
 
+// RAGIDLE (06/10/2026, D-2048): este e o programa PRINCIPAL do sprite. Se ele
+// nao compilar, nao linkar ou nao desenhar nada na sonda, `programaDoSprite.js`
+// cai para `SpriteRendererSemCorrecao.vs` e depois para `SpriteRendererMinimo.vs`.
+//
+// A conta e a mesma do roBrowser, com UMA diferenca de forma: o resultado e
+// montado num `vec4 clip` local e escrito em `gl_Position` UMA vez, no fim.
+// Antes o shader LIA `gl_Position.w` e reescrevia `gl_Position.z` duas vezes
+// depois de atribuido. Ler a saida embutida e legal em GLSL ES 3.00, mas e o
+// unico shader do jogo que faz isso, e os sprites sumiam no PowerVR BXM-8-256
+// (moto g54, Poco M7 Pro) com o mapa de pe. As operacoes de ponto flutuante
+// sao as mesmas, na mesma ordem: o desenho nos aparelhos bons nao muda.
+
 in vec2 aPosition;
 in vec2 aTextureCoord;
 
@@ -60,7 +72,7 @@ void main(void) {
     vec4 viewPosition = modelView * position;
     vec4 viewCenter   = modelView * vec4( 0.0, 0.0, 0.0, 1.0 );
 
-    gl_Position = uProjectionMat * viewPosition;
+    vec4 clip = uProjectionMat * viewPosition;
 
     vec3 cameraPos     = getCameraPosition();
     vec3 cameraForward = getCameraForward();
@@ -80,11 +92,12 @@ void main(void) {
         float dist       = dot(planePoint - cameraPos, planeNormal) / denom;
 
         vec4 planeClip       = uProjectionMat * (uModelViewMat * vec4(cameraPos + rayDir * dist, 1.0));
-        float correctedZBase = planeClip.z * (gl_Position.w / max(planeClip.w, 0.000001));
+        float correctedZBase = planeClip.z * (clip.w / max(planeClip.w, 0.000001));
 
-        gl_Position.z = min(gl_Position.z, correctedZBase);
+        clip.z = min(clip.z, correctedZBase);
     }
-    gl_Position.z -= (uSpriteRendererZindex * 0.01 + uSpriteRendererDepth) / max(uCameraZoom, 1.0);
+    clip.z -= (uSpriteRendererZindex * 0.01 + uSpriteRendererDepth) / max(uCameraZoom, 1.0);
 
+    gl_Position   = clip;
     vTextureCoord = aTextureCoord;
 }
