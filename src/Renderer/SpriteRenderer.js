@@ -14,11 +14,39 @@ import Camera from './Camera.js';
 import { canvasDoQuadro } from 'Renderer/quadroEm2D.js';
 import _vertexShader from './SpriteRenderer.vs?raw';
 import _fragmentShader from './SpriteRenderer.fs?raw';
+import _vertexShaderSemCorrecao from './SpriteRendererSemCorrecao.vs?raw';
+import _vertexShaderMinimo from './SpriteRendererMinimo.vs?raw';
+import _fragmentShaderMinimo from './SpriteRendererMinimo.fs?raw';
+import {
+	escolherProgramaDoSprite,
+	descreverGpu,
+	guardarEscolhaDoSprite,
+	nivelDeReservaForcado
+} from 'Renderer/programaDoSprite.js';
+import { sondarProgramaDoSprite } from 'Renderer/sondaDoSprite.js';
 
 /**
  * Import
  */
 const mat4 = glMatrix.mat4;
+
+/**
+ * AS VARIANTES DO PROGRAMA DO SPRITE, em ordem de preferencia (D-2048). A
+ * primeira que compila, linka e desenha na sonda fica valendo para o jogo
+ * inteiro (entidades, ceu, efeitos 2D/3D e dano). Ver `programaDoSprite.js`.
+ */
+export const VARIANTES_DO_SPRITE = [
+	{ nome: 'principal', vs: _vertexShader, fs: _fragmentShader },
+	{ nome: 'sem-correcao', vs: _vertexShaderSemCorrecao, fs: _fragmentShader },
+	{ nome: 'minima', vs: _vertexShaderMinimo, fs: _fragmentShaderMinimo }
+];
+
+/**
+ * Sem programa nenhum (nenhuma variante compilou): o sprite nao se desenha, e
+ * o resto do quadro — chao, modelos, agua, nomes — segue. Antes, a falha
+ * lancava no `onMapComplete` e o jogador nem entrava no mapa.
+ */
+function RenderSemPrograma() {}
 
 /**
  * Render in 3D mode
@@ -151,6 +179,13 @@ function RenderCanvas2D() {
  * @type {WebGLProgram}
  */
 let _program = null;
+
+/**
+ * @type {boolean} a cascata ja rodou nesta pagina (D-2048). Ela roda UMA vez:
+ * sem nenhuma variante que compile, tentar de novo a cada mapa so repetiria a
+ * falha. A perda de contexto recarrega a pagina (`perdaDeContexto.js`).
+ */
+let _programaEscolhido = false;
 
 /**
  * @type {WebGLBuffer}
@@ -338,9 +373,44 @@ class SpriteRenderer {
 			);
 		}
 
-		if (!_program) {
-			_program = WebGL.createShaderProgram(gl, _vertexShader, _fragmentShader);
+		if (!_program && !_programaEscolhido) {
+			_programaEscolhido = true;
+			SpriteRenderer.escolherPrograma(gl, lerBuscaDaUrl());
 		}
+	}
+
+	/**
+	 * A cascata do programa (D-2048). Nunca lanca: sem nenhuma variante,
+	 * `_program` fica `null` e o sprite vira desenhista mudo.
+	 *
+	 * @param {object} gl context
+	 * @param {string} [busca] `location.search` (a chave `forcarSpriteReserva`)
+	 * @return {object} a escolha (`programaDoSprite.js`)
+	 */
+	static escolherPrograma(gl, busca) {
+		let escolha;
+		try {
+			escolha = escolherProgramaDoSprite(gl, {
+				variantes: VARIANTES_DO_SPRITE,
+				criarPrograma: (contexto, vs, fs) => WebGL.createShaderProgram(contexto, vs, fs),
+				sondar: sondarProgramaDoSprite,
+				apagarPrograma: (contexto, programa) => contexto.deleteProgram(programa),
+				pular: nivelDeReservaForcado(busca)
+			});
+		} catch (erro) {
+			escolha = {
+				programa: null,
+				variante: null,
+				falhas: [{ variante: '?', etapa: 'erro', log: String(erro && erro.message), contextoPerdido: null }],
+				sondas: {}
+			};
+		}
+		_program = escolha.programa;
+		if (escolha.variante !== 'principal') {
+			console.warn('[SpriteRenderer] programa do sprite: ' + (escolha.variante || 'NENHUM'), escolha.falhas);
+		}
+		guardarEscolhaDoSprite(escolha, descreverGpu(gl));
+		return escolha;
 	}
 
 	/**
@@ -352,6 +422,12 @@ class SpriteRenderer {
 	 * @param {object} fog structure
 	 */
 	static bind3DContext(gl, modelView, projection, fog) {
+		if (!_program) {
+			this.render = RenderSemPrograma;
+			_gl = gl;
+			return;
+		}
+
 		const attribute = _program.attribute;
 		const uniform = _program.uniform;
 
@@ -400,6 +476,10 @@ class SpriteRenderer {
 	 * @param {object} gl context
 	 */
 	static unbind(gl) {
+		if (!_program) {
+			return;
+		}
+
 		const attribute = _program.attribute;
 
 		gl.disableVertexAttribArray(attribute.aPosition);
@@ -486,6 +566,17 @@ class SpriteRenderer {
 		if (this.disableDepthCorrection !== prevDepthCorrection) {
 			this.disableDepthCorrection = prevDepthCorrection;
 		}
+	}
+}
+
+/**
+ * A busca da URL, sem lancar fora do navegador.
+ */
+function lerBuscaDaUrl() {
+	try {
+		return typeof location !== 'undefined' ? location.search : '';
+	} catch (_e) {
+		return '';
 	}
 }
 
