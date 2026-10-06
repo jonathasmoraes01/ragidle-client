@@ -1,11 +1,12 @@
 <!-- Fase 3 (01/09/2026): btn_ok/btn_cancel.bmp nao existem no GRF LATAM —
      viravam toco quebrado (mesma familia do "fechar" da NpcBox). Botoes do
      design system com rotulo em texto; classes .ok/.cancel preservadas
-     (NpcMenu.js as consulta). -->
+     (NpcMenu.js as consulta). D-2047: o titulo saiu de dentro da lista, que
+     agora cresce ate 7 linhas e rola so as opcoes. -->
 <div id="NpcMenu">
 	<div class="container">
+		<span class="title"></span>
 		<div class="middle ri-scroll">
-			<span class="title"></span>
 			<div class="content"></div>
 		</div>
 		<div class="nm-acoes">

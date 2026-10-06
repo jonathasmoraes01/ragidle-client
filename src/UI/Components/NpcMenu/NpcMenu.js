@@ -17,6 +17,8 @@ import 'UI/Elements/Elements.js';
 import htmlText from './NpcMenu.html?raw';
 import cssText from './NpcMenu.css?raw';
 import InputBox from 'UI/Components/InputBox/InputBox.js';
+import { ehDedo } from 'UI/escalaDaHud.js';
+import { posicaoDoMenu, LINHAS_SEM_ROLAR } from './posicaoDoMenu.js';
 
 /**
  * Create NPC Menu component
@@ -190,7 +192,71 @@ NpcMenu.setMenu = function setMenu(menu, gid) {
 	if (first) {
 		first.classList.add('selected');
 	}
+
+	ajustarAoConteudo();
 };
+
+/**
+ * A JANELA CRESCE COM AS OPCOES, ATE 7 LINHAS (D-2047, 06/10/2026).
+ *
+ * Mede a janela montada (a moldura, e a altura da lista mostrando 1, 2, ...
+ * linhas), pergunta a `posicaoDoMenu` quantas linhas cabem e onde, e escreve o
+ * `max-height` da lista e o top/left do host. A regra mora la (pura, com
+ * teste e mutante); aqui so se mede e aplica.
+ *
+ * Tudo em pixels da TELA (`getBoundingClientRect`), e convertido para o CSS
+ * do host dividindo pelo `zoom` que `escalaDaHud` poe nele no mouse com a
+ * janela pequena (D-934): `zoom` escala tambem o top/left e o max-height.
+ *
+ * A caixa de fala e lida pelo id do host, e nao por import: o `NpcBox` ja
+ * importa este componente.
+ */
+function ajustarAoConteudo() {
+	const host = NpcMenu._host;
+	const root = NpcMenu.getRoot();
+	const middle = root && root.querySelector('.middle');
+	if (!host || !middle || !host.isConnected) {
+		return;
+	}
+	const linhas = middle.querySelectorAll('.content div[data-index]');
+	if (!linhas.length) {
+		return;
+	}
+	const zoom = parseFloat(host.style.zoom) || 1;
+
+	// A lista inteira, sem teto, para medir.
+	middle.style.maxHeight = 'none';
+	const caixa = host.getBoundingClientRect();
+	const lista = middle.getBoundingClientRect();
+	const moldura = caixa.height - lista.height;
+	const alturas = [];
+	for (let l = 1; l <= Math.min(linhas.length, LINHAS_SEM_ROLAR); l++) {
+		// Mostrar `l` linhas = da boca da lista ate o topo da linha seguinte
+		// (a margem entre linhas vai junto); a ultima e a lista inteira.
+		const fundo = l < linhas.length ? linhas[l].getBoundingClientRect().top : lista.bottom;
+		alturas.push(moldura + (fundo - lista.top));
+	}
+
+	const box = document.getElementById('NpcBox');
+	const falaVisivel = box && box.isConnected && box.style.display !== 'none' && getComputedStyle(box).display !== 'none';
+	const fala = falaVisivel ? box.getBoundingClientRect() : null;
+
+	const p = posicaoDoMenu({
+		tela: { largura: window.innerWidth, altura: window.innerHeight },
+		fala: fala && fala.height > 0 ? { top: fala.top, bottom: fala.bottom } : null,
+		largura: caixa.width,
+		alturas,
+		preferida: {
+			top: Math.max(376, Renderer.height / 2 + 76) * zoom,
+			left: Math.max(Renderer.width / 3, 20) * zoom
+		},
+		centralizar: ehDedo()
+	});
+
+	middle.style.maxHeight = `${(alturas[p.linhas - 1] - moldura) / zoom}px`;
+	host.style.top = `${p.top / zoom}px`;
+	host.style.left = `${p.left / zoom}px`;
+}
 
 /**
  * Submit an index
