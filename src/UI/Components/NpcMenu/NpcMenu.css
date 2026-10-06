@@ -1,23 +1,27 @@
-/* 276x150 (era 116) e top 312 (era 285): o rodape de botoes de verdade pediu
-   altura, e a NpcBox acima cresceu para 200 — 285 faria as duas se tocarem.
-   NpcMenu.js so posiciona top/left, nunca mede o conteudo. */
+/* A ALTURA E DO CONTEUDO (D-2047, 06/10/2026). Ate aqui o menu era uma caixa
+   FIXA de 276x150 que mostrava ~4 linhas: a Kafra com 6 opcoes escondia
+   "Curar" e "Devolver carrinho" atras da rolagem. Ordem do dono: *"aumenta
+   para crescer a janela ate mostrar todas as opcoes sem rolar (ate ~7
+   linhas)"*. Agora a janela mede o que tem, e o `setMenu` (NpcMenu.js) mede as
+   linhas e escreve o `max-height` da lista e o top/left com a regra pura de
+   `posicaoDoMenu.js` (ate 7 linhas, nunca em cima da fala do NPC, sempre na
+   tela). O host acompanha a caixa: `ClampToViewport` e o arrasto medem o HOST. */
 :host {
 	width: 276px;
-	height: 150px;
+	height: auto;
 	top: 312px;
 	left: 100px;
 }
 
 /* menu de escolhas do NPC (builder npc, 18/08/2026): mesmo tratamento do
    NpcBox -- nunca teve BMP de fundo (cor solida #fff + borda #c1c6c2), vira
-   cartao claro com filete dourado. :host width/height intocados (NpcMenu.js
-   so posiciona top/left; a navegacao por teclado usa scrollIntoView, que
-   funciona igual em qualquer altura de linha). */
+   cartao claro com filete dourado. `position: relative` (D-2047): com
+   `absolute` o host nao tinha altura e nao saberia o tamanho da janela. */
 #NpcMenu {
-	position: absolute;
+	position: relative;
 	border-radius: var(--radius-window);
-	width: 276px;
-	height: 150px;
+	width: 100%;
+	height: auto;
 	background: var(--window-fill);
 	border: var(--window-frame);
 	box-shadow: var(--window-shadow), var(--rim-light);
@@ -28,12 +32,14 @@
 
 /* Titulo desta janela (menu de escolhas do NPC): serifa Marcellus, como
    qualquer titulo de janela do sistema (--font-display) -- so a familia
-   muda, tamanho/peso ficam compactos pra caber no card 276x116. */
+   muda, tamanho/peso ficam compactos. Fora da lista desde D-2047: o titulo
+   (o da lista de Portal) nao rola junto com as opcoes. */
 #NpcMenu .title {
+	flex: 0 0 auto;
 	white-space: nowrap;
 	overflow: hidden;
+	text-overflow: ellipsis;
 	display: block;
-	width: 260px;
 	padding-left: 3px;
 	padding-top: 3px;
 	color: var(--text-title);
@@ -47,15 +53,16 @@
 	flex-direction: column;
 	border-radius: var(--radius-panel);
 	border: 1px solid var(--border-hairline);
-	width: 269px;
-	height: 143px;
+	width: 100%;
 	padding: 5px 5px 6px;
 	box-sizing: border-box;
 	background: var(--surface-card-hover);
 }
 
+/* A lista: cresce com as opcoes; o teto (o `max-height` em linhas inteiras)
+   e escrito pelo `setMenu`. Acima dele, rola por dentro. */
 #NpcMenu .middle {
-	flex: 1 1 auto;
+	flex: 0 0 auto;
 	min-height: 0;
 	overflow-x: hidden;
 	overflow-y: auto;
@@ -67,9 +74,6 @@
 #NpcMenu .content {
 	white-space: pre-wrap;
 	background: transparent;
-	width: 258px;
-	/* altura livre: a lista rola dentro de .middle (flex), nao mais nos 80px
-	   cravados que escondiam a 5a opcao atras dos botoes absolutos */
 	padding-left: 0px;
 	margin-top: 4px;
 }
@@ -128,4 +132,38 @@
 	font-size: var(--fs-label);
 	line-height: 1.2;
 	cursor: pointer;
+}
+
+/* NO DEDO (D-2047): linhas e botoes com o alvo de 44px do design system
+   (--hit-touch). Media query e o criterio da casa no CSS (o mesmo de
+   `ehDedo()`, `UI/escalaDaHud.js`); no mouse este bloco nao existe e o desktop
+   ve exatamente o que via. A janela fica da largura da caixa de fala (320),
+   sem passar da tela. */
+@media (pointer: coarse) {
+	:host {
+		width: min(320px, calc(100vw - 16px));
+	}
+
+	#NpcMenu .content div {
+		display: flex;
+		align-items: center;
+		box-sizing: border-box;
+		height: auto;
+		min-height: var(--hit-touch, 44px);
+		padding-top: 0;
+		font-size: var(--fs-info);
+	}
+
+	/* `:hover` gruda no dedo depois do toque: so a selecao pinta. */
+	#NpcMenu .content div:hover:not(.selected) {
+		background: transparent;
+		color: var(--text-body);
+	}
+
+	#NpcMenu .btn {
+		min-height: var(--hit-touch, 44px);
+		min-width: var(--hit-touch, 44px);
+		padding: 0 18px;
+		font-size: var(--fs-info);
+	}
 }
