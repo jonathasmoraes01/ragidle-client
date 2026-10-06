@@ -135,6 +135,23 @@ CartItems.init = function Init() {
 		});
 	}
 
+	/*
+	 * "DEVOLVER" NO RODAPE (R110, 06/10/2026): o pedido vai ao servidor
+	 * (`CZ_REQ_CARTOFF`, montado em `Engine/MapEngine/Item.js`), e e ELE quem
+	 * pergunta, na janela de confirmacao com o "Sim, quero devolver". Uma
+	 * tranca desenhada aqui nao seria tranca: o servidor nao devolve nada ate
+	 * ouvir o "sim".
+	 */
+	const devolverBtn = root.querySelector('.footer .devolver');
+	if (devolverBtn) {
+		devolverBtn.addEventListener('click', e => {
+			e.stopImmediatePropagation();
+			if (typeof CartItems.pedirDevolucao === 'function') {
+				CartItems.pedirDevolucao();
+			}
+		});
+	}
+
 	// on drop item
 	this._host.addEventListener('drop', onDrop);
 	/*
@@ -315,6 +332,26 @@ CartItems.fechar = function fechar() {
 	}
 	this._host.style.display = 'none';
 	this._host.dispatchEvent(new Event('mouseleave'));
+};
+
+/**
+ * O CARRINHO SAIU (R110): o `ZC_CARTOFF` (o `clif_clearcart` da fonte). A
+ * janela fecha e a grade se esvazia — a CARGA continua no servidor, guardada,
+ * e volta inteira no proximo aluguel (`enviarCarrinho` manda a lista de novo).
+ * Esvaziar aqui e o que impede o jogador de ver, e tentar tirar, itens de um
+ * carrinho que ele nao tem mais.
+ */
+CartItems.aoPerderCarrinho = function aoPerderCarrinho() {
+	if (!this._host) {
+		return;
+	}
+	const content = this.getRoot().querySelector('.container .content');
+	if (content) {
+		content.innerHTML = '';
+	}
+	this.list.length = 0;
+	this.info = null;
+	this.fechar();
 };
 
 CartItems.onKeyDown = function onKeyDown(event) {

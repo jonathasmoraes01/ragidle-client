@@ -217,6 +217,12 @@ function onSkillResult(pkt) {
 			case 13:
 				error = 1398;
 				break;
+			// USESKILL_FAIL_CART (clif.hpp:464) -> MSI_USESKILL_FAIL_CART
+			// (clif.hpp:576). R110: sem carrinho (devolvido), o Cart Revolution,
+			// o Comercio e o Personalizar Carrinho recusam com o motivo.
+			case 57:
+				error = 1519;
+				break;
 			case 83:
 				error = 661;
 				break;
