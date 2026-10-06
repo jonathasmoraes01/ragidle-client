@@ -1296,6 +1296,75 @@
 	}
 }
 
+/* ─── Os perfis do Monge (06/10/2026): "em uso agora", o seletor e o que cada
+   perfil faz. O seletor e o segmentado da janela, esticado na largura do
+   cartao (tres botoes do mesmo tamanho); no celular cada botao tem 44px de
+   altura, a regra do toque, e o texto quebra em vez de vazar. */
+#IdleConfig .ic-perfil-agora {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: var(--sp-2);
+	margin: var(--sp-2) 0;
+}
+
+#IdleConfig .ic-perfil-agora-rotulo {
+	font: var(--type-desc);
+	color: var(--text-title);
+}
+
+#IdleConfig .ic-perfil-motivo {
+	flex: 1 1 100%;
+	font: var(--type-desc);
+}
+
+#IdleConfig .ic-seg--perfil {
+	display: flex;
+	width: 100%;
+	box-sizing: border-box;
+}
+
+#IdleConfig .ic-seg--perfil .ic-seg-btn {
+	flex: 1 1 0;
+	justify-content: center;
+	min-width: 0;
+	white-space: normal;
+	text-align: center;
+	padding: 6px 8px;
+}
+
+#IdleConfig .ic-perfil-lista {
+	list-style: none;
+	margin: var(--sp-2) 0 0;
+	padding: 0;
+	display: flex;
+	flex-direction: column;
+	gap: var(--sp-2);
+}
+
+#IdleConfig .ic-perfil-item {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 4px var(--sp-2);
+	font: var(--type-desc);
+	opacity: 0.75;
+}
+
+#IdleConfig .ic-perfil-item > span:last-child {
+	flex: 1 1 100%;
+}
+
+#IdleConfig .ic-perfil-item.is-escolhido {
+	opacity: 1;
+}
+
+@media (pointer: coarse) {
+	#IdleConfig .ic-seg--perfil .ic-seg-btn {
+		min-height: var(--hit-touch, 44px);
+	}
+}
+
 /* ─── D-1906: o NIVEL DE USO nas linhas da ordem de golpes, dos buffs e da
    cura. O seletor em si (`.ri-nivel`) e do `Common.css`; aqui so o encaixe
    dele nesta janela. A cura desligada continua mexivel — a escolha fica

@@ -86,6 +86,7 @@ import {
 } from './secoesDaConfig.js';
 import { aplicarPassoDeNivel, duracaoDaEntrada, lembrarSpDoContexto, nivelEscolhidoServido, seletorDaCura, seletorDaEntrada } from './nivelNaConfig.js';
 import { curaComAtaqueAlterado, htmlDaCuraNaAbaAtaque, htmlDoAtaqueDaCura, nomesDasCurasNoIdioma } from './curaComoAtaque.js';
+import { htmlDoPerfilDoMonge } from './perfilDoMonge.js';
 import { traducaoLigada, traduzir } from 'Core/Traducao.js';
 import { lerPassoDoSeletor } from 'UI/nivelDeUso.js';
 import htmlText from './IdleConfig.html?raw';
@@ -1532,7 +1533,10 @@ function renderAtaque() {
 		? `<div class="ic-note">${nomesDasCuras} ${curasAprendidas === 1 ? 'é habilidade de suporte e não ocupa' : 'são habilidades de suporte e não ocupam'} vaga aqui: ${curasAprendidas === 1 ? 'ela é usada sozinha' : 'elas são usadas sozinhas'} quando a vida cai abaixo do limiar. O interruptor, o limiar e o alvo (você ou o grupo) ficam na seção <strong>Suporte</strong>.</div>`
 		: '';
 
+	// Os perfis do Monge (06/10/2026): o cartao so existe quando o servidor
+	// manda `contexto.monge` (a linha do Monge); o seletor e o segmentado generico.
 	return `
+		${htmlDoPerfilDoMonge({ cfg, ctx, escapar: escapeHtml })}
 		<div class="ic-card">
 			<div class="ic-card-head">
 				<h3>Ordem de uso</h3>
