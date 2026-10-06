@@ -260,7 +260,13 @@ const PT_BR = {
 	'Job Experience Manual': 'Manual de Experiência de Classe',
 	'Increases Job EXP acquired.': 'Mais EXP de classe',
 	'Experience Manual': 'Manual de Experiência',
-	'Increases acquired Base EXP': 'Mais EXP de base'
+	'Increases acquired Base EXP': 'Mais EXP de base',
+
+	/* -------- as pocoes de ASPD (D-1989, 05/10/2026): o icone passou a descer -------- */
+	'Concentration Potion': 'Poção da Concentração',
+	'Awakening Potion': 'Poção do Despertar',
+	'Berserk Potion': 'Poção da Fúria Selvagem',
+	'Increases ASPD': 'Aumenta a velocidade de ataque'
 };
 
 /**
