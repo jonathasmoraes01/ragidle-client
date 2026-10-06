@@ -17,11 +17,14 @@ import _fragmentShader from './SpriteRenderer.fs?raw';
 import _vertexShaderSemCorrecao from './SpriteRendererSemCorrecao.vs?raw';
 import _vertexShaderMinimo from './SpriteRendererMinimo.vs?raw';
 import _fragmentShaderMinimo from './SpriteRendererMinimo.fs?raw';
+import _vertexShaderSemFuncao from './SpriteRendererSemFuncao.vs?raw';
+import _vertexShaderSemBool from './SpriteRendererSemBool.vs?raw';
 import {
 	escolherProgramaDoSprite,
 	descreverGpu,
 	guardarEscolhaDoSprite,
-	nivelDeReservaForcado,
+	lerChaveDeReserva,
+	ordemDasVariantes,
 	CHAVE_DE_RESERVA_FORCADA
 } from 'Renderer/programaDoSprite.js';
 import { sondarProgramaDoSprite } from 'Renderer/sondaDoSprite.js';
@@ -32,14 +35,21 @@ import { sondarProgramaDoSprite } from 'Renderer/sondaDoSprite.js';
 const mat4 = glMatrix.mat4;
 
 /**
- * AS VARIANTES DO PROGRAMA DO SPRITE, em ordem de preferencia (D-2048). A
- * primeira que compila, linka e desenha na sonda fica valendo para o jogo
- * inteiro (entidades, ceu, efeitos 2D/3D e dano). Ver `programaDoSprite.js`.
+ * AS VARIANTES DO PROGRAMA DO SPRITE (D-2048, D-2054). A ORDEM em que sao
+ * tentadas sai de `ordemDasVariantes` (chave, regra do PowerVR ou sonda); a
+ * escolhida vale para o jogo inteiro (entidades, ceu, efeitos 2D/3D e dano).
+ * As quatro ultimas sao de DIAGNOSTICO: so entram pela chave
+ * `?forcarSpriteReserva=N`, e cada uma tira UMA peca da principal - a tabela
+ * esta em `CHAVES_DE_RESERVA` (`programaDoSprite.js`).
  */
 export const VARIANTES_DO_SPRITE = [
 	{ nome: 'principal', vs: _vertexShader, fs: _fragmentShader },
 	{ nome: 'sem-correcao', vs: _vertexShaderSemCorrecao, fs: _fragmentShader },
-	{ nome: 'minima', vs: _vertexShaderMinimo, fs: _fragmentShaderMinimo }
+	{ nome: 'minima', vs: _vertexShaderMinimo, fs: _fragmentShaderMinimo },
+	{ nome: 'sem-funcao', vs: _vertexShaderSemFuncao, fs: _fragmentShader },
+	{ nome: 'sem-bool', vs: _vertexShaderSemBool, fs: _fragmentShader },
+	{ nome: 'fs-minimo', vs: _vertexShader, fs: _fragmentShaderMinimo },
+	{ nome: 'vs-minimo', vs: _vertexShaderMinimo, fs: _fragmentShader }
 ];
 
 /**
@@ -376,42 +386,171 @@ class SpriteRenderer {
 
 		if (!_program && !_programaEscolhido) {
 			_programaEscolhido = true;
-			SpriteRenderer.escolherPrograma(gl, lerBuscaDaUrl());
+			SpriteRenderer.escolherPrograma(gl, lerBuscaDaUrl(), lerArmazenamento());
 		}
 	}
 
 	/**
-	 * A cascata do programa (D-2048). Nunca lanca: sem nenhuma variante,
-	 * `_program` fica `null` e o sprite vira desenhista mudo.
+	 * A cascata do programa (D-2048, D-2054). Nunca lanca: sem nenhuma
+	 * variante, `_program` fica `null` e o sprite vira desenhista mudo.
 	 *
 	 * @param {object} gl context
 	 * @param {string} [busca] `location.search` (a chave `forcarSpriteReserva`)
+	 * @param {object|null} [armazenamento] onde a chave fica guardada (`localStorage`)
 	 * @return {object} a escolha (`programaDoSprite.js`)
 	 */
-	static escolherPrograma(gl, busca) {
+	static escolherPrograma(gl, busca, armazenamento = null) {
+		const gpu = descreverGpu(gl);
 		let escolha;
 		try {
-			escolha = escolherProgramaDoSprite(gl, {
-				variantes: VARIANTES_DO_SPRITE,
-				criarPrograma: (contexto, vs, fs) => WebGL.createShaderProgram(contexto, vs, fs),
-				sondar: sondarProgramaDoSprite,
-				apagarPrograma: (contexto, programa) => contexto.deleteProgram(programa),
-				pular: nivelDeReservaForcado(busca)
+			const chave = lerChaveDeReserva(busca, armazenamento);
+			const plano = ordemDasVariantes(VARIANTES_DO_SPRITE, {
+				chave: chave.chave,
+				origemDaChave: chave.origem,
+				renderizador: gpu.renderizador
 			});
+			escolha = escolherProgramaDoSprite(gl, {
+				variantes: plano.ordem,
+				criarPrograma: (contexto, vs, fs) => WebGL.createShaderProgram(contexto, vs, fs),
+				sondar: (contexto, programa) => SpriteRenderer.sondar(contexto, programa),
+				apagarPrograma: (contexto, programa) => contexto.deleteProgram(programa),
+				confiarNaPrimeira: plano.confiarNaPrimeira
+			});
+			escolha.origem = plano.origem;
+			escolha.chave = chave.chave;
+			/*
+			 * Fora da escolha automatica, a sonda do PRINCIPAL tambem vai ao relato:
+			 * e ela que diz se a sonda fiel (D-2054) reprova o principal no
+			 * aparelho do defeito - e, se reprovar, a regra do PowerVR pode sair.
+			 */
+			if (plano.origem !== 'sonda' && escolha.variante !== 'principal') {
+				escolha.sondaDoPrincipal = SpriteRenderer.sondarFontes(gl, _vertexShader, _fragmentShader);
+			}
 		} catch (erro) {
 			escolha = {
 				programa: null,
 				variante: null,
+				origem: 'erro',
 				falhas: [{ variante: '?', etapa: 'erro', log: String(erro && erro.message), contextoPerdido: null }],
 				sondas: {}
 			};
 		}
 		_program = escolha.programa;
+		zerarCaches();
 		if (escolha.variante !== 'principal') {
-			console.warn('[SpriteRenderer] programa do sprite: ' + (escolha.variante || 'NENHUM'), escolha.falhas);
+			console.warn(
+				'[SpriteRenderer] programa do sprite: ' + (escolha.variante || 'NENHUM') + ' (' + escolha.origem + ')',
+				escolha.falhas
+			);
 		}
-		guardarEscolhaDoSprite(escolha, descreverGpu(gl));
+		guardarEscolhaDoSprite(escolha, gpu);
+		try {
+			// Diagnostico no console do aparelho e na sonda de tela.
+			globalThis.__ragidleSondaDoSprite = {
+				variantes: VARIANTES_DO_SPRITE,
+				sondarFontes: (vs, fs) => SpriteRenderer.sondarFontes(gl, vs, fs)
+			};
+		} catch (_e) {
+			/* diagnostico nao e caminho critico */
+		}
 		return escolha;
+	}
+
+	/**
+	 * A SONDA FIEL (D-2054): desenha pelo `render` de verdade, com `programa`
+	 * no lugar do `_program` so durante a sonda. Ver `sondaDoSprite.js`.
+	 *
+	 * @param {object} gl context
+	 * @param {WebGLProgram} programa
+	 * @return {object} `{ desenhou, casos }`
+	 */
+	static sondar(gl, programa) {
+		const anterior = _program;
+		const salvo = {
+			texture: this.image.texture,
+			palette: this.image.palette,
+			imageSize: Float32Array.from(this.image.size),
+			color: Float32Array.from(this.color),
+			size: Float32Array.from(this.size),
+			offset: Float32Array.from(this.offset),
+			position: Float32Array.from(this.position),
+			angle: this.angle,
+			shadow: this.shadow,
+			depth: this.depth,
+			zIndex: this.zIndex,
+			sprite: this.sprite,
+			render: this.render,
+			disableDepthCorrection: this.disableDepthCorrection,
+			gl: _gl
+		};
+		_program = programa;
+		zerarCaches();
+		try {
+			return sondarProgramaDoSprite(gl, programa, caso => {
+				const m = caso.matrizes;
+				const semNevoa = { use: false, exist: false, near: 0, far: 1, color: [0, 0, 0] };
+				SpriteRenderer.bind3DContext(gl, m.modelView, m.projecao, semNevoa);
+				SpriteRenderer.position.set([0, 0, 0]);
+				SpriteRenderer.size.set([150, 150]);
+				SpriteRenderer.offset.set([0, 0]);
+				SpriteRenderer.angle = 0;
+				SpriteRenderer.shadow = 1.0;
+				SpriteRenderer.depth = 0;
+				SpriteRenderer.zIndex = 0;
+				SpriteRenderer.color.set([1, 1, 1, 1]);
+				SpriteRenderer.sprite = { type: caso.rgba ? 1 : 0 };
+				SpriteRenderer.image.texture = caso.textura;
+				SpriteRenderer.image.palette = caso.paleta;
+				SpriteRenderer.image.size.set(caso.tamanhoDaImagem);
+				if (caso.dano) {
+					// o `Damage.js`: sem profundidade e sem correcao
+					SpriteRenderer.runWithDepth(false, false, true, () => SpriteRenderer.render(false));
+				} else {
+					SpriteRenderer.runWithDepth(true, true, false, () => SpriteRenderer.render(false));
+				}
+				SpriteRenderer.unbind(gl);
+			});
+		} finally {
+			_program = anterior;
+			zerarCaches();
+			this.image.texture = salvo.texture;
+			this.image.palette = salvo.palette;
+			this.image.size.set(salvo.imageSize);
+			this.color.set(salvo.color);
+			this.size.set(salvo.size);
+			this.offset.set(salvo.offset);
+			this.position.set(salvo.position);
+			this.angle = salvo.angle;
+			this.shadow = salvo.shadow;
+			this.depth = salvo.depth;
+			this.zIndex = salvo.zIndex;
+			this.sprite = salvo.sprite;
+			this.render = salvo.render;
+			this.disableDepthCorrection = salvo.disableDepthCorrection;
+			_gl = salvo.gl;
+		}
+	}
+
+	/**
+	 * Compila `vs`/`fs`, passa pela sonda fiel e apaga. Para o relato e para o
+	 * diagnostico no console (`__ragidleSondaDoSprite.sondarFontes`). Nunca lanca.
+	 */
+	static sondarFontes(gl, vs, fs) {
+		let programa = null;
+		try {
+			programa = WebGL.createShaderProgram(gl, vs, fs);
+			return SpriteRenderer.sondar(gl, programa);
+		} catch (erro) {
+			return { desenhou: null, motivo: 'nao compilou: ' + String(erro && erro.message).slice(0, 120) };
+		} finally {
+			if (programa) {
+				try {
+					gl.deleteProgram(programa);
+				} catch (_e) {
+					/* limpeza */
+				}
+			}
+		}
 	}
 
 	/**
@@ -567,6 +706,32 @@ class SpriteRenderer {
 		if (this.disableDepthCorrection !== prevDepthCorrection) {
 			this.disableDepthCorrection = prevDepthCorrection;
 		}
+	}
+}
+
+/**
+ * Os caches de uniform do `RenderCanvas3D` sao do programa em uso: trocar de
+ * programa (a sonda, a escolha) os invalida.
+ */
+function zerarCaches() {
+	_shadow = null;
+	_angle = null;
+	_depth = null;
+	_usepal = null;
+	_texture = null;
+	_disableDepthCorrection = false;
+	_lastGroupId = -1;
+}
+
+/**
+ * Onde a chave da reserva fica guardada (D-2054). `localStorage` pode faltar
+ * ou lancar so de ser lido (aba anonima, site bloqueado): a resposta e `null`.
+ */
+function lerArmazenamento() {
+	try {
+		return typeof localStorage !== 'undefined' ? localStorage : null;
+	} catch (_e) {
+		return null;
 	}
 }
 

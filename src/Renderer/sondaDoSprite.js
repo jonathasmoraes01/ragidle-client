@@ -1,19 +1,31 @@
 /**
- * A SONDA DO PROGRAMA DO SPRITE (06/10/2026, D-2048).
+ * A SONDA DO PROGRAMA DO SPRITE (06/10/2026, D-2048; FIEL desde a D-2054).
  *
- * Compilar nao prova desenhar (regra 5 do contrato do servidor): um driver que
- * aceita o shader e o executa errado poe o sprite fora do recorte, e nada
- * lanca. A sonda desenha UM quad branco com o programa recem-linkado num
- * framebuffer proprio de 32x32, com a camera padrao do jogo (zoom 125, angulo
- * 230, a perspectiva de 15 graus de `Renderer.js`), duas vezes — com a
- * correcao de profundidade ligada (o corpo das entidades) e desligada (o
- * dano) — e conta os pixels que sairam. Zero em qualquer das duas e "nao
- * desenhou".
+ * Compilar nao prova desenhar (regra 5 do contrato do servidor). A PRIMEIRA
+ * sonda (D-2048) desenhava um quad branco de textura 1x1, sem mistura de cor,
+ * num VAO proprio, e aprovava qualquer pixel aceso (alfa OU vermelho). No moto
+ * g54 (PowerVR BXM-8-256) ela aprovou a `principal`, e os sprites seguiram
+ * invisiveis: ela nao passava por nenhum dos caminhos que o jogo usa.
  *
- * Ela roda UMA vez por pagina, no `SpriteRenderer.init` (antes do aperto de
- * mao), devolve o estado GL que tocou e NUNCA lanca para fora: o chamador
- * (`programaDoSprite.js`) trata excecao como "nao sei", que aceita a variante.
- * Framebuffer incompleto tambem e "nao sei" (`desenhou: null`).
+ * Esta desenha pelo CAMINHO DO JOGO: quem desenha e o proprio
+ * `SpriteRenderer.render` (`desenhar`, injetado por `SpriteRenderer.js`), com
+ * o VAO padrao, a mistura `SRC_ALPHA, ONE_MINUS_SRC_ALPHA` ligada e a
+ * profundidade do jogo, e com texturas montadas como `Core/Client.js` as monta:
+ *
+ *   mob-rgba        quadro RGBA (o `type` 1 do SPR), LINEAR, correcao ligada;
+ *   jogador-paleta  quadro de INDICE em LUMINANCE (UNPACK_ALIGNMENT 1),
+ *                   NEAREST, mais a paleta 256x1 RGBA: o ramo `uUsePal`, com a
+ *                   `bilinearSample` que recebe `sampler2D`;
+ *   dano            RGBA, LINEAR, sem profundidade e sem correcao (o
+ *                   `runWithDepth(false, false, true)` do `Damage.js`).
+ *
+ * Cada caso so passa com pixels da COR ESPERADA (tolerancia por canal), lidos
+ * de um framebuffer proprio 32x32 sobre um fundo conhecido. Pixel aceso com a
+ * cor errada, ou transparente sob a mistura, reprova.
+ *
+ * Roda uma vez por variante, no `SpriteRenderer.init` (antes do aperto de
+ * mao), devolve o estado GL que tocou e NUNCA lanca para fora: excecao vira
+ * "nao sei" (`desenhou: null`), que aceita a variante.
  */
 import glMatrix from 'Utils/gl-matrix.js';
 
@@ -31,10 +43,28 @@ const ANGULO_PADRAO = 230;
 /** A abertura vertical da perspectiva (`Renderer.vFov`). */
 const ABERTURA = 15;
 
+/** O fundo do framebuffer: um azul escuro que nenhum caso desenha. */
+export const FUNDO = [0, 0, 64, 255];
+
+/** Quanto cada canal pode errar (filtro, arredondamento da mistura). */
+export const TOLERANCIA = 40;
+
+/** Quantos pixels da cor certa bastam para o caso passar. */
+export const PIXELS_MINIMOS = 4;
+
+/** A cor de cada caso (RGBA 0..255), opaca. */
+export const CORES_DOS_CASOS = {
+	'mob-rgba': [220, 40, 40, 255],
+	'jogador-paleta': [40, 200, 60, 255],
+	dano: [240, 230, 40, 255]
+};
+
+/** O indice da paleta que o quadro do jogador usa (0 e o transparente). */
+export const INDICE_DA_PALETA = 7;
+
 /**
  * As tres matrizes da camera padrao, montadas como `Camera.update` monta, com
- * o alvo na origem. Exportada para o teste conferir que o centro do sprite cai
- * no meio da tela.
+ * o alvo na origem.
  */
 export function matrizesDaSonda() {
 	const projecao = mat4.create();
@@ -54,30 +84,78 @@ export function matrizesDaSonda() {
 	return { projecao, modelView, viewModel };
 }
 
-function contarPixels(gl) {
-	const pixels = new Uint8Array(LADO_DA_SONDA * LADO_DA_SONDA * 4);
-	gl.readPixels(0, 0, LADO_DA_SONDA, LADO_DA_SONDA, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
-	let n = 0;
-	for (let i = 3; i < pixels.length; i += 4) {
-		if (pixels[i] > 0 || pixels[i - 3] > 0) n++;
+/**
+ * Conta, num retrato RGBA, os pixels que sairam do fundo e os da cor certa.
+ * Funcao pura: e ela que decide "desenhou a cor esperada".
+ *
+ * @param {Uint8Array} pixels RGBA
+ * @param {number[]} esperado RGBA 0..255
+ * @param {number[]} [fundo]
+ * @param {number} [tolerancia]
+ * @return {{ cobertos: number, certos: number, passou: boolean }}
+ */
+export function avaliarPixels(pixels, esperado, fundo = FUNDO, tolerancia = TOLERANCIA) {
+	let cobertos = 0;
+	let certos = 0;
+	for (let i = 0; i + 3 < pixels.length; i += 4) {
+		const r = pixels[i];
+		const g = pixels[i + 1];
+		const b = pixels[i + 2];
+		const a = pixels[i + 3];
+		if (
+			Math.abs(r - fundo[0]) > tolerancia ||
+			Math.abs(g - fundo[1]) > tolerancia ||
+			Math.abs(b - fundo[2]) > tolerancia ||
+			Math.abs(a - fundo[3]) > tolerancia
+		) {
+			cobertos++;
+		}
+		if (
+			Math.abs(r - esperado[0]) <= tolerancia &&
+			Math.abs(g - esperado[1]) <= tolerancia &&
+			Math.abs(b - esperado[2]) <= tolerancia &&
+			Math.abs(a - esperado[3]) <= tolerancia
+		) {
+			certos++;
+		}
 	}
-	return n;
+	return { cobertos, certos, passou: certos >= PIXELS_MINIMOS };
+}
+
+function textura(gl, formato, largura, altura, dados, filtro) {
+	const t = gl.createTexture();
+	gl.bindTexture(gl.TEXTURE_2D, t);
+	gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
+	gl.texImage2D(gl.TEXTURE_2D, 0, formato, largura, altura, 0, formato, gl.UNSIGNED_BYTE, dados);
+	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, filtro);
+	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, filtro);
+	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+	return t;
+}
+
+function cheio(n, valor) {
+	const a = new Uint8Array(n * valor.length);
+	for (let i = 0; i < n; i++) a.set(valor, i * valor.length);
+	return a;
 }
 
 /**
  * @param {WebGL2RenderingContext} gl
- * @param {WebGLProgram} programa com `.attribute` e `.uniform` (`WebGL.createShaderProgram`)
- * @return {{ desenhou: boolean|null, comCorrecao?: number, semCorrecao?: number, motivo?: string }}
+ * @param {WebGLProgram} programa
+ * @param {function} desenhar `(caso) => void`: desenha UM sprite pelo caminho
+ *   do jogo com `caso = { nome, textura, paleta|null, tamanhoDaImagem, rgba,
+ *   dano, matrizes }`. Quem injeta e `SpriteRenderer.js`.
+ * @return {{ desenhou: boolean|null, casos?: object, motivo?: string }}
  */
-export function sondarProgramaDoSprite(gl, programa) {
-	if (!gl || !programa || !programa.uniform || !programa.attribute) {
-		return { desenhou: null, motivo: 'sem contexto ou programa' };
+export function sondarProgramaDoSprite(gl, programa, desenhar) {
+	if (!gl || !programa || typeof desenhar !== 'function') {
+		return { desenhou: null, motivo: 'sem contexto, programa ou desenhista' };
 	}
 	if (gl.isContextLost && gl.isContextLost()) {
 		return { desenhou: null, motivo: 'contexto perdido' };
 	}
 
-	// O estado que a sonda toca, para devolver depois.
 	const antes = {
 		framebuffer: gl.getParameter(gl.FRAMEBUFFER_BINDING),
 		viewport: gl.getParameter(gl.VIEWPORT),
@@ -90,12 +168,15 @@ export function sondarProgramaDoSprite(gl, programa) {
 		mistura: gl.isEnabled(gl.BLEND),
 		recorte: gl.isEnabled(gl.SCISSOR_TEST),
 		descarte: gl.isEnabled(gl.CULL_FACE),
-		mascaraDeProfundidade: gl.getParameter(gl.DEPTH_WRITEMASK)
+		mascaraDeProfundidade: gl.getParameter(gl.DEPTH_WRITEMASK),
+		alinhamento: gl.getParameter(gl.UNPACK_ALIGNMENT)
 	};
+	gl.activeTexture(gl.TEXTURE1);
+	const textura1 = gl.getParameter(gl.TEXTURE_BINDING_2D);
 	gl.activeTexture(gl.TEXTURE0);
 	const textura0 = gl.getParameter(gl.TEXTURE_BINDING_2D);
 
-	const criados = { fb: null, cor: null, prof: null, branca: null, quad: null, vao: null };
+	const criados = { fb: null, cor: null, prof: null, texturas: [] };
 	try {
 		criados.cor = gl.createTexture();
 		gl.bindTexture(gl.TEXTURE_2D, criados.cor);
@@ -115,100 +196,58 @@ export function sondarProgramaDoSprite(gl, programa) {
 			return { desenhou: null, motivo: 'framebuffer incompleto' };
 		}
 
-		// Um texel branco opaco: o fragment nao descarta e a cor sai cheia.
-		criados.branca = gl.createTexture();
-		gl.bindTexture(gl.TEXTURE_2D, criados.branca);
-		gl.texImage2D(
-			gl.TEXTURE_2D,
-			0,
-			gl.RGBA,
-			1,
-			1,
-			0,
-			gl.RGBA,
-			gl.UNSIGNED_BYTE,
-			new Uint8Array([255, 255, 255, 255])
-		);
-		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+		// As texturas, como `Core/Client.js` as sobe (8x8, potencia de dois).
+		const mob = textura(gl, gl.RGBA, 8, 8, cheio(64, CORES_DOS_CASOS['mob-rgba']), gl.LINEAR);
+		const dano = textura(gl, gl.RGBA, 8, 8, cheio(64, CORES_DOS_CASOS.dano), gl.LINEAR);
+		const indice = textura(gl, gl.LUMINANCE, 8, 8, cheio(64, [INDICE_DA_PALETA]), gl.NEAREST);
+		const corDaPaleta = new Uint8Array(256 * 4);
+		corDaPaleta.set(CORES_DOS_CASOS['jogador-paleta'], INDICE_DA_PALETA * 4);
+		const paleta = gl.createTexture();
+		gl.bindTexture(gl.TEXTURE_2D, paleta);
+		gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 256, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, corDaPaleta);
 		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+		gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+		criados.texturas.push(mob, dano, indice, paleta);
 
-		// O mesmo quad do `SpriteRenderer.init`, num VAO proprio.
-		criados.vao = gl.createVertexArray();
-		gl.bindVertexArray(criados.vao);
-		criados.quad = gl.createBuffer();
-		gl.bindBuffer(gl.ARRAY_BUFFER, criados.quad);
-		gl.bufferData(
-			gl.ARRAY_BUFFER,
-			new Float32Array([-0.5, +0.5, 0.0, 0.0, +0.5, +0.5, 1.0, 0.0, -0.5, -0.5, 0.0, 1.0, +0.5, -0.5, 1.0, 1.0]),
-			gl.STATIC_DRAW
-		);
-
-		const a = programa.attribute;
-		const u = programa.uniform;
-		gl.useProgram(programa);
-		gl.enableVertexAttribArray(a.aPosition);
-		gl.vertexAttribPointer(a.aPosition, 2, gl.FLOAT, false, 16, 0);
-		gl.enableVertexAttribArray(a.aTextureCoord);
-		gl.vertexAttribPointer(a.aTextureCoord, 2, gl.FLOAT, false, 16, 8);
-
-		const { projecao, modelView, viewModel } = matrizesDaSonda();
-		const identidade = mat4.create();
-		mat4.identity(identidade);
-		// Uniform que a variante nao tem chega como `undefined`: a chamada com
-		// local nulo nao faz nada, igual ao `SpriteRenderer.bind3DContext`.
-		gl.uniformMatrix4fv(u.uProjectionMat, false, projecao);
-		gl.uniformMatrix4fv(u.uModelViewMat, false, modelView);
-		gl.uniformMatrix4fv(u.uViewModelMat, false, viewModel);
-		gl.uniformMatrix4fv(u.uSpriteRendererAngle, false, identidade);
-		gl.uniform1f(u.uCameraZoom, ZOOM_PADRAO);
-		gl.uniform1f(u.uCameraLatitude, ANGULO_PADRAO);
-		gl.uniform1i(u.uFogUse, 0);
-		gl.uniform1i(u.uDiffuse, 0);
-		gl.uniform1i(u.uPalette, 1);
-		gl.uniform1i(u.uUsePal, 0);
-		gl.uniform1i(u.uIsRGBA, 1);
-		gl.uniform1f(u.uShadow, 1);
-		gl.uniform2fv(u.uTextSize, [1, 1]);
-		gl.uniform4fv(u.uSpriteRendererColor, [1, 1, 1, 1]);
-		gl.uniform3fv(u.uSpriteRendererPosition, [0, 0, 0]);
-		// Um monstro de ~100 px: o `_size`/`_offset` de `RenderCanvas3D`.
-		gl.uniform2fv(u.uSpriteRendererSize, [(100 / 175) * 5, (100 / 175) * 5]);
-		gl.uniform2fv(u.uSpriteRendererOffset, [0, -0.5]);
-		gl.uniform1f(u.uSpriteRendererDepth, 0);
-		gl.uniform1f(u.uSpriteRendererZindex, 0);
-
-		gl.activeTexture(gl.TEXTURE0);
-		gl.bindTexture(gl.TEXTURE_2D, criados.branca);
-
+		// O estado do jogo (`Renderer.init`): VAO padrao, mistura, profundidade.
+		gl.bindVertexArray(null);
 		gl.viewport(0, 0, LADO_DA_SONDA, LADO_DA_SONDA);
-		gl.disable(gl.BLEND);
 		gl.disable(gl.SCISSOR_TEST);
 		gl.disable(gl.CULL_FACE);
+		gl.enable(gl.BLEND);
+		gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
 		gl.enable(gl.DEPTH_TEST);
+		gl.depthFunc(gl.LEQUAL);
 		gl.depthMask(true);
-		gl.clearColor(0, 0, 0, 0);
+		gl.clearColor(FUNDO[0] / 255, FUNDO[1] / 255, FUNDO[2] / 255, FUNDO[3] / 255);
 
-		const desenharE_contar = semCorrecao => {
+		const matrizes = matrizesDaSonda();
+		const casos = [
+			{ nome: 'mob-rgba', textura: mob, paleta: null, tamanhoDaImagem: [16, 16], rgba: true, dano: false },
+			{ nome: 'jogador-paleta', textura: indice, paleta, tamanhoDaImagem: [16, 16], rgba: false, dano: false },
+			{ nome: 'dano', textura: dano, paleta: null, tamanhoDaImagem: [16, 16], rgba: true, dano: true }
+		];
+		const resultado = {};
+		let todos = true;
+		for (const caso of casos) {
+			gl.bindFramebuffer(gl.FRAMEBUFFER, criados.fb);
+			gl.viewport(0, 0, LADO_DA_SONDA, LADO_DA_SONDA);
 			gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-			gl.uniform1i(u.uDisableDepthCorrection, semCorrecao ? 1 : 0);
-			gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
-			return contarPixels(gl);
-		};
-		const comCorrecao = desenharE_contar(false);
-		const semCorrecao = desenharE_contar(true);
-
-		gl.disableVertexAttribArray(a.aPosition);
-		gl.disableVertexAttribArray(a.aTextureCoord);
-
-		return { desenhou: comCorrecao > 0 && semCorrecao > 0, comCorrecao, semCorrecao };
+			desenhar({ ...caso, matrizes });
+			const pixels = new Uint8Array(LADO_DA_SONDA * LADO_DA_SONDA * 4);
+			gl.readPixels(0, 0, LADO_DA_SONDA, LADO_DA_SONDA, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
+			resultado[caso.nome] = avaliarPixels(pixels, CORES_DOS_CASOS[caso.nome]);
+			if (!resultado[caso.nome].passou) todos = false;
+		}
+		return { desenhou: todos, casos: resultado };
 	} catch (erro) {
 		return { desenhou: null, motivo: 'a sonda lancou: ' + (erro && erro.message) };
 	} finally {
-		devolverEstado(gl, antes, textura0, criados);
+		devolverEstado(gl, antes, textura0, textura1, criados);
 	}
 }
 
-function devolverEstado(gl, antes, textura0, criados) {
+function devolverEstado(gl, antes, textura0, textura1, criados) {
 	const tentar = fn => {
 		try {
 			fn();
@@ -222,6 +261,8 @@ function devolverEstado(gl, antes, textura0, criados) {
 	tentar(() => gl.useProgram(antes.programa));
 	tentar(() => gl.bindBuffer(gl.ARRAY_BUFFER, antes.buffer));
 	tentar(() => {
+		gl.activeTexture(gl.TEXTURE1);
+		gl.bindTexture(gl.TEXTURE_2D, textura1);
 		gl.activeTexture(gl.TEXTURE0);
 		gl.bindTexture(gl.TEXTURE_2D, textura0);
 		gl.activeTexture(antes.texturaAtiva);
@@ -231,13 +272,13 @@ function devolverEstado(gl, antes, textura0, criados) {
 	);
 	tentar(() => (antes.profundidade ? gl.enable(gl.DEPTH_TEST) : gl.disable(gl.DEPTH_TEST)));
 	tentar(() => (antes.mistura ? gl.enable(gl.BLEND) : gl.disable(gl.BLEND)));
+	tentar(() => gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA));
 	tentar(() => (antes.recorte ? gl.enable(gl.SCISSOR_TEST) : gl.disable(gl.SCISSOR_TEST)));
 	tentar(() => (antes.descarte ? gl.enable(gl.CULL_FACE) : gl.disable(gl.CULL_FACE)));
 	tentar(() => gl.depthMask(antes.mascaraDeProfundidade));
+	tentar(() => gl.pixelStorei(gl.UNPACK_ALIGNMENT, antes.alinhamento));
 	tentar(() => criados.fb && gl.deleteFramebuffer(criados.fb));
 	tentar(() => criados.cor && gl.deleteTexture(criados.cor));
 	tentar(() => criados.prof && gl.deleteRenderbuffer(criados.prof));
-	tentar(() => criados.branca && gl.deleteTexture(criados.branca));
-	tentar(() => criados.quad && gl.deleteBuffer(criados.quad));
-	tentar(() => criados.vao && gl.deleteVertexArray(criados.vao));
+	for (const t of criados.texturas) tentar(() => gl.deleteTexture(t));
 }

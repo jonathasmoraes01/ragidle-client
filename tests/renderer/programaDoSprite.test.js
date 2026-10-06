@@ -12,7 +12,12 @@ import { describe, expect, it, vi, beforeEach } from 'vitest';
 import glMatrix from 'Utils/gl-matrix.js';
 import {
 	escolherProgramaDoSprite,
-	nivelDeReservaForcado,
+	lerChaveDeReserva,
+	ordemDasVariantes,
+	caiNaRegraDoPowerVR,
+	resumoDaSonda,
+	CHAVES_DE_RESERVA,
+	CHAVE_DE_ARMAZENAMENTO,
 	precisaRelatar,
 	mensagemDoRelato,
 	detalheDoRelato,
@@ -21,7 +26,7 @@ import {
 	relatarEscolhaDoSprite
 } from 'Renderer/programaDoSprite.js';
 import { compileShader } from 'Utils/WebGL.js';
-import { matrizesDaSonda } from 'Renderer/sondaDoSprite.js';
+import { matrizesDaSonda, avaliarPixels, CORES_DOS_CASOS, FUNDO, PIXELS_MINIMOS } from 'Renderer/sondaDoSprite.js';
 
 const mat4 = glMatrix.mat4;
 
@@ -94,7 +99,7 @@ describe('a cascata do programa do sprite', () => {
 		const sondar = (gl, p) => ({ desenhou: p.vs !== 'VS-P' });
 		const r = escolherProgramaDoSprite({}, { variantes: VARIANTES, criarPrograma, sondar, apagarPrograma });
 		expect(r.variante).toBe('sem-correcao');
-		expect(r.falhas).toEqual([{ variante: 'principal', etapa: 'sonda', log: 'nao desenhou', contextoPerdido: null }]);
+		expect(r.falhas).toEqual([{ variante: 'principal', etapa: 'sonda', log: 'reprovou()', contextoPerdido: null }]);
 		expect(apagarPrograma).toHaveBeenCalledTimes(1);
 		expect(apagarPrograma.mock.calls[0][1].vs).toBe('VS-P');
 	});
@@ -131,34 +136,144 @@ describe('a cascata do programa do sprite', () => {
 		expect(semSaber.variante).toBe('principal');
 	});
 
-	it('pular 1 nem tenta o principal (a chave de diagnostico)', () => {
+	it('a chave CONFIA na primeira: fica com ela mesmo se a sonda reprovar (o jogador testa o que ela desenha)', () => {
 		const { criarPrograma } = fabrica();
-		const r = escolherProgramaDoSprite({}, { variantes: VARIANTES, criarPrograma, pular: 1 });
-		expect(r.variante).toBe('sem-correcao');
-		expect(criarPrograma.mock.calls.map(c => c[1])).toEqual(['VS-S']);
-		expect(r.falhas[0]).toEqual({ variante: 'principal', etapa: 'forcada', log: null, contextoPerdido: null });
+		const r = escolherProgramaDoSprite({}, {
+			variantes: VARIANTES,
+			criarPrograma,
+			// so a primeira reprova: sem a confianca, a sem-correcao tomaria o lugar
+			sondar: (gl, p) => ({ desenhou: p.vs !== 'VS-P' }),
+			confiarNaPrimeira: true
+		});
+		expect(r.variante).toBe('principal');
+		expect(r.sondas.principal).toEqual({ desenhou: false });
 	});
 
-	it('pular 2 vai a minima; pular tudo da programa null sem lancar', () => {
-		const { criarPrograma } = fabrica();
-		expect(escolherProgramaDoSprite({}, { variantes: VARIANTES, criarPrograma, pular: 2 }).variante).toBe('minima');
-		expect(escolherProgramaDoSprite({}, { variantes: VARIANTES, criarPrograma, pular: 9 }).programa).toBeNull();
+	it('a chave cuja variante nao compila cai na proxima, pela sonda', () => {
+		const { criarPrograma } = fabrica(['VS-P']);
+		const sondar = (gl, p) => ({ desenhou: p.vs === 'VS-M' });
+		const r = escolherProgramaDoSprite({}, { variantes: VARIANTES, criarPrograma, sondar, confiarNaPrimeira: true });
+		expect(r.variante).toBe('minima');
 	});
 });
 
-describe('a chave ?forcarSpriteReserva', () => {
+describe('a chave ?forcarSpriteReserva e GUARDADA (D-2054)', () => {
+	function armazenamentoFalso(inicial = {}) {
+		const dados = { ...inicial };
+		return {
+			dados,
+			getItem: k => (k in dados ? dados[k] : null),
+			setItem: (k, v) => {
+				dados[k] = String(v);
+			},
+			removeItem: k => {
+				delete dados[k];
+			}
+		};
+	}
+
 	it.each([
-		['', 0],
-		['?x=1', 0],
-		['?forcarSpriteReserva=0', 0],
-		['?forcarSpriteReserva=1', 1],
-		['?forcarSpriteReserva=2', 2],
-		['?a=b&forcarSpriteReserva=3', 3],
-		['?forcarSpriteReserva=sim', 1],
-		['?forcarSpriteReserva=', 0],
-		['?forcarSpriteReserva=-4', 0]
-	])('%s -> %i', (busca, esperado) => {
-		expect(nivelDeReservaForcado(busca)).toBe(esperado);
+		['', 0, null],
+		['?x=1', 0, null],
+		['?forcarSpriteReserva=1', 1, 'chave-url'],
+		['?forcarSpriteReserva=2', 2, 'chave-url'],
+		['?a=b&forcarSpriteReserva=5', 5, 'chave-url'],
+		['?forcarSpriteReserva=sim', 1, 'chave-url'],
+		['?forcarSpriteReserva=9', 9, 'chave-url'],
+		['?forcarSpriteReserva=7', 0, null],
+		['?forcarSpriteReserva=-4', 0, null]
+	])('%s -> chave %i (%s)', (busca, chave, origem) => {
+		const r = lerChaveDeReserva(busca, armazenamentoFalso());
+		expect(r.chave).toBe(chave);
+		expect(r.origem).toBe(origem);
+	});
+
+	it('a chave da URL fica guardada e vale na proxima abertura sem a chave', () => {
+		const a = armazenamentoFalso();
+		expect(lerChaveDeReserva('?forcarSpriteReserva=2', a)).toEqual({ chave: 2, origem: 'chave-url', limpou: false });
+		expect(a.dados[CHAVE_DE_ARMAZENAMENTO]).toBe('2');
+		expect(lerChaveDeReserva('', a)).toEqual({ chave: 2, origem: 'chave-guardada', limpou: false });
+		expect(lerChaveDeReserva('?forcarSpriteReserva=4', a).chave).toBe(4);
+		expect(lerChaveDeReserva('', a).chave).toBe(4);
+	});
+
+	it('=0 limpa, e a abertura seguinte volta a escolha automatica', () => {
+		const a = armazenamentoFalso({ [CHAVE_DE_ARMAZENAMENTO]: '2' });
+		expect(lerChaveDeReserva('?forcarSpriteReserva=0', a)).toEqual({ chave: 0, origem: null, limpou: true });
+		expect(CHAVE_DE_ARMAZENAMENTO in a.dados).toBe(false);
+		expect(lerChaveDeReserva('', a).chave).toBe(0);
+	});
+
+	it('=9 (sem programa) vale so nesta abertura: nunca e guardada', () => {
+		const a = armazenamentoFalso({ [CHAVE_DE_ARMAZENAMENTO]: '2' });
+		expect(lerChaveDeReserva('?forcarSpriteReserva=9', a).chave).toBe(9);
+		expect(a.dados[CHAVE_DE_ARMAZENAMENTO]).toBe('2');
+		expect(lerChaveDeReserva('', armazenamentoFalso({ [CHAVE_DE_ARMAZENAMENTO]: '9' })).chave).toBe(0);
+	});
+
+	it('sem armazenamento, ou com um que lanca, a chave da URL ainda vale e nada sobe', () => {
+		const lanca = {
+			getItem: () => {
+				throw new Error('SecurityError');
+			},
+			setItem: () => {
+				throw new Error('QuotaExceeded');
+			},
+			removeItem: () => {
+				throw new Error('SecurityError');
+			}
+		};
+		expect(lerChaveDeReserva('?forcarSpriteReserva=2', lanca).chave).toBe(2);
+		expect(lerChaveDeReserva('', lanca).chave).toBe(0);
+		expect(lerChaveDeReserva('?forcarSpriteReserva=0', lanca).limpou).toBe(true);
+		expect(lerChaveDeReserva('?forcarSpriteReserva=3', null).chave).toBe(3);
+		expect(lerChaveDeReserva('', null).chave).toBe(0);
+	});
+});
+
+describe('a ordem: chave, regra do PowerVR B-Series ou sonda (D-2054)', () => {
+	const TODAS = ['principal', 'sem-correcao', 'minima', 'sem-funcao', 'sem-bool', 'fs-minimo', 'vs-minimo'].map(nome => ({ nome }));
+	const nomes = plano => plano.ordem.map(v => v.nome);
+	const BXM = 'ANGLE (Imagination Technologies, PowerVR B-Series BXM-8-256, OpenGL ES 3.2)';
+
+	it.each([
+		[BXM, true],
+		['PowerVR B-Series BXE-4-32', true],
+		['ANGLE (Imagination Technologies, PowerVR B-Series BXS-4-64, Vulkan 1.3)', true],
+		['powervr b-series bxm-8-256', true],
+		['ANGLE (Imagination Technologies, PowerVR Rogue GE8320, OpenGL ES 3.2)', false],
+		['PowerVR Rogue GM9446', false],
+		['ANGLE (ARM, Mali-G57 MC2, OpenGL ES 3.2)', false],
+		['ANGLE (Qualcomm, Adreno (TM) 610, OpenGL ES 3.2)', false],
+		['', false]
+	])('%s -> regra %s', (renderizador, cai) => {
+		expect(caiNaRegraDoPowerVR(renderizador)).toBe(cai);
+	});
+
+	it('sem chave e fora da regra: principal, sem-correcao, minima, pela sonda', () => {
+		const p = ordemDasVariantes(TODAS, { chave: 0, renderizador: 'Mali-G57' });
+		expect(nomes(p)).toEqual(['principal', 'sem-correcao', 'minima']);
+		expect(p.origem).toBe('sonda');
+		expect(p.confiarNaPrimeira).toBe(false);
+	});
+
+	it('no PowerVR B-Series: a minima primeiro, pela sonda', () => {
+		const p = ordemDasVariantes(TODAS, { chave: 0, renderizador: BXM });
+		expect(nomes(p)).toEqual(['minima', 'sem-correcao', 'principal']);
+		expect(p.origem).toBe('regra-powervr');
+		expect(p.confiarNaPrimeira).toBe(false);
+	});
+
+	it('a chave vence a regra: a variante dela primeiro, CONFIADA, depois a minima', () => {
+		const p = ordemDasVariantes(TODAS, { chave: 5, origemDaChave: 'chave-guardada', renderizador: BXM });
+		expect(nomes(p)).toEqual(['fs-minimo', 'minima', 'principal', 'sem-correcao']);
+		expect(p.origem).toBe('chave-guardada');
+		expect(p.confiarNaPrimeira).toBe(true);
+		expect(nomes(ordemDasVariantes(TODAS, { chave: 2, origemDaChave: 'chave-url' }))).toEqual(['minima', 'principal', 'sem-correcao']);
+	});
+
+	it('=9 nao tenta nada', () => {
+		expect(nomes(ordemDasVariantes(TODAS, { chave: 9, origemDaChave: 'chave-url' }))).toEqual([]);
 	});
 });
 
@@ -179,6 +294,23 @@ describe('o relato ao /analytics', () => {
 	it('o principal que ficou por falta de opcao (nenhuma desenhou na sonda) tambem relata', () => {
 		const semOpcao = { ...ok, falhas: [{ variante: 'principal', etapa: 'sonda', log: 'nao desenhou', contextoPerdido: null }] };
 		expect(precisaRelatar(semOpcao, nvidia)).toBe(true);
+	});
+
+	it('a regra do PowerVR diz QUEM decidiu, o que a sonda achou da escolhida e do principal', () => {
+		const regra = {
+			variante: 'minima',
+			origem: 'regra-powervr',
+			falhas: [],
+			sondas: { minima: { desenhou: true, casos: {} } },
+			sondaDoPrincipal: { desenhou: false, casos: { 'mob-rgba': { passou: true }, dano: { passou: false } } }
+		};
+		expect(precisaRelatar(regra, nvidia)).toBe(true);
+		expect(mensagemDoRelato(regra, powervr)).toBe(
+			'[sprite] valendo=minima origem=regra-powervr | sonda=ok | principal-na-sonda=reprovou(dano) | gpu=ANGLE (Imagination Technologies, PowerVR B-Series BXM-8-256, OpenGL ES 3.2)'
+		);
+		const guardada = { ...regra, variante: 'fs-minimo', origem: 'chave-guardada', sondas: { 'fs-minimo': { desenhou: null } } };
+		expect(mensagemDoRelato(guardada, powervr)).toContain('valendo=fs-minimo origem=chave-guardada | sonda=?');
+		expect(JSON.parse(detalheDoRelato(guardada, powervr)).origem).toBe('chave-guardada');
 	});
 
 	it('principal ok no PowerVR: relata o diagnostico (e o que diz se o conserto pegou la)', () => {
@@ -368,7 +500,9 @@ describe('os fontes dos shaders', () => {
 			'SpriteRenderer.fs',
 			'SpriteRendererSemCorrecao.vs',
 			'SpriteRendererMinimo.vs',
-			'SpriteRendererMinimo.fs'
+			'SpriteRendererMinimo.fs',
+			'SpriteRendererSemFuncao.vs',
+			'SpriteRendererSemBool.vs'
 		]) {
 			expect(/[^\x00-\x7f]/.test(ler(nome)), nome).toBe(false);
 		}
@@ -392,6 +526,79 @@ describe('os fontes dos shaders', () => {
 	});
 });
 
+describe('as variantes de diagnostico tiram UMA peca cada (D-2054)', () => {
+	const ler = nome => readFileSync(resolve(__dirname, '../../src/Renderer/' + nome), 'utf8');
+	const corpo = t => t.replace(/\/\/.*$/gm, '').replace(/\s+/g, ' ').trim();
+	const principal = corpo(ler('SpriteRenderer.vs'));
+
+	it('sem-funcao: sem o Project, com a correcao e o bool', () => {
+		const vs = corpo(ler('SpriteRendererSemFuncao.vs'));
+		expect(vs).not.toMatch(/\bProject\s*\(/);
+		expect(principal).toMatch(/\bProject\s*\(/);
+		expect(vs).toContain('uniform bool uDisableDepthCorrection;');
+		expect(vs).toContain('clip.z = min(clip.z, correctedZBase);');
+	});
+
+	it('sem-bool: o principal com uniform int, e nada mais muda', () => {
+		const vs = corpo(ler('SpriteRendererSemBool.vs'));
+		const volta = vs
+			.replace('uniform int uDisableDepthCorrection;', 'uniform bool uDisableDepthCorrection;')
+			.replace('if (uDisableDepthCorrection == 0) {', 'if (!uDisableDepthCorrection) {');
+		expect(volta).toBe(principal);
+	});
+
+	it('a tabela da chave cobre as seis variantes que existem', () => {
+		expect(CHAVES_DE_RESERVA).toEqual({
+			1: 'sem-correcao',
+			2: 'minima',
+			3: 'sem-funcao',
+			4: 'sem-bool',
+			5: 'fs-minimo',
+			6: 'vs-minimo'
+		});
+	});
+});
+
+describe('a sonda fiel so aprova a COR esperada (D-2054)', () => {
+	const retrato = (pixels, n = 1024) => {
+		const a = new Uint8Array(n * 4);
+		for (let i = 0; i < n; i++) a.set(FUNDO, i * 4);
+		for (const [i, cor] of pixels) a.set(cor, i * 4);
+		return a;
+	};
+
+	it('so fundo: nada coberto, reprova', () => {
+		expect(avaliarPixels(retrato([]), CORES_DOS_CASOS['mob-rgba'])).toEqual({ cobertos: 0, certos: 0, passou: false });
+	});
+
+	it('a cor certa em pixels bastantes passa', () => {
+		const certos = Array.from({ length: PIXELS_MINIMOS }, (_v, i) => [i, CORES_DOS_CASOS['jogador-paleta']]);
+		expect(avaliarPixels(retrato(certos), CORES_DOS_CASOS['jogador-paleta']).passou).toBe(true);
+	});
+
+	it('pixel ACESO com a cor errada reprova (a sonda antiga, que so contava aceso, aprovaria)', () => {
+		const errados = Array.from({ length: 40 }, (_v, i) => [i, [255, 0, 255, 255]]);
+		const r = avaliarPixels(retrato(errados), CORES_DOS_CASOS['jogador-paleta']);
+		expect(r.cobertos).toBe(40);
+		expect(r.certos).toBe(0);
+		expect(r.passou).toBe(false);
+	});
+
+	it('a cor certa com alfa zero (o que a mistura apaga) reprova', () => {
+		const [r, g, b] = CORES_DOS_CASOS.dano;
+		const semAlfa = Array.from({ length: 40 }, (_v, i) => [i, [r, g, b, 0]]);
+		expect(avaliarPixels(retrato(semAlfa), CORES_DOS_CASOS.dano).passou).toBe(false);
+	});
+
+	it('o resumo diz quais casos reprovaram', () => {
+		expect(resumoDaSonda({ desenhou: true })).toBe('ok');
+		expect(resumoDaSonda({ desenhou: null })).toBe('?');
+		expect(resumoDaSonda({ desenhou: false, casos: { 'mob-rgba': { passou: true }, 'jogador-paleta': { passou: false } } })).toBe(
+			'reprovou(jogador-paleta)'
+		);
+	});
+});
+
 describe('o relato sai depois do aperto de mao (D-993)', () => {
 	const fonte = readFileSync(resolve(__dirname, '../../src/Renderer/MapRenderer.js'), 'utf8');
 
@@ -411,29 +618,45 @@ describe('o SpriteRenderer de verdade, com o WebGL falso', () => {
 		vi.resetModules();
 	});
 
-	async function subir({ quebrados = [], busca = '' } = {}) {
+	const BXM = 'ANGLE (Imagination Technologies, PowerVR B-Series BXM-8-256, OpenGL ES 3.2)';
+
+	async function subir({ quebrados = [], renderizador = 'gpu falsa', sonda = null } = {}) {
 		vi.doMock('Renderer/Camera.js', () => ({ default: { zoom: 125, getLatitude: () => 230 } }));
-		vi.doMock('Renderer/sondaDoSprite.js', () => ({ sondarProgramaDoSprite: () => ({ desenhou: true }) }));
+		vi.doMock('Renderer/sondaDoSprite.js', () => ({
+			sondarProgramaDoSprite: sonda || (() => ({ desenhou: true }))
+		}));
 		const criados = [];
-		const tentativas = { n: 0 };
+		const tentativas = { n: 0, fontes: [] };
 		vi.doMock('Utils/WebGL.js', () => ({
 			default: {
-				createShaderProgram: (gl, vs) => {
+				createShaderProgram: (gl, vs, fs) => {
 					tentativas.n++;
+					tentativas.fontes.push([vs, fs]);
 					if (quebrados.some(q => vs.includes(q))) throw erroDoPowerVR();
-					const p = { vs, attribute: { aPosition: 0, aTextureCoord: 1 }, uniform: {} };
+					const p = { vs, fs, attribute: { aPosition: 0, aTextureCoord: 1 }, uniform: {} };
 					criados.push(p);
 					return p;
 				}
 			}
 		}));
-		const { default: SpriteRenderer } = await import('Renderer/SpriteRenderer.js');
+		const { default: SpriteRenderer, VARIANTES_DO_SPRITE } = await import('Renderer/SpriteRenderer.js');
 		const programa = await import('Renderer/programaDoSprite.js');
+		const usados = [];
 		const gl = new Proxy(
-			{ getParameter: () => 'gpu falsa', getExtension: () => null, deleteProgram: vi.fn() },
-			{ get: (alvo, k) => (k in alvo ? alvo[k] : typeof k === 'string' && /^[A-Z_0-9]+$/.test(k) ? 1 : vi.fn()) }
+			{
+				getParameter: () => renderizador,
+				getExtension: () => null,
+				deleteProgram: vi.fn(),
+				useProgram: p => usados.push(p)
+			},
+			{
+				get: (alvo, k) => {
+					if (!(k in alvo)) alvo[k] = typeof k === 'string' && /^[A-Z_0-9]+$/.test(k) ? 1 : vi.fn();
+					return alvo[k];
+				}
+			}
 		);
-		return { SpriteRenderer, programa, gl, criados, busca, tentativas };
+		return { SpriteRenderer, VARIANTES_DO_SPRITE, programa, gl, criados, tentativas, usados };
 	}
 
 	it('o principal quebrado no init: nada lanca e a sem-correcao desenha', async () => {
@@ -458,16 +681,64 @@ describe('o SpriteRenderer de verdade, com o WebGL falso', () => {
 		expect(tentativas.n).toBe(3);
 	});
 
-	it('a chave da URL pula o principal', async () => {
-		const { SpriteRenderer, programa, gl } = await subir();
-		SpriteRenderer.escolherPrograma(gl, '?forcarSpriteReserva=1');
-		expect(programa.escolhaDoSprite().variante).toBe('sem-correcao');
-		expect(programa.escolhaDoSprite().falhas[0].etapa).toBe('forcada');
+	it('o renderer PowerVR B-Series escolhe a minima SOZINHO, e a sonda do principal vai ao relato', async () => {
+		const { SpriteRenderer, VARIANTES_DO_SPRITE, programa, gl, tentativas } = await subir({ renderizador: BXM });
+		SpriteRenderer.escolherPrograma(gl, '', null);
+		const e = programa.escolhaDoSprite();
+		expect(e.variante).toBe('minima');
+		expect(e.origem).toBe('regra-powervr');
+		const minima = VARIANTES_DO_SPRITE.find(v => v.nome === 'minima');
+		expect(tentativas.fontes[0]).toEqual([minima.vs, minima.fs]);
+		expect(e.sondaDoPrincipal).toEqual({ desenhou: true });
+	});
+
+	it('a chave da URL fica guardada e escolhe na abertura seguinte, ate no PowerVR', async () => {
+		const guardado = {};
+		const armazenamento = {
+			getItem: k => guardado[k] ?? null,
+			setItem: (k, v) => (guardado[k] = v),
+			removeItem: k => delete guardado[k]
+		};
+		let s = await subir({ renderizador: BXM });
+		s.SpriteRenderer.escolherPrograma(s.gl, '?forcarSpriteReserva=5', armazenamento);
+		expect(s.programa.escolhaDoSprite().variante).toBe('fs-minimo');
+		expect(s.programa.escolhaDoSprite().origem).toBe('chave-url');
+		vi.resetModules();
+		s = await subir({ renderizador: BXM });
+		s.SpriteRenderer.escolherPrograma(s.gl, '', armazenamento);
+		expect(s.programa.escolhaDoSprite().variante).toBe('fs-minimo');
+		expect(s.programa.escolhaDoSprite().origem).toBe('chave-guardada');
+	});
+
+	it('a sonda desenha pelo render do jogo, com o programa CANDIDATO, e devolve o estado', async () => {
+		let candidatoNoRender = null;
+		const sonda = (gl, programa, desenhar) => {
+			desenhar({
+				nome: 'jogador-paleta',
+				textura: 'tex',
+				paleta: 'pal',
+				tamanhoDaImagem: [16, 16],
+				rgba: false,
+				dano: false,
+				matrizes: { modelView: mat4.create(), projecao: mat4.create() }
+			});
+			candidatoNoRender = programa;
+			return { desenhou: true };
+		};
+		const { SpriteRenderer, gl, usados } = await subir({ sonda });
+		SpriteRenderer.image.texture = 'do-jogo';
+		SpriteRenderer.color.set([0.5, 0.5, 0.5, 0.5]);
+		SpriteRenderer.init(gl);
+		expect(usados).toContain(candidatoNoRender);
+		expect(gl.drawArrays).toHaveBeenCalled();
+		expect(SpriteRenderer.image.texture).toBe('do-jogo');
+		expect(Array.from(SpriteRenderer.color)).toEqual([0.5, 0.5, 0.5, 0.5]);
 	});
 
 	it('sem nada quebrado, o principal', async () => {
 		const { SpriteRenderer, programa, gl } = await subir();
 		SpriteRenderer.init(gl);
 		expect(programa.escolhaDoSprite().variante).toBe('principal');
+		expect(programa.escolhaDoSprite().origem).toBe('sonda');
 	});
 });
