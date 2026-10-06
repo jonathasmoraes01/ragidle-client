@@ -17,6 +17,7 @@ import GraphicsOption from 'UI/Components/GraphicsOption/GraphicsOption.js';
 import ShortCutOption from 'UI/Components/ShortCutOption/ShortCutOption.js';
 import IdiomaIdle from 'UI/Components/IdiomaIdle/IdiomaIdle.js';
 import DeathWindow from 'UI/Components/DeathWindow/DeathWindow.js';
+import { conversaNaTela } from 'UI/conversaNaTela.js';
 import htmlText from './Escape.html?raw';
 import cssText from './Escape.css?raw';
 
@@ -128,6 +129,17 @@ Escape.onKeyDown = function onKeyDown(event) {
 		 * (Engine/MapEngine/Entity.js), so que no caminho do teclado.
 		 */
 		if (DeathWindow.aMorteEstaNaTela()) {
+			return;
+		}
+
+		/*
+		 * COM A CONVERSA NA TELA, O ESC E DELA (D-2049, 06/10/2026). O menu do
+		 * NPC, a caixa de fala e a confirmacao do servidor tratam o proprio ESC
+		 * (cancelar, fechar, responder "nao"), mas este tratador foi anexado
+		 * ANTES deles e rodava primeiro: o ESC fechava o menu da Kafra E abria
+		 * esta janela por cima. A conversa se registra em `conversaNaTela`.
+		 */
+		if (conversaNaTela() !== null) {
 			return;
 		}
 

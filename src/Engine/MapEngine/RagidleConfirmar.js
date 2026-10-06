@@ -43,9 +43,14 @@ import Renderer from 'Renderer/Renderer.js';
 import WinPopup from 'UI/Components/WinPopup/WinPopup.js';
 import { ehDedo } from 'UI/escalaDaHud.js';
 import { alturaDaPergunta, rotulosDaPergunta } from './rotulosDaConfirmacao.js';
+import { registrarConversa, componenteNaTela } from 'UI/conversaNaTela.js';
 
 /** A janela aberta agora, se houver — so pode haver uma. */
 let _janela = null;
+
+/* O ESC da confirmacao e dela, e e o "nao" (D-2049): as Configuracoes nao
+   abrem por cima. */
+registrarConversa('confirmacao', () => componenteNaTela(_janela));
 
 class RagidleConfirmarEngine {
 	static init() {

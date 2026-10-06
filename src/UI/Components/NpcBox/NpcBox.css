@@ -81,6 +81,27 @@
 	cursor: pointer;
 }
 
+/* NO DEDO (D-2049): a fala da largura do menu (D-2047), sem passar da tela
+   com 8px de cada lado, e os botoes com o alvo de 44px (--hit-touch). Media
+   query e o criterio da casa no CSS (o mesmo de `ehDedo()`); no mouse este
+   bloco nao existe e o desktop ve exatamente o que via. A posicao (centro) e
+   do `NpcBox.js`. */
+@media (pointer: coarse) {
+	:host {
+		width: min(320px, calc(100vw - 16px));
+	}
+
+	#NpcBox {
+		width: 100%;
+	}
+
+	#NpcBox .btn {
+		min-height: var(--hit-touch, 44px);
+		min-width: var(--hit-touch, 44px);
+		padding: 0 18px;
+	}
+}
+
 .item-link {
 	color: var(--blue-600);
 	cursor: pointer;
