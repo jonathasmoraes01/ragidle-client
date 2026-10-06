@@ -1375,6 +1375,9 @@
 	width: 100%;
 	box-sizing: border-box;
 	gap: 4px;
+	/* Em coluna a pilula do segmentado vira um oval gigante: o fundo e o
+	   selecionado passam ao canto de cartao. */
+	border-radius: var(--radius-card);
 }
 
 #IdleConfig .ic-seg--desejo .ic-seg-btn {
@@ -1388,6 +1391,7 @@
 	white-space: normal;
 	text-align: left;
 	padding: 6px 8px;
+	border-radius: var(--radius-card);
 }
 
 #IdleConfig .ic-desejo-nome {
