@@ -87,7 +87,15 @@ import {
 import { aplicarPassoDeNivel, duracaoDaEntrada, lembrarSpDoContexto, nivelEscolhidoServido, seletorDaCura, seletorDaEntrada } from './nivelNaConfig.js';
 import { curaComAtaqueAlterado, htmlDaCuraNaAbaAtaque, htmlDoAtaqueDaCura, nomesDasCurasNoIdioma } from './curaComoAtaque.js';
 import { htmlDoPerfilDoMonge } from './perfilDoMonge.js';
-import { htmlDoDesejoArcano } from './desejoArcano.js';
+import {
+	chaveDoEstado,
+	escutarRelogioDoDesejo,
+	esquecerRelogioDoDesejo,
+	htmlDoDesejoArcano,
+	htmlDoEstadoDoDesejo,
+	restanteDoDesejoAgora,
+	sincronizarRelogioDoDesejo
+} from './desejoArcano.js';
 import { traducaoLigada, traduzir } from 'Core/Traducao.js';
 import { lerPassoDoSeletor } from 'UI/nivelDeUso.js';
 import htmlText from './IdleConfig.html?raw';
@@ -677,6 +685,8 @@ function onConfigReceived(pkt) {
 
 	IdleConfig.contexto = data.contexto;
 	IdleConfig.contextoObsoleto = false;
+	// D-2046: o restante do Desejo, contado daqui pelo relogio local.
+	sincronizarRelogioDoDesejo(data.contexto, Date.now());
 	// D-1906: o SP por nivel fica lembrado para a dica da barra de atalhos.
 	lembrarSpDoContexto(data.contexto);
 	aplicarEstadoDeCidade();
@@ -886,6 +896,7 @@ function renderBody() {
 	switch (IdleConfig.activeTab) {
 		case 'ataque':
 			pane.innerHTML = renderAtaque();
+			garantirTiqueDoDesejo();
 			break;
 		case 'suporte':
 			pane.innerHTML = renderSuporte();
@@ -1539,7 +1550,7 @@ function renderAtaque() {
 	// O Desejo Arcano (06/10/2026), mesmo molde: so com `contexto.desejoArcano`.
 	return `
 		${htmlDoPerfilDoMonge({ cfg, ctx, escapar: escapeHtml })}
-		${htmlDoDesejoArcano({ cfg, ctx, escapar: escapeHtml, nomeDaSkill })}
+		${htmlDoDesejoArcano({ cfg, ctx, escapar: escapeHtml, nomeDaSkill, restanteMs: restanteDoDesejoAgora(Date.now()) })}
 		<div class="ic-card">
 			<div class="ic-card-head">
 				<h3>Ordem de uso</h3>
@@ -2070,6 +2081,47 @@ function renderConsumiveis() {
 Network.hookPacket(PACKET.ZC.RAGIDLE_CONFIG, onConfigReceived);
 
 /**
+ * O RELOGIO DO DESEJO NA TELA (D-2046): so a LINHA de estado do cartao muda,
+ * e so quando o texto muda (a chave em `data-desejo-estado`) — redesenhar a
+ * aba inteira a cada segundo apagaria o rascunho em edicao e a rolagem. O
+ * tique roda so com a janela aberta na aba Ataque e o cartao na tela; sem
+ * eles, ele se desliga sozinho e volta no proximo desenho do cartao.
+ */
+let _tiqueDoDesejo = null;
+function atualizarEstadoDoDesejo() {
+	const root = _root();
+	const win = root && root.querySelector('.ic-window');
+	const linha = root && root.querySelector('.ic-card--desejo-arcano .ic-desejo-estado');
+	const d = IdleConfig.contexto && IdleConfig.contexto.desejoArcano;
+	if (!win || !win.classList.contains('is-open') || !linha || !d) {
+		pararTiqueDoDesejo();
+		return;
+	}
+	const restante = restanteDoDesejoAgora(Date.now());
+	const chave = chaveDoEstado(d, restante);
+	if (linha.getAttribute('data-desejo-estado') !== chave) {
+		linha.setAttribute('data-desejo-estado', chave);
+		linha.innerHTML = htmlDoEstadoDoDesejo(d, restante, escapeHtml);
+	}
+}
+function garantirTiqueDoDesejo() {
+	if (_tiqueDoDesejo === null && _root().querySelector('.ic-card--desejo-arcano .ic-desejo-estado')) {
+		_tiqueDoDesejo = setInterval(atualizarEstadoDoDesejo, 1000);
+	}
+}
+function pararTiqueDoDesejo() {
+	if (_tiqueDoDesejo !== null) {
+		clearInterval(_tiqueDoDesejo);
+		_tiqueDoDesejo = null;
+	}
+}
+// O icone do Desejo entrou, venceu ou foi reconjurado (`Entity.js`): acerta a linha ja.
+escutarRelogioDoDesejo(() => {
+	atualizarEstadoDoDesejo();
+	garantirTiqueDoDesejo();
+});
+
+/**
  * Aliases publicos minimos pra outro componente RAGIDLE que so precisa
  * ler/gravar um campo pontual do config (ex.: o botao "Auto" do canto de
  * combate) sem duplicar o pedido/envio do pacote.
@@ -2091,6 +2143,9 @@ IdleConfig.limparEstadoDoPersonagem = function limparEstadoDoPersonagem() {
 	IdleConfig.contextoObsoleto = false;
 	IdleConfig.dirty = false;
 	IdleConfig.problemas = [];
+	// D-2046: o relogio do Desejo e do personagem que saiu.
+	esquecerRelogioDoDesejo();
+	pararTiqueDoDesejo();
 	/*
 	 * ZERAR O DADO NAO BASTA: `GUIComponent.remove()` so DESANEXA o host,
 	 * entao o shadow DOM (com `is-open` e o HTML do personagem anterior)

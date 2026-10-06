@@ -61,6 +61,7 @@ import Inventory from 'UI/Components/Inventory/Inventory.js';
 import ShortCut from 'UI/Components/ShortCut/ShortCut.js';
 import StatusIcons from 'UI/Components/StatusIcons/StatusIcons.js';
 import StatusIdle from 'UI/Components/StatusIdle/StatusIdle.js'; // RAGIDLE: a ficha ouve mudanca de status (D-853)
+import { aoMudarStatusDoDesejo } from 'UI/Components/IdleConfig/desejoArcano.js'; // RAGIDLE (D-2046): o relogio do Desejo no cartao
 import MiniMap from 'UI/Components/MiniMap/MiniMap.js';
 import PartyFriends from 'UI/Components/PartyFriends/PartyFriends.js';
 import Equipment from 'UI/Components/Equipment/Equipment.js';
@@ -2722,6 +2723,13 @@ function onEntityStatusChange(pkt) {
 		 * trafego que ninguem desenha.
 		 */
 		StatusIdle.aoMudarStatus();
+		/*
+		 * O CARTAO DO DESEJO ARCANO na Config Idle (D-2046) acerta o relogio pelo
+		 * mesmo pacote: o 0983 leva o que falta, o 0196 o apaga. Aqui, e nao num
+		 * `hookPacket` proprio, pela razao do paragrafo acima. Ele so olha o
+		 * EFST_AUTOSPELL; o resto passa calado.
+		 */
+		aoMudarStatusDoDesejo(pkt.index, pkt.state, pkt.RemainMS, Date.now());
 	}
 }
 
