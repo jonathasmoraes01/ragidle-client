@@ -1365,6 +1365,47 @@
 	}
 }
 
+/* ─── O Desejo Arcano (06/10/2026): a magia que sai, a chance e o seletor. O
+   seletor e o segmentado da janela em COLUNA (ate oito opcoes nao cabem lado
+   a lado no celular em pe): cada opcao ocupa a largura do cartao, com o nome
+   em cima e o detalhe embaixo; no celular cada uma tem 44px no minimo. */
+#IdleConfig .ic-seg--desejo {
+	display: flex;
+	flex-direction: column;
+	width: 100%;
+	box-sizing: border-box;
+	gap: 4px;
+}
+
+#IdleConfig .ic-seg--desejo .ic-seg-btn {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: flex-start;
+	gap: 2px var(--sp-2);
+	min-width: 0;
+	width: 100%;
+	white-space: normal;
+	text-align: left;
+	padding: 6px 8px;
+}
+
+#IdleConfig .ic-desejo-nome {
+	font-weight: 600;
+}
+
+#IdleConfig .ic-desejo-detalhe {
+	flex: 1 1 100%;
+	font: var(--type-desc);
+	opacity: 0.85;
+}
+
+@media (pointer: coarse) {
+	#IdleConfig .ic-seg--desejo .ic-seg-btn {
+		min-height: var(--hit-touch, 44px);
+	}
+}
+
 /* ─── D-1906: o NIVEL DE USO nas linhas da ordem de golpes, dos buffs e da
    cura. O seletor em si (`.ri-nivel`) e do `Common.css`; aqui so o encaixe
    dele nesta janela. A cura desligada continua mexivel — a escolha fica

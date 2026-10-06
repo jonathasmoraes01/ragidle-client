@@ -87,6 +87,7 @@ import {
 import { aplicarPassoDeNivel, duracaoDaEntrada, lembrarSpDoContexto, nivelEscolhidoServido, seletorDaCura, seletorDaEntrada } from './nivelNaConfig.js';
 import { curaComAtaqueAlterado, htmlDaCuraNaAbaAtaque, htmlDoAtaqueDaCura, nomesDasCurasNoIdioma } from './curaComoAtaque.js';
 import { htmlDoPerfilDoMonge } from './perfilDoMonge.js';
+import { htmlDoDesejoArcano } from './desejoArcano.js';
 import { traducaoLigada, traduzir } from 'Core/Traducao.js';
 import { lerPassoDoSeletor } from 'UI/nivelDeUso.js';
 import htmlText from './IdleConfig.html?raw';
@@ -1535,8 +1536,10 @@ function renderAtaque() {
 
 	// Os perfis do Monge (06/10/2026): o cartao so existe quando o servidor
 	// manda `contexto.monge` (a linha do Monge); o seletor e o segmentado generico.
+	// O Desejo Arcano (06/10/2026), mesmo molde: so com `contexto.desejoArcano`.
 	return `
 		${htmlDoPerfilDoMonge({ cfg, ctx, escapar: escapeHtml })}
+		${htmlDoDesejoArcano({ cfg, ctx, escapar: escapeHtml, nomeDaSkill })}
 		<div class="ic-card">
 			<div class="ic-card-head">
 				<h3>Ordem de uso</h3>
