@@ -21,6 +21,9 @@ import cssText from './NpcBox.css?raw';
 import NpcMenu from 'UI/Components/NpcMenu/NpcMenu.js';
 import InputBox from 'UI/Components/InputBox/InputBox.js';
 import { escaparHtml } from 'Utils/escaparHtml.js'; // D-1308: dialogo de NPC vai a innerHTML/atributo (XSS)
+import { ehDedo } from 'UI/escalaDaHud.js';
+import { posicaoHorizontal } from 'UI/Components/NpcMenu/posicaoDoMenu.js';
+import { registrarConversa, componenteNaTela } from 'UI/conversaNaTela.js';
 
 /**
  * Create NpcBox component
@@ -170,6 +173,38 @@ NpcBox.init = function init() {
 	});
 
 	this.draggable();
+};
+
+/**
+ * NO DEDO, A FALA FICA NO CENTRO (D-2049, 06/10/2026).
+ *
+ * A fala nasce em `left = max(W/3, 20)` (o lugar do desktop). Num celular em
+ * pe de 393px isso e 131, a caixa de 320 passava da tela, e o encaixe do
+ * `GUIComponent` a empurrava contra a borda direita: de 73 a 393, colada. O
+ * menu da D-2047 ja ficava centralizado, com 8px das bordas — e a fala agora
+ * usa a MESMA regra (`posicaoHorizontal`), para os dois ficarem na mesma
+ * coluna. A cada abertura, porque o celular gira.
+ *
+ * No mouse nada muda: a fala fica onde nasceu ou onde o jogador a arrastou.
+ * Em pixels da TELA, convertido pelo `zoom` do host (o mesmo cuidado do
+ * `NpcMenu.js`).
+ */
+NpcBox.onAppend = function onAppend() {
+	if (!ehDedo() || !this._host) {
+		return;
+	}
+	const zoom = parseFloat(this._host.style.zoom) || 1;
+	const caixa = this._host.getBoundingClientRect();
+	if (!caixa.width) {
+		return;
+	}
+	const left = posicaoHorizontal({
+		telaLargura: window.innerWidth,
+		largura: caixa.width,
+		preferida: caixa.left,
+		centralizar: true
+	});
+	this._host.style.left = `${Math.round(left) / zoom}px`;
 };
 
 /**
@@ -375,6 +410,10 @@ NpcBox.close = function close() {
  */
 NpcBox.onClosePressed = function onClosePressed() {};
 NpcBox.onNextPressed = function onNextPressed() {};
+
+/* O ESC da fala e dela (D-2049): as Configuracoes nao abrem por cima. Com
+   so o "Continuar" a vista, o ESC nao faz nada, como na fonte. */
+registrarConversa('fala', () => componenteNaTela(NpcBox));
 
 /**
  * Create component based on view file and export it

@@ -36,13 +36,13 @@ export const mutantes = {
 	// sem margem no chao
 	chaoSemMargem: [ALVO, 'const chao = tela.altura - MARGEM;', 'const chao = tela.altura;'],
 	// o dedo nao centraliza
-	dedoNaoCentraliza: [ALVO, 'let left = centralizar ? (tela.largura - largura) / 2 : preferida.left;', 'let left = preferida.left;'],
+	dedoNaoCentraliza: [ALVO, 'const left = centralizar ? (telaLargura - largura) / 2 : preferida;', 'const left = preferida;'],
 	// sai pela direita
-	semClampDireito: [ALVO, 'Math.min(Math.max(left, MARGEM), tela.largura - MARGEM - largura)', 'Math.max(left, MARGEM)'],
+	semClampDireito: [ALVO, 'Math.min(Math.max(left, MARGEM), telaLargura - MARGEM - largura)', 'Math.max(left, MARGEM)'],
 	// sai pela esquerda
-	semClampEsquerdo: [ALVO, 'Math.min(Math.max(left, MARGEM), tela.largura - MARGEM - largura)', 'Math.min(left, tela.largura - MARGEM - largura)'],
+	semClampEsquerdo: [ALVO, 'Math.min(Math.max(left, MARGEM), telaLargura - MARGEM - largura)', 'Math.min(left, telaLargura - MARGEM - largura)'],
 	// mais larga que a tela: borda esquerda fora
-	largaSemPiso: [ALVO, 'left = Math.max(0, (tela.largura - largura) / 2);', 'left = (tela.largura - largura) / 2;'],
+	largaSemPiso: [ALVO, 'return Math.max(0, (telaLargura - largura) / 2);', 'return (telaLargura - largura) / 2;'],
 	// a preferida e ignorada (o menu gruda na fala)
 	ignoraAPreferida: [ALVO, 'let top = Math.max(preferida.top, topoMinimo);', 'let top = topoMinimo;']
 };

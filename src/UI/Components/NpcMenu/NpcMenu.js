@@ -19,6 +19,7 @@ import cssText from './NpcMenu.css?raw';
 import InputBox from 'UI/Components/InputBox/InputBox.js';
 import { ehDedo } from 'UI/escalaDaHud.js';
 import { posicaoDoMenu, LINHAS_SEM_ROLAR } from './posicaoDoMenu.js';
+import { registrarConversa, componenteNaTela } from 'UI/conversaNaTela.js';
 
 /**
  * Create NPC Menu component
@@ -102,6 +103,13 @@ NpcMenu.onRemove = function onRemove() {
 	const content = root.querySelector('.content');
 	if (content) {
 		content.innerHTML = '';
+	}
+	/* O TITULO SAI COM O MENU (D-2049). So a lista do Portal escreve titulo, e
+	   o host e o MESMO para todo menu: sem isto, o menu da Kafra aberto depois
+	   do Portal herdava "Selecione uma area para abrir portal". */
+	const title = root.querySelector('.title');
+	if (title) {
+		title.textContent = '';
 	}
 };
 
@@ -289,6 +297,9 @@ function selectIndex(div) {
  * Abstract callback to define
  */
 NpcMenu.onSelectMenu = function onSelectMenu(/* gid, index */) {};
+
+/* O ESC do menu e dele (D-2049): as Configuracoes nao abrem por cima. */
+registrarConversa('menu', () => componenteNaTela(NpcMenu));
 
 /**
  * Create component and export it

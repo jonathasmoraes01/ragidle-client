@@ -77,12 +77,29 @@ export function posicaoDoMenu({ tela, fala, largura, alturas, preferida, central
 	}
 
 	// 5. Horizontal.
-	let left = centralizar ? (tela.largura - largura) / 2 : preferida.left;
-	if (largura + 2 * MARGEM > tela.largura) {
-		left = Math.max(0, (tela.largura - largura) / 2);
-	} else {
-		left = Math.min(Math.max(left, MARGEM), tela.largura - MARGEM - largura);
-	}
+	const left = posicaoHorizontal({ telaLargura: tela.largura, largura, preferida: preferida.left, centralizar });
 
 	return { top: Math.round(top), left: Math.round(left), linhas };
+}
+
+/**
+ * A REGRA HORIZONTAL, sozinha (D-2049, 06/10/2026): inteira na tela, com
+ * `MARGEM` das bordas; no dedo, centralizada. E a regra 5 do menu, e a caixa
+ * de fala do NPC (`NpcBox.js`) usa ESTA, para o menu e a fala ficarem na mesma
+ * coluna do celular — antes a fala nascia em `max(W/3, 20)` e o encaixe na
+ * tela a empurrava contra a borda direita (de 73 a 393 numa tela de 393).
+ *
+ * @param {object} p
+ * @param {number} p.telaLargura
+ * @param {number} p.largura  a largura da janela
+ * @param {number} p.preferida  o `left` de quando nao se centraliza
+ * @param {boolean} p.centralizar  no dedo
+ * @returns {number} o `left`, em pixels da tela (sem arredondar)
+ */
+export function posicaoHorizontal({ telaLargura, largura, preferida, centralizar }) {
+	const left = centralizar ? (telaLargura - largura) / 2 : preferida;
+	if (largura + 2 * MARGEM > telaLargura) {
+		return Math.max(0, (telaLargura - largura) / 2);
+	}
+	return Math.min(Math.max(left, MARGEM), telaLargura - MARGEM - largura);
 }
