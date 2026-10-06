@@ -41,6 +41,8 @@ import Network from 'Network/NetworkManager.js';
 import PACKET from 'Network/PacketStructure.js';
 import Renderer from 'Renderer/Renderer.js';
 import WinPopup from 'UI/Components/WinPopup/WinPopup.js';
+import { ehDedo } from 'UI/escalaDaHud.js';
+import { alturaDaPergunta, rotulosDaPergunta } from './rotulosDaConfirmacao.js';
 
 /** A janela aberta agora, se houver — so pode haver uma. */
 let _janela = null;
@@ -89,6 +91,13 @@ function onPerguntar(pkt) {
 
 	const id = dados.id;
 	const texto = String(dados.texto || 'Confirma?');
+	/*
+	 * OS ROTULOS DOS BOTOES (R110, 06/10/2026): opcionais no contrato v1. A
+	 * devolucao do carrinho manda "Sim, quero devolver" / "Cancelar" — a ordem
+	 * do dono e que SO o clique nesse botao devolve, entao o botao diz o que
+	 * faz. Quem nao manda (os comandos, o pet) segue com OK/Cancelar.
+	 */
+	const rotulos = rotulosDaPergunta(dados);
 	const janela = WinPopup.clone('WinConfirmarRagidle');
 
 	janela.init = function Init() {
@@ -113,7 +122,7 @@ function onPerguntar(pkt) {
 		const criarBotao = (nome, aoClicar) => {
 			const btn = document.createElement('button');
 			btn.className = nome === 'ok' ? 'btn ri-btn' : 'btn ri-btn ri-btn--sec';
-			btn.textContent = nome === 'ok' ? 'OK' : 'Cancelar';
+			btn.textContent = nome === 'ok' ? rotulos.sim : rotulos.nao;
 			btn.addEventListener('click', aoClicar, { once: true });
 			return btn;
 		};
@@ -127,6 +136,41 @@ function onPerguntar(pkt) {
 		 */
 		btns.appendChild(criarBotao('cancel', () => responder(id, false)));
 		btns.appendChild(criarBotao('ok', () => responder(id, true)));
+	};
+
+	/*
+	 * A CAIXA CRESCE COM O TEXTO (R110). A caixa nativa tem 280x120 e um texto
+	 * de tres paragrafos (o que acontece com os itens do carrinho) ficaria numa
+	 * fresta de 80px com rolagem — a frase que o jogador precisa ler antes do
+	 * "sim" escondida. Depois de anexar, a altura e medida: o texto inteiro, ate
+	 * 80% da tela (dali em diante rola por dentro). No dedo os botoes ganham os
+	 * 44px da regra do dono (08/09/2026). Pergunta curta (os comandos, o pet)
+	 * continua com os 120px de sempre.
+	 */
+	janela.onAppend = function onAppend() {
+		const raiz = this._shadow;
+		const caixa = raiz.querySelector('#win_popup');
+		const textoEl = raiz.querySelector('.text');
+		const rodape = raiz.querySelector('.buttonscontainer');
+		const container = raiz.querySelector('.container');
+		if (!caixa || !textoEl || !rodape || !container) {
+			return;
+		}
+		const dedo = ehDedo();
+		const alturaDoRodape = dedo ? 60 : 40;
+		if (dedo) {
+			rodape.style.height = `${alturaDoRodape}px`;
+			container.style.bottom = `${alturaDoRodape}px`;
+			raiz.querySelectorAll('.btn').forEach(b => {
+				b.style.minHeight = '44px';
+				b.style.minWidth = '96px';
+				b.style.fontSize = '14px';
+			});
+		}
+		const altura = alturaDaPergunta(textoEl.scrollHeight, alturaDoRodape, window.innerHeight || Renderer.height);
+		caixa.style.height = `${altura}px`;
+		this._host.style.height = `${altura}px`;
+		this._host.style.top = `${Math.max(8, Math.round((Renderer.height - altura) / 2))}px`;
 	};
 
 	janela.onKeyDown = function onKeyDown(event) {

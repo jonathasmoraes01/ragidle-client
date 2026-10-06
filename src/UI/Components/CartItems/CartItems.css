@@ -238,6 +238,19 @@
 #cartitems .footer .ir-mochila {
 	display: none;
 }
+/* R110 (06/10/2026): o "Devolver" do rodape. No desktop ele mora a esquerda
+   da alca de redimensionar, no tamanho do rodape de 27px; o pedido vai ao
+   servidor, que pergunta ("Sim, quero devolver"). */
+#cartitems .footer .devolver {
+	right: 18px;
+	bottom: 4px;
+	width: auto;
+	height: 18px;
+	padding: 0 8px;
+	font-size: 10px;
+	line-height: 16px;
+	color: var(--text-body);
+}
 
 /* ─── NO CELULAR EM PE: painel de tela cheia, alvo de dedo ─────────────────
    A REGRA DO DONO de 08/09/2026: toda janela nasce com versao mobile. O
@@ -339,8 +352,9 @@
 
 	#cartitems .footer {
 		display: flex;
+		flex-wrap: wrap;
 		align-items: center;
-		gap: 12px;
+		gap: 8px 12px;
 		height: auto;
 		padding: 8px 12px;
 		border-right: none;
@@ -352,6 +366,26 @@
 	}
 	#cartitems .footer .extend {
 		display: none;
+	}
+	/* R110: o "Devolver" e os outros dois botoes descem para a SEGUNDA linha
+	   (o contador e o peso ocupam a primeira): numa tela de 393px os quatro
+	   lado a lado nao cabem, e um alvo de dedo nao encolhe. */
+	#cartitems .footer .devolver {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		position: static;
+		width: auto;
+		height: auto;
+		min-width: 44px;
+		min-height: 44px;
+		margin-left: auto;
+		padding: 0 18px;
+		font-size: 14px;
+		line-height: normal;
+	}
+	#cartitems .footer .devolver + .ir-mochila {
+		margin-left: 0;
 	}
 	#cartitems .footer .ir-mochila {
 		display: inline-flex;
