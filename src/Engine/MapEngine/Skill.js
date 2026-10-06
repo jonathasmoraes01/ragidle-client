@@ -434,21 +434,26 @@ function onTeleportList(pkt) {
 		Network.sendPacket(_pkt);
 	};
 
-	NpcMenu.onAppend = () => {
-		const mapNames = [];
-
-		for (let i = 0, count = pkt.mapName.length; i < count; ++i) {
-			mapNames[i] = DB.getMapName(pkt.mapName[i], pkt.mapName[i]);
-		}
-
-		/* O titulo ANTES das opcoes (D-2047): o `setMenu` mede a janela para
-		   decidir quantas linhas mostrar, e um titulo escrito depois cresceria a
-		   janela por baixo da conta. */
-		NpcMenu.ui.find('.title').text(DB.getMessage(213));
-		NpcMenu.setMenu(mapNames.join(':') + ':Cancel', pkt.SKID);
-	};
-
+	/*
+	 * DEPOIS do `append()`, e nao num `NpcMenu.onAppend` (D-2049). O gancho
+	 * ficava GRAVADO no componente, que e o mesmo para todo menu: cada menu de
+	 * NPC aberto depois rodava de novo este bloco, com a lista do Portal antiga,
+	 * e o menu da Kafra nascia com o titulo do Portal (medido na tela pela
+	 * `diag-defeitos-do-npc-na-tela`). O `append()` ja montou a janela quando
+	 * volta, entao escrever aqui da no mesmo.
+	 */
 	NpcMenu.append();
+
+	const mapNames = [];
+	for (let i = 0, count = pkt.mapName.length; i < count; ++i) {
+		mapNames[i] = DB.getMapName(pkt.mapName[i], pkt.mapName[i]);
+	}
+
+	/* O titulo ANTES das opcoes (D-2047): o `setMenu` mede a janela para
+	   decidir quantas linhas mostrar, e um titulo escrito depois cresceria a
+	   janela por baixo da conta. */
+	NpcMenu.ui.find('.title').text(DB.getMessage(213));
+	NpcMenu.setMenu(mapNames.join(':') + ':Cancel', pkt.SKID);
 }
 
 /**
