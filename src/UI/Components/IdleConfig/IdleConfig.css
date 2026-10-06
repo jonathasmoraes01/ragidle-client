@@ -1404,6 +1404,29 @@
 	opacity: 0.85;
 }
 
+/* D-2046: a linha de estado logo abaixo do titulo — "Ativo: 7 minutos
+   restantes" num selo verde, ou "Inativo" cinza e o porque. O selo nao quebra
+   no meio; o porque quebra na largura do cartao (no celular em pe ele desce
+   para baixo do selo). */
+#IdleConfig .ic-desejo-estado {
+	display: flex;
+	flex-wrap: wrap;
+	/* O selo acompanha a PRIMEIRA linha do porque (no celular ele quebra em varias). */
+	align-items: baseline;
+	gap: var(--sp-1, 4px) var(--sp-2);
+	margin: var(--sp-1, 4px) 0 var(--sp-2);
+}
+
+#IdleConfig .ic-desejo-estado .ri-badge {
+	white-space: nowrap;
+}
+
+#IdleConfig .ic-desejo-porque {
+	flex: 1 1 12em;
+	min-width: 0;
+	font: var(--type-desc);
+}
+
 @media (pointer: coarse) {
 	#IdleConfig .ic-seg--desejo .ic-seg-btn {
 		min-height: var(--hit-touch, 44px);

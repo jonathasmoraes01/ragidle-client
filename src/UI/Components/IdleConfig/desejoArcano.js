@@ -29,6 +29,134 @@ export const MOTIVO_DA_RECOMENDACAO = {
 	'unica-disponivel': 'É a única magia aprendida que o Desejo pode conjurar agora.'
 };
 
+/* ------------------------------------------------------------------------- *
+ * O DESEJO ATIVO NO CARTAO (D-2046, pedido do dono: "precisa mostrar que esta
+ * ativo: X minutos restantes").
+ * ------------------------------------------------------------------------- *
+ *
+ * O servidor manda, na resposta da config, QUANTO FALTA (`ativo.restanteMs`,
+ * ou `null` = inativo) e quem o conjura de novo (`quemConjura`). Daqui para a
+ * frente o relogio desce no cliente, sem empurrao por segundo: o vencimento
+ * (`_venceEm`) e o instante local da resposta mais o restante.
+ *
+ * Com a janela aberta o Desejo entra, vence e e reconjurado sem nova resposta
+ * da config — e o servidor JA conta isso ao cliente, no icone EFST_AUTOSPELL
+ * (o 0983 leva o restante; o 0196 o apaga; cada cena nova reacende com o que
+ * falta). `Entity.js` repassa o pacote a `aoMudarStatusDoDesejo`, e o relogio
+ * se acerta com zero byte a mais no fio. Os dois canais sao do servidor; o
+ * ultimo que chegou vale.
+ */
+
+/** `EFST_AUTOSPELL` (status.hpp:1522): o icone do Desejo. */
+export const EFST_AUTOSPELL = 65;
+
+/** O que a fonte manda como "sem fim" no 0983 (clif.cpp:6501-6502). */
+const RELOGIO_SEM_FIM = 9999;
+
+/** O vencimento local do Desejo (ms do relogio de quem chama), ou null = inativo. */
+let _venceEm = null;
+
+/** Quem quer saber que o relogio mudou (a janela, para redesenhar a linha). */
+const _ouvintes = new Set();
+
+/** Acerta o relogio pela resposta da config. Sem o cartao, nada muda. */
+export function sincronizarRelogioDoDesejo(ctx, agora) {
+	if (!temDesejoArcano(ctx)) {
+		return;
+	}
+	const ativo = ctx.desejoArcano.ativo;
+	_venceEm = ativo && typeof ativo.restanteMs === 'number' && ativo.restanteMs > 0 ? agora + ativo.restanteMs : null;
+}
+
+/**
+ * O icone de status do PROPRIO jogador mudou (`Entity.js`). So o EFST do
+ * Desejo interessa; devolve se o relogio mudou. O relogio "sem fim" (0 ou
+ * 9999) nao e do Desejo, que sempre tem duracao: ele nao mexe no vencimento.
+ */
+export function aoMudarStatusDoDesejo(index, state, remainMs, agora) {
+	if (index !== EFST_AUTOSPELL) {
+		return false;
+	}
+	const ativo = state == null ? true : Boolean(state);
+	if (!ativo) {
+		_venceEm = null;
+	} else {
+		const vida = Number(remainMs);
+		if (!Number.isFinite(vida) || vida <= 0 || vida === RELOGIO_SEM_FIM) {
+			return false;
+		}
+		_venceEm = agora + vida;
+	}
+	for (const ouvinte of _ouvintes) {
+		try {
+			ouvinte();
+		} catch (e) {
+			// Um ouvinte quebrado nao derruba o pacote de status (que acende os icones).
+			console.error('[DesejoArcano] ouvinte do relogio falhou:', e);
+		}
+	}
+	return true;
+}
+
+/** A janela pede aviso quando o relogio muda. Devolve quem desliga. */
+export function escutarRelogioDoDesejo(ouvinte) {
+	_ouvintes.add(ouvinte);
+	return () => _ouvintes.delete(ouvinte);
+}
+
+/** Quanto falta agora, em ms, ou null = inativo (vencido conta como inativo). */
+export function restanteDoDesejoAgora(agora) {
+	if (_venceEm === null) {
+		return null;
+	}
+	const falta = _venceEm - agora;
+	return falta > 0 ? falta : null;
+}
+
+/** Esquece o relogio (a troca de personagem). Os ouvintes ficam: a janela e a mesma. */
+export function esquecerRelogioDoDesejo() {
+	_venceEm = null;
+}
+
+/**
+ * O texto do relogio. Os MINUTOS sao os inteiros que faltam (para baixo): com
+ * 6 min 30 s faltando diz 6 minutos — o cartao nunca promete mais tempo do que
+ * ha. Arredondar para cima (a primeira versao) dizia "2 minutos" com 61 s e
+ * pulava o "1 minuto" direto para "59 segundos", o que a sonda na tela pegou.
+ * Abaixo de um minuto conta os segundos (para cima: o ultimo e "1 segundo").
+ * Cada frase sai inteira (o catalogo casa o modelo com o numero dentro).
+ */
+export function textoDoRestante(restanteMs) {
+	if (restanteMs >= 60000) {
+		const minutos = Math.floor(restanteMs / 60000);
+		return minutos === 1 ? 'Ativo: 1 minuto restante' : `Ativo: ${minutos} minutos restantes`;
+	}
+	const segundos = Math.max(1, Math.ceil(restanteMs / 1000));
+	return segundos === 1 ? 'Ativo: 1 segundo restante' : `Ativo: ${segundos} segundos restantes`;
+}
+
+/** Por que esta inativo, e quem o poe de pe de novo (o `quemConjura` do servidor). */
+export const QUEM_CONJURA = {
+	buffs: 'Está nos Buffs mantidos: a Caça automática o conjura de novo assim que puder.',
+	rotacao: 'Está na Ordem de uso: sai na próxima luta, na vez dele.',
+	'caca-desligada': 'Está na lista da Caça automática, mas ela só o conjura com a caça ligada num mapa de caça.',
+	clique: 'Só sai pelo atalho. Para a caça mantê-lo, ponha-o em "Buffs mantidos", na aba Suporte.'
+};
+
+/** A chave que a linha de estado guarda, para so redesenhar quando o texto muda. */
+export function chaveDoEstado(d, restanteMs) {
+	return restanteMs === null ? `inativo:${(d && d.quemConjura) || ''}` : textoDoRestante(restanteMs);
+}
+
+/** O MIOLO da linha de estado (`.ic-desejo-estado`), ativo ou inativo. */
+export function htmlDoEstadoDoDesejo(d, restanteMs, esc) {
+	if (restanteMs !== null) {
+		return `<span class="ri-badge ri-badge--verde ic-desejo-relogio">${esc(textoDoRestante(restanteMs))}</span>`;
+	}
+	const porque = (d && QUEM_CONJURA[d.quemConjura]) || '';
+	return `<span class="ri-badge ri-badge--cinza">Inativo</span>${porque ? `<span class="ic-desejo-porque">${esc(porque)}</span>` : ''}`;
+}
+
 /** O servidor mandou a secao? (so para quem aprendeu o Desejo) */
 export function temDesejoArcano(ctx) {
 	const d = ctx && ctx.desejoArcano;
@@ -51,7 +179,10 @@ export function magiaEscolhida(cfg, ctx) {
  * O HTML do cartao, ou '' para quem nao aprendeu o Desejo. O seletor usa o
  * `data-set` + `data-valor` generico da janela (gravado por `setPath`).
  *
- * @param {{ cfg: object, ctx: object, escapar: (s: string) => string, nomeDaSkill: (id: string) => string }} p
+ * `restanteMs` (D-2046) e o que falta do Desejo AGORA (`restanteDoDesejoAgora`),
+ * ou null = inativo; ausente conta como inativo.
+ *
+ * @param {{ cfg: object, ctx: object, escapar: (s: string) => string, nomeDaSkill: (id: string) => string, restanteMs?: number|null }} p
  * @returns {string}
  */
 export function htmlDoDesejoArcano(p) {
@@ -94,6 +225,7 @@ export function htmlDoDesejoArcano(p) {
 	return `
 		<div class="ic-card ic-card--desejo-arcano">
 			<h3>${titulo}</h3>
+			<div class="ic-desejo-estado" data-desejo-estado="${esc(chaveDoEstado(d, p.restanteMs === undefined ? null : p.restanteMs))}">${htmlDoEstadoDoDesejo(d, p.restanteMs === undefined ? null : p.restanteMs, esc)}</div>
 			<div class="ic-perfil-agora" data-magia-efetiva="${esc(d.efetiva.magia)}">
 				<span class="ic-perfil-agora-rotulo">Sai agora:</span>
 				<span class="ri-badge ri-badge--verde">${nome(d.efetiva.magia)}</span>
