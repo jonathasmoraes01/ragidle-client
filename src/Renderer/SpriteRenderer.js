@@ -21,7 +21,8 @@ import {
 	escolherProgramaDoSprite,
 	descreverGpu,
 	guardarEscolhaDoSprite,
-	nivelDeReservaForcado
+	nivelDeReservaForcado,
+	CHAVE_DE_RESERVA_FORCADA
 } from 'Renderer/programaDoSprite.js';
 import { sondarProgramaDoSprite } from 'Renderer/sondaDoSprite.js';
 
@@ -570,11 +571,21 @@ class SpriteRenderer {
 }
 
 /**
- * A busca da URL, sem lancar fora do navegador.
+ * A busca da URL, sem lancar fora do navegador. Em producao o jogo roda no
+ * documento da casca; no dev ele roda num `<iframe>` cuja URL e
+ * `api.html?<aleatorio>` (`applications/api/api.js`), e a chave digitada pelo
+ * jogador fica na busca da CASCA — por isso a da janela de cima vale quando a
+ * propria nao traz a chave (mesma origem; outra origem lanca e fica de fora).
  */
 function lerBuscaDaUrl() {
 	try {
-		return typeof location !== 'undefined' ? location.search : '';
+		const propria = typeof location !== 'undefined' ? location.search : '';
+		if (propria.indexOf(CHAVE_DE_RESERVA_FORCADA) !== -1) {
+			return propria;
+		}
+		const deCima =
+			typeof window !== 'undefined' && window.top && window.top !== window ? window.top.location.search : '';
+		return deCima.indexOf(CHAVE_DE_RESERVA_FORCADA) !== -1 ? deCima : propria;
 	} catch (_e) {
 		return '';
 	}
