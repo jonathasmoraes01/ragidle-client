@@ -101,6 +101,7 @@ import {
 	precisaDeclarar,
 	servidorNumera
 } from './parcialDasSkills.js';
+import { criarJuntadorDePaginas } from 'Network/juntarPaginas.js'; // D-2071
 
 /**
  * A versão do contrato que esta janela sabe ler.
@@ -174,6 +175,9 @@ IdleSkills.serverData = null;
 IdleSkills._estadoDoServidor = null;
 IdleSkills._revDeclarada = null;
 IdleSkills._inteiroPedido = false;
+
+/** As paginas da arvore grande (D-2071), juntadas antes de o inteiro ser tratado. */
+const juntarPaginasDaArvore = criarJuntadorDePaginas('skills');
 
 /** @var {string|null} a habilidade selecionada (dirige o painel de detalhe). */
 IdleSkills.selectedSkillId = null;
@@ -637,6 +641,18 @@ function onSkillsReceived(pkt) {
 		setStatus('Dados incompatíveis.');
 		soltarOAplicar();
 		return;
+	}
+
+	/*
+	 * AS PAGINAS (D-2071): a arvore que passa do teto de um pacote desce em
+	 * paginas, cada uma com uma fatia de `skills`; o inteiro so e tratado
+	 * quando a ultima chega. O parcial nunca vem paginado.
+	 */
+	if (!ehParcialDasSkills(data)) {
+		data = juntarPaginasDaArvore(data);
+		if (data === null) {
+			return;
+		}
 	}
 
 	/*
@@ -2278,6 +2294,20 @@ IdleSkills.limparEstadoDoPersonagem = function limparEstadoDoPersonagem() {
 	 * troca. Ver `UI/Components/limpezaDeJanelaIdle.js`.
 	 */
 	fecharEEsquecer(_root(), '.is-window', { corpo: '.is-tela', texto: 'Carregando…' });
+};
+
+/**
+ * A REVISAO QUE A ARVORE TEM NA MAO (D-2071), para a declaracao da entrada no
+ * mapa (`Engine/declaracaoDasBases.js`): com a mesma revisao da conexao
+ * anterior, o servidor manda no lote so o que mudou. `null` sem arvore, com
+ * servidor que nao numera, ou com o inteiro ja pedido - um parcial herdado
+ * seria descartado pela espera do inteiro, e a espera nunca acabaria.
+ */
+IdleSkills.revisaoDaArvore = function revisaoDaArvore() {
+	if (IdleSkills._inteiroPedido || !servidorNumera(IdleSkills._estadoDoServidor)) {
+		return null;
+	}
+	return IdleSkills._estadoDoServidor.rev;
 };
 
 /**

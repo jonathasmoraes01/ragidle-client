@@ -132,6 +132,7 @@ import MissoesTrackerIdle from 'UI/Components/MissoesTrackerIdle/MissoesTrackerI
 import IdleConfig from 'UI/Components/IdleConfig/IdleConfig.js'; // RAGIDLE: "Configuração idle"
 import AdminPanel from 'UI/Components/AdminPanel/AdminPanel.js'; // RAGIDLE: "Painel de admin"
 import IdleSkills from 'UI/Components/IdleSkills/IdleSkills.js'; // RAGIDLE: "Skills de {classe}"
+import { declararBasesDasJanelas } from 'Engine/declaracaoDasBases.js'; // RAGIDLE: D-2071
 import BasicInfoIdle from 'UI/Components/BasicInfoIdle/BasicInfoIdle.js'; // RAGIDLE: "Informações básicas"
 import StatusIdle from 'UI/Components/StatusIdle/StatusIdle.js'; // RAGIDLE: "Status"
 import MochilaIdle from 'UI/Components/MochilaIdle/MochilaIdle.js'; // RAGIDLE: "Mochila" (inventario + equipamento numa janela so)
@@ -994,6 +995,19 @@ function onConnectionAccepted(pkt) {
 		yPos: pkt.PosDir[1],
 		mapName: _mapName
 	}, true);
+
+	/*
+	 * A DECLARACAO DAS BASES (D-2071): a revisao da lista de missoes e da
+	 * arvore de habilidades que esta memoria ainda tem, para o lote de entrada
+	 * descer so o que mudou. DEPOIS de `onMapChange` e em `try/catch`: o
+	 * `CZ_NOTIFY_ACTORINIT` sai no `onLoad` do mapa, num `setTimeout`, e nada
+	 * daqui o alcanca (o aviso de D-993). Ver `Engine/declaracaoDasBases.js`.
+	 */
+	try {
+		declararBasesDasJanelas({ MissoesIdle, IdleSkills, Network, PACKET });
+	} catch (erro) {
+		console.error('[bases] a declaracao falhou - o lote de entrada desce inteiro:', erro);
+	}
 }
 
 /**

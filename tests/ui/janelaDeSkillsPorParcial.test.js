@@ -235,6 +235,28 @@ describe('a janela de habilidades aplica o parcial', () => {
 		expect(corpos('RAGIDLE_PRIORIZAR')).toEqual([{ skillId: 'SM_BASH', ligar: false, base: 4 }]);
 	});
 
+	it('D-2071: o inteiro em PAGINAS so vira estado na ultima, com a arvore inteira, e declara uma vez', () => {
+		const todas = inteiro({ rev: 7, skills: [skill('SM_BASH', 0), skill('SM_PROVOKE', 0), skill('SM_ENDURE', 1)] });
+		receber({ ...todas, skills: todas.skills.slice(0, 2), parte: 1, partes: 2 });
+		expect(IdleSkills._estadoDoServidor, 'a primeira pagina virou estado').toBeNull();
+		expect(mocks.enviados).toHaveLength(0);
+		receber({ ...todas, skills: todas.skills.slice(2), parte: 2, partes: 2 });
+		expect(IdleSkills.serverData.skills.map(s => s.skillId)).toEqual(['SM_BASH', 'SM_PROVOKE', 'SM_ENDURE']);
+		expect(IdleSkills._estadoDoServidor.rev).toBe(7);
+		expect('parte' in IdleSkills._estadoDoServidor).toBe(false);
+		expect(corpos('RAGIDLE_APRENDER')).toEqual([{ acao: 'pedir', base: 7 }]);
+	});
+
+	it('D-2071: a revisao da arvore para a declaracao da entrada - nula sem arvore, sem numero e com o inteiro pedido', () => {
+		expect(IdleSkills.revisaoDaArvore()).toBeNull();
+		receber(inteiro());
+		expect(IdleSkills.revisaoDaArvore()).toBeNull();
+		receber(inteiro({ rev: 12 }));
+		expect(IdleSkills.revisaoDaArvore()).toBe(12);
+		receber({ v: 5, parcial: true, de: 99, rev: 100, trocas: [], problemas: [] });
+		expect(IdleSkills.revisaoDaArvore(), 'com o inteiro pedido, a arvore nao vale como base').toBeNull();
+	});
+
 	it('a troca de personagem esquece a revisao e a declaracao', () => {
 		receber(inteiro({ rev: 5 }));
 		IdleSkills.limparEstadoDoPersonagem();

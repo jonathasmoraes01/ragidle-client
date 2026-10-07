@@ -428,7 +428,8 @@ function aoEntrarNaAba() {
 	 * — o MESMO gatilho que a janela separada ja usava.
 	 */
 	if (CodexIdle.aba === 'missoes') {
-		Network.sendPacket(new PACKET.CZ.RAGIDLE_PEDIR_MISSOES());
+		// D-2071: pelo MESMO pedido da janela - com a revisao, so o que mudou.
+		MissoesIdle.pedirLista();
 		return;
 	}
 	if (CodexIdle.aba !== 'jornada') {
