@@ -18,49 +18,56 @@ import ContextMenu from 'UI/Components/ContextMenu/ContextMenu.js';
 import htmlText from './StorageFilter.html?raw';
 import cssText from './StorageFilter.css?raw';
 
-function StorageFilter(tabId) {
-	const prefName = 'StorageFilter_' + tabId;
-	GUIComponent.call(this, prefName, cssText);
+/*
+ * CLASSE, e nao funcao construtora (06/10/2026 - o erro do `/analytics`:
+ * "Class constructor GUIComponent cannot be invoked without 'new'"). O
+ * `GUIComponent` virou `class`, e o `GUIComponent.call(this, ...)` daqui lancava
+ * SEMPRE: abrir a busca ou um filtro de aba do armazem (`StorageCommon.js`,
+ * `new StorageFilter(...)`) quebrava. Os metodos continuam no prototipo, logo
+ * abaixo, como antes - so o construtor mudou de forma.
+ */
+class StorageFilter extends GUIComponent {
+	constructor(tabId) {
+		const prefName = 'StorageFilter_' + tabId;
+		super(prefName, cssText);
 
-	this.render = () => htmlText;
+		this.render = () => htmlText;
 
-	this.onRemove = function () {
-		const root = this.getRoot();
-		const content = root.querySelector('.content');
-		if (content) {
-			content.innerHTML = '';
-		}
-		this._list.length = 0;
+		this.onRemove = function () {
+			const root = this.getRoot();
+			const content = root.querySelector('.content');
+			if (content) {
+				content.innerHTML = '';
+			}
+			this._list.length = 0;
+			this._currentTabId = -1;
+
+			this._preferences.y = parseInt(this._host.style.top, 10);
+			this._preferences.x = parseInt(this._host.style.left, 10);
+			this._preferences.height = Math.floor(
+				(root.querySelector('.content') ? root.querySelector('.content').offsetHeight : 128) / 32
+			);
+			this._preferences.save();
+
+			if (typeof this.onCloseCallback === 'function') {
+				this.onCloseCallback();
+			}
+		};
+
+		this._list = [];
 		this._currentTabId = -1;
-
-		this._preferences.y = parseInt(this._host.style.top, 10);
-		this._preferences.x = parseInt(this._host.style.left, 10);
-		this._preferences.height = Math.floor(
-			(root.querySelector('.content') ? root.querySelector('.content').offsetHeight : 128) / 32
+		this._preferences = Preferences.get(
+			prefName,
+			{
+				x: 300 + tabId * 20,
+				y: 200 + tabId * 20,
+				height: 4
+			},
+			1.0
 		);
-		this._preferences.save();
-
-		if (typeof this.onCloseCallback === 'function') {
-			this.onCloseCallback();
-		}
-	};
-
-	this._list = [];
-	this._currentTabId = -1;
-	this._preferences = Preferences.get(
-		prefName,
-		{
-			x: 300 + tabId * 20,
-			y: 200 + tabId * 20,
-			height: 4
-		},
-		1.0
-	);
-	this.onCloseCallback = null;
+		this.onCloseCallback = null;
+	}
 }
-
-StorageFilter.prototype = Object.create(GUIComponent.prototype);
-StorageFilter.prototype.constructor = StorageFilter;
 
 StorageFilter.prototype.init = function init() {
 	const self = this;
