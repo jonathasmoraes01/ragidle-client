@@ -27,13 +27,44 @@
 import { declaracaoDasBases } from 'UI/Components/MissoesIdle/parcialDaLista.js';
 
 /**
- * Manda a declaracao. `dependencias` e injetado para o teste: as duas janelas
- * (`revisaoDaLista`, `revisaoDaArvore`) e o fio.
+ * Manda a declaracao. `dependencias` e injetado para o teste: as janelas
+ * (`revisaoDaLista`, `revisaoDaArvore` e, desde D-2077, `revisaoDaConfig` e
+ * `revisaoDoPainel`) e o fio.
+ *
+ * A CONFIG IDLE E A JANELA DE GRUPO (D-2077, `UI/janelaPorDiferenca.js`): a
+ * chave `config`/`grupo` vai SEMPRE que a janela e passada - declarar e o que
+ * diz ao servidor que este cliente aplica o parcial delas -, com a revisao
+ * que a memoria tem (ou `null`). O servidor antigo ignora as duas chaves.
  */
-export function declararBasesDasJanelas({ MissoesIdle, IdleSkills, Network, PACKET }) {
+export function declararBasesDasJanelas({ MissoesIdle, IdleSkills, IdleConfig, GrupoIdle, Network, PACKET }) {
 	const lista = typeof MissoesIdle.revisaoDaLista === 'function' ? MissoesIdle.revisaoDaLista() : null;
 	const arvore = typeof IdleSkills.revisaoDaArvore === 'function' ? IdleSkills.revisaoDaArvore() : null;
+	const corpo = declaracaoDasBases(lista, arvore);
+	if (IdleConfig) {
+		corpo.config = revisaoDe(IdleConfig.revisaoDaConfig);
+	}
+	if (GrupoIdle) {
+		corpo.grupo = revisaoDe(GrupoIdle.revisaoDoPainel);
+	}
 	const pkt = new PACKET.CZ.RAGIDLE_MISSAO_ACAO();
-	pkt.json = JSON.stringify(declaracaoDasBases(lista, arvore));
+	pkt.json = JSON.stringify(corpo);
+	Network.sendPacket(pkt);
+}
+
+function revisaoDe(leitor) {
+	const rev = typeof leitor === 'function' ? leitor() : null;
+	return typeof rev === 'number' ? rev : null;
+}
+
+/**
+ * O PEDIDO DO INTEIRO de uma janela por diferenca (D-2077): o parcial nao caiu
+ * sobre o que a memoria tem, entao o cliente declara `null` para aquela janela
+ * (`chave` e `config` ou `grupo`) - o servidor esquece a base da conexao e o
+ * proximo envio e inteiro. Quem chama repete o pedido fixo logo depois (o TCP
+ * entrega os dois em ordem).
+ */
+export function declararBaseNula(chave, { Network, PACKET }) {
+	const pkt = new PACKET.CZ.RAGIDLE_MISSAO_ACAO();
+	pkt.json = JSON.stringify({ acao: 'bases', [chave]: null });
 	Network.sendPacket(pkt);
 }
