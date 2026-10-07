@@ -69,6 +69,7 @@ class Client {
 	 * @param {Array} args - optional
 	 */
 	static getFile(filename, onload, onerror, args) {
+		Memory.esquecerFalhaVelha(filename);
 		if (!Memory.exist(filename)) {
 			Thread.send('GET_FILE', { filename, args: args || null }, onFileGetted);
 		}
@@ -114,6 +115,8 @@ class Client {
 	 * @param {Array} args - optional
 	 */
 	static loadFile(filename, onload, onerror, args = {}) {
+		// A falha velha volta a ir a rede (D-2055 - ver `MemoryManager.esquecerFalhaVelha`).
+		Memory.esquecerFalhaVelha(filename);
 		if (!Memory.exist(filename)) {
 			Thread.send('LOAD_FILE', { filename, args: args || null }, onFileLoaded);
 		}

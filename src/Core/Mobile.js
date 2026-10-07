@@ -22,6 +22,7 @@ import Mouse from 'Controls/MouseEventHandler.js';
 import KEYS from 'Controls/KeyEventHandler.js';
 import MobileUI from 'UI/Components/MobileUI/MobileUI.js';
 import { ehEventoDaUI } from 'Controls/ehEventoDaUI.js'; // D-932: o toque para na UI, como o clique ja parava
+import { temPersonagemNoMundo } from 'Controls/guardaDoMundo.js'; // D-2055 (A2): sem personagem, o toque nao liga o mundo
 
 /**
  * @var {boolean} is doing a gesture ?
@@ -245,7 +246,10 @@ const onTouchStart = (function onTouchStartClosure() {
 		Mouse.screen.x = _touches[0].pageX;
 		Mouse.screen.y = _touches[0].pageY;
 
-		if (!Session.FreezeUI) {
+		// Sem personagem (a selecao de personagem) o toque nao liga o mundo:
+		// ligado, o toque seguinte pedia para andar com `Session.Entity` nulo
+		// (D-2055, achado A2 - ver `Controls/guardaDoMundo.js`).
+		if (!Session.FreezeUI && temPersonagemNoMundo(Session)) {
 			Mouse.intersect = true;
 			_intersect = true;
 		}

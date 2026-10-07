@@ -58,9 +58,139 @@ import Upsampling from 'Renderer/Effects/Shaders/Upsampling.js';
 import WebGL from 'Utils/WebGL.js';
 import { relatarErro } from 'UI/relatoDeErro.js';
 import { relatarEscolhaDoSprite } from 'Renderer/programaDoSprite.js';
+import { criarVigiaDoCarregamento } from 'Renderer/vigiaDoCarregamento.js';
+import {
+	anotarCargaRefeita,
+	anotarErroDaCarga,
+	anotarFimNoWorker,
+	anotarMontado,
+	anotarTravou,
+	comecarCarregamento,
+	relatarDesistencia
+} from 'Renderer/relatoDoCarregamento.js';
+import {
+	esconderAviso,
+	esconderSaida,
+	esconderTudo,
+	mostrarAviso,
+	mostrarSaida,
+	saidaVisivel,
+	textoDoAviso
+} from 'UI/saidaDoCarregamento.js';
+import { NOVAS_TENTATIVAS_DE_ARQUIVO } from 'Core/tentativasDeArquivo.js';
+import { ehDedo } from 'UI/escalaDaHud.js';
 
 const mat4 = glMatrix.mat4;
 const _pos = new Uint16Array(2);
+
+/*
+ * A CARGA DE MAPA QUE NAO FICA PRESA PARA SEMPRE (D-2055, 06/10/2026 - relatos
+ * de producao: "a barra parou em 2% e nunca termina", sobretudo no celular).
+ *
+ * Cada carga real (o mapa muda) ganha um NUMERO; o worker o devolve em toda
+ * mensagem dela, e a mensagem de uma carga que nao e mais a atual e descartada
+ * - e o que deixa o "Tentar de novo" refazer a carga sem que o `MAP_GROUND`
+ * da carga velha caia na nova. A vigia olha a carga inteira (o prazo por
+ * arquivo mora em `Core/baixarComVigia.js`) e, se nada anda, mostra a saida.
+ *
+ * Tudo isto roda ANTES do `CZ_NOTIFY_ACTORINIT` e por isso passa por
+ * `protegido`: uma excecao na medida, na vigia ou na saida vira uma linha no
+ * console e um relato de erro, e nunca impede o mapa de carregar (D-993).
+ */
+let _carga = 0;
+let _mapaDaCarga = '';
+let _refazendo = false;
+
+function protegido(nome, fn) {
+	try {
+		fn();
+	} catch (erro) {
+		console.error('[MapRenderer] ' + nome + ' falhou; o carregamento segue', erro);
+		relatarErro('[MapRenderer] ' + nome + ': ' + (erro && erro.message), erro && erro.stack);
+	}
+}
+
+/** So aceita a mensagem da carga atual (a sem numero e de quem nao numera: o GrfViewer). */
+function daCargaAtual(fn) {
+	return function (dado, envelope) {
+		if (envelope && typeof envelope.carga === 'number' && envelope.carga !== _carga) {
+			return;
+		}
+		fn.call(MapRenderer, dado);
+	};
+}
+
+function mostrarSaidaDaCarga(texto) {
+	anotarTravou();
+	mostrarSaida({
+		texto,
+		dedo: ehDedo(),
+		aoTentar: () => MapRenderer.refazerCarga(),
+		aoRecarregar: () => {
+			relatarDesistencia('recarregou');
+			import('UI/recargaMantendoASessao.js')
+				.then(m => m.recarregarMantendoASessao())
+				.catch(() => {
+					try {
+						window.location.reload();
+					} catch {
+						/* sem recarga, o jogador ainda tem o botao do navegador */
+					}
+				});
+		}
+	});
+}
+
+/**
+ * O WORKER FALHOU FORA DE QUALQUER PEDIDO (D-2055, achado A3) - `Core/Thread.js`.
+ *
+ * A mensagem que nao se le (`messageerror`, a memoria do celular acabando no
+ * meio de um `postMessage`) derruba a carga em curso NA HORA: ela nunca vai
+ * terminar, e esperar a vigia seria deixar o jogador 45 s olhando uma barra
+ * que ja morreu. O erro solto (`error`) so e relatado: a montagem do mapa no
+ * worker ja tem guarda propria (`MapLoader.carregarArquivo`), entao o que
+ * escapa dela e quase sempre de outro pedido (um sprite), e derrubar a carga
+ * por isso seria alarme falso - se for da carga, a vigia abre a saida.
+ *
+ * @param {{tipo: string, mensagem: string}} falha
+ */
+function onFalhaDoWorker(falha) {
+	protegido('a falha do worker', () => {
+		relatarErro('[Thread] ' + falha.tipo + ': ' + falha.mensagem);
+		if (MapRenderer.loading && falha.tipo === 'messageerror') {
+			falharCargaAtual('A memória do aparelho não deu conta do mapa (mensagem ilegível do carregador).');
+		}
+	});
+}
+
+/**
+ * Desiste da carga em curso: ela ganha um numero novo (as mensagens tardias da
+ * velha sao descartadas), o worker para de carrega-la, e a falha segue pelo
+ * caminho de sempre (a saida com "Tentar de novo").
+ *
+ * @param {string} motivo
+ */
+function falharCargaAtual(motivo) {
+	const carga = ++_carga;
+	try {
+		Thread.send('CANCEL_MAP', null);
+	} catch {
+		/* o worker que nao recebe nao muda a decisao */
+	}
+	onMapComplete.call(MapRenderer, carga, false, motivo, undefined);
+}
+
+const _vigia = criarVigiaDoCarregamento({
+	aoTravar: () =>
+		protegido('a saida da carga', () =>
+			mostrarSaidaDaCarga(
+				'O mapa parou de chegar do servidor. Toque em "Tentar de novo" para pedir o mapa outra vez.'
+			)
+		),
+	aoDemorar: atividade =>
+		protegido('o aviso da carga', () => mostrarAviso(textoDoAviso(atividade, NOVAS_TENTATIVAS_DE_ARQUIVO))),
+	aoAndar: () => protegido('o aviso da carga', esconderAviso)
+});
 
 /**
  * @param {string} mapname
@@ -189,23 +319,40 @@ class MapRenderer {
 			this.loading = true;
 			BGM.stop();
 			this.currentMap = mapname;
+			_mapaDaCarga = mapname;
+			const carga = ++_carga;
+			const refeita = _refazendo;
+			_refazendo = false;
+			protegido('a medida da carga', () => {
+				esconderTudo();
+				if (refeita) {
+					anotarCargaRefeita();
+				} else {
+					comecarCarregamento(mapname);
+				}
+			});
 
 			// Parse the filename (ugly RO)
 			const filename = mapname.replace(/\.gat$/i, '.rsw');
 
 			Background.setLoading(function () {
 				// Hooking Thread
-				Thread.hook('MAP_PROGRESS', onProgressUpdate.bind(MapRenderer));
-				Thread.hook('MAP_WORLD', onWorldComplete.bind(MapRenderer));
-				Thread.hook('MAP_GROUND', onGroundComplete.bind(MapRenderer));
-				Thread.hook('MAP_ALTITUDE', onAltitudeComplete.bind(MapRenderer));
-				Thread.hook('MAP_MODELS', onModelsComplete.bind(MapRenderer));
-				Thread.hook('MAP_ANIMATED_MODEL', onAnimatedModelComplete.bind(MapRenderer));
+				Thread.hook('MAP_PROGRESS', daCargaAtual(onProgressUpdate));
+				Thread.hook('MAP_ATIVIDADE', daCargaAtual(onAtividade));
+				Thread.hook('MAP_WORLD', daCargaAtual(onWorldComplete));
+				Thread.hook('MAP_GROUND', daCargaAtual(onGroundComplete));
+				Thread.hook('MAP_ALTITUDE', daCargaAtual(onAltitudeComplete));
+				Thread.hook('MAP_MODELS', daCargaAtual(onModelsComplete));
+				Thread.hook('MAP_ANIMATED_MODEL', daCargaAtual(onAnimatedModelComplete));
+				Thread.hook('THREAD_FALHOU', onFalhaDoWorker);
 
 				// Start Loading
 				MapRenderer.free();
 				Renderer.remove();
-				Thread.send('LOAD_MAP', filename, onMapComplete.bind(MapRenderer));
+				Thread.send('LOAD_MAP', { filename, carga }, (sucesso, erro, _pedido, medida) =>
+					onMapComplete.call(MapRenderer, carga, sucesso, erro, medida)
+				);
+				protegido('a vigia da carga', () => _vigia.comecar());
 			});
 
 			return;
@@ -236,6 +383,29 @@ class MapRenderer {
 			Renderer.render(MapRenderer.onRender);
 			Mouse.intersect = true;
 		});
+	}
+
+	/**
+	 * "TENTAR DE NOVO" (D-2055): refaz a carga do mapa SEM sair do jogo. O
+	 * socket, o login e o `onLoad` (o estou-pronto do pacote mais novo, posto
+	 * pelo `MapEngine`) ficam; so a carga recomeca, com outro numero - o worker
+	 * cancela a velha e aborta os pedidos dela. Se havia um mapa guardado para
+	 * depois (`mapaPendente`), e ele que carrega: ele e o mais novo.
+	 */
+	static refazerCarga() {
+		const alvo = this.mapaPendente || _mapaDaCarga || this.currentMap;
+		protegido('a vigia da carga', () => {
+			_vigia.terminar();
+			esconderTudo();
+		});
+		if (!alvo) {
+			return;
+		}
+		this.mapaPendente = null;
+		this.loading = false;
+		this.currentMap = '';
+		_refazendo = true;
+		this.setMap(alvo);
 	}
 
 	/**
@@ -455,6 +625,19 @@ class MapRenderer {
  */
 function onProgressUpdate(percent) {
 	Background.setPercent(percent);
+	protegido('a vigia da carga', () => {
+		_vigia.progresso();
+		// A carga que se recuperou sozinha depois da saida aberta: a saida sai.
+		if (saidaVisivel()) esconderSaida();
+	});
+}
+
+/**
+ * A rede da carga deu sinal (bytes chegando, nova tentativa saindo) - D-2055.
+ * @param {object} atividade
+ */
+function onAtividade(atividade) {
+	protegido('a vigia da carga', () => _vigia.atividade(atividade));
 }
 
 /**
@@ -579,8 +762,21 @@ function registerPostProcessModules(gl) {
 
 /**
  * Once the map finished to load
+ *
+ * @param {number} carga - o numero da carga (D-2055): a de uma carga que ja foi
+ *   refeita e descartada
+ * @param {boolean} success
+ * @param {string} error
+ * @param {object} [medida] - a medida por fase do worker (`Loaders/medidaDaCarga.js`)
  */
-function onMapComplete(success, error) {
+function onMapComplete(carga, success, error, medida) {
+	if (carga !== _carga) {
+		return;
+	}
+	protegido('a medida da carga', () => {
+		_vigia.terminar();
+		anotarFimNoWorker(success, medida);
+	});
 	const worldResource = this.currentMap.replace(/\.gat$/i, '.rsw');
 	const mapInfo = DB.getMap(worldResource);
 
@@ -600,7 +796,24 @@ function onMapComplete(success, error) {
 		 * recarregar nao existia.
 		 */
 		MapRenderer.loading = false;
-		UIManager.showErrorBox(error).ui.css('zIndex', 1000);
+		/*
+		 * A FALHA TEM SAIDA (D-2055). A caixa de erro de antes ficava por cima
+		 * da arte de carregamento, que NAO saia - o jogador lia "Can't find
+		 * file", apertava OK e voltava a barra parada, para sempre. Agora a
+		 * falha abre a mesma saida da carga parada, com o erro no texto.
+		 *
+		 * E o nome do mapa VOLTA A VAZIO: sem isto o "Tentar de novo" (ou o
+		 * proximo pedido do servidor para o MESMO mapa) caia no ramo do
+		 * teleporte no mesmo mapa - montava a HUD e mandava o estou-pronto sem
+		 * mapa nenhum carregado.
+		 */
+		this.currentMap = '';
+		protegido('a saida da carga', () => {
+			anotarErroDaCarga(error);
+			// A falha vai ao `/analytics/erro` tambem: e la que se ve QUAL arquivo.
+			relatarErro('[carga do mapa] ' + String(error || 'erro desconhecido'));
+			mostrarSaidaDaCarga('O mapa não carregou (' + String(error || 'erro desconhecido') + ').');
+		});
 		atenderMapaPendente();
 		return;
 	}
@@ -634,6 +847,10 @@ function onMapComplete(success, error) {
 	// Starting to render
 	Background.remove(() => {
 		MapRenderer.loading = false;
+		protegido('a medida da carga', () => {
+			esconderTudo();
+			anotarMontado();
+		});
 
 		/*
 		 * OUTRO MAPA PENDENTE: ESTE NAO MONTA (H08, auditoria 2 de 22/09/2026).

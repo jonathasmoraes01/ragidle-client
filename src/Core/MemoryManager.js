@@ -27,6 +27,14 @@ const _memory = {};
 const _rememberTime = 30 * 1000; // 30s
 
 /**
+ * Quanto uma falha de arquivo fica guardada antes de o arquivo ser pedido de
+ * novo (D-2055). Um minuto: o arquivo que nao existe (404) e pedido no maximo
+ * uma vez por minuto enquanto estiver na tela, e o que falhou por um soluco
+ * volta no minuto seguinte, sem recarregar a pagina.
+ */
+export const PRAZO_PARA_REPETIR_FALHA_MS = 60 * 1000;
+
+/**
  * @var {number} last time we clean up variables
  */
 let _lastCheckTick = 0;
@@ -123,6 +131,33 @@ class MemoryManager {
 	 */
 	static exist = filename => {
 		return !!_memory[filename];
+	};
+
+	/**
+	 * A FALHA NAO E PARA SEMPRE (D-2055, achado A3). Um arquivo que falhou UMA
+	 * vez (o soluco de rede, o servidor de assets reiniciando) ficava guardado
+	 * como falha, e todo pedido seguinte recebia a falha guardada sem ir a
+	 * rede - e como cada pedido renova o `lastTimeUsed`, a limpeza nunca o
+	 * tirava: o sprite de um monstro sumia pelo resto da sessao. Passado o
+	 * prazo, a falha e esquecida e o proximo pedido vai a rede de novo.
+	 *
+	 * So a falha COMPLETA e esquecida: um item ainda carregando (com quem o
+	 * espera) nunca sai daqui.
+	 *
+	 * @param {string} filename
+	 * @param {number} [agora]
+	 * @returns {boolean} se esqueceu
+	 */
+	static esquecerFalhaVelha = (filename, agora = Date.now()) => {
+		const item = _memory[filename];
+		if (!item || !item.complete || !item._error || item._data) {
+			return false;
+		}
+		if (!(agora - (item.errouEm || 0) >= PRAZO_PARA_REPETIR_FALHA_MS)) {
+			return false;
+		}
+		delete _memory[filename];
+		return true;
 	};
 
 	/**
