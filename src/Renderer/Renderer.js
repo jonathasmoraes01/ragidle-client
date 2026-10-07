@@ -29,6 +29,7 @@ import { AVISO_DE_PERDA_DE_CONTEXTO, agendarRecarga, recarregarAgora } from 'Ren
 import { registrarQuadro } from 'Renderer/quadrosNoCampo.js';
 import { FASE, fecharQuadro, registrarFase } from 'Renderer/fasesDoQuadro.js';
 import { decidirQuadro } from 'Renderer/limiteDeQuadros.js';
+import { limiteDeQuadrosDoAparelho } from 'Renderer/tetoDeQuadrosNoCelular.js';
 
 const { mat4 } = glMatrix;
 
@@ -339,8 +340,17 @@ class Renderer {
 		// where there is no 3D scene and uncapped FPS wastes resources
 		if (!Session.Playing && (this.frameLimit <= 0 || this.frameLimit > 60)) {
 			this.frameLimit = 60;
-		} else if (Session.Playing && this.frameLimit !== GraphicsSettings.fpslimit) {
-			this.frameLimit = GraphicsSettings.fpslimit;
+		} else if (Session.Playing) {
+			// No celular, 60 (decisao do dono, 06/10/2026), salvo escolha do
+			// jogador - ver `Renderer/tetoDeQuadrosNoCelular.js`. O "e dedo?" e
+			// perguntado uma vez: o tipo de ponteiro nao muda no meio do jogo.
+			if (this._dedo === undefined) {
+				this._dedo = ehDedo();
+			}
+			const limite = limiteDeQuadrosDoAparelho(GraphicsSettings, this._dedo);
+			if (this.frameLimit !== limite) {
+				this.frameLimit = limite;
+			}
 		}
 
 		// O limitador com folga (D-1537): o quadro que chega uma fracao de ms
