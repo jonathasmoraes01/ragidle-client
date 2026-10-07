@@ -23,7 +23,6 @@ import { abaLembrada, lembrarAba } from '../memoriaDeAba.js'; // RAGIDLE
 
 import MemoryManager from 'Core/MemoryManager.js';
 import ChatBox from 'UI/Components/ChatBox/ChatBox.js';
-import { modoClassicoLigado } from 'UI/modoClassico.js'; // o modo classico (24/09/2026): sem a economia de energia
 
 /**
  * Create Component
@@ -121,7 +120,6 @@ GraphicsOption.init = function init() {
 
 	bindChange('.details', onUpdateQualityDetails);
 	bindChange('.player-names', onTogglePlayerNames);
-	bindChange('.economia-automatica', onToggleEconomiaAutomatica);
 	bindChange('.cursor-option', onToggleGameCursor);
 	bindChange('.screensize', onUpdateScreenSize);
 	bindChange('.fpslimit', onUpdateFPSLimit);
@@ -171,12 +169,6 @@ GraphicsOption.onAppend = function onAppend() {
 	// `!== false` e o mesmo criterio de `NomesDosJogadores.ligado()`: preferencia
 	// gravada ANTES desta opcao existir nao tem o campo, e o padrao e LIGADO.
 	root.querySelector('.player-names').checked = GraphicsSettings.showPlayerNames !== false;
-	root.querySelector('.economia-automatica').checked = GraphicsSettings.economiaDeEnergiaAutomatica !== false;
-	// O MODO CLASSICO nao tem economia de energia: a linha inteira da opcao some.
-	if (modoClassicoLigado()) {
-		const linha = root.querySelector('.economia-automatica')?.closest('tr');
-		if (linha) linha.style.setProperty('display', 'none', 'important');
-	}
 	root.querySelector('.cursor-option').checked = GraphicsSettings.cursor;
 	root.querySelector('.fpslimit').value = GraphicsSettings.fpslimit;
 	root.querySelector('.fps').checked = FPS._host ? FPS._host.style.display !== 'none' : false;
@@ -236,12 +228,6 @@ function onUpdateQualityDetails() {
  * quem entrasse na vista DEPOIS, e o jogador que acabou de clicar veria a tela
  * nao mudar — o que se le como opcao quebrada.
  */
-/** RAGIDLE (23/09/2026): liga/desliga a economia de energia automatica. */
-function onToggleEconomiaAutomatica() {
-	GraphicsSettings.economiaDeEnergiaAutomatica = !!this.checked;
-	GraphicsSettings.save();
-}
-
 function onTogglePlayerNames() {
 	GraphicsSettings.showPlayerNames = !!this.checked;
 	GraphicsSettings.save();

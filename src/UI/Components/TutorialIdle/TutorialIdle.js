@@ -88,7 +88,6 @@ import { definirIdioma, idiomaAtual, idiomaFoiEscolhido } from 'Core/Idioma.js';
 import { recarregarMantendoASessao } from 'UI/recargaMantendoASessao.js';
 import Inventory from 'UI/Components/Inventory/Inventory.js';
 import ItemType from 'DB/Items/ItemType.js';
-import { modoClassicoLigado } from 'UI/modoClassico.js'; // o modo classico (24/09/2026): sem o tutorial da caca automatica
 import { ler as lerRegistroDaCaca } from 'UI/Components/HuntAnalyzer/registroDaCaca.js';
 import { fecharEEsquecer } from '../limpezaDeJanelaIdle.js';
 import htmlText from './TutorialIdle.html?raw';
@@ -302,23 +301,6 @@ function votoNaTela() {
 }
 
 /**
- * O componente da Configuracao Idle, SE ele existir.
- *
- * Por REGISTRO e nao por `import`, o mesmo criterio que `IdleConfig.js` usa
- * para o caminho inverso (ver o cabecalho de `tutorialIdle()` la): um
- * `import` estatico aqui prenderia o ciclo de carga desta janela ao de
- * `IdleConfig.js` sem necessidade, quando tudo que esta etapa precisa e ler
- * um campo estatico (`IdleConfig.serverConfig`) uma vez por tique.
- */
-function idleConfig() {
-	try {
-		return UIManager.getComponent('IdleConfig');
-	} catch (_erro) {
-		return null;
-	}
-}
-
-/**
  * FECHA A JANELA QUE UMA ETAPA JA CUMPRIDA ABRIU (15/09/2026, achado ao
  * JOGAR o reordenamento das etapas).
  *
@@ -333,8 +315,7 @@ function idleConfig() {
  * verdade por baixo. Fechar a janela de cada etapa assim que ela cumpre o
  * que tinha para ensinar devolve Missoes ao topo da pilha a tempo da etapa 7.
  *
- * `UIManager.getComponent`, e nao `import`: o mesmo criterio de
- * `idleConfig()` acima - `CorreioIdle` e `MochilaIdle` tambem puxam
+ * `UIManager.getComponent`, e nao `import`: `CorreioIdle` e `MochilaIdle` puxam
  * `Renderer/Renderer.js` (a segunda ainda `Renderer/SpriteRenderer.js`) na
  * carga, e um import estatico aqui prenderia o teste desta janela ao canvas
  * delas.
@@ -538,9 +519,11 @@ function etapaCumprida(numero) {
 			 * colocar, nao um piso que a etapa exige - ver o cabecalho de
 			 * `retrato.pocoesConfiguradas` em `servidor/tutorial.ts`.
 			 */
-			const ic = idleConfig();
-			const cfg = ic && ic.serverConfig;
-			return !!(cfg && cfg.pocaoDeHp && cfg.pocaoDeHp.ligado && cfg.pocaoDeSp && cfg.pocaoDeSp.ligado);
+			/* A janela "Idle" (IdleConfig) SAIU em 07/10/2026 (Novo Bot V5):
+			   nao ha mais onde ler a pocao confirmada, e o tutorial esta
+			   desligado (ver `onTutorialRecebido`). A etapa fica na tabela
+			   porque a numeracao e a do servidor. */
+			return false;
 		}
 		case 7:
 			/* O SERVIDOR aceitou a missao. `execucao` vem do ZC_RAGIDLE_MISSOES,
@@ -1003,8 +986,6 @@ function tique() {
 			fecharJanelaDaEtapa('CorreioIdle', '.co-window');
 		} else if (numero === 5) {
 			fecharJanelaDaEtapa('MochilaIdle', '.mo-window');
-		} else if (numero === 6) {
-			fecharJanelaDaEtapa('IdleConfig', '.ic-window');
 		} else if (numero === 2 || numero === 7) {
 			/*
 			 * O CODEX FICA NO CAMINHO DA PROPRIA VOLTA (16/09/2026, relato
@@ -1074,10 +1055,10 @@ TutorialIdle.onAppend = function onAppend() {
  */
 TutorialIdle.interfacePronta = function interfacePronta() {
 	_comecoPedido = false;
-	// O MODO CLASSICO nao pede o tutorial: as etapas ensinam a caca automatica,
-	// a pocao automatica e a missao que dirige, e nenhuma delas existe nele.
-	if (modoClassicoLigado()) return;
-	TutorialIdle.pedirAoServidor();
+	/* O TUTORIAL ESTA DESLIGADO DE VEZ (07/10/2026, Novo Bot V5): as etapas
+	   ensinam a caca automatica, a pocao automatica e a janela "Idle", e
+	   nenhuma delas existe mais. Nao se pede o retrato ao servidor (antes
+	   era o interruptor do modo classico que calava isto). */
 };
 
 TutorialIdle.onRemove = function onRemove() {
@@ -1111,9 +1092,19 @@ function aoRolar() {
 /* O pacote                                                            */
 /* ------------------------------------------------------------------ */
 
-function onTutorialRecebido(pkt) {
-	// O MODO CLASSICO nao desenha o tutorial, nem o que o servidor mandar sozinho.
-	if (modoClassicoLigado()) return;
+/**
+ * O dono do `ZC_RAGIDLE_TUTORIAL` IGNORA o pacote (07/10/2026): o tutorial
+ * esta desligado de vez (ver `interfacePronta`), inclusive para o retrato que o
+ * servidor mandar sozinho. O gancho continua de pe para o opcode ter um dono
+ * (hookPacket: um por opcode). Religar seria trocar este corpo por
+ * `aplicarRetrato(pkt)`.
+ */
+function onTutorialRecebido() {
+	/* desligado */
+}
+
+/** O desenho do retrato, intacto e sem chamador no jogo (so teste/prova). */
+function aplicarRetrato(pkt) {
 	let dados;
 	try {
 		dados = JSON.parse(pkt.json);
@@ -1152,6 +1143,7 @@ function onTutorialRecebido(pkt) {
 }
 
 Network.hookPacket(PACKET.ZC.RAGIDLE_TUTORIAL, onTutorialRecebido);
+TutorialIdle.aplicarRetrato = aplicarRetrato;
 
 /** Exportado para o teste e para a prova de tela conseguirem falar da tabela
  *  sem reabrir o modulo puro. */

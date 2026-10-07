@@ -45,7 +45,6 @@
  *                                     `{ skillId }` para um nível, ou
  *                                     `{ lote: [{skillId, niveis}] }` para o
  *                                     "Aplicar")
- *   CZ_RAGIDLE_PRIORIZAR     (rotação de ataque, D-6xx)
  *
  * Declarados em `Network/PacketStructure.js` (busque "RAGIDLE:") e registrados
  * para o enquadramento de recepção em `Network/PacketRegister.js` e
@@ -93,7 +92,6 @@ import {
 	pontosNoRascunho
 } from './arvoreDeSkills.js';
 import { linhaDaMissaoNoRequisito } from './requisitoDeMissao.js';
-import { modoClassicoLigado } from 'UI/modoClassico.js'; // o modo classico (24/09/2026): sem a rotacao
 
 /**
  * A versão do contrato que esta janela sabe ler.
@@ -530,21 +528,6 @@ function sendEsquecer(skillId, niveis) {
 	setStatus(niveis === 'tudo' ? 'Desaprendendo…' : 'Regredindo…');
 	const pkt = new PACKET.CZ.RAGIDLE_APRENDER();
 	pkt.json = JSON.stringify({ acao: 'esquecer', skillId: skillId, niveis: niveis });
-	Network.sendPacket(pkt);
-}
-
-/**
- * Liga ou desliga a habilidade na ROTAÇÃO de ataque.
- *
- * `ligar` vai EXPLÍCITO, e não como um alterna calculado no servidor: esta
- * janela sabe o estado que desenhou, e um alterna com dois cliques rápidos numa
- * rede lenta faria o jogador ligar o que queria desligar.
- */
-function sendPriorizar(skillId, ligar) {
-	setStatus(ligar ? 'Pondo na rotação…' : 'Tirando da rotação…');
-
-	const pkt = new PACKET.CZ.RAGIDLE_PRIORIZAR();
-	pkt.json = JSON.stringify({ skillId: skillId, ligar: ligar });
 	Network.sendPacket(pkt);
 }
 
@@ -1002,16 +985,6 @@ function renderNo(no, contexto) {
 	}
 
 	const selo = [];
-	// O MODO CLASSICO nao tem rotacao automatica: sem o selo de lugar na rotacao.
-	if (typeof skill.naRotacao === 'number' && !modoClassicoLigado()) {
-		selo.push(
-			'<span class="is-no-selo is-no-selo--rotacao" title="Rotação de ataque, ' +
-				skill.naRotacao +
-				'º lugar">' +
-				skill.naRotacao +
-				'</span>'
-		);
-	}
 	if (no.forasteiros.length) {
 		const texto = no.forasteiros.map(f => f.nome + ' Nv. ' + f.nivel).join(', ');
 		selo.push(
@@ -1762,28 +1735,10 @@ function renderDetail() {
 	}
 
 	/*
-	 * A ROTAÇÃO DE ATAQUE. Três estados, e os três dizem algo: dentro (o botão
-	 * TIRA), fora e pode (o botão PÕE), fora e não pode (o botão morre com o
-	 * motivo do servidor no title).
+	 * A ROTAÇÃO DE ATAQUE SAIU (07/10/2026, Novo Bot V5): o combate e o do Modo
+	 * Classico, sem rotacao automatica, e o servidor recusa o
+	 * `CZ_RAGIDLE_PRIORIZAR`. Nem selo nem botao de por/tirar.
 	 */
-	const naRotacao = typeof skill.naRotacao === 'number';
-	const podeRotacionar = naRotacao || !skill.motivoDaRotacao;
-	// O MODO CLASSICO nao tem rotacao automatica: o botao de por/tirar nao aparece.
-	const rotacaoHtml = modoClassicoLigado()
-		? ''
-		: '<button type="button" class="is-btn-rotacao ri-btn ri-btn--sec' +
-		(naRotacao ? ' is-btn-rotacao--dentro' : '') +
-		'" data-skill-rotacao="' +
-		escapeHtml(skill.skillId) +
-		'" data-skill-ligar="' +
-		(naRotacao ? '0' : '1') +
-		'"' +
-		(podeRotacionar ? '' : ' disabled') +
-		' title="' +
-		escapeHtml(skill.motivoDaRotacao || (naRotacao ? 'Tirar da rotação de ataque' : 'Pôr na rotação de ataque')) +
-		'">' +
-		(naRotacao ? 'Na rotação (' + skill.naRotacao + ')' : 'Pôr na rotação') +
-		'</button>';
 
 	/*
 	 * O botão de TOQUE (D-938). Só existe se a habilidade serve para a barra
@@ -1871,7 +1826,6 @@ function renderDetail() {
 		acaoHtml +
 		nivelUsoHtml +
 		'<div class="is-detail-acoes">' +
-		rotacaoHtml +
 		atalhoHtml +
 		esquecerHtml(skill) +
 		'</div>' +
@@ -1880,10 +1834,6 @@ function renderDetail() {
 	const seletorDeUso = footerEl.querySelector('[data-nivel-chave]');
 	if (seletorDeUso) {
 		seletorDeUso.addEventListener('click', e => onPassoDoNivelDeUso(e, skill));
-	}
-	const btnRot = footerEl.querySelector('[data-skill-rotacao]');
-	if (btnRot) {
-		btnRot.addEventListener('click', onClickRotacao);
 	}
 	const btnAtalho = footerEl.querySelector('[data-skill-atalho]');
 	if (btnAtalho) {
@@ -2038,20 +1988,6 @@ function onClickEsquecer(e) {
 		return;
 	}
 	sendEsquecer(skillId, 1);
-}
-
-/**
- * O botão da ROTAÇÃO. `motivoDaRotacao` vem do servidor e diz por que ela não
- * entra — botão morto sem explicação manda o jogador procurar defeito onde há
- * regra, que é o mesmo argumento do `motivo` do aprendizado.
- */
-function onClickRotacao(e) {
-	e.stopImmediatePropagation();
-	const skillId = e.currentTarget.dataset.skillRotacao;
-	if (!skillId) {
-		return;
-	}
-	sendPriorizar(skillId, e.currentTarget.dataset.skillLigar === '1');
 }
 
 /**

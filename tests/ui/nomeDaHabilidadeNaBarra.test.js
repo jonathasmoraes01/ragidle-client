@@ -94,8 +94,7 @@ describe('a costura: quem le e quem alimenta', () => {
 		expect(barra).toMatch(/aoLembrarNomes\(\(\) => ShortCut\.__loaded && ShortCut\.updateAllTooltips\(\)\)/);
 	});
 
-	it('a janela de Habilidades e a Configuracao idle alimentam a memoria', () => {
+	it('a janela de Habilidades alimenta a memoria (a Configuracao idle saiu em 07/10/2026)', () => {
 		expect(FONTE('UI/Components/IdleSkills/IdleSkills.js')).toMatch(/lembrarNomesDasHabilidades\(data\.skills\)/);
-		expect(FONTE('UI/Components/IdleConfig/nivelNaConfig.js')).toMatch(/lembrarNomesDasHabilidades\(\[\]\.concat\(/);
 	});
 });

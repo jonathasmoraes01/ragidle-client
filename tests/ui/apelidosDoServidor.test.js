@@ -56,8 +56,4 @@ describe('quem monta nome -> id usa o mapa com apelidos (N4)', () => {
 		expect(src).toContain('montarMapaNomeParaId(SkillInfo)');
 		expect(src).not.toMatch(/\[info\.Name, Number\(numericId\)\]/);
 	});
-
-	it('DockIdle devolve o nome do servidor no id -> nome', () => {
-		expect(ler('DockIdle/DockIdle.js')).toContain('nomeNoServidor(nome)');
-	});
 });

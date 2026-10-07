@@ -29,6 +29,7 @@ import htmlText from './BotMenu.html?raw';
 import cssText from './BotMenu.css?raw';
 import { fecharEEsquecer } from '../limpezaDeJanelaIdle.js';
 import { criarEstadoDoBot, fraseDoErro, fraseDoStatus } from './estadoDoBot.js';
+import { esquecer as esquecerContexto, marcarObsoleto, receberDoServidor } from 'UI/contextoDoMapa.js';
 
 const WINDOW_WIDTH = 420;
 const WINDOW_HEIGHT = 560;
@@ -86,6 +87,7 @@ BotMenu._estado = _estado;
 
 BotMenu.limparEstadoDoPersonagem = function limparEstadoDoPersonagem() {
 	_estado.reiniciar();
+	esquecerContexto();
 	fecharEEsquecer(_root(), '.bm-window');
 	avisarCapacidade();
 };
@@ -137,6 +139,8 @@ BotMenu.onAppend = function onAppend() {
 		this._host.style.left = Math.min(Math.max(0, _preferences.x), Math.max(0, Renderer.width - larguraNaTela())) + 'px';
 	}
 	// Mapa novo: o servidor pode ter invalidado a intencao; o estado operacional vem dele.
+	// O contexto do mapa anterior nao vale ate a resposta chegar (`UI/contextoDoMapa.js`).
+	marcarObsoleto();
 	_estado.pedirEstado();
 };
 
@@ -364,6 +368,9 @@ function onBotRecebido(pkt) {
 	const tinha = BotMenu.temCapacidade();
 	const atual = _estado.estado().personagemId;
 	if (_estado.receber(dados, atual)) {
+		// O contexto do mapa (cidade? qual mapa?) e o Bot ligado alimentam quem nao e do Bot:
+		// drop da Analise, botao Cacar, tela acesa no farm.
+		receberDoServidor(dados.contexto, _estado.estado().ligado);
 		desenhar();
 		if (tinha !== BotMenu.temCapacidade()) {
 			avisarCapacidade();
