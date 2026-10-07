@@ -28,6 +28,14 @@ const mutantes = {
 	'pedaco-nao-rearma': [VIGIA, '\t\t\t\t\tarmar();\n\t\t\t\t\tpedacos.push(value);', '\t\t\t\t\tpedacos.push(value);'],
 	'silencio-nao-aborta': [VIGIA, '\t\t\t\terro.silencio = true;\n\t\t\t\tfalhar(erro);\n\t\t\t\tabortar();', '\t\t\t\terro.silencio = true;\n\t\t\t\tfalhar(erro);'],
 	'cancelado-vira-silencio': [VIGIA, 'erro.cancelado = true;', 'erro.silencio = true;'],
+	// --- o total do arquivo comprimido (D-2072) ---
+	'total-ignora-o-original': [VIGIA, "const original = Number(ler('x-tamanho-original')) || 0;", 'const original = 0;'],
+	'comprimido-usa-o-content-length': [VIGIA, "\tif (codificacao !== '' && codificacao !== 'identity') return 0;\n", ''],
+	'identity-vira-comprimido': [VIGIA, "codificacao !== '' && codificacao !== 'identity'", "codificacao !== ''"],
+	'total-que-cabe-nao-corta': [VIGIA, 'return total > 0 && recebidos > total ? 0 : total;', 'return total;'],
+	'total-que-cabe-inclusive': [VIGIA, 'recebidos > total ? 0 : total', 'recebidos >= total ? 0 : total'],
+	'fluxo-sem-total-que-cabe': [VIGIA, 'aoReceber(recebidos, totalQueCabe(recebidos, total));', 'aoReceber(recebidos, total);'],
+	'inteiro-sem-total-que-cabe': [VIGIA, 'aoReceber(buffer.byteLength, totalQueCabe(buffer.byteLength, total));', 'aoReceber(buffer.byteLength, total);'],
 	// --- o FileManager ---
 	'cancelado-tenta-de-novo': [ARQUIVOS, 'if (err && err.cancelado) {', 'if (false) {'],
 	'silencio-nao-conta': [ARQUIVOS, '\t\t\t\t\t\t\tsilencios++;', ''],

@@ -140,15 +140,13 @@ export function baixarComVigia(url, opcoes = {}) {
 					entregar({ ok: false, status: 404 });
 					return undefined;
 				}
-				const total =
-					Number((resposta.headers && resposta.headers.get && resposta.headers.get('content-length')) || 0) ||
-					0;
+				const total = totalDoArquivo(resposta.headers);
 				const corpo = resposta.body;
 				if (corpo && typeof corpo.getReader === 'function') {
 					return lerEmPedacos(corpo.getReader(), total, resposta.status);
 				}
 				return resposta.arrayBuffer().then(buffer => {
-					if (aoReceber) aoReceber(buffer.byteLength, total);
+					if (aoReceber) aoReceber(buffer.byteLength, totalQueCabe(buffer.byteLength, total));
 					entregar({
 						ok: true,
 						status: resposta.status,
@@ -191,12 +189,57 @@ export function baixarComVigia(url, opcoes = {}) {
 					armar();
 					pedacos.push(value);
 					recebidos += value.byteLength;
-					if (aoReceber) aoReceber(recebidos, total);
+					if (aoReceber) aoReceber(recebidos, totalQueCabe(recebidos, total));
 					return passo();
 				});
 			return passo();
 		}
 	});
+}
+
+/**
+ * O TOTAL DO ARQUIVO NA MESMA UNIDADE EM QUE `recebidos` CONTA (D-2072, 07/10/2026).
+ *
+ * O servidor de assets passou a mandar o mapa COMPRIMIDO (brotli/gzip). O
+ * `fetch` descomprime sozinho, entao os pedacos que `lerEmPedacos` soma sao
+ * bytes DESCOMPRIMIDOS, enquanto o `Content-Length` vira o tamanho
+ * COMPRIMIDO: o aviso diria "Baixando o mapa: 5,1 de 0,4 MB". E a Cloudflare
+ * pode tirar o `Content-Length` da resposta comprimida.
+ *
+ * A ordem:
+ *  1. `X-Tamanho-Original` (o servidor manda em toda resposta de arquivo e o
+ *     expoe entre origens): o tamanho cru, exato;
+ *  2. sem ele, com `Content-Encoding` visivel e diferente de `identity`: 0
+ *     ("nao sei"), e o aviso mostra so os MB recebidos;
+ *  3. senao, o `Content-Length` de sempre.
+ *
+ * Entre origens o `Content-Encoding` nao e legivel pela pagina (nao esta na
+ * lista segura), entao o passo 2 so cobre a mesma origem; quem cobre o resto e
+ * `totalQueCabe`.
+ *
+ * @param {{get: function(string): (string|null)}} [cabecalhos]
+ * @returns {number}
+ */
+export function totalDoArquivo(cabecalhos) {
+	const ler = nome => (cabecalhos && typeof cabecalhos.get === 'function' && cabecalhos.get(nome)) || '';
+	const original = Number(ler('x-tamanho-original')) || 0;
+	if (original > 0) return original;
+	const codificacao = String(ler('content-encoding')).trim().toLowerCase();
+	if (codificacao !== '' && codificacao !== 'identity') return 0;
+	return Number(ler('content-length')) || 0;
+}
+
+/**
+ * O total que ainda faz sentido: se ja chegou MAIS do que ele diz, ele era o
+ * tamanho comprimido (o servidor velho, ou um intermediario que tirou o
+ * cabecalho) e vira 0 - "X MB" em vez de "5,1 de 0,4 MB".
+ *
+ * @param {number} recebidos
+ * @param {number} total
+ * @returns {number}
+ */
+export function totalQueCabe(recebidos, total) {
+	return total > 0 && recebidos > total ? 0 : total;
 }
 
 /**
