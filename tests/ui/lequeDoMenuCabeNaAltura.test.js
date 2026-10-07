@@ -210,4 +210,78 @@ describe('o leque do menu cabe na altura da tela', () => {
 		expect(corpo, 'o resize parou de redistribuir as colunas do leque').toContain('distribuirColunas');
 		expect(corpo, 'o resize parou de redistribuir as fileiras do cluster').toContain('distribuirFileiras');
 	});
+
+	/*
+	 * ---------------------------------------------------------------------
+	 * O LEQUE DE TRES COLUNAS APERTA OS VAOS (07/10/2026)
+	 * ---------------------------------------------------------------------
+	 * A `prove:hud-responsiva` em `janela-900x600` (mouse, escala 0.78), com o
+	 * cliente de producao (02cfa38f): folha de 514x176, `tm-menu x ChatBox`
+	 * 40x157px e `tm-menu x ShortCut` 220x5px. No print os discos "Procurar
+	 * grupo" e "Indique" ficam por cima da borda direita do chat.
+	 *
+	 * Com tres colunas por lado o leque tem seis colunas e dez vaos, e cada
+	 * coluna mede o rotulo mais largo MAIS os 12px de padding da capsula. O
+	 * menu e ancorado pela DIREITA (`right: 16px`), entao cada pixel que o
+	 * leque perde de largura e um pixel a mais entre ele e o chat; e cada
+	 * pixel de altura sobe o teto de `afastarMenuDaDoca`, que tira o pe dele
+	 * da barra de atalhos.
+	 *
+	 * Os numeros vivem no CSS; o JS so decide QUANDO (o maximo de colunas),
+	 * e decide ANTES de `fixarLarguraDoMenu`, senao o piso do menu seria
+	 * medido no leque largo e o botao andaria ao abrir.
+	 */
+	it('com o maximo de colunas por lado (fora do celular em pe) o leque entra no modo denso, antes de medir a largura', () => {
+		const i = JS_CRU.indexOf('function distribuirColunas');
+		const corpo = JS_CRU.slice(i, JS_CRU.indexOf('\nfunction ', i + 10));
+		expect(corpo, 'o modo denso deixou de depender do maximo de colunas').toMatch(
+			/const denso = colunas >= MAXIMO_DE_COLUNAS_POR_LADO && !ehCelularEmPe\(\);/
+		);
+		const marca = corpo.search(/classList\.toggle\(\s*'tm-fan--denso'\s*,\s*denso\s*\)/);
+		expect(marca, 'o leque de tres colunas nao entra no modo denso').toBeGreaterThan(-1);
+		expect(
+			marca,
+			'o modo denso tem de valer ANTES de `fixarLarguraDoMenu`: a largura medida e o piso do botao Menu'
+		).toBeLessThan(corpo.indexOf('fixarLarguraDoMenu()'));
+	});
+
+	it('o levantamento medido na viewport e escrito em unidade da HUD', () => {
+		/*
+		 * A outra metade de 900x600: com o leque ja estreito, sobrava
+		 * `tm-menu x ShortCut` de 5px com QUALQUER altura de leque (176 ou 164).
+		 * A conta mede caixas com o `zoom` aplicado e escrevia o numero cru num
+		 * `bottom` que o host multiplica pela escala: 55 medidos, 43 desenhados.
+		 */
+		const i = JS_CRU.indexOf('function afastarMenuDaDoca');
+		const corpo = JS_CRU.slice(i, JS_CRU.indexOf('\nfunction ', i + 10));
+		const conversao = corpo.search(/emUnidadesDaHud\(\s*Math\.min\(\s*acimaDaDoca\s*,\s*cabe\s*\)\s*\)/);
+		expect(
+			conversao,
+			'o degrau medido em pixel de viewport voltou a ir cru para o `bottom`, que o zoom da HUD encolhe'
+		).toBeGreaterThan(-1);
+		expect(conversao).toBeLessThan(corpo.lastIndexOf("setProperty('--tm-base-do-menu'"));
+	});
+
+	it('o modo denso aperta o vao entre discos e o padding do rotulo', () => {
+		const regra = seletor => {
+			const i = CSS_CRU.indexOf(seletor + ' {');
+			expect(i, `sumiu a regra ${seletor}`).toBeGreaterThan(-1);
+			return CSS_CRU.slice(i, CSS_CRU.indexOf('}', i));
+		};
+		const px = (bloco, propriedade) => {
+			const m = new RegExp(`(?:^|[\\s;{])${propriedade}:\\s*(\\d+)px`).exec(bloco);
+			expect(m, `sem ${propriedade} em px`).not.toBeNull();
+			return Number(m[1]);
+		};
+
+		const vaoNormal = px(regra('.tm-col'), 'gap');
+		const vaoDenso = px(regra('.tm-fan.tm-fan--denso .tm-col'), 'gap');
+		expect(vaoDenso, 'o vao do modo denso nao e menor que o normal').toBeLessThan(vaoNormal);
+
+		const rotulo = /padding:\s*\d+px\s+(\d+)px/.exec(regra('.tm-label'));
+		expect(rotulo, 'o rotulo perdeu o padding horizontal').not.toBeNull();
+		const lateralDenso = px(regra('.tm-fan.tm-fan--denso .tm-label'), 'padding-left');
+		expect(px(regra('.tm-fan.tm-fan--denso .tm-label'), 'padding-right')).toBe(lateralDenso);
+		expect(lateralDenso, 'o rotulo do modo denso nao ficou mais estreito').toBeLessThan(Number(rotulo[1]));
+	});
 });

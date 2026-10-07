@@ -561,6 +561,24 @@
 	gap: 10px;
 }
 
+/* O LEQUE DENSO (07/10/2026): com TRES colunas por lado (janela baixa, como
+   900x600) o leque tem seis colunas e dez vaos, e cada coluna mede o rotulo
+   mais largo mais os 12px de padding da capsula. A `prove:hud-responsiva`
+   mediu a folha em 514x176, passando 40px por cima do chat e 5px por cima da
+   barra de atalhos. O menu e ancorado pela DIREITA, entao cada pixel de
+   largura que sai daqui e um pixel de folga contra o chat; cada pixel de
+   altura sobe o teto de `afastarMenuDaDoca`, que tira o pe da barra.
+   Quem liga a classe e `distribuirColunas` (TopMenuIdle.js); com uma ou duas
+   colunas nada muda. */
+.tm-fan.tm-fan--denso .tm-col {
+	gap: 2px;
+}
+
+.tm-fan.tm-fan--denso .tm-label {
+	padding-left: 3px;
+	padding-right: 3px;
+}
+
 /* "Montado" e o passo intermediario que existe SO pra animacao poder rodar:
    o JS poe esta classe, forca um reflow e so entao poe ".is-open", senao o
    navegador nao anima a saida de display:none. Ao fechar, ela e retirada
