@@ -137,3 +137,44 @@ describe('as 15 skills: os arquivos dos efeitos existem no GRF (lista conferida)
 		expect(chaves.size).toBeGreaterThanOrEqual(7);
 	});
 });
+
+/*
+ * V7 (07/10): AS 11 SKILLS SEM ARTE ORIGINAL GANHAM UMA ANIMACAO APROXIMADA (decisao do dono).
+ * O EF original dessas skills nao existe no EffectTable nem nos GRFs; cada uma reaproveita
+ * o efeito parecido que JA funciona. Aqui: cada uma tem de citar as chaves esperadas, que tem
+ * de existir no EffectTable e NAO ser vazias (`[{}]`), com a marca APROXIMACAO no comentario.
+ * Os arquivos (wav/STR/SPR) dessas chaves sao conferidos pelo describe acima (lista conferida).
+ */
+const APROXIMADAS = {
+	AM_POTIONPITCHER: ['312'],
+	CR_SHRINK: ['1'],
+	MO_BALKYOUNG: ['263', '1'],
+	TF_SPRINKLESAND: ['308', '147'],
+	MO_COMBOFINISH: ['quake', '1'],
+	RG_CLOSECONFINE: ['604', '276'],
+	SA_DELUGE: ['240', '256'],
+	SA_VOLCANO: ['239', '255'],
+	SA_VIOLENTGALE: ['241', '257'],
+	SA_LANDPROTECTOR: ['242', '258']
+};
+
+describe('as skills sem arte original: animacao aproximada reaproveita efeito existente', () => {
+	for (const [skill, esperadas] of Object.entries(APROXIMADAS)) {
+		it(`${skill}: cita ${esperadas.join(' + ')}, todas existem e nao estao vazias`, () => {
+			const chaves = chavesDoEfeito(skill);
+			for (const e of esperadas) {
+				expect(chaves, `${skill} nao cita o efeito ${e}`).toContain(e);
+				expect(CHAVES_DA_TABELA.has(e), `efeito ${e} nao existe no EffectTable`).toBe(true);
+				const corpo = entradaDa(e);
+				expect(corpo.replace(/\s+/g, ''), `efeito ${e} esta vazio`).not.toMatch(/^[^:]+:\[\{\}\]/);
+				expect(corpo.length, `efeito ${e} sem conteudo`).toBeGreaterThan(60);
+			}
+		});
+		it(`${skill}: a linha de cima marca a APROXIMACAO do dono`, () => {
+			const linhas = EFEITO.split('\n');
+			const i = linhas.findIndex(l => l.startsWith(`SkillEffect[SK.${skill}] =`));
+			expect(i).toBeGreaterThan(0);
+			expect(linhas[i - 1]).toMatch(/^\/\/ V7 \(07\/10\): APROXIMACAO do dono; o original EF_\w+ \(id \d+\) nao tem arte/);
+		});
+	}
+});

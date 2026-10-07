@@ -188,7 +188,8 @@ SkillEffect[SK.AC_MAKINGARROW] = {}; //Arrow Crafting
 SkillEffect[SK.AC_CHARGEARROW] = { hideCastAura: true, beforeHitEffectId: 'ef_arrow_projectile' }; //Arrow Repel
 // V7 (07/10): era { effectId: 310 } (EF_SPRINKLESAND, //310: [{}] vazio em EffectTable.js, sem arte).
 // DECISAO pendente: animacao do Sand Attack (nao ha asset no GRF).
-SkillEffect[SK.TF_SPRINKLESAND] = {}; //Sand Attack
+// V7 (07/10): APROXIMACAO do dono; o original EF_SPRINKLESAND (id 310) nao tem arte no nosso GRF; usa o efeito 308 + 147 de Stone Fling (TF_THROWSTONE) e Earth Spike (pedra e terra, mesmo elemento)
+SkillEffect[SK.TF_SPRINKLESAND] = { beforeHitEffectId: 308, hitEffectId: 147 }; //Sand Attack
 SkillEffect[SK.TF_BACKSLIDING] = {}; //Back Slide
 SkillEffect[SK.TF_PICKSTONE] = { hideCastAura: true }; //Find Stone
 SkillEffect[SK.TF_THROWSTONE] = { beforeHitEffectId: 308 }; //Stone Fling
@@ -269,7 +270,8 @@ SkillEffect[SK.AM_ACIDTERROR] = { beforeHitEffectId: 298 }; //Acid Terror
 // V7 (07/10): era { effectId: 299 } (EF_THROWITEM2), lugar que o roBrowser deixou vazio
 // em EffectTable.js (//299: [{}] '(Nothing)') e sem arte no GRF: o cliente ignorava calado.
 // O brilho da cura sai do AL_HEAL/pocao que o servidor manda. DECISAO pendente: animacao propria.
-SkillEffect[SK.AM_POTIONPITCHER] = {}; //Aid Potion
+// V7 (07/10): APROXIMACAO do dono; o original EF_POTIONPITCHER (id 299) nao tem arte no nosso GRF; usa o efeito 312 de Heal (AL_HEAL), aneis de cura no aliado
+SkillEffect[SK.AM_POTIONPITCHER] = { effectId: 312 }; //Aid Potion
 SkillEffect[SK.AM_CANNIBALIZE] = {}; //Summon Flora
 SkillEffect[SK.AM_SPHEREMINE] = {}; //Summon Marine Sphere
 SkillEffect[SK.AM_CP_WEAPON] = { effectId: 300 }; //Alchemical Weapon
@@ -311,7 +313,8 @@ SkillEffect[SK.MO_EXTREMITYFIST] = {
 SkillEffect[SK.MO_CHAINCOMBO] = { effectId: [262, 273], effectIdOnCaster: 263 }; //Raging Quadruple Blow
 // V7 (07/10): saiu o 330 (EF_HITLINE, //330: [{}] 'Combo Finish' vazio em EffectTable.js e sem arte);
 // o tremor de camera 'quake' e REAL e fica. DECISAO pendente: o rastro do HITLINE.
-SkillEffect[SK.MO_COMBOFINISH] = { effectId: 'quake' }; //Raging Thrust
+// V7 (07/10): APROXIMACAO do dono; o original EF_COMBOFINISH (id 330) nao tem arte no nosso GRF; usa o efeito 1 de Bash/Throw Spirit Sphere (MO_FINGEROFFENSIVE), impacto do golpe; o 'quake' continua
+SkillEffect[SK.MO_COMBOFINISH] = { effectId: 'quake', hitEffectId: 1 }; //Raging Thrust
 // Sage
 SkillEffect[SK.SA_CASTCANCEL] = {}; //Cast Cancel
 SkillEffect[SK.SA_MAGICROD] = { successEffectId: 244 }; //Magic Rod
@@ -324,10 +327,14 @@ SkillEffect[SK.SA_SEISMICWEAPON] = { successEffectId: 258 }; //Endow Quake
 // V7 (07/10): saiu o effectIdOnCaster 225/236/237/238 (EF_VOLCANO, EF_DELUGE, EF_VIOLENTGALE,
 // EF_LANDPROTECTOR 'Cast Aura': //225, //236-238 vazios em EffectTable.js, sem arte no GRF).
 // O visual real e o anel do chao pela UNIDADE (SkillUnit.js -> 239..242). DECISAO pendente: aura de conjuracao.
-SkillEffect[SK.SA_VOLCANO] = { groundEffectId: 239 }; //Volcano
-SkillEffect[SK.SA_DELUGE] = { groundEffectId: 240 }; //Deluge
-SkillEffect[SK.SA_VIOLENTGALE] = { groundEffectId: 241 }; //Whirlwind
-SkillEffect[SK.SA_LANDPROTECTOR] = { groundEffectId: 242 }; //Magnetic Earth
+// V7 (07/10): APROXIMACAO do dono; o original EF_VOLCANO (id 225) nao tem arte no nosso GRF; usa o efeito 255 de Endow Blaze (SA_FLAMELAUNCHER, fogo) na conjuracao; o anel 239 continua
+SkillEffect[SK.SA_VOLCANO] = { groundEffectId: 239, effectIdOnCaster: 255 }; //Volcano
+// V7 (07/10): APROXIMACAO do dono; o original EF_DELUGE (id 236) nao tem arte no nosso GRF; usa o efeito 256 de Endow Tsunami (SA_FROSTWEAPON, agua) na conjuracao; o anel 240 continua
+SkillEffect[SK.SA_DELUGE] = { groundEffectId: 240, effectIdOnCaster: 256 }; //Deluge
+// V7 (07/10): APROXIMACAO do dono; o original EF_VIOLENTGALE (id 237) nao tem arte no nosso GRF; usa o efeito 257 de Endow Tornado (SA_LIGHTNINGLOADER, vento) na conjuracao; o anel 241 continua
+SkillEffect[SK.SA_VIOLENTGALE] = { groundEffectId: 241, effectIdOnCaster: 257 }; //Whirlwind
+// V7 (07/10): APROXIMACAO do dono; o original EF_LANDPROTECTOR (id 238) nao tem arte no nosso GRF; usa o efeito 258 de Endow Quake (SA_SEISMICWEAPON, terra) na conjuracao; o anel 242 continua
+SkillEffect[SK.SA_LANDPROTECTOR] = { groundEffectId: 242, effectIdOnCaster: 258 }; //Magnetic Earth
 SkillEffect[SK.SA_DISPELL] = { successEffectId: 235 }; //Dispell
 SkillEffect[SK.SA_ABRACADABRA] = {}; //Hocus-pocus
 SkillEffect[SK.SA_MONOCELL] = {}; //Monocell
@@ -651,10 +658,12 @@ SkillEffect[SK.NPC_MAXPAIN_ATK] = {}; //Max Pain Attack
 // 2nd Quest Skills
 SkillEffect[SK.KN_CHARGEATK] = { beginCastEffectId: 'white_pulse', hitEffectId: 'enemy_hit_normal1' }; //Charge Attack
 // V7 (07/10): era { effectId: 599 } (EF_SHRINK, //599: [{}] 'Cast Time Sound and Flashing' vazio em EffectTable.js, sem arte).
-SkillEffect[SK.CR_SHRINK] = {}; //Shrink
+// V7 (07/10): APROXIMACAO do dono; o original EF_SHRINK (id 599) nao tem arte no nosso GRF; usa o efeito 1 de Bash (SM_BASH), flash de impacto no alvo (skill sem dano: effectId, nao hitEffectId)
+SkillEffect[SK.CR_SHRINK] = { effectId: 1 }; //Shrink
 SkillEffect[SK.AS_VENOMKNIFE] = { beforeHitEffectId: 600 }; //Throw Venom Knife
 // V7 (07/10): saiu o effectId 602 (EF_QUAKEBODY4, sem entrada em EffectTable.js, sem arte); o 604 (cconfine) e real.
-SkillEffect[SK.RG_CLOSECONFINE] = { groundEffectId: 604 }; //Close Confine
+// V7 (07/10): APROXIMACAO do dono; o original EF_QUAKEBODY4 (id 602) nao tem arte no nosso GRF; usa o efeito 276 de Sightless Mind (RG_RAID, Ladino), flash em quem conjura; o 604 continua
+SkillEffect[SK.RG_CLOSECONFINE] = { groundEffectId: 604, effectIdOnCaster: 276 }; //Close Confine
 // Sem effectId, como o Sight (MG_SIGHT): a bola do Sight Blaster nasce e morre
 // com o STATUS (Entity.js, o EFST 198). Aqui ela saia em todo pacote da
 // habilidade — inclusive no dano da DETONACAO, e ai girava 12 s em volta do
@@ -669,7 +678,8 @@ SkillEffect[SK.BS_GREED] = { effectId: 'ef_greed_sound' }; //Greed
 SkillEffect[SK.PR_REDEMPTIO] = {}; //Redemptio
 SkillEffect[SK.MO_KITRANSLATION] = {}; //Ki Translation
 // V7 (07/10): era { effectId: 514 } (EF_GI_EXPLOSION, //514: [{}] 'Really Big Circle' vazio em EffectTable.js, sem arte).
-SkillEffect[SK.MO_BALKYOUNG] = {}; //Ki Explosion
+// V7 (07/10): APROXIMACAO do dono; o original EF_GI_EXPLOSION (id 514) nao tem arte no nosso GRF; usa o efeito 263 de Raging Quadruple Blow (MO_CHAINCOMBO, anel de Ki do Monge) e 1 de Throw Spirit Sphere (impacto)
+SkillEffect[SK.MO_BALKYOUNG] = { effectIdOnCaster: 263, hitEffectId: 1 }; //Ki Explosion
 SkillEffect[SK.SA_ELEMENTGROUND] = { effectId: 258 }; //Elemental Change Earth
 SkillEffect[SK.SA_ELEMENTFIRE] = { effectId: 255 }; //Elemental Change Fire
 SkillEffect[SK.SA_ELEMENTWIND] = { effectId: 257 }; //Elemental Change Wind

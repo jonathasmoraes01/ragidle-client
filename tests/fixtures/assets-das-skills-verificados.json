@@ -13,6 +13,12 @@
 		"data/wav/effect/ef_hit6.wav",
 		"data/wav/_enemy_hit_wind1.wav",
 		"data/sprite/\u00c0\u00cc\u00c6\u00d1\u00c6\u00ae/cconfine.spr",
-		"data/sprite/\u00c0\u00cc\u00c6\u00d1\u00c6\u00ae/cconfine.act"
+		"data/sprite/\u00c0\u00cc\u00c6\u00d1\u00c6\u00ae/cconfine.act",
+		"data/texture/effect/enc_fire.str",
+		"data/texture/effect/enc_ice.str",
+		"data/texture/effect/enc_earth.str",
+		"data/texture/effect/earthhit.str",
+		"data/wav/_heal_effect.wav",
+		"data/wav/effect/ef_hit2.wav"
 	]
 }
