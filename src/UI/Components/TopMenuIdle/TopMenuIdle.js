@@ -217,6 +217,7 @@ import PresencaIdle from 'UI/Components/PresencaIdle/PresencaIdle.js'; // RAGIDL
 import IndicacaoIdle from 'UI/Components/IndicacaoIdle/IndicacaoIdle.js'; // RAGIDLE: Indique & Ganhe (D-1164)
 import RankingIdle from 'UI/Components/RankingIdle/RankingIdle.js'; // RAGIDLE: o Ranking
 import TrocaIdle from 'UI/Components/TrocaIdle/TrocaIdle.js'; // RAGIDLE: a janela "Trade" (02/10/2026)
+import BotMenu from 'UI/Components/BotMenu/BotMenu.js'; // RAGIDLE: o menu do Bot novo (07/10/2026)
 import AdminPanel from 'UI/Components/AdminPanel/AdminPanel.js';
 import Escape from 'UI/Components/Escape/Escape.js'; // RAGIDLE: a janela de sistema (D-1416)
 import RoShop from 'UI/Components/RoShop/RoShop.js'; // RAGIDLE: o RO Shop (22/09/2026) - a porta do item "RO Shop" (era a CashShop nativa, I5)
@@ -338,6 +339,25 @@ function movimentoReduzido() {
  * 250 ms chama isto sempre, porque a marca pode chegar depois do menu, e um
  * `#adjgroup` promove sem relogar.
  */
+/**
+ * O ITEM "Bot" (07/10/2026): so com a capacidade que o SERVIDOR anunciou no
+ * `ZC_RAGIDLE_BOT`. Devolve `true` quando a visibilidade mudou (a grade e
+ * refeita, como no Admin).
+ */
+function sincronizarItemDoBot() {
+	const root = _root();
+	const btn = root && root.querySelector('.tm-item-bot');
+	if (!btn) {
+		return false;
+	}
+	const display = BotMenu.temCapacidade() ? '' : 'none';
+	if (btn.style.display === display) {
+		return false;
+	}
+	btn.style.display = display;
+	return true;
+}
+
 function sincronizarItemDeAdmin() {
 	const root = _root();
 	const adminBtn = root && root.querySelector('.tm-item-admin');
@@ -389,6 +409,7 @@ TopMenuIdle.onAppend = function onAppend() {
 	// Precisa vir ANTES de distribuirColunas() e de escalonarLeque(), que
 	// contam so os itens visiveis — e o laco reconfere, se a marca chegar tarde.
 	sincronizarItemDeAdmin();
+	sincronizarItemDoBot();
 
 	distribuirColunas();
 	distribuirFileiras();
@@ -698,6 +719,10 @@ function onClickAction(e) {
 		case 'troca':
 			/* 02/10/2026: a janela "Trade" - o nome do jogador e "Confirmar". */
 			TrocaIdle.toggle();
+			break;
+		case 'bot':
+			/* 07/10/2026: o menu do Bot novo (ON/OFF, cacada e ataque). */
+			BotMenu.toggle();
 			break;
 		/* O `case 'passe'` (a janela de Recompensas, D-813) morou aqui de
 		   29/08 a 21/09/2026. Saiu por ordem do dono: o Passe Semanal e o VIP
@@ -1851,6 +1876,8 @@ function isActionOpen(action) {
 			return isRagIdleWindowOpen(IndicacaoIdle, '.in-window');
 		case 'troca':
 			return isRagIdleWindowOpen(TrocaIdle, '.tr-window');
+		case 'bot':
+			return isRagIdleWindowOpen(BotMenu, '.bm-window');
 		/*
 		 * PASSE (D-813): a TERCEIRA vez do mesmo defeito, achado em 29/08/2026
 		 * ao somar o Codex. Ele tinha `case 'passe'` no switch de ABRIR e
@@ -1914,7 +1941,8 @@ function pollEstado() {
 	hideReplacedControls();
 	// D-1367: o item "Admin" pela marca do servidor, que pode chegar depois do
 	// menu. Quando ele aparece ou some, a grade e refeita como no onAppend.
-	if (sincronizarItemDeAdmin()) {
+	// `|` e nao `||`: os dois sincronizam sempre, e qualquer mudanca refaz a grade.
+	if (sincronizarItemDeAdmin() | sincronizarItemDoBot()) {
 		distribuirColunas();
 		distribuirFileiras();
 		publicarTopoDoCluster();

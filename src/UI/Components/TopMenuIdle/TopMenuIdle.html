@@ -151,6 +151,16 @@
 		     ENTRE uma sessao idle e outra (coleta, lista negra, pocao), nao um
 		     destino ocasional como Loja ou Leilao. E o leque fica com 10 itens,
 		     que e a divisao 5+5 que o dono desenhou. -->
+		<!-- BOT (07/10/2026, pacote "Novo Bot V5"): o menu do Bot novo, que
+		     substitui o "Idle". Nasce ESCONDIDO e so aparece quando o servidor
+		     anunciou a capacidade (`BotMenu.temCapacidade`) - nao depende do
+		     modo classico. Mesmo lugar do cluster: e o painel que se mexe entre
+		     uma sessao e outra. -->
+		<button type="button" class="tm-item tm-item-bot" data-action="bot" title="Bot" style="display: none">
+			<span class="tm-icon-wrap ri-disc"><!--RI_ICONE:auto--></span>
+			<span class="tm-label">Bot</span>
+		</button>
+
 		<button type="button" class="tm-item" data-action="config" title="Idle">
 			<span class="tm-icon-wrap ri-disc"><!--RI_ICONE:config--></span>
 			<span class="tm-label">Idle</span>

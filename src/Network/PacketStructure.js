@@ -17161,6 +17161,42 @@ PACKET.ZC.RAGIDLE_TROCA = function PACKET_ZC_RAGIDLE_TROCA(fp, end) {
 PACKET.ZC.RAGIDLE_TROCA.size = -1;
 
 // ---------------------------------------------------------------------------
+// O BOT NOVO - 07/10/2026 (pacote "Novo Bot V5").
+//
+// O menu do Bot (`UI/Components/BotMenu`): ON/OFF imediatos, aplicar
+// transacional com revisao, e o status operacional que o servidor manda so
+// quando muda. Os dois ultimos slots da reserva RAGIDLE (0x0fb0/0x0fb1). A
+// outra ponta: `servidor/bot/protocolo-do-bot.ts` no rag-idle-master.
+// ---------------------------------------------------------------------------
+
+// 0x0fb0 - RAGIDLE: CZ_RAGIDLE_BOT_ACAO (client -> server)
+// Variable size: u16 opcode + u16 total length + JSON UTF-8 payload.
+// { v: 1, requestId, verbo: 'pedir'|'ligar'|'desligar'|'aplicar', baseRevision?, config? }.
+PACKET.CZ.RAGIDLE_BOT_ACAO = function PACKET_CZ_RAGIDLE_BOT_ACAO() {
+	this.json = '{}';
+};
+PACKET.CZ.RAGIDLE_BOT_ACAO.prototype.build = function () {
+	const bytes = TextEncoding.encode(this.json, 'utf-8');
+	const pkt_len = 2 + 2 + bytes.length;
+	const pkt_buf = new BinaryWriter(pkt_len);
+	pkt_buf.writeShort(0x0fb0);
+	pkt_buf.writeUShort(pkt_len);
+	pkt_buf.writeString(this.json, bytes.length);
+	return pkt_buf;
+};
+
+// 0x0fb1 - RAGIDLE: ZC_RAGIDLE_BOT (server -> client)
+// Variable size: u16 opcode + u16 total length + JSON UTF-8 payload.
+// { v: 1, tipo: 'resposta'|'status', requestId, personagemId, mapa, ok, erro,
+//   problemas, revisao, config, ligado, situacao, status, statusRevision,
+//   agora, capacidades }. Quem le e `UI/Components/BotMenu/BotMenu.js`, o
+// unico dono.
+PACKET.ZC.RAGIDLE_BOT = function PACKET_ZC_RAGIDLE_BOT(fp, end) {
+	this.json = fp.readString(end - fp.tell());
+};
+PACKET.ZC.RAGIDLE_BOT.size = -1;
+
+// ---------------------------------------------------------------------------
 // O MENU LFG (Looking For Group) — D-634, 25/08/2026.
 //
 // Tres opcodes da faixa RAGIDLE reservada em D-527. Eles NAO substituem os

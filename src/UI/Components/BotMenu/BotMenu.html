@@ -1,0 +1,64 @@
+<div id="BotMenu">
+	<div class="bm-window ri-window ri-anima" role="dialog" aria-labelledby="bm-titulo">
+		<div class="bm-titlebar ri-header">
+			<span class="bm-title ri-title" id="bm-titulo">Bot</span>
+			<button type="button" class="bm-close ri-close" title="Fechar">&times;</button>
+		</div>
+
+		<!-- O CABECALHO: ON/OFF confirmado pelo servidor (comando imediato, fora
+		     do Aplicar), o estado operacional e o mapa. -->
+		<div class="bm-cabecalho">
+			<button type="button" class="bm-liga ri-btn" role="switch" aria-checked="false">
+				<span class="bm-liga-ponto" aria-hidden="true"></span>
+				<span class="bm-liga-texto">Bot desligado</span>
+			</button>
+			<div class="bm-estado">
+				<span class="bm-status" role="status" aria-live="polite">Controle manual</span>
+				<span class="bm-mapa" translate="no"></span>
+			</div>
+		</div>
+
+		<div class="bm-abas" role="tablist"></div>
+
+		<div class="bm-corpo ri-scroll">
+			<!-- CACADA -->
+			<section class="bm-secao" data-secao="cacada" role="tabpanel" hidden>
+				<label class="bm-linha">
+					<input type="checkbox" class="bm-cacar">
+					<span>Caçar monstros</span>
+				</label>
+				<label class="bm-linha bm-linha--coluna">
+					<span class="bm-rotulo">Raio de busca <b class="bm-raio-valor"></b> células</span>
+					<input type="range" class="bm-raio" step="1">
+				</label>
+				<div class="bm-bloco">
+					<span class="bm-rotulo">Monstros ignorados</span>
+					<p class="bm-dica">O Bot nunca escolhe um monstro marcado como alvo. Seu clique manual continua livre.</p>
+					<ul class="bm-monstros" aria-label="Monstros deste mapa"></ul>
+				</div>
+			</section>
+
+			<!-- ATAQUE -->
+			<section class="bm-secao" data-secao="ataque" role="tabpanel" hidden>
+				<fieldset class="bm-bloco">
+					<legend class="bm-rotulo">Como atacar</legend>
+					<label class="bm-linha"><input type="radio" name="bm-modo" value="apenas-basico"><span>Só ataque básico</span></label>
+					<label class="bm-linha"><input type="radio" name="bm-modo" value="skills-e-basico"><span>Habilidades e ataque básico</span></label>
+					<label class="bm-linha"><input type="radio" name="bm-modo" value="apenas-skills"><span>Só habilidades</span></label>
+				</fieldset>
+				<p class="bm-indisponivel">Habilidades automáticas ainda não estão disponíveis nesta versão: o Bot usa o ataque básico, e em "Só habilidades" ele não ataca.</p>
+			</section>
+		</div>
+
+		<!-- O RODAPE: Aplicar e Descartar do rascunho, e o recado do servidor. -->
+		<div class="bm-rodape">
+			<p class="bm-recado" role="alert"></p>
+			<ul class="bm-problemas"></ul>
+			<div class="bm-botoes">
+				<button type="button" class="bm-recarregar ri-btn ri-btn--sec" hidden>Recarregar</button>
+				<button type="button" class="bm-descartar ri-btn ri-btn--sec">Descartar</button>
+				<button type="button" class="bm-aplicar ri-btn">Aplicar</button>
+			</div>
+		</div>
+	</div>
+</div>
