@@ -258,6 +258,8 @@ function onToggleGameCursor() {
  */
 function onUpdateFPSLimit() {
 	GraphicsSettings.fpslimit = parseInt(this.value, 10);
+	// A escolha do jogador vence o teto do celular (`Renderer/tetoDeQuadrosNoCelular.js`).
+	GraphicsSettings.fpslimitEscolhido = true;
 	GraphicsSettings.save();
 
 	if (Renderer.frameLimit > 0) {
