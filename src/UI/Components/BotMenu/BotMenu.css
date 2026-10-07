@@ -186,6 +186,72 @@
 	width: 100%;
 }
 
+/* ---------- skills (Fase 6) ---------- */
+#BotMenu .bm-skills[hidden],
+#BotMenu .bm-propria[hidden],
+#BotMenu .bm-herda[hidden],
+#BotMenu .bm-adicionar[hidden],
+#BotMenu .bm-indisponivel[hidden] {
+	display: none;
+}
+#BotMenu .bm-escopo,
+#BotMenu .bm-nova-skill,
+#BotMenu .bm-skill-nivel {
+	min-width: 0;
+	max-width: 100%;
+}
+#BotMenu .bm-lista-skills {
+	list-style: decimal inside;
+	margin: 0;
+	padding: 0;
+	display: flex;
+	flex-direction: column;
+	gap: var(--sp-2);
+}
+#BotMenu .bm-lista-skills:empty::after {
+	content: 'Nenhuma habilidade na lista: o Bot usa só o ataque básico (ou não ataca em "Só habilidades").';
+	font: var(--type-desc);
+	color: var(--text-muted);
+}
+#BotMenu .bm-skill {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: var(--sp-2);
+	padding: var(--sp-2) var(--sp-3);
+	border-radius: var(--radius-card, 8px);
+	background: var(--surface-card);
+}
+#BotMenu .bm-skill.is-filtrada .bm-skill-nome {
+	opacity: 0.55;
+	text-decoration: line-through;
+}
+#BotMenu .bm-skill-nome {
+	flex: 1 1 120px;
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+#BotMenu .bm-skill-motivo {
+	font: var(--type-desc);
+	color: var(--amber-600);
+}
+#BotMenu .bm-skill-escopo {
+	flex: 1 1 100%;
+	font: var(--type-desc);
+}
+#BotMenu .bm-adicionar {
+	display: flex;
+	gap: var(--sp-2);
+}
+#BotMenu .bm-adicionar .bm-nova-skill {
+	flex: 1 1 auto;
+}
+#BotMenu .bm-nao-aceitas:empty {
+	display: none;
+}
+
 /* ---------- rodape ---------- */
 #BotMenu .bm-rodape {
 	padding: var(--sp-3) var(--sp-6) var(--sp-5);
@@ -230,7 +296,10 @@
 	#BotMenu .bm-liga,
 	#BotMenu .bm-botoes button,
 	#BotMenu .bm-linha,
-	#BotMenu .bm-monstro {
+	#BotMenu .bm-monstro,
+	#BotMenu .bm-skill button,
+	#BotMenu .bm-skill select,
+	#BotMenu .bm-adicionar > * {
 		min-height: var(--hit-touch, 44px);
 	}
 	#BotMenu .bm-cabecalho {

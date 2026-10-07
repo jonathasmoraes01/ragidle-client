@@ -46,7 +46,27 @@
 					<label class="bm-linha"><input type="radio" name="bm-modo" value="skills-e-basico"><span>Habilidades e ataque básico</span></label>
 					<label class="bm-linha"><input type="radio" name="bm-modo" value="apenas-skills"><span>Só habilidades</span></label>
 				</fieldset>
-				<p class="bm-indisponivel">Habilidades automáticas ainda não estão disponíveis nesta versão: o Bot usa o ataque básico, e em "Só habilidades" ele não ataca.</p>
+				<p class="bm-indisponivel">Habilidades automáticas ainda não estão disponíveis neste servidor: o Bot usa o ataque básico, e em "Só habilidades" ele não ataca.</p>
+				<!-- AS SKILLS (Fase 6): lista geral, lista propria por monstro e regra por skill.
+				     O Bot pede a skill pela mesma porta do jogador; o classico valida e executa. -->
+				<div class="bm-bloco bm-skills" hidden>
+					<span class="bm-rotulo">Habilidades, em ordem de preferência</span>
+					<label class="bm-linha bm-linha--coluna">
+						<span class="bm-dica">Lista de</span>
+						<select class="bm-escopo"></select>
+					</label>
+					<label class="bm-linha bm-propria" hidden>
+						<input type="checkbox" class="bm-usar-propria">
+						<span>Lista própria para este monstro</span>
+					</label>
+					<p class="bm-dica bm-herda">Este monstro usa a lista geral, filtrada pelas regras de cada habilidade.</p>
+					<ol class="bm-lista-skills"></ol>
+					<div class="bm-adicionar">
+						<select class="bm-nova-skill" aria-label="Habilidade para adicionar"></select>
+						<button type="button" class="bm-add ri-btn ri-btn--sec">Adicionar</button>
+					</div>
+					<p class="bm-dica bm-nao-aceitas"></p>
+				</div>
 			</section>
 		</div>
 

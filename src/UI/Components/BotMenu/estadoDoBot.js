@@ -53,6 +53,8 @@ export function criarEstadoDoBot({ enviar }) {
 			statusRevision: -1,
 			capacidades: null,
 			monstros: [],
+			/** As skills aprendidas com `aceita` (Fase 6); null = servidor sem skills no Bot. */
+			skills: null,
 			pendenteLigarDesligar: null,
 			pendenteAplicar: false,
 			erro: null,
@@ -181,6 +183,9 @@ export function criarEstadoDoBot({ enviar }) {
 			s.capacidades = d.capacidades || s.capacidades;
 			if (Array.isArray(d.monstros)) {
 				s.monstros = d.monstros;
+			}
+			if (Array.isArray(d.skills)) {
+				s.skills = d.skills;
 			}
 			if (typeof d.statusRevision === 'number' && d.statusRevision >= s.statusRevision) {
 				s.statusRevision = d.statusRevision;

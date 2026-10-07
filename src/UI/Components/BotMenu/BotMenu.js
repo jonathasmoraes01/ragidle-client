@@ -29,6 +29,7 @@ import htmlText from './BotMenu.html?raw';
 import cssText from './BotMenu.css?raw';
 import { fecharEEsquecer } from '../limpezaDeJanelaIdle.js';
 import { criarEstadoDoBot, fraseDoErro, fraseDoStatus } from './estadoDoBot.js';
+import { desenharEditorDeSkills } from './editorDeSkills.js';
 import { esquecer as esquecerContexto, marcarObsoleto, receberDoServidor } from 'UI/contextoDoMapa.js';
 
 const WINDOW_WIDTH = 420;
@@ -60,6 +61,9 @@ function enviar(corpo) {
 
 const _estado = criarEstadoDoBot({ enviar });
 
+/** O escopo do editor de skills: a lista geral ou a especie escolhida (so desta tela). */
+let _escopoDasSkills = 'geral';
+
 /** Quem ouve a capacidade (o TopMenuIdle mostra o item "Bot" so com ela). */
 const _ouvintesDaCapacidade = new Set();
 
@@ -87,6 +91,7 @@ BotMenu._estado = _estado;
 
 BotMenu.limparEstadoDoPersonagem = function limparEstadoDoPersonagem() {
 	_estado.reiniciar();
+	_escopoDasSkills = 'geral';
 	esquecerContexto();
 	fecharEEsquecer(_root(), '.bm-window');
 	avisarCapacidade();
@@ -284,6 +289,22 @@ function desenhar() {
 			r.checked = r.value === c.modoDeAtaque;
 		});
 		desenharMonstros(s, c);
+		const lim2 = (s.capacidades && s.capacidades.limites) || {};
+		desenharEditorDeSkills(
+			el('[data-secao="ataque"]'),
+			{
+				config: c,
+				skills: s.skills,
+				monstros: s.monstros,
+				escopo: _escopoDasSkills,
+				teto: { geral: lim2.skillsNaListaGeral || 12, porMonstro: lim2.skillsPorMonstro || 12 }
+			},
+			editar,
+			escopo => {
+				_escopoDasSkills = escopo;
+				desenhar();
+			}
+		);
 	}
 
 	const recado = el('.bm-recado');
