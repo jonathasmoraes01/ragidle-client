@@ -1571,6 +1571,17 @@ function distribuirColunas() {
 	// A metade MAIS CHEIA manda: as duas colunas dividem a mesma altura.
 	const colunas = colunasPorLadoDoLeque(naEsquerda);
 	fan.style.setProperty('--tm-leque-colunas', String(colunas));
+	/*
+	 * TRES COLUNAS POR LADO APERTAM OS VAOS (07/10/2026). Em 900x600 o leque
+	 * de seis colunas media 514px e, ancorado pela direita, passava 40px por
+	 * cima do chat e 5px por cima da barra de atalhos (`prove:hud-responsiva`).
+	 * Os numeros do aperto moram no CSS (`.tm-fan--denso`); aqui so se decide
+	 * QUANDO — e ANTES de `fixarLarguraDoMenu`, que mede o piso do botao Menu
+	 * no leque ja apertado. No celular em pe o leque vira o CARTAO (D-939),
+	 * com grade e respiro proprios, e o aperto nao entra nele.
+	 */
+	const denso = colunas >= MAXIMO_DE_COLUNAS_POR_LADO && !ehCelularEmPe();
+	fan.classList.toggle('tm-fan--denso', denso);
 
 	fixarLarguraDoMenu();
 
@@ -1717,7 +1728,15 @@ function afastarMenuDaDoca(root) {
 	);
 	const tetoOcupado = Number.isFinite(publicado) && publicado > 0 ? publicado : 288;
 	const cabe = window.innerHeight - tetoOcupado - caixaDoMenu.height - RESPIRO_ACIMA_DA_DOCA;
-	const base = Math.max(BASE_DO_MENU_NO_CHAO, Math.min(acimaDaDoca, cabe));
+	/*
+	 * A CONTA E EM PIXEL DE VIEWPORT, E O `bottom` E EM UNIDADE DA HUD
+	 * (07/10/2026). As caixas acima vem de `getBoundingClientRect`, ja com o
+	 * `zoom` da HUD aplicado; o `--tm-base-do-menu` e lido DENTRO do host, e
+	 * la `55px` desenha 55 x escala. Em 900x600 (escala 0.78) o menu subia 43
+	 * dos 55 medidos e ficava 5px por cima da barra de atalhos, com qualquer
+	 * altura de leque. E a armadilha que `emUnidadesDaHud` descreve.
+	 */
+	const base = Math.max(BASE_DO_MENU_NO_CHAO, emUnidadesDaHud(Math.min(acimaDaDoca, cabe)));
 
 	menu.style.setProperty('--tm-base-do-menu', Math.round(base) + 'px');
 }
