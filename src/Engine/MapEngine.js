@@ -149,6 +149,9 @@ import DeathWindow from 'UI/Components/DeathWindow/DeathWindow.js'; // RAGIDLE: 
 import TopMenuIdle from 'UI/Components/TopMenuIdle/TopMenuIdle.js'; // RAGIDLE: "Menu superior direito (constelação)"
 import { agendarRedeDaHud } from 'Engine/redeDaHud.js'; // RAGIDLE: a HUD que a entrada interrompida deixava de fora (05/10/2026)
 import { relatarErro } from 'UI/relatoDeErro.js';
+// RAGIDLE (D-2055): a medida por fase do carregamento do mapa, relatada DEPOIS do estou-pronto
+import { aoEstouProntoEnviado, marcarEntradaAceita, marcarPedidoDeEntrada } from 'Renderer/relatoDoCarregamento.js';
+import { temPersonagemNoMundo } from 'Controls/guardaDoMundo.js'; // RAGIDLE (D-2055, A2): andar exige personagem
 import CorreioIdle from 'UI/Components/CorreioIdle/CorreioIdle.js'; // RAGIDLE: "Correio" (a caixa do sistema, D-366)
 import HuntAnalyzer from 'UI/Components/HuntAnalyzer/HuntAnalyzer.js'; // RAGIDLE: "Hunt Analyzer" (a leitura da cacada em curso)
 import { religarAtalhosParaUiNova, religarAtalhoDoBasicInfo } from 'UI/atalhos-da-ui-nova.js'; // RAGIDLE: Alt+A/E/S/Q/U/V -> janelas novas
@@ -263,6 +266,13 @@ class MapEngine {
 		_port = port;
 		_exiting = false;
 		_exitTimer = null;
+		// A espera pelo servidor de mapa comeca aqui (D-2055): a medida a fecha
+		// no `ZC_ACCEPT_ENTER`. So um numero gravado - e mesmo assim protegido.
+		try {
+			marcarPedidoDeEntrada();
+		} catch (_e) {
+			/* medir nao e caminho critico */
+		}
 
 		// Connect to char server
 		const forceAddress = Configs.get('forceUseAddress');
@@ -903,6 +913,12 @@ function onConnectionAccepted(pkt) {
 	// curso, zera a escalada e avisa "reconectado"; se nao, e' um no-op
 	// seguro (ver Reconexao.aoEntrarComSucesso).
 	Reconexao.aoEntrarComSucesso();
+	// D-2055: o fim da espera pelo servidor de mapa (a medida da entrada).
+	try {
+		marcarEntradaAceita();
+	} catch (_e) {
+		/* medir nao e caminho critico */
+	}
 
 	/*
 	 * A ECONOMIA DE ENERGIA NA REENTRADA (F29, auditoria de 22/09/2026). O
@@ -1466,6 +1482,13 @@ function onMapChange(pkt, ehEntradaNoMundo) {
 			if (estouProntoSaiu) return;
 			estouProntoSaiu = true;
 			Network.sendPacket(new PACKET.CZ.NOTIFY_ACTORINIT());
+			// D-2055: DEPOIS do pacote, fecha a medida do carregamento; o envio
+			// do relato sai noutro `setTimeout`, nunca nesta volta.
+			try {
+				aoEstouProntoEnviado();
+			} catch (_e) {
+				/* medir nao e caminho critico */
+			}
 		};
 		setTimeout(estouPronto, 0);
 		/*
@@ -2615,6 +2638,11 @@ let _walkLastTick = 0;
 function onRequestWalk() {
 	Events.clearTimeout(_walkTimer);
 
+	// D-2055 (A2): o toque na selecao de personagem chegava aqui sem personagem.
+	if (!temPersonagemNoMundo(Session)) {
+		return;
+	}
+
 	// If siting, update direction
 	if (Session.Entity.action === Session.Entity.ACTION.SIT || KEYS.SHIFT) {
 		Session.Entity.lookTo(Mouse.world.x, Mouse.world.y);
@@ -2645,6 +2673,14 @@ function onRequestStopWalk() {
  * Moving function
  */
 function walkIntervalProcess() {
+	// D-2055 (A2): o andar que atravessou a volta a selecao para aqui, em vez
+	// de ler a posicao de um personagem que ja nao existe.
+	if (!temPersonagemNoMundo(Session)) {
+		Events.clearTimeout(_walkTimer);
+		_walkTimer = null;
+		return;
+	}
+
 	// setTimeout isn't accurate, so reduce the value
 	// to avoid possible errors.
 	if (_walkLastTick + 200 > Renderer.tick) {

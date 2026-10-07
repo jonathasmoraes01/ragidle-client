@@ -352,74 +352,91 @@ class Renderer {
 		}
 		this._lastFrameTime = quadro.ultimo;
 
-		// RAGIDLE (13/09/2026): o quadro que o jogo DESENHOU, depois do limitador —
-		// e o FPS que o aparelho do jogador relata. Ver `Renderer/quadrosNoCampo.js`.
-		registrarQuadro(now);
-
 		/*
-		 * RAGIDLE (15/09/2026): ONDE O QUADRO GASTOU O TEMPO.
-		 *
-		 * `registrarQuadro` acima mede o INTERVALO entre carimbos do rAF; isto
-		 * mede o JS que roda DENTRO do quadro. A diferenca entre os dois e o
-		 * produto principal desta medicao: se o intervalo for muito maior que
-		 * este total, a travada NAO esta no desenho — esta no que acontece
-		 * entre um quadro e o outro (pacote, coleta de lixo, composicao do
-		 * proprio navegador). Ver `Renderer/quadrosNoCampo.js`.
+		 * O PROXIMO QUADRO E PEDIDO NUM `finally` (D-2055, achado A1): uma
+		 * excecao em qualquer ponto do quadro (os eventos, o cursor) deixava o
+		 * `requestAnimationFrame` sem ser pedido e `rendering` em `true` - o
+		 * laco morria e a tela congelava sem erro visivel. A unica saida que NAO
+		 * pede outro quadro e o contexto perdido, que tem caminho proprio.
 		 */
-		const inicioDoQuadro = performance.now();
+		let pedirOutroQuadro = true;
+		try {
+			// RAGIDLE (13/09/2026): o quadro que o jogo DESENHOU, depois do limitador —
+			// e o FPS que o aparelho do jogador relata. Ver `Renderer/quadrosNoCampo.js`.
+			registrarQuadro(now);
 
-		// Use Date.now for serverTick and Events processing, to keep existing behavior intact
-		const newTick = Date.now();
+			/*
+			 * RAGIDLE (15/09/2026): ONDE O QUADRO GASTOU O TEMPO.
+			 *
+			 * `registrarQuadro` acima mede o INTERVALO entre carimbos do rAF; isto
+			 * mede o JS que roda DENTRO do quadro. A diferenca entre os dois e o
+			 * produto principal desta medicao: se o intervalo for muito maior que
+			 * este total, a travada NAO esta no desenho — esta no que acontece
+			 * entre um quadro e o outro (pacote, coleta de lixo, composicao do
+			 * proprio navegador). Ver `Renderer/quadrosNoCampo.js`.
+			 */
+			const inicioDoQuadro = performance.now();
 
-		// Increment serverTick with delta
-		Session.serverTick += newTick - this.tick;
+			// Use Date.now for serverTick and Events processing, to keep existing behavior intact
+			const newTick = Date.now();
 
-		// Update engine tick
-		this.tick = newTick;
+			// Increment serverTick with delta
+			Session.serverTick += newTick - this.tick;
 
-		// Execute events
-		// `Events.process` dispara TODOS os timeouts vencidos, sem teto de
-		// tempo: um lote grande cabe inteiro num quadro so.
-		const inicioDosEventos = performance.now();
-		Events.process(this.tick);
-		registrarFase(FASE.EVENTOS, performance.now() - inicioDosEventos);
+			// Update engine tick
+			this.tick = newTick;
 
-		// Execute render callbacks
-		const inicioDoDesenho = performance.now();
-		let i, count;
-		for (i = 0, count = this.renderCallbacks.length; i < count; ++i) {
+			// Execute events
+			// `Events.process` dispara TODOS os timeouts vencidos, sem teto de
+			// tempo: um lote grande cabe inteiro num quadro so.
+			const inicioDosEventos = performance.now();
 			try {
-				this.renderCallbacks[i](this.tick, this.gl);
+				Events.process(this.tick);
 			} catch (e) {
-				// Defensive: a single callback shouldn't break the whole loop
-				console.error('[Renderer] render callback error', e);
+				console.error('[Renderer] os eventos do quadro lancaram; o quadro segue', e);
+			}
+			registrarFase(FASE.EVENTOS, performance.now() - inicioDosEventos);
 
-				// Memory Pressure Detection / Fallback
-				// If we hit an error during rendering, check if it's OOM or Context Lost related
-				if (this.gl.isContextLost()) {
-					// Handled by event listener, but break loop now
-					return;
-				}
+			// Execute render callbacks
+			const inicioDoDesenho = performance.now();
+			let i, count;
+			for (i = 0, count = this.renderCallbacks.length; i < count; ++i) {
+				try {
+					this.renderCallbacks[i](this.tick, this.gl);
+				} catch (e) {
+					// Defensive: a single callback shouldn't break the whole loop
+					console.error('[Renderer] render callback error', e);
 
-				// Basic Heuristic: If errors persist or explicitly OOM
-				// We could disable bloom/fancy effects here to recover
-				if (GraphicsSettings.bloom) {
-					console.warn('[Renderer] Disabling bloom due to render error (potential resource pressure)');
-					GraphicsSettings.bloom = false;
+					// Memory Pressure Detection / Fallback
+					// If we hit an error during rendering, check if it's OOM or Context Lost related
+					if (this.gl.isContextLost()) {
+						// Handled by event listener, but break loop now
+						pedirOutroQuadro = false;
+						return;
+					}
+
+					// Basic Heuristic: If errors persist or explicitly OOM
+					// We could disable bloom/fancy effects here to recover
+					if (GraphicsSettings.bloom) {
+						console.warn('[Renderer] Disabling bloom due to render error (potential resource pressure)');
+						GraphicsSettings.bloom = false;
+					}
 				}
 			}
+
+			registrarFase(FASE.DESENHO, performance.now() - inicioDoDesenho);
+
+			Cursor.render(this.tick);
+
+			// O quadro fecha DEPOIS do cursor: ele tambem e trabalho do quadro.
+			registrarFase(FASE.QUADRO, performance.now() - inicioDoQuadro);
+			fecharQuadro();
+		} finally {
+			// Schedule next frame
+			if (pedirOutroQuadro) {
+				this.updateId = _requestAnimationFrame(this._renderBound);
+			}
 		}
-
-		registrarFase(FASE.DESENHO, performance.now() - inicioDoDesenho);
-
-		Cursor.render(this.tick);
-
-		// O quadro fecha DEPOIS do cursor: ele tambem e trabalho do quadro.
-		registrarFase(FASE.QUADRO, performance.now() - inicioDoQuadro);
-		fecharQuadro();
-
-		// Schedule next frame
-		this.updateId = _requestAnimationFrame(this._renderBound);
 	}
 
 	/**

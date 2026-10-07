@@ -18,6 +18,22 @@ import Action from 'Loaders/Action.js';
 import Str from 'Loaders/Str.js';
 import FileSystem from 'Core/FileSystem.js';
 import { devoBaixarDeNovo, devoTentarDeNovo, esperaAntesDaTentativa } from 'Core/tentativasDeArquivo.js';
+import { baixarComVigia } from 'Core/baixarComVigia.js';
+
+/**
+ * Quanto o cache local do aparelho (`FileSystem`) tem para dizer se tem o
+ * arquivo (D-2055). A API de arquivos do Chrome responde em milissegundos; a
+ * guarda existe porque um `getFile` que nunca chama nenhum dos dois retornos
+ * deixaria o arquivo pendurado ANTES de a rede ser sequer tentada - o mesmo
+ * "preso para sempre" do pedido de rede, uma camada acima. Passado o prazo, o
+ * arquivo vai para a rede como se nao estivesse no cache.
+ */
+export const PRAZO_DO_CACHE_LOCAL_MS = 5000;
+
+/** O relogio das medidas (o `performance.now` do worker, ou o de parede). */
+function agoraMs() {
+	return typeof performance !== 'undefined' && performance.now ? performance.now() : Date.now();
+}
 
 // Load dependencies
 /* global process */
@@ -195,16 +211,51 @@ class FileManager {
 	 * Get a file
 	 *
 	 * @param {string} filename
-	 * @param {function} callback
+	 * @param {function} callback - (buffer, erro, info); `info` diz de onde o
+	 *   arquivo veio (`origem`), quantas novas tentativas e silencios houve e
+	 *   quanto levou - a medida por fase do carregamento (D-2055) le daqui
+	 * @param {object} [opcoes] - repassadas ao `getHTTP` (`aoReceber`,
+	 *   `aoTentarDeNovo`, `sinal`)
 	 */
-	static get(filename, callback) {
+	static get(filename, callback, opcoes) {
 		// Trim the path
 		filename = filename.replace(/^\s+|\s+$/g, '');
+		const inicio = agoraMs();
 
 		if (fs && fs.existsSync(filename)) {
-			callback(fs.readFileSync(filename));
+			callback(fs.readFileSync(filename), undefined, {
+				origem: 'disco',
+				tentativas: 0,
+				silencios: 0,
+				bytes: 0,
+				ms: 0
+			});
 			return;
 		}
+
+		// A guarda do cache local (D-2055): o primeiro retorno vence, e o
+		// prazo conta como "nao achei".
+		let respondeu = false;
+		const naoAchou = () => {
+			const path = filename.replace(/\//g, '\\');
+			const fileList = FileManager.gameFiles;
+			const count = fileList.length;
+
+			for (let i = 0; i < count; ++i) {
+				if (fileList[i].getFile(path, callback)) {
+					return;
+				}
+			}
+
+			// Not in GRFs ? Try to load it from
+			// remote client host
+			FileManager.getHTTP(filename, callback, opcoes);
+		};
+		const guarda = setTimeout(() => {
+			if (respondeu) return;
+			respondeu = true;
+			naoAchou();
+		}, PRAZO_DO_CACHE_LOCAL_MS);
 
 		// Search in filesystem
 		FileSystem.getFile(
@@ -212,28 +263,28 @@ class FileManager {
 
 			// Found in file system, youhou !
 			function onFound(file) {
+				if (respondeu) return;
+				respondeu = true;
+				clearTimeout(guarda);
 				const reader = new FileReader();
 				reader.onloadend = function onLoad(event) {
-					callback(event.target.result);
+					callback(event.target.result, undefined, {
+						origem: 'cache-local',
+						tentativas: 0,
+						silencios: 0,
+						bytes: 0,
+						ms: agoraMs() - inicio
+					});
 				};
 				reader.readAsArrayBuffer(file);
 			},
 
 			// Not found, fetching files
 			function onNotFound() {
-				const path = filename.replace(/\//g, '\\');
-				const fileList = FileManager.gameFiles;
-				const count = fileList.length;
-
-				for (let i = 0; i < count; ++i) {
-					if (fileList[i].getFile(path, callback)) {
-						return;
-					}
-				}
-
-				// Not in GRFs ? Try to load it from
-				// remote client host
-				FileManager.getHTTP(filename, callback);
+				if (respondeu) return;
+				respondeu = true;
+				clearTimeout(guarda);
+				naoAchou();
 			}
 		);
 	}
@@ -242,9 +293,13 @@ class FileManager {
 	 * Trying to load a file from the remote host
 	 *
 	 * @param {string} filename
-	 * @param {function} callback
+	 * @param {function} callback - (buffer, erro, info)
+	 * @param {object} [opcoes]
+	 * @param {function(number, number):void} [opcoes.aoReceber] - bytes chegando (recebidos, total)
+	 * @param {function(number):void} [opcoes.aoTentarDeNovo] - a nova tentativa numero N vai sair
+	 * @param {AbortSignal} [opcoes.sinal] - cancela o pedido (a carga que foi refeita)
 	 */
-	static getHTTP(filename, callback) {
+	static getHTTP(filename, callback, opcoes) {
 		filename = filename.replace(/\\/g, '/');
 		let url = filename.replace(/[^/]+/g, a => {
 			return encodeURIComponent(a);
@@ -271,44 +326,71 @@ class FileManager {
 			 * 5xx) tenta de novo antes de desistir - ver `tentativasDeArquivo.js`.
 			 * Sem isto um soluco de rede no meio da troca de mapa virava
 			 * "Can't find file" com o arquivo existindo no servidor.
+			 *
+			 * E O SILENCIO (D-2055, 06/10/2026): o pedido que nunca responde
+			 * nao rejeitava nunca, e o arquivo ficava pendurado para sempre - a
+			 * barra parada em 2%. `baixarComVigia` aborta o pedido calado e ele
+			 * conta como rede caida (`status === null`), entrando na MESMA
+			 * nova tentativa, com o mesmo recuo e o mesmo teto. A pagina HTML
+			 * no lugar do binario continua contando como 404 (dentro dele).
 			 */
+			const inicio = agoraMs();
+			let silencios = 0;
+			const informar = (feitas, extra) =>
+				Object.assign(
+					{ origem: 'rede', tentativas: feitas, silencios, bytes: 0, ms: agoraMs() - inicio },
+					extra
+				);
 			const tentar = feitas => {
 				let status = null;
 				// Quem ja recebeu o arquivo nao recebe de novo: um erro DENTRO do
 				// `callback` tambem cai no `catch`, e sem esta marca ele viraria
 				// "a rede falhou" e o arquivo seria entregue duas vezes.
 				let entregue = false;
-				fetch(url)
-					.then(function (response) {
-						if (!response.ok) {
-							status = response.status;
-							throw new Error('HTTP ' + response.status);
+				baixarComVigia(url, {
+					aoReceber: opcoes && opcoes.aoReceber,
+					sinal: opcoes && opcoes.sinal
+				})
+					.then(resposta => {
+						if (!resposta.ok) {
+							status = resposta.status;
+							throw new Error('HTTP ' + resposta.status);
 						}
-
-						// Detect HTML error pages returned with 200 status
-						const contentType = response.headers.get('content-type') || '';
-						if (contentType.indexOf('text/html') !== -1) {
-							status = 404;
-							throw new Error('Received HTML instead of binary data (likely 404 page)');
-						}
-
-						return response.arrayBuffer();
-					})
-					.then(buffer => {
 						entregue = true;
-						callback(buffer);
-						FileSystem.saveFile(filename, buffer);
+						callback(
+							resposta.buffer,
+							undefined,
+							informar(feitas, {
+								origem: resposta.doCacheHttp ? 'cache-http' : 'rede',
+								bytes: resposta.bytes || 0
+							})
+						);
+						FileSystem.saveFile(filename, resposta.buffer);
 					})
 					.catch(err => {
 						if (entregue) {
 							console.error('[FileManager] erro depois de entregar ' + filename, err);
 							return;
 						}
+						if (err && err.cancelado) {
+							callback(null, 'Pedido cancelado', informar(feitas, { cancelado: true }));
+							return;
+						}
+						if (err && err.silencio) {
+							silencios++;
+						}
 						if (devoTentarDeNovo(status, feitas)) {
+							if (opcoes && opcoes.aoTentarDeNovo) {
+								try {
+									opcoes.aoTentarDeNovo(feitas + 1);
+								} catch {
+									/* avisar nao pode impedir a nova tentativa */
+								}
+							}
 							setTimeout(() => tentar(feitas + 1), esperaAntesDaTentativa(feitas));
 							return;
 						}
-						callback(null, "Can't get file");
+						callback(null, "Can't get file", informar(feitas, { falhou: true }));
 					});
 			};
 			tentar(0);
@@ -402,10 +484,12 @@ class FileManager {
 	 * Load a file
 	 *
 	 * @param {string} filename
-	 * @param {function} callback
+	 * @param {function} callback - (resultado, erro, info) - ver `get`
+	 * @param {object} [args] - argumentos do formato (vem do fio, clonavel)
+	 * @param {object} [opcoes] - as do `getHTTP` (so dentro do worker: funcoes)
 	 * @return {string|object}
 	 */
-	static load(filename, callback, args) {
+	static load(filename, callback, args, opcoes) {
 		if (!filename) {
 			callback(null, 'undefined ?');
 			return;
@@ -421,7 +505,7 @@ class FileManager {
 		 * chega a acontecer. Quem veio com bytes e nao abriu tem a copia local
 		 * APAGADA e e baixado de novo do servidor, uma vez so (`jaRefez`).
 		 */
-		const tratar = (buffer, error, jaRefez) => {
+		const tratar = (buffer, error, jaRefez, info) => {
 			const ext = filename
 				.match(/.[^.]+$/)
 				.toString()
@@ -430,7 +514,7 @@ class FileManager {
 			let result = null;
 
 			if (!buffer || buffer.byteLength === 0) {
-				callback(null, error);
+				callback(null, error, info);
 				return;
 			}
 
@@ -518,13 +602,17 @@ class FileManager {
 
 			if (devoBaixarDeNovo({ tinhaBytes: true, abriu: error === null, jaRefez })) {
 				FileSystem.removeFile(filename);
-				FileManager.getHTTP(filename, (novo, erroNovo) => tratar(novo, erroNovo, true));
+				FileManager.getHTTP(
+					filename,
+					(novo, erroNovo, infoNovo) => tratar(novo, erroNovo, true, infoNovo),
+					opcoes
+				);
 				return;
 			}
 
-			callback(result, error);
+			callback(result, error, info);
 		};
-		FileManager.get(filename, (buffer, error) => tratar(buffer, error, false));
+		FileManager.get(filename, (buffer, error, info) => tratar(buffer, error, false, info), opcoes);
 	}
 }
 /**

@@ -134,6 +134,9 @@ class MemoryItem {
 		this._error = error;
 		this.complete = true;
 		this.lastTimeUsed = Date.now();
+		// Quando falhou (D-2055): a falha velha pode ser pedida de novo
+		// (`MemoryManager.esquecerFalhaVelha`).
+		this.errouEm = this.lastTimeUsed;
 
 		for (i = 0, size = this._onerror.length; i < size; ++i) {
 			this._onerror[i](error);

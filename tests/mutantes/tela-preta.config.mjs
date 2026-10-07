@@ -8,10 +8,8 @@ const ALVO = 'src/Renderer/MapRenderer.js';
 const mutantes = {
 	descarta: ['\t\t\tthis.mapaPendente = mapname;\r\n', ''],
 	semAtenderNoFim: ['\t\tMouse.intersect = true;\r\n\r\n\t\tatenderMapaPendente();', '\t\tMouse.intersect = true;'],
-	semAtenderNaFalha: [
-		"\t\tUIManager.showErrorBox(error).ui.css('zIndex', 1000);\r\n\t\tatenderMapaPendente();",
-		"\t\tUIManager.showErrorBox(error).ui.css('zIndex', 1000);"
-	],
+	// D-2055: a falha deixou de abrir a caixa de erro e abre a saida da carga.
+	semAtenderNaFalha: ['\t\t);\r\n\t\tatenderMapaPendente();\r\n\t\treturn;', '\t\t);\r\n\t\treturn;'],
 	naoEsvazia: ['\tMapRenderer.mapaPendente = null;\r\n\tif (outroMapa', '\tif (outroMapa'],
 	semtry: ['\t\t} catch (erro) {\r\n\t\t\tconsole.error', '\t\t} finally {\r\n\t\t\tconsole.error'],
 	recarregaOMesmo: [

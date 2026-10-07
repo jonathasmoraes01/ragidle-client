@@ -240,6 +240,12 @@ function onMouseUp(event) {
 
 	// Not rendering yet
 	if (!Mouse.intersect) {
+		// O andar que comecou antes de o mundo sair (a troca de mapa, a volta a
+		// selecao) PARA aqui: sair cedo deixava o relogio do andar vivo do outro
+		// lado (D-2055, achado A2).
+		if (this && this.onRequestStopWalk) {
+			this.onRequestStopWalk();
+		}
 		return;
 	}
 

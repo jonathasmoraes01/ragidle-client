@@ -9,6 +9,12 @@
  */
 
 import FileManager from 'Core/FileManager.js';
+import { criarMedidaDaCarga } from 'Loaders/medidaDaCarga.js';
+
+/** O relogio da medida por fase (D-2055). */
+function agora() {
+	return typeof performance !== 'undefined' && performance.now ? performance.now() : Date.now();
+}
 
 /**
  * Helper to load list
@@ -16,7 +22,13 @@ import FileManager from 'Core/FileManager.js';
  * @param {array} file list to load
  */
 class Loader {
-	constructor(list) {
+	/**
+	 * @param {string[]} list
+	 * @param {function(string, function)} [carregar] - quem busca cada arquivo
+	 *   (o `MapLoader` passa o seu, que mede e pode ser cancelado - D-2055)
+	 */
+	constructor(list, carregar) {
+		this.carregar = carregar || ((nome, pronto) => FileManager.load(nome, pronto));
 		this.files = list;
 		this.list = list.slice(0);
 		this.offset = 0;
@@ -66,7 +78,7 @@ class Loader {
 		}
 
 		const filename = this.list.shift();
-		FileManager.load(filename, data => {
+		this.carregar(filename, data => {
 			// Store the result
 			this.out[this.files.indexOf(filename)] = data;
 			this.offset++;
@@ -125,11 +137,100 @@ class MapLoader {
 	offset = 0;
 
 	/**
+	 * A carga foi CANCELADA (D-2055): o jogador pediu "Tentar de novo", e uma
+	 * carga nova do mesmo mapa ja saiu. Dai em diante esta nao avisa mais nada
+	 * ao fio principal - os `MAP_*` dela se misturariam aos da nova - e os
+	 * pedidos de rede em curso sao abortados, para nao disputarem banda com os
+	 * da carga nova.
+	 */
+	cancelada = false;
+
+	/** Cancela a carga (ver `cancelada`). Idempotente. */
+	cancelar() {
+		this.cancelada = true;
+		try {
+			if (this.controlador) this.controlador.abort();
+		} catch {
+			/* abortar e melhor esforco */
+		}
+	}
+
+	/**
+	 * Busca UM arquivo da carga: mede (origem, novas tentativas, silencios),
+	 * repassa a atividade da rede e nao responde depois de cancelada.
+	 *
+	 * @param {string} nome
+	 * @param {function} pronto - (resultado, erro)
+	 * @param {string} [qualBase] - 'rsw' | 'gat' | 'gnd'
+	 */
+	carregarArquivo(nome, pronto, qualBase) {
+		const opcoes = {
+			sinal: this.controlador ? this.controlador.signal : undefined,
+			aoReceber: (recebidos, total) => this.avisarAtividade({ arquivo: nome, recebidos, total }),
+			aoTentarDeNovo: tentativa => this.avisarAtividade({ arquivo: nome, tentativa })
+		};
+		FileManager.load(
+			nome,
+			(resultado, erro, info) => {
+				if (this.cancelada) {
+					return;
+				}
+				this.medida.contarArquivo(info, qualBase);
+				/*
+				 * A MONTAGEM QUE LANCA NO WORKER TERMINA A CARGA (D-2055, achado
+				 * A3). O `compile` do chao, o `createInstance` de um modelo, ou o
+				 * `postMessage` que nao consegue clonar o dado (a memoria do
+				 * celular acabando) lancavam aqui dentro - e a excecao morria no
+				 * `catch` do pedido ("erro depois de entregar"). O `onload` nunca
+				 * saia: `MapRenderer.loading` ficava `true` para sempre. Agora a
+				 * carga termina como FALHA, com o motivo, e o fio principal abre
+				 * a saida; os outros pedidos dela sao abortados.
+				 */
+				try {
+					pronto(resultado, erro);
+				} catch (excecao) {
+					const motivo =
+						(excecao && (excecao.name || '') + ': ' + (excecao.message || '')) || String(excecao);
+					this.terminarCarga(false, `Erro ao montar o mapa (${nome}) - ${motivo}`);
+					this.cancelar();
+				}
+			},
+			undefined,
+			opcoes
+		);
+	}
+
+	/** @param {object} atividade */
+	avisarAtividade(atividade) {
+		if (!this.cancelada && this.onatividade) {
+			this.onatividade(atividade);
+		}
+	}
+
+	/** O fim da carga, com a medida junto (o terceiro argumento e novo, D-2055). */
+	terminarCarga(sucesso, erro) {
+		if (this.cancelada) {
+			return;
+		}
+		this.onload(sucesso, erro, this.medida.resumo());
+	}
+
+	/** Um dado do mapa ao fio principal - nada depois de cancelada. */
+	enviarDado(tipo, dado) {
+		if (!this.cancelada) {
+			this.ondata(tipo, dado);
+		}
+	}
+
+	/**
 	 * MapLoader update progress
 	 *
 	 * @param {number} percent
 	 */
 	setProgress(percent) {
+		if (this.cancelada) {
+			return;
+		}
 		const progress = Math.min(100, Math.floor(percent));
 
 		if (progress !== this.progress) {
@@ -146,6 +247,9 @@ class MapLoader {
 	 * @param {string} mapname
 	 */
 	load(mapname) {
+		this.controlador = typeof AbortController !== 'undefined' ? new AbortController() : null;
+		this.medida = criarMedidaDaCarga(agora);
+
 		// Initialize the loading
 		this.setProgress(0);
 
@@ -163,8 +267,9 @@ class MapLoader {
 
 		// loading world
 		function onWorldReady(resourceWorld) {
+			loader.medida.terminar('rsw');
 			if (!resourceWorld) {
-				loader.onload(false, `Can't find file "${mapname}" ! `);
+				loader.terminarCarga(false, `Can't find file "${mapname}" ! `);
 				return;
 			}
 
@@ -172,26 +277,33 @@ class MapLoader {
 			loader.setProgress(1);
 
 			// Load Altitude
-			FileManager.load(`data\\${getFilePath(world.files.gat)}`, onAltitudeReady);
+			loader.medida.comecar('gat');
+			loader.carregarArquivo(`data\\${getFilePath(world.files.gat)}`, onAltitudeReady, 'gat');
 		}
 
 		// Loading altitude
 		function onAltitudeReady(altitude) {
+			loader.medida.terminar('gat');
 			if (!altitude) {
-				loader.onload(false, `Can't find file "${world.files.gat}" !`);
+				loader.terminarCarga(false, `Can't find file "${world.files.gat}" !`);
 				return;
 			}
 
+			// OS 2% DA BARRA (D-2055): daqui ate o `setProgress(3)` la embaixo a
+			// carga espera o `.gnd` - o maior dos tres arquivos-base (5,4 MB o
+			// `glast_01.gnd`, 13 MB o `gl_cas01.gnd`, servidos sem compressao).
 			loader.setProgress(2);
-			loader.ondata('MAP_ALTITUDE', altitude.compile());
+			loader.enviarDado('MAP_ALTITUDE', altitude.compile());
 
-			FileManager.load(`data\\${getFilePath(world.files.gnd)}`, onGroundReady);
+			loader.medida.comecar('gnd');
+			loader.carregarArquivo(`data\\${getFilePath(world.files.gnd)}`, onGroundReady, 'gnd');
 		}
 
 		// Load ground
 		function onGroundReady(ground) {
+			loader.medida.terminar('gnd');
 			if (!ground) {
-				loader.onload(false, `Can't find file "${world.files.gnd}" !`);
+				loader.terminarCarga(false, `Can't find file "${world.files.gnd}" !`);
 				return;
 			}
 
@@ -217,8 +329,8 @@ class MapLoader {
 				world.water.images = waters;
 				compiledGround.textures = textures;
 
-				loader.ondata('MAP_WORLD', world.compile());
-				loader.ondata('MAP_GROUND', compiledGround);
+				loader.enviarDado('MAP_WORLD', world.compile());
+				loader.enviarDado('MAP_GROUND', compiledGround);
 
 				// Start loading models
 				loader.loadModels(world.models, ground);
@@ -226,7 +338,8 @@ class MapLoader {
 		}
 
 		// Start loading World Resource file
-		FileManager.load(`data\\${getFilePath(mapname)}`, onWorldReady);
+		this.medida.comecar('rsw');
+		this.carregarArquivo(`data\\${getFilePath(mapname)}`, onWorldReady, 'rsw');
 	}
 
 	/**
@@ -254,7 +367,8 @@ class MapLoader {
 		}
 
 		// Start loading
-		const loader = new Loader(textures);
+		const loader = new Loader(textures, (nome, pronto) => this.carregarArquivo(nome, pronto));
+		this.medida.comecar('texturasDoChao');
 
 		// On progress
 		loader.onprogress = () => {
@@ -263,6 +377,10 @@ class MapLoader {
 
 		// Once load
 		loader.onload = _textures => {
+			this.medida.terminar('texturasDoChao');
+			if (this.cancelada) {
+				return;
+			}
 			callback(_textures.splice(0, ground.waterVertCount ? 32 : 0), _textures);
 		};
 
@@ -290,7 +408,8 @@ class MapLoader {
 			}
 		}
 
-		const loader = new Loader(files);
+		const loader = new Loader(files, (nome, pronto) => this.carregarArquivo(nome, pronto));
+		this.medida.comecar('modelos');
 
 		// Update the progressbar
 		loader.onprogress = () => {
@@ -299,6 +418,10 @@ class MapLoader {
 
 		// Start creating instances
 		loader.onload = (objects, filenames) => {
+			this.medida.terminar('modelos');
+			if (this.cancelada) {
+				return;
+			}
 			let pos;
 
 			for (i = 0, count = models.length; i < count; ++i) {
@@ -428,7 +551,8 @@ class MapLoader {
 		}
 
 		// Load texture
-		const loader = new Loader(textures);
+		const loader = new Loader(textures, (nome, pronto) => this.carregarArquivo(nome, pronto));
+		this.medida.comecar('texturasDosModelos');
 
 		// On Progress
 		loader.onprogress = (index, _count) => {
@@ -438,6 +562,10 @@ class MapLoader {
 		// Once texture loaded, push the textures
 		// in the resulted mesh, and send it back
 		loader.onload = (_textures, filenames) => {
+			this.medida.terminar('texturasDosModelos');
+			if (this.cancelada) {
+				return;
+			}
 			let pos;
 
 			for (i = 0, count = infos.length; i < count; ++i) {
@@ -445,7 +573,7 @@ class MapLoader {
 				infos[i].texture = _textures[pos];
 			}
 
-			this.ondata('MAP_MODELS', {
+			this.enviarDado('MAP_MODELS', {
 				buffer: buffer,
 				infos: infos
 			});
@@ -455,7 +583,7 @@ class MapLoader {
 				this.sendAnimatedModels(this._animatedModels);
 			}
 
-			this.onload(true);
+			this.terminarCarga(true);
 		};
 
 		loader.start();
@@ -518,7 +646,7 @@ class MapLoader {
 				});
 			}
 
-			this.ondata('MAP_ANIMATED_MODEL', modelData);
+			this.enviarDado('MAP_ANIMATED_MODEL', modelData);
 		}
 	}
 }

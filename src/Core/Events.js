@@ -146,8 +146,22 @@ class Events {
 				break;
 			}
 
-			_events.shift().callback();
+			/*
+			 * UM EVENTO QUE LANCA NAO PARA OS OUTROS (D-2055, achado A1). Sem
+			 * esta guarda a excecao subia ate o `Renderer._render`, o
+			 * `requestAnimationFrame` seguinte nunca era pedido e a tela
+			 * congelava - no celular o toque roda por aqui (`Core/Mobile.js`),
+			 * entao um erro de toque congelava o jogo. O evento ja saiu da fila
+			 * (`shift`), entao ele nao se repete a cada quadro.
+			 */
+			const evento = _events.shift();
 			rodou++;
+			try {
+				evento.callback();
+			} catch (erro) {
+				console.error('[Events] um evento lancou; os outros seguem', erro);
+				relatarFalhaDeEvento(erro);
+			}
 		}
 
 		_tick = tick;
@@ -160,6 +174,23 @@ class Events {
 		_events.length = 0;
 	}
 }
+/**
+ * O relato da excecao de um evento, pelo mesmo `/analytics/erro` de sempre. O
+ * modulo do relato e carregado sob demanda: `Core/Events.js` e importado por
+ * quase tudo, e o relato puxa a configuracao do balcao.
+ *
+ * @param {Error} erro
+ */
+function relatarFalhaDeEvento(erro) {
+	try {
+		import('UI/relatoDeErro.js')
+			.then(m => m.relatarErro('[Events] ' + (erro && erro.message), erro && erro.stack))
+			.catch(() => {});
+	} catch {
+		/* relatar nao pode virar erro */
+	}
+}
+
 /**
  * Export
  */

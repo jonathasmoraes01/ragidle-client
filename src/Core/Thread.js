@@ -71,9 +71,29 @@ class Thread {
 			delete _memory[uid];
 		}
 
-		// Hook Feature
+		// Hook Feature. O envelope inteiro vai como segundo argumento (D-2055):
+		// e nele que a carga de mapa leva o seu numero (`carga`).
 		if (type && _hook[type]) {
-			_hook[type].call(null, event.data.data);
+			_hook[type].call(null, event.data.data, event.data);
+		}
+	};
+
+	/**
+	 * O worker falhou fora de qualquer pedido (`error`), ou mandou uma mensagem
+	 * que nao se le (`messageerror`). Repassa ao gancho `THREAD_FALHOU`, com o
+	 * tipo e a mensagem (D-2055).
+	 *
+	 * @param {Event} evento
+	 */
+	static aoFalharNoWorker = evento => {
+		const gancho = _hook.THREAD_FALHOU;
+		if (!gancho) {
+			return;
+		}
+		try {
+			gancho.call(null, { tipo: evento.type, mensagem: String((evento && evento.message) || '') });
+		} catch (erro) {
+			console.error('[Thread] o gancho de falha do worker lancou', erro);
 		}
 	};
 
@@ -109,6 +129,11 @@ class Thread {
 		// Worker context
 		if (_source instanceof Worker) {
 			_source.addEventListener('message', Thread.receive, false);
+			// D-2055 (achado A3): o erro que escapa no worker e a mensagem que
+			// nao se le ('messageerror') eram mudos - quem esperava a resposta
+			// esperava para sempre. Agora quem quiser saber, sabe.
+			_source.addEventListener('error', Thread.aoFalharNoWorker, false);
+			_source.addEventListener('messageerror', Thread.aoFalharNoWorker, false);
 		}
 
 		// Other frame worker
