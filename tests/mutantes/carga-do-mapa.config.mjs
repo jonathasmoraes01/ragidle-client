@@ -20,6 +20,7 @@ const MEMORIA = 'src/Core/MemoryManager.js';
 const TRANSFERE = 'src/Loaders/transferiveisDoMapa.js';
 const MUNDO = 'src/Controls/guardaDoMundo.js';
 const FIO = 'src/Core/Thread.js';
+const SAIDA_UI = 'src/UI/saidaDoCarregamento.js';
 
 const mutantes = {
 	// --- o prazo por pedido (A4) ---
@@ -65,6 +66,8 @@ const mutantes = {
 	'messageerror-ignorado': [MAPA, "falha.tipo === 'messageerror'", "falha.tipo === 'nunca'"],
 	'falha-sem-novo-numero': [MAPA, '\tconst carga = ++_carga;\n\ttry {', '\tconst carga = _carga;\n\ttry {'],
 	'recarregar-sem-relato': [MAPA, "\t\t\trelatarDesistencia('recarregou');\n", ''],
+	'verbo-sem-o-aparelho': [MAPA, 'mostrarSaidaDaCarga(textoDaCargaParada(ehDedo()))', 'mostrarSaidaDaCarga(textoDaCargaParada(true))'],
+	'verbo-invertido': [SAIDA_UI, '\treturn dedo\n', '\treturn !dedo\n'],
 	// --- os relogios da vigia ---
 	'tentativa-segura-a-saida': [RELOGIOS, "if (!atividade || typeof atividade.tentativa !== 'number') {", 'if (true) {'],
 	'bytes-nao-seguram-a-saida': [RELOGIOS, '\t\t\t\tarmarTravada();\n\t\t\t\tif (travou) {', '\t\t\t\tif (travou) {'],

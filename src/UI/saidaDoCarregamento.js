@@ -228,6 +228,20 @@ export function saidaVisivel() {
 	return !!(_saida && _saida.parentNode);
 }
 
+/**
+ * O texto da carga parada, no verbo do aparelho: "Toque" no dedo, "Clique" no
+ * mouse (D-2055 - o desktop lia "Toque em" para um botao que se clica). Puro;
+ * quem pergunta "e dedo?" e quem chama (`ehDedo()`, `UI/escalaDaHud.js`).
+ *
+ * @param {boolean} dedo
+ * @returns {string}
+ */
+export function textoDaCargaParada(dedo) {
+	return dedo
+		? 'O mapa parou de chegar do servidor. Toque em "Tentar de novo" para pedir o mapa outra vez.'
+		: 'O mapa parou de chegar do servidor. Clique em "Tentar de novo" para pedir o mapa outra vez.';
+}
+
 /** Esconde as duas pecas (o mapa carregou, ou outra carga comecou). */
 export function esconderTudo() {
 	esconderAviso();

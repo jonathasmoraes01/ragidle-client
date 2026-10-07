@@ -140,6 +140,18 @@ describe('a carga do mapa que nao anda (D-2055)', () => {
 		expect(saida()).not.toBeNull();
 		expect(botao('tentar').textContent).toBe('Tentar de novo');
 		expect(botao('recarregar').textContent).toBe('Recarregar o jogo');
+		// O jsdom nao tem `matchMedia`: e o mouse, e o verbo e "Clique".
+		expect(saida().textContent).toContain('Clique em "Tentar de novo"');
+		expect(saida().textContent).not.toContain('Toque em');
+	});
+
+	it('no dedo o texto diz "Toque em", e o botao ganha a altura de toque', async () => {
+		vi.stubGlobal('matchMedia', q => ({ matches: q === '(pointer: coarse)', media: q }));
+		MapRenderer.setMap('glast_01.gat');
+		await vi.advanceTimersByTimeAsync(SEM_SINAL_MAXIMO_MS);
+		expect(saida().textContent).toContain('Toque em "Tentar de novo"');
+		expect(saida().textContent).not.toContain('Clique em');
+		expect(saida().classList.contains('rag-carga-dedo')).toBe(true);
 	});
 
 	it('a barra em 2% com bytes chegando NAO oferece a saida, e o aviso diz quanto ja chegou', async () => {
