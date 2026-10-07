@@ -5,7 +5,7 @@
  * silencio abaixo REPROVAVAM (o `callback` ficava com zero chamadas).
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { SILENCIO_MAXIMO_MS, baixarComVigia } from 'Core/baixarComVigia.js';
+import { SILENCIO_MAXIMO_MS, baixarComVigia, totalDoArquivo, totalQueCabe } from 'Core/baixarComVigia.js';
 import { NOVAS_TENTATIVAS_DE_ARQUIVO } from 'Core/tentativasDeArquivo.js';
 import FileManager, { PRAZO_DO_CACHE_LOCAL_MS } from 'Core/FileManager.js';
 import FileSystem from 'Core/FileSystem.js';
@@ -235,5 +235,97 @@ describe('FileManager.get com o cache local calado', () => {
 		achou(new Blob([new Uint8Array(8)]));
 		await vi.advanceTimersByTimeAsync(10);
 		expect(callback).toHaveBeenCalledTimes(1);
+	});
+});
+
+/**
+ * O MAPA COMPRIMIDO (D-2072, 07/10/2026). O servidor de assets passou a mandar
+ * brotli/gzip: o `Content-Length` vira o tamanho COMPRIMIDO, e os pedacos que o
+ * `fetch` entrega sao DESCOMPRIMIDOS. Sem o `X-Tamanho-Original`, o aviso
+ * "Baixando o mapa: X de Y MB" diria "5,1 de 0,4 MB".
+ */
+describe('o total do arquivo comprimido', () => {
+	it('o X-Tamanho-Original vence o Content-Length (que e o comprimido)', () => {
+		expect(totalDoArquivo(cabecalhos({ 'content-length': '400', 'x-tamanho-original': '5000', 'content-encoding': 'br' }))).toBe(5000);
+	});
+
+	it('comprimido sem o tamanho original: "nao sei" (0), e nunca o comprimido', () => {
+		expect(totalDoArquivo(cabecalhos({ 'content-length': '400', 'content-encoding': 'gzip' }))).toBe(0);
+		expect(totalDoArquivo(cabecalhos({ 'content-length': '400', 'content-encoding': ' BR ' }))).toBe(0);
+	});
+
+	it('cru (ou identity) continua com o Content-Length de sempre', () => {
+		expect(totalDoArquivo(cabecalhos({ 'content-length': '400' }))).toBe(400);
+		expect(totalDoArquivo(cabecalhos({ 'content-length': '400', 'content-encoding': 'identity' }))).toBe(400);
+		expect(totalDoArquivo(cabecalhos({}))).toBe(0);
+		expect(totalDoArquivo(undefined)).toBe(0);
+	});
+
+	it('o total que ja foi passado pelo recebido vira 0; o que ainda cabe fica', () => {
+		expect(totalQueCabe(500, 400)).toBe(0);
+		expect(totalQueCabe(400, 400)).toBe(400);
+		expect(totalQueCabe(10, 0)).toBe(0);
+	});
+
+	it('no fluxo: o comprimido com o tamanho original avisa "X de Y" na unidade certa', async () => {
+		const { resposta, soltar } = emFluxo(15);
+		resposta.headers = cabecalhos({
+			'content-type': 'application/octet-stream',
+			'content-length': '15',
+			'content-encoding': 'br',
+			'x-tamanho-original': '40'
+		});
+		const recebido = [];
+		const promessa = baixarComVigia('/comprimido.gnd', {
+			buscar: () => Promise.resolve(resposta),
+			aoReceber: (recebidos, total) => recebido.push([recebidos, total])
+		});
+		await vi.advanceTimersByTimeAsync(0);
+		soltar(new Uint8Array(20));
+		soltar(new Uint8Array(20));
+		soltar(null);
+		const r = await promessa;
+		expect(r.bytes).toBe(40);
+		expect(recebido).toEqual([
+			[20, 40],
+			[40, 40]
+		]);
+	});
+
+	it('no fluxo: o servidor velho (so o Content-Length comprimido, encoding invisivel) nao avisa "20 de 15"', async () => {
+		const { resposta, soltar } = emFluxo(15);
+		const recebido = [];
+		const promessa = baixarComVigia('/velho.gnd', {
+			buscar: () => Promise.resolve(resposta),
+			aoReceber: (recebidos, total) => recebido.push([recebidos, total])
+		});
+		await vi.advanceTimersByTimeAsync(0);
+		soltar(new Uint8Array(10));
+		soltar(new Uint8Array(10));
+		soltar(null);
+		await promessa;
+		expect(recebido).toEqual([
+			[10, 15],
+			[20, 0]
+		]);
+	});
+
+	it('sem corpo em fluxo (o caminho do arrayBuffer), a mesma regra', async () => {
+		const resposta = binario(40);
+		resposta.headers = cabecalhos({ 'content-type': 'application/octet-stream', 'content-length': '15', 'x-tamanho-original': '40' });
+		const recebido = [];
+		await baixarComVigia('/inteiro.gnd', {
+			buscar: () => Promise.resolve(resposta),
+			aoReceber: (recebidos, total) => recebido.push([recebidos, total])
+		});
+		expect(recebido).toEqual([[40, 40]]);
+		const velho = binario(40);
+		velho.headers = cabecalhos({ 'content-type': 'application/octet-stream', 'content-length': '15' });
+		const doVelho = [];
+		await baixarComVigia('/inteiro-velho.gnd', {
+			buscar: () => Promise.resolve(velho),
+			aoReceber: (recebidos, total) => doVelho.push([recebidos, total])
+		});
+		expect(doVelho).toEqual([[40, 0]]);
 	});
 });
