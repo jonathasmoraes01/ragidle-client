@@ -105,6 +105,7 @@ import { abaLembrada, lembrarAba } from '../memoriaDeAba.js';
 import { escutarACasca, ofertaAtual, pontePWA, textoDoResultado } from 'UI/ofertaDeInstalacao.js';
 import { CAMPOS_DO_ENVIO_DA_CONFIG, criarReceptorDeJanela } from 'UI/janelaPorDiferenca.js';
 import { declararBaseNula } from 'Engine/declaracaoDasBases.js';
+import { podarRascunhoPeloContexto } from './rascunhoContraOContexto.js';
 
 /**
  * Keep in sync with the ":host" / ".ic-window" size in IdleConfig.css and
@@ -772,6 +773,21 @@ function onConfigReceived(pkt) {
 				ChatBox.FILTER.PUBLIC_LOG
 			);
 		}
+	}
+
+	/*
+	 * O RASCUNHO NAO GUARDA O QUE O PERSONAGEM NAO TEM MAIS (D-2085, 07/10/2026).
+	 * Nos dois ramos acima o rascunho pode sobreviver (alteracao pendente no
+	 * empurrao, ou a recusa), e com ele a habilidade que um reset levou: o
+	 * servidor recusa a config inteira por ela, e com o reset TOTAL a lista de
+	 * golpes nem e desenhada, entao o jogador nao a via nem tinha como tira-la.
+	 * O contexto que acabou de chegar e o retrato de hoje; a regra mora em
+	 * `rascunhoContraOContexto.js`, a mesma purga do servidor (D-2084).
+	 */
+	const podado = podarRascunhoPeloContexto(IdleConfig.editConfig, data.contexto);
+	if (podado) {
+		IdleConfig.editConfig = podado;
+		IdleConfig.dirty = JSON.stringify(IdleConfig.editConfig) !== JSON.stringify(IdleConfig.serverConfig);
 	}
 
 	renderAll();
