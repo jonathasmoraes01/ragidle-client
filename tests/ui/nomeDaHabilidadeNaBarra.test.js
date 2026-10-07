@@ -22,6 +22,7 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
+import SkillInfo from '../../src/DB/Skills/SkillInfo.js';
 import { aoLembrarNomes, lembrarNomesDasHabilidades, nomeLembrado, nomeNaBarra } from '../../src/UI/nivelDeUso.js';
 
 // `process.cwd()`, como nos vizinhos (`barraDeAtalhosNativa.test.js`): o vitest roda na raiz do fork.
@@ -68,6 +69,15 @@ describe('o nome que a barra desenha', () => {
 		lembrarNomesDasHabilidades([{ skillId: 'NB_TESTE_F', nome: 'Raio de Teste' }]);
 		expect(nomeNaBarra(info, 9001)).toBe('Raio de Teste');
 		expect(nomeNaBarra(undefined, 9001)).toBe('9001');
+	});
+});
+
+describe('a Piada Congelante (BA_FROSTJOKE do cliente x BA_FROSTJOKER do servidor)', () => {
+	it('sem nome lembrado a barra mostra o nome em portugues, e nao o ingles "Unbarring Octave" (V7)', () => {
+		const info = Object.values(SkillInfo).find(i => i && i.Name === 'BA_FROSTJOKE');
+		expect(info).toBeDefined();
+		expect(nomeLembrado('BA_FROSTJOKE')).toBeNull();
+		expect(nomeNaBarra(info, info.ID ?? 394)).toBe('Piada Congelante');
 	});
 });
 
