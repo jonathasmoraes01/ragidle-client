@@ -18,8 +18,8 @@ const mocks = vi.hoisted(() => {
 			hook: vi.fn((tipo, fn) => {
 				estado.hooks[tipo] = fn;
 			}),
-			send: vi.fn((tipo, dado, cb) => {
-				estado.envios.push({ tipo, dado, cb });
+			send: vi.fn((tipo, dado, cb, extra) => {
+				estado.envios.push({ tipo, dado, cb, extra });
 			})
 		},
 		background: {
@@ -129,7 +129,10 @@ describe('a carga do mapa que nao anda (D-2055)', () => {
 	it('o pedido ao worker leva o numero da carga', () => {
 		MapRenderer.setMap('glast_01.gat');
 		expect(ultimoEnvio().tipo).toBe('LOAD_MAP');
-		expect(ultimoEnvio().dado).toEqual({ filename: 'glast_01.rsw', carga: expect.any(Number) });
+		// O nome vai como TEXTO: o worker velho (nome fixo, pode vir do cache) faz
+		// `map.load(msg.data)`, e o objeto da D-2055 virava "[object Object]" la.
+		expect(ultimoEnvio().dado).toBe('glast_01.rsw');
+		expect(ultimoEnvio().extra).toEqual({ carga: expect.any(Number) });
 	});
 
 	it('sem nada do worker, a saida aparece no prazo - e nao antes', async () => {
@@ -156,7 +159,7 @@ describe('a carga do mapa que nao anda (D-2055)', () => {
 
 	it('a barra em 2% com bytes chegando NAO oferece a saida, e o aviso diz quanto ja chegou', async () => {
 		MapRenderer.setMap('glast_01.gat');
-		const { carga } = ultimoEnvio().dado;
+		const { carga } = ultimoEnvio().extra;
 		doWorker('MAP_PROGRESS', 2, carga);
 		for (let i = 1; i <= 9; i++) {
 			await vi.advanceTimersByTimeAsync(10000);
@@ -169,7 +172,7 @@ describe('a carga do mapa que nao anda (D-2055)', () => {
 
 	it('a nova tentativa sozinha NAO segura a saida (ela e o sistema tentando, e nao o mapa andando)', async () => {
 		MapRenderer.setMap('glast_01.gat');
-		const { carga } = ultimoEnvio().dado;
+		const { carga } = ultimoEnvio().extra;
 		await vi.advanceTimersByTimeAsync(16000);
 		doWorker('MAP_ATIVIDADE', { arquivo: 'data\\glast_01.gnd', tentativa: 1 }, carga);
 		expect(aviso().textContent).toBe('A conexão falhou; tentando de novo (1 de 3)');
@@ -179,7 +182,7 @@ describe('a carga do mapa que nao anda (D-2055)', () => {
 
 	it('o aviso so aparece com a barra parada', async () => {
 		MapRenderer.setMap('prontera.gat');
-		const { carga } = ultimoEnvio().dado;
+		const { carga } = ultimoEnvio().extra;
 		for (let p = 1; p <= 10; p++) {
 			await vi.advanceTimersByTimeAsync(AVISO_DE_LENTIDAO_MS - 1);
 			expect(aviso(), 'o aviso apareceu com a barra andando').toBeNull();
@@ -196,13 +199,13 @@ describe('a carga do mapa que nao anda (D-2055)', () => {
 		expect(saida()).toBeNull();
 		const nova = ultimoEnvio();
 		expect(nova).not.toBe(velha);
-		expect(nova.dado.filename).toBe('glast_01.rsw');
-		expect(nova.dado.carga).toBeGreaterThan(velha.dado.carga);
+		expect(nova.dado).toBe('glast_01.rsw');
+		expect(nova.extra.carga).toBeGreaterThan(velha.extra.carga);
 		expect(MapRenderer.loading).toBe(true);
 		expect(MapRenderer.currentMap).toBe('glast_01.gat');
 		// A carga velha termina tarde: descartada, sem montar nada.
 		mocks.background.setPercent.mockClear();
-		doWorker('MAP_PROGRESS', 50, velha.dado.carga);
+		doWorker('MAP_PROGRESS', 50, velha.extra.carga);
 		expect(mocks.background.setPercent).not.toHaveBeenCalled();
 		velha.cb(true, null, velha.dado, {});
 		expect(MapRenderer.onLoad).not.toHaveBeenCalled();
@@ -215,7 +218,7 @@ describe('a carga do mapa que nao anda (D-2055)', () => {
 
 	it('a carga que se recupera sozinha depois da saida aberta fecha a saida', async () => {
 		MapRenderer.setMap('glast_01.gat');
-		const { carga } = ultimoEnvio().dado;
+		const { carga } = ultimoEnvio().extra;
 		await vi.advanceTimersByTimeAsync(SEM_SINAL_MAXIMO_MS);
 		expect(saida()).not.toBeNull();
 		doWorker('MAP_PROGRESS', 3, carga);

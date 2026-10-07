@@ -345,8 +345,14 @@ class MapRenderer {
 				// Start Loading
 				MapRenderer.free();
 				Renderer.remove();
-				Thread.send('LOAD_MAP', { filename, carga }, (sucesso, erro, _pedido, medida) =>
-					onMapComplete.call(MapRenderer, carga, sucesso, erro, medida)
+				// O nome do mapa como TEXTO e o numero da carga a parte: o worker
+				// velho (nome fixo, pode vir do cache) faz `map.load(msg.data)`.
+				// Ver `Core/pedidoDeCargaDoMapa.js`.
+				Thread.send(
+					'LOAD_MAP',
+					filename,
+					(sucesso, erro, _pedido, medida) => onMapComplete.call(MapRenderer, carga, sucesso, erro, medida),
+					{ carga }
 				);
 				protegido('a vigia da carga', () => _vigia.comecar());
 			});

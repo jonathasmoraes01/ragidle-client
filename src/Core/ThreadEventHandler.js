@@ -11,6 +11,7 @@
 import FileManager from 'Core/FileManager.js';
 import FileSystem from 'Core/FileSystem.js';
 import MapLoader from 'Loaders/MapLoader.js';
+import { pedidoDeCargaDoMapa } from 'Core/pedidoDeCargaDoMapa.js';
 import { transferiveisDoMapa } from 'Loaders/transferiveisDoMapa.js';
 
 /**
@@ -163,7 +164,9 @@ onmessage = function receive(event) {
 			 * A carga anterior e CANCELADA aqui: os pedidos de rede dela sao
 			 * abortados e ela nao fala mais nada.
 			 */
-			const pedido = typeof msg.data === 'string' ? { filename: msg.data } : msg.data;
+			// O texto com o numero ao lado, o texto sozinho ou o objeto da D-2055:
+			// ver `pedidoDeCargaDoMapa` (o contrato que qualquer worker entende).
+			const pedido = pedidoDeCargaDoMapa(msg);
 			const carga = pedido.carga;
 			if (cargaDeMapaEmCurso) {
 				cargaDeMapaEmCurso.cancelar();
