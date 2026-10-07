@@ -39,7 +39,7 @@ const copia = (o) => JSON.parse(JSON.stringify(o));
 const ANTES = {
 	cacaAutomatica: false,
 	coletarItens: true,
-	modoDeAtaque: 'apenas-skills',
+	modoDeAtaque: 'skills-e-basico',
 	rotacao: [{ skillId: 'CR_HOLYCROSS', nivelDeUso: 5 }],
 	rotacaoDeBuffs: [{ skillId: 'AL_BLESSING', nivelDeUso: 10, alvo: 'grupo' }],
 	cura: { alvo: 'grupo', curarAbaixoDe: 50, habilidades: { AL_HEAL: { ligada: true, alvo: 'grupo' } } },
@@ -50,7 +50,6 @@ const ANTES = {
 /** A config que o servidor purgou e serve depois do reset (D-2084). */
 const DEPOIS = {
 	...copia(ANTES),
-	modoDeAtaque: 'skills-e-basico',
 	rotacao: [],
 	rotacaoDeBuffs: [],
 	cura: { alvo: 'grupo', curarAbaixoDe: 50, habilidades: {} }
@@ -92,7 +91,7 @@ describe('o rascunho depois do reset de habilidades', () => {
 		expect(enviado.rotacao, 'a Cruz Sagrada que o reset levou voltou no Aplicar').toEqual([]);
 		expect(enviado.rotacaoDeBuffs).toEqual([]);
 		expect(Object.keys(enviado.cura.habilidades), 'a Curar podre voltou no Aplicar').toEqual([]);
-		expect(enviado.modoDeAtaque, 'apenas-skills com a rotacao vazia o servidor recusa').toBe('skills-e-basico');
+		expect(enviado.modoDeAtaque).toBe('skills-e-basico');
 		// A alteracao LEGITIMA do jogador nao se perde.
 		expect(enviado.coletarItens).toBe(false);
 		expect(IdleConfig.dirty).toBe(true);
@@ -120,6 +119,37 @@ describe('o rascunho depois do reset de habilidades', () => {
 		expect(IdleConfig.dirty).toBe(false);
 	});
 
+	it('NAO reescreve escolha: quem marcou "Nunca dar o golpe basico" continua marcado, e o servidor responde com o motivo', () => {
+		const comACaixa = { ...copia(ANTES), modoDeAtaque: 'apenas-skills' };
+		IdleConfig.serverConfig = copia(comACaixa);
+		IdleConfig.editConfig = { ...copia(comACaixa), coletarItens: false };
+		receber({ v: 1, config: { ...copia(DEPOIS), modoDeAtaque: 'apenas-skills' }, contexto: CONTEXTO_ZERADO });
+
+		const enviado = aplicar();
+		expect(enviado.rotacao).toEqual([]);
+		// A caixa continua marcada: quem a desmarca e o jogador (a recusa de D-407 diz como).
+		expect(enviado.modoDeAtaque).toBe('apenas-skills');
+	});
+
+	it('NAO reescreve escolha: o nivel escolhido acima do aprendido de hoje vai no Aplicar como esta (D-1905)', () => {
+		const ctx = {
+			...CONTEXTO_ZERADO,
+			skillsAtivas: [{ skillId: 'CR_HOLYCROSS', aprendido: 3 }],
+			skillsDeCura: [{ skillId: 'AL_HEAL', aprendido: 5 }]
+		};
+		IdleConfig.editConfig = {
+			...copia(ANTES),
+			coletarItens: false,
+			rotacao: [{ skillId: 'CR_HOLYCROSS', nivelDeUso: 5, nivelFixo: true }],
+			cura: { alvo: 'grupo', curarAbaixoDe: 50, habilidades: { AL_HEAL: { ligada: true, nivelDeUso: 7 } } }
+		};
+		receber({ v: 1, config: copia(ANTES), contexto: ctx });
+
+		const enviado = aplicar();
+		expect(enviado.rotacao).toEqual([{ skillId: 'CR_HOLYCROSS', nivelDeUso: 5, nivelFixo: true }]);
+		expect(enviado.cura.habilidades.AL_HEAL).toEqual({ ligada: true, nivelDeUso: 7 });
+	});
+
 	it('o que o personagem ainda tem fica intacto, inclusive com o rascunho sujo', () => {
 		const ctx = {
 			...CONTEXTO_ZERADO,
@@ -144,12 +174,26 @@ describe('podarRascunhoPeloContexto (a regra)', () => {
 		expect(podarRascunhoPeloContexto(cfg, ctx)).toBeNull();
 	});
 
-	it('apara o nivel acima do aprendido, sem tirar a entrada', () => {
-		const cfg = { rotacao: [{ skillId: 'A', nivelDeUso: 10 }], cura: { habilidades: { AL_HEAL: { ligada: true, nivelDeUso: 10 } } } };
+	it('NAO apara o nivel acima do aprendido: a escolha fica, e quem conjura e desenha usa o min', () => {
+		const cfg = {
+			rotacao: [{ skillId: 'A', nivelDeUso: 10, nivelFixo: true }],
+			cura: { habilidades: { AL_HEAL: { ligada: true, nivelDeUso: 10 } } }
+		};
+		expect(podarRascunhoPeloContexto(cfg, ctx)).toBeNull();
+	});
+
+	it('podar nao mexe no rascunho original', () => {
+		const cfg = { rotacao: [{ skillId: 'A' }, { skillId: 'X' }], cura: { habilidades: { AL_HEAL: {}, Z: {} } } };
 		const podado = podarRascunhoPeloContexto(cfg, ctx);
-		expect(podado.rotacao).toEqual([{ skillId: 'A', nivelDeUso: 3 }]);
-		expect(podado.cura.habilidades.AL_HEAL.nivelDeUso).toBe(4);
-		expect(cfg.rotacao[0].nivelDeUso, 'mexeu no rascunho original').toBe(10);
+		expect(podado.rotacao).toEqual([{ skillId: 'A' }]);
+		expect(podado.cura.habilidades).toEqual({ AL_HEAL: {} });
+		expect(cfg.rotacao.length, 'mexeu no rascunho original').toBe(2);
+		expect(Object.keys(cfg.cura.habilidades)).toEqual(['AL_HEAL', 'Z']);
+	});
+
+	it('a cura que perde todas as chaves fica com habilidades: {} (o campo presente continua presente)', () => {
+		const podado = podarRascunhoPeloContexto({ cura: { alvo: 'eu', habilidades: { Z: {} } } }, ctx);
+		expect(podado.cura).toEqual({ alvo: 'eu', habilidades: {} });
 	});
 
 	it('o buff que nao e mantivel sai da rotacao de buffs', () => {
@@ -162,10 +206,8 @@ describe('podarRascunhoPeloContexto (a regra)', () => {
 		expect(podarRascunhoPeloContexto(cfg, ctx).rotacao.map(r => r.skillId)).toEqual(['B', 'A']);
 	});
 
-	it('apenas-skills so volta ao basico quando a PODA esvaziou a rotacao', () => {
-		expect(podarRascunhoPeloContexto({ modoDeAtaque: 'apenas-skills', rotacao: [{ skillId: 'X' }] }, ctx).modoDeAtaque).toBe('skills-e-basico');
-		expect(podarRascunhoPeloContexto({ modoDeAtaque: 'apenas-skills', rotacao: [{ skillId: 'X' }, { skillId: 'A' }] }, ctx).modoDeAtaque).toBe('apenas-skills');
-		// A rotacao que o jogador esvaziou a mao nao e assunto da poda.
+	it('o modo NAO e assunto da poda: apenas-skills fica, mesmo quando a poda esvazia a rotacao', () => {
+		expect(podarRascunhoPeloContexto({ modoDeAtaque: 'apenas-skills', rotacao: [{ skillId: 'X' }] }, ctx).modoDeAtaque).toBe('apenas-skills');
 		expect(podarRascunhoPeloContexto({ modoDeAtaque: 'apenas-skills', rotacao: [] }, ctx)).toBeNull();
 	});
 

@@ -16,16 +16,27 @@
  * O conserto e a MESMA purga do servidor (`servidor/idle/purga-da-config.ts`,
  * `purgarConfigGravada`), feita no rascunho a cada contexto que chega: o
  * contexto e o retrato do que o personagem tem HOJE, e as listas dele saem do
- * MESMO classificador que a validacao usa (`classificarSkills`). Sai so o que
- * o personagem nao tem mais — nenhuma alteracao legitima depende de uma
- * habilidade que ele nao tem, entao nada que o jogador esta fazendo se perde:
+ * MESMO classificador que a validacao usa (`classificarSkills`).
  *
  * | campo | contra | a poda |
  * |---|---|---|
- * | `rotacao` | `skillsAtivas` | tira a entrada; apara o nivel acima do aprendido |
- * | `rotacaoDeBuffs` | `skillsDeBuff` mantiveis | idem |
- * | `cura.habilidades` | `skillsDeCura` | tira a chave; apara o nivel |
- * | `modoDeAtaque: apenas-skills` | a rotacao podada vazia | volta a `skills-e-basico` |
+ * | `rotacao` | `skillsAtivas` | tira a entrada |
+ * | `rotacaoDeBuffs` | `skillsDeBuff` mantiveis | tira a entrada |
+ * | `cura.habilidades` | `skillsDeCura` | tira a chave |
+ *
+ * SO TIRA O QUE O PERSONAGEM NAO TEM — e NAO reescreve escolha nenhuma (a regra
+ * do servidor desde a emenda de D-2084):
+ *
+ * - o NIVEL escolhido acima do aprendido FICA. O servidor aceita o gravado ate
+ *   `MAX_SKILL_LEVEL` e conjura no `min` (D-1905: o 7 com a skill hoje no 5 sai
+ *   no 5 e volta ao 7 quando ela subir), e esta janela ja DESENHA o `min`
+ *   (`nivelEfetivoDaEntrada`, `nivelDaCura`, `UI/nivelDeUso.js`). Aparar aqui
+ *   faria o Aplicar apagar a escolha;
+ * - o MODO fica. `apenas-skills` com a rotacao que a poda esvaziou e recusado
+ *   pelo servidor com o motivo (D-407), e a saida esta na propria janela: a
+ *   caixa "Nunca dar o golpe basico" continua marcada e habilitada. Trocar o
+ *   modo aqui desfaria a escolha de quem marcou a caixa — no servidor, a mesma
+ *   conversao fez o mago que reaprendia passar a socar.
  *
  * LISTA AUSENTE NO CONTEXTO = NAO PODA. Um servidor mais velho (ou um teste com
  * contexto magro) que nao manda a lista nao pode fazer o rascunho perder tudo:
@@ -43,39 +54,28 @@ function ehObjeto(v) {
 	return typeof v === 'object' && v !== null && !Array.isArray(v);
 }
 
-/** `skillId` -> nivel aprendido, ou `null` quando o contexto nao manda a lista. */
+/** Os `skillId` aprendidos, ou `null` quando o contexto nao manda a lista. */
 function aprendidosDe(lista, filtro) {
 	if (!Array.isArray(lista)) {
 		return null;
 	}
-	const mapa = new Map();
+	const nomes = new Set();
 	for (const s of lista) {
 		if (s && typeof s.skillId === 'string' && (!filtro || filtro(s))) {
-			mapa.set(s.skillId, s.aprendido);
+			nomes.add(s.skillId);
 		}
 	}
-	return mapa;
+	return nomes;
 }
 
-/** A entrada com o nivel acima do aprendido aparado; a MESMA referencia quando nao passa. */
-function comNivelAparado(entrada, aprendido) {
-	const nivel = entrada && entrada.nivelDeUso;
-	if (typeof aprendido !== 'number' || typeof nivel !== 'number' || nivel <= aprendido) {
-		return entrada;
-	}
-	return { ...entrada, nivelDeUso: aprendido };
-}
-
-/** A lista sem o que nao foi aprendido e com o nivel aparado; a MESMA referencia quando nada muda. */
+/** A lista sem o que nao foi aprendido; a MESMA referencia quando nada sai. */
 function listaPodada(lista, aprendidos) {
 	if (!Array.isArray(lista) || aprendidos === null) {
 		return lista;
 	}
-	const podada = lista
-		// A forma errada (entrada sem `skillId` de texto) fica para a validacao responder.
-		.filter(r => !ehObjeto(r) || typeof r.skillId !== 'string' || aprendidos.has(r.skillId))
-		.map(r => (ehObjeto(r) && typeof r.skillId === 'string' ? comNivelAparado(r, aprendidos.get(r.skillId)) : r));
-	return podada.length === lista.length && podada.every((r, i) => r === lista[i]) ? lista : podada;
+	// A forma errada (entrada sem `skillId` de texto) fica para a validacao responder.
+	const podada = lista.filter(r => !ehObjeto(r) || typeof r.skillId !== 'string' || aprendidos.has(r.skillId));
+	return podada.length === lista.length ? lista : podada;
 }
 
 /**
@@ -100,31 +100,13 @@ export function podarRascunhoPeloContexto(cfg, ctx) {
 		mudancas.rotacaoDeBuffs = buffs;
 	}
 
-	// O modo que a rotacao podada vazia deixaria sem ataque nenhum (D-407): so
-	// quando foi a PODA que esvaziou — a rotacao que o jogador esvaziou a mao
-	// continua com o aviso da janela e a recusa do servidor.
-	if (mudancas.rotacao && mudancas.rotacao.length === 0 && cfg.modoDeAtaque === 'apenas-skills') {
-		mudancas.modoDeAtaque = 'skills-e-basico';
-	}
-
 	const curas = aprendidosDe(ctx.skillsDeCura);
 	const habilidades = ehObjeto(cfg.cura) ? cfg.cura.habilidades : undefined;
 	if (curas !== null && ehObjeto(habilidades)) {
-		const novas = {};
-		let mudou = false;
-		for (const [skillId, ajuste] of Object.entries(habilidades)) {
-			if (!curas.has(skillId)) {
-				mudou = true;
-				continue;
-			}
-			const aparado = ehObjeto(ajuste) ? comNivelAparado(ajuste, curas.get(skillId)) : ajuste;
-			if (aparado !== ajuste) {
-				mudou = true;
-			}
-			novas[skillId] = aparado;
-		}
-		if (mudou) {
-			mudancas.cura = { ...cfg.cura, habilidades: novas };
+		const ficam = Object.entries(habilidades).filter(([skillId]) => curas.has(skillId));
+		if (ficam.length !== Object.keys(habilidades).length) {
+			// `habilidades: {}` e nao o campo apagado: o campo presente continua presente.
+			mudancas.cura = { ...cfg.cura, habilidades: Object.fromEntries(ficam) };
 		}
 	}
 

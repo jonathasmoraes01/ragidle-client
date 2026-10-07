@@ -2,9 +2,11 @@
 //
 // O RASCUNHO PODRE DEPOIS DO RESET (07/10/2026, D-2085). Cada mutante e um jeito
 // de o rascunho da Config Idle voltar a guardar o que o personagem nao tem mais
-// (e o Aplicar ser recusado para sempre), ou de a poda jogar fora o que o
-// jogador ainda tem. A costura no `IdleConfig.js` entra aqui: o teste importa o
-// componente, entao a transformacao em memoria alcanca a chamada.
+// (e o Aplicar ser recusado para sempre), de a poda jogar fora o que o
+// jogador ainda tem, ou de ela REESCREVER uma escolha (o modo, o nivel) — a
+// regra do servidor desde a emenda de D-2084. A costura no `IdleConfig.js` entra
+// aqui: o teste importa o componente, entao a transformacao em memoria alcanca a
+// chamada.
 //
 //   RAG_MUTANTE_RASCUNHO_PODRE=<nome> npx vitest run --config tests/mutantes/rascunho-podre.config.mjs
 //
@@ -25,22 +27,20 @@ const mutantes = {
 	semPodaDosBuffs: [REGRA, '\t\tmudancas.rotacaoDeBuffs = buffs;', ''],
 	// o buff que nao e mantivel fica na rotacao de buffs
 	buffNaoMantivelFica: [REGRA, 'aprendidosDe(ctx.skillsDeBuff, b => b.mantivel !== false)', 'aprendidosDe(ctx.skillsDeBuff)'],
-	// apenas-skills com a rotacao podada vazia (o servidor recusa)
-	semVoltarAoBasico: [REGRA, "\t\tmudancas.modoDeAtaque = 'skills-e-basico';", ''],
-	// volta ao basico mesmo com golpe sobrando na rotacao
-	basicoSempre: [REGRA, "if (mudancas.rotacao && mudancas.rotacao.length === 0 && cfg.modoDeAtaque === 'apenas-skills')", "if (cfg.modoDeAtaque === 'apenas-skills')"],
 	// a chave de cura nao aprendida fica
-	curaPodreFica: [REGRA, '\t\t\tif (!curas.has(skillId)) {\n\t\t\t\tmudou = true;\n\t\t\t\tcontinue;\n\t\t\t}', ''],
-	// o nivel acima do aprendido nao e aparado
-	semAparar: [REGRA, '|| nivel <= aprendido)', '|| nivel <= aprendido + 99)'],
-	// o nivel aparado da cura nao conta como mudanca
-	aparoDaCuraNaoConta: [REGRA, '\t\t\tif (aparado !== ajuste) {\n\t\t\t\tmudou = true;', '\t\t\tif (false) {\n\t\t\t\tmudou = true;'],
-	// aparar escreve no rascunho original
-	mutaOOriginal: [REGRA, '\treturn { ...entrada, nivelDeUso: aprendido };', '\tentrada.nivelDeUso = aprendido;\n\treturn { ...entrada };'],
+	curaPodreFica: [REGRA, '.filter(([skillId]) => curas.has(skillId))', ''],
+	// a cura que perde todas as chaves perde o campo `habilidades` (mudanca de forma)
+	curaSemOCampo: [REGRA, 'mudancas.cura = { ...cfg.cura, habilidades: Object.fromEntries(ficam) };', 'mudancas.cura = ficam.length ? { ...cfg.cura, habilidades: Object.fromEntries(ficam) } : { alvo: cfg.cura.alvo };'],
+	// a poda volta a trocar o modo (o mago que marcou a caixa passa a socar)
+	trocaOModo: [REGRA, '\treturn Object.keys(mudancas).length ? { ...cfg, ...mudancas } : null;', "\tif (mudancas.rotacao && mudancas.rotacao.length === 0 && cfg.modoDeAtaque === 'apenas-skills') mudancas.modoDeAtaque = 'skills-e-basico';\n\treturn Object.keys(mudancas).length ? { ...cfg, ...mudancas } : null;"],
+	// a poda volta a aparar o nivel da rotacao (o Aplicar apaga a escolha de D-1905)
+	aparaONivel: [REGRA, '\treturn podada.length === lista.length ? lista : podada;', "\tconst aparada = podada.map(r => (ehObjeto(r) && typeof r.nivelDeUso === 'number' && r.nivelDeUso > 3 ? { ...r, nivelDeUso: 3 } : r));\n\treturn aparada.length === lista.length && aparada.every((r, i) => r === lista[i]) ? lista : aparada;"],
+	// podar escreve no rascunho original
+	mutaOOriginal: [REGRA, '\treturn podada.length === lista.length ? lista : podada;', '\tif (podada.length !== lista.length) {\n\t\tlista.splice(0, lista.length, ...podada);\n\t\treturn [...lista];\n\t}\n\treturn lista;'],
 	// lista ausente no contexto apaga tudo (servidor velho)
-	listaAusentePoda: [REGRA, '\tif (!Array.isArray(lista)) {\n\t\treturn null;', '\tif (!Array.isArray(lista)) {\n\t\treturn new Map();'],
+	listaAusentePoda: [REGRA, '\tif (!Array.isArray(lista)) {\n\t\treturn null;', '\tif (!Array.isArray(lista)) {\n\t\treturn new Set();'],
 	// a forma errada some em vez de ir para a validacao do servidor
-	formaErradaSome: [REGRA, '.filter(r => !ehObjeto(r) || typeof r.skillId !== \'string\' || aprendidos.has(r.skillId))', '.filter(r => ehObjeto(r) && aprendidos.has(r.skillId))']
+	formaErradaSome: [REGRA, ".filter(r => !ehObjeto(r) || typeof r.skillId !== 'string' || aprendidos.has(r.skillId))", '.filter(r => ehObjeto(r) && aprendidos.has(r.skillId))']
 };
 const mutante = mutantes[process.env.RAG_MUTANTE_RASCUNHO_PODRE];
 if (!mutante) throw new Error(`Escolha RAG_MUTANTE_RASCUNHO_PODRE: ${Object.keys(mutantes).join(', ')}.`);
