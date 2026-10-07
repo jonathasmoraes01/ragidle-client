@@ -43,8 +43,10 @@ class Thread {
 	 * @param {string} type
 	 * @param {mixed} data
 	 * @param {function} callback
+	 * @param {object} [extra] campos a mais no envelope (ex.: `carga`), que um
+	 *   worker velho ignora sem quebrar o `data`
 	 */
-	static send = (type, data, callback) => {
+	static send = (type, data, callback, extra) => {
 		let uid = 0;
 
 		if (callback) {
@@ -52,7 +54,7 @@ class Thread {
 			_memory[uid] = callback;
 		}
 
-		_source.postMessage({ type, data, uid }, _origin);
+		_source.postMessage({ ...extra, type, data, uid }, _origin);
 	};
 
 	/**
