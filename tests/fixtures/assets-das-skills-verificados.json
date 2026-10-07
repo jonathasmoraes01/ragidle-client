@@ -1,5 +1,5 @@
 {
-	"_origem": "V7 07/10/2026: conferido com tools/grf (list) em data.grf e Data Custons/data.grf do Rag-idle; os dois tem os 13 arquivos. Caminhos em minusculas, barra normal.",
+	"_origem": "V7 07/10/2026: conferido com tools/grf (list) em data.grf e Data Custons/data.grf do Rag-idle; os dois tem os 13 arquivos (D18 07/10: +7 de efeitos reutilizados, conferidos com tools/grf nos dois GRFs: data.grf e Data Custons/data.grf). Caminhos em minusculas, barra normal.",
 	"arquivos": [
 		"data/texture/effect/shockwave.str",
 		"data/texture/effect/shockwave_a.bmp",
@@ -19,6 +19,13 @@
 		"data/texture/effect/enc_earth.str",
 		"data/texture/effect/earthhit.str",
 		"data/wav/_heal_effect.wav",
-		"data/wav/effect/ef_hit2.wav"
+		"data/wav/effect/ef_hit2.wav",
+		"data/wav/effect/ef_teleportation.wav",
+		"data/wav/effect/ef_bash.wav",
+		"data/wav/effect/ef_endure.wav",
+		"data/wav/effect/priest_resurrection.wav",
+		"data/wav/effect/sage_spell breake.wav",
+		"data/texture/effect/resurrection.str",
+		"data/texture/effect/spell.str"
 	]
 }

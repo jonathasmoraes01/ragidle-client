@@ -178,3 +178,70 @@ describe('as skills sem arte original: animacao aproximada reaproveita efeito ex
 		});
 	}
 });
+
+/*
+ * D18 (07/10): 14 DAS 20 SKILLS COM SkillEffect VAZIO GANHAM ANIMACAO APROXIMADA (decisao do dono).
+ * Mesmo criterio do V7-ASSETS2: reaproveitar efeito existente e coerente (tema/elemento/classe).
+ * As outras 6 ficam vazias de proposito (efeito ja vem de outro lugar, ou nao ha parecido).
+ */
+const APROXIMADAS_D18 = {
+	AM_CALLHOMUN: ['304'],
+	AM_CANNIBALIZE: ['147'],
+	AM_RESURRECTHOMUN: ['77', '140'],
+	AM_SPHEREMINE: ['51'],
+	MO_BLADESTOP: ['11'],
+	MO_BODYRELOCATION: ['304'],
+	MO_CALLSPIRITS: ['263'],
+	MO_KITRANSLATION: ['312'],
+	PR_REDEMPTIO: ['77', '140'],
+	RG_CLEANER: ['16'],
+	SA_ABRACADABRA: ['234'],
+	SA_AUTOSPELL: ['234'],
+	TF_BACKSLIDING: ['16'],
+	WZ_ESTIMATION: ['234']
+};
+const VAZIAS_D18 = ['AL_TELEPORT', 'BD_ADAPTATION', 'KN_AUTOCOUNTER', 'MG_SIGHT', 'WZ_SIGHTBLASTER', 'RG_FLAGGRAFFITI'];
+
+describe('D18: skills antes vazias ganham animacao aproximada com efeito existente', () => {
+	for (const [skill, esperadas] of Object.entries(APROXIMADAS_D18)) {
+		it(`${skill}: cita ${esperadas.join(' + ')}, existem, nao vazias e com arquivos conferidos`, () => {
+			const chaves = chavesDoEfeito(skill);
+			for (const e of esperadas) {
+				expect(chaves, `${skill} nao cita o efeito ${e}`).toContain(e);
+				expect(CHAVES_DA_TABELA.has(e), `efeito ${e} nao existe no EffectTable`).toBe(true);
+				const corpo = entradaDa(e);
+				expect(corpo.replace(/\s+/g, ''), `efeito ${e} esta vazio`).not.toMatch(/^[^:]+:\[\{\}\]/);
+				expect(corpo.length, `efeito ${e} sem conteudo`).toBeGreaterThan(60);
+				for (const parte of corpo.split(/\n\t\t\{/).slice(1)) {
+					const tipo = (parte.match(/type:\s*'(\w+)'/) || [])[1];
+					const arq = (parte.match(/\bfile:\s*'([^']+)'/) || [])[1];
+					const wav = (parte.match(/\bwav:\s*'([^']+)'/) || [])[1];
+					if (wav && !/%d/.test(wav)) {
+						expect(VERIFICADOS.has(`data/wav/${wav}.wav`.toLowerCase()), `efeito ${e}: wav '${wav}' nao conferido no GRF`).toBe(true);
+					}
+					if (tipo === 'STR' && arq && !/%d/.test(arq)) {
+						expect(VERIFICADOS.has(`data/texture/effect/${arq}.str`.toLowerCase()), `efeito ${e}: STR '${arq}' nao conferido no GRF`).toBe(true);
+					}
+				}
+			}
+		});
+		it(`${skill}: a linha de cima marca a APROXIMACAO D18 e diz qual efeito reutiliza`, () => {
+			const linhas = EFEITO.split('\n');
+			const i = linhas.findIndex(l => l.startsWith(`SkillEffect[SK.${skill}] =`));
+			expect(i).toBeGreaterThan(0);
+			expect(linhas[i - 1]).toMatch(new RegExp(String.raw`^// D18 \(07/10\): APROXIMACAO do dono; ${skill} estava vazio .* usa (o|os) efeitos? ${esperadas[0]}\b`));
+		});
+	}
+
+	for (const skill of VAZIAS_D18) {
+		it(`${skill}: segue sem effectId e explica por que no comentario`, () => {
+			const m = EFEITO.match(new RegExp(String.raw`^SkillEffect\[SK\.${skill}\] = (\{[^;]*\});`, 'm'));
+			expect(m, `${skill} sem entrada`).not.toBeNull();
+			expect(m[1].replace(/\/\*[\s\S]*?\*\//g, '')).not.toMatch(/[Ee]ffectId\s*:/);
+			const linhas = EFEITO.split('\n');
+			const i = linhas.findIndex(l => l.startsWith(`SkillEffect[SK.${skill}] =`));
+			const acima = linhas.slice(Math.max(0, i - 3), i).join('\n');
+			expect(acima).toMatch(/D18 \(07\/10\): FICA /);
+		});
+	}
+});

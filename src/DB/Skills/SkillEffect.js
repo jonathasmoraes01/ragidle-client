@@ -64,6 +64,7 @@ SkillEffect[SK.SM_PROVOKE] = { successEffectId: 67 }; //Provoke
 SkillEffect[SK.SM_MAGNUM] = { effectIdOnCaster: 17, effectId: 'quake_magnum' }; //Magnum Break
 SkillEffect[SK.SM_ENDURE] = { effectId: 11 }; //Endure
 // Mage
+// D18 (07/10): FICA VAZIO de proposito; a bola do Sight nasce e morre com o STATUS (Entity.js); effectId 22 aqui giraria 12 s a cada uso
 SkillEffect[SK.MG_SIGHT] = {/* effectId: 22 not here*/}; //Sight
 SkillEffect[SK.MG_NAPALMBEAT] = { hitEffectId: 1 }; //Napalm Beat
 SkillEffect[SK.MG_SAFETYWALL] = {/*not here*/}; //Safety Wall
@@ -79,6 +80,7 @@ SkillEffect[SK.MG_THUNDERSTORM] = { effectId: 30, hitEffectId: 52 }; //Thunderst
 // Acolyte
 SkillEffect[SK.AL_RUWACH] = { hitEffectId: 1 /*state effect not here*/ }; //Ruwach
 SkillEffect[SK.AL_PNEUMA] = { groundEffectId: 141 }; //Pneuma
+// D18 (07/10): FICA VAZIO de proposito; a saida do teleporte ja toca o efeito 304 em Entity.js (VT.TELEPORT), somar aqui dobraria
 SkillEffect[SK.AL_TELEPORT] = {/*not here*/}; //Teleport
 SkillEffect[SK.AL_WARP] = {/*not here*/}; //Warp Portal
 SkillEffect[SK.AL_HEAL] = { effectId: 312, hitEffectId: 320 }; //Heal
@@ -114,6 +116,7 @@ SkillEffect[SK.KN_SPEARBOOMERANG] = {
 	hitEffectId: 80
 }; //Spear Boomerang
 SkillEffect[SK.KN_TWOHANDQUICKEN] = { effectId: 130 }; //Twohand Quicken
+// D18 (07/10): FICA SEM effectId de proposito; o 131 e tocado em onEntityCastCancel
 SkillEffect[SK.KN_AUTOCOUNTER] = {
 	hideCastAura: true /*effectId: 131    NOT USED HERE, but hardcoded in onEntityCastCancel!*/
 }; //Counter Attack
@@ -146,7 +149,8 @@ SkillEffect[SK.WZ_STORMGUST] = { effectId: 89, hitEffectId: 51 }; //Storm Gust
 SkillEffect[SK.WZ_EARTHSPIKE] = { effectId: 79, hitEffectId: 147 }; //Earth Spike
 SkillEffect[SK.WZ_HEAVENDRIVE] = { effectId: 142, hitEffectId: 147 }; //Heaven's Drive
 SkillEffect[SK.WZ_QUAGMIRE] = { groundEffectId: 95 }; //Quagmire
-SkillEffect[SK.WZ_ESTIMATION] = {}; //Sense
+// D18 (07/10): APROXIMACAO do dono; WZ_ESTIMATION estava vazio (sem arte propria no nosso GRF); usa o efeito 234 de Spell Breaker (SA_SPELLBREAKER), magia no monstro analisado; MER_ESTIMATION herda
+SkillEffect[SK.WZ_ESTIMATION] = { effectId: 234 }; //Sense
 // Blacksmith
 SkillEffect[SK.BS_REPAIRWEAPON] = { effectId: 101 }; //Weapon Repair
 SkillEffect[SK.BS_HAMMERFALL] = { effectId: 102 }; //Hammer Fall
@@ -190,7 +194,8 @@ SkillEffect[SK.AC_CHARGEARROW] = { hideCastAura: true, beforeHitEffectId: 'ef_ar
 // DECISAO pendente: animacao do Sand Attack (nao ha asset no GRF).
 // V7 (07/10): APROXIMACAO do dono; o original EF_SPRINKLESAND (id 310) nao tem arte no nosso GRF; usa o efeito 308 + 147 de Stone Fling (TF_THROWSTONE) e Earth Spike (pedra e terra, mesmo elemento)
 SkillEffect[SK.TF_SPRINKLESAND] = { beforeHitEffectId: 308, hitEffectId: 147 }; //Sand Attack
-SkillEffect[SK.TF_BACKSLIDING] = {}; //Back Slide
+// D18 (07/10): APROXIMACAO do dono; TF_BACKSLIDING estava vazio (sem arte propria no nosso GRF); usa o efeito 16 de Hide (cilindros de poeira), poeira do salto para tras
+SkillEffect[SK.TF_BACKSLIDING] = { effectId: 16 }; //Back Slide
 SkillEffect[SK.TF_PICKSTONE] = { hideCastAura: true }; //Find Stone
 SkillEffect[SK.TF_THROWSTONE] = { beforeHitEffectId: 308 }; //Stone Fling
 SkillEffect[SK.MC_CARTREVOLUTION] = { beginCastEffectId: 170, hitEffectId: 170 }; //Cart Revolution
@@ -261,8 +266,10 @@ SkillEffect[SK.RG_STRIPARMOR] = { successEffectId: 271 }; //Divest Armor
 SkillEffect[SK.RG_STRIPHELM] = { successEffectId: 272 }; //Divest Helm
 SkillEffect[SK.RG_INTIMIDATE] = { effectId: 227 }; //Snatch
 SkillEffect[SK.RG_GRAFFITI] = {}; //Scribble
+// D18 (07/10): FICA VAZIO; pintar grafite e balao de texto (Entity.js), igual ao RG_GRAFFITI com EF_NONE
 SkillEffect[SK.RG_FLAGGRAFFITI] = {}; //Piece
-SkillEffect[SK.RG_CLEANER] = {}; //Remover
+// D18 (07/10): APROXIMACAO do dono; RG_CLEANER estava vazio (sem arte propria no nosso GRF); usa o efeito 16 de Hide (SM_BASH begin cast), nuvem de poeira que apaga o grafite na celula; os desenhos de grafite seguem sendo balao
+SkillEffect[SK.RG_CLEANER] = { effectId: 16 }; //Remover
 // Alchemist
 SkillEffect[SK.AM_PHARMACY] = {}; //Prepare Potion
 SkillEffect[SK.AM_DEMONSTRATION] = { groundEffectId: 302 }; //Bomb
@@ -272,15 +279,19 @@ SkillEffect[SK.AM_ACIDTERROR] = { beforeHitEffectId: 298 }; //Acid Terror
 // O brilho da cura sai do AL_HEAL/pocao que o servidor manda. DECISAO pendente: animacao propria.
 // V7 (07/10): APROXIMACAO do dono; o original EF_POTIONPITCHER (id 299) nao tem arte no nosso GRF; usa o efeito 312 de Heal (AL_HEAL), aneis de cura no aliado
 SkillEffect[SK.AM_POTIONPITCHER] = { effectId: 312 }; //Aid Potion
-SkillEffect[SK.AM_CANNIBALIZE] = {}; //Summon Flora
-SkillEffect[SK.AM_SPHEREMINE] = {}; //Summon Marine Sphere
+// D18 (07/10): APROXIMACAO do dono; AM_CANNIBALIZE estava vazio (sem arte propria no nosso GRF); usa o efeito 147 de Earth Hit (WZ_EARTHSPIKE), terra brotando no chao, mesmo tema da planta
+SkillEffect[SK.AM_CANNIBALIZE] = { effectId: 147 }; //Summon Flora
+// D18 (07/10): APROXIMACAO do dono; AM_SPHEREMINE estava vazio (sem arte propria no nosso GRF); usa o efeito 51 de Cold Hit (agua/gelo, elemento da Marine Sphere)
+SkillEffect[SK.AM_SPHEREMINE] = { effectId: 51 }; //Summon Marine Sphere
 SkillEffect[SK.AM_CP_WEAPON] = { effectId: 300 }; //Alchemical Weapon
 SkillEffect[SK.AM_CP_SHIELD] = { effectId: 300 }; //Synthesized Shield
 SkillEffect[SK.AM_CP_ARMOR] = { effectId: 300 }; //Synthetic Armor
 SkillEffect[SK.AM_CP_HELM] = { effectId: 300 }; //Biochemical Helm
-SkillEffect[SK.AM_CALLHOMUN] = {}; //Call Homunculus
+// D18 (07/10): APROXIMACAO do dono; AM_CALLHOMUN estava vazio (sem arte propria no nosso GRF); usa o efeito 304 de Teleportation2 (AL_TELEPORT/Entity.js), aneis azuis de aparicao no lugar onde o homunculo nasce
+SkillEffect[SK.AM_CALLHOMUN] = { effectId: 304 }; //Call Homunculus
 SkillEffect[SK.AM_REST] = {}; //Vaporize
-SkillEffect[SK.AM_RESURRECTHOMUN] = {}; //Homunculus Resurrection
+// D18 (07/10): APROXIMACAO do dono; AM_RESURRECTHOMUN estava vazio (sem arte propria no nosso GRF); usa os efeitos 77 + 140 de Resurrection (ALL_RESURRECTION), mesma ressurreicao
+SkillEffect[SK.AM_RESURRECTHOMUN] = { effectId: [77, 140] }; //Homunculus Resurrection
 // Crusader
 SkillEffect[SK.CR_AUTOGUARD] = { effectId: 336 }; //Guard
 SkillEffect[SK.CR_SHIELDCHARGE] = { effectId: 246 }; //Smite
@@ -293,14 +304,17 @@ SkillEffect[SK.CR_PROVIDENCE] = { effectId: 248 }; //Resistant Souls
 SkillEffect[SK.CR_DEFENDER] = { effectId: 222 }; //Defending Aura
 SkillEffect[SK.CR_SPEARQUICKEN] = { effectId: 250 }; //Spear Quicken
 // Monk
-SkillEffect[SK.MO_CALLSPIRITS] = {}; //Summon Spirit Sphere
+// D18 (07/10): APROXIMACAO do dono; MO_CALLSPIRITS estava vazio (sem arte propria no nosso GRF); usa o efeito 263 de Raging Quadruple Blow (MO_CHAINCOMBO), anel de Ki do Monge em quem conjura; as esferas continuam por estado/entidade
+SkillEffect[SK.MO_CALLSPIRITS] = { effectIdOnCaster: 263 }; //Summon Spirit Sphere
 SkillEffect[SK.MO_ABSORBSPIRITS] = { successEffectIdOnCaster: 253 }; //Absorb Spirit Sphere
 SkillEffect[SK.MO_TRIPLEATTACK] = { effectId: 329 }; //Triple Attack
-SkillEffect[SK.MO_BODYRELOCATION] = {}; //Snap
+// D18 (07/10): APROXIMACAO do dono; MO_BODYRELOCATION estava vazio (sem arte propria no nosso GRF); usa o efeito 304 de Teleportation2, o Snap e um deslocamento instantaneo; aneis no destino
+SkillEffect[SK.MO_BODYRELOCATION] = { effectId: 304 }; //Snap
 SkillEffect[SK.MO_INVESTIGATE] = { effectId: 267 }; //Occult Impaction
 SkillEffect[SK.MO_FINGEROFFENSIVE] = { effectId: 265, hitEffectId: 1 }; //Throw Spirit Sphere
 SkillEffect[SK.MO_STEELBODY] = { effectId: [254, 'quake'] }; //Mental Strength
-SkillEffect[SK.MO_BLADESTOP] = {}; //Root
+// D18 (07/10): APROXIMACAO do dono; MO_BLADESTOP estava vazio (sem arte propria no nosso GRF); usa o efeito 11 de Endure (SM_ENDURE), postura defensiva em quem prende o golpe; o estado de captura nao e tocado
+SkillEffect[SK.MO_BLADESTOP] = { effectId: 11 }; //Root
 SkillEffect[SK.MO_EXPLOSIONSPIRITS] = { beginCastEffectId: 12, effectIdOnCaster: [261, 'quake'] }; //Fury
 SkillEffect[SK.MO_EXTREMITYFIST] = {
 	effectId: srcAID => {
@@ -319,7 +333,8 @@ SkillEffect[SK.MO_COMBOFINISH] = { effectId: 'quake', hitEffectId: 1 }; //Raging
 SkillEffect[SK.SA_CASTCANCEL] = {}; //Cast Cancel
 SkillEffect[SK.SA_MAGICROD] = { successEffectId: 244 }; //Magic Rod
 SkillEffect[SK.SA_SPELLBREAKER] = { successEffectId: 234 }; //Spell Breaker
-SkillEffect[SK.SA_AUTOSPELL] = {}; //Hindsight
+// D18 (07/10): APROXIMACAO do dono; SA_AUTOSPELL estava vazio (sem arte propria no nosso GRF); usa o efeito 234 de Spell Breaker (SA_SPELLBREAKER), magia do Sabio ao armar o Auto Spell
+SkillEffect[SK.SA_AUTOSPELL] = { effectId: 234 }; //Hindsight
 SkillEffect[SK.SA_FLAMELAUNCHER] = { successEffectId: 255 }; //Endow Blaze
 SkillEffect[SK.SA_FROSTWEAPON] = { successEffectId: 256 }; //Endow Tsunami
 SkillEffect[SK.SA_LIGHTNINGLOADER] = { successEffectId: 257 }; //Endow Tornado
@@ -336,7 +351,8 @@ SkillEffect[SK.SA_VIOLENTGALE] = { groundEffectId: 241, effectIdOnCaster: 257 };
 // V7 (07/10): APROXIMACAO do dono; o original EF_LANDPROTECTOR (id 238) nao tem arte no nosso GRF; usa o efeito 258 de Endow Quake (SA_SEISMICWEAPON, terra) na conjuracao; o anel 242 continua
 SkillEffect[SK.SA_LANDPROTECTOR] = { groundEffectId: 242, effectIdOnCaster: 258 }; //Magnetic Earth
 SkillEffect[SK.SA_DISPELL] = { successEffectId: 235 }; //Dispell
-SkillEffect[SK.SA_ABRACADABRA] = {}; //Hocus-pocus
+// D18 (07/10): APROXIMACAO do dono; SA_ABRACADABRA estava vazio (sem arte propria no nosso GRF); usa o efeito 234 de Spell Breaker (SA_SPELLBREAKER), magia do Sabio; o efeito da skill sorteada vem por cima
+SkillEffect[SK.SA_ABRACADABRA] = { effectId: 234 }; //Hocus-pocus
 SkillEffect[SK.SA_MONOCELL] = {}; //Monocell
 SkillEffect[SK.SA_CLASSCHANGE] = {}; //Class Change
 SkillEffect[SK.SA_SUMMONMONSTER] = {}; //Monster Chant
@@ -351,6 +367,7 @@ SkillEffect[SK.SA_INSTANTDEATH] = {}; //Suicide
 SkillEffect[SK.SA_FULLRECOVERY] = {}; //Rejuvenation
 SkillEffect[SK.SA_COMA] = {}; //Coma
 // Bard & Dancer
+// D18 (07/10): FICA VAZIO; cancelar a cantiga nao tem efeito parecido razoavel nos que existem
 SkillEffect[SK.BD_ADAPTATION] = {}; //Amp
 SkillEffect[SK.BD_ENCORE] = {}; //Encore
 SkillEffect[SK.BD_LULLABY] = { effectId: 278, groundEffectId: '278_ground' }; //Lullaby
@@ -668,6 +685,7 @@ SkillEffect[SK.RG_CLOSECONFINE] = { groundEffectId: 604, effectIdOnCaster: 276 }
 // com o STATUS (Entity.js, o EFST 198). Aqui ela saia em todo pacote da
 // habilidade — inclusive no dano da DETONACAO, e ai girava 12 s em volta do
 // inimigo atingido (D-1359).
+// D18 (07/10): FICA VAZIO de proposito (D-1359, acima); a bola e do STATUS
 SkillEffect[SK.WZ_SIGHTBLASTER] = {}; //Sight Blaster
 SkillEffect[SK.SA_CREATECON] = {}; //Create Elemental Converter
 SkillEffect[SK.SA_ELEMENTWATER] = { effectId: 256 }; //Elemental Change Water
@@ -675,8 +693,10 @@ SkillEffect[SK.HT_PHANTASMIC] = { beforeHitEffectId: 'ef_arrow_projectile', hitE
 SkillEffect[SK.BA_PANGVOICE] = { successEffectId: 606 }; //Pang Voice
 SkillEffect[SK.DC_WINKCHARM] = { successEffectId: 607 }; //Wink of Charm
 SkillEffect[SK.BS_GREED] = { effectId: 'ef_greed_sound' }; //Greed
-SkillEffect[SK.PR_REDEMPTIO] = {}; //Redemptio
-SkillEffect[SK.MO_KITRANSLATION] = {}; //Ki Translation
+// D18 (07/10): APROXIMACAO do dono; PR_REDEMPTIO estava vazio (sem arte propria no nosso GRF); usa os efeitos 77 + 140 de Resurrection (ALL_RESURRECTION), o Redemptio ressuscita o grupo
+SkillEffect[SK.PR_REDEMPTIO] = { effectId: [77, 140] }; //Redemptio
+// D18 (07/10): APROXIMACAO do dono; MO_KITRANSLATION estava vazio (sem arte propria no nosso GRF); usa o efeito 312 de Heal (AL_HEAL), aneis de luz no aliado que recebe as esferas
+SkillEffect[SK.MO_KITRANSLATION] = { effectId: 312 }; //Ki Translation
 // V7 (07/10): era { effectId: 514 } (EF_GI_EXPLOSION, //514: [{}] 'Really Big Circle' vazio em EffectTable.js, sem arte).
 // V7 (07/10): APROXIMACAO do dono; o original EF_GI_EXPLOSION (id 514) nao tem arte no nosso GRF; usa o efeito 263 de Raging Quadruple Blow (MO_CHAINCOMBO, anel de Ki do Monge) e 1 de Throw Spirit Sphere (impacto)
 SkillEffect[SK.MO_BALKYOUNG] = { effectIdOnCaster: 263, hitEffectId: 1 }; //Ki Explosion
