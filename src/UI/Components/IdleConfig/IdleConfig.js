@@ -90,6 +90,7 @@ import { htmlDoPerfilDoMonge } from './perfilDoMonge.js';
 import {
 	chaveDoEstado,
 	escutarRelogioDoDesejo,
+	esperaAteORelogioMudar,
 	esquecerRelogioDoDesejo,
 	htmlDoDesejoArcano,
 	htmlDoEstadoDoDesejo,
@@ -2128,19 +2129,36 @@ function atualizarEstadoDoDesejo() {
 		linha.innerHTML = htmlDoEstadoDoDesejo(d, restante, escapeHtml);
 	}
 }
+/*
+ * D-2083: o relogio mostra os SEGUNDOS ("Ativo: 5:12 restantes"), entao o
+ * tique acorda quando o segundo vira (`esperaAteORelogioMudar`), e nao num
+ * intervalo fixo — com a fase qualquer do `setInterval` e o atraso do laco, o
+ * relogio pulava um segundo e repetia o seguinte. A folga poe o despertar
+ * DEPOIS da virada (o timer pode disparar um tico antes). Cada tique se
+ * reagenda pelo relogio de agora, entao uma fase errada (a resposta da config
+ * acertou o relogio no meio de um segundo) se corrige no tique seguinte.
+ */
+const FOLGA_DO_TIQUE_MS = 15;
+function tiqueDoDesejo() {
+	_tiqueDoDesejo = null;
+	atualizarEstadoDoDesejo();
+	garantirTiqueDoDesejo();
+}
 function garantirTiqueDoDesejo() {
 	if (_tiqueDoDesejo === null && _root().querySelector('.ic-card--desejo-arcano .ic-desejo-estado')) {
-		_tiqueDoDesejo = setInterval(atualizarEstadoDoDesejo, 1000);
+		_tiqueDoDesejo = setTimeout(tiqueDoDesejo, esperaAteORelogioMudar(restanteDoDesejoAgora(Date.now())) + FOLGA_DO_TIQUE_MS);
 	}
 }
 function pararTiqueDoDesejo() {
 	if (_tiqueDoDesejo !== null) {
-		clearInterval(_tiqueDoDesejo);
+		clearTimeout(_tiqueDoDesejo);
 		_tiqueDoDesejo = null;
 	}
 }
-// O icone do Desejo entrou, venceu ou foi reconjurado (`Entity.js`): acerta a linha ja.
+// O icone do Desejo entrou, venceu ou foi reconjurado (`Entity.js`): acerta a
+// linha ja, e o tique na fase do relogio novo.
 escutarRelogioDoDesejo(() => {
+	pararTiqueDoDesejo();
 	atualizarEstadoDoDesejo();
 	garantirTiqueDoDesejo();
 });

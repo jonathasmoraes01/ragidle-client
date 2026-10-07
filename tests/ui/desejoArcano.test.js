@@ -25,6 +25,7 @@ import {
 	restanteDoDesejoAgora,
 	sincronizarRelogioDoDesejo,
 	textoDoRestante,
+	esperaAteORelogioMudar,
 	MOTIVO_DA_RECOMENDACAO,
 	SEGUIR_A_RECOMENDACAO,
 	temDesejoArcano
@@ -143,18 +144,46 @@ describe('a costura e o celular', () => {
 describe('o relogio do Desejo', () => {
 	afterEach(() => esquecerRelogioDoDesejo());
 
-	it('o texto: os minutos inteiros que faltam (nunca promete a mais), depois os segundos', () => {
-		expect(textoDoRestante(390000)).toBe('Ativo: 6 minutos restantes');
-		expect(textoDoRestante(359999)).toBe('Ativo: 5 minutos restantes');
-		expect(textoDoRestante(360000)).toBe('Ativo: 6 minutos restantes');
-		expect(textoDoRestante(120000)).toBe('Ativo: 2 minutos restantes');
-		expect(textoDoRestante(119999)).toBe('Ativo: 1 minuto restante');
-		expect(textoDoRestante(60001)).toBe('Ativo: 1 minuto restante');
-		expect(textoDoRestante(60000)).toBe('Ativo: 1 minuto restante');
-		expect(textoDoRestante(59999)).toBe('Ativo: 60 segundos restantes');
-		expect(textoDoRestante(45000)).toBe('Ativo: 45 segundos restantes');
-		expect(textoDoRestante(1000)).toBe('Ativo: 1 segundo restante');
-		expect(textoDoRestante(1)).toBe('Ativo: 1 segundo restante');
+	it('o texto: "Ativo: M:SS restantes" (D-2083), e H:MM:SS acima de uma hora', () => {
+		// Decisao do dono de 07/10/2026: o relogio por extenso, minutos:segundos.
+		expect(textoDoRestante(312000)).toBe('Ativo: 5:12 restantes');
+		expect(textoDoRestante(390000)).toBe('Ativo: 6:30 restantes');
+		expect(textoDoRestante(600000)).toBe('Ativo: 10:00 restantes');
+		expect(textoDoRestante(60000)).toBe('Ativo: 1:00 restantes');
+		expect(textoDoRestante(59000)).toBe('Ativo: 0:59 restantes');
+		expect(textoDoRestante(5000)).toBe('Ativo: 0:05 restantes');
+		// Uma hora ou mais: as horas na frente, e os minutos com dois digitos.
+		expect(textoDoRestante(3600000)).toBe('Ativo: 1:00:00 restantes');
+		expect(textoDoRestante(3599000)).toBe('Ativo: 59:59 restantes');
+		expect(textoDoRestante(3723000)).toBe('Ativo: 1:02:03 restantes');
+		expect(textoDoRestante(36000000)).toBe('Ativo: 10:00:00 restantes');
+	});
+
+	it('os segundos sobem para o inteiro de cima: 0:00 nunca aparece com o Desejo de pe', () => {
+		// 5:11,001 ainda e "5:12": o relogio vira no instante em que o segundo acaba.
+		expect(textoDoRestante(311001)).toBe('Ativo: 5:12 restantes');
+		expect(textoDoRestante(311000)).toBe('Ativo: 5:11 restantes');
+		expect(textoDoRestante(1000)).toBe('Ativo: 0:01 restantes');
+		expect(textoDoRestante(1)).toBe('Ativo: 0:01 restantes');
+		expect(textoDoRestante(59001)).toBe('Ativo: 1:00 restantes');
+		expect(textoDoRestante(3599001)).toBe('Ativo: 1:00:00 restantes');
+	});
+
+	it('a espera ate o texto mudar: o tique acorda quando o segundo vira, e nao num segundo qualquer', () => {
+		// Com 5:12,000 faltando a proxima virada ("5:11") e daqui a 1 s; com 5:11,250, daqui a 250 ms.
+		expect(esperaAteORelogioMudar(312000)).toBe(1000);
+		expect(esperaAteORelogioMudar(311250)).toBe(250);
+		expect(esperaAteORelogioMudar(311001)).toBe(1);
+		expect(esperaAteORelogioMudar(1)).toBe(1);
+		// A espera leva exatamente ao texto seguinte.
+		for (const r of [312000, 311250, 311001, 61000, 1500]) {
+			const antes = textoDoRestante(r);
+			const w = esperaAteORelogioMudar(r);
+			expect(textoDoRestante(r - w + 1)).toBe(antes);
+			expect(r - w > 0 ? textoDoRestante(r - w) : 'Inativo').not.toBe(antes);
+		}
+		// Inativo: nada corre; o tique so confere de segundo em segundo.
+		expect(esperaAteORelogioMudar(null)).toBe(1000);
 	});
 
 	it('a resposta da config acerta o relogio, e ele desce sozinho ate vencer', () => {
@@ -237,8 +266,8 @@ describe('a linha de estado do cartao', () => {
 			nomeDaSkill,
 			restanteMs: 185000
 		});
-		expect(html).toContain('<span class="ri-badge ri-badge--verde ic-desejo-relogio">Ativo: 3 minutos restantes</span>');
-		expect(html).toContain('data-desejo-estado="Ativo: 3 minutos restantes"');
+		expect(html).toContain('<span class="ri-badge ri-badge--verde ic-desejo-relogio">Ativo: 3:05 restantes</span>');
+		expect(html).toContain('data-desejo-estado="Ativo: 3:05 restantes"');
 		expect(html.indexOf('ic-desejo-estado')).toBeLessThan(html.indexOf('ic-perfil-agora'));
 		expect(html).not.toContain('Inativo');
 	});
@@ -255,9 +284,9 @@ describe('a linha de estado do cartao', () => {
 		expect(htmlDoEstadoDoDesejo({}, null, escapar)).toBe('<span class="ri-badge ri-badge--cinza">Inativo</span>');
 	});
 
-	it('a chave so muda quando o texto muda (o tique nao reescreve a linha a cada segundo)', () => {
-		expect(chaveDoEstado(DESEJO, 300000)).toBe(chaveDoEstado(DESEJO, 359999));
-		expect(chaveDoEstado(DESEJO, 300000)).not.toBe(chaveDoEstado(DESEJO, 299999));
+	it('a chave so muda quando o texto muda (o tique nao reescreve a linha a toa)', () => {
+		expect(chaveDoEstado(DESEJO, 299001)).toBe(chaveDoEstado(DESEJO, 300000));
+		expect(chaveDoEstado(DESEJO, 300000)).not.toBe(chaveDoEstado(DESEJO, 299000));
 		expect(chaveDoEstado(DESEJO, null)).toBe('inativo:buffs');
 		expect(chaveDoEstado({ ...DESEJO, quemConjura: 'clique' }, null)).toBe('inativo:clique');
 	});
@@ -267,7 +296,10 @@ describe('a costura do relogio', () => {
 	it('a resposta da config acerta o relogio; o tique so reescreve a linha quando a chave muda', () => {
 		expect(JS).toContain('sincronizarRelogioDoDesejo(data.contexto, Date.now());');
 		expect(JS).toContain("if (linha.getAttribute('data-desejo-estado') !== chave) {");
-		expect(JS).toContain('_tiqueDoDesejo = setInterval(atualizarEstadoDoDesejo, 1000);');
+		// D-2083: o tique acorda quando o segundo VIRA (`esperaAteORelogioMudar`),
+		// e nao num intervalo fixo, que com o atraso do laco pulava ou repetia um segundo.
+		expect(JS).toContain('_tiqueDoDesejo = setTimeout(tiqueDoDesejo, esperaAteORelogioMudar(restanteDoDesejoAgora(Date.now())) + FOLGA_DO_TIQUE_MS);');
+		expect(JS).not.toContain('setInterval(atualizarEstadoDoDesejo');
 		// Janela fechada ou cartao fora da tela: o tique para sozinho.
 		expect(JS).toMatch(/if \(!win \|\| !win\.classList\.contains\('is-open'\) \|\| !linha \|\| !d\) \{\n\t\tpararTiqueDoDesejo\(\);/);
 		// A troca de personagem esquece o relogio.

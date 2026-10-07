@@ -118,21 +118,48 @@ export function esquecerRelogioDoDesejo() {
 	_venceEm = null;
 }
 
+/** Dois digitos (o "05" de "5:05"). */
+const doisDigitos = n => (n < 10 ? `0${n}` : String(n));
+
 /**
- * O texto do relogio. Os MINUTOS sao os inteiros que faltam (para baixo): com
- * 6 min 30 s faltando diz 6 minutos — o cartao nunca promete mais tempo do que
- * ha. Arredondar para cima (a primeira versao) dizia "2 minutos" com 61 s e
- * pulava o "1 minuto" direto para "59 segundos", o que a sonda na tela pegou.
- * Abaixo de um minuto conta os segundos (para cima: o ultimo e "1 segundo").
- * Cada frase sai inteira (o catalogo casa o modelo com o numero dentro).
+ * O texto do relogio (D-2083, decisao do dono de 07/10/2026): "Ativo: 5:12
+ * restantes", minutos:segundos, e "1:02:03" a partir de uma hora. A primeira
+ * versao (D-2046) contava so os minutos inteiros ("6 minutos"), e o dono quis
+ * ver o relogio andar.
+ *
+ * Os SEGUNDOS sobem para o inteiro de cima: com 5:11,001 faltando diz "5:12",
+ * e vira para "5:11" no instante em que o segundo acaba. Para baixo, o ultimo
+ * segundo diria "0:00" com o Desejo ainda de pe; o "0:01" e o ultimo, e
+ * depois vem "Inativo" (o vencido nao chega aqui: `restanteDoDesejoAgora` o
+ * devolve como null).
+ *
+ * Uma frase so ("Ativo: {0} restantes"), sem singular: o relogio nao conjuga.
+ * O catalogo de idioma casa o modelo com o relogio dentro.
  */
 export function textoDoRestante(restanteMs) {
-	if (restanteMs >= 60000) {
-		const minutos = Math.floor(restanteMs / 60000);
-		return minutos === 1 ? 'Ativo: 1 minuto restante' : `Ativo: ${minutos} minutos restantes`;
+	const total = Math.max(1, Math.ceil(restanteMs / 1000));
+	const horas = Math.floor(total / 3600);
+	const minutos = Math.floor((total % 3600) / 60);
+	const segundos = total % 60;
+	const relogio = horas > 0 ? `${horas}:${doisDigitos(minutos)}:${doisDigitos(segundos)}` : `${minutos}:${doisDigitos(segundos)}`;
+	return `Ativo: ${relogio} restantes`;
+}
+
+/**
+ * Quanto falta, em ms, ate o texto do relogio mudar (D-2083): o tique da
+ * janela acorda AI, e nao num intervalo fixo. Com `setInterval(..., 1000)` a
+ * fase do intervalo e qualquer uma, e o atraso do laco (o jogo desenhando)
+ * fazia o relogio pular um segundo e repetir o seguinte quando a fase caia
+ * perto da virada. Inativo nao corre: o tique so confere de segundo em
+ * segundo (a resposta da config pode ter acertado o relogio sem redesenhar).
+ */
+export function esperaAteORelogioMudar(restanteMs) {
+	if (restanteMs === null) {
+		return 1000;
 	}
-	const segundos = Math.max(1, Math.ceil(restanteMs / 1000));
-	return segundos === 1 ? 'Ativo: 1 segundo restante' : `Ativo: ${segundos} segundos restantes`;
+	// O texto e o teto dos segundos: ele muda quando o restante cai ao
+	// multiplo de 1000 de baixo. Daqui ate la: entre 1 e 1000 ms.
+	return restanteMs - (Math.ceil(restanteMs / 1000) - 1) * 1000;
 }
 
 /** Por que esta inativo, e quem o poe de pe de novo (o `quemConjura` do servidor). */
