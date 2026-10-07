@@ -103,6 +103,8 @@ import cssText from './IdleConfig.css?raw';
 import { fecharEEsquecer } from '../limpezaDeJanelaIdle.js';
 import { abaLembrada, lembrarAba } from '../memoriaDeAba.js';
 import { escutarACasca, ofertaAtual, pontePWA, textoDoResultado } from 'UI/ofertaDeInstalacao.js';
+import { CAMPOS_DO_ENVIO_DA_CONFIG, criarReceptorDeJanela } from 'UI/janelaPorDiferenca.js';
+import { declararBaseNula } from 'Engine/declaracaoDasBases.js';
 
 /**
  * Keep in sync with the ":host" / ".ic-window" size in IdleConfig.css and
@@ -664,6 +666,23 @@ function setStatus(text) {
  * CZ_RAGIDLE_APLICAR_CONFIG. The contract tells them apart with "aplicado":
  * present (true) only on an apply response, absent on a pedir response.
  */
+/**
+ * A CONFIG POR DIFERENCA (D-2077, `UI/janelaPorDiferenca.js`): o servidor que
+ * numera manda, a quem declarou (`Engine/declaracaoDasBases.js`), so as trocas
+ * sobre o ultimo envio. O receptor monta o corpo no formato do inteiro, e dai
+ * em diante o caminho e o de sempre. Parcial que nao cai: declara `null` e
+ * pede de novo.
+ */
+const _receptorDaConfig = criarReceptorDeJanela(CAMPOS_DO_ENVIO_DA_CONFIG, function () {
+	declararBaseNula('config', { Network, PACKET });
+	Network.sendPacket(new PACKET.CZ.RAGIDLE_PEDIR_CONFIG());
+});
+
+/** A revisao da config que esta memoria tem, para a declaracao da entrada (D-2077). */
+IdleConfig.revisaoDaConfig = function revisaoDaConfig() {
+	return _receptorDaConfig.revisao();
+};
+
 function onConfigReceived(pkt) {
 	let data;
 	try {
@@ -673,6 +692,11 @@ function onConfigReceived(pkt) {
 		setStatus('Configuração incompatível.');
 		return;
 	}
+	const recebido = _receptorDaConfig.receber(data);
+	if (recebido.ignorado) {
+		return;
+	}
+	data = recebido.dados;
 
 	if (!data || data.v !== 1 || !data.config || !data.contexto) {
 		console.error('[IdleConfig] Configuração com contrato incompatível (v=' + (data && data.v) + ').', data);
@@ -2138,6 +2162,8 @@ IdleConfig.aplicarConfig = applyConfig;
  */
 IdleConfig.limparEstadoDoPersonagem = function limparEstadoDoPersonagem() {
 	IdleConfig.serverConfig = null;
+	// D-2077: a base da config e do personagem que saiu.
+	_receptorDaConfig.esquecer();
 	IdleConfig.editConfig = null;
 	IdleConfig.contexto = null;
 	IdleConfig.contextoObsoleto = false;

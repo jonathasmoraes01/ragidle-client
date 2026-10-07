@@ -1004,7 +1004,7 @@ function onConnectionAccepted(pkt) {
 	 * daqui o alcanca (o aviso de D-993). Ver `Engine/declaracaoDasBases.js`.
 	 */
 	try {
-		declararBasesDasJanelas({ MissoesIdle, IdleSkills, Network, PACKET });
+		declararBasesDasJanelas({ MissoesIdle, IdleSkills, IdleConfig, GrupoIdle, Network, PACKET });
 	} catch (erro) {
 		console.error('[bases] a declaracao falhou - o lote de entrada desce inteiro:', erro);
 	}
