@@ -75,6 +75,7 @@ import {
 	mostrarAviso,
 	mostrarSaida,
 	saidaVisivel,
+	textoDaCargaParada,
 	textoDoAviso
 } from 'UI/saidaDoCarregamento.js';
 import { NOVAS_TENTATIVAS_DE_ARQUIVO } from 'Core/tentativasDeArquivo.js';
@@ -181,12 +182,7 @@ function falharCargaAtual(motivo) {
 }
 
 const _vigia = criarVigiaDoCarregamento({
-	aoTravar: () =>
-		protegido('a saida da carga', () =>
-			mostrarSaidaDaCarga(
-				'O mapa parou de chegar do servidor. Toque em "Tentar de novo" para pedir o mapa outra vez.'
-			)
-		),
+	aoTravar: () => protegido('a saida da carga', () => mostrarSaidaDaCarga(textoDaCargaParada(ehDedo()))),
 	aoDemorar: atividade =>
 		protegido('o aviso da carga', () => mostrarAviso(textoDoAviso(atividade, NOVAS_TENTATIVAS_DE_ARQUIVO))),
 	aoAndar: () => protegido('o aviso da carga', esconderAviso)
