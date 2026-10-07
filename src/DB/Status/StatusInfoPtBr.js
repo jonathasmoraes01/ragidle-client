@@ -105,6 +105,8 @@ const PT_BR = {
 	'(for all monster attacks)': '(para todo golpe de monstro)',
 	'Damage received is reduced by 1/2': 'O dano recebido cai pela metade',
 	'You receive the other 1/2 of damage': 'A outra metade você recebe',
+	// D-2052 (06/10/2026): o icone EFST_RIDING (27) passou a descer com o Peco.
+	'Riding Vehicle': 'Montado no Peco Peco',
 
 	/* -------- Arqueiro / Cacador -------- */
 	'Attention Concentration': 'Concentração',
