@@ -171,7 +171,10 @@ describe('a costura (lendo o fonte)', () => {
 
 	it('o builder injeta a MESMA versao do worker no jogo', () => {
 		expect(builder).toContain("const versaoDoBuild = pkg.version + '-' + buildDate.replace(/[^0-9]/g, '');");
-		expect(builder).toContain('__RAGIDLE_VERSAO_DO_BUILD__: JSON.stringify(versaoDoBuild)');
+		// Desde D-2075 as opcoes do vite moram em opcoesDoVite.mjs: o builder passa
+		// a versao, e e la que ela vira o `define`.
+		expect(builder).toMatch(/opcoesDoVite\(\{[^}]*\bversaoDoBuild,/);
+		expect(ler('applications/tools/opcoesDoVite.mjs')).toContain('__RAGIDLE_VERSAO_DO_BUILD__: JSON.stringify(versaoDoBuild)');
 		// Uma definicao so: a do topo.
 		expect(builder.match(/const versaoDoBuild =/g)).toHaveLength(1);
 	});

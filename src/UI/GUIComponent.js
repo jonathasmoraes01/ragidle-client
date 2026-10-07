@@ -193,6 +193,16 @@ class GUIComponent {
 
 	static MouseMode = MouseMode;
 
+	/**
+	 * A promessa dos modulos pesados carregados sob demanda (`_ensureDeps`), ou
+	 * uma resolvida se ninguem os pediu ainda. O `prepare()` dispara a carga sem
+	 * esperar; quem precisa saber que ela TERMINOU (o teste que monta a janela e
+	 * acaba antes de o `import()` chegar, 07/10/2026) espera por aqui.
+	 */
+	static dependenciasCarregadas() {
+		return _depsPromise || Promise.resolve();
+	}
+
 	// ─── Lifecycle: prepare ────────────────────────────────
 
 	/**

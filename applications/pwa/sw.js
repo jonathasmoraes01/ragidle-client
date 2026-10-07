@@ -196,7 +196,13 @@ self.addEventListener('fetch', (evento) => {
 			(async () => {
 				const cache = await caches.open(CACHE);
 				try {
-					const resposta = await fetch(req);
+					/* `cache: 'no-cache'` (07/10/2026, D-2075): sem ele o `fetch` daqui
+					   passa pelo cache HTTP do navegador, e uma copia guardada como
+					   FRESCA (o `ThreadEventHandler.js` de antes de 01/09 era servido
+					   `immutable` por um ano) volta sem a rede ser consultada - o
+					   "rede primeiro" virava "cache HTTP primeiro". Com ele o navegador
+					   revalida (304 barato quando nada mudou). */
+					const resposta = await fetch(req, { cache: 'no-cache' });
 					if (resposta && resposta.status === 200 && resposta.type === 'basic') {
 						cache.put(req, resposta.clone());
 					}

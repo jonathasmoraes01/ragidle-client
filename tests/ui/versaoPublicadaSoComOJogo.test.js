@@ -102,16 +102,16 @@ describe('a costura no builder (lendo o fonte)', () => {
 	it('so o passo do Online.js a escreve, DEPOIS do build do vite, e o builder inteiro a escreve num lugar so', () => {
 		expect(BUILDER.split('escreverVersaoPublicada(').length - 1).toBe(1);
 		const chamada = compile.indexOf('escreverVersaoPublicada(outDir, versaoDoBuild);');
-		expect(chamada).toBeGreaterThan(compile.indexOf('await build({'));
+		expect(chamada).toBeGreaterThan(compile.indexOf('await build('));
 		// Dentro do `if (appName === 'Online')` que vem depois do build.
 		const ramoDoOnline = compile.lastIndexOf("if (appName === 'Online') {", chamada);
-		expect(ramoDoOnline).toBeGreaterThan(compile.indexOf('await build({'));
+		expect(ramoDoOnline).toBeGreaterThan(compile.indexOf('await build('));
 	});
 
 	it('a versao de antes sai ANTES de compilar o Online.js', () => {
 		const apagar = compile.indexOf('apagarVersaoPublicada(outDir);');
 		expect(apagar).toBeGreaterThan(0);
-		expect(apagar).toBeLessThan(compile.indexOf('await build({'));
+		expect(apagar).toBeLessThan(compile.indexOf('await build('));
 	});
 
 	it('a recusa do publicador faz o build sair com erro (o deploy nao segue calado)', () => {
