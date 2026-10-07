@@ -157,7 +157,10 @@ SkillEffect[SK.BS_MAXIMIZE] = { beginCastEffectId: 'maximize_power_sounds', effe
 // Hunter
 SkillEffect[SK.HT_SKIDTRAP] = { effectId: 69 }; //Skid Trap
 SkillEffect[SK.HT_LANDMINE] = {}; //Land Mine
-SkillEffect[SK.HT_ANKLESNARE] = { groundEffectId: 'ef_anklesnare' }; //Ankle Snare
+// V7 (07/10): 'ef_anklesnare' nao existe no EffectTable e o groundEffectId nao tem leitor no
+// cliente (so o DBManager o preenche). A armadilha aparece pela UNIDADE: SkillUnit.js
+// UNT_ANKLESNARE = 'ef_trap_01' (EffectTable.js, RSM do trap 01).
+SkillEffect[SK.HT_ANKLESNARE] = {}; //Ankle Snare
 SkillEffect[SK.HT_SHOCKWAVE] = { effectId: 145, hitEffectId: 146 }; //Shockwave Trap
 SkillEffect[SK.HT_SANDMAN] = { hitEffectId: 139 }; //Sandman
 SkillEffect[SK.HT_FLASHER] = { hitEffectId: 99 }; //Flasher
@@ -183,7 +186,9 @@ SkillEffect[SK.NV_TRICKDEAD] = {}; //Play Dead
 SkillEffect[SK.SM_AUTOBERSERK] = {}; //Auto Berserk
 SkillEffect[SK.AC_MAKINGARROW] = {}; //Arrow Crafting
 SkillEffect[SK.AC_CHARGEARROW] = { hideCastAura: true, beforeHitEffectId: 'ef_arrow_projectile' }; //Arrow Repel
-SkillEffect[SK.TF_SPRINKLESAND] = { effectId: 310 }; //Sand Attack
+// V7 (07/10): era { effectId: 310 } (EF_SPRINKLESAND, //310: [{}] vazio em EffectTable.js, sem arte).
+// DECISAO pendente: animacao do Sand Attack (nao ha asset no GRF).
+SkillEffect[SK.TF_SPRINKLESAND] = {}; //Sand Attack
 SkillEffect[SK.TF_BACKSLIDING] = {}; //Back Slide
 SkillEffect[SK.TF_PICKSTONE] = { hideCastAura: true }; //Find Stone
 SkillEffect[SK.TF_THROWSTONE] = { beforeHitEffectId: 308 }; //Stone Fling
@@ -261,7 +266,10 @@ SkillEffect[SK.RG_CLEANER] = {}; //Remover
 SkillEffect[SK.AM_PHARMACY] = {}; //Prepare Potion
 SkillEffect[SK.AM_DEMONSTRATION] = { groundEffectId: 302 }; //Bomb
 SkillEffect[SK.AM_ACIDTERROR] = { beforeHitEffectId: 298 }; //Acid Terror
-SkillEffect[SK.AM_POTIONPITCHER] = { effectId: 299 }; //Aid Potion
+// V7 (07/10): era { effectId: 299 } (EF_THROWITEM2), lugar que o roBrowser deixou vazio
+// em EffectTable.js (//299: [{}] '(Nothing)') e sem arte no GRF: o cliente ignorava calado.
+// O brilho da cura sai do AL_HEAL/pocao que o servidor manda. DECISAO pendente: animacao propria.
+SkillEffect[SK.AM_POTIONPITCHER] = {}; //Aid Potion
 SkillEffect[SK.AM_CANNIBALIZE] = {}; //Summon Flora
 SkillEffect[SK.AM_SPHEREMINE] = {}; //Summon Marine Sphere
 SkillEffect[SK.AM_CP_WEAPON] = { effectId: 300 }; //Alchemical Weapon
@@ -301,7 +309,9 @@ SkillEffect[SK.MO_EXTREMITYFIST] = {
 	beginCastEffectId: 12
 }; //Asura Strike
 SkillEffect[SK.MO_CHAINCOMBO] = { effectId: [262, 273], effectIdOnCaster: 263 }; //Raging Quadruple Blow
-SkillEffect[SK.MO_COMBOFINISH] = { effectId: [330, 'quake'] }; //Raging Thrust
+// V7 (07/10): saiu o 330 (EF_HITLINE, //330: [{}] 'Combo Finish' vazio em EffectTable.js e sem arte);
+// o tremor de camera 'quake' e REAL e fica. DECISAO pendente: o rastro do HITLINE.
+SkillEffect[SK.MO_COMBOFINISH] = { effectId: 'quake' }; //Raging Thrust
 // Sage
 SkillEffect[SK.SA_CASTCANCEL] = {}; //Cast Cancel
 SkillEffect[SK.SA_MAGICROD] = { successEffectId: 244 }; //Magic Rod
@@ -311,10 +321,13 @@ SkillEffect[SK.SA_FLAMELAUNCHER] = { successEffectId: 255 }; //Endow Blaze
 SkillEffect[SK.SA_FROSTWEAPON] = { successEffectId: 256 }; //Endow Tsunami
 SkillEffect[SK.SA_LIGHTNINGLOADER] = { successEffectId: 257 }; //Endow Tornado
 SkillEffect[SK.SA_SEISMICWEAPON] = { successEffectId: 258 }; //Endow Quake
-SkillEffect[SK.SA_VOLCANO] = { effectIdOnCaster: 225, groundEffectId: 239 }; //Volcano
-SkillEffect[SK.SA_DELUGE] = { effectIdOnCaster: 236, groundEffectId: 240 }; //Deluge
-SkillEffect[SK.SA_VIOLENTGALE] = { effectIdOnCaster: 237, groundEffectId: 241 }; //Whirlwind
-SkillEffect[SK.SA_LANDPROTECTOR] = { effectIdOnCaster: 238, groundEffectId: 242 }; //Magnetic Earth
+// V7 (07/10): saiu o effectIdOnCaster 225/236/237/238 (EF_VOLCANO, EF_DELUGE, EF_VIOLENTGALE,
+// EF_LANDPROTECTOR 'Cast Aura': //225, //236-238 vazios em EffectTable.js, sem arte no GRF).
+// O visual real e o anel do chao pela UNIDADE (SkillUnit.js -> 239..242). DECISAO pendente: aura de conjuracao.
+SkillEffect[SK.SA_VOLCANO] = { groundEffectId: 239 }; //Volcano
+SkillEffect[SK.SA_DELUGE] = { groundEffectId: 240 }; //Deluge
+SkillEffect[SK.SA_VIOLENTGALE] = { groundEffectId: 241 }; //Whirlwind
+SkillEffect[SK.SA_LANDPROTECTOR] = { groundEffectId: 242 }; //Magnetic Earth
 SkillEffect[SK.SA_DISPELL] = { successEffectId: 235 }; //Dispell
 SkillEffect[SK.SA_ABRACADABRA] = {}; //Hocus-pocus
 SkillEffect[SK.SA_MONOCELL] = {}; //Monocell
@@ -637,9 +650,11 @@ SkillEffect[SK.NPC_MAXPAIN] = {}; //Max Pain
 SkillEffect[SK.NPC_MAXPAIN_ATK] = {}; //Max Pain Attack
 // 2nd Quest Skills
 SkillEffect[SK.KN_CHARGEATK] = { beginCastEffectId: 'white_pulse', hitEffectId: 'enemy_hit_normal1' }; //Charge Attack
-SkillEffect[SK.CR_SHRINK] = { effectId: 599 }; //Shrink
+// V7 (07/10): era { effectId: 599 } (EF_SHRINK, //599: [{}] 'Cast Time Sound and Flashing' vazio em EffectTable.js, sem arte).
+SkillEffect[SK.CR_SHRINK] = {}; //Shrink
 SkillEffect[SK.AS_VENOMKNIFE] = { beforeHitEffectId: 600 }; //Throw Venom Knife
-SkillEffect[SK.RG_CLOSECONFINE] = { effectId: 602, groundEffectId: 604 }; //Close Confine
+// V7 (07/10): saiu o effectId 602 (EF_QUAKEBODY4, sem entrada em EffectTable.js, sem arte); o 604 (cconfine) e real.
+SkillEffect[SK.RG_CLOSECONFINE] = { groundEffectId: 604 }; //Close Confine
 // Sem effectId, como o Sight (MG_SIGHT): a bola do Sight Blaster nasce e morre
 // com o STATUS (Entity.js, o EFST 198). Aqui ela saia em todo pacote da
 // habilidade — inclusive no dano da DETONACAO, e ai girava 12 s em volta do
@@ -653,7 +668,8 @@ SkillEffect[SK.DC_WINKCHARM] = { successEffectId: 607 }; //Wink of Charm
 SkillEffect[SK.BS_GREED] = { effectId: 'ef_greed_sound' }; //Greed
 SkillEffect[SK.PR_REDEMPTIO] = {}; //Redemptio
 SkillEffect[SK.MO_KITRANSLATION] = {}; //Ki Translation
-SkillEffect[SK.MO_BALKYOUNG] = { effectId: 514 }; //Ki Explosion
+// V7 (07/10): era { effectId: 514 } (EF_GI_EXPLOSION, //514: [{}] 'Really Big Circle' vazio em EffectTable.js, sem arte).
+SkillEffect[SK.MO_BALKYOUNG] = {}; //Ki Explosion
 SkillEffect[SK.SA_ELEMENTGROUND] = { effectId: 258 }; //Elemental Change Earth
 SkillEffect[SK.SA_ELEMENTFIRE] = { effectId: 255 }; //Elemental Change Fire
 SkillEffect[SK.SA_ELEMENTWIND] = { effectId: 257 }; //Elemental Change Wind
