@@ -5,6 +5,8 @@ import { fileURLToPath } from 'url';
 import { createRequire } from 'module';
 import { versaoDoCarimbo } from '../../src/Core/versaoDoCliente.js';
 import { apagarVersaoPublicada, escreverVersaoPublicada } from './versaoPublicada.mjs';
+import { conferirCarimboDosWorkers } from './carimboDosWorkers.mjs';
+import { opcoesDoVite } from './opcoesDoVite.mjs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -12,6 +14,13 @@ const require = createRequire(import.meta.url);
 const pkg = JSON.parse(fs.readFileSync(new URL('../../package.json', import.meta.url)));
 
 const startTime = Date.now();
+/*
+ * O CARIMBO DO BUILD: o `?v=` que o api.html cola no `Online.js` e, desde
+ * D-2075 (07/10/2026), o que o `Online.js` cola nos workers que cria. Um so
+ * numero para o principal e os workers - nunca mais um principal novo
+ * conversando com um worker de outro build.
+ */
+const CARIMBO = String(startTime);
 const args = getArgs();
 
 const buildDate = new Date().toISOString().replace(/T/, ' ').replace(/\..+/, '');
@@ -125,60 +134,39 @@ async function compile(appName, isMinify) {
 	}
 
 	try {
-		await build({
-			configFile: false,
-			root: projectRoot,
-			base: './',
-			logLevel: 'warn',
-			resolve: {
-				alias: aliases
-			},
-			// A versao do build no jogo (D-1635): o login a manda ao servidor.
-			define: {
-				__RAGIDLE_VERSAO_DO_BUILD__: JSON.stringify(versaoDoBuild)
-			},
-			worker: {
-				rollupOptions: {
-					output: {
-						entryFileNames: '[name].js'
-					}
-				}
-			},
-			build: {
-				outDir: outDir,
-				emptyOutDir: false,
-				assetsInlineLimit: 1024 * 1024,
-				rollupOptions: {
-					input: entry,
-					output: {
-						format: 'es',
-						entryFileNames: appName + '.js', //Online -> Online.js
-						codeSplitting: false,
-						banner: header
-					},
-					onwarn(warning, warn) {
-						if (warning.code === 'PLUGIN_TIMINGS') {
-							// just appears if vite spending much time to compile css and assets
-							return;
-						}
-						warn(warning);
-					}
-				},
-				minify: isMinify ? 'terser' : false,
-				terserOptions: isMinify
-					? {
-							format: {
-								ascii_only: true,
-								comments: false
-							}
-						}
-					: undefined,
-				// Don't copy public assets for each module build
-				copyPublicDir: false
-			}
-		});
+		await build(
+			opcoesDoVite({
+				projectRoot,
+				entry,
+				outDir,
+				appName,
+				aliases,
+				isMinify,
+				versaoDoBuild,
+				carimbo: CARIMBO,
+				header
+			})
+		);
 
 		console.log(appName + '.js has been created in', Date.now() - startTime, 'ms.');
+		/* D-2075: nenhum script relativo sai sem o carimbo do build, e o jogo
+		   tem de ter os DOIS workers carimbados - "nenhum sem carimbo" num
+		   bundle onde a busca nao achou worker nenhum aprovaria de graca. Vem
+		   ANTES da versao publicada: bundle reprovado nao e anunciado. */
+		try {
+			const carimbados = conferirCarimboDosWorkers(path.resolve(outDir, appName + '.js'), CARIMBO);
+			if (appName === 'Online') {
+				for (const worker of ['ThreadEventHandler.js', 'PathFindingWorker.js']) {
+					if (!carimbados.includes(worker)) {
+						throw new Error(`Online.js: o ${worker} nao saiu com o carimbo ${CARIMBO} (achados: ${carimbados.join(', ') || 'nenhum'}).`);
+					}
+				}
+				console.log('Workers com o carimbo do build (?v=' + CARIMBO + '):', carimbados.join(', '));
+			}
+		} catch (erro) {
+			process.exitCode = 1;
+			throw erro;
+		}
 		if (appName === 'Online') {
 			/* O numero que este build manda no login (D-1635). E ESTE que vai no
 			   RAG_VERSAO_MINIMA_DO_CLIENTE do servidor quando o dono quiser
