@@ -148,4 +148,25 @@ describe('estado do menu do Bot', () => {
 		expect(e.estado().editConfig.raioDePercepcao).toBe(9);
 		expect(e.estado().dirty).toBe(false);
 	});
+
+	it('guarda as pocoes da resposta (Fase 6), como as skills', () => {
+		const { e, resposta } = montar();
+		expect(e.estado().pocoes).toBeNull();
+		const pocoes = [{ itemId: 501, nome: 'Poção Vermelha', hp: true, sp: false, quantidade: 4 }];
+		e.receber(resposta(e.pedirEstado(), { pocoes }), 7);
+		expect(e.estado().pocoes).toEqual(pocoes);
+		// Status sem a lista nao apaga a que ja chegou.
+		e.receber({ ...resposta(null), tipo: 'status', requestId: null, statusRevision: 1, pocoes: undefined }, 7);
+		expect(e.estado().pocoes).toEqual(pocoes);
+	});
+
+	it('os codigos de status da Fase 6 tem frase', () => {
+		const frase = codigo => fraseDoStatus({ codigo, alvo: null });
+		expect(frase('recuperando-hp')).toBe('Recuperando HP');
+		expect(frase('recuperando-sp')).toBe('Recuperando SP');
+		expect(frase('curando')).toBe('Curando');
+		expect(frase('mantendo-buffs')).toBe('Mantendo buffs');
+		expect(frase('descansando')).toBe('Descansando');
+		expect(frase('coletando')).toBe('Coletando itens');
+	});
 });

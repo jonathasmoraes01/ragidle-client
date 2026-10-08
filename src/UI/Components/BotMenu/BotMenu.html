@@ -68,6 +68,95 @@
 					<p class="bm-dica bm-nao-aceitas"></p>
 				</div>
 			</section>
+
+			<!-- SOBREVIVENCIA (Fase 6): pocoes de HP e de SP em ordem de preferencia,
+			     com o limiar de cada eixo, e o descanso (sentar e levantar). -->
+			<section class="bm-secao" data-secao="sobrevivencia" role="tabpanel" hidden>
+				<div class="bm-bloco bm-pocoes" data-eixo="hp">
+					<span class="bm-rotulo">Poções de HP, em ordem de preferência</span>
+					<label class="bm-linha">
+						<span>Beber com HP abaixo de</span>
+						<input type="number" class="bm-limiar" min="0" max="99" step="1" inputmode="numeric" aria-label="Limiar de HP para beber poção">
+						<span>%</span>
+					</label>
+					<ol class="bm-lista-pocoes bm-lista-itens"></ol>
+					<div class="bm-adicionar">
+						<select class="bm-nova-pocao" aria-label="Poção de HP para adicionar"></select>
+						<button type="button" class="bm-add-pocao ri-btn ri-btn--sec">Adicionar</button>
+					</div>
+					<p class="bm-dica bm-sem-pocao" hidden>Nenhuma outra poção de HP na mochila.</p>
+				</div>
+				<div class="bm-bloco bm-pocoes" data-eixo="sp">
+					<span class="bm-rotulo">Poções de SP, em ordem de preferência</span>
+					<label class="bm-linha">
+						<span>Beber com SP abaixo de</span>
+						<input type="number" class="bm-limiar" min="0" max="99" step="1" inputmode="numeric" aria-label="Limiar de SP para beber poção">
+						<span>%</span>
+					</label>
+					<ol class="bm-lista-pocoes bm-lista-itens"></ol>
+					<div class="bm-adicionar">
+						<select class="bm-nova-pocao" aria-label="Poção de SP para adicionar"></select>
+						<button type="button" class="bm-add-pocao ri-btn ri-btn--sec">Adicionar</button>
+					</div>
+					<p class="bm-dica bm-sem-pocao" hidden>Nenhuma outra poção de SP na mochila.</p>
+				</div>
+				<p class="bm-dica">Limiar 0 desliga. O Bot bebe a primeira poção da lista que você tiver.</p>
+				<fieldset class="bm-bloco bm-descanso">
+					<legend class="bm-rotulo">Descanso</legend>
+					<label class="bm-linha">
+						<span>Sentar com HP abaixo de</span>
+						<input type="number" class="bm-sentar-hp" min="0" max="99" step="1" inputmode="numeric">
+						<span>%</span>
+					</label>
+					<label class="bm-linha">
+						<span>Sentar com SP abaixo de</span>
+						<input type="number" class="bm-sentar-sp" min="0" max="99" step="1" inputmode="numeric">
+						<span>%</span>
+					</label>
+					<label class="bm-linha">
+						<span>Levantar ao chegar em</span>
+						<input type="number" class="bm-levantar" min="2" max="100" step="1" inputmode="numeric">
+						<span>%</span>
+					</label>
+					<p class="bm-dica">0 desliga o sentar daquele eixo.</p>
+					<p class="bm-dica bm-aviso bm-descanso-aviso" hidden>"Levantar ao chegar em" precisa ficar acima dos dois limiares de sentar.</p>
+				</fieldset>
+			</section>
+
+			<!-- SUPORTE (Fase 6): buffs mantidos e curas por limiar de HP, em mim ou no grupo. -->
+			<section class="bm-secao" data-secao="suporte" role="tabpanel" hidden>
+				<div class="bm-bloco">
+					<span class="bm-rotulo">Habilidades de suporte, em ordem de preferência</span>
+					<p class="bm-dica">Buff: o Bot renova quando o efeito acaba. Cura: o Bot usa quando o HP cai abaixo do limiar.</p>
+					<ol class="bm-lista-suporte bm-lista-itens"></ol>
+					<div class="bm-adicionar">
+						<select class="bm-novo-suporte" aria-label="Habilidade de suporte para adicionar"></select>
+						<button type="button" class="bm-add-suporte ri-btn ri-btn--sec">Adicionar</button>
+					</div>
+					<p class="bm-dica bm-sem-suporte" hidden>Este personagem não tem habilidades de suporte que o Bot saiba usar.</p>
+				</div>
+			</section>
+
+			<!-- COLETA (Fase 6): pegar itens do chao, o raio e os itens ignorados. -->
+			<section class="bm-secao" data-secao="coleta" role="tabpanel" hidden>
+				<label class="bm-linha">
+					<input type="checkbox" class="bm-coletar">
+					<span>Coletar itens do chão</span>
+				</label>
+				<label class="bm-linha bm-linha--coluna">
+					<span class="bm-rotulo">Raio de coleta <b class="bm-raio-coleta-valor"></b> células</span>
+					<input type="range" class="bm-raio-coleta" step="1">
+				</label>
+				<div class="bm-bloco">
+					<span class="bm-rotulo">Itens ignorados</span>
+					<p class="bm-dica">O Bot não pega estes itens. Informe o número (ID) do item.</p>
+					<ul class="bm-ignorados"></ul>
+					<div class="bm-adicionar">
+						<input type="number" class="bm-novo-ignorado" min="1" step="1" inputmode="numeric" placeholder="ID do item" aria-label="ID do item para ignorar">
+						<button type="button" class="bm-add-ignorado ri-btn ri-btn--sec">Ignorar</button>
+					</div>
+				</div>
+			</section>
 		</div>
 
 		<!-- O RODAPE: Aplicar e Descartar do rascunho, e o recado do servidor. -->

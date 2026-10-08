@@ -55,6 +55,8 @@ export function criarEstadoDoBot({ enviar }) {
 			monstros: [],
 			/** As skills aprendidas com `aceita` (Fase 6); null = servidor sem skills no Bot. */
 			skills: null,
+			/** As pocoes de cura que o personagem tem (Fase 6); null = servidor sem a lista. */
+			pocoes: null,
 			pendenteLigarDesligar: null,
 			pendenteAplicar: false,
 			erro: null,
@@ -187,6 +189,9 @@ export function criarEstadoDoBot({ enviar }) {
 			if (Array.isArray(d.skills)) {
 				s.skills = d.skills;
 			}
+			if (Array.isArray(d.pocoes)) {
+				s.pocoes = d.pocoes;
+			}
 			if (typeof d.statusRevision === 'number' && d.statusRevision >= s.statusRevision) {
 				s.statusRevision = d.statusRevision;
 				s.status = d.status || s.status;
@@ -243,7 +248,13 @@ export const FRASE_DO_STATUS = Object.freeze({
 	sentado: 'Descansando',
 	morto: 'Personagem caído',
 	'alvo-inalcancavel': 'Alvo fora de alcance, procurando outro',
-	'falha-operacional': 'Falha operacional'
+	'falha-operacional': 'Falha operacional',
+	'recuperando-hp': 'Recuperando HP',
+	'recuperando-sp': 'Recuperando SP',
+	curando: 'Curando',
+	'mantendo-buffs': 'Mantendo buffs',
+	descansando: 'Descansando',
+	coletando: 'Coletando itens'
 });
 
 export function fraseDoStatus(status) {

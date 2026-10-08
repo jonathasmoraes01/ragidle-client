@@ -30,12 +30,27 @@ import cssText from './BotMenu.css?raw';
 import { fecharEEsquecer } from '../limpezaDeJanelaIdle.js';
 import { criarEstadoDoBot, fraseDoErro, fraseDoStatus } from './estadoDoBot.js';
 import { desenharEditorDeSkills } from './editorDeSkills.js';
+import { desenharColeta, desenharSobrevivencia, desenharSuporte } from './editorDeManutencao.js';
+import DB from 'DB/DBManager.js';
 import { esquecer as esquecerContexto, marcarObsoleto, receberDoServidor } from 'UI/contextoDoMapa.js';
 
 const WINDOW_WIDTH = 420;
 const WINDOW_HEIGHT = 560;
 
-const NOME_DA_SECAO = Object.freeze({ cacada: 'Caçada', ataque: 'Ataque' });
+const NOME_DA_SECAO = Object.freeze({
+	cacada: 'Caçada',
+	ataque: 'Ataque',
+	sobrevivencia: 'Sobrevivência',
+	suporte: 'Suporte',
+	coleta: 'Coleta'
+});
+
+/** O nome do item que o cliente conhece (a lista de ignorados da coleta); null = desconhecido. */
+function nomeDoItem(itemId) {
+	const it = DB.getItemInfo(itemId);
+	const nome = it && it.identifiedDisplayName;
+	return typeof nome === 'string' && nome && nome !== 'Unknown Item' ? nome : null;
+}
 
 function larguraNaTela() {
 	return Math.min(WINDOW_WIDTH, Math.max(0, Renderer.width - 16));
@@ -305,6 +320,7 @@ function desenhar() {
 				desenhar();
 			}
 		);
+		desenharManutencao(s, c, secoes, lim2);
 	}
 
 	const recado = el('.bm-recado');
@@ -328,6 +344,33 @@ function desenhar() {
 	el('.bm-aplicar').disabled = !s.dirty || s.pendenteAplicar;
 	el('.bm-aplicar').textContent = s.pendenteAplicar ? 'Aplicando...' : 'Aplicar';
 	el('.bm-descartar').disabled = !s.dirty || s.pendenteAplicar;
+}
+
+/** Sobrevivencia, Suporte e Coleta (Fase 6): so desenha a secao que o servidor anunciou. */
+function desenharManutencao(s, c, secoes, lim) {
+	if (secoes.includes('sobrevivencia')) {
+		desenharSobrevivencia(
+			el('[data-secao="sobrevivencia"]'),
+			{ config: c, pocoes: s.pocoes, teto: lim.pocoesPorLista || 6, nomeDoItem },
+			editar
+		);
+	}
+	if (secoes.includes('suporte')) {
+		desenharSuporte(el('[data-secao="suporte"]'), { config: c, skills: s.skills, teto: lim.skillsDeSuporte || 8 }, editar);
+	}
+	if (secoes.includes('coleta')) {
+		desenharColeta(
+			el('[data-secao="coleta"]'),
+			{
+				config: c,
+				teto: lim.itensIgnoradosNaColeta || 300,
+				raioMinimo: lim.raioDeColetaMinimo || 1,
+				raioMaximo: lim.raioDeColetaMaximo || 15,
+				nomeDoItem
+			},
+			editar
+		);
+	}
 }
 
 function desenharMonstros(s, c) {
