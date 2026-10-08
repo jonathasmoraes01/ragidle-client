@@ -63,6 +63,11 @@ export function criarEstadoDoBot({ enviar }) {
 			municao: null,
 			/** O posto de grupo em vigor (Fase 8): `{emGrupo, posto, postoNome}`. */
 			grupo: null,
+			/** Fase 9: os perfis (`{nome, classe, postura}`), o de origem da config e as cidades com Kafra. */
+			perfis: [],
+			perfilAtivo: null,
+			cidades: [],
+			pendentePerfil: false,
 			pendenteLigarDesligar: null,
 			pendenteAplicar: false,
 			erro: null,
@@ -124,6 +129,28 @@ export function criarEstadoDoBot({ enviar }) {
 		retomarMunicao() {
 			s.erro = null;
 			return pedir('retomar-municao');
+		},
+		/** Fase 9, perfis: verbos IMEDIATOS (fora do Aplicar). Aplicar usa a revisao confirmada. */
+		perfilSalvar(nome) {
+			s.pendentePerfil = true;
+			s.erro = null;
+			return pedir('perfil-salvar', { nome });
+		},
+		perfilAplicar(nome) {
+			s.pendentePerfil = true;
+			s.erro = null;
+			s.problemas = [];
+			return pedir('perfil-aplicar', { nome, baseRevision: s.revisao });
+		},
+		perfilRenomear(nome, novoNome) {
+			s.pendentePerfil = true;
+			s.erro = null;
+			return pedir('perfil-renomear', { nome, novoNome });
+		},
+		perfilExcluir(nome) {
+			s.pendentePerfil = true;
+			s.erro = null;
+			return pedir('perfil-excluir', { nome });
 		},
 		/** O jogador mexeu no rascunho. `fn` recebe uma COPIA e devolve a nova. */
 		editar(fn) {
@@ -212,6 +239,22 @@ export function criarEstadoDoBot({ enviar }) {
 			if (d.grupo && typeof d.grupo === 'object') {
 				s.grupo = d.grupo;
 			}
+			if (Array.isArray(d.perfis)) {
+				s.perfis = d.perfis;
+			}
+			if (d.perfilAtivo !== undefined) {
+				s.perfilAtivo = d.perfilAtivo;
+			}
+			if (Array.isArray(d.cidades)) {
+				s.cidades = d.cidades;
+			}
+			if (verbo !== null && verbo.indexOf('perfil-') === 0) {
+				s.pendentePerfil = false;
+				if (!d.ok) {
+					s.erro = d.erro || 'falha';
+					s.problemas = Array.isArray(d.problemas) ? d.problemas : [];
+				}
+			}
 			if (typeof d.statusRevision === 'number' && d.statusRevision >= s.statusRevision) {
 				s.statusRevision = d.statusRevision;
 				s.status = d.status || s.status;
@@ -280,7 +323,22 @@ export const FRASE_DO_STATUS = Object.freeze({
 	'flecha-fixa-indisponivel': 'Flecha escolhida acabou',
 	'alvo-imune': 'Alvo imune ao seu ataque',
 	'seguindo-lider': 'Seguindo o líder',
-	apoiando: 'Apoiando o grupo'
+	apoiando: 'Apoiando o grupo',
+	'indo-ao-armazem': 'Indo ao armazém',
+	'guardando-itens': 'Guardando itens no armazém',
+	comprando: 'Comprando na loja',
+	'voltando-a-caca': 'Voltando à caça',
+	'armazem-indisponivel': 'Armazém indisponível{detalhe}'
+});
+
+/** O motivo curto de `armazem-indisponivel` (o servidor manda o codigo). */
+const DETALHE_DO_ARMAZEM = Object.freeze({
+	'sem-kafra': 'sem Kafra na cidade',
+	'sem-loja': 'a loja não vende o que falta',
+	'viagem-recusada': 'a viagem foi recusada',
+	'sem-zeny': 'zeny insuficiente',
+	'sem-progresso': 'nada mudou, nova tentativa em alguns minutos',
+	'sem-caminho': 'sem caminho até o NPC'
 });
 
 export function fraseDoStatus(status) {
@@ -289,7 +347,8 @@ export function fraseDoStatus(status) {
 	}
 	const modelo = FRASE_DO_STATUS[status.codigo] || FRASE_DO_STATUS['falha-operacional'];
 	const nome = status.alvo && status.alvo.nome ? status.alvo.nome : 'o alvo';
-	return modelo.replace('{alvo}', nome);
+	const detalhe = status.detalhe && DETALHE_DO_ARMAZEM[status.detalhe] ? ': ' + DETALHE_DO_ARMAZEM[status.detalhe] : '';
+	return modelo.replace('{alvo}', nome).replace('{detalhe}', detalhe);
 }
 
 /** As frases de erro do pedido. */
@@ -301,6 +360,16 @@ export function fraseDoErro(erro) {
 			return 'Alguns campos não foram aceitos. Nada foi alterado.';
 		case 'pedido-invalido':
 			return 'O servidor não entendeu o pedido. Nada foi alterado.';
+		case 'nome-invalido':
+			return 'Nome de perfil inválido: use de 1 a 24 caracteres.';
+		case 'nome-repetido':
+			return 'Já existe um perfil com esse nome.';
+		case 'perfil-inexistente':
+			return 'Esse perfil não existe mais.';
+		case 'limite-de-perfis':
+			return 'Limite de perfis atingido. Exclua um para salvar outro.';
+		case 'perfil-invalido':
+			return 'Esse perfil não vale para o personagem agora. Nada foi alterado.';
 		case null:
 		case undefined:
 			return '';

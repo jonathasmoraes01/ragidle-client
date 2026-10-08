@@ -86,6 +86,25 @@
 	font: var(--type-desc);
 	color: var(--text-muted);
 }
+/* Fase 9: o perfil de origem e a postura confirmada, no header. */
+#BotMenu .bm-perfil-ativo {
+	font: var(--type-desc);
+	color: var(--amber-600);
+}
+#BotMenu .bm-perfil.is-ativo .bm-item-nome {
+	font-weight: 700;
+}
+#BotMenu .bm-reserva,
+#BotMenu .bm-repor-minimo,
+#BotMenu .bm-repor-ate {
+	display: inline-flex;
+	align-items: center;
+	gap: var(--sp-1, 4px);
+}
+#BotMenu .bm-reserva input,
+#BotMenu .bm-repor-qtd {
+	width: 64px;
+}
 
 /* ---------- abas (so as secoes com backend) ---------- */
 #BotMenu .bm-abas {

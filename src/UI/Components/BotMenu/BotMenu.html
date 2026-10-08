@@ -15,6 +15,7 @@
 			<div class="bm-estado">
 				<span class="bm-status" role="status" aria-live="polite">Controle manual</span>
 				<span class="bm-mapa" translate="no"></span>
+				<span class="bm-perfil-ativo" translate="no"></span>
 			</div>
 		</div>
 
@@ -177,6 +178,66 @@
 						<input type="number" class="bm-novo-ignorado" min="1" step="1" inputmode="numeric" placeholder="ID do item" aria-label="ID do item para ignorar">
 						<button type="button" class="bm-add-ignorado ri-btn ri-btn--sec">Ignorar</button>
 					</div>
+				</div>
+			</section>
+
+			<!-- ARMAZEM (Fase 9): ida a Kafra e a loja da cidade escolhida, desligada por
+			     padrao. O Bot so guarda os itens da lista e so compra a reposicao. -->
+			<section class="bm-secao" data-secao="armazem" role="tabpanel" hidden>
+				<label class="bm-linha">
+					<input type="checkbox" class="bm-armazem-ligado">
+					<span>Ir ao armazém e repor itens sozinho</span>
+				</label>
+				<label class="bm-linha bm-linha--coluna">
+					<span class="bm-rotulo">Cidade (Kafra e loja)</span>
+					<select class="bm-armazem-cidade" aria-label="Cidade do armazém"></select>
+				</label>
+				<label class="bm-linha">
+					<span>Ir com peso acima de</span>
+					<input type="number" class="bm-armazem-peso" min="0" max="99" step="1" inputmode="numeric" aria-label="Limiar de peso">
+					<span>%</span>
+				</label>
+				<p class="bm-dica">0 desliga o gatilho de peso. A reposição abaixo do mínimo também leva o Bot à cidade.</p>
+				<div class="bm-bloco">
+					<span class="bm-rotulo">Guardar no armazém</span>
+					<p class="bm-dica">Só estes itens. Equipamento vestido e item preso ao personagem nunca vão.</p>
+					<ul class="bm-armazem-depositar bm-lista-itens"></ul>
+					<div class="bm-adicionar">
+						<input type="number" class="bm-novo-deposito" min="1" step="1" inputmode="numeric" placeholder="ID do item" aria-label="ID do item para guardar">
+						<button type="button" class="bm-add-deposito ri-btn ri-btn--sec">Guardar</button>
+					</div>
+				</div>
+				<div class="bm-bloco">
+					<span class="bm-rotulo">Comprar na loja</span>
+					<ul class="bm-armazem-repor bm-lista-itens"></ul>
+					<div class="bm-adicionar">
+						<input type="number" class="bm-nova-reposicao" min="1" step="1" inputmode="numeric" placeholder="ID do item" aria-label="ID do item para repor">
+						<button type="button" class="bm-add-reposicao ri-btn ri-btn--sec">Repor</button>
+					</div>
+				</div>
+				<label class="bm-linha">
+					<span>Gastar no máximo</span>
+					<input type="number" class="bm-armazem-teto" min="0" step="1" inputmode="numeric" aria-label="Teto de gasto por ida">
+					<span>z por ida</span>
+				</label>
+				<label class="bm-linha">
+					<input type="checkbox" class="bm-armazem-voltar">
+					<span>Voltar ao mapa de caça no fim</span>
+				</label>
+			</section>
+
+			<!-- PERFIS (Fase 9): configuracoes nomeadas deste personagem. Salvar guarda a
+			     config CONFIRMADA; usar um perfil nunca liga o Bot. -->
+			<section class="bm-secao" data-secao="perfis" role="tabpanel" hidden>
+				<div class="bm-bloco">
+					<span class="bm-rotulo">Perfis deste personagem</span>
+					<ul class="bm-perfis bm-lista-itens"></ul>
+					<p class="bm-dica bm-sem-perfil" hidden>Nenhum perfil salvo.</p>
+					<div class="bm-adicionar">
+						<input type="text" class="bm-perfil-nome" placeholder="Nome do perfil" aria-label="Nome do perfil">
+						<button type="button" class="bm-perfil-salvar ri-btn ri-btn--sec">Salvar atual</button>
+					</div>
+					<p class="bm-dica">Salvar guarda a configuração já aplicada. Para renomear, digite o nome novo e use Renomear no perfil.</p>
 				</div>
 			</section>
 

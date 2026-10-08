@@ -32,6 +32,7 @@ import { criarEstadoDoBot, fraseDoErro, fraseDoStatus } from './estadoDoBot.js';
 import { desenharEditorDeSkills } from './editorDeSkills.js';
 import { desenharColeta, desenharSobrevivencia, desenharSuporte } from './editorDeManutencao.js';
 import { desenharFlechas } from './editorDeFlechas.js';
+import { desenharArmazem, desenharPerfis } from './editorDeArmazem.js';
 import DB from 'DB/DBManager.js';
 import { esquecer as esquecerContexto, marcarObsoleto, receberDoServidor } from 'UI/contextoDoMapa.js';
 
@@ -45,7 +46,17 @@ const NOME_DA_SECAO = Object.freeze({
 	suporte: 'Suporte',
 	coleta: 'Coleta',
 	flechas: 'Flechas',
-	postura: 'Postura'
+	postura: 'Postura',
+	armazem: 'Armazém',
+	perfis: 'Perfis'
+});
+
+const NOME_CURTO_DA_POSTURA = Object.freeze({
+	tank: 'Tanque',
+	'melee-dps': 'Corpo a corpo',
+	'ranged-dps': 'À distância',
+	'ranged-buff-ataque': 'Suporte e ataque',
+	'ranged-buff': 'Só suporte'
 });
 
 const POSTURA_PADRAO = Object.freeze({ tipo: 'melee-dps', fallbackMelee: false });
@@ -307,6 +318,9 @@ function desenhar() {
 	status.textContent = s.carregado ? fraseDoStatus(s.status) : 'Carregando...';
 	status.classList.toggle('is-suspenso', s.status && s.status.codigo === 'suspenso-manual');
 	el('.bm-mapa').textContent = s.mapa || '';
+	// O header mostra o perfil (de onde veio a config) e a postura confirmada (05 secao 3).
+	const posturaConfirmada = s.serverConfig && s.serverConfig.postura ? NOME_CURTO_DA_POSTURA[s.serverConfig.postura.tipo] : null;
+	el('.bm-perfil-ativo').textContent = [s.perfilAtivo, posturaConfirmada].filter(Boolean).join(' · ');
 
 	const secoes = _estado.secoes();
 	desenharAbas(secoes);
@@ -390,6 +404,33 @@ function desenharManutencao(s, c, secoes, lim) {
 				nomeDoItem
 			},
 			editar
+		);
+	}
+	if (secoes.includes('armazem')) {
+		desenharArmazem(el('[data-secao="armazem"]'), { config: c, cidades: s.cidades, limites: lim, nomeDoItem }, editar);
+	}
+	if (secoes.includes('perfis')) {
+		desenharPerfis(
+			el('[data-secao="perfis"]'),
+			{ perfis: s.perfis, perfilAtivo: s.perfilAtivo, pendente: s.pendentePerfil, nomeMaximo: 24 },
+			{
+				salvar: nome => {
+					_estado.perfilSalvar(nome);
+					desenhar();
+				},
+				aplicar: nome => {
+					_estado.perfilAplicar(nome);
+					desenhar();
+				},
+				renomear: (de, para) => {
+					_estado.perfilRenomear(de, para);
+					desenhar();
+				},
+				excluir: nome => {
+					_estado.perfilExcluir(nome);
+					desenhar();
+				}
+			}
 		);
 	}
 	if (secoes.includes('flechas')) {
