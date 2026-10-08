@@ -264,6 +264,22 @@
 	color: var(--text-title);
 	text-decoration: underline;
 }
+/* "Lembrar usuario" e "Esqueci minha senha" na mesma linha (08/10/2026). */
+.wl-opcoes {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	flex-wrap: wrap;
+	gap: 0 var(--sp-4);
+	margin-block: calc(-1 * var(--sp-4));
+}
+.wl-opcoes .wl-save {
+	margin-block: 0;
+}
+.wl-esqueci {
+	padding: 0;
+	font: var(--type-info);
+}
 .wl-replay {
 	align-self: center;
 	font: var(--type-info);

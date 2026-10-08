@@ -75,7 +75,8 @@ export async function enviarCadastro(dados, buscar = fetch) {
  * @returns {{ abrir: () => void, fechar: () => void, aberta: () => boolean, enviar: () => void, janela: HTMLElement } | null}
  */
 export function montarCadastroNaEntrada(root, { aoEntrar }) {
-	const modal = root.querySelector('.cad');
+	// `:not(.esq)`: a janela de "esqueci minha senha" usa a mesma pele `.cad`.
+	const modal = root.querySelector('.cad:not(.esq)');
 	if (!modal) return null;
 
 	const janela = modal.querySelector('.cad-janela');
