@@ -61,6 +61,8 @@ export function criarEstadoDoBot({ enviar }) {
 			municoes: null,
 			/** A situacao da escolha de flecha (Fase 7): `{vip, manual, tetoAutomatico}`. */
 			municao: null,
+			/** O posto de grupo em vigor (Fase 8): `{emGrupo, posto, postoNome}`. */
+			grupo: null,
 			pendenteLigarDesligar: null,
 			pendenteAplicar: false,
 			erro: null,
@@ -207,6 +209,9 @@ export function criarEstadoDoBot({ enviar }) {
 			if (d.municao && typeof d.municao === 'object') {
 				s.municao = d.municao;
 			}
+			if (d.grupo && typeof d.grupo === 'object') {
+				s.grupo = d.grupo;
+			}
 			if (typeof d.statusRevision === 'number' && d.statusRevision >= s.statusRevision) {
 				s.statusRevision = d.statusRevision;
 				s.status = d.status || s.status;
@@ -273,7 +278,9 @@ export const FRASE_DO_STATUS = Object.freeze({
 	'preparando-municao': 'Trocando de flecha',
 	'sem-municao-compativel': 'Sem flecha que fira o alvo',
 	'flecha-fixa-indisponivel': 'Flecha escolhida acabou',
-	'alvo-imune': 'Alvo imune ao seu ataque'
+	'alvo-imune': 'Alvo imune ao seu ataque',
+	'seguindo-lider': 'Seguindo o líder',
+	apoiando: 'Apoiando o grupo'
 });
 
 export function fraseDoStatus(status) {

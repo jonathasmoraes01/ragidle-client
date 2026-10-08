@@ -44,8 +44,20 @@ const NOME_DA_SECAO = Object.freeze({
 	sobrevivencia: 'Sobrevivência',
 	suporte: 'Suporte',
 	coleta: 'Coleta',
-	flechas: 'Flechas'
+	flechas: 'Flechas',
+	postura: 'Postura'
 });
+
+const POSTURA_PADRAO = Object.freeze({ tipo: 'melee-dps', fallbackMelee: false });
+
+/** O bloco `postura` da config (Fase 8); ausente (servidor velho) = o padrao. */
+function lerPostura(c) {
+	const p = (c && c.postura) || {};
+	return {
+		tipo: typeof p.tipo === 'string' ? p.tipo : POSTURA_PADRAO.tipo,
+		fallbackMelee: typeof p.fallbackMelee === 'boolean' ? p.fallbackMelee : POSTURA_PADRAO.fallbackMelee
+	};
+}
 
 /** O nome do item que o cliente conhece (a lista de ignorados da coleta); null = desconhecido. */
 function nomeDoItem(itemId) {
@@ -149,6 +161,12 @@ BotMenu.init = function init() {
 		r.addEventListener('change', e => editar(c => ({ ...c, modoDeAtaque: e.target.value })))
 	);
 	el('.bm-monstros').addEventListener('click', onClickMonstro);
+	root.querySelectorAll('input[name="bm-postura"]').forEach(r =>
+		r.addEventListener('change', e => editar(c => ({ ...c, postura: { ...lerPostura(c), tipo: e.target.value } })))
+	);
+	el('.bm-fallback').addEventListener('change', e =>
+		editar(c => ({ ...c, postura: { ...lerPostura(c), fallbackMelee: e.target.checked } }))
+	);
 	// Tecla dentro da janela nao vira atalho do jogo nem ESC da pilha por acidente.
 	el('.bm-corpo').addEventListener('keydown', e => e.stopPropagation());
 	this._host.style.top = Math.max(0, (Renderer.height - alturaNaTela()) / 2) + 'px';
@@ -306,6 +324,7 @@ function desenhar() {
 			r.checked = r.value === c.modoDeAtaque;
 		});
 		desenharMonstros(s, c);
+		desenharPostura(s, c);
 		const lim2 = (s.capacidades && s.capacidades.limites) || {};
 		desenharEditorDeSkills(
 			el('[data-secao="ataque"]'),
@@ -392,6 +411,21 @@ function desenharManutencao(s, c, secoes, lim) {
 			}
 		);
 	}
+}
+
+/** A aba Postura (Fase 8): a postura do rascunho, o fallback (so no Dano a distancia) e o posto em vigor. */
+function desenharPostura(s, c) {
+	const p = lerPostura(c);
+	_root()
+		.querySelectorAll('input[name="bm-postura"]')
+		.forEach(r => {
+			r.checked = r.value === p.tipo;
+		});
+	el('.bm-fallback').checked = p.fallbackMelee;
+	el('.bm-fallback-melee').hidden = p.tipo !== 'ranged-dps';
+	const g = s.grupo;
+	el('.bm-posto-atual').textContent =
+		g && g.emGrupo ? 'Posto em vigor: ' + g.postoNome + '.' : 'Sem grupo: o Bot caça sozinho (Andarilho).';
 }
 
 function desenharMonstros(s, c) {

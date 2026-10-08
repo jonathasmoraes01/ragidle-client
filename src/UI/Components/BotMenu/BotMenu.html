@@ -69,6 +69,28 @@
 				</div>
 			</section>
 
+			<!-- POSTURA (Fase 8): como o Bot combate. O posto de grupo (cooperacao) e
+			     escolhido na janela Grupo; aqui ele so aparece, com a regra de combinacao. -->
+			<section class="bm-secao" data-secao="postura" role="tabpanel" hidden>
+				<fieldset class="bm-bloco">
+					<legend class="bm-rotulo">Postura de batalha</legend>
+					<label class="bm-linha"><input type="radio" name="bm-postura" value="tank"><span>Tanque: protege o grupo, prefere quem ataca aliados</span></label>
+					<label class="bm-linha"><input type="radio" name="bm-postura" value="melee-dps"><span>Dano corpo a corpo: aproxima e ataca</span></label>
+					<label class="bm-linha"><input type="radio" name="bm-postura" value="ranged-dps"><span>Dano à distância: ataca de longe</span></label>
+					<label class="bm-linha"><input type="radio" name="bm-postura" value="ranged-buff-ataque"><span>Suporte e ataque: cura e buffs primeiro, depois ataca</span></label>
+					<label class="bm-linha"><input type="radio" name="bm-postura" value="ranged-buff"><span>Só suporte: cura e buffs, nunca ataca</span></label>
+				</fieldset>
+				<label class="bm-linha bm-fallback-melee">
+					<input type="checkbox" class="bm-fallback">
+					<span>Usar o ataque corpo a corpo quando o ataque de longe não estiver disponível</span>
+				</label>
+				<div class="bm-bloco">
+					<span class="bm-rotulo">Posto no grupo</span>
+					<p class="bm-dica bm-posto-atual"></p>
+					<p class="bm-dica">O posto é escolhido na janela Grupo. A postura vem antes do posto: no "Só suporte" o Bot nunca ataca, qualquer que seja o posto.</p>
+				</div>
+			</section>
+
 			<!-- SOBREVIVENCIA (Fase 6): pocoes de HP e de SP em ordem de preferencia,
 			     com o limiar de cada eixo, e o descanso (sentar e levantar). -->
 			<section class="bm-secao" data-secao="sobrevivencia" role="tabpanel" hidden>
