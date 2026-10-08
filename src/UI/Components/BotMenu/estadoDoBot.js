@@ -65,6 +65,10 @@ export function criarEstadoDoBot({ enviar }) {
 			municao: null,
 			/** O posto de grupo em vigor (Fase 8): `{emGrupo, posto, postoNome}`. */
 			grupo: null,
+			/** D3: as pocoes de velocidade (`buffs`) e a Asa de Mosca (`asa`) que o jogador pode escolher; null = servidor sem a aba. */
+			consumiveis: null,
+			/** D4: o diagnostico do ultimo `pedir` (`{status, sessao}`); null = nunca pediu ou servidor sem a aba. */
+			diagnostico: null,
 			/** Fase 9: os perfis (`{nome, classe, postura}`), o de origem da config e as cidades com Kafra. */
 			perfis: [],
 			perfilAtivo: null,
@@ -257,6 +261,13 @@ export function criarEstadoDoBot({ enviar }) {
 			if (d.municao && typeof d.municao === 'object') {
 				s.municao = d.municao;
 			}
+			if (d.consumiveis && typeof d.consumiveis === 'object') {
+				s.consumiveis = d.consumiveis;
+			}
+			// O diagnostico so vem na RESPOSTA ao `pedir` (o status nao o leva): guarda o ultimo recebido.
+			if (d.diagnostico && typeof d.diagnostico === 'object') {
+				s.diagnostico = d.diagnostico;
+			}
 			if (d.grupo && typeof d.grupo === 'object') {
 				s.grupo = d.grupo;
 			}
@@ -361,8 +372,61 @@ export const FRASE_DO_STATUS = Object.freeze({
 	'guardando-itens': 'Guardando itens no armazém',
 	comprando: 'Comprando na loja',
 	'voltando-a-caca': 'Voltando à caça',
-	'armazem-indisponivel': 'Armazém indisponível{detalhe}'
+	'armazem-indisponivel': 'Armazém indisponível{detalhe}',
+	'mantendo-pocao-de-velocidade': 'Bebendo poção de velocidade',
+	'usando-asa-de-mosca': 'Usando Asa de Mosca'
 });
+
+/**
+ * A EXPLICACAO de cada status em frase de jogador (aba Avancado, D4-A3): por que o Bot esta fazendo ou nao
+ * fazendo algo. Nunca id, nome interno ou arquitetura. `{alvo}` entra como na frase curta.
+ */
+export const EXPLICACAO_DO_STATUS = Object.freeze({
+	'controle-manual': 'O Bot está desligado: você controla o personagem. Ligue o Auto Caça para ele voltar a agir.',
+	'suspenso-manual': 'Você mexeu no personagem, então o Bot esperou. Ele retoma sozinho quando você parar.',
+	'procurando-alvo': 'O Bot está olhando em volta e ainda não escolheu um monstro.',
+	'indo-ate-alvo': 'O Bot escolheu {alvo} e está andando até ele.',
+	atacando: 'O Bot está lutando contra {alvo}.',
+	'sem-alvo-valido':
+		'Nenhum monstro ao alcance serve agora: estão ignorados por você, fora do raio de busca, em luta com outro jogador ou escolhidos por outro Bot. Aumente o raio, revise os monstros ignorados ou mude de mapa.',
+	'sem-acao-viavel':
+		'Há monstros, mas o Bot não tem um ataque possível agora: falta SP ou flecha, ou você deixou "Só habilidades" sem nenhuma habilidade que sirva.',
+	'caca-desligada': 'A caça está desligada na configuração: o Bot só mantém o que você pediu (poções, buffs, consumíveis).',
+	sentado: 'O personagem está sentado, descansando.',
+	morto: 'O personagem caiu. O Bot espera ele voltar.',
+	'alvo-inalcancavel': 'O monstro escolhido não tem caminho até ele. O Bot tenta outro.',
+	'falha-operacional': 'O Bot teve um problema e tenta de novo no próximo ciclo. Se repetir, desligue e ligue o Auto Caça.',
+	'recuperando-hp': 'A vida ficou abaixo do limite que você escolheu, então o Bot bebeu uma poção.',
+	'recuperando-sp': 'O SP ficou abaixo do limite que você escolheu, então o Bot bebeu uma poção.',
+	curando: 'Alguém ficou abaixo do limite de cura que você escolheu e o Bot usou uma habilidade de cura.',
+	'mantendo-buffs': 'Um buff acabou e o Bot o renovou.',
+	descansando: 'O personagem sentou para recuperar HP ou SP, como você pediu.',
+	coletando: 'O Bot está indo pegar um item do chão.',
+	'preparando-municao': 'O Bot está trocando para a flecha que fere mais este monstro.',
+	'sem-municao-compativel': 'Nenhuma flecha da mochila fere este monstro. O Bot procura outro alvo.',
+	'flecha-fixa-indisponivel': 'A flecha que você escolheu como fixa acabou. O Bot não troca por outra sozinho.',
+	'alvo-imune': 'Este monstro é imune ao ataque que você tem agora. O Bot procura outro alvo.',
+	'seguindo-lider': 'O Bot está seguindo o líder do grupo, como o seu posto pede.',
+	apoiando: 'O Bot está apoiando o grupo (buffs e curas) sem atacar, como a sua postura pede.',
+	'indo-ao-armazem': 'A mochila pesou ou o estoque baixou, então o Bot está indo à cidade que você escolheu.',
+	'guardando-itens': 'O Bot está guardando no armazém os itens que você autorizou.',
+	comprando: 'O Bot está comprando na loja o que você pediu para repor.',
+	'voltando-a-caca': 'O Bot terminou na cidade e está voltando ao mapa de caça.',
+	'armazem-indisponivel': 'O Bot não conseguiu fazer a ida ao armazém{detalhe}. Ele tenta de novo depois de um tempo.',
+	'mantendo-pocao-de-velocidade': 'A poção de velocidade acabou de valer e o Bot bebeu a próxima da lista.',
+	'usando-asa-de-mosca': 'Um dos gatilhos da Asa de Mosca disparou e o Bot a usou para mudar de lugar.'
+});
+
+/** A explicacao do status, com o alvo e o detalhe no lugar. */
+export function explicacaoDoStatus(status) {
+	if (!status) {
+		return EXPLICACAO_DO_STATUS['controle-manual'];
+	}
+	const modelo = EXPLICACAO_DO_STATUS[status.codigo] || EXPLICACAO_DO_STATUS['falha-operacional'];
+	const nome = status.alvo && status.alvo.nome ? status.alvo.nome : 'o alvo';
+	const detalhe = status.detalhe && DETALHE_DO_ARMAZEM[status.detalhe] ? ': ' + DETALHE_DO_ARMAZEM[status.detalhe] : '';
+	return modelo.replace('{alvo}', nome).replace('{detalhe}', detalhe);
+}
 
 /** O motivo curto de `armazem-indisponivel` (o servidor manda o codigo). */
 const DETALHE_DO_ARMAZEM = Object.freeze({

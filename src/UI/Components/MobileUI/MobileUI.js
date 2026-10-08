@@ -30,6 +30,7 @@ import htmlText from './MobileUI.html?raw';
 import cssText from './MobileUI.css?raw';
 import glMatrix from 'Vendors/gl-matrix.js';
 import Camera from 'Renderer/Camera.js';
+import { aoMudarAPilha, janelaCobreAHud } from 'UI/pilhaDeJanelas.js';
 import _KEYS from 'Controls/KeyEventHandler.js'; // Currently unused, preserved for future development
 
 /** `CELL_CHKNOPASS` do mapa carregado, para o teto do andar (lote 5). */
@@ -136,6 +137,21 @@ function bindButton(root, selector, handler) {
  */
 MobileUI.init = function init() {
 	const root = MobileUI.getRoot();
+
+	/*
+	 * O MARTELO SAI DE CIMA DAS JANELAS DE TELA CHEIA (decisao D13, 08/10/2026; V-09 da sonda de tela do QA
+	 * final): no celular em pe a janela vira folha e o martelo (z-index 1000) ficava sobre o canto do titulo.
+	 * Esconde enquanto uma janela cobre a HUD; volta quando a ultima fecha (ou o aparelho gira).
+	 */
+	const martelo = root.querySelector('#toggleUIButton');
+	if (martelo) {
+		const sincronizarOMartelo = () => {
+			martelo.style.display = janelaCobreAHud() ? 'none' : '';
+		};
+		aoMudarAPilha(sincronizarOMartelo);
+		window.addEventListener('resize', sincronizarOMartelo);
+		sincronizarOMartelo();
+	}
 
 	bindButton(root, '#toggleUIButton', e => {
 		toggleButtons();

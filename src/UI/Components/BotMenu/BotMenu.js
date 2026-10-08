@@ -33,6 +33,7 @@ import { desenharEditorDeSkills } from './editorDeSkills.js';
 import { desenharColeta, desenharSobrevivencia, desenharSuporte } from './editorDeManutencao.js';
 import { desenharFlechas } from './editorDeFlechas.js';
 import { desenharArmazem, desenharPerfis } from './editorDeArmazem.js';
+import { desenharAvancado, desenharConsumiveis } from './editorDeConsumiveis.js';
 import { desenharPorSkill } from './editorPorSkill.js';
 import RiIcones from 'UI/ri-icones.js';
 import { aplicarIconeDoItem } from 'UI/itemNaTela.js';
@@ -48,7 +49,7 @@ const WINDOW_HEIGHT = 720;
  * emblema do cabecalho (arte real `/ragidle/ui-icons/` quando ha uma que diga a mesma coisa; senao o
  * glifo). `flechas` NAO e aba: e o cartao dentro de Ataque. Secao sem backend nao entra na barra.
  */
-const ORDEM_DAS_SECOES = Object.freeze(['cacada', 'ataque', 'suporte', 'sobrevivencia', 'coleta', 'postura', 'armazem', 'perfis']);
+const ORDEM_DAS_SECOES = Object.freeze(['cacada', 'ataque', 'suporte', 'sobrevivencia', 'consumiveis', 'coleta', 'postura', 'armazem', 'perfis', 'avancado']);
 
 const NOME_DA_SECAO = Object.freeze({
 	cacada: 'Caçada',
@@ -58,7 +59,9 @@ const NOME_DA_SECAO = Object.freeze({
 	coleta: 'Coleta',
 	postura: 'Grupo',
 	armazem: 'Armazém',
-	perfis: 'Perfis'
+	perfis: 'Perfis',
+	consumiveis: 'Consumíveis',
+	avancado: 'Avançado'
 });
 
 const SUB_DA_SECAO = Object.freeze({
@@ -69,7 +72,9 @@ const SUB_DA_SECAO = Object.freeze({
 	coleta: 'Coleta de itens',
 	postura: 'Postura e cooperação',
 	armazem: 'Armazém e reposição',
-	perfis: 'Salvar e carregar'
+	perfis: 'Salvar e carregar',
+	consumiveis: 'Poções e Asa de Mosca',
+	avancado: 'O que o Bot está fazendo'
 });
 
 const GLIFO_DA_SECAO = Object.freeze({
@@ -80,7 +85,9 @@ const GLIFO_DA_SECAO = Object.freeze({
 	coleta: 'botColeta',
 	postura: 'botGrupo',
 	armazem: 'botArmazem',
-	perfis: 'botPerfil'
+	perfis: 'botPerfil',
+	consumiveis: 'botConsumiveis',
+	avancado: 'botAvancado'
 });
 
 const EMBLEMA_DA_SECAO = Object.freeze({
@@ -99,7 +106,9 @@ const TITULO_DA_SECAO = Object.freeze({
 	coleta: ['Configurações de Coleta', 'Pegar os itens do chão dentro do raio, menos os ignorados.'],
 	postura: ['Postura e Grupo', 'Como o Bot combate e como ele coopera com o grupo.'],
 	armazem: ['Armazém e Reposição', 'Ida à Kafra e à loja da cidade quando o peso ou o estoque pedem.'],
-	perfis: ['Perfis', 'Configurações nomeadas deste personagem. Usar um perfil nunca liga o Bot.']
+	perfis: ['Perfis', 'Configurações nomeadas deste personagem. Usar um perfil nunca liga o Bot.'],
+	consumiveis: ['Consumíveis', 'Poções de velocidade mantidas e a Asa de Mosca automática (benefício VIP). Tudo desligado por padrão.'],
+	avancado: ['Avançado', 'Por que o Bot está fazendo, ou não, o que você vê, e o que ele fez nesta sessão.']
 });
 
 /** A aba de Ataque mostrada (Geral, Por Skill, Por Monstro): so desta tela. */
@@ -426,6 +435,32 @@ function desenharCabecalhoDaSecao(atual) {
 	}
 }
 
+/**
+ * A ATUALIZACAO DO AVANCADO (D4-A3): o diagnostico so vem na RESPOSTA ao `pedir` (o status nao o leva), entao
+ * a aba o pede ao abrir e a cada 5 s enquanto estiver visivel e a janela aberta. Parada fora disso.
+ */
+const PERIODO_DO_AVANCADO_MS = 5000;
+let _relogioDoAvancado = null;
+
+function sincronizarAtualizacaoDoAvancado(secoes) {
+	const visivel = secoes.includes('avancado') && abaAtual(secoes) === 'avancado' && el('.bm-window').classList.contains('is-open');
+	if (!visivel) {
+		if (_relogioDoAvancado !== null) {
+			clearInterval(_relogioDoAvancado);
+			_relogioDoAvancado = null;
+		}
+		return;
+	}
+	if (_relogioDoAvancado === null) {
+		_estado.pedirEstado();
+		_relogioDoAvancado = setInterval(() => {
+			if (_estado.estado().carregado) {
+				_estado.pedirEstado();
+			}
+		}, PERIODO_DO_AVANCADO_MS);
+	}
+}
+
 function desenhar() {
 	const root = _root();
 	if (!root) {
@@ -452,6 +487,7 @@ function desenhar() {
 
 	const secoes = _estado.secoes();
 	desenharAbas(secoes);
+	sincronizarAtualizacaoDoAvancado(secoes);
 
 	const c = s.editConfig;
 	if (c) {
@@ -638,6 +674,16 @@ function desenharManutencao(s, c, secoes, lim) {
 			},
 			editar
 		);
+	}
+	if (secoes.includes('consumiveis')) {
+		desenharConsumiveis(
+			el('[data-secao="consumiveis"]'),
+			{ config: c, consumiveis: s.consumiveis, limites: lim, iconeDoItem: aplicarIconeDoItem },
+			editar
+		);
+	}
+	if (secoes.includes('avancado')) {
+		desenharAvancado(el('[data-secao="avancado"]'), { status: s.status, diagnostico: s.diagnostico, ligado: s.ligado });
 	}
 	if (secoes.includes('perfis')) {
 		desenharPerfis(

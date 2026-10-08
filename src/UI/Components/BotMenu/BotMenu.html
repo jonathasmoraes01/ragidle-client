@@ -330,6 +330,75 @@
 						</div>
 					</section>
 
+					<!-- CONSUMIVEIS (D3-C1): pocoes de velocidade mantidas e a Asa de Mosca automatica; tudo desligado por padrao. -->
+					<section class="bm-secao" data-secao="consumiveis" role="tabpanel" hidden>
+						<div class="bm-cartao-secao bm-bloco">
+							<label class="bm-linha">
+								<input type="checkbox" class="bm-buffs-ligado">
+								<span>Manter poções de velocidade ativas</span>
+							</label>
+							<p class="bm-dica">O Bot bebe a poção marcada quando o efeito acaba, na ordem da lista, e nunca com o efeito ainda valendo. Só vale com o Auto Caça ligado.</p>
+							<ul class="bm-buffs-lista bm-lista-itens"></ul>
+							<p class="bm-dica bm-buffs-vazio" hidden>Nenhuma poção de velocidade na mochila.</p>
+						</div>
+						<div class="bm-cartao-secao bm-bloco">
+							<span class="bm-rotulo">Asa de Mosca automática <b class="bm-asa-quantidade-rotulo">(<span class="bm-asa-quantidade">0</span> na mochila)</b></span>
+							<p class="bm-dica bm-aviso bm-asa-sem-vip" hidden>A Asa automática é benefício VIP. Sem o passe VIP ela não dispara; você continua usando a Asa à mão.</p>
+							<label class="bm-linha">
+								<input type="checkbox" class="bm-asa-ligada">
+								<span>Usar a Asa de Mosca sozinho para mudar de lugar</span>
+							</label>
+							<div class="bm-linha bm-gatilho-hp">
+								<input type="checkbox" aria-label="Gatilho: vida baixa">
+								<span>Vida abaixo de</span>
+								<input type="number" step="1" inputmode="numeric" aria-label="Vida abaixo de, em por cento">
+								<span>%</span>
+							</div>
+							<div class="bm-linha bm-gatilho-cercado">
+								<input type="checkbox" aria-label="Gatilho: cercado">
+								<span>Cercado por</span>
+								<input type="number" step="1" inputmode="numeric" aria-label="Cercado por quantos monstros">
+								<span>monstros</span>
+							</div>
+							<div class="bm-linha bm-gatilho-sem-alvo">
+								<input type="checkbox" aria-label="Gatilho: sem alvo">
+								<span>Sem alvo por</span>
+								<input type="number" step="1" inputmode="numeric" aria-label="Sem alvo por quantos segundos">
+								<span>segundos</span>
+							</div>
+							<label class="bm-linha">
+								<span>Guardar</span>
+								<input type="number" class="bm-asa-reserva" min="0" step="1" inputmode="numeric" aria-label="Asas que o Bot nunca usa">
+								<span>asas que o Bot nunca usa</span>
+							</label>
+							<p class="bm-dica">A Asa ligada precisa de ao menos um gatilho. Cada gatilho que você deixar desmarcado fica desligado.</p>
+						</div>
+					</section>
+
+					<!-- AVANCADO (D4-A3): o que o Bot esta fazendo e os contadores da sessao. So leitura. -->
+					<section class="bm-secao" data-secao="avancado" role="tabpanel" hidden>
+						<div class="bm-cartao-secao bm-bloco">
+							<span class="bm-rotulo">O que o Bot está fazendo agora</span>
+							<p class="bm-diag-status"></p>
+							<p class="bm-dica bm-diag-explicacao"></p>
+						</div>
+						<div class="bm-cartao-secao bm-bloco">
+							<span class="bm-rotulo">Nesta sessão</span>
+							<p class="bm-dica bm-diag-aguardando">Carregando...</p>
+							<div class="bm-diag-sessao" hidden>
+								<p class="bm-dica bm-diag-tempo"></p>
+								<ul class="bm-diag-contadores">
+									<li><span>Monstros derrotados</span> <b class="bm-diag-abates">0</b></li>
+									<li><span>Poções de cura usadas</span> <b class="bm-diag-pocoes">0</b></li>
+									<li><span>Trocas de flecha</span> <b class="bm-diag-flechas">0</b></li>
+									<li><span>Asas de Mosca usadas</span> <b class="bm-diag-asas">0</b></li>
+									<li><span>Poções de velocidade bebidas</span> <b class="bm-diag-buffs">0</b></li>
+								</ul>
+							</div>
+							<p class="bm-dica">A contagem recomeça cada vez que você liga o Auto Caça. Atualiza sozinha a cada poucos segundos enquanto esta aba está aberta.</p>
+						</div>
+					</section>
+
 					<!-- PERFIS (Fase 9): configuracoes nomeadas deste personagem; usar nunca liga o Bot. -->
 					<section class="bm-secao" data-secao="perfis" role="tabpanel" hidden>
 						<div class="bm-cartao-secao bm-bloco">

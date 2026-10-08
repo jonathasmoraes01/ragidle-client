@@ -787,6 +787,39 @@
 	flex: 0 0 auto;
 }
 
+/* CONSUMIVEIS (D3-C1) e AVANCADO (D4-A3). */
+#BotMenu .bm-buff.is-indisponivel {
+	opacity: 0.7;
+}
+#BotMenu .bm-buff-nota {
+	margin-left: auto;
+}
+#BotMenu .bm-linha input[type='number'] {
+	width: 4.5em;
+	min-width: 0;
+}
+#BotMenu .bm-aviso.bm-asa-sem-vip {
+	margin: 0;
+}
+#BotMenu .bm-diag-status {
+	margin: 0;
+	font: var(--type-info);
+	font-weight: var(--fw-bold);
+}
+#BotMenu .bm-diag-contadores {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+	display: flex;
+	flex-direction: column;
+	gap: var(--sp-2);
+}
+#BotMenu .bm-diag-contadores li {
+	display: flex;
+	justify-content: space-between;
+	gap: var(--sp-3);
+}
+
 /* O SELETOR DE ITEM (correcoes pos-QA, 08/10/2026; 05 secao 3): escolher pelo nome e pelo icone, sem ID. */
 #BotMenu .bm-seletor-bloco {
 	display: flex;
