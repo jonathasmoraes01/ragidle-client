@@ -41,6 +41,8 @@ export function criarEstadoDoBot({ enviar }) {
 		return {
 			personagemId: null,
 			mapa: null,
+			/** O contexto do mapa (`{mapa, rotuloDoMapa, ehCidade}`); null = servidor sem o campo. */
+			contexto: null,
 			carregado: false,
 			serverConfig: null,
 			revisao: 0,
@@ -70,6 +72,8 @@ export function criarEstadoDoBot({ enviar }) {
 			pendentePerfil: false,
 			pendenteLigarDesligar: null,
 			pendenteAplicar: false,
+			/** "Salvar e Iniciar": o ON espera a confirmacao do Aplicar (aplicar recusado nao liga). */
+			ligarAposAplicar: false,
 			erro: null,
 			problemas: [],
 			conflito: false,
@@ -172,6 +176,20 @@ export function criarEstadoDoBot({ enviar }) {
 			s.erro = null;
 			return pedir('aplicar', { baseRevision: s.baseRevision, config: clonar(s.editConfig) });
 		},
+		/**
+		 * "Salvar e Iniciar": com rascunho, aplica e SO liga quando o servidor aceitar; sem rascunho,
+		 * liga direto (ON usa a config confirmada). Aplicar recusado nao liga e mantem o rascunho.
+		 */
+		aplicarELigar() {
+			if (s.pendenteAplicar || s.pendenteLigarDesligar !== null || s.editConfig === null) {
+				return null;
+			}
+			if (!s.dirty) {
+				return s.ligado ? null : api.ligar();
+			}
+			s.ligarAposAplicar = true;
+			return api.aplicar();
+		},
 		descartar() {
 			s.editConfig = clonar(s.serverConfig);
 			s.baseRevision = s.revisao;
@@ -219,6 +237,9 @@ export function criarEstadoDoBot({ enviar }) {
 			}
 			s.personagemId = d.personagemId;
 			s.mapa = d.mapa;
+			if (d.contexto && typeof d.contexto === 'object') {
+				s.contexto = d.contexto;
+			}
 			s.carregado = true;
 			s.capacidades = d.capacidades || s.capacidades;
 			if (Array.isArray(d.monstros)) {
@@ -268,8 +289,11 @@ export function criarEstadoDoBot({ enviar }) {
 					s.erro = d.erro || 'falha';
 				}
 			}
+			let ligarAgora = false;
 			if (verbo === 'aplicar') {
 				s.pendenteAplicar = false;
+				ligarAgora = s.ligarAposAplicar && !!d.ok && !d.ligado;
+				s.ligarAposAplicar = false;
 				if (d.ok) {
 					s.dirty = false;
 					s.editConfig = null; // a de servidor entra limpa logo abaixo
@@ -283,6 +307,9 @@ export function criarEstadoDoBot({ enviar }) {
 			}
 			if (d.config && typeof d.revisao === 'number') {
 				aceitarConfigDoServidor(d.config, d.revisao);
+			}
+			if (ligarAgora) {
+				api.ligar();
 			}
 			return true;
 		},

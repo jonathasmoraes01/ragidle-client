@@ -33,11 +33,21 @@ import { desenharEditorDeSkills } from './editorDeSkills.js';
 import { desenharColeta, desenharSobrevivencia, desenharSuporte } from './editorDeManutencao.js';
 import { desenharFlechas } from './editorDeFlechas.js';
 import { desenharArmazem, desenharPerfis } from './editorDeArmazem.js';
+import { desenharPorSkill } from './editorPorSkill.js';
+import RiIcones from 'UI/ri-icones.js';
+import { aplicarIconeDoItem } from 'UI/itemNaTela.js';
 import DB from 'DB/DBManager.js';
 import { esquecer as esquecerContexto, marcarObsoleto, receberDoServidor } from 'UI/contextoDoMapa.js';
 
-const WINDOW_WIDTH = 420;
-const WINDOW_HEIGHT = 560;
+const WINDOW_WIDTH = 980;
+const WINDOW_HEIGHT = 720;
+
+/*
+ * AS SECOES NA BARRA LATERAL, na ordem do mockup do dono (08/10/2026): nome, subtitulo, glifo e o
+ * emblema do cabecalho (arte real `/ragidle/ui-icons/` quando ha uma que diga a mesma coisa; senao o
+ * glifo). `flechas` NAO e aba: e o cartao dentro de Ataque. Secao sem backend nao entra na barra.
+ */
+const ORDEM_DAS_SECOES = Object.freeze(['cacada', 'ataque', 'suporte', 'sobrevivencia', 'coleta', 'postura', 'armazem', 'perfis']);
 
 const NOME_DA_SECAO = Object.freeze({
 	cacada: 'Caçada',
@@ -45,11 +55,54 @@ const NOME_DA_SECAO = Object.freeze({
 	sobrevivencia: 'Sobrevivência',
 	suporte: 'Suporte',
 	coleta: 'Coleta',
-	flechas: 'Flechas',
-	postura: 'Postura',
+	postura: 'Grupo',
 	armazem: 'Armazém',
 	perfis: 'Perfis'
 });
+
+const SUB_DA_SECAO = Object.freeze({
+	cacada: 'Mapas e monstros',
+	ataque: 'Skills e comportamento',
+	suporte: 'Buffs e cura',
+	sobrevivencia: 'Poções e HP/SP',
+	coleta: 'Coleta de itens',
+	postura: 'Postura e cooperação',
+	armazem: 'Armazém e reposição',
+	perfis: 'Salvar e carregar'
+});
+
+const GLIFO_DA_SECAO = Object.freeze({
+	cacada: 'botAlvo',
+	ataque: 'botEspadas',
+	suporte: 'botSuporte',
+	sobrevivencia: 'botCoracao',
+	coleta: 'botColeta',
+	postura: 'botGrupo',
+	armazem: 'botArmazem',
+	perfis: 'botPerfil'
+});
+
+const EMBLEMA_DA_SECAO = Object.freeze({
+	ataque: 'caca',
+	suporte: 'skills',
+	postura: 'grupo',
+	armazem: 'inventario',
+	perfis: 'personagem'
+});
+
+const TITULO_DA_SECAO = Object.freeze({
+	cacada: ['Configurações de Caçada', 'Onde e quem o Bot caça: o raio de busca e os monstros que ele nunca escolhe.'],
+	ataque: ['Configurações de Ataque', 'Defina quais skills usar, a ordem, alvos e comportamentos durante a caça.'],
+	suporte: ['Configurações de Suporte', 'Buffs mantidos e curas por limiar de HP, em você ou no grupo.'],
+	sobrevivencia: ['Configurações de Sobrevivência', 'Poções de HP e SP por limiar e o descanso sentado.'],
+	coleta: ['Configurações de Coleta', 'Pegar os itens do chão dentro do raio, menos os ignorados.'],
+	postura: ['Postura e Grupo', 'Como o Bot combate e como ele coopera com o grupo.'],
+	armazem: ['Armazém e Reposição', 'Ida à Kafra e à loja da cidade quando o peso ou o estoque pedem.'],
+	perfis: ['Perfis', 'Configurações nomeadas deste personagem. Usar um perfil nunca liga o Bot.']
+});
+
+/** A aba de Ataque mostrada (Geral, Por Skill, Por Monstro): so desta tela. */
+let _subDoAtaque = 'geral';
 
 const NOME_CURTO_DA_POSTURA = Object.freeze({
 	tank: 'Tanque',
@@ -82,12 +135,12 @@ function larguraNaTela() {
 }
 
 function alturaNaTela() {
-	return Math.min(WINDOW_HEIGHT, Math.max(0, Renderer.height - 132));
+	return Math.min(WINDOW_HEIGHT, Math.max(0, Renderer.height - 24));
 }
 
 const BotMenu = new GUIComponent('BotMenu', cssText);
 
-BotMenu.render = () => htmlText;
+BotMenu.render = () => htmlText.replace(/<!--RI_ICONE:(\w+)-->/g, (_, chave) => RiIcones[chave] || '');
 
 BotMenu.mouseMode = GUIComponent.MouseMode.CROSS;
 
@@ -158,6 +211,25 @@ BotMenu.init = function init() {
 		_estado.aplicar();
 		desenhar();
 	});
+	// "Salvar e Iniciar": salva (se ha rascunho) e so liga depois da confirmacao do servidor.
+	el('.bm-iniciar').addEventListener('click', () => {
+		_estado.aplicarELigar();
+		desenhar();
+	});
+	el('.bm-perfil-escolha').addEventListener('change', e => {
+		const nome = e.target.value;
+		if (nome) {
+			_estado.perfilAplicar(nome);
+		}
+		desenhar();
+	});
+	root.querySelectorAll('.bm-subaba').forEach(b =>
+		b.addEventListener('click', () => {
+			_subDoAtaque = b.getAttribute('data-sub');
+			_escopoDasSkills = 'geral';
+			desenhar();
+		})
+	);
 	el('.bm-descartar').addEventListener('click', () => {
 		_estado.descartar();
 		desenhar();
@@ -264,24 +336,35 @@ function onClickMonstro(e) {
 	});
 }
 
+/** As secoes da BARRA: as anunciadas, na ordem do mockup (o cartao das Flechas mora dentro de Ataque). */
+function secoesDaBarra(secoes) {
+	return ORDEM_DAS_SECOES.filter(s => secoes.includes(s));
+}
+
 function abaAtual(secoes) {
-	return secoes.includes(_preferences.aba) ? _preferences.aba : secoes[0];
+	const barra = secoesDaBarra(secoes);
+	return barra.includes(_preferences.aba) ? _preferences.aba : barra[0];
 }
 
 function desenharAbas(secoes) {
 	const abas = el('.bm-abas');
 	const atual = abaAtual(secoes);
-	const chave = secoes.join(',') + '|' + atual;
+	const barra = secoesDaBarra(secoes);
+	const chave = barra.join(',') + '|' + atual;
 	if (abas.getAttribute('data-chave') !== chave) {
 		abas.setAttribute('data-chave', chave);
 		abas.innerHTML = '';
-		for (const s of secoes) {
+		for (const s of barra) {
 			const b = document.createElement('button');
 			b.type = 'button';
-			b.className = 'ri-tab' + (s === atual ? ' is-active' : '');
+			b.className = 'ri-tab bm-aba' + (s === atual ? ' is-active' : '');
 			b.setAttribute('role', 'tab');
 			b.setAttribute('aria-selected', String(s === atual));
-			b.textContent = NOME_DA_SECAO[s] || s;
+			// O subtitulo vai por CSS (`::after`): o nome acessivel e o texto da aba ficam so o nome.
+			b.setAttribute('data-sub', SUB_DA_SECAO[s] || '');
+			b.setAttribute('aria-description', SUB_DA_SECAO[s] || '');
+			b.innerHTML = RiIcones[GLIFO_DA_SECAO[s]] || '';
+			b.appendChild(document.createTextNode(NOME_DA_SECAO[s] || s));
 			b.addEventListener('click', () => {
 				_preferences.aba = s;
 				_preferences.save();
@@ -295,6 +378,32 @@ function desenharAbas(secoes) {
 		.forEach(sec => {
 			sec.hidden = sec.getAttribute('data-secao') !== atual;
 		});
+	desenharCabecalhoDaSecao(atual);
+}
+
+/** O cabecalho do painel: o emblema (arte real ou glifo), o titulo e a descricao da secao. */
+function desenharCabecalhoDaSecao(atual) {
+	const [titulo, desc] = TITULO_DA_SECAO[atual] || [NOME_DA_SECAO[atual] || '', ''];
+	el('.bm-secao-titulo').textContent = titulo;
+	el('.bm-secao-desc').textContent = desc;
+	const emblema = el('.bm-emblema');
+	if (emblema.getAttribute('data-emblema') === atual) {
+		return;
+	}
+	emblema.setAttribute('data-emblema', atual || '');
+	emblema.innerHTML = '';
+	const arte = EMBLEMA_DA_SECAO[atual];
+	if (arte) {
+		const img = document.createElement('img');
+		img.alt = '';
+		img.src = '/ragidle/ui-icons/' + arte + '.webp';
+		img.onerror = () => {
+			emblema.innerHTML = RiIcones[GLIFO_DA_SECAO[atual]] || '';
+		};
+		emblema.appendChild(img);
+	} else {
+		emblema.innerHTML = RiIcones[GLIFO_DA_SECAO[atual]] || '';
+	}
 }
 
 function desenhar() {
@@ -306,18 +415,17 @@ function desenhar() {
 	const liga = el('.bm-liga');
 	liga.setAttribute('aria-checked', String(s.ligado));
 	liga.classList.toggle('is-pendente', s.pendenteLigarDesligar !== null);
-	el('.bm-liga-texto').textContent =
-		s.pendenteLigarDesligar === 'ligar'
-			? 'Ligando...'
-			: s.pendenteLigarDesligar === 'desligar'
-				? 'Desligando...'
-				: s.ligado
-					? 'Bot ligado'
-					: 'Bot desligado';
+	el('.bm-liga-texto').textContent = s.pendenteLigarDesligar !== null ? '...' : s.ligado ? 'ON' : 'OFF';
+	liga.title = s.ligado ? 'Bot ligado: clique para desligar' : 'Bot desligado: clique para ligar';
+	el('.bm-window').classList.toggle('is-ligado', s.ligado);
 	const status = el('.bm-status');
 	status.textContent = s.carregado ? fraseDoStatus(s.status) : 'Carregando...';
 	status.classList.toggle('is-suspenso', s.status && s.status.codigo === 'suspenso-manual');
-	el('.bm-mapa').textContent = s.mapa || '';
+	const ctx = s.contexto || {};
+	el('.bm-mapa').textContent = ctx.rotuloDoMapa || ctx.mapa || s.mapa || '';
+	el('.bm-mapa-rotulo').textContent = ctx.ehCidade ? 'Você está na cidade' : 'Você está em';
+	desenharEscolhaDoPerfil(s);
+	desenharFlechaAtual(s);
 	// O header mostra o perfil (de onde veio a config) e a postura confirmada (05 secao 3).
 	const posturaConfirmada = s.serverConfig && s.serverConfig.postura ? NOME_CURTO_DA_POSTURA[s.serverConfig.postura.tipo] : null;
 	el('.bm-perfil-ativo').textContent = [s.perfilAtivo, posturaConfirmada].filter(Boolean).join(' · ');
@@ -340,21 +448,7 @@ function desenhar() {
 		desenharMonstros(s, c);
 		desenharPostura(s, c);
 		const lim2 = (s.capacidades && s.capacidades.limites) || {};
-		desenharEditorDeSkills(
-			el('[data-secao="ataque"]'),
-			{
-				config: c,
-				skills: s.skills,
-				monstros: s.monstros,
-				escopo: _escopoDasSkills,
-				teto: { geral: lim2.skillsNaListaGeral || 12, porMonstro: lim2.skillsPorMonstro || 12 }
-			},
-			editar,
-			escopo => {
-				_escopoDasSkills = escopo;
-				desenhar();
-			}
-		);
+		desenharAtaque(s, c, lim2);
 		desenharManutencao(s, c, secoes, lim2);
 	}
 
@@ -377,8 +471,102 @@ function desenhar() {
 	}
 	el('.bm-recarregar').hidden = !(s.conflito || s.mudouNoServidor);
 	el('.bm-aplicar').disabled = !s.dirty || s.pendenteAplicar;
-	el('.bm-aplicar').textContent = s.pendenteAplicar ? 'Aplicando...' : 'Aplicar';
+	el('.bm-aplicar-texto').textContent = s.pendenteAplicar ? 'Salvando...' : 'Salvar';
 	el('.bm-descartar').disabled = !s.dirty || s.pendenteAplicar;
+	// "Salvar e Iniciar" so com o Bot desligado (ligado, o Salvar ja basta).
+	const iniciar = el('.bm-iniciar');
+	iniciar.hidden = s.ligado;
+	iniciar.disabled = s.pendenteAplicar || s.pendenteLigarDesligar !== null || !s.carregado;
+}
+
+/*
+ * A SECAO ATAQUE no mockup: Geral (o modo e a lista geral), Por Skill (um cartao por habilidade:
+ * ativa, nivel, escopo de alvos e os monstros) e Por Monstro (a lista propria de uma especie). Os
+ * editores sao os de sempre; aqui so a escolha do que aparece em cada aba.
+ */
+function desenharAtaque(s, c, lim) {
+	const secao = el('[data-secao="ataque"]');
+	secao.querySelectorAll('.bm-subaba').forEach(b => {
+		const ativa = b.getAttribute('data-sub') === _subDoAtaque;
+		b.classList.toggle('is-active', ativa);
+		b.setAttribute('aria-selected', String(ativa));
+	});
+	secao.querySelectorAll('[data-sub-de]').forEach(n => {
+		n.hidden = n.getAttribute('data-sub-de') !== _subDoAtaque;
+	});
+	const monstros = s.monstros || [];
+	if (_subDoAtaque === 'por-monstro' && _escopoDasSkills === 'geral' && monstros.length > 0) {
+		_escopoDasSkills = monstros[0].especie;
+	}
+	desenharEditorDeSkills(
+		secao,
+		{
+			config: c,
+			skills: s.skills,
+			monstros,
+			escopo: _subDoAtaque === 'geral' ? 'geral' : _escopoDasSkills,
+			teto: { geral: lim.skillsNaListaGeral || 12, porMonstro: lim.skillsPorMonstro || 12 }
+		},
+		editar,
+		escopo => {
+			_escopoDasSkills = escopo;
+			_subDoAtaque = escopo === 'geral' ? 'geral' : 'por-monstro';
+			desenhar();
+		}
+	);
+	const caixa = secao.querySelector('.bm-skills');
+	const linhaDoEscopo = secao.querySelector('.bm-escopo-linha');
+	linhaDoEscopo.hidden = _subDoAtaque !== 'por-monstro';
+	secao.querySelector('.bm-skills-titulo').textContent =
+		_subDoAtaque === 'por-monstro' ? 'Lista deste monstro' : 'Habilidades, em ordem de preferência';
+	if (_subDoAtaque === 'por-skill') {
+		caixa.hidden = true;
+	} else if (_subDoAtaque === 'por-monstro') {
+		// Por Monstro: so as especies (a lista geral e a aba Geral).
+		const geral = secao.querySelector('.bm-escopo option[value="geral"]');
+		if (geral) {
+			geral.remove();
+		}
+		if (monstros.length === 0 && Object.keys(c.skills.porMonstro || {}).length === 0) {
+			caixa.hidden = true;
+		}
+	}
+	desenharPorSkill(
+		secao.querySelector('.bm-por-skill'),
+		{ config: c, skills: s.skills, monstros, tetoGeral: lim.skillsNaListaGeral || 12 },
+		editar
+	);
+}
+
+/** O perfil atual no topo: escolher um perfil e o mesmo verbo imediato da aba Perfis. */
+function desenharEscolhaDoPerfil(s) {
+	const sel = el('.bm-perfil-escolha');
+	const perfis = s.perfis || [];
+	const chave = JSON.stringify([perfis.map(p => p.nome), s.perfilAtivo, s.pendentePerfil]);
+	if (sel.getAttribute('data-chave') === chave) {
+		return;
+	}
+	sel.setAttribute('data-chave', chave);
+	sel.innerHTML = '';
+	const nenhum = document.createElement('option');
+	nenhum.value = '';
+	nenhum.textContent = perfis.length ? 'Configuração própria' : 'Nenhum perfil salvo';
+	sel.appendChild(nenhum);
+	for (const p of perfis) {
+		const o = document.createElement('option');
+		o.value = p.nome;
+		o.textContent = p.nome;
+		sel.appendChild(o);
+	}
+	sel.value = s.perfilAtivo && perfis.some(p => p.nome === s.perfilAtivo) ? s.perfilAtivo : '';
+	sel.disabled = perfis.length === 0 || !!s.pendentePerfil;
+}
+
+/** A flecha vestida agora, na faixa de status (so quando o personagem usa municao). */
+function desenharFlechaAtual(s) {
+	const vestida = (s.municoes || []).find(m => m.vestida);
+	el('.bm-flecha-atual-passo').hidden = !vestida;
+	el('.bm-flecha-atual').textContent = vestida ? vestida.nome : '';
 }
 
 /** Sobrevivencia, Suporte e Coleta (Fase 6): so desenha a secao que o servidor anunciou. */
@@ -433,6 +621,12 @@ function desenharManutencao(s, c, secoes, lim) {
 			}
 		);
 	}
+	const cartaoDasFlechas = el('[data-secao="flechas"]');
+	cartaoDasFlechas.hidden = !secoes.includes('flechas');
+	const iconeDasFlechas = cartaoDasFlechas.querySelector('.bm-flechas-icone');
+	if (!iconeDasFlechas.getAttribute('src')) {
+		aplicarIconeDoItem(iconeDasFlechas, 1752);
+	}
 	if (secoes.includes('flechas')) {
 		desenharFlechas(
 			el('[data-secao="flechas"]'),
@@ -443,7 +637,8 @@ function desenharManutencao(s, c, secoes, lim) {
 				monstros: s.monstros,
 				tetoPermitidas: lim.municoesPermitidas || 30,
 				tetoMonstros: lim.monstrosComRegraDeFlecha || 120,
-				nomeDoItem
+				nomeDoItem,
+				iconeDoItem: aplicarIconeDoItem
 			},
 			editar,
 			() => {
@@ -500,7 +695,15 @@ function desenharMonstros(s, c) {
 		const rotulo = document.createElement('span');
 		rotulo.textContent = nome;
 		rotulo.setAttribute('translate', 'no');
+		const avatar = document.createElement('img');
+		avatar.alt = '';
+		avatar.loading = 'lazy';
+		avatar.src = '/ragidle/mobs/' + especie + '.png';
+		avatar.onerror = () => {
+			avatar.style.display = 'none';
+		};
 		li.appendChild(caixa);
+		li.appendChild(avatar);
 		li.appendChild(rotulo);
 		lista.appendChild(li);
 	}

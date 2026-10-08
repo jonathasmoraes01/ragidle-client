@@ -341,7 +341,8 @@ describe('a costura das abas de manutencao na janela real', () => {
 		const { BotMenu, Network, receber } = await montar();
 		receber(status(['cacada', 'ataque', 'sobrevivencia', 'suporte', 'coleta']));
 		const host = BotMenu._host;
-		expect(abas(host)).toEqual(['Caçada', 'Ataque', 'Sobrevivência', 'Suporte', 'Coleta']);
+		// A ordem da barra e a do mockup do dono (08/10/2026), nao a do anuncio.
+		expect(abas(host)).toEqual(['Caçada', 'Ataque', 'Suporte', 'Sobrevivência', 'Coleta']);
 		expect(BotMenu._estado.estado().pocoes).toEqual(POCOES);
 		[...host.querySelectorAll('.bm-abas .ri-tab')].find(b => b.textContent === 'Sobrevivência').click();
 		expect(secaoVisivel(host)).toEqual(['sobrevivencia']);

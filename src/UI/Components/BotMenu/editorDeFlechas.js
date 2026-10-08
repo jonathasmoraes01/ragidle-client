@@ -9,6 +9,12 @@
  * Sem VIP a secao continua visivel e explica que a escolha elemental e
  * beneficio VIP (o servidor confere na hora; o cliente nao habilita nada).
  *
+ * Fase 11 (mockup do dono, 08/10/2026): o cartao mora dentro de Ataque, com a
+ * chave ON/OFF, o "Modo de uso" em dois radios (Melhor disponivel / Flecha
+ * fixa) e a lista da flecha fixa com o icone do item. O icone vem por
+ * `dados.iconeDoItem(img, itemId)` (a janela passa o de `UI/itemNaTela.js`;
+ * o teste roda sem o banco do cliente).
+ *
  * This file is part of the ragidle fork of ROBrowser.
  */
 import { alternarPermitida, definirModoDeFlecha, definirRegraDoMonstro, lerFlechas, ligarFlechas } from './edicaoDeFlechas.js';
@@ -33,7 +39,8 @@ function opcao(valor, texto) {
 /**
  * @param {Element} raiz a secao Flechas
  * @param {{config: object, municoes: Array|null, municao: {vip: boolean, manual: number|null, tetoAutomatico: number}|null,
- *          monstros: Array, tetoPermitidas: number, tetoMonstros: number, nomeDoItem?: (id: number) => string|null}} dados
+ *          monstros: Array, tetoPermitidas: number, tetoMonstros: number, nomeDoItem?: (id: number) => string|null,
+ *          iconeDoItem?: (img: HTMLImageElement, id: number) => void}} dados
  * @param {(fn: (c: object) => object) => void} editar
  * @param {() => void} retomar o verbo "retomar-municao" (comando imediato, fora do Aplicar)
  */
@@ -50,6 +57,19 @@ export function desenharFlechas(raiz, dados, editar, retomar) {
 	const ligada = raiz.querySelector('.bm-flechas-ligada');
 	ligada.checked = f.ligada;
 	ligada.onchange = () => editar(c => ligarFlechas(c, ligada.checked));
+	const icone = (img, id) => {
+		if (!img) {
+			return;
+		}
+		if (img.getAttribute('data-item') === String(id)) {
+			return;
+		}
+		img.setAttribute('data-item', String(id));
+		img.style.display = '';
+		if (dados.iconeDoItem) {
+			dados.iconeDoItem(img, id);
+		}
+	};
 
 	// A flecha vestida a mao suspende a escolha do Bot ate "Retomar automatico".
 	const manual = raiz.querySelector('.bm-flechas-manual');
@@ -63,21 +83,42 @@ export function desenharFlechas(raiz, dados, editar, retomar) {
 		retomar();
 	};
 
-	// MODO GLOBAL: automatico, ou uma flecha fixa da mochila (a fixa salva sem estoque continua listada).
-	const modo = raiz.querySelector('.bm-flechas-modo');
-	modo.innerHTML = '';
-	modo.appendChild(opcao('automatico', 'Automático (a que fere mais, até ' + sit.tetoAutomatico + 'z)'));
+	// MODO DE USO: "Melhor disponivel" (automatico) ou "Flecha fixa" (uma da mochila; a fixa salva
+	// sem estoque continua listada). Escolher uma flecha na lista ja e escolher o modo fixo.
+	const auto = raiz.querySelector('.bm-flechas-auto');
+	const fixaRadio = raiz.querySelector('.bm-flechas-fixa-radio');
+	const selFixa = raiz.querySelector('.bm-flechas-fixa');
+	auto.closest('.bm-opcao').querySelector('small').textContent =
+		'Usa a melhor flecha conforme a fraqueza do monstro, até ' + sit.tetoAutomatico + 'z (recomendado).';
 	const fixas = new Set(municoes.map(m => m.itemId));
 	if (f.fixa !== null) {
 		fixas.add(f.fixa);
 	}
+	selFixa.innerHTML = '';
 	for (const id of fixas) {
-		modo.appendChild(opcao('fixa:' + id, 'Sempre ' + nomeDe(id)));
+		selFixa.appendChild(opcao(String(id), nomeDe(id)));
 	}
-	modo.value = f.modo === 'fixa' && f.fixa !== null ? 'fixa:' + f.fixa : 'automatico';
-	modo.onchange = () => {
-		const v = modo.value;
-		editar(c => (v === 'automatico' ? definirModoDeFlecha(c, 'automatico') : definirModoDeFlecha(c, 'fixa', Number(v.slice(5)))));
+	const vestida = municoes.find(m => m.vestida);
+	const escolhida = f.fixa !== null ? f.fixa : vestida ? vestida.itemId : fixas.size ? [...fixas][0] : null;
+	if (escolhida !== null) {
+		selFixa.value = String(escolhida);
+		icone(raiz.querySelector('.bm-flechas-fixa-icone'), escolhida);
+	}
+	const ehFixa = f.modo === 'fixa' && f.fixa !== null;
+	auto.checked = !ehFixa;
+	fixaRadio.checked = ehFixa;
+	fixaRadio.disabled = fixas.size === 0;
+	selFixa.disabled = fixas.size === 0;
+	auto.onchange = () => editar(c => definirModoDeFlecha(c, 'automatico'));
+	fixaRadio.onchange = () => {
+		const id = Number(selFixa.value);
+		if (id) {
+			editar(c => definirModoDeFlecha(c, 'fixa', id));
+		}
+	};
+	selFixa.onchange = () => {
+		const id = Number(selFixa.value);
+		editar(c => definirModoDeFlecha(c, 'fixa', id));
 	};
 
 	// PERMITIDAS: vazia = todas ate o teto; marcada = so as marcadas.
@@ -93,6 +134,10 @@ export function desenharFlechas(raiz, dados, editar, retomar) {
 		caixa.setAttribute('aria-label', 'Permitir ' + m.nome);
 		caixa.onchange = () => editar(c => alternarPermitida(c, m.itemId, dados.tetoPermitidas));
 		li.appendChild(caixa);
+		const img = criar('img', 'bm-item-icone');
+		img.alt = '';
+		icone(img, m.itemId);
+		li.appendChild(img);
 		const n = criar('span', 'bm-item-nome', m.nome);
 		n.setAttribute('translate', 'no');
 		li.appendChild(n);

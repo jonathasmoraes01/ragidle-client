@@ -72,10 +72,11 @@ describe('a aba Postura na janela real', () => {
 	it('sem a capacidade nao aparece; com ela, a postura confirmada vem marcada e o posto em vigor e explicado', async () => {
 		const { BotMenu, receber } = await montar();
 		receber(status(['cacada', 'ataque']));
-		expect(abas(BotMenu._host)).not.toContain('Postura');
+		expect(abas(BotMenu._host)).not.toContain('Grupo');
 		receber(status(['cacada', 'ataque', 'postura'], { statusRevision: 1 }));
 		const host = BotMenu._host;
-		expect(abas(host)).toContain('Postura');
+		// A aba da postura se chama "Grupo" no menu (mockup do dono, 08/10/2026).
+		expect(abas(host)).toContain('Grupo');
 		expect(host.querySelector('input[name="bm-postura"]:checked').value).toBe('melee-dps');
 		expect(host.querySelector('.bm-posto-atual').textContent).toBe('Posto em vigor: Vanguarda.');
 		expect(host.querySelector('.bm-fallback-melee').hidden).toBe(true);

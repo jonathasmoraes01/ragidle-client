@@ -128,15 +128,38 @@ describe('desenho da aba Flechas', () => {
 		const liga = secao.querySelector('.bm-flechas-ligada');
 		liga.checked = true;
 		liga.dispatchEvent(new Event('change'));
-		const modo = secao.querySelector('.bm-flechas-modo');
-		modo.value = 'fixa:1765';
-		modo.dispatchEvent(new Event('change'));
+		// Escolher a flecha na lista ja e o modo fixo (o radio acompanha).
+		const fixa = secao.querySelector('.bm-flechas-fixa');
+		fixa.value = '1765';
+		fixa.dispatchEvent(new Event('change'));
 		secao.querySelector('[data-item="1752"] .bm-flecha-permitida').click();
 		const regra = secao.querySelector('[data-especie="1002"] .bm-flecha-regra');
 		regra.value = 'fixa:1752';
 		regra.dispatchEvent(new Event('change'));
 		expect(config.flechas).toEqual({ ligada: true, modo: 'fixa', fixa: 1765, permitidas: [1752], porMonstro: { 1002: { modo: 'fixa', fixa: 1752 } } });
-		expect(secao.querySelector('.bm-flechas-modo').value).toBe('fixa:1765');
+		expect(secao.querySelector('.bm-flechas-fixa').value).toBe('1765');
+		expect(secao.querySelector('.bm-flechas-fixa-radio').checked).toBe(true);
+		expect(secao.querySelector('.bm-flechas-auto').checked).toBe(false);
+		// "Melhor disponivel" volta ao automatico.
+		const auto = secao.querySelector('.bm-flechas-auto');
+		auto.checked = true;
+		auto.dispatchEvent(new Event('change'));
+		expect(config.flechas.modo).toBe('automatico');
+		expect(secao.querySelector('.bm-flechas-fixa-radio').checked).toBe(false);
+	});
+
+	it('sem fixa salva, a lista da flecha fixa mostra a vestida; o icone vem pela funcao da janela', () => {
+		const icones = [];
+		desenharFlechas(
+			secao,
+			{ config, municoes: MUNICOES, municao: { vip: true, manual: null, tetoAutomatico: 4 }, monstros: MONSTROS, tetoPermitidas: 30, tetoMonstros: 120, iconeDoItem: (img, id) => icones.push(id) },
+			editar,
+			() => {}
+		);
+		expect(secao.querySelector('.bm-flechas-auto').checked).toBe(true);
+		expect(secao.querySelector('.bm-flechas-fixa').value).toBe('1750');
+		expect(icones).toContain(1750);
+		expect(icones).toEqual(expect.arrayContaining([1750, 1752]));
 	});
 
 	it('a flecha da mao aparece com "Retomar automatico", que chama o verbo', () => {
@@ -190,13 +213,19 @@ describe('a costura da aba Flechas na janela real', () => {
 	});
 	const abas = host => [...host.querySelectorAll('.bm-abas .ri-tab')].map(b => b.textContent);
 
-	it('sem a capacidade a aba nao aparece; com ela, aparece e editar so suja o rascunho', async () => {
+	it('sem a capacidade o cartao nao aparece; com ela, aparece DENTRO de Ataque e editar so suja o rascunho', async () => {
 		const { BotMenu, Network, receber } = await montar();
 		receber(status(['cacada', 'ataque']));
-		expect(abas(BotMenu._host)).not.toContain('Flechas');
+		const cartao = BotMenu._host.querySelector('[data-secao="flechas"]');
+		expect(cartao.hidden).toBe(true);
 		receber(status(['cacada', 'ataque', 'flechas'], { statusRevision: 1 }));
 		const host = BotMenu._host;
-		expect(abas(host)).toContain('Flechas');
+		expect(abas(host)).toEqual(['Caçada', 'Ataque']);
+		expect(cartao.hidden).toBe(false);
+		expect(cartao.closest('[data-secao="ataque"]')).not.toBeNull();
+		// A flecha vestida aparece na faixa de status.
+		expect(host.querySelector('.bm-flecha-atual').textContent).toBe('Flecha');
+		expect(host.querySelector('.bm-flecha-atual-passo').hidden).toBe(false);
 		expect(BotMenu._estado.estado().municoes).toEqual(MUNICOES);
 		const antes = Network.sendPacket.mock.calls.length;
 		const liga = host.querySelector('.bm-flechas-ligada');

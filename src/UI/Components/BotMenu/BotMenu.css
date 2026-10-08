@@ -1,14 +1,17 @@
 /*
- * BotMenu - o menu do Bot novo (07/10/2026, pacote "Novo Bot V5").
+ * BotMenu - o menu do Bot novo no layout do MOCKUP DO DONO (08/10/2026):
+ * moldura com titulo em serifa, tres cartoes no topo (Auto Caca, mapa, perfil),
+ * barra de secoes a esquerda (icone, nome, subtitulo), painel com cabecalho da
+ * secao, faixa de status em tempo real e rodape com Salvar e Salvar e Iniciar.
  *
  * Moldura e pecas do design system (`.ri-window`, `.ri-header`, `.ri-title`,
- * `.ri-close`, `.ri-btn`, `.ri-tab` - `UI/Common.css`): azul de acao com aro
- * dourado, sem cor literal - tudo por token. Aqui so o layout.
+ * `.ri-close`, `.ri-btn`, `.ri-tab` - `UI/Common.css`): azul de acao, aro
+ * dourado, papel claro - tudo por token, sem cor literal nova. Aqui so o layout.
  */
 :host {
 	position: absolute;
-	width: min(420px, calc(100vw - 16px));
-	height: min(560px, calc(100vh - 132px));
+	width: min(980px, calc(100vw - 16px));
+	height: min(720px, calc(100vh - 24px));
 	pointer-events: none;
 }
 /* A altura atravessa o `.ui-component-root` (a cicatriz de `PresencaIdle.css`). */
@@ -24,6 +27,20 @@
 	font: var(--type-info);
 	-webkit-font-smoothing: antialiased;
 }
+/*
+ * O ATRIBUTO `hidden` VENCE SEMPRE (Fase 11, sonda de tela de 08/10/2026): `.ri-btn`, `.bm-linha` e
+ * `.bm-bloco` declaram `display`, e uma regra de autor com `display` derruba o `[hidden]` do
+ * navegador. O "Recarregar" aparecia sem conflito, e o fallback da Postura e os avisos escondidos
+ * apareciam. Os testes jsdom olhavam so a propriedade.
+ */
+#BotMenu [hidden] {
+	display: none !important;
+}
+#BotMenu *,
+#BotMenu *::before,
+#BotMenu *::after {
+	box-sizing: border-box;
+}
 #BotMenu .bm-window {
 	display: none;
 	position: absolute;
@@ -32,89 +49,306 @@
 	flex-direction: column;
 	width: 100%;
 	height: 100%;
+	background: linear-gradient(180deg, var(--paper-1), var(--paper-2));
 }
 #BotMenu .bm-window.is-open {
 	display: flex;
 }
+#BotMenu svg {
+	width: 18px;
+	height: 18px;
+	flex: 0 0 auto;
+}
 
-/* ---------- cabecalho: ON/OFF e estado ---------- */
-#BotMenu .bm-cabecalho {
+/* ---------- titulo ---------- */
+#BotMenu .bm-titlebar {
+	height: 52px;
+	flex: 0 0 auto;
+	/*
+	 * As asas do `.ri-title` sao pseudo-elementos: no celular (375) o titulo + as duas asas passam da
+	 * caixa do titulo e a janela ganhava 3px de rolagem de lado (sonda de tela, 08/10/2026).
+	 */
+	overflow: hidden;
+}
+#BotMenu .bm-title {
+	font-family: var(--font-display);
+	font-size: 24px;
+}
+#BotMenu .bm-mascote {
+	position: absolute;
+	left: 14px;
+	top: 50%;
+	width: 40px;
+	height: 40px;
+	object-fit: contain;
+	transform: translateY(-50%);
+	pointer-events: none;
+}
+#BotMenu .bm-close {
+	width: 30px;
+	height: 30px;
+	font-size: 18px;
+}
+
+/* ---------- topo: tres cartoes ---------- */
+#BotMenu .bm-topo {
+	flex: 0 0 auto;
+	display: grid;
+	grid-template-columns: 1.1fr 1fr 1fr;
+	gap: var(--sp-3);
+	padding: var(--sp-4) var(--sp-5) var(--sp-3);
+	border-bottom: 1px solid var(--border-gold);
+}
+#BotMenu .bm-cartao {
 	display: flex;
 	align-items: center;
-	gap: var(--sp-4);
-	padding: var(--sp-4) var(--sp-6) var(--sp-3);
-	border-bottom: 1px solid var(--divider);
+	gap: var(--sp-3);
+	min-width: 0;
+	padding: var(--sp-3) var(--sp-4);
+	border-radius: var(--radius-panel, 8px);
+	border: 1px solid var(--border-gold);
+	background: var(--surface-card);
+	box-shadow: var(--shadow-card);
 }
-#BotMenu .bm-liga {
+#BotMenu .bm-disco {
 	display: inline-flex;
 	align-items: center;
-	gap: var(--sp-2);
+	justify-content: center;
+	width: 42px;
+	height: 42px;
 	flex: 0 0 auto;
-	min-width: 148px;
-}
-#BotMenu .bm-liga-ponto {
-	width: 10px;
-	height: 10px;
 	border-radius: 50%;
-	background: var(--text-muted);
+	color: var(--accent-strong);
+	background: var(--sky-50);
 	box-shadow: inset 0 0 0 1px var(--border-hairline);
 }
+#BotMenu .bm-cartao-liga .bm-disco {
+	color: var(--text-on-accent);
+	background: var(--tab-active-fill);
+}
+#BotMenu .bm-disco svg {
+	width: 22px;
+	height: 22px;
+}
+#BotMenu .bm-cartao-rotulo {
+	flex: 1 1 auto;
+	font-family: var(--font-display);
+	font-size: 18px;
+	color: var(--text-title);
+	white-space: nowrap;
+}
+#BotMenu .bm-cartao-texto {
+	display: flex;
+	flex-direction: column;
+	min-width: 0;
+	flex: 1 1 auto;
+}
+#BotMenu .bm-cartao-texto small {
+	font: var(--type-desc);
+	color: var(--text-muted);
+}
+#BotMenu .bm-mapa {
+	font-family: var(--font-display);
+	font-size: 18px;
+	color: var(--text-title);
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+#BotMenu .bm-perfil-escolha {
+	min-width: 0;
+	width: 100%;
+	padding: 2px 0;
+	border: 0;
+	background: transparent;
+	font-family: var(--font-display);
+	font-size: 18px;
+	color: var(--text-title);
+	cursor: pointer;
+}
+#BotMenu .bm-perfil-ativo {
+	display: none;
+}
+
+/* O interruptor ON/OFF (Auto Caca): pilula azul com a bolinha, como no mockup. */
+#BotMenu .bm-liga {
+	position: relative;
+	display: inline-flex;
+	align-items: center;
+	justify-content: flex-start;
+	flex: 0 0 auto;
+	width: 104px;
+	height: 40px;
+	padding: 0 14px;
+	border-radius: var(--radius-pill);
+	border: 1px solid var(--border-hairline);
+	background: var(--bar-track, var(--sky-50));
+	color: var(--text-muted);
+	font-family: var(--font-ui);
+	font-weight: var(--fw-bold);
+	font-size: 15px;
+	cursor: pointer;
+	transition: background var(--dur-fast) var(--ease-out);
+}
+#BotMenu .bm-liga-texto {
+	margin-left: auto;
+}
+#BotMenu .bm-liga-ponto {
+	position: absolute;
+	left: 5px;
+	top: 50%;
+	width: 30px;
+	height: 30px;
+	border-radius: 50%;
+	background: var(--white);
+	box-shadow: var(--shadow-card);
+	transform: translateY(-50%);
+	transition: left var(--dur-fast) var(--ease-out);
+}
+#BotMenu .bm-liga[aria-checked='true'] {
+	background: var(--tab-active-fill);
+	border-color: var(--blue-600);
+	color: var(--text-on-accent);
+}
+#BotMenu .bm-liga[aria-checked='true'] .bm-liga-texto {
+	margin-left: 0;
+	margin-right: auto;
+}
 #BotMenu .bm-liga[aria-checked='true'] .bm-liga-ponto {
-	background: var(--green-600);
-	box-shadow: 0 0 6px var(--green-300);
+	left: calc(100% - 35px);
 }
 #BotMenu .bm-liga.is-pendente {
 	opacity: 0.7;
 	cursor: progress;
 }
-#BotMenu .bm-estado {
+
+/* ---------- meio: barra de secoes e painel ---------- */
+#BotMenu .bm-meio {
+	flex: 1 1 auto;
+	min-height: 0;
+	display: flex;
+	gap: var(--sp-4);
+	padding: var(--sp-4) var(--sp-5);
+}
+#BotMenu .bm-lateral {
+	flex: 0 0 214px;
 	display: flex;
 	flex-direction: column;
-	min-width: 0;
+	gap: var(--sp-3);
+	min-height: 0;
+	overflow-y: auto;
 }
-#BotMenu .bm-status {
-	font: var(--type-label, var(--type-info));
-	color: var(--text-body);
-	overflow: hidden;
-	text-overflow: ellipsis;
-	white-space: nowrap;
-}
-#BotMenu .bm-status.is-suspenso {
-	color: var(--amber-600);
-}
-#BotMenu .bm-mapa {
-	font: var(--type-desc);
+#BotMenu .bm-lateral-titulo {
+	text-align: center;
+	font: var(--type-badge);
+	letter-spacing: 0.12em;
+	text-transform: uppercase;
 	color: var(--text-muted);
 }
-/* Fase 9: o perfil de origem e a postura confirmada, no header. */
-#BotMenu .bm-perfil-ativo {
-	font: var(--type-desc);
-	color: var(--amber-600);
-}
-#BotMenu .bm-perfil.is-ativo .bm-item-nome {
-	font-weight: 700;
-}
-#BotMenu .bm-reserva,
-#BotMenu .bm-repor-minimo,
-#BotMenu .bm-repor-ate {
-	display: inline-flex;
-	align-items: center;
-	gap: var(--sp-1, 4px);
-}
-#BotMenu .bm-reserva input,
-#BotMenu .bm-repor-qtd {
-	width: 64px;
-}
-
-/* ---------- abas (so as secoes com backend) ---------- */
 #BotMenu .bm-abas {
 	display: flex;
+	flex-direction: column;
 	gap: var(--sp-2);
-	padding: var(--sp-3) var(--sp-6) 0;
-	overflow-x: auto;
 }
 #BotMenu .bm-abas:empty {
 	display: none;
+}
+#BotMenu .bm-aba.ri-tab {
+	display: grid;
+	grid-template-columns: 32px 1fr;
+	grid-template-rows: auto auto;
+	column-gap: var(--sp-3);
+	align-items: center;
+	padding: var(--sp-3);
+	border-radius: var(--radius-panel, 8px);
+	border: 1px solid var(--border-hairline);
+	background: var(--surface-card);
+	text-align: left;
+	font-family: var(--font-display);
+	font-size: 16px;
+	color: var(--text-title);
+}
+#BotMenu .bm-aba svg {
+	grid-row: 1 / span 2;
+	width: 26px;
+	height: 26px;
+	color: var(--accent-strong);
+}
+#BotMenu .bm-aba::after {
+	content: attr(data-sub);
+	grid-column: 2;
+	font-family: var(--font-ui);
+	font-size: var(--fs-desc);
+	color: var(--text-muted);
+}
+#BotMenu .bm-aba.is-active {
+	background: var(--tab-active-fill);
+	border-color: var(--gold-500);
+	color: var(--tab-active-text);
+	box-shadow: var(--glow-gold);
+}
+#BotMenu .bm-aba.is-active svg,
+#BotMenu .bm-aba.is-active::after {
+	color: var(--tab-active-text);
+}
+
+#BotMenu .bm-painel {
+	flex: 1 1 auto;
+	min-width: 0;
+	min-height: 0;
+	display: flex;
+	flex-direction: column;
+	gap: var(--sp-3);
+}
+#BotMenu .bm-secao-cabeca {
+	flex: 0 0 auto;
+	display: flex;
+	align-items: center;
+	gap: var(--sp-4);
+	padding: var(--sp-3) var(--sp-4);
+	border-radius: var(--radius-panel, 8px);
+	border: 1px solid var(--border-gold);
+	background: var(--surface-card);
+	box-shadow: var(--shadow-card);
+}
+#BotMenu .bm-emblema {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 60px;
+	height: 60px;
+	flex: 0 0 auto;
+	border-radius: 50%;
+	color: var(--accent-strong);
+	background: radial-gradient(circle at 50% 40%, var(--white), var(--gold-200));
+	box-shadow: inset 0 0 0 2px var(--border-gold);
+}
+#BotMenu .bm-emblema img {
+	width: 46px;
+	height: 46px;
+	object-fit: contain;
+}
+#BotMenu .bm-emblema svg {
+	width: 30px;
+	height: 30px;
+}
+#BotMenu .bm-secao-textos {
+	display: flex;
+	flex-direction: column;
+	min-width: 0;
+	flex: 1 1 auto;
+}
+#BotMenu .bm-secao-titulo {
+	margin: 0;
+	font-family: var(--font-display);
+	font-size: 22px;
+	font-weight: normal;
+	color: var(--text-title);
+}
+#BotMenu .bm-secao-desc {
+	margin: 0;
+	font: var(--type-desc);
+	color: var(--text-muted);
 }
 
 /* ---------- corpo ---------- */
@@ -123,15 +357,29 @@
 	min-height: 0;
 	overflow-y: auto;
 	overflow-x: hidden;
-	padding: var(--sp-4) var(--sp-6);
+	padding-right: var(--sp-1);
 }
 #BotMenu .bm-secao {
 	display: flex;
 	flex-direction: column;
-	gap: var(--sp-4);
+	gap: var(--sp-3);
 }
-#BotMenu .bm-secao[hidden] {
-	display: none;
+#BotMenu .bm-cartao-secao {
+	display: flex;
+	flex-direction: column;
+	gap: var(--sp-3);
+	margin: 0;
+	padding: var(--sp-4);
+	border-radius: var(--radius-panel, 8px);
+	border: 1px solid var(--border-gold);
+	background: var(--surface-card);
+	box-shadow: var(--shadow-card);
+	min-width: 0;
+}
+#BotMenu fieldset.bm-cartao-secao > legend {
+	float: left;
+	width: 100%;
+	margin-bottom: var(--sp-2);
 }
 #BotMenu .bm-linha {
 	display: flex;
@@ -146,18 +394,14 @@
 	gap: var(--sp-2);
 }
 #BotMenu .bm-rotulo {
-	font: var(--type-badge);
-	letter-spacing: 0.06em;
-	text-transform: uppercase;
-	color: var(--text-muted);
+	font: var(--type-label, var(--type-info));
+	font-weight: var(--fw-semibold);
+	color: var(--text-title);
 }
 #BotMenu .bm-bloco {
 	display: flex;
 	flex-direction: column;
 	gap: var(--sp-2);
-	margin: 0;
-	padding: 0;
-	border: 0;
 }
 #BotMenu .bm-dica,
 #BotMenu .bm-indisponivel {
@@ -170,16 +414,55 @@
 	border-radius: var(--radius-card, 8px);
 	background: var(--surface-card);
 }
+#BotMenu .bm-aviso {
+	color: var(--amber-600);
+}
+#BotMenu .bm-opcao {
+	display: flex;
+	align-items: flex-start;
+	gap: var(--sp-3);
+	cursor: pointer;
+}
+#BotMenu .bm-opcao input {
+	margin-top: 3px;
+}
+#BotMenu .bm-opcao span {
+	display: flex;
+	flex-direction: column;
+}
+#BotMenu .bm-opcao small {
+	font: var(--type-desc);
+	color: var(--text-muted);
+}
+#BotMenu select,
+#BotMenu input[type='number'],
+#BotMenu input[type='text'] {
+	min-width: 0;
+	max-width: 100%;
+	padding: 4px 8px;
+	border-radius: var(--radius-card, 4px);
+	border: 1px solid var(--border-hairline);
+	background: var(--white);
+	color: var(--text-body);
+	font-family: var(--font-ui);
+}
+#BotMenu .bm-linha input[type='number'],
+#BotMenu .bm-limiar-cura input {
+	width: 4.5em;
+}
+
+/* Caca: monstros ignorados com o avatar real. */
 #BotMenu .bm-monstros {
 	list-style: none;
 	margin: 0;
 	padding: 0;
 	display: grid;
-	grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+	grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
 	gap: var(--sp-2);
 }
 #BotMenu .bm-monstros:empty::after {
 	content: 'Nenhum monstro conhecido neste mapa.';
+	grid-column: 1 / -1;
 	font: var(--type-desc);
 	color: var(--text-muted);
 }
@@ -187,31 +470,60 @@
 	display: flex;
 	align-items: center;
 	gap: var(--sp-2);
+	min-width: 0;
 	padding: var(--sp-2) var(--sp-3);
-	border-radius: var(--radius-pill);
-	background: var(--surface-card);
+	border-radius: var(--radius-panel, 8px);
+	border: 1px solid var(--border-hairline);
+	background: var(--white);
 	cursor: pointer;
 }
 #BotMenu .bm-monstro.is-vetado {
 	background: var(--surface-card-hover);
 	box-shadow: inset 0 0 0 1px var(--red-600);
 }
+#BotMenu .bm-monstro img,
+#BotMenu .bm-chip img {
+	width: 32px;
+	height: 32px;
+	object-fit: contain;
+	flex: 0 0 auto;
+}
 #BotMenu .bm-monstro span {
 	overflow: hidden;
 	text-overflow: ellipsis;
 	white-space: nowrap;
 }
-#BotMenu .bm-raio {
+#BotMenu .bm-raio,
+#BotMenu .bm-raio-coleta {
 	width: 100%;
 }
 
-/* ---------- skills (Fase 6) ---------- */
-#BotMenu .bm-skills[hidden],
-#BotMenu .bm-propria[hidden],
-#BotMenu .bm-herda[hidden],
-#BotMenu .bm-adicionar[hidden],
-#BotMenu .bm-indisponivel[hidden] {
-	display: none;
+/* ---------- ataque: sub-abas, lista, Por Skill ---------- */
+#BotMenu .bm-subabas {
+	display: grid;
+	grid-template-columns: repeat(3, 1fr);
+	gap: var(--sp-2);
+}
+#BotMenu .bm-subaba {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: var(--sp-2);
+	min-height: 40px;
+	padding: var(--sp-2) var(--sp-3);
+	border-radius: var(--radius-panel, 8px);
+	border: 1px solid var(--border-hairline);
+	background: var(--surface-card);
+	color: var(--text-title);
+	font-family: var(--font-display);
+	font-size: 16px;
+	cursor: pointer;
+}
+#BotMenu .bm-subaba.is-active {
+	background: var(--tab-active-fill);
+	border-color: var(--gold-500);
+	color: var(--tab-active-text);
+	box-shadow: var(--glow-gold);
 }
 #BotMenu .bm-escopo,
 #BotMenu .bm-nova-skill,
@@ -238,8 +550,9 @@
 	align-items: center;
 	gap: var(--sp-2);
 	padding: var(--sp-2) var(--sp-3);
-	border-radius: var(--radius-card, 8px);
-	background: var(--surface-card);
+	border-radius: var(--radius-panel, 8px);
+	border: 1px solid var(--border-hairline);
+	background: var(--white);
 }
 #BotMenu .bm-skill.is-filtrada .bm-skill-nome {
 	opacity: 0.55;
@@ -264,31 +577,339 @@
 	display: flex;
 	gap: var(--sp-2);
 }
-#BotMenu .bm-adicionar .bm-nova-skill {
-	flex: 1 1 auto;
-}
-#BotMenu .bm-nao-aceitas:empty {
-	display: none;
-}
-
-/* ---------- sobrevivencia, suporte e coleta (Fase 6) ---------- */
-#BotMenu .bm-sem-pocao[hidden],
-#BotMenu .bm-sem-suporte[hidden],
-#BotMenu .bm-descanso-aviso[hidden] {
-	display: none;
-}
 #BotMenu .bm-adicionar select,
 #BotMenu .bm-adicionar input {
 	flex: 1 1 auto;
 	min-width: 0;
 }
-#BotMenu .bm-linha input[type='number'],
-#BotMenu .bm-limiar-cura input {
-	width: 4.5em;
+#BotMenu .bm-nao-aceitas:empty {
+	display: none;
 }
-#BotMenu .bm-aviso {
-	color: var(--amber-600);
+#BotMenu .bm-por-skill {
+	display: flex;
+	flex-direction: column;
+	gap: var(--sp-3);
 }
+#BotMenu .bm-ps-cartao {
+	display: flex;
+	flex-direction: column;
+	gap: var(--sp-3);
+	padding: var(--sp-4);
+	border-radius: var(--radius-panel, 8px);
+	border: 1px solid var(--border-gold);
+	background: var(--surface-card);
+	box-shadow: var(--shadow-card);
+}
+#BotMenu .bm-ps-cabeca {
+	display: flex;
+	align-items: center;
+	gap: var(--sp-3);
+	cursor: pointer;
+	list-style: none;
+}
+#BotMenu .bm-ps-cabeca::-webkit-details-marker {
+	display: none;
+}
+#BotMenu .bm-ps-icone,
+#BotMenu .bm-cartao-icone {
+	width: 52px;
+	height: 52px;
+	flex: 0 0 auto;
+	border-radius: var(--radius-card, 4px);
+	border: 1px solid var(--border-gold);
+	background: var(--white);
+	object-fit: contain;
+}
+#BotMenu .bm-ps-nome {
+	font-family: var(--font-display);
+	font-size: 20px;
+	color: var(--text-title);
+}
+#BotMenu .bm-ps-nivel-texto {
+	font: var(--type-desc);
+	color: var(--text-muted);
+}
+#BotMenu .bm-ps-ativa {
+	margin-left: auto;
+	display: flex;
+	align-items: center;
+	gap: var(--sp-2);
+	font: var(--type-desc);
+}
+#BotMenu .bm-ps-corpo {
+	display: grid;
+	grid-template-columns: auto 1fr;
+	gap: var(--sp-4);
+}
+#BotMenu .bm-passo {
+	display: inline-flex;
+	align-items: stretch;
+}
+#BotMenu .bm-passo button {
+	min-width: 40px;
+	border: 1px solid var(--border-hairline);
+	background: var(--sky-50);
+	color: var(--text-link);
+	cursor: pointer;
+}
+#BotMenu .bm-passo button:first-child {
+	border-radius: var(--radius-card, 4px) 0 0 var(--radius-card, 4px);
+}
+#BotMenu .bm-passo button:last-child {
+	border-radius: 0 var(--radius-card, 4px) var(--radius-card, 4px) 0;
+}
+#BotMenu .bm-passo output {
+	min-width: 56px;
+	padding: 6px 10px;
+	text-align: center;
+	border-top: 1px solid var(--border-hairline);
+	border-bottom: 1px solid var(--border-hairline);
+	background: var(--white);
+	font-weight: var(--fw-bold);
+}
+#BotMenu .bm-chips {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--sp-2);
+	padding: var(--sp-3);
+	border-radius: var(--radius-panel, 8px);
+	border: 1px solid var(--border-hairline);
+	background: var(--sky-50);
+}
+#BotMenu .bm-chip {
+	display: inline-flex;
+	align-items: center;
+	gap: var(--sp-2);
+	max-width: 100%;
+	padding: var(--sp-1) var(--sp-2);
+	border-radius: var(--radius-panel, 8px);
+	border: 1px solid var(--border-hairline);
+	background: var(--white);
+}
+#BotMenu .bm-chip button {
+	border: 0;
+	background: transparent;
+	color: var(--text-muted);
+	cursor: pointer;
+}
+
+#BotMenu .bm-chip button {
+	min-width: 28px;
+	font-size: 18px;
+	line-height: 1;
+}
+#BotMenu .bm-chip button:hover {
+	color: var(--red-600);
+}
+#BotMenu .bm-chip--add {
+	border-style: dashed;
+	background: transparent;
+	padding: 0;
+}
+#BotMenu .bm-chip--add select {
+	border: 0;
+	background: transparent;
+	color: var(--text-link);
+	font-weight: var(--fw-bold);
+	padding: var(--sp-2) var(--sp-3);
+	cursor: pointer;
+}
+#BotMenu .bm-ps-cartao.is-desligada .bm-ps-icone,
+#BotMenu .bm-ps-cartao.is-desligada .bm-ps-nome {
+	opacity: 0.55;
+}
+#BotMenu .bm-ps-textos {
+	display: flex;
+	flex-direction: column;
+	gap: var(--sp-1);
+	min-width: 0;
+}
+#BotMenu .bm-ps-linha-nome {
+	display: flex;
+	align-items: baseline;
+	gap: var(--sp-2);
+	flex-wrap: wrap;
+}
+#BotMenu .bm-ps-nv {
+	font: var(--type-desc);
+	font-weight: var(--fw-bold);
+	color: var(--text-muted);
+}
+#BotMenu .bm-ps-etiquetas {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--sp-1);
+}
+#BotMenu .bm-etiqueta {
+	padding: 2px var(--sp-2);
+	border-radius: var(--radius-pill);
+	border: 1px solid var(--border-hairline);
+	background: var(--sky-50);
+	font-size: 12px;
+	color: var(--text-muted);
+}
+#BotMenu .bm-etiqueta--ok {
+	border-color: var(--border-gold);
+	background: var(--paper-2, var(--white));
+	color: var(--gold-700, var(--text-title));
+}
+#BotMenu .bm-ps-chave {
+	margin-left: auto;
+}
+#BotMenu .bm-ps-bloco {
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
+	gap: var(--sp-2);
+	min-width: 0;
+}
+#BotMenu .bm-ps-alvos {
+	align-items: stretch;
+}
+#BotMenu .bm-ps-radio {
+	gap: var(--sp-2);
+}
+#BotMenu .bm-ps-vazio {
+	padding: var(--sp-4);
+	text-align: center;
+}
+#BotMenu .bm-item-icone {
+	width: 24px;
+	height: 24px;
+	object-fit: contain;
+	flex: 0 0 auto;
+}
+
+/* O interruptor generico (Flechas, Habilidade ativada). */
+#BotMenu .bm-chave {
+	position: relative;
+	display: inline-flex;
+	flex: 0 0 auto;
+	cursor: pointer;
+}
+#BotMenu .bm-chave input {
+	position: absolute;
+	opacity: 0;
+	width: 1px;
+	height: 1px;
+}
+#BotMenu .bm-chave-trilho {
+	position: relative;
+	display: inline-flex;
+	align-items: center;
+	width: 92px;
+	height: 38px;
+	padding: 0 12px;
+	border-radius: var(--radius-pill);
+	border: 1px solid var(--border-hairline);
+	background: var(--sky-50);
+	color: var(--text-muted);
+	font-weight: var(--fw-bold);
+}
+#BotMenu .bm-chave-trilho::after {
+	content: '';
+	position: absolute;
+	left: 4px;
+	top: 50%;
+	width: 28px;
+	height: 28px;
+	border-radius: 50%;
+	background: var(--white);
+	box-shadow: var(--shadow-card);
+	transform: translateY(-50%);
+	transition: left var(--dur-fast) var(--ease-out);
+}
+#BotMenu .bm-chave-texto {
+	margin-left: auto;
+}
+#BotMenu .bm-chave-texto::before {
+	content: 'OFF';
+}
+#BotMenu .bm-chave input:checked + .bm-chave-trilho {
+	background: var(--tab-active-fill);
+	border-color: var(--blue-600);
+	color: var(--text-on-accent);
+}
+#BotMenu .bm-chave input:checked + .bm-chave-trilho .bm-chave-texto {
+	margin-left: 0;
+	margin-right: auto;
+}
+#BotMenu .bm-chave input:checked + .bm-chave-trilho .bm-chave-texto::before {
+	content: 'ON';
+}
+#BotMenu .bm-chave input:checked + .bm-chave-trilho::after {
+	left: calc(100% - 32px);
+}
+#BotMenu .bm-chave input:focus-visible + .bm-chave-trilho {
+	outline: 2px solid var(--accent);
+	outline-offset: 2px;
+}
+
+/* Flechas (Fase 7), o cartao dentro de Ataque. */
+#BotMenu .bm-cartao-cabeca {
+	display: flex;
+	align-items: center;
+	gap: var(--sp-3);
+}
+#BotMenu .bm-cartao-titulo {
+	font-family: var(--font-display);
+	font-size: 20px;
+	font-weight: normal;
+	color: var(--text-title);
+}
+#BotMenu .bm-flechas-modo-caixa {
+	display: flex;
+	flex-direction: column;
+	gap: var(--sp-2);
+	padding: var(--sp-3);
+	border-radius: var(--radius-panel, 8px);
+	border: 1px solid var(--border-hairline);
+	background: var(--white);
+}
+#BotMenu .bm-flechas-opcoes {
+	display: grid;
+	grid-template-columns: 1fr 1fr 1fr;
+	gap: var(--sp-3);
+	align-items: start;
+}
+#BotMenu .bm-flechas-fixa-caixa {
+	display: flex;
+	flex-direction: column;
+	gap: var(--sp-1);
+	padding: var(--sp-2);
+	border-radius: var(--radius-panel, 8px);
+	background: var(--sky-50);
+}
+#BotMenu .bm-flechas-fixa-caixa small {
+	font: var(--type-desc);
+	color: var(--text-muted);
+}
+#BotMenu .bm-flechas-fixa-linha {
+	display: flex;
+	align-items: center;
+	gap: var(--sp-2);
+}
+#BotMenu .bm-flechas-fixa-icone {
+	width: 32px;
+	height: 32px;
+	flex: 0 0 auto;
+	object-fit: contain;
+}
+#BotMenu .bm-flechas-fixa {
+	flex: 1 1 auto;
+}
+#BotMenu .bm-mais summary {
+	font: var(--type-desc);
+	color: var(--text-link);
+	cursor: pointer;
+}
+#BotMenu .bm-mais[open] {
+	display: flex;
+	flex-direction: column;
+	gap: var(--sp-3);
+}
+
+/* ---------- listas de itens (pocoes, suporte, armazem, perfis, flechas) ---------- */
 #BotMenu .bm-lista-itens {
 	list-style: decimal inside;
 	margin: 0;
@@ -313,8 +934,9 @@
 	align-items: center;
 	gap: var(--sp-2);
 	padding: var(--sp-2) var(--sp-3);
-	border-radius: var(--radius-card, 8px);
-	background: var(--surface-card);
+	border-radius: var(--radius-panel, 8px);
+	border: 1px solid var(--border-hairline);
+	background: var(--white);
 }
 #BotMenu .bm-item-nome {
 	flex: 1 1 120px;
@@ -341,21 +963,25 @@
 #BotMenu .bm-tipo--cura {
 	color: var(--green-600);
 }
-#BotMenu .bm-tipo--buff {
-	color: var(--amber-600);
-}
-/* Fase 7: a flecha acima do teto do automatico e a equipada agora. */
+#BotMenu .bm-tipo--buff,
 #BotMenu .bm-tipo--especial {
 	color: var(--amber-600);
 }
 #BotMenu .bm-tipo--vestida {
 	color: var(--green-600);
 }
-#BotMenu .bm-limiar-cura {
+#BotMenu .bm-limiar-cura,
+#BotMenu .bm-reserva,
+#BotMenu .bm-repor-minimo,
+#BotMenu .bm-repor-ate {
 	display: inline-flex;
 	align-items: center;
 	gap: var(--sp-1, 4px);
 	font: var(--type-desc);
+}
+#BotMenu .bm-reserva input,
+#BotMenu .bm-repor-qtd {
+	width: 72px;
 }
 #BotMenu .bm-ignorados {
 	list-style: none;
@@ -377,16 +1003,72 @@
 	max-width: 100%;
 	padding: var(--sp-1, 4px) var(--sp-1, 4px) var(--sp-1, 4px) var(--sp-3);
 	border-radius: var(--radius-pill);
+	background: var(--white);
+	border: 1px solid var(--border-hairline);
+}
+#BotMenu .bm-perfil.is-ativo .bm-item-nome {
+	font-weight: 700;
+}
+
+/* ---------- status em tempo real ---------- */
+#BotMenu .bm-tempo-real {
+	flex: 0 0 auto;
+	display: flex;
+	flex-direction: column;
+	gap: var(--sp-2);
+	padding: var(--sp-3) var(--sp-4);
+	border-radius: var(--radius-panel, 8px);
+	border: 1px solid var(--border-hairline);
 	background: var(--surface-card);
 }
-#BotMenu .bm-raio-coleta {
-	width: 100%;
+#BotMenu .bm-tempo-real-titulo {
+	display: inline-flex;
+	align-items: center;
+	gap: var(--sp-2);
+	font-weight: var(--fw-semibold);
+	color: var(--text-title);
+}
+#BotMenu .bm-tempo-real-ponto {
+	width: 10px;
+	height: 10px;
+	border-radius: 50%;
+	background: var(--text-muted);
+}
+#BotMenu .bm-window.is-ligado .bm-tempo-real-ponto {
+	background: var(--green-600);
+	box-shadow: 0 0 6px var(--green-300);
+}
+#BotMenu .bm-tempo-real-linha {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: var(--sp-2) var(--sp-5);
+}
+#BotMenu .bm-tempo-real-passo {
+	display: inline-flex;
+	align-items: center;
+	gap: var(--sp-2);
+	min-width: 0;
+	color: var(--text-body);
+}
+#BotMenu .bm-tempo-real-passo svg {
+	color: var(--accent-strong);
+}
+#BotMenu .bm-status {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+#BotMenu .bm-status.is-suspenso {
+	color: var(--amber-600);
 }
 
 /* ---------- rodape ---------- */
 #BotMenu .bm-rodape {
-	padding: var(--sp-3) var(--sp-6) var(--sp-5);
-	border-top: 1px solid var(--divider);
+	flex: 0 0 auto;
+	padding: var(--sp-3) var(--sp-5) var(--sp-4);
+	border-top: 1px solid var(--border-gold);
+	background: var(--surface-card);
 }
 #BotMenu .bm-recado {
 	margin: 0 0 var(--sp-2);
@@ -410,18 +1092,135 @@
 }
 #BotMenu .bm-botoes {
 	display: flex;
-	justify-content: flex-end;
+	align-items: center;
 	gap: var(--sp-3);
 }
-#BotMenu .bm-botoes button[disabled] {
-	opacity: 0.5;
-	cursor: default;
+#BotMenu .bm-botoes-vao {
+	flex: 1 1 auto;
+}
+#BotMenu .bm-aplicar,
+#BotMenu .bm-iniciar {
+	min-width: 200px;
+	min-height: 48px;
+	font-family: var(--font-display);
+	font-size: 18px;
+}
+#BotMenu .bm-botoes svg {
+	width: 20px;
+	height: 20px;
+}
+
+/*
+ * CELULAR EM PE e janela estreita (< 720px): uma coluna. A barra de secoes vira
+ * uma faixa rolavel no topo do painel (icone e nome, sem subtitulo), os cartoes
+ * do topo ficam em duas linhas e os botoes do rodape dividem a largura.
+ */
+@media (max-width: 720px) {
+	:host {
+		width: calc(100vw - 8px);
+		height: calc(100vh - 16px);
+	}
+	#BotMenu .bm-title {
+		font-size: 20px;
+	}
+	#BotMenu .bm-mascote {
+		width: 32px;
+		height: 32px;
+		left: 8px;
+	}
+	#BotMenu .bm-title {
+		font-size: 20px;
+		gap: var(--sp-1);
+	}
+	#BotMenu .bm-title::before,
+	#BotMenu .bm-title::after {
+		width: 26px;
+	}
+	#BotMenu .bm-topo {
+		grid-template-columns: 1fr 1fr;
+		padding: var(--sp-3);
+		gap: var(--sp-2);
+	}
+	#BotMenu .bm-cartao-liga {
+		grid-column: 1 / span 2;
+	}
+	#BotMenu .bm-cartao {
+		padding: var(--sp-2) var(--sp-3);
+	}
+	#BotMenu .bm-cartao-mapa .bm-disco,
+	#BotMenu .bm-cartao-perfil .bm-disco {
+		display: none;
+	}
+	#BotMenu .bm-mapa,
+	#BotMenu .bm-perfil-escolha {
+		font-size: 16px;
+	}
+	#BotMenu .bm-meio {
+		flex-direction: column;
+		gap: var(--sp-2);
+		padding: var(--sp-2) var(--sp-3);
+	}
+	#BotMenu .bm-lateral {
+		flex: 0 0 auto;
+		overflow: visible;
+	}
+	#BotMenu .bm-lateral-titulo {
+		display: none;
+	}
+	#BotMenu .bm-abas {
+		flex-direction: row;
+		overflow-x: auto;
+		padding-bottom: 2px;
+	}
+	#BotMenu .bm-aba.ri-tab {
+		flex: 0 0 auto;
+		grid-template-columns: 22px auto;
+		padding: var(--sp-2) var(--sp-3);
+		font-size: 14px;
+	}
+	#BotMenu .bm-aba svg {
+		grid-row: 1;
+		width: 20px;
+		height: 20px;
+	}
+	#BotMenu .bm-aba::after {
+		display: none;
+	}
+	#BotMenu .bm-secao-cabeca {
+		display: none;
+	}
+	#BotMenu .bm-subaba {
+		font-size: 14px;
+		padding: var(--sp-2);
+	}
+	#BotMenu .bm-ps-corpo,
+	#BotMenu .bm-flechas-opcoes {
+		grid-template-columns: 1fr;
+	}
+	#BotMenu .bm-rodape {
+		padding: var(--sp-2) var(--sp-3) var(--sp-3);
+	}
+	#BotMenu .bm-botoes {
+		flex-wrap: wrap;
+	}
+	#BotMenu .bm-botoes-vao {
+		display: none;
+	}
+	#BotMenu .bm-aplicar,
+	#BotMenu .bm-iniciar {
+		min-width: 0;
+		flex: 1 1 0;
+		font-size: 16px;
+	}
+	#BotMenu .bm-descartar {
+		flex: 1 1 100%;
+	}
 }
 
 /*
  * NO DEDO (celular em pe, tablet): alvos de 44px, o mesmo criterio
  * (`pointer: coarse`) de `ehDedo()`. O rodape fica preso embaixo do painel
- * (o corpo rola), para o teclado/visualViewport nao esconder Aplicar nem OFF.
+ * (o corpo rola), para o teclado/visualViewport nao esconder Salvar nem OFF.
  */
 @media (pointer: coarse) {
 	#BotMenu .bm-liga,
@@ -436,14 +1235,10 @@
 	#BotMenu .bm-item input,
 	#BotMenu .bm-ignorado button,
 	#BotMenu .bm-linha input[type='number'],
-	#BotMenu .bm-adicionar > * {
+	#BotMenu .bm-adicionar > *,
+	#BotMenu .bm-aba,
+	#BotMenu .bm-subaba {
 		min-height: var(--hit-touch, 44px);
-	}
-	#BotMenu .bm-cabecalho {
-		flex-wrap: wrap;
-	}
-	#BotMenu .bm-botoes button {
-		flex: 1 1 0;
 	}
 	#BotMenu .bm-monstros {
 		grid-template-columns: 1fr 1fr;
