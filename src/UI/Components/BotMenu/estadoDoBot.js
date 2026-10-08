@@ -57,6 +57,10 @@ export function criarEstadoDoBot({ enviar }) {
 			skills: null,
 			/** As pocoes de cura que o personagem tem (Fase 6); null = servidor sem a lista. */
 			pocoes: null,
+			/** As municoes da mochila (Fase 7); null = servidor sem flechas no Bot. */
+			municoes: null,
+			/** A situacao da escolha de flecha (Fase 7): `{vip, manual, tetoAutomatico}`. */
+			municao: null,
 			pendenteLigarDesligar: null,
 			pendenteAplicar: false,
 			erro: null,
@@ -113,6 +117,11 @@ export function criarEstadoDoBot({ enviar }) {
 			s.pendenteLigarDesligar = 'desligar';
 			s.erro = null;
 			return pedir('desligar');
+		},
+		/** "Retomar automatico" (Fase 7): comando imediato, fora do Aplicar; a flecha da mao deixa de valer. */
+		retomarMunicao() {
+			s.erro = null;
+			return pedir('retomar-municao');
 		},
 		/** O jogador mexeu no rascunho. `fn` recebe uma COPIA e devolve a nova. */
 		editar(fn) {
@@ -192,6 +201,12 @@ export function criarEstadoDoBot({ enviar }) {
 			if (Array.isArray(d.pocoes)) {
 				s.pocoes = d.pocoes;
 			}
+			if (Array.isArray(d.municoes)) {
+				s.municoes = d.municoes;
+			}
+			if (d.municao && typeof d.municao === 'object') {
+				s.municao = d.municao;
+			}
 			if (typeof d.statusRevision === 'number' && d.statusRevision >= s.statusRevision) {
 				s.statusRevision = d.statusRevision;
 				s.status = d.status || s.status;
@@ -254,7 +269,11 @@ export const FRASE_DO_STATUS = Object.freeze({
 	curando: 'Curando',
 	'mantendo-buffs': 'Mantendo buffs',
 	descansando: 'Descansando',
-	coletando: 'Coletando itens'
+	coletando: 'Coletando itens',
+	'preparando-municao': 'Trocando de flecha',
+	'sem-municao-compativel': 'Sem flecha que fira o alvo',
+	'flecha-fixa-indisponivel': 'Flecha escolhida acabou',
+	'alvo-imune': 'Alvo imune ao seu ataque'
 });
 
 export function fraseDoStatus(status) {

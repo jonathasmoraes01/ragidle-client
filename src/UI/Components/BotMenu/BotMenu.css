@@ -325,6 +325,13 @@
 #BotMenu .bm-tipo--buff {
 	color: var(--amber-600);
 }
+/* Fase 7: a flecha acima do teto do automatico e a equipada agora. */
+#BotMenu .bm-tipo--especial {
+	color: var(--amber-600);
+}
+#BotMenu .bm-tipo--vestida {
+	color: var(--green-600);
+}
 #BotMenu .bm-limiar-cura {
 	display: inline-flex;
 	align-items: center;

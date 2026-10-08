@@ -31,6 +31,7 @@ import { fecharEEsquecer } from '../limpezaDeJanelaIdle.js';
 import { criarEstadoDoBot, fraseDoErro, fraseDoStatus } from './estadoDoBot.js';
 import { desenharEditorDeSkills } from './editorDeSkills.js';
 import { desenharColeta, desenharSobrevivencia, desenharSuporte } from './editorDeManutencao.js';
+import { desenharFlechas } from './editorDeFlechas.js';
 import DB from 'DB/DBManager.js';
 import { esquecer as esquecerContexto, marcarObsoleto, receberDoServidor } from 'UI/contextoDoMapa.js';
 
@@ -42,7 +43,8 @@ const NOME_DA_SECAO = Object.freeze({
 	ataque: 'Ataque',
 	sobrevivencia: 'Sobrevivência',
 	suporte: 'Suporte',
-	coleta: 'Coleta'
+	coleta: 'Coleta',
+	flechas: 'Flechas'
 });
 
 /** O nome do item que o cliente conhece (a lista de ignorados da coleta); null = desconhecido. */
@@ -369,6 +371,25 @@ function desenharManutencao(s, c, secoes, lim) {
 				nomeDoItem
 			},
 			editar
+		);
+	}
+	if (secoes.includes('flechas')) {
+		desenharFlechas(
+			el('[data-secao="flechas"]'),
+			{
+				config: c,
+				municoes: s.municoes,
+				municao: s.municao,
+				monstros: s.monstros,
+				tetoPermitidas: lim.municoesPermitidas || 30,
+				tetoMonstros: lim.monstrosComRegraDeFlecha || 120,
+				nomeDoItem
+			},
+			editar,
+			() => {
+				_estado.retomarMunicao();
+				desenhar();
+			}
 		);
 	}
 }

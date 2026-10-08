@@ -157,6 +157,34 @@
 					</div>
 				</div>
 			</section>
+
+			<!-- FLECHAS (Fase 7): a escolha elemental da flecha pelo Bot (beneficio VIP;
+			     o servidor confere na hora), a lista de permitidas e a regra por monstro. -->
+			<section class="bm-secao" data-secao="flechas" role="tabpanel" hidden>
+				<p class="bm-dica bm-aviso bm-flechas-vip" hidden>A troca de flecha pelo elemento é benefício VIP. Sem VIP, o Bot luta com a flecha equipada e ignora o monstro que ela não fere.</p>
+				<label class="bm-linha">
+					<input type="checkbox" class="bm-flechas-ligada">
+					<span>Trocar para a flecha que fere mais o alvo</span>
+				</label>
+				<div class="bm-bloco bm-flechas-manual" hidden>
+					<p class="bm-dica">Você equipou <b class="bm-flechas-manual-nome" translate="no"></b> à mão: o Bot não troca de flecha até você retomar.</p>
+					<button type="button" class="bm-retomar-municao ri-btn ri-btn--sec">Retomar automático</button>
+				</div>
+				<label class="bm-linha bm-linha--coluna">
+					<span class="bm-rotulo">Flecha</span>
+					<select class="bm-flechas-modo" aria-label="Modo da flecha"></select>
+				</label>
+				<div class="bm-bloco">
+					<span class="bm-rotulo">Flechas permitidas no automático</span>
+					<p class="bm-dica">Nenhuma marcada: todas até o preço do automático. Flecha mais cara só entra como fixa.</p>
+					<ul class="bm-flechas-permitidas bm-lista-itens"></ul>
+					<p class="bm-dica bm-sem-flecha" hidden>Nenhuma flecha na mochila.</p>
+				</div>
+				<div class="bm-bloco">
+					<span class="bm-rotulo">Por monstro</span>
+					<ul class="bm-flechas-monstros bm-lista-itens"></ul>
+				</div>
+			</section>
 		</div>
 
 		<!-- O RODAPE: Aplicar e Descartar do rascunho, e o recado do servidor. -->
