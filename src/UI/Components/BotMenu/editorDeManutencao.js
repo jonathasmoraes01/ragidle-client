@@ -117,7 +117,7 @@ function desenharPocoes(bloco, eixo, lista, dados, editar) {
 		const qtd = p ? p.quantidade : 0;
 		const q = criar('span', 'bm-quantidade' + (qtd > 0 ? '' : ' is-vazio'), qtd > 0 ? qtd + ' un.' : 'sem estoque');
 		li.appendChild(q);
-		li.appendChild(botao('bm-sobe', '↑', 'Subir', () => editar(c => moverPocao(c, eixo, itemId, -1)), i === 0));
+		li.appendChild(botao('bm-sobe', '↑', 'Mover para cima', () => editar(c => moverPocao(c, eixo, itemId, -1)), i === 0));
 		li.appendChild(
 			botao('bm-desce', '↓', 'Descer', () => editar(c => moverPocao(c, eixo, itemId, 1)), i === lista.itens.length - 1)
 		);
@@ -222,7 +222,7 @@ export function desenharSuporte(raiz, dados, editar) {
 			li.appendChild(rotulo);
 		}
 
-		li.appendChild(botao('bm-sobe', '↑', 'Subir', () => editar(c => moverSuporte(c, i, -1)), i === 0));
+		li.appendChild(botao('bm-sobe', '↑', 'Mover para cima', () => editar(c => moverSuporte(c, i, -1)), i === 0));
 		li.appendChild(botao('bm-desce', '↓', 'Descer', () => editar(c => moverSuporte(c, i, 1)), i === lista.length - 1));
 		li.appendChild(botao('bm-remove', '×', 'Remover', () => editar(c => removerSuporte(c, i))));
 		ol.appendChild(li);

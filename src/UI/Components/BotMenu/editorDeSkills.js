@@ -145,7 +145,7 @@ export function desenharEditorDeSkills(raiz, dados, editar, trocarEscopo) {
 			ativa.setAttribute('aria-label', ativa.title);
 			ativa.onchange = () => editar(c => definirSkillAtiva(c, e.skillId, ativa.checked));
 			li.appendChild(ativa);
-			li.appendChild(botao('bm-sobe', '↑', 'Subir', () => editar(c => moverSkill(c, escopo, e.skillId, -1)), i === 0));
+			li.appendChild(botao('bm-sobe', '↑', 'Mover para cima', () => editar(c => moverSkill(c, escopo, e.skillId, -1)), i === 0));
 			li.appendChild(
 				botao('bm-desce', '↓', 'Descer', () => editar(c => moverSkill(c, escopo, e.skillId, 1)), i === entradas.length - 1)
 			);
