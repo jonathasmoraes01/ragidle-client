@@ -233,10 +233,18 @@ describe('a costura das abas Armazem e Perfis na janela real', () => {
 		pocao.click();
 		expect(BotMenu._estado.estado().editConfig.armazem.repor).toEqual([{ itemId: 501, minimo: 5, ate: 20 }]);
 		expect(host.querySelector('.bm-armazem-repor [data-item="501"] .bm-item-nome').textContent).toBe('Poção Vermelha');
-		// ESC no filtro fecha so o seletor.
+		// O ESC e o voltar do Android fecham o seletor ANTES da janela (balao da HUD, `pilhaDeJanelas.aoEscapar`).
+		const { fecharBalaoDaHud } = await import('UI/balaoDaHud.js');
 		bloco.querySelector('.bm-escolher').click();
-		bloco.querySelector('.bm-seletor-filtro').dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+		expect(bloco.querySelector('.bm-seletor').hidden).toBe(false);
+		expect(fecharBalaoDaHud(), 'o seletor aberto nao e balao da HUD (o ESC fecharia a janela)').toBe(true);
 		expect(bloco.querySelector('.bm-seletor').hidden).toBe(true);
+		expect(bloco.querySelector('.bm-escolher').getAttribute('aria-expanded')).toBe('false');
+		expect(fecharBalaoDaHud(), 'o balao nao saiu da lista ao fechar').toBe(false);
+		// Escolher um item tambem tira o seletor da lista de baloes (sem ESC orfao).
+		bloco.querySelector('.bm-escolher').click();
+		bloco.querySelector('.bm-opcao-item')?.click();
+		expect(fecharBalaoDaHud(), 'balao orfao depois de escolher').toBe(false);
 		// Nenhum texto, rotulo ou dica da secao pede ou mostra o ID do item.
 		const secao = host.querySelector('[data-secao="armazem"]');
 		const textos = [

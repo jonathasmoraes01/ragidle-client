@@ -11,8 +11,13 @@
  * aberto/fechado mora no atributo `hidden` do painel (sobrevive ao redesenho
  * porque o painel e do HTML da secao, e nao criado aqui).
  *
+ * O seletor e um BALAO da HUD para o ESC e o voltar do Android (`UI/balaoDaHud.js`): fecha ANTES da janela
+ * (um passo, uma desfeita), e o voltar com o seletor aberto nao pergunta se o jogador quer sair do jogo. Com o
+ * cursor no campo do filtro o primeiro ESC tira o foco (a regra da pilha) e o segundo fecha o seletor.
+ *
  * This file is part of the ragidle fork of ROBrowser.
  */
+import { abrirBalao, esquecerBalao } from 'UI/balaoDaHud.js';
 
 function criar(tag, classe, texto) {
 	const e = document.createElement(tag);
@@ -46,7 +51,7 @@ export function filtrarCandidatos(candidatos, filtro) {
 
 /**
  * @param {Element} raiz o bloco com `.bm-escolher` (botao), `.bm-seletor` (painel), `.bm-seletor-filtro` (campo) e `.bm-seletor-lista` (ul)
- * @param {{candidatos: Array<{itemId: number, nome: string, quantidade?: number}> | (() => Array<{itemId: number, nome: string, quantidade?: number}>),
+ * @param {{nome: string, candidatos: Array<{itemId: number, nome: string, quantidade?: number}> | (() => Array<{itemId: number, nome: string, quantidade?: number}>),
  *          cheio: boolean, vazio: string,
  *          iconeDoItem?: (img: HTMLImageElement, id: number) => void}} dados
  * @param {(itemId: number) => void} aoEscolher
@@ -56,9 +61,15 @@ export function desenharSeletorDeItem(raiz, dados, aoEscolher) {
 	const painel = raiz.querySelector('.bm-seletor');
 	const filtro = raiz.querySelector('.bm-seletor-filtro');
 	const ul = raiz.querySelector('.bm-seletor-lista');
-	abrir.disabled = !!dados.cheio;
-	if (dados.cheio) {
+	const balao = 'seletor-de-item:' + dados.nome;
+	const fechar = () => {
 		painel.hidden = true;
+		abrir.setAttribute('aria-expanded', 'false');
+		esquecerBalao(balao);
+	};
+	abrir.disabled = !!dados.cheio;
+	if (dados.cheio && !painel.hidden) {
+		fechar();
 	}
 	abrir.setAttribute('aria-expanded', painel.hidden ? 'false' : 'true');
 
@@ -91,8 +102,8 @@ export function desenharSeletorDeItem(raiz, dados, aoEscolher) {
 			}
 			b.addEventListener('click', e => {
 				e.stopImmediatePropagation();
-				painel.hidden = true;
 				filtro.value = '';
+				fechar();
 				aoEscolher(c.itemId);
 			});
 			li.appendChild(b);
@@ -102,24 +113,24 @@ export function desenharSeletorDeItem(raiz, dados, aoEscolher) {
 
 	abrir.onclick = e => {
 		e.stopImmediatePropagation();
-		painel.hidden = !painel.hidden;
-		abrir.setAttribute('aria-expanded', painel.hidden ? 'false' : 'true');
 		if (!painel.hidden) {
-			listar();
-			filtro.focus();
+			fechar();
+			return;
 		}
+		painel.hidden = false;
+		abrir.setAttribute('aria-expanded', 'true');
+		abrirBalao(balao, () => {
+			fechar();
+			abrir.focus();
+		});
+		listar();
+		// A lista abre inteira dentro da area que rola (a secao pode estar com o botao no pe da tela).
+		if (typeof painel.scrollIntoView === 'function') {
+			painel.scrollIntoView({ block: 'nearest' });
+		}
+		filtro.focus({ preventScroll: true });
 	};
 	filtro.oninput = listar;
-	filtro.onkeydown = e => {
-		if (e.key === 'Escape') {
-			// O ESC fecha so o seletor; a janela continua aberta.
-			e.preventDefault();
-			e.stopImmediatePropagation();
-			painel.hidden = true;
-			abrir.setAttribute('aria-expanded', 'false');
-			abrir.focus();
-		}
-	};
 	if (!painel.hidden) {
 		listar();
 	}

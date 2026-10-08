@@ -146,6 +146,7 @@ export function desenharArmazem(raiz, dados, editar) {
 	desenharSeletorDeItem(
 		raiz.querySelector('.bm-escolher-deposito'),
 		{
+			nome: 'armazem-guardar',
 			candidatos: () => candidatosDoArmazem('depositar', dados.config, fontes(), dados.nomeDoItem),
 			cheio: a.depositar.length >= (lim.itensNoDeposito || Infinity),
 			vazio: 'Nada na mochila para guardar.',
@@ -183,6 +184,7 @@ export function desenharArmazem(raiz, dados, editar) {
 	desenharSeletorDeItem(
 		raiz.querySelector('.bm-escolher-reposicao'),
 		{
+			nome: 'armazem-repor',
 			candidatos: () => candidatosDoArmazem('repor', dados.config, fontes(), dados.nomeDoItem),
 			cheio: a.repor.length >= (lim.itensNaReposicao || Infinity),
 			vazio: 'Nenhum consumível conhecido. Tenha o item na mochila para escolhê-lo.',
