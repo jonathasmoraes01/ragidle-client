@@ -1312,7 +1312,7 @@ function onMapChange(pkt, ehEntradaNoMundo) {
 		 * ela anexa os controles que o jogador nao tem como reabrir e RELATA o que
 		 * parou a lista. O porque inteiro esta em `Engine/redeDaHud.js`.
 		 */
-		agendarRedeDaHud([BasicInfoIdle, CombatCornerIdle, DeathWindow, MissoesTrackerIdle, TopMenuIdle, HuntButtonIdle], {
+		agendarRedeDaHud([BasicInfoIdle, DeathWindow, MissoesTrackerIdle, TopMenuIdle, HuntButtonIdle], {
 			relatar: relatarErro
 		});
 		/*
