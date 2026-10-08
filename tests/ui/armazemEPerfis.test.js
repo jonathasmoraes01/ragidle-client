@@ -12,6 +12,7 @@ import { join } from 'node:path';
 import {
 	adicionarReposicao,
 	alternarDeposito,
+	candidatosDoArmazem,
 	definirCidade,
 	definirPesoDoGatilho,
 	definirReposicao,
@@ -21,6 +22,7 @@ import {
 	removerReposicao
 } from 'UI/Components/BotMenu/edicaoDeArmazem.js';
 import { fraseDoErro, fraseDoStatus } from 'UI/Components/BotMenu/estadoDoBot.js';
+import { filtrarCandidatos, normalizarNome } from 'UI/Components/BotMenu/seletorDeItem.js';
 
 vi.mock('Network/NetworkManager.js', () => ({
 	default: { sendPacket: vi.fn(), hookPacket: vi.fn() }
@@ -28,8 +30,16 @@ vi.mock('Network/NetworkManager.js', () => ({
 vi.mock('Renderer/Renderer.js', () => ({ default: { render: vi.fn(), stop: vi.fn(), width: 1280, height: 720 } }));
 vi.mock('UI/UIManager.js', () => ({ default: { showErrorBox: vi.fn(), addComponent: c => c } }));
 vi.mock('DB/DBManager.js', () => ({
-	default: { getItemInfo: id => (id === 909 ? { identifiedDisplayName: 'Jellopy' } : { identifiedDisplayName: 'Unknown Item' }) }
+	default: {
+		getItemInfo: id =>
+			id === 909
+				? { identifiedDisplayName: 'Jellopy' }
+				: id === 501
+					? { identifiedDisplayName: 'Poção Vermelha' }
+					: { identifiedDisplayName: 'Unknown Item' }
+	}
 }));
+vi.mock('UI/itemNaTela.js', () => ({ aplicarIconeDoItem: (img, id) => img.setAttribute('src', '/ragidle/item/' + id + '.png') }));
 
 const html = readFileSync(join(__dirname, '..', '..', 'src', 'UI', 'Components', 'BotMenu', 'BotMenu.html'), 'utf8');
 
@@ -70,6 +80,39 @@ describe('edicao do armazem (pura)', () => {
 		expect(lerArmazem(removerReposicao(c, 501)).repor).toEqual([]);
 	});
 
+	/*
+	 * Correcoes pos-QA (08/10/2026; contrato 05 secao 3: a interface nao expoe IDs): o seletor do Armazem
+	 * escolhe da mochila (guardar) e da mochila + pocoes + municoes do servidor (repor), pelo nome.
+	 */
+	it('candidatos: guardar = mochila; repor = mochila + pocoes + municoes; sem repetir, sem o que ja esta, sem item sem nome, pelo nome', () => {
+		const nomeLocal = id => ({ 909: 'Jellopy', 501: 'Poção Vermelha' })[id] || null;
+		const fontes = {
+			mochila: [{ itemId: 909, quantidade: 3 }, { itemId: 7001, quantidade: 1 }, { itemId: 501, quantidade: 2 }],
+			pocoes: [{ itemId: 501, nome: 'Red Potion', quantidade: 2 }, { itemId: 502, nome: 'Orange Potion', quantidade: 0 }],
+			municoes: [{ itemId: 1750, nome: 'Arrow', quantidade: 500 }]
+		};
+		const c = congelar({ v: 1, armazem: { depositar: [909], repor: [{ itemId: 1750, minimo: 5, ate: 20 }] } });
+		expect(candidatosDoArmazem('depositar', c, fontes, nomeLocal)).toEqual([{ itemId: 501, nome: 'Poção Vermelha', quantidade: 2 }]);
+		expect(candidatosDoArmazem('repor', c, fontes, nomeLocal)).toEqual([
+			{ itemId: 909, nome: 'Jellopy', quantidade: 3 },
+			{ itemId: 502, nome: 'Orange Potion', quantidade: 0 },
+			{ itemId: 501, nome: 'Poção Vermelha', quantidade: 2 }
+		]);
+		// Sem nome local, o do servidor; sem nenhum, fora (so daria para mostrar o id).
+		expect(candidatosDoArmazem('repor', { v: 1 }, { pocoes: [{ itemId: 503, nome: ' ' }, { itemId: 504, nome: 'Yellow Potion' }] }, () => null)).toEqual([
+			{ itemId: 504, nome: 'Yellow Potion' }
+		]);
+		expect(candidatosDoArmazem('depositar', { v: 1 }, { mochila: [{ itemId: 0 }, { itemId: 1.5 }, null] }, () => 'x')).toEqual([]);
+	});
+
+	it('o filtro do seletor acha pelo nome sem acento nem caixa', () => {
+		expect(normalizarNome('  Poção VERMELHA ')).toBe('pocao vermelha');
+		const lista = [{ itemId: 1, nome: 'Poção Vermelha' }, { itemId: 2, nome: 'Jellopy' }];
+		expect(filtrarCandidatos(lista, 'pocao').map(x => x.itemId)).toEqual([1]);
+		expect(filtrarCandidatos(lista, '').map(x => x.itemId)).toEqual([1, 2]);
+		expect(filtrarCandidatos(lista, 'zzz')).toEqual([]);
+	});
+
 	it('as frases novas: status do armazem com o motivo e os erros de perfil', () => {
 		expect(fraseDoStatus({ codigo: 'armazem-indisponivel', alvo: null, detalhe: 'sem-loja' })).toBe('Armazém indisponível: a loja não vende o que falta');
 		expect(fraseDoStatus({ codigo: 'indo-ao-armazem', alvo: null })).toBe('Indo ao armazém');
@@ -87,6 +130,7 @@ describe('a costura das abas Armazem e Perfis na janela real', () => {
 		BotMenu._host.innerHTML = html;
 		BotMenu._shadow = null;
 		BotMenu.draggable = () => {};
+		BotMenu.lerMochila = () => [{ ITID: 909, count: 3 }, { ITID: 0, count: 1 }];
 		BotMenu.init();
 		const chamada = Network.hookPacket.mock.calls.at(-1);
 		const receber = d => chamada[1]({ json: JSON.stringify(d) });
@@ -148,14 +192,69 @@ describe('a costura das abas Armazem e Perfis na janela real', () => {
 		expect([...cidade.options].map(o => o.value)).toEqual(['', 'prontera']);
 		cidade.value = 'prontera';
 		cidade.dispatchEvent(new Event('change'));
-		const dep = host.querySelector('.bm-novo-deposito');
-		dep.value = '909';
-		host.querySelector('.bm-add-deposito').click();
-		expect(host.querySelector('[data-item="909"] .bm-item-nome').textContent).toBe('Jellopy');
+		// Correcoes pos-QA: o Jellopy e escolhido da MOCHILA pelo nome e pelo icone (nada de ID digitado).
+		const escolher = host.querySelector('.bm-escolher-deposito .bm-escolher');
+		const painel = host.querySelector('.bm-escolher-deposito .bm-seletor');
+		expect(painel.hidden).toBe(true);
+		escolher.click();
+		expect(painel.hidden).toBe(false);
+		expect(escolher.getAttribute('aria-expanded')).toBe('true');
+		const opcoes = [...painel.querySelectorAll('.bm-opcao-item')];
+		expect(opcoes.map(o => o.querySelector('.bm-item-nome').textContent)).toEqual(['Jellopy']);
+		expect(opcoes[0].querySelector('.bm-quantidade').textContent).toBe('x3');
+		expect(opcoes[0].querySelector('.bm-item-icone').getAttribute('src')).toBe('/ragidle/item/909.png');
+		opcoes[0].click();
+		expect(painel.hidden, 'o seletor nao fechou depois da escolha').toBe(true);
+		expect(host.querySelector('.bm-armazem-depositar [data-item="909"] .bm-item-nome').textContent).toBe('Jellopy');
+		expect(host.querySelector('.bm-armazem-depositar [data-item="909"] .bm-item-icone').getAttribute('src')).toBe('/ragidle/item/909.png');
+		// Reaberto, o que ja esta na lista nao e candidato.
+		host.querySelector('.bm-escolher-deposito .bm-escolher').click();
+		expect(host.querySelector('.bm-escolher-deposito .bm-seletor-vazio').textContent).toBe('Nada na mochila para guardar.');
 		expect(Network.sendPacket.mock.calls.length).toBe(antes);
 		expect(BotMenu._estado.estado().editConfig.armazem).toMatchObject({ ligado: true, cidade: 'prontera', depositar: [909] });
 		host.querySelector('.bm-aplicar').click();
 		expect(ultimo(Network).config.armazem.cidade).toBe('prontera');
+	});
+
+	it('armazem: repor escolhe da lista de pocoes do servidor e filtra pelo nome; nenhum ID aparece na secao (05 secao 3)', async () => {
+		const { BotMenu, receber } = await montar();
+		receber(status(['cacada', 'armazem'], { pocoes: [{ itemId: 501, nome: 'Red Potion', hp: true, sp: false, quantidade: 4 }] }));
+		const host = BotMenu._host;
+		const bloco = host.querySelector('.bm-escolher-reposicao');
+		bloco.querySelector('.bm-escolher').click();
+		const filtro = bloco.querySelector('.bm-seletor-filtro');
+		filtro.value = 'espada';
+		filtro.dispatchEvent(new Event('input'));
+		expect(bloco.querySelector('.bm-seletor-vazio').textContent).toBe('Nenhum item com esse nome.');
+		filtro.value = 'POCAO';
+		filtro.dispatchEvent(new Event('input'));
+		const [pocao] = bloco.querySelectorAll('.bm-opcao-item');
+		expect(pocao.querySelector('.bm-item-nome').textContent).toBe('Poção Vermelha');
+		pocao.click();
+		expect(BotMenu._estado.estado().editConfig.armazem.repor).toEqual([{ itemId: 501, minimo: 5, ate: 20 }]);
+		expect(host.querySelector('.bm-armazem-repor [data-item="501"] .bm-item-nome').textContent).toBe('Poção Vermelha');
+		// ESC no filtro fecha so o seletor.
+		bloco.querySelector('.bm-escolher').click();
+		bloco.querySelector('.bm-seletor-filtro').dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+		expect(bloco.querySelector('.bm-seletor').hidden).toBe(true);
+		// Nenhum texto, rotulo ou dica da secao pede ou mostra o ID do item.
+		const secao = host.querySelector('[data-secao="armazem"]');
+		const textos = [
+			secao.textContent,
+			...[...secao.querySelectorAll('[placeholder]')].map(e => e.getAttribute('placeholder')),
+			...[...secao.querySelectorAll('[aria-label]')].map(e => e.getAttribute('aria-label')),
+			...[...secao.querySelectorAll('[title]')].map(e => e.getAttribute('title'))
+		].join(' | ');
+		expect(textos).not.toMatch(/\bID\b|#\d|\b501\b/);
+		expect(secao.querySelectorAll('input[type="number"].bm-novo-deposito, input.bm-nova-reposicao').length).toBe(0);
+	});
+
+	it('armazem: o item da config que o cliente nao conhece aparece como "Item desconhecido", nunca pelo numero', async () => {
+		const { BotMenu, receber } = await montar();
+		const comLista = status(['cacada', 'armazem']);
+		comLista.config = { ...comLista.config, armazem: { ligado: false, cidade: null, pesoAcimaDe: 0, depositar: [7001], reservas: [], repor: [], tetoDeGasto: 0, voltar: true } };
+		receber(comLista);
+		expect(BotMenu._host.querySelector('.bm-armazem-depositar [data-item="7001"] .bm-item-nome').textContent).toBe('Item desconhecido');
 	});
 
 	it('perfis: salvar, usar (com a revisao confirmada), renomear e excluir sao verbos imediatos', async () => {

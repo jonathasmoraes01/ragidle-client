@@ -21,6 +21,46 @@ export const ARMAZEM_PADRAO = Object.freeze({
 	voltar: true
 });
 
+/**
+ * OS CANDIDATOS DO SELETOR (correcoes pos-QA, 08/10/2026; contrato 05 secao 3: a interface nao expoe IDs).
+ * Guardar escolhe da MOCHILA; repor escolhe da mochila, das pocoes e das municoes que o servidor ja lista.
+ * Sem repetir item, sem o que a lista ja tem, ordenados pelo nome. O nome e o do cliente (a tabela do
+ * GRF) e, sem ele, o que o servidor mandou; item sem nome nenhum fica de fora (so daria para mostrar o id).
+ *
+ * @param {'depositar'|'repor'} lista
+ * @param {object} config a config (o rascunho) com o bloco `armazem`
+ * @param {{mochila?: Array<{itemId: number, quantidade?: number}>, pocoes?: Array<{itemId: number, nome?: string, quantidade?: number}>|null,
+ *          municoes?: Array<{itemId: number, nome?: string, quantidade?: number}>|null}} fontes
+ * @param {(id: number) => string|null} [nomeDoItem] o nome local do cliente
+ * @returns {Array<{itemId: number, nome: string, quantidade?: number}>}
+ */
+export function candidatosDoArmazem(lista, config, fontes, nomeDoItem) {
+	const a = lerArmazem(config);
+	const ja = new Set(lista === 'depositar' ? a.depositar : a.repor.map(r => r.itemId));
+	const origens = lista === 'depositar' ? [fontes.mochila] : [fontes.mochila, fontes.pocoes, fontes.municoes];
+	const porId = new Map();
+	for (const origem of origens) {
+		for (const it of origem || []) {
+			const id = it && it.itemId;
+			if (!Number.isInteger(id) || id <= 0 || ja.has(id)) {
+				continue;
+			}
+			const nome = (nomeDoItem && nomeDoItem(id)) || (typeof it.nome === 'string' && it.nome.trim()) || null;
+			if (nome === null) {
+				continue;
+			}
+			const antes = porId.get(id);
+			const qtd = typeof it.quantidade === 'number' ? it.quantidade : undefined;
+			if (antes === undefined) {
+				porId.set(id, qtd === undefined ? { itemId: id, nome } : { itemId: id, nome, quantidade: qtd });
+			} else if (qtd !== undefined && antes.quantidade === undefined) {
+				porId.set(id, { ...antes, quantidade: qtd });
+			}
+		}
+	}
+	return [...porId.values()].sort((x, y) => x.nome.localeCompare(y.nome, 'pt-BR') || x.itemId - y.itemId);
+}
+
 function inteiroNaFaixa(valor, min, max) {
 	const n = Math.round(Number(valor));
 	if (!Number.isFinite(n)) {

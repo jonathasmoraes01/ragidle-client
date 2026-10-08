@@ -675,6 +675,7 @@ class MapEngine {
 			IndicacaoIdle.prepare(); // RAGIDLE: Indique & Ganhe (D-1164) — escuta 0x0fdc
 			TrocaIdle.prepare(); // RAGIDLE: a janela "Trade" (02/10/2026) - escuta 0x0fb3
 			BotMenu.prepare(); // RAGIDLE: o menu do Bot novo (07/10/2026) - escuta 0x0fb1
+			BotMenu.lerMochila = () => Inventory.getUI().list || []; // RAGIDLE: o Armazem do Bot escolhe da mochila (sem ID digitado)
 			RankingIdle.prepare(); // RAGIDLE: o Ranking — escuta 0x0fca
 			AmigosIdle.prepare(); // RAGIDLE: a janela Amigos (05/10/2026) - ouve Friends.js/Group.js, nenhum pacote proprio
 			PainelComandoIdle.prepare(); // RAGIDLE: o painel de comando — escuta 0x0fbc e abre SOZINHO quando o servidor manda (D-1563)

@@ -787,6 +787,64 @@
 	flex: 0 0 auto;
 }
 
+/* O SELETOR DE ITEM (correcoes pos-QA, 08/10/2026; 05 secao 3): escolher pelo nome e pelo icone, sem ID. */
+#BotMenu .bm-seletor-bloco {
+	display: flex;
+	flex-direction: column;
+	gap: var(--sp-2);
+}
+#BotMenu .bm-seletor-bloco > .bm-escolher {
+	align-self: flex-start;
+}
+#BotMenu .bm-seletor {
+	display: flex;
+	flex-direction: column;
+	gap: var(--sp-2);
+	padding: var(--sp-2);
+	border-radius: var(--radius-panel, 8px);
+	border: 1px solid var(--border-hairline);
+	background: var(--white);
+}
+#BotMenu .bm-seletor-filtro {
+	width: 100%;
+	min-width: 0;
+}
+#BotMenu .bm-seletor-lista {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+	display: flex;
+	flex-direction: column;
+	gap: var(--sp-1);
+	max-height: 220px;
+	overflow-y: auto;
+	overscroll-behavior: contain;
+}
+#BotMenu .bm-opcao-item {
+	display: flex;
+	align-items: center;
+	gap: var(--sp-2);
+	width: 100%;
+	padding: var(--sp-1) var(--sp-2);
+	border: 1px solid transparent;
+	border-radius: var(--radius-panel, 8px);
+	background: transparent;
+	color: inherit;
+	font: inherit;
+	text-align: left;
+	cursor: pointer;
+}
+#BotMenu .bm-opcao-item:hover,
+#BotMenu .bm-opcao-item:focus-visible {
+	border-color: var(--border-hairline);
+	background: var(--sky-50);
+}
+#BotMenu .bm-seletor-vazio {
+	font: var(--type-desc);
+	color: var(--text-muted);
+	padding: var(--sp-1) var(--sp-2);
+}
+
 /* O interruptor generico (Flechas, Habilidade ativada). */
 #BotMenu .bm-chave {
 	position: relative;
@@ -1259,6 +1317,8 @@
 	#BotMenu .bm-ignorado button,
 	#BotMenu .bm-linha input[type='number'],
 	#BotMenu .bm-adicionar > *,
+	#BotMenu .bm-escolher,
+	#BotMenu .bm-opcao-item,
 	#BotMenu .bm-aba,
 	#BotMenu .bm-subaba {
 		min-height: var(--hit-touch, 44px);

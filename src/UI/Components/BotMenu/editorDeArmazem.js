@@ -11,6 +11,7 @@
 import {
 	adicionarReposicao,
 	alternarDeposito,
+	candidatosDoArmazem,
 	definirCidade,
 	definirPesoDoGatilho,
 	definirReposicao,
@@ -21,6 +22,7 @@ import {
 	ligarArmazem,
 	removerReposicao
 } from './edicaoDeArmazem.js';
+import { desenharSeletorDeItem } from './seletorDeItem.js';
 
 const NOME_DA_POSTURA = Object.freeze({
 	tank: 'Tanque',
@@ -61,20 +63,34 @@ function ligarNumero(input, valor, aoMudar) {
 	input.onchange = () => aoMudar(input.value);
 }
 
-function numeroDigitado(entrada) {
-	const id = Number(entrada.value);
-	return Number.isInteger(id) && id > 0 ? id : null;
+/** O icone e o nome do item numa linha da lista (05 secao 3: nunca o id na tela). */
+function cabecaDoItem(li, itemId, nome, iconeDoItem) {
+	const img = criar('img', 'bm-item-icone');
+	img.alt = '';
+	img.setAttribute('aria-hidden', 'true');
+	if (iconeDoItem) {
+		iconeDoItem(img, itemId);
+	}
+	li.appendChild(img);
+	const n = criar('span', 'bm-item-nome', nome);
+	n.setAttribute('translate', 'no');
+	li.appendChild(n);
 }
 
 /**
  * @param {Element} raiz a secao Armazem
- * @param {{config: object, cidades: Array, limites: object, nomeDoItem?: (id: number) => string|null}} dados
+ * @param {{config: object, cidades: Array, limites: object, nomeDoItem?: (id: number) => string|null,
+ *          mochila?: () => Array<{itemId: number, quantidade?: number}>, pocoes?: Array|null, municoes?: Array|null,
+ *          iconeDoItem?: (img: HTMLImageElement, id: number) => void}} dados
  * @param {(fn: (c: object) => object) => void} editar
  */
 export function desenharArmazem(raiz, dados, editar) {
 	const a = lerArmazem(dados.config);
 	const lim = dados.limites || {};
-	const nome = id => (dados.nomeDoItem && dados.nomeDoItem(id)) || '#' + id;
+	// O nome do cliente; sem ele, o que o servidor mandou nas listas; senao uma frase (nunca o id).
+	const doServidor = new Map([...(dados.pocoes || []), ...(dados.municoes || [])].filter(x => x && typeof x.nome === 'string').map(x => [x.itemId, x.nome]));
+	const nome = id => (dados.nomeDoItem && dados.nomeDoItem(id)) || doServidor.get(id) || 'Item desconhecido';
+	const fontes = () => ({ mochila: dados.mochila ? dados.mochila() : [], pocoes: dados.pocoes || [], municoes: dados.municoes || [] });
 
 	const ligado = raiz.querySelector('.bm-armazem-ligado');
 	ligado.checked = a.ligado;
@@ -111,9 +127,7 @@ export function desenharArmazem(raiz, dados, editar) {
 	for (const itemId of a.depositar) {
 		const li = criar('li', 'bm-item bm-deposito');
 		li.setAttribute('data-item', String(itemId));
-		const n = criar('span', 'bm-item-nome', nome(itemId));
-		n.setAttribute('translate', 'no');
-		li.appendChild(n);
+		cabecaDoItem(li, itemId, nome(itemId), dados.iconeDoItem);
 		const rotulo = criar('label', 'bm-reserva');
 		rotulo.appendChild(criar('span', '', 'manter'));
 		const reserva = criar('input', 'bm-reserva-qtd');
@@ -129,15 +143,16 @@ export function desenharArmazem(raiz, dados, editar) {
 		li.appendChild(botao('bm-remove', '×', 'Não guardar mais', () => editar(c => alternarDeposito(c, itemId))));
 		ul.appendChild(li);
 	}
-	const novoDep = raiz.querySelector('.bm-novo-deposito');
-	raiz.querySelector('.bm-add-deposito').onclick = e => {
-		e.stopImmediatePropagation();
-		const id = numeroDigitado(novoDep);
-		if (id !== null) {
-			novoDep.value = '';
-			editar(c => alternarDeposito(c, id, lim.itensNoDeposito));
-		}
-	};
+	desenharSeletorDeItem(
+		raiz.querySelector('.bm-escolher-deposito'),
+		{
+			candidatos: () => candidatosDoArmazem('depositar', dados.config, fontes(), dados.nomeDoItem),
+			cheio: a.depositar.length >= (lim.itensNoDeposito || Infinity),
+			vazio: 'Nada na mochila para guardar.',
+			iconeDoItem: dados.iconeDoItem
+		},
+		id => editar(c => alternarDeposito(c, id, lim.itensNoDeposito))
+	);
 
 	// REPOR: comprar abaixo do minimo, ate o alvo.
 	const ol = raiz.querySelector('.bm-armazem-repor');
@@ -145,9 +160,7 @@ export function desenharArmazem(raiz, dados, editar) {
 	for (const r of a.repor) {
 		const li = criar('li', 'bm-item bm-reposicao');
 		li.setAttribute('data-item', String(r.itemId));
-		const n = criar('span', 'bm-item-nome', nome(r.itemId));
-		n.setAttribute('translate', 'no');
-		li.appendChild(n);
+		cabecaDoItem(li, r.itemId, nome(r.itemId), dados.iconeDoItem);
 		for (const [campo, texto] of [
 			['minimo', 'abaixo de'],
 			['ate', 'até']
@@ -167,15 +180,16 @@ export function desenharArmazem(raiz, dados, editar) {
 		li.appendChild(botao('bm-remove', '×', 'Não repor mais', () => editar(c => removerReposicao(c, r.itemId))));
 		ol.appendChild(li);
 	}
-	const novoRep = raiz.querySelector('.bm-nova-reposicao');
-	raiz.querySelector('.bm-add-reposicao').onclick = e => {
-		e.stopImmediatePropagation();
-		const id = numeroDigitado(novoRep);
-		if (id !== null) {
-			novoRep.value = '';
-			editar(c => adicionarReposicao(c, id, lim.itensNaReposicao));
-		}
-	};
+	desenharSeletorDeItem(
+		raiz.querySelector('.bm-escolher-reposicao'),
+		{
+			candidatos: () => candidatosDoArmazem('repor', dados.config, fontes(), dados.nomeDoItem),
+			cheio: a.repor.length >= (lim.itensNaReposicao || Infinity),
+			vazio: 'Nenhum consumível conhecido. Tenha o item na mochila para escolhê-lo.',
+			iconeDoItem: dados.iconeDoItem
+		},
+		id => editar(c => adicionarReposicao(c, id, lim.itensNaReposicao))
+	);
 }
 
 /**

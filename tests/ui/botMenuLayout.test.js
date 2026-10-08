@@ -215,6 +215,27 @@ describe('as sub-abas de Ataque', () => {
 		expect(host.querySelector('.bm-skills-titulo').textContent).toBe('Lista deste monstro');
 	});
 
+	it('Por Monstro vazio diz o motivo: na cidade nao ha monstros; fora dela, o mapa sem monstro (correcoes pos-QA)', async () => {
+		const m = await montar();
+		m.receber(status(['cacada', 'ataque'], { monstros: [] }));
+		const host = m.BotMenu._host;
+		[...host.querySelectorAll('.bm-aba')].find(b => b.textContent === 'Ataque').click();
+		const aviso = host.querySelector('.bm-por-monstro-vazio');
+		expect(aviso.hidden, 'o aviso aparece fora da aba Por Monstro').toBe(true);
+		host.querySelector('.bm-subaba[data-sub="por-monstro"]').click();
+		expect(host.querySelector('.bm-skills').hidden).toBe(true);
+		expect(aviso.hidden, 'Por Monstro vazio sem explicacao').toBe(false);
+		expect(aviso.textContent).toBe('Na cidade não há monstros. Entre num mapa de caça para montar a lista de cada monstro.');
+		m.receber(status(['cacada', 'ataque'], { monstros: [], statusRevision: 1, mapa: 'prt_fild08', contexto: { mapa: 'prt_fild08', rotuloDoMapa: 'Campos de Prontera', ehCidade: false } }));
+		expect(aviso.textContent).toBe('Nenhum monstro neste mapa para montar uma lista própria.');
+		// Com monstros (controle), o aviso some e a lista volta.
+		m.receber(status(['cacada', 'ataque'], { statusRevision: 2 }));
+		expect(aviso.hidden).toBe(true);
+		expect(host.querySelector('.bm-skills').hidden).toBe(false);
+		host.querySelector('.bm-subaba[data-sub="geral"]').click();
+		expect(aviso.hidden).toBe(true);
+	});
+
 	it('o cartao Por Skill edita o RASCUNHO: ativa, nivel, escopo e as fichas dos monstros', async () => {
 		const { BotMenu, Network, host, sub } = await noAtaque();
 		sub('por-skill').click();

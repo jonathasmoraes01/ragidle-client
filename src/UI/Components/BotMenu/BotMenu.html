@@ -108,6 +108,8 @@
 							</div>
 							<p class="bm-dica bm-nao-aceitas"></p>
 						</div>
+						<!-- POR MONSTRO sem monstro nenhum (correcoes pos-QA): o motivo, em vez da aba vazia. -->
+						<p class="bm-cartao-secao bm-dica bm-por-monstro-vazio" hidden></p>
 						<!-- POR SKILL: um cartao por habilidade (ativa, nivel, escopo de alvos e os monstros). -->
 						<div class="bm-por-skill" data-sub-de="por-skill"></div>
 
@@ -298,17 +300,23 @@
 							<span class="bm-rotulo">Guardar no armazém</span>
 							<p class="bm-dica">Só estes itens. Equipamento vestido e item preso ao personagem nunca vão.</p>
 							<ul class="bm-armazem-depositar bm-lista-itens"></ul>
-							<div class="bm-adicionar">
-								<input type="number" class="bm-novo-deposito" min="1" step="1" inputmode="numeric" placeholder="ID do item" aria-label="ID do item para guardar">
-								<button type="button" class="bm-add-deposito ri-btn ri-btn--sec">Guardar</button>
+							<div class="bm-escolher-deposito bm-seletor-bloco">
+								<button type="button" class="bm-escolher ri-btn ri-btn--sec" aria-haspopup="listbox" aria-expanded="false">Escolher item para guardar</button>
+								<div class="bm-seletor" hidden>
+									<input type="search" class="bm-seletor-filtro" placeholder="Filtrar pelo nome" aria-label="Filtrar os itens pelo nome">
+									<ul class="bm-seletor-lista" aria-label="Itens da mochila"></ul>
+								</div>
 							</div>
 						</div>
 						<div class="bm-cartao-secao bm-bloco">
 							<span class="bm-rotulo">Comprar na loja</span>
 							<ul class="bm-armazem-repor bm-lista-itens"></ul>
-							<div class="bm-adicionar">
-								<input type="number" class="bm-nova-reposicao" min="1" step="1" inputmode="numeric" placeholder="ID do item" aria-label="ID do item para repor">
-								<button type="button" class="bm-add-reposicao ri-btn ri-btn--sec">Repor</button>
+							<div class="bm-escolher-reposicao bm-seletor-bloco">
+								<button type="button" class="bm-escolher ri-btn ri-btn--sec" aria-haspopup="listbox" aria-expanded="false">Escolher item para repor</button>
+								<div class="bm-seletor" hidden>
+									<input type="search" class="bm-seletor-filtro" placeholder="Filtrar pelo nome" aria-label="Filtrar os itens pelo nome">
+									<ul class="bm-seletor-lista" aria-label="Itens para repor"></ul>
+								</div>
 							</div>
 							<label class="bm-linha">
 								<span>Gastar no máximo</span>

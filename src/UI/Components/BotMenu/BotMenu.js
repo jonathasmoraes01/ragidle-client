@@ -37,6 +37,7 @@ import { desenharPorSkill } from './editorPorSkill.js';
 import RiIcones from 'UI/ri-icones.js';
 import { aplicarIconeDoItem } from 'UI/itemNaTela.js';
 import DB from 'DB/DBManager.js';
+import Session from 'Engine/SessionStorage.js';
 import { esquecer as esquecerContexto, marcarObsoleto, receberDoServidor } from 'UI/contextoDoMapa.js';
 
 const WINDOW_WIDTH = 980;
@@ -139,6 +140,25 @@ function alturaNaTela() {
 }
 
 const BotMenu = new GUIComponent('BotMenu', cssText);
+
+/**
+ * A MOCHILA para os seletores do Armazem (correcoes pos-QA, 08/10/2026; 05 secao 3: escolher pelo nome e
+ * pelo icone, sem ID digitado). Quem liga a janela ao jogo (o MapEngine) troca esta leitura pela lista do
+ * Inventory; sem ela, vazia. O equipamento vestido nao esta nessa lista (e nao vai ao armazem).
+ */
+BotMenu.lerMochila = () => [];
+
+function mochilaDoBot() {
+	let lista;
+	try {
+		lista = BotMenu.lerMochila() || [];
+	} catch {
+		lista = [];
+	}
+	return lista
+		.filter(i => i && Number.isInteger(i.ITID) && i.ITID > 0)
+		.map(i => ({ itemId: i.ITID, quantidade: typeof i.count === 'number' ? i.count : 1 }));
+}
 
 BotMenu.render = () => htmlText.replace(/<!--RI_ICONE:(\w+)-->/g, (_, chave) => RiIcones[chave] || '');
 
@@ -531,6 +551,15 @@ function desenharAtaque(s, c, lim) {
 			caixa.hidden = true;
 		}
 	}
+	/*
+	 * POR MONSTRO VAZIO (correcoes pos-QA, 08/10/2026): sem monstro no mapa e sem lista salva a aba ficava
+	 * em branco, sem explicacao. Agora diz o motivo: na cidade nao ha monstros; fora dela, o mapa nao tem.
+	 */
+	const vazio = secao.querySelector('.bm-por-monstro-vazio');
+	vazio.hidden = !(_subDoAtaque === 'por-monstro' && caixa.hidden);
+	vazio.textContent = s.contexto && s.contexto.ehCidade
+		? 'Na cidade não há monstros. Entre num mapa de caça para montar a lista de cada monstro.'
+		: 'Nenhum monstro neste mapa para montar uma lista própria.';
 	desenharPorSkill(
 		secao.querySelector('.bm-por-skill'),
 		{ config: c, skills: s.skills, monstros, tetoGeral: lim.skillsNaListaGeral || 12 },
@@ -595,7 +624,20 @@ function desenharManutencao(s, c, secoes, lim) {
 		);
 	}
 	if (secoes.includes('armazem')) {
-		desenharArmazem(el('[data-secao="armazem"]'), { config: c, cidades: s.cidades, limites: lim, nomeDoItem }, editar);
+		desenharArmazem(
+			el('[data-secao="armazem"]'),
+			{
+				config: c,
+				cidades: s.cidades,
+				limites: lim,
+				nomeDoItem,
+				mochila: mochilaDoBot,
+				pocoes: s.pocoes,
+				municoes: s.municoes,
+				iconeDoItem: aplicarIconeDoItem
+			},
+			editar
+		);
 	}
 	if (secoes.includes('perfis')) {
 		desenharPerfis(
@@ -729,7 +771,16 @@ function onBotRecebido(pkt) {
 		return;
 	}
 	const tinha = BotMenu.temCapacidade();
-	const atual = _estado.estado().personagemId;
+	/*
+	 * O PERSONAGEM DESTA SESSAO (correcoes pos-QA, 08/10/2026; V-18 do QA final; 05 secao 4). Era o do
+	 * proprio estado, que a troca de personagem zera (`reiniciar`): o status do personagem ANTERIOR que
+	 * chegasse depois entrava e fixava o antigo, e o novo passava a ser recusado. A identidade vem da
+	 * sessao: `Session.GID` e o `personagemId` do `HC_NOTIFY_ZONESVR2` (servidor-char.ts), o mesmo que o
+	 * `CZ_ENTER2` leva ao mapa e que o servidor poe em toda resposta e status do Bot. Sem sessao (0),
+	 * vale o do estado, como antes.
+	 */
+	const daSessao = Session.GID;
+	const atual = Number.isInteger(daSessao) && daSessao > 0 ? daSessao : _estado.estado().personagemId;
 	if (_estado.receber(dados, atual)) {
 		// O contexto do mapa (cidade? qual mapa?) e o Bot ligado alimentam quem nao e do Bot:
 		// drop da Analise, botao Cacar, tela acesa no farm.
