@@ -276,13 +276,18 @@ export function criarEstadoDoBot({ enviar }) {
 					s.problemas = Array.isArray(d.problemas) ? d.problemas : [];
 				}
 			}
+			const statusRevisionAntes = s.statusRevision;
 			if (typeof d.statusRevision === 'number' && d.statusRevision >= s.statusRevision) {
 				s.statusRevision = d.statusRevision;
 				s.status = d.status || s.status;
 			}
-			// ligado/situacao: so a resposta do proprio ON/OFF ou o status confirmam.
-			s.ligado = !!d.ligado;
-			s.situacao = d.situacao || s.situacao;
+			// ligado/situacao: so a resposta do proprio ON/OFF ou o status confirmam. Uma resposta
+			// atrasada com observacao mais velha (statusRevision menor) nao desfaz a mais nova.
+			const observacaoVelha = typeof d.statusRevision === 'number' && d.statusRevision < statusRevisionAntes;
+			if (!observacaoVelha) {
+				s.ligado = !!d.ligado;
+				s.situacao = d.situacao || s.situacao;
+			}
 			if (verbo === 'ligar' || verbo === 'desligar') {
 				s.pendenteLigarDesligar = null;
 				if (!d.ok) {
@@ -305,7 +310,8 @@ export function criarEstadoDoBot({ enviar }) {
 					s.problemas = Array.isArray(d.problemas) ? d.problemas : [];
 				}
 			}
-			if (d.config && typeof d.revisao === 'number') {
+			// Revisao MAIS VELHA que a confirmada (resposta atrasada ainda em voo) nao substitui a nova.
+			if (d.config && typeof d.revisao === 'number' && d.revisao >= s.revisao) {
 				aceitarConfigDoServidor(d.config, d.revisao);
 			}
 			if (ligarAgora) {
@@ -387,6 +393,8 @@ export function fraseDoErro(erro) {
 			return 'Alguns campos não foram aceitos. Nada foi alterado.';
 		case 'pedido-invalido':
 			return 'O servidor não entendeu o pedido. Nada foi alterado.';
+		case 'config-grande':
+			return 'A configuração ficou grande demais para enviar. Reduza as regras por monstro. Nada foi alterado.';
 		case 'nome-invalido':
 			return 'Nome de perfil inválido: use de 1 a 24 caracteres.';
 		case 'nome-repetido':

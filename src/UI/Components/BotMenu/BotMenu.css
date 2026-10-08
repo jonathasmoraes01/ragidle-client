@@ -488,10 +488,17 @@
 	object-fit: contain;
 	flex: 0 0 auto;
 }
+/* QA final 08/10/2026: o nome do monstro QUEBRA em ate duas linhas. Cortado numa linha so,
+   "Besouro-Ladrao Femea", "Macho" e "Dourado" viravam tres "Besouro-Ladrao ..." iguais (e no
+   celular nao ha dica de mouse para saber qual se veta). */
 #BotMenu .bm-monstro span {
 	overflow: hidden;
-	text-overflow: ellipsis;
-	white-space: nowrap;
+	display: -webkit-box;
+	-webkit-box-orient: vertical;
+	-webkit-line-clamp: 2;
+	line-clamp: 2;
+	overflow-wrap: anywhere;
+	line-height: 1.25;
 }
 #BotMenu .bm-raio,
 #BotMenu .bm-raio-coleta {
@@ -845,6 +852,17 @@
 	outline-offset: 2px;
 }
 
+/* QA final 08/10/2026: o FOCO DE TECLADO visivel em todo controle do menu. O `Common.css` zera o
+   outline de todo `:focus`, e o Tab andava pelas abas, caixas e o slider sem marca nenhuma. */
+#BotMenu button:focus-visible,
+#BotMenu input:focus-visible,
+#BotMenu select:focus-visible,
+#BotMenu summary:focus-visible,
+#BotMenu [tabindex]:focus-visible {
+	outline: 2px solid var(--accent);
+	outline-offset: 2px;
+}
+
 /* Flechas (Fase 7), o cartao dentro de Ataque. */
 #BotMenu .bm-cartao-cabeca {
 	display: flex;
@@ -942,8 +960,13 @@
 	flex: 1 1 120px;
 	min-width: 0;
 	overflow: hidden;
-	text-overflow: ellipsis;
-	white-space: nowrap;
+	/* QA final 08/10/2026: ate duas linhas, pelo mesmo motivo do nome do monstro acima. */
+	display: -webkit-box;
+	-webkit-box-orient: vertical;
+	-webkit-line-clamp: 2;
+	line-clamp: 2;
+	overflow-wrap: anywhere;
+	line-height: 1.25;
 }
 #BotMenu .bm-quantidade {
 	font: var(--type-desc);
