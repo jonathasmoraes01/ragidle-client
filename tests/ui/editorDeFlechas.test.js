@@ -50,8 +50,8 @@ function congelar(o) {
 const base = () => congelar({ v: 1, cacar: true, flechas: { ligada: false, modo: 'automatico', fixa: null, permitidas: [], porMonstro: {} } });
 
 describe('edicao das flechas (pura)', () => {
-	it('config sem o bloco (servidor velho) le o padrao desligado', () => {
-		expect(lerFlechas({ v: 1 })).toEqual({ ligada: false, modo: 'automatico', fixa: null, permitidas: [], porMonstro: {} });
+	it('config sem o bloco (servidor velho) le o padrao novo: troca ligada, automatica, todas permitidas', () => {
+		expect(lerFlechas({ v: 1 })).toEqual({ ligada: true, modo: 'automatico', fixa: null, permitidas: [], porMonstro: {} });
 	});
 
 	it('liga, fixa e volta ao automatico (fixa nula), sem mutar a recebida', () => {

@@ -178,7 +178,10 @@ export function criarEstadoDoBot({ enviar }) {
 			s.conflito = false;
 			s.problemas = [];
 			s.erro = null;
-			return pedir('aplicar', { baseRevision: s.baseRevision, config: clonar(s.editConfig) });
+			// O Armazem saiu do menu (ajustes do dono, 09/10/2026) e o servidor ignora o bloco: ele nao vai no Salvar.
+			const config = clonar(s.editConfig);
+			delete config.armazem;
+			return pedir('aplicar', { baseRevision: s.baseRevision, config });
 		},
 		/**
 		 * "Salvar e Iniciar": com rascunho, aplica e SO liga quando o servidor aceitar; sem rascunho,
@@ -347,6 +350,7 @@ export const FRASE_DO_STATUS = Object.freeze({
 	'controle-manual': 'Controle manual',
 	'suspenso-manual': 'Suspenso pelo controle manual',
 	'procurando-alvo': 'Procurando alvo',
+	patrulhando: 'Patrulhando o mapa',
 	'indo-ate-alvo': 'Indo até {alvo}',
 	atacando: 'Atacando {alvo}',
 	'sem-alvo-valido': 'Sem alvo válido',
@@ -385,6 +389,7 @@ export const EXPLICACAO_DO_STATUS = Object.freeze({
 	'controle-manual': 'O Bot está desligado: você controla o personagem. Ligue o Auto Caça para ele voltar a agir.',
 	'suspenso-manual': 'Você mexeu no personagem, então o Bot esperou. Ele retoma sozinho quando você parar.',
 	'procurando-alvo': 'O Bot está olhando em volta e ainda não escolheu um monstro.',
+	patrulhando: 'Nenhum monstro à vista: o Bot anda pelo mapa procurando o próximo alvo.',
 	'indo-ate-alvo': 'O Bot escolheu {alvo} e está andando até ele.',
 	atacando: 'O Bot está lutando contra {alvo}.',
 	'sem-alvo-valido':

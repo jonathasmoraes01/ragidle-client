@@ -162,7 +162,8 @@ describe('coleta do Bot', () => {
 
 	it('config sem os blocos novos (servidor antigo): a edicao nasce do padrao', () => {
 		const velha = { v: 1, cacar: true };
-		expect(ligarColeta(velha, true).coleta).toEqual({ ligada: true, raio: 5, ignorar: [] });
+		// O padrao novo (ajustes do dono, 09/10/2026): ligada, raio 20.
+		expect(ligarColeta(velha, true).coleta).toEqual({ ligada: true, raio: 20, ignorar: [] });
 		expect(adicionarPocao(velha, 'sp', 505).sobrevivencia.pocoesSp.itens).toEqual([505]);
 		expect(adicionarSuporte(velha, CURA).suporte.lista).toHaveLength(1);
 		expect(velha).toEqual({ v: 1, cacar: true });

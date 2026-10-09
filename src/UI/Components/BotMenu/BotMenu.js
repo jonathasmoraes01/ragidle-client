@@ -30,9 +30,10 @@ import cssText from './BotMenu.css?raw';
 import { fecharEEsquecer } from '../limpezaDeJanelaIdle.js';
 import { criarEstadoDoBot, fraseDoErro, fraseDoStatus } from './estadoDoBot.js';
 import { desenharEditorDeSkills } from './editorDeSkills.js';
+import { desenharRodizio } from './editorDoRodizio.js';
 import { desenharColeta, desenharSobrevivencia, desenharSuporte } from './editorDeManutencao.js';
 import { desenharFlechas } from './editorDeFlechas.js';
-import { desenharArmazem, desenharPerfis } from './editorDeArmazem.js';
+import { desenharPerfis } from './editorDePerfis.js';
 import { desenharAvancado, desenharConsumiveis } from './editorDeConsumiveis.js';
 import { desenharPorSkill } from './editorPorSkill.js';
 import RiIcones from 'UI/ri-icones.js';
@@ -48,8 +49,9 @@ const WINDOW_HEIGHT = 720;
  * AS SECOES NA BARRA LATERAL, na ordem do mockup do dono (08/10/2026): nome, subtitulo, glifo e o
  * emblema do cabecalho (arte real `/ragidle/ui-icons/` quando ha uma que diga a mesma coisa; senao o
  * glifo). `flechas` NAO e aba: e o cartao dentro de Ataque. Secao sem backend nao entra na barra.
+ * O Armazem saiu do menu nos ajustes do dono de 09/10/2026: mesmo anunciado por um servidor velho, nao volta.
  */
-const ORDEM_DAS_SECOES = Object.freeze(['cacada', 'ataque', 'suporte', 'sobrevivencia', 'consumiveis', 'coleta', 'postura', 'armazem', 'perfis', 'avancado']);
+const ORDEM_DAS_SECOES = Object.freeze(['cacada', 'ataque', 'suporte', 'sobrevivencia', 'consumiveis', 'coleta', 'postura', 'perfis', 'avancado']);
 
 const NOME_DA_SECAO = Object.freeze({
 	cacada: 'Caçada',
@@ -58,7 +60,6 @@ const NOME_DA_SECAO = Object.freeze({
 	suporte: 'Suporte',
 	coleta: 'Coleta',
 	postura: 'Grupo',
-	armazem: 'Armazém',
 	perfis: 'Perfis',
 	consumiveis: 'Consumíveis',
 	avancado: 'Avançado'
@@ -71,7 +72,6 @@ const SUB_DA_SECAO = Object.freeze({
 	sobrevivencia: 'Poções e HP/SP',
 	coleta: 'Coleta de itens',
 	postura: 'Postura e cooperação',
-	armazem: 'Armazém e reposição',
 	perfis: 'Salvar e carregar',
 	consumiveis: 'Poções e Asa de Mosca',
 	avancado: 'O que o Bot está fazendo'
@@ -84,7 +84,6 @@ const GLIFO_DA_SECAO = Object.freeze({
 	sobrevivencia: 'botCoracao',
 	coleta: 'botColeta',
 	postura: 'botGrupo',
-	armazem: 'botArmazem',
 	perfis: 'botPerfil',
 	consumiveis: 'botConsumiveis',
 	avancado: 'botAvancado'
@@ -94,25 +93,20 @@ const EMBLEMA_DA_SECAO = Object.freeze({
 	ataque: 'caca',
 	suporte: 'skills',
 	postura: 'grupo',
-	armazem: 'inventario',
 	perfis: 'personagem'
 });
 
 const TITULO_DA_SECAO = Object.freeze({
 	cacada: ['Configurações de Caçada', 'Onde e quem o Bot caça: o raio de busca e os monstros que ele nunca escolhe.'],
-	ataque: ['Configurações de Ataque', 'Defina quais skills usar, a ordem, alvos e comportamentos durante a caça.'],
+	ataque: ['Configurações de Ataque', 'Quais habilidades o Bot usa, em que ordem, e como ele ataca.'],
 	suporte: ['Configurações de Suporte', 'Buffs mantidos e curas por limiar de HP, em você ou no grupo.'],
-	sobrevivencia: ['Configurações de Sobrevivência', 'Poções de HP e SP por limiar e o descanso sentado.'],
+	sobrevivencia: ['Configurações de Sobrevivência', 'Quando beber poção de HP e de SP, e quando sentar para descansar.'],
 	coleta: ['Configurações de Coleta', 'Pegar os itens do chão dentro do raio, menos os ignorados.'],
 	postura: ['Postura e Grupo', 'Como o Bot combate e como ele coopera com o grupo.'],
-	armazem: ['Armazém e Reposição', 'Ida à Kafra e à loja da cidade quando o peso ou o estoque pedem.'],
 	perfis: ['Perfis', 'Configurações nomeadas deste personagem. Usar um perfil nunca liga o Bot.'],
-	consumiveis: ['Consumíveis', 'Poções de velocidade mantidas e a Asa de Mosca automática (benefício VIP). Tudo desligado por padrão.'],
+	consumiveis: ['Consumíveis', 'Poções de velocidade e a Asa de Mosca automática (benefício VIP).'],
 	avancado: ['Avançado', 'Por que o Bot está fazendo, ou não, o que você vê, e o que ele fez nesta sessão.']
 });
-
-/** A aba de Ataque mostrada (Geral, Por Skill, Por Monstro): so desta tela. */
-let _subDoAtaque = 'geral';
 
 const NOME_CURTO_DA_POSTURA = Object.freeze({
 	tank: 'Tanque',
@@ -151,9 +145,9 @@ function alturaNaTela() {
 const BotMenu = new GUIComponent('BotMenu', cssText);
 
 /**
- * A MOCHILA para os seletores do Armazem (correcoes pos-QA, 08/10/2026; 05 secao 3: escolher pelo nome e
- * pelo icone, sem ID digitado). Quem liga a janela ao jogo (o MapEngine) troca esta leitura pela lista do
- * Inventory; sem ela, vazia. O equipamento vestido nao esta nessa lista (e nao vai ao armazem).
+ * A MOCHILA para o seletor de itens ignorados da Coleta (correcoes pos-QA, 08/10/2026; 05 secao 3: escolher
+ * pelo nome e pelo icone, sem ID digitado). Quem liga a janela ao jogo (o MapEngine) troca esta leitura pela
+ * lista do Inventory; sem ela, vazia.
  */
 BotMenu.lerMochila = () => [];
 
@@ -183,7 +177,7 @@ function enviar(corpo) {
 
 const _estado = criarEstadoDoBot({ enviar });
 
-/** O escopo do editor de skills: a lista geral ou a especie escolhida (so desta tela). */
+/** A especie da lista por monstro no Avancado do Ataque (so desta tela); 'geral' = ainda nao escolhida. */
 let _escopoDasSkills = 'geral';
 
 /** Quem ouve a capacidade (o TopMenuIdle mostra o item "Bot" so com ela). */
@@ -252,13 +246,6 @@ BotMenu.init = function init() {
 		}
 		desenhar();
 	});
-	root.querySelectorAll('.bm-subaba').forEach(b =>
-		b.addEventListener('click', () => {
-			_subDoAtaque = b.getAttribute('data-sub');
-			_escopoDasSkills = 'geral';
-			desenhar();
-		})
-	);
 	el('.bm-descartar').addEventListener('click', () => {
 		_estado.descartar();
 		desenhar();
@@ -536,23 +523,22 @@ function desenhar() {
 }
 
 /*
- * A SECAO ATAQUE no mockup: Geral (o modo e a lista geral), Por Skill (um cartao por habilidade:
- * ativa, nivel, escopo de alvos e os monstros) e Por Monstro (a lista propria de uma especie). Os
- * editores sao os de sempre; aqui so a escolha do que aparece em cada aba.
+ * A SECAO ATAQUE (ajustes do dono, 09/10/2026): na frente, o modo e o RODIZIO (as skills que o Bot usa, na
+ * ordem da lista geral, cada uma com o seu liga/desliga); o nivel fixo, o escopo de alvos por skill e a lista
+ * propria por monstro ficam no "Avancado" recolhido. Sem mudanca de contrato: a lista geral e a ordem do
+ * rodizio e desligar e `skills.porSkill[id].ativa = false`.
  */
 function desenharAtaque(s, c, lim) {
 	const secao = el('[data-secao="ataque"]');
-	secao.querySelectorAll('.bm-subaba').forEach(b => {
-		const ativa = b.getAttribute('data-sub') === _subDoAtaque;
-		b.classList.toggle('is-active', ativa);
-		b.setAttribute('aria-selected', String(ativa));
-	});
-	secao.querySelectorAll('[data-sub-de]').forEach(n => {
-		n.hidden = n.getAttribute('data-sub-de') !== _subDoAtaque;
-	});
 	const monstros = s.monstros || [];
-	if (_subDoAtaque === 'por-monstro' && _escopoDasSkills === 'geral' && monstros.length > 0) {
-		_escopoDasSkills = monstros[0].especie;
+	const tetoGeral = lim.skillsNaListaGeral || 12;
+	desenharRodizio(secao.querySelector('.bm-rodizio-caixa'), { config: c, skills: s.skills, teto: tetoGeral }, editar);
+
+	// AVANCADO, lista por monstro: so especies (a lista geral e o rodizio da frente).
+	const comRegra = Object.keys(c.skills.porMonstro || {}).map(Number);
+	const especies = [...monstros.map(m => m.especie), ...comRegra];
+	if (!especies.includes(_escopoDasSkills)) {
+		_escopoDasSkills = especies.length > 0 ? especies[0] : 'geral';
 	}
 	desenharEditorDeSkills(
 		secao,
@@ -560,47 +546,33 @@ function desenharAtaque(s, c, lim) {
 			config: c,
 			skills: s.skills,
 			monstros,
-			escopo: _subDoAtaque === 'geral' ? 'geral' : _escopoDasSkills,
-			teto: { geral: lim.skillsNaListaGeral || 12, porMonstro: lim.skillsPorMonstro || 12 }
+			escopo: _escopoDasSkills,
+			teto: { geral: tetoGeral, porMonstro: lim.skillsPorMonstro || 12 }
 		},
 		editar,
 		escopo => {
 			_escopoDasSkills = escopo;
-			_subDoAtaque = escopo === 'geral' ? 'geral' : 'por-monstro';
 			desenhar();
 		}
 	);
 	const caixa = secao.querySelector('.bm-skills');
-	const linhaDoEscopo = secao.querySelector('.bm-escopo-linha');
-	linhaDoEscopo.hidden = _subDoAtaque !== 'por-monstro';
-	secao.querySelector('.bm-skills-titulo').textContent =
-		_subDoAtaque === 'por-monstro' ? 'Lista deste monstro' : 'Habilidades, em ordem de preferência';
-	if (_subDoAtaque === 'por-skill') {
+	const geral = secao.querySelector('.bm-escopo option[value="geral"]');
+	if (geral) {
+		geral.remove();
+	}
+	if (_escopoDasSkills === 'geral') {
 		caixa.hidden = true;
-	} else if (_subDoAtaque === 'por-monstro') {
-		// Por Monstro: so as especies (a lista geral e a aba Geral).
-		const geral = secao.querySelector('.bm-escopo option[value="geral"]');
-		if (geral) {
-			geral.remove();
-		}
-		if (monstros.length === 0 && Object.keys(c.skills.porMonstro || {}).length === 0) {
-			caixa.hidden = true;
-		}
 	}
 	/*
-	 * POR MONSTRO VAZIO (correcoes pos-QA, 08/10/2026): sem monstro no mapa e sem lista salva a aba ficava
-	 * em branco, sem explicacao. Agora diz o motivo: na cidade nao ha monstros; fora dela, o mapa nao tem.
+	 * POR MONSTRO VAZIO (correcoes pos-QA, 08/10/2026): sem monstro no mapa e sem lista salva, o motivo em vez
+	 * de um bloco em branco: na cidade nao ha monstros; fora dela, o mapa nao tem.
 	 */
 	const vazio = secao.querySelector('.bm-por-monstro-vazio');
-	vazio.hidden = !(_subDoAtaque === 'por-monstro' && caixa.hidden);
+	vazio.hidden = !(Array.isArray(s.skills) && caixa.hidden);
 	vazio.textContent = s.contexto && s.contexto.ehCidade
 		? 'Na cidade não há monstros. Entre num mapa de caça para montar a lista de cada monstro.'
 		: 'Nenhum monstro neste mapa para montar uma lista própria.';
-	desenharPorSkill(
-		secao.querySelector('.bm-por-skill'),
-		{ config: c, skills: s.skills, monstros, tetoGeral: lim.skillsNaListaGeral || 12 },
-		editar
-	);
+	desenharPorSkill(secao.querySelector('.bm-por-skill'), { config: c, skills: s.skills, monstros, tetoGeral }, editar);
 }
 
 /** O perfil atual no topo: escolher um perfil e o mesmo verbo imediato da aba Perfis. */
@@ -653,25 +625,9 @@ function desenharManutencao(s, c, secoes, lim) {
 				config: c,
 				teto: lim.itensIgnoradosNaColeta || 300,
 				raioMinimo: lim.raioDeColetaMinimo || 1,
-				raioMaximo: lim.raioDeColetaMaximo || 15,
+				raioMaximo: lim.raioDeColetaMaximo || 20,
 				nomeDoItem,
 				mochila: mochilaDoBot,
-				iconeDoItem: aplicarIconeDoItem
-			},
-			editar
-		);
-	}
-	if (secoes.includes('armazem')) {
-		desenharArmazem(
-			el('[data-secao="armazem"]'),
-			{
-				config: c,
-				cidades: s.cidades,
-				limites: lim,
-				nomeDoItem,
-				mochila: mochilaDoBot,
-				pocoes: s.pocoes,
-				municoes: s.municoes,
 				iconeDoItem: aplicarIconeDoItem
 			},
 			editar

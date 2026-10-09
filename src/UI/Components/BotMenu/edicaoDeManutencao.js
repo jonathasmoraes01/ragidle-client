@@ -14,12 +14,22 @@
  * This file is part of the ragidle fork of ROBrowser.
  */
 
+/*
+ * OS PADROES do servidor (ajustes do dono, 09/10/2026; `servidor/bot/config-do-bot.ts`): quem nunca configurou
+ * bebe HP e SP com 50 % ou menos, no Automatico (qualquer pocao compativel), e coleta num raio de 20. O
+ * descanso continua desligado. O cliente so le estes quando o bloco falta (servidor velho).
+ */
+export const LIMIAR_PADRAO_DA_POCAO = 50;
 const SOBREVIVENCIA_PADRAO = Object.freeze({
-	pocoesHp: Object.freeze({ itens: Object.freeze([]), abaixoDe: 0 }),
-	pocoesSp: Object.freeze({ itens: Object.freeze([]), abaixoDe: 0 }),
+	pocoesHp: Object.freeze({ itens: Object.freeze([]), abaixoDe: LIMIAR_PADRAO_DA_POCAO, auto: true }),
+	pocoesSp: Object.freeze({ itens: Object.freeze([]), abaixoDe: LIMIAR_PADRAO_DA_POCAO, auto: true }),
 	descanso: Object.freeze({ sentarHpAbaixoDe: 0, sentarSpAbaixoDe: 0, levantarEm: 100 })
 });
-const COLETA_PADRAO = Object.freeze({ ligada: false, raio: 5, ignorar: Object.freeze([]) });
+export const RAIO_DE_COLETA_MAXIMO = 20;
+const COLETA_PADRAO = Object.freeze({ ligada: true, raio: RAIO_DE_COLETA_MAXIMO, ignorar: Object.freeze([]) });
+
+/** O limiar de sentar que o interruptor do descanso grava ao ligar (o jogador ajusta na barra). */
+export const SENTAR_PADRAO = 30;
 
 /** Limiar de cura padrao ao adicionar uma cura (porcento de HP). */
 export const LIMIAR_PADRAO_DA_CURA = 60;
@@ -34,11 +44,26 @@ function inteiroNaFaixa(valor, min, max) {
 
 const CHAVE_DO_EIXO = Object.freeze({ hp: 'pocoesHp', sp: 'pocoesSp' });
 
+/**
+ * Uma lista de pocoes lida da config: sem o campo `auto` (gravada antes de 09/10/2026), o Automatico fica
+ * DESLIGADO, o comportamento de antes; a lista ausente e o padrao novo.
+ */
+function lerListaDePocoes(p, padrao) {
+	if (!p || typeof p !== 'object') {
+		return padrao;
+	}
+	return {
+		itens: Array.isArray(p.itens) ? p.itens : [],
+		abaixoDe: Number.isInteger(p.abaixoDe) ? p.abaixoDe : 0,
+		auto: typeof p.auto === 'boolean' ? p.auto : false
+	};
+}
+
 export function lerSobrevivencia(config) {
 	const s = config.sobrevivencia || {};
 	return {
-		pocoesHp: s.pocoesHp || SOBREVIVENCIA_PADRAO.pocoesHp,
-		pocoesSp: s.pocoesSp || SOBREVIVENCIA_PADRAO.pocoesSp,
+		pocoesHp: lerListaDePocoes(s.pocoesHp, SOBREVIVENCIA_PADRAO.pocoesHp),
+		pocoesSp: lerListaDePocoes(s.pocoesSp, SOBREVIVENCIA_PADRAO.pocoesSp),
 		descanso: s.descanso || SOBREVIVENCIA_PADRAO.descanso
 	};
 }
@@ -103,6 +128,36 @@ export function definirLimiarDePocao(config, eixo, abaixoDe) {
 	return comPocoes(config, eixo, { ...lista, abaixoDe: inteiroNaFaixa(abaixoDe, 0, 99) });
 }
 
+/**
+ * O INTERRUPTOR do eixo (ajustes do dono, 09/10/2026): desligado = `abaixoDe: 0`; ligado = o valor da barra
+ * (`aoLigar`, 1..99; padrao 50). A lista e o Automatico ficam como estao.
+ */
+export function ligarEixo(config, eixo, ligado, aoLigar = LIMIAR_PADRAO_DA_POCAO) {
+	const lista = lerPocoes(config, eixo);
+	return comPocoes(config, eixo, { ...lista, abaixoDe: ligado ? inteiroNaFaixa(aoLigar, 1, 99) : 0 });
+}
+
+/** "Automatico (qualquer pocao compativel)": com ele, o frasco escolhido vira o preferido, e nao o unico. */
+export function definirAutomatico(config, eixo, auto) {
+	const lista = lerPocoes(config, eixo);
+	return comPocoes(config, eixo, { ...lista, auto: !!auto });
+}
+
+/**
+ * O FRASCO escolhido vai para a FRENTE da lista (o resto da ordem salva fica atras); `null` esvazia a lista
+ * (nenhum frasco: com o Automatico ligado, "qualquer pocao compativel"). A tela mostra so o primeiro.
+ */
+export function escolherFrasco(config, eixo, itemId) {
+	const lista = lerPocoes(config, eixo);
+	if (itemId === null || itemId === undefined || itemId === '') {
+		return comPocoes(config, eixo, { ...lista, itens: [] });
+	}
+	if (!Number.isInteger(itemId) || itemId <= 0) {
+		return config;
+	}
+	return comPocoes(config, eixo, { ...lista, itens: [itemId, ...lista.itens.filter(i => i !== itemId)] });
+}
+
 /* ---------------- sobrevivencia: descanso ---------------- */
 
 const FAIXA_DO_DESCANSO = Object.freeze({
@@ -122,6 +177,14 @@ export function definirDescanso(config, campo, valor) {
 		...config,
 		sobrevivencia: { ...s, descanso: { ...s.descanso, [campo]: inteiroNaFaixa(valor, faixa[0], faixa[1]) } }
 	};
+}
+
+/** O interruptor do sentar de um eixo: ligado grava `aoLigar` (padrao 30), desligado grava 0. */
+export function ligarSentar(config, campo, ligado, aoLigar = SENTAR_PADRAO) {
+	if (campo !== 'sentarHpAbaixoDe' && campo !== 'sentarSpAbaixoDe') {
+		return config;
+	}
+	return definirDescanso(config, campo, ligado ? inteiroNaFaixa(aoLigar, 1, 99) : 0);
 }
 
 /** O "levantar em" tem de ficar ACIMA dos dois limiares de sentar (a regra do servidor). */
@@ -237,7 +300,7 @@ export function ligarColeta(config, ligada) {
 	return comColeta(config, c => ({ ...c, ligada: !!ligada }));
 }
 
-export function definirRaioDeColeta(config, raio, min = 1, max = 15) {
+export function definirRaioDeColeta(config, raio, min = 1, max = RAIO_DE_COLETA_MAXIMO) {
 	return comColeta(config, c => ({ ...c, raio: inteiroNaFaixa(raio, min, max) }));
 }
 

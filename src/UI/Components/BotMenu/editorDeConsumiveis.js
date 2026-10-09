@@ -2,7 +2,7 @@
  * UI/Components/BotMenu/editorDeConsumiveis.js
  *
  * O DESENHO das abas Consumiveis e Avancado do menu do Bot (decisoes D3-C1 e D4-A3 do dono, 08/10/2026), no
- * padrao de `editorDeArmazem.js`. Consumiveis edita o RASCUNHO (Aplicar confirma): as pocoes de velocidade
+ * padrao de `editorDeManutencao.js`. Consumiveis edita o RASCUNHO (Aplicar confirma): as pocoes de velocidade
  * que o Bot mantem e a Asa de Mosca automatica. Avancado so LE: o que o Bot esta fazendo e os contadores da
  * sessao, com a explicacao em frase de jogador (nunca id ou termo interno).
  *

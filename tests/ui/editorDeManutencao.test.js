@@ -82,51 +82,48 @@ describe('o desenho das abas de manutencao', () => {
 			secao = document.querySelector('[data-secao="sobrevivencia"]');
 		});
 
-		it('so oferece as pocoes do eixo certo, com a quantidade', () => {
+		it('o frasco so oferece as pocoes do eixo certo, com a quantidade no inventario', () => {
 			desenhar();
-			const hp = secao.querySelector('[data-eixo="hp"] .bm-nova-pocao');
-			const sp = secao.querySelector('[data-eixo="sp"] .bm-nova-pocao');
-			expect(opcoes(hp)).toEqual(['Poção Vermelha (12)', 'Fruto de Yggdrasil (1)']);
-			expect(opcoes(sp)).toEqual(['Poção Azul (3)', 'Fruto de Yggdrasil (1)']);
+			const hp = secao.querySelector('[data-eixo="hp"] .bm-frasco');
+			const sp = secao.querySelector('[data-eixo="sp"] .bm-frasco');
+			expect(opcoes(hp)).toEqual(['Escolha a poção', 'Poção Vermelha (12 no inventário)', 'Fruto de Yggdrasil (1 no inventário)']);
+			expect(opcoes(sp)).toEqual(['Escolha a poção', 'Poção Azul (3 no inventário)', 'Fruto de Yggdrasil (1 no inventário)']);
 		});
 
-		it('adicionar, ordenar e remover editam a lista do eixo; a oferta nao repete', () => {
+		it('o interruptor liga o eixo com 50 e desliga com 0; escolher o frasco grava so naquele eixo', () => {
 			desenhar();
 			const bloco = secao.querySelector('[data-eixo="hp"]');
-			bloco.querySelector('.bm-add-pocao').click();
-			bloco.querySelector('.bm-add-pocao').click();
-			expect(config.sobrevivencia.pocoesHp.itens).toEqual([501, 607]);
+			expect(bloco.querySelector('.bm-eixo-ligado').checked).toBe(false);
+			const chave = bloco.querySelector('.bm-eixo-ligado');
+			chave.checked = true;
+			chave.dispatchEvent(new Event('change'));
+			expect(config.sobrevivencia.pocoesHp.abaixoDe).toBe(50);
+			mudar(secao.querySelector('[data-eixo="hp"] .bm-frasco'), 607);
+			expect(config.sobrevivencia.pocoesHp.itens).toEqual([607]);
 			expect(config.sobrevivencia.pocoesSp.itens).toEqual([]);
-			expect(bloco.querySelectorAll('.bm-nova-pocao option')).toHaveLength(0);
-			expect(bloco.querySelector('.bm-add-pocao').disabled).toBe(true);
-			expect(bloco.querySelector('[data-item="501"] .bm-quantidade').textContent).toBe('12 un.');
-			bloco.querySelector('[data-item="607"] .bm-sobe').click();
-			expect(config.sobrevivencia.pocoesHp.itens).toEqual([607, 501]);
-			bloco.querySelector('[data-item="607"] .bm-remove').click();
-			expect(config.sobrevivencia.pocoesHp.itens).toEqual([501]);
+			const desligar = secao.querySelector('[data-eixo="hp"] .bm-eixo-ligado');
+			desligar.checked = false;
+			desligar.dispatchEvent(new Event('change'));
+			expect(config.sobrevivencia.pocoesHp).toEqual({ itens: [607], abaixoDe: 0, auto: false });
 		});
 
-		it('pocao da lista que acabou na mochila aparece "sem estoque"', () => {
+		it('pocao escolhida que acabou na mochila aparece com 0 no inventario', () => {
 			config.sobrevivencia.pocoesSp.itens = [505];
 			desenhar(POCOES.filter(p => p.itemId !== 505));
-			const li = secao.querySelector('[data-eixo="sp"] [data-item="505"]');
-			expect(li.querySelector('.bm-item-nome').textContent).toBe('#505');
-			expect(li.querySelector('.bm-quantidade').textContent).toBe('sem estoque');
+			const frasco = secao.querySelector('[data-eixo="sp"] .bm-frasco');
+			expect(frasco.value).toBe('505');
+			expect(frasco.selectedOptions[0].textContent).toBe('#505 (0 no inventário)');
 		});
 
-		it('o teto da lista desliga o Adicionar', () => {
-			desenhar(POCOES, 1);
-			secao.querySelector('[data-eixo="hp"] .bm-add-pocao').click();
-			expect(secao.querySelector('[data-eixo="hp"] .bm-add-pocao').disabled).toBe(true);
-		});
-
-		it('limiares e descanso chegam ao rascunho; levantar abaixo do sentar avisa', () => {
+		it('a barra e o descanso chegam ao rascunho; levantar abaixo do sentar avisa', () => {
+			config.sobrevivencia.pocoesSp.abaixoDe = 10;
 			desenhar();
-			mudar(secao.querySelector('[data-eixo="sp"] .bm-limiar'), 30);
+			mudar(secao.querySelector('[data-eixo="sp"] .bm-limiar'), 30, 'input');
 			expect(config.sobrevivencia.pocoesSp.abaixoDe).toBe(30);
-			mudar(secao.querySelector('[data-eixo="hp"] .bm-limiar'), 250);
-			expect(config.sobrevivencia.pocoesHp.abaixoDe).toBe(99);
 			expect(secao.querySelector('.bm-descanso-aviso').hidden).toBe(true);
+			const sentar = secao.querySelector('.bm-sentar-hp-ligado');
+			sentar.checked = true;
+			sentar.dispatchEvent(new Event('change'));
 			mudar(secao.querySelector('.bm-sentar-hp'), 40);
 			mudar(secao.querySelector('.bm-levantar'), 35);
 			expect(config.sobrevivencia.descanso).toEqual({ sentarHpAbaixoDe: 40, sentarSpAbaixoDe: 0, levantarEm: 35 });
@@ -342,7 +339,7 @@ describe('a costura das abas de manutencao na janela real', () => {
 					skillsDeSuporte: 8,
 					itensIgnoradosNaColeta: 300,
 					raioDeColetaMinimo: 1,
-					raioDeColetaMaximo: 15
+					raioDeColetaMaximo: 20
 				},
 				secoes
 			},
@@ -361,8 +358,8 @@ describe('a costura das abas de manutencao na janela real', () => {
 		receber(status(['cacada', 'ataque']));
 		expect(abas(BotMenu._host)).toEqual(['Caçada', 'Ataque']);
 		expect(secaoVisivel(BotMenu._host)).toEqual(['cacada']);
-		// Nem desenhada: a oferta de pocoes fica vazia.
-		expect(BotMenu._host.querySelectorAll('.bm-nova-pocao option')).toHaveLength(0);
+		// Nem desenhada: o frasco fica sem opcoes.
+		expect(BotMenu._host.querySelectorAll('.bm-frasco option')).toHaveLength(0);
 	});
 
 	it('anunciada, a aba aparece; editar suja o RASCUNHO e nada vai ao servidor ate o Aplicar', async () => {
@@ -376,7 +373,9 @@ describe('a costura das abas de manutencao na janela real', () => {
 		expect(secaoVisivel(host)).toEqual(['sobrevivencia']);
 
 		const enviadosAntes = Network.sendPacket.mock.calls.length;
-		host.querySelector('[data-eixo="hp"] .bm-add-pocao').click();
+		const frasco = host.querySelector('[data-eixo="hp"] .bm-frasco');
+		frasco.value = '501';
+		frasco.dispatchEvent(new Event('change'));
 		const novo = host.querySelector('.bm-novo-suporte');
 		novo.value = '28';
 		host.querySelector('.bm-add-suporte').click();

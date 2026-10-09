@@ -12,8 +12,12 @@
  * This file is part of the ragidle fork of ROBrowser.
  */
 
+/*
+ * O PADRAO do servidor (ajustes do dono, 09/10/2026): a troca automatica nasce LIGADA, no modo automatico, com
+ * todas as flechas permitidas. A troca continua beneficio VIP (o servidor confere a cada decisao).
+ */
 export const FLECHAS_PADRAO = Object.freeze({
-	ligada: false,
+	ligada: true,
 	modo: 'automatico',
 	fixa: null,
 	permitidas: Object.freeze([]),

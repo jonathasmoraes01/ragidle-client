@@ -2,9 +2,10 @@
  * O LAYOUT DO MOCKUP do menu do Bot (Fase 11, 08/10/2026), na janela real
  * montada no jsdom: o topo (Auto Caca ON/OFF, o mapa pelo contexto do
  * servidor, o perfil atual), a barra lateral na ordem do mockup com o
- * subtitulo, o cabecalho da secao, as sub-abas de Ataque (Geral, Por Skill,
- * Por Monstro), o cartao Por Skill e o "Salvar e Iniciar" (so liga depois
- * que o servidor aceitar o Aplicar).
+ * subtitulo, o cabecalho da secao, o Ataque com o rodizio na frente e o
+ * Avancado recolhido (ajustes do dono, 09/10/2026: as sub-abas Geral, Por
+ * Skill e Por Monstro sairam), o cartao por habilidade e o "Salvar e Iniciar"
+ * (so liga depois que o servidor aceitar o Aplicar).
  */
 import { describe, expect, it, vi } from 'vitest';
 import { readFileSync } from 'node:fs';
@@ -144,7 +145,8 @@ describe('a barra lateral e o cabecalho da secao', () => {
 		const { BotMenu, receber } = await montar();
 		receber(status(TODAS));
 		const abas = [...BotMenu._host.querySelectorAll('.bm-abas .bm-aba')];
-		expect(abas.map(b => b.textContent)).toEqual(['Caçada', 'Ataque', 'Suporte', 'Sobrevivência', 'Coleta', 'Grupo', 'Armazém', 'Perfis']);
+		// O Armazem saiu do menu (ajustes do dono, 09/10/2026): mesmo anunciado, nao aparece.
+		expect(abas.map(b => b.textContent)).toEqual(['Caçada', 'Ataque', 'Suporte', 'Sobrevivência', 'Coleta', 'Grupo', 'Perfis']);
 		expect(abas.map(b => b.getAttribute('data-sub'))).toEqual([
 			'Mapas e monstros',
 			'Skills e comportamento',
@@ -152,7 +154,6 @@ describe('a barra lateral e o cabecalho da secao', () => {
 			'Poções e HP/SP',
 			'Coleta de itens',
 			'Postura e cooperação',
-			'Armazém e reposição',
 			'Salvar e carregar'
 		]);
 		expect(abas.every(b => b.querySelector('svg'))).toBe(true);
@@ -167,7 +168,7 @@ describe('a barra lateral e o cabecalho da secao', () => {
 		expect(host.querySelector('[data-secao="ataque"]').hidden).toBe(false);
 		expect(host.querySelector('[data-secao="cacada"]').hidden).toBe(true);
 		expect(host.querySelector('.bm-secao-titulo').textContent).toBe('Configurações de Ataque');
-		expect(host.querySelector('.bm-secao-desc').textContent).toMatch(/skills/);
+		expect(host.querySelector('.bm-secao-desc').textContent).toMatch(/habilidades/);
 		expect(host.querySelector('.bm-emblema img').getAttribute('src')).toBe('/ragidle/ui-icons/caca.webp');
 		const cacada = [...host.querySelectorAll('.bm-aba')].find(b => b.textContent === 'Caçada');
 		cacada.click();
@@ -177,54 +178,45 @@ describe('a barra lateral e o cabecalho da secao', () => {
 	});
 });
 
-describe('as sub-abas de Ataque', () => {
+describe('o Ataque: o rodizio na frente e o Avancado recolhido (ajustes do dono, 09/10/2026)', () => {
 	async function noAtaque() {
 		const m = await montar();
 		m.receber(status(['cacada', 'ataque']));
 		[...m.BotMenu._host.querySelectorAll('.bm-aba')].find(b => b.textContent === 'Ataque').click();
-		const sub = nome => m.BotMenu._host.querySelector('.bm-subaba[data-sub="' + nome + '"]');
-		return { ...m, host: m.BotMenu._host, sub };
+		return { ...m, host: m.BotMenu._host };
 	}
 
-	it('Geral mostra o modo e a lista geral; Por Skill esconde a lista e mostra os cartoes', async () => {
-		const { host, sub } = await noAtaque();
-		expect(sub('geral').classList.contains('is-active')).toBe(true);
+	it('o modo e o rodizio na frente; o cartao por habilidade mora no Avancado, sem sub-abas', async () => {
+		const { host } = await noAtaque();
+		expect(host.querySelectorAll('.bm-subaba')).toHaveLength(0);
 		expect(host.querySelector('.bm-modo').hidden).toBe(false);
-		expect(host.querySelector('.bm-skills').hidden).toBe(false);
-		expect(host.querySelector('.bm-escopo-linha').hidden).toBe(true);
-		expect(host.querySelector('.bm-por-skill').hidden).toBe(true);
-		sub('por-skill').click();
-		expect(sub('por-skill').classList.contains('is-active')).toBe(true);
-		expect(host.querySelector('.bm-modo').hidden).toBe(true);
-		expect(host.querySelector('.bm-skills').hidden).toBe(true);
-		expect(host.querySelector('.bm-por-skill').hidden).toBe(false);
-		const cartao = host.querySelector('.bm-ps-cartao[data-skill="5"]');
+		expect(host.querySelector('.bm-rodizio-caixa').hidden).toBe(false);
+		const avancado = host.querySelector('.bm-ataque-avancado');
+		expect(avancado.open).toBe(false);
+		const cartao = avancado.querySelector('.bm-ps-cartao[data-skill="5"]');
 		expect(cartao.querySelector('.bm-ps-icone').getAttribute('src')).toBe('/ragidle/skills/SM_BASH.png');
 		expect(cartao.querySelector('.bm-ps-nome').textContent).toBe('Golpe Fulminante');
 		expect(cartao.querySelector('.bm-passo-valor').textContent).toBe('10');
 		expect(cartao.querySelector('.bm-ps-ativa').checked).toBe(true);
 	});
 
-	it('Por Monstro tira a opcao geral do seletor e abre na primeira especie do mapa', async () => {
-		const { host, sub } = await noAtaque();
-		sub('por-monstro').click();
+	it('a lista por monstro do Avancado tira a opcao geral do seletor e abre na primeira especie do mapa', async () => {
+		const { host } = await noAtaque();
 		const opcoes = [...host.querySelectorAll('.bm-escopo option')].map(o => o.value);
 		expect(opcoes).not.toContain('geral');
 		expect(host.querySelector('.bm-escopo').value).toBe('1002');
-		expect(host.querySelector('.bm-escopo-linha').hidden).toBe(false);
+		expect(host.querySelector('.bm-skills').hidden).toBe(false);
 		expect(host.querySelector('.bm-skills-titulo').textContent).toBe('Lista deste monstro');
 	});
 
-	it('Por Monstro vazio diz o motivo: na cidade nao ha monstros; fora dela, o mapa sem monstro (correcoes pos-QA)', async () => {
+	it('lista por monstro vazia diz o motivo: na cidade nao ha monstros; fora dela, o mapa sem monstro (correcoes pos-QA)', async () => {
 		const m = await montar();
 		m.receber(status(['cacada', 'ataque'], { monstros: [] }));
 		const host = m.BotMenu._host;
 		[...host.querySelectorAll('.bm-aba')].find(b => b.textContent === 'Ataque').click();
 		const aviso = host.querySelector('.bm-por-monstro-vazio');
-		expect(aviso.hidden, 'o aviso aparece fora da aba Por Monstro').toBe(true);
-		host.querySelector('.bm-subaba[data-sub="por-monstro"]').click();
 		expect(host.querySelector('.bm-skills').hidden).toBe(true);
-		expect(aviso.hidden, 'Por Monstro vazio sem explicacao').toBe(false);
+		expect(aviso.hidden, 'lista por monstro vazia sem explicacao').toBe(false);
 		expect(aviso.textContent).toBe('Na cidade não há monstros. Entre num mapa de caça para montar a lista de cada monstro.');
 		m.receber(status(['cacada', 'ataque'], { monstros: [], statusRevision: 1, mapa: 'prt_fild08', contexto: { mapa: 'prt_fild08', rotuloDoMapa: 'Campos de Prontera', ehCidade: false } }));
 		expect(aviso.textContent).toBe('Nenhum monstro neste mapa para montar uma lista própria.');
@@ -232,13 +224,10 @@ describe('as sub-abas de Ataque', () => {
 		m.receber(status(['cacada', 'ataque'], { statusRevision: 2 }));
 		expect(aviso.hidden).toBe(true);
 		expect(host.querySelector('.bm-skills').hidden).toBe(false);
-		host.querySelector('.bm-subaba[data-sub="geral"]').click();
-		expect(aviso.hidden).toBe(true);
 	});
 
-	it('o cartao Por Skill edita o RASCUNHO: ativa, nivel, escopo e as fichas dos monstros', async () => {
-		const { BotMenu, Network, host, sub } = await noAtaque();
-		sub('por-skill').click();
+	it('o cartao por habilidade edita o RASCUNHO: ativa, nivel, escopo e as fichas dos monstros', async () => {
+		const { BotMenu, Network, host } = await noAtaque();
 		const antes = Network.sendPacket.mock.calls.length;
 		const cartao = () => host.querySelector('.bm-ps-cartao[data-skill="5"]');
 		cartao().querySelector('.bm-passo-menos').click();
@@ -252,6 +241,8 @@ describe('as sub-abas de Ataque', () => {
 		ativa.dispatchEvent(new Event('change'));
 		expect(BotMenu._estado.estado().editConfig.skills.porSkill['5'].ativa).toBe(false);
 		expect(cartao().classList.contains('is-desligada')).toBe(true);
+		// O rodizio da frente mostra a mesma skill desligada, no mesmo lugar.
+		expect(host.querySelector('.bm-rodizio-item[data-skill="5"] .bm-rodizio-ativa').checked).toBe(false);
 		const alguns = cartao().querySelector('.bm-ps-alguns input');
 		alguns.checked = true;
 		alguns.dispatchEvent(new Event('change'));
@@ -274,14 +265,14 @@ describe('as sub-abas de Ataque', () => {
 		expect(Network.sendPacket.mock.calls.length).toBe(antes);
 	});
 
-	it('skill fora da lista geral oferece "Usar na lista geral" em vez do nivel', async () => {
+	it('skill fora do rodizio oferece "Pôr no rodízio" em vez do nivel', async () => {
 		const m = await montar();
 		m.receber(status(['cacada', 'ataque'], { config: config({ skills: { geral: [], porSkill: {}, porMonstro: {} } }) }));
 		const host = m.BotMenu._host;
 		[...host.querySelectorAll('.bm-aba')].find(b => b.textContent === 'Ataque').click();
-		host.querySelector('.bm-subaba[data-sub="por-skill"]').click();
 		const cartao = host.querySelector('.bm-ps-cartao[data-skill="5"]');
 		expect(cartao.querySelector('.bm-passo')).toBeNull();
+		expect(cartao.querySelector('.bm-ps-incluir').textContent).toBe('Pôr no rodízio');
 		cartao.querySelector('.bm-ps-incluir').click();
 		expect(m.BotMenu._estado.estado().editConfig.skills.geral).toEqual([{ skillId: 5, nivel: 'aprendido' }]);
 	});

@@ -11,9 +11,11 @@
  * This file is part of the ragidle fork of ROBrowser.
  */
 import {
-	adicionarPocao,
+	LIMIAR_PADRAO_DA_POCAO,
+	SENTAR_PADRAO,
 	adicionarSuporte,
 	candidatosDaColeta,
+	definirAutomatico,
 	definirDescanso,
 	definirDestinoDoSuporte,
 	definirLimiarDaCura,
@@ -23,14 +25,15 @@ import {
 	deixarDeIgnorar,
 	descansoCoerente,
 	destinosDaSkill,
+	escolherFrasco,
 	ignorarItem,
 	lerColeta,
 	lerSobrevivencia,
 	lerSuporte,
 	ligarColeta,
-	moverPocao,
+	ligarEixo,
+	ligarSentar,
 	moverSuporte,
-	removerPocao,
 	removerSuporte
 } from './edicaoDeManutencao.js';
 import { desenharSeletorDeItem } from './seletorDeItem.js';
@@ -78,7 +81,26 @@ function nomeDoItemPor(dados) {
 
 /* ================= SOBREVIVENCIA ================= */
 
+/*
+ * O ULTIMO VALOR DA BARRA de cada eixo (so desta tela): desligar grava `abaixoDe: 0`, e religar volta ao que o
+ * jogador tinha escolhido, e nao a um numero de fabrica. Comeca no padrao do servidor (50).
+ */
+const _ultimoLimiar = { hp: LIMIAR_PADRAO_DA_POCAO, sp: LIMIAR_PADRAO_DA_POCAO };
+const _ultimoSentar = { sentarHpAbaixoDe: SENTAR_PADRAO, sentarSpAbaixoDe: SENTAR_PADRAO };
+
+/** A barra (range): o `input` (arrastar) e o `change` (teclado, soltar) editam; o valor ao lado acompanha. */
+function ligarBarra(input, valor, aoMudar) {
+	input.value = String(valor);
+	input.oninput = () => aoMudar(input.value);
+	input.onchange = () => aoMudar(input.value);
+}
+
 /**
+ * A SOBREVIVENCIA no modelo do menu antigo (ajustes do dono, 09/10/2026; print 4 das referencias). Por eixo:
+ * o interruptor (desligado = `abaixoDe: 0`), o Automatico (qualquer pocao compativel do inventario), o frasco
+ * escolhido com a quantidade no inventario e a barra "Beber com X% ou menos". O aviso aparece quando o eixo
+ * esta ligado sem Automatico e sem frasco: o Bot nao teria o que beber. Logo abaixo, o descanso no mesmo estilo.
+ *
  * @param {Element} raiz a secao Sobrevivencia
  * @param {{config: object, pocoes: Array|null, teto: number, nomeDoItem?: (id: number) => string|null}} dados
  * @param {(fn: (c: object) => object) => void} editar
@@ -92,63 +114,78 @@ export function desenharSobrevivencia(raiz, dados, editar) {
 		}
 	}
 	const d = s.descanso;
-	ligarNumero(raiz.querySelector('.bm-sentar-hp'), d.sentarHpAbaixoDe, v =>
-		editar(c => definirDescanso(c, 'sentarHpAbaixoDe', v))
-	);
-	ligarNumero(raiz.querySelector('.bm-sentar-sp'), d.sentarSpAbaixoDe, v =>
-		editar(c => definirDescanso(c, 'sentarSpAbaixoDe', v))
-	);
-	ligarNumero(raiz.querySelector('.bm-levantar'), d.levantarEm, v => editar(c => definirDescanso(c, 'levantarEm', v)));
+	for (const [campo, classe] of [
+		['sentarHpAbaixoDe', 'sentar-hp'],
+		['sentarSpAbaixoDe', 'sentar-sp']
+	]) {
+		const ligado = d[campo] > 0;
+		if (ligado) {
+			_ultimoSentar[campo] = d[campo];
+		}
+		const chave = raiz.querySelector('.bm-' + classe + '-ligado');
+		chave.checked = ligado;
+		chave.onchange = () => editar(c => ligarSentar(c, campo, chave.checked, _ultimoSentar[campo]));
+		const barra = raiz.querySelector('.bm-' + classe);
+		barra.disabled = !ligado;
+		const valor = ligado ? d[campo] : _ultimoSentar[campo];
+		ligarBarra(barra, valor, v => editar(c => definirDescanso(c, campo, v)));
+		raiz.querySelector('.bm-' + classe + '-valor').textContent = valor + '%';
+	}
+	const levantar = raiz.querySelector('.bm-levantar');
+	levantar.disabled = d.sentarHpAbaixoDe === 0 && d.sentarSpAbaixoDe === 0;
+	ligarBarra(levantar, d.levantarEm, v => editar(c => definirDescanso(c, 'levantarEm', v)));
+	raiz.querySelector('.bm-levantar-valor').textContent = d.levantarEm + '%';
 	raiz.querySelector('.bm-descanso-aviso').hidden = descansoCoerente(dados.config);
+}
+
+function opcao(valor, texto) {
+	const o = criar('option', '', texto);
+	o.value = valor;
+	return o;
 }
 
 function desenharPocoes(bloco, eixo, lista, dados, editar) {
 	const nome = nomeDoItemPor(dados);
+	const doEixo = (dados.pocoes || []).filter(p => p[eixo]);
 	const naMochila = new Map((dados.pocoes || []).map(p => [p.itemId, p]));
-	ligarNumero(bloco.querySelector('.bm-limiar'), lista.abaixoDe, v => editar(c => definirLimiarDePocao(c, eixo, v)));
-
-	const ol = bloco.querySelector('.bm-lista-pocoes');
-	ol.innerHTML = '';
-	lista.itens.forEach((itemId, i) => {
-		const li = criar('li', 'bm-item bm-pocao');
-		li.setAttribute('data-item', String(itemId));
-		const n = criar('span', 'bm-item-nome', nome(itemId));
-		n.setAttribute('translate', 'no');
-		li.appendChild(n);
-		const p = naMochila.get(itemId);
-		const qtd = p ? p.quantidade : 0;
-		const q = criar('span', 'bm-quantidade' + (qtd > 0 ? '' : ' is-vazio'), qtd > 0 ? qtd + ' un.' : 'sem estoque');
-		li.appendChild(q);
-		li.appendChild(botao('bm-sobe', '↑', 'Mover para cima', () => editar(c => moverPocao(c, eixo, itemId, -1)), i === 0));
-		li.appendChild(
-			botao('bm-desce', '↓', 'Descer', () => editar(c => moverPocao(c, eixo, itemId, 1)), i === lista.itens.length - 1)
-		);
-		li.appendChild(botao('bm-remove', '×', 'Remover', () => editar(c => removerPocao(c, eixo, itemId))));
-		ol.appendChild(li);
-	});
-
-	// ADICIONAR: so as pocoes que o personagem tem e que curam ESTE eixo.
-	const nova = bloco.querySelector('.bm-nova-pocao');
-	nova.innerHTML = '';
-	for (const p of dados.pocoes || []) {
-		if (p[eixo] && !lista.itens.includes(p.itemId)) {
-			const o = criar('option', '', p.nome + ' (' + p.quantidade + ')');
-			o.value = String(p.itemId);
-			nova.appendChild(o);
-		}
+	const ligado = lista.abaixoDe > 0;
+	if (ligado) {
+		_ultimoLimiar[eixo] = lista.abaixoDe;
 	}
-	const add = bloco.querySelector('.bm-add-pocao');
-	add.disabled = nova.options.length === 0 || lista.itens.length >= dados.teto;
-	add.onclick = e => {
-		e.stopImmediatePropagation();
-		if (nova.value) {
-			editar(c => adicionarPocao(c, eixo, Number(nova.value), dados.teto));
-		}
-	};
-	const sem = bloco.querySelector('.bm-sem-pocao');
-	if (sem) {
-		sem.hidden = nova.options.length > 0 || lista.itens.length >= dados.teto;
+
+	const chave = bloco.querySelector('.bm-eixo-ligado');
+	chave.checked = ligado;
+	chave.onchange = () => editar(c => ligarEixo(c, eixo, chave.checked, _ultimoLimiar[eixo]));
+	bloco.classList.toggle('is-desligado', !ligado);
+
+	const auto = bloco.querySelector('.bm-eixo-auto');
+	auto.checked = lista.auto;
+	auto.onchange = () => editar(c => definirAutomatico(c, eixo, auto.checked));
+
+	// O FRASCO: so as pocoes deste eixo, com a quantidade; o salvo que acabou continua na lista (com 0).
+	const frasco = bloco.querySelector('.bm-frasco');
+	const escolhido = lista.itens.length > 0 ? lista.itens[0] : null;
+	frasco.innerHTML = '';
+	frasco.appendChild(opcao('', lista.auto ? 'Qualquer poção compatível' : 'Escolha a poção'));
+	for (const p of doEixo) {
+		frasco.appendChild(opcao(String(p.itemId), p.nome + ' (' + p.quantidade + ' no inventário)'));
 	}
+	if (escolhido !== null && !doEixo.some(p => p.itemId === escolhido)) {
+		frasco.appendChild(opcao(String(escolhido), nome(escolhido) + ' (0 no inventário)'));
+	}
+	frasco.value = escolhido === null ? '' : String(escolhido);
+	frasco.onchange = () => editar(c => escolherFrasco(c, eixo, frasco.value === '' ? null : Number(frasco.value)));
+
+	const semEstoque = lista.itens.length > 0 && !lista.itens.some(id => (naMochila.get(id) || {}).quantidade > 0);
+	bloco.querySelector('.bm-sem-frasco').hidden = !(ligado && !lista.auto && lista.itens.length === 0);
+	bloco.querySelector('.bm-frasco-acabou').hidden = !(ligado && !lista.auto && semEstoque);
+
+	// A BARRA: o valor do eixo ligado; desligado, o ultimo escolhido, parado.
+	const barra = bloco.querySelector('.bm-limiar');
+	barra.disabled = !ligado;
+	const valor = ligado ? lista.abaixoDe : _ultimoLimiar[eixo];
+	ligarBarra(barra, valor, v => editar(c => definirLimiarDePocao(c, eixo, Math.max(1, Number(v)))));
+	bloco.querySelector('.bm-limiar-valor').textContent = valor + '%';
 }
 
 /* ================= SUPORTE ================= */
@@ -273,6 +310,8 @@ export function desenharColeta(raiz, dados, editar) {
 	raio.max = String(dados.raioMaximo);
 	raio.value = String(c.raio);
 	raio.oninput = () => editar(x => definirRaioDeColeta(x, raio.value, dados.raioMinimo, dados.raioMaximo));
+	raio.onchange = raio.oninput;
+	raio.disabled = !c.ligada;
 	raiz.querySelector('.bm-raio-coleta-valor').textContent = String(c.raio);
 
 	const ul = raiz.querySelector('.bm-ignorados');

@@ -104,18 +104,22 @@
 	align-items: center;
 	gap: var(--sp-3);
 	min-width: 0;
-	padding: var(--sp-3) var(--sp-4);
+	padding: var(--sp-2) var(--sp-3);
 	border-radius: var(--radius-panel, 8px);
 	border: 1px solid var(--border-gold);
 	background: var(--surface-card);
 	box-shadow: var(--shadow-card);
 }
+/*
+ * AJUSTES DO DONO (09/10/2026): as fontes do topo, do titulo da secao e da lista de secoes ficaram 20 a 25 por
+ * cento menores (estavam grandes demais), alinhadas ao menu antigo. Discos e interruptor encolhem junto.
+ */
 #BotMenu .bm-disco {
 	display: inline-flex;
 	align-items: center;
 	justify-content: center;
-	width: 42px;
-	height: 42px;
+	width: 34px;
+	height: 34px;
 	flex: 0 0 auto;
 	border-radius: 50%;
 	color: var(--accent-strong);
@@ -127,13 +131,13 @@
 	background: var(--tab-active-fill);
 }
 #BotMenu .bm-disco svg {
-	width: 22px;
-	height: 22px;
+	width: 18px;
+	height: 18px;
 }
 #BotMenu .bm-cartao-rotulo {
 	flex: 1 1 auto;
 	font-family: var(--font-display);
-	font-size: 18px;
+	font-size: 14px;
 	color: var(--text-title);
 	white-space: nowrap;
 }
@@ -149,7 +153,7 @@
 }
 #BotMenu .bm-mapa {
 	font-family: var(--font-display);
-	font-size: 18px;
+	font-size: 14px;
 	color: var(--text-title);
 	overflow: hidden;
 	text-overflow: ellipsis;
@@ -162,7 +166,7 @@
 	border: 0;
 	background: transparent;
 	font-family: var(--font-display);
-	font-size: 18px;
+	font-size: 14px;
 	color: var(--text-title);
 	cursor: pointer;
 }
@@ -177,16 +181,16 @@
 	align-items: center;
 	justify-content: flex-start;
 	flex: 0 0 auto;
-	width: 104px;
-	height: 40px;
-	padding: 0 14px;
+	width: 84px;
+	height: 32px;
+	padding: 0 11px;
 	border-radius: var(--radius-pill);
 	border: 1px solid var(--border-hairline);
 	background: var(--bar-track, var(--sky-50));
 	color: var(--text-muted);
 	font-family: var(--font-ui);
 	font-weight: var(--fw-bold);
-	font-size: 15px;
+	font-size: 12px;
 	cursor: pointer;
 	transition: background var(--dur-fast) var(--ease-out);
 }
@@ -195,10 +199,10 @@
 }
 #BotMenu .bm-liga-ponto {
 	position: absolute;
-	left: 5px;
+	left: 4px;
 	top: 50%;
-	width: 30px;
-	height: 30px;
+	width: 24px;
+	height: 24px;
 	border-radius: 50%;
 	background: var(--white);
 	box-shadow: var(--shadow-card);
@@ -215,7 +219,7 @@
 	margin-right: auto;
 }
 #BotMenu .bm-liga[aria-checked='true'] .bm-liga-ponto {
-	left: calc(100% - 35px);
+	left: calc(100% - 28px);
 }
 #BotMenu .bm-liga.is-pendente {
 	opacity: 0.7;
@@ -231,7 +235,7 @@
 	padding: var(--sp-4) var(--sp-5);
 }
 #BotMenu .bm-lateral {
-	flex: 0 0 214px;
+	flex: 0 0 190px;
 	display: flex;
 	flex-direction: column;
 	gap: var(--sp-3);
@@ -255,23 +259,23 @@
 }
 #BotMenu .bm-aba.ri-tab {
 	display: grid;
-	grid-template-columns: 32px 1fr;
+	grid-template-columns: 24px 1fr;
 	grid-template-rows: auto auto;
-	column-gap: var(--sp-3);
+	column-gap: var(--sp-2);
 	align-items: center;
-	padding: var(--sp-3);
+	padding: var(--sp-2) var(--sp-3);
 	border-radius: var(--radius-panel, 8px);
 	border: 1px solid var(--border-hairline);
 	background: var(--surface-card);
 	text-align: left;
 	font-family: var(--font-display);
-	font-size: 16px;
+	font-size: 12.5px;
 	color: var(--text-title);
 }
 #BotMenu .bm-aba svg {
 	grid-row: 1 / span 2;
-	width: 26px;
-	height: 26px;
+	width: 20px;
+	height: 20px;
 	color: var(--accent-strong);
 }
 #BotMenu .bm-aba::after {
@@ -304,8 +308,8 @@
 	flex: 0 0 auto;
 	display: flex;
 	align-items: center;
-	gap: var(--sp-4);
-	padding: var(--sp-3) var(--sp-4);
+	gap: var(--sp-3);
+	padding: var(--sp-2) var(--sp-3);
 	border-radius: var(--radius-panel, 8px);
 	border: 1px solid var(--border-gold);
 	background: var(--surface-card);
@@ -315,8 +319,8 @@
 	display: inline-flex;
 	align-items: center;
 	justify-content: center;
-	width: 60px;
-	height: 60px;
+	width: 46px;
+	height: 46px;
 	flex: 0 0 auto;
 	border-radius: 50%;
 	color: var(--accent-strong);
@@ -324,13 +328,13 @@
 	box-shadow: inset 0 0 0 2px var(--border-gold);
 }
 #BotMenu .bm-emblema img {
-	width: 46px;
-	height: 46px;
+	width: 36px;
+	height: 36px;
 	object-fit: contain;
 }
 #BotMenu .bm-emblema svg {
-	width: 30px;
-	height: 30px;
+	width: 24px;
+	height: 24px;
 }
 #BotMenu .bm-secao-textos {
 	display: flex;
@@ -341,7 +345,7 @@
 #BotMenu .bm-secao-titulo {
 	margin: 0;
 	font-family: var(--font-display);
-	font-size: 22px;
+	font-size: 17px;
 	font-weight: normal;
 	color: var(--text-title);
 }
@@ -500,37 +504,160 @@
 	overflow-wrap: anywhere;
 	line-height: 1.25;
 }
-#BotMenu .bm-raio,
-#BotMenu .bm-raio-coleta {
+#BotMenu .bm-raio {
 	width: 100%;
 }
 
-/* ---------- ataque: sub-abas, lista, Por Skill ---------- */
-#BotMenu .bm-subabas {
+/* ---------- ataque: o modo em segmentos, o rodizio, o Avancado (ajustes do dono, 09/10/2026) ---------- */
+#BotMenu .bm-segmentos {
 	display: grid;
 	grid-template-columns: repeat(3, 1fr);
 	gap: var(--sp-2);
 }
-#BotMenu .bm-subaba {
-	display: inline-flex;
+#BotMenu .bm-segmento {
+	position: relative;
+	display: flex;
 	align-items: center;
 	justify-content: center;
-	gap: var(--sp-2);
-	min-height: 40px;
-	padding: var(--sp-2) var(--sp-3);
+	min-height: 34px;
+	padding: var(--sp-1) var(--sp-2);
 	border-radius: var(--radius-panel, 8px);
 	border: 1px solid var(--border-hairline);
-	background: var(--surface-card);
+	background: var(--white);
 	color: var(--text-title);
-	font-family: var(--font-display);
-	font-size: 16px;
+	text-align: center;
 	cursor: pointer;
 }
-#BotMenu .bm-subaba.is-active {
+#BotMenu .bm-segmento input {
+	position: absolute;
+	opacity: 0;
+	width: 1px;
+	height: 1px;
+}
+#BotMenu .bm-segmento:has(input:checked) {
 	background: var(--tab-active-fill);
 	border-color: var(--gold-500);
 	color: var(--tab-active-text);
-	box-shadow: var(--glow-gold);
+}
+#BotMenu .bm-segmento:has(input:focus-visible) {
+	outline: 2px solid var(--accent);
+	outline-offset: 2px;
+}
+#BotMenu .bm-rodizio {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+	display: flex;
+	flex-direction: column;
+	gap: var(--sp-2);
+}
+#BotMenu .bm-rodizio-item,
+#BotMenu .bm-rodizio-fora-item {
+	display: flex;
+	align-items: center;
+	gap: var(--sp-2);
+	min-width: 0;
+	padding: var(--sp-2) var(--sp-3);
+	border-radius: var(--radius-panel, 8px);
+	border: 1px solid var(--border-hairline);
+	background: var(--white);
+}
+#BotMenu .bm-rodizio-ordem {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 24px;
+	height: 24px;
+	flex: 0 0 auto;
+	border-radius: 50%;
+	background: var(--tab-active-fill);
+	color: var(--tab-active-text);
+	font-weight: var(--fw-bold);
+	font-size: 12px;
+}
+#BotMenu .bm-rodizio-icone {
+	width: 28px;
+	height: 28px;
+	flex: 0 0 auto;
+	object-fit: contain;
+}
+#BotMenu .bm-rodizio-textos {
+	display: flex;
+	flex-direction: column;
+	flex: 1 1 auto;
+	min-width: 0;
+}
+#BotMenu .bm-rodizio-nome {
+	flex: 1 1 auto;
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	color: var(--text-title);
+}
+#BotMenu .bm-rodizio-detalhe {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0 var(--sp-2);
+	font: var(--type-desc);
+	color: var(--text-muted);
+}
+#BotMenu .bm-rodizio-off {
+	color: var(--amber-600);
+}
+#BotMenu .bm-rodizio-item.is-desligada .bm-rodizio-ordem {
+	background: var(--sky-50);
+	color: var(--text-muted);
+}
+#BotMenu .bm-rodizio-item.is-desligada .bm-rodizio-icone,
+#BotMenu .bm-rodizio-item.is-desligada .bm-rodizio-nome {
+	opacity: 0.55;
+}
+#BotMenu .bm-rodizio-acoes {
+	display: inline-flex;
+	gap: var(--sp-1);
+	flex: 0 0 auto;
+}
+#BotMenu .bm-rodizio-acoes .ri-btn {
+	min-width: 30px;
+	padding: 2px 6px;
+}
+#BotMenu .bm-rodizio-outras {
+	display: flex;
+	flex-direction: column;
+	gap: var(--sp-2);
+}
+#BotMenu .bm-rodizio-fora {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+	gap: var(--sp-2);
+}
+#BotMenu .bm-rodizio-fora-item {
+	border-style: dashed;
+}
+#BotMenu .bm-rodizio-usar {
+	margin-left: auto;
+	flex: 0 0 auto;
+}
+#BotMenu .bm-ataque-avancado {
+	gap: var(--sp-2);
+}
+#BotMenu .bm-ataque-avancado > summary {
+	font-weight: var(--fw-semibold);
+	color: var(--text-link);
+	cursor: pointer;
+}
+#BotMenu .bm-ataque-avancado:not([open]) {
+	padding-top: var(--sp-3);
+	padding-bottom: var(--sp-3);
+}
+/* No Avancado a chave "Habilidade ativada" do cartao repetiria a do rodizio: o liga/desliga mora na frente. */
+#BotMenu .bm-ataque-avancado .bm-ps-chave,
+#BotMenu .bm-ataque-avancado .bm-nao-aceitas {
+	display: none;
 }
 #BotMenu .bm-escopo,
 #BotMenu .bm-nova-skill,
@@ -619,8 +746,8 @@
 }
 #BotMenu .bm-ps-icone,
 #BotMenu .bm-cartao-icone {
-	width: 52px;
-	height: 52px;
+	width: 40px;
+	height: 40px;
 	flex: 0 0 auto;
 	border-radius: var(--radius-card, 4px);
 	border: 1px solid var(--border-gold);
@@ -629,7 +756,7 @@
 }
 #BotMenu .bm-ps-nome {
 	font-family: var(--font-display);
-	font-size: 20px;
+	font-size: 15px;
 	color: var(--text-title);
 }
 #BotMenu .bm-ps-nivel-texto {
@@ -878,6 +1005,209 @@
 	padding: var(--sp-1) var(--sp-2);
 }
 
+/*
+ * O INTERRUPTOR do menu antigo (ajustes do dono, 09/10/2026; print 4 das referencias): trilho recuado e a
+ * bolinha que anda e fica azul quando liga. Usado na Sobrevivencia, no Descanso, na Coleta, nos Consumiveis e
+ * no liga/desliga de cada skill do rodizio.
+ */
+#BotMenu .bm-interruptor {
+	position: relative;
+	display: flex;
+	align-items: center;
+	gap: var(--sp-3);
+	min-width: 0;
+	cursor: pointer;
+}
+#BotMenu .bm-interruptor > input {
+	position: absolute;
+	left: 0;
+	top: 0;
+	width: 40px;
+	height: 22px;
+	margin: 0;
+	opacity: 0;
+	cursor: pointer;
+	z-index: 1;
+}
+#BotMenu .bm-interruptor-trilho {
+	position: relative;
+	display: inline-block;
+	width: 40px;
+	height: 22px;
+	flex: 0 0 auto;
+	border-radius: var(--radius-pill);
+	border: 1px solid var(--border-hairline);
+	background: var(--well-fill, var(--sky-50));
+	box-shadow: var(--well-shadow, none);
+	transition: background var(--dur-fast) var(--ease-out);
+}
+#BotMenu .bm-interruptor-trilho::before {
+	content: '';
+	position: absolute;
+	left: 1px;
+	top: 1px;
+	width: 18px;
+	height: 18px;
+	border-radius: 50%;
+	border: 1px solid var(--border-hairline);
+	background: var(--white);
+	box-shadow: var(--shadow-card);
+	transition:
+		transform var(--dur-fast) var(--ease-out),
+		background var(--dur-fast) var(--ease-out);
+}
+#BotMenu .bm-interruptor > input:checked + .bm-interruptor-trilho {
+	background: color-mix(in srgb, var(--blue-500) 18%, var(--well-fill, var(--white)));
+}
+#BotMenu .bm-interruptor > input:checked + .bm-interruptor-trilho::before {
+	transform: translateX(18px);
+	background: var(--tab-active-fill);
+	border-color: var(--blue-600);
+}
+#BotMenu .bm-interruptor > input:disabled + .bm-interruptor-trilho {
+	opacity: 0.5;
+	cursor: not-allowed;
+}
+#BotMenu .bm-interruptor > input:focus-visible + .bm-interruptor-trilho {
+	outline: 2px solid var(--accent);
+	outline-offset: 2px;
+}
+#BotMenu .bm-interruptor-texto {
+	display: flex;
+	flex-direction: column;
+	gap: 1px;
+	min-width: 0;
+}
+#BotMenu .bm-interruptor-texto b {
+	font-weight: var(--fw-semibold);
+	color: var(--text-body);
+}
+#BotMenu .bm-interruptor--forte .bm-interruptor-texto b {
+	color: var(--text-title);
+}
+#BotMenu .bm-interruptor-texto small {
+	font: var(--type-desc);
+	color: var(--text-muted);
+}
+/* Duas colunas (HP | SP), como o menu antigo; no celular, uma. */
+#BotMenu .bm-duas {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: var(--sp-3);
+}
+#BotMenu .bm-eixo {
+	display: flex;
+	flex-direction: column;
+	gap: var(--sp-2);
+	min-width: 0;
+	padding: var(--sp-3);
+	border-radius: var(--radius-card, 8px);
+	border: 1px solid var(--border-hairline);
+	background: var(--surface-inset, var(--sky-50));
+}
+#BotMenu .bm-eixo.is-desligado .bm-frasco,
+#BotMenu .bm-eixo.is-desligado .bm-faixa,
+#BotMenu .bm-eixo.is-desligado .bm-pocoes-auto {
+	opacity: 0.55;
+}
+#BotMenu .bm-frasco {
+	width: 100%;
+}
+/* A barra deslizante do menu antigo: trilho fino, bolinha branca com o aro da cor do eixo. */
+#BotMenu .bm-faixa {
+	display: flex;
+	flex-direction: column;
+	gap: var(--sp-1);
+	min-width: 0;
+	color: var(--text-body);
+}
+#BotMenu .bm-faixa b {
+	color: var(--blue-600);
+	font-weight: var(--fw-bold);
+}
+#BotMenu .bm-slider {
+	appearance: none;
+	-webkit-appearance: none;
+	width: 100%;
+	height: 18px;
+	margin: 0;
+	background: transparent;
+	cursor: pointer;
+	--bm-bolinha: var(--blue-500);
+}
+#BotMenu .bm-slider--hp {
+	--bm-bolinha: var(--ri-hp, var(--red-600));
+}
+#BotMenu .bm-slider--sp {
+	--bm-bolinha: var(--ri-sp, var(--blue-500));
+}
+#BotMenu .bm-slider::-webkit-slider-runnable-track {
+	height: 6px;
+	border-radius: var(--radius-pill);
+	border: 1px solid var(--border-hairline);
+	background: var(--well-fill, var(--sky-50));
+	box-shadow: var(--well-shadow, none);
+}
+#BotMenu .bm-slider::-webkit-slider-thumb {
+	-webkit-appearance: none;
+	width: 16px;
+	height: 16px;
+	margin-top: -6px;
+	border-radius: 50%;
+	border: 2px solid var(--bm-bolinha);
+	background: var(--white);
+	box-shadow: var(--shadow-card);
+}
+#BotMenu .bm-slider::-moz-range-track {
+	height: 6px;
+	border-radius: var(--radius-pill);
+	border: 1px solid var(--border-hairline);
+	background: var(--well-fill, var(--sky-50));
+}
+#BotMenu .bm-slider::-moz-range-thumb {
+	width: 14px;
+	height: 14px;
+	border-radius: 50%;
+	border: 2px solid var(--bm-bolinha);
+	background: var(--white);
+}
+#BotMenu .bm-slider:disabled {
+	opacity: 0.55;
+	cursor: not-allowed;
+}
+/* O SELO VIP (Asa de Mosca automatica, Flechas): o beneficio dito na cara, com ou sem o passe. */
+#BotMenu .bm-titulo-com-selo {
+	display: inline-flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: var(--sp-1) var(--sp-2);
+}
+#BotMenu .bm-selo-vip {
+	display: inline-flex;
+	align-items: center;
+	padding: 0 var(--sp-2);
+	border-radius: var(--radius-pill);
+	border: 1px solid var(--gold-500);
+	background: linear-gradient(180deg, var(--gold-200), var(--paper-2, var(--white)));
+	color: var(--gold-700, var(--text-title));
+	font: var(--type-badge);
+	letter-spacing: 0.08em;
+}
+#BotMenu .bm-gatilhos {
+	display: flex;
+	flex-direction: column;
+	gap: var(--sp-2);
+	padding-left: var(--sp-3);
+	border-left: 2px solid var(--border-hairline);
+}
+#BotMenu .bm-gatilho {
+	flex-wrap: wrap;
+	gap: var(--sp-2);
+}
+#BotMenu .bm-gatilho .bm-interruptor {
+	flex: 0 0 auto;
+}
+
 /* O interruptor generico (Flechas, Habilidade ativada). */
 #BotMenu .bm-chave {
 	position: relative;
@@ -962,7 +1292,7 @@
 }
 #BotMenu .bm-cartao-titulo {
 	font-family: var(--font-display);
-	font-size: 20px;
+	font-size: 15px;
 	font-weight: normal;
 	color: var(--text-title);
 }
@@ -1018,7 +1348,7 @@
 	gap: var(--sp-3);
 }
 
-/* ---------- listas de itens (pocoes, suporte, armazem, perfis, flechas) ---------- */
+/* ---------- listas de itens (pocoes de velocidade, suporte, perfis, flechas) ---------- */
 #BotMenu .bm-lista-itens {
 	list-style: decimal inside;
 	margin: 0;
@@ -1084,18 +1414,11 @@
 #BotMenu .bm-tipo--vestida {
 	color: var(--green-600);
 }
-#BotMenu .bm-limiar-cura,
-#BotMenu .bm-reserva,
-#BotMenu .bm-repor-minimo,
-#BotMenu .bm-repor-ate {
+#BotMenu .bm-limiar-cura {
 	display: inline-flex;
 	align-items: center;
 	gap: var(--sp-1, 4px);
 	font: var(--type-desc);
-}
-#BotMenu .bm-reserva input,
-#BotMenu .bm-repor-qtd {
-	width: 72px;
 }
 #BotMenu .bm-ignorados {
 	list-style: none;
@@ -1267,7 +1590,10 @@
 	}
 	#BotMenu .bm-mapa,
 	#BotMenu .bm-perfil-escolha {
-		font-size: 16px;
+		font-size: 12.5px;
+	}
+	#BotMenu .bm-cartao-rotulo {
+		font-size: 13px;
 	}
 	#BotMenu .bm-meio {
 		flex-direction: column;
@@ -1288,14 +1614,14 @@
 	}
 	#BotMenu .bm-aba.ri-tab {
 		flex: 0 0 auto;
-		grid-template-columns: 22px auto;
-		padding: var(--sp-2) var(--sp-3);
-		font-size: 14px;
+		grid-template-columns: 18px auto;
+		padding: var(--sp-1) var(--sp-2);
+		font-size: 11px;
 	}
 	#BotMenu .bm-aba svg {
 		grid-row: 1;
-		width: 20px;
-		height: 20px;
+		width: 16px;
+		height: 16px;
 	}
 	#BotMenu .bm-aba::after {
 		display: none;
@@ -1303,13 +1629,46 @@
 	#BotMenu .bm-secao-cabeca {
 		display: none;
 	}
-	#BotMenu .bm-subaba {
-		font-size: 14px;
-		padding: var(--sp-2);
-	}
 	#BotMenu .bm-ps-corpo,
-	#BotMenu .bm-flechas-opcoes {
+	#BotMenu .bm-flechas-opcoes,
+	#BotMenu .bm-duas {
 		grid-template-columns: 1fr;
+	}
+	#BotMenu .bm-segmento {
+		font-size: 12px;
+		line-height: 1.2;
+	}
+	/* No celular a linha do rodizio vira duas: o nome e a chave em cima; o nivel e as setas embaixo. */
+	#BotMenu .bm-rodizio-item {
+		display: grid;
+		grid-template-columns: auto auto minmax(0, 1fr) auto;
+		grid-template-areas:
+			'ordem icone nome chave'
+			'ordem icone detalhe acoes';
+		align-items: center;
+		column-gap: var(--sp-2);
+	}
+	#BotMenu .bm-rodizio-ordem {
+		grid-area: ordem;
+	}
+	#BotMenu .bm-rodizio-icone {
+		grid-area: icone;
+	}
+	#BotMenu .bm-rodizio-textos {
+		display: contents;
+	}
+	#BotMenu .bm-rodizio-item .bm-rodizio-nome {
+		grid-area: nome;
+	}
+	#BotMenu .bm-rodizio-detalhe {
+		grid-area: detalhe;
+	}
+	#BotMenu .bm-rodizio-chave {
+		grid-area: chave;
+		justify-self: end;
+	}
+	#BotMenu .bm-rodizio-acoes {
+		grid-area: acoes;
 	}
 	#BotMenu .bm-rodape {
 		padding: var(--sp-2) var(--sp-3) var(--sp-3);
@@ -1353,7 +1712,11 @@
 	#BotMenu .bm-escolher,
 	#BotMenu .bm-opcao-item,
 	#BotMenu .bm-aba,
-	#BotMenu .bm-subaba {
+	#BotMenu .bm-segmento,
+	#BotMenu .bm-interruptor,
+	#BotMenu .bm-rodizio-acoes .ri-btn,
+	#BotMenu .bm-rodizio-usar,
+	#BotMenu .bm-frasco {
 		min-height: var(--hit-touch, 44px);
 	}
 	#BotMenu .bm-monstros {

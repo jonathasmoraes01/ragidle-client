@@ -1,7 +1,8 @@
 /**
  * UI/Components/BotMenu/editorPorSkill.js
  *
- * A aba "Por Skill" da secao Ataque (Fase 11, mockup do dono de 08/10/2026):
+ * O "Por habilidade" do Avancado da secao Ataque (Fase 11, mockup do dono de 08/10/2026; no Avancado
+ * recolhido desde os ajustes do dono de 09/10/2026, o liga/desliga mora no rodizio da frente):
  * um cartao por habilidade ofensiva que o Bot aceita, com o icone real
  * (`/ragidle/skills/<AEGIS>.png`), o nivel aprendido, a chave "Habilidade
  * ativada", o nivel de uso (- / +) na lista geral, o escopo de alvos (todos
@@ -101,7 +102,7 @@ function cartaoDaSkill(s, config, geral, nomeDoMonstro, monstros, editar, tetoGe
 	const etiquetas = criar('div', 'bm-ps-etiquetas');
 	etiquetas.appendChild(criar('span', 'bm-etiqueta', 'Ataque'));
 	etiquetas.appendChild(
-		criar('span', 'bm-etiqueta' + (entrada ? ' bm-etiqueta--ok' : ''), entrada ? 'Na lista geral (' + (geral.indexOf(entrada) + 1) + 'ª)' : 'Fora da lista geral')
+		criar('span', 'bm-etiqueta' + (entrada ? ' bm-etiqueta--ok' : ''), entrada ? 'No rodízio (' + (geral.indexOf(entrada) + 1) + 'º)' : 'Fora do rodízio')
 	);
 	textos.appendChild(etiquetas);
 	cabeca.appendChild(textos);
@@ -143,8 +144,8 @@ function cartaoDaSkill(s, config, geral, nomeDoMonstro, monstros, editar, tetoGe
 		blocoNivel.appendChild(
 			botao(
 				'ri-btn ri-btn--sec bm-ps-incluir',
-				'Usar na lista geral',
-				'Colocar ' + s.nome + ' na lista geral',
+				'Pôr no rodízio',
+				'Pôr ' + s.nome + ' no rodízio',
 				() => editar(c => adicionarSkill(c, 'geral', s.skillId, teto)),
 				geral.length >= teto
 			)
