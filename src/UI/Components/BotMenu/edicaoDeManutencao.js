@@ -241,6 +241,30 @@ export function definirRaioDeColeta(config, raio, min = 1, max = 15) {
 	return comColeta(config, c => ({ ...c, raio: inteiroNaFaixa(raio, min, max) }));
 }
 
+/**
+ * Os itens que o seletor da Coleta oferece para ignorar: a mochila, pelo NOME que o cliente conhece (ou o que a
+ * janela trouxe), sem os que ja estao ignorados. Sem nome nao entra (o jogador nao escolhe numero). Ordem do nome.
+ * @param {object} config
+ * @param {Array<{itemId: number, nome?: string, quantidade?: number}>} mochila
+ * @param {(id: number) => string|null} [nomeDoItem]
+ */
+export function candidatosDaColeta(config, mochila, nomeDoItem) {
+	const ja = new Set(lerColeta(config).ignorar);
+	const porId = new Map();
+	for (const it of mochila || []) {
+		const id = it && it.itemId;
+		if (!Number.isInteger(id) || id <= 0 || ja.has(id) || porId.has(id)) {
+			continue;
+		}
+		const nome = (nomeDoItem && nomeDoItem(id)) || (typeof it.nome === 'string' && it.nome.trim()) || null;
+		if (nome === null) {
+			continue;
+		}
+		porId.set(id, typeof it.quantidade === 'number' ? { itemId: id, nome, quantidade: it.quantidade } : { itemId: id, nome });
+	}
+	return [...porId.values()].sort((x, y) => x.nome.localeCompare(y.nome, 'pt-BR') || x.itemId - y.itemId);
+}
+
 /** Poe o item na lista de ignorados (inteiro positivo, sem repetir, ate o teto). */
 export function ignorarItem(config, itemId, teto) {
 	const c = lerColeta(config);

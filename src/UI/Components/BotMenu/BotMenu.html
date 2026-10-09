@@ -248,11 +248,14 @@
 						</div>
 						<div class="bm-cartao-secao bm-bloco">
 							<span class="bm-rotulo">Itens ignorados</span>
-							<p class="bm-dica">O Bot não pega estes itens. Informe o número (ID) do item.</p>
+							<p class="bm-dica">O Bot não pega estes itens. Escolha o item da mochila pelo nome.</p>
 							<ul class="bm-ignorados"></ul>
-							<div class="bm-adicionar">
-								<input type="number" class="bm-novo-ignorado" min="1" step="1" inputmode="numeric" placeholder="ID do item" aria-label="ID do item para ignorar">
-								<button type="button" class="bm-add-ignorado ri-btn ri-btn--sec">Ignorar</button>
+							<div class="bm-escolher-ignorado bm-seletor-bloco">
+								<button type="button" class="bm-escolher ri-btn ri-btn--sec" aria-haspopup="listbox" aria-expanded="false">Escolher item para ignorar</button>
+								<div class="bm-seletor" hidden>
+									<input type="search" class="bm-seletor-filtro" placeholder="Filtrar pelo nome" aria-label="Filtrar os itens pelo nome">
+									<ul class="bm-seletor-lista" aria-label="Itens da mochila"></ul>
+								</div>
 							</div>
 						</div>
 					</section>

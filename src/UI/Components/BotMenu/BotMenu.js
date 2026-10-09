@@ -654,7 +654,9 @@ function desenharManutencao(s, c, secoes, lim) {
 				teto: lim.itensIgnoradosNaColeta || 300,
 				raioMinimo: lim.raioDeColetaMinimo || 1,
 				raioMaximo: lim.raioDeColetaMaximo || 15,
-				nomeDoItem
+				nomeDoItem,
+				mochila: mochilaDoBot,
+				iconeDoItem: aplicarIconeDoItem
 			},
 			editar
 		);

@@ -36,6 +36,8 @@ const SKILLS = [
 	{ skillId: 28, nome: 'Curar', aprendido: 10, aceita: false, suporte: 'cura', alcancaGrupo: true }
 ];
 
+let MOCHILA_DA_COLETA = [];
+
 function configVazia() {
 	return {
 		v: 1,
@@ -223,7 +225,14 @@ describe('o desenho das abas de manutencao', () => {
 		function desenhar(teto = 300) {
 			desenharColeta(
 				secao,
-				{ config, teto, raioMinimo: 1, raioMaximo: 15, nomeDoItem: id => (id === 909 ? 'Jellopy' : null) },
+				{
+					config,
+					teto,
+					raioMinimo: 1,
+					raioMaximo: 15,
+					nomeDoItem: id => (id === 909 ? 'Jellopy' : null),
+					mochila: () => MOCHILA_DA_COLETA
+				},
 				fn => {
 					config = fn(config);
 					desenhar(teto);
@@ -232,6 +241,13 @@ describe('o desenho das abas de manutencao', () => {
 		}
 		beforeEach(() => {
 			secao = document.querySelector('[data-secao="coleta"]');
+			// Fora da ordem do nome e com o 909 em duas pilhas: o seletor ordena e nao repete.
+			MOCHILA_DA_COLETA = [
+				{ itemId: 501, nome: 'Poção Vermelha', quantidade: 5 },
+				{ itemId: 909, nome: 'Jellopy', quantidade: 3 },
+				{ itemId: 7001, quantidade: 1 },
+				{ itemId: 909, nome: 'Jellopy', quantidade: 9 }
+			];
 		});
 
 		it('interruptor e raio chegam ao rascunho, dentro de 1..15', () => {
@@ -247,27 +263,39 @@ describe('o desenho das abas de manutencao', () => {
 			expect(secao.querySelector('.bm-raio-coleta-valor').textContent).toBe('9');
 		});
 
-		it('ignorar por id (com o nome quando o cliente conhece), sem repetir, e voltar a coletar', () => {
+		it('ignorar escolhe o item da mochila pelo nome (sem campo de ID), sem repetir, e voltar a coletar', () => {
 			desenhar();
-			const entrada = secao.querySelector('.bm-novo-ignorado');
-			mudar(entrada, 909, 'input');
-			secao.querySelector('.bm-add-ignorado').click();
-			mudar(entrada, 909, 'input');
-			secao.querySelector('.bm-add-ignorado').click();
-			mudar(entrada, 7001, 'input');
-			entrada.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter' }));
-			expect(config.coleta.ignorar).toEqual([909, 7001]);
+			expect(secao.querySelector('.bm-novo-ignorado'), 'o campo de ID digitado nao existe mais').toBeNull();
+			expect(secao.textContent).not.toMatch(/\bID\b/);
+			const abrir = secao.querySelector('.bm-escolher-ignorado .bm-escolher');
+			abrir.click();
+			const opcoes = () => [...secao.querySelectorAll('.bm-escolher-ignorado .bm-opcao-item .bm-item-nome')].map(n => n.textContent);
+			// Ordem do nome; o 7001 sem nome (nem no cliente nem na janela) nao e oferecido.
+			expect(opcoes()).toEqual(['Jellopy', 'Poção Vermelha']);
+			// A primeira pilha vale (x3); a repetida nao sobrescreve.
+			expect(secao.querySelector('.bm-escolher-ignorado .bm-opcao-item .bm-quantidade').textContent).toBe('x3');
+			secao.querySelector('.bm-escolher-ignorado .bm-opcao-item').click();
+			expect(config.coleta.ignorar).toEqual([909]);
 			const nomes = [...secao.querySelectorAll('.bm-ignorado .bm-item-nome')].map(n => n.textContent);
-			expect(nomes).toEqual(['Jellopy', '#7001']);
+			expect(nomes).toEqual(['Jellopy']);
+			// O ja ignorado nao volta como candidato.
+			secao.querySelector('.bm-escolher-ignorado .bm-escolher').click();
+			expect(opcoes()).toEqual(['Poção Vermelha']);
 			secao.querySelector('[data-item="909"] .bm-remove').click();
-			expect(config.coleta.ignorar).toEqual([7001]);
+			expect(config.coleta.ignorar).toEqual([]);
 		});
 
-		it('o teto da lista desliga a entrada', () => {
+		it('mochila vazia: o seletor explica o motivo', () => {
+			MOCHILA_DA_COLETA = [];
+			desenhar();
+			secao.querySelector('.bm-escolher-ignorado .bm-escolher').click();
+			expect(secao.querySelector('.bm-escolher-ignorado .bm-seletor-vazio').textContent).toMatch(/Nenhum item na mochila/);
+		});
+
+		it('o teto da lista desliga o botao de escolher', () => {
 			config.coleta.ignorar = [909];
 			desenhar(1);
-			expect(secao.querySelector('.bm-add-ignorado').disabled).toBe(true);
-			expect(secao.querySelector('.bm-novo-ignorado').disabled).toBe(true);
+			expect(secao.querySelector('.bm-escolher-ignorado .bm-escolher').disabled).toBe(true);
 		});
 	});
 });

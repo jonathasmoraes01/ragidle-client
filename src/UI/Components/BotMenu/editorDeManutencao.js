@@ -13,6 +13,7 @@
 import {
 	adicionarPocao,
 	adicionarSuporte,
+	candidatosDaColeta,
 	definirDescanso,
 	definirDestinoDoSuporte,
 	definirLimiarDaCura,
@@ -32,6 +33,7 @@ import {
 	removerPocao,
 	removerSuporte
 } from './edicaoDeManutencao.js';
+import { desenharSeletorDeItem } from './seletorDeItem.js';
 
 const NOME_DO_TIPO = Object.freeze({ buff: 'Buff', cura: 'Cura' });
 const NOME_DO_DESTINO = Object.freeze({ eu: 'Em mim', grupo: 'No grupo' });
@@ -259,6 +261,7 @@ export function desenharSuporte(raiz, dados, editar) {
  * @param {(fn: (c: object) => object) => void} editar
  */
 export function desenharColeta(raiz, dados, editar) {
+	const mochila = () => (dados.mochila ? dados.mochila() : []);
 	const c = lerColeta(dados.config);
 	const nome = nomeDoItemPor(dados);
 	const ligada = raiz.querySelector('.bm-coletar');
@@ -285,26 +288,15 @@ export function desenharColeta(raiz, dados, editar) {
 		ul.appendChild(li);
 	}
 
-	const entrada = raiz.querySelector('.bm-novo-ignorado');
-	const add = raiz.querySelector('.bm-add-ignorado');
-	const cheio = c.ignorar.length >= dados.teto;
-	add.disabled = cheio;
-	entrada.disabled = cheio;
-	const confirmar = () => {
-		const id = Number(entrada.value);
-		if (Number.isInteger(id) && id > 0) {
-			entrada.value = '';
-			editar(x => ignorarItem(x, id, dados.teto));
-		}
-	};
-	add.onclick = e => {
-		e.stopImmediatePropagation();
-		confirmar();
-	};
-	entrada.onkeydown = e => {
-		if (e.key === 'Enter') {
-			e.preventDefault();
-			confirmar();
-		}
-	};
+	desenharSeletorDeItem(
+		raiz.querySelector('.bm-escolher-ignorado'),
+		{
+			nome: 'coleta-ignorar',
+			candidatos: () => candidatosDaColeta(dados.config, mochila(), dados.nomeDoItem),
+			cheio: c.ignorar.length >= dados.teto,
+			vazio: 'Nenhum item na mochila para ignorar. Pegue o item uma vez para poder escolhê-lo.',
+			iconeDoItem: dados.iconeDoItem
+		},
+		id => editar(x => ignorarItem(x, id, dados.teto))
+	);
 }
