@@ -2,7 +2,7 @@
  * A ENTRADA POS-CADASTRO (D-1379, 13/09/2026).
  *
  * O jogador cria a conta no site e cai no jogo ja logado, direto na criacao de
- * personagem, com o evento `CompleteRegistration` do Meta Pixel disparado UMA
+ * personagem, com o evento `Lead` do Meta Pixel (era `CompleteRegistration`) disparado UMA
  * vez. O que estes casos guardam:
  *
  * 1. **A leitura do fragmento**: so a forma exata vira login; lixo nao vira
@@ -153,12 +153,12 @@ describe('3. o estado', () => {
 });
 
 describe('4. a conversao', () => {
-	it('entrega CompleteRegistration ao fbq', async () => {
+	it('entrega Lead ao fbq', async () => {
 		window.fbq = vi.fn();
 		expect(registrarConversaoDoCadastro()).toBe(true);
 		await new Promise(r => setTimeout(r, 0));
 		expect(window.fbq).toHaveBeenCalledTimes(1);
-		expect(window.fbq).toHaveBeenCalledWith('track', 'CompleteRegistration');
+		expect(window.fbq).toHaveBeenCalledWith('track', 'Lead');
 	});
 
 	it('com o passe aceito, o evento leva o MESMO eventID do servidor (API de Conversoes)', async () => {
@@ -171,7 +171,7 @@ describe('4. a conversao', () => {
 		await vi.waitFor(() => expect(window.fbq).toHaveBeenCalledTimes(1));
 		// sha256('heroi_01'), o mesmo do `conversoes-meta.test.ts` do servidor.
 		const esperado = 'cadastro.' + createHash('sha256').update('heroi_01').digest('hex');
-		expect(window.fbq).toHaveBeenCalledWith('track', 'CompleteRegistration', {}, { eventID: esperado });
+		expect(window.fbq).toHaveBeenCalledWith('track', 'Lead', {}, { eventID: esperado });
 	});
 
 	it('sem Pixel (bloqueador de anuncio) nao lanca', () => {

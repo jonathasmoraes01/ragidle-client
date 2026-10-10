@@ -213,6 +213,10 @@ export function registrarConversaoDoCadastro(janela = window) {
 		_usuarioDaConversao = null;
 		const fbq = janela.fbq;
 		/*
+		 * O EVENTO E `Lead` (10/10/2026, decisao do dono): o conjunto de anuncios
+		 * otimiza por Lead, e o dataset fica so com PageView e Lead. Ate aqui ele
+		 * era o `CompleteRegistration`.
+		 *
 		 * O `eventID` (09/10/2026) e o MESMO do evento que o servidor manda pela
 		 * API de Conversoes (`servidor/web/conversoes-meta.ts`, no rag-idle):
 		 * `cadastro.<sha256 do usuario em minusculas>`. Com ele a Meta junta os
@@ -222,8 +226,8 @@ export function registrarConversaoDoCadastro(janela = window) {
 		 */
 		idDoEventoDeCadastro(usuario, janela)
 			.then(eventID => {
-				if (eventID) fbq('track', 'CompleteRegistration', {}, { eventID });
-				else fbq('track', 'CompleteRegistration');
+				if (eventID) fbq('track', 'Lead', {}, { eventID });
+				else fbq('track', 'Lead');
 			})
 			.catch(() => {});
 		return true;
