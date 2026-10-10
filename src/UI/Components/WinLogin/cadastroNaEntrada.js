@@ -57,11 +57,25 @@ const REF_VALIDO = /^[A-Za-z0-9]{6}$/;
  * @param {{nome: string, telefone: string, email: string, usuario: string, senha: string}} d
  * @returns {string | null} o problema, ou `null`
  */
+/*
+ * O TELEFONE COM DDD (10/10/2026), a mesma regra do site. O servidor poe o 55
+ * sozinho antes de mandar a Meta, mas DDD ele nao adivinha: um numero sem DDD
+ * nao casa com ninguem. Aceita 10 ou 11 digitos, com ou sem o 55 na frente, e
+ * o numero estrangeiro escrito com `+`.
+ */
+export const FRASE_DO_DDD = 'Informe o telefone com DDD, ex.: (11) 91234-5678.';
+export function telefoneComDdd(t) {
+	const digitos = t.replace(/\D/g, '').replace(/^0+/, '');
+	if (t.trim().charAt(0) === '+') return digitos.length >= 8 && digitos.length <= 15;
+	if (digitos.length === 12 || digitos.length === 13) return digitos.startsWith('55');
+	return digitos.length === 10 || digitos.length === 11;
+}
+
 export function conferirCadastro(d) {
 	if (d.nome.length < 2 || d.nome.length > 60) return 'Diga seu nome (2 a 60 caracteres).';
 	if (!EMAIL_VALIDO.test(d.email) || d.email.length > 120) return 'O e-mail não parece válido.';
 	if (d.telefone.length > 24) return 'O telefone é longo demais.';
-	if ((d.telefone.match(/\d/g) || []).length < 8) return 'O telefone precisa ter ao menos 8 dígitos.';
+	if (!telefoneComDdd(d.telefone)) return FRASE_DO_DDD;
 	if (!USUARIO_VALIDO.test(d.usuario)) return 'O usuário precisa ter de 4 a 23 caracteres: letras, números e _.';
 	if (d.senha.length < 4 || d.senha.length > 23) return 'A senha precisa ter de 4 a 23 caracteres.';
 	return null;
