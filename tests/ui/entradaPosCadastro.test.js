@@ -23,6 +23,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { createHash } from 'node:crypto';
 import {
 	PREFIXO_DO_FRAGMENTO,
 	_reiniciarParaTeste,
@@ -152,11 +153,25 @@ describe('3. o estado', () => {
 });
 
 describe('4. a conversao', () => {
-	it('entrega CompleteRegistration ao fbq', () => {
+	it('entrega CompleteRegistration ao fbq', async () => {
 		window.fbq = vi.fn();
 		expect(registrarConversaoDoCadastro()).toBe(true);
+		await new Promise(r => setTimeout(r, 0));
 		expect(window.fbq).toHaveBeenCalledTimes(1);
 		expect(window.fbq).toHaveBeenCalledWith('track', 'CompleteRegistration');
+	});
+
+	it('com o passe aceito, o evento leva o MESMO eventID do servidor (API de Conversoes)', async () => {
+		window.fbq = vi.fn();
+		window.RAGIDLE_ENTRADA = 'Heroi_01.' + PASSE;
+		capturarEntrada();
+		pedidoDeLogin('Heroi_01', PASSE);
+		expect(loginAceito()).toBe('Heroi_01');
+		expect(registrarConversaoDoCadastro()).toBe(true);
+		await vi.waitFor(() => expect(window.fbq).toHaveBeenCalledTimes(1));
+		// sha256('heroi_01'), o mesmo do `conversoes-meta.test.ts` do servidor.
+		const esperado = 'cadastro.' + createHash('sha256').update('heroi_01').digest('hex');
+		expect(window.fbq).toHaveBeenCalledWith('track', 'CompleteRegistration', {}, { eventID: esperado });
 	});
 
 	it('sem Pixel (bloqueador de anuncio) nao lanca', () => {
@@ -189,7 +204,8 @@ describe('5. a guarda do api.html', () => {
 	});
 
 	it('o Pixel e o do dono, com o id e os dois eventos de base', () => {
-		expect(builder).toContain("fbq('init', '1538906837987135');");
+		expect(builder).toContain("fbq('init', '1538906837987135', chavesDaMeta);");
+		expect(builder).toContain('rci_am');
 		expect(builder).toContain("fbq('track', 'PageView');");
 		expect(builder).toContain('https://www.facebook.com/tr?id=1538906837987135&ev=PageView&noscript=1');
 		expect(builder).toContain("'https://connect.facebook.net/en_US/fbevents.js'");
