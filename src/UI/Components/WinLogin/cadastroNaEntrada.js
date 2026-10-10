@@ -19,6 +19,36 @@ import Configs from 'Core/Configs.js';
 import { rotaDoBalcao } from 'UI/enderecoDoBalcao.js';
 import { armarEntrada } from 'Engine/entradaPosCadastro.js';
 
+/*
+ * A CONVERSAO DA META (10/10/2026): o mesmo do site. Os cookies do Pixel vao no
+ * cadastro para a API de Conversoes do servidor, e as chaves em SHA-256 que o
+ * balcao devolve ficam no cookie `rci_am` do dominio, que o Pixel le no
+ * `fbq('init')` da proxima pagina (o `meta-pixel.js` do builder).
+ */
+export function cookiesDoPixel(doc = document) {
+	const ler = nome => {
+		const m = String(doc.cookie || '').match(new RegExp('(?:^|; )' + nome + '=([^;]*)'));
+		return m ? decodeURIComponent(m[1]) : '';
+	};
+	const saida = {};
+	if (ler('_fbp')) saida.fbp = ler('_fbp');
+	if (ler('_fbc')) saida.fbc = ler('_fbc');
+	return saida;
+}
+
+export function guardarCorrespondencia(chaves, doc = document, local = window.location) {
+	if (!chaves || typeof chaves !== 'object') return;
+	const noDominio = /(^|\.)roclassicidle\.com\.br$/.test(local.hostname);
+	doc.cookie =
+		'rci_am=' +
+		encodeURIComponent(JSON.stringify(chaves)) +
+		'; max-age=' +
+		String(180 * 24 * 3600) +
+		'; path=/; SameSite=Lax' +
+		(local.protocol === 'https:' ? '; Secure' : '') +
+		(noDominio ? '; domain=.roclassicidle.com.br' : '');
+}
+
 const USUARIO_VALIDO = /^[A-Za-z0-9_]{4,23}$/;
 const EMAIL_VALIDO = /^[^\s@]+@[^\s@.]+\.[^\s@]+$/;
 const REF_VALIDO = /^[A-Za-z0-9]{6}$/;
@@ -60,6 +90,7 @@ export async function enviarCadastro(dados, buscar = fetch) {
 	if (!resposta.ok || !json || !json.ok) {
 		return { erro: (json && json.erro) || 'Não foi possível concluir o cadastro.' };
 	}
+	guardarCorrespondencia(json.correspondencia);
 	const usuario = typeof json.usuario === 'string' ? json.usuario : dados.usuario;
 	if (typeof json.entrada === 'string' && armarEntrada(usuario, json.entrada)) {
 		return { usuario, senha: json.entrada, comPasse: true };
@@ -144,6 +175,7 @@ export function montarCadastroNaEntrada(root, { aoEntrar }) {
 		// INDIQUE & GANHE (D-1164): o codigo que a casca guardou do `?ref=`.
 		const ref = Configs.get('codigoDeIndicacao');
 		if (ref && REF_VALIDO.test(String(ref))) dados.ref = String(ref).toUpperCase();
+		Object.assign(dados, cookiesDoPixel());
 
 		const problema = conferirCadastro(dados);
 		if (problema) {
