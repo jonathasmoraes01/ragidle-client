@@ -184,8 +184,15 @@ describe('os sinks foram reescritos', () => {
 		expect(js).toMatch(/_escapeHTML[\s\S]*?replace\(\/"\/g, '&quot;'\)/);
 	});
 
-	it('DBManager escapa o nome do dono da arma forjada', () => {
+	it('DBManager tira a marcacao do nome do dono da arma forjada', () => {
+		// Lote 5 da comunidade (14/10/2026): o nome do dono passou a ir em TEXTO
+		// (`donoEmTexto`, que tira os caracteres de marcacao), e nao mais em HTML
+		// escapado. A guarda de D-1308 continua; o comportamento dela mora em
+		// `tests/db/xssNomeDoDonoDaArma.test.js`. Aqui o portao so impede que o
+		// nome cru da tabela volte a cair no nome do item.
 		const js = ler('src/DB/DBManager.js');
-		expect(js).toContain('escaparHtml(DB.CNameTable[GID])');
+		expect(js).toContain("import { donoEmTexto, partesDoNomeForjado } from './Items/nomeDaArmaForjada.js';");
+		expect(js).toContain('name = donoEmTexto(conhecido);');
+		expect(js).not.toMatch(/name\s*=\s*DB\.CNameTable\[GID\]/);
 	});
 });

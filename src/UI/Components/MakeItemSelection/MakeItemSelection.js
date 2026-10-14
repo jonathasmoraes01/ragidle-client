@@ -63,7 +63,9 @@ const SLOTS_DE_MATERIAL = 3;
  * Aco, a Estrelinha e as quatro pedras, as receitas de `BS_IRON`, `BS_STEEL`
  * e `BS_ENCHANTEDSTONE` (rAthena `db/pre-re/produce_db.txt`). Eles nao sao
  * equipamento, e por isso a pedra e a Estrelinha nos slots nao valem nada
- * para eles: o servidor so as le no ramo de ARMA (`equip`, skill.cpp:12926).
+ * para eles: o servidor GASTA o que estiver nos slots em qualquer receita
+ * (skill.cpp:12882-12898), mas so usa no ramo de ARMA (`equip`,
+ * skill.cpp:12926). No refino de minerio o material sumiria sem efeito.
  *
  * O `metalprocessitemlist` do cliente oficial descreve os materiais de TODAS
  * as receitas de forja, de minerio e de arma, entao `processitemlist` nao
