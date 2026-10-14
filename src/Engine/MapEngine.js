@@ -1492,21 +1492,19 @@ function onMapChange(pkt, ehEntradaNoMundo) {
 			} catch (_e) {
 				/* medir nao e caminho critico */
 			}
-<<<<<<< HEAD
-			// D-2446: o aviso de menu do Bot aberto/fechado sai DEPOIS do estou-pronto (D-993), em try: um
-			// erro nele nunca segura a entrada no mapa. A cada conexao (a reconexao o rearma no aceite).
-			try {
-				BotMenu.aposEstouPronto();
-			} catch (erro) {
-				console.error('[BotMenu] aviso do menu falhou depois do estou-pronto', erro);
-=======
 			// D-2440: a primeira carga da conexao nova limpa a barra de icones AGORA, depois do
 			// pacote e antes de qualquer resposta: o que o servidor devolve acende de novo.
 			try {
 				_limpezaDaBarra.depoisDoEstouPronto();
 			} catch (_e) {
 				/* a barra nao e caminho critico */
->>>>>>> bea3b5ec (D-2440: a barra de icones e limpa uma vez por conexao nova)
+			}
+			// D-2446: o aviso de menu do Bot aberto/fechado sai DEPOIS do estou-pronto (D-993), em try: um
+			// erro nele nunca segura a entrada no mapa. A cada conexao (a reconexao o rearma no aceite).
+			try {
+				BotMenu.aposEstouPronto();
+			} catch (erro) {
+				console.error('[BotMenu] aviso do menu falhou depois do estou-pronto', erro);
 			}
 		};
 		setTimeout(estouPronto, 0);
