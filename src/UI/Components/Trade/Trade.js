@@ -19,6 +19,7 @@ import Inventory from 'UI/Components/Inventory/Inventory.js';
 import ChatBox from 'UI/Components/ChatBox/ChatBox.js';
 import htmlText from './Trade.html?raw';
 import cssText from './Trade.css?raw';
+import { aplicarPapel, ofertaBarradaPeloPapel, papelDoPacote, piscarRecusa } from './papelDaTroca.js';
 
 /**
  * Create Component
@@ -47,6 +48,13 @@ const _send = [];
  * @var {object} list of items to received
  */
 const _recv = [];
+
+/**
+ * @var {object|null} o PAPEL deste lado numa troca VIP com FREE (R127, D-2476):
+ * `{ podeOferecer, texto }` do servidor, ou `null` (VIP com VIP, a janela de
+ * sempre). Ver `papelDaTroca.js`.
+ */
+let _papel = null;
 
 /**
  * @var {string} trade title
@@ -117,6 +125,17 @@ Trade.init = function init() {
 		});
 	}
 
+	// R127: no lado FREE, o toque ou clique na coluna da oferta (caixa ou
+	// zeny) e recusado na tela. No celular e o unico gesto que existe ali.
+	const colunaDaOferta = root.querySelector('.trade-col--oferta');
+	if (colunaDaOferta) {
+		colunaDaOferta.addEventListener('click', () => {
+			if (ofertaBarradaPeloPapel(_papel, false, 1)) {
+				recusarOferta();
+			}
+		});
+	}
+
 	// Item hover/info events on boxes
 	const boxes = root.querySelectorAll('.box');
 	boxes.forEach(box => {
@@ -163,6 +182,8 @@ Trade.onAppend = function onAppend() {
 	resetUI.call(this);
 
 	const root = this.getRoot();
+	// O papel que ja chegou (R127): o resetUI limpou a janela, e nao o papel.
+	aplicarPapel(root, _papel);
 	const titleEl = root.querySelector('.titlebar .title');
 	if (titleEl) {
 		titleEl.textContent = this.title;
@@ -179,7 +200,31 @@ Trade.onAppend = function onAppend() {
  */
 Trade.onRemove = function onRemove() {
 	resetUI.call(this);
+	_papel = null;
 };
+
+/**
+ * O PAPEL deste lado (R127, D-2476): o servidor o manda depois do resultado 3
+ * que abre a janela, so em troca VIP com FREE (`Engine/MapEngine/Trade.js`
+ * passa o corpo do `ZC_RAGIDLE_TROCA`). `null` esquece o da troca anterior.
+ *
+ * @param {object|null} dados
+ */
+Trade.definirPapel = function definirPapel(dados) {
+	_papel = papelDoPacote(dados);
+	aplicarPapel(Trade.getRoot(), _papel);
+};
+
+/**
+ * A recusa da oferta no lado FREE: a frase do servidor no chat e a faixa da
+ * janela piscando. Nada vai ao servidor (que recusaria do mesmo jeito).
+ */
+function recusarOferta() {
+	if (_papel && _papel.texto) {
+		ChatBox.addText(_papel.texto, ChatBox.TYPE.ERROR, ChatBox.FILTER.PUBLIC_LOG);
+	}
+	piscarRecusa(Trade.getRoot());
+}
 
 /**
  * Reset the UI to its initial state
@@ -345,6 +390,12 @@ function prettifyZeny(value) {
  * @param {number} count - item count
  */
 function onRequestAddItem(index, count) {
+	// R127: o lado FREE nao poe item nem zeny (o zeny 0 do "Confirmar" passa).
+	if (ofertaBarradaPeloPapel(_papel, index === 0, count)) {
+		recusarOferta();
+		return;
+	}
+
 	// You cannot overlap items on a window
 	if (index in _tmpCount) {
 		ChatBox.addText(DB.getMessage(51), ChatBox.TYPE.ERROR, ChatBox.FILTER.PUBLIC_LOG);
@@ -427,6 +478,10 @@ function onConclude() {
 	const zenySend = root.querySelector('.zeny.send');
 	let zeny = parseInt(zenySend ? zenySend.value : '0', 10) || 0;
 	zeny = Math.min(Math.max(0, zeny), Session.zeny);
+	// R127: o lado FREE confirma com zeny 0, que nao e oferta.
+	if (ofertaBarradaPeloPapel(_papel, true, zeny)) {
+		zeny = 0;
+	}
 
 	onRequestAddItem(0, zeny);
 	Trade.onConclude();
@@ -471,6 +526,12 @@ function onDrop(event) {
 	}
 
 	const item = data.data;
+
+	// R127: o lado FREE nao poe item, e a recusa vem antes de pedir a quantidade.
+	if (ofertaBarradaPeloPapel(_papel, false, 1)) {
+		recusarOferta();
+		return false;
+	}
 
 	// Have to specify how much
 	if (item.count > 1) {
