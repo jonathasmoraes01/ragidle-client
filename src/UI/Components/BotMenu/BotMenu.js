@@ -28,9 +28,11 @@ import GUIComponent from 'UI/GUIComponent.js';
 import htmlText from './BotMenu.html?raw';
 import cssText from './BotMenu.css?raw';
 import { fecharEEsquecer } from '../limpezaDeJanelaIdle.js';
-import { criarEstadoDoBot, fraseDoErro, fraseDoStatus } from './estadoDoBot.js';
+import { escreverTexto } from 'UI/escreverSeMudou.js';
+import { criarEstadoDoBot, explicacaoDoStatus, fraseDoErro, fraseDoStatus } from './estadoDoBot.js';
 import { desenharEditorDeSkills } from './editorDeSkills.js';
 import { desenharRodizio } from './editorDoRodizio.js';
+import { definirCuraComoAtaque, temCuraQueFereMortoVivo } from './edicaoDeSkills.js';
 import { desenharColeta, desenharSobrevivencia, desenharSuporte } from './editorDeManutencao.js';
 import { desenharFlechas } from './editorDeFlechas.js';
 import { desenharPerfis } from './editorDePerfis.js';
@@ -252,9 +254,16 @@ function avisarLigado() {
 /** Para os testes da costura e as provas de tela. */
 BotMenu._estado = _estado;
 
+/** Conexao nova com o mesmo personagem (reconexao, volta do "Dormir"): ver `estadoDoBot.novaConexao`. */
+BotMenu.novaConexaoDoServidor = function novaConexaoDoServidor() {
+	_estado.novaConexao();
+};
+
 BotMenu.limparEstadoDoPersonagem = function limparEstadoDoPersonagem() {
 	_estado.reiniciar();
 	_escopoDasSkills = 'geral';
+	// D-2385: o desenho do personagem anterior nao vale como "ultimo desenho" do novo.
+	_janelaSuja = true;
 	esquecerContexto();
 	fecharEEsquecer(_root(), '.bm-window');
 	avisarCapacidade();
@@ -307,6 +316,7 @@ BotMenu.init = function init() {
 	root.querySelectorAll('input[name="bm-modo"]').forEach(r =>
 		r.addEventListener('change', e => editar(c => ({ ...c, modoDeAtaque: e.target.value })))
 	);
+	el('.bm-cura-ataque-ligada').addEventListener('change', e => editar(c => definirCuraComoAtaque(c, e.target.checked)));
 	for (const lista of _root().querySelectorAll('.bm-monstros')) {
 		lista.addEventListener('click', onClickMonstro);
 		// Teclado: Espaco e Enter fazem o mesmo gesto do clique.
@@ -496,6 +506,78 @@ function sincronizarAtualizacaoDoAvancado(secoes) {
 	}
 }
 
+/*
+ * O REDESENHO SO DO QUE MUDOU (D-2385, 14/10/2026, a leva de desempenho do cliente).
+ *
+ * O servidor manda ~0,4 status por segundo por Bot ligado, e cada um passava por `desenhar()`, que refazia a
+ * janela INTEIRA: as listas do rodizio, das skills, dos monstros, das pocoes, dos perfis... (`innerHTML = ''`
+ * e tudo de novo), mesmo com a janela FECHADA. O status quase sempre so troca o `status` (e o `contexto`):
+ * desde a D-2366 do servidor, os blocos pesados so vem no pacote quando mudaram.
+ *
+ * Duas regras, as duas EXATAS:
+ * 1. Janela fechada: o dado fica guardado (o `_estado` ja o guardou) e a janela fica SUJA; nada no DOM. Quem
+ *    fica de fora da janela (o botao "Ataque auto", `avisarLigado`) e o relogio do Avancado (que para com a
+ *    janela fechada) seguem como antes. Na proxima vez que ela desenhar aberta, desenha TUDO uma vez.
+ * 2. Janela aberta: cada bloco guarda as ENTRADAS do ultimo desenho; entradas iguais, o bloco nao e refeito.
+ *    As entradas sao os objetos que o bloco le (comparados por identidade: o `_estado` troca o objeto de cada
+ *    bloco SO quando ele chega no pacote, e o rascunho a cada edicao) ou, no topo e no Avancado, o TEXTO que
+ *    eles mostram: o status chega com um objeto novo em todo pacote, quase sempre com a mesma frase. Cada desenhador e uma funcao das entradas dele: com as mesmas entradas, refaze-lo deixaria
+ *    o DOM igual (o oraculo do teste compara contra o caminho que redesenha sempre).
+ *
+ * A UNICA ENTRADA DE FORA DO PACOTE e a mochila do seletor de ignorados da Coleta, lida na hora enquanto o
+ * seletor esta aberto: com ele aberto, a Coleta redesenha sempre, como antes.
+ */
+let _janelaSuja = true;
+/** bloco -> as entradas do ultimo desenho. */
+const _entradasDoBloco = new Map();
+/** So os testes ligam (o oraculo): o caminho de antes, que redesenha tudo sempre, aberta ou fechada. */
+let _redesenharSempre = false;
+/** Os contadores do portao (D-2385): desenhos da janela e de cada bloco. */
+const _contagem = { janela: 0, blocos: {} };
+
+function janelaAberta() {
+	const win = el('.bm-window');
+	return !!(win && win.classList.contains('is-open'));
+}
+
+function mesmasEntradas(antes, agora) {
+	if (!antes || antes.length !== agora.length) {
+		return false;
+	}
+	for (let i = 0; i < agora.length; i++) {
+		if (!Object.is(antes[i], agora[i])) {
+			return false;
+		}
+	}
+	return true;
+}
+
+/**
+ * Desenha o bloco se as entradas mudaram. `entradas` e uma funcao: ela e lida de novo DEPOIS do desenho, porque
+ * o desenho do Ataque pode trocar a especie escolhida (`_escopoDasSkills`); guardar a de antes faria o proximo
+ * desenho achar uma mudanca que nao houve.
+ */
+function bloco(nome, entradas, desenharOBloco, forcar = false) {
+	if (!_redesenharSempre && !forcar && mesmasEntradas(_entradasDoBloco.get(nome), entradas())) {
+		return;
+	}
+	_contagem.blocos[nome] = (_contagem.blocos[nome] || 0) + 1;
+	desenharOBloco();
+	_entradasDoBloco.set(nome, entradas());
+}
+
+/** Para os testes: os contadores, a limpeza deles e o caminho de antes (o oraculo). */
+BotMenu._contagemDeDesenhos = function contagemDeDesenhos() {
+	return { janela: _contagem.janela, blocos: { ..._contagem.blocos } };
+};
+BotMenu._zerarContagemDeDesenhos = function zerarContagemDeDesenhos() {
+	_contagem.janela = 0;
+	_contagem.blocos = {};
+};
+BotMenu._redesenharSempre = function redesenharSempre(ligado) {
+	_redesenharSempre = !!ligado;
+};
+
 function desenhar() {
 	// Todo gesto e toda resposta do servidor passam por aqui: o botao "Ataque auto" segue o mesmo estado.
 	avisarLigado();
@@ -503,73 +585,133 @@ function desenhar() {
 	if (!root) {
 		return;
 	}
+	if (!_redesenharSempre && !janelaAberta()) {
+		// Fechada: so suja. O relogio do Avancado para (o mesmo que o `sincronizar` fazia aqui, fechada).
+		_janelaSuja = true;
+		sincronizarAtualizacaoDoAvancado(_estado.secoes());
+		return;
+	}
+	if (_janelaSuja) {
+		_entradasDoBloco.clear();
+		_janelaSuja = false;
+	}
+	_contagem.janela++;
 	const s = _estado.estado();
-	const liga = el('.bm-liga');
-	liga.setAttribute('aria-checked', String(s.ligado));
-	liga.classList.toggle('is-pendente', s.pendenteLigarDesligar !== null);
-	el('.bm-liga-texto').textContent = s.pendenteLigarDesligar !== null ? '...' : s.ligado ? 'ON' : 'OFF';
-	liga.title = s.ligado ? 'Bot ligado: clique para desligar' : 'Bot desligado: clique para ligar';
-	el('.bm-window').classList.toggle('is-ligado', s.ligado);
-	const status = el('.bm-status');
-	status.textContent = s.carregado ? fraseDoStatus(s.status) : 'Carregando...';
-	status.classList.toggle('is-suspenso', s.status && s.status.codigo === 'suspenso-manual');
 	const ctx = s.contexto || {};
-	el('.bm-mapa').textContent = ctx.rotuloDoMapa || ctx.mapa || s.mapa || '';
-	el('.bm-mapa-rotulo').textContent = ctx.ehCidade ? 'Você está na cidade' : 'Você está em';
-	desenharEscolhaDoPerfil(s);
-	desenharFlechaAtual(s);
+	/*
+	 * O TOPO pelas entradas que ele MOSTRA, e nao pelo objeto do status: todo status chega com um objeto novo
+	 * (o JSON do pacote), quase sempre com a mesma frase ("Atacando Poring" de novo). Comparar o que vai para
+	 * a tela deixa o topo parado enquanto a frase nao muda.
+	 */
+	const pendenteOnOff = s.pendenteLigarDesligar !== null;
+	const textoDoLiga = pendenteOnOff ? '...' : s.ligado ? 'ON' : 'OFF';
+	const fraseDoTopo = s.carregado ? fraseDoStatus(s.status) : 'Carregando...';
+	const suspenso = s.status && s.status.codigo === 'suspenso-manual';
+	const textoDoMapa = ctx.rotuloDoMapa || ctx.mapa || s.mapa || '';
+	const naCidade = !!ctx.ehCidade;
+	bloco(
+		'topo',
+		// O texto do botao sai do `ligado` e do em voo; o "suspenso" sai da frase (so o suspenso-manual a tem).
+		() => [s.ligado, pendenteOnOff, fraseDoTopo, textoDoMapa, naCidade],
+		() => {
+			const liga = el('.bm-liga');
+			liga.setAttribute('aria-checked', String(s.ligado));
+			liga.classList.toggle('is-pendente', pendenteOnOff);
+			escreverTexto(el('.bm-liga-texto'), textoDoLiga);
+			liga.title = s.ligado ? 'Bot ligado: clique para desligar' : 'Bot desligado: clique para ligar';
+			el('.bm-window').classList.toggle('is-ligado', s.ligado);
+			const status = el('.bm-status');
+			escreverTexto(status, fraseDoTopo);
+			status.classList.toggle('is-suspenso', suspenso);
+			escreverTexto(el('.bm-mapa'), textoDoMapa);
+			escreverTexto(el('.bm-mapa-rotulo'), naCidade ? 'Você está na cidade' : 'Você está em');
+		}
+	);
+	bloco('perfil', () => [s.perfis, s.perfilAtivo, s.pendentePerfil], () => desenharEscolhaDoPerfil(s));
+	bloco('flecha-atual', () => [s.municoes], () => desenharFlechaAtual(s));
 	// O header mostra o perfil (de onde veio a config) e a postura confirmada (05 secao 3).
 	const posturaConfirmada = s.serverConfig && s.serverConfig.postura ? NOME_CURTO_DA_POSTURA[s.serverConfig.postura.tipo] : null;
-	el('.bm-perfil-ativo').textContent = [s.perfilAtivo, posturaConfirmada].filter(Boolean).join(' · ');
+	bloco(
+		'perfil-ativo',
+		() => [s.perfilAtivo, posturaConfirmada],
+		() => escreverTexto(el('.bm-perfil-ativo'), [s.perfilAtivo, posturaConfirmada].filter(Boolean).join(' · '))
+	);
 
 	const secoes = _estado.secoes();
-	desenharAbas(secoes);
+	bloco('abas', () => [secoes, _preferences.aba], () => desenharAbas(secoes));
 	sincronizarAtualizacaoDoAvancado(secoes);
 
 	const c = s.editConfig;
 	if (c) {
-		el('.bm-cacar').checked = !!c.cacar;
-		const raio = el('.bm-raio');
 		const lim = (s.capacidades && s.capacidades.limites) || {};
-		raio.min = String(lim.raioMinimo || 3);
-		raio.max = String(lim.raioMaximo || 30);
-		raio.value = String(c.raioDePercepcao);
-		el('.bm-raio-valor').textContent = String(c.raioDePercepcao);
-		root.querySelectorAll('input[name="bm-modo"]').forEach(r => {
-			r.checked = r.value === c.modoDeAtaque;
-		});
-		desenharMonstros(s, c);
-		desenharPostura(s, c);
-		const lim2 = (s.capacidades && s.capacidades.limites) || {};
-		desenharAtaque(s, c, lim2);
-		desenharManutencao(s, c, secoes, lim2);
+		bloco(
+			'cacada',
+			() => [c, s.capacidades],
+			() => {
+				el('.bm-cacar').checked = !!c.cacar;
+				const raio = el('.bm-raio');
+				raio.min = String(lim.raioMinimo || 3);
+				raio.max = String(lim.raioMaximo || 30);
+				raio.value = String(c.raioDePercepcao);
+				escreverTexto(el('.bm-raio-valor'), String(c.raioDePercepcao));
+				root.querySelectorAll('input[name="bm-modo"]').forEach(r => {
+					r.checked = r.value === c.modoDeAtaque;
+				});
+			}
+		);
+		bloco('monstros', () => [c, s.monstros], () => desenharMonstros(s, c));
+		bloco('postura', () => [c, s.grupo], () => desenharPostura(s, c));
+		bloco(
+			'ataque',
+			() => [c, s.skills, s.monstros, s.capacidades, _escopoDasSkills, !!(s.contexto && s.contexto.ehCidade)],
+			() => desenharAtaque(s, c, lim)
+		);
+		desenharManutencao(s, c, secoes, lim);
 	}
 
-	const recado = el('.bm-recado');
-	recado.classList.remove('is-aviso');
-	if (s.erro) {
-		recado.textContent = fraseDoErro(s.erro);
-	} else if (s.mudouNoServidor) {
-		recado.textContent = 'A configuração mudou no servidor enquanto você editava. Aplique para manter a sua ou recarregue.';
-		recado.classList.add('is-aviso');
-	} else {
-		recado.textContent = '';
-	}
-	const problemas = el('.bm-problemas');
-	problemas.innerHTML = '';
-	for (const p of s.problemas || []) {
-		const li = document.createElement('li');
-		li.textContent = p.mensagem;
-		problemas.appendChild(li);
-	}
-	el('.bm-recarregar').hidden = !(s.conflito || s.mudouNoServidor);
-	el('.bm-aplicar').disabled = !s.dirty || s.pendenteAplicar;
-	el('.bm-aplicar-texto').textContent = s.pendenteAplicar ? 'Salvando...' : 'Salvar';
-	el('.bm-descartar').disabled = !s.dirty || s.pendenteAplicar;
-	// "Salvar e Iniciar" so com o Bot desligado (ligado, o Salvar ja basta).
-	const iniciar = el('.bm-iniciar');
-	iniciar.hidden = s.ligado;
-	iniciar.disabled = s.pendenteAplicar || s.pendenteLigarDesligar !== null || !s.carregado;
+	bloco(
+		'recado',
+		() => [s.erro, s.mudouNoServidor],
+		() => {
+			const recado = el('.bm-recado');
+			recado.classList.remove('is-aviso');
+			if (s.erro) {
+				recado.textContent = fraseDoErro(s.erro);
+			} else if (s.mudouNoServidor) {
+				recado.textContent = 'A configuração mudou no servidor enquanto você editava. Aplique para manter a sua ou recarregue.';
+				recado.classList.add('is-aviso');
+			} else {
+				recado.textContent = '';
+			}
+		}
+	);
+	bloco(
+		'problemas',
+		() => [s.problemas],
+		() => {
+			const problemas = el('.bm-problemas');
+			problemas.innerHTML = '';
+			for (const p of s.problemas || []) {
+				const li = document.createElement('li');
+				li.textContent = p.mensagem;
+				problemas.appendChild(li);
+			}
+		}
+	);
+	bloco(
+		'rodape',
+		() => [s.conflito, s.mudouNoServidor, s.dirty, s.pendenteAplicar, s.ligado, s.pendenteLigarDesligar, s.carregado],
+		() => {
+			el('.bm-recarregar').hidden = !(s.conflito || s.mudouNoServidor);
+			el('.bm-aplicar').disabled = !s.dirty || s.pendenteAplicar;
+			escreverTexto(el('.bm-aplicar-texto'), s.pendenteAplicar ? 'Salvando...' : 'Salvar');
+			el('.bm-descartar').disabled = !s.dirty || s.pendenteAplicar;
+			// "Salvar e Iniciar" so com o Bot desligado (ligado, o Salvar ja basta).
+			const iniciar = el('.bm-iniciar');
+			iniciar.hidden = s.ligado;
+			iniciar.disabled = s.pendenteAplicar || s.pendenteLigarDesligar !== null || !s.carregado;
+		}
+	);
 }
 
 /*
@@ -583,6 +725,10 @@ function desenharAtaque(s, c, lim) {
 	const monstros = s.monstros || [];
 	const tetoGeral = lim.skillsNaListaGeral || 3;
 	desenharRodizio(secao.querySelector('.bm-rodizio-caixa'), { config: c, skills: s.skills, teto: tetoGeral }, editar);
+	// Bug #12 de 13/10: o interruptor da Cura contra morto-vivo (so com uma cura que fere morto-vivo e um servidor que o cumpre).
+	const cartaoCura = secao.querySelector('.bm-cura-ataque');
+	cartaoCura.hidden = !temCuraQueFereMortoVivo(s.skills);
+	secao.querySelector('.bm-cura-ataque-ligada').checked = c.curaComoAtaque === true;
 
 	// AVANCADO, lista por monstro: so especies (a lista geral e o rodizio da frente).
 	const comRegra = Object.keys(c.skills.porMonstro || {}).map(Number);
@@ -658,65 +804,95 @@ function desenharFlechaAtual(s) {
 
 /** Sobrevivencia, Suporte e Coleta (Fase 6): so desenha a secao que o servidor anunciou. */
 function desenharManutencao(s, c, secoes, lim) {
+	// D-2385: cada secao e um bloco com as entradas que o desenhador dela le (ver `bloco`).
 	if (secoes.includes('sobrevivencia')) {
-		desenharSobrevivencia(
-			el('[data-secao="sobrevivencia"]'),
-			{ config: c, pocoes: s.pocoes, teto: lim.pocoesPorLista || 6, nomeDoItem },
-			editar
+		bloco('sobrevivencia', () => [c, s.pocoes, s.capacidades], () =>
+			desenharSobrevivencia(
+				el('[data-secao="sobrevivencia"]'),
+				{ config: c, pocoes: s.pocoes, teto: lim.pocoesPorLista || 6, nomeDoItem },
+				editar
+			)
 		);
 	}
 	if (secoes.includes('suporte')) {
-		desenharSuporte(el('[data-secao="suporte"]'), { config: c, skills: s.skills, teto: lim.skillsDeSuporte || 64 }, editar);
+		bloco('suporte', () => [c, s.skills, s.capacidades], () =>
+			desenharSuporte(el('[data-secao="suporte"]'), { config: c, skills: s.skills, teto: lim.skillsDeSuporte || 64 }, editar)
+		);
 	}
 	if (secoes.includes('coleta')) {
-		desenharColeta(
-			el('[data-secao="coleta"]'),
-			{
-				config: c,
-				teto: lim.itensIgnoradosNaColeta || 300,
-				raioMinimo: lim.raioDeColetaMinimo || 1,
-				raioMaximo: lim.raioDeColetaMaximo || 20,
-				nomeDoItem,
-				mochila: mochilaDoBot,
-				iconeDoItem: aplicarIconeDoItem
-			},
-			editar
+		// Com o seletor de ignorados ABERTO a lista le a mochila na hora (`seletorDeItem.js`): redesenha sempre.
+		const seletor = el('[data-secao="coleta"] .bm-seletor');
+		bloco(
+			'coleta',
+			() => [c, s.capacidades],
+			() =>
+				desenharColeta(
+					el('[data-secao="coleta"]'),
+					{
+						config: c,
+						teto: lim.itensIgnoradosNaColeta || 300,
+						raioMinimo: lim.raioDeColetaMinimo || 1,
+						raioMaximo: lim.raioDeColetaMaximo || 20,
+						nomeDoItem,
+						mochila: mochilaDoBot,
+						iconeDoItem: aplicarIconeDoItem
+					},
+					editar
+				),
+			!!(seletor && !seletor.hidden)
 		);
 	}
 	if (secoes.includes('consumiveis')) {
-		desenharConsumiveis(
-			el('[data-secao="consumiveis"]'),
-			{ config: c, consumiveis: s.consumiveis, limites: lim, iconeDoItem: aplicarIconeDoItem },
-			editar
+		bloco('consumiveis', () => [c, s.consumiveis, s.capacidades], () =>
+			desenharConsumiveis(
+				el('[data-secao="consumiveis"]'),
+				{ config: c, consumiveis: s.consumiveis, limites: lim, iconeDoItem: aplicarIconeDoItem },
+				editar
+			)
 		);
 	}
 	if (secoes.includes('avancado')) {
-		desenharAvancado(el('[data-secao="avancado"]'), { status: s.status, diagnostico: s.diagnostico, ligado: s.ligado });
-	}
-	if (secoes.includes('perfis')) {
-		desenharPerfis(
-			el('[data-secao="perfis"]'),
-			{ perfis: s.perfis, perfilAtivo: s.perfilAtivo, pendente: s.pendentePerfil, nomeMaximo: 24 },
-			{
-				salvar: nome => {
-					_estado.perfilSalvar(nome);
-					desenhar();
-				},
-				aplicar: nome => {
-					_estado.perfilAplicar(nome);
-					desenhar();
-				},
-				renomear: (de, para) => {
-					_estado.perfilRenomear(de, para);
-					desenhar();
-				},
-				excluir: nome => {
-					_estado.perfilExcluir(nome);
-					desenhar();
-				}
-			}
+		// Como o topo: o que o Avancado mostra do status e a frase e a explicacao (o diagnostico vem inteiro).
+		const doStatus = s.diagnostico ? s.diagnostico.status : s.status;
+		const textoDoAvancado = fraseDoStatus(doStatus) + '|' + explicacaoDoStatus(doStatus);
+		bloco('avancado', () => [s.diagnostico, textoDoAvancado], () =>
+			desenharAvancado(el('[data-secao="avancado"]'), { status: s.status, diagnostico: s.diagnostico, ligado: s.ligado })
 		);
 	}
+	if (secoes.includes('perfis')) {
+		bloco('perfis', () => [s.perfis, s.perfilAtivo, s.pendentePerfil], () => desenharPerfisDoMenu(s));
+	}
+	bloco('flechas', () => [c, s.municoes, s.municao, s.monstros, s.capacidades, secoes], () => desenharCartaoDasFlechas(s, c, secoes, lim));
+}
+
+/** A aba Perfis (os verbos sao imediatos, fora do Aplicar). */
+function desenharPerfisDoMenu(s) {
+	desenharPerfis(
+		el('[data-secao="perfis"]'),
+		{ perfis: s.perfis, perfilAtivo: s.perfilAtivo, pendente: s.pendentePerfil, nomeMaximo: 24 },
+		{
+			salvar: nome => {
+				_estado.perfilSalvar(nome);
+				desenhar();
+			},
+			aplicar: nome => {
+				_estado.perfilAplicar(nome);
+				desenhar();
+			},
+			renomear: (de, para) => {
+				_estado.perfilRenomear(de, para);
+				desenhar();
+			},
+			excluir: nome => {
+				_estado.perfilExcluir(nome);
+				desenhar();
+			}
+		}
+	);
+}
+
+/** O cartao das Flechas, dentro de Ataque (Fase 7): escondido sem a secao, o icone uma vez, o editor com ela. */
+function desenharCartaoDasFlechas(s, c, secoes, lim) {
 	const cartaoDasFlechas = el('[data-secao="flechas"]');
 	cartaoDasFlechas.hidden = !secoes.includes('flechas');
 	const iconeDasFlechas = cartaoDasFlechas.querySelector('.bm-flechas-icone');
@@ -755,6 +931,11 @@ function desenharPostura(s, c) {
 		});
 	el('.bm-fallback').checked = p.fallbackMelee;
 	el('.bm-fallback-melee').hidden = p.tipo !== 'ranged-dps';
+	// Frente P (13/10/2026): na postura "So suporte" o Bot nunca ataca, e a aba Ataque diz que o modo nao vale (a escolha
+	// segue gravada e editavel para a proxima postura).
+	const soSuporte = p.tipo === 'ranged-buff';
+	el('.bm-modo-sem-efeito').hidden = !soSuporte;
+	el('.bm-modo').classList.toggle('is-sem-efeito', soSuporte);
 	const g = s.grupo;
 	el('.bm-posto-atual').textContent =
 		g && g.emGrupo ? 'Posto em vigor: ' + g.postoNome + '.' : 'Sem grupo: o Bot caça sozinho (Andarilho).';
@@ -770,7 +951,12 @@ function desenharMonstros(s, c) {
 	const vetadas = new Set(c.especiesVetadas || []);
 	const noMapa = new Map();
 	const fora = new Map();
+	// Bug #16 de 13/10/2026: a copia de praca ([EXP]/[ZENY], ids 31xxx) mostra a imagem da especie original.
+	const avatarDe = new Map();
 	for (const m of s.monstros || []) {
+		if (typeof m.avatar === 'number') {
+			avatarDe.set(m.especie, m.avatar);
+		}
 		// `noMapa` ausente (servidor antigo) vale como "esta no mapa".
 		if (m.noMapa === false) {
 			fora.set(m.especie, m.nome);
@@ -788,14 +974,14 @@ function desenharMonstros(s, c) {
 			fora.delete(e);
 		}
 	}
-	preencherMonstros(el('.bm-monstros:not(.bm-monstros-outros)'), noMapa, vetadas, false);
-	preencherMonstros(el('.bm-monstros-outros'), fora, vetadas, true);
+	preencherMonstros(el('.bm-monstros:not(.bm-monstros-outros)'), noMapa, vetadas, false, avatarDe);
+	preencherMonstros(el('.bm-monstros-outros'), fora, vetadas, true, avatarDe);
 	el('.bm-outros-mapas').hidden = fora.size === 0;
 	el('.bm-outros-qtd').textContent = String(fora.size);
 }
 
-function preencherMonstros(lista, especies, vetadas, reativar) {
-	const chave = [...especies].map(([e, n]) => e + ':' + n + ':' + vetadas.has(e)).join(',');
+function preencherMonstros(lista, especies, vetadas, reativar, avatarDe = new Map()) {
+	const chave = [...especies].map(([e, n]) => e + ':' + n + ':' + vetadas.has(e) + ':' + (avatarDe.get(e) ?? '')).join(',');
 	if (lista.getAttribute('data-chave') === chave) {
 		return;
 	}
@@ -814,7 +1000,7 @@ function preencherMonstros(lista, especies, vetadas, reativar) {
 		const avatar = document.createElement('img');
 		avatar.alt = '';
 		avatar.loading = 'lazy';
-		avatar.src = '/ragidle/mobs/' + especie + '.png';
+		avatar.src = '/ragidle/mobs/' + (avatarDe.get(especie) ?? especie) + '.png';
 		avatar.onerror = () => {
 			avatar.style.display = 'none';
 		};

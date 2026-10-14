@@ -29,6 +29,8 @@ async function montar() {
 	BotMenu._shadow = null;
 	BotMenu.draggable = () => {};
 	BotMenu.init();
+	// D-2385: a janela FECHADA nao desenha (so guarda e suja); estes casos olham a janela aberta.
+	BotMenu._host.querySelector('.bm-window').classList.add('is-open');
 	const chamada = Network.hookPacket.mock.calls.at(-1);
 	const receber = d => chamada[1]({ json: JSON.stringify(d) });
 	const desde = Network.sendPacket.mock.calls.length;
@@ -201,5 +203,29 @@ describe('4.4 Monstros do mapa', () => {
 		cartao(host, 1004).dispatchEvent(new KeyboardEvent('keydown', { key: ' ', bubbles: true }));
 		host.querySelector('.bm-aplicar').click();
 		expect(ultimoAplicar(enviados).config.especiesVetadas).toEqual([1004]);
+	});
+});
+
+describe('bug #16 (13/10/2026): o ignorado que e copia de praca mostra o nome e a imagem da original', () => {
+	it('a copia [EXP] vetada noutro mapa aparece com o nome dela e a imagem da especie original (avatar); sem avatar, a propria', async () => {
+		const { host, receber } = await montar();
+		receber(
+			status(
+				[
+					...NO_CAMPO,
+					{ especie: 31150, nome: '[EXP] Dryad', noMapa: false, avatar: 1291 },
+					{ especie: 31001, nome: '[ZENY] Santa Poring', noMapa: false }
+				],
+				config({ especiesVetadas: [31150, 31001] })
+			)
+		);
+		const fora = especie => host.querySelector('.bm-monstros-outros [data-especie="' + especie + '"]');
+		expect(fora(31150).textContent).toContain('[EXP] Dryad');
+		expect(fora(31150).textContent).not.toContain('#31150');
+		expect(fora(31150).querySelector('img').getAttribute('src')).toBe('/ragidle/mobs/1291.png');
+		expect(fora(31001).textContent).toContain('[ZENY] Santa Poring');
+		expect(fora(31001).querySelector('img').getAttribute('src')).toBe('/ragidle/mobs/31001.png');
+		// O card do mapa de agora segue com a imagem da propria especie.
+		expect(cartao(host, 1002).querySelector('img').getAttribute('src')).toBe('/ragidle/mobs/1002.png');
 	});
 });

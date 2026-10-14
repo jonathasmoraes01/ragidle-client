@@ -29,6 +29,15 @@ function iguais(a, b) {
 }
 
 /**
+ * A config sem o armazem, para comparar o que o Salvar MANDA: `aplicar` tira o bloco (a secao saiu do menu em
+ * 09/10/2026) e o servidor grava o padrao no lugar (`validarArmazem` de `servidor/bot/config-do-bot.ts`). O
+ * `JSON.stringify` omite a chave com `undefined` e mantem a ordem das outras.
+ */
+function semArmazem(config) {
+	return Object.assign({}, config, { armazem: undefined });
+}
+
+/**
  * @param {{ enviar: (corpo: object) => void }} deps
  */
 export function criarEstadoDoBot({ enviar }) {
@@ -100,7 +109,15 @@ export function criarEstadoDoBot({ enviar }) {
 		const mudou = revisao !== s.revisao || !iguais(config, s.serverConfig);
 		s.serverConfig = clonar(config);
 		s.revisao = revisao;
-		if (!s.dirty || s.editConfig === null) {
+		/*
+		 * O RASCUNHO QUE O SERVIDOR JA TEM (bug #17 de 13/10/2026, ressalva 3 do critico): o Salvar cuja resposta
+		 * morreu com a conexao (a reconexao o solta, `novaConexao`) foi APLICADO, e o `pedir` da conexao nova traz a
+		 * revisao nova com a config igual ao rascunho. Sem adotar, a janela dizia "A configuracao mudou no servidor
+		 * enquanto voce editava" e o Salvar seguinte ia com a `baseRevision` velha: conflito de revisao FALSO, porque
+		 * a "outra versao" e a do proprio jogador. Igual ao rascunho nao ha o que avisar: vira a base. Rascunho
+		 * DIFERENTE segue no aviso abaixo. (A comparacao so roda com rascunho sujo: o status chega a todo instante.)
+		 */
+		if (!s.dirty || s.editConfig === null || iguais(semArmazem(s.editConfig), semArmazem(config))) {
 			s.editConfig = clonar(config);
 			s.baseRevision = revisao;
 			s.mudouNoServidor = false;
@@ -119,6 +136,31 @@ export function criarEstadoDoBot({ enviar }) {
 		reiniciar() {
 			emVoo.clear();
 			s = estadoVazio();
+		},
+		/**
+		 * CONEXAO NOVA COM O MESMO PERSONAGEM (12/10/2026): a reconexao e a volta do "Dormir".
+		 * O servidor recria o executor do Bot quando a conexao muda, e o `statusRevision`
+		 * dele RECOMECA do zero. Sem zerar a linha de base aqui, a resposta do primeiro
+		 * `pedir` (revisao 1) contava como observacao VELHA diante da revisao da sessao
+		 * anterior: o cliente seguia mostrando o Bot ligado com ele desligado no servidor,
+		 * e o ON/OFF so mandava `desligar` ate o F5. O rascunho e a config ficam: e o mesmo
+		 * personagem.
+		 *
+		 * E OS PEDIDOS EM VOO MORREM COM A CONEXAO (bug #17 de 13/10/2026, "o auto congela e nao
+		 * ativa nem desativa"): o servidor responde na conexao que recebeu o pedido, entao o
+		 * ON/OFF (ou o Salvar, o perfil) que saiu para o socket que ja tinha morrido - o jogador
+		 * volta da aba minimizada e toca o botao antes de o cliente perceber a queda - nunca tera
+		 * resposta. Ficava `pendenteLigarDesligar` para sempre: o botao "..." e o `alternarLigado`
+		 * recusando todo toque. A conexao nova os solta; o `pedir` que o BotMenu manda em seguida
+		 * traz o que o servidor confirma.
+		 */
+		novaConexao() {
+			s.statusRevision = -1;
+			emVoo.clear();
+			s.pendenteLigarDesligar = null;
+			s.pendenteAplicar = false;
+			s.ligarAposAplicar = false;
+			s.pendentePerfil = false;
 		},
 		pedirEstado() {
 			return pedir('pedir');
@@ -178,7 +220,9 @@ export function criarEstadoDoBot({ enviar }) {
 			s.conflito = false;
 			s.problemas = [];
 			s.erro = null;
-			// O Armazem saiu do menu (ajustes do dono, 09/10/2026) e o servidor ignora o bloco: ele nao vai no Salvar.
+			// O Armazem saiu do menu (ajustes do dono, 09/10/2026): ele nao vai no Salvar, e o servidor grava o padrao no
+			// lugar (`validarArmazem(undefined)` = ARMAZEM_PADRAO em servidor/bot/config-do-bot.ts:650; o armazem sai sempre
+			// desligado, :705-711). Por isso a config que volta se compara com o rascunho sem ele (`semArmazem`).
 			const config = clonar(s.editConfig);
 			delete config.armazem;
 			return pedir('aplicar', { baseRevision: s.baseRevision, config });
@@ -370,6 +414,9 @@ export const FRASE_DO_STATUS = Object.freeze({
 	'sem-municao-compativel': 'Sem flecha que fira o alvo',
 	'flecha-fixa-indisponivel': 'Flecha escolhida acabou',
 	'alvo-imune': 'Alvo imune ao seu ataque',
+	'sem-sp-para-habilidade': 'Sem SP para a habilidade',
+	'habilidade-em-recarga': 'Habilidade em recarga',
+	'habilidade-vetada-na-area': 'Habilidade vetada na área',
 	'seguindo-lider': 'Seguindo o líder',
 	apoiando: 'Apoiando o grupo',
 	'indo-ao-armazem': 'Indo ao armazém',
@@ -412,6 +459,11 @@ export const EXPLICACAO_DO_STATUS = Object.freeze({
 	'sem-municao-compativel': 'Nenhuma flecha da mochila fere este monstro. O Bot procura outro alvo.',
 	'flecha-fixa-indisponivel': 'A flecha que você escolheu como fixa acabou. O Bot não troca por outra sozinho.',
 	'alvo-imune': 'Este monstro é imune ao ataque que você tem agora. O Bot procura outro alvo.',
+	'sem-sp-para-habilidade':
+		'O SP acabou e você escolheu "Só habilidades": o Bot não ataca no básico. O SP volta devagar sozinho (também em luta) ou mais rápido com uma poção de SP automática, e o Bot conjura de novo assim que der.',
+	'habilidade-em-recarga': 'A habilidade ainda está em recarga. O Bot conjura de novo assim que ela ficar pronta.',
+	'habilidade-vetada-na-area':
+		'Há um monstro que você mandou ignorar na área da habilidade, então o Bot espera ele sair da área ou escolhe outro alvo.',
 	'seguindo-lider': 'O Bot está seguindo o líder do grupo, como o seu posto pede.',
 	apoiando: 'O Bot está apoiando o grupo (buffs e curas) sem atacar, como a sua postura pede.',
 	'indo-ao-armazem': 'A mochila pesou ou o estoque baixou, então o Bot está indo à cidade que você escolheu.',
@@ -424,10 +476,30 @@ export const EXPLICACAO_DO_STATUS = Object.freeze({
 	'mapa-sem-bot': 'Esta cidade não aceita o Bot, então ele foi desligado. Vá para um mapa de caça e ligue o Auto Caça de novo.'
 });
 
+/**
+ * O status que o DETALHE refina (D-2326, pedido do dono de 13/10/2026): o servidor manda o MESMO codigo de sempre
+ * (`sem-acao-viavel`, que o cliente antigo le como "Sem acao possivel") com o motivo no `detalhe`. Aqui a frase e a
+ * explicacao do motivo; detalhe desconhecido cai na frase do codigo.
+ */
+const FRASE_POR_DETALHE = Object.freeze({
+	'sem-acao-viavel:nenhuma-skill-pega-no-alvo': 'Nenhuma habilidade pega neste alvo'
+});
+const EXPLICACAO_POR_DETALHE = Object.freeze({
+	'sem-acao-viavel:nenhuma-skill-pega-no-alvo':
+		'Nenhuma habilidade da lista funciona contra este alvo agora (a Explosão Tóxica só pega com o alvo em 3/4 do HP ou menos) e, em "Só habilidades", o Bot não usa o ataque básico. Ele espera parado: troque o modo de ataque ou ponha outra habilidade na lista.'
+});
+function porDetalhe(tabela, status) {
+	return status.detalhe ? tabela[status.codigo + ':' + status.detalhe] : undefined;
+}
+
 /** A explicacao do status, com o alvo e o detalhe no lugar. */
 export function explicacaoDoStatus(status) {
 	if (!status) {
 		return EXPLICACAO_DO_STATUS['controle-manual'];
+	}
+	const refinada = porDetalhe(EXPLICACAO_POR_DETALHE, status);
+	if (refinada) {
+		return refinada;
 	}
 	const modelo = EXPLICACAO_DO_STATUS[status.codigo] || EXPLICACAO_DO_STATUS['falha-operacional'];
 	const nome = status.alvo && status.alvo.nome ? status.alvo.nome : 'o alvo';
@@ -448,6 +520,10 @@ const DETALHE_DO_ARMAZEM = Object.freeze({
 export function fraseDoStatus(status) {
 	if (!status) {
 		return FRASE_DO_STATUS['controle-manual'];
+	}
+	const refinada = porDetalhe(FRASE_POR_DETALHE, status);
+	if (refinada) {
+		return refinada;
 	}
 	const modelo = FRASE_DO_STATUS[status.codigo] || FRASE_DO_STATUS['falha-operacional'];
 	const nome = status.alvo && status.alvo.nome ? status.alvo.nome : 'o alvo';

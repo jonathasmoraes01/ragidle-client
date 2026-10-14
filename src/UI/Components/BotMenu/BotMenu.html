@@ -91,7 +91,24 @@
 								<label class="bm-segmento"><input type="radio" name="bm-modo" value="skills-e-basico"><span>Habilidades e ataque básico</span></label>
 								<label class="bm-segmento"><input type="radio" name="bm-modo" value="apenas-skills"><span>Só habilidades</span></label>
 							</div>
+							<!-- Frente P (13/10/2026): na postura "So suporte" o Bot nunca ataca, entao o modo fica sem efeito. No Discord
+								acharam que "Habilidades e ataque basico" com "So suporte" travava o Bot; quem o travava era o servidor (o
+								aliado em economia de energia), e o par sempre funcionou. A escolha fica gravada para a proxima postura. -->
+							<p class="bm-dica bm-modo-sem-efeito" hidden>Na postura "Só suporte" o Bot não ataca: esta escolha só vale nas outras posturas. Curas e buffs continuam normalmente.</p>
 						</fieldset>
+						<!-- CURA CONTRA MORTO-VIVO (bug #12 de 13/10, D-1963/D-1990): o mesmo interruptor que o idle antigo tinha na aba Ataque. -->
+						<div class="bm-cartao-secao bm-bloco bm-cura-ataque" hidden>
+							<div class="bm-cartao-cabeca">
+								<span class="bm-secao-textos">
+									<b class="bm-cartao-titulo">Cura contra morto-vivo</b>
+									<span class="bm-dica">Usa a Cura como ataque contra monstros mortos-vivos. Com a Cura em você configurada no Suporte, ela vem antes quando o seu HP cai abaixo do limite.</span>
+								</span>
+								<label class="bm-chave" title="Usar a Cura como ataque contra morto-vivo">
+									<input type="checkbox" class="bm-cura-ataque-ligada" aria-label="Usar a Cura como ataque contra morto-vivo">
+									<span class="bm-chave-trilho" aria-hidden="true"><span class="bm-chave-texto"></span></span>
+								</label>
+							</div>
+						</div>
 						<p class="bm-indisponivel">Habilidades automáticas ainda não estão disponíveis neste servidor: o Bot usa o ataque básico, e em "Só habilidades" ele não ataca.</p>
 						<!-- O RODIZIO: a lista geral, numerada, com o liga/desliga de cada skill. -->
 						<div class="bm-cartao-secao bm-bloco bm-rodizio-caixa" hidden>

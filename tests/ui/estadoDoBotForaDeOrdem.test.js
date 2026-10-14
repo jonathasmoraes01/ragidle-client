@@ -8,6 +8,7 @@
  * estado novo." e "Trocar personagem encerra requests/subscriptions e carrega o contexto proprio."
  */
 import { describe, expect, it } from 'vitest';
+import { readFileSync } from 'node:fs';
 import { criarEstadoDoBot } from 'UI/Components/BotMenu/estadoDoBot.js';
 
 const CONFIG = { v: 1, cacar: true, especiesVetadas: [], modoDeAtaque: 'skills-e-basico', raioDePercepcao: 15, skills: { geral: [], porSkill: {}, porMonstro: {} } };
@@ -37,6 +38,65 @@ function montar() {
 	});
 	return { e, enviados, pacote };
 }
+
+describe('estado do Bot: conexao nova com o mesmo personagem (12/10/2026)', () => {
+	/*
+	 * O "Dormir" de volta tornou deterministico um caminho que a queda de rede ja abria: o
+	 * servidor recria o executor do Bot na conexao nova e o `statusRevision` recomeca do zero.
+	 */
+	function sessaoLongaComOBotLigado() {
+		const m = montar();
+		m.e.receber(m.pacote(m.e.pedirEstado()), 7);
+		m.e.receber(m.pacote(m.e.ligar(), { ligado: true, situacao: 'ativo', statusRevision: 250, status: { codigo: 'atacando', alvo: null } }), 7);
+		expect(m.e.estado().ligado).toBe(true);
+		return m;
+	}
+
+	it('depois da conexao nova, o primeiro pedir (revisao 1) diz a verdade: o Bot esta desligado', () => {
+		const { e, pacote } = sessaoLongaComOBotLigado();
+		e.novaConexao();
+		e.receber(pacote(e.pedirEstado(), { ligado: false, situacao: 'desligado', statusRevision: 1 }), 7);
+		expect(e.estado().ligado).toBe(false);
+		expect(e.estado().status.codigo).toBe('controle-manual');
+		// E o status seguinte da sessao nova nao e descartado.
+		e.receber(pacote(null, { ligado: true, situacao: 'ativo', statusRevision: 2, status: { codigo: 'procurando-alvo', alvo: null } }), 7);
+		expect(e.estado().ligado).toBe(true);
+	});
+
+	it('CONTROLE: sem avisar a conexao nova, a revisao velha prende o ON (o defeito)', () => {
+		const { e, pacote } = sessaoLongaComOBotLigado();
+		e.receber(pacote(e.pedirEstado(), { ligado: false, situacao: 'desligado', statusRevision: 1 }), 7);
+		expect(e.estado().ligado).toBe(true);
+	});
+
+	it('a conexao nova guarda o rascunho e a config: e o mesmo personagem', () => {
+		const { e } = sessaoLongaComOBotLigado();
+		e.editar(c => ({ ...c, raioDePercepcao: 21 }));
+		e.novaConexao();
+		expect(e.estado().editConfig.raioDePercepcao).toBe(21);
+		expect(e.estado().dirty).toBe(true);
+	});
+
+	it('o motor avisa a conexao nova NO ACEITE da entrada, antes do onMapChange que monta a HUD e pede o estado', () => {
+		/*
+		 * Bug #17 de 13/10/2026: o aviso morava no `MapRenderer.onLoad` de `onMapChange(.., true)`, guardado por
+		 * `ehEntradaNoMundo`. O servidor manda o `ZC_NPCACK_MAPMOVE` logo atras do `ZC_ACCEPT_ENTER2`, e o
+		 * `onMapChange` desse MAPMOVE troca o `onLoad` (sem a marca) antes de a carga terminar: o aviso nunca rodava
+		 * numa reconexao de verdade (medido na tela: a revisao da conexao morta ficava e o botao congelava).
+		 */
+		const motor = readFileSync('src/Engine/MapEngine.js', 'utf8');
+		const inicio = motor.indexOf('function onConnectionAccepted(');
+		expect(inicio, 'onConnectionAccepted sumiu').toBeGreaterThan(-1);
+		const corpo = motor.slice(inicio, motor.indexOf('\n}', inicio));
+		const i = corpo.indexOf('BotMenu.novaConexaoDoServidor();');
+		expect(i, 'o aceite da entrada nao avisa o BotMenu').toBeGreaterThan(-1);
+		const montagem = corpo.indexOf('onMapChange({');
+		expect(montagem, 'o aceite nao chama mais o onMapChange').toBeGreaterThan(-1);
+		expect(i).toBeLessThan(montagem);
+		// So ali: no `onLoad` ele nao roda na reconexao, e em toda troca de mapa soltaria pedidos que ainda tem resposta.
+		expect(motor.split('BotMenu.novaConexaoDoServidor();').length).toBe(2);
+	});
+});
 
 describe('estado do Bot: respostas fora de ordem', () => {
 	it('a resposta de um "pedir" mais antigo que chega DEPOIS do Aplicar aceito nao volta a config nem a revisao', () => {

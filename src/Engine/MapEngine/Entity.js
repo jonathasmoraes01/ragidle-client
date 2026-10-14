@@ -68,7 +68,7 @@ import PartyFriends from 'UI/Components/PartyFriends/PartyFriends.js';
 import Equipment from 'UI/Components/Equipment/Equipment.js';
 import ScreenEffectManager from 'Renderer/ScreenEffectManager.js';
 import { falaDeGm } from './falaDeGm.js'; // RAGIDLE: a tag [GM] de quem fala de outro mapa
-import { contaNaLista, lerMarcasDoChat } from 'UI/Components/ChatBox/marcaNoNome.js'; // RAGIDLE: as marcas de GM e de VIP no nome de quem fala
+import { aplicarDeltaDasMarcas, contaNaLista, lerMarcasDoChat } from 'UI/Components/ChatBox/marcaNoNome.js'; // RAGIDLE: as marcas de GM e de VIP no nome de quem fala
 
 // Excludes for skill name display
 const SkillNameDisplayExclude = [
@@ -391,33 +391,14 @@ function onEntityVanish(pkt) {
 				}
 				if (pkt.type === Entity.VT.DEAD) {
 					/*
-					 * O ABATE do Hunt Analyzer. Aqui, e nao em ZC_NOTIFY_EXP,
-					 * porque so aqui existe IDENTIDADE: `entity.job` -> o nome
-					 * pela tabela do proprio cliente.
-					 *
-					 * Ressalva declarada: isto conta o mob que morre A VISTA, e
-					 * nao "o mob que EU matei". Hoje as duas coisas coincidem
-					 * porque a caca e solo (D-246); num mapa compartilhado a
-					 * contagem incluiria a morte alheia. A troca esta escrita no
-					 * cabecalho de registroDaCaca.js.
-					 *
-					 * "Unknown" e o que getMonsterName devolve quando o job nao
-					 * esta na tabela; vira vazio para cair no balde explicito do
-					 * registro, em portugues, em vez de virar uma linha
-					 * "Unknown" no ranking.
+					 * O ABATE do Hunt Analyzer NAO e contado aqui desde D-2322
+					 * (13/10/2026, pedido do dono: "Analise contando monstros que
+					 * nao estou cacando"). Este VANISH vem de TODO mob que morre
+					 * no mapa - o servidor o difunde a todos -, entao contar aqui
+					 * somava o bicho que o vizinho matou. Quem conta e
+					 * `onAbateProprio`, pelo ZC_RAGIDLE_ABATE que o servidor manda
+					 * so ao matador.
 					 */
-					if (entity.objecttype === Entity.TYPE_MOB && Session.Entity) {
-						/* O nome que o SERVIDOR mandou na entrada vem primeiro
-						   (30/09/2026): e o distinto do homonimo ("Goblin
-						   (Vento)", D-1870), o mesmo do chat de dano, e a tabela
-						   do cliente diz so "Goblin" para os cinco, que o ranking
-						   somava numa linha. A tabela fica de reserva. */
-						const doServidor = entity.display && entity.display.name ? entity.display.name : '';
-						const nome = doServidor || DB.getMonsterName(entity.job);
-						/* O job vai junto (D-943): e o mobId do avatar em
-						   /ragidle/mobs/<id>.png, o mesmo do Mapa de Caca. */
-						registrarAbate(Session.Entity.GID, nome === 'Unknown' ? '' : nome, entity.job);
-					}
 					EntityManager.removeLife(pkt.GID);
 				}
 		}
@@ -1328,7 +1309,13 @@ function onAdminList(pkt) {
 	// NOMES dos VIPs e dos admins (o sussurro e a guilda nao levam conta). So
 	// o chat as le, e so nas linhas NOVAS: nao ha entidade a remontar, entao
 	// guardar basta.
-	const marcas = lerMarcasDoChat(dados);
+	// D-2372 do servidor: quem ja esta no mundo recebe a DIFERENCA (`delta: 1`),
+	// e quem entra, a lista inteira. A diferenca e aplicada sobre o que a sessao
+	// tem, e da as mesmas listas que a inteira daria.
+	const marcas =
+		dados && dados.delta === 1
+			? aplicarDeltaDasMarcas({ vips: Session.VipList, nomesVip: Session.VipNomes, nomesAdmin: Session.AdminNomes }, dados)
+			: lerMarcasDoChat(dados);
 	Session.VipList = marcas.vips;
 	Session.VipNomes = marcas.nomesVip;
 	Session.AdminNomes = marcas.nomesAdmin;
@@ -2961,6 +2948,38 @@ function onBladeStopPacket(pkt) {
 }
 
 /**
+ * O ABATE do Hunt Analyzer (D-2322, 13/10/2026 - pedido do dono: "Analise
+ * contando monstros que nao estou cacando").
+ *
+ * O servidor manda o ZC_RAGIDLE_ABATE so ao MATADOR (o dono do golpe fatal; o
+ * golpe do mercenario e o do homunculo contam para o dono), no instante da
+ * morte. Ate aqui a Analise contava o VANISH de morte (`onEntityVanish`), que
+ * chega de TODO mob do mapa: o bicho que o vizinho matou no spot ao lado
+ * entrava no ranking e no "abates/hora". Reconstruir o matador aqui pelos
+ * golpes vistos seria a segunda rota da mesma pergunta, e o servidor ja a
+ * responde.
+ *
+ * O nome que o SERVIDOR mandou na entrada vem primeiro (30/09/2026): e o
+ * distinto do homonimo ("Goblin (Vento)", D-1870), o mesmo do chat de dano, e
+ * a tabela do cliente diz so "Goblin" para os cinco. A tabela fica de reserva,
+ * e cobre tambem o bicho que morreu fora da vista (sem entidade). "Unknown" e
+ * o que getMonsterName devolve quando o id nao esta na tabela; vira vazio para
+ * cair no balde explicito do registro. O mobId vai junto (D-943): e o avatar
+ * em /ragidle/mobs/<id>.png, o mesmo do Mapa de Caca.
+ *
+ * @param {object} pkt - PACKET.ZC.RAGIDLE_ABATE { GID, mobId }
+ */
+function onAbateProprio(pkt) {
+	if (!Session.Entity) {
+		return;
+	}
+	const entity = EntityManager.get(pkt.GID);
+	const doServidor = entity && entity.display && entity.display.name ? entity.display.name : '';
+	const nome = doServidor || DB.getMonsterName(pkt.mobId);
+	registrarAbate(Session.Entity.GID, nome === 'Unknown' ? '' : nome, pkt.mobId);
+}
+
+/**
  * Notify experience gained
  *
  * @param {object} pkt - PACKET_ZC_NOTIFY_EXP
@@ -3352,6 +3371,7 @@ export default function EntityEngine() {
 	Network.hookPacket(PACKET.ZC.BLADESTOP, onBladeStopPacket);
 	Network.hookPacket(PACKET.ZC.NOTIFY_EXP, onNotifyExp);
 	Network.hookPacket(PACKET.ZC.NOTIFY_EXP2, onNotifyExp);
+	Network.hookPacket(PACKET.ZC.RAGIDLE_ABATE, onAbateProprio); // RAGIDLE (D-2322): a Analise conta so o proprio
 	Network.hookPacket(PACKET.ZC.BOSS_INFO, onMarkMvp);
 	Network.hookPacket(PACKET.ZC.MVP, onEntityMvpReward);
 	Network.hookPacket(PACKET.ZC.MVP_GETTING_ITEM, onEntityMvpRewardItemMessage);
