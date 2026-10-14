@@ -1477,6 +1477,13 @@ function onMapChange(pkt, ehEntradaNoMundo) {
 			} catch (_e) {
 				/* medir nao e caminho critico */
 			}
+			// D-2416: o aviso de menu do Bot aberto/fechado sai DEPOIS do estou-pronto (D-993), em try: um
+			// erro nele nunca segura a entrada no mapa. A cada conexao (a reconexao o rearma no aceite).
+			try {
+				BotMenu.aposEstouPronto();
+			} catch (erro) {
+				console.error('[BotMenu] aviso do menu falhou depois do estou-pronto', erro);
+			}
 		};
 		setTimeout(estouPronto, 0);
 		/*

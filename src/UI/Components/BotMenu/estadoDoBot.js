@@ -165,6 +165,15 @@ export function criarEstadoDoBot({ enviar }) {
 		pedirEstado() {
 			return pedir('pedir');
 		},
+		/**
+		 * O AVISO DO MENU ABERTO/FECHADO (D-2416): com ele, o servidor so manda o status com o menu fechado quando o
+		 * que fica de fora da janela muda (o ON/OFF, o contexto do mapa), e ao abrir o `pedir` traz o resto. O
+		 * aviso NAO tem resposta: nao entra nos pedidos em voo (nada espera por ele). Quem decide QUANDO avisar e
+		 * o BotMenu (so depois do estou-pronto e com o servidor anunciando `capacidades.avisoDoMenu`).
+		 */
+		avisarMenu(aberto) {
+			enviar({ v: 1, requestId: proximoRequest++, verbo: 'menu', aberto: !!aberto });
+		},
 		ligar() {
 			s.pendenteLigarDesligar = 'ligar';
 			s.erro = null;
@@ -287,7 +296,10 @@ export function criarEstadoDoBot({ enviar }) {
 				return false;
 			}
 			s.personagemId = d.personagemId;
-			s.mapa = d.mapa;
+			// D-2416: o status do menu avisado so leva o `mapa` quando ele mudou (ausente = o mesmo de antes).
+			if ('mapa' in d) {
+				s.mapa = d.mapa;
+			}
 			if (d.contexto && typeof d.contexto === 'object') {
 				s.contexto = d.contexto;
 			}

@@ -254,9 +254,49 @@ function avisarLigado() {
 /** Para os testes da costura e as provas de tela. */
 BotMenu._estado = _estado;
 
+/*
+ * O AVISO DO MENU ABERTO/FECHADO (D-2416, 15/10/2026, a leva de desempenho de rede).
+ *
+ * O status do Bot era ~1/3 de todos os bytes do servidor, ~0,4 pacote por segundo por Bot ligado - e com a janela
+ * FECHADA quase nada dele e lido: fora dela so o ON/OFF (o botao "Ataque auto", a tela acesa no farm), o contexto do
+ * mapa (o drop e o Dormir da Analise, o botao Cacar) e as capacidades (o item "Bot" do menu superior). Avisado que a
+ * janela esta fechada, o servidor so manda o status quando ISSO muda; ao abrir, o aviso e o `pedir` de sempre trazem
+ * o resto (`servidor/bot/status-por-menu.ts`).
+ *
+ * TRES CONDICOES, nesta conexao: (1) o estou-pronto ja saiu (D-993: nada antes do `CZ_NOTIFY_ACTORINIT`); (2) o
+ * servidor anunciou `capacidades.avisoDoMenu` NESTA conexao (o servidor de antes responderia o verbo com erro); (3) o
+ * estado da janela mudou desde o ultimo aviso. A conexao nova (a reconexao, a volta do Dormir) zera as tres: o servidor
+ * novo comeca mandando tudo, e o aviso sai de novo. Sem aviso, nada muda: o servidor manda tudo, como antes.
+ */
+let _prontoNestaConexao = false;
+let _avisoAceitoNestaConexao = false;
+/** O ultimo aviso mandado nesta conexao: true = aberta, false = fechada, null = nenhum. */
+let _menuAvisado = null;
+
+function sincronizarAvisoDoMenu() {
+	if (!_prontoNestaConexao || !_avisoAceitoNestaConexao) {
+		return;
+	}
+	const aberta = janelaAberta();
+	if (aberta === _menuAvisado) {
+		return;
+	}
+	_menuAvisado = aberta;
+	_estado.avisarMenu(aberta);
+}
+
+/** O estou-pronto desta conexao saiu (`Engine/MapEngine.js`, depois do `CZ_NOTIFY_ACTORINIT`). */
+BotMenu.aposEstouPronto = function aposEstouPronto() {
+	_prontoNestaConexao = true;
+	sincronizarAvisoDoMenu();
+};
+
 /** Conexao nova com o mesmo personagem (reconexao, volta do "Dormir"): ver `estadoDoBot.novaConexao`. */
 BotMenu.novaConexaoDoServidor = function novaConexaoDoServidor() {
 	_estado.novaConexao();
+	_prontoNestaConexao = false;
+	_avisoAceitoNestaConexao = false;
+	_menuAvisado = null;
 };
 
 BotMenu.limparEstadoDoPersonagem = function limparEstadoDoPersonagem() {
@@ -266,6 +306,7 @@ BotMenu.limparEstadoDoPersonagem = function limparEstadoDoPersonagem() {
 	_janelaSuja = true;
 	esquecerContexto();
 	fecharEEsquecer(_root(), '.bm-window');
+	sincronizarAvisoDoMenu();
 	avisarCapacidade();
 	avisarLigado();
 };
@@ -370,6 +411,8 @@ BotMenu.toggle = function toggle() {
 	} else {
 		win.classList.add('is-open');
 		BotMenu.focus();
+		// D-2416: o aviso de aberta ANTES do `pedir` (o servidor volta a mandar o status inteiro).
+		sincronizarAvisoDoMenu();
 		_estado.pedirEstado();
 		desenhar();
 	}
@@ -380,6 +423,7 @@ function closeWindow() {
 	if (win) {
 		win.classList.remove('is-open');
 	}
+	sincronizarAvisoDoMenu();
 	savePosition();
 }
 
@@ -1055,6 +1099,10 @@ function onBotRecebido(pkt) {
 		return;
 	}
 	const tinha = BotMenu.temCapacidade();
+	// D-2416: o servidor DESTA conexao aceita o aviso do menu? (So o pacote que traz as capacidades responde.)
+	if (dados && dados.capacidades && typeof dados.capacidades === 'object') {
+		_avisoAceitoNestaConexao = dados.capacidades.avisoDoMenu === true;
+	}
 	/*
 	 * O PERSONAGEM DESTA SESSAO (correcoes pos-QA, 08/10/2026; V-18 do QA final; 05 secao 4). Era o do
 	 * proprio estado, que a troca de personagem zera (`reiniciar`): o status do personagem ANTERIOR que
@@ -1074,6 +1122,7 @@ function onBotRecebido(pkt) {
 			avisarCapacidade();
 		}
 	}
+	sincronizarAvisoDoMenu();
 }
 
 Network.hookPacket(PACKET.ZC.RAGIDLE_BOT, onBotRecebido);
