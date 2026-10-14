@@ -166,8 +166,8 @@ describe('o desenho das abas de manutencao', () => {
 			usar(28);
 			usar(34);
 			expect(config.suporte.lista).toEqual([
-				{ skillId: 28, nivel: 'aprendido', destino: 'eu', gatilho: 'hp', limiar: 60 },
-				{ skillId: 34, nivel: 'aprendido', destino: 'eu', gatilho: 'manter', limiar: 0 }
+				{ skillId: 28, nivel: 'aprendido', destino: 'grupo', gatilho: 'hp', limiar: 60 },
+				{ skillId: 34, nivel: 'aprendido', destino: 'grupo', gatilho: 'manter', limiar: 0 }
 			]);
 			const cura = secao.querySelector('[data-indice="0"]');
 			expect(cura.querySelector('.bm-tipo').textContent).toBe('Cura');

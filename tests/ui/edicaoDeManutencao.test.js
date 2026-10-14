@@ -96,12 +96,14 @@ describe('descanso do Bot', () => {
 });
 
 describe('suporte do Bot', () => {
-	it('gatilho e limiar padrao pelo tipo, destino "eu", e skill sem tipo nao entra', () => {
+	it('gatilho e limiar padrao pelo tipo, destino "grupo" se alcanca aliado ("eu" so as de uso proprio), e skill sem tipo nao entra', () => {
 		let c = adicionarSuporte(base(), BENCAO, 8);
 		c = adicionarSuporte(c, CURA, 8);
+		c = adicionarSuporte(c, AGI, 8);
 		expect(c.suporte.lista).toEqual([
-			{ skillId: 34, nivel: 'aprendido', destino: 'eu', gatilho: 'manter', limiar: 0 },
-			{ skillId: 28, nivel: 'aprendido', destino: 'eu', gatilho: 'hp', limiar: 60 }
+			{ skillId: 34, nivel: 'aprendido', destino: 'grupo', gatilho: 'manter', limiar: 0 },
+			{ skillId: 28, nivel: 'aprendido', destino: 'grupo', gatilho: 'hp', limiar: 60 },
+			{ skillId: 29, nivel: 'aprendido', destino: 'eu', gatilho: 'manter', limiar: 0 }
 		]);
 		expect(adicionarSuporte(c, { skillId: 5, nome: 'Golpe', suporte: null }, 8)).toBe(c);
 	});
@@ -116,11 +118,11 @@ describe('suporte do Bot', () => {
 	it('"grupo" so com alcancaGrupo; a mesma skill pode ir em mim E no grupo, mas nunca duas vezes no mesmo destino', () => {
 		let c = adicionarSuporte(adicionarSuporte(base(), AGI), BENCAO);
 		expect(definirDestinoDoSuporte(c, 0, 'grupo', AGI)).toBe(c);
-		c = definirDestinoDoSuporte(c, 1, 'grupo', BENCAO);
 		expect(c.suporte.lista[1].destino).toBe('grupo');
+		c = definirDestinoDoSuporte(c, 1, 'eu', BENCAO);
 		c = adicionarSuporte(c, BENCAO);
-		expect(c.suporte.lista.map(e => e.skillId + ':' + e.destino)).toEqual(['29:eu', '34:grupo', '34:eu']);
-		expect(definirDestinoDoSuporte(c, 2, 'grupo', BENCAO)).toBe(c);
+		expect(c.suporte.lista.map(e => e.skillId + ':' + e.destino)).toEqual(['29:eu', '34:eu', '34:grupo']);
+		expect(definirDestinoDoSuporte(c, 1, 'grupo', BENCAO)).toBe(c);
 	});
 
 	it('nivel, limiar so da cura (1..99), ordem e remocao por posicao', () => {

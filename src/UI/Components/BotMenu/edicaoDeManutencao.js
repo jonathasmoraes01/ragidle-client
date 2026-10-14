@@ -206,14 +206,16 @@ function repetida(lista, skillId, destino, ignorarIndice) {
 /**
  * Adiciona uma skill de suporte. `skill` e a entrada do servidor
  * (`{skillId, suporte: 'buff'|'cura', alcancaGrupo}`); sem tipo nao entra.
- * Padrao pelo tipo: buff -> 'manter'/0; cura -> 'hp'/60; destino 'eu'.
+ * Padrao pelo tipo: buff -> 'manter'/0; cura -> 'hp'/60; destino 'grupo' se alcanca o grupo, senao 'eu'.
  */
 export function adicionarSuporte(config, skill, teto) {
 	if (!skill || (skill.suporte !== 'buff' && skill.suporte !== 'cura')) {
 		return config;
 	}
 	const lista = lerSuporte(config);
-	if (repetida(lista, skill.skillId, 'eu', -1) || (typeof teto === 'number' && lista.length >= teto)) {
+	// Pedido do dono (14/10/2026): skill que alcanca aliado nasce no GRUPO; so a de uso proprio fica em 'eu'.
+	const destino = skill.alcancaGrupo ? 'grupo' : 'eu';
+	if (repetida(lista, skill.skillId, destino, -1) || (typeof teto === 'number' && lista.length >= teto)) {
 		return config;
 	}
 	const cura = skill.suporte === 'cura';
@@ -222,7 +224,7 @@ export function adicionarSuporte(config, skill, teto) {
 		{
 			skillId: skill.skillId,
 			nivel: 'aprendido',
-			destino: 'eu',
+			destino,
 			gatilho: cura ? 'hp' : 'manter',
 			limiar: cura ? LIMIAR_PADRAO_DA_CURA : 0
 		}
