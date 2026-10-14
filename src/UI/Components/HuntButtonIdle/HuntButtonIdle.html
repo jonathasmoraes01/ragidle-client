@@ -4,7 +4,11 @@
 	     celular em pe poder trocar texto por icone SEM outro caminho de
 	     clique: e o MESMO botao, o mesmo handler, so a roupa muda. No
 	     desktop nada disto aparece — .hb-glifo e display:none por padrao. -->
-	<button type="button" class="hb-btn hb-cacar ri-btn" data-action="hb-cacar" title="Caçar">
+	<!-- D-2454 (14/10/2026): a arte e um <img> com estado observavel, e o botao
+	     nasce na reserva (hb-sem-arte: o .ri-btn com o rotulo) ate ela carregar.
+	     Com a arte como imagem de fundo, a falha deixava o botao invisivel. Ver
+	     arteDoBotao.js. -->
+	<button type="button" class="hb-btn hb-cacar ri-btn hb-sem-arte" data-action="hb-cacar" title="Caçar">
 		<span class="hb-glifo" aria-hidden="true">
 			<svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
 				<path d="M4 4 L15.5 15.5"></path>
@@ -15,15 +19,17 @@
 				<path d="M5 14.5 L9.5 19 M19 14.5 L14.5 19"></path>
 			</svg>
 		</span>
+		<img class="hb-arte" alt="" aria-hidden="true" draggable="false">
 		<span class="hb-rotulo">Caçar</span>
 	</button>
-	<button type="button" class="hb-btn hb-voltar ri-btn" data-action="hb-voltar" title="Retornar para Prontera">
+	<button type="button" class="hb-btn hb-voltar ri-btn hb-sem-arte" data-action="hb-voltar" title="Retornar para Prontera">
 		<span class="hb-glifo" aria-hidden="true">
 			<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
 				<path d="M9 3 L9 12 C9 13 8.6 13.6 7.8 14.4 L6 16.2 C5.3 16.9 5 17.6 5 18.5 L5 19 C5 20.1 5.9 21 7 21 L15 21 C16.7 21 18 19.7 18 18 L18 16 C18 14.9 17.1 14 16 14 L14 14 L14 3 Z"></path>
 				<path d="M14 8 L9 8"></path>
 			</svg>
 		</span>
+		<img class="hb-arte" alt="" aria-hidden="true" draggable="false">
 		<span class="hb-rotulo">Retornar para Prontera</span>
 	</button>
 	<!-- SENTAR/LEVANTAR (04/10/2026, relato de 03/10: "botao de sentar nao
