@@ -1,6 +1,6 @@
 // Mutacao somente na memoria do Vitest: nunca altera o cliente servido pelo Vite.
 //
-// O AVISO DO MENU DO BOT ABERTO/FECHADO (D-2416, 15/10/2026): cada mutante e um jeito de o servidor ficar com a ideia
+// O AVISO DO MENU DO BOT ABERTO/FECHADO (D-2446, 15/10/2026): cada mutante e um jeito de o servidor ficar com a ideia
 // errada do menu (fechado com a janela aberta = menu velho; aberto com ela fechada = os bytes de volta) ou de o aviso
 // sair antes do estou-pronto (D-993) ou para um servidor que nao o conhece (que o responderia com erro).
 // Alvos: `BotMenu.js` (a costura) e `estadoDoBot.js` (o verbo e o `mapa` ausente).
@@ -23,7 +23,7 @@ const ESTADO = 'src/UI/Components/BotMenu/estadoDoBot.js';
 
 const mutantes = {
 	// abrir nao avisa: o servidor segue achando a janela fechada e o menu aberto fica velho
-	semAvisarAoAbrir: [BOT_MENU, '\t\t// D-2416: o aviso de aberta ANTES do `pedir` (o servidor volta a mandar o status inteiro).\n\t\tsincronizarAvisoDoMenu();\n', ''],
+	semAvisarAoAbrir: [BOT_MENU, '\t\t// D-2446: o aviso de aberta ANTES do `pedir` (o servidor volta a mandar o status inteiro).\n\t\tsincronizarAvisoDoMenu();\n', ''],
 	// avisa sem o servidor anunciar (o de antes responderia "pedido-invalido")
 	aceitaSemAnuncio: [BOT_MENU, '_avisoAceitoNestaConexao = dados.capacidades.avisoDoMenu === true;', '_avisoAceitoNestaConexao = true;'],
 	// o anuncio da conexao anterior vale na nova (o servidor novo pode ser o de antes)

@@ -1,5 +1,5 @@
 /**
- * O AVISO DO MENU DO BOT ABERTO/FECHADO (D-2416, 15/10/2026, a leva de desempenho de rede).
+ * O AVISO DO MENU DO BOT ABERTO/FECHADO (D-2446, 15/10/2026, a leva de desempenho de rede).
  *
  * Com o aviso, o servidor so manda o status do Bot com a janela FECHADA quando o que fica de fora dela muda (o
  * ON/OFF, o contexto do mapa); ao abrir, o aviso e o `pedir` de sempre trazem o resto

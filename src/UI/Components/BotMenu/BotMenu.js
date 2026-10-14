@@ -255,7 +255,7 @@ function avisarLigado() {
 BotMenu._estado = _estado;
 
 /*
- * O AVISO DO MENU ABERTO/FECHADO (D-2416, 15/10/2026, a leva de desempenho de rede).
+ * O AVISO DO MENU ABERTO/FECHADO (D-2446, 15/10/2026, a leva de desempenho de rede).
  *
  * O status do Bot era ~1/3 de todos os bytes do servidor, ~0,4 pacote por segundo por Bot ligado - e com a janela
  * FECHADA quase nada dele e lido: fora dela so o ON/OFF (o botao "Ataque auto", a tela acesa no farm), o contexto do
@@ -411,7 +411,7 @@ BotMenu.toggle = function toggle() {
 	} else {
 		win.classList.add('is-open');
 		BotMenu.focus();
-		// D-2416: o aviso de aberta ANTES do `pedir` (o servidor volta a mandar o status inteiro).
+		// D-2446: o aviso de aberta ANTES do `pedir` (o servidor volta a mandar o status inteiro).
 		sincronizarAvisoDoMenu();
 		_estado.pedirEstado();
 		desenhar();
@@ -1099,7 +1099,7 @@ function onBotRecebido(pkt) {
 		return;
 	}
 	const tinha = BotMenu.temCapacidade();
-	// D-2416: o servidor DESTA conexao aceita o aviso do menu? (So o pacote que traz as capacidades responde.)
+	// D-2446: o servidor DESTA conexao aceita o aviso do menu? (So o pacote que traz as capacidades responde.)
 	if (dados && dados.capacidades && typeof dados.capacidades === 'object') {
 		_avisoAceitoNestaConexao = dados.capacidades.avisoDoMenu === true;
 	}

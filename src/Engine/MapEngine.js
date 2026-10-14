@@ -59,6 +59,7 @@ import Equipment from 'UI/Components/Equipment/Equipment.js';
 import SwitchEquip from 'UI/Components/SwitchEquip/SwitchEquip.js';
 import ShortCuts from 'UI/Components/ShortCuts/ShortCuts.js';
 import StatusIcons from 'UI/Components/StatusIcons/StatusIcons.js';
+import { criarLimpezaNaConexaoNova } from 'UI/Components/StatusIcons/limpezaNaConexaoNova.js';
 import ChatRoomCreate from 'UI/Components/ChatRoomCreate/ChatRoomCreate.js';
 import Emoticons from 'UI/Components/Emoticons/Emoticons.js';
 import FPS from 'UI/Components/FPS/FPS.js';
@@ -223,6 +224,16 @@ let _exitTimer = null;
 
 let snCounter = 0;
 let chatLines = 0;
+
+/**
+ * D-2440: a barra de icones e limpa UMA vez por conexao nova, logo depois do
+ * primeiro `CZ_NOTIFY_ACTORINIT` dela - o status que venceu com o jogador
+ * desconectado nao fica aceso. O porque e a ordem: `limpezaNaConexaoNova.js`.
+ */
+const _limpezaDaBarra = criarLimpezaNaConexaoNova(
+	() => StatusIcons.clean(),
+	erro => console.error('[icones] a limpeza da barra na conexao nova falhou - o jogo segue:', erro)
+);
 
 const packetMap = new Map();
 /**
@@ -932,6 +943,10 @@ function onConnectionAccepted(pkt) {
 	 */
 	BotMenu.novaConexaoDoServidor();
 
+	// D-2440: a conexao nova ARMA a limpeza da barra de icones; quem a faz e o primeiro
+	// `estouPronto`, DEPOIS do `CZ_NOTIFY_ACTORINIT` (D-993). Aqui so a marca.
+	_limpezaDaBarra.armar();
+
 	/*
 	 * A ECONOMIA DE ENERGIA NA REENTRADA (F29, auditoria de 22/09/2026). O servidor DESARMA a economia em toda
 	 * entrada no mundo; o cliente seguia com a tela preta aberta e sem avisar de novo. Quem reconectava com a
@@ -1477,12 +1492,21 @@ function onMapChange(pkt, ehEntradaNoMundo) {
 			} catch (_e) {
 				/* medir nao e caminho critico */
 			}
-			// D-2416: o aviso de menu do Bot aberto/fechado sai DEPOIS do estou-pronto (D-993), em try: um
+<<<<<<< HEAD
+			// D-2446: o aviso de menu do Bot aberto/fechado sai DEPOIS do estou-pronto (D-993), em try: um
 			// erro nele nunca segura a entrada no mapa. A cada conexao (a reconexao o rearma no aceite).
 			try {
 				BotMenu.aposEstouPronto();
 			} catch (erro) {
 				console.error('[BotMenu] aviso do menu falhou depois do estou-pronto', erro);
+=======
+			// D-2440: a primeira carga da conexao nova limpa a barra de icones AGORA, depois do
+			// pacote e antes de qualquer resposta: o que o servidor devolve acende de novo.
+			try {
+				_limpezaDaBarra.depoisDoEstouPronto();
+			} catch (_e) {
+				/* a barra nao e caminho critico */
+>>>>>>> bea3b5ec (D-2440: a barra de icones e limpa uma vez por conexao nova)
 			}
 		};
 		setTimeout(estouPronto, 0);
