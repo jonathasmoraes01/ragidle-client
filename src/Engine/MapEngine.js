@@ -85,6 +85,7 @@ import ReadRodex from 'UI/Components/Rodex/ReadRodex.js';
 import Roulette from 'UI/Components/Roulette/Roulette.js';
 import PCGoldTimer from 'UI/Components/PCGoldTimer/PCGoldTimer.js';
 import Refine from 'UI/Components/Refine/Refine.js';
+import MakeItemSelection from 'UI/Components/MakeItemSelection/MakeItemSelection.js'; // a forja na pilha de janelas (14/10/2026)
 import Reputation from 'UI/Components/Reputation/Reputation.js';
 import PetInformations from 'UI/Components/PetInformations/PetInformations.js';
 import HomunInformations from 'UI/Components/HomunInformations/HomunInformations.js';
@@ -1966,6 +1967,28 @@ function onMapChange(pkt, ehEntradaNoMundo) {
 			fechar: () => lojaDoNpc.remove(),
 		});
 		avisarAoAbrir(lojaDoNpc, () => PilhaDeJanelas.aoAbrir('loja'));
+
+		/*
+		 * A FORJA (MakeItemSelection, 14/10/2026, lote 5 da comunidade). Janela
+		 * NATIVA do roBrowser, como a loja: o host entra e sai do documento, e a
+		 * leitura e o fechamento vao declarados. Registrada, ela ganha a marca
+		 * `ri-janela` (o painel de largura inteira do celular, D-932), o ESC e o
+		 * voltar do Android (que CANCELAM: avisam o servidor e devolvem os
+		 * materiais dos slots) e a regra de uma janela por vez. Sem `seletor` de
+		 * proposito: o corpo nao e esticado ate a barra de atalhos (D-941), porque
+		 * uma lista de receitas de 130px esticada em tela cheia e desfigurar.
+		 */
+		if (typeof MakeItemSelection.prepare === 'function') {
+			MakeItemSelection.prepare();
+		}
+		PilhaDeJanelas.registrar({
+			nome: 'forja',
+			componente: MakeItemSelection,
+			tipo: PilhaDeJanelas.TIPO.JANELA,
+			estaAberta: () => !!(MakeItemSelection._host && MakeItemSelection._host.isConnected),
+			fechar: () => MakeItemSelection.cancelar()
+		});
+		avisarAoAbrir(MakeItemSelection, () => PilhaDeJanelas.aoAbrir('forja'));
 
 		/*
 		 * O CARRINHO DO MERCADOR (D-1848, 30/09/2026). Ele e a janela NATIVA do
