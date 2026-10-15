@@ -41,7 +41,8 @@
  * Enviar `CZ_RAGIDLE_GRUPO_ACAO` (0x0fcb, JSON):
  *   {acao:'pedir'} · {acao:'fechar'} · {acao:'posto', posto} ·
  *   {acao:'preferencias', convites?, aproximacao?} ·
- *   {acao:'regras', exp?, itens?} · {acao:'convidar', nome}
+ *   {acao:'regras', exp?, itens?} · {acao:'convidar', nome} ·
+ *   {acao:'chamar'} (o lider chama o grupo, R125, D-2463)
  *
  * E `CZ_RAGIDLE_PEDIR_GRUPO` (0x0fcd) ao abrir.
  *
@@ -79,6 +80,7 @@ import cssText from './GrupoIdle.css?raw';
 import { fecharEEsquecer } from '../limpezaDeJanelaIdle.js';
 import { abaLembrada, lembrarAba } from '../memoriaDeAba.js';
 import { vidaDoMembro } from './vidaDoMembro.js';
+import { chamarCabe } from './chamarOGrupo.js';
 import { escreverEstilo, escreverTexto, escreverTitulo } from 'UI/escreverSeMudou.js';
 
 /* Manter em sincronia com o ":host" do CSS — o mesmo papel do
@@ -743,6 +745,7 @@ function desenharTeleporte(e, lider) {
 		return;
 	}
 	const souLider = !!(e && e.eu && e.eu.souLider);
+	desenharChamar(e);
 	const cabe = !!lider && !souLider;
 	botao.hidden = !cabe;
 	if (!cabe) {
@@ -750,6 +753,20 @@ function desenharTeleporte(e, lider) {
 	}
 	botao.disabled = !lider.online;
 	botao.title = lider.online ? '' : lider.nome + ' esta offline agora.';
+}
+
+/*
+ * O BOTAO "CHAMAR O GRUPO" (J11, R125, D-2463): o inverso do "Teleportar para
+ * o lider", no mesmo cartao. Some (hidden) para quem nao e o lider e para o
+ * lider sozinho no grupo: nao ha quem chamar. Quem pode vir, quem fica e a
+ * espera entre duas chamadas sao do SERVIDOR; a janela so mostra o recado.
+ */
+function desenharChamar(e) {
+	const botao = raiz().querySelector('.gi-chamar');
+	if (!botao) {
+		return;
+	}
+	botao.hidden = !chamarCabe(e);
 }
 
 function desenharPostos(e) {
@@ -1140,6 +1157,10 @@ function ligarEventos(r) {
 		if (GrupoIdle.aoPedirTeleporte) {
 			GrupoIdle.aoPedirTeleporte();
 		}
+	});
+
+	r.querySelector('.gi-chamar').addEventListener('click', function () {
+		mandar({ acao: 'chamar' });
 	});
 
 	// ─── Convite ───────────────────────────────────────────────────────────

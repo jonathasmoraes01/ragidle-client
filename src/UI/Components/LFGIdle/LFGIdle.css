@@ -126,14 +126,39 @@
 	min-height: 0;
 }
 
-#LFGIdle .lfg-list-head {
+/* O TOPO DA LISTA (D-2465): a contagem e o "Entrar rápido" na mesma linha. A
+   contagem perde o próprio recuo lateral (o topo já o tem); no celular estreito
+   o botão desce para a linha de baixo em vez de espremer o texto. */
+#LFGIdle .lfg-list-topo {
 	flex: 0 0 auto;
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--sp-3);
 	padding: var(--sp-4) var(--sp-6) var(--sp-2);
+}
+#LFGIdle .lfg-list-head {
+	flex: 1 1 auto;
 	font: var(--type-label);
 	color: var(--text-muted);
 }
-#LFGIdle .lfg-list-head:empty {
-	padding: 0;
+#LFGIdle .lfg-entrar-rapido {
+	flex: 0 0 auto;
+}
+/* `.ri-btn` traz `display` próprio, que vence o [hidden] por ORIGEM (a cicatriz de 26/08). */
+#LFGIdle .lfg-entrar-rapido[hidden] {
+	display: none;
+}
+#LFGIdle .lfg-rapido-motivo {
+	flex: 0 0 auto;
+	margin: 0 var(--sp-6) var(--sp-3);
+	padding: var(--sp-3) var(--sp-4);
+	border-radius: var(--radius-panel);
+	background: color-mix(in srgb, var(--amber-600) 14%, transparent);
+	border: 1px solid color-mix(in srgb, var(--amber-600) 40%, transparent);
+	color: var(--amber-600);
+	font: var(--type-label);
 }
 
 #LFGIdle .lfg-list {
@@ -822,3 +847,33 @@
 }
 
 /* ─── Barras de rolagem: ".ri-scroll" (Common.css) já cuida ──────────── */
+
+/* ─── Celular em pé (15/10/2026, D-2465) ──────────────────────────────────
+
+   A lista e o dossiê LADO A LADO não cabem em 393px: o dossiê é `flex: 0 0
+   320px` e a lista ficava com uns 70px, os cards cortados e o "Entrar rápido"
+   cortado no meio (medido nas fotos da frente). No celular em pé a lista vai
+   EM CIMA, com teto e rolagem própria, e o dossiê embaixo, com o rodapé de
+   ação preso como sempre. Quem liga é a marca `.ri-vertical` (UI/hudVertical.js,
+   o mesmo critério do resto da HUD), e não uma `@media` de largura.
+
+   O seletor de privacidade do líder (agora com três botões) ganha altura de
+   dedo no toque: os 25px de antes eram pequenos para o polegar. */
+.ri-vertical #LFGIdle .lfg-view-grupos:not([hidden]) {
+	flex-direction: column;
+}
+.ri-vertical #LFGIdle .lfg-list-wrap {
+	flex: 0 1 auto;
+	max-height: 42%;
+}
+.ri-vertical #LFGIdle .lfg-panel {
+	flex: 1 1 auto;
+	min-height: 0;
+	border-left: none;
+	border-top: var(--divider);
+}
+@media (pointer: coarse) {
+	#LFGIdle .lfg-priv-btn {
+		min-height: 40px;
+	}
+}
