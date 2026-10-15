@@ -30,14 +30,14 @@
  * reinscreve de quebra. Entre um e outro ela nao precisa de nada: o que muda a
  * cada segundo — o HP — vem pelo outro caminho.
  *
- * ## Por que ela NAO aparece no celular em pe
+ * ## O celular em pe
  *
- * E decisao declarada, e nao esquecimento. A HUD vertical (D-939) ja ocupa a
- * coluna inteira — barra do topo, cartao de missoes, trilho, botao de caca,
- * atalhos e rodape —, e somar uma faixa fixa ali quebraria o enquadramento que
- * a `prove:hud-vertical` mede. No celular, quem quer ver o grupo abre a janela,
- * que la vira painel de tela cheia. No desktop e no celular DEITADO ela
- * aparece.
+ * Ate 17/09/2026 ela nao aparecia no retrato; desde D-1565 aparece, mais
+ * estreita e movivel. Desde 17/10/2026 (relato de jogador: *"esse negocio ocupa
+ * um espaco gigantesco e nao tem nenhum X"*) ela tambem RECOLHE: o botao da
+ * alca a reduz a uma pastilha "Grupo (N)", e a escolha fica guardada. No
+ * retrato, com mais de `MEMBROS_ANTES_DO_COMPACTO` membros, cada cartao vira
+ * uma linha so (nome e barra), sem a classe e o numero.
  *
  * This file is part of the ragidle fork of ROBrowser.
  */
@@ -57,6 +57,9 @@ import cssText from './PartyHud.css?raw';
 
 /** O mesmo ritmo da janela: rapido o bastante para ser util, lento para nao piscar. */
 const VIDA_AO_VIVO_MS = 400;
+
+/** Acima disto, no celular em pe, o cartao vira uma linha so (nome e barra). */
+export const MEMBROS_ANTES_DO_COMPACTO = 4;
 
 const PartyHud = new GUIComponent('PartyHud', cssText);
 
@@ -121,10 +124,38 @@ const _preferences = Preferences.get(
 	'PartyHud',
 	{
 		x: null,
-		y: null
+		y: null,
+		// Recolhida, sobra so a alca "Grupo (N)" (17/10/2026). Nasce aberta: quem
+		// ja via o grupo continua vendo ate escolher o contrario.
+		recolhido: false
 	},
 	1.0
 );
+
+/** Aplica o recolhido guardado na caixa e no botao. */
+function aplicarRecolhido() {
+	const root = _root();
+	const hud = root && root.querySelector('.ph-hud');
+	const botao = root && root.querySelector('.ph-recolher');
+	const recolhido = !!_preferences.recolhido;
+	if (hud) {
+		hud.classList.toggle('is-recolhido', recolhido);
+	}
+	// Ela roda a cada redesenho: escreve o botao so quando o estado muda (D-2385).
+	if (botao && botao.dataset.recolhido !== String(recolhido)) {
+		botao.dataset.recolhido = String(recolhido);
+		botao.innerHTML = recolhido ? '&plus;' : '&minus;';
+		botao.title = recolhido ? 'Mostrar' : 'Recolher';
+		botao.setAttribute('aria-label', recolhido ? 'Mostrar a lista do grupo' : 'Recolher a lista do grupo');
+	}
+}
+
+PartyHud.alternarRecolhido = function alternarRecolhido() {
+	_preferences.recolhido = !_preferences.recolhido;
+	_preferences.save();
+	// `desenhar` aplica o recolhido e liga ou desliga o ticker das barras.
+	desenhar();
+};
 
 PartyHud.init = function init() {
 	// A composicao chega pelo gancho da janela — ver a decisao 3 no cabecalho.
@@ -132,6 +163,17 @@ PartyHud.init = function init() {
 	desenhar();
 	const root = _root();
 	if (root) {
+		const recolher = root.querySelector('.ph-recolher');
+		if (recolher) {
+			// O botao mora DENTRO da alca: sem parar o evento, o toque vira o
+			// inicio de um arrasto (o mesmo cuidado do placar do MVP).
+			recolher.addEventListener('pointerdown', (event) => event.stopPropagation());
+			recolher.addEventListener('click', (event) => {
+				event.stopPropagation();
+				PartyHud.alternarRecolhido();
+			});
+		}
+		aplicarRecolhido();
 		arrastarPorPonteiro({
 			alca: root.querySelector('.ph-alca'),
 			painel: PartyHud._host,
@@ -255,7 +297,18 @@ function desenhar() {
 		_assinatura = assinatura;
 		lista.innerHTML = membros.map(linhaHtml).join('');
 	}
+	const rotulo = root.querySelector('.ph-rotulo');
+	if (rotulo) {
+		escreverTexto(rotulo, `Grupo (${membros.length})`);
+	}
+	hud.classList.toggle('is-muitos', membros.length > MEMBROS_ANTES_DO_COMPACTO);
 	hud.hidden = false;
+	aplicarRecolhido();
+	if (_preferences.recolhido) {
+		// Recolhida, ninguem ve as barras: sem ticker.
+		_assidoDesligado();
+		return;
+	}
 	if (_ticker === null) {
 		_ticker = setInterval(vidaAoVivo, VIDA_AO_VIVO_MS);
 	}

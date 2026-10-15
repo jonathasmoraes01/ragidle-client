@@ -137,18 +137,42 @@
 	opacity: 0.45;
 }
 
-/*
- * NO CELULAR EM PE ELA NAO APARECE — decisao declarada, nao esquecimento.
- *
- * A HUD vertical (D-939) ja ocupa a coluna inteira: barra do topo, cartao de
- * missoes, trilho, botao de caca, atalhos e rodape. Somar uma faixa fixa ali
- * quebraria o enquadramento que a `prove:hud-vertical` mede — e no celular quem
- * quer ver o grupo abre a janela, que la vira painel de tela cheia.
- *
- * O criterio e a marca `ri-vertical`, e nao uma media-query propria: repetir
- * `matchMedia('(pointer: coarse)')` num arquivo novo e como a cicatriz de
- * `--hud-acima-da-doca` (D-929) comecou.
- */
+/* ---------------------------------------------------------------------------
+   RECOLHER (17/10/2026, relato de jogador: nove membros cobriam ~40% do
+   celular em pe e nao havia "X"). Recolhida, sobra so a alca "Grupo (N)",
+   legivel e com o botao de abrir. O criterio do retrato e a marca
+   `ri-vertical`, e nao uma media-query propria (a cicatriz de D-929).
+   --------------------------------------------------------------------------- */
+#PartyHud .ph-recolher {
+	pointer-events: auto;
+	position: relative;
+	margin-left: auto;
+	background: none;
+	border: 0;
+	padding: 0 4px;
+	color: inherit;
+	font-size: 14px;
+	line-height: 1;
+	cursor: pointer;
+	touch-action: manipulation;
+}
+
+/* ALVO TATIL de 44px sem engordar a alca. */
+#PartyHud .ph-recolher::before {
+	content: '';
+	position: absolute;
+	inset: -14px -10px;
+}
+
+#PartyHud .ph-hud.is-recolhido { width: auto; }
+#PartyHud .ph-hud.is-recolhido .ph-membros { display: none; }
+#PartyHud .ph-hud.is-recolhido .ph-alca {
+	opacity: 1;
+	background: rgba(255, 255, 255, 0.82);
+	border: 1px solid var(--border-gold);
+	border-radius: var(--radius-chip, 4px);
+}
+
 /* ---------------------------------------------------------------------------
    CELULAR EM PE (D-1565) — ela DEIXOU de ser escondida.
    Ate 17/09/2026 a faixa sumia no retrato: o desenho da HUD vertical nao tinha
@@ -161,6 +185,19 @@
 :host-context(html.ri-vertical) .ph-hud {
 	width: 132px;
 	font-size: 10px;
+}
+
+/* COMPACTO no retrato com grupo grande: uma linha por membro (nome e barra),
+   sem a classe e o numero, quase metade da altura. */
+:host-context(html.ri-vertical) #PartyHud .ph-hud.is-muitos .ph-membro {
+	grid-template-columns: 58px 1fr;
+	grid-template-areas: 'nome hp';
+	padding: 2px 5px;
+}
+
+:host-context(html.ri-vertical) #PartyHud .ph-hud.is-muitos .ph-classe,
+:host-context(html.ri-vertical) #PartyHud .ph-hud.is-muitos .ph-hp-num {
+	display: none;
 }
 
 :host-context(html.ri-vertical) .ph-alca { opacity: 0.85; }
