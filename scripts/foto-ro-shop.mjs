@@ -730,6 +730,21 @@ async function principal() {
 				await page.mouse.down();
 				await foto('27-pressionado');
 				await page.mouse.up();
+
+				/* O VIP NA ABA CONTA (D-2460, 16/10/2026): os detalhes do VIP (o
+				   texto longo dos beneficios e o "Ate 1 por compra") e o recado
+				   do segundo VIP no carrinho, que nao pode cobrir o Comprar. */
+				await preparar(page, { carrinho: false });
+				await page.evaluate(CLIQUE('[data-categoria="conta"]'));
+				await page.evaluate(CLIQUE('[data-rs="detalhes"][data-sku="VIP_90D"]'));
+				await foto('28-vip-detalhes');
+				await preparar(page, { carrinho: false });
+				await page.evaluate(CLIQUE('[data-categoria="conta"]'));
+				await page.evaluate(CLIQUE('[data-rs="adicionar"][data-sku="VIP_30D"]'));
+				await page.evaluate(CLIQUE('[data-rs="adicionar"][data-sku="VIP_60D"]'));
+				manterAviso = true;
+				await foto('29-vip-um-por-compra');
+				manterAviso = false;
 			}
 
 			/* O aviso "X no carrinho." logo depois de adicionar - e, no celular,

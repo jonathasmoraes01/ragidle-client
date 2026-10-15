@@ -187,7 +187,25 @@ export function estadoDeExemplo(sobrescrever = {}) {
 				conteudo: [BRANCA, AZUL, EXP, JOB, FORTUNA],
 				resumo: 'Poções, os dois Manuais e a Bênção da Fortuna',
 				selo: 'oferta'
-			})
+			}),
+			/* O VIP NA ABA CONTA (D-2460 no servidor, 16/10/2026): entrega `vip`,
+			   sem imagem nem conteudo, um por compra, e no TOPO da aba (ordem
+			   -2, -1 e 0, como o catalogo do servidor). */
+			...[
+				['VIP_30D', 30, 900, -2],
+				['VIP_60D', 60, 1600, -1],
+				['VIP_90D', 90, 2500, 0]
+			].map(([sku, dias, preco, ordem]) =>
+				P(sku, `VIP ${dias} dias`, 'conta', preco, {
+					ordem,
+					descricao:
+						`${dias} dias de VIP para a conta inteira, ativados na hora da compra: +30% de EXP de base, +30% de EXP de classe, ` +
+						'+20% de drop de itens e +10% relativo na chance de cartas, em todos os personagens da conta. Se a conta já tem VIP, os dias se somam ao que falta.',
+					tipoDeEntrega: 'vip',
+					resumo: `${dias} dias de VIP na conta`,
+					quantidadeMaxima: 1
+				})
+			)
 		],
 		/* `usavel` = o servico tem efeito E ha credito (rodada 2); `limites` e o
 		   bloco da secao 4 do contrato, com as faixas documentadas. */
@@ -233,7 +251,8 @@ export function estadoDeExemplo(sobrescrever = {}) {
 		conta: {
 			armazem: { expansoes: 10, teto: 10, vagasPorExpansao: 100 },
 			slots: { total: 12, gratis: 9, teto: 15 },
-			carga: { expansoes: 1, teto: 5, porExpansao: 5000 }
+			carga: { expansoes: 1, teto: 5, porExpansao: 5000 },
+			vip: { ativo: true, diasRestantes: 12, expiraEm: 20261027 }
 		},
 		/* Fiel ao contrato (secao 4): o servidor manda `id` + `nome`, e o
 		   "Season 1 - " do banner e montado pelo cliente a partir do `id`. */
