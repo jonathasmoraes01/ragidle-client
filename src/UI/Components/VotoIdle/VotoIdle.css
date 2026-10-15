@@ -476,4 +476,15 @@
 		width: 100%;
 		height: 100%;
 	}
+
+	/*
+	 * As asas do titulo (44px + 8px de cada lado, `.ri-title::before/::after`)
+	 * empurram a borda do titulo para cima da carteira: a 393px ela ja encosta com
+	 * 1 digito de saldo (-7px) e passa com 2 ou 3. Sem as asas a folga fica em
+	 * 45px com 1 digito e 18px com 3 (medido 15/10/2026, 393 e 360px).
+	 */
+	#VotoIdle .vi-title::before,
+	#VotoIdle .vi-title::after {
+		display: none;
+	}
 }
