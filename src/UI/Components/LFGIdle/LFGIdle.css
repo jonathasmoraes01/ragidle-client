@@ -126,14 +126,39 @@
 	min-height: 0;
 }
 
-#LFGIdle .lfg-list-head {
+/* O TOPO DA LISTA (D-2465): a contagem e o "Entrar rápido" na mesma linha. A
+   contagem perde o próprio recuo lateral (o topo já o tem); no celular estreito
+   o botão desce para a linha de baixo em vez de espremer o texto. */
+#LFGIdle .lfg-list-topo {
 	flex: 0 0 auto;
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--sp-3);
 	padding: var(--sp-4) var(--sp-6) var(--sp-2);
+}
+#LFGIdle .lfg-list-head {
+	flex: 1 1 auto;
 	font: var(--type-label);
 	color: var(--text-muted);
 }
-#LFGIdle .lfg-list-head:empty {
-	padding: 0;
+#LFGIdle .lfg-entrar-rapido {
+	flex: 0 0 auto;
+}
+/* `.ri-btn` traz `display` próprio, que vence o [hidden] por ORIGEM (a cicatriz de 26/08). */
+#LFGIdle .lfg-entrar-rapido[hidden] {
+	display: none;
+}
+#LFGIdle .lfg-rapido-motivo {
+	flex: 0 0 auto;
+	margin: 0 var(--sp-6) var(--sp-3);
+	padding: var(--sp-3) var(--sp-4);
+	border-radius: var(--radius-panel);
+	background: color-mix(in srgb, var(--amber-600) 14%, transparent);
+	border: 1px solid color-mix(in srgb, var(--amber-600) 40%, transparent);
+	color: var(--amber-600);
+	font: var(--type-label);
 }
 
 #LFGIdle .lfg-list {
