@@ -18,9 +18,10 @@
  *
  * ## O que NAO mora aqui (decisao do dono, D-RS-04)
  *
- * Caixas, pity, odds, abertura, Passe de Batalha e VIP sao da janela
- * Temporada. O RO Shop tem no maximo o atalho `renderAtalhoTemporadaHtml`, que
- * so NAVEGA.
+ * Caixas, pity, odds, abertura e Passe de Batalha sao da janela Temporada. O
+ * RO Shop tem no maximo o atalho `renderAtalhoTemporadaHtml`, que so NAVEGA. O
+ * VIP e a excecao desde 16/10/2026 (D-2460 no servidor, pedido do dono): tres
+ * SKUs na aba Conta (`tipoDeEntrega: "vip"`), um por compra.
  *
  * ## Travessao e proibido
  *
@@ -278,12 +279,22 @@ export function quantidadeNoCarrinho(carrinho, sku) {
 	return linha ? linha.quantidade : 0;
 }
 
+/** O produto entrega dias de VIP (D-2460)? O servidor diz pelo `tipoDeEntrega`. */
+export function ehVip(produto) {
+	return !!(produto && produto.tipoDeEntrega === 'vip');
+}
+
 /**
  * Soma `quantidade` de um produto ao carrinho. Devolve um carrinho NOVO e a
- * recusa (`null` quando entrou): 'indisponivel', 'teto' (ja esta no maximo)
- * ou 'cheio' (linhas demais).
+ * recusa (`null` quando entrou): 'indisponivel', 'teto' (ja esta no maximo),
+ * 'cheio' (linhas demais) ou 'vip' (ja ha OUTRO VIP no carrinho).
+ *
+ * O 'vip' (D-2460): o servidor aceita UM VIP por compra, somando os tres SKUs
+ * (`vip-um-por-compra`). Com o `estado` em maos, o carrinho recusa ANTES do
+ * clique em Confirmar, e o jogador nao monta um carrinho que o servidor vai
+ * recusar. Sem o `estado`, quem recusa e so o servidor - nunca o contrario.
  */
-export function adicionarAoCarrinho(carrinho, produto, quantidade = 1) {
+export function adicionarAoCarrinho(carrinho, produto, quantidade = 1, estado = null) {
 	const atual = carrinho || [];
 	if (!produtoCompravel(produto)) {
 		return { carrinho: atual, recusa: 'indisponivel' };
@@ -292,6 +303,9 @@ export function adicionarAoCarrinho(carrinho, produto, quantidade = 1) {
 	const ja = quantidadeNoCarrinho(atual, produto.sku);
 	if (ja >= teto) {
 		return { carrinho: atual, recusa: 'teto' };
+	}
+	if (ehVip(produto) && estado && atual.some(l => l.sku !== produto.sku && ehVip(produtoPorSku(estado, l.sku)))) {
+		return { carrinho: atual, recusa: 'vip' };
 	}
 	if (!ja && atual.length >= MAX_LINHAS_NO_CARRINHO) {
 		return { carrinho: atual, recusa: 'cheio' };
@@ -502,7 +516,13 @@ export function retratoHtml(produto, categoria, classe = 'rs-retrato') {
 	if (servico && ICONE_DO_SERVICO[produto.sku]) {
 		ids = [ICONE_DO_SERVICO[produto.sku]];
 	}
-	const reserva = servico && categoria ? iconeDaCategoria(categoria) : ASSET.placeholder;
+	/* O VIP (D-2460) leva a MESMA arte do VIP na barra de status e no chat
+	   (`StatusInfo[EFST_DO_VIP]`, `ICONE_DO_VIP`): o jogador reconhece o simbolo. */
+	const reserva = ehVip(produto)
+		? ASSET.roCash
+		: servico && categoria
+			? iconeDaCategoria(categoria)
+			: ASSET.placeholder;
 	const attr = ids.length ? ` data-item-ids="${ids.join(',')}"` : '';
 	return (
 		`<span class="${classe}${servico ? ' is-servico' : ''}"${attr}>` +
@@ -884,7 +904,7 @@ export function atalhoTemporadaHtml(temporada) {
 		'<div class="rs-temporada">' +
 		'<span class="rs-temporada-texto">' +
 		`<strong class="rs-temporada-nome">${escapeHtml(titulo)}</strong>` +
-		'<span class="rs-temporada-sub">Caixas, Battle Pass e VIP estão no menu Temporada.</span>' +
+		'<span class="rs-temporada-sub">Caixas e Battle Pass estão no menu Temporada.</span>' +
 		'</span>' +
 		'<button type="button" class="rs-btn rs-btn--sec rs-btn--pequeno" data-rs="ir-temporada">Ir para Temporada</button>' +
 		'</div>'
@@ -1327,6 +1347,20 @@ export function contadorDaConta(produto, estado) {
 		const p = par(conta.slots, 'total', 'teto');
 		return p ? { ...p, texto: `${p.x} de ${p.y} vagas` } : null;
 	}
+	if (ehVip(produto)) {
+		/* O VIP da conta AGORA (D-2460, `estado.conta.vip`): quem ja tem VIP ve
+		   quantos dias faltam, e sabe que a compra SOMA a eles. Nunca tem teto. */
+		const vip = conta.vip;
+		if (!vip || typeof vip !== 'object') {
+			return null;
+		}
+		const dias = inteiroDoServidor(vip.diasRestantes);
+		const texto =
+			vip.ativo === true && dias !== null && dias > 0
+				? `VIP ativo: ${dias} ${dias === 1 ? 'dia' : 'dias'}`
+				: 'Sem VIP ativo';
+		return { x: 0, y: 1, texto, noTeto: false };
+	}
 	return null;
 }
 
@@ -1336,7 +1370,8 @@ export function contadorDaContaHtml(produto, estado, classe = 'rs-contador') {
 	if (!c) {
 		return '';
 	}
-	return `<span class="${classe}${c.x >= c.y ? ' is-no-teto' : ''}">${escapeHtml(c.texto)}</span>`;
+	const noTeto = typeof c.noTeto === 'boolean' ? c.noTeto : c.x >= c.y;
+	return `<span class="${classe}${noTeto ? ' is-no-teto' : ''}">${escapeHtml(c.texto)}</span>`;
 }
 
 /** O texto de uma recusa do carrinho (local, antes de falar com o servidor). */
@@ -1346,6 +1381,9 @@ export function textoDaRecusa(recusa, produto) {
 	}
 	if (recusa === 'cheio') {
 		return 'O carrinho está cheio. Conclua ou remova um item.';
+	}
+	if (recusa === 'vip') {
+		return 'Leve um VIP por compra. Para somar mais dias, conclua esta compra e compre outro VIP depois.';
 	}
 	if (recusa === 'indisponivel') {
 		const trava = travaDoProduto(produto);

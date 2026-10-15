@@ -394,6 +394,10 @@ describe('A-09: cada servico/conta com o seu icone', () => {
 		for (const cat of ['utilidades', 'conta']) {
 			t.clicar(`[data-categoria="${cat}"]`);
 			t.raiz.querySelectorAll('.rs-grade .rs-card').forEach(card => {
+				/* O VIP (D-2460) nao e servico: tem a arte propria, medida em roShopVip.test.js. */
+				if (/^VIP_/.test(card.dataset.sku)) {
+					return;
+				}
 				const retrato = card.querySelector('.rs-retrato');
 				expect(retrato.classList.contains('is-servico'), card.dataset.sku).toBe(true);
 				expect(retrato.dataset.itemIds, card.dataset.sku).toBe(String(ICONE_DO_SERVICO[card.dataset.sku]));

@@ -737,7 +737,7 @@ export function criarControlador(opcoes) {
 
 	function adicionar(sku) {
 		const produto = produtoPorSku(s.estado, sku);
-		const r = adicionarAoCarrinho(s.carrinho, produto, 1);
+		const r = adicionarAoCarrinho(s.carrinho, produto, 1, s.estado);
 		if (r.recusa) {
 			aviso(textoDaRecusa(r.recusa, produto), 'erro');
 			render();
