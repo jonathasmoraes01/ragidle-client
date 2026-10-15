@@ -49,6 +49,11 @@ import { criarRelogioDaBarra } from '/src/UI/Components/ShortCut/relogioDaBarra.
 HudPremium.definirBarraDeAtalhos(new URLSearchParams(location.search).get('atalhos') === '1');
 /* `?minimapa=recolhido`: o minimapa minimizado (so a pilula com o nome), como o toque na pilula o deixa. */
 HudPremium.definirMinimapaRecolhido(new URLSearchParams(location.search).get('minimapa') === 'recolhido');
+/* `?lang=en`: o jogo em ingles poe a lingua no `<html>` (`inicioDoIdioma.js`); o que a premium desenha por CSS
+   segue a lingua por `:lang(en)`. O catalogo (o tradutor das janelas) nao roda aqui. */
+if (new URLSearchParams(location.search).get('lang') === 'en') {
+	document.documentElement.lang = 'en';
+}
 /* `?escala=80`: o Tamanho da HUD das Configuracoes de Video (em %), como o jogador o deixa. */
 const escalaPedida = Number(new URLSearchParams(location.search).get('escala'));
 if (escalaPedida > 0) {

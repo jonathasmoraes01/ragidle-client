@@ -64,6 +64,8 @@ const VARIANTES = {
 	'premium-atalhos': { busca: '?premium=1&atalhos=1&fps=1' },
 	/* muitos buffs com o cartao de missoes aberto: a coluna quebra em colunas antes do chat (e do FPS) */
 	'premium-buffs': { busca: '?premium=1&buffs=14&missoes=abertas&fps=1' },
+	/* o jogo em ingles: o que a premium desenha por CSS (o convite do chat, o "J" do Job Lv. no 320) segue a lingua */
+	'premium-en': { busca: '?premium=1&lang=en&chat=aberto' },
 	/* os detalhes do dono de 15/10: o minimapa minimizado na pilula do nome, o ping alto, o FPS ligado */
 	'premium-detalhes': { busca: '?premium=1&minimapa=recolhido&ping=1234&fps=1&missoes=abertas&buffs=8' },
 	/* a folha do Menu aberta: os buffs descem para o rodape, e so eles sao cobrados. No 320x568 a folha desce ate

@@ -1,6 +1,11 @@
 /**
  * UI/HudPremium/hudPremium.js — A HUD MOBILE PREMIUM (15/10/2026).
  *
+ * A HUD PADRAO DO CELULAR EM PE desde 15/10/2026 (pedido do dono: *"ela deve
+ * ser nossa hud padrao"*): o `Config.js` publica `enableHudMobilePremium:
+ * true`. A bandeira continua sendo o desligar de emergencia, sem rebuild
+ * (ver "A BANDEIRA FALHA PARA DESLIGADO", abaixo).
+ *
  * ═══════════════════════════════════════════════════════════════════════
  * O PEDIDO
  * ═══════════════════════════════════════════════════════════════════════
@@ -36,7 +41,7 @@
  *
  * Como a outra, ela mora no `Config.js`/`Config.local.js` (publicado como
  * arquivo separado, `no-cache`): ligar e desligar e trocar uma linha, sem
- * rebuild.
+ * rebuild. O `Config.js` a liga; um `false` no `Config.local.js` a desliga.
  */
 
 import { ehAdaptavel } from 'UI/escalaDaHud.js';

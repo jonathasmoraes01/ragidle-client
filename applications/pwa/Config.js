@@ -106,11 +106,13 @@ window.ROConfigBase = {
 	 * Config/RO Shop). E uma camada POR CIMA da HUD vertical de D-939, e so
 	 * vale com `enableHudAdaptavel` ligada.
 	 *
-	 * Nasce DESLIGADA: so `true` liga (`UI/HudPremium/hudPremium.js`). Para
-	 * testar, ponha `enableHudMobilePremium: true` no `Config.local.js`; para
-	 * voltar, tire a linha. Nenhum rebuild nos dois sentidos.
+	 * E A HUD PADRAO DO CELULAR desde 15/10/2026 (pedido do dono: *"ela deve
+	 * ser nossa hud padrao"*). So `true` liga (`UI/HudPremium/hudPremium.js`):
+	 * para voltar todo mundo a HUD de D-939, ponha `enableHudMobilePremium:
+	 * false` no `Config.local.js` de producao (publicado `no-cache`), sem
+	 * rebuild. O desktop nao muda: a camada so existe no celular em pe.
 	 */
-	enableHudMobilePremium: false,
+	enableHudMobilePremium: true,
 	enableCashShop: true,
 	enableCheckAttendance: false,
 	enableDmgSuffix: false,

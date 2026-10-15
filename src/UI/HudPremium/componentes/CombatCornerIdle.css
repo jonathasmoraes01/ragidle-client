@@ -43,7 +43,12 @@
 	   estado, tem modo em ingles e o leitor de tela o le. */
 	border: 0;
 	border-radius: 50%;
-	background: url('/ragidle/hud/premium/botao-auto-off.webp') center / 100% 100% no-repeat;
+	/* Por baixo da arte, um disco AZUL do tamanho do disco desenhado (88% da caixa): a arte o cobre inteiro, e
+	   ele so aparece se a imagem nao carregar. E a licao da D-2454 (o Cacar do desktop sumia quando a arte de
+	   fundo falhava): aqui o botao nunca fica invisivel - sobra o disco e a pilula "Auto · OFF". */
+	background:
+		url('/ragidle/hud/premium/botao-auto-off.webp') center / 100% 100% no-repeat,
+		radial-gradient(circle closest-side, #2a6fd0 0 87%, transparent 88%) center / 100% 100% no-repeat;
 	/* A sombra segue o CONTORNO da arte (`drop-shadow`), e nao a caixa: a caixa e maior que o disco
 	   desenhado, e o `box-shadow` virava um anel escuro em volta do aro (visto na foto). A sombra interna
 	   nem entra: ela pinta por cima da imagem. */
@@ -68,7 +73,9 @@
    de sempre, so a parte de fora dele - as faiscas de CSS sairiam em dobro com
    as da arte. `prefers-reduced-motion` congela o halo sem apaga-lo. */
 .ri-premium .cc-btn--auto.is-on .cc-ring {
-	background-image: url('/ragidle/hud/premium/botao-auto-on.webp');
+	background-image:
+		url('/ragidle/hud/premium/botao-auto-on.webp'),
+		radial-gradient(circle closest-side, #2a6fd0 0 87%, transparent 88%);
 	box-shadow:
 		0 0 12px 3px rgba(255, 200, 60, 0.7),
 		0 0 24px 7px rgba(255, 214, 90, 0.35);

@@ -63,7 +63,10 @@
 	width: var(--m-cacar, 56px);
 	height: var(--m-cacar, 56px);
 	min-height: 0;
-	background-image: url('/ragidle/hud/premium/botao-cacar.webp');
+	/* o disco dourado por baixo so aparece se a arte nao carregar (D-2454; ver o Auto) */
+	background-image:
+		url('/ragidle/hud/premium/botao-cacar.webp'),
+		radial-gradient(circle closest-side, #e8bd5c 0 87%, transparent 88%);
 	color: #1d3557;
 }
 
@@ -73,7 +76,9 @@
 	height: var(--m-retornar, 44px);
 	min-height: 0;
 	margin: 0;
-	background-image: url('/ragidle/hud/premium/botao-voltar.webp');
+	background-image:
+		url('/ragidle/hud/premium/botao-voltar.webp'),
+		radial-gradient(circle closest-side, #2a6fd0 0 87%, transparent 88%);
 	color: #ffffff;
 }
 
@@ -116,7 +121,8 @@
 }
 
 .ri-premium .hb-voltar::after {
-	content: 'Voltar';
+	/* do HTML, e nao daqui: o tradutor da interface traduz o atributo ("Back" em ingles) */
+	content: attr(data-rotulo);
 	position: absolute;
 	top: calc(100% - 11px);
 	left: 50%;

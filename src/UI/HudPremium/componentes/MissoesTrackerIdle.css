@@ -183,7 +183,8 @@
 
 /* O rotulo, na mesma pilula escura do trilho. */
 .ri-premium .mt-recolher-v.is-recolhido::after {
-	content: 'Missões';
+	/* do HTML: o tradutor da interface traduz o atributo, e nao o `content` daqui */
+	content: attr(data-rotulo);
 	position: absolute;
 	top: calc(100% - 8px);
 	left: 50%;

@@ -252,10 +252,10 @@ describe('os icones do Drive no Auto, no Cacar e no Voltar', () => {
 	it('o Auto desenha a arte do OFF, e ligado a do ON, sem o aro de CSS por cima', () => {
 		const anel = corner.match(/\.ri-premium \.cc-ring \{([^}]*)\}/)[1];
 		expect(anel).toMatch(/border: 0;/);
-		expect(anel).toMatch(/background: url\('\/ragidle\/hud\/premium\/botao-auto-off\.webp'\) center \/ 100% 100% no-repeat;/);
+		expect(anel).toMatch(/background:\s*url\('\/ragidle\/hud\/premium\/botao-auto-off\.webp'\) center \/ 100% 100% no-repeat,/);
 		expect(anel).toMatch(/box-shadow: none;/);
 		expect(corner).toMatch(
-			/\.ri-premium \.cc-btn--auto\.is-on \.cc-ring \{\s*background-image: url\('\/ragidle\/hud\/premium\/botao-auto-on\.webp'\);/
+			/\.ri-premium \.cc-btn--auto\.is-on \.cc-ring \{\s*background-image:\s*url\('\/ragidle\/hud\/premium\/botao-auto-on\.webp'\),/
 		);
 		// as faiscas de CSS sairiam em dobro com as da arte
 		expect(corner).toMatch(
@@ -279,8 +279,17 @@ describe('os icones do Drive no Auto, no Cacar e no Voltar', () => {
 	it('o Cacar e o Voltar desenham a arte, e o glifo de reserva sai da vista', () => {
 		expect(hunt).toMatch(/\.ri-premium \.hb-btn \{[^}]*border: 0;[^}]*box-shadow: none;/);
 		expect(hunt).toMatch(/\.ri-premium \.hb-btn \.hb-glifo \{\s*display: none;/);
-		expect(hunt).toMatch(/\.ri-premium \.hb-cacar \{[^}]*background-image: url\('\/ragidle\/hud\/premium\/botao-cacar\.webp'\);/);
-		expect(hunt).toMatch(/\.ri-premium \.hb-voltar \{[^}]*background-image: url\('\/ragidle\/hud\/premium\/botao-voltar\.webp'\);/);
+		expect(hunt).toMatch(/\.ri-premium \.hb-cacar \{[^}]*background-image:\s*url\('\/ragidle\/hud\/premium\/botao-cacar\.webp'\),/);
+		expect(hunt).toMatch(/\.ri-premium \.hb-voltar \{[^}]*background-image:\s*url\('\/ragidle\/hud\/premium\/botao-voltar\.webp'\),/);
+	});
+
+	it('se a arte nao carregar, sobra um disco de cor por baixo dela, e o botao nunca some (a licao da D-2454)', () => {
+		const disco = /radial-gradient\(circle closest-side, #[0-9a-f]{6} 0 87%, transparent 88%\)/;
+		const regra = (css, seletor) => css.match(new RegExp(`${seletor} \\{([^}]*)\\}`))[1];
+		expect(regra(corner, '\\.ri-premium \\.cc-ring')).toMatch(disco);
+		expect(regra(corner, '\\.ri-premium \\.cc-btn--auto\\.is-on \\.cc-ring')).toMatch(disco);
+		expect(regra(hunt, '\\.ri-premium \\.hb-cacar')).toMatch(disco);
+		expect(regra(hunt, '\\.ri-premium \\.hb-voltar')).toMatch(disco);
 	});
 
 	it('a pilula do rotulo cobre o quarto de baixo do disco, onde a emenda do recorte mora', () => {
@@ -358,5 +367,79 @@ describe('o FPS mora acima do chat', () => {
 		expect(tokens).toMatch(/html\.ri-premium\.ri-fps-visivel \{\s*--m-reserva-do-fps: 26px;/);
 		expect(MARCA_FPS_VISIVEL).toBe('ri-fps-visivel');
 		expect(tokens).toMatch(/- 8px - var\(--m-reserva-do-fps, 0px\)/);
+	});
+});
+
+describe('a HUD padrao do celular (pedido do dono, 15/10/2026: "ela deve ser nossa hud padrao")', () => {
+	const config = readFileSync(join(raizDoRepo, 'applications', 'pwa', 'Config.js'), 'utf8');
+
+	it('o Config.js publicado liga a premium', () => {
+		expect(config).toMatch(/\n\tenableHudMobilePremium: true,/);
+		expect(config).not.toMatch(/enableHudMobilePremium: false/);
+	});
+
+	it('e o desligar de emergencia continua: so `true` liga, entao um `false` no Config.local.js volta a HUD de D-939', () => {
+		window.ROConfig = { enableHudAdaptavel: true, enableHudMobilePremium: false };
+		expect(HudPremium.ehHudPremium()).toBe(false);
+		window.ROConfig = { enableHudAdaptavel: true, enableHudMobilePremium: true };
+		expect(HudPremium.ehHudPremium()).toBe(true);
+	});
+});
+
+describe('os rotulos da premium em ingles (o jogo em ingles, D-1929)', () => {
+	/* O tradutor da interface traduz texto e atributo (`data-rotulo` inclusive), mas nao o `content: '...'` de uma
+	   folha de estilo: rotulo escrito no CSS ficaria em portugues para o jogador em ingles. */
+	it('nenhum rotulo com letra mora no CSS da camada: os de palavra vem de `data-rotulo`', () => {
+		const pasta = join(ui, 'HudPremium', 'componentes');
+		const permitidos = new Set(['HP', 'SP', 'B', 'C', 'J', ' · OFF', ' · ON', '+', '!', 'Digite uma mensagem...', 'Type a message...']);
+		for (const arquivo of readdirSync(pasta).filter(n => n.endsWith('.css'))) {
+			const texto = readFileSync(join(pasta, arquivo), 'utf8');
+			for (const [, conteudo] of texto.matchAll(/content: '([^']+)'/g)) {
+				expect(permitidos.has(conteudo), `${arquivo}: content '${conteudo}'`).toBe(true);
+			}
+		}
+	});
+
+	it('"Voltar" e "Missoes" vem do atributo que o tradutor alcanca', () => {
+		expect(ler('Components', 'HuntButtonIdle', 'HuntButtonIdle.html')).toMatch(/class="hb-btn hb-voltar[^"]*"[^>]*data-rotulo="Voltar"/);
+		expect(premiumCss('HuntButtonIdle')).toMatch(/\.ri-premium \.hb-voltar::after \{[^}]*content: attr\(data-rotulo\);/);
+		expect(ler('Components', 'MissoesTrackerIdle', 'MissoesTrackerIdle.html')).toMatch(
+			/class="mt-recolher-v"[^>]*data-rotulo="Missões"/
+		);
+		expect(premiumCss('MissoesTrackerIdle')).toMatch(/\.mt-recolher-v\.is-recolhido::after \{[^}]*content: attr\(data-rotulo\);/);
+	});
+
+	it('o convite do chat (campo editavel, que o tradutor pula) tem a versao em ingles pela lingua do documento', () => {
+		const chat = premiumCss('ChatBox');
+		expect(chat).toMatch(/\.message:empty::before \{\s*content: 'Digite uma mensagem\.\.\.';/);
+		expect(chat).toMatch(/\.message:empty:lang\(en\)::before \{\s*content: 'Type a message\.\.\.';/);
+	});
+
+	it('no 320 a abreviacao de "Classe Lv." acompanha o ingles ("Job Lv."): C vira J', () => {
+		expect(premiumCss('BasicInfoIdle')).toMatch(
+			/\.ri-premium\.ri-tela-estreita \.bi-level-row:last-child \.bi-level-label:lang\(en\)::before \{\s*content: 'J';/
+		);
+	});
+
+	it('o catalogo publicado traduz o que a premium escreve', () => {
+		const { exatos, modelos } = JSON.parse(
+			readFileSync(join(raizDoRepo, 'public', 'ragidle', 'i18n', 'en', 'catalogo.json'), 'utf8')
+		);
+		for (const frase of [
+			'Voltar',
+			'Missões',
+			'Minimizar chat',
+			'Minimizar o mapa',
+			'Abrir o mapa',
+			'Tamanho da HUD',
+			'Barra de skills: Desligada',
+			'Barra de skills: Ligada',
+			'Escolher as skills do automático',
+			'Skills do automático'
+		]) {
+			expect(exatos[frase], frase).toBeTruthy();
+		}
+		expect(modelos.find(m => m.pt === 'Usar {0}')?.en).toBe('Use {0}');
+		expect(modelos.find(m => m.pt === 'Usar {0} (desligada no automático)')?.en).toBe('Use {0} (off in auto)');
 	});
 });

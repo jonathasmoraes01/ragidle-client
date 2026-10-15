@@ -374,6 +374,12 @@
 	content: 'C';
 }
 
+/* Em ingles "Classe Lv." e "Job Lv." (o catalogo): a abreviacao acompanha pela lingua do documento, porque o
+   tradutor da interface nao alcanca `content` de folha de estilo. */
+.ri-premium.ri-tela-estreita .bi-level-row:last-child .bi-level-label:lang(en)::before {
+	content: 'J';
+}
+
 .ri-premium.ri-tela-estreita .bi-zeny,
 .ri-premium.ri-tela-estreita .bi-cash {
 	font-size: 10px;

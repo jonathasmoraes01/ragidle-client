@@ -110,9 +110,15 @@
 	font-size: 12.5px;
 }
 
-/* O dedo nao tem Enter: o convite e o do mockup. */
+/* O dedo nao tem Enter: o convite e o do mockup. O campo e editavel, e o tradutor da interface pula campo
+   editavel inteiro (D-1929, o "aato" de 05/10): o texto em ingles vem da lingua do documento
+   (`inicioDoIdioma.js` poe `<html lang>`), e nao do catalogo. */
 .ri-premium #chatbox .input .message:empty::before {
-	content: 'Digite uma mensagem…';
+	content: 'Digite uma mensagem...';
+}
+
+.ri-premium #chatbox .input .message:empty:lang(en)::before {
+	content: 'Type a message...';
 }
 
 .ri-premium #chatbox .cb-destino {
