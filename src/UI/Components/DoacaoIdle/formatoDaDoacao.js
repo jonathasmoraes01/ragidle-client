@@ -341,7 +341,11 @@ const RECUSAS = {
 	'nome-invalido': 'Informe o nome completo do titular da conta que vai pagar.',
 	'cpf-invalido': 'CPF inválido. Confira os números.',
 	'codigos-demais': 'Você já tem códigos PIX abertos. Pague um deles ou espere expirar (30 minutos).',
-	'falha-na-efi': 'Não foi possível gerar o código agora. Tente de novo em instantes.'
+	'falha-na-efi': 'Não foi possível gerar o código agora. Tente de novo em instantes.',
+	/* O servidor dividido (D-2507): o mapa-k nao ouviu o p0 no prazo. O codigo pode ter sido gerado: se a
+	   resposta chegar depois, a janela abre o QR sozinha. Com acento aqui, mesmo que o servidor mande sem. */
+	'sem-resposta':
+		'O servidor de doações não respondeu a tempo. Confira os códigos abertos antes de gerar outro, ou tente de novo em instantes.'
 };
 
 export function textoDaRecusa(resposta) {

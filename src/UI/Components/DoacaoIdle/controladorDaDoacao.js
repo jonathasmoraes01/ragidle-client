@@ -63,8 +63,16 @@ import { formatarRoCash } from 'Utils/roCash.js';
 import RiIcones from 'UI/ri-icones.js';
 import { ASSET } from '../RoShop/formatoDoRoShop.js';
 
-/** Sem resposta do `doacao-gerar` em 15 s, a trava abre e avisa. */
-export const TIMEOUT_DO_GERAR_MS = 15000;
+/**
+ * Sem resposta do `doacao-gerar` em 45 s, a trava abre e avisa (D-2507; eram
+ * 15 s). O gerar fala com a Efi de producao duas vezes (cobranca e QR, mTLS),
+ * e com o servidor dividido o pedido ainda atravessa ate o `p0`: em producao,
+ * com o `p0` lento, a cobranca saiu e a janela ja tinha desistido. O servidor
+ * espera o `p0` por 40 s (`PRAZO_DO_GERAR_NO_COORDENADOR_MS`) e manda a recusa
+ * com o motivo ANTES destes 45 s. Ate la o botao fica em "Gerando…" e
+ * desligado: o segundo clique nao vira uma segunda cobranca.
+ */
+export const TIMEOUT_DO_GERAR_MS = 45000;
 
 /** A quantidade com que a janela nasce (presa aos limites do servidor). */
 export const QUANTIDADE_INICIAL = 100;
@@ -525,7 +533,8 @@ export function criarControladorDaDoacao(opcoes) {
 				return;
 			}
 			s.gerando = false;
-			s.erro = 'O servidor não respondeu. Tente de novo.';
+			/* Nao "tente de novo": o codigo pode ter sido gerado, e a resposta que chega depois ainda abre o QR. */
+			s.erro = 'O servidor ainda não respondeu. Se o código PIX for gerado, ele abre aqui sozinho; confira os códigos abertos antes de gerar outro.';
 			if (s.tela === 'escolha') {
 				atualizarEscolha();
 			}
@@ -738,8 +747,17 @@ export function criarControladorDaDoacao(opcoes) {
 			cancelar(_timerGerar);
 			_timerGerar = null;
 		}
+		const esperando = s.gerando;
 		s.gerando = false;
 		if (dados.ok === true && typeof dados.txid === 'string' && Number.isFinite(dados.expiraEmMs)) {
+			/*
+			 * A RESPOSTA ATRASADA (D-2507): o codigo que chega DEPOIS do "nao respondeu" abre o QR, se o
+			 * jogador ainda esta escolhendo. Se ele ja esta noutro pagamento ou no sucesso, o atrasado nao
+			 * toma a tela: ele fica em "Retomar", na lista de codigos abertos.
+			 */
+			if (!esperando && (s.tela === 'pagamento' || s.tela === 'sucesso')) {
+				return;
+			}
 			s.pagamento = {
 				txid: dados.txid,
 				quantidade: dados.quantidade,

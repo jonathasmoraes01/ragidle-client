@@ -423,11 +423,51 @@ describe('a janela: gerar, pagar e confirmar', () => {
 		expect(t.$('[data-dc="gerar"]').textContent).toBe('Gerando…');
 	});
 
-	it('sem resposta em 15 s a trava abre e avisa', () => {
+	it('sem resposta em 45 s a trava abre e avisa, sem mandar "tentar de novo" (D-2507)', () => {
 		ateOGerar();
-		t.r.andar(TIMEOUT_DO_GERAR_MS);
+		t.r.andar(TIMEOUT_DO_GERAR_MS - 1);
+		expect(t.$('[data-dc="gerar"]').disabled, 'aos 44,9 s ainda gerando').toBe(true);
+		expect(t.$('[data-dc="gerar"]').textContent).toBe('Gerando…');
+		t.r.andar(1);
 		expect(t.$('[data-dc="gerar"]').disabled).toBe(false);
-		expect(t.$('.dc-erro').textContent).toContain('não respondeu');
+		expect(t.$('.dc-erro').textContent).toBe(
+			'O servidor ainda não respondeu. Se o código PIX for gerado, ele abre aqui sozinho; confira os códigos abertos antes de gerar outro.'
+		);
+	});
+
+	it('o prazo da janela cobre o do servidor dividido (40 s) com folga', () => {
+		expect(TIMEOUT_DO_GERAR_MS).toBe(45000);
+	});
+
+	it('a recusa "sem-resposta" do servidor dividido sai com acento, mesmo vinda sem (D-2507)', () => {
+		ateOGerar();
+		t.c.receber({ tipo: 'doacao', acao: 'doacao-gerar', ok: false, recusa: 'sem-resposta', texto: 'O servidor de doacoes nao respondeu' });
+		expect(t.$('.dc-erro').textContent).toBe(
+			'O servidor de doações não respondeu a tempo. Confira os códigos abertos antes de gerar outro, ou tente de novo em instantes.'
+		);
+		expect(t.$('[data-dc="gerar"]').disabled).toBe(false);
+	});
+
+	it('a resposta ATRASADA: o QR que chega depois do "nao respondeu" abre o pagamento, sem pedir de novo (D-2507)', () => {
+		ateOGerar();
+		t.c.receber({ tipo: 'doacao', acao: 'doacao-gerar', ok: false, recusa: 'sem-resposta' });
+		t.r.andar(TIMEOUT_DO_GERAR_MS);
+		const g = geradaDeExemplo(t.r.agora());
+		t.c.receber(g);
+		expect(t.c.estadoDaTela.tela).toBe('pagamento');
+		expect(t.$('.dc-qr').getAttribute('src')).toBe(g.imagemQrcode);
+		expect(t.enviados.filter(e => e.acao === 'doacao-gerar'), 'um pedido so').toHaveLength(1);
+	});
+
+	it('a resposta atrasada nao toma a tela de OUTRO pagamento nem a do sucesso', () => {
+		ateOGerar();
+		const primeiro = geradaDeExemplo(t.r.agora());
+		t.c.receber(primeiro);
+		t.c.receber({ ...geradaDeExemplo(t.r.agora()), txid: 'outro-txid-atrasado' });
+		expect(t.c.estadoDaTela.pagamento.txid).toBe(primeiro.txid);
+		t.c.receber({ tipo: 'doacao', acao: 'doacao-confirmada', quantidade: 100, creditoMinor: 10000 });
+		t.c.receber({ ...geradaDeExemplo(t.r.agora()), txid: 'mais-um-atrasado' });
+		expect(t.c.estadoDaTela.tela).toBe('sucesso');
 	});
 
 	it('recusa: o texto (com acento) aparece e o formulario fica', () => {
