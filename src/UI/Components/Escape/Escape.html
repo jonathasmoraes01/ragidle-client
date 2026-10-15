@@ -20,6 +20,12 @@
 		<!-- O jogo em ingles (D-1929): bilingue e fora do tradutor, para quem
 		     trocou sem querer achar o caminho de volta. -->
 		<button type="button" class="idioma ri-btn ri-btn--sec" translate="no">Idioma · Language</button>
+		<!-- INSTALAR O JOGO (16/10/2026): a porta do D-933 ("botao Instalar
+		     proprio dentro de Configuracoes") morava na janela Idle e saiu com
+		     ela (df1636c9). Nasce escondido; quem decide se aparece e o que o
+		     clique faz e `UI/ofertaDeInstalacao.js` (instalarNoSistema.js). -->
+		<button type="button" class="instalar ri-btn ri-btn--sec" hidden>Instalar o jogo</button>
+		<p class="instalar-dica" role="status" hidden></p>
 		<button type="button" class="exit ri-btn ri-btn--sec">Fechar Jogo</button>
 		<button type="button" class="cancel ri-btn">Continuar a Jogar</button>
 	</div>

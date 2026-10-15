@@ -92,3 +92,21 @@
 .ui-component-root:not(.ri-premium) #Escape .barra-skills {
 	display: none;
 }
+
+/*
+ * INSTALAR O JOGO (16/10/2026, instalarNoSistema.js): botao e dica nascem com `hidden`, e o `display` do
+ * `.ri-btn` venceria o `hidden` do navegador - o botao apareceria morto para quem ja instalou. A morte o esconde
+ * pelo `style`, como os outros.
+ */
+#Escape .instalar[hidden],
+#Escape .instalar-dica[hidden] {
+	display: none;
+}
+
+#Escape .instalar-dica {
+	margin: 0;
+	padding: 0 2px;
+	font-size: 12px;
+	line-height: 1.4;
+	white-space: normal;
+}

@@ -20,6 +20,7 @@ import DeathWindow from 'UI/Components/DeathWindow/DeathWindow.js';
 import { conversaNaTela } from 'UI/conversaNaTela.js';
 import { barraDeAtalhosLigada, definirBarraDeAtalhos } from 'UI/HudPremium/hudPremium.js';
 import { reaplicar as reaplicarHudVertical } from 'UI/hudVertical.js';
+import { ligarInstalarNoSistema, sincronizarInstalarNoSistema } from './instalarNoSistema.js';
 import htmlText from './Escape.html?raw';
 import cssText from './Escape.css?raw';
 
@@ -81,6 +82,8 @@ Escape.init = function init() {
 	root.querySelector('.exit').addEventListener('click', function () {
 		Escape.onExitRequest();
 	});
+	// INSTALAR O JOGO (16/10/2026): a decisao e de `UI/ofertaDeInstalacao.js`.
+	ligarInstalarNoSistema(root);
 	root.querySelector('.cancel').addEventListener('click', function () {
 		Escape._host.style.display = 'none';
 	});
@@ -106,7 +109,7 @@ Escape.onRemove = function onRemove() {
 	root.querySelectorAll('.resurection, .savepoint').forEach(function (el) {
 		el.style.display = 'none';
 	});
-	root.querySelectorAll('.graphics, .sound, .hotkey, .barra-skills, .idioma').forEach(function (el) {
+	root.querySelectorAll('.graphics, .sound, .hotkey, .barra-skills, .idioma, .instalar').forEach(function (el) {
 		el.style.display = '';
 	});
 };
@@ -149,6 +152,7 @@ Escape.onKeyDown = function onKeyDown(event) {
 
 		if (this._host.style.display === 'none') {
 			this._host.style.display = '';
+			sincronizarInstalarNoSistema(this.getRoot());
 			this.focus();
 		} else {
 			this._host.style.display = 'none';
@@ -231,6 +235,7 @@ Escape.abrirPeloMenu = function abrirPeloMenu() {
 		return false;
 	}
 	this._host.style.display = '';
+	sincronizarInstalarNoSistema(this.getRoot());
 	this.focus();
 	return true;
 };
@@ -245,7 +250,7 @@ Escape.showDeathMenu = function showDeathMenu(hasSiegfried) {
 	if (hasSiegfried) {
 		root.querySelector('.resurection').style.display = '';
 	}
-	root.querySelectorAll('.graphics, .sound, .hotkey, .barra-skills, .idioma').forEach(function (el) {
+	root.querySelectorAll('.graphics, .sound, .hotkey, .barra-skills, .idioma, .instalar').forEach(function (el) {
 		el.style.display = 'none';
 	});
 };
@@ -259,7 +264,7 @@ Escape.resetMenu = function resetMenu() {
 	root.querySelectorAll('.resurection, .savepoint').forEach(function (el) {
 		el.style.display = 'none';
 	});
-	root.querySelectorAll('.graphics, .sound, .hotkey, .barra-skills, .idioma').forEach(function (el) {
+	root.querySelectorAll('.graphics, .sound, .hotkey, .barra-skills, .idioma, .instalar').forEach(function (el) {
 		el.style.display = '';
 	});
 };
