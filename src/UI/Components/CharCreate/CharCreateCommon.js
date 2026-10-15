@@ -26,6 +26,7 @@ import Client from 'Core/Client.js';
 import UIManager from 'UI/UIManager.js';
 import GUIComponent from 'UI/GUIComponent.js';
 import { normalizarNomeDoPersonagem, recusaDoNomeNoCliente } from './nomeDoPersonagem.js';
+import { criarEsperaDaCriacao, TEXTO_CRIANDO } from './esperaDaCriacao.js';
 import 'UI/Elements/Elements.js';
 
 const TYPE = {
@@ -161,6 +162,63 @@ export function createCharCreate(config) {
 	let _curcolor = 0;
 
 	const render = hasRace ? renderRace : renderLegacy;
+
+	/*
+	 * A ESPERA DA RESPOSTA DO SERVIDOR (16/10/2026, `esperaDaCriacao.js`): do
+	 * clique em "Criar personagem" ate o aceite ou a recusa, o formulario fica
+	 * travado e o botao diz que esta criando. Um pedido por vez.
+	 */
+	let _filhosDoBotao = null;
+	const _espera = criarEsperaDaCriacao({
+		aoMudar: pintarEspera,
+		aoEsgotar: () => Component.onCreationTimeout()
+	});
+
+	/**
+	 * Trava (ou solta) o formulario. O rotulo original do botao e guardado como
+	 * os PROPRIOS nos de texto, e nao como string: em ingles o tradutor da borda
+	 * ja os reescreveu, e devolve-los intactos evita traduzir a traducao.
+	 *
+	 * @param {boolean} criando
+	 */
+	function pintarEspera(criando) {
+		const root = Component.getRoot();
+		if (!root) {
+			return;
+		}
+		const botao = root.querySelector(makeSelector);
+		if (botao) {
+			if (criando) {
+				_filhosDoBotao = Array.from(botao.childNodes);
+				const giro = document.createElement('span');
+				giro.className = 'cc-giro';
+				giro.setAttribute('aria-hidden', 'true');
+				const texto = document.createElement('span');
+				texto.className = 'cc-criando';
+				texto.textContent = TEXTO_CRIANDO;
+				botao.replaceChildren(giro, texto);
+				botao.disabled = true;
+				botao.classList.add('is-criando');
+				botao.setAttribute('aria-busy', 'true');
+			} else {
+				if (_filhosDoBotao) {
+					botao.replaceChildren(..._filhosDoBotao);
+					_filhosDoBotao = null;
+				}
+				botao.disabled = false;
+				botao.classList.remove('is-criando');
+				botao.removeAttribute('aria-busy');
+			}
+		}
+		cancelSelectors.forEach(selector => {
+			root.querySelectorAll(selector).forEach(el => {
+				el.disabled = criando;
+			});
+		});
+		root.querySelectorAll('input').forEach(input => {
+			input.disabled = criando;
+		});
+	}
 
 	/**
 	 * Initialize UI
@@ -309,7 +367,22 @@ export function createCharCreate(config) {
 	 * Stop rendering
 	 */
 	Component.onRemove = function onRemove() {
+		// A tela fechou (aceite, ou a lista que chegou): a proxima abertura nasce livre.
+		_espera.terminar();
 		Renderer.stop(render);
+	};
+
+	/**
+	 * O servidor respondeu (aceite ou recusa): solta o formulario. Quem chama e o
+	 * CharEngine, nos ganchos do `HC_*_MAKECHAR`.
+	 */
+	Component.criacaoRespondida = function criacaoRespondida() {
+		_espera.terminar();
+	};
+
+	/** @returns {boolean} ha um pedido de criacao esperando resposta */
+	Component.criacaoEmCurso = function criacaoEmCurso() {
+		return _espera.emCurso();
 	};
 
 	/**
@@ -322,6 +395,11 @@ export function createCharCreate(config) {
 		if ((event.which === KEYS.ESCAPE || event.key === 'Escape') && this._host.style.display !== 'none') {
 			event.stopImmediatePropagation();
 			cancel();
+			return false;
+		}
+		// Com o pedido no ar, o Enter nao vai a lugar nenhum.
+		if ((event.which === KEYS.ENTER || event.key === 'Enter') && _espera.emCurso()) {
+			event.stopImmediatePropagation();
 			return false;
 		}
 
@@ -346,6 +424,11 @@ export function createCharCreate(config) {
 	 * Send back informations to send the packet
 	 */
 	function create() {
+		// Um pedido por vez: o segundo clique (ou toque) enquanto o servidor
+		// responde nao manda outro pacote.
+		if (_espera.emCurso()) {
+			return;
+		}
 		const root = Component.getRoot();
 		/*
 		 * O NOME APARADO E CONFERIDO AQUI (10/09/2026) — ver `nomeDoPersonagem.js`.
@@ -376,6 +459,11 @@ export function createCharCreate(config) {
 			int = parseInt(root.querySelector('.info .int').textContent, 10);
 			dex = parseInt(root.querySelector('.info .dex').textContent, 10);
 			luk = parseInt(root.querySelector('.info .luk').textContent, 10);
+		}
+
+		// Trava ANTES de mandar: o jogador ve a resposta ao clique na hora.
+		if (!_espera.comecar()) {
+			return;
 		}
 
 		if (hasRace) {
@@ -411,6 +499,11 @@ export function createCharCreate(config) {
 	 * Exit the window
 	 */
 	function cancel() {
+		// "Voltar" e ESC esperam a resposta: sair no meio deixaria o personagem
+		// nascer sem a tela saber (a lista o mostra depois).
+		if (_espera.emCurso()) {
+			return;
+		}
 		if (hasRace) {
 			if (gridHairstyle) {
 				cleanup();
@@ -1085,6 +1178,12 @@ export function createCharCreate(config) {
 	 * Abstract callback to define
 	 */
 	Component.onCharCreationRequest = function OnCharCreationRequest() {};
+
+	/**
+	 * A espera esgotou sem resposta do servidor (`esperaDaCriacao.js`). O
+	 * CharEngine avisa o jogador e pede a lista de novo; nada e reenviado.
+	 */
+	Component.onCreationTimeout = function OnCreationTimeout() {};
 
 	/**
 	 * Create component and export it

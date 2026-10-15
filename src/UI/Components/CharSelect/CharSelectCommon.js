@@ -640,6 +640,27 @@ export function createCharSelect(config) {
 	};
 
 	/**
+	 * Poe o cursor numa vaga (16/10/2026): o personagem recem-criado volta a
+	 * lista JA selecionado. Antes do `append`, a vaga fica guardada e o
+	 * `onAppend` a usa (a grade le `_index`, a paginada a preferencia); com a
+	 * lista na tela, o cursor anda na hora.
+	 *
+	 * @param {number} vaga
+	 */
+	Component.selecionarVaga = function selecionarVaga(vaga) {
+		if (!Number.isInteger(vaga) || vaga < 0) {
+			return;
+		}
+		_preferences.index = vaga;
+		if (this.__active) {
+			// moveCursorTo le o `_index` ANTERIOR para apagar o realce dele.
+			moveCursorTo(vaga);
+		} else {
+			_index = vaga;
+		}
+	};
+
+	/**
 	 * Callback to use
 	 */
 	Component.onExitRequest = function onExitRequest() {};

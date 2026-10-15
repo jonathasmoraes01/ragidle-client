@@ -32,6 +32,7 @@ import { semOSonoDaLista } from 'UI/Components/CharSelect/sonoNaSelecao.js';
 import { abrirCriacaoDireto, registrarConversaoDoCadastro } from 'Engine/entradaPosCadastro.js';
 import { personagemParaSelecionar } from 'Engine/retomadaAposAtualizacao.js';
 import { textoDaRecusaDeCriacao } from 'UI/Components/CharCreate/nomeDoPersonagem.js';
+import { TEXTO_SERVIDOR_DEMOROU, personagemCriadoNaLista } from 'UI/Components/CharCreate/esperaDaCriacao.js';
 
 // Load modules
 // Version Dependent UIs
@@ -44,6 +45,13 @@ let _server = null;
  * @type {number} where to create character ?
  */
 let _creationSlot = 0;
+
+/**
+ * A espera da criacao esgotou e a lista foi pedida de novo (16/10/2026,
+ * `esperaDaCriacao.js`): se ela trouxer o personagem na vaga pedida, o jogador
+ * vai a selecao ve-lo, em vez de tentar outra vez.
+ */
+let _listaPedidaAposEsgotar = false;
 
 /**
  * @type {number} times attempted to provide pin code.
@@ -250,6 +258,17 @@ function onConnectionAccepted(pkt) {
 		ChSel.append();
 	}
 	ChSel.setInfo(pkt);
+
+	// A lista pedida depois da espera esgotada trouxe o personagem: a selecao.
+	if (_listaPedidaAposEsgotar && Array.isArray(pkt.charInfo)) {
+		_listaPedidaAposEsgotar = false;
+		const ChCre = CharCreate.getUI();
+		if (ChCre.__active && personagemCriadoNaLista(pkt.charInfo, _creationSlot)) {
+			ChCre.remove();
+			selecionarVagaCriada(ChSel, _creationSlot);
+			ChSel.append();
+		}
+	}
 
 	/*
 	 * A ENTRADA POS-CADASTRO (D-1379): quem acabou de criar a conta no site cai
@@ -604,6 +623,7 @@ function onCreateRequest(index) {
 	ChSel.remove();
 	ChCre.setAccountSex(Session.Sex);
 	ChCre.onCharCreationRequest = onCharCreationRequest;
+	ChCre.onCreationTimeout = onCreationTimeout;
 	ChCre.onExitRequest = function () {
 		ChCre.remove();
 		ChSel.append();
@@ -660,10 +680,41 @@ function onCharCreationRequest(name, Str, Agi, Vit, Int, Dex, Luk, hair, color, 
  * @param {object} pkt - PACKET.HC.ACCEPT_MAKECHAR
  */
 function onCreationSuccess(pkt) {
-	CharCreate.getUI().remove();
+	const ChCre = CharCreate.getUI();
+	_listaPedidaAposEsgotar = false;
+	ChCre.criacaoRespondida();
+	ChCre.remove();
 	const ChSel = CharSelect.getUI();
 	ChSel.addCharacter(pkt.charinfo);
-	ChSel.append();
+	// O personagem novo ja chega SELECIONADO: o proximo toque e "Jogar".
+	selecionarVagaCriada(ChSel, pkt.charinfo && pkt.charinfo.CharNum);
+	if (!ChSel.__active) {
+		ChSel.append();
+	}
+}
+
+/**
+ * Poe o cursor da selecao na vaga do personagem recem-criado.
+ *
+ * @param {object} ChSel
+ * @param {number} vaga
+ */
+function selecionarVagaCriada(ChSel, vaga) {
+	if (typeof ChSel.selecionarVaga === 'function' && Number.isInteger(vaga)) {
+		ChSel.selecionarVaga(vaga);
+	}
+}
+
+/**
+ * A espera da criacao esgotou sem resposta (`esperaDaCriacao.js`). Nada e
+ * reenviado: o servidor pode ainda estar criando. A lista e pedida de novo
+ * (um `CH_CHARLIST_REQ`, o mesmo de `onCharListNotify`), e se o personagem
+ * nasceu, `onConnectionAccepted` leva o jogador a selecao.
+ */
+function onCreationTimeout() {
+	UIManager.showMessageBox(TEXTO_SERVIDOR_DEMOROU, 'ok');
+	_listaPedidaAposEsgotar = true;
+	Network.sendPacket(new PACKET.CH.CHARLIST_REQ());
 }
 
 /**
@@ -677,7 +728,11 @@ function onCreationFail(pkt) {
 	 * (`nomeDoPersonagem.js`), que tem teste. O `0x02` deixou de ser a frase
 	 * generica de simbolo: neste servidor ele e o nome com ESPACO (ordem do dono),
 	 * e a caixa diz "O nome não pode ter espaços."
+	 *
+	 * O formulario e solto ANTES da caixa (16/10/2026, `esperaDaCriacao.js`):
+	 * o jogador corrige o nome e tenta de novo.
 	 */
+	CharCreate.getUI().criacaoRespondida();
 	UIManager.showMessageBox(textoDaRecusaDeCriacao(pkt.ErrorCode, id => DB.getMessage(id)), 'ok');
 }
 
