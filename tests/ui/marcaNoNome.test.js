@@ -271,7 +271,9 @@ describe('o fio: todo canal com fala de jogador pergunta pela marca', () => {
 		const chatbox = ler('src/UI/Components/ChatBox/ChatBox.js');
 		expect(chatbox).toContain('const classeDaMarca = classeDaLinha(msg.colorType, ChatBox.TYPE);');
 		expect(chatbox).toContain(
-			'if (classeDaMarca) {\n\t\t\t\tdiv.classList.add(classeDaMarca);\n\t\t\t} else {\n\t\t\t\tdiv.style.color = color;'
+			// 15/10/2026: a montagem da linha saiu para `anexarAoCanal` (o flush em
+			// fases) e perdeu um nivel de recuo.
+			'if (classeDaMarca) {\n\t\t\tdiv.classList.add(classeDaMarca);\n\t\t} else {\n\t\t\tdiv.style.color = color;'
 		);
 		const css = ler('src/UI/Components/ChatBox/ChatBox.css');
 		expect(css).toContain('#chatbox .cb-linha-vip {\n\tcolor: var(--chat-text-name-vip);');

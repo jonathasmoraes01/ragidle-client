@@ -94,6 +94,13 @@ import { renderFalaSegura } from './textoSeguroDoChat.js'; // D-1308: escapa ant
 import Session from 'Engine/SessionStorage.js';
 import { alturasDosDegraus, proximoDegrau, degrauAtual, rotuloDoDegrau } from './degrausDeAltura.js';
 import { podarPorCanal } from './podarPorCanal.js';
+import {
+	criarRelogioDoRepouso,
+	drenarCanaisEmFases,
+	escreverTextoSeMudou,
+	linhaTemBlob,
+	revogarBlobsDaLinha
+} from './chatEmLote.js';
 import { PREFIXO_DO_NOME, classeDaLinha, htmlDoNomeDaFala, linhaDeAdminSemNome, marcaDoTipo } from './marcaNoNome.js'; // 25/09/2026: a marca de GM e a de VIP no nome de quem fala
 
 /**
@@ -2287,109 +2294,27 @@ function flushMessageBuffer() {
 		porCanal[canal].push(msg);
 	});
 
+	/*
+	 * EM FASES (15/10/2026, `chatEmLote.js`): todas as leituras de geometria de
+	 * todos os canais primeiro, depois todas as escritas. Antes cada canal lia
+	 * depois da escrita do anterior, e cada um forcava um layout.
+	 */
+	const entradas = [];
 	Object.keys(porCanal).forEach(canal => {
 		const content = root.querySelector(`.content[data-content="${canal}"]`);
-		if (!content) return;
-
-		const fragment = document.createDocumentFragment();
-		const wasAtBottom = shouldScrollDownBeforeAdd(content, content.offsetHeight);
-
-		porCanal[canal].forEach(msg => {
-			const color = msg.color || getColorForType(msg.colorType);
-			const div = document.createElement('div');
-			// A fala de GM e de VIP e pintada INTEIRA com a cor do nome (25/09/2026,
-			// pedido do dono), por CLASSE e nao por cor inline: o token muda com a
-			// HUD (moderna/classica), e um `style.color` fixo nao acompanharia.
-			const classeDaMarca = classeDaLinha(msg.colorType, ChatBox.TYPE);
-			if (classeDaMarca) {
-				div.classList.add(classeDaMarca);
-			} else {
-				div.style.color = color;
-			}
-
-			/*
-			 * A ETIQUETA E TEXTO, e a cor e reforco (spec §10).
-			 *
-			 * Coral (guilda) e dourado (trade) ficam proximos para daltonicos
-			 * do tipo protanopia, entao "[Guilda]" ESCRITO e obrigatorio — nao
-			 * da para depender so da cor para dizer de onde a linha veio.
-			 *
-			 * `etiquetaDaLinha` continua mandando quando tem algo MAIS
-			 * especifico a dizer (Sussurro, Erro, Admin, Correio): "Sussurro"
-			 * informa mais que "Global", e um sussurro que se anunciasse como
-			 * Global seria pior que nao ter etiqueta.
-			 */
-			const especifica = etiquetaDaLinha(msg.colorType, msg.filterType);
-			const rotulo = especifica.rotulo || ROTULO_DO_CANAL[canal] || 'Global';
-			const corDaTag = especifica.rotulo === 'Sussurro' ? 'sussurro' : canal;
-			const tagHtml = `<span class="cb-tag" data-canal="${corDaTag}">[${rotulo}]</span>`;
-
-			// A hora nasce em TODA linha e some por CSS quando o interruptor
-			// esta desligado — assim liga-lo mostra o horario do que ja esta no
-			// log, e nao so das proximas.
-			const agora = new Date();
-			const hh = String(agora.getHours()).padStart(2, '0');
-			const mm = String(agora.getMinutes()).padStart(2, '0');
-			const horaHtml = `<span class="cb-hora">${hh}:${mm}</span> `;
-
-			// O jogo em ingles (D-1929): o que o JOGADOR digitou nao se traduz -
-			// o corpo da linha vai num `translate="no"`; a etiqueta traduz.
-			const doJogador = falaDeJogador(msg.filterType, msg.colorType, ChatBox);
-			const abre = doJogador ? '<span translate="no">' : '';
-			// A linha do SERVIDOR e traduzida inteira antes de virar pedacos (linhaNoIdioma.js).
-			const textoDaLinha = doJogador ? msg.text : linhaNoIdioma(msg.text);
-			const fecha = doJogador ? '</span>' : '';
-
-			if (!msg.override) {
-				// D-1308: escapa PRIMEIRO, transforma DEPOIS. O texto cru de outro
-				// jogador passa por highlightMessage (que escapa) em cada trecho
-				// fora de um link de item; o link vira um span seguro montado do
-				// que o parser extraiu — nunca do markup que o jogador digitou.
-				div.innerHTML =
-					horaHtml +
-					tagHtml +
-					' ' +
-					abre +
-					renderFalaSegura(textoDaLinha, (segmento, ehPrimeiro) =>
-						highlightMessage(segmento, msg.colorType, ehPrimeiro)
-					) +
-					fecha;
-			} else {
-				// Override e HTML que o PROPRIO cliente montou com seguranca (link de
-				// download; sussurro de PrivateMessage.js com nome e corpo ja
-				// escapados). Nunca vem do texto cru de outro jogador (D-1308).
-				div.innerHTML = horaHtml + tagHtml + ' ' + abre + msg.text + fecha;
-			}
-			fragment.appendChild(div);
-		});
-
-		content.appendChild(fragment);
-
-		while (content.childElementCount > MAX_MSG) {
-			const element = content.firstElementChild;
-			const matches = element.innerHTML.match(/(blob:[^"]+)/g);
-			if (matches) {
-				for (let i = 0; i < matches.length; i++) {
-					window.URL.revokeObjectURL(matches[i]);
-				}
-			}
-			element.remove();
-		}
-
-		/*
-		 * ROLAGEM ANCORADA (spec §7): quem subiu no historico NAO e puxado de
-		 * volta. Em vez disso o botao "novas mensagens" aparece, e ele e o
-		 * caminho de volta — perder o lugar da leitura por causa de uma linha
-		 * nova e o defeito que esta regra existe para evitar.
-		 */
-		if (wasAtBottom) {
-			content.scrollTop = content.scrollHeight;
-		} else if (canal === ChatBox.activeTab) {
-			atualizarBotaoDeNovas(root, true);
-		}
-
-		marcarNaoLido(canal);
+		if (content) entradas.push({ canal, content });
 	});
+
+	const algumNaoLido = drenarCanaisEmFases(entradas, {
+		estavaNoFim: ({ content }) => shouldScrollDownBeforeAdd(content, content.offsetHeight),
+		anexar: ({ canal, content }) => anexarAoCanal(canal, content, porCanal[canal]),
+		avisarNovas: ({ canal }) => {
+			if (canal === ChatBox.activeTab) atualizarBotaoDeNovas(root, true);
+		},
+		contarNaoLido: ({ canal }) => contarNaoLido(canal)
+	});
+	// Os badges uma vez por flush, e nao uma por canal.
+	if (algumNaoLido) atualizarBadges(root);
 
 	/*
 	 * MENSAGEM NOVA ACORDA O PAINEL (spec §7).
@@ -2409,6 +2334,94 @@ function flushMessageBuffer() {
 }
 
 /**
+ * Monta e anexa as linhas de UM canal, e poda o excedente (a fase 2 do flush;
+ * so ESCREVE no DOM - ver `chatEmLote.js`).
+ */
+function anexarAoCanal(canal, content, mensagens) {
+	const fragment = document.createDocumentFragment();
+
+	mensagens.forEach(msg => {
+		const color = msg.color || getColorForType(msg.colorType);
+		const div = document.createElement('div');
+		// A fala de GM e de VIP e pintada INTEIRA com a cor do nome (25/09/2026,
+		// pedido do dono), por CLASSE e nao por cor inline: o token muda com a
+		// HUD (moderna/classica), e um `style.color` fixo nao acompanharia.
+		const classeDaMarca = classeDaLinha(msg.colorType, ChatBox.TYPE);
+		if (classeDaMarca) {
+			div.classList.add(classeDaMarca);
+		} else {
+			div.style.color = color;
+		}
+
+		/*
+		 * A ETIQUETA E TEXTO, e a cor e reforco (spec §10).
+		 *
+		 * Coral (guilda) e dourado (trade) ficam proximos para daltonicos
+		 * do tipo protanopia, entao "[Guilda]" ESCRITO e obrigatorio — nao
+		 * da para depender so da cor para dizer de onde a linha veio.
+		 *
+		 * `etiquetaDaLinha` continua mandando quando tem algo MAIS
+		 * especifico a dizer (Sussurro, Erro, Admin, Correio): "Sussurro"
+		 * informa mais que "Global", e um sussurro que se anunciasse como
+		 * Global seria pior que nao ter etiqueta.
+		 */
+		const especifica = etiquetaDaLinha(msg.colorType, msg.filterType);
+		const rotulo = especifica.rotulo || ROTULO_DO_CANAL[canal] || 'Global';
+		const corDaTag = especifica.rotulo === 'Sussurro' ? 'sussurro' : canal;
+		const tagHtml = `<span class="cb-tag" data-canal="${corDaTag}">[${rotulo}]</span>`;
+
+		// A hora nasce em TODA linha e some por CSS quando o interruptor
+		// esta desligado — assim liga-lo mostra o horario do que ja esta no
+		// log, e nao so das proximas.
+		const agora = new Date();
+		const hh = String(agora.getHours()).padStart(2, '0');
+		const mm = String(agora.getMinutes()).padStart(2, '0');
+		const horaHtml = `<span class="cb-hora">${hh}:${mm}</span> `;
+
+		// O jogo em ingles (D-1929): o que o JOGADOR digitou nao se traduz -
+		// o corpo da linha vai num `translate="no"`; a etiqueta traduz.
+		const doJogador = falaDeJogador(msg.filterType, msg.colorType, ChatBox);
+		const abre = doJogador ? '<span translate="no">' : '';
+		// A linha do SERVIDOR e traduzida inteira antes de virar pedacos (linhaNoIdioma.js).
+		const textoDaLinha = doJogador ? msg.text : linhaNoIdioma(msg.text);
+		const fecha = doJogador ? '</span>' : '';
+
+		if (!msg.override) {
+			// D-1308: escapa PRIMEIRO, transforma DEPOIS. O texto cru de outro
+			// jogador passa por highlightMessage (que escapa) em cada trecho
+			// fora de um link de item; o link vira um span seguro montado do
+			// que o parser extraiu — nunca do markup que o jogador digitou.
+			div.innerHTML =
+				horaHtml +
+				tagHtml +
+				' ' +
+				abre +
+				renderFalaSegura(textoDaLinha, (segmento, ehPrimeiro) =>
+					highlightMessage(segmento, msg.colorType, ehPrimeiro)
+				) +
+				fecha;
+		} else {
+			// Override e HTML que o PROPRIO cliente montou com seguranca (link de
+			// download; sussurro de PrivateMessage.js com nome e corpo ja
+			// escapados). Nunca vem do texto cru de outro jogador (D-1308).
+			div.innerHTML = horaHtml + tagHtml + ' ' + abre + msg.text + fecha;
+		}
+		// A linha que leva `blob:` (so a override) e marcada: a poda revoga
+		// so as marcadas, sem serializar o innerHTML de toda linha que sai.
+		if (linhaTemBlob(msg.override, msg.text)) div.dataset.blob = '1';
+		fragment.appendChild(div);
+	});
+
+	content.appendChild(fragment);
+
+	while (content.childElementCount > MAX_MSG) {
+		const element = content.firstElementChild;
+		revogarBlobsDaLinha(element, url => window.URL.revokeObjectURL(url));
+		element.remove();
+	}
+}
+
+/**
  * CONTA o nao-lido do canal que recebeu mensagem (spec §4).
  *
  * Conta em vez de so marcar: o pontinho antigo dizia "ha algo" e nao dizia se
@@ -2418,14 +2431,15 @@ function flushMessageBuffer() {
  * chat RECOLHIDO: sem abas na tela, ate a mensagem do canal ativo passa
  * despercebida, entao ali tudo conta e o badge somado do botao avisa.
  */
-function marcarNaoLido(canal) {
-	const root = _root();
+function contarNaoLido(canal) {
 	const escondido = estaFechado();
 
 	if (escondido || canal !== ChatBox.activeTab) {
 		somarNaoLido(canal);
-		atualizarBadges(root);
+		// Quem chama refaz os badges UMA vez no fim do flush (15/10/2026).
+		return true;
 	}
+	return false;
 }
 
 function getColorForType(colorType) {
@@ -3016,22 +3030,35 @@ function alternarPopover(root) {
  * da tela.
  */
 const MS_DE_REPOUSO = 8_000;
-let _relogioDoRepouso = null;
-
-function agendarRepouso(root) {
-	if (_relogioDoRepouso !== null) {
-		clearTimeout(_relogioDoRepouso);
-		_relogioDoRepouso = null;
-	}
-	if (!_opcoes.repouso) return;
-	_relogioDoRepouso = setTimeout(() => {
-		_relogioDoRepouso = null;
-		const painel = root.querySelector('#chatbox');
+/*
+ * O PRAZO, E NAO O RELOGIO (15/10/2026, `criarRelogioDoRepouso` em
+ * `chatEmLote.js`): acordar so empurra o prazo, em vez de `clearTimeout` +
+ * `setTimeout` a cada flush urgente e a cada `mousemove` sobre o painel. O
+ * painel dorme no mesmo instante de antes: 8 s depois do ULTIMO acordar.
+ */
+let _raizDoRepouso = null;
+const _relogioDoRepouso = criarRelogioDoRepouso({
+	ms: MS_DE_REPOUSO,
+	agora: () => Date.now(),
+	armar: (fn, ms) => setTimeout(fn, ms),
+	desarmar: id => clearTimeout(id),
+	dormir: () => {
+		const root = _raizDoRepouso;
+		const painel = root && root.querySelector('#chatbox');
 		// Com o campo em foco o painel NAO dorme: quem esta digitando esta
 		// usando, mesmo sem gerar evento nenhum por 8 s.
 		if (!painel || painel.contains(root.activeElement)) return;
 		painel.classList.add('is-repouso');
-	}, MS_DE_REPOUSO);
+	}
+});
+
+function agendarRepouso(root) {
+	if (!_opcoes.repouso) {
+		_relogioDoRepouso.cancelar();
+		return;
+	}
+	_raizDoRepouso = root;
+	_relogioDoRepouso.agendar();
 }
 
 function acordarDoRepouso(root) {
@@ -3098,7 +3125,8 @@ function atualizarBadges(root) {
 		if (!pilula) return;
 		pilula.classList.toggle('tem-nova', n > 0);
 		const badge = pilula.querySelector('.cb-aba-badge');
-		if (badge) badge.textContent = textoDoBadge(n);
+		// So escreve o que mudou (15/10/2026): o badge reescrito igual e mutacao a toa.
+		if (badge) escreverTextoSeMudou(badge, textoDoBadge(n));
 	});
 
 	// Recolhido nao ha aba na tela, e sem este badge somado o jogador nao teria
@@ -3107,7 +3135,7 @@ function atualizarBadges(root) {
 	if (collapseBtn) {
 		collapseBtn.classList.toggle('tem-nova', total > 0);
 		const badge = collapseBtn.querySelector('.cb-collapse-badge');
-		if (badge) badge.textContent = textoDoBadge(total);
+		if (badge) escreverTextoSeMudou(badge, textoDoBadge(total));
 	}
 }
 
