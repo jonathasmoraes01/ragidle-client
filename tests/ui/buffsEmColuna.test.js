@@ -31,10 +31,10 @@ describe('a coluna de buffs', () => {
 		);
 	});
 
-	it('vai ate 8px acima do chat (aberto ou bolinha), pela altura que o chat publica', () => {
+	it('vai ate 8px acima do chat (aberto ou bolinha), pela altura que o chat publica - e para antes do FPS', () => {
 		expect(tokens).toMatch(/--m-chat-alcance: calc\(var\(--m-acima-dos-atalhos\) \+ var\(--hud-chat-altura, var\(--m-chat-bolinha\)\)\);/);
 		expect(tokens).toMatch(
-			/--m-buffs-altura-max: calc\(var\(--m-altura-util\) - var\(--m-buffs-topo\) - var\(--m-chat-alcance\) - 8px\);/
+			/--m-buffs-altura-max: calc\(\s*var\(--m-altura-util\) - var\(--m-buffs-topo\) - var\(--m-chat-alcance\) - 8px - var\(--m-reserva-do-fps, 0px\)\s*\);/
 		);
 	});
 
@@ -60,7 +60,7 @@ describe('o Menu aberto empurra os buffs para o rodape', () => {
 
 	it('com a folha aberta os buffs descem: acima do chat aberto, ou ao lado da bolinha', () => {
 		expect(documento).toMatch(
-			/html\.ri-vertical\.ri-premium\.ri-menu-aberto #StatusIcons \{\s*top: auto !important;\s*bottom: calc\(var\(--m-chat-alcance\) \+ 8px\) !important;/
+			/html\.ri-vertical\.ri-premium\.ri-menu-aberto #StatusIcons \{\s*top: auto !important;[^}]*bottom: calc\(var\(--m-chat-alcance\) \+ 8px \+ var\(--m-reserva-do-fps, 0px\)\) !important;/
 		);
 		expect(documento).toMatch(
 			/html\.ri-vertical\.ri-premium\.ri-menu-aberto\.ri-chat-minimizado #StatusIcons \{\s*bottom: var\(--m-acima-dos-atalhos\) !important;\s*left: calc\(var\(--safe-esq, 0px\) \+ var\(--m-margem\) \+ var\(--m-chat-bolinha\) \+ 8px\) !important;/

@@ -18,6 +18,7 @@ import KEYS from 'Controls/KeyEventHandler.js';
 import UIManager from 'UI/UIManager.js';
 import GUIComponent from 'UI/GUIComponent.js';
 import { escreverSeMudou, minimapaVisivel } from 'UI/Components/MiniMap/minimapaNoQuadro.js';
+import { ligarRecolherMinimapa } from 'UI/Components/MiniMap/recolherMinimapa.js'; // 15/10/2026: so a V2 tem o botao
 import 'UI/Elements/Elements.js';
 
 /**
@@ -143,6 +144,8 @@ export function createMiniMap({
 
 		_ctx = root.querySelector('canvas').getContext('2d');
 		this.opacity = 2;
+		// HUD mobile premium: o toque na pilula do nome minimiza o mapa (so a V2 tem o botao).
+		ligarRecolherMinimapa(root);
 
 		Client.loadFile(`${DB.INTERFACE_PATH}map/map_arrow.bmp`, dataURI => {
 			_arrow.src = dataURI;

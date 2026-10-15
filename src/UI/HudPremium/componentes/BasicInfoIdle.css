@@ -196,14 +196,33 @@
 }
 
 .ri-premium .bi-level-row {
+	/* A % SAI DE DENTRO DA BARRA (pedido do dono, 15/10/2026: *"a % da exp coloca
+	   uma barrinha em baixo delas, por mais que aumente um pouco"*). Dentro de um
+	   trilho de 10px a letra de 7,5px mal se lia e, espremida pela coluna da
+	   direita (um ping alto), a % era CORTADA - medido com "1234 ms". Agora a
+	   fileira e uma grade: "Base Lv. 61" a esquerda e a % a direita, por extenso,
+	   e embaixo das duas uma barrinha de 4px. O trilho vira `display: contents`
+	   (o preenchimento e a % passam a ser itens da grade) e o fundo da barrinha
+	   e o `::after` da fileira; o `width` em % que o JS escreve no preenchimento
+	   vale sobre a largura da celula, que e a da fileira inteira. */
+	display: grid !important;
 	flex: 1 1 0;
+	grid-template-columns: minmax(0, 1fr) auto;
+	grid-template-rows: auto 4px;
+	align-items: end;
+	column-gap: 4px;
+	row-gap: 2px;
 	min-width: 0;
-	gap: 3px;
 }
 
 .ri-premium .bi-level-label {
+	grid-column: 1;
+	grid-row: 1;
 	min-width: 0;
-	font-size: 8.5px;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	font-size: 9px;
+	line-height: 1.2;
 	color: var(--m-tinta-suave);
 }
 
@@ -212,14 +231,27 @@
 }
 
 .ri-premium .bi-exp-track {
-	--bi-exp-altura: 10px;
-	/* A tela baixa de BasicInfoIdle.css apaga a % porque la o trilho tem 4px; aqui ele tem 10, e a letra de
-	   7,5px cabe inteira. */
-	--bi-exp-pct-visivel: block;
-	min-width: 0;
-	border: 0;
+	display: contents !important;
+}
+
+.ri-premium .bi-level-row::after {
+	content: '';
+	grid-column: 1 / -1;
+	grid-row: 2;
+	height: 4px;
+	border-radius: 999px;
 	background: var(--m-trilha);
-	box-shadow: inset 0 1px 2px rgba(31, 54, 92, 0.22);
+	box-shadow: inset 0 1px 1px rgba(31, 54, 92, 0.22);
+}
+
+.ri-premium .bi-exp-fill {
+	position: relative;
+	z-index: 1;
+	grid-column: 1 / -1;
+	grid-row: 2;
+	justify-self: start;
+	height: 4px;
+	border-radius: 999px;
 }
 
 .ri-premium .bi-bexp-fill {
@@ -231,8 +263,18 @@
 }
 
 .ri-premium .bi-exp-pct {
-	font-size: 7.5px;
-	color: #16304f;
+	position: static;
+	display: block;
+	grid-column: 2;
+	grid-row: 1;
+	font-size: 9px;
+	font-weight: 800;
+	line-height: 1.2;
+	letter-spacing: 0;
+	text-align: right;
+	white-space: nowrap;
+	color: var(--m-tinta);
+	text-shadow: none;
 }
 
 /* ─── Zeny e Cash: pilulas pequenas a direita, uma por fileira ──────────── */
@@ -280,7 +322,17 @@
 }
 
 .ri-premium .bi-aparelho .bi-ping {
-	font-size: 9.5px;
+	font-size: 9px;
+	white-space: nowrap;
+}
+
+/* O PING ALTO NAO ESPREME MAIS O CARTAO (15/10/2026): a coluna da direita mede o
+   que ha nela, e com "1234 ms" + o wifi + "100%" da bateria ela passava das
+   pilulas de zeny e cash e roubava largura das barras de EXP (medido). O nivel
+   da bateria ja esta no desenho dela; o numero sai, e a coluna volta a ser a das
+   pilulas. */
+.ri-premium .bi-aparelho .bi-rodape-bateria-texto {
+	display: none;
 }
 
 /* Telas estreitas (SE, 320; a marca e de `hudVertical.js`, medida em unidades
@@ -325,8 +377,4 @@
 .ri-premium.ri-tela-estreita .bi-zeny,
 .ri-premium.ri-tela-estreita .bi-cash {
 	font-size: 10px;
-}
-
-.ri-premium.ri-tela-estreita .bi-aparelho .bi-rodape-bateria-texto {
-	display: none;
 }

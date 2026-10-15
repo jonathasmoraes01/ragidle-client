@@ -23,6 +23,7 @@ import Renderer from 'Renderer/Renderer.js';
 import UIManager from 'UI/UIManager.js';
 import GUIComponent from 'UI/GUIComponent.js';
 import 'UI/Elements/Elements.js';
+import { marcarFps } from './marcaDoFps.js';
 import htmlText from './FPS.html?raw';
 import cssText from './FPS.css?raw';
 
@@ -83,6 +84,8 @@ FPS.onAppend = function onAppend() {
 	this._host.style.top = _preferences.y + 'px';
 	this._host.style.left = _preferences.x + 'px';
 	this._host.style.display = _preferences.show ? '' : 'none';
+	// a HUD premium do celular reserva o lugar dele acima do chat (marcaDoFps.js)
+	marcarFps(this._host);
 
 	const root = this.getRoot();
 	const fpsEl = root.querySelector('#fpsCounter');
@@ -153,6 +156,7 @@ FPS.onRemove = function onRemove() {
 	_preferences.y = parseInt(this._host.style.top, 10);
 	_preferences.show = this._host.style.display !== 'none';
 	_preferences.save();
+	marcarFps(null);
 };
 
 /**
@@ -172,6 +176,7 @@ FPS.toggle = function toggle(isVisible) {
 
 	_preferences.show = this._host.style.display !== 'none';
 	_preferences.save();
+	marcarFps(this._host);
 
 	if (this._host.style.display !== 'none') {
 		this.focus();

@@ -53,6 +53,7 @@ import huntButtonCss from './componentes/HuntButtonIdle.css?raw';
 import statusIconsCss from './componentes/StatusIcons.css?raw';
 import shortCutCss from './componentes/ShortCut.css?raw';
 import chatBoxCss from './componentes/ChatBox.css?raw';
+import fpsCss from './componentes/FPS.css?raw';
 
 /** A marca que o CSS le — no `<html>` e no root interno de cada shadow. */
 export const MARCA_PREMIUM = 'ri-premium';
@@ -64,6 +65,13 @@ export const MARCA_PREMIUM = 'ri-premium';
  * aparecem em volta do Auto; com ela, a barra volta e o arco some. So existe junto com `ri-premium`.
  */
 export const MARCA_COM_ATALHOS = 'ri-com-atalhos';
+
+/**
+ * A marca do MINIMAPA MINIMIZADO (pedido do dono, 15/10/2026): *"coloque a possibilidade da pessoa minimizar o
+ * mapa tambem e ficar apenas o nome do mapa atual"*. Tocar a pilula do nome alterna (MiniMapCommon.js); a escolha
+ * e guardada no aparelho, como a da barra de skills. So existe junto com `ri-premium`.
+ */
+export const MARCA_MINIMAPA_RECOLHIDO = 'ri-minimapa-recolhido';
 
 /** O atributo do `<style>` de documento, para a injecao ser idempotente. */
 const ATRIBUTO_DO_DOCUMENTO = 'data-hud-premium';
@@ -82,7 +90,8 @@ const CSS_POR_COMPONENTE = Object.freeze({
 	HuntButtonIdle: huntButtonCss,
 	StatusIcons: statusIconsCss,
 	ShortCut: shortCutCss,
-	ChatBox: chatBoxCss
+	ChatBox: chatBoxCss,
+	FPS: fpsCss
 });
 
 /**
@@ -124,9 +133,9 @@ let _prefs = null;
 function preferencias() {
 	if (_prefs === null) {
 		try {
-			_prefs = Preferences.get('HudPremium', { barraDeAtalhos: false }, 1.0);
+			_prefs = Preferences.get('HudPremium', { barraDeAtalhos: false, minimapaRecolhido: false }, 1.0);
 		} catch {
-			_prefs = { barraDeAtalhos: false, save() {} };
+			_prefs = { barraDeAtalhos: false, minimapaRecolhido: false, save() {} };
 		}
 	}
 	return _prefs;
@@ -147,6 +156,23 @@ export function definirBarraDeAtalhos(ligada) {
 		/* storage recusado: vale ate o fim da sessao */
 	}
 	return p.barraDeAtalhos;
+}
+
+/** O minimapa esta minimizado (so a pilula do nome)? Nasce ABERTO. */
+export function minimapaRecolhido() {
+	return preferencias().minimapaRecolhido === true;
+}
+
+/** Minimiza ou abre o minimapa (o toque na pilula do nome; quem reaplica a marca e quem chamou). */
+export function definirMinimapaRecolhido(recolhido) {
+	const p = preferencias();
+	p.minimapaRecolhido = recolhido === true;
+	try {
+		p.save();
+	} catch {
+		/* storage recusado: vale ate o fim da sessao */
+	}
+	return p.minimapaRecolhido;
 }
 
 /** So para testes: esquece a preferencia lida. */
@@ -211,8 +237,11 @@ export function injetarNoShadow(shadow, nome) {
 export default {
 	MARCA_PREMIUM,
 	MARCA_COM_ATALHOS,
+	MARCA_MINIMAPA_RECOLHIDO,
 	barraDeAtalhosLigada,
 	definirBarraDeAtalhos,
+	minimapaRecolhido,
+	definirMinimapaRecolhido,
 	ehHudPremium,
 	cssDoComponente,
 	componentesComCss,

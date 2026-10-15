@@ -107,6 +107,7 @@ describe('cssDoComponente e injetarNoShadow', () => {
 				'BasicInfoIdle',
 				'ChatBox',
 				'CombatCornerIdle',
+				'FPS',
 				'HuntButtonIdle',
 				'MiniMapV2',
 				'MissoesTrackerIdle',

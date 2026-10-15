@@ -62,7 +62,8 @@
 	transform: translateX(-50%);
 	height: 18px;
 	max-width: calc(100% + 16px);
-	padding: 0 9px;
+	/* a direita, o lugar do chevron de minimizar */
+	padding: 0 20px 0 9px;
 	border: 1px solid var(--m-ouro);
 	border-radius: 999px;
 	background: linear-gradient(180deg, var(--m-azul), var(--m-azul-escuro));
@@ -97,4 +98,60 @@
 	font-weight: 700;
 	line-height: 14px;
 	color: var(--m-tinta);
+}
+
+/* ─── MINIMIZAR O MAPA (pedido do dono, 15/10/2026) ──────────────────────
+   *"coloque a possibilidade da pessoa minimizar o mapa tambem e ficar apenas o
+   nome do mapa atual"*. O toque e na PILULA DO NOME inteira: o botao cobre a
+   pilula e passa dela 13px em cima e embaixo, para o alvo chegar aos 44 do dedo
+   (a pilula desenha 18). O chevron no fim diz o que o toque faz: para cima
+   recolhe, para baixo abre. A logica mora em `recolherMinimapa.js`. */
+.ri-premium .mm-recolher {
+	display: block;
+	position: absolute;
+	inset: -13px -6px;
+	width: auto;
+	height: auto;
+	margin: 0;
+	padding: 0;
+	border: 0;
+	background: transparent;
+	cursor: pointer;
+	-webkit-tap-highlight-color: transparent;
+}
+
+.ri-premium .mm-recolher-glifo {
+	position: absolute;
+	top: 50%;
+	right: 14px;
+	width: 5px;
+	height: 5px;
+	margin-top: -1px;
+	border-right: 1.5px solid var(--m-ouro-claro, #f0d9a4);
+	border-bottom: 1.5px solid var(--m-ouro-claro, #f0d9a4);
+	transform: rotate(-135deg);
+}
+
+/* Minimizado: so a pilula fica, no mesmo lugar em que pendia do aro. */
+.ri-premium.ri-minimapa-recolhido .mm-body,
+.ri-premium.ri-minimapa-recolhido .mm-footer {
+	display: none;
+}
+
+.ri-premium.ri-minimapa-recolhido .mm-window {
+	width: auto;
+	height: auto;
+}
+
+.ri-premium.ri-minimapa-recolhido .mm-header {
+	position: relative;
+	top: 0;
+	left: 0;
+	transform: none;
+	max-width: none;
+}
+
+.ri-premium.ri-minimapa-recolhido .mm-recolher-glifo {
+	margin-top: -4px;
+	transform: rotate(45deg);
 }

@@ -42,8 +42,8 @@ html.ri-vertical.ri-premium #MissoesTrackerIdle {
 	width: min(
 		290px,
 		calc(
-			var(--m-largura-util, 100vw) - var(--m-minimapa) - var(--safe-esq, 0px) - var(--safe-dir, 0px) - 3 *
-				var(--m-margem) - 6px
+			var(--m-largura-util, 100vw) - var(--m-coluna-do-minimapa, var(--m-minimapa)) - var(--safe-esq, 0px) -
+				var(--safe-dir, 0px) - 3 * var(--m-margem) - 6px
 		)
 	) !important;
 }
@@ -75,12 +75,37 @@ html.ri-vertical.ri-premium #StatusIcons {
    rodape - uma fileira logo acima do chat aberto, ou ao lado da bolinha. */
 html.ri-vertical.ri-premium.ri-menu-aberto #StatusIcons {
 	top: auto !important;
-	bottom: calc(var(--m-chat-alcance) + 8px) !important;
+	/* acima do chat aberto, e acima do contador de FPS quando ele esta a vista */
+	bottom: calc(var(--m-chat-alcance) + 8px + var(--m-reserva-do-fps, 0px)) !important;
 }
 
 html.ri-vertical.ri-premium.ri-menu-aberto.ri-chat-minimizado #StatusIcons {
 	bottom: var(--m-acima-dos-atalhos) !important;
 	left: calc(var(--safe-esq, 0px) + var(--m-margem) + var(--m-chat-bolinha) + 8px) !important;
+}
+
+/* ─── O CONTADOR DE FPS: logo acima do chat (15/10/2026) ──────────────────
+   O dono viu o "120 FPS" por cima da aba Codex do cartao de missoes: o
+   contador nasce no ponto de arrastar do desktop, (100, 100) - no meio da
+   coluna da esquerda do celular. Aqui ele mora logo ACIMA do chat, no canto
+   da esquerda, e a coluna de buffs para antes dele (`--m-reserva-do-fps`,
+   tokens.css, pela marca de `FPS/marcaDoFps.js`). Com o chat em bolinha ele
+   fica centrado sobre a bolinha: assim a fileira de buffs da folha do Menu,
+   que corre ao lado da bolinha, nao o encontra. O arrastar do desktop nao
+   vale aqui (as ancoras sao `!important`, e o arrastar escreve inline). */
+html.ri-vertical.ri-premium #FPS {
+	position: fixed !important;
+	top: auto !important;
+	right: auto !important;
+	left: calc(var(--safe-esq, 0px) + var(--m-margem)) !important;
+	bottom: calc(var(--m-chat-alcance) + 6px) !important;
+	width: auto !important;
+	height: auto !important;
+}
+
+html.ri-vertical.ri-premium.ri-chat-minimizado #FPS {
+	left: calc(var(--safe-esq, 0px) + var(--m-margem) + var(--m-chat-bolinha) / 2) !important;
+	transform: translateX(-50%);
 }
 
 /* ─── O AUTO: o botao grande do canto do polegar (pedido do dono) ─────────
@@ -113,4 +138,12 @@ html.ri-vertical.ri-premium:not(.ri-com-atalhos) #ShortCut {
 html.ri-vertical.ri-premium:not(.ri-com-atalhos) #HuntButtonIdle {
 	right: calc(var(--safe-dir, 0px) + var(--m-margem)) !important;
 	bottom: calc(var(--m-arco-topo) + 12px) !important;
+}
+
+/* ─── O minimapa minimizado: o host encolhe para a pilula do nome, no mesmo
+   lugar em que ela pendia do aro (9px acima do topo do medalhao). ───────── */
+html.ri-vertical.ri-premium.ri-minimapa-recolhido #MiniMapV2 {
+	top: calc(var(--m-minimapa-topo) - 9px) !important;
+	width: auto !important;
+	height: auto !important;
 }

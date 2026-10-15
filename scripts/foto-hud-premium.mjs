@@ -55,23 +55,27 @@ const { chromium } = require('playwright');
  * AS VARIANTES fotografadas em cada tela. `premium` e o que o jogador ve ao entrar: o chat em bolinha, as missoes
  * no icone, a barra de skills desligada (o arco em volta do Auto). `busca` sao os parametros do arnes.
  */
+/* `fps=1` em quase todas: o dono joga com o contador de FPS ligado, e ele tem de caber em cada estado (ele
+   chegou a cobrir a aba Codex das missoes). A `premium` fica sem ele: e o que o jogador ve ao entrar. */
 const VARIANTES = {
 	antes: { busca: '' },
 	premium: { busca: '?premium=1' },
-	'premium-chat': { busca: '?premium=1&chat=aberto&missoes=abertas' },
-	'premium-atalhos': { busca: '?premium=1&atalhos=1' },
-	/* muitos buffs com o cartao de missoes aberto: a coluna quebra em colunas antes do chat */
-	'premium-buffs': { busca: '?premium=1&buffs=14&missoes=abertas' },
+	'premium-chat': { busca: '?premium=1&chat=aberto&missoes=abertas&fps=1' },
+	'premium-atalhos': { busca: '?premium=1&atalhos=1&fps=1' },
+	/* muitos buffs com o cartao de missoes aberto: a coluna quebra em colunas antes do chat (e do FPS) */
+	'premium-buffs': { busca: '?premium=1&buffs=14&missoes=abertas&fps=1' },
+	/* os detalhes do dono de 15/10: o minimapa minimizado na pilula do nome, o ping alto, o FPS ligado */
+	'premium-detalhes': { busca: '?premium=1&minimapa=recolhido&ping=1234&fps=1&missoes=abertas&buffs=8' },
 	/* a folha do Menu aberta: os buffs descem para o rodape, e so eles sao cobrados. No 320x568 a folha desce ate
 	   516 de 568 e cobre o que passar de UMA fileira (duas pilulas, entre a bolinha e o arco): os buffs da fileira
 	   de cima ficam atras dela - nao ha onde mais caber, e e a unica excecao, escrita com a tela. */
 	'premium-menu': {
-		busca: '?premium=1&menu=aberto&buffs=6',
+		busca: '?premium=1&menu=aberto&buffs=6&fps=1',
 		soOsBuffs: true,
 		permitidos: { '320x568': ['buffs|leque'] }
 	},
-	'premium-70': { busca: '?premium=1&escala=70', escala: 70 },
-	'premium-120': { busca: '?premium=1&escala=120', escala: 120 }
+	'premium-70': { busca: '?premium=1&escala=70&fps=1', escala: 70 },
+	'premium-120': { busca: '?premium=1&escala=120&fps=1', escala: 120 }
 };
 
 /** As telas do celular em pe (a matriz do pacote: 320/375/393/430). */
@@ -96,7 +100,9 @@ const CRUZAMENTOS_PERMITIDOS = new Set([
 	/* Voltar e Sentar orbitam o Cacar, como no mockup; o host e um so. */
 	'cacar|sentar',
 	'cacar|voltar',
-	'sentar|voltar'
+	'sentar|voltar',
+	/* A pilula do nome do mapa e a coroa do medalhao do minimapa, como no mockup. */
+	'mapaNome|minimapa'
 ]);
 
 function cruzaCaixa(a, b) {
@@ -250,6 +256,14 @@ async function main() {
 				const comAtalhos = busca.includes('atalhos=1');
 				if (marcas.comAtalhos !== comAtalhos)
 					problemas.push(`marca ri-com-atalhos = ${marcas.comAtalhos}, barra pedida = ${comAtalhos}`);
+				const recolhido = busca.includes('minimapa=recolhido');
+				if (marcas.minimapaRecolhido !== recolhido)
+					problemas.push(`marca ri-minimapa-recolhido = ${marcas.minimapaRecolhido}, pedida = ${recolhido}`);
+				/* O que a variante pediu tem de estar NA TELA: uma peca que some passa em todo cruzamento. */
+				if (busca.includes('fps=1') && !medida.caixas.fps) problemas.push('o contador de FPS nao apareceu');
+				if (recolhido && medida.caixas.minimapa)
+					problemas.push('o minimapa recolhido ainda desenha o medalhao');
+				if (premium && !medida.caixas.mapaNome) problemas.push('a pilula do nome do mapa nao apareceu');
 				for (const e of erros) problemas.push(`erro no console: ${e.slice(0, 160)}`);
 				relatorio.push({ variante, tela: tela.id, arquivo, problemas, caixas: medida.caixas });
 				const marca = problemas.length ? 'REPROVA' : 'ok';

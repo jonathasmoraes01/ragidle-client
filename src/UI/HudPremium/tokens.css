@@ -127,7 +127,10 @@ html.ri-premium {
 	--m-buffs-topo: calc(var(--hud-missoes-fundo, calc(var(--m-abaixo-do-topo) + 60px)) + 6px);
 	/* do pe da tela ao topo do chat */
 	--m-chat-alcance: calc(var(--m-acima-dos-atalhos) + var(--hud-chat-altura, var(--m-chat-bolinha)));
-	--m-buffs-altura-max: calc(var(--m-altura-util) - var(--m-buffs-topo) - var(--m-chat-alcance) - 8px);
+	/* menos o lugar do contador de FPS, quando ele esta a vista (logo acima do chat, documento.css) */
+	--m-buffs-altura-max: calc(
+		var(--m-altura-util) - var(--m-buffs-topo) - var(--m-chat-alcance) - 8px - var(--m-reserva-do-fps, 0px)
+	);
 
 	/* ─── O ARCO DE SKILLS (pedido do dono, 15/10/2026) ─────────────────
 	   Com a barra de skills DESLIGADA (o padrao), as tres skills do rodizio
@@ -189,6 +192,12 @@ html.ri-premium:not(.ri-com-atalhos) {
 	--m-coluna-de-caca: var(--m-arco-largura);
 }
 
+/* O CONTADOR DE FPS A VISTA (a marca e de `FPS/marcaDoFps.js`): a pilula dele (18px) mora logo acima do
+   chat, com 6px de cada lado, e a coluna de buffs para antes dela. */
+html.ri-premium.ri-fps-visivel {
+	--m-reserva-do-fps: 26px;
+}
+
 /* Com a folha do Menu aberta (a marca e do TopMenuIdle.js) os buffs descem para
    o rodape (documento.css): a folha cobre a lateral. La eles correm em FILEIRA,
    da bolinha do chat (ou do canto, com o chat aberto) ate antes do grupo de
@@ -209,4 +218,17 @@ html.ri-premium.ri-menu-aberto.ri-chat-minimizado {
 		var(--m-largura-util) - var(--safe-esq, 0px) - var(--safe-dir, 0px) - 3 * var(--m-margem) -
 			var(--m-coluna-de-caca) - 16px - var(--m-chat-bolinha)
 	);
+}
+
+/* O minimapa minimizado (a marca e de `hudVertical.js`, o toque e na pilula do
+   nome): o medalhao some, e o trilho da direita sobe para logo abaixo da pilula.
+   O cartao de missoes continua terminando antes dela (`--m-coluna-do-minimapa`,
+   a largura que a pilula ocupa na mesma faixa). */
+html.ri-premium.ri-minimapa-recolhido {
+	--m-minimapa: 0px;
+	--m-coluna-do-minimapa: 92px;
+	/* A pilula (20px, a partir de 9px acima do topo do medalhao) tem um alvo de 44: ele passa 13px dela para
+	   baixo (MiniMapV2.css). O trilho comeca 3px depois disso, e nao colado na pilula: senao o alvo dela
+	   comia o topo da Mochila. */
+	--m-trilho-topo: calc(var(--m-minimapa-topo) - 9px + 20px + 13px + 3px);
 }

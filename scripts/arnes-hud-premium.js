@@ -38,12 +38,17 @@ import trackerCss from '/src/UI/Components/MissoesTrackerIdle/MissoesTrackerIdle
 /* O cartao de missoes leva tambem o CSS do "(i)", como no jogo
    (`new GUIComponent('MissoesTrackerIdle', cssText + infoCss)`). */
 import infoCss from '/src/UI/Components/MissoesIdle/infoDaMissao.css?raw';
+import fpsHtml from '/src/UI/Components/FPS/FPS.html?raw';
+import fpsCss from '/src/UI/Components/FPS/FPS.css?raw';
+import { marcarFps } from '/src/UI/Components/FPS/marcaDoFps.js';
 import { desenharArco, slotsDoArco } from '/src/UI/Components/CombatCornerIdle/arcoDeSkills.js';
 import { criarRelogioDaBarra } from '/src/UI/Components/ShortCut/relogioDaBarra.js';
 
 /* `?atalhos=1`: a barra de skills LIGADA nas Configuracoes (o arco some). Sem
    ele, o padrao da premium: a barra desligada e o arco em volta do Auto. */
 HudPremium.definirBarraDeAtalhos(new URLSearchParams(location.search).get('atalhos') === '1');
+/* `?minimapa=recolhido`: o minimapa minimizado (so a pilula com o nome), como o toque na pilula o deixa. */
+HudPremium.definirMinimapaRecolhido(new URLSearchParams(location.search).get('minimapa') === 'recolhido');
 /* `?escala=80`: o Tamanho da HUD das Configuracoes de Video (em %), como o jogador o deixa. */
 const escalaPedida = Number(new URLSearchParams(location.search).get('escala'));
 if (escalaPedida > 0) {
@@ -94,8 +99,21 @@ const pecas = {
 	TopMenuIdle: montar('TopMenuIdle', topMenuHtml, topMenuCss),
 	CombatCornerIdle: montar('CombatCornerIdle', cornerHtml, cornerCss),
 	HuntButtonIdle: montar('HuntButtonIdle', huntHtml, huntCss),
-	MissoesTrackerIdle: montar('MissoesTrackerIdle', trackerHtml, trackerCss + '\n' + infoCss)
+	MissoesTrackerIdle: montar('MissoesTrackerIdle', trackerHtml, trackerCss + '\n' + infoCss),
+	FPS: montar('FPS', fpsHtml, fpsCss)
 };
+
+/* O contador de FPS, como `FPS.onAppend` o deixa: no ponto de arrastar do desktop (100, 100, as preferencias de
+   fabrica, inline) e escondido, a menos que o jogador o tenha ligado (`?fps=1`) - com o numero que o dono viu. */
+function semearFps() {
+	const { host } = pecas.FPS;
+	host.style.top = '100px';
+	host.style.left = '100px';
+	host.style.display = new URLSearchParams(location.search).get('fps') === '1' ? '' : 'none';
+	texto(pecas.FPS, '#fpsCounter', '120');
+	pecas.FPS.$('#FPS').style.color = '#006400';
+	marcarFps(host);
+}
 
 /* ─── A semente: o personagem do mockup ──────────────────────────────────── */
 
@@ -128,7 +146,16 @@ function semearPersonagem() {
 	}
 	texto(p, '.bi-zeny', '876.937');
 	texto(p, '.bi-cash', '4.926');
-	for (const ping of p.$$('.bi-ping')) ping.textContent = '130 ms';
+	/* `?ping=1234`: o ping alto (o dono viu o numero cortar no canto do cartao) e a bateria com o texto que o
+	   aparelho de verdade mostra. */
+	const pingPedido = new URLSearchParams(location.search).get('ping');
+	for (const ping of p.$$('.bi-ping')) {
+		ping.textContent = `${pingPedido || 130} ms`;
+		ping.classList.toggle('is-ruim', Number(pingPedido) >= 400);
+		ping.classList.toggle('is-bom', !pingPedido || Number(pingPedido) < 150);
+	}
+	const textoDaBateria = p.$('.bi-rodape-bateria-texto');
+	if (textoDaBateria) textoDaBateria.textContent = '100%';
 	/* O retrato de classe e um PNG publicado (`retratoDeClasse.js`): o
 	   Cacador e o job 11. */
 	const img = p.$('.bi-avatar-img');
@@ -342,6 +369,7 @@ semearBuffs();
 semearAtalhos();
 semearChat();
 semearArco();
+semearFps();
 recolherMissoesComoNoJogo();
 
 /* O arco do Auto: o rodizio do Cacador (o formato de `rodizioDoAuto.js`), com
@@ -448,7 +476,11 @@ const PECAS_MEDIDAS = {
 	/* a folha do Menu aberto (o leque); fechada ela nao tem caixa */
 	leque: ['TopMenuIdle', '.tm-fan'],
 	chat: ['ChatBox', '#chatbox'],
-	atalhos: ['ShortCut', '#ShortCut']
+	atalhos: ['ShortCut', '#ShortCut'],
+	/* a pilula do nome do mapa: minimizado, e tudo o que sobra do minimapa */
+	mapaNome: ['MiniMapV2', '.mm-header'],
+	/* o contador de FPS, quando o jogador o liga (escondido ele nao tem caixa) */
+	fps: ['FPS', '#FPS']
 };
 
 /**
@@ -487,7 +519,8 @@ window.__arnes = {
 		return {
 			vertical: document.documentElement.classList.contains('ri-vertical'),
 			premium: document.documentElement.classList.contains('ri-premium'),
-			comAtalhos: document.documentElement.classList.contains('ri-com-atalhos')
+			comAtalhos: document.documentElement.classList.contains('ri-com-atalhos'),
+			minimapaRecolhido: document.documentElement.classList.contains('ri-minimapa-recolhido')
 		};
 	},
 	medir() {

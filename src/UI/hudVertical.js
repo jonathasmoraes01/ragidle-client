@@ -70,10 +70,12 @@ import { aplicarTelaDeGiro } from 'UI/giroDoCelular.js';
  */
 import {
 	MARCA_COM_ATALHOS,
+	MARCA_MINIMAPA_RECOLHIDO,
 	MARCA_PREMIUM,
 	barraDeAtalhosLigada,
 	ehHudPremium,
-	garantirCssDoDocumento
+	garantirCssDoDocumento,
+	minimapaRecolhido
 } from 'UI/HudPremium/hudPremium.js';
 
 /** A marca que o CSS le — no `<html>` e no root interno de cada shadow. */
@@ -183,10 +185,13 @@ export function aplicar(doc, forcar) {
 	/* A barra de skills da premium (nasce desligada): a preferencia muda pela janela de Configuracoes, que
 	   chama `reaplicar` - o cache acima nao a esconde. */
 	const comAtalhos = premium && barraDeAtalhosLigada();
+	/* O minimapa minimizado (so a pilula do nome): a preferencia muda pelo toque na pilula, que chama `reaplicar`. */
+	const mapaRecolhido = premium && minimapaRecolhido();
 
 	d.documentElement.classList.toggle(MARCA_VERTICAL, agora);
 	d.documentElement.classList.toggle(MARCA_PREMIUM, premium);
 	d.documentElement.classList.toggle(MARCA_COM_ATALHOS, comAtalhos);
+	d.documentElement.classList.toggle(MARCA_MINIMAPA_RECOLHIDO, mapaRecolhido);
 	/* O Tamanho da HUD so vale no celular COM a premium (`escalaDaHud.js`, `fatorValeAqui`), e ela le esta marca:
 	   quando a premium entra ou sai, a escala e refeita e as faixas medidas de novo com ela. */
 	if (premiumMudou) {
@@ -215,6 +220,7 @@ export function aplicar(doc, forcar) {
 			raiz.classList.toggle(MARCA_VERTICAL, agora);
 			raiz.classList.toggle(MARCA_PREMIUM, premium);
 			raiz.classList.toggle(MARCA_COM_ATALHOS, comAtalhos);
+			raiz.classList.toggle(MARCA_MINIMAPA_RECOLHIDO, mapaRecolhido);
 			for (const [marca, vale] of marcasDaTela) {
 				raiz.classList.toggle(marca, vale);
 			}
