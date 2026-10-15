@@ -9,6 +9,7 @@ import {
 	textoDaCausaSemMensagem
 } from '../../src/Engine/MapEngine/textoDaFalhaDeSkill.js';
 import { explicacaoDoStatus, fraseDoStatus } from '../../src/UI/Components/BotMenu/estadoDoBot.js';
+import { linhaNoIdioma } from '../../src/UI/Components/ChatBox/linhaNoIdioma.js';
 
 /*
  * D-2326 (pedido do dono, 13/10/2026): a Explosao Toxica (AS_SPLASHER).
@@ -55,5 +56,31 @@ describe('os tres textos novos em ingles, pelo catalogo PUBLICADO (D-2326)', () 
 		const comDetalhe = { codigo: 'sem-acao-viavel', alvo: null, detalhe: 'nenhuma-skill-pega-no-alvo' };
 		expect(traduzir(fraseDoStatus(comDetalhe))).toBe('No skill works on this target');
 		expect(traduzir(explicacaoDoStatus(comDetalhe))).toMatch(/^No skill on the list works against this target/);
+	});
+});
+
+/*
+ * D-2456 (relato J6, 15/10/2026): o servidor voltou a mandar a causa 0 da fonte (venomsplasher.cpp:27-42) e diz o
+ * motivo numa linha amarela do chat (ZC_NPC_CHAT, servidor/falha-de-habilidade.ts `TEXTOS_DA_EXPLOSAO_TOXICA`). O chat
+ * traduz a linha do servidor inteira (`linhaNoIdioma`): as tres linhas tem ingles no catalogo publicado.
+ */
+describe('as linhas do motivo que o servidor manda no chat (D-2456)', () => {
+	afterEach(() => desligarTraducao());
+
+	it('ET6 as tres linhas viram ingles pelo catalogo PUBLICADO', () => {
+		absorverCatalogo(JSON.parse(fs.readFileSync('public/ragidle/i18n/en/catalogo.json', 'utf8')));
+		expect(linhaNoIdioma('Explosão Tóxica: o alvo precisa estar com 3/4 do HP ou menos.')).toBe(
+			'Venom Splasher: the target must be at 3/4 HP or less.'
+		);
+		expect(linhaNoIdioma('Explosão Tóxica: não funciona em chefes nem em alvos imunes a efeitos de status.')).toBe(
+			'Venom Splasher: does not work on bosses or on targets immune to status effects.'
+		);
+		expect(linhaNoIdioma('Explosão Tóxica: o alvo precisa estar com 3/4 do HP ou menos e não pode ser chefe.')).toBe(
+			'Venom Splasher: the target must be at 3/4 HP or less and cannot be a boss.'
+		);
+	});
+
+	it('ET7 a causa 0 segue no texto geral (o motivo vem na linha, nao no aviso)', () => {
+		expect(textoDaCausaSemMensagem(CAUSA_NIVEL, 0)).toBe(TEXTO_GERAL);
 	});
 });

@@ -104,6 +104,14 @@
  * VIRA a imagem (408x101, recortada a 3x da coluna de 136px). O texto fica no
  * DOM, escondido so da vista: leitor de tela e o `title` continuam dizendo o
  * nome. A HUD vertical do celular reverte tudo isto mais abaixo (discos).
+ *
+ * D-2454 (14/10/2026, relato J20): a arte deixou de ser o `background-image`
+ * do botao e virou o `<img class="hb-arte">` de dentro dele, com a MESMA caixa
+ * (a proporcao da arte) e o mesmo `contain`. Imagem de fundo que falha nao
+ * avisa ninguem: o botao ficava anexado, clicavel e invisivel, e so a carga de
+ * OUTRO mapa (ou o F5) pedia a arte de novo. O `<img>` diz quando falhou, e a
+ * reserva (`hb-sem-arte`, logo abaixo) desenha o botao enquanto isso. Ver
+ * `arteDoBotao.js`.
  */
 .hb-btn.hb-cacar,
 .hb-btn.hb-voltar {
@@ -113,15 +121,16 @@
 	border: 0;
 	border-radius: 0;
 	box-shadow: none;
-	background: center / contain no-repeat;
+	background: none;
 }
 
-.hb-btn.hb-cacar {
-	background-image: url('/ragidle/hud/botoes/hud-btn-cacar.png');
-}
-
-.hb-btn.hb-voltar {
-	background-image: url('/ragidle/hud/botoes/hud-btn-voltar.png');
+.hb-arte {
+	display: block;
+	width: 100%;
+	height: 100%;
+	object-fit: contain;
+	pointer-events: none;
+	user-select: none;
 }
 
 .hb-btn.hb-cacar:active,
@@ -136,6 +145,43 @@
 	overflow: hidden;
 	clip: rect(0 0 0 0);
 	white-space: nowrap;
+}
+
+/*
+ * A RESERVA (D-2454): enquanto a arte nao carrega (falhou, ou o pedido ainda
+ * nao respondeu), o botao e o `.ri-btn` azul de sempre com o rotulo legivel, na
+ * MESMA caixa da arte (a coluna nao pula). So no desktop: no celular em pe os
+ * botoes ja sao discos com rotulo proprio e a arte nunca aparece.
+ */
+.ui-component-root:not(.ri-vertical) .hb-btn.hb-sem-arte {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 0 6px;
+	border: 1px solid var(--blue-600);
+	border-radius: var(--radius-panel);
+	background: var(--tab-active-fill);
+	box-shadow: var(--rim-light), var(--shadow-card);
+}
+
+.hb-btn.hb-sem-arte .hb-arte {
+	display: none;
+}
+
+.ui-component-root:not(.ri-vertical) #HuntButtonIdle .hb-btn.hb-sem-arte .hb-rotulo {
+	position: static;
+	width: auto;
+	height: auto;
+	overflow: visible;
+	clip: auto;
+	display: block;
+	white-space: normal;
+	line-height: 1.1;
+	text-align: center;
+	font-size: 12px;
+	font-weight: 700;
+	color: var(--text-on-accent);
+	text-shadow: none;
 }
 
 /* SENTAR (04/10/2026) so existe no celular em pe: no desktop a tecla Insert
@@ -222,6 +268,11 @@
 	justify-content: center;
 }
 
+/* D-2454: a arte e do desktop; o disco do celular em pe e o `.ri-btn` azul. */
+.ri-vertical .hb-arte {
+	display: none;
+}
+
 .ri-vertical .hb-cacar {
 	width: 64px;
 	height: 64px;
@@ -301,14 +352,10 @@
  * arte SEM o texto e o rotulo do DOM (ja traduzido) e desenhado por cima, entre
  * o icone e o ornamento da direita. So o desktop: a HUD vertical usa discos e
  * o rotulo proprio dela (reposto logo abaixo).
+ *
+ * D-2454: a arte SEM texto agora e o `src` do `<img class="hb-arte">`, escolhido
+ * no `HuntButtonIdle.js` pelo mesmo `emIngles()` que poe a classe `hb-en`.
  */
-#HuntButtonIdle.hb-en .hb-btn.hb-cacar {
-	background-image: url('/ragidle/hud/botoes/hud-btn-cacar-sem-texto.png');
-}
-
-#HuntButtonIdle.hb-en .hb-btn.hb-voltar {
-	background-image: url('/ragidle/hud/botoes/hud-btn-voltar-sem-texto.png');
-}
 
 #HuntButtonIdle.hb-en .hb-btn .hb-rotulo {
 	position: absolute;

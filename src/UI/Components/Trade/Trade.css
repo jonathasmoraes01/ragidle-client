@@ -3,17 +3,21 @@
    pintado com "raias" para 10 slots. As DIMENSOES ficam (560x380): o JS so
    centraliza o host pelo retangulo dele (onAppend em Trade.js), nao mede
    pixel fixo de layout interno — por isso o corpo pode virar flex sem medo. */
+/* 14/10/2026 (R127, D-2476): a janela CABE NO CELULAR em pe, com `min()` como
+   a TrocaIdle. No desktop nada muda (560x380 e menor que a conta); no
+   telefone (375 de largura) ela encolhia nada e saia pelas duas bordas, e o
+   lado FREE nao via a faixa do papel. */
 :host {
-	width: 560px;
-	height: 380px;
+	width: min(560px, calc(100vw - 16px));
+	height: min(380px, calc(100vh - 132px));
 	top: 0px;
 	left: 0px;
 }
 
 #Trade {
 	position: absolute;
-	width: 560px;
-	height: 380px;
+	width: 100%;
+	height: 100%;
 	box-sizing: border-box;
 	display: flex;
 	flex-direction: column;
@@ -196,6 +200,76 @@
 
 #Trade .btn {
 	min-width: 92px;
+}
+
+/** O papel numa troca VIP com FREE (14/10/2026, R127, D-2476) **/
+
+/* A faixa so existe com texto (o `hidden` sai em papelDaTroca.js). Cor de
+   aviso de ouro, nao de erro: no lado VIP ela so informa. */
+#Trade .trade-papel {
+	flex: 0 0 auto;
+	margin: var(--sp-3) var(--sp-6) 0;
+	padding: var(--sp-2) var(--sp-4);
+	font: var(--type-desc);
+	color: var(--gold-700);
+	background: var(--gold-200);
+	border: 1px solid var(--gold-400);
+	border-radius: var(--radius-card);
+}
+
+#Trade .trade-papel[hidden] {
+	display: none;
+}
+
+/* A recusa visivel: a faixa vira vermelha. Sem animacao com movimento
+   reduzido: a cor sozinha ja e a recusa. */
+#Trade .trade-papel.is-recusa {
+	color: var(--white);
+	background: var(--red-600);
+	border-color: var(--red-600);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+	#Trade .trade-papel.is-recusa {
+		animation: trade-papel-recusa 0.36s var(--ease-out) 2;
+	}
+}
+
+@keyframes trade-papel-recusa {
+	0%,
+	100% {
+		transform: translateX(0);
+	}
+	25% {
+		transform: translateX(-4px);
+	}
+	75% {
+		transform: translateX(4px);
+	}
+}
+
+/* O lado FREE: a coluna da oferta apagada, a caixa sem cara de alvo de
+   arrasto e o zeny travado. O toque na coluna cai no ouvinte do Trade.js
+   (o campo de zeny desligado nao recebe clique, por isso o pointer-events). */
+#Trade.so-recebe .trade-col--oferta {
+	opacity: 0.5;
+	cursor: not-allowed;
+}
+
+#Trade.so-recebe .box.send {
+	border-style: dashed;
+	background: var(--surface-inset);
+}
+
+#Trade.so-recebe .zeny.send {
+	pointer-events: none;
+}
+
+/* Celular em pe: os tres botoes dividem a largura em vez do minimo de 92px,
+   que na janela de ~360px apertava o rodape. */
+.ri-vertical #Trade .btn {
+	min-width: 0;
+	flex: 1 1 0;
 }
 
 /** Quando o mouse esta sobre um item (nome + estado identificado) **/

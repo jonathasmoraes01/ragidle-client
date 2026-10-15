@@ -58,6 +58,7 @@ function montar() {
 	raiz.innerHTML = HTML;
 	document.body.appendChild(raiz);
 	const enviados = [];
+	const titulos = [];
 	const r = relogio();
 	let fechou = 0;
 	const c = criarControladorDaTroca({
@@ -67,7 +68,8 @@ function montar() {
 			fechou += 1;
 		},
 		agendar: r.agendar,
-		cancelar: r.cancelar
+		cancelar: r.cancelar,
+		definirTitulo: nome => titulos.push(nome)
 	});
 	const $ = sel => raiz.querySelector(sel);
 	const digitar = valor => {
@@ -76,7 +78,7 @@ function montar() {
 	const recado = () => $('.tr-recado').textContent;
 	const tom = () => $('.tr-recado').className;
 	const botaoTravado = () => $('.tr-confirmar').disabled;
-	return { c, enviados, r, $, digitar, recado, tom, botaoTravado, fechou: () => fechou };
+	return { c, enviados, titulos, r, $, digitar, recado, tom, botaoTravado, fechou: () => fechou };
 }
 
 const resposta = (sobre = {}) => ({
@@ -140,6 +142,17 @@ describe('a janela "Trade": o controlador', () => {
 		expect(t.recado()).toBe('Pedido de troca enviado a Ana. Aguarde a resposta.');
 		expect(t.tom()).toContain('is-ok');
 		expect(t.botaoTravado()).toBe(false);
+	});
+
+	it('a resposta ok leva o NOME do outro ao titulo da janela de troca (ML9); a recusa e o corpo sem nome, nao', () => {
+		const t = montar();
+		t.digitar('Ana');
+		t.c.confirmar();
+		t.c.receber(resposta());
+		expect(t.titulos).toEqual(['Ana']);
+		t.c.receber(resposta({ ok: false, motivo: 'longe', nome: 'Beto' }));
+		t.c.receber(resposta({ nome: '' }));
+		expect(t.titulos).toEqual(['Ana']);
 	});
 
 	it('a recusa: a frase do MOTIVO em vermelho (longe, sem VIP...)', () => {

@@ -8,7 +8,7 @@
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-const mocks = vi.hoisted(() => ({ hooks: [], enviados: [] }));
+const mocks = vi.hoisted(() => ({ hooks: [], enviados: [], relatos: [] }));
 
 vi.mock('Network/NetworkManager.js', () => ({
 	default: {
@@ -17,6 +17,8 @@ vi.mock('Network/NetworkManager.js', () => ({
 	}
 }));
 vi.mock('Renderer/Renderer.js', () => ({ default: { render: vi.fn(), stop: vi.fn(), vsync: [], width: 1280, height: 800 } }));
+// D-2454: a vigia do catalogo cheio relata pelo `/analytics/erro`; aqui o relato e lido.
+vi.mock('UI/relatoDeErro.js', () => ({ relatarErro: m => mocks.relatos.push(m) }));
 vi.mock('UI/UIManager.js', () => ({ default: { showErrorBox: vi.fn(), addComponent: c => c } }));
 vi.mock('UI/Components/ChatBox/ChatBox.js', () => ({
 	default: { addText: () => {}, TYPE: { ERROR: 1, INFO: 2 }, FILTER: { PUBLIC_LOG: 1 } }
@@ -65,6 +67,7 @@ async function carregar() {
 	vi.resetModules();
 	mocks.hooks.length = 0;
 	mocks.enviados.length = 0;
+	mocks.relatos.length = 0;
 	const { default: PACKET } = await import('Network/PacketStructure.js');
 	const { default: HuntMap } = await import('UI/Components/HuntMap/HuntMap.js');
 	const { default: htmlDoMapa } = await import('UI/Components/HuntMap/HuntMap.html?raw');
@@ -235,5 +238,56 @@ describe('o catalogo leve no HuntMap (D-1850)', () => {
 		} finally {
 			Storage.prototype.getItem = original;
 		}
+	});
+});
+
+describe('a vigia do catalogo cheio que nao chega (D-2454, relato J20: o filtro que nao acha nada)', () => {
+	it('o cheio sem resposta relata em 15 s, uma vez, com o estado; a lista fica vazia e muda', async () => {
+		const j = await carregar();
+		const a = j.abrir();
+		expect(j.pedidos(a)).toEqual(['cheio']);
+		vi.advanceTimersByTime(14_999);
+		expect(mocks.relatos).toEqual([]);
+		vi.advanceTimersByTime(1);
+		expect(mocks.relatos).toEqual(['[hud] o catalogo da Caca nao chegou em 15 s (catalogo anterior: nao, janela aberta)']);
+		// E este o filtro que "nao retorna nada": sem catalogo, a lista fica vazia e sem mensagem.
+		expect(j.cartoes()).toBe(0);
+		vi.advanceTimersByTime(60_000);
+		expect(mocks.relatos).toHaveLength(1);
+	});
+
+	it('o catalogo inteiro desarma a vigia; a primeira parte sozinha, nao', async () => {
+		const j = await carregar();
+		j.abrir();
+		const [parte1, parte2] = paginasCheias(JOGADOR);
+		j.receber([parte1]);
+		vi.advanceTimersByTime(10_000);
+		j.receber([parte2]);
+		vi.advanceTimersByTime(60_000);
+		expect(mocks.relatos).toEqual([]);
+		expect(j.cartoes()).toBe(4);
+
+		// So a primeira parte: a lista nao fecha, e a vigia relata. Sem o cache da
+		// rodada acima, a abertura pede o cheio direto.
+		localStorage.clear();
+		const k = await carregar();
+		k.abrir();
+		k.receber([parte1]);
+		vi.advanceTimersByTime(15_000);
+		expect(mocks.relatos).toHaveLength(1);
+	});
+
+	it('o leve que volta sem os mapas guardados pede o cheio e arma a vigia; a troca de personagem a desarma', async () => {
+		const j = await carregar();
+		j.abrir();
+		j.receber(paginasCheias(JOGADOR));
+		vi.runOnlyPendingTimers();
+		const a = j.abrir();
+		expect(j.pedidos(a)).toEqual([`leve:${FIXO}`]);
+		vi.advanceTimersByTime(3_000); // o prazo do leve vence e o cheio sai
+		expect(j.pedidos(a)).toEqual([`leve:${FIXO}`, 'cheio']);
+		j.HuntMap.limparEstadoDoPersonagem();
+		vi.advanceTimersByTime(60_000);
+		expect(mocks.relatos).toEqual([]);
 	});
 });

@@ -21,8 +21,11 @@ export const CAUSA_ESFERAS = 74;
 /**
  * CAUSA NOSSA (D-2326, pedido do dono de 13/10/2026), fora do `useskill_fail_cause` da fonte: a Explosao Toxica
  * (AS_SPLASHER) que falhou porque o alvo estava acima de 3/4 do HP (venomsplasher.cpp:32-41). Na fonte essa falha e a
- * causa 0, o texto geral; o servidor (`CAUSA_DE_FALHA.alvoComHpAlto`, servidor/falha-de-habilidade.ts) manda esta
- * para o jogador ler o motivo. O cliente antigo nao a conhece e cai no texto geral (o `else` de `onSkillResult`).
+ * causa 0, o texto geral. O cliente antigo nao a conhece e cai no texto geral (o `else` de `onSkillResult`).
+ *
+ * D-2456 (15/10/2026): o servidor NAO manda mais esta causa. O fio voltou a causa 0 da fonte e o motivo chega numa
+ * linha amarela do chat (`TEXTOS_DA_EXPLOSAO_TOXICA`, servidor/falha-de-habilidade.ts). O texto fica aqui para o
+ * servidor anterior a D-2456 durante o deploy (cliente novo com servidor velho).
  */
 export const CAUSA_ALVO_COM_HP_ALTO = 200;
 

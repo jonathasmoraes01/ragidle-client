@@ -130,7 +130,8 @@ describe('as costuras nos motores', () => {
 		expect(inicio).toBeGreaterThan(-1);
 		expect(trava).toBeGreaterThan(inicio);
 		expect(trava).toBeLessThan(zera);
-		expect(CHAR).toMatch(/Session\.Entity = new Player\(entity\);\r?\n\t_escolhido = true;/);
+		// J21 (D-2478, rodada 2): o `Player` nasce do corpo zerado da lista (`semOSonoDaLista`); a trava vem logo depois.
+		expect(CHAR).toMatch(/Session\.Entity = new Player\(semOSonoDaLista\(entity\)\);\r?\n\t_escolhido = true;/);
 		expect(CHAR).toMatch(/_server = server;\r?\n\t\t_escolhido = false;/);
 	});
 

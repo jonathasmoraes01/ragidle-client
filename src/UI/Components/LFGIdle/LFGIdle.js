@@ -59,7 +59,10 @@
  *   {acao:'listar'} · {acao:'criar', nome?, privado, senha?} ·
  *   {acao:'entrar', grupoId, senha?} · {acao:'sair'} · {acao:'dissolver'} ·
  *   {acao:'privacidade', privado, senha?} · {acao:'teleportar'} ·
- *   {acao:'fechar'} (ao fechar a janela -- desinscreve do push).
+ *   {acao:'fechar'} (ao fechar a janela -- desinscreve do push) ·
+ *   {acao:'fechar-anuncio'} (o líder tira o grupo do Localizador, D-2464; a
+ *   `privacidade` o traz de volta) · {acao:'entrar-rapido'} (o servidor escolhe
+ *   o grupo e responde como o `entrar`, D-2465).
  *
  * `nome` em 'criar' é OMITIDO quando o campo fica vazio -- o servidor decide
  * o padrão (o nome do personagem), não a janela. `maxlength="23"` no campo é
@@ -71,7 +74,8 @@
  *   { meu: null | {grupoId, souLider}, grupos: [{grupoId, nome, liderNome,
  *     liderClasse, liderNivel, nivelRecomendado, faixa:{minimo,maximo}, mapa,
  *     mapaRotulo, membros:[{nome, classe, nivel, ehLider}], vagas, limite,
- *     temSenha, privado, liderOnline, podeEntrar, motivo?}] }
+ *     temSenha, privado, liderOnline, podeEntrar, motivo?, anunciado}] }
+ *   (`anunciado: false` só no MEU grupo, quando ele está fechado no Localizador.)
  *
  * Receber ZC_RAGIDLE_LFG_RESULTADO 0x0fe8: {ok, acao, motivo?}.
  *
@@ -94,6 +98,13 @@ import htmlText from './LFGIdle.html?raw';
 import cssText from './LFGIdle.css?raw';
 import { fecharEEsquecer } from '../limpezaDeJanelaIdle.js';
 import { abaLembrada, lembrarAba } from '../memoriaDeAba.js';
+import {
+	botaoDeVisibilidadeAceso,
+	entrarRapidoAparece,
+	grupoFechado,
+	gruposAbertos,
+	seloDoGrupo
+} from './visibilidadeDoGrupo.js';
 
 /*
  * Manter em sincronia com o ":host"/".lfg-window" do CSS -- mesmo papel do
@@ -372,6 +383,14 @@ function mostrarMotivoNoPainel(texto) {
 	el.hidden = !texto;
 }
 
+/** A recusa do "Entrar rápido" mora embaixo do botão dele, fora do dossiê:
+ * ela não é sobre o grupo selecionado. */
+function mostrarMotivoNoRapido(texto) {
+	const el = raiz().querySelector('.lfg-rapido-motivo');
+	el.textContent = texto || '';
+	el.hidden = !texto;
+}
+
 function mostrarMotivoNoCriar(texto) {
 	const el = raiz().querySelector('.lfg-criar-motivo');
 	el.textContent = texto || '';
@@ -384,6 +403,8 @@ function mostrarMotivoNoCriar(texto) {
 function mostrarMotivoDaAcao(acao, texto) {
 	if (acao === 'criar') {
 		mostrarMotivoNoCriar(texto);
+	} else if (acao === 'entrar-rapido') {
+		mostrarMotivoNoRapido(texto);
 	} else {
 		mostrarMotivoNoPainel(texto);
 	}
@@ -551,11 +572,15 @@ function linhaDeMembro(m) {
 function renderList() {
 	const r = raiz();
 	const cabecalho = r.querySelector('.lfg-list-head');
-	cabecalho.textContent = !LFGIdle.grupos.length
-		? ''
-		: LFGIdle.grupos.length === 1
-			? '1 grupo aberto'
-			: LFGIdle.grupos.length + ' grupos abertos';
+	// O MEU grupo fechado (D-2464) desce na lista só para mim: ele não é "aberto".
+	const abertos = gruposAbertos(LFGIdle.grupos);
+	cabecalho.textContent = !abertos ? '' : abertos === 1 ? '1 grupo aberto' : abertos + ' grupos abertos';
+	// "Entrar rápido" (D-2465) é para quem procura grupo: some para quem já tem um.
+	const rapido = entrarRapidoAparece(LFGIdle.meu);
+	r.querySelector('.lfg-entrar-rapido').hidden = !rapido;
+	if (!rapido) {
+		mostrarMotivoNoRapido('');
+	}
 
 	const lista = r.querySelector('.lfg-list');
 	if (!LFGIdle.grupos.length) {
@@ -593,7 +618,7 @@ function renderPanelScroll() {
 	const nivel = nivelDoJogador();
 	const medidor = medidorDeFaixa(nivel, faixa);
 	const veredito = estado === 'compativel' ? (medidor.dentro ? 'Na faixa' : 'Compatível') : ROTULO_BADGE[estado];
-	const cadeadoNoBadge = g.privado ? RiIcones.cadeado : '';
+	const cadeadoNoBadge = g.privado && !grupoFechado(g) ? RiIcones.cadeado : '';
 	// "nome" é o campo novo (o criador escolhe); o fallback cobre um servidor
 	// um deploy atrás, que ainda não manda esse campo -- nunca undefined/vazio
 	// na tela.
@@ -617,7 +642,7 @@ function renderPanelScroll() {
 		'</div>' +
 		'<span class="lfg-badge">' +
 		cadeadoNoBadge +
-		escapeHtml(g.privado ? 'Privado' : 'Público') +
+		escapeHtml(seloDoGrupo(g)) +
 		'</span>' +
 		'</div>' +
 		'</div>' +
@@ -699,9 +724,9 @@ function renderFooter() {
 
 	if (souLider) {
 		acaoLider.hidden = false;
+		// FECHADO (D-2464) vence: o grupo fora do Localizador não é nem público nem privado.
 		footer.querySelectorAll('.lfg-priv-btn').forEach(function (botao) {
-			const ehBotaoPrivado = botao.dataset.privado === '1';
-			const ativo = ehBotaoPrivado === !!g.privado;
+			const ativo = botaoDeVisibilidadeAceso(botao.dataset.privado, g);
 			botao.classList.toggle('is-selected', ativo);
 			botao.setAttribute('aria-selected', ativo ? 'true' : 'false');
 		});
@@ -806,6 +831,12 @@ function ligarBotoesDoRodape(r) {
 
 		const botaoPriv = evento.target.closest('.lfg-priv-btn');
 		if (botaoPriv) {
+			if (botaoPriv.dataset.privado === 'fechado') {
+				// D-2464: sai do Localizador. O servidor responde e empurra a lista nova.
+				LFGIdle.privacidadeEdicao = false;
+				mandar({ acao: 'fechar-anuncio' });
+				return;
+			}
 			const querPrivado = botaoPriv.dataset.privado === '1';
 			if (!querPrivado) {
 				LFGIdle.privacidadeEdicao = false;
@@ -911,6 +942,10 @@ LFGIdle.init = function init() {
 
 	ligarBotoesDoRodape(r);
 	ligarFormularioDeCriar(r);
+	r.querySelector('.lfg-entrar-rapido').addEventListener('click', function () {
+		mostrarMotivoNoRapido('');
+		mandar({ acao: 'entrar-rapido' });
+	});
 
 	// Centralizar pela tela REAL, e nao pelo top/left do CSS.
 	this._host.style.top = Math.max(0, (Renderer.height - WINDOW_HEIGHT) / 2) + 'px';
@@ -1182,7 +1217,7 @@ LFGIdle.limparEstadoDoPersonagem = function limparEstadoDoPersonagem() {
 	// O nome digitado na aba Criar é um rascunho do personagem anterior --
 	// não faz sentido oferecê-lo pronto pro personagem novo.
 	r.querySelector('.lfg-nome-input').value = '';
-	r.querySelectorAll('.lfg-panel-motivo, .lfg-criar-motivo').forEach(function (el) {
+	r.querySelectorAll('.lfg-panel-motivo, .lfg-criar-motivo, .lfg-rapido-motivo').forEach(function (el) {
 		el.hidden = true;
 		el.textContent = '';
 	});
