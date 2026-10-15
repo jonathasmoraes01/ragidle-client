@@ -373,9 +373,21 @@ describe('o FPS mora acima do chat', () => {
 describe('a HUD padrao do celular (pedido do dono, 15/10/2026: "ela deve ser nossa hud padrao")', () => {
 	const config = readFileSync(join(raizDoRepo, 'applications', 'pwa', 'Config.js'), 'utf8');
 
-	it('o Config.js publicado liga a premium', () => {
+	it('o Config.js do dev liga a premium', () => {
 		expect(config).toMatch(/\n\tenableHudMobilePremium: true,/);
 		expect(config).not.toMatch(/enableHudMobilePremium: false/);
+	});
+
+	/* O Config.js PUBLICADO nao e o de cima: o build o escreve de um modelo fixo (`createConfigJS`,
+	   applications/tools/builder-web.mjs). O primeiro deploy de 15/10 ligou so o do dev, e a producao ficou na HUD
+	   antiga - a esteira publicou "NO AR" e nada mudou no celular. */
+	it('o modelo que o build publica como Config.js tambem liga', () => {
+		const builder = readFileSync(join(raizDoRepo, 'applications', 'tools', 'builder-web.mjs'), 'utf8');
+		const modelo = builder.slice(builder.indexOf('function createConfigJS()'), builder.indexOf("'/Config.js', configContent"));
+		expect(modelo).toMatch(/window\.ROConfigBase = \{/);
+		expect(modelo).toMatch(/\n {4}enableHudMobilePremium: true,/);
+		// a chave, e nao o comentario acima dela (que ensina o `false` do Config.local.js)
+		expect(modelo).not.toMatch(/\n\s*enableHudMobilePremium: false,/);
 	});
 
 	it('e o desligar de emergencia continua: so `true` liga, entao um `false` no Config.local.js volta a HUD de D-939', () => {

@@ -111,6 +111,10 @@ window.ROConfigBase = {
 	 * para voltar todo mundo a HUD de D-939, ponha `enableHudMobilePremium:
 	 * false` no `Config.local.js` de producao (publicado `no-cache`), sem
 	 * rebuild. O desktop nao muda: a camada so existe no celular em pe.
+	 *
+	 * ATENCAO: este arquivo so vale no dev. O Config.js PUBLICADO sai do modelo
+	 * de `createConfigJS` (applications/tools/builder-web.mjs), que leva a mesma
+	 * chave - o primeiro deploy ligou so esta e a producao ficou na HUD antiga.
 	 */
 	enableHudMobilePremium: true,
 	enableCashShop: true,
