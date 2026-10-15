@@ -56,6 +56,8 @@ import { aplicarIconeDoItem as setItemIcon, nomeLocalDoItem } from 'UI/itemNaTel
 import { dropsDoMapa } from './dropsDoMapa.js';
 import { armazenamentoDoNavegador, criarCacheDoCatalogo, ehRespostaLeve, identidadeDoCatalogo } from './catalogoEmCache.js'; // D-1850
 import { estadoDoRodape } from './rodapeDoDossie.js';
+import { carregarClassesDosItens, classesParaOFiltro, classeUsaItem } from 'DB/Items/classesDosItens.js'; // J7: filtro por classe
+import { equipamentosDoMapaParaAClasse, motivoDaClasse } from './filtroPorClasse.js';
 import { ROTULO_DA_VISAO, htmlDasOrigens } from './origensDoDrop.js'; // RAGIDLE: a visao agregada (I6)
 import {
 	classeDeRaridade,
@@ -292,6 +294,15 @@ HuntMap.cacaMedida = null;
 HuntMap.filterSeus = false;
 
 /**
+ * @var {number} o filtro por classe (J7, 15/10/2026): o indice da classe em
+ *      `classesParaOFiltro()`, ou -1 = sem filtro. Escolhida a classe, a lista
+ *      mostra so os mapas com equipamento que ela usa, no jogo todo (como a
+ *      busca), e o dossie lista esses itens. NAO persistido: e um recorte
+ *      momentaneo, como o "Seus mapas".
+ */
+HuntMap.filterClasse = -1;
+
+/**
  * @var {string} left-list sort key: 'nivel' | 'nivel-recomendado' | 'nome'
  */
 HuntMap.sortKey = 'nivel';
@@ -448,6 +459,12 @@ HuntMap.limparEstadoDoPersonagem = function limparEstadoDoPersonagem() {
 	// seriam mentira, e o relogio do Explorar de A pediria o estado de B.
 	HuntMap.cacaMedida = null;
 	HuntMap.filterSeus = false;
+	HuntMap.filterClasse = -1;
+	// O seletor de classe (J7) e do shadow DOM, que atravessa a troca: volta a "Todas".
+	const seletorDaClasse = _root() && _root().querySelector('.hm-classe');
+	if (seletorDaClasse) {
+		seletorDaClasse.value = '-1';
+	}
 	if (ORDEM_DA_MEDIDA[HuntMap.sortKey]) {
 		HuntMap.sortKey = 'nivel';
 	}
@@ -539,6 +556,13 @@ HuntMap.init = function init() {
 	root.querySelector('.hm-search-clear').addEventListener('click', onClickSearchClear);
 	root.querySelectorAll('.hm-modo .hm-seg-btn').forEach(b => b.addEventListener('click', onClickModo));
 	root.querySelector('.hm-sort').addEventListener('change', onChangeSort);
+	// J7: o seletor de classe so existe se o arquivo das classes chegar (o HTML
+	// estatico nao muda: sem o arquivo, a tela e a de hoje, byte a byte).
+	carregarClassesDosItens().then(ok => {
+		if (ok) {
+			popularSeletorDeClasse();
+		}
+	});
 	/*
 	 * UM ouvinte por AREA, e nao tres por cartao (29/09/2026): a lista era
 	 * redesenhada a cada tecla da busca e a cada clique, e cada desenho
@@ -811,6 +835,51 @@ function renderModo() {
 function onChangeSort(e) {
 	HuntMap.sortKey = e.target.value;
 	renderList();
+}
+
+/** Escolheu (ou tirou) a classe do filtro (J7). Lista e dossie mudam juntos. */
+function onChangeClasse(e) {
+	HuntMap.filterClasse = parseInt(e.target.value, 10);
+	renderList();
+	renderPanel();
+}
+
+/** O nome da classe escolhida, ou '' sem filtro. */
+function nomeDaClasseEscolhida() {
+	const escolhida = classesParaOFiltro().find(c => c.indice === HuntMap.filterClasse);
+	return escolhida ? escolhida.nome : '';
+}
+
+/**
+ * Cria o seletor "Classe" ao lado da "Ordem" e o enche com as classes jogaveis
+ * (J7). Chamado quando `classes-dos-itens.json` chega; repetir so reenche.
+ */
+function popularSeletorDeClasse() {
+	const root = _root();
+	if (!root) {
+		return;
+	}
+	let wrap = root.querySelector('.hm-classe-wrap');
+	if (!wrap) {
+		const ordem = root.querySelector('.hm-sort-wrap');
+		if (!ordem) {
+			return;
+		}
+		wrap = document.createElement('div');
+		wrap.className = 'hm-sort-wrap hm-classe-wrap';
+		wrap.innerHTML =
+			'<label for="hm-classe-select">Classe</label>' +
+			'<select id="hm-classe-select" class="hm-classe" aria-label="Mostrar só mapas com equipamento da classe"></select>';
+		ordem.insertAdjacentElement('afterend', wrap);
+		wrap.querySelector('.hm-classe').addEventListener('change', onChangeClasse);
+	}
+	const select = wrap.querySelector('.hm-classe');
+	select.innerHTML =
+		'<option value="-1">Todas</option>' +
+		classesParaOFiltro()
+			.map(c => `<option value="${c.indice}">${escapeHtml(c.nome)}</option>`)
+			.join('');
+	select.value = String(HuntMap.filterClasse);
 }
 
 /* ═══════════════════════════════════════════════════════════════════════
@@ -1416,6 +1485,8 @@ function onCatalogReceived(pkt) {
 	const jaResolvidos = mesmoCatalogo || data.mapas === _mapasResolvidos;
 	for (const mapa of jaResolvidos ? [] : data.mapas || []) {
 		for (const m of (mapa.monstros || []).concat(mapa.mvp ? [mapa.mvp] : [])) {
+			// J7: o id some na troca por nome; o filtro por classe precisa dele.
+			m.dropIds = (m.drops || []).map(d => (typeof d === 'number' ? d : null));
 			m.drops = (m.drops || []).map(d => (typeof d === 'number' ? nomeLocalDoItem(d, `#${d}`) : d));
 		}
 	}
@@ -1669,6 +1740,12 @@ function renderList() {
 	// Toda lista nova mata os lotes da anterior (regra 3 do topo).
 	cancelarLotes();
 
+	// J7: o seletor de classe mostra o que o filtro vale (a troca de personagem zera o filtro).
+	const seletorDeClasse = root.querySelector('.hm-classe');
+	if (seletorDeClasse && seletorDeClasse.value !== String(HuntMap.filterClasse)) {
+		seletorDeClasse.value = String(HuntMap.filterClasse);
+	}
+
 	if (!catalog) {
 		listEl.innerHTML = '';
 		if (countEl) {
@@ -1690,21 +1767,34 @@ function renderList() {
 	   fora da faixa do jogador, ou noutra regiao, "nao existia" — e o vazio
 	   dizia so "Nenhum mapa encontrado", sem culpar filtro nenhum. */
 	const buscando = Boolean(term);
+	/* O FILTRO POR CLASSE (J7, 15/10/2026) procura no jogo inteiro, como a busca:
+	   "que mapa dropa equipamento do meu Cacador?" nao pode parar na regiao ou no
+	   "Para mim" em que a janela estava. */
+	const porClasse = HuntMap.filterClasse >= 0;
+	const procurando = buscando || porClasse;
 	let mapas = catalog.mapas.filter(mapa => {
-		if (!buscando && HuntMap.activeTab !== ABA_PADRAO && mapa.regiao !== HuntMap.activeTab) {
+		if (!procurando && HuntMap.activeTab !== ABA_PADRAO && mapa.regiao !== HuntMap.activeTab) {
 			return false;
 		}
-		const motivo = motivoDaBusca(mapa, allMonstersOf(mapa), term);
+		let motivo = motivoDaBusca(mapa, allMonstersOf(mapa), term);
 		if (!motivo) {
 			return false;
 		}
-		if (!buscando && HuntMap.filterIdealOnly && encaixeDeNivel(catalog.nivel, mapa).cls !== 'ideal') {
+		if (porClasse) {
+			const equipamentos = equipamentosDoMapaParaAClasse(allMonstersOf(mapa), HuntMap.filterClasse, classeUsaItem);
+			if (!equipamentos || !equipamentos.length) {
+				return false;
+			}
+			// A linha do cartao diz QUAIS equipamentos trouxeram o mapa.
+			motivo = motivoDaClasse(equipamentos);
+		}
+		if (!procurando && HuntMap.filterIdealOnly && encaixeDeNivel(catalog.nivel, mapa).cls !== 'ideal') {
 			return false;
 		}
-		if (!buscando && HuntMap.filterFavoritos && !HuntMap.favoritos.includes(mapa.mapa)) {
+		if (!procurando && HuntMap.filterFavoritos && !HuntMap.favoritos.includes(mapa.mapa)) {
 			return false;
 		}
-		if (!buscando && soSeus && !ehMapaMedido(bloco, mapa.mapa) && !candidatos.includes(mapa.mapa)) {
+		if (!procurando && soSeus && !ehMapaMedido(bloco, mapa.mapa) && !candidatos.includes(mapa.mapa)) {
 			return false;
 		}
 		motivos.set(mapa.mapa, motivo);
@@ -1717,7 +1807,7 @@ function renderList() {
 	} else {
 		mapas = ordenarMapas(mapas, HuntMap.sortKey, catalog.nivel);
 	}
-	if (!buscando && candidatos.length) {
+	if (!procurando && candidatos.length) {
 		// Os candidatos na frente, na ordem da exploracao; os medidos depois,
 		// na ordem do seletor.
 		mapas = candidatosNaFrente(mapas, candidatos);
@@ -1728,6 +1818,7 @@ function renderList() {
 		const total = mapas.length === 1 ? '1 mapa' : `${mapas.length} mapas`;
 		countEl.innerHTML =
 			escapeHtml(total) +
+			(porClasse ? ` · com equipamento para ${escapeHtml(nomeDaClasseEscolhida())}` : '') +
 			(ideais && !HuntMap.filterIdealOnly
 				? ` · <span class="hm-count-ideal">${ideais} ${ideais === 1 ? 'ideal' : 'ideais'} para você</span>`
 				: '');
@@ -1735,7 +1826,9 @@ function renderList() {
 
 	if (!mapas.length) {
 		listEl.innerHTML = `<div class="hm-list-empty">${
-			soSeus && !term
+			porClasse
+				? 'Nenhum mapa tem equipamento para essa classe.'
+				: soSeus && !term
 				? 'Nenhum mapa medido ainda. Cace 10 minutos num mapa, ou use o Explorar, e os números dele aparecem aqui.'
 				: HuntMap.filterFavoritos && !term
 					? 'Você ainda não marcou nenhum mapa. Toque na estrela de um cartão para marcar.'
@@ -2117,6 +2210,9 @@ function renderPanel() {
 			<button type="button" class="hm-seg-btn${porMapa ? ' is-selected' : ''}" data-visao="mapa" role="tab" aria-selected="${porMapa ? 'true' : 'false'}">${ROTULO_DA_VISAO.mapa}</button>
 		</div>`;
 
+	// J7: com uma classe escolhida, o dossie lista os equipamentos dela neste mapa.
+	const classeHtml = HuntMap.filterClasse >= 0 && ficha ? renderEquipamentoDaClasse(ficha) : '';
+
 	let dropsHtml;
 	if (!ficha) {
 		dropsHtml = '<div class="hm-drops-empty">Carregando os monstros deste mapa...</div>';
@@ -2183,7 +2279,7 @@ function renderPanel() {
 			<span class="hm-section-title">Monstros</span>
 			<span class="hm-section-n">${monstros.length}${mapa.mvp ? ' · 1 MVP' : ''}</span>
 		</div>
-		<div class="hm-mobs">${mobsHtml}</div>
+		<div class="hm-mobs">${mobsHtml}</div>${classeHtml}
 		<div class="hm-drops-head">
 			<span class="hm-section-title">${tituloDrops}</span>
 			${alternadorHtml}
@@ -2369,25 +2465,45 @@ function renderDropsDoMapa(ficha) {
 	if (!linhas.length) {
 		return '<div class="hm-drops-empty">Sem drops conhecidos neste mapa.</div>';
 	}
-	const grade = linhas
-		.map(l => {
-			// `dropsDoMapa` devolve o nome do servidor; o ladrilho mostra o local.
-			const nome = nomeLocalDoItem(l.itemId, l.nome);
-			const raridade = raridadeDoDrop({ chance: l.melhorChance, raridade: l.melhorChanceRaridade });
-			/*
-			 * D-1675: a ORIGEM vira texto no ladrilho. Era um chip "N mobs"
-			 * (quantos, nunca quais) mais o `title`, que no celular nao existe.
-			 * `htmlDasOrigens` nomeia cada monstro com a raridade DELE — sem
-			 * media e sem soma, porque chance de item "no mapa" nao existe no
-			 * rAthena.
-			 */
-			const origem = l.monstros.map(m => `${m.nome} ${rotuloDeRaridade(raridadeDoDrop(m))}`).join(' · ');
-			return renderDropTile(l.itemId, nome, raridade, htmlDasOrigens(l.monstros), `${nome} — ${origem}`);
-		})
-		.join('');
+	const grade = linhas.map(tileDoDropDoMapa).join('');
 	return `
 		<div class="hm-drops-legenda">${linhas.length} ${linhas.length === 1 ? 'item' : 'itens'} · a raridade é a do melhor caso entre os monstros</div>
 		<div class="hm-drops">${grade}</div>`;
+}
+
+/** O ladrilho de UMA linha de `dropsDoMapa` (o drop do mapa inteiro e o filtro por classe usam o mesmo). */
+function tileDoDropDoMapa(l) {
+	// `dropsDoMapa` devolve o nome do servidor; o ladrilho mostra o local.
+	const nome = nomeLocalDoItem(l.itemId, l.nome);
+	const raridade = raridadeDoDrop({ chance: l.melhorChance, raridade: l.melhorChanceRaridade });
+	/*
+	 * D-1675: a ORIGEM vira texto no ladrilho. Era um chip "N mobs"
+	 * (quantos, nunca quais) mais o `title`, que no celular nao existe.
+	 * `htmlDasOrigens` nomeia cada monstro com a raridade DELE — sem
+	 * media e sem soma, porque chance de item "no mapa" nao existe no
+	 * rAthena.
+	 */
+	const origem = l.monstros.map(m => `${m.nome} ${rotuloDeRaridade(raridadeDoDrop(m))}`).join(' · ');
+	return renderDropTile(l.itemId, nome, raridade, htmlDasOrigens(l.monstros), `${nome} — ${origem}`);
+}
+
+/**
+ * O EQUIPAMENTO DA CLASSE ESCOLHIDA NESTE MAPA (J7, 15/10/2026): a lista dos
+ * itens que o filtro por classe trouxe, em ladrilhos iguais aos do drop do mapa
+ * (mesma raridade, mesma origem, mesmo clique para a ficha do item).
+ */
+function renderEquipamentoDaClasse(ficha) {
+	const nome = nomeDaClasseEscolhida();
+	const linhas = dropsDoMapa(ficha).filter(l => classeUsaItem(HuntMap.filterClasse, l.itemId) === true);
+	const titulo = `
+		<div class="hm-section">
+			<span class="hm-section-title">Equipamento para ${escapeHtml(nome)}</span>
+			<span class="hm-section-n">${linhas.length}</span>
+		</div>`;
+	if (!linhas.length) {
+		return `${titulo}<div class="hm-drops-empty">Nenhum equipamento para ${escapeHtml(nome)} neste mapa.</div>`;
+	}
+	return `${titulo}<div class="hm-drops">${linhas.map(tileDoDropDoMapa).join('')}</div>`;
 }
 
 function onClickVisao(e) {
