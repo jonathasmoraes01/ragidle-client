@@ -46,6 +46,8 @@ import EnchantUI from 'UI/Components/Enchant/Enchant.js';
 import Mail from 'UI/Components/Mail/Mail.js';
 import WriteRodex from 'UI/Components/Rodex/WriteRodex.js';
 import { itemIconUrl, preferirArtePublicada } from 'Utils/ItemArt.js';
+import EquipLocation from 'DB/Items/EquipmentLocation.js';
+import { fantasmasDoReenvio } from 'UI/Components/Inventory/fantasmasDoReenvio.js';
 
 function _sanitizeHtml(str) {
 	const whitelist = ['font', 'i', 'b'];
@@ -620,6 +622,61 @@ export function createInventory(config) {
 				}
 				this.onUpdateItem(items[i].ITID, items[i].count ? items[i].count : 1);
 			}
+		}
+	};
+
+	/**
+	 * A MOCHILA INTEIRA QUE O SERVIDOR REENVIOU (16/10/2026, relato do refino
+	 * que "duplicava" o item). Chamada UMA vez, no `ZC_INVENTORY_END` da
+	 * mochila (Engine/MapEngine/reenvioDoInventario.js).
+	 *
+	 * A lista nova e a verdade: primeiro sai o fantasma (indice que ela nao
+	 * traz, na grade e no equipamento — `fantasmasDoReenvio.js`), depois o
+	 * `setItems` de sempre troca o resto pelo indice. O fantasma da grade sai
+	 * com o `onUpdateItem(ITID, 0)`, e o `setItems` logo atras devolve a
+	 * quantidade certa ao atalho quando o mesmo item existe noutro indice.
+	 */
+	Component.substituirItens = function substituirItens(items) {
+		const root = Component.getRoot();
+		const equipUI = Equipment.getUI();
+		const vestidosAtuais =
+			equipUI && typeof equipUI.getEquippedList === 'function' ? equipUI.getEquippedList() : [];
+		const fantasmas = fantasmasDoReenvio(this.list, vestidosAtuais, items, EquipLocation.AMMO);
+
+		for (let i = 0; i < fantasmas.daLista.length; ++i) {
+			const velho = fantasmas.daLista[i];
+			const posicao = this.list.indexOf(velho);
+			if (posicao !== -1) {
+				this.list.splice(posicao, 1);
+			}
+			const el = root.querySelector(`.item[data-index="${velho.index}"]`);
+			if (el) {
+				el.remove();
+			}
+			const nova = this.newItems.indexOf(velho.index);
+			if (nova !== -1) {
+				this.newItems.splice(nova, 1);
+			}
+			this.onUpdateItem(velho.ITID, 0);
+		}
+
+		for (let i = 0; i < fantasmas.vestidos.length; ++i) {
+			const vestido = fantasmas.vestidos[i];
+			equipUI.unEquip(vestido.index, vestido.equipped || vestido.WearState);
+			const vestidoAqui = this.equippedItems.indexOf(vestido.index);
+			if (vestidoAqui !== -1) {
+				this.equippedItems.splice(vestidoAqui, 1);
+			}
+		}
+
+		this.setItems(items);
+
+		const ncnt = root.querySelector('.ncnt');
+		if (ncnt) {
+			ncnt.textContent = countLabel();
+		}
+		if (fantasmas.daLista.length) {
+			this.updateScroll();
 		}
 	};
 

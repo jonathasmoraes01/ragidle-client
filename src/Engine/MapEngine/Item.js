@@ -27,6 +27,7 @@ import { ehDropDeCaca, registrarItem } from 'UI/Components/HuntAnalyzer/registro
 import { contextoDoMapa } from 'UI/contextoDoMapa.js';
 import ItemSelection from 'UI/Components/ItemSelection/ItemSelection.js';
 import Inventory from 'UI/Components/Inventory/Inventory.js';
+import { reenvioDoInventario } from 'Engine/MapEngine/reenvioDoInventario.js';
 import CartItems from 'UI/Components/CartItems/CartItems.js';
 import { textoDaGuardaRecusada, textoDaRetiradaRecusada } from 'UI/Components/CartItems/transferenciaDoCarrinho.js';
 import Equipment from 'UI/Components/Equipment/Equipment.js';
@@ -718,9 +719,16 @@ function onRecoverPenaltyOverweight(pkt) {
  */
 function onItemListNormal(pkt) {
 	switch (pkt.invType) {
-		case 0:
-			Inventory.getUI().setItems(pkt.itemInfo || pkt.ItemInfo);
+		case 0: {
+			// Dentro de um reenvio inteiro (START..END) a lista so e juntada; a
+			// mochila e substituida no END (reenvioDoInventario.js). Sem START,
+			// aplica na hora, como sempre.
+			const itens = pkt.itemInfo || pkt.ItemInfo;
+			if (!reenvioDoInventario.receber(itens)) {
+				Inventory.getUI().setItems(itens);
+			}
 			break;
+		}
 		case 1:
 			CartItems.setItems(pkt.itemInfo || pkt.ItemInfo);
 			break;
@@ -740,9 +748,16 @@ function onItemListNormal(pkt) {
  */
 function onItemListEquip(pkt) {
 	switch (pkt.invType) {
-		case 0:
-			Inventory.getUI().setItems(pkt.itemInfo || pkt.ItemInfo);
+		case 0: {
+			// Dentro de um reenvio inteiro (START..END) a lista so e juntada; a
+			// mochila e substituida no END (reenvioDoInventario.js). Sem START,
+			// aplica na hora, como sempre.
+			const itens = pkt.itemInfo || pkt.ItemInfo;
+			if (!reenvioDoInventario.receber(itens)) {
+				Inventory.getUI().setItems(itens);
+			}
 			break;
+		}
 		case 1:
 			CartItems.setItems(pkt.itemInfo || pkt.ItemInfo);
 			break;
