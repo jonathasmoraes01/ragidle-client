@@ -256,6 +256,18 @@ Trade.reqExchange = function requestExhange(GID, name) {
 };
 
 /**
+ * RAGIDLE (15/10/2026): o titulo da janela de troca quando o pedido saiu pela
+ * janela "Trade" do menu (pelo NOME). `reqExchange` e quem guarda o nome no
+ * clique no jogador; aqui o pedido nao passa por ele, e o titulo ficava so com
+ * o nivel e o PN do outro lado. O servidor devolve o nome no `pedir` aceito.
+ *
+ * @param {string} nome
+ */
+export function definirTituloDaTroca(nome) {
+	Trade.title = nome;
+}
+
+/**
  * Initialize
  */
 export default function MainEngine() {

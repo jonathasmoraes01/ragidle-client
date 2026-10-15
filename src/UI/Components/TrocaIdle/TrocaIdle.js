@@ -31,7 +31,7 @@ import Network from 'Network/NetworkManager.js';
 import PACKET from 'Network/PacketStructure.js';
 import UIManager from 'UI/UIManager.js';
 import GUIComponent from 'UI/GUIComponent.js';
-import { aoResponderPedidoDeTroca, receberPapelDaTroca } from 'Engine/MapEngine/Trade.js';
+import { aoResponderPedidoDeTroca, definirTituloDaTroca, receberPapelDaTroca } from 'Engine/MapEngine/Trade.js';
 import htmlText from './TrocaIdle.html?raw';
 import cssText from './TrocaIdle.css?raw';
 import { fecharEEsquecer } from '../limpezaDeJanelaIdle.js';
@@ -93,7 +93,7 @@ TrocaIdle.limparEstadoDoPersonagem = function limparEstadoDoPersonagem() {
 TrocaIdle.init = function init() {
 	const root = _root();
 	if (root) {
-		_controlador = criarControladorDaTroca({ raiz: root, enviar, fechar: closeWindow });
+		_controlador = criarControladorDaTroca({ raiz: root, enviar, fechar: closeWindow, definirTitulo: definirTituloDaTroca });
 		const fechar = root.querySelector('.tr-close');
 		if (fechar) {
 			fechar.addEventListener('click', onClickClose);
