@@ -13,6 +13,8 @@ import Network from 'Network/NetworkManager.js';
 import PACKETVER from 'Network/PacketVerManager.js';
 import PACKET from 'Network/PacketStructure.js';
 import Storage from 'UI/Components/Storage/Storage.js';
+import Inventory from 'UI/Components/Inventory/Inventory.js';
+import { reenvioDoInventario } from 'Engine/MapEngine/reenvioDoInventario.js';
 
 /*
  * This will hold the items to append to storage
@@ -162,6 +164,10 @@ Storage.reqMoveItemToCart = function reqMoveItemToCart(index, count) {
 function onItemListSet(pkt) {
 	switch (pkt.invType) {
 		case 0: // Inventory - name is always blank
+			// A mochila vem INTEIRA ate o END: abre o reenvio (reenvioDoInventario.js).
+			reenvioDoInventario.comecar();
+			InvTypeName = pkt.name;
+			break;
 		case 1: // Cart - name is always blank
 		case 2: // Storage
 		case 3: // Guild Storage
@@ -179,7 +185,16 @@ function onItemListSet(pkt) {
  */
 function onItemListResult(pkt) {
 	switch (pkt.invType) {
-		case 0: // Inventory
+		case 0: {
+			// Inventory: a lista juntada desde o START e a mochila INTEIRA, e
+			// substitui a local de uma vez — o indice que ela nao traz sai
+			// (o refino "duplicava" o item, 16/10/2026).
+			const itens = reenvioDoInventario.terminar();
+			if (itens) {
+				Inventory.getUI().substituirItens(itens);
+			}
+			break;
+		}
 		case 1: // Cart
 		case 2: // Storage
 		case 3: // Guild Storage

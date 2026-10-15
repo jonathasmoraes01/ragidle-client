@@ -99,7 +99,14 @@ function onSpecialEffect(pkt) {
 			ownerAID: pkt.AID
 		};
 
-		EffectManager.spam(EF_Init_Par);
+		// Cosmetico (D-2506): o 2/3 da forja e o 5/6 da farmacia chegam a todo
+		// o mapa, e uma arte que falta ou um dono fora da vista nao pode
+		// derrubar o laco de pacotes (D-993).
+		try {
+			EffectManager.spam(EF_Init_Par);
+		} catch (erro) {
+			console.warn('[efeito] o ZC_NOTIFY_EFFECT ' + pkt.effectID + ' falhou', erro);
+		}
 	}
 }
 

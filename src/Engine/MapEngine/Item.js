@@ -27,6 +27,7 @@ import { ehDropDeCaca, registrarItem } from 'UI/Components/HuntAnalyzer/registro
 import { contextoDoMapa } from 'UI/contextoDoMapa.js';
 import ItemSelection from 'UI/Components/ItemSelection/ItemSelection.js';
 import Inventory from 'UI/Components/Inventory/Inventory.js';
+import { reenvioDoInventario } from 'Engine/MapEngine/reenvioDoInventario.js';
 import CartItems from 'UI/Components/CartItems/CartItems.js';
 import { textoDaGuardaRecusada, textoDaRetiradaRecusada } from 'UI/Components/CartItems/transferenciaDoCarrinho.js';
 import Equipment from 'UI/Components/Equipment/Equipment.js';
@@ -36,6 +37,7 @@ import Storage from 'UI/Components/Storage/Storage.js';
 import MakeItemSelection from 'UI/Components/MakeItemSelection/MakeItemSelection.js';
 import ItemListWindowSelection from 'UI/Components/MakeItemSelection/ItemListWindowSelection.js';
 import EffectManager from 'Renderer/EffectManager.js';
+import { avisarResultadoDaProducao } from './resultadoDaProducao.js';
 
 /**
  * Spam an item on the map
@@ -620,6 +622,26 @@ function onMakeitemList(pkt) {
 }
 
 /**
+ * O resultado da forja/farmacia (`ZC_ACK_REQMAKINGITEM`, D-2506): uma linha no
+ * chat com o desfecho e o item. A animacao vem pelo `ZC_NOTIFY_EFFECT`
+ * (`onSpecialEffect`, Skill.js). Cosmetico: `avisarResultadoDaProducao` nunca
+ * lanca.
+ *
+ * @param {object} pkt - PACKET.ZC.ACK_REQMAKINGITEM
+ */
+function onMakeitemResult(pkt) {
+	avisarResultadoDaProducao(pkt, {
+		nomeDoItem: (itemId) => {
+			const info = DB.getItemInfo(itemId);
+			return info && info.identifiedDisplayName ? info.identifiedDisplayName : '';
+		},
+		escrever: (texto, saiu) => {
+			ChatBox.addText(texto, saiu ? ChatBox.TYPE.BLUE : ChatBox.TYPE.ERROR, ChatBox.FILTER.ITEM);
+		}
+	});
+}
+
+/**
  * Get a list of items to create
  *
  * @param {object} pkt - PACKET.ZC.ITEMLISTWIN_OPEN
@@ -718,9 +740,16 @@ function onRecoverPenaltyOverweight(pkt) {
  */
 function onItemListNormal(pkt) {
 	switch (pkt.invType) {
-		case 0:
-			Inventory.getUI().setItems(pkt.itemInfo || pkt.ItemInfo);
+		case 0: {
+			// Dentro de um reenvio inteiro (START..END) a lista so e juntada; a
+			// mochila e substituida no END (reenvioDoInventario.js). Sem START,
+			// aplica na hora, como sempre.
+			const itens = pkt.itemInfo || pkt.ItemInfo;
+			if (!reenvioDoInventario.receber(itens)) {
+				Inventory.getUI().setItems(itens);
+			}
 			break;
+		}
 		case 1:
 			CartItems.setItems(pkt.itemInfo || pkt.ItemInfo);
 			break;
@@ -740,9 +769,16 @@ function onItemListNormal(pkt) {
  */
 function onItemListEquip(pkt) {
 	switch (pkt.invType) {
-		case 0:
-			Inventory.getUI().setItems(pkt.itemInfo || pkt.ItemInfo);
+		case 0: {
+			// Dentro de um reenvio inteiro (START..END) a lista so e juntada; a
+			// mochila e substituida no END (reenvioDoInventario.js). Sem START,
+			// aplica na hora, como sempre.
+			const itens = pkt.itemInfo || pkt.ItemInfo;
+			if (!reenvioDoInventario.receber(itens)) {
+				Inventory.getUI().setItems(itens);
+			}
 			break;
+		}
 		case 1:
 			CartItems.setItems(pkt.itemInfo || pkt.ItemInfo);
 			break;
@@ -897,6 +933,7 @@ export default function ItemEngine() {
 	Network.hookPacket(PACKET.ZC.ADD_ITEM_TO_CART3, onCartItemAdded);
 	Network.hookPacket(PACKET.ZC.ADD_ITEM_TO_CART4, onCartItemAdded);
 	Network.hookPacket(PACKET.ZC.MAKABLEITEMLIST, onMakeitemList);
+	Network.hookPacket(PACKET.ZC.ACK_REQMAKINGITEM, onMakeitemResult);
 	Network.hookPacket(PACKET.ZC.MAKINGITEM_LIST, onMakeitem_List);
 	Network.hookPacket(PACKET.ZC.ACK_ADDITEM_TO_CART, onAckAddItemToCart);
 	// R110: o carrinho saiu (`clif_clearcart`) - a janela fecha e se esvazia.
