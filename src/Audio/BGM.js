@@ -12,8 +12,19 @@
 
 import Client from 'Core/Client.js';
 import Preferences from 'Preferences/Audio.js';
+import { armarRetomadaNoGesto, ehBloqueioDeAutoplay } from './retomadaDoBGM.js';
 
 let _playToken = 0;
+
+/** O desarme da retomada no gesto (J12), ou `null` sem nenhuma armada. */
+let _desarmarRetomada = null;
+
+function desarmarRetomada() {
+	if (_desarmarRetomada) {
+		_desarmarRetomada();
+		_desarmarRetomada = null;
+	}
+}
 
 /**
  * BGM NameSpace
@@ -147,6 +158,11 @@ class BGM {
 		const playPromise = BGM.audio.play();
 		if (playPromise) {
 			playPromise.catch(err => {
+				// J12 (15/10/2026): barrado pela politica de autoplay, toca no primeiro gesto (`retomadaDoBGM.js`).
+				if (ehBloqueioDeAutoplay(err)) {
+					BGM.retomarNoGesto();
+					return;
+				}
 				if (err.name !== 'AbortError') {
 					console.warn('Failed to play:', err);
 				}
@@ -154,11 +170,33 @@ class BGM {
 		}
 	}
 
+	static retomarNoGesto() {
+		if (_desarmarRetomada || typeof document === 'undefined') {
+			return;
+		}
+		_desarmarRetomada = armarRetomadaNoGesto(document, () => {
+			_desarmarRetomada = null;
+			if (!Preferences.BGM.play || !BGM.audio.paused || !BGM.audio.src) {
+				return;
+			}
+			const denovo = BGM.audio.play();
+			if (denovo) {
+				denovo.catch(err => {
+					if (ehBloqueioDeAutoplay(err)) {
+						BGM.retomarNoGesto();
+					}
+				});
+			}
+		});
+	}
+
 	/**
 	 * Stop the BGM
 	 */
 	static stop() {
 		_playToken++;
+		// A musica parada de proposito nao volta com um clique (J12).
+		desarmarRetomada();
 		if (BGM.audio) {
 			// Save current progress before pausing the global playback
 			BGM.cache.filename = BGM.filename;
