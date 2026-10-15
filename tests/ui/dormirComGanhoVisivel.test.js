@@ -17,6 +17,10 @@ function semComentario(texto) {
 	return texto.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^[ \t]*\/\/.*$/gm, '');
 }
 
+// As linhas do resumo levam o espaco SEM QUEBRA (U+00A0) dentro de cada metade (rodada 3, N4): o texto que o jogador
+// le e o mesmo, e e esse que estes testes conferem. Onde a linha pode dobrar e cobrado no bloco do N4, abaixo.
+const comEspacoComum = texto => texto.replace(/\u00a0/g, ' ');
+
 const MOTOR_CRU = semComentario(readFileSync('src/Engine/MapEngine.js', 'utf8'));
 const SELECAO_CRU = semComentario(readFileSync('src/UI/Components/CharSelect/CharSelectCommon.js', 'utf8'));
 const SELECAO_HTML = readFileSync('src/UI/Components/CharSelect/CharSelectV4/CharSelectV4.html', 'utf8');
@@ -77,7 +81,7 @@ describe('a tela "Dormindo..." diz que esta ganhando, e volta a selecao sem acor
 		const tela = UIManager.showDormindo(7 * 3600_000, { expBasePorMs: 0.001, expClassePorMs: 0.0005 }, () => {}, {
 			dormidoMs: 3600_000
 		});
-		const texto = document.body.lastElementChild.textContent;
+		const texto = comEspacoComum(document.body.lastElementChild.textContent);
 		expect(texto).toContain('Dormindo e ganhando EXP');
 		expect(texto).toMatch(/Ganho até agora: ~3[.,]?600 EXP base · ~1[.,]?800 EXP classe/);
 		expect(texto).toMatch(/Ritmo: ~3[.,]?600 EXP base\/h/);
@@ -90,9 +94,9 @@ describe('a tela "Dormindo..." diz que esta ganhando, e volta a selecao sem acor
 		const { default: UIManager } = await import('UI/UIManager.js');
 		const tela = UIManager.showDormindo(3600_000, { expBasePorMs: 1, expClassePorMs: 0 }, () => {}, { dormidoMs: 0 });
 		const linha = () => [...document.body.lastElementChild.querySelectorAll('div')].find(d => d.textContent.startsWith('Ganho até agora'));
-		expect(linha().textContent).toContain('~0 EXP base');
+		expect(comEspacoComum(linha().textContent)).toContain('~0 EXP base');
 		vi.advanceTimersByTime(3000);
-		expect(linha().textContent).toMatch(/~3[.,]?000 EXP base/);
+		expect(comEspacoComum(linha().textContent)).toMatch(/~3[.,]?000 EXP base/);
 		tela.remove();
 	});
 
@@ -102,12 +106,16 @@ describe('a tela "Dormindo..." diz que esta ganhando, e volta a selecao sem acor
 		const tela = UIManager.showDormindo(2000, { expBasePorMs: 1, expClassePorMs: 0.5 }, () => {}, { dormidoMs: 8 * 3600_000 - 2000 });
 		const janela = document.body.lastElementChild;
 		expect(janela.textContent, 'PRE-CONDICAO: com tempo pela frente, ainda rende').toContain('Dormindo e ganhando EXP');
+		// Rodada 3: o "pela frente" e o "Ritmo" ESTAO na tela antes do zero, lidos do mesmo jeito que o "nao" de baixo
+		// (com o espaco comum): sem isto, o espaco sem quebra do N4 deixava o "nao contem" verdadeiro de graca.
+		expect(comEspacoComum(janela.textContent), 'PRE-CONDICAO: o que falta esta na tela').toContain('pela frente');
+		expect(comEspacoComum(janela.textContent), 'PRE-CONDICAO: o ritmo esta na tela').toContain('Ritmo:');
 		vi.advanceTimersByTime(2000);
 		expect(janela.textContent).not.toContain('Dormindo e ganhando EXP');
 		expect(janela.textContent).toContain('Sono completo: acorde para receber a EXP');
-		expect(janela.textContent).toMatch(/Ganho do sono: ~28[.,]?800[.,]?000 EXP base · ~14[.,]?400[.,]?000 EXP classe/);
-		expect(janela.textContent, 'o ritmo de um sono parado').not.toContain('Ritmo:');
-		expect(janela.textContent, 'o "pela frente" de um sono parado').not.toContain('pela frente');
+		expect(comEspacoComum(janela.textContent)).toMatch(/Ganho do sono: ~28[.,]?800[.,]?000 EXP base · ~14[.,]?400[.,]?000 EXP classe/);
+		expect(comEspacoComum(janela.textContent), 'o ritmo de um sono parado').not.toContain('Ritmo:');
+		expect(comEspacoComum(janela.textContent), 'o "pela frente" de um sono parado').not.toContain('pela frente');
 		expect(new RegExp(`[${String.fromCharCode(0x2013, 0x2014)}]`).test(janela.textContent), 'travessao na tela').toBe(false);
 		tela.remove();
 	});
@@ -171,6 +179,67 @@ describe('a tela "Dormindo..." diz que esta ganhando, e volta a selecao sem acor
 		expect(texto).toContain('Entrar com outro personagem desta conta encerra este sono.');
 		expect(/[\u2013\u2014]/.test(texto)).toBe(false);
 		tela.remove();
+	});
+});
+
+describe('a linha do resumo so dobra no rotulo ou depois do "·" (rodada 3 da D-2478, N4)', () => {
+	// O espaco COMUM e o unico ponto onde o navegador dobra a linha: cortar por ele da os pedacos que nunca se separam.
+	// O defeito do celular em pe da rodada 2 ("classe" sozinha embaixo) seria um pedaco "classe".
+	const NB = '\u00a0';
+	const pedacos = linha => linha.replace(/~[\d.,]+/g, '~N').split(' ');
+	const folha = (janela, teste) => [...janela.querySelectorAll('div')].find(d => d.children.length === 0 && teste(d.textContent));
+
+	afterEach(() => {
+		document.body.innerHTML = '';
+		vi.useRealTimers();
+	});
+
+	it('cada metade e o "·" ficam inteiros nas quatro formas de linha, e o texto lido e o mesmo', async () => {
+		const { semQuebraDentroDasMetades } = await import('UI/numerosDoSono.js');
+		const casos = [
+			['Ganho até agora: ~22.733 EXP base · ~14.072 EXP classe', ['Ganho', 'até', 'agora:', `~N${NB}EXP${NB}base${NB}·`, `~N${NB}EXP${NB}classe`]],
+			['Ritmo: ~7.559 EXP base/h · ~4.680 EXP classe/h', ['Ritmo:', `~N${NB}EXP${NB}base/h${NB}·`, `~N${NB}EXP${NB}classe/h`]],
+			['~37.746 EXP base · ~23.367 EXP classe pela frente', [`~N${NB}EXP${NB}base${NB}·`, `~N${NB}EXP${NB}classe${NB}pela${NB}frente`]],
+			// o numero de nivel alto e o separador do ingles
+			['Ganho do sono: ~1.234.567 EXP base · ~617,283 EXP classe', ['Ganho', 'do', 'sono:', `~N${NB}EXP${NB}base${NB}·`, `~N${NB}EXP${NB}classe`]]
+		];
+		for (const [linha, esperado] of casos) {
+			const saida = semQuebraDentroDasMetades(linha);
+			expect(pedacos(saida), linha).toEqual(esperado);
+			expect(comEspacoComum(saida), 'nada some: so muda onde a linha dobra').toBe(linha);
+		}
+	});
+
+	it('na tela, as tres linhas do sono que rende e a do sono completo saem com as metades inteiras', async () => {
+		vi.useFakeTimers();
+		const { default: UIManager } = await import('UI/UIManager.js');
+		const tela = UIManager.showDormindo(2000, { expBasePorMs: 1, expClassePorMs: 0.5 }, () => {}, { dormidoMs: 8 * 3600_000 - 2000 });
+		const janela = document.body.lastElementChild;
+		const ateAgora = folha(janela, t => t.startsWith('Ganho até agora'));
+		const ritmo = folha(janela, t => t.startsWith('Ritmo:'));
+		const pelaFrente = folha(janela, t => t.endsWith(`pela${NB}frente`));
+		expect(pedacos(ateAgora.textContent)).toEqual(['Ganho', 'até', 'agora:', `~N${NB}EXP${NB}base${NB}·`, `~N${NB}EXP${NB}classe`]);
+		expect(pedacos(ritmo.textContent)).toEqual(['Ritmo:', `~N${NB}EXP${NB}base/h${NB}·`, `~N${NB}EXP${NB}classe/h`]);
+		expect(pedacos(pelaFrente.textContent)).toEqual([`~N${NB}EXP${NB}base${NB}·`, `~N${NB}EXP${NB}classe${NB}pela${NB}frente`]);
+		vi.advanceTimersByTime(2000);
+		const doSono = folha(janela, t => t.startsWith('Ganho do sono'));
+		expect(pedacos(doSono.textContent)).toEqual(['Ganho', 'do', 'sono:', `~N${NB}EXP${NB}base${NB}·`, `~N${NB}EXP${NB}classe`]);
+		tela.remove();
+	});
+
+	it('o ingles do catalogo publicado casa a linha com o espaco sem quebra (o tradutor le o U+00A0 como espaco)', async () => {
+		const { absorverCatalogo, desligarTraducao, traduzir } = await import('Core/Traducao.js');
+		const { semQuebraDentroDasMetades } = await import('UI/numerosDoSono.js');
+		absorverCatalogo(JSON.parse(readFileSync('public/ragidle/i18n/en/catalogo.json', 'utf8')));
+		try {
+			const em = linha => traduzir(semQuebraDentroDasMetades(linha));
+			expect(em('Ganho até agora: ~22.733 EXP base · ~14.072 EXP classe')).toBe('Earned so far: ~22,733 Base EXP · ~14,072 Job EXP');
+			expect(em('Ritmo: ~7.559 EXP base/h · ~4.680 EXP classe/h')).toBe('Rate: ~7,559 Base EXP/h · ~4,680 Job EXP/h');
+			expect(em('~37.746 EXP base · ~23.367 EXP classe pela frente')).toBe('~37,746 Base EXP · ~23,367 Job EXP to go');
+			expect(em('Ganho do sono: ~60.479 EXP base · ~37.440 EXP classe')).toBe('Sleep earnings: ~60,479 Base EXP · ~37,440 Job EXP');
+		} finally {
+			desligarTraducao();
+		}
 	});
 });
 

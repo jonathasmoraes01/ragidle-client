@@ -3,7 +3,8 @@
 // texto mutado].
 //
 // Rodada 2 da frente (o critico reprovou a 1): o corpo da lista que ia ao mundo (B1, `semOSonoDaLista` e as tres
-// costuras), o verde ilegivel da ficha (B2) e o sono completo que a tela chamava de "ganhando" (N1).
+// costuras), o verde ilegivel da ficha (B2) e o sono completo que a tela chamava de "ganhando" (N1). Rodada 3: a
+// linha do resumo que deixava "classe" sozinha no celular em pe (N4, `semQuebraDentroDasMetades`).
 
 const NUMEROS = 'src/UI/numerosDoSono.js';
 const UI = 'src/UI/UIManager.js';
@@ -66,5 +67,21 @@ export const MUTANTES_DO_DORMIR = {
 	// N1: o sono completo mantem o "pela frente"
 	completoComPelaFrente: [UI, '\t\t\t\tlinhaPelaFrente.remove();\n', ''],
 	// N1: o sono a taxa zero que acaba vira "Sono completo" com ganho zero
-	completoATaxaZero: [UI, '\t\t\tif (n.completo && n.rendendo) {', '\t\t\tif (n.completo) {']
+	completoATaxaZero: [UI, '\t\t\tif (n.completo && n.rendendo) {', '\t\t\tif (n.completo) {'],
+
+	// N4 (rodada 3): o espaco de dentro da metade volta a quebrar ("classe" sozinha embaixo no celular em pe)
+	metadeQuebra: [NUMEROS, '.replace(METADE, metade => metade.replace(/ /g, SEM_QUEBRA))', '.replace(METADE, metade => metade)'],
+	// N4: o "·" fica solto e pode abrir a segunda linha
+	pontoSolto: [NUMEROS, '\t\t.replace(/ ·/g, `${SEM_QUEBRA}·`);', "\t\t.replace(/ ·/g, ' ·');"],
+	// N4: o espaco "sem quebra" e o espaco comum
+	espacoQueQuebra: [NUMEROS, "const SEM_QUEBRA = '\\u00a0';", "const SEM_QUEBRA = ' ';"],
+	// N4: o "pela frente" se solta da metade
+	pelaFrenteSolta: [NUMEROS, '(?: pela frente)?/g;', '/g;'],
+	// N4: o numero com separador de milhar nao entra na metade
+	numeroCortado: [NUMEROS, '/~[^ ·]+ EXP', '/~\\d+ EXP'],
+	// N4: a tela escreve cada linha crua (as quatro costuras)
+	ateAgoraCru: [UI, 'linhaAteAgora.textContent = semQuebraDentroDasMetades(`Ganho até agora:', 'linhaAteAgora.textContent = (`Ganho até agora:'],
+	ritmoCru: [UI, 'linhaRitmo.textContent = semQuebraDentroDasMetades(', 'linhaRitmo.textContent = ('],
+	pelaFrenteCru: [UI, 'linhaPelaFrente.textContent = semQuebraDentroDasMetades(', 'linhaPelaFrente.textContent = ('],
+	sonoCompletoCru: [UI, 'linhaAteAgora.textContent = semQuebraDentroDasMetades(`Ganho do sono:', 'linhaAteAgora.textContent = (`Ganho do sono:']
 };

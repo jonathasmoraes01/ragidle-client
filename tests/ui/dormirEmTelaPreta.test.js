@@ -87,7 +87,8 @@ describe('a tela do "Dormindo..." e preta e cobre o jogo', () => {
 
 		const texto = document.body.lastElementChild.textContent;
 		expect(texto, 'o relogio nao aparece').toContain('02:00:00');
-		expect(texto, 'a EXP projetada sumiu').toMatch(/EXP base/);
+		// `\s`: dentro de cada metade da linha o espaco e o sem quebra (U+00A0, D-2478 rodada 3), o leitor ve o mesmo.
+		expect(texto, 'a EXP projetada sumiu').toMatch(/~[\d.,]+\sEXP\sbase/);
 		expect(texto, 'o aviso de que da pra fechar a aba sumiu').toMatch(/fechar o jogo/i);
 
 		tela.remove();

@@ -16,7 +16,7 @@ import KEYS from 'Controls/KeyEventHandler.js';
 import ClampToViewport from 'UI/ClampToViewport.js';
 import EscalaDaHud from 'UI/escalaDaHud.js'; // D-934: a HUD diminui junto com a janela
 import HudVertical from 'UI/hudVertical.js'; // D-939: a HUD vertical do celular em pe
-import { numerosDoSono } from 'UI/numerosDoSono.js'; // D-2478: o ganho visivel do "Dormindo..."
+import { numerosDoSono, semQuebraDentroDasMetades } from 'UI/numerosDoSono.js'; // D-2478: o ganho visivel do "Dormindo..."
 
 /**
  * Centralize popup position
@@ -786,14 +786,14 @@ class UIManager {
 			 */
 			if (n.completo && n.rendendo) {
 				tela.aviso.textContent = 'Sono completo: acorde para receber a EXP';
-				linhaAteAgora.textContent = `Ganho do sono: ~${num(n.ateAgora.base)} EXP base · ~${num(n.ateAgora.classe)} EXP classe`;
+				linhaAteAgora.textContent = semQuebraDentroDasMetades(`Ganho do sono: ~${num(n.ateAgora.base)} EXP base · ~${num(n.ateAgora.classe)} EXP classe`);
 				linhaRitmo.remove();
 				linhaPelaFrente.remove();
 				return;
 			}
-			linhaAteAgora.textContent = `Ganho até agora: ~${num(n.ateAgora.base)} EXP base · ~${num(n.ateAgora.classe)} EXP classe`;
-			linhaRitmo.textContent = `Ritmo: ~${num(n.porHora.base)} EXP base/h · ~${num(n.porHora.classe)} EXP classe/h`;
-			linhaPelaFrente.textContent = `~${num(n.pelaFrente.base)} EXP base · ~${num(n.pelaFrente.classe)} EXP classe pela frente`;
+			linhaAteAgora.textContent = semQuebraDentroDasMetades(`Ganho até agora: ~${num(n.ateAgora.base)} EXP base · ~${num(n.ateAgora.classe)} EXP classe`);
+			linhaRitmo.textContent = semQuebraDentroDasMetades(`Ritmo: ~${num(n.porHora.base)} EXP base/h · ~${num(n.porHora.classe)} EXP classe/h`);
+			linhaPelaFrente.textContent = semQuebraDentroDasMetades(`~${num(n.pelaFrente.base)} EXP base · ~${num(n.pelaFrente.classe)} EXP classe pela frente`);
 		}
 
 		desenhar();

@@ -40,3 +40,32 @@ export function numerosDoSono(p) {
 		completo: restante <= 0
 	};
 }
+
+/** O espaco que nao quebra a linha (U+00A0). */
+const SEM_QUEBRA = '\u00a0';
+
+/**
+ * Cada metade do resumo: "~N EXP base", "~N EXP classe", "~N EXP classe pela frente" (o "/h" do ritmo ja vem colado,
+ * sem espaco). O numero vai ate o espaco comum (o separador de milhar nunca e o espaco comum: "22.733", "22,733").
+ */
+const METADE = /~[^ ·]+ EXP (?:base|classe)(?: pela frente)?/g;
+
+/**
+ * A LINHA DO RESUMO QUE NAO DEIXA "classe" SOZINHA (rodada 3 da D-2478, N4 do critico). No celular em pe, "Ganho ate
+ * agora: ~22.733 EXP base · ~14.072 EXP classe" nao cabe numa linha, e a quebra caia entre "EXP" e "classe": a
+ * palavra ficava sozinha embaixo, como um quarto item da lista. Aqui o espaco DENTRO de cada metade vira o espaco sem
+ * quebra, e o "·" gruda na metade da esquerda: a linha so quebra no rotulo ("Ganho ate agora:") ou depois do "·".
+ * Nada some: o texto e o mesmo, so muda onde ele pode dobrar.
+ *
+ * O texto continua UM no so, igual ao do fonte: o tradutor (`Core/Traducao.js`, `normalizar`) e o extrator do
+ * servidor tratam o U+00A0 como espaco (o `\s` do JavaScript), entao o modelo do ingles casa como antes. O ingles
+ * traduzido sai com o espaco comum (o tradutor escreve o texto do catalogo), e ele e mais curto que o portugues.
+ *
+ * @param {string} texto a linha pronta, com os numeros ja formatados
+ * @returns {string}
+ */
+export function semQuebraDentroDasMetades(texto) {
+	return String(texto)
+		.replace(METADE, metade => metade.replace(/ /g, SEM_QUEBRA))
+		.replace(/ ·/g, `${SEM_QUEBRA}·`);
+}
