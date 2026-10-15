@@ -56,14 +56,31 @@ html.ri-vertical.ri-premium #HuntButtonIdle {
 	bottom: calc(var(--m-grupo-de-acao-base) - 6px) !important;
 }
 
-/* ─── Os buffs: fileira acima do chat, a esquerda (a de D-939 era coluna
-   colada ao trilho, e no celular baixo caia em cima do Cacar) ──────────── */
+/* ─── Os buffs: COLUNA na lateral esquerda, logo abaixo das missoes (pedido do
+   dono, 15/10/2026). Ancorados pelo TOPO, no fundo que o cartao de missoes
+   publica: abrir o cartao empurra a coluna para baixo, e recolher a puxa de
+   volta. Quem quebra a coluna em colunas e a grade de StatusIcons.css, com a
+   altura que sobra ate o chat (`--m-buffs-altura-max`, tokens.css). ─────── */
 html.ri-vertical.ri-premium #StatusIcons {
 	position: fixed !important;
-	top: auto !important;
+	top: var(--m-buffs-topo) !important;
 	right: auto !important;
+	bottom: auto !important;
 	left: calc(var(--safe-esq, 0px) + var(--m-margem)) !important;
-	bottom: calc(var(--m-acima-dos-atalhos) + var(--hud-chat-altura, 96px) + 8px) !important;
+}
+
+/* Com a folha do Menu aberta os buffs DESCEM (pedido do dono: "quando ele abre
+   o menu, os icones dos buffs tambem descam junto para nao ficar atras"): a
+   folha cobre a lateral inteira, e o unico lugar livre em todo celular e o
+   rodape - uma fileira logo acima do chat aberto, ou ao lado da bolinha. */
+html.ri-vertical.ri-premium.ri-menu-aberto #StatusIcons {
+	top: auto !important;
+	bottom: calc(var(--m-chat-alcance) + 8px) !important;
+}
+
+html.ri-vertical.ri-premium.ri-menu-aberto.ri-chat-minimizado #StatusIcons {
+	bottom: var(--m-acima-dos-atalhos) !important;
+	left: calc(var(--safe-esq, 0px) + var(--m-margem) + var(--m-chat-bolinha) + 8px) !important;
 }
 
 /* ─── O AUTO: o botao grande do canto do polegar (pedido do dono) ─────────

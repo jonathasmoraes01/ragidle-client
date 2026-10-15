@@ -110,6 +110,25 @@ html.ri-premium {
 	   disco, e no disco menor ela pende para dentro do arco. */
 	--m-folga-do-arco: 4px;
 
+	/* ─── O CHAT MINIMIZADO (pedido do dono, 15/10/2026) ─────────────────
+	   No celular o chat nasce minimizado (a bolinha); um toque abre, outro
+	   minimiza (ChatBox.js, `estadosDoChat.js`). */
+	--m-chat-bolinha: 44px;
+
+	/* ─── OS BUFFS EM COLUNA (pedido do dono, 15/10/2026) ─────────────────
+	   *"os buffs ficam na lateral esquerda abaixo das missoes em uma fileira
+	   vertical, quando cheio ate se aproximar do icone do chat, ele quebra a
+	   linha e comeca preenchendo ao lado la em cima"*. A coluna comeca logo
+	   abaixo do cartao de missoes (o fundo que ele publica, `--hud-missoes-
+	   fundo`, MissoesTrackerIdle.js) e termina 8px acima do chat (a altura que
+	   o chat publica, `--hud-chat-altura`, aberto ou bolinha); o resto e a
+	   grade em coluna de StatusIcons.css, que quebra sozinha. */
+	--m-buff: 47px;
+	--m-buffs-topo: calc(var(--hud-missoes-fundo, calc(var(--m-abaixo-do-topo) + 60px)) + 6px);
+	/* do pe da tela ao topo do chat */
+	--m-chat-alcance: calc(var(--m-acima-dos-atalhos) + var(--hud-chat-altura, var(--m-chat-bolinha)));
+	--m-buffs-altura-max: calc(var(--m-altura-util) - var(--m-buffs-topo) - var(--m-chat-alcance) - 8px);
+
 	/* ─── O ARCO DE SKILLS (pedido do dono, 15/10/2026) ─────────────────
 	   Com a barra de skills DESLIGADA (o padrao), as tres skills do rodizio
 	   do Bot ficam em volta do Auto, a esquerda, na diagonal e em cima dele.
@@ -168,4 +187,26 @@ html.ri-premium.ri-tela-minima {
 html.ri-premium:not(.ri-com-atalhos) {
 	--m-atalhos-altura: 0px;
 	--m-coluna-de-caca: var(--m-arco-largura);
+}
+
+/* Com a folha do Menu aberta (a marca e do TopMenuIdle.js) os buffs descem para
+   o rodape (documento.css): a folha cobre a lateral. La eles correm em FILEIRA,
+   da bolinha do chat (ou do canto, com o chat aberto) ate antes do grupo de
+   acao, e a fileira que enche quebra para CIMA (o host e ancorado pela base). */
+html.ri-premium.ri-menu-aberto {
+	--m-buffs-fluxo: row;
+	--m-buffs-fileiras: none;
+	--m-buffs-colunas: repeat(auto-fill, 34px);
+	--m-buffs-altura-max: 100vh;
+	--m-buffs-largura-max: calc(
+		var(--m-largura-util) - var(--safe-esq, 0px) - var(--safe-dir, 0px) - 3 * var(--m-margem) -
+			var(--m-coluna-de-caca) - 8px
+	);
+}
+
+html.ri-premium.ri-menu-aberto.ri-chat-minimizado {
+	--m-buffs-largura-max: calc(
+		var(--m-largura-util) - var(--safe-esq, 0px) - var(--safe-dir, 0px) - 3 * var(--m-margem) -
+			var(--m-coluna-de-caca) - 16px - var(--m-chat-bolinha)
+	);
 }

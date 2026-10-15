@@ -143,3 +143,48 @@
 	font-size: 12px;
 	line-height: 1.35;
 }
+
+/* Minimizado, o painel PERDE A LARGURA: a regra de cima (`width: min(300px, ...) !important`) vence a
+   `width: auto !important` da bolinha de ChatBox.css (mesma especificidade, e este arquivo vem depois), e
+   sobrava uma caixa invisivel de 300px no canto, comendo o toque no mapa e em cima dos buffs (medido). */
+.ri-premium #chatbox.is-minimizado {
+	width: auto !important;
+	/* e a casca: sem isto o fundo, a borda e a sombra do cartao do chat sobravam em volta da bolinha */
+	padding: 0;
+	border: 0;
+	background: none;
+	box-shadow: none;
+}
+
+/* a faixa das abas desta camada tem respiro (4px 5px 2px); minimizado, ela e so o suporte da bolinha */
+.ri-premium #chatbox.is-minimizado .cb-topo {
+	height: auto;
+	padding: 0;
+}
+
+/* ─── A BOLINHA (o chat minimizado) ─────────────────────────────────────
+   No celular o chat nasce minimizado a cada entrada (ChatBox.js, 08/09), e na
+   premium um toque abre e outro minimiza (`estadosDoChat.js`). A bolinha e o
+   medalhao da camada - azul de aro dourado, 44px -, e nao os 24 dos controles
+   de cima, que a regra deles (`.cb-controles button`) imporia. */
+.ri-premium #chatbox.is-minimizado .cb-collapse {
+	width: var(--m-chat-bolinha, 44px);
+	height: var(--m-chat-bolinha, 44px);
+	border: 2px solid var(--m-ouro, #d7b776);
+	border-radius: 50%;
+	background: var(--m-azul-medalha);
+	box-shadow:
+		0 0 0 1.5px rgba(255, 246, 220, 0.85),
+		0 4px 10px rgba(3, 27, 56, 0.45);
+	color: #ffffff;
+}
+
+/* o alvo e o proprio disco: ja tem 44 */
+.ri-premium #chatbox.is-minimizado .cb-collapse::before {
+	inset: 0;
+}
+
+.ri-premium #chatbox.is-minimizado .cb-abrir-glyph {
+	width: 20px;
+	height: 20px;
+}

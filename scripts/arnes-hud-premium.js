@@ -186,6 +186,15 @@ function semearMinimapa() {
 }
 
 /** As duas missoes do mockup, no formato de `blocoDaAceita` (MissoesTrackerIdle.js). */
+/* No celular em pe da premium o cartao de missoes NASCE RECOLHIDO, no icone (MissoesTrackerIdle.js, as classes
+   que `pintarRecolhido` poe); `?missoes=abertas` e o cartao aberto. */
+function recolherMissoesComoNoJogo() {
+	if (!HudPremium.ehHudPremium() || new URLSearchParams(location.search).get('missoes') === 'abertas') return;
+	const p = pecas.MissoesTrackerIdle;
+	p.$('.mt-painel')?.classList.add('is-recolhido');
+	p.$('.mt-recolher-v')?.classList.add('is-recolhido');
+}
+
 function semearMissoes() {
 	const p = pecas.MissoesTrackerIdle;
 	const caixa = p.$('.mt-aceitas');
@@ -215,11 +224,17 @@ function semearBuffs() {
 	const p = pecas.StatusIcons;
 	const container = p.$('#StatusIcons');
 	if (!container) return;
-	const cores = [
+	const base = [
 		['#2f8a3a', 'EXP', '28d'],
 		['#7a3fb0', 'BL', '24:11'],
-		['#2f6fd6', 'AG', '9:42']
+		['#2f6fd6', 'AG', '9:42'],
+		['#c0392b', 'ATK', '4:10'],
+		['#d68910', 'MAG', '2:55'],
+		['#117a65', 'DEF', '12:00']
 	];
+	/* `?buffs=N`: quantos buffs (3 por padrao). Muitos mostram a coluna quebrando em colunas. */
+	const quantos = Math.max(1, Number(new URLSearchParams(location.search).get('buffs')) || 3);
+	const cores = Array.from({ length: quantos }, (_, i) => base[i % base.length]);
 	cores.forEach(([cor, sigla, tempo], i) => {
 		const state = document.createElement('div');
 		state.className = 'state';
@@ -293,6 +308,12 @@ function semearChat() {
 	global.innerHTML =
 		'<div style="color:#fff">[Global] Bob: alguem pra Orc Dungeon?</div>' +
 		'<div style="color:#ffe08a">[Farm] Castanha obteve Carta Poring!</div>';
+	/* No celular o chat NASCE MINIMIZADO a cada entrada (ChatBox.js, 08/09/2026), e o arnes fotografa o que o
+	   jogador ve ao entrar. As duas classes sao as que `aplicarRecolhido` poe; `?chat=aberto` e o chat aberto. */
+	if (new URLSearchParams(location.search).get('chat') !== 'aberto') {
+		p.$('#chatbox').classList.add('is-minimizado');
+		document.documentElement.classList.add('ri-chat-minimizado');
+	}
 }
 
 /* O item "Bot" do menu nasce com `display:none` inline e o JS o mostra quando o
@@ -302,6 +323,17 @@ if (bot) bot.style.display = '';
 /* Admin so para a conta dona (TopMenuIdle.js). */
 const admin = pecas.TopMenuIdle.$('.tm-item-admin');
 if (admin) admin.style.display = 'none';
+/* `?menu=aberto`: a folha do Menu aberta, com as classes que `aplicarEstadoDoLeque` (TopMenuIdle.js) poe - o
+   leque montado e aberto, o fab aberto e `tm-aberto` na raiz - e o z de cima que ela ganha no celular. */
+if (new URLSearchParams(location.search).get('menu') === 'aberto') {
+	const fan = pecas.TopMenuIdle.$('.tm-fan');
+	if (fan) fan.classList.add('is-mounted', 'is-open');
+	const fab = pecas.TopMenuIdle.$('.tm-fab');
+	if (fab) fab.classList.add('is-open');
+	pecas.TopMenuIdle.$('#TopMenuIdle').classList.add('tm-aberto');
+	document.documentElement.classList.add('ri-menu-aberto');
+	pecas.TopMenuIdle.host.style.setProperty('z-index', '90', 'important');
+}
 
 semearPersonagem();
 semearMinimapa();
@@ -310,6 +342,7 @@ semearBuffs();
 semearAtalhos();
 semearChat();
 semearArco();
+recolherMissoesComoNoJogo();
 
 /* O arco do Auto: o rodizio do Cacador (o formato de `rodizioDoAuto.js`), com
    a Chuva de Flechas em recarga (o relogio da barra, num instante fixo) e a
@@ -352,6 +385,12 @@ function publicarAlturaDoStatus() {
 	}
 	/* E a do chat, como `ChatBox.js` publica (`--hud-chat-altura`): os buffs
 	   da camada premium se apoiam nela. */
+	/* E o fundo do cartao de missoes, como `publicarFundoNaVertical` (MissoesTrackerIdle.js): os buffs se
+	   penduram nele. */
+	const missoes = pecas.MissoesTrackerIdle.host.getBoundingClientRect();
+	if (missoes.height > 0) {
+		raiz.setProperty('--hud-missoes-fundo', `${Math.round(EscalaDaHud.emUnidadesDaHud(missoes.bottom))}px`);
+	}
 	const chat = pecas.ChatBox.$('#chatbox');
 	if (chat) {
 		raiz.setProperty(
@@ -369,6 +408,7 @@ if (typeof ResizeObserver === 'function') {
 	const observador = new ResizeObserver(publicarAlturaDoStatus);
 	observador.observe(pecas.ChatBox.$('#chatbox'));
 	observador.observe(pecas.BasicInfoIdle.$('.bi-window'));
+	observador.observe(pecas.MissoesTrackerIdle.host);
 }
 
 /* ─── A medida ──────────────────────────────────────────────────────────── */
@@ -405,6 +445,8 @@ const PECAS_MEDIDAS = {
 	voltar: ['HuntButtonIdle', '.hb-voltar', true],
 	sentar: ['HuntButtonIdle', '.hb-sentar'],
 	buffs: ['StatusIcons', '#StatusIcons'],
+	/* a folha do Menu aberto (o leque); fechada ela nao tem caixa */
+	leque: ['TopMenuIdle', '.tm-fan'],
 	chat: ['ChatBox', '#chatbox'],
 	atalhos: ['ShortCut', '#ShortCut']
 };

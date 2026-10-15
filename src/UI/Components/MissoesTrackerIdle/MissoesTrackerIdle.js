@@ -63,6 +63,7 @@ import cssText from './MissoesTrackerIdle.css?raw';
 import { emUnidadesDaHud } from 'UI/escalaDaHud.js'; // D-934: geometria medida vira unidade da HUD
 import LFGIdle from 'UI/Components/LFGIdle/LFGIdle.js'; // D-939: a aba "Grupo" do cartao vertical
 import { ehCelularEmPe } from 'UI/hudVertical.js'; // D-939: na vertical a ancora e do CSS, nao deste polling
+import { ehHudPremium } from 'UI/HudPremium/hudPremium.js'; // 15/10/2026: na premium o cartao nasce recolhido
 import CodexIdle from 'UI/Components/CodexIdle/CodexIdle.js'; // D-1839: o clique numa linha do rastreador
 import { rastreadorDoCodexAtual, rastreadorDoCodexHtml } from '../rastreadorDoCodex.js'; // D-1839
 
@@ -138,6 +139,13 @@ MissoesTrackerIdle.needFocus = false;
 
 let _timer = null;
 let _recolhido = false;
+/*
+ * NA HUD MOBILE PREMIUM O CARTAO NASCE RECOLHIDO, no icone (pedido do dono, 15/10/2026): *"as quests devem ficar
+ * por padrao minimizadas somente com o icone e o player clica la para abrir as missoes"*. Uma vez por sessao do
+ * jogo (o carregamento deste modulo), na primeira entrada no mapa: dali em diante a escolha do jogador vale ate
+ * ele sair, como a do chat (ChatBox.js, 08/09) - trocar de mapa nao fecha o cartao que ele abriu.
+ */
+let _padraoDoCelularAplicado = false;
 let _assinatura = '';
 /*
  * A ABA DO CARTAO NO CELULAR EM PE (D-1839): 'missoes' ou 'codex'.
@@ -364,6 +372,13 @@ MissoesTrackerIdle.onAppend = function onAppend() {
 	if (_timer) {
 		clearInterval(_timer);
 	}
+	if (!_padraoDoCelularAplicado) {
+		_padraoDoCelularAplicado = true;
+		if (ehCelularEmPe() && ehHudPremium()) {
+			_recolhido = true;
+			pintarRecolhido();
+		}
+	}
 	_timer = setInterval(() => {
 		syncPosition();
 		renderSeMudou();
@@ -381,6 +396,27 @@ MissoesTrackerIdle.onRemove = function onRemove() {
 	// "(i)" que ele abriu sai junto, em vez de voltar aberto e fora do lugar.
 	fecharInfoDaMissao(conteinerDoInfo());
 };
+
+/*
+ * O FUNDO DO CARTAO NO CELULAR EM PE (15/10/2026), em unidade da HUD: os buffs da HUD premium se penduram logo
+ * abaixo dele, em coluna (documento.css da camada). Ele muda quando o cartao abre, recolhe ou ganha missao, e o
+ * tique de 250 ms ja passa por aqui; so escreve quando o numero muda (a escrita no `documentElement` invalida o
+ * estilo de todo descendente que le `var()`, o mesmo cuidado do `publicarCaixa` do BasicInfoIdle).
+ */
+let _fundoPublicado = null;
+
+function publicarFundoNaVertical(host) {
+	const caixa = host.getBoundingClientRect();
+	if (caixa.height < 1) {
+		return;
+	}
+	const fundo = `${Math.round(emUnidadesDaHud(caixa.bottom))}px`;
+	if (fundo === _fundoPublicado) {
+		return;
+	}
+	_fundoPublicado = fundo;
+	host.ownerDocument.documentElement.style.setProperty('--hud-missoes-fundo', fundo);
+}
 
 /** Cola o painel logo abaixo do cartão do personagem, na mesma coluna. */
 function syncPosition() {
@@ -402,6 +438,7 @@ function syncPosition() {
 	if (ehCelularEmPe()) {
 		host.style.display = '';
 		host.style.maxHeight = '';
+		publicarFundoNaVertical(host);
 		return;
 	}
 	const rect = alvo.getBoundingClientRect();

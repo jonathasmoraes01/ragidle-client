@@ -51,6 +51,29 @@ function acharModulos() {
 const require = createRequire(join(acharModulos(), 'noop.js'));
 const { chromium } = require('playwright');
 
+/**
+ * AS VARIANTES fotografadas em cada tela. `premium` e o que o jogador ve ao entrar: o chat em bolinha, as missoes
+ * no icone, a barra de skills desligada (o arco em volta do Auto). `busca` sao os parametros do arnes.
+ */
+const VARIANTES = {
+	antes: { busca: '' },
+	premium: { busca: '?premium=1' },
+	'premium-chat': { busca: '?premium=1&chat=aberto&missoes=abertas' },
+	'premium-atalhos': { busca: '?premium=1&atalhos=1' },
+	/* muitos buffs com o cartao de missoes aberto: a coluna quebra em colunas antes do chat */
+	'premium-buffs': { busca: '?premium=1&buffs=14&missoes=abertas' },
+	/* a folha do Menu aberta: os buffs descem para o rodape, e so eles sao cobrados. No 320x568 a folha desce ate
+	   516 de 568 e cobre o que passar de UMA fileira (duas pilulas, entre a bolinha e o arco): os buffs da fileira
+	   de cima ficam atras dela - nao ha onde mais caber, e e a unica excecao, escrita com a tela. */
+	'premium-menu': {
+		busca: '?premium=1&menu=aberto&buffs=6',
+		soOsBuffs: true,
+		permitidos: { '320x568': ['buffs|leque'] }
+	},
+	'premium-70': { busca: '?premium=1&escala=70', escala: 70 },
+	'premium-120': { busca: '?premium=1&escala=120', escala: 120 }
+};
+
 /** As telas do celular em pe (a matriz do pacote: 320/375/393/430). */
 const TELAS = [
 	{ id: '320x568', viewport: { width: 320, height: 568 } },
@@ -104,13 +127,16 @@ function cruza(a, b) {
 
 /* O piso de toque e de 44 UNIDADES DA HUD: com o Tamanho da HUD abaixo de 100% o alvo encolhe junto, por
    escolha do jogador (Configuracoes de Video). Acima de 100% o piso segue 44. */
-function analisar(medida, premium, piso = 44) {
+function analisar(medida, premium, piso = 44, soOsBuffs = false, permitidosAqui = []) {
 	const problemas = [];
 	const nomes = Object.keys(medida.caixas).filter(n => medida.caixas[n]);
 	for (let i = 0; i < nomes.length; i++) {
 		for (let j = i + 1; j < nomes.length; j++) {
 			const [a, b] = [nomes[i], nomes[j]].sort();
-			if (CRUZAMENTOS_PERMITIDOS.has(`${a}|${b}`)) continue;
+			/* Com a folha do Menu aberta, tudo o que ela cobre fica ATRAS dela de proposito; o que se cobra e que
+			   os buffs nao fiquem (pedido do dono). */
+			if (soOsBuffs && a !== 'buffs' && b !== 'buffs') continue;
+			if (CRUZAMENTOS_PERMITIDOS.has(`${a}|${b}`) || permitidosAqui.includes(`${a}|${b}`)) continue;
 			if (cruza(medida.caixas[a], medida.caixas[b])) {
 				problemas.push(`cruzamento ${a} x ${b}`);
 			}
@@ -150,10 +176,11 @@ async function esperarVite() {
 
 async function main() {
 	const so = (process.argv.find(a => a.startsWith('--so=')) || '').slice(5);
-	/* `premium` e o padrao da camada (a barra de skills desligada, o arco em
-	   volta do Auto); `premium-atalhos` e a barra ligada nas Configuracoes. */
-	/* `premium-70`/`premium-120`: os extremos do Tamanho da HUD (Configuracoes de Video). */
-	const variantes = so ? so.split(',') : ['antes', 'premium', 'premium-atalhos', 'premium-70', 'premium-120'];
+	const variantes = so ? so.split(',') : Object.keys(VARIANTES);
+	for (const v of variantes) {
+		if (!VARIANTES[v])
+			throw new Error(`variante desconhecida: ${v} (conhecidas: ${Object.keys(VARIANTES).join(', ')})`);
+	}
 	mkdirSync(SAIDA, { recursive: true });
 
 	console.log('[foto-hud-premium] subindo o vite...');
@@ -176,9 +203,8 @@ async function main() {
 		if (process.env.RAG_CHROMIUM) opcoes.executablePath = process.env.RAG_CHROMIUM;
 		navegador = await chromium.launch(opcoes);
 		for (const variante of variantes) {
-			const premium = variante.startsWith('premium');
-			const comAtalhos = variante === 'premium-atalhos';
-			const escala = (variante.match(/^premium-(\d+)$/) || [])[1] || '';
+			const { busca, escala, soOsBuffs, permitidos = {} } = VARIANTES[variante];
+			const premium = variante !== 'antes';
 			for (const tela of TELAS) {
 				const contexto = await navegador.newContext({
 					viewport: tela.viewport,
@@ -201,9 +227,6 @@ async function main() {
 				   Chromium tentando falar com o Google (num ambiente com proxy, ele
 				   insiste) deixam a rede eternamente "ocupada", e a prova travava
 				   sem dizer por que. O sinal de pronto e o do proprio arnes. */
-				const busca = premium
-					? `?premium=1${comAtalhos ? '&atalhos=1' : ''}${escala ? `&escala=${escala}` : ''}`
-					: '';
 				await page.goto(`${URL_BASE}/scripts/arnes-hud-premium.html${busca}`, {
 					waitUntil: 'load'
 				});
@@ -213,11 +236,18 @@ async function main() {
 				const medida = await page.evaluate(() => window.__arnes.medir());
 				const arquivo = join(SAIDA, `${variante}-${tela.id}.png`);
 				await page.screenshot({ path: arquivo });
-				const problemas = analisar(medida, premium, 44 * Math.min(1, (Number(escala) || 100) / 100));
+				const problemas = analisar(
+					medida,
+					premium,
+					44 * Math.min(1, (escala || 100) / 100),
+					soOsBuffs,
+					permitidos[tela.id] || []
+				);
 				if (!marcas.vertical)
 					problemas.push('a marca ri-vertical nao entrou (o criterio de celular em pe nao casou)');
 				if (marcas.premium !== premium)
 					problemas.push(`marca ri-premium = ${marcas.premium}, bandeira = ${premium}`);
+				const comAtalhos = busca.includes('atalhos=1');
 				if (marcas.comAtalhos !== comAtalhos)
 					problemas.push(`marca ri-com-atalhos = ${marcas.comAtalhos}, barra pedida = ${comAtalhos}`);
 				for (const e of erros) problemas.push(`erro no console: ${e.slice(0, 160)}`);
