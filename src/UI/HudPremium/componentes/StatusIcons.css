@@ -1,0 +1,5 @@
+/* HUD MOBILE PREMIUM — StatusIcons (15/10/2026).
+
+   Injetado no shadow do componente DEPOIS do CSS dele (hudPremium.js), so
+   com `enableHudMobilePremium` ligada. Toda regra mora atras de
+   `.ri-premium`, que so existe no celular em pe. */

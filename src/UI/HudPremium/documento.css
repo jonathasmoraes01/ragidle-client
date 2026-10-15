@@ -1,0 +1,13 @@
+/* ═══════════════════════════════════════════════════════════════════════
+   HUD MOBILE PREMIUM — AS ANCORAS DOS HOSTS (documento, 15/10/2026)
+
+   Este arquivo vive SO no documento (`garantirCssDoDocumento`), nunca dentro
+   de um shadow. Ele redeclara ancoras de D-939 (`Common.css`, bloco "A HUD
+   VERTICAL DO CELULAR EM PE"), que sao `html.ri-vertical #X {... !important}`
+   porque o arrasto e o `ClampToViewport` escrevem posicao INLINE no host.
+
+   Para vencer sem guerra: o mesmo `!important` (o inline perde para os dois)
+   e um elo a mais no seletor (`html.ri-vertical.ri-premium`). Cada regra aqui
+   so existe porque o desenho premium muda aquela ancora — o resto continua
+   sendo o de D-939.
+   ═══════════════════════════════════════════════════════════════════════ */

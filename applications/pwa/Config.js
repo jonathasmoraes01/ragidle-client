@@ -100,6 +100,17 @@ window.ROConfigBase = {
 	 * estava medidamente quebrado — desliga-las devolveria o defeito.
 	 */
 	enableHudAdaptavel: true,
+	/*
+	 * A HUD MOBILE PREMIUM (15/10/2026) — o redesenho do celular em pe
+	 * (marfim/azul/dourado, minimapa de volta, trilho Mochila/Auto/Skills/
+	 * Config/RO Shop). E uma camada POR CIMA da HUD vertical de D-939, e so
+	 * vale com `enableHudAdaptavel` ligada.
+	 *
+	 * Nasce DESLIGADA: so `true` liga (`UI/HudPremium/hudPremium.js`). Para
+	 * testar, ponha `enableHudMobilePremium: true` no `Config.local.js`; para
+	 * voltar, tire a linha. Nenhum rebuild nos dois sentidos.
+	 */
+	enableHudMobilePremium: false,
 	enableCashShop: true,
 	enableCheckAttendance: false,
 	enableDmgSuffix: false,

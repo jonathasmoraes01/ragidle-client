@@ -62,6 +62,13 @@ import { ehAdaptavel } from 'UI/escalaDaHud.js';
  * `giroDoCelular` nao importa nada, entao nao ha ciclo possivel.
  */
 import { aplicarTelaDeGiro } from 'UI/giroDoCelular.js';
+/*
+ * A HUD MOBILE PREMIUM (15/10/2026) e uma camada POR CIMA desta: a marca dela
+ * (`ri-premium`) so existe onde `ri-vertical` existe, e e carimbada aqui, no
+ * mesmo laco, pelo mesmo motivo de a tela de giro entrar por aqui — um segundo
+ * conjunto de ouvintes seria a "segunda rota escrita a mao".
+ */
+import { MARCA_PREMIUM, ehHudPremium, garantirCssDoDocumento } from 'UI/HudPremium/hudPremium.js';
 
 /** A marca que o CSS le — no `<html>` e no root interno de cada shadow. */
 export const MARCA_VERTICAL = 'ri-vertical';
@@ -130,7 +137,16 @@ export function aplicar(doc, forcar) {
 	}
 	_ultimo = agora;
 
+	/* A premium so vale em pe; a bandeira e estatica no runtime, entao o cache
+	   de `agora` cobre as duas marcas. O CSS de documento entra na primeira vez
+	   que ela vale, antes da marca, para o primeiro quadro ja sair desenhado. */
+	const premium = agora && ehHudPremium();
+	if (premium) {
+		garantirCssDoDocumento(d);
+	}
+
 	d.documentElement.classList.toggle(MARCA_VERTICAL, agora);
+	d.documentElement.classList.toggle(MARCA_PREMIUM, premium);
 
 	/*
 	 * O carimbo dentro de cada shadow. `.ui-component-root` e o container que
@@ -143,6 +159,7 @@ export function aplicar(doc, forcar) {
 		const raiz = hosts[i].shadowRoot && hosts[i].shadowRoot.querySelector('.ui-component-root');
 		if (raiz) {
 			raiz.classList.toggle(MARCA_VERTICAL, agora);
+			raiz.classList.toggle(MARCA_PREMIUM, premium);
 		}
 	}
 	return agora;

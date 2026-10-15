@@ -10,6 +10,7 @@
  */
 
 import CommonCSS from './Common.css?raw';
+import HudPremium from 'UI/HudPremium/hudPremium.js';
 import Mouse from 'Controls/MouseEventHandler.js';
 import UIPreferences from 'Preferences/UI.js';
 import Session from 'Engine/SessionStorage.js';
@@ -265,6 +266,11 @@ class GUIComponent {
 		compStyle.setAttribute('data-component', this.name);
 		compStyle.textContent = this._cssText || '';
 		this._shadow.appendChild(compStyle);
+
+		/* A HUD MOBILE PREMIUM (15/10/2026): o pedaco de CSS dela entra DEPOIS do
+		   CSS do componente, para vencer por ordem. Com `enableHudMobilePremium`
+		   desligada (o padrao) a chamada nao escreve nada. */
+		HudPremium.injetarNoShadow(this._shadow, this.name);
 
 		// Create inner container for component content
 		this._container = document.createElement('div');
