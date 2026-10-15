@@ -54,7 +54,7 @@ describe('a costura em GrupoIdle.js', () => {
 	it('o empurrao do servidor passa pela funcao, lendo o que a linha mostra agora', () => {
 		const i = fonte.indexOf('Network.hookPacket(PACKET.ZC.RAGIDLE_GRUPO,');
 		expect(i, 'o gancho do grupo sumiu de GrupoIdle.js').toBeGreaterThan(-1);
-		const corpo = fonte.slice(i, fonte.indexOf('desenharTudo();', i));
+		const corpo = fonte.slice(i, fonte.indexOf('});', i)); // o fim do gancho (o desenho mudou de nome na master: agendador `_desenho`)
 		expect(corpo).toContain("recadoDoEstado(dados, raiz().querySelector('.gi-recado').textContent)");
 		expect(corpo).toContain('mostrarRecado(recado.texto, recado.ehProblema)');
 	});
