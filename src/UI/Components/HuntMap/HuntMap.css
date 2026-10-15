@@ -248,7 +248,9 @@
 	color: var(--text-muted);
 }
 
-#HuntMap .hm-sort {
+/* O filtro por classe (J7) reaproveita a pele do seletor de ordem. */
+#HuntMap .hm-sort,
+#HuntMap .hm-classe {
 	box-sizing: border-box;
 	padding: 4px 8px;
 	background: var(--white);
@@ -259,7 +261,8 @@
 	cursor: pointer;
 }
 
-#HuntMap .hm-sort:focus-visible {
+#HuntMap .hm-sort:focus-visible,
+#HuntMap .hm-classe:focus-visible {
 	outline: none;
 	border-color: var(--accent);
 	box-shadow: var(--glow-accent);
@@ -1791,6 +1794,11 @@
 
 .ri-vertical #HuntMap .hm-seg-btn,
 .ri-vertical #HuntMap .hm-sort {
+	min-height: 44px;
+}
+
+/* O seletor de classe (J7) tem o mesmo alvo de toque de 44 px. */
+.ri-vertical #HuntMap .hm-classe {
 	min-height: 44px;
 }
 
