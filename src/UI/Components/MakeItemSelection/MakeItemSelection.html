@@ -3,17 +3,26 @@
      system. Selectors que MakeItemSelection.js consulta, todos preservados:
      .head (arraste) / .head .text (titulo) / ui-button.cancel / ui-button.ok
      / #MakeItemSelection (delegacao de mousedown/dblclick) / .list /
-     .materials (alvo de drop) / .select (item escolhido). -->
-<div id="MakeItemSelection">
+     .materials (alvo de drop) / .select (item escolhido).
+     Forja elemental (14/10/2026): a janela virou coluna em FLUXO (cabeca,
+     lista, opcionais, botoes), e o bloco .opcionais so existe na tela quando a
+     receita aceita pedra e Estrelinha. Fora dele nao sobra espaco em branco.
+     .ri-window e a marca que a regra de painel do celular (D-932) le. -->
+<div id="MakeItemSelection" class="ri-window">
 	<div class="head ri-header">
 		<span class="text ri-title"></span>
+	</div>
+	<div class="content">
+		<div class="list ri-scroll"></div>
+		<div class="opcionais">
+			<div class="rotulo">Materiais opcionais</div>
+			<div class="materials"></div>
+			<div class="disponiveis"></div>
+			<div class="dica"></div>
+		</div>
 	</div>
 	<div class="bottom">
 		<ui-button class="btn cancel">Cancelar</ui-button>
 		<ui-button class="btn ok">Confirmar</ui-button>
-	</div>
-	<div class="content">
-		<div class="list ri-scroll"></div>
-		<div class="materials"></div>
 	</div>
 </div>

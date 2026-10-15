@@ -15,7 +15,6 @@ import Configs from 'Core/Configs.js';
 import TextEncoding from 'Utils/CodepageManager.js';
 import { caminhoDaTabela } from 'DB/tabelasNoIdioma.js';
 import { emIngles } from 'Core/Idioma.js';
-import { escaparHtml } from 'Utils/escaparHtml.js'; // D-1308: nome do dono de arma forjada vem cru do pacote (XSS)
 import JobId from './Jobs/JobConst.js';
 import ClassTable from './Jobs/JobNameTable.js';
 import PaletteTable from './Jobs/PalNameTable.js';
@@ -44,6 +43,7 @@ import SkillInfo from './Skills/SkillInfo.js';
 import SkillTreeView from './Skills/SkillTreeView.js';
 import JobHitSoundTable from './Jobs/JobHitSoundTable.js';
 import WeaponTrailTable from './Items/WeaponTrailTable.js';
+import { donoEmTexto, partesDoNomeForjado } from './Items/nomeDaArmaForjada.js';
 import TownInfo from './TownInfo.js';
 import StatusInfo from './Status/StatusInfo.js';
 import SC from './Status/StatusConst.js';
@@ -2440,75 +2440,67 @@ class DB {
 
 		//Hide slots for forged weapons
 		let showslots = true;
+		// O que a arma FORJADA poe depois do nome do item (`partesDoNomeForjado`).
+		let sufixoDaForja = '';
 		if (item.slot) {
-			let very = '';
 			let name = '';
-			let elem = '';
 
 			switch (item.slot.card1) {
 				case 0x00ff: {
 					// FORGE
 					showslots = false;
-					if (item.slot.card2 >= 3840) {
-						very = MsgStringTable[461]; //Very Very Very Strong
-					} else if (item.slot.card2 >= 2560) {
-						very = MsgStringTable[460]; //Very Very Strong
-					} else if (item.slot.card2 >= 1024) {
-						very = MsgStringTable[459]; //Very Strong
-					}
-					switch (Math.abs(item.slot.card2 % 10)) {
-						case 1:
-							elem = MsgStringTable[452];
-							break; // 's Ice
-						case 2:
-							elem = MsgStringTable[454];
-							break; // 's Earth
-						case 3:
-							elem = MsgStringTable[451];
-							break; // 's Fire
-						case 4:
-							elem = MsgStringTable[453];
-							break; // 's Wind
-						default:
-							elem = MsgStringTable[450];
-							break; // 's
-					}
 
+					/*
+					 * O DONO EM TEXTO, e nao em `<font>` (lote 5 da comunidade, 14/10/2026).
+					 *
+					 * O `getItemName` vai para `innerHTML` em algumas janelas e para
+					 * `textContent`/`escapeHTML` em muitas outras (a dica da Mochila, a
+					 * janela de equipamento, o carrinho): com a forja de verdade, essas
+					 * mostravam `<font color=...>Fulano</font>` cru no nome da arma (medido
+					 * na foto da Mochila). Em texto o nome serve as duas, e a seguranca de
+					 * D-1308 continua: `donoEmTexto` tira do nome os caracteres de marcacao.
+					 * O realce que trocava o nome quando ele chegava nunca rodava (o
+					 * `onUpdateOwnerName` sobrescreve a funcao guardada com o pacote), e
+					 * saiu: a janela seguinte que desenhar o item ja le o nome da tabela.
+					 */
 					const GID = (item.slot.card4 << 16) + item.slot.card3;
-					name = '<font color="red" class="owner-' + GID + '">Unknown</font>';
-					if (DB.CNameTable[GID] && DB.CNameTable[GID] !== 'Unknown') {
-						// SEGURANCA (D-1308): o nome do dono vem CRU do pacote
-						// (onUpdateOwnerName: CNameTable[GID] = pkt.CName) e este retorno de
-						// getItemName e injetado via innerHTML por sete janelas (Storage,
-						// ItemReform, Laphine). Escapa aqui, num lugar so — o GID e numerico.
-						// O ramo `.owner-<GID>` abaixo ja usa innerText, entao ja era seguro.
-						name =
-							'<font color="#87cefa" class="owner-' +
-							GID +
-							'">' +
-							escaparHtml(DB.CNameTable[GID]) +
-							'</font>';
+					const conhecido = DB.CNameTable[GID];
+					if (typeof conhecido === 'string' && conhecido !== '' && conhecido !== 'Unknown') {
+						name = donoEmTexto(conhecido);
 					} else {
-						DB.UpdateOwnerName[GID] = function (pkt) {
-							delete DB.UpdateOwnerName[pkt.GID];
-							setTimeout(() => {
-								const elements = document.querySelectorAll('.owner-' + pkt.GID);
-								for (let i = 0; i < elements.length; i++) {
-									elements[i].innerText = pkt.CName;
-									elements[i].style.color = 'blue';
-								}
-							}, 1000);
-						};
-						DB.getNameByGID(GID);
+						name = 'Unknown';
+						// O servidor ja respondeu "ninguem" (o ferreiro apagado): nao pede de novo.
+						if (conhecido !== '') {
+							DB.getNameByGID(GID);
+						}
 					}
 
-					str += very + ' ' + name + elem + ' ';
+					/*
+					 * O elemento, as Estrelinhas e o dono, na ORDEM DA LINGUA (lote 5 da
+					 * comunidade, 14/10/2026): em portugues as mensagens sao sufixos e o
+					 * nome sai "Espada Flamejante Forte de Fulano". Ver nomeDaArmaForjada.js.
+					 */
+					const partes = partesDoNomeForjado(item.slot.card2, name, id => MsgStringTable[id]);
+					str += partes.prefixo;
+					sufixoDaForja = partes.sufixo;
 					break;
 				}
 				case 0x00fe: // CREATE
-					elem = MsgStringTable[450];
+					// A mensagem 450 que ia para `elem` aqui nunca era lida: o nome de
+					// quem fez a pocao nao e desenhado (14/10/2026, o `elem` saiu).
 					break;
 				case 0xff00: // PET
+					/*
+					 * O "Beloved" e do OVO DE PET (card4 = 1, o nome trocado) e mora AQUI
+					 * desde 14/10/2026. O `switch (card4)` ficava fora do `switch (card1)`
+					 * e pegava tambem a arma FORJADA: o card4 dela e a palavra alta do id
+					 * do ferreiro, e todo ferreiro de id 65.536 a 131.071 virava "Beloved".
+					 */
+					if (item.slot.card4 === 0x1) {
+						//BELOVED PET
+						showslots = false;
+						str = DB.getMessage(756) + ' ' + str;
+					}
 					break;
 				// Show card prefix
 				default: {
@@ -2550,19 +2542,13 @@ class DB {
 					break;
 				}
 			}
-			switch (item.slot.card4) {
-				case 0x1: //BELOVED PET
-					showslots = false;
-					str = DB.getMessage(756) + ' ' + str;
-					break;
-			}
 		}
 
 		if (showprefix && showItemPrefix) {
 			str += prefix;
 		}
 
-		str += it.identifiedDisplayName;
+		str += it.identifiedDisplayName + sufixoDaForja;
 
 		if (showpostfix && showItemPostfix) {
 			str += postfix;
