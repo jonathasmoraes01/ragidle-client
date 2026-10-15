@@ -518,6 +518,19 @@ function tecladoAgora() {
  * onde escrever. `collapse` no proprio no leva o cursor ao fim onde o
  * navegador deixa, e onde nao deixa, nao destroi o que o toque nativo pos ali.
  */
+/**
+ * O `bottom` do painel com o teclado na conta (15/10/2026).
+ *
+ * Fechado, e a posicao do jogador mais `--teclado-altura` (zero). ABERTO
+ * (`--teclado-aberto: 1`, publicado por `UI/tecladoVirtual.js`), a posicao
+ * escolhida SAI da conta e o painel cola no teclado: a posicao foi escolhida
+ * contra a tela inteira, e somada a altura do teclado jogava o chat para o
+ * alto da area visivel - o "chat fica la em cima" do relato.
+ */
+function comTeclado(baixo) {
+	return `calc(${Math.round(baixo)}px * (1 - var(--teclado-aberto, 0)) + 6px * var(--teclado-aberto, 0) + var(--teclado-altura, 0px))`;
+}
+
 function cursorNoFim(campo) {
 	const selecao = window.getSelection();
 	if (!selecao) return;
@@ -562,7 +575,7 @@ function aplicarPosicao(root) {
 	// + o teclado (10/09/2026): sem o token, a posicao que o jogador escolheu
 	// vencia a regra do CSS que ergue o chat acima do teclado, e ele digitava
 	// por tras dele. Ver `tecladoAgora`.
-	painel.style.bottom = `calc(${Math.round(baixo)}px + var(--teclado-altura, 0px))`;
+	painel.style.bottom = comTeclado(baixo);
 }
 
 function aplicarLayout(root) {
@@ -574,6 +587,9 @@ function aplicarLayout(root) {
 function gravarLayout(root) {
 	const painel = root.querySelector('#chatbox');
 	if (!painel) return;
+	// Com o teclado aberto o painel esta colado nele (`comTeclado`), e a caixa
+	// medida nao e a posicao do jogador: gravar agora estragaria a escolha dele.
+	if (tecladoAgora() > 0) return;
 	const caixa = painel.getBoundingClientRect();
 
 	_layout.largPct = (caixa.width / window.innerWidth) * 100;
@@ -686,7 +702,7 @@ function moverPainel(painel, inicio, dx, dy) {
 	if (maxBaixo - baixo < encaixe) baixo = maxBaixo;
 
 	painel.style.left = `${Math.round(esquerda)}px`;
-	painel.style.bottom = `calc(${Math.round(baixo)}px + var(--teclado-altura, 0px))`;
+	painel.style.bottom = comTeclado(baixo);
 }
 
 /**
