@@ -61,6 +61,7 @@ import infoCss from 'UI/Components/MissoesIdle/infoDaMissao.css?raw';
 import htmlText from './MissoesTrackerIdle.html?raw';
 import cssText from './MissoesTrackerIdle.css?raw';
 import { emUnidadesDaHud } from 'UI/escalaDaHud.js'; // D-934: geometria medida vira unidade da HUD
+import { escreverEstilo } from 'UI/escreverSeMudou.js'; // 15/10/2026: o tique de 250 ms so escreve o que mudou
 import LFGIdle from 'UI/Components/LFGIdle/LFGIdle.js'; // D-939: a aba "Grupo" do cartao vertical
 import { ehCelularEmPe } from 'UI/hudVertical.js'; // D-939: na vertical a ancora e do CSS, nao deste polling
 import CodexIdle from 'UI/Components/CodexIdle/CodexIdle.js'; // D-1839: o clique numa linha do rastreador
@@ -399,9 +400,16 @@ function syncPosition() {
 	 * inline a cada 250ms — o CSS da vertical ja os vence com `!important`,
 	 * mas estado inline que ninguem le e sujeira que confunde o proximo.
 	 */
+	/*
+	 * SO ESCREVE O QUE MUDOU (15/10/2026): este tique roda 4x por segundo e
+	 * quase sempre chega ao MESMO numero. Cada escrita igual invalidava o estilo
+	 * (e o `getBoundingClientRect` la embaixo pagava um layout por ela). Os
+	 * ajudantes comparam com o que JA ESTA no DOM (`escreverSeMudou.js`), entao
+	 * a posicao sai identica.
+	 */
 	if (ehCelularEmPe()) {
-		host.style.display = '';
-		host.style.maxHeight = '';
+		escreverEstilo(host, 'display', '');
+		escreverEstilo(host, 'maxHeight', '');
 		return;
 	}
 	const rect = alvo.getBoundingClientRect();
@@ -412,8 +420,8 @@ function syncPosition() {
 	   e lido nas unidades do host (zoom por aplicar). Escrever de volta o numero
 	   lido NAO devolve o painel ao mesmo lugar — foi assim que ele foi parar
 	   58px por cima do painel de personagem em 800x500, medido. */
-	host.style.top = Math.round(emUnidadesDaHud(rect.bottom + 8)) + 'px';
-	host.style.left = Math.round(emUnidadesDaHud(rect.left)) + 'px';
+	escreverEstilo(host, 'top', Math.round(emUnidadesDaHud(rect.bottom + 8)) + 'px');
+	escreverEstilo(host, 'left', Math.round(emUnidadesDaHud(rect.left)) + 'px');
 
 	/*
 	 * ELE CABE NO VAO, OU NAO APARECE (D-930, 05/09/2026).
@@ -451,11 +459,11 @@ function syncPosition() {
 		   unidade da HUD, entao `meuTopo` tambem precisa ser convertido. */
 		const vao = topoDoCluster - emUnidadesDaHud(meuTopo) - 8;
 		const cabe = vao >= 34;
-		host.style.display = cabe ? '' : 'none';
-		host.style.maxHeight = cabe ? Math.round(vao) + 'px' : '';
+		escreverEstilo(host, 'display', cabe ? '' : 'none');
+		escreverEstilo(host, 'maxHeight', cabe ? Math.round(vao) + 'px' : '');
 	} else {
-		host.style.display = '';
-		host.style.maxHeight = '';
+		escreverEstilo(host, 'display', '');
+		escreverEstilo(host, 'maxHeight', '');
 	}
 
 	/*
@@ -479,10 +487,18 @@ function syncPosition() {
 	 */
 	const meu = host.getBoundingClientRect();
 	if (meu.height > 0) {
-		host.ownerDocument.documentElement.style.setProperty(
-			'--hud-coluna-fundo',
-			`${Math.round(emUnidadesDaHud(meu.bottom))}px`
-		);
+		/*
+		 * SO PUBLICA QUANDO MUDA (15/10/2026), no molde de
+		 * `BasicInfoIdle.publicarCaixa` e `TopMenuIdle.publicarTopoDoCluster`:
+		 * `setProperty` no `documentElement` invalida o estilo de todo
+		 * descendente que usa `var()`. A comparacao e com o valor que ESTA na
+		 * raiz (e nao com um memo): se alguem o tirou, ele volta.
+		 */
+		const estiloDaRaiz = host.ownerDocument.documentElement.style;
+		const fundo = `${Math.round(emUnidadesDaHud(meu.bottom))}px`;
+		if (estiloDaRaiz.getPropertyValue('--hud-coluna-fundo') !== fundo) {
+			estiloDaRaiz.setProperty('--hud-coluna-fundo', fundo);
+		}
 	}
 }
 
