@@ -767,3 +767,42 @@
 		max-height: none;
 	}
 }
+
+/* A ESPERA DA CRIACAO (16/10/2026, esperaDaCriacao.js). Com o pedido no ar o
+   botao fica DESABILITADO, mas nao dessaturado como o ".ri-btn:disabled" de
+   Common.css: cinza aqui leria "nao da para clicar" e nao "estou criando". A
+   cor e a da primaria; o giro usa "currentColor" para seguir o texto do botao
+   em qualquer tema. O texto encolhe com reticencias no celular em pe, onde o
+   botao divide a linha com o "Voltar". */
+#charcreate_v4 .btns .make.is-criando {
+	filter: none;
+	opacity: 1;
+	cursor: progress;
+	gap: var(--sp-3);
+	min-width: 0;
+}
+#charcreate_v4 .btns .make.is-criando .cc-criando {
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+#charcreate_v4 .btns .make .cc-giro {
+	flex: none;
+	width: 16px;
+	height: 16px;
+	border: 2px solid currentColor;
+	border-top-color: transparent;
+	border-radius: 50%;
+	animation: cc-giro 0.7s linear infinite;
+}
+@keyframes cc-giro {
+	to {
+		transform: rotate(360deg);
+	}
+}
+@media (prefers-reduced-motion: reduce) {
+	#charcreate_v4 .btns .make .cc-giro {
+		animation-duration: 2s;
+	}
+}

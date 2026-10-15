@@ -122,8 +122,13 @@ describe('a recusa do SERVIDOR vira texto (HC_REFUSE_MAKECHAR)', () => {
 		expect(textoDaRecusaDeCriacao(0x00, lerMensagem)).toBe('msg10');
 		expect(textoDaRecusaDeCriacao(0x01, lerMensagem)).toBe('msg298');
 		expect(textoDaRecusaDeCriacao(0x03, lerMensagem)).toBe('msg1355');
-		expect(textoDaRecusaDeCriacao(0xff, lerMensagem)).toBe('msg11');
 		expect(textoDaRecusaDeCriacao(0x42, lerMensagem)).toBe('msg11');
+	});
+
+	it('o 0xff diz que passa (a conta presa por outro processo), e nao "criacao negada"', () => {
+		expect(textoDaRecusaDeCriacao(0xff, lerMensagem)).toBe(
+			'Não foi possível criar agora. Tente novamente em alguns segundos.'
+		);
 	});
 
 	it('o CharEngine mostra o texto desta funcao, e nao mais o msg 1272', () => {

@@ -31,6 +31,8 @@
  * O cliente oficial recusa ali mesmo, com a mensagem certa.
  */
 
+import { TEXTO_RECUSA_TEMPORARIA } from './esperaDaCriacao.js';
+
 /** `TRIM_CHARS` (`char.hpp:161`), com o `\255` octal lido como 0xAD. */
 export const CARACTERES_APARADOS = '\u00ad\u00a0\u001a\t\n\r ';
 
@@ -63,6 +65,9 @@ export const MENSAGEM_NOME_COM_ESPACO = 'O nome não pode ter espaços.';
  * portugues em vez da frase generica do msgstringtable (1272).
  */
 export const CODIGO_NOME_COM_SIMBOLO = 0x02;
+
+/** `0xff` do `HC_REFUSE_MAKECHAR`, "Char creation denied" (`char_clif.cpp:1208-1232`). */
+export const CODIGO_CRIACAO_NEGADA = 0xff;
 
 function ehAparado(c) {
 	return CARACTERES_APARADOS.indexOf(c) !== -1;
@@ -138,6 +143,10 @@ export function textoDaRecusaDeCriacao(codigo, lerMensagem) {
 			return MENSAGEM_NOME_COM_ESPACO;
 		case 0x03:
 			return lerMensagem(1355); // 'You are not elegible to open the Character Slot.'
+		case CODIGO_CRIACAO_NEGADA:
+			// Neste servidor e, quase sempre, a conta presa por outro processo alem
+			// do prazo: passa sozinho, e a frase diz isso (`esperaDaCriacao.js`).
+			return TEXTO_RECUSA_TEMPORARIA;
 		default:
 			return lerMensagem(11); // 'Char creation denied'
 	}
