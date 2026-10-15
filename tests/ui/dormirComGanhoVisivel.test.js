@@ -366,4 +366,11 @@ describe('o botao da Analise de Caca diz quando a cacada ainda nao deu EXP (D-24
 		expect(corpo).toContain('const pronto = emCaca && !semExp && mapaElegivel && faltamMs <= 0;');
 		expect(corpo).toContain("motivo = 'a caçada ainda não deu EXP';");
 	});
+
+	it('D-2481: sem numero do servidor (o relogio da caca nao comecou), o motivo diz de onde os 10 minutos partem, e nao um "disponivel em 10:00" parado', () => {
+		const i = ANALISADOR_CRU.indexOf('function sincronizarDormir(');
+		const corpo = ANALISADOR_CRU.slice(i, ANALISADOR_CRU.indexOf('\n}', i));
+		expect(corpo).toContain("const relogioAndando = !!ctx && typeof ctx.faltamMsParaDormir === 'number';");
+		expect(corpo).toContain("motivo = relogioAndando ? `disponível em ${duracao(faltamMs)}` : 'os 10 minutos contam a partir do primeiro abate';");
+	});
 });

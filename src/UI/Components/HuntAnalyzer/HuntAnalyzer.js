@@ -407,6 +407,12 @@ function sincronizarDormir(root, r, aoVivo) {
 	const semExp = emCaca && !(Number(r.expBase) > 0);
 	const mapaElegivel = !!ctx && ctx.mapaElegivelParaDormir === true;
 	const faltamMs = faltamMsParaDormirAoVivo(ctx);
+	/*
+	 * D-2481 (15/10/2026): o relogio dos 10 minutos so comeca no PRIMEIRO ABATE com EXP. Antes dele o servidor manda
+	 * `faltamMsParaDormir: null` (sem numero), e o cliente nao tem o que contar: dizer "disponivel em 10:00" seria dizer
+	 * que algo corre. O motivo diz de onde o relogio parte.
+	 */
+	const relogioAndando = !!ctx && typeof ctx.faltamMsParaDormir === 'number';
 	const pronto = emCaca && !semExp && mapaElegivel && faltamMs <= 0;
 
 	/*
@@ -422,7 +428,7 @@ function sincronizarDormir(root, r, aoVivo) {
 	} else if (!mapaElegivel) {
 		motivo = 'só em mapa ≥1 nível abaixo do seu';
 	} else if (faltamMs > 0) {
-		motivo = `disponível em ${duracao(faltamMs)}`;
+		motivo = relogioAndando ? `disponível em ${duracao(faltamMs)}` : 'os 10 minutos contam a partir do primeiro abate';
 	}
 
 	botao.disabled = !pronto;
