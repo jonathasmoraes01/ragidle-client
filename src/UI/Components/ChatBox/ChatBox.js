@@ -87,6 +87,7 @@ import Configs from 'Core/Configs.js';
 import EntityManager from 'Renderer/EntityManager.js';
 import RiIcones from 'UI/ri-icones.js';
 import { emUnidadesDaHud } from 'UI/escalaDaHud.js'; // D-934: geometria medida vira unidade da HUD
+import { MARCA_CHAT_MINIMIZADO, proximoEstadoDoChat } from './estadosDoChat.js';
 import { CANAIS_QUE_FALAM_NO_GLOBAL, CANAL_DE_FALA, cabeNoLimite, markupDoLink, preparoParaLinkar } from './linkDeItemNoChat.js'; // D-946: linkar item no chat
 import { renderFalaSegura } from './textoSeguroDoChat.js'; // D-1308: escapa antes de transformar (XSS)
 // O GID do personagem em foco — a preferencia do chat e POR PERSONAGEM
@@ -525,6 +526,19 @@ function tecladoAgora() {
  * onde escrever. `collapse` no proprio no leva o cursor ao fim onde o
  * navegador deixa, e onde nao deixa, nao destroi o que o toque nativo pos ali.
  */
+/**
+ * O `bottom` do painel com o teclado na conta (15/10/2026).
+ *
+ * Fechado, e a posicao do jogador mais `--teclado-altura` (zero). ABERTO
+ * (`--teclado-aberto: 1`, publicado por `UI/tecladoVirtual.js`), a posicao
+ * escolhida SAI da conta e o painel cola no teclado: a posicao foi escolhida
+ * contra a tela inteira, e somada a altura do teclado jogava o chat para o
+ * alto da area visivel - o "chat fica la em cima" do relato.
+ */
+function comTeclado(baixo) {
+	return `calc(${Math.round(baixo)}px * (1 - var(--teclado-aberto, 0)) + 6px * var(--teclado-aberto, 0) + var(--teclado-altura, 0px))`;
+}
+
 function cursorNoFim(campo) {
 	const selecao = window.getSelection();
 	if (!selecao) return;
@@ -569,7 +583,7 @@ function aplicarPosicao(root) {
 	// + o teclado (10/09/2026): sem o token, a posicao que o jogador escolheu
 	// vencia a regra do CSS que ergue o chat acima do teclado, e ele digitava
 	// por tras dele. Ver `tecladoAgora`.
-	painel.style.bottom = `calc(${Math.round(baixo)}px + var(--teclado-altura, 0px))`;
+	painel.style.bottom = comTeclado(baixo);
 }
 
 function aplicarLayout(root) {
@@ -581,6 +595,9 @@ function aplicarLayout(root) {
 function gravarLayout(root) {
 	const painel = root.querySelector('#chatbox');
 	if (!painel) return;
+	// Com o teclado aberto o painel esta colado nele (`comTeclado`), e a caixa
+	// medida nao e a posicao do jogador: gravar agora estragaria a escolha dele.
+	if (tecladoAgora() > 0) return;
 	const caixa = painel.getBoundingClientRect();
 
 	_layout.largPct = (caixa.width / window.innerWidth) * 100;
@@ -693,7 +710,7 @@ function moverPainel(painel, inicio, dx, dy) {
 	if (maxBaixo - baixo < encaixe) baixo = maxBaixo;
 
 	painel.style.left = `${Math.round(esquerda)}px`;
-	painel.style.bottom = `calc(${Math.round(baixo)}px + var(--teclado-altura, 0px))`;
+	painel.style.bottom = comTeclado(baixo);
 }
 
 /**
@@ -1846,6 +1863,10 @@ ChatBox.onAppend = function OnAppend() {
 ChatBox.onRemove = function OnRemove() {
 	_preferences.canalAtivo = this.activeTab;
 	_preferences.save();
+	// Sem chat na tela, os buffs voltam ao lugar de sempre.
+	if (typeof document !== 'undefined') {
+		document.documentElement.classList.remove(MARCA_CHAT_MINIMIZADO);
+	}
 };
 
 /**
@@ -2838,9 +2859,18 @@ const ESTADOS = ['aberto', 'recolhido', 'minimizado'];
 /** Fechado = qualquer estado que esconda as abas. */
 const estaFechado = () => _recolhido.estado !== 'aberto';
 
+/*
+ * Na HUD mobile premium o chevron alterna so aberto <-> minimizado (pedido do dono, 15/10/2026: "abrir e minimizar
+ * com 1 click"; ver `estadosDoChat.js`). A pergunta e a marca `ri-premium` no root deste shadow, a mesma que o CSS
+ * da camada le: ela so existe no celular em pe com a bandeira ligada.
+ */
+function emCicloCurto() {
+	const chatbox = _root() && _root().querySelector('#chatbox');
+	return !!(chatbox && chatbox.closest('.ri-premium'));
+}
+
 function proximoEstado() {
-	const i = ESTADOS.indexOf(_recolhido.estado);
-	return ESTADOS[(i < 0 ? 0 : i + 1) % ESTADOS.length];
+	return proximoEstadoDoChat(_recolhido.estado, emCicloCurto());
 }
 
 function definirEstado(estado, porEscolhaDoJogador = true) {
@@ -2879,6 +2909,8 @@ function aplicarRecolhido() {
 
 	chatboxEl.classList.toggle('is-recolhido', recolhido);
 	chatboxEl.classList.toggle('is-minimizado', minimizado);
+	/* A marca no documento: os buffs da HUD premium descem para o lado do disco (`documento.css`). */
+	chatboxEl.ownerDocument.documentElement.classList.toggle(MARCA_CHAT_MINIMIZADO, minimizado);
 	collapseBtn.classList.toggle('is-recolhido', recolhido);
 	collapseBtn.setAttribute('aria-expanded', String(estado === 'aberto'));
 
@@ -2892,7 +2924,9 @@ function aplicarRecolhido() {
 	 */
 	const label =
 		estado === 'aberto'
-			? 'Recolher chat'
+			? emCicloCurto()
+				? 'Minimizar chat'
+				: 'Recolher chat'
 			: recolhido
 				? 'Minimizar o chat por completo'
 				: 'Abrir chat';

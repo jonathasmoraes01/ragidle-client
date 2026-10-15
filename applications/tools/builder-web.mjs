@@ -529,6 +529,10 @@ window.ROConfigBase = {
     enableCheckAttendance: true,  
     enableDmgSuffix: true,  
     enableHomunAutoFeed: true,  
+    /* A HUD MOBILE PREMIUM e a HUD padrao do celular em pe (15/10/2026). E ESTE modelo que vira o Config.js
+       publicado (o applications/pwa/Config.js so vale no dev): sem a chave aqui, a producao ficava na HUD
+       antiga. Desligar sem rebuild: enableHudMobilePremium: false no Config.local.js de producao. */
+    enableHudMobilePremium: true,  
     enableMapName: true,  
     enableRefineUI: true,  
     enableRoulette: false,  

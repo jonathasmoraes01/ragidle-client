@@ -193,6 +193,9 @@ import LFGIdle from 'UI/Components/LFGIdle/LFGIdle.js'; // RAGIDLE: Procurar Gru
    escolhe entre as duas — e quem carrega as duas — e a `portaDoGrupo`. */
 import GrupoIdle from 'UI/Components/GrupoIdle/GrupoIdle.js'; // RAGIDLE: a janela de Grupo (D-960)
 import { ehCelularEmPe } from 'UI/hudVertical.js'; // D-939: a folha do menu flutua sobre o chat
+
+/** A marca do menu aberto no `<html>` (HUD mobile premium, 15/10/2026): os buffs leem dela. */
+export const MARCA_MENU_ABERTO = 'ri-menu-aberto';
 /* 08/09/2026: a terceira porta do "Instalar app". A DECISAO e toda de la — ver
    `ligarOfertaDeInstalacao()` mais abaixo. */
 import { escutarACasca, ofertaAtual, pontePWA, textoDoResultado } from 'UI/ofertaDeInstalacao.js';
@@ -542,6 +545,10 @@ TopMenuIdle.limparEstadoDoPersonagem = function limparEstadoDoPersonagem() {
 
 TopMenuIdle.onRemove = function onRemove() {
 	stopPolling();
+	// sem menu na tela, a marca do menu aberto nao pode sobrar no documento
+	if (typeof document !== 'undefined') {
+		document.documentElement.classList.remove(MARCA_MENU_ABERTO);
+	}
 	desligarFechamentoExterno();
 	clearToastTimer();
 	if (_lequeTimer != null) {
@@ -1040,6 +1047,10 @@ function aplicarEstadoDoLeque(imediato) {
 	const raizVertical = _root().querySelector('#TopMenuIdle');
 	if (raizVertical) {
 		raizVertical.classList.toggle('tm-aberto', _lequeAberto);
+		/* HUD MOBILE PREMIUM (15/10/2026): a mesma informacao no DOCUMENTO, para quem mora fora deste shadow.
+		   Com a folha aberta os buffs descem para o rodape em vez de ficarem atras dela (pedido do dono:
+		   "quando ele abre o menu, os icones dos buffs tambem descam junto"; documento.css da camada). */
+		raizVertical.ownerDocument.documentElement.classList.toggle(MARCA_MENU_ABERTO, _lequeAberto);
 	}
 	/* Ainda D-939: com a folha aberta o menu precisa flutuar sobre o CHAT,
 	   que e needFocus e ganha z ~60-70 do gerenciador de foco (o rodape do

@@ -1,0 +1,157 @@
+/* HUD MOBILE PREMIUM — MiniMapV2, o MINIMAPA REDONDO (15/10/2026).
+
+   Injetado no shadow do componente DEPOIS do CSS dele (hudPremium.js), so
+   com `enableHudMobilePremium` ligada. Toda regra mora atras de
+   `.ri-premium`, que so existe no celular em pe.
+
+   O minimapa VOLTA ao celular em pe nesta camada (o "SEM minimapa" de D-939
+   fica valendo sem ela). O desenho do mockup: um medalhao redondo de aro
+   dourado, com o nome do mapa numa pilula azul por cima do aro.
+
+   O CANVAS E O DE SEMPRE - o mesmo buffer de 128x128 que `MiniMapCommon.js`
+   pinta com o BMP do mapa, os pontos e a seta. Quem o faz redondo e o
+   `border-radius` + `overflow: hidden` da moldura; quem o encolhe e a caixa
+   CSS, com `image-rendering: pixelated` (a regra 4 do contrato: arte do
+   cliente ampliada ou reduzida, nunca borrada). O tamanho mora no token
+   `--m-minimapa`, que o host tambem le (documento.css). */
+
+.ri-premium .mm-window {
+	position: relative;
+	width: var(--m-minimapa, 100px);
+	height: var(--m-minimapa, 100px);
+	padding: 0;
+	overflow: visible;
+	border: 0;
+	border-radius: 50%;
+	background: transparent;
+	box-shadow: none;
+}
+
+.ri-premium .mm-body {
+	position: absolute;
+	inset: 0;
+	padding: 0;
+	border-radius: 50%;
+	background: #e9e2cd;
+	box-shadow:
+		0 0 0 2px #fff6dc,
+		0 0 0 4px var(--m-ouro),
+		var(--m-sombra);
+}
+
+.ri-premium .mm-canvas-frame {
+	width: 100%;
+	height: 100%;
+	border: 0;
+	border-radius: 50%;
+	box-shadow: inset 0 0 0 1px rgba(122, 96, 44, 0.35);
+}
+
+.ri-premium .mm-body canvas {
+	width: 100%;
+	height: 100%;
+	image-rendering: pixelated;
+}
+
+/* O nome do mapa: pilula azul por cima do aro, como no mockup. */
+.ri-premium .mm-header {
+	position: absolute;
+	z-index: 1;
+	top: -9px;
+	left: 50%;
+	transform: translateX(-50%);
+	height: 18px;
+	max-width: calc(100% + 16px);
+	/* a direita, o lugar do chevron de minimizar */
+	padding: 0 20px 0 9px;
+	border: 1px solid var(--m-ouro);
+	border-radius: 999px;
+	background: linear-gradient(180deg, var(--m-azul), var(--m-azul-escuro));
+	box-shadow: var(--m-sombra-leve);
+}
+
+.ri-premium .mm-mapname {
+	font-family: inherit;
+	font-size: 10px;
+	font-weight: 800;
+	letter-spacing: 0.2px;
+	text-transform: none;
+	color: var(--m-tinta-clara);
+}
+
+/* As coordenadas: pilula pequena na base do aro. */
+.ri-premium .mm-footer {
+	position: absolute;
+	z-index: 1;
+	bottom: -7px;
+	left: 50%;
+	transform: translateX(-50%);
+	padding: 0 7px;
+	border: 1px solid var(--m-ouro-claro);
+	border-radius: 999px;
+	background: var(--m-papel);
+	box-shadow: var(--m-sombra-leve);
+}
+
+.ri-premium .coordinates {
+	font-size: 9px;
+	font-weight: 700;
+	line-height: 14px;
+	color: var(--m-tinta);
+}
+
+/* ─── MINIMIZAR O MAPA (pedido do dono, 15/10/2026) ──────────────────────
+   *"coloque a possibilidade da pessoa minimizar o mapa tambem e ficar apenas o
+   nome do mapa atual"*. O toque e na PILULA DO NOME inteira: o botao cobre a
+   pilula e passa dela 13px em cima e embaixo, para o alvo chegar aos 44 do dedo
+   (a pilula desenha 18). O chevron no fim diz o que o toque faz: para cima
+   recolhe, para baixo abre. A logica mora em `recolherMinimapa.js`. */
+.ri-premium .mm-recolher {
+	display: block;
+	position: absolute;
+	inset: -13px -6px;
+	width: auto;
+	height: auto;
+	margin: 0;
+	padding: 0;
+	border: 0;
+	background: transparent;
+	cursor: pointer;
+	-webkit-tap-highlight-color: transparent;
+}
+
+.ri-premium .mm-recolher-glifo {
+	position: absolute;
+	top: 50%;
+	right: 14px;
+	width: 5px;
+	height: 5px;
+	margin-top: -1px;
+	border-right: 1.5px solid var(--m-ouro-claro, #f0d9a4);
+	border-bottom: 1.5px solid var(--m-ouro-claro, #f0d9a4);
+	transform: rotate(-135deg);
+}
+
+/* Minimizado: so a pilula fica, no mesmo lugar em que pendia do aro. */
+.ri-premium.ri-minimapa-recolhido .mm-body,
+.ri-premium.ri-minimapa-recolhido .mm-footer {
+	display: none;
+}
+
+.ri-premium.ri-minimapa-recolhido .mm-window {
+	width: auto;
+	height: auto;
+}
+
+.ri-premium.ri-minimapa-recolhido .mm-header {
+	position: relative;
+	top: 0;
+	left: 0;
+	transform: none;
+	max-width: none;
+}
+
+.ri-premium.ri-minimapa-recolhido .mm-recolher-glifo {
+	margin-top: -4px;
+	transform: rotate(45deg);
+}

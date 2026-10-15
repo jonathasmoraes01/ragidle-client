@@ -52,6 +52,14 @@ const defaultGraphicsSettings = {
 	economiaDeEnergiaAutomatica: true,
 
 	/**
+	 * O TAMANHO DA HUD, em % (pedido do dono, 15/10/2026: *"uma opcao de video, onde a pessoa consegue aumentar
+	 * ou diminuir a hud toda"*). Multiplica a escala de `UI/escalaDaHud.js` - no celular ela e 1, no desktop a
+	 * que a janela pede -, entao toda a HUD e toda geometria medida (`emUnidadesDaHud`) acompanham juntas. Os
+	 * valores aceitos sao os de `OPCOES_DE_ESCALA` (la); qualquer outro cai no mais perto.
+	 */
+	escalaDaHud: 100,
+
+	/**
 	 * Performance Mode
 	 *
 	 * O `viewArea` e o RAIO DE CULLING do cliente: com o modo ligado,

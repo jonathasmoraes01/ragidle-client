@@ -196,3 +196,9 @@
 		image-rendering: pixelated;
 	}
 }
+
+/* O botao de minimizar o mapa (15/10/2026) e da HUD mobile premium: fora dela o
+   minimapa segue sem controle nenhum (a ordem de 01/09/2026, no HTML). */
+.mm-recolher {
+	display: none;
+}

@@ -43,6 +43,7 @@ import { aplicarIconeDoItem } from 'UI/itemNaTela.js';
 import DB from 'DB/DBManager.js';
 import Session from 'Engine/SessionStorage.js';
 import { esquecer as esquecerContexto, marcarObsoleto, receberDoServidor } from 'UI/contextoDoMapa.js';
+import { assinaturaDoRodizio, rodizioDoAuto } from './rodizioDoAuto.js';
 
 const WINDOW_WIDTH = 980;
 const WINDOW_HEIGHT = 720;
@@ -247,6 +248,42 @@ function avisarLigado() {
 			fn(estado);
 		} catch (err) {
 			console.error('[BotMenu] ouvinte do ligado falhou', err);
+		}
+	}
+	avisarRodizio();
+}
+
+/*
+ * O RODIZIO PARA QUEM FICA FORA DA JANELA (15/10/2026, HUD mobile premium): as tres skills em volta do botao
+ * Auto (CombatCornerIdle). Elas chegam no mesmo `pedir` de toda entrada no mapa (`onAppend`), com a janela
+ * fechada ou aberta. O aviso sai do mesmo ponto do ON/OFF (todo gesto e toda resposta), mas so quando o que o
+ * arco desenha MUDOU (`assinaturaDoRodizio`): o status do Bot chega varias vezes por minuto e quase nunca
+ * mexe no rodizio.
+ */
+const _ouvintesDoRodizio = new Set();
+let _assinaturaDoRodizio = null;
+
+BotMenu.rodizioDoAuto = function rodizioDoAutoAgora() {
+	return rodizioDoAuto(_estado.estado());
+};
+
+BotMenu.aoMudarRodizio = function aoMudarRodizio(fn) {
+	_ouvintesDoRodizio.add(fn);
+	return () => _ouvintesDoRodizio.delete(fn);
+};
+
+function avisarRodizio() {
+	const itens = BotMenu.rodizioDoAuto();
+	const assinatura = assinaturaDoRodizio(itens);
+	if (assinatura === _assinaturaDoRodizio) {
+		return;
+	}
+	_assinaturaDoRodizio = assinatura;
+	for (const fn of _ouvintesDoRodizio) {
+		try {
+			fn(itens);
+		} catch (err) {
+			console.error('[BotMenu] ouvinte do rodizio falhou', err);
 		}
 	}
 }

@@ -77,7 +77,10 @@ describe('barra de atalhos nativa como unica hotbar', () => {
 		expect(mapEngine.indexOf('CombatCornerIdle.prepare();')).toBeGreaterThan(mapEngine.indexOf('BotMenu.prepare();'));
 		expect(mapEngine.indexOf('CombatCornerIdle.append();')).toBeGreaterThan(mapEngine.indexOf('BotMenu.append();'));
 		expect(corner).toContain('BotMenu.alternarLigado()');
-		expect(corner).not.toMatch(/IdleConfig|DockIdle|ShortCut/);
+		expect(corner).not.toMatch(/IdleConfig|DockIdle/);
+		// O arco de skills da HUD premium (15/10/2026) usa a PORTA da barra (`portaDasSkills.js`) e o relogio
+		// dela (`relogioDaBarra.js`), dois modulos sem dependencia; a barra em si (o componente) continua fora.
+		expect(corner).not.toMatch(/import ShortCut from|ShortCut\/ShortCut\.js|\bShortCut\.[a-zA-Z]/);
 	});
 
 	it('aceita habilidades aprendidas arrastadas da arvore nova', () => {

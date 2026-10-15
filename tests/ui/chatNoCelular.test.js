@@ -104,7 +104,10 @@ describe('digitar no celular', () => {
 		// Sem o desconto, a subida do teclado entraria na posicao gravada e o
 		// chat subiria duas vezes na abertura seguinte.
 		expect(CHATBOX).not.toMatch(/style\.bottom = `\$\{Math\.round\(baixo\)\}px`;/);
-		expect(CHATBOX.match(/\+ var\(--teclado-altura, 0px\)\)`;/g)).toHaveLength(2);
+		// Os DOIS que escrevem a posicao (aplicarPosicao e moverPainel) passam por
+		// `comTeclado` desde 15/10/2026, e ela e a unica dona da conta do teclado.
+		expect(CHATBOX.match(/painel\.style\.bottom = comTeclado\(baixo\);/g)).toHaveLength(2);
+		expect(CHATBOX.match(/\+ var\(--teclado-altura, 0px\)\)`;/g)).toHaveLength(1);
 		expect(corpo(CHATBOX, 'function gravarLayout(')).toContain('caixa.bottom - tecladoAgora()');
 		expect(CHATBOX, 'o botao de tamanho tambem grava a posicao').not.toContain('(window.innerHeight - caixa.bottom) /');
 		expect(CHATBOX).toContain('baixo: window.innerHeight - caixa.bottom - tecladoAgora(),');

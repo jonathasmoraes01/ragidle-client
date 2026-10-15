@@ -83,3 +83,12 @@
 	width: 100%;
 	box-sizing: border-box;
 }
+
+/*
+ * A barra de skills (HUD mobile premium, 15/10/2026): o interruptor so existe na premium, onde a barra nasce
+ * desligada e as skills do rodizio ficam em volta do Auto. Fora dela a barra e a de sempre e o botao some. A
+ * morte o esconde pelo `style` como os outros (Escape.js), e o `style` vence esta regra.
+ */
+.ui-component-root:not(.ri-premium) #Escape .barra-skills {
+	display: none;
+}

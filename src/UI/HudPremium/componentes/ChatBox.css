@@ -1,0 +1,196 @@
+/* HUD MOBILE PREMIUM — ChatBox, o CHAT COMPACTO (15/10/2026).
+
+   Injetado no shadow do componente DEPOIS do CSS dele (hudPremium.js), so
+   com `enableHudMobilePremium` ligada. Toda regra mora atras de
+   `.ri-premium`, que so existe no celular em pe.
+
+   O desenho do mockup: cartao azul-noite no canto inferior esquerdo, com as
+   abas de canal e a barra de digitar, terminando ANTES da coluna de caca.
+
+   A ALTURA DO LOG nasce menor (`--cb-altura`, tres linhas): no mockup o chat
+   e uma barra discreta, e a cena de caca e a prioridade. Mas e so o valor de
+   NASCENCA - a escada de tamanho (1x/2x/3x) e o arrasto do jogador escrevem
+   `--cb-altura` inline e continuam mandando, porque a escada mede a base no
+   CSS (`alturaBase`, ChatBox.js) e multiplica a partir dela. */
+
+.ri-premium #chatbox {
+	--chat-bg: var(--m-chat-fundo, rgba(19, 39, 70, 0.9));
+	--chat-border: var(--m-chat-borda, rgba(167, 189, 207, 0.45));
+	--cb-altura: 54px;
+	border-radius: 14px;
+	box-shadow: var(--m-sombra);
+}
+
+/* No celular baixo (o SE no Safari, ~375x553, e o 320x568) a coluna nao
+   cabe com o log aberto: ele nasce FECHADO - abas e barra de digitar -, e a
+   escada de tamanho do jogador continua abrindo quando ele quiser. */
+.ri-premium.ri-tela-minima #chatbox {
+	--cb-altura: 0px;
+}
+
+.ri-premium #chatbox .cb-aba.is-active {
+	background: linear-gradient(180deg, var(--m-azul-claro), var(--m-azul));
+	color: #ffffff;
+	box-shadow: inset 0 0 0 1px rgba(255, 246, 220, 0.45);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   O CHAT ENXUTO (pedido do dono, 15/10/2026): *"tem muita informacao e
+   espacamentos que podiam ser reduzidos"*.
+
+   O QUE SAI, E POR QUE:
+     - a faixa de ARRASTO (os dois tracinhos) e as alcas de largura: na HUD
+       premium o chat tem lugar fixo, entre a barra de atalhos e o grupo de
+       acao. Arrastado, ele cairia em cima do Cacar. A posicao e a largura
+       ficam com `!important` pelo mesmo motivo: um jogador que arrastou o chat
+       na HUD de antes traz a posicao gravada (inline) e ela venceria;
+     - as duas LINHAS DIVISORIAS: o fundo do log ja separa as faixas.
+
+   O QUE ENCOLHE: a faixa das abas e a barra de digitar perdem o respiro, e os
+   botoes desenham menor - o ALVO continua de 44px pelo `::before` (o mesmo
+   recurso do Common.css). A alca de ALTURA (a borda de cima) fica: e por ela,
+   e pelo "1x", que o jogador aumenta o log.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.ri-premium #chatbox {
+	left: calc(var(--safe-esq, 0px) + var(--m-margem, 8px)) !important;
+	bottom: calc(
+		var(--m-acima-dos-atalhos, 84px) * (1 - var(--teclado-aberto, 0)) + 6px * var(--teclado-aberto, 0) +
+			var(--teclado-altura, 0px)
+	) !important;
+	width: min(
+		300px,
+		calc(
+			var(--m-largura-util, 100vw) - var(--safe-esq, 0px) - var(--safe-dir, 0px) - 2 * var(--m-margem, 8px) -
+				var(--m-coluna-de-caca, 120px) - 10px
+		)
+	) !important;
+}
+
+.ri-premium #chatbox .cb-arrasto,
+.ri-premium #chatbox .cb-alca-direita,
+.ri-premium #chatbox .cb-alca-canto,
+.ri-premium #chatbox .cb-divisor {
+	display: none;
+}
+
+.ri-premium #chatbox .cb-topo {
+	padding: 4px 5px 2px;
+	gap: 2px;
+}
+
+.ri-premium #chatbox .cb-aba {
+	height: 24px;
+	padding: 0 8px;
+	font-size: 11px;
+}
+
+.ri-premium #chatbox .cb-controles button {
+	width: 24px;
+	height: 24px;
+}
+
+/* Os controles (tamanho, config, recolher) desenham 24px e tocam em 44: os
+   vizinhos ficam a 2px, as areas se sobrepoem, e no vao quem vence e o botao
+   de cima na ordem do DOM - o que um dedo no meio espera. */
+.ri-premium #chatbox .cb-controles button::before {
+	inset: -10px;
+}
+
+/* A barra de digitar: uma linha, sem o respiro de 8px por lado. */
+.ri-premium #chatbox .input {
+	gap: 4px;
+	padding: 3px 4px 3px 6px;
+	border-top: 0;
+	background: rgba(255, 255, 255, 0.06);
+}
+
+.ri-premium #chatbox .input .message {
+	padding: 7px 0;
+	font-size: 12.5px;
+}
+
+/* O dedo nao tem Enter: o convite e o do mockup. O campo e editavel, e o tradutor da interface pula campo
+   editavel inteiro (D-1929, o "aato" de 05/10): o texto em ingles vem da lingua do documento
+   (`inicioDoIdioma.js` poe `<html lang>`), e nao do catalogo. */
+.ri-premium #chatbox .input .message:empty::before {
+	content: 'Digite uma mensagem...';
+}
+
+.ri-premium #chatbox .input .message:empty:lang(en)::before {
+	content: 'Type a message...';
+}
+
+.ri-premium #chatbox .cb-destino {
+	padding: 2px 6px;
+	font-size: 9.5px;
+}
+
+.ri-premium #chatbox .input .filter,
+.ri-premium #chatbox .input .cb-enviar {
+	position: relative;
+	min-width: 32px;
+	min-height: 32px;
+}
+
+.ri-premium #chatbox .input .filter::before,
+.ri-premium #chatbox .input .cb-enviar::before {
+	content: '';
+	position: absolute;
+	inset: -6px;
+}
+
+/* O log: menos respiro entre as linhas (eram 7px de vao) e a letra um passo
+   abaixo - cabem mais mensagens nas mesmas tres linhas de altura. */
+.ri-premium #chatbox .content {
+	gap: 2px;
+	padding-top: 2px;
+	padding-bottom: 2px;
+	font-size: 12px;
+	line-height: 1.35;
+}
+
+/* Minimizado, o painel PERDE A LARGURA: a regra de cima (`width: min(300px, ...) !important`) vence a
+   `width: auto !important` da bolinha de ChatBox.css (mesma especificidade, e este arquivo vem depois), e
+   sobrava uma caixa invisivel de 300px no canto, comendo o toque no mapa e em cima dos buffs (medido). */
+.ri-premium #chatbox.is-minimizado {
+	width: auto !important;
+	/* e a casca: sem isto o fundo, a borda e a sombra do cartao do chat sobravam em volta da bolinha */
+	padding: 0;
+	border: 0;
+	background: none;
+	box-shadow: none;
+}
+
+/* a faixa das abas desta camada tem respiro (4px 5px 2px); minimizado, ela e so o suporte da bolinha */
+.ri-premium #chatbox.is-minimizado .cb-topo {
+	height: auto;
+	padding: 0;
+}
+
+/* ─── A BOLINHA (o chat minimizado) ─────────────────────────────────────
+   No celular o chat nasce minimizado a cada entrada (ChatBox.js, 08/09), e na
+   premium um toque abre e outro minimiza (`estadosDoChat.js`). A bolinha e o
+   medalhao da camada - azul de aro dourado, 44px -, e nao os 24 dos controles
+   de cima, que a regra deles (`.cb-controles button`) imporia. */
+.ri-premium #chatbox.is-minimizado .cb-collapse {
+	width: var(--m-chat-bolinha, 44px);
+	height: var(--m-chat-bolinha, 44px);
+	border: 2px solid var(--m-ouro, #d7b776);
+	border-radius: 50%;
+	background: var(--m-azul-medalha);
+	box-shadow:
+		0 0 0 1.5px rgba(255, 246, 220, 0.85),
+		0 4px 10px rgba(3, 27, 56, 0.45);
+	color: #ffffff;
+}
+
+/* o alvo e o proprio disco: ja tem 44 */
+.ri-premium #chatbox.is-minimizado .cb-collapse::before {
+	inset: 0;
+}
+
+.ri-premium #chatbox.is-minimizado .cb-abrir-glyph {
+	width: 20px;
+	height: 20px;
+}

@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="pt-BR">
+	<head>
+		<meta charset="utf-8" />
+		<!-- A MESMA meta do jogo (applications/pwa/index.html). Sem
+			`initial-scale=1` o Chrome em emulacao de celular encolhe a pagina e a
+			geometria da foto deixa de ser a do aparelho (cicatriz do arnes do
+			tutorial). -->
+		<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+		<title>Arnes da HUD mobile premium</title>
+		<!--
+			ARNES DE FOTO DA HUD MOBILE PREMIUM (15/10/2026).
+
+			Monta a HUD do celular em pe com os COMPONENTES DE VERDADE no que cabe
+			ao desenho: o HTML e o CSS de cada um (o mesmo Shadow DOM que o
+			GUIComponent monta), o Common.css, a marca `ri-vertical` carimbada
+			pelo `hudVertical.js` de verdade e o CSS premium injetado pelo
+			`hudPremium.js` de verdade. O conteudo (nome, barras, missoes, slots)
+			e semeado a mao, no formato que cada componente escreve.
+
+			`?premium=1` liga `enableHudMobilePremium`; sem ele a foto e a HUD
+			vertical de hoje (D-939) - a comparacao antes x depois sai da mesma
+			pagina.
+
+			O QUE ELE NAO PROVA, dito por escrito: o mapa WebGL, o minimapa VIVO
+			(aqui o canvas recebe um desenho de mentira), o estado vindo do
+			servidor e os handlers de clique. Isso e prova de pilha
+			(`prove:hud-vertical`, `prove:mobile-vertical` no rag-idle).
+		-->
+		<script>
+			window.ROConfig = {
+				enableHudAdaptavel: true,
+				enableHudMobilePremium: new URLSearchParams(location.search).get('premium') === '1'
+			};
+		</script>
+		<style>
+			html,
+			body {
+				margin: 0;
+				padding: 0;
+				width: 100%;
+				height: 100%;
+				overflow: hidden;
+				background: #8a8f7a;
+			}
+			/* O chao de mentira no lugar da cena 3D: pedra clara de cidade, para
+			   o contraste da HUD clara ser julgado contra um fundo parecido com o
+			   do mockup (Prontera), e nao contra branco. */
+			#cena {
+				position: absolute;
+				inset: 0;
+				background:
+					repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.06) 0 18px, rgba(0, 0, 0, 0.04) 18px 36px),
+					radial-gradient(circle at 45% 50%, #cfc6b2 0%, #a9a189 55%, #7c7a62 100%);
+			}
+		</style>
+	</head>
+	<body>
+		<div id="cena"></div>
+		<script type="module" src="/scripts/arnes-hud-premium.js"></script>
+	</body>
+</html>

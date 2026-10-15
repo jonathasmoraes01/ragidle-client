@@ -1,0 +1,5 @@
+# As fotos de cada corrida (PNG em 2x) nao entram no git: sao 5 MB por rodada.
+# A referencia versionada e a `referencia-*.webp` (1x), regravada a mao quando o
+# desenho muda de proposito.
+*.png
+relatorio.json

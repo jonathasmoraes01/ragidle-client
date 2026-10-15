@@ -1,0 +1,354 @@
+/* HUD MOBILE PREMIUM — CombatCornerIdle, o AUTO: O BOTAO GRANDE (15/10/2026).
+
+   Injetado no shadow do componente DEPOIS do CSS dele (hudPremium.js), so
+   com `enableHudMobilePremium` ligada. Toda regra mora atras de
+   `.ri-premium`, que so existe no celular em pe.
+
+   PEDIDO DO DONO (15/10/2026), sobre o mockup: *"o botao que eu quero que
+   seja grande, que fique em destaque ali, e o botao que ativa o auto (...)
+   porem eu nao queria tirar o destaque do botao que faz ir para os mapas"*.
+   Entao o Auto deixa o trilho e vira o centro do GRUPO DE ACAO, no canto do
+   polegar: medalhao azul de aro dourado, com as espadas cruzadas. O Cacar
+   orbita a esquerda dele, menor e DOURADO (HuntButtonIdle.css desta camada) -
+   cor propria, para os dois nao disputarem o mesmo olhar.
+
+   O ESTADO E O DE SEMPRE: `.is-on` / `aria-pressed`, escritos por
+   `CombatCornerIdle.js` a partir do `BotMenu`, e o clique e o mesmo
+   `BotMenu.alternarLigado()`. Ele se le de tres jeitos, nenhum dependente de
+   hover: o rotulo diz "Auto · OFF"/"Auto · ON", a pilula fica verde ligada,
+   e o aro acende o halo dourado (o de `CombatCornerIdle.css`, que
+   `prefers-reduced-motion` congela sem apagar). */
+
+.ri-premium #CombatCornerIdle,
+.ri-premium .cc-corner {
+	width: 100%;
+	height: 100%;
+}
+
+.ri-premium .cc-btn {
+	position: relative;
+	gap: 0;
+}
+
+.ri-premium .cc-ring {
+	width: var(--m-auto, 76px);
+	height: var(--m-auto, 76px);
+	/* O MEDALHAO E A ARTE DO DONO (15/10/2026, os icones do Drive): o aro
+	   dourado com as gemas e as espadas vem da imagem, e nao mais do `border`
+	   e do gradiente. A imagem e um quadrado centrado no disco, com o disco em
+	   ~91% do lado e as gemas no resto: ela ocupa a caixa inteira, e o aro
+	   desenhado fica um pouco para dentro do alvo do dedo. O rotulo "Auto ·
+	   ON/OFF" que a arte trazia embaixo sai da imagem (`arte-fonte/
+	   ui-icons-premium/botoes/`) e continua sendo TEXTO aqui: ele muda com o
+	   estado, tem modo em ingles e o leitor de tela o le. */
+	border: 0;
+	border-radius: 50%;
+	/* Por baixo da arte, um disco AZUL do tamanho do disco desenhado (88% da caixa): a arte o cobre inteiro, e
+	   ele so aparece se a imagem nao carregar. E a licao da D-2454 (o Cacar do desktop sumia quando a arte de
+	   fundo falhava): aqui o botao nunca fica invisivel - sobra o disco e a pilula "Auto · OFF". */
+	background:
+		url('/ragidle/hud/premium/botao-auto-off.webp') center / 100% 100% no-repeat,
+		radial-gradient(circle closest-side, #2a6fd0 0 87%, transparent 88%) center / 100% 100% no-repeat;
+	/* A sombra segue o CONTORNO da arte (`drop-shadow`), e nao a caixa: a caixa e maior que o disco
+	   desenhado, e o `box-shadow` virava um anel escuro em volta do aro (visto na foto). A sombra interna
+	   nem entra: ela pinta por cima da imagem. */
+	box-shadow: none;
+	filter: drop-shadow(0 3px 5px rgba(3, 27, 56, 0.45));
+}
+
+/* O hover e o foco do desktop (`CombatCornerIdle.css`) somam um brilho
+   INTERNO, que pintaria por cima da arte - e no celular o hover gruda depois
+   do toque. Aqui eles so trazem o anel de foco por fora. Vem ANTES do ligado:
+   mesma especificidade, e o ligado vence por ordem. */
+.ri-premium .cc-btn:hover .cc-ring {
+	transform: none;
+	box-shadow: none;
+}
+
+.ri-premium .cc-btn:focus-visible .cc-ring {
+	box-shadow: 0 0 0 2px #ffffff;
+}
+
+/* Ligado, a arte do ON (o disco mais aceso, com as faiscas) e o halo dourado
+   de sempre, so a parte de fora dele - as faiscas de CSS sairiam em dobro com
+   as da arte. `prefers-reduced-motion` congela o halo sem apaga-lo. */
+.ri-premium .cc-btn--auto.is-on .cc-ring {
+	background-image:
+		url('/ragidle/hud/premium/botao-auto-on.webp'),
+		radial-gradient(circle closest-side, #2a6fd0 0 87%, transparent 88%);
+	box-shadow:
+		0 0 12px 3px rgba(255, 200, 60, 0.7),
+		0 0 24px 7px rgba(255, 214, 90, 0.35);
+	animation: cc-halo-premium 2.4s ease-in-out infinite;
+}
+
+.ri-premium .cc-btn--auto.is-on .cc-ring::before,
+.ri-premium .cc-btn--auto.is-on .cc-ring::after {
+	display: none;
+}
+
+@keyframes cc-halo-premium {
+	50% {
+		box-shadow:
+			0 0 16px 5px rgba(255, 205, 70, 0.8),
+			0 0 32px 11px rgba(255, 220, 110, 0.42);
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.ri-premium .cc-btn--auto.is-on .cc-ring {
+		animation: none;
+	}
+}
+
+/* O glifo de reserva de sempre (`ri-icones` "auto") fica debaixo da arte: o
+   rotulo continua dizendo o que o botao e. */
+.ri-premium .cc-ring svg {
+	visibility: hidden;
+}
+
+.ri-premium .cc-btn:active .cc-ring {
+	transform: scale(0.96);
+}
+
+/* O rotulo com o estado escrito, numa pilula colada na base do disco. */
+.ri-premium .cc-label--v {
+	position: relative;
+	z-index: 1;
+	margin-top: -11px;
+	padding: 1px 9px;
+	border: 1px solid rgba(215, 183, 118, 0.9);
+	border-radius: 999px;
+	/* desligado, a pilula carvao da arte do dono; ligado, a verde */
+	background: linear-gradient(180deg, #3b4049, #1b1e24);
+	box-shadow: var(--m-sombra-leve);
+	font-size: 11px;
+	font-weight: 800;
+	line-height: 1.3;
+	white-space: nowrap;
+	color: var(--m-tinta-clara);
+	text-shadow: none;
+}
+
+.ri-premium .cc-label--v::after {
+	content: ' · OFF';
+	color: #ffffff;
+}
+
+.ri-premium .cc-btn--auto.is-on .cc-label--v {
+	border-color: #8fe0b0;
+	background: linear-gradient(180deg, #23925a, #146b3f);
+	color: #ffffff;
+}
+
+.ri-premium .cc-btn--auto.is-on .cc-label--v::after {
+	content: ' · ON';
+	color: #d8ffe6;
+}
+
+/* ─── O ARCO DE SKILLS (pedido do dono, 15/10/2026) ──────────────────────
+   *"o botao ali vermelho seria para ativar e desativar o auto combate e as
+   skills em volta dele seriam as 3 selecionadas no automatico"*. Os discos sao
+   desenhados por `arcoDeSkills.js` com o rodizio que o SERVIDOR confirmou, e
+   tocar um deles USA a skill na hora (`ShortCut.useSkill`, o caminho da barra).
+
+   So com a barra de skills DESLIGADA (o padrao): com ela ligada nas
+   Configuracoes o arco some e a barra volta (documento.css).
+
+   A geometria e a dos tokens: o centro de cada disco fica a
+   `--m-raio-do-arco` do centro do Auto, a 180, 135 e 90 graus - a esquerda, na
+   diagonal e em cima, o quarto de circulo que o polegar alcanca do canto. */
+.ri-premium:not(.ri-com-atalhos) .cc-rodizio {
+	display: block;
+	position: absolute;
+	left: 50%;
+	top: 50%;
+	width: 0;
+	height: 0;
+	pointer-events: none;
+}
+
+/* O BOTAO e o alvo do dedo (`--m-disco`, 44px, o piso da casa) e nao
+   desenha nada: o disco que se ve e o `.cc-skill-icone` no meio dele, do
+   tamanho do icone do cliente (`--m-disco-visivel`). Pedido do dono
+   (15/10/2026): *"pode reduzir pela metade esses icones das skills"* - o icone
+   saiu do 2x (48px) para o 1x (24px), e o dedo continua acertando com folga. */
+.ri-premium .cc-skill {
+	--dx: 0px;
+	--dy: 0px;
+	position: absolute;
+	left: calc(var(--m-disco, 44px) / -2);
+	top: calc(var(--m-disco, 44px) / -2);
+	width: var(--m-disco, 44px);
+	height: var(--m-disco, 44px);
+	margin: 0;
+	padding: 0;
+	border: 0;
+	border-radius: 50%;
+	transform: translate(var(--dx), var(--dy));
+	background: none;
+	cursor: pointer;
+	pointer-events: auto;
+	-webkit-tap-highlight-color: transparent;
+}
+
+.ri-premium .cc-skill[data-pos='0'] {
+	--dx: calc(-1 * var(--m-raio-do-arco, 62px));
+}
+
+.ri-premium .cc-skill[data-pos='1'] {
+	--dx: calc(-0.7071 * var(--m-raio-do-arco, 62px));
+	--dy: calc(-0.7071 * var(--m-raio-do-arco, 62px));
+}
+
+.ri-premium .cc-skill[data-pos='2'] {
+	--dy: calc(-1 * var(--m-raio-do-arco, 62px));
+}
+
+.ri-premium .cc-skill:active {
+	scale: 0.9;
+}
+
+.ri-premium .cc-skill:focus-visible {
+	outline: 2px solid #ffffff;
+	outline-offset: -4px;
+}
+
+/* O disco visivel: a face marfim por tras do icone (o icone do cliente tem
+   fundo transparente) e o aro dourado POR FORA, para o icone ocupar o disco.
+   O icone e o 24x24 do cliente em 1x (inteiro, sem borrar), recortado no
+   redondo. O relogio de recarga (`.sc-recarga`, o mesmo da barra) mora aqui
+   dentro, entao o recorte vale para ele tambem. */
+.ri-premium .cc-skill-icone {
+	position: absolute;
+	left: 50%;
+	top: 50%;
+	width: var(--m-disco-visivel, 24px);
+	height: var(--m-disco-visivel, 24px);
+	margin: calc(var(--m-disco-visivel, 24px) / -2) 0 0 calc(var(--m-disco-visivel, 24px) / -2);
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	border-radius: 50%;
+	overflow: hidden;
+	background: radial-gradient(circle at 35% 25%, #ffffff 0%, #eef2f8 70%, #d9e2ee 100%);
+	box-shadow:
+		0 0 0 1.5px var(--m-ouro, #d7b776),
+		0 0 0 2.5px rgba(255, 246, 220, 0.85),
+		0 2px 6px rgba(3, 27, 56, 0.45);
+}
+
+.ri-premium .cc-skill-icone img {
+	width: 24px;
+	height: 24px;
+	image-rendering: pixelated;
+	pointer-events: none;
+	user-select: none;
+	-webkit-user-drag: none;
+}
+
+.ri-premium .cc-skill-icone img:not([src]),
+.ri-premium .cc-skill-icone img[data-falhou] {
+	display: none;
+}
+
+/* Sem icone publicado (ou o pedido falhou): a inicial da skill, para o disco
+   nao ficar vazio com cara de "+" - o "+" e do disco sem skill. */
+.ri-premium .cc-skill[data-inicial]:not(.is-vazio)::after {
+	content: attr(data-inicial);
+	position: absolute;
+	inset: 0;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	font-size: 12px;
+	font-weight: 800;
+	color: var(--m-azul-escuro, #163f70);
+	pointer-events: none;
+}
+
+.ri-premium .cc-skill:has(img[src]:not([data-falhou]))::after {
+	content: none;
+}
+
+/* A skill que o jogador desligou no rodizio: o Bot a pula, mas o toque
+   continua usando - o icone dessaturado e o selo de PAUSA no canto do disco
+   (o rotulo diz por extenso). So o cinza, com transparencia, virava chuvisco.
+   O filtro vai no icone, e nao no disco, para o aro continuar dourado. */
+.ri-premium .cc-skill.is-desligada .cc-skill-icone img {
+	filter: grayscale(1) contrast(1.1);
+}
+
+.ri-premium .cc-skill.is-desligada::before {
+	content: '';
+	position: absolute;
+	/* o canto de cima a direita do disco visivel, no meio do botao */
+	top: calc(50% - var(--m-disco-visivel, 24px) / 2 - 5px);
+	left: calc(50% + var(--m-disco-visivel, 24px) / 2 - 7px);
+	z-index: 3;
+	width: 12px;
+	height: 12px;
+	box-sizing: border-box;
+	border: 1px solid var(--m-ouro, #d7b776);
+	border-radius: 50%;
+	background:
+		linear-gradient(90deg, #fff 0 1.5px, transparent 1.5px 3.5px, #fff 3.5px 5px) center / 5px 5px no-repeat,
+		var(--m-azul-noite, #10294a);
+	pointer-events: none;
+}
+
+/* O disco sem skill: o "+" que abre o menu do Bot, onde o rodizio se escolhe. */
+.ri-premium .cc-skill.is-vazio .cc-skill-icone {
+	background: rgba(16, 41, 74, 0.6);
+	box-shadow:
+		0 0 0 1.5px rgba(215, 183, 118, 0.75),
+		0 2px 5px rgba(3, 27, 56, 0.35);
+}
+
+.ri-premium .cc-skill.is-vazio::after {
+	content: '+';
+	position: absolute;
+	inset: 0;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	font-size: 16px;
+	font-weight: 700;
+	line-height: 1;
+	color: var(--m-ouro-claro, #f0d9a4);
+	pointer-events: none;
+}
+
+/* O relogio da recarga: o desenho do `ShortCut.css` (o conic-gradient da
+   fatia que falta e o numero dourado), redondo como o disco. */
+.ri-premium .cc-skill .sc-recarga {
+	--cd-fracao: 1;
+	position: absolute;
+	inset: 0;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	border-radius: 50%;
+	background: conic-gradient(
+		from 0deg,
+		transparent 0turn,
+		transparent calc((1 - var(--cd-fracao)) * 1turn),
+		rgba(10, 14, 24, 0.68) calc((1 - var(--cd-fracao)) * 1turn),
+		rgba(10, 14, 24, 0.68) 1turn
+	);
+	pointer-events: none;
+	z-index: 2;
+}
+
+.ri-premium .cc-skill .sc-recarga-num {
+	font-size: 10px;
+	font-weight: 800;
+	font-variant-numeric: tabular-nums;
+	line-height: 1;
+	letter-spacing: -0.3px;
+	color: #ffd76a;
+	text-shadow:
+		0 1px 2px rgba(0, 0, 0, 0.9),
+		0 0 3px rgba(0, 0, 0, 0.7);
+	white-space: nowrap;
+}

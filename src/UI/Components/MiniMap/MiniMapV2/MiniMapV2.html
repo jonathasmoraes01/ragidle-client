@@ -2,6 +2,19 @@
 	<div class="mm-window ri-window">
 		<div class="mm-header">
 			<span class="mm-mapname">—</span>
+			<!-- MINIMIZAR O MAPA (15/10/2026, pedido do dono, so na HUD mobile
+			     premium): o toque na pilula do nome deixa so ela na tela, e
+			     outro toque devolve o mapa. Fora da premium o botao nao aparece
+			     (MiniMapV2.css) e o minimapa continua sem controle nenhum. -->
+			<button
+				type="button"
+				class="mm-recolher"
+				title="Minimizar o mapa"
+				aria-label="Minimizar o mapa"
+				aria-expanded="true"
+			>
+				<span class="mm-recolher-glifo" aria-hidden="true"></span>
+			</button>
 		</div>
 		<!-- Pedido do dono (01/09/2026): o minimapa NAO e clicavel — mostra o
 		     mapa atual e pronto, sem botao nenhum. Sairam os 5 ui-button

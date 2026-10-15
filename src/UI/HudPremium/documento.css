@@ -1,0 +1,149 @@
+/* ═══════════════════════════════════════════════════════════════════════
+   HUD MOBILE PREMIUM — AS ANCORAS DOS HOSTS (documento, 15/10/2026)
+
+   Este arquivo vive SO no documento (`garantirCssDoDocumento`), nunca dentro
+   de um shadow. Ele redeclara ancoras de D-939 (`Common.css`, bloco "A HUD
+   VERTICAL DO CELULAR EM PE"), que sao `html.ri-vertical #X {... !important}`
+   porque o arrasto e o `ClampToViewport` escrevem posicao INLINE no host.
+
+   Para vencer sem guerra: o mesmo `!important` (o inline perde para os dois)
+   e um elo a mais no seletor (`html.ri-vertical.ri-premium`). Cada regra aqui
+   so existe porque o desenho premium muda aquela ancora — o resto continua
+   sendo o de D-939.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+/* ─── O status termina antes do botao de Menu (o "escudo" do mockup) ───── */
+html.ri-vertical.ri-premium #BasicInfoIdle {
+	top: var(--m-topo) !important;
+	left: calc(var(--safe-esq, 0px) + var(--m-margem)) !important;
+	right: calc(var(--safe-dir, 0px) + var(--m-margem) + var(--m-menu-largura) + 6px) !important;
+}
+
+/* ─── O MINIMAPA VOLTA (revoga o "SEM minimapa" de D-939, so nesta camada) ──
+   Medalhao redondo no canto superior direito, debaixo do Menu e ao lado do
+   cartao de missoes. O canvas e o de sempre (`MiniMapV2`), com o mapa, os
+   pontos e a seta reais; quem desenha o redondo e o CSS do componente. */
+html.ri-vertical.ri-premium #MiniMapV2 {
+	display: block !important;
+	position: fixed !important;
+	z-index: var(--m-z-minimapa) !important;
+	top: var(--m-minimapa-topo) !important;
+	right: calc(var(--safe-dir, 0px) + var(--m-margem)) !important;
+	left: auto !important;
+	bottom: auto !important;
+	width: var(--m-minimapa) !important;
+	height: var(--m-minimapa) !important;
+	transform: none !important;
+}
+
+/* ─── O cartao de missoes divide a faixa com o minimapa ──────────────────── */
+html.ri-vertical.ri-premium #MissoesTrackerIdle {
+	top: var(--m-abaixo-do-topo) !important;
+	width: min(
+		290px,
+		calc(
+			var(--m-largura-util, 100vw) - var(--m-coluna-do-minimapa, var(--m-minimapa)) - var(--safe-esq, 0px) -
+				var(--safe-dir, 0px) - 3 * var(--m-margem) - 6px
+		)
+	) !important;
+}
+
+/* ─── A coluna de caca, apoiada na barra de atalhos ─────────────────────── */
+html.ri-vertical.ri-premium #HuntButtonIdle {
+	/* O arco do Cacar e do Retornar mora a ESQUERDA do Auto, com a base na
+	   mesma linha da base dele. */
+	right: calc(var(--safe-dir, 0px) + var(--m-margem) + var(--m-auto) + var(--m-folga-do-arco)) !important;
+	bottom: calc(var(--m-grupo-de-acao-base) - 6px) !important;
+}
+
+/* ─── Os buffs: COLUNA na lateral esquerda, logo abaixo das missoes (pedido do
+   dono, 15/10/2026). Ancorados pelo TOPO, no fundo que o cartao de missoes
+   publica: abrir o cartao empurra a coluna para baixo, e recolher a puxa de
+   volta. Quem quebra a coluna em colunas e a grade de StatusIcons.css, com a
+   altura que sobra ate o chat (`--m-buffs-altura-max`, tokens.css). ─────── */
+html.ri-vertical.ri-premium #StatusIcons {
+	position: fixed !important;
+	top: var(--m-buffs-topo) !important;
+	right: auto !important;
+	bottom: auto !important;
+	left: calc(var(--safe-esq, 0px) + var(--m-margem)) !important;
+}
+
+/* Com a folha do Menu aberta os buffs DESCEM (pedido do dono: "quando ele abre
+   o menu, os icones dos buffs tambem descam junto para nao ficar atras"): a
+   folha cobre a lateral inteira, e o unico lugar livre em todo celular e o
+   rodape - uma fileira logo acima do chat aberto, ou ao lado da bolinha. */
+html.ri-vertical.ri-premium.ri-menu-aberto #StatusIcons {
+	top: auto !important;
+	/* acima do chat aberto, e acima do contador de FPS quando ele esta a vista */
+	bottom: calc(var(--m-chat-alcance) + 8px + var(--m-reserva-do-fps, 0px)) !important;
+}
+
+html.ri-vertical.ri-premium.ri-menu-aberto.ri-chat-minimizado #StatusIcons {
+	bottom: var(--m-acima-dos-atalhos) !important;
+	left: calc(var(--safe-esq, 0px) + var(--m-margem) + var(--m-chat-bolinha) + 8px) !important;
+}
+
+/* ─── O CONTADOR DE FPS: logo acima do chat (15/10/2026) ──────────────────
+   O dono viu o "120 FPS" por cima da aba Codex do cartao de missoes: o
+   contador nasce no ponto de arrastar do desktop, (100, 100) - no meio da
+   coluna da esquerda do celular. Aqui ele mora logo ACIMA do chat, no canto
+   da esquerda, e a coluna de buffs para antes dele (`--m-reserva-do-fps`,
+   tokens.css, pela marca de `FPS/marcaDoFps.js`). Com o chat em bolinha ele
+   fica centrado sobre a bolinha: assim a fileira de buffs da folha do Menu,
+   que corre ao lado da bolinha, nao o encontra. O arrastar do desktop nao
+   vale aqui (as ancoras sao `!important`, e o arrastar escreve inline). */
+html.ri-vertical.ri-premium #FPS {
+	position: fixed !important;
+	top: auto !important;
+	right: auto !important;
+	left: calc(var(--safe-esq, 0px) + var(--m-margem)) !important;
+	bottom: calc(var(--m-chat-alcance) + 6px) !important;
+	width: auto !important;
+	height: auto !important;
+}
+
+html.ri-vertical.ri-premium.ri-chat-minimizado #FPS {
+	left: calc(var(--safe-esq, 0px) + var(--m-margem) + var(--m-chat-bolinha) / 2) !important;
+	transform: translateX(-50%);
+}
+
+/* ─── O AUTO: o botao grande do canto do polegar (pedido do dono) ─────────
+   Em D-939 ele era o 2o degrau do trilho; aqui ele e o centro do grupo de
+   acao, e o Cacar e o Retornar orbitam a esquerda dele (HuntButtonIdle). */
+html.ri-vertical.ri-premium #CombatCornerIdle {
+	position: fixed !important;
+	top: auto !important;
+	left: auto !important;
+	right: calc(var(--safe-dir, 0px) + var(--m-margem)) !important;
+	bottom: var(--m-grupo-de-acao-base) !important;
+	width: var(--m-auto) !important;
+	height: var(--m-auto) !important;
+	z-index: 51 !important;
+}
+
+/* ─── A BARRA DE SKILLS DESLIGADA (o padrao, pedido do dono, 15/10/2026) ───
+   *"tirar essa barra inferior das skills da tela do mobile"*: as skills do
+   rodizio do Bot vao para o arco em volta do Auto (CombatCornerIdle.css desta
+   camada), e o jogador religa a barra nas Configuracoes. O componente segue
+   montado: quem usa skill pelo arco usa o MESMO `ShortCut.useSkill`, e a
+   recarga chega pelo mesmo `setSkillDelay`. */
+html.ri-vertical.ri-premium:not(.ri-com-atalhos) #ShortCut {
+	display: none !important;
+}
+
+/* O Cacar e o Voltar sobem para cima do arco, lado a lado, na coluna da
+   direita (o Cacar no canto do polegar, sobre o Auto). Com a barra ligada o
+   arco some e eles voltam para a esquerda do Auto (a regra de cima). */
+html.ri-vertical.ri-premium:not(.ri-com-atalhos) #HuntButtonIdle {
+	right: calc(var(--safe-dir, 0px) + var(--m-margem)) !important;
+	bottom: calc(var(--m-arco-topo) + 12px) !important;
+}
+
+/* ─── O minimapa minimizado: o host encolhe para a pilula do nome, no mesmo
+   lugar em que ela pendia do aro (9px acima do topo do medalhao). ───────── */
+html.ri-vertical.ri-premium.ri-minimapa-recolhido #MiniMapV2 {
+	top: calc(var(--m-minimapa-topo) - 9px) !important;
+	width: auto !important;
+	height: auto !important;
+}

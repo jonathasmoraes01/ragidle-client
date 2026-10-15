@@ -1,0 +1,234 @@
+/* ═══════════════════════════════════════════════════════════════════════
+   HUD MOBILE PREMIUM — OS TOKENS (15/10/2026)
+
+   A paleta do pacote "HUD Mobile Premium": marfim, azul profundo e dourado
+   discreto. Declarados no `html.ri-premium` e herdados para dentro de todo
+   shadow pelo host (custom property atravessa a fronteira do Shadow DOM por
+   heranca) — um lugar so, como os `--vr-*` de D-939.
+
+   Prefixo `--m-` (mobile), pedido do pacote; `--m-z-*` sao os planos.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+html.ri-premium {
+	/* Superficies */
+	--m-marfim: #fffaf1;
+	--m-papel: #fffdf8;
+	--m-gelo: #eef3f8;
+	--m-superficie: linear-gradient(160deg, rgba(255, 253, 248, 0.97) 0%, rgba(241, 245, 249, 0.95) 100%);
+	--m-superficie-solida: linear-gradient(160deg, #fffdf8 0%, #f1f5f9 100%);
+
+	/* Azul */
+	--m-azul: #205b98;
+	--m-azul-escuro: #163f70;
+	--m-azul-noite: #10294a;
+	--m-azul-claro: #3d82c4;
+	--m-azul-medalha: radial-gradient(circle at 35% 25%, #4d98d8 0%, #205b98 55%, #123a68 100%);
+
+	/* Dourado */
+	--m-ouro: #d7b776;
+	--m-ouro-claro: #f0d9a4;
+	--m-ouro-escuro: #a9813c;
+	--m-borda-ouro: 1.5px solid var(--m-ouro);
+	--m-aro-ouro: 0 0 0 2px #fff6dc, 0 0 0 3.5px var(--m-ouro);
+
+	/* Texto */
+	--m-tinta: #1f3654;
+	--m-tinta-suave: #5d6f84;
+	--m-tinta-clara: #fdf8ea;
+
+	/* Medidores */
+	--m-hp: linear-gradient(90deg, #d8323f 0%, #f0606a 100%);
+	--m-sp: linear-gradient(90deg, #2f6fd6 0%, #5ea6f2 100%);
+	--m-exp-base: linear-gradient(90deg, #3fb37a 0%, #7fd6a2 100%);
+	--m-exp-classe: linear-gradient(90deg, #2b62b8 0%, #5b95e0 100%);
+	--m-trilha: #dfe5ec;
+
+	/* Chat */
+	--m-chat-fundo: rgba(19, 39, 70, 0.9);
+	--m-chat-borda: rgba(167, 189, 207, 0.45);
+
+	/* Sombra e forma */
+	--m-sombra: 0 5px 14px rgba(10, 26, 47, 0.28);
+	--m-sombra-leve: 0 2px 6px rgba(10, 26, 47, 0.22);
+	--m-raio: 16px;
+	--m-raio-pequeno: 10px;
+
+	/* Planos (z-index): moldura < menu < folha. Os mesmos degraus de D-939
+	   (moldura 10, menu 55, folha 90), so nomeados. */
+	--m-z-moldura: 10;
+	--m-z-minimapa: 12;
+	--m-z-menu: 55;
+
+	/* Alvo de toque minimo (o mesmo piso de 44px da casa) */
+	--m-alvo: 44px;
+
+	/* ─── A GEOMETRIA ────────────────────────────────────────────────────
+	   A coluna da DIREITA e a que aperta: debaixo do status vem o minimapa, o
+	   trilho (Mochila, Skills, Config., RO Shop) e, la embaixo, o GRUPO DE ACAO
+	   do polegar - o Auto grande no canto, o Cacar e o Retornar em arco a
+	   esquerda dele. A altura que sobra entre o status e a barra de atalhos
+	   decide o tamanho de cada um - as faixas de altura logo abaixo. */
+	--m-margem: 8px;
+	/* A LARGURA DA TELA EM UNIDADES DA HUD (15/10/2026). Com o Tamanho da HUD (Configuracoes de Video) o host
+	   ganha `zoom`, e o `zoom` multiplica tambem o `100vw` usado dentro dele: a 120% uma largura de
+	   `100vw - X` desenhava 1,2 x a tela (medido). Dividir pela escala devolve a conta a tela de verdade.
+	   `--ui-escala` e a que `escalaDaHud.js` publica no `<html>`. */
+	--m-largura-util: calc(100vw / var(--ui-escala, 1));
+	--m-altura-util: calc(100dvh / var(--ui-escala, 1));
+	--m-topo: calc(var(--safe-topo, 0px) + 6px);
+	/* A altura do cartao de status: a MEDIDA que `BasicInfoIdle.js` publica
+	   (`--hud-basic-altura`), com o valor de nascenca para o primeiro quadro. */
+	--m-status-altura: var(--hud-basic-altura, 90px);
+	--m-abaixo-do-topo: calc(var(--m-topo) + var(--m-status-altura) + 6px);
+	--m-menu-largura: 46px;
+	--m-minimapa: 100px;
+	/* O minimapa desce 8px alem do cartao de missoes: a pilula com o nome do
+	   mapa pende 9px para cima do aro e encostava no status. */
+	--m-minimapa-topo: calc(var(--m-abaixo-do-topo) + 8px);
+	--m-trilho-topo: calc(var(--m-minimapa-topo) + var(--m-minimapa) + 14px);
+	--m-trilho-icone: 46px;
+	--m-trilho-passo: 60px;
+	--m-trilho-largura: 64px;
+	/* O GRUPO DE ACAO (pedido do dono, 15/10/2026): o AUTO e o botao grande do
+	   polegar - e ele que poe o personagem para lutar -, e o CACAR (que abre os
+	   mapas) fica em arco ao lado, menor mas com cor propria, para nao perder o
+	   destaque. O Retornar e o miudo do grupo. */
+	--m-auto: 76px;
+	--m-cacar: 56px;
+	--m-retornar: 44px;
+	/* O rodape: a barra de atalhos (fileira + pontinhos) e o que se apoia nela
+	   - o chat a esquerda e o grupo de acao a direita. */
+	--m-atalhos-altura: 68px;
+	--m-acima-dos-atalhos: calc(var(--safe-baixo, 0px) + var(--m-atalhos-altura) + 8px);
+	/* A base do disco do Auto: acima da barra, com a folga da pilula do rotulo
+	   que pende embaixo dele. */
+	--m-grupo-de-acao-base: calc(var(--m-acima-dos-atalhos) + 14px);
+	/* A largura do grupo de acao: o Auto mais o arco do Cacar a esquerda. O
+	   chat termina antes dela. */
+	--m-coluna-de-caca: calc(var(--m-auto) + var(--m-folga-do-arco) + var(--m-cacar));
+	/* A folga entre o Auto e o arco: a pilula "Auto · OFF" e mais larga que o
+	   disco, e no disco menor ela pende para dentro do arco. */
+	--m-folga-do-arco: 4px;
+
+	/* ─── O CHAT MINIMIZADO (pedido do dono, 15/10/2026) ─────────────────
+	   No celular o chat nasce minimizado (a bolinha); um toque abre, outro
+	   minimiza (ChatBox.js, `estadosDoChat.js`). */
+	--m-chat-bolinha: 44px;
+
+	/* ─── OS BUFFS EM COLUNA (pedido do dono, 15/10/2026) ─────────────────
+	   *"os buffs ficam na lateral esquerda abaixo das missoes em uma fileira
+	   vertical, quando cheio ate se aproximar do icone do chat, ele quebra a
+	   linha e comeca preenchendo ao lado la em cima"*. A coluna comeca logo
+	   abaixo do cartao de missoes (o fundo que ele publica, `--hud-missoes-
+	   fundo`, MissoesTrackerIdle.js) e termina 8px acima do chat (a altura que
+	   o chat publica, `--hud-chat-altura`, aberto ou bolinha); o resto e a
+	   grade em coluna de StatusIcons.css, que quebra sozinha. */
+	--m-buff: 47px;
+	--m-buffs-topo: calc(var(--hud-missoes-fundo, calc(var(--m-abaixo-do-topo) + 60px)) + 6px);
+	/* do pe da tela ao topo do chat */
+	--m-chat-alcance: calc(var(--m-acima-dos-atalhos) + var(--hud-chat-altura, var(--m-chat-bolinha)));
+	/* menos o lugar do contador de FPS, quando ele esta a vista (logo acima do chat, documento.css) */
+	--m-buffs-altura-max: calc(
+		var(--m-altura-util) - var(--m-buffs-topo) - var(--m-chat-alcance) - 8px - var(--m-reserva-do-fps, 0px)
+	);
+
+	/* ─── O ARCO DE SKILLS (pedido do dono, 15/10/2026) ─────────────────
+	   Com a barra de skills DESLIGADA (o padrao), as tres skills do rodizio
+	   do Bot ficam em volta do Auto, a esquerda, na diagonal e em cima dele.
+	   O disco que se ve tem o tamanho do icone do cliente em 1x (24px, numero
+	   inteiro, regra 4; o dono pediu a metade dos 48 do 2x), e o ALVO do dedo
+	   em volta dele continua com 44px. O raio e o das areas de toque: a corda
+	   dos 45 graus (2 R sen 22,5) nao pode ficar menor que o alvo, senao dois
+	   vizinhos disputam o mesmo dedo. O respiro conta tambem os 3px de borda
+	   que o aro do Auto desenha POR FORA de `--m-auto`: menos que isso e o alvo
+	   do disco morde a borda do Auto. */
+	--m-disco: 44px;
+	--m-disco-visivel: 24px;
+	--m-respiro-do-arco: 6px;
+	--m-raio-do-arco: calc(var(--m-auto) / 2 + var(--m-respiro-do-arco) + var(--m-disco) / 2);
+	/* A largura que o grupo de acao ocupa com o arco: do canto direito do Auto
+	   a borda esquerda do disco da esquerda (o chat e os buffs terminam antes). */
+	--m-arco-largura: calc(var(--m-auto) / 2 + var(--m-raio-do-arco) + var(--m-disco) / 2 + 3px);
+	/* A altura do topo do disco de cima, medida do fundo da tela: o Cacar e o
+	   Voltar moram logo acima dela, na coluna da direita. */
+	--m-arco-topo: calc(
+		var(--m-grupo-de-acao-base) + var(--m-auto) / 2 + var(--m-raio-do-arco) + var(--m-disco) / 2 + 3px
+	);
+}
+
+/* Celular baixo (375x667, e o SE dentro do Safari, ~550): minimapa, trilho e
+   grupo de acao encolhem para a coluna da direita caber entre o status e a
+   barra de atalhos. */
+html.ri-premium.ri-tela-baixa {
+	--m-minimapa: 86px;
+	--m-trilho-icone: 44px;
+	--m-trilho-passo: 52px;
+	--m-auto: 68px;
+	--m-cacar: 52px;
+}
+
+/* O mais baixo (o SE dentro do Safari, ~375x553, e o 320x568): a coluna da
+   direita, medida no 320x568, so fecha com o RO Shop fora do trilho (ele
+   continua no Menu) e o minimapa em 66px. */
+html.ri-premium.ri-tela-minima {
+	--m-minimapa: 66px;
+	--m-trilho-passo: 46px;
+	--m-auto: 62px;
+	--m-cacar: 48px;
+	--m-folga-do-arco: 14px;
+	/* Com o Auto de 62 a corda dos 45 graus ficaria menor que o alvo de
+	   44: o respiro cresce, e nao o alvo. */
+	--m-respiro-do-arco: 8px;
+}
+
+/* ─── A BARRA DE SKILLS DESLIGADA (o padrao da premium) ─────────────────
+   A barra some (documento.css), o rodape perde a altura dela, e o chat e os
+   buffs terminam antes do ARCO, e nao antes da coluna de caca de antes: a
+   largura do grupo de acao passa a ser a do Auto com os discos. A marca
+   `ri-com-atalhos` e a preferencia do jogador (Configuracoes), carimbada por
+   `hudVertical.aplicar`. */
+html.ri-premium:not(.ri-com-atalhos) {
+	--m-atalhos-altura: 0px;
+	--m-coluna-de-caca: var(--m-arco-largura);
+}
+
+/* O CONTADOR DE FPS A VISTA (a marca e de `FPS/marcaDoFps.js`): a pilula dele (18px) mora logo acima do
+   chat, com 6px de cada lado, e a coluna de buffs para antes dela. */
+html.ri-premium.ri-fps-visivel {
+	--m-reserva-do-fps: 26px;
+}
+
+/* Com a folha do Menu aberta (a marca e do TopMenuIdle.js) os buffs descem para
+   o rodape (documento.css): a folha cobre a lateral. La eles correm em FILEIRA,
+   da bolinha do chat (ou do canto, com o chat aberto) ate antes do grupo de
+   acao, e a fileira que enche quebra para CIMA (o host e ancorado pela base). */
+html.ri-premium.ri-menu-aberto {
+	--m-buffs-fluxo: row;
+	--m-buffs-fileiras: none;
+	--m-buffs-colunas: repeat(auto-fill, 34px);
+	--m-buffs-altura-max: 100vh;
+	--m-buffs-largura-max: calc(
+		var(--m-largura-util) - var(--safe-esq, 0px) - var(--safe-dir, 0px) - 3 * var(--m-margem) -
+			var(--m-coluna-de-caca) - 8px
+	);
+}
+
+html.ri-premium.ri-menu-aberto.ri-chat-minimizado {
+	--m-buffs-largura-max: calc(
+		var(--m-largura-util) - var(--safe-esq, 0px) - var(--safe-dir, 0px) - 3 * var(--m-margem) -
+			var(--m-coluna-de-caca) - 16px - var(--m-chat-bolinha)
+	);
+}
+
+/* O minimapa minimizado (a marca e de `hudVertical.js`, o toque e na pilula do
+   nome): o medalhao some, e o trilho da direita sobe para logo abaixo da pilula.
+   O cartao de missoes continua terminando antes dela (`--m-coluna-do-minimapa`,
+   a largura que a pilula ocupa na mesma faixa). */
+html.ri-premium.ri-minimapa-recolhido {
+	--m-minimapa: 0px;
+	--m-coluna-do-minimapa: 92px;
+	/* A pilula (20px, a partir de 9px acima do topo do medalhao) tem um alvo de 44: ele passa 13px dela para
+	   baixo (MiniMapV2.css). O trilho comeca 3px depois disso, e nao colado na pilula: senao o alvo dela
+	   comia o topo da Mochila. */
+	--m-trilho-topo: calc(var(--m-minimapa-topo) - 9px + 20px + 13px + 3px);
+}

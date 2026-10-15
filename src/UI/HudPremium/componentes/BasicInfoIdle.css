@@ -1,0 +1,386 @@
+/* HUD MOBILE PREMIUM — BasicInfoIdle, o CARTAO DE STATUS COMPACTO (15/10/2026).
+
+   Injetado no shadow do componente DEPOIS do CSS dele (hudPremium.js), so
+   com `enableHudMobilePremium` ligada. Toda regra mora atras de
+   `.ri-premium`, que so existe no celular em pe.
+
+   PEDIDO DO DONO (15/10/2026): *"elabore uma versao mais compacta das
+   informacoes do char, esta muito grande isso e da para reduzirmos"*. A
+   primeira versao empilhava SEIS linhas (nome, classe, Base, Classe, HP, SP)
+   ao lado do retrato e media ~97px de altura. Esta tem TRES, com a mesma
+   informacao, e mede ~64:
+
+     [retrato] Castanha  Cacador            (z) 876.937
+               HP [====5421/5421] SP [==892/892]   (c) 4.926
+               Base Lv. 61 [==89,9%] Classe Lv. 1 [=6%]   130 ms  wifi  bateria
+
+   A ARVORE NAO MUDA. `.bi-body` e `.bi-top` viram `display: contents`, e os
+   filhos deles passam a ser itens da GRADE do `.bi-window`; `.bi-identity` e
+   `.bi-levels` viram FILEIRAS (nome ao lado da classe, Base ao lado de
+   Classe). O JS que escreve os numeros nao muda: os seletores sao os mesmos.
+
+   Os `!important` aqui so existem onde o CSS de D-939 (BasicInfoIdle.css,
+   bloco `.ri-vertical`) ja usa `!important`: mesma especificidade, e este
+   arquivo vem depois, entao vence por ordem. */
+
+.ri-premium .bi-window {
+	display: grid;
+	/* HP e SP dividem a fileira do meio, e Base e Classe a de baixo: duas
+	   colunas iguais para os dois pares, e o nome atravessando as duas. */
+	grid-template-columns: 40px minmax(0, 1fr) minmax(0, 1fr) auto;
+	grid-template-rows: auto auto auto;
+	grid-template-areas:
+		'av nome nome zeny'
+		'av hp sp cash'
+		'av niveis niveis aparelho';
+	column-gap: 6px;
+	row-gap: 3px;
+	align-items: center;
+	padding: 5px 8px 5px 9px;
+	border-radius: 14px;
+	background: var(--m-superficie);
+	border: 1px solid var(--m-ouro-claro);
+	border-bottom: 2px solid var(--m-ouro);
+	box-shadow: var(--m-sombra);
+	color: var(--m-tinta);
+}
+
+.ri-premium .bi-body,
+.ri-premium .bi-top {
+	display: contents !important;
+}
+
+/* ─── O retrato: medalhao com aro dourado, atravessando as tres fileiras ── */
+.ri-premium .bi-avatar-frame {
+	grid-area: av;
+	align-self: center;
+	/* sem o `padding` de 3px do aro de desktop: com ele o retrato media 46, e nao 40 */
+	box-sizing: border-box;
+	padding: 0;
+	width: 40px;
+	height: 40px;
+	flex: none;
+	/* o aro (3px de sombra) pinta FORA da caixa: sem a margem ele cobria o "HP" */
+	margin-right: 6px;
+	border-radius: 50%;
+	box-shadow:
+		0 0 0 1.5px #fff6dc,
+		0 0 0 3px var(--m-ouro),
+		0 2px 6px rgba(10, 26, 47, 0.32);
+}
+
+/* As gemas do aro de desktop disputariam com o aro novo. */
+.ri-premium .bi-avatar-frame::before,
+.ri-premium .bi-avatar-frame::after {
+	display: none;
+}
+
+.ri-premium .bi-avatar {
+	width: 100%;
+	height: 100%;
+	border-radius: 50%;
+	background: var(--m-azul-medalha);
+	overflow: hidden;
+}
+
+.ri-premium .bi-avatar-img {
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+}
+
+/* ─── Nome e classe, na mesma fileira ───────────────────────────────────── */
+.ri-premium .bi-identity {
+	grid-area: nome;
+	display: flex;
+	align-items: baseline;
+	gap: 6px;
+	min-width: 0;
+	overflow: hidden;
+}
+
+.ri-premium .bi-name {
+	flex: 0 1 auto;
+	min-width: 0;
+	max-width: none;
+	font-size: 13px;
+	font-weight: 800;
+	letter-spacing: -0.2px;
+	line-height: 1.2;
+	color: var(--m-tinta);
+}
+
+.ri-premium .bi-class {
+	flex: 0 1 auto;
+	min-width: 0;
+	max-width: none;
+	font-size: 10px;
+	line-height: 1.2;
+	color: var(--m-tinta-suave);
+}
+
+/* ─── HP e SP lado a lado ───────────────────────────────────────────────── */
+.ri-premium .bi-bar {
+	display: flex !important;
+	align-items: center;
+	gap: 3px;
+	margin: 0;
+	min-width: 0;
+}
+
+.ri-premium .bi-bar-hp {
+	grid-area: hp;
+}
+
+.ri-premium .bi-bar-sp {
+	grid-area: sp;
+}
+
+/* A sigla do RO no lugar do glifo: em 11px o coracao e a gota nao se
+   distinguem, e "HP"/"SP" e o que o jogador le. */
+.ri-premium .bi-bar-icon {
+	display: none;
+}
+
+.ri-premium .bi-bar::before {
+	flex: 0 0 auto;
+	font-size: 9px;
+	font-weight: 800;
+	color: var(--m-tinta-suave);
+}
+
+.ri-premium .bi-bar-hp::before {
+	content: 'HP';
+}
+
+.ri-premium .bi-bar-sp::before {
+	content: 'SP';
+}
+
+.ri-premium .bi-bar-track {
+	flex: 1 1 auto;
+	min-width: 0;
+	height: 12px;
+	border: 0;
+	background: var(--m-trilha);
+	box-shadow: inset 0 1px 2px rgba(31, 54, 92, 0.22);
+}
+
+.ri-premium .bi-bar-hp .bi-bar-fill {
+	background: var(--m-hp);
+}
+
+.ri-premium .bi-bar-sp .bi-bar-fill {
+	background: var(--m-sp);
+}
+
+.ri-premium .bi-bar-text {
+	line-height: 12px;
+	font-size: 8.5px;
+	letter-spacing: 0.1px;
+	white-space: nowrap;
+}
+
+/* A % ja esta no tamanho da barra; os numeros dizem o resto. */
+.ri-premium .bi-bar-pct {
+	display: none;
+}
+
+/* ─── Base Lv. e Classe Lv., lado a lado na fileira de baixo ─────────────── */
+.ri-premium .bi-levels {
+	grid-area: niveis;
+	display: flex !important;
+	flex-direction: row;
+	gap: 8px;
+	min-width: 0;
+}
+
+.ri-premium .bi-level-row {
+	/* A % SAI DE DENTRO DA BARRA (pedido do dono, 15/10/2026: *"a % da exp coloca
+	   uma barrinha em baixo delas, por mais que aumente um pouco"*). Dentro de um
+	   trilho de 10px a letra de 7,5px mal se lia e, espremida pela coluna da
+	   direita (um ping alto), a % era CORTADA - medido com "1234 ms". Agora a
+	   fileira e uma grade: "Base Lv. 61" a esquerda e a % a direita, por extenso,
+	   e embaixo das duas uma barrinha de 4px. O trilho vira `display: contents`
+	   (o preenchimento e a % passam a ser itens da grade) e o fundo da barrinha
+	   e o `::after` da fileira; o `width` em % que o JS escreve no preenchimento
+	   vale sobre a largura da celula, que e a da fileira inteira. */
+	display: grid !important;
+	flex: 1 1 0;
+	grid-template-columns: minmax(0, 1fr) auto;
+	grid-template-rows: auto 4px;
+	align-items: end;
+	column-gap: 4px;
+	row-gap: 2px;
+	min-width: 0;
+}
+
+.ri-premium .bi-level-label {
+	grid-column: 1;
+	grid-row: 1;
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	font-size: 9px;
+	line-height: 1.2;
+	color: var(--m-tinta-suave);
+}
+
+.ri-premium .bi-level-label b {
+	color: var(--m-tinta);
+}
+
+.ri-premium .bi-exp-track {
+	display: contents !important;
+}
+
+.ri-premium .bi-level-row::after {
+	content: '';
+	grid-column: 1 / -1;
+	grid-row: 2;
+	height: 4px;
+	border-radius: 999px;
+	background: var(--m-trilha);
+	box-shadow: inset 0 1px 1px rgba(31, 54, 92, 0.22);
+}
+
+.ri-premium .bi-exp-fill {
+	position: relative;
+	z-index: 1;
+	grid-column: 1 / -1;
+	grid-row: 2;
+	justify-self: start;
+	height: 4px;
+	border-radius: 999px;
+}
+
+.ri-premium .bi-bexp-fill {
+	background: var(--m-exp-base);
+}
+
+.ri-premium .bi-jexp-fill {
+	background: var(--m-exp-classe);
+}
+
+.ri-premium .bi-exp-pct {
+	position: static;
+	display: block;
+	grid-column: 2;
+	grid-row: 1;
+	font-size: 9px;
+	font-weight: 800;
+	line-height: 1.2;
+	letter-spacing: 0;
+	text-align: right;
+	white-space: nowrap;
+	color: var(--m-tinta);
+	text-shadow: none;
+}
+
+/* ─── Zeny e Cash: pilulas pequenas a direita, uma por fileira ──────────── */
+.ri-premium .bi-moeda {
+	grid-area: zeny;
+	justify-self: stretch;
+	max-width: none;
+	height: 18px;
+	padding: 0 6px 0 2px;
+	gap: 4px;
+	border-radius: 999px;
+	background: linear-gradient(180deg, #ffffff, #f3f1ea);
+	box-shadow:
+		inset 0 0 0 1px var(--m-ouro-claro),
+		0 1px 2px rgba(10, 26, 47, 0.16);
+}
+
+.ri-premium .bi-moeda-cash {
+	grid-area: cash;
+}
+
+.ri-premium .bi-moeda-medalha {
+	width: 14px;
+	height: 14px;
+	min-width: 14px;
+}
+
+.ri-premium .bi-zeny,
+.ri-premium .bi-cash {
+	margin-left: auto;
+	font-size: 11px;
+	font-weight: 800;
+	color: var(--m-tinta);
+	font-variant-numeric: tabular-nums;
+}
+
+/* ─── Ping, wifi e bateria: o canto de baixo, sob as pilulas ────────────── */
+.ri-premium .bi-aparelho {
+	grid-area: aparelho;
+	justify-self: end;
+	align-self: center;
+	margin: 0;
+	padding: 0 1px 0 0;
+	font-size: 9px;
+}
+
+.ri-premium .bi-aparelho .bi-ping {
+	font-size: 9px;
+	white-space: nowrap;
+}
+
+/* O PING ALTO NAO ESPREME MAIS O CARTAO (15/10/2026): a coluna da direita mede o
+   que ha nela, e com "1234 ms" + o wifi + "100%" da bateria ela passava das
+   pilulas de zeny e cash e roubava largura das barras de EXP (medido). O nivel
+   da bateria ja esta no desenho dela; o numero sai, e a coluna volta a ser a das
+   pilulas. */
+.ri-premium .bi-aparelho .bi-rodape-bateria-texto {
+	display: none;
+}
+
+/* Telas estreitas (SE, 320; a marca e de `hudVertical.js`, medida em unidades
+   da HUD): o retrato e as letras encolhem, a sigla de HP/SP sai (a cor da
+   barra ja diz qual e qual), e "Base Lv. 61"/"Classe Lv. 1" viram "B 61" e
+   "C 1" - por extenso a barra de EXP ficava sem lugar. */
+.ri-premium.ri-tela-estreita .bi-window {
+	grid-template-columns: 34px minmax(0, 1fr) minmax(0, 1fr) auto;
+	column-gap: 5px;
+	padding-left: 7px;
+	padding-right: 6px;
+}
+
+.ri-premium.ri-tela-estreita .bi-avatar-frame {
+	width: 34px;
+	height: 34px;
+	margin-right: 5px;
+}
+
+.ri-premium.ri-tela-estreita .bi-name {
+	font-size: 12px;
+}
+
+.ri-premium.ri-tela-estreita .bi-bar::before {
+	display: none;
+}
+
+/* O nome por extenso mora num `span` proprio (`.bi-level-nome`, BasicInfoIdle.html) para sair inteiro: o
+   `font-size: 0` no rotulo era desfeito pelo ajuste automatico de texto do navegador do celular (medido). */
+.ri-premium.ri-tela-estreita .bi-level-nome {
+	display: none;
+}
+
+.ri-premium.ri-tela-estreita .bi-level-row:first-child .bi-level-label::before {
+	content: 'B';
+}
+
+.ri-premium.ri-tela-estreita .bi-level-row:last-child .bi-level-label::before {
+	content: 'C';
+}
+
+/* Em ingles "Classe Lv." e "Job Lv." (o catalogo): a abreviacao acompanha pela lingua do documento, porque o
+   tradutor da interface nao alcanca `content` de folha de estilo. */
+.ri-premium.ri-tela-estreita .bi-level-row:last-child .bi-level-label:lang(en)::before {
+	content: 'J';
+}
+
+.ri-premium.ri-tela-estreita .bi-zeny,
+.ri-premium.ri-tela-estreita .bi-cash {
+	font-size: 10px;
+}

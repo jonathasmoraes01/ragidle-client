@@ -17,6 +17,7 @@
  * Teste: `tests/ui/minimapaNoQuadro.test.js`.
  */
 import { MARCA_VERTICAL } from 'UI/hudVertical.js';
+import { MARCA_MINIMAPA_RECOLHIDO, MARCA_PREMIUM } from 'UI/HudPremium/hudPremium.js';
 
 /** O unico minimapa que a HUD vertical esconde. */
 export const MINIMAPA_ESCONDIDO_EM_PE = 'MiniMapV2';
@@ -31,7 +32,13 @@ export function minimapaVisivel(doc, nome) {
 		return true;
 	}
 	const raiz = doc && doc.documentElement;
-	return !(raiz && raiz.classList.contains(MARCA_VERTICAL));
+	if (!raiz || !raiz.classList.contains(MARCA_VERTICAL)) {
+		return true;
+	}
+	/* A HUD MOBILE PREMIUM (15/10/2026) traz o minimapa DE VOLTA ao celular em
+	   pe (`documento.css` da camada). Com a marca dela, ele esta na tela e
+	   precisa desenhar - menos quando o jogador o MINIMIZOU (so a pilula do nome fica, 15/10/2026). */
+	return raiz.classList.contains(MARCA_PREMIUM) && !raiz.classList.contains(MARCA_MINIMAPA_RECOLHIDO);
 }
 
 /**

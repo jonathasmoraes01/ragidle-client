@@ -25,7 +25,9 @@
 			     controle que a vertical desenha. Nao e um segundo estado: ele
 			     chama o MESMO `_recolhido` do outro botao — dois interruptores
 			     para a mesma luz, e nao duas luzes. -->
-			<button type="button" class="mt-recolher-v" aria-expanded="true" aria-label="Recolher missões" title="Recolher">
+			<!-- `data-rotulo`: o rotulo do icone recolhido da HUD premium do celular (`content: attr()`), num
+			     atributo para o tradutor da interface alcancar ("Quests" em ingles). -->
+			<button type="button" class="mt-recolher-v" aria-expanded="true" aria-label="Recolher missões" title="Recolher" data-rotulo="Missões">
 				<span class="mt-recolher-v-glifo" aria-hidden="true">⌄</span>
 			</button>
 		</div>

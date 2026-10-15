@@ -1,0 +1,73 @@
+/* HUD MOBILE PREMIUM — StatusIcons, os BUFFS EM COLUNA (15/10/2026).
+
+   Injetado no shadow do componente DEPOIS do CSS dele (hudPremium.js), so
+   com `enableHudMobilePremium` ligada. Toda regra mora atras de
+   `.ri-premium`, que so existe no celular em pe.
+
+   O pacote pedia "buffs em fileira, sem empilhar do lado direito": a coluna de
+   D-939 colava no trilho e, no celular baixo, descia por cima do Cacar. O dono
+   pediu (15/10/2026) a coluna do lado ESQUERDO, abaixo das missoes, quebrando
+   para o lado quando chega ao chat (a ancora do host e do documento.css).
+
+   `StatusIcons.js` continua escrevendo `top`/`right` inline em cada icone
+   (`resetElementsPosition`); com os dois anulados quem arruma e a grade -
+   nenhum JS mudou. O relogio de cada um e o de
+   sempre. */
+
+.ri-premium #StatusIcons {
+	/* A COLUNA QUE QUEBRA EM COLUNAS (pedido do dono, 15/10/2026): grade em
+	   coluna com tantas fileiras quantas cabem na altura que sobra ate o chat
+	   (`repeat(auto-fill)` conta pela `max-height`), e as colunas novas nascem
+	   a direita, de cima para baixo. `flex-wrap` em coluna nao serve: o
+	   container nao cresce de largura para a coluna que quebrou. O piso de uma
+	   fileira mantem os buffs na tela quando o vao some (a folha do Menu). */
+	display: grid;
+	grid-auto-flow: var(--m-buffs-fluxo, column);
+	grid-template-rows: var(--m-buffs-fileiras, repeat(auto-fill, var(--m-buff, 47px)));
+	grid-template-columns: var(--m-buffs-colunas, none);
+	grid-auto-columns: 34px;
+	grid-auto-rows: var(--m-buff, 47px);
+	gap: 4px 6px;
+	align-content: start;
+	max-height: max(var(--m-buff, 47px), var(--m-buffs-altura-max, 400px));
+	/* so com a folha do Menu aberta (a fileira do rodape, tokens.css): fora dela a coluna cresce para o lado */
+	max-width: var(--m-buffs-largura-max, none);
+}
+
+/* `relative` (a dica ancora nele) com os deslocamentos inline anulados:
+   relativo, um `top`/`right` inline ainda empurraria o icone. */
+.ri-premium #StatusIcons .state {
+	position: relative;
+	top: auto !important;
+	right: auto !important;
+	width: 34px;
+}
+
+.ri-premium #StatusIcons .state .moldura {
+	width: 34px;
+	height: 34px;
+	padding: 1px;
+	border-color: rgba(215, 183, 118, 0.85);
+	border-radius: 8px 8px 0 0;
+}
+
+.ri-premium #StatusIcons .state canvas {
+	width: 30px;
+	height: 30px;
+}
+
+.ri-premium #StatusIcons .state .relogio {
+	height: 13px;
+	border-color: rgba(215, 183, 118, 0.85);
+	border-radius: 0 0 8px 8px;
+	font-size: 9px;
+}
+
+/* A dica do buff abria para a ESQUERDA (a coluna morava na borda direita);
+   na fileira da esquerda ela abre para cima. */
+.ri-premium #StatusIcons .state .description {
+	right: auto;
+	left: 0;
+	top: auto;
+	bottom: calc(100% + 4px);
+}

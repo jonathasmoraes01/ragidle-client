@@ -1479,7 +1479,13 @@
 	/* + o teclado (10/09/2026): esta regra e mais especifica que a do bloco
 	   pointer: coarse que ergue o chat, e vencia justamente nos celulares em pe
 	   — o chat ficava desenhado atras do teclado. */
-	bottom: calc(var(--vr-acima-dos-atalhos, 92px) + 2px + var(--teclado-altura, 0px));
+	/* + o teclado ABERTO (15/10/2026): a folga da barra de atalhos sai da conta e
+	   o chat cola no teclado (`--teclado-aberto`, UI/tecladoVirtual.js) - com
+	   ele aberto a barra esta atras dele, e a folga deixava o chat flutuando. */
+	bottom: calc(
+		(var(--vr-acima-dos-atalhos, 92px) + 2px) * (1 - var(--teclado-aberto, 0)) + 6px * var(--teclado-aberto, 0) +
+			var(--teclado-altura, 0px)
+	);
 	width: min(76vw, 300px);
 	border-radius: 12px;
 }

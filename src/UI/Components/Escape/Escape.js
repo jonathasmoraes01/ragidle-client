@@ -18,6 +18,8 @@ import ShortCutOption from 'UI/Components/ShortCutOption/ShortCutOption.js';
 import IdiomaIdle from 'UI/Components/IdiomaIdle/IdiomaIdle.js';
 import DeathWindow from 'UI/Components/DeathWindow/DeathWindow.js';
 import { conversaNaTela } from 'UI/conversaNaTela.js';
+import { barraDeAtalhosLigada, definirBarraDeAtalhos } from 'UI/HudPremium/hudPremium.js';
+import { reaplicar as reaplicarHudVertical } from 'UI/hudVertical.js';
 import htmlText from './Escape.html?raw';
 import cssText from './Escape.css?raw';
 
@@ -69,6 +71,8 @@ Escape.init = function init() {
 		Escape.onCharSelectionRequest();
 	});
 	root.querySelector('.hotkey').addEventListener('click', onToggleShortcutUI);
+	root.querySelector('.barra-skills').addEventListener('click', onToggleBarraDeSkills);
+	rotularBarraDeSkills(root);
 	root.querySelector('.idioma').addEventListener('click', function () {
 		// O jogo em ingles (D-1929): a mesma janela do passo zero e do login.
 		Escape._host.style.display = 'none';
@@ -102,7 +106,7 @@ Escape.onRemove = function onRemove() {
 	root.querySelectorAll('.resurection, .savepoint').forEach(function (el) {
 		el.style.display = 'none';
 	});
-	root.querySelectorAll('.graphics, .sound, .hotkey, .idioma').forEach(function (el) {
+	root.querySelectorAll('.graphics, .sound, .hotkey, .barra-skills, .idioma').forEach(function (el) {
 		el.style.display = '';
 	});
 };
@@ -186,6 +190,28 @@ function onToggleShortcutUI() {
 }
 
 /**
+ * A BARRA DE SKILLS da HUD mobile premium (pedido do dono, 15/10/2026): *"o player pudesse depois habilitar
+ * pelas configuracoes a barra de skills tambem, mas por padrao que ela viesse desativada"*. O botao so aparece
+ * na premium (Escape.css); a preferencia mora em `hudPremium.js`, e quem mostra a barra ou o arco de skills
+ * em volta do Auto e a marca `ri-com-atalhos`, que o `reaplicar` da HUD vertical carimba na hora.
+ */
+function rotularBarraDeSkills(root) {
+	const botao = root && root.querySelector('.barra-skills');
+	if (!botao) {
+		return;
+	}
+	const ligada = barraDeAtalhosLigada();
+	botao.textContent = ligada ? 'Barra de skills: Ligada' : 'Barra de skills: Desligada';
+	botao.setAttribute('aria-pressed', ligada ? 'true' : 'false');
+}
+
+function onToggleBarraDeSkills() {
+	definirBarraDeAtalhos(!barraDeAtalhosLigada());
+	reaplicarHudVertical();
+	rotularBarraDeSkills(Escape.getRoot());
+}
+
+/**
  * ABRE PELO MENU (15/09/2026, D-1416 — pedido do dono).
  *
  * A porta que o menu do celular usa. Ela existe como metodo PROPRIO, e nao
@@ -219,7 +245,7 @@ Escape.showDeathMenu = function showDeathMenu(hasSiegfried) {
 	if (hasSiegfried) {
 		root.querySelector('.resurection').style.display = '';
 	}
-	root.querySelectorAll('.graphics, .sound, .hotkey, .idioma').forEach(function (el) {
+	root.querySelectorAll('.graphics, .sound, .hotkey, .barra-skills, .idioma').forEach(function (el) {
 		el.style.display = 'none';
 	});
 };
@@ -233,7 +259,7 @@ Escape.resetMenu = function resetMenu() {
 	root.querySelectorAll('.resurection, .savepoint').forEach(function (el) {
 		el.style.display = 'none';
 	});
-	root.querySelectorAll('.graphics, .sound, .hotkey, .idioma').forEach(function (el) {
+	root.querySelectorAll('.graphics, .sound, .hotkey, .barra-skills, .idioma').forEach(function (el) {
 		el.style.display = '';
 	});
 };

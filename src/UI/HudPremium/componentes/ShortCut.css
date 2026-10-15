@@ -1,0 +1,47 @@
+/* HUD MOBILE PREMIUM — ShortCut, a BARRA DE ATALHOS (15/10/2026).
+
+   Injetado no shadow do componente DEPOIS do CSS dele (hudPremium.js), so
+   com `enableHudMobilePremium` ligada. Toda regra mora atras de
+   `.ri-premium`, que so existe no celular em pe.
+
+   O desenho do mockup: bandeja marfim de borda dourada, slots brancos de
+   cantos suaves, os pontinhos de pagina embaixo. Os SLOTS sao os de sempre
+   (o item/habilidade real, a contagem real, o toque duplo para usar) - aqui
+   e so a roupa. */
+
+.ri-premium #ShortCut {
+	padding: 6px 7px 1px;
+	border: 1px solid var(--m-ouro-claro);
+	border-bottom: 2px solid var(--m-ouro);
+	border-radius: var(--m-raio, 16px);
+	background: var(--m-superficie-solida);
+	box-shadow: var(--m-sombra);
+}
+
+.ri-premium #ShortCut .row .container {
+	border-radius: 9px;
+	border: 1px solid #d3dbe6;
+	background: linear-gradient(180deg, #ffffff, #f4f7fb);
+	box-shadow: inset 0 -2px 0 rgba(31, 54, 92, 0.05);
+}
+
+/* Os pontinhos: o alvo de cada um cresce para o dedo (o desenho continua o
+   ponto de 7px). */
+.ri-premium .shortcut-pagina {
+	width: 32px;
+	height: 20px;
+}
+
+/* O alvo de dedo chega aos 44 sem a bandeja crescer: o `::before` vazio e o
+   mesmo recurso do Common.css (a area cresce, o desenho nao), e o ponto ja e
+   `position: relative`, entao a area ancora nele (o portao
+   `areaDeToqueAncoraNoBotao` cobra isso do Common.css). */
+.ri-premium .shortcut-pagina::before {
+	content: '';
+	position: absolute;
+	inset: -12px -6px;
+}
+
+.ri-premium .shortcut-pagina.is-ativa::after {
+	background: var(--m-azul);
+}

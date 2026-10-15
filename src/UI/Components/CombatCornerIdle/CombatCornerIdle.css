@@ -207,6 +207,12 @@
 	display: none;
 }
 
+/* O arco de skills do Auto so existe na HUD mobile premium
+   (`UI/HudPremium/componentes/CombatCornerIdle.css`). */
+.cc-rodizio {
+	display: none;
+}
+
 .ri-vertical .cc-ring {
 	width: 46px;
 	height: 46px;

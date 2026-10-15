@@ -1,0 +1,159 @@
+/* HUD MOBILE PREMIUM — HuntButtonIdle: o ARCO do Cacar e do Retornar (15/10/2026).
+
+   Injetado no shadow do componente DEPOIS do CSS dele (hudPremium.js), so
+   com `enableHudMobilePremium` ligada. Toda regra mora atras de
+   `.ri-premium`, que so existe no celular em pe.
+
+   PEDIDO DO DONO (15/10/2026): o botao grande do polegar passa a ser o AUTO
+   (CombatCornerIdle.css desta camada), o SENTAR sai da HUD, e o CACAR - que
+   abre os mapas de caca - fica no arco a esquerda do Auto *"sem tirar o
+   destaque"*. O meio-termo: o Cacar e menor que o Auto, mas e o unico
+   medalhao DOURADO da tela, com o mapa desenhado e o rotulo; o Retornar e o
+   miudo azul logo abaixo, encostado na curva do Auto.
+
+   A SEMANTICA NAO MUDA: o Cacar abre o Mapa de Caca (`HuntMap.toggle`), e nao
+   liga o auto; o Retornar chama `HuntMap.travelToCity`. O botao de Sentar
+   continua no HTML (o desktop e a HUD de D-939 o usam) - so esta camada nao o
+   desenha. Sentar segue possivel pelo `/sit` no chat. */
+
+.ri-premium #HuntButtonIdle {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 14px;
+	width: var(--m-cacar, 56px);
+}
+
+.ri-premium .hb-btn.hb-sentar {
+	display: none;
+}
+
+/* O disco: o MEDALHAO DA ARTE DO DONO (15/10/2026, os icones do Drive). O aro
+   dourado, a gema e o desenho vem da imagem - um quadrado centrado no disco,
+   com o disco em ~91% do lado (`arte-fonte/ui-icons-premium/botoes/`) -, e
+   nao mais do `border` e do gradiente. O rotulo que a arte trazia embaixo sai
+   da imagem e continua sendo TEXTO (a pilula abaixo): o leitor de tela o le e
+   o modo em ingles o troca. O glifo de reserva (`.hb-glifo`) sai da vista. */
+.ri-premium .hb-btn {
+	border: 0;
+	background: center / 100% 100% no-repeat;
+	/* a sombra segue o contorno da arte (a caixa e maior que o disco desenhado), e a interna nem entra: ela
+	   pintaria por cima da imagem */
+	box-shadow: none;
+	filter: drop-shadow(0 3px 5px rgba(3, 27, 56, 0.4));
+}
+
+.ri-premium .hb-btn .hb-glifo {
+	display: none;
+}
+
+/* O apagado do `.ri-btn` (Common.css) e um `filter`, e o de cima o trocaria pela sombra: os dois juntos. */
+.ri-premium .hb-btn:disabled {
+	filter: grayscale(1) drop-shadow(0 3px 5px rgba(3, 27, 56, 0.4));
+}
+
+.ri-premium .hb-btn:active {
+	transform: scale(0.95);
+}
+
+/* ─── O Cacar: o medalhao dourado com o mapa ─────────────────────────────── */
+/* O mapa, e nao as espadas (que sao do Auto): o Cacar abre os MAPAS de caca, e
+   o desenho diz isso antes do rotulo. */
+.ri-premium .hb-cacar {
+	width: var(--m-cacar, 56px);
+	height: var(--m-cacar, 56px);
+	min-height: 0;
+	/* o disco dourado por baixo so aparece se a arte nao carregar (D-2454; ver o Auto) */
+	background-image:
+		url('/ragidle/hud/premium/botao-cacar.webp'),
+		radial-gradient(circle closest-side, #e8bd5c 0 87%, transparent 88%);
+	color: #1d3557;
+}
+
+/* ─── O Retornar: o miudo azul, encostado na curva do Auto ─────────────── */
+.ri-premium .hb-voltar {
+	width: var(--m-retornar, 44px);
+	height: var(--m-retornar, 44px);
+	min-height: 0;
+	margin: 0;
+	background-image:
+		url('/ragidle/hud/premium/botao-voltar.webp'),
+		radial-gradient(circle closest-side, #2a6fd0 0 87%, transparent 88%);
+	color: #ffffff;
+}
+
+/* ─── Os rotulos: pilula escura colada na base do disco ───────────────── */
+/* A pilula cobre o quarto de baixo do disco, como na arte do dono: e ali que o
+   rotulo desenhado morava, e o fundo do disco que ele cobria foi REFEITO no
+   recorte (espelhado) - a emenda fica debaixo da pilula (medido: comeca a 77%
+   do disco no Cacar e a 82% no Voltar). */
+.ri-premium .hb-rotulo {
+	top: calc(100% - 15px);
+	right: auto;
+	left: 50%;
+	transform: translateX(-50%);
+	max-width: none;
+	padding: 1px 9px;
+	border: 1px solid rgba(215, 183, 118, 0.9);
+	border-radius: 999px;
+	background: linear-gradient(180deg, #1d3f6b, #10294a);
+	box-shadow: var(--m-sombra-leve);
+	font-size: 11.5px;
+	font-weight: 800;
+	line-height: 1.3;
+	text-align: center;
+	white-space: nowrap;
+	color: var(--m-tinta-clara, #fdf8ea);
+	text-shadow: none;
+}
+
+/* "Retornar para Prontera" nao cabe sob um disco de 44: o nome inteiro segue
+   para o leitor de tela (recortado, e nao `display: none`), e a pilula
+   desenha so "Voltar" - com "Retornar" (8 letras) ela encostava na pilula
+   "Auto · ON" do vizinho no 375x667 (medido). */
+.ri-premium .hb-voltar .hb-rotulo {
+	width: 1px;
+	height: 1px;
+	padding: 0;
+	border: 0;
+	overflow: hidden;
+	clip: rect(0 0 0 0);
+}
+
+.ri-premium .hb-voltar::after {
+	/* do HTML, e nao daqui: o tradutor da interface traduz o atributo ("Back" em ingles) */
+	content: attr(data-rotulo);
+	position: absolute;
+	top: calc(100% - 11px);
+	left: 50%;
+	transform: translateX(-50%);
+	padding: 0 6px;
+	border: 1px solid rgba(215, 183, 118, 0.9);
+	border-radius: 999px;
+	background: linear-gradient(180deg, #1d3f6b, #10294a);
+	font-size: 9px;
+	font-weight: 800;
+	line-height: 1.35;
+	white-space: nowrap;
+	color: var(--m-tinta-clara, #fdf8ea);
+	pointer-events: none;
+}
+
+/* O motivo de "indisponivel" (D-1673) segue valendo, a esquerda do arco. */
+.ri-premium .hb-motivo {
+	right: calc(100% + 8px);
+	top: auto;
+	bottom: 0;
+}
+
+/* ─── Com a barra de skills DESLIGADA (o padrao): em cima do arco ─────────
+   O arco de skills ocupa a esquerda do Auto, entao o Cacar e o Voltar sobem
+   para cima dele, lado a lado na coluna da direita (pedido do dono, 15/10/2026:
+   *"acima do arco, na coluna da direita"*). O Cacar fica no canto, sobre o
+   Auto; o Voltar, miudo, a esquerda dele. */
+.ri-premium:not(.ri-com-atalhos) #HuntButtonIdle {
+	flex-direction: row-reverse;
+	align-items: center;
+	gap: 14px;
+	width: auto;
+}

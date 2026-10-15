@@ -35,6 +35,7 @@ import SkillWindow from 'UI/Components/SkillList/SkillList.js';
 import { aoLembrarNomes, dicaDoAtalho, fecharSeletorDeNivel, nomeNaBarra, spLembrado } from 'UI/nivelDeUso.js';
 import { criarSeletorDeNivelDaBarra } from './seletorDeNivelDaBarra.js';
 import { criarRelogioDaBarra } from './relogioDaBarra.js';
+import { aoRecarga, avisarRecarga, registrarUsoDeSkill } from './portaDasSkills.js';
 import htmlText from './ShortCut.html?raw';
 import cssText from './ShortCut.css?raw';
 
@@ -953,6 +954,7 @@ ShortCut.addElement = function addElement(index, isSkill, ID, count) {
  */
 ShortCut.setGlobalSkillDelay = function setGlobalSkillDelay(delay) {
 	_relogioDaBarra.recargaGlobal(delay);
+	avisarRecarga(null, delay);
 };
 
 /**
@@ -965,7 +967,18 @@ ShortCut.setGlobalSkillDelay = function setGlobalSkillDelay(delay) {
  */
 ShortCut.setSkillDelay = function setSkillDelay(ID, delay) {
 	_relogioDaBarra.recarga(Number(ID), delay);
+	avisarRecarga(Number(ID), delay);
 };
+
+/*
+ * AS RECARGAS E O USO PARA QUEM MOSTRA SKILL FORA DA BARRA (15/10/2026): o arco de skills em volta do botao
+ * Auto da HUD mobile premium (CombatCornerIdle). A barra continua sendo a porta por onde o 0x043d chega
+ * (`Skill.js:onSetSkillDelay`) e o caminho de uso; quem mais desenha relogio ouve pela `portaDasSkills.js`, e
+ * nao de um segundo gancho no pacote. A porta e um modulo a parte para o arco nao importar este grafo inteiro.
+ * O registro chama `ShortCut.useSkill` na HORA do uso, e nao a funcao guardada: quem a substituir vale.
+ */
+ShortCut.aoRecarga = aoRecarga;
+registrarUsoDeSkill((id, nivel) => ShortCut.useSkill(id, nivel));
 
 /** As skills com recarga guardada agora (exposto para a prova de tela). */
 ShortCut.recargasVivas = function recargasVivas() {
