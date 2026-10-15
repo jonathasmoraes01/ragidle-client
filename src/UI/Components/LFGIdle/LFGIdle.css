@@ -847,3 +847,33 @@
 }
 
 /* ─── Barras de rolagem: ".ri-scroll" (Common.css) já cuida ──────────── */
+
+/* ─── Celular em pé (15/10/2026, D-2465) ──────────────────────────────────
+
+   A lista e o dossiê LADO A LADO não cabem em 393px: o dossiê é `flex: 0 0
+   320px` e a lista ficava com uns 70px, os cards cortados e o "Entrar rápido"
+   cortado no meio (medido nas fotos da frente). No celular em pé a lista vai
+   EM CIMA, com teto e rolagem própria, e o dossiê embaixo, com o rodapé de
+   ação preso como sempre. Quem liga é a marca `.ri-vertical` (UI/hudVertical.js,
+   o mesmo critério do resto da HUD), e não uma `@media` de largura.
+
+   O seletor de privacidade do líder (agora com três botões) ganha altura de
+   dedo no toque: os 25px de antes eram pequenos para o polegar. */
+.ri-vertical #LFGIdle .lfg-view-grupos:not([hidden]) {
+	flex-direction: column;
+}
+.ri-vertical #LFGIdle .lfg-list-wrap {
+	flex: 0 1 auto;
+	max-height: 42%;
+}
+.ri-vertical #LFGIdle .lfg-panel {
+	flex: 1 1 auto;
+	min-height: 0;
+	border-left: none;
+	border-top: var(--divider);
+}
+@media (pointer: coarse) {
+	#LFGIdle .lfg-priv-btn {
+		min-height: 40px;
+	}
+}
