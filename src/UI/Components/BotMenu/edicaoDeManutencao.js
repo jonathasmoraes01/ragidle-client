@@ -195,6 +195,10 @@ export function descansoCoerente(config) {
 
 /* ---------------- suporte ---------------- */
 
+/** O gatilho de cada tipo de suporte que o servidor anuncia (`suporte` de cada skill do menu). */
+const GATILHO_DO_TIPO = Object.freeze({ buff: 'manter', cura: 'hp', limpeza: 'status', ressurreicao: 'morto' });
+const TIPOS_DE_SUPORTE = Object.keys(GATILHO_DO_TIPO);
+
 function comSuporte(config, lista) {
 	return { ...config, suporte: { ...(config.suporte || {}), lista } };
 }
@@ -205,12 +209,13 @@ function repetida(lista, skillId, destino, ignorarIndice) {
 
 /**
  * Adiciona uma skill de suporte. `skill` e a entrada do servidor
- * (`{skillId, suporte: 'buff'|'cura'|'limpeza', alcancaGrupo}`); sem tipo nao entra.
+ * (`{skillId, suporte: 'buff'|'cura'|'limpeza'|'ressurreicao', alcancaGrupo}`); sem tipo nao entra.
  * Padrao pelo tipo: buff -> 'manter'/0; cura -> 'hp'/60; limpeza de status (J8: Medicar) -> 'status'/0;
+ * ressurreicao do aliado morto (J13) -> 'morto'/0, so no grupo;
  * destino 'grupo' se alcanca o grupo, senao 'eu'.
  */
 export function adicionarSuporte(config, skill, teto) {
-	if (!skill || (skill.suporte !== 'buff' && skill.suporte !== 'cura' && skill.suporte !== 'limpeza')) {
+	if (!skill || !TIPOS_DE_SUPORTE.includes(skill.suporte)) {
 		return config;
 	}
 	const lista = lerSuporte(config);
@@ -227,7 +232,7 @@ export function adicionarSuporte(config, skill, teto) {
 			skillId: skill.skillId,
 			nivel: 'aprendido',
 			destino,
-			gatilho: cura ? 'hp' : skill.suporte === 'limpeza' ? 'status' : 'manter',
+			gatilho: GATILHO_DO_TIPO[skill.suporte],
 			limiar: cura ? LIMIAR_PADRAO_DA_CURA : 0
 		}
 	]);

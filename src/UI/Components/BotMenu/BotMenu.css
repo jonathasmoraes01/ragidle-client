@@ -1465,7 +1465,8 @@
 	box-shadow: inset 0 0 0 1px var(--border-hairline);
 }
 #BotMenu .bm-tipo--cura,
-#BotMenu .bm-tipo--limpeza {
+#BotMenu .bm-tipo--limpeza,
+#BotMenu .bm-tipo--ressurreicao {
 	color: var(--green-600);
 }
 #BotMenu .bm-tipo--buff,

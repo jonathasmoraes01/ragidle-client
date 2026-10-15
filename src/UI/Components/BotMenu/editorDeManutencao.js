@@ -39,7 +39,7 @@ import {
 } from './edicaoDeManutencao.js';
 import { desenharSeletorDeItem } from './seletorDeItem.js';
 
-const NOME_DO_TIPO = Object.freeze({ buff: 'Buff', cura: 'Cura', limpeza: 'Limpa status' });
+const NOME_DO_TIPO = Object.freeze({ buff: 'Buff', cura: 'Cura', limpeza: 'Limpa status', ressurreicao: 'Ressuscita' });
 const NOME_DO_DESTINO = Object.freeze({ eu: 'Em mim', grupo: 'No grupo' });
 const CHAVE_DO_EIXO = Object.freeze({ hp: 'pocoesHp', sp: 'pocoesSp' });
 
@@ -197,7 +197,7 @@ function desenharPocoes(bloco, eixo, lista, dados, editar) {
  * @param {(fn: (c: object) => object) => void} editar
  */
 export function desenharSuporte(raiz, dados, editar) {
-	const deSuporte = (dados.skills || []).filter(s => s.suporte === 'buff' || s.suporte === 'cura' || s.suporte === 'limpeza');
+	const deSuporte = (dados.skills || []).filter(s => s.suporte && NOME_DO_TIPO[s.suporte] !== undefined);
 	const porId = new Map(deSuporte.map(s => [s.skillId, s]));
 	const lista = lerSuporte(dados.config);
 
@@ -207,7 +207,15 @@ export function desenharSuporte(raiz, dados, editar) {
 	ol.innerHTML = '';
 	lista.forEach((e, i) => {
 		const skill = porId.get(e.skillId) || null;
-		const tipo = skill ? skill.suporte : e.gatilho === 'hp' ? 'cura' : e.gatilho === 'status' ? 'limpeza' : 'buff';
+		const tipo = skill
+			? skill.suporte
+			: e.gatilho === 'hp'
+				? 'cura'
+				: e.gatilho === 'status'
+					? 'limpeza'
+					: e.gatilho === 'morto'
+						? 'ressurreicao'
+						: 'buff';
 		const ativa = e.ativa !== false;
 		const nome = skill ? skill.nome : '#' + e.skillId;
 		const li = criar('li', 'bm-suporte bm-rodizio-item' + (ativa ? '' : ' is-desligada'));

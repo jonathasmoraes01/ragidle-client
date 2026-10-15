@@ -117,6 +117,14 @@ describe('suporte do Bot', () => {
 		expect(adicionarSuporte(c, MEDICAR, 8)).toBe(c);
 	});
 
+	it('J13: a Ressurreicao entra com o gatilho "morto" e limiar 0, so no grupo (soGrupo); nao vira buff nem cura', () => {
+		const RESSUSCITAR = { skillId: 54, nome: 'Ressurreição', suporte: 'ressurreicao', alcancaGrupo: true, soGrupo: true };
+		const c = adicionarSuporte(base(), RESSUSCITAR, 8);
+		expect(c.suporte.lista).toEqual([{ skillId: 54, nivel: 'aprendido', destino: 'grupo', gatilho: 'morto', limiar: 0 }]);
+		expect(definirLimiarDaCura(c, 0, 50)).toBe(c);
+		expect(adicionarSuporte(c, RESSUSCITAR, 8)).toBe(c);
+	});
+
 	it('teto e sem repetir skill+destino', () => {
 		let c = adicionarSuporte(base(), BENCAO, 2);
 		expect(adicionarSuporte(c, BENCAO, 2)).toBe(c);
