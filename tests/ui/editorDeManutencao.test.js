@@ -155,6 +155,25 @@ describe('o desenho das abas de manutencao', () => {
 			expect(secao.querySelector('.bm-sem-suporte').hidden).toBe(true);
 		});
 
+		it('J8: o Medicar (suporte "limpeza") aparece com o tipo "Limpa status", entra no grupo e nao tem limiar de HP', () => {
+			const medicar = { skillId: 35, nome: 'Medicar', aprendido: 1, aceita: false, suporte: 'limpeza', alcancaGrupo: true };
+			desenhar([...SKILLS, medicar]);
+			const fora = secao.querySelector('.bm-suporte-fora [data-skill="35"]');
+			expect(fora.querySelector('.bm-tipo').textContent).toBe('Limpa status');
+			usar(35);
+			expect(config.suporte.lista).toEqual([{ skillId: 35, nivel: 'aprendido', destino: 'grupo', gatilho: 'status', limiar: 0 }]);
+			const linha = secao.querySelector('[data-indice="0"]');
+			expect(linha.querySelector('.bm-tipo').textContent).toBe('Limpa status');
+			expect(linha.querySelector('.bm-limiar')).toBeNull();
+			expect(linha.querySelector('.bm-destino').value).toBe('grupo');
+		});
+
+		it('J8: entrada de limpeza gravada sem o menu da skill ainda aparece como limpeza (nao vira buff)', () => {
+			config.suporte.lista = [{ skillId: 35, nivel: 'aprendido', destino: 'grupo', gatilho: 'status', limiar: 0 }];
+			desenhar();
+			expect(secao.querySelector('[data-indice="0"] .bm-tipo').textContent).toBe('Limpa status');
+		});
+
 		it('sem nenhuma skill de suporte: diz isso e esconde o Adicionar', () => {
 			desenhar([SKILLS[0]]);
 			expect(secao.querySelector('.bm-sem-suporte').hidden).toBe(false);

@@ -109,6 +109,14 @@ describe('suporte do Bot', () => {
 		expect(adicionarSuporte(c, { skillId: 5, nome: 'Golpe', suporte: null }, 8)).toBe(c);
 	});
 
+	it('J8: a limpeza de status (Medicar) entra com o gatilho "status" e limiar 0, no grupo; o limiar da cura nao a mexe', () => {
+		const MEDICAR = { skillId: 35, nome: 'Medicar', suporte: 'limpeza', alcancaGrupo: true };
+		let c = adicionarSuporte(base(), MEDICAR, 8);
+		expect(c.suporte.lista).toEqual([{ skillId: 35, nivel: 'aprendido', destino: 'grupo', gatilho: 'status', limiar: 0 }]);
+		expect(definirLimiarDaCura(c, 0, 50)).toBe(c);
+		expect(adicionarSuporte(c, MEDICAR, 8)).toBe(c);
+	});
+
 	it('teto e sem repetir skill+destino', () => {
 		let c = adicionarSuporte(base(), BENCAO, 2);
 		expect(adicionarSuporte(c, BENCAO, 2)).toBe(c);

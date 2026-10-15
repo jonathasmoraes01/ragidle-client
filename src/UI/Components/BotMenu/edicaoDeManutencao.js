@@ -205,11 +205,12 @@ function repetida(lista, skillId, destino, ignorarIndice) {
 
 /**
  * Adiciona uma skill de suporte. `skill` e a entrada do servidor
- * (`{skillId, suporte: 'buff'|'cura', alcancaGrupo}`); sem tipo nao entra.
- * Padrao pelo tipo: buff -> 'manter'/0; cura -> 'hp'/60; destino 'grupo' se alcanca o grupo, senao 'eu'.
+ * (`{skillId, suporte: 'buff'|'cura'|'limpeza', alcancaGrupo}`); sem tipo nao entra.
+ * Padrao pelo tipo: buff -> 'manter'/0; cura -> 'hp'/60; limpeza de status (J8: Medicar) -> 'status'/0;
+ * destino 'grupo' se alcanca o grupo, senao 'eu'.
  */
 export function adicionarSuporte(config, skill, teto) {
-	if (!skill || (skill.suporte !== 'buff' && skill.suporte !== 'cura')) {
+	if (!skill || (skill.suporte !== 'buff' && skill.suporte !== 'cura' && skill.suporte !== 'limpeza')) {
 		return config;
 	}
 	const lista = lerSuporte(config);
@@ -226,7 +227,7 @@ export function adicionarSuporte(config, skill, teto) {
 			skillId: skill.skillId,
 			nivel: 'aprendido',
 			destino,
-			gatilho: cura ? 'hp' : 'manter',
+			gatilho: cura ? 'hp' : skill.suporte === 'limpeza' ? 'status' : 'manter',
 			limiar: cura ? LIMIAR_PADRAO_DA_CURA : 0
 		}
 	]);
