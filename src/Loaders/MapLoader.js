@@ -176,28 +176,42 @@ class MapLoader {
 					return;
 				}
 				this.medida.contarArquivo(info, qualBase);
-				/*
-				 * A MONTAGEM QUE LANCA NO WORKER TERMINA A CARGA (D-2055, achado
-				 * A3). O `compile` do chao, o `createInstance` de um modelo, ou o
-				 * `postMessage` que nao consegue clonar o dado (a memoria do
-				 * celular acabando) lancavam aqui dentro - e a excecao morria no
-				 * `catch` do pedido ("erro depois de entregar"). O `onload` nunca
-				 * saia: `MapRenderer.loading` ficava `true` para sempre. Agora a
-				 * carga termina como FALHA, com o motivo, e o fio principal abre
-				 * a saida; os outros pedidos dela sao abortados.
-				 */
-				try {
-					pronto(resultado, erro);
-				} catch (excecao) {
-					const motivo =
-						(excecao && (excecao.name || '') + ': ' + (excecao.message || '')) || String(excecao);
-					this.terminarCarga(false, `Erro ao montar o mapa (${nome}) - ${motivo}`);
-					this.cancelar();
-				}
+				this.montarComGuarda(nome, () => pronto(resultado, erro));
 			},
 			undefined,
 			opcoes
 		);
+	}
+
+	/**
+	 * Roda a montagem de um arquivo ja chegado, e a excecao dela termina a carga.
+	 *
+	 * Saiu de `carregarArquivo` (15/10/2026) porque o `.gnd` agora chega em
+	 * paralelo com o `.gat` e pode ser MONTADO dentro da entrega do `.gat` (se
+	 * chegou antes dele): a falha tem de continuar dizendo o nome do arquivo que
+	 * a montagem tratava, e nao o do pedido em cuja volta ela rodou.
+	 *
+	 * @param {string} nome - o arquivo cuja montagem roda (vai na mensagem)
+	 * @param {function} montar
+	 */
+	montarComGuarda(nome, montar) {
+		/*
+		 * A MONTAGEM QUE LANCA NO WORKER TERMINA A CARGA (D-2055, achado
+		 * A3). O `compile` do chao, o `createInstance` de um modelo, ou o
+		 * `postMessage` que nao consegue clonar o dado (a memoria do
+		 * celular acabando) lancavam aqui dentro - e a excecao morria no
+		 * `catch` do pedido ("erro depois de entregar"). O `onload` nunca
+		 * saia: `MapRenderer.loading` ficava `true` para sempre. Agora a
+		 * carga termina como FALHA, com o motivo, e o fio principal abre
+		 * a saida; os outros pedidos dela sao abortados.
+		 */
+		try {
+			montar();
+		} catch (excecao) {
+			const motivo = (excecao && (excecao.name || '') + ': ' + (excecao.message || '')) || String(excecao);
+			this.terminarCarga(false, `Erro ao montar o mapa (${nome}) - ${motivo}`);
+			this.cancelar();
+		}
 	}
 
 	/** @param {object} atividade */
@@ -255,6 +269,18 @@ class MapLoader {
 
 		const loader = this;
 		let world;
+		/*
+		 * O `.gat` E O `.gnd` EM PARALELO (15/10/2026). Os nomes dos dois saem do
+		 * `.rsw`, e antes o `.gnd` (o maior dos tres, 5 a 13 MB) so era PEDIDO
+		 * depois que o `.gat` chegava e era montado: uma volta de rede inteira a
+		 * mais em toda troca de mapa. Agora os dois saem juntos assim que o
+		 * `.rsw` chega, e a MONTAGEM segue na ordem de sempre: o chao so e
+		 * montado depois da altitude (MAP_ALTITUDE antes de MAP_WORLD/GROUND, e
+		 * a barra 1 -> 2 -> 3). O chao que chega antes espera aqui.
+		 */
+		let altitudeMontada = false;
+		let chaoEsperando = null;
+		let nomeDoChao = '';
 
 		//  Get file path (if it's a copy of a file)
 		function getFilePath(path) {
@@ -276,9 +302,12 @@ class MapLoader {
 			world = resourceWorld;
 			loader.setProgress(1);
 
-			// Load Altitude
+			// Load Altitude and Ground, os dois pedidos ja (ver acima)
 			loader.medida.comecar('gat');
+			loader.medida.comecar('gnd');
+			nomeDoChao = `data\\${getFilePath(world.files.gnd)}`;
 			loader.carregarArquivo(`data\\${getFilePath(world.files.gat)}`, onAltitudeReady, 'gat');
+			loader.carregarArquivo(nomeDoChao, onGroundArrived, 'gnd');
 		}
 
 		// Loading altitude
@@ -292,16 +321,31 @@ class MapLoader {
 			// OS 2% DA BARRA (D-2055): daqui ate o `setProgress(3)` la embaixo a
 			// carga espera o `.gnd` - o maior dos tres arquivos-base (5,4 MB o
 			// `glast_01.gnd`, 13 MB o `gl_cas01.gnd`, servidos sem compressao).
+			// Desde 15/10/2026 ele ja vem baixando junto com o `.gat`.
 			loader.setProgress(2);
 			loader.enviarDado('MAP_ALTITUDE', altitude.compile());
 
-			loader.medida.comecar('gnd');
-			loader.carregarArquivo(`data\\${getFilePath(world.files.gnd)}`, onGroundReady, 'gnd');
+			altitudeMontada = true;
+			if (chaoEsperando) {
+				const { ground } = chaoEsperando;
+				chaoEsperando = null;
+				loader.montarComGuarda(nomeDoChao, () => onGroundReady(ground));
+			}
+		}
+
+		// O `.gnd` chegou: a fase dele acaba aqui (a rede), e a montagem espera a
+		// altitude se ela ainda nao foi montada.
+		function onGroundArrived(ground) {
+			loader.medida.terminar('gnd');
+			if (altitudeMontada) {
+				onGroundReady(ground);
+				return;
+			}
+			chaoEsperando = { ground };
 		}
 
 		// Load ground
 		function onGroundReady(ground) {
-			loader.medida.terminar('gnd');
 			if (!ground) {
 				loader.terminarCarga(false, `Can't find file "${world.files.gnd}" !`);
 				return;

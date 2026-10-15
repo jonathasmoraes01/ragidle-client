@@ -50,9 +50,16 @@ const mutantes = {
 	'cancelada-continua-falando': [CARGA, '\t\t\t\tif (this.cancelada) {\n\t\t\t\t\treturn;\n\t\t\t\t}\n\t\t\t\tthis.medida.contarArquivo', '\t\t\t\tthis.medida.contarArquivo'],
 	'montagem-sem-try': [
 		CARGA,
-		'\t\t\t\ttry {\n\t\t\t\t\tpronto(resultado, erro);\n\t\t\t\t} catch (excecao) {',
-		'\t\t\t\t{\n\t\t\t\t\tpronto(resultado, erro);\n\t\t\t\t}\n\t\t\t\tif (false) {\n\t\t\t\t\tconst excecao = null;'
+		// 15/10/2026: a guarda saiu de `carregarArquivo` para `montarComGuarda`
+		// (o .gnd em paralelo), e o mutante a segue.
+		'\t\ttry {\n\t\t\tmontar();\n\t\t} catch (excecao) {',
+		'\t\t{\n\t\t\tmontar();\n\t\t}\n\t\tif (false) {\n\t\t\tconst excecao = null;'
 	],
+	// --- o .gat e o .gnd em paralelo (15/10/2026) ---
+	'gnd-em-serie': [CARGA, "\t\t\tloader.carregarArquivo(nomeDoChao, onGroundArrived, 'gnd');\n", ''],
+	'chao-nao-espera-a-altitude': [CARGA, '\t\t\tif (altitudeMontada) {\n\t\t\t\tonGroundReady(ground);', '\t\t\tif (true) {\n\t\t\t\tonGroundReady(ground);'],
+	'chao-esperando-esquecido': [CARGA, '\t\t\tif (chaoEsperando) {', '\t\t\tif (false) {'],
+	'falha-do-chao-com-nome-do-gat': [CARGA, 'loader.montarComGuarda(nomeDoChao, () => onGroundReady(ground));', 'onGroundReady(ground);'],
 	'cancelar-nao-aborta': [CARGA, '\t\t\tif (this.controlador) this.controlador.abort();', ''],
 	'medida-nao-vai-junto': [CARGA, '\t\tthis.onload(sucesso, erro, this.medida.resumo());', '\t\tthis.onload(sucesso, erro);'],
 	'fase-do-gnd-sem-fim': [CARGA, "\t\t\tloader.medida.terminar('gnd');", ''],
