@@ -399,9 +399,15 @@ function sincronizarDormir(root, r, aoVivo) {
 
 	const ctx = contextoDoMapa();
 	const emCaca = r.fase === 'ativa';
+	/*
+	 * A CACADA QUE NAO DEU EXP (J21, 14/10/2026, D-2477): o sono rende o que a amostra rendeu, e o servidor recusa
+	 * a amostra sem EXP (`amostra-sem-exp`). Se esta cacada inteira nao somou EXP de base, a amostra do servidor
+	 * tambem nao tem: o botao diz isso antes do clique. So um palpite a favor do jogador - a verdade e do servidor.
+	 */
+	const semExp = emCaca && !(Number(r.expBase) > 0);
 	const mapaElegivel = !!ctx && ctx.mapaElegivelParaDormir === true;
 	const faltamMs = faltamMsParaDormirAoVivo(ctx);
-	const pronto = emCaca && mapaElegivel && faltamMs <= 0;
+	const pronto = emCaca && !semExp && mapaElegivel && faltamMs <= 0;
 
 	/*
 	 * A ORDEM DOS MOTIVOS é a ordem em que o jogador resolve: primeiro
@@ -411,6 +417,8 @@ function sincronizarDormir(root, r, aoVivo) {
 	let motivo = '';
 	if (!emCaca) {
 		motivo = 'comece a caçar';
+	} else if (semExp) {
+		motivo = 'a caçada ainda não deu EXP';
 	} else if (!mapaElegivel) {
 		motivo = 'só em mapa ≥1 nível abaixo do seu';
 	} else if (faltamMs > 0) {

@@ -28,6 +28,7 @@ import JoystickUI from 'UI/Components/JoystickUI/JoystickUI.js';
 import CharSelect from 'UI/Components/CharSelect/CharSelect.js';
 import CharCreate from 'UI/Components/CharCreate/CharCreate.js';
 import Player from 'Renderer/Entity/Player.js';
+import { semOSonoDaLista } from 'UI/Components/CharSelect/sonoNaSelecao.js';
 import { abrirCriacaoDireto, registrarConversaoDoCadastro } from 'Engine/entradaPosCadastro.js';
 import { personagemParaSelecionar } from 'Engine/retomadaAposAtualizacao.js';
 import { textoDaRecusaDeCriacao } from 'UI/Components/CharCreate/nomeDoPersonagem.js';
@@ -874,7 +875,9 @@ function onConnectRequest(entity) {
 	// The char-select list holds plain packet structures, build the player from it.
 	// Done here (instead of on char-list reception) so that characters delivered by
 	// any char-list packet, and freshly created ones, all end up with a Player.
-	Session.Entity = new Player(entity);
+	// J21 (D-2478, R128): o `bodyState` da lista (OPT1_SLEEP de quem dorme) e sinal da selecao; o corpo que entra
+	// no mundo nasce zerado, senao `Entity.set` poe o "zZz" no jogador e nada o tira.
+	Session.Entity = new Player(semOSonoDaLista(entity));
 	_escolhido = true;
 	const pkt = new PACKET.CH.SELECT_CHAR();
 	pkt.CharNum = entity.CharNum;
