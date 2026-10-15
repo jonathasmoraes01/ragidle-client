@@ -16,8 +16,13 @@
 	</div>
 	<div class="overlay"></div>
 	<div class="content">
+		<!-- 14/10/2026 (R127, D-2476): o PAPEL deste lado numa troca VIP com
+		     FREE, com o texto do servidor (papelDaTroca.js). Escondida em VIP
+		     com VIP. A coluna da oferta ganha .trade-col--oferta para o lado
+		     FREE apaga-la e recusar o toque nela. -->
+		<p class="trade-papel" role="status" aria-live="polite" hidden></p>
 		<div class="trade-panels">
-			<section class="trade-col">
+			<section class="trade-col trade-col--oferta">
 				<header class="trade-col-label">Você oferece</header>
 				<div class="box send ri-scroll"></div>
 				<div class="zeny-row">

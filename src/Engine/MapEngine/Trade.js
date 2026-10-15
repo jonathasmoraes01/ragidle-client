@@ -54,6 +54,19 @@ export function aoResponderPedidoDeTroca(funcao) {
 	return () => _ouvintesDaResposta.delete(funcao);
 }
 
+/**
+ * RAGIDLE (14/10/2026, R127, D-2476): o PAPEL deste lado numa troca VIP com
+ * FREE (`{ v: 1, acao: 'papel', podeOferecer, texto }`). Ele viaja no
+ * `ZC_RAGIDLE_TROCA` (0x0fb3), cujo dono e a janela "Trade" do menu
+ * (`TrocaIdle.js`, um gancho por opcode): ela o passa para ca, e a janela de
+ * troca (`UI/Components/Trade/Trade.js`) mostra que o FREE so recebe.
+ *
+ * @param {object} dados - o corpo JSON do 0x0fb3
+ */
+export function receberPapelDaTroca(dados) {
+	Trade.definirPapel(dados);
+}
+
 /* Cada ouvinte em `try`: uma excecao aqui abortaria o laco de rede do cliente. */
 function avisarOuvintesDaResposta(resultado) {
 	for (const funcao of _ouvintesDaResposta) {
@@ -110,6 +123,9 @@ function onTradeRequestAnswer(pkt) {
 			if ('level' in pkt && 'GID' in pkt) {
 				Trade.title += `  Lv${pkt.level} (${tradeGIDEncoding(pkt.GID)})`;
 			}
+			// R127: a troca nova comeca sem papel; o da troca mista chega DEPOIS
+			// deste 3 (`receberPapelDaTroca`), e VIP com VIP nao recebe nenhum.
+			Trade.definirPapel(null);
 			Trade.append();
 			break;
 
@@ -238,6 +254,18 @@ Trade.reqExchange = function requestExhange(GID, name) {
 
 	Trade.title = name;
 };
+
+/**
+ * RAGIDLE (15/10/2026): o titulo da janela de troca quando o pedido saiu pela
+ * janela "Trade" do menu (pelo NOME). `reqExchange` e quem guarda o nome no
+ * clique no jogador; aqui o pedido nao passa por ele, e o titulo ficava so com
+ * o nivel e o PN do outro lado. O servidor devolve o nome no `pedir` aceito.
+ *
+ * @param {string} nome
+ */
+export function definirTituloDaTroca(nome) {
+	Trade.title = nome;
+}
 
 /**
  * Initialize

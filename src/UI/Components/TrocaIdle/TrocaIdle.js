@@ -5,8 +5,9 @@
  * "Troca" do leque - que era "em breve" - abre esta janela, no PC e no
  * celular: um campo com o nome do jogador e o botao "Confirmar".
  *
- * O servidor confere se os DOIS sao VIP (R50) e se estao no mesmo mapa a ate
- * 2 celulas (`TRADE_DISTANCE`, trade.cpp), e so entao manda ao outro o pedido
+ * O servidor confere se pelo menos um dos dois e VIP (R127, 14/10/2026: o VIP
+ * da, o FREE so recebe; era a R50, so VIP com VIP) e se estao no mesmo mapa a
+ * ate 2 celulas (`TRADE_DISTANCE`, trade.cpp), e so entao manda ao outro o pedido
  * NATIVO de troca. Toda recusa volta com a frase do motivo, que aparece aqui
  * na janela. Aceito, a janela de troca de sempre abre nos dois lados e esta
  * sai da frente.
@@ -30,7 +31,7 @@ import Network from 'Network/NetworkManager.js';
 import PACKET from 'Network/PacketStructure.js';
 import UIManager from 'UI/UIManager.js';
 import GUIComponent from 'UI/GUIComponent.js';
-import { aoResponderPedidoDeTroca } from 'Engine/MapEngine/Trade.js';
+import { aoResponderPedidoDeTroca, definirTituloDaTroca, receberPapelDaTroca } from 'Engine/MapEngine/Trade.js';
 import htmlText from './TrocaIdle.html?raw';
 import cssText from './TrocaIdle.css?raw';
 import { fecharEEsquecer } from '../limpezaDeJanelaIdle.js';
@@ -92,7 +93,7 @@ TrocaIdle.limparEstadoDoPersonagem = function limparEstadoDoPersonagem() {
 TrocaIdle.init = function init() {
 	const root = _root();
 	if (root) {
-		_controlador = criarControladorDaTroca({ raiz: root, enviar, fechar: closeWindow });
+		_controlador = criarControladorDaTroca({ raiz: root, enviar, fechar: closeWindow, definirTitulo: definirTituloDaTroca });
 		const fechar = root.querySelector('.tr-close');
 		if (fechar) {
 			fechar.addEventListener('click', onClickClose);
@@ -181,7 +182,16 @@ function onTrocaRecebida(pkt) {
 		console.error('[TrocaIdle] payload nao e JSON valido', err);
 		return;
 	}
-	if (!dados || dados.v !== 1 || !_controlador) {
+	if (!dados || dados.v !== 1) {
+		return;
+	}
+	// R127 (14/10/2026): o papel e da janela de TROCA, e nao desta. Vai antes
+	// do `_controlador`: chega mesmo se esta janela nunca foi aberta.
+	if (dados.acao === 'papel') {
+		receberPapelDaTroca(dados);
+		return;
+	}
+	if (!_controlador) {
 		return;
 	}
 	_controlador.receber(dados);
