@@ -73,7 +73,7 @@ import UIManager from 'UI/UIManager.js';
 import GUIComponent from 'UI/GUIComponent.js';
 import buildResumo from './resumoDaDescricao.js';
 import RiIcones from 'UI/ri-icones.js';
-import { ehCelularEmPe } from 'UI/hudVertical.js'; // D-942: o detalhe vira folha no celular em pe
+import { ehHudDeCelular } from 'UI/hudVertical.js'; // D-942: o detalhe vira folha no celular em pe
 import MissoesIdle from 'UI/Components/MissoesIdle/MissoesIdle.js'; // 09/09/2026: a etiqueta de quest leva a missao
 import htmlText from './IdleSkills.html?raw';
 import cssText from './IdleSkills.css?raw';
@@ -1462,7 +1462,7 @@ function onClickNo(e) {
 
 /** D-942 — a folha de detalhe do celular em pe. */
 function abrirDetalheMovel() {
-	if (!ehCelularEmPe()) {
+	if (!ehHudDeCelular()) {
 		return;
 	}
 	const janela = _root().querySelector('.is-window');

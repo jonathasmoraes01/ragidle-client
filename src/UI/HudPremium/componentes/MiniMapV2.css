@@ -53,8 +53,12 @@
 	image-rendering: pixelated;
 }
 
-/* O nome do mapa: pilula azul por cima do aro, como no mockup. */
+/* O nome do mapa: pilula azul por cima do aro, como no mockup. O `display`
+   e repetido aqui porque a faixa de janela baixa (`MiniMapV2.css`, `@media
+   (max-height: 439px)`) tira a pilula e as coordenadas da HUD de computador, e
+   o celular deitado cai nela; na premium as duas ficam. */
 .ri-premium .mm-header {
+	display: flex;
 	position: absolute;
 	z-index: 1;
 	top: -9px;
@@ -81,6 +85,7 @@
 
 /* As coordenadas: pilula pequena na base do aro. */
 .ri-premium .mm-footer {
+	display: flex;
 	position: absolute;
 	z-index: 1;
 	bottom: -7px;

@@ -235,7 +235,7 @@ describe('o leque do menu cabe na altura da tela', () => {
 		const i = JS_CRU.indexOf('function distribuirColunas');
 		const corpo = JS_CRU.slice(i, JS_CRU.indexOf('\nfunction ', i + 10));
 		expect(corpo, 'o modo denso deixou de depender do maximo de colunas').toMatch(
-			/const denso = colunas >= MAXIMO_DE_COLUNAS_POR_LADO && !ehCelularEmPe\(\);/
+			/const denso = colunas >= MAXIMO_DE_COLUNAS_POR_LADO && !ehHudDeCelular\(\);/
 		);
 		const marca = corpo.search(/classList\.toggle\(\s*'tm-fan--denso'\s*,\s*denso\s*\)/);
 		expect(marca, 'o leque de tres colunas nao entra no modo denso').toBeGreaterThan(-1);

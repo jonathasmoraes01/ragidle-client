@@ -80,12 +80,12 @@ describe('o Menu aberto empurra os buffs para o rodape', () => {
 describe('as missoes', () => {
 	it('nascem recolhidas no icone, na premium, uma vez por sessao', () => {
 		expect(missoes).toMatch(
-			/if \(!_padraoDoCelularAplicado\) \{\s*_padraoDoCelularAplicado = true;\s*if \(ehCelularEmPe\(\) && ehHudPremium\(\)\) \{\s*_recolhido = true;\s*pintarRecolhido\(\);/
+			/if \(!_padraoDoCelularAplicado\) \{\s*_padraoDoCelularAplicado = true;\s*if \(ehHudDeCelular\(\) && ehHudPremium\(\)\) \{\s*_recolhido = true;\s*pintarRecolhido\(\);/
 		);
 	});
 
 	it('no celular em pe publicam o proprio fundo (em unidade da HUD), so quando ele muda', () => {
-		expect(missoes).toMatch(/if \(ehCelularEmPe\(\)\) \{[^}]*publicarFundoNaVertical\(host\);\s*return;/);
+		expect(missoes).toMatch(/if \(ehHudDeCelular\(\)\) \{[^}]*publicarFundoNaVertical\(host\);\s*return;/);
 		const corpo = missoes.slice(missoes.indexOf('function publicarFundoNaVertical'));
 		expect(corpo).toContain('emUnidadesDaHud(caixa.bottom)');
 		expect(corpo).toMatch(/if \(fundo === _fundoPublicado\) \{\s*return;/);

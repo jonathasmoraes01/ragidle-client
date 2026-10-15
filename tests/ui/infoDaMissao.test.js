@@ -18,7 +18,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 /* O celular em pé é decidido por `ehCelularEmPe()` — aqui, um interruptor. */
 let _celular = false;
-vi.mock('UI/hudVertical.js', () => ({ ehCelularEmPe: () => _celular }));
+vi.mock('UI/hudVertical.js', () => ({ ehCelularEmPe: () => _celular, ehHudDeCelular: () => _celular }));
 
 import {
 	abrirInfoDaMissao,

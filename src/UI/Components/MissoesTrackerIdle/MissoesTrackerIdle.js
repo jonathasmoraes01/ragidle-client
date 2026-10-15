@@ -63,7 +63,7 @@ import cssText from './MissoesTrackerIdle.css?raw';
 import { emUnidadesDaHud } from 'UI/escalaDaHud.js'; // D-934: geometria medida vira unidade da HUD
 import { escreverEstilo } from 'UI/escreverSeMudou.js'; // 15/10/2026: o tique de 250 ms so escreve o que mudou
 import LFGIdle from 'UI/Components/LFGIdle/LFGIdle.js'; // D-939: a aba "Grupo" do cartao vertical
-import { ehCelularEmPe } from 'UI/hudVertical.js'; // D-939: na vertical a ancora e do CSS, nao deste polling
+import { ehHudDeCelular } from 'UI/hudVertical.js'; // D-939: na vertical a ancora e do CSS, nao deste polling
 import { ehHudPremium } from 'UI/HudPremium/hudPremium.js'; // 15/10/2026: na premium o cartao nasce recolhido
 import CodexIdle from 'UI/Components/CodexIdle/CodexIdle.js'; // D-1839: o clique numa linha do rastreador
 import { rastreadorDoCodexAtual, rastreadorDoCodexHtml } from '../rastreadorDoCodex.js'; // D-1839
@@ -375,7 +375,7 @@ MissoesTrackerIdle.onAppend = function onAppend() {
 	}
 	if (!_padraoDoCelularAplicado) {
 		_padraoDoCelularAplicado = true;
-		if (ehCelularEmPe() && ehHudPremium()) {
+		if (ehHudDeCelular() && ehHudPremium()) {
 			_recolhido = true;
 			pintarRecolhido();
 		}
@@ -443,7 +443,7 @@ function syncPosition() {
 	 * ajudantes comparam com o que JA ESTA no DOM (`escreverSeMudou.js`), entao
 	 * a posicao sai identica.
 	 */
-	if (ehCelularEmPe()) {
+	if (ehHudDeCelular()) {
 		escreverEstilo(host, 'display', '');
 		escreverEstilo(host, 'maxHeight', '');
 		publicarFundoNaVertical(host);

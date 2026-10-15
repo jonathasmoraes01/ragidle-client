@@ -192,7 +192,7 @@ import LFGIdle from 'UI/Components/LFGIdle/LFGIdle.js'; // RAGIDLE: Procurar Gru
    saiu em D-960: o item "Grupo" deixou de citar uma janela por nome. Quem
    escolhe entre as duas — e quem carrega as duas — e a `portaDoGrupo`. */
 import GrupoIdle from 'UI/Components/GrupoIdle/GrupoIdle.js'; // RAGIDLE: a janela de Grupo (D-960)
-import { ehCelularEmPe } from 'UI/hudVertical.js'; // D-939: a folha do menu flutua sobre o chat
+import { ehHudDeCelular } from 'UI/hudVertical.js'; // D-939: a folha do menu flutua sobre o chat
 
 /** A marca do menu aberto no `<html>` (HUD mobile premium, 15/10/2026): os buffs leem dela. */
 export const MARCA_MENU_ABERTO = 'ri-menu-aberto';
@@ -797,7 +797,7 @@ function onClickAction(e) {
 	 * nao acompanha o outro arranjo — quem pergunta "estou na gaveta?" tem de
 	 * perguntar tambem "a gaveta e a tela inteira agora?".
 	 */
-	if (_lequeAberto && (btn.closest('.tm-fan') || ehCelularEmPe())) {
+	if (_lequeAberto && (btn.closest('.tm-fan') || ehHudDeCelular())) {
 		fecharLeque();
 	}
 
@@ -955,7 +955,7 @@ function onPointerDownGlobal(e) {
 	 * mesmo motivo: la o cluster mudou de lugar. Consertei uma e nao procurei
 	 * a irma — e ela e que o jogador sentiu.
 	 */
-	const noCelular = ehCelularEmPe();
+	const noCelular = ehHudDeCelular();
 	const caminho = e.composedPath();
 	for (let i = 0; i < caminho.length; i++) {
 		const no = caminho[i];
@@ -1058,7 +1058,7 @@ function aplicarEstadoDoLeque(imediato) {
 	   inline-important vence a regra `z-index: 55 !important` do Common.css
 	   — e ela precisa continuar existindo para o fab nao voltar a nascer
 	   atras da barra do topo. Fora do celular em pe, nada disto roda. */
-	if (ehCelularEmPe() && TopMenuIdle._host) {
+	if (ehHudDeCelular() && TopMenuIdle._host) {
 		if (_lequeAberto) {
 			TopMenuIdle._host.style.setProperty('z-index', '90', 'important');
 		} else {
@@ -1593,7 +1593,7 @@ function distribuirColunas() {
 	 * no leque ja apertado. No celular em pe o leque vira o CARTAO (D-939),
 	 * com grade e respiro proprios, e o aperto nao entra nele.
 	 */
-	const denso = colunas >= MAXIMO_DE_COLUNAS_POR_LADO && !ehCelularEmPe();
+	const denso = colunas >= MAXIMO_DE_COLUNAS_POR_LADO && !ehHudDeCelular();
 	fan.classList.toggle('tm-fan--denso', denso);
 
 	fixarLarguraDoMenu();

@@ -213,6 +213,21 @@ html.ri-premium.ri-menu-aberto {
 	);
 }
 
+/* Onde a fileira de buffs da folha aberta termina, contado do pe da tela: e o
+   chao do leque do Menu (TopMenuIdle.css). Com o chat aberto a fileira mora
+   acima dele (e do FPS); com a bolinha, ao lado dela. A altura e a MEDIDA
+   (`--m-buffs-altura`, StatusIcons/alturaDosBuffs.js): a fileira cheia quebra
+   para cima, e em 375x667 seis buffs ja sao duas. Sem buffs, uma fileira. */
+html.ri-premium {
+	--m-folha-fundo: calc(
+		var(--m-chat-alcance) + 8px + var(--m-reserva-do-fps, 0px) + var(--m-buffs-altura, var(--m-buff)) + 8px
+	);
+}
+
+html.ri-premium.ri-chat-minimizado {
+	--m-folha-fundo: calc(var(--m-acima-dos-atalhos) + var(--m-buffs-altura, var(--m-buff)) + 8px);
+}
+
 html.ri-premium.ri-menu-aberto.ri-chat-minimizado {
 	--m-buffs-largura-max: calc(
 		var(--m-largura-util) - var(--safe-esq, 0px) - var(--safe-dir, 0px) - 3 * var(--m-margem) -
@@ -231,4 +246,85 @@ html.ri-premium.ri-minimapa-recolhido {
 	   baixo (MiniMapV2.css). O trilho comeca 3px depois disso, e nao colado na pilula: senao o alvo dela
 	   comia o topo da Mochila. */
 	--m-trilho-topo: calc(var(--m-minimapa-topo) - 9px + 20px + 13px + 3px);
+}
+
+/* ─── O CELULAR DEITADO (pedido do dono, 15/10/2026; o mockup e o
+   `hud-premium-horizontal.png`) ────────────────────────────────────────────
+   Deitado, a ALTURA e o lado curto (393 num iPhone 15): o que em pe empilhava
+   na coluna da direita (minimapa, trilho, grupo de acao) nao cabe. A linha de
+   cima passa a levar, da direita para a esquerda: o Menu, o minimapa, o
+   trilho em FILEIRA e o cartao do personagem, que deixa de ir de ponta a
+   ponta. A esquerda e o canto de baixo a direita seguem os de em pe: missoes
+   e buffs sob o cartao, o chat em bolinha, o Auto com o arco e o Cacar.
+   A marca e de `hudVertical.js` (`ri-deitado`, so com `enableHudPaisagemPremium`). */
+html.ri-premium.ri-deitado {
+	--m-minimapa: 92px;
+	/* o medalhao na linha de cima: a pilula do nome pende 9px acima dele */
+	--m-minimapa-topo: calc(var(--m-topo) + 9px);
+	--m-trilho-topo: var(--m-topo);
+	/* o trilho deitado: quatro degraus lado a lado (Mochila, Skills, Config., RO Shop) */
+	--m-trilho-degrau: 56px;
+	--m-trilho-fileira: calc(4 * var(--m-trilho-degrau));
+	/* tudo o que a linha de cima leva a direita do cartao */
+	--m-direita-do-cartao: calc(
+		var(--m-menu-largura) + 8px + var(--m-coluna-do-minimapa, var(--m-minimapa)) + 8px + var(--m-trilho-fileira) +
+			8px
+	);
+	--m-cartao-largura: min(
+		360px,
+		calc(
+			var(--m-largura-util) - var(--safe-esq, 0px) - var(--safe-dir, 0px) - 2 * var(--m-margem) -
+				var(--m-direita-do-cartao)
+		)
+	);
+	/* o medalhao do trilho e a pilula do rotulo, que pende 7px dele, mais o respiro */
+	--m-buffs-topo-deitado: calc(var(--m-topo) + var(--m-trilho-icone) + 18px);
+	/* O GRUPO DE ACAO DESCE AO RODAPE mesmo com a barra de skills ligada: deitado
+	   a barra para antes dele (`--m-atalhos-largura-deitado`, documento.css), e
+	   empilhar o Auto em cima dela gastava a altura que o deitado nao tem. */
+	--m-grupo-de-acao-base: calc(var(--safe-baixo, 0px) + 22px);
+	--m-atalhos-largura-deitado: min(
+		520px,
+		calc(
+			var(--m-largura-util) - var(--safe-esq, 0px) - var(--safe-dir, 0px) - 2 * var(--m-margem) -
+				var(--m-coluna-de-caca) - 16px
+		)
+	);
+}
+
+/* OS BUFFS DEITADOS: uma FILEIRA logo abaixo do trilho, entre o cartao e o
+   minimapa (documento.css). Em pe eles descem numa coluna sob as missoes ate o
+   chat; deitado essa coluna tem ~150px, e com o chat aberto nenhum (medido: os
+   buffs caiam em cima do chat). A faixa sob o trilho e larga e so tem o mundo
+   atras; a fileira que enche quebra para baixo. Com a folha do Menu aberta
+   valem os de em pe (a fileira do rodape, ao lado da bolinha). */
+html.ri-premium.ri-deitado:not(.ri-menu-aberto) {
+	--m-buffs-fluxo: row;
+	--m-buffs-fileiras: none;
+	--m-buffs-colunas: repeat(auto-fill, 34px);
+	--m-buffs-altura-max: 100vh;
+	--m-buffs-largura-max: calc(
+		var(--m-largura-util) - var(--safe-esq, 0px) - var(--safe-dir, 0px) - 2 * var(--m-margem) -
+			var(--m-cartao-largura) - 8px - var(--m-menu-largura) - 8px -
+			var(--m-coluna-do-minimapa, var(--m-minimapa)) - 8px
+	);
+}
+
+/* O minimapa minimizado deitado: a pilula fica na mesma linha, e o trilho nao
+   desce (em pe ele subia para debaixo dela). */
+html.ri-premium.ri-deitado.ri-minimapa-recolhido {
+	--m-trilho-topo: var(--m-topo);
+}
+
+/* O deitado BAIXO (568x320, a faixa minima, `hudVertical.js`): o trilho perde
+   o rotulo (o degrau e o proprio medalhao) e o RO Shop (que segue no Menu, como
+   no em pe baixo), e o minimapa encolhe - com os quatro degraus o cartao do
+   personagem ficava com 210px e cortava o nome e o HP (medido). */
+html.ri-premium.ri-deitado.ri-tela-minima {
+	--m-trilho-degrau: 50px;
+	--m-trilho-fileira: calc(3 * var(--m-trilho-degrau));
+	--m-minimapa: 72px;
+	/* sem a pilula do rotulo, os buffs sobem para logo abaixo do medalhao: com 14
+	   buffs a fileira de 3 colunas desce 5 fileiras, e cabe ate o rodape */
+	--m-buffs-topo-deitado: calc(var(--m-topo) + var(--m-trilho-icone) + 6px);
 }

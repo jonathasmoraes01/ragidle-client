@@ -30,7 +30,9 @@
 		<script>
 			window.ROConfig = {
 				enableHudAdaptavel: true,
-				enableHudMobilePremium: new URLSearchParams(location.search).get('premium') === '1'
+				enableHudMobilePremium: new URLSearchParams(location.search).get('premium') === '1',
+				/* `?paisagem=1`: a HUD premium no celular DEITADO (`enableHudPaisagemPremium`) */
+				enableHudPaisagemPremium: new URLSearchParams(location.search).get('paisagem') === '1'
 			};
 		</script>
 		<style>

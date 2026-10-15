@@ -159,15 +159,20 @@ function montar(d) {
  * nada mudou. Duplicar os ouvintes num arquivo novo seria a "segunda rota
  * escrita a mao" que este projeto ja pagou varias vezes.
  *
+ * A HUD PREMIUM DEITADA (15/10/2026) desenha o jogo no celular deitado: com ela, quem chama passa
+ * `jogaDeitado` e a tela nao entra (e sai, se estava). Quem decide e `hudVertical.js` (pela bandeira
+ * `enableHudPaisagemPremium`), e nao este arquivo: ele continua sem importar nada.
+ *
  * @param {Document} [doc]
+ * @param {boolean} [jogaDeitado] a HUD de celular desenha o deitado: nao ha o que recusar
  * @returns {boolean} se a tela esta na frente agora
  */
-export function aplicarTelaDeGiro(doc) {
+export function aplicarTelaDeGiro(doc, jogaDeitado = false) {
 	const d = doc || (typeof document !== 'undefined' ? document : null);
 	if (!d || !d.body) {
 		return false;
 	}
-	const deitado = ehCelularDeitado();
+	const deitado = !jogaDeitado && ehCelularDeitado();
 	const existente = d.getElementById(ID_DA_TELA);
 
 	if (deitado && !existente) {

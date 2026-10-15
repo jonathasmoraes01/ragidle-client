@@ -78,7 +78,7 @@ import { fecharSeletorDeNivel } from 'UI/nivelDeUso.js';
 import { fecharBalaoDaHud } from 'UI/balaoDaHud.js';
 /* `hudVertical` importa só `escalaDaHud`, que não importa nada — não há ciclo
    por este caminho (conferido em 08/09/2026). */
-import { ehCelularEmPe } from 'UI/hudVertical.js';
+import { ehHudDeCelular } from 'UI/hudVertical.js';
 
 /** Os tipos de janela, e o que cada um responde ao ESC. */
 export const TIPO = {
@@ -243,7 +243,7 @@ export function registrar({ nome, componente, seletor, tipo = TIPO.JANELA, estaA
  * também não é afetada: a pilha só conhece quem se registrou.
  */
 function fecharAsOutrasNoCelular(nome) {
-	if (!ehCelularEmPe()) {
+	if (!ehHudDeCelular()) {
 		return;
 	}
 	const doAlvo = _registro.get(nome);
@@ -297,7 +297,7 @@ function avisarQuemAssinou() {
  * desktop e no celular deitado as janelas flutuam e nao cobrem o canto.
  */
 export function janelaCobreAHud() {
-	return ehCelularEmPe() && temAberta();
+	return ehHudDeCelular() && temAberta();
 }
 
 /** Avisa a pilha que a janela abriu (o embrulho chama sozinho). */

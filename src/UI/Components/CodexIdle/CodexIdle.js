@@ -71,7 +71,7 @@ import MapRenderer from 'Renderer/MapRenderer.js';
 import HuntMap from 'UI/Components/HuntMap/HuntMap.js';
 import MissoesIdle from 'UI/Components/MissoesIdle/MissoesIdle.js';
 // Quem responde "isto e um celular em pe?" no projeto inteiro (D-929).
-import { ehCelularEmPe } from 'UI/hudVertical.js';
+import { ehHudDeCelular } from 'UI/hudVertical.js';
 import { jornadaHtml } from './jornadaHtml.js';
 // D-1986: o parcial ao vivo e a validade do cache de capitulos.
 import { aplicarParcialDoCodex, capituloCarregadoPeloParcial, ehParcialDoCodex, juntarPaginaDoCapitulo, pedidoDeAbertura, pedidoDeFechamento, precisaPedirCapitulo } from './codexAoVivo.js';
@@ -883,13 +883,13 @@ function contextoDaJornada() {
 		 * estado, quantas missoes faltam, para onde ir) num formato que ja
 		 * nasceu para tela estreita.
 		 *
-		 * Quem decide e `ehCelularEmPe()`, e nao um `matchMedia` escrito aqui:
+		 * Quem decide e `ehHudDeCelular()`, e nao um `matchMedia` escrito aqui:
 		 * repetir o criterio num arquivo novo e como a cicatriz do
 		 * `--hud-acima-da-doca` (D-929) comecou. Ele entra no CONTEXTO porque
 		 * `jornadaHtml.js` e fotografavel de proposito - ele nao consulta
 		 * janela nem media query, recebe tudo pronto.
 		 */
-		semMapa: ehCelularEmPe()
+		semMapa: ehHudDeCelular()
 	};
 }
 

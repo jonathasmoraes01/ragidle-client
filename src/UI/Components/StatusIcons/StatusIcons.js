@@ -22,6 +22,7 @@ import Session from 'Engine/SessionStorage.js';
 import htmlText from './StatusIcons.html?raw';
 import cssText from './StatusIcons.css?raw';
 import { esquecerPintura, pintarIconeSeMudou, posicionarCelula } from './desenhoDoIcone.js';
+import { observarAlturaDosBuffs, pararDeObservarOsBuffs } from './alturaDosBuffs.js';
 import {
 	LADO_DO_ICONE,
 	PASSO_HORIZONTAL,
@@ -82,6 +83,8 @@ const TKM_ICON_OVERRIDE = {
 StatusIcons.onAppend = function onAppend() {
 	resetElementsPosition();
 	Renderer.render(rendering);
+	// A folha do Menu da HUD premium para acima dos buffs (alturaDosBuffs.js).
+	observarAlturaDosBuffs(StatusIcons.getRoot().querySelector('#StatusIcons'));
 };
 
 /**
@@ -89,6 +92,7 @@ StatusIcons.onAppend = function onAppend() {
  */
 StatusIcons.onRemove = function onRemove() {
 	Renderer.stop(rendering);
+	pararDeObservarOsBuffs();
 };
 
 /**

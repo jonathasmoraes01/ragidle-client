@@ -221,3 +221,20 @@
 	color: #3b2405;
 	pointer-events: none;
 }
+
+/* ─── O CELULAR DEITADO (15/10/2026) ─────────────────────────────────────
+   A faixa de janela baixa de D-929 (`MissoesTrackerIdle.css`, `@media
+   (max-height: 439px)`) limita o cartao ao vao entre o painel de computador e
+   a doca - deitado, 30px: o icone perdia o rotulo e o cartao aberto mostrava so
+   as abas (medido). Na premium o cartao vai do cartao do personagem ate perto
+   do chat, e o corpo rola por dentro (a mesma faixa ja liga a rolagem). */
+.ri-premium.ri-deitado .mt-painel {
+	max-height: calc(
+		var(--m-altura-util, 100dvh) - var(--m-abaixo-do-topo, 90px) - var(--m-chat-alcance, 52px) - 14px -
+			var(--m-reserva-do-fps, 0px)
+	);
+}
+
+.ri-premium.ri-deitado .mt-painel.is-recolhido {
+	max-height: none;
+}

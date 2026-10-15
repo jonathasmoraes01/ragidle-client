@@ -31,7 +31,7 @@ import ChatBox from 'UI/Components/ChatBox/ChatBox.js';
 import PartyFriends from 'UI/Components/PartyFriends/PartyFriends.js';
 import FriendEngine, { aoMudarAmigos, aoResultadoDeAmizade } from 'Engine/MapEngine/Friends.js';
 import GroupEngine, { aoMudarGrupo, aoResponderConvite } from 'Engine/MapEngine/Group.js';
-import { ehCelularEmPe } from 'UI/hudVertical.js';
+import { ehHudDeCelular } from 'UI/hudVertical.js';
 import htmlText from './AmigosIdle.html?raw';
 import cssText from './AmigosIdle.css?raw';
 import { fecharEEsquecer } from '../limpezaDeJanelaIdle.js';
@@ -95,7 +95,7 @@ function sussurrar(nome) {
 	 * e o teclado sobe ja no chat. No desktop ela fica: o jogador pode querer
 	 * mandar mensagem a mais de um amigo seguido.
 	 */
-	if (ehCelularEmPe()) {
+	if (ehHudDeCelular()) {
 		closeWindow();
 	}
 	ChatBox.sussurrarPara(nome);

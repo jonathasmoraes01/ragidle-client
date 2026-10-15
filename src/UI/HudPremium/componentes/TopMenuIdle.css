@@ -174,3 +174,57 @@
 .ri-premium.ri-tela-minima #TopMenuIdle:not(.tm-aberto) .tm-top .tm-item--roshop {
 	display: none !important;
 }
+
+/* ─── O TRILHO DEITADO (15/10/2026): uma FILEIRA na linha de cima ─────────
+   Entre o cartao do personagem e o minimapa (tokens.css, `ri-deitado`). Em pe
+   ele e a coluna da direita; deitado nao ha altura para ele e para o grupo de
+   acao na mesma coluna. Com o Menu aberto ele volta a ser a 1a secao da folha,
+   como em pe. */
+.ri-premium.ri-deitado #TopMenuIdle:not(.tm-aberto) .tm-top {
+	top: var(--m-trilho-topo);
+	right: calc(
+		var(--safe-dir, 0px) + var(--m-margem, 8px) + var(--m-menu-largura, 46px) + 8px +
+			var(--m-coluna-do-minimapa, var(--m-minimapa, 92px)) + 8px
+	);
+	width: var(--m-trilho-fileira, 224px);
+	flex-direction: row;
+	align-items: flex-start;
+	justify-content: flex-end;
+}
+
+.ri-premium.ri-deitado #TopMenuIdle:not(.tm-aberto) .tm-top .tm-item[data-action='inventory'],
+.ri-premium.ri-deitado #TopMenuIdle:not(.tm-aberto) .tm-top .tm-item[data-action='skills'],
+.ri-premium.ri-deitado #TopMenuIdle:not(.tm-aberto) .tm-top .tm-item--config-trilho,
+.ri-premium.ri-deitado #TopMenuIdle:not(.tm-aberto) .tm-top .tm-item--roshop {
+	width: var(--m-trilho-degrau, 56px);
+	min-height: 0;
+}
+
+/* A FOLHA DO MENU DEITADA: as duas grades (a secao de cima, que e o trilho
+   aberto, e o leque) passam de 4 colunas fixas para quantas couberem - em pe a
+   folha cresce para baixo, e deitado e a altura que falta; com 8 colunas num
+   852 a secao de cima cai de 3 fileiras para 2. */
+.ri-premium.ri-deitado #TopMenuIdle.tm-aberto .tm-top {
+	grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+	padding: 8px;
+	gap: 4px;
+}
+
+.ri-premium.ri-deitado .tm-fan .tm-col {
+	grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+}
+
+/* O LEQUE PARA ACIMA DA FILEIRA DE BUFFS (15/10/2026), em pe e deitado: com a
+   folha aberta os buffs descem para o rodape (documento.css), e o leque ia ate
+   a pilha do rodape de D-939 - mais os 22px do proprio `padding`, que a altura
+   maxima nao contava (`content-box`). Medido com a secao de cima na altura REAL
+   (a que `TopMenuIdle.js` publica; o arnes usava a reserva de 172px): em
+   375x667 o leque descia ate 602 e a fileira de buffs comecava em 561.
+   `--m-folha-fundo` (tokens.css) e onde a fileira de buffs termina. */
+.ri-premium .tm-fan.is-mounted {
+	box-sizing: border-box;
+	max-height: calc(
+		var(--m-altura-util, 100dvh) - var(--vr-abaixo-do-topo, 70px) - var(--vr-menu-cluster-altura, 172px) -
+			var(--m-folha-fundo, 120px)
+	);
+}

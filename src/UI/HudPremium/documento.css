@@ -147,3 +147,43 @@ html.ri-vertical.ri-premium.ri-minimapa-recolhido #MiniMapV2 {
 	width: auto !important;
 	height: auto !important;
 }
+
+/* ─── O CELULAR DEITADO (15/10/2026; tokens.css explica a linha de cima) ───
+   O cartao deixa de ir ate o Menu: ele para onde a linha de cima comeca
+   (o trilho em fileira, o minimapa e o Menu). */
+html.ri-vertical.ri-premium.ri-deitado #BasicInfoIdle {
+	right: auto !important;
+	width: var(--m-cartao-largura) !important;
+}
+
+/* O cartao de missoes, na largura do cartao do personagem (em pe ele dividia
+   a faixa com o minimapa, que deitado mora na linha de cima).
+
+   E ele APARECE: a faixa de janela baixa de D-929 (`MissoesTrackerIdle.css`,
+   `@media (max-height: 439px) { :host { display: none } }`) o escondia em todo
+   celular deitado, porque na HUD de computador nao havia vao para ele. Na
+   premium o cartao nasce recolhido no icone, e a coluna da esquerda tem lugar. */
+html.ri-vertical.ri-premium.ri-deitado #MissoesTrackerIdle {
+	display: block !important;
+	width: min(290px, var(--m-cartao-largura)) !important;
+}
+
+/* O minimapa, a esquerda do Menu, na linha de cima. */
+html.ri-vertical.ri-premium.ri-deitado #MiniMapV2 {
+	right: calc(var(--safe-dir, 0px) + var(--m-margem) + var(--m-menu-largura) + 8px) !important;
+}
+
+/* Os buffs deitados: a fileira sob o trilho, colada a direita do cartao do
+   personagem (tokens.css explica por que nao a coluna de em pe). */
+html.ri-vertical.ri-premium.ri-deitado:not(.ri-menu-aberto) #StatusIcons {
+	top: var(--m-buffs-topo-deitado) !important;
+	left: calc(var(--safe-esq, 0px) + var(--m-margem) + var(--m-cartao-largura) + 8px) !important;
+}
+
+/* A barra de skills deitada (ligada nas Configuracoes): no rodape, do canto
+   esquerdo ate antes do grupo de acao - esticada de ponta a ponta ela espalhava
+   os nove espacos por 830px e empurrava o Auto para cima dela (medido). */
+html.ri-vertical.ri-premium.ri-deitado #ShortCut {
+	right: auto !important;
+	width: var(--m-atalhos-largura-deitado) !important;
+}

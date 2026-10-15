@@ -60,7 +60,7 @@ vi.mock('Network/PacketStructure.js', () => {
 		}
 	};
 });
-vi.mock('UI/hudVertical.js', () => ({ ehCelularEmPe: () => false }));
+vi.mock('UI/hudVertical.js', () => ({ ehCelularEmPe: () => false, ehHudDeCelular: () => false }));
 vi.mock('UI/Components/MissoesIdle/MissoesIdle.js', () => ({ default: {} }));
 vi.mock('UI/toqueParaAtalho.js', () => ({ pegar: vi.fn(), pendente: () => null, assinar: vi.fn() }));
 

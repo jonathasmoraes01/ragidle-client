@@ -533,6 +533,9 @@ window.ROConfigBase = {
        publicado (o applications/pwa/Config.js so vale no dev): sem a chave aqui, a producao ficava na HUD
        antiga. Desligar sem rebuild: enableHudMobilePremium: false no Config.local.js de producao. */
     enableHudMobilePremium: true,  
+    /* A HUD premium no celular DEITADO (15/10/2026) nasce DESLIGADA no publicado: o deitado segue com a tela
+       "Gire o celular" ate o dono aprovar. Ligar sem rebuild: enableHudPaisagemPremium: true no Config.local.js. */
+    enableHudPaisagemPremium: false,  
     enableMapName: true,  
     enableRefineUI: true,  
     enableRoulette: false,  

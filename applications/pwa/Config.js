@@ -117,6 +117,15 @@ window.ROConfigBase = {
 	 * chave - o primeiro deploy ligou so esta e a producao ficou na HUD antiga.
 	 */
 	enableHudMobilePremium: true,
+	/*
+	 * A HUD PREMIUM NO CELULAR DEITADO (15/10/2026, pedido do dono): ligada, o
+	 * celular deitado deixa de mostrar "Gire o celular" (`UI/giroDoCelular.js`,
+	 * D-1491) e desenha a HUD premium em paisagem. FALHA PARA DESLIGADA: so
+	 * `true` exato liga (`ehPaisagemPremium`, `UI/HudPremium/hudPremium.js`),
+	 * e ela exige a premium. Ligada aqui (dev) para o dono ver; o modelo
+	 * publicado (`createConfigJS`) a leva DESLIGADA ate ele aprovar.
+	 */
+	enableHudPaisagemPremium: true,
 	enableCashShop: true,
 	enableCheckAttendance: false,
 	enableDmgSuffix: false,

@@ -77,15 +77,30 @@ const VARIANTES = {
 		permitidos: { '320x568': ['buffs|leque'] }
 	},
 	'premium-70': { busca: '?premium=1&escala=70&fps=1', escala: 70 },
-	'premium-120': { busca: '?premium=1&escala=120&fps=1', escala: 120 }
+	'premium-120': { busca: '?premium=1&escala=120&fps=1', escala: 120 },
+	/* O CELULAR DEITADO (a HUD premium deitada, `hud-premium-horizontal.png`): o que o jogador ve ao entrar, e
+	   os estados que mudam a geometria */
+	deitado: { busca: '?premium=1&paisagem=1' },
+	'deitado-chat': { busca: '?premium=1&paisagem=1&chat=aberto&missoes=abertas&fps=1' },
+	'deitado-atalhos': { busca: '?premium=1&paisagem=1&atalhos=1&fps=1' },
+	'deitado-buffs': { busca: '?premium=1&paisagem=1&buffs=14&missoes=abertas&fps=1' },
+	'deitado-menu': { busca: '?premium=1&paisagem=1&menu=aberto&buffs=6&fps=1', soOsBuffs: true }
 };
 
 /** As telas do celular em pe (a matriz do pacote: 320/375/393/430). */
-const TELAS = [
+const TELAS_EM_PE = [
 	{ id: '320x568', viewport: { width: 320, height: 568 } },
 	{ id: '375x667', viewport: { width: 375, height: 667 } },
 	{ id: '393x852', viewport: { width: 393, height: 852 } },
 	{ id: '430x932', viewport: { width: 430, height: 932 } }
+];
+
+/** As telas do celular DEITADO (as mesmas, giradas): a HUD premium deitada (`?paisagem=1`). */
+const TELAS_DEITADAS = [
+	{ id: '568x320', viewport: { width: 568, height: 320 } },
+	{ id: '667x375', viewport: { width: 667, height: 375 } },
+	{ id: '852x393', viewport: { width: 852, height: 393 } },
+	{ id: '932x430', viewport: { width: 932, height: 430 } }
 ];
 
 /**
@@ -213,7 +228,8 @@ async function main() {
 		for (const variante of variantes) {
 			const { busca, escala, soOsBuffs, permitidos = {} } = VARIANTES[variante];
 			const premium = variante !== 'antes';
-			for (const tela of TELAS) {
+			const deitada = busca.includes('paisagem=1');
+			for (const tela of deitada ? TELAS_DEITADAS : TELAS_EM_PE) {
 				const contexto = await navegador.newContext({
 					viewport: tela.viewport,
 					hasTouch: true,
@@ -258,6 +274,8 @@ async function main() {
 				const comAtalhos = busca.includes('atalhos=1');
 				if (marcas.comAtalhos !== comAtalhos)
 					problemas.push(`marca ri-com-atalhos = ${marcas.comAtalhos}, barra pedida = ${comAtalhos}`);
+				if (marcas.deitado !== deitada)
+					problemas.push(`marca ri-deitado = ${marcas.deitado}, paisagem pedida = ${deitada}`);
 				const recolhido = busca.includes('minimapa=recolhido');
 				if (marcas.minimapaRecolhido !== recolhido)
 					problemas.push(`marca ri-minimapa-recolhido = ${marcas.minimapaRecolhido}, pedida = ${recolhido}`);

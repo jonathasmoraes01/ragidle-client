@@ -61,7 +61,7 @@ import { ehAdaptavel, escalaAtual, reaplicar as reaplicarEscala } from 'UI/escal
  *
  * `giroDoCelular` nao importa nada, entao nao ha ciclo possivel.
  */
-import { aplicarTelaDeGiro } from 'UI/giroDoCelular.js';
+import { aplicarTelaDeGiro, ehCelularDeitado } from 'UI/giroDoCelular.js';
 /*
  * A HUD MOBILE PREMIUM (15/10/2026) e uma camada POR CIMA desta: a marca dela
  * (`ri-premium`) so existe onde `ri-vertical` existe, e e carimbada aqui, no
@@ -70,10 +70,12 @@ import { aplicarTelaDeGiro } from 'UI/giroDoCelular.js';
  */
 import {
 	MARCA_COM_ATALHOS,
+	MARCA_DEITADO,
 	MARCA_MINIMAPA_RECOLHIDO,
 	MARCA_PREMIUM,
 	barraDeAtalhosLigada,
 	ehHudPremium,
+	ehPaisagemPremium,
 	garantirCssDoDocumento,
 	minimapaRecolhido
 } from 'UI/HudPremium/hudPremium.js';
@@ -97,14 +99,31 @@ const CORTE_BAIXA = 760;
 const CORTE_MINIMA = 620;
 const CORTE_ESTREITA = 359;
 
+/*
+ * AS FAIXAS DO CELULAR DEITADO (15/10/2026). Os cortes de em pe medem a COLUNA da direita (a altura que o
+ * minimapa, o trilho e o grupo de acao empilham) e a largura do cartao; deitado a coluna da direita nao
+ * empilha mais nada disso (o trilho vai para a linha de cima, `tokens.css`), entao os cortes sao outros:
+ *   - estreita: o cartao do personagem e o que sobra da LARGURA depois da linha de cima (Menu, minimapa e o
+ *     trilho em fileira, ~398). Em pe a faixa estreita vale com o cartao abaixo de ~291 (359 - 68); deitado,
+ *     com a tela abaixo de 291 + 398 + 16 = 705 (o 667x375 entra, o 852x393 nao);
+ *   - baixa e minima: so o deitado de 320 de altura (568x320) - o grupo de acao, o minimapa e o arco
+ *     encolhem, e o trilho perde o rotulo.
+ */
+const CORTE_ESTREITA_DEITADO = 705;
+const CORTE_MINIMA_DEITADO = 340;
+
 /** As tres faixas para a tela de agora, em unidades da HUD (todas false fora da premium). */
-export function faixasDaTela(premium) {
+export function faixasDaTela(premium, deitado = false) {
 	if (!premium || typeof window === 'undefined') {
 		return { baixa: false, minima: false, estreita: false };
 	}
 	const escala = escalaAtual() || 1;
 	const altura = (window.innerHeight || 0) / escala;
 	const largura = (window.innerWidth || 0) / escala;
+	if (deitado) {
+		const baixo = altura <= CORTE_MINIMA_DEITADO;
+		return { baixa: baixo, minima: baixo, estreita: largura <= CORTE_ESTREITA_DEITADO };
+	}
 	return { baixa: altura <= CORTE_BAIXA, minima: altura <= CORTE_MINIMA, estreita: largura <= CORTE_ESTREITA };
 }
 
@@ -124,6 +143,31 @@ export function ehCelularEmPe() {
 	} catch (erro) {
 		return false;
 	}
+}
+
+/**
+ * O CELULAR DEITADO COM A HUD PREMIUM DEITADA (15/10/2026, `enableHudPaisagemPremium`): o criterio do deitado e
+ * o da tela de giro (`giroDoCelular.js`), escrito la uma vez so, e a bandeira e a de `hudPremium.js`.
+ */
+export function ehCelularDeitadoNaHud() {
+	try {
+		return ehPaisagemPremium() && ehCelularDeitado();
+	} catch (erro) {
+		return false;
+	}
+}
+
+/**
+ * ESTE APARELHO, AGORA, USA A HUD DE CELULAR? (15/10/2026)
+ *
+ * Em pe sempre (D-939); deitado so com a premium deitada. E a pergunta que os COMPORTAMENTOS de celular fazem -
+ * uma janela por vez (`pilhaDeJanelas.js`), o leque do Menu que fecha ao tocar fora, o cartao de missoes que
+ * nasce recolhido, a folha de detalhe das skills -, e e por ela que a marca `ri-vertical` entra no documento.
+ * `ehCelularEmPe` continua respondendo so "em pe", para quem precisa da orientacao de verdade (a telemetria
+ * de `quadrosNoCampo.js`).
+ */
+export function ehHudDeCelular() {
+	return ehCelularEmPe() || ehCelularDeitadoNaHud();
 }
 
 /**
@@ -163,17 +207,22 @@ export function aplicar(doc, forcar) {
 	 * desenhar a tela de login.
 	 */
 	if (_ligado) {
-		aplicarTelaDeGiro(d);
+		/* com a premium deitada ligada, o deitado e jogado: a tela de giro nao entra */
+		aplicarTelaDeGiro(d, ehPaisagemPremium());
 	}
 
-	const agora = ehCelularEmPe();
-	/* A premium so vale em pe; a bandeira e estatica no runtime. O CSS de documento entra na primeira vez que
-	   ela vale, antes da marca, para o primeiro quadro ja sair desenhado. */
+	/* A HUD de celular: em pe, ou deitado com a premium deitada (que carrega `ri-deitado` junto). Os dois
+	   criterios de media se excluem (`portrait` x `landscape`), entao o deitado nao precisa perguntar o em pe. */
+	const deitado = ehCelularDeitadoNaHud();
+	const agora = deitado || ehCelularEmPe();
+	/* A premium so vale na HUD de celular (em pe, ou deitado com a deitada); a bandeira e estatica no runtime. O
+	   CSS de documento entra na primeira vez que ela vale, antes da marca, para o primeiro quadro ja sair
+	   desenhado. */
 	const premium = agora && ehHudPremium();
 	/* As faixas mudam com o tamanho da janela E com a escala; a chave do cache leva as duas coisas, senao girar
 	   o celular ou trocar o Tamanho da HUD sairia cedo com as faixas velhas. */
-	const faixas = faixasDaTela(premium);
-	const chave = `${agora}|${faixas.baixa}|${faixas.minima}|${faixas.estreita}`;
+	const faixas = faixasDaTela(premium, deitado);
+	const chave = `${agora}|${deitado}|${faixas.baixa}|${faixas.minima}|${faixas.estreita}`;
 	if (!forcar && chave === _ultimo) {
 		return agora;
 	}
@@ -192,12 +241,13 @@ export function aplicar(doc, forcar) {
 	d.documentElement.classList.toggle(MARCA_PREMIUM, premium);
 	d.documentElement.classList.toggle(MARCA_COM_ATALHOS, comAtalhos);
 	d.documentElement.classList.toggle(MARCA_MINIMAPA_RECOLHIDO, mapaRecolhido);
+	d.documentElement.classList.toggle(MARCA_DEITADO, premium && deitado);
 	/* O Tamanho da HUD so vale no celular COM a premium (`escalaDaHud.js`, `fatorValeAqui`), e ela le esta marca:
 	   quando a premium entra ou sai, a escala e refeita e as faixas medidas de novo com ela. */
 	if (premiumMudou) {
 		reaplicarEscala(d);
 	}
-	const faixasAgora = premiumMudou ? faixasDaTela(premium) : faixas;
+	const faixasAgora = premiumMudou ? faixasDaTela(premium, deitado) : faixas;
 	const marcasDaTela = [
 		[MARCA_TELA_BAIXA, faixasAgora.baixa],
 		[MARCA_TELA_MINIMA, faixasAgora.minima],
@@ -221,6 +271,7 @@ export function aplicar(doc, forcar) {
 			raiz.classList.toggle(MARCA_PREMIUM, premium);
 			raiz.classList.toggle(MARCA_COM_ATALHOS, comAtalhos);
 			raiz.classList.toggle(MARCA_MINIMAPA_RECOLHIDO, mapaRecolhido);
+			raiz.classList.toggle(MARCA_DEITADO, premium && deitado);
 			for (const [marca, vale] of marcasDaTela) {
 				raiz.classList.toggle(marca, vale);
 			}
@@ -264,6 +315,7 @@ export function desligarParaTeste() {
 export default {
 	MARCA_VERTICAL,
 	ehCelularEmPe,
+	ehHudDeCelular,
 	aplicar,
 	reaplicar,
 	ligar,

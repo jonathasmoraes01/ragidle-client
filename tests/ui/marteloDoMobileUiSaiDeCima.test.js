@@ -9,7 +9,10 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 const aparelho = vi.hoisted(() => ({ celularEmPe: true }));
-vi.mock('UI/hudVertical.js', () => ({ ehCelularEmPe: () => aparelho.celularEmPe }));
+vi.mock('UI/hudVertical.js', () => ({
+	ehCelularEmPe: () => aparelho.celularEmPe,
+	ehHudDeCelular: () => aparelho.celularEmPe
+}));
 
 import Pilha, { aoMudarAPilha, janelaCobreAHud } from 'UI/pilhaDeJanelas.js';
 

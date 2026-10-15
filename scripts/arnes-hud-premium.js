@@ -41,6 +41,7 @@ import infoCss from '/src/UI/Components/MissoesIdle/infoDaMissao.css?raw';
 import fpsHtml from '/src/UI/Components/FPS/FPS.html?raw';
 import fpsCss from '/src/UI/Components/FPS/FPS.css?raw';
 import { marcarFps } from '/src/UI/Components/FPS/marcaDoFps.js';
+import { observarAlturaDosBuffs } from '/src/UI/Components/StatusIcons/alturaDosBuffs.js';
 import { desenharArco, slotsDoArco } from '/src/UI/Components/CombatCornerIdle/arcoDeSkills.js';
 import { criarRelogioDaBarra } from '/src/UI/Components/ShortCut/relogioDaBarra.js';
 
@@ -371,6 +372,8 @@ semearPersonagem();
 semearMinimapa();
 semearMissoes();
 semearBuffs();
+/* A altura da caixa dos buffs, como `StatusIcons.onAppend` publica: a folha do Menu para acima dela. */
+observarAlturaDosBuffs(pecas.StatusIcons.$('#StatusIcons'));
 semearAtalhos();
 semearChat();
 semearArco();
@@ -420,6 +423,15 @@ function publicarAlturaDoStatus() {
 	   da camada premium se apoiam nela. */
 	/* E o fundo do cartao de missoes, como `publicarFundoNaVertical` (MissoesTrackerIdle.js): os buffs se
 	   penduram nele. */
+	/* E a altura da secao de cima da folha do Menu aberta, como `publicarAlturaDoCluster` (TopMenuIdle.js): o
+	   leque se pendura nela. */
+	const cluster = pecas.TopMenuIdle.$('#TopMenuIdle.tm-aberto .tm-top');
+	if (cluster) {
+		raiz.setProperty(
+			'--vr-menu-cluster-altura',
+			`${Math.round(EscalaDaHud.emUnidadesDaHud(cluster.getBoundingClientRect().height))}px`
+		);
+	}
 	const missoes = pecas.MissoesTrackerIdle.host.getBoundingClientRect();
 	if (missoes.height > 0) {
 		raiz.setProperty('--hud-missoes-fundo', `${Math.round(EscalaDaHud.emUnidadesDaHud(missoes.bottom))}px`);
@@ -525,6 +537,7 @@ window.__arnes = {
 			vertical: document.documentElement.classList.contains('ri-vertical'),
 			premium: document.documentElement.classList.contains('ri-premium'),
 			comAtalhos: document.documentElement.classList.contains('ri-com-atalhos'),
+			deitado: document.documentElement.classList.contains('ri-deitado'),
 			minimapaRecolhido: document.documentElement.classList.contains('ri-minimapa-recolhido')
 		};
 	},

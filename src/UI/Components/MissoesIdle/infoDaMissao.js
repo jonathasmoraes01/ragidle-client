@@ -44,7 +44,7 @@ import {
 } from './missoesAceitas.js';
 import { abrirBalao, esquecerBalao } from 'UI/balaoDaHud.js';
 import { emUnidadesDaHud } from 'UI/escalaDaHud.js';
-import { ehCelularEmPe } from 'UI/hudVertical.js';
+import { ehHudDeCelular } from 'UI/hudVertical.js';
 
 /** O nome deste balao na lista do ESC (`balaoDaHud.js`). */
 const NOME_DO_BALAO = 'info-da-missao';
@@ -284,7 +284,7 @@ function missaoDoPedido(pedido) {
  * lugar. No dedo a escala e sempre 1, entao ali a conta nao muda nada.
  */
 function posicionar(el, pedido) {
-	const celular = ehCelularEmPe();
+	const celular = ehHudDeCelular();
 	el.classList.toggle('is-celular', celular);
 	const janela = el.ownerDocument.defaultView;
 	const largura = (janela && janela.innerWidth) || 0;

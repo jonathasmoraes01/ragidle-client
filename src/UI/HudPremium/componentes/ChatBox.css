@@ -194,3 +194,41 @@
 	width: 20px;
 	height: 20px;
 }
+
+/* ─── O CELULAR DEITADO (15/10/2026) ─────────────────────────────────────
+   A barra de digitar do celular (ChatBox.css, o bloco D-947) mora num
+   `@media (pointer: coarse) and (orientation: portrait)`: deitado ela nao
+   valia, e a barra voltava com o campo "Sussurrar para" e a dica do Tab,
+   quebrando o convite em cinco linhas (medido na 1a foto do deitado). Sao as
+   mesmas regras, pela marca `ri-deitado` (so a premium deitada joga deitado). */
+.ri-premium.ri-deitado #chatbox .cb-dica-tab {
+	display: none;
+}
+
+.ri-premium.ri-deitado #chatbox .input .username {
+	display: none;
+}
+
+.ri-premium.ri-deitado #chatbox .cb-destino[data-destino='sussurro'] ~ .username {
+	display: block;
+	flex: 0 1 96px;
+	min-width: 0;
+}
+
+.ri-premium.ri-deitado #chatbox .input .wrapper {
+	flex: 1 1 auto;
+	min-width: 0;
+}
+
+.ri-premium.ri-deitado #chatbox .input .message {
+	white-space: nowrap;
+	overflow-x: auto;
+	overflow-y: hidden;
+}
+
+.ri-premium.ri-deitado #chatbox .input .filter,
+.ri-premium.ri-deitado #chatbox .input .cb-enviar {
+	flex: 0 0 auto;
+	min-width: 44px;
+	min-height: 44px;
+}

@@ -105,6 +105,32 @@ const CSS_POR_COMPONENTE = Object.freeze({
 });
 
 /**
+ * A marca do CELULAR DEITADO com a HUD premium (pedido do dono, 15/10/2026: *"vamos fazer a versao vertical
+ * agora?"* - a deitada, a do mockup `hud-premium-horizontal.png`). Ela anda JUNTO de `ri-vertical` e
+ * `ri-premium`: o celular deitado e mais um modo da HUD de celular (as mesmas pecas, o mesmo toque, as mesmas
+ * janelas de tela cheia), e esta marca so muda as POSICOES (`documento.css`, `tokens.css`).
+ */
+export const MARCA_DEITADO = 'ri-deitado';
+
+/**
+ * A HUD premium no CELULAR DEITADO esta ligada? (`enableHudPaisagemPremium`)
+ *
+ * Desde 15/09/2026 (D-1491) o celular deitado nao desenha o jogo: ele mostra "gire o celular", porque a HUD de
+ * D-939 nao cabia em 393px de altura. A premium compacta cabe, e esta bandeira a leva ao deitado.
+ *
+ * Ela FALHA PARA DESLIGADO, como a `enableHudMobilePremium` nasceu: e uma camada NOVA, e so `true` exato a
+ * liga. Sem ela o deitado continua na tela de giro. E ela depende da premium (que depende da adaptavel).
+ */
+export function ehPaisagemPremium() {
+	try {
+		const cfg = typeof window !== 'undefined' ? window.ROConfig : null;
+		return !!cfg && cfg.enableHudPaisagemPremium === true && ehHudPremium();
+	} catch {
+		return false;
+	}
+}
+
+/**
  * A bandeira `enableHudMobilePremium` esta ligada?
  *
  * So `false` desliga (ver o cabecalho). E ela depende da camada adaptavel: com
@@ -248,11 +274,13 @@ export default {
 	MARCA_PREMIUM,
 	MARCA_COM_ATALHOS,
 	MARCA_MINIMAPA_RECOLHIDO,
+	MARCA_DEITADO,
 	barraDeAtalhosLigada,
 	definirBarraDeAtalhos,
 	minimapaRecolhido,
 	definirMinimapaRecolhido,
 	ehHudPremium,
+	ehPaisagemPremium,
 	cssDoComponente,
 	componentesComCss,
 	garantirCssDoDocumento,

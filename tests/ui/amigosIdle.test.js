@@ -379,6 +379,6 @@ describe('a costura da janela "Amigos"', () => {
 	it('no celular a Mensagem fecha a janela antes de abrir o chat (o painel cobre o chat)', () => {
 		const corpo = JANELA.slice(JANELA.indexOf('function sussurrar('));
 		const fim = corpo.indexOf('\n}');
-		expect(corpo.slice(0, fim)).toMatch(/if \(ehCelularEmPe\(\)\) \{\s*closeWindow\(\);\s*\}\s*ChatBox\.sussurrarPara\(nome\);/);
+		expect(corpo.slice(0, fim)).toMatch(/if \(ehHudDeCelular\(\)\) \{\s*closeWindow\(\);\s*\}\s*ChatBox\.sussurrarPara\(nome\);/);
 	});
 });
