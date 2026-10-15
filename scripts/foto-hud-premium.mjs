@@ -157,8 +157,13 @@ async function main() {
 				const page = await contexto.newPage();
 				const erros = [];
 				page.on('pageerror', e => erros.push(String(e)));
+				/* O "Failed to load resource" do console nao diz QUAL recurso; a
+				   resposta diz. Um 404 de icone premium e defeito desta camada. */
+				page.on('response', r => {
+					if (r.status() >= 400) erros.push(`HTTP ${r.status()} ${new URL(r.url()).pathname}`);
+				});
 				page.on('console', m => {
-					if (m.type() === 'error') erros.push(m.text());
+					if (m.type() === 'error' && !m.text().startsWith('Failed to load resource')) erros.push(m.text());
 				});
 				/* `load`, e nao `networkidle`: o websocket do HMR do vite e o
 				   Chromium tentando falar com o Google (num ambiente com proxy, ele

@@ -1,5 +1,59 @@
-/* HUD MOBILE PREMIUM — StatusIcons (15/10/2026).
+/* HUD MOBILE PREMIUM — StatusIcons, os BUFFS EM FILEIRA (15/10/2026).
 
    Injetado no shadow do componente DEPOIS do CSS dele (hudPremium.js), so
    com `enableHudMobilePremium` ligada. Toda regra mora atras de
-   `.ri-premium`, que so existe no celular em pe. */
+   `.ri-premium`, que so existe no celular em pe.
+
+   O pacote pede "buffs em fileira, sem empilhar do lado direito": a coluna de
+   D-939 colava no trilho e, no celular baixo, descia por cima do Cacar. Aqui
+   ela vira uma FILEIRA acima do chat (a ancora do host e do documento.css).
+
+   `StatusIcons.js` continua escrevendo `top`/`right` inline em cada icone
+   (`resetElementsPosition`); com `position: static` esses dois sao ignorados
+   e quem arruma e o flex - nenhum JS mudou. O relogio de cada um e o de
+   sempre. */
+
+.ri-premium #StatusIcons {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 4px;
+	max-width: calc(100vw - var(--m-coluna-de-caca, 120px) - 4 * var(--m-margem, 8px));
+}
+
+/* `relative` (a dica ancora nele) com os deslocamentos inline anulados:
+   relativo, um `top`/`right` inline ainda empurraria o icone. */
+.ri-premium #StatusIcons .state {
+	position: relative;
+	top: auto !important;
+	right: auto !important;
+	width: 34px;
+}
+
+.ri-premium #StatusIcons .state .moldura {
+	width: 34px;
+	height: 34px;
+	padding: 1px;
+	border-color: rgba(215, 183, 118, 0.85);
+	border-radius: 8px 8px 0 0;
+}
+
+.ri-premium #StatusIcons .state canvas {
+	width: 30px;
+	height: 30px;
+}
+
+.ri-premium #StatusIcons .state .relogio {
+	height: 13px;
+	border-color: rgba(215, 183, 118, 0.85);
+	border-radius: 0 0 8px 8px;
+	font-size: 9px;
+}
+
+/* A dica do buff abria para a ESQUERDA (a coluna morava na borda direita);
+   na fileira da esquerda ela abre para cima. */
+.ri-premium #StatusIcons .state .description {
+	right: auto;
+	left: 0;
+	top: auto;
+	bottom: calc(100% + 4px);
+}

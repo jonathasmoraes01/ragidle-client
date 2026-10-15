@@ -34,6 +34,9 @@ import huntHtml from '/src/UI/Components/HuntButtonIdle/HuntButtonIdle.html?raw'
 import huntCss from '/src/UI/Components/HuntButtonIdle/HuntButtonIdle.css?raw';
 import trackerHtml from '/src/UI/Components/MissoesTrackerIdle/MissoesTrackerIdle.html?raw';
 import trackerCss from '/src/UI/Components/MissoesTrackerIdle/MissoesTrackerIdle.css?raw';
+/* O cartao de missoes leva tambem o CSS do "(i)", como no jogo
+   (`new GUIComponent('MissoesTrackerIdle', cssText + infoCss)`). */
+import infoCss from '/src/UI/Components/MissoesIdle/infoDaMissao.css?raw';
 
 const icones = texto => texto.replace(/<!--RI_ICONE:(\w+)-->/g, (_, chave) => RiIcones[chave] || '');
 
@@ -79,7 +82,7 @@ const pecas = {
 	TopMenuIdle: montar('TopMenuIdle', topMenuHtml, topMenuCss),
 	CombatCornerIdle: montar('CombatCornerIdle', cornerHtml, cornerCss),
 	HuntButtonIdle: montar('HuntButtonIdle', huntHtml, huntCss),
-	MissoesTrackerIdle: montar('MissoesTrackerIdle', trackerHtml, trackerCss)
+	MissoesTrackerIdle: montar('MissoesTrackerIdle', trackerHtml, trackerCss + '\n' + infoCss)
 };
 
 /* ─── A semente: o personagem do mockup ──────────────────────────────────── */
@@ -118,8 +121,9 @@ function semearPersonagem() {
 	   Cacador e o job 11. */
 	const img = p.$('.bi-avatar-img');
 	if (img) {
+		/* `.is-loaded` e o que `BasicInfoIdle.js` poe no `onload` (opacity 1). */
+		img.addEventListener('load', () => img.classList.add('is-loaded'));
 		img.src = '/ragidle/classes/11.png';
-		img.style.display = 'block';
 	}
 	const inicial = p.$('.bi-avatar-initial');
 	if (inicial) inicial.style.display = 'none';
@@ -299,6 +303,25 @@ semearChat();
 EscalaDaHud.reaplicar(document);
 HudVertical.aplicar(document, true);
 
+/* A altura do cartao de status, como `BasicInfoIdle.js` publica
+   (`publicarCaixa` -> `--hud-basic-altura` no documento): o minimapa, as
+   missoes e o trilho se penduram nela. */
+function publicarAlturaDoStatus() {
+	const raiz = document.documentElement.style;
+	const janela = pecas.BasicInfoIdle.$('.bi-window');
+	if (janela) {
+		raiz.setProperty('--hud-basic-altura', `${Math.round(janela.getBoundingClientRect().height)}px`);
+	}
+	/* E a do chat, como `ChatBox.js` publica (`--hud-chat-altura`): os buffs
+	   da camada premium se apoiam nela. */
+	const chat = pecas.ChatBox.$('#chatbox');
+	if (chat) {
+		raiz.setProperty('--hud-chat-altura', `${Math.round(chat.getBoundingClientRect().height)}px`);
+	}
+}
+publicarAlturaDoStatus();
+requestAnimationFrame(publicarAlturaDoStatus);
+
 /* ─── A medida ──────────────────────────────────────────────────────────── */
 
 /** A caixa visivel de um elemento, ou null se ele nao ocupa tela. */
@@ -318,7 +341,7 @@ function caixa(el) {
 const PECAS_MEDIDAS = {
 	status: ['BasicInfoIdle', '.bi-window'],
 	menu: ['TopMenuIdle', '.tm-fab'],
-	minimapa: ['MiniMapV2', '.mm-window'],
+	minimapa: ['MiniMapV2', '.mm-body'],
 	missoes: ['MissoesTrackerIdle', '.mt-painel'],
 	trilho: ['TopMenuIdle', '.tm-top'],
 	auto: ['CombatCornerIdle', '.cc-btn--auto'],
@@ -330,6 +353,22 @@ const PECAS_MEDIDAS = {
 	atalhos: ['ShortCut', '#ShortCut']
 };
 
+/**
+ * A AREA DE TOQUE de um botao, e nao so a caixa desenhada: o `Common.css`
+ * aumenta o alvo de dedo dos botoes pequenos com um `::before` absoluto de
+ * `inset` negativo (`tests/ui/areaDeToqueAncoraNoBotao.test.js`). Contar so a
+ * caixa acusaria de pequeno um botao que o dedo alcanca com folga.
+ */
+function areaDeToque(el, c) {
+	const antes = getComputedStyle(el, '::before');
+	if (!antes || antes.content === 'none' || antes.position !== 'absolute') return c;
+	const px = valor => (valor && valor.endsWith('px') ? parseFloat(valor) : 0);
+	const cresce = lado => Math.max(0, -px(antes[lado]));
+	const w = c.w + cresce('left') + cresce('right');
+	const h = c.h + cresce('top') + cresce('bottom');
+	return { ...c, w: Math.round(w), h: Math.round(h) };
+}
+
 /** Os alvos de toque: todo botao visivel das pecas da HUD. */
 function alvosDeToque() {
 	const lista = [];
@@ -338,7 +377,7 @@ function alvosDeToque() {
 			const c = caixa(el);
 			if (!c) continue;
 			const rotulo = (el.getAttribute('aria-label') || el.title || el.textContent || '').trim().slice(0, 30);
-			lista.push({ peca: nome, rotulo, ...c });
+			lista.push({ peca: nome, rotulo, ...areaDeToque(el, c) });
 		}
 	}
 	return lista;

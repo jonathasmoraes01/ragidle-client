@@ -1,5 +1,100 @@
-/* HUD MOBILE PREMIUM — MiniMapV2 (15/10/2026).
+/* HUD MOBILE PREMIUM — MiniMapV2, o MINIMAPA REDONDO (15/10/2026).
 
    Injetado no shadow do componente DEPOIS do CSS dele (hudPremium.js), so
    com `enableHudMobilePremium` ligada. Toda regra mora atras de
-   `.ri-premium`, que so existe no celular em pe. */
+   `.ri-premium`, que so existe no celular em pe.
+
+   O minimapa VOLTA ao celular em pe nesta camada (o "SEM minimapa" de D-939
+   fica valendo sem ela). O desenho do mockup: um medalhao redondo de aro
+   dourado, com o nome do mapa numa pilula azul por cima do aro.
+
+   O CANVAS E O DE SEMPRE - o mesmo buffer de 128x128 que `MiniMapCommon.js`
+   pinta com o BMP do mapa, os pontos e a seta. Quem o faz redondo e o
+   `border-radius` + `overflow: hidden` da moldura; quem o encolhe e a caixa
+   CSS, com `image-rendering: pixelated` (a regra 4 do contrato: arte do
+   cliente ampliada ou reduzida, nunca borrada). O tamanho mora no token
+   `--m-minimapa`, que o host tambem le (documento.css). */
+
+.ri-premium .mm-window {
+	position: relative;
+	width: var(--m-minimapa, 100px);
+	height: var(--m-minimapa, 100px);
+	padding: 0;
+	overflow: visible;
+	border: 0;
+	border-radius: 50%;
+	background: transparent;
+	box-shadow: none;
+}
+
+.ri-premium .mm-body {
+	position: absolute;
+	inset: 0;
+	padding: 0;
+	border-radius: 50%;
+	background: #e9e2cd;
+	box-shadow:
+		0 0 0 2px #fff6dc,
+		0 0 0 4px var(--m-ouro),
+		var(--m-sombra);
+}
+
+.ri-premium .mm-canvas-frame {
+	width: 100%;
+	height: 100%;
+	border: 0;
+	border-radius: 50%;
+	box-shadow: inset 0 0 0 1px rgba(122, 96, 44, 0.35);
+}
+
+.ri-premium .mm-body canvas {
+	width: 100%;
+	height: 100%;
+	image-rendering: pixelated;
+}
+
+/* O nome do mapa: pilula azul por cima do aro, como no mockup. */
+.ri-premium .mm-header {
+	position: absolute;
+	z-index: 1;
+	top: -9px;
+	left: 50%;
+	transform: translateX(-50%);
+	height: 18px;
+	max-width: calc(100% + 16px);
+	padding: 0 9px;
+	border: 1px solid var(--m-ouro);
+	border-radius: 999px;
+	background: linear-gradient(180deg, var(--m-azul), var(--m-azul-escuro));
+	box-shadow: var(--m-sombra-leve);
+}
+
+.ri-premium .mm-mapname {
+	font-family: inherit;
+	font-size: 10px;
+	font-weight: 800;
+	letter-spacing: 0.2px;
+	text-transform: none;
+	color: var(--m-tinta-clara);
+}
+
+/* As coordenadas: pilula pequena na base do aro. */
+.ri-premium .mm-footer {
+	position: absolute;
+	z-index: 1;
+	bottom: -7px;
+	left: 50%;
+	transform: translateX(-50%);
+	padding: 0 7px;
+	border: 1px solid var(--m-ouro-claro);
+	border-radius: 999px;
+	background: var(--m-papel);
+	box-shadow: var(--m-sombra-leve);
+}
+
+.ri-premium .coordinates {
+	font-size: 9px;
+	font-weight: 700;
+	line-height: 14px;
+	color: var(--m-tinta);
+}

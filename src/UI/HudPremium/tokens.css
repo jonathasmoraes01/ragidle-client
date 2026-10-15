@@ -61,4 +61,72 @@ html.ri-premium {
 
 	/* Alvo de toque minimo (o mesmo piso de 44px da casa) */
 	--m-alvo: 44px;
+
+	/* ─── A GEOMETRIA ────────────────────────────────────────────────────
+	   A coluna da DIREITA e a que aperta: debaixo do status vem o minimapa, o
+	   trilho (Mochila, Skills, Config., RO Shop) e, la embaixo, o GRUPO DE ACAO
+	   do polegar - o Auto grande no canto, o Cacar e o Retornar em arco a
+	   esquerda dele. A altura que sobra entre o status e a barra de atalhos
+	   decide o tamanho de cada um - as faixas de altura logo abaixo. */
+	--m-margem: 8px;
+	--m-topo: calc(var(--safe-topo, 0px) + 6px);
+	/* A altura do cartao de status: a MEDIDA que `BasicInfoIdle.js` publica
+	   (`--hud-basic-altura`), com o valor de nascenca para o primeiro quadro. */
+	--m-status-altura: var(--hud-basic-altura, 90px);
+	--m-abaixo-do-topo: calc(var(--m-topo) + var(--m-status-altura) + 6px);
+	--m-menu-largura: 46px;
+	--m-minimapa: 100px;
+	/* O minimapa desce 8px alem do cartao de missoes: a pilula com o nome do
+	   mapa pende 9px para cima do aro e encostava no status. */
+	--m-minimapa-topo: calc(var(--m-abaixo-do-topo) + 8px);
+	--m-trilho-topo: calc(var(--m-minimapa-topo) + var(--m-minimapa) + 14px);
+	--m-trilho-icone: 46px;
+	--m-trilho-passo: 60px;
+	--m-trilho-largura: 64px;
+	/* O GRUPO DE ACAO (pedido do dono, 15/10/2026): o AUTO e o botao grande do
+	   polegar - e ele que poe o personagem para lutar -, e o CACAR (que abre os
+	   mapas) fica em arco ao lado, menor mas com cor propria, para nao perder o
+	   destaque. O Retornar e o miudo do grupo. */
+	--m-auto: 76px;
+	--m-cacar: 56px;
+	--m-retornar: 44px;
+	/* O rodape: a barra de atalhos (fileira + pontinhos) e o que se apoia nela
+	   - o chat a esquerda e o grupo de acao a direita. */
+	--m-atalhos-altura: 68px;
+	--m-acima-dos-atalhos: calc(var(--safe-baixo, 0px) + var(--m-atalhos-altura) + 8px);
+	/* A base do disco do Auto: acima da barra, com a folga da pilula do rotulo
+	   que pende embaixo dele. */
+	--m-grupo-de-acao-base: calc(var(--m-acima-dos-atalhos) + 14px);
+	/* A largura do grupo de acao: o Auto mais o arco do Cacar a esquerda. O
+	   chat termina antes dela. */
+	--m-coluna-de-caca: calc(var(--m-auto) + var(--m-folga-do-arco) + var(--m-cacar));
+	/* A folga entre o Auto e o arco: a pilula "Auto · OFF" e mais larga que o
+	   disco, e no disco menor ela pende para dentro do arco. */
+	--m-folga-do-arco: 4px;
+}
+
+/* Celular baixo (375x667, e o SE dentro do Safari, ~550): minimapa, trilho e
+   grupo de acao encolhem para a coluna da direita caber entre o status e a
+   barra de atalhos. */
+@media (max-height: 760px) {
+	html.ri-premium {
+		--m-minimapa: 86px;
+		--m-trilho-icone: 44px;
+		--m-trilho-passo: 52px;
+		--m-auto: 68px;
+		--m-cacar: 52px;
+	}
+}
+
+/* O mais baixo (o SE dentro do Safari, ~375x553, e o 320x568): a coluna da
+   direita, medida no 320x568, so fecha com o RO Shop fora do trilho (ele
+   continua no Menu) e o minimapa em 66px. */
+@media (max-height: 620px) {
+	html.ri-premium {
+		--m-minimapa: 66px;
+		--m-trilho-passo: 46px;
+		--m-auto: 62px;
+		--m-cacar: 48px;
+		--m-folga-do-arco: 14px;
+	}
 }

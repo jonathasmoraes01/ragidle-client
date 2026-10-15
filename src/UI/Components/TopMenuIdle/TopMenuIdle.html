@@ -251,9 +251,28 @@
 		     No celular em pe ele entra no TRILHO, no quinto degrau, abaixo do
 		     "Config." (TopMenuIdle.css, bloco `.ri-vertical`): o trilho e o
 		     que fica na tela com o menu fechado. -->
+		<!-- O "CONFIG." DO TRILHO (15/10/2026, HUD mobile premium). O mockup
+		     poe Configuracoes no trilho do celular em pe, entre Skills e RO
+		     Shop. E a MESMA porta do item "Configuracoes" do leque: o mesmo
+		     `data-action="sistema"`, ligado botao a botao em `TopMenuIdle.init`
+		     ao mesmo `onClickAction`.
+
+		     Nasce com `display: none` INLINE, como o item do Bot, e por isso
+		     nao existe fora da camada premium: `distribuirFileiras` so conta
+		     item sem `display: none` inline (o desktop nao ganha buraco), e so
+		     o CSS premium, com `!important`, o acende no trilho. Com o menu
+		     aberto ele some (a folha ja tem o do leque).
+
+		     Ele mora DEPOIS do RO Shop no DOM (o RO Shop tem de seguir o Votar,
+		     `roShopSempreVisivel.test.js`), e quem o poe ANTES do RO Shop no
+		     trilho e um `order` no CSS premium. -->
 		<button type="button" class="tm-item tm-item--roshop" data-action="roshop" title="RO Shop">
 			<span class="tm-icon-wrap ri-disc"><!--RI_ICONE:roshop--></span>
 			<span class="tm-label">RO Shop</span>
+		</button>
+		<button type="button" class="tm-item tm-item--so-premium tm-item--config-trilho" data-action="sistema" title="Configurações do jogo" style="display: none">
+			<span class="tm-icon-wrap ri-disc"><!--RI_ICONE:sistema--></span>
+			<span class="tm-label">Config.</span>
 		</button>
 
 		<!-- Alca de recolher o CLUSTER (os 5 acima). Fica FORA do que ela

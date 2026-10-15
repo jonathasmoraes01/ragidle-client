@@ -1,5 +1,278 @@
-/* HUD MOBILE PREMIUM — BasicInfoIdle (15/10/2026).
+/* HUD MOBILE PREMIUM — BasicInfoIdle, o CARTAO DE STATUS (15/10/2026).
 
    Injetado no shadow do componente DEPOIS do CSS dele (hudPremium.js), so
    com `enableHudMobilePremium` ligada. Toda regra mora atras de
-   `.ri-premium`, que so existe no celular em pe. */
+   `.ri-premium`, que so existe no celular em pe.
+
+   O desenho do mockup: retrato redondo de aro dourado a esquerda; nome e
+   classe; Base Lv. e Job Lv.; HP e SP com os numeros; Zeny e Cash em pilulas
+   a direita. HP/SP VOLTAM ao topo (a HUD de D-939 os tirava): no mockup eles
+   sao a informacao principal do cartao.
+
+   A ARVORE NAO MUDA. `.bi-body`, `.bi-top`, `.bi-identity` e `.bi-levels`
+   viram `display: contents`, e os filhos deles passam a ser itens da GRADE do
+   `.bi-window` - e assim que o cartao arruma em colunas o que o HTML guarda em
+   blocos, sem tocar no JS que escreve os numeros (os seletores sao os mesmos).
+
+   Os `!important` aqui so existem onde o CSS de D-939 (BasicInfoIdle.css,
+   bloco `.ri-vertical`) ja usa `!important`: mesma especificidade, e este
+   arquivo vem depois, entao vence por ordem. */
+
+.ri-premium .bi-window {
+	display: grid;
+	grid-template-columns: 56px minmax(0, 1fr) minmax(78px, auto);
+	grid-template-rows: repeat(6, auto);
+	grid-template-areas:
+		'av nome zeny'
+		'av classe zeny'
+		'av base cash'
+		'av job cash'
+		'av hp aparelho'
+		'av sp aparelho';
+	/* 12px: o aro dourado do retrato (box-shadow de 4px) pinta FORA da caixa
+	   e encostava no "Base Lv." com 8 (medido na 1a foto). */
+	column-gap: 12px;
+	row-gap: 1px;
+	align-items: center;
+	padding: 6px 9px 6px 9px;
+	border-radius: var(--m-raio);
+	background: var(--m-superficie);
+	border: 1px solid var(--m-ouro-claro);
+	border-bottom: 2px solid var(--m-ouro);
+	box-shadow: var(--m-sombra);
+	color: var(--m-tinta);
+}
+
+.ri-premium .bi-body,
+.ri-premium .bi-top,
+.ri-premium .bi-identity,
+.ri-premium .bi-levels {
+	display: contents !important;
+}
+
+/* ─── O retrato: medalhao com aro dourado ───────────────────────────────── */
+.ri-premium .bi-avatar-frame {
+	grid-area: av;
+	align-self: center;
+	width: 56px;
+	height: 56px;
+	flex: none;
+	border-radius: 50%;
+	box-shadow:
+		0 0 0 2px #fff6dc,
+		0 0 0 4px var(--m-ouro),
+		0 3px 8px rgba(10, 26, 47, 0.35);
+}
+
+/* As gemas do aro de desktop disputariam com o aro novo. */
+.ri-premium .bi-avatar-frame::before,
+.ri-premium .bi-avatar-frame::after {
+	display: none;
+}
+
+.ri-premium .bi-avatar {
+	width: 100%;
+	height: 100%;
+	border-radius: 50%;
+	background: var(--m-azul-medalha);
+	overflow: hidden;
+}
+
+.ri-premium .bi-avatar-img {
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+}
+
+/* ─── Nome e classe ─────────────────────────────────────────────────────── */
+.ri-premium .bi-name {
+	grid-area: nome;
+	max-width: none;
+	font-size: 15px;
+	font-weight: 800;
+	letter-spacing: -0.2px;
+	line-height: 1.15;
+	color: var(--m-tinta);
+}
+
+.ri-premium .bi-class {
+	grid-area: classe;
+	max-width: none;
+	font-size: 11px;
+	line-height: 1.2;
+	color: var(--m-tinta-suave);
+}
+
+/* ─── Base Lv. e Job Lv. ────────────────────────────────────────────────── */
+.ri-premium .bi-level-row {
+	min-width: 0;
+	gap: 5px;
+}
+
+.ri-premium .bi-level-row:first-child {
+	grid-area: base;
+}
+
+.ri-premium .bi-level-row:last-child {
+	grid-area: job;
+}
+
+.ri-premium .bi-level-label {
+	min-width: 50px;
+	font-size: 9.5px;
+	color: var(--m-tinta-suave);
+}
+
+.ri-premium .bi-level-label b {
+	color: var(--m-tinta);
+}
+
+.ri-premium .bi-exp-track {
+	--bi-exp-altura: 11px;
+	border: 0;
+	background: var(--m-trilha);
+	box-shadow: inset 0 1px 2px rgba(31, 54, 92, 0.22);
+}
+
+.ri-premium .bi-bexp-fill {
+	background: var(--m-exp-base);
+}
+
+.ri-premium .bi-jexp-fill {
+	background: var(--m-exp-classe);
+}
+
+.ri-premium .bi-exp-pct {
+	font-size: 8px;
+	color: #16304f;
+}
+
+/* ─── HP e SP, de volta ao cartao ───────────────────────────────────────── */
+.ri-premium .bi-bar {
+	display: flex !important;
+	gap: 5px;
+	margin: 0;
+	min-width: 0;
+}
+
+.ri-premium .bi-bar-hp {
+	grid-area: hp;
+}
+
+.ri-premium .bi-bar-sp {
+	grid-area: sp;
+}
+
+/* O rotulo do mockup ("HP"/"SP") no lugar do glifo: em 11px o coracao e a
+   gota nao se distinguem, e a sigla e a que o jogador de RO le. */
+.ri-premium .bi-bar-icon {
+	display: none;
+}
+
+.ri-premium .bi-bar::before {
+	flex: 0 0 15px;
+	font-size: 9.5px;
+	font-weight: 800;
+	color: var(--m-tinta-suave);
+}
+
+.ri-premium .bi-bar-hp::before {
+	content: 'HP';
+}
+
+.ri-premium .bi-bar-sp::before {
+	content: 'SP';
+}
+
+.ri-premium .bi-bar-track {
+	height: 12px;
+	border: 0;
+	background: var(--m-trilha);
+	box-shadow: inset 0 1px 2px rgba(31, 54, 92, 0.22);
+}
+
+.ri-premium .bi-bar-hp .bi-bar-fill {
+	background: var(--m-hp);
+}
+
+.ri-premium .bi-bar-sp .bi-bar-fill {
+	background: var(--m-sp);
+}
+
+.ri-premium .bi-bar-text {
+	line-height: 12px;
+	font-size: 8.5px;
+	letter-spacing: 0.2px;
+}
+
+/* A % ja esta no tamanho da barra; os numeros dizem o resto. */
+.ri-premium .bi-bar-pct {
+	display: none;
+}
+
+/* ─── Zeny e Cash: pilulas a direita ────────────────────────────────────── */
+.ri-premium .bi-moeda {
+	grid-area: zeny;
+	justify-self: stretch;
+	max-width: none;
+	height: 26px;
+	padding: 0 8px 0 3px;
+	gap: 5px;
+	border-radius: 999px;
+	background: linear-gradient(180deg, #ffffff, #f3f1ea);
+	box-shadow:
+		inset 0 0 0 1px var(--m-ouro-claro),
+		0 1px 3px rgba(10, 26, 47, 0.18);
+}
+
+.ri-premium .bi-moeda-cash {
+	grid-area: cash;
+}
+
+.ri-premium .bi-moeda-medalha {
+	width: 20px;
+	height: 20px;
+	min-width: 20px;
+}
+
+.ri-premium .bi-zeny,
+.ri-premium .bi-cash {
+	margin-left: auto;
+	font-size: 13px;
+	font-weight: 800;
+	color: var(--m-tinta);
+	font-variant-numeric: tabular-nums;
+}
+
+/* ─── Ping, wifi e bateria: o canto que sobra embaixo das pilulas ─────── */
+.ri-premium .bi-aparelho {
+	grid-area: aparelho;
+	justify-self: end;
+	align-self: center;
+	margin: 0;
+	padding: 0 2px 0 0;
+}
+
+/* Telas estreitas (SE, 320): a pilula encolhe antes da barra. */
+@media (max-width: 359px) {
+	.ri-premium .bi-window {
+		grid-template-columns: 48px minmax(0, 1fr) minmax(70px, auto);
+		column-gap: 10px;
+		padding-left: 7px;
+	}
+
+	.ri-premium .bi-avatar-frame {
+		width: 48px;
+		height: 48px;
+	}
+
+	.ri-premium .bi-level-label {
+		min-width: 44px;
+		font-size: 8.5px;
+	}
+
+	.ri-premium .bi-zeny,
+	.ri-premium .bi-cash {
+		font-size: 11.5px;
+	}
+}

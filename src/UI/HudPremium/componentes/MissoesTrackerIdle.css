@@ -1,5 +1,127 @@
-/* HUD MOBILE PREMIUM — MissoesTrackerIdle (15/10/2026).
+/* HUD MOBILE PREMIUM — MissoesTrackerIdle, o CARTAO DE MISSOES (15/10/2026).
 
    Injetado no shadow do componente DEPOIS do CSS dele (hudPremium.js), so
    com `enableHudMobilePremium` ligada. Toda regra mora atras de
-   `.ri-premium`, que so existe no celular em pe. */
+   `.ri-premium`, que so existe no celular em pe.
+
+   O desenho do mockup: cartao marfim de borda dourada; as abas numa faixa
+   azul com a ativa em pilula clara; cada missao numa linha, com o brasao de
+   espadas a esquerda, o titulo em azul e o passo embaixo. As abas, o
+   recolher e o "(i)" sao os de sempre (`MissoesTrackerIdle.js`). */
+
+.ri-premium .mt-painel {
+	border: 1px solid var(--m-ouro-claro);
+	border-bottom: 2px solid var(--m-ouro);
+	border-radius: 14px;
+	background: var(--m-superficie);
+	box-shadow: var(--m-sombra);
+	color: var(--m-tinta);
+}
+
+.ri-premium .mt-abas {
+	gap: 2px;
+	padding: 3px;
+	background: linear-gradient(180deg, #24548c, #183e6b);
+}
+
+.ri-premium .mt-aba {
+	padding: 4px 10px;
+	border-radius: 10px;
+	font-size: 12px;
+	color: #d6e2f2;
+}
+
+.ri-premium .mt-aba.is-ativa {
+	background: linear-gradient(180deg, #fffdf8, #eef3f8);
+	color: var(--m-azul-escuro);
+	box-shadow: inset 0 0 0 1px var(--m-ouro-claro);
+}
+
+.ri-premium .mt-recolher-v {
+	color: #ffffff;
+}
+
+.ri-premium .mt-corpo {
+	padding: 4px 10px 6px;
+	background: transparent;
+}
+
+.ri-premium .mt-bloco {
+	position: relative;
+	padding: 6px 0 7px 32px;
+	border: 0;
+	border-bottom: 1px solid rgba(215, 183, 118, 0.45);
+	border-radius: 0;
+	background: transparent;
+}
+
+.ri-premium .mt-bloco:last-child {
+	border-bottom: 0;
+}
+
+/* O brasao de cada missao (o medalhao de combate do pacote premium). */
+.ri-premium .mt-bloco::before {
+	content: '';
+	position: absolute;
+	left: 0;
+	top: 6px;
+	width: 26px;
+	height: 26px;
+	background: url('/ragidle/hud/premium/combate.webp') center / contain no-repeat;
+	pointer-events: none;
+}
+
+.ri-premium .mt-bloco.is-pronta::before {
+	background-image: url('/ragidle/hud/premium/recompensas.webp');
+}
+
+.ri-premium .mt-ativa-titulo {
+	font-size: 13px;
+	font-weight: 800;
+	color: var(--m-azul-escuro);
+}
+
+.ri-premium .mt-ativa-passo {
+	font-size: 11.5px;
+	line-height: 1.3;
+	color: var(--m-tinta-suave);
+}
+
+.ri-premium .mt-barra {
+	background: var(--m-trilha);
+}
+
+.ri-premium .mt-ver-todas {
+	position: relative;
+	background: transparent;
+	color: var(--m-azul);
+	box-shadow: inset 0 1px 0 rgba(215, 183, 118, 0.45);
+}
+
+/* No celular baixo o cartao encolhe para a fileira de buffs caber entre ele
+   e o chat (medido: em 375x667 o cartao ia ate y=355 e os buffs comecavam em
+   351). O corpo rola por dentro, como sempre; o rodape "Ver todas" desenha
+   36px e toca em 44 (o `::before`, o mesmo recurso do Common.css). */
+@media (max-height: 760px) {
+	.ri-premium .mt-corpo {
+		max-height: 18dvh;
+	}
+
+	.ri-premium .mt-ver-todas {
+		min-height: 36px;
+		padding-top: 4px;
+		padding-bottom: 4px;
+	}
+
+	.ri-premium .mt-ver-todas::before {
+		content: '';
+		position: absolute;
+		inset: -4px 0;
+	}
+}
+
+@media (max-height: 620px) {
+	.ri-premium .mt-corpo {
+		max-height: 16dvh;
+	}
+}

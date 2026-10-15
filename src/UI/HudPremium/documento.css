@@ -11,3 +11,68 @@
    so existe porque o desenho premium muda aquela ancora — o resto continua
    sendo o de D-939.
    ═══════════════════════════════════════════════════════════════════════ */
+
+/* ─── O status termina antes do botao de Menu (o "escudo" do mockup) ───── */
+html.ri-vertical.ri-premium #BasicInfoIdle {
+	top: var(--m-topo) !important;
+	left: calc(var(--safe-esq, 0px) + var(--m-margem)) !important;
+	right: calc(var(--safe-dir, 0px) + var(--m-margem) + var(--m-menu-largura) + 6px) !important;
+}
+
+/* ─── O MINIMAPA VOLTA (revoga o "SEM minimapa" de D-939, so nesta camada) ──
+   Medalhao redondo no canto superior direito, debaixo do Menu e ao lado do
+   cartao de missoes. O canvas e o de sempre (`MiniMapV2`), com o mapa, os
+   pontos e a seta reais; quem desenha o redondo e o CSS do componente. */
+html.ri-vertical.ri-premium #MiniMapV2 {
+	display: block !important;
+	position: fixed !important;
+	z-index: var(--m-z-minimapa) !important;
+	top: var(--m-minimapa-topo) !important;
+	right: calc(var(--safe-dir, 0px) + var(--m-margem)) !important;
+	left: auto !important;
+	bottom: auto !important;
+	width: var(--m-minimapa) !important;
+	height: var(--m-minimapa) !important;
+	transform: none !important;
+}
+
+/* ─── O cartao de missoes divide a faixa com o minimapa ──────────────────── */
+html.ri-vertical.ri-premium #MissoesTrackerIdle {
+	top: var(--m-abaixo-do-topo) !important;
+	width: min(
+		290px,
+		calc(100vw - var(--m-minimapa) - var(--safe-esq, 0px) - var(--safe-dir, 0px) - 3 * var(--m-margem) - 6px)
+	) !important;
+}
+
+/* ─── A coluna de caca, apoiada na barra de atalhos ─────────────────────── */
+html.ri-vertical.ri-premium #HuntButtonIdle {
+	/* O arco do Cacar e do Retornar mora a ESQUERDA do Auto, com a base na
+	   mesma linha da base dele. */
+	right: calc(var(--safe-dir, 0px) + var(--m-margem) + var(--m-auto) + var(--m-folga-do-arco)) !important;
+	bottom: calc(var(--m-grupo-de-acao-base) - 6px) !important;
+}
+
+/* ─── Os buffs: fileira acima do chat, a esquerda (a de D-939 era coluna
+   colada ao trilho, e no celular baixo caia em cima do Cacar) ──────────── */
+html.ri-vertical.ri-premium #StatusIcons {
+	position: fixed !important;
+	top: auto !important;
+	right: auto !important;
+	left: calc(var(--safe-esq, 0px) + var(--m-margem)) !important;
+	bottom: calc(var(--m-acima-dos-atalhos) + var(--hud-chat-altura, 96px) + 8px) !important;
+}
+
+/* ─── O AUTO: o botao grande do canto do polegar (pedido do dono) ─────────
+   Em D-939 ele era o 2o degrau do trilho; aqui ele e o centro do grupo de
+   acao, e o Cacar e o Retornar orbitam a esquerda dele (HuntButtonIdle). */
+html.ri-vertical.ri-premium #CombatCornerIdle {
+	position: fixed !important;
+	top: auto !important;
+	left: auto !important;
+	right: calc(var(--safe-dir, 0px) + var(--m-margem)) !important;
+	bottom: var(--m-grupo-de-acao-base) !important;
+	width: var(--m-auto) !important;
+	height: var(--m-auto) !important;
+	z-index: 51 !important;
+}
