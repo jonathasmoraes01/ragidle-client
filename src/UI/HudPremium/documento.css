@@ -76,3 +76,21 @@ html.ri-vertical.ri-premium #CombatCornerIdle {
 	height: var(--m-auto) !important;
 	z-index: 51 !important;
 }
+
+/* ─── A BARRA DE SKILLS DESLIGADA (o padrao, pedido do dono, 15/10/2026) ───
+   *"tirar essa barra inferior das skills da tela do mobile"*: as skills do
+   rodizio do Bot vao para o arco em volta do Auto (CombatCornerIdle.css desta
+   camada), e o jogador religa a barra nas Configuracoes. O componente segue
+   montado: quem usa skill pelo arco usa o MESMO `ShortCut.useSkill`, e a
+   recarga chega pelo mesmo `setSkillDelay`. */
+html.ri-vertical.ri-premium:not(.ri-com-atalhos) #ShortCut {
+	display: none !important;
+}
+
+/* O Cacar e o Voltar sobem para cima do arco, lado a lado, na coluna da
+   direita (o Cacar no canto do polegar, sobre o Auto). Com a barra ligada o
+   arco some e eles voltam para a esquerda do Auto (a regra de cima). */
+html.ri-vertical.ri-premium:not(.ri-com-atalhos) #HuntButtonIdle {
+	right: calc(var(--safe-dir, 0px) + var(--m-margem)) !important;
+	bottom: calc(var(--m-arco-topo) + 12px) !important;
+}

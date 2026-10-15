@@ -103,6 +103,24 @@ html.ri-premium {
 	/* A folga entre o Auto e o arco: a pilula "Auto · OFF" e mais larga que o
 	   disco, e no disco menor ela pende para dentro do arco. */
 	--m-folga-do-arco: 4px;
+
+	/* ─── O ARCO DE SKILLS (pedido do dono, 15/10/2026) ─────────────────
+	   Com a barra de skills DESLIGADA (o padrao), as tres skills do rodizio
+	   do Bot ficam em volta do Auto, a esquerda, na diagonal e em cima dele.
+	   O disco tem o icone do cliente em 2x (24 -> 48, numero inteiro, regra 4)
+	   e e ele mesmo o alvo do dedo (48 >= 44). O raio deixa um respiro entre o
+	   Auto e os discos, e entre um disco e o vizinho (a corda dos 45 graus). */
+	--m-disco: 48px;
+	--m-respiro-do-arco: 12px;
+	--m-raio-do-arco: calc(var(--m-auto) / 2 + var(--m-respiro-do-arco) + var(--m-disco) / 2);
+	/* A largura que o grupo de acao ocupa com o arco: do canto direito do Auto
+	   a borda esquerda do disco da esquerda (o chat e os buffs terminam antes). */
+	--m-arco-largura: calc(var(--m-auto) / 2 + var(--m-raio-do-arco) + var(--m-disco) / 2 + 3px);
+	/* A altura do topo do disco de cima, medida do fundo da tela: o Cacar e o
+	   Voltar moram logo acima dela, na coluna da direita. */
+	--m-arco-topo: calc(
+		var(--m-grupo-de-acao-base) + var(--m-auto) / 2 + var(--m-raio-do-arco) + var(--m-disco) / 2 + 3px
+	);
 }
 
 /* Celular baixo (375x667, e o SE dentro do Safari, ~550): minimapa, trilho e
@@ -128,5 +146,19 @@ html.ri-premium {
 		--m-auto: 62px;
 		--m-cacar: 48px;
 		--m-folga-do-arco: 14px;
+		/* Com o Auto de 62 a corda dos 45 graus ficava 1px menor que o disco
+		   com o aro: o respiro cresce, e nao o disco (o icone e 2x). */
+		--m-respiro-do-arco: 15px;
 	}
+}
+
+/* ─── A BARRA DE SKILLS DESLIGADA (o padrao da premium) ─────────────────
+   A barra some (documento.css), o rodape perde a altura dela, e o chat e os
+   buffs terminam antes do ARCO, e nao antes da coluna de caca de antes: a
+   largura do grupo de acao passa a ser a do Auto com os discos. A marca
+   `ri-com-atalhos` e a preferencia do jogador (Configuracoes), carimbada por
+   `hudVertical.aplicar`. */
+html.ri-premium:not(.ri-com-atalhos) {
+	--m-atalhos-altura: 0px;
+	--m-coluna-de-caca: var(--m-arco-largura);
 }

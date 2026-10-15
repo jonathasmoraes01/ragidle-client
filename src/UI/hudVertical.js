@@ -68,7 +68,13 @@ import { aplicarTelaDeGiro } from 'UI/giroDoCelular.js';
  * mesmo laco, pelo mesmo motivo de a tela de giro entrar por aqui — um segundo
  * conjunto de ouvintes seria a "segunda rota escrita a mao".
  */
-import { MARCA_PREMIUM, ehHudPremium, garantirCssDoDocumento } from 'UI/HudPremium/hudPremium.js';
+import {
+	MARCA_COM_ATALHOS,
+	MARCA_PREMIUM,
+	barraDeAtalhosLigada,
+	ehHudPremium,
+	garantirCssDoDocumento
+} from 'UI/HudPremium/hudPremium.js';
 
 /** A marca que o CSS le — no `<html>` e no root interno de cada shadow. */
 export const MARCA_VERTICAL = 'ri-vertical';
@@ -144,9 +150,13 @@ export function aplicar(doc, forcar) {
 	if (premium) {
 		garantirCssDoDocumento(d);
 	}
+	/* A barra de skills da premium (nasce desligada): a preferencia muda pela janela de Configuracoes, que
+	   chama `reaplicar` - o cache acima nao a esconde. */
+	const comAtalhos = premium && barraDeAtalhosLigada();
 
 	d.documentElement.classList.toggle(MARCA_VERTICAL, agora);
 	d.documentElement.classList.toggle(MARCA_PREMIUM, premium);
+	d.documentElement.classList.toggle(MARCA_COM_ATALHOS, comAtalhos);
 
 	/*
 	 * O carimbo dentro de cada shadow. `.ui-component-root` e o container que
@@ -160,6 +170,7 @@ export function aplicar(doc, forcar) {
 		if (raiz) {
 			raiz.classList.toggle(MARCA_VERTICAL, agora);
 			raiz.classList.toggle(MARCA_PREMIUM, premium);
+			raiz.classList.toggle(MARCA_COM_ATALHOS, comAtalhos);
 		}
 	}
 	return agora;

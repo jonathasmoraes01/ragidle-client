@@ -67,14 +67,39 @@ const CRUZAMENTOS_PERMITIDOS = new Set([
 	/* O Auto e o 2o degrau do trilho: ele mora DENTRO da caixa do trilho de
 	   proposito (Common.css, D-939). */
 	'auto|trilho',
+	'autoRotulo|trilho',
+	/* O rotulo "Auto · OFF" e a pilula do proprio disco do Auto. */
+	'auto|autoRotulo',
 	/* Voltar e Sentar orbitam o Cacar, como no mockup; o host e um so. */
 	'cacar|sentar',
 	'cacar|voltar',
 	'sentar|voltar'
 ]);
 
-function cruza(a, b) {
+function cruzaCaixa(a, b) {
 	return a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
+}
+
+/** O circulo inscrito de uma peca redonda: centro e raio. */
+function circulo(c) {
+	return { cx: c.x + c.w / 2, cy: c.y + c.h / 2, r: Math.min(c.w, c.h) / 2 };
+}
+
+/* Peca redonda cruza pelo CIRCULO (o disco da diagonal do arco encosta no canto
+   da caixa do Auto sem tocar o Auto); 1px de tolerancia para o arredondamento
+   das caixas. */
+function cruza(a, b) {
+	if (!a.redondo && !b.redondo) return cruzaCaixa(a, b);
+	if (a.redondo && b.redondo) {
+		const p = circulo(a);
+		const q = circulo(b);
+		return Math.hypot(p.cx - q.cx, p.cy - q.cy) < p.r + q.r - 1;
+	}
+	const [redonda, caixa] = a.redondo ? [a, b] : [b, a];
+	const p = circulo(redonda);
+	const px = Math.max(caixa.x, Math.min(p.cx, caixa.x + caixa.w));
+	const py = Math.max(caixa.y, Math.min(p.cy, caixa.y + caixa.h));
+	return Math.hypot(p.cx - px, p.cy - py) < p.r - 1;
 }
 
 function analisar(medida, premium) {
@@ -123,7 +148,9 @@ async function esperarVite() {
 
 async function main() {
 	const so = (process.argv.find(a => a.startsWith('--so=')) || '').slice(5);
-	const variantes = so ? [so] : ['antes', 'premium'];
+	/* `premium` e o padrao da camada (a barra de skills desligada, o arco em
+	   volta do Auto); `premium-atalhos` e a barra ligada nas Configuracoes. */
+	const variantes = so ? [so] : ['antes', 'premium', 'premium-atalhos'];
 	mkdirSync(SAIDA, { recursive: true });
 
 	console.log('[foto-hud-premium] subindo o vite...');
@@ -146,7 +173,8 @@ async function main() {
 		if (process.env.RAG_CHROMIUM) opcoes.executablePath = process.env.RAG_CHROMIUM;
 		navegador = await chromium.launch(opcoes);
 		for (const variante of variantes) {
-			const premium = variante === 'premium';
+			const premium = variante.startsWith('premium');
+			const comAtalhos = variante === 'premium-atalhos';
 			for (const tela of TELAS) {
 				const contexto = await navegador.newContext({
 					viewport: tela.viewport,
@@ -169,7 +197,8 @@ async function main() {
 				   Chromium tentando falar com o Google (num ambiente com proxy, ele
 				   insiste) deixam a rede eternamente "ocupada", e a prova travava
 				   sem dizer por que. O sinal de pronto e o do proprio arnes. */
-				await page.goto(`${URL_BASE}/scripts/arnes-hud-premium.html${premium ? '?premium=1' : ''}`, {
+				const busca = premium ? (comAtalhos ? '?premium=1&atalhos=1' : '?premium=1') : '';
+				await page.goto(`${URL_BASE}/scripts/arnes-hud-premium.html${busca}`, {
 					waitUntil: 'load'
 				});
 				await page.waitForFunction(() => window.__arnesPronto === true, null, { timeout: 30000 });
@@ -183,6 +212,8 @@ async function main() {
 					problemas.push('a marca ri-vertical nao entrou (o criterio de celular em pe nao casou)');
 				if (marcas.premium !== premium)
 					problemas.push(`marca ri-premium = ${marcas.premium}, bandeira = ${premium}`);
+				if (marcas.comAtalhos !== comAtalhos)
+					problemas.push(`marca ri-com-atalhos = ${marcas.comAtalhos}, barra pedida = ${comAtalhos}`);
 				for (const e of erros) problemas.push(`erro no console: ${e.slice(0, 160)}`);
 				relatorio.push({ variante, tela: tela.id, arquivo, problemas, caixas: medida.caixas });
 				const marca = problemas.length ? 'REPROVA' : 'ok';

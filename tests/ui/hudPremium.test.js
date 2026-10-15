@@ -12,7 +12,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import HudVertical, { MARCA_VERTICAL, aplicar } from 'UI/hudVertical.js';
 import HudPremium, {
+	MARCA_COM_ATALHOS,
 	MARCA_PREMIUM,
+	barraDeAtalhosLigada,
+	definirBarraDeAtalhos,
+	esquecerPreferenciasParaTeste,
 	cssDoComponente,
 	componentesComCss,
 	ehHudPremium,
@@ -53,6 +57,8 @@ beforeEach(() => {
 	document.documentElement.className = '';
 	delete window.ROConfig;
 	HudVertical.desligarParaTeste();
+	localStorage.clear();
+	esquecerPreferenciasParaTeste();
 });
 
 afterEach(() => {
@@ -176,6 +182,63 @@ describe('a marca, pela rota de hudVertical.aplicar', () => {
 		aplicar(document);
 		expect(document.documentElement.classList.contains(MARCA_PREMIUM)).toBe(false);
 		expect(raiz.classList.contains(MARCA_PREMIUM)).toBe(false);
+	});
+});
+
+describe('a barra de skills: nasce DESLIGADA e o jogador a liga nas Configuracoes', () => {
+	it('sem nada guardado, desligada', () => {
+		expect(barraDeAtalhosLigada()).toBe(false);
+	});
+
+	it('ligar guarda no aparelho: uma leitura nova (o proximo login) a acha ligada', () => {
+		expect(definirBarraDeAtalhos(true)).toBe(true);
+		esquecerPreferenciasParaTeste();
+		expect(barraDeAtalhosLigada()).toBe(true);
+		definirBarraDeAtalhos(false);
+		esquecerPreferenciasParaTeste();
+		expect(barraDeAtalhosLigada()).toBe(false);
+	});
+
+	it('so `true` liga, tambem no que veio guardado (um valor estranho no storage nao liga)', () => {
+		definirBarraDeAtalhos('sim');
+		expect(barraDeAtalhosLigada()).toBe(false);
+		localStorage.setItem('HudPremium', JSON.stringify({ barraDeAtalhos: 'sim', _version: 1.0 }));
+		esquecerPreferenciasParaTeste();
+		expect(barraDeAtalhosLigada()).toBe(false);
+	});
+
+	it('o storage recusado (modo privado) nao derruba nada: desligada, e ligar vale ate o fim da sessao', () => {
+		vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
+			throw new Error('SecurityError');
+		});
+		vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+			throw new Error('SecurityError');
+		});
+		expect(barraDeAtalhosLigada()).toBe(false);
+		expect(definirBarraDeAtalhos(true)).toBe(true);
+		expect(barraDeAtalhosLigada()).toBe(true);
+		vi.restoreAllMocks();
+	});
+
+	it('a marca `ri-com-atalhos` so com a premium e a barra ligada, nos dois mundos', () => {
+		fingirCriterio(true);
+		ligarPremium();
+		const { raiz } = hostFalso('ShortCut');
+		aplicar(document, true);
+		expect(document.documentElement.classList.contains(MARCA_COM_ATALHOS)).toBe(false);
+		expect(raiz.classList.contains(MARCA_COM_ATALHOS)).toBe(false);
+		definirBarraDeAtalhos(true);
+		HudVertical.reaplicar(document);
+		expect(document.documentElement.classList.contains(MARCA_COM_ATALHOS)).toBe(true);
+		expect(raiz.classList.contains(MARCA_COM_ATALHOS)).toBe(true);
+	});
+
+	it('sem a premium a preferencia nao vale: a barra e a de sempre e nao ha marca', () => {
+		fingirCriterio(true);
+		ligarPremium(false);
+		definirBarraDeAtalhos(true);
+		aplicar(document, true);
+		expect(document.documentElement.classList.contains(MARCA_COM_ATALHOS)).toBe(false);
 	});
 });
 

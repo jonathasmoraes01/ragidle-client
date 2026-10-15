@@ -40,6 +40,7 @@
  */
 
 import { ehAdaptavel } from 'UI/escalaDaHud.js';
+import Preferences from 'Core/Preferences.js';
 
 import tokensCss from './tokens.css?raw';
 import documentoCss from './documento.css?raw';
@@ -55,6 +56,14 @@ import chatBoxCss from './componentes/ChatBox.css?raw';
 
 /** A marca que o CSS le — no `<html>` e no root interno de cada shadow. */
 export const MARCA_PREMIUM = 'ri-premium';
+
+/**
+ * A marca da BARRA DE SKILLS ligada (pedido do dono, 15/10/2026): *"tirar essa barra inferior das skills da
+ * tela do mobile (...) o player pudesse depois habilitar pelas configuracoes a barra de skills tambem, mas por
+ * padrao que ela viesse desativada"*. Sem ela (o padrao), a barra de atalhos some e as tres skills do rodizio
+ * aparecem em volta do Auto; com ela, a barra volta e o arco some. So existe junto com `ri-premium`.
+ */
+export const MARCA_COM_ATALHOS = 'ri-com-atalhos';
 
 /** O atributo do `<style>` de documento, para a injecao ser idempotente. */
 const ATRIBUTO_DO_DOCUMENTO = 'data-hud-premium';
@@ -103,6 +112,46 @@ export function cssDoComponente(nome) {
 		return '';
 	}
 	return CSS_POR_COMPONENTE[nome] || '';
+}
+
+/*
+ * A PREFERENCIA da barra mora no `localStorage` do jogador (`Core/Preferences.js`, chave `HudPremium`), lida
+ * na primeira pergunta e nao no carregamento do modulo: o navegador em modo privado pode recusar o storage, e
+ * a recusa nao pode derrubar o GUIComponent (que importa este modulo).
+ */
+let _prefs = null;
+
+function preferencias() {
+	if (_prefs === null) {
+		try {
+			_prefs = Preferences.get('HudPremium', { barraDeAtalhos: false }, 1.0);
+		} catch {
+			_prefs = { barraDeAtalhos: false, save() {} };
+		}
+	}
+	return _prefs;
+}
+
+/** A barra de skills esta ligada? Nasce DESLIGADA. */
+export function barraDeAtalhosLigada() {
+	return preferencias().barraDeAtalhos === true;
+}
+
+/** Liga ou desliga a barra (a janela de Configuracoes chama; quem reaplica a marca e quem chamou). */
+export function definirBarraDeAtalhos(ligada) {
+	const p = preferencias();
+	p.barraDeAtalhos = ligada === true;
+	try {
+		p.save();
+	} catch {
+		/* storage recusado: vale ate o fim da sessao */
+	}
+	return p.barraDeAtalhos;
+}
+
+/** So para testes: esquece a preferencia lida. */
+export function esquecerPreferenciasParaTeste() {
+	_prefs = null;
 }
 
 /** Os nomes que recebem CSS premium — para o arnes e os testes. */
@@ -161,6 +210,9 @@ export function injetarNoShadow(shadow, nome) {
 
 export default {
 	MARCA_PREMIUM,
+	MARCA_COM_ATALHOS,
+	barraDeAtalhosLigada,
+	definirBarraDeAtalhos,
 	ehHudPremium,
 	cssDoComponente,
 	componentesComCss,

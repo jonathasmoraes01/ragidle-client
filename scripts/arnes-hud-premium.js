@@ -37,6 +37,12 @@ import trackerCss from '/src/UI/Components/MissoesTrackerIdle/MissoesTrackerIdle
 /* O cartao de missoes leva tambem o CSS do "(i)", como no jogo
    (`new GUIComponent('MissoesTrackerIdle', cssText + infoCss)`). */
 import infoCss from '/src/UI/Components/MissoesIdle/infoDaMissao.css?raw';
+import { desenharArco, slotsDoArco } from '/src/UI/Components/CombatCornerIdle/arcoDeSkills.js';
+import { criarRelogioDaBarra } from '/src/UI/Components/ShortCut/relogioDaBarra.js';
+
+/* `?atalhos=1`: a barra de skills LIGADA nas Configuracoes (o arco some). Sem
+   ele, o padrao da premium: a barra desligada e o arco em volta do Auto. */
+HudPremium.definirBarraDeAtalhos(new URLSearchParams(location.search).get('atalhos') === '1');
 
 const icones = texto => texto.replace(/<!--RI_ICONE:(\w+)-->/g, (_, chave) => RiIcones[chave] || '');
 
@@ -297,6 +303,27 @@ semearMissoes();
 semearBuffs();
 semearAtalhos();
 semearChat();
+semearArco();
+
+/* O arco do Auto: o rodizio do Cacador (o formato de `rodizioDoAuto.js`), com
+   a Chuva de Flechas em recarga (o relogio da barra, num instante fixo) e a
+   Blitz Beat desligada no rodizio. */
+function semearArco() {
+	const container = pecas.CombatCornerIdle.$('.cc-rodizio');
+	desenharArco(container, [
+		{ skillId: 46, nome: 'Rajada de Flechas', chave: 'AC_DOUBLE', nivel: 10, ativa: true },
+		{ skillId: 47, nome: 'Chuva de Flechas', chave: 'AC_SHOWER', nivel: 10, ativa: true },
+		{ skillId: 129, nome: 'Ataque do Falcao', chave: 'HT_BLITZBEAT', nivel: 5, ativa: false }
+	]);
+	const relogio = criarRelogioDaBarra({
+		slots: () => slotsDoArco(container),
+		agora: () => 1000,
+		armar: () => 0,
+		desarmar() {}
+	});
+	relogio.recarga(47, 4000);
+	relogio.desenhar(2000);
+}
 
 /* As duas marcas de verdade: a escala (D-934) e a vertical (D-939), que agora
    carimba tambem a premium quando a bandeira esta ligada. */
@@ -325,13 +352,16 @@ requestAnimationFrame(publicarAlturaDoStatus);
 /* ─── A medida ──────────────────────────────────────────────────────────── */
 
 /** A caixa visivel de um elemento, ou null se ele nao ocupa tela. */
-function caixa(el) {
+function caixa(el, redondo) {
 	if (!el) return null;
 	const r = el.getBoundingClientRect();
 	if (r.width < 1 || r.height < 1) return null;
 	const estilo = getComputedStyle(el);
 	if (estilo.visibility === 'hidden' || estilo.display === 'none' || Number(estilo.opacity) === 0) return null;
-	return { x: Math.round(r.left), y: Math.round(r.top), w: Math.round(r.width), h: Math.round(r.height) };
+	const c = { x: Math.round(r.left), y: Math.round(r.top), w: Math.round(r.width), h: Math.round(r.height) };
+	/* Peca REDONDA (os discos): a prova cruza o circulo, e nao a caixa - o
+	   disco da diagonal encosta no canto da caixa do Auto sem tocar o Auto. */
+	return redondo ? { ...c, redondo: true } : c;
 }
 
 /**
@@ -344,9 +374,13 @@ const PECAS_MEDIDAS = {
 	minimapa: ['MiniMapV2', '.mm-body'],
 	missoes: ['MissoesTrackerIdle', '.mt-painel'],
 	trilho: ['TopMenuIdle', '.tm-top'],
-	auto: ['CombatCornerIdle', '.cc-btn--auto'],
-	cacar: ['HuntButtonIdle', '.hb-cacar'],
-	voltar: ['HuntButtonIdle', '.hb-voltar'],
+	auto: ['CombatCornerIdle', '.cc-ring', true],
+	autoRotulo: ['CombatCornerIdle', '.cc-label--v'],
+	skill1: ['CombatCornerIdle', '.cc-skill[data-pos="0"]', true],
+	skill2: ['CombatCornerIdle', '.cc-skill[data-pos="1"]', true],
+	skill3: ['CombatCornerIdle', '.cc-skill[data-pos="2"]', true],
+	cacar: ['HuntButtonIdle', '.hb-cacar', true],
+	voltar: ['HuntButtonIdle', '.hb-voltar', true],
 	sentar: ['HuntButtonIdle', '.hb-sentar'],
 	buffs: ['StatusIcons', '#StatusIcons'],
 	chat: ['ChatBox', '#chatbox'],
@@ -388,13 +422,14 @@ window.__arnes = {
 	marcas() {
 		return {
 			vertical: document.documentElement.classList.contains('ri-vertical'),
-			premium: document.documentElement.classList.contains('ri-premium')
+			premium: document.documentElement.classList.contains('ri-premium'),
+			comAtalhos: document.documentElement.classList.contains('ri-com-atalhos')
 		};
 	},
 	medir() {
 		const caixas = {};
-		for (const [nome, [peca, sel]] of Object.entries(PECAS_MEDIDAS)) {
-			caixas[nome] = caixa(pecas[peca].$(sel));
+		for (const [nome, [peca, sel, redondo]] of Object.entries(PECAS_MEDIDAS)) {
+			caixas[nome] = caixa(pecas[peca].$(sel), redondo);
 		}
 		return { caixas, alvos: alvosDeToque(), viewport: { w: innerWidth, h: innerHeight } };
 	}

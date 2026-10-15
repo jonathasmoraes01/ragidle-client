@@ -15,6 +15,9 @@ import { fraseDoErro } from 'UI/Components/BotMenu/estadoDoBot.js';
 import ChatBox from 'UI/Components/ChatBox/ChatBox.js';
 import RiIcones from 'UI/ri-icones.js';
 import { escreverTitulo } from 'UI/escreverSeMudou.js';
+import { aoRecarga, usarSkill } from 'UI/Components/ShortCut/portaDasSkills.js';
+import { criarRelogioDaBarra } from 'UI/Components/ShortCut/relogioDaBarra.js';
+import { acaoDoToque, desenharArco, slotsDoArco } from './arcoDeSkills.js';
 import htmlText from './CombatCornerIdle.html?raw';
 import cssText from './CombatCornerIdle.css?raw';
 
@@ -37,8 +40,45 @@ function root() {
 	return CombatCornerIdle._shadow || CombatCornerIdle._host;
 }
 
+/*
+ * O ARCO DE SKILLS (15/10/2026, HUD mobile premium): as tres skills do rodizio do Bot em volta do Auto. O
+ * desenho e o toque moram em `arcoDeSkills.js`; aqui so a costura - o rodizio vem do `BotMenu`, a recarga da
+ * barra (`portaDasSkills.js`, o mesmo 0x043d) e o relogio e o MESMO modulo da barra, com os discos como slots.
+ */
+const relogioDoArco = criarRelogioDaBarra({ slots: () => slotsDoArco(arco()) });
+
+function arco() {
+	return root() && root().querySelector('.cc-rodizio');
+}
+
+function syncRodizio(itens) {
+	const container = arco();
+	if (container) {
+		desenharArco(container, itens || []);
+		relogioDoArco.desenhar();
+	}
+}
+
+function onClickArco(event) {
+	const disco = event.target.closest && event.target.closest('.cc-skill');
+	const acao = acaoDoToque(disco);
+	if (!acao) {
+		return;
+	}
+	event.stopImmediatePropagation();
+	if (acao.acao === 'escolher') {
+		BotMenu.toggle();
+		return;
+	}
+	usarSkill(acao.skillId, acao.nivel);
+}
+
 CombatCornerIdle.init = function init() {
 	root().querySelector('.cc-btn--auto').addEventListener('click', onClickAuto);
+	const container = arco();
+	if (container) {
+		container.addEventListener('click', onClickArco);
+	}
 };
 
 CombatCornerIdle.onAppend = function onAppend() {
@@ -47,19 +87,31 @@ CombatCornerIdle.onAppend = function onAppend() {
 	}
 	const soltarLigado = BotMenu.aoMudarLigado(syncAutoState);
 	const soltarCapacidade = BotMenu.aoMudarCapacidade(syncVisibilidade);
+	const soltarRodizio = BotMenu.aoMudarRodizio(syncRodizio);
+	const soltarRecarga = aoRecarga((skillId, delay) => {
+		if (skillId === null) {
+			relogioDoArco.recargaGlobal(delay);
+		} else {
+			relogioDoArco.recarga(skillId, delay);
+		}
+	});
 	desligarOuvintes = () => {
 		soltarLigado();
 		soltarCapacidade();
+		soltarRodizio();
+		soltarRecarga();
 		desligarOuvintes = null;
 	};
 	syncVisibilidade(BotMenu.temCapacidade());
 	syncAutoState(BotMenu.estadoDoLigado());
+	syncRodizio(BotMenu.rodizioDoAuto());
 };
 
 CombatCornerIdle.onRemove = function onRemove() {
 	if (desligarOuvintes) {
 		desligarOuvintes();
 	}
+	relogioDoArco.limpar();
 	aguardandoResposta = false;
 };
 

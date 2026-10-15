@@ -132,3 +132,15 @@
 	top: auto;
 	bottom: 0;
 }
+
+/* ─── Com a barra de skills DESLIGADA (o padrao): em cima do arco ─────────
+   O arco de skills ocupa a esquerda do Auto, entao o Cacar e o Voltar sobem
+   para cima dele, lado a lado na coluna da direita (pedido do dono, 15/10/2026:
+   *"acima do arco, na coluna da direita"*). O Cacar fica no canto, sobre o
+   Auto; o Voltar, miudo, a esquerda dele. */
+.ri-premium:not(.ri-com-atalhos) #HuntButtonIdle {
+	flex-direction: row-reverse;
+	align-items: center;
+	gap: 14px;
+	width: auto;
+}
