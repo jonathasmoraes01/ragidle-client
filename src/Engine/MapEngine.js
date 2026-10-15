@@ -1074,7 +1074,7 @@ const TEXTO_DA_RECUSA_DE_SONO = {
 	// 28/09/2026: o sono GASTA os 10 minutos (item 4b do backlog de seguranca de
 	// 23/09) - quem acorda caca de novo antes de dormir de novo.
 	'amostra-insuficiente':
-		'Ainda não são 10 minutos de caça NESTE mapa: trocar de mapa reinicia a contagem, e depois de acordar é preciso caçar 10 minutos de novo.',
+		'Ainda não são 10 minutos de caça NESTE mapa: a contagem começa no primeiro monstro abatido (com o Bot ou no clique), trocar de mapa a reinicia, e depois de acordar é preciso caçar 10 minutos de novo.',
 	// RAGIDLE (J21, 14/10/2026, D-2477): os 10 minutos passaram parado, sem EXP - dormir renderia zero.
 	'amostra-sem-exp':
 		'Nos últimos 10 minutos neste mapa o personagem não ganhou EXP, e o sono rende o que a caçada rendeu: dormindo agora, ele não ganharia nada. Cace (com o Bot ou no clique) e tente de novo.',
