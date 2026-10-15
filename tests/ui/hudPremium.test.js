@@ -65,25 +65,28 @@ afterEach(() => {
 	vi.unstubAllGlobals();
 });
 
-describe('ehHudPremium — a bandeira falha para DESLIGADO', () => {
-	it('sem ROConfig, desligada', () => {
+/* Desde 15/10/2026 ela e a HUD PADRAO do celular e falha para LIGADO, como a `enableHudAdaptavel`: o navegador
+   de quem ja jogava seguiu com a HUD antiga porque a chave `true` do Config.js nao chegava a ele (a janela
+   anonima vinha com a nova). So `false` exato desliga - o desligar de emergencia do Config.local.js. */
+describe('ehHudPremium — a bandeira falha para LIGADO (a HUD padrao)', () => {
+	it('sem ROConfig nenhum (a casca antes do jogo), desligada', () => {
 		expect(ehHudPremium()).toBe(false);
 	});
 
-	it('com a chave ausente ou false, desligada', () => {
+	it('com a chave AUSENTE, ligada: um Config.js velho no navegador nao segura a HUD antiga', () => {
 		window.ROConfig = { enableHudAdaptavel: true };
-		expect(ehHudPremium()).toBe(false);
+		expect(ehHudPremium()).toBe(true);
+		window.ROConfig = {};
+		expect(ehHudPremium()).toBe(true);
+	});
+
+	it('so `false` exato desliga: "false", 0 e null nao', () => {
+		for (const valor of ['false', 0, null, undefined, true]) {
+			ligarPremium(valor);
+			expect(ehHudPremium()).toBe(true);
+		}
 		ligarPremium(false);
 		expect(ehHudPremium()).toBe(false);
-	});
-
-	it('so `true` exato liga: "true", 1 e "sim" nao', () => {
-		for (const valor of ['true', 1, 'sim']) {
-			ligarPremium(valor);
-			expect(ehHudPremium()).toBe(false);
-		}
-		ligarPremium(true);
-		expect(ehHudPremium()).toBe(true);
 	});
 
 	it('com a camada adaptavel desligada, a premium nao existe', () => {

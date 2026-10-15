@@ -390,7 +390,7 @@ describe('a HUD padrao do celular (pedido do dono, 15/10/2026: "ela deve ser nos
 		expect(modelo).not.toMatch(/\n\s*enableHudMobilePremium: false,/);
 	});
 
-	it('e o desligar de emergencia continua: so `true` liga, entao um `false` no Config.local.js volta a HUD de D-939', () => {
+	it('e o desligar de emergencia continua: um `false` no Config.local.js volta a HUD de D-939', () => {
 		window.ROConfig = { enableHudAdaptavel: true, enableHudMobilePremium: false };
 		expect(HudPremium.ehHudPremium()).toBe(false);
 		window.ROConfig = { enableHudAdaptavel: true, enableHudMobilePremium: true };
