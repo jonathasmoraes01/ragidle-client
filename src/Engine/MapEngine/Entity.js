@@ -691,8 +691,29 @@ function onEntityAction(pkt) {
 				if (DB.isBow(DB.getWeaponType(srcEntity.weapon, true))) {
 					delayTime = (m_attackMotion + 8 / m_motionSpeed) * m_motionSpeed * 24.0;
 					pkt.attackMT += delayTime;
+					// RAGIDLE (15/10/2026): a flecha voa ATE o alvo; sem o alvo na
+					// tela (o mob que sumiu no mesmo tique) nao ha para onde ela
+					// ir. Antes lia `dstEntity.GID` de um null: o TypeError
+					// perdia o resto do handler (a animacao do golpe) e subia
+					// pelo laco do socket. O tempo do golpe (acima) nao muda.
+					if (dstEntity) {
+						const EF_Init_Par = {
+							effectId: 'ef_arrow_projectile',
+							ownerAID: dstEntity.GID,
+							otherAID: srcEntity.GID,
+							startTick: Renderer.tick + pkt.attackMT,
+							otherPosition: srcEntity.position
+						};
+						EffectManager.spam(EF_Init_Par);
+					}
+				}
+			} else if (srcEntity.job in AttackEffect.PROJECTILE) {
+				// Non player projectiles
+				// RAGIDLE (15/10/2026): o mesmo cuidado da flecha acima - o
+				// projetil so existe com o alvo na tela.
+				if (dstEntity) {
 					const EF_Init_Par = {
-						effectId: 'ef_arrow_projectile',
+						effectId: AttackEffect.PROJECTILE[srcEntity.job],
 						ownerAID: dstEntity.GID,
 						otherAID: srcEntity.GID,
 						startTick: Renderer.tick + pkt.attackMT,
@@ -700,26 +721,19 @@ function onEntityAction(pkt) {
 					};
 					EffectManager.spam(EF_Init_Par);
 				}
-			} else if (srcEntity.job in AttackEffect.PROJECTILE) {
-				// Non player projectiles
-				const EF_Init_Par = {
-					effectId: AttackEffect.PROJECTILE[srcEntity.job],
-					ownerAID: dstEntity.GID,
-					otherAID: srcEntity.GID,
-					startTick: Renderer.tick + pkt.attackMT,
-					otherPosition: srcEntity.position
-				};
-				EffectManager.spam(EF_Init_Par);
 			} else if (srcEntity.job in AttackEffect.SPAWN) {
 				// Non player special ranged attack
-				const EF_Init_Par = {
-					effectId: AttackEffect.SPAWN[srcEntity.job],
-					ownerAID: dstEntity.GID,
-					otherAID: srcEntity.GID,
-					startTick: Renderer.tick + pkt.attackMT,
-					otherPosition: srcEntity.position
-				};
-				EffectManager.spam(EF_Init_Par);
+				// RAGIDLE (15/10/2026): idem - nasce no alvo, que pode ter sumido.
+				if (dstEntity) {
+					const EF_Init_Par = {
+						effectId: AttackEffect.SPAWN[srcEntity.job],
+						ownerAID: dstEntity.GID,
+						otherAID: srcEntity.GID,
+						startTick: Renderer.tick + pkt.attackMT,
+						otherPosition: srcEntity.position
+					};
+					EffectManager.spam(EF_Init_Par);
+				}
 			}
 
 			if (dstEntity) {
@@ -1011,6 +1025,12 @@ function onEntityAction(pkt) {
 	 * A guarda e so para a LINHA DO CHAT: a animacao de golpe acima ja rodou, e
 	 * ela nao depende do alvo. Perder a linha de dano de um mob que ja sumiu
 	 * nao custa nada; perder o resto do quadro de rede custa.
+	 *
+	 * (15/10/2026) "A animacao acima ja rodou" so valia para o golpe corpo a
+	 * corpo: os tres ramos de efeito a distancia (a flecha do arco, o projetil
+	 * e o efeito nascido no alvo, dos monstros) liam `dstEntity.GID` sem guarda
+	 * e lancavam ANTES da animacao. Agora os tres testam o alvo, e o golpe a
+	 * distancia chega aqui como o corpo a corpo.
 	 */
 	if (pkt?.damage > 0 && dstEntity) {
 		if (srcEntity.GID === Session.Entity.GID) {
