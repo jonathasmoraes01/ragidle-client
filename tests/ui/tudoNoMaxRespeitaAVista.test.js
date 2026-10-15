@@ -31,6 +31,16 @@
  * lista inteira migrou para a COMPRA — onde nada sai da mochila ate o botao
  * de agir e o total esta na tela. Sem esse caso de compra, esta rodada
  * estaria apagando a funcionalidade em vez de recorta-la.
+ *
+ * ─────────────────────────────────────────────────────────────────────────
+ * 16/10/2026 — terceiro relato do dono, e a `.ns-tudo-lista` SAIU DE VEZ, das
+ * duas pontas. O `hidden` que este arquivo conferia era posto, e NUNCA valeu
+ * no navegador: `.ri-btn` declara `display:inline-flex`, que vence o [hidden]
+ * do user-agent — o jsdom, sem CSS, aprovava o que a tela desmentia. Os casos
+ * passam a cobrar a AUSENCIA do elemento. Na venda o botao de massa diz o
+ * alcance e quantos ("Marcar tudo desta aba (N itens)"), e a pergunta virou o
+ * modal da janela (`tests/ui/vendaComConfirmacao.test.js` cobre o modal
+ * inteiro; aqui fica o caso que ja existia, reescrito sobre ele).
  */
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -161,17 +171,17 @@ describe('o botao de acao em massa avisa quando o alcance encolhe (VENDA)', () =
 		voltarParaTudo();
 	});
 
-	it('sem filtro, o botao principal diz "a lista" e o segundo botao fica escondido', () => {
+	it('sem filtro, o botao principal diz o alcance e quantos, e o segundo botao nao existe', () => {
 		const root = NpcStore.getRoot();
-		expect(root.querySelector('.ns-tudo').textContent).toBe('Tudo no máx');
-		expect(root.querySelector('.ns-tudo-lista').hidden).toBe(true);
+		expect(root.querySelector('.ns-tudo').textContent).toBe('Marcar tudo desta aba (2 itens)');
+		expect(root.querySelector('.ns-tudo-lista')).toBeNull();
 	});
 
 	it('com uma aba ativa, o botao principal avisa "à vista" e enche SO a aba', () => {
 		const root = NpcStore.getRoot();
 		irParaAba('armas');
 
-		expect(root.querySelector('.ns-tudo').textContent).toBe('Tudo à vista');
+		expect(root.querySelector('.ns-tudo').textContent).toBe('Marcar tudo desta aba (1 item)');
 
 		root.querySelector('.ns-tudo').click();
 		voltarParaTudo();
@@ -189,14 +199,14 @@ describe('o botao de acao em massa avisa quando o alcance encolhe (VENDA)', () =
 		 * PRINCIPAL muda de texto — entao o filtro esta mesmo ligado, e o
 		 * `hidden` abaixo nao esta passando por falta de filtro.
 		 */
-		expect(root.querySelector('.ns-tudo').textContent).toBe('Tudo à vista');
+		expect(root.querySelector('.ns-tudo').textContent).toBe('Marcar tudo desta aba (1 item)');
 		expect(
-			root.querySelector('.ns-tudo-lista').hidden,
+			root.querySelector('.ns-tudo-lista'),
 			'a "lista inteira" voltou a venda: e o gesto que vendeu a katar do jogador'
-		).toBe(true);
+		).toBeNull();
 	});
 
-	it('a venda PERGUNTA antes, e o "não" nao manda nada', () => {
+	it('a venda PERGUNTA antes (o modal da janela), e o "Cancelar" nao manda nada', () => {
 		const root = NpcStore.getRoot();
 		const enviados = [];
 		NpcStore.onSubmit = escolha => enviados.push(escolha);
@@ -204,25 +214,26 @@ describe('o botao de acao em massa avisa quando o alcance encolhe (VENDA)', () =
 		root.querySelector('.ns-tudo').click();
 		root.querySelector('.ns-agir').click();
 
-		expect(mocks.prompt.vezes, 'a venda saiu sem perguntar').toBe(1);
+		expect(root.querySelector('.ns-conf').hidden, 'a venda saiu sem perguntar').toBe(false);
+		expect(mocks.prompt.vezes, 'a venda voltou ao prompt que o Enter confirmava').toBe(0);
 		expect(enviados.length, 'a venda foi mandada ANTES da resposta').toBe(0);
 		// Quantos e quanto: 2 linhas, 8 unidades, 3x100 + 5x10 = 350z.
-		expect(mocks.prompt.texto).toContain('2 itens');
-		expect(mocks.prompt.texto).toContain('8 unidades');
-		expect(mocks.prompt.texto).toContain('350');
+		expect(root.querySelector('.ns-conf-lista').children.length).toBe(2);
+		expect(root.querySelector('.ns-conf-vender').textContent).toBe('Vender 8 itens por 350 z');
 
-		mocks.prompt.nao();
-		expect(enviados.length, 'o "não" mandou a venda mesmo assim').toBe(0);
-		expect(qtd(ARMA.index), 'o "não" limpou a escolha do jogador').toBe(3);
+		root.querySelector('.ns-conf-cancelar').click();
+		expect(enviados.length, 'o "Cancelar" mandou a venda mesmo assim').toBe(0);
+		expect(qtd(ARMA.index), 'o "Cancelar" limpou a escolha do jogador').toBe(3);
 
-		mocks.prompt.sim();
-		expect(enviados.length, 'o "sim" nao mandou a venda').toBe(1);
+		root.querySelector('.ns-agir').click();
+		root.querySelector('.ns-conf-vender').click();
+		expect(enviados.length, 'o botao vermelho nao mandou a venda').toBe(1);
 		expect(enviados[0].length).toBe(2);
 		expect(qtd(ARMA.index), 'depois de vender, a escolha tinha de voltar a zero').toBe(0);
 	});
 });
 
-describe('na COMPRA a "lista inteira" continua existindo e continua alcancando tudo', () => {
+describe('na COMPRA o botao de massa tambem alcanca so a vista (a "lista inteira" saiu em 16/10/2026)', () => {
 	beforeEach(async () => {
 		montarJanela();
 
@@ -235,18 +246,19 @@ describe('na COMPRA a "lista inteira" continua existindo e continua alcancando t
 		voltarParaTudo(); // `_categoria` e' de modulo — ver a nota no bloco da venda
 	});
 
-	it('com aba ativa o botao aparece, e ele enche a categoria de fora tambem', () => {
+	it('com aba ativa o "Tudo à vista" enche so a aba, e a "lista inteira" nao existe', () => {
 		const root = NpcStore.getRoot();
 		irParaAba('armas');
 
-		expect(root.querySelector('.ns-tudo-lista').hidden).toBe(false);
-		expect(root.querySelector('.ns-tudo-lista').textContent).toBe('Lista inteira');
+		expect(root.querySelector('.ns-tudo-lista')).toBeNull();
+		expect(root.querySelector('.ns-tudo').textContent).toBe('Tudo à vista');
 
-		root.querySelector('.ns-tudo-lista').click();
+		root.querySelector('.ns-tudo').click();
 		voltarParaTudo();
 
 		expect(qtd(0), 'a arma da aba ativa nao encheu').toBeGreaterThan(0);
-		expect(qtd(1), 'a lista inteira devia alcancar o item fora da aba tambem').toBeGreaterThan(0);
+		expect(qtd(1), 'o item fora da aba encheu').toBe(0);
+		expect(root.querySelector('.ns-desmarcar').hidden, 'o desfazer some com algo marcado').toBe(false);
 	});
 
 	it('a compra NAO pergunta — nada sai da mochila, e o total esta na tela', () => {
