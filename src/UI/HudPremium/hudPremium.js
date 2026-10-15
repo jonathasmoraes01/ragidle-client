@@ -2,9 +2,8 @@
  * UI/HudPremium/hudPremium.js — A HUD MOBILE PREMIUM (15/10/2026).
  *
  * A HUD PADRAO DO CELULAR EM PE desde 15/10/2026 (pedido do dono: *"ela deve
- * ser nossa hud padrao"*): o `Config.js` publica `enableHudMobilePremium:
- * true`. A bandeira continua sendo o desligar de emergencia, sem rebuild
- * (ver "A BANDEIRA FALHA PARA DESLIGADO", abaixo).
+ * ser nossa hud padrao"*). A bandeira continua sendo o desligar de emergencia,
+ * sem rebuild (ver "A BANDEIRA FALHA PARA LIGADO", abaixo).
  *
  * ═══════════════════════════════════════════════════════════════════════
  * O PEDIDO
@@ -32,16 +31,22 @@
  *     de documento (`documento.css`) para as ancoras dos hosts.
  *
  * ═══════════════════════════════════════════════════════════════════════
- * A BANDEIRA FALHA PARA DESLIGADO — o contrario de `enableHudAdaptavel`
+ * A BANDEIRA FALHA PARA LIGADO — como `enableHudAdaptavel` (desde 15/10/2026)
  * ═══════════════════════════════════════════════════════════════════════
- * `enableHudAdaptavel` falha para LIGADO porque e o estado normal do jogo. Esta
- * e uma camada NOVA: sem `ROConfig`, ou com qualquer valor que nao seja
- * exatamente `true`, ela nao existe. Com ela desligada nenhum byte deste
- * diretorio chega ao documento nem a shadow nenhum — a volta e inteira.
+ * Ela nasceu falhando para DESLIGADO, como camada nova em teste. Virando a HUD
+ * padrao, passou a falhar para LIGADO, pelo mesmo motivo da `enableHudAdaptavel`:
+ * e o estado normal do jogo. E houve a prova de que precisava (15/10/2026): no
+ * dia em que ela virou padrao, o navegador de quem ja jogava seguiu com a HUD
+ * antiga mesmo recarregando, enquanto a janela anonima ja vinha com a nova - o
+ * codigo novo chegava, e a chave `true` do `Config.js` nao. Um padrao que depende
+ * de um arquivo de configuracao chegar fresco falha calado; o que o jogador
+ * guardou (ou nao recebeu) nao pode decidir a HUD.
  *
- * Como a outra, ela mora no `Config.js`/`Config.local.js` (publicado como
- * arquivo separado, `no-cache`): ligar e desligar e trocar uma linha, sem
- * rebuild. O `Config.js` a liga; um `false` no `Config.local.js` a desliga.
+ * So `false` EXATO desliga, e e o desligar de emergencia: `enableHudMobilePremium:
+ * false` no `Config.local.js` de producao (publicado `no-cache`), sem rebuild.
+ * Com ela desligada nenhum byte deste diretorio chega ao documento nem a shadow
+ * nenhum — a volta e inteira. Sem `ROConfig` nenhum (a casca antes do jogo), ela
+ * tambem nao existe.
  */
 
 import { ehAdaptavel } from 'UI/escalaDaHud.js';
@@ -102,13 +107,13 @@ const CSS_POR_COMPONENTE = Object.freeze({
 /**
  * A bandeira `enableHudMobilePremium` esta ligada?
  *
- * So `true` liga (ver o cabecalho). E ela depende da camada adaptavel: com
+ * So `false` desliga (ver o cabecalho). E ela depende da camada adaptavel: com
  * `enableHudAdaptavel: false` nao existe HUD vertical, entao nao existe esta.
  */
 export function ehHudPremium() {
 	try {
 		const cfg = typeof window !== 'undefined' ? window.ROConfig : null;
-		return !!cfg && cfg.enableHudMobilePremium === true && ehAdaptavel();
+		return !!cfg && cfg.enableHudMobilePremium !== false && ehAdaptavel();
 	} catch {
 		return false;
 	}

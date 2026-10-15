@@ -107,7 +107,7 @@ window.ROConfigBase = {
 	 * vale com `enableHudAdaptavel` ligada.
 	 *
 	 * E A HUD PADRAO DO CELULAR desde 15/10/2026 (pedido do dono: *"ela deve
-	 * ser nossa hud padrao"*). So `true` liga (`UI/HudPremium/hudPremium.js`):
+	 * ser nossa hud padrao"*). So `false` desliga (`UI/HudPremium/hudPremium.js`):
 	 * para voltar todo mundo a HUD de D-939, ponha `enableHudMobilePremium:
 	 * false` no `Config.local.js` de producao (publicado `no-cache`), sem
 	 * rebuild. O desktop nao muda: a camada so existe no celular em pe.
