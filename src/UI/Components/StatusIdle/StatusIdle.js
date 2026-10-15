@@ -160,6 +160,7 @@ import {
 import { montarLinhaGeral, marcarLinhaAberta, linhaComDetalheDoEvento } from './linhaGeral.js';
 import TitulosDaConta from './titulosDaConta.js';
 import { fraseDaRecusa } from './formatoDosTitulos.js';
+import { criarJuntadorDaFicha } from './juntadorDaFicha.js';
 
 /**
  * Keep in sync with the ":host"/".st-window" size in StatusIdle.css — same
@@ -591,7 +592,38 @@ function requestFicha() {
 		marcarEstado('carregando');
 	}
 	Network.sendPacket(new PACKET.CZ.RAGIDLE_PEDIR_FICHA());
+	_juntadorDaFicha.enviou();
 }
+
+/*
+ * UM PEDIDO POR RAJADA (15/10/2026, `juntadorDaFicha.js`): as mudancas de
+ * status de um quadro viram um pedido so, e nada sai com um pedido em voo (a
+ * mudanca do voo pede UMA vez mais quando a ficha chega). A janela pode ter
+ * fechado ate o quadro seguinte: ai nao pede.
+ */
+function janelaAberta() {
+	const root = _root();
+	const win = root && root.querySelector('.st-window');
+	return !!(win && win.classList.contains('is-open'));
+}
+
+const _juntadorDaFicha = criarJuntadorDaFicha({
+	agendar(fn) {
+		if (typeof requestAnimationFrame === 'function') {
+			requestAnimationFrame(fn);
+		} else {
+			setTimeout(fn, 0);
+		}
+	},
+	enviar() {
+		if (!janelaAberta()) {
+			return false;
+		}
+		requestFicha();
+		return true;
+	},
+	agora: () => Date.now()
+});
 
 /**
  * ZC_RAGIDLE_FICHA — opcode 0x0fef, variable size, JSON UTF-8 payload (see
@@ -600,6 +632,13 @@ function requestFicha() {
  * one handler covers all three triggers, no need to tell them apart.
  */
 function onFichaReceived(pkt) {
+	// Qualquer ficha que chega encerra o voo, ate a quebrada: o pedido foi
+	// respondido. Em try/catch: o juntador nunca pode impedir o desenho.
+	try {
+		_juntadorDaFicha.chegou();
+	} catch (e) {
+		console.error('[StatusIdle] juntador da ficha falhou', e);
+	}
 	let data;
 	try {
 		data = JSON.parse(pkt.json);
@@ -1018,14 +1057,14 @@ Network.hookPacket(PACKET.ZC.RAGIDLE_FICHA, onFichaReceived);
  * com o valor de um buff JA EXPIRADO ate o jogador fazer outra coisa.
  */
 StatusIdle.aoMudarStatus = function aoMudarStatus() {
-	const root = _root();
-	const win = root && root.querySelector('.st-window');
-	if (!win || !win.classList.contains('is-open')) return;
-	requestFicha();
+	if (!janelaAberta()) return;
+	_juntadorDaFicha.pedir();
 };
 
 StatusIdle.limparEstadoDoPersonagem = function limparEstadoDoPersonagem() {
 	StatusIdle.ficha = null;
+	// O pedido em voo era do personagem anterior.
+	_juntadorDaFicha.esquecer();
 	// O detalhe do Codex aberto era do personagem anterior: o proximo abre fechado.
 	_geraisAbertas = [];
 	// O titulo equipado e do PERSONAGEM: o proximo chega no 0x0fb6 da entrada.
