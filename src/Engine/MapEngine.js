@@ -1267,19 +1267,27 @@ function onSonoRecebido(pkt) {
 		return;
 	}
 
-	// O ACK do "acordar": fecha a janela de espera e mostra o resumo.
-	if (_acordarResolvido) return; // o teto de seguranca ja resolveu isto
-	_acordarResolvido = true;
-	if (_janelaDoSonoAtiva) {
-		_janelaDoSonoAtiva.remove();
-		_janelaDoSonoAtiva = null;
+	/*
+	 * D-2482 (15/10/2026): o RESUMO do sono que venceu as 8 h no LOGIN. O jogador ja esta no mundo (o servidor o pagou na
+	 * entrada e o devolveu ao mapa de caca), entao nao ha janela de espera nem reconexao: o "Continuar" so fecha o resumo.
+	 * Antes o sono vencido era pago em silencio e quem dormia a noite toda entrava sem ver o que ganhou.
+	 */
+	const jaNoMundo = corpo.semReconectar === true;
+	if (!jaNoMundo) {
+		// O ACK do "acordar": fecha a janela de espera e mostra o resumo.
+		if (_acordarResolvido) return; // o teto de seguranca ja resolveu isto
+		_acordarResolvido = true;
+		if (_janelaDoSonoAtiva) {
+			_janelaDoSonoAtiva.remove();
+			_janelaDoSonoAtiva = null;
+		}
 	}
 	const resumo = {
 		expBase: Number(corpo.expBase) || 0,
 		expClasse: Number(corpo.expClasse) || 0,
 		tempoDormidoMs: Number(corpo.tempoDormidoMs) || 0
 	};
-	UIManager.showResumoDoSono(resumo, voltarAoMundoDepoisDoSono);
+	UIManager.showResumoDoSono(resumo, jaNoMundo ? () => {} : voltarAoMundoDepoisDoSono);
 }
 
 /* ---------------- A ECONOMIA DE ENERGIA (D-1389/D-1390, 14/09/2026) ---------------- */

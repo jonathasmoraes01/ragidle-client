@@ -358,6 +358,18 @@ describe('a selecao de personagem mostra quem dorme e pergunta antes de encerrar
 	});
 });
 
+describe('o resumo do sono que venceu as 8 h no login (D-2482)', () => {
+	it('semReconectar: o Continuar so fecha o resumo, sem tocar no acordar nem na janela do sono', () => {
+		const i = MOTOR_CRU.indexOf('function onSonoRecebido(');
+		const corpo = MOTOR_CRU.slice(i, MOTOR_CRU.indexOf('\n}', i));
+		expect(corpo).toContain('const jaNoMundo = corpo.semReconectar === true;');
+		// O guarda do acordar e a janela de espera ficam so para o ack do "Acordar agora".
+		const guarda = corpo.slice(corpo.indexOf('if (!jaNoMundo) {'));
+		expect(guarda.slice(0, guarda.indexOf('const resumo'))).toContain('if (_acordarResolvido) return;');
+		expect(corpo).toContain('UIManager.showResumoDoSono(resumo, jaNoMundo ? () => {} : voltarAoMundoDepoisDoSono);');
+	});
+});
+
 describe('o botao da Analise de Caca diz quando a cacada ainda nao deu EXP (D-2477)', () => {
 	it('sem EXP de base na cacada, o botao fica desabilitado com o motivo', () => {
 		const i = ANALISADOR_CRU.indexOf('function sincronizarDormir(');
