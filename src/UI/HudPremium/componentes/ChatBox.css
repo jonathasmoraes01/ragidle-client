@@ -24,10 +24,8 @@
 /* No celular baixo (o SE no Safari, ~375x553, e o 320x568) a coluna nao
    cabe com o log aberto: ele nasce FECHADO - abas e barra de digitar -, e a
    escada de tamanho do jogador continua abrindo quando ele quiser. */
-@media (max-height: 620px) {
-	.ri-premium #chatbox {
-		--cb-altura: 0px;
-	}
+.ri-premium.ri-tela-minima #chatbox {
+	--cb-altura: 0px;
 }
 
 .ri-premium #chatbox .cb-aba.is-active {
@@ -63,7 +61,7 @@
 	width: min(
 		300px,
 		calc(
-			100vw - var(--safe-esq, 0px) - var(--safe-dir, 0px) - 2 * var(--m-margem, 8px) -
+			var(--m-largura-util, 100vw) - var(--safe-esq, 0px) - var(--safe-dir, 0px) - 2 * var(--m-margem, 8px) -
 				var(--m-coluna-de-caca, 120px) - 10px
 		)
 	) !important;

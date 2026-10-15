@@ -69,6 +69,12 @@ html.ri-premium {
 	   esquerda dele. A altura que sobra entre o status e a barra de atalhos
 	   decide o tamanho de cada um - as faixas de altura logo abaixo. */
 	--m-margem: 8px;
+	/* A LARGURA DA TELA EM UNIDADES DA HUD (15/10/2026). Com o Tamanho da HUD (Configuracoes de Video) o host
+	   ganha `zoom`, e o `zoom` multiplica tambem o `100vw` usado dentro dele: a 120% uma largura de
+	   `100vw - X` desenhava 1,2 x a tela (medido). Dividir pela escala devolve a conta a tela de verdade.
+	   `--ui-escala` e a que `escalaDaHud.js` publica no `<html>`. */
+	--m-largura-util: calc(100vw / var(--ui-escala, 1));
+	--m-altura-util: calc(100dvh / var(--ui-escala, 1));
 	--m-topo: calc(var(--safe-topo, 0px) + 6px);
 	/* A altura do cartao de status: a MEDIDA que `BasicInfoIdle.js` publica
 	   (`--hud-basic-altura`), com o valor de nascenca para o primeiro quadro. */
@@ -131,30 +137,26 @@ html.ri-premium {
 /* Celular baixo (375x667, e o SE dentro do Safari, ~550): minimapa, trilho e
    grupo de acao encolhem para a coluna da direita caber entre o status e a
    barra de atalhos. */
-@media (max-height: 760px) {
-	html.ri-premium {
-		--m-minimapa: 86px;
-		--m-trilho-icone: 44px;
-		--m-trilho-passo: 52px;
-		--m-auto: 68px;
-		--m-cacar: 52px;
-	}
+html.ri-premium.ri-tela-baixa {
+	--m-minimapa: 86px;
+	--m-trilho-icone: 44px;
+	--m-trilho-passo: 52px;
+	--m-auto: 68px;
+	--m-cacar: 52px;
 }
 
 /* O mais baixo (o SE dentro do Safari, ~375x553, e o 320x568): a coluna da
    direita, medida no 320x568, so fecha com o RO Shop fora do trilho (ele
    continua no Menu) e o minimapa em 66px. */
-@media (max-height: 620px) {
-	html.ri-premium {
-		--m-minimapa: 66px;
-		--m-trilho-passo: 46px;
-		--m-auto: 62px;
-		--m-cacar: 48px;
-		--m-folga-do-arco: 14px;
-		/* Com o Auto de 62 a corda dos 45 graus ficaria menor que o alvo de
-		   44: o respiro cresce, e nao o alvo. */
-		--m-respiro-do-arco: 8px;
-	}
+html.ri-premium.ri-tela-minima {
+	--m-minimapa: 66px;
+	--m-trilho-passo: 46px;
+	--m-auto: 62px;
+	--m-cacar: 48px;
+	--m-folga-do-arco: 14px;
+	/* Com o Auto de 62 a corda dos 45 graus ficaria menor que o alvo de
+	   44: o respiro cresce, e nao o alvo. */
+	--m-respiro-do-arco: 8px;
 }
 
 /* ─── A BARRA DE SKILLS DESLIGADA (o padrao da premium) ─────────────────

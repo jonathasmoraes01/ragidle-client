@@ -135,3 +135,13 @@
 #GraphicsOption .reset-button {
 	width: 100%;
 }
+
+/*
+ * O TAMANHO DA HUD (15/10/2026) so vale no mouse e na HUD mobile premium (`fatorValeAqui`, UI/escalaDaHud.js):
+ * no celular sem ela a opcao nao faria nada, e um controle que nao faz nada se le como quebrado.
+ */
+@media (pointer: coarse) {
+	.ui-component-root:not(.ri-premium) #GraphicsOption .tamanho-da-hud {
+		display: none;
+	}
+}

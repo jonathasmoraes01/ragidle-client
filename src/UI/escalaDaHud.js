@@ -66,6 +66,9 @@
 
 /** O menor tamanho em que a HUD cabe inteira, medido na matriz desta frente. */
 import TecladoVirtual from 'UI/tecladoVirtual.js';
+/* O tamanho que o JOGADOR escolheu (Configuracoes de Video, 15/10/2026). `Preferences/Graphics.js` so importa
+   `Core/Preferences.js`, entao este modulo continua sem ciclo com quem o importa (GUIComponent, UIManager). */
+import GraphicsSettings from 'Preferences/Graphics.js';
 
 const LARGURA_BASE = 1024;
 const ALTURA_BASE = 768;
@@ -137,8 +140,81 @@ export function ehDedo() {
 	return window.matchMedia('(pointer: coarse)').matches;
 }
 
-/** A escala que a janela atual pede. */
+/**
+ * O TAMANHO DA HUD QUE O JOGADOR ESCOLHE (pedido do dono, 15/10/2026): *"uma opcao de video, onde a pessoa
+ * consegue aumentar ou diminuir a hud toda"*. Em %, nas Configuracoes de Video (`GraphicsOption`).
+ *
+ * Ele MULTIPLICA a escala de cima, e nao a substitui: no desktop a janela pequena continua encolhendo a HUD, e
+ * o jogador ajusta por cima. No celular a escala de cima e 1 (o piso de toque, ver o cabecalho), entao o
+ * numero dele e o zoom inteiro - e abaixo de 100% os alvos de 44px encolhem junto. A escolha e dele; o padrao
+ * continua 100%.
+ */
+export const OPCOES_DE_ESCALA = Object.freeze([70, 80, 90, 100, 110, 120]);
+
+/** O fator escolhido (1 = 100%), sempre um dos de `OPCOES_DE_ESCALA`. Storage ilegivel = 100%. */
+export function fatorDoJogador() {
+	let pedido = 100;
+	try {
+		pedido = Number(GraphicsSettings.escalaDaHud);
+	} catch (erro) {
+		/* preferencias indisponiveis: 100% */
+	}
+	if (!Number.isFinite(pedido) || pedido <= 0) {
+		return 1;
+	}
+	let perto = 100;
+	for (const opcao of OPCOES_DE_ESCALA) {
+		if (Math.abs(opcao - pedido) < Math.abs(perto - pedido)) {
+			perto = opcao;
+		}
+	}
+	return perto / 100;
+}
+
+/**
+ * A MENOR TELA EM QUE A HUD MOBILE PREMIUM CABE, em unidades da HUD: a matriz dela vai de 320 de largura ao
+ * SE dentro do Safari (~553 de altura), e passa nas duas pontas. Aumentar a HUD num celular e montar o layout
+ * de uma tela MENOR esticado - a 120% um 375x667 vira um 312x556 -, entao o aumento para onde a tela em
+ * unidades da HUD ficaria menor que esta. No 320x568 isso e 100%: ali nao ha para onde crescer.
+ */
+const LARGURA_MINIMA_NO_TOQUE = 320;
+const ALTURA_MINIMA_NO_TOQUE = 553;
+
+/*
+ * No celular o fator so vale na HUD mobile premium (a marca `ri-premium`, carimbada por `hudVertical.js`): a
+ * HUD vertical de D-939, a que esta no ar, foi medida so em 100%, e um tamanho que ninguem mediu nao vai para o
+ * jogador por uma opcao de video. No mouse o `zoom` e o de D-934, medido de 0,5 a 1, e o fator vale sempre.
+ */
+function fatorValeAqui() {
+	if (!ehDedo()) {
+		return true;
+	}
+	const raiz = typeof document !== 'undefined' ? document.documentElement : null;
+	return !!raiz && raiz.classList.contains('ri-premium');
+}
+
+/**
+ * A escala que a janela atual pede, ja com o tamanho escolhido pelo jogador. Diminuir vale sempre; aumentar
+ * para no que a tela comporta (no mouse, a tela em que a HUD de desktop cabe inteira, `LARGURA_BASE` x
+ * `ALTURA_BASE`; no dedo, a menor tela da HUD premium), e nunca fica abaixo da escala sem o fator.
+ */
 export function escalaAtual(largura, altura) {
+	const w = largura || (typeof window !== 'undefined' ? window.innerWidth : 0) || 0;
+	const h = altura || (typeof window !== 'undefined' ? window.innerHeight : 0) || 0;
+	const base = escalaDaJanela(w, h);
+	const fator = fatorValeAqui() ? fatorDoJogador() : 1;
+	if (fator <= 1 || !w || !h) {
+		return Math.round(base * fator * 100) / 100;
+	}
+	const cabe = ehDedo()
+		? Math.min(w / LARGURA_MINIMA_NO_TOQUE, h / ALTURA_MINIMA_NO_TOQUE)
+		: Math.min(w / LARGURA_BASE, h / ALTURA_BASE);
+	const teto = Math.max(base, Math.floor(cabe * 100) / 100);
+	return Math.min(Math.round(base * fator * 100) / 100, teto);
+}
+
+/** A escala que so a JANELA pede (D-934): 1 no dedo, e no mouse o quanto a janela e menor que a base. */
+function escalaDaJanela(largura, altura) {
 	if (ehDedo()) {
 		return 1;
 	}
@@ -264,6 +340,8 @@ export default {
 	ehDedo,
 	MARCA_CLASSICA,
 	escalaAtual,
+	fatorDoJogador,
+	OPCOES_DE_ESCALA,
 	aplicar,
 	ligar,
 	reaplicar,

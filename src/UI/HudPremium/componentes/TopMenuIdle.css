@@ -167,12 +167,10 @@
 /* Celular baixo: sem rotulo, o passo do trilho e o proprio medalhao, e o RO
    Shop sai do trilho (continua no Menu, na mesma porta) - a coluna da direita
    nao fecha com cinco degraus entre o minimapa e o Cacar (tokens.css). */
-@media (max-height: 620px) {
-	.ri-premium #TopMenuIdle:not(.tm-aberto) .tm-top .tm-label {
-		display: none;
-	}
+.ri-premium.ri-tela-minima #TopMenuIdle:not(.tm-aberto) .tm-top .tm-label {
+	display: none;
+}
 
-	.ri-premium #TopMenuIdle:not(.tm-aberto) .tm-top .tm-item--roshop {
-		display: none !important;
-	}
+.ri-premium.ri-tela-minima #TopMenuIdle:not(.tm-aberto) .tm-top .tm-item--roshop {
+	display: none !important;
 }

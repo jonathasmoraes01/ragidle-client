@@ -51,7 +51,7 @@
  *     atual, medido.
  */
 
-import { ehAdaptavel } from 'UI/escalaDaHud.js';
+import { ehAdaptavel, escalaAtual, reaplicar as reaplicarEscala } from 'UI/escalaDaHud.js';
 /*
  * D-1491: o celular DEITADO recusa desenhar e pede para girar. Ele entra por
  * aqui — e nao com ouvintes proprios — porque este modulo ja escuta `resize`,
@@ -78,6 +78,33 @@ import {
 
 /** A marca que o CSS le — no `<html>` e no root interno de cada shadow. */
 export const MARCA_VERTICAL = 'ri-vertical';
+
+/**
+ * AS FAIXAS DE TELA DA HUD PREMIUM (15/10/2026), medidas em UNIDADES DA HUD: a tela dividida pela escala.
+ *
+ * Elas eram `@media (max-height: ...)`, e a media query mede a tela em pixel do aparelho. Com o Tamanho da HUD
+ * (Configuracoes de Video) isso mente: a 120% um 375x667 tem so 556 de altura para a HUD, mas a media query
+ * ainda ve 667 e monta a coluna da direita para 667 - medido, o Cacar caia em cima do trilho. Quem sabe a
+ * escala e o JS, entao as faixas viram marcas carimbadas aqui, na mesma rota de `ri-premium`. Os cortes sao os
+ * mesmos das media queries de antes.
+ */
+export const MARCA_TELA_BAIXA = 'ri-tela-baixa';
+export const MARCA_TELA_MINIMA = 'ri-tela-minima';
+export const MARCA_TELA_ESTREITA = 'ri-tela-estreita';
+const CORTE_BAIXA = 760;
+const CORTE_MINIMA = 620;
+const CORTE_ESTREITA = 359;
+
+/** As tres faixas para a tela de agora, em unidades da HUD (todas false fora da premium). */
+export function faixasDaTela(premium) {
+	if (!premium || typeof window === 'undefined') {
+		return { baixa: false, minima: false, estreita: false };
+	}
+	const escala = escalaAtual() || 1;
+	const altura = (window.innerHeight || 0) / escala;
+	const largura = (window.innerWidth || 0) / escala;
+	return { baixa: altura <= CORTE_BAIXA, minima: altura <= CORTE_MINIMA, estreita: largura <= CORTE_ESTREITA };
+}
 
 /** O criterio, escrito UMA vez. */
 const CRITERIO = '(pointer: coarse) and (orientation: portrait) and (max-width: 599px)';
@@ -138,15 +165,18 @@ export function aplicar(doc, forcar) {
 	}
 
 	const agora = ehCelularEmPe();
-	if (!forcar && agora === _ultimo) {
+	/* A premium so vale em pe; a bandeira e estatica no runtime. O CSS de documento entra na primeira vez que
+	   ela vale, antes da marca, para o primeiro quadro ja sair desenhado. */
+	const premium = agora && ehHudPremium();
+	/* As faixas mudam com o tamanho da janela E com a escala; a chave do cache leva as duas coisas, senao girar
+	   o celular ou trocar o Tamanho da HUD sairia cedo com as faixas velhas. */
+	const faixas = faixasDaTela(premium);
+	const chave = `${agora}|${faixas.baixa}|${faixas.minima}|${faixas.estreita}`;
+	if (!forcar && chave === _ultimo) {
 		return agora;
 	}
-	_ultimo = agora;
-
-	/* A premium so vale em pe; a bandeira e estatica no runtime, entao o cache
-	   de `agora` cobre as duas marcas. O CSS de documento entra na primeira vez
-	   que ela vale, antes da marca, para o primeiro quadro ja sair desenhado. */
-	const premium = agora && ehHudPremium();
+	const premiumMudou = premium !== d.documentElement.classList.contains(MARCA_PREMIUM);
+	_ultimo = chave;
 	if (premium) {
 		garantirCssDoDocumento(d);
 	}
@@ -157,6 +187,20 @@ export function aplicar(doc, forcar) {
 	d.documentElement.classList.toggle(MARCA_VERTICAL, agora);
 	d.documentElement.classList.toggle(MARCA_PREMIUM, premium);
 	d.documentElement.classList.toggle(MARCA_COM_ATALHOS, comAtalhos);
+	/* O Tamanho da HUD so vale no celular COM a premium (`escalaDaHud.js`, `fatorValeAqui`), e ela le esta marca:
+	   quando a premium entra ou sai, a escala e refeita e as faixas medidas de novo com ela. */
+	if (premiumMudou) {
+		reaplicarEscala(d);
+	}
+	const faixasAgora = premiumMudou ? faixasDaTela(premium) : faixas;
+	const marcasDaTela = [
+		[MARCA_TELA_BAIXA, faixasAgora.baixa],
+		[MARCA_TELA_MINIMA, faixasAgora.minima],
+		[MARCA_TELA_ESTREITA, faixasAgora.estreita]
+	];
+	for (const [marca, vale] of marcasDaTela) {
+		d.documentElement.classList.toggle(marca, vale);
+	}
 
 	/*
 	 * O carimbo dentro de cada shadow. `.ui-component-root` e o container que
@@ -171,6 +215,9 @@ export function aplicar(doc, forcar) {
 			raiz.classList.toggle(MARCA_VERTICAL, agora);
 			raiz.classList.toggle(MARCA_PREMIUM, premium);
 			raiz.classList.toggle(MARCA_COM_ATALHOS, comAtalhos);
+			for (const [marca, vale] of marcasDaTela) {
+				raiz.classList.toggle(marca, vale);
+			}
 		}
 	}
 	return agora;

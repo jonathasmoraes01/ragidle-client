@@ -102,28 +102,24 @@
    e o chat (medido: em 375x667 o cartao ia ate y=355 e os buffs comecavam em
    351). O corpo rola por dentro, como sempre; o rodape "Ver todas" desenha
    36px e toca em 44 (o `::before`, o mesmo recurso do Common.css). */
-@media (max-height: 760px) {
-	.ri-premium .mt-corpo {
-		max-height: 18dvh;
-	}
-
-	.ri-premium .mt-ver-todas {
-		min-height: 36px;
-		padding-top: 4px;
-		padding-bottom: 4px;
-	}
-
-	.ri-premium .mt-ver-todas::before {
-		content: '';
-		position: absolute;
-		inset: -4px 0;
-	}
+.ri-premium.ri-tela-baixa .mt-corpo {
+	max-height: calc(0.18 * var(--m-altura-util, 100dvh));
 }
 
-@media (max-height: 620px) {
-	.ri-premium .mt-corpo {
-		max-height: 16dvh;
-	}
+.ri-premium.ri-tela-baixa .mt-ver-todas {
+	min-height: 36px;
+	padding-top: 4px;
+	padding-bottom: 4px;
+}
+
+.ri-premium.ri-tela-baixa .mt-ver-todas::before {
+	content: '';
+	position: absolute;
+	inset: -4px 0;
+}
+
+.ri-premium.ri-tela-minima .mt-corpo {
+	max-height: calc(0.16 * var(--m-altura-util, 100dvh));
 }
 
 /* ═══════════════════════════════════════════════════════════════════════

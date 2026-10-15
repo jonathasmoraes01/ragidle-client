@@ -41,7 +41,10 @@ html.ri-vertical.ri-premium #MissoesTrackerIdle {
 	top: var(--m-abaixo-do-topo) !important;
 	width: min(
 		290px,
-		calc(100vw - var(--m-minimapa) - var(--safe-esq, 0px) - var(--safe-dir, 0px) - 3 * var(--m-margem) - 6px)
+		calc(
+			var(--m-largura-util, 100vw) - var(--m-minimapa) - var(--safe-esq, 0px) - var(--safe-dir, 0px) - 3 *
+				var(--m-margem) - 6px
+		)
 	) !important;
 }
 

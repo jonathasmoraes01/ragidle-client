@@ -18,7 +18,7 @@ import Targa from 'Loaders/Targa.js';
 import ClampToViewport from 'UI/ClampToViewport.js';
 import { alvosDaVarredura } from 'UI/alvosDaVarredura.js';
 // D-1489: a barra legada do RO e para MOUSE; no dedo quem rola e o navegador.
-// `escalaDaHud.js` nao importa nada (e folha), entao nao ha ciclo possivel.
+// `escalaDaHud.js` so importa folhas (`tecladoVirtual.js`, `Preferences/Graphics.js`), entao nao ha ciclo possivel.
 import { ehDedo } from 'UI/escalaDaHud.js';
 import { observarRaiz } from 'UI/traducaoDaInterface.js';
 

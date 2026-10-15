@@ -17,6 +17,8 @@ import NomesDosJogadores from 'Engine/MapEngine/NomesDosJogadores.js'; // RAGIDL
 import Renderer from 'Renderer/Renderer.js';
 import UIManager from 'UI/UIManager.js';
 import GUIComponent from 'UI/GUIComponent.js';
+import EscalaDaHud, { OPCOES_DE_ESCALA } from 'UI/escalaDaHud.js';
+import { reaplicar as reaplicarHudVertical } from 'UI/hudVertical.js';
 import htmlText from './GraphicsOption.html?raw';
 import cssText from './GraphicsOption.css?raw';
 import { abaLembrada, lembrarAba } from '../memoriaDeAba.js'; // RAGIDLE
@@ -118,6 +120,17 @@ GraphicsOption.init = function init() {
 		if (el) el.addEventListener('change', handler);
 	};
 
+	// O tamanho da HUD: as opcoes saem da mesma lista que a escala aceita, para as duas nunca divergirem.
+	const escala = root.querySelector('.escala-da-hud');
+	if (escala && !escala.options.length) {
+		for (const valor of OPCOES_DE_ESCALA) {
+			const opcao = document.createElement('option');
+			opcao.value = String(valor);
+			opcao.textContent = `${valor}%`;
+			escala.appendChild(opcao);
+		}
+	}
+	bindChange('.escala-da-hud', onUpdateEscalaDaHud);
 	bindChange('.details', onUpdateQualityDetails);
 	bindChange('.player-names', onTogglePlayerNames);
 	bindChange('.economia-automatica', onToggleEconomiaAutomatica);
@@ -165,6 +178,7 @@ GraphicsOption.onAppend = function onAppend() {
 	// entao sem isto quem fechou em "Advanced" reabria em "Basic".
 	aplicarAba(root, abaLembrada(_preferences, ABA_PADRAO, ABAS));
 
+	root.querySelector('.escala-da-hud').value = String(Math.round(EscalaDaHud.fatorDoJogador() * 100));
 	root.querySelector('.details').value = GraphicsSettings.quality;
 	root.querySelector('.screensize').value = GraphicsSettings.screensize;
 	// `!== false` e o mesmo criterio de `NomesDosJogadores.ligado()`: preferencia
@@ -230,6 +244,18 @@ function onUpdateQualityDetails() {
  * quem entrasse na vista DEPOIS, e o jogador que acabou de clicar veria a tela
  * nao mudar — o que se le como opcao quebrada.
  */
+/**
+ * RAGIDLE (15/10/2026): o tamanho da HUD. Grava e reaplica NA HORA em todo componente aberto (a escala varre os
+ * hosts): o jogador ve a HUD mudar com a janela ainda aberta, sem relogar.
+ */
+function onUpdateEscalaDaHud() {
+	GraphicsSettings.escalaDaHud = parseInt(this.value, 10);
+	GraphicsSettings.save();
+	EscalaDaHud.reaplicar(document);
+	// As faixas de tela da HUD premium sao medidas em unidades da HUD: mudam com a escala (hudVertical.js).
+	reaplicarHudVertical(document);
+}
+
 /** RAGIDLE (23/09/2026): liga/desliga a economia de energia automatica. */
 function onToggleEconomiaAutomatica() {
 	GraphicsSettings.economiaDeEnergiaAutomatica = !!this.checked;
@@ -442,6 +468,9 @@ function onResetToDefaults() {
 		}
 	});
 	GraphicsSettings.save();
+	// O tamanho da HUD tambem volta ao padrao, e na tela, nao so no storage.
+	EscalaDaHud.reaplicar(document);
+	reaplicarHudVertical(document);
 
 	GraphicsOption.onAppend();
 }

@@ -17,7 +17,7 @@
 	display: flex;
 	flex-wrap: wrap;
 	gap: 4px;
-	max-width: calc(100vw - var(--m-coluna-de-caca, 120px) - 4 * var(--m-margem, 8px));
+	max-width: calc(var(--m-largura-util, 100vw) - var(--m-coluna-de-caca, 120px) - 4 * var(--m-margem, 8px));
 }
 
 /* `relative` (a dica ancora nele) com os deslocamentos inline anulados:

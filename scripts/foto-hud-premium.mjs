@@ -102,7 +102,9 @@ function cruza(a, b) {
 	return Math.hypot(p.cx - px, p.cy - py) < p.r - 1;
 }
 
-function analisar(medida, premium) {
+/* O piso de toque e de 44 UNIDADES DA HUD: com o Tamanho da HUD abaixo de 100% o alvo encolhe junto, por
+   escolha do jogador (Configuracoes de Video). Acima de 100% o piso segue 44. */
+function analisar(medida, premium, piso = 44) {
 	const problemas = [];
 	const nomes = Object.keys(medida.caixas).filter(n => medida.caixas[n]);
 	for (let i = 0; i < nomes.length; i++) {
@@ -125,7 +127,7 @@ function analisar(medida, premium) {
 	   dela na `prove:hud-responsiva`, e esta prova nao e o lugar de reabri-la. */
 	if (premium) {
 		for (const alvo of medida.alvos) {
-			if (alvo.w < 44 || alvo.h < 44) {
+			if (alvo.w < piso - 0.5 || alvo.h < piso - 0.5) {
 				problemas.push(`alvo pequeno ${alvo.peca} "${alvo.rotulo}" ${alvo.w}x${alvo.h}`);
 			}
 		}
@@ -150,7 +152,8 @@ async function main() {
 	const so = (process.argv.find(a => a.startsWith('--so=')) || '').slice(5);
 	/* `premium` e o padrao da camada (a barra de skills desligada, o arco em
 	   volta do Auto); `premium-atalhos` e a barra ligada nas Configuracoes. */
-	const variantes = so ? [so] : ['antes', 'premium', 'premium-atalhos'];
+	/* `premium-70`/`premium-120`: os extremos do Tamanho da HUD (Configuracoes de Video). */
+	const variantes = so ? so.split(',') : ['antes', 'premium', 'premium-atalhos', 'premium-70', 'premium-120'];
 	mkdirSync(SAIDA, { recursive: true });
 
 	console.log('[foto-hud-premium] subindo o vite...');
@@ -175,6 +178,7 @@ async function main() {
 		for (const variante of variantes) {
 			const premium = variante.startsWith('premium');
 			const comAtalhos = variante === 'premium-atalhos';
+			const escala = (variante.match(/^premium-(\d+)$/) || [])[1] || '';
 			for (const tela of TELAS) {
 				const contexto = await navegador.newContext({
 					viewport: tela.viewport,
@@ -197,17 +201,19 @@ async function main() {
 				   Chromium tentando falar com o Google (num ambiente com proxy, ele
 				   insiste) deixam a rede eternamente "ocupada", e a prova travava
 				   sem dizer por que. O sinal de pronto e o do proprio arnes. */
-				const busca = premium ? (comAtalhos ? '?premium=1&atalhos=1' : '?premium=1') : '';
+				const busca = premium
+					? `?premium=1${comAtalhos ? '&atalhos=1' : ''}${escala ? `&escala=${escala}` : ''}`
+					: '';
 				await page.goto(`${URL_BASE}/scripts/arnes-hud-premium.html${busca}`, {
 					waitUntil: 'load'
 				});
 				await page.waitForFunction(() => window.__arnesPronto === true, null, { timeout: 30000 });
-				await page.waitForTimeout(300);
+				await page.waitForTimeout(700);
 				const marcas = await page.evaluate(() => window.__arnes.marcas());
 				const medida = await page.evaluate(() => window.__arnes.medir());
 				const arquivo = join(SAIDA, `${variante}-${tela.id}.png`);
 				await page.screenshot({ path: arquivo });
-				const problemas = analisar(medida, premium);
+				const problemas = analisar(medida, premium, 44 * Math.min(1, (Number(escala) || 100) / 100));
 				if (!marcas.vertical)
 					problemas.push('a marca ri-vertical nao entrou (o criterio de celular em pe nao casou)');
 				if (marcas.premium !== premium)

@@ -254,25 +254,23 @@
 }
 
 /* Telas estreitas (SE, 320): a pilula encolhe antes da barra. */
-@media (max-width: 359px) {
-	.ri-premium .bi-window {
-		grid-template-columns: 48px minmax(0, 1fr) minmax(70px, auto);
-		column-gap: 10px;
-		padding-left: 7px;
-	}
+.ri-premium.ri-tela-estreita .bi-window {
+	grid-template-columns: 48px minmax(0, 1fr) minmax(70px, auto);
+	column-gap: 10px;
+	padding-left: 7px;
+}
 
-	.ri-premium .bi-avatar-frame {
-		width: 48px;
-		height: 48px;
-	}
+.ri-premium.ri-tela-estreita .bi-avatar-frame {
+	width: 48px;
+	height: 48px;
+}
 
-	.ri-premium .bi-level-label {
-		min-width: 44px;
-		font-size: 8.5px;
-	}
+.ri-premium.ri-tela-estreita .bi-level-label {
+	min-width: 44px;
+	font-size: 8.5px;
+}
 
-	.ri-premium .bi-zeny,
-	.ri-premium .bi-cash {
-		font-size: 11.5px;
-	}
+.ri-premium.ri-tela-estreita .bi-zeny,
+.ri-premium.ri-tela-estreita .bi-cash {
+	font-size: 11.5px;
 }

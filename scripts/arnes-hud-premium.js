@@ -15,6 +15,7 @@ import RiIcones from '/src/UI/ri-icones.js';
 import * as EscalaDaHud from '/src/UI/escalaDaHud.js';
 import * as HudVertical from '/src/UI/hudVertical.js';
 import HudPremium from '/src/UI/HudPremium/hudPremium.js';
+import GraphicsSettings from '/src/Preferences/Graphics.js';
 
 import basicHtml from '/src/UI/Components/BasicInfoIdle/BasicInfoIdle.html?raw';
 import basicCss from '/src/UI/Components/BasicInfoIdle/BasicInfoIdle.css?raw';
@@ -43,6 +44,11 @@ import { criarRelogioDaBarra } from '/src/UI/Components/ShortCut/relogioDaBarra.
 /* `?atalhos=1`: a barra de skills LIGADA nas Configuracoes (o arco some). Sem
    ele, o padrao da premium: a barra desligada e o arco em volta do Auto. */
 HudPremium.definirBarraDeAtalhos(new URLSearchParams(location.search).get('atalhos') === '1');
+/* `?escala=80`: o Tamanho da HUD das Configuracoes de Video (em %), como o jogador o deixa. */
+const escalaPedida = Number(new URLSearchParams(location.search).get('escala'));
+if (escalaPedida > 0) {
+	GraphicsSettings.escalaDaHud = escalaPedida;
+}
 
 const icones = texto => texto.replace(/<!--RI_ICONE:(\w+)-->/g, (_, chave) => RiIcones[chave] || '');
 
@@ -337,17 +343,33 @@ function publicarAlturaDoStatus() {
 	const raiz = document.documentElement.style;
 	const janela = pecas.BasicInfoIdle.$('.bi-window');
 	if (janela) {
-		raiz.setProperty('--hud-basic-altura', `${Math.round(janela.getBoundingClientRect().height)}px`);
+		/* Em unidade da HUD, como o jogo publica (`emUnidadesDaHud`): com o Tamanho da HUD fora de 100% o pixel
+		   de viewport nao e o pixel de dentro do host com `zoom`. */
+		raiz.setProperty(
+			'--hud-basic-altura',
+			`${Math.round(EscalaDaHud.emUnidadesDaHud(janela.getBoundingClientRect().height))}px`
+		);
 	}
 	/* E a do chat, como `ChatBox.js` publica (`--hud-chat-altura`): os buffs
 	   da camada premium se apoiam nela. */
 	const chat = pecas.ChatBox.$('#chatbox');
 	if (chat) {
-		raiz.setProperty('--hud-chat-altura', `${Math.round(chat.getBoundingClientRect().height)}px`);
+		raiz.setProperty(
+			'--hud-chat-altura',
+			`${Math.round(EscalaDaHud.emUnidadesDaHud(chat.getBoundingClientRect().height))}px`
+		);
 	}
 }
 publicarAlturaDoStatus();
 requestAnimationFrame(publicarAlturaDoStatus);
+/* Como o jogo (`observarAlturaDoChat`, o `publicarCaixa` do status): republica quando a caixa muda. As faixas
+   de tela sao marcas (hudVertical.js), e trocar a marca anima a altura do log do chat - medir so duas vezes
+   pegava a meia animacao (medido: 193 publicado para um chat de 91). */
+if (typeof ResizeObserver === 'function') {
+	const observador = new ResizeObserver(publicarAlturaDoStatus);
+	observador.observe(pecas.ChatBox.$('#chatbox'));
+	observador.observe(pecas.BasicInfoIdle.$('.bi-window'));
+}
 
 /* ─── A medida ──────────────────────────────────────────────────────────── */
 
