@@ -107,11 +107,16 @@ html.ri-premium {
 	/* ─── O ARCO DE SKILLS (pedido do dono, 15/10/2026) ─────────────────
 	   Com a barra de skills DESLIGADA (o padrao), as tres skills do rodizio
 	   do Bot ficam em volta do Auto, a esquerda, na diagonal e em cima dele.
-	   O disco tem o icone do cliente em 2x (24 -> 48, numero inteiro, regra 4)
-	   e e ele mesmo o alvo do dedo (48 >= 44). O raio deixa um respiro entre o
-	   Auto e os discos, e entre um disco e o vizinho (a corda dos 45 graus). */
-	--m-disco: 48px;
-	--m-respiro-do-arco: 12px;
+	   O disco que se ve tem o tamanho do icone do cliente em 1x (24px, numero
+	   inteiro, regra 4; o dono pediu a metade dos 48 do 2x), e o ALVO do dedo
+	   em volta dele continua com 44px. O raio e o das areas de toque: a corda
+	   dos 45 graus (2 R sen 22,5) nao pode ficar menor que o alvo, senao dois
+	   vizinhos disputam o mesmo dedo. O respiro conta tambem os 3px de borda
+	   que o aro do Auto desenha POR FORA de `--m-auto`: menos que isso e o alvo
+	   do disco morde a borda do Auto. */
+	--m-disco: 44px;
+	--m-disco-visivel: 24px;
+	--m-respiro-do-arco: 6px;
 	--m-raio-do-arco: calc(var(--m-auto) / 2 + var(--m-respiro-do-arco) + var(--m-disco) / 2);
 	/* A largura que o grupo de acao ocupa com o arco: do canto direito do Auto
 	   a borda esquerda do disco da esquerda (o chat e os buffs terminam antes). */
@@ -146,9 +151,9 @@ html.ri-premium {
 		--m-auto: 62px;
 		--m-cacar: 48px;
 		--m-folga-do-arco: 14px;
-		/* Com o Auto de 62 a corda dos 45 graus ficava 1px menor que o disco
-		   com o aro: o respiro cresce, e nao o disco (o icone e 2x). */
-		--m-respiro-do-arco: 15px;
+		/* Com o Auto de 62 a corda dos 45 graus ficaria menor que o alvo de
+		   44: o respiro cresce, e nao o alvo. */
+		--m-respiro-do-arco: 8px;
 	}
 }
 

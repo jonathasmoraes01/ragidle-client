@@ -113,69 +113,79 @@
 	pointer-events: none;
 }
 
+/* O BOTAO e o alvo do dedo (`--m-disco`, 44px, o piso da casa) e nao
+   desenha nada: o disco que se ve e o `.cc-skill-icone` no meio dele, do
+   tamanho do icone do cliente (`--m-disco-visivel`). Pedido do dono
+   (15/10/2026): *"pode reduzir pela metade esses icones das skills"* - o icone
+   saiu do 2x (48px) para o 1x (24px), e o dedo continua acertando com folga. */
 .ri-premium .cc-skill {
 	--dx: 0px;
 	--dy: 0px;
 	position: absolute;
-	left: calc(var(--m-disco, 48px) / -2);
-	top: calc(var(--m-disco, 48px) / -2);
-	width: var(--m-disco, 48px);
-	height: var(--m-disco, 48px);
+	left: calc(var(--m-disco, 44px) / -2);
+	top: calc(var(--m-disco, 44px) / -2);
+	width: var(--m-disco, 44px);
+	height: var(--m-disco, 44px);
 	margin: 0;
 	padding: 0;
 	border: 0;
 	border-radius: 50%;
 	transform: translate(var(--dx), var(--dy));
-	/* A face marfim por tras do icone (o icone do cliente tem fundo
-	   transparente) e o aro dourado POR FORA, para o icone ocupar o disco. */
-	background: radial-gradient(circle at 35% 25%, #ffffff 0%, #eef2f8 70%, #d9e2ee 100%);
-	box-shadow:
-		0 0 0 2px var(--m-ouro, #d7b776),
-		0 0 0 3.5px rgba(255, 246, 220, 0.85),
-		0 4px 10px rgba(3, 27, 56, 0.45);
+	background: none;
 	cursor: pointer;
 	pointer-events: auto;
 	-webkit-tap-highlight-color: transparent;
 }
 
 .ri-premium .cc-skill[data-pos='0'] {
-	--dx: calc(-1 * var(--m-raio-do-arco, 74px));
+	--dx: calc(-1 * var(--m-raio-do-arco, 62px));
 }
 
 .ri-premium .cc-skill[data-pos='1'] {
-	--dx: calc(-0.7071 * var(--m-raio-do-arco, 74px));
-	--dy: calc(-0.7071 * var(--m-raio-do-arco, 74px));
+	--dx: calc(-0.7071 * var(--m-raio-do-arco, 62px));
+	--dy: calc(-0.7071 * var(--m-raio-do-arco, 62px));
 }
 
 .ri-premium .cc-skill[data-pos='2'] {
-	--dy: calc(-1 * var(--m-raio-do-arco, 74px));
+	--dy: calc(-1 * var(--m-raio-do-arco, 62px));
 }
 
 .ri-premium .cc-skill:active {
-	scale: 0.94;
+	scale: 0.9;
 }
 
 .ri-premium .cc-skill:focus-visible {
 	outline: 2px solid #ffffff;
-	outline-offset: 4px;
+	outline-offset: -4px;
 }
 
-/* O icone: 24x24 do cliente em 2x (inteiro, sem borrar), recortado no
+/* O disco visivel: a face marfim por tras do icone (o icone do cliente tem
+   fundo transparente) e o aro dourado POR FORA, para o icone ocupar o disco.
+   O icone e o 24x24 do cliente em 1x (inteiro, sem borrar), recortado no
    redondo. O relogio de recarga (`.sc-recarga`, o mesmo da barra) mora aqui
    dentro, entao o recorte vale para ele tambem. */
 .ri-premium .cc-skill-icone {
 	position: absolute;
-	inset: 0;
+	left: 50%;
+	top: 50%;
+	width: var(--m-disco-visivel, 24px);
+	height: var(--m-disco-visivel, 24px);
+	margin: calc(var(--m-disco-visivel, 24px) / -2) 0 0 calc(var(--m-disco-visivel, 24px) / -2);
 	display: flex;
 	align-items: center;
 	justify-content: center;
 	border-radius: 50%;
 	overflow: hidden;
+	background: radial-gradient(circle at 35% 25%, #ffffff 0%, #eef2f8 70%, #d9e2ee 100%);
+	box-shadow:
+		0 0 0 1.5px var(--m-ouro, #d7b776),
+		0 0 0 2.5px rgba(255, 246, 220, 0.85),
+		0 2px 6px rgba(3, 27, 56, 0.45);
 }
 
 .ri-premium .cc-skill-icone img {
-	width: 48px;
-	height: 48px;
+	width: 24px;
+	height: 24px;
 	image-rendering: pixelated;
 	pointer-events: none;
 	user-select: none;
@@ -196,7 +206,7 @@
 	display: flex;
 	align-items: center;
 	justify-content: center;
-	font-size: 18px;
+	font-size: 12px;
 	font-weight: 800;
 	color: var(--m-azul-escuro, #163f70);
 	pointer-events: none;
@@ -207,46 +217,37 @@
 }
 
 /* A skill que o jogador desligou no rodizio: o Bot a pula, mas o toque
-   continua usando - o disco diz isso dessaturado e com o selo de PAUSA (o
-   rotulo diz por extenso). So o cinza, com transparencia, virava chuvisco: o
-   icone de 24px em 2x nao aguenta perder contraste e cor ao mesmo tempo. */
-.ri-premium .cc-skill.is-desligada .cc-skill-icone {
+   continua usando - o icone dessaturado e o selo de PAUSA no canto do disco
+   (o rotulo diz por extenso). So o cinza, com transparencia, virava chuvisco.
+   O filtro vai no icone, e nao no disco, para o aro continuar dourado. */
+.ri-premium .cc-skill.is-desligada .cc-skill-icone img {
 	filter: grayscale(1) contrast(1.1);
 }
 
 .ri-premium .cc-skill.is-desligada::before {
 	content: '';
 	position: absolute;
-	top: -3px;
-	right: -3px;
+	/* o canto de cima a direita do disco visivel, no meio do botao */
+	top: calc(50% - var(--m-disco-visivel, 24px) / 2 - 5px);
+	left: calc(50% + var(--m-disco-visivel, 24px) / 2 - 7px);
 	z-index: 3;
-	width: 18px;
-	height: 18px;
-	border: 1.5px solid var(--m-ouro, #d7b776);
+	width: 12px;
+	height: 12px;
+	box-sizing: border-box;
+	border: 1px solid var(--m-ouro, #d7b776);
 	border-radius: 50%;
 	background:
-		linear-gradient(
-				90deg,
-				transparent 5px,
-				#fff 5px,
-				#fff 7px,
-				transparent 7px,
-				transparent 9px,
-				#fff 9px,
-				#fff 11px,
-				transparent 11px
-			)
-			center / 16px 8px no-repeat,
+		linear-gradient(90deg, #fff 0 1.5px, transparent 1.5px 3.5px, #fff 3.5px 5px) center / 5px 5px no-repeat,
 		var(--m-azul-noite, #10294a);
 	pointer-events: none;
 }
 
 /* O disco sem skill: o "+" que abre o menu do Bot, onde o rodizio se escolhe. */
-.ri-premium .cc-skill.is-vazio {
-	background: rgba(16, 41, 74, 0.55);
+.ri-premium .cc-skill.is-vazio .cc-skill-icone {
+	background: rgba(16, 41, 74, 0.6);
 	box-shadow:
-		0 0 0 2px rgba(215, 183, 118, 0.75),
-		0 3px 8px rgba(3, 27, 56, 0.35);
+		0 0 0 1.5px rgba(215, 183, 118, 0.75),
+		0 2px 5px rgba(3, 27, 56, 0.35);
 }
 
 .ri-premium .cc-skill.is-vazio::after {
@@ -256,7 +257,7 @@
 	display: flex;
 	align-items: center;
 	justify-content: center;
-	font-size: 26px;
+	font-size: 16px;
 	font-weight: 700;
 	line-height: 1;
 	color: var(--m-ouro-claro, #f0d9a4);
@@ -285,13 +286,14 @@
 }
 
 .ri-premium .cc-skill .sc-recarga-num {
-	font-size: 14px;
+	font-size: 10px;
 	font-weight: 800;
 	font-variant-numeric: tabular-nums;
 	line-height: 1;
+	letter-spacing: -0.3px;
 	color: #ffd76a;
 	text-shadow:
 		0 1px 2px rgba(0, 0, 0, 0.9),
-		0 0 4px rgba(0, 0, 0, 0.7);
+		0 0 3px rgba(0, 0, 0, 0.7);
 	white-space: nowrap;
 }
