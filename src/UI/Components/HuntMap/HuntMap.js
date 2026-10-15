@@ -97,6 +97,7 @@ import {
 import { fecharEEsquecer } from '../limpezaDeJanelaIdle.js';
 import { abaLembrada, lembrarAba } from '../memoriaDeAba.js';
 import { traduzir } from 'Core/Traducao.js';
+import { relatarErro } from 'UI/relatoDeErro.js';
 
 /**
  * Keep in sync with the ":host" / ".hm-window" size in HuntMap.css — used
@@ -364,6 +365,28 @@ const _cacheDoCatalogo = criarCacheDoCatalogo(armazenamentoDoNavegador());
 const PRAZO_DO_PEDIDO_LEVE_MS = 3000;
 let _prazoDoLeve = null;
 let _servidorSemLeve = false;
+
+/*
+ * A VIGIA DO CATALOGO CHEIO QUE NAO CHEGA (D-2454, 14/10/2026, relato J20: "o
+ * filtro da Caca as vezes nao retorna nada"). Sem catalogo a lista fica VAZIA e
+ * MUDA (`renderList` com `!catalog` nao escreve nem "Nenhum mapa encontrado"),
+ * e qualquer termo no filtro nao acha nada. O pedido leve tem prazo (cai no
+ * cheio, regra 4); o cheio nao tinha nenhum, e nada contava a ninguem. A sonda
+ * da sessao longa (`scripts/diag-hud-caca-sessao-longa.ts`, no servidor) nao
+ * reproduziu o caso: esta vigia SO RELATA (uma linha por estado, o
+ * `relatarErro` nao repete), para a proxima ocorrencia em producao dizer se o
+ * filtro vazio era o catalogo que nao veio. Ela nao repete o pedido: o freio do
+ * servidor e o desenho da D-1850 ficam como estao.
+ */
+const PRAZO_DO_CATALOGO_CHEIO_MS = 15000;
+let _vigiaDoCheio = null;
+
+function desarmarVigiaDoCheio() {
+	if (_vigiaDoCheio) {
+		clearTimeout(_vigiaDoCheio);
+		_vigiaDoCheio = null;
+	}
+}
 /** Os `mapas` cujos nomes de drop ja foram resolvidos (a lista guardada volta resolvida). */
 let _mapasResolvidos = null;
 
@@ -444,6 +467,7 @@ HuntMap.limparEstadoDoPersonagem = function limparEstadoDoPersonagem() {
 		clearTimeout(_prazoDoLeve);
 		_prazoDoLeve = null;
 	}
+	desarmarVigiaDoCheio();
 	/*
 	 * ZERAR O DADO NAO BASTA: `GUIComponent.remove()` so DESANEXA o host,
 	 * entao o shadow DOM (com `is-open` e o HTML do personagem anterior)
@@ -1149,6 +1173,14 @@ function requestCatalog() {
 /** O `CZ_RAGIDLE_PEDIR_CATALOGO` de sempre: a resposta traz os mapas inteiros. */
 function pedirCatalogoCheio() {
 	Network.sendPacket(new PACKET.CZ.RAGIDLE_PEDIR_CATALOGO());
+	desarmarVigiaDoCheio();
+	_vigiaDoCheio = setTimeout(() => {
+		_vigiaDoCheio = null;
+		relatarErro(
+			`[hud] o catalogo da Caca nao chegou em ${PRAZO_DO_CATALOGO_CHEIO_MS / 1000} s ` +
+				`(catalogo anterior: ${HuntMap.catalog ? 'sim' : 'nao'}, janela ${estaAberta() ? 'aberta' : 'fechada'})`
+		);
+	}, PRAZO_DO_CATALOGO_CHEIO_MS);
 }
 
 /**
@@ -1327,6 +1359,9 @@ function onCatalogReceived(pkt) {
 	} else {
 		bruto = pkt.json;
 	}
+
+	// D-2454: chegou um catalogo inteiro; a vigia do cheio nao tem mais o que vigiar.
+	desarmarVigiaDoCheio();
 
 	/*
 	 * O MESMO CATALOGO NAO DESENHA DE NOVO (regra 2 do topo). Reabrir a janela

@@ -60,6 +60,8 @@ import { emIngles } from 'Core/Idioma.js';
 import htmlText from './HuntButtonIdle.html?raw';
 import cssText from './HuntButtonIdle.css?raw';
 import { emUnidadesDaHud } from 'UI/escalaDaHud.js'; // D-934: geometria medida vira unidade da HUD
+import { relatarErro } from 'UI/relatoDeErro.js';
+import { criarArteDoBotao } from './arteDoBotao.js'; // D-2454: a arte que falha nao some calada
 
 /**
  * Mesmo intervalo de polling leve que DockIdle.js/TopMenuIdle.js.
@@ -101,6 +103,36 @@ let _pollTimer = null;
 let _ultimoEmCasa = null;
 
 /**
+ * A ARTE DOS DOIS BOTOES (D-2454, 14/10/2026): o `src` de cada `<img
+ * class="hb-arte">`, por idioma. Em ingles a arte e a SEM texto e o rotulo do
+ * DOM e desenhado por cima (D-1929, ver o CSS). Os caminhos sao os mesmos que o
+ * CSS usava como imagem de fundo ate aqui.
+ */
+const ARTE_DOS_BOTOES = {
+	cacar: { pt: '/ragidle/hud/botoes/hud-btn-cacar.png', en: '/ragidle/hud/botoes/hud-btn-cacar-sem-texto.png' },
+	voltar: { pt: '/ragidle/hud/botoes/hud-btn-voltar.png', en: '/ragidle/hud/botoes/hud-btn-voltar-sem-texto.png' }
+};
+
+/**
+ * @var {{cacar: {usar: Function}, voltar: {usar: Function}}|null} quem cuida da
+ * arte de cada botao (criados uma vez, no `init`). Ver `arteDoBotao.js`.
+ */
+let _artes = null;
+
+/**
+ * Poe a arte do idioma atual nos dois botoes. A mesma URL de novo nao pede
+ * nada: a troca de mapa chama isto e nao custa pedido nenhum.
+ */
+function usarArteDosBotoes() {
+	if (!_artes) {
+		return;
+	}
+	const idioma = emIngles() ? 'en' : 'pt';
+	_artes.cacar.usar(ARTE_DOS_BOTOES.cacar[idioma]);
+	_artes.voltar.usar(ARTE_DOS_BOTOES.voltar[idioma]);
+}
+
+/**
  * Helper: query dentro do shadow root
  */
 function _root() {
@@ -122,6 +154,26 @@ HuntButtonIdle.init = function init() {
 	root.querySelector('.hb-cacar').addEventListener('click', onClickCacar);
 	root.querySelector('.hb-voltar').addEventListener('click', onClickVoltar);
 	root.querySelector('.hb-sentar').addEventListener('click', onClickSentar);
+	/*
+	 * A ARTE SAI JA NO PREPARO (D-2454), e nao no primeiro `onAppend`: o preparo
+	 * roda no boot do mapa, segundos antes da primeira entrada, entao a arte
+	 * chega pronta e a reserva (o `.ri-btn` com o rotulo) nao pisca na tela.
+	 */
+	_artes = {
+		cacar: criarArteDoBotao({
+			img: root.querySelector('.hb-cacar .hb-arte'),
+			botao: root.querySelector('.hb-cacar'),
+			nome: 'cacar',
+			relatar: relatarErro
+		}),
+		voltar: criarArteDoBotao({
+			img: root.querySelector('.hb-voltar .hb-arte'),
+			botao: root.querySelector('.hb-voltar'),
+			nome: 'voltar',
+			relatar: relatarErro
+		})
+	};
+	usarArteDosBotoes();
 };
 
 /**
@@ -175,6 +227,7 @@ HuntButtonIdle.onAppend = function onAppend() {
 	if (raiz) {
 		raiz.classList.toggle('hb-en', emIngles());
 	}
+	usarArteDosBotoes();
 	hideAdminButton();
 	publicarAltura();
 	_ultimoEmCasa = null;
