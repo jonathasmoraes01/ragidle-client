@@ -17,25 +17,8 @@
 	--chat-bg: var(--m-chat-fundo, rgba(19, 39, 70, 0.9));
 	--chat-border: var(--m-chat-borda, rgba(167, 189, 207, 0.45));
 	--cb-altura: 54px;
-	left: calc(var(--safe-esq, 0px) + var(--m-margem, 8px));
-	bottom: calc(var(--m-acima-dos-atalhos, 84px) + var(--teclado-altura, 0px));
-	width: min(
-		300px,
-		calc(
-			100vw - var(--safe-esq, 0px) - var(--safe-dir, 0px) - 2 * var(--m-margem, 8px) -
-				var(--m-coluna-de-caca, 120px) - 10px
-		)
-	);
 	border-radius: 14px;
 	box-shadow: var(--m-sombra);
-}
-
-/* Os controles (tamanho, config, recolher) desenham 22px e tocavam em 34
-   (`inset: -6px`): no piso de 44 do pacote, o alvo cresce mais 5px por lado.
-   Os vizinhos ficam a 2px - as areas se sobrepoem, e no vao quem vence e o
-   botao de cima na ordem do DOM, o que e o que um dedo no meio espera. */
-.ri-premium #chatbox .cb-controles button::before {
-	inset: -11px;
 }
 
 /* No celular baixo (o SE no Safari, ~375x553, e o 320x568) a coluna nao
@@ -51,4 +34,114 @@
 	background: linear-gradient(180deg, var(--m-azul-claro), var(--m-azul));
 	color: #ffffff;
 	box-shadow: inset 0 0 0 1px rgba(255, 246, 220, 0.45);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   O CHAT ENXUTO (pedido do dono, 15/10/2026): *"tem muita informacao e
+   espacamentos que podiam ser reduzidos"*.
+
+   O QUE SAI, E POR QUE:
+     - a faixa de ARRASTO (os dois tracinhos) e as alcas de largura: na HUD
+       premium o chat tem lugar fixo, entre a barra de atalhos e o grupo de
+       acao. Arrastado, ele cairia em cima do Cacar. A posicao e a largura
+       ficam com `!important` pelo mesmo motivo: um jogador que arrastou o chat
+       na HUD de antes traz a posicao gravada (inline) e ela venceria;
+     - as duas LINHAS DIVISORIAS: o fundo do log ja separa as faixas.
+
+   O QUE ENCOLHE: a faixa das abas e a barra de digitar perdem o respiro, e os
+   botoes desenham menor - o ALVO continua de 44px pelo `::before` (o mesmo
+   recurso do Common.css). A alca de ALTURA (a borda de cima) fica: e por ela,
+   e pelo "1x", que o jogador aumenta o log.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+.ri-premium #chatbox {
+	left: calc(var(--safe-esq, 0px) + var(--m-margem, 8px)) !important;
+	bottom: calc(
+		var(--m-acima-dos-atalhos, 84px) * (1 - var(--teclado-aberto, 0)) + 6px * var(--teclado-aberto, 0) +
+			var(--teclado-altura, 0px)
+	) !important;
+	width: min(
+		300px,
+		calc(
+			100vw - var(--safe-esq, 0px) - var(--safe-dir, 0px) - 2 * var(--m-margem, 8px) -
+				var(--m-coluna-de-caca, 120px) - 10px
+		)
+	) !important;
+}
+
+.ri-premium #chatbox .cb-arrasto,
+.ri-premium #chatbox .cb-alca-direita,
+.ri-premium #chatbox .cb-alca-canto,
+.ri-premium #chatbox .cb-divisor {
+	display: none;
+}
+
+.ri-premium #chatbox .cb-topo {
+	padding: 4px 5px 2px;
+	gap: 2px;
+}
+
+.ri-premium #chatbox .cb-aba {
+	height: 24px;
+	padding: 0 8px;
+	font-size: 11px;
+}
+
+.ri-premium #chatbox .cb-controles button {
+	width: 24px;
+	height: 24px;
+}
+
+/* Os controles (tamanho, config, recolher) desenham 24px e tocam em 44: os
+   vizinhos ficam a 2px, as areas se sobrepoem, e no vao quem vence e o botao
+   de cima na ordem do DOM - o que um dedo no meio espera. */
+.ri-premium #chatbox .cb-controles button::before {
+	inset: -10px;
+}
+
+/* A barra de digitar: uma linha, sem o respiro de 8px por lado. */
+.ri-premium #chatbox .input {
+	gap: 4px;
+	padding: 3px 4px 3px 6px;
+	border-top: 0;
+	background: rgba(255, 255, 255, 0.06);
+}
+
+.ri-premium #chatbox .input .message {
+	padding: 7px 0;
+	font-size: 12.5px;
+}
+
+/* O dedo nao tem Enter: o convite e o do mockup. */
+.ri-premium #chatbox .input .message:empty::before {
+	content: 'Digite uma mensagem…';
+}
+
+.ri-premium #chatbox .cb-destino {
+	padding: 2px 6px;
+	font-size: 9.5px;
+}
+
+.ri-premium #chatbox .input .filter,
+.ri-premium #chatbox .input .cb-enviar {
+	position: relative;
+	min-width: 32px;
+	min-height: 32px;
+}
+
+.ri-premium #chatbox .input .filter::before,
+.ri-premium #chatbox .input .cb-enviar::before {
+	content: '';
+	position: absolute;
+	inset: -6px;
+}
+
+/* O log: menos respiro entre as linhas (eram 7px de vao) e a letra um passo
+   abaixo - cabem mais mensagens nas mesmas tres linhas de altura. */
+.ri-premium #chatbox .content {
+	gap: 2px;
+	padding-top: 2px;
+	padding-bottom: 2px;
+	font-size: 12px;
+	line-height: 1.35;
 }
