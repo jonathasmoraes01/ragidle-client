@@ -88,6 +88,18 @@ import {
 	tipoEfetivo
 } from './vitrine.js';
 import { PERCENTUAL_PARA_CACAR, atalhosDaLinha } from './quantidadeDeCompra.js';
+import {
+	avisosDaVenda,
+	cartasEncaixadas,
+	etiquetasDaLinha,
+	linhaEmDestaque,
+	motivosDeAtencao,
+	resumoDaEscolha,
+	rotuloDeMarcarNaVenda,
+	textoDoBotaoDeVender,
+	textoDoRodapeDaVenda
+} from './confirmacaoDaVenda.js';
+import { abrirBalao, esquecerBalao } from 'UI/balaoDaHud.js';
 import htmlText from './NpcStoreV2.html?raw';
 import cssText from './NpcStoreV2.css?raw';
 
@@ -227,6 +239,21 @@ let _limiteZeny = -1;
  */
 let _travadosOcultos = 0;
 
+/**
+ * A confirmacao da venda aberta (16/10/2026), ou null.
+ *
+ * `escolha` e uma COPIA do que estava marcado quando o modal abriu: e isso, e
+ * so isso, que o "Vender" do modal manda. A trava do duplo clique e o proprio
+ * null: o botao vermelho fecha o modal ANTES de mandar, e o segundo toque
+ * encontra `_confirmacao` vazio.
+ *
+ * @type {{escolha: Array<object>}|null}
+ */
+let _confirmacao = null;
+
+/** O nome do modal na lista de baloes que o ESC e o voltar do Android fecham primeiro. */
+const BALAO_DA_VENDA = 'confirmar-venda-npc';
+
 /* ─── Ciclo de vida ──────────────────────────────────────────────────────── */
 
 NpcStore.init = function init() {
@@ -257,7 +284,32 @@ NpcStore.init = function init() {
 	});
 
 	root.querySelector('.ns-tudo').addEventListener('click', () => encherOuLimparAVista());
-	root.querySelector('.ns-tudo-lista').addEventListener('click', () => encherOuLimparListaInteira());
+	root.querySelector('.ns-desmarcar').addEventListener('click', () => desmarcarTudo());
+
+	/*
+	 * O MODAL DA VENDA. Cancelar, o fundo escurecido e o ESC desistem; so o
+	 * botao vermelho vende. O Enter NAO confirma: o foco nasce no "Cancelar", e
+	 * o Enter e engolido aqui dentro (no botao vermelho tambem). O reflexo de
+	 * "Enter para seguir" foi o que vendeu mochilas com o prompt antigo.
+	 */
+	const conf = root.querySelector('.ns-conf');
+	conf.querySelector('.ns-conf-cancelar').addEventListener('click', () => fecharConfirmacao());
+	conf.querySelector('.ns-conf-vender').addEventListener('click', () => confirmarVenda());
+	conf.addEventListener('click', e => {
+		if (e.target === conf) {
+			fecharConfirmacao();
+		}
+	});
+	conf.addEventListener('keydown', e => {
+		if (e.key === 'Enter' || e.which === 13) {
+			e.preventDefault();
+			e.stopPropagation();
+		} else if (e.key === 'Escape' || e.which === KEYS.ESCAPE) {
+			e.preventDefault();
+			e.stopPropagation();
+			fecharConfirmacao();
+		}
+	});
 
 	/* Delegacao: as linhas nascem e morrem com setList, os ouvintes ficam na
 	   lista — um por evento, nao um por item. */
@@ -285,6 +337,8 @@ NpcStore.onRemove = function onRemove() {
 	_termo = '';
 	_categoria = CATEGORIA_TUDO;
 
+	fecharConfirmacao();
+
 	const root = NpcStore.getRoot();
 	root.querySelector('.ns-lista').replaceChildren();
 	root.querySelector('.ns-busca').value = '';
@@ -296,8 +350,16 @@ NpcStore.onRemove = function onRemove() {
 
 NpcStore.onKeyDown = function onKeyDown(event) {
 	if (event.which === KEYS.ESCAPE || event.key === 'Escape') {
+		// Com a confirmacao aberta, o ESC e "Cancelar": fecha o modal, e nao a
+		// loja (a pilha de janelas ja faz isso pela lista de baloes; este e o
+		// caminho de quem chega aqui sem ela).
+		if (_confirmacao) {
+			fecharConfirmacao();
+			return false;
+		}
 		this.remove();
 	}
+	return true;
 };
 
 /* ─── O contrato com o motor ─────────────────────────────────────────────── */
@@ -339,6 +401,9 @@ NpcStore.setType = function setType(type) {
  * normalizacao (index, count=Infinity, IsIdentified) tambem.
  */
 NpcStore.setList = function setList(items) {
+	// A lista mudou por baixo (o servidor refez a vitrine): a pergunta que
+	// estava na tela descreve uma mochila que nao existe mais.
+	fecharConfirmacao();
 	const root = NpcStore.getRoot();
 	root.querySelector('.ns-lista').replaceChildren();
 	_input.length = 0;
@@ -396,10 +461,18 @@ NpcStore.setList = function setList(items) {
 				 * no lugar de disputar o mesmo `||` do PlaceETCTab. Vale nas DUAS
 				 * versoes de inventario: a legada (V0) nunca filtrava nada aqui.
 				 */
+				/*
+				 * VESTIDO NAO ENTRA (16/10/2026): o inventario do roBrowser so
+				 * guarda vestida a MUNICAO (`addItemSub`, InventoryCommon.js; o
+				 * resto vai para a janela de Equipamento), e a aljava vestida
+				 * entrava na lista: "Marcar tudo" vendia as flechas que o Bot esta
+				 * atirando. Quem quer vender a pilha vestida a tira antes.
+				 */
+				const vestido = !!(it && it.WearState);
 				const condition =
 					InventoryVersion !== 'InventoryV0'
-						? it && !it.travado && (!Inventory.getUI().npcsalelock || (it.PlaceETCTab || 0) < 1)
-						: it && !it.travado;
+						? it && !it.travado && !vestido && (!Inventory.getUI().npcsalelock || (it.PlaceETCTab || 0) < 1)
+						: it && !it.travado && !vestido;
 				// A trava e' contada SEPARADO do `npcsalelock`: aquele e' uma
 				// preferencia que o jogador acabou de ligar e sabe que ligou;
 				// esta e' por pilha, veio do servidor e pode ser de semanas
@@ -485,7 +558,7 @@ NpcStore.submit = function submit() {
 	}
 
 	/*
-	 * A VENDA PERGUNTA ANTES (18/09/2026, o mesmo relato da `.ns-tudo-lista`).
+	 * A VENDA PERGUNTA ANTES (18/09/2026; o modal proprio em 16/10/2026).
 	 *
 	 * Ela e' o unico gesto desta janela sem desfazer: comprar troca zeny por
 	 * item e o item fica, vender troca item por zeny e o item some. Tirar a
@@ -496,17 +569,18 @@ NpcStore.submit = function submit() {
 	 *
 	 * Ela diz QUANTOS e QUANTO, porque "Confirmar?" sozinho vira um clique
 	 * reflexo e deixa de ser uma pergunta.
+	 *
+	 * 16/10/2026 (terceiro relato do dono): o prompt generico virou o modal da
+	 * propria janela (`abrirConfirmacao`), com a LISTA do que some, o aviso de
+	 * carta e equipamento, e o foco no "Cancelar" — o "Sim" daquele prompt era
+	 * o botao que o Enter apertava. E a `.ns-tudo-lista` nunca tinha saido da
+	 * venda no navegador: o `hidden` perdia para o `display` do `.ri-btn`.
 	 */
 	if (eDeVenda()) {
-		const unidades = escolha.reduce((soma, o) => soma + (Number(o.count) || 0), 0);
-		const linhas = escolha.length;
-		UIManager.showPromptBox(
-			`Vender ${linhas === 1 ? '1 item' : `${linhas} itens`} (${unidades} ${unidades === 1 ? 'unidade' : 'unidades'}) por ${prettyZeny(NpcStore.calculateCost())}z?\n\nIsto não tem desfazer.`,
-			'yes',
-			'no',
-			() => enviarEscolha(escolha),
-			() => {}
-		);
+		// A pergunta ja na tela: o segundo "Vender" nao abre outra por cima.
+		if (!_confirmacao) {
+			abrirConfirmacao(escolha);
+		}
 		return;
 	}
 
@@ -533,7 +607,164 @@ function enviarEscolha(escolha) {
 		el.value = '0';
 	});
 	root.querySelectorAll('.ns-item.esta-no-carrinho').forEach(el => el.classList.remove('esta-no-carrinho'));
+	root.querySelectorAll('.ns-selo').forEach(el => {
+		el.hidden = true;
+		el.textContent = '';
+	});
 	atualizarResumo();
+}
+
+/* ─── A confirmacao da venda (16/10/2026) ────────────────────────────────── */
+
+/**
+ * O que a confirmacao precisa saber de UMA linha escolhida: nome, quantidade,
+ * subtotal e por que ela pede atencao (`confirmacaoDaVenda.js`).
+ */
+function linhaDaConfirmacao(o) {
+	const info = DB.getItemInfo(o.ITID) || {};
+	const refino = o.RefiningLevel || 0;
+	const motivos = motivosDeAtencao({
+		tipo: tipoEfetivo(o.type, tipoDeItem(o.ITID)),
+		refino,
+		cartas: cartasEncaixadas(o),
+		slots: info.slotCount || 0,
+		raridade: raridadeDeItem(o.ITID),
+		preco: precoUnitario(o)
+	});
+	return {
+		nome: DB.getItemName(o),
+		refino,
+		quantidade: Number(o.count) || 0,
+		preco: precoUnitario(o),
+		motivos
+	};
+}
+
+/** O modal esta aberto? (Para os testes e para o ESC.) */
+NpcStore.confirmacaoAberta = function confirmacaoAberta() {
+	return _confirmacao !== null;
+};
+
+/**
+ * Abre o modal com o que vai ser vendido. NADA e mandado ao servidor aqui.
+ */
+function abrirConfirmacao(escolha) {
+	const root = NpcStore.getRoot();
+	const conf = root.querySelector('.ns-conf');
+	if (!conf) {
+		return;
+	}
+
+	_confirmacao = { escolha: escolha.map(o => Object.assign({}, o)) };
+
+	const linhas = _confirmacao.escolha.map(linhaDaConfirmacao);
+	const resumo = resumoDaEscolha(linhas);
+
+	const avisos = conf.querySelector('.ns-conf-avisos');
+	avisos.replaceChildren();
+	for (const texto of avisosDaVenda(resumo)) {
+		const aviso = document.createElement('div');
+		aviso.className = 'ns-conf-aviso';
+		aviso.textContent = texto;
+		avisos.appendChild(aviso);
+	}
+	avisos.hidden = avisos.childElementCount === 0;
+
+	// As linhas que pedem atencao vem PRIMEIRO, e dentro de cada metade a mais
+	// cara primeiro: numa venda de 40 linhas, a carta nao pode morar na 37a.
+	const ordenadas = linhas
+		.map(l => ({ ...l, destaque: linhaEmDestaque(l.motivos), subtotal: l.quantidade * l.preco }))
+		.sort((a, b) => Number(b.destaque) - Number(a.destaque) || b.subtotal - a.subtotal);
+
+	const lista = conf.querySelector('.ns-conf-lista');
+	lista.replaceChildren();
+	for (const l of ordenadas) {
+		const linha = document.createElement('div');
+		linha.className = 'ns-conf-linha';
+		linha.setAttribute('role', 'listitem');
+		linha.classList.toggle('esta-em-destaque', l.destaque);
+
+		const nome = document.createElement('div');
+		nome.className = 'ns-conf-nome';
+		const texto = document.createElement('span');
+		// textContent: nome de item nunca vira HTML.
+		texto.textContent = l.nome;
+		nome.appendChild(texto);
+
+		const etiquetas = etiquetasDaLinha(l.motivos, l.refino);
+		if (etiquetas.length) {
+			const caixa = document.createElement('div');
+			caixa.className = 'ns-conf-etiquetas';
+			for (const rotulo of etiquetas) {
+				const etiqueta = document.createElement('span');
+				etiqueta.className = 'ns-conf-etiqueta';
+				etiqueta.textContent = rotulo;
+				caixa.appendChild(etiqueta);
+			}
+			nome.appendChild(caixa);
+		}
+
+		const qtd = document.createElement('div');
+		qtd.className = 'ns-conf-qtd';
+		qtd.textContent = `× ${l.quantidade}`;
+
+		const sub = document.createElement('div');
+		sub.className = 'ns-conf-sub';
+		sub.textContent = `${prettyZeny(l.subtotal)} z`;
+
+		linha.append(nome, qtd, sub);
+		lista.appendChild(linha);
+	}
+
+	conf.querySelector('.ns-conf-total-valor').textContent = `${prettyZeny(resumo.total)} z`;
+	const vender = conf.querySelector('.ns-conf-vender');
+	vender.textContent = textoDoBotaoDeVender(resumo, prettyZeny);
+	vender.disabled = false;
+
+	conf.hidden = false;
+	marcarConfirmando(root, true);
+	lista.scrollTop = 0;
+	abrirBalao(BALAO_DA_VENDA, () => fecharConfirmacao());
+
+	// O foco nasce no "Cancelar": o Enter reflexo nunca vende.
+	const cancelar = conf.querySelector('.ns-conf-cancelar');
+	if (typeof cancelar.focus === 'function') {
+		cancelar.focus();
+	}
+}
+
+/** Fecha o modal SEM vender. A escolha marcada continua como estava. */
+function fecharConfirmacao() {
+	_confirmacao = null;
+	esquecerBalao(BALAO_DA_VENDA);
+	const root = NpcStore.getRoot();
+	const conf = root && root.querySelector('.ns-conf');
+	if (conf) {
+		conf.hidden = true;
+	}
+	if (root) {
+		marcarConfirmando(root, false);
+	}
+}
+
+/** A classe que da ao modal a altura do painel inteiro no celular (NpcStoreV2.css). */
+function marcarConfirmando(root, ligado) {
+	const janela = root.querySelector('#NpcStoreV2');
+	if (janela) {
+		janela.classList.toggle('esta-confirmando', ligado);
+	}
+}
+
+/** O botao vermelho: manda a escolha da confirmacao UMA vez. */
+function confirmarVenda() {
+	if (!_confirmacao) {
+		return;
+	}
+	const escolha = _confirmacao.escolha;
+	NpcStore.getRoot().querySelector('.ns-conf-vender').disabled = true;
+	// Fecha ANTES de mandar: e isto que faz o segundo toque nao achar nada.
+	fecharConfirmacao();
+	enviarEscolha(escolha);
 }
 
 NpcStore.calculateCost = function calculateCost() {
@@ -850,6 +1081,9 @@ function montarLinha(item) {
 		`<div class="ns-info">` +
 		`<div class="ns-nome"></div>` +
 		`<div class="ns-meta"></div>` +
+		// O selo "Vender 3" (16/10/2026): a linha marcada diz o que vai
+		// acontecer com ela, e nao so muda de cor.
+		`<div class="ns-selo" hidden></div>` +
 		`</div>` +
 		`<div class="ns-preco">${precoHtml}</div>` +
 		`<div class="ns-qtd">` +
@@ -865,7 +1099,7 @@ function montarLinha(item) {
 		(ofereceAtalhoDePeso()
 			? `<button type="button" class="ns-cacar" aria-label="Até ${PERCENTUAL_PARA_CACAR}% do peso" disabled>${PERCENTUAL_PARA_CACAR}%</button>`
 			: '') +
-		`<button type="button" class="ns-max" aria-label="Máximo que dá para ${eDeVenda() ? 'vender' : 'comprar'}">Máx</button>` +
+		botaoDeMaximo(teto) +
 		`</div>`;
 
 	// textContent para o nome: item de jogador (vending) e texto hostil.
@@ -887,6 +1121,19 @@ function montarLinha(item) {
 	img.src = `/ragidle/item/${item.ITID}.png`;
 
 	return linha;
+}
+
+/**
+ * O atalho de quantidade maxima da linha. Na VENDA ele diz QUANTO e o maximo
+ * ("Tudo (37)"): "Máx" numa linha de venda nao diz se e o maximo da pilha, da
+ * loja ou do peso, e o que some da mochila e a pilha inteira.
+ */
+function botaoDeMaximo(teto) {
+	if (eDeVenda()) {
+		const dica = teto === 1 ? 'Vender a única unidade' : `Vender todas as ${teto} unidades`;
+		return `<button type="button" class="ns-max" title="${dica}" aria-label="${dica}">Tudo (${teto})</button>`;
+	}
+	return `<button type="button" class="ns-max" aria-label="Máximo que dá para comprar">Máx</button>`;
 }
 
 /**
@@ -1063,50 +1310,61 @@ function filtroAtivo() {
  *
  * COM ABA/BUSCA ATIVA (14/09/2026, C-1), o alcance dele encolhe para "o que
  * esta a vista" — comportamento que ja existia, mas so o `title` (tooltip
- * que ninguem ve no toque) contava. Agora o TEXTO do botao muda tambem, e um
- * segundo botao (".ns-tudo-lista") aparece do lado oferecendo o alcance
- * cheio, sem exigir que o jogador ache sozinho que precisa limpar a busca.
+ * que ninguem ve no toque) contava. Agora o TEXTO do botao muda tambem.
+ *
+ * O segundo botao (".ns-tudo-lista", "Lista inteira") SAIU em 16/10/2026:
+ * ele enchia as abas que o jogador nao estava vendo. No lugar, o
+ * "Desmarcar tudo" (".ns-desmarcar"), que so desfaz.
  */
 function atualizarBotaoDeTudo() {
 	const root = NpcStore.getRoot();
 	const botao = root.querySelector('.ns-tudo');
-	const botaoLista = root.querySelector('.ns-tudo-lista');
 	const cheia = aVistaEstaCheia();
 	const comFiltro = filtroAtivo();
 	const escopo = comFiltro ? 'o que está à vista' : 'a lista';
 
 	botao.disabled = _visiveis.length === 0;
-	botao.textContent = cheia ? (comFiltro ? 'Limpar a vista' : 'Limpar') : comFiltro ? 'Tudo à vista' : 'Tudo no máx';
-	botao.title = cheia
-		? `Zerar a quantidade de ${escopo}`
-		: `Pôr no máximo a quantidade de ${escopo} (${_visiveis.length} ${_visiveis.length === 1 ? 'item' : 'itens'})`;
+
+	if (eDeVenda()) {
+		/*
+		 * NA VENDA o botao diz o ALCANCE e QUANTOS (16/10/2026): "Marcar tudo
+		 * desta aba (12 itens)". O "Tudo à vista" de antes nao dizia nenhum dos
+		 * dois, e o jogador o lia como "seleciona isto" sem saber que eram 92.
+		 */
+		botao.textContent = rotuloDeMarcarNaVenda({ cheia, comBusca: !!_termo, quantos: _visiveis.length });
+		botao.title = botao.textContent;
+	} else {
+		botao.textContent = cheia
+			? comFiltro
+				? 'Limpar a vista'
+				: 'Limpar'
+			: comFiltro
+				? 'Tudo à vista'
+				: 'Tudo no máx';
+		botao.title = cheia
+			? `Zerar a quantidade de ${escopo}`
+			: `Pôr no máximo a quantidade de ${escopo} (${_visiveis.length} ${_visiveis.length === 1 ? 'item' : 'itens'})`;
+	}
 
 	/*
-	 * O segundo gesto so faz sentido quando o primeiro NAO ja alcanca tudo.
-	 *
-	 * E ELE NAO EXISTE NA VENDA (18/09/2026, relato de jogador): *"tem que dar
-	 * uma olhada no npc de venda, voce seleciona a aba clica lista inteira vai
-	 * tudo mesmo oq nao estava na lista, vendi minha katar assim"*. O botao
-	 * fazia exatamente o que o `title` dele prometia — ignorar a aba —, e o
-	 * problema e que ele so APARECE quando ha filtro: o jogador acabou de
-	 * escolher uma aba, ve um botao novo nascer ao lado, e le "lista inteira"
-	 * como "a lista que estou vendo". A leitura errada e a natural.
-	 *
-	 * Na COMPRA o estrago tem desfazer — o total esta na tela, e nada sai da
-	 * mochila ate o "Comprar". Na VENDA o item some, e nao ha desfazer. O
-	 * alcance em massa da venda passa a ser SEMPRE o que esta a vista, que e
-	 * o que o jogador consegue conferir antes de clicar.
+	 * "Desmarcar tudo": aparece SEMPRE que ha alguma coisa marcada, em qualquer
+	 * aba, inclusive o que foi marcado noutra aba e nao esta a vista agora. E o
+	 * desfazer de qualquer acao em massa, com um toque.
 	 */
-	botaoLista.hidden = !comFiltro || eDeVenda();
-	if (!botaoLista.hidden) {
-		const totalIndices = totalIndicesDoInput();
-		const cheiaLista = listaInteiraEstaCheia(totalIndices);
-		botaoLista.disabled = totalIndices.length === 0;
-		botaoLista.textContent = cheiaLista ? 'Limpar lista inteira' : 'Lista inteira';
-		botaoLista.title = cheiaLista
-			? 'Zerar a quantidade de TODA a lista (ignora a aba/busca atual)'
-			: `Pôr no máximo a quantidade de TODA a lista (${totalIndices.length} ${totalIndices.length === 1 ? 'item' : 'itens'}, ignora a aba/busca atual)`;
+	root.querySelector('.ns-desmarcar').hidden = !algoEscolhido();
+}
+
+/** Alguma linha (vista ou nao) tem quantidade? */
+function algoEscolhido() {
+	return _output.some(o => o && o.count > 0);
+}
+
+/** Zera TODA a escolha, em todas as abas. */
+function desmarcarTudo() {
+	for (const index of totalIndicesDoInput()) {
+		aplicarQuantidade(index, 0);
 	}
+	atualizarResumo();
 }
 
 /**
@@ -1132,7 +1390,7 @@ function atualizarAvisoDeTravados() {
 	}
 }
 
-/** Todo indice com item de verdade em `_input` — o alcance de "lista inteira", sem filtro. */
+/** Todo indice com item de verdade em `_input`: o alcance do "Desmarcar tudo", sem filtro. */
 function totalIndicesDoInput() {
 	const indices = [];
 	for (let i = 0; i < _input.length; ++i) {
@@ -1141,17 +1399,6 @@ function totalIndicesDoInput() {
 		}
 	}
 	return indices;
-}
-
-function listaInteiraEstaCheia(indices) {
-	if (indices.length === 0) {
-		return false;
-	}
-	return indices.every(index => {
-		const item = _input[index];
-		const escolhido = _output[index];
-		return item && escolhido && escolhido.count === tetoDoItem(item);
-	});
 }
 
 /**
@@ -1167,24 +1414,6 @@ function listaInteiraEstaCheia(indices) {
 function encherOuLimparAVista() {
 	const limpar = aVistaEstaCheia();
 	for (const index of _visiveis) {
-		const item = _input[index];
-		if (item) {
-			aplicarQuantidade(index, limpar ? 0 : tetoDoItem(item));
-		}
-	}
-	atualizarResumo();
-}
-
-/**
- * O segundo gesto (14/09/2026, C-1): mesma acao de `encherOuLimparAVista`,
- * mas ignorando aba e busca — o alcance e TODO `_input`, e nao `_visiveis`.
- * So existe (o botao so aparece) quando ha filtro ativo; sem filtro os dois
- * alcances ja sao o mesmo, e o botao principal basta.
- */
-function encherOuLimparListaInteira() {
-	const indices = totalIndicesDoInput();
-	const limpar = listaInteiraEstaCheia(indices);
-	for (const index of indices) {
 		const item = _input[index];
 		if (item) {
 			aplicarQuantidade(index, limpar ? 0 : tetoDoItem(item));
@@ -1264,6 +1493,12 @@ function aplicarQuantidade(index, valor) {
 		linha.querySelector('.ns-menos').disabled = escolhido.count === 0;
 		linha.querySelector('.ns-mais').disabled = escolhido.count >= tetoDoItem(item);
 		linha.classList.toggle('esta-no-carrinho', escolhido.count > 0);
+		const selo = linha.querySelector('.ns-selo');
+		if (selo) {
+			const verbo = (TEXTOS[_type] || TEXTOS[NpcStore.Type.BUY]).botao;
+			selo.hidden = !(escolhido.count > 0);
+			selo.textContent = escolhido.count > 0 ? `${verbo} ${escolhido.count}` : '';
+		}
 	}
 }
 
@@ -1289,9 +1524,15 @@ function atualizarResumo() {
 	}
 
 	const textos = TEXTOS[_type] || TEXTOS[NpcStore.Type.BUY];
-	root.querySelector('.ns-itens-escolhidos').textContent = linhas
-		? `${pecas} ${pecas === 1 ? 'item' : 'itens'} (${linhas} ${linhas === 1 ? 'tipo' : 'tipos'}) na ${textos.escolha}`
-		: 'Nada escolhido';
+	/*
+	 * NA VENDA o rodape diz a frase do que o botao vai fazer (16/10/2026):
+	 * "Vender 12 itens (3 tipos) por 45.000 z". A compra fica como era.
+	 */
+	root.querySelector('.ns-itens-escolhidos').textContent = eDeVenda()
+		? textoDoRodapeDaVenda({ tipos: linhas, unidades: pecas, total }, prettyZeny)
+		: linhas
+			? `${pecas} ${pecas === 1 ? 'item' : 'itens'} (${linhas} ${linhas === 1 ? 'tipo' : 'tipos'}) na ${textos.escolha}`
+			: 'Nada escolhido';
 
 	root.querySelector('.ns-total-valor').textContent = prettyZeny(total);
 
