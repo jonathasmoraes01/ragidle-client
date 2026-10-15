@@ -1,5 +1,52 @@
 import iconv from 'Vendors/iconv-lite.js';
 
+/*
+ * RAGIDLE (15/10/2026): o UTF-8 pelo TextDecoder nativo, e nao pelo iconv-lite.
+ *
+ * Todo `readString` dos pacotes passa por aqui (BinaryReader.getString), e o
+ * iconv-lite decodifica UTF-8 em JS puro (o Buffer e o StringDecoder de
+ * polyfill): medido 377 us contra 49 us do TextDecoder num JSON de 32 KB.
+ *
+ * A semantica fica a MESMA, e o oraculo que prova e
+ * `tests/core/utf8NativoIgualAoIconv.test.js` (milhares de entradas: validas,
+ * invalidas, truncadas, com BOM, com U+FFFD legitimo, CP949):
+ *  - BOM: o iconv tira o BOM do inicio (`stripBOM`), e o TextDecoder com
+ *    `ignoreBOM: false` (o padrao) tambem;
+ *  - byte invalido: os dois trocam por U+FFFD, e QUALQUER U+FFFD manda para o
+ *    charset antigo em `smartDecode` - entao, mesmo onde a CONTAGEM de U+FFFD
+ *    pudesse diferir, a saida de `smartDecode` nao muda.
+ *
+ * Sem TextDecoder no ambiente, ou se ele lancar, volta ao iconv de sempre:
+ * este caminho decodifica o LOGIN (D-993), e nada aqui pode impedir a entrada.
+ */
+let _utf8Nativo;
+
+function decodificadorUtf8Nativo() {
+	if (_utf8Nativo === undefined) {
+		_utf8Nativo = null;
+		try {
+			if (typeof TextDecoder !== 'undefined') {
+				_utf8Nativo = new TextDecoder('utf-8');
+			}
+		} catch (_err) {
+			_utf8Nativo = null;
+		}
+	}
+	return _utf8Nativo;
+}
+
+function decodificarUtf8(bytes) {
+	const nativo = decodificadorUtf8Nativo();
+	if (nativo !== null) {
+		try {
+			return nativo.decode(bytes);
+		} catch (_err) {
+			// cai no iconv abaixo
+		}
+	}
+	return iconv.decode(bytes, 'utf-8');
+}
+
 /**
  * Smart decode helper.
  *
@@ -15,7 +62,7 @@ import iconv from 'Vendors/iconv-lite.js';
  * @returns {string} Decoded string.
  */
 function smartDecode(bytes, fallback) {
-	const utf8 = iconv.decode(bytes, 'utf-8');
+	const utf8 = decodificarUtf8(bytes);
 	if (!/�/.test(utf8)) {
 		return utf8;
 	}

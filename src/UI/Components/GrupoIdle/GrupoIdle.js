@@ -82,6 +82,7 @@ import { abaLembrada, lembrarAba } from '../memoriaDeAba.js';
 import { vidaDoMembro } from './vidaDoMembro.js';
 import { chamarCabe } from './chamarOGrupo.js';
 import { escreverEstilo, escreverTexto, escreverTitulo } from 'UI/escreverSeMudou.js';
+import { criarDesenhoAdiado } from './desenhoAdiado.js';
 
 /* Manter em sincronia com o ":host" do CSS — o mesmo papel do
    WINDOW_WIDTH/HEIGHT de LFGIdle.js. O JS supoe a caixa GRANDE de proposito:
@@ -1056,6 +1057,19 @@ function desligarVidaAoVivo() {
 	_tickerDeVida = null;
 }
 
+/*
+ * FECHADA, NAO DESENHA (15/10/2026, `desenhoAdiado.js`, o molde da D-2385 do
+ * BotMenu): o empurrao do servidor com a janela fechada so suja, e a abertura
+ * desenha o ultimo estado.
+ */
+const _desenho = criarDesenhoAdiado({
+	aberta: () => {
+		const win = raiz().querySelector('.gi-window');
+		return !!(win && win.classList.contains('is-open'));
+	},
+	desenhar: () => desenharTudo()
+});
+
 function desenharTudo() {
 	const e = GrupoIdle.estado;
 	desenharEstandarte(e);
@@ -1309,7 +1323,7 @@ GrupoIdle.init = function init() {
 	this._host.style.top = Math.max(0, (Renderer.height - WINDOW_HEIGHT) / 2) + 'px';
 	this._host.style.left = Math.max(0, (Renderer.width - WINDOW_WIDTH) / 2) + 'px';
 
-	desenharTudo();
+	_desenho.agora();
 };
 
 /**
@@ -1337,6 +1351,8 @@ GrupoIdle.onAppend = function onAppend() {
 		return;
 	}
 	raiz().querySelector('.gi-window').classList.add('is-open');
+	// O que chegou com ela fechada (15/10/2026): desenha o ultimo estado.
+	_desenho.abriu();
 	// O mapa novo ESVAZIOU o cache de vida (`MapRenderer.clearLifeCache`), e o
 	// primeiro lote de combate o enche de novo. Religar aqui e o que faz a
 	// barra voltar a andar depois da viagem — sem isto, a janela reaberta
@@ -1361,6 +1377,8 @@ GrupoIdle.onRemove = function onRemove() {
 
 GrupoIdle.abrir = function abrir() {
 	raiz().querySelector('.gi-window').classList.add('is-open');
+	// O que chegou com ela fechada (15/10/2026): desenha o ultimo estado.
+	_desenho.abriu();
 	GrupoIdle.estavaAberta = true;
 	ligarVidaAoVivo();
 	// PEDE o estado ao abrir, e o pedido tambem INSCREVE a conexao no
@@ -1447,7 +1465,8 @@ Network.hookPacket(PACKET.ZC.RAGIDLE_GRUPO, function (pkt) {
 		mostrarRecado('Abra o Localizador de Grupos para entrar num grupo.', false);
 	}
 
-	desenharTudo();
+	// Fechada, so suja; aberta, desenha como sempre (15/10/2026).
+	_desenho.mudou();
 	/*
 	 * E QUEM MAIS DEPENDE DO ESTADO e avisado — hoje, a HUD de party. O gancho
 	 * dispara mesmo com a janela FECHADA: o estado chega por empurrao do
@@ -1475,7 +1494,7 @@ GrupoIdle.limparEstadoDoPersonagem = function limparEstadoDoPersonagem() {
 	r.querySelector('.gi-convite-nome').value = '';
 	r.querySelector('.gi-convite').hidden = true;
 	mostrarRecado('Abra o Localizador de Grupos para entrar num grupo.', false);
-	desenharTudo();
+	_desenho.agora();
 
 	/*
 	 * ZERAR O DADO NAO BASTA: `GUIComponent.remove()` so DESANEXA o host,

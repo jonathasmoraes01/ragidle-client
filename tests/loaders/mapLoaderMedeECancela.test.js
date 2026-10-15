@@ -163,3 +163,65 @@ describe('a carga do mapa no worker', () => {
 		expect(eventos.fim.erro).toContain('DataCloneError');
 	});
 });
+
+describe('o .gat e o .gnd saem em paralelo (15/10/2026)', () => {
+	it('assim que o .rsw chega, os DOIS pedidos saem antes de qualquer resposta', () => {
+		const { map } = novaCarga();
+		map.load('teste.rsw');
+		responder('teste.rsw', mundo(), { origem: 'rede' });
+		expect(mocks.pedidos.map(p => p.nome)).toEqual(['data\\teste.gat', 'data\\teste.gnd']);
+	});
+
+	it('o .gnd que chega ANTES espera: a montagem segue na ordem de sempre', () => {
+		const { map, eventos } = novaCarga();
+		map.load('teste.rsw');
+		responder('teste.rsw', mundo(), { origem: 'rede' });
+		responder('teste.gnd', chao(), { origem: 'rede' });
+		expect(eventos.progresso).toEqual([1]);
+		expect(eventos.dados).toEqual([]);
+		responder('teste.gat', altitude, { origem: 'rede' });
+		expect(eventos.dados).toEqual(['MAP_ALTITUDE', 'MAP_WORLD', 'MAP_GROUND', 'MAP_MODELS']);
+		expect(eventos.progresso.slice(0, 3)).toEqual([1, 2, 3]);
+		expect(eventos.fim.sucesso).toBe(true);
+		expect(typeof eventos.fim.medida.faseGndMs).toBe('number');
+	});
+
+	it('o .gat que falha depois do .gnd chegar: a falha e do .gat, e o chao nao e montado', () => {
+		const { map, eventos } = novaCarga();
+		map.load('teste.rsw');
+		responder('teste.rsw', mundo(), { origem: 'rede' });
+		responder('teste.gnd', chao(), { origem: 'rede' });
+		responder('teste.gat', null, { origem: 'rede', falhou: true });
+		expect(eventos.fim.sucesso).toBe(false);
+		expect(eventos.fim.erro).toContain('teste.gat');
+		expect(eventos.dados).toEqual([]);
+	});
+
+	it('o .gat que falha ANTES do .gnd chegar: o .gnd que chega depois nao fala nada', () => {
+		const { map, eventos } = novaCarga();
+		map.load('teste.rsw');
+		responder('teste.rsw', mundo(), { origem: 'rede' });
+		responder('teste.gat', null, { origem: 'rede', falhou: true });
+		const fim = eventos.fim;
+		responder('teste.gnd', chao(), { origem: 'rede' });
+		expect(eventos.fim).toBe(fim);
+		expect(eventos.dados).toEqual([]);
+		expect(eventos.progresso).toEqual([1]);
+	});
+
+	it('o chao que LANCA montado na volta do .gat: a falha diz o nome do .gnd (A3)', () => {
+		const { map, eventos } = novaCarga();
+		map.load('teste.rsw');
+		responder('teste.rsw', mundo(), { origem: 'rede' });
+		const quebrado = chao();
+		quebrado.compile = () => {
+			throw new RangeError('Array buffer allocation failed');
+		};
+		responder('teste.gnd', quebrado, { origem: 'rede' });
+		expect(() => responder('teste.gat', altitude, { origem: 'rede' })).not.toThrow();
+		expect(eventos.fim.sucesso).toBe(false);
+		expect(eventos.fim.erro).toContain('teste.gnd');
+		expect(eventos.fim.erro).toContain('RangeError');
+		expect(map.cancelada).toBe(true);
+	});
+});

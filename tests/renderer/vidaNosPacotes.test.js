@@ -10,6 +10,10 @@ const numeros = [];
 /** As linhas que `ChatBox.addText` recebeu — ver o mock dos componentes. */
 const linhasDoChat = [];
 const config = { arco: false };
+/** A tabela de efeitos de ataque dos monstros (mutavel: os casos do alvo nulo). */
+const efeitosDeAtaque = { PROJECTILE: {}, SPAWN: {} };
+/** Os efeitos que `EffectManager.spam` recebeu. */
+const efeitosSpam = [];
 const packet = { ZC: new Proxy({}, { get(alvo, nome) {
 	return alvo[nome] ??= function Pacote() {};
 } }) };
@@ -34,13 +38,13 @@ vi.doMock('DB/DBManager.js', () => ({ default: {
 	isBow: () => config.arco, getWeaponType: () => 0, getMonsterName: () => 'Poring'
 } }));
 vi.doMock('DB/Status/StatusState.js', () => ({ default: { EffectState: {} } }));
-vi.doMock('DB/Monsters/AttackEffectTable.js', () => ({ default: { PROJECTILE: {}, SPAWN: {} } }));
+vi.doMock('DB/Monsters/AttackEffectTable.js', () => ({ default: efeitosDeAtaque }));
 vi.doMock('DB/Skills/SkillAction.js', () => ({ default: { DEFAULT: () => ({ action: 2 }) } }));
 vi.doMock('Renderer/Effects/Damage.js', () => ({ default: {
 	add: (dano, alvo, t) => numeros.push({ dano, alvo, t }), TYPE: { COMBO: 16, COMBO_FINAL: 32 }
 } }));
 vi.doMock('Renderer/EffectManager.js', () => ({ default: {
-	spam() {}, remove() {}, spamSkill() {}, spamSkillHit() {}, spamSkillBeforeHit() {}
+	spam: par => efeitosSpam.push(par), remove() {}, spamSkill() {}, spamSkillHit() {}, spamSkillBeforeHit() {}
 } }));
 vi.doMock('Renderer/Map/Altitude.js', () => ({ default: { getCellHeight: () => 0 } }));
 vi.doMock('Renderer/Entity/EntityOverlay.js', () => ({ default: { append() {} } }));
@@ -212,6 +216,66 @@ describe('vida no caminho real dos pacotes ate o desenho', () => {
 			})
 		).not.toThrow();
 	});
+
+	/*
+	 * O ALVO NULO NOS RAMOS A DISTANCIA (auditoria de 15/10/2026). O caso
+	 * acima e corpo a corpo; a flecha do arco, o projetil e o efeito nascido no
+	 * alvo dos monstros liam `dstEntity.GID` sem guarda e lancavam ANTES da
+	 * animacao do golpe.
+	 */
+	const golpeSemAlvo = GID => ({
+		GID,
+		targetGID: 777, // ninguem: o alvo saiu da area de interesse
+		action: 0,
+		damage: 300,
+		leftDamage: 0,
+		attackMT: 400,
+		attackedMT: 200,
+		count: 1
+	});
+
+	it('a flecha do arco num alvo que JA SUMIU: nao lanca, o arqueiro anima o golpe, sem flecha', () => {
+		config.arco = true;
+		efeitosSpam.length = 0;
+		const arqueiro = entidades.get(1);
+		arqueiro.action = -1;
+		expect(() => enviar('NOTIFY_ACT3', golpeSemAlvo(1))).not.toThrow();
+		expect(arqueiro.action).toBe(arqueiro.ACTION.ATTACK);
+		expect(efeitosSpam.filter(e => e.effectId === 'ef_arrow_projectile')).toHaveLength(0);
+	});
+
+	it('CONTROLE: a flecha com o alvo na tela voa ate ele', () => {
+		config.arco = true;
+		nascer();
+		efeitosSpam.length = 0;
+		enviar('NOTIFY_ACT3', { ...golpeSemAlvo(1), targetGID: 2 });
+		expect(efeitosSpam.filter(e => e.effectId === 'ef_arrow_projectile' && e.ownerAID === 2)).toHaveLength(1);
+	});
+
+	for (const tabela of ['PROJECTILE', 'SPAWN']) {
+		it(`o efeito ${tabela} do monstro num alvo que JA SUMIU: nao lanca e o monstro anima o golpe`, () => {
+			efeitosDeAtaque.PROJECTILE = {};
+			efeitosDeAtaque.SPAWN = {};
+			efeitosDeAtaque[tabela] = { 1100: 'ef_do_monstro' };
+			try {
+				const monstro = new Entity();
+				monstro.set({ GID: 50, objecttype: Entity.TYPE_MOB, job: 1100, hp: 10, maxhp: 10 });
+				entidades.set(50, monstro);
+				monstro.action = -1;
+				efeitosSpam.length = 0;
+				expect(() => enviar('NOTIFY_ACT3', golpeSemAlvo(50))).not.toThrow();
+				expect(monstro.action).toBe(monstro.ACTION.ATTACK);
+				expect(efeitosSpam).toHaveLength(0);
+				// CONTROLE: com o alvo na tela, o efeito sai
+				nascer();
+				enviar('NOTIFY_ACT3', { ...golpeSemAlvo(50), targetGID: 2 });
+				expect(efeitosSpam.filter(e => e.effectId === 'ef_do_monstro' && e.ownerAID === 2)).toHaveLength(1);
+			} finally {
+				efeitosDeAtaque.PROJECTILE = {};
+				efeitosDeAtaque.SPAWN = {};
+			}
+		});
+	}
 
 	it('e o golpe COM alvo na tela ESCREVE a linha de dano', () => {
 		/*

@@ -21,6 +21,7 @@ import ScreenEffectManager from 'Renderer/ScreenEffectManager.js';
 import Session from 'Engine/SessionStorage.js';
 import htmlText from './StatusIcons.html?raw';
 import cssText from './StatusIcons.css?raw';
+import { esquecerPintura, pintarIconeSeMudou, posicionarCelula } from './desenhoDoIcone.js';
 import {
 	LADO_DO_ICONE,
 	PASSO_HORIZONTAL,
@@ -328,10 +329,14 @@ function resetElementsPosition() {
 	const count = elements.length;
 	const perColumn = getIconsPerColumn();
 
+	// So escreve o que mudou (15/10/2026, `desenhoDoIcone.js`): a escrita
+	// igual nao muda a tela, mas invalida o estilo de toda celula.
 	for (let i = 0; i < count; ++i) {
-		const element = elements[i];
-		element.style.top = `${(i % perColumn) * PASSO_VERTICAL}px`;
-		element.style.right = `${Math.floor(i / perColumn) * PASSO_HORIZONTAL}px`;
+		posicionarCelula(
+			elements[i],
+			`${(i % perColumn) * PASSO_VERTICAL}px`,
+			`${Math.floor(i / perColumn) * PASSO_HORIZONTAL}px`
+		);
 	}
 }
 
@@ -401,6 +406,11 @@ function createElement(index) {
 	_status[index].element = state;
 	_status[index].relogio = relogio;
 	_status[index].ctx = canvas.getContext('2d');
+	// O icone so e repintado quando muda (15/10/2026, `desenhoDoIcone.js`); o
+	// canvas que perde o contexto volta LIMPO, e entao a marca e esquecida e o
+	// passe seguinte repinta, como fazia o repintar a cada 500 ms.
+	const registro = _status[index];
+	canvas.addEventListener('contextrestored', () => esquecerPintura(registro));
 
 	// Add description. Sem os LUBs stateicon, o nome do EFST e melhor que um
 	// icone mudo: deixa o jogador e o diagnostico identificarem o buff ausente.
@@ -472,7 +482,6 @@ function renderStatus(status, now) {
 		return;
 	}
 
-	const ctx = status.ctx;
 	let end = status.end;
 
 	if (now > end) {
@@ -486,8 +495,9 @@ function renderStatus(status, now) {
 	 * mesmo dado, e a que borra o glifo e a menos precisa. A print do dono nao
 	 * tem torta nenhuma.
 	 */
-	ctx.clearRect(0, 0, LADO_DO_ICONE, LADO_DO_ICONE);
-	ctx.drawImage(status.img, 0, 0);
+	// (15/10/2026) Sem a torta, o icone e estatico: so pinta quando a imagem
+	// muda (carregou, trocou de variante, fallback). Ver `desenhoDoIcone.js`.
+	pintarIconeSeMudou(status, LADO_DO_ICONE);
 
 	/*
 	 * A FAIXA e escrita a cada passe (meio segundo), e nao a cada segundo como
@@ -540,12 +550,13 @@ function renderStatus(status, now) {
  * @param {number} tick
  */
 function rendering(tick) {
-	const indexes = Object.keys(_status);
-	const count = indexes.length;
-
 	const time_now = Date.now();
 	if (time_now - _last_updated_time > _render_time) {
 		_last_updated_time = time_now;
+		// A lista de chaves so e montada no passe de 500 ms (15/10/2026): antes
+		// saia um array novo a cada QUADRO, para ser jogado fora em 29 de 30.
+		const indexes = Object.keys(_status);
+		const count = indexes.length;
 		for (let i = 0; i < count; ++i) {
 			renderStatus(_status[indexes[i]], tick);
 		}
