@@ -873,7 +873,7 @@ function abaLojaHtml(estado, agora) {
 		impulso +
 		'<div class="vi-secao">Loja de votação</div>' +
 		ofertas +
-		'<div class="vi-plat-rodape">Comprar de novo com o cartão ativo SOMA o tempo — nada do que você pagou é perdido. Os tickets de reset chegam pelo correio.</div>'
+		'<div class="vi-plat-rodape">Comprar de novo com o cartão ativo SOMA o tempo - nada do que você pagou é perdido. Os tickets de reset chegam pelo correio.</div>'
 	);
 }
 
