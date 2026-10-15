@@ -16,6 +16,7 @@ import KEYS from 'Controls/KeyEventHandler.js';
 import ClampToViewport from 'UI/ClampToViewport.js';
 import EscalaDaHud from 'UI/escalaDaHud.js'; // D-934: a HUD diminui junto com a janela
 import HudVertical from 'UI/hudVertical.js'; // D-939: a HUD vertical do celular em pe
+import { numerosDoSono } from 'UI/numerosDoSono.js'; // D-2478: o ganho visivel do "Dormindo..."
 
 /**
  * Centralize popup position
@@ -242,12 +243,15 @@ function _relogioDeEspera(ms) {
  * Quem chama recebe os PEDACOS (timer, aviso, resumo, botao, rodape) e escreve
  * neles; este modulo nao sabe o que cada tela mostra, so como ela e.
  *
+ * O BOTAO SECUNDARIO (J21, 14/10/2026, D-2478) e opcional: o "Dormindo..." ganhou "Voltar à seleção de
+ * personagem" ao lado do "Acordar agora"; a economia de energia segue com um botao so.
+ *
  * @param {{titulo: string, rodape: string, textoDoBotao: string,
- *   onBotao: function(): void}} opcoes
+ *   onBotao: function(): void, textoDoBotaoSecundario?: string, onBotaoSecundario?: function(): void}} opcoes
  * @returns {{timer: HTMLElement, aviso: HTMLElement, resumo: HTMLElement,
- *   botao: HTMLElement, rodape: HTMLElement, remove: function(): void}}
+ *   botao: HTMLElement, botaoSecundario: HTMLElement|null, rodape: HTMLElement, remove: function(): void}}
  */
-function _telaPretaDeEspera({ titulo, rodape, textoDoBotao, onBotao }) {
+function _telaPretaDeEspera({ titulo, rodape, textoDoBotao, onBotao, textoDoBotaoSecundario, onBotaoSecundario }) {
 	const overlay = document.createElement('div');
 	Object.assign(overlay.style, {
 		position: 'fixed',
@@ -328,11 +332,48 @@ function _telaPretaDeEspera({ titulo, rodape, textoDoBotao, onBotao }) {
 		if (onBotao) onBotao();
 	});
 
+	/*
+	 * O SECUNDARIO (D-2478): mesma altura tatil, pele de contorno (a hierarquia das nossas janelas: um primario
+	 * so). Os dois numa fileira que QUEBRA: no celular em pe eles empilham, cada um com a largura que precisa.
+	 */
+	let elSecundario = null;
+	if (textoDoBotaoSecundario) {
+		elSecundario = document.createElement('button');
+		elSecundario.type = 'button';
+		elSecundario.textContent = textoDoBotaoSecundario;
+		Object.assign(elSecundario.style, {
+			marginTop: '16px',
+			padding: '10px 20px',
+			fontSize: '14px',
+			fontWeight: '600',
+			color: '#e8c76a',
+			background: 'transparent',
+			border: '1px solid rgba(232, 199, 106, 0.6)',
+			borderRadius: '6px',
+			cursor: 'pointer',
+			minHeight: '44px',
+			minWidth: '44px'
+		});
+		ligarAoDedoEAoMouse(elSecundario, () => {
+			if (onBotaoSecundario) onBotaoSecundario();
+		});
+	}
+	const elBotoes = document.createElement('div');
+	Object.assign(elBotoes.style, {
+		display: 'flex',
+		flexWrap: 'wrap',
+		justifyContent: 'center',
+		columnGap: '12px',
+		maxWidth: '100%'
+	});
+	elBotoes.append(elBotao);
+	if (elSecundario) elBotoes.append(elSecundario);
+
 	const elRodape = document.createElement('div');
-	Object.assign(elRodape.style, { fontSize: '12px', opacity: '0.5', marginTop: '4px' });
+	Object.assign(elRodape.style, { fontSize: '12px', opacity: '0.5', marginTop: '4px', maxWidth: '520px' });
 	elRodape.textContent = rodape;
 
-	overlay.append(elTitulo, elTimer, elAviso, elResumo, elBotao, elRodape);
+	overlay.append(elTitulo, elTimer, elAviso, elResumo, elBotoes, elRodape);
 	document.body.appendChild(overlay);
 
 	return {
@@ -340,6 +381,7 @@ function _telaPretaDeEspera({ titulo, rodape, textoDoBotao, onBotao }) {
 		aviso: elAviso,
 		resumo: elResumo,
 		botao: elBotao,
+		botaoSecundario: elSecundario,
 		rodape: elRodape,
 		remove: () => overlay.remove()
 	};
@@ -634,22 +676,51 @@ class UIManager {
 	 * @param {function(): void} onAcordar chamado quando o jogador clica em "Acordar agora" —
 	 *   so manda o pedido ao servidor (D-1387: quem fecha esta janela e reconecta e o
 	 *   `dormindo:false` que chega depois, via `onSonoRecebido`, nunca o clique em si)
+	 * O GANHO VISIVEL E A VOLTA A SELECAO (J21, 14/10/2026, D-2478, relato do "lucas seabra": dormiu varias vezes e
+	 * "nao tinha subido nada de XP"). A tela diz "Dormindo e ganhando EXP", o ganho ate agora (taxa vezes o
+	 * `dormidoMs` que o servidor manda), o ritmo por hora e o que falta (`numerosDoSono.js`). Sono a taxa zero (os
+	 * aceitos antes da D-2477) mostra o aviso no lugar do "ganhando". E o segundo botao volta a selecao de personagem
+	 * sem acordar: o sono segue no servidor.
+	 *
+	 * @param {{dormidoMs?: number, onVoltarASelecao?: function(): void}} [extras] o tempo ja dormido e o
+	 *   botao "Voltar à seleção de personagem" (sem ele, a tela fica com um botao so)
 	 * @returns {{remove: function(): void}} quem chama fecha com `.remove()` se precisar —
 	 *   fecha a janela E o overlay juntos (os dois sao peças separadas no DOM)
 	 */
-	static showDormindo(restanteMs, taxas, onAcordar) {
+	static showDormindo(restanteMs, taxas, onAcordar, extras) {
 		let restante = Math.max(0, Number(restanteMs) || 0);
+		let dormido = Math.max(0, Number(extras?.dormidoMs) || 0);
 		const expBasePorMs = Number(taxas?.expBasePorMs) || 0;
 		const expClassePorMs = Number(taxas?.expClassePorMs) || 0;
+		const onVoltarASelecao = typeof extras?.onVoltarASelecao === 'function' ? extras.onVoltarASelecao : null;
 		let timer = null;
 		let pedindo = false;
 
 		const tela = _telaPretaDeEspera({
 			titulo: 'DORMINDO',
 			// RAGIDLE (24/09/2026, pedido do dono): as quatro duvidas que os jogadores fazem, respondidas na tela.
+			// J21 (D-2478): e a quinta - entrar com outro personagem da conta encerra o sono (regra do dono, 12/10).
 			rodape:
-				'Pode fechar o jogo com segurança — o sono continua sem ele. Dormindo, o personagem não luta nem morre ' +
-				'e ganha só EXP (base e classe), até 8 h. Loot e zeny só caçando online.',
+				'Pode fechar o jogo com segurança: o sono continua sem ele. Dormindo, o personagem não luta nem morre ' +
+				'e ganha só EXP (base e classe), até 8 h. Loot e zeny só caçando online. Entrar com outro personagem ' +
+				'desta conta encerra este sono.',
+			...(onVoltarASelecao
+				? {
+						textoDoBotaoSecundario: 'Voltar à seleção de personagem',
+						onBotaoSecundario: () => {
+							// Mesma guarda do "Acordar": um pedido so, e nunca os dois.
+							if (pedindo) {
+								return;
+							}
+							pedindo = true;
+							if (timer) {
+								clearInterval(timer);
+								timer = null;
+							}
+							onVoltarASelecao();
+						}
+					}
+				: {}),
 			textoDoBotao: 'Acordar agora',
 			onBotao: () => {
 				/*
@@ -672,21 +743,53 @@ class UIManager {
 				tela.botao.textContent = 'Acordando...';
 				tela.botao.style.opacity = '0.6';
 				tela.botao.style.cursor = 'default';
+				if (tela.botaoSecundario) {
+					tela.botaoSecundario.disabled = true;
+					tela.botaoSecundario.style.opacity = '0.4';
+				}
 				onAcordar();
 			}
 		});
 
+		/*
+		 * O ESTADO EM UMA LINHA (D-2478): "Dormindo e ganhando EXP", na faixa de aviso pintada de verde; com a
+		 * taxa zero, a mesma faixa no laranja de aviso diz que o sono nao rende. Cada linha do resumo e um elemento
+		 * proprio: o tradutor casa o texto INTEIRO de cada no (os modelos de `i18n/en`), e uma linha so com tres
+		 * frases nao casaria com nenhum.
+		 */
+		const inicial = numerosDoSono({ restanteMs: restante, dormidoMs: dormido, expBasePorMs, expClassePorMs });
+		tela.aviso.hidden = false;
+		if (inicial.rendendo) {
+			tela.aviso.textContent = 'Dormindo e ganhando EXP';
+			Object.assign(tela.aviso.style, {
+				color: '#8fe388',
+				background: 'rgba(80, 200, 120, 0.12)',
+				border: '1px solid rgba(143, 227, 136, 0.4)'
+			});
+		} else {
+			tela.aviso.textContent =
+				'Este sono não está rendendo EXP: a caçada medida antes de dormir não deu EXP. Acorde, cace 10 minutos e durma de novo.';
+		}
+		const linhaAteAgora = document.createElement('div');
+		const linhaRitmo = document.createElement('div');
+		const linhaPelaFrente = document.createElement('div');
+		tela.resumo.append(linhaAteAgora, linhaRitmo, linhaPelaFrente);
+
 		function desenhar() {
 			tela.timer.textContent = _relogioDeEspera(restante);
-			const expBase = Math.round(expBasePorMs * restante).toLocaleString(localeDoIdioma());
-			const expClasse = Math.round(expClassePorMs * restante).toLocaleString(localeDoIdioma());
-			tela.resumo.textContent = `~${expBase} EXP base · ~${expClasse} EXP classe pela frente`;
+			const n = numerosDoSono({ restanteMs: restante, dormidoMs: dormido, expBasePorMs, expClassePorMs });
+			const num = v => v.toLocaleString(localeDoIdioma());
+			linhaAteAgora.textContent = `Ganho até agora: ~${num(n.ateAgora.base)} EXP base · ~${num(n.ateAgora.classe)} EXP classe`;
+			linhaRitmo.textContent = `Ritmo: ~${num(n.porHora.base)} EXP base/h · ~${num(n.porHora.classe)} EXP classe/h`;
+			linhaPelaFrente.textContent = `~${num(n.pelaFrente.base)} EXP base · ~${num(n.pelaFrente.classe)} EXP classe pela frente`;
 		}
 
 		desenhar();
 		// O contador na TELA, a cada segundo e sem depender de outro tique. O
 		// relogio daqui e so mostrador: quem manda a verdade e o servidor.
 		timer = setInterval(() => {
+			// O que sai do "restante" entra no "dormido" (D-2478), ate o teto: depois dele nada rende.
+			dormido += Math.min(1000, restante);
 			restante = Math.max(0, restante - 1000);
 			desenhar();
 			if (restante <= 0 && timer) {

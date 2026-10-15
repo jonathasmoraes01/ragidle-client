@@ -185,6 +185,40 @@
 	display: none;
 }
 
+/* O ICONE DE DORMIR (J21, 14/10/2026, D-2478): ao lado do icone da classe, do mesmo tamanho e com o mesmo aro, so
+   para quem o char-server marcou com o OPT1_SLEEP. A arte e do cliente (o "Z z z" da Cancao de Ninar Profunda,
+   `wm_lullaby_deepsleep.bmp` do GRF, 24 px em escala inteira); a moldura e CSS. Cantos quase retos: o quadro da
+   habilidade e quadrado, e o circulo do icone da classe cortaria o desenho. */
+#CharSelectV4 .char_canvas .sono_icon {
+	position: absolute;
+	top: 8px;
+	right: 39px;
+	width: 25px;
+	height: 25px;
+	background-repeat: no-repeat;
+	background-position: center;
+	background-color: var(--surface-card, #1b1b1b);
+	image-rendering: pixelated;
+	border-radius: 4px;
+	box-shadow:
+		0 0 0 1px var(--border-gold),
+		var(--shadow-card);
+	pointer-events: none;
+}
+#CharSelectV4 .char_canvas .sono_icon[hidden],
+#CharSelectV4 .char_canvas.is-empty .sono_icon {
+	display: none;
+}
+/* A linha da ficha: quem dorme, e o que acontece se entrar com outro. */
+#CharSelectV4 .charinfo .cs-sono {
+	margin: 0;
+	font: var(--type-label);
+	color: #8fe388;
+}
+#CharSelectV4 .charinfo .cs-sono[hidden] {
+	display: none;
+}
+
 /** Page info: nao usado no layout em grade (ver nota no .html), fica
     escondido -- CharSelectCommon.js nunca escreve nele aqui. **/
 #CharSelectV4 .pageinfo {
