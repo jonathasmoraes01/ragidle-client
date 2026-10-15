@@ -22,7 +22,7 @@ const UMA_HORA_MS = 3600 * 1000;
 /**
  * @param {{restanteMs: number, dormidoMs: number, expBasePorMs: number, expClassePorMs: number}} p
  * @returns {{ateAgora: {base: number, classe: number}, porHora: {base: number, classe: number},
- *   pelaFrente: {base: number, classe: number}, rendendo: boolean}}
+ *   pelaFrente: {base: number, classe: number}, rendendo: boolean, completo: boolean}}
  */
 export function numerosDoSono(p) {
 	const base = Math.max(0, Number(p?.expBasePorMs) || 0);
@@ -34,6 +34,9 @@ export function numerosDoSono(p) {
 		porHora: { base: Math.floor(base * UMA_HORA_MS), classe: Math.floor(classe * UMA_HORA_MS) },
 		pelaFrente: { base: Math.floor(base * restante), classe: Math.floor(classe * restante) },
 		// O acerto paga a classe junto da base (D-2477): sem taxa de base o sono nao rende nada.
-		rendendo: base > 0
+		rendendo: base > 0,
+		// O teto passou (rodada 2, N1 do critico): o sono parou de render e so espera o "Acordar" para pagar. A tela
+		// dizia "Dormindo e ganhando EXP" de um sono parado; agora diz que terminou, com o ganho.
+		completo: restante <= 0
 	};
 }

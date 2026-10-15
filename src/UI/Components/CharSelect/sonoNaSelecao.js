@@ -6,8 +6,8 @@
  * O pedido: "um icone na selecao de personagem, ao lado do icone de classe, mostrando que aquele personagem esta com
  * o dormir ligado". O char-server poe `OPT1_SLEEP` (4) no `bodystate` do bloco de quem dorme (o campo que o rAthena
  * manda zerado, `char.cpp:1788`), e `PacketVerManager.parseCharList` ja o lia como `bodyState`. O mesmo numero e o
- * `BodyState.SLEEP` do cliente (`DB/Status/StatusState.js`). A selecao nao desenha os anexos do boneco (medido no
- * print: o "zZz" do `status-sleep` nao aparece ali), entao o sinal e o icone ao lado do da classe e a linha da ficha.
+ * `BodyState.SLEEP` do cliente (`DB/Status/StatusState.js`). O sinal e o icone ao lado do da classe e a linha da
+ * ficha. O valor e SO da selecao: quem monta uma entidade a partir da lista passa por `semOSonoDaLista` (abaixo).
  *
  * E A PERGUNTA ANTES DE ENCERRAR O SONO: entrar com OUTRO personagem da conta encerra o sono em curso (regra do dono,
  * 12/10/2026, `sono-encerrado-pela-entrada.ts` no servidor). Em producao, 17 de 25 sonos encerrados assim tinham 0 a
@@ -29,6 +29,22 @@ export const ICONE_DO_SONO = 'wm_lullaby_deepsleep';
 /** O personagem da lista esta dormindo? (`bodyState` do bloco, `OPT1_SLEEP`.) */
 export function estaDormindoNaLista(personagem) {
 	return !!personagem && personagem.bodyState === StatusConst.BodyState.SLEEP;
+}
+
+/**
+ * O CORPO QUE SAI DA LISTA PARA UMA ENTIDADE (rodada 2 da frente, B1 do critico, 14/10/2026). O `bodyState` da lista
+ * e um SINAL DA SELECAO, e nao o estado do corpo: `Entity.set` copia toda chave que o prototipo conhece
+ * (`Entity.prototype._bodyState`), e o setter poe o anexo `status-sleep` na cabeca (`EntityState.js`,
+ * `updateBodyState`). Nada no mundo o tira: `Entity.clean` nao zera o estado, e o mapa so manda o 0x0119 do proprio
+ * jogador quando o `effectState` nao e zero. Medido na pilha da frente: o jogador que dormiu entrava no mundo com
+ * `bodyState=4 anexos=[status-sleep]`.
+ *
+ * Quem monta uma entidade a partir da lista (o `Player` da entrada em `CharEngine.js`, os bonecos da grade em
+ * `CharSelectCommon.js`) recebe uma COPIA com o corpo zerado, o mesmo zero que o rAthena manda (`char.cpp:1788`). O
+ * objeto da lista fica intacto, com o 4, para o icone e a pergunta.
+ */
+export function semOSonoDaLista(personagem) {
+	return { ...personagem, bodyState: 0 };
 }
 
 /**

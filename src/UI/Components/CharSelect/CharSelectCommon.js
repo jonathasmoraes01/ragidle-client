@@ -34,11 +34,13 @@ import PACKETVER from 'Network/PacketVerManager.js';
 import { aplicarVagas, podeCriarNaVaga, vagaDoCursor, vagasDaConta } from './vagasDaSelecao.js';
 
 import { TEXTOS_DA_EXCLUSAO, textoDoContador } from './textosDaExclusao.js';
-// J21 (14/10/2026, D-2478): quem dorme na lista, e a pergunta antes de encerrar o sono.
+// J21 (14/10/2026, D-2478): quem dorme na lista, e a pergunta antes de encerrar o sono. O boneco da vaga nasce
+// com o corpo zerado (`semOSonoDaLista`): o `bodyState` da lista e sinal da selecao, nao estado do corpo.
 import {
 	ICONE_DO_SONO,
 	estaDormindoNaLista,
 	perguntaAntesDeEncerrarOSono,
+	semOSonoDaLista,
 	sonosQueAEntradaEncerra
 } from './sonoNaSelecao.js';
 
@@ -580,7 +582,7 @@ export function createCharSelect(config) {
 			_slots[character.CharNum] = character;
 
 			_entitySlots[character.CharNum] = new Entity();
-			_entitySlots[character.CharNum].set(character);
+			_entitySlots[character.CharNum].set(semOSonoDaLista(character));
 			_entitySlots[character.CharNum].effectState =
 				_entitySlots[character.CharNum]._effectState & ~StatusConst.EffectState.INVISIBLE;
 			_entitySlots[character.CharNum].hideShadow = true;
@@ -603,7 +605,7 @@ export function createCharSelect(config) {
 		_slots[character.CharNum] = character;
 
 		_entitySlots[character.CharNum] = new Entity();
-		_entitySlots[character.CharNum].set(character);
+		_entitySlots[character.CharNum].set(semOSonoDaLista(character));
 		_entitySlots[character.CharNum].effectState =
 			_entitySlots[character.CharNum]._effectState & ~StatusConst.EffectState.INVISIBLE;
 

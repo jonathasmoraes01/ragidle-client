@@ -209,11 +209,12 @@
 #CharSelectV4 .char_canvas.is-empty .sono_icon {
 	display: none;
 }
-/* A linha da ficha: quem dorme, e o que acontece se entrar com outro. */
+/* A linha da ficha: quem dorme, e o que acontece se entrar com outro. O verde do design system, e nao o da tela
+   preta do sono: o #8fe388 dava 1,53:1 sobre o cartao claro (B2 do critico); o --ri-verde da 5,0:1. */
 #CharSelectV4 .charinfo .cs-sono {
 	margin: 0;
 	font: var(--type-label);
-	color: #8fe388;
+	color: var(--ri-verde);
 }
 #CharSelectV4 .charinfo .cs-sono[hidden] {
 	display: none;

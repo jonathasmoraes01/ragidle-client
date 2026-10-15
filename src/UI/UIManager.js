@@ -779,6 +779,18 @@ class UIManager {
 			tela.timer.textContent = _relogioDeEspera(restante);
 			const n = numerosDoSono({ restanteMs: restante, dormidoMs: dormido, expBasePorMs, expClassePorMs });
 			const num = v => v.toLocaleString(localeDoIdioma());
+			/*
+			 * O SONO COMPLETO (rodada 2 da D-2478, N1 do critico): o relogio chegou a zero e o sono parou de render; o
+			 * acerto espera o "Acordar agora" e paga ate o teto. A faixa dizia "Dormindo e ganhando EXP" de um sono
+			 * parado: agora diz que terminou, e o resumo vira o ganho do sono inteiro.
+			 */
+			if (n.completo && n.rendendo) {
+				tela.aviso.textContent = 'Sono completo: acorde para receber a EXP';
+				linhaAteAgora.textContent = `Ganho do sono: ~${num(n.ateAgora.base)} EXP base · ~${num(n.ateAgora.classe)} EXP classe`;
+				linhaRitmo.remove();
+				linhaPelaFrente.remove();
+				return;
+			}
 			linhaAteAgora.textContent = `Ganho até agora: ~${num(n.ateAgora.base)} EXP base · ~${num(n.ateAgora.classe)} EXP classe`;
 			linhaRitmo.textContent = `Ritmo: ~${num(n.porHora.base)} EXP base/h · ~${num(n.porHora.classe)} EXP classe/h`;
 			linhaPelaFrente.textContent = `~${num(n.pelaFrente.base)} EXP base · ~${num(n.pelaFrente.classe)} EXP classe pela frente`;

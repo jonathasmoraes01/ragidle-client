@@ -20,6 +20,9 @@ function semComentario(texto) {
 const MOTOR_CRU = semComentario(readFileSync('src/Engine/MapEngine.js', 'utf8'));
 const SELECAO_CRU = semComentario(readFileSync('src/UI/Components/CharSelect/CharSelectCommon.js', 'utf8'));
 const SELECAO_HTML = readFileSync('src/UI/Components/CharSelect/CharSelectV4/CharSelectV4.html', 'utf8');
+const SELECAO_CSS = readFileSync('src/UI/Components/CharSelect/CharSelectV4/CharSelectV4.css', 'utf8');
+const COMMON_CSS = readFileSync('src/UI/Common.css', 'utf8');
+const CHAR_ENGINE_CRU = semComentario(readFileSync('src/Engine/CharEngine.js', 'utf8'));
 const ANALISADOR_CRU = semComentario(readFileSync('src/UI/Components/HuntAnalyzer/HuntAnalyzer.js', 'utf8'));
 
 describe('os numeros da tela "Dormindo..." (D-2478)', () => {
@@ -46,7 +49,20 @@ describe('os numeros da tela "Dormindo..." (D-2478)', () => {
 	it('entrada torta (ausente, negativa, texto) vira zero, nunca NaN na tela', async () => {
 		const { numerosDoSono } = await import('UI/numerosDoSono.js');
 		const n = numerosDoSono({ restanteMs: -5, dormidoMs: 'x', expBasePorMs: undefined, expClassePorMs: -1 });
-		expect(n).toEqual({ ateAgora: { base: 0, classe: 0 }, porHora: { base: 0, classe: 0 }, pelaFrente: { base: 0, classe: 0 }, rendendo: false });
+		expect(n).toEqual({
+			ateAgora: { base: 0, classe: 0 },
+			porHora: { base: 0, classe: 0 },
+			pelaFrente: { base: 0, classe: 0 },
+			rendendo: false,
+			completo: true
+		});
+	});
+
+	it('o sono so e COMPLETO quando nao falta nada (rodada 2, N1): um milissegundo antes ainda rende', async () => {
+		const { numerosDoSono } = await import('UI/numerosDoSono.js');
+		const taxa = { expBasePorMs: 0.001, expClassePorMs: 0.0005 };
+		expect(numerosDoSono({ ...taxa, restanteMs: 1, dormidoMs: 8 * 3600_000 - 1 }).completo).toBe(false);
+		expect(numerosDoSono({ ...taxa, restanteMs: 0, dormidoMs: 8 * 3600_000 }).completo).toBe(true);
 	});
 });
 
@@ -77,6 +93,31 @@ describe('a tela "Dormindo..." diz que esta ganhando, e volta a selecao sem acor
 		expect(linha().textContent).toContain('~0 EXP base');
 		vi.advanceTimersByTime(3000);
 		expect(linha().textContent).toMatch(/~3[.,]?000 EXP base/);
+		tela.remove();
+	});
+
+	it('o relogio chega a zero: a faixa deixa de dizer "ganhando" e mostra o ganho do sono inteiro (rodada 2, N1)', async () => {
+		vi.useFakeTimers();
+		const { default: UIManager } = await import('UI/UIManager.js');
+		const tela = UIManager.showDormindo(2000, { expBasePorMs: 1, expClassePorMs: 0.5 }, () => {}, { dormidoMs: 8 * 3600_000 - 2000 });
+		const janela = document.body.lastElementChild;
+		expect(janela.textContent, 'PRE-CONDICAO: com tempo pela frente, ainda rende').toContain('Dormindo e ganhando EXP');
+		vi.advanceTimersByTime(2000);
+		expect(janela.textContent).not.toContain('Dormindo e ganhando EXP');
+		expect(janela.textContent).toContain('Sono completo: acorde para receber a EXP');
+		expect(janela.textContent).toMatch(/Ganho do sono: ~28[.,]?800[.,]?000 EXP base · ~14[.,]?400[.,]?000 EXP classe/);
+		expect(janela.textContent, 'o ritmo de um sono parado').not.toContain('Ritmo:');
+		expect(janela.textContent, 'o "pela frente" de um sono parado').not.toContain('pela frente');
+		expect(new RegExp(`[${String.fromCharCode(0x2013, 0x2014)}]`).test(janela.textContent), 'travessao na tela').toBe(false);
+		tela.remove();
+	});
+
+	it('o sono a taxa ZERO que chega ao fim continua com o aviso laranja, e nao "Sono completo" com ganho zero', async () => {
+		const { default: UIManager } = await import('UI/UIManager.js');
+		const tela = UIManager.showDormindo(0, { expBasePorMs: 0, expClassePorMs: 0 }, () => {}, { dormidoMs: 8 * 3600_000 });
+		const texto = document.body.lastElementChild.textContent;
+		expect(texto).toContain('Este sono não está rendendo EXP');
+		expect(texto).not.toContain('Sono completo');
 		tela.remove();
 	});
 
@@ -203,6 +244,48 @@ describe('a selecao de personagem mostra quem dorme e pergunta antes de encerrar
 		const corpo = SELECAO_CRU.slice(i, SELECAO_CRU.indexOf('function reserve()', i));
 		expect(corpo).toContain('sonosQueAEntradaEncerra(_slots, escolhido)');
 		expect(corpo).toMatch(/UIManager\.showPromptBox\(perguntaAntesDeEncerrarOSono\(encerra, escolhido\), 'yes', 'no', entrar, null\)/);
+	});
+
+	/*
+	 * B1 DO CRITICO (rodada 2): o `bodyState` da lista ia para a entidade do jogador DENTRO do mundo (`Entity.set`
+	 * copia a chave e o setter poe o `status-sleep`; nada o tira). O mecanismo, com a `Entity` de verdade, mora em
+	 * `tests/renderer/sonoDaListaNaoVaiAoMundo.test.js`; aqui, o corte puro e as tres costuras.
+	 */
+	it('`semOSonoDaLista` da uma COPIA com o corpo zerado; a lista guarda o 4 para o icone e a pergunta', async () => {
+		const { semOSonoDaLista, estaDormindoNaLista } = await import('UI/Components/CharSelect/sonoNaSelecao.js');
+		const daLista = { GID: 7, CharNum: 2, name: 'Dorminhoco', job: 4012, effectState: 0, bodyState: 4 };
+		const corpo = semOSonoDaLista(daLista);
+		expect(corpo).not.toBe(daLista);
+		expect(corpo).toEqual({ ...daLista, bodyState: 0 });
+		expect(daLista.bodyState, 'o objeto da lista perdeu o sinal: o icone apagaria').toBe(4);
+		expect(estaDormindoNaLista(daLista)).toBe(true);
+		expect(estaDormindoNaLista(corpo)).toBe(false);
+	});
+
+	it('o `Player` da entrada e os dois bonecos da grade nascem do corpo zerado, nunca do objeto cru da lista', () => {
+		expect(CHAR_ENGINE_CRU).toContain('Session.Entity = new Player(semOSonoDaLista(entity));');
+		expect(CHAR_ENGINE_CRU).not.toMatch(/new Player\(entity\)/);
+		expect(SELECAO_CRU.match(/_entitySlots\[character\.CharNum\]\.set\(semOSonoDaLista\(character\)\);/g)).toHaveLength(2);
+		expect(SELECAO_CRU).not.toMatch(/\.set\(character\)/);
+	});
+
+	/*
+	 * B2 DO CRITICO (rodada 2): a linha da ficha saia no verde da tela PRETA do sono, 1,53:1 sobre o cartao claro.
+	 * O cartao e branco translucido (`--surface-card`); o print mediu (253, 253, 254) atras da linha.
+	 */
+	it('a linha da ficha usa o verde do design system e passa de 4,5:1 sobre o cartao (WCAG AA)', () => {
+		const regra = SELECAO_CSS.slice(SELECAO_CSS.indexOf('#CharSelectV4 .charinfo .cs-sono {'));
+		const cor = /color:\s*([^;]+);/.exec(regra.slice(0, regra.indexOf('}')))?.[1].trim();
+		expect(cor).toBe('var(--ri-verde)');
+		const token = nome => new RegExp(`${nome}:\\s*([^;]+);`).exec(COMMON_CSS)?.[1].trim();
+		expect(token('--ri-verde')).toBe('var(--green-600)');
+		const hex = token('--green-600');
+		const rgb = [1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16));
+		const lin = c => (c / 255 <= 0.03928 ? c / 255 / 12.92 : ((c / 255 + 0.055) / 1.055) ** 2.4);
+		const lum = ([r, g, b]) => 0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b);
+		const contraste = (a, b) => (Math.max(lum(a), lum(b)) + 0.05) / (Math.min(lum(a), lum(b)) + 0.05);
+		expect(contraste(rgb, [253, 253, 254])).toBeGreaterThanOrEqual(4.5);
+		expect(contraste(rgb, [255, 255, 255])).toBeGreaterThanOrEqual(4.5);
 	});
 });
 
