@@ -37,6 +37,7 @@ import Storage from 'UI/Components/Storage/Storage.js';
 import MakeItemSelection from 'UI/Components/MakeItemSelection/MakeItemSelection.js';
 import ItemListWindowSelection from 'UI/Components/MakeItemSelection/ItemListWindowSelection.js';
 import EffectManager from 'Renderer/EffectManager.js';
+import { avisarResultadoDaProducao } from './resultadoDaProducao.js';
 
 /**
  * Spam an item on the map
@@ -621,6 +622,26 @@ function onMakeitemList(pkt) {
 }
 
 /**
+ * O resultado da forja/farmacia (`ZC_ACK_REQMAKINGITEM`, D-2506): uma linha no
+ * chat com o desfecho e o item. A animacao vem pelo `ZC_NOTIFY_EFFECT`
+ * (`onSpecialEffect`, Skill.js). Cosmetico: `avisarResultadoDaProducao` nunca
+ * lanca.
+ *
+ * @param {object} pkt - PACKET.ZC.ACK_REQMAKINGITEM
+ */
+function onMakeitemResult(pkt) {
+	avisarResultadoDaProducao(pkt, {
+		nomeDoItem: (itemId) => {
+			const info = DB.getItemInfo(itemId);
+			return info && info.identifiedDisplayName ? info.identifiedDisplayName : '';
+		},
+		escrever: (texto, saiu) => {
+			ChatBox.addText(texto, saiu ? ChatBox.TYPE.BLUE : ChatBox.TYPE.ERROR, ChatBox.FILTER.ITEM);
+		}
+	});
+}
+
+/**
  * Get a list of items to create
  *
  * @param {object} pkt - PACKET.ZC.ITEMLISTWIN_OPEN
@@ -912,6 +933,7 @@ export default function ItemEngine() {
 	Network.hookPacket(PACKET.ZC.ADD_ITEM_TO_CART3, onCartItemAdded);
 	Network.hookPacket(PACKET.ZC.ADD_ITEM_TO_CART4, onCartItemAdded);
 	Network.hookPacket(PACKET.ZC.MAKABLEITEMLIST, onMakeitemList);
+	Network.hookPacket(PACKET.ZC.ACK_REQMAKINGITEM, onMakeitemResult);
 	Network.hookPacket(PACKET.ZC.MAKINGITEM_LIST, onMakeitem_List);
 	Network.hookPacket(PACKET.ZC.ACK_ADDITEM_TO_CART, onAckAddItemToCart);
 	// R110: o carrinho saiu (`clif_clearcart`) - a janela fecha e se esvazia.
