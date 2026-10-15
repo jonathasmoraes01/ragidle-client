@@ -12,6 +12,14 @@
  * e o buffer unico dos modelos (`MapLoader.mergeMeshes`). Nada que venha de um
  * arquivo baixado - aquele buffer ainda vai para o cache local depois.
  *
+ * (15/10/2026) Mais tres do chao: o `lightmap` (`createLightmapImage`, e nao o
+ * `this.lightmap.data`, que e vista do arquivo), o `tileColor`
+ * (`createTilesColorImage`) e o `shadowMap` (`createShadowmapData`). Os tres
+ * sao `Uint8Array` NOVOS criados pelo `compile` e so vivem no objeto que e
+ * mandado: depois do `MAP_GROUND` o `MapLoader` segue com o `ground` (o GND),
+ * e nao com o chao compilado. Eram COPIADOS no `postMessage` - e o
+ * "DataCloneError ... out of memory" do celular, em producao, e essa copia.
+ *
  * @param {string} tipo
  * @param {object} dado
  * @returns {ArrayBuffer[]}
@@ -37,6 +45,9 @@ export function transferiveisDoMapa(tipo, dado) {
 	if (tipo === 'MAP_GROUND') {
 		somar(dado.mesh);
 		somar(dado.waterMesh);
+		somar(dado.lightmap);
+		somar(dado.tileColor);
+		somar(dado.shadowMap);
 	} else if (tipo === 'MAP_MODELS') {
 		somar(dado.buffer);
 	}

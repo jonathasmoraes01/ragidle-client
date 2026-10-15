@@ -71,10 +71,7 @@ describe('os buffers grandes do mapa vao transferidos', () => {
 	it('a malha do chao e da agua, e o buffer dos modelos', () => {
 		const mesh = new Float32Array(12);
 		const waterMesh = new Float32Array(5);
-		expect(transferiveisDoMapa('MAP_GROUND', { mesh, waterMesh, lightmap: new Uint8Array(4) })).toEqual([
-			mesh.buffer,
-			waterMesh.buffer
-		]);
+		expect(transferiveisDoMapa('MAP_GROUND', { mesh, waterMesh })).toEqual([mesh.buffer, waterMesh.buffer]);
 		const buffer = new Float32Array(9);
 		expect(transferiveisDoMapa('MAP_MODELS', { buffer, infos: [] })).toEqual([buffer.buffer]);
 	});
@@ -86,6 +83,42 @@ describe('os buffers grandes do mapa vao transferidos', () => {
 		expect(transferiveisDoMapa('MAP_ALTITUDE', { cells: new Float32Array(10) })).toEqual([]);
 		expect(transferiveisDoMapa('MAP_WORLD', { mesh: new Float32Array(10) })).toEqual([]);
 		expect(transferiveisDoMapa('MAP_GROUND', null)).toEqual([]);
+	});
+
+	it('as tres imagens do chao (lightmap, cor das celulas, sombra) tambem vao transferidas (15/10/2026)', () => {
+		/*
+		 * Os tres sao `Uint8Array` novos do `Ground.compile` que o worker nao
+		 * toca depois de mandar; copiados, eram o "DataCloneError ... out of
+		 * memory" do celular. O `textures` (nomes) e o resto ficam de fora.
+		 */
+		const mesh = new Float32Array(12);
+		const waterMesh = new Float32Array(5);
+		const lightmap = new Uint8Array(16);
+		const tileColor = new Uint8Array(8);
+		const shadowMap = new Uint8Array(64);
+		const chao = { mesh, waterMesh, lightmap, lightmapSize: 1, tileColor, shadowMap, textures: ['a.bmp'] };
+		expect(transferiveisDoMapa('MAP_GROUND', chao)).toEqual([
+			mesh.buffer,
+			waterMesh.buffer,
+			lightmap.buffer,
+			tileColor.buffer,
+			shadowMap.buffer
+		]);
+	});
+
+	it('o chao de verdade: o compile do GND devolve as tres imagens em buffers proprios', async () => {
+		const fonte = (await import('node:fs')).readFileSync('src/Loaders/Ground.js', 'utf8').replace(/\r\n/g, '\n');
+		// as tres saem de funcoes que criam o array na hora (`new Uint8Array`)
+		expect(fonte).toMatch(
+			/lightmap: lightmap,\n\t+lightmapSize: this\.lightmap\.count,\n\t+tileColor: this\.createTilesColorImage\(\),\n\t+shadowMap: this\.createShadowmapData\(\),/
+		);
+		expect(fonte).toMatch(/const lightmap = this\.createLightmapImage\(\);/);
+		for (const funcao of ['createLightmapImage', 'createTilesColorImage', 'createShadowmapData']) {
+			const i = fonte.indexOf(`\t${funcao}() {`);
+			expect(i, funcao).toBeGreaterThan(-1);
+			const corpo = fonte.slice(i, fonte.indexOf('\n\t}\n', i));
+			expect(corpo, funcao).toMatch(/new Uint8Array\(/);
+		}
 	});
 
 	it('o mesmo buffer nao entra duas vezes', () => {
