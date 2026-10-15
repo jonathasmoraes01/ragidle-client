@@ -200,7 +200,7 @@ describe('a costura no MapEngine', () => {
 	const fonte = readFileSync(join(process.cwd(), 'src/Engine/MapEngine.js'), 'utf8');
 
 	it('a vigia confere no corpo do keepalive, ANTES de o keepalive sair', () => {
-		const inicio = fonte.indexOf('const sendKeepAlive = () => {');
+		const inicio = fonte.indexOf('const sendKeepAlive = opcoes => {');
 		expect(inicio, 'sendKeepAlive sumiu do MapEngine').toBeGreaterThan(-1);
 		const corpo = fonte.slice(inicio, fonte.indexOf('Network.setPing(sendKeepAlive)', inicio));
 		const conferencia = corpo.indexOf('vigiaDeSilencio.conferir(Network.ultimoRecebidoEm');
@@ -213,7 +213,7 @@ describe('a costura no MapEngine', () => {
 
 	it('uma vigia NOVA por conexao de mapa (criada junto do keepalive)', () => {
 		const criacao = fonte.indexOf('const vigiaDeSilencio = criarVigiaDeSilencio()');
-		const keepalive = fonte.indexOf('const sendKeepAlive = () => {');
+		const keepalive = fonte.indexOf('const sendKeepAlive = opcoes => {');
 		expect(criacao).toBeGreaterThan(-1);
 		expect(criacao).toBeLessThan(keepalive);
 		// O mesmo relogio que sobrevive a aba escondida e dispara na volta da aba.

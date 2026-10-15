@@ -20,6 +20,7 @@ import Reconexao from 'Network/reconexao.js';
 import BackgroundTicker from 'Network/BackgroundTicker.js';
 import { criarGatilhoDaEconomia } from 'Engine/gatilhoDaEconomia.js'; // RAGIDLE: o gatilho da economia de energia (bug #10, 13/10/2026)
 import { criarVigiaDeSilencio } from 'Network/vigiaDeSilencio.js';
+import { criarFreioDoKeepAlive, tiqueForcado } from 'Network/freioDoKeepAlive.js';
 import { ler as lerRegistroDaCaca } from 'UI/Components/HuntAnalyzer/registroDaCaca.js';
 import PACKETVER from 'Network/PacketVerManager.js';
 import PACKET from 'Network/PacketStructure.js';
@@ -388,9 +389,13 @@ class MapEngine {
 
 				// Shared by Network.setPing's own setInterval AND BackgroundTicker
 				// below, so there is exactly one place that builds/sends the
-				// keepalive. Duplicate calls in the same ~second are harmless:
-				// the server only reads a timestamp off the packet.
-				const sendKeepAlive = () => {
+				// keepalive. RAGIDLE (15/10/2026): as duas fontes disparavam a
+				// cada 10 s e saiam DOIS keepalives - o segundo sobrescrevia o
+				// carimbo do medidor de ping e o ping saia mal medido. O freio
+				// deixa passar um por janela de 8 s; a volta da aba (forcado)
+				// passa sempre. Ver `Network/freioDoKeepAlive.js`.
+				const freioDoKeepAlive = criarFreioDoKeepAlive();
+				const sendKeepAlive = opcoes => {
 					// A conexao morreu sem fechar: derruba pelo caminho de uma
 					// queda de verdade, e a reconexao automatica assume. O
 					// keepalive nao sai — nao ha para onde mandar. Em try/catch
@@ -404,6 +409,17 @@ class MapEngine {
 						}
 					} catch (err) {
 						console.error('[Network] vigia de silencio falhou', err);
+					}
+
+					// O freio vem DEPOIS da vigia (ela confere a cada tique, de
+					// qualquer fonte) e ANTES de qualquer envio. Em try/catch:
+					// se o freio falhar, o keepalive sai como sempre saiu.
+					try {
+						if (!freioDoKeepAlive.deveEnviar(Date.now(), tiqueForcado(opcoes))) {
+							return;
+						}
+					} catch (err) {
+						console.error('[Network] freio do keepalive falhou', err);
 					}
 
 					if (is_sec_hbt) {

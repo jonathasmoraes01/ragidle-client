@@ -14,9 +14,12 @@
  *
  * This module is additive: it does not replace Network.setPing/the existing
  * setInterval-based ping, it just gives the same keepalive callback a second,
- * background-safe source of ticks. Both can fire in the same second - the
- * server only reads a timestamp off the packet, so a duplicate call is
- * harmless (see PACKET.CZ.REQUEST_TIME2, Network/PacketStructure.js:3387).
+ * background-safe source of ticks. Both can fire in the same second; the
+ * duplicate is NOT harmless (it overwrote the ping meter's send stamp), so the
+ * callback in MapEngine filters it (RAGIDLE 15/10/2026,
+ * Network/freioDoKeepAlive.js). The tick from the worker passes no argument;
+ * the return-to-foreground call passes `{ forcado: true }`, which is never
+ * filtered.
  *
  * On top of the periodic tick, it also fires the callback immediately when
  * the tab regains focus (`visibilitychange` -> 'visible'). That keepalive is
@@ -104,7 +107,10 @@ function start(callback) {
 	if (typeof document !== 'undefined') {
 		_visibilityHandler = function onVisibilityChange() {
 			if (document.visibilityState === 'visible' && _callback) {
-				_callback();
+				// RAGIDLE (15/10/2026): a volta da aba e FORCADA - o freio do
+				// keepalive (Network/freioDoKeepAlive.js) nunca a segura, porque
+				// e ela que faz o servidor ressincronizar na hora.
+				_callback({ forcado: true });
 			}
 		};
 		document.addEventListener('visibilitychange', _visibilityHandler);
