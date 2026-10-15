@@ -13,7 +13,9 @@
 //   for m in semReserva reservaNaoSai semNovaTentativa mesmaUrlNaTentativa esperaFixa relataSempre semRelato
 //            mesmaArteRepede trocaNaoCancela tentativaNaoZera erroSemUrlAgenda naoNasceNaReserva semArteNoPreparo
 //            semArteNaTroca idiomaFixo semVigia vigiaNaoDesarmaNoCatalogo vigiaNaoDesarmaNaTroca
-//            vigiaDesarmaNaPrimeiraParte prazoErrado; do (numa linha so)
+//            vigiaDesarmaNaPrimeiraParte prazoErrado tetoNaoParaDeTentar desistenciaCalada desistidoNaoRecomeca
+//            desistidoNaoZera erroDepoisDeDesistir semPausaDaAba abaOcultaAdiaOPrimeiro pausaGastaOTeto
+//            celularEmPePede botaoSemPausaDaAba abaEscondidaSempreFalsa; do (numa linha so)
 //     RAG_MUTANTE_ARTE=$m npx vitest run --config tests/mutantes/arte-do-botao.config.mjs > m.log 2>&1;
 //     if grep -q "nao casa" m.log; then echo "$m INVALIDO"; elif grep -q "Tests .*failed" m.log; then echo "$m morto"; else echo "$m SOBREVIVEU"; fi; done
 //
@@ -36,7 +38,7 @@ const mutantes = {
 	// a arte que chega nao tira a reserva
 	reservaNaoSai: [ARTE, `${T}${T}botao.classList.remove(CLASSE_SEM_ARTE);${N}`, ''],
 	// a falha nao agenda a nova tentativa: so o F5 traz a arte
-	semNovaTentativa: [ARTE, `${T}${T}relogio = agendar(pedir, espera);${N}`, ''],
+	semNovaTentativa: [ARTE, `${T}${T}relogio = agendar(repetir, espera);${N}`, ''],
 	// a nova tentativa pede a MESMA URL que falhou
 	mesmaUrlNaTentativa: [ARTE, 'img.src = tentativa === 0 ? url : `${url}?tentativa=${tentativa}`;', 'img.src = url;'],
 	// a espera nao cresce
@@ -46,17 +48,30 @@ const mutantes = {
 	// a falha nao chega a ninguem
 	semRelato: [ARTE, `${T}${T}${T}relatar(\`[hud] a arte do botao \${nome} nao carregou: \${url}\`);${N}`, ''],
 	// a mesma arte pedida de novo a cada troca de mapa
-	mesmaArteRepede: [ARTE, `${T}${T}${T}if (nova === url) {${N}${T}${T}${T}${T}return;${N}${T}${T}${T}}${N}`, ''],
+	mesmaArteRepede: [ARTE, `${T}${T}${T}if (nova === url && !desistiu) {${N}${T}${T}${T}${T}return;${N}${T}${T}${T}}${N}`, ''],
 	// trocar a arte (o idioma) deixa a tentativa da antiga pendurada
 	trocaNaoCancela: [
 		ARTE,
-		`${T}${T}${T}tentativa = 0;${N}${T}${T}${T}cancelar();${N}${T}${T}${T}pedir();`,
-		`${T}${T}${T}tentativa = 0;${N}${T}${T}${T}pedir();`
+		`${T}${T}${T}desistiu = false;${N}${T}${T}${T}cancelar();${N}${T}${T}${T}pedir();`,
+		`${T}${T}${T}desistiu = false;${N}${T}${T}${T}pedir();`
 	],
 	// a contagem de tentativas da arte antiga vale para a nova
 	tentativaNaoZera: [ARTE, `${T}${T}${T}url = nova;${N}${T}${T}${T}tentativa = 0;${N}`, `${T}${T}${T}url = nova;${N}`],
 	// um erro antes de haver arte agenda tentativa de `null`
-	erroSemUrlAgenda: [ARTE, `${T}${T}if (url === null) {${N}${T}${T}${T}return;${N}${T}${T}}${N}`, ''],
+	erroSemUrlAgenda: [ARTE, `${T}${T}if (url === null || desistiu) {${N}${T}${T}${T}return;${N}${T}${T}}${N}`, ''],
+	// ML12 (achados baixos do critico da D-2454): o TETO da nova tentativa, a PAUSA com a aba oculta e o celular em pe
+	// que nem pede a arte
+	tetoNaoParaDeTentar: [ARTE, 'if (tentativa >= MAXIMO_DE_FALHAS) {', 'if (false) {'],
+	desistenciaCalada: [ARTE, `${T}${T}${T}${T}relatar(\`[hud] a arte do botao \${nome} desistiu depois de \${tentativa} falhas: \${url}\`);${N}`, ''],
+	desistidoNaoRecomeca: [ARTE, 'if (nova === url && !desistiu) {', 'if (nova === url) {'],
+	desistidoNaoZera: [ARTE, `${T}${T}${T}tentativa = 0;${N}${T}${T}${T}desistiu = false;${N}`, `${T}${T}${T}tentativa = 0;${N}`],
+	erroDepoisDeDesistir: [ARTE, 'if (url === null || desistiu) {', 'if (url === null) {'],
+	semPausaDaAba: [ARTE, `${T}${T}if (abaOculta()) {${N}`, `${T}${T}if (false) {${N}`],
+	abaOcultaAdiaOPrimeiro: [ARTE, `${T}${T}${T}desistiu = false;${N}${T}${T}${T}cancelar();${N}${T}${T}${T}pedir();`, `${T}${T}${T}desistiu = false;${N}${T}${T}${T}cancelar();${N}${T}${T}${T}repetir();`],
+	pausaGastaOTeto: [ARTE, `${T}${T}${T}relogio = agendar(repetir, ESPERA_COM_A_ABA_OCULTA_MS);${N}`, `${T}${T}${T}tentativa++;${N}${T}${T}${T}relogio = agendar(repetir, ESPERA_COM_A_ABA_OCULTA_MS);${N}`],
+	celularEmPePede: [BOTAO, 'if (!_artes || ehCelularEmPe()) {', 'if (!_artes) {'],
+	botaoSemPausaDaAba: [BOTAO, `${T}${T}${T}nome: 'cacar',${N}${T}${T}${T}relatar: relatarErro,${N}${T}${T}${T}abaOculta: abaEscondida${N}`, `${T}${T}${T}nome: 'cacar',${N}${T}${T}${T}relatar: relatarErro${N}`],
+	abaEscondidaSempreFalsa: [BOTAO, "return typeof document !== 'undefined' && document.hidden === true;", 'return false;'],
 	// o botao nao nasce na reserva: ate a arte chegar ele e invisivel
 	naoNasceNaReserva: [HTML, 'hb-btn hb-cacar ri-btn hb-sem-arte', 'hb-btn hb-cacar ri-btn'],
 	// o preparo nao pede a arte

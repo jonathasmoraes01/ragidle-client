@@ -62,6 +62,7 @@ import cssText from './HuntButtonIdle.css?raw';
 import { emUnidadesDaHud } from 'UI/escalaDaHud.js'; // D-934: geometria medida vira unidade da HUD
 import { relatarErro } from 'UI/relatoDeErro.js';
 import { criarArteDoBotao } from './arteDoBotao.js'; // D-2454: a arte que falha nao some calada
+import { ehCelularEmPe } from 'UI/hudVertical.js'; // ML12: o celular em pe nao mostra a arte, entao nao a baixa
 
 /**
  * Mesmo intervalo de polling leve que DockIdle.js/TopMenuIdle.js.
@@ -119,12 +120,22 @@ const ARTE_DOS_BOTOES = {
  */
 let _artes = null;
 
+/** A aba esta escondida? A nova tentativa da arte espera (ML12). */
+function abaEscondida() {
+	return typeof document !== 'undefined' && document.hidden === true;
+}
+
 /**
  * Poe a arte do idioma atual nos dois botoes. A mesma URL de novo nao pede
  * nada: a troca de mapa chama isto e nao custa pedido nenhum.
+ *
+ * O CELULAR EM PE NAO PEDE A ARTE (ML12, achado do critico da D-2454): ali o CSS esconde o `<img>` (`.ri-vertical
+ * .hb-arte { display: none }`) e o disco e o `.ri-btn` azul, entao o download (~129 KB em portugues) e a nova tentativa
+ * eterna eram de graca. A proxima carga de mapa chama isto de novo, e se o aparelho deixou de ser celular em pe a arte
+ * sai ali (ate la a reserva desenha o botao).
  */
 function usarArteDosBotoes() {
-	if (!_artes) {
+	if (!_artes || ehCelularEmPe()) {
 		return;
 	}
 	const idioma = emIngles() ? 'en' : 'pt';
@@ -164,13 +175,15 @@ HuntButtonIdle.init = function init() {
 			img: root.querySelector('.hb-cacar .hb-arte'),
 			botao: root.querySelector('.hb-cacar'),
 			nome: 'cacar',
-			relatar: relatarErro
+			relatar: relatarErro,
+			abaOculta: abaEscondida
 		}),
 		voltar: criarArteDoBotao({
 			img: root.querySelector('.hb-voltar .hb-arte'),
 			botao: root.querySelector('.hb-voltar'),
 			nome: 'voltar',
-			relatar: relatarErro
+			relatar: relatarErro,
+			abaOculta: abaEscondida
 		})
 	};
 	usarArteDosBotoes();
