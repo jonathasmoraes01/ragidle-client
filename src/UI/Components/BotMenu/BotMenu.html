@@ -364,6 +364,18 @@
 							<ul class="bm-buffs-lista bm-lista-itens"></ul>
 							<p class="bm-dica bm-buffs-vazio" hidden>Nenhuma poção de velocidade na mochila.</p>
 						</div>
+						<!-- J8 e J14 (15/10/2026): os itens que TIRAM status (Panaceia, Erva Verde, Agua Benta...). So desenhado com o servidor
+							que anuncia `limpezas`. -->
+						<div class="bm-cartao-secao bm-bloco bm-cartao-limpeza" hidden>
+							<span class="bm-rotulo">Itens que tiram status</span>
+							<label class="bm-interruptor bm-interruptor--forte">
+								<input type="checkbox" class="bm-limpeza-ligada">
+								<span class="bm-interruptor-trilho" aria-hidden="true"></span>
+								<span class="bm-interruptor-texto"><b>Usar esses itens quando eu ficar com o status</b><small>O Bot bebe o item da lista que tira o status que você tem, na ordem da lista. Só com o Auto Caça ligado.</small></span>
+							</label>
+							<ul class="bm-limpeza-lista bm-lista-itens"></ul>
+							<p class="bm-dica bm-limpeza-vazio" hidden>Nenhum item que tire status na mochila.</p>
+						</div>
 						<div class="bm-cartao-secao bm-bloco bm-asa">
 							<span class="bm-rotulo bm-titulo-com-selo">Asa de Mosca automática <span class="bm-selo-vip" title="Benefício VIP">VIP</span> <b class="bm-asa-quantidade-rotulo">(<span class="bm-asa-quantidade">0</span> na mochila)</b></span>
 							<p class="bm-dica bm-asa-vip-dica">Benefício VIP: com o passe VIP, o Bot usa a Asa de Mosca sozinho para sair de uma situação ruim.</p>
