@@ -12,6 +12,7 @@
 /** O padrao do servidor (desligado). `semAlvoPorSegundos` 10 e o padrao dos gatilhos da asa. */
 export const CONSUMIVEIS_PADRAO = Object.freeze({
 	buffs: Object.freeze({ ligado: false, itens: Object.freeze([]) }),
+	limpeza: Object.freeze({ ligado: false, itens: Object.freeze([]) }),
 	asa: Object.freeze({ ligada: false, semAlvoPorSegundos: 10, cercadoPor: 0, hpAbaixoDe: 0, reserva: 0 })
 });
 
@@ -21,6 +22,7 @@ export const GATILHO_AO_LIGAR = Object.freeze({ semAlvoPorSegundos: 10, cercadoP
 /** As faixas de fabrica, usadas quando o servidor nao as anunciou. */
 export const FAIXAS_PADRAO = Object.freeze({
 	buffsDeItem: 32,
+	limpezasDeItem: 16,
 	asaSemAlvoMinimo: 3,
 	asaSemAlvoMaximo: 20,
 	asaCercadoMinimo: 2,
@@ -42,12 +44,18 @@ function inteiroNaFaixa(valor, min, max) {
 export function lerConsumiveis(config) {
 	const c = (config && config.consumiveis) || {};
 	const b = c.buffs || {};
+	const l = c.limpeza || {};
 	const a = c.asa || {};
 	const num = (v, padrao) => (Number.isInteger(v) ? v : padrao);
 	return {
 		buffs: {
 			ligado: typeof b.ligado === 'boolean' ? b.ligado : CONSUMIVEIS_PADRAO.buffs.ligado,
 			itens: Array.isArray(b.itens) ? b.itens.filter(Number.isInteger) : []
+		},
+		// J8 e J14: o bloco novo; servidor velho nao o manda e le o padrao desligado.
+		limpeza: {
+			ligado: typeof l.ligado === 'boolean' ? l.ligado : CONSUMIVEIS_PADRAO.limpeza.ligado,
+			itens: Array.isArray(l.itens) ? l.itens.filter(Number.isInteger) : []
 		},
 		asa: {
 			ligada: typeof a.ligada === 'boolean' ? a.ligada : CONSUMIVEIS_PADRAO.asa.ligada,
@@ -81,6 +89,26 @@ export function alternarBuff(config, itemId, teto = FAIXAS_PADRAO.buffsDeItem) {
 		return config;
 	}
 	return comConsumiveis(config, x => ({ ...x, buffs: { ...x.buffs, itens: [...x.buffs.itens, itemId] } }));
+}
+
+/** J8 e J14: liga ou desliga a limpeza de status com item. */
+export function ligarLimpeza(config, ligado) {
+	return comConsumiveis(config, k => ({ ...k, limpeza: { ...k.limpeza, ligado: !!ligado } }));
+}
+
+/** Escolhe ou tira um item de limpeza da lista (a ordem da lista e a da prioridade). Sem item, o interruptor se desliga. */
+export function alternarLimpeza(config, itemId, teto = FAIXAS_PADRAO.limpezasDeItem) {
+	const k = lerConsumiveis(config);
+	if (k.limpeza.itens.includes(itemId)) {
+		return comConsumiveis(config, x => {
+			const itens = x.limpeza.itens.filter(i => i !== itemId);
+			return { ...x, limpeza: { ligado: itens.length > 0 ? x.limpeza.ligado : false, itens } };
+		});
+	}
+	if (k.limpeza.itens.length >= teto) {
+		return config;
+	}
+	return comConsumiveis(config, x => ({ ...x, limpeza: { ...x.limpeza, itens: [...x.limpeza.itens, itemId] } }));
 }
 
 export function ligarAsa(config, ligada) {

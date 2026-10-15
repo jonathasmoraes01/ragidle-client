@@ -16,8 +16,10 @@ import {
 	definirReserva,
 	faixasDasCapacidades,
 	lerConsumiveis,
+	alternarLimpeza,
 	ligarAsa,
-	ligarBuffs
+	ligarBuffs,
+	ligarLimpeza
 } from './edicaoDeConsumiveis.js';
 import { explicacaoDoStatus, fraseDoStatus } from './estadoDoBot.js';
 
@@ -31,6 +33,15 @@ function criar(tag, classe, texto) {
 	}
 	return e;
 }
+
+/** Os status do motor que o item tira, em palavra de jogador (J8 e J14). O que nao esta aqui aparece como veio. */
+const NOME_DO_STATUS = Object.freeze({
+	Poison: 'veneno',
+	Silence: 'silêncio',
+	Blind: 'cegueira',
+	Confusion: 'confusão',
+	Curse: 'maldição'
+});
 
 function ligarNumero(input, valor, aoMudar) {
 	if (input.ownerDocument.activeElement !== input) {
@@ -92,6 +103,50 @@ export function desenharConsumiveis(raiz, dados, editar) {
 		ul.appendChild(li);
 	}
 	raiz.querySelector('.bm-buffs-vazio').hidden = menu.buffs.length > 0;
+
+	// ---- ITENS QUE TIRAM STATUS (J8 e J14): so com o servidor que anuncia `limpezas`
+	const cartaoLimpeza = raiz.querySelector('.bm-cartao-limpeza');
+	if (cartaoLimpeza) {
+		const limpezas = Array.isArray(menu.limpezas) ? menu.limpezas : null;
+		cartaoLimpeza.hidden = limpezas === null;
+		if (limpezas !== null) {
+			const ligadoLimpeza = raiz.querySelector('.bm-limpeza-ligada');
+			ligadoLimpeza.checked = k.limpeza.ligado;
+			ligadoLimpeza.disabled = k.limpeza.itens.length === 0;
+			ligadoLimpeza.onchange = () => editar(c => ligarLimpeza(c, ligadoLimpeza.checked));
+			const lista = raiz.querySelector('.bm-limpeza-lista');
+			lista.innerHTML = '';
+			for (const item of limpezas) {
+				const li = criar('li', 'bm-item bm-buff');
+				li.setAttribute('data-item', String(item.itemId));
+				const caixa = criar('input', 'bm-buff-escolher');
+				caixa.type = 'checkbox';
+				caixa.checked = k.limpeza.itens.includes(item.itemId);
+				caixa.setAttribute('aria-label', 'Usar ' + item.nome);
+				caixa.onchange = () => editar(c => alternarLimpeza(c, item.itemId, faixas.limpezasDeItem));
+				li.appendChild(caixa);
+				const img = criar('img', 'bm-item-icone');
+				img.alt = '';
+				img.setAttribute('aria-hidden', 'true');
+				if (dados.iconeDoItem) {
+					dados.iconeDoItem(img, item.itemId);
+				}
+				li.appendChild(img);
+				const nome = criar('span', 'bm-item-nome', item.nome);
+				nome.setAttribute('translate', 'no');
+				li.appendChild(nome);
+				li.appendChild(criar('span', 'bm-quantidade' + (item.quantidade === 0 ? ' is-vazio' : ''), 'x' + item.quantidade));
+				const tira = (item.tira || []).map(s => NOME_DO_STATUS[s] || s).join(', ');
+				// A quantidade 0 ja aparece em vermelho ("x0"): a nota diz so o que o item resolve.
+				const nota = tira ? 'Tira: ' + tira : '';
+				if (nota) {
+					li.appendChild(criar('span', 'bm-tipo bm-buff-nota', nota));
+				}
+				lista.appendChild(li);
+			}
+			raiz.querySelector('.bm-limpeza-vazio').hidden = limpezas.length > 0;
+		}
+	}
 
 	// ---- ASA DE MOSCA
 	raiz.querySelector('.bm-asa-quantidade').textContent = String(menu.asa.quantidade);
