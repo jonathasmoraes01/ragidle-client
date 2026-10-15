@@ -44,6 +44,9 @@ export function nomeParaEnvio(texto) {
  * @param {function():void} [opcoes.fechar] - fecha a janela (a troca abriu)
  * @param {function(function, number):*} [opcoes.agendar]
  * @param {function(*):void} [opcoes.cancelar]
+ * @param {function(string):void} [opcoes.definirTitulo] - guarda o nome do outro jogador
+ *   como titulo da janela de troca, que abrira quando ele aceitar (o pedido pelo nome
+ *   nao passa por `Trade.reqExchange`, o unico que sabia o nome)
  */
 export function criarControladorDaTroca(opcoes) {
 	const raiz = opcoes.raiz;
@@ -51,6 +54,7 @@ export function criarControladorDaTroca(opcoes) {
 	const fechar = opcoes.fechar || (() => {});
 	const agendar = opcoes.agendar || ((fn, ms) => setTimeout(fn, ms));
 	const cancelar = opcoes.cancelar || (id => clearTimeout(id));
+	const definirTitulo = opcoes.definirTitulo || (() => {});
 
 	const s = {
 		enviando: false,
@@ -128,6 +132,9 @@ export function criarControladorDaTroca(opcoes) {
 		const texto = typeof dados.texto === 'string' ? dados.texto.trim() : '';
 		s.aguardandoResposta = ok;
 		s.nomeDoAlvo = typeof dados.nome === 'string' ? dados.nome : '';
+		if (ok && s.nomeDoAlvo) {
+			definirTitulo(s.nomeDoAlvo);
+		}
 		avisar(
 			texto || (ok ? 'Pedido de troca enviado. Aguarde a resposta.' : 'Não foi possível pedir a troca.'),
 			ok ? 'is-ok' : 'is-erro'

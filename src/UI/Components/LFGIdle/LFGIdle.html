@@ -16,7 +16,8 @@
 
 	Ganchos ESTAVEIS que provas externas usam (preservar em qualquer redesenho
 	futuro): .lfg-window, .lfg-close, .lfg-card, .lfg-panel, .lfg-entrar,
-	.lfg-criar, .lfg-teleportar, .lfg-senha-input.
+	.lfg-criar, .lfg-teleportar, .lfg-senha-input. Entraram em 15/10/2026 (D-2464,
+	D-2465): .lfg-entrar-rapido e o botao [data-privado="fechado"].
 -->
 <div id="LFGIdle">
 	<div class="lfg-window ri-window ri-anima">
@@ -40,7 +41,18 @@
 			-->
 			<div class="lfg-view lfg-view-grupos">
 				<section class="lfg-list-wrap">
-					<div class="lfg-list-head"></div>
+					<!--
+						ENTRAR RAPIDO (J18/J9, D-2465): o servidor escolhe o primeiro
+						grupo publico em que o jogador cabe (faixa, vaga, lider online e
+						alcancavel) e o poe nele pelo `entrar` de sempre. So aparece para
+						quem nao tem grupo; a recusa (nenhum grupo serve) vem por extenso
+						logo abaixo.
+					-->
+					<div class="lfg-list-topo">
+						<div class="lfg-list-head"></div>
+						<button type="button" class="ri-btn lfg-entrar-rapido" hidden>Entrar rápido</button>
+					</div>
+					<div class="lfg-rapido-motivo" hidden></div>
 					<div class="lfg-list ri-scroll">
 						<div class="lfg-empty">Carregando grupos...</div>
 					</div>
@@ -107,6 +119,19 @@
 									aria-selected="false"
 								>
 									Privado
+								</button>
+								<!--
+									FECHADO (D-2464): o grupo sai do Localizador e fica so de
+									convite por nome; "Publico" ou "Privado" o traz de volta.
+								-->
+								<button
+									type="button"
+									class="lfg-priv-btn"
+									data-privado="fechado"
+									role="tab"
+									aria-selected="false"
+								>
+									Fechado
 								</button>
 							</div>
 

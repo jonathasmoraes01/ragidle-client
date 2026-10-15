@@ -155,6 +155,44 @@ describe('o desenho das abas de manutencao', () => {
 			expect(secao.querySelector('.bm-sem-suporte').hidden).toBe(true);
 		});
 
+		it('J8: o Medicar (suporte "limpeza") aparece com o tipo "Limpa status", entra no grupo e nao tem limiar de HP', () => {
+			const medicar = { skillId: 35, nome: 'Medicar', aprendido: 1, aceita: false, suporte: 'limpeza', alcancaGrupo: true };
+			desenhar([...SKILLS, medicar]);
+			const fora = secao.querySelector('.bm-suporte-fora [data-skill="35"]');
+			expect(fora.querySelector('.bm-tipo').textContent).toBe('Limpa status');
+			usar(35);
+			expect(config.suporte.lista).toEqual([{ skillId: 35, nivel: 'aprendido', destino: 'grupo', gatilho: 'status', limiar: 0 }]);
+			const linha = secao.querySelector('[data-indice="0"]');
+			expect(linha.querySelector('.bm-tipo').textContent).toBe('Limpa status');
+			expect(linha.querySelector('.bm-limiar')).toBeNull();
+			expect(linha.querySelector('.bm-destino').value).toBe('grupo');
+		});
+
+		it('J8: entrada de limpeza gravada sem o menu da skill ainda aparece como limpeza (nao vira buff)', () => {
+			config.suporte.lista = [{ skillId: 35, nivel: 'aprendido', destino: 'grupo', gatilho: 'status', limiar: 0 }];
+			desenhar();
+			expect(secao.querySelector('[data-indice="0"] .bm-tipo').textContent).toBe('Limpa status');
+		});
+
+		it('J13: a Ressurreicao (suporte "ressurreicao", so no grupo) aparece como "Ressuscita", sem limiar de HP e sem o destino "eu"', () => {
+			const ressuscitar = { skillId: 54, nome: 'Ressurreição', aprendido: 4, aceita: false, suporte: 'ressurreicao', alcancaGrupo: true, soGrupo: true };
+			desenhar([...SKILLS, ressuscitar]);
+			const fora = secao.querySelector('.bm-suporte-fora [data-skill="54"]');
+			expect(fora.querySelector('.bm-tipo').textContent).toBe('Ressuscita');
+			usar(54);
+			expect(config.suporte.lista).toEqual([{ skillId: 54, nivel: 'aprendido', destino: 'grupo', gatilho: 'morto', limiar: 0 }]);
+			const linha = secao.querySelector('[data-indice="0"]');
+			expect(linha.querySelector('.bm-tipo').textContent).toBe('Ressuscita');
+			expect(linha.querySelector('.bm-limiar')).toBeNull();
+			expect([...linha.querySelectorAll('.bm-destino option')].map(o => o.value)).toEqual(['grupo']);
+		});
+
+		it('J13: entrada de ressurreicao gravada sem o menu da skill ainda aparece como "Ressuscita" (nao vira buff)', () => {
+			config.suporte.lista = [{ skillId: 54, nivel: 'aprendido', destino: 'grupo', gatilho: 'morto', limiar: 0 }];
+			desenhar();
+			expect(secao.querySelector('[data-indice="0"] .bm-tipo').textContent).toBe('Ressuscita');
+		});
+
 		it('sem nenhuma skill de suporte: diz isso e esconde o Adicionar', () => {
 			desenhar([SKILLS[0]]);
 			expect(secao.querySelector('.bm-sem-suporte').hidden).toBe(false);

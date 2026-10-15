@@ -102,7 +102,7 @@ const EMBLEMA_DA_SECAO = Object.freeze({
 const TITULO_DA_SECAO = Object.freeze({
 	cacada: ['Configurações de Caçada', 'Onde e quem o Bot caça: o raio de busca e os monstros que ele nunca escolhe.'],
 	ataque: ['Configurações de Ataque', 'Quais habilidades o Bot usa, em que ordem, e como ele ataca.'],
-	suporte: ['Configurações de Suporte', 'Buffs mantidos e curas por limiar de HP, em você ou no grupo.'],
+	suporte: ['Configurações de Suporte', 'Buffs mantidos, curas por limiar de HP, limpeza de status (Medicar) e Ressurreição do aliado morto, em você ou no grupo.'],
 	sobrevivencia: ['Configurações de Sobrevivência', 'Quando beber poção de HP e de SP, e quando sentar para descansar.'],
 	coleta: ['Configurações de Coleta', 'Pegar os itens do chão dentro do raio, menos os ignorados.'],
 	postura: ['Postura e Grupo', 'Como o Bot combate e como ele coopera com o grupo.'],

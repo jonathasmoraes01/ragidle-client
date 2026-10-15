@@ -35,6 +35,7 @@
 	Ganchos ESTAVEIS que a prova visual usa (preservar em qualquer redesenho):
 	.gi-window, .gi-close, .gi-tab, .gi-membro, .gi-posto, .gi-rateio-linha,
 	.gi-convite-nome, .gi-recado. Entrou em D-984: .gi-teleportar. Entrou em
+	15/10/2026 (R125, D-2463): .gi-chamar. Entrou em
 	10/09/2026: .gi-transferir (o botao de "transferir lideranca" por membro,
 	montado em GrupoIdle.js:linhaDeMembro — nao existe estatico no HTML porque
 	a linha inteira do membro e reconstruida por innerHTML).
@@ -151,6 +152,14 @@
 							<button type="button" class="ri-btn ri-btn--sec gi-teleportar" hidden>
 								Teleportar para o lider
 							</button>
+							<!--
+								CHAMAR O GRUPO (J11, R125, D-2463): o inverso do botao de cima,
+								e por isso mora no mesmo lugar. So existe para o LIDER de um
+								grupo com mais alguem (`desenharTeleporte`); sem aceite (decisao
+								5 do dono): quem pode vir vem, e quem fica le o motivo no chat.
+								O resumo volta no recado desta janela.
+							-->
+							<button type="button" class="ri-btn gi-chamar" hidden>Chamar o grupo</button>
 						</div>
 					</aside>
 				</div>

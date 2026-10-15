@@ -65,3 +65,7 @@ dist/*				binary
 # checkout e a suite do servidor reprova dizendo "desatualizado" com o
 # conteudo IDENTICO — o que envia quem cai nela para o lugar errado.
 public/ragidle/fichas-de-item.json	text eol=lf
+
+# GERADO pelo servidor (`npm run publicar:classes-dos-itens`), comparado BYTE A
+# BYTE por `scripts/publicar-classes-dos-itens.test.ts`. Mesma razao da linha acima.
+public/ragidle/classes-dos-itens.json	text eol=lf

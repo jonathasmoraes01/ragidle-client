@@ -85,6 +85,7 @@ import ReadRodex from 'UI/Components/Rodex/ReadRodex.js';
 import Roulette from 'UI/Components/Roulette/Roulette.js';
 import PCGoldTimer from 'UI/Components/PCGoldTimer/PCGoldTimer.js';
 import Refine from 'UI/Components/Refine/Refine.js';
+import MakeItemSelection from 'UI/Components/MakeItemSelection/MakeItemSelection.js'; // a forja na pilha de janelas (14/10/2026)
 import Reputation from 'UI/Components/Reputation/Reputation.js';
 import PetInformations from 'UI/Components/PetInformations/PetInformations.js';
 import HomunInformations from 'UI/Components/HomunInformations/HomunInformations.js';
@@ -1057,13 +1058,16 @@ const TEXTO_DA_RECUSA_DE_SONO = {
 	// 28/09/2026: o sono GASTA os 10 minutos (item 4b do backlog de seguranca de
 	// 23/09) - quem acorda caca de novo antes de dormir de novo.
 	'amostra-insuficiente':
-		'Ainda não são 10 minutos de caça NESTE mapa — trocar de mapa reinicia a contagem, e depois de acordar é preciso caçar 10 minutos de novo.',
+		'Ainda não são 10 minutos de caça NESTE mapa: trocar de mapa reinicia a contagem, e depois de acordar é preciso caçar 10 minutos de novo.',
+	// RAGIDLE (J21, 14/10/2026, D-2477): os 10 minutos passaram parado, sem EXP - dormir renderia zero.
+	'amostra-sem-exp':
+		'Nos últimos 10 minutos neste mapa o personagem não ganhou EXP, e o sono rende o que a caçada rendeu: dormindo agora, ele não ganharia nada. Cace (com o Bot ou no clique) e tente de novo.',
 	// 28/09/2026: morto nao dorme (item 4a do backlog de seguranca de 23/09).
-	morto: 'Não dá para dormir morto — volte à caçada primeiro.',
-	'nivel-do-mapa': 'Este mapa não é elegível para o "Dormir" — precisa estar pelo menos 1 nível abaixo do seu.',
+	morto: 'Não dá para dormir morto: volte à caçada primeiro.',
+	'nivel-do-mapa': 'Este mapa não é elegível para dormir: precisa estar pelo menos 1 nível abaixo do seu.',
 	// RAGIDLE (30/09/2026, ordem do dono): praca nunca dorme - o tempo dela e contado por dia.
 	praca: 'Nas Praças não dá para dormir: o tempo delas é contado por dia. Durma num mapa de caça.',
-	'sem-mundo': 'Não foi possível iniciar o sono agora — você não está numa caçada.',
+	'sem-mundo': 'Não foi possível iniciar o sono agora: você não está numa caçada.',
 	// RAGIDLE (24/09/2026, ordem do dono): um sono por conta.
 	'outro-personagem-dormindo': 'Só um personagem por conta pode dormir por vez.',
 	// RAGIDLE (12/10/2026): o acerto do sono anterior ainda indo ao disco - dura instantes.
@@ -1191,6 +1195,20 @@ function onSonoRecebido(pkt) {
 			expBasePorMs: Number(corpo.taxaExpBasePorMs) || 0,
 			expClassePorMs: Number(corpo.taxaExpClassePorMs) || 0
 		};
+		/*
+		 * J21 (14/10/2026, D-2478): o ganho ate agora (o servidor diz quanto ja dormiu) e a volta a selecao
+		 * de personagem SEM acordar - o sono segue no servidor; entrar de novo com ele reabre esta tela.
+		 */
+		const extrasDoSono = {
+			dormidoMs: Number(corpo.dormidoMs) || 0,
+			onVoltarASelecao: () => {
+				if (_janelaDoSonoAtiva) {
+					_janelaDoSonoAtiva.remove();
+					_janelaDoSonoAtiva = null;
+				}
+				irParaASelecaoDePersonagem();
+			}
+		};
 		_janelaDoSonoAtiva = UIManager.showDormindo(corpo.restanteMs || 0, taxas, () => {
 			const acordar = new PACKET.CZ.RAGIDLE_SONO_ACAO();
 			acordar.json = JSON.stringify({ acao: 'acordar' });
@@ -1218,7 +1236,7 @@ function onSonoRecebido(pkt) {
 				// pelo mundo, e nao pelo login — so a falha DELA cai no boot.
 				voltarAoMundoDepoisDoSono();
 			}, MS_DE_ESPERA_PELO_ACORDAR);
-		});
+		}, extrasDoSono);
 		return;
 	}
 
@@ -1227,7 +1245,7 @@ function onSonoRecebido(pkt) {
 		let texto = TEXTO_DA_RECUSA_DE_SONO[corpo.recusa] || 'Não foi possível iniciar o sono agora.';
 		// Quem ja dorme na conta, pelo nome (24/09/2026).
 		if (corpo.recusa === 'outro-personagem-dormindo' && corpo.outroPersonagem) {
-			texto += ` "${String(corpo.outroPersonagem)}" já está dormindo — acorde-o antes.`;
+			texto += ` "${String(corpo.outroPersonagem)}" já está dormindo: acorde-o antes.`;
 		}
 		UIManager.showMessageBox(texto, 'ok');
 		return;
@@ -1968,6 +1986,28 @@ function onMapChange(pkt, ehEntradaNoMundo) {
 		avisarAoAbrir(lojaDoNpc, () => PilhaDeJanelas.aoAbrir('loja'));
 
 		/*
+		 * A FORJA (MakeItemSelection, 14/10/2026, lote 5 da comunidade). Janela
+		 * NATIVA do roBrowser, como a loja: o host entra e sai do documento, e a
+		 * leitura e o fechamento vao declarados. Registrada, ela ganha a marca
+		 * `ri-janela` (o painel de largura inteira do celular, D-932), o ESC e o
+		 * voltar do Android (que CANCELAM: avisam o servidor e devolvem os
+		 * materiais dos slots) e a regra de uma janela por vez. Sem `seletor` de
+		 * proposito: o corpo nao e esticado ate a barra de atalhos (D-941), porque
+		 * uma lista de receitas de 130px esticada em tela cheia e desfigurar.
+		 */
+		if (typeof MakeItemSelection.prepare === 'function') {
+			MakeItemSelection.prepare();
+		}
+		PilhaDeJanelas.registrar({
+			nome: 'forja',
+			componente: MakeItemSelection,
+			tipo: PilhaDeJanelas.TIPO.JANELA,
+			estaAberta: () => !!(MakeItemSelection._host && MakeItemSelection._host.isConnected),
+			fechar: () => MakeItemSelection.cancelar()
+		});
+		avisarAoAbrir(MakeItemSelection, () => PilhaDeJanelas.aoAbrir('forja'));
+
+		/*
 		 * O CARRINHO DO MERCADOR (D-1848, 30/09/2026). Ele e a janela NATIVA do
 		 * roBrowser — nao usa `is-open`: aberto e o host no documento sem
 		 * `display:none` — e por isso entra com a leitura e o fechamento
@@ -2483,17 +2523,27 @@ function onRestartAnswer(pkt) {
 		// Have to wait 10sec
 		ChatBox.addText(DB.getMessage(502), ChatBox.TYPE.ERROR, ChatBox.FILTER.PUBLIC_LOG);
 	} else {
-		GuildEngine.guild_id = 0;
-		cleanGameUI();
-		Session.Achievement = null;
-		Mouse.intersect = false;
-		MapRenderer.free();
-		Renderer.stop();
-		// R12 (14/09/2026): voltar ao char-select e' saida voluntaria da
-		// fase de mapa, mesma razao de onExitSuccess acima.
-		Reconexao.cancelar();
-		onRestart();
+		irParaASelecaoDePersonagem();
 	}
+}
+
+/**
+ * A VOLTA A SELECAO DE PERSONAGEM, uma so: o "Selecionar personagem" do menu (o `ZC_RESTART_ACK` acima) e, desde
+ * o J21 (14/10/2026, D-2478), o botao da tela "Dormindo..." - quem dorme nao esta no mundo e o servidor ignora o
+ * `CZ_RESTART` dele (`pacote-durante-o-sono.ts`), entao o cliente sai do mapa sozinho pelo MESMO caminho. O sono
+ * continua no servidor; a lista do char-server traz o icone de quem dorme.
+ */
+function irParaASelecaoDePersonagem() {
+	GuildEngine.guild_id = 0;
+	cleanGameUI();
+	Session.Achievement = null;
+	Mouse.intersect = false;
+	MapRenderer.free();
+	Renderer.stop();
+	// R12 (14/09/2026): voltar ao char-select e' saida voluntaria da
+	// fase de mapa, mesma razao de onExitSuccess acima.
+	Reconexao.cancelar();
+	onRestart();
 }
 
 /**

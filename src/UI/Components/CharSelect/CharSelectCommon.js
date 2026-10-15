@@ -34,6 +34,15 @@ import PACKETVER from 'Network/PacketVerManager.js';
 import { aplicarVagas, podeCriarNaVaga, vagaDoCursor, vagasDaConta } from './vagasDaSelecao.js';
 
 import { TEXTOS_DA_EXCLUSAO, textoDoContador } from './textosDaExclusao.js';
+// J21 (14/10/2026, D-2478): quem dorme na lista, e a pergunta antes de encerrar o sono. O boneco da vaga nasce
+// com o corpo zerado (`semOSonoDaLista`): o `bodyState` da lista e sinal da selecao, nao estado do corpo.
+import {
+	ICONE_DO_SONO,
+	estaDormindoNaLista,
+	perguntaAntesDeEncerrarOSono,
+	semOSonoDaLista,
+	sonosQueAEntradaEncerra
+} from './sonoNaSelecao.js';
 
 export function createCharSelect(config) {
 	const {
@@ -573,7 +582,7 @@ export function createCharSelect(config) {
 			_slots[character.CharNum] = character;
 
 			_entitySlots[character.CharNum] = new Entity();
-			_entitySlots[character.CharNum].set(character);
+			_entitySlots[character.CharNum].set(semOSonoDaLista(character));
 			_entitySlots[character.CharNum].effectState =
 				_entitySlots[character.CharNum]._effectState & ~StatusConst.EffectState.INVISIBLE;
 			_entitySlots[character.CharNum].hideShadow = true;
@@ -596,7 +605,7 @@ export function createCharSelect(config) {
 		_slots[character.CharNum] = character;
 
 		_entitySlots[character.CharNum] = new Entity();
-		_entitySlots[character.CharNum].set(character);
+		_entitySlots[character.CharNum].set(semOSonoDaLista(character));
 		_entitySlots[character.CharNum].effectState =
 			_entitySlots[character.CharNum]._effectState & ~StatusConst.EffectState.INVISIBLE;
 
@@ -724,10 +733,26 @@ export function createCharSelect(config) {
 		if (_disable_UI === false) {
 			if (gridLayout) {
 				if (_slots[_index] && !_slots[_index].DeleteDate) {
-					_preferences.index = _index;
-					_preferences.save();
-					Component.onConnectRequest(_slots[_index]);
-					stopCountdownInterval();
+					// A vaga e o personagem de AGORA: a pergunta abaixo espera o jogador, e o cursor pode andar.
+					const vaga = _index;
+					const escolhido = _slots[vaga];
+					const entrar = () => {
+						_preferences.index = vaga;
+						_preferences.save();
+						Component.onConnectRequest(escolhido);
+						stopCountdownInterval();
+					};
+					/*
+					 * J21 (14/10/2026, D-2478): entrar com OUTRO personagem da conta encerra o sono em curso (regra
+					 * do dono, 12/10). Pergunta antes: era o caminho dos sonos de 0 a 2 minutos que o jogador
+					 * achava que "nao renderam nada".
+					 */
+					const encerra = sonosQueAEntradaEncerra(_slots, escolhido);
+					if (encerra.length > 0) {
+						UIManager.showPromptBox(perguntaAntesDeEncerrarOSono(encerra, escolhido), 'yes', 'no', entrar, null);
+						return;
+					}
+					entrar();
 				}
 			} else if (_slots[_index]) {
 				_preferences.index = _index;
@@ -1290,6 +1315,10 @@ export function createCharSelect(config) {
 			root.querySelector('.finaldelete').style.display = 'none';
 			root.querySelector('.ok').style.display = 'none';
 			charinfo.classList.add('vaga-vazia');
+			const sonoDaVaga = charinfo.querySelector('.cs-sono');
+			if (sonoDaVaga) {
+				sonoDaVaga.hidden = true;
+			}
 			const countdown = root.querySelector(`.timedelete.slot${_index}`);
 			if (countdown) {
 				countdown.dataset.duration = 0;
@@ -1333,6 +1362,11 @@ export function createCharSelect(config) {
 		charinfo.querySelector('.int').textContent = info.Int;
 		charinfo.querySelector('.dex').textContent = info.Dex;
 		charinfo.querySelector('.luk').textContent = info.Luk;
+		// J21 (D-2478): a ficha diz que ele dorme (o `<p>` fica fora do `querySelectorAll('div')` da vaga vazia).
+		const sono = charinfo.querySelector('.cs-sono');
+		if (sono) {
+			sono.hidden = !estaDormindoNaLista(info);
+		}
 	}
 
 	function changeBackgroundEverySecond() {
@@ -1371,6 +1405,17 @@ export function createCharSelect(config) {
 			);
 			if (charCanvases[i]) {
 				charCanvases[i].querySelector('.name').innerHTML = _slots[i] ? _slots[i].name : '';
+			}
+			// J21 (D-2478): o icone de dormir ao lado do da classe, so com o `OPT1_SLEEP` do char-server.
+			const sonoIcon = charCanvases[i] ? charCanvases[i].querySelector('.sono_icon') : null;
+			if (sonoIcon) {
+				const dorme = estaDormindoNaLista(_slots[i]);
+				sonoIcon.hidden = !dorme;
+				if (dorme && !sonoIcon.style.backgroundImage) {
+					Client.loadFile(`${DB.INTERFACE_PATH}item/${ICONE_DO_SONO}.bmp`, dataURI => {
+						sonoIcon.style.backgroundImage = `url(${dataURI})`;
+					});
+				}
 			}
 			if (!_slots[i]) {
 				if (jobIcons[i]) {

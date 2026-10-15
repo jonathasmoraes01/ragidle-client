@@ -17,8 +17,10 @@ import {
 	definirReserva,
 	faixasDasCapacidades,
 	lerConsumiveis,
+	alternarLimpeza,
 	ligarAsa,
-	ligarBuffs
+	ligarBuffs,
+	ligarLimpeza
 } from 'UI/Components/BotMenu/edicaoDeConsumiveis.js';
 import { EXPLICACAO_DO_STATUS, FRASE_DO_STATUS, explicacaoDoStatus, fraseDoStatus } from 'UI/Components/BotMenu/estadoDoBot.js';
 import { duracaoPorExtenso } from 'UI/Components/BotMenu/editorDeConsumiveis.js';
@@ -44,7 +46,11 @@ function congelar(o) {
 describe('edicao dos consumiveis (pura)', () => {
 	it('servidor velho sem o bloco le o padrao desligado; nada muta a recebida', () => {
 		const c = congelar({ v: 1 });
-		expect(lerConsumiveis(c)).toEqual({ buffs: { ligado: false, itens: [] }, asa: { ligada: false, semAlvoPorSegundos: 10, cercadoPor: 0, hpAbaixoDe: 0, reserva: 0 } });
+		expect(lerConsumiveis(c)).toEqual({
+			buffs: { ligado: false, itens: [] },
+			limpeza: { ligado: false, itens: [] },
+			asa: { ligada: false, semAlvoPorSegundos: 10, cercadoPor: 0, hpAbaixoDe: 0, reserva: 0 }
+		});
 		expect(CONSUMIVEIS_PADRAO.asa.semAlvoPorSegundos).toBe(10);
 		const nova = ligarAsa(ligarBuffs(c, true), true);
 		expect(nova.consumiveis.buffs.ligado).toBe(true);
@@ -57,6 +63,7 @@ describe('edicao dos consumiveis (pura)', () => {
 	it('o bloco incompleto completa campo a campo e descarta lixo na lista', () => {
 		expect(lerConsumiveis({ consumiveis: { buffs: { itens: [645, 'x', 1.5] }, asa: { hpAbaixoDe: 40 } } })).toEqual({
 			buffs: { ligado: false, itens: [645] },
+			limpeza: { ligado: false, itens: [] },
 			asa: { ligada: false, semAlvoPorSegundos: 10, cercadoPor: 0, hpAbaixoDe: 40, reserva: 0 }
 		});
 	});
@@ -69,6 +76,22 @@ describe('edicao dos consumiveis (pura)', () => {
 		c = ligarBuffs(c, true);
 		c = alternarBuff(alternarBuff(c, 645, 2), 656, 2);
 		expect(lerConsumiveis(c).buffs).toEqual({ ligado: false, itens: [] });
+	});
+
+	it('J8 e J14 limpeza de status: escolher e tirar item, o teto, o interruptor independente e sem item ele se desliga sozinho', () => {
+		let c = alternarLimpeza({ v: 1 }, 525, 2);
+		c = alternarLimpeza(c, 511, 2);
+		expect(lerConsumiveis(c).limpeza.itens).toEqual([525, 511]);
+		expect(alternarLimpeza(c, 523, 2), 'passou do teto').toBe(c);
+		c = ligarLimpeza(c, true);
+		expect(lerConsumiveis(c).limpeza.ligado).toBe(true);
+		// Independente das pocoes de velocidade e da asa.
+		expect(lerConsumiveis(c).buffs.ligado).toBe(false);
+		expect(lerConsumiveis(c).asa.ligada).toBe(false);
+		c = alternarLimpeza(alternarLimpeza(c, 525, 2), 511, 2);
+		expect(lerConsumiveis(c).limpeza).toEqual({ ligado: false, itens: [] });
+		// Lixo gravado nao vira item; ausente (servidor velho) e o padrao.
+		expect(lerConsumiveis({ consumiveis: { limpeza: { ligado: 'sim', itens: [525, 'x', 1.5] } } }).limpeza).toEqual({ ligado: false, itens: [525] });
 	});
 
 	it('a ordem da lista e a da escolha (a prioridade do Bot)', () => {
@@ -269,7 +292,11 @@ describe('a costura das abas Consumiveis e Avancado na janela real', () => {
 		reserva.dispatchEvent(new Event('change'));
 		expect(Network.sendPacket.mock.calls.length).toBe(antes);
 		const edit = BotMenu._estado.estado().editConfig.consumiveis;
-		expect(edit).toEqual({ buffs: { ligado: true, itens: [645] }, asa: { ligada: true, semAlvoPorSegundos: 10, cercadoPor: 0, hpAbaixoDe: 45, reserva: 2 } });
+		expect(edit).toEqual({
+			buffs: { ligado: true, itens: [645] },
+			limpeza: { ligado: false, itens: [] },
+			asa: { ligada: true, semAlvoPorSegundos: 10, cercadoPor: 0, hpAbaixoDe: 45, reserva: 2 }
+		});
 		host.querySelector('.bm-aplicar').click();
 		const pedido = enviados().at(-1);
 		expect(pedido.verbo).toBe('aplicar');
@@ -277,6 +304,48 @@ describe('a costura das abas Consumiveis e Avancado na janela real', () => {
 		// O gatilho desmarcado fica desligado e o numero acompanha.
 		const outro = host.querySelector('.bm-gatilho-cercado input[type="number"]');
 		expect(outro.disabled).toBe(true);
+	});
+
+	it('J8 e J14: o cartao "Itens que tiram status" lista os itens da mochila com o que cada um tira; escolher e ligar sujam o rascunho', async () => {
+		const { BotMenu, receber } = await montar();
+		receber(
+			status(['cacada', 'consumiveis'], {
+				consumiveis: {
+					buffs: [],
+					asa: { quantidade: 0, vip: true },
+					limpezas: [
+						{ itemId: 511, nome: 'Erva Verde', quantidade: 12, tira: ['Poison'] },
+						{ itemId: 525, nome: 'Panaceia', quantidade: 0, tira: ['Poison', 'Silence', 'Blind', 'Confusion', 'Curse'] }
+					]
+				}
+			})
+		);
+		irPara(BotMenu._host, 'Consumíveis');
+		const host = BotMenu._host;
+		expect(host.querySelector('.bm-cartao-limpeza').hidden).toBe(false);
+		const lis = [...host.querySelectorAll('.bm-limpeza-lista .bm-buff')];
+		expect(lis.map(l => l.querySelector('.bm-item-nome').textContent)).toEqual(['Erva Verde', 'Panaceia']);
+		expect(lis[0].querySelector('.bm-item-icone').getAttribute('src')).toBe('/ragidle/item/511.png');
+		expect(lis[0].querySelector('.bm-quantidade').textContent).toBe('x12');
+		expect(lis[0].querySelector('.bm-buff-nota').textContent).toBe('Tira: veneno');
+		expect(lis[1].querySelector('.bm-buff-nota').textContent).toBe('Tira: veneno, silêncio, cegueira, confusão, maldição');
+		expect(lis[1].querySelector('.bm-quantidade').classList.contains('is-vazio')).toBe(true);
+		const ligado = host.querySelector('.bm-limpeza-ligada');
+		expect(ligado.disabled).toBe(true);
+		const escolher = host.querySelector('.bm-buff[data-item="511"] .bm-buff-escolher');
+		escolher.checked = true;
+		escolher.dispatchEvent(new Event('change'));
+		expect(host.querySelector('.bm-limpeza-ligada').disabled).toBe(false);
+		host.querySelector('.bm-limpeza-ligada').checked = true;
+		host.querySelector('.bm-limpeza-ligada').dispatchEvent(new Event('change'));
+		expect(BotMenu._estado.estado().editConfig.consumiveis.limpeza).toEqual({ ligado: true, itens: [511] });
+	});
+
+	it('J8 e J14: servidor velho (sem `limpezas`) nao desenha o cartao', async () => {
+		const { BotMenu, receber } = await montar();
+		receber(status(['cacada', 'consumiveis']));
+		irPara(BotMenu._host, 'Consumíveis');
+		expect(BotMenu._host.querySelector('.bm-cartao-limpeza').hidden).toBe(true);
 	});
 
 	it('sem pocao escolhida o interruptor das pocoes fica desabilitado', async () => {
