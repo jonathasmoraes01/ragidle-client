@@ -1,6 +1,6 @@
 // Mutacao somente na memoria do Vitest: nunca altera o cliente servido pelo Vite.
 //
-// O PING DA REDE NA PONTE (achados 19 e 20 da varredura de rede, 17/10/2026, D-2540 no servidor).
+// O PING DA REDE NA PONTE (achados 19 e 20 da varredura de rede, 15/10/2026, D-2540 no servidor).
 // Cada mutante e um jeito de a medida mentir: o tempo errado, o pong alheio contado, o percentil
 // deslocado, a fila alta mal contada, a janela que nao zera ou o teto que some.
 //

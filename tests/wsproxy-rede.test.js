@@ -1,6 +1,6 @@
 /**
  * O PING DA REDE, SEPARADO DO PING DO JOGO (achados 19 e 20 da varredura de
- * rede, 17/10/2026, D-2540 no repositorio do servidor).
+ * rede, 15/10/2026, D-2540 no repositorio do servidor).
  *
  * A medida pura (`wsproxyRede.js`), o eco do conteudo do ping no pong com um
  * WebSocket de verdade (o RFC 6455 manda ecoar; o navegador e o `ws` ecoam), e

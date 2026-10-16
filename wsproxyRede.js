@@ -1,5 +1,5 @@
 /**
- * O PING DA REDE, SEPARADO DO PING DO JOGO (achado de rede 20, 17/10/2026,
+ * O PING DA REDE, SEPARADO DO PING DO JOGO (achado de rede 20, 15/10/2026,
  * D-2540 no repositorio do servidor).
  *
  * O ping que o jogador ve (e que o painel `/analytics` le) e o do JOGO: o
