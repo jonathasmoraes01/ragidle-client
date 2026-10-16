@@ -168,6 +168,14 @@ onmessage = function receive(event) {
 			// ver `pedidoDeCargaDoMapa` (o contrato que qualquer worker entende).
 			const pedido = pedidoDeCargaDoMapa(msg);
 			const carga = pedido.carga;
+			// Mapa novo: o GRF pode ter trocado no servidor desde a ultima
+			// pergunta. Nao espera a resposta, e so pergunta se o servidor ja
+			// disse que sabe responder (D-2547).
+			try {
+				FileManager.cacheDoAparelho.reverificar();
+			} catch {
+				/* o cache do aparelho nunca impede a carga */
+			}
 			if (cargaDeMapaEmCurso) {
 				cargaDeMapaEmCurso.cancelar();
 			}

@@ -31,6 +31,13 @@
  */
 
 /**
+ * O cabecalho com a versao do GRF da resposta (D-2547). Repetido aqui, e nao
+ * importado de `cacheDeArquivos.js`, para este modulo continuar sem dependencia:
+ * `tests/core/cacheDeArquivos.test.js` confere que os dois sao o mesmo.
+ */
+export const CABECALHO_DA_VERSAO_DO_GRF = 'x-versao-do-grf';
+
+/**
  * Silencio que prova o pedido morto. ESCOLHIDO, e nao medido (a medida por
  * fase nasce junto, em `Renderer/relatoDoCarregamento.js`, e e ela que vai
  * dizer se 15 s e cedo ou tarde): longe do primeiro byte normal de um arquivo
@@ -141,9 +148,10 @@ export function baixarComVigia(url, opcoes = {}) {
 					return undefined;
 				}
 				const total = totalDoArquivo(resposta.headers);
+				const versaoDoGrf = versaoDoGrfDe(resposta.headers);
 				const corpo = resposta.body;
 				if (corpo && typeof corpo.getReader === 'function') {
-					return lerEmPedacos(corpo.getReader(), total, resposta.status);
+					return lerEmPedacos(corpo.getReader(), total, resposta.status, versaoDoGrf);
 				}
 				return resposta.arrayBuffer().then(buffer => {
 					if (aoReceber) aoReceber(buffer.byteLength, totalQueCabe(buffer.byteLength, total));
@@ -153,7 +161,8 @@ export function baixarComVigia(url, opcoes = {}) {
 						buffer,
 						total,
 						bytes: buffer.byteLength,
-						doCacheHttp: veioDoCacheHttp(url)
+						doCacheHttp: veioDoCacheHttp(url),
+						versaoDoGrf
 					});
 				});
 			})
@@ -161,7 +170,7 @@ export function baixarComVigia(url, opcoes = {}) {
 				falhar(erro);
 			});
 
-		function lerEmPedacos(leitor, total, status) {
+		function lerEmPedacos(leitor, total, status, versaoDoGrf) {
 			const pedacos = [];
 			let recebidos = 0;
 			const passo = () =>
@@ -182,7 +191,8 @@ export function baixarComVigia(url, opcoes = {}) {
 							buffer,
 							total,
 							bytes: recebidos,
-							doCacheHttp: veioDoCacheHttp(url)
+							doCacheHttp: veioDoCacheHttp(url),
+							versaoDoGrf
 						});
 						return undefined;
 					}
@@ -195,6 +205,23 @@ export function baixarComVigia(url, opcoes = {}) {
 			return passo();
 		}
 	});
+}
+
+/**
+ * A versao do GRF que a resposta declara (D-2547), crua, ou `null`. Quem valida
+ * e o cache do aparelho (`versaoValida`): aqui so se le.
+ *
+ * @param {{get: function(string): (string|null)}} [cabecalhos]
+ * @returns {string|null}
+ */
+export function versaoDoGrfDe(cabecalhos) {
+	try {
+		const valor =
+			cabecalhos && typeof cabecalhos.get === 'function' ? cabecalhos.get(CABECALHO_DA_VERSAO_DO_GRF) : null;
+		return typeof valor === 'string' ? valor : null;
+	} catch {
+		return null;
+	}
 }
 
 /**
