@@ -2,6 +2,7 @@ import { WebSocketServer } from 'ws';
 import net from 'net';
 import { alvoPermitido, descreverAlvos, lerAlvos } from './wsproxyAlvos.js';
 import { compressaoDoAmbiente } from './wsproxyCompressao.js';
+import { JANELA_DA_REDE_MS, MedidaDaRede, carimboDoPing, idaEVoltaDoPong, linhaDaRede } from './wsproxyRede.js';
 
 // Parse command line arguments
 const args = {};
@@ -576,6 +577,19 @@ const faxina = setInterval(() => {
 }, VARREDURA_MS);
 faxina.unref();
 
+/*
+ * A REDE, MINUTO A MINUTO (achados 19 e 20, D-2540). Uma linha por minuto com
+ * o ida e volta dos pongs (so a rede, sem a thread do jogo) e a fila parada na
+ * ponte; minuto sem conexao nao escreve nada. O dono le com
+ * `journalctl -u <ponte> | grep "rede (pong"`.
+ */
+const medidaDaRede = new MedidaDaRede();
+const relogioDaRede = setInterval(() => {
+	const resumo = medidaDaRede.fechar();
+	if (resumo !== null) console.log(linhaDaRede(resumo));
+}, JANELA_DA_REDE_MS);
+relogioDaRede.unref();
+
 if (host !== '127.0.0.1' && host !== 'localhost') {
 	// Quem abre precisa VER que abriu. A linha e o unico aviso que existe entre
 	// "so o tunel alcanca" e "a internet alcanca, se o firewall deixar".
@@ -851,14 +865,22 @@ function aceitarConexao(ws, req) {
 	const PING_MS = 30_000;
 	const relogioDePing = setInterval(() => {
 		if (ws.readyState !== ws.OPEN) return;
+		// A fila parada na ponte desta conexao, no mesmo instante (achado 19).
+		medidaDaRede.anotarFila(ws.bufferedAmount);
 		// `ws.ping()` lanca se o socket fechar entre o `readyState` e a escrita;
 		// uma ponte nao pode morrer por causa do proprio keepalive.
 		try {
-			ws.ping();
+			// O ping leva o instante em que saiu: o pong o ecoa (`wsproxyRede.js`).
+			ws.ping(carimboDoPing(Date.now()));
 		} catch {
 			/* o `close` que vem a seguir limpa o relogio */
 		}
 	}, PING_MS);
+	// O ida e volta SO DA REDE, sem a thread do jogo (achado 20, D-2540).
+	ws.on('pong', (dados) => {
+		const ms = idaEVoltaDoPong(dados, Date.now());
+		if (ms !== null) medidaDaRede.anotar(ms);
+	});
 	// Nunca segurar o processo de pe por causa de um relogio de keepalive.
 	relogioDePing.unref?.();
 
