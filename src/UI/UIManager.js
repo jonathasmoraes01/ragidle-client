@@ -702,7 +702,7 @@ class UIManager {
 			// J21 (D-2478): e a quinta - entrar com outro personagem da conta encerra o sono (regra do dono, 12/10).
 			rodape:
 				'Pode fechar o jogo com segurança: o sono continua sem ele. Dormindo, o personagem não luta nem morre ' +
-				'e ganha só EXP (base e classe), até 8 h. Loot e zeny só caçando online. Entrar com outro personagem ' +
+				'e ganha só EXP (base e classe, 70% do ritmo da caçada), até 8 h. Loot e zeny só caçando online. Entrar com outro personagem ' +
 				'desta conta encerra este sono.',
 			...(onVoltarASelecao
 				? {
