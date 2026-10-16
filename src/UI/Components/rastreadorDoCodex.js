@@ -23,13 +23,48 @@
  * entrada sai do rastreador é o servidor (`servidor/codex-marcadas.ts`). O
  * número mostrado é o da janela do Codex (a soma por espécie, cada uma limitada
  * ao alvo dela) — calcular aqui seria a segunda rota escrita à mão.
+ *
+ * ## A diferença (`v: 5`, D-2543, 17/10/2026)
+ *
+ * O parcial `v: 2` ainda trazia o rastreador INTEIRO a cada abate, e o que
+ * muda é o contador de uma ou duas entradas. O servidor agora numera tudo que
+ * traz o rastreador inteiro (`codexRastreadoRev`, por conexão) e, para quem
+ * DECLAROU que aplica, manda só as TROCAS (`[caminho, valor]`) sobre a revisão
+ * `de`: `{v: 5, parcial: 'codexRastreadoDif', de, rev, trocas}`. A aplicação é
+ * a mesma da Temporada e da janela de habilidades (`aplicarTrocas`), e o que
+ * sai daqui é a MESMA lista que o inteiro traria — o desenho não muda.
+ *
+ * A declaração é a da janela de habilidades (`precisaDeclarar`): ao receber um
+ * inteiro numerado cuja revisão não passa da última declarada (a primeira vez,
+ * e a conexão nova, que recomeça do 1), o cliente manda
+ * `{acao: 'declarar-rastreador', base}` no `CZ_RAGIDLE_MISSAO_ACAO`.
  */
+
+import { aplicarTrocas } from './TemporadaIdle/parcialDaTemporada.js';
 
 let lista = [];
 
-/** O servidor mandou a lista (ou nada: pacote de servidor antigo = vazia). */
-export function anotarRastreadorDoCodex(valor) {
-	lista = Array.isArray(valor) ? valor.filter(l => l && typeof l.id === 'string') : [];
+/** A revisão do rastreador que está na mão (`null`: nenhuma, ou servidor antigo). */
+let rev = null;
+
+/** A última revisão mandada na declaração (`null`: ainda não declarou). */
+let revDeclarada = null;
+
+/** O verbo do `CZ_RAGIDLE_MISSAO_ACAO` que declara a diferença (D-2543). */
+export const ACAO_QUE_DECLARA_O_RASTREADOR = 'declarar-rastreador';
+
+/** As linhas válidas de uma lista do servidor (lixo vira vazia). */
+function linhasValidas(valor) {
+	return Array.isArray(valor) ? valor.filter(l => l && typeof l.id === 'string') : [];
+}
+
+/**
+ * O servidor mandou a lista inteira (ou nada: pacote de servidor antigo =
+ * vazia), com a revisão dela quando o servidor numera (D-2543).
+ */
+export function anotarRastreadorDoCodex(valor, revisao) {
+	lista = linhasValidas(valor);
+	rev = typeof revisao === 'number' ? revisao : null;
 }
 
 /**
@@ -46,14 +81,62 @@ export function ehCorpoParcialDoRastreador(dados) {
 	return !!dados && dados.v === 2 && dados.parcial === 'codexRastreado';
 }
 
+/** A DIFERENÇA do rastreador (`v: 5`, D-2543): só as trocas, sobre a revisão `de`. */
+export function ehCorpoDiferencaDoRastreador(dados) {
+	return !!dados && dados.v === 5 && dados.parcial === 'codexRastreadoDif';
+}
+
+/**
+ * Aplica a diferença sobre a lista que está na mão. Devolve `false` quando ela
+ * não cai (sem revisão, `de` não é a que está aqui, trocas podres): a revisão
+ * some, as diferenças seguintes também não caem, e quem chama pede a lista
+ * inteira. A lista da tela fica a de antes até o inteiro chegar.
+ */
+export function aplicarDiferencaDoRastreador(dados) {
+	if (!ehCorpoDiferencaDoRastreador(dados) || rev === null || dados.de !== rev || !Array.isArray(dados.trocas)) {
+		rev = null;
+		return false;
+	}
+	const montada = aplicarTrocas(lista, dados.trocas);
+	if (!Array.isArray(montada)) {
+		rev = null;
+		return false;
+	}
+	lista = linhasValidas(montada);
+	rev = typeof dados.rev === 'number' ? dados.rev : null;
+	return true;
+}
+
+/** A revisão que está na mão. */
+export function revisaoDoRastreador() {
+	return rev;
+}
+
+/**
+ * O inteiro que acabou de chegar pede uma DECLARAÇÃO? Devolve o corpo do
+ * `CZ_RAGIDLE_MISSAO_ACAO` (e lembra a revisão declarada) ou `null`. Sim quando
+ * o servidor numera e esta revisão não passa da última declarada: a primeira
+ * vez, e a conexão nova (a revisão recomeça do 1) — a regra de
+ * `precisaDeclarar` da janela de habilidades.
+ */
+export function declaracaoDoRastreador() {
+	if (rev === null || (revDeclarada !== null && rev > revDeclarada)) {
+		return null;
+	}
+	revDeclarada = rev;
+	return { acao: ACAO_QUE_DECLARA_O_RASTREADOR, base: rev };
+}
+
 /** As entradas acompanhadas agora, na ordem em que foram marcadas. */
 export function rastreadorDoCodexAtual() {
 	return lista;
 }
 
-/** Trocar de personagem esquece: o Codex é DO PERSONAGEM. */
+/** Trocar de personagem esquece: o Codex é DO PERSONAGEM (a revisão e a declaração também). */
 export function limparRastreadorDoCodex() {
 	lista = [];
+	rev = null;
+	revDeclarada = null;
 }
 
 function escapeHtml(value) {
