@@ -71,9 +71,15 @@ export const mutantes = {
 	// --- o vigia, a medida e o worker ---
 	'vigia-inteiro-sem-versao': [VIGIA, 'bytes: buffer.byteLength,\n\t\t\t\t\t\tdoCacheHttp: veioDoCacheHttp(url),\n\t\t\t\t\t\tversaoDoGrf', 'bytes: buffer.byteLength,\n\t\t\t\t\t\tdoCacheHttp: veioDoCacheHttp(url)'],
 	'vigia-pedacos-sem-versao': [VIGIA, 'bytes: recebidos,\n\t\t\t\t\t\t\tdoCacheHttp: veioDoCacheHttp(url),\n\t\t\t\t\t\t\tversaoDoGrf', 'bytes: recebidos,\n\t\t\t\t\t\t\tdoCacheHttp: veioDoCacheHttp(url)'],
-	'medida-nao-conta-o-aparelho': [MEDIDA, "origem === 'cache-aparelho' || ", ''],
-	'mapa-novo-nao-reconfere': [WORKER, '\t\t\t\tFileManager.cacheDoAparelho.reverificar();\n', '']
+	'medida-nao-conta-o-aparelho': [MEDIDA, "origem === 'cache-aparelho' || ", '']
+	// A costura do worker (`ThreadEventHandler.js`, a reconferencia a cada
+	// LOAD_MAP) e lida do DISCO pelo teste, e a mutacao daqui e so na memoria:
+	// ela foi medida com a linha apagada no disco e restauro por copia (17/10:
+	// morta, 1 teste reprovado). Ver `WORKER` abaixo, para quem quiser repetir.
 };
+
+/** O alvo da costura medida no disco (nao entra no laco em memoria). */
+export const COSTURA_NO_DISCO = [WORKER, '\t\t\t\tFileManager.cacheDoAparelho.reverificar();\n'];
 
 export const NOMES = Object.keys(mutantes);
 
