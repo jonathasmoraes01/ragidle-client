@@ -84,7 +84,8 @@ describe('a escalada — t aproximado 10, 30, 60, 90, 120, 150...', () => {
 
 		await vi.advanceTimersByTimeAsync(1000);
 		expect(mocks.mapEngineInit).toHaveBeenCalledTimes(1);
-		expect(mocks.mapEngineInit).toHaveBeenCalledWith('127.0.0.1', 5121, 'prontera', expect.any(Function));
+		// D-2576: a tentativa avisa o MapEngine que e a VOLTA do mesmo personagem.
+		expect(mocks.mapEngineInit).toHaveBeenCalledWith('127.0.0.1', 5121, 'prontera', expect.any(Function), { volta: true });
 	});
 
 	it('falhas sucessivas respeitam 20/30/30/30s entre os INICIOS (t=10,30,60,90,120)', async () => {
@@ -283,72 +284,43 @@ describe('um so ciclo — sem tentativa duplicada', () => {
 });
 
 /**
- * O TETO DE DESISTENCIA (16/09/2026).
+ * A RECONEXAO NAO DESISTE (D-2575, 15/10/2026). De 16/09 a 15/10 havia um teto
+ * de 12 tentativas e depois o login; ele nasceu quando a recusa do servidor era
+ * muda. Desde D-1520 a recusa fala (`SC_NOTIFY_BAN` 0 -> `aoSerRecusado`, coberta
+ * em "sessao invalida" acima), e o dono pediu que a volta do segundo plano nunca
+ * passe pela tela de login enquanto o servidor aceitar. O teto saiu.
  *
- * Ate hoje a escalada repetia o ultimo degrau PARA SEMPRE, e a unica porta
- * para o login (`aoSerRecusado`) era CODIGO MORTO: ela so dispara com um
- * `ZC_REFUSE_ENTER`, e esse pacote NAO EXISTE no servidor — as tres recusas do
- * `CZ_ENTER2` la fecham o socket em silencio, o que do lado de ca e
- * indistinguivel de "servidor fora do ar".
- *
- * O preco foi o relato do dono. Com o passe vencido (D-1506) o servidor
- * recusava toda reentrada, e o cliente tentava a cada 60 s **com uma
- * credencial ja apagada, sem fim e sem saida**: "Reconectando automaticamente"
- * para sempre, que e o "volta com o aviso de disconnect" que ele descreveu.
- *
- * O segundo caso e o CONTROLE, e sem ele o primeiro nao valeria: um teto que
- * contasse tentativas ao longo da SESSAO mandaria ao login quem so tem rede
- * instavel. A contagem tem de morrer a cada reconexao bem-sucedida.
+ * O CONTROLE e o caso "sessao invalida" deste arquivo: a recusa continua levando
+ * ao login, na primeira tentativa recusada.
  */
-describe('o teto de desistencia — a escalada nao e eterna', () => {
-	/** Os intervalos ENTRE INICIOS, em segundos: 10, 20, e 30 fixo (era ate 60). */
-	const GAPS_S = [10, 20, 30, 30, 30, 30, 30, 30, 30, 30, 30, 30];
-
+describe('a reconexao nao desiste (D-2575)', () => {
 	beforeEach(() => {
 		Reconexao.armar('127.0.0.1', 5121, 'prontera');
 	});
 
-	it('depois de 12 tentativas falhas, desiste e volta ao login', async () => {
+	it('100 tentativas falhas (quase uma hora sem servidor) e nenhuma ida ao login', async () => {
 		cair();
-
-		for (let i = 0; i < GAPS_S.length; i++) {
-			await vi.advanceTimersByTimeAsync(GAPS_S[i] * 1000);
+		await vi.advanceTimersByTimeAsync(10000);
+		for (let i = 0; i < 100; i++) {
 			expect(mocks.mapEngineInit, 'a tentativa ' + (i + 1) + ' nao aconteceu').toHaveBeenCalledTimes(i + 1);
-			// A tentativa falha rapido, pelo mesmo callback que os casos da
-			// escalada acima usam (o 4o argumento de MapEngine.init).
 			mocks.mapEngineInit.mock.calls[i][3]();
+			await vi.advanceTimersByTimeAsync(i === 0 ? 20000 : 30000);
 		}
-
-		expect(mocks.gameEngineReload, 'desistiu antes das 12').not.toHaveBeenCalled();
-
-		// A 13a nao acontece: no lugar dela vem a desistencia.
-		await vi.advanceTimersByTimeAsync(60000);
-		expect(mocks.mapEngineInit, 'tentou uma 13a vez — o teto nao segurou').toHaveBeenCalledTimes(12);
-		expect(mocks.uiMostrar).toHaveBeenCalledWith(
-			expect.objectContaining({ titulo: 'Sessão expirada' })
-		);
-
-		// O `reload()` leva ao login, e so depois de o aviso ficar legivel.
-		await vi.advanceTimersByTimeAsync(2500);
-		expect(mocks.gameEngineReload, 'nao mandou o jogador ao login').toHaveBeenCalledTimes(1);
+		expect(mocks.gameEngineReload, 'desistiu e mandou ao login sem recusa do servidor').not.toHaveBeenCalled();
+		expect(mocks.uiMostrar).not.toHaveBeenCalledWith(expect.objectContaining({ titulo: 'Sessão expirada' }));
+		// E o intervalo segue no teto do dono (30 s), sem crescer.
+		expect(mocks.mapEngineInit).toHaveBeenCalledTimes(101);
 	});
 
-	it('CONTROLE: reconectar zera a contagem — rede instavel nao expulsa ninguem', async () => {
-		// Onze quedas com reconexao bem-sucedida entre elas. Se a contagem
-		// vazasse entre ciclos, isto somaria 11 e o proximo ciclo desistiria.
-		for (let volta = 0; volta < 11; volta++) {
-			cair();
-			await vi.advanceTimersByTimeAsync(10000);
-			// Sucesso: e `aoEntrarComSucesso` que o MapEngine chama ao confirmar a
-			// entrada (MapEngine.js:805), e e ela que zera a escalada. Chamar
-			// `armar` aqui seria medir a coisa errada — `armar` so memoriza o
-			// endereco e religa o gancho; ela NAO toca no contador. A primeira
-			// versao deste caso fez isso e reprovou, o que foi o teste fazendo o
-			// trabalho dele.
-			Reconexao.aoEntrarComSucesso();
+	it('a recusa, mesmo depois de muitas tentativas, ainda leva ao login', async () => {
+		cair();
+		await vi.advanceTimersByTimeAsync(10000);
+		for (let i = 0; i < 30; i++) {
+			mocks.mapEngineInit.mock.calls[i][3]();
+			await vi.advanceTimersByTimeAsync(30000);
 		}
-
-		expect(mocks.mapEngineInit, 'as 11 voltas nao tentaram').toHaveBeenCalledTimes(11);
-		expect(mocks.gameEngineReload, 'a contagem vazou entre ciclos').not.toHaveBeenCalled();
+		expect(Reconexao.aoSerRecusado()).toBe(true);
+		await vi.advanceTimersByTimeAsync(2500);
+		expect(mocks.gameEngineReload).toHaveBeenCalledTimes(1);
 	});
 });

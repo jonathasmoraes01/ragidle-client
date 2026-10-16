@@ -141,7 +141,19 @@ export function criarGatilhoDaEconomia(deps) {
 			}
 			// D-1392: com a tela preta ja liberada so o botao "Voltar a jogar" fecha. Esconder de novo nao recomeca o
 			// aviso cedo (voltar em menos de 14 s mandaria `sair` e fecharia a tela sem o botao).
+			//
+			// Mas REARMA (D-2578, 15/10/2026): o servidor pode ter desarmado CALADO enquanto a aba estava a vista (o
+			// teto com sinal de vida, `venceuEconomiaDeEnergia`), e o cliente seguia em `liberada` sem reenviar o
+			// `entrar` - a proxima queda tirava o personagem do mundo. O `entrar` repetido e idempotente no servidor
+			// (so a primeira armada decide o instante) e so reabre a tela que ja esta aberta. No dedo sai ja (a
+			// pagina congela logo); no desktop, pelo mesmo atraso de 14 s (fechar a aba antes dele segue encerrando).
+			// A fase NAO muda: voltar antes do atraso so cancela o relogio, sem `sair`.
 			if (fase === 'liberada') {
+				if (naHora()) {
+					deps.pedirEntrar();
+				} else {
+					agendarAtraso();
+				}
 				return;
 			}
 			if (naHora()) {

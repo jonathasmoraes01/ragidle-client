@@ -268,11 +268,17 @@ describe('rodada 3 do bug #10: achados do critico', () => {
 		vi.advanceTimersByTime(5_000);
 		estado.oculta = false;
 		gatilho.aoMudarVisibilidade();
-		expect(pedidos, 'so o botao fecha a tela: nada de `sair` nem de `entrar` repetido').toEqual(['entrar']);
+		// D-2578: esconder de novo REARMA (o `entrar` repetido, na hora no dedo); o que A1 cobra segue: nada de `sair`.
+		expect(pedidos, 'so o botao fecha a tela: nada de `sair`').toEqual(['entrar', 'entrar']);
 		expect(gatilho.fase()).toBe('liberada');
 	});
 
-	it('A1 no desktop: a tela liberada tambem nao reagenda um segundo `entrar`', () => {
+	/*
+	 * D-2578 (15/10/2026): ate aqui a tela liberada NAO reenviava o `entrar` (A1 no desktop, de 13/10), e o servidor
+	 * que desarmou CALADO (o teto com sinal de vida) deixava o cliente em `liberada` sem economia nenhuma - a proxima
+	 * queda tirava o personagem do mundo. Esconder de novo rearma, pelo mesmo atraso de 14 s do desktop.
+	 */
+	it('D-2578 no desktop: esconder de novo com a tela liberada rearma DEPOIS dos 14 s, e a fase segue liberada', () => {
 		const { estado, pedidos, gatilho } = montar({ dedo: false });
 		gatilho.aoMudarVisibilidade();
 		vi.advanceTimersByTime(14_000);
@@ -280,8 +286,54 @@ describe('rodada 3 do bug #10: achados do critico', () => {
 		gatilho.aoMudarVisibilidade();
 		estado.oculta = true;
 		gatilho.aoMudarVisibilidade();
+		vi.advanceTimersByTime(13_999);
+		expect(pedidos, 'rearmou antes do atraso (fechar a aba ja nao encerraria)').toEqual(['entrar']);
+		vi.advanceTimersByTime(1);
+		expect(pedidos).toEqual(['entrar', 'entrar']);
+		expect(gatilho.fase()).toBe('liberada');
+	});
+
+	it('D-2578 no desktop: voltar antes dos 14 s so cancela o rearme, sem `sair`', () => {
+		const { estado, pedidos, gatilho } = montar({ dedo: false });
+		gatilho.aoMudarVisibilidade();
+		vi.advanceTimersByTime(14_000);
+		estado.oculta = false;
+		gatilho.aoMudarVisibilidade();
+		estado.oculta = true;
+		gatilho.aoMudarVisibilidade();
+		vi.advanceTimersByTime(5_000);
+		estado.oculta = false;
+		gatilho.aoMudarVisibilidade();
 		vi.advanceTimersByTime(60_000);
 		expect(pedidos).toEqual(['entrar']);
+		expect(gatilho.fase()).toBe('liberada');
+	});
+
+	it('D-2578: cada esconder rearma uma vez (sem empilhar com o evento repetido)', () => {
+		const { estado, pedidos, gatilho } = montar({ dedo: false });
+		gatilho.aoMudarVisibilidade();
+		vi.advanceTimersByTime(14_000);
+		for (let i = 0; i < 3; i++) {
+			estado.oculta = false;
+			gatilho.aoMudarVisibilidade();
+			estado.oculta = true;
+			gatilho.aoMudarVisibilidade();
+			gatilho.aoMudarVisibilidade(); // o evento repetido com a aba ja oculta
+			vi.advanceTimersByTime(14_000);
+		}
+		expect(pedidos).toEqual(['entrar', 'entrar', 'entrar', 'entrar']);
+	});
+
+	it('D-2578: a resposta `ativa:true` do rearme so atualiza a tela que ja esta aberta (nao guarda nem ignora)', () => {
+		const { estado, gatilho } = montar({ dedo: false });
+		gatilho.aoMudarVisibilidade();
+		vi.advanceTimersByTime(14_000);
+		estado.oculta = false;
+		gatilho.aoMudarVisibilidade();
+		estado.oculta = true;
+		gatilho.aoMudarVisibilidade();
+		vi.advanceTimersByTime(14_000);
+		expect(gatilho.aoResponderAtiva(1000)).toBe(true);
 	});
 
 	it('A1: o botao "Voltar a jogar" (`cancelar`) devolve o gatilho ao comeco', () => {

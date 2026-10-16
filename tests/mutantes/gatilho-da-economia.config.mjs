@@ -45,7 +45,15 @@ const mutantes = {
 	// a resposta tardia do entrar reabre a tela depois do sair
 	ignoraDesarmando: [ALVO, "return fase !== 'desarmando';", 'return true;'],
 	// A1: esconder de novo com a tela liberada volta a armar cedo (e o `sair` fecha a tela sem o botao)
-	telaLiberadaRearma: [ALVO, '\t\t\tif (fase === \'liberada\') {\n\t\t\t\treturn;\n\t\t\t}\n', ''],
+	telaLiberadaRearma: [ALVO, "\t\t\tif (fase === 'liberada') {\n\t\t\t\tif (naHora()) {\n\t\t\t\t\tdeps.pedirEntrar();\n\t\t\t\t} else {\n\t\t\t\t\tagendarAtraso();\n\t\t\t\t}\n\t\t\t\treturn;\n\t\t\t}\n", ''],
+	// D-2578: a tela liberada volta a NAO rearmar (o servidor que desarmou calado deixa o cliente sem economia)
+	liberadaNaoRearma: [ALVO, "\t\t\tif (fase === 'liberada') {\n\t\t\t\tif (naHora()) {\n\t\t\t\t\tdeps.pedirEntrar();\n\t\t\t\t} else {\n\t\t\t\t\tagendarAtraso();\n\t\t\t\t}\n\t\t\t\treturn;\n\t\t\t}\n", "\t\t\tif (fase === 'liberada') {\n\t\t\t\treturn;\n\t\t\t}\n"],
+	// D-2578: o desktop rearma na hora (fechar a aba antes dos 14 s ja nao encerraria)
+	liberadaDesktopNaHora: [ALVO, '\t\t\t\t} else {\n\t\t\t\t\tagendarAtraso();\n\t\t\t\t}\n\t\t\t\treturn;', '\t\t\t\t} else {\n\t\t\t\t\tdeps.pedirEntrar();\n\t\t\t\t}\n\t\t\t\treturn;'],
+	// D-2578: o dedo espera os 14 s para rearmar (o iPhone congela antes)
+	liberadaDedoEspera: [ALVO, '\t\t\t\tif (naHora()) {\n\t\t\t\t\tdeps.pedirEntrar();\n\t\t\t\t} else {', '\t\t\t\tif (naHora()) {\n\t\t\t\t\tagendarAtraso();\n\t\t\t\t} else {'],
+	// D-2578: o rearme com a tela liberada derruba a fase para `livre`
+	liberadaVoltaALivre: [ALVO, '\t\t\t\t\tagendarAtraso();\n\t\t\t\t}\n\t\t\t\treturn;', "\t\t\t\t\tagendarAtraso();\n\t\t\t\t}\n\t\t\t\tfase = 'livre';\n\t\t\t\treturn;"],
 	// A2: o pagehide sozinho nao agenda a tela
 	pagehideSemAgenda: [ALVO, '\t\t\tif (atraso === null) {\n\t\t\t\tagendarAtraso();\n\t\t\t}\n', ''],
 	ignoraAOpcao: [ALVO, '\t\tif (!deps.automaticaLigada()) {\n\t\t\tlimparTimer();\n\t\t\tif (fase === \'cedo\') {\n\t\t\t\tdesarmarCedo();\n\t\t\t}\n\t\t\treturn;\n\t\t}\n', '']

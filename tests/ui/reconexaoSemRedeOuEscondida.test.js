@@ -33,7 +33,6 @@ vi.mock('UI/Components/Reconexao/Reconexao.js', () => ({
 }));
 
 let Reconexao;
-let tentativaConta;
 let deveTentarAgoraNaVolta;
 let online;
 let visibilidade;
@@ -58,7 +57,7 @@ beforeEach(async () => {
 	mocks.uiEsconder.mockReset();
 
 	vi.resetModules();
-	({ default: Reconexao, tentativaConta, deveTentarAgoraNaVolta } = await import('Network/reconexao.js'));
+	({ default: Reconexao, deveTentarAgoraNaVolta } = await import('Network/reconexao.js'));
 });
 
 afterEach(() => {
@@ -88,14 +87,6 @@ async function proximaTentativaFalha() {
 }
 
 describe('as decisoes puras', () => {
-	it('tentativaConta: so com rede E aba visivel', () => {
-		expect(tentativaConta({ online: true, visivel: true })).toBe(true);
-		expect(tentativaConta({ online: false, visivel: true })).toBe(false);
-		expect(tentativaConta({ online: true, visivel: false })).toBe(false);
-		expect(tentativaConta({ online: false, visivel: false })).toBe(false);
-		expect(tentativaConta(null)).toBe(false);
-	});
-
 	it('deveTentarAgoraNaVolta: so dentro de um ciclo e sem tentativa em voo', () => {
 		expect(deveTentarAgoraNaVolta({ emCiclo: true, tentativaEmAndamento: false })).toBe(true);
 		expect(deveTentarAgoraNaVolta({ emCiclo: true, tentativaEmAndamento: true })).toBe(false);
@@ -104,38 +95,34 @@ describe('as decisoes puras', () => {
 	});
 });
 
-describe('o teto de desistencia', () => {
+/*
+ * O TETO SAIU (D-2575, 15/10/2026): as tentativas sem rede ou com a aba escondida
+ * nao gastavam o teto (lacuna 5); agora nenhuma gasta, porque nao ha teto. Os dois
+ * casos ficam: sao os ambientes em que mandar ao login era o defeito mais caro.
+ */
+describe('sem teto: sem rede ou com a aba escondida, ninguem vai ao login', () => {
 	beforeEach(() => {
 		Reconexao.armar('127.0.0.1', 5121, 'prontera');
 	});
 
-	it('CONTROLE: com rede e aba visivel, desiste depois de 12 tentativas', async () => {
-		mocks.network.onDisconnect();
-		for (let i = 0; i < 13; i++) {
-			await proximaTentativaFalha();
-		}
-		await vi.advanceTimersByTimeAsync(5000);
-		expect(mocks.mapEngineInit).toHaveBeenCalledTimes(12);
-		expect(mocks.gameEngineReload).toHaveBeenCalledTimes(1);
-	});
-
-	it('SEM REDE, as tentativas saem mas nao gastam o teto — ninguem vai ao login', async () => {
+	it('SEM REDE, 30 tentativas falham e ninguem vai ao login', async () => {
 		definirAmbiente({ rede: false, aba: 'visible' });
 		mocks.network.onDisconnect();
 		for (let i = 0; i < 30; i++) {
 			await proximaTentativaFalha();
 		}
 		expect(mocks.mapEngineInit.mock.calls.length).toBeGreaterThan(12);
-		expect(mocks.gameEngineReload, 'desistiu contando tentativas sem rede').not.toHaveBeenCalled();
+		expect(mocks.gameEngineReload, 'desistiu sem recusa do servidor').not.toHaveBeenCalled();
 	});
 
-	it('com a ABA ESCONDIDA, as tentativas nao gastam o teto', async () => {
+	it('com a ABA ESCONDIDA, 30 tentativas falham e ninguem vai ao login', async () => {
 		definirAmbiente({ rede: true, aba: 'hidden' });
 		mocks.network.onDisconnect();
 		for (let i = 0; i < 30; i++) {
 			await proximaTentativaFalha();
 		}
-		expect(mocks.gameEngineReload, 'desistiu contando tentativas com a aba escondida').not.toHaveBeenCalled();
+		expect(mocks.mapEngineInit.mock.calls.length).toBeGreaterThan(12);
+		expect(mocks.gameEngineReload, 'desistiu com a aba escondida').not.toHaveBeenCalled();
 	});
 });
 
@@ -182,7 +169,7 @@ describe('a volta da rede ou da aba', () => {
 		expect(mocks.mapEngineInit).toHaveBeenCalledTimes(1);
 	});
 
-	it('a volta ZERA o teto: 11 tentativas contadas, a rede volta, e ainda cabem mais 12', async () => {
+	it('a volta recomeca a escalada e tenta na hora; nada leva ao login', async () => {
 		mocks.network.onDisconnect();
 		for (let i = 0; i < 11; i++) {
 			await proximaTentativaFalha();
@@ -199,7 +186,7 @@ describe('a volta da rede ou da aba', () => {
 		}
 		await vi.advanceTimersByTimeAsync(5000);
 		expect(mocks.mapEngineInit).toHaveBeenCalledTimes(23);
-		expect(mocks.gameEngineReload, 'a volta da rede nao zerou o teto').not.toHaveBeenCalled();
+		expect(mocks.gameEngineReload, 'foi ao login sem recusa').not.toHaveBeenCalled();
 	});
 
 	it('fora de um ciclo, `online` e a volta da aba nao abrem tentativa nenhuma', async () => {

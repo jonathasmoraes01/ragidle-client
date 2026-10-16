@@ -20,6 +20,7 @@ import Reconexao from 'Network/reconexao.js';
 import BackgroundTicker from 'Network/BackgroundTicker.js';
 import { criarGatilhoDaEconomia } from 'Engine/gatilhoDaEconomia.js'; // RAGIDLE: o gatilho da economia de energia (bug #10, 13/10/2026)
 import { criarVigiaDeSilencio } from 'Network/vigiaDeSilencio.js';
+import { cenaServeParaAVolta, criarEsperaPeloMapaDaVolta } from 'Engine/voltaQuente.js'; // RAGIDLE: a volta quente (D-2576)
 import { criarFreioDoKeepAlive, tiqueForcado } from 'Network/freioDoKeepAlive.js';
 import { ler as lerRegistroDaCaca } from 'UI/Components/HuntAnalyzer/registroDaCaca.js';
 import PACKETVER from 'Network/PacketVerManager.js';
@@ -217,6 +218,15 @@ let _ip = null;
 let _port = null;
 
 /**
+ * A conexao de agora e a VOLTA do mesmo personagem (a reconexao automatica,
+ * D-2576)? So ela pode manter a cena; o login e a troca de servidor recarregam.
+ */
+let _voltaDaConexao = false;
+
+/** Na volta, o MAPMOVE monta a cena, e nao o aceite (D-2576, `Engine/voltaQuente.js`). */
+const _esperaPeloMapaDaVolta = criarEsperaPeloMapaDaVolta();
+
+/**
  * @type {boolean} is initialized
  */
 let _isInitialised = false;
@@ -276,14 +286,18 @@ class MapEngine {
 	 *   e' assim que Network/reconexao.js tenta de novo sem reabrir a caixa
 	 *   de erro generica a cada tentativa. Omitida, o comportamento e' o de
 	 *   sempre.
+	 * @param {{ volta?: boolean }} [daEntrada] - D-2576: `volta` = a reconexao do
+	 *   MESMO personagem (`Network/reconexao.js`); a cena pode ficar.
 	 * @return {Socket} o socket criado (Network.connect ja o devolve
 	 *   sincronamente) — a reconexao guarda essa referencia para poder
 	 *   fechar explicitamente uma tentativa que fique pendurada.
 	 */
-	static init(ip, port, mapName, aoFalhar) {
+	static init(ip, port, mapName, aoFalhar, daEntrada) {
 		_mapName = mapName;
 		_ip = ip;
 		_port = port;
+		_voltaDaConexao = !!(daEntrada && daEntrada.volta === true);
+		_esperaPeloMapaDaVolta.cancelar();
 		_exiting = false;
 		_exitTimer = null;
 		// A espera pelo servidor de mapa comeca aqui (D-2055): a medida a fecha
@@ -320,8 +334,29 @@ class MapEngine {
 				 * O pedido que chega durante o carregamento nao se perde: o
 				 * `setMap` o guarda e o atende no fim (`MapRenderer.mapaPendente`).
 				 */
-				if (!MapRenderer.loading) {
-					MapRenderer.currentMap = '';
+				/*
+				 * A VOLTA QUENTE (D-2576): na reconexao do mesmo personagem, com a
+				 * cena inteira na tela, o nome FICA - e o `setMap` do mapa da volta,
+				 * se for o mesmo, cai no teleporte local (sem carga). Em try/catch,
+				 * com a carga de sempre no erro (D-993: nada antes do ACTORINIT pode
+				 * impedir a entrada).
+				 */
+				let manterCena = false;
+				try {
+					manterCena = cenaServeParaAVolta({
+						volta: _voltaDaConexao,
+						mapaNaCena: MapRenderer.currentMap,
+						carregando: MapRenderer.loading,
+						contextoPerdido: Renderer.contextLost === true
+					});
+				} catch (erro) {
+					console.error('[volta] a decisao da volta quente falhou - recarrega como sempre', erro);
+					manterCena = false;
+				}
+				if (!manterCena) {
+					if (!MapRenderer.loading) {
+						MapRenderer.currentMap = '';
+					}
 				}
 
 				// Fail to connect...
@@ -1035,11 +1070,22 @@ function onConnectionAccepted(pkt) {
 	BasicInfo.getUI().update('job', Session.Entity.job);
 
 	// Fix http://forum.robrowser.com/?topic=32177.0
-	onMapChange({
+	const peloAceite = {
 		xPos: pkt.PosDir[0],
 		yPos: pkt.PosDir[1],
 		mapName: _mapName
-	}, true);
+	};
+	/*
+	 * NA VOLTA, O MAPMOVE MONTA A CENA (D-2576, `Engine/voltaQuente.js`): o
+	 * servidor manda o `ZC_NPCACK_MAPMOVE` com o mapa de AGORA logo atras deste
+	 * aceite, e o `_mapName` daqui pode ser o da entrada. O aceite so agenda; sem
+	 * MAPMOVE no prazo (um servidor que nao o manda), monta como sempre montou.
+	 */
+	if (_voltaDaConexao) {
+		_esperaPeloMapaDaVolta.esperar(() => onMapChange(peloAceite, true));
+		return;
+	}
+	onMapChange(peloAceite, true);
 }
 
 /**
@@ -1506,6 +1552,12 @@ function ligarAcessorioDaHud(nome, ligar) {
  *   (teleporte dentro da MESMA conexão — Asa de Mosca, viagem por menu).
  */
 function onMapChange(pkt, ehEntradaNoMundo) {
+	if (ehEntradaNoMundo !== true) {
+		// O MAPMOVE do servidor (D-2576): cancela a montagem pelo aceite da volta, e o
+		// mapa de AGORA passa a ser o da conexao (a proxima volta reentra nele).
+		_esperaPeloMapaDaVolta.mapaChegou();
+		if (pkt && typeof pkt.mapName === 'string' && pkt.mapName !== '') _mapName = pkt.mapName;
+	}
 	// C47 (C-1): o pedido de skill guardado e do mapa de antes (x,y velhos).
 	descartarPedidoGuardado(Session);
 	MapRenderer.onLoad = () => {
@@ -2464,6 +2516,8 @@ function desmontarSessaoDeMapa() {
 	window.removeEventListener('pageshow', onPaginaVoltou);
 	_gatilhoDaEconomia.cancelar();
 	fecharTelaDaEconomia();
+	// A montagem pelo aceite da volta (D-2576) nao sobrevive a sessao.
+	_esperaPeloMapaDaVolta.cancelar();
 	// A tela do sono e a outra tela preta crua em `document.body`: uma reconexao
 	// que desiste com ela aberta a deixaria por cima do login.
 	if (_janelaDoSonoAtiva) {

@@ -75,54 +75,113 @@ const TIMEOUT_DA_TENTATIVA_MS = 8000;
 /** Quanto tempo o aviso de sucesso fica visivel antes de sumir sozinho. */
 const VIDA_DO_AVISO_DE_SUCESSO_MS = 1800;
 
-/**
- * QUANTAS TENTATIVAS ANTES DE DESISTIR E MANDAR PARA O LOGIN (16/09/2026).
+/*
+ * A RECONEXAO NAO DESISTE (D-2575, 15/10/2026 — o jogo em segundo plano).
  *
- * Ate hoje a escalada repetia o ultimo degrau **para sempre**, e o
- * `aoSerRecusado()` — a unica porta para o login — era CODIGO MORTO: as tres
- * recusas do `CZ_ENTER2` fechavam o socket em silencio, e do lado de ca a
- * recusa era indistinguivel de um servidor fora do ar. **Desde D-1520
- * (16/09/2026) o servidor avisa** com o `SC_NOTIFY_BAN` codigo 0, como o
- * `pc_authfail` do rAthena, e o `LoginEngine.onServerClosed` chama
- * `aoSerRecusado()`; o teto abaixo fica como rede para servidor sem o aviso.
+ * De 16/09 a 15/10/2026 havia um TETO: 12 tentativas que contavam (com rede e
+ * aba visivel), ~5,5 min, e depois "Sessao expirada" e o login. Ele nasceu
+ * quando a recusa do servidor era MUDA (o defeito do passe de D-1506: o
+ * cliente batia para sempre numa porta que ja tinha apagado a credencial).
+ * Desde D-1520 o servidor RECUSA EM VOZ ALTA (`SC_NOTIFY_BAN` 0, o
+ * `pc_authfail`), e o `LoginEngine.onServerClosed` chama `aoSerRecusado()`:
+ * o teto virou a rede de uma divida que ja foi paga.
  *
- * O resultado media-se no relato do dono: com o passe vencido (o defeito de
- * D-1506), o cliente tentava a cada 60 s, com uma credencial que o servidor ja
- * tinha apagado, **sem fim e sem saida**. O jogador ficava olhando
- * "Reconectando automaticamente" para sempre — que e o "volta com o aviso de
- * disconnect" que ele descreveu.
- *
- * 12 tentativas sao ~5,5 min de escalada (10, 20 e depois 30 fixos — o teto
- * era 60 ate 16/09/2026).
- * O numero e generoso de proposito: reinicio de servidor e deploy cabem com
- * folga larga, e quem cai por rede instavel volta muito antes. Passou disso, a
- * hipotese "o servidor volta sozinho" ja se esgotou e insistir so esconde do
- * jogador que ele precisa entrar de novo.
- *
- * **Isto NAO substitui o pacote de recusa** — com ele o jogador iria ao login
- * na primeira tentativa, em vez de na decima segunda. Ele continua sendo
- * divida nomeada no servidor; este teto e a rede embaixo dela.
+ * E ele passou a ser o defeito. O dono (15/10/2026): o segundo plano paga
+ * 100%, sem teto de tempo, e a volta *"sincroniza sozinha: sem tela de login,
+ * sem tela de personagens"*. Com o passe valendo a ausencia inteira (frente A),
+ * qualquer queda que dure mais que a escalada — o servidor reiniciando num
+ * deploy longo, o Wi-Fi do onibus, o notebook fechado — mandava ao login quem o
+ * servidor ainda aceitava. Agora a escalada repete o ultimo degrau ate o
+ * servidor RESPONDER: aceitar (a volta) ou recusar (o login, com o motivo).
+ * Descartado: subir o teto (12 -> 60): so adia o mesmo login indevido.
  */
-const TENTATIVAS_ANTES_DE_DESISTIR = 12;
 
 /**
- * SO CONTA PARA O TETO A TENTATIVA QUE PODIA DAR CERTO (lacuna 5 da auditoria
- * da reconexao, 24/09/2026).
+ * A VOLTA DO FUNDO (D-2575): uma queda que comeca com a aba escondida, ou ate
+ * esta janela depois de ela voltar, e a do jogador que deu alt-tab — e nao a de
+ * quem esta olhando o jogo. 20 s cobrem a vigia de silencio, que leva ate
+ * `LIMITE_APOS_DESPERTAR_MS` (12 s) para provar morto o socket de uma pagina
+ * que o navegador congelou.
+ */
+export const JANELA_DA_VOLTA_MS = 20000;
+
+/**
+ * Quanto tempo a reconexao da volta fica INVISIVEL (D-2575). O dono: *"a
+ * reconexao por baixo e inevitavel (o navegador corta), mas o jogador nao pode
+ * VE-LA"*. Uma volta saudavel leva menos de 2 s; se em 10 s ela nao fechou, o
+ * servidor esta fora de verdade e o aviso de sempre aparece, com a contagem.
+ * Descartado: esconder SEMPRE — quem fica minutos sem servidor precisa saber.
+ */
+export const PRAZO_DISCRETO_MS = 10000;
+
+/**
+ * Esta queda e a VOLTA DO FUNDO? (pura, D-2575)
  *
- * O teto acima existe para a hipotese "o servidor nao volta" se esgotar. Mas
- * tentativa feita SEM REDE (`navigator.onLine === false`) ou com a ABA
- * ESCONDIDA nao testa essa hipotese: sem rede ela falha por causa do aparelho,
- * e escondida o navegador estrangula os timers e a tentativa nem chega a
- * acontecer no horario. Contando as duas, quem fechava o notebook no metro
- * voltava para o LOGIN depois de ~5 min — com o servidor ainda segurando o
- * personagem na economia de energia (4 h). Aqui a tentativa ainda sai (nao
- * custa nada, e `onLine` pode mentir para o lado de "sem rede"), so nao conta.
- *
- * @param {{ online: boolean, visivel: boolean }} ambiente
+ * @param {{ visivel: boolean, agora: number, voltouEm: number|null, janelaMs?: number }} c
  * @return {boolean}
  */
-export function tentativaConta(ambiente) {
-	return !!(ambiente && ambiente.online && ambiente.visivel);
+export function ehVoltaDoFundo(c) {
+	if (!c) return false;
+	if (!c.visivel) return true;
+	const janela = typeof c.janelaMs === 'number' ? c.janelaMs : JANELA_DA_VOLTA_MS;
+	return typeof c.voltouEm === 'number' && c.agora - c.voltouEm <= janela;
+}
+
+/**
+ * Ate quando o aviso fica calado (pura, D-2575). Com a aba escondida: ate ela
+ * voltar (`Infinity`; quem fixa o prazo e a volta). Visivel e na volta: o
+ * prazo a partir de agora. Fora da volta: 0 (o aviso de sempre).
+ *
+ * @param {{ voltaDoFundo: boolean, visivel: boolean, agora: number }} c
+ * @return {number}
+ */
+export function discretoAte(c) {
+	if (!c || !c.voltaDoFundo) return 0;
+	return c.visivel ? c.agora + PRAZO_DISCRETO_MS : Infinity;
+}
+
+/**
+ * O aviso pode aparecer agora? (pura, D-2575)
+ *
+ * @param {number} agora
+ * @param {number} ate - de `discretoAte`
+ * @return {boolean}
+ */
+export function avisoVisivel(agora, ate) {
+	return !(agora < ate);
+}
+
+/**
+ * A espera ate a PRIMEIRA tentativa do ciclo (pura, D-2575). A queda comum
+ * espera o primeiro degrau com o jitter: um reinicio de servidor derruba todos
+ * juntos, e o jitter espalha a volta (o alarme de tempestade). A volta do fundo
+ * com a aba VISIVEL tenta ja: o jogador esta olhando, e quedas de alt-tab nao
+ * sao correlacionadas entre jogadores. Escondida, espera como a comum — a volta
+ * da aba adianta a tentativa (`aoVoltarRedeOuAba`).
+ *
+ * @param {{ voltaDoFundo: boolean, visivel: boolean, primeiroDegrauMs: number, jitterMs: number }} c
+ * @return {number}
+ */
+export function esperaDaPrimeiraTentativa(c) {
+	if (c.voltaDoFundo && c.visivel) return 0;
+	return c.primeiroDegrauMs + c.jitterMs;
+}
+
+/**
+ * O endereco da tentativa (pura, D-2575). O guardado em `armar()` traz o mapa
+ * da ENTRADA; o personagem pode ter viajado por menu na mesma conexao, e o
+ * `MapEngine.servidorAtual` sabe o mapa de agora. Mesmo servidor: vale o de
+ * agora; outro (ou nenhum): o guardado.
+ *
+ * @param {{ip:number, port:number, mapName:string}|null} guardado
+ * @param {{ip:number, port:number, mapName:string}|null} atual
+ */
+export function enderecoDaTentativa(guardado, atual) {
+	if (!guardado) return null;
+	if (atual && atual.ip === guardado.ip && atual.port === guardado.port && atual.mapName) {
+		return { ip: guardado.ip, port: guardado.port, mapName: atual.mapName };
+	}
+	return guardado;
 }
 
 /**
@@ -163,7 +222,9 @@ let _emCiclo = false;
 let _tentativaEmAndamento = false;
 let _motivoAtual = 'servidor-fora';
 let _indice = 0; // quantas tentativas ja comecaram nesta escalada
-let _tentativasContadas = 0; // so as que contam para o teto — ver `tentativaConta`
+let _discretoAte = 0; // ate quando o aviso fica calado (D-2575) — ver `discretoAte`
+let _voltouEm = null; // Date.now() da ultima vez que a aba VOLTOU a ficar visivel (D-2575)
+let _vigiandoAba = false;
 let _escutandoVolta = false;
 let _proximoHorario = 0; // Date.now() absoluto da proxima tentativa agendada
 let _geracao = 0;
@@ -223,20 +284,52 @@ function limparTimers() {
 }
 
 /**
- * A volta da rede ou da aba, DURANTE um ciclo (lacuna 5). Zera o teto — o
- * aparelho acabou de mudar, e as tentativas de antes nao diziam nada sobre o
- * servidor — e tenta ja, se nao houver outra em voo.
+ * A volta da rede ou da aba, DURANTE um ciclo (lacuna 5). Recomeca a escalada
+ * — o aparelho acabou de mudar, e as tentativas de antes nao diziam nada sobre
+ * o servidor — e tenta ja, se nao houver outra em voo.
  */
 function aoVoltarRedeOuAba() {
 	if (!ambienteAtual().visivel) {
 		return; // o `visibilitychange` que ESCONDE a aba nao e volta
 	}
-	if (!deveTentarAgoraNaVolta({ emCiclo: _emCiclo, tentativaEmAndamento: _tentativaEmAndamento })) {
+	if (!_emCiclo) {
 		return;
 	}
-	_tentativasContadas = 0;
+	// A volta do fundo durante um ciclo (D-2575): o aviso fica calado pelo prazo
+	// a partir de AGORA, tenha a tentativa saido ja ou esteja uma em voo.
+	_discretoAte = Math.max(_discretoAte === Infinity ? 0 : _discretoAte, Date.now() + PRAZO_DISCRETO_MS);
+	if (!deveTentarAgoraNaVolta({ emCiclo: _emCiclo, tentativaEmAndamento: _tentativaEmAndamento })) {
+		esconderOAvisoSeCalado();
+		return;
+	}
 	_indice = 0;
 	iniciarTentativa();
+	esconderOAvisoSeCalado();
+}
+
+/** O aviso que ja estava na tela (de antes de esconder) sai enquanto a volta e discreta. */
+function esconderOAvisoSeCalado() {
+	if (avisoVisivel(Date.now(), _discretoAte)) return;
+	importarUI().then(ui => {
+		if (!avisoVisivel(Date.now(), _discretoAte)) ui.esconder();
+	});
+}
+
+/**
+ * A MEMORIA DA VOLTA DA ABA (D-2575), ligada uma vez e para sempre: a queda
+ * pode vir DEPOIS da volta (a vigia leva ate 12 s para provar o socket morto),
+ * e nessa hora o ciclo ainda nao existia para ouvir o evento.
+ */
+function vigiarAba() {
+	if (_vigiandoAba || typeof document === 'undefined') {
+		return;
+	}
+	_vigiandoAba = true;
+	document.addEventListener('visibilitychange', () => {
+		if (document.visibilityState !== 'hidden') {
+			_voltouEm = Date.now();
+		}
+	});
 }
 
 function escutarVolta() {
@@ -272,7 +365,7 @@ function limparCiclo() {
 	_emCiclo = false;
 	_tentativaEmAndamento = false;
 	_indice = 0;
-	_tentativasContadas = 0;
+	_discretoAte = 0;
 	_geracao++;
 }
 
@@ -287,6 +380,7 @@ function limparCiclo() {
 function armar(ip, port, mapName) {
 	_endereco = { ip, port, mapName };
 	Network.onDisconnect = aoDesconectar;
+	vigiarAba();
 }
 
 /**
@@ -297,6 +391,8 @@ function armar(ip, port, mapName) {
  */
 function aoEntrarComSucesso() {
 	const estavaEmCiclo = _emCiclo;
+	// A volta discreta (D-2575) fecha sem o "Reconectado": o jogador nao viu cair.
+	const discreta = estavaEmCiclo && !avisoVisivel(Date.now(), _discretoAte);
 	limparCiclo();
 
 	/* A VOLTA DE UMA QUEDA e o momento de conferir a versao (23/09/2026): o
@@ -308,7 +404,7 @@ function aoEntrarComSucesso() {
 	}
 
 	importarUI().then(ui => {
-		if (estavaEmCiclo) {
+		if (estavaEmCiclo && !discreta) {
 			ui.mostrar({ titulo: 'Reconectado', texto: 'A conexão com o servidor voltou.' });
 			setTimeout(() => ui.esconder(), VIDA_DO_AVISO_DE_SUCESSO_MS);
 		} else {
@@ -371,9 +467,8 @@ function aoSerRecusado() {
  *
  * Nasceu do corpo de `aoSerRecusado()` porque passou a ter DOIS chamadores: a
  * recusa explicita (o `SC_NOTIFY_BAN` desde D-1520, ou o `ZC_REFUSE_ENTER`) e
- * o teto de tentativas, que e a rede para servidor que nao avisa. Deixar o
- * corpo duplicado seria o defeito que este projeto mais repete: duas rotas, e
- * a segunda escrita a mao.
+ * o teto de tentativas, que era a rede para servidor que nao avisa. O teto saiu
+ * em D-2575 (15/10/2026); a funcao fica, com a recusa como chamador unico.
  *
  * O gancho vira um NO-OP antes do `reload()`, e nao `null` (16/09/2026): sem
  * gancho nenhum o `NetworkManager.onClose` cai no ramo padrao e mostra a caixa
@@ -430,9 +525,13 @@ function iniciarCiclo(motivo) {
 	_emCiclo = true;
 	_tentativaEmAndamento = false;
 	_indice = 0;
-	_tentativasContadas = 0;
 	_motivoAtual = motivo;
-	_proximoHorario = Date.now() + esperaParaAIndice(0) + jitter();
+	const agora = Date.now();
+	const { visivel } = ambienteAtual();
+	const voltaDoFundo = ehVoltaDoFundo({ visivel, agora, voltouEm: _voltouEm });
+	_discretoAte = discretoAte({ voltaDoFundo, visivel, agora });
+	_proximoHorario =
+		agora + esperaDaPrimeiraTentativa({ voltaDoFundo, visivel, primeiroDegrauMs: esperaParaAIndice(0), jitterMs: jitter() });
 	escutarVolta();
 
 	if (!_tickAtivo) {
@@ -452,15 +551,17 @@ function tick() {
 		if (!_emCiclo) {
 			return;
 		}
+		// A volta discreta (D-2575): a tentativa segue no horario, so o aviso cala.
+		const mostrar = estado => (avisoVisivel(Date.now(), _discretoAte) ? ui.mostrar(estado) : ui.esconder());
 		if (_tentativaEmAndamento) {
-			ui.mostrar(textoDoEstado(_motivoAtual, true));
+			mostrar(textoDoEstado(_motivoAtual, true));
 		} else {
 			const restanteMs = _proximoHorario - Date.now();
 			if (restanteMs <= 0) {
 				iniciarTentativa();
 				return;
 			}
-			ui.mostrar({ ...textoDoEstado(_motivoAtual, false), segundos: restanteMs / 1000 });
+			mostrar({ ...textoDoEstado(_motivoAtual, false), segundos: restanteMs / 1000 });
 		}
 	});
 
@@ -468,36 +569,18 @@ function tick() {
 }
 
 function iniciarTentativa() {
-	/*
-	 * O TETO DE DESISTENCIA (16/09/2026) — ver `TENTATIVAS_ANTES_DE_DESISTIR`.
-	 *
-	 * A checagem vem ANTES de incrementar e de abrir socket: desistir e uma
-	 * decisao sobre a escalada, e nao o resultado de mais uma tentativa.
-	 * Reusa `desistirEIrParaOLogin`, que e o mesmo caminho de
-	 * `aoSerRecusado()` — um lugar so sabe como sair daqui.
-	 */
-	if (_tentativasContadas >= TENTATIVAS_ANTES_DE_DESISTIR) {
-		desistirEIrParaOLogin();
-		return;
-	}
-
+	// Sem teto de desistencia (D-2575): a unica saida que nao e a volta e a
+	// RECUSA do servidor (`aoSerRecusado`).
 	_tentativaEmAndamento = true;
 	_geracao++;
 	const minhaGeracao = _geracao;
-
-	// Sem rede ou com a aba escondida a tentativa sai, mas nao gasta o teto
-	// (lacuna 5, ver `tentativaConta`).
-	if (tentativaConta(ambienteAtual())) {
-		_tentativasContadas++;
-	}
 
 	// O intervalo e' ENTRE INICIOS: a proxima tentativa ja fica agendada
 	// pelo horario fixo, sem esperar esta terminar (a regra do orcamento).
 	_indice++;
 	_proximoHorario = Date.now() + esperaParaAIndice(_indice) + jitter();
 
-	const endereco = _endereco;
-	if (!endereco) {
+	if (!_endereco) {
 		return;
 	}
 
@@ -505,13 +588,22 @@ function iniciarTentativa() {
 		if (minhaGeracao !== _geracao) {
 			return; // o ciclo avancou (sucesso/cancelamento/nova tentativa) enquanto importava
 		}
+		const endereco = enderecoDaTentativa(_endereco, MapEngine.servidorAtual || null);
 
-		const socket = MapEngine.init(endereco.ip, endereco.port, endereco.mapName, () => {
-			if (minhaGeracao !== _geracao) {
-				return;
-			}
-			_tentativaEmAndamento = false;
-		});
+		// `volta: true` (D-2576): a reentrada do MESMO personagem, e a cena que
+		// esta na tela pode ficar se o mapa for o mesmo (`Engine/voltaQuente.js`).
+		const socket = MapEngine.init(
+			endereco.ip,
+			endereco.port,
+			endereco.mapName,
+			() => {
+				if (minhaGeracao !== _geracao) {
+					return;
+				}
+				_tentativaEmAndamento = false;
+			},
+			{ volta: true }
+		);
 
 		_watchdogDaTentativa = setTimeout(() => {
 			if (minhaGeracao !== _geracao) {
