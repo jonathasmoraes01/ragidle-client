@@ -19,6 +19,8 @@ import Str from 'Loaders/Str.js';
 import FileSystem from 'Core/FileSystem.js';
 import { devoBaixarDeNovo, devoTentarDeNovo, esperaAntesDaTentativa } from 'Core/tentativasDeArquivo.js';
 import { baixarComVigia } from 'Core/baixarComVigia.js';
+import { criarCacheDoAparelho } from 'Core/cacheDoAparelho.js';
+import { ROTA_DA_VERSAO, arquivoGuardavel } from 'Core/cacheDeArquivos.js';
 
 /**
  * Quanto o cache local do aparelho (`FileSystem`) tem para dizer se tem o
@@ -79,6 +81,88 @@ class FileManager {
 	 * @var {object}
 	 */
 	static filesAlias = {};
+
+	/**
+	 * O CACHE DE ARQUIVOS DO APARELHO (15/10/2026, D-2547..D-2549): o Cache
+	 * Storage, versionado pela versao do GRF que o servidor de assets diz. So
+	 * vale onde o `FileSystem` nao existe (iOS, Firefox) - onde ele existe, ele
+	 * e o cache, e dois caches do mesmo arquivo so gastariam a cota duas vezes.
+	 * Sem a versao no cabecalho das respostas (o servidor de hoje), ele nao liga:
+	 * ver `Core/cacheDeArquivos.js`.
+	 */
+	static cacheDoAparelho = criarCacheDoAparelho({
+		urlDaVersao: () => FileManager.urlDoArquivo(ROTA_DA_VERSAO),
+		ativo: () => !FileSystem.disponivel()
+	});
+
+	/**
+	 * A URL de um arquivo no servidor de assets. Um lugar so: a rede pede nela e
+	 * o cache do aparelho guarda com ela como chave.
+	 *
+	 * @param {string} filename
+	 * @returns {string}
+	 */
+	static urlDoArquivo(filename) {
+		const url = filename.replace(/\\/g, '/').replace(/[^/]+/g, a => {
+			return encodeURIComponent(a);
+		});
+		return FileManager.remoteClient ? FileManager.remoteClient + url : '/client/' + url;
+	}
+
+	/**
+	 * Fora do GRF local: o cache do aparelho, se ele tiver o arquivo, senao a
+	 * rede. Enquanto o cache nao pode ser consultado (sem a versao do GRF, sem
+	 * Cache Storage, o `FileSystem` presente) a rede e chamada AGORA, na mesma
+	 * volta, como sempre foi.
+	 *
+	 * @param {string} filename
+	 * @param {function} callback - (buffer, erro, info)
+	 * @param {object} [opcoes] - as do `getHTTP`
+	 * @param {number} inicio - o relogio do pedido (a medida por fase)
+	 */
+	static getForaDoGrf(filename, callback, opcoes, inicio) {
+		const cache = FileManager.cacheDoAparelho;
+		let consultar = false;
+		try {
+			consultar = arquivoGuardavel(filename) && cache.consultavel();
+		} catch {
+			consultar = false;
+		}
+		if (!consultar) {
+			FileManager.getHTTP(filename, callback, opcoes);
+			return;
+		}
+		let decidido = false;
+		Promise.resolve()
+			.then(() => cache.ler(FileManager.urlDoArquivo(filename)))
+			.catch(() => null)
+			.then(buffer => {
+				decidido = true;
+				if (!buffer) {
+					FileManager.getHTTP(filename, callback, opcoes);
+					return;
+				}
+				const info = {
+					origem: 'cache-aparelho',
+					tentativas: 0,
+					silencios: 0,
+					bytes: 0,
+					ms: agoraMs() - inicio
+				};
+				if (opcoes && opcoes.sinal && opcoes.sinal.aborted) {
+					callback(null, 'Pedido cancelado', Object.assign(info, { cancelado: true }));
+					return;
+				}
+				callback(buffer, undefined, info);
+			})
+			.catch(erro => {
+				// Um erro DENTRO do `callback` (como no `getHTTP`): o arquivo ja foi
+				// entregue, e nao vai a rede de novo.
+				if (decidido) {
+					console.error('[FileManager] erro depois de entregar ' + filename, erro);
+				}
+			});
+	}
 
 	/**
 	 * Initialize file manager with a list of files
@@ -248,8 +332,8 @@ class FileManager {
 			}
 
 			// Not in GRFs ? Try to load it from
-			// remote client host
-			FileManager.getHTTP(filename, callback, opcoes);
+			// remote client host (ou do cache do aparelho - D-2547)
+			FileManager.getForaDoGrf(filename, callback, opcoes, inicio);
 		};
 		const guarda = setTimeout(() => {
 			if (respondeu) return;
@@ -301,16 +385,7 @@ class FileManager {
 	 */
 	static getHTTP(filename, callback, opcoes) {
 		filename = filename.replace(/\\/g, '/');
-		let url = filename.replace(/[^/]+/g, a => {
-			return encodeURIComponent(a);
-		});
-
-		// Use http request here
-		if (!FileManager.remoteClient) {
-			url = '/client/' + url;
-		} else {
-			url = FileManager.remoteClient + url;
-		}
+		const url = FileManager.urlDoArquivo(filename);
 
 		// Don't load mp3 sounds to avoid blocking the queue
 		// They can be load by the HTML5 Audio
@@ -357,6 +432,10 @@ class FileManager {
 							throw new Error('HTTP ' + resposta.status);
 						}
 						entregue = true;
+						// O cache do aparelho copia os bytes ANTES da entrega (quem
+						// recebe pode transferir o buffer) - e nao faz nada sem a
+						// versao do GRF no cabecalho (D-2547).
+						FileManager.cacheDoAparelho.aoResponder(url, filename, resposta.buffer, resposta.versaoDoGrf);
 						callback(
 							resposta.buffer,
 							undefined,
@@ -602,6 +681,7 @@ class FileManager {
 
 			if (devoBaixarDeNovo({ tinhaBytes: true, abriu: error === null, jaRefez })) {
 				FileSystem.removeFile(filename);
+				FileManager.cacheDoAparelho.esquecer(FileManager.urlDoArquivo(filename));
 				FileManager.getHTTP(
 					filename,
 					(novo, erroNovo, infoNovo) => tratar(novo, erroNovo, true, infoNovo),

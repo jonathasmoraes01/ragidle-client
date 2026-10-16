@@ -249,6 +249,18 @@ class FileSystem {
 	}
 
 	/**
+	 * A API de arquivos do navegador existe neste aparelho? Onde existe, ESTE e o
+	 * cache de arquivos; onde nao existe (iOS, Firefox), o cache do aparelho
+	 * sobre o Cache Storage (`Core/cacheDoAparelho.js`, D-2547) toma o lugar - os
+	 * dois juntos guardariam o mesmo arquivo duas vezes.
+	 *
+	 * @returns {boolean}
+	 */
+	static disponivel() {
+		return _available;
+	}
+
+	/**
 	 * Get a file in FileSystem (sync)
 	 *
 	 * @param {string} filename

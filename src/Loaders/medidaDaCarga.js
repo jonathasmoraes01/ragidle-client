@@ -20,9 +20,9 @@ export const FASES_DO_WORKER = ['rsw', 'gat', 'gnd', 'texturasDoChao', 'modelos'
 /** Os tres arquivos-base: sem eles nada aparece, e o `.gnd` e o maior. */
 const ARQUIVOS_BASE = ['rsw', 'gat', 'gnd'];
 
-/** Origem que NAO passou pela rede. */
+/** Origem que NAO passou pela rede (`cache-aparelho`: o Cache Storage, D-2547). */
 function doCache(origem) {
-	return origem === 'cache-local' || origem === 'cache-http' || origem === 'disco';
+	return origem === 'cache-local' || origem === 'cache-aparelho' || origem === 'cache-http' || origem === 'disco';
 }
 
 /**
