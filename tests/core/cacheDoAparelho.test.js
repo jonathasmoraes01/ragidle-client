@@ -85,6 +85,7 @@ let servidor;
 let falso;
 let remoteAntes;
 let cacheAntes;
+let copias = 0;
 
 function montar(dep = {}) {
 	FileManager.cacheDoAparelho = criarCacheDoAparelho({
@@ -103,7 +104,17 @@ beforeEach(() => {
 	falso = criarCacheStorageFalso();
 	vi.stubGlobal('fetch', servidor.fetch);
 	// O `Blob` do jsdom nao e aceito pelo `Response` do Node: o do navegador e.
-	vi.stubGlobal('Blob', BlobDoNode);
+	// Contado: cada `Blob` e uma COPIA de um arquivo inteiro.
+	copias = 0;
+	vi.stubGlobal(
+		'Blob',
+		class extends BlobDoNode {
+			constructor(...argumentos) {
+				super(...argumentos);
+				copias++;
+			}
+		}
+	);
 	remoteAntes = FileManager.remoteClient;
 	cacheAntes = FileManager.cacheDoAparelho;
 	FileManager.remoteClient = HOST;
@@ -130,9 +141,13 @@ describe('o servidor de hoje (sem a versao do GRF): nada muda', () => {
 			igual(buffer, 'data/prt_fild08.gnd');
 			await assentar();
 		}
+		// o mapa novo (LOAD_MAP) tambem nao pergunta: o servidor nunca disse que sabe
+		await FileManager.cacheDoAparelho.reverificar();
+		await assentar();
 		expect(servidor.pedidosDaVersao.length).toBe(0);
 		expect(falso.conta.open).toBe(0);
 		expect(falso.conta.put).toBe(0);
+		expect(copias).toBe(0); // nem uma copia de arquivo
 		expect(FileManager.cacheDoAparelho.consultavel()).toBe(false);
 	});
 
@@ -202,8 +217,13 @@ describe('com a versao do GRF', () => {
 	it('o som nao passa pelo cache (o getHTTP o devolve como URL)', async () => {
 		await pegar('data/a.gnd');
 		await assentar();
+		expect(FileManager.cacheDoAparelho.consultavel()).toBe(true);
 		const leituras = falso.conta.match;
-		const [url] = await pegar('data/wav/x.wav');
+		// entregue na MESMA volta, como antes do cache: nem uma espera a mais
+		let url = null;
+		FileManager.get('data/wav/x.wav', u => {
+			url = u;
+		});
 		expect(url).toBe(HOST + 'data/wav/x.wav');
 		await assentar();
 		expect(falso.conta.match).toBe(leituras);
@@ -344,6 +364,20 @@ describe('sem Cache Storage, ou com ele quebrado: a rede, calada', () => {
 		await assentar();
 		expect(falso.conta.put).toBe(tentativas);
 		expect(FileManager.cacheDoAparelho.estado().escritaBloqueada).toBe(true);
+		// e nem copia mais os bytes de quem chega (a memoria do celular)
+		const copiasAntes = copias;
+		await pegar('data/c.gnd');
+		await assentar();
+		expect(copias).toBe(copiasAntes);
+	});
+
+	it('cota cheia com duas escritas na fila: a segunda nem tenta', async () => {
+		await pegar('data/a.gnd');
+		await assentar();
+		falso.sabotagem.put = erroDeCotaCheia;
+		await Promise.all([pegar('data/b.gnd'), pegar('data/c.gnd')]);
+		await assentar();
+		expect(falso.conta.put).toBe(1);
 	});
 
 	it('a leitura que nunca responde: passado o prazo, a rede', async () => {
@@ -395,6 +429,37 @@ describe('sem Cache Storage, ou com ele quebrado: a rede, calada', () => {
 		expect(await tresVisitas()).toEqual(['rede', 'rede', 'rede']);
 		expect(servidor.pedidosDaVersao.length).toBe(0);
 		expect(falso.conta.open).toBe(0);
+	});
+
+	it('o FileSystem que aparece depois de o cache abrir: o cache deixa de ser lido', async () => {
+		let semFileSystem = true;
+		montar({ ativo: () => semFileSystem });
+		await pegar('data/a.gnd');
+		await assentar();
+		await pegar('data/a.gnd');
+		await assentar();
+		expect((await pegar('data/a.gnd'))[2].origem).toBe('cache-aparelho');
+		semFileSystem = false;
+		expect((await pegar('data/a.gnd'))[2].origem).toBe('rede');
+	});
+
+	it('o FileManager de verdade consulta o FileSystem: presente, nem a versao e perguntada', async () => {
+		FileManager.cacheDoAparelho = cacheAntes;
+		vi.stubGlobal('caches', falso.storage);
+		const disponivel = vi.spyOn(FileSystem, 'disponivel').mockReturnValue(true);
+		try {
+			await pegar('data/a.gnd');
+			await assentar();
+			expect(servidor.pedidosDaVersao.length).toBe(0);
+			// o controle: ausente (iOS), a versao e perguntada na rota do host do cliente
+			disponivel.mockReturnValue(false);
+			await pegar('data/b.gnd');
+			await assentar();
+			expect(servidor.pedidosDaVersao).toEqual([{ cache: 'no-store' }]);
+			expect(servidor.fetch.mock.calls.some(([u]) => u === HOST + ROTA_DA_VERSAO)).toBe(true);
+		} finally {
+			disponivel.mockRestore();
+		}
 	});
 
 	it('o FileSystem deste ambiente de teste nao existe (o caso do iOS)', () => {
@@ -487,9 +552,7 @@ describe('as costuras que o worker le do disco', () => {
 		expect(caso).not.toContain('await FileManager.cacheDoAparelho');
 	});
 
-	it('o FileManager de verdade nasce com o cache ligado so onde o FileSystem falta, e com a rota no host do cliente', () => {
-		const real = cacheAntes;
-		expect(real.consultavel()).toBe(false); // sem versao, nada consultavel
+	it('a rota da versao e os arquivos moram no host do cliente (ou em /client/ sem ele)', () => {
 		FileManager.remoteClient = 'https://assets.exemplo/';
 		expect(FileManager.urlDoArquivo(ROTA_DA_VERSAO)).toBe('https://assets.exemplo/__versao-do-grf');
 		FileManager.remoteClient = '';

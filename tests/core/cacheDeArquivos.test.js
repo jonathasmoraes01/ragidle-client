@@ -21,7 +21,7 @@ import {
 	totalDoIndice,
 	versaoValida
 } from 'Core/cacheDeArquivos.js';
-import { CABECALHO_DA_VERSAO_DO_GRF, versaoDoGrfDe } from 'Core/baixarComVigia.js';
+import { CABECALHO_DA_VERSAO_DO_GRF, baixarComVigia, versaoDoGrfDe } from 'Core/baixarComVigia.js';
 
 const MB = 1024 * 1024;
 
@@ -41,6 +41,25 @@ describe('a versao do GRF', () => {
 	it('o cabecalho e o mesmo dos dois lados (o vigia le, o cache decide)', () => {
 		expect(CABECALHO_DA_VERSAO_DO_GRF).toBe(CABECALHO_DA_VERSAO);
 		expect(CABECALHO_DA_VERSAO).toBe(CABECALHO_DA_VERSAO.toLowerCase());
+	});
+
+	it('o vigia devolve a versao junto com os bytes, no corpo inteiro e no corpo em pedacos', async () => {
+		const cabecalhos = { get: n => ({ 'content-type': 'application/octet-stream', 'x-versao-do-grf': 'a1-x' })[n] ?? null };
+		const inteiro = await baixarComVigia('/a.gnd', {
+			buscar: () =>
+				Promise.resolve({ ok: true, status: 200, headers: cabecalhos, arrayBuffer: async () => new ArrayBuffer(4) })
+		});
+		expect(inteiro.versaoDoGrf).toBe('a1-x');
+		const pedacos = [new Uint8Array([1, 2]), new Uint8Array([3])];
+		const leitor = {
+			read: async () => (pedacos.length ? { done: false, value: pedacos.shift() } : { done: true }),
+			cancel() {}
+		};
+		const emPedacos = await baixarComVigia('/b.gnd', {
+			buscar: () => Promise.resolve({ ok: true, status: 200, headers: cabecalhos, body: { getReader: () => leitor } })
+		});
+		expect(emPedacos.bytes).toBe(3);
+		expect(emPedacos.versaoDoGrf).toBe('a1-x');
 	});
 
 	it('o vigia le o cabecalho cru, e sem ele devolve null', () => {
