@@ -71,7 +71,12 @@ describe('a tela preta e a opcao voltaram', () => {
 		const fim = UI_BRUTO.indexOf('Prompt a message to the user', i);
 		const textos = [...UI_BRUTO.slice(i, fim).matchAll(/(['"`])((?:\\.|(?!\1).)*)\1/g)].map(m => m[2]).join('\n');
 		expect(textos).not.toMatch(/[—–]/);
-		expect(textos).toContain('O Bot parou');
+		// D-2566: o aviso de morte saiu daqui para `resumoDaAusencia.js` e deixou de mentir ("O Bot parou, mas o
+		// relogio continua contando"): o personagem volta a cidade e a cacada para ali.
+		expect(UI.slice(UI.indexOf('static showEconomiaDeEnergia('))).toMatch(/avisoDeMorteNaTelaPreta\(/);
+		const aviso = readFileSync('src/UI/Components/AusenciaIdle/resumoDaAusencia.js', 'utf8');
+		expect(aviso).not.toContain('O Bot parou');
+		expect(aviso).toContain('voltou à cidade e a caçada parou ali');
 	});
 
 	it('a opcao esta nas Configuracoes de Video, nasce ligada e grava a preferencia', () => {
