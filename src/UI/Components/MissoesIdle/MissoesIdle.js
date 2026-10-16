@@ -41,7 +41,14 @@ import cssText from './MissoesIdle.css?raw';
 import { fecharEEsquecer } from '../limpezaDeJanelaIdle.js';
 import { abaLembrada, lembrarAba } from '../memoriaDeAba.js';
 import { anotarAvisoDoCodex, limparAvisoDoCodex } from '../avisoDoCodex.js'; // D-1232
-import { anotarRastreadorDoCodex, ehCorpoParcialDoRastreador, limparRastreadorDoCodex } from '../rastreadorDoCodex.js'; // D-1839, D-1853
+import {
+	anotarRastreadorDoCodex,
+	aplicarDiferencaDoRastreador,
+	declaracaoDoRastreador,
+	ehCorpoDiferencaDoRastreador,
+	ehCorpoParcialDoRastreador,
+	limparRastreadorDoCodex
+} from '../rastreadorDoCodex.js'; // D-1839, D-1853, D-2543
 // O "IR AO MAPA" (26/09/2026): a linha do objetivo e o fluxo da escolha sao
 // os MESMOS da aba "Missoes Gerais" do Codex — ver `escolhaDeMapa.js`.
 import { linhaDoCaiDe } from './ondeCaiHtml.js';
@@ -769,7 +776,19 @@ function onMissoesRecebidas(pkt) {
 	 * aberta; o cartao da HUD le o rastreador no proprio polling).
 	 */
 	if (ehCorpoParcialDoRastreador(dados)) {
-		anotarRastreadorDoCodex(dados.codexRastreado);
+		anotarRastreadorDoCodex(dados.codexRastreado, dados.codexRastreadoRev);
+		return;
+	}
+	/*
+	 * A DIFERENCA DO RASTREADOR (`v: 5`, D-2543): so as trocas do contador,
+	 * sobre a revisao que esta na mao. A que nao cai pede a lista inteira — UMA
+	 * vez ate ela chegar, pelo mesmo `_pediuAListaInteira` do parcial de
+	 * progresso — e o rastreador da tela fica o de antes ate la.
+	 */
+	if (ehCorpoDiferencaDoRastreador(dados)) {
+		if (!aplicarDiferencaDoRastreador(dados)) {
+			pedirAListaInteiraUmaVez('a diferenca do rastreador do Codex nao cai sobre a revisao que esta aqui');
+		}
 		return;
 	}
 	/*
@@ -802,7 +821,8 @@ function onMissoesRecebidas(pkt) {
 	anotarAvisoDoCodex(dados.codexComNovidade === true);
 	// O RASTREADOR DO CODEX pega a mesma carona (D-1839): as entradas marcadas,
 	// com o contador, para o cartao da HUD (MissoesTrackerIdle) desenhar.
-	anotarRastreadorDoCodex(dados.codexRastreado);
+	anotarRastreadorDoCodex(dados.codexRastreado, dados.codexRastreadoRev);
+	declararORastreador();
 	MissoesIdle.recebeuAlgumaVez = true;
 	render();
 	// O painel "(i)" aberto acompanha a lista nova (ou fecha, se a missao saiu).
@@ -834,10 +854,8 @@ function fundirProgressoParcial(dados) {
 		return;
 	}
 	const r = aplicarProgressoParcial(MissoesIdle.missoes, dados);
-	if (r.divergentes.length && !_pediuAListaInteira) {
-		_pediuAListaInteira = true;
-		console.warn('[MissoesIdle] o parcial de progresso nao casa com a lista; pedindo a lista inteira:', r.divergentes);
-		Network.sendPacket(new PACKET.CZ.RAGIDLE_PEDIR_MISSOES());
+	if (r.divergentes.length) {
+		pedirAListaInteiraUmaVez('o parcial de progresso nao casa com a lista', r.divergentes);
 	}
 	if (!r.mudou) {
 		return;
@@ -847,6 +865,41 @@ function fundirProgressoParcial(dados) {
 		render();
 	}
 	redesenharInfoDaMissao();
+}
+
+/**
+ * Pede a lista inteira UMA vez ate ela chegar (o inteiro solta a trava): o
+ * parcial de progresso que nao casa e a diferenca do rastreador que nao cai
+ * (D-2543) chegam a cada abate, e um pedido por abate seria a lista inteira
+ * por abate.
+ */
+function pedirAListaInteiraUmaVez(motivo, detalhe) {
+	if (_pediuAListaInteira) {
+		return;
+	}
+	_pediuAListaInteira = true;
+	console.warn(`[MissoesIdle] ${motivo}; pedindo a lista inteira:`, detalhe);
+	Network.sendPacket(new PACKET.CZ.RAGIDLE_PEDIR_MISSOES());
+}
+
+/**
+ * A DECLARACAO da diferenca do rastreador (D-2543): o inteiro numerado que
+ * pede (a primeira vez, e a conexao nova) manda a revisao na mao no
+ * `CZ_RAGIDLE_MISSAO_ACAO`. Quem decide e `declaracaoDoRastreador`; aqui so o
+ * fio. Nunca derruba o recebimento: um erro aqui so custa a diferenca.
+ */
+function declararORastreador() {
+	try {
+		const corpo = declaracaoDoRastreador();
+		if (!corpo) {
+			return;
+		}
+		const pkt = new PACKET.CZ.RAGIDLE_MISSAO_ACAO();
+		pkt.json = JSON.stringify(corpo);
+		Network.sendPacket(pkt);
+	} catch (err) {
+		console.error('[MissoesIdle] a declaracao do rastreador falhou', err);
+	}
 }
 
 Network.hookPacket(PACKET.ZC.RAGIDLE_MISSOES, onMissoesRecebidas);

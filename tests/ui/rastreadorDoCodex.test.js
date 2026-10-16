@@ -170,7 +170,7 @@ describe('a estrela e a faixa da janela do Codex', () => {
 
 describe('as ligações nas janelas (portões de fonte)', () => {
 	it('MissoesIdle anota o rastreador do pacote de missões e o esquece na troca de personagem', () => {
-		expect(MISSOES).toContain('anotarRastreadorDoCodex(dados.codexRastreado)');
+		expect(MISSOES).toContain('anotarRastreadorDoCodex(dados.codexRastreado, dados.codexRastreadoRev)');
 		expect(MISSOES).toContain('limparRastreadorDoCodex()');
 	});
 
@@ -226,7 +226,7 @@ describe('o corpo PARCIAL do rastreador (D-1853): o contador anda sem a lista de
 		expect(parcial).toBeLessThan(corpo.indexOf('dados.v !== 1'));
 		// O ramo do parcial: anota e retorna, sem `MissoesIdle.missoes =` nem `render()`.
 		const ramo = corpo.slice(parcial, corpo.indexOf('}', parcial) + 1);
-		expect(ramo).toContain('anotarRastreadorDoCodex(dados.codexRastreado)');
+		expect(ramo).toContain('anotarRastreadorDoCodex(dados.codexRastreado, dados.codexRastreadoRev)');
 		expect(ramo).toContain('return');
 		expect(ramo).not.toContain('render(');
 		expect(ramo).not.toContain('MissoesIdle.missoes');
