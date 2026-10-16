@@ -1,5 +1,5 @@
 /**
- * A DIFERENÇA DO RASTREADOR DO CODEX (`v: 5`, D-2543, 17/10/2026).
+ * A DIFERENÇA DO RASTREADOR DO CODEX (`v: 5`, D-2543, 15/10/2026).
  *
  * O servidor manda só as TROCAS do contador (`{v: 5, parcial:
  * 'codexRastreadoDif', de, rev, trocas}`) para o cliente que DECLAROU que sabe

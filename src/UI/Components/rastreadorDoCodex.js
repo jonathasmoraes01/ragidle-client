@@ -24,7 +24,7 @@
  * número mostrado é o da janela do Codex (a soma por espécie, cada uma limitada
  * ao alvo dela) — calcular aqui seria a segunda rota escrita à mão.
  *
- * ## A diferença (`v: 5`, D-2543, 17/10/2026)
+ * ## A diferença (`v: 5`, D-2543, 15/10/2026)
  *
  * O parcial `v: 2` ainda trazia o rastreador INTEIRO a cada abate, e o que
  * muda é o contador de uma ou duas entradas. O servidor agora numera tudo que
