@@ -90,7 +90,8 @@ describe('estado do Bot: conexao nova com o mesmo personagem (12/10/2026)', () =
 		const corpo = motor.slice(inicio, motor.indexOf('\n}', inicio));
 		const i = corpo.indexOf('BotMenu.novaConexaoDoServidor();');
 		expect(i, 'o aceite da entrada nao avisa o BotMenu').toBeGreaterThan(-1);
-		const montagem = corpo.indexOf('onMapChange({');
+		// D-2576 (volta quente): o aceite monta pelo `peloAceite` (agendado na volta, direto fora dela).
+		const montagem = corpo.indexOf('onMapChange(peloAceite, true)');
 		expect(montagem, 'o aceite nao chama mais o onMapChange').toBeGreaterThan(-1);
 		expect(i).toBeLessThan(montagem);
 		// So ali: no `onLoad` ele nao roda na reconexao, e em toda troca de mapa soltaria pedidos que ainda tem resposta.

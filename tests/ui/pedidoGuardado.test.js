@@ -81,7 +81,21 @@ describe('a costura: quem desiste chama o descarte', () => {
 
 	it('onMapChange descarta antes de tudo', () => {
 		const src = semTabs('src/Engine/MapEngine.js');
-		expect(src.indexOf('function onMapChange(pkt, ehEntradaNoMundo) {\n// C47 (C-1): o pedido de skill guardado e do mapa de antes (x,y velhos).\ndescartarPedidoGuardado(Session);')).toBeGreaterThan(-1);
+		/*
+		 * D-2576 (volta quente): antes do descarte so cabe o bloco do MAPMOVE da volta (cancelar a montagem
+		 * agendada e guardar o mapa de agora), que nao toca o pedido nem a cena. O descarte segue antes de
+		 * QUALQUER efeito da troca de mapa (o `MapRenderer.onLoad` e tudo que vem depois).
+		 */
+		const inicio = src.indexOf('function onMapChange(pkt, ehEntradaNoMundo) {');
+		expect(inicio).toBeGreaterThan(-1);
+		const descarte = src.indexOf('// C47 (C-1): o pedido de skill guardado e do mapa de antes (x,y velhos).\ndescartarPedidoGuardado(Session);', inicio);
+		const onLoad = src.indexOf('MapRenderer.onLoad =', inicio);
+		expect(descarte).toBeGreaterThan(inicio);
+		expect(descarte).toBeLessThan(onLoad);
+		const antes = src.slice(inicio, descarte).replace(/\/\/[^\n]*/g, '').replace(/\s+/g, ' ');
+		expect(antes).toBe(
+			"function onMapChange(pkt, ehEntradaNoMundo) { if (ehEntradaNoMundo !== true) { _esperaPeloMapaDaVolta.mapaChegou(); if (pkt && typeof pkt.mapName === 'string' && pkt.mapName !== '') _mapName = pkt.mapName; } ",
+		);
 	});
 
 	it('a morte do proprio personagem descarta', () => {
