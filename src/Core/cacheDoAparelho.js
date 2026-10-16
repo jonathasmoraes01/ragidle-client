@@ -1,7 +1,7 @@
 /**
  * Core/cacheDoAparelho.js
  *
- * O CACHE DE ARQUIVOS DO APARELHO, sobre o Cache Storage (17/10/2026,
+ * O CACHE DE ARQUIVOS DO APARELHO, sobre o Cache Storage (15/10/2026,
  * D-2547..D-2549). As decisoes moram em `Core/cacheDeArquivos.js`; aqui mora
  * so a conversa com o navegador, e TODA ela e melhor esforco:
  *

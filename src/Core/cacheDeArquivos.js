@@ -1,7 +1,7 @@
 /**
  * Core/cacheDeArquivos.js
  *
- * AS DECISOES DO CACHE DE ARQUIVOS DO APARELHO (17/10/2026, D-2547..D-2549 -
+ * AS DECISOES DO CACHE DE ARQUIVOS DO APARELHO (15/10/2026, D-2547..D-2549 -
  * Lote D, item 18 da varredura de rede de 15/10: "celular sem cache local de
  * arquivos: mapa repetido baixado de novo").
  *

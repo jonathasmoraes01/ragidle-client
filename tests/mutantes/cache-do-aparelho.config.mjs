@@ -1,5 +1,5 @@
 // Mutacao somente na memoria do Vitest: nunca altera o cliente servido pelo Vite.
-// O cache de arquivos do aparelho (17/10/2026, D-2547..D-2549).
+// O cache de arquivos do aparelho (15/10/2026, D-2547..D-2549).
 // Uso: RAG_MUTANTE_CACHE=<nome> npx vitest run --config tests/mutantes/cache-do-aparelho.config.mjs
 // Sem `RAG_MUTANTE_CACHE` roda o CONTROLE (nenhuma mutacao: tem de passar).
 // Cada mutante tem de REPROVAR ao menos um dos testes de `include`. O laco que

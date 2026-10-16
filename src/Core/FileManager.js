@@ -83,7 +83,7 @@ class FileManager {
 	static filesAlias = {};
 
 	/**
-	 * O CACHE DE ARQUIVOS DO APARELHO (17/10/2026, D-2547..D-2549): o Cache
+	 * O CACHE DE ARQUIVOS DO APARELHO (15/10/2026, D-2547..D-2549): o Cache
 	 * Storage, versionado pela versao do GRF que o servidor de assets diz. So
 	 * vale onde o `FileSystem` nao existe (iOS, Firefox) - onde ele existe, ele
 	 * e o cache, e dois caches do mesmo arquivo so gastariam a cota duas vezes.

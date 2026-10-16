@@ -1,5 +1,5 @@
 /**
- * AS DECISOES DO CACHE DE ARQUIVOS DO APARELHO (17/10/2026, D-2547..D-2549).
+ * AS DECISOES DO CACHE DE ARQUIVOS DO APARELHO (15/10/2026, D-2547..D-2549).
  * Puras: a versao, o nome do cache, o que entra, o teto e o despejo.
  */
 import { describe, expect, it } from 'vitest';

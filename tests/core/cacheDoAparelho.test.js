@@ -1,5 +1,5 @@
 /**
- * O CACHE DE ARQUIVOS DO APARELHO NO CAMINHO DE VERDADE (17/10/2026,
+ * O CACHE DE ARQUIVOS DO APARELHO NO CAMINHO DE VERDADE (15/10/2026,
  * D-2547..D-2549): `FileManager.get` -> GRF local -> Cache Storage -> rede.
  *
  * Os casos montam o `FileManager` com um Cache Storage falso

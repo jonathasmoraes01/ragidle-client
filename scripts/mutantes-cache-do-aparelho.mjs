@@ -1,6 +1,6 @@
 /**
  * scripts/mutantes-cache-do-aparelho.mjs - o LACO da bateria de mutacao do
- * cache de arquivos do aparelho (17/10/2026, D-2547..D-2549).
+ * cache de arquivos do aparelho (15/10/2026, D-2547..D-2549).
  *
  *   node scripts/mutantes-cache-do-aparelho.mjs [filtro-regex]
  *
