@@ -1,0 +1,152 @@
+/*
+ * AusenciaIdle — "Enquanto voce esteve fora" (frente C do segundo plano,
+ * D-2565, 16/10/2026).
+ *
+ * A moldura e do design system (`.ri-window`, `.ri-header`, `.ri-title`,
+ * `.ri-close`, `.ri-btn`, `.ri-scroll` — `UI/Common.css`). Aqui so o layout e
+ * as pecas proprias: a faixa dos avisos, a lista de numeros e a de itens. Zero
+ * cor literal: tudo por token.
+ *
+ * O TAMANHO CABE NO CELULAR pelo mesmo `min()` da Presenca: no desktop a
+ * janela tem 420x520; num telefone em pe ela encolhe, e a pilha de janelas
+ * (D-932) a transforma em painel de tela cheia. O conteudo longo (muitos
+ * itens) rola por DENTRO do corpo, e o "Continuar" fica sempre de pe no
+ * rodape.
+ */
+:host {
+	position: absolute;
+	width: min(420px, calc(100vw - 16px));
+	height: min(520px, calc(100vh - 132px));
+	pointer-events: none;
+}
+/* A altura atravessa o embrulho do GUIComponent (a cicatriz da Presenca, D-1162). */
+.ui-component-root {
+	height: 100%;
+}
+
+#AusenciaIdle {
+	position: relative;
+	width: 100%;
+	height: 100%;
+	color: var(--text-body);
+	font: var(--type-info);
+	-webkit-font-smoothing: antialiased;
+}
+#AusenciaIdle .au-window {
+	display: none;
+	position: absolute;
+	inset: 0;
+	pointer-events: auto;
+	flex-direction: column;
+	width: 100%;
+	height: 100%;
+}
+#AusenciaIdle .au-window.is-open {
+	display: flex;
+}
+
+#AusenciaIdle .au-tempo {
+	flex: 0 0 auto;
+	padding: var(--sp-4) var(--sp-6);
+	font: var(--type-desc);
+	color: var(--text-muted);
+	border-bottom: 1px solid var(--border-hairline);
+}
+
+#AusenciaIdle .au-body {
+	flex: 1 1 auto;
+	min-height: 0;
+	overflow-y: auto;
+	overflow-x: hidden;
+	padding: var(--sp-4) var(--sp-6);
+	display: flex;
+	flex-direction: column;
+	gap: var(--sp-4);
+}
+
+/* Os avisos (a morte, as pocoes, o peso): o que o jogador PRECISA ler primeiro. */
+#AusenciaIdle .au-avisos:empty {
+	display: none;
+}
+#AusenciaIdle .au-aviso {
+	margin: 0 0 var(--sp-3);
+	padding: var(--sp-3) var(--sp-4);
+	border-radius: 6px;
+	border: 1px solid var(--red-300);
+	background: rgba(177, 59, 59, 0.1);
+	color: var(--red-600);
+	font-weight: 600;
+	line-height: 1.4;
+	overflow-wrap: anywhere;
+}
+
+#AusenciaIdle .au-numeros {
+	margin: 0;
+	display: grid;
+	grid-template-columns: 1fr auto;
+	column-gap: var(--sp-6);
+	row-gap: var(--sp-2);
+}
+#AusenciaIdle .au-numeros dt {
+	color: var(--text-muted);
+}
+#AusenciaIdle .au-numeros dd {
+	margin: 0;
+	text-align: right;
+	font-variant-numeric: tabular-nums;
+	font-weight: 600;
+	color: var(--text-title);
+}
+
+#AusenciaIdle .au-itens:empty {
+	display: none;
+}
+#AusenciaIdle .au-itens-titulo {
+	margin: var(--sp-2) 0 var(--sp-3);
+	font: var(--type-desc);
+	color: var(--text-muted);
+}
+#AusenciaIdle .au-item {
+	display: flex;
+	align-items: center;
+	gap: var(--sp-3);
+	min-height: 32px;
+	border-bottom: 1px solid var(--border-hairline);
+}
+/* O icone e ARTE do cliente (regra 4): 24x24, ampliacao inteira, pixel puro. */
+#AusenciaIdle .au-item-icone {
+	flex: 0 0 24px;
+	width: 24px;
+	height: 24px;
+	image-rendering: pixelated;
+}
+#AusenciaIdle .au-item-nome {
+	flex: 1 1 auto;
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+#AusenciaIdle .au-item-qtd {
+	flex: 0 0 auto;
+	font-variant-numeric: tabular-nums;
+	color: var(--gold-700);
+	font-weight: 700;
+}
+#AusenciaIdle .au-outros {
+	margin-top: var(--sp-3);
+	font: var(--type-desc);
+	color: var(--text-muted);
+}
+
+#AusenciaIdle .au-rodape {
+	flex: 0 0 auto;
+	display: flex;
+	justify-content: flex-end;
+	padding: var(--sp-4) var(--sp-6);
+	border-top: 1px solid var(--border-hairline);
+}
+#AusenciaIdle .au-continuar {
+	min-width: 150px;
+	min-height: 44px;
+}

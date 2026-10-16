@@ -10,6 +10,8 @@
 
 import GUIComponent from 'UI/GUIComponent.js';
 import { localeDoIdioma } from 'Core/Idioma.js';
+// RAGIDLE (D-2565/D-2566): a tela preta com os numeros e a morte contados pelo SERVIDOR.
+import { avisoDeMorteNaTelaPreta, linhaDaTelaPreta } from 'UI/Components/AusenciaIdle/resumoDaAusencia.js';
 import CommonCSS from 'UI/Common.css?raw';
 import UIVersionManager from 'UI/UIVersionManager.js';
 import KEYS from 'Controls/KeyEventHandler.js';
@@ -916,8 +918,8 @@ class UIManager {
 	 * @param {number} restanteMs tempo restante, em ms
 	 * @param {function(): void} onVoltar chamado quando o jogador clica em "Voltar a jogar" —
 	 *   quem chama manda o `sair` e fecha esta tela; ela nunca se fecha sozinha
-	 * @returns {{atualizar: function({restanteMs:number, expBase?:number, expClasse?:number,
-	 *   abates?:number, itensTotal?:number, morreu?:boolean}): void, remove: function(): void}}
+	 * @returns {{atualizar: function({restanteMs:number, morreu?:boolean, morte?:string|null,
+	 *   parcial?:{expBase?:number, expClasse?:number, abates?:number, itensTotal?:number}|null}): void, remove: function(): void}}
 	 *   `morreu` (D-1398) liga um aviso fixo de que o personagem morreu nesta
 	 *   sessao — o relogio continua contando do mesmo jeito, e sem o aviso o
 	 *   jogador nao teria como saber que parou de render nada
@@ -934,17 +936,22 @@ class UIManager {
 			}
 		});
 
-		tela.aviso.textContent =
-			'⚠ Seu personagem morreu. O Bot parou, mas o relógio continua contando. Clique em "Voltar a jogar" para não perder o resto do tempo.';
+		/*
+		 * O AVISO DE MORTE QUE NAO MENTE (D-2566, 16/10/2026). O de antes dizia "O Bot parou, mas o relogio continua
+		 * contando. Clique em 'Voltar a jogar' para nao perder o resto do tempo": o personagem nao fica parado no campo
+		 * (volta a cidade em 15 s, D-1343) e voltar a jogar nao recupera tempo nenhum. Agora: de quem ele morreu (o
+		 * nome que o SERVIDOR viu), que foi a cidade e que a cacada parou ali (`avisoDeMorteNaTelaPreta`).
+		 */
+		tela.aviso.textContent = avisoDeMorteNaTelaPreta(null);
 
 		function atualizar(stats) {
 			tela.timer.textContent = _relogioDeEspera(stats?.restanteMs);
 			tela.aviso.hidden = stats?.morreu !== true;
-			const expBase = Math.round(Number(stats?.expBase) || 0).toLocaleString(localeDoIdioma());
-			const expClasse = Math.round(Number(stats?.expClasse) || 0).toLocaleString(localeDoIdioma());
-			const abates = Math.round(Number(stats?.abates) || 0).toLocaleString(localeDoIdioma());
-			const itens = Math.round(Number(stats?.itensTotal) || 0).toLocaleString(localeDoIdioma());
-			tela.resumo.textContent = `EXP base +${expBase} · EXP classe +${expClasse} · Mobs mortos: ${abates} · Itens: ${itens}`;
+			if (stats?.morreu === true) {
+				tela.aviso.textContent = avisoDeMorteNaTelaPreta(stats?.morte);
+			}
+			// D-2565: os numeros do SERVIDOR (`parcial`), e nao o delta dos pacotes que chegaram.
+			tela.resumo.textContent = linhaDaTelaPreta(stats?.parcial, n => n.toLocaleString(localeDoIdioma()));
 		}
 
 		atualizar({ restanteMs });

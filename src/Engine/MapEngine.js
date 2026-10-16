@@ -22,7 +22,6 @@ import { criarGatilhoDaEconomia } from 'Engine/gatilhoDaEconomia.js'; // RAGIDLE
 import { criarVigiaDeSilencio } from 'Network/vigiaDeSilencio.js';
 import { cenaServeParaAVolta, criarEsperaPeloMapaDaVolta } from 'Engine/voltaQuente.js'; // RAGIDLE: a volta quente (D-2576)
 import { criarFreioDoKeepAlive, tiqueForcado } from 'Network/freioDoKeepAlive.js';
-import { ler as lerRegistroDaCaca } from 'UI/Components/HuntAnalyzer/registroDaCaca.js';
 import PACKETVER from 'Network/PacketVerManager.js';
 import PACKET from 'Network/PacketStructure.js';
 import Renderer from 'Renderer/Renderer.js';
@@ -120,6 +119,7 @@ import CodexIdle from 'UI/Components/CodexIdle/CodexIdle.js'; // RAGIDLE: janela
 import TutorialIdle from 'UI/Components/TutorialIdle/TutorialIdle.js'; // RAGIDLE: a camada guiada do tutorial (frente D da Jornada)
 import VotoIdle from 'UI/Components/VotoIdle/VotoIdle.js'; // RAGIDLE: janela de Voto (D-1159)
 import PresencaIdle from 'UI/Components/PresencaIdle/PresencaIdle.js'; // RAGIDLE: janela de presenca (D-1162)
+import AusenciaIdle from 'UI/Components/AusenciaIdle/AusenciaIdle.js'; // RAGIDLE: "Enquanto voce esteve fora" (D-2565)
 import IndicacaoIdle from 'UI/Components/IndicacaoIdle/IndicacaoIdle.js'; // RAGIDLE: Indique & Ganhe (D-1164)
 import TrocaIdle from 'UI/Components/TrocaIdle/TrocaIdle.js'; // RAGIDLE: a janela "Trade" do menu (02/10/2026)
 import BotMenu from 'UI/Components/BotMenu/BotMenu.js'; // RAGIDLE: o menu do Bot novo (07/10/2026)
@@ -751,6 +751,7 @@ class MapEngine {
 			TutorialIdle.prepare(); // RAGIDLE: a camada guiada do tutorial - idem, só escuta 0x0fdf
 			VotoIdle.prepare(); // RAGIDLE: janela de Voto (D-1159) — idem, só escuta 0x0fd5
 			PresencaIdle.prepare(); // RAGIDLE: janela de presenca (D-1162) — escuta 0x0fde e abre sozinha quando o servidor manda
+			AusenciaIdle.prepare(); // RAGIDLE: "Enquanto voce esteve fora" (D-2565) - aberta por onEconomiaRecebida
 			IndicacaoIdle.prepare(); // RAGIDLE: Indique & Ganhe (D-1164) — escuta 0x0fdc
 			TrocaIdle.prepare(); // RAGIDLE: a janela "Trade" (02/10/2026) - escuta 0x0fb3
 			BotMenu.prepare(); // RAGIDLE: o menu do Bot novo (07/10/2026) - escuta 0x0fb1
@@ -1342,8 +1343,20 @@ function onSonoRecebido(pkt) {
 let _janelaDaEconomia = null;
 /** O laco de 1s que reatualiza o timer e os numeros ao vivo, enquanto a tela esta aberta. */
 let _tiqueDaEconomia = null;
-/** O retrato de `registroDaCaca` no instante em que entrou — os numeros mostrados sao DELTA contra isto. */
-let _snapshotDaEconomia = null;
+/**
+ * OS NUMEROS DO SERVIDOR (D-2565, 16/10/2026). A tela preta somava o delta do
+ * `registroDaCaca` contra um retrato tirado ao abrir: com o socket morto (o
+ * celular de tela apagada) o personagem seguia cacando no servidor e o numero
+ * parava, e a frente que corta a rede da aba oculta tiraria o resto. Agora o
+ * servidor conta (`servidor/idle/ausencia.ts`) e manda `parcial` em toda
+ * resposta `ativa:true`; a tela pede de novo (`resumo`) quando o jogador OLHA.
+ */
+let _parcialDaEconomia = null;
+/** "Voce morreu para <monstro>." desta sessao de economia (D-2566), do servidor. */
+let _morteDaEconomia = null;
+/** De quantos em quantos segundos a tela preta VISIVEL pede os numeros ao servidor. A aba oculta nao pede nada. */
+const SEGUNDOS_ENTRE_RESUMOS_DA_TELA_PRETA = 5;
+let _segundosAteOResumo = SEGUNDOS_ENTRE_RESUMOS_DA_TELA_PRETA;
 /** O relogio LOCAL, so mostrador — a mesma ressalva de `showDormindo`: a verdade e do servidor. */
 let _restanteDaEconomiaMs = 0;
 /**
@@ -1355,23 +1368,13 @@ let _restanteDaEconomiaMs = 0;
  */
 let _personagemMorreuEmEconomia = false;
 
-/**
- * Os numeros da tela preta: o quanto foi ganho DESDE que entrou em economia
- * de energia, nunca a caçada inteira — por isso o delta contra o snapshot
- * tirado em `abrirTelaDaEconomia`. Sem personagem ou sem snapshot (corrida
- * entre a resposta do servidor e `Session.Entity` ainda nao existir), so o
- * relogio aparece.
- */
+/** Os numeros da tela preta: os do SERVIDOR (o ultimo `parcial`), o relogio e a morte. */
 function statsDaEconomia() {
-	const base = { restanteMs: _restanteDaEconomiaMs, morreu: _personagemMorreuEmEconomia };
-	if (!Session.Entity || !_snapshotDaEconomia) return base;
-	const agora = lerRegistroDaCaca(Session.Entity.GID);
 	return {
-		...base,
-		expBase: Math.max(0, (agora.expBase || 0) - (_snapshotDaEconomia.expBase || 0)),
-		expClasse: Math.max(0, (agora.expClasse || 0) - (_snapshotDaEconomia.expClasse || 0)),
-		abates: Math.max(0, (agora.abatesTotal || 0) - (_snapshotDaEconomia.abatesTotal || 0)),
-		itensTotal: Math.max(0, (agora.itensTotal || 0) - (_snapshotDaEconomia.itensTotal || 0))
+		restanteMs: _restanteDaEconomiaMs,
+		morreu: _personagemMorreuEmEconomia,
+		morte: _morteDaEconomia,
+		parcial: _parcialDaEconomia
 	};
 }
 
@@ -1382,12 +1385,17 @@ function abrirTelaDaEconomia(restanteMs) {
 		_janelaDaEconomia.atualizar(statsDaEconomia());
 		return;
 	}
-	_snapshotDaEconomia = Session.Entity ? lerRegistroDaCaca(Session.Entity.GID) : null;
 	_janelaDaEconomia = UIManager.showEconomiaDeEnergia(restanteMs, sairDaEconomiaDeEnergia);
 	_janelaDaEconomia.atualizar(statsDaEconomia());
+	_segundosAteOResumo = SEGUNDOS_ENTRE_RESUMOS_DA_TELA_PRETA;
 	_tiqueDaEconomia = setInterval(() => {
 		_restanteDaEconomiaMs = Math.max(0, _restanteDaEconomiaMs - 1000);
 		if (_janelaDaEconomia) _janelaDaEconomia.atualizar(statsDaEconomia());
+		// D-2565: so quem esta OLHANDO pede numeros (um pacote pequeno a cada 5 s); a aba oculta fica calada.
+		if (document.visibilityState === 'visible' && --_segundosAteOResumo <= 0) {
+			_segundosAteOResumo = SEGUNDOS_ENTRE_RESUMOS_DA_TELA_PRETA;
+			pedirAcaoDaEconomia('resumo');
+		}
 	}, 1000);
 }
 
@@ -1401,7 +1409,8 @@ function fecharTelaDaEconomia() {
 		_janelaDaEconomia.remove();
 		_janelaDaEconomia = null;
 	}
-	_snapshotDaEconomia = null;
+	_parcialDaEconomia = null;
+	_morteDaEconomia = null;
 	_personagemMorreuEmEconomia = false;
 }
 
@@ -1459,6 +1468,11 @@ function onPaginaVoltou() {
 
 function onVisibilidadeMudouParaEconomia() {
 	_gatilhoDaEconomia.aoMudarVisibilidade();
+	// D-2565: o jogador voltou a OLHAR a tela preta: os numeros do servidor, na hora (e nao no proximo tique de 5 s).
+	if (_janelaDaEconomia && document.visibilityState === 'visible') {
+		_segundosAteOResumo = SEGUNDOS_ENTRE_RESUMOS_DA_TELA_PRETA;
+		pedirAcaoDaEconomia('resumo');
+	}
 }
 
 /**
@@ -1490,6 +1504,21 @@ function onEconomiaRecebida(pkt) {
 		return;
 	}
 	if (!corpo) return;
+
+	/*
+	 * D-2565: "Enquanto voce esteve fora". O resumo vem na volta (o `sair`, ou a entrada no mapa depois da queda) e a
+	 * janela e de outro componente: um erro nela nao pode travar a tela preta, entao vai num `try` proprio.
+	 */
+	if (corpo.ausencia && typeof corpo.ausencia === 'object') {
+		try {
+			AusenciaIdle.mostrar(corpo.ausencia);
+		} catch (erro) {
+			console.error('[economia] o resumo da ausencia nao abriu', erro);
+		}
+	}
+	// D-2565/D-2566: os numeros e a morte do SERVIDOR para a tela preta.
+	if (corpo.parcial && typeof corpo.parcial === 'object') _parcialDaEconomia = corpo.parcial;
+	if (typeof corpo.morte === 'string' && corpo.morte !== '') _morteDaEconomia = corpo.morte;
 
 	if (corpo.ativa === true) {
 		if (corpo.morreu === true) _personagemMorreuEmEconomia = true;
@@ -1801,6 +1830,7 @@ function onMapChange(pkt, ehEntradaNoMundo) {
 		// o aviso da entrada chega pelo pacote e precisa de um host de pé.
 		VotoIdle.append(); // RAGIDLE: janela de Voto (D-1159)
 		PresencaIdle.append(); // RAGIDLE: janela de presenca (D-1162)
+		AusenciaIdle.append(); // RAGIDLE: "Enquanto voce esteve fora" (D-2565) - anexada sempre, fechada; o resumo chega pelo pacote
 		IndicacaoIdle.append(); // RAGIDLE: Indique & Ganhe (D-1164)
 		TrocaIdle.append(); // RAGIDLE: a janela "Trade" (02/10/2026) - anexada sempre, fechada
 		// RAGIDLE: a conexao nova ja avisou o BotMenu no aceite (`onConnectionAccepted`, bug #17 de 13/10/2026).
@@ -1948,6 +1978,8 @@ function onMapChange(pkt, ehEntradaNoMundo) {
 			['caca', HuntMap, '.hm-window'],
 			['codex', CodexIdle, '.cx-window'],
 			['presenca', PresencaIdle, '.pr-window'],
+			// 16/10/2026 (D-2565) - "Enquanto voce esteve fora": toggle() + `.au-window`/`is-open`; fechar e o "visto".
+			['ausencia', AusenciaIdle, '.au-window'],
 			['indicacao', IndicacaoIdle, '.in-window'],
 			// 02/10/2026 - a janela "Trade": toggle() + `.tr-window`/`is-open`, a forma das outras.
 			['troca', TrocaIdle, '.tr-window'],
@@ -2418,6 +2450,7 @@ function cleanGameUI() {
 		CodexIdle,
 		TutorialIdle,
 		PresencaIdle,
+		AusenciaIdle,
 		IndicacaoIdle,
 		TrocaIdle,
 		RankingIdle,
