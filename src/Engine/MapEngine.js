@@ -1074,7 +1074,7 @@ const TEXTO_DA_RECUSA_DE_SONO = {
 	// 28/09/2026: o sono GASTA os 10 minutos (item 4b do backlog de seguranca de
 	// 23/09) - quem acorda caca de novo antes de dormir de novo.
 	'amostra-insuficiente':
-		'Ainda não são 10 minutos de caça NESTE mapa: trocar de mapa reinicia a contagem, e depois de acordar é preciso caçar 10 minutos de novo.',
+		'Ainda não são 10 minutos de caça NESTE mapa: a contagem começa no primeiro monstro abatido (com o Bot ou no clique), trocar de mapa a reinicia, e depois de acordar é preciso caçar 10 minutos de novo.',
 	// RAGIDLE (J21, 14/10/2026, D-2477): os 10 minutos passaram parado, sem EXP - dormir renderia zero.
 	'amostra-sem-exp':
 		'Nos últimos 10 minutos neste mapa o personagem não ganhou EXP, e o sono rende o que a caçada rendeu: dormindo agora, ele não ganharia nada. Cace (com o Bot ou no clique) e tente de novo.',
@@ -1267,19 +1267,27 @@ function onSonoRecebido(pkt) {
 		return;
 	}
 
-	// O ACK do "acordar": fecha a janela de espera e mostra o resumo.
-	if (_acordarResolvido) return; // o teto de seguranca ja resolveu isto
-	_acordarResolvido = true;
-	if (_janelaDoSonoAtiva) {
-		_janelaDoSonoAtiva.remove();
-		_janelaDoSonoAtiva = null;
+	/*
+	 * D-2482 (15/10/2026): o RESUMO do sono que venceu as 8 h no LOGIN. O jogador ja esta no mundo (o servidor o pagou na
+	 * entrada e o devolveu ao mapa de caca), entao nao ha janela de espera nem reconexao: o "Continuar" so fecha o resumo.
+	 * Antes o sono vencido era pago em silencio e quem dormia a noite toda entrava sem ver o que ganhou.
+	 */
+	const jaNoMundo = corpo.semReconectar === true;
+	if (!jaNoMundo) {
+		// O ACK do "acordar": fecha a janela de espera e mostra o resumo.
+		if (_acordarResolvido) return; // o teto de seguranca ja resolveu isto
+		_acordarResolvido = true;
+		if (_janelaDoSonoAtiva) {
+			_janelaDoSonoAtiva.remove();
+			_janelaDoSonoAtiva = null;
+		}
 	}
 	const resumo = {
 		expBase: Number(corpo.expBase) || 0,
 		expClasse: Number(corpo.expClasse) || 0,
 		tempoDormidoMs: Number(corpo.tempoDormidoMs) || 0
 	};
-	UIManager.showResumoDoSono(resumo, voltarAoMundoDepoisDoSono);
+	UIManager.showResumoDoSono(resumo, jaNoMundo ? () => {} : voltarAoMundoDepoisDoSono);
 }
 
 /* ---------------- A ECONOMIA DE ENERGIA (D-1389/D-1390, 14/09/2026) ---------------- */

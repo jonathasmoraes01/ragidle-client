@@ -233,10 +233,32 @@ describe('a linha do resumo so dobra no rotulo ou depois do "·" (rodada 3 da D-
 		absorverCatalogo(JSON.parse(readFileSync('public/ragidle/i18n/en/catalogo.json', 'utf8')));
 		try {
 			const em = linha => traduzir(semQuebraDentroDasMetades(linha));
-			expect(em('Ganho até agora: ~22.733 EXP base · ~14.072 EXP classe')).toBe('Earned so far: ~22,733 Base EXP · ~14,072 Job EXP');
-			expect(em('Ritmo: ~7.559 EXP base/h · ~4.680 EXP classe/h')).toBe('Rate: ~7,559 Base EXP/h · ~4,680 Job EXP/h');
-			expect(em('~37.746 EXP base · ~23.367 EXP classe pela frente')).toBe('~37,746 Base EXP · ~23,367 Job EXP to go');
-			expect(em('Ganho do sono: ~60.479 EXP base · ~37.440 EXP classe')).toBe('Sleep earnings: ~60,479 Base EXP · ~37,440 Job EXP');
+			// O ingles tambem leva o espaco sem quebra DENTRO de cada metade (ML11): o modelo do catalogo o traz, porque o
+			// tradutor escreve o texto do catalogo como esta.
+			expect(em('Ganho até agora: ~22.733 EXP base · ~14.072 EXP classe')).toBe(`Earned so far: ~22,733${NB}Base${NB}EXP${NB}· ~14,072${NB}Job${NB}EXP`);
+			expect(em('Ritmo: ~7.559 EXP base/h · ~4.680 EXP classe/h')).toBe(`Rate: ~7,559${NB}Base${NB}EXP/h${NB}· ~4,680${NB}Job${NB}EXP/h`);
+			expect(em('~37.746 EXP base · ~23.367 EXP classe pela frente')).toBe(`~37,746${NB}Base${NB}EXP${NB}· ~23,367${NB}Job${NB}EXP${NB}to${NB}go`);
+			expect(em('Ganho do sono: ~60.479 EXP base · ~37.440 EXP classe')).toBe(`Sleep earnings: ~60,479${NB}Base${NB}EXP${NB}· ~37,440${NB}Job${NB}EXP`);
+		} finally {
+			desligarTraducao();
+		}
+	});
+
+	it('em ingles, com numeros de sete algarismos, a linha so dobra no rotulo ou depois do "·" (ML11)', async () => {
+		const { absorverCatalogo, desligarTraducao, traduzir } = await import('Core/Traducao.js');
+		const { semQuebraDentroDasMetades } = await import('UI/numerosDoSono.js');
+		absorverCatalogo(JSON.parse(readFileSync('public/ragidle/i18n/en/catalogo.json', 'utf8')));
+		try {
+			const em = linha => traduzir(semQuebraDentroDasMetades(linha));
+			const casos = [
+				['Ganho até agora: ~1.542.685 EXP base · ~1.027.857 EXP classe', ['Earned', 'so', 'far:', `~N${NB}Base${NB}EXP${NB}·`, `~N${NB}Job${NB}EXP`]],
+				['Ganho do sono: ~1.542.685 EXP base · ~1.027.857 EXP classe', ['Sleep', 'earnings:', `~N${NB}Base${NB}EXP${NB}·`, `~N${NB}Job${NB}EXP`]],
+				['Ritmo: ~1.542.685 EXP base/h · ~1.027.857 EXP classe/h', ['Rate:', `~N${NB}Base${NB}EXP/h${NB}·`, `~N${NB}Job${NB}EXP/h`]],
+				['~1.542.685 EXP base · ~1.027.857 EXP classe pela frente', [`~N${NB}Base${NB}EXP${NB}·`, `~N${NB}Job${NB}EXP${NB}to${NB}go`]]
+			];
+			for (const [linha, esperado] of casos) {
+				expect(pedacos(em(linha)), linha).toEqual(esperado);
+			}
 		} finally {
 			desligarTraducao();
 		}
@@ -355,6 +377,18 @@ describe('a selecao de personagem mostra quem dorme e pergunta antes de encerrar
 		const contraste = (a, b) => (Math.max(lum(a), lum(b)) + 0.05) / (Math.min(lum(a), lum(b)) + 0.05);
 		expect(contraste(rgb, [253, 253, 254])).toBeGreaterThanOrEqual(4.5);
 		expect(contraste(rgb, [255, 255, 255])).toBeGreaterThanOrEqual(4.5);
+	});
+});
+
+describe('o resumo do sono que venceu as 8 h no login (D-2482)', () => {
+	it('semReconectar: o Continuar so fecha o resumo, sem tocar no acordar nem na janela do sono', () => {
+		const i = MOTOR_CRU.indexOf('function onSonoRecebido(');
+		const corpo = MOTOR_CRU.slice(i, MOTOR_CRU.indexOf('\n}', i));
+		expect(corpo).toContain('const jaNoMundo = corpo.semReconectar === true;');
+		// O guarda do acordar e a janela de espera ficam so para o ack do "Acordar agora".
+		const guarda = corpo.slice(corpo.indexOf('if (!jaNoMundo) {'));
+		expect(guarda.slice(0, guarda.indexOf('const resumo'))).toContain('if (_acordarResolvido) return;');
+		expect(corpo).toContain('UIManager.showResumoDoSono(resumo, jaNoMundo ? () => {} : voltarAoMundoDepoisDoSono);');
 	});
 });
 

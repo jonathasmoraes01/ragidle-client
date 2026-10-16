@@ -1827,7 +1827,10 @@ function renderList() {
 	if (!mapas.length) {
 		listEl.innerHTML = `<div class="hm-list-empty">${
 			porClasse
-				? 'Nenhum mapa tem equipamento para essa classe.'
+				? term
+					? // Critico independente (15/10/2026): com a busca ligada a culpa e do texto digitado, nao da classe.
+					  'Nenhum mapa com equipamento para essa classe combina com a busca.'
+					: 'Nenhum mapa tem equipamento para essa classe.'
 				: soSeus && !term
 				? 'Nenhum mapa medido ainda. Cace 10 minutos num mapa, ou use o Explorar, e os números dele aparecem aqui.'
 				: HuntMap.filterFavoritos && !term

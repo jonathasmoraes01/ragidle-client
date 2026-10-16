@@ -188,15 +188,46 @@ describe('a lista com a classe escolhida', () => {
 		expect(q(`.hm-card[data-mapa="${quais[0]}"] .hm-card-hit`).textContent).toContain(`Item ${doMapa}`);
 	});
 
-	it('classe sem equipamento em nenhum mapa: lista vazia com a mensagem da classe', () => {
+	/*
+	 * Critico independente (15/10/2026): este caso saia cedo (`if (semNada === undefined) return`) quando TODA classe tinha
+	 * equipamento no fixture, e a asserção nunca rodava. O catalogo agora e construido para nao ter equipamento nenhum: os
+	 * drops sao so itens que nao estao no arquivo publicado (a Geleia e o Pedaco de Poring), entao toda classe fica vazia.
+	 */
+	const catalogoSemEquipamento = () => {
 		const cat = catalogoPequeno();
+		const SO_LIXO = [909, 938];
+		for (const id of SO_LIXO) expect(classesQueUsam(id), `o ${id} e equipamento no arquivo publicado`).toBeNull();
+		for (const m of cat.mapas) {
+			for (const mob of m.monstros || []) mob.drops = [...SO_LIXO];
+			if (m.mvp) m.mvp.drops = [...SO_LIXO];
+		}
+		return cat;
+	};
+
+	it('classe sem equipamento em nenhum mapa: lista vazia com a mensagem da classe', () => {
+		const cat = catalogoSemEquipamento();
 		abrirCom(cat);
-		// Procura uma classe que nenhum mapa do fixture atende; se todas atendem, o caso nao se aplica.
-		const semNada = PUBLICADO.classes.map((_, i) => i).find(i => mapasDaClasse(cat, i).length === 0);
-		if (semNada === undefined) return;
-		escolherClasse(semNada);
+		const antes = cartoes();
+		expect(antes.length, 'o fixture sem equipamento perdeu os mapas').toBeGreaterThan(0);
+		escolherClasse(indiceDe('Swordman'));
 		expect(cartoes()).toEqual([]);
 		expect(q('.hm-list').textContent).toContain('Nenhum mapa tem equipamento para essa classe.');
+	});
+
+	it('com a busca ligada, a lista vazia culpa o TEXTO e nao a classe', () => {
+		const cat = catalogoPequeno();
+		abrirCom(cat);
+		const indice = indiceDe('Swordman');
+		escolherClasse(indice);
+		expect(cartoes().length, 'o controle: a classe tem mapas no fixture').toBeGreaterThan(0);
+		const campo = q('.hm-search');
+		campo.value = 'zzzzzz-nada-assim';
+		campo.dispatchEvent(new Event('input', { bubbles: true }));
+		HuntMap._terminarLista();
+		expect(cartoes()).toEqual([]);
+		const texto = q('.hm-list').textContent;
+		expect(texto).toContain('combina com a busca');
+		expect(texto, 'a mensagem culpou a classe por uma busca que nao achou nada').not.toContain('Nenhum mapa tem equipamento para essa classe.');
 	});
 
 	it('a classe nao atravessa a troca de personagem: o filtro zera e o seletor volta a "Todas"', () => {

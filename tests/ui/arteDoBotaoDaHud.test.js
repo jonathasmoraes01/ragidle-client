@@ -15,7 +15,8 @@
  *   2. enquanto ela nao carrega (falhou ou ainda nao veio), o botao tem a classe
  *      `hb-sem-arte` e o CSS do desktop desenha o `.ri-btn` com o rotulo;
  *   3. a falha agenda uma nova tentativa sozinha (URL nova, espera crescente);
- *   4. a primeira falha vai ao `/analytics/erro`.
+ *   4. a primeira falha vai ao `/analytics/erro`;
+ *   5. (ML12) a nova tentativa tem teto e pausa com a aba oculta, e o celular em pe nem pede a arte.
  * O CSS e lido do disco porque o jsdom nao tem leiaute; quem prova a tela e a
  * sonda (o print).
  */
@@ -26,7 +27,8 @@ import { join } from 'node:path';
 const mocks = vi.hoisted(() => ({
 	huntMap: { catalog: null, toggle: () => {}, travelToCity: () => {} },
 	relatar: null,
-	ingles: false
+	ingles: false,
+	celularEmPe: false
 }));
 
 vi.mock('UI/UIManager.js', () => ({ default: { addComponent: c => c } }));
@@ -40,6 +42,7 @@ vi.mock('Engine/SessionStorage.js', () => ({ default: {} }));
 vi.mock('UI/escalaDaHud.js', () => ({ emUnidadesDaHud: x => x, ehDedo: () => false, default: {} }));
 vi.mock('Core/Idioma.js', async importOriginal => ({ ...(await importOriginal()), emIngles: () => mocks.ingles }));
 vi.mock('UI/relatoDeErro.js', () => ({ relatarErro: (...a) => mocks.relatar(...a) }));
+vi.mock('UI/hudVertical.js', () => ({ ehCelularEmPe: () => mocks.celularEmPe }));
 
 const { default: htmlDoBotao } = await import('UI/Components/HuntButtonIdle/HuntButtonIdle.html?raw');
 const { default: HuntButtonIdle } = await import('UI/Components/HuntButtonIdle/HuntButtonIdle.js');
@@ -63,6 +66,7 @@ describe('HuntButtonIdle: a arte que falha nao deixa o botao invisivel', () => {
 		document.body.innerHTML = '';
 		mocks.relatar = vi.fn();
 		mocks.ingles = false;
+		mocks.celularEmPe = false;
 		HuntButtonIdle.limparEstadoDoPersonagem();
 		montar();
 	});
@@ -240,5 +244,165 @@ describe('HuntButtonIdle.css: a reserva desenha o botao no desktop e nao toca o 
 		const i = css.indexOf('.ri-vertical .hb-arte {');
 		expect(i).toBeGreaterThan(-1);
 		expect(css.slice(i, css.indexOf('}', i))).toContain('display: none');
+	});
+});
+
+describe('HuntButtonIdle: o celular em pe nao pede a arte (ML12)', () => {
+	beforeEach(() => {
+		vi.useFakeTimers();
+		document.body.innerHTML = '';
+		mocks.relatar = vi.fn();
+		mocks.ingles = false;
+		mocks.celularEmPe = false;
+		HuntButtonIdle.limparEstadoDoPersonagem();
+	});
+
+	afterEach(() => {
+		HuntButtonIdle.onRemove();
+		vi.useRealTimers();
+	});
+
+	it('em celular em pe a arte (escondida pelo CSS) nem e pedida, e o botao fica sem <img> carregando', () => {
+		mocks.celularEmPe = true;
+		montar();
+		HuntButtonIdle.onAppend();
+		expect(botao('.hb-cacar .hb-arte').getAttribute('src')).toBeNull();
+		expect(botao('.hb-voltar .hb-arte').getAttribute('src')).toBeNull();
+		expect(vi.getTimerCount(), 'sem pedido nao ha nova tentativa agendada').toBe(1); // so o polling do proprio botao
+	});
+
+	it('se o aparelho deixa de ser celular em pe, a proxima carga de mapa pede a arte', () => {
+		mocks.celularEmPe = true;
+		montar();
+		HuntButtonIdle.onAppend();
+		mocks.celularEmPe = false;
+		HuntButtonIdle.onAppend();
+		expect(botao('.hb-cacar .hb-arte').getAttribute('src')).toBe('/ragidle/hud/botoes/hud-btn-cacar.png');
+		expect(botao('.hb-voltar .hb-arte').getAttribute('src')).toBe('/ragidle/hud/botoes/hud-btn-voltar.png');
+	});
+
+	it('a aba oculta de verdade (document.hidden) segura a nova tentativa do botao', () => {
+		montar();
+		const img = botao('.hb-cacar .hb-arte');
+		Object.defineProperty(document, 'hidden', { configurable: true, get: () => true });
+		try {
+			img.dispatchEvent(new Event('error'));
+			vi.advanceTimersByTime(2000);
+			expect(img.getAttribute('src'), 'a aba oculta: a repeticao nao saiu').toBe('/ragidle/hud/botoes/hud-btn-cacar.png');
+		} finally {
+			delete document.hidden;
+		}
+		vi.advanceTimersByTime(60000);
+		expect(img.getAttribute('src'), 'a aba voltou: a repeticao sai').toBe('/ragidle/hud/botoes/hud-btn-cacar.png?tentativa=1');
+	});
+
+	it('a costura: a decisao mora em usarArteDosBotoes e os dois botoes sabem se a aba esta escondida', () => {
+		const fonte = ler('UI/Components/HuntButtonIdle/HuntButtonIdle.js');
+		expect(fonte).toContain('if (!_artes || ehCelularEmPe()) {');
+		expect(fonte.split('abaOculta: abaEscondida').length - 1, 'cada botao recebe a pausa da aba oculta').toBe(2);
+		expect(fonte).toContain("return typeof document !== 'undefined' && document.hidden === true;");
+	});
+});
+
+describe('criarArteDoBotao: teto e pausa da nova tentativa (ML12)', () => {
+	const falhar = img => img.dispatchEvent(new Event('error'));
+	let criarArteDoBotao;
+	let MAXIMO_DE_FALHAS;
+	let ESPERA_COM_A_ABA_OCULTA_MS;
+
+	const arteSolta = opcoes => {
+		const botaoSolto = document.createElement('button');
+		const img = document.createElement('img');
+		botaoSolto.appendChild(img);
+		return { img, botao: botaoSolto, arte: criarArteDoBotao({ img, botao: botaoSolto, nome: 'cacar', ...opcoes }) };
+	};
+
+	beforeEach(async () => {
+		vi.useFakeTimers();
+		({ criarArteDoBotao, MAXIMO_DE_FALHAS, ESPERA_COM_A_ABA_OCULTA_MS } = await import('UI/Components/HuntButtonIdle/arteDoBotao.js'));
+	});
+
+	afterEach(() => {
+		vi.useRealTimers();
+	});
+
+	/** Falha e deixa a repeticao sair: `n` falhas seguidas. */
+	function falharVezes(img, n) {
+		for (let i = 0; i < n; i++) {
+			falhar(img);
+			vi.advanceTimersByTime(60000);
+		}
+	}
+
+	it('desiste na falha numero MAXIMO_DE_FALHAS: a reserva fica, nenhum relogio pendente, e o relato diz que desistiu', () => {
+		const relatar = vi.fn();
+		const { arte, img, botao: b } = arteSolta({ relatar });
+		arte.usar('/a.png');
+		falharVezes(img, MAXIMO_DE_FALHAS - 1);
+		expect(img.getAttribute('src'), 'ate a falha anterior ao teto ainda repete').toBe(`/a.png?tentativa=${MAXIMO_DE_FALHAS - 1}`);
+		expect(relatar).toHaveBeenCalledTimes(1); // so a primeira falha
+
+		falhar(img);
+		expect(vi.getTimerCount()).toBe(0);
+		expect(b.classList.contains('hb-sem-arte'), 'o botao segue na reserva (legivel e clicavel)').toBe(true);
+		expect(relatar).toHaveBeenCalledTimes(2);
+		expect(relatar.mock.calls[1][0]).toBe(`[hud] a arte do botao cacar desistiu depois de ${MAXIMO_DE_FALHAS} falhas: /a.png`);
+
+		vi.advanceTimersByTime(3_600_000);
+		expect(img.getAttribute('src'), 'depois de desistir nada mais e pedido').toBe(`/a.png?tentativa=${MAXIMO_DE_FALHAS - 1}`);
+		falhar(img); // um evento atrasado
+		expect(vi.getTimerCount()).toBe(0);
+		expect(relatar).toHaveBeenCalledTimes(2);
+	});
+
+	it('a proxima carga de mapa (usar com a mesma URL) recomeca a rodada depois de desistir; antes de desistir nao pede', () => {
+		const { arte, img } = arteSolta({ relatar: vi.fn() });
+		arte.usar('/a.png');
+		falhar(img);
+		arte.usar('/a.png'); // ainda nao desistiu: a mesma URL nao pede nada
+		expect(img.getAttribute('src')).toBe('/a.png');
+		expect(vi.getTimerCount()).toBe(1);
+
+		falharVezes(img, MAXIMO_DE_FALHAS - 2);
+		falhar(img);
+		expect(vi.getTimerCount()).toBe(0); // desistiu
+		arte.usar('/a.png');
+		expect(img.getAttribute('src'), 'a rodada nova comeca na URL limpa').toBe('/a.png');
+		falhar(img);
+		expect(vi.getTimerCount(), 'e a primeira falha da rodada nova agenda a repeticao').toBe(1);
+		vi.advanceTimersByTime(2000);
+		expect(img.getAttribute('src')).toBe('/a.png?tentativa=1');
+	});
+
+	it('com a aba oculta a repeticao espera sem pedir (e sem gastar o teto); o primeiro pedido sai na hora', () => {
+		let oculta = true;
+		const { arte, img } = arteSolta({ relatar: vi.fn(), abaOculta: () => oculta });
+		arte.usar('/a.png');
+		expect(img.getAttribute('src'), 'o primeiro pedido nao espera a aba').toBe('/a.png');
+		falhar(img);
+		vi.advanceTimersByTime(2000);
+		expect(img.getAttribute('src'), 'a aba oculta: nada pedido').toBe('/a.png');
+		expect(vi.getTimerCount(), 'o relogio so reagendou').toBe(1);
+		vi.advanceTimersByTime(ESPERA_COM_A_ABA_OCULTA_MS * 50);
+		expect(img.getAttribute('src')).toBe('/a.png');
+
+		oculta = false;
+		vi.advanceTimersByTime(ESPERA_COM_A_ABA_OCULTA_MS);
+		expect(img.getAttribute('src'), 'a aba voltou: a repeticao sai').toBe('/a.png?tentativa=1');
+		falhar(img);
+		vi.advanceTimersByTime(4999);
+		expect(img.getAttribute('src'), 'a espera seguinte e a segunda da cadencia (5 s): a pausa nao contou como falha').toBe('/a.png?tentativa=1');
+		vi.advanceTimersByTime(1);
+		expect(img.getAttribute('src')).toBe('/a.png?tentativa=2');
+	});
+
+	it('a troca de idioma depois de desistir pede a arte nova (URL diferente)', () => {
+		const { arte, img } = arteSolta({ relatar: vi.fn() });
+		arte.usar('/a.png');
+		falharVezes(img, MAXIMO_DE_FALHAS - 1);
+		falhar(img);
+		expect(vi.getTimerCount()).toBe(0);
+		arte.usar('/b.png');
+		expect(img.getAttribute('src')).toBe('/b.png');
 	});
 });

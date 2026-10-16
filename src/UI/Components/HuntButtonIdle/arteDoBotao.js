@@ -40,6 +40,11 @@
  *      nova (o pedido que falhou nao volta da memoria do navegador).
  *   3. A primeira falha de cada botao vai ao `/analytics/erro`: a proxima
  *      ocorrencia em producao chega a alguem.
+ *   4. A nova tentativa tem TETO e PAUSA (ML12, achados baixos do critico da D-2454):
+ *      depois de `MAXIMO_DE_FALHAS` falhas seguidas ela para (o botao segue na reserva,
+ *      legivel e clicavel; o desafio do Cloudflare que nao passa so se resolve com F5, e
+ *      numa sessao de 10 h eram ~1.200 pedidos 403 por jogador), e a proxima carga de mapa
+ *      recomeca a rodada. Com a aba oculta nenhum pedido sai.
  *
  * Sem import e sem DOM proprio: os relogios e o relato entram por parametro, e
  * o teste roda no jsdom (`tests/ui/arteDoBotaoDaHud.test.js`).
@@ -52,6 +57,15 @@
  */
 export const ESPERAS_DA_NOVA_TENTATIVA_MS = [2000, 5000, 15000, 30000, 60000];
 
+/**
+ * O teto (ML12): a falha numero 8 (o pedido de entrada e sete repeticoes, uns 4 minutos) encerra a rodada. Daqui em
+ * diante so a proxima carga de mapa, ou a troca de idioma, pede de novo.
+ */
+export const MAXIMO_DE_FALHAS = 8;
+
+/** Com a aba oculta o relogio so olha de novo a cada tanto, sem pedir nada (ML12). */
+export const ESPERA_COM_A_ABA_OCULTA_MS = 60000;
+
 /** A classe da reserva: o CSS do desktop desenha o `.ri-btn` com o rotulo. */
 export const CLASSE_SEM_ARTE = 'hb-sem-arte';
 
@@ -63,6 +77,7 @@ export const CLASSE_SEM_ARTE = 'hb-sem-arte';
  * @param {(fn: Function, ms: number) => unknown} [opcoes.agendar]
  * @param {(id: unknown) => void} [opcoes.desagendar]
  * @param {((mensagem: string) => void) | null} [opcoes.relatar]
+ * @param {() => boolean} [opcoes.abaOculta] - `true` com a aba escondida: a nova tentativa espera, sem pedir (ML12)
  * @returns {{ usar: (url: string) => void }}
  */
 export function criarArteDoBotao({
@@ -71,16 +86,28 @@ export function criarArteDoBotao({
 	nome,
 	agendar = (fn, ms) => setTimeout(fn, ms),
 	desagendar = id => clearTimeout(id),
-	relatar = null
+	relatar = null,
+	abaOculta = () => false
 }) {
 	let url = null;
 	let tentativa = 0;
 	let relogio = null;
 	let relatou = false;
+	let desistiu = false;
 
 	const pedir = () => {
 		relogio = null;
 		img.src = tentativa === 0 ? url : `${url}?tentativa=${tentativa}`;
+	};
+
+	// So a REPETICAO espera a aba voltar: o primeiro pedido sai na hora, como sempre (a arte chega pronta).
+	const repetir = () => {
+		relogio = null;
+		if (abaOculta()) {
+			relogio = agendar(repetir, ESPERA_COM_A_ABA_OCULTA_MS);
+			return;
+		}
+		pedir();
 	};
 
 	const cancelar = () => {
@@ -95,7 +122,7 @@ export function criarArteDoBotao({
 	});
 
 	img.addEventListener('error', () => {
-		if (url === null) {
+		if (url === null || desistiu) {
 			return;
 		}
 		botao.classList.add(CLASSE_SEM_ARTE);
@@ -106,17 +133,30 @@ export function criarArteDoBotao({
 		const espera = ESPERAS_DA_NOVA_TENTATIVA_MS[Math.min(tentativa, ESPERAS_DA_NOVA_TENTATIVA_MS.length - 1)];
 		tentativa++;
 		cancelar();
-		relogio = agendar(pedir, espera);
+		if (tentativa >= MAXIMO_DE_FALHAS) {
+			// O botao fica na reserva (legivel e clicavel). Dizer que parou: se a telemetria so mostrasse a primeira falha,
+			// a rodada que nao se resolveu nunca chegaria a ninguem.
+			desistiu = true;
+			if (relatar) {
+				relatar(`[hud] a arte do botao ${nome} desistiu depois de ${tentativa} falhas: ${url}`);
+			}
+			return;
+		}
+		relogio = agendar(repetir, espera);
 	});
 
 	return {
-		/** Poe (ou troca, no idioma) a arte. A mesma URL de novo nao pede nada. */
+		/**
+		 * Poe (ou troca, no idioma) a arte. A mesma URL de novo nao pede nada, EXCETO depois de a rodada desistir (ML12): ai
+		 * a carga de mapa seguinte recomeca, que e o que o F5 fazia a mao.
+		 */
 		usar(nova) {
-			if (nova === url) {
+			if (nova === url && !desistiu) {
 				return;
 			}
 			url = nova;
 			tentativa = 0;
+			desistiu = false;
 			cancelar();
 			pedir();
 		}

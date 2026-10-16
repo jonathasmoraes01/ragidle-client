@@ -81,6 +81,7 @@ import { fecharEEsquecer } from '../limpezaDeJanelaIdle.js';
 import { abaLembrada, lembrarAba } from '../memoriaDeAba.js';
 import { vidaDoMembro } from './vidaDoMembro.js';
 import { chamarCabe } from './chamarOGrupo.js';
+import { RECADO_SEM_GRUPO, recadoDoEstado } from './recadoDoGrupo.js';
 import { escreverEstilo, escreverTexto, escreverTitulo } from 'UI/escreverSeMudou.js';
 import { criarDesenhoAdiado } from './desenhoAdiado.js';
 
@@ -1455,14 +1456,11 @@ Network.hookPacket(PACKET.ZC.RAGIDLE_GRUPO, function (pkt) {
 	}
 	GrupoIdle.estado = dados;
 
-	if (Array.isArray(dados.problemas) && dados.problemas.length) {
-		// A recusa e a frase do SERVIDOR, mostrada como veio — a janela nao
-		// reescreve o motivo, e nao valida nada por conta propria.
-		mostrarRecado(dados.problemas.join(' · '), true);
-	} else if (dados.recado) {
-		mostrarRecado(dados.recado, false);
-	} else if (!dados.grupo) {
-		mostrarRecado('Abra o Localizador de Grupos para entrar num grupo.', false);
+	// A linha do rodape segue o estado (`recadoDoGrupo.js`): a recusa do SERVIDOR sai como veio, e o texto de "sem grupo"
+	// some quando o personagem entra em um (ML14).
+	const recado = recadoDoEstado(dados, raiz().querySelector('.gi-recado').textContent);
+	if (recado) {
+		mostrarRecado(recado.texto, recado.ehProblema);
 	}
 
 	// Fechada, so suja; aberta, desenha como sempre (15/10/2026).
@@ -1493,7 +1491,7 @@ GrupoIdle.limparEstadoDoPersonagem = function limparEstadoDoPersonagem() {
 	// oferece-lo pronto para o proximo.
 	r.querySelector('.gi-convite-nome').value = '';
 	r.querySelector('.gi-convite').hidden = true;
-	mostrarRecado('Abra o Localizador de Grupos para entrar num grupo.', false);
+	mostrarRecado(RECADO_SEM_GRUPO, false);
 	_desenho.agora();
 
 	/*
