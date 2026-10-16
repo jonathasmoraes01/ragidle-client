@@ -240,8 +240,32 @@ function jitter() {
 	return Math.floor(Math.random() * JITTER_MAX_MS);
 }
 
+/**
+ * A JANELA DO AVISO, CARREGADA UMA VEZ SO (16/10/2026, integracao do segundo plano). A promessa nasce na
+ * primeira vez que o aviso e preciso e e a mesma dai em diante; se o carregamento falhar, a proxima tenta de novo.
+ */
+let _promessaDaUI = null;
 function importarUI() {
-	return import('UI/Components/Reconexao/Reconexao.js').then(m => m.default);
+	if (_promessaDaUI === null) {
+		_promessaDaUI = import('UI/Components/Reconexao/Reconexao.js')
+			.then(m => m.default)
+			.catch(erro => {
+				_promessaDaUI = null;
+				throw erro;
+			});
+	}
+	return _promessaDaUI;
+}
+
+/**
+ * ESCONDE O AVISO SO SE A JANELA JA FOI CARREGADA. A que nunca carregou nunca apareceu, e carrega-la so para
+ * esconder era um `import()` solto a cada logout: nos testes ele resolvia depois da desmontagem (a suite saia com
+ * "EnvironmentTeardownError", intermitente) e, no jogo, baixava a janela a toa.
+ */
+function esconderOAvisoSeCarregado() {
+	if (_promessaDaUI !== null) {
+		_promessaDaUI.then(ui => ui.esconder()).catch(() => {});
+	}
 }
 
 function importarMapEngine() {
@@ -425,7 +449,7 @@ function aoEntrarComSucesso() {
 function cancelar() {
 	limparCiclo();
 	Network.onDisconnect = null;
-	importarUI().then(ui => ui.esconder());
+	esconderOAvisoSeCarregado();
 }
 
 /**
@@ -444,7 +468,7 @@ function cancelar() {
 function cancelarParaFechamentoDeliberado() {
 	limparCiclo();
 	Network.onDisconnect = () => {};
-	importarUI().then(ui => ui.esconder());
+	esconderOAvisoSeCarregado();
 }
 
 /**
