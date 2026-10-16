@@ -82,6 +82,7 @@ import MissoesIdle from 'UI/Components/MissoesIdle/MissoesIdle.js';
 import { quantasAceitas, missaoAceita } from 'UI/Components/MissoesIdle/podeIniciarMissao.js';
 import { progressoDaPrimeiraAceita } from 'UI/Components/MissoesIdle/missoesAceitas.js';
 import BoasVindasIdle from 'UI/Components/BoasVindasIdle/BoasVindasIdle.js';
+import filaDaVolta from 'UI/resumoAntesDasNovidades.js';
 import IdiomaIdle from 'UI/Components/IdiomaIdle/IdiomaIdle.js';
 import { decidir as decidirIdiomaDaConta, enviarIdiomaDaConta } from 'Core/idiomaDaConta.js';
 import { definirIdioma, idiomaAtual, idiomaFoiEscolhido } from 'Core/Idioma.js';
@@ -767,6 +768,8 @@ function desenhar() {
 		estado &&
 		estado.estado === 'em-andamento' &&
 		!BoasVindasIdle.estaAberta() &&
+		// D-2595: o resumo da volta (Dormir, ausencia) tambem: a mascara de 1.900.000 o cobriria como o cartaz cobria.
+		!filaDaVolta.haResumoAberto() &&
 		!IdiomaIdle.estaAberta() &&
 		!votoNaTela()
 			? etapaDe(numero)

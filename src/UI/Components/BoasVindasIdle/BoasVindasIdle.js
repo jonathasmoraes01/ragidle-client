@@ -54,6 +54,7 @@ import cssText from './BoasVindasIdle.css?raw';
 import { fecharEEsquecer } from '../limpezaDeJanelaIdle.js';
 import { abrirEmAbaNova } from 'UI/abrirEmAbaNova.js';
 import { consumirEntradaPorAtualizacao } from 'Engine/retomadaAposAtualizacao.js';
+import filaDaVolta from 'UI/resumoAntesDasNovidades.js';
 
 /**
  * OS CARTAZES, na ordem em que o jogador os vê.
@@ -206,7 +207,9 @@ BoasVindasIdle.onAppend = function onAppend() {
 	if (estaAdiada()) {
 		return;
 	}
-	BoasVindasIdle.mostrar();
+	/* D-2595: o resumo da volta (o Dormir, "Enquanto voce esteve fora") vem
+	   primeiro; com um deles na tela o cartaz espera e abre quando ele fechar. */
+	filaDaVolta.pedirNovidades();
 };
 
 /**
@@ -291,7 +294,19 @@ BoasVindasIdle.limparEstadoDoPersonagem = function limparEstadoDoPersonagem() {
 	fecharEEsquecer(_root(), '.bv-modal');
 	_jaMostrouNestaEntrada = false;
 	_indice = 0;
+	filaDaVolta.esquecer(); // D-2595: a espera pelo resumo e da entrada que acabou
 };
+
+/*
+ * D-2595: o cartaz se apresenta a fila da volta. Por funcao, e nao pela
+ * referencia: quem troca `mostrar` (a prova de tela, os testes) continua
+ * valendo.
+ */
+filaDaVolta.registrarNovidades({
+	estaAberta: () => BoasVindasIdle.estaAberta(),
+	esconder: () => BoasVindasIdle.fechar(),
+	mostrar: () => BoasVindasIdle.mostrar()
+});
 
 /* ═══════════════════════════════════════════════════════════════════════
    OS BOTÕES

@@ -2026,6 +2026,12 @@ ui-button {
 		min-height: var(--hit-touch, 44px);
 	}
 
+	/* D-2595 (16/10/2026): o "Continuar" do resumo do Dormir (`showResumoDoSono`) media 24px no celular, ao lado
+	   dos 44px do "Continuar" de "Enquanto voce esteve fora". So no dedo: o desktop segue com o botao de sempre. */
+	.ri-btn--dedo {
+		min-height: var(--hit-touch, 44px);
+	}
+
 	/*
 	 * O minimizar do painel de personagem. Os quatro numeros sao assimetricos
 	 * e MEDIDOS: o botao mora a 7px do topo do cabecalho e a 8px da borda

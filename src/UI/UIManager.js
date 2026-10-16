@@ -19,6 +19,7 @@ import ClampToViewport from 'UI/ClampToViewport.js';
 import EscalaDaHud from 'UI/escalaDaHud.js'; // D-934: a HUD diminui junto com a janela
 import HudVertical from 'UI/hudVertical.js'; // D-939: a HUD vertical do celular em pe
 import { numerosDoSono, semQuebraDentroDasMetades } from 'UI/numerosDoSono.js'; // D-2478: o ganho visivel do "Dormindo..."
+import filaDaVolta from 'UI/resumoAntesDasNovidades.js'; // D-2595: o resumo da volta vem antes da "Novidades"
 
 /**
  * Centralize popup position
@@ -862,6 +863,8 @@ class UIManager {
 		function fechar() {
 			overlay.remove();
 			WinResumo.remove();
+			// D-2595: fechado o resumo, a "Novidades" que esperava abre agora (antes de voltar ao mundo).
+			filaDaVolta.resumoFechou('sono');
 			onContinuar();
 		}
 
@@ -869,7 +872,10 @@ class UIManager {
 			const root = this._shadow;
 			root.querySelector('.text').textContent = textoDoResumo();
 			Object.assign(this._host.style, _popupPosition());
-			root.querySelector('.btns').appendChild(_createButton('ok', fechar, 'Continuar'));
+			const continuar = _createButton('ok', fechar, 'Continuar');
+			// D-2595: no dedo o "Continuar" ganha o piso tatil (44px), como o de "Enquanto voce esteve fora" (Common.css).
+			continuar.classList.add('ri-btn--dedo');
+			root.querySelector('.btns').appendChild(continuar);
 		};
 
 		WinResumo.onKeyDown = function OnKeyDown(event) {
@@ -884,6 +890,11 @@ class UIManager {
 		overlay = _createOverlay();
 		WinResumo.onAppend = _prioritizeKeyDown;
 		WinResumo.append();
+		/*
+		 * D-2595: o que o jogador GANHOU vem antes da "Novidades" (`BoasVindasIdle`). Sem isto o cartaz, na camada
+		 * 1.900.000, cobria o "Continuar" de quem acordava de 8 h de sono (medido na `prove:dormir`).
+		 */
+		filaDaVolta.resumoAbriu('sono');
 
 		return WinResumo;
 	}

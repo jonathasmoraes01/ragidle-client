@@ -36,6 +36,7 @@ import { fecharEEsquecer } from '../limpezaDeJanelaIdle.js';
 import { itemIconUrl } from 'Utils/ItemArt.js';
 import { resumoParaATela } from './resumoDaAusencia.js';
 import { localeDoIdioma } from 'Core/Idioma.js';
+import filaDaVolta from 'UI/resumoAntesDasNovidades.js';
 
 /* A COPIA da conta do `:host` de AusenciaIdle.css (420x520): e por ela que a janela se centraliza. */
 const WINDOW_WIDTH = 420;
@@ -91,6 +92,7 @@ function numero(n) {
  */
 AusenciaIdle.limparEstadoDoPersonagem = function limparEstadoDoPersonagem() {
 	AusenciaIdle.resumo = null;
+	filaDaVolta.esquecer(); // D-2595: esquece sem abrir a "Novidades" (ela e da proxima entrada)
 	fecharEEsquecer(_root(), '.au-window', { corpo: '.au-itens', texto: '' });
 };
 
@@ -152,6 +154,8 @@ AusenciaIdle.toggle = function toggle() {
 	} else if (AusenciaIdle.resumo) {
 		win.classList.add('is-open');
 		AusenciaIdle.focus();
+		// D-2595: o resumo vem antes da "Novidades" - o cartaz sai da frente e espera este fechar.
+		filaDaVolta.resumoAbriu('ausencia');
 	}
 };
 
@@ -167,6 +171,8 @@ function fecharComoVisto() {
 		pkt.json = JSON.stringify({ acao: 'visto', id: Number(resumo.id) });
 		Network.sendPacket(pkt);
 	}
+	// D-2595: fechado o resumo, a "Novidades" que esperava abre agora.
+	filaDaVolta.resumoFechou('ausencia');
 }
 
 function onClickClose(e) {
