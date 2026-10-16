@@ -43,13 +43,23 @@ const defaultGraphicsSettings = {
 	showPlayerNames: true,
 
 	/**
-	 * RAGIDLE (23/09/2026, ordem do dono no open beta): a ECONOMIA DE ENERGIA
-	 * AUTOMATICA pode ser desligada. Ligada (o padrao, o comportamento de
-	 * sempre), a aba escondida por 14 s pede ao servidor a economia. Desligada,
-	 * trocar de aba nao faz nada: o personagem continua no mundo, cacando, e a
-	 * conexao se sustenta pelo keepalive (e reconecta sozinha se cair).
+	 * A TELA PRETA AO TROCAR DE ABA (D-2598, 16/10/2026; sucede a
+	 * `economiaDeEnergiaAutomatica` de 23/09/2026). O interruptor escolhe so a
+	 * TELA: ligado, a aba escondida por 14 s abre a tela preta da economia de
+	 * energia com o farm ao vivo, e ela fica ate o "Voltar a jogar". O aviso ao
+	 * servidor (`entrar`, que segura o personagem farmando no mundo quando o
+	 * navegador derruba a conexao) sai SEMPRE, ligado ou nao
+	 * (`Engine/gatilhoDaEconomia.js`).
+	 *
+	 * PADRAO DESLIGADO. O dono quer que a volta do segundo plano nao seja vista
+	 * ("so sincronizar com o momento atual e continuar farmando"); a tela preta
+	 * e escolha de quem quer o modo. CHAVE NOVA de proposito: `Preferences`
+	 * grava o objeto INTEIRO, entao todo jogador antigo tem a chave velha
+	 * gravada `true` (o padrao de antes, que ele nunca escolheu); mudar so o
+	 * padrao dela deixaria a tela preta para todo mundo. A velha fica no
+	 * armazenamento, sem leitor.
 	 */
-	economiaDeEnergiaAutomatica: true,
+	telaPretaAoTrocarDeAba: false,
 
 	/**
 	 * O TAMANHO DA HUD, em % (pedido do dono, 15/10/2026: *"uma opcao de video, onde a pessoa consegue aumentar

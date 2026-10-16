@@ -4,8 +4,9 @@
  *
  * Substitui `economiaSoASaida`, que provava a AUSENCIA do pedido, da opcao e da
  * tela preta (retirados em 07/10/2026, D-1931). Agora cobra o contrario: o
- * `ZC_RAGIDLE_ECONOMIA` tem UM dono que abre a tela preta com `ativa:true`, fecha
- * com `ativa:false` e volta pelo boot com `expulso:true`; a opcao esta nas
+ * `ZC_RAGIDLE_ECONOMIA` tem UM dono que abre a tela preta com `ativa:true` e o
+ * tempo fora (`decorridoMs`, D-2599), fecha com `ativa:false` e NAO volta mais
+ * pelo boot (o `expulso` saiu com o teto, D-2555); a opcao esta nas
  * Configuracoes de Video; a tela preta existe e nao usa travessao.
  *
  * `MapEngine.js` nao carrega em jsdom; o fio e cobrado no fonte SEM comentario.
@@ -33,10 +34,11 @@ describe('o dono do ZC_RAGIDLE_ECONOMIA', () => {
 		expect(MOTOR).toMatch(/Network\.hookPacket\(PACKET\.ZC\.RAGIDLE_ECONOMIA, onEconomiaRecebida\);/);
 	});
 
-	it('`ativa:true` abre a tela preta com o tempo restante (e marca a morte), sem mandar `sair` sozinho', () => {
+	it('`ativa:true` abre a tela preta com o tempo FORA (e marca a morte), sem mandar `sair` sozinho', () => {
 		const corpo = corpoDe(MOTOR, 'function onEconomiaRecebida(pkt)');
 		const ativa = corpo.slice(corpo.indexOf('corpo.ativa === true'), corpo.indexOf('fecharTelaDaEconomia();'));
-		expect(ativa).toMatch(/abrirTelaDaEconomia\(Number\(corpo\.restanteMs\) \|\| 0\)/);
+		expect(ativa).toMatch(/abrirTelaDaEconomia\(Number\(corpo\.decorridoMs\) \|\| 0\)/);
+		expect(ativa).not.toMatch(/restanteMs/);
 		expect(ativa).toMatch(/corpo\.morreu === true/);
 		expect(ativa).not.toMatch(/acao: 'sair'/);
 	});
@@ -46,9 +48,17 @@ describe('o dono do ZC_RAGIDLE_ECONOMIA', () => {
 		expect(corpo).toContain('fecharTelaDaEconomia();');
 	});
 
-	it('`expulso:true` (o teto venceu) ainda volta pelo boot', () => {
+	it('o `expulso` (o teto de 4 h, D-2555) saiu: nada na economia recarrega o jogo (D-2599)', () => {
 		const corpo = corpoDe(MOTOR, 'function onEconomiaRecebida(pkt)');
-		expect(corpo).toMatch(/corpo\.expulso === true\) \{\s*import\('Engine\/GameEngine\.js'\)\.then\(m => m\.default\.reload\(\)\);/);
+		expect(corpo).not.toMatch(/expulso/);
+		expect(corpo).not.toMatch(/reload\(/);
+	});
+
+	it('o relogio da tela preta conta para CIMA a partir do `decorridoMs` (D-2599)', () => {
+		const abrir = corpoDe(MOTOR, 'function abrirTelaDaEconomia(decorridoMs)');
+		expect(abrir).toMatch(/_decorridoDaEconomiaMs \+= 1000;/);
+		expect(MOTOR).not.toMatch(/_restanteDaEconomiaMs/);
+		expect(corpoDe(MOTOR, 'function statsDaEconomia()')).toMatch(/decorridoMs: _decorridoDaEconomiaMs/);
 	});
 
 	it('o clique em "Voltar a jogar" manda `sair` e fecha a tela na hora', () => {
@@ -61,7 +71,9 @@ describe('o dono do ZC_RAGIDLE_ECONOMIA', () => {
 
 describe('a tela preta e a opcao voltaram', () => {
 	it('a tela preta da economia existe e e o casco compartilhado com o Dormir', () => {
-		expect(UI).toMatch(/static showEconomiaDeEnergia\(restanteMs, onVoltar\)/);
+		expect(UI).toMatch(/static showEconomiaDeEnergia\(decorridoMs, onVoltar\)/);
+		const i0 = UI.indexOf('static showEconomiaDeEnergia(');
+		expect(UI.slice(i0, i0 + 2000)).toMatch(/_relogioDeEspera\(stats\?\.decorridoMs\)/);
 		const i = UI.indexOf('static showEconomiaDeEnergia(');
 		expect(UI.slice(i, i + 600)).toMatch(/_telaPretaDeEspera\(/);
 	});
@@ -79,12 +91,12 @@ describe('a tela preta e a opcao voltaram', () => {
 		expect(aviso).toContain('voltou à cidade e a caçada parou ali');
 	});
 
-	it('a opcao esta nas Configuracoes de Video, nasce ligada e grava a preferencia', () => {
-		expect(readFileSync('src/Preferences/Graphics.js', 'utf8')).toMatch(/economiaDeEnergiaAutomatica: true,/);
+	it('a opcao esta nas Configuracoes de Video, nasce DESLIGADA e grava a preferencia (D-2598)', () => {
+		expect(readFileSync('src/Preferences/Graphics.js', 'utf8')).toMatch(/telaPretaAoTrocarDeAba: false,/);
 		expect(readFileSync('src/UI/Components/GraphicsOption/GraphicsOption.html', 'utf8')).toContain('class="economia-automatica"');
 		const js = readFileSync('src/UI/Components/GraphicsOption/GraphicsOption.js', 'utf8');
 		expect(js).toContain("bindChange('.economia-automatica', onToggleEconomiaAutomatica);");
-		expect(js).toContain('GraphicsSettings.economiaDeEnergiaAutomatica = !!this.checked;');
+		expect(js).toContain('GraphicsSettings.telaPretaAoTrocarDeAba = !!this.checked;');
 	});
 
 	it('o interruptor do Modo Classico nao volta junto (o Bot novo e o unico modo)', () => {

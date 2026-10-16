@@ -418,18 +418,20 @@ export const ETAPAS = Object.freeze([
 	 * A ECONOMIA DE ENERGIA (24/09/2026, pedido do dono: "quero que ensine
 	 * dentro do nosso tutorial a como desativa-lo tambem").
 	 *
-	 * Ela liga SOZINHA quando a aba fica 14 s em segundo plano
-	 * (`MapEngine.js`, `onVisibilidadeMudouParaEconomia`), e a unica porta
-	 * para desliga-la e a caixa "Economia de energia" das Configuracoes de
-	 * Video (`GraphicsOption.html`, `.economia-automatica`). O caminho ate la
+	 * Desde D-2598 (16/10/2026) a caixa escolhe so a TELA PRETA ao trocar de
+	 * aba, e nasce DESMARCADA: o personagem caca em segundo plano marcada ou
+	 * nao. A etapa passou a mostrar onde LIGAR a tela preta, e nao onde
+	 * desligar o farm. A porta e a caixa "Economia de energia" das
+	 * Configuracoes de Video (`GraphicsOption.html`, `.economia-automatica`).
+	 * O caminho ate la
 	 * e Menu -> "Configurações" (a janela de sistema, `Escape`) ->
 	 * "Configurações de Vídeo" -> a caixa - quatro gestos, e por isso a cadeia
 	 * de alcances abaixo tem cinco degraus.
 	 *
 	 * O TUTORIAL ENSINA, NAO OBRIGA. A etapa fecha quando o jogador MEXE na
 	 * caixa ou FECHA a janela de Video depois de ve-la (`passoDaEconomia`,
-	 * abaixo). Deixar marcada e resposta valida (poupa bateria), e a frase
-	 * diz as duas saidas. Avancar so por "a caixa apareceu" foi descartado:
+	 * abaixo). Deixar como esta e resposta valida, e a frase diz as duas
+	 * saidas. Avancar so por "a caixa apareceu" foi descartado:
 	 * a camada sumiria no mesmo tique (250 ms) em que a janela abre, e a frase
 	 * que explica o que a caixa faz nunca chegaria a ser lida.
 	 *
@@ -449,7 +451,7 @@ export const ETAPAS = Object.freeze([
 	Object.freeze({
 		numero: 12,
 		rotulo: 'Economia de energia',
-		frase: 'Desmarque {rotulo} para caçar em segundo plano, ou feche e poupe bateria.',
+		frase: 'Marque {rotulo} para apagar a tela ao sair da aba (a caça segue), ou feche.',
 		alvos: Object.freeze([
 			Object.freeze({ host: 'GraphicsOption', seletor: '.ri-window' }),
 			Object.freeze({

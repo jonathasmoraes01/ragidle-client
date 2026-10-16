@@ -147,7 +147,7 @@ describe('o fio no MapEngine', () => {
 	});
 
 	it('so a tela preta VISIVEL pede os numeros (resumo); a aba oculta fica calada', () => {
-		const abrir = corpoDe('function abrirTelaDaEconomia(restanteMs)');
+		const abrir = corpoDe('function abrirTelaDaEconomia(decorridoMs)'); // D-2599: o tempo fora
 		expect(abrir).toMatch(/document\.visibilityState === 'visible' && --_segundosAteOResumo <= 0/);
 		expect(abrir).toContain("pedirAcaoDaEconomia('resumo')");
 		const volta = corpoDe('function onVisibilidadeMudouParaEconomia()');

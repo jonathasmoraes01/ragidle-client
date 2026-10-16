@@ -4,6 +4,12 @@
  * De volta em 13/10/2026 (bug #10, decisao do dono: "sim, trazer de volta" para o
  * Bot novo).
  *
+ * D-2598 (16/10/2026): o interruptor escolhe so a TELA PRETA. O `entrar` (que
+ * segura o personagem farmando no mundo quando a conexao cai) sai sempre, e a
+ * volta sem a tela na frente manda `sair` sozinha. Os casos com `tela: true` sao
+ * os da tela escolhida (D-1392: so o botao sai); os com `tela: false` (o padrao
+ * novo) sao o segundo plano invisivel.
+ *
  * Comportamento com RELOGIO FALSO, nao casamento de texto: o gatilho mora em
  * `Engine/gatilhoDaEconomia.js` (puro) e o `MapEngine.js` so o liga.
  */
@@ -11,17 +17,17 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { MS_DE_ATRASO_ANTES_DE_ENTRAR_NA_ECONOMIA, criarGatilhoDaEconomia } from '../../src/Engine/gatilhoDaEconomia.js';
 
-function montar({ oculta = true, ligada = true, dedo = false } = {}) {
-	const estado = { oculta, ligada, dedo };
+function montar({ oculta = true, tela = true, dedo = false } = {}) {
+	const estado = { oculta, tela, dedo };
 	const pedidos = [];
 	const telas = [];
 	const gatilho = criarGatilhoDaEconomia({
 		oculta: () => estado.oculta,
-		automaticaLigada: () => estado.ligada,
+		telaPretaEscolhida: () => estado.tela,
 		armarNaHora: () => estado.dedo,
 		pedirEntrar: () => pedidos.push('entrar'),
 		pedirSair: () => pedidos.push('sair'),
-		abrirTela: restante => telas.push(restante)
+		abrirTela: decorrido => telas.push(decorrido)
 	});
 	return { estado, pedidos, telas, gatilho };
 }
@@ -83,13 +89,14 @@ describe('o atraso da economia de energia', () => {
 		expect(pedidos).toEqual(['entrar']);
 	});
 
-	it('voltar a aba DEPOIS de avisar nao manda `sair` (so o botao "Voltar a jogar" sai, D-1392)', () => {
-		const { estado, pedidos, gatilho } = montar();
+	it('com a tela ESCOLHIDA, voltar a aba depois de avisar nao manda `sair` (so o botao "Voltar a jogar" sai, D-1392)', () => {
+		const { estado, pedidos, gatilho } = montar({ tela: true });
 		gatilho.aoMudarVisibilidade();
 		vi.advanceTimersByTime(14_000);
 		estado.oculta = false;
 		gatilho.aoMudarVisibilidade();
 		expect(pedidos).toEqual(['entrar']);
+		expect(gatilho.fase()).toBe('liberada');
 	});
 
 	it('a aba que volta no instante exato do disparo nao avisa (confere de novo)', () => {
@@ -98,26 +105,6 @@ describe('o atraso da economia de energia', () => {
 		vi.advanceTimersByTime(13_000);
 		estado.oculta = false; // sem passar pelo evento: o disparo reconfere
 		vi.advanceTimersByTime(1_000);
-		expect(pedidos).toEqual([]);
-	});
-
-	it('a opcao desligada nas Configuracoes de Video: nada e pedido, nem pelo atraso ja agendado', () => {
-		const { estado, pedidos, gatilho } = montar();
-		gatilho.aoMudarVisibilidade();
-		vi.advanceTimersByTime(5_000);
-		estado.ligada = false;
-		gatilho.aoMudarVisibilidade();
-		expect(gatilho.agendado()).toBe(false);
-		vi.advanceTimersByTime(60_000);
-		expect(pedidos).toEqual([]);
-	});
-
-	it('desligada no meio do atraso, sem novo evento, o disparo reconfere e nao avisa', () => {
-		const { estado, pedidos, gatilho } = montar();
-		gatilho.aoMudarVisibilidade();
-		vi.advanceTimersByTime(5_000);
-		estado.ligada = false;
-		vi.advanceTimersByTime(10_000);
 		expect(pedidos).toEqual([]);
 	});
 
@@ -134,10 +121,102 @@ describe('o atraso da economia de energia', () => {
 		expect(motor).toContain("document.addEventListener('visibilitychange', onVisibilidadeMudouParaEconomia);");
 		expect(motor).toContain("document.removeEventListener('visibilitychange', onVisibilidadeMudouParaEconomia);");
 		expect(motor).toContain("pedirEntrar: () => pedirAcaoDaEconomia('entrar'),");
+		expect(motor).toContain("pedirSair: () => pedirAcaoDaEconomia('sair'),");
 		expect(motor).toContain('criarGatilhoDaEconomia({');
 		// O criterio de celular e o do projeto (`ehDedo`), nao um `matchMedia` novo; e o `pagehide` esta ligado.
 		expect(motor).toContain('armarNaHora: () => ehDedo(),');
 		expect(motor).toContain("window.addEventListener('pagehide', onPaginaEscondida);");
+		// D-2598: o interruptor escolhe a TELA, pela chave nova (a velha ficou gravada `true` em todo jogador antigo).
+		expect(motor).toContain('telaPretaEscolhida: () => GraphicsSettings.telaPretaAoTrocarDeAba === true,');
+		expect(motor).not.toMatch(/economiaDeEnergiaAutomatica/);
+	});
+});
+
+/*
+ * D-2598 (16/10/2026): O SEGUNDO PLANO INVISIVEL. Medido no `prove:segundo-plano` (D-2594) e no codigo de antes: com o
+ * interruptor desligado o `entrar` nunca saia, e a queda da conexao tirava o personagem do mundo; com ele ligado, a tela
+ * preta cobria o jogo na volta. Cada caso abaixo REPROVA no gatilho de antes (o controle: ele lia `automaticaLigada`, que
+ * aqui nem existe, e seguia em frente sem `entrar`).
+ */
+describe('D-2598: sem a tela escolhida, o aviso sai e a volta nao se ve', () => {
+	beforeEach(() => vi.useFakeTimers());
+	afterEach(() => vi.useRealTimers());
+
+	it('desktop: a aba escondida manda `entrar` depois dos 14 s mesmo sem a tela escolhida', () => {
+		const { pedidos, telas, gatilho } = montar({ tela: false });
+		gatilho.aoMudarVisibilidade();
+		vi.advanceTimersByTime(13_999);
+		expect(pedidos).toEqual([]);
+		vi.advanceTimersByTime(1);
+		expect(pedidos, 'o aviso que segura o personagem no mundo').toEqual(['entrar']);
+		expect(gatilho.fase()).toBe('armada');
+		expect(gatilho.aoResponderAtiva(14_000), 'a resposta do servidor nao abre tela nenhuma').toBe(false);
+		vi.advanceTimersByTime(600_000);
+		expect(telas).toEqual([]);
+		expect(pedidos).toEqual(['entrar']);
+	});
+
+	it('desktop: a volta da aba manda `sair` sozinha, e o ack devolve ao comeco', () => {
+		const { estado, pedidos, telas, gatilho } = montar({ tela: false });
+		gatilho.aoMudarVisibilidade();
+		vi.advanceTimersByTime(180_000);
+		estado.oculta = false;
+		gatilho.aoMudarVisibilidade();
+		expect(pedidos).toEqual(['entrar', 'sair']);
+		expect(gatilho.fase()).toBe('desarmando');
+		expect(gatilho.aoResponderAtiva(180_000), 'a resposta atrasada do `entrar` nao abre tela').toBe(false);
+		gatilho.aoResponderInativa();
+		expect(gatilho.fase()).toBe('livre');
+		expect(telas).toEqual([]);
+	});
+
+	it('dedo: `entrar` na hora, a tela nunca abre, e a volta (mesmo depois dos 14 s) manda `sair`', () => {
+		const { estado, pedidos, telas, gatilho } = montar({ tela: false, dedo: true });
+		gatilho.aoMudarVisibilidade();
+		expect(pedidos).toEqual(['entrar']);
+		expect(gatilho.aoResponderAtiva(1)).toBe(false);
+		vi.advanceTimersByTime(60_000);
+		expect(telas, 'o atraso passou e a tela segue fechada').toEqual([]);
+		expect(gatilho.fase()).toBe('armada');
+		estado.oculta = false;
+		gatilho.aoMudarVisibilidade();
+		expect(pedidos).toEqual(['entrar', 'sair']);
+	});
+
+	it('dedo: o `pagehide` arma sem a tela escolhida (o celular que congela a pagina)', () => {
+		const { pedidos, gatilho } = montar({ tela: false, dedo: true, oculta: false });
+		gatilho.aoEsconderPagina();
+		expect(pedidos).toEqual(['entrar']);
+	});
+
+	it('o rearme depois da reentrada (cancelar com a aba oculta) volta a mandar `entrar`', () => {
+		const { pedidos, gatilho } = montar({ tela: false });
+		gatilho.aoMudarVisibilidade();
+		vi.advanceTimersByTime(14_000);
+		gatilho.cancelar(); // a conexao nova (`onConnectionAccepted`)
+		gatilho.aoMudarVisibilidade(); // a aba segue oculta: o MapEngine reagenda pelo mesmo caminho
+		vi.advanceTimersByTime(14_000);
+		expect(pedidos).toEqual(['entrar', 'entrar']);
+	});
+
+	it('desligar a tela com o atraso correndo nao derruba o aviso (o farm continua)', () => {
+		const { estado, pedidos, telas, gatilho } = montar({ tela: true });
+		gatilho.aoMudarVisibilidade();
+		vi.advanceTimersByTime(5_000);
+		estado.tela = false;
+		vi.advanceTimersByTime(9_000);
+		expect(pedidos).toEqual(['entrar']);
+		expect(gatilho.fase()).toBe('armada');
+		expect(gatilho.aoResponderAtiva(1)).toBe(false);
+		expect(telas).toEqual([]);
+	});
+
+	it('a resposta `ativa:true` em `livre` (o `resumo` em voo quando o botao fechou) nao reabre a tela', () => {
+		const { gatilho } = montar({ tela: true });
+		gatilho.aoMudarVisibilidade();
+		vi.advanceTimersByTime(14_000);
+		gatilho.cancelar(); // o "Voltar a jogar"
+		expect(gatilho.aoResponderAtiva(20_000)).toBe(false);
 	});
 });
 
@@ -161,15 +240,15 @@ describe('o celular arma na hora (decisao do dono, 13/10/2026)', () => {
 		expect(pedidos).toEqual(['entrar']);
 	});
 
-	it('a TELA PRETA do celular so abre depois dos 14 s, mesmo com a resposta do servidor ja ter chegado', () => {
+	it('a TELA PRETA escolhida do celular so abre depois dos 14 s, mesmo com a resposta do servidor ja ter chegado', () => {
 		const { telas, gatilho } = montar({ dedo: true });
 		gatilho.aoMudarVisibilidade();
-		expect(gatilho.aoResponderAtiva(14_400_000), 'a resposta chega na hora: a tela espera').toBe(false);
+		expect(gatilho.aoResponderAtiva(1_000), 'a resposta chega na hora: a tela espera').toBe(false);
 		vi.advanceTimersByTime(13_999);
 		expect(telas).toEqual([]);
 		vi.advanceTimersByTime(1);
-		expect(telas, 'passou o atraso: abre com o restante guardado').toEqual([14_400_000]);
-		expect(gatilho.aoResponderAtiva(14_399_000), 'depois do atraso a tela abre direto').toBe(true);
+		expect(telas, 'passou o atraso: abre com o tempo fora guardado').toEqual([1_000]);
+		expect(gatilho.aoResponderAtiva(15_000), 'depois do atraso a tela abre direto').toBe(true);
 	});
 
 	it('se a resposta chega DEPOIS do atraso, a tela abre direto (nada guardado)', () => {
@@ -183,20 +262,20 @@ describe('o celular arma na hora (decisao do dono, 13/10/2026)', () => {
 	it('voltar antes dos 14 s manda `sair` e a tela nunca abre', () => {
 		const { estado, pedidos, telas, gatilho } = montar({ dedo: true });
 		gatilho.aoMudarVisibilidade();
-		gatilho.aoResponderAtiva(14_400_000);
+		gatilho.aoResponderAtiva(1_000);
 		vi.advanceTimersByTime(8_000);
 		estado.oculta = false;
 		gatilho.aoMudarVisibilidade();
 		expect(pedidos).toEqual(['entrar', 'sair']);
 		// A resposta atrasada do `entrar` (ativa:true) e ignorada ate o ack do `sair`.
-		expect(gatilho.aoResponderAtiva(14_400_000)).toBe(false);
+		expect(gatilho.aoResponderAtiva(1_000)).toBe(false);
 		vi.advanceTimersByTime(60_000);
 		expect(telas).toEqual([]);
 		gatilho.aoResponderInativa();
 		expect(gatilho.fase()).toBe('livre');
 	});
 
-	it('voltar DEPOIS que a tela abriu nao manda `sair` (D-1392)', () => {
+	it('voltar DEPOIS que a tela escolhida abriu nao manda `sair` (D-1392)', () => {
 		const { estado, pedidos, gatilho } = montar({ dedo: true });
 		gatilho.aoMudarVisibilidade();
 		vi.advanceTimersByTime(14_000);
@@ -222,21 +301,6 @@ describe('o celular arma na hora (decisao do dono, 13/10/2026)', () => {
 		expect(pedidos).toEqual(['entrar']);
 	});
 
-	it('com a opcao desligada o celular nao arma nem no `pagehide`', () => {
-		const { pedidos, gatilho } = montar({ dedo: true, ligada: false });
-		gatilho.aoMudarVisibilidade();
-		gatilho.aoEsconderPagina();
-		expect(pedidos).toEqual([]);
-	});
-
-	it('a opcao desligada com o aviso ja mandado (celular) desfaz com `sair`', () => {
-		const { estado, pedidos, gatilho } = montar({ dedo: true });
-		gatilho.aoMudarVisibilidade();
-		estado.ligada = false;
-		gatilho.aoMudarVisibilidade();
-		expect(pedidos).toEqual(['entrar', 'sair']);
-	});
-
 	it('o ack tardio do `sair` nao apaga um novo `entrar` cedo (esconder, voltar, esconder)', () => {
 		const { estado, pedidos, gatilho } = montar({ dedo: true });
 		gatilho.aoMudarVisibilidade();
@@ -246,20 +310,20 @@ describe('o celular arma na hora (decisao do dono, 13/10/2026)', () => {
 		gatilho.aoMudarVisibilidade();
 		expect(pedidos).toEqual(['entrar', 'sair', 'entrar']);
 		gatilho.aoResponderInativa();
-		expect(gatilho.fase(), 'o ack do sair velho nao desfaz o entrar novo').toBe('cedo');
+		expect(gatilho.fase(), 'o ack do sair velho nao desfaz o entrar novo').toBe('armada');
 	});
 });
 
-describe('rodada 3 do bug #10: achados do critico', () => {
+describe('rodada 3 do bug #10: achados do critico (a tela escolhida)', () => {
 	beforeEach(() => vi.useFakeTimers());
 	afterEach(() => vi.useRealTimers());
 
 	it('A1: com a tela preta ja aberta, esconder de novo e voltar em menos de 14 s NAO manda `sair` (D-1392)', () => {
 		const { estado, pedidos, telas, gatilho } = montar({ dedo: true });
 		gatilho.aoMudarVisibilidade();
-		gatilho.aoResponderAtiva(14_400_000);
+		gatilho.aoResponderAtiva(1_000);
 		vi.advanceTimersByTime(14_000);
-		expect(telas).toEqual([14_400_000]);
+		expect(telas).toEqual([1_000]);
 		// Voltou sem clicar no botao, escondeu de novo e voltou depressa.
 		estado.oculta = false;
 		gatilho.aoMudarVisibilidade();
@@ -275,8 +339,8 @@ describe('rodada 3 do bug #10: achados do critico', () => {
 
 	/*
 	 * D-2578 (15/10/2026): ate aqui a tela liberada NAO reenviava o `entrar` (A1 no desktop, de 13/10), e o servidor
-	 * que desarmou CALADO (o teto com sinal de vida) deixava o cliente em `liberada` sem economia nenhuma - a proxima
-	 * queda tirava o personagem do mundo. Esconder de novo rearma, pelo mesmo atraso de 14 s do desktop.
+	 * que desarmou CALADO deixava o cliente em `liberada` sem economia nenhuma - a proxima queda tirava o personagem do
+	 * mundo. Esconder de novo rearma, pelo mesmo atraso de 14 s do desktop.
 	 */
 	it('D-2578 no desktop: esconder de novo com a tela liberada rearma DEPOIS dos 14 s, e a fase segue liberada', () => {
 		const { estado, pedidos, gatilho } = montar({ dedo: false });
@@ -348,17 +412,17 @@ describe('rodada 3 do bug #10: achados do critico', () => {
 	it('A2: o `pagehide` sozinho arma e AGENDA a tela como o esconder: abre depois dos 14 s se a aba estiver oculta', () => {
 		const { estado, telas, gatilho } = montar({ dedo: true, oculta: false });
 		gatilho.aoEsconderPagina();
-		gatilho.aoResponderAtiva(14_400_000);
+		gatilho.aoResponderAtiva(1_000);
 		expect(gatilho.agendado()).toBe(true);
 		estado.oculta = true; // a aba ficou oculta sem passar pelo visibilitychange
 		vi.advanceTimersByTime(14_000);
-		expect(telas).toEqual([14_400_000]);
+		expect(telas).toEqual([1_000]);
 	});
 
 	it('A2: o `pagehide` com a aba ainda visivel no disparo nao abre tela nenhuma', () => {
 		const { telas, gatilho } = montar({ dedo: true, oculta: false });
 		gatilho.aoEsconderPagina();
-		gatilho.aoResponderAtiva(14_400_000);
+		gatilho.aoResponderAtiva(1_000);
 		vi.advanceTimersByTime(60_000);
 		expect(telas).toEqual([]);
 	});

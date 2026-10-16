@@ -184,7 +184,7 @@ GraphicsOption.onAppend = function onAppend() {
 	// `!== false` e o mesmo criterio de `NomesDosJogadores.ligado()`: preferencia
 	// gravada ANTES desta opcao existir nao tem o campo, e o padrao e LIGADO.
 	root.querySelector('.player-names').checked = GraphicsSettings.showPlayerNames !== false;
-	root.querySelector('.economia-automatica').checked = GraphicsSettings.economiaDeEnergiaAutomatica !== false;
+	root.querySelector('.economia-automatica').checked = GraphicsSettings.telaPretaAoTrocarDeAba === true;
 	root.querySelector('.cursor-option').checked = GraphicsSettings.cursor;
 	root.querySelector('.fpslimit').value = GraphicsSettings.fpslimit;
 	root.querySelector('.fps').checked = FPS._host ? FPS._host.style.display !== 'none' : false;
@@ -256,9 +256,12 @@ function onUpdateEscalaDaHud() {
 	reaplicarHudVertical(document);
 }
 
-/** RAGIDLE (23/09/2026): liga/desliga a economia de energia automatica. */
+/**
+ * RAGIDLE (23/09/2026): liga/desliga a economia de energia automatica. Desde D-2598 (16/10/2026) ela escolhe so a
+ * TELA PRETA ao trocar de aba; o personagem segue farmando em segundo plano de qualquer jeito.
+ */
 function onToggleEconomiaAutomatica() {
-	GraphicsSettings.economiaDeEnergiaAutomatica = !!this.checked;
+	GraphicsSettings.telaPretaAoTrocarDeAba = !!this.checked;
 	GraphicsSettings.save();
 }
 

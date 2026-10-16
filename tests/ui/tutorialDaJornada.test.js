@@ -349,13 +349,16 @@ describe('a etapa 12 ensina a desligar a economia de energia', () => {
 		expect(ler('src/UI/Components/Escape/Escape.js')).toContain("root.querySelector('.graphics').addEventListener('click', onToggleGraphicUI)");
 	});
 
-	it('a frase diz as DUAS saídas: desmarcar, ou fechar e poupar bateria', () => {
+	it('a frase diz as DUAS saídas: marcar a tela preta, ou fechar; e que a caça segue (D-2598)', () => {
 		for (const temDedo of [false, true]) {
 			const frase = fraseDaEtapa(etapa, temDedo);
 			expect(frase).toContain('"Economia de energia"');
-			expect(frase).toMatch(/Desmarque/);
+			expect(frase).toMatch(/Marque/);
 			expect(frase).toMatch(/feche/);
-			expect(frase).toMatch(/bateria/);
+			/* Desde D-2598 a caixa nao desliga o farm em segundo plano: a frase de antes ("Desmarque para cacar em
+			   segundo plano") ensinava o contrario do que ela faz. */
+			expect(frase).toMatch(/a caça segue/);
+			expect(frase).not.toMatch(/Desmarque/);
 		}
 		expect(fraseDaEtapa(etapa, true, etapa.alvos[1].frase)).toContain('Toque em "Configurações de Vídeo"');
 		expect(fraseDaEtapa(etapa, false, etapa.alvos[1].frase)).toContain('Clique em "Configurações de Vídeo"');

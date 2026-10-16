@@ -16932,10 +16932,10 @@ PACKET.CZ.RAGIDLE_ECONOMIA_ACAO.prototype.build = function () {
 
 // 0x0fc3 - RAGIDLE: ZC_RAGIDLE_ECONOMIA (server -> client) — 14/09/2026
 // Variable size: u16 opcode + u16 total length + JSON UTF-8 payload.
-// Contrato (D-1389/D-1390): { ativa, restanteMs?, recusa?, expulso? }.
-// `expulso:true` chega quando o teto de 4h venceu com a conexao AINDA viva —
-// o servidor fecha o socket logo em seguida, do mesmo jeito que "Acordar
-// agora" do Dormir fecha, pra reentrar pelo caminho unico de sempre.
+// Contrato (D-1389/D-1390, D-2555, D-2565): { ativa, decorridoMs?, recusa?,
+// morreu?, parcial?, morte?, ausencia? }. `decorridoMs` e o tempo FORA (sem
+// teto, conta para cima); o `restanteMs` e o `expulso` do teto de 4 h sairam
+// com ele (D-2555, D-2599).
 PACKET.ZC.RAGIDLE_ECONOMIA = function PACKET_ZC_RAGIDLE_ECONOMIA(fp, end) {
 	this.json = fp.readString(end - fp.tell());
 };

@@ -903,10 +903,17 @@ class UIManager {
 	 * A TELA DA ECONOMIA DE ENERGIA (D-1389/D-1390, 14/09/2026 — sair virou
 	 * escolha do jogador em D-1392) — pedido do dono, no estilo dos idles de
 	 * mobile: quando a aba vai pro fundo (`visibilitychange`, `MapEngine.js`),
-	 * cobre tudo com uma tela preta mostrando o tempo restante e um resumo AO
-	 * VIVO (EXP, mobs mortos, itens) — quem chama (`MapEngine.js`) reatualiza
-	 * com `.atualizar(...)` a cada segundo, puxando os numeros de
-	 * `registroDaCaca`.
+	 * cobre tudo com uma tela preta mostrando o TEMPO FORA e um resumo AO VIVO
+	 * (EXP, mobs mortos, itens) — quem chama (`MapEngine.js`) reatualiza com
+	 * `.atualizar(...)` a cada segundo, com os numeros do SERVIDOR (D-2565).
+	 *
+	 * SO PARA QUEM A ESCOLHEU (D-2598, 16/10/2026): o interruptor das
+	 * Configuracoes de Video. Sem ele a aba escondida avisa o servidor do mesmo
+	 * jeito (o personagem segue farmando), mas esta tela nunca abre e a volta
+	 * da aba e o jogo de sempre.
+	 *
+	 * O RELOGIO CONTA PARA CIMA (D-2599): era o restante do teto de 4 h, que
+	 * saiu (D-2555); agora e ha quanto tempo o jogador esta fora.
 	 *
 	 * VOLTAR PRA ABA NAO FECHA SOZINHO (D-1392, correção do dono no mesmo
 	 * dia): a primeira versão mandava "sair" automático assim que a aba
@@ -926,19 +933,19 @@ class UIManager {
 	 * `showDormindo` — quem manda a verdade é o servidor; `MapEngine.js`
 	 * ressincroniza a cada resposta de `ZC_RAGIDLE_ECONOMIA`.
 	 *
-	 * @param {number} restanteMs tempo restante, em ms
+	 * @param {number} decorridoMs o tempo fora, em ms
 	 * @param {function(): void} onVoltar chamado quando o jogador clica em "Voltar a jogar" —
 	 *   quem chama manda o `sair` e fecha esta tela; ela nunca se fecha sozinha
-	 * @returns {{atualizar: function({restanteMs:number, morreu?:boolean, morte?:string|null,
+	 * @returns {{atualizar: function({decorridoMs:number, morreu?:boolean, morte?:string|null,
 	 *   parcial?:{expBase?:number, expClasse?:number, abates?:number, itensTotal?:number}|null}): void, remove: function(): void}}
 	 *   `morreu` (D-1398) liga um aviso fixo de que o personagem morreu nesta
 	 *   sessao — o relogio continua contando do mesmo jeito, e sem o aviso o
 	 *   jogador nao teria como saber que parou de render nada
 	 */
-	static showEconomiaDeEnergia(restanteMs, onVoltar) {
+	static showEconomiaDeEnergia(decorridoMs, onVoltar) {
 		const tela = _telaPretaDeEspera({
 			titulo: 'MODO DE ECONOMIA DE ENERGIA',
-			rodape: 'Clique em "Voltar a jogar" quando quiser retomar. Olhar a aba sozinho não sai do modo.',
+			rodape: 'O relógio conta o tempo fora, e o personagem segue caçando. Olhar a aba não sai do modo: clique em "Voltar a jogar" para ver a caçada.',
 			textoDoBotao: 'Voltar a jogar',
 			onBotao: () => {
 				if (onVoltar) {
@@ -956,7 +963,7 @@ class UIManager {
 		tela.aviso.textContent = avisoDeMorteNaTelaPreta(null);
 
 		function atualizar(stats) {
-			tela.timer.textContent = _relogioDeEspera(stats?.restanteMs);
+			tela.timer.textContent = _relogioDeEspera(stats?.decorridoMs);
 			tela.aviso.hidden = stats?.morreu !== true;
 			if (stats?.morreu === true) {
 				tela.aviso.textContent = avisoDeMorteNaTelaPreta(stats?.morte);
@@ -965,7 +972,7 @@ class UIManager {
 			tela.resumo.textContent = linhaDaTelaPreta(stats?.parcial, n => n.toLocaleString(localeDoIdioma()));
 		}
 
-		atualizar({ restanteMs });
+		atualizar({ decorridoMs });
 
 		return {
 			atualizar,

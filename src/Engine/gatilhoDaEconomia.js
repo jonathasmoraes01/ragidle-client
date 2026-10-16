@@ -12,6 +12,23 @@
  * cobrado por casamento de texto; agora o comportamento e provado com relogio
  * falso.
  *
+ * O AVISO E A TELA SAO DUAS COISAS (D-2598, 16/10/2026, frente J do segundo
+ * plano). Ate aqui UM interruptor ("Entrar sozinho ao trocar de aba", nas
+ * Configuracoes de Video) controlava o aviso ao servidor E a tela preta.
+ * Desligado, o `entrar` nunca saia: quando o navegador derrubava a conexao, o
+ * servidor a tratava como queda comum e o personagem SAIA DO MUNDO (o farm
+ * parava) - o contrario do que o dono pediu ("e inviavel que eu perca alguma
+ * coisa porque estou com o jogo numa aba diferente, mas online"). Agora:
+ *   - o AVISO (`entrar`) sai SEMPRE que a aba esconde (o desktop pelo atraso de
+ *     14 s, o dedo na hora): e ele que mantem o personagem farmando sem cliente e
+ *     corta a rede da aba oculta (D-2570);
+ *   - a VOLTA (`sair`) sai SEMPRE que a aba volta sem a tela preta na frente: a
+ *     volta nao pode ser vista (decisao 3 do dono), entao nada cobre o jogo e o
+ *     "Enquanto voce esteve fora" (D-2565) diz o que rendeu;
+ *   - a TELA PRETA so existe para quem a ESCOLHEU (`telaPretaEscolhida`, o
+ *     interruptor): ela abre depois dos 14 s com a aba oculta e fica ate o
+ *     "Voltar a jogar" (D-1392), com o farm do servidor ao vivo.
+ *
  * O ATRASO existe para distinguir "so foi pro fundo" (alt-tab, troca de app) de
  * "fechou de vez" NO DESKTOP: se a aba fechar, o JavaScript morre antes do
  * atraso disparar e o aviso nunca sai. Pedido do dono (14/09/2026): "essa
@@ -27,12 +44,13 @@
  *
  * As fases da economia deste lado:
  *   livre       nada pedido
- *   cedo        celular: `entrar` ja foi, a tela preta espera o atraso (a
- *               resposta `ativa:true` fica guardada)
- *   liberada    a tela preta pode abrir (desktop: o aviso saiu depois do atraso;
- *               celular: o atraso passou)
- *   desarmando  celular voltou antes do atraso e mandou `sair`: respostas
- *               `ativa:true` atrasadas sao ignoradas
+ *   armada      o `entrar` ja foi e nao ha tela preta (ainda: o dedo espera o
+ *               atraso; ou nunca: a tela nao foi escolhida). A resposta
+ *               `ativa:true` fica guardada; a volta da aba manda `sair`
+ *   liberada    a tela preta escolhida pode abrir (desktop: o aviso saiu depois
+ *               do atraso; dedo: o atraso passou); a volta da aba NAO sai
+ *   desarmando  a aba voltou e o `sair` foi: respostas `ativa:true` atrasadas
+ *               sao ignoradas ate o ack
  *
  * This file is part of the ragidle fork of ROBrowser.
  */
@@ -46,7 +64,7 @@ export const MS_DE_ATRASO_ANTES_DE_ENTRAR_NA_ECONOMIA = 14000;
 /**
  * @param {{
  *   oculta: function(): boolean,
- *   automaticaLigada: function(): boolean,
+ *   telaPretaEscolhida: function(): boolean,
  *   pedirEntrar: function(): void,
  *   pedirSair?: function(): void,
  *   armarNaHora?: function(): boolean,
@@ -61,6 +79,7 @@ export function criarGatilhoDaEconomia(deps) {
 	const desagendar = deps.desagendar || (t => clearTimeout(t));
 	const atrasoMs = deps.atrasoMs === undefined ? MS_DE_ATRASO_ANTES_DE_ENTRAR_NA_ECONOMIA : deps.atrasoMs;
 	const naHora = () => (deps.armarNaHora ? deps.armarNaHora() === true : false);
+	const comTela = () => deps.telaPretaEscolhida() === true;
 	let atraso = null;
 	let fase = 'livre';
 	let pendente = null;
@@ -79,17 +98,18 @@ export function criarGatilhoDaEconomia(deps) {
 		pendente = null;
 	}
 
+	/** O dedo: o `entrar` sai no instante em que a aba some (a pagina congela antes dos 14 s). */
 	function entrarCedo() {
-		if (fase === 'cedo') {
+		if (fase === 'armada') {
 			return;
 		}
 		deps.pedirEntrar();
-		fase = 'cedo';
+		fase = 'armada';
 		pendente = null;
 	}
 
-	/** O celular voltou antes do atraso: o `sair` desfaz o que o `entrar` cedo armou, sem tela nenhuma. */
-	function desarmarCedo() {
+	/** A aba voltou sem tela preta na frente: o `sair` desfaz o que o `entrar` armou, sem tela nenhuma. */
+	function desarmar() {
 		if (deps.pedirSair) {
 			deps.pedirSair();
 		}
@@ -97,44 +117,37 @@ export function criarGatilhoDaEconomia(deps) {
 		pendente = null;
 	}
 
-	/** O atraso de 14 s: confere de novo e, no celular, abre a tela guardada; no desktop manda o `entrar`. */
+	/**
+	 * O atraso de 14 s. Confere de novo; no dedo (o `entrar` ja saiu) so falta a tela, e so para quem a escolheu; no
+	 * desktop manda o `entrar`, com ou sem tela: e ele que segura o personagem no mundo se a conexao cair.
+	 */
 	function agendarAtraso() {
 		atraso = agendar(() => {
 			atraso = null;
-			// Confere de novo: pode ter voltado no instante exato do disparo, ou o jogador pode ter desligado
-			// a economia automatica nesse meio tempo.
+			// Confere de novo: pode ter voltado no instante exato do disparo.
 			if (!deps.oculta()) {
 				return;
 			}
-			if (!deps.automaticaLigada()) {
+			if (fase === 'armada') {
+				if (comTela()) {
+					fase = 'liberada';
+					if (pendente !== null && deps.abrirTela) {
+						deps.abrirTela(pendente);
+					}
+					pendente = null;
+				}
 				return;
 			}
-			if (fase === 'cedo') {
-				fase = 'liberada';
-				if (pendente !== null && deps.abrirTela) {
-					deps.abrirTela(pendente);
-				}
-				pendente = null;
-			} else {
-				deps.pedirEntrar();
-				fase = 'liberada';
-			}
+			deps.pedirEntrar();
+			fase = comTela() ? 'liberada' : 'armada';
 		}, atrasoMs);
 	}
 
 	/**
-	 * `visibilitychange`: a ida pro FUNDO agenda o aviso (desktop) ou o manda ja (celular). Voltar a aba NAO fecha a
-	 * tela que ja abriu (D-1392: quem sai e o botao "Voltar a jogar"); so desfaz o que ainda nao apareceu.
+	 * `visibilitychange`: a ida pro FUNDO agenda o aviso (desktop) ou o manda ja (celular). A volta manda `sair`
+	 * quando nada esta na frente (D-2598); a tela preta ESCOLHIDA so fecha no botao (D-1392).
 	 */
 	function aoMudarVisibilidade() {
-		// A economia AUTOMATICA desligada nas Configuracoes de Video (23/09/2026): nada a pedir; o que ja foi cai.
-		if (!deps.automaticaLigada()) {
-			limparTimer();
-			if (fase === 'cedo') {
-				desarmarCedo();
-			}
-			return;
-		}
 		if (deps.oculta()) {
 			if (atraso !== null) {
 				return; // ja agendado: nao empilha um segundo
@@ -142,12 +155,11 @@ export function criarGatilhoDaEconomia(deps) {
 			// D-1392: com a tela preta ja liberada so o botao "Voltar a jogar" fecha. Esconder de novo nao recomeca o
 			// aviso cedo (voltar em menos de 14 s mandaria `sair` e fecharia a tela sem o botao).
 			//
-			// Mas REARMA (D-2578, 15/10/2026): o servidor pode ter desarmado CALADO enquanto a aba estava a vista (o
-			// teto com sinal de vida, `venceuEconomiaDeEnergia`), e o cliente seguia em `liberada` sem reenviar o
-			// `entrar` - a proxima queda tirava o personagem do mundo. O `entrar` repetido e idempotente no servidor
-			// (so a primeira armada decide o instante) e so reabre a tela que ja esta aberta. No dedo sai ja (a
-			// pagina congela logo); no desktop, pelo mesmo atraso de 14 s (fechar a aba antes dele segue encerrando).
-			// A fase NAO muda: voltar antes do atraso so cancela o relogio, sem `sair`.
+			// Mas REARMA (D-2578, 15/10/2026): o servidor pode ter desarmado CALADO enquanto a aba estava a vista, e o
+			// cliente seguia em `liberada` sem reenviar o `entrar` - a proxima queda tirava o personagem do mundo. O
+			// `entrar` repetido e idempotente no servidor (so a primeira armada decide o instante) e so reabre a tela
+			// que ja esta aberta. No dedo sai ja (a pagina congela logo); no desktop, pelo mesmo atraso de 14 s (fechar
+			// a aba antes dele segue encerrando). A fase NAO muda: voltar antes do atraso so cancela o relogio, sem `sair`.
 			if (fase === 'liberada') {
 				if (naHora()) {
 					deps.pedirEntrar();
@@ -162,15 +174,16 @@ export function criarGatilhoDaEconomia(deps) {
 			agendarAtraso();
 		} else {
 			limparTimer();
-			if (fase === 'cedo') {
-				desarmarCedo();
+			// D-2598: a volta sem a tela preta na frente sai da economia sozinha, com o interruptor ligado ou nao.
+			if (fase === 'armada') {
+				desarmar();
 			}
 		}
 	}
 
 	/** `pagehide`: o ultimo instante em que o JS ainda roda no celular. So no dedo, e so uma vez. */
 	function aoEsconderPagina() {
-		if (!deps.automaticaLigada() || !naHora()) {
+		if (!naHora()) {
 			return;
 		}
 		if (fase === 'livre') {
@@ -182,18 +195,23 @@ export function criarGatilhoDaEconomia(deps) {
 		}
 	}
 
-	/** O servidor respondeu `ativa:true`: a tela pode abrir agora? (`false` = guardada ou ignorada) */
-	function aoResponderAtiva(restanteMs) {
-		if (fase === 'cedo') {
-			pendente = restanteMs;
+	/**
+	 * O servidor respondeu `ativa:true`: a tela pode abrir agora? (`false` = guardada ou ignorada). So a fase
+	 * `liberada` abre: e a unica em que a tela foi escolhida e o atraso passou. Em `livre` a resposta e de um pedido
+	 * velho (o `resumo` em voo quando o "Voltar a jogar" foi clicado, o `entrar` de antes de uma reentrada) e
+	 * reabriria a tela que o jogador acabou de fechar; em `desarmando`, o `entrar` que o `sair` ja desfez.
+	 */
+	function aoResponderAtiva(decorridoMs) {
+		if (fase === 'armada') {
+			pendente = decorridoMs;
 			return false;
 		}
-		return fase !== 'desarmando';
+		return fase === 'liberada';
 	}
 
-	/** O servidor respondeu `ativa:false` (o ack do `sair`, uma recusa, o teto). */
+	/** O servidor respondeu `ativa:false` (o ack do `sair`, uma recusa). */
 	function aoResponderInativa() {
-		if (fase !== 'cedo') {
+		if (fase !== 'armada') {
 			fase = 'livre';
 			pendente = null;
 		}

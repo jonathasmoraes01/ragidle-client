@@ -1,8 +1,10 @@
 // Mutacao somente na memoria do Vitest: nunca altera o cliente servido pelo Vite.
 //
 // O GATILHO DA ECONOMIA DE ENERGIA / MODO DESCANSO (bug #10 de 13/10/2026): cada mutante e um jeito de o aviso
-// `entrar` mentir: sair sem esperar o atraso de 14 s, empilhar atrasos, nao cancelar quando a aba volta, ignorar a
-// opcao desligada, nao reconferir no disparo, ou `cancelar` que nao cancela. Alvo: `Engine/gatilhoDaEconomia.js`,
+// `entrar` mentir: sair sem esperar o atraso de 14 s, empilhar atrasos, nao cancelar quando a aba volta, nao
+// reconferir no disparo, ou `cancelar` que nao cancela. Desde D-2598 (16/10/2026), tambem os jeitos de a TELA e o
+// AVISO voltarem a andar juntos: o `entrar` que depende da tela, a volta que nao manda `sair`, a tela para quem nao
+// a escolheu. Alvo: `Engine/gatilhoDaEconomia.js`,
 // alcancado pelo jsdom com relogio falso (`tests/ui/atrasoDaEconomia.test.js`).
 //
 //   RAG_MUTANTE_GATILHO=<nome> npx vitest run --config tests/mutantes/gatilho-da-economia.config.mjs
@@ -20,30 +22,21 @@ const mutantes = {
 	// um segundo evento com a aba oculta empilha outro atraso
 	empilha: [ALVO, '\t\t\tif (atraso !== null) {\n\t\t\t\treturn; // ja agendado: nao empilha um segundo\n\t\t\t}\n', ''],
 	// voltar a aba antes do atraso nao cancela
-	voltarNaoCancela: [ALVO, '\t\t} else {\n\t\t\tlimparTimer();\n\t\t\tif (fase === \'cedo\') {\n\t\t\t\tdesarmarCedo();\n\t\t\t}\n\t\t}', '\t\t} else {\n\t\t\tif (fase === \'cedo\') {\n\t\t\t\tdesarmarCedo();\n\t\t\t}\n\t\t}'],
-	// a opcao desligada nao cancela o atraso ja agendado
-	desligadaNaoCancela: [ALVO, '\t\tif (!deps.automaticaLigada()) {\n\t\t\tlimparTimer();\n', '\t\tif (!deps.automaticaLigada()) {\n'],
+	voltarNaoCancela: [ALVO, '\t\t} else {\n\t\t\tlimparTimer();\n', '\t\t} else {\n'],
 	// o disparo nao reconfere a visibilidade
-	semReconferirAba: [ALVO, '\t\t\tif (!deps.oculta()) {\n\t\t\t\treturn;\n\t\t\t}\n\t\t\tif (!deps.automaticaLigada()) {', '\t\t\tif (!deps.automaticaLigada()) {'],
-	// o disparo nao reconfere a opcao
-	semReconferirOpcao: [ALVO, '\t\t\tif (!deps.automaticaLigada()) {\n\t\t\t\treturn;\n\t\t\t}\n\t\t\tif (fase === \'cedo\') {', '\t\t\tif (fase === \'cedo\') {'],
+	semReconferirAba: [ALVO, '\t\t\tif (!deps.oculta()) {\n\t\t\t\treturn;\n\t\t\t}\n\t\t\tif (fase === \'armada\') {', '\t\t\tif (fase === \'armada\') {'],
 	// `cancelar` esquece de desagendar
 	cancelarNaoDesagenda: [ALVO, '\t\t\tdesagendar(atraso);\n', ''],
 	// `cancelar` esquece de zerar o estado (o gatilho nunca mais agenda)
 	cancelarNaoZera: [ALVO, '\t\t\tdesagendar(atraso);\n\t\t\tatraso = null;', '\t\t\tdesagendar(atraso);'],
-	// a opcao desligada ainda agenda
 	// o celular volta a esperar os 14 s para armar (o iPhone congela antes)
 	celularEspera: [ALVO, '\t\t\tif (naHora()) {\n\t\t\t\tentrarCedo();\n\t\t\t}\n', ''],
 	// a tela preta do celular abre na hora, sem esperar os 14 s
-	telaSemEspera: [ALVO, "\t\tif (fase === 'cedo') {\n\t\t\tpendente = restanteMs;\n\t\t\treturn false;\n\t\t}", "\t\tif (fase === 'cedo') {\n\t\t\treturn true;\n\t\t}"],
-	// voltar antes dos 14 s nao desfaz o aviso cedo
-	voltarNaoDesarmaCedo: [ALVO, '\t\t} else {\n\t\t\tlimparTimer();\n\t\t\tif (fase === \'cedo\') {\n\t\t\t\tdesarmarCedo();\n\t\t\t}\n\t\t}\n\t}', '\t\t} else {\n\t\t\tlimparTimer();\n\t\t}\n\t}'],
+	telaSemEspera: [ALVO, "\t\tif (fase === 'armada') {\n\t\t\tpendente = decorridoMs;\n\t\t\treturn false;\n\t\t}", "\t\tif (fase === 'armada') {\n\t\t\treturn true;\n\t\t}"],
 	// o pagehide nao arma
 	semPagehide: [ALVO, "\t\tif (fase === 'livre') {\n\t\t\tentrarCedo();\n", "\t\tif (fase === 'livre') {\n"],
 	// o ack tardio do sair apaga o entrar novo
-	ackApagaOEntradaNova: [ALVO, "\t\tif (fase !== 'cedo') {\n\t\t\tfase = 'livre';\n\t\t\tpendente = null;\n\t\t}\n\t}\n\n\treturn", "\t\tfase = 'livre';\n\t\tpendente = null;\n\t}\n\n\treturn"],
-	// a resposta tardia do entrar reabre a tela depois do sair
-	ignoraDesarmando: [ALVO, "return fase !== 'desarmando';", 'return true;'],
+	ackApagaOEntradaNova: [ALVO, "\t\tif (fase !== 'armada') {\n\t\t\tfase = 'livre';\n\t\t\tpendente = null;\n\t\t}\n\t}\n\n\treturn", "\t\tfase = 'livre';\n\t\tpendente = null;\n\t}\n\n\treturn"],
 	// A1: esconder de novo com a tela liberada volta a armar cedo (e o `sair` fecha a tela sem o botao)
 	telaLiberadaRearma: [ALVO, "\t\t\tif (fase === 'liberada') {\n\t\t\t\tif (naHora()) {\n\t\t\t\t\tdeps.pedirEntrar();\n\t\t\t\t} else {\n\t\t\t\t\tagendarAtraso();\n\t\t\t\t}\n\t\t\t\treturn;\n\t\t\t}\n", ''],
 	// D-2578: a tela liberada volta a NAO rearmar (o servidor que desarmou calado deixa o cliente sem economia)
@@ -56,7 +49,25 @@ const mutantes = {
 	liberadaVoltaALivre: [ALVO, '\t\t\t\t\tagendarAtraso();\n\t\t\t\t}\n\t\t\t\treturn;', "\t\t\t\t\tagendarAtraso();\n\t\t\t\t}\n\t\t\t\tfase = 'livre';\n\t\t\t\treturn;"],
 	// A2: o pagehide sozinho nao agenda a tela
 	pagehideSemAgenda: [ALVO, '\t\t\tif (atraso === null) {\n\t\t\t\tagendarAtraso();\n\t\t\t}\n', ''],
-	ignoraAOpcao: [ALVO, '\t\tif (!deps.automaticaLigada()) {\n\t\t\tlimparTimer();\n\t\t\tif (fase === \'cedo\') {\n\t\t\t\tdesarmarCedo();\n\t\t\t}\n\t\t\treturn;\n\t\t}\n', '']
+
+	// D-2598: o `entrar` do desktop volta a depender da tela (o defeito: sem ela a queda tirava o personagem do mundo)
+	entrarSoComTela: [ALVO, "\t\t\tdeps.pedirEntrar();\n\t\t\tfase = comTela() ? 'liberada' : 'armada';", "\t\t\tif (!comTela()) {\n\t\t\t\treturn;\n\t\t\t}\n\t\t\tdeps.pedirEntrar();\n\t\t\tfase = 'liberada';"],
+	// D-2598: sem a tela escolhida, o desktop fica `liberada` (a volta nao manda `sair` e o personagem segue ausente)
+	semTelaFicaLiberada: [ALVO, "\t\t\tfase = comTela() ? 'liberada' : 'armada';", "\t\t\tfase = 'liberada';"],
+	// D-2598: a volta sem a tela na frente nao manda `sair`
+	voltaSemSair: [ALVO, "\t\t\tif (fase === 'armada') {\n\t\t\t\tdesarmar();\n\t\t\t}\n\t\t}\n\t}", '\t\t}\n\t}'],
+	// D-2598: a volta sai TAMBEM com a tela escolhida (fecharia a tela sem o botao, D-1392)
+	voltaSaiComTela: [ALVO, "\t\t\tif (fase === 'armada') {\n\t\t\t\tdesarmar();\n\t\t\t}\n\t\t}\n\t}", "\t\t\tif (fase === 'armada' || fase === 'liberada') {\n\t\t\t\tdesarmar();\n\t\t\t}\n\t\t}\n\t}"],
+	// D-2598: a tela abre para todo mundo (o interruptor ignorado)
+	telaParaTodos: [ALVO, '\tconst comTela = () => deps.telaPretaEscolhida() === true;', '\tconst comTela = () => true;'],
+	// D-2598: o dedo abre a tela guardada sem a tela ter sido escolhida
+	dedoAbreSemEscolha: [ALVO, "\t\t\tif (fase === 'armada') {\n\t\t\t\tif (comTela()) {", "\t\t\tif (fase === 'armada') {\n\t\t\t\tif (true) {"],
+	// D-2598: o pagehide volta a depender da tela (o celular que congela nao armaria)
+	pagehideSoComTela: [ALVO, "\t\tif (!naHora()) {\n\t\t\treturn;\n\t\t}\n\t\tif (fase === 'livre') {", "\t\tif (!naHora() || !comTela()) {\n\t\t\treturn;\n\t\t}\n\t\tif (fase === 'livre') {"],
+	// a resposta `ativa:true` em `livre` reabre a tela que o botao fechou (o `resumo` em voo)
+	livreAbreTela: [ALVO, "\t\treturn fase === 'liberada';", "\t\treturn fase !== 'desarmando';"],
+	// a resposta tardia do entrar reabre a tela depois do sair
+	ignoraDesarmando: [ALVO, "\t\treturn fase === 'liberada';", "\t\treturn fase === 'liberada' || fase === 'desarmando';"]
 };
 const mutante = mutantes[process.env.RAG_MUTANTE_GATILHO];
 if (!mutante) throw new Error(`Escolha RAG_MUTANTE_GATILHO: ${Object.keys(mutantes).join(', ')}.`);

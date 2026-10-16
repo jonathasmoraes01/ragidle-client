@@ -143,13 +143,14 @@ describe('o que a desmontagem desfaz, e quem passa por ela (H07, fonte)', () => 
 		expect(corpo).not.toContain('cleanGameUI();');
 	});
 
-	it('as quatro portas para o login continuam indo pelo GameEngine.reload', () => {
+	it('as tres portas para o login continuam indo pelo GameEngine.reload (o `expulso` da economia saiu, D-2599)', () => {
 		const reconexao = semComentario(readFileSync('src/Network/reconexao.js', 'utf8'));
 		expect(corpoDe(reconexao, 'function desistirEIrParaOLogin(texto) {')).toContain('GameEngine.reload()');
 		const ui = semComentario(readFileSync('src/UI/UIManager.js', 'utf8'));
 		const erro = ui.slice(ui.indexOf('static showErrorBox(text) {'), ui.indexOf('static showMessageBox('));
 		expect(erro.match(/m\.default\.reload\(\)/g)).toHaveLength(2);
 		expect(corpoDe(MOTOR, 'function voltarAoMundoDepoisDoSono() {')).toContain('m.default.reload()');
-		expect(corpoDe(MOTOR, 'function onEconomiaRecebida(pkt) {')).toContain('m.default.reload()');
+		// O teto de 4 h saiu (D-2555) e com ele o `expulso` que mandava ao login: a economia nao e mais porta nenhuma.
+		expect(corpoDe(MOTOR, 'function onEconomiaRecebida(pkt) {')).not.toContain('reload()');
 	});
 });

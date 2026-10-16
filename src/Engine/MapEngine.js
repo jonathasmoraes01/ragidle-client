@@ -1357,8 +1357,12 @@ let _morteDaEconomia = null;
 /** De quantos em quantos segundos a tela preta VISIVEL pede os numeros ao servidor. A aba oculta nao pede nada. */
 const SEGUNDOS_ENTRE_RESUMOS_DA_TELA_PRETA = 5;
 let _segundosAteOResumo = SEGUNDOS_ENTRE_RESUMOS_DA_TELA_PRETA;
-/** O relogio LOCAL, so mostrador — a mesma ressalva de `showDormindo`: a verdade e do servidor. */
-let _restanteDaEconomiaMs = 0;
+/**
+ * O TEMPO FORA, contado para CIMA (D-2599, 16/10/2026). Era o `restanteMs` do teto de 4 h, que saiu (D-2555): o
+ * servidor manda o `decorridoMs` (o tempo desde que a economia armou) em toda resposta `ativa:true`, e o relogio LOCAL
+ * so anda um segundo por vez entre uma resposta e outra - a mesma ressalva de `showDormindo`: a verdade e do servidor.
+ */
+let _decorridoDaEconomiaMs = 0;
 /**
  * O personagem morreu NESTA sessao de economia de energia (D-1398,
  * 14/09/2026)? Uma vez `true` por `onEconomiaRecebida`, fica `true` ate
@@ -1371,7 +1375,7 @@ let _personagemMorreuEmEconomia = false;
 /** Os numeros da tela preta: os do SERVIDOR (o ultimo `parcial`), o relogio e a morte. */
 function statsDaEconomia() {
 	return {
-		restanteMs: _restanteDaEconomiaMs,
+		decorridoMs: _decorridoDaEconomiaMs,
 		morreu: _personagemMorreuEmEconomia,
 		morte: _morteDaEconomia,
 		parcial: _parcialDaEconomia
@@ -1379,17 +1383,17 @@ function statsDaEconomia() {
 }
 
 /** Abre a tela preta (idempotente — reentrar com a tela ja aberta so reatualiza o relogio). */
-function abrirTelaDaEconomia(restanteMs) {
-	_restanteDaEconomiaMs = restanteMs;
+function abrirTelaDaEconomia(decorridoMs) {
+	_decorridoDaEconomiaMs = decorridoMs;
 	if (_janelaDaEconomia) {
 		_janelaDaEconomia.atualizar(statsDaEconomia());
 		return;
 	}
-	_janelaDaEconomia = UIManager.showEconomiaDeEnergia(restanteMs, sairDaEconomiaDeEnergia);
+	_janelaDaEconomia = UIManager.showEconomiaDeEnergia(decorridoMs, sairDaEconomiaDeEnergia);
 	_janelaDaEconomia.atualizar(statsDaEconomia());
 	_segundosAteOResumo = SEGUNDOS_ENTRE_RESUMOS_DA_TELA_PRETA;
 	_tiqueDaEconomia = setInterval(() => {
-		_restanteDaEconomiaMs = Math.max(0, _restanteDaEconomiaMs - 1000);
+		_decorridoDaEconomiaMs += 1000;
 		if (_janelaDaEconomia) _janelaDaEconomia.atualizar(statsDaEconomia());
 		// D-2565: so quem esta OLHANDO pede numeros (um pacote pequeno a cada 5 s); a aba oculta fica calada.
 		if (document.visibilityState === 'visible' && --_segundosAteOResumo <= 0) {
@@ -1417,12 +1421,12 @@ function fecharTelaDaEconomia() {
 /**
  * O CLIQUE EM "Voltar a jogar" (D-1392, 14/09/2026, correção do dono).
  *
- * Ate aqui `onVisibilidadeMudouParaEconomia` mandava "sair" sozinho assim
- * que `visibilitychange` via a aba voltar — e um relance rapido na aba (ver
- * uma notificacao, por exemplo) ja tirava o personagem do modo sem o
- * jogador ter pedido isso. Agora SAIR e SEMPRE este botao: a tela preta
- * fica de pe ate o jogador clicar, mesmo com a aba em primeiro plano — ele
- * pode deliberadamente continuar em economia de energia olhando pra ela.
+ * Com a tela preta de pe, SAIR e SEMPRE este botao: ela fica ate o jogador
+ * clicar, mesmo com a aba em primeiro plano — ele pode deliberadamente
+ * continuar em economia de energia olhando pra ela. Desde D-2598 (16/10/2026)
+ * isso so vale para quem ESCOLHEU a tela preta (o interruptor das
+ * Configuracoes de Video): sem ela, a volta da aba manda o `sair` sozinha e
+ * nada cobre o jogo (`Engine/gatilhoDaEconomia.js`).
  */
 function sairDaEconomiaDeEnergia() {
 	const pkt = new PACKET.CZ.RAGIDLE_ECONOMIA_ACAO();
@@ -1437,10 +1441,10 @@ function sairDaEconomiaDeEnergia() {
 /**
  * O gatilho (D-1389/D-1390, 14/09/2026; de volta em 13/10/2026, bug #10, para o Bot novo). Desktop: `entrar` so
  * depois do atraso de confirmacao de D-1394 (14 s). Celular (`ehDedo()`, o criterio do projeto): `entrar` NO INSTANTE
- * em que a aba some (e no `pagehide`), porque o iPhone congela a pagina antes dos 14 s; a tela preta continua so
- * depois dos 14 s, e voltar antes manda `sair` sem efeito visivel (ver `Engine/gatilhoDaEconomia.js`, provado com
- * relogio falso). Voltar a aba depois que a tela abriu NAO sai (D-1392: so o botao). O SERVIDOR decide (regra 1) e
- * arma com ou sem o Bot ligado (desenho de 16/09).
+ * em que a aba some (e no `pagehide`), porque o iPhone congela a pagina antes dos 14 s. O `entrar` sai SEMPRE (D-2598):
+ * e ele que segura o personagem no mundo farmando quando o navegador derruba a conexao. A tela preta so para quem a
+ * escolheu, depois dos 14 s; sem ela, a volta da aba manda `sair` sozinha (ver `Engine/gatilhoDaEconomia.js`,
+ * provado com relogio falso). O SERVIDOR decide (regra 1) e arma com ou sem o Bot ligado (desenho de 16/09).
  */
 function pedirAcaoDaEconomia(acao) {
 	const pkt = new PACKET.CZ.RAGIDLE_ECONOMIA_ACAO();
@@ -1450,12 +1454,12 @@ function pedirAcaoDaEconomia(acao) {
 
 const _gatilhoDaEconomia = criarGatilhoDaEconomia({
 	oculta: () => document.visibilityState === 'hidden',
-	// A economia AUTOMATICA desligada nas Configuracoes de Video (23/09/2026): a aba escondida nao pede nada.
-	automaticaLigada: () => GraphicsSettings.economiaDeEnergiaAutomatica !== false,
+	// D-2598: o interruptor das Configuracoes de Video escolhe so a TELA PRETA; o aviso ao servidor sai sempre.
+	telaPretaEscolhida: () => GraphicsSettings.telaPretaAoTrocarDeAba === true,
 	armarNaHora: () => ehDedo(),
 	pedirEntrar: () => pedirAcaoDaEconomia('entrar'),
 	pedirSair: () => pedirAcaoDaEconomia('sair'),
-	abrirTela: restanteMs => abrirTelaDaEconomia(restanteMs)
+	abrirTela: decorridoMs => abrirTelaDaEconomia(decorridoMs)
 });
 
 function onPaginaEscondida() {
@@ -1477,16 +1481,15 @@ function onVisibilidadeMudouParaEconomia() {
 
 /**
  * onEconomiaRecebida (D-1389/D-1390, 14/09/2026) — a resposta do servidor a
- * `entrar`/`sair`, e tambem o aviso de "venceu o teto com a conexao viva"
- * (`expulso:true`), sem pedido nenhum do cliente.
+ * `entrar`/`sair`/`resumo`.
  *
- * `ativa:true` abre/reatualiza a tela preta. `ativa:false` fecha — seja o ack
+ * `ativa:true` abre/reatualiza a tela preta (so a escolhida, D-2598), com o
+ * TEMPO FORA (`decorridoMs`, D-2599). `ativa:false` fecha — seja o ack
  * normal de "sair", seja uma recusa silenciosa de "entrar" (ninguem ve a
  * tela mesmo: o jogador nao esta olhando a aba, entao nao ha erro pra
- * mostrar). `expulso:true` e o caso especial: o personagem ja saiu do mundo
- * do lado do servidor, que vai fechar o socket a seguir — o mesmo padrao do
- * "Acordar agora" do Dormir, reentrando pelo caminho unico de sempre
- * (CZ_ENTER2) em vez de uma segunda rota escrita a mao.
+ * mostrar). O `expulso:true` (o teto de 4 h que vencia com a conexao viva e
+ * mandava ao boot) SAIU com o teto (D-2555): o servidor nao o manda mais, e o
+ * ramo que recarregava o jogo era codigo morto (D-2599).
  *
  * `morreu:true` (D-1398, 14/09/2026) chega SEM o cliente ter pedido nada —
  * o servidor empurra este mesmo pacote na hora em que o personagem morre
@@ -1522,18 +1525,16 @@ function onEconomiaRecebida(pkt) {
 
 	if (corpo.ativa === true) {
 		if (corpo.morreu === true) _personagemMorreuEmEconomia = true;
-		// No celular o servidor responde na hora e a tela preta espera o atraso de 14 s (ou nunca abre, se voltou).
-		if (_gatilhoDaEconomia.aoResponderAtiva(Number(corpo.restanteMs) || 0)) {
-			abrirTelaDaEconomia(Number(corpo.restanteMs) || 0);
+		// No celular o servidor responde na hora e a tela preta espera o atraso de 14 s (ou nunca abre: sem a tela
+		// escolhida, ou se a aba voltou antes).
+		if (_gatilhoDaEconomia.aoResponderAtiva(Number(corpo.decorridoMs) || 0)) {
+			abrirTelaDaEconomia(Number(corpo.decorridoMs) || 0);
 		}
 		return;
 	}
 
 	_gatilhoDaEconomia.aoResponderInativa();
 	fecharTelaDaEconomia();
-	if (corpo.expulso === true) {
-		import('Engine/GameEngine.js').then(m => m.default.reload());
-	}
 }
 
 /**
@@ -2517,7 +2518,7 @@ function onExitFail(pkt) {
  *
  * Morava inteira dentro de `onExitSuccess`, e o logout era a unica porta para o
  * login que a fazia. A reconexao que desiste (inclusive a manutencao e o
- * `@kick`), o OK do `showErrorBox`, o `expulso` da economia e o `aoBoot` do
+ * `@kick`), o OK do `showErrorBox`, o `expulso` da economia (ate D-2555) e o `aoBoot` do
  * sono chamam so `GameEngine.reload()`: na tela de login o modo leitura seguia
  * segurando a tela acesa, a tela preta da economia (z-index 2000000) ficava por
  * cima de tudo, e a HUD de party voltava com o grupo do personagem anterior.

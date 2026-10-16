@@ -267,7 +267,7 @@ class GameEngine {
 		/*
 		 * TODA VOLTA AO LOGIN DESMONTA A SESSAO DE MAPA (H07, auditoria 2 de
 		 * 22/09/2026). O logout desmonta antes de chegar aqui; a reconexao que
-		 * desiste, o OK do `showErrorBox`, o `expulso` da economia e o `aoBoot`
+		 * desiste, o OK do `showErrorBox`, o `expulso` da economia (ate D-2555) e o `aoBoot`
 		 * do sono chegam direto — e o login ficava com a tela acesa pelo modo
 		 * leitura, a tela preta da economia por cima e a HUD de party com o
 		 * grupo do personagem anterior. `Session.Playing` e a marca de que ha
