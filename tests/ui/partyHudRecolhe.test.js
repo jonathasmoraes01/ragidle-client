@@ -1,5 +1,5 @@
 /**
- * A LISTA DO GRUPO RECOLHE (17/10/2026, relato de jogador no celular em pe:
+ * A LISTA DO GRUPO RECOLHE (15/10/2026, relato de jogador no celular em pe:
  * *"esse negocio ocupa um espaco gigantesco e nao tem nenhum X"*, com nove
  * membros cobrindo ~40% da tela).
  *

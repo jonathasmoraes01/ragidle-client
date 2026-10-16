@@ -33,7 +33,7 @@
  * ## O celular em pe
  *
  * Ate 17/09/2026 ela nao aparecia no retrato; desde D-1565 aparece, mais
- * estreita e movivel. Desde 17/10/2026 (relato de jogador: *"esse negocio ocupa
+ * estreita e movivel. Desde 15/10/2026 (relato de jogador: *"esse negocio ocupa
  * um espaco gigantesco e nao tem nenhum X"*) ela tambem RECOLHE: o botao da
  * alca a reduz a uma pastilha "Grupo (N)", e a escolha fica guardada. No
  * retrato, com mais de `MEMBROS_ANTES_DO_COMPACTO` membros, cada cartao vira
@@ -125,7 +125,7 @@ const _preferences = Preferences.get(
 	{
 		x: null,
 		y: null,
-		// Recolhida, sobra so a alca "Grupo (N)" (17/10/2026). Nasce aberta: quem
+		// Recolhida, sobra so a alca "Grupo (N)" (15/10/2026). Nasce aberta: quem
 		// ja via o grupo continua vendo ate escolher o contrario.
 		recolhido: false
 	},

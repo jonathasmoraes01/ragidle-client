@@ -1,6 +1,6 @@
 // Mutacao somente na memoria do Vitest: nunca altera o cliente servido pelo Vite.
 //
-// A LISTA DO GRUPO RECOLHE (17/10/2026, relato de jogador no celular em pe). Cada mutante e um jeito
+// A LISTA DO GRUPO RECOLHE (15/10/2026, relato de jogador no celular em pe). Cada mutante e um jeito
 // de o botao de recolher deixar de funcionar ou de custar: nao recolher, nao guardar, o toque virar
 // arrasto, o ticker seguir com a lista escondida, o compacto do grupo grande sumir ou o rotulo perder
 // a contagem.
