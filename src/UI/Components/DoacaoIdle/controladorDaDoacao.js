@@ -22,9 +22,16 @@
  * ---------------------------------------------------------------------------
  * AS TELAS
  * ---------------------------------------------------------------------------
- *   carregando -> escolha | indisponivel
+ *   carregando -> escolha | indisponivel | falhou (sem estado: "Tentar de novo")
  *   escolha --gerar--> pagamento --confirmada--> sucesso
- *                          |--relogio zera----> expirado
+ *                          |--relogio zera--> conferindo --status--> sucesso | expirado
+ *
+ * A RESPOSTA E DA CONTA (D-2635/D-2636): o servidor entrega o gerar, o
+ * estado e o status a conexao VIVA da conta, em qualquer processo; e a janela
+ * pede o estado de novo ao reconectar (`aposReconectar`), ao reabrir e quando
+ * um prazo vence - o codigo aberto volta com o copia-e-cola guardado, e o
+ * credito ja feito vira "Obrigado". Toda espera tem prazo e todo silencio vira
+ * texto.
  * A tela de ESCOLHA e desenhada UMA vez e depois so as regioes que mudam sao
  * redesenhadas (faixas, resumo, dica, botao): refazer o formulario inteiro a
  * cada tecla apagaria o foco e o cursor do campo em que o jogador digita.
@@ -74,6 +81,21 @@ import { ASSET } from '../RoShop/formatoDoRoShop.js';
  */
 export const TIMEOUT_DO_GERAR_MS = 45000;
 
+/**
+ * Sem resposta do `doacao-estado` em 15 s, a janela deixa o "Carregando…" e
+ * oferece "Tentar de novo" (D-2636; antes ficava carregando para sempre). O
+ * estado nao fala com a Efi: no `mapa-k` o servidor espera o `p0` por 12 s e
+ * manda o estado que falhou ANTES destes 15 s.
+ */
+export const TIMEOUT_DO_ESTADO_MS = 15000;
+
+/**
+ * Sem resposta do `doacao-status` (o "Ja paguei" e a conferencia do relogio
+ * zerado) em 45 s, a janela diz que nao conseguiu confirmar, e nao "ainda nao
+ * recebemos" (D-2636). O servidor dividido espera o `p0` por 40 s, como no gerar.
+ */
+export const TIMEOUT_DO_STATUS_MS = 45000;
+
 /** A quantidade com que a janela nasce (presa aos limites do servidor). */
 export const QUANTIDADE_INICIAL = 100;
 
@@ -104,15 +126,20 @@ export function criarControladorDaDoacao(opcoes) {
 
 	const s = {
 		estado: null,
-		tela: 'carregando', // carregando | escolha | indisponivel | pagamento | sucesso | expirado
+		/* carregando | falhou | escolha | indisponivel | pagamento | conferindo | sucesso | expirado */
+		tela: 'carregando',
 		quantidade: null,
 		nome: '',
 		cpf: '',
 		aceite: false,
 		gerando: false,
+		/* Os codigos abertos quando o gerar saiu: o que aparecer no estado alem deles e o desta espera. */
+		abertosAntesDoGerar: null,
 		erro: '', // a recusa do ultimo gerar, na tela de escolha
+		erroDoEstado: '', // o estado que nao carregou (a tela "falhou")
 		pagamento: null, // { txid, quantidade, totalCentavos, creditoMinor, copiaECola, imagemQrcode, expiraEmMs, retomado }
 		recado: '', // o retorno do "Ja paguei"
+		expiradoIncerto: false, // o prazo acabou e o servidor nao confirmou se foi pago
 		jaPagueiTravadoAte: 0,
 		sucesso: null // { quantidade, creditoMinor }
 	};
@@ -120,6 +147,8 @@ export function criarControladorDaDoacao(opcoes) {
 	let _timerGerar = null;
 	let _timerRelogio = null;
 	let _timerTrava = null;
+	let _timerEstado = null;
+	let _timerStatus = null;
 
 	const $ = sel => raiz.querySelector(sel);
 
@@ -186,7 +215,33 @@ export function criarControladorDaDoacao(opcoes) {
 			return;
 		}
 		if (s.tela === 'expirado') {
-			el.innerHTML = telaDeRecado(RiIcones.relogio, 'O código expirou. Gere um novo.', 'Gerar um novo código', 'nova-doacao');
+			/* O prazo acabou sem o servidor confirmar (D-2636): nao afirma que expirou sem pagamento. */
+			el.innerHTML = s.expiradoIncerto
+				? telaDeRecado(
+						RiIcones.relogio,
+						'O prazo do código acabou e não conseguimos confirmar o pagamento agora. Se você pagou, o RO Cash cai sozinho na sua carteira.',
+						'Gerar um novo código',
+						'nova-doacao'
+					)
+				: telaDeRecado(
+						RiIcones.relogio,
+						'O código expirou. Gere um novo.',
+						'Gerar um novo código',
+						'nova-doacao'
+					);
+			return;
+		}
+		if (s.tela === 'conferindo') {
+			el.innerHTML = '<div class="dc-carregando" role="status">Conferindo o pagamento…</div>';
+			return;
+		}
+		if (s.tela === 'falhou') {
+			el.innerHTML = telaDeRecado(
+				RiIcones.alerta,
+				s.erroDoEstado || 'Não foi possível carregar a doação agora. Tente de novo em instantes.',
+				'Tentar de novo',
+				'recarregar'
+			);
 			return;
 		}
 		if (s.tela === 'indisponivel') {
@@ -441,6 +496,7 @@ export function criarControladorDaDoacao(opcoes) {
 				'<button type="button" class="dc-btn dc-btn--ouro dc-copiar" data-dc="copiar">Copiar</button>' +
 				'</div>';
 		} else {
+			/* So o servidor de antes de D-2635 manda o codigo aberto sem o copia-e-cola guardado. */
 			html +=
 				'<p class="dc-nota">O código copia-e-cola não fica guardado. Se você já está com ele no app do banco, é só pagar; se perdeu o código, volte e gere outro.</p>';
 		}
@@ -481,10 +537,7 @@ export function criarControladorDaDoacao(opcoes) {
 		}
 		const restante = s.pagamento.expiraEmMs - agora();
 		if (restante <= 0) {
-			s.pagamento = null;
-			s.recado = '';
-			s.tela = 'expirado';
-			render();
+			conferirAntesDeExpirar();
 			return;
 		}
 		const el = regiao('relogio');
@@ -519,12 +572,41 @@ export function criarControladorDaDoacao(opcoes) {
 		atualizarEscolha();
 	}
 
+	/**
+	 * Pede o estado com PRAZO (D-2636). Sem resposta, quem ainda nao tem estado
+	 * nenhum ve "Tentar de novo"; quem ja tem fica com o que tem.
+	 */
+	function pedirEstado() {
+		enviar({ acao: 'doacao-estado' });
+		if (_timerEstado) {
+			cancelar(_timerEstado);
+		}
+		_timerEstado = agendar(() => {
+			_timerEstado = null;
+			estadoNaoCarregou('O servidor não respondeu. Toque em "Tentar de novo".');
+		}, TIMEOUT_DO_ESTADO_MS);
+	}
+
+	/*
+	 * So o "Carregando…" vira "falhou": quem ja tem estado nunca esta nele (o
+	 * `carregando` so volta sem estado), e quem esta noutra tela fica nela.
+	 */
+	function estadoNaoCarregou(texto) {
+		if (s.tela !== 'carregando') {
+			return;
+		}
+		s.erroDoEstado = texto;
+		s.tela = 'falhou';
+		render();
+	}
+
 	function gerar() {
 		if (s.gerando || !pronto()) {
 			return;
 		}
 		s.gerando = true;
 		s.erro = '';
+		s.abertosAntesDoGerar = abertosValidos().map(a => a.txid);
 		atualizarEscolha();
 		enviar({ acao: 'doacao-gerar', quantidade: s.quantidade, nome: nomeParaEnvio(s.nome), cpf: soDigitos(s.cpf) });
 		_timerGerar = agendar(() => {
@@ -533,12 +615,70 @@ export function criarControladorDaDoacao(opcoes) {
 				return;
 			}
 			s.gerando = false;
-			/* Nao "tente de novo": o codigo pode ter sido gerado, e a resposta que chega depois ainda abre o QR. */
-			s.erro = 'O servidor ainda não respondeu. Se o código PIX for gerado, ele abre aqui sozinho; confira os códigos abertos antes de gerar outro.';
+			/*
+			 * Nao "tente de novo": o codigo pode ter sido gerado, e a resposta que chega depois ainda abre o
+			 * QR. O estado e pedido de novo (D-2636): o codigo que saiu sem a resposta aparece em "Retomar",
+			 * logo acima, com o copia-e-cola.
+			 */
+			s.erro =
+				'O servidor ainda não respondeu. Se o código PIX for gerado, ele abre aqui sozinho ou aparece em "Retomar", logo acima. Confira antes de gerar outro.';
 			if (s.tela === 'escolha') {
 				atualizarEscolha();
 			}
+			pedirEstado();
 		}, TIMEOUT_DO_GERAR_MS);
+	}
+
+	/** O "Ja paguei" e a conferencia do relogio zerado esperam o status com prazo (D-2636). */
+	function pedirStatus(txid) {
+		enviar({ acao: 'doacao-status', txid });
+		if (_timerStatus) {
+			cancelar(_timerStatus);
+		}
+		_timerStatus = agendar(() => {
+			_timerStatus = null;
+			statusSemResposta();
+		}, TIMEOUT_DO_STATUS_MS);
+	}
+
+	/** Nao houve consulta: nunca "ainda nao recebemos" (o falso negativo de D-2636). */
+	function statusSemResposta(verificacao) {
+		if (s.tela === 'conferindo') {
+			expirar(true);
+			return;
+		}
+		recado(
+			verificacao === 'pedidos-demais'
+				? 'Muitos pedidos seguidos. Aguarde alguns segundos e toque de novo.'
+				: 'Não conseguimos confirmar agora. Se você já pagou, o RO Cash cai sozinho na sua carteira; toque de novo em instantes.'
+		);
+	}
+
+	/**
+	 * O RELOGIO ZEROU: antes de dizer "expirou", pergunta ao servidor (D-2636).
+	 * O relogio e do CLIENTE; o pagamento feito no ultimo minuto (ou cuja
+	 * confirmacao se perdeu) virava "O codigo expirou" com o Cash pago.
+	 */
+	function conferirAntesDeExpirar() {
+		if (!s.pagamento) {
+			return;
+		}
+		s.recado = '';
+		s.tela = 'conferindo';
+		render();
+		pedirStatus(s.pagamento.txid);
+	}
+
+	function expirar(incerto) {
+		if (_timerStatus) {
+			cancelar(_timerStatus);
+			_timerStatus = null;
+		}
+		s.pagamento = null;
+		s.recado = '';
+		s.expiradoIncerto = incerto === true;
+		s.tela = 'expirado';
+		render();
 	}
 
 	function jaPaguei() {
@@ -546,7 +686,7 @@ export function criarControladorDaDoacao(opcoes) {
 			return;
 		}
 		s.jaPagueiTravadoAte = agora() + TRAVA_DO_JA_PAGUEI_MS;
-		enviar({ acao: 'doacao-status', txid: s.pagamento.txid });
+		pedirStatus(s.pagamento.txid);
 		const btn = raiz.querySelector('[data-dc="ja-paguei"]');
 		if (btn) {
 			btn.disabled = true;
@@ -569,19 +709,28 @@ export function criarControladorDaDoacao(opcoes) {
 		if (!a) {
 			return;
 		}
-		s.pagamento = {
+		s.pagamento = pagamentoDoAberto(a);
+		s.recado = '';
+		s.tela = 'pagamento';
+		render();
+	}
+
+	/**
+	 * O codigo aberto como pagamento: desde D-2635 o estado traz o copia-e-cola
+	 * GUARDADO (pagavel no app do banco) e o credito; o QR em imagem so vem na
+	 * resposta do gerar.
+	 */
+	function pagamentoDoAberto(a) {
+		return {
 			txid: a.txid,
 			quantidade: a.quantidade,
 			totalCentavos: a.totalCentavos,
-			creditoMinor: null,
-			copiaECola: null,
+			creditoMinor: Number.isSafeInteger(a.creditoMinor) ? a.creditoMinor : null,
+			copiaECola: typeof a.copiaECola === 'string' && a.copiaECola ? a.copiaECola : null,
 			imagemQrcode: null,
 			expiraEmMs: a.expiraEmMs,
 			retomado: true
 		};
-		s.recado = '';
-		s.tela = 'pagamento';
-		render();
 	}
 
 	function voltarParaEscolha() {
@@ -589,10 +738,18 @@ export function criarControladorDaDoacao(opcoes) {
 		s.sucesso = null;
 		s.recado = '';
 		s.erro = '';
+		s.expiradoIncerto = false;
 		s.tela = s.estado ? (disponivel() ? 'escolha' : 'indisponivel') : 'carregando';
 		render();
 		/* O codigo que ficou aberto aparece em "Retomar" com o estado novo. */
-		enviar({ acao: 'doacao-estado' });
+		pedirEstado();
+	}
+
+	function tentarDeNovo() {
+		s.erroDoEstado = '';
+		s.tela = 'carregando';
+		render();
+		pedirEstado();
 	}
 
 	function onClick(e) {
@@ -629,6 +786,9 @@ export function criarControladorDaDoacao(opcoes) {
 				break;
 			case 'retomar':
 				retomar(alvo.dataset.txid);
+				break;
+			case 'recarregar':
+				tentarDeNovo();
 				break;
 			default:
 				return false;
@@ -731,13 +891,93 @@ export function criarControladorDaDoacao(opcoes) {
 	}
 
 	function receberEstado(dados) {
+		if (_timerEstado) {
+			cancelar(_timerEstado);
+			_timerEstado = null;
+		}
+		/*
+		 * O ESTADO QUE FALHOU (D-2636: o `p0` nao respondeu, o freio, a falha do
+		 * atendimento). Quem ja tem um estado fica com ele; quem nao tem ve o texto
+		 * com "Tentar de novo", e nao "indisponivel" (a doacao nao esta desligada).
+		 */
+		if (dados.falhou === true) {
+			estadoNaoCarregou(typeof dados.texto === 'string' && dados.texto ? dados.texto : '');
+			return;
+		}
 		s.estado = dados;
 		if (s.quantidade === null) {
 			const l = limites();
 			s.quantidade = limitarQuantidade(QUANTIDADE_INICIAL, l.minimo, l.maximo);
 		}
-		if (s.tela === 'carregando' || s.tela === 'escolha' || s.tela === 'indisponivel') {
+		if (pagamentoJaCreditado(dados)) {
+			return;
+		}
+		retomarOQueEsteGerarCriou();
+		completarOPagamentoRetomado();
+		if (s.tela === 'carregando' || s.tela === 'falhou' || s.tela === 'escolha' || s.tela === 'indisponivel') {
+			s.erroDoEstado = '';
 			s.tela = disponivel() ? 'escolha' : 'indisponivel';
+			render();
+		}
+	}
+
+	/**
+	 * A janela que ficou no QR (ou conferindo) e o estado diz que ESTE codigo ja
+	 * foi creditado (D-2635: a `doacao-confirmada` que chegou sem conexao viva, a
+	 * viagem, a janela fechada e reaberta): o "Obrigado", e nao o relogio.
+	 */
+	function pagamentoJaCreditado(dados) {
+		if (!s.pagamento || (s.tela !== 'pagamento' && s.tela !== 'conferindo')) {
+			return false;
+		}
+		const lista = Array.isArray(dados.creditadas) ? dados.creditadas : [];
+		const feita = lista.find(c => c && c.txid === s.pagamento.txid);
+		if (!feita) {
+			return false;
+		}
+		mostrarSucesso({
+			quantidade: Number.isSafeInteger(feita.quantidade) ? feita.quantidade : s.pagamento.quantidade,
+			creditoMinor: Number.isSafeInteger(feita.creditoMinor) ? feita.creditoMinor : s.pagamento.creditoMinor
+		});
+		return true;
+	}
+
+	/**
+	 * O GERAR CUJA RESPOSTA SE PERDEU (D-2635): a janela ainda espera o gerar e o
+	 * estado (pedido depois de reconectar, viajar ou reabrir) traz um codigo
+	 * aberto que nao existia quando o pedido saiu - e o desta espera. Ele abre o
+	 * pagamento pelo copia-e-cola guardado; se a resposta do gerar chegar depois,
+	 * ela completa o mesmo pagamento com o QR.
+	 */
+	function retomarOQueEsteGerarCriou() {
+		if (!s.gerando || s.tela !== 'escolha' || !Array.isArray(s.abertosAntesDoGerar)) {
+			return;
+		}
+		const antes = s.abertosAntesDoGerar;
+		const novo = abertosValidos().find(a => antes.indexOf(a.txid) === -1);
+		if (!novo) {
+			return;
+		}
+		if (_timerGerar) {
+			cancelar(_timerGerar);
+			_timerGerar = null;
+		}
+		s.gerando = false;
+		s.erro = '';
+		s.pagamento = pagamentoDoAberto(novo);
+		s.recado = '';
+		s.tela = 'pagamento';
+		render();
+	}
+
+	/** O pagamento retomado sem o copia-e-cola ganha o guardado quando o estado o traz. */
+	function completarOPagamentoRetomado() {
+		if (s.tela !== 'pagamento' || !s.pagamento || s.pagamento.copiaECola) {
+			return;
+		}
+		const aberto = abertosValidos().find(a => a.txid === s.pagamento.txid);
+		if (aberto && typeof aberto.copiaECola === 'string' && aberto.copiaECola) {
+			s.pagamento = { ...s.pagamento, copiaECola: aberto.copiaECola };
 			render();
 		}
 	}
@@ -751,11 +991,27 @@ export function criarControladorDaDoacao(opcoes) {
 		s.gerando = false;
 		if (dados.ok === true && typeof dados.txid === 'string' && Number.isFinite(dados.expiraEmMs)) {
 			/*
+			 * O MESMO CODIGO ja aberto pelo estado (D-2635: retomado depois da
+			 * reconexao, pelo copia-e-cola): a resposta do gerar so o completa com o
+			 * QR, sem trocar de tela nem zerar o recado.
+			 */
+			if (s.tela === 'pagamento' && s.pagamento && s.pagamento.txid === dados.txid) {
+				s.pagamento = {
+					...s.pagamento,
+					creditoMinor: dados.creditoMinor,
+					copiaECola: dados.copiaECola,
+					imagemQrcode: dados.imagemQrcode,
+					retomado: false
+				};
+				render();
+				return;
+			}
+			/*
 			 * A RESPOSTA ATRASADA (D-2507): o codigo que chega DEPOIS do "nao respondeu" abre o QR, se o
 			 * jogador ainda esta escolhendo. Se ele ja esta noutro pagamento ou no sucesso, o atrasado nao
 			 * toma a tela: ele fica em "Retomar", na lista de codigos abertos.
 			 */
-			if (!esperando && (s.tela === 'pagamento' || s.tela === 'sucesso')) {
+			if (!esperando && (s.tela === 'pagamento' || s.tela === 'sucesso' || s.tela === 'conferindo')) {
 				return;
 			}
 			s.pagamento = {
@@ -780,8 +1036,19 @@ export function criarControladorDaDoacao(opcoes) {
 		}
 	}
 
+	/** As verificacoes que NAO consultaram a Efi (o servidor nao atendeu, D-2636). */
+	const SEM_CONSULTA = ['sem-resposta', 'pedidos-demais', 'falha-interna'];
+
 	function receberStatus(dados) {
 		if (!s.pagamento || dados.txid !== s.pagamento.txid) {
+			return;
+		}
+		if (_timerStatus) {
+			cancelar(_timerStatus);
+			_timerStatus = null;
+		}
+		if (dados.estado !== 'creditada' && SEM_CONSULTA.indexOf(dados.verificacao) !== -1) {
+			statusSemResposta(dados.verificacao);
 			return;
 		}
 		switch (dados.estado) {
@@ -789,11 +1056,14 @@ export function criarControladorDaDoacao(opcoes) {
 				mostrarSucesso({ quantidade: s.pagamento.quantidade, creditoMinor: s.pagamento.creditoMinor });
 				break;
 			case 'expirada':
-				s.pagamento = null;
-				s.tela = 'expirado';
-				render();
+				expirar(false);
 				break;
 			case 'pendente':
+				if (s.tela === 'conferindo') {
+					/* O relogio zerou e a Efi ainda nao viu o pagamento: o prazo acabou, sem afirmar que nao foi pago. */
+					expirar(true);
+					break;
+				}
 				recado('Ainda não recebemos o pagamento. Se você já pagou, aguarde alguns segundos e toque de novo.');
 				break;
 			case 'estornada':
@@ -809,10 +1079,8 @@ export function criarControladorDaDoacao(opcoes) {
 	}
 
 	function mostrarSucesso(r) {
-		if (_timerRelogio) {
-			cancelar(_timerRelogio);
-			_timerRelogio = null;
-		}
+		[_timerRelogio, _timerStatus].forEach(t => t && cancelar(t));
+		_timerRelogio = _timerStatus = null;
 		s.pagamento = null;
 		s.recado = '';
 		s.sucesso = r;
@@ -825,18 +1093,33 @@ export function criarControladorDaDoacao(opcoes) {
 	/* -------------------------------------------------------------- */
 
 	function abrir() {
+		if (s.tela === 'falhou') {
+			s.tela = 'carregando';
+		}
 		render();
 		if (s.tela === 'pagamento') {
 			atualizarRelogio();
 		}
-		enviar({ acao: 'doacao-estado' });
+		pedirEstado();
+	}
+
+	/**
+	 * A CONEXAO NOVA com a janela aberta (D-2636): a volta da aba, a queda, a
+	 * viagem entre processos. O que estava em voo na conexao velha pode ter se
+	 * perdido; o estado de agora traz o codigo aberto (com o copia-e-cola), o
+	 * credito ja feito, ou a doacao do outro processo. Quem chama so chama com a
+	 * janela aberta: fechada, o proximo `abrir` ja pede.
+	 */
+	function aposReconectar() {
+		pedirEstado();
 	}
 
 	function fechar() {
 		/* Sucesso e expirado sao telas de UMA leitura: quem reabre volta a
 		   escolher. O pagamento em curso fica (o relogio continua valendo). */
-		if (s.tela === 'sucesso' || s.tela === 'expirado') {
+		if (s.tela === 'sucesso' || s.tela === 'expirado' || s.tela === 'falhou') {
 			s.sucesso = null;
+			s.expiradoIncerto = false;
 			s.tela = s.estado ? (disponivel() ? 'escolha' : 'indisponivel') : 'carregando';
 		}
 		if (_timerRelogio) {
@@ -847,8 +1130,8 @@ export function criarControladorDaDoacao(opcoes) {
 
 	/** Troca de personagem: nada do anterior fica (nome e CPF menos ainda). */
 	function limpar() {
-		[_timerGerar, _timerRelogio, _timerTrava].forEach(t => t && cancelar(t));
-		_timerGerar = _timerRelogio = _timerTrava = null;
+		[_timerGerar, _timerRelogio, _timerTrava, _timerEstado, _timerStatus].forEach(t => t && cancelar(t));
+		_timerGerar = _timerRelogio = _timerTrava = _timerEstado = _timerStatus = null;
 		Object.assign(s, {
 			estado: null,
 			tela: 'carregando',
@@ -857,9 +1140,12 @@ export function criarControladorDaDoacao(opcoes) {
 			cpf: '',
 			aceite: false,
 			gerando: false,
+			abertosAntesDoGerar: null,
 			erro: '',
+			erroDoEstado: '',
 			pagamento: null,
 			recado: '',
+			expiradoIncerto: false,
 			jaPagueiTravadoAte: 0,
 			sucesso: null
 		});
@@ -872,6 +1158,7 @@ export function criarControladorDaDoacao(opcoes) {
 
 	return {
 		abrir,
+		aposReconectar,
 		fechar,
 		limpar,
 		render,

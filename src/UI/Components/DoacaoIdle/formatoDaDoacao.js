@@ -345,7 +345,14 @@ const RECUSAS = {
 	/* O servidor dividido (D-2507): o mapa-k nao ouviu o p0 no prazo. O codigo pode ter sido gerado: se a
 	   resposta chegar depois, a janela abre o QR sozinha. Com acento aqui, mesmo que o servidor mande sem. */
 	'sem-resposta':
-		'O servidor de doações não respondeu a tempo. Confira os códigos abertos antes de gerar outro, ou tente de novo em instantes.'
+		'O servidor de doações não respondeu a tempo. Confira os códigos abertos antes de gerar outro, ou tente de novo em instantes.',
+	/* D-2636: o gerar da MESMA conta ja esta em curso (a outra conexao, a reconexao): o codigo chega sozinho. */
+	'ja-gerando': 'Seu código está sendo gerado, aguarde.',
+	/* D-2636: o freio de pedidos do servidor (antes, calado: a janela ficava em "Gerando…" ate 45 s). */
+	'pedidos-demais': 'Muitos pedidos seguidos. Aguarde alguns segundos e tente de novo.',
+	/* D-2636: o atendimento falhou no servidor (antes, so o log): pode ter sido no meio do gerar. */
+	'falha-interna':
+		'Não foi possível concluir o pedido agora. Confira os códigos abertos antes de gerar outro, ou tente de novo em instantes.'
 };
 
 export function textoDaRecusa(resposta) {

@@ -12,7 +12,10 @@
  *
  * Telas fotografadas: escolha com 100; com 99 (a dica "leve 100"); preenchida
  * e rolada ate o botao; com divida e codigo aberto; pagamento com QR; sucesso;
- * expirado. Em cada foto ela MEDE: transbordo horizontal (pagina, janela e
+ * e, desde D-2635/D-2636: conferindo (o relogio zerou e a janela pergunta ao
+ * servidor), expirado (confirmado pelo servidor) e expirado sem confirmacao;
+ * o estado que nao carregou ("Tentar de novo"); o "Retomar" com o copia-e-cola
+ * guardado; e o "Ja paguei" sem consulta. Em cada foto ela MEDE: transbordo horizontal (pagina, janela e
  * corpo), janela fora da tela, texto cortado, imagem quebrada, e - para cada
  * controle visivel - se o toque no CENTRO dele chega nele (elementFromPoint,
  * com o controle trazido para a vista) e, no dedo, se ele tem 44px.
@@ -45,6 +48,7 @@ function acharModulos() {
 const { chromium } = createRequire(join(acharModulos(), 'x.js'))('playwright');
 
 const TELAS = [
+	{ w: 393, h: 852, dedo: true },
 	{ w: 390, h: 844, dedo: true },
 	{ w: 360, h: 740, dedo: true },
 	{ w: 1440, h: 900, dedo: false }
@@ -349,7 +353,81 @@ async function principal() {
 				window.__agora += 31 * 60000;
 				window.__c.render();
 			});
-			await foto('08-expirado');
+			/* D-2636: o relogio zerado PERGUNTA antes de dizer "expirou". */
+			await foto('08-conferindo');
+			await page.evaluate(() =>
+				window.__c.receber({ tipo: 'doacao', acao: 'doacao-status', txid: window.__enviados.at(-1).txid, estado: 'expirada' })
+			);
+			await foto('08b-expirado');
+
+			await preparar(page, vertical);
+			await page.evaluate(() => window.__c.receber(window.__gerada(window.__agora)));
+			await page.evaluate(() => {
+				window.__agora += 31 * 60000;
+				window.__c.render();
+			});
+			await page.evaluate(() =>
+				window.__c.receber({
+					tipo: 'doacao',
+					acao: 'doacao-status',
+					txid: window.__enviados.at(-1).txid,
+					estado: 'pendente',
+					verificacao: 'sem-resposta'
+				})
+			);
+			await foto('08c-expirado-sem-confirmacao');
+
+			/* D-2636: o estado que nao carregou (o p0 parado, o freio) - sem estado nenhum antes. */
+			await page.goto(`http://127.0.0.1:${PORTA}/arnes`);
+			await page.waitForFunction(() => window.__pronto === true);
+			if (vertical) {
+				await page.evaluate(() => window.__vertical());
+			}
+			await page.evaluate(() => window.__abrir());
+			await page.evaluate(() =>
+				window.__c.receber({
+					...window.__estado({ disponivel: false }),
+					falhou: true,
+					motivo: 'sem-resposta',
+					texto: 'Não foi possível carregar a doação agora. Tente de novo em instantes.'
+				})
+			);
+			await page.evaluate(() => document.fonts.ready);
+			await page.waitForTimeout(200);
+			await foto('09-estado-nao-carregou');
+
+			/* D-2635: o "Retomar" com o copia-e-cola guardado no registro. */
+			await preparar(page, vertical);
+			await page.evaluate(() =>
+				window.__c.receber(
+					window.__estado({
+						abertos: [
+							{
+								txid: 'TX-RETOMAR-1',
+								quantidade: 100,
+								totalCentavos: 8900,
+								creditoMinor: 10000,
+								copiaECola: window.__gerada(window.__agora).copiaECola,
+								expiraEmMs: window.__agora + 12 * 60000
+							}
+						]
+					})
+				)
+			);
+			await page.evaluate(CLIQUE('[data-dc="retomar"]'));
+			await foto('10-retomado-com-copia-e-cola');
+			await page.evaluate(CLIQUE('[data-dc="ja-paguei"]'));
+			await page.evaluate(() =>
+				window.__c.receber({
+					tipo: 'doacao',
+					acao: 'doacao-status',
+					txid: 'TX-RETOMAR-1',
+					estado: 'pendente',
+					verificacao: 'sem-resposta'
+				})
+			);
+			await rolarAte(page, '[data-dc="voltar"]');
+			await foto('11-ja-paguei-sem-consulta');
 
 			await contexto.close();
 		}

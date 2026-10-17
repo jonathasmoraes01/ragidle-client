@@ -247,6 +247,18 @@ const _limpezaDaBarra = criarLimpezaNaConexaoNova(
 	erro => console.error('[icones] a limpeza da barra na conexao nova falhou - o jogo segue:', erro)
 );
 
+/**
+ * D-2636: a janela de doacao ABERTA pede o estado de novo UMA vez por conexao
+ * nova (a volta da aba, a queda, a troca de processo): a resposta que estava em
+ * voo na conexao velha pode ter se perdido, e o estado de agora traz o codigo
+ * aberto com o copia-e-cola, ou o credito ja feito. O mesmo molde da barra:
+ * armada no aceite, feita DEPOIS do `CZ_NOTIFY_ACTORINIT` (D-993), em try.
+ */
+const _doacaoNaConexaoNova = criarLimpezaNaConexaoNova(
+	() => DoacaoIdle.aposReconectar(),
+	erro => console.error('[doacao] o estado da doacao na conexao nova falhou - o jogo segue:', erro)
+);
+
 const packetMap = new Map();
 /**
  * @namespace MapEngine
@@ -999,6 +1011,7 @@ function onConnectionAccepted(pkt) {
 	// D-2440: a conexao nova ARMA a limpeza da barra de icones; quem a faz e o primeiro
 	// `estouPronto`, DEPOIS do `CZ_NOTIFY_ACTORINIT` (D-993). Aqui so a marca.
 	_limpezaDaBarra.armar();
+	_doacaoNaConexaoNova.armar();
 
 	/*
 	 * A ECONOMIA DE ENERGIA NA REENTRADA (F29, auditoria de 22/09/2026). O servidor DESARMA a economia em toda
@@ -1632,6 +1645,14 @@ function onMapChange(pkt, ehEntradaNoMundo) {
 			}
 		};
 		setTimeout(estouPronto, 0);
+		/*
+		 * D-2636: a janela de doacao aberta pede o estado da conexao nova DEPOIS do
+		 * `CZ_NOTIFY_ACTORINIT` (D-993). Num `setTimeout` agendado ATRAS do da rede
+		 * acima: o pacote ja saiu quando ele roda (pelo caminho normal ou pela
+		 * rede), e ele fica fora da funcao do estou-pronto, que o portao F28 quer
+		 * curta. A falha nao sobe: `criarLimpezaNaConexaoNova` a relata por dentro.
+		 */
+		setTimeout(() => _doacaoNaConexaoNova.depoisDoEstouPronto(), 0);
 		/*
 		 * A REDE DA HUD (05/10/2026, os botoes "Caçar"/"Retornar" que sumiam na
 		 * Floresta Encantada 2 e so voltavam relogando). Mesmo desenho da rede

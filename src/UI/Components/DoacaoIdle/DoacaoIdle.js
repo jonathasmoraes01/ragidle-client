@@ -197,6 +197,22 @@ DoacaoIdle.abrir = function abrir() {
 DoacaoIdle.estaAberta = estaAberta;
 
 /**
+ * A CONEXAO NOVA (D-2636), chamada pelo MapEngine depois do primeiro
+ * `CZ_NOTIFY_ACTORINIT` de cada conexao: com a janela ABERTA, pede o estado de
+ * novo (o codigo aberto com o copia-e-cola, o credito ja feito). Fechada, nada:
+ * o proximo `abrir` ja pede.
+ */
+DoacaoIdle.aposReconectar = function aposReconectar() {
+	if (!estaAberta()) {
+		return;
+	}
+	const c = controlador();
+	if (c) {
+		c.aposReconectar();
+	}
+};
+
+/**
  * A entrada das mensagens `tipo: 'doacao'`, repassadas pelo RoShop.js (o dono
  * do 0x0fb8). Defensiva: uma excecao aqui voltaria pelo laco de rede.
  */

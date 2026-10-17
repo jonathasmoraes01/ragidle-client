@@ -33,7 +33,12 @@ import {
 	textoDaDivida,
 	textoDaRecusa
 } from 'UI/Components/DoacaoIdle/formatoDaDoacao.js';
-import { criarControladorDaDoacao, TIMEOUT_DO_GERAR_MS } from 'UI/Components/DoacaoIdle/controladorDaDoacao.js';
+import {
+	criarControladorDaDoacao,
+	TIMEOUT_DO_ESTADO_MS,
+	TIMEOUT_DO_GERAR_MS,
+	TIMEOUT_DO_STATUS_MS
+} from 'UI/Components/DoacaoIdle/controladorDaDoacao.js';
 import { criarControlador } from 'UI/Components/RoShop/controladorDoRoShop.js';
 import { estadoDaDoacao, geradaDeExemplo } from '../fixtures/doacaoEstado.js';
 import { estadoDeExemplo } from '../fixtures/roShopEstado.js';
@@ -428,11 +433,14 @@ describe('a janela: gerar, pagar e confirmar', () => {
 		t.r.andar(TIMEOUT_DO_GERAR_MS - 1);
 		expect(t.$('[data-dc="gerar"]').disabled, 'aos 44,9 s ainda gerando').toBe(true);
 		expect(t.$('[data-dc="gerar"]').textContent).toBe('Gerando…');
+		const antes = t.enviados.length;
 		t.r.andar(1);
 		expect(t.$('[data-dc="gerar"]').disabled).toBe(false);
 		expect(t.$('.dc-erro').textContent).toBe(
-			'O servidor ainda não respondeu. Se o código PIX for gerado, ele abre aqui sozinho; confira os códigos abertos antes de gerar outro.'
+			'O servidor ainda não respondeu. Se o código PIX for gerado, ele abre aqui sozinho ou aparece em "Retomar", logo acima. Confira antes de gerar outro.'
 		);
+		/* D-2636: o estado e pedido de novo, para o codigo gerado sem resposta aparecer em "Retomar". */
+		expect(t.enviados.slice(antes)).toEqual([{ acao: 'doacao-estado' }]);
 	});
 
 	it('o prazo da janela cobre o do servidor dividido (40 s) com folga', () => {
@@ -553,10 +561,15 @@ describe('a janela: gerar, pagar e confirmar', () => {
 		expect(t.$('.dc-sucesso .dc-recado-texto').textContent).toBe('+110,00 RO Cash na sua carteira.');
 	});
 
-	it('o relogio zera: "O codigo expirou", e o botao volta a escolher', () => {
+	it('o relogio zera: pergunta ao servidor ANTES; "expirada" diz "O codigo expirou", e o botao volta a escolher (D-2636)', () => {
 		ateOGerar();
-		t.c.receber(geradaDeExemplo(t.r.agora(), { expiraEmMs: t.r.agora() + 2500 }));
+		const g = geradaDeExemplo(t.r.agora(), { expiraEmMs: t.r.agora() + 2500 });
+		t.c.receber(g);
 		t.r.andar(3000);
+		expect(t.c.estadoDaTela.tela).toBe('conferindo');
+		expect(t.$('.dc-carregando').textContent).toBe('Conferindo o pagamento…');
+		expect(t.enviados.at(-1)).toEqual({ acao: 'doacao-status', txid: g.txid });
+		t.c.receber({ tipo: 'doacao', acao: 'doacao-status', txid: g.txid, estado: 'expirada', verificacao: 'expirada' });
 		expect(t.$('.dc-recado-texto').textContent).toBe('O código expirou. Gere um novo.');
 		t.clicar('[data-dc="nova-doacao"]');
 		expect(t.$('[data-dc="gerar"]')).not.toBeNull();
@@ -600,6 +613,202 @@ describe('a janela: gerar, pagar e confirmar', () => {
 		t.c.limpar();
 		const s = t.c.estadoDaTela;
 		expect(s).toMatchObject({ nome: '', cpf: '', pagamento: null, tela: 'carregando', estado: null });
+	});
+
+	/* ============================================================== */
+	/* D-2635/D-2636: a resposta da conta, os prazos e os silencios    */
+	/* ============================================================== */
+
+	it('D-2636: o relogio zera e o servidor diz CREDITADA: "Obrigado", e nao "expirou"', () => {
+		ateOGerar();
+		const g = geradaDeExemplo(t.r.agora(), { expiraEmMs: t.r.agora() + 1000 });
+		t.c.receber(g);
+		t.r.andar(1000);
+		t.c.receber({ tipo: 'doacao', acao: 'doacao-status', txid: g.txid, estado: 'creditada', verificacao: 'creditada' });
+		expect(t.c.estadoDaTela.tela).toBe('sucesso');
+		expect(t.$('.dc-sucesso-titulo').textContent).toBe('Obrigado pelo apoio!');
+	});
+
+	it('D-2636: o relogio zera e a Efi ainda nao viu: o prazo acabou, sem afirmar que nao foi pago', () => {
+		ateOGerar();
+		const g = geradaDeExemplo(t.r.agora(), { expiraEmMs: t.r.agora() + 1000 });
+		t.c.receber(g);
+		t.r.andar(1000);
+		t.c.receber({ tipo: 'doacao', acao: 'doacao-status', txid: g.txid, estado: 'pendente', verificacao: 'aguardando' });
+		expect(t.$('.dc-recado-texto').textContent).toContain('não conseguimos confirmar o pagamento agora');
+		/* A confirmacao que chega depois ainda vira "Obrigado". */
+		t.c.receber({ tipo: 'doacao', acao: 'doacao-confirmada', txid: g.txid, quantidade: 100, creditoMinor: 10000 });
+		expect(t.c.estadoDaTela.tela).toBe('sucesso');
+	});
+
+	it('D-2636: o relogio zera e o servidor NAO responde em 45 s: o prazo acabou, sem afirmar nada', () => {
+		ateOGerar();
+		t.c.receber(geradaDeExemplo(t.r.agora(), { expiraEmMs: t.r.agora() + 1000 }));
+		t.r.andar(1000);
+		t.r.andar(TIMEOUT_DO_STATUS_MS - 1);
+		expect(t.c.estadoDaTela.tela).toBe('conferindo');
+		t.r.andar(1);
+		expect(t.c.estadoDaTela.tela).toBe('expirado');
+		expect(t.$('.dc-recado-texto').textContent).toContain('Se você pagou, o RO Cash cai sozinho');
+	});
+
+	it('D-2636: "Ja paguei" sem consulta (o p0 nao respondeu, o freio, a falha) nao diz "ainda nao recebemos"', () => {
+		ateOGerar();
+		const g = geradaDeExemplo(t.r.agora());
+		t.c.receber(g);
+		t.clicar('[data-dc="ja-paguei"]');
+		t.c.receber({ tipo: 'doacao', acao: 'doacao-status', txid: g.txid, estado: 'pendente', verificacao: 'sem-resposta' });
+		expect(t.$('.dc-recado').textContent).toContain('Não conseguimos confirmar agora');
+		expect(t.$('.dc-recado').textContent).not.toContain('Ainda não recebemos');
+		t.c.receber({ tipo: 'doacao', acao: 'doacao-status', txid: g.txid, estado: 'pendente', verificacao: 'falha-interna' });
+		expect(t.$('.dc-recado').textContent).toContain('Não conseguimos confirmar agora');
+		t.c.receber({ tipo: 'doacao', acao: 'doacao-status', txid: g.txid, estado: 'pendente', verificacao: 'pedidos-demais' });
+		expect(t.$('.dc-recado').textContent).toContain('Muitos pedidos seguidos');
+		/* A consulta de verdade que diz "aguardando" segue com o texto de sempre. */
+		t.c.receber({ tipo: 'doacao', acao: 'doacao-status', txid: g.txid, estado: 'pendente', verificacao: 'aguardando' });
+		expect(t.$('.dc-recado').textContent).toContain('Ainda não recebemos');
+	});
+
+	it('D-2636: "Ja paguei" sem resposta nenhuma em 45 s avisa, e nao fica em "Verificando…"', () => {
+		ateOGerar();
+		t.c.receber(geradaDeExemplo(t.r.agora()));
+		t.clicar('[data-dc="ja-paguei"]');
+		expect(t.$('.dc-recado').textContent).toBe('Verificando o pagamento…');
+		t.r.andar(TIMEOUT_DO_STATUS_MS);
+		expect(t.$('.dc-recado').textContent).toContain('Não conseguimos confirmar agora');
+		expect(t.c.estadoDaTela.tela).toBe('pagamento');
+	});
+
+	it('D-2636: as recusas novas do servidor tem texto: ja-gerando, pedidos-demais, falha-interna', () => {
+		ateOGerar();
+		t.c.receber({ tipo: 'doacao', acao: 'doacao-gerar', ok: false, recusa: 'ja-gerando', texto: 'x' });
+		expect(t.$('.dc-erro').textContent).toBe('Seu código está sendo gerado, aguarde.');
+		t.c.receber({ tipo: 'doacao', acao: 'doacao-gerar', ok: false, recusa: 'pedidos-demais', texto: 'x' });
+		expect(t.$('.dc-erro').textContent).toBe('Muitos pedidos seguidos. Aguarde alguns segundos e tente de novo.');
+		t.c.receber({ tipo: 'doacao', acao: 'doacao-gerar', ok: false, recusa: 'falha-interna', texto: 'x' });
+		expect(t.$('.dc-erro').textContent).toContain('Confira os códigos abertos antes de gerar outro');
+	});
+
+	it('D-2635: "Retomar" com o copia-e-cola guardado: o codigo e pagavel, com o credito do servidor', () => {
+		t.c.receber(
+			estadoDaDoacao({
+				abertos: [
+					{ txid: 'TX9', quantidade: 100, totalCentavos: 8900, creditoMinor: 11000, copiaECola: '000201pix-guardado', expiraEmMs: t.r.agora() + 600000 }
+				]
+			})
+		);
+		t.clicar('[data-dc="retomar"]');
+		expect(t.$('.dc-copia').value).toBe('000201pix-guardado');
+		expect(t.$('.dc-nota')).toBeNull();
+		expect(t.$('.dc-pag-info').textContent).toContain('110,00 RO Cash');
+		t.clicar('[data-dc="copiar"]');
+		return Promise.resolve().then(() => Promise.resolve()).then(() => expect(t.copias).toEqual(['000201pix-guardado']));
+	});
+
+	it('D-2635: a RECONEXAO no meio do gerar: o estado novo traz o codigo deste gerar e a janela o abre; o QR que chega depois o completa', () => {
+		/* Um codigo que JA estava aberto quando o gerar saiu. */
+		t.c.receber(
+			estadoDaDoacao({ abertos: [{ txid: 'VELHO', quantidade: 5, totalCentavos: 500, expiraEmMs: t.r.agora() + 600000 }] })
+		);
+		t.preencher();
+		t.clicar('[data-dc="gerar"]');
+		const antes = t.enviados.length;
+		t.c.aposReconectar();
+		expect(t.enviados.slice(antes)).toEqual([{ acao: 'doacao-estado' }]);
+		/* O codigo que ja estava aberto antes do gerar nao e o desta espera. */
+		t.c.receber(
+			estadoDaDoacao({ abertos: [{ txid: 'VELHO', quantidade: 5, totalCentavos: 500, expiraEmMs: t.r.agora() + 600000 }] })
+		);
+		expect(t.c.estadoDaTela.tela).toBe('escolha');
+		expect(t.c.estadoDaTela.gerando).toBe(true);
+		const g = geradaDeExemplo(t.r.agora());
+		t.c.receber(
+			estadoDaDoacao({
+				abertos: [
+					{ txid: 'VELHO', quantidade: 5, totalCentavos: 500, expiraEmMs: t.r.agora() + 600000 },
+					{ txid: g.txid, quantidade: 100, totalCentavos: 8900, creditoMinor: 10000, copiaECola: g.copiaECola, expiraEmMs: g.expiraEmMs }
+				]
+			})
+		);
+		expect(t.c.estadoDaTela.tela).toBe('pagamento');
+		expect(t.c.estadoDaTela.pagamento.txid).toBe(g.txid);
+		expect(t.$('.dc-copia').value).toBe(g.copiaECola);
+		expect(t.$('.dc-qr')).toBeNull();
+		t.clicar('[data-dc="ja-paguei"]');
+		expect(t.$('.dc-recado').textContent).toBe('Verificando o pagamento…');
+		/* A resposta do gerar chega depois (a conta recebeu na conexao nova): o MESMO pagamento ganha o QR. */
+		t.c.receber(g);
+		expect(t.c.estadoDaTela.tela).toBe('pagamento');
+		expect(t.$('.dc-qr').getAttribute('src')).toBe(g.imagemQrcode);
+		expect(t.enviados.filter(e => e.acao === 'doacao-gerar'), 'um pedido so').toHaveLength(1);
+		/* E o prazo de 45 s do gerar nao dispara mais o aviso. */
+		t.r.andar(TIMEOUT_DO_GERAR_MS);
+		expect(t.c.estadoDaTela.erro).toBe('');
+	});
+
+	it('D-2635: a janela que ficou no QR recebe o estado com o credito JA feito: "Obrigado"', () => {
+		ateOGerar();
+		const g = geradaDeExemplo(t.r.agora());
+		t.c.receber(g);
+		t.c.aposReconectar();
+		t.c.receber(estadoDaDoacao({ creditadas: [{ txid: 'OUTRO', quantidade: 5, creditoMinor: 500 }] }));
+		expect(t.c.estadoDaTela.tela, 'o credito de OUTRO codigo nao muda a tela').toBe('pagamento');
+		t.c.receber(estadoDaDoacao({ creditadas: [{ txid: g.txid, quantidade: 100, creditoMinor: 10000 }] }));
+		expect(t.c.estadoDaTela.tela).toBe('sucesso');
+		expect(t.$('.dc-sucesso .dc-recado-texto').textContent).toBe('+100,00 RO Cash na sua carteira.');
+	});
+
+	it('D-2635: o pagamento retomado SEM o copia-e-cola ganha o guardado quando o estado novo o traz', () => {
+		t.c.receber(estadoDaDoacao({ abertos: [{ txid: 'TX1', quantidade: 100, totalCentavos: 8900, expiraEmMs: t.r.agora() + 600000 }] }));
+		t.clicar('[data-dc="retomar"]');
+		expect(t.$('.dc-copia')).toBeNull();
+		t.c.receber(
+			estadoDaDoacao({ abertos: [{ txid: 'TX1', quantidade: 100, totalCentavos: 8900, copiaECola: 'pix-TX1', expiraEmMs: t.r.agora() + 600000 }] })
+		);
+		expect(t.$('.dc-copia').value).toBe('pix-TX1');
+	});
+});
+
+describe('a janela: o estado com prazo (D-2636)', () => {
+	it('sem resposta do estado em 15 s: "Tentar de novo", e nao "Carregando…" para sempre', () => {
+		t.r.andar(TIMEOUT_DO_ESTADO_MS - 1);
+		expect(t.$('.dc-carregando')).not.toBeNull();
+		t.r.andar(1);
+		expect(t.c.estadoDaTela.tela).toBe('falhou');
+		expect(t.$('.dc-recado-texto').textContent).toContain('O servidor não respondeu');
+		const antes = t.enviados.length;
+		t.clicar('[data-dc="recarregar"]');
+		expect(t.enviados.slice(antes)).toEqual([{ acao: 'doacao-estado' }]);
+		expect(t.$('.dc-carregando')).not.toBeNull();
+		t.c.receber(estadoDaDoacao());
+		expect(t.c.estadoDaTela.tela).toBe('escolha');
+		/* Com o estado na mao, o prazo do pedido seguinte nao derruba a tela. */
+		t.c.aposReconectar();
+		t.r.andar(TIMEOUT_DO_ESTADO_MS);
+		expect(t.c.estadoDaTela.tela).toBe('escolha');
+	});
+
+	it('o estado que FALHOU no servidor mostra o texto dele, e nao "indisponivel"', () => {
+		t.c.receber({ ...estadoDaDoacao({ disponivel: false }), falhou: true, motivo: 'sem-resposta', texto: 'Não foi possível carregar a doação agora.' });
+		expect(t.c.estadoDaTela.tela).toBe('falhou');
+		expect(t.$('.dc-recado-texto').textContent).toBe('Não foi possível carregar a doação agora.');
+		expect(t.c.estadoDaTela.estado, 'o estado torto nao vira o estado da janela').toBeNull();
+	});
+
+	it('o estado que falhou NAO apaga o estado bom que a janela ja tem', () => {
+		t.c.receber(estadoDaDoacao());
+		t.c.receber({ ...estadoDaDoacao({ disponivel: false }), falhou: true, texto: 'x' });
+		expect(t.c.estadoDaTela.tela).toBe('escolha');
+		expect(t.c.estadoDaTela.estado.disponivel).toBe(true);
+	});
+
+	it('fechar na tela "falhou" e reabrir volta a carregar e pede de novo', () => {
+		t.r.andar(TIMEOUT_DO_ESTADO_MS);
+		t.c.fechar();
+		const antes = t.enviados.length;
+		t.c.abrir();
+		expect(t.$('.dc-carregando')).not.toBeNull();
+		expect(t.enviados.slice(antes)).toEqual([{ acao: 'doacao-estado' }]);
 	});
 });
 
@@ -691,6 +900,27 @@ describe('a costura com o MapEngine', () => {
 
 	it('o append vem DEPOIS do CZ_NOTIFY_ACTORINIT (aviso D-993)', () => {
 		expect(mapa.indexOf('DoacaoIdle.append();')).toBeGreaterThan(mapa.indexOf('new PACKET.CZ.NOTIFY_ACTORINIT()'));
+	});
+
+	it('D-2636: a conexao nova ARMA o pedido do estado no aceite e o faz DEPOIS do CZ_NOTIFY_ACTORINIT', () => {
+		expect(mapa).toContain('() => DoacaoIdle.aposReconectar(),');
+		const aceite = mapa.indexOf('function onConnectionAccepted(pkt)');
+		const armar = mapa.indexOf('_doacaoNaConexaoNova.armar();');
+		expect(armar).toBeGreaterThan(aceite);
+		expect(armar).toBeLessThan(mapa.indexOf('onMapChange(peloAceite, true);', aceite));
+		expect(mapa.split('_doacaoNaConexaoNova.armar();').length, 'uma porta so: o aceite').toBe(2);
+		/* O pedido sai num setTimeout agendado ATRAS da rede do estou-pronto: o pacote ja saiu quando ele roda. */
+		const rede = mapa.indexOf('setTimeout(estouPronto, 0);');
+		const feito = mapa.indexOf('setTimeout(() => _doacaoNaConexaoNova.depoisDoEstouPronto(), 0);');
+		expect(rede).toBeGreaterThan(mapa.indexOf('Network.sendPacket(new PACKET.CZ.NOTIFY_ACTORINIT());'));
+		expect(feito).toBeGreaterThan(rede);
+		expect(mapa.split('_doacaoNaConexaoNova.depoisDoEstouPronto()').length, 'um lugar so').toBe(2);
+	});
+
+	it('D-2636: a DoacaoIdle so pede de novo com a janela ABERTA', () => {
+		const costura = ler('src/UI/Components/DoacaoIdle/DoacaoIdle.js').replace(/\r\n/g, '\n');
+		const fn = costura.slice(costura.indexOf('DoacaoIdle.aposReconectar = function'));
+		expect(fn.slice(0, fn.indexOf('};'))).toMatch(/if \(!estaAberta\(\)\) \{\n\t\treturn;\n\t\}[\s\S]*c\.aposReconectar\(\);/);
 	});
 
 	it('a janela carrega .ri-window (a regra de painel do celular a alcanca)', () => {
