@@ -504,6 +504,34 @@ describe('a janela: gerar, pagar e confirmar', () => {
 		expect(t.$('.dc-qr')).not.toBeNull();
 	});
 
+	it('a tela de pagamento abre NO TOPO (o QR inteiro), e o redesenho dela mantem a rolagem do jogador', () => {
+		ateOGerar();
+		/* O jogador desceu a escolha ate o "Gerar código PIX". */
+		const rolavel = t.$('.dc-body');
+		rolavel.scrollTop = 420;
+		t.c.receber(geradaDeExemplo(t.r.agora()));
+		expect(t.$('.dc-qr')).not.toBeNull();
+		expect(rolavel.scrollTop).toBe(0);
+	});
+
+	it('o REDESENHO da mesma tela de pagamento (o QR que completa o codigo aberto pelo estado) mantem a rolagem do jogador', () => {
+		t.c.receber(estadoDaDoacao());
+		t.preencher();
+		t.clicar('[data-dc="gerar"]');
+		const g = geradaDeExemplo(t.r.agora());
+		t.c.receber(
+			estadoDaDoacao({
+				abertos: [{ txid: g.txid, quantidade: 100, totalCentavos: 8900, creditoMinor: 10000, copiaECola: g.copiaECola, expiraEmMs: g.expiraEmMs }]
+			})
+		);
+		expect(t.c.estadoDaTela.tela).toBe('pagamento');
+		const rolavel = t.$('.dc-body');
+		rolavel.scrollTop = 120;
+		t.c.receber(g);
+		expect(t.$('.dc-qr').getAttribute('src')).toBe(g.imagemQrcode);
+		expect(rolavel.scrollTop).toBe(120);
+	});
+
 	it('QR que nao e data URI de imagem nao vira <img>', () => {
 		ateOGerar();
 		t.c.receber(geradaDeExemplo(t.r.agora(), { imagemQrcode: 'https://mal.example/qr.png' }));

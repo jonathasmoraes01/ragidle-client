@@ -191,11 +191,29 @@ export function criarControladorDaDoacao(opcoes) {
 		return $('.dc-corpo');
 	}
 
+	/*
+	 * A TELA NOVA COMECA NO TOPO (17/10/2026). Quem rola e o `.dc-body`: a escolha
+	 * e longa, o jogador desce ate o "Gerar código PIX", e a tela de pagamento
+	 * herdava a rolagem - o QR abria com o topo cortado no desktop, e QR cortado
+	 * nao se escaneia (visto na foto da prove:pix-em-todos-os-cenarios). So na
+	 * TROCA de tela: o redesenho da mesma tela (o relogio) mantem a rolagem dele.
+	 */
+	function rolarAoTopoSeTrocou(el) {
+		if (_desenhada === s.tela) {
+			return;
+		}
+		const rolavel = el.closest ? el.closest('.dc-body') : null;
+		if (rolavel) {
+			rolavel.scrollTop = 0;
+		}
+	}
+
 	function render() {
 		const el = corpo();
 		if (!el) {
 			return;
 		}
+		rolarAoTopoSeTrocou(el);
 		if (s.tela === 'escolha') {
 			if (_desenhada !== 'escolha') {
 				el.innerHTML = htmlDaEscolha();
