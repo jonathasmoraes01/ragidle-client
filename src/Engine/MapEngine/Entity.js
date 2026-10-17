@@ -62,6 +62,7 @@ import MercenaryInformations from 'UI/Components/MercenaryInformations/Mercenary
 import Inventory from 'UI/Components/Inventory/Inventory.js';
 import ShortCut from 'UI/Components/ShortCut/ShortCut.js';
 import StatusIcons from 'UI/Components/StatusIcons/StatusIcons.js';
+import { restanteDoPacote } from 'UI/Components/StatusIcons/restanteDosPasses.js'; // RAGIDLE: o VIP e as Flechas com os dias de verdade
 import StatusIdle from 'UI/Components/StatusIdle/StatusIdle.js'; // RAGIDLE: a ficha ouve mudanca de status (D-853)
 import MiniMap from 'UI/Components/MiniMap/MiniMap.js';
 import PartyFriends from 'UI/Components/PartyFriends/PartyFriends.js';
@@ -2740,7 +2741,9 @@ function onEntityStatusChange(pkt) {
 
 	// Modify icon
 	if (entity === Session.Entity) {
-		StatusIcons.update(pkt.index, pkt.state, pkt.RemainMS);
+		// O VIP e as Flechas Infinitas contam pelo `val[0]` em segundos quando ele
+		// vem: o `RemainMS` u32 para em ~49 dias (`restanteDosPasses.js`).
+		StatusIcons.update(pkt.index, pkt.state, restanteDoPacote(pkt));
 		/*
 		 * A JANELA DE STATUS PRECISA SABER (29/08/2026, achado de auditoria).
 		 *
