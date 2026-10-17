@@ -429,6 +429,13 @@ async function principal() {
 			await rolarAte(page, '[data-dc="voltar"]');
 			await foto('11-ja-paguei-sem-consulta');
 
+			/* D-2635: o QR grande demais para o pacote (64 KB) chega sem a imagem. */
+			await preparar(page, vertical);
+			await page.evaluate(() =>
+				window.__c.receber(window.__gerada(window.__agora, { imagemQrcode: null, qrForaDoPacote: true }))
+			);
+			await foto('12-pagamento-sem-qr-copia-e-cola');
+
 			await contexto.close();
 		}
 	} finally {

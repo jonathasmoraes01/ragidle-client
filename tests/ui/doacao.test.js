@@ -699,7 +699,8 @@ describe('a janela: gerar, pagar e confirmar', () => {
 		);
 		t.clicar('[data-dc="retomar"]');
 		expect(t.$('.dc-copia').value).toBe('000201pix-guardado');
-		expect(t.$('.dc-nota')).toBeNull();
+		/* Sem o QR em imagem (o estado nao o traz), a nota manda copiar o codigo. */
+		expect(t.$('.dc-nota').textContent).toBe('Copie o código abaixo e cole na opção PIX copia e cola do app do seu banco.');
 		expect(t.$('.dc-pag-info').textContent).toContain('110,00 RO Cash');
 		t.clicar('[data-dc="copiar"]');
 		return Promise.resolve().then(() => Promise.resolve()).then(() => expect(t.copias).toEqual(['000201pix-guardado']));
@@ -744,6 +745,24 @@ describe('a janela: gerar, pagar e confirmar', () => {
 		/* E o prazo de 45 s do gerar nao dispara mais o aviso. */
 		t.r.andar(TIMEOUT_DO_GERAR_MS);
 		expect(t.c.estadoDaTela.erro).toBe('');
+	});
+
+	it('D-2635: o QR grande demais para o pacote chega sem a imagem: o pagamento abre pelo copia-e-cola, com a nota', () => {
+		ateOGerar();
+		const g = geradaDeExemplo(t.r.agora(), { imagemQrcode: null, qrForaDoPacote: true });
+		t.c.receber(g);
+		expect(t.c.estadoDaTela.tela).toBe('pagamento');
+		expect(t.$('.dc-qr')).toBeNull();
+		expect(t.$('.dc-copia').value).toBe(g.copiaECola);
+		expect(t.$('.dc-nota').textContent).toContain('Copie o código abaixo');
+		/* Com o QR, nenhuma nota. */
+		t.clicar('[data-dc="voltar"]');
+		t.c.receber(estadoDaDoacao());
+		t.preencher();
+		t.clicar('[data-dc="gerar"]');
+		t.c.receber(geradaDeExemplo(t.r.agora()));
+		expect(t.$('.dc-qr')).not.toBeNull();
+		expect(t.$('.dc-nota')).toBeNull();
 	});
 
 	it('D-2635: a janela que ficou no QR recebe o estado com o credito JA feito: "Obrigado"', () => {

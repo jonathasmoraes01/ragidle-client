@@ -489,6 +489,16 @@ export function criarControladorDaDoacao(opcoes) {
 			html += `<div class="dc-qr-moldura"><img class="dc-qr" src="${escapeHtml(qr)}" alt="QR Code do PIX" draggable="false"></div>`;
 		}
 		if (typeof p.copiaECola === 'string' && p.copiaECola) {
+			/*
+			 * SEM O QR EM IMAGEM, o copia-e-cola e o caminho (D-2635): o codigo
+			 * retomado (o estado nao traz a imagem) e o QR grande demais para o
+			 * pacote (`qrForaDoPacote`, o teto de 64 KB). O fork nao tem gerador de
+			 * QR, e o copia-e-cola e pagavel no app do banco.
+			 */
+			if (!qr) {
+				html +=
+					'<p class="dc-nota">Copie o código abaixo e cole na opção PIX copia e cola do app do seu banco.</p>';
+			}
 			html +=
 				'<div class="dc-rotulo">PIX copia e cola</div>' +
 				'<div class="dc-copia-linha">' +
